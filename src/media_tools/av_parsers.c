@@ -1728,11 +1728,13 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si)
     si->frame_num = gf_bs_read_int(bs, si->sps->log2_max_frame_num);
 
 	si->field_pic_flag = 0;
+	si->bottom_field_flag = 0;
     if (si->sps->frame_mbs_only_flag) {
         /*s->picture_structure= PICT_FRAME;*/
     } else {
 		si->field_pic_flag = gf_bs_read_int(bs, 1);
-        if (si->field_pic_flag) si->bottom_field_flag = gf_bs_read_int(bs, 1);
+        if (si->field_pic_flag)
+			si->bottom_field_flag = gf_bs_read_int(bs, 1);
     }
 	if (si->nal_unit_type==GF_AVC_NALU_IDR_SLICE)
 		si->idr_pic_id = avc_get_ue(bs);
@@ -1892,6 +1894,7 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 			break;
 		}
 		if (avc->s_info.frame_num != n_state.frame_num) { ret = 1; break; }
+
 		if (avc->s_info.field_pic_flag != n_state.field_pic_flag) { ret = 1; break; }
 		if ((avc->s_info.nal_ref_idc != n_state.nal_ref_idc) &&
 			(!avc->s_info.nal_ref_idc || !n_state.nal_ref_idc)) {
@@ -1902,7 +1905,10 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 
 		if (avc->s_info.sps->poc_type == n_state.sps->poc_type) {
 			if (!avc->s_info.sps->poc_type) {
-				if (avc->s_info.poc_lsb != n_state.poc_lsb) { ret = 1; break; }
+				if (!n_state.bottom_field_flag && (avc->s_info.poc_lsb != n_state.poc_lsb)) { 
+					ret = 1; 
+					break;
+				}
 				if (avc->s_info.delta_poc_bottom != n_state.delta_poc_bottom) {
 					ret = 1;
 					break;
@@ -1926,6 +1932,9 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 			}
 		}
 		break;
+	case GF_AVC_NALU_SEQ_PARAM:
+	case GF_AVC_NALU_PIC_PARAM:
+		return 0;
 	default:
 		if (avc->s_info.nal_unit_type <= GF_AVC_NALU_IDR_SLICE) ret = 1;
 		else ret = 0;

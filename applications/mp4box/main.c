@@ -2056,18 +2056,17 @@ int main(int argc, char **argv)
 	}
 
 	strcpy(outfile, outName ? outName : inName);
-	if (strchr(outfile, '.')) {
-		char szExt[20];
-		strcpy(szExt, strchr(outfile, '.'));
-		strlwr(szExt);
-		/*turn on 3GP saving*/
-		if (!strcmp(szExt, ".3gp") || !strcmp(szExt, ".3gpp") || !strcmp(szExt, ".3g2")) 
-			conv_type = GF_ISOM_CONV_TYPE_3GPP;
-		else if (!strcmp(szExt, ".m4a") || !strcmp(szExt, ".m4v"))
-			conv_type = GF_ISOM_CONV_TYPE_IPOD;
-		else if (!strcmp(szExt, ".psp"))
-			conv_type = GF_ISOM_CONV_TYPE_PSP;
+	if (strrchr(outfile, '.')) {
+		char *szExt = strrchr(outfile, '.');
 
+		/*turn on 3GP saving*/
+		if (!stricmp(szExt, ".3gp") || !stricmp(szExt, ".3gpp") || !stricmp(szExt, ".3g2")) 
+			conv_type = GF_ISOM_CONV_TYPE_3GPP;
+		else if (!stricmp(szExt, ".m4a") || !stricmp(szExt, ".m4v"))
+			conv_type = GF_ISOM_CONV_TYPE_IPOD;
+		else if (!stricmp(szExt, ".psp"))
+			conv_type = GF_ISOM_CONV_TYPE_PSP;
+		
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 	}
