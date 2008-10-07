@@ -1184,6 +1184,7 @@ EXPORTS
 	gf_m2ts_set_pes_framing
 	gf_m2ts_get_stream_name
 	gf_m2ts_crc32
+	gf_m2ts_crc32_check
 	gf_m2ts_decode_mjd_date
 
 ;laser.h exports
