@@ -80,7 +80,18 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	gf_term_download_update_stats(rtp->dnload);
 
 	e = param->error;
-	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
+	switch (param->msg_type) {
+	case GF_NETIO_GET_CONTENT:
+		if (sdp->original_url) {
+			char szBody[4096], *opt;
+			opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Network", "MobileIP");
+			sprintf(szBody, "ipadd\n%s\n\nurl\n%s\n\n", opt, sdp->original_url);
+			param->data = szBody;
+			param->size = strlen(szBody);
+		}
+		return;
+	case GF_NETIO_DATA_TRANSFERED:
+	{
 		const char *szFile = gf_dm_sess_get_cache_name(rtp->dnload);
 		if (!szFile) {
 			e = GF_SERVICE_ERROR;
@@ -88,12 +99,26 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			e = GF_OK;
 			RP_SDPFromFile(rtp, (char *) szFile, sdp->chan);
 			free(sdp->remote_url);
+			if (sdp->original_url) free(sdp->original_url);
 			free(sdp);
 			rtp->sdp_temp = NULL;
 			return;
 		}
 	}
-	else if (e == GF_OK) return;
+	default:
+		if (e == GF_OK) return;
+	}
+
+	if (sdp->original_url) {
+		char *url = sdp->original_url;
+		free(sdp->remote_url);
+		free(sdp);
+		rtp->sdp_temp = NULL;
+		gf_term_on_message(rtp->service, e, "Error fetching session state - restarting");
+		RP_ConnectServiceEx(gf_term_get_service_interface(rtp->service), rtp->service, url, 1);
+		free(url);
+		return;	 
+	}
 
 	/*error*/
 	if (sdp->chan) {
@@ -103,13 +128,14 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		rtp->sdp_temp = NULL;
 	}
 	free(sdp->remote_url);
+	if (sdp->original_url) free(sdp->original_url);
 	free(sdp);
+	rtp->sdp_temp = NULL;
 }
 
-void RP_FetchSDP(GF_InputService *plug, char *url, RTPStream *stream)
+void RP_FetchSDP(RTPClient *rtp, char *url, RTPStream *stream, char *original_url)
 {
 	SDPFetch *sdp;
-	RTPClient *rtp = (RTPClient *) plug->priv;
 	/*if local URL get file*/
 	if (strstr(url, "data:application/sdp")) {
 		RP_SDPFromData(rtp, url, stream);
@@ -125,6 +151,7 @@ void RP_FetchSDP(GF_InputService *plug, char *url, RTPStream *stream)
 	sdp->client = rtp;
 	sdp->remote_url = strdup(url);
 	sdp->chan = stream;
+	if (original_url) sdp->original_url = strdup(original_url);
 
 	/*otherwise setup download*/
 	if (rtp->dnload) gf_term_download_del(rtp->dnload);

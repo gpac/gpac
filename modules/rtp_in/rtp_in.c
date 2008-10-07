@@ -188,7 +188,7 @@ static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 	return 0;
 }
 
-static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
+GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const char *url, Bool skip_migration)
 {
 	char *session_cache;
 	RTSPSession *sess;
@@ -208,20 +208,28 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 	/*start thread*/
 	gf_th_run(priv->th, RP_Thread, priv);
 
-	session_cache = (char *) gf_modules_get_option((GF_BaseInterface *) plug, "Streaming", "SessionMigrationFile");
-	if (session_cache && session_cache[0]) {
-		FILE *f = fopen(session_cache, "rb");
-		if (f) {
-			fclose(f);
-			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[RTP] Restarting RTSP session from %s\n", session_cache));
-			RP_FetchSDP(plug, (char *) session_cache, NULL);
-			return GF_OK;
+	if (!skip_migration) {
+		session_cache = (char *) gf_modules_get_option((GF_BaseInterface *) plug, "Streaming", "SessionMigrationFile");
+		if (session_cache && session_cache[0]) {
+			FILE *f = fopen(session_cache, "rb");
+			if (f) {
+				fclose(f);
+				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[RTP] Restarting RTSP session from %s\n", session_cache));
+				RP_FetchSDP(priv, (char *) session_cache, NULL, (char *) url);
+				return GF_OK;
+			}
+			if (!strncmp(session_cache, "http://", 7)) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[RTP] Restarting RTSP session from %s\n", session_cache));
+				RP_FetchSDP(priv, (char *) session_cache, NULL, (char *) url);
+				return GF_OK;
+			}
 		}
 	}
 
+
 	/*local or remote SDP*/
 	if (strstr(url, "data:application/sdp") || (strnicmp(url, "rtsp", 4) && strstr(url, ".sdp")) ) {
-		RP_FetchSDP(plug, (char *) url, NULL);
+		RP_FetchSDP(priv, (char *) url, NULL, NULL);
 		return GF_OK;
 	}
 	
@@ -249,6 +257,11 @@ static GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, c
 	gf_term_on_connect(serv, NULL, GF_OK);
 	RP_SetupObjects(priv);
 	return GF_OK;
+}
+
+GF_Err RP_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
+{
+	return RP_ConnectServiceEx(plug, serv, url, 0);
 }
 
 static void RP_FlushCommands(RTPClient *rtp)
@@ -683,6 +696,8 @@ void RTP_Delete(GF_BaseInterface *bi)
 	assert(retry);
 
 	if (rtp->session_state) free(rtp->session_state);
+	if (rtp->remote_session_state) free(rtp->remote_session_state);
+
 
 	RP_cleanup(rtp);
 	gf_th_del(rtp->th);
