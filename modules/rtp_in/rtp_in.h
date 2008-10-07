@@ -82,8 +82,9 @@ typedef struct
 	/*for single-object control*/
 	u32 media_type;
 
-	/*temp location of the session state (SDP file)*/
+	/*location of the session state (SDP file)*/
 	char *session_state;
+	char *remote_session_state;
 	/*if set ANNOUNCE (sent by server) will be handled*/
 //	Bool handle_announce;
 } RTPClient;
@@ -224,6 +225,9 @@ typedef struct
 	u32 ts_res;
 } RTPStream;
 
+GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const char *url, Bool skip_migration);
+
+
 /*creates new RTP stream from SDP info*/
 RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTPStream *input_stream);
 /*destroys RTP stream */
@@ -237,7 +241,7 @@ GF_Err RP_DataOnTCP(GF_RTSPSession *sess, void *cbck, char *buffer, u32 bufferSi
 void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e);
 
 /*fetch sdp file - stream is the RTP channel this sdp describes, or NULL if session sdp*/
-void RP_FetchSDP(GF_InputService *plug, char *url, RTPStream *stream);
+void RP_FetchSDP(RTPClient *rtp, char *url, RTPStream *stream, char *original_url);
 
 /*locate RTP stream by channel or ES_ID or control*/
 RTPStream *RP_FindChannel(RTPClient *rtp, LPNETCHANNEL ch, u32 ES_ID, char *es_control, Bool remove_stream);
@@ -322,6 +326,7 @@ typedef struct _sdp_fetch
 	RTPStream *chan;
 
 	char *remote_url;
+	char *original_url;
 } SDPFetch;
 
 
