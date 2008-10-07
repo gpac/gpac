@@ -625,7 +625,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = (unsigned char*)malloc(sizeof(unsigned char)*pck.data_len);
-		    memcpy(pck.data, sec->section, sizeof(unsigned char)*pck.data_len);
+			memcpy(pck.data, sec->section, sizeof(unsigned char)*pck.data_len);
 			//pck.data[pck.data_len] = 0;
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_event(ts, GF_M2TS_EVT_DVB_GENERAL, &pck);
@@ -646,6 +646,18 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 
 		/*look for proper table*/
 		table_id = data[0];
+
+		if (table_id == GF_M2TS_TABLE_ID_PMT && ts->on_event) {
+			GF_M2TS_SL_PCK pck;
+			pck.data_len = sec->length;
+			pck.data = (unsigned char*)malloc(sizeof(unsigned char)*pck.data_len);
+			memcpy(pck.data, sec->section, sizeof(unsigned char)*pck.data_len);
+			//pck.data[pck.data_len] = 0;
+			pck.stream = (GF_M2TS_ES *)ses;
+			ts->on_event(ts, GF_M2TS_EVT_DVB_GENERAL, &pck);
+			free(pck.data);
+		}
+
 		has_syntax_indicator = (data[1] & 0x80) ? 1 : 0;
 		if (has_syntax_indicator) {
 			extended_table_id = (data[3]<<8) | data[4];
@@ -910,7 +922,8 @@ static void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *mpe, GF
 
 static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *nit_es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
-	fprintf(stdout, "Processing NIT (PID %d)\n", table_id);
+	
+	
 }
 
 static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
