@@ -476,6 +476,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode);
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size);
 
 u32 gf_m2ts_crc32(char *data, u32 len);
+u32 gf_m2ts_crc32_check(char *data, u32 len);
 
 /*MPEG-2 Descriptor tags*/
 enum
