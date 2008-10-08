@@ -382,14 +382,16 @@ void MigrateSDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Network", "MobileIP");
 			sprintf(szBody, "ipadd\n%s\n\nurl\n%s\n\ndata\n", opt, gf_term_get_service_url(rtp->service) );
 			len1 = strlen(szBody);
-			f = fopen(rtp->session_state, "r");
+			f = fopen(rtp->session_state, "r+t");
 			fseek(f, 0, SEEK_END);
 			len2 = ftell(f);
 			fseek(f, 0, SEEK_SET);
-			fread(szBody+len1, len2, 1, f);
+			len2 = fread(szBody+len1, 1, len2, f);
 			fclose(f);
+			szBody[len1+len2] = 0;
 
-			param->data = szBody;
+			rtp->tmp_buf = strdup(szBody);
+			param->data = rtp->tmp_buf;
 			param->size = strlen(szBody);
 	}
 		return;
@@ -537,6 +539,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 			e = gf_dm_sess_fetch_data(rtp->dnload, buffer, 100, &read);
 			if (e && (e!=GF_IP_NETWORK_EMPTY)) break;
 		}
+		if (rtp->tmp_buf) free(rtp->tmp_buf);
 		gf_term_download_del(rtp->dnload);
 		rtp->dnload = NULL;
 		if (e<0) {

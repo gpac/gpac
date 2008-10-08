@@ -85,6 +85,7 @@ typedef struct
 	/*location of the session state (SDP file)*/
 	char *session_state;
 	char *remote_session_state;
+	char *tmp_buf;
 	/*if set ANNOUNCE (sent by server) will be handled*/
 //	Bool handle_announce;
 } RTPClient;

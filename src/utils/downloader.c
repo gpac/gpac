@@ -1170,6 +1170,7 @@ void http_do_requests(GF_DownloadSession *sess)
 #endif
 				e = gf_sk_send(sess->sock, tmp_buf, len+par.size);
 
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s\n\n", tmp_buf));
 			free(tmp_buf);
 		} else {
 
@@ -1180,9 +1181,10 @@ void http_do_requests(GF_DownloadSession *sess)
 			} else 
 #endif
 				e = gf_sk_send(sess->sock, sHTTP, strlen(sHTTP));
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s\n\n", sHTTP));
 		}
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s\n\n", sHTTP));
 		if (e) {
 			sess->status = GF_NETIO_STATE_ERROR;
 			sess->last_error = e;
