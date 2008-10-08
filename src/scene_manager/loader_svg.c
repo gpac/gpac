@@ -31,6 +31,9 @@
 #include <gpac/internal/laser_dev.h>
 #include <gpac/nodes_svg.h>
 
+#include <gpac/internal/terminal_dev.h>
+
+
 #ifndef GPAC_DISABLE_SVG
 
 typedef struct _st_entry
@@ -131,6 +134,10 @@ static GF_Err svg_report(GF_SVG_Parser *parser, GF_Err e, char *format, ...)
 
 static void svg_progress(void *cbk, u32 done, u32 total)
 {
+	GF_SVG_Parser *parser = (GF_SVG_Parser *)cbk;
+	if (parser->load && parser->load->is && parser->load->is->scene_codec && parser->load->is->scene_codec->odm) {
+		gf_term_service_media_event(parser->load->is->scene_codec->odm, GF_EVENT_MEDIA_BEGIN_SESSION_SETUP); 
+	}
 	gf_set_progress("SVG (Dynamic Attribute List) Parsing", done, total);
 }
 
@@ -792,9 +799,9 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		SVG_Element *listener;
 		u32 type;
 		GF_FieldInfo info;
-		listener = (SVG_Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener)
+		listener = (SVG_Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
 		/*do not register the listener, this will be done in gf_node_dom_listener_add. We don't want to
-		insert the implicit listener in the DOM*/;
+		insert the implicit listener in the DOM*/
 
 		/* this listener listens to the given type of event */
 		type = gf_dom_event_type_by_name(ev_event);
@@ -1558,8 +1565,9 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 				}
 				break;
 			}
-			/*if we have associated event listeners, trigger the onLoad*/
-			if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) {
+			/*if we have associated event listeners, trigger the onLoad, only in playback mode */
+			if ((parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) && 
+				(node->sgprivate->interact && node->sgprivate->interact->dom_evt)) {
 				GF_DOM_Event evt;
 				memset(&evt, 0, sizeof(GF_DOM_Event));
 				evt.type = GF_EVENT_LOAD;

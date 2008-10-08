@@ -1272,6 +1272,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.RandomAccessIndication = 1;
 		/*we map DIMS CTR to AU seq num, hence 3 bits*/
 		rtp->sl_map.StreamStateIndication = 3;
+		rtp->sl_map.IndexLength = 3;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_3gpp_dims;
 		break;

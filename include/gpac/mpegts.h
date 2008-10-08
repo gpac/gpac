@@ -125,6 +125,7 @@ enum
 		THIS MUST BE CLEANED UP
 	*/
 	GF_M2TS_EVT_AAC_CFG,
+#if 0
 	/* An EIT message for the present or following event on this TS has been received */
 	GF_M2TS_EVT_EIT_ACTUAL_PF,
 	/* An EIT message for the schedule of this TS has been received */
@@ -137,6 +138,7 @@ enum
 	GF_M2TS_EVT_TDT,
 	/* A message to inform about the current time offset in the TS */
 	GF_M2TS_EVT_TOT,
+#endif
 	/* A generic event message for EIT, TDT, TOT etc */
 	GF_M2TS_EVT_DVB_GENERAL,
 };
