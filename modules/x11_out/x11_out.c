@@ -204,7 +204,7 @@ GF_Err X11_Blit(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *
 		xwin->overlay = XvCreateImage(xwin->display, xwin->xvport, xwin->xv_pf_format, NULL, video_src->width, video_src->height);
 		if (!xwin->overlay) return GF_IO_ERR;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[X11] Blit surface - overlay type %s\n", 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[X11] Blit surface to dest %d x %d - overlay type %s\n", dest->w, dest->h,
 					(overlay_type==0)? "none" : ((overlay_type==1) ? "Top-Level" : "ColorKey") 
 	));
 
@@ -767,7 +767,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 		  case FocusIn:
 		//	if (!xWindow->fullscreen) xWindow->has_focus = 1;
 		    break;
-		    
+
 		  case DestroyNotify:
 		      evt.type = GF_EVENT_QUIT;
 		      vout->on_event(vout->evt_cbk_hdl, &evt);
@@ -787,7 +787,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
   GF_Event evt;
   XWindow *xWin = (XWindow *)vout->opaque;
 
-  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[X11] Selecting GL display\n"));
+  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[X11] Setting up GL for display %d\n", xWin->display));
   XSync(xWin->display, False);
   xWin->glx_context = glXCreateContext(xWin->display,xWin->glx_visualinfo, NULL, True);
   XSync(xWin->display, False);
@@ -1198,9 +1198,10 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	xWindow->bpp = xWindow->depth / 8;
 	xWindow->bpp = xWindow->bpp == 3 ? 4 : xWindow->bpp;
 
+xWindow->screennum=0;
 	vout->max_screen_width = DisplayWidth(xWindow->display, xWindow->screennum);
 	vout->max_screen_height = DisplayHeight(xWindow->display, xWindow->screennum);
-
+fprintf(stdout, "%d %d\n", vout->max_screen_width, vout->max_screen_height);
 	/*
 	 * Full screen wnd
 	 */
@@ -1366,12 +1367,14 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	  attribs[i++] = nb_bits;
 	  attribs[i++] = GLX_BLUE_SIZE;
 	  attribs[i++] = nb_bits;
-	  attribs[i++] = GLX_DEPTH_SIZE;
 	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth");
-	  nb_bits = sOpt ? atoi(sOpt) : 16;
-	  attribs[i++] = nb_bits;
-	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering");
-	if (sOpt && !strcmp(sOpt, "yes")) attribs[i++] = GLX_DOUBLEBUFFER;
+	  nb_bits = sOpt ? atoi(sOpt) : 0;
+	  if (nb_bits) {
+		  attribs[i++] = GLX_DEPTH_SIZE;
+		  attribs[i++] = nb_bits;
+	  }
+	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering");
+	  if (!sOpt || !strcmp(sOpt, "yes")) attribs[i++] = GLX_DOUBLEBUFFER;
 	  attribs[i++] = None;
 	  xWindow->glx_visualinfo = glXChooseVisual(xWindow->display, xWindow->screennum, attribs);
 	  if (!xWindow->glx_visualinfo) {
