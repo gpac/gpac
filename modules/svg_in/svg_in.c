@@ -229,6 +229,7 @@ static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool
 {
 	SVGIn *svgin = (SVGIn *)plug->privateStack;
 	memset(&svgin->loader, 0, sizeof(GF_SceneLoader));
+	svgin->loader.is = scene;
 	svgin->inline_scene = scene;
 	svgin->loader.scene_graph = scene->graph;
 	svgin->loader.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");

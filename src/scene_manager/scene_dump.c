@@ -451,6 +451,8 @@ void DumpUTFString(GF_SceneDumper *sdump, char *str)
 			case '&': fprintf(sdump->trace, "&amp;"); break;
 			case '>': fprintf(sdump->trace, "&gt;"); break;
 			case '<': fprintf(sdump->trace, "&lt;"); break;
+			case '\r': fprintf(sdump->trace, ""); break;
+			case '\n': fprintf(sdump->trace, ""); break;
 			default:
 			  if (uniLine[i]<128) {
 				fprintf(sdump->trace, "%c", (u8) uniLine[i]);
@@ -2659,7 +2661,11 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 				}
 			}
 			else if (xlink->type==XMLRI_STREAMID) {
-				fprintf(sdump->trace, "xlink:href=\"#stream%d\" ", xlink->lsr_stream_id);
+				fprintf(sdump->trace, " xlink:href=\"#stream%d\"", xlink->lsr_stream_id);
+				att = att->next;
+				continue;
+			} else {
+				fprintf(sdump->trace, " xlink:href=\"%s\"", xlink->string);
 				att = att->next;
 				continue;
 			}
@@ -2673,7 +2679,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		}
 		info.far_ptr = att->data;
 		gf_svg_dump_attribute((GF_Node*)svg, &info, attValue);
-		if ((info.fieldType = strlen(attValue)))
+		if (strcmp(info.name, "xmlns") && (info.fieldType = strlen(attValue)))
 			fprintf(sdump->trace, " %s=\"%s\"", info.name, attValue);
 		fflush(sdump->trace);
 		att = att->next;

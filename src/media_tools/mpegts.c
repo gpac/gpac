@@ -27,7 +27,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/math.h>
 
-#define DEBUG_TS_PACKET 1
+#define DEBUG_TS_PACKET 0
 
 const char *gf_m2ts_get_stream_name(u32 streamType)
 {
@@ -1242,7 +1242,7 @@ static void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_s
 		len_check += 5;
 	}
 	if (len_check < pesh->hdr_data_len) {		
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Skipping % bytes in pes header\n", pes->pid, pesh->hdr_data_len - len_check));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Skipping %d bytes in pes header\n", pes->pid, pesh->hdr_data_len - len_check));
 	} else if (len_check > pesh->hdr_data_len) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Wrong pes_header_data_length field %d bytes - read %d\n", pes->pid, pesh->hdr_data_len, len_check));
 	}

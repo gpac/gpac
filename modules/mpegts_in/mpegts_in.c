@@ -631,20 +631,11 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_SDT_FOUND:
 		M2TS_FlushRequested(m2ts);
 		break;
-	case GF_M2TS_EVT_EIT_ACTUAL_PF:
-	case GF_M2TS_EVT_EIT_OTHER_PF:
-	case GF_M2TS_EVT_EIT_ACTUAL_SCHEDULE:
-	case GF_M2TS_EVT_EIT_OTHER_SCHEDULE:
-		if (m2ts->eit_channel) 
-			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, evt_type, NULL, GF_OK);
-		break;
-	case GF_M2TS_EVT_TDT:
-		if (m2ts->eit_channel) 
-			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, evt_type, NULL, GF_OK);
-		break;
-	case GF_M2TS_EVT_TOT:
-		if (m2ts->eit_channel) 
-			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, param, evt_type, NULL, GF_OK);
+	case GF_M2TS_EVT_DVB_GENERAL:
+		if (m2ts->eit_channel) {
+			GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)param;
+			gf_term_on_sl_packet(m2ts->service, m2ts->eit_channel, pck->data, pck->data_len, NULL, GF_OK);
+		}
 		break;
 	case GF_M2TS_EVT_PES_PCK:
 		MP2TS_SendPacket(m2ts, param);

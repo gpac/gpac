@@ -153,6 +153,7 @@ static GF_Err CTXLoad_Setup(GF_BaseDecoder *plug)
 	priv->ctx = gf_sm_new(priv->inline_scene->graph);
 	memset(&priv->load, 0, sizeof(GF_SceneLoader));
 	priv->load.ctx = priv->ctx;
+	priv->load.is = priv->inline_scene;
 	priv->load.scene_graph = priv->inline_scene->graph;
 	priv->load.fileName = priv->file_name;
 	priv->load.flags = GF_SM_LOAD_FOR_PLAYBACK;

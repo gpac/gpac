@@ -859,12 +859,16 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 	GF_ObjectManager *an_od;
 	GF_InlineScene *is;
 
-	if (!odm || !odm->mo) return;
-	count = gf_list_count(odm->mo->nodes);
-	if (!count) return;
+	if (!odm) return;
+	if (odm->mo) {
+		count = gf_list_count(odm->mo->nodes);
+		if (!count) return;
+		if (!(gf_node_get_dom_event_filter(gf_list_get(odm->mo->nodes, 0)) & GF_DOM_EVENT_MEDIA_ACCESS))
+			return;
+	} else {
+		count = 0;
+	}
 
-	if (!(gf_node_get_dom_event_filter(gf_list_get(odm->mo->nodes, 0)) & GF_DOM_EVENT_MEDIA_ACCESS))
-		return;
 
 	memset(&mae, 0, sizeof(GF_DOMMediaAccessEvent));
 	transport = 0;
@@ -902,6 +906,10 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 	for (i=0; i<count; i++) {
 		GF_Node *node = gf_list_get(odm->mo->nodes, i);
 		gf_dom_event_fire(node, NULL, &evt);
+	}
+	if (!count) {
+		GF_Node *root = gf_sg_get_root_node(is->graph);
+		if (root) gf_dom_event_fire(root, NULL, &evt);
 	}
 	gf_sc_lock(odm->term->compositor, 0);
 #endif
