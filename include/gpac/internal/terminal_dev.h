@@ -479,6 +479,10 @@ struct _es_channel
 	BIFS and OD to be decoded and first frame render, in order to detect media objects that would also need
 	buffering - note this doesn't affect the clock, it is still paused if buffering*/
 	Bool first_au_fetched;
+
+	/* used in Carousel, to skip packets until the end of AU */ 
+	Bool skip_carousel_au;
+	
 	/* TimeStamp to Media Time mapping*/
 	/*TS (in TSResolution) corresponding to the SeedTime of the decoder. Delivered by net, otherwise 0*/
 	u64 seed_ts;
