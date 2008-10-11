@@ -45,7 +45,7 @@ static char *xml_translate_xml_string(char *str)
 	size = 500;
 	i = j = 0;
 	while (str[i]) {
-		if (j >= size) {
+		if (j+20 >= size) {
 			size += 500;
 			value = (char *)realloc(value, sizeof(char)*size);
 		}

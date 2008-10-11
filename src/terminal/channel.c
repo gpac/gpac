@@ -67,6 +67,7 @@ static void Channel_Reset(GF_Channel *ch, Bool for_start)
 	ch->stream_state = 1;
 	ch->IsRap = 0;
 	ch->IsEndOfStream = 0;
+	ch->skip_carousel_au = 0;
 
 	if (for_start) {
 		gf_es_lock(ch, 0);
@@ -697,6 +698,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	if (hdr.accessUnitStartFlag) {
 		NewAU = 1;
 		ch->NextIsAUStart = 0;
+		ch->skip_carousel_au = 0;
 
 		/*if we have a pending AU, add it*/
 		if (ch->buffer) {
@@ -789,6 +791,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 						ch->stream_state = 0;
 					} 
 					else {
+						ch->skip_carousel_au = 1;
 						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found - skipping\n", ch->esd->ESID));
 						return;
 					}
@@ -801,6 +804,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			} 
 			/*regular AU but waiting for RAP*/
 			else if (ch->stream_state) {
+				ch->skip_carousel_au = 1;
 				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Waiting for RAP Carousel - skipping\n", ch->esd->ESID));
 				return;
 			} else {
@@ -822,6 +826,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 
 	/*update the RAP marker on a packet base (to cope with AVC/H264 NALU->AU reconstruction)*/
 	if (hdr.randomAccessPointFlag) ch->IsRap = 1;
+	/* we need to skip all the packets of the current AU in the carousel scenario */
+	if (ch->skip_carousel_au == 1) return;
 
 	/*we ignore OCRs for the moment*/
 #if 0

@@ -98,7 +98,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 			if (!strrchr(rad_name, '.'))
 				strcat(rad_name, tmp->LSRDump ? ".xsr" : ".svg");
 
-			tmp->trace = fopen(rad_name, "wt");
+			tmp->trace = fopen(rad_name, "wb");
 			if (!tmp->trace) {
 				free(tmp);
 				return NULL;
@@ -433,7 +433,7 @@ void DumpBool(GF_SceneDumper *sdump, char *name, u32 value)
 	EndAttribute(sdump);
 }
 
-void DumpUTFString(GF_SceneDumper *sdump, char *str)
+void DumpUTFString(GF_SceneDumper *sdump, Bool escape_xml, char *str)
 {
 	u32 len, i;
 	u16 *uniLine;
@@ -446,11 +446,23 @@ void DumpUTFString(GF_SceneDumper *sdump, char *str)
 		for (i=0; i<len; i++) {
 			if (uniLine[i] == (u16) '\"') fprintf(sdump->trace, "\\");
 			switch (uniLine[i]) {
-			case '\'': fprintf(sdump->trace, "&apos;"); break;
-			case '\"': fprintf(sdump->trace, "&quot;"); break;
-			case '&': fprintf(sdump->trace, "&amp;"); break;
-			case '>': fprintf(sdump->trace, "&gt;"); break;
-			case '<': fprintf(sdump->trace, "&lt;"); break;
+			case '\'': 
+				if (escape_xml) fprintf(sdump->trace, "&apos;"); 
+				else fprintf(sdump->trace, "'"); 
+				break;
+			case '\"': 
+				if (escape_xml) fprintf(sdump->trace, "&quot;"); 
+				else fprintf(sdump->trace, "\""); 
+				break;
+			case '&': 
+				fprintf(sdump->trace, "&amp;"); 
+				break;
+			case '>': 
+				fprintf(sdump->trace, "&gt;"); 
+				break;
+			case '<': 
+				fprintf(sdump->trace, "&lt;"); 
+				break;
 			case '\r': fprintf(sdump->trace, ""); break;
 			case '\n': fprintf(sdump->trace, ""); break;
 			default:
@@ -568,7 +580,7 @@ void DumpSFField(GF_SceneDumper *sdump, u32 type, void *ptr, Bool is_mf)
 		str = ((SFString *)ptr)->buffer;
 		if (str && str[0]) {
 			if (sdump->XMLDump) {
-				DumpUTFString(sdump, str);
+				DumpUTFString(sdump, 1, str);
 			} else if (!strchr(str, '\"')) {
 				fprintf(sdump->trace, "%s", str);
 			} else {
@@ -2609,13 +2621,15 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		case TAG_DOMText:
 		{
 			GF_DOMText *txt = (GF_DOMText *)n;
-			if (txt->textContent) {
-				if (txt->type==GF_DOM_TEXT_CDATA) {
-					fprintf(sdump->trace, "<![CDATA[\n");
+			if (txt->textContent) {				
+				if ((txt->type==GF_DOM_TEXT_CDATA) ||
+					(parent->sgprivate->tag == TAG_SVG_script) ||
+					(parent->sgprivate->tag == TAG_SVG_handler)) {
+					fprintf(sdump->trace, "<![CDATA[");
 					fprintf(sdump->trace, "%s", txt->textContent);
-					fprintf(sdump->trace, "]]>\n");
+					fprintf(sdump->trace, "]]>");
 				} else if (txt->type==GF_DOM_TEXT_REGULAR) {
-					DumpUTFString(sdump, txt->textContent);
+					DumpUTFString(sdump, 0, txt->textContent);
 				}
 			}
 		}
@@ -2840,9 +2854,9 @@ GF_Err SD_DumpDOMElement(GF_SceneDumper *sdump, GF_DOMFullNode *node)
 			child_type = 2;
 			txt = (GF_DOMText *)child->node;
 			if (txt->type==GF_DOM_TEXT_REGULAR) {
-				DumpUTFString(sdump, txt->textContent);
+				DumpUTFString(sdump, 0, txt->textContent);
 			} else if (txt->type==GF_DOM_TEXT_CDATA) {
-				fprintf(sdump->trace, "<![CDATA[\n");
+				fprintf(sdump->trace, "<![CDATA[");
 				fprintf(sdump->trace, "%s", txt->textContent);
 				fprintf(sdump->trace, "]]>");
 			}
