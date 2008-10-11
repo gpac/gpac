@@ -553,9 +553,15 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	while (offset < data_size) {
 		u32 du_offset = 0;
+		u32 hdr_offset = 0;
 		u32 orig_size, du_size;
 		
 		orig_size = du_size = 2+gf_bs_read_u16(bs);
+		/*if dims size is >0xFFFF, use our internal hack for large units*/
+		if (du_size==2) {
+			orig_size = du_size = 2+gf_bs_read_u32(bs);
+			hdr_offset = 4;
+		}
 		gf_bs_skip_bytes(bs, du_size-2);
 
 		/*prepare M-bit*/
@@ -578,7 +584,7 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 				/*first fragment*/
 				if (!frag_state) {
 					/*size field is skipped !!*/
-					size_offset = 2;
+					size_offset = 2 + hdr_offset;
 					frag_state = 1;
 
 					while (du_size - size_offset <= size) {
@@ -610,14 +616,14 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 				char dims_rtp_hdr[1];
 				
 				/*the unit is critical, increase counter (coded on 3 bits)*/
-				if (! (data[2] & GF_DIMS_UNIT_P) && (frag_state <= 1) ) {
+				if (! (data[2+hdr_offset] & GF_DIMS_UNIT_P) && (frag_state <= 1) ) {
 					builder->last_au_sn++;
 					builder->last_au_sn %= 8;
 				}
 				/*set CTR value*/
 				dims_rtp_hdr[0] = builder->last_au_sn;
 				/*if M-bit is set in the dims unit header, replicate it*/
-				if (data[2] & (1<<1) ) dims_rtp_hdr[0] |= (1<<6);
+				if (data[2+hdr_offset] & (1<<1) ) dims_rtp_hdr[0] |= (1<<6);
 				/*add unit fragmentation type*/
 				dims_rtp_hdr[0] |= (frag_state<<3);
 
