@@ -770,6 +770,12 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
 	Osmo4 *gpac = GetApp();
 
+	/*this is a migrate instruction, just disconnect the player*/
+	if (gpac->m_navigate_url.IsEmpty() ) {
+		gf_term_disconnect(gpac->m_term);
+		return 0;
+	}
+
 	if (gf_term_is_supported_url(gpac->m_term, gpac->m_navigate_url, 1, gpac->m_NoMimeFetch)) {
 		char *str = gf_url_concatenate(m_pPlayList->GetURL(), gpac->m_navigate_url);
 		if (str) {

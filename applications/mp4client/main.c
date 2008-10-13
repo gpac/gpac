@@ -588,7 +588,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		const char *str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");
 		if (!str || !strcmp(str, "no"))
 			gf_cfg_set_key(cfg_file, "Network", "SessionMigration", "yes");
-		Run = 0;
+
+		fprintf(stdout, "Migrating session %s\n", the_url);
+		gf_term_disconnect(term);
 	}
 		break;
 	case GF_EVENT_NAVIGATE_INFO:
@@ -1212,10 +1214,11 @@ force_input:
 			Run = 0;
 			break;
 		case 'Q':
-			Run = 0;
 			str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");
 			if (!str || !strcmp(str, "no"))
 				gf_cfg_set_key(cfg_file, "Network", "SessionMigration", "yes");
+			fprintf(stdout, "Migrating session %s\n", the_url);
+			gf_term_disconnect(term);
 			break;
 		case 'o':
 			startup_file = 0;

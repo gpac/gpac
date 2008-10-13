@@ -262,7 +262,9 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		const char *str = gf_cfg_get_key(gpac->m_user.config, "Network", "SessionMigration");
 		if (!str || !strcmp(str, "no"))
 			gf_cfg_set_key(gpac->m_user.config, "Network", "SessionMigration", "yes");
-		pFrame->PostMessage(WM_CLOSE, 0L, 0L);
+
+		gpac->m_navigate_url = "";
+		pFrame->PostMessage(WM_NAVIGATE, NULL, NULL);
 	}
 		break;
 	case GF_EVENT_KEYDOWN:
@@ -979,7 +981,9 @@ void Osmo4::OnFileMigrate()
 	const char *str = gf_cfg_get_key(m_user.config, "Network", "SessionMigration");
 	if (!str || !strcmp(str, "no"))
 		gf_cfg_set_key(m_user.config, "Network", "SessionMigration", "yes");
-	m_pMainWnd->DestroyWindow();
+
+	m_navigate_url = "";
+	m_pMainWnd->PostMessage(WM_NAVIGATE, NULL, NULL);
 }
 
 void Osmo4::OnConfigReload() 
