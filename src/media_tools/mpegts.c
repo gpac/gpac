@@ -647,7 +647,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		/*look for proper table*/
 		table_id = data[0];
 
-		if (table_id == GF_M2TS_TABLE_ID_PMT && ts->on_event) {
+		if ((table_id == GF_M2TS_TABLE_ID_PMT || table_id == GF_M2TS_TABLE_ID_NIT_ACTUAL) && ts->on_event) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = (unsigned char*)malloc(sizeof(unsigned char)*pck.data_len);
