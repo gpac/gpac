@@ -99,7 +99,7 @@ install-lib:
 	install -m 644 $(SRC_PATH)/include/gpac/internal/*.h "$(DESTDIR)$(prefix)/include/gpac/internal"
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/modules"
 	install -m 644 $(SRC_PATH)/include/gpac/modules/*.h "$(DESTDIR)$(prefix)/include/gpac/modules"
-ifeq ($(GPAC_ENST), yes)
+ifeq ($(GPAC_ENST_INC), yes)
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/enst"
 	install -m 644 $(SRC_PATH)/include/gpac/enst/*.h "$(DESTDIR)$(prefix)/include/gpac/enst"
 endif
