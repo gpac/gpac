@@ -99,12 +99,19 @@ install-lib:
 	install -m 644 $(SRC_PATH)/include/gpac/internal/*.h "$(DESTDIR)$(prefix)/include/gpac/internal"
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/modules"
 	install -m 644 $(SRC_PATH)/include/gpac/modules/*.h "$(DESTDIR)$(prefix)/include/gpac/modules"
+ifeq ($(GPAC_ENST), yes)
+	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/enst"
+	install -m 644 $(SRC_PATH)/include/gpac/enst/*.h "$(DESTDIR)$(prefix)/include/gpac/enst"
+endif
+	mkdir -p "$(DESTDIR)$(prefix)/lib"
+	install -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/lib"
 	mkdir -p "$(DESTDIR)$(prefix)/$(libdir)"
 	install -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/$(libdir)"
 
 uninstall-lib:
 	rm -rf "$(prefix)/include/gpac/internal"
 	rm -rf "$(prefix)/include/gpac/modules"
+	rm -rf "$(prefix)/include/gpac/enst"
 	rm -rf "$(prefix)/include/gpac"
 
 help:
