@@ -1646,10 +1646,12 @@ fi
 fi
 
 
+GPAC_ENST_INC=no
 GPAC_ENST=no
 enst_dir="`ls src/ | grep enst`"
 if test "$enst_dir" = "enst"; then
 echo "GPAC Proprietary Extensions enabled"
+GPAC_ENST_INC=yes
 #we need libiconv for eit & co
 cat > $TMPC << EOF
 #include <iconv.h>
@@ -1666,6 +1668,7 @@ GPAC_ENST="no"
 fi
 fi
 echo "GPAC_ENST=$GPAC_ENST" >> config.mak
+echo "GPAC_ENST_INC=$GPAC_ENST" >> config.mak
 
 
 # build tree in object directory if source path is different from current one
