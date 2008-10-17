@@ -329,6 +329,8 @@ typedef struct tag_m2ts_pes
 /*SDT information object*/
 typedef struct
 {
+	u16 original_network_id;
+	u16 transport_stream_id;
 	u32 service_id;
 	u32 EIT_schedule;
 	u32 EIT_present_following;
@@ -340,10 +342,14 @@ typedef struct
 
 typedef struct
 {
+	u16 network_id;
+	unsigned char *network_name;
 	u16 original_network_id;
 	u16 transport_stream_id;
-	GF_List *SDTs;
-} GF_M2TS_SDT_Table;
+	u16 service_id;
+	u32 service_type;
+	u32 logical_channel_number;
+} GF_M2TS_NIT;
 
 #define GF_M2TS_BASE_DESCRIPTOR u32 tag;
 
