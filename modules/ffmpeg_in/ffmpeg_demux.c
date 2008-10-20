@@ -152,7 +152,7 @@ static u32 FFDemux_Run(void *par)
 	/*signal EOS*/
 	if (ffd->audio_ch) gf_term_on_sl_packet(ffd->service, ffd->audio_ch, NULL, 0, NULL, GF_EOS);
 	if (ffd->video_ch) gf_term_on_sl_packet(ffd->service, ffd->video_ch, NULL, 0, NULL, GF_EOS);
-	ffd->is_running = 0;
+	ffd->is_running = 2;
 
 	return 0;
 }
@@ -415,11 +415,13 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 	int full_size;
 	FFDemux *ffd = (FFDemux *)h;
 
+	gf_term_download_update_stats(ffd->dnload);
 	full_size = 0;
 	if (ffd->buffer_used) {
 		if (ffd->buffer_used>size) {
 			ffd->buffer_used-=size;
 			memcpy(ffd->buffer, ffd->buffer+size, sizeof(char)*ffd->buffer_used);
+			if (ffd->outdbg) fwrite(buf, size, 1, ffd->outdbg);
 			return size;
 		} 
 		full_size += ffd->buffer_used;
@@ -428,7 +430,7 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 		ffd->buffer_used = 0;
 	}
 
-	while (1) {
+	while (size) {
 		GF_Err e = gf_dm_sess_fetch_data(ffd->dnload, buf, size, &read);
 		if (e==GF_EOS) break;
 		/*we're sync!!*/
@@ -442,6 +444,7 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 		size -= read;
 		buf += read;
 	}
+	if (ffd->outdbg) fwrite(ffd->buffer, full_size, 1, ffd->outdbg);
 	return full_size ? (int) full_size : -1;
 }
 
@@ -493,13 +496,14 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "IOBufferSize"); 
 		if (sOpt) ffd->buffer_size = atoi(sOpt);
 		ffd->buffer = malloc(sizeof(char)*ffd->buffer_size);
+		ffd->outdbg = fopen("ffdeb.raw", "wb");
 
-		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, &ffd, ff_url_read, NULL, NULL);
+		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, ffd, ff_url_read, NULL, NULL);
 
 		ffd->dnload = gf_term_download_new(ffd->service, url, GF_NETIO_SESSION_NOT_THREADED  | GF_NETIO_SESSION_NOT_CACHED, FFD_NetIO, ffd);
 		if (!ffd->dnload) return GF_URL_ERROR;
 		while (1) {
-			e = gf_dm_sess_fetch_data(ffd->dnload, ffd->buffer, 2048, &ffd->buffer_used);
+			e = gf_dm_sess_fetch_data(ffd->dnload, ffd->buffer, ffd->buffer_size, &ffd->buffer_used);
 			if (e==GF_EOS) break;
 			/*we're sync!!*/
 			if (e==GF_IP_NETWORK_EMPTY) continue;
@@ -514,6 +518,9 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		if (!av_in) {
 			return GF_NOT_SUPPORTED;
 		}
+		if (ffd->outdbg) fwrite(ffd->buffer, ffd->buffer_used, 1, ffd->outdbg);
+		ffd->buffer_used = 0;
+
 		/*setup downloader*/
 		av_in->flags |= AVFMT_NOFILE;
 		i = av_open_input_stream(&ffd->ctx, &ffd->io, szName, av_in, NULL);
@@ -657,17 +664,22 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 
 	ffd->is_running = 0;
 
-	if (ffd->dnload) gf_term_download_del(ffd->dnload);
-	ffd->dnload = NULL;
-	if (ffd->buffer) free(ffd->buffer);
-	ffd->buffer = NULL;
-
 	if (ffd->ctx) av_close_input_file(ffd->ctx);
 	ffd->ctx = NULL;
 	ffd->audio_ch = ffd->video_ch = NULL;
 	ffd->audio_run = ffd->video_run = 0;
 
+	if (ffd->dnload) {
+		while (!ffd->is_running) gf_sleep(0);
+		ffd->is_running = 0;
+		gf_term_download_del(ffd->dnload);
+		ffd->dnload = NULL;
+	}
+	if (ffd->buffer) free(ffd->buffer);
+	ffd->buffer = NULL;
+
 	gf_term_on_disconnect(ffd->service, NULL, GF_OK);
+	if (ffd->outdbg) fclose(ffd->outdbg);
 	return GF_OK;
 }
 
