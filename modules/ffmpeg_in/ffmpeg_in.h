@@ -133,13 +133,16 @@ typedef struct
 	Bool unreliable_audio_timing;
 
 	/*IO wrapper*/
+	/*file downloader*/
+	GF_DownloadSession *dnload;
+
 	ByteIOContext   io;
 	char *buffer;
 	u32 buffer_size;
 
 	u32 buffer_used;
-	/*file downloader*/
-	GF_DownloadSession * dnload;
+
+	FILE *outdbg;
 } FFDemux;
 
 void *New_FFMPEG_Demux();
