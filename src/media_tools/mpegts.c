@@ -546,10 +546,10 @@ u32 gf_m2ts_crc32(char *data, u32 len)
     return crc;
 }
 
-Bool gf_m2ts_crc32_check(unsigned char *data, u32 len)
+Bool gf_m2ts_crc32_check(char *data, u32 len)
 {
     u32 crc = gf_m2ts_crc32(data, len);
-	u32 crc_val = GF_4CC(data[len], data[len+1], data[len+2], data[len+3]);
+	u32 crc_val = GF_4CC((u8) data[len], (u8) data[len+1], (u8) data[len+2], (u8) data[len+3]);
 	return (crc==crc_val) ? 1 : 0;
 }
 
