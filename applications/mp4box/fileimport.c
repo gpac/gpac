@@ -812,7 +812,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			new_track_dur = gf_isom_get_track_duration(dest, tki->dst_tk);
 			count = gf_isom_get_edit_segment_count(mp4, tki->tk);
 			if (count>2) {
-				fprintf(stdout, "Warning: %d edit segments - not supported while splitting (max 2) - ignoring extra\n");
+				fprintf(stdout, "Warning: %d edit segments - not supported while splitting (max 2) - ignoring extra\n", count);
 				count=2;
 			}
 			for (j=0; j<count; j++) {
@@ -1203,7 +1203,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 	e = gf_sm_load_init(&load);
 	if (e<0) {
 		gf_sm_load_done(&load);
-		fprintf(stdout, "Cannot load context - %s\n", gf_error_to_string(e));
+		fprintf(stdout, "Cannot load context %s - %s\n", in, gf_error_to_string(e));
 		goto err_exit;
 	}
 	e = gf_sm_load_run(&load);

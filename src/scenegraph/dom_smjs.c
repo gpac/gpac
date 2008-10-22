@@ -1107,7 +1107,8 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		if ((tag==TAG_DOMText) && JSVAL_CHECK_STRING(*vp)) {
 			GF_DOMText *txt = (GF_DOMText *)n;
 			if (txt->textContent) free(txt->textContent);
-			txt->textContent = strdup(JSVAL_GET_STRING(*vp));
+			txt->textContent = JSVAL_GET_STRING(*vp);
+			if (txt->textContent) txt->textContent = strdup(txt->textContent);
 			dom_node_changed(n, 1, NULL);
 		}
 		/*we only support element and sg in the Node interface, no set*/
