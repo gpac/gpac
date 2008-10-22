@@ -223,7 +223,10 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 	}
 
 	/*remote fetch*/
-	if (strnicmp(url, "file://", 7) && strstr(url, "://")) {
+	if (!strnicmp(url, "file://", 7)) {
+		url += 7;
+	}
+	else if (strstr(url, "://")) {
 		DC_DownloadFile(plug, read->szURL);
 		return GF_OK;
 	}
