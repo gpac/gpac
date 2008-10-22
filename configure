@@ -463,27 +463,32 @@ EOF
 
 #regular spidermonkey
 if $cc -o $TMPO $TMPC $js_flags -ljs 2> /dev/null  ; then
+js_inc="/usr/include"
 has_js="system"
 elif test "$alt_macosx_dir" != "" ; then
  if cc -o $TMPO $TMPC -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib -ljs 2> /dev/null ; then
   has_js="system"
   js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
   js_lib="-L$alt_macosx_dir/lib -ljs"
+  js_inc="$alt_macosx_dir/include/js"
  fi
 else
 #debian spidermonkey (smjs)
 js_flags="-DXP_UNIX -I/usr/include/smjs"
+js_inc="/usr/include/smjs"
 if $cc -o $TMPO $TMPC $js_flags -lsmjs 2> /dev/null  ; then
 has_js="system"
 js_lib="-lsmjs"
 else
 #debian spidermonkey (mozjs)
 js_flags="-DXP_UNIX -I/usr/include/mozjs"
+js_inc="/usr/include/mozjs"
 if $cc -o $TMPO $TMPC $js_flags -lmozjs 2> /dev/null  ; then
 has_js="system"
 js_lib="-lmozjs"
 else
 #try local
+js_inc="$local_inc/js"
 js_flags="-DXP_UNIX -I$local_inc/js"
 if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs 2> /dev/null  ; then
 has_js="local"
@@ -491,6 +496,16 @@ fi
 fi
 fi
 fi
+
+#WARNING: there is a bug in MOZJS packages, the MOZILLA_1_8_BRANCH macro is not signaled, there is no way of knowing
+#if the lib has been compiled with or without the macro. We currently just decide that if the macro is present
+#in the header, it was enabled in the build
+if grep "MOZILLA_1_8_BRANCH" $js_inc/jsapi.h > /dev/null 2>&1 ; then
+js_flags="-DMOZILLA_1_8_BRANCH $js_flags"
+echo "WARNING: Turning on MOZILLA_1_8_BRANCH SpiderMonkey macro"
+echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
+fi
+
 #end JS test
 
 
