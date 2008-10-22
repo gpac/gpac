@@ -368,10 +368,29 @@ u32 gf_net_has_ipv6();
  *\brief checks address type
  *
  *Checks if an address is an IPV6 or IPV4 one.
- *\true 1 if address is IPV6 one, 0 otherwise
+ *\return true 1 if address is IPV6 one, 0 otherwise
  */
 Bool gf_net_is_ipv6(char *address);
 
+
+/*!
+ *	\brief MobileIP Callback
+ *
+ * The gf_net_mobileip_ctrl_cbk type is the type for the callback of the \ref gf_net_set_mobileip_callback function. By default no mobileip is used
+ *	\param cbck Opaque user data.
+ *	\param start boolean indicating wether the MobileIP subsystem should be started or stoped.
+ *	\return Error code if needed.
+ *
+ */
+typedef GF_Err (*gf_net_mobileip_ctrl_cbk)(Bool start);
+
+/*!
+ *\brief Assigns MobileIP callback
+ *
+ *Assigns the MobileIP control callback.
+ *\param _mobip_cbk MobileIP control callback
+ */
+void gf_net_mobileip_set_callback(gf_net_mobileip_ctrl_cbk _mobip_cbk, const char *MobileIP);
 
 /*! @} */
 

@@ -86,24 +86,38 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 		if ((!num_au && rtp->sl_map.auh_first_min_len) || (num_au && rtp->sl_map.auh_min_len)) {
 			/*ISMACryp*/
 			if (rtp->flags & GF_RTP_HAS_ISMACRYP) {
+				u32 nbbits;
 				rtp->sl_hdr.isma_encrypted = 1;
 				if (rtp->flags & GF_RTP_ISMA_SEL_ENC) {
 					rtp->sl_hdr.isma_encrypted = gf_bs_read_int(hdr_bs, 1);
 					gf_bs_read_int(hdr_bs, 7);
+					au_hdr_size -= 8;
 				}
 				/*Note: ISMACryp ALWAYS indicates IV (BSO) and KEYIDX, even when sample is not encrypted. 
 				This is quite a waste when using selective encryption....*/
 				if (!num_au) {
-					rtp->sl_hdr.isma_BSO = gf_bs_read_int(hdr_bs, 8*rtp->sl_map.IV_length);
+					nbbits = 8*rtp->sl_map.IV_length;
+					if (nbbits) {
+						rtp->sl_hdr.isma_BSO = gf_bs_read_int(hdr_bs, nbbits);
+						au_hdr_size -= nbbits;
+					}
 				}
 				/*NOT SUPPORTED YET*/
 				else if (rtp->sl_map.IV_delta_length) {
-					rtp->sl_hdr.isma_BSO += gf_bs_read_int(hdr_bs, 8*rtp->sl_map.IV_delta_length);
+					nbbits = 8*rtp->sl_map.IV_delta_length;
+					if (nbbits) {
+						rtp->sl_hdr.isma_BSO += gf_bs_read_int(hdr_bs, nbbits);
+						au_hdr_size -= nbbits;
+					}
 				}
 				if (rtp->sl_map.KI_length) {
 					/*NOT SUPPORTED YET*/
 					if (!num_au || !(rtp->flags & GF_RTP_ISMA_HAS_KEY_IDX) ) {
-						gf_bs_skip_bytes(hdr_bs, rtp->sl_map.KI_length);
+						nbbits = 8*rtp->sl_map.KI_length;
+						if (nbbits) {
+							gf_bs_read_int(hdr_bs, nbbits);
+							au_hdr_size -= nbbits;
+						}
 					}
 				}
 			}
@@ -158,6 +172,8 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 			if (rtp->sl_map.RandomAccessIndication) {
 				rtp->sl_hdr.randomAccessPointFlag = gf_bs_read_int(hdr_bs, 1);
 				au_hdr_size -= 1;
+				if (rtp->sl_hdr.randomAccessPointFlag)
+					rtp->sl_hdr.randomAccessPointFlag=1;
 			}
 			/*stream state - map directly to seqNum*/
 			if (rtp->sl_map.StreamStateIndication) {
@@ -208,6 +224,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 		if (pay_start >= size) break;
 		num_au ++;
 	}
+	assert(!au_hdr_size);
 
 	if (hdr->Marker)
 		rtp->flags |= GF_RTP_NEW_AU;
@@ -887,6 +904,11 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 		if (!stricmp(param_val, "AAC-hbr") || !stricmp(param_val, "AAC-lbr") || !stricmp(param_val, "CELP-vbr") || !stricmp(param_val, "CELP-cbr")) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
 			rtp->sl_map.ObjectTypeIndication = 0x40;
+		}
+		/*in case no IOD and no streamType/OTI in the file*/
+		else if (!stricmp(param_val, "avc-video") ) {
+			rtp->sl_map.StreamType = GF_STREAM_VISUAL;
+			rtp->sl_map.ObjectTypeIndication = 0x21;
 		}
 	}
 

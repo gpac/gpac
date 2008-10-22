@@ -48,7 +48,7 @@
 
 #if !defined(__GNUC__)
 
-#if defined(IPV6_MULTICAST_IF11)
+#if defined(IPV6_MULTICAST_IF___dis)
 #define GPAC_HAS_IPV6 1
 #pragma message("Using WinSock IPV6")
 #else
@@ -135,7 +135,8 @@ enum
 	GF_SOCK_IS_MULTICAST = 1<<12,
 	GF_SOCK_IS_LISTENING = 1<<13,
 	/*socket is bound to a specific dest (server) or source (client) */
-	GF_SOCK_HAS_PEER = 1<<14
+	GF_SOCK_HAS_PEER = 1<<14,
+	GF_SOCK_IS_MIP = 1<<15
 };
 
 struct __tag_socket
@@ -151,10 +152,32 @@ struct __tag_socket
 	u32 dest_addr_len;
 };
 
+
+
 /*
-		Some NTP tools
+	MobileIP tools
 */
 
+static gf_net_mobileip_ctrl_cbk mobip_cbk = NULL;
+static const char *MobileIPAdd = NULL;
+
+GF_EXPORT
+void gf_net_mobileip_set_callback(gf_net_mobileip_ctrl_cbk _mobip_cbk, const char *mip)
+{
+	mobip_cbk = _mobip_cbk;
+	MobileIPAdd = _mobip_cbk ? mip : NULL;
+}
+
+static GF_Err gf_net_mobileip_ctrl(Bool start)
+{
+	if (mobip_cbk) return mobip_cbk(start);
+	return GF_NOT_SUPPORTED;
+}
+
+
+/*
+		NTP tools
+*/
 void gf_net_get_ntp(u32 *sec, u32 *frac)
 {
 	struct timeval now;
@@ -293,6 +316,7 @@ GF_Err gf_sk_get_local_ip(GF_Socket *sock, char *buffer)
 	return GF_OK;
 }
 
+
 GF_Socket *gf_sk_new(u32 SocketType)
 {
 	GF_Socket *tmp;
@@ -383,6 +407,12 @@ static void gf_sk_free(GF_Socket *sock)
 	}
 	if (sock->socket) closesocket(sock->socket);
 	sock->socket = (SOCKET) 0L;
+
+	/*if MobileIP socket, unregister it*/
+	if (sock->flags & GF_SOCK_IS_MIP) {
+		sock->flags &= ~GF_SOCK_IS_MIP;
+		gf_net_mobileip_ctrl(0);
+	}
 }
 
 void gf_sk_del(GF_Socket *sock)
@@ -420,6 +450,15 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *loca
 
 	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, AI_PASSIVE, type);
 	if (!res) return GF_IP_CONNECTION_FAILURE;
+
+	/*turn on MobileIP*/
+	if (local_ip && MobileIPAdd && !strcmp(MobileIPAdd, local_ip) ) {
+		if (gf_net_mobileip_ctrl(1)==GF_OK) {
+			sock->flags |= GF_SOCK_IS_MIP;
+		} else {
+			local_ip = NULL;
+		}
+	}
 
 	lip = NULL;
 	if (local_ip) {
@@ -472,6 +511,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *loca
 	struct hostent *Host;
 	
 	if (local_ip) {
+		/*this will turn on MobileIP if needed*/
 		GF_Err e = gf_sk_bind(sock, local_ip, PortNumber, PeerName, PortNumber, GF_SOCK_REUSE_PORT);
 		if (e) return e;
 	}
@@ -565,6 +605,15 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 		freeaddrinfo(res);
 	}
 	
+	/*turn on MobileIP*/
+	if (local_ip && MobileIPAdd && !strcmp(MobileIPAdd, local_ip) ) {
+		if (gf_net_mobileip_ctrl(1)==GF_OK) {
+			sock->flags |= GF_SOCK_IS_MIP;
+		} else {
+			res = gf_sk_get_ipv6_addr(NULL, port, af, AI_PASSIVE, type);
+			local_ip = NULL;
+		}
+	}
 	res = gf_sk_get_ipv6_addr(local_ip, port, af, AI_PASSIVE, type);
 	if (!res) {
 		if (local_ip) {
@@ -632,6 +681,16 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[socket] cannot resolve localhost name - socket error %x\n", LASTSOCKERROR));
 		return GF_IP_ADDRESS_NOT_FOUND;
 	}
+
+	/*turn on MobileIP*/
+	if (local_ip && MobileIPAdd && !strcmp(MobileIPAdd, local_ip) ) {
+		if (gf_net_mobileip_ctrl(1)==GF_OK) {
+			sock->flags |= GF_SOCK_IS_MIP;
+		} else {
+			local_ip = NULL;
+		}
+	}
+
 	/*setup the address*/
 	ip_add = 0;
 	if (local_ip) ip_add = inet_addr(local_ip);
@@ -792,6 +851,16 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 	
 	/*check the address*/
 	if (!gf_sk_is_multicast_address(multi_IPAdd)) return GF_BAD_PARAM;
+
+	/*turn on MobileIP*/
+	if (local_interface_ip && MobileIPAdd && !strcmp(MobileIPAdd, local_interface_ip) ) {
+		if (gf_net_mobileip_ctrl(1)==GF_OK) {
+			sock->flags |= GF_SOCK_IS_MIP;
+		} else {
+			local_interface_ip = NULL;
+		}
+	}
+
 
 #ifdef GPAC_HAS_IPV6
 	type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
