@@ -662,6 +662,15 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 	case GF_OPT_IS_FINISHED: return Term_CheckIsOver(term);
 	case GF_OPT_PLAY_STATE: 
 		if (term->compositor->step_mode) return GF_STATE_STEP_PAUSE;
+		if (term->root_scene) {
+			GF_Clock *ck = term->root_scene->dyn_ck;
+			if (!ck) {
+				if (!term->root_scene->scene_codec) return GF_STATE_PAUSED;
+				ck = term->root_scene->scene_codec->ck;
+			}
+			if (ck->Buffering)
+				return GF_STATE_STEP_PAUSE;
+		}
 		if (term->play_state) return GF_STATE_PAUSED;
 		return GF_STATE_PLAYING;
 	case GF_OPT_MEDIA_CACHE: 

@@ -146,6 +146,7 @@ EXPORTS
 	gf_net_get_ntp
 	gf_net_has_ipv6
 	gf_net_is_ipv6
+	gf_net_mobileip_set_callback
 
 
 ;base_coding.h exports

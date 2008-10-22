@@ -40,12 +40,33 @@ typedef struct
 	GF_ChildNodeItem *last;
 } XMTNodeStack;
 
+
+/**/
+enum
+{
+	/*document is not yet initialized*/
+	XMT_STATE_INIT = 0,
+	/*document head is being parsed*/
+	XMT_STATE_HEAD = 1,
+	/*document body being parsed*/
+	XMT_STATE_BODY = 2,
+	/*commands are being parsed*/
+	XMT_STATE_COMMANDS = 3,
+	/*elements are being parsed*/
+	XMT_STATE_ELEMENTS = 4,
+	/*end of body parsing*/
+	XMT_STATE_BODY_END = 5,
+	/*end of parsing*/
+	XMT_STATE_END = 6,
+};
+
+
 typedef struct
 {	
 	/*1: XMT-A, 2: X3D, 3: XMT-O (not supported yet) */
 	u32 doc_type;
 	/*0: not init, 1: header, 2: body*/
-	u32 doc_state;
+	u32 state;
 	u32 current_node_tag;
 
 	GF_SceneLoader *load;
@@ -1591,7 +1612,7 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 						parser->command_buffer = (SFCommandBuffer*)parent->container_field.far_ptr;
 						/*store command*/
 						parser->command_buffer->buffer = (unsigned char *)parser->command;
-						parser->doc_state = 3;
+						parser->state = XMT_STATE_COMMANDS;
 					}
 					return NULL;
 				}
@@ -1872,7 +1893,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 	GF_CommandField *field;
 	u32 i;
 	if (!strcmp(name, "Scene")) {
-		parser->doc_state = 4;
+		parser->state = XMT_STATE_ELEMENTS;
 		return;
 	}
 
@@ -1921,7 +1942,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 			else if (!strcmp(att->name, "value")) fieldValue = att->value;
 		}
 		if (!fieldName) {
-			parser->doc_state = 4;
+			parser->state = XMT_STATE_ELEMENTS;
 			return;
 		}
 		e = gf_node_get_field_by_name(parser->command->node, fieldName, &info);
@@ -1930,7 +1951,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 			return;
 		}
 		if (gf_sg_vrml_get_sf_type(info.fieldType) == GF_SG_VRML_SFNODE) {
-			parser->doc_state = 4;
+			parser->state = XMT_STATE_ELEMENTS;
 			return;
 		}
 		if (!fieldValue) return;
@@ -1947,7 +1968,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 				xmt_parse_mf_field(parser, &info, parser->command->node, fieldValue);
 			}
 		} else {
-			parser->doc_state = 4;
+			parser->state = XMT_STATE_ELEMENTS;
 		}
 		return;
 	}
@@ -1973,7 +1994,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 			field->fieldIndex = info.fieldIndex;
 			field->fieldType = GF_SG_VRML_SFNODE;
 			field->pos = position;
-			parser->doc_state = 4;
+			parser->state = XMT_STATE_ELEMENTS;
 		} else if (fieldValue) {
 			field = gf_sg_command_field_new(parser->command);
 			field->fieldIndex = info.fieldIndex;
@@ -2041,11 +2062,11 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 			} else {
 				if (!strcmp(name, "Replace")) {
 					tag = GF_SG_NODE_REPLACE;
-					parser->doc_state = 4;
+					parser->state = XMT_STATE_ELEMENTS;
 				}
 				else if (!strcmp(name, "Insert")) {
 					tag = GF_SG_NODE_INSERT;
-					parser->doc_state = 4;
+					parser->state = XMT_STATE_ELEMENTS;
 				}
 				else if (!strcmp(name, "Delete")) tag = GF_SG_NODE_DELETE;
 			}
@@ -2078,21 +2099,21 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 		if (extended) {
 			if (!strcmp(extended, "globalQuant")) {
 				tag = GF_SG_GLOBAL_QUANTIZER;
-				parser->doc_state = 4;
+				parser->state = XMT_STATE_ELEMENTS;
 			}
 			else if (!strcmp(extended, "fields")) {
 				tag = GF_SG_MULTIPLE_REPLACE;
-				parser->doc_state = 3;;
+				parser->state = XMT_STATE_COMMANDS;
 			}
 			else if (!strcmp(extended, "indices")) {
 				tag = GF_SG_MULTIPLE_INDEXED_REPLACE;
-				parser->doc_state = 3;
+				parser->state = XMT_STATE_COMMANDS;
 			}
 			else if (!strcmp(extended, "deleteOrder")) tag = GF_SG_NODE_DELETE_EX;
 			else if (!strcmp(extended, "allProtos")) tag = GF_SG_PROTO_DELETE_ALL;
 			else if (!strcmp(extended, "proto") || !strcmp(extended, "protos")) {
 				if (!strcmp(name, "Insert")) {
-					parser->doc_state = 4;
+					parser->state = XMT_STATE_ELEMENTS;
 					tag = GF_SG_PROTO_INSERT;
 				}
 				else if (!strcmp(name, "Delete")) tag = GF_SG_PROTO_DELETE;
@@ -2158,13 +2179,13 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 					} else {
 						field->fieldType = GF_SG_VRML_SFNODE;
 					} 
-					parser->doc_state = 4;
+					parser->state = XMT_STATE_ELEMENTS;
 				}
 			} else if (tag==GF_SG_NODE_INSERT) {
 				field = gf_sg_command_field_new(parser->command);
 				field->fieldType = GF_SG_VRML_SFNODE;
 				field->pos = position;
-				parser->doc_state = 4;
+				parser->state = XMT_STATE_ELEMENTS;
 			}
 		}
 		else if (routeName) {
@@ -2312,18 +2333,18 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 	}
 
 	/*init doc state*/
-	if (!parser->doc_state) {
+	if (parser->state == XMT_STATE_INIT) {
 		/*XMT-A header*/
-		if ((parser->doc_type == 1) && !strcmp(name, "Header")) parser->doc_state = 1;
+		if ((parser->doc_type == 1) && !strcmp(name, "Header")) parser->state = XMT_STATE_HEAD;
 		/*X3D header*/
-		else if ((parser->doc_type == 2) && !strcmp(name, "head")) parser->doc_state = 1;
+		else if ((parser->doc_type == 2) && !strcmp(name, "head")) parser->state = XMT_STATE_HEAD;
 		/*XMT-O header*/
-		else if ((parser->doc_type == 3) && !strcmp(name, "head")) parser->doc_state = 1;
+		else if ((parser->doc_type == 3) && !strcmp(name, "head")) parser->state = XMT_STATE_HEAD;
 		return;
 	}
 
 	/*XMT-A header: parse OD/IOD*/
-	if ((parser->doc_type == 1) && (parser->doc_state == 1)) {
+	if ((parser->doc_type == 1) && (parser->state == XMT_STATE_HEAD)) {
 		GF_Descriptor *desc, *par;
 		par = (GF_Descriptor *)gf_list_last(parser->descriptors);
 		desc = xmt_parse_descriptor(parser, (char *) name, attributes, nb_attributes, par);
@@ -2332,12 +2353,12 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 	}
 
 	/*scene content*/	
-	if (parser->doc_state==2) {
+	if (parser->state==XMT_STATE_BODY) {
 		/*XMT-A body*/
-		if ((parser->doc_type == 1) && !strcmp(name, "Body")) parser->doc_state = 3;
+		if ((parser->doc_type == 1) && !strcmp(name, "Body")) parser->state = XMT_STATE_COMMANDS;
 		/*X3D scene*/
 		else if ((parser->doc_type == 2) && !strcmp(name, "Scene")) {
-			parser->doc_state = 4;
+			parser->state = XMT_STATE_ELEMENTS;
 			if (parser->load->ctx) {
 				parser->load->ctx->is_pixel_metrics = 0;
 				parser->load->ctx->scene_width = parser->load->ctx->scene_height = 0;
@@ -2345,12 +2366,12 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 			gf_sg_set_scene_size_info(parser->load->scene_graph, 0, 0, 0);
 		}
 		/*XMT-O body*/
-		else if ((parser->doc_type == 3) && !strcmp(name, "body")) parser->doc_state = 3;
+		else if ((parser->doc_type == 3) && !strcmp(name, "body")) parser->state = XMT_STATE_COMMANDS;
 		return;
 	}
 
 	/*XMT-A command*/
-	if ((parser->doc_type == 1) && (parser->doc_state == 3)) {
+	if ((parser->doc_type == 1) && (parser->state == XMT_STATE_COMMANDS)) {
 		/*OD command*/
 		if (parser->od_command) {
 			GF_Descriptor *desc, *par;
@@ -2365,7 +2386,7 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 
 	/*node*/
-	if (parser->doc_state != 4) return;
+	if (parser->state != XMT_STATE_ELEMENTS) return;
 
 	top = (XMTNodeStack*)gf_list_last(parser->nodes);
 	if (!top) top = parser->x3d_root;
@@ -2390,7 +2411,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 	XMTNodeStack *top;
 	GF_Descriptor *desc;
 	GF_Node *node = NULL;
-	if (!parser->doc_type || !parser->doc_state) return;
+	if (!parser->doc_type || !parser->state) return;
 
 	top = (XMTNodeStack *)gf_list_last(parser->nodes);
 
@@ -2410,7 +2431,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			gf_list_rem_last(parser->descriptors);
 			if (gf_list_count(parser->descriptors)) return;
 
-			if ((parser->doc_type==1) && (parser->doc_state==1) && parser->load->ctx && !parser->load->ctx->root_od) {
+			if ((parser->doc_type==1) && (parser->state==XMT_STATE_HEAD) && parser->load->ctx && !parser->load->ctx->root_od) {
 				parser->load->ctx->root_od = (GF_ObjectDescriptor *)desc;
 			} 
 			else if (!parser->od_command) {
@@ -2431,11 +2452,11 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 
 			return;
 		}
-		if (parser->doc_state == 1) {
-			if ((parser->doc_type == 1) && !strcmp(name, "Header")) parser->doc_state = 2;
+		if (parser->state == XMT_STATE_HEAD) {
+			if ((parser->doc_type == 1) && !strcmp(name, "Header")) parser->state = XMT_STATE_BODY;
 			/*X3D header*/
 			else if ((parser->doc_type == 2) && !strcmp(name, "head")) {
-				parser->doc_state = 2;
+				parser->state = XMT_STATE_BODY;
 				/*create a group at root level*/
 				tag = xmt_get_node_tag(parser, "Group");
 				node = gf_node_new(parser->load->scene_graph, tag);
@@ -2448,13 +2469,13 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 				parser->x3d_root->node = node;
 			}
 			/*XMT-O header*/
-			else if ((parser->doc_type == 3) && !strcmp(name, "head")) parser->doc_state = 2;
+			else if ((parser->doc_type == 3) && !strcmp(name, "head")) parser->state = XMT_STATE_BODY;
 		}
-		else if (parser->doc_state == 4) {
+		else if (parser->state == XMT_STATE_ELEMENTS) {
 			assert((parser->doc_type != 1) || parser->command);
 			if (!strcmp(name, "Replace") || !strcmp(name, "Insert") || !strcmp(name, "Delete")) {
 				parser->command = NULL;
-				parser->doc_state = 3;
+				parser->state = XMT_STATE_COMMANDS;
 			}
 			/*end proto*/
 			else if (!strcmp(name, "ProtoDeclare") || !strcmp(name, "ExternProtoDeclare"))  {
@@ -2466,15 +2487,15 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			}
 			else if (parser->proto_field && !strcmp(name, "field")) parser->proto_field = NULL;
 			/*end X3D body*/
-			else if ((parser->doc_type == 2) && !strcmp(name, "Scene")) parser->doc_state = 5;
+			else if ((parser->doc_type == 2) && !strcmp(name, "Scene")) parser->state = XMT_STATE_BODY_END;
 		}
-		else if (parser->doc_state == 3) {
+		else if (parser->state == XMT_STATE_COMMANDS) {
 			/*end XMT-A body*/
-			if ((parser->doc_type == 1) && !strcmp(name, "Body")) parser->doc_state = 5;
+			if ((parser->doc_type == 1) && !strcmp(name, "Body")) parser->state = XMT_STATE_BODY_END;
 			/*end X3D body*/
-			else if ((parser->doc_type == 2) && !strcmp(name, "Scene")) parser->doc_state = 5;
+			else if ((parser->doc_type == 2) && !strcmp(name, "Scene")) parser->state = XMT_STATE_BODY_END;
 			/*end XMT-O body*/
-			else if ((parser->doc_type == 3) && !strcmp(name, "body")) parser->doc_state = 5;
+			else if ((parser->doc_type == 3) && !strcmp(name, "body")) parser->state = XMT_STATE_BODY_END;
 
 			/*end scene command*/
 			else if (!strcmp(name, "Replace") || !strcmp(name, "Insert") || !strcmp(name, "Delete") )  {
@@ -2495,9 +2516,9 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			}
 
 		}
-		else if (parser->doc_state == 5) {
+		else if (parser->state == XMT_STATE_BODY_END) {
 			/*end XMT-A*/
-			if ((parser->doc_type == 1) && !strcmp(name, "XMT-A")) parser->doc_state = 6;
+			if ((parser->doc_type == 1) && !strcmp(name, "XMT-A")) parser->state = XMT_STATE_END;
 			/*end X3D*/
 			else if ((parser->doc_type == 2) && !strcmp(name, "X3D")) {
 				while (1) {
@@ -2508,10 +2529,10 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 				}
 				gf_list_del(parser->script_to_load);
 				parser->script_to_load = NULL;
-				parser->doc_state = 6;
+				parser->state = XMT_STATE_END;
 			}
 			/*end XMT-O*/
-			else if ((parser->doc_type == 3) && !strcmp(name, "XMT-O")) parser->doc_state = 6;
+			else if ((parser->doc_type == 3) && !strcmp(name, "XMT-O")) parser->state = XMT_STATE_END;
 		}
 		return;
 	}
@@ -2521,7 +2542,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 		if (top->container_field.name) {
 			if (!strcmp(name, top->container_field.name)) {
 				if (top->container_field.fieldType==GF_SG_VRML_SFCOMMANDBUFFER) {
-					parser->doc_state = 4;
+					parser->state = XMT_STATE_ELEMENTS;
 					parser->command = (GF_Command *) (void *) parser->command_buffer->buffer;
 					parser->command_buffer->buffer = NULL;
 					parser->command_buffer = NULL;
@@ -2539,8 +2560,9 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 						SFCommandBuffer *prev = (SFCommandBuffer *) parser->command_buffer->buffer;
 						parser->command_buffer->buffer = NULL;
 						parser->command_buffer = prev;
-						parser->doc_state = 4;
 					}
+					/*stay in command parsing mode (state 3) until we find </buffer>*/
+					parser->state = XMT_STATE_COMMANDS;
 				}
 			}
 			/*end of protofield node(s) content*/
@@ -2792,7 +2814,7 @@ GF_Err gf_sm_load_init_xmt_string(GF_SceneLoader *load, char *str_data)
 
 		if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
 			parser->doc_type = (load->type==GF_SM_LOAD_X3D) ? 2 : 1;
-			parser->doc_state = 3;
+			parser->state = XMT_STATE_COMMANDS;
 		}
 	}
 	e = gf_xml_sax_parse(parser->sax_parser, str_data);
