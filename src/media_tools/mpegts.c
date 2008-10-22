@@ -554,8 +554,7 @@ Bool gf_m2ts_crc32_check(char *data, u32 len)
 }
 
 
-static GF_M2TS_SectionFilter *gf_m2ts_section_filter_new(gf_m2ts_section_callback process_section_callback,
-														 Bool process_individual)
+static GF_M2TS_SectionFilter *gf_m2ts_section_filter_new(gf_m2ts_section_callback process_section_callback, Bool process_individual)
 {
 	GF_M2TS_SectionFilter *sec;
 	GF_SAFEALLOC(sec, GF_M2TS_SectionFilter);
@@ -839,7 +838,8 @@ aggregated_section:
 		}
 		sec->received += data_size;
 	}
-	if (hdr->error) sec->had_error = 1;
+	if (hdr->error) 
+		sec->had_error = 1;
 
 	/*alloc final buffer*/
 	if (!sec->length && (sec->received >= 3)) {
@@ -874,25 +874,23 @@ aggregated_section:
 static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	GF_M2TS_SL_PCK sl_pck;
-	u32 nb_sections;
+	u32 nb_sections, i;
 	GF_M2TS_Section *section;
 
 	/*skip if already received*/
 	if (status & GF_M2TS_TABLE_REPEAT) 
 		return;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Sections for PID %d\n", es->pid) );
+	/*send all sections (eg SL-packets)*/
 	nb_sections = gf_list_count(sections);
-	if (nb_sections > 1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("MPEG-4 Sections should be handled one by one\n"));
-		return;
+	for (i=0; i<nb_sections; i++) {
+		section = (GF_M2TS_Section *)gf_list_get(sections, i);
+		sl_pck.data = section->data;
+		sl_pck.data_len = section->data_size;
+		sl_pck.stream = (GF_M2TS_ES *)es;
+		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
 	}
-	section = (GF_M2TS_Section *)gf_list_get(sections, 0);
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Section for PID %d\n", es->pid) );
-	sl_pck.data = section->data;
-	sl_pck.data_len = section->data_size;
-	sl_pck.stream = (GF_M2TS_ES *)es;
-	if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
 }
 
 GF_EXPORT 
@@ -1020,7 +1018,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				es->flags |= GF_M2TS_ES_IS_SECTION;
 				/* carriage of ISO_IEC_14496 data in sections */
 				if (stream_type == GF_M2TS_SYSTEMS_MPEG4_SECTIONS) {
-					ses->sec = gf_m2ts_section_filter_new(gf_m2ts_process_mpeg4section, 1);
+					/*MPEG-4 sections need to be fully checked: if one section is lost, this means we lost
+					one SL packet in the AU so we must wait for the complete section again*/
+					ses->sec = gf_m2ts_section_filter_new(gf_m2ts_process_mpeg4section, 0);
 					/*create OD container*/
 					if (!pmt->program->additional_ods) {
 						pmt->program->additional_ods = gf_list_new();
@@ -1200,7 +1200,7 @@ static GFINLINE u64 gf_m2ts_get_pts(unsigned char *data)
 
 static void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF_M2TS_PESHeader *pesh)
 {
-	Bool has_pts, has_dts;
+	u32 has_pts, has_dts, te;
 	u32 len_check;
 	memset(pesh, 0, sizeof(GF_M2TS_PESHeader));
 
@@ -1218,8 +1218,9 @@ static void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_s
 	copyright				= gf_bs_read_int(bs,1);
 	original				= gf_bs_read_int(bs,1);
 */
+	te = data[4];
 	has_pts = (data[4]&0x80);
-	has_dts = (data[4]&0x40);
+	has_dts = has_pts ? (data[4]&0x40) : 0;
 /*
 	ESCR_flag				= gf_bs_read_int(bs,1);
 	ES_rate_flag			= gf_bs_read_int(bs,1);
@@ -1230,6 +1231,7 @@ static void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_s
 */
 
 	pesh->hdr_data_len = data[5];
+
 	data += 6;
 	if (has_pts) {
 		pesh->PTS = gf_m2ts_get_pts(data);
@@ -1252,8 +1254,8 @@ static void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_s
 static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size, GF_M2TS_AdaptationField *paf)
 {
 	Bool flush_pes = 0;
-
-	if (!pes->reframe) return;
+	
+	if (hdr->error || !pes->reframe) return;
 
 	if (hdr->payload_start) {
 		flush_pes = 1;
@@ -1298,10 +1300,14 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 				len = 9 + pesh.hdr_data_len;
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] SL Packet in PES for %d - ES ID %d\n", pes->pid, pes->mpeg4_es_id));
-				sl_pck.data = pes->data + len;
-				sl_pck.data_len = pes->data_len - len;
-				sl_pck.stream = (GF_M2TS_ES *)pes;
-				if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
+				if (pes->data_len > len) {
+					sl_pck.data = pes->data + len;
+					sl_pck.data_len = pes->data_len - len;
+					sl_pck.stream = (GF_M2TS_ES *)pes;
+					if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Bad SL Packet size: (%d indicated < %d header)\n", pes->pid, pes->data_len, len));
+				}
 			}
 		}
 		if (pes->data) {
