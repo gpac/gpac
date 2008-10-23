@@ -48,7 +48,7 @@ build-stamp: configure-stamp
 
 # -j doesn't work
 # TODO: we exclude GPAC Proprietary Extension project: libiconv dependency 
-	$(MAKE) GPAC_ENST=no
+	$(MAKE)
 
 	touch $@
 
@@ -70,14 +70,12 @@ install: build
 	dh_installdirs
 
 	$(MAKE) install prefix=$(CURDIR)/debian/tmp/usr \
-	moddir=$(CURDIR)/debian/tmp/usr/lib/gpac
+	moddir=$(CURDIR)/debian/tmp/usr/lib/gpac moddir_path=/usr/lib/gpac
 
-	$(MAKE) install-lib prefix=$(CURDIR)/debian/tmp/usr GPAC_ENST_INC=yes
+	$(MAKE) install-lib prefix=$(CURDIR)/debian/tmp/usr
 
 	mv debian/tmp/usr/lib/libgpac-0.4.5-DEV.so \
 	debian/tmp/usr/lib/libgpac.so.0.4.5
-
-	cp extra_lib/lib/gcc/libjs.so debian/tmp/usr/lib/libjs.so
         
 	rm debian/tmp/usr/lib/libgpac.so
 #	dh_link -plibgpac-dev usr/lib/libgpac.so.0.4.5 usr/lib/libgpac.so

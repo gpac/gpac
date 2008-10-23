@@ -50,7 +50,7 @@ tar:
 install:
 	install -d "$(DESTDIR)$(prefix)"
 	install -d "$(DESTDIR)$(prefix)/bin"
-	#install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
+	install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
 	$(MAKE) -C applications install
 	install -d "$(DESTDIR)$(moddir)"
 	install bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
@@ -99,7 +99,7 @@ install-lib:
 	install -m 644 $(SRC_PATH)/include/gpac/internal/*.h "$(DESTDIR)$(prefix)/include/gpac/internal"
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/modules"
 	install -m 644 $(SRC_PATH)/include/gpac/modules/*.h "$(DESTDIR)$(prefix)/include/gpac/modules"
-ifeq ($(GPAC_ENST_INC), yes)
+ifeq ($(GPAC_ENST), yes)
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/enst"
 	install -m 644 $(SRC_PATH)/include/gpac/enst/*.h "$(DESTDIR)$(prefix)/include/gpac/enst"
 endif

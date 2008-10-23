@@ -1436,6 +1436,7 @@ echo "#define GF_CONFIG_H" >> $TMPH
 echo "prefix=$prefix" >> config.mak
 echo "DESTDIR=$DESTDIR" >> config.mak
 echo "moddir=$prefix/$libdir/gpac" >> config.mak
+echo "moddir_path=$prefix/$libdir/gpac" >> config.mak
 echo "mandir=$mandir" >> config.mak
 echo "tinygl_target_bin_dir=$target_bin_dir" >> config.mak
 echo "MAKE=$make" >> config.mak
