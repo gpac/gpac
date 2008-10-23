@@ -204,7 +204,9 @@ static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 {
 	char *name, *sep, c;
 
-	assert(parser->elt_name_start && parser->elt_name_end && parser->node_depth);
+	assert(parser->elt_name_start);
+	assert(parser->elt_name_end);
+	assert(parser->node_depth);
 	c = parser->buffer[parser->elt_name_end - 1];
 	parser->buffer[parser->elt_name_end - 1] = 0;
 	name = parser->buffer + parser->elt_name_start - 1;
