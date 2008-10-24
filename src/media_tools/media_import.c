@@ -5866,6 +5866,136 @@ error:
 	return err;
 }
 
+
+GF_Err gf_import_ac3(GF_MediaImporter *import)
+{
+	GF_AC3Header hdr;
+	Bool destroy_esd;
+	GF_Err e;
+	u16 sr;
+	u32 nb_chan;
+	FILE *in;
+	GF_BitStream *bs;
+	u32 max_size, track, di, tot_size, done, duration;
+	GF_ISOSample *samp;
+
+	in = gf_f64_open(import->in_name, "rb");
+	if (!in) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
+	bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
+
+	if (!gf_ac3_parser_bs(bs, &hdr, 1)) {
+		gf_bs_del(bs);
+		fclose(in);
+		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Audio isn't AC3 audio");
+	}
+	sr = hdr.sample_rate;
+
+	if (import->flags & GF_IMPORT_PROBE_ONLY) {
+		gf_bs_del(bs);
+		fclose(in);
+		import->tk_info[0].track_num = 1;
+		import->tk_info[0].type = GF_ISOM_MEDIA_AUDIO;
+		import->tk_info[0].media_type = GF_4CC('A', 'C', '3', ' ');
+		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF;
+		import->tk_info[0].audio_info.sample_rate = sr;
+		import->tk_info[0].audio_info.nb_channels = hdr.channels;
+		import->nb_tracks = 1;
+		return GF_OK;
+	}
+
+	e = GF_OK;
+	destroy_esd = 0;
+	if (!import->esd) {
+		import->esd = gf_odf_desc_esd_new(2);
+		destroy_esd = 1;
+	}
+	if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
+	if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
+	/*update stream type/oti*/
+	import->esd->decoderConfig->streamType = GF_STREAM_AUDIO;
+	import->esd->decoderConfig->objectTypeIndication = 0xA5;
+	import->esd->decoderConfig->bufferSizeDB = 20;
+	import->esd->slConfig->timestampResolution = sr;
+
+	samp = NULL;
+	nb_chan = hdr.channels;
+	gf_import_message(import, GF_OK, "AC3 import - sample rate %d - %d channel%s", sr, nb_chan, (nb_chan>1) ? "s" : "");
+
+	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, sr);
+	if (!track) {
+		e = gf_isom_last_error(import->dest);
+		goto exit;
+	}
+	gf_isom_set_track_enabled(import->dest, track, 1);
+	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
+	import->final_trackID = import->esd->ESID;
+	if (import->esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) import->esd->decoderConfig->decoderSpecificInfo);
+	import->esd->decoderConfig->decoderSpecificInfo = NULL;
+
+	if (1) {
+		GF_AC3Config cfg;
+		cfg.acmod = hdr.acmod;
+		cfg.brcode = hdr.brcode;
+		cfg.bsid = hdr.bsid;
+		cfg.bsmod = hdr.bsmod;
+		cfg.fscod = hdr.fscod;
+		cfg.lfon = hdr.lfon;
+		gf_isom_ac3_config_new(import->dest, track, &cfg, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
+	} else {
+		gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
+	}
+	gf_isom_set_audio_info(import->dest, track, di, sr, nb_chan, 16);
+
+	gf_bs_seek(bs, 0);
+	tot_size = (u32) gf_bs_get_size(bs);
+
+	e = GF_OK;
+	samp = gf_isom_sample_new();
+	samp->IsRAP = 1;
+
+	duration = import->duration*sr;
+	duration /= 1000;
+
+	max_size = 0;
+	done = 0;
+	while (gf_ac3_parser_bs(bs, &hdr, 0)) {
+		samp->dataLength = hdr.framesize;
+
+
+		if (import->flags & GF_IMPORT_USE_DATAREF) {
+			e = gf_isom_add_sample_reference(import->dest, track, di, samp, gf_bs_get_position(bs) );
+			gf_bs_skip_bytes(bs, samp->dataLength);
+		} else {
+			if (samp->dataLength > max_size) {
+				samp->data = (char*)realloc(samp->data, sizeof(char) * samp->dataLength);
+				max_size = samp->dataLength;
+			}
+			gf_bs_read_data(bs, samp->data, samp->dataLength);
+			e = gf_isom_add_sample(import->dest, track, di, samp);
+		}
+		if (e) goto exit;
+
+		gf_set_progress("Importing AAC", done, tot_size);
+
+		samp->DTS += 1536;
+		done += samp->dataLength;
+		if (duration && (samp->DTS > duration)) break;
+		if (import->flags & GF_IMPORT_DO_ABORT) break;
+	}
+	MP4T_RecomputeBitRate(import->dest, track);
+	gf_set_progress("Importing AC3", tot_size, tot_size);
+
+exit:
+	if (import->esd && destroy_esd) {
+		gf_odf_desc_del((GF_Descriptor *) import->esd);
+		import->esd = NULL;
+	}
+	if (samp) gf_isom_sample_del(&samp);
+	fclose(in);
+	return e;
+}
+
+
 GF_EXPORT
 GF_Err gf_media_import(GF_MediaImporter *importer)
 {
@@ -5975,6 +6105,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!stricmp(fmt, "RAW")) {
 		return gf_import_raw_unit(importer);
 	}
+	/*AC3*/
+	if (!strnicmp(ext, ".ac3", 4) || !stricmp(fmt, "AC3") )
+		return gf_import_ac3(importer);
 	/*DIMS*/
 	if (!strnicmp(ext, ".dml", 4) || !stricmp(fmt, "DIMS") )
 		return gf_import_nhml_dims(importer, 1);

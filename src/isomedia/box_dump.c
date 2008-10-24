@@ -279,6 +279,9 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_DIMC: return dimC_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_DIST: return diST_dump(a, trace);
 
+	case GF_ISOM_BOX_TYPE_AC3: return ac3_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DAC3: return dac3_dump(a, trace);
+
 	default: return defa_dump(a, trace);
 	}
 }
@@ -3228,6 +3231,30 @@ GF_Err dimC_dump(GF_Box *a, FILE * trace)
 		p->profile, p->level, p->pathComponents, p->fullRequestHost, p->streamType, p->containsRedundant, p->textEncoding, p->contentEncoding);
 	DumpBox(a, trace);
 	fprintf(trace, "</DIMSSceneConfigBox>\n");
+	return GF_OK;
+}
+
+
+GF_Err dac3_dump(GF_Box *a, FILE * trace)
+{
+	GF_AC3ConfigBox *p = (GF_AC3ConfigBox *)a;
+
+	fprintf(trace, "<AC3SpecificBox fscod=\"%d\" bsid=\"%d\" bsmod=\"%d\" acmod=\"%d\" lfon=\"%d\" bit_rate_code=\"%d\">\n", 
+		p->cfg.fscod, p->cfg.bsid, p->cfg.bsmod, p->cfg.acmod, p->cfg.lfon, p->cfg.brcode);
+	DumpBox(a, trace);
+	fprintf(trace, "</AC3SpecificBox>\n");
+	return GF_OK;
+}
+
+GF_Err ac3_dump(GF_Box *a, FILE * trace)
+{
+	GF_AC3SampleEntryBox *p = (GF_AC3SampleEntryBox *)a;
+	fprintf(trace, "<AC3SampleEntry");
+	base_audio_entry_dump((GF_AudioSampleEntryBox *)p, trace);
+	fprintf(trace, ">\n");
+	gf_box_dump(p->info, trace);
+	DumpBox(a, trace);
+	fprintf(trace, "</AC3SampleEntry>\n");
 	return GF_OK;
 }
 

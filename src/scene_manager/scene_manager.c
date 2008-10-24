@@ -28,6 +28,7 @@
 #include <gpac/bifs.h>
 #include <gpac/xml.h>
 #include <gpac/internal/scenegraph_dev.h>
+#include <gpac/internal/bifs_dev.h>
 
 
 Bool gf_node_in_table_by_tag(u32 tag, u32 NDTType)

@@ -283,6 +283,9 @@ enum
 	GF_ISOM_BOX_TYPE_DIST	= GF_4CC( 'd', 'i', 'S', 'T' ),
 
 
+	GF_ISOM_BOX_TYPE_AC3	= GF_4CC( 'a', 'c', '-', '3' ),
+	GF_ISOM_BOX_TYPE_DAC3	= GF_4CC( 'd', 'a', 'c', '3' ),
+
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
@@ -821,6 +824,19 @@ typedef struct
 	char *data;
 	u32 data_size;
 } GF_GenericAudioSampleEntryBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_AC3Config cfg;
+} GF_AC3ConfigBox;
+
+typedef struct
+{
+	GF_ISOM_AUDIO_SAMPLE_ENTRY
+	GF_AC3ConfigBox *info;
+} GF_AC3SampleEntryBox;
+
 
 
 
@@ -3095,6 +3111,21 @@ GF_Err diST_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err diST_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err diST_Size(GF_Box *s);
 GF_Err diST_dump(GF_Box *a, FILE * trace);
+
+
+GF_Box *ac3_New();
+void ac3_del(GF_Box *s);
+GF_Err ac3_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ac3_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err ac3_Size(GF_Box *s);
+GF_Err ac3_dump(GF_Box *a, FILE * trace);
+
+GF_Box *dac3_New();
+void dac3_del(GF_Box *s);
+GF_Err dac3_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err dac3_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err dac3_Size(GF_Box *s);
+GF_Err dac3_dump(GF_Box *a, FILE * trace);
 
 #ifdef __cplusplus
 }

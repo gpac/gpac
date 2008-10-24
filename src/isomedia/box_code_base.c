@@ -4991,6 +4991,7 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_METX:
 	case GF_ISOM_BOX_TYPE_METT:
 	case GF_ISOM_BOX_TYPE_DIMS:
+	case GF_ISOM_BOX_TYPE_AC3:
 		return gf_list_add(ptr->boxList, a);
 	/*for 3GP config, we must set the type*/
 	case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -6069,6 +6070,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_TX3G:
 		case GF_ISOM_BOX_TYPE_ENCT:
 		case GF_ISOM_BOX_TYPE_DIMS:
+		case GF_ISOM_BOX_TYPE_AC3:
 			continue;
 		default:
 			break;
@@ -7286,3 +7288,127 @@ GF_Err metx_Size(GF_Box *s)
 
 #endif //GPAC_READ_ONLY
 
+
+
+GF_Box *dac3_New()
+{
+	GF_AC3ConfigBox *tmp = (GF_AC3ConfigBox *) malloc(sizeof(GF_AC3ConfigBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_AC3ConfigBox));
+	tmp->type = GF_ISOM_BOX_TYPE_DAC3;
+	return (GF_Box *)tmp;
+}
+
+void dac3_del(GF_Box *s)
+{
+	GF_AC3ConfigBox *ptr = (GF_AC3ConfigBox *)s;
+	free(ptr);
+}
+
+
+GF_Err dac3_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AC3ConfigBox *ptr = (GF_AC3ConfigBox *)s;
+	if (ptr == NULL) return GF_BAD_PARAM;
+
+	ptr->cfg.fscod = gf_bs_read_int(bs, 2);
+	ptr->cfg.bsid = gf_bs_read_int(bs, 5);
+	ptr->cfg.bsmod = gf_bs_read_int(bs, 3);
+	ptr->cfg.acmod = gf_bs_read_int(bs, 3);
+	ptr->cfg.lfon = gf_bs_read_int(bs, 1);
+	ptr->cfg.brcode = gf_bs_read_int(bs, 5);
+	gf_bs_read_int(bs, 5);
+	return GF_OK;
+}
+
+//from here, for write/edit versions
+#ifndef GPAC_READ_ONLY
+
+GF_Err dac3_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AC3ConfigBox *ptr = (GF_AC3ConfigBox *)s;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_int(bs, ptr->cfg.fscod, 2);
+	gf_bs_write_int(bs, ptr->cfg.bsid, 5);
+	gf_bs_write_int(bs, ptr->cfg.bsmod, 3);
+	gf_bs_write_int(bs, ptr->cfg.acmod, 3);
+	gf_bs_write_int(bs, ptr->cfg.lfon, 1);
+	gf_bs_write_int(bs, ptr->cfg.brcode, 5);
+	gf_bs_write_int(bs, 0, 5);
+	return GF_OK;
+}
+
+GF_Err dac3_Size(GF_Box *s)
+{
+	GF_Err e;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	s->size += 3;
+	return GF_OK;
+}
+
+#endif //GPAC_READ_ONLY
+
+
+
+void ac3_del(GF_Box *s)
+{
+	GF_AC3SampleEntryBox *ptr = (GF_AC3SampleEntryBox *)s;
+	if (ptr == NULL) return;
+	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
+	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
+	free(ptr);
+}
+
+
+GF_Err ac3_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AC3SampleEntryBox *ptr = (GF_AC3SampleEntryBox *)s;
+	e = gf_isom_audio_sample_entry_read((GF_AudioSampleEntryBox*)s, bs);
+	if (e) return e;
+	e = gf_isom_parse_box((GF_Box **)&ptr->info, bs);
+	if (e) return e;
+	return GF_OK;
+}
+
+GF_Box *ac3_New()
+{
+	GF_AC3SampleEntryBox *tmp;
+	GF_SAFEALLOC(tmp, GF_AC3SampleEntryBox);
+	if (tmp == NULL) return NULL;
+	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
+	tmp->type = GF_ISOM_BOX_TYPE_AC3;
+	return (GF_Box *)tmp;
+}
+
+//from here, for write/edit versions
+#ifndef GPAC_READ_ONLY
+
+GF_Err ac3_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_3GPPAudioSampleEntryBox *ptr = (GF_3GPPAudioSampleEntryBox *)s;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_isom_audio_sample_entry_write((GF_AudioSampleEntryBox*)s, bs);
+	return gf_isom_box_write((GF_Box *)ptr->info, bs);
+}
+
+GF_Err ac3_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_3GPPAudioSampleEntryBox *ptr = (GF_3GPPAudioSampleEntryBox *)s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	gf_isom_audio_sample_entry_size((GF_AudioSampleEntryBox*)s);
+	e = gf_isom_box_size((GF_Box *)ptr->info);
+	if (e) return e;
+	ptr->size += ptr->info->size;
+	return GF_OK;
+}
+
+#endif //GPAC_READ_ONLY

@@ -345,6 +345,9 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	} else if (m_stype==GF_ISOM_SUBTYPE_3GP_DIMS) {
 		gf_export_message(dumper, GF_OK, "Extracting DIMS sample%s", szNum);
 		strcpy(szEXT, ".dims");
+	} else if (m_stype==GF_ISOM_SUBTYPE_AC3) {
+		gf_export_message(dumper, GF_OK, "Extracting AC3 sample%s", szNum);
+		strcpy(szEXT, ".ac3");
 	} else if (m_stype==GF_ISOM_SUBTYPE_AVC_H264) {
 		strcpy(szEXT, ".h264");
 		gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
@@ -735,6 +738,9 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		} else if (m_type==GF_ISOM_MEDIA_FLASH) {
 			gf_export_message(dumper, GF_OK, "Extracting Macromedia Flash Movie");
 			strcat(szName, ".swf");
+		} else if (m_stype==GF_ISOM_SUBTYPE_AC3) {
+			gf_export_message(dumper, GF_OK, "Extracting AC3 Audio");
+			strcat(szName, ".ac3");
 		} else {
 			strcat(szName, ".");
 			strcat(szName, gf_4cc_to_str(m_stype));

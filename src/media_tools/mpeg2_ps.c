@@ -896,7 +896,7 @@ static Bool mpeg2ps_stream_find_ac3_frame (mpeg2ps_stream_t *sptr)
   while (gf_ac3_parser(sptr->pes_buffer + sptr->pes_buffer_on,
 			      sptr->pes_buffer_size - sptr->pes_buffer_on,
 			       &diff, 
-			      &hdr) <= 0) {
+			      &hdr, 0) <= 0) {
     // don't have frame
     if (sptr->pes_buffer_size > 6) {
       sptr->pes_buffer_on = sptr->pes_buffer_size - 6;
@@ -1061,7 +1061,7 @@ static void get_info_from_frame (mpeg2ps_stream_t *sptr,
     } else if (sptr->m_substream_id >= 0x80) {
 		u32 pos;
 		GF_AC3Header hdr;
-      gf_ac3_parser(buffer, buflen, &pos, &hdr);
+      gf_ac3_parser(buffer, buflen, &pos, &hdr, 0);
 	  sptr->bitrate = hdr.bitrate;
 	  sptr->freq = hdr.sample_rate;
 	  sptr->channels = hdr.channels;
