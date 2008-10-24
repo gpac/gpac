@@ -1450,22 +1450,6 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	}
 }
 
-static void svg_pop_namespaces(SVG_Element *elt)
-{
-	GF_DOMAttribute *att = elt->attributes;
-	while (att) {
-		if (att->tag==TAG_DOM_ATT_any) {
-			GF_DOMFullAttribute *datt = (GF_DOMFullAttribute*)att;
-			if (datt->name && !strncmp(datt->name, "xmlns", 5)) {
-				char *qname = datt->name+5;
-				if (qname[0]) qname++;
-				gf_sg_remove_namespace(elt->sgprivate->scenegraph, *(DOM_String *) datt->data, qname);
-			}
-		}
-		att = att->next;
-	}
-}
-
 static void svg_node_end(void *sax_cbck, const char *name, const char *name_space)
 {
 	u32 ns;
@@ -1555,7 +1539,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 				break;
 			case TAG_SVG_script:
 			case TAG_SVG_handler:
-				if (svg_evaluate_condition(parser, (GF_Node*)node, NULL)) {
+				if (1 || svg_evaluate_condition(parser, (GF_Node*)node, NULL)) {
 					/*init script once text script is loaded*/
 					gf_node_init((GF_Node *)node);
 				} else {
