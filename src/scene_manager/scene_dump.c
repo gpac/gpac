@@ -2608,7 +2608,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 	if (!nID) {
 		switch (tag) {
 		case TAG_SVG_listener:
-			if (gf_node_get_attribute_by_tag(n, TAG_XMLEV_ATT_handler, 0, 0, &info)==GF_OK) {
+			if (0 && gf_node_get_attribute_by_tag(n, TAG_XMLEV_ATT_handler, 0, 0, &info)==GF_OK) {
 				if (((XMLRI*)info.far_ptr)->target && !gf_node_get_id(((XMLRI*)info.far_ptr)->target) ) 
 					return;
 			}
@@ -2642,20 +2642,9 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 	}
 
 	/*register all namespaces specified on this element */
-	svg_push_namespaces(n);
+	gf_xml_push_namespaces((GF_DOMNode *)n);
 
 	fprintf(sdump->trace, "<%s", gf_node_get_class_name(n));
-
-	/*if (is_root) {
-		for (i=0; i<gf_list_count(n->sgprivate->scenegraph->ns); i++) {
-			GF_XMLNS *ns = gf_list_get(n->sgprivate->scenegraph->ns, i);
-			if (ns->qname) {
-				fprintf(sdump->trace, " xmlns:%s=\"%s\"", ns->qname, ns->name);
-			} else {
-				fprintf(sdump->trace, " xmlns=\"%s\"", ns->name);
-			}
-		}
-	}*/
 	
 	if (nID) fprintf(sdump->trace, " id=\"%s\"", lsr_format_node_id(n, 0, attValue));
 
@@ -2665,7 +2654,16 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 			att = att->next;
 			continue;
 		} 
-		else if (att->data_type==XMLRI_datatype) {
+		
+		info.fieldIndex = att->tag;
+		info.fieldType = att->data_type;
+		if (att->tag==TAG_DOM_ATT_any) {
+			info.name = ((GF_DOMFullAttribute*)att)->name;
+		} else {
+			info.name = gf_svg_get_attribute_name(n, att->tag);
+		}
+
+		if (att->data_type==XMLRI_datatype) {
 			XMLRI *xlink = (XMLRI *)att->data;
 			if (xlink->type==XMLRI_ELEMENTID) {
 				if (!xlink->target || !gf_node_get_id((GF_Node*)xlink->target) ) {
@@ -2678,21 +2676,14 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 				}
 			}
 			else if (xlink->type==XMLRI_STREAMID) {
-				fprintf(sdump->trace, " xlink:href=\"#stream%d\"", xlink->lsr_stream_id);
+				fprintf(sdump->trace, " %s=\"#stream%d\"", info.name, xlink->lsr_stream_id);
 				att = att->next;
 				continue;
 			} else {
-				fprintf(sdump->trace, " xlink:href=\"%s\"", xlink->string);
+				fprintf(sdump->trace, " %s=\"%s\"", info.name, xlink->string);
 				att = att->next;
 				continue;
 			}
-		}
-		info.fieldIndex = att->tag;
-		info.fieldType = att->data_type;
-		if (att->tag==TAG_DOM_ATT_any) {
-			info.name = ((GF_DOMFullAttribute*)att)->name;
-		} else {
-			info.name = gf_svg_get_attribute_name(n, att->tag);
 		}
 		info.far_ptr = att->data;
 		gf_svg_dump_attribute((GF_Node*)svg, &info, attValue);
@@ -2766,7 +2757,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 	fprintf(sdump->trace, "</%s>", gf_node_get_class_name(n));
 	if (tag==TAG_SVG_text) sdump->in_text = 0;
 	/*removes all namespaces specified on this element */
-	svg_pop_namespaces(n);
+	gf_xml_pop_namespaces((GF_DOMNode *)n);
 }
 #endif
 

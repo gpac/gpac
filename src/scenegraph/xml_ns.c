@@ -291,7 +291,7 @@ static const struct xml_att_def { const char *name; u32 tag; u32 type; u32 opts;
 	{ "src", TAG_XBL_ATT_src, DOM_String_datatype, 0, GF_XMLNS_XBL },
 };
 
-void svg_push_namespaces(SVG_Element *elt)
+void gf_xml_push_namespaces(GF_DOMNode *elt)
 {
 	GF_DOMAttribute *att = elt->attributes;
 	while (att) {
@@ -299,15 +299,14 @@ void svg_push_namespaces(SVG_Element *elt)
 			GF_DOMFullAttribute *datt = (GF_DOMFullAttribute*)att;
 			if (datt->name && !strncmp(datt->name, "xmlns", 5)) {
 				char *qname = datt->name+5;
-				if (qname[0]) qname++;
-				gf_sg_add_namespace(elt->sgprivate->scenegraph, *(DOM_String *) datt->data, qname);
+				gf_sg_add_namespace(elt->sgprivate->scenegraph, *(DOM_String *) datt->data, qname[0] ? qname+1 : NULL);
 			}
 		}
 		att = att->next;
 	}
 }
 
-void svg_pop_namespaces(SVG_Element *elt)
+void gf_xml_pop_namespaces(GF_DOMNode *elt)
 {
 	GF_DOMAttribute *att = elt->attributes;
 	while (att) {
@@ -315,8 +314,7 @@ void svg_pop_namespaces(SVG_Element *elt)
 			GF_DOMFullAttribute *datt = (GF_DOMFullAttribute*)att;
 			if (datt->name && !strncmp(datt->name, "xmlns", 5)) {
 				char *qname = datt->name+5;
-				if (qname[0]) qname++;
-				gf_sg_remove_namespace(elt->sgprivate->scenegraph, *(DOM_String *) datt->data, qname);
+				gf_sg_remove_namespace(elt->sgprivate->scenegraph, *(DOM_String *) datt->data, qname[0] ? qname+1 : NULL);
 			}
 		}
 		att = att->next;
@@ -553,7 +551,6 @@ u32 gf_xml_get_element_namespace(GF_Node *n)
 	for (i=0; i<count; i++) {
 		if (n->sgprivate->tag==xml_elements[i].tag) return xml_elements[i].xmlns;
 	}
-	gf_sg_get_namespace_code(n->sgprivate->scenegraph, NULL);
 	return GF_XMLNS_NONE;
 }
 

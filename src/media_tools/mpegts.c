@@ -1255,7 +1255,16 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 {
 	Bool flush_pes = 0;
 	
-	if (hdr->error || !pes->reframe) return;
+	if (hdr->error) {
+		if (pes->data) {
+			free(pes->data);
+			pes->data = NULL;
+		}
+		pes->data_len = 0;
+		pes->pes_len = 0;
+		return;
+	}
+	if (!pes->reframe) return;
 
 	if (hdr->payload_start) {
 		flush_pes = 1;
@@ -1274,6 +1283,8 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	/*PES first fragment: flush previous packet*/
 	if (flush_pes && pes->data) {
 		GF_M2TS_PESHeader pesh;
+	if (pes->pid==25)
+		pes->pid=25;
 
 		/*we need at least a full, valid start code !!*/
 		if ((pes->data_len >= 4) && !pes->data[0] && !pes->data[1] && (pes->data[2]==0x1)) {
@@ -1293,6 +1304,8 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 			/*SL-packetized stream*/
 			else if ((u8) pes->data[3]==0xfa) {
 				GF_M2TS_SL_PCK sl_pck;
+		if (pes->pid==25)
+			pes->pid=25;
 				/*read header*/
 				gf_m2ts_pes_header(pes, pes->data+3, pes->data_len-3, &pesh);
 
@@ -1306,7 +1319,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 					sl_pck.stream = (GF_M2TS_ES *)pes;
 					if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
 				} else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Bad SL Packet size: (%d indicated < %d header)\n", pes->pid, pes->data_len, len));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Bad SL Packet size: (%d indicated < %d header)\n", pes->pid, pes->data_len, len));
 				}
 			}
 		}
