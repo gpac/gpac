@@ -1173,6 +1173,7 @@ GF_Err tkhd_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "CreationTime=\""LLD"\" ModificationTime=\""LLD"\" TrackID=\"%d\" Duration=\""LLD"\"",
 		LLD_CAST p->creationTime, LLD_CAST p->modificationTime, p->trackID, LLD_CAST p->duration);
 	
+	if (p->alternate_group) fprintf(trace, " AlternateGroupID=\"%d\"", p->alternate_group);
 	if (p->volume) {
 		fprintf(trace, " Volume=\"%.2f\"", (Float)p->volume / 256);
 	} else if (p->width || p->height) {

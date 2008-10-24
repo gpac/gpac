@@ -144,6 +144,8 @@ void PrintGeneralUsage()
 			" -cprt string         adds copyright string to movie\n"
 			" -chap file           adds chapter information contained in file\n"
 			" -rem trackID:        removes track from file\n"
+			" -enable trackID:     enables track\n"
+			" -disable trackID:    disables track\n"
 			" -new:                forces creation of a new destination file\n"
 			" -rem trackID:        removes track from file\n"
 			" -lang [tkID=]LAN:    sets track language. LAN is the ISO 639-2 code (eng, und)\n"
@@ -161,7 +163,8 @@ void PrintGeneralUsage()
 			" -group-add fmt       creates a new grouping information in the file. Format is\n"
 			"                      a colon-separated list of following options:\n"
 			"                      refTrack=ID: ID of the track used as a group reference.\n"
-			"                       If not set or 0, a new alternate group will be created\n"
+			"                       If not set, the track will belong to the same group as the previous trackID specified.\n"
+			"                       If 0 or no previous track specified, a new alternate group will be created\n"
 			"                      switchID=ID: ID of the switch group to create.\n"
 			"                       If 0, a new ID will be computed for you\n"
 			"                       If <0, disables SwitchGroup\n"
@@ -232,6 +235,9 @@ void PrintImportUsage()
 			" \":delay=delay_ms\":   sets imported media initial delay in ms\n"
 			" \":par=PAR\":          sets visual pixel aspect ratio (PAR=Num:Den)\n"
 			" \":name=NAME\":        sets track handler name\n"
+			" \":disable\":          imported track(s) will be disabled\n"
+			" \":group=G\":          adds the track as part of the G alternate group.\n"
+			"                        * If G is 0, the first available GroupID will be picked.\n"
 			" \":fps=VAL\":          same as -fps option\n"
 			" \":agg=VAL\":          same as -agg option\n"
 			" \":par=VAL\":          same as -par option\n"
@@ -248,7 +254,7 @@ void PrintImportUsage()
 			" -cat file:           concatenates file samples to (new) output file\n"
 			"                       * Note: creates tracks if needed\n"
 			" -force-cat:          skips media configuration check when concatenating file\n"
-			"                       !!! THIS MAY BREAK THE CONCATENATE TRACK(S) !!!\n"
+			"                       !!! THIS MAY BREAK THE CONCATENATED TRACK(S) !!!\n"
 			" -keep-sys:           keeps all MPEG-4 Systems info when using '-add' / 'cat'\n"
 			" -keep-all:           keeps all existing tracks when using '-add'\n"
 			"                       * Note: only used when adding IsoMedia files\n"
@@ -1018,6 +1024,10 @@ static Bool parse_tsel_args(TSELAction *tsel_list, char *opts, u32 *nb_tsel_act)
 			tsel_act->is_switchGroup = has_switch_id;
 			tsel_act->nb_criteria = nb_criteria;
 			memcpy(tsel_act->criteria, criteria, sizeof(u32)*nb_criteria);
+
+			if (!refTrackID)
+				refTrackID = tsel_act->trackID;
+
 			(*nb_tsel_act) ++;
 		}		
 		opts += strlen(szSlot);
@@ -1040,6 +1050,8 @@ typedef struct
 	3: set track KMS URI
 	4: set visual track PAR if possible
 	5: set track handler name
+	6: enables track
+	7: disables track
 	*/
 	u32 act_type;
 	/*track ID*/
@@ -1382,13 +1394,15 @@ int main(int argc, char **argv)
 			raw_cat = argv[i+1];
 			i++;
 		}
-		else if (!stricmp(arg, "-rem")) {
+		else if (!stricmp(arg, "-rem") || !stricmp(arg, "-disable") || !stricmp(arg, "-enable")) {
 			CHECK_NEXT_ARG
 			if (nb_track_act>=MAX_CUMUL_OPS) {
 				fprintf(stdout, "Sorry - no more than %d track operations allowed\n", MAX_CUMUL_OPS);
 				return 1;
 			}
-			tracks[nb_track_act].act_type = 0;
+			if (!stricmp(arg, "-enable")) tracks[nb_track_act].act_type = 6;
+			else if (!stricmp(arg, "-disable")) tracks[nb_track_act].act_type = 7;
+			else tracks[nb_track_act].act_type = 0;
 			tracks[nb_track_act].trackID = atoi(argv[i+1]);
 			open_edit = 1;
 			nb_track_act++;
@@ -2422,6 +2436,18 @@ int main(int argc, char **argv)
 		case 5:
 			e = gf_isom_set_handler_name(file, track, tka->hdl_name);
 			needSave = 1;
+			break;
+		case 6:
+			if (!gf_isom_is_track_enabled(file, track)) {
+				e = gf_isom_set_track_enabled(file, track, 1);
+				needSave = 1;
+			}
+			break;
+		case 7:
+			if (gf_isom_is_track_enabled(file, track)) {
+				e = gf_isom_set_track_enabled(file, track, 0);
+				needSave = 1;
+			}
 			break;
 		}
 		if (e) goto err_exit;

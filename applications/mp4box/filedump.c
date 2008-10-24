@@ -1006,6 +1006,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	timescale = gf_isom_get_media_timescale(file, trackNum);
 	fprintf(stdout, "Track # %d Info - TrackID %d - TimeScale %d - Duration %s\n", trackNum, trackID, timescale, format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
 	if (gf_isom_is_track_in_root_od(file, trackNum) ) fprintf(stdout, "Track is present in Root OD\n");
+	if (!gf_isom_is_track_enabled(file, trackNum))  fprintf(stdout, "Track is disabled\n");
 	gf_isom_get_media_language(file, trackNum, sType);
 	fprintf(stdout, "Media Info: Language \"%s\" - ", GetLanguage(sType) );
 	mtype = gf_isom_get_media_type(file, trackNum);

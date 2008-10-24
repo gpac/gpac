@@ -132,7 +132,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 {
 	u32 track_id, i, timescale, track;
 	s32 par_d, par_n, prog_id, delay;
-	Bool do_audio, do_video, do_all;
+	Bool do_audio, do_video, do_all, disable;
+	u32 group;
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
@@ -147,8 +148,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		return GF_BAD_PARAM;
 	}
 
+	disable = 0;
 	szLan = NULL;
 	delay = 0;
+	group = 0;
 	par_d = par_n = -2;
 	/*use ':' as separator, but beware DOS paths...*/
 	ext = strchr(szName, ':');
@@ -190,6 +193,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "font=", 5)) import.fontName = strdup(ext+6);
 		else if (!strnicmp(ext+1, "size=", 5)) import.fontSize = atoi(ext+6);
 		else if (!strnicmp(ext+1, "fmt=", 4)) import.streamFormat = strdup(ext+5);
+		else if (!strnicmp(ext+1, "disable", 7)) disable = 1;
+		else if (!strnicmp(ext+1, "group=", 6)) {
+			group = atoi(ext+7);
+			if (!group) group = gf_isom_get_next_alternate_group_id(dest);
+		}
+		
+
 		/*unrecognized, assume name has colon in it*/
 		else {
 		 ext = ext2;
@@ -302,6 +312,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			timescale = gf_isom_get_timescale(dest);
 			track = gf_isom_get_track_by_id(import.dest, import.final_trackID);
 			if (szLan) gf_isom_set_media_language(import.dest, track, (char *) szLan);
+			if (disable) gf_isom_set_track_enabled(import.dest, track, 0);
+
 			if (delay) {
 				u64 tk_dur;
 				gf_isom_remove_edit_segments(import.dest, track);
@@ -323,6 +335,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				e = gf_media_change_par(import.dest, track, par_n, par_d);
 			}
 			if (handler_name) gf_isom_set_handler_name(import.dest, track, handler_name);
+
+			if (group) {
+				gf_isom_set_alternate_group_id(import.dest, track, group);
+			}
 		}
 		if (track_id) fprintf(stdout, "WARNING: Track ID %d not found in file\n", track_id);
 		else if (do_video) fprintf(stdout, "WARNING: Video track not found\n");

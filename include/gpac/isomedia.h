@@ -541,6 +541,8 @@ Bool gf_isom_has_sample_dependency(GF_ISOFile *the_file, u32 trackNumber);
 for the current time*/
 u64 gf_isom_estimate_size(GF_ISOFile *the_file);
 
+u32 gf_isom_get_next_alternate_group_id(GF_ISOFile *movie);
+
 
 /*
 		MPEG-4 Systems extensions
@@ -805,6 +807,9 @@ GF_Err gf_isom_set_copyright(GF_ISOFile *the_file, const char *threeCharCode, ch
 
 /*deletes copyright (1-based indexes)*/
 GF_Err gf_isom_remove_copyright(GF_ISOFile *the_file, u32 index);
+
+
+GF_Err gf_isom_set_alternate_group_id(GF_ISOFile *movie, u32 trackNumber, u32 groupId);
 
 /*add chapter info:
 if trackNumber is 0, the chapter info is added to the movie, otherwise to the track
@@ -1758,9 +1763,6 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 /*sets compatibility tag on AVC tracks (needed by iPod to play files... hurray for standards)*/
 GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber);
 #endif
-
-
-
 
 
 /*3GPP Alternate Group API - (c) 2007 ENST & ResonateMP4*/

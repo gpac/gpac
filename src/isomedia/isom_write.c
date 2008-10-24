@@ -3569,6 +3569,14 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 	return gf_list_add(ilst->tags, info);
 }
 
+GF_EXPORT
+GF_Err gf_isom_set_alternate_group_id(GF_ISOFile *movie, u32 trackNumber, u32 groupId)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	trak->Header->alternate_group = groupId;
+	return GF_OK;
+}
 
 GF_EXPORT
 GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u32 trackRefGroup, Bool is_switch_group, u32 *switchGroupID, u32 *criteriaList, u32 criteriaListCount)
@@ -3581,7 +3589,7 @@ GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u3
 	u32 next_switch_group_id = 0;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak || !criteriaListCount || !switchGroupID) return GF_BAD_PARAM;
+	if (!trak || !switchGroupID) return GF_BAD_PARAM;
 
 
 	if (trackRefGroup) {
@@ -3594,19 +3602,9 @@ GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u3
 		}
 	} 
 	if (!alternateGroupID) {
-		u32 i=0;		
 		/*there is a function for this ....*/
 		if (trak->Header->alternate_group) return GF_BAD_PARAM;
-
-		while (i< gf_isom_get_track_count(movie) ) {
-			//locate first available ID
-			GF_TrackBox *a_trak = gf_isom_get_track_from_file(movie, i+1);
-			if (a_trak->Header->alternate_group >= alternateGroupID)
-				alternateGroupID = a_trak->Header->alternate_group;
-
-			i++;
-		}
-		alternateGroupID++;
+		alternateGroupID = gf_isom_get_next_alternate_group_id(movie);
 	}
 
 	if (is_switch_group) {
@@ -3641,35 +3639,38 @@ GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u3
 	}
 
 	
-	if (!trak->udta) {
-		e = trak_AddBox((GF_Box*)trak, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
-		if (e) return e;
-	}
+	trak->Header->alternate_group = alternateGroupID;
 
 	tsel = NULL;
-	map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_TSEL, NULL);
-
-	/*locate tsel box with no switch group*/
-	if (map)  {
-		u32 j, count = gf_list_count(map->boxList);
-		for (j=0; j<count; j++) {
-			tsel = gf_list_get(map->boxList, j);
-			if (tsel->switchGroup == *switchGroupID) break;
-			tsel = NULL;
+	if (*switchGroupID) {
+		if (!trak->udta) {
+			e = trak_AddBox((GF_Box*)trak, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
+			if (e) return e;
 		}
-	}
-	if (!tsel) {
-		tsel = (GF_TrackSelectionBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_TSEL);
-		e = udta_AddBox(trak->udta, (GF_Box *) tsel);
-		if (e) return e;
-	}
 
-	trak->Header->alternate_group = alternateGroupID;
-	tsel->switchGroup = *switchGroupID;
-	tsel->attributeListCount = criteriaListCount;
-	if (tsel->attributeList) free(tsel->attributeList);
-	tsel->attributeList = malloc(sizeof(u32)*criteriaListCount);
-	memcpy(tsel->attributeList, criteriaList, sizeof(u32)*criteriaListCount);
+		map = udta_getEntry(trak->udta, GF_ISOM_BOX_TYPE_TSEL, NULL);
+
+		/*locate tsel box with no switch group*/
+		if (map)  {
+			u32 j, count = gf_list_count(map->boxList);
+			for (j=0; j<count; j++) {
+				tsel = gf_list_get(map->boxList, j);
+				if (tsel->switchGroup == *switchGroupID) break;
+				tsel = NULL;
+			}
+		}
+		if (!tsel) {
+			tsel = (GF_TrackSelectionBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_TSEL);
+			e = udta_AddBox(trak->udta, (GF_Box *) tsel);
+			if (e) return e;
+		}
+
+		tsel->switchGroup = *switchGroupID;
+		tsel->attributeListCount = criteriaListCount;
+		if (tsel->attributeList) free(tsel->attributeList);
+		tsel->attributeList = malloc(sizeof(u32)*criteriaListCount);
+		memcpy(tsel->attributeList, criteriaList, sizeof(u32)*criteriaListCount);
+	}
 	return GF_OK;
 }
 
