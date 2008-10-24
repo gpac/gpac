@@ -534,6 +534,13 @@ EXPORTS
 	gf_isom_get_dims_description
 	gf_isom_new_dims_description
 	gf_isom_update_dims_description
+	gf_isom_get_track_switch_group_count
+	gf_isom_get_track_switch_parameter
+	gf_isom_get_next_alternate_group_id
+	gf_isom_get_payt_count
+	gf_isom_get_payt_info
+	gf_isom_get_meta_primary_item_id
+	gf_isom_is_JPEG2000
 
 
 ;NON-READ-ONLY exports
@@ -680,6 +687,13 @@ EXPORTS
 	gf_isom_extract_meta_xml
 	gf_isom_extract_meta_item
 	gf_isom_apple_set_tag
+	gf_isom_get_next_alternate_group_id
+	gf_isom_set_ipod_compatible
+	gf_media_make_psp
+	gf_isom_reset_switch_parameters
+	gf_isom_reset_track_switch_parameter
+	gf_isom_set_track_switch_parameter
+	gf_isom_set_alternate_group_id
 ;end GPAC_READ_ONLY
 
 ;isomedia_dev.h exports
@@ -929,6 +943,7 @@ EXPORTS
 	gf_bifs_encoder_get_version
 	gf_bifs_encoder_get_rap
 	gf_bifs_get_aq_info
+	gf_bifs_get_node_type
 
 
 ;scenegraph.h and scenegraph_vrml.h exports
@@ -1054,6 +1069,7 @@ EXPORTS
 	gf_node_get_field_count
 	gf_node_mpeg4_type_by_class_name
 	gf_node_x3d_type_by_class_name
+	gf_x3d_get_node_type
 	gf_sg_mfurl_del
 	gf_sg_sfcolor_to_rgba
 	gf_node_list_add_child

@@ -1561,6 +1561,8 @@ Bool open_program(M2TSProgram *prog, const char *src)
 		u32 first_audio = 0;
 		prog->mp4 = gf_isom_open(src, GF_ISOM_OPEN_READ, 0);
 		prog->nb_streams = 0;
+		/*on MPEG-2 TS, carry 3GPP timed text as MPEG-4 Part17*/
+		gf_isom_text_set_streaming_mode(prog->mp4, 1);
 		nb_tracks = gf_isom_get_track_count(prog->mp4); 
 		for (i=0; i<nb_tracks; i++) {
 			if (gf_isom_get_media_type(prog->mp4, i+1) == GF_ISOM_MEDIA_HINT) 
