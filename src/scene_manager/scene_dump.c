@@ -2641,9 +2641,12 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		DUMP_IND(sdump);
 	}
 
+	/*register all namespaces specified on this element */
+	svg_push_namespaces(n);
+
 	fprintf(sdump->trace, "<%s", gf_node_get_class_name(n));
 
-	if (is_root) {
+	/*if (is_root) {
 		for (i=0; i<gf_list_count(n->sgprivate->scenegraph->ns); i++) {
 			GF_XMLNS *ns = gf_list_get(n->sgprivate->scenegraph->ns, i);
 			if (ns->qname) {
@@ -2652,7 +2655,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 				fprintf(sdump->trace, " xmlns=\"%s\"", ns->name);
 			}
 		}
-	}
+	}*/
 	
 	if (nID) fprintf(sdump->trace, " id=\"%s\"", lsr_format_node_id(n, 0, attValue));
 
@@ -2693,7 +2696,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		}
 		info.far_ptr = att->data;
 		gf_svg_dump_attribute((GF_Node*)svg, &info, attValue);
-		if (strcmp(info.name, "xmlns") && (info.fieldType = strlen(attValue)))
+		if (/*strcmp(info.name, "xmlns") &&*/ (info.fieldType = strlen(attValue)))
 			fprintf(sdump->trace, " %s=\"%s\"", info.name, attValue);
 		fflush(sdump->trace);
 		att = att->next;
@@ -2762,6 +2765,8 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 	if (!sdump->in_text) DUMP_IND(sdump);
 	fprintf(sdump->trace, "</%s>", gf_node_get_class_name(n));
 	if (tag==TAG_SVG_text) sdump->in_text = 0;
+	/*removes all namespaces specified on this element */
+	svg_pop_namespaces(n);
 }
 #endif
 
