@@ -10553,7 +10553,7 @@ static const u32 SFNurbsSurfaceNode_X3D_TypeToTag[4] = {
 
 
 
-Bool X3D_IsNodeInTable(u32 NDT_Tag, u32 NodeTag)
+Bool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag)
 {
 	const u32 *types;
 	u32 count, i;

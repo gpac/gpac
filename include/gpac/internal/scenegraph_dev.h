@@ -327,6 +327,8 @@ void gf_sg_x3d_node_del(GF_Node *node);
 const char *gf_sg_x3d_node_get_class_name(u32 NodeTag);
 s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name);
 
+Bool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag);
+
 void gf_sg_mfint32_del(MFInt32 par);
 void gf_sg_mffloat_del(MFFloat par);
 void gf_sg_mfdouble_del(MFDouble par);
@@ -1011,6 +1013,7 @@ GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clone
 GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target);
 
 GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event_parameter, GF_Node *handler, GF_Node **out_listener);
+
 
 #endif	/*_GF_SCENEGRAPH_DEV_H_*/
 

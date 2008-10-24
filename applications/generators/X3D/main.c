@@ -963,7 +963,7 @@ void WriteNDT(FILE *f, GF_List *XNodes, GF_List *NDTs)
 	}
 
 	//NodeTag complete translation
-	fprintf(f, "\n\n\nBool X3D_IsNodeInTable(u32 NDT_Tag, u32 NodeTag)\n{\n\tconst u32 *types;\n\tu32 count, i;\n\tif (!NodeTag) return 0;\n\ttypes = NULL; count = 0;\n");
+	fprintf(f, "\n\n\nBool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag)\n{\n\tconst u32 *types;\n\tu32 count, i;\n\tif (!NodeTag) return 0;\n\ttypes = NULL; count = 0;\n");
 
 	fprintf(f, "\tswitch (NDT_Tag) {\n");
 	for (i=0; i<gf_list_count(NDTs); i++) {

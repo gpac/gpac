@@ -30,22 +30,19 @@
 #include <gpac/internal/scenegraph_dev.h>
 
 
-
-static Bool gf_node_in_table_by_tag(u32 tag, u32 NDTType)
+Bool gf_node_in_table_by_tag(u32 tag, u32 NDTType)
 {
 	if (!tag) return 0;
 	if (tag==TAG_ProtoNode) return 1;
 	else if (tag<=GF_NODE_RANGE_LAST_MPEG4) {
 		u32 i;
-		u32 gf_bifs_get_node_type(u32 NDT_Tag, u32 NodeTag, u32 Version);
 
 		for (i=0;i<GF_BIFS_LAST_VERSION; i++) {
 			if (gf_bifs_get_node_type(NDTType, tag, i+1)) return 1;
 		}
 		return 0;
 	} else if (tag<=GF_NODE_RANGE_LAST_X3D) {
-		Bool X3D_IsNodeInTable(u32 NDT_Tag, u32 NodeTag);
-		return X3D_IsNodeInTable(NDTType, tag);
+		return gf_x3d_get_node_type(NDTType, tag);
 	}
 	return 0;
 }
