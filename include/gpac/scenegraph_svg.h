@@ -40,31 +40,6 @@ extern "C" {
 
 enum
 {
-	/*no NS specified, it will be evaluated from attribute/node name*/
-	GF_XMLNS_NONE,
-
-	GF_XMLNS_XML,
-	GF_XMLNS_XLINK,
-	GF_XMLNS_XMLEV,
-	GF_XMLNS_LASER,
-	GF_XMLNS_SVG,
-	GF_XMLNS_XBL,
-
-	/*any unsupported namespace */
-	GF_XMLNS_FOREIGN_FIRST,
-};
-GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname);
-GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *name, char *qname);
-u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname);
-u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name);
-const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, u32 xmlns_id);
-
-u32 gf_xml_get_element_namespace(GF_Node *n);
-const char *gf_sg_get_namespace(GF_SceneGraph *sg, u32 xmlns_id);
-
-
-enum
-{
 	/*should never be used, this is only a parsing error*/
 	TAG_DOM_ATTRIBUTE_NULL,
 	/*this tag is set for a full dom attribute only - attribute name is then available*/
@@ -177,6 +152,38 @@ typedef struct __dom_full_node
 	char *name;
 	u32 ns;
 } GF_DOMFullNode;
+
+
+
+enum
+{
+	/*no NS specified, it will be evaluated from attribute/node name*/
+	GF_XMLNS_NONE,
+
+	GF_XMLNS_XML,
+	GF_XMLNS_XLINK,
+	GF_XMLNS_XMLEV,
+	GF_XMLNS_LASER,
+	GF_XMLNS_SVG,
+	GF_XMLNS_XBL,
+
+	/*any unsupported namespace */
+	GF_XMLNS_FOREIGN,
+};
+GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname);
+GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *name, char *qname);
+u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname);
+u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name);
+const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, u32 xmlns_id);
+
+u32 gf_xml_get_element_namespace(GF_Node *n);
+const char *gf_sg_get_namespace(GF_SceneGraph *sg, u32 xmlns_id);
+
+void gf_xml_push_namespaces(GF_DOMNode *elt);
+void gf_xml_pop_namespaces(GF_DOMNode *elt);
+
+
+
 
 enum
 {

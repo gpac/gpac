@@ -517,7 +517,7 @@ static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 c
 {
 	/*temporal scalability disabling: if we already rendered this, no point getting further*/
 	if (CU->TS < dec->CB->LastRenderedTS) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] CU (TS %d) later than last frame drawn (TS %d) - droping\n", CU->TS, dec->CB->LastRenderedTS));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[ODM] CU (TS %d) later than last frame drawn (TS %d) - droping\n", CU->TS, dec->CB->LastRenderedTS));
 		cu_size = 0;
 	} 
 
@@ -701,8 +701,7 @@ scalable_retry:
 		/*this happens a lot when using non-MPEG-4 streams (ex: ffmpeg demuxer)*/
 		case GF_PACKED_FRAMES:
 			/*in seek don't dispatch any output*/
-//			if (mmlevel	== GF_CODEC_LEVEL_SEEK) 
-			if (mmlevel	>= GF_CODEC_LEVEL_DROP) 
+			if (mmlevel	== GF_CODEC_LEVEL_SEEK) 
 				unit_size = 0;
 			e = UnlockCompositionUnit(codec, CU, unit_size);
 
@@ -734,8 +733,7 @@ scalable_retry:
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded frame TS %d in %d ms (DTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, obj_time, AU->CTS, now, AU->DTS));
 			}
 			/*in seek don't dispatch any output*/
-//			if (mmlevel	== GF_CODEC_LEVEL_SEEK) 
-			if (mmlevel	>= GF_CODEC_LEVEL_DROP) 
+			if (mmlevel	== GF_CODEC_LEVEL_SEEK) 
 				unit_size = 0;
 
 			codec_update_stats(codec, AU->dataLength, now);

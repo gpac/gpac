@@ -72,6 +72,11 @@ typedef struct
 	GF_StreamContext *saf_es;
 
 	SVG_SAFExternalStream *streams;
+
+	/*the namespace of the parent element. This is a shortcut to avoid querying the namespace list stored
+	in the scene graph to find out the namespace of the current element.
+	For example in <foo:bar><foo:test/></foo:bar>, it avoids looking for the namespace when parsing <foo:test>
+	*/
 	u32 current_ns;
 
 	GF_Node *suspended_at_node;
@@ -112,6 +117,8 @@ typedef struct
 	u32 unknown_depth;
 	/*last child added, used to speed-up parsing*/
 	GF_ChildNodeItem *last_child;
+
+	/*the namespace of the parent element (used for restoring the context after the current node has been parsed)*/
 	u32 current_ns;
 	Bool has_ns;
 } SVG_NodeStack;
@@ -1508,7 +1515,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 			}
 		}
 		parser->current_ns = top->current_ns;
-		if (top->has_ns) svg_pop_namespaces(top->node);
+		if (top->has_ns) gf_xml_pop_namespaces(top->node);
 		free(top);
 		gf_list_rem_last(parser->node_stack);
 

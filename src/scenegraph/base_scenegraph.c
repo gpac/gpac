@@ -1601,6 +1601,7 @@ u32 gf_node_get_field_count(GF_Node *node)
 	return 0;
 }
 
+char szNameBuffer[1024];
 GF_EXPORT
 const char *gf_node_get_class_name(GF_Node *node)
 {
@@ -1610,7 +1611,15 @@ const char *gf_node_get_class_name(GF_Node *node)
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(node->sgprivate->tag);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(node->sgprivate->tag);
 	else if (node->sgprivate->tag==TAG_DOMText) return "";
-	else if (node->sgprivate->tag==TAG_DOMFullNode) return ((GF_DOMFullNode*)node)->name;
+	else if (node->sgprivate->tag==TAG_DOMFullNode) {
+		char *xmlns;
+		GF_DOMFullNode*full = (GF_DOMFullNode*)node;
+		u32 ns = gf_sg_get_namespace_code(node->sgprivate->scenegraph, NULL);
+		if (ns == full->ns) return full->name;
+		xmlns = (char *) gf_sg_get_namespace_qname(node->sgprivate->scenegraph, full->ns);
+		sprintf(szNameBuffer, "%s:%s", xmlns, full->name);
+		return szNameBuffer;
+	}
 #ifndef GPAC_DISABLE_SVG
 	else return gf_xml_get_element_name(node);
 #endif
@@ -1845,11 +1854,10 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 
 GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 {
-	u32 i, count, id, first_foreign;
+	u32 id;
 	GF_XMLNS *ns;
 	if (!name) return GF_BAD_PARAM;
 
-	first_foreign = GF_XMLNS_FOREIGN_FIRST;
 	id = GF_XMLNS_NONE;
 	if (!strcmp(name, "http://www.w3.org/XML/1998/namespace")) id = GF_XMLNS_XML;
 	else if (!strcmp(name, "http://www.w3.org/2001/xml-events")) id = GF_XMLNS_XMLEV;
@@ -1860,28 +1868,12 @@ GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 
 	if (!sg->ns) sg->ns = gf_list_new();
 
-	count = gf_list_count(sg->ns);
-	for (i=0; i<count; i++) {
-		ns = gf_list_get(sg->ns, i);
-		if (!ns->qname && !qname) {
-			if (!strcmp(ns->name, name)) return GF_OK;
-		}
-		if (ns->qname && qname && !strcmp(ns->qname, qname)) {
-			if (!strcmp(ns->name, name)) return GF_OK;
-		}
-		if (ns->xmlns_id >= first_foreign)
-			first_foreign = ns->xmlns_id+1;
-	}
 	GF_SAFEALLOC(ns, GF_XMLNS);
-	ns->xmlns_id = id ? id : first_foreign;
+	ns->xmlns_id = id ? id : GF_XMLNS_FOREIGN;
 	ns->name = strdup(name);
-	/*prefixed namespaces are inserted in the begining of the list, in order to match the latest 
-	defined namespace*/
-	if (qname) {
-		ns->qname = strdup(qname);
-		return gf_list_insert(sg->ns, ns, 0);
-	}
-	return gf_list_add(sg->ns, ns);
+
+	ns->qname = qname ? strdup(qname) : NULL;
+	return gf_list_insert(sg->ns, ns, 0);
 }
 
 GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *ns_name, char *q_name)

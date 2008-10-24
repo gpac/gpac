@@ -210,8 +210,8 @@ struct __tag_scene_graph
 
 	u32 max_defined_route_id;
 
-	/*namespaces are handled globaly in GPAC, we don't use hierarchical xmlns on subtrees. This
-	could be a problem on some content, maybe a finer approach should be used ?*/
+	/*namespaces list. This list is used while parsing/dumping the tree to store the hierarchy of xmlns attributes in subtrees.
+	It is a stack of GF_XMLNS structures pushed/popped at each element*/
 	GF_List *ns;
 
 #ifdef GF_SELF_REPLACE_ENABLE
