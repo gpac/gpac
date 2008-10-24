@@ -319,7 +319,48 @@ GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPCo
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Config *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_Err e;
+	u32 dataRefIndex;
+	GF_AC3SampleEntryBox *entry;
+	GF_TrackReferenceTypeBox *dpnd;
+	GF_TrackReferenceBox *tref;
 
+	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
+	dpnd = NULL;
+	tref = NULL;
+
+
+	//get or create the data ref
+	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+	if (e) return e;
+	if (!dataRefIndex) {
+		e = Media_CreateDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
+		if (e) return e;
+	}
+	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
+
+	entry = (GF_AC3SampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
+	if (!entry) return GF_OUT_OF_MEM;
+	entry->info = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DAC3);
+	if (!entry->info) {
+		gf_isom_box_del((GF_Box *) entry);
+		return GF_OUT_OF_MEM;
+	}
+	memcpy(&entry->info->cfg, cfg, sizeof(GF_AC3Config));
+	entry->samplerate_hi = trak->Media->mediaHeader->timeScale;
+	entry->dataReferenceIndex = dataRefIndex;
+	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->boxList, entry);
+	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
+	return e;
+}
 #endif	//GPAC_READ_ONLY
 
 

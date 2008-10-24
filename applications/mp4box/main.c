@@ -1823,7 +1823,8 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	gf_log_set_level((verbose>1) ? GF_LOG_DEBUG : (verbose ? GF_LOG_INFO : GF_LOG_WARNING) );
+//	gf_log_set_level((verbose>1) ? GF_LOG_DEBUG : (verbose ? GF_LOG_INFO : GF_LOG_WARNING) );
+	gf_log_set_level(verbose ? GF_LOG_DEBUG : GF_LOG_INFO);
 	gf_log_set_tools(GF_LOG_CONTAINER|GF_LOG_SCENE|GF_LOG_PARSER|GF_LOG_AUTHOR|GF_LOG_CODING);
 	if (quiet) {
 		gf_log_set_level(0);

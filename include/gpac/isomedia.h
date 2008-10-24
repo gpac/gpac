@@ -207,8 +207,9 @@ enum
 	GF_ISOM_SUBTYPE_3GP_SMV		= GF_4CC( 's', 's', 'm', 'v' ),
 
 	/*3GPP DIMS*/
-	GF_ISOM_SUBTYPE_3GP_DIMS		= GF_4CC( 'd', 'i', 'm', 's' )
+	GF_ISOM_SUBTYPE_3GP_DIMS	= GF_4CC( 'd', 'i', 'm', 's' ),
 
+	GF_ISOM_SUBTYPE_AC3			= GF_4CC( 'a', 'c', '-', '3' ),
 };
 
 
@@ -1820,6 +1821,24 @@ GF_Err gf_isom_get_dims_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 #ifndef GPAC_READ_ONLY
 GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 *outDescriptionIndex);
 GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 DescriptionIndex);
+#endif
+
+
+
+
+/*AC3 config record*/
+typedef struct 
+{
+	u8 fscod;
+	u8 bsid;
+	u8 bsmod;
+	u8 acmod;
+	u8 lfon;
+	u8 brcode;
+} GF_AC3Config;
+
+#ifndef GPAC_READ_ONLY
+GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Config *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
 #endif
 
 

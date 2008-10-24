@@ -2227,6 +2227,26 @@ static u32 AC3_FindSyncCode(u8 *buf, u32 buflen)
 	return buflen;
 }
 
+
+static Bool AC3_FindSyncCodeBS(GF_BitStream *bs)
+{
+	u8 b1;
+	u32 pos = (u32) gf_bs_get_position(bs);
+	u32 end = (u32) gf_bs_get_size(bs) - 6;
+
+	pos += 1;
+	b1 = gf_bs_read_u8(bs);
+	while (pos <= end) {
+		u8 b2 = gf_bs_read_u8(bs);
+		if ((b1 == 0x0b) && (b2==0x77)) {
+			gf_bs_seek(bs, pos-1);
+			return 1;
+		}
+		pos++;
+	}
+	return 0;
+}
+
 static const u32 ac3_sizecod_to_bitrate[] = {
   32000, 40000, 48000, 56000, 64000, 80000, 96000,
   112000, 128000, 160000, 192000, 224000, 256000,
@@ -2251,7 +2271,7 @@ static const u32 ac3_mod_to_chans[] = {
   2, 1, 2, 3, 3, 4, 4, 5
 };
 
-Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Header *hdr)
+Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Header *hdr, Bool full_parse)
 {
 	u32 fscod, frmsizecod, bsid, ac3_mod, freq, framesize;
 	if (buflen < 6) return 0;
@@ -2265,7 +2285,7 @@ Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Header *hdr)
 	ac3_mod = (buf[6] >> 5) & 0x7;
 	if (bsid >= 12) return 0;
 
-	if (hdr) memset(hdr, 0, sizeof(GF_AC3Header));
+	if (full_parse && hdr) memset(hdr, 0, sizeof(GF_AC3Header));
 	
 	if (hdr) {
 		hdr->bitrate = ac3_sizecod_to_bitrate[frmsizecod / 2];
@@ -2300,6 +2320,71 @@ Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Header *hdr)
 		b67 = (buf[6] << 8) | buf[7];
 		if ((b67 & maskbit) != 0) hdr->channels += 1;
 	}
+	return 1;
+}
+
+
+Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
+{
+	u32 fscod, frmsizecod, bsid, ac3_mod, freq, framesize, pos, bsmod;
+	if (!hdr || (gf_bs_available(bs) < 6)) return 0;
+	if (!AC3_FindSyncCodeBS(bs)) return 0;
+
+	pos = (u32) gf_bs_get_position(bs);
+	gf_bs_read_u32(bs);
+	fscod = gf_bs_read_int(bs, 2);
+	frmsizecod = gf_bs_read_int(bs, 6);
+	bsid = gf_bs_read_int(bs, 5);
+	bsmod = gf_bs_read_int(bs, 3);
+	ac3_mod = gf_bs_read_int(bs, 3);
+
+	if (bsid >= 12) return 0;
+
+	//memset(hdr, 0, sizeof(GF_AC3Header));
+	
+	hdr->bitrate = ac3_sizecod_to_bitrate[frmsizecod / 2];
+	if (bsid > 8) hdr->bitrate = hdr->bitrate >> (bsid - 8);
+
+	switch (fscod) {
+	case 0:
+		freq = 48000;
+		framesize = ac3_sizecod0_to_framesize[frmsizecod / 2] * 2;
+		break;
+	case 1:
+		freq = 44100;
+		framesize = (ac3_sizecod1_to_framesize[frmsizecod / 2] + (frmsizecod & 0x1)) * 2;
+		break;
+	case 2:
+		freq = 32000;
+		framesize = ac3_sizecod2_to_framesize[frmsizecod / 2] * 2;
+		break;
+	default:
+	    return 0;
+	}
+	hdr->sample_rate = freq;
+	hdr->framesize = framesize;
+
+	if (full_parse) {
+		hdr->bsid = bsid;
+		hdr->bsmod = bsmod;
+		hdr->acmod = ac3_mod;
+		hdr->lfon = 0;
+		hdr->fscod = fscod;
+		hdr->brcode = hdr->bitrate/1000;
+	}
+
+	hdr->channels = ac3_mod_to_chans[ac3_mod];
+	if ((ac3_mod & 0x1) && (ac3_mod != 1)) gf_bs_read_int(bs, 2);
+	if (ac3_mod & 0x4) gf_bs_read_int(bs, 2);
+	if (ac3_mod == 0x2) gf_bs_read_int(bs, 2);
+	/*LFEon*/
+	if (gf_bs_read_int(bs, 1)) {
+		hdr->channels += 1;
+		hdr->lfon = 1;
+	}
+
+
+	gf_bs_seek(bs, pos);
 	return 1;
 }
 

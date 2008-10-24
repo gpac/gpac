@@ -176,9 +176,12 @@ typedef struct
 	u32 sample_rate;
 	u32 framesize;
 	u32 channels;
+	/*only set if full parse*/
+	u8 fscod, bsid, bsmod, acmod, lfon, brcode;
 } GF_AC3Header;
 
-Bool gf_ac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Header *out_hdr);
+Bool gf_ac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Header *out_hdr, Bool full_parse);
+Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse);
 
 
 GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
