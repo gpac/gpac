@@ -32,9 +32,10 @@ static void gf_smil_timing_null_timed_function(SMIL_Timing_RTI *rti, Fixed norma
 {
 }
 
-static void gf_smil_timing_print_interval(SMIL_Timing_RTI *rti, SMIL_Interval *interval)
+static void gf_smil_timing_print_interval(SMIL_Timing_RTI *rti, Bool current, SMIL_Interval *interval)
 {
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - ", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, (current ? "Current " : "   Next "));
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("Interval - "));
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("begin: %.2f", interval->begin));
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, (" - end: %.2f", interval->end));
@@ -187,6 +188,8 @@ static void gf_smil_timing_get_first_interval(SMIL_Timing_RTI *rti)
 			break;
 		}
 	}
+	/*In SVG, if no 'begin' is specified, the default timing of the time container 
+	is equivalent to an offset value of '0'.*/
 	if (rti->current_interval->begin == -1 && count == 0) {
 		/* except for LASeR Conditional element*/
 		if (rti->timed_elt->sgprivate->tag != TAG_LSR_conditional) {
@@ -198,7 +201,7 @@ static void gf_smil_timing_get_first_interval(SMIL_Timing_RTI *rti)
 		
 	gf_smil_timing_get_interval_end(rti, rti->current_interval);
 	gf_smil_timing_compute_active_duration(rti, rti->current_interval);
-	gf_smil_timing_print_interval(rti, rti->current_interval);
+	gf_smil_timing_print_interval(rti, 1, rti->current_interval);
 }
 
 static Bool gf_smil_timing_get_next_interval(SMIL_Timing_RTI *rti, SMIL_Interval *interval, Double scene_time)
@@ -221,8 +224,14 @@ static Bool gf_smil_timing_get_next_interval(SMIL_Timing_RTI *rti, SMIL_Interval
 	}
 	if (interval->begin != -1) {
 		gf_smil_timing_get_interval_end(rti, interval);
+		if (0 && interval->end < interval->begin) {
+			/* this is a wrong interval see first animation in animate-elem-201-t.svg */
+			interval->begin = -1;
+			interval->end = -1;
+			return 0;
+		}
 		gf_smil_timing_compute_active_duration(rti, interval);
-		gf_smil_timing_print_interval(rti, interval);
+		gf_smil_timing_print_interval(rti, 0, interval);
 		return 1;
 	} else {
 		return 0;
