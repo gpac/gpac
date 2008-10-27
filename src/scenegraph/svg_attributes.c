@@ -2195,6 +2195,7 @@ err:
 	len = gf_list_count(values);
 	while (len) {
 		SMIL_Time *v = (SMIL_Time*)gf_list_get(values, 0);
+		if (v->element_id) free(v->element_id);
 		gf_list_rem(values, 0);
 		free(v);
 		len--;
