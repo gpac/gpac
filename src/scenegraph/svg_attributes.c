@@ -812,8 +812,24 @@ static GF_Err svg_parse_clock_value(char *d, Double *clock_value)
 {
 	char *tmp;
 	s32 sign = 1;
+	
+	if (!d) return GF_BAD_PARAM;
+	
+	if (!d[0]) return GF_BAD_PARAM;
+
 	if (d[0] == '+') d++;
-	if (d[0] == '-') { sign = -1; d++; }
+	else if (d[0] == '-') { sign = -1; d++; }
+
+	if (!d[0]) return GF_BAD_PARAM;
+
+	/* According to SVG, the following are invalid syntaxes (see animate-elem-225-t.svg)
+		'+-2s' 
+		'1++s' even though sscanf returns the right values
+	*/
+	if (strchr(d, '+') || strchr(d, '-')) return GF_BAD_PARAM;
+
+	/* No embedded white space is allowed in clock values, 
+	   although leading and trailing white space characters will be ignored.*/
 	while (*d == ' ') d++;
 
 	if ((tmp = strchr(d, ':'))) {
@@ -858,8 +874,8 @@ static GF_Err svg_parse_clock_value(char *d, Double *clock_value)
 	return GF_OK;
 }
 /* Parses one SVG time value:
-	  'indefinite', 
-	  'name.begin', 'name.end', 
+	  indefinite, 
+	  element_id.event_name
 	  wallclock,
 	  accessKey,
 	  events, 
@@ -945,6 +961,10 @@ static GF_Err smil_parse_time(GF_Node *elt, SMIL_Time *v, char *d)
 		v->type = GF_SMIL_TIME_EVENT;
 		if ((tmp = strchr(d, '.'))) {
 			tmp[0] = 0;
+			if (strlen(d) == 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] expecting an id before '.' in SMIL Time .%s\n", tmp+1));
+				return GF_BAD_PARAM;
+			}
 			v->element_id = strdup(d);
 			tmp[0] = '.';
 			tmp++;
@@ -2105,8 +2125,10 @@ static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end
 	/* get rid of leading spaces */
 	while (*str == ' ') str++;
 
-	while ((tmp = strchr(str, ';'))) {
-		len = tmp-str;
+	while (1) {
+		tmp = strchr(str, ';');
+		if (tmp) len = tmp-str;
+		else len = strlen(str);
 		memcpy(value_string, str, len);
 		while (value_string[len - 1] == ' ' && len > 0) len--;
 		value_string[len] = 0;
@@ -2114,39 +2136,12 @@ static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end
 		GF_SAFEALLOC(value, SMIL_Time)
  		gf_list_add(values, value);
 
-		if (smil_parse_time(e, value, value_string) != GF_OK) {
-			switch (e->sgprivate->tag) {
-			case TAG_SVG_discard:
-				value->type = GF_SMIL_TIME_CLOCK;
-				value->clock = 0;
-				break;
-			default:
-				value->type=GF_SMIL_TIME_INDEFINITE;
-				break;
-			}
-		}
+		if (smil_parse_time(e, value, value_string) != GF_OK) goto err;
+
+		if (!tmp) break;
 
 		str = tmp + 1;
 		while (*str == ' ') str++;
-	}
-
-	len = strlen(str);
-	memcpy(value_string, str, len);
-	while (value_string[len - 1] == ' ' && len > 0) len--;
-	value_string[len] = 0;
-
-	GF_SAFEALLOC(value, SMIL_Time)
- 	gf_list_add(values, value);
-	if (smil_parse_time(e, value, value_string) != GF_OK) {
-		switch (e->sgprivate->tag) {
-		case TAG_SVG_discard:
-			value->type = GF_SMIL_TIME_CLOCK;
-			value->clock = 0;
-			break;
-		default:
-			value->type=GF_SMIL_TIME_INDEFINITE;
-			break;
-		}
 	}
 
 	/* sorting timing values */
@@ -2190,6 +2185,34 @@ static void smil_parse_time_list(GF_Node *e, GF_List *values, char *begin_or_end
 		}
 		gf_list_del(sorted);
 	}
+	return;
+
+err:
+	/* See SVG spec:
+	"If the 'begin' attribute is 
+	syntactically invalid, in the list itself or in any of the individual 
+	list values, it is equivalent to a single 'begin' value of 'indefinite'."*/
+	len = gf_list_count(values);
+	while (len) {
+		SMIL_Time *v = (SMIL_Time*)gf_list_get(values, 0);
+		gf_list_rem(values, 0);
+		free(v);
+		len--;
+	}
+
+	GF_SAFEALLOC(value, SMIL_Time)
+	gf_list_add(values, value);
+
+	switch (e->sgprivate->tag) {
+	case TAG_SVG_discard:
+		value->type = GF_SMIL_TIME_CLOCK;
+		value->clock = 0;
+		break;
+	default:
+		value->type = GF_SMIL_TIME_INDEFINITE;
+		break;
+	}
+	return;
 }
 
 static void smil_parse_attributeType(SMIL_AttributeType *value, char *value_string)

@@ -372,7 +372,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 	s32 useFrom = (normalized_simple_time<=FIX_ONE/2);
 	u32 real_calcMode;
 
-	real_calcMode = (gf_svg_attribute_is_interpolatable(animp->to->type)?
+	real_calcMode = (animp->to && gf_svg_attribute_is_interpolatable(animp->to->type)?
 						(animp->calcMode ? *animp->calcMode : SMIL_CALCMODE_LINEAR):
 						SMIL_CALCMODE_DISCRETE
 					);
