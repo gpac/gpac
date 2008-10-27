@@ -1065,6 +1065,16 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 		}
 	}
 	
+	if (animp->attributeType && *animp->attributeType == SMIL_ATTRIBUTETYPE_CSS) {
+		/* see example animate-elem-219-t.svg from the SVG test suite, upper row */
+		if (!gf_svg_is_property(target, &target_attribute)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, 
+				("[SMIL Animation] Using CSS attributeType for an animation on an attribute which is not a property %s\n", 
+				gf_node_get_log_name((GF_Node*)e) ));
+			return;
+		}
+	}
+
 	/* Creation and setup of the runtime structure for animation */
 	GF_SAFEALLOC(rai, SMIL_Anim_RTI)
 
