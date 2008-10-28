@@ -2235,7 +2235,7 @@ static void smil_parse_min_max_dur_repeatdur(SMIL_Duration *value, char *value_s
 		value->type = SMIL_DURATION_MEDIA;
 	} else {
 		Double ftime;
-		if (svg_parse_clock_value(value_string, &ftime) == GF_OK) {
+		if ((svg_parse_clock_value(value_string, &ftime) == GF_OK) && (ftime >= 0)) {
 			value->clock_value = ftime;
 			value->type = SMIL_DURATION_DEFINED;
 		} else {
