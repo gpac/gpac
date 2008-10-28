@@ -267,7 +267,7 @@ static void gf_smil_anim_animate_using_values(SMIL_Anim_RTI *rai, Fixed normaliz
 			gf_svg_attributes_copy(&rai->interpolated_value, &value_info, 0);
 			rai->previous_key_index = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, 
-				   ("[SMIL Animation] Time %f - Animation     %s - Using values[0] as interpolation value", 
+				   ("[SMIL Animation] Time %f - Animation     %s - Using values[0] as interpolation value\n", 
 				   gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt)));
 			return;
 		}
