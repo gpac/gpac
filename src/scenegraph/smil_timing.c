@@ -71,17 +71,17 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 		interval->simple_duration = isMediaDuration ? rti->media_duration : timingp->dur->clock_value;
 
 		if (isRepeatCountDefined && !isRepeatDurDefined) {
-			interval->active_duration = FIX2FLT(timingp->repeatCount->count) * interval->simple_duration;
+			interval->repeat_duration = FIX2FLT(timingp->repeatCount->count) * interval->simple_duration;
 		} else if (!isRepeatCountDefined && isRepeatDurDefined) {
-			interval->active_duration = timingp->repeatDur->clock_value;
+			interval->repeat_duration = timingp->repeatDur->clock_value;
 		} else if (!isRepeatCountDefined && !isRepeatDurDefined) {
 			if (isRepeatDurIndefinite || isRepeatCountIndefinite) {
-				interval->active_duration = -1;
+				interval->repeat_duration = -1;
 			} else {
-				interval->active_duration = interval->simple_duration;
+				interval->repeat_duration = interval->simple_duration;
 			}
 		} else {
-			interval->active_duration = MIN(timingp->repeatDur->clock_value, 
+			interval->repeat_duration = MIN(timingp->repeatDur->clock_value, 
 										FIX2FLT(timingp->repeatCount->count) * interval->simple_duration);
 		}			
 	} else {
@@ -91,13 +91,14 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 		
 		/* we can ignore repeatCount to compute active_duration */
 		if (!isRepeatDurDefined) {
-			interval->active_duration = -1;
+			interval->repeat_duration = -1;
 		} else {
-			interval->active_duration = timingp->repeatDur->clock_value;
+			interval->repeat_duration = timingp->repeatDur->clock_value;
 		}
 	}
 
-	/* Step 3: if end is defined in the document, clamp active duration to end-begin 
+	interval->active_duration = interval->repeat_duration;
+	/* Step 2: if end is defined in the document, clamp active duration to end-begin 
 	otherwise return*/
 	if (interval->end < 0) {
 		/* interval->active_duration stays as is */
@@ -108,10 +109,10 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 			interval->active_duration = interval->end - interval->begin;
 	}
 
-	/* Contrary to what was implemented before, min and max check should be done last, to 
-	   ensure that they have greater priority than the end attribute 
+	/* min and max check should be checked last, 
+	   to ensure that they have greater priority than the end attribute 
 	   see (animate-elem-223-t.svg) */
-	/* Step 2: clamp the active duration with min and max */
+	/* Step 3: clamp the active duration with min and max */
 	clamp_active_duration = 1;
 	/* testing for presence of min and max because some elements may not have them: eg SVG audio */
 	isMinDefined = (timingp->min && timingp->min->type == SMIL_DURATION_DEFINED);
@@ -122,12 +123,17 @@ static void gf_smil_timing_compute_active_duration(SMIL_Timing_RTI *rti, SMIL_In
 	}
 	if (clamp_active_duration) {
 		if (isMinDefined) {
-			if (interval->active_duration >= 0 && interval->active_duration <= timingp->min->clock_value) {
+			if ((interval->active_duration >= 0) && 
+				(interval->active_duration <= timingp->min->clock_value)) {
+				/* see http://www.w3.org/TR/2005/REC-SMIL2-20051213/smil-timing.html#Timing-MinMax 			
+				  - if repeat duration or simple duration is smaller than min, 
+				  then the (active ? / simple ?) duration shall be set to min 
+				  (cf 6th row in animate-elem-65-t.svg)
+				  - if the min > dur > end, the element is played normally for its simple duration 
+				  and then is frozen or not shown depending on the value of the fill attribute.
+				  (cf animate-elem-222-t.svg)*/
 				interval->active_duration = timingp->min->clock_value;
-				/* TODO if repeat duration or simple duration is smaller than min, 
-				then the active duration shall be set to min see 
-				http://www.w3.org/TR/2005/REC-SMIL2-20051213/smil-timing.html#Timing-MinMax 
-				and 6th example in animate-elem-65-t.svg */
+				interval->min_active = 1;
 			}
 		}
 		if (isMaxDefined) {
@@ -533,6 +539,7 @@ s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 	s32 ret = 0;
 	GF_DOM_Event evt;
 	SMILTimingAttributesPointers *timingp = rti->timingp;
+	Bool force_end = 0;
 
 	if (!timingp) return 0;
 
@@ -590,14 +597,15 @@ waiting_to_begin:
 
 		if (rti->current_interval->active_duration >= 0 
 			&& scene_time >= (rti->current_interval->begin + rti->current_interval->active_duration)) {
-
+force_end:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Stopping \n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			memset(&evt, 0, sizeof(evt));
 			evt.type = GF_EVENT_END_EVENT;
+			/* WARNING: begin + active_duration may be greater than 'now' because of force_end cases */
 			evt.smil_event_time = rti->current_interval->begin + rti->current_interval->active_duration;
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
 
-			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
+			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time, NULL);
 			ret = rti->postpone;
 
 			if (timingp->fill && *timingp->fill == SMIL_FILL_FREEZE) {
@@ -641,7 +649,11 @@ waiting_to_begin:
 			ret = rti->postpone;
 			
 			cur_id = rti->current_interval->nb_iterations;
-			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time);
+			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time, &force_end);
+			if (force_end) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Forcing end (fill or remove)\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
+				goto force_end;
+			}
 			if (cur_id < rti->current_interval->nb_iterations) {
 				memset(&evt, 0, sizeof(evt));
 				evt.type = GF_EVENT_REPEAT_EVENT;
@@ -722,7 +734,11 @@ exit:
 }
 
 /* returns a fraction between 0 and 1 of the elapsed time in the simple duration */
-Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double scene_time) 
+/* WARNING: According to SMIL (http://www.w3.org/TR/2005/REC-SMIL2-20051213/animation.html#animationNS-Fill, 
+see "Illustration of animation combining a partial repeat and fill="freeze"")
+When a element is frozen, its normalized simple time is not necessarily 1,
+an animation can be frozen in the middle of a repeatition */
+Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double scene_time, Bool *force_end) 
 {
 	Double activeTime;
 	Double simpleTime;
@@ -730,21 +746,26 @@ Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double sce
 
 	if (rti->current_interval->begin == -1) return 0;
 
+	/* we define the active time as the elapsed time from the current activation of the element */
 	activeTime = scene_time - rti->current_interval->begin;
+
+	/* Is the animation reaching the end of its active duration ? */
 	if (rti->current_interval->active_duration != -1 && activeTime >= rti->current_interval->active_duration) {
-		/*
-		According to SMIL (http://www.w3.org/TR/2005/REC-SMIL2-20051213/animation.html#animationNS-Fill)
-		When a element is frozen, its normalized simple time is not necessarily 1.
-		*/
+
+		/* we clamp the active time to its maximum value */
 		activeTime = rti->current_interval->active_duration;
+
+		/* if the simple duration is defined, then we can take iterations into account */
 		if (rti->current_interval->simple_duration>0) {
+			
 			if (activeTime == rti->current_interval->simple_duration*(rti->current_interval->nb_iterations+1)) {
 				return FIX_ONE;
 			} else {
 				goto end;
 			}
 		} else {
-			/* Is this correct ? */
+			/* If the element does not define its simple duration, we assume it's blocked in final state 
+			   Is this correct ? */
 			rti->current_interval->nb_iterations = 0;
 			//GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Error Computing Normalized Simple Time while simple duration is indefinite\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			return FIX_ONE;
@@ -752,20 +773,40 @@ Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double sce
 	}
 
 end:
+	/* if the simple duration is defined, then we can take iterations into account */
 	if (rti->current_interval->simple_duration>0) {
+
+		/* if we are active but frozen or done (animate-elem-65-t, animate-elem-222-t)
+		(see The rule to apply to compute the active duration of an element with min or max specified) */
+		if ((activeTime >= rti->current_interval->repeat_duration) && rti->current_interval->min_active) {
+			/* freeze the normalized simple time */
+			if (force_end) *force_end = 1;
+			if (rti->timingp->fill && *(rti->timingp->fill) == SMIL_FILL_FREEZE) {
+				if (rti->current_interval->repeat_duration == rti->current_interval->simple_duration) {
+					return FIX_ONE;
+				} else {
+					return	rti->normalized_simple_time;			
+				}
+			}
+		}
+		/* we update the number of iterations */
 		rti->current_interval->nb_iterations = (u32)floor(activeTime / rti->current_interval->simple_duration);
 	} else {
+		/* If the element does not define its simple duration, we assume it's blocked in final state 
+		   Is this correct ? */
 		rti->current_interval->nb_iterations = 0;
-		/* Is this correct ? */
 		//GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Error Computing Normalized Simple Time while simple duration is indefinite\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 		return FIX_ONE;
 	}
 	
+	/* We compute the simple time by removing time taken by previous iterations */
 	simpleTime = activeTime - rti->current_interval->simple_duration * rti->current_interval->nb_iterations;
 
-	/* to be sure clamp simpleTime */
+	/* Then we clamp the simple time to be sure it is between 0 and simple duration */
 	simpleTime = MAX(0, simpleTime);
 	simpleTime = MIN(rti->current_interval->simple_duration, simpleTime);
+
+	/* Then we normalize to have a value between 0 and 1 */
 	normalizedSimpleTime = FLT2FIX(simpleTime / rti->current_interval->simple_duration);
 
 	return normalizedSimpleTime;
@@ -789,6 +830,7 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 	} else {
 		gf_smil_timing_get_interval_end(rti, rti->current_interval);
 		gf_smil_timing_compute_active_duration(rti, rti->current_interval);
+		gf_smil_timing_print_interval(rti, 0, rti->current_interval);
 	}
 	gf_smil_timing_get_next_interval(rti, rti->next_interval, gf_node_get_scene_time((GF_Node*)rti->timed_elt));
 
@@ -872,6 +914,8 @@ void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock)
 		}
 	}
 	if (!found) gf_list_add(l, begin);
+
+	/* call gf_smil_timing_modified */
 	gf_node_changed(elt, NULL);
 }
 
