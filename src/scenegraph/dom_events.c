@@ -574,6 +574,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 		found++;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing] Inserting new time in %s.%s: %f\n", gf_node_get_log_name(timed_elt), (is_end?"end":"begin"), resolved->clock));
 	}
+	/* calling indirectly gf_smil_timing_modified */
 	if (found) gf_node_changed(timed_elt, info);
 }
 
