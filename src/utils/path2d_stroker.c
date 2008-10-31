@@ -1194,6 +1194,7 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 	first = 0;
 
 	for ( n = 0; n < outline->n_contours; n++ ) {
+	  s32 closed_subpath;
 	  s32 last;  /* index of last point in contour */
 	  
 	  last  = outline->contours[n];
@@ -1231,6 +1232,7 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 		  point--;
 		  tags--;
 	  }
+	  closed_subpath = (outline->tags[outline->contours[n]]==GF_PATH_CLOSE) ? 1 : 0;
 
 	  error = FT_Stroker_BeginSubPath(stroker, &v_start);
 	  if ( error )
@@ -1238,8 +1240,9 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 
 	  /*subpath is a single point, force a lineTo to start for the stroker to compute lineCap*/
 	  if (point==limit) {
-		  error = FT_Stroker_LineTo( stroker, &v_start, 1);
-		  goto Exit;
+		  error = FT_Stroker_LineTo(stroker, &v_start, 1);
+		  closed_subpath = 0;
+		  goto Close;
 	  }
 
 	  while ( point < limit ) {
@@ -1334,7 +1337,7 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 Close:
 	  if ( error ) goto Exit;
 
-	  error = FT_Stroker_EndSubPath(stroker, (outline->tags[outline->contours[n]]==GF_PATH_CLOSE) ? 1 : 0);
+	  error = FT_Stroker_EndSubPath(stroker, closed_subpath);
 	  if ( error )
 		  goto Exit;
 

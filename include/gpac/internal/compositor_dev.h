@@ -719,6 +719,7 @@ struct _traversing_state
 	/*quick and dirty hack to try to solve xml:space across text and tspans without 
 	flattening the DOMText nodes*/
 	Bool last_char_was_space;
+	u32 refresh_children_bounds;
 #endif
 	GF_Node *text_parent;
 

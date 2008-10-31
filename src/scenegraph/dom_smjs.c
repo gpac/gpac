@@ -3290,7 +3290,9 @@ void dom_js_define_document(JSContext *c, JSObject *global, GF_SceneGraph *doc)
 
 JSObject *dom_js_define_event(JSContext *c, JSObject *global)
 {
-	return JS_DefineObject(c, global, "evt", &dom_rt->domEventClass, 0, 0 );
+	JSObject *obj = JS_DefineObject(c, global, "evt", &dom_rt->domEventClass, 0, 0 );
+	JS_AliasProperty(c, global, "evt", "event");
+	return obj;
 }
 
 JSObject *gf_dom_new_event(JSContext *c)

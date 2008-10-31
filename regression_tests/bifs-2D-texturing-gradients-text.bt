@@ -30,7 +30,7 @@ OrderedGroup {
    info [
     "This test uses a Viewport node, Gradient nodes and animation and TransformMatrix2D node in a text mirroring-like effect."
     "" 
-    "GPAC Regression Tests" "$Date: 2008-06-26 07:55:39 $ - $Revision: 1.6 $" 
+    "GPAC Regression Tests" "$Date: 2008-10-31 18:08:50 $ - $Revision: 1.7 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "Text Mirroring Effect"
@@ -39,6 +39,7 @@ OrderedGroup {
    size 200 200
    description "Initial Viewport"
   }
+#if 0
   Viewport {
    position -30 20
    size 50 50
@@ -49,6 +50,8 @@ OrderedGroup {
    size 50 50
    description "Blending Zone View"
   }
+#endif
+
   DEF TR Transform2D {
    children [
     DEF PS PlaneSensor2D {

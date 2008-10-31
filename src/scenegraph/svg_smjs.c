@@ -280,18 +280,20 @@ static JSBool dom_imp_has_feature(JSContext *c, JSObject *obj, uintN argc, jsval
 	return JS_TRUE;
 }
 
-static GF_Node *get_parent_use(GF_Node *n)
+static GF_Node *get_corresponding_use(GF_Node *n)
 {
-	GF_Node *t, *use;
-	u32 i;
-	u32 count = gf_node_get_parent_count(n);
-	for (i=count; i>0; i--) {
-		t = gf_node_get_parent(n, i-1);
-		if (t->sgprivate->tag==TAG_SVG_use) return t;
-		use = get_parent_use(t);
-		if (use) return use;
+	GF_Node *t;
+	u32 i, count;
+	if (!n || !n->sgprivate->scenegraph->use_stack) return NULL;
+
+	/*find current node in the use stack - if found, return the use element*/
+	count = gf_list_count(n->sgprivate->scenegraph->use_stack);
+	for (i=count; i>0; i-=2) {
+		t = gf_list_get(n->sgprivate->scenegraph->use_stack, i-2);
+		if (t==n) return gf_list_get(n->sgprivate->scenegraph->use_stack, i-1);
 	}
-	return NULL;
+	/*otherwise recursively get up the tree*/
+	return get_corresponding_use(gf_node_get_parent(n, 0));
 }
 static JSBool svg_doc_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
@@ -433,7 +435,7 @@ static JSBool svg_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 		*vp = dom_element_construct(c, n);
 		return JS_TRUE;
 	case 13:/*correspondingUseElement*/
-		*vp = dom_element_construct(c, get_parent_use(n));
+		*vp = dom_element_construct(c, get_corresponding_use(n));
 		return JS_TRUE;
 	default: 
 		return JS_TRUE;
@@ -2490,6 +2492,8 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		txt = svg_get_text_child(node);
 		if (!txt) return 0;
 	}
+	/*not sure about this (cf test struct-use-205-t.svg)*/
+	if (!node->sgprivate->parents) return 0;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events] Executing script code from handler\n"));
 

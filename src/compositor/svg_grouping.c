@@ -965,7 +965,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 		if (stack->fragment_id) {
 			used_node = gf_sg_find_node_by_name(stack->inline_sg, (char *) stack->fragment_id+1);
 			is_fragment = 1;
-		} else {
+		} else if (is_foreign_object) {
 			used_node = gf_sg_get_root_node(stack->inline_sg);
 		}
 	}

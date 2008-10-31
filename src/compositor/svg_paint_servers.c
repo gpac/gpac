@@ -131,7 +131,7 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 
 	/*for gradients we must traverse the gradient stops to trigger animations, even if the 
 	gradient is not marked as dirty*/
-	all_dirty = 0;
+	all_dirty = tr_state->svg_flags & (GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY|GF_SG_SVG_COLOR_DIRTY);
 	is_dirty = 0;
 	if (gf_node_dirty_get(node)) {
 		is_dirty = all_dirty = 1;

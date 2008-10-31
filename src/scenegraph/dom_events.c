@@ -380,8 +380,12 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 			parent = gf_list_get(use_stack, cur_par_idx);
 			if (cur_par_idx>1) cur_par_idx-=2;
 			else cur_par_idx = 0;
-			/*CHECKME !!*/
-			event->target = parent;
+			node->sgprivate->scenegraph->use_stack = use_stack;
+			/*if no events attached,bubble by default*/
+			if (parent->sgprivate->interact && !sg_fire_dom_event(parent->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, parent)) return;
+			gf_sg_dom_event_bubble(parent, event, use_stack, cur_par_idx);
+			node->sgprivate->scenegraph->use_stack = use_stack;
+			return;
 		}
 	}
 	/*if no events attached,bubble by default*/

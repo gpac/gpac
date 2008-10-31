@@ -419,7 +419,7 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 		/* Stage 1: parsing the begin values 
 					we go into the next stage only if at least one begin value is resolved */
 		gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_begin, 1, 0, &info);
-		if (gf_svg_resolve_smil_times(sg, anim->target, *(GF_List **)info.far_ptr, 0, nodeID)) {
+		if (gf_svg_resolve_smil_times((GF_Node *)anim->animation_elt, anim->target, *(GF_List **)info.far_ptr, 0, nodeID)) {
 			anim->resolve_stage = 2;
 		} else if (force_type!=2) {
 			return 0;
@@ -427,7 +427,7 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 	}
 
 	gf_node_get_attribute_by_tag((GF_Node *)anim->animation_elt, TAG_SVG_ATT_end, 1, 0, &info);
-	if (!gf_svg_resolve_smil_times(sg, anim->target, *(GF_List **)info.far_ptr, 1, nodeID)) {
+	if (!gf_svg_resolve_smil_times((GF_Node *)anim->animation_elt, anim->target, *(GF_List **)info.far_ptr, 1, nodeID)) {
 		if (force_type!=2) return 0;
 	}
 
