@@ -29,7 +29,9 @@
 #include <gpac/network.h>
 #include <gpac/utf.h>
 
+#ifndef _WIN32_WCE
 #include <mshtml.h>
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 // CGPAXPlugin
@@ -192,10 +194,10 @@ Bool CGPAXPlugin::ReadParamString(LPPROPERTYBAG pPropBag, LPERRORLOG pErrorLog,
 
 void CGPAXPlugin::LoadDATAUrl()
 {
+#ifndef _WIN32_WCE
 	HRESULT hr;
 
 	if (m_url[0]) return;
-
     /*get parent doc*/
 	CComPtr<IOleContainer> spContainer;
 	if (m_spClientSite->GetContainer(&spContainer) != S_OK)
@@ -250,6 +252,8 @@ void CGPAXPlugin::LoadDATAUrl()
 	if (m_url) {
 		UpdateURL();
 	}
+#endif
+
 }
 
 //Create window message fuction. when the window is created, also initialize a instance of
