@@ -492,18 +492,17 @@ static Bool gf_smil_discard(SMIL_Timing_RTI *rti, Fixed scene_time)
 
 	if (!begin) return 0;
 	if (!GF_SMIL_TIME_IS_CLOCK(begin->type) ) return 0;
-	if (!target) return 0;
 
 	if (begin->clock > scene_time) return 0;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SVG Composer] discarding element %s at time %f\n", gf_node_get_log_name(target), scene_time));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SVG Composer] discarding element %s at time %f\n", target ? gf_node_get_log_name(target) : "None", scene_time));
 
 	gf_smil_mark_modified(rti, 1);
 	
 	/*this takes care of cases where discard is a child of its target*/
 	gf_node_register(rti->timed_elt, NULL);
 	nb_inst = gf_node_get_num_instances(rti->timed_elt);
-	gf_node_replace(target, NULL, 0);
+	if (target) gf_node_replace(target, NULL, 0);
 	if (nb_inst == gf_node_get_num_instances(rti->timed_elt)) {
 		gf_node_unregister(rti->timed_elt, NULL);
 		/*after this the stack may be free'd*/
@@ -842,7 +841,7 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 
 /* Tries to resolve event-based or sync-based time values
    Used in parsing, to determine if a timed element can be initialized */
-Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *event_base_element, 
+Bool gf_svg_resolve_smil_times(GF_Node *anim, void *event_base_element, 
 							GF_List *smil_times, Bool is_end, const char *node_name)
 {
 	u32 i, done, count;
@@ -864,13 +863,23 @@ Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *event_base_element,
 		/*commented out because it breaks regular anims (cf interact-pevents-07-t.svg)*/
 //		if (node_name && strcmp(node_name, t->element_id)) continue;
 	
-		t->element = gf_sg_find_node_by_name(sg, t->element_id);
+		t->element = gf_sg_find_node_by_name(anim->sgprivate->scenegraph, t->element_id);
 		if (t->element) {
 			free(t->element_id);
 			t->element_id = NULL;
 			done++;
 		}
 	}
+	/*lacuna value of discard is 0*/
+	if (!count && !is_end && (anim->sgprivate->tag==TAG_SVG_discard) ) {
+		SMIL_Time *t;
+		GF_SAFEALLOC(t, SMIL_Time);
+		t->clock = 0;
+		t->type = GF_SMIL_TIME_CLOCK;
+		gf_list_add(smil_times, t);
+		return 1;
+	}
+
 	if (done!=count) return 0;
 	return 1;
 }

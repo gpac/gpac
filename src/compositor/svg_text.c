@@ -286,6 +286,8 @@ static void svg_text_area_apply_diff(GF_TraverseState *tr_state, Fixed diff)
 {
 	u32 i, count, j;
 	count = gf_list_count(tr_state->x_anchors);
+	tr_state->refresh_children_bounds++;
+
 	for (i=0; i<count; i++) {
 		textArea_state *st = gf_list_get(tr_state->x_anchors, i);
 
@@ -306,6 +308,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 	GF_TextSpan *span;
 
 	if (!dom_text->textContent) return;
+	if (tr_state->svg_props->font_size->value > tr_state->max_height) return;
 
 	fm = tr_state->visual->compositor->font_manager;
 	if (!fm) return;
@@ -319,7 +322,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 	/*first run*/
 	if (!tr_state->line_spacing) {
 		tr_state->line_spacing = gf_mulfix(span->font_size, FLT2FIX(1.0) );
-		if (!tr_state->text_end_y) tr_state->text_end_y = tr_state->line_spacing;
+//		if (!tr_state->text_end_y) tr_state->text_end_y = tr_state->line_spacing;
 	} 
 	line_spacing = gf_mulfix(span->font_size, FLT2FIX(1.0) );
 
@@ -344,7 +347,6 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 				glyph_size = span->glyphs[i]->horiz_advance * span->font_scale;
 				if (word_size + glyph_size> tr_state->max_length) {
 					break_glyph = i;
-					i++;
 					break;
 				}
 				word_size += glyph_size;
@@ -370,7 +372,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 			if (tr_state->text_end_y > tr_state->max_height) break;
 		} else {
 			/* first word is too high for the area*/
-			if (tr_state->text_end_x == 0 && (tr_state->text_end_y+h > tr_state->max_height) )
+			if (tr_state->text_end_y+h > tr_state->max_height)
 				break;
 
 			/* stay on current line*/
@@ -1001,6 +1003,22 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 	} 
 	
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
+		if (tr_state->refresh_children_bounds) {
+			svg_update_bounds(st);
+			child = ((GF_ParentNode *) tspan)->children;
+			while (child) {
+				switch  (gf_node_get_tag(child->node)) {
+				case TAG_SVG_tspan:
+				case TAG_SVG_switch:
+				case TAG_SVG_a:
+					gf_node_traverse(child->node, tr_state); 
+					break;
+				default:
+					break;
+				}
+				child = child->next;
+			}
+		}
 		if (!compositor_svg_is_display_off(tr_state->svg_props))
 			tr_state->bounds = st->bounds;
 
@@ -1109,6 +1127,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 
 		svg_reset_text_stack(st);
 		drawable_reset_path(st->drawable);
+
 		tr_state->max_length = (atts.width ? (atts.width->type == SVG_NUMBER_AUTO ? FIX_MAX : atts.width->value) : FIX_MAX);
 		tr_state->max_height = (atts.height ? (atts.height->type == SVG_NUMBER_AUTO ? FIX_MAX : atts.height->value) : FIX_MAX);
 		tr_state->base_x = (atts.x ? atts.x->value : 0);
@@ -1120,46 +1139,84 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 
 		tr_state->x_anchors = gf_list_new();
 
-		/*switch to bounds mode, and recompute children*/
-		mode = tr_state->traversing_mode;
-		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
-		tr_state->last_char_was_space = 0;
+		if (tr_state->svg_props->font_size && (tr_state->svg_props->font_size->value <= tr_state->max_height)) {
+			u32 c, refresh_to_idx, prev_refresh;
+			/*switch to bounds mode, and recompute children*/
+			mode = tr_state->traversing_mode;
+			tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
+			tr_state->last_char_was_space = 0;
 
-		child = ((GF_ParentNode *) text)->children;
-		while (child) {
-			switch  (gf_node_get_tag(child->node)) {
-			case TAG_DOMText:
-				svg_traverse_dom_text_area(child->node, &atts, tr_state, st->spans); 
-				break;
-			case TAG_SVG_tspan:
-			case TAG_SVG_switch:
-			case TAG_SVG_a:
-				gf_node_traverse(child->node, tr_state); 
-				break;
-			case TAG_SVG_tbreak:
-				svg_text_area_reset_state(tr_state);
-				tr_state->text_end_y += (tr_state->svg_props->line_increment->type == SVG_NUMBER_AUTO ? tr_state->line_spacing : tr_state->svg_props->line_increment->value);
-				tr_state->text_end_x = 0;
-				/*reset line spacing*/
-				tr_state->line_spacing = 0;
-				break;
-			default:
-				break;
+			prev_refresh = tr_state->refresh_children_bounds;
+			tr_state->refresh_children_bounds = 0;
+			c = refresh_to_idx = 0;
+			child = ((GF_ParentNode *) text)->children;
+			while (child) {
+				c++;
+				switch  (gf_node_get_tag(child->node)) {
+				case TAG_DOMText:
+					svg_traverse_dom_text_area(child->node, &atts, tr_state, st->spans); 
+					break;
+				case TAG_SVG_tspan:
+				case TAG_SVG_switch:
+				case TAG_SVG_a:
+					gf_node_traverse(child->node, tr_state); 
+					break;
+				case TAG_SVG_tbreak:
+					svg_text_area_reset_state(tr_state);
+					tr_state->text_end_y += (tr_state->svg_props->line_increment->type == SVG_NUMBER_AUTO ? tr_state->line_spacing : tr_state->svg_props->line_increment->value);
+					tr_state->text_end_x = 0;
+					/*reset line spacing*/
+					tr_state->line_spacing = 0;
+					break;
+				default:
+					break;
+				}
+				if (tr_state->refresh_children_bounds) {
+					tr_state->refresh_children_bounds=0;
+					refresh_to_idx=c;
+				}
+
+				child=child->next;
 			}
-			child=child->next;
+
+			//effacement mémoire, mise à jour des données-test de changement
+			gf_node_dirty_clear(node, 0);
+			drawable_mark_modified(st->drawable, tr_state);
+			st->prev_size = tr_state->svg_props->font_size->value;
+			st->prev_flags = *tr_state->svg_props->font_style;
+			st->prev_anchor = *tr_state->svg_props->text_anchor;
+
+			svg_text_area_reset_state(tr_state);
+			gf_list_del(tr_state->x_anchors);
+			tr_state->x_anchors = NULL;
+
+			if (refresh_to_idx) {
+				tr_state->refresh_children_bounds++;
+				/*and retraverse in case of bounds adjustements*/
+				child = ((GF_ParentNode *) text)->children;
+				while (child) {
+					switch  (gf_node_get_tag(child->node)) {
+					case TAG_DOMText:
+						break;
+					case TAG_SVG_tspan:
+					case TAG_SVG_switch:
+					case TAG_SVG_a:
+						gf_node_traverse(child->node, tr_state); 
+						break;
+					case TAG_SVG_tbreak:
+						break;
+					default:
+						break;
+					}
+					child=child->next;
+					refresh_to_idx--;
+					if (!refresh_to_idx) break;
+				}
+				tr_state->refresh_children_bounds--;
+			}
+			tr_state->traversing_mode = mode;
+			tr_state->refresh_children_bounds = prev_refresh;
 		}
-
-		//effacement mémoire, mise à jour des données-test de changement
-		gf_node_dirty_clear(node, 0);
-		drawable_mark_modified(st->drawable, tr_state);
-		tr_state->traversing_mode = mode;
-		st->prev_size = tr_state->svg_props->font_size->value;
-		st->prev_flags = *tr_state->svg_props->font_style;
-		st->prev_anchor = *tr_state->svg_props->text_anchor;
-
-		svg_text_area_reset_state(tr_state);
-		gf_list_del(tr_state->x_anchors);
-
 		svg_update_bounds(st);
 
 	} 

@@ -221,6 +221,8 @@ struct __tag_scene_graph
 	/*global qp used in BIFS coding*/
 	GF_Node *global_qp;
 
+	/*use stack as used in the dom_fire_event - this is only valid during an event fire, and may be NULL*/
+	GF_List *use_stack;
 
 #ifndef GPAC_DISABLE_SVG
 	GF_DOMEventTarget dom_evt;
@@ -243,6 +245,7 @@ struct __tag_scene_graph
 
 	/*listeners to add*/
 	GF_List *listeners_to_add;
+
 #ifdef GPAC_HAS_SPIDERMONKEY
 	struct __tag_svg_script_ctx *svg_js;
 #endif
@@ -447,7 +450,7 @@ Bool gf_svg_is_timing_tag(u32 tag);
 Bool gf_svg_is_animation_tag(u32 tag);
 u32 gf_svg_get_modification_flags(SVG_Element *n, GF_FieldInfo *info);
 
-Bool gf_svg_resolve_smil_times(GF_SceneGraph *sg, void *event_base_element, GF_List *smil_times, Bool is_end, const char *node_name);
+Bool gf_svg_resolve_smil_times(GF_Node *anim, void *event_base_element, GF_List *smil_times, Bool is_end, const char *node_name);
 
 
 /* SMIL Timing structures */
