@@ -423,6 +423,12 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 			has_mpeg4_mapping = 0;
 			nb_ch = 1;
 			break;
+		case GF_ISOM_SUBTYPE_AC3:
+			hintType = GF_RTP_PAYT_AC3;
+			streamType = GF_STREAM_AUDIO;
+			has_mpeg4_mapping = 1;
+			nb_ch = 1;
+			break;
 		case GF_ISOM_SUBTYPE_AVC_H264:
 		{
 			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, TrackNum, 1);
@@ -778,6 +784,11 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		case GF_ISOM_SUBTYPE_3GP_DIMS:
 			hintType = GF_RTP_PAYT_3GPP_DIMS;
 			streamType = GF_STREAM_SCENE;
+			break;
+		case GF_ISOM_SUBTYPE_AC3:
+			hintType = GF_RTP_PAYT_AC3;
+			streamType = GF_STREAM_AUDIO;
+			gf_isom_get_audio_info(file, TrackNum, 1, NULL, &nb_ch, NULL);
 			break;
 		default:
 			/*ERROR*/

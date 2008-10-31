@@ -661,3 +661,110 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 	return GF_OK;
 }
 
+
+
+static void gf_rtp_ac3_flush(GP_RTPPacketizer *builder)
+{
+	char hdr[2];
+	if (!builder->bytesInPacket) return;
+
+	hdr[0] = builder->ac3_ft;
+	hdr[1] = builder->last_au_sn;
+	builder->OnData(builder->cbk_obj, hdr, 2, 1);
+
+	builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+	builder->bytesInPacket = 0;
+	builder->last_au_sn = 0;
+	builder->ac3_ft = 0;
+}
+
+GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize)
+{
+	char hdr[2];
+	u32 offset, nb_pck;
+
+	/*flush*/
+	if (!data) {
+		gf_rtp_ac3_flush(builder);
+		return GF_OK;
+	}
+	
+	if (
+		/*AU does not fit*/
+		(builder->bytesInPacket + data_size > builder->Path_MTU)
+	||
+		/*aggregation is not enabled*/
+		!(builder->flags & GP_RTP_PCK_USE_MULTI)
+	||
+		/*max ptime is exceeded*/
+		(builder->max_ptime && ( (u32) builder->sl_header.compositionTimeStamp >= builder->rtp_header.TimeStamp + builder->max_ptime) )
+
+	) {
+		gf_rtp_ac3_flush(builder);
+	}
+	
+	/*fits*/
+	if (builder->bytesInPacket + data_size < builder->Path_MTU) {
+		/*need a new packet*/
+		if (!builder->bytesInPacket) {
+			builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
+			builder->ac3_ft = 0;
+			builder->rtp_header.Marker = 1;
+			builder->rtp_header.SequenceNumber += 1;
+			builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+			/*2 bytes header*/
+			builder->bytesInPacket = 2;
+		}
+
+		/*add payload*/
+		if (builder->OnDataReference) 
+			builder->OnDataReference(builder->cbk_obj, data_size, 0);
+		else
+			builder->OnData(builder->cbk_obj, data, data_size, 0);
+
+		builder->bytesInPacket += data_size;
+		builder->last_au_sn++;
+		return GF_OK;
+	}
+
+	/*need fragmentation*/
+	assert(!builder->bytesInPacket);
+	offset = 0;
+	nb_pck = data_size / (builder->Path_MTU-2);
+	if (data_size % (builder->Path_MTU-2)) nb_pck++;
+	builder->last_au_sn = nb_pck;
+
+	while (offset < data_size) {
+		u32 pck_size = MIN(data_size-offset, builder->Path_MTU-2);
+
+		builder->rtp_header.Marker = 0;
+		builder->rtp_header.TimeStamp = (u32) builder->sl_header.compositionTimeStamp;
+		builder->rtp_header.SequenceNumber += 1;
+
+		if (!offset) {
+			builder->ac3_ft = (pck_size > 5*data_size/8) ? 1 : 2;
+		} else {
+			builder->ac3_ft = 3;
+			if (offset + pck_size == data_size)
+				builder->rtp_header.Marker = 1;
+		}
+		builder->OnNewPacket(builder->cbk_obj, &builder->rtp_header);
+
+		hdr[0] = builder->ac3_ft;
+		hdr[1] = builder->last_au_sn;
+		builder->OnData(builder->cbk_obj, hdr, 2, 1);
+
+		/*add payload*/
+		if (builder->OnDataReference) 
+			builder->OnDataReference(builder->cbk_obj, pck_size, offset);
+		else
+			builder->OnData(builder->cbk_obj, data+offset, pck_size, 0);
+
+		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
+		offset += pck_size;
+		builder->bytesInPacket = 0;
+	}
+
+	return GF_OK;
+}
+

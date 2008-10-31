@@ -114,17 +114,14 @@ static u32 svg_get_font_styles(GF_TraverseState * tr_state)
 	return styles;
 }
 
-static GF_Font *svg_set_font(GF_TraverseState * tr_state, GF_FontManager *fm)
+
+GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles, Bool check_only)
 {
 	GF_Font *font = NULL;
-	char *a_font;
 	char *fonts[50];
 	u32 nb_fonts = 0;
 
-	u32 styles = svg_get_font_styles(tr_state);
-
-	a_font = tr_state->svg_props->font_family->value;
-	while (a_font && !font) {
+	while (a_font) {
 		char *sep;
 		while (strchr("\t\r\n ", a_font[0])) a_font++;
 
@@ -135,7 +132,6 @@ static GF_Font *svg_set_font(GF_TraverseState * tr_state, GF_FontManager *fm)
 			char *sep_end = strchr(a_font+1, '\'');
 			if (sep_end) sep_end[0] = 0;
 			a_font++;
-//			font = gf_font_manager_set_font(fm, &a_font, 1, styles);
 			fonts[nb_fonts] = strdup(a_font);
 			nb_fonts++;
 			if (sep_end) sep_end[0] = '\'';
@@ -144,7 +140,6 @@ static GF_Font *svg_set_font(GF_TraverseState * tr_state, GF_FontManager *fm)
 			skip = 0;
 			while (a_font[len-skip] == ' ') skip++;
 			if (skip) a_font[len-skip+1] = 0;
-//			font = gf_font_manager_set_font(fm, &a_font, 1, styles);
 			fonts[nb_fonts] = strdup(a_font);
 			nb_fonts++;
 			if (skip) a_font[len-skip] = ' ';
@@ -158,13 +153,20 @@ static GF_Font *svg_set_font(GF_TraverseState * tr_state, GF_FontManager *fm)
 		}
 		if (nb_fonts==50) break;
 	}
-	font = gf_font_manager_set_font(fm, fonts, nb_fonts, styles);
+	font = gf_font_manager_set_font_ex(fm, fonts, nb_fonts, styles, check_only);
 	while (nb_fonts) {
 		free(fonts[nb_fonts-1]);
 		nb_fonts--;
 	}
 	return font;
 }
+
+static GF_Font *svg_set_font(GF_TraverseState * tr_state, GF_FontManager *fm)
+{
+	return gf_compositor_svg_set_font(fm, tr_state->svg_props->font_family->value, svg_get_font_styles(tr_state), 0);
+}
+
+
 
 static void svg_apply_text_anchor(GF_TraverseState * tr_state, Fixed *width)
 {
@@ -236,7 +238,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 	dup_text[j] = 0;
 	tr_state->last_char_was_space = (j && (dup_text[j-1]==' ')) ? 1 : 0;
 	/*SVG text is fliped by default (text y-axis is the inverse of SVG y-axis*/
-	span = gf_font_manager_create_span(fm, font, dup_text, font_size, x_offsets, y_offsets, lang, 1, 0);
+	span = gf_font_manager_create_span(fm, font, dup_text, font_size, x_offsets, y_offsets, lang, 1, 0, tr_state->text_parent);
 	free(dup_text);
 	if (span) span->flags |= GF_TEXT_SPAN_HORIZONTAL;
 	return span;

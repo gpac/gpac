@@ -24,7 +24,9 @@
 
 #include "visual_manager.h"
 #include <gpac/nodes_mpeg4.h>
-
+#ifndef GPAC_DISABLE_SVG
+#include <gpac/nodes_svg.h>
+#endif
 
 static Bool visual_draw_bitmap_stub(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, GF_ColorKey *col_key)
 {
@@ -214,6 +216,34 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 		if (child_idx) 
 			break;
 	}
+
+#ifndef GPAC_DISABLE_SVG
+	if (gf_node_get_tag(self)==TAG_SVG_use) {
+		GF_FieldInfo info;
+		if (gf_node_get_attribute_by_tag(self, TAG_XLINK_ATT_href, 0, 0, &info)==GF_OK) {
+			GF_Node *iri = ((XMLRI*)info.far_ptr)->target;
+			if (iri) {
+				gf_mx2d_init(tr_state->transform);
+				tr_state->bounds = gf_rect_center(0,0);
+
+				/*we hit the target node*/
+				if (iri == tr_state->for_node) 
+					tr_state->abort_bounds_traverse = 1;
+
+				gf_node_traverse(iri, tr_state);
+
+				if (tr_state->abort_bounds_traverse) {
+					gf_mx2d_pre_multiply(&tr_state->mx_at_node, &cur_mx);
+					return;
+				}
+
+				gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
+				gf_rect_union(&rc, &tr_state->bounds);
+			}
+		}
+	}
+#endif
+	
 	gf_mx2d_copy(tr_state->transform, cur_mx);
 	gf_mx2d_apply_rect(&tr_state->transform, &rc);
 	tr_state->bounds = rc;

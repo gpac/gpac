@@ -1059,7 +1059,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 
 		/*if not a new track, see if we can merge the edit list - this is a crude test that only checks
 		we have the same edit types*/
-		if (0 && nb_edits && (nb_edits == gf_isom_get_edit_segment_count(dest, dst_tk)) ) { 
+		if (nb_edits && (nb_edits == gf_isom_get_edit_segment_count(dest, dst_tk)) ) { 
 			u64 editTime, segmentDuration, mediaTime, dst_editTime, dst_segmentDuration, dst_mediaTime;
 			u8 dst_editMode, editMode;
 			u32 j;

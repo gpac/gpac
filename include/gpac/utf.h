@@ -79,14 +79,13 @@ size_t gf_utf8_mbstowcs(unsigned short* dst, size_t dst_len, const char** srcp);
 size_t gf_utf8_wcslen(const unsigned short *s);
 
 /*!
- *\brief string direction
+ *\brief string bidi reordering
  *
- *Determines the implicit layout direction of a string, left-to-right or right-to-left
- *\param s the wide-char string
- *\return 1 if the string is right-to-left oriented, 0 otherwise
+ *Performs a simple reordering of words in the string based on each word direction, so that glyphs are sorted in display order.
+ *\param utf_string the wide-char string
+ *\param len the len of the wide-char string
  */
-Bool gf_utf8_is_right_to_left(u16 *utf_string);
-
+void gf_utf8_reorder_bidi(u16 *utf_string, u32 len);
 
 /*! @} */
 

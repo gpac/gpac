@@ -914,11 +914,11 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 	gf_sc_lock(odm->term->compositor, 1);
 	for (i=0; i<count; i++) {
 		GF_Node *node = gf_list_get(odm->mo->nodes, i);
-		gf_dom_event_fire(node, NULL, &evt);
+		gf_dom_event_fire(node, &evt);
 	}
 	if (!count) {
 		GF_Node *root = gf_sg_get_root_node(is->graph);
-		if (root) gf_dom_event_fire(root, NULL, &evt);
+		if (root) gf_dom_event_fire(root, &evt);
 	}
 	gf_sc_lock(odm->term->compositor, 0);
 #endif

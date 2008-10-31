@@ -169,7 +169,16 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 	read->dnload = NULL;
 
 	strcpy(read->szURL, url);
-	ext = strrchr(read->szURL, '.');
+	ext = strchr(read->szURL, '#');
+	if (ext) {
+		char *anext;
+		ext[0] = 0;
+		anext = strrchr(read->szURL, '.');
+		ext[0] = '#';
+		ext = anext;
+	} else {
+		ext = strrchr(read->szURL, '.');
+	}
 	if (ext && !stricmp(ext, ".gz")) {
 		char *anext;
 		ext[0] = 0;

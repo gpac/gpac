@@ -73,11 +73,13 @@ typedef struct
 
 	Bool has_edit_list;
 	u32 sample_num;
+	/*for edit lists*/
+	u32 edit_sync_frame;
 	u64 sample_time, start, end;
 	Double speed;
 
 	u32 time_scale;
-	Bool to_init, is_playing;
+	Bool to_init, is_playing, has_rap;
 	u8 streamType;
 	
 	Bool is_encrypted;

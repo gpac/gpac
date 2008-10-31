@@ -974,7 +974,8 @@ GF_Err elst_Read(GF_Box *s, GF_BitStream *bs)
 			tr = gf_bs_read_u32(bs);
 			p->mediaTime = (s64) tr;
 		}
-		p->mediaRate = gf_bs_read_u32(bs);
+		p->mediaRate = gf_bs_read_u16(bs);
+		gf_bs_read_u16(bs);
 		gf_list_add(ptr->entryList, p);
 	}
 	return GF_OK;
@@ -1023,7 +1024,8 @@ GF_Err elst_Write(GF_Box *s, GF_BitStream *bs)
 			gf_bs_write_u32(bs, (u32) p->segmentDuration);
 			gf_bs_write_u32(bs, (s32) p->mediaTime);
 		}
-		gf_bs_write_u32(bs, p->mediaRate);
+		gf_bs_write_u16(bs, p->mediaRate);
+		gf_bs_write_u16(bs, 0);
 	}
 	return GF_OK;
 }
@@ -6296,7 +6298,7 @@ GF_Err tref_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err tref_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, tref_AddBox);
+	return gf_isom_read_box_list_ex(s, bs, tref_AddBox, s->type);
 }
 
 GF_Box *tref_New()
@@ -6370,6 +6372,7 @@ GF_Box *reftype_New()
 	GF_TrackReferenceTypeBox *tmp = (GF_TrackReferenceTypeBox *) malloc(sizeof(GF_TrackReferenceTypeBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_TrackReferenceTypeBox));
+	tmp->type = GF_ISOM_BOX_TYPE_REFT;
 	return (GF_Box *)tmp;
 }
 
@@ -6405,7 +6408,9 @@ GF_Err reftype_Write(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	u32 i;
 	GF_TrackReferenceTypeBox *ptr = (GF_TrackReferenceTypeBox *)s;
+	ptr->type = ptr->reference_type;
 	e = gf_isom_box_write_header(s, bs);
+	ptr->type = GF_ISOM_BOX_TYPE_REFT;
 	if (e) return e;
 	for (i = 0; i < ptr->trackIDCount; i++) {
 		gf_bs_write_u32(bs, ptr->trackIDs[i]);

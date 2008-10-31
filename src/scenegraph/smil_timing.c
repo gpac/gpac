@@ -575,7 +575,7 @@ waiting_to_begin:
 			memset(&evt, 0, sizeof(evt));
 			evt.type = GF_EVENT_BEGIN_EVENT;
 			evt.smil_event_time = rti->current_interval->begin;
-			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
+			gf_dom_event_fire((GF_Node *)rti->timed_elt, &evt);
 
 			if (rti->timed_elt->sgprivate->tag==TAG_LSR_conditional) {
 				SVG_Element *e = (SVG_Element *)rti->timed_elt;
@@ -603,7 +603,7 @@ force_end:
 			evt.type = GF_EVENT_END_EVENT;
 			/* WARNING: begin + active_duration may be greater than 'now' because of force_end cases */
 			evt.smil_event_time = rti->current_interval->begin + rti->current_interval->active_duration;
-			gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
+			gf_dom_event_fire((GF_Node *)rti->timed_elt, &evt);
 
 			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time, NULL);
 			ret = rti->postpone;
@@ -642,7 +642,7 @@ force_end:
 					memset(&evt, 0, sizeof(evt));
 					evt.type = GF_EVENT_BEGIN_EVENT;
 					evt.smil_event_time = rti->current_interval->begin;
-					gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);				
+					gf_dom_event_fire((GF_Node *)rti->timed_elt, &evt);				
 				} 
 			}
 
@@ -659,7 +659,7 @@ force_end:
 				evt.type = GF_EVENT_REPEAT_EVENT;
 				evt.smil_event_time = rti->current_interval->begin + rti->current_interval->nb_iterations*rti->current_interval->simple_duration;
 				evt.detail = rti->current_interval->nb_iterations;
-				gf_dom_event_fire((GF_Node *)rti->timed_elt, NULL, &evt);
+				gf_dom_event_fire((GF_Node *)rti->timed_elt, &evt);
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Repeating\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 				rti->evaluate_status = SMIL_TIMING_EVAL_REPEAT;		

@@ -179,8 +179,10 @@ void PrintGeneralUsage()
 			" -group-rem-track ID  removes track from its group\n"
 			" -group-rem ID        removes the track's group\n"
 			" -group-clean         removes all group information from all tracks\n"
+			" -ref id:XXXX:refID   adds a reference of type 4CC from track ID to track refID\n"
 			"\n");
 }
+
 void PrintFormats()
 {
 	fprintf(stdout, "Suppported raw formats and file extensions:\n"
@@ -1052,6 +1054,7 @@ typedef struct
 	5: set track handler name
 	6: enables track
 	7: disables track
+	8: referenceTrack
 	*/
 	u32 act_type;
 	/*track ID*/
@@ -1476,6 +1479,34 @@ int main(int argc, char **argv)
 			tracks[nb_track_act].delay_ms = atoi(ext+1);
 			ext[0] = 0;
 			tracks[nb_track_act].trackID = atoi(szTK);
+			open_edit = 1;
+			nb_track_act++;
+			i++;
+		}
+		else if (!stricmp(arg, "-ref")) {
+			char *szTK, *ext;
+			CHECK_NEXT_ARG
+			if (nb_track_act>=MAX_CUMUL_OPS) {
+				fprintf(stdout, "Sorry - no more than %d track operations allowed\n", MAX_CUMUL_OPS);
+				return 1;
+			}
+			szTK = argv[i+1];
+			ext = strchr(szTK, ':');
+			if (!ext) {
+				fprintf(stdout, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i+1]);
+				return 1;
+			}
+			tracks[nb_track_act].act_type = 8;
+			ext[0] = 0; tracks[nb_track_act].trackID = atoi(szTK); ext[0] = ':'; szTK = ext+1;
+			ext = strchr(szTK, ':');
+			if (!ext) {
+				fprintf(stdout, "Bad format for track reference - expecting ID:XXXX:refID got %s\n", argv[i+1]);
+				return 1;
+			}
+			ext[0] = 0;
+			strncpy(tracks[nb_track_act].lang, szTK, 4);
+			ext[0] = ':';
+			tracks[nb_track_act].delay_ms = (s32) atoi(ext+1);
 			open_edit = 1;
 			nb_track_act++;
 			i++;
@@ -2449,6 +2480,10 @@ int main(int argc, char **argv)
 				e = gf_isom_set_track_enabled(file, track, 0);
 				needSave = 1;
 			}
+			break;
+		case 8:
+			e = gf_isom_set_track_reference(file, track, GF_4CC(tka->lang[0], tka->lang[1], tka->lang[2], tka->lang[3]), (u32) tka->delay_ms);
+			needSave = 1;
 			break;
 		}
 		if (e) goto err_exit;

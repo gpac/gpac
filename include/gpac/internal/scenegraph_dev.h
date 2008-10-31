@@ -468,8 +468,10 @@ typedef struct {
 	Double begin, 
 		   end,
 		   simple_duration, 
-		   active_duration;
+		   active_duration,
+		   repeat_duration;
 
+	Bool min_active;
 } SMIL_Interval;
 
 struct _smil_timing_rti
@@ -519,7 +521,7 @@ struct _smil_timing_rti
 
 void gf_smil_timing_init_runtime_info(GF_Node *timed_elt);
 void gf_smil_timing_delete_runtime_info(GF_Node *timed_elt, SMIL_Timing_RTI *rti);
-Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double scene_time);
+Fixed gf_smil_timing_get_normalized_simple_time(SMIL_Timing_RTI *rti, Double scene_time, Bool *force_end);
 /*returns 1 if an animation changed a value in the rendering tree */
 s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time);
 

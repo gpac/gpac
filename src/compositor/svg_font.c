@@ -44,7 +44,6 @@ typedef struct
 /*translate string to glyph sequence*/
 static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang)
 {
-	Bool right_to_left;
 	u32 prev_c;
 	u32 len;
 	u32 i, gl_idx;
@@ -70,9 +69,11 @@ static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph
 	/*should not happen*/
 	if (utf8) return GF_IO_ERR;
 
-	/*unpack to 32bits*/
+	/*perform bidi relayout*/
 	utf_res = (u16 *) glyph_buffer;
-	right_to_left = gf_utf8_is_right_to_left(utf_res); 
+	gf_utf8_reorder_bidi(utf_res, len);
+
+	/*move 16bit buffer to 32bit*/
 	for (i=len; i>0; i--) {
 		glyph_buffer[i-1] = utf_res[i-1];
 	}
@@ -159,13 +160,6 @@ static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph
 	}
 	*io_glyph_buffer_size = len = gl_idx;
 	
-	if (right_to_left) { 
-		for (i=0; i<len/2; i++) {
-			u32 v = glyph_buffer[i];
-			glyph_buffer[i] = glyph_buffer[len-1-i];
-			glyph_buffer[len-1-i] = v;
-		}
-	}
 	return GF_OK;
 }
 
@@ -460,11 +454,13 @@ static void svg_traverse_font_face_uri(GF_Node *node, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
 		FontURIStack *st = gf_node_get_private(node);
-		gf_font_manager_unregister_font(st->font->ft_mgr, st->font);
-		if (st->font->name) free(st->font->name);
-		free(st->font);
-		if (st->mo) gf_mo_unload_xlink_resource(node, st->mo);
-		free(st);
+		if (st) {
+			gf_font_manager_unregister_font(st->font->ft_mgr, st->font);
+			if (st->font->name) free(st->font->name);
+			free(st->font);
+			if (st->mo) gf_mo_unload_xlink_resource(node, st->mo);
+			free(st);
+		}
 	}
 }
 
@@ -490,6 +486,10 @@ void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node)
 	/*get font familly*/
 	gf_svg_flatten_attributes((SVG_Element*)par, &atts);
 	if (!atts.font_family) return;
+
+	/*if font with the same name exists, don't load*/
+	if (gf_compositor_svg_set_font(compositor->font_manager, atts.font_family->value, 0, 1) != NULL)
+		return;
 
 	/*register font to font manager*/
 	GF_SAFEALLOC(font, GF_Font);

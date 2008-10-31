@@ -528,6 +528,7 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 	}
 
 	ch->has_edit_list = gf_isom_get_edit_segment_count(ch->owner->mov, ch->track) ? 1 : 0;
+	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? 1 : 0;
 	ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
 
 exit:

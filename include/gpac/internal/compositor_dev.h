@@ -256,8 +256,11 @@ struct __tag_compositor
 	GF_Node *grab_use;
 	/*current focus node if any*/
 	GF_Node *focus_node;
+	/*parent use node of the current focus node if any*/
+	GF_Node *focus_used;
 	/*current parent focus node if any - needed to navigate within PROTOs*/
 	GF_List *focus_ancestors;
+	GF_List *focus_use_stack;
 	/*focus node uses dom events*/
 	Bool focus_uses_dom_events;
 	/*current sensor type*/
@@ -1058,6 +1061,8 @@ struct _gf_font
 	Bool not_loaded;
 
 	struct _gf_ft_mgr *ft_mgr;
+	/*list of spans currently using the font - this is needed to allow for dynamic discard of the font*/
+	GF_List *spans;
 };
 
 enum 
@@ -1103,6 +1108,7 @@ typedef struct __text_span
 
 	/*SVG stuff :(*/
 	GF_Node *anchor;
+	GF_Node *user;
 } GF_TextSpan;
 
 GF_FontManager *gf_font_manager_new(GF_User *user);
@@ -1111,7 +1117,7 @@ void gf_font_manager_del(GF_FontManager *fm);
 GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
 GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles, Bool check_only);
 
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *lang, Bool fliped_text, u32 styles);
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *lang, Bool fliped_text, u32 styles, GF_Node *user);
 void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);
 
 GF_Err gf_font_manager_register_font(GF_FontManager *fm, GF_Font *font);
@@ -1125,6 +1131,8 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspect2D *asp, u32 text_hl, Bool force_texturing);
 void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events, struct _drawable *drawable);
 void gf_font_spans_get_selection(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state);
+
+GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles, Bool check_only);
 
 #endif	/*_COMPOSITOR_DEV_H_*/
 

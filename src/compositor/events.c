@@ -407,7 +407,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 					if (compositor->grab_node) {
 						evt.relatedTarget = compositor->hit_node;
 						evt.type = GF_EVENT_MOUSEOUT;
-						ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
+						ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 						/*prepare mouseOver*/
 						evt.relatedTarget = compositor->grab_node;
 					}
@@ -416,11 +416,11 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 
 					/*mouse over*/
 					evt.type = GF_EVENT_MOUSEOVER;
-					ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
+					ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 
 				} else {
 					evt.type = GF_EVENT_MOUSEMOVE;
-					ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
+					ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 				}
 				compositor->num_clicks = 0;
 				break;
@@ -431,7 +431,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				evt.button = event->mouse.button;
 				evt.detail = compositor->num_clicks;
 
-				ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
+				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 				compositor->grab_x = X;
 				compositor->grab_y = Y;
 				break;
@@ -439,10 +439,10 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				evt.type = GF_EVENT_MOUSEUP;
 				evt.button = event->mouse.button;
 				evt.detail = compositor->num_clicks;
-				ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
+				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 				if ((compositor->grab_x == X) && (compositor->grab_y == Y)) {
 					evt.type = GF_EVENT_CLICK;
-					ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
+					ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 				}
 				break;
 			}
@@ -457,7 +457,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				evt.cancelable = 1;
 				evt.key_flags = compositor->key_states;
 				evt.type = GF_EVENT_MOUSEOUT;
-				ret += gf_dom_event_fire(compositor->grab_node, compositor->hit_use_stack, &evt);
+				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 			}
 			compositor->grab_node = NULL;
 			compositor->grab_use = NULL;
@@ -470,7 +470,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 			evt.cancelable = 1;
 			evt.key_flags = compositor->key_states;
 			evt.type = event->type;
-			ret += gf_dom_event_fire(gf_sg_get_root_node(compositor->scene), NULL, &evt);
+			ret += gf_dom_event_fire_ex(gf_sg_get_root_node(compositor->scene), &evt, compositor->hit_use_stack);
 		}
 		if (compositor->sensor_type != cursor_type) {
 			GF_Event c_evt; 
@@ -491,14 +491,14 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 		evt.key_hw_code = event->key.hw_code;
 		target = compositor->focus_node;
 		if (!target) target = gf_sg_get_root_node(compositor->scene);
-		ret += gf_dom_event_fire(target, NULL, &evt);
+		ret += gf_dom_event_fire(target, &evt);
 
 		if (event->type==GF_EVENT_KEYDOWN) {
 			switch (event->key.key_code) {
 			case GF_KEY_ENTER:
 				evt.type = GF_EVENT_ACTIVATE;
 				evt.detail = 0;
-				ret += gf_dom_event_fire(target, NULL, &evt);
+				ret += gf_dom_event_fire(target, &evt);
 				break;
 			}
 		} 
@@ -519,7 +519,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 			evt.detail = event->character.unicode_char;
 			target = compositor->focus_node;
 			if (!target) target = gf_sg_get_root_node(compositor->scene);
-			ret += gf_dom_event_fire(target, NULL, &evt);
+			ret += gf_dom_event_fire(target, &evt);
 			break;
 		}
 	}
@@ -773,12 +773,12 @@ u32 gf_sc_svg_focus_navigate(GF_Compositor *compositor, u32 key_code)
 		evt.bubbles = 1;
 		if (compositor->focus_node) {
 			evt.type = GF_EVENT_FOCUSOUT;
-			gf_dom_event_fire(compositor->focus_node, NULL, &evt);
+			gf_dom_event_fire(compositor->focus_node, &evt);
 		}
 		if (n) {
 			evt.relatedTarget = n;
 			evt.type = GF_EVENT_FOCUSIN;
-			gf_dom_event_fire(n, NULL, &evt);
+			gf_dom_event_fire(n, &evt);
 		}
 		compositor->focus_node = n;
 		//invalidate in case we draw focus rect
@@ -834,10 +834,24 @@ static Bool is_focus_target(GF_Node *elt)
 	return NULL;	\
 	}	\
 
+
+static void rebuild_focus_ancestor(GF_Compositor *compositor, GF_Node *elt) 
+{
+	gf_list_reset(compositor->focus_ancestors);
+	while (elt) {
+		GF_Node *par = gf_node_get_parent(elt, 0);
+		if (!par) break;
+		gf_list_insert(compositor->focus_ancestors, par, 0);
+		elt = par;
+	}
+}
+
 static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_focus, Bool prev_focus)
 {
 	u32 tag;
 	GF_ChildNodeItem *child = NULL;
+	GF_Node *use_node = NULL;
+	GF_Node *anim_node = NULL;
 	GF_Node *n;
 
 	if (!elt) return NULL;
@@ -936,6 +950,9 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 	} else {
 #ifndef GPAC_DISABLE_SVG
 		SVGAllAttributes atts;
+
+		if (tag==TAG_SVG_defs) return NULL;
+
 		gf_svg_flatten_attributes((SVG_Element *)elt, &atts);
 
 		if (atts.display && (*atts.display==SVG_DISPLAY_NONE)) return NULL;
@@ -974,7 +991,10 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 						if (!atts.nav_prev->target.string) return NULL;
 						atts.nav_prev->target.target = gf_sg_find_node_by_name(compositor->scene, atts.nav_prev->target.string+1);
 					}
-					return atts.nav_prev->target.target;
+					if (atts.nav_prev->target.target) {
+						rebuild_focus_ancestor(compositor, atts.nav_prev->target.target);
+						return atts.nav_prev->target.target;
+					}
 				default:
 					break;
 				}
@@ -991,7 +1011,10 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 						if (!atts.nav_next->target.string) return NULL;
 						atts.nav_next->target.target = gf_sg_find_node_by_name(compositor->scene, atts.nav_next->target.string+1);
 					}
-					return atts.nav_next->target.target;
+					if (atts.nav_next->target.target) {
+						rebuild_focus_ancestor(compositor, atts.nav_next->target.target);
+						return atts.nav_next->target.target;
+					}
 				default:
 					break;
 				}
@@ -999,6 +1022,16 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		}
 #endif /*GPAC_DISABLE_SVG*/
 		child = ((GF_ParentNode *)elt)->children;
+		if (atts.xlink_href) {
+			switch (tag) {
+			case TAG_SVG_use:
+				use_node = atts.xlink_href->target;
+				break;
+			case TAG_SVG_animation:
+				anim_node = atts.xlink_href->target;
+				break;
+			}
+		}
 	}
 
 	if (prev_focus) {
@@ -1023,6 +1056,21 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			child = child->next;
 		}
 	}
+	if (use_node) {
+		gf_list_add(compositor->focus_use_stack, use_node);
+		gf_list_add(compositor->focus_use_stack, elt);
+		n = set_focus(compositor, use_node, 0, 0);
+		if (n) {
+			compositor->focus_used = elt;
+			return n;
+		}
+		gf_list_rem_last(compositor->focus_use_stack);
+		gf_list_rem_last(compositor->focus_use_stack);
+	} else if (anim_node) {
+		n = set_focus(compositor, anim_node, 0, 0);
+		if (n) return n;
+	}
+
 	gf_list_rem_last(compositor->focus_ancestors);
 
 	return NULL;
@@ -1071,7 +1119,18 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 
 	/*locate element*/
 	idx = gf_node_list_find_child(child, elt);
-	assert(idx>=0);
+
+	/*use or animation*/
+	if (idx<0) {
+		/*up one level*/
+		gf_list_rem_last(compositor->focus_ancestors);
+		if (tag==TAG_SVG_use) {
+			gf_list_rem_last(compositor->focus_use_stack);
+			gf_list_rem_last(compositor->focus_use_stack);
+			if (compositor->focus_used == par) compositor->focus_used = NULL;
+		}
+		return browse_parent_for_focus(compositor, (GF_Node*)par, prev_focus);
+	}
 
 	if (prev_focus) {
 		u32 i, count;
@@ -1105,9 +1164,11 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 	Bool current_focus = 1;
 	Bool prev_uses_dom_events;
 	u32 ret = 0;
-	GF_Node *n, *prev;
+	GF_List *cloned_use = NULL;
+	GF_Node *n, *prev, *prev_use;
 
 	prev = compositor->focus_node;
+	prev_use = compositor->focus_used;
 	compositor->focus_text_type = 0;
 	prev_uses_dom_events = compositor->focus_uses_dom_events;
 	compositor->focus_uses_dom_events = 0;
@@ -1117,6 +1178,15 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 		gf_list_reset(compositor->focus_ancestors);
 		if (!compositor->focus_node) return 0;
 		current_focus = 0;
+	}
+
+	if (compositor->focus_used) {
+		u32 i, count;
+		cloned_use = gf_list_new();
+		count = gf_list_count(compositor->focus_use_stack);
+		for (i=0; i<count; i++) {
+			gf_list_add(cloned_use, gf_list_get(compositor->focus_use_stack, i));
+		}
 	}
 
 	/*get focus in current doc order*/
@@ -1135,7 +1205,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 
 	ret = 0;
 #ifndef GPAC_DISABLE_SVG
-	if (prev != compositor->focus_node) {
+	if ((prev != compositor->focus_node) || (prev_use != compositor->focus_used)) {
 		GF_DOM_Event evt;
 		GF_Event ev;
 		/*the event is already handled, even though no listeners may be present*/
@@ -1149,7 +1219,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 			if (prev_uses_dom_events) {
 				evt.bubbles = 1;
 				evt.type = GF_EVENT_FOCUSOUT;
-				gf_dom_event_fire(prev, NULL, &evt);
+				gf_dom_event_fire_ex(prev, &evt, cloned_use);
 			} else {
 				exec_vrml_key_event(compositor, prev, &ev, 1);
 			}
@@ -1158,7 +1228,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 			if (compositor->focus_uses_dom_events) {
 				evt.bubbles = 1;
 				evt.type = GF_EVENT_FOCUSIN;
-				gf_dom_event_fire(compositor->focus_node, NULL, &evt);
+				gf_dom_event_fire_ex(compositor->focus_node, &evt, compositor->focus_use_stack);
 			} else {
 				exec_vrml_key_event(compositor, NULL, &ev, 0);
 			}
@@ -1167,6 +1237,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 		gf_sc_invalidate(compositor, NULL);
 	}
 #endif /*GPAC_DISABLE_SVG*/
+	if (cloned_use) gf_list_del(cloned_use);
 	return ret;
 }
 

@@ -206,7 +206,11 @@ static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 
 	assert(parser->elt_name_start);
 	assert(parser->elt_name_end);
-	assert(parser->node_depth);
+	if (!parser->node_depth) {
+		parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+		sprintf(parser->err_msg, "Markup error");
+		return;
+	}
 	c = parser->buffer[parser->elt_name_end - 1];
 	parser->buffer[parser->elt_name_end - 1] = 0;
 	name = parser->buffer + parser->elt_name_start - 1;

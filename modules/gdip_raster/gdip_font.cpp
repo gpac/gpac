@@ -63,7 +63,6 @@ static GF_Err gdip_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *gl
 {
 	u32 len;
 	u32 i;
-	Bool rev;
 	u16 *conv;
 	char *utf8 = (char*) utf_string;
 	FontPriv *priv = (FontPriv*)dr->udta;
@@ -80,17 +79,13 @@ static GF_Err gdip_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *gl
 	len = gf_utf8_mbstowcs((u16*) glyph_buffer, *io_glyph_buffer_size, (const char **) &utf8);
 	if ((s32) len<0) return GF_IO_ERR;
 	if (utf8) return GF_IO_ERR;
+
+	/*perform bidi relayout*/
 	conv = (u16*) glyph_buffer;
-	rev = gf_utf8_is_right_to_left(conv);
+	gf_utf8_reorder_bidi(conv, len);
+	/*move 16bit buffer to 32bit*/
 	for (i=len; i>0; i--) {
 		glyph_buffer[i-1] = (u32) conv[i-1];
-	}
-	if (rev) { 
-		for (i=0; i<len/2; i++) {
-			u32 v = glyph_buffer[i];
-			glyph_buffer[i] = glyph_buffer[len-1-i];
-			glyph_buffer[len-1-i] = v;
-		}
 	}
 	*io_glyph_buffer_size = (u32) len;
 	return GF_OK;

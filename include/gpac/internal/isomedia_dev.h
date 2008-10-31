@@ -71,6 +71,7 @@ GF_Err gf_isom_box_size(GF_Box *ptr);
 
 GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs);
 GF_Err gf_isom_read_box_list(GF_Box *s, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b));
+GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type);
 
 GF_Err gf_isom_box_get_size(GF_Box *ptr);
 GF_Err gf_isom_full_box_get_size(GF_Box *ptr);
@@ -237,6 +238,9 @@ enum
 	GF_ISOM_BOX_TYPE_SNRO	= GF_4CC( 's', 'n', 'r', 'o' ),
 	GF_ISOM_BOX_TYPE_RTPO	= GF_4CC( 'r', 't', 'p', 'o' ),
 	
+	/*internal type for track references*/
+	GF_ISOM_BOX_TYPE_REFT	= GF_4CC( 'R', 'E', 'F', 'T' ),
+
 	/* Apple extensions */
 
 	GF_ISOM_BOX_TYPE_ILST	= GF_4CC( 'i', 'l', 's', 't' ),
@@ -1048,6 +1052,7 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
+	u32 reference_type;
 	u32 trackIDCount;
 	u32 *trackIDs;
 } GF_TrackReferenceTypeBox;

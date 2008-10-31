@@ -608,7 +608,7 @@ void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed 
 			evt.new_translate.y = compositor->trans_y;
 			evt.type = GF_EVENT_ZOOM;
 		}
-		gf_dom_event_fire(gf_sg_get_root_node(compositor->scene), NULL, &evt);
+		gf_dom_event_fire(gf_sg_get_root_node(compositor->scene), &evt);
 	}
 #endif
 }

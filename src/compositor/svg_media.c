@@ -662,11 +662,7 @@ static void svg_traverse_audio(GF_Node *node, void *rs, Bool is_destroy)
 		stack->input.is_muted = 1;
 	}
 
-	if (tr_state->svg_props->audio_level) {
-		stack->input.intensity = tr_state->svg_props->audio_level->value;
-	} else {
-		stack->input.intensity = FIX_ONE;
-	}
+	stack->input.intensity = tr_state->svg_props->computed_audio_level;
 
 	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	tr_state->svg_flags = backup_flags;

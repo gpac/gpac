@@ -3897,7 +3897,7 @@ static GF_Node *lsr_read_scene_content_model(GF_LASeRCodec *lsr, SVG_Element *pa
 		GF_DOM_Event evt;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = GF_EVENT_LOAD;
-		gf_dom_event_fire(n, NULL, &evt);
+		gf_dom_event_fire(n, &evt);
 	}
 	return n;
 }
@@ -3969,7 +3969,7 @@ static GF_Node *lsr_read_update_content_model(GF_LASeRCodec *lsr, SVG_Element *p
 		GF_DOM_Event evt;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = GF_EVENT_LOAD;
-		gf_dom_event_fire(n, NULL, &evt);
+		gf_dom_event_fire(n, &evt);
 	}
 	return n;
 }
@@ -4874,7 +4874,7 @@ static GF_Err lsr_read_send_event(GF_LASeRCodec *lsr, GF_List *com_list)
 		evt.detail = detail ? detail : event.parameter;
 		evt.clientX = FIX2INT(x.value);
 		evt.clientY = FIX2INT(y.value);
-		gf_dom_event_fire(target, NULL, &evt);
+		gf_dom_event_fire(target, &evt);
 
 	} else {
 		GF_Command *com = gf_sg_command_new(lsr->sg, GF_SG_LSR_SEND_EVENT);

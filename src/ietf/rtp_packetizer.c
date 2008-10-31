@@ -108,6 +108,8 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 		return gp_rtp_builder_do_latm(builder, data, data_size, IsAUEnd, FullAUSize, duration); 
 	case GF_RTP_PAYT_3GPP_DIMS: 
 		return gp_rtp_builder_do_dims(builder, data, data_size, IsAUEnd, FullAUSize, duration); 
+	case GF_RTP_PAYT_AC3: 
+		return gp_rtp_builder_do_ac3(builder, data, data_size, IsAUEnd, FullAUSize); 
  	default:
 		return GF_BAD_PARAM;
 	}
@@ -492,6 +494,10 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 	case GF_RTP_PAYT_3GPP_DIMS: 
 		strcpy(szMediaName, "video"); 
 		strcpy(szPayloadName, "richmedia+xml"); 
+		return 1; 
+	case GF_RTP_PAYT_AC3: 
+		strcpy(szMediaName, "audio"); 
+		strcpy(szPayloadName, "ac3"); 
 		return 1; 
 	default:
 		strcpy(szMediaName, "");

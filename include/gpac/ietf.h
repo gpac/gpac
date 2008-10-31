@@ -1054,6 +1054,8 @@ enum
 	GF_RTP_PAYT_LATM,
 	/*use 3GPP DIMS format*/
 	GF_RTP_PAYT_3GPP_DIMS,
+	/*use AC3 audio format*/
+	GF_RTP_PAYT_AC3,
 };
 
 
@@ -1107,7 +1109,10 @@ struct __tag_rtp_packetizer
 	void (*OnData)(void *cbk_obj, char *data, u32 data_size, Bool is_header);
 	void *cbk_obj;
 	
-	/*rest of struct is for MPEG-4 Generic hinting */
+		/*********************************
+			MPEG-4 Generic hinting 
+		*********************************/
+
 	/*SL to RTP map*/
 	GP_RTPSLMap slMap;
 	/*SL conf and state*/
@@ -1125,13 +1130,25 @@ struct __tag_rtp_packetizer
 	/*info for the current packet*/
 	u32 auh_size, bytesInPacket;
 
-	/*ISMACryp info*/
+		/*********************************
+				ISMACryp info
+		*********************************/
 	Bool force_flush, is_encrypted;
 	u64 IV, first_AU_IV;
 	char *key_indicator;
 
+		/*********************************
+				AVC-H264 info
+		*********************************/
 	/*AVC non-IDR flag: set if all NAL in current packet are non-IDR (disposable)*/
 	Bool avc_non_idr;
+
+		/*********************************
+				AC3 info
+		*********************************/
+	/*ac3 ft flags*/
+	u8 ac3_ft;
+
 };
 
 /*generic rtp builder (packetizer)*/

@@ -1727,11 +1727,11 @@ static void svg_parse_paint(GF_Node *n, SVG_Paint *paint, char *attribute_conten
 	} else if (!strcmp(attribute_content, "inherit")) {
 		paint->type = SVG_PAINT_INHERIT;
 	} else if (!strncmp(attribute_content, "url(", 4) ) {
-		u32 len = strlen(attribute_content);
+		char *ext = strrchr(attribute_content, ')');
 		paint->type = SVG_PAINT_URI;
-		attribute_content[len-1] = 0;
+		if (ext) ext[0] = 0;
 		svg_parse_iri(n, &paint->iri, attribute_content+4);
-		attribute_content[len-1] = ')';
+		if (ext) ext[0] = ')';
 	} else {
 		paint->type = SVG_PAINT_COLOR;
 		svg_parse_color(&paint->color, attribute_content);

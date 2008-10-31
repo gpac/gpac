@@ -42,6 +42,7 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 	GF_SAFEALLOC(svg_props->audio_level, SVG_Number);
 	svg_props->audio_level->type = SVG_NUMBER_VALUE;
 	svg_props->audio_level->value = FIX_ONE;
+	svg_props->computed_audio_level = FIX_ONE;
 
 	GF_SAFEALLOC(svg_props->color, SVG_Paint);
 	svg_props->color->type = SVG_PAINT_COLOR;
@@ -512,10 +513,22 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 	u32 inherited_flags_mask = GF_SG_NODE_DIRTY | GF_SG_CHILD_DIRTY;
 	if(!all_atts || !render_svg_props) return ~inherited_flags_mask;
 
-	if (all_atts->audio_level && all_atts->audio_level->type != SVG_NUMBER_INHERIT) {
-		render_svg_props->audio_level = all_atts->audio_level;	
-	} else if (!all_atts->audio_level) {
+	if (!all_atts->audio_level) {
 		render_svg_props->audio_level = NULL;
+	} else {
+		Fixed par_val = render_svg_props->computed_audio_level;
+		Fixed val = par_val;
+		if (all_atts->audio_level->type != SVG_NUMBER_INHERIT) {
+			render_svg_props->audio_level = all_atts->audio_level;	
+			val = all_atts->audio_level->value;
+		} else if (render_svg_props->audio_level) {
+			val = render_svg_props->audio_level->value;
+		} else {
+			val = FIX_ONE;
+		}
+		par_val = MIN(FIX_ONE, MAX( par_val, 0));
+		val = MIN(FIX_ONE, MAX( val, 0));
+		render_svg_props->computed_audio_level = gf_mulfix(val, par_val);
 	}
 	
 	if (all_atts->color && all_atts->color->type == SVG_PAINT_COLOR 
