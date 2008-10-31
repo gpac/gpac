@@ -900,7 +900,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	Float ts_scale;
 	Double dest_orig_dur;
 	u32 dst_tk, tk_id, mtype;
-	u64 insert_dts, skip_until_dts;
+	u64 insert_dts;
 	GF_ISOSample *samp;
 
 	if (strchr(fileName, '*')) return cat_multiple_files(dest, fileName, import_flags, force_fps, frames_per_sample, tmp_dir, force_cat);
@@ -948,13 +948,19 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 	}
 	
 	dest_orig_dur = (Double) (s64) gf_isom_get_duration(dest);
+	if (!gf_isom_get_timescale(dest)) {
+		gf_isom_set_timescale(dest, gf_isom_get_timescale(orig));
+	}
 	dest_orig_dur /= gf_isom_get_timescale(dest);
 
 	fprintf(stdout, "Appending file %s\n", fileName);
 	nb_done = 0;
 	for (i=0; i<nb_tracks; i++) {
-		u64 last_DTS;
+		u64 last_DTS, dest_track_dur_before_cat;
+		u32 nb_edits = 0;
+		Bool new_track = 0;
 		Bool use_ts_dur = 1;
+		Bool merge_edits = 0;
 		mtype = gf_isom_get_media_type(orig, i+1);
 		switch (mtype) {
 		case GF_ISOM_MEDIA_HINT:
@@ -1033,31 +1039,39 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			e = gf_isom_clone_track(orig, i+1, dest, 1, &dst_tk);
 			if (e) goto err_exit;
 			gf_isom_clone_pl_indications(orig, dest);
-			/*remove any edit stuff that could have been copied over*/
-			gf_isom_remove_edit_segments(dest, dst_tk);
+			new_track = 1;
+		} else {
+			nb_edits = gf_isom_get_edit_segment_count(orig, i+1);
 		}
+
+		dest_track_dur_before_cat = gf_isom_get_media_duration(dest, dst_tk);
+
 		count = gf_isom_get_sample_count(dest, dst_tk);
 		if (use_ts_dur && (count>1)) {
 			insert_dts = 2*gf_isom_get_sample_dts(dest, dst_tk, count) - gf_isom_get_sample_dts(dest, dst_tk, count-1);
 		} else {
-			insert_dts = gf_isom_get_media_duration(dest, dst_tk);
+			insert_dts = dest_track_dur_before_cat;
 			if (!count) insert_dts = 0;
 		}
 
 		ts_scale = (Float) gf_isom_get_media_timescale(dest, dst_tk);
 		ts_scale /= gf_isom_get_media_timescale(orig, i+1);
-		skip_until_dts = 0;
-		if (gf_isom_get_edit_segment_count(orig, i+1)) { 
-			u64 editTime, segmentDuration, mediaTime;
-			u8 editMode;
-			gf_isom_get_edit_segment(orig, i+1, 1, &editTime, &segmentDuration, &mediaTime, &editMode);
-			if (editMode == GF_ISOM_EDIT_EMPTY) {
-				Double offset = (Double) (s64)segmentDuration * gf_isom_get_media_timescale(orig, i+1);
-				offset /= gf_isom_get_timescale(orig);
-				insert_dts += (u64) (offset*ts_scale);
-			}
-			else if (editMode == GF_ISOM_EDIT_NORMAL) {
-				skip_until_dts = mediaTime;
+
+		/*if not a new track, see if we can merge the edit list - this is a crude test that only checks
+		we have the same edit types*/
+		if (0 && nb_edits && (nb_edits == gf_isom_get_edit_segment_count(dest, dst_tk)) ) { 
+			u64 editTime, segmentDuration, mediaTime, dst_editTime, dst_segmentDuration, dst_mediaTime;
+			u8 dst_editMode, editMode;
+			u32 j;
+			merge_edits = 1;
+			for (j=0; j<nb_edits; j++) {
+				gf_isom_get_edit_segment(orig, i+1, j+1, &editTime, &segmentDuration, &mediaTime, &editMode);
+				gf_isom_get_edit_segment(dest, dst_tk, j+1, &dst_editTime, &dst_segmentDuration, &dst_mediaTime, &dst_editMode);
+
+				if (dst_editMode!=editMode) { 
+					merge_edits=0; 
+					break; 
+				}
 			}
 		}
 
@@ -1066,14 +1080,6 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		for (j=0; j<count; j++) {
 			u32 di;
 			samp = gf_isom_get_sample(orig, i+1, j+1, &di);
-			if (skip_until_dts) {
-				if (skip_until_dts > samp->DTS) {
-					gf_isom_sample_del(&samp);
-					continue;
-				}
-				samp->DTS -= skip_until_dts;
-			}
-
 			last_DTS = samp->DTS;
 			samp->DTS =  (u64) (ts_scale * (s64)samp->DTS) + insert_dts;
 			samp->CTS_Offset =  (u32) (samp->CTS_Offset * ts_scale);
@@ -1096,6 +1102,55 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			insert_dts = gf_isom_get_media_duration(orig, i+1) - last_DTS;
 			gf_isom_set_last_sample_duration(dest, dst_tk, (u32) insert_dts);
 		}
+
+		if (merge_edits) {
+			/*get the first edit normal mode and add the new track dur*/
+			for (j=nb_edits; j>0; j--) {
+				u64 editTime, segmentDuration, mediaTime;
+				u8 editMode;
+				gf_isom_get_edit_segment(dest, dst_tk, j, &editTime, &segmentDuration, &mediaTime, &editMode);
+
+				if (editMode==GF_ISOM_EDIT_NORMAL) {
+					Double dur = (Double) (s64) gf_isom_get_media_duration(orig, i+1);
+					/*convert to dst time scale*/
+					dur *= ts_scale;
+
+					/*convert to track time scale*/
+					ts_scale = (Float) gf_isom_get_timescale(dest);
+					ts_scale /= (Float) gf_isom_get_media_timescale(dest, dst_tk);
+					dur *= ts_scale;
+
+					segmentDuration += (u64) (s64) dur;
+					gf_isom_modify_edit_segment(dest, dst_tk, j, segmentDuration, mediaTime, editMode);
+					break;
+				}
+			}
+		} else {
+			u64 editTime, segmentDuration, mediaTime, edit_offset;
+			Double t;
+			u8 editMode;
+			u32 j, count;
+			
+			count = gf_isom_get_edit_segment_count(dest, dst_tk);
+			gf_isom_get_edit_segment(dest, dst_tk, count, &editTime, &segmentDuration, &mediaTime, &editMode);
+
+
+			/*convert to dst time scale*/
+			ts_scale = (Float) gf_isom_get_timescale(dest);
+			ts_scale /= (Float) gf_isom_get_timescale(orig);
+
+			edit_offset = editTime + segmentDuration;
+			count = gf_isom_get_edit_segment_count(orig, i+1);
+			for (j=0; j<count; j++) {
+				gf_isom_get_edit_segment(orig, i+1, j+1, &editTime, &segmentDuration, &mediaTime, &editMode);
+				t = (Double) (s64) editTime; t *= ts_scale; t += (s64) edit_offset; editTime = (s64) t;
+				t = (Double) (s64) segmentDuration; t *= ts_scale; segmentDuration = (s64) t;
+				t = (Double) (s64) mediaTime; t *= ts_scale; t+= (s64) dest_track_dur_before_cat; mediaTime = (s64) t;
+
+				gf_isom_set_edit_segment(dest, dst_tk, editTime, segmentDuration, mediaTime, editMode);
+			}
+		}
+
 	}
 	gf_set_progress("Appending", nb_samp, nb_samp);
 
