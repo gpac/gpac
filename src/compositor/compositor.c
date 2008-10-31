@@ -269,6 +269,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->previous_sensors = gf_list_new();
 	compositor->hit_use_stack = gf_list_new();
 	compositor->focus_ancestors = gf_list_new();
+	compositor->focus_use_stack = gf_list_new();
 	
 	/*setup main visual*/
 	compositor->visual = visual_new(compositor);
@@ -499,7 +500,8 @@ void gf_sc_del(GF_Compositor *compositor)
 	gf_list_del(compositor->strike_bank);
 	gf_list_del(compositor->hit_use_stack);
 	gf_list_del(compositor->focus_ancestors);
-	
+	gf_list_del(compositor->focus_use_stack);
+
 
 	gf_list_del(compositor->traverse_state->vrml_sensors);
 	gf_list_del(compositor->traverse_state->use_stack);
@@ -704,6 +706,7 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	compositor->frame_number = 0;
 	compositor->video_memory = 0;
 	gf_list_reset(compositor->focus_ancestors);
+	gf_list_reset(compositor->focus_use_stack);
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 	gf_list_reset(compositor->cached_groups);
@@ -2488,6 +2491,7 @@ void gf_sc_check_focus_upon_destroy(GF_Node *n)
 		compositor->focus_text_type = 0;
 		compositor->focus_uses_dom_events = 0;
 		gf_list_reset(compositor->focus_ancestors);
+		gf_list_reset(compositor->focus_use_stack);
 	}
 }
 

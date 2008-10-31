@@ -64,6 +64,25 @@ static GFINLINE GF_SceneGraph *xml_get_scenegraph(JSContext *c)
 #define JSVAL_CHECK_STRING(_v) (JSVAL_IS_STRING(_v) || JSVAL_IS_NULL(_v))
 #define JSVAL_GET_STRING(_v) (JSVAL_IS_NULL(_v) ? NULL : JS_GetStringBytes(JSVAL_TO_STRING(_v)) )
 
+char *js_get_utf8(jsval val)
+{
+	jschar *utf16;
+	char *txt;
+	u32 len;
+	if (!JSVAL_CHECK_STRING(val) || JSVAL_IS_NULL(val)) return NULL;
+
+	utf16 = JS_GetStringChars(JSVAL_TO_STRING(val) );
+	len = gf_utf8_wcslen(utf16)*2 + 1;
+	txt = malloc(sizeof(char)*len);
+	len = gf_utf8_wcstombs(txt, len, &utf16);
+	if ((s32)len<0) {
+		free(txt);
+		return NULL;
+	}
+	txt[len]=0;
+	return txt;
+}
+
 /************************************************************
  *
  *				DOM3 core implementation
@@ -496,18 +515,18 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 	/*NS version (4 args in DOM2, 5 in DOM3 for evt_group param)*/
 	if (argc>=4) {
 		if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-		inNS = JSVAL_GET_STRING(argv[0]);
+		inNS = js_get_utf8(argv[0]);
 		of = 1;
 	}
 	evt_handler = obj;
 
-	if (!JSVAL_CHECK_STRING(argv[of])) return JS_TRUE;
+	if (!JSVAL_CHECK_STRING(argv[of])) goto err_exit;
 	type = JSVAL_GET_STRING(argv[of]);
 	callback = NULL;
 
 	if (JSVAL_CHECK_STRING(argv[of+1])) {
 		callback = JSVAL_GET_STRING(argv[of+1]);
-		if (!callback) return JS_TRUE;
+		if (!callback) goto err_exit;
 	} else if (JSVAL_IS_OBJECT(argv[of+1])) {
 		JSFunction *fun = JS_ValueToFunction(c, argv[of+1]);
 		funval = argv[of+1];
@@ -516,15 +535,15 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 			jsval evt_fun;
 			evt_handler = JSVAL_TO_OBJECT(argv[of+1]);
 			found = JS_GetProperty(c, evt_handler, "handleEvent", &evt_fun);
-			if (!found || !JSVAL_IS_OBJECT(evt_fun) ) return JS_TRUE;
+			if (!found || !JSVAL_IS_OBJECT(evt_fun) ) goto err_exit;
 			fun = JS_ValueToFunction(c, evt_fun);
-			if (!fun) return JS_TRUE;
+			if (!fun) goto err_exit;
 			funval = 0;
 		}
 	}
 
 	evtType = gf_dom_event_type_by_name(type);
-	if (evtType==GF_EVENT_UNKNOWN) return JS_TRUE;
+	if (evtType==GF_EVENT_UNKNOWN) goto err_exit;
 
 	listener = gf_node_new(sg, TAG_SVG_listener);
 	/*we don't register the listener with the parent node , it will be registered 
@@ -575,6 +594,9 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 	} else {
 		gf_dom_listener_add(listener, target);
 	}
+
+err_exit:
+	if (inNS) free(inNS);
 	return JS_TRUE;
 }
 JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -618,11 +640,11 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 
 	if (argc==4) {
 		if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-		inNS = JSVAL_GET_STRING(argv[0]);
+		inNS = js_get_utf8(argv[0]);
 		of = 1;
 	}
 
-	if (!JSVAL_CHECK_STRING(argv[of])) return JS_TRUE;
+	if (!JSVAL_CHECK_STRING(argv[of])) goto err_exit;
 	type = JSVAL_GET_STRING(argv[of]);
 	callback = NULL;
 	if (JSVAL_CHECK_STRING(argv[of+1])) {
@@ -633,10 +655,10 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 			funval = argv[of+1];
 		}
 	}
-	if (!callback && !funval) return JS_TRUE;
+	if (!callback && !funval) goto err_exit;
 
 	evtType = gf_dom_event_type_by_name(type);
-	if (evtType==GF_EVENT_UNKNOWN) return JS_TRUE;
+	if (evtType==GF_EVENT_UNKNOWN) goto err_exit;
 	
 	count = gf_list_count(target->evt_list);
 	for (i=0; i<count; i++) {
@@ -665,9 +687,12 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 
 		/*this will destroy the listener and its child handler*/
 		gf_dom_listener_del(el, target);
-		return JS_TRUE;
+		break;
 	}
 #endif
+
+err_exit:
+	if (inNS) free(inNS);
 	return JS_TRUE;
 }
 
@@ -739,7 +764,7 @@ static void dom_node_inserted(GF_Node *par, GF_Node *n, s32 pos)
 			GF_DOM_Event evt;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.type = GF_EVENT_LOAD;
-			gf_dom_event_fire(n, NULL, &evt);
+			gf_dom_event_fire(n, &evt);
 		}
 #endif
 	}
@@ -1107,8 +1132,7 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		if ((tag==TAG_DOMText) && JSVAL_CHECK_STRING(*vp)) {
 			GF_DOMText *txt = (GF_DOMText *)n;
 			if (txt->textContent) free(txt->textContent);
-			txt->textContent = JSVAL_GET_STRING(*vp);
-			if (txt->textContent) txt->textContent = strdup(txt->textContent);
+			txt->textContent = js_get_utf8(*vp);
 			dom_node_changed(n, 1, NULL);
 		}
 		/*we only support element and sg in the Node interface, no set*/
@@ -1119,8 +1143,12 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		return JS_TRUE;
 	/*"textContent"*/
 	case 15:
-		if (!JSVAL_CHECK_STRING(*vp)) return JS_TRUE;
-		dom_node_set_textContent(n, JSVAL_GET_STRING(*vp) );
+	{	
+		char *txt;
+		txt = js_get_utf8(*vp);
+		dom_node_set_textContent(n, txt);
+		if (txt) free(txt);
+	}
 		return JS_TRUE;
 	}
 	/*not supported*/
@@ -1225,32 +1253,35 @@ static JSBool xml_document_create_element(JSContext *c, JSObject *obj, uintN arg
 	if (!sg || !argc || !JSVAL_CHECK_STRING(argv[0]) ) 
 		return JS_TRUE;
 
-	name = JSVAL_GET_STRING(argv[0]);
+	name = NULL;
 	/*NS version*/
 	ns = 0;
 	xmlns = NULL;
 	if (argc==2) {
-		if (!JSVAL_CHECK_STRING(argv[1])) 
-			return JS_TRUE;
-		xmlns = name;
-		ns = gf_sg_get_namespace_code_from_name(sg, xmlns);
+		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+		xmlns = js_get_utf8(argv[0]);
+		if (xmlns) ns = gf_sg_get_namespace_code_from_name(sg, xmlns);
 		name = JSVAL_GET_STRING(argv[1]);
+	} else {
+		name = JSVAL_GET_STRING(argv[0]);
 	}
-	if (!name) 
-		return JS_TRUE;
-	/*browse all our supported DOM implementations*/
-	tag = gf_xml_get_element_tag(name, ns);
-	if (!tag) tag = TAG_DOMFullNode;
-	n = gf_node_new(sg, tag);
-	if (n && (tag == TAG_DOMFullNode)) {
-		GF_DOMFullNode *elt = (GF_DOMFullNode *)n;
-		elt->name = strdup(name);
-		if (xmlns) {
-			gf_sg_add_namespace(sg, xmlns, NULL);
-			elt->ns	= gf_sg_get_namespace_code_from_name(sg, xmlns);
+
+	if (name) {
+		/*browse all our supported DOM implementations*/
+		tag = gf_xml_get_element_tag(name, ns);
+		if (!tag) tag = TAG_DOMFullNode;
+		n = gf_node_new(sg, tag);
+		if (n && (tag == TAG_DOMFullNode)) {
+			GF_DOMFullNode *elt = (GF_DOMFullNode *)n;
+			elt->name = strdup(name);
+			if (xmlns) {
+				gf_sg_add_namespace(sg, xmlns, NULL);
+				elt->ns	= gf_sg_get_namespace_code_from_name(sg, xmlns);
+			}
 		}
+		*rval = dom_element_construct(c, n);
 	}
-	*rval = dom_element_construct(c, n);
+	if (xmlns) free(xmlns);
 	return JS_TRUE;
 }
 
@@ -1262,8 +1293,9 @@ static JSBool xml_document_create_text(JSContext *c, JSObject *obj, uintN argc, 
 
 	n = gf_node_new(sg, TAG_DOMText);
 	if (argc) {
-		char *str = JSVAL_GET_STRING(argv[0]);
-		((GF_DOMText*)n)->textContent = strdup(str ? str : "");
+		char *str = js_get_utf8(argv[0]);
+		if (!str) str = strdup("");
+		((GF_DOMText*)n)->textContent = str;
 	}
 	*rval = dom_text_construct(c, n);
 	return JS_TRUE;
@@ -1303,7 +1335,7 @@ static JSBool xml_document_elements_by_tag(JSContext *c, JSObject *obj, uintN ar
 
 	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 	name = JSVAL_GET_STRING(argv[0]);
-	/*NS version*/
+	/*NS version - TODO*/
 	if (argc==2) {
 		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
 		name = JSVAL_GET_STRING(argv[1]);
@@ -1384,18 +1416,18 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 	ns = NULL;
 	/*NS version*/
 	if (argc==2) {
-		ns = name;
 		if (!JSVAL_CHECK_STRING(argv[1])) 
 			return JS_TRUE;
+		ns = js_get_utf8(argv[0]);
 		name = JSVAL_GET_STRING(argv[1]);
 	}
-	if (!name) 
-		return JS_TRUE;
+	if (!name) goto exit;
+
 	/*ugly ugly hack ...*/
 	if (!strcmp(name, "id") || !strcmp(name, "xml:id") ) {
 		char *sID = (char *) gf_node_get_name(n);
 		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, sID ? sID : "") );
-		return JS_TRUE;
+		goto exit;
 	}
 
 	if (n->sgprivate->tag==TAG_DOMFullNode) {
@@ -1404,7 +1436,7 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 		while (att) {
 			if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
 				*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, (char*)att->data ) );
-				return JS_TRUE;
+				goto exit;
 			}
 			att = (GF_DOMFullAttribute *) att->next;
 		}
@@ -1421,10 +1453,12 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 			char szAtt[4096];
 			gf_svg_dump_attribute(n, &info, szAtt);
 			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) );
-			return JS_TRUE;
+			goto exit;
 		} 
 	}
 	*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "") );
+exit:
+	if (ns) free(ns);
 	return JS_TRUE;
 }
 
@@ -1441,18 +1475,18 @@ static JSBool xml_element_has_attribute(JSContext *c, JSObject *obj, uintN argc,
 	ns = NULL;
 	/*NS version*/
 	if (argc==2) {
-		ns = name;
 		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+		ns = js_get_utf8(argv[0]);
 		name = JSVAL_GET_STRING(argv[1]);
 	}
-	if (!name) return JS_TRUE;
+	if (!name) goto exit;
 	if (n->sgprivate->tag==TAG_DOMFullNode) {
 		GF_DOMFullNode *node = (GF_DOMFullNode*)n;
 		GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
 		while (att) {
 			if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
 				*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
-				return JS_TRUE;
+				goto exit;
 			}
 			att = (GF_DOMFullAttribute *) att->next;
 		}
@@ -1467,10 +1501,12 @@ static JSBool xml_element_has_attribute(JSContext *c, JSObject *obj, uintN argc,
 
 		if (gf_node_get_attribute_by_name(n, name, ns_code, 0, 0, &info)==GF_OK) {
 			*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
-			return JS_TRUE;
+			goto exit;
 		}
 	}
 	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+exit:
+	if (ns) free(ns);
 	return JS_TRUE;
 }
 
@@ -1490,11 +1526,11 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 	ns = NULL;
 	/*NS version*/
 	if (argc==2) {
-		ns = name;
 		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+		ns = js_get_utf8(argv[0]);
 		name = JSVAL_GET_STRING(argv[1]);
 	}
-	if (!name) return JS_TRUE;
+	if (!name) goto exit;
 
 	tag = TAG_DOM_ATT_any;
 	node = (GF_DOMFullNode*)n;
@@ -1503,7 +1539,7 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 
 	if (n->sgprivate->tag==TAG_DOMFullNode) tag = TAG_DOM_ATT_any;
 	else if (n->sgprivate->tag==TAG_DOMText) {
-		return JS_TRUE;
+		goto exit;
 	} else if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
 		u32 ns_code = 0;
 		if (ns) ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
@@ -1520,18 +1556,20 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 			free(att->name);
 			free(att);
 			dom_node_changed(n, 0, NULL);
-			return JS_TRUE;
+			goto exit;
 		} else if (tag==att->tag) {
 			if (prev) prev->next = att->next;
 			else node->attributes = att->next;
 			gf_svg_delete_attribute_value(att->data_type, att->data, n->sgprivate->scenegraph);
 			free(att);
 			dom_node_changed(n, 0, NULL);
-			return JS_TRUE;
+			goto exit;
 		}
 		prev = att;
 		att = (GF_DOMFullAttribute *) att->next;
 	}
+exit:
+	if (ns) free(ns);
 	return JS_TRUE;
 }
 
@@ -1554,7 +1592,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 	if (argc==3) {
 		char *sep;
 		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-		ns = name;
+		ns = js_get_utf8(argv[0]);
 		gf_sg_add_namespace(n->sgprivate->scenegraph, ns, NULL);
 		name = JSVAL_GET_STRING(argv[1]);
 		idx = 2;
@@ -1579,9 +1617,9 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 		sprintf(szVal, "%s", JSVAL_TO_BOOLEAN(argv[idx]) ? "true" : "false");
 		val = szVal;
 	} else {
-		return JS_TRUE;
+		goto exit;
 	}
-	if (!name || !val) return JS_TRUE;
+	if (!name || !val) goto exit;
 
 
 	if ((name[0]=='o') && (name[1]=='n')) {
@@ -1605,12 +1643,12 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 					if (text->textContent) free(text->textContent);
 					text->textContent = strdup(val);
 				}
-				return JS_TRUE;
+				goto exit;
 			}
 			/*nope, create a listener*/
 			handler = gf_dom_listener_build(n, evtType, 0);
 			gf_dom_add_text_node((GF_Node*)handler, strdup(val) );
-			return JS_TRUE;
+			goto exit;
 		}
 	}
 
@@ -1623,7 +1661,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 				if (att->data) free(att->data);
 				att->data = strdup(val);
 				dom_node_changed(n, 0, NULL);
-				return JS_TRUE;
+				goto exit;
 			}
 			prev = att;
 			att = (GF_DOMFullAttribute *) att->next;
@@ -1634,11 +1672,11 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 		att->data = strdup(val);
 		if (prev) prev->next = (GF_DOMAttribute*) att;
 		else node->attributes = (GF_DOMAttribute*) att;
-		return JS_TRUE;
+		goto exit;
 	}
 	
 	if (n->sgprivate->tag==TAG_DOMText) {
-		return JS_TRUE;
+		goto exit;
 	}
 
 	if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
@@ -1653,9 +1691,11 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 				gf_svg_parse_element_id(n, *(SVG_String*)info.far_ptr, 0);
 			}
 			dom_node_changed(n, 0, &info);
-			return JS_TRUE;
+			goto exit;
 		}
 	}
+exit:
+	if (ns) free(ns);
 	return JS_TRUE;
 }
 
@@ -1761,8 +1801,8 @@ static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		if (txt->textContent) free(txt->textContent);
 		txt->textContent = NULL;
 		if (JSVAL_CHECK_STRING(*vp)) {
-			char *str = JSVAL_GET_STRING(*vp);
-			txt->textContent = strdup( str ? str : "" );
+			char *str = js_get_utf8(*vp);
+			txt->textContent = str ? str : strdup("" );
 		}
 		dom_node_changed((GF_Node*)txt, 0, NULL);
 		return JS_TRUE;
@@ -2762,7 +2802,7 @@ static JSBool dcci_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 			evt.type = GF_EVENT_DCCI_PROP_CHANGE;
 			evt.bubbles = 1;
 			evt.relatedNode = (GF_Node*)n;
-			gf_dom_event_fire((GF_Node*)n, NULL, &evt);
+			gf_dom_event_fire((GF_Node*)n, &evt);
 			n->sgprivate->scenegraph->modified = 1;
 			return JS_TRUE;
 		/*propertyType*/
@@ -3447,7 +3487,7 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 		evt.type = new_node ? GF_EVENT_NODE_INSERTED : GF_EVENT_ATTR_MODIFIED;
 		evt.bubbles = 1;
 		evt.relatedNode = (GF_Node*) (GF_EVENT_NODE_INSERTED ? par : node);
-		gf_dom_event_fire((GF_Node*)node, NULL, &evt);
+		gf_dom_event_fire((GF_Node*)node, &evt);
 	}
 }
 
@@ -3499,20 +3539,20 @@ static void xml_reload_text_content(void *sax_cbck, const char *content, Bool is
 		evt.type = GF_EVENT_NODE_INSERTED;
 		evt.bubbles = 1;
 		evt.relatedNode = (GF_Node*) par;
-		gf_dom_event_fire((GF_Node*)txt, NULL, &evt);
+		gf_dom_event_fire((GF_Node*)txt, &evt);
 	}
 
 	memset(&evt, 0, sizeof(GF_DOM_Event));
 	evt.type = GF_EVENT_CHAR_DATA_MODIFIED;
 	evt.bubbles = 1;
 	evt.relatedNode = (GF_Node*)par;
-	gf_dom_event_fire((GF_Node*)par, NULL, &evt);
+	gf_dom_event_fire((GF_Node*)par, &evt);
 
 	memset(&evt, 0, sizeof(GF_DOM_Event));
 	evt.type = GF_EVENT_DCCI_PROP_CHANGE;
 	evt.bubbles = 1;
 	evt.relatedNode = (GF_Node*)par;
-	gf_dom_event_fire((GF_Node*)par, NULL, &evt);
+	gf_dom_event_fire((GF_Node*)par, &evt);
 }
 #endif
 

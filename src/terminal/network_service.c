@@ -610,7 +610,17 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		}
 	}
 
-	ext = strrchr(sURL, '.');
+	
+	ext = strchr(sURL, '#');
+	if (ext) {
+		char *anext;
+		ext[0] = 0;
+		anext = strrchr(sURL, '.');
+		ext[0] = '#';
+		ext = anext;
+	} else {
+		ext = strrchr(sURL, '.');
+	}
 	if (ext && !stricmp(ext, ".gz")) {
 		char *anext;
 		ext[0] = 0;

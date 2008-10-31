@@ -781,7 +781,7 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 		/*play on media stream, start thread*/
 		if ((ffd->audio_ch==com->base.on_channel) || (ffd->video_ch==com->base.on_channel)) {
-			if (!ffd->is_running) {
+			if (ffd->is_running!=1) {
 				ffd->is_running = 1;
 				gf_th_run(ffd->thread, FFDemux_Run, ffd);
 			}

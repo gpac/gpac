@@ -806,6 +806,49 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 
 }
 
+
+static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
+{
+	u8 ft, nb_pck;
+
+	rtp->sl_hdr.compositionTimeStampFlag = 1;
+	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
+	ft = payload[0];
+	nb_pck = payload[1];
+	payload += 2;
+	size -= 2;
+
+	if (!ft) {
+		GF_AC3Header hdr;
+		rtp->sl_hdr.accessUnitStartFlag = rtp->sl_hdr.accessUnitEndFlag = 1;
+		while (size) {
+			u32 offset;
+			if (!gf_ac3_parser(payload, size, &offset, &hdr, 0)) {
+				return;
+			}
+			if (offset) {
+				if (offset>size) return;
+				payload+=offset;
+				size-=offset;
+			}
+			rtp->on_sl_packet(rtp->udta, payload, hdr.framesize, &rtp->sl_hdr, GF_OK);
+			if (size < hdr.framesize) return;
+			size -= hdr.framesize;
+			payload += hdr.framesize;
+			rtp->sl_hdr.compositionTimeStamp += 1536;
+		}
+		rtp->flags |= GF_RTP_NEW_AU;
+	} else if (ft==3) {
+		rtp->sl_hdr.accessUnitStartFlag = 0;
+		rtp->sl_hdr.accessUnitEndFlag = hdr->Marker ? 1 : 0;
+		rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
+	} else {
+		rtp->sl_hdr.accessUnitStartFlag = 1;
+		rtp->sl_hdr.accessUnitEndFlag = 0;
+		rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
+	}
+}
+
 static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 {
 	u32 i, j;
@@ -843,6 +886,7 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "3gpp-tt")) return GF_RTP_PAYT_3GPP_TEXT;
 	else if (!stricmp(map->payload_name, "H264")) return GF_RTP_PAYT_H264_AVC;
 	else if (!stricmp(map->payload_name, "richmedia+xml")) return GF_RTP_PAYT_3GPP_DIMS;
+	else if (!stricmp(map->payload_name, "ac3")) return GF_RTP_PAYT_AC3;
 	else return 0;
 }
 
@@ -1297,6 +1341,13 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.IndexLength = 3;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_3gpp_dims;
+		break;
+	case GF_RTP_PAYT_AC3:
+		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
+		rtp->sl_map.ObjectTypeIndication = 0xA5;
+		rtp->sl_map.RandomAccessIndication = 1;
+		/*assign depacketizer*/
+		rtp->depacketize = gf_rtp_parse_ac3;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;

@@ -94,9 +94,23 @@ GF_FontManager *gf_font_manager_new(GF_User *user)
 	return font_mgr;
 }
 
+void gf_font_predestroy(GF_Font *font)
+{
+	if (font->spans) {
+		while (gf_list_count(font->spans)) {
+			GF_TextSpan *ts = gf_list_get(font->spans, 0);
+			gf_list_rem(font->spans, 0);
+			gf_node_dirty_set(ts->user, 0, 0);
+			ts->user=NULL;
+		}
+		gf_list_del(font->spans);
+		font->spans = NULL;
+	}
+}
 
 void gf_font_del(GF_Font *font)
 {
+	gf_font_predestroy(font);
 	if (!font->get_glyphs) {
 		GF_Glyph *glyph;
 		glyph = font->glyph;
@@ -141,6 +155,7 @@ GF_Err gf_font_manager_register_font(GF_FontManager *fm, GF_Font *font)
 		fm->font = font;
 	}
 	font->ft_mgr = fm;
+	if (!font->spans) font->spans = gf_list_new();
 	return GF_OK;
 }
 
@@ -160,6 +175,7 @@ GF_Err gf_font_manager_unregister_font(GF_FontManager *fm, GF_Font *font)
 	} else {
 		fm->font = font->next;
 	}
+	gf_font_predestroy(font);
 	return GF_OK;
 }
 
@@ -318,13 +334,13 @@ static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 }
 
 
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *xml_lang, Bool fliped_text, u32 styles)
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *xml_lang, Bool fliped_text, u32 styles, GF_Node *user)
 {
 	GF_Err e;
 	u32 len, i;
 	GF_TextSpan *span;
 
-	if (!strlen(text)) return NULL;
+	if (!user || !strlen(text)) return NULL;
 
 	len = fm->id_buffer_size;
 	if (font->get_glyphs)
@@ -367,6 +383,9 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 	for (i=0; i<len; i++) {
 		span->glyphs[i] = gf_font_get_glyph(fm, font, fm->id_buffer[i]);
 	}
+	span->user = user;
+	if (span->font->spans) 
+		gf_list_add(font->spans, span);
 	return span;
 }
 
@@ -394,6 +413,8 @@ typedef struct _span_internal
 
 void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 {
+	if (span->user && span->font->spans) gf_list_del_item(span->font->spans, span);
+
 	free(span->glyphs);
 	if (span->dx) free(span->dx);
 	if (span->dy) free(span->dy);

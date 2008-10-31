@@ -130,7 +130,8 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType
 	if (dpnd) return GF_BAD_PARAM;
 
 	//create our dep
-	dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HINT);
+	dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
+	dpnd->reference_type = GF_ISOM_BOX_TYPE_HINT;
 	e = tref_AddBox((GF_Box*)tref, (GF_Box *) dpnd);
 	if (e) return e;
 

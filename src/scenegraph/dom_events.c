@@ -398,7 +398,7 @@ void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
 }
 
 GF_EXPORT
-Bool gf_dom_event_fire(GF_Node *node, GF_List *use_stack, GF_DOM_Event *event)
+Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack)
 {
 	GF_DOMEventTarget cur_target;
 	u32 cur_par_idx;
@@ -461,6 +461,12 @@ Bool gf_dom_event_fire(GF_Node *node, GF_List *use_stack, GF_DOM_Event *event)
 	}
 
 	return event->consumed ? 1 : 0;
+}
+
+GF_EXPORT
+Bool gf_dom_event_fire(GF_Node *node, GF_DOM_Event *event)
+{
+	return gf_dom_event_fire_ex(node, event, NULL);
 }
 
 GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event_parameter, GF_Node *handler, GF_Node **out_listener)

@@ -259,7 +259,8 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample, GF_ISOSample 
 	e = Track_FindRef(mdia->mediaTrack, GF_ISOM_BOX_TYPE_MPOD, &mpod);
 	if (e) return e;
 	if (!mpod) {
-		mpod = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MPOD);
+		mpod = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
+		mpod->reference_type = GF_ISOM_BOX_TYPE_MPOD;
 		e = tref_AddBox((GF_Box*)tref, (GF_Box *)mpod);
 		if (e) return e;
 	}

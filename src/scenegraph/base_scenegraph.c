@@ -1545,7 +1545,7 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 		evt.type = GF_EVENT_TREE_MODIFIED;
 		evt.bubbles = 0;
 		evt.relatedNode = node;
-		gf_dom_event_fire(node, NULL, &evt);
+		gf_dom_event_fire(node, &evt);
 	}
 #endif
 }

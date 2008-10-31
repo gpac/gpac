@@ -740,7 +740,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		evt.detail = com->send_event_integer;
 		evt.clientX = com->send_event_x;
 		evt.clientY = com->send_event_y;
-		gf_dom_event_fire(com->node, NULL, &evt);
+		gf_dom_event_fire(com->node, &evt);
 	}
 		break;
 #endif

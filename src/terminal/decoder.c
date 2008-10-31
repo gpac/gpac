@@ -458,16 +458,18 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	resume_clock = 0;
 	/*init channel clock*/
 	if (!ch->IsClockInit) {
+		Bool started;
 		gf_es_init_dummy(ch);
 		/*signal seek*/
 		gf_term_lock_compositor(codec->odm->term, 1);
 		sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, -1, GF_CODEC_LEVEL_NORMAL);
 		gf_term_lock_compositor(codec->odm->term, 0);
-		if (!gf_clock_is_started(ch->clock)) return GF_OK;
+		started = gf_clock_is_started(ch->clock);
 		/*let's be nice to the scene loader (that usually involves quite some parsing), pause clock while
 		parsing*/
 		gf_clock_pause(ch->clock);
 		codec->last_unit_dts = 0;
+		if (!started) return GF_OK;
 	}
 
 	codec->odm->current_time = codec->last_unit_cts = gf_clock_time(codec->ck);

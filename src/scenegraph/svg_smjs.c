@@ -50,6 +50,7 @@ GF_SceneGraph *dom_get_doc(JSContext *c, JSObject *obj);
 JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 
+char *js_get_utf8(jsval val);
 
 void dom_node_set_textContent(GF_Node *n, char *text);
 char *dom_node_flatten_text(GF_Node *n);
@@ -153,6 +154,28 @@ static JSBool svg_nav_to_location(JSContext *c, JSObject *obj, uintN argc, jsval
 	return JS_TRUE;
 }
 
+static JSBool svg_parse_xml(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_SceneGraph *sg;
+	JSObject *doc_obj;
+	GF_Node *node;
+	char *str;
+	GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *sg, char *svg_str);
+	
+	doc_obj = JSVAL_TO_OBJECT(argv[1]);
+	if (!doc_obj) return JS_TRUE;
+	str = js_get_utf8(argv[0]);
+	if (!str) return JS_TRUE;
+
+	sg = dom_get_doc(c, doc_obj);
+
+	node = gf_sm_load_svg_from_string(sg, str);
+	free(str);
+	*rval = dom_element_construct(c, node);
+
+	return JS_TRUE;
+}
+
 static void svg_script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
 {
 	GF_SceneGraph *sg = JS_GetContextPrivate(c);
@@ -168,9 +191,11 @@ static JSBool svg_echo(JSContext *c, JSObject *p, uintN argc, jsval *argv, jsval
 
 	strcpy(buf, "");
 	for (i = 0; i < argc; i++) {
+		jschar*utf;
 		JSString *str = JS_ValueToString(c, argv[i]);
 		if (!str) return JS_TRUE;
 		if (i) strcat(buf, " ");
+		utf = JS_GetStringChars(str);
 		strcat(buf, JS_GetStringBytes(str));
 	}
 	_ScriptMessage(sg, GF_SCRIPT_INFO, buf);
@@ -1996,7 +2021,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			{"alert",           svg_echo,          0},
 			/*technically, this is part of Implementation interface, not global, but let's try not to complicate things too much*/
 			{"hasFeature", dom_imp_has_feature, 2},
-			{"alert",           svg_echo,          0},
+			{"parseXML",   svg_parse_xml,          0},
 			{0}
 		};
 		JS_DefineFunctions(scene->svg_js->js_ctx, scene->svg_js->global, globalClassFuncs);

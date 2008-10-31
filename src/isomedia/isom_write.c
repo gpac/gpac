@@ -522,7 +522,6 @@ GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *movie,
 	GF_Err e;
 	u32 dataRefIndex;
 	GF_ESD *new_esd;
-	GF_TrackReferenceTypeBox *dpnd;
 	GF_TrackReferenceBox *tref;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
@@ -533,7 +532,6 @@ GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *movie,
 		!esd || !esd->decoderConfig || 
 		!esd->slConfig) return GF_BAD_PARAM;
 
-	dpnd = NULL;
 	tref = NULL;
 
 	//get or create the data ref
@@ -1042,7 +1040,8 @@ insertIPI:
 	if (e) return e;
 	if (!dpnd) {
 		tmpRef = 0;
-		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_IPIR);
+		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
+		dpnd->reference_type = GF_ISOM_BOX_TYPE_IPIR;
 		e = tref_AddBox((GF_Box*)tref, (GF_Box *) dpnd);
 		if (e) return e;
 		e = reftype_AddRefTrack(dpnd, ipiD->IPI_ES_Id, &tmpRef);
@@ -2370,8 +2369,6 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	GF_Box *entry;
 	GF_Err e;
 	u32 dataRefIndex;
-	GF_TrackReferenceTypeBox *dpnd;
-	GF_TrackReferenceBox *tref;
 	
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -2398,8 +2395,6 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	/*get new track and insert clone*/
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media) goto exit;
-	dpnd = NULL;
-	tref = NULL;
 
 	/*get or create the data ref*/
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
@@ -2431,17 +2426,12 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex;
-	GF_TrackReferenceTypeBox *dpnd;
-	GF_TrackReferenceBox *tref;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !udesc) return GF_BAD_PARAM;
-
-	dpnd = NULL;
-	tref = NULL;
 
 	//get or create the data ref
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
@@ -2675,7 +2665,8 @@ GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 re
 	//find a ref of the given type
 	e = Track_FindRef(trak, referenceType, &dpnd);
 	if (!dpnd) {
-		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(referenceType);
+		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
+		dpnd->reference_type = referenceType;
 		e = tref_AddBox((GF_Box*)tref, (GF_Box *)dpnd);
 		if (e) return e;
 	}
@@ -3731,8 +3722,6 @@ GF_Err gf_isom_timed_meta_data_config_new(GF_ISOFile *movie, u32 trackNumber, Bo
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex;
-	GF_TrackReferenceTypeBox *dpnd;
-	GF_TrackReferenceBox *tref;
 	GF_MetaDataSampleEntryBox *metad;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
@@ -3745,9 +3734,6 @@ GF_Err gf_isom_timed_meta_data_config_new(GF_ISOFile *movie, u32 trackNumber, Bo
 	if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_META)
 		return GF_BAD_PARAM;
 	
-	dpnd = NULL;
-	tref = NULL;
-
 	//get or create the data ref
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
 	if (e) return e;

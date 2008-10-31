@@ -195,8 +195,6 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex;
-	GF_TrackReferenceTypeBox *dpnd;
-	GF_TrackReferenceBox *tref;
 	u32 cfg_type;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
@@ -231,9 +229,6 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 	default:
 		return GF_NOT_SUPPORTED;
 	}
-	dpnd = NULL;
-	tref = NULL;
-
 
 	//get or create the data ref
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
@@ -326,17 +321,12 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 	GF_Err e;
 	u32 dataRefIndex;
 	GF_AC3SampleEntryBox *entry;
-	GF_TrackReferenceTypeBox *dpnd;
-	GF_TrackReferenceBox *tref;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !cfg) return GF_BAD_PARAM;
-	dpnd = NULL;
-	tref = NULL;
-
 
 	//get or create the data ref
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);

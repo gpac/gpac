@@ -265,7 +265,7 @@ GF_Err GetESDForTime(GF_MovieBox *moov, u32 trackID, u64 CTS, GF_ESD **outESD)
 GF_Err Track_FindRef(GF_TrackBox *trak, u32 ReferenceType, GF_TrackReferenceTypeBox **dpnd)
 {
 	GF_TrackReferenceBox *ref;
-	GF_Box *a;
+	GF_TrackReferenceTypeBox *a;
 	u32 i;
 	if (! trak) return GF_BAD_PARAM;
 	if (! trak->References) {
@@ -274,9 +274,9 @@ GF_Err Track_FindRef(GF_TrackBox *trak, u32 ReferenceType, GF_TrackReferenceType
 	}
 	ref = trak->References;
 	i=0;
-	while ((a = (GF_Box *)gf_list_enum(ref->boxList, &i))) {
-		if (a->type == ReferenceType) {
-			*dpnd = (GF_TrackReferenceTypeBox *)a;
+	while ((a = (GF_TrackReferenceTypeBox *)gf_list_enum(ref->boxList, &i))) {
+		if (a->reference_type == ReferenceType) {
+			*dpnd = a;
 			return GF_OK;
 		}
 	}
@@ -640,7 +640,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	e = Track_FindRef(trak, GF_ISOM_REF_DECODE, &dpnd);
 	if (e) return e;
 	if (!dpnd && esd->dependsOnESID) {
-		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DPND);
+		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
+		dpnd->reference_type = GF_ISOM_BOX_TYPE_DPND;
 		e = tref_AddBox((GF_Box*)tref, (GF_Box *) dpnd);
 		if (e) return e;
 		e = reftype_AddRefTrack(dpnd, esd->dependsOnESID, NULL);
@@ -654,7 +655,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	e = Track_FindRef(trak, GF_ISOM_REF_OCR, &dpnd);
 	if (e) return e;
 	if (!dpnd && esd->OCRESID) {
-		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SYNC);
+		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
+		dpnd->reference_type = GF_ISOM_BOX_TYPE_SYNC;
 		e = tref_AddBox((GF_Box*)tref, (GF_Box *) dpnd);
 		if (e) return e;
 		e = reftype_AddRefTrack(dpnd, esd->OCRESID, NULL);
@@ -673,7 +675,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		if (e) return e;
 		if (!dpnd) {
 			tmpRef = 0;
-			dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_IPIR);
+			dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
+			dpnd->reference_type = GF_ISOM_BOX_TYPE_IPIR;
 			e = tref_AddBox((GF_Box*)tref, (GF_Box *) dpnd);
 			if (e) return e;
 			e = reftype_AddRefTrack(dpnd, esd->ipiPtr->IPI_ES_Id, &tmpRef);

@@ -83,6 +83,8 @@ enum
 
 static int bidi_get_class(u32 val);
 
+
+
 GF_EXPORT
 Bool gf_utf8_is_right_to_left(u16 *utf_string) 
 {
@@ -101,6 +103,83 @@ Bool gf_utf8_is_right_to_left(u16 *utf_string)
 		i++;
 	}
 	return 0;
+}
+
+
+/*a very VERY basic bidi reorderer */
+GF_EXPORT
+void gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
+{
+	u32 i, j, start, stop, cur_dir, slen, main_dir;
+	Bool is_start;
+
+	/*get main direction of the layour*/
+	Bool rev = gf_utf8_is_right_to_left(utf_string);
+
+	if (rev) {
+		for (i=0; i<len/2; i++) {
+			u32 v = utf_string[i];
+			utf_string[i] = utf_string[len-1-i];
+			utf_string[len-1-i] = v;
+		}
+	}
+	cur_dir = rev ? 1 : 0;
+	main_dir = cur_dir;
+	is_start = 1;
+
+	start = stop = 0;
+
+	for (i=0; i<len; i++) {
+		Bool rtl = cur_dir;
+		u32 c = bidi_get_class(utf_string[i]);
+		switch (c) {
+		case R: 
+		case AN:
+		case AL:
+			rtl = 1;
+			break;
+		case L: 
+		case EN:
+			rtl = 0;
+			break;
+		default:
+			if (is_start) {
+				start = i;
+			} else if (!stop) {
+				stop = i;
+			}
+			continue;
+		}
+		if (cur_dir != rtl) {
+			if (is_start) {
+				is_start = 0;
+			} else {
+				is_start = 1;
+
+				if (main_dir != cur_dir) {
+					slen = stop-start+1;
+					for (j=0; j<slen/2; j++) {
+						u32 v = utf_string[start + j];
+						utf_string[start + j] = utf_string[stop-j];
+						utf_string[stop-j] = v;
+					}
+				}
+			}
+			cur_dir = rtl;
+		}
+		stop = 0;
+	}
+
+	/*not flushed yet*/
+	if (!is_start) {
+		slen = stop-start+1;
+		for (j=0; j<slen/2; j++) {
+			u32 v = utf_string[start + j];
+			utf_string[start + j] = utf_string[stop-j];
+			utf_string[stop-j] = v;
+		}
+	}
+
 }
 
 

@@ -189,7 +189,7 @@ EXPORTS
 	gf_utf8_wcstombs
 	gf_utf8_mbstowcs
 	gf_utf8_wcslen
-	gf_utf8_is_right_to_left
+	gf_utf8_reorder_bidi
 
 ;download.h exports
 	gf_dm_sess_get_cache_name
@@ -878,6 +878,7 @@ EXPORTS
 	gf_img_jpeg_dec
 	gf_img_png_dec
 	gf_img_png_enc
+	gf_ac3_parser_bs
 
 
 ;ismacryp.h exports

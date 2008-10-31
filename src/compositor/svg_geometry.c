@@ -152,7 +152,7 @@ Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *as
 }
 
 
-static void svg_clone_use_stack(GF_Compositor *compositor, GF_TraverseState *tr_state)
+void svg_clone_use_stack(GF_Compositor *compositor, GF_TraverseState *tr_state)
 {
 	u32 i, count;
 	count = gf_list_count(tr_state->use_stack);

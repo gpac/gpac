@@ -79,12 +79,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	}
 
 	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_HINT:
-	case GF_ISOM_BOX_TYPE_DPND:
-	case GF_ISOM_BOX_TYPE_MPOD:
-	case GF_ISOM_BOX_TYPE_SYNC:
-	case GF_ISOM_BOX_TYPE_IPIR:
-	case GF_ISOM_BOX_TYPE_CHAP:
+	case GF_ISOM_BOX_TYPE_REFT:
 		return reftype_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:
@@ -357,25 +352,16 @@ GF_Err reftype_dump(GF_Box *a, FILE * trace)
 	GF_TrackReferenceTypeBox *p;
 
 	p = (GF_TrackReferenceTypeBox *)a;
+	p->type = p->reference_type;
 
 	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_HINT:
-		s = "Hint";
-		break;
-	case GF_ISOM_BOX_TYPE_DPND:
-		s = "Stream";
-		break;
-	case GF_ISOM_BOX_TYPE_MPOD:
-		s = "OD";
-		break;
-	case GF_ISOM_BOX_TYPE_SYNC:
-		s = "Sync";
-		break;
-	case GF_ISOM_BOX_TYPE_CHAP:
-		s = "Chapter";
-		break;
+	case GF_ISOM_BOX_TYPE_HINT: s = "Hint"; break;
+	case GF_ISOM_BOX_TYPE_DPND: s = "Stream"; break;
+	case GF_ISOM_BOX_TYPE_MPOD: s = "OD"; break;
+	case GF_ISOM_BOX_TYPE_SYNC: s = "Sync"; break;
+	case GF_ISOM_BOX_TYPE_CHAP: s = "Chapter"; break;
 	default:
-		s = "Unknown";
+		s = (char *) gf_4cc_to_str(a->type);
 		break;
 	}
 	fprintf(trace, "<%sTrackReferenceBox Tracks=\"", s);
@@ -383,6 +369,7 @@ GF_Err reftype_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
 	fprintf(trace, "</%sTrackReferenceBox>\n", s);
+	p->type = GF_ISOM_BOX_TYPE_REFT;
 	return GF_OK;
 }
 
@@ -2329,9 +2316,13 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	GF_Box *a;
 	Bool has_scroll;
 	char szDur[100];
+	GF_TextSampleEntryBox *txt;
 
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
 	if (!trak || (trak->Media->handler->handlerType != GF_ISOM_MEDIA_TEXT)) return GF_BAD_PARAM;
+	
+	txt = (GF_TextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
+	if (txt->type != GF_ISOM_BOX_TYPE_TX3G) return GF_BAD_PARAM;
 
 	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 	fprintf(dump, "<!-- GPAC 3GPP Text Stream -->\n");

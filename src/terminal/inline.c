@@ -535,17 +535,25 @@ static Bool gf_mo_is_same_url_ex(GF_MediaObject *obj, MFURL *an_url, Bool *keep_
 
 			/*fragment is a media segment, same URL*/
 			if (frag ) {
-				/*if the expected type is a segment (undefined media type) 
-				and the fragment is a media segment, same URL
-				*/
-				if (obj->odm->subscene && (gf_sg_find_node_by_name(obj->odm->subscene->graph, frag+1)!=NULL) )
-					return 1;
-			
-				/*if the expected type is a segment (undefined media type) 
-				and the fragment is a media segment, same URL
-				*/
-				if (!obj_hint_type && gf_odm_find_segment(obj->odm, frag+1))
-					return 1;
+				Bool same_res = 0;
+				frag[0] = 0;
+				same_res = !strncmp(an_url->vals[i].url, szURL1, strlen(an_url->vals[i].url)) ? 1 : 0;
+				frag[0] = '#';
+
+				/*if we're talking about the same resource, check if the fragment can be matched*/
+				if (same_res) {
+					/*if the expected type is a segment (undefined media type) 
+					and the fragment is a media segment, same URL
+					*/
+					if (obj->odm->subscene && (gf_sg_find_node_by_name(obj->odm->subscene->graph, frag+1)!=NULL) )
+						return 1;
+				
+					/*if the expected type is a segment (undefined media type) 
+					and the fragment is a media segment, same URL
+					*/
+					if (!obj_hint_type && gf_odm_find_segment(obj->odm, frag+1))
+						return 1;
+				}
 			}
 
 			while ( (ns = (GF_ClientService*)gf_list_enum(obj->odm->term->net_services, &j)) ) {
@@ -765,11 +773,11 @@ static void gf_is_resize_event(GF_InlineScene *is)
 	evt.type = GF_EVENT_RESIZE;
 	evt.screen_rect.width = INT2FIX(w);
 	evt.screen_rect.height = INT2FIX(h);
-	gf_dom_event_fire(gf_sg_get_root_node(is->graph), NULL, &evt);
+	gf_dom_event_fire(gf_sg_get_root_node(is->graph), &evt);
 	
 	count=gf_list_count(is->inline_nodes);
 	for (i=0;i<count; i++) {
-		gf_dom_event_fire( gf_list_get(is->inline_nodes, i), NULL, &evt );
+		gf_dom_event_fire( gf_list_get(is->inline_nodes, i), &evt );
 	}
 #endif
 }

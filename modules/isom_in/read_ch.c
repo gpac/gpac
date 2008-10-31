@@ -67,6 +67,10 @@ static void init_reader(ISOMChannel *ch)
 		} else {
 			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
 		}
+	
+		if (ch->has_rap && ch->has_edit_list) {
+			ch->edit_sync_frame = ch->sample_num;
+		}
 	}
 
 	/*no sample means we're not in the track range - stop*/
@@ -102,8 +106,35 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	if (ch->to_init) {
 		init_reader(ch);
 	} else if (ch->has_edit_list) {
+		u32 prev_sample = ch->sample_num;
 		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &ivar, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
-		if (ch->sample) ch->sample_time = ch->sample->DTS;
+
+		/*we are in forced seek mode: fetch all samples before the one matching the sample time*/
+		if (ch->edit_sync_frame) {
+			ch->edit_sync_frame++;
+			if (ch->edit_sync_frame < ch->sample_num) {
+				gf_isom_sample_del(&ch->sample);
+				ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->edit_sync_frame, &ivar);
+				ch->sample->DTS = ch->sample_time;
+				ch->sample->CTS_Offset = 0;
+			} else {
+				ch->edit_sync_frame = 0;
+				if (ch->sample) ch->sample_time = ch->sample->DTS;
+			}
+		} else {
+			/*we jumped to another segment - if RAP is needed look for closest rap in decoding order and
+			force seek mode*/
+			if (ch->sample && !ch->sample->IsRAP && ch->has_rap && (ch->sample_num != prev_sample+1)) {
+				gf_isom_sample_del(&ch->sample);
+				e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
+				ch->edit_sync_frame = ch->sample_num;
+				ch->sample->DTS = ch->sample_time;
+				ch->sample->CTS_Offset = 0;
+			} else {
+				if (ch->sample) ch->sample_time = ch->sample->DTS;
+			}
+		}
+
 	} else {
 fetch_next:
 		ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &ivar);
@@ -168,9 +199,6 @@ fetch_next:
 
 void isor_reader_release_sample(ISOMChannel *ch)
 {
-	/*this is to handle edit list*/
-	if (ch->sample->data) ch->sample_num++;
-
 	if (ch->sample) gf_isom_sample_del(&ch->sample);
 	ch->sample = NULL;
 	ch->current_slh.AU_sequenceNumber++;

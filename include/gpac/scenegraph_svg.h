@@ -326,9 +326,14 @@ typedef struct
 
 /*fires event on the specified node
 BE CAREFULL: event execution may very well destroy ANY node, especially the event target node !!
-use_stack: a list of parent node/use node for bubbling phase
 */
-Bool gf_dom_event_fire(GF_Node *node, GF_List *use_stack, GF_DOM_Event *event);
+Bool gf_dom_event_fire(GF_Node *node, GF_DOM_Event *event);
+
+/*fires event on the specified node
+BE CAREFULL: event execution may very well destroy ANY node, especially the event target node !!
+use_stack: a list of parent node/use node pairs for bubbling phase - may be NULL
+*/
+Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack);
 
 u32 gf_dom_event_type_by_name(const char *name);
 const char *gf_dom_event_get_name(u32 type);
@@ -435,6 +440,7 @@ typedef struct {
 	SVG_Number					*opacity; /* Restricted property in Tiny 1.2 */
 
 	SVG_Number					*audio_level;
+	Fixed						computed_audio_level;
 
 	SVG_RenderingHint			*color_rendering;
 	SVG_RenderingHint			*image_rendering;
@@ -503,92 +509,6 @@ typedef struct {
 	SVG_String *writing_mode;
 */
 } SVGPropertiesPointers;
-
-typedef struct {
-	SVG_Paint					color;
-	SVG_Paint					fill; 
-	SVG_Paint					stroke;
-	SVG_Paint					solid_color;
-	SVG_Paint					stop_color;
-	SVG_Paint					viewport_fill;
-
-	SVG_Number					fill_opacity;
-	SVG_Number					solid_opacity;
-	SVG_Number					stop_opacity;
-	SVG_Number					stroke_opacity;
-	SVG_Number					viewport_fill_opacity;
-	SVG_Number					opacity; /* Restricted property in Tiny 1.2 */
-
-	SVG_Number  				audio_level;
-
-	SVG_RenderingHint			color_rendering;
-	SVG_RenderingHint			image_rendering;
-	SVG_RenderingHint			shape_rendering;
-	SVG_RenderingHint			text_rendering;
-
-	SVG_Display					display; 
-	SVG_Visibility				visibility;
-	SVG_Overflow				overflow; /* Restricted property in Tiny 1.2 */
-
-	SVG_FontFamily				font_family;
-	SVG_FontSize				font_size;
-	SVG_FontStyle				font_style; 
-	SVG_FontWeight				font_weight; 
-	SVG_FontVariant				font_variant; 
-	SVG_Number					line_increment;
-	SVG_TextAnchor				text_anchor;
-	SVG_DisplayAlign			display_align;
-	SVG_TextAlign				text_align;
-
-	SVG_PointerEvents			pointer_events;
-
-	SVG_FillRule				fill_rule; 
-
-	SVG_StrokeDashArray			stroke_dasharray;
-	SVG_Length					stroke_dashoffset;
-	SVG_StrokeLineCap			stroke_linecap; 
-	SVG_StrokeLineJoin			stroke_linejoin; 
-	SVG_Number					stroke_miterlimit; 
-	SVG_Length					stroke_width;
-	SVG_VectorEffect			vector_effect;	
-
-	/* Full 1.1 props, i.e. not implemented */
-/*
-	SVG_FontVariant *font_variant; 
-	SVG_String *font;
-	SVG_String *font_size_adjust;
-	SVG_String *font_stretch;
-	SVG_String *direction;
-	SVG_String *letter_spacing;
-	SVG_String *text_decoration;
-	SVG_String *unicode_bidi;
-	SVG_String *word_spacing;
-	SVG_String *clip; 
-	SVG_String *cursor;
-	SVG_String *clip_path;
-	SVG_String *clip_rule;
-	SVG_String *mask;
-	SVG_String *enable_background;
-	SVG_String *filter;
-	SVG_String *flood_color;
-	SVG_String *flood_opacity;
-	SVG_String *lighting_color;
-	SVG_String *color_interpolation;
-	SVG_String *color_interpolation_filters;
-	SVG_String *color_profile;
-	SVG_String *marker;
-	SVG_String *marker_end;
-	SVG_String *marker_mid;
-	SVG_String *marker_start;
-	SVG_String *alignment_baseline;
-	SVG_String *baseline_shift;
-	SVG_String *dominant_baseline;
-	SVG_String *glyph_orientation_horizontal;
-	SVG_String *glyph_orientation_vertical;
-	SVG_String *kerning;
-	SVG_String *writing_mode;
-*/
-} SVGProperties;
 
 /*************************************
  * Generic SVG element functions     *
