@@ -268,6 +268,7 @@ void compositor_init_svg_foreign_object(GF_Compositor *compositor, GF_Node *node
 void compositor_init_svg_text(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_tspan(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_textarea(GF_Compositor *compositor, GF_Node *node);
+void compositor_init_svg_tbreak(GF_Compositor *compositor, GF_Node *node);
 
 void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node);

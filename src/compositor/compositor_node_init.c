@@ -167,6 +167,7 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 	case TAG_SVG_text:				compositor_init_svg_text(compositor, node); break;
 	case TAG_SVG_tspan:				compositor_init_svg_tspan(compositor, node); break;
 	case TAG_SVG_textArea:			compositor_init_svg_textarea(compositor, node); break;
+	case TAG_SVG_tbreak:			compositor_init_svg_tbreak(compositor, node); break;
 		
 	case TAG_SVG_image:				compositor_init_svg_image(compositor, node); break;
 	case TAG_SVG_video:				compositor_init_svg_video(compositor, node); break;
