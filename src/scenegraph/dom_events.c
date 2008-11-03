@@ -214,6 +214,9 @@ static GF_Node *dom_evt_get_handler(GF_Node *n)
 {
 	XMLRI *iri;
 	GF_FieldInfo info;
+
+	if (n->sgprivate->tag!=TAG_SVG_handler) return n;
+
 	if (!n || (gf_node_get_attribute_by_tag(n, TAG_XLINK_ATT_href, 0, 0, &info) != GF_OK)) {
 		return n;
 	}
@@ -269,6 +272,14 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 	case TAG_LSR_conditional:
 		if ( ((SVG_Element*)hdl_node)->children)
 			gf_node_traverse(((SVG_Element*)hdl_node)->children->node, NULL);
+		break;
+	case TAG_SVG_a:
+	{
+		GF_DOM_Event act;
+		memset(&act, 0, sizeof(GF_DOM_Event));
+		act.type = GF_EVENT_ACTIVATE;
+		gf_dom_event_fire((GF_Node *)hdl_node, &act);
+	}
 		break;
 	default:
 		return;

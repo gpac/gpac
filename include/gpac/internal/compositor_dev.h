@@ -716,9 +716,15 @@ struct _traversing_state
 	Fixed max_length, max_height;
 	Fixed base_x, base_y;
 	Fixed line_spacing;
+	Fixed base_shift;
 	/*quick and dirty hack to try to solve xml:space across text and tspans without 
-	flattening the DOMText nodes*/
-	Bool last_char_was_space;
+	flattening the DOMText nodes
+	0: first block of text
+	1: previous block of text ended with a space
+	2: previous block of text did NOT end with a space
+	*/
+	u32 last_char_type;
+	/*in textArea, indicates that the children bounds must be refreshed due to a baseline adjustment*/
 	u32 refresh_children_bounds;
 #endif
 	GF_Node *text_parent;
