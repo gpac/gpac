@@ -201,12 +201,14 @@ static void svg_apply_text_anchor(GF_TraverseState * tr_state, Fixed *width)
 	}
 }
 
-static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed font_size, Bool x_offsets, Bool y_offsets, Bool preserve, char *textContent, const char *lang, GF_TraverseState *tr_state) 
+static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed font_size, Bool x_offsets, Bool y_offsets, SVGAllAttributes *atts, char *textContent, const char *lang, GF_TraverseState *tr_state) 
 {
 	GF_TextSpan *span = NULL;
 	char *dup_text;
 	u32 i, j, len;
 	char prev;
+
+	Bool preserve = (atts->xml_space && (*atts->xml_space==XML_SPACE_PRESERVE)) ? 1 : 0;
 
 	len = strlen(textContent);
 	dup_text = malloc(len+1);
@@ -374,7 +376,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 	font = svg_set_font(tr_state, fm);
 	if (!font) return;
 
-	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, 1, 1, 0, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL, tr_state);
+	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, 1, 1, atts, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL, tr_state);
 	if (!span) return;
 
 	/*first run of the line, inc text y*/
@@ -482,7 +484,7 @@ static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_Traverse
 	font = svg_set_font(tr_state, fm);
 	if (!font) return;
 
-	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1), (tr_state->count_y>1), 0, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL, tr_state);
+	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1), (tr_state->count_y>1), atts, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL, tr_state);
 	if (!span) return;
 
 	i=0;
@@ -582,7 +584,7 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 	font = svg_set_font(tr_state, fm);
 	if (!font) return;
 
-	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1), (tr_state->count_y>1), 0, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL, tr_state);
+	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1), (tr_state->count_y>1), atts, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL, tr_state);
 	if (!span) return;
 
 	i=0;
@@ -854,6 +856,8 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		u32 mode;
 		child = ((GF_ParentNode *) text)->children;
 
+		if (atts.editable) tr_state->visual->compositor->editable_text = 1;
+
 		svg_reset_text_stack(st);
 		tr_state->text_end_x = 0;
 		tr_state->text_end_y = 0;
@@ -1042,6 +1046,8 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 			goto skip_changes;
 		}
 
+		if (atts.editable) tr_state->visual->compositor->editable_text = 1;
+
 		/*switch to bounds mode, and recompute children*/
 		mode = tr_state->traversing_mode;
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
@@ -1209,6 +1215,8 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_dirty_clear(node, 0);
 		drawable_mark_modified(st->drawable, tr_state);
 		drawable_reset_path(st->drawable);
+
+		if (atts.editable) tr_state->visual->compositor->editable_text = 1;
 
 		tr_state->max_length = (atts.width ? (atts.width->type == SVG_NUMBER_AUTO ? FIX_MAX : atts.width->value) : FIX_MAX);
 		tr_state->max_height = (atts.height ? (atts.height->type == SVG_NUMBER_AUTO ? FIX_MAX : atts.height->value) : FIX_MAX);

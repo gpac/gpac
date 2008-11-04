@@ -169,6 +169,7 @@ static void define_dom_exception(JSContext *c, JSObject *global)
 	DEF_EXC(TYPE_MISMATCH_ERR);
 #undef  DEF_EXC
 
+	JS_AliasProperty(c, global, "e", "DOMException");
 	obj = JS_DefineObject(c, global, "EventException", NULL, 0, 0);
 	JS_DefineProperty(c, obj, "UNSPECIFIED_EVENT_TYPE_ERR", INT_TO_JSVAL(0), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(c, obj, "DISPATCH_REQUEST_ERR", INT_TO_JSVAL(1), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -266,7 +267,7 @@ static jsval dom_node_construct(JSContext *c, GF_Node *n)
 jsval dom_element_construct(JSContext *c, GF_Node *n)
 {
 	JSClass *__class = &dom_rt->domElementClass;
-	if (!n) return JSVAL_VOID;
+	if (!n) return JSVAL_NULL;
 	if (n->sgprivate->scenegraph->dcci_doc)
 		__class = &dom_rt->DCCIClass;
 	else if (dom_rt->get_element_class)
@@ -1917,6 +1918,9 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			if (evt->is_vrml) return JS_TRUE;
 			*vp = dom_element_construct(c, evt->relatedTarget); 
 			return JS_TRUE;
+		case 36:/*wheelDelta*/
+			*vp = INT_TO_JSVAL(FIX2INT(evt->new_scale) ); return JS_TRUE;
+			
 
 		/*DOM3 event keyIndentifier*/
 		case 40: 

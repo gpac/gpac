@@ -317,6 +317,9 @@ struct __tag_compositor
 	u32 num_clicks;
 #endif
 
+	/*set to true if some edit text is found*/
+	Bool editable_text;
+
 	/*a dedicated drawable for focus highlight */
 	struct _drawable *focus_highlight;
 	/*highlight fill and stroke colors (ARGB)*/

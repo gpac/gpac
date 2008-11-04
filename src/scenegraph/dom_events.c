@@ -260,6 +260,8 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 		SVG_handlerElement *handler = (SVG_handlerElement *) hdl_node;
 		if (!handler->handle_event) return;
 
+		/*spec is not clear regarding event filtering*/
+#if 0
 		if (gf_node_get_attribute_by_tag(hdl_node, TAG_XMLEV_ATT_event, 0, 0, &info) == GF_OK) {
 			XMLEV_Event *ev_event = (XMLEV_Event *)info.far_ptr;
 			if (ev_event->type != event->type) return;
@@ -267,6 +269,9 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 		} else {
 			handler->handle_event(hdl_node, event, observer);
 		}
+#else
+		handler->handle_event(hdl_node, event, observer);
+#endif
 	}
 		break;
 	case TAG_LSR_conditional:

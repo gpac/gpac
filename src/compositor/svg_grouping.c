@@ -296,7 +296,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	if (tr_state->traversing_mode==TRAVERSE_PICK) {
 		/*don't pick if no listeners*/
-		if (!(gf_node_get_dom_event_filter(node) & GF_DOM_EVENT_MOUSE) && !gf_list_count(tr_state->vrml_sensors) )
+		if (!tr_state->visual->compositor->editable_text && !(gf_node_get_dom_event_filter(node) & GF_DOM_EVENT_MOUSE) && !gf_list_count(tr_state->vrml_sensors) )
 			return;
 	}
 

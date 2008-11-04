@@ -705,6 +705,8 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	compositor->focus_text_type = 0;
 	compositor->frame_number = 0;
 	compositor->video_memory = 0;
+	compositor->editable_text = 0;
+	
 	gf_list_reset(compositor->focus_ancestors);
 	gf_list_reset(compositor->focus_use_stack);
 

@@ -163,7 +163,10 @@ static JSBool svg_parse_xml(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *sg, char *svg_str);
 	
 	doc_obj = JSVAL_TO_OBJECT(argv[1]);
-	if (!doc_obj) return JS_TRUE;
+	if (!doc_obj) {
+		dom_throw_exception(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
+		return JS_FALSE;
+	}
 	str = js_get_utf8(argv[0]);
 	if (!str) return JS_TRUE;
 
@@ -290,7 +293,11 @@ static GF_Node *get_corresponding_use(GF_Node *n)
 	count = gf_list_count(n->sgprivate->scenegraph->use_stack);
 	for (i=count; i>0; i-=2) {
 		t = gf_list_get(n->sgprivate->scenegraph->use_stack, i-2);
-		if (t==n) return gf_list_get(n->sgprivate->scenegraph->use_stack, i-1);
+		if (t==n) {
+			GF_Node *use = gf_list_get(n->sgprivate->scenegraph->use_stack, i-1);
+			GF_Node *par_use = get_corresponding_use(use);
+			return par_use ? par_use : use;
+		}
 	}
 	/*otherwise recursively get up the tree*/
 	return get_corresponding_use(gf_node_get_parent(n, 0));
@@ -432,7 +439,12 @@ static JSBool svg_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 		}
 		return JS_TRUE;
 	case 12:/*correspondingElement*/
-		*vp = dom_element_construct(c, n);
+		/*if we can find a corresponding element for this node, then this is an SVGElementInstance*/
+		if (get_corresponding_use(n)) {
+			*vp = dom_element_construct(c, n);
+		} else {
+			*vp = dom_element_construct(c, NULL);
+		}
 		return JS_TRUE;
 	case 13:/*correspondingUseElement*/
 		*vp = dom_element_construct(c, get_corresponding_use(n));
@@ -625,31 +637,29 @@ JSBool svg_udom_smil_resume(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 
 JSBool svg_udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char attValue[1024];
+	char attValue[1024], *ns, *name;
 	GF_Err e;
 	GF_FieldInfo info;
 	GF_Node *n = dom_get_element(c, obj);
 	if (!n) return JS_TRUE;
 
-	if (!JSVAL_IS_STRING(argv[0])) return JS_TRUE;
+	ns = name  =NULL;
+	if (! JSVAL_CHECK_STRING(argv[0]) ) return JS_TRUE;
 	if (argc==2) {
-		char fullName[1024];
-		if (!JSVAL_IS_STRING(argv[1])) return JS_TRUE;
-
-		strcpy(fullName, JS_GetStringBytes(JSVAL_TO_STRING(argv[0])) );
-		strcat(fullName, ":");
-		strcat(fullName, JS_GetStringBytes(JSVAL_TO_STRING(argv[1])) );
-		e = gf_node_get_field_by_name(n, fullName, &info);
+		ns = JSVAL_GET_STRING(argv[0]);
+		name = JSVAL_GET_STRING(argv[1]);
 	} else if (argc==1) {
-		char *name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-		if (!strcmp(name, "#text")) {
-			char *res = dom_node_flatten_text(n);
-			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
-			free(res);
-			return JS_TRUE;
-		}
-		e = gf_node_get_field_by_name(n, name, &info);
+		name = JSVAL_GET_STRING(argv[0]);
 	} else return JS_TRUE;
+
+	if (!name) return JS_TRUE;
+	if (!strcmp(name, "#text")) {
+		char *res = dom_node_flatten_text(n);
+		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
+		free(res);
+		return JS_TRUE;
+	}
+	e = gf_node_get_field_by_name(n, name, &info);
 
 	if (e!=GF_OK) return JS_TRUE;
 	*rval = JSVAL_VOID;
@@ -905,34 +915,33 @@ JSBool svg_udom_get_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, jsv
 
 JSBool svg_udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
+	char *ns, *name, *val;
 	GF_Err e;
 	GF_FieldInfo info;
-	char *val = NULL;
 	GF_Node *n = dom_get_element(c, obj);
 	if (!n) return JS_TRUE;
 
-	if (!JSVAL_IS_STRING(argv[0])) return JS_TRUE;
+	val = ns = name = NULL;
+	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 	if (argc==3) {
-		char fullName[1024];
-		if (!JSVAL_IS_STRING(argv[1])) return JS_TRUE;
-
-		strcpy(fullName, JS_GetStringBytes(JSVAL_TO_STRING(argv[0])) );
-		strcat(fullName, ":");
-		strcat(fullName, JS_GetStringBytes(JSVAL_TO_STRING(argv[1])) );
-		e = gf_node_get_field_by_name(n, fullName, &info);
+		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
+		if (!JSVAL_CHECK_STRING(argv[2])) return JS_TRUE;
+		ns = JSVAL_GET_STRING(argv[0]);
+		name = JSVAL_GET_STRING(argv[1]);
 		val = JS_GetStringBytes(JSVAL_TO_STRING(argv[2]));
 	} else if (argc==2) {
-		val = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-		if (!strcmp(val, "#text")) {
-			if (!JSVAL_IS_STRING(argv[1])) return JS_TRUE;
-			dom_node_set_textContent(n, JS_GetStringBytes(JSVAL_TO_STRING(argv[1])) );
-			return JS_TRUE;
-		} else {
-			e = gf_node_get_field_by_name(n, val, &info);
-			val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
-		}
+		name = JSVAL_GET_STRING(argv[0]);
+		val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+	} else 
+		return JS_TRUE;
+	if (!name)  return JS_TRUE;
+	if (!strcmp(name, "#text")) {
+		if (!JSVAL_IS_STRING(argv[1])) return JS_TRUE;
+		dom_node_set_textContent(n, val);
+		return JS_TRUE;
+	}
+	e = gf_node_get_field_by_name(n, name, &info);
 
-	} else e = GF_BAD_PARAM;
 
 	if (!val || (e!=GF_OK)) return JS_TRUE;
 	*rval = JSVAL_VOID;
@@ -1052,7 +1061,7 @@ JSBool svg_udom_set_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsval 
 	if (argc!=2) return JS_TRUE;
 	if (!JSVAL_IS_STRING(argv[0])) return JS_TRUE;
 	szName = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	if (!JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
+	if (JSVAL_IS_NULL(argv[1]) || !JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
 	mO = JSVAL_TO_OBJECT(argv[1]);
 	if (!JS_InstanceOf(c, mO, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx = JS_GetPrivate(c, mO);
@@ -1079,7 +1088,7 @@ JSBool svg_udom_set_rect_trait(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	if (argc!=2) return JS_TRUE;
 	if (!JSVAL_IS_STRING(argv[0])) return JS_TRUE;
 	szName = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	if (!JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
+	if (JSVAL_IS_NULL(argv[1]) || !JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
 	rO = JSVAL_TO_OBJECT(argv[1]);
 	if (!JS_InstanceOf(c, rO, &svg_rt->rectClass, NULL) ) return JS_TRUE;
 	rc = JS_GetPrivate(c, rO);
@@ -1108,7 +1117,7 @@ JSBool svg_udom_set_path_trait(JSContext *c, JSObject *obj, uintN argc, jsval *a
 
 	if (argc!=2) return JS_TRUE;
 	if (!JSVAL_IS_STRING(argv[0])) return JS_TRUE;
-	if (!JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
+	if (JSVAL_IS_NULL(argv[1]) || !JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
 	pO = JSVAL_TO_OBJECT(argv[1]);
 	if (!JS_InstanceOf(c, pO, &svg_rt->pathClass, NULL) ) return JS_TRUE;
 	path = JS_GetPrivate(c, pO);
@@ -1363,6 +1372,16 @@ JSBool svg_udom_get_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	return JS_TRUE;
 }
 
+JSBool svg_udom_get_time(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	jsdouble *d;
+	GF_Node *n = dom_get_element(c, obj);
+	if (!n) return JS_TRUE;
+
+	d = JS_NewDouble(c, gf_node_get_scene_time(n));
+	*rval = DOUBLE_TO_JSVAL(d);
+	return JS_TRUE;
+}
 
 
 
@@ -2088,6 +2107,8 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			{"moveFocus", svg_udom_move_focus, 0},
 			{"setFocus", svg_udom_set_focus, 0},
 			{"getCurrentFocusedObject", svg_udom_get_focus, 0},
+			{"getCurrentTime", svg_udom_get_time, 0},
+			
 			/*timeControl interface*/
 			{"beginElementAt", svg_udom_smil_begin, 1},
 			{"beginElement", svg_udom_smil_begin, 0},
