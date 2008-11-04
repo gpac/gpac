@@ -270,6 +270,7 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		/*decSpecInfo not yet supported for DIMS svg - we need properties at the scene level to store the 
 		various indications*/
 		break;
+	case GPAC_OTI_PRIVATE_SCENE_SVG:
 	default:
 		if (!esd->decoderConfig->decoderSpecificInfo) return GF_NON_COMPLIANT_BITSTREAM;
 		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);

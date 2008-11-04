@@ -467,6 +467,9 @@ typedef struct {
 	u32 activation_cycle;
 	u32 nb_iterations;
 
+	/* for the case where min > simple duration*/
+	Bool min_active;
+
 	/* negative values mean indefinite */
 	Double begin, 
 		   end,
@@ -474,7 +477,6 @@ typedef struct {
 		   active_duration,
 		   repeat_duration;
 
-	Bool min_active;
 } SMIL_Interval;
 
 struct _smil_timing_rti
