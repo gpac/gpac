@@ -556,9 +556,11 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 	if (all_atts->fill && all_atts->fill->type != SVG_PAINT_INHERIT) {
 		render_svg_props->fill = all_atts->fill;
 		if (all_atts->fill->type == SVG_PAINT_COLOR && 
-			all_atts->fill->color.type == SVG_COLOR_CURRENTCOLOR &&
-			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
-			inherited_flags_mask |= GF_SG_SVG_FILL_DIRTY;
+			all_atts->fill->color.type == SVG_COLOR_CURRENTCOLOR) {
+			render_svg_props->fill = render_svg_props->color; 
+			if (inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY) {
+				inherited_flags_mask |= GF_SG_SVG_FILL_DIRTY;
+			}
 		}
 	} else {
 		inherited_flags_mask |= GF_SG_SVG_FILL_DIRTY;
@@ -623,9 +625,11 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 	if (all_atts->solid_color && all_atts->solid_color->type != SVG_PAINT_INHERIT) {
 		render_svg_props->solid_color = all_atts->solid_color;		
 		if (all_atts->solid_color->type == SVG_PAINT_COLOR && 
-			all_atts->solid_color->color.type == SVG_COLOR_CURRENTCOLOR &&
-			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
-			inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
+			all_atts->solid_color->color.type == SVG_COLOR_CURRENTCOLOR) {
+			render_svg_props->solid_color = render_svg_props->color;
+			if (inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY) {
+				inherited_flags_mask |= GF_SG_SVG_SOLIDCOLOR_OR_OPACITY_DIRTY;
+			}
 		}
 	} else if (!all_atts->solid_color) {
 		render_svg_props->solid_color = NULL;
@@ -642,9 +646,11 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 	if (all_atts->stop_color && all_atts->stop_color->type != SVG_PAINT_INHERIT) {
 		render_svg_props->stop_color = all_atts->stop_color;
 		if (all_atts->stop_color->type == SVG_PAINT_COLOR && 
-			all_atts->stop_color->color.type == SVG_COLOR_CURRENTCOLOR &&
-			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
-			inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
+			all_atts->stop_color->color.type == SVG_COLOR_CURRENTCOLOR) {
+			render_svg_props->stop_color = render_svg_props->color;
+			if (inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY) {
+				inherited_flags_mask |= GF_SG_SVG_STOPCOLOR_OR_OPACITY_DIRTY;
+			}
 		}
 	} else if (!all_atts->stop_color) {
 		render_svg_props->stop_color = NULL;
@@ -661,9 +667,11 @@ u32 gf_svg_apply_inheritance(SVGAllAttributes *all_atts, SVGPropertiesPointers *
 	if (all_atts->stroke && all_atts->stroke->type != SVG_PAINT_INHERIT) {
 		render_svg_props->stroke = all_atts->stroke;
 		if (all_atts->stroke->type == SVG_PAINT_COLOR && 
-			all_atts->stroke->color.type == SVG_COLOR_CURRENTCOLOR &&
-			(inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY)) {
-			inherited_flags_mask |= GF_SG_SVG_STROKE_DIRTY;
+			all_atts->stroke->color.type == SVG_COLOR_CURRENTCOLOR) {
+			render_svg_props->stroke = render_svg_props->color;
+			if (inherited_flags_mask & GF_SG_SVG_COLOR_DIRTY) {
+				inherited_flags_mask |= GF_SG_SVG_STROKE_DIRTY;
+			}
 		}
 	} else {
 		inherited_flags_mask |= GF_SG_SVG_STROKE_DIRTY;
