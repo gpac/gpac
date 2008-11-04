@@ -1540,7 +1540,10 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 	gf_node_changed_internal(node, field, 1);
 
 #ifndef GPAC_DISABLE_SVG
-	if (node->sgprivate->tag >= GF_NODE_RANGE_FIRST_SVG && node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) {		
+	/* we should avoid dispatching a DOMSubtreeModified event on insertion of time values in begin/end fields
+	   because this retriggers begin/end events and reinsertion */
+	if (field == NULL && 
+		node->sgprivate->tag >= GF_NODE_RANGE_FIRST_SVG && node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) {		
 		GF_DOM_Event evt;
 		evt.type = GF_EVENT_TREE_MODIFIED;
 		evt.bubbles = 0;
