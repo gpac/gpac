@@ -2495,7 +2495,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	/*not sure about this (cf test struct-use-205-t.svg)*/
 	if (!node->sgprivate->parents) return 0;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events] Executing script code from handler\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[DOM Events    ] Executing script code from handler\n"));
 
 	svg_js = node->sgprivate->scenegraph->svg_js;
 
