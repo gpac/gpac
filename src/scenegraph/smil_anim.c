@@ -442,7 +442,7 @@ static void gf_smil_anim_animate_from_to(SMIL_Anim_RTI *rai, Fixed normalized_si
 			{
 				/* before half of the duration stay at 'from' and then switch to 'to' */
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, 
-					   ("[SMIL Animation] Time %f - Animation     %s - applying from-to animation (using %s value)", 
+					   ("[SMIL Animation] Time %f - Animation     %s - applying from-to animation (using %s value)\n", 
 					   gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), (useFrom?"from":"to")));
 				gf_svg_attributes_copy(&rai->interpolated_value, (useFrom?&from_info:&to_info), 0);
 				rai->previous_key_index = useFrom;
@@ -545,7 +545,7 @@ static void gf_smil_anim_animate_from_by(SMIL_Anim_RTI *rai, Fixed normalized_si
 		case SMIL_CALCMODE_LINEAR:
 		default:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, 
-				   ("[SMIL Animation] Time %f - Animation     %s - applying from-by animation (linear interpolation between from and from+by, coef: %f)", 
+				   ("[SMIL Animation] Time %f - Animation     %s - applying from-by animation (linear interpolation between from and from+by, coef: %f)\n", 
 				   gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), normalized_simple_time));
 			gf_svg_attributes_muladd(from_coef, &from_info, normalized_simple_time, &by_info, &rai->interpolated_value, 0);
 			break;
@@ -591,7 +591,7 @@ static void gf_smil_anim_animate_using_path(SMIL_Anim_RTI *rai, Fixed normalized
 		rai->previous_coef = interpolation_coefficient;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, 
-			   ("[SMIL Animation] Time %f - Animation     %s - applying path animation (coef: %f) ", 
+			   ("[SMIL Animation] Time %f - Animation     %s - applying path animation (coef: %f)\n", 
 			   gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node *)rai->anim_elt), normalized_simple_time));
 		
 		gf_svg_compute_path_anim(rai, (GF_Matrix2D*)rai->interpolated_value.far_ptr, interpolation_coefficient);
@@ -616,6 +616,18 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
 		/* Ignore 'by' if specified */
 		gf_smil_anim_animate_from_to(rai, normalized_simple_time);
 	}
+
+#ifndef GPAC_DISABLE_LOG
+	if (0 && (gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_INTERACT)) { 
+		char str[1000];
+		gf_log_lt(GF_LOG_DEBUG, GF_LOG_INTERACT); 
+		gf_svg_dump_attribute(rai->anim_elt, &rai->interpolated_value, str);
+		assert(strlen(str) < 1000);
+		gf_log("[SMIL Animation] Time %f - Animation     %s - Interpolation value changed for attribute %s, new value: %s \n", 
+			gf_node_get_scene_time(rai->anim_elt), gf_node_get_log_name(rai->anim_elt), 
+			gf_svg_get_attribute_name(rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
+	}
+#endif
 }
 
 void gf_smil_anim_set_anim_runtime_in_timing(GF_Node *n)
@@ -763,6 +775,19 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 								  &rai->interpolated_value, 
 								  &rai->owner->presentation_value, 
 								  1);
+
+#ifndef GPAC_DISABLE_LOG
+		if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_INTERACT)) { 
+			char str[1000];
+			gf_log_lt(GF_LOG_DEBUG, GF_LOG_INTERACT); 
+			gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value, str);
+			assert(strlen(str) < 1000);
+			gf_log("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n", 
+				gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt), 
+				gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
+		}
+#endif
+
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, 
 				   ("[SMIL Animation] Time %f - Animation     %s - applying non-additive behavior\n", 
@@ -778,6 +803,17 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 			*/
 			
 			gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->interpolated_value, 1);
+#ifndef GPAC_DISABLE_LOG
+			if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_INTERACT)) { 
+				char str[1000];
+				gf_log_lt(GF_LOG_DEBUG, GF_LOG_INTERACT); 
+				gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value, str);
+				assert(strlen(str) < 1000);
+				gf_log("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n", 
+					gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt), 
+					gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
+			}
+#endif
 		}
 	}
 }
@@ -857,7 +893,23 @@ static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 
 		/* TODO: see if we can avoid this copy by switching pointers */
 		gf_svg_attributes_copy(&rai->owner->presentation_value, &rai->owner->specified_value, 0);
+		/* TODO: check if we need to apply additive behavior even in fill='remove' 
+		   maybe (see animate-elem-211-t.svg) */
+
 		rai->anim_done = 1;
+
+#ifndef GPAC_DISABLE_LOG
+		if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_INTERACT)) { 
+			char str[1000];
+			gf_log_lt(GF_LOG_DEBUG, GF_LOG_INTERACT); 
+			gf_svg_dump_attribute((GF_Node*)rai->anim_elt, &rai->owner->presentation_value, str);
+			assert(strlen(str) < 1000);
+			gf_log("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n", 
+				gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt), 
+				gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
+		}
+#endif
+
 	}
 }
 
@@ -1114,7 +1166,10 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 			GF_FieldInfo info;
 			gf_node_get_attribute_by_tag(e, TAG_SVG_ATT_additive, 1, 0, &info);
 			animp->additive = info.far_ptr;
-		}
+		} 	
+		if (*animp->additive == SMIL_ADDITIVE_REPLACE) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[SMIL Animation] Warning: by-animations cannot use additive=\"replace\"\n"));
+		} 
 		*animp->additive = SMIL_ADDITIVE_SUM;
 	} 
 
@@ -1239,7 +1294,8 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 		/* determine what the rendering will need to do when the animation runs */
 		aa->dirty_flags = gf_svg_get_modification_flags((SVG_Element *)target, &target_attribute);
 
-		/* ??? */
+		/* If the animation will result in a change of geometry or of the display property,
+		   this animation will require traversing the tree, we need to inform the parents of the target node */
 		aa->dirty_parents = 0;
 		if (aa->dirty_flags & (GF_SG_SVG_GEOMETRY_DIRTY | GF_SG_SVG_DISPLAY_DIRTY)) aa->dirty_parents = 1;
 	}
