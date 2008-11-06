@@ -180,6 +180,12 @@ else
 OBJSPIC=$(OBJS)
 endif
 
+LD_SONAME="-Wl,-soname,$(LIB)"
+ifeq ($(CONFIG_DARWIN), yes)
+LD_SONAME=""
+endif
+
+
 SRCS := $(OBJS:.o=.c) 
 
 all: lib
@@ -206,7 +212,7 @@ compositor: $(LIBGPAC_COMPOSITOR)
 $(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph mediatools mcrypt $(OBJSPIC)
 	ar cr ../bin/gcc/libgpac_static.a $(OBJS)
 	ranlib ../bin/gcc/libgpac_static.a
-	$(CC) $(SHFLAGS) -Wl,-soname,$(LIB) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS)
+	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS)
 
 dep: depend
 

@@ -330,12 +330,12 @@ Darwin)
 js_flags=-DXP_MAC
 if test -d /sw/bin ; then
  alt_macosx_dir="/sw"
- CFLAGS="-I/sw/include"
- LDFLAGS="-L/sw/lib"
+ CFLAGS="-I/sw/include $CFLAGS"
+ LDFLAGS="-L/sw/lib $LDFLAGS"
 elif test -d /opt/local/bin ; then
  alt_macosx_dir="/opt/local"
- CFLAGS="-I/opt/local/include"
- LDFLAGS="-L/opt/local/lib"
+ CFLAGS="-I/opt/local/include $CFLAGS"
+ LDFLAGS="-L/opt/local/lib $LDFLAGS"
 fi
 cc="cc"
 Mac_Applications="/Applications"
