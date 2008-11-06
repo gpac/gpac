@@ -1604,7 +1604,6 @@ u32 gf_node_get_field_count(GF_Node *node)
 	return 0;
 }
 
-char szNameBuffer[1024];
 GF_EXPORT
 const char *gf_node_get_class_name(GF_Node *node)
 {
@@ -1620,8 +1619,8 @@ const char *gf_node_get_class_name(GF_Node *node)
 		u32 ns = gf_sg_get_namespace_code(node->sgprivate->scenegraph, NULL);
 		if (ns == full->ns) return full->name;
 		xmlns = (char *) gf_sg_get_namespace_qname(node->sgprivate->scenegraph, full->ns);
-		sprintf(szNameBuffer, "%s:%s", xmlns, full->name);
-		return szNameBuffer;
+		sprintf(node->sgprivate->scenegraph->szNameBuffer, "%s:%s", xmlns, full->name);
+		return node->sgprivate->scenegraph->szNameBuffer;
 	}
 #ifndef GPAC_DISABLE_SVG
 	else return gf_xml_get_element_name(node);

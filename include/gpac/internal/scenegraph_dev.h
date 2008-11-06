@@ -224,6 +224,9 @@ struct __tag_scene_graph
 	/*use stack as used in the dom_fire_event - this is only valid during an event fire, and may be NULL*/
 	GF_List *use_stack;
 
+	/*temp storage for name conversions*/
+	char szNameBuffer[100];
+
 #ifndef GPAC_DISABLE_SVG
 	GF_DOMEventTarget dom_evt;
 	u32 nb_evts_focus;
