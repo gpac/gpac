@@ -312,7 +312,7 @@ opaque_audio:
 			gf_bs_write_u32(bs, dec->sample_rate);
 			gf_bs_write_u16(bs, dec->channels);
 			gf_bs_write_u16(bs, dec->frame_size);
-			gf_bs_write_u8(bs, dec->bits_per_sample);
+			gf_bs_write_u8(bs, 16);
 			gf_bs_write_u8(bs, 0);
 			/*ffmpeg specific*/
 			gf_bs_write_u16(bs, dec->block_align);
