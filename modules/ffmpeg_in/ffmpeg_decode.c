@@ -115,11 +115,9 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			ffd->ctx->sample_rate = gf_bs_read_u32(bs);
 			ffd->ctx->channels = gf_bs_read_u16(bs);
 			ffd->ctx->frame_size = gf_bs_read_u16(bs);
-			ffd->ctx->bits_per_sample = gf_bs_read_u8(bs);
+			/*bits_per_sample */gf_bs_read_u8(bs);
 			/*num_frames_per_au*/ gf_bs_read_u8(bs);
 
-			/*force 16 bits output*/
-			ffd->ctx->bits_per_sample = 16;
 			/*ffmpeg specific*/
 			ffd->ctx->block_align = gf_bs_read_u16(bs);
 		} else if (ffd->st==GF_STREAM_VISUAL) {
@@ -144,13 +142,12 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			ffd->ctx->sample_rate = gf_bs_read_u32(bs);
 			ffd->ctx->channels = gf_bs_read_u16(bs);
 			ffd->ctx->frame_size = gf_bs_read_u16(bs);
-			ffd->ctx->bits_per_sample = gf_bs_read_u8(bs);
+			/*bits_per_sample */ gf_bs_read_u8(bs);
 			/*num_frames_per_au*/ gf_bs_read_u8(bs);
 			/*just in case...*/
 			if (codec_id == GF_4CC('a', 'm', 'r', ' ')) {
 			  ffd->ctx->sample_rate = 8000;
 			  ffd->ctx->channels = 1;
-			  ffd->ctx->bits_per_sample = 16;
 			  ffd->ctx->frame_size = 160;
 			}
 		} else if (ffd->st==GF_STREAM_VISUAL) {
@@ -248,8 +245,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			ffd->ctx->frame_size = (ffd->ctx->sample_rate > 24000) ? 1152 : 576;
 		}
 		/*may be 0 (cfg not known yet)*/
-		ffd->out_size = ffd->ctx->bits_per_sample * ffd->ctx->channels * ffd->ctx->frame_size / 8;
-		if (!ffd->ctx->bits_per_sample) ffd->ctx->bits_per_sample = 16;
+		ffd->out_size = ffd->ctx->channels * ffd->ctx->frame_size * 2 /*16 / 8*/;
 		if (!ffd->ctx->sample_rate) ffd->ctx->sample_rate = 44100;
 		if (!ffd->ctx->channels) ffd->ctx->channels = 2;
 	} else {
@@ -333,7 +329,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueInt = ffd->ctx->channels;
 		break;
 	case GF_CODEC_BITS_PER_SAMPLE:
-		capability->cap.valueInt = ffd->ctx->bits_per_sample;
+		capability->cap.valueInt = 16;
 		break;
 	case GF_CODEC_BUFFER_MIN:
 		capability->cap.valueInt = (ffd->st==GF_STREAM_AUDIO) ? 4 : 1;
@@ -459,11 +455,9 @@ redecode:
 
 		/*first config*/
 		if (!ffd->out_size) {
-			ffd->ctx->bits_per_sample = 16;
-			ffd->out_size = ffd->ctx->bits_per_sample * ffd->ctx->channels * ffd->ctx->frame_size / 8;
+			ffd->out_size = ffd->ctx->channels * ffd->ctx->frame_size * 2 /* 16 / 8 */;
 		}
 		if (ffd->out_size < (u32) gotpic) {
-			ffd->ctx->bits_per_sample = 16;
 			/*looks like relying on frame_size is not a good idea for all codecs, so we use gotpic*/
 			(*outBufferLength) = ffd->out_size = gotpic;
 			return GF_BUFFER_TOO_SMALL;
