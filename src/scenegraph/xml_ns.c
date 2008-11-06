@@ -391,8 +391,6 @@ u32 gf_xml_get_attribute_type(u32 tag)
 	return DOM_String_datatype;
 }
 
-char szNameBuffer[1024];
-
 const char*gf_svg_get_attribute_name(GF_Node *node, u32 tag)
 {
 	u32 i, count, ns;
@@ -408,8 +406,8 @@ const char*gf_svg_get_attribute_name(GF_Node *node, u32 tag)
 
 			xmlns = (char *) gf_sg_get_namespace_qname(node->sgprivate->scenegraph, xml_attributes[i].xmlns);
 			if (xmlns) {
-				sprintf(szNameBuffer, "%s:%s", xmlns, xml_attributes[i].name);
-				return szNameBuffer;
+				sprintf(node->sgprivate->scenegraph->szNameBuffer, "%s:%s", xmlns, xml_attributes[i].name);
+				return node->sgprivate->scenegraph->szNameBuffer;
 			}
 			return xml_attributes[i].name;
 		}
@@ -530,8 +528,8 @@ const char *gf_xml_get_element_name(GF_Node *n)
 
 			xmlns = (char *) gf_sg_get_namespace_qname(n->sgprivate->scenegraph, xml_elements[i].xmlns);
 			if (xmlns) {
-				sprintf(szNameBuffer, "%s:%s", xmlns, xml_elements[i].name);
-				return szNameBuffer;
+				sprintf(n->sgprivate->scenegraph->szNameBuffer, "%s:%s", xmlns, xml_elements[i].name);
+				return n->sgprivate->scenegraph->szNameBuffer;
 			}
 			return xml_elements[i].name;
 		}
