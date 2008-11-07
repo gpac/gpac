@@ -136,6 +136,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		}
 
 	} else {
+		ch->sample_num++;
 fetch_next:
 		ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &ivar);
 		/*if sync shadow / carousel RAP skip*/

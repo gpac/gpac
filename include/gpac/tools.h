@@ -556,6 +556,15 @@ u32 gf_sys_clock();
  */
 void gf_sleep(u32 ms);
 
+/*!
+ *	\brief CRC32 compute
+ *
+ *	Computes the CRC32 value of a buffer.
+ *	\param data buffer
+ *	\param size buffer size
+ *	\return computed CRC32
+ */
+u32 gf_crc_32(char *data, u32 size);
 
 
 /*!\brief run-time system info object

@@ -564,7 +564,8 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		if (!att->value || !strlen(att->value)) continue;
 		if (!strncmp(att->name, "xmlns", 5)) {
 			char *qname = strchr(att->name, ':');
-			if (qname) qname++;
+			if (qname) 
+				qname++;
 			
 			gf_sg_add_namespace(parser->load->scene_graph, att->value, qname);
 			if (!qname) 
@@ -675,11 +676,16 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 
 		ns = xmlns;
 		att_name = strchr(att->name, ':');
-		if (strncmp(att->name, "xmlns", 5) && att_name) {
-			att_name[0] = 0;
-			ns = gf_sg_get_namespace_code(parser->load->scene_graph, att->name);
-			att_name[0] = ':';
-			att_name++;
+		if (att_name) {
+			if (!strncmp(att->name, "xmlns", 5)) {
+				ns = gf_sg_get_namespace_code(parser->load->scene_graph, att_name+1);
+				att_name = att->name;
+			} else {
+				att_name[0] = 0;
+				ns = gf_sg_get_namespace_code(parser->load->scene_graph, att->name);
+				att_name[0] = ':';
+				att_name++;
+			}
 		} else {
 			att_name = att->name;
 		}
@@ -776,12 +782,22 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		} 
 
 		if (gf_node_get_attribute_by_name((GF_Node *)elt, att_name, ns, 1, 0, &info)==GF_OK) {
-			gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
+			GF_Err e = gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
+			if (e) {
+				svg_report(parser, e, "Error parsing attribute %s on node %s", att->name, name);
+				continue;
+			}
 			if (info.fieldType == SVG_ID_datatype) {
 				/*"when both 'id' and 'xml:id'  are specified on the same element but with different values, 
 				the SVGElement::id field must return either of the values but should give precedence to 
 				the 'xml:id'  attribute."*/
-				if (!node_name || (info.fieldIndex == TAG_XML_ATT_id)) node_name = *(SVG_ID *)info.far_ptr;
+				if (!node_name || (info.fieldIndex == TAG_XML_ATT_id)) {
+					node_name = *(SVG_ID *)info.far_ptr;
+					if (isdigit(node_name[0])) {
+						svg_report(parser, GF_BAD_PARAM, "Invalid value %s for node %s %s", node_name, name, att->name);
+						node_name = NULL;
+					}
+				}
 			} else {
 				switch (info.fieldIndex) {
 				case TAG_SVG_ATT_syncMaster:

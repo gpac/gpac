@@ -207,7 +207,7 @@ void m2ts_mux_table_update(M2TS_Mux_Stream *stream, u8 table_id, u16 table_id_ex
 
 		if (use_syntax_indicator) {
 			u32 CRC;
-			CRC = gf_m2ts_crc32(section->data,section->length-CRC_LENGTH); 
+			CRC = gf_crc_32(section->data,section->length-CRC_LENGTH); 
 			section->data[section->length-4] = (CRC >> 24) & 0xFF;
 			section->data[section->length-3] = (CRC >> 16) & 0xFF;
 			section->data[section->length-2] = (CRC >> 8) & 0xFF;
@@ -347,7 +347,7 @@ void m2ts_mux_table_update_mpeg4(M2TS_Mux_Stream *stream, u8 table_id, u16 table
 
 		if (use_syntax_indicator) {
 			u32 CRC;
-			CRC = gf_m2ts_crc32(section->data,section->length-CRC_LENGTH); 
+			CRC = gf_crc_32(section->data,section->length-CRC_LENGTH); 
 			section->data[section->length-4] = (CRC >> 24) & 0xFF;
 			section->data[section->length-3] = (CRC >> 16) & 0xFF;
 			section->data[section->length-2] = (CRC >> 8) & 0xFF;

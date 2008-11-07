@@ -2593,13 +2593,13 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root)
 {
 	GF_ChildNodeItem *list;
-	char attValue[81920];
+	char attName[100], attValue[81920];
 	u32 i, count, nID;
 	Bool needs_cr;
 	SVG_Element *svg = (SVG_Element *)n;
 	GF_FieldInfo info;
 	SVGAttribute *att;
-	u32 tag;
+	u32 tag, ns;
 	if (!n) return;
 
 	nID = gf_node_get_id(n);
@@ -2645,7 +2645,8 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 	gf_xml_push_namespaces((GF_DOMNode *)n);
 
 	fprintf(sdump->trace, "<%s", gf_node_get_class_name(n));
-	
+	ns = gf_xml_get_element_namespace(n);
+
 	if (nID) fprintf(sdump->trace, " id=\"%s\"", lsr_format_node_id(n, 0, attValue));
 
 	att = svg->attributes;
@@ -2658,7 +2659,13 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		info.fieldIndex = att->tag;
 		info.fieldType = att->data_type;
 		if (att->tag==TAG_DOM_ATT_any) {
-			info.name = ((GF_DOMFullAttribute*)att)->name;
+			u32 att_ns = ((GF_DOMFullAttribute*)att)->xmlns;
+			if (att_ns == ns) {
+				info.name = ((GF_DOMFullAttribute*)att)->name;
+			} else {
+				sprintf(attName, "%s:%s", gf_sg_get_namespace_qname(gf_node_get_graph(n), att_ns), ((GF_DOMFullAttribute*)att)->name);
+				info.name = attName;
+			}
 		} else {
 			info.name = gf_svg_get_attribute_name(n, att->tag);
 		}

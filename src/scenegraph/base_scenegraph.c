@@ -1619,6 +1619,7 @@ const char *gf_node_get_class_name(GF_Node *node)
 		u32 ns = gf_sg_get_namespace_code(node->sgprivate->scenegraph, NULL);
 		if (ns == full->ns) return full->name;
 		xmlns = (char *) gf_sg_get_namespace_qname(node->sgprivate->scenegraph, full->ns);
+		if (!xmlns) return full->name;
 		sprintf(node->sgprivate->scenegraph->szNameBuffer, "%s:%s", xmlns, full->name);
 		return node->sgprivate->scenegraph->szNameBuffer;
 	}
@@ -1871,7 +1872,7 @@ GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 	if (!sg->ns) sg->ns = gf_list_new();
 
 	GF_SAFEALLOC(ns, GF_XMLNS);
-	ns->xmlns_id = id ? id : GF_XMLNS_FOREIGN;
+	ns->xmlns_id = id ? id : gf_crc_32(name, strlen(name));
 	ns->name = strdup(name);
 
 	ns->qname = qname ? strdup(qname) : NULL;
@@ -1963,4 +1964,5 @@ const char *gf_sg_get_namespace(GF_SceneGraph *sg, u32 xmlns_id)
 	}
 	return NULL;
 }
+
 

@@ -633,26 +633,16 @@ GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, 
 			att = (GF_DOMFullAttribute *) att->next;
 		}
 		if (create_if_not_found) {
-			u32 ns;
 			GF_SAFEALLOC(att, GF_DOMFullAttribute);
 			att->data_type = (u16) DOM_String_datatype;
 			att->tag = (u16) TAG_DOM_ATT_any;
 			att->data = gf_svg_create_attribute_value(att->data_type);
 
-			if (strchr(name, ':')) ns = xmlns_code;
-			else ns = gf_xml_get_element_namespace(node);
-			if (ns==xmlns_code) {
-				att->name = strdup(name);
-			} else {
-				char szName[1024], *ns_name;
-				ns_name = (char *)gf_sg_get_namespace_qname(node->sgprivate->scenegraph, xmlns_code);
-				if (ns_name) {
-					sprintf(szName, "%s:%s", ns_name, name);
-					att->name = strdup(szName);
-				} else {
-					att->name = strdup(name);
-				}
-			}
+			att->name = strdup(name);
+			if (!xmlns_code)
+				att->xmlns = gf_xml_get_element_namespace(node);
+			else
+				att->xmlns = xmlns_code;
 
 			if (last_att) last_att->next = (SVGAttribute *)att;
 			else ((SVG_Element*)node)->attributes = (SVGAttribute *)att;

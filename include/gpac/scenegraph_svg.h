@@ -133,6 +133,7 @@ typedef struct __dom_base_attribute
 typedef struct __dom_full_attribute
 {
 	GF_DOM_BASE_ATTRIBUTE
+	u32 xmlns;
 	char *name; /*attribute name - in this case, the data field is the attribute literal value*/
 } GF_DOMFullAttribute;
 
@@ -167,9 +168,9 @@ enum
 	GF_XMLNS_SVG,
 	GF_XMLNS_XBL,
 
-	/*any unsupported namespace */
-	GF_XMLNS_FOREIGN,
+	/*any other namespace uses the CRC32 of the namespace as an identifier*/
 };
+
 GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname);
 GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *name, char *qname);
 u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname);

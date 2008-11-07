@@ -503,10 +503,13 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 
 	cursor_type = GF_CURSOR_NORMAL;
 	/*all mouse events*/
-	if (event->type<=GF_EVENT_MOUSEWHEEL) {
+	if ((event->type<=GF_EVENT_MOUSEWHEEL) 
+		// && (gf_node_get_dom_event_filter(gf_sg_get_root_node(compositor->scene)) & GF_DOM_EVENT_MOUSE)
+		) {
 		Fixed X = compositor->hit_world_point.x;
 		Fixed Y = compositor->hit_world_point.y;
 		if (compositor->hit_node) {
+			Bool hit_changed = 0;
 			GF_Node *current_use = gf_list_last(compositor->hit_use_stack);
 			cursor_type = compositor->sensor_type;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
@@ -516,26 +519,29 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 			evt.cancelable = 1;
 			evt.key_flags = compositor->key_states;
 
+			/*first check if the hit node is not the grab (previous) node - this may happen regardless of the
+			mouse actions (animations, ...)*/
+			if ((compositor->grab_node != compositor->hit_node) || (compositor->grab_use != current_use) ) {
+				/*mouse out*/
+				if (compositor->grab_node) {
+					evt.relatedTarget = compositor->hit_node;
+					evt.type = GF_EVENT_MOUSEOUT;
+					ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
+					/*prepare mouseOver*/
+					evt.relatedTarget = compositor->grab_node;
+				}
+				compositor->grab_node = compositor->hit_node;
+				compositor->grab_use = current_use;
+
+				/*mouse over*/
+				evt.type = GF_EVENT_MOUSEOVER;
+				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
+				hit_changed = 1;
+			}
 			switch (event->type) {
 			case GF_EVENT_MOUSEMOVE:
 				evt.cancelable = 0;
-				if ((compositor->grab_node != compositor->hit_node) || (compositor->grab_use != current_use) ) {
-					/*mouse out*/
-					if (compositor->grab_node) {
-						evt.relatedTarget = compositor->hit_node;
-						evt.type = GF_EVENT_MOUSEOUT;
-						ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
-						/*prepare mouseOver*/
-						evt.relatedTarget = compositor->grab_node;
-					}
-					compositor->grab_node = compositor->hit_node;
-					compositor->grab_use = current_use;
-
-					/*mouse over*/
-					evt.type = GF_EVENT_MOUSEOVER;
-					ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
-
-				} else {
+				if (!hit_changed) {
 					evt.type = GF_EVENT_MOUSEMOVE;
 					ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 				}

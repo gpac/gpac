@@ -294,11 +294,6 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 		free(stack);
 		return;
 	}
-	if (tr_state->traversing_mode==TRAVERSE_PICK) {
-		/*don't pick if no listeners*/
-		if (!tr_state->visual->compositor->editable_text && !(gf_node_get_dom_event_filter(node) & GF_DOM_EVENT_MOUSE) && !gf_list_count(tr_state->vrml_sensors) )
-			return;
-	}
 
 	prev_props = tr_state->svg_props;
 	/*SVG props not set: we are either the root-most <svg> of the compositor

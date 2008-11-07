@@ -256,7 +256,7 @@ static void dom_event_process(GF_Node *listen, GF_DOM_Event *event, GF_Node *obs
 	switch (hdl_node->sgprivate->tag) {
 	case TAG_SVG_handler:
 	{
-		GF_FieldInfo info;
+		//GF_FieldInfo info;
 		SVG_handlerElement *handler = (SVG_handlerElement *) hdl_node;
 		if (!handler->handle_event) return;
 
