@@ -387,6 +387,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		if (((SVG_StrokeDashArray*)value)->array.vals) free(((SVG_StrokeDashArray*)value)->array.vals);
 		free(value);
 		break;
+	case SVG_Numbers_datatype:
 	case SVG_Coordinates_datatype:
 	case SVG_Points_datatype:
 		l = *(GF_List**)value;

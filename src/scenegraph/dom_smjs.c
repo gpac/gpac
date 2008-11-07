@@ -42,7 +42,17 @@
 
 #include <jsapi.h> 
 
-
+JSBool js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp)
+{
+	*vp = JS_FALSE;
+	if (JSVAL_IS_OBJECT(val)) {
+		JSObject *p;
+		JSClass *js_class = JS_GET_CLASS(c, obj);
+		p = JSVAL_TO_OBJECT(val);
+		if (JS_InstanceOf(c, p, js_class, NULL) ) *vp = JS_TRUE;
+	}
+	return JS_TRUE;
+}
 
 static GFINLINE Bool ScriptAction(GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
 {
@@ -188,7 +198,7 @@ JSBool dom_throw_exception(JSContext *c, u32 code)
 GF_Node *dom_get_node(JSContext *c, JSObject *obj)
 {
 	GF_Node *n = JS_GetPrivate(c, obj);
-	if (n->sgprivate) return n;
+	if (n && n->sgprivate) return n;
 	return NULL;
 }
 
@@ -617,27 +627,29 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 	GF_SceneGraph *sg = NULL;
 	GF_DOMEventTarget *target = NULL;
 
-
+	/*get the scenegraph first*/
 	sg = dom_get_doc(c, obj);
-	if (sg) {
-		target = &sg->dom_evt;
-	} else {
+	if (!sg) {
 		if (vrml_node) {
 			node = vrml_node;
 		} else {
 			node = dom_get_element(c, obj);
 		}
-
-		if (node) {
-			sg = node->sgprivate->scenegraph;
-			if (node->sgprivate->interact) target = node->sgprivate->interact->dom_evt;
-		}
+		if (node) sg = node->sgprivate->scenegraph;
 	}
-	/*FIXME - SVG uDOM connection not supported yet*/
 
-	if (!sg || !target) return JS_TRUE;
-
+	if (!sg) return JS_TRUE;
+	/*flush all pending add_listener*/
 	gf_dom_listener_process_add(sg);
+	if (node) {
+		if (node->sgprivate->interact) target = node->sgprivate->interact->dom_evt;
+	} 
+	/*FIXME - SVG uDOM connection not supported yet*/
+	else {
+		target = &sg->dom_evt;
+	}
+	if (!target) return JS_TRUE;
+
 
 	if (argc==4) {
 		if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
@@ -951,6 +963,60 @@ static JSBool xml_node_is_same_node(JSContext *c, JSObject *obj, uintN argc, jsv
 	return JS_TRUE;
 }
 
+static const char *node_get_local_name(GF_Node *node)
+{
+	const char *res;
+	GF_List *l;
+	if (!node) return NULL;
+	l = node->sgprivate->scenegraph->ns;
+	node->sgprivate->scenegraph->ns = NULL;
+	res = gf_node_get_class_name(node);
+	node->sgprivate->scenegraph->ns = l;
+	return res;
+}
+
+static const char *node_lookup_namespace_by_tag(GF_Node *node, u32 tag)
+{
+	/*browse attributes*/
+	GF_DOMAttribute *att;
+	if (!node) return NULL;
+	att = ((SVG_Element*)node)->attributes;
+	while (att) {
+		if (att->tag==TAG_DOM_ATT_any) {
+			GF_DOMFullAttribute *datt = (GF_DOMFullAttribute*)att;
+			if (datt->name && !strncmp(datt->name, "xmlns", 5)) {
+				char *xmlns = *(DOM_String *) datt->data;
+				u32 crc = gf_crc_32(xmlns, strlen(xmlns));
+				if (tag==crc) return xmlns;
+			}
+		}
+		att = att->next;
+	}
+	/*browse for parent*/
+	return node_lookup_namespace_by_tag(gf_node_get_parent(node, 0), tag);
+}
+
+static u32 get_namespace_code_by_prefix(GF_Node *node, char *prefix)
+{
+	/*browse attributes*/
+	GF_DOMAttribute *att;
+	if (!node) return 0;
+	att = ((SVG_Element*)node)->attributes;
+	while (att) {
+		if (att->tag==TAG_DOM_ATT_any) {
+			GF_DOMFullAttribute *datt = (GF_DOMFullAttribute*)att;
+			if (!prefix) {
+				if (!strcmp(datt->name, "xmlns")) return datt->xmlns;
+			} else if (!strncmp(datt->name, "xmlns:", 6)) {
+				if (!strcmp(datt->name+6, prefix)) return datt->xmlns;
+			}
+		}
+		att = att->next;
+	}
+	/*browse for parent*/
+	return get_namespace_code_by_prefix(gf_node_get_parent(node, 0), prefix);
+}
+
 static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	u32 tag;
@@ -1058,13 +1124,14 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		return JS_TRUE;
 	/*"namespaceURI"*/
 	case 11:
-		if (sg) tag = gf_sg_get_namespace_code(sg, NULL);
-		else tag = gf_xml_get_element_namespace(n);
-		if (tag) {
-			char *xmlns = (char *)gf_sg_get_namespace(sg ? sg : n->sgprivate->scenegraph, tag);
-			*vp = xmlns ? STRING_TO_JSVAL( JS_NewStringCopyZ(c, xmlns) ) : JSVAL_VOID;
-		} else {
-			*vp = JSVAL_NULL;
+		*vp = JSVAL_NULL;
+		if (!sg) {
+			tag = gf_xml_get_element_namespace(n);
+			if (tag) {
+				const char *xmlns = gf_sg_get_namespace(n->sgprivate->scenegraph, tag);
+				if (!xmlns) xmlns = node_lookup_namespace_by_tag(n, tag);
+				*vp = xmlns ? STRING_TO_JSVAL( JS_NewStringCopyZ(c, xmlns) ) : JSVAL_VOID;
+			}
 		}
 		return JS_TRUE;
 	/*"prefix"*/
@@ -1081,7 +1148,7 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	case 13:
 		*vp = JSVAL_NULL;
 		if (!sg && (tag!=TAG_DOMText)) {
-			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_node_get_class_name(n) ) );
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, node_get_local_name(n) ) );
 		}
 		return JS_TRUE;
 	/*"baseURI"*/
@@ -1447,8 +1514,13 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 	} else if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
 		GF_FieldInfo info;
 		u32 ns_code = 0;
-		if (ns) ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
-		else ns_code = gf_sg_get_namespace_code(n->sgprivate->scenegraph, NULL);
+		if (ns) {
+			ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
+			if (!ns_code) ns_code = gf_crc_32(ns, strlen(ns));
+		}
+		else {
+			ns_code = gf_xml_get_element_namespace(n);
+		}
 
 		if (gf_node_get_attribute_by_name(n, name, ns_code, 0, 0, &info)==GF_OK) {
 			char szAtt[4096];
@@ -1683,8 +1755,11 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 	if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
 		GF_FieldInfo info;
 		u32 ns_code = 0;
-		if (ns) ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
-		else ns_code = gf_sg_get_namespace_code(n->sgprivate->scenegraph, NULL);
+		if (ns) {
+			ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
+		} else {
+			ns_code = gf_xml_get_element_namespace(n);
+		}
 		if (gf_node_get_attribute_by_name(n, name, ns_code,  1, 1, &info)==GF_OK) {
 			gf_svg_parse_attribute(n, &info, val, 0);
 

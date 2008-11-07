@@ -575,7 +575,7 @@ static void gf_smil_reorder_anim(SMIL_Timing_RTI *rti)
    -2 means that the timed element is waiting to begin,
    -3 means that the timed element is active but does not need further notifications (set without dur) 
              but still requires a rendering traversal */
-s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
+s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double in_scene_time)
 {
 	s32 ret = 0;
 	GF_DOM_Event evt;
@@ -586,8 +586,8 @@ s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 
 	/* if the scene time is the same as it was during the previous notification, it means that the 
 	   animations are paused and we don't need to evaluate it again unless the force_reevaluation flag is set */
-	if ((rti->scene_time == scene_time) && (rti->force_reevaluation == 0)) return 0;
-	rti->scene_time = scene_time;
+	if ((rti->scene_time == in_scene_time) && (rti->force_reevaluation == 0)) return 0;
+	if (!rti->paused) rti->scene_time = in_scene_time;
 	rti->force_reevaluation = 0;
 
 	/* for fraction events, in all cases we indicate that the scene needs redraw */
@@ -607,7 +607,7 @@ s32 gf_smil_timing_notify_time(SMIL_Timing_RTI *rti, Double scene_time)
 
 waiting_to_begin:
 	if (rti->status == SMIL_STATUS_WAITING_TO_BEGIN) {
-		if (rti->current_interval->begin != -1 && scene_time >= rti->current_interval->begin) {			
+		if (rti->current_interval->begin != -1 && rti->scene_time >= rti->current_interval->begin) {			
 			/* if there is a computed interval with a definite begin value 
 			   and if that value is lesser than the scene time, then the animation becomes active */
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Activating\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
@@ -637,7 +637,7 @@ waiting_to_begin:
 		u32 cur_id;
 
 		if (rti->current_interval->active_duration >= 0 
-			&& scene_time >= (rti->current_interval->begin + rti->current_interval->active_duration)) {
+			&& rti->scene_time >= (rti->current_interval->begin + rti->current_interval->active_duration)) {
 force_end:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Stopping \n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			memset(&evt, 0, sizeof(evt));
@@ -646,7 +646,7 @@ force_end:
 			evt.smil_event_time = rti->current_interval->begin + rti->current_interval->active_duration;
 			gf_dom_event_fire((GF_Node *)rti->timed_elt, &evt);
 
-			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time, NULL);
+			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, rti->scene_time, NULL);
 			ret = rti->postpone;
 
 			if (timingp->fill && *timingp->fill == SMIL_FILL_FREEZE) {
@@ -670,9 +670,9 @@ force_end:
 			if (!timingp->restart || *timingp->restart == SMIL_RESTART_ALWAYS) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Checking for restart (always)\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			
-				if (rti->next_interval->begin != -1 && rti->next_interval->begin < scene_time) {
+				if (rti->next_interval->begin != -1 && rti->next_interval->begin < rti->scene_time) {
 					*rti->current_interval = *rti->next_interval;
-					gf_smil_timing_get_next_interval(rti, 0, rti->next_interval, scene_time);
+					gf_smil_timing_get_next_interval(rti, 0, rti->next_interval, rti->scene_time);
 
 					/* mark that this element has been modified and 
 					   need to be reinserted at its proper place in the list of timed elements in the scenegraph */
@@ -692,7 +692,7 @@ force_end:
 			ret = rti->postpone;
 			
 			cur_id = rti->current_interval->nb_iterations;
-			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, scene_time, &force_end);
+			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, rti->scene_time, &force_end);
 			if (force_end) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Forcing end (fill or remove)\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 				goto force_end;
@@ -746,7 +746,7 @@ force_end:
 					*rti->current_interval = *rti->next_interval;
 				
 					gf_smil_timing_print_interval(rti, 1, rti->current_interval);
-					gf_smil_timing_get_next_interval(rti, 0, rti->next_interval, scene_time);
+					gf_smil_timing_get_next_interval(rti, 0, rti->next_interval, rti->scene_time);
 
 					/* mark that this element has been modified and 
 					   need to be reinserted at its proper place in the list of timed elements in the scenegraph */
@@ -1000,11 +1000,26 @@ void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock)
 	gf_node_changed(elt, NULL);
 }
 
+void gf_smil_timing_pause(GF_Node *node)
+{
+	if (node && ((SVGTimedAnimBaseElement *)node)->timingp  && ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
+		SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
+		if (rti->status<=SMIL_STATUS_ACTIVE) rti->paused = 1;
+	}
+}
+
+void gf_smil_timing_resume(GF_Node *node)
+{
+	if (node && ((SVGTimedAnimBaseElement *)node)->timingp  && ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
+		SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
+		rti->paused = 0;
+	}
+}
 
 void gf_smil_set_evaluation_callback(GF_Node *node, 
 									 void (*smil_evaluate)(struct _smil_timing_rti *rti, Fixed normalized_simple_time, u32 state))
 {
-	if (node && ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
+	if (node && ((SVGTimedAnimBaseElement *)node)->timingp  && ((SVGTimedAnimBaseElement *)node)->timingp->runtime) {
 		SMIL_Timing_RTI *rti = ((SVGTimedAnimBaseElement *)node)->timingp->runtime;
 		rti->evaluate = smil_evaluate;
 	}

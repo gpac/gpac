@@ -317,9 +317,6 @@ struct __tag_compositor
 	u32 num_clicks;
 #endif
 
-	/*set to true if some edit text is found*/
-	Bool editable_text;
-
 	/*a dedicated drawable for focus highlight */
 	struct _drawable *focus_highlight;
 	/*highlight fill and stroke colors (ARGB)*/
@@ -712,8 +709,8 @@ struct _traversing_state
 
 	/* text & tspan state*/
 	GF_List *x_anchors;
-	SVG_Coordinates *text_x, *text_y;
-	u32 count_x, count_y;
+	SVG_Coordinates *text_x, *text_y, *text_rotate;
+	u32 count_x, count_y, count_rotate, idx_rotate;
 
 	/* textArea state*/
 	Fixed max_length, max_height;
@@ -1108,7 +1105,7 @@ typedef struct __text_span
 	Fixed off_x, off_y;
 
 	/*per-glyph positioning - when allocated, this is the same number as the glyphs*/
-	Fixed *dx, *dy;
+	Fixed *dx, *dy, *rot;
 
 	/*span language*/
 //	const char *lang;
@@ -1127,7 +1124,7 @@ void gf_font_manager_del(GF_FontManager *fm);
 GF_Font *gf_font_manager_set_font(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles);
 GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 nb_fonts, u32 styles, Bool check_only);
 
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *lang, Bool fliped_text, u32 styles, GF_Node *user);
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *span, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, Bool needs_rotate, const char *lang, Bool fliped_text, u32 styles, GF_Node *user);
 void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *tspan);
 
 GF_Err gf_font_manager_register_font(GF_FontManager *fm, GF_Font *font);

@@ -158,7 +158,8 @@ void svg_clone_use_stack(GF_Compositor *compositor, GF_TraverseState *tr_state)
 	count = gf_list_count(tr_state->use_stack);
 	gf_list_reset(compositor->hit_use_stack);
 	for (i=0; i<count; i++) {
-		gf_list_add(compositor->hit_use_stack, gf_list_get(tr_state->use_stack, i));
+		GF_Node *node = gf_list_get(tr_state->use_stack, i);
+		gf_list_add(compositor->hit_use_stack, node);
 	}
 }
 

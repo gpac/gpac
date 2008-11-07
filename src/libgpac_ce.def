@@ -36,6 +36,8 @@ EXPORTS
 	gf_realloc
 	gf_free
 	gf_strdup
+	gf_crc_32
+
 
 ;array.h exports
 	gf_list_new

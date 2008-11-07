@@ -691,9 +691,6 @@ GF_Config *loadconfigfile(char *filepath)
 	strcpy(szPath, ".");
 	cfg = gf_cfg_new(szPath, "GPAC.cfg");
 	if (cfg) goto success;
-	strcpy(szPath, "C:\\Program Files\\GPAC");
-	cfg = gf_cfg_new(szPath, "GPAC.cfg");
-	if (cfg) goto success;
 	strcpy(szPath, ".");
 	cfg = gf_cfg_new(szPath, "GPAC.cfg");
 	if (cfg) goto success;

@@ -334,7 +334,7 @@ static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 }
 
 
-GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, const char *xml_lang, Bool fliped_text, u32 styles, GF_Node *user)
+GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, Bool needs_rotate, const char *xml_lang, Bool fliped_text, u32 styles, GF_Node *user)
 {
 	GF_Err e;
 	u32 len, i;
@@ -379,6 +379,10 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 		span->dy = malloc(sizeof(Fixed)*len);
 		memset(span->dy, 0, sizeof(Fixed)*len);
 	}
+	if (needs_rotate) {
+		span->rot = malloc(sizeof(Fixed)*len);
+		memset(span->rot, 0, sizeof(Fixed)*len);
+	}
 	
 	for (i=0; i<len; i++) {
 		span->glyphs[i] = gf_font_get_glyph(fm, font, fm->id_buffer[i]);
@@ -418,6 +422,7 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 	free(span->glyphs);
 	if (span->dx) free(span->dx);
 	if (span->dy) free(span->dy);
+	if (span->rot) free(span->rot);
 
 	if (span->ext) {
 		if (span->ext->path) gf_path_del(span->ext->path);
@@ -439,7 +444,7 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 {
 	u32 i;
-	Fixed size, descent, ascent;
+	Fixed descent, ascent, bline;
 	Fixed min_x, min_y, width, max_y;
 
 	if (!span->nb_glyphs) {
@@ -457,58 +462,61 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 		descent = tmp;
 	}
 
-	width = (span->flags	& GF_TEXT_SPAN_HORIZONTAL) ? 0 : span->font->max_advance_h*span->font_scale;
+	bline = span->font->baseline * span->font_scale;
+
+	width = (span->flags & GF_TEXT_SPAN_HORIZONTAL) ? 0 : span->font->max_advance_h*span->font_scale;
 
 	min_x = span->dx ? FIX_MAX : span->off_x;
 	min_y = span->dy ? FIX_MAX : span->off_y - descent;
 	max_y = span->dy ? -FIX_MAX : span->off_y + ascent;
 
+	/*adjust start_x for first glyph*/
+	if (span->glyphs[0] && span->glyphs[0]->path) {
+		min_x += gf_mulfix(span->glyphs[0]->path->bbox.x, span->font_scale);
+	}
+	span->bounds = gf_rect_center(0, 0);
+
 	for (i=0;i<span->nb_glyphs; i++) {
-		size = 0;
-		if (!i && span->glyphs[i] && span->glyphs[i]->path) {
-			min_x += gf_mulfix(span->glyphs[i]->path->bbox.x, span->font_scale);
-		}
+		Fixed g_width;
+		GF_Rect rc;
+
+		/*compute glyph size*/
+		if (!span->glyphs[i]) g_width = span->font->max_advance_h * span->font_scale;
 		/*if last glyph of the span, increase by width only*/
-		if (i+1==span->nb_glyphs) {
-			size += (span->glyphs[i] ? span->glyphs[i]->width: span->font->max_advance_h) * span->font_scale;
-		}
+		else if (i+1==span->nb_glyphs) g_width = span->glyphs[i]->width * span->font_scale;
 		/*otherwise increase by the horizontal advance*/
-		else {
-			size += (span->glyphs[i] ? span->glyphs[i]->horiz_advance : span->font->max_advance_h) * span->font_scale;
-		}
-		if (span->dx) {
-			if (span->dx[i]<min_x) {
-				if (i) width += min_x-span->dx[i];
-				min_x = span->dx[i];
-			}
-			if (span->dx[i] + size > width + min_x) width = span->dx[i] + size - min_x;
-		} else if (span->flags & GF_TEXT_SPAN_HORIZONTAL) {
-			width += size;
-		}
+		else g_width = span->glyphs[i]->horiz_advance * span->font_scale;
+
 		if (span->dy) {
-			if (span->dy[i] - ascent < min_y) min_y = span->dy[i] - descent;
-			if (span->dy[i] + descent > max_y) max_y = span->dy[i] + ascent;
+			if (span->dy[i] - descent < min_y) min_y = span->dy[i] - descent;
+			if (span->dy[i] + ascent > max_y) max_y = span->dy[i] + ascent;
 		} 
 		else if (span->glyphs[i]) {
-			size = span->glyphs[i]->height * span->font_scale;
+			Fixed size = span->glyphs[i]->height * span->font_scale;
 			if (size > max_y-min_y) max_y = size + min_y;
 		}
-	}
-	span->bounds.x = min_x;
-	span->bounds.width = width;
 
-	span->bounds.y = max_y;
-/*	if (span->font->descent<0) {
-		span->bounds.y += height - span->font->ascent*span->font_scale;
-	}
-*/
-	span->bounds.height = max_y - min_y;
-	if (span->font->baseline) {
-		Fixed bline = span->font->baseline * span->font_scale;
-		span->bounds.y += bline;
-		span->bounds.height += bline;
+		if (span->dx) {
+			rc.x = span->dx[i];
+		} else {
+			rc.x = min_x;
+			if (span->flags & GF_TEXT_SPAN_HORIZONTAL)
+				min_x += g_width;
+		}
+		rc.y = span->dy ? span->dy[i] + ascent : max_y;
+		rc.width = g_width;
+		rc.height = max_y - min_y;
+
+		if (span->rot) {
+			GF_Matrix2D tr;
+			gf_mx2d_init(tr);
+			gf_mx2d_add_rotation(&tr, rc.x, rc.y - ascent - bline, span->rot[i]);
+			gf_mx2d_apply_rect(&tr, &rc);
+		}
+		gf_rect_union(&span->bounds, &rc);
 	}
 }
+
 
 
 
@@ -538,8 +546,16 @@ GF_Path *gf_font_span_create_path(GF_TextSpan *span)
 			if (span->dx) dx = gf_divfix(span->dx[i], mat.m[0]);
 			if (span->dy) dy = gf_divfix(span->dy[i], mat.m[4]);
 
-			if (span->glyphs[i]->utf_name != ' ')
-				gf_path_add_subpath(path, span->glyphs[i]->path, dx, dy);
+
+			if (span->glyphs[i]->utf_name != ' ') {
+				GF_Matrix2D mx;
+				gf_mx2d_init(mx);
+				if (span->rot) {
+					gf_mx2d_add_rotation(&mx, 0, 0, -span->rot[i]);
+				}
+				gf_mx2d_add_translation(&mx, dx, dy);
+				gf_path_add_subpath(path, span->glyphs[i]->path, &mx);
+			}
 
 			if (span->flags & GF_TEXT_SPAN_HORIZONTAL) {
 				dx += INT2FIX(span->glyphs[i]->horiz_advance);
@@ -944,6 +960,10 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 		ctx->transform.m[2] = span->dx ? span->dx[i] : dx;
 		ctx->transform.m[5] = span->dy ? span->dy[i] : dy;
 		ctx->transform.m[5] += bline;
+		if (span->rot) {
+			gf_mx2d_add_rotation(&ctx->transform, ctx->transform.m[2], ctx->transform.m[5], span->rot[i]);
+		}
+
 		gf_mx2d_add_matrix(&ctx->transform, &mx);
 
 		if (needs_texture) {
@@ -953,6 +973,9 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 			tx.m[2] = span->dx ? span->dx[i] : dx;
 			tx.m[5] = span->dy ? span->dy[i] : dy;
 			tx.m[5] += bline;
+			if (span->rot) {
+				gf_mx2d_add_rotation(&tx, tx.m[2], tx.m[5], span->rot[i]);
+			}
 			gf_mx2d_inverse(&tx);
 
 			visual_2d_texture_path_extended(tr_state->visual, span->glyphs[i]->path, ctx->aspect.fill_texture, ctx, bounds ? bounds : &span->bounds, &tx, tr_state);
@@ -1053,6 +1076,7 @@ static GF_Rect font_get_sel_rect(GF_TraverseState *tr_state)
 
 static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, DrawableContext *ctx, Bool has_more_spans, Bool first_span, GF_Rect *rc)
 {
+	GF_Matrix2D mx;
 	u32 flags, i, color;
 	Bool has_selection = 0;
 	Fixed dx, dy, sx, sy, width, ascent, descent;
@@ -1076,6 +1100,7 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 		width = ctx->aspect.pen_props.width;
 		ctx->aspect.pen_props.width = 0;
 		flags = ctx->flags;
+		gf_mx2d_copy(mx, ctx->transform);
 	}
 
 	/*compute sel rectangle*/
@@ -1084,7 +1109,7 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 	}
 
 	color = compositor->text_sel_color;
-
+	
 	for (i=0; i<span->nb_glyphs; i++) {
 		GF_Rect g_rc;
 		Bool end_of_line = 0;
@@ -1143,9 +1168,13 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 			continue;
 		} 
 */				
-
 		has_selection = 1;
 		if (ctx) {
+			if (span->rot) {
+				gf_mx2d_init(ctx->transform);
+				gf_mx2d_add_rotation(&ctx->transform, g_rc.x , g_rc.y, span->rot[i]);
+				gf_mx2d_add_matrix(&ctx->transform, &mx);
+			}
 			visual_2d_fill_rect(tr_state->visual, ctx, &g_rc, color, 0, tr_state);
 			ctx->flags = flags;
 			compositor->store_text_state = GF_SC_TSEL_ACTIVE;
@@ -1161,7 +1190,10 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 
 		dx += advance;
 	}
-	if (ctx) ctx->aspect.pen_props.width = width;
+	if (ctx) {
+		gf_mx2d_copy(ctx->transform, mx);
+		ctx->aspect.pen_props.width = width;
+	}
 	if (has_selection && has_more_spans && dy<rc->y) {
 		rc->width = rc->width+rc->x - span->bounds.x;
 		rc->x = span->bounds.x;
@@ -1313,6 +1345,13 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 
 			gf_path_get_bounds(span->glyphs[j]->path, &rc);
 			rc.height = INT2FIX(span->font->ascent + span->font->descent);
+
+			if (0&&span->rot) {
+				GF_Matrix2D r;
+				gf_mx2d_init(r);
+				gf_mx2d_add_rotation(&r, 0, 0, span->rot[i]);
+				gf_mx2d_apply_coords(&r, &loc_x, &loc_y);
+			}
 
 			if (use_dom_events) {
 				if (svg_drawable_is_over(drawable, loc_x, loc_y, &asp, tr_state, &rc))

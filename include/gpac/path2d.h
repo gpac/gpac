@@ -289,18 +289,16 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
  */
 GF_Err gf_path_add_arc(GF_Path *gp, Fixed radius, Fixed start_angle, Fixed end_angle, u32 close_type);
 
-
 /*!
  *	\brief concatenates path
  *
- *	Adds a sub-path to the path.
+ *	Adds a sub-path to the path with a given transform.
  *	\param gp the target path
  *	\param subpath the path to add
- *	\param off_x Horizontal offset of subpath 
- *	\param off_y Vertical offset of subpath 
+ *	\param mat Matrix for subpath 
  *	\return error code if any error, \ref GF_OK otherwise
  */
-GF_Err gf_path_add_subpath(GF_Path *gp, GF_Path *subpath, Fixed off_x, Fixed off_y);
+GF_Err gf_path_add_subpath(GF_Path *gp, GF_Path *subpath, GF_Matrix2D *mx);
 /*!
  *	\brief gets path control bounds
  *

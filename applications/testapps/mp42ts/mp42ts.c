@@ -249,7 +249,7 @@ MP42TS_Buffer *encodeSDT(GF_List *prog_list, char *provider_name, u32 provider_n
 		// descriptor loop end
 	}
 	// crc //
-	CRC = gf_m2ts_crc32(B->data,B->length-4); 
+	CRC = gf_crc_32(B->data,B->length-4); 
 	B->data[B->length-4] = (CRC >> 24) & 0xFF;
 	B->data[B->length-3] = (CRC >> 16) & 0xFF;
 	B->data[B->length-2] = (CRC >> 8) & 0xFF;

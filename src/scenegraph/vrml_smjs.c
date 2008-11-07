@@ -43,6 +43,7 @@
 void gf_sg_script_to_node_field(struct JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
 jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool no_cache, Bool force_evaluate);
 
+JSBool js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp);
 
 #define _ScriptMessage(_c, _e, _msg) {	\
 		GF_Node *_n = (GF_Node *) JS_GetContextPrivate(_c);	\

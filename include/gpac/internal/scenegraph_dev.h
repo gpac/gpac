@@ -521,6 +521,7 @@ struct _smil_timing_rti
 	/* simulated normalized simple time */
 	Fixed fraction;
 
+	Bool paused;
 	Double media_duration;
 
 	/* shortcut when this rti corresponds to an animation */
@@ -871,8 +872,8 @@ struct _scriptfield
 	the_class.enumerate = JS_EnumerateStub;	\
 	the_class.resolve = JS_ResolveStub;		\
 	the_class.convert = JS_ConvertStub;		\
-	the_class.finalize = fin;	
-
+	the_class.finalize = fin;	\
+	the_class.hasInstance = js_has_instance;
 
 typedef struct
 {
