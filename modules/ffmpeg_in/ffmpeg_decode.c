@@ -253,7 +253,9 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		case CODEC_ID_MJPEG:
 		case CODEC_ID_MJPEGB:
 		case CODEC_ID_LJPEG:
+#if (LIBAVCODEC_VERSION_INT > ((51<<16)+(20<<8)+0) )
 		case CODEC_ID_GIF:
+#endif
 			ffd->pix_fmt = GF_PIXEL_RGB_24; 
 			break;
 		case CODEC_ID_DVD_SUBTITLE:
