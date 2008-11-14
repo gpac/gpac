@@ -769,7 +769,8 @@ force_end:
 					rti->status = SMIL_STATUS_WAITING_TO_BEGIN;
 				}
 			} else {
-				ret = 0;
+				/*??? what is this ???*/
+				//ret = 0;
 			}
 		} else if ((rti->status == SMIL_STATUS_DONE) && 
 			        timingp->restart && (*timingp->restart == SMIL_RESTART_NEVER)) {

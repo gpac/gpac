@@ -1039,6 +1039,10 @@ void compositor_svg_traverse_children(GF_ChildNodeItem *children, GF_TraverseSta
 
 Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttributes *all_atts);
 
+/*returns the node associated with the given xlink - this is not always the target node of the xlink structure due
+to async restart of animation nodes*/
+GF_Node *compositor_svg_get_xlink_resource_node(GF_Node *node, XMLRI *xlink);
+
 #endif
 
 /*Text handling*/

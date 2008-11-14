@@ -781,6 +781,19 @@ static Bool is_timing_target(GF_Node *n)
 	return 0;
 }
 
+static void svg_a_set_view(GF_Node *handler, GF_Compositor *compositor, const char *url)
+{
+	gf_inline_set_fragment_uri(handler, url);
+	/*force recompute viewbox of root SVG - FIXME in full this should be the parent svg*/
+	gf_node_dirty_set(gf_sg_get_root_node(gf_node_get_graph(handler)), 0, 0);
+
+	compositor->trans_x = compositor->trans_y = 0;
+	compositor->rotation = 0;
+	compositor->zoom = FIX_ONE;
+	compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, 0); 				
+	gf_sc_invalidate(compositor, NULL);
+}
+
 static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *observer)
 {
 	GF_Compositor *compositor;
@@ -836,9 +849,14 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 				return;
 			}
 			all_atts.xlink_href->target = gf_sg_find_node_by_name(gf_node_get_graph(handler), (char *) evt.navigate.to_url+1);
-			free((char *)evt.navigate.to_url);
-			if (all_atts.xlink_href->target)
+			if (all_atts.xlink_href->target) {
 				all_atts.xlink_href->type = XMLRI_ELEMENTID;
+				free((char *)evt.navigate.to_url);
+			} else {
+				svg_a_set_view(handler, compositor, evt.navigate.to_url + 1);
+				free((char *)evt.navigate.to_url);
+				return;
+			}
 		}
 	}
 	if (!all_atts.xlink_href->target) {
@@ -850,15 +868,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 	} 
 	/*this is an implicit SVGView event*/
 	else {
-		gf_inline_set_fragment_uri(handler, gf_node_get_name(all_atts.xlink_href->target));
-		/*force recompute viewbox of root SVG - FIXME in full this should be the parent svg*/
-		gf_node_dirty_set(gf_sg_get_root_node(gf_node_get_graph(handler)), 0, 0);
-
-		compositor->trans_x = compositor->trans_y = 0;
-		compositor->rotation = 0;
-		compositor->zoom = FIX_ONE;
-		compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, 0); 				
-		gf_sc_invalidate(compositor, NULL);
+		svg_a_set_view(handler, compositor, gf_node_get_name(all_atts.xlink_href->target));
 	}
 }
 
@@ -1083,6 +1093,13 @@ static void svg_animation_smil_update(GF_Node *node, SVGlinkStack *stack, Fixed 
 	}
 }
 
+static void svg_reset_xlink_target(GF_Node *node)
+{
+	SVGAllAttributes all_atts;
+	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+	if (all_atts.xlink_href) all_atts.xlink_href->target=NULL;
+}
+
 static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
 {
 	GF_Node *node = gf_smil_get_element(rti);
@@ -1099,6 +1116,7 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 		break;
 	case SMIL_TIMING_EVAL_REMOVE:
 		if (stack->resource) {
+			svg_reset_xlink_target(node);
 			gf_mo_unload_xlink_resource(node, stack->resource);
 			stack->resource = NULL;
 			stack->fragment_id = NULL;
@@ -1107,7 +1125,12 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 		}
 		break;
 	case SMIL_TIMING_EVAL_REPEAT:
-		if (stack->resource) gf_mo_restart(stack->resource);
+		if (stack->resource) {
+			svg_reset_xlink_target(node);
+			stack->fragment_id = NULL;
+			stack->inline_sg = NULL;
+			gf_mo_restart(stack->resource);
+		}
 		break;
 	}
 }
@@ -1208,8 +1231,6 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (stack->inline_sg) {
 		gf_sc_traverse_subscene(tr_state->visual->compositor, node, stack->inline_sg, tr_state);
-
-		if (!all_atts.xlink_href->target) all_atts.xlink_href->target = gf_sg_get_root_node(stack->inline_sg);
 	}
 
 	if (stack->init_vis_state == 2) {
@@ -1265,6 +1286,22 @@ void compositor_init_svg_foreign_object(GF_Compositor *compositor, GF_Node *node
 	gf_node_set_callback_function(node, svg_traverse_foreign_object);
 	/*force first processing of xlink-href*/
 	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+}
+
+GF_Node *compositor_svg_get_xlink_resource_node(GF_Node *node, XMLRI *xlink)
+{
+	SVGlinkStack *stack;
+	switch (gf_node_get_tag(node)) {
+	case TAG_SVG_animation:
+		stack = gf_node_get_private(node);
+		return gf_sg_get_root_node(stack->inline_sg);
+	case TAG_SVG_use:
+		stack = gf_node_get_private(node);
+		if (stack->fragment_id)
+			return gf_sg_find_node_by_name(stack->inline_sg, (char *) stack->fragment_id+1);
+		return xlink ? xlink->target : NULL;
+	}
+	return NULL;
 }
 
 #endif
