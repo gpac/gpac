@@ -219,6 +219,7 @@ void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo)
 			gf_odm_disconnect(mo->odm, 1);
 		}
 	}
+
 	/*ODM may be destroyed at this point !!*/
 	if (mo->odm) gf_odm_lock(mo->odm, 0);
 }

@@ -2660,9 +2660,8 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		info.fieldType = att->data_type;
 		if (att->tag==TAG_DOM_ATT_any) {
 			u32 att_ns = ((GF_DOMFullAttribute*)att)->xmlns;
-			if (att_ns == ns) {
-				info.name = ((GF_DOMFullAttribute*)att)->name;
-			} else {
+			info.name = ((GF_DOMFullAttribute*)att)->name;
+			if ((att_ns != ns) && strncmp(info.name, "xmlns", 5)) {
 				sprintf(attName, "%s:%s", gf_sg_get_namespace_qname(gf_node_get_graph(n), att_ns), ((GF_DOMFullAttribute*)att)->name);
 				info.name = attName;
 			}

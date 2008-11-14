@@ -1149,10 +1149,10 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		if (atts.xlink_href) {
 			switch (tag) {
 			case TAG_SVG_use:
-				use_node = atts.xlink_href->target;
+				use_node = compositor_svg_get_xlink_resource_node(elt, atts.xlink_href);
 				break;
 			case TAG_SVG_animation:
-				anim_node = atts.xlink_href->target;
+				anim_node = compositor_svg_get_xlink_resource_node(elt, atts.xlink_href);
 				break;
 			}
 		}

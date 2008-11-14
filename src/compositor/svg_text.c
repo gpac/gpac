@@ -420,8 +420,11 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 			i++;
 		}
 
+		/* word doesn't fit on line, escape*/
+		if (!word_size) break;
+
 		if (tr_state->text_end_x + word_size > tr_state->max_length) {
-			/* if the word doesn fit on line, escape*/
+			/* if the word doesn't fit on line, escape*/
 			if (word_size > tr_state->max_length) {
 				word_start=break_glyph;
 				break;
@@ -657,7 +660,7 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 
 		offset = x_anchor + x - (span->dx ? span->dx[i] : span->off_x);
 
-		if (!span->dx && tr_state->text_x) span->off_x = x_anchor + x;
+		if (!span->dx && (tr_state->text_x || x_anchor)) span->off_x = x_anchor + x;
 		if (!span->dy && tr_state->text_y) span->off_y = y;
 
 		block_width = 0;

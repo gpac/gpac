@@ -382,7 +382,8 @@ check_unit:
 
 	/*lock scene*/
 	if (!scene_locked) {
-		gf_term_lock_compositor(codec->odm->term, 1);
+		if (!gf_mx_try_lock(codec->odm->term->compositor->mx)) return GF_OK;
+		//gf_term_lock_compositor(codec->odm->term, 1);
 		scene_locked = 1;
 		/*if terminal is paused, force step-mode: it won't hurt in regular pause/play and ensures proper frame dumping*/
 		if (codec->odm->term->play_state) codec->odm->term->compositor->step_mode=1;
@@ -459,9 +460,11 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	/*init channel clock*/
 	if (!ch->IsClockInit) {
 		Bool started;
-		gf_es_init_dummy(ch);
 		/*signal seek*/
-		gf_term_lock_compositor(codec->odm->term, 1);
+		if (!gf_mx_try_lock(codec->odm->term->compositor->mx)) return GF_OK;
+		//gf_term_lock_compositor(codec->odm->term, 1);
+		gf_es_init_dummy(ch);
+
 		sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, -1, GF_CODEC_LEVEL_NORMAL);
 		gf_term_lock_compositor(codec->odm->term, 0);
 		started = gf_clock_is_started(ch->clock);
@@ -476,7 +479,9 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	/*lock scene*/
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[PrivateDec] Codec %s Processing at %d\n", sdec->module_name , codec->odm->current_time));
-	gf_term_lock_compositor(codec->odm->term, 1);
+
+	//gf_term_lock_compositor(codec->odm->term, 1);
+	if (!gf_mx_try_lock(codec->odm->term->compositor->mx)) return GF_OK;
 	now = gf_term_get_time(codec->odm->term);
 	e = sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
 	now = gf_term_get_time(codec->odm->term) - now;

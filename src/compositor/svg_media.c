@@ -30,6 +30,7 @@
 
 
 static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status, GF_Node *audio, GF_Node *video);
+static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGPropertiesPointers *props);
 
 
 typedef struct
@@ -373,11 +374,10 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 		}
 	}
+	if (stack->audio) svg_traverse_audio_ex(stack->audio, rs, 0, tr_state->svg_props);
+
 	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
 	tr_state->svg_flags = backup_flags;
-
-	if (stack->audio) gf_node_traverse(stack->audio, rs);
-
 }
 
 /*********************/
@@ -625,11 +625,11 @@ static void svg_audio_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 }
 
 
-static void svg_traverse_audio(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGPropertiesPointers *props)
 {
 	SVGAllAttributes all_atts;
 	SVGPropertiesPointers backup_props;
-	u32 backup_flags;
+	u32 backup_flags, restore;
 	GF_TraverseState *tr_state = (GF_TraverseState*)rs;
 	SVG_audio_stack *stack = (SVG_audio_stack *)gf_node_get_private(node);
 
@@ -644,9 +644,14 @@ static void svg_traverse_audio(GF_Node *node, void *rs, Bool is_destroy)
 		gf_sc_audio_register(&stack->input, (GF_TraverseState*)rs);
 	}
 
-	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
-	if (!compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags))
-		return;
+	restore = 0;
+	if (!props) {
+		restore = 1;
+		gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+		if (!compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags))
+			return;
+		props = tr_state->svg_props;
+	}
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
 		gf_term_get_mfurl_from_xlink(node, &(stack->aurl));
@@ -656,16 +661,22 @@ static void svg_traverse_audio(GF_Node *node, void *rs, Bool is_destroy)
 	/*store mute flag*/
 	stack->input.is_muted = 0;
 	if (tr_state->switched_off
-		|| compositor_svg_is_display_off(tr_state->svg_props)
-		|| (*(tr_state->svg_props->visibility) == SVG_VISIBILITY_HIDDEN) ) {
+		|| compositor_svg_is_display_off(props)
+		|| (*(props->visibility) == SVG_VISIBILITY_HIDDEN) ) {
 	
 		stack->input.is_muted = 1;
 	}
 
 	stack->input.intensity = tr_state->svg_props->computed_audio_level;
 
-	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
-	tr_state->svg_flags = backup_flags;
+	if (restore) {
+		memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+		tr_state->svg_flags = backup_flags;
+	}
+}
+static void svg_traverse_audio(GF_Node *node, void *rs, Bool is_destroy)
+{
+	svg_traverse_audio_ex(node, rs, is_destroy, NULL);
 }
 
 void compositor_init_svg_audio(GF_Compositor *compositor, GF_Node *node, Bool slaved_timing)
