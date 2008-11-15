@@ -2761,7 +2761,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 	sdump->indent--;
 	if (!sdump->in_text) DUMP_IND(sdump);
 	fprintf(sdump->trace, "</%s>", gf_node_get_class_name(n));
-	if (tag==TAG_SVG_text) sdump->in_text = 0;
+	if (tag==TAG_SVG_text || tag==TAG_SVG_textArea) sdump->in_text = 0;
 	/*removes all namespaces specified on this element */
 	gf_xml_pop_namespaces((GF_DOMNode *)n);
 }
