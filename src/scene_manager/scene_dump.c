@@ -444,7 +444,7 @@ void DumpUTFString(GF_SceneDumper *sdump, Bool escape_xml, char *str)
 	len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
 	if (len != (size_t) (-1)) {
 		for (i=0; i<len; i++) {
-			if (uniLine[i] == (u16) '\"') fprintf(sdump->trace, "\\");
+			//if (uniLine[i] == (u16) '\"') fprintf(sdump->trace, "\\");
 			switch (uniLine[i]) {
 			case '\'': 
 				if (escape_xml) fprintf(sdump->trace, "&apos;"); 
@@ -2748,7 +2748,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 		return;
 	}
 
-	if (tag==TAG_SVG_text) sdump->in_text = 1;
+	if (tag==TAG_SVG_text || tag==TAG_SVG_textArea) sdump->in_text = 1;
 	needs_cr = 1;
 	sdump->indent++;
 	list = svg->children;
