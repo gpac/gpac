@@ -215,7 +215,7 @@ static GF_Node *dom_evt_get_handler(GF_Node *n)
 	XMLRI *iri;
 	GF_FieldInfo info;
 
-	if (n->sgprivate->tag!=TAG_SVG_handler) return n;
+	if (!n || (n->sgprivate->tag!=TAG_SVG_handler)) return n;
 
 	if (!n || (gf_node_get_attribute_by_tag(n, TAG_XLINK_ATT_href, 0, 0, &info) != GF_OK)) {
 		return n;

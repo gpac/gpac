@@ -983,6 +983,22 @@ JSBool svg_udom_set_float_trait(JSContext *c, JSObject *obj, uintN argc, jsval *
 		l->value = FLT2FIX(d);
 		break;
 	}
+	case SVG_Numbers_datatype:
+	case SVG_Coordinates_datatype:
+	{
+		SVG_Number *val;
+		SVG_Coordinates *l = (SVG_Coordinates *)info.far_ptr;
+		while (gf_list_count(*l)) {
+			val = gf_list_get(*l, 0);
+			gf_list_rem(*l, 0);
+			free(val);
+		}
+		GF_SAFEALLOC(val, SVG_Coordinate);
+		val->type=SVG_NUMBER_VALUE;
+		val->value = FLT2FIX(d);
+		gf_list_add(*l, val);
+		break;
+	}
 	default:
 		return JS_TRUE;
 	}
@@ -1236,6 +1252,19 @@ JSBool svg_udom_create_rect(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	GF_SAFEALLOC(rc, rectCI);
 	r = JS_NewObject(c, &svg_rt->rectClass, 0, 0);
 	JS_SetPrivate(c, r, rc);
+	*rval = OBJECT_TO_JSVAL(r);
+	return JS_TRUE;
+}
+JSBool svg_udom_create_point(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	pointCI *pt;
+	JSObject *r;
+	GF_Node *n = dom_get_element(c, obj);
+	if (!n || argc) return JS_TRUE;
+
+	GF_SAFEALLOC(pt, pointCI);
+	r = JS_NewObject(c, &svg_rt->pointClass, 0, 0);
+	JS_SetPrivate(c, r, pt);
 	*rval = OBJECT_TO_JSVAL(r);
 	return JS_TRUE;
 }
@@ -2019,6 +2048,8 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			{"createSVGRect", svg_udom_create_rect, 0},
 			{"createSVGPath", svg_udom_create_path, 0},
 			{"createSVGRGBColor", svg_udom_create_color, 0},
+			{"createSVGPoint", svg_udom_create_point, 0},
+
 			{"moveFocus", svg_udom_move_focus, 0},
 			{"setFocus", svg_udom_set_focus, 0},
 			{"getCurrentFocusedObject", svg_udom_get_focus, 0},

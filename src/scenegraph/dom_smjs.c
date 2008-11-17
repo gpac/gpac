@@ -354,7 +354,7 @@ char *dom_node_flatten_text(GF_Node *n)
 	char *res = NULL;
 	GF_ChildNodeItem *list;
 
-	if (n->sgprivate->tag==TAG_DOMText) {
+	if ((n->sgprivate->tag==TAG_DOMText) && ((GF_DOMText*)n)->textContent) {
 		if ( ((GF_DOMText*)n)->type == GF_DOM_TEXT_REGULAR) {
 			res = strdup(((GF_DOMText*)n)->textContent);
 			len = strlen(res);
