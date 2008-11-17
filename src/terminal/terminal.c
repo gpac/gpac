@@ -667,6 +667,7 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 			if (!ck) {
 				if (!term->root_scene->scene_codec) return GF_STATE_PAUSED;
 				ck = term->root_scene->scene_codec->ck;
+				if (!ck) return GF_STATE_PAUSED;
 			}
 			if (ck->Buffering)
 				return GF_STATE_STEP_PAUSE;

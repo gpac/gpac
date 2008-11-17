@@ -151,6 +151,9 @@ void gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
 			continue;
 		}
 		if (cur_dir != rtl) {
+			if (!stop) 
+				stop = i;
+
 			if (is_start) {
 				is_start = 0;
 			} else {
@@ -172,6 +175,7 @@ void gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
 
 	/*not flushed yet*/
 	if (!is_start) {
+		if (!stop) stop = len-1;
 		slen = stop-start+1;
 		for (j=0; j<slen/2; j++) {
 			u32 v = utf_string[start + j];

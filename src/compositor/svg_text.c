@@ -421,7 +421,7 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 		}
 
 		/* word doesn't fit on line, escape*/
-		if (!word_size) break;
+		if (!word_size && !last_char_size) break;
 
 		if (tr_state->text_end_x + word_size > tr_state->max_length) {
 			/* if the word doesn't fit on line, escape*/

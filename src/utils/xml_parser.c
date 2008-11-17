@@ -806,6 +806,7 @@ restart:
 			parser->elt_start_pos = parser->file_pos + parser->current_pos;
 
 			if (!strncmp(elt, "!--", 3)) { 
+				xml_sax_flush_text(parser);
 				parser->sax_state = SAX_STATE_COMMENT;
 				if (i>3) parser->current_pos -= (i-3);
 			}

@@ -29,6 +29,9 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/utf.h>
 
+static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt, Bool prev_focus);
+u32 gf_sc_focus_switch_ring_ex(GF_Compositor *compositor, Bool move_prev, GF_Node *focus, Bool force_focus);
+
 static void gf_sc_reset_collide_cursor(GF_Compositor *compositor)
 {
 	if (compositor->sensor_type == GF_CURSOR_COLLIDE) {
@@ -54,8 +57,10 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 			return 1;
 		break;
 	case GF_EVENT_MOUSEDOWN:
-		if (compositor->hit_text)
+		if (compositor->hit_text) {
 			compositor->text_selection = compositor->hit_text;
+			return 1;
+		}
 		break;
 	}
 	return 0;
@@ -261,9 +266,11 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 							if (compositor->edited_text) {
 								flush_text_node_edit(compositor, 1);
 							}
-							n1->textContent = realloc(n1->textContent, sizeof(char)*(strlen(n1->textContent)+strlen(n2->textContent)+1));
 							caret_pos = strlen(n1->textContent);
-							strcat(n1->textContent, n2->textContent);
+							if (n2->textContent) {
+								n1->textContent = realloc(n1->textContent, sizeof(char)*(strlen(n1->textContent)+strlen(n2->textContent)+1));
+								strcat(n1->textContent, n2->textContent);
+							}
 							gf_node_list_del_child(&children, (GF_Node*)n2);
 							gf_node_unregister((GF_Node*)n2, compositor->focus_node);
 							compositor->edited_text = NULL;
@@ -288,6 +295,12 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 			child = child->next;
 			continue;
 		}
+		/*load of an empty text*/
+		if (!res && !cmd_type) {
+			GF_DOMText *t = gf_dom_add_text_node(compositor->focus_node, strdup(""));
+			res = &t->textContent;
+		}
+
 		if (!res) {
 			compositor->dom_text_pos = prev_pos;
 			return 0;
@@ -494,6 +507,28 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 	return 1;
 }
 
+static GF_Node *get_parent_focus(GF_Node *node, GF_List *hit_use_stack, u32 cur_idx)
+{
+	GF_Node *parent;
+	GF_FieldInfo info;
+
+	if (!node) return NULL;
+
+	if (gf_node_get_attribute_by_tag(node, TAG_SVG_ATT_focusable, 0, 0, &info)==GF_OK) {
+		if ( *(SVG_Focusable*)info.far_ptr == SVG_FOCUSABLE_TRUE) return node;
+	}
+	parent = gf_node_get_parent(node, 0);
+	if (cur_idx) {
+		GF_Node *n = gf_list_get(hit_use_stack, cur_idx-1);
+		if (n==node) {
+			parent = gf_list_get(hit_use_stack, cur_idx-2);
+			if (cur_idx>1) cur_idx-=2;
+			else cur_idx=0;
+		}
+	}
+	return get_parent_focus(parent, hit_use_stack, cur_idx);
+}
+
 static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 {
 #ifndef GPAC_DISABLE_SVG
@@ -557,6 +592,15 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 				compositor->grab_x = X;
 				compositor->grab_y = Y;
+
+				/*change focus*/
+				if (0){
+					GF_Node *focus = get_parent_focus(compositor->grab_node, compositor->hit_use_stack, gf_list_count(compositor->hit_use_stack));
+					if (focus) gf_sc_focus_switch_ring_ex(compositor, 0, focus, 1);
+					else if (compositor->focus_node) gf_sc_focus_switch_ring_ex(compositor, 0, NULL, 1);
+				}
+
+
 				break;
 			case GF_EVENT_MOUSEUP:
 				evt.type = GF_EVENT_MOUSEUP;
@@ -588,6 +632,11 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				evt.type = GF_EVENT_MOUSEOUT;
 				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 			}
+			
+			/*reset focus*/
+			if (compositor->focus_node && (event->type==GF_EVENT_MOUSEDOWN)) 
+				gf_sc_focus_switch_ring_ex(compositor, 0, NULL, 1);
+
 			compositor->grab_node = NULL;
 			compositor->grab_use = NULL;
 
@@ -1283,7 +1332,7 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 	return browse_parent_for_focus(compositor, (GF_Node*)par, prev_focus);
 }
 
-u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
+u32 gf_sc_focus_switch_ring_ex(GF_Compositor *compositor, Bool move_prev, GF_Node *focus, Bool force_focus)
 {
 	Bool current_focus = 1;
 	Bool prev_uses_dom_events;
@@ -1314,12 +1363,17 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 	}
 
 	/*get focus in current doc order*/
-	n = set_focus(compositor, compositor->focus_node, current_focus, move_prev);
-	if (!n) n = browse_parent_for_focus(compositor, compositor->focus_node, move_prev);
-
-	if (!n) {
-		if (!prev) n = gf_sg_get_root_node(compositor->scene);
+	if (force_focus) {
 		gf_list_reset(compositor->focus_ancestors);
+		n = focus;
+	} else {
+		n = set_focus(compositor, compositor->focus_node, current_focus, move_prev);
+		if (!n) n = browse_parent_for_focus(compositor, compositor->focus_node, move_prev);
+
+		if (!n) {
+			if (!prev) n = gf_sg_get_root_node(compositor->scene);
+			gf_list_reset(compositor->focus_ancestors);
+		}
 	}
 	
 	if (n && gf_node_get_tag(n)>=GF_NODE_FIRST_DOM_NODE_TAG) {
@@ -1368,6 +1422,11 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
 		exec_text_input(compositor, NULL);
 	}
 	return ret;
+}
+
+u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
+{
+	return gf_sc_focus_switch_ring_ex(compositor, move_prev, NULL, 0);
 }
 
 Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
