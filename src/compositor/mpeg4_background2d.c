@@ -165,7 +165,7 @@ static Bool back_texture_enabled(M_Background2D *bck, GF_TextureHandler *txh)
 static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_TraverseState *tr_state)
 {
 	GF_Matrix mx;
-	Bool use_texture, is_layer;
+	Bool use_texture;
 
 	use_texture = back_texture_enabled(bck, &st->txh);
 
@@ -179,10 +179,8 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 */	
 	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
 
-	is_layer = (tr_state->visual->back_stack == tr_state->backgrounds) ? 0 : 1;
-//	is_layer = 0;
 	/*little opt: if we clear the main visual clear it entirely */
-	if (!is_layer) {
+	if (! tr_state->is_layer) {
 		visual_3d_clear(tr_state->visual, bck->backColor, FIX_ONE);
 		if (!use_texture) {
 			visual_3d_matrix_pop(tr_state->visual);
@@ -193,9 +191,9 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 		2D viewport it modifies the modelview matrix, which we don't want ...*/
 		visual_3d_matrix_reset(tr_state->visual);
 	}
-	if (!use_texture || (!is_layer && st->txh.transparent) ) visual_3d_set_material_2d(tr_state->visual, bck->backColor, FIX_ONE);
+	if (!use_texture || (!tr_state->is_layer && st->txh.transparent) ) visual_3d_set_material_2d(tr_state->visual, bck->backColor, FIX_ONE);
 	if (use_texture) {
-		visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, !is_layer);
+		visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, ! tr_state->is_layer);
 		tr_state->mesh_num_textures = gf_sc_texture_enable(&st->txh, NULL);
 		if (!tr_state->mesh_num_textures) visual_3d_set_material_2d(tr_state->visual, bck->backColor, FIX_ONE);
 	}
@@ -234,9 +232,9 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 							FIX_ONE);
 		/*when in layer2D, DON'T MOVE BACKGROUND TO ZFAR*/
 #ifdef GPAC_FIXED_POINT
-		if (!is_layer) gf_mx_add_translation(&mx, 0, 0, -(tr_state->camera->z_far/100)*99);
+		if (!tr_state->is_layer) gf_mx_add_translation(&mx, 0, 0, -(tr_state->camera->z_far/100)*99);
 #else
-		if (!is_layer) gf_mx_add_translation(&mx, 0, 0, -0.999f*tr_state->camera->z_far);
+		if (!tr_state->is_layer) gf_mx_add_translation(&mx, 0, 0, -0.999f*tr_state->camera->z_far);
 #endif
 	}
 	visual_3d_matrix_add(tr_state->visual, mx.m);
@@ -304,16 +302,17 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 		status->ctx.flags |= CTX_APP_DIRTY;
 		gf_node_dirty_clear(node, 0);
 
-		if (back_use_texture(bck) ) {
-			if (stack->txh.tx_io && !(status->ctx.flags & CTX_APP_DIRTY) && stack->txh.needs_refresh) 
-				status->ctx.flags |= CTX_TEXTURE_DIRTY;
-		} else {
-			col = GF_COL_ARGB_FIXED(FIX_ONE, bck->backColor.red, bck->backColor.green, bck->backColor.blue);
-			if (col != status->ctx.aspect.fill_color) {
-				status->ctx.aspect.fill_color = col;
-				status->ctx.flags |= CTX_APP_DIRTY;
-			}
+
+		col = GF_COL_ARGB_FIXED(FIX_ONE, bck->backColor.red, bck->backColor.green, bck->backColor.blue);
+		if (col != status->ctx.aspect.fill_color) {
+			status->ctx.aspect.fill_color = col;
+			status->ctx.flags |= CTX_APP_DIRTY;
 		}
+	} 
+
+	if (back_use_texture(bck) ) {
+		if (stack->txh.tx_io && !(status->ctx.flags & CTX_APP_DIRTY) && stack->txh.needs_refresh) 
+			status->ctx.flags |= CTX_TEXTURE_DIRTY;
 	}
 
 
@@ -399,3 +398,16 @@ void compositor_background2d_modified(GF_Node *node)
 	gf_sc_invalidate(st->txh.compositor, NULL);
 }
 
+Bool compositor_background_transparent(GF_Node *node)
+{
+	if (node && (gf_node_get_tag(node) == TAG_MPEG4_Background2D)) {
+		Background2DStack *st;
+		if (!((M_Background2D *)node)->isBound) return 1;
+			
+		st = (Background2DStack *) gf_node_get_private(node);
+		if (st->txh.transparent) return 1;
+		return 0;
+	}
+	/*consider all other background nodes transparent*/
+	return 1;
+}

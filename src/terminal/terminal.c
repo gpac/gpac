@@ -864,6 +864,7 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 {
 #ifndef GPAC_DISABLE_SVG
 	u32 i, count, min_buffer, min_time, transport;
+	Bool locked;
 	GF_DOMMediaAccessEvent mae;
 	GF_DOM_Event evt;
 	GF_ObjectManager *an_od;
@@ -912,7 +913,7 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 	evt.bubbles = 0;	/*the spec says yes but we force it to NO*/
 
 	/*lock scene to prevent concurrent access of scene data*/
-	gf_sc_lock(odm->term->compositor, 1);
+	locked = gf_mx_try_lock(odm->term->compositor->mx);
 	for (i=0; i<count; i++) {
 		GF_Node *node = gf_list_get(odm->mo->nodes, i);
 		gf_dom_event_fire(node, &evt);
@@ -921,7 +922,7 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 		GF_Node *root = gf_sg_get_root_node(is->graph);
 		if (root) gf_dom_event_fire(root, &evt);
 	}
-	gf_sc_lock(odm->term->compositor, 0);
+	if (locked) gf_sc_lock(odm->term->compositor, 0);
 #endif
 }
 

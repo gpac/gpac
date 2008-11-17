@@ -383,7 +383,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
 	u32 obj_time;
 	if (!gf_odm_lock_mo(mo)) return;
 
-	if (!mo->nb_fetch) {
+	if (!mo->nb_fetch || !mo->odm->codec) {
 		gf_odm_lock(mo->odm, 0);
 		return;
 	}

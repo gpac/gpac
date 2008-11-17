@@ -644,6 +644,8 @@ struct _traversing_state
 	/*set by the traversed subtree to indicate no cull shall be performed*/
 	Bool disable_cull;
 
+	/*indicates if we are in a layer or not*/
+	Bool is_layer;
 	/*current graph traversed is in pixel metrics*/
 	Bool pixel_metrics;
 	/*minimal half-dimension (w/2, h/2)*/
@@ -985,8 +987,9 @@ Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res);
 
 void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed old_tx, Fixed old_ty, Bool is_resize);
 
-
 void compositor_set_cache_memory(GF_Compositor *compositor, u32 memory);
+/*checks whether the background node is transparent or not*/
+Bool compositor_background_transparent(GF_Node *node);
 
 #ifndef GPAC_DISABLE_3D
 

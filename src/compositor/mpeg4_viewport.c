@@ -114,7 +114,6 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 	GF_Matrix2D mat;
 	GF_Rect rc, rc_bckup;
-	Bool is_layer;
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
 	M_Viewport *vp = (M_Viewport *) node;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
@@ -161,9 +160,8 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 	if (!w || !h) return;
 
 
-	is_layer = (tr_state->viewpoints == tr_state->visual->view_stack) ? 0 : 1;
 	/*if no parent this is the main viewport, don't update if not changed*/
-//	if (!is_layer && !gf_node_dirty_get(node)) return;
+//	if (!tr_state->is_layer && !gf_node_dirty_get(node)) return;
 
 	gf_node_dirty_clear(node, 0);
 
@@ -209,7 +207,7 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 	sy = gf_divfix(rc.height, rc_bckup.height);
 
 	/*viewport on root visual, remove compositor scale*/
-	if (!is_layer && (tr_state->visual->compositor->visual==tr_state->visual) ) {
+	if (!tr_state->is_layer && (tr_state->visual->compositor->visual==tr_state->visual) ) {
 		sx = gf_divfix(sx, tr_state->visual->compositor->scale_x);
 		sy = gf_divfix(sy, tr_state->visual->compositor->scale_y);
 	}
@@ -244,7 +242,7 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		/*in layers directly modify the model matrix*/
-		if (is_layer) {
+		if (tr_state->is_layer) {
 			gf_mx_from_mx2d(&mx, &mat);
 			gf_mx_add_matrix(&tr_state->model_matrix, &mx);
 		} 
