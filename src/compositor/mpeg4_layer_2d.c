@@ -93,6 +93,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_List *oldb, *oldv;
 	GF_Node *viewport;
 	GF_Node *back;
+	Bool prev_layer;
 	GF_Matrix2D backup;
 	SFVec2f prev_vp;
 
@@ -126,6 +127,8 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	oldv = tr_state->viewpoints;
 	tr_state->backgrounds = st->backs;
 	tr_state->viewpoints = st->views;
+	prev_layer = tr_state->is_layer;
+	tr_state->is_layer = 1;
 #ifndef GPAC_DISABLE_3D
 	oldf = tr_state->fogs;
 	oldn = tr_state->navigations;
@@ -347,6 +350,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->vp_size = prev_vp;
 	tr_state->backgrounds = oldb;
 	tr_state->viewpoints = oldv;
+	tr_state->is_layer = prev_layer;
 #ifndef GPAC_DISABLE_3D
 	tr_state->fogs = oldf;
 	tr_state->navigations = oldn;

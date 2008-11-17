@@ -156,8 +156,8 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 
 	new_pixel_format = GF_PIXEL_RGBA;
 #ifndef GPAC_USE_TINYGL
-	if (Bindable_GetIsBound(gf_list_get(tr_state->backgrounds, 0)) )
-		new_pixel_format = GF_PIXEL_RGB_24;
+//	if (!compositor_background_transparent(gf_list_get(tr_state->backgrounds, 0)) )
+//		new_pixel_format = GF_PIXEL_RGB_24;
 
 	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
 #ifdef GPAC_USE_OGL_ES
@@ -191,6 +191,8 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 		&& (new_pixel_format == st->txh.pixelformat)
 		&& (w == st->txh.width) 
 		&& (h == st->txh.height) 
+		&& (compositor->offscreen_width >= w) 
+		&& (compositor->offscreen_height >= h)
 	) 
 		return 2;
 
@@ -233,8 +235,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 
 #ifndef GPAC_USE_TINYGL
 	/*create an offscreen window for OpenGL rendering*/
-	if ((tr_state->visual->compositor->offscreen_width < w) 
-	|| (tr_state->visual->compositor->offscreen_height < h)) {
+	if ((compositor->offscreen_width < w) || (compositor->offscreen_height < h)) {
 		GF_Err e;
 		GF_Event evt;
 		compositor->offscreen_width = MAX(compositor->offscreen_width, w);
@@ -338,7 +339,7 @@ static void layer3d_setup_clip(Layer3DStack *st, GF_TraverseState *tr_state, Boo
 
 static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 {
-	Bool changed = 0;
+	Bool prev_layer, changed = 0;
 	GF_List *oldb, *oldv, *oldf, *oldn;
 	GF_Rect rc;
 	u32 cur_lights;
@@ -387,7 +388,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		break;
 	case TRAVERSE_DRAW_2D:
 		layer3d_draw_2d(node, tr_state);
-		break;
+		return;
 	case TRAVERSE_DRAW_3D:
 	default:
 		return;
@@ -402,6 +403,8 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->viewpoints = st->visual->view_stack;
 	tr_state->navigations = st->visual->navigation_stack;
 	tr_state->fogs = st->visual->fog_stack;
+	prev_layer = tr_state->is_layer;
+	tr_state->is_layer = 1;
 
 	prev_cam = tr_state->camera;
 	tr_state->camera = &st->visual->camera;
@@ -555,6 +558,7 @@ layer3d_unchanged_2d:
 			tr_state->visual = old_visual;
 			tr_state->layer3d = NULL;
 			tr_state->appear = NULL;
+		//	tr_state->camera = prev_cam;
 
 			ctx = drawable_init_context_mpeg4(st->drawable, tr_state);
 			if (!ctx) return;
@@ -651,6 +655,7 @@ l3d_exit:
 	tr_state->fogs = oldf;
 	tr_state->navigations = oldn;
 	tr_state->bbox = bbox_backup;
+	tr_state->is_layer = prev_layer;
 	gf_mx_copy(tr_state->model_matrix, model_backup);
 	gf_mx2d_copy(tr_state->transform, mx2d_backup);
 

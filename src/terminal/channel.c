@@ -500,20 +500,19 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		u32 current_frame;
 		GF_Terminal *term = ch->odm->term;
 		ch_buffer_off(ch);
-		switch (ch->esd->decoderConfig->streamType) {
-		case GF_STREAM_OD:
-			gf_mx_p(term->mm_mx);
-			gf_codec_process(ch->odm->subscene->od_codec, 100);
+		if (gf_mx_try_lock(term->mm_mx)) {
+			switch (ch->esd->decoderConfig->streamType) {
+			case GF_STREAM_OD:
+				gf_codec_process(ch->odm->subscene->od_codec, 100);
+				break;
+			case GF_STREAM_SCENE:
+				if (ch->odm->codec) 
+					gf_codec_process(ch->odm->codec, 100);
+				else
+					gf_codec_process(ch->odm->subscene->scene_codec, 100);
+				break;
+			}
 			gf_mx_v(term->mm_mx);
-			break;
-		case GF_STREAM_SCENE:
-			gf_mx_p(term->mm_mx);
-			if (ch->odm->codec) 
-				gf_codec_process(ch->odm->codec, 100);
-			else
-				gf_codec_process(ch->odm->subscene->scene_codec, 100);
-			gf_mx_v(term->mm_mx);
-			break;
 		}
 
 		current_frame = term->compositor->frame_number;

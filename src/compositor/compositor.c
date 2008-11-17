@@ -179,6 +179,8 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 
 	/*3D driver changed message, recheck extensions*/
 	if (compositor->reset_graphics) {
+		compositor->offscreen_width = compositor->offscreen_height = 0;
+
 		evt.type = GF_EVENT_SYS_COLORS;
 		if (compositor->user->EventProc && compositor->user->EventProc(compositor->user->opaque, &evt) ) {
 			u32 i;
@@ -1552,7 +1554,6 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #endif
 
 #ifndef GPAC_DISABLE_3D
-		compositor->offscreen_width = compositor->offscreen_height = 0;
 		if (compositor->visual->type_3d) {
 			compositor_3d_set_aspect_ratio(compositor);
 			gf_sc_load_opengl_extensions(compositor);
