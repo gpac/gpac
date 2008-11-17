@@ -584,6 +584,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVENT_QUIT:
 		Run = 0;
 		break;
+	case GF_EVENT_DISCONNECT:
+		gf_term_disconnect(term);
+		break;
 	case GF_EVENT_MIGRATE:
 	{
 		const char *str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");

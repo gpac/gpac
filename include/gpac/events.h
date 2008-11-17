@@ -187,6 +187,7 @@ enum {
 	GF_EVENT_STREAMLIST,	/*indicates stream list has changed - no struct associated - only used when no scene info is present*/
 	GF_EVENT_METADATA, /*indicates a change in associated metadata*/
 	GF_EVENT_MIGRATE, /*indicates a session migration request*/
+	GF_EVENT_DISCONNECT, /*indicates the current url should be disconnected*/
 	GF_EVENT_SYS_COLORS,	/*queries the list of system colors*/
 };
 
