@@ -1115,11 +1115,13 @@ GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, u32 do
 			vi->pixel_format = xWindow->pixel_format;
 			vi->video_buffer = xWindow->surface->data;
 		} else {
+#ifdef GPAC_HAS_X11_SHM
 			vi->width = xWindow->pwidth;
 			vi->height = xWindow->pheight;
 			vi->pitch = xWindow->pwidth*xWindow->bpp;
 			vi->pixel_format = xWindow->pixel_format;
 			vi->video_buffer = (unsigned char *) xWindow->shmseginfo->shmaddr;
+#endif
 		}
 		vi->is_hardware_memory = (xWindow->use_shared_memory) ? 1 : 0;
 		//fprintf(stdout, "X11 Lock Back Buffer: %d x %d (pitch %d) pf %s buffer %08x\n", vi->width, vi->height, vi->pitch, gf_4cc_to_str(vi->pixel_format), (u32) vi->video_buffer);
@@ -1294,7 +1296,7 @@ fprintf(stdout, "%d %d\n", vout->max_screen_width, vout->max_screen_height);
 
 #ifdef GPAC_HAS_X11_XV
 	xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 1);
-	if (xWindow->xvport<0) {
+	if (0&&xWindow->xvport<0) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware has no color keying\n"));
 		vout->overlay_color_key = 0;
 		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
