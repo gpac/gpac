@@ -1760,12 +1760,12 @@ GF_Err gf_sm_load_init_svg(GF_SceneLoader *load)
 	if (!parser) return GF_BAD_PARAM;
 
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[Parser] %s Scene Parsing\n", (load->type==GF_SM_LOAD_SVG_DA) ? "SVG" : (load->type==GF_SM_LOAD_XSR) ? "LASeR" : "DIMS" ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[Parser] %s Scene Parsing: %s\n", ((load->type==GF_SM_LOAD_SVG_DA) ? "SVG" : ((load->type==GF_SM_LOAD_XSR) ? "LASeR" : "DIMS")), load->fileName));
 	
 	in_time = gf_sys_clock();
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, svg_progress);
 	if (e<0) return svg_report(parser, e, "Unable to parse file %s: %s", load->fileName, gf_xml_sax_get_error(parser->sax_parser) );
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[SVG Parser] Scene parsed and Scene Graph built in %d ms\n", gf_sys_clock() - in_time));
+	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[Parser] Scene parsed and Scene Graph built in %d ms\n", gf_sys_clock() - in_time));
 
 	if (!parser->suspended_at_node) {
 		svg_flush_animations(parser);
