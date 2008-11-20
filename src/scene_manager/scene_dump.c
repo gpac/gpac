@@ -95,10 +95,9 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 		tmp->XMLDump = 1;
 		if (dump_mode==GF_SM_DUMP_LASER) tmp->LSRDump = 1;
 		if (_rad_name) {
-			if (!strrchr(rad_name, '.'))
-				strcat(rad_name, tmp->LSRDump ? ".xsr" : ".svg");
+			strcat(rad_name, tmp->LSRDump ? ".xsr" : ".svg");
 
-			tmp->trace = fopen(rad_name, "wb");
+			tmp->trace = fopen(rad_name, "wt");
 			if (!tmp->trace) {
 				free(tmp);
 				return NULL;
