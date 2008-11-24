@@ -29,7 +29,7 @@ OrderedGroup {
 
   WorldInfo {
    title "Layer3D test"
-   info ["This shows a Layer3D using the entire window" "and layer2D/layer3D defining a 2D control panel" "" "GPAC Regression Tests" "$Date: 2008-05-19 15:28:17 $ - $Revision: 1.4 $" "(C) 2002-2004 GPAC Team"]
+   info ["This shows a Layer3D using the entire window" "and layer2D/layer3D defining a 2D control panel" "" "GPAC Regression Tests" "$Date: 2008-11-24 14:58:25 $ - $Revision: 1.5 $" "(C) 2002-2004 GPAC Team"]
   }
 
 	Switch {
@@ -94,7 +94,7 @@ OrderedGroup {
     				navigationInfo NavigationInfo {type ["Examine"] }
     				viewpoint Viewpoint {position 0 0 40}
 						children [
-						  Background2D {}
+						  Background2D {backColor 1 0 0}
 							DEF TR Transform {
 								children [
 									Shape {

@@ -79,8 +79,6 @@ typedef struct
 	*/
 	u32 current_ns;
 
-	GF_Node *suspended_at_node;
-
 	/*if parser is used to parse a fragment, the root of the fragment is stored here*/
 	GF_Node *fragment_root;
 } GF_SVG_Parser;
@@ -146,22 +144,11 @@ static void svg_progress(void *cbk, u32 done, u32 total)
 {
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)cbk;
 	if (parser->load && parser->load->is && parser->load->is->scene_codec && parser->load->is->scene_codec->odm) {
-		gf_term_service_media_event(parser->load->is->scene_codec->odm, GF_EVENT_MEDIA_BEGIN_SESSION_SETUP); 
+		gf_term_service_media_event(parser->load->is->scene_codec->odm, GF_EVENT_MEDIA_DATA_PROGRESS); 
+		if (done == total) 
+			gf_term_service_media_event(parser->load->is->scene_codec->odm, GF_EVENT_MEDIA_END_OF_DATA); 
 	}
 	gf_set_progress("SVG (Dynamic Attribute List) Parsing", done, total);
-}
-
-static Bool svg_evaluate_condition(GF_SVG_Parser *parser, GF_Node *node, char *uri)
-{
-	GF_JSAPIParam par;
-	GF_SceneGraph *sg;
-	if (!parser->load->scene_graph || !node) return 1;
-	sg = parser->load->scene_graph;
-	if (!sg->script_action) return 1;
-
-	par.uri.nb_params = 0;
-	par.uri.url = uri;
-	return sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_EVAL_IRI, node, &par);
 }
 
 static SVG_SAFExternalStream *svg_saf_get_stream(GF_SVG_Parser *parser, u32 id, const char *name)
@@ -1412,7 +1399,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		}
 	}
 
-	if (!parent && !parser->command && (parser->load->flags & GF_SM_LOAD_CONTEXT_DIMS)) {
+	if (!parent && !parser->command && (parser->load->flags & GF_SM_LOAD_CONTEXT_STREAMING)) {
 		gf_sg_reset(parser->load->scene_graph);
 		parser->has_root = 0;
 	} 
@@ -1566,14 +1553,8 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 				break;
 			case TAG_SVG_script:
 			case TAG_SVG_handler:
-				if (1 || svg_evaluate_condition(parser, (GF_Node*)node, NULL)) {
-					/*init script once text script is loaded*/
-					gf_node_init((GF_Node *)node);
-				} else {
-					gf_xml_sax_suspend(parser->sax_parser, 1);
-					parser->suspended_at_node = (GF_Node*)node;
-					return;
-				}
+				/*init script once text script is loaded*/
+				gf_node_init((GF_Node *)node);
 				break;
 			}
 			/*if we have associated event listeners, trigger the onLoad, only in playback mode */
@@ -1767,47 +1748,15 @@ GF_Err gf_sm_load_init_svg(GF_SceneLoader *load)
 	if (e<0) return svg_report(parser, e, "Unable to parse file %s: %s", load->fileName, gf_xml_sax_get_error(parser->sax_parser) );
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("[Parser] Scene parsed and Scene Graph built in %d ms\n", gf_sys_clock() - in_time));
 
-	if (!parser->suspended_at_node) {
-		svg_flush_animations(parser);
-		gf_sm_svg_flush_state(parser);
-	}
+	svg_flush_animations(parser);
+	gf_sm_svg_flush_state(parser);
+
 	return parser->last_error;
 }
 
 
 GF_Err gf_sm_load_run_svg(GF_SceneLoader *load)
 {
-	GF_Err e;
-	GF_Node *node;
-	GF_SVG_Parser *parser = (GF_SVG_Parser *)load->loader_priv;
-	if (!parser || !parser->suspended_at_node) return GF_EOS;
-
-	node = parser->suspended_at_node;
-	switch (gf_node_get_tag(parser->suspended_at_node)) {
-	case TAG_SVG_script:
-	case TAG_SVG_handler:
-		if (!svg_evaluate_condition(parser, parser->suspended_at_node, NULL)) return GF_OK;
-		/*init script once text script is loaded*/
-		gf_node_init(node);
-		break;
-	default:
-		break;
-	}
-
-	/*if we have associated event listeners, trigger the onLoad*/
-	if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) {
-		GF_DOM_Event evt;
-		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.type = GF_EVENT_LOAD;
-		gf_dom_event_fire((GF_Node*)node, &evt);
-	}
-	parser->suspended_at_node = NULL;
-	e = gf_xml_sax_suspend(parser->sax_parser, 0);
-	if (e<0) return svg_report(parser, e, "Unable to parse file %s: %s", load->fileName, gf_xml_sax_get_error(parser->sax_parser) );
-
-	if (parser->suspended_at_node) return GF_OK;
-	svg_flush_animations(parser);
-	gf_sm_svg_flush_state(parser);
 	return GF_EOS;
 }
 

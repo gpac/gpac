@@ -377,7 +377,8 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 			if (horizontal) {
 				start_x = -span->bounds.width/2;
 			} else {
-				start_y = FSTTB ? span->bounds.height/2 : (-span->bounds.height/2 + space);
+				//start_y = FSTTB ? span->bounds.height/2 : (-span->bounds.height/2 + space);
+				start_y = span->bounds.height/2;
 			}
 			break;
 		/*major-justification END*/
@@ -385,7 +386,8 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 			if (horizontal) {
 				start_x = (FSLTR) ? -span->bounds.width : 0;
 			} else {
-				start_y = FSTTB ? span->bounds.height : (-span->bounds.height + space);
+				//start_y = FSTTB ? span->bounds.height : (-span->bounds.height + space);
+				start_y = FSTTB ? span->bounds.height : 0;
 			}
 			break;
 		/*BEGIN, FIRST or default*/
@@ -393,7 +395,8 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 			if (horizontal) {
 				start_x = (FSLTR) ? 0 : -span->bounds.width;
 			} else {
-				start_y = FSTTB ? 0 : space;
+				//start_y = FSTTB ? 0 : space;
+				start_y = FSTTB ? 0 : span->bounds.height;
 			}
 			break;
 		}

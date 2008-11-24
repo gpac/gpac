@@ -61,9 +61,9 @@ static void RestoreWindow(DDContext *dd)
 
 void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 {
-	RestoreWindow(dd);
-
 	if (!only_3d) {
+		RestoreWindow(dd);
+
 		SAFE_DD_RELEASE(dd->rgb_pool.pSurface);
 		memset(&dd->rgb_pool, 0, sizeof(DDSurface));
 		SAFE_DD_RELEASE(dd->yuv_pool.pSurface);

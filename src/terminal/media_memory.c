@@ -134,9 +134,10 @@ void gf_cm_rewind_input(GF_CompositionMemory *cb)
 /*access to the input buffer - return NULL if no input is available (buffer full)*/
 GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reordering)
 {
+#if !NO_TEMPORAL_SCALABLE
 	GF_CMUnit *cu;
-
 	if (codec_reordering) {
+#endif
 		/*there is still something in the input buffer*/
 		if (cb->input->dataLength) {
 			if (cb->input->TS==TS) 
@@ -145,6 +146,8 @@ GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reorder
 		}
 		cb->input->TS = TS;
 		return cb->input;
+
+#if !NO_TEMPORAL_SCALABLE
 	}
 
 	/*spatial scalable, go backward to fetch same TS*/
@@ -167,7 +170,7 @@ GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reorder
 		if (cu == cb->input) return NULL;
 	}
 	return NULL;
-
+#endif
 }
 
 #if 0
@@ -188,7 +191,11 @@ static void check_temporal(GF_CompositionMemory *cb)
 static GF_CMUnit *gf_cm_reorder_unit(GF_CompositionMemory *cb, GF_CMUnit *unit, Bool codec_reordering)
 {
 	GF_CMUnit *cu;
-
+#if NO_TEMPORAL_SCALABLE
+	cu = cb->input;
+	cb->input = cb->input->next;
+	return cu;
+#else
 	/*lock the buffer since we may move pointers*/
 	gf_odm_lock(cb->odm, 1);
 
@@ -273,6 +280,7 @@ exit:
 	/*unlock the buffer*/
 	gf_odm_lock(cb->odm, 0);
 	return unit;
+#endif
 }
 
 void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bool codec_reordering)

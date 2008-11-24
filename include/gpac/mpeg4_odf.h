@@ -362,6 +362,8 @@ typedef struct __tag_bifs_config
 	/*BIFS-Anim stuff*/
 	Bool randomAccess;
 	GF_List *elementaryMasks;
+	/*internal extensions for encoding*/
+	Bool useNames;
 } GF_BIFSConfig;
 
 /*flags for style*/

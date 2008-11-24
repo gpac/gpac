@@ -36,9 +36,8 @@ OrderedGroup {
 
   WorldInfo {
    title "Layer3D test"
-   info ["This shows several Layer3D nodes" "offering different views of the same scene" "navigation is not enabled on all layers" "" "GPAC Regression Tests" "$Date: 2008-05-22 13:30:48 $ - $Revision: 1.5 $" "(C) 2002-2004 GPAC Team"]
+   info ["This shows several Layer3D nodes" "offering different views of the same scene" "navigation is not enabled on all layers" "" "GPAC Regression Tests" "$Date: 2008-11-24 14:58:25 $ - $Revision: 1.6 $" "(C) 2002-2004 GPAC Team"]
   }
-
 	Transform2D {
 		translation -100 0
 		children [
@@ -95,7 +94,6 @@ OrderedGroup {
 		  }
 		]
 	}
-	
 	Transform2D {
 		translation 100 -50
 		children [

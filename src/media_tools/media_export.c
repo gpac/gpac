@@ -1687,7 +1687,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 
 					err = inflateInit(&d_stream);
 					if (err == Z_OK) {
-						while (d_stream.total_in < size-1) {
+						while ((s32) d_stream.total_in < size-1) {
 							err = inflate(&d_stream, Z_NO_FLUSH);
 							if (err < Z_OK) break;
 							svg_data[d_stream.total_out - done] = 0;
