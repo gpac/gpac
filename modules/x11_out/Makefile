@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/x11_out
 
-CFLAGS= $(OPTFLAGS) -Wall
+CFLAGS= $(OPTFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
