@@ -283,8 +283,8 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			svg_audio_smil_evaluate_ex(NULL, 0, SMIL_TIMING_EVAL_REMOVE, stack->audio, stack->txh.owner);
 			gf_node_unregister(stack->audio, NULL);
 			stack->audio = NULL;
+			stack->audio_dirty = 1;
 		}
-		stack->audio_dirty = 1;
 
 		svg_play_texture(stack, &all_atts);
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);

@@ -110,6 +110,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 	}
 
 	switch (svgin->oti) {
+	/*!OTI for SVG dummy stream (dsi = file name) - GPAC internal*/
 	case GPAC_OTI_PRIVATE_SCENE_SVG:
 		/*full doc parsing*/
 		if ((svgin->sax_max_duration==(u32) -1) && svgin->file_size) {
@@ -169,10 +170,18 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 			}
 		}
 		break;
+
+	/*!OTI for streaming SVG - GPAC internal*/
 	case GPAC_OTI_SCENE_SVG:
 		e = gf_sm_load_string(&svgin->loader, inBuffer, 0);
 		break;
 
+	/*!OTI for streaming SVG + gz - GPAC internal*/
+	case GPAC_OTI_SCENE_SVG_GZ:
+		e = svgin_deflate(svgin, inBuffer, inBufferLength);
+		break;
+
+	/*!OTI for DIMS (dsi = 3GPP DIMS configuration) - GPAC internal*/
 	case GPAC_OTI_SCENE_DIMS:
 		{
 			u8 prev, dims_hdr;
@@ -190,7 +199,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 					size = gf_bs_read_u32(bs);
 					nb_bytes = 6;
 				}
-//	                        fwrite( inBuffer + pos + nb_bytes + 1, 1, size - 1, f );   
+//	            fwrite( inBuffer + pos + nb_bytes + 1, 1, size - 1, f );   
 
 				dims_hdr = gf_bs_read_u8(bs);
 				prev = inBuffer[pos + nb_bytes + size];
@@ -205,14 +214,11 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 				gf_bs_skip_bytes(bs, size-1);
 
 			}
-//                        fclose(f);    
+//          fclose(f);    
 			gf_bs_del(bs);
 		}
 		break;
 		
-	case GPAC_OTI_SCENE_SVG_GZ:
-		e = svgin_deflate(svgin, inBuffer, inBufferLength);
-		break;
 	default: 
 		return GF_BAD_PARAM;
 	}

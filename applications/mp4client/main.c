@@ -43,7 +43,7 @@
 
 /*local prototypes*/
 void PrintWorldInfo(GF_Terminal *term);
-void ViewOD(GF_Terminal *term, u32 OD_ID);
+void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number);
 void PrintODList(GF_Terminal *term);
 void ViewODs(GF_Terminal *term, Bool show_timing);
 void PrintGPACConfig();
@@ -165,7 +165,8 @@ void PrintHelp()
 		"\n"
 		"\tw: view world info\n"
 		"\tv: view Object Descriptor list\n"
-		"\ti: view Object Descriptor info\n"
+		"\ti: view Object Descriptor info (by ID)\n"
+		"\tj: view Object Descriptor info (by number)\n"
 		"\tb: view media objects timing and buffering info\n"
 		"\tm: view media objects buffering and memory info\n"
 		"\td: dumps scene graph\n"
@@ -1335,7 +1336,15 @@ force_input:
 				u32 ID;
 				fprintf(stdout, "Enter OD ID (0 for main OD): ");
 				scanf("%d", &ID);
-				ViewOD(term, ID);
+				ViewOD(term, ID, (u32)-1);
+			}
+			break;
+		case 'j':
+			if (is_connected) {
+				u32 num;
+				fprintf(stdout, "Enter OD number (0 for main OD): ");
+				scanf("%d", &num);
+				ViewOD(term, (u32)-1, num);
 			}
 			break;
 		case 'b':
@@ -1547,7 +1556,7 @@ void PrintODList(GF_Terminal *term)
 	}
 }
 
-void ViewOD(GF_Terminal *term, u32 OD_ID)
+void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 {
 	ODInfo odi;
 	u32 i, j, count, d_enum,id;
@@ -1558,7 +1567,8 @@ void ViewOD(GF_Terminal *term, u32 OD_ID)
 	if (!root_odm) return;
 
 	odm = NULL;
-	if (!OD_ID) {
+	if ((!OD_ID && (number == (u32)(-1))) ||
+		((OD_ID == (u32)(-1)) && !number)) {
 		odm = root_odm;
 		if ((gf_term_get_object_info(term, odm, &odi) != GF_OK)) odm=NULL;
 	} else {
@@ -1566,16 +1576,21 @@ void ViewOD(GF_Terminal *term, u32 OD_ID)
 		for (i=0; i<count; i++) {
 			odm = gf_term_get_object(term, root_odm, i);
 			if (!odm) break;
-			if ((gf_term_get_object_info(term, odm, &odi) == GF_OK) && (odi.od->objectDescriptorID == OD_ID)) break;
+			if (gf_term_get_object_info(term, odm, &odi) == GF_OK) {
+				if ((number == (u32)(-1)) && (odi.od->objectDescriptorID == OD_ID)) break;
+				else if (i == (u32)(number-1)) break;
+			}
 			odm = NULL;
 		}
 	}
 	if (!odm) {
-		fprintf(stdout, "cannot find OD with ID %d\n", OD_ID);
+		if (number == (u32)-1) fprintf(stdout, "cannot find OD with ID %d\n", OD_ID);
+		else fprintf(stdout, "cannot find OD with number %d\n", number);
 		return;
 	}
 	if (!odi.od) {
-		fprintf(stdout, "Object %d not attached yet\n", OD_ID);
+		if (number == (u32)-1) fprintf(stdout, "Object %d not attached yet\n", OD_ID);
+		else fprintf(stdout, "Object #%d not attached yet\n", number);		
 		return;
 	}
 

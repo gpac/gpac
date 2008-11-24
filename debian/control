@@ -1,8 +1,8 @@
 Source: gpac
 Section: graphics
 Priority: optional
-Maintainer: Deji Aribuki <aribuki@enst.fr>
-Bugs: mailto:aribuki@enst.fr
+Maintainer: Jean Le Feuvre <jeanlf@users.sourceforge.net>
+Bugs: mailto:jeanlf@users.sourceforge.net
 Homepage: http://gpac.sourceforge.net
 Standards-Version: 3.8.0
 Build-Conflicts: libgpac-dev

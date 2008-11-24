@@ -309,6 +309,7 @@ static u32 MM_SimulationStep(GF_Terminal *term, u32 *last_dec)
 #ifndef GF_DISABLE_LOG
 	term->compositor->decoders_time = gf_sys_clock() - term->compositor->decoders_time;
 #endif
+	*last_dec = current_dec;
 
 	if (term->flags & GF_TERM_DRAW_FRAME) {
 		time_taken = gf_sys_clock();
