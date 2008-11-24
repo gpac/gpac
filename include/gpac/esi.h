@@ -133,10 +133,8 @@ typedef struct __elementary_stream_ifce
 	/*average bit rate in bit/sec - 0 if unknown*/
 	u32 bit_rate;
 
-	union {
-		struct __esi_video_info info_video;
-		struct __esi_audio_info info_audio;
-	};
+	struct __esi_video_info info_video;
+	struct __esi_audio_info info_audio;
 
 	/*input ES control from caller*/
 	GF_Err (*input_ctrl)(struct __elementary_stream_ifce *_self, u32 ctrl_type, void *param);

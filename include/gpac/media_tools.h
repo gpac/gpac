@@ -99,10 +99,8 @@ struct __track_import_info
 	/*possible import flags*/
 	u32 flags;
 	/*media format info*/
-//	union {
-		struct __track_video_info video_info;
-		struct __track_audio_info audio_info;
-//	} media_info;
+	struct __track_video_info video_info;
+	struct __track_audio_info audio_info;
 
 	u32 lang;
 	/*for MPEG2 TS: program number*/
