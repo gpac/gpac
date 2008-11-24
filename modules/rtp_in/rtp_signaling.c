@@ -407,7 +407,7 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 
 	ch_ctrl = NULL;
 	if (strcmp(com->method, GF_RTSP_TEARDOWN)) ch_ctrl = (ChannelControl *)com->user_data;
-	if (!ch_ctrl) return 1;
+	if (!ch_ctrl || !ch_ctrl->ch) return 1;
 	ch = ch_ctrl->ch;
 	
 	if (!ch->channel || !channel_is_valid(sess->owner, ch)) {
@@ -472,14 +472,15 @@ void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 
 	ch_ctrl = (ChannelControl *)com->user_data;
 	ch = ch_ctrl->ch;
+	if (ch) {
+		if (!ch->channel || !channel_is_valid(sess->owner, ch)) {
+			free(ch_ctrl);
+			com->user_data = NULL;
+			return;
+		}
 
-	if (!ch->channel || !channel_is_valid(sess->owner, ch)) {
-		free(ch_ctrl);
-		com->user_data = NULL;
-		return;
+		assert(ch->channel==ch_ctrl->com.base.on_channel);
 	}
-
-	assert(ch->channel==ch_ctrl->com.base.on_channel);
 
 	/*some consistency checking: on interleaved sessions, some servers do NOT reply to the 
 	teardown. If our command is STOP just skip the error notif*/
@@ -577,8 +578,11 @@ process_reply:
 		}
 		ch->flags &= ~RTP_SKIP_NEXT_COM;
 	} else if (ch_ctrl->com.command_type == GF_NET_CHAN_PAUSE) {
-		SkipCommandOnSession(ch);
-		ch->flags &= ~RTP_SKIP_NEXT_COM;
+		if (ch) {
+			SkipCommandOnSession(ch);
+			ch->flags &= ~RTP_SKIP_NEXT_COM;
+
+		}
 	} else if (ch_ctrl->com.command_type == GF_NET_CHAN_STOP) {
 	}
 	free(ch_ctrl);
@@ -587,10 +591,12 @@ process_reply:
 
 
 err_exit:
-	ch->status = RTP_Disconnected;
 	gf_term_on_command(sess->owner->service, &ch_ctrl->com, e);
-	gf_rtsp_reset_aggregation(ch->rtsp->session);
-	ch->check_rtp_time = 0;
+	if (ch) {
+		ch->status = RTP_Disconnected;
+		gf_rtsp_reset_aggregation(ch->rtsp->session);
+		ch->check_rtp_time = 0;
+	}
 	free(ch_ctrl);
 	com->user_data = NULL;
 }
@@ -634,14 +640,12 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 	GF_RTSPCommand *com;
 	GF_RTSPRange *range;
 
-	assert(ch->rtsp==sess);
-
 	switch (command->command_type) {
 	case GF_NET_CHAN_PLAY:
 	case GF_NET_CHAN_RESUME:
-	case GF_NET_CHAN_PAUSE:
 		needs_setup = 1;
 		break;
+	case GF_NET_CHAN_PAUSE:
 	case GF_NET_CHAN_STOP:
 		break;
 	default:
@@ -729,18 +733,16 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		}
 
 	} else if (command->command_type==GF_NET_CHAN_PAUSE) {
-		range = gf_rtsp_range_new();
-		range->start = ch->range_start;
-		range->end = ch->range_end;
 		com->method = strdup(GF_RTSP_PAUSE);
-		/*update current time*/
-		ch->current_start += gf_rtp_get_current_time(ch->rtp_ch);
-		range->start = ch->current_start;
-		range->end = -1.0;
-		com->Range = range;
-
-		ch->stat_stop_time = gf_sys_clock();
-
+		if (ch) {
+			range = gf_rtsp_range_new();
+			/*update current time*/
+			ch->current_start += gf_rtp_get_current_time(ch->rtp_ch);
+			ch->stat_stop_time = gf_sys_clock();
+			range->start = ch->current_start;
+			range->end = -1.0;
+			com->Range = range;
+		} 
 	}
 	else if (command->command_type==GF_NET_CHAN_STOP) {
 		ch->current_start = 0;

@@ -58,6 +58,10 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 		break;
 	case GF_EVENT_MOUSEDOWN:
 		if (compositor->hit_text) {
+			if (gf_list_count(compositor->sensors)) {
+				if (!(compositor->key_states & GF_KEY_MOD_CTRL))
+					return 0;
+			}
 			compositor->text_selection = compositor->hit_text;
 			return 1;
 		}

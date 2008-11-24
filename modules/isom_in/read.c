@@ -350,7 +350,7 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			}
 			else trackID = atoi(ext+1);
 
-			if (!trackID) return NULL;
+			/*if trackID is 0, assume this is a fragment identifier*/
 		}
 	}
 

@@ -1106,7 +1106,7 @@ static void svg_animation_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_s
 	SVGlinkStack *stack = gf_node_get_private(node);
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
-			svg_animation_smil_update(node, stack, normalized_scene_time);
+		svg_animation_smil_update(node, stack, normalized_scene_time);
 		break;
 	case SMIL_TIMING_EVAL_FREEZE:
 		if (stack->resource) {

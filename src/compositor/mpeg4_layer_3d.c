@@ -418,16 +418,19 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	/*compute viewport in visual coordinate*/
 	rc = st->clip;
 	if (prev_cam) {
+		gf_mx_apply_rect(&tr_state->model_matrix, &rc);
+
 		gf_mx_apply_rect(&prev_cam->modelview, &rc);
 		if (tr_state->camera->flags & CAM_HAS_VIEWPORT)
 			gf_mx_apply_rect(&prev_cam->viewport, &rc);
-		gf_mx_apply_rect(&tr_state->model_matrix, &rc);
+#if 0
 		if (tr_state->visual->compositor->visual==tr_state->visual) {
 			GF_Matrix mx;
 			gf_mx_init(mx);
 			gf_mx_add_scale(&mx, tr_state->visual->compositor->scale_x, tr_state->visual->compositor->scale_y, FIX_ONE);
 			gf_mx_apply_rect(&mx, &rc);
 		}
+#endif
 	} else {
 		gf_mx2d_apply_rect(&tr_state->transform, &rc);
 
@@ -443,8 +446,9 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 
 	/*check bindables*/
-	if (!prev_cam) gf_mx_init(tr_state->model_matrix);
+	gf_mx_init(tr_state->model_matrix);
 	l3d_CheckBindables(node, tr_state, st->first);
+	if (prev_cam) gf_mx_copy(tr_state->model_matrix, model_backup);
 
 
 	/*drawing a layer means drawing all subelements as a whole (no depth sorting with parents)*/
@@ -662,6 +666,7 @@ l3d_exit:
 	/*in case we missed bindables*/
 	if (st->first) {
 		st->first = 0;
+		gf_node_dirty_set(node, 0, 0);
 		gf_sc_invalidate(tr_state->visual->compositor, NULL);
 	}
 }

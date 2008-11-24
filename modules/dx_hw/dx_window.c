@@ -355,12 +355,11 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		}
 		break;
 	case WM_ACTIVATE:
-		if (ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) && (hWnd==ctx->fs_hwnd)) {
+		if ((ctx->output_3d_type!=2) && ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) && (hWnd==ctx->fs_hwnd)) {
 			evt.type = GF_EVENT_SHOWHIDE;
 			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
 		break;
-
 	case WM_SETCURSOR:
 		if (ctx->cur_hwnd==hWnd) DD_SetCursor(vout, ctx->cursor_type);
 		return 1;
@@ -851,7 +850,10 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 			return DD_SetupOpenGL(dr);
 		case 2:
 			ctx->output_3d_type = 2;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Attempting to resize Offscreen OpenGL window to %d x %d\n", evt->size.width, evt->size.height));
 			SetWindowPos(ctx->gl_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Resizing Offscreen OpenGL window to %d x %d\n", evt->size.width, evt->size.height));
+			SetForegroundWindow(ctx->cur_hwnd);
 			ctx->gl_double_buffer = evt->setup.back_buffer;
 			return DD_SetupOpenGL(dr);
 		}

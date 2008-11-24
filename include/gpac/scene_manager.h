@@ -173,8 +173,8 @@ enum
 	When set, gf_sm_load_init will NOT attempt to parse first frame*/
 	GF_SM_LOAD_CONTEXT_READY = 1<<2,
 
-	/* in this mode, each svg tag will be interpreted as a REPLACE SCENE */
-	GF_SM_LOAD_CONTEXT_DIMS = 1<<3,
+	/* in this mode, each root svg tag will be interpreted as a REPLACE SCENE */
+	GF_SM_LOAD_CONTEXT_STREAMING = 1<<3,
 };
 
 /*loader type, usually detected based on file ext*/

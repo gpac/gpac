@@ -741,6 +741,7 @@ GF_Err BM_SceneReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 	codec->scenegraph->Routes = gf_list_new();
 	codec->current_graph = codec->scenegraph;
 	codec->LastError = BD_DecSceneReplace(codec, bs, com->new_proto_list);
+	com->use_names = codec->UseName;
 
 	/*restore*/
 	com->node = codec->scenegraph->RootNode;

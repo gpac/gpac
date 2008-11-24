@@ -610,6 +610,7 @@ force_scene_rap:
 				bcfg->pixelWidth = ctx->scene_width;
 				bcfg->pixelHeight = ctx->scene_height;
 			}
+			if (bcfg->useNames) flags |= GF_SM_ENCODE_USE_NAMES;
 
 			/*this is for safety, otherwise some players may not understand NULL node*/
 			if (!bcfg->nodeIDbits) bcfg->nodeIDbits = 1;

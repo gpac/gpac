@@ -1,3 +1,26 @@
+InitialObjectDescriptor {
+  objectDescriptorID 1
+  ODProfileLevelIndication 0xFF
+  sceneProfileLevelIndication 0xFE
+  audioProfileLevelIndication 0xFF
+  visualProfileLevelIndication 0xFF
+  graphicsProfileLevelIndication 0xFE
+
+  esdescr [
+    ES_Descriptor {
+      es_id 1
+      decConfigDescr DecoderConfigDescriptor {
+				streamType 3
+				decSpecificInfo BIFSConfig {
+				  isCommandStream true
+				  pixelMetric true
+				  useNames true
+				}
+      }
+    }
+  ]
+}
+
 PROTO Bubble [
   exposedField SFInt32 index 0
   exposedField SFInt32 state 0
@@ -93,7 +116,7 @@ OrderedGroup {
         " - a Script node which handles the initialization (colors, size, index) and dynamic positionning of the bubbles. It is also responsible for the game logic."
         "The number of of lines and columns in the bubble grid can be easily modified in the Script node." 
         "" 
-        "GPAC Regression Tests" "$Date: 2007-07-27 09:46:09 $ - $Revision: 1.5 $" 
+        "GPAC Regression Tests" "$Date: 2008-11-24 14:58:25 $ - $Revision: 1.6 $" 
         "(C) 2002-2006 GPAC Team"        
       ]
     }

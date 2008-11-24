@@ -636,6 +636,9 @@ void gf_smil_setup_events(GF_Node *node);
 void gf_smil_anim_reset_variables(SMIL_Anim_RTI *rai);
 void gf_smil_anim_set_anim_runtime_in_timing(GF_Node *n);
 
+void gf_smil_timing_pause(GF_Node *node);
+void gf_smil_timing_resume(GF_Node *node);
+
 #endif
 
 

@@ -470,6 +470,8 @@ void RP_SaveSessionState(RTPClient *rtp)
 					gf_list_rem(media->Attributes, j);
 				}
 			}
+			ch->current_start += gf_rtp_get_current_time(ch->rtp_ch);
+
 			GF_SAFEALLOC(att, GF_X_Attribute);
 			att->Name = strdup("x-stream-state");
 			sprintf(szPorts, "server-port=%d-%d;ssrc=%X;npt=%g;seq=%d;rtptime=%d", 
@@ -501,7 +503,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 			gf_list_rem(sdp->Attributes, j);
 		}
 	}
-	if (sess->session_id) {
+	if (sess && sess->session_id) {
 		GF_SAFEALLOC(att, GF_X_Attribute);
 		att->Name = strdup("x-session-id");
 		att->Value = strdup(sess->session_id);

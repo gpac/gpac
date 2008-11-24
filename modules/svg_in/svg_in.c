@@ -223,8 +223,8 @@ exit:
 	}
 	/*prepare for next playback*/
 	if (e==GF_EOS) {
-		//gf_sm_load_done(&svgin->loader);
-		//svgin->loader.fileName = NULL;
+		gf_sm_load_done(&svgin->loader);
+		svgin->loader.fileName = NULL;
 	}
 	return e;
 }
@@ -262,11 +262,12 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_SCENE_SVG:
 	case GPAC_OTI_SCENE_SVG_GZ:
+		svgin->loader.flags |= GF_SM_LOAD_CONTEXT_STREAMING;
 		/*no decSpecInfo defined for streaming svg yet*/
 		break;
 	case GPAC_OTI_SCENE_DIMS:
 		svgin->loader.type = GF_SM_LOAD_DIMS;
-		svgin->loader.flags |= GF_SM_LOAD_CONTEXT_DIMS;
+		svgin->loader.flags |= GF_SM_LOAD_CONTEXT_STREAMING;
 		/*decSpecInfo not yet supported for DIMS svg - we need properties at the scene level to store the 
 		various indications*/
 		break;

@@ -383,7 +383,8 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "pixelHeight")) ret += sscanf(val, "%hd", &bcd->pixelHeight);
 		else if (!stricmp(fieldName, "use3DMeshCoding")) GET_BOOL(notused)
 		else if (!stricmp(fieldName, "usePredictiveMFField")) GET_BOOL(notused)
-		else if (!stricmp(fieldName, "randomAccess")) GET_BOOL(bcd->randomAccess);
+		else if (!stricmp(fieldName, "randomAccess")) GET_BOOL(bcd->randomAccess)
+		else if (!stricmp(fieldName, "useNames")) GET_BOOL(bcd->useNames)
 	}
 		break;
 	case GF_ODF_MUXINFO_TAG:

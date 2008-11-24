@@ -293,6 +293,18 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 
 	opt = gf_modules_get_option((GF_BaseInterface *) plug, "Network", "SessionMigration");
 	if (opt && !strcmp(opt, "yes") ) {
+		opt = gf_modules_get_option((GF_BaseInterface *) plug, "Streaming", "SessionMigrationPause");
+		if (opt && !strcmp(opt, "yes")) {
+			GF_NetworkCommand com;
+			com.command_type = GF_NET_CHAN_PAUSE;
+			com.base.on_channel = NULL;
+			/*send pause on all sessions*/
+			i=0;
+			while ((sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i))) {
+				RP_UserCommand(sess, NULL, &com);
+			}
+		}
+
 		RP_SaveSessionState(rtp);
 	} else {
 		/*remove session state file*/
@@ -492,8 +504,14 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		ch->flags &= ~RTP_EOS;
 		if (ch->rtsp) {
 			if (ch->status==RTP_SessionResume) {
-				ch->status = RTP_Running;
-				return GF_OK;
+				const char *opt = gf_modules_get_option((GF_BaseInterface *) plug, "Streaming", "SessionMigrationPause");
+				if (opt && !strcmp(opt, "yes")) {
+					ch->status = RTP_Connected;
+					com->play.start_range = ch->current_start;
+				} else {
+					ch->status = RTP_Running;
+					return GF_OK;
+				}
 			}
 			RP_UserCommand(ch->rtsp, ch, com);
 		} else {
