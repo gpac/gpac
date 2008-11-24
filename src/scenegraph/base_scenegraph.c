@@ -509,7 +509,7 @@ void gf_sg_set_root_node(GF_SceneGraph *sg, GF_Node *node)
 	if (sg) sg->RootNode = node;
 }
 
-GFINLINE void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
+void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 {
 	NodeIDedItem *reg_node = sg->id_node;
 	if (reg_node && (reg_node->node==node)) {
