@@ -294,15 +294,15 @@ void gf_get_user_name(char *buf, u32 buf_size)
 /*enumerate directories*/
 GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir_fct, void *cbck, const char *filter)
 {
-	unsigned char item_path[GF_MAX_PATH];
+	char item_path[GF_MAX_PATH];
 
 #if defined(_WIN32_WCE)
-	unsigned char _path[GF_MAX_PATH];
+	char _path[GF_MAX_PATH];
 	unsigned short path[GF_MAX_PATH];
 	unsigned short w_filter[GF_MAX_PATH];
-	unsigned char file[GF_MAX_PATH];
+	char file[GF_MAX_PATH];
 #else
-	unsigned char path[GF_MAX_PATH], *file;
+	char path[GF_MAX_PATH], *file;
 #endif
 
 #ifdef WIN32

@@ -34,7 +34,7 @@
 
 #define GF_IPMPX_DELETE_ARRAY(__ar) if (__ar) { if (__ar->data) free(__ar->data); free(__ar); }
 
-u32 GFINLINE get_field_size(u32 size_desc)
+u32 get_field_size(u32 size_desc)
 {
 	if (size_desc < 0x00000080) return 1;
 	else if (size_desc < 0x00004000) return 2;
