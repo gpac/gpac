@@ -2,7 +2,7 @@ include ../../../config.mak
 
 vpath %.c $(SRC_PATH)/applications/testapps/broadcaster
 
-CFLAGS= $(OPTFLAGS) -Wall -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
 
 SOURCES=
 APPNAME=broadcaster
@@ -25,14 +25,13 @@ LIBS=-lgpac
 all: broadcaster
 
 broadcaster: $(OBJS) 
-	@echo "edition de liens"
 	@$(CC) -o $(APPNAME) $(OBJS) $(LIBS)
 
 .c.o:
-	@echo "compiling $*.c"
 	@$(CC) -g -c $(CFLAGS) $*.c
 
 
 clean:
-	@echo "cleaning"
 	-rm -f $(OBJS) $(APPNAME) *~
+
+

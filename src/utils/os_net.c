@@ -99,8 +99,12 @@ static int wsa_init = 0;
 #include <gpac/network.h>
 
 /*not defined on solaris*/
-#ifndef INADDR_NONE
-#define INADDR_NONE ((unsigned long)-1)
+#if !defined(INADDR_NONE)
+# if (defined(sun) && defined(__SVR4))
+#  define INADDR_NONE -1
+# else
+#  define INADDR_NONE ((unsigned long)-1)
+# endif
 #endif
 
 
