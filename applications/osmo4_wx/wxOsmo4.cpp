@@ -399,7 +399,7 @@ bool myDropfiles::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString& filenam
 	u32 count = filenames.GetCount();
 
 	if (count==1) {
-		char *ext = strrchr(filenames.Item(0).mb_str(wxConvUTF8) , '.');
+		const char *ext = strrchr(filenames.Item(0).mb_str(wxConvUTF8) , '.');
 		/*if playing and sub d&d, open sub in current presentation*/
 		if (m_pMain->m_connected && ext && ( !stricmp(ext, ".srt") || !stricmp(ext, ".sub") || !stricmp(ext, ".ttxt") || !stricmp(ext, ".xml") ) ) {
 			m_pMain->AddSubtitle(filenames.Item(0).mb_str(wxConvUTF8) , 1);
@@ -2238,13 +2238,13 @@ void wxOsmo4Frame::BuildStreamList(Bool reset_only)
 		if (gf_term_get_object_info(m_term, odm, &info) != GF_OK) break;
 
 		if (info.owns_service) {
-			char *szName = strrchr(info.service_url, '\\');
-			if (!szName) szName = strrchr(info.service_url, '/');
+			char *szName = (char *) strrchr(info.service_url, '\\');
+			if (!szName) szName = (char *) strrchr(info.service_url, '/');
 			if (!szName) szName = (char *) info.service_url;
 			else szName += 1;
 			strcpy(szLabel, szName);
 			szName = strrchr(szLabel, '.');
-			if (szName) szName[0] = 0;
+			if (szName) szName[0] = '\0';
 		}
 		switch (info.od_type) {
 		case GF_STREAM_AUDIO:

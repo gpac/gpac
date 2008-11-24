@@ -38,8 +38,8 @@ PLEntry::PLEntry(wxString url)
 	if (_url) {_url += 3; is_remote = 1; }
 	else _url = (const char *) the_url;
 
-	char *str = strrchr(_url, '\\');
-	if (!str) str = strrchr(_url, '/');
+	char *str = (char*)strrchr(_url, '\\');
+	if (!str) str = (char*)strrchr(_url, '/');
 	if (str && strlen(str+1)) {
 		m_disp_name = strdup(str+1);
 		str = strrchr(m_disp_name, '.');
@@ -762,7 +762,7 @@ void wxPlaylist::Truncate()
 
 void wxPlaylist::QueueURL(wxString filename)
 {
-	char *ext = strrchr(filename.mb_str(wxConvUTF8), '.');
+	char *ext = (char*)strrchr(filename.mb_str(wxConvUTF8), '.');
 	if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls")) ) {
 		OpenPlaylist(filename);
 	} else {

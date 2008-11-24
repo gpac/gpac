@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.cpp $(SRC_PATH)/applications/osmo4_wx
 
-CFLAGS= $(CPPFLAGS) -Wall -I$(SRC_PATH)/include
+CFLAGS= $(CPPFLAGS) -I$(SRC_PATH)/include
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -65,11 +65,12 @@ ifeq ($(CONFIG_DARWIN),yes)
 else
 	rm -f wxOsmo4.o
 	$(MAKE) -override BUILD_INSTALL=yes all
+	mkdir -p $(DESTDIR)$(prefix)/bin
 	install -m 755 $(INSTFLAGS) ../../bin/gcc/Osmo4 "$(DESTDIR)$(prefix)/bin"
 endif
 
 uninstall:
-	rm -rf $(prefix)/bin/Osmo4
+	rm -rf $(DESTDIR)$(prefix)/bin/Osmo4
 
 dep:
 
