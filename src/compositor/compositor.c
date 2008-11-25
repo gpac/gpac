@@ -179,8 +179,9 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 
 	/*3D driver changed message, recheck extensions*/
 	if (compositor->reset_graphics) {
+#ifndef GPAC_DISABLE_3D
 		compositor->offscreen_width = compositor->offscreen_height = 0;
-
+#endif
 		evt.type = GF_EVENT_SYS_COLORS;
 		if (compositor->user->EventProc && compositor->user->EventProc(compositor->user->opaque, &evt) ) {
 			u32 i;
@@ -2400,9 +2401,11 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		{
 			u32 tag = gf_node_get_tag(n);
 			switch(tag) {
+#ifndef GPAC_DISABLE_SVG
 			case TAG_SVG_audio: svg_pause_audio(n, 1); break;
 			case TAG_SVG_video: svg_pause_video(n, 1); break;
 			case TAG_SVG_animation: svg_pause_animation(n, 1); break;
+#endif
 			}
 		}
 		return 1;
@@ -2410,9 +2413,11 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		{
 			u32 tag = gf_node_get_tag(n);
 			switch(tag) {
+#ifndef GPAC_DISABLE_SVG
 			case TAG_SVG_audio: svg_pause_audio(n, 0); break;
 			case TAG_SVG_video: svg_pause_video(n, 0); break;
 			case TAG_SVG_animation: svg_pause_animation(n, 0); break;
+#endif
 			}
 		}
 		return 1;

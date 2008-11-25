@@ -170,6 +170,7 @@ GF_ObjectManager *gf_inline_find_odm(GF_InlineScene *is, u16 OD_ID)
 GF_EXPORT
 void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 {
+	u32 i;
 	GF_MediaObject *obj;
 	GF_Node *root_node;
 	GF_ObjectManager *odm;
@@ -181,7 +182,7 @@ void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	/*disconnect / kill all objects BEFORE reseting the scene graph since we have 
 	potentially registered Inline nodes of the graph with the sub-scene*/
 	if (!for_shutdown && is->static_media_ressources) {
-		u32 i=0;
+		i=0;
 		/*stop all objects but DON'T DESTROY THEM*/
 		while ((odm = (GF_ObjectManager *)gf_list_enum(is->ODlist, &i))) {
 			if (odm->state) gf_odm_disconnect(odm, 0);
@@ -210,6 +211,12 @@ void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 			gf_node_set_private(n, NULL);
 			break;
 		}
+	}
+
+	/*remove all associated eventTargets - THIS ENEDS CLEANUP*/
+	i=0;
+	while ((obj = (GF_MediaObject *)gf_list_enum(is->ODlist, &i))) {
+		if (obj->nodes) gf_list_reset(obj->nodes);
 	}
 
 	if (is->graph_attached && (is->root_od->term->root_scene == is)) {

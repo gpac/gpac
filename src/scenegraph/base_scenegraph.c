@@ -1578,7 +1578,9 @@ void gf_node_del(GF_Node *node)
 	} 
 	else if (node->sgprivate->tag == TAG_DOMFullNode) {
 		GF_DOMFullNode *n = (GF_DOMFullNode *)node;
+#ifndef GPAC_DISABLE_SVG
 		gf_node_delete_attributes(node);
+#endif
 		if (n->name) free(n->name);
 		gf_sg_parent_reset(node);
 		gf_node_free(node);
@@ -1851,8 +1853,11 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 		/*TODO*/
 		return NULL;
 	} else {
+#ifndef GPAC_DISABLE_SVG
 		return gf_xml_node_clone(inScene, orig, cloned_parent, id, deep);
+#endif
 	}
+	return NULL;
 }
 
 
