@@ -3056,7 +3056,10 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		} else {
 			SD_DumpSVG_Element(dumper, com->node, NULL, 1);
 		}
-		goto exit;
+		SD_FinalizeDump(dumper, (GF_Descriptor *) ctx->root_od);
+		gf_sm_dumper_del(dumper);
+		gf_list_del(sample_list);
+		return e;
 	}
 #endif
 
@@ -3174,7 +3177,6 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[Scene Dump] MPEG-4 Commands found, not supported in %s - skipping\n", dumper->X3DDump ? "X3D" : "VRML"));
 	}
 
-exit:
 	SD_FinalizeDump(dumper, (GF_Descriptor *) ctx->root_od);
 	gf_sm_dumper_del(dumper);
 	gf_list_del(sample_list);

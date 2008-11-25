@@ -579,9 +579,8 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 
 void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed old_tx, Fixed old_ty, Bool is_resize)
 {
-	GF_Node *root;
-
 #ifndef GPAC_DISABLE_SVG
+	GF_Node *root;
 	root = gf_sg_get_root_node(compositor->scene);
 	/*if root node is DOM, sent a resize event*/
 	if (root /* && (gf_node_get_tag(root) >= GF_NODE_FIRST_DOM_NODE_TAG) */) {

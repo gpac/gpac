@@ -161,7 +161,7 @@ void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig)
 		/*and clone all commands*/
 		i=0;
 		while ((ori_com = (GF_Command*)gf_list_enum(c_orig->buffer.commandList, &i))) {
-			GF_Command *dest_com = gf_sg_command_clone(ori_com, gf_node_get_graph(node));
+			GF_Command *dest_com = gf_sg_command_clone(ori_com, gf_node_get_graph(node), 1);
 			if (dest_com) gf_list_add(c_dest->buffer.commandList, dest_com);
 		}
 		return;

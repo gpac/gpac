@@ -30,14 +30,16 @@ typedef struct
 	GF_AudioInput input;
 	GF_TimeNode time_handle;
 	Double start_time;
-	Bool set_duration;
+	Bool set_duration, failure;
 } AudioClipStack;
 
 
 static void audioclip_activate(AudioClipStack *st, M_AudioClip *ac)
 {
-	if (gf_sc_audio_open(&st->input, &ac->url, 0, -1) != GF_OK)
+	if (gf_sc_audio_open(&st->input, &ac->url, 0, -1) != GF_OK) {
+		st->failure = 1;
 		return;
+	}
 	ac->isActive = 1;
 	gf_node_event_out_str((GF_Node *)ac, "isActive");
 
@@ -70,7 +72,8 @@ static void audioclip_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		free(st);
 		return;
 	}
-	
+	if (st->failure) return;
+
 	/*check end of stream*/
 	if (st->input.stream && st->input.stream_finished) {
 		if (gf_mo_get_loop(st->input.stream, ac->loop)) {
@@ -99,6 +102,7 @@ static void audioclip_update_time(GF_TimeNode *tn)
 	M_AudioClip *ac = (M_AudioClip *)tn->udta;
 	AudioClipStack *st = (AudioClipStack *)gf_node_get_private(tn->udta);
 
+	if (st->failure) return;
 	if (! ac->isActive) {
 		st->start_time = ac->startTime;
 		st->input.speed = ac->pitch;
@@ -137,6 +141,8 @@ void compositor_audioclip_modified(GF_Node *node)
 	M_AudioClip *ac = (M_AudioClip *)node;
 	AudioClipStack *st = (AudioClipStack *) gf_node_get_private(node);
 	if (!st) return;
+
+	st->failure = 0;
 
 	/*MPEG4 spec is not clear about that , so this is not forbidden*/
 	if (st->input.is_open && st->input.is_open) {

@@ -742,8 +742,10 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *inScene, GF_Command *com, Double time_
 GF_Err gf_sg_command_apply_list(GF_SceneGraph *graph, GF_List *comList, Double time_offset);
 /*returns new commandFieldInfo structure and registers it with command*/
 GF_CommandField *gf_sg_command_field_new(GF_Command *com);
-/*clones the command in another graph - needed for uncompressed conditional in protos*/
-GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph);
+/*clones the command in another graph - needed for uncompressed conditional in protos
+if force_clone is not set and the target graph is the same as the command graph, nodes are just registered
+with the new commands rather than cloned*/
+GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bool force_clone);
 
 #ifdef __cplusplus
 }

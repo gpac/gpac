@@ -316,7 +316,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				count = gf_list_count(cb_src->commandList);
 				for (i=0; i<count;i++) {
 					GF_Command *sub_com = (GF_Command *)gf_list_get(cb_src->commandList, i);
-					GF_Command *new_com = gf_sg_command_clone(sub_com, sg);
+					GF_Command *new_com = gf_sg_command_clone(sub_com, sg, 0);
 					gf_list_add(cb_dst->commandList, new_com);
 				}
 			}
@@ -784,7 +784,7 @@ GF_Err gf_sg_command_apply_list(GF_SceneGraph *graph, GF_List *comList, Double t
 	return GF_OK;
 }
 
-GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
+GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bool force_clone)
 {
 	u32 i, count;
 	GF_Command *dest;
@@ -794,8 +794,15 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
 	if (gf_list_count(com->new_proto_list)) return NULL;
 	dest = gf_sg_command_new(inGraph, com->tag);
 
+	if (com->in_scene!=inGraph) force_clone = 1;
+
 	/*node the command applies to - may be NULL*/
-	dest->node = gf_node_clone(inGraph, com->node, NULL, "", 0);
+	if (force_clone) {
+		dest->node = gf_node_clone(inGraph, com->node, NULL, "", 0);
+	} else {
+		dest->node = com->node;
+		gf_node_register(dest->node, NULL);
+	}
 	/*route insert, replace and delete*/
 	dest->RouteID = com->RouteID;
 	if (com->def_name) dest->def_name = strdup(com->def_name);
@@ -828,7 +835,12 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
 		}
 
 		if (fo->new_node) {
-			fd->new_node = gf_node_clone(inGraph, fo->new_node, dest->node, "", 0);
+			if (force_clone) {
+				fd->new_node = gf_node_clone(inGraph, fo->new_node, dest->node, "", 0);
+			} else {
+				fd->new_node = fo->new_node;
+				gf_node_register(fd->new_node, NULL);
+			}
 			fd->field_ptr = &fd->new_node;
 		}
 		if (fo->node_list) {
@@ -837,7 +849,12 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph)
 			child = fo->node_list;
 			while (child) {
 				cur = (GF_ChildNodeItem*) malloc(sizeof(GF_ChildNodeItem));
-				cur->node = gf_node_clone(inGraph, child->node, dest->node, "", 0);
+				if (force_clone) {
+					cur->node = gf_node_clone(inGraph, child->node, dest->node, "", 0);
+				} else {
+					cur->node = child->node;
+					gf_node_register(cur->node, NULL);
+				}
 				cur->next = NULL;
 				if (prev) prev->next = cur;
 				else fd->node_list = cur;

@@ -514,13 +514,16 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 static GF_Node *get_parent_focus(GF_Node *node, GF_List *hit_use_stack, u32 cur_idx)
 {
 	GF_Node *parent;
+#ifndef GPAC_DISABLE_SVG
 	GF_FieldInfo info;
-
+#endif
 	if (!node) return NULL;
 
+#ifndef GPAC_DISABLE_SVG
 	if (gf_node_get_attribute_by_tag(node, TAG_SVG_ATT_focusable, 0, 0, &info)==GF_OK) {
 		if ( *(SVG_Focusable*)info.far_ptr == SVG_FOCUSABLE_TRUE) return node;
 	}
+#endif
 	parent = gf_node_get_parent(node, 0);
 	if (cur_idx) {
 		GF_Node *n = gf_list_get(hit_use_stack, cur_idx-1);
@@ -970,9 +973,10 @@ u32 gf_sc_svg_focus_navigate(GF_Compositor *compositor, u32 key_code)
 /*focus management*/
 static Bool is_focus_target(GF_Node *elt)
 {
-	u32 i, count, tag;
-	
-	tag = gf_node_get_tag(elt);
+#ifndef GPAC_DISABLE_SVG
+	u32 i, count;
+#endif
+	u32 tag = gf_node_get_tag(elt);
 	switch (tag) {
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_a:
@@ -1197,8 +1201,6 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 				}
 			}
 		}
-#endif /*GPAC_DISABLE_SVG*/
-		child = ((GF_ParentNode *)elt)->children;
 		if (atts.xlink_href) {
 			switch (tag) {
 			case TAG_SVG_use:
@@ -1209,6 +1211,8 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 				break;
 			}
 		}
+#endif /*GPAC_DISABLE_SVG*/
+		child = ((GF_ParentNode *)elt)->children;
 	}
 
 	if (prev_focus) {
@@ -1301,11 +1305,13 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 	if (idx<0) {
 		/*up one level*/
 		gf_list_rem_last(compositor->focus_ancestors);
+#ifndef GPAC_DISABLE_SVG
 		if (tag==TAG_SVG_use) {
 			gf_list_rem_last(compositor->focus_use_stack);
 			gf_list_rem_last(compositor->focus_use_stack);
 			if (compositor->focus_used == par) compositor->focus_used = NULL;
 		}
+#endif
 		return browse_parent_for_focus(compositor, (GF_Node*)par, prev_focus);
 	}
 

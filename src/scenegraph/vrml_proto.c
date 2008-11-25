@@ -446,7 +446,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		M_InputSensor *clone_is = (M_InputSensor *)node;
 		M_InputSensor *orig_is = (M_InputSensor *)orig;
 		while ( (com_o = (GF_Command *)gf_list_enum(orig_is->buffer.commandList, &k) ) ) {
-			com_f = gf_sg_command_clone(com_o, node->sgprivate->scenegraph);
+			com_f = gf_sg_command_clone(com_o, node->sgprivate->scenegraph, 1);
 			gf_list_add(clone_is->buffer.commandList, com_f);
 		}
 	}
