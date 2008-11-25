@@ -1295,13 +1295,18 @@ fprintf(stdout, "%d %d\n", vout->max_screen_width, vout->max_screen_height);
 #endif
 
 #ifdef GPAC_HAS_X11_XV
-	xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 1);
-	if (0&&xWindow->xvport<0) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware has no color keying\n"));
-		vout->overlay_color_key = 0;
+	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "DisableColorKeying");
+	if (sOpt && !strcmp(sOpt, "yes")) {
 		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware uses color key %08x\n", vout->overlay_color_key));
+		xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 1);
+		if (xWindow->xvport<0) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware has no color keying\n"));
+			vout->overlay_color_key = 0;
+			xWindow->xvport = X11_GetXVideoPort(vout, GF_PIXEL_I420, 0);
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[X11] Hardware uses color key %08x\n", vout->overlay_color_key));
+		}
 	}
 	if (xWindow->xvport>=0) {
 		XvUngrabPort(xWindow->display, xWindow->xvport, CurrentTime );
