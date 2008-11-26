@@ -135,22 +135,18 @@ static JSBool xml_dom3_not_implemented(JSContext *c, JSObject *obj, uintN argc, 
 
 static void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info)
 {
-	if (!info) {
-		gf_node_changed(n, NULL);
-		return;
-	} else if (child_modif) {
-		gf_node_dirty_set(n, GF_SG_CHILD_DIRTY, 0);
-	} 
+	if (info) {
+		if (child_modif) {
+			gf_node_dirty_set(n, GF_SG_CHILD_DIRTY, 0);
+		} 
 #ifndef GPAC_DISABLE_SVG
-	else {
-		u32 flag = gf_svg_get_modification_flags((SVG_Element *)n, info);
-		gf_node_dirty_set(n, flag, 0);
-	}
+		else {
+			u32 flag = gf_svg_get_modification_flags((SVG_Element *)n, info);
+			gf_node_dirty_set(n, flag, 0);
+		}
 #endif
-
-	/*trigger rendering*/
-	if (n->sgprivate->scenegraph->NodeCallback)
-		n->sgprivate->scenegraph->NodeCallback(n->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, n, info);
+	}
+	gf_node_changed(n, info);
 }
 
 static void define_dom_exception(JSContext *c, JSObject *global)
