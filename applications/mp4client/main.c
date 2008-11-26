@@ -791,6 +791,7 @@ static u32 parse_log_tools(char *val)
 		else if (!stricmp(val, "scene")) flags |= GF_LOG_SCENE;
 		else if (!stricmp(val, "script")) flags |= GF_LOG_SCRIPT;
 		else if (!stricmp(val, "interact")) flags |= GF_LOG_INTERACT;
+		else if (!stricmp(val, "smil")) flags |= GF_LOG_SMIL;
 		else if (!stricmp(val, "compose")) flags |= GF_LOG_COMPOSE;
 		else if (!stricmp(val, "mmio")) flags |= GF_LOG_MMIO;
 		else if (!stricmp(val, "none")) flags = 0;
