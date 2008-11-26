@@ -304,7 +304,7 @@ enum
 	GF_LOG_SCENE = 1<<10,
 	/*! Log message from the scripting engine*/
 	GF_LOG_SCRIPT = 1<<11,
-	/*! Log message from event handling, animations and scene timing*/
+	/*! Log message from event handling*/
 	GF_LOG_INTERACT = 1<<12,
 	/*! Log message from compositor*/
 	GF_LOG_COMPOSE = 1<<13,
@@ -314,6 +314,9 @@ enum
 	GF_LOG_MMIO = 1<<15,
 	/*! Log for runtime info (times, memory, CPU usage)*/
 	GF_LOG_RTI = 1<<16,
+	/*! Log for SMIL timing and animation*/
+	GF_LOG_SMIL = 1<<17,
+
 };
 
 /*!
