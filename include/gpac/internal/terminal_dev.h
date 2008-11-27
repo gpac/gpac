@@ -257,6 +257,8 @@ struct _tag_terminal
 	GF_Mutex *mm_mx;
 	/*decoding thread*/
 	GF_Thread *mm_thread;
+	/*last codec used in mm loop*/
+	u32 last_codec;
 	/*thread priority*/
 	s32 priority;
 	u32 cumulated_priority;
