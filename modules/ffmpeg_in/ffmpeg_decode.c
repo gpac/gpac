@@ -690,7 +690,7 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 		/*std MPEG-2 audio*/
 		if ((ObjectType==0x69) || (ObjectType==0x6B)) codec_id = CODEC_ID_MP2;
 		/*std AC3 audio*/
-		if (ObjectType==0xA5) codec_id = CODEC_ID_AC3;
+		//if (ObjectType==0xA5) codec_id = CODEC_ID_AC3;
 	} 
 	
 	/*std MPEG-4 visual*/
