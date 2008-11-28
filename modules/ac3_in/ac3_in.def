@@ -1,0 +1,6 @@
+LIBRARY     gm_ac3_in.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface
