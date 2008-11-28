@@ -482,6 +482,8 @@ Jack_QueryOutputSampleRate (GF_AudioOutput * dr, u32 * desired_sr,
     return GF_IO_ERR;
   *desired_sr = jack_get_sample_rate (ctx->jack);
   *NbChannels = 2;
+  GF_LOG (GF_LOG_DEBUG, GF_LOG_MMIO,
+	  ("[Jack] Jack output sample rate %d\n", *desired_sr));
   return GF_OK;
 }
 

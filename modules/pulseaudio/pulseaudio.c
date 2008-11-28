@@ -161,6 +161,7 @@ PulseAudio_ConfigureOutput (GF_AudioOutput * dr, u32 * SampleRate,
 	       pa_strerror (pa_error)));
       return GF_IO_ERR;
     }
+  GF_LOG (GF_LOG_DEBUG, GF_LOG_MMIO, ("[PulseAudio] Initialized - sampling rate %d - %d channels\n", ctx->sample_spec.rate, ctx->sample_spec.channels));
   return GF_OK;
 }
 
@@ -284,9 +285,7 @@ NewPulseAudioOutput ()
   driv->SetPriority = PulseAudio_SetPriority;
   driv->QueryOutputSampleRate = PulseAudio_QueryOutputSampleRate;
   driv->WriteAudio = PulseAudio_WriteAudio;
-  GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE,
-				"PulseAudio Audio Output",
-				"gpac distribution");
+  GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE, "PulseAudio Audio Output", "gpac distribution");
   return driv;
 }
 
@@ -326,3 +325,4 @@ ShutdownInterface (GF_BaseInterface * ifce)
   if (ifce->InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
     DeletePulseAudioOutput ((GF_AudioOutput *) ifce);
 }
+
