@@ -61,6 +61,7 @@ has_amr_wb="no"
 has_ogg="no"
 has_vorbis="no"
 has_theora="no"
+has_a52="no"
 has_pulseaudio="no"
 has_oss_audio="no"
 has_alsa="no"
@@ -669,6 +670,25 @@ elif $cc -o $TMPO $TMPC -I$local_inc/mad -L$local_lib -lmad 2> /dev/null  ; then
 has_mad="local"
 fi
 
+#look for A52DEC support
+cat > $TMPC << EOF
+#define uint32_t unsigned int
+#define uint8_t unsigned char
+#include <a52dec/mm_accel.h>
+#include <a52dec/a52.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -la52 2> /dev/null  ; then
+has_a52="system"
+elif test "$alt_macosx_dir" != "" ; then
+ if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -la52 2> /dev/null ; then
+ has_a52="system"
+ fi
+elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -la52 2> /dev/null  ; then
+has_a52="local"
+fi
+
 #look for XVID support
 cat > $TMPC << EOF
 #include <xvid.h>
@@ -1027,6 +1047,8 @@ for opt do
   ;;
   --use-mad=*) has_mad=${opt#--use-mad=}
   ;;
+  --use-a52=*) has_a52=${opt#--use-a52=}
+  ;;
   --use-xvid=*) has_xvid=${opt#--use-xvid=}
   ;;
   --use-jpeg=*) has_jpeg=${opt#--use-jpeg=}
@@ -1362,12 +1384,13 @@ else
 echo "Xiph Vorbis: $has_vorbis"
 echo "Xiph Theora: $has_theora"
 fi
+echo "A52 (AC3): $has_a52"
 
 echo ""
 if test "$has_amr_nb_fixed" = "yes" ; then
   echo "*** AMR NB FIXED-POINT NOTICE ***"
   echo "Make sure you have downloaded TS26.073 from:"
-  echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-600.zip"
+  echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-*.zip"
   echo "or through gpac_extra_libs and extracted src to modules/amr_dec/amr_nb"
   echo "without overwriting typedefs.h file"
   echo ""
@@ -1377,7 +1400,7 @@ echo ""
 if test "$has_amr_nb" = "yes" ; then
   echo "*** AMR NB NOTICE ***"
   echo "Make sure you have downloaded TS26.104 from:"
-  echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.104/26104-610.zip"
+  echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.104/26104-*.zip"
   echo "or through gpac_extra_libs and extracted src to modules/amr_float_dec/amr_nb_ft"
   echo "without overwriting typedefs.h file"
   echo ""
@@ -1388,7 +1411,7 @@ echo ""
 if test "$has_amr_wb" = "yes" ; then
   echo "*** AMR WB NOTICE ***"
   echo "Make sure you have downloaded TS26.204 from:"
-  echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.204/26204-600.zip"
+  echo "http://www.3gpp.org/ftp/Specs/archive/26_series/26.204/26204-*.zip"
   echo "or through gpac_extra_libs and extracted src to modules/amr_float_dec/amr_wb_ft"
   echo "without overwriting typedefs.h file"
   echo ""
@@ -1545,6 +1568,7 @@ echo "CONFIG_FFMPEG=$has_ffmpeg" >> config.mak
 echo "CONFIG_OSS_AUDIO=$has_oss_audio" >> config.mak
 echo "CONFIG_ALSA=$has_alsa" >> config.mak
 echo "CONFIG_JACK=$has_jack" >> config.mak
+echo "CONFIG_A52=$has_a52" >> config.mak
 
 echo "DISABLE_SVG=$disable_svg" >> config.mak
 echo "GPAC_USE_TINYGL=$has_tinygl" >> config.mak

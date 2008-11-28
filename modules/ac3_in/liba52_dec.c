@@ -34,8 +34,8 @@
 #define uint8_t u8
 #endif
 
-#include <mm_accel.h>
-#include <a52.h>
+#include <a52dec/mm_accel.h>
+#include <a52dec/a52.h>
 
 
 typedef struct
