@@ -936,7 +936,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 		xWindow->shmseginfo->shmaddr = shmat(xWindow->shmseginfo->shmid, 0, 0);
 		xWindow->shmseginfo->readOnly = False;
 		if (!XShmAttach (xWindow->display, xWindow->shmseginfo)) {
-			fprintf(stdout, "Failed to attach shared memory!!\n");
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Failed to attach shared memory!\n"));
 		}
 		xWindow->pixmap = XShmCreatePixmap(xWindow->display, cur_wnd,
 							(unsigned char *) xWindow->shmseginfo->shmaddr, xWindow->shmseginfo,
@@ -945,7 +945,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 		XSetWindowBackgroundPixmap (xWindow->display, cur_wnd, xWindow->pixmap);
 		xWindow->pwidth = VideoWidth;
 		xWindow->pheight = VideoHeight;
-		fprintf(stdout, "Using X11 Pixmap %08x\n", (u32)xWindow->pixmap);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[X11] Using X11 Pixmap %08x\n", (u32)xWindow->pixmap));
 	} else if (xWindow->use_shared_memory) {
 		GF_SAFEALLOC(xWindow->shmseginfo, XShmSegmentInfo);
 		xWindow->surface = XShmCreateImage (xWindow->display, xWindow->visual,
@@ -1124,7 +1124,6 @@ GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, u32 do
 #endif
 		}
 		vi->is_hardware_memory = (xWindow->use_shared_memory) ? 1 : 0;
-		//fprintf(stdout, "X11 Lock Back Buffer: %d x %d (pitch %d) pf %s buffer %08x\n", vi->width, vi->height, vi->pitch, gf_4cc_to_str(vi->pixel_format), (u32) vi->video_buffer);
 		return GF_OK;
 	} else {
 		return GF_OK;
@@ -1203,7 +1202,6 @@ X11_SetupWindow (GF_VideoOutput * vout)
 xWindow->screennum=0;
 	vout->max_screen_width = DisplayWidth(xWindow->display, xWindow->screennum);
 	vout->max_screen_height = DisplayHeight(xWindow->display, xWindow->screennum);
-fprintf(stdout, "%d %d\n", vout->max_screen_width, vout->max_screen_height);
 	/*
 	 * Full screen wnd
 	 */
