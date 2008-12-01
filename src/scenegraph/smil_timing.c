@@ -613,11 +613,6 @@ waiting_to_begin:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Activating\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			rti->status = SMIL_STATUS_ACTIVE;
 
-			memset(&evt, 0, sizeof(evt));
-			evt.type = GF_EVENT_BEGIN_EVENT;
-			evt.smil_event_time = rti->current_interval->begin;
-			gf_dom_event_fire((GF_Node *)rti->timed_elt, &evt);
-
 			if (rti->timed_elt->sgprivate->tag==TAG_LSR_conditional) {
 				SVG_Element *e = (SVG_Element *)rti->timed_elt;
 				/*activate conditional*/
@@ -626,6 +621,11 @@ waiting_to_begin:
 			} else {
 				gf_smil_reorder_anim(rti);
 			}
+
+			memset(&evt, 0, sizeof(evt));
+			evt.type = GF_EVENT_BEGIN_EVENT;
+			evt.smil_event_time = rti->current_interval->begin;
+			gf_dom_event_fire((GF_Node *)rti->timed_elt, &evt);				
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Evaluating (Not starting)\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 			ret = -2;
@@ -640,11 +640,6 @@ waiting_to_begin:
 			&& rti->scene_time >= (rti->current_interval->begin + rti->current_interval->active_duration)) {
 force_end:
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Stopping \n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
-			memset(&evt, 0, sizeof(evt));
-			evt.type = GF_EVENT_END_EVENT;
-			/* WARNING: begin + active_duration may be greater than 'now' because of force_end cases */
-			evt.smil_event_time = rti->current_interval->begin + rti->current_interval->active_duration;
-			gf_dom_event_fire((GF_Node *)rti->timed_elt, &evt);
 
 			rti->normalized_simple_time = gf_smil_timing_get_normalized_simple_time(rti, rti->scene_time, NULL);
 			ret = rti->postpone;
@@ -664,6 +659,12 @@ force_end:
 					rti->evaluate(rti, rti->normalized_simple_time, rti->evaluate_status);
 				}
 			}
+
+			memset(&evt, 0, sizeof(evt));
+			evt.type = GF_EVENT_END_EVENT;
+			/* WARNING: begin + active_duration may be greater than 'now' because of force_end cases */
+			evt.smil_event_time = rti->current_interval->begin + rti->current_interval->active_duration;
+			gf_dom_event_fire((GF_Node *)rti->timed_elt, &evt);
 
 		} else { /* the animation is still active */
 
@@ -698,13 +699,13 @@ force_end:
 				goto force_end;
 			}
 			if (cur_id < rti->current_interval->nb_iterations) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[SMIL Timing   ] Time %f - Timed element %s - Preparing to repeat\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 				memset(&evt, 0, sizeof(evt));
 				evt.type = GF_EVENT_REPEAT_EVENT;
 				evt.smil_event_time = rti->current_interval->begin + rti->current_interval->nb_iterations*rti->current_interval->simple_duration;
 				evt.detail = rti->current_interval->nb_iterations;
 				gf_dom_event_fire((GF_Node *)rti->timed_elt, &evt);
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Preparing to repeat\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
 				rti->evaluate_status = SMIL_TIMING_EVAL_REPEAT;		
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Preparing to update\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
@@ -713,7 +714,7 @@ force_end:
 
 			if (!rti->postpone) {
 				rti->evaluate(rti, rti->normalized_simple_time, rti->evaluate_status);
-			}	
+			}
 
 			/* special case for animations with unspecified simpleDur (not with media timed elements)
 			   we need to indicate that this anim does not need to be notified anymore and that 

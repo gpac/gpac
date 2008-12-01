@@ -175,7 +175,7 @@ static void define_dom_exception(JSContext *c, JSObject *global)
 	DEF_EXC(TYPE_MISMATCH_ERR);
 #undef  DEF_EXC
 
-	JS_AliasProperty(c, global, "e", "DOMException");
+	JS_AliasProperty(c, global, "DOMException", "e");
 	obj = JS_DefineObject(c, global, "EventException", NULL, 0, 0);
 	JS_DefineProperty(c, obj, "UNSPECIFIED_EVENT_TYPE_ERR", INT_TO_JSVAL(0), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(c, obj, "DISPATCH_REQUEST_ERR", INT_TO_JSVAL(1), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -193,7 +193,7 @@ JSBool dom_throw_exception(JSContext *c, u32 code)
 
 GF_Node *dom_get_node(JSContext *c, JSObject *obj)
 {
-	GF_Node *n = JS_GetPrivate(c, obj);
+	GF_Node *n = obj ? JS_GetPrivate(c, obj) : NULL;
 	if (n && n->sgprivate) return n;
 	return NULL;
 }
@@ -493,6 +493,7 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 	u32 evtType;
 	char *inNS = NULL;
 	GF_SceneGraph *sg = NULL;
+	JSFunction*fun = NULL;
 	GF_Node *n = NULL;
 	jsval funval = 0;
 	JSObject *evt_handler;
@@ -535,17 +536,17 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 		callback = JSVAL_GET_STRING(argv[of+1]);
 		if (!callback) goto err_exit;
 	} else if (JSVAL_IS_OBJECT(argv[of+1])) {
-		JSFunction *fun = JS_ValueToFunction(c, argv[of+1]);
-		funval = argv[of+1];
-		if (!fun) {
+		if (JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[of+1]))) {
+			//fun = JS_ValueToFunction(c, argv[of+1]);
+			funval = argv[of+1];
+		} else {
 			JSBool found;
 			jsval evt_fun;
 			evt_handler = JSVAL_TO_OBJECT(argv[of+1]);
 			found = JS_GetProperty(c, evt_handler, "handleEvent", &evt_fun);
 			if (!found || !JSVAL_IS_OBJECT(evt_fun) ) goto err_exit;
-			fun = JS_ValueToFunction(c, evt_fun);
-			if (!fun) goto err_exit;
-			funval = 0;
+			if (!JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(evt_fun)) ) goto err_exit;
+			funval = evt_fun;
 		}
 	}
 
@@ -565,6 +566,7 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 		gf_node_list_add_child(& ((GF_ParentNode *)listener)->children, (GF_Node*)handler);
 
 		if (!callback) {
+			handler->js_fun = fun;
 			handler->js_fun_val = funval;
 			handler->evt_listen_obj = evt_handler;
 		}
@@ -659,8 +661,7 @@ JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsv
 	if (JSVAL_CHECK_STRING(argv[of+1])) {
 		callback = JSVAL_GET_STRING(argv[of+1]);
 	} else if (JSVAL_IS_OBJECT(argv[of+1])) {
-		if (!JS_ValueToFunction(c, argv[of+1])) {
-		} else {
+		if (JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[of+1]) )) {
 			funval = argv[of+1];
 		}
 	}
@@ -898,10 +899,6 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 	} else {
 		return dom_throw_exception(c, GF_DOM_EXC_NOT_FOUND_ERR);
 	}
-	
-	/*deactivate node sub-tree*/
-	gf_node_deactivate(old_node);
-
 	*rval = argv[0];
 	dom_node_changed(n, 1, NULL);
 	return JS_TRUE;
@@ -1420,7 +1417,7 @@ static JSBool xml_document_element_by_id(JSContext *c, JSObject *obj, uintN argc
 	GF_Node *n;
 	char *id;
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
-
+	if (!sg) return JS_FALSE;
 	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 	id = JSVAL_GET_STRING(argv[0]);
 

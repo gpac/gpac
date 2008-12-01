@@ -41,6 +41,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	if (backup & GF_SG_CHILD_DIRTY) {
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
+		drawable_reset_group_highlight(tr_state, node);
 
 		/*never performs bounds recompute on the fly in 2D since we don't cull 2D groups
 		but still mark the group as empty*/
@@ -221,6 +222,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		/*never trigger bounds recompute in 2D since we don't cull 2D groups*/
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
+		drawable_reset_group_highlight(tr_state, node);
 		/*special case for anchor which is a parent node acting as a sensor*/
 		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
 			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;

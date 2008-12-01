@@ -635,6 +635,7 @@ GF_Err gf_path_get_control_bounds(GF_Path *gp, GF_Rect *rc)
 	rc->width = xMax - xMin;
 	rc->height = yMax - yMin;
 
+#if 0
 	/*take care of straight line path by adding a default width if height and vice-versa*/
 	if (rc->height && !rc->width) {
 		rc->width = 2*FIX_ONE;
@@ -644,6 +645,7 @@ GF_Err gf_path_get_control_bounds(GF_Path *gp, GF_Rect *rc)
 		rc->height = 2*FIX_ONE;
 		rc->y += FIX_ONE;
 	}
+#endif
 	return GF_OK;
 }
 

@@ -104,9 +104,11 @@ SOURCE=..\..\modules\ft_font\ft_font.c
 DEP_CPP_FT_FO=\
 	"..\..\extra_lib\include\freetype\freetype\config\ftheader.h"\
 	"..\..\extra_lib\include\freetype\ft2build.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\events.h"\
+	"..\..\include\gpac\internal\config.h"\
+	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -116,6 +118,9 @@ DEP_CPP_FT_FO=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	"..\..\include\gpac\utf.h"\
+	
+NODEP_CPP_FT_FO=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File

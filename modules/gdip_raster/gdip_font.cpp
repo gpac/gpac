@@ -59,7 +59,7 @@ GF_Err gdip_shutdown_font_engine(GF_FontReader *dr)
 
 
 
-static GF_Err gdip_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *xml_lang)
+static GF_Err gdip_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *xml_lang, Bool *is_rtl)
 {
 	u32 len;
 	u32 i;
@@ -82,7 +82,7 @@ static GF_Err gdip_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *gl
 
 	/*perform bidi relayout*/
 	conv = (u16*) glyph_buffer;
-	gf_utf8_reorder_bidi(conv, len);
+	*is_rtl = gf_utf8_reorder_bidi(conv, len);
 	/*move 16bit buffer to 32bit*/
 	for (i=len; i>0; i--) {
 		glyph_buffer[i-1] = (u32) conv[i-1];

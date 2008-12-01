@@ -49,7 +49,6 @@
 "Epoc32\release\GCCE\UREL\gm_timedtext.dll"           -"c:\sys\bin\gm_timedtext.dll"
 "Epoc32\release\GCCE\UREL\gm_xvid_dec.dll"           -"c:\sys\bin\gm_xvid_dec.dll"
 
-
 ;required for application to be covered by backup/restore facility 
 ;"backup_registration.xml"						-"c:\private\F01F9075\backup_registration.xml"
 

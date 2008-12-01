@@ -798,6 +798,16 @@ void gf_inline_attach_to_compositor(GF_InlineScene *is)
 		return;
 	}
 	is->graph_attached = 1;
+
+	/*locate fragment IRI*/
+	if (!is->root_od || !is->root_od->net_service || !is->root_od->net_service->url) return;
+	if (is->fragment_uri) {
+		free(is->fragment_uri);
+		is->fragment_uri = NULL;
+	}
+	url = strchr(is->root_od->net_service->url, '#');
+	if (url) is->fragment_uri = strdup(url+1);
+
 	/*main display scene, setup compositor*/
 	if (is->root_od->term->root_scene == is) {
 		gf_sc_set_scene(is->root_od->term->compositor, is->graph);
@@ -813,17 +823,8 @@ void gf_inline_attach_to_compositor(GF_InlineScene *is)
 			gf_sg_get_scene_size_info(is->graph, &w, &h);
 			gf_sc_set_size(is->root_od->term->compositor, w, h);
 		}
+		gf_is_resize_event(is);
 	}
-	/*locate fragment IRI*/
-	if (!is->root_od || !is->root_od->net_service || !is->root_od->net_service->url) return;
-	if (is->fragment_uri) {
-		free(is->fragment_uri);
-		is->fragment_uri = NULL;
-	}
-	url = strchr(is->root_od->net_service->url, '#');
-	if (url) is->fragment_uri = strdup(url+1);
-
-	gf_is_resize_event(is);
 }
 
 static GF_MediaObject *IS_CheckExistingObject(GF_InlineScene *is, MFURL *urls, u32 type)

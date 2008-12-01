@@ -2208,12 +2208,6 @@ const char *gf_avc_get_profile_name(u8 video_prof)
 	}
 }
 
-
-#ifndef GPAC_READ_ONLY
-/*
-	AC3 parser
-	taken from MPEG4IP - MPL
-*/
 static u32 AC3_FindSyncCode(u8 *buf, u32 buflen)
 {
 	u32 end = buflen - 6;
@@ -2387,8 +2381,6 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 	gf_bs_seek(bs, pos);
 	return 1;
 }
-
-#endif
 
 
 

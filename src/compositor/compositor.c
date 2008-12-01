@@ -271,6 +271,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->sensors = gf_list_new();
 	compositor->previous_sensors = gf_list_new();
 	compositor->hit_use_stack = gf_list_new();
+	compositor->prev_hit_use_stack = gf_list_new();
 	compositor->focus_ancestors = gf_list_new();
 	compositor->focus_use_stack = gf_list_new();
 	
@@ -502,6 +503,7 @@ void gf_sc_del(GF_Compositor *compositor)
 	gf_list_del(compositor->visuals);
 	gf_list_del(compositor->strike_bank);
 	gf_list_del(compositor->hit_use_stack);
+	gf_list_del(compositor->prev_hit_use_stack);
 	gf_list_del(compositor->focus_ancestors);
 	gf_list_del(compositor->focus_use_stack);
 
@@ -1457,17 +1459,8 @@ static void gf_sc_forward_event(GF_Compositor *compositor, GF_Event *ev)
 	}
 }
 
-static void gf_sc_draw_scene(GF_Compositor *compositor)
+static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node)
 {
-	u32 flags;
-
-	GF_Node *top_node = gf_sg_get_root_node(compositor->scene);
-
-	if (!top_node && !compositor->visual->last_had_back && !compositor->visual->cur_context) {
-		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Scene has no root node, nothing to draw\n"));
-		return;
-	}
-
 	if (top_node && !compositor->root_visual_setup) {
 		u32 node_tag;
 #ifndef GPAC_DISABLE_3D
@@ -1571,6 +1564,20 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		}
 #endif
 	} 
+}
+
+static void gf_sc_draw_scene(GF_Compositor *compositor)
+{
+	u32 flags;
+
+	GF_Node *top_node = gf_sg_get_root_node(compositor->scene);
+
+	if (!top_node && !compositor->visual->last_had_back && !compositor->visual->cur_context) {
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Scene has no root node, nothing to draw\n"));
+		return;
+	}
+
+	gf_sc_setup_root_visual(compositor, top_node);
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 	if (!compositor->video_cache_max_size)
@@ -1671,6 +1678,9 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	gf_term_sample_clocks(compositor->term);
 	
+	/*setup root visual before triggering animations in case they in turn use the viewport*/
+//	if (!compositor->root_visual_setup)
+//		gf_sc_setup_root_visual(compositor, gf_sg_get_root_node(compositor->scene));
 
 #ifndef GPAC_DISABLE_LOG
 	route_time = gf_sys_clock();
@@ -2357,9 +2367,23 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		tr_state.visual = compositor->visual;
 		tr_state.vp_size = compositor->traverse_state->vp_size;
 		tr_state.for_node = n;
+		tr_state.ignore_strike = 1;
 		gf_mx2d_init(tr_state.transform);
 		gf_mx2d_init(tr_state.mx_at_node);
-		gf_node_traverse(gf_sg_get_root_node(compositor->scene), &tr_state);
+
+
+		if (type==GF_JSAPI_OP_GET_LOCAL_BBOX) {
+			GF_SAFEALLOC(tr_state.svg_props, SVGPropertiesPointers);
+			gf_svg_properties_init_pointers(tr_state.svg_props);
+			tr_state.abort_bounds_traverse=1;
+			gf_node_traverse(n, &tr_state);
+			gf_svg_properties_reset_pointers(tr_state.svg_props);
+			free(tr_state.svg_props);
+		} else {
+			gf_node_traverse(gf_sg_get_root_node(compositor->scene), &tr_state);
+		}
+		if (!tr_state.bounds.height && !tr_state.bounds.width && !tr_state.bounds.x && !tr_state.bounds.height)
+			tr_state.abort_bounds_traverse=0;
 
 		gf_mx2d_pre_multiply(&tr_state.mx_at_node, &compositor->traverse_state->transform);
 
@@ -2371,6 +2395,7 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 			gf_mx2d_apply_rect(&tr_state.mx_at_node, &tr_state.bounds);
 			gf_bbox_from_rect(&param->bbox, &tr_state.bounds);
 		}
+		if (!tr_state.abort_bounds_traverse) param->bbox.is_set = 0;
 	}
 		return 1;
 	case GF_JSAPI_OP_LOAD_URL:

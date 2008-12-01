@@ -329,7 +329,9 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	invalidate_flag = tr_state->invalidate_all;
 
 	is_dirty = gf_node_dirty_get(node);
+	if (is_dirty  &GF_SG_CHILD_DIRTY) drawable_reset_group_highlight(tr_state, node);
 	gf_node_dirty_clear(node, 0);
+
 	if ((stack->parent_vp.x != tr_state->vp_size.x) || (stack->parent_vp.y != tr_state->vp_size.y))
 		is_dirty = 1;
 
@@ -541,6 +543,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		if (all_atts.opacity) {
 			opacity = gf_mulfix(opacity, all_atts.opacity->value);
 		}
+		if (gf_node_dirty_get(node)&GF_SG_CHILD_DIRTY) drawable_reset_group_highlight(tr_state, node);
 
 		if (opacity < FIX_ONE) {
 			if (!group->cache) {
@@ -685,6 +688,7 @@ static void svg_traverse_switch(GF_Node *node, void *rs, Bool is_destroy)
 			pos++;
 			child = child->next;
 		}
+		drawable_reset_group_highlight(tr_state, node);
 		gf_node_dirty_clear(node, 0);
 	}
 
@@ -914,7 +918,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 	GF_Matrix mx_3d;
   	GF_Matrix2D translate;
 	SVGPropertiesPointers backup_props;
-	u32 backup_flags;
+	u32 backup_flags, dirty;
 	Bool is_fragment;
 	GF_Node *used_node;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
@@ -936,7 +940,10 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 	if (!compositor_svg_traverse_base(node, &all_atts, tr_state, &backup_props, &backup_flags))
 		return;
 
-	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
+	dirty = gf_node_dirty_get(node);
+	if (dirty & GF_SG_CHILD_DIRTY) drawable_reset_group_highlight(tr_state, node);
+
+	if (dirty & GF_SG_SVG_XLINK_HREF_DIRTY) {
 		stack->fragment_id = NULL;
 		stack->inline_sg = NULL;
 		if (all_atts.xlink_href->string && (all_atts.xlink_href->string[0]=='#')) {
@@ -949,8 +956,8 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 				stack->resource = new_res;
 			}
 		}
-		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
 	}
+	gf_node_dirty_clear(node, 0);
 
 	/*locate the used node - this is done at each step to handle progressive loading*/
 	is_fragment = 0;

@@ -42,7 +42,7 @@ typedef struct
 
 
 /*translate string to glyph sequence*/
-static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang)
+static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang, Bool *is_rtl)
 {
 	u32 prev_c;
 	u32 len;
@@ -71,7 +71,7 @@ static GF_Err svg_font_get_glyphs(void *udta, const char *utf_string, u32 *glyph
 
 	/*perform bidi relayout*/
 	utf_res = (u16 *) glyph_buffer;
-	gf_utf8_reorder_bidi(utf_res, len);
+	*is_rtl = gf_utf8_reorder_bidi(utf_res, len);
 
 	/*move 16bit buffer to 32bit*/
 	for (i=len; i>0; i--) {
@@ -440,7 +440,7 @@ GF_Font *svg_font_uri_get_alias(void *udta)
 	return st->alias;
 }
 
-static GF_Err svg_font_uri_get_glyphs(void *udta, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang)
+static GF_Err svg_font_uri_get_glyphs(void *udta, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *lang, Bool *is_rtl)
 {
 	return GF_URL_ERROR;
 }

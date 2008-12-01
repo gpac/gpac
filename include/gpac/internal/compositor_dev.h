@@ -329,7 +329,7 @@ struct __tag_compositor
 	/*appearance at hit point - used for composite texture*/
 	GF_Node *hit_appear;
 	/*parent use stack - SVG only*/
-	GF_List *hit_use_stack;
+	GF_List *hit_use_stack, *prev_hit_use_stack;
 	/*picked node uses DOM event or VRML events ?*/
 	Bool hit_use_dom_events;
 
@@ -694,6 +694,7 @@ struct _traversing_state
 	GF_Node *for_node;
 	Bool abort_bounds_traverse;
 	GF_Matrix2D mx_at_node;
+	Bool ignore_strike;
 	
 	GF_List *use_stack;
 	/* Styling Property and others for SVG context */
@@ -1068,7 +1069,7 @@ struct _gf_font
 
 	/*only set for embedded font engines (SVG fonts)*/
 	GF_Font *(*get_alias)(void *udta);
-	GF_Err (*get_glyphs)(void *udta, const char *utf_string, u32 *glyph_ids_buffer, u32 *io_glyph_ids_buffer_size, const char *xml_lang);
+	GF_Err (*get_glyphs)(void *udta, const char *utf_string, u32 *glyph_ids_buffer, u32 *io_glyph_ids_buffer_size, const char *xml_lang, Bool *is_rtl);
 	GF_Glyph *(*load_glyph)(void *udta, u32 glyph_name);
 	void *udta;
 
@@ -1088,7 +1089,9 @@ enum
 	/*span is fliped (coord systems with Y-axis pointing downwards like SVG)*/
 	GF_TEXT_SPAN_FLIP = 1<<2,
 	/*span is in the current text selection*/
-	GF_TEXT_SPAN_SELECTED = 1<<3
+	GF_TEXT_SPAN_RIGHT_TO_LEFT = 1<<3,
+	/*span is in the current text selection*/
+	GF_TEXT_SPAN_SELECTED = 1<<4
 };
 
 typedef struct __text_span

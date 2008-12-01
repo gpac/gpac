@@ -145,6 +145,9 @@ void drawable_mark_modified(Drawable *st, GF_TraverseState *tr_state);
 /*checks if the current object is the focused one, and insert the focus drawable at the current pos*/
 void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, GF_Rect *orig_bounds);
 
+/*reset the highlight state (bounds) if associated with the current node. This is automatically called 
+whenever reseting a drawable but must be called when a grouping node is modified*/
+void drawable_reset_group_highlight(GF_TraverseState *tr_state, GF_Node *n);
 
 /*move current bounds to previous bounds for given target visual manager - called BEFORE updating the visual manager
 returns 1 if nod was draw last frame on this visual manager, 0 otherwise*/

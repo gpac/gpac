@@ -546,14 +546,10 @@ static u32 OggDemux(void *par)
 
 		if (!read->bos_done) continue;
 		
-#if 0
-		/*idle*/
+		/*wait for stream connection*/
 		while (!read->kill_demux && !read->nb_playing) {
-			/*send OD updates*/
-			OGG_SendStreams(read);
 			gf_sleep(20);
 		}
-#endif
 
 		/*(re)starting, seek*/
 		if (read->do_seek) {
@@ -592,7 +588,7 @@ static u32 OggDemux(void *par)
 				}
 			}
 			if (!i || !read->nb_playing) break;
-			gf_sleep(10);
+			gf_sleep(0);
 		}
 	}
     ogg_sync_clear(&read->oy);

@@ -108,7 +108,7 @@ Bool gf_utf8_is_right_to_left(u16 *utf_string)
 
 /*a very VERY basic bidi reorderer */
 GF_EXPORT
-void gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
+Bool gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
 {
 	u32 i, j, start, stop, cur_dir, slen, main_dir;
 	Bool is_start;
@@ -183,7 +183,7 @@ void gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
 			utf_string[stop-j] = v;
 		}
 	}
-
+	return rev;
 }
 
 
