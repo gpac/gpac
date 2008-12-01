@@ -1174,17 +1174,21 @@ static JSBool svg_get_bbox(JSContext *c, JSObject *obj, uintN argc, jsval *argv,
 	if (!n || argc) return JS_TRUE;
 
 	par.bbox.is_set = 0;
-	if (ScriptAction(n->sgprivate->scenegraph, get_screen ? GF_JSAPI_OP_GET_SCREEN_BBOX : GF_JSAPI_OP_GET_LOCAL_BBOX, (GF_Node *)n, &par) && par.bbox.is_set) {
-		JSObject *rO = JS_NewObject(c, &svg_rt->rectClass, 0, 0);
-		rectCI *rc = malloc(sizeof(rectCI));
-		rc->sg = NULL;
-		rc->x = FIX2FLT(par.bbox.min_edge.x);
-		/*BBox is in 3D coord system style*/
-		rc->y = FIX2FLT(par.bbox.min_edge.y);
-		rc->w = FIX2FLT(par.bbox.max_edge.x - par.bbox.min_edge.x);
-		rc->h = FIX2FLT(par.bbox.max_edge.y - par.bbox.min_edge.y);
-		JS_SetPrivate(c, rO, rc);
-		*rval = OBJECT_TO_JSVAL(rO);
+	if (ScriptAction(n->sgprivate->scenegraph, get_screen ? GF_JSAPI_OP_GET_SCREEN_BBOX : GF_JSAPI_OP_GET_LOCAL_BBOX, (GF_Node *)n, &par) ) {
+		if (par.bbox.is_set) {
+			JSObject *rO = JS_NewObject(c, &svg_rt->rectClass, 0, 0);
+			rectCI *rc = malloc(sizeof(rectCI));
+			rc->sg = NULL;
+			rc->x = FIX2FLT(par.bbox.min_edge.x);
+			/*BBox is in 3D coord system style*/
+			rc->y = FIX2FLT(par.bbox.min_edge.y);
+			rc->w = FIX2FLT(par.bbox.max_edge.x - par.bbox.min_edge.x);
+			rc->h = FIX2FLT(par.bbox.max_edge.y - par.bbox.min_edge.y);
+			JS_SetPrivate(c, rO, rc);
+			*rval = OBJECT_TO_JSVAL(rO);
+		} else {
+			*rval = JSVAL_VOID;
+		}
 		return JS_TRUE;
 	}
 	return JS_TRUE;
@@ -1885,13 +1889,17 @@ static JSBool svg_mx2d_inverse(JSContext *c, JSObject *obj, uintN argc, jsval *a
 static JSBool svg_mx2d_translate(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *vp)
 {
 	jsdouble x, y;
-	GF_Matrix2D *mx1;
+	GF_Matrix2D *mx1, mx2;
 	if (!JS_InstanceOf(c, obj, &svg_rt->matrixClass, NULL) ) return JS_TRUE;
 	mx1 = JS_GetPrivate(c, obj);
 	if (!mx1 || (argc!=2)) return JS_TRUE;
 	JS_ValueToNumber(c, argv[0], &x);
 	JS_ValueToNumber(c, argv[1], &y);
-	gf_mx2d_add_translation(mx1, FLT2FIX(x), FLT2FIX(y));
+
+	gf_mx2d_init(mx2);
+	mx2.m[2] = FLT2FIX(x);
+	mx2.m[5] = FLT2FIX(y);
+	gf_mx2d_pre_multiply(mx1, &mx2);
 	*vp = OBJECT_TO_JSVAL(obj);
 	return JS_TRUE;
 }
@@ -2478,14 +2486,14 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		return 0;
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
 
+	/*if an observer is being specified, use it*/
+	if (hdl->evt_listen_obj) __this = hdl->evt_listen_obj;
 	/*compile the jsfun if any - 'this' is the associated observer*/
-	__this = observer ? JSVAL_TO_OBJECT( dom_element_construct(svg_js->js_ctx, observer) ) : svg_js->global;
+	else __this = observer ? JSVAL_TO_OBJECT( dom_element_construct(svg_js->js_ctx, observer) ) : svg_js->global;
 	if (txt && !hdl->js_fun) {
 		char *argn = "evt";
 		hdl->js_fun = JS_CompileFunction(svg_js->js_ctx, __this, NULL, 1, &argn, txt->textContent, strlen(txt->textContent), NULL, 0);
 	}
-	/*if an observer is being specified, use it*/
-	if (hdl->evt_listen_obj) __this = hdl->evt_listen_obj;
 
 	if (hdl->js_fun || hdl->js_fun_val || hdl->evt_listen_obj) {
 		JSObject *evt;
@@ -2495,11 +2503,11 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		argv[0] = OBJECT_TO_JSVAL(evt);
 
 		if (hdl->js_fun) {
-			ret = JS_CallFunction(svg_js->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj : __this, (JSFunction *)hdl->js_fun, 1, argv, &rval);
+			ret = JS_CallFunction(svg_js->js_ctx, __this, (JSFunction *)hdl->js_fun, 1, argv, &rval);
 		}
 		else if (hdl->js_fun_val) {
 			jsval funval = (JSWord) hdl->js_fun_val;
-			ret = JS_CallFunctionValue(svg_js->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj : __this, funval, 1, argv, &rval);
+			ret = JS_CallFunctionValue(svg_js->js_ctx, __this, funval, 1, argv, &rval);
 		} else {
 			ret = JS_CallFunctionName(svg_js->js_ctx, hdl->evt_listen_obj, "handleEvent", 1, argv, &rval);
 		}
@@ -2509,7 +2517,6 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 			ret = JS_FALSE;
 	} 
 	else {
-
 		ret = JS_EvaluateScript(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);

@@ -23,14 +23,17 @@
  */
 
 
+/*include AMR stuff*/
+#include "amr_nb/sp_dec.h"
+#include "amr_nb/d_homing.h"
+/*remove AMR types to avoid any typedef warning/error*/
+#undef Float
+#undef Bool
 
 /*decoder Interface*/
 #include <gpac/modules/codec.h>
 #include <gpac/modules/service.h>
 #include <gpac/constants.h>
-
-#include "amr_nb/sp_dec.h"
-#include "amr_nb/d_homing.h"
 
 
 /*default size in CU of composition memory for audio*/

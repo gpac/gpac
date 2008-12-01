@@ -106,7 +106,7 @@ typedef struct _font_reader
 	GF_Err (*get_font_info)(struct _font_reader *dr, char **font_name, s32 *em_size, s32 *ascent, s32 *descent, s32 *underline, s32 *line_spacing, s32 *max_advance_h, s32 *max_advance_v);
 
 	/*translate string to glyph sequence*/
-	GF_Err (*get_glyphs)(struct _font_reader *dr, const char *utf_string, u32 *glyph_id_buffer, u32 *io_glyph_id_buffer_size, const char *xml_lang);
+	GF_Err (*get_glyphs)(struct _font_reader *dr, const char *utf_string, u32 *glyph_id_buffer, u32 *io_glyph_id_buffer_size, const char *xml_lang, Bool *rev_layout);
 
 	/*loads glyph by name - returns NULL if glyph cannot be found*/
 	GF_Glyph *(*load_glyph)(struct _font_reader *dr, u32 glyph_name);

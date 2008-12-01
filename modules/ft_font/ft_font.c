@@ -72,6 +72,17 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 			Bool bold, italic, smallcaps;
 			strcpy(szFont, face->family_name);
 
+			/*remember first font found which looks like a alphabetical one*/
+			if (!strlen(ftpriv->font_dir)) {
+				u32 gidx;
+				FT_Select_Charmap(face, FT_ENCODING_UNICODE);
+				gidx = FT_Get_Char_Index(face, (u32) 'a');
+				if (gidx) gidx = FT_Get_Char_Index(face, (u32) 'z');
+				if (gidx) gidx = FT_Get_Char_Index(face, (u32) '1');
+				if (gidx) gidx = FT_Get_Char_Index(face, (u32) '@');
+				if (gidx) strcpy(ftpriv->font_dir, szFont);
+			}
+
 			bold = italic = smallcaps = 0;
 
 			if (face->style_name) {
@@ -143,6 +154,8 @@ static Bool ft_enum_fonts_dir(void *cbck, char *file_name, char *file_path)
 
 static void ft_rescan_fonts(GF_FontReader *dr)
 {
+	char *font_dir;
+	char font_def[1024];
 	u32 i, count;
 	GF_Config *cfg = gf_modules_get_config((GF_BaseInterface *)dr);
 	FTBuilder *ftpriv = (FTBuilder *)dr->udta;
@@ -167,9 +180,20 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	strcpy(ftpriv->font_sans, "");
 	strcpy(ftpriv->font_fixed, "");
 
-	gf_enum_directory(ftpriv->font_dir, 0, ft_enum_fonts, dr, "ttf;ttc");
-	gf_enum_directory(ftpriv->font_dir, 1, ft_enum_fonts_dir, dr, NULL);
+	font_dir = ftpriv->font_dir;
+	/*here we will store the first font found*/
+	font_def[0] = 0;
+	ftpriv->font_dir = font_def;
+	
+	gf_enum_directory(font_dir, 0, ft_enum_fonts, dr, "ttf;ttc");
+	gf_enum_directory(font_dir, 1, ft_enum_fonts_dir, dr, NULL);
+	ftpriv->font_dir = font_dir;
 
+	if ( strlen(font_def) ) {
+		if (!strlen(ftpriv->font_fixed)) strcpy(ftpriv->font_fixed, font_def);
+		if (!strlen(ftpriv->font_serif)) strcpy(ftpriv->font_serif, font_def);
+		if (!strlen(ftpriv->font_sans)) strcpy(ftpriv->font_sans, font_def);
+	}
 	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", ftpriv->font_fixed);
 	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif", ftpriv->font_serif);
 	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSans", ftpriv->font_sans);
@@ -356,7 +380,7 @@ static GF_Err ft_get_font_info(GF_FontReader *dr, char **font_name, s32 *em_size
 }
 
 
-static GF_Err ft_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *xml_lang)
+static GF_Err ft_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyph_buffer, u32 *io_glyph_buffer_size, const char *xml_lang, Bool *is_rtl)
 {
 	u32 len;
 	u32 i;
@@ -383,7 +407,7 @@ static GF_Err ft_get_glyphs(GF_FontReader *dr, const char *utf_string, u32 *glyp
 
 	/*perform bidi relayout*/
 	conv = (u16*) glyph_buffer;
-	gf_utf8_reorder_bidi(conv, len);
+	*is_rtl = gf_utf8_reorder_bidi(conv, len);
 	/*move 16bit buffer to 32bit*/
 	for (i=len; i>0; i--) {
 		glyph_buffer[i-1] = (u32) conv[i-1];

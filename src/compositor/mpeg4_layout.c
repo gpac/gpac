@@ -643,6 +643,8 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 		st->bounds = st->clip = gf_rect_center(st->clip.width, st->clip.height);
 
 		if (st->scale_scroll && !st->start_scroll_type) st->start_scroll_type = 1;
+	
+		drawable_reset_group_highlight(tr_state, node);
 	}
 
 	/*don't waste time traversing is pick ray not in clipper*/

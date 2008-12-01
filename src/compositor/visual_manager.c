@@ -170,8 +170,12 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 	GF_Matrix2D cur_mx;
 
 	if (tr_state->abort_bounds_traverse) {
-		if (self == tr_state->for_node) 
+		if (self == tr_state->for_node) {
 			gf_mx2d_pre_multiply(&tr_state->mx_at_node, &tr_state->transform);
+		}
+		tr_state->abort_bounds_traverse=0;
+		gf_sc_get_nodes_bounds(self, children, tr_state, child_idx);
+		tr_state->abort_bounds_traverse=1;
 		return;
 	}
 	if (!children) return;
@@ -206,7 +210,7 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 		gf_node_traverse(children->node, tr_state);
 
 		if (tr_state->abort_bounds_traverse) {
-			gf_mx2d_pre_multiply(&tr_state->mx_at_node, &cur_mx);
+			gf_mx2d_add_matrix(&tr_state->mx_at_node, &cur_mx);
 			return;
 		}
 
@@ -245,6 +249,8 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 #endif
 	
 	gf_mx2d_copy(tr_state->transform, cur_mx);
-	gf_mx2d_apply_rect(&tr_state->transform, &rc);
+	if (self != tr_state->for_node) {
+		gf_mx2d_apply_rect(&tr_state->transform, &rc);
+	}
 	tr_state->bounds = rc;
 }

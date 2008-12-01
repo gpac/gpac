@@ -588,6 +588,7 @@ void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed 
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.prev_scale = compositor->scale_x*old_z;
 		evt.new_scale = compositor->scale_x*compositor->zoom;
+		evt.bubbles = 1;
 
 		if (is_resize) {
 			evt.type = GF_EVENT_RESIZE;
@@ -606,6 +607,7 @@ void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed 
 			evt.new_translate.x = compositor->trans_x;
 			evt.new_translate.y = compositor->trans_y;
 			evt.type = GF_EVENT_ZOOM;
+			evt.bubbles = 0;
 		}
 		gf_dom_event_fire(gf_sg_get_root_node(compositor->scene), &evt);
 	}

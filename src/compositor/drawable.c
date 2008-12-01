@@ -260,12 +260,20 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, GF_
 	return bi;
 }
 
+void drawable_reset_group_highlight(GF_TraverseState *tr_state, GF_Node *n)
+{
+	Drawable *hlight = tr_state->visual->compositor->focus_highlight;
+	if (hlight && (n == gf_node_get_private(hlight->node))) gf_node_set_private(hlight->node, NULL);
+}
+
 void drawable_mark_modified(Drawable *drawable, GF_TraverseState *tr_state)
 {
 	/*mark drawable as modified*/
 	drawable->flags |= tr_state->visual->bounds_tracker_modif_flag;
 	/*and remove overlay flag*/
 	drawable->flags &= ~DRAWABLE_IS_OVERLAY;
+
+	drawable_reset_group_highlight(tr_state, drawable->node);
 }
 
 /*move current bounds to previous bounds*/
@@ -816,6 +824,7 @@ void drawable_finalize_sort(struct _drawable_context *ctx, GF_TraverseState *tr_
 {
 	drawable_finalize_sort_ex(ctx, tr_state, orig_bounds, 0);
 }
+
 
 void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, GF_Rect *orig_bounds)
 {

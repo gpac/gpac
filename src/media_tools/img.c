@@ -48,7 +48,6 @@
 
 #endif	/*GPAC_HAS_JPEG*/
 
-
 GF_EXPORT
 void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height, char **dsi, u32 *dsi_len)
 {

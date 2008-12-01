@@ -337,6 +337,7 @@ static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char *text, Fixed font_size, Bool needs_x_offset, Bool needs_y_offset, Bool needs_rotate, const char *xml_lang, Bool fliped_text, u32 styles, GF_Node *user)
 {
 	GF_Err e;
+	Bool is_rtl;
 	u32 len, i;
 	GF_TextSpan *span;
 
@@ -344,9 +345,9 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 
 	len = fm->id_buffer_size;
 	if (font->get_glyphs)
-		e = font->get_glyphs(font->udta, text, fm->id_buffer, &len, xml_lang);
+		e = font->get_glyphs(font->udta, text, fm->id_buffer, &len, xml_lang, &is_rtl);
 	else
-		e = fm->reader->get_glyphs(fm->reader, text, fm->id_buffer, &len, xml_lang);
+		e = fm->reader->get_glyphs(fm->reader, text, fm->id_buffer, &len, xml_lang, &is_rtl);
 
 	if (e==GF_BUFFER_TOO_SMALL) {
 		fm->id_buffer_size = len;
@@ -354,9 +355,9 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 		if (!fm->id_buffer) return NULL;
 	
 		if (font->get_glyphs)
-			e = font->get_glyphs(font->udta, text, fm->id_buffer, &len, xml_lang);
+			e = font->get_glyphs(font->udta, text, fm->id_buffer, &len, xml_lang, &is_rtl);
 		else
-			e = fm->reader->get_glyphs(fm->reader, text, fm->id_buffer, &len, xml_lang);
+			e = fm->reader->get_glyphs(fm->reader, text, fm->id_buffer, &len, xml_lang, &is_rtl);
 	}
 	if (e) return NULL;
 
@@ -390,6 +391,7 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 	span->user = user;
 	if (span->font->spans) 
 		gf_list_add(font->spans, span);
+	if (is_rtl) span->flags |= GF_TEXT_SPAN_RIGHT_TO_LEFT;
 	return span;
 }
 

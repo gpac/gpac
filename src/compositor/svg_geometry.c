@@ -391,16 +391,19 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 		if (! compositor_svg_is_display_off(tr_state->svg_props)) {
 			DrawAspect2D asp;
 			gf_path_get_bounds(drawable->path, &tr_state->bounds);
-			memset(&asp, 0, sizeof(DrawAspect2D));
-			drawable_get_aspect_2d_svg(node, &asp, tr_state);
-			if (asp.pen_props.width) {
-				StrikeInfo2D *si = drawable_get_strikeinfo(tr_state->visual->compositor, drawable, &asp, NULL, drawable->path, 0, NULL);
-				if (si && si->outline) {
-					gf_path_get_bounds(si->outline, &tr_state->bounds);
+			if (!tr_state->ignore_strike) {
+				memset(&asp, 0, sizeof(DrawAspect2D));
+				drawable_get_aspect_2d_svg(node, &asp, tr_state);
+				if (asp.pen_props.width) {
+					StrikeInfo2D *si = drawable_get_strikeinfo(tr_state->visual->compositor, drawable, &asp, NULL, drawable->path, 0, NULL);
+					if (si && si->outline) {
+						gf_path_get_bounds(si->outline, &tr_state->bounds);
+					}
 				}
 			}
 			compositor_svg_apply_local_transformation(tr_state, &all_atts, &backup_matrix, NULL);
-			//gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
+			if (!tr_state->abort_bounds_traverse)
+				gf_mx2d_apply_rect(&tr_state->transform, &tr_state->bounds);
 			gf_sc_get_nodes_bounds(node, NULL, tr_state, NULL);
 
 			compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, NULL);

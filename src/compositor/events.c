@@ -58,12 +58,9 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 		break;
 	case GF_EVENT_MOUSEDOWN:
 		if (compositor->hit_text) {
-			if (gf_list_count(compositor->sensors)) {
-				if (!(compositor->key_states & GF_KEY_MOD_CTRL))
-					return 0;
-			}
 			compositor->text_selection = compositor->hit_text;
-			return 1;
+			/*return 0: the event may be consumed by the tree*/
+			return 0;
 		}
 		break;
 	}
@@ -551,6 +548,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 		Fixed X = compositor->hit_world_point.x;
 		Fixed Y = compositor->hit_world_point.y;
 		if (compositor->hit_node) {
+			GF_Node *focus;
 			Bool hit_changed = 0;
 			GF_Node *current_use = gf_list_last(compositor->hit_use_stack);
 			cursor_type = compositor->sensor_type;
@@ -568,7 +566,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				if (compositor->grab_node) {
 					evt.relatedTarget = compositor->hit_node;
 					evt.type = GF_EVENT_MOUSEOUT;
-					ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
+					ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->prev_hit_use_stack);
 					/*prepare mouseOver*/
 					evt.relatedTarget = compositor->grab_node;
 				}
@@ -601,12 +599,9 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				compositor->grab_y = Y;
 
 				/*change focus*/
-				if (0){
-					GF_Node *focus = get_parent_focus(compositor->grab_node, compositor->hit_use_stack, gf_list_count(compositor->hit_use_stack));
-					if (focus) gf_sc_focus_switch_ring_ex(compositor, 0, focus, 1);
-					else if (compositor->focus_node) gf_sc_focus_switch_ring_ex(compositor, 0, NULL, 1);
-				}
-
+				focus = get_parent_focus(compositor->grab_node, compositor->hit_use_stack, gf_list_count(compositor->hit_use_stack));
+				if (focus) gf_sc_focus_switch_ring_ex(compositor, 0, focus, 1);
+				else if (compositor->focus_node) gf_sc_focus_switch_ring_ex(compositor, 0, NULL, 1);
 
 				break;
 			case GF_EVENT_MOUSEUP:
@@ -637,7 +632,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				evt.cancelable = 1;
 				evt.key_flags = compositor->key_states;
 				evt.type = GF_EVENT_MOUSEOUT;
-				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
+				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->prev_hit_use_stack);
 			}
 			
 			/*reset focus*/
@@ -842,6 +837,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 {
 	Bool ret;
 	Bool reset_sel = 0;
+	GF_List *temp_stack;
 	GF_Compositor *compositor = visual->compositor;
 	tr_state->traversing_mode = TRAVERSE_PICK;
 #ifndef GPAC_DISABLE_3D
@@ -865,10 +861,15 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 			if (ev->type==GF_EVENT_MOUSEDOWN) 
 				reset_sel = 1;
 		}
-		if ((ev->type==GF_EVENT_MOUSEUP) && hit_node_editable(compositor, 0)) {
-			compositor->text_selection = NULL;
-			exec_text_input(compositor, NULL);
-			return 1;
+		if (ev->type==GF_EVENT_MOUSEUP) {
+			if (hit_node_editable(compositor, 0)) {
+				compositor->text_selection = NULL;
+				exec_text_input(compositor, NULL);
+				return 1;
+			}
+			else if (!compositor->focus_node) {
+				gf_sc_focus_switch_ring_ex(compositor, 0, gf_sg_get_root_node(compositor->scene), 1);
+			}
 		}
 		if (reset_sel) {
 			flush_text_node_edit(compositor, 1);
@@ -892,6 +893,9 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 	/*pick node*/
 	compositor->hit_appear = NULL;
 	compositor->hit_text = NULL;
+	temp_stack = compositor->prev_hit_use_stack;
+	compositor->prev_hit_use_stack = compositor->hit_use_stack;
+	compositor->hit_use_stack = temp_stack;
 	
 #ifndef GPAC_DISABLE_3D
 	if (visual->type_3d)

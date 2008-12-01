@@ -84,8 +84,9 @@ size_t gf_utf8_wcslen(const unsigned short *s);
  *Performs a simple reordering of words in the string based on each word direction, so that glyphs are sorted in display order.
  *\param utf_string the wide-char string
  *\param len the len of the wide-char string
+ *\return 1 if the main direction is right-to-left, 0 otherwise
  */
-void gf_utf8_reorder_bidi(u16 *utf_string, u32 len);
+Bool gf_utf8_reorder_bidi(u16 *utf_string, u32 len);
 
 /*! @} */
 
