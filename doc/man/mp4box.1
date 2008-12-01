@@ -327,15 +327,21 @@ MP4Box supports the Meta addition to IsoMedia file format, used to make the file
 .TP
 .B \-set-meta args
 sets meta object type. Syntax is "ABCD[;tk=N] where:
-.br ABCD is the four character code of the type, or O/NULL to remove the meta object
-.br tk indicates whether the meta is at the root level (no "tk"), at the moov level (tk=0) or at the track level (tk=trackID).
+.br
+ABCD is the four character code of the type, or O/NULL to remove the meta object
+.br
+tk indicates whether the meta is at the root level (no "tk"), at the moov level (tk=0) or at the track level (tk=trackID).
 .TP 
 .B \-add-item args
 adds resource to the given meta. args is the item file path followed by ';' separated options:
-.br tk=N: same as above
-.br name=item_name: specifies the item name, otherwise file name is used
-.br mime=mimeType: specifies the item mime type, otherwise application/octet-stream is used
-.br encoding=enctype: specifies the content encoding type
+.br
+tk=N: same as above
+.br
+name=item_name: specifies the item name, otherwise file name is used
+.br
+mime=mimeType: specifies the item mime type, otherwise application/octet-stream is used
+.br
+encoding=enctype: specifies the content encoding type
 Note that file path set to "this" or "self" will identify the item added as the whole IsoMedia file
 .TP
 .B \-rem-item args
