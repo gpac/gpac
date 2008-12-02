@@ -88,6 +88,7 @@ endif
 #4 - OpenGL support
 ifeq ($(HAS_OPENGL),yes)
 EXTRALIBS+= $(OGL_LIBS)
+COMPOSITOR_CFLAGS+=-I$(OGL_INCLS)
 endif
 
 #5 - JPEG support
@@ -123,10 +124,6 @@ EXTRALIBS+= -lViRen_linux -lViRenDrivers_linux -lEmulRen_linux -lToolTraceManage
 LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/triscope_renoir.o compositor/chrono.o
 #special malloc for renoir memory
 LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/gltx_malloc.o
-endif
-## OpenGL not available
-ifeq ($(HAS_OPENGL),yes)
-EXTRALIBS+= $(OGL_LIBS)
 endif
 
 ifeq ($(GPAC_USE_TINYGL), yes)

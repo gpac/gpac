@@ -1116,6 +1116,8 @@ if test "$disable_opengl" = "no" ; then
     has_opengl="yes"
   elif $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
     has_opengl="yes"
+    INCL3D="-I$X11_PATH/include"
+    LINK3D="-L$X11_PATH/lib $LINK3D"
   fi
   if test "$has_opengl" = "no" ; then
    LINK3D=""
