@@ -83,6 +83,7 @@
 				OutputFile="../../bin/w32_deb_vc8/nposmozilla.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
+				GenerateManifest="true"
 				ModuleDefinitionFile="..\..\applications\osmozilla\osmozilla.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/osmozilla_deb/nposmozilla.pdb"
@@ -94,6 +95,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				EmbedManifest="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -203,6 +205,65 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="if not exist &quot;$(ProgramFiles)\GPAC\mozilla&quot; md &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;copy ..\..\bin\w32_deb\nposmozilla.dll &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;"
+			/>
+			<DeploymentTool
+				ForceDirty="-1"
+				RemoteDirectory=""
+				RegisterOutput="0"
+				AdditionalFiles=""
+			/>
+			<DebuggerTool
+			/>
+		</Configuration>
+		<Configuration
+			Name="Debug|Pocket PC 2003 (ARMV4)"
+			ConfigurationType="1"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				ExecutionBucket="7"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCCodeSignTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
@@ -395,65 +456,6 @@
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="xpt_link ..\..\bin\w32_rel\nposmozilla.xpt ..\..\applications\osmozilla\nsIOsmozilla.xpt_w32&#x0D;&#x0A;if not exist &quot;$(ProgramFiles)\GPAC\mozilla&quot; md &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;copy ..\..\bin\w32_rel\nposmozilla.dll &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;copy ..\..\bin\w32_rel\nposmozilla.xpt &quot;$(ProgramFiles)\GPAC\mozilla&quot;&#x0D;&#x0A;"
-			/>
-			<DeploymentTool
-				ForceDirty="-1"
-				RemoteDirectory=""
-				RegisterOutput="0"
-				AdditionalFiles=""
-			/>
-			<DebuggerTool
-			/>
-		</Configuration>
-		<Configuration
-			Name="Debug|Pocket PC 2003 (ARMV4)"
-			ConfigurationType="1"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				ExecutionBucket="7"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLinkerTool"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCCodeSignTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
