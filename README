@@ -1,8 +1,8 @@
-README for GPAC version 0.4.4, Mai 2007.
+README for GPAC version 0.4.5, December 2008.
 
 GPAC is a multimedia framework oriented towards rich media and distributed under the LGPL license (see COPYING).
 GPAC supports many multimedia formats, from simple audiovisual containers (avi, mov, mpg) to complex 
-presentation formats (MPEG-4 Systems, VRML/X3D, some SVG). GPAC supports scripting of presentation for MPEG4/VRML/X3D through
+presentation formats (MPEG-4 Systems, SVG Tiny 1.2, VRML/X3D). GPAC supports scripting of presentation for MPEG4/VRML/X3D through
 mozilla SpiderMonkey javascript engine.
 GPAC currently supports local playback, http download and play and RTP/RTSP streaming over UDP (unicast or multicast) or TCP.
 GPAC also features MP4Box, a multimedia swiss-army knife for the prompt.

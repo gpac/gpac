@@ -5,12 +5,12 @@ CESignature = "$Windows CE$"
 
 [CEStrings]
 ;Osmo4 for PocketPC install, Osmophone for Smartphone install
-AppName = Osmo4
+AppName = Osmophone
 InstallDir = \Program Files\GPAC
 
 [Strings]
 ;Osmo4.exe for PocketPC install, Osmophone.exe for Smartphone install
-ExeName = Osmo4.exe
+ExeName = Osmophone.exe
 
 [DefaultInstall]
 CopyFiles = BinFiles , Exefiles
@@ -28,8 +28,12 @@ CESelfRegister=GPAX.dll
 [SourceDisksFiles]
 libgpac.dll = 1
 %ExeName% = 1
+Osmo4.exe = 1
 GPAX.dll = 1
 gpac.mp4 = 3
+
+;comment this one if not using OpenGL
+libGLES_CM.dll = 1
 
 ;comment this one if not using SpiderMonkey
 js.dll = 1
@@ -44,29 +48,26 @@ gm_amr_dec.dll = 1
 gm_bifs_dec.dll = 1
 gm_ctx_load.dll = 1
 gm_dummy_in.dll = 1
-;gm_ffmpeg_in.dll = 1
+gm_ffmpeg_in.dll = 1
 gm_ft_font.dll = 1
 gm_gapi.dll = 1
 gm_img_in.dll = 1
 gm_ismacryp.dll = 1
 gm_isom_in.dll = 1
+gm_laser_dec.dll = 1
 gm_mp3_in.dll = 1
 gm_odf_dec.dll = 1
-;gm_render2d.dll = 1
 gm_rtp_in.dll = 1
 gm_timedtext.dll = 1
 gm_soft_raster.dll = 1
+gm_svg_in.dll = 1
 gm_wav_out.dll = 1
 gm_xvid_dec.dll = 1
 ;gm_ogg_xiph.dll = 1
 
-;these 2 go together
-;gm_render3d.dll = 1
-libGLES_CM.dll = 1
 
-;these 2 go together
-;gm_svg_loader.dll = 1
-;libxml2.dll = 1
+;ENST Proprietary modules
+gm_upnp.dll = 1
 
 ;==================================================
 
@@ -91,6 +92,7 @@ DefaultDestDir = 0, %InstallDir%
 
 [Exefiles]
 "%ExeName%"
+"Osmo4.exe"
 "gpac.mp4"
 "gm_aac_in.dll"
 "gm_amr_dec.dll"
@@ -98,24 +100,24 @@ DefaultDestDir = 0, %InstallDir%
 "gm_bifs_dec.dll"
 "gm_ctx_load.dll"
 "gm_dummy_in.dll"
-;"gm_ffmpeg_in.dll"
+"gm_ffmpeg_in.dll"
 "gm_ft_font.dll"
 "gm_gapi.dll"
 "gm_img_in.dll"
+"gm_ismacryp.dll"
 "gm_isom_in.dll"
+"gm_laser_dec.dll"
 "gm_mp3_in.dll"
 "gm_odf_dec.dll"
-;"gm_render2d.dll"
 "gm_rtp_in.dll"
 "gm_soft_raster.dll"
+"gm_svg_in.dll"
 "gm_timedtext.dll"
 "gm_wav_out.dll"
 "gm_xvid_dec.dll"
 ;"gm_ogg_xiph.dll"
 
-;"gm_render3d.dll"
-
-;"gm_svg_loader.dll"
+"gm_upnp.dll"
 
 [GPACReg]
 ;GPAC cfg file location

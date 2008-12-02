@@ -1,5 +1,5 @@
-Installation instructions for GPAC 0.4.4 on Familiar+GPE platforms
-last modified: Mai 2007
+Installation instructions for GPAC 0.4.5 on Familiar+GPE platforms
+last modified: December 2008
 
 0 Foreword
   This file is about installing the GPAC framework on an arm device running Linux familiar (cf http://www.handhelds.org)
@@ -19,7 +19,7 @@ last modified: Mai 2007
   Do not forget to update your environment variables according to your toolchain.
 	
 I Extra lib installation
-	It is recommended to download and compile all extra libs needed by gpac not installed on your system.
+	It is recommended to install all extra libs needed by gpac not installed on your system.
 
 II GPAC compilation
 	
@@ -36,17 +36,11 @@ II GPAC compilation
 		NOTE: Osmo4+wxWidgets is quite slow on familiar+GPE, and is therefore not recommended at the time being.
 		You can always use GPAC command-line player MP4Client.
 
-	II.3 libxml2 Support
-		GPAC can be used to play some SVG files. You may want to use libXML2 for SVG loading, although this is not a requirement (If this library is not installed on the system, 
-		SVG support will still be enabled with GPAC's own XML parser). 
-  If this library is not installed on the system, SVG support will be disabled. 
-		If you have libxml2 but it is not installed on your system, you will have to modify gpac/configure or gpac/modules/svg_loader/Makefile scripts to compile by hand. 
-
-	II.4 OpenGL ES support
-	  OpenGL ES is not yes supported on Familiar-GPE. However, GPAC renderer supports OpenGL ES API. Porting the 3D module only requires modifying the X11 output (modules/x11_out) for
+	II.3 OpenGL ES support
+	  OpenGL ES is not yet supported on Familiar-GPE. However, GPAC renderer supports OpenGL ES API. Porting the 3D module only requires modifying the X11 output (modules/x11_out) for
 	  OpenGL ES.
 
-	II.5 Building GPAC
+	II.4 Building GPAC
 		go to root of gpac distribution. Note: you may need to "chmod +x" the configure file.
 		(./configure --help for options)
 		./configure --prefix=/usr/local/arm/3.3.2 --cpu=armv4l --enable-fixed-point
@@ -54,7 +48,7 @@ II GPAC compilation
 		  Note: you may also specify any other option supported by configure. It is not recommended to use the floating-point version of GPAC for ARM-based architectures.
 		make
 
-	II.6 Installing GPAC
+	II.5 Installing GPAC
 	  copy all files to your device, possibly creating a dedicated directory for modules
 	  edit or create ~/.gpacrc to have at least the following lines:
 	    [General]
@@ -66,10 +60,6 @@ III Running GPAC
 	
 	III.1 MP4Client
 		MP4Client is a command-line interface to GPAC. Note that the player cannot work without video support (so you'd better get SDL)
-		GPAC comes with 2 renderers: a 2D only renderer, stable and complete and a 2D/3D renderer still in development. You can switch the renderer
-		used by typing in MP4CLient:
-			"2" to switch to GPAC 2D renderer
-			"3" to switch to GPAC 3D renderer
 		
 		 You need a GPAC configuration file to run MP4Client, and you will need it each time.
 		
@@ -106,11 +96,5 @@ IV Configuration
 		1- set the "BitmapCopyPixels" option on: some cards perform rather well at direct pixel transfer. If no improvement, set it off.
 		2- set the "BitmapCopyPixels" option off and the "EmulatePOW2" option on. This will trick the GL texturing by using only Power Of 2 textures when converting from YUV to RGB. 
 		3- If this does not improve video playback, you're only chance is through discussion forums & co to gather info about your system, your GL implementation and how to fine-tune it.
-		
-V Misc
-
-	
-		There is a demo 2D authoring tool called V4Studio. No makefiles available yet but should compile without pbs (only needs M4Systems
-		and wxWidgets 2.5.2). It is not usable to design content but is a funny toy.
 		
 		

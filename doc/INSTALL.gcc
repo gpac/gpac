@@ -1,5 +1,5 @@
-Installation instructions for GPAC 0.4.4 on GCC-powered platforms
-last modified: October 2005
+Installation instructions for GPAC 0.4.5 on GCC-powered platforms
+last modified: December 2008
 
 0 Foreword
 	The output directory for all plugins and applications is gpac/bin/gcc 
@@ -7,7 +7,8 @@ last modified: October 2005
 	As of 0.2.2, GPAC cannot be compiled without ZLIB. You'd better make sure it is installed on your system (zlib is provided in gpac_extra_libs package)
 	
 I Extra lib installation
-	It is recommended to download and compile all extra libs needed by gpac not installed on your system.
+	It is recommended to install (source or package) all extra libs needed by gpac not installed on your system.
+	Libraries found on the system are indicated as an output of the configure script
 
 
 II GPAC compilation
@@ -25,33 +26,27 @@ II GPAC compilation
 		Both unicode and ANSI versions of wxWidgets should be supported.
 		If you don't use wxWidgets, you can always use GPAC command-line player MP4Client.
 
-	II.3 libxml2 Support
-		GPAC can be used to play some SVG files. You may want to use libXML2 for SVG loading, although this is not a requirement (If this library is not installed on the system, 
-		SVG support will still be enabled with GPAC's own XML parser). 
-		If you have libxml2 but it is not installed on your system, you will have to modify gpac/configure or gpac/modules/svg_loader/Makefile scripts to compile by hand. 
-		MINGW users: libXML2 is quite impossible to compile under MinGW, you'll usuall get plenty of errors and only a partial compil. Sorry about that.
-
-	II.4 MinGW DirectX support
+	II.3 MinGW DirectX support
 		When building GPAC under MinGW, it is also possible to compile the DirectX plugin. You will need the MinGW versions of DX libs
 		(available at http://alleg.sourceforge.net/files/). Get dx70_mgw or dx80_mgw (dx8 is provided in gpac_extra_libs package)
 		copy the archive content in your MSys tree (for ex, /usr/local/DirectX) and configure gpac with the option --dxsdk-path=/usr/local/DirectX
 		** you must keep include and lib folders under the same directory for the configure script to detect DirectX **
 	
-	II.5 Building GPAC
+	II.4 Building GPAC
 		go to root of gpac distribution
 		./configure (--help for options) - you may need to "chmod +x" this file...
 		make
 
 		any fixes to configure are welcome :)
 
-	II.6 Installing GPAC
+	II.5 Installing GPAC
 		get root
 		type "make install" in gpac/
 		
 		This will install MP4Client, Osmo4 if configured, MP4Box and all plugins as well as GPAC documentation man: MP4Box(1), MP4Client(1) and GPAC(1).
 		type "make uninstall" to remove gpac from your system
 
-	II.7 Installing GPAC SDK
+	II.6 Installing GPAC SDK
 		get root
 		type "make install-lib" in gpac/
 
@@ -62,13 +57,9 @@ II GPAC compilation
 III Running GPAC
 	
 	III.1 MP4Client
-		MP4Client is a command-line interface to GPAC. Note that the player cannot work without video support (so you'd better get SDL)
-		GPAC comes with 2 renderers: a 2D only renderer, stable and complete and a 2D/3D renderer still in development. You can switch the renderer
-		used by typing in MP4CLient:
-			"2" to switch to GPAC 2D renderer
-			"3" to switch to GPAC 3D renderer
+		MP4Client is a command-line interface to GPAC. Note that the player cannot work without video support
 		
-		 You need a GPAC configuration file to run MP4Client, and you will need it each time.
+	 You need a GPAC configuration file to run MP4Client, and you will need it each time.
 		
 		First launch of MP4Client
 			go to gpac/bin/gcc if not using the install.
@@ -82,7 +73,7 @@ III Running GPAC
 
 		The config file is called ".gpacrc" and is located in the user home directory. You may run the client with a different config file by using the "-c" option.
 		
-		*If you don't see any output window, check the config file doesn't use raw_out.so as a video renderer (or simply remove raw_out.so).
+		*If you don't see any output window, check the config file doesn't use gm_raw_out.so as a video renderer (or simply remove gm_raw_out.so).
 		
 		MINGW USERS: there are known and terrible bugs with MSys rxvt stdio buffering, do NOT use it to run MP4Client unless you want to understand
 		these bugs. Use w32 CMD.exe instead. Other GPAC apps are no pb for MSys rxvt.
@@ -111,7 +102,7 @@ IV Configuration
 		All configuration information is described in gpac/doc/configuration.html, or man gpac.
 	
 	IV.1 OpenGL
-		OpenGL is badly known for performing quite poorly as far as high data rate texturing is involved. This is a big issue when displaying a typical movie and you will likely find the GPAC 3D Renderer very slow on your system. If your GPU supports non power of 2 texturing or rectangular texturing (most Win32 drivers do)
+		OpenGL is badly known for performing quite poorly as far as high data rate texturing is involved. This is a big issue when displaying a typical movie and you will likely find the GPAC 3D Rendering very slow on your system. If your GPU supports non power of 2 texturing or rectangular texturing (most Win32 drivers do)
 		you shouldn't have any problem with video. Otherwise here are some tips to configure GPAC on your system:
 		1- set the "BitmapCopyPixels" option on: some cards perform rather well at direct pixel transfer. If no improvement, set it off.
 		2- set the "BitmapCopyPixels" option off and the "EmulatePOW2" option on. This will trick the GL texturing by using only Power Of 2 textures when converting from YUV to RGB. 
@@ -119,8 +110,7 @@ IV Configuration
 		
 V Misc
 
-	
-		There is a demo 2D authoring tool called V4Studio. No makefiles available yet but should compile without pbs (only needs M4Systems
-		and wxWidgets 2.5.2). It is not usable to design content but is a funny toy.
+		There is a demo 2D authoring tool called V4Studio. No makefiles available yet but should compile without pbs (only needs libgpac
+		and wxWidgets ). It is not usable to design content but is a funny toy.
 		
 		

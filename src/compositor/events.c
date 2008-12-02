@@ -867,9 +867,11 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 				exec_text_input(compositor, NULL);
 				return 1;
 			}
+#if 0
 			else if (!compositor->focus_node) {
 				gf_sc_focus_switch_ring_ex(compositor, 0, gf_sg_get_root_node(compositor->scene), 1);
 			}
+#endif
 		}
 		if (reset_sel) {
 			flush_text_node_edit(compositor, 1);

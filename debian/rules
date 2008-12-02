@@ -74,7 +74,7 @@ install: build
 
 	$(MAKE) install-lib prefix=$(CURDIR)/debian/tmp/usr
 
-	mv debian/tmp/usr/lib/libgpac-0.4.5-DEV.so \
+	mv debian/tmp/usr/lib/libgpac-0.4.5.so \
 	debian/tmp/usr/lib/libgpac.so.0.4.5
         
 	rm debian/tmp/usr/lib/libgpac.so

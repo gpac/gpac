@@ -63,7 +63,14 @@
 #if defined(_WIN32_WCE)
 
 /*use intel fixed-point*/
+//#define GPAC_USE_IGPP
+/*use intel fixed-point with high precision*/
 //#define GPAC_USE_IGPP_HP
+
+#if defined(GPAC_USE_IGPP) && defined(GPAC_USE_IGPP_HP)
+#error "Only one of GPAC_USE_IGPP and GPAC_USE_IGPP_HP can be defined"
+#endif
+
 
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 #define GPAC_USE_OGL_ES

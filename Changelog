@@ -1,5 +1,6 @@
-Latest CVS changes - 15/07/08:
-  - Initial support for MediaAccessEvent (spec still under development ??)
+02/12/08: GPAC 0.4.5
+  - Support for AC3 in ISO Media, AC3 decoder (liba52) RTP hinting
+  - Support for MediaAccessEvent (spec still under development ??)
   - Added support for user extensions (global class only) in JS through modules - cf gpac_js for sample code.
   - Initial support for 3GPP DIMS (file creation and dumping + playback)
       * Currently only SVG as overlay is supported for DIMS files, we are not sure about the specification on this topic
@@ -42,22 +43,16 @@ Latest CVS changes - 15/07/08:
   - Added support for AVC/H264 in mp4_streamer
   - Added support of MPEG-4 systems over MPEG-2
   - Added extended version of "-node" switch in MP4Box, to get the list of possible nodes. For insatnce, "MP4Box -node Anchor.children"
-  - Initial commit of new glyph-based font manager - only MPEG-4 text uses it at the current time.
-  You MUST have the FreeType plugin enabled for that.
-      The goal here is to integrate SVG fonts quite seamlessly.
+  - New glyph-based font manager
   - Misc fixes in SVG rendering with OpenGL
   - Renderer modules have been removed from GPAC. The new integrated 2D+3D renderer has been moved to libgpac and is now 
       called "compositor". Some renaming has been done in the process to clarify a bit some functions.
       NOTE: EVC3 and MSVC8 projects have not been updated yet
-      
   - added support for TrackSelection (tsel) - (c) 2007 ENST & RresonateMP4 - cf MP4Box -h general
   - added support for PASP in ISO files
   - misc fixes in render_full module
   - committed patch fixing VobSub extraction bug
   - added support for http playback in ffmpeg demuxer
-  - initial commit of the new renderer module (render_full, "GPAC Full Renderer"), which is a merge of both 2D and 3D renderer
-  with support for offscreen OpenGL, when available. Offscreen rendering is still experimental and only works under Windows at the current time. 
-  This is a temporary version, the goal is to replace all renderer modules by this single renderer integrated in libgpac.
   
 31/05/07: GPAC 0.4.4
   - Added support for XMLHttpRequest for both VRML/MPEG-4 and SVG. All methods should be supported, but only GET/HEAD have been tested
