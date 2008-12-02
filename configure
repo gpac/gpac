@@ -1151,11 +1151,11 @@ EOF
 
 if $cc -o $TMPO $TMPCPP -I$xulsdk_path 2> /dev/null  ; then
 has_xul="system"
-xul_flags+="-I$xulsdk_path"
+xul_flags="-I$xulsdk_path $xul_flags"
 else
 if $cc -o $TMPO $TMPCPP $xul_flags -I$local_inc/gecko-sdk/include 2> /dev/null  ; then
 has_xul="local"
-xul_flags+="-I$local_inc/gecko-sdk/include"
+xul_flags="-I$local_inc/gecko-sdk/include $xul_flags"
 fi
 fi
 
