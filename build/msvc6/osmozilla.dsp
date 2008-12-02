@@ -43,7 +43,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MT /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "OSMOZILLA_EXPORTS" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\..\extra_lib\include\gecko-sdk" /I "..\..\extra_lib\include\gecko-sdk\plugin\include" /I "..\..\extra_lib\include\gecko-sdk\nspr\include" /I "..\..\extra_lib\include\gecko-sdk\java\include" /I "..\..\extra_lib\include\gecko-sdk\xpcom\include" /I "..\..\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "NPBASIC_EXPORTS" /D "MOZILLA_STRICT_API" /D "XP_WIN" /D "_X86_" /D "XPCOM_GLUE" /D WINVER=0x0400 /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O2 /I "..\..\include" /I "..\..\extra_lib\include\gecko-sdk\include" /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "NPBASIC_EXPORTS" /D "MOZILLA_STRICT_API" /D "XP_WIN" /D "_X86_" /D "XPCOM_GLUE" /D WINVER=0x0400 /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /win32
@@ -75,7 +75,7 @@ PostBuild_Cmds=copy ..\..\applications\osmozilla\nsIOsmozilla.xpt_w32 ..\..\bin\
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /MTd /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "OSMOZILLA_EXPORTS" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\..\extra_lib\include\gecko-sdk" /I "..\..\extra_lib\include\gecko-sdk\java\include" /I "..\..\extra_lib\include\gecko-sdk\plugin\include" /I "..\..\extra_lib\include\gecko-sdk\nspr\include" /I "..\..\extra_lib\include\gecko-sdk\xpcom\include" /I "..\..\include" /D "WIN32" /D "XP_WIN32" /D "XP_WIN" /D "_X86_" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "NPBASIC_EXPORTS" /D "MOZILLA_STRICT_API" /D "XPCOM_GLUE" /FR /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /Gm /GX /ZI /Od /I "..\..\include" /I "..\..\extra_lib\include\gecko-sdk\include" /D "WIN32" /D "XP_WIN32" /D "XP_WIN" /D "_X86_" /D "_WINDOWS" /D "_MBCS" /D "_USRDLL" /D "NPBASIC_EXPORTS" /D "MOZILLA_STRICT_API" /D "XPCOM_GLUE" /FR /FD /GZ /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /win32

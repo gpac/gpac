@@ -58,9 +58,9 @@ extern "C" {
  *	Macro giving GPAC version expressed as a printable string
 */
 /*KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)!!!, and NO SPACE in GPAC_VERSION for proper install*/
-#define GPAC_VERSION       "0.4.5-DEV"
+#define GPAC_VERSION       "0.4.5"
 
-#define GPAC_BUILD_NUMBER	"32"
+#define GPAC_BUILD_NUMBER	"33"
 #define GPAC_FULL_VERSION       GPAC_VERSION" (build "GPAC_BUILD_NUMBER")"
 
 /*!

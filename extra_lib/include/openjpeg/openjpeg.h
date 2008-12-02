@@ -1,9 +1,11 @@
  /*
+ * Copyright (c) 2002-2007, Communications and Remote Sensing Laboratory, Universite catholique de Louvain (UCL), Belgium
+ * Copyright (c) 2002-2007, Professor Benoit Macq
  * Copyright (c) 2001-2003, David Janssens
  * Copyright (c) 2002-2003, Yannick Verschueren
- * Copyright (c) 2003-2005, Francois Devaux and Antonin Descampe
- * Copyright (c) 2005, Hervé Drolon, FreeImage Team
- * Copyright (c) 2002-2005, Communications and remote sensing Laboratory, Universite catholique de Louvain, Belgium
+ * Copyright (c) 2003-2007, Francois-Olivier Devaux and Antonin Descampe
+ * Copyright (c) 2005, Herve Drolon, FreeImage Team
+ * Copyright (c) 2006-2007, Parvatha Elangovan
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +32,7 @@
 #ifndef OPENJPEG_H
 #define OPENJPEG_H
 
-#define OPENJPEG_VERSION "1.1.0"
+#define OPENJPEG_VERSION "1.3.0"
 
 /* 
 ==========================================================
@@ -89,15 +91,12 @@ braindamage below.
 ==========================================================
 */
 
-#ifndef MAX_PATH
-#define MAX_PATH 260	/**< Maximum allowed size for filenames */
-#endif /* MAX_PATH */
+#define OPJ_PATH_LEN 4096 /**< Maximum allowed size for filenames */
 
 #define J2K_MAXRLVLS 33					/**< Number of maximum resolution level authorized */
 #define J2K_MAXBANDS (3*J2K_MAXRLVLS-2)	/**< Number of maximum sub-band linked to number of resolution level */
 
 /* UniPG>> */
-#ifdef USE_JPWL
 #define JPWL_MAX_NO_TILESPECS	16 /**< Maximum number of tile parts expected by JPWL: increase at your will */
 #define JPWL_MAX_NO_PACKSPECS	16 /**< Maximum number of packet parts expected by JPWL: increase at your will */
 #define JPWL_MAX_NO_MARKERS	512 /**< Maximum number of JPWL markers: increase at your will */
@@ -105,7 +104,7 @@ braindamage below.
 #define JPWL_EXPECTED_COMPONENTS 3 /**< Expect this number of components, so you'll find better the first EPB */
 #define JPWL_MAXIMUM_TILES 8192 /**< Expect this maximum number of tiles, to avoid some crashes */
 #define JPWL_MAXIMUM_HAMMING 2 /**< Expect this maximum number of bit errors in marker id's */
-#endif /* USE_JPWL */
+#define JPWL_MAXIMUM_EPB_ROOM 65450 /**< Expect this maximum number of bytes for composition of EPBs */
 /* <<UniPG */
 
 /* 
@@ -113,8 +112,28 @@ braindamage below.
    enum definitions
 ==========================================================
 */
+/** 
+Rsiz Capabilities
+*/
+typedef enum RSIZ_CAPABILITIES {
+	STD_RSIZ = 0,		/** Standard JPEG2000 profile*/
+	CINEMA2K = 3,		/** Profile name for a 2K image*/
+	CINEMA4K = 4		/** Profile name for a 4K image*/
+} OPJ_RSIZ_CAPABILITIES;
 
-/** Progression order */
+/** 
+Digital cinema operation mode 
+*/
+typedef enum CINEMA_MODE {
+	OFF = 0,					/** Not Digital Cinema*/
+	CINEMA2K_24 = 1,	/** 2K Digital Cinema at 24 fps*/
+	CINEMA2K_48 = 2,	/** 2K Digital Cinema at 48 fps*/
+	CINEMA4K_24 = 3		/** 4K Digital Cinema at 24 fps*/
+}OPJ_CINEMA_MODE;
+
+/** 
+Progression order 
+*/
 typedef enum PROG_ORDER {
 	PROG_UNKNOWN = -1,	/**< place-holder */
 	LRCP = 0,		/**< layer-resolution-component-precinct order */
@@ -143,6 +162,15 @@ typedef enum CODEC_FORMAT {
 	CODEC_JPT = 1,		/**< JPT-stream (JPEG 2000, JPIP) : read only */
 	CODEC_JP2 = 2		/**< JPEG-2000 file format : read/write */
 } OPJ_CODEC_FORMAT;
+
+/** 
+Limit decoding to certain portions of the codestream. 
+*/
+typedef enum LIMIT_DECODING {
+	NO_LIMITATION = 0,				  /**< No limitation for the decoding. The entire codestream will de decoded */
+	LIMIT_TO_MAIN_HEADER = 1,		/**< The decoding is limited to the Main Header */
+	DECODE_ALL_BUT_PACKETS = 2	/**< Decode everything except the JPEG 2000 packets */
+} OPJ_LIMIT_DECODING;
 
 /* 
 ==========================================================
@@ -186,11 +214,28 @@ typedef struct opj_event_mgr {
 Progression order changes
 */
 typedef struct opj_poc {
-  int resno0, compno0;
-  int layno1, resno1, compno1;
-  OPJ_PROG_ORDER prg;
-  int tile;
-  char progorder[4];
+	/** Resolution num start, Component num start, given by POC */
+	int resno0, compno0;
+	/** Layer num end,Resolution num end, Component num end, given by POC */
+	int layno1, resno1, compno1;
+	/** Layer num start,Precinct num start, Precinct num end */
+	int layno0, precno0, precno1;
+	/** Progression order enum*/
+	OPJ_PROG_ORDER prg1,prg;
+	/** Progression order string*/
+	char progorder[5];
+	/** Tile number */
+	int tile;
+	/** Start and end values for Tile width and height*/
+	int tx0,tx1,ty0,ty1;
+	/** Start value, initialised in pi_initialise_encode*/
+	int layS, resS, compS, prcS;
+	/** End value, initialised in pi_initialise_encode */
+	int layE, resE, compE, prcE;
+	/** Start and end values of Tile width and height, initialised in pi_initialise_encode*/
+	int txS,txE,tyS,tyE,dx,dy;
+	/** Temporary values for Tile parts, initialised in pi_create_encode */
+	int lay_t, res_t, comp_t, prc_t,tx0_t,ty0_t;
 } opj_poc_t;
 
 /**
@@ -255,13 +300,13 @@ typedef struct opj_cparameters {
 	/**@name command line encoder parameters (not used inside the library) */
 	/*@{*/
 	/** input file name */
-	char infile[MAX_PATH];
+	char infile[OPJ_PATH_LEN];
 	/** output file name */
-	char outfile[MAX_PATH];
-	/** creation of an index file, default to 0 (false) */
+	char outfile[OPJ_PATH_LEN];
+	/** DEPRECATED. Index generation is now handeld with the opj_encode_with_info() function. Set to NULL */
 	int index_on;
-	/** index file name */
-	char index[MAX_PATH];
+	/** DEPRECATED. Index generation is now handeld with the opj_encode_with_info() function. Set to NULL */
+	char index[OPJ_PATH_LEN];
 	/** subimage encoding: origin image offset in x direction */
 	int image_offset_x0;
 	/** subimage encoding: origin image offset in y direction */
@@ -270,14 +315,13 @@ typedef struct opj_cparameters {
 	int subsampling_dx;
 	/** subsampling value for dy */
 	int subsampling_dy;
-	/** input file format 0: PGX, 1: PxM, 2: BMP */
+	/** input file format 0: PGX, 1: PxM, 2: BMP 3:TIF*/
 	int decod_format;
 	/** output file format 0: J2K, 1: JP2, 2: JPT */
 	int cod_format;
 	/*@}*/
 
 /* UniPG>> */
-#ifdef USE_JPWL
 	/**@name JPWL encoding parameters */
 	/*@{*/
 	/** enables writing of EPC in MH, thus activating JPWL */
@@ -307,9 +351,20 @@ typedef struct opj_cparameters {
 	/** sensitivity methods for TPHs (-1=no,0-7) */
 	int jpwl_sens_TPH[JPWL_MAX_NO_TILESPECS];
 	/*@}*/
-#endif /* USE_JPWL */
 /* <<UniPG */
 
+	/** Digital Cinema compliance 0-not compliant, 1-compliant*/
+	OPJ_CINEMA_MODE cp_cinema;
+	/** Maximum rate for each component. If == 0, component size limitation is not considered */
+	int max_comp_size;
+	/** Profile name*/
+	OPJ_RSIZ_CAPABILITIES cp_rsiz;
+	/** Tile part generation*/
+	char tp_on;
+	/** Flag for Tile part generation*/
+	char tp_flag;
+	/** MCT (multiple component transform) */
+	char tcp_mct;
 } opj_cparameters_t;
 
 /**
@@ -335,9 +390,9 @@ typedef struct opj_dparameters {
 	/**@name command line encoder parameters (not used inside the library) */
 	/*@{*/
 	/** input file name */
-	char infile[MAX_PATH];
+	char infile[OPJ_PATH_LEN];
 	/** output file name */
-	char outfile[MAX_PATH];
+	char outfile[OPJ_PATH_LEN];
 	/** input file format 0: J2K, 1: JP2, 2: JPT */
 	int decod_format;
 	/** output file format 0: PGX, 1: PxM, 2: BMP */
@@ -345,18 +400,25 @@ typedef struct opj_dparameters {
 	/*@}*/
 
 /* UniPG>> */
-#ifdef USE_JPWL
 	/**@name JPWL decoding parameters */
 	/*@{*/
 	/** activates the JPWL correction capabilities */
 	bool jpwl_correct;
 	/** expected number of components */
-	bool jpwl_exp_comps;
+	int jpwl_exp_comps;
 	/** maximum number of tiles */
-	bool jpwl_max_tiles;
+	int jpwl_max_tiles;
 	/*@}*/
-#endif /* USE_JPWL */
 /* <<UniPG */
+
+	/** 
+	Specify whether the decoding should be done on the entire codestream, or be limited to the main header
+	Limiting the decoding to the main header makes it possible to extract the characteristics of the codestream
+	if == NO_LIMITATION, the entire codestream is decoded; 
+	if == LIMIT_TO_MAIN_HEADER, only the main header is decoded; 
+	*/
+	OPJ_LIMIT_DECODING cp_limit_decoding;
+
 } opj_dparameters_t;
 
 /** Common fields between JPEG-2000 compression and decompression master structs. */
@@ -367,7 +429,8 @@ typedef struct opj_dparameters {
 	bool is_decompressor;		/**< So common code can tell which is which */\
 	OPJ_CODEC_FORMAT codec_format;	/**< selected codec */\
 	void *j2k_handle;			/**< pointer to the J2K codec */\
-	void *jp2_handle			/**< pointer to the JP2 codec */
+	void *jp2_handle;			/**< pointer to the JP2 codec */\
+	void *mj2_handle			/**< pointer to the MJ2 codec */
 	
 /* Routines that are to be used by both halves of the library are declared
  * to receive a pointer to this structure.  There are no actual instances of
@@ -517,6 +580,142 @@ typedef struct opj_image_comptparm {
 	int sgnd;
 } opj_image_cmptparm_t;
 
+/* 
+==========================================================
+   Information on the JPEG 2000 codestream
+==========================================================
+*/
+
+/**
+Index structure : Information concerning a packet inside tile
+*/
+typedef struct opj_packet_info {
+	/** packet start position (including SOP marker if it exists) */
+	int start_pos;
+	/** end of packet header position (including EPH marker if it exists)*/
+	int end_ph_pos;
+	/** packet end position */
+	int end_pos;
+	/** packet distorsion */
+	double disto;
+} opj_packet_info_t;
+
+/**
+Index structure : Information concerning tile-parts
+*/
+typedef struct opj_tp_info {
+	/** start position of tile part */
+	int tp_start_pos;
+	/** end position of tile part header */
+	int tp_end_header;
+	/** end position of tile part */
+	int tp_end_pos;
+	/** start packet of tile part */
+	int tp_start_pack;
+	/** number of packets of tile part */
+	int tp_numpacks;
+} opj_tp_info_t;
+
+/**
+Index structure : information regarding tiles 
+*/
+typedef struct opj_tile_info {
+	/** value of thresh for each layer by tile cfr. Marcela   */
+	double *thresh;
+	/** number of tile */
+	int tileno;
+	/** start position */
+	int start_pos;
+	/** end position of the header */
+	int end_header;
+	/** end position */
+	int end_pos;
+	/** precinct number for each resolution level (width) */
+	int pw[33];
+	/** precinct number for each resolution level (height) */
+	int ph[33];
+	/** precinct size (in power of 2), in X for each resolution level */
+	int pdx[33];
+	/** precinct size (in power of 2), in Y for each resolution level */
+	int pdy[33];
+	/** information concerning packets inside tile */
+	opj_packet_info_t *packet;
+	/** add fixed_quality */
+	int numpix;
+	/** add fixed_quality */
+	double distotile;
+	/** number of tile parts */
+	int num_tps;
+	/** information concerning tile parts */
+	opj_tp_info_t *tp;
+} opj_tile_info_t;
+
+/* UniPG>> */
+/**
+Marker structure
+*/
+typedef struct opj_marker_info_t {
+	/** marker type */
+	unsigned short int type;
+	/** position in codestream */
+	int pos;
+	/** length, marker val included */
+	int len;
+} opj_marker_info_t;
+/* <<UniPG */
+
+/**
+Index structure of the codestream
+*/
+typedef struct opj_codestream_info {
+	/** maximum distortion reduction on the whole image (add for Marcela) */
+	double D_max;
+	/** packet number */
+	int packno;
+	/** writing the packet in the index with t2_encode_packets */
+	int index_write;
+	/** image width */
+	int image_w;
+	/** image height */
+	int image_h;
+	/** progression order */
+	OPJ_PROG_ORDER prog;
+	/** tile size in x */
+	int tile_x;
+	/** tile size in y */
+	int tile_y;
+	/** */
+	int tile_Ox;
+	/** */
+	int tile_Oy;
+	/** number of tiles in X */
+	int tw;
+	/** number of tiles in Y */
+	int th;
+	/** component numbers */
+	int numcomps;
+	/** number of layer */
+	int numlayers;
+	/** number of decomposition for each component */
+	int *numdecompos;
+/* UniPG>> */
+	/** number of markers */
+	int marknum;
+	/** list of markers */
+	opj_marker_info_t *marker;
+	/** actual size of markers array */
+	int maxmarknum;
+/* <<UniPG */
+	/** main header position */
+	int main_head_start;
+	/** main header position */
+	int main_head_end;
+	/** codestream's size */
+	int codestream_size;
+	/** information regarding tiles inside image */
+	opj_tile_info_t *tile;
+} opj_codestream_info_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -528,7 +727,7 @@ extern "C" {
 ==========================================================
 */
 
-OPJ_API const char * OPJ_CALLCONV opj_version();
+OPJ_API const char * OPJ_CALLCONV opj_version(void);
 
 /* 
 ==========================================================
@@ -626,12 +825,21 @@ Decoding parameters are returned in j2k->cp.
 */
 OPJ_API void OPJ_CALLCONV opj_setup_decoder(opj_dinfo_t *dinfo, opj_dparameters_t *parameters);
 /**
-Decode an image from a JPEG-2000 codestream
+Decode an image from a JPEG-2000 codestream 
 @param dinfo decompressor handle
 @param cio Input buffer stream
 @return Returns a decoded image if successful, returns NULL otherwise
 */
 OPJ_API opj_image_t* OPJ_CALLCONV opj_decode(opj_dinfo_t *dinfo, opj_cio_t *cio);
+
+/**
+Decode an image from a JPEG-2000 codestream and extract the codestream information
+@param dinfo decompressor handle
+@param cio Input buffer stream
+@param cstr_info Codestream information structure if needed afterwards, NULL otherwise
+@return Returns a decoded image if successful, returns NULL otherwise
+*/
+OPJ_API opj_image_t* OPJ_CALLCONV opj_decode_with_info(opj_dinfo_t *dinfo, opj_cio_t *cio, opj_codestream_info_t *cstr_info);
 /**
 Creates a J2K/JP2 compression structure
 @param format Coder to select
@@ -667,9 +875,9 @@ Set encoding parameters to default values, that means :
 OPJ_API void OPJ_CALLCONV opj_set_default_encoder_parameters(opj_cparameters_t *parameters);
 /**
 Setup the encoder parameters using the current image and using user parameters. 
-@param cinfo compressor handle
-@param parameters compression parameters
-@param image input filled image
+@param cinfo Compressor handle
+@param parameters Compression parameters
+@param image Input filled image
 */
 OPJ_API void OPJ_CALLCONV opj_setup_encoder(opj_cinfo_t *cinfo, opj_cparameters_t *parameters, opj_image_t *image);
 /**
@@ -677,10 +885,24 @@ Encode an image into a JPEG-2000 codestream
 @param cinfo compressor handle
 @param cio Output buffer stream
 @param image Image to encode
-@param index Name of the index file if required, NULL otherwise
+@param index Depreacted -> Set to NULL. To extract index, used opj_encode_wci()
 @return Returns true if successful, returns false otherwise
 */
 OPJ_API bool OPJ_CALLCONV opj_encode(opj_cinfo_t *cinfo, opj_cio_t *cio, opj_image_t *image, char *index);
+/**
+Encode an image into a JPEG-2000 codestream and extract the codestream information
+@param cinfo compressor handle
+@param cio Output buffer stream
+@param image Image to encode
+@param cstr_info Codestream information structure if needed afterwards, NULL otherwise
+@return Returns true if successful, returns false otherwise
+*/
+OPJ_API bool OPJ_CALLCONV opj_encode_with_info(opj_cinfo_t *cinfo, opj_cio_t *cio, opj_image_t *image, opj_codestream_info_t *cstr_info);
+/**
+Destroy Codestream information after compression or decompression
+@param cstr_info Codestream information structure
+*/
+OPJ_API void OPJ_CALLCONV opj_destroy_cstr_info(opj_codestream_info_t *cstr_info);
 
 #ifdef __cplusplus
 }

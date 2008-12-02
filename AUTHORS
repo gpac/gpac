@@ -5,3 +5,7 @@ Jean Le Feuvre <jeanlf at users.sourceforge.net>
 Contributors:
 =============
 Cyril Concolato <cconcolato at users.sourceforge.net> contributing SVG, SMIL, ISMACryp MP4 support and V4Studio (together with some ENST people)
+
+
+Pierre Souchay <bad_sheep at users.sourceforge.net> for PulseAudio and JACK audio support
+Ivan Vecera (<falco at users.sourceforge.net>) for VobSub support

@@ -1,5 +1,5 @@
-Installation instructions for GPAC 0.4.4 on Symbian 9.1 (S60 3rd Edition) platform
-last modified: June 2008
+Installation instructions for GPAC 0.4.5 on Symbian 9.1 (S60 3rd Edition) platform
+last modified: December 2008
 
 0 Foreword
 	Compilation has only been tested with GCCE & Nokia S60 SDK
@@ -22,11 +22,10 @@ last modified: June 2008
     * MP3 decoding through MAD
     * TrueType fonts through FreeType
     * Scripting with JS32 (not fully tested yet)
+    * FFMPEG (not really stable, random crashes)    
 
 	What is currently NOT supported on symbian:
     * networking 
-    * AVC/H264 video decoding
-    * H263 video decoding        
 
   TIP:
     Global compiler options are located in SDKRoot\Epoc32\tools\compilation_config\ - you may edit the default C++ rules to remove some 

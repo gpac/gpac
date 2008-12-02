@@ -1,8 +1,8 @@
-Installation instructions for GPAC 0.4.4 on windows platform
-last modified: May 2007
+Installation instructions for GPAC 0.4.5 on windows platform
+last modified: December 2008
 
 0 Foreword
-	Compilation has only been tested with MSVC 6, not .NET
+	Compilation has only been tested with MSVC 6 and VS2005 (VC8). 
 
 	The output directory for all plugins and applications is
 		gpac/bin/w32_deb in debug mode
@@ -17,14 +17,16 @@ I Extra lib installation
 	
 II GPAC compilation
 
-	open gpac/build/msvc6/GPAC.dsw with MSVC6 (GPAC workspace)
+	open the GPAC workspace: 
+    gpac/build/msvc6/GPAC.dsw with MSVC6
+    gpac/build/msvc8/gpac.sln with VS2005
 	
-	NEVER ATTEMPT TO LOAD A PROJECT OUTSIDE THIS WORKSPACE
+	NEVER ATTEMPT TO LOAD A PROJECT OUTSIDE THIS WORKSPACE, AS DEPENDENCY RULES WILL BE BROKEN
 	
 	II.1 Recompiling GPAC
 		libgpac is the core library of the GPAC framework used by all GPAC applications. It is available as a static library and as a dynamic one
 		Set the "libgpac_dll" project as the active one
-		If you have not installed the SpiderMonkey (JavaScript, libjs) library, remove the GPAC_HAS_SPIDERMONKEY preprocessor variable from the "libgpac" project settings (not "libgpac_dll" !!)
+		If you have not installed the SpiderMonkey (JavaScript, libjs), JPEG or PNG libraries, remove the indicated macros in the file gpac/include/gpac/internal/config_static.h
 		recompile (libgpac_dll compilation will fail if zlib is not found)
 
 		Note: If you wish to build the fixed-point version of GPAC (not recommended), you will have to modify by hand the file gpac/include/gpac/math.h
@@ -47,6 +49,10 @@ II GPAC compilation
 			If you have not installed faad2 library, remove the GPAC_HAS_FAAD preprocessor variable from the aac_in project settings.
 			Note that if no aac decoder is installed for gpac you may as well remove the "aac_in" project from the workspace (DEL).
 
+		* ac3_in
+			If you have not installed liba52 library, remove the GPAC_HAS_LIBA52 preprocessor variable from the ac3_in project settings.
+			Note that if no ac3 decoder is installed for gpac you may as well remove the "ac3_in" project from the workspace (DEL).
+
 		* mp3_in
 			If you have not installed mad library, remove the GPAC_HAS_MAD preprocessor variable from the mp3_in project settings.
 			Note that if no mp3 decoder is installed for gpac you may as well remove the "mp3_in" project from the workspace (DEL).
@@ -55,18 +61,14 @@ II GPAC compilation
 			if you have not installed xvid library, remove the "xvid_dec" project from the workspace (DEL).
 		
 		* img_in:
-			If you have not installed libpng, remove the GPAC_HAS_PNG preprocessor variable from the img_in project settings
-        and the relevant library from the link settings
-			If you have not installed libjpeg, remove the GPAC_HAS_JPEG preprocessor variable from the img_in project settings
-        and the relevant library from the link settings
 			If you have not installed libopenjpeg, remove the GPAC_HAS_JP2 preprocessor variable from the img_in project settings
         and the relevant library from the link settings
 			If you have not installed any of the above libraries, you may remove the "img_in" project from the workspace (DEL).
 
 		* amr_float_dec	
 			This plugin handles speech coded data using AMR Narrow Band and Wide Band formats. It uses two decoders from the 3GPP consortium available at: 
-				AMR Narrowband decoder: http://www.3gpp.org/ftp/Specs/archive/26_series/26.104/26104-610.zip
-				AMR Wideband decoder: http://www.3gpp.org/ftp/Specs/archive/26_series/26.204/26204-600.zip
+				AMR Narrowband decoder: http://www.3gpp.org/ftp/Specs/archive/26_series/26.104/26104-700.zip
+				AMR Wideband decoder: http://www.3gpp.org/ftp/Specs/archive/26_series/26.204/26204-710.zip
 
 			(The same versions are included in gpac_extra_libs/AMR_NB_FT and  gpac_extra_libs/AMR_WB_FT )
 
@@ -78,14 +80,14 @@ II GPAC compilation
 
 		* amr_dec		
 			This plugin handles speech coded data using AMR Narrow Band format with a fixed-point decoder (suited for embedded platforms). 
-			It uses the decoder of the 3GPP consortium (TS26.073) available from http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-510.zip. 
+			It uses the decoder of the 3GPP consortium (TS26.073) available from http://www.3gpp.org/ftp/Specs/archive/26_series/26.073/26073-700.zip. 
 			It is the same version included in gpac_extra_libs/AMR_NB with a slight header modifcation.
  			To compile this plugin, copy the source code to modules/amr_dec/amr_nb WITHOUT OVERWRITING typedefs.h file.
  			Otherwise, remove the "amr_dec" project from the workspace (DEL). Note you usually won't need this plugin, the float version of the decoders being much faster.
 		
 		* ffmpeg_in		
 			To install ffmpeg libraries, cf gpac_extra_libs/ReadMe
-			if you have not installed ffmpeg libraries (avcodec.lib/dll AND avformat.lib/dll), remove the "ffmpeg_in" project from the workspace (DEL).
+			if you have not installed ffmpeg libraries (avcodec.lib/dll, avformat.lib/dll, avutil.lib/dll), remove the "ffmpeg_in" project from the workspace (DEL).
 
 		* ft_font
 			if you have not installed freetype, simply remove the "ft_font" project from the workspace (DEL).
@@ -109,11 +111,6 @@ II GPAC compilation
 			NOTE: SDL is not needed at all on windows, you will still have audio and video support without SDL. The SDL plugin is much slower than the directX plugin 
 			when dealing with video since it uses software YUV to RGB conversion.
 
-		* svg_loader:
-			the svg reader requires libxml2 for SVG parsing. Win32 binaries of LibXML2 are available on http://www.xmlsoft.org. You will need to modify your VC settings to 
-			look for libxml headers and library directories.
-			If you don't want to install libxml2 or don't plan to test svg, simply remove the "svg_loader" project from the workspace (DEL).
-
 		NOTE: if you have not installed GDIPlus nor freetype, you won't have text support at all in GPAC.
 	
 	
@@ -134,8 +131,11 @@ II GPAC compilation
 		recompile (some plugins may be recompiled in the process). You may need to change the linker settings, depending on your wxWidgets version and config
 
 	II.7 Recompiling Osmozilla
-		Osmozilla is GPAC plugin for Mozilla-based browsers, enabling to embed all GPAC supported contents in a web page. Recompile it only if you think it may 
-		be helpful (Set as the active project and recompile)
+		Osmozilla is GPAC plugin for Mozilla-based browsers, enabling embedding all GPAC supported contents in a web page. Recompile it only if you think it may 
+		be helpful. 
+    * Get the gecko sdk (http://ftp.mozilla.org/pub/mozilla.org/mozilla/releases/mozilla1.7.13/gecko-sdk-i586-pc-msvc-1.7.13.zip or in the gpac_extra_libs package)
+    * Extract it to gpac/extra_lib/include/gecko-sdk
+    * Set Osmozilla as the active project and recompile
 
 	II.7 Recompiling GPAX
 		GPAX is GPAC ActiveX control, only usable as an Internet Explorer plugin for now, enabling to embed all GPAC supported contents in a web page. Recompile it only if you think it may 
@@ -159,7 +159,7 @@ to first launch Osmo4 to get a working config file.
 	
 		
 	Osmozilla cannot be launched without a mozilla-based web browser. You should not try to install it in any other way than with the GPAC installer 
-	(cf below). Once installed, you may try any test in an html page viewed with your browser, for instance:
+	(cf below). Once installed, you may try any test in an html page viewed with your browser, for example:
       	<object type="application/mp4" width="120" height="100">
         <param name="src" value="myfile.mp4" /> 
       	</object>

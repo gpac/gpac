@@ -1,10 +1,9 @@
-todo items as of version 0.4.4:
+todo items as of version 0.4.5:
 	* more refinement for several top scenes support (display overlays & co).
 
 utopic roadmap
 v0.5.0:
 	* maybe support for glyph-based texturing rather than string-based
-	* more and more efficient SVG support
 	* SMIL support ?
 	
 v0.6.0:

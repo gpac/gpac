@@ -1752,7 +1752,7 @@ if test "$source_path_used" = "yes" ; then
          ln -sf $source_path/$dir/Makefile $dir/Makefile
     done
 
-    MOD_DIRS="modules modules/aac_in modules/ac3_in modules/alsa modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/gpac_js modules/img_in modules/ismacryp modules/isom_in modules/jack modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/pulseaudio modules/raw_out modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/svg_loader modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec"
+    MOD_DIRS="modules modules/aac_in modules/ac3_in modules/alsa modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/gpac_js modules/img_in modules/ismacryp modules/isom_in modules/jack modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/pulseaudio modules/raw_out modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec"
     cur_dir="`pwd`"
     for dir in $MOD_DIRS ; do
             mkdir -p $dir

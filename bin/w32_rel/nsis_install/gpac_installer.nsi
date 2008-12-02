@@ -5,7 +5,7 @@ WindowIcon on
 Icon "..\Osmo4.ico"
 UninstallIcon "..\Osmo4.ico"
 
-!define GPAC_VERSION	0.4.5-DEV
+!define GPAC_VERSION	0.4.5
 !define /date RELDATE "%Y%m%d"
 
 Name "GPAC Framework ${GPAC_VERSION}"
@@ -143,6 +143,11 @@ SectionEnd
 Section "MP3 Audio support (MAD decoder, MP3 files and Radios)"
   SectionIn 1
   File "..\gm_mp3_in.dll"
+SectionEnd
+
+Section "AC3 Audio support (A52 decoder, AC3 files and Radios)"
+  SectionIn 1
+  File "..\gm_ac3_in.dll"
 SectionEnd
 
 Section "FFMPEG Reader and Decoder"
@@ -318,43 +323,6 @@ Section "MP4Client (GPAC Command-line client/grabber)"
   SetOutPath $INSTDIR
   File "..\MP4Client.exe"
 SectionEnd
-
-
-SubSection "Proprietary Plugins"
-Section "BSAC Decoder"
-  SectionIn 1
-  File /nonfatal "..\gm_bsac_dec.dll"
-  File /nonfatal "..\Mp4BsacD.dll"
-SectionEnd
-
-Section "TI's MobileIP"
-  SectionIn 1
-  File /nonfatal "..\gm_mobile_ip.dll"
-  File /nonfatal "..\MobileSession.dll"
-SectionEnd
-
-Section "UPnP Renderer"
-  SectionIn 1
-  File /nonfatal "..\gm_upnp.dll"
-SectionEnd
-
-Section "JNI Wrapper"
-  SectionIn 1
-  File /nonfatal "..\gvm.dll"
-SectionEnd
-
-Section "MainConcept H264 Decoder"
-  SectionIn 1
-  File /nonfatal "..\gm_mc264_dec.dll"
-  File /nonfatal "..\demoh264dec.dll"
-SectionEnd
-
-Section "EIT Decoder"
-  SectionIn 1
-  File /nonfatal "..\gm_eit_dec.dll"
-SectionEnd
-
-SubSectionEnd
 
 
 ; Function .onInstSuccess

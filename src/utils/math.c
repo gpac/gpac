@@ -188,6 +188,12 @@ Fixed gf_atan2(Fixed dy, Fixed dx)
 /*define one of these to enable IntelGPP support and link to gpp_WMMX40_d.lib (debug) or gpp_WMMX40_r.lib (release)
 this is not configured by default for lack of real perf increase.*/
 #if defined(GPAC_USE_IGPP_HP) || defined(GPAC_USE_IGPP)
+#   pragma message("Using IntelGPP math library")
+#ifdef _DEBUG
+#   pragma comment(lib, "gpp_WMMX40_d")
+#else
+#   pragma comment(lib, "gpp_WMMX40_r")
+#endif
 
 #include <gpp.h>
 
