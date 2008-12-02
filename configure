@@ -284,6 +284,7 @@ targetos=`uname -s`
 case $targetos in
 BeOS)
 js_flags=-DXP_BEOS
+xul_flags=-DXP_BEOS
 prefix="/boot/home/config"
 CFLAGS="$CFLAGS -DPIC -fomit-frame-pointer"
 # 3 gcc releases known for BeOS, each with ugly bugs
@@ -329,6 +330,7 @@ make="gmake"
 
 Darwin)
 js_flags=-DXP_MAC
+xul_flags=-DXP_MAC
 if test -d /sw/bin ; then
  alt_macosx_dir="/sw"
  CFLAGS="-I/sw/include $CFLAGS"
@@ -1137,7 +1139,7 @@ if test "$enable_tinygl" = "yes"  ;then
       has_opengl="yes"
       LINK3D="-L${source_path}/../../TinyGL/lib/$target_bin_dir -lTinyGL"
       INCL3D="-I${source_path}/../../TinyGL/include"
-  fi
+fi
 fi
 
 
@@ -1149,12 +1151,11 @@ EOF
 
 if $cc -o $TMPO $TMPCPP -I$xulsdk_path 2> /dev/null  ; then
 has_xul="system"
-xul_flags="-I$xulsdk_path"
+xul_flags+="-I$xulsdk_path"
 else
-geckopath="$local_inc/gecko-sdk"
-xul_flags="-I$geckopath -I$geckopath/plugin/include -I$geckopath/nspr/include -I$geckopath/java/include -I$geckopath/xpcom/include -DMOZILLA_STRICT_API"
-if $cc -o $TMPO $TMPCPP $xul_flags 2> /dev/null  ; then
+if $cc -o $TMPO $TMPCPP $xul_flags -I$local_inc/gecko-sdk/include 2> /dev/null  ; then
 has_xul="local"
+xul_flags+="-I$local_inc/gecko-sdk/include"
 fi
 fi
 
@@ -1337,7 +1338,7 @@ echo "ALSA Audio: $has_alsa"
 echo "Jack Audio: $has_jack"
 echo "PulseAudio Audio: $has_pulseaudio"
 echo "X11 Shared Memory support: $has_x11_shm (path: $X11_PATH)"
-echo "X11 XVideo support: $has_x11_xv"
+echo "X11 XVideo support: $has_x11_xv"	
 fi
 
 echo "SDL Support: $has_sdl"
