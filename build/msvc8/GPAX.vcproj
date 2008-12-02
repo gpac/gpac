@@ -83,6 +83,7 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/w32_deb"
+				GenerateManifest="true"
 				ModuleDefinitionFile="..\..\applications\GPAX\GPAX.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/w32_deb/GPAX.pdb"
@@ -95,6 +96,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				EmbedManifest="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"

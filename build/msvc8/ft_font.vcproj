@@ -83,6 +83,7 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/w32_deb"
+				GenerateManifest="true"
 				ModuleDefinitionFile="..\..\modules\ft_font\ft_font.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/ft_font_deb/gm_ft_font.pdb"
@@ -94,6 +95,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				EmbedManifest="false"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
