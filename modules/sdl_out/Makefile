@@ -18,9 +18,10 @@ LINKFLAGS=$(SDL_LIBS)
 ifeq ($(CONFIG_X11), yes)
 CFLAGS+=-DGPAC_HAS_X11
 LINKFLAGS+=-lX11
-ifeq ($(X11_INC_PATH), )
+ifeq ($(X11_INC_PATH), "")
 else
 CFLAGS+=-I$(X11_INC_PATH)
+LINKFLAGS+=-L$(X11_LIB_PATH)
 endif
 endif
 

@@ -84,14 +84,7 @@ endif
 LINKLIBS+= $(JS_LIBS)
 endif
 
-
-#4 - OpenGL support
-ifeq ($(HAS_OPENGL),yes)
-EXTRALIBS+= $(OGL_LIBS)
-COMPOSITOR_CFLAGS+=-I$(OGL_INCLS)
-endif
-
-#5 - JPEG support
+#4 - JPEG support
 ifeq ($(CONFIG_JPEG), no)
 else
 LINKLIBS+= -ljpeg
@@ -101,6 +94,17 @@ NEED_LOCAL_LIB="yes"
 MEDIATOOLS_CFLAGS+=-I$(LOCAL_INC_PATH)/jpeg
 endif
 endif
+
+#5 - PNG support
+ifeq ($(CONFIG_PNG), no)
+else
+LINKLIBS+= -lpng
+ifeq ($(CONFIG_PNG), local)
+NEED_LOCAL_LIB="yes"
+MEDIATOOLS_CFLAGS+=-I$(LOCAL_INC_PATH)/png
+endif
+endif
+
 
 ifneq ($(prefix), /usr/local)
 EXTRALIBS+=-L$(prefix)/lib
@@ -116,6 +120,13 @@ COMPOSITOR_CFLAGS=
 ifeq ($(DISABLE_SVG), yes)
 COMPOSITOR_CFLAGS+=-DGPAC_DISABLE_SVG
 endif
+
+# OpenGL support
+ifeq ($(HAS_OPENGL),yes)
+EXTRALIBS+= $(OGL_LIBS)
+COMPOSITOR_CFLAGS+=$(OGL_INCLS)
+endif
+
 ifeq ($(TRISCOPE_MODE), yes)
 COMPOSITOR_CFLAGS+=-DGPAC_TRISCOPE_MODE
 EXTRALIBS+= -Lcompositor/triscope_renoir
@@ -133,15 +144,6 @@ ifeq ($(ENABLE_JOYSTICK), yes)
 COMPOSITOR_CFLAGS+=-DENABLE_JOYSTICK
 endif
 
-#6 - PNG support
-ifeq ($(CONFIG_PNG), no)
-else
-LINKLIBS+= -lpng
-ifeq ($(CONFIG_PNG), local)
-NEED_LOCAL_LIB="yes"
-MEDIATOOLS_CFLAGS+=-I$(LOCAL_INC_PATH)/png
-endif
-endif
 
 ## libgpac media tools compilation options
 ifeq ($(GPACREADONLY), yes)
