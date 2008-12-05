@@ -126,7 +126,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 		/*direct drawing, draw without clippers */
 		if (tr_state->direct_draw) {
 			/*directly clear with specified color*/
-			visual_2d_clear(tr_state->visual, &ctx->bi->clip, ctx->aspect.fill_color);
+			tr_state->visual->ClearSurface(tr_state->visual, &ctx->bi->clip, ctx->aspect.fill_color);
 		} else {
 			u32 i;
 			GF_IRect clip;
@@ -138,7 +138,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 				clip = ctx->bi->clip;
 				gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
 				if (clip.width && clip.height) {
-					visual_2d_clear(tr_state->visual, &clip, ctx->aspect.fill_color);
+					tr_state->visual->ClearSurface(tr_state->visual, &clip, ctx->aspect.fill_color);
 				}
 			}
 		}

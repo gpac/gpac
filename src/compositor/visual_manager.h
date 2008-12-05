@@ -92,6 +92,12 @@ struct _visual_manager
 	/*release graphics handle*/
 	void (*ReleaseSurfaceAccess)(GF_VisualManager *);
 
+	/*clear given rect or all visual if no rect specified - clear color depends on visual's type:
+		BackColor for background nodes
+		0x00000000 for composite, 
+		compositor clear color otherwise
+	*/
+	void (*ClearSurface)(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor);
 	/*draws specified texture as flat bitmap*/
 	Bool (*DrawBitmap)(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key);
 
