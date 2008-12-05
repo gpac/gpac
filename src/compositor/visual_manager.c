@@ -33,6 +33,11 @@ static Bool visual_draw_bitmap_stub(GF_VisualManager *visual, GF_TraverseState *
 	return 0;
 }
 
+static Bool visual_clear_surface_stub(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor)
+{
+	return 0;
+}
+
 GF_VisualManager *visual_new(GF_Compositor *compositor)
 {
 	GF_VisualManager *tmp;
@@ -46,6 +51,7 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 	tmp->raster_brush = compositor->rasterizer->stencil_new(compositor->rasterizer, GF_STENCIL_SOLID);
 
 	tmp->DrawBitmap = visual_draw_bitmap_stub;
+	tmp->ClearSurface = visual_clear_surface_stub;
 
 #ifndef GPAC_DISABLE_3D
 	tmp->navigation_stack = gf_list_new();

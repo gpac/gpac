@@ -305,10 +305,10 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 			gf_node_traverse((GF_Node *) bck, tr_state);
 			tr_state->traversing_mode = TRAVERSE_SORT;
 		} else {
-			visual_2d_clear(visual, NULL, 0);
+			visual->ClearSurface(visual, NULL, 0);
 		}
 	} else {
-		visual_2d_clear(visual, NULL, 0);
+		visual->ClearSurface(visual, NULL, 0);
 	}
 	return GF_OK;
 }
@@ -620,7 +620,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			if (visual->to_redraw.opaque_node_index[k] > 0) continue;
 #endif
 			rc = visual->to_redraw.list[k];
-			visual_2d_clear(visual, &rc, 0);
+			visual->ClearSurface(visual, &rc, 0);
 		}
 	}
 	if (!redraw_all && !has_clear) visual->has_modif=0;

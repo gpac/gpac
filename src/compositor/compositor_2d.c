@@ -316,7 +316,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			}
 			o_rc.width = dst_wnd.w;
 			o_rc.height = dst_wnd.h;
-			visual_2d_clear(visual, &o_rc, visual->compositor->video_out->overlay_color_key);
+			visual->ClearSurface(visual, &o_rc, visual->compositor->video_out->overlay_color_key);
 			visual->has_overlays = 1;
 			/*mark drawable as overlay*/
 			ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;

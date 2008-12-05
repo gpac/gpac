@@ -93,6 +93,8 @@ Bool visual_2d_node_cull(GF_TraverseState *tr_state, GF_Rect *bounds);
 
 void visual_2d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children);
 
+void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor);
+
 /*gets a drawable context on this visual*/
 DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual);
 /*remove last drawable context*/
@@ -105,12 +107,6 @@ GF_Err visual_2d_init_raster(GF_VisualManager *visual);
 /*releases raster surface handler */
 void visual_2d_release_raster(GF_VisualManager *visual);
 
-/*clear given rect or all visual if no rect specified - clear color depends on visual's type:
-	BackColor for background nodes
-	0x00000000 for composite, 
-	compositor clear color otherwise
-*/
-void visual_2d_clear(GF_VisualManager *visual, GF_IRect *clear, u32 BackColor);
 /*texture the path with the given context info*/
 void visual_2d_texture_path(GF_VisualManager *visual, GF_Path *path, DrawableContext *ctx, GF_TraverseState *tr_state);
 /*draw the path (fill and strike) - if brushes are NULL they are created if needed based on the context aspect
