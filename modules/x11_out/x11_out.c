@@ -1182,6 +1182,15 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	xWindow->visual = DefaultVisualOfScreen (xWindow->screenptr);
 	xWindow->depth = DefaultDepth (xWindow->display, xWindow->screennum);
 
+	{
+		Float screenWidth = (Float)XWidthOfScreen(xWindow->screenptr);
+		Float screenWidthIn = (Float)XWidthMMOfScreen(xWindow->screenptr) / 25.4f;
+		Float screenHeight = (Float)XHeightOfScreen(xWindow->screenptr);
+		Float screenHeightIn = (Float)XHeightMMOfScreen(xWindow->screenptr) / 25.4f;
+		vout->dpi_x = (u32)(screenWidth / screenWidthIn);
+		vout->dpi_y = (u32)(screenHeight / screenHeightIn);	
+	}
+
 	switch (xWindow->depth) {
 	case 8:
 		xWindow->pixel_format = GF_PIXEL_GREYSCALE;
