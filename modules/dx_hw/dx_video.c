@@ -221,6 +221,14 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 	if (!dd->os_hwnd) return GF_IO_ERR;
 	dd->cur_hwnd = dd->os_hwnd;
 
+	{
+		HDC hdc;
+		hdc = GetDC(dd->os_hwnd);
+		dr->dpi_x = GetDeviceCaps(hdc, LOGPIXELSX);
+		dr->dpi_y = GetDeviceCaps(hdc, LOGPIXELSY);
+		ReleaseDC(dd->os_hwnd, hdc);
+	}
+
 	dd->output_3d_type = 0;
 	GetWindowRect(dd->cur_hwnd, &rc);
 	return InitDirectDraw(dr, rc.right - rc.left, rc.bottom - rc.top);

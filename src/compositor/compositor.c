@@ -2447,6 +2447,12 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 			}
 		}
 		return 1;
+	case GF_JSAPI_OP_GET_DPI_X: 
+		param->opt = compositor->video_out->dpi_x;
+		return 1;
+	case GF_JSAPI_OP_GET_DPI_Y: 
+		param->opt = compositor->video_out->dpi_y;
+		return 1;
 	}
 	return 0;
 }

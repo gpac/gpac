@@ -558,6 +558,9 @@ enum
 	GF_JSAPI_OP_PAUSE_SVG,
 	/*!resumes an SVG ELEMENT*/
 	GF_JSAPI_OP_RESUME_SVG,
+	/*!gets the DPI*/
+	GF_JSAPI_OP_GET_DPI_X,
+	GF_JSAPI_OP_GET_DPI_Y,
 };
 /*
 interface to various get/set options:

@@ -884,7 +884,7 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 			gf_log_set_level(GF_LOG_DEBUG);
 			gf_log_set_tools(GF_LOG_RTI);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
 		} else if (log_time_start) {
 			log_time_start = gf_sys_clock();
 		}
