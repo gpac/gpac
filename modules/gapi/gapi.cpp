@@ -430,6 +430,15 @@ void GAPI_SetupWindow(GF_VideoOutput *dr)
 		SetWindowLong(ctx->hWnd, GWL_WNDPROC, (DWORD) GAPI_WindowProc);
 	}
 
+	{
+		HDC hdc;
+		hdc = GetDC(ctx->hWnd);
+		dr->dpi_x = GetDeviceCaps(hdc, LOGPIXELSX);
+		dr->dpi_y = GetDeviceCaps(hdc, LOGPIXELSY);
+		ReleaseDC(ctx->hWnd, hdc);
+	}
+
+
 #ifdef GPAC_USE_OGL_ES
 	ctx->use_pbuffer = 1;
 	dr->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
