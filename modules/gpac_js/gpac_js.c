@@ -259,14 +259,28 @@ static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	return JS_TRUE;
 }
 
-static JSBool gpac_dpi(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool gpac_get_horizontal_dpi(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_SceneGraph *sg;
 	GF_JSAPIParam par;
-	
+
 	sg = JS_GetContextPrivate(c);
 	if (sg->script_action) {
 		sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_DPI_X, NULL, &par);
+		*rval = INT_TO_JSVAL(par.opt);
+	}
+	
+	return JS_TRUE;
+}
+
+static JSBool gpac_get_vertical_dpi(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_SceneGraph *sg;
+	GF_JSAPIParam par;
+
+	sg = JS_GetContextPrivate(c);
+	if (sg->script_action) {
+		sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_DPI_Y, NULL, &par);
 		*rval = INT_TO_JSVAL(par.opt);
 	}
 	
@@ -287,7 +301,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		{"setOption",		gpac_setOption, 4},
 		{"enum_directory",	gpac_enum_directory, 1},
 		{"set_size",		gpac_set_size, 1},
-		{"get_dpi",			gpac_dpi, 1},
+		{"get_horizontal_dpi",	gpac_get_horizontal_dpi, 0},
+		{"get_vertical_dpi",	gpac_get_vertical_dpi, 0},
 		{0}
 	};
 
