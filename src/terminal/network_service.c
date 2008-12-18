@@ -548,7 +548,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 {
 	u32 i;
 	GF_Err e;
-	char *sURL, *ext, *mime_type;
+	char *sURL, *qm, *frag, *ext, *mime_type;
 	char szExt[500];
 	GF_InputService *ifce;
 
@@ -610,16 +610,21 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		}
 	}
 
-	
-	ext = strchr(sURL, '#');
-	if (ext) {
-		char *anext;
-		ext[0] = 0;
-		anext = strrchr(sURL, '.');
-		ext[0] = '#';
-		ext = anext;
-	} else {
+	/* The file extension, if any, is before '?' if any or before '#' if any.*/
+	qm = strchr(sURL, '?');
+	if (qm) {
+		qm[0] = 0;
 		ext = strrchr(sURL, '.');
+		qm[0] = '?';
+	} else {
+		frag = strchr(sURL, '#');
+		if (frag) {
+			frag[0] = 0;
+			ext = strrchr(sURL, '.');
+			frag[0] = '#';
+		} else {
+			ext = strrchr(sURL, '.');
+		}
 	}
 	if (ext && !stricmp(ext, ".gz")) {
 		char *anext;
@@ -637,6 +642,8 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	if (!ifce && ext) {
 		u32 keyCount;
 		strcpy(szExt, &ext[1]);
+		ext = strrchr(szExt, '?');
+		if (ext) ext[0] = 0;
 		ext = strrchr(szExt, '#');
 		if (ext) ext[0] = 0;
 
