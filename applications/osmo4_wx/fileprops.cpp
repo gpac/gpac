@@ -408,7 +408,7 @@ void wxFileProps::SetStreamsInfo()
 			lan[2] = (esd->langDesc->langCode)&0xFF;
 			lan[3] = 0;
 
-			if ((lan[0]=='u') && (lan[1]=='n') && (lan[2]=='d')) szLang = "Undetermined";
+			if ((lan[0]=='u') && (lan[1]=='n') && (lan[2]=='d')) szLang = (char*) "Undetermined";
 			else {
 				szLang = lan;
 				while (GF_ISO639_Lang[i]) {

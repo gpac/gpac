@@ -206,7 +206,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 			else if (pos==compositor->dom_text_pos) {
 				if (append) {
 					u16 end;
-					u16 *srcp;
+					const u16 *srcp;
 					u32 len;
 					GF_DOMText *cur, *ntext;
 					GF_ChildNodeItem *children = ((GF_ParentNode *) compositor->focus_node)->children;

@@ -1,5 +1,5 @@
 /* XPM */
-static char* tool_open_file[] = {
+static const char* tool_open_file[] = {
 "16 16 2 1",
 "  c #000000",
 "! c none",
@@ -21,7 +21,7 @@ static char* tool_open_file[] = {
 "!!!!!!!!!!!!!!!!"};
 
 /* XPM */
-static char* tool_prev[] = {
+static const char* tool_prev[] = {
 "16 16 3 1",
 "  c #000000",
 "! c none",
@@ -44,7 +44,7 @@ static char* tool_prev[] = {
 "!!!!!!!!!!!!!!!!"};
 
 /* XPM */
-static char* tool_next[] = {
+static const char* tool_next[] = {
 "16 16 3 1",
 "  c #000000",
 "! c none",
@@ -67,7 +67,7 @@ static char* tool_next[] = {
 "!!!!!!!!!!!!!!!!"};
 
 /* XPM */
-static char* tool_play[] = {
+static const char* tool_play[] = {
 "16 16 2 1",
 "  c #000000",
 "! c none",
@@ -89,7 +89,7 @@ static char* tool_play[] = {
 "!!!!!!!!!!!!!!!!"};
 
 /* XPM */
-static char* tool_pause[] = {
+static const char* tool_pause[] = {
 "16 16 3 1",
 "  c #000000",
 "! c #808080",
@@ -113,7 +113,7 @@ static char* tool_pause[] = {
 
 
 /* XPM */
-static char* tool_step[] = {
+static const char* tool_step[] = {
 "16 16 2 1",
 "  c #000000",
 "! c none",
@@ -136,7 +136,7 @@ static char* tool_step[] = {
 
 
 /* XPM */
-static char* tool_stop[] = {
+static const char* tool_stop[] = {
 "16 16 2 1",
 "  c #000000",
 "! c none",
@@ -158,7 +158,7 @@ static char* tool_stop[] = {
 "!!!!!!!!!!!!!!!!"};
 
 /* XPM */
-static char* tool_info[] = {
+static const char* tool_info[] = {
 "16 16 3 1",
 "  c #000000",
 "! c none",
@@ -182,7 +182,7 @@ static char* tool_info[] = {
 
 
 /* XPM */
-static char* tool_config[] = {
+static const char* tool_config[] = {
 "16 16 3 1",
 "  c #000000",
 "! c #808080",
@@ -205,7 +205,7 @@ static char* tool_config[] = {
 "################"};
 
 /* XPM */
-static char* tool_sw_2d[] = {
+static const char* tool_sw_2d[] = {
 "16 16 4 1",
 " 	c #FF0000",
 ".	c #C0C0C0",
@@ -229,7 +229,7 @@ static char* tool_sw_2d[] = {
 "................"};
 
 /* XPM */
-static char* tool_sw_3d[] = {
+static const char* tool_sw_3d[] = {
 "16 16 4 1",
 " 	c #FFFFFF",
 ".	c #C0C0C0",

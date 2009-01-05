@@ -614,7 +614,7 @@ void DumpSFField(GF_SceneDumper *sdump, u32 type, void *ptr, Bool is_mf)
 			}
 #else
 			fprintf(sdump->trace, sdump->XMLDump ? (sdump->X3DDump ?  "'" : "&quot;") : "\"");
-			fprintf(sdump->trace, ((SFURL *)ptr)->url);
+			fprintf(sdump->trace, "%s", ((SFURL *)ptr)->url);
 			fprintf(sdump->trace, sdump->XMLDump ? (sdump->X3DDump ?  "'" : "&quot;") : "\"");
 #endif
 		} else {

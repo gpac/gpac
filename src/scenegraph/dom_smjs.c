@@ -84,7 +84,7 @@ char *js_get_utf8(jsval val)
 	utf16 = JS_GetStringChars(JSVAL_TO_STRING(val) );
 	len = gf_utf8_wcslen(utf16)*2 + 1;
 	txt = malloc(sizeof(char)*len);
-	len = gf_utf8_wcstombs(txt, len, &utf16);
+	len = gf_utf8_wcstombs(txt, len, (const u16**) &utf16);
 	if ((s32)len<0) {
 		free(txt);
 		return NULL;

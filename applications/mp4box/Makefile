@@ -27,16 +27,26 @@ endif
 OBJS= main.o filedump.o fileimport.o
 
 LINKFLAGS=-L../../bin/gcc
+
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=MP4Box$(EXE)
-#LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
-LINKFLAGS+=-lgpac
+ifeq ($(MP4BOX_STATIC),yes)
+LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
 else
+LINKFLAGS+=-lgpac
+endif
+
+else
+
 EXT=
 PROG=MP4Box
-#LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz 
+ifeq ($(MP4BOX_STATIC),yes)
+LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz
+else
 LINKFLAGS+=-lgpac -lz  $(OGL_LIBS)
+endif
+
 endif
 
 
