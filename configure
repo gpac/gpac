@@ -89,6 +89,7 @@ has_joystick="no"
 has_xul="no"
 enable_joystick="no"
 enable_renoir="no"
+static_mp4box="no"
 
 win32="no"
 mingw32="no"
@@ -167,6 +168,7 @@ echo "  --enable-amr-nb-fixed    enable AMR NB fixed-point decoder"
 echo "  --enable-amr-nb          enable AMR NB library"
 echo "  --enable-amr-wb          enable AMR WB library"
 echo "  --enable-amr             enable both AMR NB and WB libraries"
+echo "	--static-mp4box		 configure for static linking of MP4Box. This will disable many features."
 echo ""
 echo "Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/"
 echo "  --use-js=OPT             force SpiderMonkey ECMAScript OPT=[no,local]"
@@ -1046,6 +1048,8 @@ for opt do
   ;;
   --disable-ssl) has_ssl="no"
   ;;
+  --static-mp4box) static_mp4box="yes"
+  ;;
   --use-faad=*) has_faad=${opt#--use-faad=}
   ;;
   --use-js=*) has_js=${opt#--use-js=}
@@ -1301,6 +1305,15 @@ if test x"$mandir" = x""; then
 mandir="${prefix}/man"
 fi
 
+if test "$static_mp4box" = "yes"; then
+has_opengl="no"
+has_ssl="no"
+has_js="no"
+has_jpeg="no"
+has_png="no"
+fi
+
+
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
 echo ""
 echo "** System Configuration"
@@ -1329,11 +1342,7 @@ echo "** Detected libraries **"
 echo "zlib: $has_zlib"
 
 if test "$win32" != "yes" ; then
-if test "$has_oss_audio" = "no"; then
-echo "OSS Audio: no"
-else
-echo "OSS Audio: yes"
-fi
+echo "OSS Audio: $has_oss_audio"
 echo "ALSA Audio: $has_alsa"
 echo "Jack Audio: $has_jack"
 echo "PulseAudio Audio: $has_pulseaudio"
@@ -1693,6 +1702,7 @@ cp -f $TMPH $source_path/include/gpac/setup.h
 fi
 fi
 
+echo "MP4BOX_STATIC=$static_mp4box" >> config.mak
 
 GPAC_ENST_INC=no
 GPAC_ENST=no

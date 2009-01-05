@@ -37,7 +37,7 @@
 
 
 #define NUM_RATES 11
-static char *BIFSRates[11] = 
+static const char *BIFSRates[11] = 
 {
 	"5.0",
 	"7.5",

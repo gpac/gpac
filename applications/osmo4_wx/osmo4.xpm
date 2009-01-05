@@ -1,5 +1,5 @@
 /* XPM */
-static char * osmo4[] = {
+static const char * osmo4[] = {
 "32 32 266 2",
 "  	c None",
 ". 	c #990909",

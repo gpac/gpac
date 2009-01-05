@@ -353,7 +353,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 			if (out) {
 				FILE *f = fopen(rtp->session_state, "wb");
 				if (f) {
-					fprintf(f, out);
+					fprintf(f, "%s", out);
 					fclose(f);
 				} else {
 					free(rtp->session_state);
@@ -524,7 +524,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 		char *out = NULL;
 		gf_sdp_info_write(sdp, &out);
 		if (out) {
-			fprintf(f, out);
+			fprintf(f, "%s", out);
 			free(out);
 		}
 		fclose(f);

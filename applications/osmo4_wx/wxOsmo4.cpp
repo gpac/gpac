@@ -224,9 +224,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVENT_PROGRESS:
 	{
 		char *sTitle;
-		if (evt->progress.progress_type==0) sTitle = "Buffer";
-		else if (evt->progress.progress_type==1) sTitle = "Download";
-		else if (evt->progress.progress_type==2) sTitle = "Import";
+		if (evt->progress.progress_type==0) sTitle = (char *)"Buffer";
+		else if (evt->progress.progress_type==1) sTitle = (char *)"Download";
+		else if (evt->progress.progress_type==2) sTitle = (char *)"Import";
 		gf_set_progress(sTitle, evt->progress.done, evt->progress.total);
 	}
 		break;

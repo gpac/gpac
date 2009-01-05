@@ -1,5 +1,5 @@
 /* XPM */
-static char* pl_open[] = {
+static const char* pl_open[] = {
 "16 16 5 1",
 "  c #000000",
 "! c #808000",
@@ -24,7 +24,7 @@ static char* pl_open[] = {
 "################"};
 
 /* XPM */
-static char* pl_save[] = {
+static const char* pl_save[] = {
 "16 16 3 1",
 "  c #000000",
 "! c #808000",
@@ -47,7 +47,7 @@ static char* pl_save[] = {
 "################"};
 
 /* XPM */
-static char* pl_add[] = {
+static const char* pl_add[] = {
 "16 16 2 1",
 "  c #000000",
 "! c #C0C0C0",
@@ -69,7 +69,7 @@ static char* pl_add[] = {
 "!!!!!!!!!!!!!!!!"};
 
 /* XPM */
-static char* pl_rem[] = {
+static const char* pl_rem[] = {
 "16 16 2 1",
 "  c #000000",
 "! c #C0C0C0",
@@ -91,7 +91,7 @@ static char* pl_rem[] = {
 "!!!!!!!!!!!!!!!!"};
 
 /* XPM */
-static char* pl_up[] = {
+static const char* pl_up[] = {
 "16 16 2 1",
 "  c #000000",
 "! c #C0C0C0",
@@ -113,7 +113,7 @@ static char* pl_up[] = {
 "!!!!!!!!!!!!!!!!"};
 
 /* XPM */
-static char* pl_down[] = {
+static const char* pl_down[] = {
 "16 16 2 1",
 "  c #000000",
 "! c #C0C0C0",
@@ -135,7 +135,7 @@ static char* pl_down[] = {
 "!!!!!!!!!!!!!!!!"};
 
 /* XPM */
-static char* pl_sort[] = {
+static const char* pl_sort[] = {
 "16 16 2 1",
 "  c #000000",
 "! c #C0C0C0",

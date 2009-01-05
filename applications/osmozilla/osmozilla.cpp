@@ -93,7 +93,7 @@ nsIServiceManager *gServiceManager = NULL;
 
 char* NPP_GetMIMEDescription(void)
 {
-	return GPAC_PLUGIN_MIMETYPES;
+	return (char *) GPAC_PLUGIN_MIMETYPES;
 }
 
 /////////////////////////////////////
@@ -130,10 +130,10 @@ NPError NS_PluginGetValue(NPPVariable aVariable, void *aValue)
 	NPError err = NPERR_NO_ERROR;
 	switch (aVariable) {
 	case NPPVpluginNameString:
-		*((char **)aValue) = "Osmozilla";
+		*((char **)aValue) = (char *) "Osmozilla";
 		break;
 	case NPPVpluginDescriptionString:
-		*((char **)aValue) = "GPAC Plugin " GPAC_FULL_VERSION " for Mozilla. For more information go to <a href=\"http://gpac.sourceforge.net\">GPAC website</a>";
+		*((char **)aValue) = (char *) "GPAC Plugin " GPAC_FULL_VERSION " for Mozilla. For more information go to <a href=\"http://gpac.sourceforge.net\">GPAC website</a>";
 		break;
 	default:
 		err = NPERR_INVALID_PARAM;
@@ -274,7 +274,7 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	if(aWindow == NULL) return FALSE;
 	
 #ifdef XP_WIN
-	gpac_cfg = "GPAC.cfg";
+	gpac_cfg = (char *)"GPAC.cfg";
 #ifdef _DEBUG
 //#if 0
 	strcpy((char *) config_path, "C:\\CVS\\gpac\\bin\\w32_deb");
@@ -290,7 +290,7 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 #endif	/*XP_WIN*/
 
 #ifdef XP_UNIX
-	gpac_cfg = ".gpacrc";
+	gpac_cfg = (char *) ".gpacrc";
 	strcpy((char *) config_path, getenv("HOME"));
 #endif
 	
@@ -452,10 +452,10 @@ Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
 		if (evt->progress.done == evt->progress.total) {
 			NPN_Status(mInstance, "");
 		} else {
-			char *szTitle = "";
-			if (evt->progress.progress_type==0) szTitle = "Buffer ";
-			else if (evt->progress.progress_type==1) szTitle = "Download ";
-			else if (evt->progress.progress_type==2) szTitle = "Import ";
+			char *szTitle = (char *)"";
+			if (evt->progress.progress_type==0) szTitle = (char *)"Buffer ";
+			else if (evt->progress.progress_type==1) szTitle = (char *)"Download ";
+			else if (evt->progress.progress_type==2) szTitle = (char *)"Import ";
 			sprintf(msg, "(GPAC) %s: %02.2f", szTitle, (100.0*evt->progress.done) / evt->progress.total);
 			NPN_Status(mInstance, msg);
 		}
@@ -504,13 +504,13 @@ Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
 			return 1;
 		} else {
 			u32 i;
-			char *target = "_self";
+			char *target = (char *)"_self";
 
 			for (i=0; i<evt->navigate.param_count; i++) {
-				if (!strcmp(evt->navigate.parameters[i], "_parent")) target = "_parent";
-				else if (!strcmp(evt->navigate.parameters[i], "_blank")) target = "_blank";
-				else if (!strcmp(evt->navigate.parameters[i], "_top")) target = "_top";
-				else if (!strcmp(evt->navigate.parameters[i], "_new")) target = "_new";
+				if (!strcmp(evt->navigate.parameters[i], "_parent")) target = (char *)"_parent";
+				else if (!strcmp(evt->navigate.parameters[i], "_blank")) target = (char *)"_blank";
+				else if (!strcmp(evt->navigate.parameters[i], "_top")) target = (char *)"_top";
+				else if (!strcmp(evt->navigate.parameters[i], "_new")) target = (char *)"_new";
 				else if (!strnicmp(evt->navigate.parameters[i], "_target=", 8)) target = (char *) evt->navigate.parameters[i]+8;
 			}
 			NPN_GetURL(mInstance, evt->navigate.to_url, target);

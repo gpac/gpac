@@ -2491,7 +2491,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	/*compile the jsfun if any - 'this' is the associated observer*/
 	else __this = observer ? JSVAL_TO_OBJECT( dom_element_construct(svg_js->js_ctx, observer) ) : svg_js->global;
 	if (txt && !hdl->js_fun) {
-		char *argn = "evt";
+		const char *argn = "evt";
 		hdl->js_fun = JS_CompileFunction(svg_js->js_ctx, __this, NULL, 1, &argn, txt->textContent, strlen(txt->textContent), NULL, 0);
 	}
 
