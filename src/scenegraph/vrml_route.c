@@ -206,6 +206,14 @@ static void gf_sg_route_setup(GF_Route *r)
 {
 	gf_node_get_field(r->FromNode, r->FromField.fieldIndex, &r->FromField);
 	gf_node_get_field(r->ToNode, r->ToField.fieldIndex, &r->ToField);
+	switch (r->FromField.fieldType) {
+	case GF_SG_VRML_MFNODE:
+		if (r->ToField.fieldType != GF_SG_VRML_MFNODE) return;
+		break;
+	case GF_SG_VRML_SFNODE:
+		if (r->ToField.fieldType != GF_SG_VRML_SFNODE) return;
+		break;
+	}
 	r->is_setup = 1;
 }
 
@@ -217,6 +225,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 
 	if (!r->is_setup) {
 		gf_sg_route_setup(r);
+		if (!r->is_setup) return 0;
 		/*special case when initing ISed routes on eventOuts: skip*/
 		if (r->IS_route) {
 			if (r->FromField.eventType == GF_SG_EVENT_OUT) return 0;
