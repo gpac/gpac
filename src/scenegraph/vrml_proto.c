@@ -511,14 +511,15 @@ GF_Err gf_sg_proto_get_field_ind_static(GF_Node *Node, u32 inField, u8 IndexMode
 }
 
 
-static Bool is_same_proto(GF_Proto *p1, GF_Proto *p2)
+static Bool is_same_proto(GF_Proto *extern_proto, GF_Proto *proto)
 {
 	u32 i, count;
-	if (gf_list_count(p1->proto_fields) != gf_list_count(p2->proto_fields)) return 0;
-	count = gf_list_count(p1->proto_fields);
+	/*CRML allows external protos to have more fields defined that the externProto referencing them*/
+	if (gf_list_count(extern_proto->proto_fields) > gf_list_count(proto->proto_fields)) return 0;
+	count = gf_list_count(extern_proto->proto_fields);
 	for (i=0; i<count; i++) {
-		GF_ProtoFieldInterface *pf1 = (GF_ProtoFieldInterface*)gf_list_get(p1->proto_fields, i);
-		GF_ProtoFieldInterface *pf2 = (GF_ProtoFieldInterface*)gf_list_get(p2->proto_fields, i);
+		GF_ProtoFieldInterface *pf1 = (GF_ProtoFieldInterface*)gf_list_get(extern_proto->proto_fields, i);
+		GF_ProtoFieldInterface *pf2 = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
 		if (pf1->EventType != pf2->EventType) return 0;
 		if (pf1->FieldType != pf2->FieldType) return 0;
 		/*note we don't check names since we're not sure both protos use name coding (MPEG4 only)*/
@@ -526,7 +527,7 @@ static Bool is_same_proto(GF_Proto *p1, GF_Proto *p2)
 	return 1;
 }
 
-static GF_Proto *SG_FindProtoByInterface(GF_SceneGraph *sg, GF_Proto *the_proto)
+static GF_Proto *find_proto_by_interface(GF_SceneGraph *sg, GF_Proto *extern_proto)
 {
 	GF_Proto *proto;
 	u32 i, count;
@@ -536,16 +537,17 @@ static GF_Proto *SG_FindProtoByInterface(GF_SceneGraph *sg, GF_Proto *the_proto)
 	/*browse all top-level */
 	i=0;
 	while ((proto = (GF_Proto*)gf_list_enum(sg->protos, &i))) {
-		if (is_same_proto(proto, the_proto)) return proto;
+		if (is_same_proto(proto, extern_proto)) return proto;
 	}
 	/*browse all top-level unregistered in reverse order*/
 	count = gf_list_count(sg->unregistered_protos);
 	for (i=count; i>0; i--) {
 		proto = (GF_Proto*)gf_list_get(sg->unregistered_protos, i-1);
-		if (is_same_proto(proto, the_proto)) return proto;
+		if (is_same_proto(proto, extern_proto)) return proto;
 	}
 	return NULL;
 }
+
 /*performs common initialization of routes ISed fields and protos once everything is loaded*/
 void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 {
@@ -588,7 +590,12 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 			proto = gf_sg_find_proto(extern_lib, ID, szName);
 		}
 		if (!proto) proto = gf_sg_find_proto(extern_lib, owner->ID, owner->Name);
-		if (!proto) proto = SG_FindProtoByInterface(extern_lib, owner);
+		if (!proto) proto = find_proto_by_interface(extern_lib, owner);
+
+		if (proto && !is_same_proto(owner, proto)) {
+			proto = NULL;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scenegraph] fields/types mismatch for PROTO %s - skipping instantiation\n", owner->Name));
+		}
 		/*couldn't find proto in the given lib, consider the proto as loaded (give up)*/
 		if (!proto) {
 			proto_node->is_loaded = 1;
@@ -601,6 +608,8 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 			if (!pf->has_been_accessed) {
 				pfi = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
 				gf_sg_vrml_field_copy(pf->field_pointer, pfi->def_value, pfi->FieldType);
+			} else {
+				pfi = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
 			}
 		}
 
