@@ -166,6 +166,12 @@ typedef enum
 	/*!32 bit RGBA (openGL like)*/
 	GF_PIXEL_RGBA		=	GF_4CC('R','G','B', 'A'),
 
+	/*!RGB24 + depth plane*/
+    GF_PIXEL_RGBD		=	GF_4CC('R', 'G', 'B', 'D'),
+
+	/*!RGB24 + depth plane (7 power bits) + shape mask*/
+    GF_PIXEL_RGBDS		=	GF_4CC('3', 'C', 'D', 'S'),
+    
 	/*!YUV packed format*/
 	GF_PIXEL_YUY2		=	GF_4CC('Y','U','Y','2'),
 	/*!YUV packed format*/
@@ -189,16 +195,12 @@ typedef enum
 	GF_PIXEL_IYUV		=	GF_4CC('I','Y','U','V'),
 	/*!YUV planar format*/
 	GF_PIXEL_I420		=	GF_4CC('I','4','2','0'),
-
-	/*used in triscope mode and dumping rgbds textures in non-triscope mode*/
-    GF_PIXEL_RGBDS		=	GF_4CC('3', 'C', 'D', 'S'),
-    
-    /*used for dumping rgbds textures in non-triscope mode*/
-    GF_PIXEL_RGBD		=	GF_4CC('R', 'G', 'B', 'D'),
 		
 	/*!YV12 + Alpha plane*/
-	GF_PIXEL_YUVA		=	GF_4CC('Y', 'U', 'V', 'A')
+	GF_PIXEL_YUVA		=	GF_4CC('Y', 'U', 'V', 'A'),
 
+	/*!YV12 + Depth plane*/
+	GF_PIXEL_YUVD		=	GF_4CC('Y', 'U', 'V', 'D'),
 
 } GF_PixelFormat;
 
@@ -293,7 +295,6 @@ enum
 	}\endcode
 */
 #define GPAC_OTI_MEDIA_OGG				0xDD
-
 
 
 /*channel cfg flags - DECODERS MUST OUTPUT STEREO/MULTICHANNEL IN THIS ORDER*/
