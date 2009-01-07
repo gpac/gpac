@@ -193,6 +193,9 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		case GF_PIXEL_ARGB:
 		case GF_PIXEL_RGBA:
 		case GF_PIXEL_YUVA:
+#ifdef GPAC_TRISCOPE_MODE
+		case GF_PIXEL_RGBDS:
+#endif
 			txh->transparent = 1;
 			break;
 		}

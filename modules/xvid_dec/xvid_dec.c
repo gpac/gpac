@@ -192,7 +192,7 @@ static GF_Err XVID_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = ctx->out_size;
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
-		capability->cap.valueInt = ctx->depth_codec ? GF_PIXEL_YUVA : GF_PIXEL_YV12;
+		capability->cap.valueInt = ctx->depth_codec ? GF_PIXEL_YUVD : GF_PIXEL_YV12;
 		break;
 	case GF_CODEC_BUFFER_MIN:
 		capability->cap.valueInt = 1;
