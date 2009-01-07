@@ -559,7 +559,8 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 
 Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 {
-	u32 flags;
+	u32 flags, gl_type;
+	const char *opt;
 #ifndef _WIN32_WCE
 	RECT rc;
 #endif
@@ -633,15 +634,37 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	}
 	ShowWindow(ctx->fs_hwnd, SW_HIDE);
 
-#ifdef _WIN32_WCE
-	ctx->gl_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC OpenGL Offscreen"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
-#else
-	ctx->gl_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC OpenGL Offscreen", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
-#endif
-	if (!ctx->gl_hwnd) {
-		return 0;
+	gl_type = 0;
+
+	ctx->cur_hwnd = ctx->os_hwnd;
+	ctx->output_3d_type = 3;
+	if (DD_SetupOpenGL(vout, 0, 0)==GF_OK) {
+		dd_init_gl_ext(vout);
+		DestroyObjects(ctx);
+		if (! (vout->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) gl_type = 1;
 	}
-	ShowWindow(ctx->gl_hwnd, SW_HIDE);
+
+	opt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLOffscreenMode");
+	if (opt) {
+		if (!strcmp(opt, "Window")) gl_type = 1;
+		else if (!strcmp(opt, "VisibleWindow")) gl_type = 2;
+		else gl_type = 0;
+	}
+
+	if (gl_type) {
+#ifdef _WIN32_WCE
+		ctx->gl_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC OpenGL Offscreen"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#else
+		ctx->gl_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC OpenGL Offscreen", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#endif
+		if (!ctx->gl_hwnd) {
+			return 0;
+		}
+
+		ShowWindow(ctx->gl_hwnd, (gl_type == 2) ? SW_SHOW : SW_HIDE);
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX] Using %s window for OpenGL Offscreen Rendering\n", (gl_type == 2) ? "Visible" : "Hidden"));
+		vout->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+	}
 
 	/*if visible set focus*/
 	if (!ctx->switch_res) SetFocus(ctx->os_hwnd);
@@ -847,15 +870,16 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 			ctx->width = evt->setup.width;
 			ctx->height = evt->setup.height;
 			ctx->gl_double_buffer = evt->setup.back_buffer;
-			return DD_SetupOpenGL(dr);
+			return DD_SetupOpenGL(dr, 0, 0);
 		case 2:
 			ctx->output_3d_type = 2;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Attempting to resize Offscreen OpenGL window to %d x %d\n", evt->size.width, evt->size.height));
-			SetWindowPos(ctx->gl_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
+			if (ctx->gl_hwnd) 
+				SetWindowPos(ctx->gl_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Resizing Offscreen OpenGL window to %d x %d\n", evt->size.width, evt->size.height));
 			SetForegroundWindow(ctx->cur_hwnd);
 			ctx->gl_double_buffer = evt->setup.back_buffer;
-			return DD_SetupOpenGL(dr);
+			return DD_SetupOpenGL(dr, evt->size.width, evt->size.height);
 		}
 	}
 	return GF_OK;

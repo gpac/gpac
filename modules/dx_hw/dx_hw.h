@@ -66,6 +66,7 @@ typedef struct
 	u32 width, height, format, pitch;
 } DDSurface;
 
+
 typedef struct
 {
 	HWND os_hwnd, fs_hwnd, cur_hwnd, parent_wnd;
@@ -119,8 +120,9 @@ typedef struct
     EGLConfig eglconfig;
     EGLContext eglctx;
 #else
-	HDC gl_HDC;
-	HGLRC gl_HRC;
+	HDC gl_HDC, pb_HDC;
+	HGLRC gl_HRC, pb_HRC;
+	void *pbuffer;
 #endif
 	u32 output_3d_type;
 	HWND gl_hwnd;
@@ -155,7 +157,10 @@ void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const 
 /*this is REALLY ugly, to pass the HWND to DSound when we create the window in this module*/
 HWND DD_GetGlobalHWND();
 
-GF_Err DD_SetupOpenGL(GF_VideoOutput *dr);
+GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_height);
+
+
+void dd_init_gl_ext(GF_VideoOutput *driv);
 
 #ifdef USE_DX_3
 #define SAFE_DD_RELEASE(p) { if(p) { IDirectDraw_Release(p); (p)=NULL; } }

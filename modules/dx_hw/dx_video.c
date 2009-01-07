@@ -37,6 +37,62 @@
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
 
 
+
+
+#ifndef GPAC_DISABLE_3D
+
+#define WGL_RED_BITS_ARB                    0x2015
+#define WGL_GREEN_BITS_ARB                  0x2017
+#define WGL_BLUE_BITS_ARB                   0x2019
+
+#define WGL_TEXTURE_FORMAT_ARB         0x2072
+#define WGL_TEXTURE_TARGET_ARB         0x2073
+#define WGL_TEXTURE_RGB_ARB            0x2075
+
+#define WGL_TEXTURE_RGBA_ARB           0x2076
+#define WGL_NO_TEXTURE_ARB             0x2077
+#define WGL_TEXTURE_2D_ARB             0x207A
+#define WGL_SUPPORT_OPENGL_ARB         0x2010
+#define WGL_DRAW_TO_PBUFFER_ARB        0x202D
+#define WGL_BIND_TO_TEXTURE_RGBA_ARB   0x2071
+#define WGL_COLOR_BITS_ARB             0x2014
+#define WGL_DEPTH_BITS_ARB             0x2022
+#define WGL_STENCIL_BITS_ARB           0x2023
+#define WGL_ACCELERATION_ARB           0x2003
+#define WGL_GENERIC_ACCELERATION_ARB	0x2026
+#define WGL_FULL_ACCELERATION_ARB      0x2027
+
+typedef Bool (APIENTRY *CHOOSEPFFORMATARB)(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
+static CHOOSEPFFORMATARB wglChoosePixelFormatARB = NULL;
+
+typedef void *(APIENTRY *CREATEPBUFFERARB)(HDC hDC, int iPixelFormat, int iWidth, int iHeight, const int *piAttribList);
+static CREATEPBUFFERARB wglCreatePbufferARB = NULL;
+
+typedef void (APIENTRY *DESTROYBUFFERARB)(void *pb);
+static DESTROYBUFFERARB wglDestroyPbufferARB = NULL;
+
+typedef HDC (APIENTRY *GETPBUFFERDCARB)(void *pb);
+static GETPBUFFERDCARB wglGetPbufferDCARB = NULL;
+
+typedef HDC (APIENTRY *RELEASEPBUFFERDCARB)(void *pb, HDC dc);
+static RELEASEPBUFFERDCARB wglReleasePbufferDCARB = NULL;
+
+void dd_init_gl_ext(GF_VideoOutput *driv)
+{
+	wglCreatePbufferARB = (CREATEPBUFFERARB) wglGetProcAddress("wglCreatePbufferARB");
+	if (wglCreatePbufferARB) {
+		wglChoosePixelFormatARB = (CHOOSEPFFORMATARB) wglGetProcAddress("wglChoosePixelFormatARB");
+		wglDestroyPbufferARB = (DESTROYBUFFERARB) wglGetProcAddress("wglDestroyPbufferARB");
+		wglGetPbufferDCARB = (GETPBUFFERDCARB ) wglGetProcAddress("wglGetPbufferDCARB");
+		wglReleasePbufferDCARB = (RELEASEPBUFFERDCARB ) wglGetProcAddress("wglReleasePbufferDCARB");
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX] Using PBuffer for OpenGL Offscreen Rendering\n"));
+		driv->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+	}
+}
+#endif
+
+
 static void RestoreWindow(DDContext *dd) 
 {
 	if (!dd->NeedRestore) return;
@@ -91,6 +147,21 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		dd->egldpy = NULL;
 	}
 #elif !defined(_WIN32_WCE) 
+
+	if (dd->pb_HRC) {
+		wglMakeCurrent(dd->pb_HDC, NULL);
+		wglDeleteContext(dd->pb_HRC);
+		dd->pb_HRC = NULL;
+	}
+	if (dd->pb_HDC) {
+		wglReleasePbufferDCARB(dd->pbuffer, dd->pb_HDC);
+		dd->pb_HDC = NULL;
+	}
+	if (dd->pbuffer) {
+		wglDestroyPbufferARB(dd->pbuffer);
+		dd->pbuffer = NULL;
+	}
+	
 	if (dd->gl_HRC) {
 		wglMakeCurrent(dd->gl_HDC, NULL);
 		wglDeleteContext(dd->gl_HRC);
@@ -108,7 +179,8 @@ void DestroyObjects(DDContext *dd)
 	DestroyObjectsEx(dd, 0);
 }
 
-GF_Err DD_SetupOpenGL(GF_VideoOutput *dr) 
+
+GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_height) 
 {
 	const char *sOpt;
 	GF_Event evt;
@@ -160,14 +232,14 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 	}
 #elif !defined(_WIN32_WCE)
     PIXELFORMATDESCRIPTOR pfd; 
-    s32 pixelformat; 
+    s32 pixelformat;
+	u32 i;
 
 	/*already setup*/
-//	if (dd->gl_HRC) return GF_OK;
 	DestroyObjectsEx(dd, (dd->output_3d_type==1) ? 0 : 1);
 
 	if (dd->output_3d_type==2) {
-		dd->gl_HDC = GetDC(dd->gl_hwnd);
+		dd->gl_HDC = GetDC(dd->gl_hwnd ? dd->gl_hwnd : dd->cur_hwnd);
 	} else {
 		dd->gl_HDC = GetDC(dd->cur_hwnd);
 	}
@@ -196,7 +268,45 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr)
 		return GF_IO_ERR; 
 	dd->gl_HRC = wglCreateContext(dd->gl_HDC);
 	if (!dd->gl_HRC) return GF_IO_ERR;
-	if (!wglMakeCurrent(dd->gl_HDC, dd->gl_HRC)) return GF_IO_ERR;
+
+	if ((dd->output_3d_type!=2) || dd->gl_hwnd) {
+		if (!wglMakeCurrent(dd->gl_HDC, dd->gl_HRC)) return GF_IO_ERR;
+	} else if (wglCreatePbufferARB) {
+		const int pbufferAttributes [50] = {
+			WGL_TEXTURE_FORMAT_ARB, WGL_TEXTURE_RGBA_ARB,
+			WGL_TEXTURE_TARGET_ARB,	WGL_TEXTURE_2D_ARB,
+			0
+		};
+		u32 pformats[20];
+		u32 nbformats=0;
+		int hdcAttributes[] = {
+			WGL_SUPPORT_OPENGL_ARB, TRUE,
+			WGL_DRAW_TO_PBUFFER_ARB, TRUE,
+			WGL_RED_BITS_ARB, 8,
+			WGL_GREEN_BITS_ARB, 8,
+			WGL_BLUE_BITS_ARB, 8, 
+/*
+			WGL_DEPTH_BITS_ARB, 16,
+			WGL_BIND_TO_TEXTURE_RGBA_ARB, TRUE,
+			WGL_COLOR_BITS_ARB,24,
+			WGL_DEPTH_BITS_ARB, 0,
+			WGL_STENCIL_BITS_ARB,0,
+*/			0
+		}; 
+		wglChoosePixelFormatARB(dd->gl_HDC, hdcAttributes, NULL, 20, pformats, &nbformats); 
+		// Create the PBuffer
+		for (i=0; i<nbformats; i++) {
+			dd->pbuffer = wglCreatePbufferARB(dd->gl_HDC, pformats[i], offscreen_width, offscreen_height, pbufferAttributes); 
+			if (dd->pbuffer) break;
+		}
+		if (!dd->pbuffer) return GF_IO_ERR;
+
+		dd->pb_HDC = wglGetPbufferDCARB(dd->pbuffer);
+		dd->pb_HRC = wglCreateContext(dd->pb_HDC);
+		if (!wglMakeCurrent(dd->pb_HDC, dd->pb_HRC)) return GF_IO_ERR;
+
+	
+	}
 #endif
 	if (dd->output_3d_type==1) {
 		evt.type = GF_EVENT_VIDEO_SETUP;
@@ -307,7 +417,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 			dd->fs_store_width = dd->fs_width;
 			dd->fs_store_height = dd->fs_height;
 		}
-		if (!e) e = DD_SetupOpenGL(dr);
+		if (!e) e = DD_SetupOpenGL(dr, 0, 0);
 		
 	} else {
 		e = InitDirectDraw(dr, dd->width, dd->height);
