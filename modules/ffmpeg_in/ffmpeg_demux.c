@@ -817,8 +817,8 @@ static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 
 	if ((url[0] != '#') && strnicmp(szURL, url, sizeof(char)*strlen(szURL))) return 0;
 	sep = strrchr(url, '#');
-	if (!stricmp(sep, "#video") && (ffd->video_st>=0)) return 1;
-	if (!stricmp(sep, "#audio") && (ffd->audio_st>=0)) return 1;
+	if (sep && !stricmp(sep, "#video") && (ffd->video_st>=0)) return 1;
+	if (sep && !stricmp(sep, "#audio") && (ffd->audio_st>=0)) return 1;
 	return 0;
 }
 

@@ -1,3 +1,6 @@
+07/01/09:
+  - Added support for PBuffers on Win32/DirectX
+
 02/12/08: GPAC 0.4.5
   - Support for AC3 in ISO Media, AC3 decoder (liba52) RTP hinting
   - Support for MediaAccessEvent (spec still under development ??)
