@@ -30,6 +30,7 @@ enum
 	IMG_JPEG = 1,
 	IMG_PNG,
 	IMG_BMP,
+	IMG_PNGD,
 };
 
 typedef struct
@@ -72,6 +73,11 @@ GF_ESD *IMG_GetESD(IMGLoader *read)
 		gf_img_parse(bs, &OTI, &mtype, &w, &h, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		esd->decoderConfig->objectTypeIndication = OTI;
 		gf_bs_del(bs);
+
+		if (read->img_type == IMG_PNGD) {
+			GF_Descriptor *d = gf_odf_desc_new(GF_ODF_AUX_VIDEO_DATA);
+			gf_list_add(esd->extensionDescriptors, d);
+		}
 	}
 	return esd;
 }
@@ -85,6 +91,7 @@ static Bool IMG_CanHandleURL(GF_InputService *plug, const char *url)
 	if (gf_term_check_extension(plug, "image/jp2", "jp2", "JPEG2000 Images", sExt)) return 1;
 	if (gf_term_check_extension(plug, "image/png", "png", "PNG Images", sExt)) return 1;
 	if (gf_term_check_extension(plug, "image/bmp", "bmp", "MS Bitmap Images", sExt)) return 1;
+	if (gf_term_check_extension(plug, "image/x-png+depth", "pngd", "PNG+Depth Images", sExt)) return 1;
 	return 0;
 }
 
@@ -160,6 +167,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	sExt = strrchr(url, '.');
 	if (!stricmp(sExt, ".jpeg") || !stricmp(sExt, ".jpg")) read->img_type = IMG_JPEG;
 	else if (!stricmp(sExt, ".png")) read->img_type = IMG_PNG;
+	else if (!stricmp(sExt, ".pngd")) read->img_type = IMG_PNGD;
 	else if (!stricmp(sExt, ".bmp")) read->img_type = IMG_BMP;
 
 	if (read->dnload) gf_term_download_del(read->dnload);
