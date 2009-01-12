@@ -81,6 +81,8 @@ char *js_get_utf8(jsval val)
 	u32 len;
 	if (!JSVAL_CHECK_STRING(val) || JSVAL_IS_NULL(val)) return NULL;
 
+	/*locate SVG sequence responsible for this code add-on in test suit*/
+#if 0
 	utf16 = JS_GetStringChars(JSVAL_TO_STRING(val) );
 	len = gf_utf8_wcslen(utf16)*2 + 1;
 	txt = malloc(sizeof(char)*len);
@@ -91,6 +93,9 @@ char *js_get_utf8(jsval val)
 	}
 	txt[len]=0;
 	return txt;
+#else
+	return strdup( JS_GetStringBytes(JSVAL_TO_STRING(val) ) );
+#endif
 }
 
 /************************************************************
