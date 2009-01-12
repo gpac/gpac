@@ -559,8 +559,7 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 
 Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 {
-	u32 flags, gl_type;
-	const char *opt;
+	u32 flags;
 #ifndef _WIN32_WCE
 	RECT rc;
 #endif
@@ -634,38 +633,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	}
 	ShowWindow(ctx->fs_hwnd, SW_HIDE);
 
-	gl_type = 0;
-
-	ctx->cur_hwnd = ctx->os_hwnd;
-	ctx->output_3d_type = 3;
-	if (DD_SetupOpenGL(vout, 0, 0)==GF_OK) {
-		dd_init_gl_ext(vout);
-		DestroyObjects(ctx);
-		if (! (vout->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) gl_type = 1;
-	}
-
-	opt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLOffscreenMode");
-	if (opt) {
-		if (!strcmp(opt, "Window")) gl_type = 1;
-		else if (!strcmp(opt, "VisibleWindow")) gl_type = 2;
-		else gl_type = 0;
-	}
-
-	if (gl_type) {
-#ifdef _WIN32_WCE
-		ctx->gl_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC OpenGL Offscreen"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
-#else
-		ctx->gl_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC OpenGL Offscreen", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
-#endif
-		if (!ctx->gl_hwnd) {
-			return 0;
-		}
-
-		ShowWindow(ctx->gl_hwnd, (gl_type == 2) ? SW_SHOW : SW_HIDE);
-		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX] Using %s window for OpenGL Offscreen Rendering\n", (gl_type == 2) ? "Visible" : "Hidden"));
-		vout->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
-	}
-
+	
 	/*if visible set focus*/
 	if (!ctx->switch_res) SetFocus(ctx->os_hwnd);
 
@@ -743,7 +711,7 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 		ctx->orig_wnd_proc = 0L;
 	}
 	dd_closewindow(ctx->fs_hwnd);
-	dd_closewindow(ctx->gl_hwnd);
+	if (ctx->gl_hwnd) dd_closewindow(ctx->gl_hwnd);
 
 	while (ctx->th_state!=2) 
 		gf_sleep(10);
