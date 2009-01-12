@@ -77,9 +77,16 @@ static GETPBUFFERDCARB wglGetPbufferDCARB = NULL;
 typedef HDC (APIENTRY *RELEASEPBUFFERDCARB)(void *pb, HDC dc);
 static RELEASEPBUFFERDCARB wglReleasePbufferDCARB = NULL;
 
-void dd_init_gl_ext(GF_VideoOutput *driv)
+static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 {
+	const char *opt;
+	DDContext *dd = driv->opaque;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode");
+
 	wglCreatePbufferARB = (CREATEPBUFFERARB) wglGetProcAddress("wglCreatePbufferARB");
+	if (opt && strcmp(opt, "PBuffer")) wglCreatePbufferARB = NULL;
+
 	if (wglCreatePbufferARB) {
 		wglChoosePixelFormatARB = (CHOOSEPFFORMATARB) wglGetProcAddress("wglChoosePixelFormatARB");
 		wglDestroyPbufferARB = (DESTROYBUFFERARB) wglGetProcAddress("wglDestroyPbufferARB");
@@ -88,7 +95,41 @@ void dd_init_gl_ext(GF_VideoOutput *driv)
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX] Using PBuffer for OpenGL Offscreen Rendering\n"));
 		driv->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+
+		if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode", "PBuffer");
+	} else {
+		u32 gl_type = 1;
+		HINSTANCE hInst;
+
+#ifndef _WIN32_WCE
+		hInst = GetModuleHandle("gm_dx_hw.dll");
+#else
+		hInst = GetModuleHandle(_T("gm_dx_hw.dll"));
+#endif
+		opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode");
+		if (opt) {
+			if (!strcmp(opt, "Window")) gl_type = 1;
+			else if (!strcmp(opt, "VisibleWindow")) gl_type = 2;
+			else gl_type = 0;
+		} else {
+			gf_modules_set_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode", "Window");
+		}
+
+		if (gl_type) {
+#ifdef _WIN32_WCE
+			dd->gl_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC OpenGL Offscreen"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#else
+			dd->gl_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC OpenGL Offscreen", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#endif
+			if (!dd->gl_hwnd)
+				return;
+
+			ShowWindow(dd->gl_hwnd, (gl_type == 2) ? SW_SHOW : SW_HIDE);
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX] Using %s window for OpenGL Offscreen Rendering\n", (gl_type == 2) ? "Visible" : "Hidden"));
+			driv->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+		}
 	}
+
 }
 #endif
 
@@ -163,12 +204,12 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 	}
 	
 	if (dd->gl_HRC) {
-		wglMakeCurrent(dd->gl_HDC, NULL);
+		wglMakeCurrent(NULL, NULL);
 		wglDeleteContext(dd->gl_HRC);
 		dd->gl_HRC = NULL;
 	}
 	if (dd->gl_HDC) {
-		ReleaseDC(dd->cur_hwnd, dd->gl_HDC);
+		ReleaseDC(dd->bound_hwnd, dd->gl_HDC);
 		dd->gl_HDC = NULL;
 	}
 #endif
@@ -238,22 +279,22 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	/*already setup*/
 	DestroyObjectsEx(dd, (dd->output_3d_type==1) ? 0 : 1);
 
-	if (dd->output_3d_type==2) {
-		dd->gl_HDC = GetDC(dd->gl_hwnd ? dd->gl_hwnd : dd->cur_hwnd);
-	} else {
-		dd->gl_HDC = GetDC(dd->cur_hwnd);
-	}
+	dd->bound_hwnd = (dd->gl_hwnd && (dd->output_3d_type==2)) ? dd->gl_hwnd : dd->cur_hwnd;
+	dd->gl_HDC = GetDC(dd->bound_hwnd );
+
 	if (!dd->gl_HDC) return GF_IO_ERR;
 
     memset(&pfd, 0, sizeof(pfd));
     pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
     pfd.nVersion = 1;
-    pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL;
-	if (dd->gl_double_buffer) 
+    pfd.dwFlags = PFD_SUPPORT_OPENGL;
+	if (dd->bound_hwnd != dd->fs_hwnd) pfd.dwFlags |= PFD_DRAW_TO_WINDOW;
+
+	if (dd->gl_double_buffer ) {
 		pfd.dwFlags |= PFD_DOUBLEBUFFER;
-	else {
+	} else {
 		sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseGLDoubleBuffering");
-		if (sOpt && !strcmp(sOpt, "yes")) pfd.dwFlags |= PFD_DOUBLEBUFFER;
+		if (!sOpt || !strcmp(sOpt, "yes")) pfd.dwFlags |= PFD_DOUBLEBUFFER;
 	}
 
     pfd.dwLayerMask = PFD_MAIN_PLANE;
@@ -264,10 +305,21 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	/*we need alpha support for composite textures...*/
 	pfd.cAlphaBits = 8;
     if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 
-    if (SetPixelFormat(dd->gl_HDC, pixelformat, &pfd) == FALSE) 
+	
+    if (SetPixelFormat(dd->gl_HDC, pixelformat, &pfd) == FALSE) {
 		return GF_IO_ERR; 
+	}
+	
 	dd->gl_HRC = wglCreateContext(dd->gl_HDC);
 	if (!dd->gl_HRC) return GF_IO_ERR;
+
+	if (!dd->glext_init) {
+		dd->glext_init=1;
+		wglMakeCurrent(dd->gl_HDC, dd->gl_HRC);
+		dd_init_gl_offscreen(dr);
+		return DD_SetupOpenGL(dr, offscreen_width, offscreen_height);
+	}
+
 
 	if ((dd->output_3d_type!=2) || dd->gl_hwnd) {
 		if (!wglMakeCurrent(dd->gl_HDC, dd->gl_HRC)) return GF_IO_ERR;

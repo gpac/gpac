@@ -123,9 +123,10 @@ typedef struct
 	HDC gl_HDC, pb_HDC;
 	HGLRC gl_HRC, pb_HRC;
 	void *pbuffer;
+	Bool glext_init;
 #endif
 	u32 output_3d_type;
-	HWND gl_hwnd;
+	HWND gl_hwnd, bound_hwnd;
 	Bool has_focus;
 	Bool gl_double_buffer;
 
@@ -158,9 +159,6 @@ void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const 
 HWND DD_GetGlobalHWND();
 
 GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_height);
-
-
-void dd_init_gl_ext(GF_VideoOutput *driv);
 
 #ifdef USE_DX_3
 #define SAFE_DD_RELEASE(p) { if(p) { IDirectDraw_Release(p); (p)=NULL; } }
