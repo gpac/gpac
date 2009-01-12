@@ -883,7 +883,6 @@ void M2TS_SetupLive(GF_InputService *plug, M2TSIn *m2ts, char *url)
 	gf_sk_set_block_mode(m2ts->sock, 0);
 
 	m2ts->th = gf_th_new("MPEG-2 TS Demux");
-	gf_th_set_priority(m2ts->th, GF_THREAD_PRIORITY_HIGHEST);
 	/*start playing for tune-in*/
 	gf_th_run(m2ts->th, M2TS_Run, m2ts);
 
