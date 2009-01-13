@@ -1134,7 +1134,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 
 	stbl = trak->Media->information->sampleTable;
 	
-	e = findEntryForTime(stbl, desiredTime, 1, &sampleNumber, &prevSampleNumber);
+	e = findEntryForTime(stbl, desiredTime, 0, &sampleNumber, &prevSampleNumber);
 	if (e) return e;
 
 	//if no shadow table, reset to sync only

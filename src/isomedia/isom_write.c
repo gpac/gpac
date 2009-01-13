@@ -2326,6 +2326,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 
 	moov_AddBox((GF_Box*)dest_file->moov, (GF_Box *)new_tk);
 
+	/*rewrite edit list segmentDuration to new movie timescale*/
 	ts_scale = dest_file->moov->mvhd->timeScale;
 	ts_scale /= orig_file->moov->mvhd->timeScale;
 	new_tk->Header->duration = (u64) (s64) ((s64) new_tk->Header->duration * ts_scale);
@@ -2334,7 +2335,6 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 		for (i=0; i<count; i++) {
 			GF_EdtsEntry *ent = (GF_EdtsEntry *)gf_list_get(new_tk->editBox->editList->entryList, i);
 			ent->segmentDuration = (u64) (s64) ((s64) ent->segmentDuration * ts_scale);
-			ent->mediaTime = (s64) (ent->mediaTime * ts_scale);
 		}
 	}
 
