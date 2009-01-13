@@ -412,14 +412,16 @@ GF_TrackBox *gf_isom_get_track_from_file(GF_ISOFile *movie, u32 trackNumber)
 //WARNING: MOVIETIME IS EXPRESSED IN MEDIA TS
 GF_Err GetMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *MediaTime, s64 *SegmentStartTime, s64 *MediaOffset, u8 *useEdit)
 {
+#if 0
 	GF_Err e;
+	u32 sampleNumber, prevSampleNumber;
+	u64 firstDTS;
+#endif
 	u32 i;
 	u64 time, lastSampleTime, m_time;
 	s64 mtime;
 	GF_EdtsEntry *ent;
 	Double scale_ts;
-	u32 sampleNumber, prevSampleNumber;
-	u64 firstDTS;
 	GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
 
 	*useEdit = 1;
@@ -449,7 +451,7 @@ GF_Err GetMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *MediaTime, s64 *Segme
 	//browse the edit list and get the time
 	scale_ts = trak->moov->mvhd->timeScale;
 	scale_ts /= trak->Media->mediaHeader->timeScale;
-	scale_ts *= ((s64)movieTime + 1);
+	scale_ts *= ((s64)movieTime );
 	m_time = (u64) (scale_ts);
 
 	time = 0;
@@ -496,6 +498,7 @@ ent_found:
 	mtime = ent->mediaTime + movieTime - (time * trak->Media->mediaHeader->timeScale / trak->moov->mvhd->timeScale);
 	if (mtime<0) mtime = 0;
 	*MediaTime = (u64) mtime;
+	*MediaOffset = ent->mediaTime;
 
 #if 0
 	//
@@ -517,10 +520,9 @@ ent_found:
 	stbl_GetSampleDTS(stbl->TimeToSample, sampleNumber, &DTS);
 	CTS = 0;
 	if (stbl->CompositionOffset) stbl_GetSampleCTS(stbl->CompositionOffset, sampleNumber, &CTS);
-#endif
 
 	//now get the entry sample (the entry time gives the CTS, and we need the DTS
-	e = findEntryForTime(stbl, (u32) ent->mediaTime, 1, &sampleNumber, &prevSampleNumber);
+	e = findEntryForTime(stbl, (u32) ent->mediaTime, 0, &sampleNumber, &prevSampleNumber);
 	if (e) return e;
 
 	//oops, the mediaTime indicates a sample that is not in our media !
@@ -535,7 +537,8 @@ ent_found:
 	//and store the "time offset" of the desired sample in this segment
 	//this is weird, used to rebuild the timeStamp when reading from the track, not the
 	//media ...
-	*MediaOffset = firstDTS;
+	*MediaOffset = firstDTS;	
+#endif
 	return GF_OK;
 }
 
