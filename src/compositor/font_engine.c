@@ -1339,6 +1339,15 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 		dy = span->off_y;
 		for (j=0; j<span->nb_glyphs; j++) {
 			GF_Rect rc;
+			if (!span->glyphs[j]) {
+				if (span->flags & GF_TEXT_SPAN_HORIZONTAL) {
+					dx += span->font_scale * span->font->max_advance_h;
+				} else {
+					dy -= span->font_scale * span->font->max_advance_v;
+				}
+				continue;
+			}
+
 			loc_x = x - (span->dx ? span->dx[j] : dx);
 			loc_y = y - (span->dy ? span->dy[j] : dy);
 			loc_x = gf_divfix(loc_x, span->font_scale);
