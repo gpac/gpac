@@ -329,7 +329,7 @@ static Bool sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_Sce
 			if (event->type==GF_EVENT_LOAD) {
 				dom_event_process(listen, event, observer);
 				/*delete listener*/
-				gf_dom_listener_del(listen, et);
+				//gf_dom_listener_del(listen, et);
 			} else if (n) {
 				assert(n->sgprivate->num_instances);
 				/*protect node*/
