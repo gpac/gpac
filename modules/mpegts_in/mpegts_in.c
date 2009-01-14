@@ -1216,14 +1216,16 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			return GF_STREAM_NOT_FOUND;
 		}
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
-		/*FIXME HOORIBLE HACK*/
-		return GF_OK;
 		assert(m2ts->nb_playing);
 		m2ts->nb_playing--;
 		/*stop demuxer*/
 		if (!m2ts->nb_playing && (m2ts->run_state==1)) {
 			m2ts->run_state=0;
 			while (m2ts->run_state!=2) gf_sleep(2);
+			if (gf_list_count(m2ts->requested_progs)) {
+				m2ts->file_regulate = 0;
+				gf_th_run(m2ts->th, M2TS_Run, m2ts);
+			}
 		}
 		return GF_OK;
 	default:
