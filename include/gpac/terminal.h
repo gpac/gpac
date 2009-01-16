@@ -57,6 +57,9 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, Bool pause_at_first
 for connection and post a seek..)*/
 void gf_term_connect_from_time(GF_Terminal *term, const char *URL, u64 time_in_ms, Bool pause_at_first_frame);
 
+/*same as gf_term_connect but specifies a parent path*/
+void gf_term_connect_with_path(GF_Terminal *term, const char *URL, const char *parent_URL);
+
 /*returns current framerate
 	if @absoluteFPS is set, the return value is the absolute framerate, eg NbFrameCount/NbTimeSpent regardless of
 whether a frame has been drawn or not, which means the FPS returned can be much greater than the target rendering 

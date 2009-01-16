@@ -1125,6 +1125,7 @@ EXPORTS
 	gf_term_get_text_selection
 	gf_term_paste_text
 	gf_term_get_url
+	gf_term_connect_with_path
 
 ;compositor.h exports
 	gf_sc_new

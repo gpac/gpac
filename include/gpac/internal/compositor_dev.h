@@ -144,6 +144,8 @@ struct __tag_compositor
 	/*extra scene graphs (OSD, etc), always registered in draw order. That's the module responsability
 	to draw them*/
 	GF_List *extra_scenes;
+
+	u32 inherit_type_3d;
 	
 	/*all time nodes registered*/
 	GF_List *time_nodes;
@@ -1150,6 +1152,10 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 void gf_font_spans_get_selection(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state);
 
 GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles, Bool check_only);
+
+
+GF_SceneGraph *gf_sc_get_subscene(GF_Node *inline_node);
+GF_Node *gf_sc_get_subscene_root(GF_Node *inline_node);
 
 #endif	/*_COMPOSITOR_DEV_H_*/
 

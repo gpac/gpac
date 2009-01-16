@@ -694,11 +694,11 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	return ifce;
 }
 
-GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *owner, const char *url, GF_ClientService *parent_service, GF_Err *ret_code)
+GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *owner, const char *url, const char *parent_url, GF_Err *ret_code)
 {
 	char *sURL;
 	GF_ClientService *serv;
-	GF_InputService *ifce = gf_term_can_handle_service(term, url, parent_service ? parent_service->url : NULL, 0, &sURL, ret_code);
+	GF_InputService *ifce = gf_term_can_handle_service(term, url, parent_url, 0, &sURL, ret_code);
 	if (!ifce) return NULL;
 
 	GF_SAFEALLOC(serv, GF_ClientService);

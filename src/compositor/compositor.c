@@ -1459,9 +1459,11 @@ static void gf_sc_forward_event(GF_Compositor *compositor, GF_Event *ev)
 	}
 }
 
+
 static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node)
 {
 	if (top_node && !compositor->root_visual_setup) {
+		GF_SceneGraph *scene = compositor->scene;
 		u32 node_tag;
 #ifndef GPAC_DISABLE_3D
 		Bool was_3d = compositor->visual->type_3d;
@@ -1480,7 +1482,7 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 			compositor->visual->type_3d = 0;
 			compositor->visual->camera.is_3D = 0;
 #endif
-			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(compositor->scene);
+			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(scene);
 			break;
 		case TAG_MPEG4_Group:
 		case TAG_MPEG4_Layer3D:
@@ -1488,13 +1490,13 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 			compositor->visual->type_3d = 2;
 			compositor->visual->camera.is_3D = 1;
 #endif
-			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(compositor->scene);
+			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(scene);
 			break;
 		case TAG_X3D_Group:
 #ifndef GPAC_DISABLE_3D
 			compositor->visual->type_3d = 3;
 #endif
-			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(compositor->scene);
+			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(scene);
 			break;
 #ifndef GPAC_DISABLE_SVG
 		case TAG_SVG_svg:
@@ -1514,7 +1516,7 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		/*setup OpenGL & camera mode*/
 #ifndef GPAC_DISABLE_3D
 		/*request for OpenGL drawing in 2D*/
-		if (compositor->force_opengl_2d && !compositor->visual->type_3d)
+		if ((compositor->inherit_type_3d || compositor->force_opengl_2d) && !compositor->visual->type_3d)
 			compositor->visual->type_3d = 1;
 
 		if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
@@ -2534,3 +2536,25 @@ void gf_sc_check_focus_upon_destroy(GF_Node *n)
 	}
 }
 
+
+GF_SceneGraph *gf_sc_get_subscene(GF_Node *node)
+{
+	GF_InlineScene *is;
+	if (!node) return NULL;
+	switch (gf_node_get_tag(node)) {
+	case TAG_MPEG4_Inline: case TAG_X3D_Inline: 
+		break;
+	default:
+		return NULL;
+	}
+	is = (GF_InlineScene *)gf_node_get_private(node);
+	if (!is) return NULL;
+	return is->graph;
+}
+
+GF_Node *gf_sc_get_subscene_root(GF_Node *node)
+{
+	GF_SceneGraph *sg = gf_sc_get_subscene(node);
+	if (!sg) return NULL;
+	return gf_sg_get_root_node(sg);
+}

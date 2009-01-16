@@ -217,6 +217,25 @@ static void gf_sg_route_setup(GF_Route *r)
 	r->is_setup = 1;
 }
 
+/*send event out of proto - all ISed fields are ignored*/
+static void gf_node_event_out_proto(GF_Node *node, u32 FieldIndex)
+{
+	u32 i;
+	GF_Route *r;
+	if (!node) return;
+	
+	if (!node->sgprivate->interact) return;
+	
+	//search for routes to activate in the order they where declared
+	i=0;
+	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->routes, &i))) {
+		if (r->IS_route) continue;
+		if (r->FromNode != node) continue;
+		if (r->FromField.fieldIndex != FieldIndex) continue;
+		gf_sg_route_queue(node->sgprivate->scenegraph, r);
+	}
+}
+
 Bool gf_sg_route_activate(GF_Route *r)
 {
 	Bool ret;
@@ -299,14 +318,17 @@ Bool gf_sg_route_activate(GF_Route *r)
 	}
 	//check if ISed or not - this will notify the node of any changes
 	else {
-		gf_sg_proto_check_field_change(r->ToNode, r->ToField.fieldIndex);
+		gf_sg_proto_propagate_event(r->ToNode, r->ToField.fieldIndex, r->FromNode);
 		/*only happen on proto, an eventOut may route to an eventOut*/
 		if (r->IS_route && r->ToField.eventType==GF_SG_EVENT_OUT) 
 			gf_node_event_out(r->ToNode, r->ToField.fieldIndex);
 	}
 	/*and signal routes on exposed fields if field changed*/
 	if (r->ToField.eventType == GF_SG_EVENT_EXPOSED_FIELD)
-		gf_node_event_out(r->ToNode, r->ToField.fieldIndex);
+		if (r->IS_route)
+			gf_node_event_out_proto(r->ToNode, r->ToField.fieldIndex);
+		else
+			gf_node_event_out(r->ToNode, r->ToField.fieldIndex);
 
 	return ret;
 }

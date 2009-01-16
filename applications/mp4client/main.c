@@ -65,6 +65,7 @@ static Bool Run;
 static Bool CanSeek = 0;
 static u32 Volume=100;
 static char the_url[GF_MAX_PATH];
+static char pl_path[GF_MAX_PATH];
 static Bool no_mime_check = 1;
 static Bool be_quiet = 0;
 static u32 log_time_start = 0;
@@ -673,6 +674,7 @@ GF_Config *loadconfigfile(char *filepath)
 	char szPath[GF_MAX_PATH];
 
 	if (filepath) {
+		strcpy(szPath, filepath);
 		cfg_dir = strrchr(szPath, '\\');
 		if (!cfg_dir) cfg_dir = strrchr(szPath, '/');
 		if (cfg_dir) {
@@ -1160,9 +1162,10 @@ int main (int argc, char **argv)
 			fprintf(stdout, "Opening Playlist %s\n", the_url);
 			playlist = fopen(the_url, "rt");
 			if (playlist) {
+				strcpy(pl_path, the_url);
 				fscanf(playlist, "%s", the_url);
 				fprintf(stdout, "Opening URL %s\n", the_url);
-				gf_term_connect(term, the_url);
+				gf_term_connect_with_path(term, the_url, pl_path);
 			} else {
 				fprintf(stdout, "Hit 'h' for help\n\n");
 			}
@@ -1251,7 +1254,7 @@ force_input:
 					Run = 0;
 				} else {
 					fprintf(stdout, "Opening URL %s\n", the_url);
-					gf_term_connect(term, the_url);
+					gf_term_connect_with_path(term, the_url, pl_path);
 				}
 			}
 			break;

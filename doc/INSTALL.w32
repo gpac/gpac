@@ -103,7 +103,7 @@ II GPAC compilation
 			Note that if you have only installed libogg you can also remove the "ogg" project from the workspace, it won't be any usefull.
 
 		* sdl_out:
-			GPAC can use SDL library for audio (all clients) and video (MP4Client andwxOsmo4) output. 
+			GPAC can use SDL library for audio (all clients) and video (MP4Client and wxOsmo4) output. 
 			You will need to get SDL 1.2 for windows. Get it at http://www.libsdl.org/download-1.2.php. You need the DEVELOPMENT LIBRARY SDL-devel-1.2.7-VC6.zip 
 			Unpack and setup your path or VisualC++ for SDL include and lib directories (you may need to restart VisualC++)
 			You will need to modify your VC settings to look for libxml headers and library directories.

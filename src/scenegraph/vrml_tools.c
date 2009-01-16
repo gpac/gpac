@@ -83,6 +83,7 @@ static void Node_on_add_children(GF_Node *node)
 	field.NDTtype = 0;
 	field.fieldIndex = 2;
 	field.far_ptr = & n->children;
+	gf_node_event_out(node, field.fieldIndex);
 	gf_node_changed(node, &field);
 }
 
@@ -111,6 +112,7 @@ static void Node_on_remove_children(GF_Node *node)
 	field.NDTtype = 0;
 	field.fieldIndex = 2;
 	field.far_ptr = & n->children;
+	gf_node_event_out(node, field.fieldIndex);
 	gf_node_changed(node, &field);
 }
 

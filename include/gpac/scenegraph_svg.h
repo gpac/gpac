@@ -356,7 +356,7 @@ typedef struct __xml_ev_handler
 	/*target EventListener object (this) */
 	void *evt_listen_obj;
 	/*function value for spidermonkey - we cannot use JS_CallFunction since it does not work on closures
-	we use 64 bits to store the value for portability safety	*/
+	we use 64 bits to store the value for portability safety*/
 	u64 js_fun_val;
 	/*compiled function for the case were CallFunction is needed*/
 	void *js_fun;

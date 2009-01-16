@@ -85,6 +85,7 @@ GF_SceneGraph *gf_sg_new_subscene(GF_SceneGraph *scene)
 	tmp->script_action = scene->script_action;
 	tmp->script_action_cbck = scene->script_action_cbck;
 	tmp->script_load = scene->script_load;
+	tmp->on_node_modified = scene->on_node_modified;
 
 	/*by default use the same callbacks*/
 	tmp->userpriv = scene->userpriv;
@@ -327,16 +328,16 @@ void gf_sg_reset(GF_SceneGraph *sg)
 
 	}
 
-	/*reset the main tree*/
-	if (sg->RootNode) gf_node_unregister(sg->RootNode, NULL);
-	sg->RootNode = NULL;
-
-	/*THEN reset all exported symbols (we must do it after the reset in case of scripts)*/
+	/*reset all exported symbols */
 	while (gf_list_count(sg->exported_nodes)) {
 		GF_Node *n = gf_list_get(sg->exported_nodes, 0);
 		gf_list_rem(sg->exported_nodes, 0);
 		gf_node_replace(n, NULL, 0);
 	}
+
+	/*reset the main tree*/
+	if (sg->RootNode) gf_node_unregister(sg->RootNode, NULL);
+	sg->RootNode = NULL;
 
 	/*WATCHOUT: we may have cyclic dependencies due to
 	1- a node referencing itself (forbidden in VRML)
@@ -546,8 +547,6 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 
 	if (!pNode) return GF_OK;
 	pSG = pNode->sgprivate->scenegraph;
-	/*if this is a proto its is registered in its parent graph, not the current*/
-	if (pSG && (pNode == (GF_Node*)pSG->pOwningProto)) pSG = pSG->parent_scene;
 
 	if (parentNode) {
 		GF_ParentList *nlist = pNode->sgprivate->parents;
@@ -569,6 +568,9 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 			gf_list_del_item(pSG->exported_nodes, pNode);
 		}
 	}
+
+	/*if this is a proto its is registered in its parent graph, not the current*/
+	if (pSG && (pNode == (GF_Node*)pSG->pOwningProto)) pSG = pSG->parent_scene;
 
 	/*unregister the instance*/
 	assert(pNode->sgprivate->num_instances);
@@ -611,12 +613,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 GF_EXPORT
 GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 {
-	GF_SceneGraph *pSG; 
 	if (!node) return GF_OK;
-	
-	pSG = node->sgprivate->scenegraph;
-	/*if this is a proto register to the parent graph, not the current*/
-	if (pSG && (node == (GF_Node*)pSG->pOwningProto)) pSG = pSG->parent_scene;
 
 	node->sgprivate->num_instances ++;
 	/*parent may be NULL (top node and proto)*/
@@ -633,8 +630,8 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 			item->node = parentNode;
 			nlist->next = item;
 		}
-		if (parentNode->sgprivate->scenegraph != pSG) {
-			gf_list_add(pSG->exported_nodes, node);
+		if (parentNode->sgprivate->scenegraph != node->sgprivate->scenegraph) {
+			gf_list_add(node->sgprivate->scenegraph->exported_nodes, node);
 		}
 	}
 	return GF_OK;
@@ -1362,6 +1359,10 @@ void gf_node_free(GF_Node *node)
 			gf_list_del(node->sgprivate->interact->animations);
 		}
 #endif
+#ifdef GPAC_HAS_SPIDERMONKEY
+		if (node->sgprivate->interact->bindings)
+			gf_list_del(node->sgprivate->interact->bindings);
+#endif
 		free(node->sgprivate->interact);
 	}
 	assert(! node->sgprivate->parents);
@@ -1519,8 +1520,9 @@ void gf_node_changed_internal(GF_Node *node, GF_FieldInfo *field, Bool notify_sc
 	assert(sg);
 
 	/*signal changes in node to JS for MFFields*/
-	if (field && notify_scripts && (node->sgprivate->flags & GF_NODE_HAS_BINDING) && !gf_sg_vrml_is_sf_field(field->fieldType) ) 
+	if (field && notify_scripts && (node->sgprivate->flags & GF_NODE_HAS_BINDING) && !gf_sg_vrml_is_sf_field(field->fieldType) ) {
 		sg->on_node_modified(sg, node, field);
+	}
 
 	/*internal nodes*/
 	if (gf_sg_vrml_node_changed(node, field)) return;

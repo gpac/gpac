@@ -73,7 +73,7 @@ struct _net_service
 
 
 /*opens service - performs URL concatenation if parent service specified*/
-GF_ClientService *gf_term_service_new(GF_Terminal *term, GF_ObjectManager *owner, const char *url, GF_ClientService *parent_service, GF_Err *ret_code);
+GF_ClientService *gf_term_service_new(GF_Terminal *term, GF_ObjectManager *owner, const char *url, const char *parent_url, GF_Err *ret_code);
 /*destroy service*/
 void gf_term_service_del(GF_ClientService *nets);
 
@@ -209,9 +209,6 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *inline_url);
 void gf_mo_update_caps(GF_MediaObject *mo);
 
 
-GF_Node *gf_inline_get_subscene_root(GF_Node *inline_node);
-GF_Node *gf_inline_get_parent_node(GF_Node *node, u32 idx);
-
 const char *gf_inline_get_fragment_uri(GF_Node *node);
 void gf_inline_set_fragment_uri(GF_Node *node, const char *uri);
 
@@ -317,7 +314,7 @@ void gf_term_set_priority(GF_Terminal *term, s32 Priority);
 /*error report function*/
 void gf_term_message(GF_Terminal *app, const char *service, const char *message, GF_Err error);
 /*creates service for given OD / URL*/
-void gf_term_connect_object(GF_Terminal *app, GF_ObjectManager *odm, char *serviceURL, GF_ClientService *ParentService);
+void gf_term_connect_object(GF_Terminal *app, GF_ObjectManager *odm, char *serviceURL, char *parent_url);
 /*creates service for given channel / URL*/
 GF_Err gf_term_connect_remote_channel(GF_Terminal *app, GF_Channel *ch, char *URL);
 

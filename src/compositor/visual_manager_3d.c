@@ -1070,6 +1070,7 @@ void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *me
 		compositor->hit_appear = NULL;
 	}
 	compositor->hit_node = n;
+	compositor->hit_use_dom_events = 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Picking] node %s (def %s) is under mouse - hit %g %g %g\n", gf_node_get_class_name(n), gf_node_get_name(n),
 			FIX2FLT(world_pt.x), FIX2FLT(world_pt.y), FIX2FLT(world_pt.z)));
 }

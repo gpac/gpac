@@ -312,7 +312,8 @@ next_line:
 			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#if 0", 5)) {
 				parser->block_comment++;
 			}
-			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#endif", 6)) {
+			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#endif", 6)
+				|| !strnicmp(parser->line_buffer+parser->line_pos, "#else", 5)) {
 				if (parser->block_comment) 
 					parser->block_comment--;
 			}
@@ -1068,6 +1069,7 @@ void gf_bt_check_unresolved_nodes(GF_BTParser *parser)
 	for (i=0; i<count; i++) {
 		GF_Node *n = (GF_Node *)gf_list_get(parser->undef_nodes, i);
 		gf_bt_report(parser, GF_BAD_PARAM, "Cannot find node %s\n", gf_node_get_name(n) );
+		gf_node_unregister(n, NULL);
 	}
 	parser->last_error = GF_BAD_PARAM;
 }
@@ -1161,6 +1163,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 			node = gf_bt_new_node(parser, TAG_UndefinedNode);
 			ID = gf_bt_get_def_id(parser, str);
 			gf_node_set_id(node, ID, str);
+			gf_node_register(node, NULL);
 			gf_list_add(parser->undef_nodes, node);
 		} 
 		gf_node_register(node, parent);
@@ -1400,6 +1403,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 	/*remove temp node*/
 	if (replace_prev) {
 		gf_node_replace(undef_node, node, 0);
+		gf_node_unregister(undef_node, NULL);
 		gf_list_del_item(parser->undef_nodes, undef_node);
 	}
 
