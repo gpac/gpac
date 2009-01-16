@@ -198,9 +198,11 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 {
 	u32 i, j, int_major, k, styles, count;
-	Fixed fontSize, start_x, start_y, line_spacing, tot_width, tot_height, max_scale, space;
+	Fixed fontSize, start_x, start_y, line_spacing, tot_width, tot_height, max_scale, space, maxExtent;
+	u32 size, trim_size;
 	GF_Font *font;
 	Bool horizontal;
+	GF_TextSpan *trim_tspan = NULL;
 	GF_FontManager *ft_mgr = tr_state->visual->compositor->font_manager;
 	M_FontStyle *fs = (M_FontStyle *)txt->fontStyle;
 
@@ -228,10 +230,23 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 	space = gf_muldiv(fontSize, INT2FIX(font->line_spacing), INT2FIX(font->em_size)) ;
 	line_spacing = gf_mulfix(FSSPACE, fontSize);
 
+	maxExtent = txt->maxExtent;
+	trim_size = 0;
+
+	if (maxExtent<0) {
+		trim_tspan = gf_font_manager_create_span(ft_mgr, font, "...", fontSize, 0, 0, 0, NULL, 0, styles, (GF_Node*)txt);
+		for (i=0; i<trim_tspan->nb_glyphs; i++) {
+			if (horizontal) {
+				trim_size += trim_tspan->glyphs[i] ? trim_tspan->glyphs[i]->horiz_advance : trim_tspan->font->max_advance_h;
+			} else {
+				trim_size += trim_tspan->glyphs[i] ? trim_tspan->glyphs[i]->vert_advance : trim_tspan->font->max_advance_v;
+			}
+		}
+	}
+
 	tot_width = tot_height = 0;
 	for (i=0; i < txt->string.count; i++) {
 		GF_TextSpan *tspan;
-		u32 size;
 		char *str = txt->string.vals[i];
 		if (!str) continue;
 
@@ -239,6 +254,36 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		if (!tspan) continue;
 		
 		if (horizontal) tspan->flags |= GF_TEXT_SPAN_HORIZONTAL;
+
+		size = 0;
+		if (trim_size) {
+			for (j=0; j<tspan->nb_glyphs; j++) {
+				if (horizontal) {
+					size += tspan->glyphs[j] ? tspan->glyphs[j]->horiz_advance : tspan->font->max_advance_h;
+				} else {
+					size += tspan->glyphs[j] ? tspan->glyphs[j]->vert_advance : tspan->font->max_advance_v;
+				}
+				/*word is bigger than allowed extent, rewrite 3 previous chars*/
+				if (size*tspan->font_scale >= -maxExtent) {
+					u32 k;
+					u32 nb_chars = (j<2) ? j : 3;
+
+					for (k=0; k<nb_chars; k++) {
+						u32 idx = nb_chars-k-1;
+						if (horizontal) {
+							size -= tspan->glyphs[j-k] ? tspan->glyphs[j-k]->horiz_advance : tspan->font->max_advance_h;
+							size += trim_tspan->glyphs[idx] ? trim_tspan->glyphs[idx]->horiz_advance : tspan->font->max_advance_h;
+						} else {
+							size -= tspan->glyphs[j-k] ? tspan->glyphs[j-k]->vert_advance : tspan->font->max_advance_v;
+							size += trim_tspan->glyphs[idx] ? trim_tspan->glyphs[idx]->vert_advance : tspan->font->max_advance_v;
+						}
+						tspan->glyphs[j-k] = trim_tspan->glyphs[idx];
+					}
+					tspan->nb_glyphs = j+1;
+					break;
+				}
+			}
+		}
 
 		if ((horizontal && !FSLTR) || (!horizontal && !FSTTB)) {
 			for (k=0; k<tspan->nb_glyphs/2; k++) {
@@ -248,12 +293,13 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 			}
 		}
 
-		size = 0;
-		for (j=0; j<tspan->nb_glyphs; j++) {
-			if (horizontal) {
-				size += tspan->glyphs[j] ? tspan->glyphs[j]->horiz_advance : tspan->font->max_advance_h;
-			} else {
-				size += tspan->glyphs[j] ? tspan->glyphs[j]->vert_advance : tspan->font->max_advance_v;
+		if (!size) {
+			for (j=0; j<tspan->nb_glyphs; j++) {
+				if (horizontal) {
+					size += tspan->glyphs[j] ? tspan->glyphs[j]->horiz_advance : tspan->font->max_advance_h;
+				} else {
+					size += tspan->glyphs[j] ? tspan->glyphs[j]->vert_advance : tspan->font->max_advance_v;
+				}
 			}
 		}
 		gf_list_add(st->spans, tspan);
@@ -277,12 +323,14 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 			if (tot_height < tspan->bounds.height) tot_height = tspan->bounds.height;
 		}
 	}
+	if (trim_tspan)	gf_font_manager_delete_span(ft_mgr, trim_tspan);
+
 	
 	max_scale = FIX_ONE;
 	if (horizontal) {
-		if ((txt->maxExtent > 0) && (tot_width>txt->maxExtent)) {
-			max_scale = gf_divfix(txt->maxExtent, tot_width);
-			tot_width = txt->maxExtent;
+		if ((maxExtent > 0) && (tot_width>maxExtent)) {
+			max_scale = gf_divfix(maxExtent, tot_width);
+			tot_width = maxExtent;
 		}
 		tot_height = (txt->string.count-1) * line_spacing + (st->ascent + st->descent);
 		st->bounds.height = tot_height;
@@ -320,9 +368,9 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 			st->bounds.y = FSTTB ? start_y : (tot_height - st->descent);
 		}
 	} else {
-		if ((txt->maxExtent > 0) && (tot_height>txt->maxExtent) ) {
-			max_scale = gf_divfix(txt->maxExtent, tot_height);
-			tot_height = txt->maxExtent;
+		if ((maxExtent > 0) && (tot_height>maxExtent) ) {
+			max_scale = gf_divfix(maxExtent, tot_height);
+			tot_height = maxExtent;
 		}
 		tot_width = txt->string.count * line_spacing;
 		st->bounds.width = tot_width;

@@ -92,7 +92,6 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 char *gf_url_concatenate(const char *parentName, const char *pathName)
 {
 	u32 pathSepCount, i, prot_type;
-	char psep;
 	char *outPath, *name;
 	char tmp[GF_MAX_PATH];
 
@@ -146,22 +145,25 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	}
 	//if i==0, the parent path was relative, just return the pathName
 	if (!i) {
-		outPath = strdup(pathName);
+		tmp[i] = 0;
+		while (pathSepCount) {
+			strcat(tmp, "../");
+			pathSepCount--;
+		}
+/*		outPath = strdup(pathName);
 		goto check_spaces;
+		*/	
+	} else {
+		strcat(tmp, "/");
 	}
 
-	prot_type = URL_GetProtocolType(parentName);
-	psep = (prot_type == GF_URL_TYPE_FILE) ? GF_PATH_SEPARATOR : '/';
-
-	outPath = (char *) malloc(strlen(tmp) + strlen(name) + 2);
-	sprintf(outPath, "%s%c%s", tmp, psep, name);
+	i = strlen(tmp);
+	outPath = (char *) malloc(i + strlen(name) + 1);
+	sprintf(outPath, "%s%s", tmp, name);
 
 	/*cleanup paths sep for win32*/
-//	if ((prot_type == GF_URL_TYPE_FILE) && (GF_PATH_SEPARATOR != '/')) {
-		for (i = 0; i<strlen(outPath); i++) 
-//			if (outPath[i]=='/') outPath[i] = GF_PATH_SEPARATOR;
-			if (outPath[i]=='\\') outPath[i] = '/';
-//	}
+	for (i = 0; i<strlen(outPath); i++) 
+		if (outPath[i]=='\\') outPath[i] = '/';
 
 check_spaces:
 	while (1) {

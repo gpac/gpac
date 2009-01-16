@@ -329,6 +329,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVENT_SCENE_SIZE:
 		do_layout(1);
 		break;
+	case GF_EVENT_DBLCLICK:
+		gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
+		return 0;
 	case GF_EVENT_CONNECT:
 		if (evt->connect.is_connected) {
 			is_connected = 1;

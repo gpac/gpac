@@ -519,8 +519,10 @@ static void TraverseOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
 			/*flag is not set for PROTO*/
 			gf_node_dirty_set(node, GF_SG_CHILD_DIRTY, 0);
 		}
+		group_cache_traverse((GF_Node *)&stack->og, stack->cache, tr_state, stack->cache->force_recompute);
+	} else {
+		group_2d_traverse((GF_Node *)&stack->og, (GroupingNode2D*)stack, tr_state);
 	}
-	group_2d_traverse((GF_Node *)&stack->og, (GroupingNode2D*)stack, tr_state);
 }
 
 void compositor_init_offscreen_group(GF_Compositor *compositor, GF_Node *node)

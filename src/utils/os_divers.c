@@ -316,18 +316,26 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 
 	if (!dir || !enum_dir_fct) return GF_BAD_PARAM;
 #if defined (_WIN32_WCE)
-	if (dir[strlen(dir) - 1] == GF_PATH_SEPARATOR) {
+	switch (dir[strlen(dir) - 1]) {
+	case '/':
+	case '\\':
 		sprintf(_path, "%s*", dir);
-	} else {
+		break;
+	default:
 		sprintf(_path, "%s%c*", dir, GF_PATH_SEPARATOR);
+		break;
 	}
 	CE_CharToWide(_path, path);
 	CE_CharToWide((char *)filter, w_filter);
 #elif defined(WIN32)
-	if (dir[strlen(dir) - 1] == GF_PATH_SEPARATOR) {
+	switch (dir[strlen(dir) - 1]) {
+	case '/':
+	case '\\':
 		sprintf(path, "%s*", dir);
-	} else {
+		break;
+	default:
 		sprintf(path, "%s%c*", dir, GF_PATH_SEPARATOR);
+		break;
 	}
 #else
 	strcpy(path, dir);

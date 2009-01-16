@@ -141,7 +141,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	viewport = (GF_Node*)gf_list_get(st->views, 0);
 
-	if (tr_state->traversing_mode == TRAVERSE_SORT) {
+	if ((tr_state->traversing_mode == TRAVERSE_SORT) || (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS)) {
 		/*override group bounds*/
 		visual_get_size_info(tr_state, &st->clip.width, &st->clip.height);
 		/*setup bounds in local coord system*/

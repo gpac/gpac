@@ -89,6 +89,12 @@ struct _node_interactive_ext
 	THIS IS DYNAMICALLY CREATED*/
 	GF_List *routes;
 
+#ifdef GPAC_HAS_SPIDERMONKEY
+	/*JS bindings if any - THIS IS DYNAMICALLY CREATED
+	This speeds up field modif notification (script bindings are listed here)*/
+	GF_List *bindings;
+#endif
+
 #ifndef GPAC_DISABLE_SVG
 	/*event listeners - THIS IS DYNAMICALLY CREATED*/
 	GF_DOMEventTarget *dom_evt;
@@ -793,7 +799,7 @@ u32 gf_sg_proto_get_root_tag(GF_Proto *proto);
 are handled internally).
 node can be the proto instance or a node from the proto code
 this will call NodeChanged if needed, forward to proto/node or trigger any route if needed*/
-void gf_sg_proto_check_field_change(GF_Node *node, u32 fieldIndex);
+void gf_sg_proto_propagate_event(GF_Node *node, u32 fieldIndex, GF_Node *from_node);
 
 s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *name);
 

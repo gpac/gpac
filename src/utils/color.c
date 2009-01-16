@@ -41,8 +41,6 @@
  *  follows the usual GPL license terms
  ****************************************************************************/
 
-
-
 #define col_clip(a) MAX(0, MIN(255, a))
 
 static s32 RGB_Y[256];
@@ -54,27 +52,28 @@ static s32 R_V[256];
 #define SCALEBITS_OUT	13
 #define FIX_OUT(x)		((unsigned short) ((x) * (1L<<SCALEBITS_OUT) + 0.5))
 
+
 static s32 is_init = 0;
 
 /**/
 static void yuv2rgb_init(void) 
 {
 	s32 i;
-	if (!is_init) {
-		is_init = 1;
-		for(i = 0; i < 256; i++) {
-			RGB_Y[i] = FIX_OUT(1.164) * (i - 16);
-			B_U[i] = FIX_OUT(2.018) * (i - 128);
-			G_U[i] = FIX_OUT(0.391) * (i - 128);
-			G_V[i] = FIX_OUT(0.813) * (i - 128);
-			R_V[i] = FIX_OUT(1.596) * (i - 128);
-		}
+	if (is_init) return;
+
+	is_init = 1;
+	for(i = 0; i < 256; i++) {
+		RGB_Y[i] = FIX_OUT(1.164) * (i - 16);
+		B_U[i] = FIX_OUT(2.018) * (i - 128);
+		G_U[i] = FIX_OUT(0.391) * (i - 128);
+		G_V[i] = FIX_OUT(0.813) * (i - 128);
+		R_V[i] = FIX_OUT(1.596) * (i - 128);
 	}
 }
 
 static void gf_yuv_load_lines(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char * v_src, s32 y_stride, s32 uv_stride, s32 width)
 {
-	u32 x, hw;
+	u32 hw, x;
 	unsigned char *dst2 = (unsigned char *) dst + dststride;
 	unsigned char *y_src2 = (unsigned char *) y_src + y_stride;
 
@@ -128,7 +127,7 @@ static void gf_yuv_load_lines(unsigned char *dst, s32 dststride, unsigned char *
 static void gf_yuva_load_lines(unsigned char *dst, s32 dststride, unsigned char *y_src, unsigned char *u_src, unsigned char *v_src, unsigned char *a_src,
 				 s32 y_stride, s32 uv_stride, s32 width)
 {
-	u32 x, hw;
+	u32 hw, x;
 	unsigned char *dst2 = dst + dststride;
 	unsigned char *y_src2 = y_src + y_stride;
 	unsigned char *a_src2 = a_src + y_stride;
@@ -182,7 +181,6 @@ static void gf_yuva_load_lines(unsigned char *dst, s32 dststride, unsigned char 
 		dst += 8;
 		dst2 += 8;
 	}
-
 }
 
 static s32 mul255(s32 a, s32 b)

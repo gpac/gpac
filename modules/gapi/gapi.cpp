@@ -771,6 +771,7 @@ void GAPI_ReleaseObjects(GAPIPriv *ctx)
 
 GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool noover)
 {
+	const char *opt;
 	struct GXDisplayProperties gx = GXGetDisplayProperties();
 	RECT rc;
 	GAPICTX(dr);
@@ -813,6 +814,10 @@ GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no
 
 	GAPI_SetupWindow(dr);
 	if (!gctx->hWnd) return GF_IO_ERR;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "GAPI", "ForceGX");
+	if (opt && !strcmp(opt, "yes")) gctx->force_gx = 1;
+
 
 	/*setup GX*/
 	if (!GXOpenDisplay(gctx->hWnd, 0L)) {

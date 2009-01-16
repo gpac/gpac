@@ -266,7 +266,7 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	gf_term_pause_all_clocks(term, PlayState ? 1 : 0);
 }
 
-static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u64 startTime, Bool pause_at_first_frame, Bool secondary_scene)
+static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u64 startTime, Bool pause_at_first_frame, Bool secondary_scene, const char *parent_path)
 {
 	GF_InlineScene *is;
 	GF_ObjectManager *odm;
@@ -306,7 +306,7 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	if (pause_at_first_frame)
 		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
 	/*connect - we don't have any parentID */
-	gf_term_connect_object(term, odm, (char *) URL, NULL);
+	gf_term_connect_object(term, odm, (char *) URL, (char*)parent_path);
 }
 
 GF_EXPORT
@@ -404,7 +404,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 
 	cf = gf_cfg_get_key(user->config, "General", "GUIFile");
 	if (cf) {
-		gf_term_connect_from_time_ex(tmp, cf, 0, 0, 1);
+		gf_term_connect_from_time_ex(tmp, cf, 0, 0, 1, NULL);
 	}
 	return tmp;
 }
@@ -521,13 +521,19 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 GF_EXPORT
 void gf_term_connect_from_time(GF_Terminal * term, const char *URL, u64 startTime, Bool pause_at_first_frame)
 {
-	gf_term_connect_from_time_ex(term, URL, startTime, pause_at_first_frame, 0);
+	gf_term_connect_from_time_ex(term, URL, startTime, pause_at_first_frame, 0, NULL);
 }
 
 GF_EXPORT
 void gf_term_connect(GF_Terminal * term, const char *URL)
 {
-	gf_term_connect_from_time(term, URL, 0, 0);
+	gf_term_connect_from_time_ex(term, URL, 0, 0, 0, NULL);
+}
+
+GF_EXPORT
+void gf_term_connect_with_path(GF_Terminal * term, const char *URL, const char *parent_path)
+{
+	gf_term_connect_from_time_ex(term, URL, 0, 0, 0, parent_path);
 }
 
 GF_EXPORT
@@ -928,7 +934,7 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 
 
 /*connects given OD manager to its URL*/
-void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, GF_ClientService *ParentService)
+void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
 {
 	GF_ClientService *ns;
 	u32 i;
@@ -958,7 +964,7 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 		}
 	}
 
-	odm->net_service = gf_term_service_new(term, odm, serviceURL, ParentService, &e);
+	odm->net_service = gf_term_service_new(term, odm, serviceURL, parent_url, &e);
 	if (!odm->net_service) {
 		gf_term_lock_net(term, 0);
 		gf_term_message(term, serviceURL, "Cannot open service", e);
@@ -995,7 +1001,7 @@ GF_Err gf_term_connect_remote_channel(GF_Terminal *term, GF_Channel *ch, char *U
 		}
 	}
 	/*use parent OD for parent service*/
-	ns = gf_term_service_new(term, NULL, URL, ch->odm->net_service, &e);
+	ns = gf_term_service_new(term, NULL, URL, ch->odm->net_service->url, &e);
 	if (!ns) return e;
 	ch->service = ns;
 	ns->ifce->ConnectService(ns->ifce, ns, ns->url);

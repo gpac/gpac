@@ -84,7 +84,7 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 
 	if (!strcmp(prop_name, "last_working_directory")) {
 		res = gf_cfg_get_key(term->user->config, "General", "LastWorkingDir");
-		if (!res) res = "";
+		if (!res) res = gf_cfg_get_key(term->user->config, "General", "ModulesDirectory");
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, res)); 
 		return JS_TRUE;
 	}
@@ -178,6 +178,7 @@ typedef struct
 
 static Bool enum_dir_fct(void *cbck, char *file_name, char *file_path)
 {
+	u32 i, len;
 	char *sep;
 	JSString *s;
 	jsuint idx;
@@ -188,11 +189,23 @@ static Bool enum_dir_fct(void *cbck, char *file_name, char *file_path)
 	obj = JS_NewObject(cbk->c, 0, 0, 0);
 	s = JS_NewStringCopyZ(cbk->c, file_name);
 	JS_DefineProperty(cbk->c, obj, "name", STRING_TO_JSVAL(s), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	sep = strrchr(file_path, '\\');
-	if (!sep) sep = strrchr(file_path, '/');
-	if (sep) sep[1] = 0;
-	s = JS_NewStringCopyZ(cbk->c, file_path);
-	if (sep) sep[1] = '/';
+
+	sep=NULL;
+	len = strlen(file_path);
+	for (i=0; i<len; i++) {
+		sep = strchr("/\\", file_path[len-i-1]);
+		if (sep) {
+			sep = file_path+len-i-1;
+			break;
+		}
+	}
+	if (sep) {
+		sep[0] = '/';
+		sep[1] = 0;
+		s = JS_NewStringCopyZ(cbk->c, file_path);
+	} else {
+		s = JS_NewStringCopyZ(cbk->c, file_path);
+	}
 	JS_DefineProperty(cbk->c, obj, "path", STRING_TO_JSVAL(s), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(cbk->c, obj, "directory", BOOLEAN_TO_JSVAL(cbk->is_dir ? JS_TRUE : JS_FALSE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 
@@ -206,14 +219,38 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 {
 	enum_dir_cbk cbk;
 	char *url = NULL;
-	char *dir = "D:\\";
+	char *dir = "D:";
 	if ((argc >= 1) && JSVAL_IS_STRING(argv[0])) {
 		JSString *js_dir = JSVAL_TO_STRING(argv[0]);
 		dir = JS_GetStringBytes(js_dir);
 	}
 	if ((argc >= 2) && JSVAL_IS_BOOLEAN(argv[1])) {
-		if (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE)
+		if (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE) {
 			url = gf_url_concatenate(dir, "..");
+			if (!strcmp(url, "..")) {
+				if (strstr(dir, ":/")) {
+#if defined(WIN32) && !defined(_WIN32_WCE)
+					u32 len;
+					char drives[4096], *volume;
+					free(url);					
+					drives[0] = 0;
+					GetLogicalDriveStrings(4096, drives);
+					len = strlen(drives);
+					cbk.c = c;
+					cbk.array = JS_NewArrayObject(c, 0, 0);
+					cbk.is_dir = 1;
+					volume = drives;
+					while (len) {
+						enum_dir_fct(&cbk, volume, "");
+						volume += len+1;
+						len = strlen(volume);
+					}
+					*rval = OBJECT_TO_JSVAL(cbk.array);
+#endif
+				}
+				return JS_TRUE;
+			}
+		}
 	}
 	cbk.c = c;
 	cbk.array = JS_NewArrayObject(c, 0, 0);
@@ -286,6 +323,24 @@ static JSBool gpac_get_vertical_dpi(JSContext *c, JSObject *obj, uintN argc, jsv
 	
 	return JS_TRUE;
 }
+static JSBool gpac_exit(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_Event evt;
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
+	evt.type = GF_EVENT_QUIT;
+	GF_USER_SENDEVENT(term->user, &evt);
+	return JS_TRUE;
+}
+
+static JSBool gpac_set_3d(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	Bool set_3d = 1;
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
+	if (argc && JSVAL_IS_BOOLEAN(argv[0])) set_3d = JSVAL_TO_BOOLEAN(argv[0]);
+	term->compositor->inherit_type_3d = set_3d;
+	term->compositor->root_visual_setup = 0;
+	return JS_TRUE;
+}
 
 static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
 {
@@ -303,6 +358,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		{"set_size",		gpac_set_size, 1},
 		{"get_horizontal_dpi",	gpac_get_horizontal_dpi, 0},
 		{"get_vertical_dpi",	gpac_get_vertical_dpi, 0},
+		{"exit",				gpac_exit, 0},
+		{"set_3d",				gpac_set_3d, 1},
 		{0}
 	};
 

@@ -1105,7 +1105,7 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			CALL_SET_FOCUS(gf_node_get_proto_root(elt));
 		
 		case TAG_MPEG4_Inline: case TAG_X3D_Inline: 
-			CALL_SET_FOCUS(gf_inline_get_subscene_root(elt));
+			CALL_SET_FOCUS(gf_sc_get_subscene_root(elt));
 
 		case TAG_MPEG4_Shape: case TAG_X3D_Shape:
 			gf_list_add(compositor->focus_ancestors, elt);

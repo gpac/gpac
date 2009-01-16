@@ -771,16 +771,27 @@ static void gf_is_resize_event(GF_InlineScene *is)
 {
 	/*fire resize event*/
 #ifndef GPAC_DISABLE_SVG
+	GF_Node *root;
 	u32 i, count;
 	u32 w, h;
 	GF_DOM_Event evt;
 	memset(&evt, 0, sizeof(GF_DOM_Event));
 	w = h = 0;
+	root = gf_sg_get_root_node(is->graph);
 	gf_sg_get_scene_size_info(is->graph, &w, &h);
 	evt.type = GF_EVENT_RESIZE;
 	evt.screen_rect.width = INT2FIX(w);
 	evt.screen_rect.height = INT2FIX(h);
-	gf_dom_event_fire(gf_sg_get_root_node(is->graph), &evt);
+	if (root) {
+		switch (gf_node_get_tag(root)) {
+		case TAG_MPEG4_Group:
+		case TAG_MPEG4_Layer3D:
+		case TAG_X3D_Group:
+			evt.detail = 1;
+			break;
+		}
+	}
+	gf_dom_event_fire(root, &evt);
 	
 	count=gf_list_count(is->inline_nodes);
 	for (i=0;i<count; i++) {
@@ -1678,37 +1689,6 @@ void gf_inline_set_fragment_uri(GF_Node *node, const char *uri)
 		is->fragment_uri = NULL;
 	}
 	if (uri) is->fragment_uri = strdup(uri);
-}
-
-GF_Node *gf_inline_get_subscene_root(GF_Node *node)
-{
-	GF_InlineScene *is;
-	if (!node) return NULL;
-	switch (gf_node_get_tag(node)) {
-	case TAG_MPEG4_Inline: case TAG_X3D_Inline: 
-		break;
-	default:
-		return NULL;
-	}
-	is = (GF_InlineScene *)gf_node_get_private(node);
-	if (!is) return NULL;
-	return gf_sg_get_root_node(is->graph);
-}
-
-GF_Node *gf_inline_get_parent_node(GF_Node *node, u32 idx)
-{
-	GF_InlineScene *is;
-	if (!node) return NULL;
-	switch (gf_node_get_tag(node)) {
-	case TAG_MPEG4_Inline: case TAG_X3D_Inline: 
-		is = (GF_InlineScene *)gf_node_get_private(node);
-		break;
-	default:
-		is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph(node));
-		break;
-	}
-	if (!is) return NULL;
-	return (GF_Node *) gf_list_get(is->inline_nodes, idx);
 }
 
 void InitInline(GF_InlineScene *is, GF_Node *node)

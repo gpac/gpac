@@ -28,7 +28,7 @@ CESelfRegister=GPAX.dll
 [SourceDisksFiles]
 libgpac.dll = 1
 %ExeName% = 1
-Osmo4.exe = 1
+;Osmo4.exe = 1
 GPAX.dll = 1
 gpac.mp4 = 3
 
@@ -67,7 +67,7 @@ gm_xvid_dec.dll = 1
 
 
 ;ENST Proprietary modules
-gm_upnp.dll = 1
+;gm_upnp.dll = 1
 
 ;==================================================
 
@@ -92,7 +92,7 @@ DefaultDestDir = 0, %InstallDir%
 
 [Exefiles]
 "%ExeName%"
-"Osmo4.exe"
+;"Osmo4.exe"
 "gpac.mp4"
 "gm_aac_in.dll"
 "gm_amr_dec.dll"
@@ -117,7 +117,7 @@ DefaultDestDir = 0, %InstallDir%
 "gm_xvid_dec.dll"
 ;"gm_ogg_xiph.dll"
 
-"gm_upnp.dll"
+;"gm_upnp.dll"
 
 [GPACReg]
 ;GPAC cfg file location

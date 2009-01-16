@@ -883,6 +883,25 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 			r->FromNode = NULL;
 			r->ToField.fieldIndex = nodeFieldIndex;
 			r->ToNode = node;
+			/*create an ISed route for the eventOut part of the exposedFIeld*/
+			if ((field.eventType==GF_SG_EVENT_EXPOSED_FIELD) && (nodeField.eventType==GF_SG_EVENT_EXPOSED_FIELD)) {
+				GF_Route *r2;
+				GF_SAFEALLOC(r2, GF_Route);
+				if (!r2) {
+					free(r);
+					return GF_OUT_OF_MEM;
+				}
+				r2->IS_route = 1;
+				r2->FromField.fieldIndex = nodeFieldIndex;
+				r2->FromNode = node;
+				r2->ToField.fieldIndex = protoFieldIndex;
+				r2->ToNode = NULL;
+				r2->graph =  proto->sub_graph;
+				if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+				if (!node->sgprivate->interact->routes) node->sgprivate->interact->routes = gf_list_new();
+				gf_list_add(node->sgprivate->interact->routes, r2);
+				gf_list_add(proto->sub_graph->Routes, r2);
+			}
 			break;
 		case GF_SG_EVENT_OUT:
 			r->FromField.fieldIndex = nodeFieldIndex;
@@ -944,6 +963,26 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 			r->FromNode = protoinst;
 			r->ToField.fieldIndex = nodeFieldIndex;
 			r->ToNode = node;
+
+			/*create an ISed route for the eventOut part of the exposedFIeld*/
+			if ((field.eventType==GF_SG_EVENT_EXPOSED_FIELD) && (nodeField.eventType==GF_SG_EVENT_EXPOSED_FIELD)) {
+				GF_Route *r2;
+				GF_SAFEALLOC(r2, GF_Route);
+				if (!r2) {
+					free(r);
+					return GF_OUT_OF_MEM;
+				}
+				r2->IS_route = 1;
+				r2->FromField.fieldIndex = nodeFieldIndex;
+				r2->FromNode = node;
+				r2->ToField.fieldIndex = protoFieldIndex;
+				r2->ToNode = protoinst;
+				r2->graph =  node->sgprivate->scenegraph;
+				if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+				if (!node->sgprivate->interact->routes) node->sgprivate->interact->routes = gf_list_new();
+				gf_list_add(node->sgprivate->interact->routes, r2);
+				gf_list_add(r->graph->Routes, r2);
+			}
 			break;
 		case GF_SG_EVENT_OUT:
 			r->FromField.fieldIndex = nodeFieldIndex;
@@ -1049,48 +1088,25 @@ GF_ProtoFieldInterface *gf_sg_proto_field_find(GF_Proto *proto, u32 fieldIndex)
 	return (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, fieldIndex);
 }
 
-void gf_sg_proto_check_field_change(GF_Node *node, u32 fieldIndex)
+void gf_sg_proto_propagate_event(GF_Node *node, u32 fieldIndex, GF_Node *from_node)
 {
 	u32 i;
-
 	GF_Route *r;
 	if (!node) return;
+	/*propagation only for proto*/
+	if (node->sgprivate->tag != TAG_ProtoNode) return;
+	/*with ISed fields*/
+	if (!node->sgprivate->interact || !node->sgprivate->interact->routes) return;
 
-	if ((node->sgprivate->tag == TAG_ProtoNode) && node->sgprivate->interact && node->sgprivate->interact->routes){
-		i=0;
-		while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->routes, &i))) {
-			if (!r->IS_route) continue;
-			/*eventIn or exposedField*/
-			if ((r->FromNode == node) && (r->FromField.fieldIndex == fieldIndex) ) {
-				if (gf_sg_route_activate(r)) 
-					gf_node_changed(r->ToNode, &r->FromField);
-			}
-			/*eventOut*/
-			if ((r->ToNode == node) && (r->ToField.fieldIndex == fieldIndex) ) {
-				gf_sg_route_activate(r);
-			}
-		}
-		/*no notification for proto changes*/
-		return;
-	}
-	/*the node has to belong to a proto graph*/
-	if (! node->sgprivate->scenegraph->pOwningProto) return;
-	/*no routes defined*/
-	if (!node->sgprivate->interact) return;
-
-	/*search for IS routes_events in the node and activate them. Field can also be an eventOut !!*/
+	/*for all ISed routes*/
 	i=0;
 	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->routes, &i))) {
 		if (!r->IS_route) continue;
-		/*activate eventOuts*/
-		if ((r->FromNode == node) && (r->FromField.fieldIndex == fieldIndex)) {
-			gf_sg_route_activate(r);
-		}
-		/*or eventIns / (exposed)Fields*/
-		else if ((r->ToNode == node) && (r->ToField.fieldIndex == fieldIndex)) {
-			/*don't forget to notify the node it has changed*/
+
+		/*connecting from this node && field to a destination node other than the event source (this will break loops due to exposedFields)*/
+		if ((r->FromNode == node) && (r->FromField.fieldIndex == fieldIndex) && (r->ToNode != from_node) ) {
 			if (gf_sg_route_activate(r)) 
-				gf_node_changed(node, &r->ToField);
+				gf_node_changed(r->ToNode, &r->FromField);
 		}
 	}
 }

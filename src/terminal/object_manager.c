@@ -519,7 +519,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			odm->subscene = gf_inline_new(odm->parentscene);
 			odm->subscene->root_od = odm;
 		}
-		gf_term_connect_object(odm->term, odm, url, parent);
+		gf_term_connect_object(odm->term, odm, url, parent ? parent->url : NULL);
 		free(url);
 		return;
 	}
