@@ -38,7 +38,7 @@ static void ReplaceDEFNode(GF_Node *FromNode, GF_Node *node, GF_Node *newNode, B
 static void ReplaceIRINode(GF_Node *FromNode, GF_Node *oldNode, GF_Node *newNode);
 #endif
 
-static void node_modif_stub(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info)
+static void node_modif_stub(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script)
 {
 }
 
@@ -390,11 +390,16 @@ restart:
 		//sg->node_registry[i-1] = NULL;
 		count = get_num_id_nodes(sg);
 		node->sgprivate->num_instances = 1;
+		/*remember this node was forced to be destroyed*/
+		gf_list_add(sg->exported_nodes, node);
 		gf_node_unregister(node, NULL);
 		if (count != get_num_id_nodes(sg)) goto restart;
 		reg_node = reg_node->next;
 	}
 	assert((sg->id_node==NULL) || sg->global_qp);
+
+	/*reset the forced destroy ndoes*/
+	gf_list_reset(sg->exported_nodes);
 
 	/*destroy all proto*/
 	while (gf_list_count(sg->protos)) {
@@ -538,6 +543,15 @@ void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 	}
 }
 
+GF_Err gf_node_try_destroy(GF_SceneGraph *sg, GF_Node *pNode, GF_Node *parentNode)
+{
+	if (!sg) return GF_BAD_PARAM;
+	/*if node has been destroyed, don't even look at it*/
+	if (gf_list_find(sg->exported_nodes, pNode)>=0) return GF_OK;
+	if (!pNode || !pNode->sgprivate->num_instances) return GF_OK;
+	return gf_node_unregister(pNode, parentNode);
+}
+
 GF_EXPORT
 GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 {
@@ -580,7 +594,6 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	if (pNode->sgprivate->num_instances) {
 		return GF_OK;
 	}
-
 	
 	assert(pNode->sgprivate->parents==NULL);
 
@@ -642,14 +655,14 @@ this doesn't propagate in the scene graph. If updateOrderedGroup and new_node is
 is updated*/
 static void ReplaceDEFNode(GF_Node *FromNode, GF_Node *node, GF_Node *newNode, Bool updateOrderedGroup)
 {
-	u32 i, j;
+	u32 i, j, count;
 	GF_Node *p;
 	GF_ChildNodeItem *list;
-
 	GF_FieldInfo field;
 
 	/*browse all fields*/
-	for (i=0; i<gf_node_get_field_count(FromNode); i++) {
+	count = gf_node_get_field_count(FromNode);
+	for (i=0; i<count; i++) {
 		gf_node_get_field(FromNode, i, &field);
 		switch (field.fieldType) {
 		case GF_SG_VRML_SFNODE:
@@ -699,6 +712,17 @@ static void ReplaceDEFNode(GF_Node *FromNode, GF_Node *node, GF_Node *newNode, B
 	}
 	/*since we don't filter parent nodes this is called once per USE, not per container, so return if found*/
 exit:
+
+	/*Notify all scripts that the node is being removed from its parent - we have to do that because nodes used in scripts are not
+	always registered in MF/SFNodes fields of the script.*/
+	switch (FromNode->sgprivate->tag) {
+	case TAG_MPEG4_Script:
+	case TAG_X3D_Script:
+		if (FromNode->sgprivate->scenegraph->on_node_modified)
+			FromNode->sgprivate->scenegraph->on_node_modified(FromNode->sgprivate->scenegraph, node, NULL, FromNode);
+		break;
+	}
+	
 	gf_node_changed(FromNode, &field);
 }
 
@@ -1521,7 +1545,7 @@ void gf_node_changed_internal(GF_Node *node, GF_FieldInfo *field, Bool notify_sc
 
 	/*signal changes in node to JS for MFFields*/
 	if (field && notify_scripts && (node->sgprivate->flags & GF_NODE_HAS_BINDING) && !gf_sg_vrml_is_sf_field(field->fieldType) ) {
-		sg->on_node_modified(sg, node, field);
+		sg->on_node_modified(sg, node, field, NULL);
 	}
 
 	/*internal nodes*/

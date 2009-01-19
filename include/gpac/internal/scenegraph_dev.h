@@ -212,7 +212,7 @@ struct __tag_scene_graph
 	/*script loader*/
 	void (*script_load)(GF_Node *node);
 	/*callback to JS upon node modif*/
-	void (*on_node_modified)(struct __tag_scene_graph *sg, GF_Node *node, GF_FieldInfo *info);
+	void (*on_node_modified)(struct __tag_scene_graph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
 
 	u32 max_defined_route_id;
 
@@ -319,6 +319,8 @@ void gf_sg_route_queue(GF_SceneGraph *pSG, GF_Route *r);
 
 void gf_sg_destroy_routes(GF_SceneGraph *sg);
 
+void gf_sg_route_setup(GF_Route *r);
+
 
 /*MPEG4 def*/
 GF_Node *gf_sg_mpeg4_node_new(u32 NodeTag);
@@ -364,6 +366,10 @@ void gf_sg_sfurl_del(SFURL url);
 Bool gf_sg_vrml_node_init(GF_Node *node);
 Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 
+
+/*specialized node unregister for Memory Commands - checks if the node(s) used in the command have been destroyed
+during the reset. If so don't attempt to unregister the node*/
+GF_Err gf_node_try_destroy(GF_SceneGraph *sg, GF_Node *pNode, GF_Node *parentNode);
 
 
 #ifndef GPAC_DISABLE_SVG
@@ -906,11 +912,13 @@ typedef struct
 
 	/*when creating SFnode from inside the script, the node is stored here untill attached to an object*/
 	GF_Node *temp_node;
+	/*when creating MFnode from inside the script, the node list is stored here untill attached to an object*/
 	GF_ChildNodeItem *temp_list;
 	/*when not owned by a node*/
 	void *field_ptr;
-
-	Bool reevaluate;
+	
+	/*cpontext in which the field was created*/
+	struct JSContext *js_ctx;
 } GF_JSField;
 
 #ifndef GPAC_DISABLE_SVG

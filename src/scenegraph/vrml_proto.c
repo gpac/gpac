@@ -371,7 +371,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 				strcpy(szNodeName, orig_name);
 				strcat(szNodeName, inst_id_suffix);
 			}
-		}
+		} 
 	}
 
 	if (id) {
@@ -1097,12 +1097,14 @@ void gf_sg_proto_propagate_event(GF_Node *node, u32 fieldIndex, GF_Node *from_no
 	if (node->sgprivate->tag != TAG_ProtoNode) return;
 	/*with ISed fields*/
 	if (!node->sgprivate->interact || !node->sgprivate->interact->routes) return;
+	/*we only need to propagate ISed for eventIn/exposedField. This means that if the event comes from
+	the same scene graph as the proto (eg from the proto code) we don't propagate the event*/
+	if (from_node->sgprivate->scenegraph == node->sgprivate->scenegraph) return;
 
 	/*for all ISed routes*/
 	i=0;
 	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->routes, &i))) {
 		if (!r->IS_route) continue;
-
 		/*connecting from this node && field to a destination node other than the event source (this will break loops due to exposedFields)*/
 		if ((r->FromNode == node) && (r->FromField.fieldIndex == fieldIndex) && (r->ToNode != from_node) ) {
 			if (gf_sg_route_activate(r)) 

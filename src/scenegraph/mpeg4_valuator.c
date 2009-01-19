@@ -267,8 +267,8 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 	i=0;
 	while ((r = (GF_Route*)gf_list_enum(p->sgprivate->interact->routes, &i))) {
 		if (r->FromNode != (GF_Node *)p) continue;
-		/*this breaks phone_ui.bt ...*/
-		//if (r->FromField.fieldType != GF_SG_EVENT_OUT) continue;
+		if (!r->is_setup) gf_sg_route_setup(r);
+		if (r->FromField.eventType != GF_SG_EVENT_OUT) continue;
 		if (r->IS_route) {
 			gf_sg_route_activate(r);
 		} else {

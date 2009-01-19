@@ -40,30 +40,6 @@ GF_Command *gf_sg_command_new(GF_SceneGraph *graph, u32 tag)
 	if (tag < GF_SG_LAST_BIFS_COMMAND) ptr->new_proto_list = gf_list_new();
 	return ptr;
 }
-static void SG_CheckNodeUnregister(GF_Command *com)
-{
-	NodeIDedItem *reg_node;
-	switch (com->tag) {
-	case GF_SG_SCENE_REPLACE:
-	case GF_SG_LSR_NEW_SCENE:
-	case GF_SG_LSR_REFRESH_SCENE:
-		gf_node_unregister(com->node, NULL);
-		break;
-	default:
-		/*check if node is in registry - do NOT check the node's internals, because it may have been destroyed
-		when cyclic references are found (only happens with conditional replacing self/other conditional buffer)
-		note that we're sure the node has an ID since this is not a replace scene*/
-		reg_node = com->in_scene->id_node;
-		while (reg_node) {
-			if (reg_node->node == com->node) {
-				gf_node_unregister(com->node, NULL);
-				return;
-			}
-			reg_node = reg_node->next;
-		}
-		break;
-	}
-}
 
 GF_EXPORT
 void gf_sg_command_del(GF_Command *com)
@@ -79,7 +55,7 @@ void gf_sg_command_del(GF_Command *com)
 
 			switch (inf->fieldType) {
 			case GF_SG_VRML_SFNODE:
-				if (inf->new_node) gf_node_unregister(inf->new_node, com->node);
+				if (inf->new_node) gf_node_try_destroy(com->in_scene, inf->new_node, com->node);
 				break;
 			case GF_SG_VRML_MFNODE:
 				if (inf->field_ptr) {
@@ -87,7 +63,7 @@ void gf_sg_command_del(GF_Command *com)
 					child = inf->node_list;
 					while (child) {
 						cur = child;
-						gf_node_unregister(child->node, com->node);
+						gf_node_try_destroy(com->in_scene, child->node, com->node);
 						child = child->next;
 						free(cur);
 					}
@@ -124,8 +100,7 @@ void gf_sg_command_del(GF_Command *com)
 	gf_list_del(com->new_proto_list);
 
 	if (com->node) {
-		if (!com->in_scene) gf_node_unregister(com->node, NULL);
-		else SG_CheckNodeUnregister(com);
+		gf_node_try_destroy(com->in_scene, com->node, NULL);
 	}
 
 	if (com->del_proto_list) free(com->del_proto_list);
