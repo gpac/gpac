@@ -202,7 +202,7 @@ char *gf_sg_route_get_name(GF_Route *route)
 	return route->name;
 }
 
-static void gf_sg_route_setup(GF_Route *r) 
+void gf_sg_route_setup(GF_Route *r) 
 {
 	gf_node_get_field(r->FromNode, r->FromField.fieldIndex, &r->FromField);
 	gf_node_get_field(r->ToNode, r->ToField.fieldIndex, &r->ToField);
