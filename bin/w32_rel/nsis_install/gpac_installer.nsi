@@ -85,6 +85,7 @@ Section "Osmo4/GPAC Player"
   File "..\gm_dummy_in.dll"
   File "..\gm_dx_hw.dll"
   File "..\js32.dll"
+  File "..\gm_gpac_js.dll"
 
   ;create default cache
   SetOutPath $INSTDIR\cache
@@ -304,8 +305,6 @@ Section "Osmozilla (GPAC Plugin for Mozilla)"
   WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Vendor" "GPAC"
   WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Description" "GPAC plugin"
   WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "ProductName" "Osmozilla"
-
-
 SectionEnd
 
 
