@@ -217,15 +217,27 @@ static Bool enum_dir_fct(void *cbck, char *file_name, char *file_path)
 
 static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
+	GF_Err err;
 	enum_dir_cbk cbk;
 	char *url = NULL;
 	char *dir = "D:";
+	char *filter = NULL;
+	Bool dir_only = 0;
+
 	if ((argc >= 1) && JSVAL_IS_STRING(argv[0])) {
 		JSString *js_dir = JSVAL_TO_STRING(argv[0]);
 		dir = JS_GetStringBytes(js_dir);
 	}
-	if ((argc >= 2) && JSVAL_IS_BOOLEAN(argv[1])) {
-		if (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE) {
+	if ((argc >= 2) && JSVAL_IS_STRING(argv[1])) {
+		JSString *js_fil = JSVAL_TO_STRING(argv[1]);
+		filter = JS_GetStringBytes(js_fil);
+		if (!strcmp(filter, "dir")) {
+			dir_only = 1;
+			filter = NULL;
+		}
+	}
+	if ((argc >= 3) && JSVAL_IS_BOOLEAN(argv[2])) {
+		if (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) {
 			url = gf_url_concatenate(dir, "..");
 			if (!strcmp(url, "..")) {
 				if (strstr(dir, ":/")) {
@@ -255,10 +267,31 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 	cbk.c = c;
 	cbk.array = JS_NewArrayObject(c, 0, 0);
 
-	cbk.is_dir = 1;
-	gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
+	if (!dir_only) {
+		cbk.is_dir = 1;
+		err = gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
+		if (err==GF_IO_ERR) {
+			GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
+			/*try to concatenate with service url*/
+			char *an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
+			free(url);
+			url = an_url;
+			gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
+		}
+	}
+
 	cbk.is_dir = 0;
-	gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, NULL);
+	err = gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
+	if (dir_only && (err==GF_IO_ERR)) {
+		GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
+		/*try to concatenate with service url*/
+		char *an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
+		free(url);
+		url = an_url;
+		gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, filter);
+	}
+
+
 	*rval = OBJECT_TO_JSVAL(cbk.array);
 	if (url) free(url);
 	return JS_TRUE;

@@ -58,7 +58,6 @@ typedef struct _media_control
 	GF_List *seg;
 	/*current active segment index (ie, controling the PLAY range of the media)*/
 	u32 current_seg;
-
 } MediaControlStack;
 void InitMediaControl(GF_InlineScene *is, GF_Node *node);
 void MC_Modified(GF_Node *node);

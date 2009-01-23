@@ -276,7 +276,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 
 	gf_term_lock_net(term, 1);
 	/*object declared this way are not part of an OD stream and are considered as dynamic*/
-//	od->objectDescriptorID = GF_ESM_DYNAMIC_OD_ID;
+//	od->objectDescriptorID = GF_MEDIA_EXTERNAL_ID;
 
 	/*check if we have a mediaObject in the scene not attached and matching this object*/
 	the_mo = NULL;
@@ -299,7 +299,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 			}
 			continue;
 		}
-		if (mo->OD_ID != GF_ESM_DYNAMIC_OD_ID) {
+		if (mo->OD_ID != GF_MEDIA_EXTERNAL_ID) {
 			if (mo->OD_ID == od->objectDescriptorID) {
 				the_mo = mo;
 				odm = mo->odm;
@@ -336,7 +336,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		if (frag) {
 			u32 frag_id = 0;
 			u32 ID = od->objectDescriptorID;
-			if (ID==GF_ESM_DYNAMIC_OD_ID) ID = esd->ESID;
+			if (ID==GF_MEDIA_EXTERNAL_ID) ID = esd->ESID;
 			frag++;
 			frag_id = atoi(frag);
 			if (ID!=frag_id) continue;

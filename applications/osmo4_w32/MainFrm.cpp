@@ -950,7 +950,7 @@ void CMainFrame::BuildStreamList(Bool reset_only)
 
 	for (u32 i=0; i<count; i++) {
 		char szLabel[1024];
-		ODInfo info;
+		GF_MediaInfo info;
 		GF_ObjectManager *odm = gf_term_get_object(app->m_term, root_od, i);
 		if (!odm) return;
 
@@ -1088,7 +1088,7 @@ void CMainFrame::OnInitMenuPopup(CMenu* pPopupMenu, UINT ID, BOOL bSys)
 			if (!odm) {
 				pPopupMenu->EnableMenuItem(i, MF_DISABLED | MF_BYPOSITION);
 			} else {
-				ODInfo info;
+				GF_MediaInfo info;
 
 				gf_term_get_object_info(app->m_term, odm, &info);
 				pPopupMenu->EnableMenuItem(i, MF_BYPOSITION);
@@ -1393,7 +1393,7 @@ void CMainFrame::OnFileExit()
 void CMainFrame::BuildChapterList(Bool reset_only)
 {
 	CMenu *pChaps;
-	ODInfo odi;
+	GF_MediaInfo odi;
 	NetInfoCommand com;
 	Osmo4 *app = GetApp();
 

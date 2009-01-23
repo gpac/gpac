@@ -274,6 +274,7 @@ static GFINLINE u32 get_num_id_nodes(GF_SceneGraph *sg)
 GF_EXPORT
 void gf_sg_reset(GF_SceneGraph *sg)
 {
+	GF_List *gc;
 	u32 type, count;
 	NodeIDedItem *reg_node;
 	if (!sg) return;
@@ -288,6 +289,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	}
 #endif
 
+	gc = gf_list_new();
 #ifdef GPAC_HAS_SPIDERMONKEY
 	/*scripts are the first source of cylic references in the graph. In order to clean properly
 	force a remove of all script nodes, this will release all references to nodes in JS*/
@@ -301,6 +303,8 @@ void gf_sg_reset(GF_SceneGraph *sg)
 		/*FORCE destroy in case the script refers to itself*/
 		n->sgprivate->num_instances=1;
 		gf_node_unregister(n, NULL);
+		/*remember this script was forced to be destroyed*/
+		gf_list_add(gc, n);
 	}
 #endif
 
@@ -334,6 +338,9 @@ void gf_sg_reset(GF_SceneGraph *sg)
 		gf_list_rem(sg->exported_nodes, 0);
 		gf_node_replace(n, NULL, 0);
 	}
+	/*reassign the list of exported nodes to our garbage collected nodes*/
+	gf_list_del(sg->exported_nodes);
+	sg->exported_nodes = gc;
 
 	/*reset the main tree*/
 	if (sg->RootNode) gf_node_unregister(sg->RootNode, NULL);

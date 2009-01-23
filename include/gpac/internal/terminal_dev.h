@@ -639,10 +639,6 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm);
 
 /*OD manager*/
 
-
-/*all inserted ODs have this ODID*/
-#define GF_ESM_DYNAMIC_OD_ID	1050
-
 enum
 {
 	/*flag set if object cannot be time-controloed*/

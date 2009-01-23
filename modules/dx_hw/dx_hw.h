@@ -67,6 +67,12 @@ typedef struct
 } DDSurface;
 
 
+#if defined(GPAC_USE_TINYGL)
+# ifndef GPAC_DISABLE_3D
+#  define GPAC_DISABLE_3D
+# endif
+#endif
+
 typedef struct
 {
 	HWND os_hwnd, fs_hwnd, cur_hwnd, parent_wnd;
@@ -113,6 +119,8 @@ typedef struct
 	u32 cursor_type;
 
 	/*gl*/
+#ifndef GPAC_DISABLE_3D
+
 #ifdef GPAC_USE_OGL_ES
 	NativeDisplayType gl_HDC;
     EGLDisplay egldpy;
@@ -127,9 +135,11 @@ typedef struct
 #endif
 	u32 output_3d_type;
 	HWND gl_hwnd, bound_hwnd;
-	Bool has_focus;
 	Bool gl_double_buffer;
 
+#endif
+
+	Bool has_focus;
 	DWORD orig_wnd_proc;
 
 	u32 last_mouse_move, timer, cursor_type_backup;
@@ -158,7 +168,10 @@ void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const 
 /*this is REALLY ugly, to pass the HWND to DSound when we create the window in this module*/
 HWND DD_GetGlobalHWND();
 
+#ifndef GPAC_DISABLE_3D
 GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_height);
+#endif
+
 
 #ifdef USE_DX_3
 #define SAFE_DD_RELEASE(p) { if(p) { IDirectDraw_Release(p); (p)=NULL; } }

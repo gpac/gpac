@@ -324,7 +324,13 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	GF_Raster2D *raster = visual->compositor->rasterizer;
 
 	if (!txh) txh = ctx->aspect.fill_texture;
-	if (!txh || !txh->tx_io) return;
+	if (!txh) return;
+	if (!txh->tx_io) {
+		gf_node_dirty_set(txh->owner, 0, 1);
+
+		txh->needs_refresh=1;
+		return;
+	}
 
 
 	/*this is gradient draw*/

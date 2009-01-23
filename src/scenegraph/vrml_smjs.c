@@ -1900,7 +1900,8 @@ static void array_finalize_ex(JSContext *c, JSObject *obj, Bool is_js_call)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering MFField %s\n", ptr->field.name));
 
-	if (ptr->js_list) JS_RemoveRoot(c, &ptr->js_list);
+	if (ptr->js_list) 
+		JS_RemoveRoot(c, &ptr->js_list);
 
 	/*MFNode*/
 	if (ptr->temp_list) {
@@ -1991,7 +1992,7 @@ JSBool array_setElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 			JS_SetElement(c, ptr->js_list, len, &a_val);
 			len++;
 		}
-		if (ptr->field.fieldType!=GF_SG_VRML_MFNODE)
+		if (ptr->field.far_ptr && (ptr->field.fieldType!=GF_SG_VRML_MFNODE))
 			gf_sg_vrml_mf_insert(ptr->field.far_ptr, ptr->field.fieldType, &sf_slot, ind);
 	}
 
@@ -2172,6 +2173,8 @@ static JSBool MFVec2fConstructor(JSContext *c, JSObject *obj, uintN argc, jsval 
 	u32 i;
 	GF_JSField *ptr = NewJSField(c);
 	ptr->js_list = JS_NewArrayObject(c, 0, 0);
+	JS_AddRoot(c, &ptr->js_list);
+	gf_list_add(JS_GetScriptStack(c)->js_cache, obj);
 	JS_SetArrayLength(c, ptr->js_list, argc);
 	JS_SetPrivate(c, obj, ptr);
 
@@ -2197,6 +2200,8 @@ static JSBool MFVec3fConstructor(JSContext *c, JSObject *obj, uintN argc, jsval 
 	GF_JSField *ptr = NewJSField(c);
 	ptr->field.fieldType = GF_SG_VRML_MFVEC3F;
 	ptr->js_list = JS_NewArrayObject(c, (jsint) argc, argv);
+	JS_AddRoot(c, &ptr->js_list);
+	gf_list_add(JS_GetScriptStack(c)->js_cache, obj);
 	JS_SetArrayLength(c, ptr->js_list, argc);
 	JS_SetPrivate(c, obj, ptr);
 
@@ -2222,6 +2227,8 @@ static JSBool MFRotationConstructor(JSContext *c, JSObject *obj, uintN argc, jsv
 	GF_JSField *ptr = NewJSField(c);
 	ptr->field.fieldType = GF_SG_VRML_MFROTATION;
 	ptr->js_list = JS_NewArrayObject(c, 0, 0);
+	JS_AddRoot(c, &ptr->js_list);
+	gf_list_add(JS_GetScriptStack(c)->js_cache, obj);
 	JS_SetArrayLength(c, ptr->js_list, argc);
 	JS_SetPrivate(c, obj, ptr);
 
@@ -2247,6 +2254,8 @@ static JSBool MFColorConstructor(JSContext *c, JSObject *obj, uintN argc, jsval 
 	GF_JSField *ptr = NewJSField(c);
 	ptr->field.fieldType = GF_SG_VRML_MFCOLOR;
 	ptr->js_list = JS_NewArrayObject(c, 0, 0);
+	JS_AddRoot(c, &ptr->js_list);
+	gf_list_add(JS_GetScriptStack(c)->js_cache, obj);
 	JS_SetArrayLength(c, ptr->js_list, argc);
 	JS_SetPrivate(c, obj, ptr);
 

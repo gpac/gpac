@@ -148,7 +148,8 @@ void compositor_init_collision(GF_Compositor *compositor, GF_Node *node)
 typedef struct
 {
 	GROUPING_NODE_STACK_3D
-	GF_Matrix mx;
+
+		GF_Matrix mx;
 	Bool has_scale;
 } TransformStack;
 

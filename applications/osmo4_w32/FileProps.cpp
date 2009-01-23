@@ -186,7 +186,7 @@ void CFileProps::SetGeneralInfo()
 {
 	char info[10000];
 	char buf[1000];
-	ODInfo odi;
+	GF_MediaInfo odi;
 	GF_ObjectManager *odm;
 	u32 h, m, s, i, j;
 
@@ -376,7 +376,7 @@ void CFileProps::OnViewsg()
 
 void CFileProps::SetDecoderInfo()
 {
-	ODInfo odi;
+	GF_MediaInfo odi;
 	char buf[1000], info[2000];
 	u32 h, m, s;
 	Osmo4 *gpac = GetApp();
@@ -448,7 +448,7 @@ void CFileProps::SetStreamsInfo()
 	u32 i, count;
 	char info[10000];
 	char buf[1000], code[5];
-	ODInfo odi;
+	GF_MediaInfo odi;
 	GF_ObjectManager *odm;
 	Bool is_media;
 
@@ -637,7 +637,7 @@ void CFileProps::SetNetworkInfo()
 	char buf[10000];
 	u32 id;
 	NetStatCommand com;
-	ODInfo odi;
+	GF_MediaInfo odi;
 	u32 d_enum, nb_streams;
 	GF_Err e;
 	GF_ObjectManager *odm;
