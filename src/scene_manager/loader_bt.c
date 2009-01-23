@@ -292,7 +292,7 @@ next_line:
 					}
 				}
 			}
-			if (!strnicmp(parser->line_buffer+parser->line_pos, "#define ", 8)) {
+			if (!strnicmp(parser->line_buffer+parser->line_pos, "#define ", 8) && !parser->block_comment) {
 				char *buf, *sep;
 				parser->line_pos+=8;
 				buf = parser->line_buffer+parser->line_pos;
@@ -309,13 +309,45 @@ next_line:
 					gf_list_add(parser->def_symbols, def);
 				}
 			}
-			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#if 0", 5)) {
-				parser->block_comment++;
+			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#if ", 4)) {
+				u32 len = 0;
+				parser->line_pos+=4;
+				while (1) {
+					if (parser->line_pos+len==parser->line_size) break;
+					if (strchr(" \n\t", parser->line_buffer[parser->line_pos+len])) 
+						break;
+					len++;
+				}
+				if (len) {
+					if (len==1) {
+						if (!strnicmp(parser->line_buffer+parser->line_pos, "0", len)) {
+							parser->block_comment++;
+						}
+					} else {
+						u32 i, count;
+						char *keyWord = NULL;
+						count = gf_list_count(parser->def_symbols);
+						for (i=0; i<count; i++) {
+							BTDefSymbol *def = (BTDefSymbol *)gf_list_get(parser->def_symbols, i);
+							if (!strnicmp(parser->line_buffer+parser->line_pos, def->name, len)) {
+								keyWord = def->value;
+								break;
+							}
+						}
+						if (keyWord && !strcmp(keyWord, "0")) {
+							parser->block_comment++;
+						}
+					}
+				}
 			}
-			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#endif", 6)
-				|| !strnicmp(parser->line_buffer+parser->line_pos, "#else", 5)) {
+			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#endif", 6)) {
+				if (parser->block_comment) parser->block_comment--;
+			}
+			else if (!strnicmp(parser->line_buffer+parser->line_pos, "#else", 5)) {
 				if (parser->block_comment) 
 					parser->block_comment--;
+				else 
+					parser->block_comment++;
 			}
 			goto next_line;
 		}

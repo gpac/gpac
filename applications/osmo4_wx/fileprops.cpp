@@ -167,7 +167,7 @@ void wxFileProps::OnSelectInfo(wxCommandEvent & WXUNUSED(event) )
 void wxFileProps::SetGeneralInfo()
 {
 	wxString info;
-	ODInfo odi;
+	GF_MediaInfo odi;
 	u32 h, m, s;
 	u32 i, j;
 
@@ -283,7 +283,7 @@ void wxFileProps::SetStreamsInfo()
 {
 	u32 i, count;
 	wxString info;
-	ODInfo odi;
+	GF_MediaInfo odi;
 	char code[5];
 
 	info = wxT("");
@@ -430,7 +430,7 @@ void wxFileProps::SetStreamsInfo()
 
 void wxFileProps::SetDecoderInfo()
 {
-	ODInfo odi;
+	GF_MediaInfo odi;
 	wxString info;
 	u32 h, m, s;
 
@@ -494,7 +494,7 @@ void wxFileProps::SetNetworkInfo()
 	wxString info;
 	u32 id;
 	NetStatCommand com;
-	ODInfo odi;
+	GF_MediaInfo odi;
 	u32 d_enum;
 	GF_Err e;
 

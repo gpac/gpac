@@ -573,7 +573,6 @@ static Bool DepthGroup_GetNode(GF_Node *node, DepthGroup *dg)
 
 static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 {
-	Fixed depth;
 	DepthGroupStack *stack = (DepthGroupStack *)gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
@@ -591,10 +590,33 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	}
 	DepthGroup_GetNode(node, &stack->dg);
-	depth = tr_state->depth;
-	tr_state->depth += stack->dg.depth;
-	group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
-	tr_state->depth = depth;
+
+	if (tr_state->visual->type_3d) {
+		GF_Matrix mx_bckup, mx;
+
+		gf_mx_copy(mx_bckup, tr_state->model_matrix);
+		gf_mx_init(mx);
+		mx.m[14] = stack->dg.depth;
+		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
+
+		if (tr_state->traversing_mode == TRAVERSE_SORT) {
+			visual_3d_matrix_push(tr_state->visual);
+			visual_3d_matrix_add(tr_state->visual, mx.m);
+
+			group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
+		
+			visual_3d_matrix_pop(tr_state->visual);
+		} else {
+			group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
+		}
+		gf_mx_copy(tr_state->model_matrix, mx_bckup);
+
+	} else {
+		Fixed depth = tr_state->depth;
+		tr_state->depth += stack->dg.depth;
+		group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
+		tr_state->depth = depth;
+	}
 }
 
 void compositor_init_depth_group(GF_Compositor *compositor, GF_Node *node)

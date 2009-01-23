@@ -26,6 +26,8 @@
 
 /*for OD service types*/
 #include <gpac/constants.h>
+/*for URL concatenation*/
+#include <gpac/network.h>
 #include <gpac/internal/terminal_dev.h>
 #include "media_control.h"
 #include <gpac/compositor.h>
@@ -198,22 +200,30 @@ void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 			odm = (GF_ObjectManager *)gf_list_get(is->ODlist, 0);
 			gf_odm_disconnect(odm, (for_shutdown || !is->static_media_ressources) ? 1 : 0);
 		}
+		while (gf_list_count(is->extern_protos)) {
+			ProtoLink *pl = (ProtoLink *)gf_list_get(is->extern_protos, 0);
+			gf_list_rem(is->extern_protos, 0);
+			free(pl);
+		}
+
 	}
 	
 	root_node = gf_sg_get_root_node(is->graph);
-	/*reset private stack of all inline nodes still registered*/
-	while (gf_list_count(is->inline_nodes)) {
-		GF_Node *n = (GF_Node *)gf_list_get(is->inline_nodes, 0);
-		gf_list_rem(is->inline_nodes, 0);
-		switch (gf_node_get_tag(n)) {
-		case TAG_MPEG4_Inline:
-		case TAG_X3D_Inline:
-			gf_node_set_private(n, NULL);
-			break;
+	if (for_shutdown) {
+		/*reset private stack of all inline nodes still registered*/
+		while (gf_list_count(is->inline_nodes)) {
+			GF_Node *n = (GF_Node *)gf_list_get(is->inline_nodes, 0);
+			gf_list_rem(is->inline_nodes, 0);
+			switch (gf_node_get_tag(n)) {
+			case TAG_MPEG4_Inline:
+			case TAG_X3D_Inline:
+				gf_node_set_private(n, NULL);
+				break;
+			}
 		}
 	}
 
-	/*remove all associated eventTargets - THIS ENEDS CLEANUP*/
+	/*remove all associated eventTargets - THIS NEEDS CLEANUP*/
 	i=0;
 	while ((obj = (GF_MediaObject *)gf_list_enum(is->ODlist, &i))) {
 		if (obj->nodes) gf_list_reset(obj->nodes);
@@ -258,7 +268,7 @@ static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_ti
 	mo->odm = odm;
 	odm->parentscene = is;
 	odm->OD = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-	odm->OD->objectDescriptorID = GF_ESM_DYNAMIC_OD_ID;
+	odm->OD->objectDescriptorID = GF_MEDIA_EXTERNAL_ID;
 	odm->parentscene = is;
 	odm->term = is->root_od->term;
 	root_od = is->root_od;
@@ -340,7 +350,7 @@ void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for
 			/*assigned object*/
 			(obj->odm==odm) || 
 			/*remote OD*/
-			((obj->OD_ID!=GF_ESM_DYNAMIC_OD_ID) && odm->OD && (obj->OD_ID == odm->OD->objectDescriptorID) ) ||
+			((obj->OD_ID!=GF_MEDIA_EXTERNAL_ID) && odm->OD && (obj->OD_ID == odm->OD->objectDescriptorID) ) ||
 			/*dynamic OD*/
 			(obj->URLs.count && odm->OD && odm->OD->URLString && !stricmp(obj->URLs.vals[0].url, odm->OD->URLString)) 
 		) {
@@ -371,7 +381,7 @@ void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for
 				free(obj);
 			} else if (!for_shutdown) {
 				/*if dynamic OD and more than 1 URLs resetup*/
-				if ((obj->OD_ID==GF_ESM_DYNAMIC_OD_ID) && (obj->URLs.count>1)) IS_ReinsertObject(is, obj);
+				if ((obj->OD_ID==GF_MEDIA_EXTERNAL_ID) && (obj->URLs.count>1)) IS_ReinsertObject(is, obj);
 			}
 			return;
 		}
@@ -419,7 +429,7 @@ u32 URL_GetODID(MFURL *url)
 
 			if (j!= 1) {
 				/*dynamic OD if only one URL specified*/
-				if (!i) return GF_ESM_DYNAMIC_OD_ID;
+				if (!i) return GF_MEDIA_EXTERNAL_ID;
 				/*otherwise ignore*/
 				continue;
 			}
@@ -500,9 +510,11 @@ static Bool Inline_SetScene(M_Inline *root)
 	}
 	/*assign inline scene as private stack of inline node, and remember inline node for event propagation*/
 	gf_node_set_private((GF_Node *)root, mo->odm->subscene);
-	gf_list_add(mo->odm->subscene->inline_nodes, root);
-	/*play*/
-	gf_mo_play(mo, 0, -1, 0);
+	if (gf_list_find(mo->odm->subscene->inline_nodes, root)<0) {
+		gf_list_add(mo->odm->subscene->inline_nodes, root);
+		/*play*/
+		gf_mo_play(mo, 0, -1, 0);
+	}
 	return 1;
 }
 
@@ -513,7 +525,7 @@ static Bool gf_mo_is_same_url_ex(GF_MediaObject *obj, MFURL *an_url, Bool *keep_
 	char szURL1[GF_MAX_PATH], szURL2[GF_MAX_PATH], *ext;
 
 	if (keep_fragment) *keep_fragment = 0;
-	if (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID) {
+	if (obj->OD_ID==GF_MEDIA_EXTERNAL_ID) {
 		if (!obj->URLs.count) {
 			if (!obj->odm) return 0;
 			strcpy(szURL1, obj->odm->net_service->url);
@@ -611,7 +623,7 @@ void gf_inline_on_modified(GF_Node *node)
 		/*disconnect current inline if we're the last one using it (same as regular OD session leave/join)*/
 		if (mo) {
 			Bool changed = 1;
-			if (ODID != GF_ESM_DYNAMIC_OD_ID) {
+			if (ODID != GF_MEDIA_EXTERNAL_ID) {
 				if (ODID && (ODID==pIS->root_od->OD->objectDescriptorID)) changed = 0;
 			} else {
 				if (gf_mo_is_same_url(mo, &pInline->url) ) changed = 0;
@@ -620,9 +632,22 @@ void gf_inline_on_modified(GF_Node *node)
 				if (!changed) return;
 				mo->num_open --;
 				if (!mo->num_open) {
-					gf_odm_stop(pIS->root_od, 1);
-					gf_inline_disconnect(pIS, 1);
-					assert(gf_list_count(pIS->ODlist) == 0);
+					if (ODID == GF_MEDIA_EXTERNAL_ID) {
+						GF_InlineScene *parent = pIS->root_od->parentscene;
+						/*!!! THIS WILL DESTROY THE INLINE SCENE OBJECT !!!*/
+						gf_odm_disconnect(pIS->root_od, 1);
+						/*and force removal of the media object*/
+						if (parent) {
+							gf_list_del_item(parent->media_objects, mo);
+							gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
+							gf_list_del(mo->nodes);
+							free(mo);
+						}
+					} else {
+						gf_odm_stop(pIS->root_od, 1);
+						gf_inline_disconnect(pIS, 1);
+						assert(gf_list_count(pIS->ODlist) == 0);
+					}
 				}
 			}
 		}
@@ -684,7 +709,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 			if (!mo->num_open) {
 				/*this is unspecified in the spec: whenever an inline not using the 
 				OD framework is destroyed, destroy the associated resource*/
-				if (mo->OD_ID == GF_ESM_DYNAMIC_OD_ID) {
+				if (mo->OD_ID == GF_MEDIA_EXTERNAL_ID) {
 					gf_odm_disconnect(is->root_od, 1);
 
 					/*get parent scene and remove MediaObject in case the ressource
@@ -844,8 +869,8 @@ static GF_MediaObject *IS_CheckExistingObject(GF_InlineScene *is, MFURL *urls, u
 	u32 i = 0;
 	while ((obj = (GF_MediaObject *)gf_list_enum(is->media_objects, &i))) {
 		if (type && (type != obj->type)) continue;
-		if ((obj->OD_ID == GF_ESM_DYNAMIC_OD_ID) && gf_mo_is_same_url(obj, urls)) return obj;
-		else if ((obj->OD_ID != GF_ESM_DYNAMIC_OD_ID) && (obj->OD_ID == urls->vals[0].OD_ID)) return obj;
+		if ((obj->OD_ID == GF_MEDIA_EXTERNAL_ID) && gf_mo_is_same_url(obj, urls)) return obj;
+		else if ((obj->OD_ID != GF_MEDIA_EXTERNAL_ID) && (obj->OD_ID == urls->vals[0].OD_ID)) return obj;
 	}
 	return NULL;
 }
@@ -874,10 +899,10 @@ GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u3
 		while ((obj = (GF_MediaObject *)gf_list_enum(is->media_objects, &i))) {
 			if (
 				/*regular OD scheme*/
-				(OD_ID != GF_ESM_DYNAMIC_OD_ID && (obj->OD_ID==OD_ID)) 
+				(OD_ID != GF_MEDIA_EXTERNAL_ID && (obj->OD_ID==OD_ID)) 
 			||
 				/*dynamic OD scheme*/
-				((OD_ID == GF_ESM_DYNAMIC_OD_ID) && (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID)
+				((OD_ID == GF_MEDIA_EXTERNAL_ID) && (obj->OD_ID==GF_MEDIA_EXTERNAL_ID)
 					/*if object type unknown (media control, media sensor), return first obj matching URL
 					otherwise check types*/
 					&& is_match_obj_type(obj->type, obj_type_hint)
@@ -911,7 +936,7 @@ GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u3
 		obj->node_ptr = node;
 
 	gf_list_add(is->media_objects, obj);
-	if (OD_ID == GF_ESM_DYNAMIC_OD_ID) {
+	if (OD_ID == GF_MEDIA_EXTERNAL_ID) {
 		gf_sg_vrml_field_copy(&obj->URLs, url, GF_SG_VRML_MFURL);
 		IS_InsertObject(is, obj, lock_timelines, sync_ref, keep_fragment);
 		/*safety check!!!*/
@@ -937,7 +962,7 @@ void gf_inline_setup_object(GF_InlineScene *is, GF_ObjectManager *odm)
 
 	i=0;
 	while ((obj = (GF_MediaObject*)gf_list_enum(is->media_objects, &i))) {
-		if (obj->OD_ID==GF_ESM_DYNAMIC_OD_ID) {
+		if (obj->OD_ID==GF_MEDIA_EXTERNAL_ID) {
 			//assert(obj->odm);
 			if (obj->odm == odm) {
 				/*assign FINAL OD, not parent*/
@@ -1083,16 +1108,38 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 	i=0;
 	while ((pl = (ProtoLink*)gf_list_enum(is->extern_protos, &i))) {
 		if (!pl->mo) continue;
-		if (URL_GetODID(pl->url) != GF_ESM_DYNAMIC_OD_ID) {
+		if (URL_GetODID(pl->url) != GF_MEDIA_EXTERNAL_ID) {
 			if (URL_GetODID(pl->url) == URL_GetODID(lib_url)) {
 				if (!pl->mo->odm || !pl->mo->odm->subscene) return NULL;
 				return pl->mo->odm->subscene->graph;
 			}
-		} else if (lib_url->vals[0].url) {
-			if (gf_mo_is_same_url(pl->mo, lib_url)) {
+		}
+	}
+
+	/*for string URL based protos, recursively check until top if the proto lib is not already present*/
+	if (lib_url->vals[0].url) {
+		GF_InlineScene *check_scene = is;
+		while (check_scene) {
+			i=0;
+			while ((pl = (ProtoLink*)gf_list_enum(check_scene->extern_protos, &i))) {
+				char *url1, *url2;
+				Bool ok;
+				if (!pl->mo) continue;
+				if (URL_GetODID(pl->url) != GF_MEDIA_EXTERNAL_ID) continue;
+				/*not the same url*/
+				if (!gf_mo_is_same_url(pl->mo, lib_url)) continue;
+				/*check the url path is the same*/
+				url1 = gf_url_concatenate(pl->mo->odm->net_service->url, lib_url->vals[0].url);
+				url2 = gf_url_concatenate(is->root_od->net_service->url, lib_url->vals[0].url);
+				ok = 0;
+				if (url1 && url2 && !strcmp(url1, url2)) ok=1;
+				if (url1) free(url1);
+				if (url2) free(url2);
+				if (!ok) continue;
 				if (!pl->mo->odm || !pl->mo->odm->subscene) return NULL;
 				return pl->mo->odm->subscene->graph;
 			}
+			check_scene = check_scene->root_od->parentscene;
 		}
 	}
 
@@ -1136,7 +1183,7 @@ GF_MediaObject *gf_inline_find_object(GF_InlineScene *is, u16 ODID, char *url)
 	if (!url && !ODID) return NULL;
 	i=0;
 	while ((mo = (GF_MediaObject *)gf_list_enum(is->media_objects, &i))) {
-		if (ODID==GF_ESM_DYNAMIC_OD_ID) {
+		if (ODID==GF_MEDIA_EXTERNAL_ID) {
 			if (mo->URLs.count && !stricmp(mo->URLs.vals[0].url, url)) return mo;
 		} else if (mo->OD_ID==ODID) return mo;
 	}
@@ -1246,7 +1293,7 @@ static GF_Node *is_create_node(GF_SceneGraph *sg, u32 tag, const char *def_name)
 static Bool is_odm_url(SFURL *url, GF_ObjectManager *odm)
 {
 	if (!url->OD_ID && !url->url) return 0;
-	if (odm->OD->objectDescriptorID != GF_ESM_DYNAMIC_OD_ID) return (url->OD_ID==odm->OD->objectDescriptorID) ? 1 : 0;
+	if (odm->OD->objectDescriptorID != GF_MEDIA_EXTERNAL_ID) return (url->OD_ID==odm->OD->objectDescriptorID) ? 1 : 0;
 	if (!url->url || !odm->OD->URLString) return 0;
 	return !stricmp(url->url, odm->OD->URLString);
 }
@@ -1321,7 +1368,7 @@ void gf_inline_regenerate(GF_InlineScene *is)
 		if (is->audio_url.url) free(is->audio_url.url);
 		is->audio_url.url = NULL;
 		is->audio_url.OD_ID = first_odm->OD->objectDescriptorID;
-		if (is->audio_url.OD_ID==GF_ESM_DYNAMIC_OD_ID) is->audio_url.url = strdup(first_odm->net_service->url);
+		if (is->audio_url.OD_ID==GF_MEDIA_EXTERNAL_ID) is->audio_url.url = strdup(first_odm->net_service->url);
 		gf_sg_vrml_mf_append(&ac->url, GF_SG_VRML_MFURL, (void **) &sfu);
 		sfu->OD_ID = is->audio_url.OD_ID;
 		if (is->audio_url.url) sfu->url = strdup(is->audio_url.url);
@@ -1374,7 +1421,7 @@ void gf_inline_regenerate(GF_InlineScene *is)
 		if (is->visual_url.url) free(is->visual_url.url);
 		is->visual_url.url = NULL;
 		is->visual_url.OD_ID = first_odm->OD->objectDescriptorID;
-		if (is->visual_url.OD_ID==GF_ESM_DYNAMIC_OD_ID) is->visual_url.url = strdup(first_odm->net_service->url);
+		if (is->visual_url.OD_ID==GF_MEDIA_EXTERNAL_ID) is->visual_url.url = strdup(first_odm->net_service->url);
 
 		gf_sg_vrml_mf_append(&mt->url, GF_SG_VRML_MFURL, (void **) &sfu);
 		sfu->OD_ID = is->visual_url.OD_ID;
@@ -1410,7 +1457,7 @@ void gf_inline_regenerate(GF_InlineScene *is)
 
 			gf_sg_vrml_mf_append(&as->url, GF_SG_VRML_MFURL, (void **) &sfu);
 			sfu->OD_ID = is->text_url.OD_ID = odm->OD->objectDescriptorID;
-			if (odm->OD->objectDescriptorID == GF_ESM_DYNAMIC_OD_ID) {
+			if (odm->OD->objectDescriptorID == GF_MEDIA_EXTERNAL_ID) {
 				sfu->url = strdup(odm->net_service->url);
 				is->text_url.url = strdup(odm->net_service->url);
 			}
@@ -1425,7 +1472,7 @@ void gf_inline_regenerate(GF_InlineScene *is)
 		is->text_url.url = NULL;
 		gf_sg_vrml_mf_append(&as->url, GF_SG_VRML_MFURL, (void **) &sfu);
 		sfu->OD_ID = is->text_url.OD_ID = first_odm->OD->objectDescriptorID;
-		if (is->text_url.OD_ID==GF_ESM_DYNAMIC_OD_ID) {
+		if (is->text_url.OD_ID==GF_MEDIA_EXTERNAL_ID) {
 			is->text_url.url = strdup(first_odm->net_service->url);
 			sfu->url = strdup(first_odm->net_service->url);
 		}
@@ -1445,7 +1492,7 @@ void gf_inline_regenerate(GF_InlineScene *is)
 
 		gf_sg_vrml_mf_append(&dims->url, GF_SG_VRML_MFURL, (void **) &sfu);
 		sfu->OD_ID = odm->OD->objectDescriptorID;
-		if (odm->OD->objectDescriptorID == GF_ESM_DYNAMIC_OD_ID) {
+		if (odm->OD->objectDescriptorID == GF_MEDIA_EXTERNAL_ID) {
 			sfu->url = strdup(odm->net_service->url);
 		}
 		if (!is->dyn_ck) is->dyn_ck = odm->subscene->scene_codec->ck;

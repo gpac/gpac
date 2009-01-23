@@ -565,7 +565,7 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url)
 	Bool ret = 0;
 	if (!mo) return (url ? 1 : 0);
 	od_id = URL_GetODID(url);
-	if ( (mo->OD_ID == GF_ESM_DYNAMIC_OD_ID) && (od_id == GF_ESM_DYNAMIC_OD_ID)) {
+	if ( (mo->OD_ID == GF_MEDIA_EXTERNAL_ID) && (od_id == GF_MEDIA_EXTERNAL_ID)) {
 		ret = !gf_mo_is_same_url(mo, url);
 	} else {
 		ret = (mo->OD_ID == od_id) ? 0 : 1;
@@ -636,7 +636,12 @@ Bool gf_mo_get_loop(GF_MediaObject *mo, Bool in_loop)
 
 	/*otherwise looping is only accepted if not sharing parent scene clock*/
 	ck = gf_odm_get_media_clock(mo->odm->parentscene->root_od);
-	if (gf_odm_shares_clock(mo->odm, ck)) in_loop = 0;
+	if (gf_odm_shares_clock(mo->odm, ck)) {
+		in_loop = 0;
+		if (ctrl->stream->odm && ctrl->stream->odm->subscene)
+			gf_term_invalidate_compositor(mo->odm->term);
+
+	}
 	gf_odm_lock(mo->odm, 0);
 	return in_loop;
 }

@@ -2231,7 +2231,7 @@ void wxOsmo4Frame::BuildStreamList(Bool reset_only)
 
 	for (u32 i=0; i<count; i++) {
 		char szLabel[1024];
-		ODInfo info;
+		GF_MediaInfo info;
 		GF_ObjectManager *odm = gf_term_get_object(m_term, root_od, i);
 		if (!odm) return;
 
@@ -2289,7 +2289,7 @@ void wxOsmo4Frame::OnUpdateStreamSel(wxUpdateUIEvent & event)
 	GF_ObjectManager *odm = gf_term_get_object(m_term, root_od, ID);
 	if (!odm) return;
 
-	ODInfo info;
+	GF_MediaInfo info;
 	gf_term_get_object_info(m_term, odm, &info);
 	event.Enable(1);
 	event.Check(info.status ? 1 : 0);
@@ -2386,7 +2386,7 @@ void wxOsmo4Frame::OnUpdateCacheAbort(wxUpdateUIEvent & event)
 
 void wxOsmo4Frame::BuildChapterList(Bool reset_only)
 {
-	ODInfo odi;
+	GF_MediaInfo odi;
 
 	while (chap_menu->GetMenuItemCount()) {
 		wxMenuItem* it = chap_menu->FindItemByPosition(0);

@@ -1109,7 +1109,7 @@ GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play)
 	MFURL mfurl;
 	if (!url || !term || !term->root_scene || !term->root_scene->is_dynamic_scene) return GF_BAD_PARAM;
 
-	sfurl.OD_ID = GF_ESM_DYNAMIC_OD_ID;
+	sfurl.OD_ID = GF_MEDIA_EXTERNAL_ID;
 	sfurl.url = (char *) url;
 	mfurl.count = 1;
 	mfurl.vals = &sfurl;

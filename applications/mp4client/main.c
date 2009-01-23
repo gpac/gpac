@@ -43,7 +43,8 @@
 /*local prototypes*/
 void PrintWorldInfo(GF_Terminal *term);
 void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number);
-void PrintODList(GF_Terminal *term);
+void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 indent, char *root_name);
+
 void ViewODs(GF_Terminal *term, Bool show_timing);
 void PrintGPACConfig();
 
@@ -1332,7 +1333,7 @@ force_input:
 			if (is_connected) PrintWorldInfo(term);
 			break;
 		case 'v':
-			if (is_connected) PrintODList(term);
+			if (is_connected) PrintODList(term, NULL, 0, "Root");
 			break;
 		case 'i':
 			if (is_connected) {
@@ -1535,33 +1536,64 @@ void PrintWorldInfo(GF_Terminal *term)
 	gf_list_del(descs);
 }
 
-void PrintODList(GF_Terminal *term)
+void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 indent, char *root_name)
 {
-	ODInfo odi;
+	GF_MediaInfo odi;
 	u32 i, count;
-	GF_ObjectManager *odm, *root_odm = gf_term_get_root_object(term);
+	char szIndent[50];
+	GF_ObjectManager *odm;
+
+	if (!root_odm) {
+		fprintf(stdout, "Currently loaded objects:\n");
+		root_odm = gf_term_get_root_object(term);
+	}
 	if (!root_odm) return;
 	if (gf_term_get_object_info(term, root_odm, &odi) != GF_OK) return;
 	if (!odi.od) {
 		fprintf(stdout, "Service not attached\n");
 		return;
 	}
-	fprintf(stdout, "Currently loaded objects:\n");
-	fprintf(stdout, "\tRootOD ID %d\n", odi.od->objectDescriptorID);
+
+	for (i=0;i<indent;i++) szIndent[i]=' ';
+	szIndent[i]=0;
+	
+	fprintf(stdout, szIndent);
+	fprintf(stdout, "#0 %s - OD ID %d\n", root_name, odi.od->objectDescriptorID);
 
 	count = gf_term_get_object_count(term, root_odm);
 	for (i=0; i<count; i++) {
 		odm = gf_term_get_object(term, root_odm, i);
 		if (!odm) break;
-		if (gf_term_get_object_info(term, odm, &odi) == GF_OK) 
-			fprintf(stdout, "\t\tOD %d - ID %d (%s)\n", i+1, odi.od->objectDescriptorID, 
-			(odi.od_type==GF_STREAM_VISUAL) ? "Video" : (odi.od_type==GF_STREAM_AUDIO) ? "Audio" : "Systems");
+		if (gf_term_get_object_info(term, odm, &odi) == GF_OK) {
+			fprintf(stdout, szIndent);
+			fprintf(stdout, "#%d - ", i+1);
+			if (odi.media_url) {
+				fprintf(stdout, "%s", odi.media_url);
+			} else {
+				fprintf(stdout, "ID %d", odi.od->objectDescriptorID);
+			}
+			fprintf(stdout, " - %s\n", (odi.od_type==GF_STREAM_VISUAL) ? "Video" : (odi.od_type==GF_STREAM_AUDIO) ? "Audio" : "Systems");
+
+			switch (gf_term_object_subscene_type(term, odm)) {
+			case 1:
+				PrintODList(term, odm, indent+1, "Root");
+				break;
+			case 2:
+				PrintODList(term, odm, indent+1, "Inline Scene");
+				break;
+			case 3:
+				PrintODList(term, odm, indent+1, "EXTERNPROTO Library");
+				break;
+			default:
+				break;
+			}
+		}
 	}
 }
 
 void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 {
-	ODInfo odi;
+	GF_MediaInfo odi;
 	u32 i, j, count, d_enum,id;
 	GF_Err e;
 	char code[5];
@@ -1859,7 +1891,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 
 void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm)
 {
-	ODInfo odi;
+	GF_MediaInfo odi;
 	if (!odm) return;
 
 	if (gf_term_get_object_info(term, odm, &odi) != GF_OK) return;
@@ -1885,7 +1917,7 @@ void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm)
 void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm)
 {
 	Float avg_dec_time;
-	ODInfo odi;
+	GF_MediaInfo odi;
 	if (!odm) return;
 
 	if (gf_term_get_object_info(term, odm, &odi) != GF_OK) return;

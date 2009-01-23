@@ -2040,12 +2040,11 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	if (tr_state->visual->type_3d) {
 		GF_Matrix mx_bck, mx;
 		gf_mx_copy(mx_bck, tr_state->model_matrix);
+
 		gf_mx_from_mx2d(&mx, &transf);
 		/*copy over z scale*/
 		mx.m[10] = mx.m[5];
-		gf_mx_add_matrix(&mx, &tr_state->model_matrix);
-		gf_mx_copy(tr_state->model_matrix, mx);
-
+		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
 		if (tr_state->traversing_mode==TRAVERSE_SORT) {
 			visual_3d_matrix_push(tr_state->visual);
 			visual_3d_matrix_add(tr_state->visual, mx.m);

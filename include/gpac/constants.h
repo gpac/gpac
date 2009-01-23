@@ -130,6 +130,9 @@ enum
 	GF_MEDIA_OBJECT_INTERACT,
 };
 
+/*! All Media Objects inserted through URLs and not MPEG-4 OD Framework use this ODID*/
+#define GF_MEDIA_EXTERNAL_ID		1050
+
 
 /*!
  * \brief Pixel Formats

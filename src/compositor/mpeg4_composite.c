@@ -29,14 +29,8 @@
 #include "texturing.h"
 
 #ifdef GPAC_USE_TINYGL
-//#include <GL/oscontext.h>
-#include "../../TinyGL/include/GL/oscontext.h"
+#include <GL/oscontext.h>
 #endif
-
-#ifdef TRISCOPE_TEST_MALLOC
-#include "gltx_malloc.h"
-#endif
-
 
 
 typedef struct
@@ -59,12 +53,7 @@ static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		/*unregister visual*/
 		gf_sc_visual_unregister(st->visual->compositor, st->visual);
 		visual_del(st->visual);
-#ifndef TRISCOPE_TEST_MALLOC
 		if (st->txh.data) free(st->txh.data);
-#else
-		if (st->txh.data) gltx_free(st->txh.data);
-        printf("Renoir object texture freed: Total %d Max %d\n",gltx_total_mem(),gltx_max_alloc()) ;
-#endif
 		/*destroy texture*/
 		gf_sc_texture_destroy(&st->txh);
 #ifdef GPAC_USE_TINYGL
@@ -320,14 +309,7 @@ static void composite_update(GF_TextureHandler *txh)
 #endif
 	
 		if (needs_stencil) {
-#ifndef TRISCOPE_TEST_MALLOC
 			txh->data = (char*)malloc(sizeof(unsigned char) * txh->stride * txh->height);
-#else
-			if ( txh->data = (char*)gltx_malloc(sizeof(unsigned char) * txh->stride * txh->height) ) {
-               printf("\nRenoir object texture allocation: %d bytes\n", sizeof(unsigned char) * txh->stride * txh->height ) ;
-               printf("Renoir object texture allocated: Total %d Max %d\n",gltx_total_mem(),gltx_max_alloc()) ;
-            } else printf( "Renoir object texture could not be allocated!");
-#endif
 			memset(txh->data, 0, sizeof(unsigned char) * txh->stride * txh->height);
 			e = raster->stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat, txh->pixelformat, 0);
 #ifdef GPAC_TRISCOPE_MODE
@@ -460,6 +442,10 @@ void compositor_init_compositetexture2d(GF_Compositor *compositor, GF_Node *node
 	CompositeTextureStack *st;
 	GF_SAFEALLOC(st, CompositeTextureStack);
 	gf_sc_texture_setup(&st->txh, compositor, node);
+	/*remove texture from compositor and add it at the end, so that any sub-textures are handled before*/
+	gf_list_del_item(compositor->textures, &st->txh); 
+	gf_list_add(compositor->textures, &st->txh);
+
 	st->txh.update_texture_fcnt = composite_update;
 
 //	st->txh.flags = GF_SR_TEXTURE_NO_GL_FLIP;
@@ -488,6 +474,10 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 	CompositeTextureStack *st;
 	GF_SAFEALLOC(st, CompositeTextureStack);
 	gf_sc_texture_setup(&st->txh, compositor, node);
+	/*remove texture from compositor and add it at the end, so that any sub-textures are handled before*/
+	gf_list_del_item(compositor->textures, &st->txh); 
+	gf_list_add(compositor->textures, &st->txh);
+
 	st->txh.update_texture_fcnt = composite_update;
 
 //	st->txh.flags = GF_SR_TEXTURE_NO_GL_FLIP;

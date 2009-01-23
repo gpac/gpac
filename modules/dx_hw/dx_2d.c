@@ -780,7 +780,9 @@ rem_fmt:
 GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_system_memory)
 {
 	DDCONTEXT;
+#ifndef GPAC_DISABLE_3D
 	if (dd->output_3d_type) return GF_BAD_PARAM;
+#endif
 	if (!dd->ddraw_init) return InitDirectDraw(dr, width, height);
 	return CreateBackBuffer(dr, width, height, use_system_memory);
 }

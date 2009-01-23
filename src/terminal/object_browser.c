@@ -108,7 +108,7 @@ void gf_term_select_object(GF_Terminal *term, GF_ObjectManager *odm)
 
 
 
-static void get_codec_stats(GF_Codec *dec, ODInfo *info)
+static void get_codec_stats(GF_Codec *dec, GF_MediaInfo *info)
 {
 	info->avg_bitrate = dec->avg_bit_rate;
 	info->max_bitrate = dec->max_bit_rate;
@@ -117,14 +117,14 @@ static void get_codec_stats(GF_Codec *dec, ODInfo *info)
 	info->total_dec_time = dec->total_dec_time;
 }
 
-GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo *info)
+GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_MediaInfo *info)
 {
 	GF_Channel *ch;
 
 	if (!term || !odm || !odm->OD || !info) return GF_BAD_PARAM;
 	if (!gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
 
-	memset(info, 0, sizeof(ODInfo));
+	memset(info, 0, sizeof(GF_MediaInfo));
 	info->od = odm->OD;
 
 	info->duration = (Double) (s64)odm->duration;
@@ -241,6 +241,9 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo 
 
 	ch = (GF_Channel*)gf_list_get(odm->channels, 0);
 	if (ch && ch->esd->langDesc) info->lang = ch->esd->langDesc->langCode;
+
+	if (odm->mo && odm->mo->URLs.count)
+		info->media_url = odm->mo->URLs.vals[0].url;
 	return GF_OK;
 }
 

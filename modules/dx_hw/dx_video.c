@@ -139,11 +139,16 @@ static void RestoreWindow(DDContext *dd)
 	if (!dd->NeedRestore) return;
 
 	dd->NeedRestore = 0;
+
+#ifndef GPAC_DISABLE_3D
 	if (dd->output_3d_type==1) {
 #ifndef _WIN32_WCE
 		ChangeDisplaySettings(NULL,0);
 #endif
-	} else {
+	} else 
+#endif
+
+	{
 #ifdef USE_DX_3
 		IDirectDraw_SetCooperativeLevel(dd->pDD, dd->cur_hwnd, DDSCL_NORMAL);
 #else
@@ -170,6 +175,10 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		SAFE_DD_RELEASE(dd->pBack);
 		SAFE_DD_RELEASE(dd->pDD);
 		dd->ddraw_init = 0;
+
+#ifdef GPAC_DISABLE_3D
+	}
+#else
 
 		/*do not destroy associated GL context*/
 		if (dd->output_3d_type==2) return;
@@ -213,6 +222,9 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		dd->gl_HDC = NULL;
 	}
 #endif
+
+
+#endif
 }
 
 void DestroyObjects(DDContext *dd)
@@ -220,6 +232,7 @@ void DestroyObjects(DDContext *dd)
 	DestroyObjectsEx(dd, 0);
 }
 
+#ifndef GPAC_DISABLE_3D
 
 GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_height) 
 {
@@ -368,6 +381,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	return GF_OK;
 }
 
+#endif
 
 
 
@@ -391,7 +405,9 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 		ReleaseDC(dd->os_hwnd, hdc);
 	}
 
+#ifndef GPAC_DISABLE_3D
 	dd->output_3d_type = 0;
+#endif
 	GetWindowRect(dd->cur_hwnd, &rc);
 	return InitDirectDraw(dr, rc.right - rc.left, rc.bottom - rc.top);
 }
@@ -401,7 +417,9 @@ static void DD_Shutdown(GF_VideoOutput *dr)
 	DDCONTEXT
 
 	/*force destroy of opengl*/
+#ifndef GPAC_DISABLE_3D
 	if (dd->output_3d_type) dd->output_3d_type = 1;
+#endif
 	DestroyObjects(dd);
 
 	DD_ShutdownWindow(dr);
@@ -441,6 +459,7 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	dd->cur_hwnd = dd->fullscreen ? dd->fs_hwnd : dd->os_hwnd;
 	ShowWindow(dd->cur_hwnd, SW_SHOW);
 
+#ifndef GPAC_DISABLE_3D
 	if (dd->output_3d_type==1) {
 		DEVMODE settings;
 		e = GF_OK;
@@ -471,7 +490,9 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 		}
 		if (!e) e = DD_SetupOpenGL(dr, 0, 0);
 		
-	} else {
+	} else 
+#endif
+	{
 		e = InitDirectDraw(dr, dd->width, dd->height);
 	}
 
@@ -497,6 +518,9 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	DDCONTEXT;
 
 	if (!dd) return GF_BAD_PARAM;
+
+#ifndef GPAC_DISABLE_3D
+
 	if (dd->output_3d_type==1) {
 #ifdef GPAC_USE_OGL_ES
 		if (dd->surface) eglSwapBuffers(dd->egldpy, dd->surface);
@@ -505,6 +529,8 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 #endif
 		return GF_OK;
 	}
+#endif
+
 
 	if (!dd->ddraw_init) return GF_BAD_PARAM;
 

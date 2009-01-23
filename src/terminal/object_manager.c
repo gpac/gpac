@@ -609,7 +609,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	}
 		
 	/*for objects inserted by user (subs & co), auto select*/
-	if (odm->term->root_scene->is_dynamic_scene && (odm->OD->objectDescriptorID==GF_ESM_DYNAMIC_OD_ID) && (odm->flags & GF_ODM_REMOTE_OD)) {
+	if (odm->term->root_scene->is_dynamic_scene && (odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID) && (odm->flags & GF_ODM_REMOTE_OD)) {
 		GF_Event evt;
 		if (odm->OD_PL) {
 			gf_inline_select_object(odm->term->root_scene, odm);

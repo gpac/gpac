@@ -355,7 +355,12 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		}
 		break;
 	case WM_ACTIVATE:
-		if ((ctx->output_3d_type!=2) && ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) && (hWnd==ctx->fs_hwnd)) {
+		if (ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) 
+			&& (hWnd==ctx->fs_hwnd)
+#ifndef GPAC_DISABLE_3D
+			&& (ctx->output_3d_type!=2)
+#endif
+			) {
 			evt.type = GF_EVENT_SHOWHIDE;
 			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
@@ -711,7 +716,9 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 		ctx->orig_wnd_proc = 0L;
 	}
 	dd_closewindow(ctx->fs_hwnd);
+#ifndef GPAC_DISABLE_3D
 	if (ctx->gl_hwnd) dd_closewindow(ctx->gl_hwnd);
+#endif
 
 	while (ctx->th_state!=2) 
 		gf_sleep(10);
@@ -726,7 +733,9 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 #endif
 	ctx->os_hwnd = NULL;
 	ctx->fs_hwnd = NULL;
+#ifndef GPAC_DISABLE_3D
 	ctx->gl_hwnd = NULL;
+#endif
 	the_video_output = NULL;
 }
 
@@ -831,8 +840,11 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	case GF_EVENT_VIDEO_SETUP:
 		switch (evt->setup.opengl_mode) {
 		case 0:
+#ifndef GPAC_DISABLE_3D
 			ctx->output_3d_type = 0;
+#endif
 			return DD_SetBackBufferSize(dr, evt->setup.width, evt->setup.height, evt->setup.system_memory);
+#ifndef GPAC_DISABLE_3D
 		case 1:
 			ctx->output_3d_type = 1;
 			ctx->width = evt->setup.width;
@@ -848,6 +860,9 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 			SetForegroundWindow(ctx->cur_hwnd);
 			ctx->gl_double_buffer = evt->setup.back_buffer;
 			return DD_SetupOpenGL(dr, evt->size.width, evt->size.height);
+#else
+			return GF_NOT_SUPPORTED;
+#endif
 		}
 	}
 	return GF_OK;

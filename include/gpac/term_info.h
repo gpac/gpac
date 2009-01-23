@@ -109,10 +109,13 @@ typedef struct
 	u32 protection;
 
 	u32 lang;
-} ODInfo;
 
-/*fills the ODInfo structure describing the OD manager*/
-GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, ODInfo *info);
+	/*name of media if not defined in OD framework*/
+	const char *media_url;
+} GF_MediaInfo;
+
+/*fills the GF_MediaInfo structure describing the OD manager*/
+GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_MediaInfo *info);
 /*gets current downloads info for the service - only use if ODM owns thesrevice, returns 0 otherwise.
 	@d_enum: in/out current enum - shall start to 0, incremented at each call. fct returns 0 if no more 
 	downloads

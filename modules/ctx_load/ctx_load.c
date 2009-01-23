@@ -325,7 +325,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 			gf_sm_load_done(&priv->load);
 			priv->file_pos = 0;
 			/*this will call detach scene*/
-			gf_inline_disconnect(priv->inline_scene, 1);
+			gf_inline_disconnect(priv->inline_scene, 0);
 			return CTXLoad_Setup((GF_BaseDecoder *)plug);
 		}
 		i=0;

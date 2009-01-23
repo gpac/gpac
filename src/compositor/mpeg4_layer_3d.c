@@ -32,9 +32,7 @@
 #ifndef GPAC_DISABLE_3D
 
 #ifdef GPAC_USE_TINYGL
-//#include <GL/oscontext.h>
-#include "../../TinyGL/include/GL/oscontext.h"
-
+#include <GL/oscontext.h>
 #endif
 
 typedef struct

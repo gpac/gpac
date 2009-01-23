@@ -90,7 +90,11 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 	}
 	if (lg->key.count > lg->keyValue.count) return;
 
-	if (!txh->tx_io) gf_sc_texture_allocate(txh);
+	if (!txh->tx_io) {
+		gf_node_dirty_reset( gf_node_get_parent(txh->owner, 0));
+		gf_node_dirty_set(txh->owner, 0, 1);
+		gf_sc_texture_allocate(txh);
+	}
 
 	stencil = gf_sc_texture_get_stencil(txh);
 	if (!stencil) stencil = txh->compositor->rasterizer->stencil_new(txh->compositor->rasterizer, GF_STENCIL_LINEAR_GRADIENT);

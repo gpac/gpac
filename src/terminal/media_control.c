@@ -284,6 +284,9 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			gf_sg_vrml_mf_reset(&stack->url, GF_SG_VRML_MFURL);
 
 			prev = stack->stream;
+			if (gf_list_find(stack->parent->media_objects, prev)<0) 
+				prev = NULL;
+
 			stack->stream = gf_inline_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
 			if (stack->stream) {
 				if (!stack->stream->odm) return;
@@ -438,6 +441,7 @@ void MC_Modified(GF_Node *node)
 //		else stack->changed = 1;
 	}
 
+	gf_node_dirty_set( gf_sg_get_root_node(gf_node_get_graph(node)), 0, 1);
 	/*invalidate scene, we recompute MC state in render*/
 	gf_term_invalidate_compositor(stack->parent->root_od->term);
 }
