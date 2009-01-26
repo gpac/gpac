@@ -1175,6 +1175,7 @@ X11_SetupWindow (GF_VideoOutput * vout)
 {
 	X11VID ();
 	const char *sOpt;
+        Bool autorepeat, supported;
 
 	xWindow->display = XOpenDisplay (NULL);
 	xWindow->screennum = DefaultScreen (xWindow->display);
@@ -1281,6 +1282,9 @@ xWindow->screennum=0;
 	Hints->y = 0;
 	Hints->flags |= USPosition;
 	XSetWMNormalHints (xWindow->display, xWindow->full_wnd, Hints);
+
+	autorepeat = 1;
+	XkbSetDetectableAutoRepeat(xWindow->display, autorepeat, &supported);
 
 	xWindow->the_gc = XCreateGC (xWindow->display, xWindow->wnd, 0, NULL);
 	xWindow->use_shared_memory = 0;
