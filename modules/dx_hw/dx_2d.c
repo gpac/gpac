@@ -790,7 +790,7 @@ GF_Err DD_SetBackBufferSize(GF_VideoOutput *dr, u32 width, u32 height, Bool use_
 
 void DD_SetupDDraw(GF_VideoOutput *driv)
 {
-	driv->hw_caps |= GF_VIDEO_HW_HAS_COLOR_KEY;
+	driv->hw_caps |= GF_VIDEO_HW_HAS_RGB;
 	driv->Blit = DD_Blit;
 	driv->LockBackBuffer = DD_LockBackBuffer;
 	driv->LockOSContext = LockOSContext;

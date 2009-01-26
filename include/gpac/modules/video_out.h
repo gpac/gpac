@@ -51,23 +51,23 @@ extern "C" {
 
 enum
 {
+	/*HW supports RGB->backbuffer blitting*/
+	GF_VIDEO_HW_HAS_RGB = (1<<1),
+	/*HW supports RGBA->backbuffer blitting*/
+	GF_VIDEO_HW_HAS_RGBA = (1<<2),
 	/*HW supports YUV->backbuffer blitting*/
-	GF_VIDEO_HW_HAS_YUV = (1<<1),
-	/*HW supports keying*/
-	GF_VIDEO_HW_HAS_COLOR_KEY = (1<<2),
-	/*HW supports 90 degres rotation of display in 2D mode (Mobile Phones & PDAs)*/
-	GF_VIDEO_HW_CAN_ROTATE = (1<<3),
+	GF_VIDEO_HW_HAS_YUV = (1<<3),
+	/*HW supports YUV overlays*/
+	GF_VIDEO_HW_HAS_YUV_OVERLAY = (1<<4),
 	/*HW supports OpenGL rendering. Whether this is OpenGL or OpenGL-ES depends on compilation settings
 	and cannot be changed at runtime*/
-	GF_VIDEO_HW_OPENGL = (1<<4),
+	GF_VIDEO_HW_OPENGL = (1<<5),
 	/*HW supports OpenGL offscreen rendering. Whether this is OpenGL or OpenGL-ES depends on compilation settings
 	and cannot be changed at runtime*/
-	GF_VIDEO_HW_OPENGL_OFFSCREEN = (1<<5),
+	GF_VIDEO_HW_OPENGL_OFFSCREEN = (1<<6),
 	/*HW supports OpenGL offscreen rendering with alpha. Whether this is OpenGL or OpenGL-ES depends on compilation settings
 	and cannot be changed at runtime*/
-	GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA = (1<<6),
-	/*HW supports YUV overlays*/
-	GF_VIDEO_HW_HAS_YUV_OVERLAY = (1<<7),
+	GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA = (1<<7),
 };
 
 /*interface name and version for video output*/
