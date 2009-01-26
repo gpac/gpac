@@ -326,17 +326,22 @@ static void UpdateRTInfo(const char *legend)
 		return;
 
 	if (display_rti) {
-		char szMsg[1024];
-		GF_Event evt;
-
 		if (!rti.process_memory) rti.process_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
 		if (!rti.gpac_memory) rti.gpac_memory = (u32) (memory_at_gpac_startup-rti.physical_memory_avail);
-		sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
-			gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
 
-		evt.type = GF_EVENT_SET_CAPTION;
-		evt.caption.caption = szMsg;
-		gf_term_user_event(term, &evt);
+		if (display_rti==2) {
+			fprintf(stdout, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB\r", 
+				gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
+		} else {
+			char szMsg[1024];
+			GF_Event evt;
+
+			sprintf(szMsg, "FPS %02.2f - CPU %02d (%02d) - Mem %d kB", 
+				gf_term_get_framerate(term, 0), rti.total_cpu_usage, rti.process_cpu_usage, (u32) (rti.gpac_memory / 1024) );
+			evt.type = GF_EVENT_SET_CAPTION;
+			evt.caption.caption = szMsg;
+			gf_term_user_event(term, &evt);
+		}
 	}
 	if (rti_logs) {
 		fprintf(rti_logs, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t%s", 
@@ -1436,6 +1441,11 @@ force_input:
 			break;
 		case 'R':
 			display_rti = !display_rti;
+			ResetCaption();
+			break;
+		case 'F':
+			if (display_rti) display_rti = 0;
+			else display_rti = 2;
 			ResetCaption();
 			break;
 
