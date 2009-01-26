@@ -1164,11 +1164,10 @@ static void *NewGAPIVideoOutput()
 	driv->opaque = priv;
 	priv->force_gx = 0;
 
-	/*alpha and keying to do*/
-	driv->hw_caps = GF_VIDEO_HW_CAN_ROTATE;
 #ifdef GPAC_USE_OGL_ES
-	driv->hw_caps = GF_VIDEO_HW_OPENGL;
+	driv->hw_caps = GF_VIDEO_HW_OPENGL | GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
 #endif
+	/*rgb, yuv to do*/
 
 	driv->Setup = GAPI_Setup;
 	driv->Shutdown = GAPI_Shutdown;
