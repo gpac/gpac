@@ -43,7 +43,7 @@
 /*local prototypes*/
 void PrintWorldInfo(GF_Terminal *term);
 void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number);
-void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 indent, char *root_name);
+void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 indent, char *root_name);
 
 void ViewODs(GF_Terminal *term, Bool show_timing);
 void PrintGPACConfig();
@@ -1338,7 +1338,7 @@ force_input:
 			if (is_connected) PrintWorldInfo(term);
 			break;
 		case 'v':
-			if (is_connected) PrintODList(term, NULL, 0, "Root");
+			if (is_connected) PrintODList(term, NULL, 0, 0, "Root");
 			break;
 		case 'i':
 			if (is_connected) {
@@ -1546,7 +1546,7 @@ void PrintWorldInfo(GF_Terminal *term)
 	gf_list_del(descs);
 }
 
-void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 indent, char *root_name)
+void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 indent, char *root_name)
 {
 	GF_MediaInfo odi;
 	u32 i, count;
@@ -1565,36 +1565,40 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 indent, char
 	}
 
 	for (i=0;i<indent;i++) szIndent[i]=' ';
-	szIndent[i]=0;
+	szIndent[indent]=0;
 	
 	fprintf(stdout, szIndent);
-	fprintf(stdout, "#0 %s - OD ID %d\n", root_name, odi.od->objectDescriptorID);
+	fprintf(stdout, "#%d %s - OD ID %d\n", num, root_name, odi.od->objectDescriptorID);
+
+	szIndent[indent]=' ';
+	szIndent[indent+1]=0;
+	indent++;
 
 	count = gf_term_get_object_count(term, root_odm);
 	for (i=0; i<count; i++) {
 		odm = gf_term_get_object(term, root_odm, i);
 		if (!odm) break;
+		num++;
 		if (gf_term_get_object_info(term, odm, &odi) == GF_OK) {
-			fprintf(stdout, szIndent);
-			fprintf(stdout, "#%d - ", i+1);
-			if (odi.media_url) {
-				fprintf(stdout, "%s", odi.media_url);
-			} else {
-				fprintf(stdout, "ID %d", odi.od->objectDescriptorID);
-			}
-			fprintf(stdout, " - %s\n", (odi.od_type==GF_STREAM_VISUAL) ? "Video" : (odi.od_type==GF_STREAM_AUDIO) ? "Audio" : "Systems");
-
 			switch (gf_term_object_subscene_type(term, odm)) {
 			case 1:
-				PrintODList(term, odm, indent+1, "Root");
+				PrintODList(term, odm, num, indent, "Root");
 				break;
 			case 2:
-				PrintODList(term, odm, indent+1, "Inline Scene");
+				PrintODList(term, odm, num, indent, "Inline Scene");
 				break;
 			case 3:
-				PrintODList(term, odm, indent+1, "EXTERNPROTO Library");
+				PrintODList(term, odm, num, indent, "EXTERNPROTO Library");
 				break;
 			default:
+				fprintf(stdout, szIndent);
+				fprintf(stdout, "#%d - ", num);
+				if (odi.media_url) {
+					fprintf(stdout, "%s", odi.media_url);
+				} else {
+					fprintf(stdout, "ID %d", odi.od->objectDescriptorID);
+				}
+				fprintf(stdout, " - %s\n", (odi.od_type==GF_STREAM_VISUAL) ? "Video" : (odi.od_type==GF_STREAM_AUDIO) ? "Audio" : "Systems");
 				break;
 			}
 		}
