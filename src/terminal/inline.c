@@ -383,6 +383,13 @@ void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for
 				/*if dynamic OD and more than 1 URLs resetup*/
 				if ((obj->OD_ID==GF_MEDIA_EXTERNAL_ID) && (obj->URLs.count>1)) IS_ReinsertObject(is, obj);
 			}
+			/*discard media object*/
+			else if (for_shutdown==2) {
+				gf_list_rem(is->media_objects, i-1);
+				gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
+				gf_list_del(obj->nodes);
+				free(obj);
+			}
 			return;
 		}
 	}

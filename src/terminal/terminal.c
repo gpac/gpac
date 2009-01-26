@@ -31,8 +31,11 @@
 #include <gpac/options.h>
 #include <gpac/network.h>
 #include <gpac/xml.h>
+
 /*textual command processing*/
 #include <gpac/scene_manager.h>
+
+#include "media_memory.h"
 
 u32 gf_term_get_time(GF_Terminal *term)
 {
@@ -715,7 +718,14 @@ void gf_term_handle_services(GF_Terminal *term)
 		/*this is a stop*/
 		if (odm->media_start_time == (u64)-1) {
 			odm->media_start_time = 0;
-			gf_odm_stop(odm, 0);
+			if ((odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID) 
+			&& odm->codec 
+			&& odm->codec->CB 
+			&& (odm->codec->CB->Capacity==1)) {
+				gf_odm_disconnect(odm, 2);
+			} else {
+				gf_odm_stop(odm, 0);
+			}
 		} 
 		/*this is a play*/
 		else {
