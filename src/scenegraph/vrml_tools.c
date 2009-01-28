@@ -496,7 +496,9 @@ void *gf_sg_vrml_field_pointer_new(u32 FieldType)
 	case GF_SG_VRML_MFVEC2D: return NewMFVec2d();
 	case GF_SG_VRML_MFCOLOR: return NewMFColor();
 	case GF_SG_VRML_MFCOLORRGBA: return NewMFColorRGBA();
-	case GF_SG_VRML_MFROTATION: return NewMFRotation();
+	case GF_SG_VRML_MFROTATION:
+	case GF_SG_VRML_MFVEC4F:
+		return NewMFRotation();
 
 	//used in commands
 	case GF_SG_VRML_SFCOMMANDBUFFER:
@@ -643,6 +645,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 		gf_sg_mfcolor_rgba_del( * ((MFColorRGBA *)field));
 		break;
 	case GF_SG_VRML_MFROTATION:
+	case GF_SG_VRML_MFVEC4F:
 		gf_sg_mfrotation_del( * ((MFRotation *)field));
 		break;
 	case GF_SG_VRML_SFURL:
@@ -713,6 +716,7 @@ u32 gf_sg_vrml_get_sf_size(u32 FieldType)
 		return 4*sizeof(SFFloat);
 	case GF_SG_VRML_SFROTATION:
 	case GF_SG_VRML_MFROTATION:
+	case GF_SG_VRML_MFVEC4F:
 		return 4*sizeof(SFFloat);
 
 	//check if that works!!

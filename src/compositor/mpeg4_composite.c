@@ -548,8 +548,8 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Even
 	}
 	stack->txh.flags = flags;
 	/*convert to tx space*/
-	ev->mouse.x = FIX2INT( (txcoord.x - FIX_ONE/2) * stack->visual->width);
-	ev->mouse.y = FIX2INT( (txcoord.y - FIX_ONE/2) * stack->visual->height);
+	ev->mouse.x = FIX2INT( (txcoord.x - FIX_ONE/2) * stack->visual->width + FIX_ONE/2);
+	ev->mouse.y = FIX2INT( (txcoord.y - FIX_ONE/2) * stack->visual->height + FIX_ONE/2);
 
 
 	GF_SAFEALLOC(tr_state, GF_TraverseState);

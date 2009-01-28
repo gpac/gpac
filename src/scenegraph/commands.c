@@ -106,6 +106,7 @@ void gf_sg_command_del(GF_Command *com)
 	if (com->del_proto_list) free(com->del_proto_list);
 	if (com->def_name) free(com->def_name);
 	if (com->scripts_to_load) gf_list_del(com->scripts_to_load);
+	if (com->unres_name) free(com->unres_name);
 	free(com);
 }
 

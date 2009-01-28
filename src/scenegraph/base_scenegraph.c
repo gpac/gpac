@@ -1391,8 +1391,11 @@ void gf_node_free(GF_Node *node)
 		}
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
-		if (node->sgprivate->interact->bindings)
+		if (node->sgprivate->interact->bindings) {
+			if (node->sgprivate->scenegraph->on_node_modified)
+				node->sgprivate->scenegraph->on_node_modified(node->sgprivate->scenegraph, node, NULL, NULL);
 			gf_list_del(node->sgprivate->interact->bindings);
+		}
 #endif
 		free(node->sgprivate->interact);
 	}

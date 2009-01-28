@@ -731,6 +731,9 @@ static void JS_ObjectDestroyed(JSContext *c, JSObject *obj, GF_JSField *ptr)
 
 	priv = JS_GetScriptStack(c);
 
+	if (ptr && ptr->owner && ptr->owner->sgprivate->interact && ptr->owner->sgprivate->interact->bindings) 
+			gf_list_del_item(ptr->owner->sgprivate->interact->bindings, ptr);
+
 	JS_SetPrivate(c, obj, 0);
 	if (priv->js_cache) 
 		gf_list_del_item(priv->js_cache, obj);
@@ -2860,6 +2863,156 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 	if (changed) Script_FieldChanged(c, owner, parent, field);
 }
 
+
+static void gf_sg_script_update_cached_object(GF_ScriptPriv *priv, JSObject *obj, GF_JSField *jsf, GF_FieldInfo *field, GF_Node *parent)
+{
+	u32 i;
+	jsval newVal;
+	GF_JSField *slot = NULL;
+	JSString *s;
+
+	/*we need to rebuild MF types where SF is a native type.*/
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Recomputing cached jsobj\n") );
+	switch (jsf->field.fieldType) {
+	case GF_SG_VRML_MFBOOL:
+	{
+		MFBool *f = (MFBool *) field->far_ptr;
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
+		for (i=0; i<f->count; i++) {
+			newVal = BOOLEAN_TO_JSVAL(f->vals[i]);
+			JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+		}
+	}
+		break;
+	case GF_SG_VRML_MFINT32:
+	{
+		MFInt32 *f = (MFInt32 *) field->far_ptr;
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
+		for (i=0; i<f->count; i++) {
+			newVal = INT_TO_JSVAL(f->vals[i]);
+			JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+		}
+	}
+		break;
+	case GF_SG_VRML_MFFLOAT:
+	{
+		MFFloat *f = (MFFloat *) field->far_ptr;
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
+		for (i=0; i<f->count; i++) {
+			newVal = DOUBLE_TO_JSVAL(JS_NewDouble(priv->js_ctx, FIX2FLT(f->vals[i])));
+			JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+		}
+	}
+		break;
+	case GF_SG_VRML_MFTIME:
+	{
+		MFTime *f = (MFTime *) field->far_ptr;
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
+		for (i=0; i<f->count; i++) {
+			newVal = DOUBLE_TO_JSVAL(JS_NewDouble(priv->js_ctx, f->vals[i]));
+			JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+		}
+	}
+		break;
+	case GF_SG_VRML_MFSTRING:
+	{
+		MFString *f = (MFString *) field->far_ptr;
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
+		for (i=0; i<f->count; i++) {
+			s = JS_NewStringCopyZ(priv->js_ctx, f->vals[i]);
+			newVal = STRING_TO_JSVAL( s );
+			JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+		}
+	}
+		break;
+	case GF_SG_VRML_MFURL:
+	{
+		MFURL *f = (MFURL *) field->far_ptr;
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
+		JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
+		for (i=0; i<f->count; i++) {
+			if (f->vals[i].OD_ID > 0) {
+				char msg[30];
+				sprintf(msg, "od:%d", f->vals[i].OD_ID);
+				s = JS_NewStringCopyZ(priv->js_ctx, (const char *) msg);
+			} else {
+				s = JS_NewStringCopyZ(priv->js_ctx, f->vals[i].url);
+			}
+			newVal = STRING_TO_JSVAL(s);
+			JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
+		}
+	}
+		break;
+	case GF_SG_VRML_MFNODE:
+		{
+			GF_ChildNodeItem *f = *(GF_ChildNodeItem **) field->far_ptr;
+			u32 count, j;
+			
+			/*reset the array - a better way would be to try to diff the 2 arrays ...*/
+			/*first unregister all slot pointers*/
+			JS_GetArrayLength(priv->js_ctx, jsf->js_list, &count);
+			count=0;
+			for (j=0; j<count; j++) {
+				JS_GetElement(priv->js_ctx, jsf->js_list, (jsint) j, &newVal);
+				slot = JS_GetPrivate(priv->js_ctx, JSVAL_TO_OBJECT(newVal));
+				if (slot->temp_node) {
+					gf_node_unregister(slot->temp_node, slot->owner);
+					slot->temp_node = NULL;
+				}
+				if (slot->obj && priv->js_cache) {
+					JS_RemoveRoot(priv->js_ctx, &slot->obj);
+					slot->obj = NULL;
+					gf_list_del_item(priv->js_cache, slot);
+				}
+				slot->temp_list = NULL;
+			}
+			/*then reset array*/
+			JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
+
+			count = 0;
+			while (f) {
+				count++;
+				f = f->next;
+			}
+			if (JS_SetArrayLength(priv->js_ctx, jsf->js_list, count) != JS_TRUE) return;
+
+			count = 0;
+			f = *(GF_ChildNodeItem **) field->far_ptr;
+			while (f) {
+				JSObject *pf = JS_NewObject(priv->js_ctx, &js_rt->SFNodeClass, 0, obj);
+				slot = NewJSField(priv->js_ctx);
+				slot->owner = parent;
+				vrml_node_register(priv->js_ctx, f->node);
+				slot->temp_node = f->node;
+				slot->field.far_ptr = & slot->temp_node;
+				slot->field.fieldType = GF_SG_VRML_SFNODE;
+				JS_SetPrivate(priv->js_ctx, pf, slot);
+
+				if (priv->js_cache) {
+					slot->obj = pf;
+					JS_AddRoot(priv->js_ctx, &slot->obj);
+					gf_list_add(priv->js_cache, pf);
+				}
+
+				newVal = OBJECT_TO_JSVAL(pf);
+				JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) count, &newVal);
+				count++;
+
+				f = f->next;
+			}
+		}
+		break;
+	}
+	jsf->field.NDTtype = 0;
+}
+
+
+
 #define SETUP_FIELD	\
 		jsf = NewJSField(priv->js_ctx);	\
 		jsf->owner = parent;	\
@@ -2932,144 +3085,8 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] found cached jsobj 0x%08x (field %s) in script %s bank (%d entries)\n", obj, field->name, gf_node_get_log_name((GF_Node*)JS_GetScript(priv->js_ctx)), gf_list_count(priv->js_cache) ) );
 				if (!force_evaluate && !jsf->field.NDTtype) return OBJECT_TO_JSVAL(obj);
 
-				/*we need to rebuild MF types where SF is a native type.*/
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Recomputing cached jsobj\n") );
-				switch (jsf->field.fieldType) {
-				case GF_SG_VRML_MFBOOL:
-				{
-					MFBool *f = (MFBool *) field->far_ptr;
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
-					for (i=0; i<f->count; i++) {
-						newVal = BOOLEAN_TO_JSVAL(f->vals[i]);
-						JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
-					}
-				}
-					break;
-				case GF_SG_VRML_MFINT32:
-				{
-					MFInt32 *f = (MFInt32 *) field->far_ptr;
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
-					for (i=0; i<f->count; i++) {
-						newVal = INT_TO_JSVAL(f->vals[i]);
-						JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
-					}
-				}
-					break;
-				case GF_SG_VRML_MFFLOAT:
-				{
-					MFFloat *f = (MFFloat *) field->far_ptr;
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
-					for (i=0; i<f->count; i++) {
-						newVal = DOUBLE_TO_JSVAL(JS_NewDouble(priv->js_ctx, FIX2FLT(f->vals[i])));
-						JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
-					}
-				}
-					break;
-				case GF_SG_VRML_MFTIME:
-				{
-					MFTime *f = (MFTime *) field->far_ptr;
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
-					for (i=0; i<f->count; i++) {
-						newVal = DOUBLE_TO_JSVAL(JS_NewDouble(priv->js_ctx, f->vals[i]));
-						JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
-					}
-				}
-					break;
-				case GF_SG_VRML_MFSTRING:
-				{
-					MFString *f = (MFString *) field->far_ptr;
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
-					for (i=0; i<f->count; i++) {
-						s = JS_NewStringCopyZ(priv->js_ctx, f->vals[i]);
-						newVal = STRING_TO_JSVAL( s );
-						JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
-					}
-				}
-					break;
-				case GF_SG_VRML_MFURL:
-				{
-					MFURL *f = (MFURL *) field->far_ptr;
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
-					JS_SetArrayLength(priv->js_ctx, jsf->js_list, f->count);
-					for (i=0; i<f->count; i++) {
-						if (f->vals[i].OD_ID > 0) {
-							char msg[30];
-							sprintf(msg, "od:%d", f->vals[i].OD_ID);
-							s = JS_NewStringCopyZ(priv->js_ctx, (const char *) msg);
-						} else {
-							s = JS_NewStringCopyZ(priv->js_ctx, f->vals[i].url);
-						}
-						newVal = STRING_TO_JSVAL(s);
-						JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) i, &newVal);
-					}
-				}
-					break;
-				case GF_SG_VRML_MFNODE:
-					{
-						GF_ChildNodeItem *f = *(GF_ChildNodeItem **) field->far_ptr;
-						u32 count, j;
-						
-						/*reset the array - a better way would be to try to diff the 2 arrays ...*/
-						/*first unregister all slot pointers*/
-						JS_GetArrayLength(priv->js_ctx, jsf->js_list, &count);
-						count=0;
-						for (j=0; j<count; j++) {
-							JS_GetElement(priv->js_ctx, jsf->js_list, (jsint) j, &newVal);
-							slot = JS_GetPrivate(priv->js_ctx, JSVAL_TO_OBJECT(newVal));
-							if (slot->temp_node) {
-								gf_node_unregister(slot->temp_node, slot->owner);
-								slot->temp_node = NULL;
-							}
-							if (slot->obj && priv->js_cache) {
-								JS_RemoveRoot(priv->js_ctx, &slot->obj);
-								slot->obj = NULL;
-								gf_list_del_item(priv->js_cache, slot);
-							}
-							slot->temp_list = NULL;
-						}
-						/*then reset array*/
-						JS_SetArrayLength(priv->js_ctx, jsf->js_list, 0);
 
-						count = 0;
-						while (f) {
-							count++;
-							f = f->next;
-						}
-						if (JS_SetArrayLength(priv->js_ctx, jsf->js_list, count) != JS_TRUE) return JSVAL_NULL;
-
-						count = 0;
-						f = *(GF_ChildNodeItem **) field->far_ptr;
-						while (f) {
-							JSObject *pf = JS_NewObject(priv->js_ctx, &js_rt->SFNodeClass, 0, obj);
-							slot = NewJSField(priv->js_ctx);
-							slot->owner = parent;
-							vrml_node_register(priv->js_ctx, f->node);
-							slot->temp_node = f->node;
-							slot->field.far_ptr = & slot->temp_node;
-							slot->field.fieldType = GF_SG_VRML_SFNODE;
-							JS_SetPrivate(priv->js_ctx, pf, slot);
-
-							if (priv->js_cache) {
-								slot->obj = pf;
-								JS_AddRoot(priv->js_ctx, &slot->obj);
-								gf_list_add(priv->js_cache, pf);
-							}
-
-							newVal = OBJECT_TO_JSVAL(pf);
-							JS_SetElement(priv->js_ctx, jsf->js_list, (jsint) count, &newVal);
-							count++;
-
-							f = f->next;
-						}
-					}
-					break;
-				}
-				jsf->field.NDTtype = 0;
+				gf_sg_script_update_cached_object(priv, obj, jsf, field, parent);
 				return OBJECT_TO_JSVAL(obj);
 			}
 		}
@@ -3810,8 +3827,17 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 	if (node->sgprivate->interact && node->sgprivate->interact->bindings) {
 		u32 i=0;
 		while ((jsf = gf_list_enum(node->sgprivate->interact->bindings, &i))) {
-			if ((jsf->field.fieldIndex == info->fieldIndex) && (jsf->field.fieldType == info->fieldType))
+			if (!info) {
+				jsf->owner = NULL;
+			} else if ((jsf->field.fieldIndex == info->fieldIndex) && (jsf->field.fieldType == info->fieldType)) {
 				jsf->field.NDTtype = 1;
+				/*if field is a script field, rewrite it right away because script fields are exposed
+				as global variables within the script*/
+				if (node == (GF_Node*)JS_GetScript(jsf->js_ctx)) {
+					gf_sg_script_update_cached_object(gf_node_get_private(node), jsf->obj, jsf, &jsf->field, node);
+				}
+
+			}
 		}
 	}
 }

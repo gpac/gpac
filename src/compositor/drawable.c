@@ -98,6 +98,7 @@ picked:
 	} else {
 		compositor->hit_appear = NULL;
 	}
+	compositor->hit_text = NULL;
 
 	gf_list_reset(tr_state->visual->compositor->sensors);
 	count = gf_list_count(tr_state->vrml_sensors);

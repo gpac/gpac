@@ -187,8 +187,6 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		drawable_check_focus_highlight(node, tr_state, NULL);
 	}
 	else {
-		if (!strcmp(gf_node_get_log_name(node), "CLIP219_DL"))
-			child = ((GF_ParentNode *)node)->children;
 		child = ((GF_ParentNode *)node)->children;
 		while (child) {
 			gf_node_traverse(child->node, tr_state);
