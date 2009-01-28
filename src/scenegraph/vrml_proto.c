@@ -372,6 +372,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 				strcat(szNodeName, inst_id_suffix);
 			}
 		} 
+		else if (orig_name) szNodeName = strdup(orig_name);
 	}
 
 	if (id) {
@@ -672,6 +673,13 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 */		if ((route->ToNode->sgprivate->tag==TAG_MPEG4_Script) || (route->ToNode->sgprivate->tag==TAG_X3D_Script) )
 			gf_sg_route_activate(route);
 	}
+
+	/*reset all regular route activation times - if we don't do so, creating a proto by script and then manipulating one of its
+	ISed field may not trigger the proper routes*/
+	i=0;
+	while ((route = (GF_Route*)gf_list_enum(proto_node->sgprivate->scenegraph->Routes, &i))) {
+		if (!route->IS_route) route->lastActivateTime = 0;
+	}
 	proto_node->is_loaded = 1;
 }
 
@@ -833,8 +841,9 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 		gf_node_free((GF_Node *)inst);
 		gf_sg_del(sg);
 	} else {
-		gf_sg_del(sg);
+		gf_sg_reset(sg);
 		gf_node_free((GF_Node *)inst);
+		gf_sg_del(sg);
 	}
 }
 
@@ -1108,7 +1117,7 @@ void gf_sg_proto_propagate_event(GF_Node *node, u32 fieldIndex, GF_Node *from_no
 		/*connecting from this node && field to a destination node other than the event source (this will break loops due to exposedFields)*/
 		if ((r->FromNode == node) && (r->FromField.fieldIndex == fieldIndex) && (r->ToNode != from_node) ) {
 			if (gf_sg_route_activate(r)) 
-				gf_node_changed(r->ToNode, &r->FromField);
+				gf_node_changed(r->ToNode, &r->ToField);
 		}
 	}
 }

@@ -1507,6 +1507,7 @@ static void on_dom_node_end(void *cbk, const char *name, const char *ns)
 	if (!last || strcmp(last->name, name) || (!ns && last->ns) || (ns && !last->ns) || (ns && strcmp(last->ns, ns) ) ) {
 		par->parser->suspended = 1;
 		gf_xml_dom_node_del(last);
+		if (last==par->root) par->root=NULL;
 		return;
 	}
 

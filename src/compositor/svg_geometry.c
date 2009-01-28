@@ -251,6 +251,7 @@ void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAs
 	/*not use in SVG patterns*/
 	compositor->hit_appear = NULL;
 	compositor->hit_node = drawable->node;
+	compositor->hit_text = NULL;
 	compositor->hit_use_dom_events = 1;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[SVG Picking] node %s (def %s) is under mouse - hit %g %g %g\n", gf_node_get_class_name(drawable->node), gf_node_get_name(drawable->node),
