@@ -47,6 +47,7 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 	case GF_M2TS_SUBTITLE_DVB: return "DVB Subtitle";
 	case GF_M2TS_SYSTEMS_MPEG4_PES: return "MPEG-4 SL (PES)";
 	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS: return "MPEG-4 SL (Section)";
+		
 	default: return "Unknown";
 	}
 }
@@ -466,7 +467,7 @@ static void gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u6
 		/*update PTS in case we don't get any update*/
 		pes->PTS += gf_mp3_window_size(pes->frame_state)*90000/gf_mp3_sampling_rate(pes->frame_state);
 		pes->frame_state = frame_size - data_len;
-	} else {
+	} else  {
 		pes->frame_state = 0;
 	}
 }
@@ -563,7 +564,8 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 {
 	if (sec->had_error) return;
 
-	if (!sec->process_section) {
+	if (!sec->process_section) {	
+
 		if (ts->on_event) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
@@ -599,7 +601,8 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_event(ts, GF_M2TS_EVT_DVB_GENERAL, &pck);
 			free(pck.data);
-		}
+		}	
+		
 
 		has_syntax_indicator = (data[1] & 0x80) ? 1 : 0;
 		if (has_syntax_indicator) {
@@ -716,6 +719,7 @@ static Bool gf_m2ts_is_long_section(u8 table_id)
 	case GF_M2TS_TABLE_ID_EIT_OTHER_PF:
 	case GF_M2TS_TABLE_ID_ST:
 	case GF_M2TS_TABLE_ID_SIT:
+	case GF_M2TS_TABLE_ID_DSM_CC_PRIVATE:
 		return 1;
 	default:
 		if (table_id >= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN && table_id <= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX) 
@@ -723,6 +727,17 @@ static Bool gf_m2ts_is_long_section(u8 table_id)
 		else 
 			return 0;
 	}
+}
+
+static u32 gf_m2ts_get_section_length(char byte0, char byte1, char byte2) 
+{
+	u32 length;
+	if (gf_m2ts_is_long_section(byte0)) {
+		length = 3 + ( ((byte1<<8) | (byte2&0xff)) & 0xfff );
+	} else {
+		length = 3 + ( ((byte1<<8) | (byte2&0xff)) & 0x3ff );
+	}
+	return length;
 }
 
 static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses, GF_M2TS_Header *hdr, unsigned char *data, u32 data_size)
@@ -746,9 +761,21 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 		}
 
 		/*end of previous section*/
+		if (!sec->length && sec->received) {
+			/* the length of the section could not be determined from the previous TS packet because we had only 1 or 2 bytes */
+			if (sec->received == 1) 
+				sec->length = gf_m2ts_get_section_length(sec->section[0], data[1], data[2]);
+			else /* (sec->received == 2)  */
+				sec->length = gf_m2ts_get_section_length(sec->section[0], sec->section[1], data[1]);
+			sec->section = (char*)realloc(sec->section, sizeof(char)*sec->length);
+		}
+
 		if (sec->length && sec->received + ptr_field >= sec->length) {
-			memcpy(sec->section + sec->received, data, sizeof(char)*ptr_field);
-			sec->received += ptr_field;
+			u32 len = sec->length - sec->received; 
+			memcpy(sec->section + sec->received, data+1, sizeof(char)*len);
+			sec->received += len;
+			if (ptr_field > len) 
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid pointer field (@ptr_field=%d, @remaining=%d)\n", ptr_field, len) );
 			gf_m2ts_section_complete(ts, sec, ses);
 		}
 		data += ptr_field+1;
@@ -771,7 +798,7 @@ aggregated_section:
 	} else if (!sec->section) {
 		return;
 	} else {
-		if (sec->received+data_size > sec->length) 
+		if (sec->length && sec->received+data_size > sec->length) 
 			data_size = sec->length - sec->received;
 
 		if (sec->length) {
@@ -787,11 +814,7 @@ aggregated_section:
 
 	/*alloc final buffer*/
 	if (!sec->length && (sec->received >= 3)) {
-		if (gf_m2ts_is_long_section(sec->section[0])) {
-			sec->length = 3 + ( ((sec->section[1]<<8) | (sec->section[2]&0xff)) & 0xfff );
-		} else {
-			sec->length = 3 + ( ((sec->section[1]<<8) | (sec->section[2]&0xff)) & 0x3ff );
-		}
+		sec->length = gf_m2ts_get_section_length(sec->section[0], sec->section[1], sec->section[2]);
 		sec->section = (char*)realloc(sec->section, sizeof(char)*sec->length);
 
 		if (sec->received > sec->length) {
@@ -799,7 +822,7 @@ aggregated_section:
 			sec->received = sec->length;
 		}
 	}
-	if (sec->received < sec->length) return;
+	if (!sec->length || sec->received < sec->length) return;
 
 	/*OK done*/
 	gf_m2ts_section_complete(ts, sec, ses);
@@ -942,18 +965,6 @@ void gf_m2ts_decode_mjd_date(u32 date, u32 *year, u32 *month, u32 *day)
 	*month = mp - 1 - k*12;
 }
 
-static void gf_m2ts_process_int(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ip_not_table, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
-{
-	fprintf(stdout, "Processing IP/MAC Notification table (PID %d) %s\n", ip_not_table->pid, (status&GF_M2TS_TABLE_REPEAT)?"repeated":"");
-}
-
-#if 0
-static void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *mpe, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
-{
-	fprintf(stdout, "Processing MPE Datagram (PID %d)\n", mpe->pid);
-}
-#endif
-
 static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *nit_es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	
@@ -1065,9 +1076,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				}
 				break;
 
-			case GF_M2TS_PRIVATE_SECTION:
+
 			default:
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
+				//GF_LOG(/*GF_LOG_WARNING*/GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
 				break;
 		}
 
@@ -1097,7 +1109,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				 		u32 id = data[2]<<8 | data[3];
 						if (id == 0xB) {
 					 		ses->sec = gf_m2ts_section_filter_new(NULL, 1);
-					 		gf_list_add(ts->ip_mac_not_tables, es);
 						}
 					 }
 					break;
@@ -1423,7 +1434,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	hdr.continuity_counter = data[3] & 0xf;
 
 #if DEBUG_TS_PACKET
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d\n", hdr.pid));
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d\n", hdr.pid));
 #endif
 
 	paf = NULL;
@@ -1485,6 +1496,8 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				return;
 			} else if (hdr.pid == GF_M2TS_PID_TDT_TOT_ST) {
 				gf_m2ts_gather_section(ts, ts->tdt_tot_st, NULL, &hdr, data, payload_size); 
+			} else {
+				/* ignore packet */
 			}
 		} else if (es->flags & GF_M2TS_ES_IS_SECTION) { 	/* The stream uses sections to carry its payload */
 			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
