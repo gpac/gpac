@@ -1579,7 +1579,7 @@ void gf_node_changed(GF_Node *node, GF_FieldInfo *field)
 #ifndef GPAC_DISABLE_SVG
 	/* we should avoid dispatching a DOMSubtreeModified event on insertion of time values in begin/end fields
 	   because this retriggers begin/end events and reinsertion */
-	if (field == NULL && 
+	if ((field == NULL || ((field->fieldIndex != TAG_SVG_ATT_begin) && (field->fieldIndex != TAG_SVG_ATT_end))) && 
 		node->sgprivate->tag >= GF_NODE_RANGE_FIRST_SVG && node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) {		
 		GF_DOM_Event evt;
 		evt.type = GF_EVENT_TREE_MODIFIED;
