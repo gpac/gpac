@@ -104,7 +104,7 @@ void group_cache_setup(GroupCache *cache, GF_Rect *path_bounds, GF_IRect *pix_bo
 		path_bounds->width, path_bounds->height);
 }
 
-Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute)
+Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute, Bool is_mpeg4)
 {
 	DrawableContext *group_ctx = NULL;	
 	GF_ChildNodeItem *l;
@@ -169,7 +169,11 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		}
 
 		/*step 3: insert a DrawableContext for this group in the display list*/
-		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
+		if (is_mpeg4) {
+			group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
+		} else {
+			group_ctx = drawable_init_context_svg(cache->drawable, tr_state);
+		}
 
 		/*step 4: now we have the bounds:
 			allocate the offscreen memory
@@ -290,9 +294,13 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 	}
 	/*just setup the context*/
 	else {
-		group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
+		if (is_mpeg4) {
+			group_ctx = drawable_init_context_mpeg4(cache->drawable, tr_state);
+		} else {
+			group_ctx = drawable_init_context_svg(cache->drawable, tr_state);
+		}
 	}
-	assert(group_ctx);
+	if (!group_ctx) return 0;
 	group_ctx->flags |= CTX_NO_ANTIALIAS;
 	group_ctx->aspect.fill_color = GF_COL_ARGB_FIXED(cache->opacity, FIX_ONE, FIX_ONE, FIX_ONE);
 	group_ctx->aspect.fill_texture = &cache->txh;
@@ -553,7 +561,7 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 	}
 
 	/*cache has been modified due to node changes, reset stats*/
-	group_cache_traverse(node, group->cache, tr_state, needs_recompute);
+	group_cache_traverse(node, group->cache, tr_state, needs_recompute, 1);
 	return 1;
 }
 

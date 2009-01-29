@@ -234,7 +234,7 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 		if (!strcmp(filter, "dir")) {
 			dir_only = 1;
 			filter = NULL;
-		}
+		} else if (!strlen(filter)) filter=NULL;
 	}
 	if ((argc >= 3) && JSVAL_IS_BOOLEAN(argv[2])) {
 		if (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) {
