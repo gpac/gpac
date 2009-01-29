@@ -372,7 +372,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 				strcat(szNodeName, inst_id_suffix);
 			}
 		} 
-		else if (orig_name) szNodeName = strdup(orig_name);
+		//else if (orig_name) szNodeName = strdup(orig_name);
 	}
 
 	if (id) {

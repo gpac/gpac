@@ -719,24 +719,28 @@ static GFINLINE void sffield_toString(char *str, void *f_ptr, u32 fieldType)
 
 static void JS_ObjectDestroyed(JSContext *c, JSObject *obj, GF_JSField *ptr)
 {
-	GF_ScriptPriv *priv;
-	/* 
-		!!! WATCHOUT !!!
-	SpiderMonkey GC may call an object finalizer on ANY context, not the one in which the object
-	was created !! We therefore keep a pointer to the parent context to remove GC'ed objects from the context cache
-	*/	
+	JS_SetPrivate(c, obj, 0);
+
 	if (ptr) {
-		if (ptr->js_ctx) c = ptr->js_ctx;
-	}
-
-	priv = JS_GetScriptStack(c);
-
-	if (ptr && ptr->owner && ptr->owner->sgprivate->interact && ptr->owner->sgprivate->interact->bindings) 
+		if (ptr->owner && ptr->owner->sgprivate->interact && ptr->owner->sgprivate->interact->bindings) 
 			gf_list_del_item(ptr->owner->sgprivate->interact->bindings, ptr);
 
-	JS_SetPrivate(c, obj, 0);
-	if (priv->js_cache) 
-		gf_list_del_item(priv->js_cache, obj);
+		/*
+			If object is still registered, remove it from the js_cache
+
+						!!! WATCHOUT !!!
+		SpiderMonkey GC may call an object finalizer on ANY context, not the one in which the object
+		was created !! We therefore keep a pointer to the parent context to remove GC'ed objects from the context cache
+		*/	
+		if (ptr->obj) {
+			GF_ScriptPriv *priv;
+			if (ptr->js_ctx) c = ptr->js_ctx;
+			priv = JS_GetScriptStack(c);
+
+			if (priv->js_cache) 
+				gf_list_del_item(priv->js_cache, obj);
+		}
+	}
 }
 
 
@@ -2111,6 +2115,7 @@ JSBool array_setLength(JSContext *c, JSObject *obj, jsval v, jsval *val)
 		} else {
 			gf_sg_vrml_mf_reset(ptr->field.far_ptr, ptr->field.fieldType);
 		}
+		Script_FieldChanged(c, NULL, ptr, NULL);
 		return JS_TRUE;
 	}
 
@@ -3569,8 +3574,11 @@ static void JS_NetIO(void *cbck, GF_NETIO_Parameter *param)
 
 void JSScriptFromFile(GF_Node *node)
 {
+	GF_JSAPIParam par;
 	u32 i;
+	char *url;
 	GF_Err e;
+	JSFileDownload *jsdnload;
 	char szExt[50], *ext;
 	M_Script *script = (M_Script *)node;
 	Bool can_dnload = 0;
@@ -3588,47 +3596,45 @@ void JSScriptFromFile(GF_Node *node)
 
 	e = GF_SCRIPT_ERROR;
 
-	if (!vrml_js_load_script(script, script->url.vals[0].script_text)) {
-		GF_JSAPIParam par;
-		char *url;
-		GF_Err e;
-		JSFileDownload *jsdnload;
+	ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_SCENE_URI, node, &par);
+	url = NULL;
+	if (par.uri.url) url = gf_url_concatenate(par.uri.url, script->url.vals[0].script_text);
+	if (!url) url = strdup(script->url.vals[0].script_text);
 
-		ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_SCENE_URI, node, &par);
-		url = NULL;
-		if (par.uri.url) url = gf_url_concatenate(par.uri.url, script->url.vals[0].script_text);
-		if (!url) url = strdup(script->url.vals[0].script_text);
+	if (vrml_js_load_script(script, url)) {
+		free(url);
+		return;
+	}
 
-		par.dnld_man = NULL;
-		ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
-		if (!par.dnld_man) return;
+	par.dnld_man = NULL;
+	ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
+	if (!par.dnld_man) return;
 
-		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
-			free(url);
+	if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
+		free(url);
 
 retry:
-			if (script->url.count<=1) {
-				GF_JSAPIParam par;
-				par.info.e = e;
-				par.info.msg = "Cannot fetch script";
-				ScriptAction(NULL, script->sgprivate->scenegraph, GF_JSAPI_OP_GET_DCCI, NULL, &par);
-				return;
-			}
-			free(script->url.vals[0].script_text);
-			for (i=0; i<script->url.count-1; i++) 
-				script->url.vals[i].script_text = script->url.vals[i+1].script_text;
-			script->url.vals[script->url.count-1].script_text = NULL;
-			script->url.count -= 1;
-			JSScriptFromFile((GF_Node *)script);
-		} else {
-			GF_SAFEALLOC(jsdnload, JSFileDownload);
-			jsdnload->node = node;
-			jsdnload->sess = gf_dm_sess_new(par.dnld_man, script->url.vals[0].script_text, 0, JS_NetIO, jsdnload, &e);
-			free(url);
-			if (!jsdnload->sess) {
-				free(jsdnload);
-				goto retry;
-			}
+		if (script->url.count<=1) {
+			GF_JSAPIParam par;
+			par.info.e = e;
+			par.info.msg = "Cannot fetch script";
+			ScriptAction(NULL, script->sgprivate->scenegraph, GF_JSAPI_OP_GET_DCCI, NULL, &par);
+			return;
+		}
+		free(script->url.vals[0].script_text);
+		for (i=0; i<script->url.count-1; i++) 
+			script->url.vals[i].script_text = script->url.vals[i+1].script_text;
+		script->url.vals[script->url.count-1].script_text = NULL;
+		script->url.count -= 1;
+		JSScriptFromFile((GF_Node *)script);
+	} else {
+		GF_SAFEALLOC(jsdnload, JSFileDownload);
+		jsdnload->node = node;
+		jsdnload->sess = gf_dm_sess_new(par.dnld_man, script->url.vals[0].script_text, 0, JS_NetIO, jsdnload, &e);
+		free(url);
+		if (!jsdnload->sess) {
+			free(jsdnload);
+			goto retry;
 		}
 	}
 }

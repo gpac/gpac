@@ -173,6 +173,7 @@ EXPORTS
 	gf_cfg_get_key_count
 	gf_cfg_get_key_name
 	gf_cfg_insert_key
+	gf_cfg_del_section
 
 ;module.h exports
 	gf_modules_new
@@ -847,6 +848,7 @@ EXPORTS
 	gf_crypt_decrypt
 	gf_crypt_encrypt
 	gf_crypt_set_state
+	gf_sha1_csum
 
 ;parsers_av.h exports
 	gf_m4v_parser_new

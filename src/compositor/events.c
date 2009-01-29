@@ -716,8 +716,28 @@ static Bool exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	u32 i, count, stype;
 
 	/*composite texture*/
+#if 0
 	if (!gf_list_count(compositor->sensors) && compositor->hit_appear) 
 		return compositor_compositetexture_handle_event(compositor, ev);
+#else
+	if (compositor->hit_appear) {
+		tmp = NULL;
+		count = gf_list_count(compositor->sensors);
+		/*WATHCOUT! Picking on a composite texture will reset the current sensor state - we store the list of collected sensors
+		and restore it if no hit was found on the texture*/
+		if (count) {
+			tmp = compositor->sensors;
+			compositor->sensors = gf_list_new();
+		}
+		if (compositor_compositetexture_handle_event(compositor, ev)) {
+			if (tmp) gf_list_del(tmp);
+			return 1;
+		}
+		if (!count) return 0;
+		gf_list_del(compositor->sensors);
+		compositor->sensors = tmp;
+	}
+#endif
 
 	hs_grabbed = NULL;
 	stype = GF_CURSOR_NORMAL;
@@ -737,7 +757,7 @@ static Bool exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	count = gf_list_count(compositor->sensors);
 	for (i=0; i<count; i++) {
 		hs = (GF_SensorHandler*)gf_list_get(compositor->sensors, i);
-		hs->OnUserEvent(hs, 1, ev, compositor);
+		hs->OnUserEvent(hs, ((hs==hs_grabbed) || !hs_grabbed) ? 1 : 0, ev, compositor);
 		stype = gf_node_get_tag(hs->sensor);
 		if (hs==hs_grabbed) hs_grabbed = NULL;
 	}
