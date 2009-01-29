@@ -1433,6 +1433,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	hdr.adaptation_field = (data[3] >> 4) & 0x3;
 	hdr.continuity_counter = data[3] & 0xf;
 
+	if (hdr.error) GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d has error\n", hdr.pid)); 
 #if DEBUG_TS_PACKET
 	GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d\n", hdr.pid));
 #endif
@@ -1492,7 +1493,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				return;
 			} else if (hdr.pid == GF_M2TS_PID_EIT_ST_CIT) {
 				/* ignore EIT messages for the moment */
-				gf_m2ts_gather_section(ts, ts->eit, NULL, &hdr, data, payload_size); 
+				if (!hdr.error) gf_m2ts_gather_section(ts, ts->eit, NULL, &hdr, data, payload_size); 
 				return;
 			} else if (hdr.pid == GF_M2TS_PID_TDT_TOT_ST) {
 				gf_m2ts_gather_section(ts, ts->tdt_tot_st, NULL, &hdr, data, payload_size); 
