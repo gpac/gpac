@@ -1236,3 +1236,15 @@ EXPORTS
 	gf_node_register_iri
 	gf_node_unregister_iri
 
+
+
+	gf_rtpm_new
+	gf_rtpm_del
+	gf_rtpm_get_sdp
+	gf_rtpm_send_data
+
+	gf_sg_js_get_node
+	gf_mo_register
+	gf_mo_unregister
+	gf_mo_get_scenegraph
+	gf_dom_listener_post_add

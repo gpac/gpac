@@ -428,6 +428,7 @@ static Bool setup_grey_callback(EVGSurface *surf)
 			}
 		} else {
 			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_565_fill_var;
+			assert(surf->sten->fill_run);
 		}
 		break;
 #ifdef GF_RGB_444_SUPORT

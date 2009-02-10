@@ -708,8 +708,9 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		GF_MediaObject *mo = (is && is->root_od) ? is->root_od->mo : NULL;
 
 		if (is) gf_list_del_item(is->inline_nodes, n);
-
 		if (!mo) return;
+		gf_list_del_item(mo->nodes, n);
+
 		/*disconnect current inline if we're the last one using it (same as regular OD session leave/join)*/
 		if (mo->num_open) {
 			mo->num_open --;

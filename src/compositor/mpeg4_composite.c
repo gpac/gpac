@@ -40,6 +40,7 @@ typedef struct
 	/*the visual object handling the texture*/
 	GF_VisualManager *visual;
 	Bool first, unsupported;
+	GF_List *sensors, *previous_sensors;
 	
 #ifdef GPAC_USE_TINYGL
 	ostgl_context *tgl_ctx;
@@ -59,6 +60,8 @@ static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 #ifdef GPAC_USE_TINYGL
 		if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
 #endif
+		gf_list_del(st->sensors);
+		gf_list_del(st->previous_sensors);
 		free(st);
 	} else {
 		gf_node_traverse_children(node, rs);
@@ -441,6 +444,8 @@ void compositor_init_compositetexture2d(GF_Compositor *compositor, GF_Node *node
 	M_CompositeTexture2D *c2d = (M_CompositeTexture2D *)node;
 	CompositeTextureStack *st;
 	GF_SAFEALLOC(st, CompositeTextureStack);
+	st->sensors = gf_list_new();
+	st->previous_sensors = gf_list_new();
 	gf_sc_texture_setup(&st->txh, compositor, node);
 	/*remove texture from compositor and add it at the end, so that any sub-textures are handled before*/
 	gf_list_del_item(compositor->textures, &st->txh); 
@@ -473,6 +478,8 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 	M_CompositeTexture3D *c3d = (M_CompositeTexture3D *)node;
 	CompositeTextureStack *st;
 	GF_SAFEALLOC(st, CompositeTextureStack);
+	st->sensors = gf_list_new();
+	st->previous_sensors = gf_list_new();
 	gf_sc_texture_setup(&st->txh, compositor, node);
 	/*remove texture from compositor and add it at the end, so that any sub-textures are handled before*/
 	gf_list_del_item(compositor->textures, &st->txh); 
@@ -520,6 +527,9 @@ GF_TextureHandler *compositor_get_composite_texture(GF_Node *node)
 
 Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Event *ev)
 {
+	SFVec3f point;
+	GF_Ray ray;
+	Fixed dist;
 	GF_Matrix mx;
 	GF_TraverseState *tr_state;
 	GF_ChildNodeItem *children, *l;
@@ -527,12 +537,13 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Even
 	u32 flags;
 	SFVec3f txcoord;
 	CompositeTextureStack *stack;
+	GF_List *tmp1, *tmp2;
 	M_Appearance *ap = (M_Appearance *)compositor->hit_appear;
 	assert(ap && ap->texture);
 
 	if (ev->type > GF_EVENT_MOUSEMOVE) return 0;
-
 	stack = gf_node_get_private(ap->texture);
+	if (!stack->txh.tx_io) return 0;
 
 	txcoord.x = compositor->hit_texcoords.x;
 	txcoord.y = compositor->hit_texcoords.y;
@@ -572,7 +583,26 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Even
 		l = l->next;
 	}
 
+	tmp1 = compositor->sensors;
+	tmp2 = compositor->previous_sensors;	
+	compositor->sensors = stack->sensors;
+	compositor->previous_sensors = stack->previous_sensors;
+
+	point = compositor->hit_world_point;
+	ray = compositor->hit_world_ray;
+	dist = compositor->hit_square_dist;
+	
 	res = visual_execute_event(stack->visual, tr_state, ev, children);
+
+	compositor->hit_world_point = point;
+	compositor->hit_world_ray = ray;
+	compositor->hit_square_dist = dist;
+
+	stack->sensors = compositor->sensors;
+	stack->previous_sensors = compositor->previous_sensors;
+	compositor->sensors = tmp1;
+	compositor->previous_sensors = tmp2;
+
 	gf_list_del(tr_state->vrml_sensors);
 	free(tr_state);
 	return res;

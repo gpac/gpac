@@ -720,23 +720,8 @@ static Bool exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	if (!gf_list_count(compositor->sensors) && compositor->hit_appear) 
 		return compositor_compositetexture_handle_event(compositor, ev);
 #else
-	if (compositor->hit_appear) {
-		tmp = NULL;
-		count = gf_list_count(compositor->sensors);
-		/*WATHCOUT! Picking on a composite texture will reset the current sensor state - we store the list of collected sensors
-		and restore it if no hit was found on the texture*/
-		if (count) {
-			tmp = compositor->sensors;
-			compositor->sensors = gf_list_new();
-		}
-		if (compositor_compositetexture_handle_event(compositor, ev)) {
-			if (tmp) gf_list_del(tmp);
-			return 1;
-		}
-		if (!count) return 0;
-		gf_list_del(compositor->sensors);
-		compositor->sensors = tmp;
-	}
+	if (compositor->hit_appear && compositor_compositetexture_handle_event(compositor, ev)) 
+		return 1;
 #endif
 
 	hs_grabbed = NULL;

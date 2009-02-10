@@ -323,6 +323,9 @@ typedef struct
 
 	/*number of listeners triggered by the event*/
 	u32 consumed;
+
+	/*for GF_EVENT_ATTR_MODIFIED*/
+	GF_FieldInfo *attr;
 } GF_DOM_Event;
 
 /*fires event on the specified node

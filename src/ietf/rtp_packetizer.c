@@ -211,7 +211,8 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 	/*mode setup*/
 	if (!strnicmp(builder->slMap.mode, "AAC", 3)) {
 		builder->flags = GP_RTP_PCK_USE_MULTI | GP_RTP_PCK_SIGNAL_SIZE | GP_RTP_PCK_SIGNAL_AU_IDX | ismacrypt_flags;
-		if (builder->flags & GP_RTP_PCK_USE_INTERLEAVING) builder->slMap.ConstantDuration = avgTS;
+		/*if (builder->flags & GP_RTP_PCK_USE_INTERLEAVING) */
+		builder->slMap.ConstantDuration = avgTS;
 
 		/*AAC LBR*/
 		if (maxSize < 63) {
@@ -241,7 +242,7 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 			strcpy(builder->slMap.mode, "CELP-vbr");
 			builder->slMap.IndexLength = builder->slMap.IndexDeltaLength = 2;
 			builder->slMap.SizeLength = 6;
-			if (builder->flags & GP_RTP_PCK_USE_INTERLEAVING) builder->slMap.ConstantDuration = avgTS;
+			/*if (builder->flags & GP_RTP_PCK_USE_INTERLEAVING) */builder->slMap.ConstantDuration = avgTS;
 			builder->flags = GP_RTP_PCK_USE_MULTI | GP_RTP_PCK_SIGNAL_SIZE | GP_RTP_PCK_SIGNAL_AU_IDX | ismacrypt_flags;
 		}
 		goto check_header;

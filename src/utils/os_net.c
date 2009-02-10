@@ -646,7 +646,12 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 			setsockopt(sock->socket, SOL_SOCKET, SO_REUSEPORT, SSO_CAST &optval, sizeof(optval));
 #endif
 		}
+
 		if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, 1);
+
+		if (peer_name && peer_port) 
+			sock->flags |= GF_SOCK_HAS_PEER;
+
 
 		ret = bind(sock->socket, aip->ai_addr, aip->ai_addrlen);
 		if (ret == SOCKET_ERROR) {
@@ -657,9 +662,6 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 
 		if (aip->ai_family==PF_INET6) sock->flags |= GF_SOCK_IS_IPV6;
 		else sock->flags &= ~GF_SOCK_IS_IPV6;
-
-		if (peer_name && peer_port) 
-			sock->flags |= GF_SOCK_HAS_PEER;
 
 		freeaddrinfo(res);
 		return GF_OK;
@@ -719,7 +721,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 	ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, addrlen);
 	if (ret == SOCKET_ERROR) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[socket] cannot bind socket - socket error %x\n", LASTSOCKERROR));
-		return GF_IP_CONNECTION_FAILURE;
+		ret = GF_IP_CONNECTION_FAILURE;
 	}
 
 	if (peer_name && peer_port) {
@@ -728,8 +730,8 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 		sock->dest_addr.sin_addr.s_addr = inet_addr(peer_name);
 		if (sock->dest_addr.sin_addr.s_addr == INADDR_NONE) {
 			Host = gethostbyname(peer_name);
-			if (Host == NULL) return GF_IP_ADDRESS_NOT_FOUND;
-			memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
+			if (Host == NULL) ret = GF_IP_ADDRESS_NOT_FOUND;
+			else memcpy((char *) &sock->dest_addr.sin_addr, Host->h_addr_list[0], sizeof(u32));
 		}
 		sock->flags |= GF_SOCK_HAS_PEER;
 	}
@@ -739,7 +741,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 	} else {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[socket] socket bound to port %d\n", port));
 	}
-	return GF_OK;
+	return ret;
 }
 
 //send length bytes of a buffer
@@ -784,9 +786,9 @@ GF_Err gf_sk_send(GF_Socket *sock, char *buffer, u32 length)
 	Count = 0;
 	while (Count < length) {
 		if (sock->flags & GF_SOCK_HAS_PEER) {
-			Res = sendto(sock->socket, (char *) &buffer[Count], length - Count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
+			Res = sendto(sock->socket, (char *) buffer+Count, length - Count, 0, (struct sockaddr *) &sock->dest_addr, sock->dest_addr_len);
 		} else {
-			Res = send(sock->socket, (char *) &buffer[Count], length - Count, 0);
+			Res = send(sock->socket, (char *) buffer+Count, length - Count, 0);
 		}
 		if (Res == SOCKET_ERROR) {
 			switch (Res = LASTSOCKERROR) {
