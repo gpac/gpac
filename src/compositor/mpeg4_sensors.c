@@ -405,8 +405,10 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 				if (res.x > ps->maxPosition.x) res.x = ps->maxPosition.x;
 			}
 			if (ps->minPosition.y <= ps->maxPosition.y) {
-				if (res.y < ps->minPosition.y) res.y = ps->minPosition.y;
-				if (res.y > ps->maxPosition.y) res.y = ps->maxPosition.y;
+				if (res.y < ps->minPosition.y) 
+					res.y = ps->minPosition.y;
+				if (res.y > ps->maxPosition.y) 
+					res.y = ps->maxPosition.y;
 			}
 			ps->translation_changed.x = res.x;
 			ps->translation_changed.y = res.y;

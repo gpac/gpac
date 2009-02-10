@@ -3443,6 +3443,11 @@ static void flush_event_out(GF_Node *node, GF_ScriptPriv *priv)
 		if (sf->activate_event_out) {
 			sf->activate_event_out = 0;
 			gf_node_event_out(node, sf->ALL_index);
+			if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) {
+				GF_FieldInfo info;
+				if (gf_node_get_field(node, sf->ALL_index, &info)==GF_OK)
+					gf_node_changed(node, &info);
+			}
 		}
 	}
 }

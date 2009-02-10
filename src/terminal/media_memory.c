@@ -465,7 +465,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 	}
 	out = cb->output;
 
-	assert(out->TS >= cb->LastRenderedTS);
+	//assert(out->TS >= cb->LastRenderedTS);
 
 exit:
 	return out;

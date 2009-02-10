@@ -1568,7 +1568,12 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 	szIndent[indent]=0;
 	
 	fprintf(stdout, szIndent);
-	fprintf(stdout, "#%d %s - OD ID %d\n", num, root_name, odi.od->objectDescriptorID);
+	fprintf(stdout, "#%d %s - ", num, root_name);
+	if (odi.media_url) {
+		fprintf(stdout, "%s\n", odi.media_url);
+	} else {
+		fprintf(stdout, "OD ID %d\n", odi.od->objectDescriptorID);
+	}
 
 	szIndent[indent]=' ';
 	szIndent[indent+1]=0;

@@ -372,8 +372,9 @@ static void DS_SetVolume(GF_AudioOutput *dr, u32 Volume)
 {
 	LONG Vol;
 	DSCONTEXT();
-	if (Volume > 100) Volume = 100;
-	Vol = DSBVOLUME_MIN/2 + Volume * (DSBVOLUME_MAX-DSBVOLUME_MIN/2) / 100;
+	if (Volume > 100) Volume = DSBVOLUME_MAX;
+	else if(Volume == 0) Vol = DSBVOLUME_MIN;
+	else Vol = DSBVOLUME_MIN/2 + Volume * (DSBVOLUME_MAX-DSBVOLUME_MIN/2) / 100;
 	IDirectSoundBuffer_SetVolume(ctx->pOutput, Vol);
 }
 

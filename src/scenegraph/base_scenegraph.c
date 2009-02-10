@@ -1558,6 +1558,18 @@ void gf_node_changed_internal(GF_Node *node, GF_FieldInfo *field, Bool notify_sc
 		sg->on_node_modified(sg, node, field, NULL);
 	}
 
+#ifndef GPAC_DISABLE_SVG
+	if (field && node->sgprivate->interact && node->sgprivate->interact->dom_evt) {
+		GF_DOM_Event evt;
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.bubbles = 1;
+		evt.type = GF_EVENT_ATTR_MODIFIED;
+		evt.attr = field;
+		gf_dom_event_fire(node, &evt);
+	}
+#endif
+
+
 	/*internal nodes*/
 	if (gf_sg_vrml_node_changed(node, field)) return;
 #ifndef GPAC_DISABLE_SVG
