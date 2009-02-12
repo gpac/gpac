@@ -653,6 +653,8 @@ enum
 	GF_ODM_INLINE_PROFILES = (1<<5),
 	/*flag set if object declared by network service, not from OD stream*/
 	GF_ODM_NOT_IN_OD_STREAM = (1<<6),
+	/*flag set if object is an entry point of the network service*/
+	GF_ODM_SERVICE_ENTRY = (1<<7),
 
 	/*dynamic flags*/
 	

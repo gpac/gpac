@@ -765,6 +765,10 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 				gf_clock_set_time(ch->clock, ch->DTS);
 				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d - %d buffering\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering));
 			}
+			/*if channel is not the OCR, shift all time stamps to match the current time at clock init*/
+			else {
+				ch->ts_offset += gf_clock_real_time(ch->clock);
+			}
 			if (ch->clock->clock_init) ch->IsClockInit = 1;
 		}
 		/*if the AU Length is carried in SL, get its size*/
