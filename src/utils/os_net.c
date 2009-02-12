@@ -48,7 +48,7 @@
 
 #if !defined(__GNUC__)
 
-#if defined(IPV6_MULTICAST_IF___dis)
+#if defined(IPV6_MULTICAST_IF__dis)
 #define GPAC_HAS_IPV6 1
 #pragma message("Using WinSock IPV6")
 #else
@@ -548,7 +548,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *loca
 		ret = connect(sock->socket, (struct sockaddr *) &sock->dest_addr, sizeof(struct sockaddr));
 		if (ret == SOCKET_ERROR) {
 			u32 res = LASTSOCKERROR;
-			GF_LOG(GF_LOG_CORE, GF_LOG_ERROR, ("[Core] Couldn't connect socket - last sock error %d\n", res));
+			GF_LOG(GF_LOG_NETWORK, GF_LOG_ERROR, ("[Core] Couldn't connect socket - last sock error %d\n", res));
 			switch (res) {
 			case EAGAIN: return GF_IP_SOCK_WOULD_BLOCK;
 #ifdef WIN32
@@ -676,17 +676,6 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 	sock->flags &= ~GF_SOCK_IS_IPV6;
 
 	memset((void *) &LocalAdd, 0, sizeof(LocalAdd));
-	ret = gethostname(buf, GF_MAX_IP_NAME_LEN);
-	if (ret == SOCKET_ERROR) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[socket] cannot get localhost name - socket error %x\n", LASTSOCKERROR));
-		return GF_IP_ADDRESS_NOT_FOUND;
-	}
-	/*get the IP address*/
-	Host = gethostbyname(buf);
-	if (Host == NULL) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[socket] cannot resolve localhost name - socket error %x\n", LASTSOCKERROR));
-		return GF_IP_ADDRESS_NOT_FOUND;
-	}
 
 	/*turn on MobileIP*/
 	if (local_ip && MobileIPAdd && !strcmp(MobileIPAdd, local_ip) ) {
@@ -696,19 +685,41 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 			local_ip = NULL;
 		}
 	}
-
 	/*setup the address*/
 	ip_add = 0;
 	if (local_ip) ip_add = inet_addr(local_ip);
+
 	if (!ip_add) {
-		ip_add = htonl(INADDR_ANY);
-		local_ip = NULL;
+		buf[0] = 0;
+		ret = gethostname(buf, GF_MAX_IP_NAME_LEN);
+		/*get the IP address*/
+		Host = gethostbyname(buf);
+		if (Host != NULL) {
+			memcpy((char *) &LocalAdd.sin_addr, Host->h_addr_list[0], sizeof(LocalAdd.sin_addr));
+			ip_add = LocalAdd.sin_addr.s_addr;
+		} else {
+			ip_add = INADDR_ANY;
+		}
 	}
-	memcpy((char *) &LocalAdd.sin_addr, Host->h_addr_list[0], sizeof(LocalAdd.sin_addr));
+	if (peer_name && peer_port) {
+#ifdef WIN32
+		if (inet_addr(peer_name)== ip_add) {
+			optval = 1;
+			setsockopt(sock->socket, SOL_SOCKET, SO_USELOOPBACK, SSO_CAST &optval, sizeof(optval));
+		}
+#endif
+		if (!ip_add || !local_ip) {
+			port = peer_port;
+			ip_add = inet_addr(peer_name);
+		}
+	}
+
 	LocalAdd.sin_family = AF_INET;
-	LocalAdd.sin_addr.s_addr = ip_add;
 	LocalAdd.sin_port = htons(port);
+	LocalAdd.sin_addr.s_addr = ip_add;	
 	addrlen = sizeof(struct sockaddr_in);
+
+
 	if (options & GF_SOCK_REUSE_PORT) {
 		optval = 1;
 		setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, SSO_CAST &optval, sizeof(optval));
@@ -717,10 +728,11 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 		setsockopt(sock->socket, SOL_SOCKET, SO_REUSEPORT, SSO_CAST &optval, sizeof(optval));
 #endif
 	}
+
 	/*bind the socket*/
 	ret = bind(sock->socket, (struct sockaddr *) &LocalAdd, addrlen);
 	if (ret == SOCKET_ERROR) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[socket] cannot bind socket - socket error %x\n", LASTSOCKERROR));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot bind socket - socket error %x\n", LASTSOCKERROR));
 		ret = GF_IP_CONNECTION_FAILURE;
 	}
 
@@ -735,13 +747,13 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 		}
 		sock->flags |= GF_SOCK_HAS_PEER;
 	}
-#endif
 	if (sock->flags & GF_SOCK_HAS_PEER) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[socket] socket bound to port %d - remote peer: %s:%d\n", port, peer_name, peer_port));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] socket bound to %08X - port %d - remote peer: %s:%d\n", ip_add, port, peer_name, peer_port));
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[socket] socket bound to port %d\n", port));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[socket] socket bound to %08X - port %d\n", ip_add, port));
 	}
 	return ret;
+#endif
 }
 
 //send length bytes of a buffer
@@ -999,7 +1011,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_ADD_MEMBERSHIP, (char *) &M_req, sizeof(M_req));
 	if (ret == SOCKET_ERROR) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] cannot join multicast: error %d\n", LASTSOCKERROR));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[core] cannot join multicast: error %d\n", LASTSOCKERROR));
 		return GF_IP_CONNECTION_FAILURE;
 	}
 	/*set the Time To Live*/
@@ -1054,12 +1066,12 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 		case EAGAIN:
 			return GF_IP_SOCK_WOULD_BLOCK;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[socket] cannot select (error %d)\n", LASTSOCKERROR));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot select (error %d)\n", LASTSOCKERROR));
 			return GF_IP_NETWORK_FAILURE;
 		}
 	}
 	if (!FD_ISSET(sock->socket, &Group)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[socket] nothing to be read\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[socket] nothing to be read\n"));
 		return GF_IP_NETWORK_EMPTY;
 	}
 #endif
@@ -1071,7 +1083,7 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 
 	if (res == SOCKET_ERROR) {
 		res = LASTSOCKERROR;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[socket] error reading - socket error %d\n",  res));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] error reading - socket error %d\n",  res));
 		switch (res) {
 		case EAGAIN:
 			return GF_IP_SOCK_WOULD_BLOCK;

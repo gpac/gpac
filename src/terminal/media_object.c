@@ -638,7 +638,7 @@ Bool gf_mo_get_loop(GF_MediaObject *mo, Bool in_loop)
 	ck = gf_odm_get_media_clock(mo->odm->parentscene->root_od);
 	if (gf_odm_shares_clock(mo->odm, ck)) {
 		in_loop = 0;
-		if (ctrl->stream->odm && ctrl->stream->odm->subscene)
+		if (ctrl && ctrl->stream->odm && ctrl->stream->odm->subscene)
 			gf_term_invalidate_compositor(mo->odm->term);
 
 	}
