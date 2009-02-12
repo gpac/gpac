@@ -654,7 +654,23 @@ static Bool RP_CanHandleURLInService(GF_InputService *plug, const char *url)
 		|| strstr(url, "data:application/mpeg4-es-au;base64")
 		) return 1;
 
-	if (!RP_CanHandleURL(plug, url)) return 0;
+	if (url[0]=='#') {
+		Bool st_type = 0;
+		if (!stricmp(url, "#video")) st_type = GF_STREAM_VISUAL;
+		else if (!stricmp(url, "#audio")) st_type = GF_STREAM_AUDIO;
+
+		if (st_type) {
+			u32 i=0;
+			RTPStream *st;
+			while ((st = (RTPStream *)gf_list_enum(priv->channels, &i))) {
+				if (st->depacketizer && (st->depacketizer->sl_map.StreamType==st_type)) 
+					return 1;
+			}
+		}
+		return 0;
+	} else if (!RP_CanHandleURL(plug, url)) {
+		return 0;
+	}
 	/*if this URL is part of a running session then ok*/
 	sess = RP_CheckSession(priv, (char *) url);
 	if (sess) return 1;

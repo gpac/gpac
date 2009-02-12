@@ -151,19 +151,21 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	/*detach from network service */
 	if (odm->net_service) {
 		GF_ClientService *ns = odm->net_service;
-		if (ns->owner == odm) {
+		if (odm->flags & GF_ODM_SERVICE_ENTRY) {
 			if (ns->nb_odm_users) ns->nb_odm_users--;
-			/*detach it!!*/
-			ns->owner = NULL;
-			/*try to assign a new root in case this is not scene shutdown*/
-			if (ns->nb_odm_users && odm->parentscene) {
-				GF_ObjectManager *new_root;
-				u32 i = 0;
-				while ((new_root = (GF_ObjectManager *)gf_list_enum(odm->parentscene->ODlist, &i)) ) {
-					if (new_root == odm) continue;
-					if (new_root->net_service != ns) continue;
-					ns->owner = new_root;
-					break;
+			if (ns->owner == odm) {
+				/*detach it!!*/
+				ns->owner = NULL;
+				/*try to assign a new root in case this is not scene shutdown*/
+				if (ns->nb_odm_users && odm->parentscene) {
+					GF_ObjectManager *new_root;
+					u32 i = 0;
+					while ((new_root = (GF_ObjectManager *)gf_list_enum(odm->parentscene->ODlist, &i)) ) {
+						if (new_root == odm) continue;
+						if (new_root->net_service != ns) continue;
+						ns->owner = new_root;
+						break;
+					}
 				}
 			}
 		}
@@ -243,6 +245,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		desc = gf_odf_desc_new(GF_ODF_OD_TAG);
 	}
 	odm->net_service->nb_odm_users++;
+	odm->flags |= GF_ODM_SERVICE_ENTRY;
 
 	if (!gf_list_count( ((GF_ObjectDescriptor*)desc)->ESDescriptors)) {
 		/*new subscene*/
