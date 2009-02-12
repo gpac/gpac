@@ -498,6 +498,7 @@ GF_Err rtp_init_channel(RTP_Stream *rtp, u32 path_mtu, char * dest, int port)
 	rtp->channel = gf_rtp_new();
 	gf_rtp_set_ports(rtp->channel, 0);
 
+	memset(&tr, 0, sizeof(GF_RTSPTransport ));
 	tr.IsUnicast = gf_sk_is_multicast_address(dest) ? 0 : 1;
 	tr.Profile="RTP/AVP";
 	tr.destination = dest;

@@ -144,6 +144,7 @@ GF_Err gf_rtp_set_info_rtp(GF_RTPChannel *ch, u32 seq_num, u32 rtp_time, u32 ssr
 GF_EXPORT
 GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u32 PathMTU, u32 ReorederingSize, u32 MaxReorderDelay, char *local_ip)
 {
+	u16 port;
 	GF_Err e;
 
 	if (IsSource && !PathMTU) return GF_BAD_PARAM;
@@ -173,7 +174,9 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		if (ch->net_info.IsUnicast) {
 			//if client, bind and connect the socket
 			if (!IsSource) {
-				e = gf_sk_bind(ch->rtp, local_ip, ch->net_info.client_port_first, ch->net_info.source, ch->net_info.port_first, GF_SOCK_REUSE_PORT);
+				port = ch->net_info.port_first;
+				if (!port) port = ch->net_info.client_port_first;
+				e = gf_sk_bind(ch->rtp, local_ip, ch->net_info.client_port_first, ch->net_info.source, port, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			}
 			//else bind and set remote destination
@@ -214,7 +217,9 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		if (!ch->rtcp) return GF_IP_NETWORK_FAILURE;
 		if (ch->net_info.IsUnicast) {
 			if (!IsSource) {
-				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.client_port_last, ch->net_info.source, ch->net_info.port_last, GF_SOCK_REUSE_PORT);
+				port = ch->net_info.port_last;
+				if (!port) port = ch->net_info.client_port_last;
+				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.client_port_last, ch->net_info.source, port, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			} else {
 				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.port_last, ch->net_info.destination, ch->net_info.client_port_last, GF_SOCK_REUSE_PORT);
