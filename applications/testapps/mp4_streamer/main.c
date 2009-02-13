@@ -13,7 +13,7 @@
  *   
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  MERCHANTABILITY or FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
  *   
  *  You should have received a copy of the GNU Lesser General Public
@@ -507,6 +507,7 @@ GF_Err rtp_init_channel(RTP_Stream *rtp, u32 path_mtu, char * dest, int port)
 	tr.Append = 0;
 	tr.SSRC = rand();
 
+	tr.TTL = 1;
 	tr.port_first        = port;
 	tr.port_last         = port+1;
 	if (tr.IsUnicast) {
