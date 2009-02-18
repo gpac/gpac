@@ -172,6 +172,7 @@ BEGIN
     POPUP "?"
     BEGIN
         MENUITEM "2D OpenGL",                   IDM_VIEW_FORCEGL
+        MENUITEM "Force GX",                    IDM_VIEW_FORCE_GX
         MENUITEM "Progressive SVG ",            IDM_VIEW_SVG_LOAD
         MENUITEM SEPARATOR
         MENUITEM "Disable Playlist",            IDS_CAP_DISABLE_PLAYLIST
@@ -304,8 +305,8 @@ CAPTION "About Osmophone"
 FONT 8, "System"
 BEGIN
     ICON            IDI_ICON,IDC_STATIC,6,4,20,20
-    LTEXT           "Osmo4/GPAC\n""0.4.5"" (build ""33"")",IDC_STATIC,33,
-                    6,46,17
+    LTEXT           "Osmo4/GPAC\n""0.4.5"" (build ""33"")",IDC_STATIC,33,6,
+                    46,17
     CTEXT           "Copyright (c) 2007 ENST\nAll Rights Reserved\n\nLicensed under LGPL",
                     IDC_STATIC,2,28,87,39
 END

@@ -61,7 +61,7 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 po
 }
 
 
-static void Node_on_add_children(GF_Node *node)
+static void Node_on_add_children(GF_Node *node, GF_Route *route)
 {
 	GF_ChildNodeItem *list;
 	GF_FieldInfo field;
@@ -87,7 +87,7 @@ static void Node_on_add_children(GF_Node *node)
 	gf_node_changed(node, &field);
 }
 
-static void Node_on_remove_children(GF_Node *node)
+static void Node_on_remove_children(GF_Node *node, GF_Route *route)
 {
 	GF_ChildNodeItem *list;
 	GF_FieldInfo field;

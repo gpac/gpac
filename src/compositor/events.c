@@ -609,7 +609,11 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				evt.button = event->mouse.button;
 				evt.detail = compositor->num_clicks;
 				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
-				if ((compositor->grab_x == X) && (compositor->grab_y == Y)) {
+
+#if !defined(_WIN32_WCE)
+				if ((compositor->grab_x == X) && (compositor->grab_y == Y)) 
+#endif
+				{
 					evt.type = GF_EVENT_CLICK;
 					ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 				}

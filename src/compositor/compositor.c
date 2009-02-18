@@ -2407,7 +2407,7 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		target = gf_sg_find_node_by_name(gf_node_get_graph(n), sub_url+1);
 		if (target && (gf_node_get_tag(target)==TAG_MPEG4_Viewport) ) {
 			((M_Viewport *)target)->set_bind = 1;
-			((M_Viewport *)target)->on_set_bind(n);
+			((M_Viewport *)target)->on_set_bind(n, NULL);
 			return 1;
 		}
 		return 0;

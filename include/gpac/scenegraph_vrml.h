@@ -372,9 +372,9 @@ children: list of children SFNodes
 #define VRML_CHILDREN							\
 	CHILDREN									\
 	GF_ChildNodeItem *addChildren;							\
-	void (*on_addChildren)(GF_Node *pNode);		\
+	void (*on_addChildren)(GF_Node *pNode, struct _route *route);		\
 	GF_ChildNodeItem *removeChildren;						\
-	void (*on_removeChildren)(GF_Node *pNode);		\
+	void (*on_removeChildren)(GF_Node *pNode, struct _route *route);		\
 
 typedef struct
 {

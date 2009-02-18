@@ -309,7 +309,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 
 	//if this is a supported eventIn call watcher
 	if (r->ToField.on_event_in) {
-		r->ToField.on_event_in(r->ToNode);
+		r->ToField.on_event_in(r->ToNode, r);
 	}
 	//if this is a script eventIn call directly script
 	else if (((r->ToNode->sgprivate->tag==TAG_MPEG4_Script) || (r->ToNode->sgprivate->tag==TAG_X3D_Script) ) 

@@ -591,6 +591,7 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	DepthGroup_GetNode(node, &stack->dg);
 
+#ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		GF_Matrix mx_bckup, mx;
 
@@ -611,7 +612,9 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 		}
 		gf_mx_copy(tr_state->model_matrix, mx_bckup);
 
-	} else {
+	} else 
+#endif
+	{
 		Fixed depth = tr_state->depth;
 		tr_state->depth += stack->dg.depth;
 		group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);

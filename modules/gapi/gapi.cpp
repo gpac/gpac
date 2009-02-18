@@ -341,7 +341,8 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	{
 		GAPIPriv *gctx = (GAPIPriv *)the_video_driver->opaque;
 		if (gctx->gx_mode || !gctx->bitmap) break;
-		BitBlt(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, gctx->hdcBitmap, 0, 0, SRCCOPY);
+//		BitBlt(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, gctx->hdcBitmap, 0, 0, SRCCOPY);
+		SetDIBitsToDevice(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, 0, 0, 0, gctx->bb_height, gctx->backbuffer, gctx->bmi, DIB_RGB_COLORS);
 	}
 		break;
 
@@ -518,6 +519,10 @@ static void createPixmap(GAPIPriv *ctx, u32 pix_type)
     const size_t    bmiSize = sizeof(BITMAPINFO) + 256U*sizeof(RGBQUAD);
     BITMAPINFO*     bmi;
     DWORD*          p;
+	u32 bpel = 0;
+
+	if (ctx->bmi) free(ctx->bmi);
+
     bmi = (BITMAPINFO*)malloc(bmiSize);
     memset(bmi, 0, bmiSize);
 
@@ -533,15 +538,17 @@ static void createPixmap(GAPIPriv *ctx, u32 pix_type)
 	switch (ctx->pixel_format) {
 	case GF_PIXEL_RGB_555:
 		p[0] = 0x00007c00; p[1] = 0x000003e0; p[2] = 0x0000001f;
+		bpel = 16;
 		break;
 	case GF_PIXEL_RGB_565:
 		p[0] = 0x0000f800; p[1] = 0x000007e0; p[2] = 0x0000001f;
+		bpel = 16;
 		break;
 	case GF_PIXEL_RGB_24:
 		p[0] = 0x00ff0000; p[1] = 0x0000ff00; p[2] = 0x000000ff;
+		bpel = 24;
 		break;
 	}
-
 	ctx->hdc = GetDC(ctx->hWnd);
 	
 	if (pix_type==2) {
@@ -556,10 +563,12 @@ static void createPixmap(GAPIPriv *ctx, u32 pix_type)
 		ctx->hdcBitmap = CreateCompatibleDC(ctx->hdc);
 		ctx->bitmap = CreateDIBSection(ctx->hdc, bmi, DIB_RGB_COLORS, (void **) &ctx->backbuffer, NULL, 0);
 		ctx->old_bitmap = (HBITMAP) SelectObject(ctx->hdcBitmap, ctx->bitmap);
+		
 		/*watchout - win32 always create DWORD align memory, so align our pitch*/
 		while ((ctx->bb_pitch % 4) != 0) ctx->bb_pitch ++;
 	}
-	free(bmi);
+	ctx->bmi = bmi;
+//	free(bmi);
 }
 
 

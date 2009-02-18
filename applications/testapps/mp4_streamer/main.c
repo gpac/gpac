@@ -490,7 +490,7 @@ GF_Err rtp_setup_sdp(RTP_Session *session, char *dest_ip)
 	return GF_OK;
 } /* rtp_init_packetizer */
 
-GF_Err rtp_init_channel(RTP_Stream *rtp, u32 path_mtu, char * dest, int port)
+GF_Err rtp_init_channel(RTP_Stream *rtp, u32 path_mtu, char * dest, int port, int ttl, char *ifce_addr)
 {
 	GF_RTSPTransport tr;
 	GF_Err res;
@@ -507,7 +507,7 @@ GF_Err rtp_init_channel(RTP_Stream *rtp, u32 path_mtu, char * dest, int port)
 	tr.Append = 0;
 	tr.SSRC = rand();
 
-	tr.TTL = 1;
+	tr.TTL = ttl;
 	tr.port_first        = port;
 	tr.port_last         = port+1;
 	if (tr.IsUnicast) {
@@ -523,7 +523,7 @@ GF_Err rtp_init_channel(RTP_Stream *rtp, u32 path_mtu, char * dest, int port)
 		return res;
 	}
 
-	res = gf_rtp_initialize(rtp->channel, 0, 1, 1500, 0, 0, NULL);
+	res = gf_rtp_initialize(rtp->channel, 0, 1, 1500, 0, 0, ifce_addr);
 	if (res !=0) {
 		fprintf(stdout, "Cannot initialize RTP sockets\n");
 		return res;
@@ -820,7 +820,7 @@ u16 check_next_port(Streamer *streamer, u16 first_port)
  *
  */
 
-GF_Err configuration(Streamer *streamer, char *cfg_file, char *src_file, char *ip_dest, u16 port, Bool loop, Bool force_mpeg4)
+GF_Err configuration(Streamer *streamer, char *cfg_file, char *src_file, char *ip_dest, u16 port, Bool loop, Bool force_mpeg4, int ttl, char *ifce_addr)
 {
 	GF_Err e = GF_OK;
 	RTP_Session *session, *last_sess;
@@ -989,7 +989,7 @@ GF_Err configuration(Streamer *streamer, char *cfg_file, char *src_file, char *i
 			rtp->port = check_next_port(streamer, first_port);
 			first_port = rtp->port+2;
 
-			e = rtp_init_channel(rtp, sess_path_mtu+12, sess_dest_ip, rtp->port);
+			e = rtp_init_channel(rtp, sess_path_mtu+12, sess_dest_ip, rtp->port, ttl, ifce_addr);
 			if (e) {
 				fprintf(stderr, "Could not initialize RTP Channel: %s\n", gf_error_to_string(e));
 				goto exit;
@@ -1040,6 +1040,8 @@ void usage()
 					"-port=NUM:    port to use. Default is 7000\n"
 					"-mtu=NUM:     network path MTU to use. Default is 1450\n"
 					"-dst=ADD:     destination IP address. Default is 127.0.0.1\n"
+					"-ttl=ADD:     Multicast TTL. Default is 1\n"
+					"-ifce=ADD:    Local interface IP address. Default is NULL\n"
 					"-mpeg4:       forces usage of mpeg4-generic payload format. Default is off\n"
 					"-noloop:      disables session looping. Default is off\n"
 		);
@@ -1064,7 +1066,9 @@ int main(int argc, char **argv)
 	s32 sleepDuration;
 	u32 time;
 	char *ip_dest = "127.0.0.1";
+	char *ifce_addr = NULL;
 	u16 port = 7000;
+	u32 ttl = 1;
 	Bool loop = 1;
 	Bool force_mpeg4 = 0;
 	char *file_name = NULL;
@@ -1096,6 +1100,8 @@ int main(int argc, char **argv)
 			else if (!strnicmp(arg, "-dst=", 5)) ip_dest = arg+5;
 			else if (!stricmp(arg, "-noloop")) loop = 0;
 			else if (!stricmp(arg, "-mpeg4")) force_mpeg4 = 1;
+			else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
+			else if (!strnicmp(arg, "-ifce=", 6)) ifce_addr = arg+6;
 		} else {
 			file_name = arg;
 		}
@@ -1118,7 +1124,7 @@ int main(int argc, char **argv)
 	 *
 	 */
 	gf_sys_init();
-	if (configuration(&streamer, cfg, file_name, ip_dest, port, loop, force_mpeg4) != GF_OK) {
+	if (configuration(&streamer, cfg, file_name, ip_dest, port, loop, force_mpeg4, ttl, ifce_addr) != GF_OK) {
 		goto err_exit;
 	}
 

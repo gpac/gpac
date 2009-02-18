@@ -50,7 +50,7 @@ void svg_traverse_title(GF_Node *node, void *rs, Bool is_destroy)
 	is->world_info = is_destroy ? NULL : (M_WorldInfo *) node;
 }
 
-void evaluate_term_cap(GF_Node *node)
+void evaluate_term_cap(GF_Node *node, GF_Route *route)
 {
 	GF_SystemRTInfo rti;
 	Double fps;
@@ -169,7 +169,7 @@ static void InitTermCap(GF_InlineScene *is, GF_Node *node)
 	tc->on_evaluate = evaluate_term_cap;
 	gf_node_set_private(node, is);
 	/*evaluate upon init (cf BIFS spec)*/
-	evaluate_term_cap(node);
+	evaluate_term_cap(node, NULL);
 }
 
 void gf_term_on_node_init(void *_is, GF_Node *node)

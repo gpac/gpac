@@ -41,7 +41,7 @@ static Fixed GetInterpolateFraction(Fixed key1, Fixed key2, Fixed fraction)
 	return gf_divfix(fraction - key1, keyDiff);
 }
 
-static void CI2D_SetFraction(GF_Node *n)
+static void CI2D_SetFraction(GF_Node *n, GF_Route *route)
 {
 	Fixed frac;
 	u32 numElemPerKey, i, j;
@@ -141,7 +141,7 @@ static Bool CI_SetFraction(Fixed fraction, MFVec3f *vals, MFFloat *key, MFVec3f 
 }
 
 
-static void CoordInt_SetFraction(GF_Node *n)
+static void CoordInt_SetFraction(GF_Node *n, GF_Route *route)
 {
 	M_CoordinateInterpolator *_this = (M_CoordinateInterpolator *) n;
 
@@ -156,7 +156,7 @@ Bool InitCoordinateInterpolator(M_CoordinateInterpolator *n)
 	return 1;
 }
 
-static void NormInt_SetFraction(GF_Node *n)
+static void NormInt_SetFraction(GF_Node *n, GF_Route *route)
 {
 	u32 i;
 	M_NormalInterpolator *_this = (M_NormalInterpolator *) n;
@@ -176,7 +176,7 @@ Bool InitNormalInterpolator(M_NormalInterpolator *n)
 	return 1;
 }
 
-static void ColorInt_SetFraction(GF_Node *node)
+static void ColorInt_SetFraction(GF_Node *node, GF_Route *route)
 {
 	u32 i;
 	Fixed frac;
@@ -221,7 +221,7 @@ Bool InitColorInterpolator(M_ColorInterpolator *node)
 }
 
 
-static void PosInt2D_SetFraction(GF_Node *node)
+static void PosInt2D_SetFraction(GF_Node *node, GF_Route *route)
 {
 	M_PositionInterpolator2D *_this = (M_PositionInterpolator2D *)node;
 	u32 i;
@@ -257,7 +257,7 @@ Bool InitPositionInterpolator2D(M_PositionInterpolator2D *node)
 	return 1;
 }
 
-static void PosInt_SetFraction(GF_Node *node)
+static void PosInt_SetFraction(GF_Node *node, GF_Route *route)
 {
 	u32 i;
 	Fixed frac;
@@ -294,7 +294,7 @@ Bool InitPositionInterpolator(M_PositionInterpolator *node)
 	return 1;
 }
 
-static void ScalarInt_SetFraction(GF_Node *node)
+static void ScalarInt_SetFraction(GF_Node *node, GF_Route *route)
 {
 	M_ScalarInterpolator *_this = (M_ScalarInterpolator *)node;
 	u32 i;
@@ -363,7 +363,7 @@ SFRotation gf_sg_sfrotation_interpolate(SFRotation kv1, SFRotation kv2, Fixed fr
 	return res;
 }
 
-static void OrientInt_SetFraction(GF_Node *node)
+static void OrientInt_SetFraction(GF_Node *node, GF_Route *route)
 {
 	u32 i;
 	Fixed frac;
@@ -398,7 +398,7 @@ Bool InitOrientationInterpolator(M_OrientationInterpolator *node)
 	return 1;
 }
 
-static void CI4D_SetFraction(GF_Node *n)
+static void CI4D_SetFraction(GF_Node *n, GF_Route *route)
 {
 	Fixed frac;
 	u32 numElemPerKey, i, j;
@@ -460,7 +460,7 @@ Bool InitCoordinateInterpolator4D(M_CoordinateInterpolator4D *node)
 	return 1;
 }
 
-static void PI4D_SetFraction(GF_Node *node)
+static void PI4D_SetFraction(GF_Node *node, GF_Route *route)
 {
 	u32 i;
 	Fixed frac;
@@ -500,7 +500,7 @@ Bool InitPositionInterpolator4D(M_PositionInterpolator4D *node)
 
 
 
-static void BooleanFilter_setValue(GF_Node *n)
+static void BooleanFilter_setValue(GF_Node *n, GF_Route *route)
 {
 	X_BooleanFilter *bf = (X_BooleanFilter *)n;
 	if (!bf->set_boolean) {
@@ -521,7 +521,7 @@ void InitBooleanFilter(GF_Node *n)
 	bf->on_set_boolean = BooleanFilter_setValue;
 }
 
-static void BooleanSequencer_setFraction(GF_Node *n)
+static void BooleanSequencer_setFraction(GF_Node *n, GF_Route *route)
 {
 	u32 i;
 	X_BooleanSequencer *bs = (X_BooleanSequencer*)n;
@@ -543,7 +543,7 @@ static void BooleanSequencer_setFraction(GF_Node *n)
 	gf_node_event_out(n, 3);//"value_changed"
 }
 
-static void BooleanSequencer_setNext(GF_Node *n)
+static void BooleanSequencer_setNext(GF_Node *n, GF_Route *route)
 {
 	s32 *prev_val, val;
 	X_BooleanSequencer *bs = (X_BooleanSequencer*)n;
@@ -556,7 +556,7 @@ static void BooleanSequencer_setNext(GF_Node *n)
 	gf_node_event_out(n, 3);//"value_changed"
 }
 
-static void BooleanSequencer_setPrevious(GF_Node *n)
+static void BooleanSequencer_setPrevious(GF_Node *n, GF_Route *route)
 {
 	s32 *prev_val, val;
 	X_BooleanSequencer *bs = (X_BooleanSequencer*)n;
@@ -588,7 +588,7 @@ void InitBooleanSequencer(GF_Node *n)
 	n->sgprivate->UserCallback = DestroyBooleanSequencer;
 }
 
-static void BooleanToggle_setValue(GF_Node *n)
+static void BooleanToggle_setValue(GF_Node *n, GF_Route *route)
 {
 	X_BooleanToggle *bt = (X_BooleanToggle *)n;
 	if (bt->set_boolean) {
@@ -602,7 +602,7 @@ void InitBooleanToggle(GF_Node *n)
 	bt->on_set_boolean = BooleanToggle_setValue;
 }
 
-static void BooleanTrigger_setTime(GF_Node *n)
+static void BooleanTrigger_setTime(GF_Node *n, GF_Route *route)
 {
 	X_BooleanTrigger *bt = (X_BooleanTrigger *)n;
 	bt->triggerTrue = 1;
@@ -614,7 +614,7 @@ void InitBooleanTrigger(GF_Node *n)
 	bt->on_set_triggerTime = BooleanTrigger_setTime;
 }
 
-static void IntegerSequencer_setFraction(GF_Node *n)
+static void IntegerSequencer_setFraction(GF_Node *n, GF_Route *route)
 {
 	u32 i;
 	X_IntegerSequencer *is = (X_IntegerSequencer *)n;
@@ -636,7 +636,7 @@ static void IntegerSequencer_setFraction(GF_Node *n)
 	gf_node_event_out(n, 3);//"value_changed"
 }
 
-static void IntegerSequencer_setNext(GF_Node *n)
+static void IntegerSequencer_setNext(GF_Node *n, GF_Route *route)
 {
 	s32 *prev_val, val;
 	X_IntegerSequencer *is = (X_IntegerSequencer*)n;
@@ -649,7 +649,7 @@ static void IntegerSequencer_setNext(GF_Node *n)
 	gf_node_event_out(n, 3);//"value_changed"
 }
 
-static void IntegerSequencer_setPrevious(GF_Node *n)
+static void IntegerSequencer_setPrevious(GF_Node *n, GF_Route *route)
 {
 	s32 *prev_val, val;
 	X_IntegerSequencer *is = (X_IntegerSequencer *)n;
@@ -681,7 +681,7 @@ void InitIntegerSequencer(GF_Node *n)
 	n->sgprivate->UserCallback = DestroyIntegerSequencer;
 }
 
-static void IntegerTrigger_setTrigger(GF_Node *n)
+static void IntegerTrigger_setTrigger(GF_Node *n, GF_Route *route)
 {
 	X_IntegerTrigger *it = (X_IntegerTrigger *)n;
 	if (it->set_boolean) {
@@ -695,7 +695,7 @@ void InitIntegerTrigger(GF_Node *n)
 	it->on_set_boolean = IntegerTrigger_setTrigger;
 }
 
-static void TimeTrigger_setTrigger(GF_Node *n)
+static void TimeTrigger_setTrigger(GF_Node *n, GF_Route *route)
 {
 	X_TimeTrigger *tt = (X_TimeTrigger *)n;
 	tt->triggerTime = gf_node_get_scene_time(n);

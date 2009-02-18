@@ -1243,4 +1243,7 @@ EXPORTS
 	gf_node_register_iri
 	gf_node_unregister_iri
 
-	
+	;gf_rtpm_new
+	;gf_rtpm_del
+	;gf_rtpm_send_data
+	;gf_rtpm_get_sdp

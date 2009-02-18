@@ -327,7 +327,7 @@ typedef struct
 	/*event type*/
 	u32 eventType;
 	/*eventin handler if any*/
-	void (*on_event_in)(GF_Node *pNode);
+	void (*on_event_in)(GF_Node *pNode, struct _route *from_route);
 } GF_FieldInfo;
 
 /*returns number of field for this node*/

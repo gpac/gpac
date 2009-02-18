@@ -112,14 +112,14 @@ static void Conditional_execute(M_Conditional *node)
 	codec->current_graph = prev_graph;
 }
 
-void Conditional_OnActivate(GF_Node *n)
+void Conditional_OnActivate(GF_Node *n, GF_Route *route)
 {
 	M_Conditional *node = (M_Conditional *)n;
 	if (! node->activate) return;
 	Conditional_execute(node);
 }
 
-void Conditional_OnReverseActivate(GF_Node *n)
+void Conditional_OnReverseActivate(GF_Node *n, GF_Route *route)
 {
 	M_Conditional *node = (M_Conditional *)n;
 	if (node->reverseActivate) return;
