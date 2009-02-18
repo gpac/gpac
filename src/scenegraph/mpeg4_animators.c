@@ -339,7 +339,7 @@ static void PA_Update(M_PositionAnimator *pa, AnimatorStack *stack)
 	} 
 	Animator_Update(stack, pa->keyValueType, pa->keyValue.count, &pa->keySpline, pa->weight.count, pa->weight.vals);
 }
-static void PA_SetFraction(GF_Node *node)
+static void PA_SetFraction(GF_Node *node, GF_Route *route)
 {
 	Fixed frac;
 	u32 nbKeys, nbVals, i;
@@ -499,7 +499,7 @@ static void PA2D_Update(M_PositionAnimator2D *pa, AnimatorStack *stack)
 	} 
 	Animator_Update(stack, pa->keyValueType, pa->keyValue.count, &pa->keySpline, pa->weight.count, pa->weight.vals);
 }
-static void PA2D_SetFraction(GF_Node *node)
+static void PA2D_SetFraction(GF_Node *node, GF_Route *route)
 {
 	Fixed frac;
 	u32 nbKeys, nbVals, i;
@@ -656,7 +656,7 @@ static void SA_Update(M_ScalarAnimator *sa, AnimatorStack *stack)
 	Animator_Update(stack, sa->keyValueType, sa->keyValue.count, &sa->keySpline, sa->weight.count, sa->weight.vals);
 }
 
-void SA_SetFraction(GF_Node *node)
+void SA_SetFraction(GF_Node *node, GF_Route *route)
 {
 	Fixed frac;
 	u32 nbKeys, nbVals, i;

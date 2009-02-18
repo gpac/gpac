@@ -411,7 +411,7 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 	FFDec *ffd = plug->privateStack;
 
 	/*WARNING: this breaks H264 (and maybe others) decoding, disabled for now*/
-#if 1
+#if 0
 	if (!ffd->ctx->hurry_up) {
 		switch (mmlevel) {
 		case GF_CODEC_LEVEL_SEEK:
@@ -446,7 +446,7 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 		if (ffd->frame_start>inBufferLength) ffd->frame_start = 0;
 
 redecode:
-		len = avcodec_decode_audio(ffd->ctx, (short *)ffd->audio_buf, &gotpic, inBuffer + ffd->frame_start, inBufferLength - ffd->frame_start);
+		len = avcodec_decode_audio2(ffd->ctx, (short *)ffd->audio_buf, &gotpic, inBuffer + ffd->frame_start, inBufferLength - ffd->frame_start);
 
 		if (len<0) { ffd->frame_start = 0; return GF_NON_COMPLIANT_BITSTREAM; }
 		if (gotpic<0) { ffd->frame_start = 0; return GF_OK; }

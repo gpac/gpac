@@ -140,27 +140,27 @@ void Bindable_SetSetBind(GF_Node *bindable, Bool val)
 	switch (gf_node_get_tag(bindable)) {
 	case TAG_MPEG4_Background2D: 
 		((M_Background2D*)bindable)->set_bind = val;
-		((M_Background2D*)bindable)->on_set_bind(bindable);
+		((M_Background2D*)bindable)->on_set_bind(bindable, NULL);
 		break;
 	case TAG_MPEG4_Viewport: 
 		((M_Viewport*)bindable)->set_bind = val;
-		((M_Viewport*)bindable)->on_set_bind(bindable);
+		((M_Viewport*)bindable)->on_set_bind(bindable, NULL);
 		break;
 	case TAG_MPEG4_Background: case TAG_X3D_Background:
 		((M_Background*)bindable)->set_bind = val;
-		((M_Background*)bindable)->on_set_bind(bindable);
+		((M_Background*)bindable)->on_set_bind(bindable, NULL);
 		break;
 	case TAG_MPEG4_NavigationInfo: case TAG_X3D_NavigationInfo: 
 		((M_NavigationInfo*)bindable)->set_bind = val;
-		((M_NavigationInfo*)bindable)->on_set_bind(bindable);
+		((M_NavigationInfo*)bindable)->on_set_bind(bindable, NULL);
 		break;
 	case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: 
 		((M_Viewpoint*)bindable)->set_bind = val;
-		((M_Viewpoint*)bindable)->on_set_bind(bindable);
+		((M_Viewpoint*)bindable)->on_set_bind(bindable, NULL);
 		break;
 	case TAG_MPEG4_Fog: case TAG_X3D_Fog: 
 		((M_Fog*)bindable)->set_bind = val;
-		((M_Fog*)bindable)->on_set_bind(bindable);
+		((M_Fog*)bindable)->on_set_bind(bindable, NULL);
 		break;
 	default: return;
 	}

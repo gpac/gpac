@@ -75,7 +75,7 @@ typedef struct
 	HBITMAP bitmap, old_bitmap;
     DWORD * bits;
 	HDC hdcBitmap, hdc;
-
+	BITMAPINFO*     bmi;
 
 #ifdef GPAC_USE_OGL_ES
 	u32 output_3d_type;

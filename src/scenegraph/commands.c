@@ -114,7 +114,7 @@ static void SG_CheckFieldChange(GF_Node *node, GF_FieldInfo *field)
 {
 	/*and propagate eventIn if any*/
 	if (field->on_event_in) {
-		field->on_event_in(node);
+		field->on_event_in(node, NULL);
 	} else if ((field->eventType==GF_SG_EVENT_IN) && (gf_node_get_tag(node) == TAG_MPEG4_Script)) {
 		gf_sg_script_event_in(node, field);
 	} else {

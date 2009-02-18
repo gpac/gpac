@@ -110,6 +110,7 @@
 #define IDM_VIEW_SVG_LOAD               40102
 #define IDS_CAP_DISABLE_PLAYLIST        40103
 #define ID_FILE_CUT_PASTE               40104
+#define IDM_VIEW_FORCE_GX				40105
 
 // Next default values for new objects
 // 

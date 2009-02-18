@@ -44,6 +44,18 @@
 
 #include <ddraw.h>
 
+#ifndef GPAC_DISABLE_3D
+#define GPAC_DISABLE_3D
+#endif
+
+#ifdef _WIN32_WCE
+# ifndef SWP_ASYNCWINDOWPOS
+#  define SWP_ASYNCWINDOWPOS 0
+# endif
+#endif
+
+
+
 #ifdef GPAC_USE_OGL_ES
 #include "GLES/egl.h"
 #endif

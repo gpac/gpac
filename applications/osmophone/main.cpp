@@ -158,9 +158,12 @@ void set_full_screen()
 {
 	full_screen = !full_screen;
 	if (full_screen) {
+		show_status = 0;
 		do_layout(0);
 		gf_term_set_option(term, GF_OPT_FULLSCREEN, full_screen);
 	} else {
+		const char *str = gf_cfg_get_key(user.config, "General", "ShowStatusBar");
+		show_status = (str && !strcmp(str, "yes")) ? 1 : 0;
 		gf_term_set_option(term, GF_OPT_FULLSCREEN, full_screen);
 		do_layout(1);
 	}
@@ -311,7 +314,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVENT_MESSAGE:
 	{
 		if (!evt->message.message) return 0;
-		set_status((char *) evt->message.message);
+		//set_status((char *) evt->message.message);
 	}
 		break;
 	case GF_EVENT_PROGRESS:
@@ -458,7 +461,8 @@ void do_layout(Bool notif_size)
 			h = disp_h - caption_h;
 		} else {
 			::ShowWindow(g_hwnd_status, SW_HIDE);
-			::MoveWindow(g_hwnd, 0, caption_h, disp_w, disp_h, 1);
+//			::MoveWindow(g_hwnd, 0, caption_h, disp_w, disp_h, 1);
+			::MoveWindow(g_hwnd, 0, 0, disp_w, disp_h, 1);
 			::MoveWindow(g_hwnd_disp, 0, 0, disp_w, disp_h, 1);
 			w = disp_w;
 			h = disp_h;
@@ -688,6 +692,16 @@ void set_svg_progressive()
 	}
 }
 
+void set_gx_mode()
+{
+	const char *opt = gf_cfg_get_key(user.config, "GAPI", "ForceGX"); 
+	gf_cfg_set_key(user.config, "GAPI", "ForceGX", (opt && !strcmp(opt, "yes")) ? "no" : "yes");
+
+	gf_term_del(term);
+	term = gf_term_new(&user);
+	gf_term_connect(term, the_url);
+}
+
 void do_copy_paste()
 {
 	if (!OpenClipboard(g_hwnd)) return;
@@ -742,6 +756,7 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		break;
 	case IDM_VIEW_STATUS:
 		show_status = !show_status;
+		gf_cfg_set_key(user.config, "General", "ShowStatusBar", show_status ? "yes" : "no");
 		do_layout(1);
 		break;
 	case IDM_VIEW_CPU:
@@ -839,6 +854,10 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	case IDM_VIEW_SVG_LOAD:
 		set_svg_progressive();
 		break;
+	case IDM_VIEW_FORCE_GX:
+		set_gx_mode();
+		break;
+
 	case IDM_ITEM_QUIT:
 		DestroyWindow(hwnd);
 		return FALSE;
@@ -849,6 +868,7 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 {
 	if (menu_switched) {
+		const char *opt;
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_STATUS, MF_BYCOMMAND| (show_status ? MF_CHECKED : MF_UNCHECKED) );
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_FORCEGL, MF_BYCOMMAND| (force_2d_gl ? MF_CHECKED : MF_UNCHECKED) );
 		EnableMenuItem((HMENU)wParam, IDM_VIEW_CPU, MF_BYCOMMAND| (show_status ? MF_ENABLED : MF_GRAYED) );
@@ -859,6 +879,10 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!force_2d_gl && gf_term_get_option(term, GF_OPT_DIRECT_DRAW) ? MF_CHECKED : MF_UNCHECKED) );
 
 		CheckMenuItem((HMENU)wParam, IDM_VIEW_SVG_LOAD, MF_BYCOMMAND| (use_svg_prog ? MF_CHECKED : MF_UNCHECKED) );
+
+		opt = gf_cfg_get_key(user.config, "GAPI", "ForceGX"); 
+		CheckMenuItem((HMENU)wParam, IDM_VIEW_FORCE_GX, MF_BYCOMMAND| ( (opt && !strcmp(opt,"yes")) ? MF_CHECKED : MF_UNCHECKED) );
+
 		return TRUE;
 	}
 
@@ -1197,6 +1221,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	} else {
 		gf_cfg_set_key(user.config, "General", "RTIRefreshPeriod", "200");
 	}
+
+	str = gf_cfg_get_key(user.config, "General", "ShowStatusBar");
+	show_status = (str && !strcmp(str, "yes")) ? 1 : 0;
 
 
 	if (is_ppc) GXOpenInput();

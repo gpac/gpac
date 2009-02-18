@@ -343,6 +343,42 @@ static JSBool replaceWorld(JSContext*c, JSObject*o, uintN n, jsval *v, jsval *rv
 {
 	return JS_TRUE;
 }
+
+static void on_route_to_object(GF_Node *node, GF_Route *r)
+{
+	jsval argv[2], rval;
+	Double time;
+	GF_FieldInfo t_info;
+	GF_ScriptPriv *priv;
+	JSObject *obj;
+	if (!node) return;
+	priv = gf_node_get_private(node);
+	if (!priv) return;
+
+	obj = (JSObject *) r->ToField.fieldIndex;
+	if (!obj) obj = priv->js_obj;
+
+	memset(&t_info, 0, sizeof(GF_FieldInfo));
+	time = gf_node_get_scene_time(node);
+	t_info.far_ptr = &time;
+	t_info.fieldType = GF_SG_VRML_SFTIME;
+	t_info.fieldIndex = -1;
+	t_info.name = "timestamp";
+	argv[1] = gf_sg_script_to_smjs_field(priv, &t_info, node, 1);
+
+	argv[0] = gf_sg_script_to_smjs_field(priv, &r->FromField, r->FromNode, 1);
+
+	/*protect args*/
+	if (JSVAL_IS_GCTHING(argv[0])) JS_AddRoot(priv->js_ctx, &argv[0]);
+	if (JSVAL_IS_GCTHING(argv[1])) JS_AddRoot(priv->js_ctx, &argv[1]);
+
+	JS_CallFunctionValue(priv->js_ctx, obj, (jsval) r->ToField.NDTtype, 2, argv, &rval);
+
+	/*release args*/
+	if (JSVAL_IS_GCTHING(argv[0])) JS_RemoveRoot(priv->js_ctx, &argv[0]);
+	if (JSVAL_IS_GCTHING(argv[1])) JS_RemoveRoot(priv->js_ctx, &argv[1]);
+}
+
 static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *rv)
 {
 	GF_JSField *ptr;
@@ -352,22 +388,18 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 	GF_Route *r;
 	u32 f_id1, f_id2;
 	if (argc!=4) return JS_FALSE;
+
 	if (!JSVAL_IS_OBJECT(argv[0]) || !JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
-	if (!JSVAL_IS_OBJECT(argv[2]) || !JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[2]), &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
-	if (!JSVAL_IS_STRING(argv[1]) || !JSVAL_IS_STRING(argv[3])) return JS_FALSE;
 
 	ptr = (GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[0]));
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 	n1 = * ((GF_Node **)ptr->field.far_ptr);
-	ptr = (GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[2]));
-	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
-	n2 = * ((GF_Node **)ptr->field.far_ptr);
-		
-	if (!n1 || !n2) return JS_FALSE;
+	if (!n1) return JS_FALSE;
+	n2 = NULL;
+
+	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
 	f1 = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
-	f2 = JS_GetStringBytes(JSVAL_TO_STRING(argv[3]));
-	if (!f1 || !f2) return JS_FALSE;
-	
+	if (!f1) return JS_FALSE;
 	if (!strnicmp(f1, "_field", 6)) {
 		f_id1 = atoi(f1+6);
 		if (gf_node_get_field(n1, f_id1, &info) != GF_OK) return JS_FALSE;
@@ -375,23 +407,68 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 		if (gf_node_get_field_by_name(n1, f1, &info) != GF_OK) return JS_FALSE;
 		f_id1 = info.fieldIndex;
 	}
-	if (!strnicmp(f2, "_field", 6)) {
-		f_id2 = atoi(f2+6);
-		if (gf_node_get_field(n2, f_id2, &info) != GF_OK) return JS_FALSE;
-	} else {
-		if ((n2->sgprivate->tag==TAG_MPEG4_Script) || (n2->sgprivate->tag==TAG_X3D_Script)) {
-			GF_FieldInfo src = info;
-			if (gf_node_get_field_by_name(n2, f2, &info) != GF_OK) {
-				gf_sg_script_field_new(n2, GF_SG_SCRIPT_TYPE_EVENT_IN, src.fieldType, f2);
-			}
-		} 
-		if (gf_node_get_field_by_name(n2, f2, &info) != GF_OK) return JS_FALSE;
-		f_id2 = info.fieldIndex;
+
+	
+	if (!JSVAL_IS_OBJECT(argv[2])) return JS_FALSE;
+
+	/*regular route*/
+	if (JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[2]), &js_rt->SFNodeClass, NULL) && JSVAL_IS_STRING(argv[3]) ) {	
+		ptr = (GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[2]));
+		assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
+		n2 = * ((GF_Node **)ptr->field.far_ptr);			
+		if (!n2) return JS_FALSE;
+
+		f2 = JS_GetStringBytes(JSVAL_TO_STRING(argv[3]));
+		if (!f2) return JS_FALSE;
+	
+		if (!strnicmp(f2, "_field", 6)) {
+			f_id2 = atoi(f2+6);
+			if (gf_node_get_field(n2, f_id2, &info) != GF_OK) return JS_FALSE;
+		} else {
+			if ((n2->sgprivate->tag==TAG_MPEG4_Script) || (n2->sgprivate->tag==TAG_X3D_Script)) {
+				GF_FieldInfo src = info;
+				if (gf_node_get_field_by_name(n2, f2, &info) != GF_OK) {
+					gf_sg_script_field_new(n2, GF_SG_SCRIPT_TYPE_EVENT_IN, src.fieldType, f2);
+				}
+			} 
+			if (gf_node_get_field_by_name(n2, f2, &info) != GF_OK) return JS_FALSE;
+			f_id2 = info.fieldIndex;
+		}
+	
+		r = gf_sg_route_new(n1->sgprivate->scenegraph, n1, f_id1, n2, f_id2);
+		if (!r) return JS_FALSE;
 	}
-	r = gf_sg_route_new(n1->sgprivate->scenegraph, n1, f_id1, n2, f_id2);
-	if (!r) return JS_FALSE;
+	/*route to object*/
+	else {
+		if (!JSVAL_IS_OBJECT(argv[3])) return JS_FALSE;
+
+		GF_SAFEALLOC(r, GF_Route)
+		if (!r) return JS_FALSE;
+		r->FromNode = n1;
+		r->FromField.fieldIndex = f_id1;
+		gf_node_get_field(r->FromNode, f_id1, &r->FromField);
+
+		r->ToNode = (GF_Node*)JS_GetScript(c);
+		r->ToField.fieldType = GF_SG_VRML_UNKNOWN;
+		r->ToField.on_event_in = on_route_to_object;
+		r->ToField.eventType = GF_SG_EVENT_IN;
+		r->ToField.far_ptr = NULL;
+		r->ToField.fieldIndex = (u32) JSVAL_TO_OBJECT( argv[2] ) ;
+		r->ToField.NDTtype = argv[3];
+
+		r->is_setup = 1;
+		r->graph = n1->sgprivate->scenegraph;
+
+		if (!n1->sgprivate->interact) GF_SAFEALLOC(n1->sgprivate->interact, struct _node_interactive_ext);
+		if (!n1->sgprivate->interact->routes) n1->sgprivate->interact->routes = gf_list_new();
+		gf_list_add(n1->sgprivate->interact->routes, r);
+		gf_list_add(n1->sgprivate->scenegraph->Routes, r);
+	}
+
 	return JS_TRUE;
 }
+
+
 static JSBool deleteRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *rv)
 {
 	GF_JSField *ptr;
@@ -605,7 +682,7 @@ void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner
 	}
 
 	if (script_field!=2) {
-		if (field->on_event_in) field->on_event_in(parent);
+		if (field->on_event_in) field->on_event_in(parent, NULL);
 		else if (script_field && (field->eventType==GF_SG_EVENT_IN) ) {
 			gf_sg_script_event_in(parent, field);
 			gf_node_changed_internal(parent, field, 0);
@@ -3500,6 +3577,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	
 	flush_event_out(node, priv);
 	/*perform JS cleanup*/
+
 	JS_MaybeGC(priv->js_ctx);
 }
 

@@ -430,7 +430,7 @@ void gf_bifs_check_field_change(GF_Node *node, GF_FieldInfo *field)
 	gf_node_event_out(node, field->fieldIndex);
 	/*and propagate eventIn if any*/
 	if (field->on_event_in) {
-		field->on_event_in(node);
+		field->on_event_in(node, NULL);
 	} else if ((gf_node_get_tag(node) == TAG_MPEG4_Script) && (field->eventType==GF_SG_EVENT_IN)) {
 		gf_sg_script_event_in(node, field);
 	}

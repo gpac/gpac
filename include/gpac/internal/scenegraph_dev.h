@@ -23,7 +23,6 @@
  */
 
 
-
 #ifndef _GF_SCENEGRAPH_DEV_H_
 #define _GF_SCENEGRAPH_DEV_H_
 
