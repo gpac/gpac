@@ -319,7 +319,7 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 			//eventIn fields are handled as pointer to functions, called by the route manager
 			if (!strcmp(bf->type, "eventIn")) {
 				fprintf(f, "\t%s %s;\t/*eventIn*/\n", bf->familly, bf->name);
-				fprintf(f, "\tvoid (*on_%s)(GF_Node *pThis);\t/*eventInHandler*/\n", bf->name);
+				fprintf(f, "\tvoid (*on_%s)(GF_Node *pThis, struct _route *route);\t/*eventInHandler*/\n", bf->name);
 			} else if (!strcmp(bf->type, "eventOut")) {
 				//eventOut fields are handled as an opaque stack pointing to the route manager
 				//this will be refined once the route is in place

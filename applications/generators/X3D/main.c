@@ -272,7 +272,7 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs)
 				fprintf(f, "\t%s %s;\t/*%s*/\n", bf->familly, bf->name, bf->type);
 			}
 			if (!strcmp(bf->type, "eventIn")) 
-				fprintf(f, "\tvoid (*on_%s)(GF_Node *pThis);\t/*eventInHandler*/\n", bf->name);
+				fprintf(f, "\tvoid (*on_%s)(GF_Node *pThis, struct _route *route);\t/*eventInHandler*/\n", bf->name);
 		}
 		fprintf(f, "} X_%s;\n\n\n", n->name);
 	}
