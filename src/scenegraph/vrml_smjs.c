@@ -3993,10 +3993,10 @@ void gf_sg_set_script_action(GF_SceneGraph *scene, gf_sg_script_action script_ac
 
 }
 
+#ifdef GPAC_HAS_SPIDERMONKEY
 GF_Node *gf_sg_js_get_node(JSContext *c, JSObject *obj)
 {
 	JSBool has_p;
-#ifdef GPAC_HAS_SPIDERMONKEY
 	if (js_rt && JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) {
 		GF_JSField *ptr = (GF_JSField *) JS_GetPrivate(c, obj);
 		if (ptr->field.fieldType==GF_SG_VRML_SFNODE) return * ((GF_Node **)ptr->field.far_ptr);
@@ -4007,8 +4007,12 @@ GF_Node *gf_sg_js_get_node(JSContext *c, JSObject *obj)
 		if (has_p==JS_TRUE) return dom_get_element(c, obj);
 	}
 #endif
-
-#endif
-
 	return NULL;
 }
+#else
+GF_Node *gf_sg_js_get_node(JSContext *c, JSObject *obj)
+{
+	return NULL;
+}
+#endif
+
