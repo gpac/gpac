@@ -1019,7 +1019,7 @@ GF_Err gf_node_deactivate(GF_Node *node);
 /*post a listener to be added - this is only used by LASeR:activate and DOM.addEventListener. This 
 is to ensure that when a node is processing an event creating a new listener on this node, this listener
 will not be triggered*/
-void gf_dom_listener_post_add(GF_Node *obs, GF_Node *listener);
+void gf_sg_listener_post_add(GF_Node *obs, GF_Node *listener);
 /*process all pending add_listener request*/
 void gf_dom_listener_process_add(GF_SceneGraph *sg);
 

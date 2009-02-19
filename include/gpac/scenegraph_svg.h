@@ -265,7 +265,7 @@ typedef struct
 	u32 ptr_type;
 } GF_DOMEventTarget;
 
-GF_Err gf_dom_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target);
+GF_Err gf_sg_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target);
 
 
 typedef struct

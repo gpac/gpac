@@ -488,7 +488,7 @@ static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, jsval id, js
 	{"dispatchEvent", xml_dom3_not_implemented, 1},
 
 /*eventListeners routines used by document, element and connection interfaces*/
-JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node)
+JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node)
 {
 	GF_DOMEventTarget *target;
 	GF_FieldInfo info;
@@ -605,21 +605,23 @@ JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval 
 
 	/*don't add listener directly, post it and wait for event processing*/
 	if (n) {
-		gf_dom_listener_post_add((GF_Node *) n, listener);
+		gf_sg_listener_post_add((GF_Node *) n, listener);
 	} else {
-		gf_dom_listener_add(listener, target);
+		gf_sg_listener_add(listener, target);
 	}
 
 err_exit:
 	if (inNS) free(inNS);
 	return JS_TRUE;
 }
+
+
 JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	return dom_event_add_listener_ex(c, obj, argc, argv, rval, NULL);
+	return gf_sg_js_event_add_listener(c, obj, argc, argv, rval, NULL);
 }
 
-JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node)
+JSBool gf_sg_js_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node)
 {
 #ifndef GPAC_DISABLE_SVG
 	char *type, *callback;
@@ -714,7 +716,7 @@ err_exit:
 
 JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	return dom_event_remove_listener_ex(c, obj, argc, argv, rval, NULL);
+	return gf_sg_js_event_remove_listener(c, obj, argc, argv, rval, NULL);
 }
 
 /*dom3 node*/

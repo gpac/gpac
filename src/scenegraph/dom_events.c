@@ -102,7 +102,7 @@ u32 gf_node_get_dom_event_filter(GF_Node *node)
 	return node->sgprivate->scenegraph->dom_evt_filter;
 }
 
-GF_Err gf_dom_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target)
+GF_Err gf_sg_listener_add(GF_Node *listener, GF_DOMEventTarget *evt_target)
 {
 	GF_FieldInfo info;
 	if (!evt_target || !listener) return GF_BAD_PARAM;
@@ -140,7 +140,7 @@ GF_Err gf_node_dom_listener_add(GF_Node *node, GF_Node *listener)
 		node->sgprivate->interact->dom_evt->ptr_type = GF_DOM_EVENT_NODE;
 		node->sgprivate->interact->dom_evt->evt_list = gf_list_new();
 	}
-	return gf_dom_listener_add(listener, node->sgprivate->interact->dom_evt);
+	return gf_sg_listener_add(listener, node->sgprivate->interact->dom_evt);
 }
 
 GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target)
@@ -179,7 +179,7 @@ typedef struct
 	GF_Node *listener;
 } DOMAddListener;
 
-void gf_dom_listener_post_add(GF_Node *obs, GF_Node *listener)
+void gf_sg_listener_post_add(GF_Node *obs, GF_Node *listener)
 {
 	DOMAddListener *l;
 	l = (DOMAddListener*)malloc(sizeof(DOMAddListener));
