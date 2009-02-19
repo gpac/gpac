@@ -670,6 +670,13 @@ enum
 	GF_ODM_STATE_BLOCKED,
 };
 
+enum
+{
+	GF_ODM_ACTION_PLAY,
+	GF_ODM_ACTION_STOP,
+	GF_ODM_ACTION_DELETE,
+};
+
 struct _od_manager
 {
 	/*pointer to terminal*/
@@ -715,6 +722,8 @@ struct _od_manager
 	set to -1 upon stop to postpone stop request
 	*/
 	u64 media_start_time, media_stop_time;
+
+	u32 action_type;
 
 	/*the one and only media control currently attached to this object*/
 	struct _media_control *media_ctrl;

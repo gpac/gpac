@@ -715,9 +715,9 @@ void gf_term_handle_services(GF_Terminal *term)
 		gf_list_rem(term->media_queue, 0);
 		/*unlock net before sending play/pause*/
 		gf_mx_v(term->net_mx);
-		/*this is a stop*/
-		if (odm->media_start_time == (u64)-1) {
-			odm->media_start_time = 0;
+
+		switch (odm->action_type) {
+		case GF_ODM_ACTION_STOP:
 			if ((odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID) 
 			&& odm->codec 
 			&& odm->codec->CB 
@@ -726,10 +726,13 @@ void gf_term_handle_services(GF_Terminal *term)
 			} else {
 				gf_odm_stop(odm, 0);
 			}
-		} 
-		/*this is a play*/
-		else {
+			break;
+		case GF_ODM_ACTION_PLAY:
 			gf_odm_play(odm);
+			break;
+		case GF_ODM_ACTION_DELETE:
+			gf_odm_disconnect(odm, 2);
+			break;
 		}
 	
 		/*relock net before sending play/pause*/

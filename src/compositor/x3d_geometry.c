@@ -535,7 +535,7 @@ static void TraverseIndexedTriangleSet(GF_Node *node, void *rs, Bool is_destroy)
 	drawable_3d_base_traverse(node, rs, is_destroy, build_indexed_triangle_set);
 }
 
-static void ITS_SetIndex(GF_Node *node)
+static void ITS_SetIndex(GF_Node *node, GF_Route *route)
 {
 	X_IndexedTriangleSet *its = (X_IndexedTriangleSet*)node;
 	gf_sg_vrml_field_copy(&its->index, &its->set_index, GF_SG_VRML_MFINT32);
@@ -779,7 +779,7 @@ static void TraverseIndexedTriangleStripSet(GF_Node *node, void *rs, Bool is_des
 	drawable_3d_base_traverse(node, rs, is_destroy, build_indexed_triangle_strip_set);
 }
 
-static void ITSS_SetIndex(GF_Node *node)
+static void ITSS_SetIndex(GF_Node *node, GF_Route *route)
 {
 	X_IndexedTriangleStripSet *itss = (X_IndexedTriangleStripSet*)node;
 	gf_sg_vrml_field_copy(&itss->index, &itss->set_index, GF_SG_VRML_MFINT32);
@@ -995,7 +995,7 @@ static void TraverseIndexedTriangleFanSet(GF_Node *node, void *rs, Bool is_destr
 	drawable_3d_base_traverse(node, rs, is_destroy, build_indexed_triangle_fan_set);
 }
 
-static void ITFS_SetIndex(GF_Node *node)
+static void ITFS_SetIndex(GF_Node *node, GF_Route *route)
 {
 	X_IndexedTriangleFanSet *itfs = (X_IndexedTriangleFanSet *)node;
 	gf_sg_vrml_field_copy(&itfs->index, &itfs->set_index, GF_SG_VRML_MFINT32);

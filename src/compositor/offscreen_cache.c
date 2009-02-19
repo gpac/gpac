@@ -65,7 +65,7 @@ GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node)
 
 void group_cache_del(GroupCache *cache)
 {
-	drawable_del_ex(cache->drawable, cache->txh.compositor);
+	drawable_del(cache->drawable);
 	if (cache->txh.data) free(cache->txh.data);
 	gf_sc_texture_release(&cache->txh);
 	gf_sc_texture_destroy(&cache->txh);

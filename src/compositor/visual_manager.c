@@ -130,6 +130,7 @@ void visual_clean_contexts(GF_VisualManager *visual)
 		ctx->drawable->flags &= ~DRAWABLE_REGISTERED_WITH_VISUAL;
 		if (is_root_visual && (ctx->flags & CTX_HAS_APPEARANCE)) 
 			gf_node_dirty_reset(ctx->appear);
+		
 		ctx = ctx->next;
 	}
 
@@ -146,6 +147,8 @@ void visual_clean_contexts(GF_VisualManager *visual)
 		while (ctx && ctx->drawable) {
 			if (ctx->flags & CTX_HAS_APPEARANCE) 
 				gf_node_dirty_reset(ctx->appear);
+
+			ctx->drawable = NULL;
 			ctx = ctx->next;
 		}
 	}

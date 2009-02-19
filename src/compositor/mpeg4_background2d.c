@@ -328,7 +328,7 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 }
 
 
-static void b2D_set_bind(GF_Node *node)
+static void b2D_set_bind(GF_Node *node, GF_Route *route)
 {
 	Background2DStack *stack = (Background2DStack *)gf_node_get_private(node);
 	Bindable_OnSetBind(node, stack->reg_stacks);

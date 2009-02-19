@@ -174,7 +174,7 @@ static Bool anchor_is_enabled(GF_Node *node)
 	return st->enabled;
 }
 
-static void on_activate_anchor(GF_Node *node)
+static void on_activate_anchor(GF_Node *node, GF_Route *route)
 {
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(node);
 	if (!((M_Anchor *)node)->on_activate) return;
