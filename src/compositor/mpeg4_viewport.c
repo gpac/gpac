@@ -92,7 +92,7 @@ static void DestroyViewStack(GF_Node *node)
 	free(st);
 }
 
-static void viewport_set_bind(GF_Node *node)
+static void viewport_set_bind(GF_Node *node, GF_Route *route)
 {
 	GF_Compositor *rend = gf_sc_get_compositor(node);
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
@@ -271,7 +271,7 @@ void compositor_init_viewport(GF_Compositor *compositor, GF_Node *node)
 
 #ifndef GPAC_DISABLE_3D
 
-static void viewpoint_set_bind(GF_Node *node)
+static void viewpoint_set_bind(GF_Node *node, GF_Route *route)
 {
 	GF_Compositor *rend = gf_sc_get_compositor(node);
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
@@ -369,7 +369,7 @@ void compositor_init_viewpoint(GF_Compositor *compositor, GF_Node *node)
 
 #endif
 
-static void navinfo_set_bind(GF_Node *node)
+static void navinfo_set_bind(GF_Node *node, GF_Route *route)
 {
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
 	Bindable_OnSetBind(node, st->reg_stacks);
@@ -487,7 +487,7 @@ void compositor_init_navigation_info(GF_Compositor *compositor, GF_Node *node)
 
 #ifndef GPAC_DISABLE_3D
 
-static void fog_set_bind(GF_Node *node)
+static void fog_set_bind(GF_Node *node, GF_Route *route)
 {
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
 	Bindable_OnSetBind(node, st->reg_stacks);

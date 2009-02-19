@@ -253,6 +253,9 @@ void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 		gf_list_del(obj->nodes);
 		free(obj);
 	}
+
+	if (for_shutdown && is->root_od && is->root_od->mo) {
+	}
 }
 
 static void IS_InsertObject(GF_InlineScene *is, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref, Bool keep_fragment)
@@ -651,9 +654,18 @@ void gf_inline_on_modified(GF_Node *node)
 							free(mo);
 						}
 					} else {
-						gf_odm_stop(pIS->root_od, 1);
-						gf_inline_disconnect(pIS, 1);
-						assert(gf_list_count(pIS->ODlist) == 0);
+						gf_term_lock_net(pIS->root_od->term, 1);
+						
+						/*external media are completely unloaded*/
+						if (pIS->root_od->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID) {
+							pIS->root_od->action_type = GF_ODM_ACTION_DELETE;
+						} else {
+							pIS->root_od->action_type = GF_ODM_ACTION_STOP;
+						}
+						if (gf_list_find(pIS->root_od->term->media_queue, pIS->root_od)<0)
+							gf_list_add(pIS->root_od->term->media_queue, pIS->root_od);
+
+						gf_term_lock_net(pIS->root_od->term, 0);
 					}
 				}
 			}

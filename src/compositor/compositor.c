@@ -2526,13 +2526,17 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 void gf_sc_check_focus_upon_destroy(GF_Node *n)
 {
 	GF_Compositor *compositor = gf_sc_get_compositor(n);
-	if (compositor && (compositor->focus_node==n)) {
+	if (!compositor) return;
+
+	if (compositor->focus_node==n) {
 		compositor->focus_node = NULL;
 		compositor->focus_text_type = 0;
 		compositor->focus_uses_dom_events = 0;
 		gf_list_reset(compositor->focus_ancestors);
 		gf_list_reset(compositor->focus_use_stack);
 	}
+	if (compositor->hit_node==n) compositor->hit_node = NULL;
+	if (compositor->hit_text==n) compositor->hit_text = NULL;
 }
 
 

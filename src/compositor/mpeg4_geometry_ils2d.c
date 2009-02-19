@@ -283,14 +283,14 @@ static void TraverseILS2D(GF_Node *node, void *rs, Bool is_destroy)
 	}
 }
 
-static void ILS2D_SetColorIndex(GF_Node *node)
+static void ILS2D_SetColorIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
 	gf_sg_vrml_field_copy(&ils2D->colorIndex, &ils2D->set_colorIndex, GF_SG_VRML_MFINT32);
 	gf_sg_vrml_mf_reset(&ils2D->set_colorIndex, GF_SG_VRML_MFINT32);
 }
 
-static void ILS2D_SetCoordIndex(GF_Node *node)
+static void ILS2D_SetCoordIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedLineSet2D *ils2D = (M_IndexedLineSet2D *)node;
 	gf_sg_vrml_field_copy(&ils2D->coordIndex, &ils2D->set_coordIndex, GF_SG_VRML_MFINT32);

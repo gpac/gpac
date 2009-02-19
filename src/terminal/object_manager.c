@@ -1130,7 +1130,10 @@ void gf_odm_start(GF_ObjectManager *odm)
 			gf_es_start(ch);
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %d starting channel\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
 		}
-		if (gf_list_find(odm->term->media_queue, odm)<0) gf_list_add(odm->term->media_queue, odm);
+		if (gf_list_find(odm->term->media_queue, odm)<0) {
+			odm->action_type = GF_ODM_ACTION_PLAY;
+			gf_list_add(odm->term->media_queue, odm);
+		}
 	}
 	gf_term_lock_net(odm->term, 0);
 }

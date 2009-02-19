@@ -152,28 +152,28 @@ static void TraverseIFS(GF_Node *n, void *rs, Bool is_destroy)
 	drawable_3d_base_traverse(n, rs, is_destroy, build_shape_ifs);
 }
 
-static void IFS_SetColorIndex(GF_Node *node)
+static void IFS_SetColorIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
 	gf_sg_vrml_field_copy(&ifs->colorIndex, &ifs->set_colorIndex, GF_SG_VRML_MFINT32);
 	gf_sg_vrml_mf_reset(&ifs->set_colorIndex, GF_SG_VRML_MFINT32);
 }
 
-static void IFS_SetCoordIndex(GF_Node *node)
+static void IFS_SetCoordIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
 	gf_sg_vrml_field_copy(&ifs->coordIndex, &ifs->set_coordIndex, GF_SG_VRML_MFINT32);
 	gf_sg_vrml_mf_reset(&ifs->set_coordIndex, GF_SG_VRML_MFINT32);
 }
 
-static void IFS_SetNormalIndex(GF_Node *node)
+static void IFS_SetNormalIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
 	gf_sg_vrml_field_copy(&ifs->normalIndex, &ifs->set_normalIndex, GF_SG_VRML_MFINT32);
 	gf_sg_vrml_mf_reset(&ifs->set_normalIndex, GF_SG_VRML_MFINT32);
 }
 
-static void IFS_SetTexCoordIndex(GF_Node *node)
+static void IFS_SetTexCoordIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedFaceSet *ifs = (M_IndexedFaceSet *)node;
 	gf_sg_vrml_field_copy(&ifs->texCoordIndex, &ifs->set_texCoordIndex, GF_SG_VRML_MFINT32);
@@ -202,14 +202,14 @@ static void TraverseILS(GF_Node *n, void *rs, Bool is_destroy)
 	drawable_3d_base_traverse(n, rs, is_destroy, build_shape_ils);
 }
 
-static void ILS_SetColorIndex(GF_Node *node)
+static void ILS_SetColorIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedLineSet *ils = (M_IndexedLineSet *)node;
 	gf_sg_vrml_field_copy(&ils->colorIndex, &ils->set_colorIndex, GF_SG_VRML_MFINT32);
 	gf_sg_vrml_mf_reset(&ils->set_colorIndex, GF_SG_VRML_MFINT32);
 }
 
-static void ILS_SetCoordIndex(GF_Node *node)
+static void ILS_SetCoordIndex(GF_Node *node, GF_Route *route)
 {
 	M_IndexedLineSet *ils = (M_IndexedLineSet *)node;
 	gf_sg_vrml_field_copy(&ils->coordIndex, &ils->set_coordIndex, GF_SG_VRML_MFINT32);
@@ -236,7 +236,7 @@ static void TraverseElevationGrid(GF_Node *n, void *rs, Bool is_destroy)
 	drawable_3d_base_traverse(n, rs, is_destroy, build_shape_elevation_grid);
 }
 
-static void ElevationGrid_SetHeight(GF_Node *node)
+static void ElevationGrid_SetHeight(GF_Node *node, GF_Route *route)
 {
 	M_ElevationGrid *eg = (M_ElevationGrid *)node;
 	gf_sg_vrml_field_copy(&eg->height, &eg->set_height, GF_SG_VRML_MFFLOAT);
@@ -261,25 +261,25 @@ static void TraverseExtrusion(GF_Node *n, void *rs, Bool is_destroy)
 	drawable_3d_base_traverse(n, rs, is_destroy, build_shape_extrusion);
 }
 
-static void Extrusion_SetCrossSection(GF_Node *node)
+static void Extrusion_SetCrossSection(GF_Node *node, GF_Route *route)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
 	gf_sg_vrml_field_copy(&eg->crossSection, &eg->set_crossSection, GF_SG_VRML_MFVEC2F);
 	gf_sg_vrml_mf_reset(&eg->set_crossSection, GF_SG_VRML_MFVEC2F);
 }
-static void Extrusion_SetOrientation(GF_Node *node)
+static void Extrusion_SetOrientation(GF_Node *node, GF_Route *route)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
 	gf_sg_vrml_field_copy(&eg->orientation, &eg->set_orientation, GF_SG_VRML_MFROTATION);
 	gf_sg_vrml_mf_reset(&eg->set_orientation, GF_SG_VRML_MFROTATION);
 }
-static void Extrusion_SetScale(GF_Node *node)
+static void Extrusion_SetScale(GF_Node *node, GF_Route *route)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
 	gf_sg_vrml_field_copy(&eg->scale, &eg->set_scale, GF_SG_VRML_MFVEC2F);
 	gf_sg_vrml_mf_reset(&eg->set_scale, GF_SG_VRML_MFVEC2F);
 }
-static void Extrusion_SetSpine(GF_Node *node)
+static void Extrusion_SetSpine(GF_Node *node, GF_Route *route)
 {
 	M_Extrusion *eg = (M_Extrusion *)node;
 	gf_sg_vrml_field_copy(&eg->spine, &eg->set_spine, GF_SG_VRML_MFVEC3F);

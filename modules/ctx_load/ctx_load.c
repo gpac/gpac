@@ -92,14 +92,14 @@ static void CTXLoad_Reset(CTXLoadPriv *priv)
 	}
 }
 
-void CTXLoad_OnActivate(GF_Node *node)
+void CTXLoad_OnActivate(GF_Node *node, GF_Route *route)
 {
 	GF_InlineScene *is = (GF_InlineScene *) gf_node_get_private(node);
 	M_Conditional*c = (M_Conditional*)node;
 	/*always apply in parent graph to handle protos correctly*/
 	if (c->activate) gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_inline_get_time(is));
 }
-void CTXLoad_OnReverseActivate(GF_Node *node)
+void CTXLoad_OnReverseActivate(GF_Node *node, GF_Route *route)
 {
 	GF_InlineScene *is = (GF_InlineScene *) gf_node_get_private(node);
 	M_Conditional*c = (M_Conditional*)node;

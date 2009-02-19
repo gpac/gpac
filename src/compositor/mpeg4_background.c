@@ -412,7 +412,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 }
 
 
-static void back_set_bind(GF_Node *node)
+static void back_set_bind(GF_Node *node, GF_Route *route)
 {
 	BackgroundStack *st = (BackgroundStack *)gf_node_get_private(node);
 	Bindable_OnSetBind(node, st->reg_stacks);

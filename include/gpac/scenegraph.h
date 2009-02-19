@@ -310,6 +310,8 @@ In case an implementation does not use this:
 content) otherwise the app is guaranteed to crash.
 */
 
+typedef struct _route GF_Route;
+
 /*other fieldTypes may be ignored by implmentation not using VRML/MPEG4 native types*/
 
 typedef struct
@@ -327,7 +329,7 @@ typedef struct
 	/*event type*/
 	u32 eventType;
 	/*eventin handler if any*/
-	void (*on_event_in)(GF_Node *pNode, struct _route *from_route);
+	void (*on_event_in)(GF_Node *pNode, GF_Route *from_route);
 } GF_FieldInfo;
 
 /*returns number of field for this node*/

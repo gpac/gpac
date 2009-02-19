@@ -90,8 +90,8 @@ typedef struct
 } TTDPriv;
 
 
-static void ttd_set_blink_fraction(GF_Node *node);
-static void ttd_set_scroll_fraction(GF_Node *node);
+static void ttd_set_blink_fraction(GF_Node *node, GF_Route *route);
+static void ttd_set_scroll_fraction(GF_Node *node, GF_Route *route);
 static void TTD_ResetDisplay(TTDPriv *priv);
 
 /*the WORST thing about 3GP in MPEG4 is positioning of the text track...*/
@@ -362,7 +362,7 @@ static GF_Err TTD_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	return GF_OK;
 }
 
-static void ttd_set_blink_fraction(GF_Node *node)
+static void ttd_set_blink_fraction(GF_Node *node, GF_Route *route)
 {
 	M_Material2D *m;
 	u32 i;
@@ -379,7 +379,7 @@ static void ttd_set_blink_fraction(GF_Node *node)
 	}
 }
 
-static void ttd_set_scroll_fraction(GF_Node *node)
+static void ttd_set_scroll_fraction(GF_Node *node, GF_Route *route)
 {
 	Fixed frac;
 	TTDPriv *priv = (TTDPriv *)gf_node_get_private(node);

@@ -395,7 +395,6 @@ hardcoded protos (extensions of MPEG-4 scene graph used for module deveopment)
 
 /*GF_Route manip: routes are used to pass events between nodes. Event handling is managed by the scene graph
 however only the nodes overloading the EventIn handler associated with the event will process the eventIn*/
-typedef struct _route GF_Route;
 
 /*creates a new route:
 	@fromNode: @fromField: address of the eventOut field triggering the route

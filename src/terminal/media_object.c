@@ -474,7 +474,10 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 		gf_list_del_item(mo->odm->term->media_queue, mo->odm);
 		gf_term_lock_net(mo->odm->term, 0);
 
-		if (mo->odm->media_start_time == (u64) -1) is_restart = 1;
+		if (mo->odm->action_type!=GF_ODM_ACTION_PLAY) {
+			mo->odm->action_type = GF_ODM_ACTION_PLAY;
+			is_restart = 1;
+		}
 
 		if (mo->odm->flags & GF_ODM_NO_TIME_CTRL) {
 			mo->odm->media_start_time = 0;
@@ -528,7 +531,7 @@ void gf_mo_stop(GF_MediaObject *mo)
 			gf_list_add(mo->odm->term->media_queue, mo->odm);
 		
 		/*signal STOP request*/
-		mo->odm->media_start_time = (u64)-1;
+		mo->odm->action_type = GF_ODM_ACTION_STOP;
 
 		gf_mx_v(mo->odm->term->net_mx);
 	} else {
