@@ -2359,8 +2359,10 @@ static JSBool MFColorConstructor(JSContext *c, JSObject *obj, uintN argc, jsval 
 }
 
 #ifndef GPAC_DISABLE_SVG
-JSBool dom_event_add_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node);
-JSBool dom_event_remove_listener_ex(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node);
+
+JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node);
+JSBool gf_sg_js_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node);
+
 GF_Node *dom_get_element(JSContext *c, JSObject *obj);
 
 JSBool vrml_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -2372,7 +2374,7 @@ JSBool vrml_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 	node = * ((GF_Node **)ptr->field.far_ptr);
 
-	return dom_event_add_listener_ex(c, obj, argc, argv, rval, node);
+	return gf_sg_js_event_add_listener(c, obj, argc, argv, rval, node);
 }
 JSBool vrml_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -2383,7 +2385,7 @@ JSBool vrml_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval
 	assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 	node = * ((GF_Node **)ptr->field.far_ptr);
 
-	return dom_event_remove_listener_ex(c, obj, argc, argv, rval, node);
+	return gf_sg_js_event_remove_listener(c, obj, argc, argv, rval, node);
 }
 #endif
 
@@ -4008,11 +4010,6 @@ GF_Node *gf_sg_js_get_node(JSContext *c, JSObject *obj)
 		if (has_p==JS_TRUE) return dom_get_element(c, obj);
 	}
 #endif
-	return NULL;
-}
-#else
-GF_Node *gf_sg_js_get_node(void *c, void *obj)
-{
 	return NULL;
 }
 #endif
