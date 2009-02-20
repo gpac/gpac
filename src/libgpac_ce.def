@@ -1197,11 +1197,10 @@ EXPORTS
 	gf_node_register_iri
 	gf_node_unregister_iri
 
-	gf_dom_listener_build
-	gf_dom_listener_add
-	gf_dom_listener_del
-	gf_dom_listener_count
-	gf_dom_listener_get
-	gf_dom_event_fire
-	gf_dom_event_type_by_name
-	gf_dom_event_get_name
+	
+	gf_sg_js_get_node
+	gf_sg_js_event_add_listener
+	gf_sg_js_event_remove_listener
+	gf_sg_listener_post_add
+
+	
