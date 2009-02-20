@@ -28,6 +28,9 @@
 /*for initial setup*/
 #include <gpac/modules/service.h>
 
+#include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
+
 #include <windows.h>
 #include <commdlg.h>
 #include <commctrl.h>
@@ -421,6 +424,12 @@ Bool LoadTerminal()
 		memset(&user, 0, sizeof(GF_User));
 		return 0;
 	}
+
+	screen_w = term->compositor->video_out->max_screen_width;
+	screen_h = term->compositor->video_out->max_screen_height;
+	disp_w = screen_w;
+	disp_h = screen_h - menu_h /*- caption_h*/;
+
 
 #ifdef TERM_NOT_THREADED
 	::SetTimer(g_hwnd, GPAC_TIMER_ID, GPAC_TIMER_DUR, NULL);
