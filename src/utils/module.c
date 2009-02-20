@@ -84,13 +84,30 @@ u32 gf_modules_get_count(GF_ModuleManager *pm)
 GF_EXPORT
 GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug, u32 InterfaceFamily)
 {
+	const char *opt;
+	char *new_key;
+	char szKey[10];
 	ModuleInstance *inst;
 	GF_BaseInterface *ifce;
+	Bool fail;
+	u32 len;
 
 	if (!pm) return NULL;
 	inst = (ModuleInstance *) gf_list_get(pm->plug_list, whichplug);
 	if (!inst) return NULL;
-	if (!gf_modules_load_library(inst)) return NULL;
+
+	opt = gf_cfg_get_key(pm->cfg, "PluginsCache", inst->szName);
+	if (!opt) opt="";
+
+	sprintf(szKey, "%s:no", gf_4cc_to_str(InterfaceFamily));
+	if (opt && strstr(opt, szKey)) return NULL;
+
+	fail = 0;
+	if (!gf_modules_load_library(inst)) fail = 1;
+	else if (!inst->query_func) fail = 2;
+	else if (!inst->query_func(InterfaceFamily) ) fail = 2;
+
+	if (fail) goto err_exit;
 
 	if (!inst->query_func || !inst->query_func(InterfaceFamily) ) goto err_exit;
 
@@ -103,15 +120,21 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 		goto err_exit;
 	}
 	gf_list_add(inst->interfaces, ifce);
+
 	/*keep track of parent*/
 	ifce->HPLUG = inst;
 	return ifce;
 
 err_exit:
-	/*this slows down loading of GPAC on CE-based devices*/
-#ifndef _WIN32_WCE
-	gf_modules_unload_library(inst);
-#endif
+	len = strlen(opt)+strlen(szKey)+2;
+	new_key = malloc(sizeof(char)*len);
+	sprintf(new_key, "%s %s", opt, szKey);
+	gf_cfg_set_key(pm->cfg, "PluginsCache", inst->szName, new_key);
+	free(new_key);
+
+	if (fail!=1)
+		gf_modules_unload_library(inst);
+	
 	return NULL;
 }
 
@@ -119,16 +142,31 @@ err_exit:
 GF_EXPORT
 GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const char *plug_name, u32 InterfaceFamily)
 {
+	const char *file_name;
 	u32 i, count;
 	GF_BaseInterface *ifce;
 	count = gf_list_count(pm->plug_list);
+
+	/*look for cache entry*/
+	file_name = gf_cfg_get_key(pm->cfg, "PluginsCache", plug_name);
+	if (file_name) {
+		for (i=0; i<count; i++) {
+			ModuleInstance *inst = (ModuleInstance *) gf_list_get(pm->plug_list, i);
+			if (!strcmp(inst->szName,  file_name)) {
+				ifce = gf_modules_load_interface(pm, i, InterfaceFamily);
+				if (ifce) return ifce;
+			}
+		}
+	}
+
 	for (i=0; i<count; i++) {
 		ifce = gf_modules_load_interface(pm, i, InterfaceFamily);
 		if (!ifce) continue;
-		/*check by driver name*/
-		if (ifce->module_name && !stricmp(ifce->module_name, plug_name)) return ifce;
-		/*check by file name*/
-		if (!stricmp(((ModuleInstance *)ifce->HPLUG)->szName, plug_name)) return ifce;
+		if (ifce->module_name && !stricmp(ifce->module_name, plug_name)) {
+			/*update cache entry*/
+			gf_cfg_set_key(pm->cfg, "PluginsCache", plug_name, ((ModuleInstance*)ifce->HPLUG)->szName);
+			return ifce;
+		}
 		gf_modules_close_interface(ifce);
 	}
 	return NULL;
@@ -187,6 +225,14 @@ GF_EXPORT
 const char *gf_modules_get_file_name(GF_ModuleManager *pm, u32 i)
 {
 	ModuleInstance *inst = (ModuleInstance *) gf_list_get(pm->plug_list, i);
+	if (!inst) return NULL;
+	return inst->szName;
+}
+
+GF_EXPORT
+const char *gf_module_get_file_name(GF_BaseInterface *ifce)
+{
+	ModuleInstance *inst = (ModuleInstance *) ifce->HPLUG;
 	if (!inst) return NULL;
 	return inst->szName;
 }

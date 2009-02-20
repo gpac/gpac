@@ -164,6 +164,15 @@ u32 gf_modules_get_count(GF_ModuleManager *pm);
 const char *gf_modules_get_file_name(GF_ModuleManager *pm, u32 index);
 
 /*!
+ *\brief get module file name
+ *
+ *Gets a module shared library file name based on its index
+ *\param ifce the module instance to query
+ *\return the name of the shared library module
+ */
+const char *gf_module_get_file_name(GF_BaseInterface *ifce);
+
+/*!
  *\brief loads an interface
  *
  *Loads an interface in the desired module.

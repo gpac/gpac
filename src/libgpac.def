@@ -181,6 +181,7 @@ EXPORTS
 	gf_modules_refresh
 	gf_modules_get_count
 	gf_modules_get_file_name
+	gf_module_get_file_name
 	gf_modules_load_interface
 	gf_modules_load_interface_by_name
 	gf_modules_close_interface
