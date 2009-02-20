@@ -824,7 +824,7 @@ static void gf_is_resize_event(GF_InlineScene *is)
 	w = h = 0;
 	root = gf_sg_get_root_node(is->graph);
 	gf_sg_get_scene_size_info(is->graph, &w, &h);
-	evt.type = GF_EVENT_RESIZE;
+	evt.type = GF_EVENT_LOAD;
 	evt.screen_rect.width = INT2FIX(w);
 	evt.screen_rect.height = INT2FIX(h);
 	if (root) {

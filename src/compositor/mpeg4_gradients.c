@@ -313,7 +313,11 @@ void compositor_init_linear_gradient(GF_Compositor *compositor, GF_Node *node)
 	GradientStack *st;
 	GF_SAFEALLOC(st, GradientStack);
 
-	gf_sc_texture_setup(&st->txh, compositor, node);
+	/*!!! Gradients are textures but are not registered as textures with the compositor in order to avoid updating
+	a zillion textures each frame */
+//	gf_sc_texture_setup(&st->txh, compositor, node);
+	st->txh.owner = node;
+	st->txh.compositor = compositor;
 	st->txh.update_texture_fcnt = UpdateLinearGradient;
 	st->txh.compute_gradient_matrix = LG_ComputeMatrix;
 	
@@ -567,7 +571,11 @@ void compositor_init_radial_gradient(GF_Compositor *compositor, GF_Node *node)
 	GradientStack *st;
 	GF_SAFEALLOC(st, GradientStack);
 
-	gf_sc_texture_setup(&st->txh, compositor, node);
+	/*!!! Gradients are textures but are not registered as textures with the compositor in order to avoid updating
+	a zillion textures each frame */
+//	gf_sc_texture_setup(&st->txh, compositor, node);
+	st->txh.owner = node;
+	st->txh.compositor = compositor;
 	st->txh.update_texture_fcnt = UpdateRadialGradient;
 	st->txh.compute_gradient_matrix = RG_ComputeMatrix;
 
@@ -578,6 +586,7 @@ void compositor_init_radial_gradient(GF_Compositor *compositor, GF_Node *node)
 GF_TextureHandler *compositor_mpeg4_get_gradient_texture(GF_Node *node)
 {
 	GradientStack *st = (GradientStack*) gf_node_get_private(node);
+	st->txh.update_texture_fcnt(&st->txh);
 	return &st->txh;
 }
 

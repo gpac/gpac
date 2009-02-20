@@ -48,7 +48,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 
 
 /*checks if a 3D mesh or a 2D path is under the current ray. Updates hit info if so.*/
-void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *mesh, GF_Path *path) ;
+void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *mesh, Drawable *drawable) ;
 /*performs collision on the given node (2D or 3D object)*/
 void visual_3d_drawable_collide(GF_Node *node, GF_TraverseState *tr_state);
 

@@ -965,7 +965,7 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 }
 
 
-void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *mesh, GF_Path *path) 
+void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *mesh, Drawable *drawable) 
 {
 	SFVec3f local_pt, world_pt, vdiff;
 	SFVec3f hit_normal;
@@ -978,7 +978,7 @@ void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *me
 	GF_Ray r;
 	u32 cull_bckup = tr_state->cull_flag;
 
-	if (!mesh && !path) return;
+	if (!mesh && !drawable) return;
 
 	count = gf_list_count(tr_state->vrml_sensors);
 	compositor = tr_state->visual->compositor;
@@ -1009,21 +1009,33 @@ void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *me
 		if (mesh) 
 			box = mesh->bounds;
 		else
-			gf_bbox_from_rect(&box, &path->bbox);
+			gf_bbox_from_rect(&box, &drawable->path->bbox);
 
 		if (gf_bbox_plane_relation(&box, &p) == GF_BBOX_FRONT) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Picking] bounding box of node %s (DEF %s) below current hit point - skipping\n", gf_node_get_class_name(n), gf_node_get_name(n)));
 			return;
 		}
 	}
-	if (path) {
+	if (drawable) {
+		DrawAspect2D asp;
 		node_is_over = 0;
 		if (compositor_get_2d_plane_intersection(&r, &local_pt)) {
-			if (gf_path_point_over(path, local_pt.x, local_pt.y)) {
+			if (gf_path_point_over(drawable->path, local_pt.x, local_pt.y)) {
 				hit_normal.x = hit_normal.y = 0; hit_normal.z = FIX_ONE;
-				text_coords.x = gf_divfix(local_pt.x, path->bbox.width) + FIX_ONE/2;
-				text_coords.y = gf_divfix(local_pt.y, path->bbox.height) + FIX_ONE/2;
+				text_coords.x = gf_divfix(local_pt.x, drawable->path->bbox.width) + FIX_ONE/2;
+				text_coords.y = gf_divfix(local_pt.y, drawable->path->bbox.height) + FIX_ONE/2;
 				node_is_over = 1;
+			}
+			memset(&asp, 0, sizeof(DrawAspect2D));
+			drawable_get_aspect_2d_mpeg4(drawable->node, &asp, tr_state);
+			if (asp.pen_props.width || asp.line_texture ) {
+				StrikeInfo2D *si = drawable_get_strikeinfo(tr_state->visual->compositor, drawable, &asp, tr_state->appear, NULL, 0, NULL);
+				if (si && si->outline && gf_path_point_over(si->outline, local_pt.x, local_pt.y)) {
+					hit_normal.x = hit_normal.y = 0; hit_normal.z = FIX_ONE;
+					text_coords.x = gf_divfix(local_pt.x, si->outline->bbox.width) + FIX_ONE/2;
+					text_coords.y = gf_divfix(local_pt.y, si->outline->bbox.height) + FIX_ONE/2;
+					node_is_over = 1;
+				}
 			}
 		}
 	} else {

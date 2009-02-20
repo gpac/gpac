@@ -876,6 +876,8 @@ void M2TS_SetupLive(GF_InputService *plug, M2TSIn *m2ts, char *url)
 		} else {
 			gf_sk_bind(m2ts->sock, (char*)mob_ip, port, url, 0, GF_SOCK_REUSE_PORT);
 		}
+	} else {
+		gf_sk_bind(m2ts->sock, NULL, port, NULL, 0, GF_SOCK_REUSE_PORT);
 	}
 	if (str) str[0] = ':';
 

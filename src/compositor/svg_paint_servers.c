@@ -480,10 +480,14 @@ static void SVG_LG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	GF_STENCIL stencil;
 	SFVec2f start, end;
 	SVGAllAttributes all_atts;
+	SVG_Element *lg = (SVG_Element *) txh->owner;
+	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
 
 	if (!txh->tx_io) return;
 	stencil = gf_sc_texture_get_stencil(txh);
 	if (!stencil) return;
+
+	svg_update_gradient(st, lg->children, 1);
 
 	gf_svg_flatten_attributes((SVG_Element*)txh->owner, &all_atts);
 
@@ -549,8 +553,13 @@ void compositor_init_svg_linearGradient(GF_Compositor *compositor, GF_Node *node
 	SVG_GradientStack *st;
 	GF_SAFEALLOC(st, SVG_GradientStack);
 
-	gf_sc_texture_setup(&st->txh, compositor, node);
+	/*!!! Gradients are textures but are not registered as textures with the compositor in order to avoid updating
+	a zillion textures each frame */
+//	gf_sc_texture_setup(&st->txh, compositor, node);
+	st->txh.owner = node;
+	st->txh.compositor = compositor;
 	st->txh.update_texture_fcnt = SVG_UpdateLinearGradient;
+
 	st->txh.compute_gradient_matrix = SVG_LG_ComputeMatrix;
 	st->linear = 1;
 	gf_node_set_private(node, st);
@@ -573,11 +582,16 @@ static void SVG_RG_ComputeMatrix(GF_TextureHandler *txh, GF_Rect *bounds, GF_Mat
 	SFVec2f center, focal;
 	Fixed radius;
 	SVGAllAttributes all_atts;
+	SVG_Element *rg = (SVG_Element *) txh->owner;
+	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(txh->owner);
+
 
 	/*create gradient brush if needed*/
 	if (!txh->tx_io) return;
 	stencil = gf_sc_texture_get_stencil(txh);
 	if (!stencil) return;
+
+	svg_update_gradient(st, rg->children, 0);
 
 	gf_svg_flatten_attributes((SVG_Element*)txh->owner, &all_atts);
 
@@ -651,7 +665,12 @@ void compositor_init_svg_radialGradient(GF_Compositor *compositor, GF_Node *node
 	SVG_GradientStack *st;
 	GF_SAFEALLOC(st, SVG_GradientStack);
 
-	gf_sc_texture_setup(&st->txh, compositor, node);
+	/*!!! Gradients are textures but are not registered as textures with the compositor in order to avoid updating
+	a zillion textures each frame */
+//	gf_sc_texture_setup(&st->txh, compositor, node);
+	st->txh.owner = node;
+	st->txh.compositor = compositor;
+
 	st->txh.update_texture_fcnt = SVG_UpdateRadialGradient;
 	st->txh.compute_gradient_matrix = SVG_RG_ComputeMatrix;
 	gf_node_set_private(node, st);
@@ -697,6 +716,7 @@ void compositor_init_svg_stop(GF_Compositor *compositor, GF_Node *node)
 GF_TextureHandler *compositor_svg_get_gradient_texture(GF_Node *node)
 {
 	SVG_GradientStack *st = (SVG_GradientStack*) gf_node_get_private((GF_Node *)node);
+	st->txh.update_texture_fcnt(&st->txh);
 	return &st->txh;
 }
 

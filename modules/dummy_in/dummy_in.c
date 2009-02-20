@@ -77,23 +77,30 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt = strrchr(url, '.');
 	if (sExt) {
+		Bool ok;
+		char *cgi_par;
 		if (!strnicmp(sExt, ".gz", 3)) sExt = strrchr(sExt, '.');
 		if (!strnicmp(url, "rtsp://", 7)) return 0;
 
+		cgi_par = strchr(sExt, '?'); 
+		if (cgi_par) cgi_par[0] = 0;
 
 		/*the mpeg-4 mime types for bt/xmt are NOT registered at all :)*/
-		if (gf_term_check_extension(plug, "application/x-bt", "bt bt.gz btz", "MPEG-4 Text (BT)", sExt)) return 1;
-		if (gf_term_check_extension(plug, "application/x-xmt", "xmt xmt.gz xmtz", "MPEG-4 Text (XMT)", sExt)) return 1;
-		//if (gf_term_check_extension(plug, "application/x-xmta", "xmta xmta.gz xmtaz", "MPEG-4 Text (XMT)", sExt)) return 1;
+		ok = gf_term_check_extension(plug, "application/x-bt", "bt bt.gz btz", "MPEG-4 Text (BT)", sExt);
+		if (!ok) ok = gf_term_check_extension(plug, "application/x-xmt", "xmt xmt.gz xmtz", "MPEG-4 Text (XMT)", sExt);;
+		//if (!ok) ok = gf_term_check_extension(plug, "application/x-xmta", "xmta xmta.gz xmtaz", "MPEG-4 Text (XMT)", sExt);
 		/*but all these ones are*/
-		if (gf_term_check_extension(plug, "model/vrml", "wrl wrl.gz", "VRML World", sExt)) return 1;
-		if (gf_term_check_extension(plug, "x-model/x-vrml", "wrl wrl.gz", "VRML World", sExt)) return 1;
-		if (gf_term_check_extension(plug, "model/x3d+vrml", "x3dv x3dv.gz x3dvz", "X3D/VRML World", sExt)) return 1;
-		if (gf_term_check_extension(plug, "model/x3d+xml", "x3d x3d.gz x3dz", "X3D/XML World", sExt)) return 1;
-		if (gf_term_check_extension(plug, "application/x-shockwave-flash", "swf", "Macromedia Flash Movie", sExt)) return 1;
-		if (gf_term_check_extension(plug, "image/svg+xml", "svg svg.gz svgz", "SVG Document", sExt)) return 1;
-		if (gf_term_check_extension(plug, "image/x-svgm", "svgm", "SVGM Document", sExt)) return 1;
-		if (gf_term_check_extension(plug, "application/x-LASeR+xml", "xsr", "LASeR Document", sExt)) return 1;
+		if (!ok) ok = gf_term_check_extension(plug, "model/vrml", "wrl wrl.gz", "VRML World", sExt);
+		if (!ok) ok = gf_term_check_extension(plug, "x-model/x-vrml", "wrl wrl.gz", "VRML World", sExt);
+		if (!ok) ok = gf_term_check_extension(plug, "model/x3d+vrml", "x3dv x3dv.gz x3dvz", "X3D/VRML World", sExt);
+		if (!ok) ok = gf_term_check_extension(plug, "model/x3d+xml", "x3d x3d.gz x3dz", "X3D/XML World", sExt);
+		if (!ok) ok = gf_term_check_extension(plug, "application/x-shockwave-flash", "swf", "Macromedia Flash Movie", sExt);
+		if (!ok) ok = gf_term_check_extension(plug, "image/svg+xml", "svg svg.gz svgz", "SVG Document", sExt);
+		if (!ok) ok = gf_term_check_extension(plug, "image/x-svgm", "svgm", "SVGM Document", sExt);
+		if (!ok) ok = gf_term_check_extension(plug, "application/x-LASeR+xml", "xsr", "LASeR Document", sExt);
+
+		if (cgi_par) cgi_par[0] = '?';
+		if (ok) return 1;
 	}
 
 	if (!strnicmp(url, "file://", 7) || !strstr(url, "://")) {

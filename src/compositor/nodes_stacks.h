@@ -176,7 +176,7 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 GF_TextureHandler *compositor_get_composite_texture(GF_Node *node);
 void compositor_adjust_scale(GF_Node *node, Fixed *sx, Fixed *sy);
 Bool compositor_is_composite_texture(GF_Node *appear);
-Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Event *ev);
+Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node *composite_appear, GF_Event *ev, Bool is_flush);
 Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev);
 
 void compositor_init_text(GF_Compositor *compositor, GF_Node *node);

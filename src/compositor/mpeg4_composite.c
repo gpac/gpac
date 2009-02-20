@@ -41,6 +41,7 @@ typedef struct
 	GF_VisualManager *visual;
 	Bool first, unsupported;
 	GF_List *sensors, *previous_sensors;
+	GF_Node *prev_hit_appear;
 	
 #ifdef GPAC_USE_TINYGL
 	ostgl_context *tgl_ctx;
@@ -50,9 +51,28 @@ typedef struct
 static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
+		u32 i=0;
+		GF_VisualManager *a_visual;
 		CompositeTextureStack *st = (CompositeTextureStack *) gf_node_get_private(node);
 		/*unregister visual*/
 		gf_sc_visual_unregister(st->visual->compositor, st->visual);
+
+		/*We must make sure we don't keep pointers to this composite in the different visuals. 
+		  - we must track Appearance nodes at the compositor level to undo the textureTransform while picking
+		  - but we clearly don't want to track destruction of all appearance nodes just to solve this texture delete
+				=> remove the entire compositeTexture appearance state - this may lead to small bugs in interaction logics, however they should
+				not be too damageable
+		*/
+		st->visual->compositor->hit_appear = NULL;
+		st->visual->compositor->prev_hit_appear = NULL;
+		
+		while ( (a_visual = gf_list_enum(st->visual->compositor->visuals, &i))) {
+			if (a_visual->offscreen) {
+				CompositeTextureStack *a_st = (CompositeTextureStack *) gf_node_get_private(a_visual->offscreen);
+				a_st->prev_hit_appear = NULL;
+			}
+		}
+
 		visual_del(st->visual);
 		if (st->txh.data) free(st->txh.data);
 		/*destroy texture*/
@@ -62,6 +82,7 @@ static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 		gf_list_del(st->sensors);
 		gf_list_del(st->previous_sensors);
+
 		free(st);
 	} else {
 		gf_node_traverse_children(node, rs);
@@ -525,7 +546,7 @@ GF_TextureHandler *compositor_get_composite_texture(GF_Node *node)
 	return &st->txh;
 }
 
-Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Event *ev)
+Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node *composite_appear, GF_Event *ev, Bool is_flush)
 {
 	SFVec3f point;
 	GF_Ray ray;
@@ -538,49 +559,52 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Even
 	SFVec3f txcoord;
 	CompositeTextureStack *stack;
 	GF_List *tmp1, *tmp2;
-	M_Appearance *ap = (M_Appearance *)compositor->hit_appear;
+	GF_Node *appear, *prev_appear;
+	M_Appearance *ap = (M_Appearance *)composite_appear;
 	assert(ap && ap->texture);
 
 	if (ev->type > GF_EVENT_MOUSEMOVE) return 0;
 	stack = gf_node_get_private(ap->texture);
 	if (!stack->txh.tx_io) return 0;
 
-	txcoord.x = compositor->hit_texcoords.x;
-	txcoord.y = compositor->hit_texcoords.y;
-	txcoord.z = 0;
-	flags = stack->txh.flags;
-	stack->txh.flags |= GF_SR_TEXTURE_NO_GL_FLIP;
-	if (gf_sc_texture_get_transform(&stack->txh, ap->textureTransform, &mx)) {
-		/*tx coords are inverted when mapping, thus applying directly the matrix will give us the 
-		untransformed coords*/
-		gf_mx_apply_vec(&mx, &txcoord);
-		while (txcoord.x<0) txcoord.x += FIX_ONE; while (txcoord.x>FIX_ONE) txcoord.x -= FIX_ONE;
-		while (txcoord.y<0) txcoord.y += FIX_ONE; while (txcoord.y>FIX_ONE) txcoord.y -= FIX_ONE;
-	}
-	stack->txh.flags = flags;
-	/*convert to tx space*/
-	ev->mouse.x = FIX2INT( (txcoord.x - FIX_ONE/2) * stack->visual->width + FIX_ONE/2);
-	ev->mouse.y = FIX2INT( (txcoord.y - FIX_ONE/2) * stack->visual->height + FIX_ONE/2);
+	if (!is_flush) {
+		txcoord.x = compositor->hit_texcoords.x;
+		txcoord.y = compositor->hit_texcoords.y;
+		txcoord.z = 0;
+		flags = stack->txh.flags;
+		stack->txh.flags |= GF_SR_TEXTURE_NO_GL_FLIP;
+		if (gf_sc_texture_get_transform(&stack->txh, ap->textureTransform, &mx)) {
+			/*tx coords are inverted when mapping, thus applying directly the matrix will give us the 
+			untransformed coords*/
+			gf_mx_apply_vec(&mx, &txcoord);
+			while (txcoord.x<0) txcoord.x += FIX_ONE; while (txcoord.x>FIX_ONE) txcoord.x -= FIX_ONE;
+			while (txcoord.y<0) txcoord.y += FIX_ONE; while (txcoord.y>FIX_ONE) txcoord.y -= FIX_ONE;
+		}
+		stack->txh.flags = flags;
+		/*convert to tx space*/
+		ev->mouse.x = FIX2INT( (txcoord.x - FIX_ONE/2) * stack->visual->width + FIX_ONE/2);
+		ev->mouse.y = FIX2INT( (txcoord.y - FIX_ONE/2) * stack->visual->height + FIX_ONE/2);
 
 
-	GF_SAFEALLOC(tr_state, GF_TraverseState);
-	tr_state->vrml_sensors = gf_list_new();
-	tr_state->visual = stack->visual;
-	tr_state->traversing_mode = TRAVERSE_PICK;
-	tr_state->pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(ap->texture));
-	tr_state->vp_size.x = INT2FIX(stack->txh.width);
-	tr_state->vp_size.y = INT2FIX(stack->txh.height);
+		GF_SAFEALLOC(tr_state, GF_TraverseState);
+		tr_state->vrml_sensors = gf_list_new();
+		tr_state->visual = stack->visual;
+		tr_state->traversing_mode = TRAVERSE_PICK;
+		tr_state->pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(ap->texture));
+		tr_state->vp_size.x = INT2FIX(stack->txh.width);
+		tr_state->vp_size.y = INT2FIX(stack->txh.height);
 
-	gf_mx2d_init(tr_state->transform);
+		gf_mx2d_init(tr_state->transform);
 #ifndef GPAC_DISABLE_3D
-	gf_mx_init(tr_state->model_matrix);
+		gf_mx_init(tr_state->model_matrix);
 #endif
-	/*collect sensors*/
-	l = children = ((M_CompositeTexture2D*)ap->texture)->children;
-	while (l) {
-		GF_SensorHandler *hsens = compositor_mpeg4_get_sensor_handler(l->node);
-		if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
-		l = l->next;
+		/*collect sensors*/
+		l = children = ((M_CompositeTexture2D*)ap->texture)->children;
+		while (l) {
+			GF_SensorHandler *hsens = compositor_mpeg4_get_sensor_handler(l->node);
+			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
+			l = l->next;
+		}
 	}
 
 	tmp1 = compositor->sensors;
@@ -591,8 +615,22 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Even
 	point = compositor->hit_world_point;
 	ray = compositor->hit_world_ray;
 	dist = compositor->hit_square_dist;
-	
-	res = visual_execute_event(stack->visual, tr_state, ev, children);
+	prev_appear = compositor->prev_hit_appear;
+	compositor->prev_hit_appear = stack->prev_hit_appear;
+	appear = compositor->hit_appear;
+	compositor->hit_appear = NULL;
+
+	if (is_flush) {
+		res = 0;
+		gf_list_reset(stack->sensors);
+		gf_sc_exec_event_vrml(compositor, ev);
+	} else {
+		res = visual_execute_event(stack->visual, tr_state, ev, children);
+	}
+
+	stack->prev_hit_appear = compositor->prev_hit_appear;
+	compositor->prev_hit_appear = prev_appear;
+	compositor->hit_appear = appear;
 
 	compositor->hit_world_point = point;
 	compositor->hit_world_ray = ray;
@@ -603,10 +641,20 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Even
 	compositor->sensors = tmp1;
 	compositor->previous_sensors = tmp2;
 
-	gf_list_del(tr_state->vrml_sensors);
-	free(tr_state);
+	if (!is_flush) {
+		gf_list_del(tr_state->vrml_sensors);
+		free(tr_state);
+	}
 	return res;
 }
+
+void compositor_compositetexture_sensor_delete(GF_Node *composite_appear, GF_SensorHandler *hdl)
+{
+	CompositeTextureStack *stack = gf_node_get_private(composite_appear);
+	gf_list_del_item(stack->previous_sensors, hdl);
+	gf_list_del_item(stack->sensors, hdl);
+}
+
 
 void compositor_adjust_scale(GF_Node *node, Fixed *sx, Fixed *sy)
 {

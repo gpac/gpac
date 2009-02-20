@@ -47,7 +47,7 @@ void drawable_pick(Drawable *drawable, GF_TraverseState *tr_state)
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
-		visual_3d_drawable_pick(drawable->node, tr_state, NULL, drawable->path);
+		visual_3d_drawable_pick(drawable->node, tr_state, NULL, drawable);
 		return;
 	} 
 #endif

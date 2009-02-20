@@ -700,18 +700,16 @@ static void svg_parse_color(SVG_Color *col, char *attribute_content)
 		}
 		col->type = SVG_COLOR_RGBCOLOR;
 	} else if (strstr(str, "rgb(") || strstr(str, "RGB(")) {
-		Float _val;
+		Float _r, _g, _b;
 		u8 is_percentage= 0;
 		if (strstr(str, "%")) is_percentage = 1;
 		str = strstr(str, "(");
 		str++;
-		sscanf(str, "%f", &_val); col->red = FLT2FIX(_val);
-		str = strstr(str, ",");
-		str++;
-		sscanf(str, "%f", &_val); col->green = FLT2FIX(_val);
-		str = strstr(str, ",");
-		str++;
-		sscanf(str, "%f", &_val); col->blue = FLT2FIX(_val);
+		if (sscanf(str, "%f,%f,%f", &_r, &_g, &_b)!=3)
+			sscanf(str, "%f %f %f", &_r, &_g, &_b);
+		col->red = FLT2FIX(_r);
+		col->green = FLT2FIX(_g);
+		col->blue = FLT2FIX(_b);
 		if (is_percentage) {
 			col->red /= 100;
 			col->green /= 100;
