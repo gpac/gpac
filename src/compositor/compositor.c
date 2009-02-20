@@ -2126,7 +2126,7 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 	}
 	return 0;
 #else
-	gf_sc_lock(compositor, 1);
+	if (!gf_mx_try_lock(compositor->mx)) return 0;
 	ret = gf_sc_exec_event(compositor, event);
 	gf_sc_lock(compositor, 0);
 	if (!ret && !from_user) {

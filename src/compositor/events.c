@@ -713,20 +713,30 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 #endif
 }
 
-static Bool exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
+Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 {
 	GF_SensorHandler *hs, *hs_grabbed;
 	GF_List *tmp;
 	u32 i, count, stype;
 
+	/*reset previous composite texture*/
+	if (compositor->prev_hit_appear != compositor->hit_appear) {
+		if (compositor->prev_hit_appear) {
+			compositor_compositetexture_handle_event(compositor, compositor->prev_hit_appear, ev, 1);
+			compositor->prev_hit_appear = NULL;
+		}
+	}
+
 	/*composite texture*/
-#if 0
-	if (!gf_list_count(compositor->sensors) && compositor->hit_appear) 
-		return compositor_compositetexture_handle_event(compositor, ev);
-#else
-	if (compositor->hit_appear && compositor_compositetexture_handle_event(compositor, ev)) 
-		return 1;
-#endif
+	if (compositor->hit_appear) {
+		GF_Node *appear = compositor->hit_appear;
+		if (compositor_compositetexture_handle_event(compositor, compositor->hit_appear, ev, 0)) {
+			compositor->prev_hit_appear = appear;
+			return 1;
+		}
+		compositor->prev_hit_appear = NULL;
+	}
+
 
 	hs_grabbed = NULL;
 	stype = GF_CURSOR_NORMAL;
@@ -926,7 +936,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 		/*no vrml sensors above*/
 		if (!gf_list_count(compositor->sensors) && !gf_list_count(compositor->previous_sensors)) return 0;
 	}
-	return exec_event_vrml(compositor, ev);
+	return gf_sc_exec_event_vrml(compositor, ev);
 }
 
 u32 gf_sc_svg_focus_navigate(GF_Compositor *compositor, u32 key_code)

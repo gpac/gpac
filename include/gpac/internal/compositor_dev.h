@@ -329,7 +329,7 @@ struct __tag_compositor
 	/*picked node*/
 	GF_Node *hit_node;
 	/*appearance at hit point - used for composite texture*/
-	GF_Node *hit_appear;
+	GF_Node *hit_appear, *prev_hit_appear;
 	/*parent use stack - SVG only*/
 	GF_List *hit_use_stack, *prev_hit_use_stack;
 	/*picked node uses DOM event or VRML events ?*/
@@ -1013,6 +1013,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *sr);
 Bool gf_sc_exec_event(GF_Compositor *sr, GF_Event *evt);
 void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_TraverseState *tr_state, s32 *child_idx);
 
+Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev);
 
 void gf_sc_visual_register(GF_Compositor *sr, GF_VisualManager *surf);
 void gf_sc_visual_unregister(GF_Compositor *sr, GF_VisualManager *surf);
