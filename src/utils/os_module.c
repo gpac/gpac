@@ -67,6 +67,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 #endif
 	
 	if (inst->lib_handle) return 1;
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s\n", inst->szName));
 
 #ifdef _WIN32_WCE
 	sprintf(s_path, "%s%c%s", inst->plugman->dir, GF_PATH_SEPARATOR, inst->szName);
