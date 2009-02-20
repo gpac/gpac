@@ -123,6 +123,7 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 			nal_type = pck.data[4] & 0x1F;
 
 			/*check for SPS and update stream info*/
+#ifndef GPAC_READ_ONLY
 			if (!pes->vid_w && (nal_type==GF_AVC_NALU_SEQ_PARAM)) {
 				AVCState avc;
 				s32 idx;
@@ -136,7 +137,7 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 					pes->vid_h = avc.sps[idx].height;
 				}
 			}
-
+#endif
 			/*check AU start type*/
 			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) 
 				pck.flags = GF_M2TS_PES_PCK_AU_START;
