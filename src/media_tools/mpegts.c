@@ -77,11 +77,13 @@ static void gf_m2ts_reframe_default(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 
 static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
 {
+	Bool force_new_au=0;
 	Bool start_code_found = 0;
 	u32 nal_type, sc_pos = 0;
 	GF_M2TS_PES_PCK pck;
 
 	if (PTS) {
+		if (pes->PTS != PTS) force_new_au = 1;
 		pes->PTS = PTS;
 		if (DTS) pes->DTS = DTS;
 		else pes->DTS = PTS;
@@ -136,7 +138,8 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 			}
 
 			/*check AU start type*/
-			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) pck.flags = GF_M2TS_PES_PCK_AU_START;
+			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) 
+				pck.flags = GF_M2TS_PES_PCK_AU_START;
 			else pck.flags = 0;
 			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 
@@ -152,11 +155,14 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 			pck.data = data;
 			pck.data_len = data_len;
 			nal_type = pck.data[4] & 0x1F;
-			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) pck.flags = GF_M2TS_PES_PCK_AU_START;
+			if (nal_type==GF_AVC_NALU_ACCESS_UNIT)
+				pck.flags = GF_M2TS_PES_PCK_AU_START;
 		} else {
 			pck.data = data;
 			pck.data_len = data_len;
 		}
+		if (force_new_au)
+				pck.flags |= GF_M2TS_PES_PCK_AU_START;
 		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 	}
 }
