@@ -26,6 +26,7 @@
 #include <gpac/ietf.h>
 #include <gpac/config_file.h>
 #include <gpac/base_coding.h>
+#include <gpac/filestreamer.h>
 
 GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file, 
 															  u32 TrackNum,
@@ -1044,6 +1045,7 @@ void usage()
 					"-ifce=ADD:    Local interface IP address. Default is NULL\n"
 					"-mpeg4:       forces usage of mpeg4-generic payload format. Default is off\n"
 					"-noloop:      disables session looping. Default is off\n"
+					"-sdp:         output SDP file name. Default is session.sdp\n"
 		);
 }
 
@@ -1059,18 +1061,19 @@ Bool check_exit()
 
 int main(int argc, char **argv)
 {
-	Streamer streamer;		/* Streamer metadata (from cfg file) */
 	char *cfg = NULL;
 	RTP_Session *session;
 	u32 i;
 	s32 sleepDuration;
 	u32 time;
+	char *sdp_file = "session.sdp";
 	char *ip_dest = "127.0.0.1";
 	char *ifce_addr = NULL;
 	u16 port = 7000;
 	u32 ttl = 1;
 	Bool loop = 1;
 	Bool force_mpeg4 = 0;
+	u32 log_level, path_mtu;
 	char *file_name = NULL;
 
 
@@ -1080,28 +1083,27 @@ int main(int argc, char **argv)
 	}
 
 	gf_log_set_tools(0xFFFFFFFF);
-	gf_log_set_level(GF_LOG_ERROR);
-
-	memset(&streamer, 0, sizeof(Streamer));
-	streamer.log_level = LOG_BURST;
-	streamer.path_mtu = 1450;
+	gf_log_set_level(GF_LOG_ERROR);	
+	log_level = LOG_BURST;
+	path_mtu = 1450;
 
 	for (i=1; i<(u32) argc; i++) {
 		char *arg = argv[i];
 		if (arg[0]=='-') {
-			if (!stricmp(arg, "-q") || !stricmp(arg, "--quiet")) streamer.log_level = LOG_NONE;
+			if (!stricmp(arg, "-q") || !stricmp(arg, "--quiet")) log_level = LOG_NONE;
 			else if (!strnicmp(arg, "-v=", 3)) {
-				if (!stricmp(arg+3, "au")) streamer.log_level = LOG_AU;
-				else if (!stricmp(arg+3, "rtp")) streamer.log_level = LOG_PACKET;
+				if (!stricmp(arg+3, "au")) log_level = LOG_AU;
+				else if (!stricmp(arg+3, "rtp")) log_level = LOG_PACKET;
 			}
 			else if (!strnicmp(arg, "-cfg=", 5)) cfg = arg+5;
 			else if (!strnicmp(arg, "-port=", 6)) port = atoi(arg+6);
-			else if (!strnicmp(arg, "-mtu=", 5)) streamer.path_mtu = atoi(arg+5);
+			else if (!strnicmp(arg, "-mtu=", 5)) path_mtu = atoi(arg+5);
 			else if (!strnicmp(arg, "-dst=", 5)) ip_dest = arg+5;
 			else if (!stricmp(arg, "-noloop")) loop = 0;
 			else if (!stricmp(arg, "-mpeg4")) force_mpeg4 = 1;
 			else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
 			else if (!strnicmp(arg, "-ifce=", 6)) ifce_addr = arg+6;
+			else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
 		} else {
 			file_name = arg;
 		}
@@ -1112,69 +1114,91 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
-	fprintf(stdout, "Time-sliced MP4 Streamer - (c) ENST 2006-200X\n");
-	fprintf(stdout, "Developed within the Multimedia group\n");
-	fprintf(stdout, "with the help of the following students: \n");
-	fprintf(stdout, "   MIX 2006: Anh-Vu BUI and Xiangfeng LIU \n");
-	fprintf(stdout, "\n");
-
-	if (!cfg) fprintf(stdout, "Configuring streaming of file %s to %s:%d - loop %s\n", file_name, ip_dest, port, loop?"enabled":"disabled");
-	/*
-	 * Initialization
-	 *
-	 */
 	gf_sys_init();
-	if (configuration(&streamer, cfg, file_name, ip_dest, port, loop, force_mpeg4, ttl, ifce_addr) != GF_OK) {
-		goto err_exit;
-	}
 
-	if (streamer.burst_mode) {
-		session = streamer.session;
-		while (1) {
-			burst_process_session(session);		
-			session->dataLengthInBurst = 0; 
-			session->nextBurstTime += streamer.cycleDuration;
-			session = session->next;
-			if (!session) session = streamer.session;
+	if (file_name) {
+		GF_FileStreamer *file_streamer;
 
-			time = gf_sys_clock();
-			sleepDuration = session->nextBurstTime - (time - session->timelineOrigin);
-			if (sleepDuration > 0) {
-				gf_sleep(sleepDuration);
+		gf_log_set_tools(GF_LOG_RTP);
+		gf_log_set_level(GF_LOG_WARNING);	//set to debug to have packet list
+
+		file_streamer = gf_streamer_new(file_name, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, ifce_addr);
+		if (!file_streamer) {
+			fprintf(stdout, "Cannot create file streamer\n");
+		} else {
+			fprintf(stdout, "Starting streaming %s to %s:%d\n", file_name, ip_dest, port);
+			gf_streamer_write_sdp(file_streamer, sdp_file);
+
+			while (1) {
+				gf_streamer_send_next_packet(file_streamer, 0, 0);
+				if (check_exit()) break;
 			}
 
-			if (check_exit()) break;
-		} 
+			gf_streamer_del(file_streamer);
+		}
 	} else {
-		while (1) {
-			process_sessions(&streamer);		
-			if (check_exit()) break;
-		}
-	}		
+		Streamer streamer;		/* Streamer metadata (from cfg file) */
+		memset(&streamer, 0, sizeof(Streamer));
 
-err_exit:
-	/*
-	 * Desallocation 
-	 *
-	 */
-	session = streamer.session;
-	while (session) {
-		RTP_Session *_s = session;
-		RTP_Stream *rtp = session->stream;
-		while (rtp) {
-			RTP_Stream *tmp = rtp;
-			rtp_flush_channel(rtp);
-			if (rtp->au) gf_isom_sample_del(&rtp->au);
-			if (rtp->channel) gf_rtp_del(rtp->channel);
-			if (rtp->packetizer) gf_rtp_builder_del(rtp->packetizer);
-			if (rtp->packet.payload) free(rtp->packet.payload);	
-			rtp = rtp->next;
-			free(tmp);
+		fprintf(stdout, "Time-sliced MP4 Streamer - (c) ENST 2006-200X\n");
+		fprintf(stdout, "Developed within the Multimedia group\n");
+		fprintf(stdout, "with the help of the following students: \n");
+		fprintf(stdout, "   MIX 2006: Anh-Vu BUI and Xiangfeng LIU \n");
+		fprintf(stdout, "\n");
+
+
+		streamer.log_level = LOG_BURST;
+		streamer.path_mtu = 1450;
+
+		/*
+		 * Initialization
+		 *
+		 */
+		if (configuration(&streamer, cfg, file_name, ip_dest, port, loop, force_mpeg4, ttl, ifce_addr) == GF_OK) {
+
+			session = streamer.session;
+			while (1) {
+				burst_process_session(session);		
+				session->dataLengthInBurst = 0; 
+				session->nextBurstTime += streamer.cycleDuration;
+				session = session->next;
+				if (!session) session = streamer.session;
+
+				time = gf_sys_clock();
+				sleepDuration = session->nextBurstTime - (time - session->timelineOrigin);
+				if (sleepDuration > 0) {
+					gf_sleep(sleepDuration);
+				}
+
+				if (check_exit()) break;
+			} 
+
 		}
-		if (session->mp4File) gf_isom_close(session->mp4File);
-		session = session->next;
-		free(_s);
-	}	
+
+		/*
+		 * Desallocation 
+		 *
+		 */
+		session = streamer.session;
+		while (session) {
+			RTP_Session *_s = session;
+			RTP_Stream *rtp = session->stream;
+			while (rtp) {
+				RTP_Stream *tmp = rtp;
+				rtp_flush_channel(rtp);
+				if (rtp->au) gf_isom_sample_del(&rtp->au);
+				if (rtp->channel) gf_rtp_del(rtp->channel);
+				if (rtp->packetizer) gf_rtp_builder_del(rtp->packetizer);
+				if (rtp->packet.payload) free(rtp->packet.payload);	
+				rtp = rtp->next;
+				free(tmp);
+			}
+			if (session->mp4File) gf_isom_close(session->mp4File);
+			session = session->next;
+			free(_s);
+		}	
+	}
+
 	gf_sys_close();
 	fprintf(stdout, "done\n");
 	return GF_OK;

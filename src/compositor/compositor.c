@@ -1556,7 +1556,9 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		}
 		else
 #endif
+		{
 			compositor_2d_set_aspect_ratio(compositor);
+		}
 
 		compositor->draw_next_frame = 0;
 
