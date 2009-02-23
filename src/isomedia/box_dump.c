@@ -2294,7 +2294,7 @@ static void gpp_dump_style_nobox(FILE * trace, GF_StyleRecord *rec, u32 *shift_o
 static char *ttd_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
 {
 	u32 h, m, s, ms;
-	ts = (u32) (( ((Double) (s64) ts)/timescale)*1000.0);
+	ts = (u32) (ts*1000 / timescale);
 	h = (u32) (ts / 3600000);
 	m = (u32) (ts/ 60000) - h*60;
 	s = (u32) (ts/1000) - h*3600 - m*60;

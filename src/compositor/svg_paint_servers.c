@@ -30,11 +30,15 @@
 #include "texturing.h"
 
 
+enum
+{
+	GF_SR_TEXTURE_GRAD_REGISTERED = 1<<6,
+	GF_SR_TEXTURE_GRAD_NO_RGB = 1<<7,
+};
 
 typedef struct
 {
 	GF_TextureHandler txh;
-	Bool no_rgb_support;
 	Bool linear;
 	Bool animated;
 	Fixed *keys;
@@ -341,6 +345,11 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 
 	if (!txh->tx_io) return;
 
+	if (!(txh->flags & GF_SR_TEXTURE_GRAD_REGISTERED)) {
+		txh->flags |= GF_SR_TEXTURE_GRAD_REGISTERED;
+		if (gf_list_find(txh->compositor->textures, txh)<0) 
+			gf_list_insert(txh->compositor->textures, txh, 0);
+	}
 
 	if (txh->data) {
 		free(txh->data);
@@ -359,7 +368,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	}
 
 	transparent = st->txh.transparent;
-	if (st->no_rgb_support) transparent = 1;
+	if (st->txh.flags & GF_SR_TEXTURE_GRAD_NO_RGB) transparent = 1;
 	
 	if (transparent) {
 		if (!txh->data) {
@@ -376,7 +385,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
 		if (e) {
 			/*remember for later use*/
-			st->no_rgb_support = 1;
+			st->txh.flags |= GF_SR_TEXTURE_GRAD_NO_RGB;
 			transparent = 1;
 			free(txh->data);
 			txh->data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
@@ -554,8 +563,8 @@ void compositor_init_svg_linearGradient(GF_Compositor *compositor, GF_Node *node
 	GF_SAFEALLOC(st, SVG_GradientStack);
 
 	/*!!! Gradients are textures but are not registered as textures with the compositor in order to avoid updating
-	a zillion textures each frame */
-//	gf_sc_texture_setup(&st->txh, compositor, node);
+	too many textures each frame - gradients are only registered with the compositor when they are used in OpenGL, in order 
+	to release associated HW resource when no longer used*/
 	st->txh.owner = node;
 	st->txh.compositor = compositor;
 	st->txh.update_texture_fcnt = SVG_UpdateLinearGradient;
@@ -666,8 +675,8 @@ void compositor_init_svg_radialGradient(GF_Compositor *compositor, GF_Node *node
 	GF_SAFEALLOC(st, SVG_GradientStack);
 
 	/*!!! Gradients are textures but are not registered as textures with the compositor in order to avoid updating
-	a zillion textures each frame */
-//	gf_sc_texture_setup(&st->txh, compositor, node);
+	too many textures each frame - gradients are only registered with the compositor when they are used in OpenGL, in order 
+	to release associated HW resource when no longer used*/
 	st->txh.owner = node;
 	st->txh.compositor = compositor;
 

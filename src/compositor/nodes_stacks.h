@@ -178,6 +178,7 @@ void compositor_adjust_scale(GF_Node *node, Fixed *sx, Fixed *sy);
 Bool compositor_is_composite_texture(GF_Node *appear);
 Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node *composite_appear, GF_Event *ev, Bool is_flush);
 Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev);
+void compositor_compositetexture_sensor_delete(GF_Node *composite_appear, GF_SensorHandler *hdl);
 
 void compositor_init_text(GF_Compositor *compositor, GF_Node *node);
 

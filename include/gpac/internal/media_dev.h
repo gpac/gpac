@@ -27,6 +27,7 @@
 #define _GF_MEDIA_DEV_H_
 
 #include <gpac/media_tools.h>
+#include <gpac/ietf.h>
 
 GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...);
 
@@ -143,6 +144,26 @@ typedef struct
 	u8 pck_size;
 } QCPRateTable;
 
+
+
+
+GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file, 
+															  u32 TrackNum,
+															  void *cbk_obj, 
+															  void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
+															  void (*OnPacketDone)(void *cbk, GF_RTPHeader *header),
+															  void (*OnDataReference)(void *cbk, u32 payload_size, u32 offset_from_orig),
+															  void (*OnData)(void *cbk, char *data, u32 data_size, Bool is_head),
+															  u32 Path_MTU, 
+															  u32 max_ptime, 
+															  u32 default_rtp_rate, 
+															  u32 flags, 
+															  u8 PayloadID, 
+															  Bool copy_media, 
+															  u32 InterleaveGroupID, 
+															  u8 InterleaveGroupPriority);
+
+void gf_hinter_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, GF_ISOFile *file, u32 track);
 
 #endif		/*_GF_MEDIA_DEV_H_*/
 

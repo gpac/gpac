@@ -585,6 +585,10 @@ SOURCE=..\..\include\gpac\internal\avilib.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\media_tools\filestreamer.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\media_tools\gpac_ogg.c
 # End Source File
 # Begin Source File
@@ -1234,6 +1238,10 @@ SOURCE=..\..\include\gpac\esi.h
 # Begin Source File
 
 SOURCE=..\..\include\gpac\events.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\include\gpac\filestreamer.h
 # End Source File
 # Begin Source File
 

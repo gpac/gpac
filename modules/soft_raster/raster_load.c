@@ -60,6 +60,7 @@ GF_Raster2D *EVG_LoadRenderer()
 	dr->surface_set_clipper = evg_surface_set_clipper;
 	dr->surface_set_path = evg_surface_set_path;
 	dr->surface_fill = evg_surface_fill;
+	dr->surface_attach_to_callbacks = evg_surface_attach_to_callbacks;
 	dr->surface_flush = NULL;
 	dr->surface_clear = evg_surface_clear;
 	return dr;

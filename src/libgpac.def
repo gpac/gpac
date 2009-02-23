@@ -894,6 +894,14 @@ EXPORTS
 	gf_ismacryp_gpac_get_info
 	gf_ismacryp_mpeg4ip_get_info
 	
+	
+	gf_streamer_new
+	gf_streamer_del
+	gf_streamer_write_sdp
+	gf_streamer_get_sdp
+	gf_streamer_send_next_packet
+	gf_streamer_reset
+
 ;scene_manager.h exports
 	gf_sm_new
 	gf_sm_del

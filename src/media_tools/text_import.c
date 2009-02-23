@@ -233,7 +233,6 @@ static char *gf_text_get_utf8_line(char *szLine, u32 lineSize, FILE *txt_in, s32
 static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 {
 	FILE *srt_in;
-	Double scale;
 	u32 track, timescale, i, count;
 	GF_TextConfig*cfg;
 	GF_Err e;
@@ -372,8 +371,6 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	nb_samp = 0;
 	samp = gf_isom_new_text_sample();
 
-	scale = timescale;
-	scale /= 1000;
 	first_samp = 1;
 	while (1) {
 		char *sOK = gf_text_get_utf8_line(szLine, 2048, srt_in, unicode_type);
@@ -388,7 +385,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 					GF_TextSample * empty_samp = gf_isom_new_text_sample();
 					s = gf_isom_text_to_sample(empty_samp);
 					gf_isom_delete_text_sample(empty_samp);
-					s->DTS = (u64) (scale*(s64)prev_end);
+					s->DTS = (u64) ((timescale*prev_end)/1000);
 					s->IsRAP = 1;
 					gf_isom_add_sample(import->dest, track, 1, s);
 					gf_isom_sample_del(&s);
@@ -396,7 +393,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 				}
 
 				s = gf_isom_text_to_sample(samp);
-				s->DTS = (u64) (scale*(s64) start);
+				s->DTS = (u64) ((timescale*start)/1000);
 				s->IsRAP = 1;
 				gf_isom_add_sample(import->dest, track, 1, s);
 				gf_isom_sample_del(&s);
@@ -569,7 +566,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	if (end) {
 		gf_isom_text_reset(samp);
 		s = gf_isom_text_to_sample(samp);
-		s->DTS = (u64) (scale*(s64)end);
+		s->DTS = (u64) ((timescale*end)/1000);
 		s->IsRAP = 1;
 		gf_isom_add_sample(import->dest, track, 1, s);
 		gf_isom_sample_del(&s);

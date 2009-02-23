@@ -28,7 +28,7 @@
 #include "texturing.h"
 #include <gpac/options.h>
 
-//#define SKIP_DRAW
+//	#define SKIP_DRAW
 
 GF_Err visual_2d_init_raster(GF_VisualManager *visual)
 {
