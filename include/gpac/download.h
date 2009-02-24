@@ -266,6 +266,14 @@ const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess);
 GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, const char **path, u32 *total_size, u32 *bytes_done, u32 *bytes_per_sec, u32 *net_status);
 
 
+/*!
+ *\brief fetch session object
+ *
+ *Fetch the session object (process all headers and data transfer). This is only usable if the session is not threaded
+ *\param sess the download session
+ *\return the last error in the session or 0 if none*/
+GF_Err gf_dm_sess_process(GF_DownloadSession * sess);
+
 /*! @} */
 
 #ifdef __cplusplus

@@ -350,20 +350,24 @@ void http_do_requests(GF_DownloadSession *sess);
 
 static void gf_dm_sess_notify_state(GF_DownloadSession *sess, u32 dnload_status, GF_Err error)
 {
-	GF_NETIO_Parameter par;
-	sess->in_callback = 1;
-	memset(&par, 0, sizeof(GF_NETIO_Parameter));
-	par.msg_type = dnload_status;
-	par.error = error;
-	sess->user_proc(sess->usr_cbk, &par);
-	sess->in_callback = 0;
+	if (sess->user_proc) {
+		GF_NETIO_Parameter par;
+		sess->in_callback = 1;
+		memset(&par, 0, sizeof(GF_NETIO_Parameter));
+		par.msg_type = dnload_status;
+		par.error = error;
+		sess->user_proc(sess->usr_cbk, &par);
+		sess->in_callback = 0;
+	}
 }
 
 static void gf_dm_sess_user_io(GF_DownloadSession *sess, GF_NETIO_Parameter *par)
 {
-	sess->in_callback = 1;
-	sess->user_proc(sess->usr_cbk, par);
-	sess->in_callback = 0;
+	if (sess->user_proc) {
+		sess->in_callback = 1;
+		sess->user_proc(sess->usr_cbk, par);
+		sess->in_callback = 0;
+	}
 }
 
 GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess)
@@ -507,11 +511,6 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_fla
 		*e = GF_NOT_SUPPORTED;
 		return NULL;
 	}
-	if (!user_io) {
-		*e = GF_BAD_PARAM;
-		return NULL;
-	}
-
 
 	sess = (GF_DownloadSession *)malloc(sizeof(GF_DownloadSession));
 	memset((void *)sess, 0, sizeof(GF_DownloadSession));
@@ -718,6 +717,35 @@ const char *gf_dm_sess_mime_type(GF_DownloadSession *sess)
 	sess->flags = flags;
 	if (sess->status==GF_NETIO_STATE_ERROR) return NULL;
 	return sess->mime_type;
+}
+
+
+
+GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
+{
+	Bool go;
+	go = 1;
+	while (go) {
+		switch (sess->status) {
+		/*setup download*/
+		case GF_NETIO_SETUP:
+			gf_dm_connect(sess);
+			if (sess->status == GF_NETIO_SETUP)
+				gf_sleep(200);
+			break;
+		case GF_NETIO_WAIT_FOR_REPLY:
+			gf_sleep(20);
+		case GF_NETIO_CONNECTED:
+		case GF_NETIO_DATA_EXCHANGE:
+			sess->do_requests(sess);
+			break;
+		case GF_NETIO_DISCONNECTED:
+		case GF_NETIO_STATE_ERROR:
+			go = 0;
+			break;
+		}
+	}
+	return sess->last_error;
 }
 
 

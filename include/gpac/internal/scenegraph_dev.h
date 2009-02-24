@@ -889,12 +889,6 @@ struct _scriptfield
 	the_class.finalize = fin;	\
 	the_class.hasInstance = js_has_instance;
 
-typedef struct
-{
-	GF_Node *node;
-	GF_DownloadSession *sess;
-} JSFileDownload;
-
 struct JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg);
 void gf_sg_ecmascript_del(struct JSContext *);
 

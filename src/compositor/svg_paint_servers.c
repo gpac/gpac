@@ -250,15 +250,19 @@ static void svg_update_gradient(SVG_GradientStack *st, GF_ChildNodeItem *childre
 		if (!st->animated) return;
 	}
 
-	GF_SAFEALLOC(svgp, SVGPropertiesPointers);
-	gf_svg_properties_init_pointers(svgp);
-	tr_state->svg_props = svgp;
+	if (!tr_state->svg_props) {
+		GF_SAFEALLOC(svgp, SVGPropertiesPointers);
+		gf_svg_properties_init_pointers(svgp);
+		tr_state->svg_props = svgp;
 
-	svg_gradient_traverse(node, tr_state, 0);
+		svg_gradient_traverse(node, tr_state, 0);
 
-	gf_svg_properties_reset_pointers(svgp);
-	free(svgp);
-	tr_state->svg_props = NULL;
+		gf_svg_properties_reset_pointers(svgp);
+		free(svgp);
+		tr_state->svg_props = NULL;
+	} else {
+		svg_gradient_traverse(node, tr_state, 0);
+	}
 }
 
 
