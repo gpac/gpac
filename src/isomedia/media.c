@@ -352,7 +352,8 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		if (e) return e;
 	}
 	else if (mdia->mediaTrack->moov->mov->convert_streaming_text 
-		&& (mdia->handler->handlerType == GF_ISOM_MEDIA_TEXT) ) {
+		&& ((mdia->handler->handlerType == GF_ISOM_MEDIA_TEXT) || (mdia->handler->handlerType == GF_ISOM_MEDIA_SUBT)) 
+	) {
 		u64 dur;
 		if (sampleNumber == mdia->information->sampleTable->SampleSize->sampleCount) {
 			dur = mdia->mediaHeader->duration - (*samp)->DTS;

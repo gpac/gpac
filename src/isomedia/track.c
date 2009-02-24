@@ -545,6 +545,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 		str = "GPAC MPEG-4 MPEG-J Handler";
 		break;
 	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
 		mediaInfo = gf_isom_box_new(GF_ISOM_BOX_TYPE_NMHD);
 		str = "GPAC Streaming Text Handler";
 		break;

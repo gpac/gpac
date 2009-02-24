@@ -43,6 +43,7 @@ typedef struct
 	Bool animated;
 	Fixed *keys;
 	u32 *cols;
+	u32 current_frame;
 } SVG_GradientStack;
 
 
@@ -240,6 +241,7 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 	tr_state->svg_flags = backup_flags_1;
 }
 
+
 static void svg_update_gradient(SVG_GradientStack *st, GF_ChildNodeItem *children, Bool linear)
 {
 	SVGPropertiesPointers *svgp;
@@ -247,7 +249,10 @@ static void svg_update_gradient(SVG_GradientStack *st, GF_ChildNodeItem *childre
 	GF_TraverseState *tr_state = st->txh.compositor->traverse_state;
 
 	if (!gf_node_dirty_get(node)) {
-		if (!st->animated) return;
+		if (st->current_frame==st->txh.compositor->current_frame) return;
+		st->current_frame = st->txh.compositor->current_frame;
+		st->txh.needs_refresh = 0;
+//		if (!st->animated) return;
 	}
 
 	if (!tr_state->svg_props) {
@@ -691,7 +696,7 @@ void compositor_init_svg_radialGradient(GF_Compositor *compositor, GF_Node *node
 }
 
 
-static void svg_traverse_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
+static void svg_traverse_PaintServer(GF_Node *node, void *rs, Bool is_destroy, Bool is_solid_color)
 {
 	SVGPropertiesPointers backup_props;
 	SVGAllAttributes all_atts;
@@ -701,7 +706,8 @@ static void svg_traverse_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
 	if (is_destroy) {
-		SVG_DestroyPaintServer(node);
+		if (!is_solid_color)
+			SVG_DestroyPaintServer(node);
 		return;
 	}
 
@@ -716,14 +722,50 @@ static void svg_traverse_PaintServer(GF_Node *node, void *rs, Bool is_destroy)
 	memcpy(tr_state->svg_props, &backup_props, styling_size);
 	tr_state->svg_flags = backup_flags;
 }
+
+typedef struct
+{
+	u32 current_frame;
+	Bool is_dirty;
+} GF_SolidColorStack;
+
+Bool compositor_svg_solid_color_dirty(GF_Compositor *compositor, GF_Node *node)
+{
+	GF_SolidColorStack *st = gf_node_get_private(node);
+	if (st->current_frame==compositor->current_frame) return st->is_dirty;
+	st->current_frame = compositor->current_frame;
+	st->is_dirty = gf_node_dirty_get(node) ? 1 : 0;
+	gf_node_dirty_clear(node, 0);
+	return st->is_dirty;
+}
+
+static void svg_traverse_solidColor(GF_Node *node, void *rs, Bool is_destroy)
+{
+	if (is_destroy) {
+		GF_SolidColorStack *st = gf_node_get_private(node);
+		free(st);
+		return;
+	}
+	svg_traverse_PaintServer(node, rs, is_destroy, 1);
+}
+
+
 void compositor_init_svg_solidColor(GF_Compositor *compositor, GF_Node *node)
 {
-	gf_node_set_callback_function(node, svg_traverse_PaintServer);
+	GF_SolidColorStack *st;
+	GF_SAFEALLOC(st, GF_SolidColorStack);
+	gf_node_set_private(node, st);
+	gf_node_set_callback_function(node, svg_traverse_solidColor);
+}
+
+static void svg_traverse_stop(GF_Node *node, void *rs, Bool is_destroy)
+{
+	svg_traverse_PaintServer(node, rs, is_destroy, 1);
 }
 
 void compositor_init_svg_stop(GF_Compositor *compositor, GF_Node *node)
 {
-	gf_node_set_callback_function(node, svg_traverse_PaintServer);
+	gf_node_set_callback_function(node, svg_traverse_stop);
 }
 
 GF_TextureHandler *compositor_svg_get_gradient_texture(GF_Node *node)

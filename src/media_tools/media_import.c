@@ -1588,6 +1588,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				switch (mtype) {
 				case GF_ISOM_MEDIA_HINT:
 				case GF_ISOM_MEDIA_TEXT:
+				case GF_ISOM_MEDIA_SUBT:
 					break;
 				default:
 					return gf_import_message(import, GF_OK, "IsoMedia import - skipping track ID %d (unknown type \'%s\')", trackID, gf_4cc_to_str(mstype));

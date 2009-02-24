@@ -329,7 +329,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	invalidate_flag = tr_state->invalidate_all;
 
 	is_dirty = gf_node_dirty_get(node);
-	if (is_dirty  &GF_SG_CHILD_DIRTY) drawable_reset_group_highlight(tr_state, node);
+	if (is_dirty  & GF_SG_CHILD_DIRTY) drawable_reset_group_highlight(tr_state, node);
 	gf_node_dirty_clear(node, 0);
 
 	if ((stack->parent_vp.x != tr_state->vp_size.x) || (stack->parent_vp.y != tr_state->vp_size.y))

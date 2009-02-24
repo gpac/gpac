@@ -42,7 +42,13 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !desc->font_count) return GF_BAD_PARAM;
 
-	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_TEXT) return GF_BAD_PARAM;
+	switch (trak->Media->handler->handlerType) {
+	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
 
 	txt = (GF_TextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, descriptionIndex - 1);
 	if (!txt) return GF_BAD_PARAM;
@@ -81,7 +87,13 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !desc->font_count) return GF_BAD_PARAM;
 
-	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_TEXT) return GF_BAD_PARAM;
+	switch (trak->Media->handler->handlerType) {
+	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
 
 	//get or create the data ref
 	e = Media_FindDataRef(trak->Media->information->dataInformation->dref, URLname, URNname, &dataRefIndex);
@@ -343,7 +355,13 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak || !trak->Media || !desc->font_count) return GF_BAD_PARAM;
 
-	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_TEXT) return GF_BAD_PARAM;
+	switch (trak->Media->handler->handlerType) {
+	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
 
 	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
 	for (i=0; i<count; i++) {

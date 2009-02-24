@@ -767,6 +767,7 @@ void remove_systems_tracks(GF_ISOFile *file)
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SUBT:
 			gf_isom_remove_track_from_root_od(file, i+1);
 			check_media_profile(file, i+1);
 			break;
@@ -2379,6 +2380,9 @@ int main(int argc, char **argv)
 				case GF_ISOM_MEDIA_AUDIO:
 					if (!major_brand) major_brand = GF_4CC('M','4','A',' ');
 					else gf_isom_modify_alternate_brand(file, GF_4CC('M','4','A',' '), 1);
+					break;
+				case GF_ISOM_MEDIA_TEXT:
+					gf_isom_set_media_type(file, i+1, GF_ISOM_MEDIA_SUBT);
 					break;
 				}
 			}

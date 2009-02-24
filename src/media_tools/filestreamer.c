@@ -606,6 +606,7 @@ GF_FileStreamer *gf_streamer_new(const char *file_name, const char *ip_dest, u16
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SUBT:
 		case GF_ISOM_MEDIA_OD:
 		case GF_ISOM_MEDIA_SCENE:
 			break;

@@ -158,6 +158,8 @@ enum
 	GF_ISOM_MEDIA_HINT		= GF_4CC( 'h', 'i', 'n', 't' ),
 	GF_ISOM_MEDIA_META		= GF_4CC( 'm', 'e', 't', 'a' ),
 	GF_ISOM_MEDIA_TEXT		= GF_4CC( 't', 'e', 'x', 't' ),
+	/*subtitle code point used on ipod - same as text*/
+	GF_ISOM_MEDIA_SUBT		= GF_4CC( 's', 'b', 't', 'l' ),
 	GF_ISOM_MEDIA_SUBPIC	= GF_4CC( 's', 'u', 'b', 'p' ),
 
 	/*MPEG-4 media types*/
@@ -808,6 +810,9 @@ GF_Err gf_isom_set_copyright(GF_ISOFile *the_file, const char *threeCharCode, ch
 
 /*deletes copyright (1-based indexes)*/
 GF_Err gf_isom_remove_copyright(GF_ISOFile *the_file, u32 index);
+
+/*changes the handler type of the media*/
+GF_Err gf_isom_set_media_type(GF_ISOFile *movie, u32 trackNumber, u32 new_type);
 
 
 GF_Err gf_isom_set_alternate_group_id(GF_ISOFile *movie, u32 trackNumber, u32 groupId);

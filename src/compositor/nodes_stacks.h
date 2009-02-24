@@ -256,6 +256,7 @@ void compositor_init_svg_a(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_linearGradient(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_radialGradient(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_solidColor(GF_Compositor *compositor, GF_Node *node);
+Bool compositor_svg_solid_color_dirty(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_stop(GF_Compositor *compositor, GF_Node *node);
 
 void compositor_init_svg_image(GF_Compositor *compositor, GF_Node *node);

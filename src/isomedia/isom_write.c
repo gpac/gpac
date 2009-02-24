@@ -480,6 +480,7 @@ u32 gf_isom_new_track(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScal
 	case GF_ISOM_MEDIA_VISUAL:
 	case GF_ISOM_MEDIA_SCENE:
 	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
 		/*320-240 pix in 16.16*/
 		tkhd->width = 0x01400000;
 		tkhd->height = 0x00F00000;
@@ -3399,6 +3400,15 @@ GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_set_media_type(GF_ISOFile *movie, u32 trackNumber, u32 new_type)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak || !new_type) return GF_BAD_PARAM;
+	trak->Media->handler->handlerType = new_type;
+	return GF_OK;
+}
+
 
 GF_EXPORT
 GF_Err gf_isom_set_JPEG2000(GF_ISOFile *mov, Bool set_on)
@@ -3568,6 +3578,7 @@ GF_Err gf_isom_set_alternate_group_id(GF_ISOFile *movie, u32 trackNumber, u32 gr
 	trak->Header->alternate_group = groupId;
 	return GF_OK;
 }
+
 
 GF_EXPORT
 GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u32 trackRefGroup, Bool is_switch_group, u32 *switchGroupID, u32 *criteriaList, u32 criteriaListCount)

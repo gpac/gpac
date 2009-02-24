@@ -2319,7 +2319,14 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	GF_TextSampleEntryBox *txt;
 
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
-	if (!trak || (trak->Media->handler->handlerType != GF_ISOM_MEDIA_TEXT)) return GF_BAD_PARAM;
+	if (!trak) return GF_BAD_PARAM;
+	switch (trak->Media->handler->handlerType) {
+	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
 	
 	txt = (GF_TextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
 	if (txt->type != GF_ISOM_BOX_TYPE_TX3G) return GF_BAD_PARAM;
@@ -2566,7 +2573,14 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	char szDur[100];
 
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
-	if (!trak || (trak->Media->handler->handlerType != GF_ISOM_MEDIA_TEXT)) return GF_BAD_PARAM;
+	if (!trak) return GF_BAD_PARAM;
+	switch (trak->Media->handler->handlerType) {
+	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
 
 	ts = trak->Media->mediaHeader->timeScale;
 	cur_frame = 0;
@@ -2705,7 +2719,14 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 	GF_BitStream *bs;
 
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
-	if (!trak || (trak->Media->handler->handlerType != GF_ISOM_MEDIA_TEXT)) return GF_BAD_PARAM;
+	if (!trak) return GF_BAD_PARAM;
+	switch (trak->Media->handler->handlerType) {
+	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
 
 	strcpy(nhmlFileName, the_file->fileName);
 	strcat(nhmlFileName, ".nhml");
