@@ -3620,109 +3620,61 @@ static Bool vrml_js_load_script(M_Script *script, char *file)
 	return success;
 }
 
-
-static void JS_NetIO(void *cbck, GF_NETIO_Parameter *param)
-{
-	GF_Err e;
-	JSFileDownload *jsdnload = (JSFileDownload *)cbck;
-	M_Script *script = (M_Script *)jsdnload->node;
-
-	e = param->error;
-	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
-		const char *szCache = gf_dm_sess_get_cache_name(jsdnload->sess);
-		if (!vrml_js_load_script(script, (char *) szCache))
-			e = GF_SCRIPT_ERROR;
-		else
-			e = GF_OK;
-	} else if (!e) return;
-
-	/*destroy current download session (ie, destroy ourselves)*/
-	gf_dm_sess_del(jsdnload->sess);
-	free(jsdnload);
-
-	if (e) {
-		u32 i;
-		if (script->url.count<=1) {
-			GF_JSAPIParam par;
-			par.info.e = e;
-			par.info.msg = "Cannot fetch script";
-			ScriptAction(NULL, script->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
-			return;
-		}
-		free(script->url.vals[0].script_text);
-		for (i=0; i<script->url.count-1; i++)
-			script->url.vals[i].script_text = script->url.vals[i+1].script_text;
-		script->url.vals[script->url.count-1].script_text = NULL;
-		script->url.count -= 1;
-		JSScriptFromFile((GF_Node *)script);
-	}
-}
-
+/*fetches each listed URL and attempts to load the script - this is SYNCHRONOUS*/
 void JSScriptFromFile(GF_Node *node)
 {
 	GF_JSAPIParam par;
 	u32 i;
-	char *url;
+	char *url, *scene_uri;
 	GF_Err e;
-	JSFileDownload *jsdnload;
-	char szExt[50], *ext;
+	const char *ext;
 	M_Script *script = (M_Script *)node;
-	Bool can_dnload = 0;
-
-	for (i=0; i<script->url.count; i++) {
-		ext = strrchr(script->url.vals[i].script_text, '.');
-		if (!ext) break;
-		strcpy(szExt, ext);
-		strlwr(szExt);
-		if (strcmp(szExt, ".js")) continue;
-		can_dnload = 1;
-		break;
-	}
-	if (!can_dnload) return;
 
 	e = GF_SCRIPT_ERROR;
 
 	ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_SCENE_URI, node, &par);
-	url = NULL;
-	if (par.uri.url) url = gf_url_concatenate(par.uri.url, script->url.vals[0].script_text);
-	if (!url) url = strdup(script->url.vals[0].script_text);
-
-	if (vrml_js_load_script(script, url)) {
-		free(url);
-		return;
-	}
+	scene_uri = (char *)par.uri.url;
 
 	par.dnld_man = NULL;
 	ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
 	if (!par.dnld_man) return;
 
-	if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
-		free(url);
+	for (i=0; i<script->url.count; i++) {
+		if (scene_uri) url = gf_url_concatenate(scene_uri, script->url.vals[i].script_text);
+		else url = script->url.vals[i].script_text;
 
-retry:
-		if (script->url.count<=1) {
-			GF_JSAPIParam par;
-			par.info.e = e;
-			par.info.msg = "Cannot fetch script";
-			ScriptAction(NULL, script->sgprivate->scenegraph, GF_JSAPI_OP_GET_DCCI, NULL, &par);
-			return;
+		ext = strrchr(url, '.');
+		if (ext && strnicmp(ext, ".js", 3)) {
+			if (scene_uri) free(url);
+			continue;
 		}
-		free(script->url.vals[0].script_text);
-		for (i=0; i<script->url.count-1; i++)
-			script->url.vals[i].script_text = script->url.vals[i+1].script_text;
-		script->url.vals[script->url.count-1].script_text = NULL;
-		script->url.count -= 1;
-		JSScriptFromFile((GF_Node *)script);
-	} else {
-		GF_SAFEALLOC(jsdnload, JSFileDownload);
-		jsdnload->node = node;
-		jsdnload->sess = gf_dm_sess_new(par.dnld_man, script->url.vals[0].script_text, 0, JS_NetIO, jsdnload, &e);
-		free(url);
-		if (!jsdnload->sess) {
-			free(jsdnload);
-			goto retry;
+
+		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
+			Bool res = vrml_js_load_script(script, url);
+
+			if (scene_uri) free(url);
+
+			if (res) return;
+		} else {
+			GF_DownloadSession *sess = gf_dm_sess_new(par.dnld_man, script->url.vals[i].script_text, 0, NULL, NULL, &e);
+			if (sess) {
+				e = gf_dm_sess_process(sess);
+				if (e==GF_OK) {
+					const char *szCache = gf_dm_sess_get_cache_name(sess);
+					if (!vrml_js_load_script(script, (char *) szCache))
+						e = GF_SCRIPT_ERROR;
+				}
+			}
+			if (scene_uri) free(url);
+			if (sess) gf_dm_sess_del(sess);
+
+			if (!e) return;
 		}
 	}
+
+	par.info.e = GF_SCRIPT_ERROR;
+	par.info.msg = "Cannot fetch script";
+	ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
 }
 
 static void JSScript_LoadVRML(GF_Node *node)

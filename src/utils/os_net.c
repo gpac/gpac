@@ -708,10 +708,6 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 			setsockopt(sock->socket, SOL_SOCKET, SO_USELOOPBACK, SSO_CAST &optval, sizeof(optval));
 		}
 #endif
-		if (!ip_add || !local_ip) {
-			port = peer_port;
-			ip_add = inet_addr(peer_name);
-		}
 	}
 
 	LocalAdd.sin_family = AF_INET;
