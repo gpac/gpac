@@ -133,7 +133,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, timescale, track;
 	s32 par_d, par_n, prog_id, delay;
 	Bool do_audio, do_video, do_all, disable;
-	u32 group;
+	u32 group, handler;
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
@@ -148,6 +148,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		return GF_BAD_PARAM;
 	}
 
+	handler = 0;
 	disable = 0;
 	szLan = NULL;
 	delay = 0;
@@ -198,6 +199,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			group = atoi(ext+7);
 			if (!group) group = gf_isom_get_next_alternate_group_id(dest);
 		}
+		else if (!strnicmp(ext+1, "hdlr=", 5))
+			handler = GF_4CC(ext[6], ext[7], ext[8], ext[9]);
 		
 
 		/*unrecognized, assume name has colon in it*/
@@ -285,6 +288,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
 			}
 			if (handler_name) gf_isom_set_handler_name(import.dest, i+1, handler_name);
+			if (handler) gf_isom_set_media_type(import.dest, i+1, handler);
 		}
 	} else {
 		for (i=0; i<import.nb_tracks; i++) {
@@ -335,6 +339,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				e = gf_media_change_par(import.dest, track, par_n, par_d);
 			}
 			if (handler_name) gf_isom_set_handler_name(import.dest, track, handler_name);
+			if (handler) gf_isom_set_media_type(import.dest, track, handler);
 
 			if (group) {
 				gf_isom_set_alternate_group_id(import.dest, track, group);
@@ -424,6 +429,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		switch (mtype) {
 		/*we duplicate text samples at boundaries*/
 		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SUBT:
 			tks[nb_tk].can_duplicate = 1;
 		case GF_ISOM_MEDIA_AUDIO:
 			break;
@@ -926,6 +932,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			continue;
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SUBT:
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OCR:
@@ -968,6 +975,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		case GF_ISOM_MEDIA_FLASH:
 			continue;
 		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SUBT:
 		case GF_ISOM_MEDIA_SCENE:
 			use_ts_dur = 0;
 		case GF_ISOM_MEDIA_AUDIO:

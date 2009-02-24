@@ -410,6 +410,8 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 			compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, NULL);
 		}
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
+		/*reset our flags - this may break reuse of nodes and change-detection in dirty-rect algo */
+		gf_node_dirty_clear(node, 0);
 
 		if (!compositor_svg_is_display_off(tr_state->svg_props) &&
 			( *(tr_state->svg_props->visibility) != SVG_VISIBILITY_HIDDEN) ) {

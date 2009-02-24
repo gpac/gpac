@@ -658,8 +658,9 @@ GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, 
 }
 
 
-static void attributes_set_default_value(u32 node_tag, SVGAttribute *att)
+static void attributes_set_default_value(GF_Node *node, SVGAttribute *att)
 {
+	u32 node_tag = node->sgprivate->tag;
 	switch (att->tag) {
 	case TAG_SVG_ATT_width:
 	case TAG_SVG_ATT_height:
@@ -783,7 +784,7 @@ static void attributes_set_default_value(u32 node_tag, SVGAttribute *att)
 		break;
 
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene] Cannot create default value for SVG attribute %s\n", gf_svg_get_attribute_name(NULL, att->tag)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene] Cannot create default value for SVG attribute %s\n", gf_svg_get_attribute_name(node, att->tag)));
 	}
 }
 
@@ -816,7 +817,7 @@ GF_Err gf_node_get_attribute_by_tag(GF_Node *node, u32 attribute_tag, Bool creat
 			field->fieldIndex = att->tag;
 			/* attribute name should not be called, if needed use gf_svg_get_attribute_name(att->tag);*/
 			field->name = NULL; 
-			if (set_default) attributes_set_default_value(node->sgprivate->tag, att);
+			if (set_default) attributes_set_default_value(node, att);
 			return GF_OK;
 		}
 	}

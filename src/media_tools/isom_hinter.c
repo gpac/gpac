@@ -281,7 +281,7 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 	if (!default_rtp_rate) default_rtp_rate = 90000;
 
 	/*timed-text is a bit special, we support multiple stream descriptions & co*/
-	if (TrackMediaType==GF_ISOM_MEDIA_TEXT) {
+	if ((TrackMediaType==GF_ISOM_MEDIA_TEXT) || (TrackMediaType==GF_ISOM_MEDIA_SUBT) ) {
 		hintType = GF_RTP_PAYT_3GPP_TEXT;
 		oti = 0x08;
 		streamType = GF_STREAM_TEXT;
@@ -607,7 +607,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	if (!default_rtp_rate) default_rtp_rate = 90000;
 
 	/*timed-text is a bit special, we support multiple stream descriptions & co*/
-	if (TrackMediaType==GF_ISOM_MEDIA_TEXT) {
+	if ( (TrackMediaType==GF_ISOM_MEDIA_TEXT) || (TrackMediaType==GF_ISOM_MEDIA_SUBT)) {
 		hintType = GF_RTP_PAYT_3GPP_TEXT;
 		oti = 0x08;
 		streamType = GF_STREAM_TEXT;

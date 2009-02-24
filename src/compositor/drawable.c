@@ -451,7 +451,8 @@ void drawctx_update_info(DrawableContext *ctx, GF_VisualManager *visual)
 			moved = !drawable_has_same_bounds(ctx, visual);
 		}
 
-		if (need_redraw || moved) ctx->flags |= CTX_REDRAW_MASK;
+		if (need_redraw || moved) 
+			ctx->flags |= CTX_REDRAW_MASK;
 	}
 
 	/*in all cases reset dirty flag of appearance and its sub-nodes*/
@@ -1169,8 +1170,7 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 
 				gf_node_traverse(props->fill->iri.target, tr_state);
 			
-				if (gf_node_dirty_get(props->fill->iri.target))
-					ret = 1;
+				ret += compositor_svg_solid_color_dirty(tr_state->visual->compositor, props->fill->iri.target);
 
 				if (all_atts.solid_color) {
 					if (all_atts.solid_opacity) {
@@ -1230,8 +1230,7 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 
 				gf_node_traverse(props->stroke->iri.target, tr_state);
 
-				if (gf_node_dirty_get(props->stroke->iri.target))
-					ret = 1;
+				ret += compositor_svg_solid_color_dirty(tr_state->visual->compositor, props->stroke->iri.target);
 
 				if (all_atts.solid_color) {
 					if (all_atts.solid_opacity) {
@@ -1283,7 +1282,7 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 
 static Bool svg_appearance_flag_dirty(u32 flags)
 {
-#if 0
+#if 1
 	/* fill-related */
 	if (flags & GF_SG_SVG_FILL_DIRTY)				return 1;
 	if (flags & GF_SG_SVG_FILLOPACITY_DIRTY)		return 1;
@@ -1331,14 +1330,18 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 
 	ctx->drawable = drawable;
 
-	if (tr_state->invalidate_all || svg_appearance_flag_dirty(tr_state->svg_flags)) ctx->flags |= CTX_APP_DIRTY;
+	if (tr_state->invalidate_all || svg_appearance_flag_dirty(tr_state->svg_flags)) {
+		ctx->flags |= CTX_APP_DIRTY;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("Node %s dirty - invalidating\n", gf_node_get_log_name(drawable->node) ));
+	}
 	if (tr_state->svg_flags & (GF_SG_SVG_STROKEDASHARRAY_DIRTY | 
-						  GF_SG_SVG_STROKEDASHOFFSET_DIRTY |
-						  GF_SG_SVG_STROKELINECAP_DIRTY | 
-						  GF_SG_SVG_STROKELINEJOIN_DIRTY |
-						  GF_SG_SVG_STROKEMITERLIMIT_DIRTY | 
-						  GF_SG_SVG_STROKEWIDTH_DIRTY |
-						  GF_SG_SVG_VECTOREFFECT_DIRTY )) ctx->flags |= CTX_SVG_OUTLINE_GEOMETRY_DIRTY;
+				  GF_SG_SVG_STROKEDASHOFFSET_DIRTY |
+				  GF_SG_SVG_STROKELINECAP_DIRTY | 
+				  GF_SG_SVG_STROKELINEJOIN_DIRTY |
+				  GF_SG_SVG_STROKEMITERLIMIT_DIRTY | 
+				  GF_SG_SVG_STROKEWIDTH_DIRTY |
+				  GF_SG_SVG_VECTOREFFECT_DIRTY )) 
+						  ctx->flags |= CTX_SVG_OUTLINE_GEOMETRY_DIRTY;
 
 	ctx->aspect.fill_texture = NULL;
 
@@ -1372,7 +1375,8 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 	}
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
-	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
+	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->needs_refresh)
+		ctx->flags |= CTX_TEXTURE_DIRTY;
 
 	/*we are drawing on a centered coord surface, remember to flip the texture*/
 	if (tr_state->fliped_coords)

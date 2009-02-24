@@ -2038,21 +2038,31 @@ Bool gf_isom_is_single_av(GF_ISOFile *file)
 	count = gf_isom_get_track_count(file);
 	for (i=0; i<count; i++) {
 		u32 mtype = gf_isom_get_media_type(file, i+1);
-		if (mtype==GF_ISOM_MEDIA_SCENE) {
+		switch (mtype) {
+		case GF_ISOM_MEDIA_SCENE:
 			if (gf_isom_get_sample_count(file, i+1)>1) nb_any++;
 			else nb_scene++;
-		} else if (mtype==GF_ISOM_MEDIA_OD) {
+			break;
+		case GF_ISOM_MEDIA_OD:
 			if (gf_isom_get_sample_count(file, i+1)>1) nb_any++;
 			else nb_od++;
-		}
-		else if (mtype==GF_ISOM_MEDIA_TEXT) nb_text++;
-		else if (mtype==GF_ISOM_MEDIA_AUDIO) nb_a++;
-		else if (mtype==GF_ISOM_MEDIA_VISUAL) {
+			break;
+		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SUBT:
+			nb_text++;
+			break;
+		case GF_ISOM_MEDIA_AUDIO:
+			nb_a++;
+			break;
+		case GF_ISOM_MEDIA_VISUAL:
 			/*discard file with images*/
 			if (gf_isom_get_sample_count(file, i+1)==1) nb_any++;
 			else nb_v++;
+			break;
+		default:
+			nb_any++;
+			break;
 		}
-		else nb_any++;
 	}
 	if (nb_any) return 0;
 	if ((nb_scene<=1) && (nb_od<=1) && (nb_a<=1) && (nb_v<=1) && (nb_text<=1) ) return 1;
@@ -2095,7 +2105,7 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 			/*forces non-isma*/
 			if (gf_isom_get_sample_count(file, i+1)>1) nb_m4s++;
 		}
-		else if (mtype==GF_ISOM_MEDIA_TEXT) nb_text++;
+		else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT)) nb_text++;
 		else if ((mtype==GF_ISOM_MEDIA_AUDIO) || (mtype==GF_ISOM_MEDIA_VISUAL)) {
 			switch (mstype) {
 			case GF_ISOM_SUBTYPE_3GP_AMR:

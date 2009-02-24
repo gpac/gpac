@@ -857,7 +857,11 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_
 		return;
 	}
 
-	if (gf_isom_get_media_type(file, track) != GF_ISOM_MEDIA_TEXT) {
+	switch (gf_isom_get_media_type(file, track)) {
+	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
+		break;
+	default:
 		fprintf(stdout, "Track ID %d is not a 3GPP text track\n", trackID);
 		return;
 	}
@@ -1295,7 +1299,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		}
 	} else if (mtype==GF_ISOM_MEDIA_FLASH) {
 		fprintf(stdout, "Macromedia Flash Movie\n");
-	} else if (mtype==GF_ISOM_MEDIA_TEXT) {
+	} else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT)) {
 		u32 w, h;
 		s16 l;
 		s32 tx, ty;

@@ -964,6 +964,7 @@ GF_Err configuration(Streamer *streamer, char *cfg_file, char *src_file, char *i
 			case GF_ISOM_MEDIA_VISUAL:
 			case GF_ISOM_MEDIA_AUDIO:
 			case GF_ISOM_MEDIA_TEXT:
+			case GF_ISOM_MEDIA_SUBT:
 			case GF_ISOM_MEDIA_OD:
 			case GF_ISOM_MEDIA_SCENE:
 				break;

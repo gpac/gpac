@@ -355,7 +355,7 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 Bool compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *atts, GF_TraverseState *tr_state, 
 					 SVGPropertiesPointers *backup_props, u32 *backup_flags)
 {
-	u32 inherited_flags_mask;
+	u32 inherited_flags_mask, flags;
 
 	if (atts->requiredFeatures || atts->requiredExtensions || atts->systemLanguage 
 	|| atts->requiredFonts || atts->requiredFormats) {
@@ -378,7 +378,8 @@ Bool compositor_svg_traverse_base(GF_Node *node, SVGAllAttributes *atts, GF_Trav
 //	inherited_flags_mask = 0xFFFFFFFF;
 #endif
 	tr_state->svg_flags &= inherited_flags_mask;
-	tr_state->svg_flags |= gf_node_dirty_get(node);
+	flags = gf_node_dirty_get(node);
+	tr_state->svg_flags |= flags;
 
 	return 1;
 }

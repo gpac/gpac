@@ -472,9 +472,13 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 				goto remove_track;
 			}
 			break;
+
+		case GF_ISOM_MEDIA_SUBT:
+			gf_isom_set_media_type(mp4file, i+1, GF_ISOM_MEDIA_TEXT);
 		case GF_ISOM_MEDIA_TEXT:
 			nb_txt++;
 			break;
+		
 		case GF_ISOM_MEDIA_SCENE:
 			if (stype == GF_ISOM_MEDIA_DIMS) {
 				nb_dims++;
@@ -974,8 +978,11 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		return gf_isom_get_esd(mp4, track, 1);
 	}
 
-	if (gf_isom_get_media_type(mp4, track) == GF_ISOM_MEDIA_TEXT)
+	switch (gf_isom_get_media_type(mp4, track)) {
+	case GF_ISOM_MEDIA_TEXT:
+	case GF_ISOM_MEDIA_SUBT:
 		return gf_isom_get_esd(mp4, track, 1);
+	}
 
 	if ((subtype == GF_ISOM_SUBTYPE_3GP_AMR) || (subtype == GF_ISOM_SUBTYPE_3GP_AMR_WB)) {
 		GF_3GPConfig *gpc = gf_isom_3gp_config_get(mp4, track, 1);

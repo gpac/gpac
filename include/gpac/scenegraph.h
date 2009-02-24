@@ -246,7 +246,7 @@ enum
 	/*SVG-specific flags due to mix of geometry and appearance & co attributes*/
 	/*SVG geometry changed is the same as base flag*/
 	GF_SG_SVG_GEOMETRY_DIRTY		= GF_SG_NODE_DIRTY,
-	GF_SG_SVG_COLOR_DIRTY			= GF_SG_VRML_BINDABLE_DIRTY,
+	GF_SG_SVG_COLOR_DIRTY			= 1<<2,
 	GF_SG_SVG_DISPLAYALIGN_DIRTY	= 1<<3,
 	GF_SG_SVG_FILL_DIRTY			= 1<<4,
 	GF_SG_SVG_FILLOPACITY_DIRTY		= 1<<5,
