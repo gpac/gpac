@@ -700,16 +700,28 @@ static void svg_parse_color(SVG_Color *col, char *attribute_content)
 		}
 		col->type = SVG_COLOR_RGBCOLOR;
 	} else if (strstr(str, "rgb(") || strstr(str, "RGB(")) {
-		Float _r, _g, _b;
+		Float _val;
 		u8 is_percentage= 0;
 		if (strstr(str, "%")) is_percentage = 1;
 		str = strstr(str, "(");
 		str++;
-		if (sscanf(str, "%f,%f,%f", &_r, &_g, &_b)!=3)
-			sscanf(str, "%f %f %f", &_r, &_g, &_b);
-		col->red = FLT2FIX(_r);
-		col->green = FLT2FIX(_g);
-		col->blue = FLT2FIX(_b);
+		sscanf(str, "%f", &_val); col->red = FLT2FIX(_val);
+		str = strstr(str, ",");
+		if (!str) {
+			/* space separated colors/percentages are not allowed neither in SVG 1.1 nor in SVG T1.2 */
+			col->red = col->green = col->blue = 0;
+			return;
+		}
+		str++;
+		sscanf(str, "%f", &_val); col->green = FLT2FIX(_val);
+		str = strstr(str, ",");
+		if (!str) {
+			/* space separated colors/percentages are not allowed neither in SVG 1.1 nor in SVG T1.2 */
+			col->red = col->green = col->blue = 0;
+			return;
+		}
+		str++;
+		sscanf(str, "%f", &_val); col->blue = FLT2FIX(_val);
 		if (is_percentage) {
 			col->red /= 100;
 			col->green /= 100;
@@ -3105,6 +3117,7 @@ void gf_svg_parse_style(GF_Node *n, char *style)
 
 }
 
+GF_EXPORT
 void *gf_svg_create_attribute_value(u32 attribute_type)
 {
 	switch (attribute_type) {
