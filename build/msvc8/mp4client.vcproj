@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="mp4client"
 	ProjectGUID="{A35D99BF-D72D-4F56-99A1-97249B22BCE2}"
+	RootNamespace="mp4client"
 	>
 	<Platforms>
 		<Platform
@@ -21,8 +22,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\obj/mp4client_deb"
-			IntermediateDirectory=".\obj/mp4client_deb"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -54,10 +55,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\obj/mp4client_deb/mp4client.pch"
-				AssemblerListingLocation=".\obj/mp4client_deb/"
-				ObjectFile=".\obj/mp4client_deb/"
-				ProgramDataBaseFileName=".\obj/mp4client_deb/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
@@ -77,12 +78,12 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="User32.lib"
-				OutputFile="../../bin/w32_deb_vc8/MP4Client.exe"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/MP4Client.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateManifest="true"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\obj/mp4client_deb/MP4Client.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="1"
 				TargetMachine="1"
 			/>
@@ -99,7 +100,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/mp4client_deb/mp4client.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -157,6 +157,7 @@
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -177,8 +178,8 @@
 				SuppressStartupBanner="true"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/mp4client_deb/MP4Client.pdb"
-				SubSystem="1"
-				TargetMachine="0"
+				SubSystem="9"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -189,7 +190,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/mp4client_deb/mp4client.bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -199,7 +199,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -208,6 +208,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Pocket PC 2003 (ARMV4)"
+			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool
@@ -267,8 +268,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\obj/mp4client_rel"
-			IntermediateDirectory=".\obj/mp4client_rel"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -300,10 +301,10 @@
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/mp4client_rel/mp4client.pch"
-				AssemblerListingLocation=".\obj/mp4client_rel/"
-				ObjectFile=".\obj/mp4client_rel/"
-				ProgramDataBaseFileName=".\obj/mp4client_rel/"
+				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -321,10 +322,10 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="User32.lib"
-				OutputFile="../../bin/w32_rel_vc8/MP4Client.exe"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/MP4Client.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ProgramDatabaseFile=".\obj/mp4client_rel/MP4Client.pdb"
+				ProgramDatabaseFile="$(IntDir)\$(ProjectName).pdb"
 				SubSystem="1"
 				TargetMachine="1"
 			/>
@@ -340,7 +341,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/mp4client_rel/mp4client.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -357,8 +358,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Smartphone 2003 (ARMV4)"
-			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
-			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -392,10 +393,10 @@
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/mp4client_rel/mp4client.pch"
-				AssemblerListingLocation=".\obj/mp4client_rel/"
-				ObjectFile=".\obj/mp4client_rel/"
-				ProgramDataBaseFileName=".\obj/mp4client_rel/"
+				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -413,12 +414,12 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="User32.lib"
-				OutputFile="../../bin/w32_rel_vc8/MP4Client.exe"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/$(ProjectName).exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ProgramDatabaseFile=".\obj/mp4client_rel/MP4Client.pdb"
-				SubSystem="1"
-				TargetMachine="0"
+				SubSystem="9"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -429,7 +430,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/mp4client_rel/mp4client.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -439,7 +440,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -448,6 +449,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Pocket PC 2003 (ARMV4)"
+			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool

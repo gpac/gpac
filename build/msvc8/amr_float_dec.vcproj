@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="amr_float_dec"
 	ProjectGUID="{5D3983BF-143F-49C3-9284-89778282AEFE}"
+	RootNamespace="amr_float_dec"
 	>
 	<Platforms>
 		<Platform
@@ -21,8 +22,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\obj/amr_float_dec_deb"
-			IntermediateDirectory=".\obj/amr_float_dec_deb"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -57,10 +58,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\obj/amr_float_dec_deb/amr_float_dec.pch"
-				AssemblerListingLocation=".\obj/amr_float_dec_deb/"
-				ObjectFile=".\obj/amr_float_dec_deb/"
-				ProgramDataBaseFileName=".\obj/amr_float_dec_deb/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
@@ -78,14 +79,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../../bin/w32_deb_vc8/gm_amr_float_dec.dll"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateManifest="true"
 				ModuleDefinitionFile="..\..\modules\amr_float_dec\amr_float_dec.def"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\obj/amr_float_dec_deb/gm_amr_float_dec.pdb"
-				ImportLibrary=".\obj/amr_float_dec_deb/gm_amr_float_dec.lib"
+				ProgramDatabaseFile="$(IntDir)/gm_$(ProjectName).pdb"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -101,7 +102,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/amr_float_dec_deb/amr_float_dec.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -118,8 +118,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Smartphone 2003 (ARMV4)"
-			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
-			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -151,15 +151,16 @@
 				ExecutionBucket="7"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_WINDOWS;_USRDLL;GPAC_HAS_AMR_FT;GPAC_HAS_AMR_FT_WB"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_DEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_USR_DLL;GPAC_HAS_AMR_FT;GPAC_HAS_AMR_FT_WB"
 				MinimalRebuild="true"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\obj/amr_float_dec_deb/amr_float_dec.pch"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
 				AssemblerListingLocation=".\obj/amr_float_dec_deb/"
 				ObjectFile=".\obj/amr_float_dec_deb/"
 				ProgramDataBaseFileName=".\obj/amr_float_dec_deb/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -174,14 +175,16 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../../bin/w32_deb_vc8/gm_amr_float_dec.dll"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib "
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				ModuleDefinitionFile="..\..\modules\amr_float_dec\amr_float_dec.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/amr_float_dec_deb/gm_amr_float_dec.pdb"
-				ImportLibrary=".\obj/amr_float_dec_deb/gm_amr_float_dec.lib"
-				TargetMachine="0"
+				SubSystem="9"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -192,7 +195,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/amr_float_dec_deb/amr_float_dec.bsc"
+				OutputFile="$(OutDir)/$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -202,7 +205,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -211,6 +214,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Pocket PC 2003 (ARMV4)"
+			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool
@@ -270,8 +274,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\obj/amr_float_dec_rel"
-			IntermediateDirectory=".\obj/amr_float_dec_rel"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -307,10 +311,10 @@
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/amr_float_dec_rel/amr_float_dec.pch"
-				AssemblerListingLocation=".\obj/amr_float_dec_rel/"
-				ObjectFile=".\obj/amr_float_dec_rel/"
-				ProgramDataBaseFileName=".\obj/amr_float_dec_rel/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -327,12 +331,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../../bin/w32_rel_vc8/gm_amr_float_dec.dll"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ModuleDefinitionFile="..\..\modules\amr_float_dec\amr_float_dec.def"
-				ProgramDatabaseFile=".\obj/amr_float_dec_rel/gm_amr_float_dec.pdb"
-				ImportLibrary=".\obj/amr_float_dec_rel/gm_amr_float_dec.lib"
+				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -347,7 +351,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/amr_float_dec_rel/amr_float_dec.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -364,8 +368,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Smartphone 2003 (ARMV4)"
-			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
-			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -398,14 +402,14 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_WINDOWS;_USRDLL;GPAC_HAS_AMR_FT;GPAC_HAS_AMR_FT_WB"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_DEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_USR_DLL;GPAC_HAS_AMR_FT;GPAC_HAS_AMR_FT_WB"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/amr_float_dec_rel/amr_float_dec.pch"
-				AssemblerListingLocation=".\obj/amr_float_dec_rel/"
-				ObjectFile=".\obj/amr_float_dec_rel/"
-				ProgramDataBaseFileName=".\obj/amr_float_dec_rel/"
+				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -422,13 +426,15 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../../bin/w32_rel_vc8/gm_amr_float_dec.dll"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib "
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ModuleDefinitionFile="..\..\modules\amr_float_dec\amr_float_dec.def"
 				ProgramDatabaseFile=".\obj/amr_float_dec_rel/gm_amr_float_dec.pdb"
-				ImportLibrary=".\obj/amr_float_dec_rel/gm_amr_float_dec.lib"
-				TargetMachine="0"
+				SubSystem="9"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -439,7 +445,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/amr_float_dec_rel/amr_float_dec.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -449,7 +455,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -458,6 +464,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Pocket PC 2003 (ARMV4)"
+			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool

@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="GPAX"
 	ProjectGUID="{72486240-A124-496E-A67A-E76FEC7E99BE}"
+	RootNamespace="GPAX"
 	>
 	<Platforms>
 		<Platform
@@ -21,8 +22,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\obj/w32_deb"
-			IntermediateDirectory=".\obj/w32_deb"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -56,10 +57,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\obj/w32_deb/GPAX.pch"
-				AssemblerListingLocation=".\obj/w32_deb/"
-				ObjectFile=".\obj/w32_deb/"
-				ProgramDataBaseFileName=".\obj/w32_deb/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
@@ -79,16 +80,16 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib"
-				OutputFile="../../bin/w32_deb_vc8/GPAX.dll"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_deb"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
 				GenerateManifest="true"
 				ModuleDefinitionFile="..\..\applications\GPAX\GPAX.def"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\obj/w32_deb/GPAX.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="2"
-				ImportLibrary=".\obj/w32_deb/GPAX.lib"
+				ImportLibrary="$(IntDir)/$(ProjectName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -104,7 +105,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/w32_deb/GPAX.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -164,6 +165,7 @@
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -186,9 +188,9 @@
 				ModuleDefinitionFile="..\..\applications\GPAX\GPAX.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/w32_deb/GPAX.pdb"
-				SubSystem="2"
+				SubSystem="9"
 				ImportLibrary=".\obj/w32_deb/GPAX.lib"
-				TargetMachine="0"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -199,7 +201,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/w32_deb/GPAX.bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -209,7 +210,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -279,8 +280,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\obj/w32_rel"
-			IntermediateDirectory=".\obj/w32_rel"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -314,10 +315,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="2"
-				PrecompiledHeaderFile=".\obj/w32_rel/GPAX.pch"
-				AssemblerListingLocation=".\obj/w32_rel/"
-				ObjectFile=".\obj/w32_rel/"
-				ProgramDataBaseFileName=".\obj/w32_rel/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
@@ -329,7 +330,7 @@
 			<Tool
 				Name="VCResourceCompilerTool"
 				PreprocessorDefinitions="_DEBUG"
-				Culture="2052"
+				Culture="1036"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
@@ -337,15 +338,16 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib"
-				OutputFile="../../bin/w32_rel_vc8/GPAX.dll"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/GPAX.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_rel"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
 				ModuleDefinitionFile="..\..\applications\GPAX\GPAX.def"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\obj/w32_rel/GPAX.pdb"
+				ProgramDatabaseFile="$(IntDir)\$(ProjectName).pdb"
 				SubSystem="2"
-				ImportLibrary=".\obj/w32_rel/GPAX.lib"
+				SupportUnloadOfDelayLoadedDLL="false"
+				ImportLibrary="$(IntDir)\$(ProjectName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -360,7 +362,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/w32_rel/GPAX.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -378,8 +380,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Smartphone 2003 (ARMV4)"
-			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
-			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -414,10 +416,10 @@
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_WINDOWS;_USRDLL"
 				MinimalRebuild="true"
 				RuntimeLibrary="2"
-				PrecompiledHeaderFile=".\obj/w32_rel/GPAX.pch"
-				AssemblerListingLocation=".\obj/w32_rel/"
-				ObjectFile=".\obj/w32_rel/"
-				ProgramDataBaseFileName=".\obj/w32_rel/"
+				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
@@ -436,16 +438,16 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib"
-				OutputFile="../../bin/w32_rel_vc8/GPAX.dll"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_rel"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName"
 				ModuleDefinitionFile="..\..\applications\GPAX\GPAX.def"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/w32_rel/GPAX.pdb"
-				SubSystem="2"
+				SubSystem="9"
 				ImportLibrary=".\obj/w32_rel/GPAX.lib"
-				TargetMachine="0"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -456,7 +458,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/w32_rel/GPAX.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -467,7 +469,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -476,6 +478,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Pocket PC 2003 (ARMV4)"
+			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool

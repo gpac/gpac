@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="mp4box"
 	ProjectGUID="{48E2C7C6-52EB-46FB-8722-00A62F46F497}"
+	RootNamespace="mp4box"
 	>
 	<Platforms>
 		<Platform
@@ -21,8 +22,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\obj/mp4box_deb"
-			IntermediateDirectory=".\obj/mp4box_deb"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -53,10 +54,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\obj/mp4box_deb/mp4box.pch"
-				AssemblerListingLocation=".\obj/mp4box_deb/"
-				ObjectFile=".\obj/mp4box_deb/"
-				ProgramDataBaseFileName=".\obj/mp4box_deb/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
@@ -76,13 +77,13 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="zlib.lib winmm.lib"
-				OutputFile="../../bin/w32_deb_vc8/MP4Box.exe"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/MP4Box.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_deb"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
 				GenerateManifest="true"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\obj/mp4box_deb/MP4Box.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="1"
 				TargetMachine="1"
 			/>
@@ -99,7 +100,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/mp4box_deb/mp4box.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -156,6 +156,7 @@
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -177,8 +178,8 @@
 				AdditionalLibraryDirectories="../../extra_lib/lib/w32_deb"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/mp4box_deb/MP4Box.pdb"
-				SubSystem="1"
-				TargetMachine="0"
+				SubSystem="9"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -189,7 +190,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/mp4box_deb/mp4box.bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -199,7 +199,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -208,6 +208,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Pocket PC 2003 (ARMV4)"
+			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool
@@ -267,8 +268,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\obj/mp4box_rel"
-			IntermediateDirectory=".\obj/mp4box_rel"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -300,10 +301,10 @@
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/mp4box_rel/mp4box.pch"
-				AssemblerListingLocation=".\obj/mp4box_rel/"
-				ObjectFile=".\obj/mp4box_rel/"
-				ProgramDataBaseFileName=".\obj/mp4box_rel/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -321,11 +322,11 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="zlib.lib winmm.lib"
-				OutputFile="../../bin/w32_rel_vc8/MP4Box.exe"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/MP4Box.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_rel"
-				ProgramDatabaseFile=".\obj/mp4box_rel/MP4Box.pdb"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
+				ProgramDatabaseFile="$(IntDir)\$(ProjectName).pdb"
 				SubSystem="1"
 				TargetMachine="1"
 			/>
@@ -341,7 +342,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/mp4box_rel/mp4box.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -359,8 +360,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Smartphone 2003 (ARMV4)"
-			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
-			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -394,10 +395,10 @@
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/mp4box_rel/mp4box.pch"
-				AssemblerListingLocation=".\obj/mp4box_rel/"
-				ObjectFile=".\obj/mp4box_rel/"
-				ProgramDataBaseFileName=".\obj/mp4box_rel/"
+				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -415,13 +416,13 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="zlib.lib winmm.lib"
-				OutputFile="../../bin/w32_rel_vc8/MP4Box.exe"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/$(ProjectName).exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_rel"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
 				ProgramDatabaseFile=".\obj/mp4box_rel/MP4Box.pdb"
-				SubSystem="1"
-				TargetMachine="0"
+				SubSystem="9"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -432,7 +433,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/mp4box_rel/mp4box.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -443,7 +444,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -452,6 +453,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Pocket PC 2003 (ARMV4)"
+			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool
