@@ -170,6 +170,8 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	strcpy(szName, url);
 	ext = strrchr(szName, '#');
 	if (ext) ext[0] = 0;
+	ext = strrchr(szName, '?');
+	if (ext) ext[0] = 0;
 
 	/*disable RTP/RTSP from ffmpeg*/
 	if (!strnicmp(szName, "rtsp://", 7)) return 0;
