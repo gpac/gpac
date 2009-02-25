@@ -809,7 +809,10 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 			}
 		}
 		/*we consider that SVG has no size onfo per say, everything is handled by the viewBox if any*/
-		if (is_svg) compositor->has_size_info = 0;
+		if (is_svg) {
+			compositor->has_size_info = 0;
+			gf_sc_focus_switch_ring(compositor, 0);
+		}
 #endif
 		/*default back color is key color*/
 		if (compositor->user->init_flags & GF_TERM_WINDOWLESS) {
