@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="ft_font"
 	ProjectGUID="{042D3628-67F3-4B5C-8BC0-CD9AFA416974}"
+	RootNamespace="ft_font"
 	>
 	<Platforms>
 		<Platform
@@ -21,8 +22,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\obj/ft_font_deb"
-			IntermediateDirectory=".\obj/ft_font_deb"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -57,10 +58,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\obj/ft_font_deb/ft_font.pch"
-				AssemblerListingLocation=".\obj/ft_font_deb/"
-				ObjectFile=".\obj/ft_font_deb/"
-				ProgramDataBaseFileName=".\obj/ft_font_deb/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
@@ -79,15 +80,15 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="freetype.lib"
-				OutputFile="../../bin/w32_deb_vc8/gm_ft_font.dll"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_deb"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
 				GenerateManifest="true"
 				ModuleDefinitionFile="..\..\modules\ft_font\ft_font.def"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\obj/ft_font_deb/gm_ft_font.pdb"
-				ImportLibrary=".\obj/ft_font_deb/gm_ft_font.lib"
+				ProgramDatabaseFile="$(IntDir)/gm_$(ProjectName).pdb"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -95,6 +96,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				OutputManifestFile="$(IntDir)\$(TargetFileName).embed.manifest"
 				EmbedManifest="false"
 			/>
 			<Tool
@@ -103,7 +105,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/ft_font_deb/ft_font.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -120,8 +121,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Smartphone 2003 (ARMV4)"
-			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
-			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -153,15 +154,16 @@
 				ExecutionBucket="7"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../include,../../extra_lib/include/freetype"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_WINDOWS;_USRDLL"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_DEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_USR_DLL"
 				MinimalRebuild="true"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\obj/ft_font_deb/ft_font.pch"
-				AssemblerListingLocation=".\obj/ft_font_deb/"
-				ObjectFile=".\obj/ft_font_deb/"
-				ProgramDataBaseFileName=".\obj/ft_font_deb/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -176,16 +178,17 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="freetype.lib"
-				OutputFile="../../bin/w32_deb_vc8/gm_ft_font.dll"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib freetype.lib"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_deb"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
 				ModuleDefinitionFile="..\..\modules\ft_font\ft_font.def"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\obj/ft_font_deb/gm_ft_font.pdb"
-				ImportLibrary=".\obj/ft_font_deb/gm_ft_font.lib"
-				TargetMachine="0"
+				ProgramDatabaseFile="$(IntDir)/gm_ft_font.pdb"
+				SubSystem="9"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -196,7 +199,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/ft_font_deb/ft_font.bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -206,7 +208,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -275,8 +277,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\obj/ft_font_rel"
-			IntermediateDirectory=".\obj/ft_font_rel"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -312,10 +314,10 @@
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/ft_font_rel/ft_font.pch"
-				AssemblerListingLocation=".\obj/ft_font_rel/"
-				ObjectFile=".\obj/ft_font_rel/"
-				ProgramDataBaseFileName=".\obj/ft_font_rel/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -333,13 +335,13 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="freetype.lib"
-				OutputFile="../../bin/w32_rel_vc8/gm_ft_font.dll"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_rel"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
 				ModuleDefinitionFile="..\..\modules\ft_font\ft_font.def"
-				ProgramDatabaseFile=".\obj/ft_font_rel/gm_ft_font.pdb"
-				ImportLibrary=".\obj/ft_font_rel/gm_ft_font.lib"
+				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -354,7 +356,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/ft_font_rel/ft_font.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -371,8 +373,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Smartphone 2003 (ARMV4)"
-			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
-			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -405,14 +407,14 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../include,../../extra_lib/include/freetype"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_WINDOWS;_USRDLL"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_DEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_USR_DLL"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/ft_font_rel/ft_font.pch"
-				AssemblerListingLocation=".\obj/ft_font_rel/"
-				ObjectFile=".\obj/ft_font_rel/"
-				ProgramDataBaseFileName=".\obj/ft_font_rel/"
+				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -429,15 +431,16 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="freetype.lib"
-				OutputFile="../../bin/w32_rel_vc8/gm_ft_font.dll"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib freetype.lib"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_rel"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
 				ModuleDefinitionFile="..\..\modules\ft_font\ft_font.def"
 				ProgramDatabaseFile=".\obj/ft_font_rel/gm_ft_font.pdb"
-				ImportLibrary=".\obj/ft_font_rel/gm_ft_font.lib"
-				TargetMachine="0"
+				SubSystem="9"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -448,7 +451,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/ft_font_rel/ft_font.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -458,7 +461,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>

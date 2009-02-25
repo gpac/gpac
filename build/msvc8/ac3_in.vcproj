@@ -10,14 +10,17 @@
 		<Platform
 			Name="Win32"
 		/>
+		<Platform
+			Name="Smartphone 2003 (ARMV4)"
+		/>
 	</Platforms>
 	<ToolFiles>
 	</ToolFiles>
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\Debug"
-			IntermediateDirectory=".\Debug"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -49,14 +52,14 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../include,../../extra_lib/include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;GPAC_HAS_LIBA52"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_WINDOWS;_USRDLL;GPAC_HAS_LIBA52"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\Debug/ac3_in.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
@@ -75,14 +78,14 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="liba52.lib"
-				OutputFile="../../bin/w32_deb_vc8/gm_ac3_in.dll"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_deb"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
 				ModuleDefinitionFile="..\..\modules\ac3_in\ac3_in.def"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Debug/gm_ac3_in.pdb"
-				ImportLibrary=".\Debug/gm_ac3_in.lib"
+				ProgramDatabaseFile=".\obj\$(PlatformName)\$(ConfigurationName)\ac3_in/gm_ac3_in.pdb"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -90,6 +93,7 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				OutputManifestFile="$(IntDir)\$(TargetFileName).embed.manifest"
 				EmbedManifest="false"
 			/>
 			<Tool
@@ -98,7 +102,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\Debug/ac3_in.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -114,9 +117,85 @@
 			/>
 		</Configuration>
 		<Configuration
+			Name="Debug|Smartphone 2003 (ARMV4)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			ConfigurationType="2"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				ExecutionBucket="7"
+				AdditionalIncludeDirectories="../../include,../../extra_lib/include"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_DEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_USR_DLL;GPAC_HAS_LIBA52"
+				RuntimeLibrary="3"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				DebugInformationFormat="3"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib liba52.lib"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
+				ModuleDefinitionFile="..\..\modules\ac3_in\ac3_in.def"
+				SubSystem="9"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
+				TargetMachine="3"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCCodeSignTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+			<DeploymentTool
+				ForceDirty="-1"
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
+				RegisterOutput="0"
+				AdditionalFiles=""
+			/>
+			<DebuggerTool
+			/>
+		</Configuration>
+		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release"
-			IntermediateDirectory=".\Release"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC60.vsprops"
 			UseOfMFC="0"
@@ -153,10 +232,10 @@
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\Release/ac3_in.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -174,13 +253,13 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="liba52.lib"
-				OutputFile="../../bin/w32_rel_vc8/gm_ac3_in.dll"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_rel"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
 				ModuleDefinitionFile="..\..\modules\ac3_in\ac3_in.def"
-				ProgramDatabaseFile=".\Release/gm_ac3_in.pdb"
-				ImportLibrary=".\Release/gm_ac3_in.lib"
+				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -195,7 +274,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\Release/ac3_in.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -208,6 +287,81 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|Smartphone 2003 (ARMV4)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			ConfigurationType="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				ExecutionBucket="7"
+				AdditionalIncludeDirectories="../../include,../../extra_lib/include"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NDEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_USR_DLL;GPAC_HAS_LIBA52"
+				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib liba52.lib"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
+				ModuleDefinitionFile="..\..\modules\ac3_in\ac3_in.def"
+				SubSystem="9"
+				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
+				TargetMachine="3"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
+			/>
+			<Tool
+				Name="VCCodeSignTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+			<DeploymentTool
+				ForceDirty="-1"
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
+				RegisterOutput="0"
+				AdditionalFiles=""
+			/>
+			<DebuggerTool
 			/>
 		</Configuration>
 	</Configurations>

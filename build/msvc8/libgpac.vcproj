@@ -22,8 +22,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\obj/libgpac_deb"
-			IntermediateDirectory=".\obj/libgpac_deb"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="4"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -52,10 +52,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\obj/libgpac_deb/libgpac.pch"
-				AssemblerListingLocation=".\obj/libgpac_deb/"
-				ObjectFile=".\obj/libgpac_deb/"
-				ProgramDataBaseFileName=".\obj/libgpac_deb/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
@@ -74,7 +74,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="../../bin/w32_deb_vc8/libgpac_static.lib"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/libgpac_static.lib"
 				SuppressStartupBanner="true"
 			/>
 			<Tool
@@ -86,7 +86,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/libgpac_deb/libgpac.bsc"
+				OutputFile=".\obj\$(PlatformName)\$(ConfigurationName)\libgpac/libgpac.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -97,8 +97,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Smartphone 2003 (ARMV4)"
-			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
-			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\libgpac"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\libgpac"
 			ConfigurationType="4"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -124,17 +124,18 @@
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../include,../../extra_lib/include/zlib,../../extra_lib/include/js"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_LIB;GPAC_HAS_SPIDERMONKEY"
+				AdditionalIncludeDirectories="../../include;../../extra_lib/include;../../extra_lib/include/zlib;../../extra_lib/include/js;../../extra_lib/include/jpeg;../../extra_lib/include/png"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_LIB;GPAC_HAVE_CONFIG_H"
 				MinimalRebuild="true"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\obj/libgpac_deb/libgpac.pch"
-				AssemblerListingLocation=".\obj/libgpac_deb/"
-				ObjectFile=".\obj/libgpac_deb/"
-				ProgramDataBaseFileName=".\obj/libgpac_deb/"
+				PrecompiledHeaderFile=".\obj/$(PlatformName)\$(ConfigurationName)/libgpac\libgpac.pch"
+				AssemblerListingLocation=".\obj\$(PlatformName)\$(ConfigurationName)\libgpac\"
+				ObjectFile=".\obj\$(PlatformName)\$(ConfigurationName)\libgpac\"
+				ProgramDataBaseFileName=".\obj\$(PlatformName)\$(ConfigurationName)\libgpac\"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -149,7 +150,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="../../bin/arm_deb_vc8/libgpac_static.lib"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)\libgpac_static.lib"
 				SuppressStartupBanner="true"
 			/>
 			<Tool
@@ -161,7 +162,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/libgpac_deb/libgpac.bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -171,7 +171,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -248,8 +248,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\obj/libgpac_rel"
-			IntermediateDirectory=".\obj/libgpac_rel"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="4"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -279,10 +279,10 @@
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/libgpac_rel/libgpac.pch"
-				AssemblerListingLocation=".\obj/libgpac_rel/"
-				ObjectFile=".\obj/libgpac_rel/"
-				ProgramDataBaseFileName=".\obj/libgpac_rel/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -299,7 +299,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="../../bin/w32_rel_vc8/libgpac_static.lib"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac_static.lib"
 				SuppressStartupBanner="true"
 			/>
 			<Tool
@@ -311,7 +311,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/libgpac_rel/libgpac.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -322,8 +322,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Smartphone 2003 (ARMV4)"
-			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
-			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="4"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -350,15 +350,15 @@
 				ExecutionBucket="7"
 				Optimization="1"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="../../include,../../extra_lib/include/zlib,../../extra_lib/include/js"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_LIB;GPAC_HAS_SPIDERMONKEY;_WIN32_WCE"
+				AdditionalIncludeDirectories="../../include;../../extra_lib/include;../../extra_lib/include/zlib;../../extra_lib/include/js;../../extra_lib/include/jpeg;../../extra_lib/include/png"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_LIB;GPAC_HAVE_CONFIG_H;NDEBUG"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/libgpac_arm_rel/libgpac.pch"
-				AssemblerListingLocation=".\obj/libgpac_arm_rel/"
-				ObjectFile=".\obj/libgpac_arm_rel/"
-				ProgramDataBaseFileName=".\obj/libgpac_arm_rel/"
+				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -375,7 +375,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="../../bin/arm_rel_vc8/libgpac_static.lib"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)\libgpac_static.lib"
 				SuppressStartupBanner="true"
 			/>
 			<Tool
@@ -387,7 +387,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/libgpac_rel/libgpac.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -397,7 +397,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -4494,6 +4494,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\internal\avilib.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\media_tools\filestreamer.c"
 				>
 			</File>
 			<File

@@ -4,6 +4,7 @@
 	Version="8,00"
 	Name="Osmo4"
 	ProjectGUID="{C79C2D73-06E9-4622-92CE-F166B1B51792}"
+	RootNamespace="Osmo4"
 	Keyword="MFCProj"
 	>
 	<Platforms>
@@ -22,8 +23,8 @@
 	<Configurations>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\obj/osmo4_w32_rel"
-			IntermediateDirectory=".\obj/osmo4_w32_rel"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			UseOfMFC="2"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -59,10 +60,10 @@
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/osmo4_w32_rel/Osmo4.pch"
-				AssemblerListingLocation=".\obj/osmo4_w32_rel/"
-				ObjectFile=".\obj/osmo4_w32_rel/"
-				ProgramDataBaseFileName=".\obj/osmo4_w32_rel/"
+				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -79,10 +80,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../../bin/w32_rel_vc8/Osmo4.exe"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/Osmo4.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ProgramDatabaseFile=".\obj/osmo4_w32_rel/Osmo4.pdb"
+				ProgramDatabaseFile="$(IntDir)\$(ProjectName).pdb"
 				SubSystem="2"
 				StackReserveSize="8388608"
 				TargetMachine="1"
@@ -99,7 +100,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/osmo4_w32_rel/Osmo4.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -116,8 +117,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Smartphone 2003 (ARMV4)"
-			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
-			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			UseOfMFC="2"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -154,10 +155,10 @@
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\obj/osmo4_w32_rel/Osmo4.pch"
-				AssemblerListingLocation=".\obj/osmo4_w32_rel/"
-				ObjectFile=".\obj/osmo4_w32_rel/"
-				ProgramDataBaseFileName=".\obj/osmo4_w32_rel/"
+				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 			/>
@@ -174,13 +175,13 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../../bin/w32_rel_vc8/Osmo4.exe"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/$(ProjectName).exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				ProgramDatabaseFile=".\obj/osmo4_w32_rel/Osmo4.pdb"
-				SubSystem="2"
+				SubSystem="9"
 				StackReserveSize="8388608"
-				TargetMachine="0"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -191,7 +192,7 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/osmo4_w32_rel/Osmo4.bsc"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -201,7 +202,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -210,6 +211,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Pocket PC 2003 (ARMV4)"
+			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool
@@ -269,8 +271,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\obj/osmo4_w32_deb"
-			IntermediateDirectory=".\obj/osmo4_w32_deb"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			UseOfMFC="2"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -305,10 +307,10 @@
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\obj/osmo4_w32_deb/Osmo4.pch"
-				AssemblerListingLocation=".\obj/osmo4_w32_deb/"
-				ObjectFile=".\obj/osmo4_w32_deb/"
-				ProgramDataBaseFileName=".\obj/osmo4_w32_deb/"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
@@ -327,12 +329,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../../bin/w32_deb_vc8/Osmo4.exe"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/Osmo4.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateManifest="true"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\obj/osmo4_w32_deb/Osmo4.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="2"
 				TargetMachine="1"
 			/>
@@ -349,7 +351,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/osmo4_w32_deb/Osmo4.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -366,8 +367,8 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Smartphone 2003 (ARMV4)"
-			OutputDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
-			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="1"
 			UseOfMFC="2"
 			ATLMinimizesCRunTimeLibraryUsage="false"
@@ -399,16 +400,17 @@
 				ExecutionBucket="7"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_WINDOWS"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_DEBUG;DEBUG;ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);_WIN32_WCE=$(CEVER);$(CePlatform);UNICODE"
 				MinimalRebuild="true"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile=".\obj/osmo4_w32_deb/Osmo4.pch"
-				AssemblerListingLocation=".\obj/osmo4_w32_deb/"
-				ObjectFile=".\obj/osmo4_w32_deb/"
-				ProgramDataBaseFileName=".\obj/osmo4_w32_deb/"
+				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -423,13 +425,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="../../bin/w32_deb_vc8/Osmo4.exe"
+				AdditionalDependencies="aygshell.lib commctrl.lib gx.lib secchk.lib ccrtrtti.lib"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/Osmo4.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\obj/osmo4_w32_deb/Osmo4.pdb"
-				SubSystem="2"
-				TargetMachine="0"
+				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
+				SubSystem="9"
+				TargetMachine="3"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -440,7 +443,6 @@
 			<Tool
 				Name="VCBscMakeTool"
 				SuppressStartupBanner="true"
-				OutputFile=".\obj/osmo4_w32_deb/Osmo4.bsc"
 			/>
 			<Tool
 				Name="VCCodeSignTool"
@@ -450,7 +452,7 @@
 			/>
 			<DeploymentTool
 				ForceDirty="-1"
-				RemoteDirectory=""
+				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
 				AdditionalFiles=""
 			/>
@@ -459,6 +461,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Pocket PC 2003 (ARMV4)"
+			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool
