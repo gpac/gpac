@@ -699,6 +699,7 @@ u32 M2TS_Run(void *_p)
 	m2ts->ts->on_event = M2TS_OnEvent;
 	gf_m2ts_reset_parsers(m2ts->ts);
 
+
 #ifdef GPAC_HAS_LINUX_DVB
 	if (m2ts->tuner) {
 		// in case of DVB
@@ -1030,14 +1031,17 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	char *frag;
 
 	frag = sub_url ? strrchr(sub_url, '#') : NULL;
-	/*we have been requested the entire TS*/
-	if (!stricmp(sub_url, "dvb://EPG")) {
-		m2ts->epg_requested = 1;
-	} else if (!frag) {
+	if (frag) frag++;
+
+	/* consider the channel name in DVB URL as a fragment */
+	if (!frag && !strncmp(sub_url, "dvb://", 6)) { 
+		frag = sub_url + 6; 
+	}
+
+	if (!frag) {
 		m2ts->request_all_pids = 1;
 	} else {
 		M2TSIn_Prog *prog;
-		frag++;
 
 		/*we need exclusive access*/
 		gf_mx_p(m2ts->mx);
@@ -1084,6 +1088,12 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			((GF_ObjectDescriptor *) desc)->objectDescriptorID = 1;
 			return desc;
 		}
+	}
+
+	/* restart the thread if the same service is reused and if the previous thread terminated */
+	if (m2ts->run_state == 2) {
+		m2ts->file_regulate = 0;
+		gf_th_run(m2ts->th, M2TS_Run, m2ts);
 	}
 
 	return NULL;
