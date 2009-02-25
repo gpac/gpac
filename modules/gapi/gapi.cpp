@@ -271,7 +271,7 @@ static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
 	/* VK_A thru VK_Z are the same as ASCII 'A' thru 'Z' (0x41 - 0x5A) */
 	default: 
 		if ((wParam>=0x30) && (wParam<=0x39))  evt->key_code = GF_KEY_0 + wParam-0x30;
-		else if ((wParam>=0x41) && (wParam<=0x5A))  evt->key_code = GF_KEY_A + wParam-0x51;
+		else if ((wParam>=0x41) && (wParam<=0x5A))  evt->key_code = GF_KEY_A + wParam-0x41;
 		else {
 			GAPIPriv *ctx = (GAPIPriv *)the_video_driver->opaque;
 			short res = (LOWORD(wParam) != 0x5b) ? LOWORD(wParam) : wParam;
@@ -341,8 +341,8 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	{
 		GAPIPriv *gctx = (GAPIPriv *)the_video_driver->opaque;
 		if (gctx->gx_mode || !gctx->bitmap) break;
-//		BitBlt(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, gctx->hdcBitmap, 0, 0, SRCCOPY);
-		SetDIBitsToDevice(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, 0, 0, 0, gctx->bb_height, gctx->backbuffer, gctx->bmi, DIB_RGB_COLORS);
+		BitBlt(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, gctx->hdcBitmap, 0, 0, SRCCOPY);
+//		SetDIBitsToDevice(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, 0, 0, 0, gctx->bb_height, gctx->backbuffer, gctx->bmi, DIB_RGB_COLORS);
 	}
 		break;
 
@@ -415,7 +415,9 @@ void GAPI_WindowThread(void *par)
 
 void GAPI_SetupWindow(GF_VideoOutput *dr)
 {
+#ifdef GPAC_USE_OGL_ES
 	GF_Err e;
+#endif
 	GAPIPriv *ctx = (GAPIPriv *)dr->opaque;
 	if (the_video_driver) return;
 	the_video_driver = dr;
@@ -893,7 +895,7 @@ static GF_Err GAPI_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u3
 
 			if (is_wide_scene && (gctx->screen_w > gctx->screen_h)) is_landscape = 0;
 			else if (!is_wide_scene && (gctx->screen_w < gctx->screen_h)) is_landscape = 0;
-			else is_landscape = 1;
+			else is_landscape = 0;
 
 			if (is_landscape) {
 				gctx->fs_w = gctx->screen_h;

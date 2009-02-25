@@ -789,6 +789,7 @@ EXPORTS
 ;	gf_media_make_3gpp
 	gf_media_map_esd
 	gf_media_get_file_hash
+;	gf_rtp_packetizer_create_and_init_from_file
 ;	gf_media_import
 ;	gf_media_export
 ;	gf_media_fragment_file
@@ -842,6 +843,13 @@ EXPORTS
 	gf_ismacryp_gpac_get_info
 	gf_ismacryp_mpeg4ip_get_info
 	
+	;gf_streamer_new
+	;gf_streamer_del
+	;gf_streamer_write_sdp
+	;gf_streamer_get_sdp
+	;gf_streamer_send_next_packet
+	;gf_streamer_reset
+
 ;scene_manager.h exports
 	gf_sm_new
 	gf_sm_del
@@ -1204,3 +1212,12 @@ EXPORTS
 	gf_sg_listener_post_add
 
 	
+;mpegts.h exports
+	gf_m2ts_demux_new
+	gf_m2ts_demux_del
+	gf_m2ts_process_data
+	gf_m2ts_reset_parsers
+	gf_m2ts_set_pes_framing
+	gf_m2ts_get_stream_name
+	gf_m2ts_crc32_check
+	gf_m2ts_decode_mjd_date
