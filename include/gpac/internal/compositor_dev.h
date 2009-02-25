@@ -1158,5 +1158,8 @@ GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles
 GF_SceneGraph *gf_sc_get_subscene(GF_Node *inline_node);
 GF_Node *gf_sc_get_subscene_root(GF_Node *inline_node);
 
+
+u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev);
+
 #endif	/*_COMPOSITOR_DEV_H_*/
 
