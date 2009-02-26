@@ -731,6 +731,11 @@ GF_Err gf_isom_remove_track(GF_ISOFile *the_file, u32 trackNumber);
 /*sets the enable flag of a track*/
 GF_Err gf_isom_set_track_enabled(GF_ISOFile *the_file, u32 trackNumber, u8 enableTrack);
 
+/*sets creationTime and modificationTime of the movie to the specified date*/
+GF_Err gf_isom_set_creation_time(GF_ISOFile *movie, u64 time);
+/*sets creationTime and modificationTime of the track to the specified date*/
+GF_Err gf_isom_set_track_creation_time(GF_ISOFile *movie,u32 trackNumber, u64 time);
+
 /*changes the trackID - all track references present in the file are updated
 returns error if trackID is already in used in the file*/
 GF_Err gf_isom_set_track_id(GF_ISOFile *the_file, u32 trackNumber, u32 trackID);

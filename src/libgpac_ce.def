@@ -1213,11 +1213,11 @@ EXPORTS
 
 	
 ;mpegts.h exports
-	gf_m2ts_demux_new
-	gf_m2ts_demux_del
-	gf_m2ts_process_data
-	gf_m2ts_reset_parsers
-	gf_m2ts_set_pes_framing
-	gf_m2ts_get_stream_name
-	gf_m2ts_crc32_check
-	gf_m2ts_decode_mjd_date
+;	gf_m2ts_demux_new
+;	gf_m2ts_demux_del
+;	gf_m2ts_process_data
+;	gf_m2ts_reset_parsers
+;	gf_m2ts_set_pes_framing
+;	gf_m2ts_get_stream_name
+;	gf_m2ts_crc32_check
+;	gf_m2ts_decode_mjd_date
