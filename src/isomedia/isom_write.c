@@ -189,6 +189,28 @@ GF_Err gf_isom_remove_track_from_root_od(GF_ISOFile *movie, u32 trackNumber)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_set_creation_time(GF_ISOFile *movie, u64 time)
+{
+	if (!movie || !movie->moov) return GF_BAD_PARAM;
+	movie->moov->mvhd->creationTime = time;
+	movie->moov->mvhd->modificationTime = time;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_set_track_creation_time(GF_ISOFile *movie,u32 trackNumber, u64 time)
+{
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	trak->Header->creationTime = time;
+	trak->Header->modificationTime = time;
+	return GF_OK;
+}
+
+
 //sets the enable flag of a track
 GF_EXPORT
 GF_Err gf_isom_set_track_enabled(GF_ISOFile *movie, u32 trackNumber, u8 enableTrack)

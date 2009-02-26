@@ -1334,16 +1334,20 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		for (i=0; i<nb_groups; i++) {
 			u32 nb_crit, switchGroupID; 
 			const u32 *criterias = gf_isom_get_track_switch_parameter(file, trackNum, i+1, &switchGroupID, &nb_crit);
-			if (switchGroupID) {
-				fprintf(stdout, "\tSwitchGroup ID %d criterias: ", switchGroupID);
+			if (!nb_crit) {
+				fprintf(stdout, "\tNo criteria in %s group\n", switchGroupID ? "switch" : "alternate");
 			} else {
-				fprintf(stdout, "\tAlternate Group criterias: ");
+				if (switchGroupID) {
+					fprintf(stdout, "\tSwitchGroup ID %d criterias: ", switchGroupID);
+				} else {
+					fprintf(stdout, "\tAlternate Group criterias: ");
+				}
+				for (j=0; j<nb_crit; j++) {
+					if (j) fprintf(stdout, " ");
+					fprintf(stdout, "%s", gf_4cc_to_str(criterias[j]) );
+				}
+				fprintf(stdout, "\n");
 			}
-			for (j=0; j<nb_crit; j++) {
-				if (j) fprintf(stdout, " ");
-				fprintf(stdout, "%s", gf_4cc_to_str(criterias[j]) );
-			}
-			if (j) fprintf(stdout, "\n");
 		}
 	}
 

@@ -551,6 +551,8 @@ EXPORTS
 	gf_isom_set_timescale
 	gf_isom_new_track
 	gf_isom_remove_track
+	gf_isom_set_creation_time
+	gf_isom_set_track_creation_time
 	gf_isom_set_track_enabled
 	gf_isom_set_track_id
 	gf_isom_add_sample
@@ -570,6 +572,7 @@ EXPORTS
 	gf_isom_set_interleave_time
 	gf_isom_get_interleave_time
 	gf_isom_set_copyright
+	gf_isom_set_media_type
 	gf_isom_remove_copyright
 	gf_isom_set_watermark
 	gf_isom_set_edit_segment

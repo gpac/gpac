@@ -1169,7 +1169,6 @@ GF_Err tkhd_dump(GF_Box *a, FILE * trace)
 	} else if (p->width || p->height) {
 		fprintf(trace, " Width=\"%.2f\" Height=\"%.2f\"", (Float)p->width / 65536, (Float)p->height / 65536);
 		if (p->layer) fprintf(trace, " Layer=\"%d\"", p->layer);
-		if (p->alternate_group) fprintf(trace, " AlternateGroup=\"%d\"", p->alternate_group);
 	}
 	fprintf(trace, ">\n");
 	if (p->width || p->height) {

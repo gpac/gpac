@@ -29,6 +29,8 @@
 #include <gpac/ietf.h>
 #include <gpac/ismacryp.h>
 
+#include <time.h>
+
 #define BUFFSIZE	8192
 
 /*in fileimport.c*/
@@ -1089,6 +1091,7 @@ int main(int argc, char **argv)
 	char *szTracksToAdd[MAX_CUMUL_OPS];
 	TrackAction tracks[MAX_CUMUL_OPS];
 	TSELAction tsel_acts[MAX_CUMUL_OPS];
+	u64 movie_time;
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, keep_sys_tracks, remove_root_od, import_subtitle;
@@ -1110,6 +1113,7 @@ int main(int argc, char **argv)
 	import_fps = 0;
 	import_flags = 0;
 	split_size = 0;
+	movie_time = 0;
 	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
@@ -1391,6 +1395,19 @@ int main(int argc, char **argv)
 			}
 			szFilesToCat[nb_cat] = argv[i+1];
 			nb_cat++;
+			i++;
+		}
+		else if (!stricmp(arg, "-time")) {
+			struct tm time;
+			CHECK_NEXT_ARG
+			memset(&time, 0, sizeof(struct tm));
+			sscanf(argv[i+1], "%d/%d/%d-%d:%d:%d", &time.tm_mday, &time.tm_mon, &time.tm_year, &time.tm_hour, &time.tm_min, &time.tm_sec);
+			time.tm_isdst=0;
+			time.tm_year -= 1900;
+			time.tm_mon -= 1;
+			open_edit = 1;
+			movie_time = 2082758400;
+			movie_time += mktime(&time);
 			i++;
 		}
 		else if (!stricmp(arg, "-force-cat")) force_cat = 1;
@@ -2604,6 +2621,14 @@ int main(int argc, char **argv)
 				tags = NULL;
 			}
 		}
+	}
+
+	if (movie_time) {
+		gf_isom_set_creation_time(file, movie_time);
+		for (i=0; i<gf_isom_get_track_count(file); i++) {
+			gf_isom_set_track_creation_time(file, i+1, movie_time);
+		}
+		needSave = 1;
 	}
 
 	if (Frag) {
