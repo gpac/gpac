@@ -37,12 +37,12 @@ EXPORTS
 	gf_crc_32
 
 
-;	gf_mulfix
-;	gf_divfix
-;	gf_muldiv
-;	gf_atan2
-;	gf_invfix
-;	gf_sqrt
+	;gf_mulfix
+	;gf_divfix
+	;gf_muldiv
+	;gf_atan2
+	;gf_invfix
+	;gf_sqrt
 	gf_malloc
 	gf_realloc
 	gf_free
@@ -196,6 +196,9 @@ EXPORTS
 	gf_utf8_reorder_bidi
 
 ;download.h exports
+	gf_dm_sess_new
+	gf_dm_sess_del
+	gf_dm_sess_process
 	gf_dm_sess_get_cache_name
 	gf_dm_sess_get_stats
 	gf_dm_sess_fetch_data
@@ -1256,7 +1259,7 @@ EXPORTS
 	gf_svg_properties_reset_pointers
 	gf_node_register_iri
 	gf_node_unregister_iri
-
+	gf_svg_create_attribute_value
 	;gf_rtpm_new
 	;gf_rtpm_del
 	;gf_rtpm_send_data
