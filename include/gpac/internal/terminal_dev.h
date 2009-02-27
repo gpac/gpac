@@ -297,6 +297,13 @@ struct _tag_terminal
 
 	GF_List *extensions;
 	GF_List *unthreaded_extensions;
+
+	/* Widget Manager present only if the associated module is loaded */
+	void *widget_manager;
+	void *(*widget_load)(void *widget_manager, const char *path, u32 InstanceID);
+	void (*widget_bind)(void *widget_manager, void *widget_instance);
+	Bool (*widget_insert)(void *widget_manager, void *widget_instance);
+
 };
 
 
