@@ -181,7 +181,7 @@ endif
 
 LD_SONAME="-Wl,-soname,$(LIB)"
 ifeq ($(CONFIG_DARWIN), yes)
-LD_SONAME=""
+LD_SONAME=
 endif
 
 
@@ -209,9 +209,15 @@ compositor: $(LIBGPAC_COMPOSITOR)
 
 
 $(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph mediatools mcrypt $(OBJSPIC)
+ifeq ($(CONFIG_DARWIN),yes)
+	libtool -s -o ../bin/gcc/libgpac_static.a $(OBJS)
+	ranlib ../bin/gcc/libgpac_static.a
+	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS)
+else
 	ar cr ../bin/gcc/libgpac_static.a $(OBJS)
 	ranlib ../bin/gcc/libgpac_static.a
 	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o ../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS)
+endif
 
 dep: depend
 
