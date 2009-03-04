@@ -94,7 +94,7 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		if (!term->user->EventProc) return 0;
 		evt.type = GF_EVENT_SET_CAPTION;
 		evt.caption.caption = param->uri.url;
-		term->user->EventProc(term->user->opaque, &evt);
+		gf_term_send_event(term, &evt);
 		return 1;
 	}
 	if (type==GF_JSAPI_OP_GET_DCCI) {
@@ -137,7 +137,7 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 			evt.navigate.to_url = param->uri.url;
 			evt.navigate.parameters = param->uri.params;
 			evt.navigate.param_count = param->uri.nb_params;
-			return term->user->EventProc(term->user->opaque, &evt);
+			return gf_term_send_event(term, &evt);
 		} else {
 			/*TODO*/
 			return 0;
@@ -226,7 +226,7 @@ static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr
 	evt.auth.site_url = site_url;
 	evt.auth.user = usr_name;
 	evt.auth.password = password;
-	return term->user->EventProc(term->user->opaque, &evt);
+	return gf_term_send_event(term, &evt);
 }
 
 
@@ -391,18 +391,30 @@ GF_Terminal *gf_term_new(GF_User *user)
 		if (ifce) gf_list_add(tmp->extensions, ifce);
 	}
 	tmp->unthreaded_extensions = gf_list_new();
+	tmp->filtering_extensions = gf_list_new();
 	for (i=0; i< gf_list_count(tmp->extensions); i++) {
 		GF_TermExt *ifce = gf_list_get(tmp->extensions, i);
-		if (!ifce->process(ifce, tmp, GF_TERM_EXT_START)) {
+		if (!ifce->process(ifce, GF_TERM_EXT_START, tmp)) {
+			gf_modules_close_interface((GF_BaseInterface *) ifce);
 			gf_list_rem(tmp->extensions, i);
 			i--;
-		} else if (ifce->caps & GF_TERM_EXT_CAP_NOT_THREADED) {
+			continue;
+		} 
+		
+		if (ifce->caps & GF_TERM_EXTENSION_NOT_THREADED)
 			gf_list_add(tmp->unthreaded_extensions, ifce);
-		}
+
+		if (ifce->caps & GF_TERM_EXTENSION_FILTER_EVENT)
+			gf_list_add(tmp->filtering_extensions, ifce);
 	}
+
 	if (!gf_list_count(tmp->unthreaded_extensions)) {
 		gf_list_del(tmp->unthreaded_extensions);
 		tmp->unthreaded_extensions = NULL;
+	}
+	if (!gf_list_count(tmp->filtering_extensions)) {
+		gf_list_del(tmp->filtering_extensions);
+		tmp->filtering_extensions = NULL;
 	}
 
 	cf = gf_cfg_get_key(user->config, "General", "GUIFile");
@@ -444,7 +456,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	/*unload extensions*/
 	for (i=0; i< gf_list_count(term->extensions); i++) {
 		GF_TermExt *ifce = gf_list_get(term->extensions, i);
-		ifce->process(ifce, term, GF_TERM_EXT_STOP);
+		ifce->process(ifce, GF_TERM_EXT_STOP, NULL);
 	}
 
 	/*stop the media manager */
@@ -457,6 +469,10 @@ GF_Err gf_term_del(GF_Terminal * term)
 	}
 	gf_list_del(term->extensions);
 	if (term->unthreaded_extensions) gf_list_del(term->unthreaded_extensions);
+	if (term->filtering_extensions) {
+		gf_list_del(term->filtering_extensions);
+		term->filtering_extensions = NULL;
+	}
 
 	/*delete compositor before the input sensor stacks to avoid receiving events from the compositor
 	when destroying these stacks*/
@@ -494,8 +510,13 @@ GF_Err gf_term_del(GF_Terminal * term)
 
 void gf_term_message(GF_Terminal *term, const char *service, const char *message, GF_Err error)
 {
+	GF_Event evt;
 	if (!term || !term->user) return;
-	GF_USER_MESSAGE(term->user, service, message, error);
+	evt.type = GF_EVENT_MESSAGE;
+	evt.message.service = service;
+	evt.message.message = message;
+	evt.message.error = error;
+	gf_term_send_event(term, &evt);
 }
 
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
@@ -773,7 +794,7 @@ void gf_term_handle_services(GF_Terminal *term)
 		count = gf_list_count(term->unthreaded_extensions);
 		for (i=0; i<count; i++) {
 			GF_TermExt *ifce = gf_list_get(term->unthreaded_extensions, i);
-			ifce->process(ifce, term, GF_TERM_EXT_PROCESS);
+			ifce->process(ifce, GF_TERM_EXT_PROCESS, NULL);
 		}
 	}
 
@@ -787,8 +808,10 @@ void gf_term_handle_services(GF_Terminal *term)
 	if (term->reload_state == 2) {
 		if (gf_list_count(term->net_services)) return;
 		term->reload_state = 0;
-		gf_term_connect(term, term->reload_url);
-		free(term->reload_url);
+		if (term->reload_url) {
+			gf_term_connect(term, term->reload_url);
+			free(term->reload_url);
+		}
 		term->reload_url = NULL;
 	}
 }
@@ -1096,9 +1119,11 @@ void gf_term_navigate_to(GF_Terminal *term, const char *toURL)
 	if (!toURL && !term->root_scene) return;
 	if (term->reload_url) free(term->reload_url);
 	term->reload_url = NULL;
-	if (term->root_scene) 
-		term->reload_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, toURL);
-	if (!term->reload_url) term->reload_url = strdup(toURL);
+	if (toURL) {
+		if (term->root_scene) 
+			term->reload_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, toURL);
+		if (!term->reload_url) term->reload_url = strdup(toURL);
+	}
 	term->reload_state = 1;
 }
 
@@ -1339,4 +1364,19 @@ GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only)
 	return gf_sc_paste_text(term->compositor, txt);
 }
 
+GF_EXPORT
+Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
+{
+	if (term->filtering_extensions) {
+		GF_TermExt *ext;
+		u32 i=0;
+		while ((ext=gf_list_enum(term->filtering_extensions, &i))) {
+			if (ext->process(ext, GF_TERM_EXT_EVENT, evt))
+				return 0;
+		}
+	}
+	if (term->user->EventProc) 
+		return term->user->EventProc(term->user->opaque, evt);
 
+	return 0;
+}

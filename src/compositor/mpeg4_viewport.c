@@ -80,7 +80,7 @@ GF_Err gf_sc_set_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const c
 	return GF_BAD_PARAM;
 }
 
-#define VPCHANGED(__rend) { GF_Event evt; evt.type = GF_EVENT_VIEWPOINTS; GF_USER_SENDEVENT(__rend->user, &evt); }
+#define VPCHANGED(__rend) { GF_Event evt; evt.type = GF_EVENT_VIEWPOINTS; gf_term_send_event(__rend->term, &evt); }
 
 
 static void DestroyViewStack(GF_Node *node)

@@ -92,7 +92,7 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 char *gf_url_concatenate(const char *parentName, const char *pathName)
 {
 	u32 pathSepCount, i, prot_type;
-	char *outPath, *name;
+	char *outPath, *name, *rad;
 	char tmp[GF_MAX_PATH];
 
 	if (!pathName || !parentName) return NULL;
@@ -103,6 +103,21 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	if (prot_type != GF_URL_TYPE_RELATIVE) {
 		outPath = strdup(pathName);
 		goto check_spaces;
+	}
+
+	/*upnp addressing*/
+	rad = strstr(parentName, "%3fpath=");
+	if (!rad) rad = strstr(parentName, "%3Fpath=");
+	if (!rad) rad = strstr(parentName, "?path=");
+	if (rad) {
+		rad = strchr(rad, '=');
+		rad[0] = 0;
+		name = gf_url_concatenate(rad+1, pathName);
+		outPath = malloc(strlen(parentName) + strlen(name) + 2);
+		sprintf(outPath, "%s=%s", parentName, name);
+		rad[0] = '=';
+		free(name);
+		return outPath;
 	}
 
 	pathSepCount = 0;

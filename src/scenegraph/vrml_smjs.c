@@ -36,6 +36,7 @@
 #endif
 
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/modules/term_ext.h>
 #include <gpac/modules/js_usr.h>
 
 #include <jsapi.h>
@@ -107,6 +108,30 @@ void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj
 	for (i=0; i<count; i++) {
 		GF_JSUserExtension *ext = (GF_JSUserExtension *) gf_list_get(js_rt->extensions, i);
 		ext->load(ext, sg, c, obj, unload);
+	}
+
+	if (js_rt->nb_inst==1) {
+		GF_Terminal *term;
+		GF_JSAPIParam par;
+
+		if (!sg->script_action) return;
+		if (!sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, sg->RootNode, &par))
+			return;
+
+		term = par.term;
+
+		count = gf_list_count(term->extensions);
+		for (i=0; i<count; i++) {
+			GF_TermExt *ext = (GF_TermExt *) gf_list_get(term->extensions, i);
+			if (ext->caps & GF_TERM_EXTENSION_JS) {
+				GF_TermExtJS te;
+				te.ctx = c;
+				te.global = obj;
+				te.scenegraph = sg;
+				te.unload = unload;
+				ext->process(ext, GF_TERM_EXT_JSBIND, &te);
+			}
+		}
 	}
 }
 

@@ -1151,6 +1151,7 @@ EXPORTS
 	gf_mo_register
 	gf_mo_unregister
 	gf_mo_get_scenegraph
+	gf_term_send_event
 
 
 ;compositor.h exports

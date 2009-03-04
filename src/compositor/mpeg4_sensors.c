@@ -135,9 +135,8 @@ static void anchor_activation(GF_Node *node, AnchorStack *st, GF_Compositor *com
 		} else if (compositor->term) {
 			if (gf_inline_process_anchor(node, &evt))
 				break;
-		} else if (compositor->user->EventProc) {
-			if (compositor->user->EventProc(compositor->user->opaque, &evt))
-				break;
+		} else if (gf_term_send_event(compositor->term, &evt)) {
+			break;
 		}
 		i++;
 	}
@@ -168,7 +167,7 @@ static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compos
 				url = & ((X_Anchor *)sh->sensor)->url;
 			}
 			if (!evt.navigate.to_url || !strlen(evt.navigate.to_url)) evt.navigate.to_url = url->vals[0].url;
-			compositor->user->EventProc(compositor->user->opaque, &evt);
+			gf_term_send_event(compositor->term, &evt);
 		}
 	} else if (!is_over) {
 		st->over = 0;

@@ -45,18 +45,6 @@
 #define SC_DEF_HEIGHT	240
 
 
-/*macro for size event format/send*/
-#define GF_USER_SETSIZE(_user, _w, _h)	\
-	{	\
-		GF_Event evt;	\
-		if (_user->EventProc) {	\
-			evt.type = GF_EVENT_SIZE;	\
-			evt.size.width = _w;	\
-			evt.size.height = _h;	\
-			_user->EventProc(_user->opaque, &evt);	\
-		}	\
-	}
-
 void gf_sc_simulation_tick(GF_Compositor *compositor);
 
 
@@ -90,7 +78,12 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 		e = compositor->video_out->SetFullScreen(compositor->video_out, compositor->fullscreen, &compositor->display_width, &compositor->display_height);
 	}
 	if (e) {
-		GF_USER_MESSAGE(compositor->user, "Compositor", "Cannot switch to fullscreen", e);
+		GF_Event evt;
+		evt.type = GF_EVENT_MESSAGE;
+		evt.message.service = "";
+		evt.message.message = "Cannot switch to fullscreen";
+		evt.message.error = e;
+		gf_term_send_event(compositor->term, &evt);
 		compositor->fullscreen = 0;
 		e = compositor->video_out->SetFullScreen(compositor->video_out, 0, &compositor->display_width, &compositor->display_height);
 	}
@@ -121,6 +114,8 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 
 		/*scene size has been overriden*/
 		if (compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) {
+			GF_Event evt;
+
 			assert(!(compositor->override_size_flags & 2));
 			compositor->msg_type &= ~GF_SR_CFG_OVERRIDE_SIZE;
 			compositor->override_size_flags |= 2;
@@ -128,7 +123,11 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			height = compositor->scene_height;
 			compositor->has_size_info = 1;
 			gf_sc_set_size(compositor, width, height);
-			GF_USER_SETSIZE(compositor->user, width, height);
+
+			evt.type = GF_EVENT_SIZE;
+			evt.size.width = width;
+			evt.size.height = height;
+			gf_term_send_event(compositor->term, &evt);
 		}
 		/*size changed from scene cfg: resize window first*/
 		if (compositor->msg_type & GF_SR_CFG_SET_SIZE) {
@@ -183,7 +182,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		compositor->offscreen_width = compositor->offscreen_height = 0;
 #endif
 		evt.type = GF_EVENT_SYS_COLORS;
-		if (compositor->user->EventProc && compositor->user->EventProc(compositor->user->opaque, &evt) ) {
+		if (gf_term_send_event(compositor->term, &evt) ) {
 			u32 i;
 			for (i=0; i<28; i++) {
 				compositor->sys_colors[i] = evt.sys_cols.sys_colors[i] & 0x00FFFFFF;
@@ -436,7 +435,6 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 
 	/**/
 	tmp->audio_renderer = gf_sc_ar_load(user);	
-	if (!tmp->audio_renderer) GF_USER_MESSAGE(user, "", "NO AUDIO RENDERER", GF_OK);
 
 	gf_mx_p(tmp->mx);
 
@@ -862,7 +860,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	/*here's a nasty trick: the app may respond to this by calling a gf_sc_set_size from a different
 	thread, but in an atomic way (typically happen on Win32 when changing the window size). WE MUST
 	NOTIFY THE SIZE CHANGE AFTER RELEASING THE RENDERER MUTEX*/
-	if (do_notif && compositor->user->EventProc) {
+	if (do_notif) {
 		GF_Event evt;
 		/*wait for user ack*/
 		compositor->draw_next_frame = 0;
@@ -870,7 +868,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		evt.type = GF_EVENT_SCENE_SIZE;
 		evt.size.width = width;
 		evt.size.height = height;
-		compositor->user->EventProc(compositor->user->opaque, &evt);
+		gf_term_send_event(compositor->term, &evt);
 	} 
 	return GF_OK;
 }
@@ -1444,7 +1442,7 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 
 static void gf_sc_forward_event(GF_Compositor *compositor, GF_Event *ev)
 {
-	GF_USER_SENDEVENT(compositor->user, ev);
+	gf_term_send_event(compositor->term, ev);
 
 	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		u32 now;
@@ -1456,7 +1454,7 @@ static void gf_sc_forward_event(GF_Compositor *compositor, GF_Event *ev)
 			event.mouse.key_states = compositor->key_states;
 			event.mouse.x = ev->mouse.x;
 			event.mouse.y = ev->mouse.y;
-			GF_USER_SENDEVENT(compositor->user, &event);
+			gf_term_send_event(compositor->term, &event);
 		}
 		compositor->last_click_time = now;
 	}
@@ -2183,7 +2181,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		}
 		/*otherwise let the user decide*/
 		else {
-			return GF_USER_SENDEVENT(compositor->user, event);
+			return gf_term_send_event(compositor->term, event);
 		}
 		break;
 
@@ -2297,7 +2295,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 
 	/*when we process events we don't forward them to the user*/
 	default:
-		return GF_USER_SENDEVENT(compositor->user, event);
+		return gf_term_send_event(compositor->term, event);
 	}
 	/*if we get here, event has been consumed*/
 	return 1;

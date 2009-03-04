@@ -826,7 +826,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 			if (!evt.navigate.to_url) evt.navigate.to_url = "document internal link";
 		}
 
-		compositor->user->EventProc(compositor->user->opaque, &evt);
+		gf_term_send_event(compositor->term, &evt);
 		return;
 	}
 
@@ -847,7 +847,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 				if (compositor->term) {
 					gf_inline_process_anchor(handler, &evt);
 				} else {
-					compositor->user->EventProc(compositor->user->opaque, &evt);
+					gf_term_send_event(compositor->term, &evt);
 				}
 				free((char *)evt.navigate.to_url);
 				return;

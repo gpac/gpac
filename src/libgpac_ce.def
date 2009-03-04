@@ -1081,6 +1081,9 @@ EXPORTS
 	gf_term_get_service_info
 	gf_term_get_url
 
+	gf_term_send_event
+
+
 ;renderer.h exports
 	gf_sc_new
 	gf_sc_del

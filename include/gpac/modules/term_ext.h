@@ -38,21 +38,55 @@ extern "C" {
 typedef struct _term_ext GF_TermExt;
 
 
+typedef struct {
+	void *scenegraph;
+	void *ctx;
+	void *global;
+	Bool unload;
+} GF_TermExtJS;
+
 enum
 {
-	/*start terminal extension. If 0 is returned, the module will be unloaded*/
+	/*start terminal extension. If 0 is returned, the module will be unloaded
+		associated param: GF_Terminal *term
+		@return: 1 if OK, 0 otherwise (in which case the extensions will be removed without calling stop)
+	*/
 	GF_TERM_EXT_START = 1,
-	/*stop terminal extension*/
+	/*stop terminal extension
+		associated param: NULL
+		@return: ignored
+	*/
 	GF_TERM_EXT_STOP,
-	/*process extension - the GF_TERM_EXT_CAP_NOT_THREADED capability MUST be set*/
+
+	/*process extension - only called GF_TERM_EXTENSION_NOT_THREADED capability is set
+		associated param: NULL
+		@return: ignored
+	*/
 	GF_TERM_EXT_PROCESS,
+
+	/*filter event - only called if the GF_TERM_EXTENSION_FILTER_EVENT capability is set
+		associated param: GF_Event *evt
+		@return: 1 if the event must be discarded, 0 otherwise
+	*/
+	GF_TERM_EXT_EVENT,
+	
+	/*load/unload js bindings of this extension
+		associated param: GF_Event *evt
+		@return: ignored
+	*/
+	GF_TERM_EXT_JSBIND,
 };
 
 enum
 {
 	/*signal the extension is to be called on regular basis (once per simulation tick). This MUST be set during
 	the GF_TERM_EXT_START command and cannot be changed at run-time*/
-	GF_TERM_EXT_CAP_NOT_THREADED = 1<<1,
+	GF_TERM_EXTENSION_NOT_THREADED = 1<<1,
+
+	/*extension wants to filter events*/
+	GF_TERM_EXTENSION_FILTER_EVENT = 1<<2,
+
+	GF_TERM_EXTENSION_JS = 1<<3,
 };
 
 
@@ -68,11 +102,12 @@ struct _term_ext
 	 termext: pointer to the module
 	 term: pointer to GPAC terminal
 	*/
-	Bool (*process)(GF_TermExt *termext, GF_Terminal *term, u32 action);
+	Bool (*process)(GF_TermExt *termext, u32 action, void *param);
 
 	/*module private*/
 	void *udta;
 };
+
 
 
 #ifdef __cplusplus
