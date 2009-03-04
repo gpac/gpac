@@ -53,7 +53,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\extra_lib\include\gecko-sdk,..\..\extra_lib\include\gecko-sdk\java\include,..\..\extra_lib\include\gecko-sdk\plugin\include,..\..\extra_lib\include\gecko-sdk\nspr\include,..\..\extra_lib\include\gecko-sdk\xpcom\include,..\..\include"
+				AdditionalIncludeDirectories="..\..\extra_lib\include\gecko-sdk\include,..\..\extra_lib\include\gecko-sdk\java\include,..\..\extra_lib\include\gecko-sdk\plugin\include,..\..\extra_lib\include\gecko-sdk\nspr\include,..\..\extra_lib\include\gecko-sdk\xpcom\include,..\..\include"
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;XP_WIN32;XP_WIN;_X86_;_WINDOWS;_USRDLL;NPBASIC_EXPORTS;MOZILLA_STRICT_API;XPCOM_GLUE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"

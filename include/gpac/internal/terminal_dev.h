@@ -295,15 +295,9 @@ struct _tag_terminal
 	/*root node of the user prefs*/
 	GF_SceneGraph *dcci_doc;
 
-	GF_List *extensions;
-	GF_List *unthreaded_extensions;
-
-	/* Widget Manager present only if the associated module is loaded */
-	void *widget_manager;
-	void *(*widget_load)(void *widget_manager, const char *path, u32 InstanceID);
-	void (*widget_bind)(void *widget_manager, void *widget_instance);
-	Bool (*widget_insert)(void *widget_manager, void *widget_instance);
-
+	GF_List *extensions;	/*list of all extensions*/
+	GF_List *unthreaded_extensions;	/*list of extensions to call at each frame*/
+	GF_List *filtering_extensions;	/*list of extensions filtering events*/
 };
 
 
@@ -846,6 +840,9 @@ GF_Err gf_odm_post_es_setup(struct _es_channel *ch, struct _generic_codec *dec, 
 	special entry point: specify directly a service interface for service input
 */
 void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl);
+
+
+Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt);
 
 /*media access events */
 void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type);

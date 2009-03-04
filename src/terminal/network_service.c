@@ -100,7 +100,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 					GF_Event evt;
 					evt.type = GF_EVENT_CONNECT;
 					evt.connect.is_connected = 0;
-					GF_USER_SENDEVENT(term->user, &evt);
+					gf_term_send_event(term, &evt);
 				} else {
 					/*try to reinsert OD for VRML/X3D with multiple URLs:
 					1- first remove from parent scene without destroying object, this will trigger a re-setup
@@ -416,7 +416,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 	if (com->command_type==GF_NET_SERVICE_INFO) {
 		GF_Event evt;
 		evt.type = GF_EVENT_METADATA;
-		GF_USER_SENDEVENT(term->user, &evt);
+		gf_term_send_event(term, &evt);
 		return;
 	}
 
@@ -891,7 +891,7 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 			evt.progress.service = szURI;
 			evt.progress.total = total_size;
 			evt.progress.done = bytes_done;
-			GF_USER_SENDEVENT(serv->term->user, &evt);
+			gf_term_send_event(serv->term, &evt);
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s received %d / %d\n", szURI, bytes_done, total_size));
 		break;

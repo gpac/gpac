@@ -438,9 +438,9 @@
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
 				ModuleDefinitionFile="..\..\src\libgpac_ce.def"
-				ProgramDatabaseFile=".\obj/libgpac_dll_rel/libgpac.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="9"
-				ImportLibrary=".\obj/libgpac_dll_rel/libgpac.lib"
+				ImportLibrary="$(IntDir)/$(ProjectName)/libgpac.lib"
 				TargetMachine="3"
 			/>
 			<Tool

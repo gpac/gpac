@@ -499,7 +499,7 @@ void gf_inline_buffering_info(GF_InlineScene *is)
 		evt.progress.done = cur_buffer;
 		evt.progress.total = max_buffer;
 	}
-	GF_USER_SENDEVENT(is->root_od->term->user, &evt);
+	gf_term_send_event(is->root_od->term, &evt);
 }
 
 
@@ -1074,7 +1074,7 @@ void gf_inline_set_duration(GF_InlineScene *is)
 		evt.duration.duration = dur;
 		evt.duration.can_seek = !(is->root_od->flags & GF_ODM_NO_TIME_CTRL);
 		if (dur<2.0) evt.duration.can_seek = 0;
-		GF_USER_SENDEVENT(is->root_od->term->user,&evt);
+		gf_term_send_event(is->root_od->term,&evt);
 	}
 
 }
@@ -1527,7 +1527,7 @@ void gf_inline_regenerate(GF_InlineScene *is)
 		gf_sc_set_scene(is->root_od->term->compositor, is->graph);
 		is->graph_attached = 1;
 		evt.type = GF_EVENT_STREAMLIST;
-		GF_USER_SENDEVENT(is->root_od->term->user,&evt);
+		gf_term_send_event(is->root_od->term, &evt);
 		IS_UpdateVideoPos(is);
 	} else {
 		is->graph_attached = 1;
@@ -1707,7 +1707,7 @@ Bool gf_inline_process_anchor(GF_Node *caller, GF_Event *evt)
 
 	/*if main scene forward to user. If no params or first one not "self" forward to user*/
 	if ((term->root_scene==is) || !evt->navigate.parameters || !evt->navigate.param_count || (stricmp(evt->navigate.parameters[0], "self") && stricmp(evt->navigate.parameters[0], "_self"))) {
-		if (term->user->EventProc) return term->user->EventProc(term->user->opaque, evt);
+		if (term->user->EventProc) return gf_term_send_event(term, evt);
 		return 1;
 	}
 	/*FIXME this is too restrictive, we assume the navigate URL is really a presentation one...*/

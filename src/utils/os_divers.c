@@ -153,7 +153,7 @@ s32 gettimeofday(struct timeval *tp, void *tz)
 	struct _timeb timebuffer;   
 
 	_ftime( &timebuffer );
-	tp->tv_sec  = timebuffer.time;
+	tp->tv_sec  = (long) (timebuffer.time);
 	tp->tv_usec = timebuffer.millitm * 1000;
 	return 0;
 }
@@ -257,7 +257,7 @@ void gf_utc_time_since_1970(u32 *sec, u32 *msec)
 #if defined (WIN32) && !defined(_WIN32_WCE)
 	struct _timeb	tb;
 	_ftime( &tb );
-	*sec = tb.time;
+	*sec = (u32) tb.time;
 	*msec = tb.millitm;
 #else
 	struct timeval tv;

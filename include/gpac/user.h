@@ -86,23 +86,6 @@ typedef struct
 } GF_User;
 
 
-/*macro for event forwarding*/
-#define GF_USER_SENDEVENT(_user, _evt)	(_user->EventProc ? _user->EventProc(_user->opaque, _evt) : 0)
-
-/*macro for message event format/send*/
-#define GF_USER_MESSAGE(_user, _serv, _msg, _e)	\
-	{	\
-		GF_Event evt;	\
-		if (_user->EventProc) {	\
-			evt.type = GF_EVENT_MESSAGE;	\
-			evt.message.service = _serv;	\
-			evt.message.message = _msg;	\
-			evt.message.error = _e;	\
-			_user->EventProc(_user->opaque, &evt);	\
-		}	\
-	}
-
-
 #ifdef __cplusplus
 }
 #endif

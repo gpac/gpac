@@ -193,7 +193,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = 0;
-		GF_USER_SENDEVENT(odm->term->user, &evt);
+		gf_term_send_event(odm->term, &evt);
 	}
 
 	/*delete the ODMan*/
@@ -315,7 +315,7 @@ err_exit:
 		GF_Event evt;
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = 0;
-		GF_USER_SENDEVENT(odm->term->user, &evt);
+		gf_term_send_event(odm->term, &evt);
 	}
 
 }
@@ -601,7 +601,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = 1;
-		GF_USER_SENDEVENT(odm->term->user, &evt);
+		gf_term_send_event(odm->term, &evt);
 	}
 
 	/* and connect ONLY if main scene - inlines are connected when attached to Inline nodes*/
@@ -619,7 +619,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			odm->OD_PL = 0;
 		}
 		evt.type = GF_EVENT_STREAMLIST;
-		GF_USER_SENDEVENT(odm->term->user,&evt);
+		gf_term_send_event(odm->term,&evt);
 	}
 }
 
