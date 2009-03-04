@@ -362,7 +362,7 @@ static JSBool gpac_exit(JSContext *c, JSObject *obj, uintN argc, jsval *argv, js
 	GF_Event evt;
 	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	evt.type = GF_EVENT_QUIT;
-	GF_USER_SENDEVENT(term->user, &evt);
+	gf_term_send_event(term, &evt);
 	return JS_TRUE;
 }
 
