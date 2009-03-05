@@ -10,9 +10,9 @@ EXPORTS
 	CE_CharToWide
 
 ;tools.h exports
-	gf_sleep
 	gf_sys_init
 	gf_sys_close
+	gf_sleep
 	gf_sys_clock
 	gf_sys_get_rti
 	gf_sys_get_battery_state
@@ -20,7 +20,6 @@ EXPORTS
 	gf_error_to_string
 	gf_rand_init
 	gf_rand
-	gf_utc_time_since_1970
 	gf_get_user_name
 	gf_enum_directory
 	gf_log_get_tools
@@ -32,12 +31,14 @@ EXPORTS
 	gf_log_lt
 	gf_set_progress
 	gf_set_progress_callback
+	gf_delete_file
+;	gf_temp_file_new
+
+	gf_crc_32
 	gf_malloc
 	gf_realloc
 	gf_free
 	gf_strdup
-	gf_crc_32
-
 
 ;array.h exports
 	gf_list_new
@@ -89,8 +90,6 @@ EXPORTS
 	gf_bs_get_position
 	gf_bs_get_size
 	gf_bs_get_refreshed_size
-	gf_delete_file
-	;gf_temp_file_new
 
 ;thread.h exports
 	gf_th_new
@@ -134,13 +133,13 @@ EXPORTS
 	gf_sk_is_multicast_address
 	gf_sk_send_wait
 	gf_sk_receive_wait
-	gf_net_get_ntp
-	gf_net_has_ipv6
-	gf_net_is_ipv6
-
 	gf_url_is_local
 	gf_url_get_absolute_path
 	gf_url_concatenate
+	gf_utc_time_since_1970
+	gf_net_get_ntp
+	gf_net_has_ipv6
+	gf_net_is_ipv6
 
 ;base_coding.h exports
 	gf_base64_encode
@@ -156,6 +155,7 @@ EXPORTS
 ;config.h exports
 	gf_cfg_new
 	gf_cfg_del
+	gf_cfg_save
 	gf_cfg_get_key
 	gf_cfg_set_key
 	gf_cfg_get_section_count
@@ -163,6 +163,7 @@ EXPORTS
 	gf_cfg_get_key_count
 	gf_cfg_get_key_name
 	gf_cfg_insert_key
+	gf_cfg_del_section
 
 ;module.h exports
 	gf_modules_new
@@ -170,6 +171,7 @@ EXPORTS
 	gf_modules_refresh
 	gf_modules_get_count
 	gf_modules_get_file_name
+	gf_module_get_file_name
 	gf_modules_load_interface
 	gf_modules_load_interface_by_name
 	gf_modules_close_interface
@@ -185,6 +187,9 @@ EXPORTS
 	gf_utf8_reorder_bidi
 
 ;download.h exports
+	gf_dm_sess_new
+	gf_dm_sess_del
+	gf_dm_sess_process
 	gf_dm_sess_get_cache_name
 	gf_dm_sess_get_stats
 	gf_dm_sess_fetch_data
@@ -279,6 +284,7 @@ EXPORTS
 	gf_mx_add_scale
 	gf_mx_add_rotation
 	gf_mx_add_matrix
+	gf_mx_add_matrix_2d
 	gf_mx_inverse
 	gf_mx_apply_vec
 	gf_mx_apply_rect
@@ -294,7 +300,6 @@ EXPORTS
 	gf_mx_rotation_matrix_from_vectors
 	gf_mx2d_from_mx
 	gf_mx_apply_plane
-	gf_mx_add_matrix_2d
 	gf_plane_get_distance
 	gf_plane_intersect_line
 	gf_closest_point_to_line
@@ -306,6 +311,16 @@ EXPORTS
 	gf_ray_hit_sphere
 	gf_ray_hit_triangle
 	gf_ray_hit_triangle_backcull
+
+;color.h exports
+	gf_stretch_bits
+	gf_cmx_init
+	gf_cmx_set
+	gf_cmx_set_all
+	gf_cmx_copy
+	gf_cmx_multiply
+	gf_cmx_apply
+	gf_cmx_apply_fixed
 
 ;path2d.h exports
 	gf_path_new
@@ -339,21 +354,12 @@ EXPORTS
 	gf_path_get_outline
 	gf_path_point_over
 
-;yuv.h exports
-	gf_cmx_init
-	gf_cmx_set
-	gf_cmx_set_all
-	gf_cmx_copy
-	gf_cmx_multiply
-	gf_cmx_apply
-	gf_cmx_apply_fixed
-	gf_stretch_bits
-
 ;mpeg4_odf.h exports
 	gf_odf_slc_set_pref
 	gf_odf_get_bifs_config
 	gf_odf_get_text_config
 	gf_odf_get_ui_config
+	gf_odf_get_laser_config
 	gf_odf_encode_ui_config
 	gf_odf_codec_new
 	gf_odf_codec_del
@@ -405,12 +411,16 @@ EXPORTS
 ;	gf_odf_dump_com_list
 ;	gf_oci_dump_event
 ;	gf_oci_dump_au
-;	gf_sl_packetize
-	gf_sl_depacketize
 	gf_odf_avc_cfg_new
 	gf_odf_avc_cfg_del
 	gf_odf_avc_cfg_read
 	gf_odf_avc_cfg_write
+	gf_sl_packetize
+;	gf_sl_get_header_size
+	gf_sl_depacketize
+; for MPEG-2 plugin
+;	gf_odf_parse_descriptor
+;	gf_odf_write_descriptor
 
 ;isomedia.h exports
 	gf_isom_sample_new
@@ -456,6 +466,7 @@ EXPORTS
 	gf_isom_get_sample_for_media_time
 	gf_isom_get_sample_for_movie_time
 	gf_isom_get_sample_dts
+;	gf_isom_get_sample_duration
 	gf_isom_get_edit_segment_count
 	gf_isom_get_edit_segment
 	gf_isom_get_copyright_count
@@ -476,6 +487,7 @@ EXPORTS
 	gf_isom_get_alternate_brand
 	gf_isom_has_padding_bits
 	gf_isom_get_visual_info
+;	gf_isom_get_pixel_aspect_ratio
 	gf_isom_get_audio_info
 	gf_isom_get_chapter_count
 	gf_isom_get_chapter
@@ -510,22 +522,24 @@ EXPORTS
 	gf_isom_has_movie
 	gf_isom_is_single_av
 	gf_isom_guess_specification
-	gf_isom_delete_text_sample
 	gf_isom_has_sync_shadows
 	gf_isom_apple_get_tag
 	gf_isom_get_omadrm_info
 	gf_isom_is_omadrm_media
-	gf_isom_get_pixel_aspect_ratio
+
 
 ;NON-READ-ONLY exports
 ;	gf_isom_set_timescale
 ;	gf_isom_new_track
 ;	gf_isom_remove_track
+;	gf_isom_set_creation_time
+;	gf_isom_set_track_creation_time
 ;	gf_isom_set_track_enabled
 ;	gf_isom_set_track_id
 ;	gf_isom_add_sample
 ;	gf_isom_add_sample_shadow
 ;	gf_isom_append_sample_data
+;	gf_isom_refresh_size_info
 ;	gf_isom_add_sample_reference
 ;	gf_isom_set_last_sample_duration
 ;	gf_isom_set_track_reference
@@ -539,6 +553,7 @@ EXPORTS
 ;	gf_isom_set_interleave_time
 ;	gf_isom_get_interleave_time
 ;	gf_isom_set_copyright
+;	gf_isom_set_media_type
 ;	gf_isom_remove_copyright
 ;	gf_isom_set_watermark
 ;	gf_isom_set_edit_segment
@@ -547,6 +562,7 @@ EXPORTS
 ;	gf_isom_remove_edit_segments
 ;	gf_isom_remove_edit_segment
 ;	gf_isom_set_media_language
+;	gf_isom_set_handler_name
 ;	gf_isom_add_user_data
 ;	gf_isom_remove_user_data
 ;	gf_isom_remove_user_data_item
@@ -555,6 +571,7 @@ EXPORTS
 ;	gf_isom_modify_alternate_brand
 ;	gf_isom_set_sample_padding_bits
 ;	gf_isom_set_visual_info
+;	gf_isom_set_pixel_aspect_ratio
 ;	gf_isom_set_track_layout_info
 ;	gf_isom_set_audio_info
 ;	gf_isom_add_sample_fragment
@@ -580,6 +597,7 @@ EXPORTS
 ;	gf_isom_clone_sample_description
 ;	gf_isom_clone_track
 ;	gf_isom_clone_pl_indications
+;	gf_isom_clone_root_od
 ;	gf_isom_is_same_sample_description
 ;	gf_isom_add_chapter
 ;	gf_isom_remove_chapter
@@ -623,6 +641,7 @@ EXPORTS
 ;	gf_isom_3gp_config_update
 ;	gf_isom_new_text_description
 ;	gf_isom_new_text_sample
+;	gf_isom_delete_text_sample
 ;	gf_isom_text_reset
 ;	gf_isom_text_add_text
 ;	gf_isom_text_add_style
@@ -656,7 +675,13 @@ EXPORTS
 ;	gf_isom_extract_meta_xml
 ;	gf_isom_extract_meta_item
 ;	gf_isom_apple_set_tag
-
+;	gf_isom_get_next_alternate_group_id
+;	gf_isom_set_ipod_compatible
+;	gf_media_make_psp
+;	gf_isom_reset_switch_parameters
+;	gf_isom_reset_track_switch_parameter
+;	gf_isom_set_track_switch_parameter
+;	gf_isom_set_alternate_group_id
 ;end GPAC_READ_ONLY
 
 ;isomedia_dev.h exports
@@ -669,13 +694,13 @@ EXPORTS
 	gf_term_on_command
 	gf_term_on_sl_packet
 	gf_term_get_service_url
+	gf_term_add_media
 	gf_term_get_service_interface
 	gf_term_register_mime_type
 	gf_term_check_extension
 	gf_term_download_new
 	gf_term_download_del
 	gf_term_download_update_stats
-	gf_term_add_media
 	gf_term_scene_update
 	gf_term_process_step
 
@@ -698,6 +723,7 @@ EXPORTS
 	gf_rtsp_set_buffer_size
 	gf_rtsp_session_reset
 	gf_rtsp_is_my_session
+	gf_rtsp_get_last_session_id
 	gf_rtsp_get_server_name
 	gf_rtsp_get_service_name
 	gf_rtsp_get_response
@@ -712,6 +738,7 @@ EXPORTS
 	gf_rtsp_session_new_server
 	gf_rtsp_get_command
 	gf_rtsp_load_service_name
+	gf_rtsp_generate_session_id
 	gf_rtsp_send_response
 	gf_rtsp_get_session_ip
 	gf_rtsp_get_next_interleave_id
@@ -763,6 +790,7 @@ EXPORTS
 	gf_rtp_builder_init
 	gf_rtp_builder_process
 	gf_rtp_builder_format_sdp
+	gf_rtp_builder_get_payload_name
 	gf_rtp_depacketizer_new
 	gf_rtp_depacketizer_del
 	gf_rtp_depacketizer_reset
@@ -785,15 +813,17 @@ EXPORTS
 ;	gf_hinter_track_get_flags
 ;	gf_hinter_track_get_payload_name
 ;	gf_hinter_can_embbed_data
+;	gf_hinter_format_ttxt_sdp
 ;	gf_media_make_isma
 ;	gf_media_make_3gpp
 	gf_media_map_esd
-	gf_media_get_file_hash
-;	gf_rtp_packetizer_create_and_init_from_file
 ;	gf_media_import
 ;	gf_media_export
 ;	gf_media_fragment_file
 ;	gf_media_import_chapters
+;	gf_media_change_par
+	gf_media_get_file_hash
+;	gf_rtp_packetizer_create_and_init_from_file
 
 ;mcrypt exports
 	gf_crypt_open
@@ -802,6 +832,7 @@ EXPORTS
 	gf_crypt_decrypt
 	gf_crypt_encrypt
 	gf_crypt_set_state
+	gf_sha1_csum
 
 ;parsers_av.h exports
 	gf_m4v_parser_new
@@ -824,9 +855,9 @@ EXPORTS
 	gf_mp3_get_next_header
 	gf_mp3_get_next_header_mem
 	gf_m4a_get_config
+	gf_m4a_write_config
 	gf_m4a_object_type_name
 	gf_m4a_get_profile_name
-	gf_m4a_write_config 
 	gf_vorbis_parse_header
 	gf_vorbis_check_frame
 	gf_img_parse
@@ -843,12 +874,12 @@ EXPORTS
 	gf_ismacryp_gpac_get_info
 	gf_ismacryp_mpeg4ip_get_info
 	
-	;gf_streamer_new
-	;gf_streamer_del
-	;gf_streamer_write_sdp
-	;gf_streamer_get_sdp
-	;gf_streamer_send_next_packet
-	;gf_streamer_reset
+;	gf_streamer_new
+;	gf_streamer_del
+;	gf_streamer_write_sdp
+;	gf_streamer_get_sdp
+;	gf_streamer_send_next_packet
+;	gf_streamer_reset
 
 ;scene_manager.h exports
 	gf_sm_new
@@ -857,10 +888,11 @@ EXPORTS
 	gf_sm_stream_del
 	gf_sm_stream_au_new
 	gf_sm_make_random_access
+	gf_sm_reset
 	gf_sm_load_init
 	gf_sm_load_done
-	gf_sm_load_run
 	gf_sm_load_string
+	gf_sm_load_run
 	gf_sm_import_bifs_subtitle
 ;	gf_sm_dump
 ;	gf_sm_encode_to_file
@@ -878,6 +910,8 @@ EXPORTS
 
 ;bifsengine exports
 ;	gf_beng_init
+;	gf_beng_init_from_string
+;	gf_beng_init_from_context
 ;	gf_beng_get_stream_config
 ;	gf_beng_encode_context
 ;	gf_beng_encode_from_file
@@ -901,21 +935,16 @@ EXPORTS
 ;	gf_bifs_encoder_get_config
 ;	gf_bifs_encoder_get_version
 ;	gf_bifs_encoder_get_rap
-;	gf_bifs_encoder_set_trace
 ;	gf_bifs_get_aq_info
+;	gf_bifs_encoder_set_trace
 
 
 ;scenegraph.h and scenegraph_vrml.h exports
-	gf_node_list_add_child
-	gf_node_list_insert_child
-	gf_node_list_del_child
-	gf_node_list_find_child
-	gf_node_list_get_child
-	gf_node_list_get_count
 	gf_node_get_tag
 	gf_node_set_id
 	gf_node_get_name
 	gf_node_get_id
+	gf_node_get_name_and_id
 	gf_node_get_private
 	gf_node_set_private
 	gf_node_set_callback_function
@@ -928,6 +957,7 @@ EXPORTS
 	gf_node_replace_child
 	gf_node_event_out
 	gf_node_event_out_str
+	gf_node_allow_cyclic_traverse
 	gf_node_traverse
 	gf_node_traverse_children
 	gf_node_get_parent_count
@@ -942,11 +972,6 @@ EXPORTS
 	gf_node_get_graph
 	gf_node_init
 	gf_node_get_scene_time
-	gf_node_list_get_child
-	gf_node_list_get_count
-	gf_node_list_add_child
-	gf_node_list_del_child
-	gf_node_list_insert_child
 	gf_sg_new
 	gf_sg_new_subscene
 	gf_sg_set_scene_time_callback
@@ -966,7 +991,6 @@ EXPORTS
 	gf_node_changed
 	gf_node_new
 	gf_node_clone
-	gf_node_allow_cyclic_traverse
 	gf_sg_vrml_get_event_type_name
 	gf_sg_vrml_get_field_type_by_name
 	gf_sg_vrml_field_pointer_new
@@ -1038,8 +1062,20 @@ EXPORTS
 	gf_node_get_field_count
 	gf_node_mpeg4_type_by_class_name
 	gf_node_x3d_type_by_class_name
+	gf_x3d_get_node_type
 	gf_sg_mfurl_del
 	gf_sg_sfcolor_to_rgba
+	gf_node_list_add_child
+	gf_node_list_insert_child
+	gf_node_list_del_child
+	gf_node_list_find_child
+	gf_node_list_get_child
+	gf_node_list_get_count
+	gf_node_list_del_child_idx
+	gf_sg_js_get_node
+	gf_sg_js_event_add_listener
+	gf_sg_js_event_remove_listener
+	gf_sg_listener_post_add
 
 ;terminal.h exports
 	gf_term_new
@@ -1075,16 +1111,21 @@ EXPORTS
 	gf_term_attach_service
 	gf_term_set_simulation_frame_rate
 	gf_term_get_simulation_frame_rate
+	gf_term_step_clocks
+	gf_term_process_flush
 	gf_term_get_service_interface
+	gf_term_get_service_info
 	gf_term_get_text_selection
 	gf_term_paste_text
-	gf_term_get_service_info
 	gf_term_get_url
-
+	gf_term_connect_with_path
+	gf_mo_register
+	gf_mo_unregister
+	gf_mo_get_scenegraph
 	gf_term_send_event
 
 
-;renderer.h exports
+;compositor.h exports
 	gf_sc_new
 	gf_sc_del
 	gf_sc_set_fps
@@ -1161,6 +1202,15 @@ EXPORTS
 	gf_mo_get_last_frame_time
 	gf_clock_time
 
+;mpegts.h exports
+	gf_m2ts_demux_new
+	gf_m2ts_demux_del
+	gf_m2ts_process_data
+	gf_m2ts_reset_parsers
+	gf_m2ts_set_pes_framing
+	gf_m2ts_get_stream_name
+	gf_m2ts_crc32_check
+	gf_m2ts_decode_mjd_date
 
 ;laser.h exports
 	gf_laser_decoder_new
@@ -1179,22 +1229,23 @@ EXPORTS
 ;	gf_laser_set_trace
 
 ;SVG exports
+	gf_svg_parse_attribute
+	gf_svg_parse_style
+	gf_node_get_attribute_by_tag
 	gf_svg_create_attribute_value
 	gf_svg_delete_attribute_value
+	gf_svg_flatten_attributes
+	gf_svg_apply_inheritance
 	gf_svg_attributes_equal
 	gf_svg_attributes_copy
 	gf_svg_attributes_add
 	gf_svg_attributes_interpolate
 	gf_svg_attributes_muladd
-	gf_svg_parse_attribute
-	gf_svg_parse_style
 	gf_svg_properties_init_pointers
 	gf_svg_properties_reset_pointers
 	gf_svg_apply_animations
 	gf_svg_path_build
 	
-	gf_svg_flatten_attributes
-	gf_svg_apply_inheritance
 
 	gf_smil_timing_init_runtime_info
 	gf_smil_timing_get_normalized_simple_time
@@ -1203,24 +1254,11 @@ EXPORTS
 	gf_smil_set_media_duration
 	gf_smil_notify_timed_elements
 
-	gf_node_get_attribute_by_tag
 	gf_node_store_embedded_data
 	gf_node_register_iri
 	gf_node_unregister_iri
 
-	
-	gf_sg_js_get_node
-	gf_sg_js_event_add_listener
-	gf_sg_js_event_remove_listener
-	gf_sg_listener_post_add
-
-	
-;mpegts.h exports
-;	gf_m2ts_demux_new
-;	gf_m2ts_demux_del
-;	gf_m2ts_process_data
-;	gf_m2ts_reset_parsers
-;	gf_m2ts_set_pes_framing
-;	gf_m2ts_get_stream_name
-;	gf_m2ts_crc32_check
-;	gf_m2ts_decode_mjd_date
+	;gf_rtpm_new
+	;gf_rtpm_del
+	;gf_rtpm_send_data
+	;gf_rtpm_get_sdp

@@ -26,8 +26,8 @@ EXPORTS
 	gf_log_lt
 	gf_set_progress
 	gf_set_progress_callback
-	gf_temp_file_new
 	gf_delete_file
+	gf_temp_file_new
 	gf_f64_open
 	gf_f64_seek
 	gf_f64_tell
@@ -35,14 +35,6 @@ EXPORTS
 	gf_prompt_get_char
 	gf_prompt_set_echo_off
 	gf_crc_32
-
-
-	;gf_mulfix
-	;gf_divfix
-	;gf_muldiv
-	;gf_atan2
-	;gf_invfix
-	;gf_sqrt
 	gf_malloc
 	gf_realloc
 	gf_free
@@ -150,7 +142,6 @@ EXPORTS
 	gf_net_is_ipv6
 	gf_net_mobileip_set_callback
 
-
 ;base_coding.h exports
 	gf_base64_encode
 	gf_base64_decode
@@ -193,6 +184,7 @@ EXPORTS
 	gf_utf8_wcstombs
 	gf_utf8_mbstowcs
 	gf_utf8_wcslen
+	gf_utf8_is_right_to_left
 	gf_utf8_reorder_bidi
 
 ;download.h exports
@@ -202,6 +194,7 @@ EXPORTS
 	gf_dm_sess_get_cache_name
 	gf_dm_sess_get_stats
 	gf_dm_sess_fetch_data
+	gf_dm_sess_last_error
 
 ;xml.h exports
 	gf_xml_sax_new
@@ -227,10 +220,10 @@ EXPORTS
 	gf_xml_dom_get_line
 
 ;math.h exports
+;	gf_invfix
 ;	gf_mulfix
 ;	gf_muldiv
 ;	gf_divfix
-;	gf_invfix
 ;	gf_cos
 ;	gf_sin
 ;	gf_tan
@@ -262,6 +255,8 @@ EXPORTS
 	gf_mx2d_apply_coords
 	gf_mx2d_apply_point
 	gf_mx2d_apply_rect
+
+;exported for 3D tools
 	gf_vec_len
 	gf_vec_lensq
 	gf_vec_dot
@@ -327,7 +322,6 @@ EXPORTS
 	gf_cmx_multiply
 	gf_cmx_apply
 	gf_cmx_apply_fixed
-
 
 ;path2d.h exports
 	gf_path_new
@@ -717,12 +711,14 @@ EXPORTS
 	gf_term_on_sl_packet
 	gf_term_get_service_url
 	gf_term_add_media
+	gf_term_get_service_interface
 	gf_term_register_mime_type
 	gf_term_check_extension
 	gf_term_download_new
 	gf_term_download_del
 	gf_term_download_update_stats
 	gf_term_scene_update
+	gf_term_process_step
 	gf_term_get_screen_buffer
 	gf_term_release_screen_buffer
 
@@ -741,8 +737,8 @@ EXPORTS
 	gf_rtsp_response_reset
 	gf_rtsp_session_new
 	gf_rtsp_session_del
-	gf_rtsp_set_buffer_size
 	gf_rtsp_set_mobile_ip
+	gf_rtsp_set_buffer_size
 	gf_rtsp_session_reset
 	gf_rtsp_is_my_session
 	gf_rtsp_get_last_session_id
@@ -847,7 +843,6 @@ EXPORTS
 	gf_media_get_file_hash
 	gf_rtp_packetizer_create_and_init_from_file
 
-
 ;mcrypt exports
 	gf_crypt_open
 	gf_crypt_close
@@ -891,7 +886,6 @@ EXPORTS
 	gf_img_png_enc
 	gf_ac3_parser_bs
 
-
 ;ismacryp.h exports
 	gf_ismacryp_crypt_file
 	gf_ismacryp_decrypt_file
@@ -899,7 +893,6 @@ EXPORTS
 	gf_ismacryp_decrypt_track
 	gf_ismacryp_gpac_get_info
 	gf_ismacryp_mpeg4ip_get_info
-	
 	
 	gf_streamer_new
 	gf_streamer_del
@@ -1140,14 +1133,12 @@ EXPORTS
 	gf_term_get_simulation_frame_rate
 	gf_term_step_clocks
 	gf_term_process_flush
-	gf_term_process_step
 	gf_term_get_service_interface
 	gf_term_get_service_info
 	gf_term_get_text_selection
 	gf_term_paste_text
 	gf_term_get_url
 	gf_term_connect_with_path
-
 	gf_mo_register
 	gf_mo_unregister
 	gf_mo_get_scenegraph
@@ -1178,6 +1169,8 @@ EXPORTS
 	gf_sc_set_viewpoint
 	gf_sc_set_size
 	gf_sc_register_extra_graph
+	gf_sc_get_compositor
+	gf_sc_svg_convert_length_to_display
 
 ;render_dev.h exports
 	gf_sc_register_time_node
@@ -1198,8 +1191,6 @@ EXPORTS
 	gf_sc_audio_open
 	gf_sc_audio_stop
 	gf_sc_audio_restart
-	gf_sc_get_compositor
-	
 
 ;terminal_dev exports
 	gf_inline_new
@@ -1220,8 +1211,8 @@ EXPORTS
 	gf_odm_disconnect
 	gf_odm_setup_es
 	gf_odm_remove_es
-	gf_term_message
 	gf_term_node_callback
+	gf_term_message
 	gf_clock_time
 
 ;mpegts.h exports
@@ -1252,15 +1243,16 @@ EXPORTS
 
 ;SVG exports for SVG->BIFS
 	gf_svg_parse_attribute
-	gf_svg_parse_style	
+	gf_svg_parse_style
 	gf_node_get_attribute_by_tag
+	gf_svg_create_attribute_value
 	gf_svg_flatten_attributes
 	gf_svg_apply_inheritance
 	gf_svg_properties_init_pointers
 	gf_svg_properties_reset_pointers
 	gf_node_register_iri
 	gf_node_unregister_iri
-	gf_svg_create_attribute_value
+
 	;gf_rtpm_new
 	;gf_rtpm_del
 	;gf_rtpm_send_data
