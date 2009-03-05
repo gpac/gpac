@@ -487,7 +487,7 @@ EXPORTS
 	gf_isom_get_alternate_brand
 	gf_isom_has_padding_bits
 	gf_isom_get_visual_info
-;	gf_isom_get_pixel_aspect_ratio
+	gf_isom_get_pixel_aspect_ratio
 	gf_isom_get_audio_info
 	gf_isom_get_chapter_count
 	gf_isom_get_chapter
@@ -641,7 +641,7 @@ EXPORTS
 ;	gf_isom_3gp_config_update
 ;	gf_isom_new_text_description
 ;	gf_isom_new_text_sample
-;	gf_isom_delete_text_sample
+	gf_isom_delete_text_sample
 ;	gf_isom_text_reset
 ;	gf_isom_text_add_text
 ;	gf_isom_text_add_style
