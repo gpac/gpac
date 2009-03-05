@@ -904,7 +904,7 @@ static GFINLINE Bool is_match_obj_type(u32 type, u32 hint_type)
 	return 0;
 }
 
-GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref, Bool always_load_new, GF_Node *node)
+GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref, Bool force_new_if_not_attached, GF_Node *node)
 {
 	GF_MediaObject *obj;
 	Bool keep_fragment = 1;
@@ -913,30 +913,36 @@ GF_MediaObject *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u3
 	OD_ID = URL_GetODID(url);
 	if (!OD_ID) return NULL;
 
-	if (!always_load_new) {
-		obj = NULL;
-		i=0;
-		while ((obj = (GF_MediaObject *)gf_list_enum(is->media_objects, &i))) {
-			if (
-				/*regular OD scheme*/
-				(OD_ID != GF_MEDIA_EXTERNAL_ID && (obj->OD_ID==OD_ID)) 
-			||
-				/*dynamic OD scheme*/
-				((OD_ID == GF_MEDIA_EXTERNAL_ID) && (obj->OD_ID==GF_MEDIA_EXTERNAL_ID)
-					/*if object type unknown (media control, media sensor), return first obj matching URL
-					otherwise check types*/
-					&& is_match_obj_type(obj->type, obj_type_hint)
-					/*locate sub-url in given one and handle fragments (viewpoint/segments/...)*/
-					&& gf_mo_is_same_url_ex(obj, url, &keep_fragment, obj_type_hint) 
-				)
-			) {
-				
+	obj = NULL;
+	i=0;
+	while ((obj = (GF_MediaObject *)gf_list_enum(is->media_objects, &i))) {
+		if (
+			/*regular OD scheme*/
+			(OD_ID != GF_MEDIA_EXTERNAL_ID && (obj->OD_ID==OD_ID)) 
+		||
+			/*dynamic OD scheme*/
+			((OD_ID == GF_MEDIA_EXTERNAL_ID) && (obj->OD_ID==GF_MEDIA_EXTERNAL_ID)
+				/*if object type unknown (media control, media sensor), return first obj matching URL
+				otherwise check types*/
+				&& is_match_obj_type(obj->type, obj_type_hint)
+				/*locate sub-url in given one and handle fragments (viewpoint/segments/...)*/
+				&& gf_mo_is_same_url_ex(obj, url, &keep_fragment, obj_type_hint) 
+			)
+		) {
+			
+
+			if (!force_new_if_not_attached) {
 				if (node && (gf_list_find(obj->nodes, node)<0))
 					gf_list_add(obj->nodes, node);
 				return obj;
 			}
+			/*special case where the URL is requested twice for the same node: use the existing resource*/
+			else if (node && (gf_list_find(obj->nodes, node)>=0)) {
+				return obj;
+			}
 		}
 	}
+
 	/*we cannot create an OD manager at this point*/
 	if (obj_type_hint==GF_MEDIA_OBJECT_UNDEF) return NULL;
 

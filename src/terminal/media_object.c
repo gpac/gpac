@@ -143,6 +143,10 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines)
 	case TAG_SVG_image: 
 		obj_type = GF_MEDIA_OBJECT_VIDEO; 
 		break;
+	case TAG_SVG_foreignObject: 
+	case TAG_SVG_animation: 
+		obj_type = GF_MEDIA_OBJECT_SCENE; 
+		break;
 #endif
 
 	default: obj_type = GF_MEDIA_OBJECT_UNDEF; break;
