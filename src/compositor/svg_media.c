@@ -286,7 +286,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 			stack->audio_dirty = 1;
 		}
 
-		svg_play_texture(stack, &all_atts);
+		if (stack->txurl.count) svg_play_texture(stack, &all_atts);
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
 	}
 
@@ -499,7 +499,7 @@ static void svg_video_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
 		if (!stack->txh.is_open) { 
-			svg_play_texture((SVG_video_stack*)stack, NULL);
+			if (stack->txurl.count) svg_play_texture((SVG_video_stack*)stack, NULL);
 		}
 		else if (stack->txh.stream_finished && (gf_smil_get_media_duration(rti)<0) ) { 
 			Double dur = gf_mo_get_duration(stack->txh.stream);
@@ -578,15 +578,17 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
 		if (!stack->is_active) { 
-			SVGAllAttributes atts;
-			gf_svg_flatten_attributes((SVG_Element*) (video ? video : audio), &atts);
+			if (stack->aurl.count) {
+				SVGAllAttributes atts;
+				gf_svg_flatten_attributes((SVG_Element*) (video ? video : audio), &atts);
 
-			if (gf_sc_audio_open(&stack->input, &stack->aurl,
-					atts.clipBegin ? (*atts.clipBegin) : 0.0,
-					atts.clipEnd ? (*atts.clipEnd) : -1.0) == GF_OK) 
-			{
-				gf_mo_set_speed(stack->input.stream, FIX_ONE);
-				stack->is_active = 1;
+				if (gf_sc_audio_open(&stack->input, &stack->aurl,
+						atts.clipBegin ? (*atts.clipBegin) : 0.0,
+						atts.clipEnd ? (*atts.clipEnd) : -1.0) == GF_OK) 
+				{
+					gf_mo_set_speed(stack->input.stream, FIX_ONE);
+					stack->is_active = 1;
+				}
 			}
 		}
 		else if (!slave_audio && stack->input.stream_finished && (gf_smil_get_media_duration(rti) < 0) ) { 
