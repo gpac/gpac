@@ -2746,7 +2746,7 @@ GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if
 /* Parse an SVG attribute */
 GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type)
 {
-	if (info->fieldType != DOM_String_datatype) {
+	if (info->fieldType != DOM_String_datatype && strlen(attribute_content)) {
 		u32 i, len;
 		/*remove spaces at the begining*/
 		while (strchr("\r\n\t ", attribute_content[0])) 
