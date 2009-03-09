@@ -110,13 +110,25 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	if (!rad) rad = strstr(parentName, "%3Fpath=");
 	if (!rad) rad = strstr(parentName, "?path=");
 	if (rad) {
+		char *the_path;
 		rad = strchr(rad, '=');
 		rad[0] = 0;
-		name = gf_url_concatenate(rad+1, pathName);
+		the_path = strdup(rad+1);
+		i=0;
+		while (1) {
+			if (the_path[i]==0) break;
+			if (!strnicmp(the_path+i, "%5c", 3)) {
+				the_path[i] = '/';
+				memmove(the_path+i+1, the_path+i+3, strlen(the_path+i+3)+1);
+			}
+			i++;
+		}
+		name = gf_url_concatenate(the_path, pathName);
 		outPath = malloc(strlen(parentName) + strlen(name) + 2);
 		sprintf(outPath, "%s=%s", parentName, name);
 		rad[0] = '=';
 		free(name);
+		free(the_path);
 		return outPath;
 	}
 

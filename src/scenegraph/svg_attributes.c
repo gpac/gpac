@@ -2749,7 +2749,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	if (info->fieldType != DOM_String_datatype && strlen(attribute_content)) {
 		u32 i, len;
 		/*remove spaces at the begining*/
-		while (strchr("\r\n\t ", attribute_content[0])) 
+		while (attribute_content[0] && (strchr("\r\n\t ", attribute_content[0]))) 
 			attribute_content++;
 
 		/*change all special chars in spaces*/

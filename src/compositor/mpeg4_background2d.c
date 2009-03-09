@@ -99,11 +99,12 @@ static Bool back_use_texture(M_Background2D *bck)
 
 static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state)
 {
+
 	Background2DStack *stack = (Background2DStack *) gf_node_get_private(ctx->drawable->node);
 
 	if (!ctx->bi->clip.width || !ctx->bi->clip.height) return;
 
-	ctx->flags &= ~CTX_PATH_FILLED;
+	stack->flags &= ~CTX_PATH_FILLED;
 
 	if (back_use_texture((M_Background2D *)ctx->drawable->node)) {
 
@@ -118,9 +119,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 			/*draw texture*/
 			visual_2d_texture_path(tr_state->visual, stack->drawable->path, ctx, tr_state);
 		}
-		/*if (stack->txh.hwtx) ctx->flags |= CTX_APP_DIRTY;
-		else */
-		ctx->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
+		stack->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
 	} else {
 		
 		/*direct drawing, draw without clippers */
@@ -142,7 +141,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 				}
 			}
 		}
-		ctx->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
+		stack->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
 	}
 	tr_state->visual->has_modif = 1;
 }
@@ -299,21 +298,22 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 	if (!status) return;
 
 	if (gf_node_dirty_get(node)) {
-		status->ctx.flags |= CTX_APP_DIRTY;
+		stack->flags |= CTX_APP_DIRTY;
 		gf_node_dirty_clear(node, 0);
 
 
 		col = GF_COL_ARGB_FIXED(FIX_ONE, bck->backColor.red, bck->backColor.green, bck->backColor.blue);
 		if (col != status->ctx.aspect.fill_color) {
 			status->ctx.aspect.fill_color = col;
-			status->ctx.flags |= CTX_APP_DIRTY;
+			stack->flags |= CTX_APP_DIRTY;
 		}
 	} 
 
 	if (back_use_texture(bck) ) {
 		if (stack->txh.tx_io && !(status->ctx.flags & CTX_APP_DIRTY) && stack->txh.needs_refresh) 
-			status->ctx.flags |= CTX_TEXTURE_DIRTY;
+			stack->flags |= CTX_TEXTURE_DIRTY;
 	}
+	status->ctx.flags = stack->flags;
 
 
 	if (tr_state->traversing_mode != TRAVERSE_BINDABLE) return;
@@ -371,6 +371,7 @@ void compositor_init_background2d(GF_Compositor *compositor, GF_Node *node)
 	gf_sc_texture_setup(&ptr->txh, compositor, node);
 	ptr->txh.update_texture_fcnt = UpdateBackgroundTexture;
 	ptr->txh.flags = GF_SR_TEXTURE_REPEAT_S | GF_SR_TEXTURE_REPEAT_T;
+	ptr->flags = CTX_IS_BACKGROUND;
 
 	gf_node_set_private(node, ptr);
 	gf_node_set_callback_function(node, TraverseBackground2D);

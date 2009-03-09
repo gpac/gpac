@@ -436,7 +436,7 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 				if (tr_state->visual->type_3d) {
 					if (!drawable->mesh) {
 						drawable->mesh = new_mesh();
-						mesh_from_path(drawable->mesh, drawable->path);
+						if (drawable->path) mesh_from_path(drawable->mesh, drawable->path);
 					}
 					visual_3d_draw_from_context(ctx, tr_state);
 					ctx->drawable = NULL;

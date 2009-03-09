@@ -200,6 +200,15 @@ void gf_dom_listener_process_add(GF_SceneGraph *sg)
 	gf_list_reset(sg->listeners_to_add);
 }
 
+void gf_dom_listener_reset_defered(GF_SceneGraph *sg)
+{
+	while (gf_list_count(sg->listeners_to_add)) {
+		DOMAddListener *l = (DOMAddListener *)gf_list_get(sg->listeners_to_add, 0);
+		gf_list_rem(sg->listeners_to_add, 0);
+		free(l);
+	}
+}
+
 void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY

@@ -95,7 +95,7 @@ typedef struct
 	GF_Mesh *mesh;
 	GF_BBox prev_bounds;
 #endif
-
+	u32 flags;
 } Background2DStack;
 
 #ifndef GPAC_DISABLE_3D
@@ -118,6 +118,7 @@ typedef struct
 {
 	GF_Compositor *compositor;
 	u32 last_mod_time;
+	Bool is_dirty;
 } LinePropStack;
 void compositor_init_lineprops(GF_Compositor *compositor, GF_Node *node);
 

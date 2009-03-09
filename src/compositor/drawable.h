@@ -287,8 +287,6 @@ typedef struct _strikeinfo2d
 	Drawable *drawable;
 	/*lineprops used to build outline (MPEG-4 only)*/
 	GF_Node *lineProps;
-	/*last modif time of the lineprops node*/
-	u32 last_update_time;
 	/*user+world->local scaling for non-scalable outlines*/
 	Fixed line_scale;
 	/*SVG path length*/
