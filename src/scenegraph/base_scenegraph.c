@@ -317,7 +317,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 	}
 
 	/*flush any pending add_listener*/
-	gf_dom_listener_process_add(sg);
+	gf_dom_listener_reset_defered(sg);
 #endif
 
 	while (gf_list_count(sg->routes_to_activate)) {

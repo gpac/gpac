@@ -156,7 +156,10 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 
 #ifdef WIN32
 	ModuleLib = LoadLibrary(item_path);
-	if (!ModuleLib) return 0;
+	if (!ModuleLib) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s\n", item_name));
+		return 0;
+	}
 
 #ifdef _WIN32_WCE
 	query_func = (QueryInterface) GetProcAddress(ModuleLib, _T("QueryInterface"));

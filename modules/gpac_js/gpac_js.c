@@ -267,30 +267,29 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 	cbk.c = c;
 	cbk.array = JS_NewArrayObject(c, 0, 0);
 
-	if (!dir_only) {
-		cbk.is_dir = 1;
-		err = gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
-		if (err==GF_IO_ERR) {
-			GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
-			/*try to concatenate with service url*/
-			char *an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
-			free(url);
-			url = an_url;
-			gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
-		}
-	}
-
-	cbk.is_dir = 0;
-	err = gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
-	if (dir_only && (err==GF_IO_ERR)) {
+	cbk.is_dir = 1;
+	err = gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
+	if (err==GF_IO_ERR) {
 		GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 		/*try to concatenate with service url*/
 		char *an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
 		free(url);
 		url = an_url;
-		gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, filter);
+		gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
 	}
 
+	if (!dir_only) {
+		cbk.is_dir = 0;
+		err = gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
+		if (dir_only && (err==GF_IO_ERR)) {
+			GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
+			/*try to concatenate with service url*/
+			char *an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
+			free(url);
+			url = an_url;
+			gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
+		}
+	}
 
 	*rval = OBJECT_TO_JSVAL(cbk.array);
 	if (url) free(url);

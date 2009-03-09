@@ -159,6 +159,9 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 			dd->systems_memory = 1;
 		}
 	}
+	if (dd->systems_memory) dr->hw_caps &= ~GF_VIDEO_HW_HAS_RGB;
+	else  dr->hw_caps |= GF_VIDEO_HW_HAS_RGB;
+
 
 	ddsd.dwWidth = Width;
 	ddsd.dwHeight = Height;

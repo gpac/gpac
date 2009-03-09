@@ -358,7 +358,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during overlay blit - trying with soft one\n"));
 		visual->compositor->skip_flush = 0;
 	}
-	
+
 	/*most graphic cards can't perform bliting on locked surface - force unlock by releasing the hardware*/
 	visual_2d_release_raster(visual);
 
@@ -395,7 +395,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
 {
 	u8 alpha = 0xFF;
-	
 
 	if (!ctx->aspect.fill_texture) return 1;
 	/*check if texture is ready*/

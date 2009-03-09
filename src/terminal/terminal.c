@@ -732,6 +732,7 @@ void gf_term_handle_services(GF_Terminal *term)
 
 	/*play ODs that need it*/
 	while (gf_list_count(term->media_queue)) {
+		Bool destroy = 0;
 		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(term->media_queue, 0);
 		gf_list_rem(term->media_queue, 0);
 		/*unlock net before sending play/pause*/
@@ -739,10 +740,11 @@ void gf_term_handle_services(GF_Terminal *term)
 
 		switch (odm->action_type) {
 		case GF_ODM_ACTION_STOP:
-			if ((odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID) 
-			&& odm->codec 
-			&& odm->codec->CB 
-			&& (odm->codec->CB->Capacity==1)) {
+			if (odm->codec && odm->codec->CB  && (odm->codec->CB->Capacity==1)) {
+				if (odm->mo->OD_ID==GF_MEDIA_EXTERNAL_ID) destroy = 1;
+				else if (odm->OD && (odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID)) destroy = 1;
+			}
+			if (destroy) {
 				gf_odm_disconnect(odm, 2);
 			} else {
 				gf_odm_stop(odm, 0);

@@ -459,6 +459,21 @@ void drawctx_update_info(DrawableContext *ctx, GF_VisualManager *visual)
 	//if (ctx->flags & CTX_HAS_APPEARANCE) gf_node_dirty_reset(ctx->appear);
 }
 
+static Bool drawable_lineprops_dirty(GF_Node *node)
+{
+	LinePropStack *st = (LinePropStack *)gf_node_get_private(node);
+	if (!st) return 0;
+
+	if (st->compositor->current_frame == st->last_mod_time) return st->is_dirty;
+	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
+		gf_node_dirty_clear(node, 0);
+		st->is_dirty = 1;
+	} else {
+		st->is_dirty = 0;
+	}
+	st->last_mod_time = st->compositor->current_frame;
+	return st->is_dirty;
+}
 
 u32 drawable_get_aspect_2d_mpeg4(GF_Node *node, DrawAspect2D *asp, GF_TraverseState *tr_state)
 {
@@ -547,7 +562,7 @@ check_default:
 		asp->pen_props.width = 0;
 		return 0;
 	}
-	if (m->lineProps && gf_node_dirty_get(m->lineProps)) 
+	if (m->lineProps && drawable_lineprops_dirty(m->lineProps)) 
 		ret = CTX_APP_DIRTY;
 
 	if (LP) {
@@ -616,7 +631,8 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	ctx->drawable = drawable;
 
 	/*usually set by colorTransform or changes in OrderedGroup*/
-	if (tr_state->invalidate_all) ctx->flags |= CTX_APP_DIRTY;
+	if (tr_state->invalidate_all) 
+		ctx->flags |= CTX_APP_DIRTY;
 
 	ctx->aspect.fill_texture = NULL;
 	if (tr_state->appear) {
@@ -921,22 +937,12 @@ void delete_strikeinfo2d(StrikeInfo2D *info)
 	free(info);
 }
 
-static u32 drawable_get_lineprops_last_update_time(GF_Node *node)
-{
-	LinePropStack *st = (LinePropStack *)gf_node_get_private(node);
-	if (!st) return 0;
-	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
-		st->last_mod_time ++;
-		gf_node_dirty_clear(node, 0);
-	}
-	return st->last_mod_time;
-}
 
 StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawable, DrawAspect2D *asp, GF_Node *appear, GF_Path *path, u32 svg_flags, GF_TraverseState *tr_state)
 {
 	StrikeInfo2D *si, *prev;
 	GF_Node *lp;
-	u32 now;
+	Bool dirty;
 	if (!asp->pen_props.width) return NULL;
 	if (path && !path->n_points) return NULL;
 
@@ -993,12 +999,11 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 	if (!asp->line_scale) return si;
 
 	/*node changed or outline not build*/
-	now = lp ? drawable_get_lineprops_last_update_time(lp) : si->last_update_time;
-	if (!si->outline || (now!=si->last_update_time) || (si->line_scale != asp->line_scale) || (si->path_length != asp->pen_props.path_length) || (svg_flags & CTX_SVG_OUTLINE_GEOMETRY_DIRTY)) {
+	dirty = lp ? drawable_lineprops_dirty(lp) : 0;
+	if (!si->outline || dirty || (si->line_scale != asp->line_scale) || (si->path_length != asp->pen_props.path_length) || (svg_flags & CTX_SVG_OUTLINE_GEOMETRY_DIRTY)) {
 		u32 i;
 		Fixed w = asp->pen_props.width;
 		Fixed dash_o = asp->pen_props.dash_offset;
-		si->last_update_time = now;
 		si->line_scale = asp->line_scale;
 		if (si->outline) gf_path_del(si->outline);
 #ifndef GPAC_DISABLE_3D
@@ -1113,7 +1118,7 @@ void compositor_init_lineprops(GF_Compositor *compositor, GF_Node *node)
 {
 	LinePropStack *st = (LinePropStack *)malloc(sizeof(LinePropStack));
 	st->compositor = compositor;
-	st->last_mod_time = 1;
+	st->last_mod_time = 0;
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, DestroyLineProps);
 }
