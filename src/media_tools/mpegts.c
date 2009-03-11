@@ -26,6 +26,13 @@
 #include <gpac/constants.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/math.h>
+#include <string.h>
+
+#define GPAC_ENST_PRIVATE
+
+#ifdef GPAC_ENST_PRIVATE
+#include <gpac/enst/dvb_mpe.h>
+#endif
 
 #define DEBUG_TS_PACKET 0
 
@@ -47,7 +54,8 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 	case GF_M2TS_SUBTITLE_DVB: return "DVB Subtitle";
 	case GF_M2TS_SYSTEMS_MPEG4_PES: return "MPEG-4 SL (PES)";
 	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS: return "MPEG-4 SL (Section)";
-		
+	case GF_M2TS_MPE_SECTIONS: return "MPE (Section)";
+
 	default: return "Unknown";
 	}
 }
@@ -545,9 +553,16 @@ static void gf_m2ts_section_filter_del(GF_M2TS_SectionFilter *sf)
 void gf_m2ts_es_del(GF_M2TS_ES *es)
 {
 	gf_list_del_item(es->program->streams, es);
+
 	if (es->flags & GF_M2TS_ES_IS_SECTION) {
 		GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
 		if (ses->sec) gf_m2ts_section_filter_del(ses->sec);
+		
+#ifdef GPAC_ENST_PRIVATE
+		if (es->flags & GF_M2TS_ES_IS_MPE)
+			gf_dvb_mpe_section_del(es);
+#endif
+
 	} else if (es->pid!=es->program->pmt_pid) {
 		GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 		if (pes->data) free(pes->data);
@@ -572,16 +587,19 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 	if (sec->had_error) return;
 
 	if (!sec->process_section) {	
-
-		if (ts->on_event) {
+		if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
-			pck.data = (unsigned char*)malloc(sizeof(unsigned char)*pck.data_len);
-			memcpy(pck.data, sec->section, sizeof(unsigned char)*pck.data_len);
-			//pck.data[pck.data_len] = 0;
+			pck.data = sec->section;
+			pck.stream = (GF_M2TS_ES *)ses;
+			ts->on_mpe_event(ts, GF_M2TS_EVT_DVB_MPE, &pck);		
+		} 
+		else if (ts->on_event) {
+			GF_M2TS_SL_PCK pck;
+			pck.data_len = sec->length;
+			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_event(ts, GF_M2TS_EVT_DVB_GENERAL, &pck);
-			free(pck.data);
 		}
 	} else {
 		Bool has_syntax_indicator;
@@ -602,14 +620,10 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		if ((table_id == GF_M2TS_TABLE_ID_PMT || table_id == GF_M2TS_TABLE_ID_NIT_ACTUAL) && ts->on_event) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
-			pck.data = (unsigned char*)malloc(sizeof(unsigned char)*pck.data_len);
-			memcpy(pck.data, sec->section, sizeof(unsigned char)*pck.data_len);
-			//pck.data[pck.data_len] = 0;
+			pck.data = sec->section;
 			pck.stream = (GF_M2TS_ES *)ses;
 			ts->on_event(ts, GF_M2TS_EVT_DVB_GENERAL, &pck);
-			free(pck.data);
 		}	
-		
 
 		has_syntax_indicator = (data[1] & 0x80) ? 1 : 0;
 		if (has_syntax_indicator) {
@@ -727,6 +741,7 @@ static Bool gf_m2ts_is_long_section(u8 table_id)
 	case GF_M2TS_TABLE_ID_ST:
 	case GF_M2TS_TABLE_ID_SIT:
 	case GF_M2TS_TABLE_ID_DSM_CC_PRIVATE:
+	case GF_M2TS_TABLE_ID_MPE_FEC:
 		return 1;
 	default:
 		if (table_id >= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MIN && table_id <= GF_M2TS_TABLE_ID_EIT_SCHEDULE_MAX) 
@@ -1083,6 +1098,29 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				}
 				break;
 
+			case GF_M2TS_13818_6_ANNEX_D:
+			case GF_M2TS_PRIVATE_SECTION:
+				GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
+				es = (GF_M2TS_ES *)ses;
+				es->flags |= GF_M2TS_ES_IS_SECTION;
+				if (stream_type == GF_M2TS_13818_6_ANNEX_D) 
+					printf("stream type DSM CC user private section: pid = %d \n", pid);
+				else 
+					printf("unknown private section: pid = %d \n", pid);
+				/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
+				ses->sec = gf_m2ts_section_filter_new(NULL, 1);
+				break;
+
+			case GF_M2TS_MPE_SECTIONS:
+				printf("stream type MPE found : pid = %d \n", pid);
+#ifdef GPAC_ENST_PRIVATE
+				es = gf_dvb_mpe_section_new();
+				if (es->flags & GF_M2TS_ES_IS_SECTION) {
+					/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
+					((GF_M2TS_SECTION_ES*)es)->sec = gf_m2ts_section_filter_new(NULL, 1);
+				}
+#endif
+				break;
 
 			default:
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
@@ -1094,6 +1132,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			es->stream_type = stream_type; 
 			es->program = pmt->program;
 			es->pid = pid;
+			es->component_tag = -1;
 		}
 
 		pos += 5;
@@ -1127,6 +1166,12 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 						pes->sub.type = data[5];
 						pes->sub.composition_page_id = (data[6]<<8) | data[7];
 						pes->sub.ancillary_page_id = (data[8]<<8) | data[9];						
+					}
+					break;
+				case GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR: 
+					{
+						es->component_tag = data[2];
+						printf("Component Tag: %d on Program %d\n", es->component_tag, es->program->number);
 					}
 					break;
 				default:
@@ -1685,6 +1730,11 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit, 0);
 	ts->eit = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_eit*/, 1);
 	ts->tdt_tot_st = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_tdt_tot_st*/, 1);
+
+#ifdef GPAC_ENST_PRIVATE
+	gf_dvb_mpe_init(ts);
+#endif
+
 	return ts;
 }
 
@@ -1718,5 +1768,17 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	gf_m2ts_reset_sdt(ts);
 	gf_list_del(ts->SDTs);
 
+#ifdef GPAC_ENST_PRIVATE
+	gf_dvb_mpe_shutdown(ts);
+#endif
+
 	free(ts);
 }
+
+void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
+{
+#ifdef GPAC_ENST_PRIVATE
+	gf_m2ts_print_mpe_info(ts);
+#endif
+}
+
