@@ -5025,9 +5025,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		/*abort upon first PMT repeat if not using 4on2. Otherwise we must parse the entire
 		bitstream to locate ODs sent in OD updates in order to get their stream types...*/
 		if (!ts->has_4on2 && (import->flags & GF_IMPORT_PROBE_ONLY) && !import->trackID) 
-			import->flags |= GF_IMPORT_DO_ABORT;
+			//import->flags |= GF_IMPORT_DO_ABORT;
 		break;
-	case GF_M2TS_EVT_SDT_FOUND:
+	/*case GF_M2TS_EVT_SDT_FOUND:
 		import->nb_progs = gf_list_count(ts->SDTs);
 		for (i=0; i<import->nb_progs; i++) {
 			GF_M2TS_SDT *sdt = (GF_M2TS_SDT *)gf_list_get(ts->SDTs, i);
@@ -5035,8 +5035,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			import->pg_info[i].number = sdt->service_id;
 		}
 		if (!ts->has_4on2 && import->flags & GF_IMPORT_PROBE_ONLY) 
-			import->flags |= GF_IMPORT_DO_ABORT;
-		break;
+			//import->flags |= GF_IMPORT_DO_ABORT;
+		break;*/
 	case GF_M2TS_EVT_PMT_FOUND:
 		prog = (GF_M2TS_Program*)par;
 
@@ -5238,7 +5238,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					}
 				}
 				if (!ts->has_4on2 && (import->trackID==pck->stream->pid) && (pck->stream->vid_h || pck->stream->aud_sr) ) 
-					import->flags |= GF_IMPORT_DO_ABORT;
+					//import->flags |= GF_IMPORT_DO_ABORT;
 				return;
 			}
 
@@ -5376,11 +5376,11 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				e = gf_isom_add_sample(import->dest, tsimp->track, 1, samp);
 				if (e) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error adding sample: %s\n", gf_error_to_string(e)));
-					import->flags |= GF_IMPORT_DO_ABORT;
+					//import->flags |= GF_IMPORT_DO_ABORT;
 					import->last_error = e;
 				}
 				if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90))
-					import->flags |= GF_IMPORT_DO_ABORT;
+					//import->flags |= GF_IMPORT_DO_ABORT;
 
 				if (pck->flags & GF_M2TS_PES_PCK_I_FRAME) tsimp->nb_i++;
 				if (pck->flags & GF_M2TS_PES_PCK_P_FRAME) tsimp->nb_p++;
@@ -5506,8 +5506,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						if (e) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] Error adding sample\n"));
 						}
-						if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90))
-							import->flags |= GF_IMPORT_DO_ABORT;
+						if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90)) {
+							//import->flags |= GF_IMPORT_DO_ABORT;
+						}
 
 					} else {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] negative time sample - skipping\n"));
@@ -5523,11 +5524,8 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			}
 		}
 		break;
-	default:
-		return;
 	}
 }
-
 /* Warning: we start importing only after finding the PMT */
 GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 {
@@ -5557,6 +5555,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	ts->on_event = on_m2ts_import_data;
 	ts->user = &tsimp;
 
+	ts->dvb_h_demux = (import->flags & GF_IMPORT_MPE_DEMUX) ? 1 : 0;
+
 	sprintf(progress, "Importing MPEG-2 TS (PID %d)", import->trackID);
 	while (!feof(mts)) {
 		size = fread(data, 1, 188, mts);
@@ -5564,8 +5564,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 
 		gf_m2ts_process_data(ts, data, size);
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
-		done += size;
-		gf_set_progress(progress, (u32) (done/1024), (u32) (fsize/1024));
+		done += size;		
+		gf_set_progress(progress, (u32) (done/1024), (u32) (fsize/1024));		
 	}
 	if (import->last_error) {
 		GF_Err e = import->last_error;
@@ -5577,6 +5577,10 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	}
 	import->esd = NULL;
 	gf_set_progress(progress, (u32) (fsize/1024), (u32) (fsize/1024));
+	
+	if (! (import->flags & GF_IMPORT_MPE_DEMUX)) {
+		gf_m2ts_print_info(ts);
+	}
 
 	if (!(import->flags & GF_IMPORT_PROBE_ONLY)) {
 		es = (GF_M2TS_ES *)ts->ess[import->trackID];
@@ -5594,6 +5598,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			gf_isom_set_track_layout_info(import->dest, tsimp.track, w<<16, h<<16, 0, 0, 0);
 			gf_odf_avc_cfg_del(tsimp.avccfg);
 		}
+
+		
 
 		MP4T_RecomputeBitRate(import->dest, tsimp.track);
 		/* creation of the edit lists */
