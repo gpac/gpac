@@ -28,8 +28,6 @@
 #include <gpac/math.h>
 #include <string.h>
 
-#define GPAC_ENST_PRIVATE
-
 #ifdef GPAC_ENST_PRIVATE
 #include <gpac/enst/dvb_mpe.h>
 #endif

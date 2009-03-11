@@ -74,6 +74,8 @@ enum
 	GF_IMPORT_OVERRIDE_FPS = 1<<22,
 	/*only set when probing, signals duration not usable*/
 	GF_IMPORT_NO_DURATION = 1<<23,
+	/*when set IP packets found in MPE sections will be sent to the local network */
+	GF_IMPORT_MPE_DEMUX = 1<<24,
 	/*when set by user during import, will abort*/
 	GF_IMPORT_DO_ABORT = 1<<31
 };

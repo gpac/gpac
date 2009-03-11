@@ -69,6 +69,8 @@ void dump_mpeg2_ts(char *mpeg2ts_in, char *pes_out_name);
 
 
 Bool quiet = 0;
+Bool dvbhdemux =0;
+
 
 /*some global vars for swf import :(*/
 u32 swf_flags = 0;
@@ -396,6 +398,7 @@ void PrintExtractUsage()
 			" -aviraw TK:          extracts AVI track in raw format\n"
 			"                      $TK can be one of \"video\" \"audio\" \"audioN\"\n" 
 			" -saf:                remux file to SAF multiplex\n"
+			" -dvbhdemux:          demux DVB-H file into IP Datagrams\n"
 			"                       * Note: can be used when encoding scene descriptions\n"
 			"\n");
 }
@@ -1157,6 +1160,11 @@ int main(int argc, char **argv)
 				info_track_id=0;
 			}
 		}
+		/*******************************************************************************/
+		else if (!stricmp(arg, "-dvbhdemux")) {
+			dvbhdemux = 1;
+		}
+		/********************************************************************************/
 		else if (!stricmp(arg, "-raw")) {
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_NATIVE;
@@ -1896,7 +1904,7 @@ int main(int argc, char **argv)
 	if (dump_mode == 1 + GF_SM_DUMP_SVG) {
 		if (strstr(inName, ".srt") || strstr(inName, ".ttxt")) import_subtitle = 2;
 	}
-
+	
 	if (import_subtitle && !trackID) {
 #ifndef GPAC_READ_ONLY
 		GF_MediaImporter import;
@@ -2099,6 +2107,24 @@ int main(int argc, char **argv)
 			} 
 #ifndef GPAC_READ_ONLY
 			else if (!open_edit && file_exists /* && !gf_isom_probe_file(inName) */ && !dump_mode) {
+		/*************************************************************************************************/
+				if(dvbhdemux)
+				{
+					GF_MediaImporter import;
+					file = gf_isom_open("ttxt_convert", GF_ISOM_OPEN_WRITE, NULL);
+					memset(&import, 0, sizeof(GF_MediaImporter));
+					import.dest = file;
+					import.in_name = inName;
+					import.flags = GF_IMPORT_MPE_DEMUX;
+					e = gf_media_import(&import);
+					if (e) {
+						fprintf(stdout, "Error importing %s: %s\n", inName, gf_error_to_string(e));
+						gf_isom_delete(file);
+						gf_delete_file("ttxt_convert");
+						return 1;
+					}
+				}
+
 				if (dump_m2ts) {
 					dump_mpeg2_ts(inName, pes_dump);
 				} else {
@@ -2106,6 +2132,8 @@ int main(int argc, char **argv)
 				}
 				return 0;
 			}
+				
+		
 #endif
 			else if (open_edit) {
 				file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, tmpdir);

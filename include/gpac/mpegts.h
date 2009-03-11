@@ -28,10 +28,12 @@
 
 #include <gpac/list.h>
 #include <gpac/internal/odf_dev.h>
+#include <gpac/network.h>
 
 typedef struct tag_m2ts_demux GF_M2TS_Demuxer;
 typedef struct tag_m2ts_es GF_M2TS_ES;
 typedef struct tag_m2ts_section_es GF_M2TS_SECTION_ES;
+
 
 /*Maximum number of streams in a TS*/
 #define GF_M2TS_MAX_STREAMS	8192
@@ -45,6 +47,14 @@ enum
 	GF_M2TS_AUDIO_MPEG2				= 0x04, 
 	GF_M2TS_PRIVATE_SECTION			= 0x05,
 	GF_M2TS_PRIVATE_DATA			= 0x06,
+	GF_M2TS_MHEG					= 0x07,
+	GF_M2TS_13818_1_DSMCC			= 0x08,
+	GF_M2TS_H222_1					= 0x09,
+	GF_M2TS_13818_6_ANNEX_A			= 0x0A,
+	GF_M2TS_13818_6_ANNEX_B			= 0x0B,
+	GF_M2TS_13818_6_ANNEX_C			= 0x0C,
+	GF_M2TS_13818_6_ANNEX_D			= 0x0D,
+	GF_M2TS_13818_1_AUXILIARY		= 0x0E,
 	GF_M2TS_AUDIO_AAC				= 0x0F,
 	GF_M2TS_VIDEO_MPEG4				= 0x10,
 	GF_M2TS_AUDIO_LATM_AAC			= 0x11,
@@ -56,7 +66,9 @@ enum
 
 	GF_M2TS_AUDIO_AC3				= 0x81,
 	GF_M2TS_AUDIO_DTS				= 0x8A,
+	GF_M2TS_MPE_SECTIONS            = 0x90,
 	GF_M2TS_SUBTITLE_DVB			= 0x100,
+	
 };
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);
@@ -141,6 +153,8 @@ enum
 #endif
 	/* A generic event message for EIT, TDT, TOT etc */
 	GF_M2TS_EVT_DVB_GENERAL,
+	/* MPE / MPE-FEC frame extraction and IP datagrams decryptation */
+	GF_M2TS_EVT_DVB_MPE,
 };
 
 enum
@@ -242,6 +256,8 @@ enum
 	GF_M2TS_ES_IS_SL = 1<<2,
 	/*ES is an mpeg-4 Object Descriptor SL-packetized stream*/
 	GF_M2TS_ES_IS_MPEG4_OD = 1<<3,
+	/*ES is a DVB MPE stream*/
+	GF_M2TS_ES_IS_MPE = 1<<4,
 	
 	/*all flags above this mask are used by importers & co*/
 	GF_M2TS_ES_STATIC_FLAGS_MASK = 0x0000FFFF,
@@ -257,6 +273,7 @@ enum
 			u32 pid; \
 			u32 stream_type; \
 			u32 mpeg4_es_id; \
+			s16 component_tag; \
 			void *user; \
 			u64 first_dts;
 
@@ -265,20 +282,22 @@ struct tag_m2ts_es
 	ABSTRACT_ES
 };
 
-/*INT object*/
-typedef struct
+
+typedef struct 
 {
-	u32 id;
-} GF_M2TS_INT;
+	u8 id;
+	u16 pck_len;
+	u8 data_alignment;
+	u64 PTS, DTS;
+	u8 hdr_data_len;
+} GF_M2TS_PESHeader;
 
 struct tag_m2ts_section_es
 {
 	ABSTRACT_ES
 	GF_M2TS_SectionFilter *sec;
-
-	/* MPE Frame object, MPE-FEC related data */
-	GF_M2TS_INT *ip_mac_not_table;	
 };			
+
 
 /*******************************************************************************/
 typedef struct tag_m2ts_dvb_sub
@@ -466,16 +485,18 @@ struct tag_m2ts_demux
 	/*default transport PID filters*/
 	GF_M2TS_SectionFilter *pat, *nit, *sdt, *eit, *tdt_tot_st;
 
-	/* Structure to hold all the INT tables if the TS contains IP streams */
-	GF_List *ip_mac_not_tables;
-	
 	Bool has_4on2;
 	/* analyser */
 	FILE *pes_out;
 
 
-};
+	Bool dvb_h_demux;
+	/*user callback - MUST NOT BE NULL*/
+	void (*on_mpe_event)(struct tag_m2ts_demux *ts, u32 evt_type, void *par);
+	/* Structure to hold all the INT tables if the TS contains IP streams */
+	struct __gf_dvb_mpe_ip_platform *ip_platform;
 
+};
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();
 void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts);
@@ -483,21 +504,28 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts);
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode);
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size);
 
+
+
 u32 gf_m2ts_crc32_check(char *data, u32 len);
 
 /*MPEG-2 Descriptor tags*/
 enum
 {
 	/* ... */
-	GF_M2TS_VIDEO_STREAM_DESCRIPTOR				= 0x02,
-	GF_M2TS_AUDIO_STREAM_DESCRIPTOR				= 0x03,
-	GF_M2TS_HIERARCHY_DESCRIPTOR				= 0x04,
-	GF_M2TS_REGISTRATION_DESCRIPTOR				= 0x05,
-	GF_M2TS_DATA_STREAM_ALIGNEMENT_DESCRIPTOR		= 0x06,
-	GF_M2TS_TARGET_BACKGROUND_GRID_DESCRIPTOR		= 0x07,
-	GF_M2TS_VIEW_WINDOW_DESCRIPTOR				= 0x08,
-	GF_M2TS_CA_DESCRIPTOR					= 0x09,
-	GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR			= 0x0A,
+	GF_M2TS_VIDEO_STREAM_DESCRIPTOR							= 0x02,
+	GF_M2TS_AUDIO_STREAM_DESCRIPTOR							= 0x03,
+	GF_M2TS_HIERARCHY_DESCRIPTOR							= 0x04,
+	GF_M2TS_REGISTRATION_DESCRIPTOR							= 0x05,
+	GF_M2TS_DATA_STREAM_ALIGNEMENT_DESCRIPTOR				= 0x06,
+	GF_M2TS_TARGET_BACKGROUND_GRID_DESCRIPTOR				= 0x07,
+	GF_M2TS_VIEW_WINDOW_DESCRIPTOR							= 0x08,
+	GF_M2TS_CA_DESCRIPTOR									= 0x09,
+	GF_M2TS_ISO_639_LANGUAGE_DESCRIPTOR						= 0x0A,
+	GF_M2TS_DVB_IP_MAC_PLATFORM_NAME_DESCRIPTOR				= 0x0C,
+	GF_M2TS_DVB_IP_MAC_PLATFORM_PROVIDER_NAME_DESCRIPTOR	= 0x0D,
+	GF_M2TS_DVB_TARGET_IP_SLASH_DESCRIPTOR			= 0x0F,
+	/* ... */
+	GF_M2TS_DVB_STREAM_LOCATION_DESCRIPTOR        =0x13,
 	/* ... */
 	GF_M2TS_STD_DESCRIPTOR					= 0x17,
 	/* ... */
@@ -546,6 +574,8 @@ enum
 	GF_M2TS_DVB_DATA_BROADCAST_ID_DESCRIPTOR		= 0x66,
 	/* ... */
 	GF_M2TS_DVB_AC3_DESCRIPTOR				= 0x6A,
+	/* ... */
+	GF_M2TS_DVB_TIME_SLICE_FEC_DESCRIPTOR 		   = 0x77,
 	
 };
 
@@ -590,7 +620,10 @@ enum {
 	GF_M2TS_TABLE_ID_SDT_OTHER		= 0x46, /* max size for section 1024 */
 	/* 0x47 - 0x49 reserved */
 	GF_M2TS_TABLE_ID_BAT			= 0x4a, /* max size for section 1024 */
-	/* 0x4b - 0x4d reserved */
+	/* 0x4b	reserved */
+	GF_M2TS_TABLE_ID_INT			= 0x4c, /* max size for section 4096 */
+	/* 0x4d reserved */
+	
 	GF_M2TS_TABLE_ID_EIT_ACTUAL_PF		= 0x4E, /* max size for section 4096 */
 	GF_M2TS_TABLE_ID_EIT_OTHER_PF		= 0x4F,
 	/* 0x50 - 0x6f EIT SCHEDULE */
@@ -669,13 +702,8 @@ typedef struct
 */
 } GF_M2TS_AdaptationField;
 
-typedef struct 
-{
-	u8 id;
-	u16 pck_len;
-	u8 data_alignment;
-	u64 PTS, DTS;
-	u8 hdr_data_len;
-} GF_M2TS_PESHeader;
+
+
+void gf_m2ts_print_info(GF_M2TS_Demuxer *ts);
 
 #endif	//_GF_MPEG_TS_H_
