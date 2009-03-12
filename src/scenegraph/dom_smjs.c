@@ -2300,14 +2300,14 @@ static JSBool xml_http_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 
 	ctx->method = strdup(val);
 
-	val = JSVAL_GET_STRING(argv[1]);
 	/*concatenate URL*/
 	scene = xml_get_scenegraph(c);
 	while (scene->pOwningProto && scene->parent_scene) scene = scene->parent_scene;
-	ScriptAction(scene, GF_JSAPI_OP_GET_SCENE_URI, scene->RootNode, &par);
 
-	if (par.uri.url) ctx->url = gf_url_concatenate(par.uri.url, val);
-	if (!ctx->url) ctx->url = strdup(val);
+	par.uri.nb_params = 0;
+	par.uri.url = JSVAL_GET_STRING(argv[1]);
+	ScriptAction(scene, GF_JSAPI_OP_RESOLVE_URI, scene->RootNode, &par);
+	ctx->url = (char *)par.uri.url;
 
 	/*async defaults to true*/
 	ctx->async = 1;

@@ -455,7 +455,13 @@ enum
 
 typedef struct
 {
-	const char *url;
+	/*for GF_JSAPI_OP_RESOLVE_URI, 
+		set by caller to the URI to resolve. 
+				If NULL, the return URI is the unresolved parent scene one.
+				Otherwise, the input URL will be reolved to its local name (eg for ZIP/... packages)
+		upon return, ALLOCATED by the callee and must be freed by the caller
+	*/
+	char *url;
 	const char **params;
 	u32 nb_params;
 } GF_JSAPIURI;
@@ -497,8 +503,8 @@ enum
 {
 	/*!push message from script engine.*/
 	GF_JSAPI_OP_MESSAGE,
-	/*!get scene URI.*/
-	GF_JSAPI_OP_GET_SCENE_URI,
+	/*!resolves a given URI.*/
+	GF_JSAPI_OP_RESOLVE_URI,
 	/*!get current user agent scale.*/
 	GF_JSAPI_OP_GET_SCALE,
 	/*!set current user agent scale.*/
@@ -549,9 +555,6 @@ enum
 	GF_JSAPI_OP_GET_SUBSCENE,
 	/*!resolves relative Xlink based on xml:base*/
 	GF_JSAPI_OP_RESOLVE_XLINK,
-	/*!evaluates if the given IRI is available for playback (returns 1) or not. If the IRI is
-	NULL, this evaluates whether the scene is ready for composition (canvas setup) or not.*/
-	GF_JSAPI_OP_EVAL_IRI,
 
 	/*!gets GPAC terminal*/
 	GF_JSAPI_OP_GET_TERM,

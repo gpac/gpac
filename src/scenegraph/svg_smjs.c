@@ -2199,23 +2199,26 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 		strcat(szFuncName, "(evt)");
 		utf8_script = szFuncName;
 	}
+	gf_sg_js_lock_runtime(1);
 	prev_event = JS_GetPrivate(sg->svg_js->js_ctx, sg->svg_js->event);
 	JS_SetPrivate(sg->svg_js->js_ctx, sg->svg_js->event, event);
 	ret = JS_EvaluateScript(sg->svg_js->js_ctx, sg->svg_js->global, utf8_script, strlen(utf8_script), 0, 0, &rval);
 	JS_SetPrivate(sg->svg_js->js_ctx, sg->svg_js->event, prev_event);
 
+	if (ret==JS_FALSE) {
+		char *sep = strchr(utf8_script, '(');
+		if (sep) {
+			sep[0] = 0;
+			ret = JS_LookupProperty(sg->svg_js->js_ctx, sg->svg_js->global, utf8_script, &rval);
+			sep[0] = '(';
+		}
+	}
 	/*clean-up*/
 	JS_GC(sg->svg_js->js_ctx);
 
-	if (ret==JS_FALSE) {
-		char *sep = strchr(utf8_script, '(');
-		if (!sep) return 0;
-		sep[0] = 0;
-		JS_LookupProperty(sg->svg_js->js_ctx, sg->svg_js->global, utf8_script, &rval);
-		sep[0] = '(';
-		if (JSVAL_IS_VOID(rval)) return 0;
-	}
-	return 1;
+	gf_sg_js_lock_runtime(0);
+
+	return (ret==JS_FALSE) ? 0 : 1;
 }
 
 static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
@@ -2346,7 +2349,10 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 		return 1;
 	}
 
+	gf_sg_js_lock_runtime(1);
 	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, jsscript, sizeof(char)*fsize, 0, 0, &rval);
+	gf_sg_js_lock_runtime(0);
+
 	if (ret==JS_FALSE) success = 0;
 	gf_dom_listener_process_add(script->sgprivate->scenegraph);
 
@@ -2380,41 +2386,43 @@ void JSScript_LoadSVG(GF_Node *node)
 	}
 	/*if href download the script file*/
 	if (gf_node_get_attribute_by_tag(node, TAG_XLINK_ATT_href, 0, 0, &href_info) == GF_OK) {
+		GF_DownloadManager *dnld_man;
 		GF_JSAPIParam par;
 		char *url;
 		GF_Err e;
 		XMLRI *xmlri = (XMLRI *)href_info.far_ptr;
-	
-		/* getting the base uri of the scene and concatenating */
-		ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_GET_SCENE_URI, node, &par);
-		url = NULL;
-		if (par.uri.url) url = gf_url_concatenate(par.uri.url, xmlri->string);
-		if (!url) url = strdup(xmlri->string);
+
+		/* getting a download manager */
+		par.dnld_man = NULL;
+		ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
+		dnld_man = par.dnld_man;
+
+
+		/* resolve the uri of the script*/
+		par.uri.nb_params = 0;
+		par.uri.url = xmlri->string;
+		ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_RESOLVE_URI, node, &par);
+		url = (char *)par.uri.url;
 
 		/* if the file is local, we don't need to download it */
 		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
 			svg_js_load_script(node, url);
-		} else {
-			/* getting a download manager */
-			par.dnld_man = NULL;
-			ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
-			if (par.dnld_man) {
-				/*fetch the remote script synchronously and load it - cf section on script processing in SVG specs*/
-				GF_DownloadSession *sess = gf_dm_sess_new(par.dnld_man, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
-				if (sess) {
-					e = gf_dm_sess_process(sess);
-					if (e==GF_OK) {
-						const char *szCache = gf_dm_sess_get_cache_name(sess);
-						if (!svg_js_load_script(node, (char *) szCache))
-							e = GF_SCRIPT_ERROR;
-					}
+		} else if (dnld_man) {
+			/*fetch the remote script synchronously and load it - cf section on script processing in SVG specs*/
+			GF_DownloadSession *sess = gf_dm_sess_new(par.dnld_man, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
+			if (sess) {
+				e = gf_dm_sess_process(sess);
+				if (e==GF_OK) {
+					const char *szCache = gf_dm_sess_get_cache_name(sess);
+					if (!svg_js_load_script(node, (char *) szCache))
+						e = GF_SCRIPT_ERROR;
 				}
-				if (e) {
-					par.info.e = e;
-					par.info.msg = "Cannot fetch script";
-					ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
-				}
-				if (sess) gf_dm_sess_del(sess);
+				gf_dm_sess_del(sess);
+			}
+			if (e) {
+				par.info.e = e;
+				par.info.msg = "Cannot fetch script";
+				ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
 			}
 		}
 		free(url);
@@ -2452,10 +2460,13 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 
 	svg_js = node->sgprivate->scenegraph->svg_js;
 
+	gf_sg_js_lock_runtime(1);
 	prev_event = JS_GetPrivate(svg_js->js_ctx, svg_js->event);
 	/*break loops*/
-	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target)) 
+	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target)) {
+		gf_sg_js_lock_runtime(0);
 		return 0;
+	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
 
 	/*if an observer is being specified, use it*/
@@ -2492,6 +2503,8 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		ret = JS_EvaluateScript(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);
+
+	gf_sg_js_lock_runtime(0);
 
 	if (ret==JS_FALSE) {
 		_ScriptMessage(node->sgprivate->scenegraph, GF_SCRIPT_ERROR, "SVG: Invalid handler textContent");

@@ -110,7 +110,8 @@ void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj
 		ext->load(ext, sg, c, obj, unload);
 	}
 
-	if (js_rt->nb_inst==1) {
+	//if (js_rt->nb_inst==1) 
+	{
 		GF_Terminal *term;
 		GF_JSAPIParam par;
 
@@ -282,10 +283,13 @@ static JSBool getWorldURL(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *r
 {
 	GF_JSAPIParam par;
 	GF_Node *node = JS_GetContextPrivate(c);
-	if (ScriptAction(c, NULL, GF_JSAPI_OP_GET_SCENE_URI, node->sgprivate->scenegraph->RootNode, &par)) {
+	par.uri.url = NULL;
+	par.uri.nb_params = 0;
+	if (ScriptAction(c, NULL, GF_JSAPI_OP_RESOLVE_URI, node->sgprivate->scenegraph->RootNode, &par)) {
 		JSString *s = JS_NewStringCopyZ(c, par.uri.url);
 		if (!s) return JS_FALSE;
 		*rval = STRING_TO_JSVAL(s);
+		free(par.uri.url);
 		return JS_TRUE;
 	}
 	return JS_FALSE;
@@ -389,6 +393,9 @@ static void on_route_to_object(GF_Node *node, GF_Route *r)
 	t_info.fieldType = GF_SG_VRML_SFTIME;
 	t_info.fieldIndex = -1;
 	t_info.name = "timestamp";
+
+	gf_sg_js_lock_runtime(1);
+
 	argv[1] = gf_sg_script_to_smjs_field(priv, &t_info, node, 1);
 
 	argv[0] = gf_sg_script_to_smjs_field(priv, &r->FromField, r->FromNode, 1);
@@ -402,6 +409,8 @@ static void on_route_to_object(GF_Node *node, GF_Route *r)
 	/*release args*/
 	if (JSVAL_IS_GCTHING(argv[0])) JS_RemoveRoot(priv->js_ctx, &argv[0]);
 	if (JSVAL_IS_GCTHING(argv[1])) JS_RemoveRoot(priv->js_ctx, &argv[1]);
+
+	gf_sg_js_lock_runtime(0);
 }
 
 static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *rv)
@@ -835,7 +844,7 @@ static void JS_ObjectDestroyed(JSContext *c, JSObject *obj, GF_JSField *ptr)
 		SpiderMonkey GC may call an object finalizer on ANY context, not the one in which the object
 		was created !! We therefore keep a pointer to the parent context to remove GC'ed objects from the context cache
 		*/
-		if (ptr->obj) {
+		if (ptr->obj || ptr->js_list) {
 			GF_ScriptPriv *priv;
 			if (ptr->js_ctx) c = ptr->js_ctx;
 			priv = JS_GetScriptStack(c);
@@ -3580,9 +3589,14 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	*/
 	sf->last_route_time = time;
 
+	gf_sg_js_lock_runtime(1);
+
 	//locate function
 	if (! JS_LookupProperty(priv->js_ctx, priv->js_obj, sf->name, &fval)) return;
-	if (JSVAL_IS_VOID(fval)) return;
+	if (JSVAL_IS_VOID(fval)) {
+		gf_sg_js_lock_runtime(0);
+		return;
+	}
 
 	argv[0] = gf_sg_script_to_smjs_field(priv, in_field, node, 1);
 
@@ -3603,10 +3617,9 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	if (JSVAL_IS_GCTHING(argv[0])) JS_RemoveRoot(priv->js_ctx, &argv[0]);
 	if (JSVAL_IS_GCTHING(argv[1])) JS_RemoveRoot(priv->js_ctx, &argv[1]);
 
-	flush_event_out(node, priv);
-	/*perform JS cleanup*/
+	gf_sg_js_lock_runtime(0);
 
-	JS_MaybeGC(priv->js_ctx);
+	flush_event_out(node, priv);
 }
 
 void JSScriptFromFile(GF_Node *node);
@@ -3632,6 +3645,8 @@ static Bool vrml_js_load_script(M_Script *script, char *file)
 	fclose(jsf);
 	jsscript[fsize] = 0;
 
+	gf_sg_js_lock_runtime(1);
+
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, sizeof(char)*fsize, 0, 0, &rval);
 	if (ret==JS_FALSE) success = 0;
 
@@ -3641,6 +3656,8 @@ static Bool vrml_js_load_script(M_Script *script, char *file)
 			flush_event_out((GF_Node *)script, priv);
 		}
 	}
+	gf_sg_js_lock_runtime(0);
+
 	free(jsscript);
 	return success;
 }
@@ -3650,38 +3667,38 @@ void JSScriptFromFile(GF_Node *node)
 {
 	GF_JSAPIParam par;
 	u32 i;
-	char *url, *scene_uri;
+	GF_DownloadManager *dnld_man;
+	char *url;
 	GF_Err e;
 	const char *ext;
 	M_Script *script = (M_Script *)node;
 
 	e = GF_SCRIPT_ERROR;
 
-	ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_SCENE_URI, node, &par);
-	scene_uri = (char *)par.uri.url;
-
 	par.dnld_man = NULL;
 	ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
 	if (!par.dnld_man) return;
+	dnld_man = par.dnld_man;
 
 	for (i=0; i<script->url.count; i++) {
-		if (scene_uri) url = gf_url_concatenate(scene_uri, script->url.vals[i].script_text);
-		else url = script->url.vals[i].script_text;
+
+		par.uri.url = script->url.vals[i].script_text;
+		par.uri.nb_params = 0;
+		ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_RESOLVE_URI, node, &par);
+		url = (char *)par.uri.url;
 
 		ext = strrchr(url, '.');
 		if (ext && strnicmp(ext, ".js", 3)) {
-			if (scene_uri) free(url);
+			free(url);
 			continue;
 		}
 
 		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
 			Bool res = vrml_js_load_script(script, url);
-
-			if (scene_uri) free(url);
-
+			free(url);
 			if (res) return;
 		} else {
-			GF_DownloadSession *sess = gf_dm_sess_new(par.dnld_man, script->url.vals[i].script_text, 0, NULL, NULL, &e);
+			GF_DownloadSession *sess = gf_dm_sess_new(dnld_man, url, 0, NULL, NULL, &e);
 			if (sess) {
 				e = gf_dm_sess_process(sess);
 				if (e==GF_OK) {
@@ -3689,10 +3706,9 @@ void JSScriptFromFile(GF_Node *node)
 					if (!vrml_js_load_script(script, (char *) szCache))
 						e = GF_SCRIPT_ERROR;
 				}
+				gf_dm_sess_del(sess);
 			}
-			if (scene_uri) free(url);
-			if (sess) gf_dm_sess_del(sess);
-
+			free(url);
 			if (!e) return;
 		}
 	}
@@ -3765,6 +3781,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 		return;
 	}
 
+	gf_sg_js_lock_runtime(1);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Evaluating script %s\n", str));
 
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, str, strlen(str), 0, 0, &rval);
@@ -3780,6 +3797,8 @@ static void JSScript_LoadVRML(GF_Node *node)
 	flush_event_out(node, priv);
 	/*perform JS cleanup*/
 	JS_MaybeGC(priv->js_ctx);
+
+	gf_sg_js_lock_runtime(0);
 }
 
 static void JSScript_Load(GF_Node *node)
@@ -3800,7 +3819,14 @@ static void JSScript_Load(GF_Node *node)
 	}
 }
 
-
+void gf_sg_js_lock_runtime(Bool lock)
+{
+	if (lock) {
+		JS_LockRuntime(js_rt->js_runtime);
+	} else {
+		JS_UnlockRuntime(js_rt->js_runtime);
+	}
+}
 
 
 static void gf_sg_load_script_modules(GF_SceneGraph *sg)
@@ -3919,6 +3945,8 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	GF_DOM_Event *prev_event = NULL;
 	SVG_handlerElement *hdl;
 	jsval rval;
+	JSObject *evt;
+	jsval argv[1];
 
 	hdl = (SVG_handlerElement *) node;
 	if (!hdl->js_fun_val && !hdl->evt_listen_obj) return;
@@ -3936,20 +3964,19 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	JS_SetPrivate(priv->js_ctx, priv->event, event);
 
 
-	{
-		JSObject *evt;
-		jsval argv[1];
-		evt = gf_dom_new_event(priv->js_ctx);
-		JS_SetPrivate(priv->js_ctx, evt, event);
-		argv[0] = OBJECT_TO_JSVAL(evt);
+	gf_sg_js_lock_runtime(1);
 
-		if (hdl->js_fun_val) {
-			jsval funval = (JSWord) hdl->js_fun_val;
-			ret = JS_CallFunctionValue(priv->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj: priv->js_obj, funval, 1, argv, &rval);
-		} else {
-			ret = JS_CallFunctionName(priv->js_ctx, hdl->evt_listen_obj, "handleEvent", 1, argv, &rval);
-		}
+	evt = gf_dom_new_event(priv->js_ctx);
+	JS_SetPrivate(priv->js_ctx, evt, event);
+	argv[0] = OBJECT_TO_JSVAL(evt);
+
+	if (hdl->js_fun_val) {
+		jsval funval = (JSWord) hdl->js_fun_val;
+		ret = JS_CallFunctionValue(priv->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj: priv->js_obj, funval, 1, argv, &rval);
+	} else {
+		ret = JS_CallFunctionName(priv->js_ctx, hdl->evt_listen_obj, "handleEvent", 1, argv, &rval);
 	}
+	gf_sg_js_lock_runtime(0);
 
 	event->is_vrml = prev_type;
 	JS_SetPrivate(priv->js_ctx, priv->event, prev_event);
