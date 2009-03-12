@@ -340,7 +340,8 @@ void gf_node_event_out(GF_Node *node, u32 FieldIndex)
 	GF_Route *r;
 	if (!node) return;
 	
-	if (!node->sgprivate->interact) return;
+	/*node has no routes*/
+	if (!node->sgprivate->interact || !node->sgprivate->interact->routes) return;
 	
 	//search for routes to activate in the order they where declared
 	i=0;
@@ -366,12 +367,9 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName)
 	u32 i;
 	GF_Route *r;
 
-	/*node is being deleted ignore event*/
-	if (!node->sgprivate->interact) return;
+	/*node has no routes*/
+	if (!node->sgprivate->interact || !node->sgprivate->interact->routes) return;
 
-	//this is not an ISed
-	if (!(node->sgprivate->flags & GF_NODE_IS_DEF) && !node->sgprivate->scenegraph->pOwningProto) return;
-	
 	//search for routes to activate in the order they where declared
 	i=0;
 	while ((r = (GF_Route*)gf_list_enum(node->sgprivate->interact->routes, &i))) {

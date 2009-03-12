@@ -233,7 +233,26 @@ enum
 	GF_TERM_DRAW_FRAME = 1<<6
 };
 
+/*URI relocators are used for containers like zip or ISO FF with file items. The relocator
+is in charge of translating the URI, potentially extracting the associated resource and sending 
+back the new (local or not) URI. Only the interface is defined, URI translators are free to derive from them
 
+relocate a URI - if NULL is returned, this relocator is not concerned with the URI
+otherwise returns the translated URI
+
+		char *(*relocate_uri)(GF_URIRelocator *urirl, char *parent_uri, char *uri);
+
+*/
+
+#define GF_TERM_URI_RELOCATOR	\
+	char *(*relocate_uri)(void *__self, char *parent_uri, char *uri);		\
+
+typedef struct __gf_uri_relocator GF_URIRelocator;
+
+struct __gf_uri_relocator 
+{	
+	GF_TERM_URI_RELOCATOR	
+};
 
 struct _tag_terminal
 {
@@ -298,6 +317,9 @@ struct _tag_terminal
 	GF_List *extensions;	/*list of all extensions*/
 	GF_List *unthreaded_extensions;	/*list of extensions to call at each frame*/
 	GF_List *filtering_extensions;	/*list of extensions filtering events*/
+
+
+	GF_List *uri_relocators;	/*list of GF_URIRelocator*/
 };
 
 

@@ -201,8 +201,6 @@ void gf_delete_file(char *fileName)
 #endif
 }
 
-
-
 void gf_rand_init(Bool Reset)
 {
 	if (Reset) {
@@ -315,6 +313,45 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #endif
 
 	if (!dir || !enum_dir_fct) return GF_BAD_PARAM;
+
+	if (!strcmp(dir, "/")) {
+#if defined(WIN32) && !defined(_WIN32_WCE)
+		u32 len;
+		char *drives, *volume;
+		len = GetLogicalDriveStrings(0, NULL);
+		drives = malloc(sizeof(char)*(len+1));
+		drives[0]=0;
+		GetLogicalDriveStrings(len, drives);
+		len = strlen(drives);
+		volume = drives;
+		while (len) {
+			enum_dir_fct(cbck, volume, "");
+			volume += len+1;
+			len = strlen(volume);
+		}
+		free(drives);
+		return GF_OK;
+#elif defined(__SYMBIAN32__)
+		RFs iFs;
+		TDriveList aList;
+		iFs.Connect();
+		iFs.DriveList(aList);
+		for (TInt i=0;i<KMaxDrives;i++) {
+			if (aList[i]) {
+				char szDrive[10];
+				TChar aDrive;
+				iFs.DriveToChar(i, aDrive);
+				sprintf(szDrive, "%c:", (TUint)aDrive);
+				enum_dir_fct(cbck, szDrive, "");
+			}
+		}
+		iFs.Close();
+		FlushItemList();
+		return GF_OK;
+#endif
+	}
+
+
 #if defined (_WIN32_WCE)
 	switch (dir[strlen(dir) - 1]) {
 	case '/':

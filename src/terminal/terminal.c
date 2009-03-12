@@ -106,26 +106,32 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		param->scene = is->graph;
 		return 1;
 	}
-	if (type==GF_JSAPI_OP_EVAL_IRI) {
-		GF_InlineScene *is;
-		if (!n) return 0;
-		is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph(n));
-		if (!param->uri.url) {
-			/*wait for compositor to be completely setup*/
-			if (is->graph_attached && term->compositor->scene && !term->compositor->msg_type) return 1;
-			return 0;
-		}
-		/*todo*/
-		return 0;
-	}
-	
 
-	if (type==GF_JSAPI_OP_GET_SCENE_URI) {
+	if (type==GF_JSAPI_OP_RESOLVE_URI) {
+		char *par_url, *url;
+		u32 i, count;
 		GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph(n));
-		param->uri.url = is->root_od->net_service->url;
-		param->uri.nb_params = 0;
+		url = (char *)param->uri.url;
+		par_url = is->root_od->net_service->url;
+		if (!url) {
+			param->uri.url = strdup(is->root_od->net_service->url);
+			param->uri.nb_params = 0;
+			return 1;
+		}
+
+		count = gf_list_count(term->uri_relocators);
+		for (i=0; i<count; i++) {
+			GF_URIRelocator *urr = gf_list_get(term->uri_relocators, i);
+			char *new_url = urr->relocate_uri(urr, par_url, url);
+			if (new_url) {
+				param->uri.url = strdup(new_url);
+				return 1;
+			}
+		}
+		param->uri.url = gf_url_concatenate(is->root_od->net_service->url, url);
 		return 1;
 	}
+
 	ret = gf_sc_script_action(term->compositor, type, n, param);
 	if (ret) return ret;
 
@@ -416,6 +422,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 		gf_list_del(tmp->filtering_extensions);
 		tmp->filtering_extensions = NULL;
 	}
+	tmp->uri_relocators = gf_list_new();
 
 	cf = gf_cfg_get_key(user->config, "General", "GUIFile");
 	if (cf) {
@@ -488,6 +495,8 @@ GF_Err gf_term_del(GF_Terminal * term)
 	assert(!term->nodes_pending);
 	gf_list_del(term->media_queue);
 	if (term->downloader) gf_dm_del(term->downloader);
+
+	gf_list_del(term->uri_relocators);
 
 	if (term->dcci_doc) {
 		if (term->dcci_doc->modified) {
@@ -975,9 +984,21 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
 {
 	GF_ClientService *ns;
-	u32 i;
+	u32 i, count;
 	GF_Err e;
 	gf_term_lock_net(term, 1);
+
+	i=0;
+	count = gf_list_count(term->uri_relocators);
+	for (i=0; i<count; i++) {
+		GF_URIRelocator *uri = gf_list_get(term->uri_relocators, i);
+		char *new_url = uri->relocate_uri(uri, parent_url, serviceURL);
+		if (new_url) {
+			serviceURL = new_url;
+			break;
+		}
+	}
+
 
 	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
 	i=0;

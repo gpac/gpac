@@ -223,6 +223,7 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 	char *dir = "D:";
 	char *filter = NULL;
 	Bool dir_only = 0;
+	Bool browse_root = 0;
 
 	if ((argc >= 1) && JSVAL_IS_STRING(argv[0])) {
 		JSString *js_dir = JSVAL_TO_STRING(argv[0]);
@@ -238,32 +239,26 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 	}
 	if ((argc >= 3) && JSVAL_IS_BOOLEAN(argv[2])) {
 		if (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) {
+			Bool browse_root = 0;
 			url = gf_url_concatenate(dir, "..");
-			if (!strcmp(url, "..")) {
-				if (strstr(dir, ":/")) {
-#if defined(WIN32) && !defined(_WIN32_WCE)
-					u32 len;
-					char drives[4096], *volume;
-					free(url);					
-					drives[0] = 0;
-					GetLogicalDriveStrings(4096, drives);
-					len = strlen(drives);
-					cbk.c = c;
-					cbk.array = JS_NewArrayObject(c, 0, 0);
-					cbk.is_dir = 1;
-					volume = drives;
-					while (len) {
-						enum_dir_fct(&cbk, volume, "");
-						volume += len+1;
-						len = strlen(volume);
-					}
-					*rval = OBJECT_TO_JSVAL(cbk.array);
-#endif
-				}
-				return JS_TRUE;
+			if (!strcmp(url, "..") || (url[0]==0)) {
+				if ((dir[1]==':') && ((dir[2]=='/') || (dir[2]=='\\')) ) browse_root = 1;
+				else if (!strcmp(dir, "/")) browse_root = 1;
 			}
 		}
 	}
+
+	if (!strlen(dir) && (!url || !strlen(url))) browse_root = 1;
+
+	if (browse_root) {
+		cbk.c = c;
+		cbk.array = JS_NewArrayObject(c, 0, 0);
+		cbk.is_dir = 1;
+		gf_enum_directory("/", 1, enum_dir_fct, &cbk, NULL);
+		*rval = OBJECT_TO_JSVAL(cbk.array);
+		return JS_TRUE;
+	}
+
 	cbk.c = c;
 	cbk.array = JS_NewArrayObject(c, 0, 0);
 

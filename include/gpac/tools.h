@@ -450,13 +450,12 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 */
 void gf_delete_file(char *fileName);
 /*!
- *	\brief File Deletion
+ *	\brief Temporary File Creation
  *
  *	Creates a new temporary file in binary mode
  *	\return stream handle to the new file ressoucre
  */
 FILE *gf_temp_file_new();
-
 
 /*!
  *	\brief Progress formatting
