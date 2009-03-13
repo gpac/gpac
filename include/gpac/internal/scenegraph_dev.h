@@ -37,6 +37,11 @@
 
 #include <gpac/scenegraph_svg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #ifdef GPAC_HAS_SPIDERMONKEY
 
 /*WIN32 and WinCE config (no configure script)*/
@@ -1037,6 +1042,11 @@ GF_Err gf_dom_listener_del(GF_Node *listener, GF_DOMEventTarget *target);
 
 GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event_parameter, GF_Node *handler, GF_Node **out_listener);
 
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/*_GF_SCENEGRAPH_DEV_H_*/
 

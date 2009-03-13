@@ -414,6 +414,7 @@ static void FFD_SetupObjects(FFDemux *ffd)
 
 static int ff_url_read(void *h, unsigned char *buf, int size)
 {
+	u32 retry = 10;
 	u32 read;
 	int full_size;
 	FFDemux *ffd = (FFDemux *)h;
@@ -424,7 +425,9 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 		if (ffd->buffer_used>size) {
 			ffd->buffer_used-=size;
 			memcpy(ffd->buffer, ffd->buffer+size, sizeof(char)*ffd->buffer_used);
+#ifdef FFMPEG_DUMP_REMOTE
 			if (ffd->outdbg) fwrite(buf, size, 1, ffd->outdbg);
+#endif
 			return size;
 		} 
 		full_size += ffd->buffer_used;
@@ -437,7 +440,15 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 		GF_Err e = gf_dm_sess_fetch_data(ffd->dnload, buf, size, &read);
 		if (e==GF_EOS) break;
 		/*we're sync!!*/
-		if (e==GF_IP_NETWORK_EMPTY) continue;
+		if (e==GF_IP_NETWORK_EMPTY) {
+			if (!retry) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] timeout fetching bytes from network\n") );
+				return -1;
+			}
+			retry --;
+			gf_sleep(100);
+			continue;
+		}
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] error fetching bytes from network: %s\n", gf_error_to_string(e) ) );
 			return -1;
@@ -447,7 +458,9 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 		size -= read;
 		buf += read;
 	}
+#ifdef FFMPEG_DUMP_REMOTE
 	if (ffd->outdbg) fwrite(ffd->buffer, full_size, 1, ffd->outdbg);
+#endif
 	return full_size ? (int) full_size : -1;
 }
 
@@ -455,11 +468,13 @@ static void FFD_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
 }
 
+
 static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	GF_Err e;
 	s64 last_aud_pts;
 	u32 i;
+	s32 res;
 	Bool is_local;
 	const char *sOpt;
 	char *ext, szName[1000];
@@ -499,9 +514,11 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "IOBufferSize"); 
 		if (sOpt) ffd->buffer_size = atoi(sOpt);
 		ffd->buffer = malloc(sizeof(char)*ffd->buffer_size);
+#ifdef FFMPEG_DUMP_REMOTE
 		ffd->outdbg = fopen("ffdeb.raw", "wb");
-
+#endif
 		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, ffd, ff_url_read, NULL, NULL);
+		ffd->io.is_streamed = 1;
 
 		ffd->dnload = gf_term_download_new(ffd->service, url, GF_NETIO_SESSION_NOT_THREADED  | GF_NETIO_SESSION_NOT_CACHED, FFD_NetIO, ffd);
 		if (!ffd->dnload) return GF_URL_ERROR;
@@ -521,17 +538,14 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		if (!av_in) {
 			return GF_NOT_SUPPORTED;
 		}
-		if (ffd->outdbg) fwrite(ffd->buffer, ffd->buffer_used, 1, ffd->outdbg);
-		ffd->buffer_used = 0;
-
 		/*setup downloader*/
 		av_in->flags |= AVFMT_NOFILE;
-		i = av_open_input_stream(&ffd->ctx, &ffd->io, szName, av_in, NULL);
+		res = av_open_input_stream(&ffd->ctx, &ffd->io, szName, av_in, NULL);
 	} else {
-		i = av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
+		res = av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
 	}
 
-	switch (i) {
+	switch (res) {
 	case 0: e = GF_OK; break;
 	case AVERROR_IO: e = GF_URL_ERROR; goto err_exit;
 	case AVERROR_INVALIDDATA: e = GF_NON_COMPLIANT_BITSTREAM; goto err_exit;
@@ -542,8 +556,9 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG] looking for streams in %s - %d streams - type %s\n", ffd->ctx->filename, ffd->ctx->nb_streams, ffd->ctx->iformat->name));
 
-    if (av_find_stream_info(ffd->ctx) <0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG] cannot locate streams\n"));
+	res = av_find_stream_info(ffd->ctx);
+	if (res <0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG] cannot locate streams - error %d\n", res));
 		e = GF_NOT_SUPPORTED;
 		goto err_exit;
 	}
@@ -583,22 +598,22 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	if (sOpt) ffd->data_buffer_ms = atoi(sOpt);
 	if (!ffd->data_buffer_ms) ffd->data_buffer_ms = FFD_DATA_BUFFER;
 
-	/*check we do have increasing pts. If not we can't rely on pts, we must skip SL
-	we assume video pts is always present*/
-	if (ffd->audio_st>=0) {
-		last_aud_pts = 0;
-		for (i=0; i<20; i++) {
-			AVPacket pkt;
-			pkt.stream_index = -1;
-			if (av_read_frame(ffd->ctx, &pkt) <0) break;
-			if (pkt.pts == AV_NOPTS_VALUE) pkt.pts = pkt.dts;
-			if (pkt.stream_index==ffd->audio_st) last_aud_pts = pkt.pts;
-		}
-		if (last_aud_pts*ffd->audio_tscale.den<10*ffd->audio_tscale.num) ffd->unreliable_audio_timing = 1;
-	}
-
 	/*build seek*/
 	if (is_local) {
+		/*check we do have increasing pts. If not we can't rely on pts, we must skip SL
+		we assume video pts is always present*/
+		if (ffd->audio_st>=0) {
+			last_aud_pts = 0;
+			for (i=0; i<20; i++) {
+				AVPacket pkt;
+				pkt.stream_index = -1;
+				if (av_read_frame(ffd->ctx, &pkt) <0) break;
+				if (pkt.pts == AV_NOPTS_VALUE) pkt.pts = pkt.dts;
+				if (pkt.stream_index==ffd->audio_st) last_aud_pts = pkt.pts;
+			}
+			if (last_aud_pts*ffd->audio_tscale.den<10*ffd->audio_tscale.num) ffd->unreliable_audio_timing = 1;
+		}
+
 		ffd->seekable = (av_seek_frame(ffd->ctx, -1, 0, AVSEEK_FLAG_BACKWARD)<0) ? 0 : 1;
 		if (!ffd->seekable) {
 			av_close_input_file(ffd->ctx);
@@ -673,8 +688,10 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 	ffd->audio_run = ffd->video_run = 0;
 
 	if (ffd->dnload) {
-		while (!ffd->is_running) gf_sleep(0);
-		ffd->is_running = 0;
+		if (ffd->is_running) {
+			while (!ffd->is_running) gf_sleep(0);
+			ffd->is_running = 0;
+		}
 		gf_term_download_del(ffd->dnload);
 		ffd->dnload = NULL;
 	}
@@ -682,7 +699,9 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 	ffd->buffer = NULL;
 
 	gf_term_on_disconnect(ffd->service, NULL, GF_OK);
+#ifdef FFMPEG_DUMP_REMOTE
 	if (ffd->outdbg) fclose(ffd->outdbg);
+#endif
 	return GF_OK;
 }
 

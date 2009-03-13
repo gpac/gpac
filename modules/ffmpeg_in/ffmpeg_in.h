@@ -103,6 +103,7 @@ void FFDEC_Delete(void *ifce);
 
 //#define FFMPEG_IO_BUF_SIZE	16384
 
+//#define FFMPEG_DUMP_REMOTE
 
 typedef struct
 {
@@ -142,7 +143,9 @@ typedef struct
 
 	u32 buffer_used;
 
+#ifdef FFMPEG_DUMP_REMOTE
 	FILE *outdbg;
+#endif
 } FFDemux;
 
 void *New_FFMPEG_Demux();
