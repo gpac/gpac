@@ -766,6 +766,7 @@ void gf_term_handle_services(GF_Terminal *term)
 			gf_odm_disconnect(odm, 2);
 			break;
 		}
+		odm->action_type = GF_ODM_ACTION_PLAY;
 	
 		/*relock net before sending play/pause*/
 		gf_mx_p(term->net_mx);
@@ -1390,6 +1391,7 @@ GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only)
 GF_EXPORT
 Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
 {
+	if (!term) return 0;
 	if (term->filtering_extensions) {
 		GF_TermExt *ext;
 		u32 i=0;

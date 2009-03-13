@@ -1092,6 +1092,7 @@ EXPORTS
 	gf_node_list_get_child
 	gf_node_list_get_count
 	gf_node_list_del_child_idx
+	gf_sg_js_lock_runtime
 	gf_sg_js_get_node
 	gf_sg_js_event_add_listener
 	gf_sg_js_event_remove_listener

@@ -71,6 +71,8 @@ typedef struct
 {
 	JSRuntime *js_runtime;
 	u32 nb_inst;
+	GF_Mutex *lock;
+
 	JSClass globalClass;
 	JSClass browserClass;
 	JSClass SFNodeClass;
@@ -3592,8 +3594,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	gf_sg_js_lock_runtime(1);
 
 	//locate function
-	if (! JS_LookupProperty(priv->js_ctx, priv->js_obj, sf->name, &fval)) return;
-	if (JSVAL_IS_VOID(fval)) {
+	if (! JS_LookupProperty(priv->js_ctx, priv->js_obj, sf->name, &fval) || JSVAL_IS_VOID(fval)) {
 		gf_sg_js_lock_runtime(0);
 		return;
 	}
@@ -3786,13 +3787,13 @@ static void JSScript_LoadVRML(GF_Node *node)
 
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, str, strlen(str), 0, 0, &rval);
 	if (ret==JS_FALSE) {
+		gf_sg_js_lock_runtime(0);
 		return;
 	}
 
 	/*call initialize if present*/
-	if (! JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval)) return;
-	if (JSVAL_IS_VOID(fval)) return;
-	JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
+	if (JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval) && !JSVAL_IS_VOID(fval)) 
+		JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 
 	flush_event_out(node, priv);
 	/*perform JS cleanup*/
@@ -3822,12 +3823,11 @@ static void JSScript_Load(GF_Node *node)
 void gf_sg_js_lock_runtime(Bool lock)
 {
 	if (lock) {
-		JS_LockRuntime(js_rt->js_runtime);
+		gf_mx_p(js_rt->lock);
 	} else {
-		JS_UnlockRuntime(js_rt->js_runtime);
+		gf_mx_v(js_rt->lock);
 	}
 }
-
 
 static void gf_sg_load_script_modules(GF_SceneGraph *sg)
 {
@@ -3879,6 +3879,7 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 		}
 		GF_SAFEALLOC(js_rt, GF_JSRuntime);
 		js_rt->js_runtime = js_runtime;
+		js_rt->lock = gf_mx_new("ECMAScript");
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated 0x%08x\n", js_runtime));
 		gf_sg_load_script_modules(sg);
 	}
@@ -3896,6 +3897,7 @@ void gf_sg_ecmascript_del(JSContext *ctx)
 			JS_DestroyRuntime(js_rt->js_runtime);
 			JS_ShutDown();
 			gf_sg_unload_script_modules();
+			gf_mx_del(js_rt->lock);
 			free(js_rt);
 			js_rt = NULL;
 		}

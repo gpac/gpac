@@ -446,6 +446,7 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 		if (ffd->frame_start>inBufferLength) ffd->frame_start = 0;
 
 redecode:
+		gotpic = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 		len = avcodec_decode_audio2(ffd->ctx, (short *)ffd->audio_buf, &gotpic, inBuffer + ffd->frame_start, inBufferLength - ffd->frame_start);
 
 		if (len<0) { ffd->frame_start = 0; return GF_NON_COMPLIANT_BITSTREAM; }
@@ -453,10 +454,9 @@ redecode:
 
 		ffd->ctx->hurry_up = 0;
 
-		if (ffd->ctx->frame_size < gotpic) ffd->ctx->frame_size = gotpic;
-
 		/*first config*/
 		if (!ffd->out_size) {
+			if (ffd->ctx->channels * ffd->ctx->frame_size* 2 < gotpic) ffd->ctx->frame_size = gotpic / 2 * ffd->ctx->channels;
 			ffd->out_size = ffd->ctx->channels * ffd->ctx->frame_size * 2 /* 16 / 8 */;
 		}
 		if (ffd->out_size < (u32) gotpic) {
