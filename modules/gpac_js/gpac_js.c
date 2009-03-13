@@ -312,12 +312,16 @@ static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 		override_size_info = 1;
 
 	if (w && h) {
+		GF_Event evt;
 		if (override_size_info) {
 			term->compositor->scene_width = w;
 			term->compositor->scene_height = h;
 			term->compositor->has_size_info = 1;
 		}
-		gf_term_set_size(term, w, h);
+		evt.type = GF_EVENT_SIZE;
+		evt.size.width = w;
+		evt.size.height = h;
+		gf_term_send_event(term, &evt);
 	}
 
 	return JS_TRUE;

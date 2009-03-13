@@ -419,7 +419,6 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 	int full_size;
 	FFDemux *ffd = (FFDemux *)h;
 
-	gf_term_download_update_stats(ffd->dnload);
 	full_size = 0;
 	if (ffd->buffer_used) {
 		if (ffd->buffer_used>size) {

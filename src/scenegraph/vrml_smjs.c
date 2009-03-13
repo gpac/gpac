@@ -2203,7 +2203,7 @@ JSBool array_setElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 	case GF_SG_VRML_MFROTATION:
 	case GF_SG_VRML_MFCOLOR:
 		from = (GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(*rval));
-		gf_sg_vrml_field_copy(& ((GenMFField *)ptr->field.far_ptr)->array[ind], from->field.far_ptr, from->field.fieldType);
+		gf_sg_vrml_field_copy(& ((MFVec2f *)ptr->field.far_ptr)->vals[ind], from->field.far_ptr, from->field.fieldType);
 		break;
 	}
 
