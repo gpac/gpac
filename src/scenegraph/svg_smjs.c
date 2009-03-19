@@ -2409,7 +2409,7 @@ void JSScript_LoadSVG(GF_Node *node)
 			svg_js_load_script(node, url);
 		} else if (dnld_man) {
 			/*fetch the remote script synchronously and load it - cf section on script processing in SVG specs*/
-			GF_DownloadSession *sess = gf_dm_sess_new(par.dnld_man, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
+			GF_DownloadSession *sess = gf_dm_sess_new(dnld_man, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
 			if (sess) {
 				e = gf_dm_sess_process(sess);
 				if (e==GF_OK) {
