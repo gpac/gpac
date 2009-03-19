@@ -613,6 +613,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					else if (inf->fieldType==SVG_TRANSFORM_TRANSLATE) gf_mx2d_add_translation(dest, pt->x, pt->y);
 					else if (inf->fieldType == SVG_TRANSFORM_ROTATE) gf_mx2d_add_rotation(dest, 0, 0, ((SVG_Point_Angle*)inf->field_ptr)->angle);
 				}
+				/*signal node modif*/
+				gf_node_changed(com->node, &a);
 			} else {
 				if ((inf->fieldIndex==(u32) -1) && (inf->fieldType==DOM_String_datatype)) {
 					char *str = *(SVG_String*)inf->field_ptr;
@@ -627,6 +629,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					} else {
 						if (str) gf_dom_add_text_node(com->node, strdup(str));
 					}
+					/*signal node modif*/
+					gf_node_changed(com->node, NULL);
 				}
 				else if ((inf->fieldIndex==TAG_LSR_ATT_scale) 
 					|| (inf->fieldIndex==TAG_LSR_ATT_translation)
@@ -653,6 +657,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 						if (inf->fieldIndex==TAG_LSR_ATT_translation) gf_mx2d_add_translation(&mx->mat, ((GF_Point2D*)inf->field_ptr)->x, ((GF_Point2D*)inf->field_ptr)->y);
 						if (inf->fieldIndex==TAG_LSR_ATT_rotation) gf_mx2d_add_rotation(&mx->mat, 0, 0, ((SVG_Point_Angle*)inf->field_ptr)->angle);
 					}
+					/*signal node modif*/
+					gf_node_changed(com->node, &a);
 				}
 				else if (gf_node_get_attribute_by_tag(com->node, inf->fieldIndex, 1, 0, &a) == GF_OK) {
 					b = a;
@@ -662,12 +668,10 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					} else {
 						gf_svg_attributes_add(&a, &b, &a, 0);
 					}
+					/*signal node modif*/
+					gf_node_changed(com->node, &a);
 				}
-				b = a;
-				b.far_ptr = inf->field_ptr;
 			}
-			/*signal node modif*/
-			gf_node_changed(com->node, &a);
 		} else if (com->fromNodeID) {
 			GF_FieldInfo a, b;
 			GF_Node *fromNode = gf_sg_find_node(graph, com->fromNodeID);
