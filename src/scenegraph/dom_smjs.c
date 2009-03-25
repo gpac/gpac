@@ -357,7 +357,7 @@ char *dom_node_flatten_text(GF_Node *n)
 	GF_ChildNodeItem *list;
 
 	if ((n->sgprivate->tag==TAG_DOMText) && ((GF_DOMText*)n)->textContent) {
-		if ( ((GF_DOMText*)n)->type == GF_DOM_TEXT_REGULAR) {
+		/*if ( ((GF_DOMText*)n)->type == GF_DOM_TEXT_REGULAR) */{
 			res = strdup(((GF_DOMText*)n)->textContent);
 			len = strlen(res);
 		}
@@ -2078,6 +2078,8 @@ typedef struct
 	GF_List *node_stack;
 	/*dom graph*/
 	GF_SceneGraph *document;
+
+	Bool use_cache;
 } XMLHTTPContext;
 
 static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *val)
@@ -2414,6 +2416,8 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 	}
 }
 
+#define USE_PROGRESSIVE_SAX	0
+
 static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	XMLHTTPContext *ctx = (XMLHTTPContext *)usr_cbk;
@@ -2488,6 +2492,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		return;
 	case GF_NETIO_DATA_EXCHANGE:
 		if (parameter->data && parameter->size) {
+#if USE_PROGRESSIVE_SAX
 			if (ctx->sax) {
 				GF_Err e;
 				if (!ctx->size) e = gf_xml_sax_init(ctx->sax, parameter->data);
@@ -2497,6 +2502,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 					ctx->sax = NULL;
 				}
 			}
+#endif
 			ctx->data = realloc(ctx->data, sizeof(char)*(ctx->size+parameter->size+1));
 			memcpy(ctx->data + ctx->size, parameter->data, sizeof(char)*parameter->size);
 			ctx->size += parameter->size;
@@ -2504,6 +2510,19 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		}
 		return;
 	case GF_NETIO_DATA_TRANSFERED:
+		if (ctx->sax) {
+			if(ctx->use_cache ) {
+				const char *filename;
+				ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);
+				filename = gf_dm_sess_get_cache_name(ctx->sess);
+				gf_xml_sax_parse_file(ctx->sax, filename, NULL);
+			} 
+#if !USE_PROGRESSIVE_SAX
+			else {
+				gf_xml_sax_init(ctx->sax, ctx->data);
+			}
+#endif
+		}
 		break;
 	case GF_NETIO_DISCONNECTED:
 		return;
@@ -2564,7 +2583,8 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	if (ctx->data) free(ctx->data);
 
 	ctx->data = data ? strdup(data) : NULL;
-	ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, GF_NETIO_SESSION_NOT_CACHED, xml_http_on_data, ctx, &e);
+	ctx->use_cache = 0;
+	ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, (ctx->use_cache ? 0 : GF_NETIO_SESSION_NOT_CACHED), xml_http_on_data, ctx, &e);
 	if (!ctx->sess) return JS_TRUE;
 
 	/*just wait for destruction*/

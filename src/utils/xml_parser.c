@@ -712,6 +712,7 @@ static GF_Err xml_sax_parse(GF_SAXParser *parser, Bool force_parse)
 	Bool is_text, is_end;
 	u8 c;
 	char *elt, sep;
+	u32 cdata_sep;
 
 	is_text = 0;
 	while (parser->current_pos<parser->line_size) {
@@ -746,6 +747,7 @@ restart:
 			}
 			is_end = 0;
 			i = 0;
+			cdata_sep = 0;
 			while (1) {
 				char c = parser->buffer[parser->current_pos+1+i];
 				if (!c) {
@@ -763,6 +765,13 @@ restart:
 				}
 				else if (c=='>') break;
 				else if (c=='=') break;
+				else if (c=='[') {
+					i++;
+					if (!cdata_sep) cdata_sep = 1;
+					else {
+						break;
+					}
+				}
 				else if (c=='/') {
 					is_end = !i ? 1 : 2;
 					i++;
