@@ -29,6 +29,7 @@
 #include <gpac/list.h>
 #include <gpac/internal/odf_dev.h>
 #include <gpac/network.h>
+#include <time.h>
 
 typedef struct tag_m2ts_demux GF_M2TS_Demuxer;
 typedef struct tag_m2ts_es GF_M2TS_ES;
@@ -401,16 +402,15 @@ typedef struct {
 /*EIT information objects*/
 typedef struct
 {
-	u32 year, month, day, time;
+	time_t unix_time;
 
-	/* local time offset descriptor data */
+	/* local time offset descriptor data (unused ...) */
 	char country_code[3];
 	u8 country_region_id;
-	u8 local_time_offset_polarity;
-	u16 local_time_offset;
-	/*time_of_change*/
-	u32 toc_year, toc_month, toc_day, toc_time;
-	u16 next_time_offset;
+	s32 local_time_offset_seconds;
+	time_t unix_next_toc;
+	s32 next_time_offset_seconds;
+
 } GF_M2TS_DateTime_Event;
 
 typedef struct {
@@ -424,8 +424,9 @@ typedef struct {
 typedef struct
 {
 	u16 event_id;
-	GF_M2TS_DateTime_Event start;
-	u32 duration;
+	time_t unix_start;
+	time_t unix_duration;
+
 	u8 running_status;
 	u8 free_CA_mode;
 	GF_List *short_events;
@@ -442,9 +443,6 @@ typedef struct
 	u16 service_id;
 	GF_List *events;
 } GF_M2TS_EIT;
-
-void gf_m2ts_decode_mjd_date(u32 date, u32 *year, u32 *month, u32 *day);
-
 
 /*MPEG-2 TS packet*/
 typedef struct
