@@ -972,19 +972,6 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 	}
 }
 
-GF_EXPORT 
-void gf_m2ts_decode_mjd_date(u32 date, u32 *year, u32 *month, u32 *day)
-{
-	u32 yp, mp, k;
-	yp = (u32)floor((date - 15078.2)/365.25);
-	mp = (u32)floor((date - 14956.1 - floor(yp * 365.25))/30.6001);
-	*day = (u32)(date - 14956 - floor(yp * 365.25) - floor(mp * 30.6001));		
-	if (mp == 14 || mp == 15) k = 1;
-	else k = 0;
-	*year = yp + k + 1900;
-	*month = mp - 1 - k*12;
-}
-
 static void gf_m2ts_process_nit(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *nit_es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	
@@ -1724,7 +1711,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->SDTs = gf_list_new();
 
 	ts->pat = gf_m2ts_section_filter_new(gf_m2ts_process_pat, 0);
-	ts->sdt = gf_m2ts_section_filter_new(gf_m2ts_process_sdt, 1);
+	ts->sdt = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_sdt*/, 1);
 	ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit, 0);
 	ts->eit = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_eit*/, 1);
 	ts->tdt_tot_st = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_tdt_tot_st*/, 1);
