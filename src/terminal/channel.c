@@ -128,6 +128,15 @@ GF_Channel *gf_es_new(GF_ESD *esd)
 		tmp->ocr_scale = 1000;
 		tmp->ocr_scale /= esd->slConfig->OCRResolution;
 	}
+	switch (tmp->esd->decoderConfig->streamType) {
+	case GF_STREAM_OD:
+	case GF_STREAM_SCENE:
+		tmp->is_carousel = esd->slConfig->AUSeqNumLength ? 1 : 0;
+		break;
+	default:
+		tmp->is_carousel = 0;
+		break;
+	}
 
 
 	Channel_Reset(tmp, 0);
@@ -158,6 +167,15 @@ void gf_es_reconfig_sl(GF_Channel *ch, GF_SLConfig *slc)
 	if (ch->esd->slConfig->OCRResolution) {
 		ch->ocr_scale = 1000;
 		ch->ocr_scale /= ch->esd->slConfig->OCRResolution;
+	}
+	switch (ch->esd->decoderConfig->streamType) {
+	case GF_STREAM_OD:
+	case GF_STREAM_SCENE:
+		ch->is_carousel = ch->esd->slConfig->AUSeqNumLength ? 1 : 0;
+		break;
+	default:
+		ch->is_carousel = 0;
+		break;
 	}
 }
 
@@ -490,7 +508,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	ch->au_duration = 0;
 	if (duration) ch->au_duration = (u32) ((u64)1000 * duration / ch->ts_res);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch AU CTS %d time %d Buffer %d Nb AUs %d\n", ch->esd->ESID, au->CTS, gf_clock_time(ch->clock), ch->BufferTime, ch->AU_Count));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch AU size %d CTS %d time %d Buffer %d Nb AUs %d\n", ch->esd->ESID, au->dataLength, au->CTS, gf_clock_time(ch->clock), ch->BufferTime, ch->AU_Count));
 
 	/*little optimisation: if direct dispatching is possible, try to decode the AU
 	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or 
@@ -766,7 +784,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d - %d buffering\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering));
 			}
 			/*if channel is not the OCR, shift all time stamps to match the current time at clock init*/
-			else {
+			else if (!ch->DTS) {
 				ch->ts_offset += gf_clock_real_time(ch->clock);
 			}
 			if (ch->clock->clock_init) ch->IsClockInit = 1;
@@ -778,7 +796,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			ch->AULength = 0;
 		}
 		/*carousel for repeated AUs.*/
-		if (ch->esd->slConfig->AUSeqNumLength) {
+		if (ch->is_carousel) {
 			if (hdr.randomAccessPointFlag) {
 				/*initial tune-in*/
 				if (ch->stream_state==1) {

@@ -126,6 +126,7 @@ typedef struct
 
 	void *(*get_element_class)(GF_Node *n);
 	void *(*get_document_class)(GF_SceneGraph *n);
+	GF_List *handlers;
 } GF_DOMRuntime;
 
 static GF_DOMRuntime *dom_rt = NULL;
@@ -487,6 +488,20 @@ static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, jsval id, js
 	{"removeEventListener", dom_event_remove_listener, 3},	\
 	{"dispatchEvent", xml_dom3_not_implemented, 1},
 
+
+static void dom_handler_remove(GF_Node *node, void *rs, Bool is_destroy)
+{
+	if (is_destroy) {
+		SVG_handlerElement *handler = (SVG_handlerElement *)node;
+		if (handler->js_context && handler->js_fun_val) {
+			/*unprotect the function*/
+			JS_RemoveRoot(handler->js_context, &handler->js_fun_val);
+			handler->js_fun_val=0;
+			gf_list_del_item(dom_rt->handlers, handler);
+		}
+	}
+}
+
 /*eventListeners routines used by document, element and connection interfaces*/
 JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node)
 {
@@ -574,6 +589,13 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 		if (!callback) {
 			handler->js_fun = fun;
 			handler->js_fun_val = funval;
+			if (0 && handler->js_fun_val) {
+				handler->js_context = c;
+				/*protect the function - we don't know how it was passed to us, so prevent it from being GCed*/
+				JS_AddRoot(handler->js_context, &handler->js_fun_val);
+				handler->sgprivate->UserCallback = dom_handler_remove;
+				gf_list_add(dom_rt->handlers, handler);
+			}
 			handler->evt_listen_obj = evt_handler;
 		}
 	}
@@ -598,7 +620,7 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 		handler->handle_event = gf_sg_handle_dom_event;
 #endif
 	
-	if (!handler->handle_event) {
+	if (vrml_node) {
 		handler->handle_event = gf_sg_handle_dom_event_for_vrml;
 		handler->js_context = c;
 	}
@@ -2039,6 +2061,9 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		case 63:/*v_translation*/
 			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_translate.y) );
 			return JS_TRUE;
+		case 64:/*type3d*/
+			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
+			
 
 
 		default: return JS_TRUE;
@@ -2248,6 +2273,7 @@ static void xml_http_finalize(JSContext *c, JSObject *obj)
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (ctx) {
 		xml_http_reset(ctx);
+		if (ctx->onreadystatechange) JS_RemoveRoot(c, &ctx->onreadystatechange);
 		free(ctx);
 	}
 }
@@ -2753,6 +2779,8 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		default:
 			return JS_TRUE;
 		}
+		if (ctx->onreadystatechange) JS_RemoveRoot(c, &ctx->onreadystatechange);
+
 		if (JSVAL_IS_VOID(*vp)) {
 			ctx->onreadystatechange = NULL;
 			return JS_TRUE;
@@ -2762,11 +2790,10 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 			char *callback = JSVAL_GET_STRING(*vp);
 			if (! JS_LookupProperty(c, JS_GetGlobalObject(c), callback, &fval)) return JS_TRUE;
 			ctx->onreadystatechange = JS_ValueToFunction(c, fval);
-			if (ctx->onreadystatechange) return JS_TRUE;
 		} else if (JSVAL_IS_OBJECT(*vp)) {
 			ctx->onreadystatechange = JS_ValueToFunction(c, *vp);
-			if (ctx->onreadystatechange) return JS_TRUE;
 		}
+		if (ctx->onreadystatechange) JS_AddRoot(c, &ctx->onreadystatechange);
 		return JS_TRUE;
 	}
 	return JS_TRUE;
@@ -3026,6 +3053,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 {
 	if (!dom_rt) {
 		GF_SAFEALLOC(dom_rt, GF_DOMRuntime);
+		dom_rt->handlers = gf_list_new();
 		JS_SETUP_CLASS(dom_rt->domNodeClass, "Node", JSCLASS_HAS_PRIVATE, dom_node_getProperty, dom_node_setProperty, dom_node_finalize);
 		JS_SETUP_CLASS(dom_rt->domDocumentClass, "Document", JSCLASS_HAS_PRIVATE, dom_document_getProperty, dom_document_setProperty, dom_document_finalize);
 		/*Element uses the same destructor as node*/
@@ -3259,6 +3287,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			{"height",			61,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			{"translation_x",	62,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 			{"translation_y",	63,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"type3d",			64,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
 
 			
 			{0},
@@ -3354,11 +3383,29 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 	}
 }
 
+void dom_js_pre_destroy(JSContext *c)
+{
+	u32 i, count = gf_list_count(dom_rt->handlers);
+	for (i=0; i<count; i++) {
+		SVG_handlerElement *handler = (SVG_handlerElement *)gf_list_get(dom_rt->handlers, i);
+		if (handler->js_context==c) {
+			/*unprotect the function*/
+			JS_RemoveRoot(handler->js_context, &handler->js_fun_val);
+			handler->js_fun_val=0;
+			handler->js_context=0;
+			gf_list_rem(dom_rt->handlers, i);
+			i--;
+			count--;
+		}
+	}
+}
+
 void dom_js_unload()
 {
 	if (!dom_rt) return;
 	dom_rt->nb_inst--;
 	if (!dom_rt->nb_inst) {
+		gf_list_del(dom_rt->handlers);
 		free(dom_rt);
 		dom_rt = NULL;
 	}

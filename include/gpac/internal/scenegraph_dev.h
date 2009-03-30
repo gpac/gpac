@@ -96,7 +96,7 @@ struct _node_interactive_ext
 #ifdef GPAC_HAS_SPIDERMONKEY
 	/*JS bindings if any - THIS IS DYNAMICALLY CREATED
 	This speeds up field modif notification (script bindings are listed here)*/
-	GF_List *bindings;
+	struct _node_js_binding *js_binding;
 #endif
 
 #ifndef GPAC_DISABLE_SVG
@@ -843,6 +843,7 @@ typedef struct
 	void (*JS_EventIn)(GF_Node *node, GF_FieldInfo *in_field);
 
 	Bool is_loaded;
+
 } GF_ScriptPriv;
 
 /*setup script stack*/
@@ -909,8 +910,8 @@ typedef struct
 	/*JS list for MFFields or NULL*/
 	struct JSObject *js_list;
 
-	/*when creating SFnode from inside the script, the node is stored here untill attached to an object*/
-	GF_Node *temp_node;
+	/*pointer to the SFNode if this is an SFNode or MFNode[i] field */
+	GF_Node *node;
 	/*when creating MFnode from inside the script, the node list is stored here untill attached to an object*/
 	GF_ChildNodeItem *temp_list;
 	/*when not owned by a node*/
@@ -918,7 +919,16 @@ typedef struct
 	
 	/*cpontext in which the field was created*/
 	struct JSContext *js_ctx;
+	Bool is_rooted;
 } GF_JSField;
+
+
+struct _node_js_binding
+{
+	GF_JSField *node;
+	GF_List *fields;
+};
+
 
 #ifndef GPAC_DISABLE_SVG
 void JSScript_LoadSVG(GF_Node *node);
@@ -945,6 +955,8 @@ void dom_js_load(GF_SceneGraph *scene, struct JSContext *c, struct JSObject *glo
 /*unloads the DOM core support (to be called upon destruction only, once the JSContext has been destroyed
 to releases all resources used by DOM JS)*/
 void dom_js_unload();
+/*unloads DOM core before the JSContext is being destroyed */
+void dom_js_pre_destroy(struct JSContext *c);
 
 /*defines a new global object "document" of type Document*/
 void dom_js_define_document(struct JSContext *c, struct JSObject *global, GF_SceneGraph *doc);

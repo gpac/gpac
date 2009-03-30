@@ -179,8 +179,6 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 			if (rtp->sl_map.StreamStateIndication) {
 				rtp->sl_hdr.AU_sequenceNumber = gf_bs_read_int(hdr_bs, rtp->sl_map.StreamStateIndication);
 				au_hdr_size -= rtp->sl_map.StreamStateIndication;
-			} else {
-				rtp->sl_hdr.AU_sequenceNumber = au_idx;
 			}
 		}
 		/*no header present, update CTS/DTS - note we're sure there's no interleaving*/
@@ -1434,7 +1432,9 @@ void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 	} else {
 		slc->CUDuration = slc->AUDuration = rtp->sl_hdr.au_duration;
 	}
+	/*AUSeqNum is only signaled if streamState is used (eg for carrouselling); otherwise we ignore it*/
 	slc->AUSeqNumLength = rtp->sl_map.StreamStateIndication;
+
 
 	/*RTP SN is on 16 bits*/
 	slc->packetSeqNumLength = 0;
@@ -1446,16 +1446,20 @@ void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 	/*we override these flags because we emulate the flags through the marker bit */
 	slc->useAccessUnitEndFlag = slc->useAccessUnitStartFlag = 1;
 	slc->useRandomAccessPointFlag = rtp->sl_map.RandomAccessIndication;
-	/*by default all packets are RAP if not signaled. This is true for audio
-	shoud NEVER be seen with systems streams and is overriden for video (cf below)*/
-	slc->hasRandomAccessUnitsOnlyFlag = rtp->sl_map.RandomAccessIndication ? 0 : 1;
 	/*checking RAP for video*/
 	if (rtp->flags & GF_RTP_M4V_CHECK_RAP) {
 		slc->useRandomAccessPointFlag = 1;
 		slc->hasRandomAccessUnitsOnlyFlag = 0;
 	}
-	/*should work for simple carsousel without streamState indicated*/
-	slc->AUSeqNumLength = rtp->sl_map.IndexLength;
 
+	/*try to signal caroussel if not set in StreamState*/
+	if (!slc->AUSeqNumLength && rtp->sl_map.RandomAccessIndication) {
+		switch (rtp->sl_map.StreamType) {
+		case GF_STREAM_OD:
+		case GF_STREAM_SCENE:
+			slc->AUSeqNumLength = rtp->sl_map.IndexLength;
+			break;
+		}
+	}
 }
 

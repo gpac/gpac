@@ -1237,7 +1237,7 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 		stack->inline_sg = gf_mo_get_scenegraph(stack->resource);
 
 	if (stack->inline_sg) {
-		gf_sc_traverse_subscene(tr_state->visual->compositor, node, stack->inline_sg, tr_state);
+			(tr_state->visual->compositor, node, stack->inline_sg, tr_state);
 	}
 
 	if (stack->init_vis_state == 2) {

@@ -297,6 +297,12 @@ enum
 	GF_SG_VRML_MFVEC2D,
 	GF_SG_VRML_MFVEC3D,
 
+	/*special event only used in routes for binding eventOut/exposedFields to script functions. 
+	 A route with ToField.FieldType set to this value holds a pointer to a function object. 
+	*/
+	GF_SG_VRML_SCRIPT_FUNCTION,
+
+
 	GF_SG_VRML_UNKNOWN
 };
 const char *gf_sg_vrml_get_field_type_by_name(u32 FieldType);

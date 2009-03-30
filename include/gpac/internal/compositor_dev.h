@@ -739,6 +739,7 @@ struct _traversing_state
 
 	/*world ray for picking - in 2D, orig is 2D mouse pos and direction is -z*/
 	GF_Ray ray;
+	s32 pick_x, pick_y;
 
 	/*we have 2 clippers, one for regular clipping (layout, form if clipping) which is maintained in world coord system
 	and one for layer2D which is maintained in parent coord system (cf layer rendering). The layer clipper

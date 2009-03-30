@@ -109,11 +109,14 @@ typedef struct
 {
 	GROUPING_NODE_STACK_2D
 	GF_Matrix2D mat;
-	Bool is_identity;
+	u8 is_identity;
+	u8 is_null;
 } Transform2DStack;
 
 static void traverse_transform(GF_Node *node, Transform2DStack *stack, GF_TraverseState *tr_state)
 {
+	if (stack->is_null) return;
+
 	/*note we don't clear dirty flag, this is done in traversing*/
 	if (stack->is_identity) {
 		group_2d_traverse(node, (GroupingNode2D *)stack, tr_state);
@@ -186,6 +189,7 @@ static void TraverseTransform2D(GF_Node *node, void *rs, Bool is_destroy)
 			gf_mx2d_add_translation(&ptr->mat, tr->translation.x, tr->translation.y);
 		}
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
+		ptr->is_null = (!tr->scale.x || !tr->scale.y) ? 1 : 0;
 	}
 	traverse_transform(node, ptr, tr_state);
 }
@@ -235,6 +239,8 @@ static void TraverseTransformMatrix2D(GF_Node *node, void *rs, Bool is_destroy)
 			ptr->is_identity = 1;
 		else
 			ptr->is_identity = 0;
+
+		ptr->is_null = (!ptr->mat.m[0]  || !ptr->mat.m[4]) ? 1 : 0;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 	traverse_transform(node, ptr, tr_state);

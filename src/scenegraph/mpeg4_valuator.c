@@ -137,7 +137,7 @@ static void valuator_get_output(M_Valuator *p, GenMFField *inMFField, u32 inType
 static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inMFField, u32 inType)
 {
 	char str[500];
-	u32 i;
+	u32 i, j;
 	GF_Route *r;
 	SFVec4f output, sf_out;
 	MFVec4f *mf_output = (MFVec4f *)gf_node_get_private((GF_Node*)p);
@@ -185,6 +185,8 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 		if (inType) {
 			valuator_get_output(p, inMFField, inType, do_sum, i, &output, &num_out);
 			mf_output->vals[i] = output;
+		} else if (!i) {
+			mf_output->vals[0] = output;
 		}
 		if (!i) sf_out = output;
 	}
@@ -196,20 +198,9 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 	gf_sg_vrml_mf_alloc(&p->outMFString, GF_SG_VRML_MFSTRING, count);	gf_sg_vrml_mf_alloc(&p->outMFVec2f, GF_SG_VRML_MFVEC2F, count);
 	gf_sg_vrml_mf_alloc(&p->outMFVec3f, GF_SG_VRML_MFVEC3F, count);
 
-	/*set all MF outputs*/
-	for (i=0; i<count; i++) {
-		if (inType) {
-			valuator_get_output(p, inMFField, inType, do_sum, i, &output, &num_out);
-		}
-
-		
-		if (!i) sf_out = output;
-
-	}
-
 	/*valuator is a special case, all routes are triggered*/
-	i=0;
-	while ((r = (GF_Route*)gf_list_enum(p->sgprivate->interact->routes, &i))) {
+	j=0;
+	while ((r = (GF_Route*)gf_list_enum(p->sgprivate->interact->routes, &j))) {
 		if (r->FromNode != (GF_Node *)p) continue;
 		if (!r->is_setup) gf_sg_route_setup(r);
 		if (r->FromField.eventType != GF_SG_EVENT_OUT) continue;

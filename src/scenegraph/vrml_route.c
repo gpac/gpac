@@ -55,8 +55,6 @@ void gf_sg_route_del(GF_Route *r)
 	GF_SceneGraph *sg;
 	s32 ind;
 
-	gf_sg_route_unqueue(r->graph, r);
-
 	/*remove declared routes*/
 	ind = gf_list_del_item(r->graph->Routes, r);
 	/*remove route from node - do this regardless of setup state since the route is registered upon creation*/
@@ -67,10 +65,19 @@ void gf_sg_route_del(GF_Route *r)
 			r->FromNode->sgprivate->interact->routes = NULL;
 		}
 	}
+	/*special case for script events: notify desdctruction*/
+#if 0
+	if (r->ToNode && (r->ToField.fieldType==GF_SG_VRML_SCRIPT_FUNCTION) && r->ToField.on_event_in) {
+		r->is_setup = 0;
+		r->FromNode = NULL;
+		r->ToField.on_event_in(r->ToNode, r);
+	}
+#endif
 	r->is_setup = 0;
 	sg = r->graph;
 	while (sg->parent_scene) sg = sg->parent_scene;
 	gf_list_add(sg->routes_to_destroy, r);
+	gf_list_del_item(sg->routes_to_activate, r);
 }
 
 
@@ -119,6 +126,7 @@ void gf_sg_activate_routes(GF_SceneGraph *sg)
 	if (!sg) return;
 
 	sg->simulation_tick++;
+	gf_sg_destroy_routes(sg);
 
 	while (gf_list_count(sg->routes_to_activate)) {
 		r = (GF_Route *)gf_list_get(sg->routes_to_activate, 0);
@@ -136,7 +144,6 @@ void gf_sg_activate_routes(GF_SceneGraph *sg)
 			}
 		}
 	}
-	gf_sg_destroy_routes(sg);
 }
 
 void gf_sg_route_unqueue(GF_SceneGraph *sg, GF_Route *r)

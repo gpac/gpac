@@ -599,6 +599,9 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	
 	/*this is just an instance removed*/
 	if (pNode->sgprivate->num_instances) {
+		if (pNode->sgprivate->scenegraph->on_node_modified && (pNode->sgprivate->num_instances==1) && pNode->sgprivate->interact && pNode->sgprivate->interact->js_binding) {
+			pNode->sgprivate->scenegraph->on_node_modified(pNode->sgprivate->scenegraph, pNode, NULL, NULL);
+		}
 		return GF_OK;
 	}
 	
@@ -1391,10 +1394,11 @@ void gf_node_free(GF_Node *node)
 		}
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
-		if (node->sgprivate->interact->bindings) {
+		if (node->sgprivate->interact->js_binding) {
 			if (node->sgprivate->scenegraph->on_node_modified)
 				node->sgprivate->scenegraph->on_node_modified(node->sgprivate->scenegraph, node, NULL, NULL);
-			gf_list_del(node->sgprivate->interact->bindings);
+			gf_list_del(node->sgprivate->interact->js_binding->fields);
+			free(node->sgprivate->interact->js_binding);
 		}
 #endif
 		free(node->sgprivate->interact);

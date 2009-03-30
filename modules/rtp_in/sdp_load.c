@@ -169,7 +169,8 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 
 	if (!ch->ES_ID) ch->ES_ID = ch_idx + 1;
-	od->objectDescriptorID = ch->ES_ID;
+	od->objectDescriptorID = ch->OD_ID ? ch->OD_ID : ch->ES_ID;
+
 	esd = gf_odf_desc_esd_new(0);
 	esd->slConfig->timestampResolution = gf_rtp_get_clockrate(ch->rtp_ch);
 	esd->slConfig->useRandomAccessPointFlag = 1;

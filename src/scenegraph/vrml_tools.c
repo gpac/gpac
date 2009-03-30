@@ -60,7 +60,6 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 po
 	return GF_OK;
 }
 
-
 static void Node_on_add_children(GF_Node *node, GF_Route *route)
 {
 	GF_ChildNodeItem *list;
@@ -80,11 +79,21 @@ static void Node_on_add_children(GF_Node *node, GF_Route *route)
 	field.name = "children";
 	field.eventType = GF_SG_EVENT_EXPOSED_FIELD;
 	field.fieldType = GF_SG_VRML_MFNODE;
-	field.NDTtype = 0;
+	field.NDTtype = -1;
 	field.fieldIndex = 2;
 	field.far_ptr = & n->children;
 	gf_node_event_out(node, field.fieldIndex);
 	gf_node_changed(node, &field);
+
+	if (node->sgprivate->scenegraph->on_node_modified) {
+		field.name = "addChildren";
+		field.eventType = GF_SG_EVENT_IN;
+		field.fieldType = GF_SG_VRML_MFNODE;
+		field.NDTtype = -1;
+		field.fieldIndex = 0;
+		field.far_ptr = & n->addChildren;
+		node->sgprivate->scenegraph->on_node_modified(node->sgprivate->scenegraph, node, &field, NULL);
+	}
 }
 
 static void Node_on_remove_children(GF_Node *node, GF_Route *route)
@@ -109,11 +118,22 @@ static void Node_on_remove_children(GF_Node *node, GF_Route *route)
 	field.name = "children";
 	field.eventType = GF_SG_EVENT_EXPOSED_FIELD;
 	field.fieldType = GF_SG_VRML_MFNODE;
-	field.NDTtype = 0;
+	field.NDTtype = -1;
 	field.fieldIndex = 2;
 	field.far_ptr = & n->children;
 	gf_node_event_out(node, field.fieldIndex);
 	gf_node_changed(node, &field);
+
+
+	if (node->sgprivate->scenegraph->on_node_modified) {
+		field.name = "removeChildren";
+		field.eventType = GF_SG_EVENT_IN;
+		field.fieldType = GF_SG_VRML_MFNODE;
+		field.NDTtype = -1;
+		field.fieldIndex = 1;
+		field.far_ptr = & n->removeChildren;
+		node->sgprivate->scenegraph->on_node_modified(node->sgprivate->scenegraph, node, &field, NULL);
+	}
 }
 
 void gf_sg_vrml_parent_setup(GF_Node *pNode)

@@ -918,6 +918,8 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 	compositor->prev_hit_use_stack = compositor->hit_use_stack;
 	compositor->hit_use_stack = temp_stack;
 	
+	tr_state->pick_x = ev->mouse.x;
+	tr_state->pick_y = ev->mouse.y;
 #ifndef GPAC_DISABLE_3D
 	if (visual->type_3d)
 		visual_3d_pick_node(visual, tr_state, ev, children);

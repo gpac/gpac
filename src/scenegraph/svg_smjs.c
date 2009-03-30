@@ -182,8 +182,9 @@ static JSBool svg_parse_xml(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 
 static void svg_script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
 {
-	GF_SceneGraph *sg = JS_GetContextPrivate(c);
-	_ScriptMessage(sg, GF_SCRIPT_ERROR, msg);
+//	GF_SceneGraph *sg = JS_GetContextPrivate(c);
+//	_ScriptMessage(sg, GF_SCRIPT_ERROR, msg);
+	GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d (%s)", msg, jserr->lineno, jserr->linebuf));
 }
 
 static JSBool svg_echo(JSContext *c, JSObject *p, uintN argc, jsval *argv, jsval *rval)

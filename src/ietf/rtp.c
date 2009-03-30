@@ -176,6 +176,9 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			if (!IsSource) {
 				port = ch->net_info.port_first;
 				if (!port) port = ch->net_info.client_port_first;
+				/*if a destination adress was given (rtsd) use it*/
+				if (!local_ip && ch->net_info.destination) local_ip = ch->net_info.destination;
+
 				e = gf_sk_bind(ch->rtp, local_ip, ch->net_info.client_port_first, ch->net_info.source, port, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			}
@@ -191,9 +194,6 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			//don't like that on local loop ...
 			e = gf_sk_setup_multicast(ch->rtp, ch->net_info.source, ch->net_info.port_first, ch->net_info.TTL, (IsSource==2), local_ip);
 			if (e) return e;
-		
-			//destination is used for multicast interface addressing - TO DO
-
 		}
 		if (UDPBufferSize) gf_sk_set_buffer_size(ch->rtp, IsSource, UDPBufferSize);
 
@@ -219,6 +219,9 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			if (!IsSource) {
 				port = ch->net_info.port_last;
 				if (!port) port = ch->net_info.client_port_last;
+				/*if a destination adress was given (rtsd) use it*/
+				if (!local_ip && ch->net_info.destination) local_ip = ch->net_info.destination;
+
 				e = gf_sk_bind(ch->rtcp, local_ip, ch->net_info.client_port_last, ch->net_info.source, port, GF_SOCK_REUSE_PORT);
 				if (e) return e;
 			} else {
@@ -230,7 +233,6 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			//Bind to multicast (auto-join the group)
 			e = gf_sk_setup_multicast(ch->rtcp, ch->net_info.source, ch->net_info.port_last, ch->net_info.TTL, (IsSource==2), local_ip);
 			if (e) return e;
-			//destination is used for multicast interface addressing - TO DO
 		}
 	}
 		

@@ -731,6 +731,143 @@ static void compositor_init_idx_curve2d(GF_Compositor *compositor, GF_Node *node
 }
 
 
+
+
+
+/*TransformRef hardcoded proto*/
+typedef struct
+{
+	BASE_NODE
+	CHILDREN
+} Untransform;
+
+typedef struct
+{
+	GROUPING_NODE_STACK_2D
+	Untransform untr;
+} UntransformStack;
+
+static Bool Untransform_GetNode(GF_Node *node, Untransform *tr)
+{
+	GF_FieldInfo field;
+	memset(tr, 0, sizeof(Untransform));
+	tr->sgprivate = node->sgprivate;
+
+	if (gf_node_get_field(node, 0, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_MFNODE) return 0;
+	tr->children = *(GF_ChildNodeItem **) field.far_ptr;
+
+	return 1;
+}
+
+
+static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
+{
+	UntransformStack *stack = (UntransformStack *)gf_node_get_private(node);
+	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+
+	if (is_destroy) {
+		free(stack);
+		return;
+	}
+
+	if (tr_state->traversing_mode==TRAVERSE_SORT) {
+		if (gf_node_dirty_get(node)) {
+			Untransform_GetNode(node, &stack->untr); /*lets place it below*/
+			gf_node_dirty_clear(node, 0);
+		}
+	}
+
+#ifndef GPAC_DISABLE_3D
+	if (tr_state->visual->type_3d) {
+		GF_Matrix mx_model;
+		GF_Camera backup_cam;
+
+		gf_mx_copy(mx_model, tr_state->model_matrix);
+		gf_mx_init(tr_state->model_matrix);
+
+		memcpy(&backup_cam, tr_state->camera, sizeof(GF_Camera));
+
+
+		camera_invalidate(tr_state->camera);
+		tr_state->camera->is_3D=0;
+		camera_update(tr_state->camera, NULL, 1);
+
+
+		if (tr_state->traversing_mode == TRAVERSE_SORT) {
+			GF_Matrix model;
+			visual_3d_matrix_get(tr_state->visual, V3D_MATRIX_MODELVIEW, model.m);
+
+			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
+			visual_3d_matrix_load(tr_state->visual, tr_state->camera->projection.m);
+			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
+			visual_3d_matrix_load(tr_state->visual, tr_state->camera->modelview.m);
+
+			visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+
+			gf_node_traverse_children((GF_Node *)&stack->untr, tr_state);
+
+			gf_mx_copy(tr_state->model_matrix, mx_model);
+			memcpy(tr_state->camera, &backup_cam, sizeof(GF_Camera));
+
+			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
+			visual_3d_matrix_load(tr_state->visual, tr_state->camera->projection.m);
+			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
+			visual_3d_matrix_load(tr_state->visual, model.m);
+
+			visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+		} else if (tr_state->traversing_mode == TRAVERSE_PICK) {
+			Fixed prev_dist = tr_state->visual->compositor->hit_square_dist;
+			GF_Ray r = tr_state->ray;
+			tr_state->ray.orig.x = INT2FIX(tr_state->pick_x);
+			tr_state->ray.orig.y = INT2FIX(tr_state->pick_y);
+			tr_state->ray.orig.z = 0;
+			tr_state->ray.dir.x = 0;
+			tr_state->ray.dir.y = 0;
+			tr_state->ray.dir.z = -FIX_ONE;
+			tr_state->visual->compositor->hit_square_dist=0;
+
+			gf_node_traverse_children((GF_Node *)&stack->untr, tr_state);
+
+			gf_mx_copy(tr_state->model_matrix, mx_model);
+			memcpy(tr_state->camera, &backup_cam, sizeof(GF_Camera));
+			tr_state->ray = r;
+			
+			/*nothing picked, restore previous pick*/
+			if (!tr_state->visual->compositor->hit_square_dist) 
+				tr_state->visual->compositor->hit_square_dist = prev_dist;
+	
+		} else {
+			gf_node_traverse_children((GF_Node *)&stack->untr, tr_state);
+
+			gf_mx_copy(tr_state->model_matrix, mx_model);
+			memcpy(tr_state->camera, &backup_cam, sizeof(GF_Camera));
+		}
+
+	} else 
+#endif
+	{
+		GF_Matrix2D mx2d_backup;
+		gf_mx2d_copy(mx2d_backup, tr_state->transform);
+		gf_mx2d_init(tr_state->transform);
+		gf_node_traverse_children((GF_Node *)&stack->untr, tr_state);
+		gf_mx2d_copy(tr_state->transform, mx2d_backup);
+	}
+}
+
+void compositor_init_untransform(GF_Compositor *compositor, GF_Node *node)
+{
+	Untransform tr;
+	if (Untransform_GetNode(node, &tr)) {
+		UntransformStack *stack;
+		GF_SAFEALLOC(stack, UntransformStack);
+		gf_node_set_private(node, stack);
+		gf_node_set_callback_function(node, TraverseUntransform);
+		stack->untr = tr;
+	}
+}
+
+
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
 void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 {
@@ -772,6 +909,10 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 		}
 		if (!strcmp(url, "urn:inet:gpac:builtin:IndexedCurve2D")) {
 			compositor_init_idx_curve2d(compositor, node);
+			return;
+		}
+		if (!strcmp(url, "urn:inet:gpac:builtin:Untransform")) {
+			compositor_init_untransform(compositor, node);
 			return;
 		}
 	}

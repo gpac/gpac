@@ -124,7 +124,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	GF_RTSPRange *range;
 	RTPStream *tmp;
 	GF_RTPMap *map;
-	u32 i, ESID, ssrc, rtp_seq, rtp_time;
+	u32 i, ESID, ODID, ssrc, rtp_seq, rtp_time;
 	Bool force_bcast = 0;
 	Double Start, End;
 	Float CurrentTime;
@@ -138,6 +138,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	Start = 0.0;
 	End = -1.0;
 	CurrentTime = 0.0f;
+	ODID = 0;
 	ESID = 0;
 	ctrl = NULL;
 	range = NULL;
@@ -148,6 +149,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		if (!stricmp(att->Name, "control")) ctrl = att->Value;
 		else if (!stricmp(att->Name, "gpac-broadcast")) force_bcast = 1;
 		else if (!stricmp(att->Name, "mpeg4-esid") && att->Value) ESID = atoi(att->Value);
+		else if (!stricmp(att->Name, "mpeg4-odid") && att->Value) ODID = atoi(att->Value);
 		else if (!stricmp(att->Name, "range") && !range) range = gf_rtsp_range_parse(att->Value);
 		else if (!stricmp(att->Name, "x-stream-state") ) {
 			sscanf(att->Value, "server-port=%d-%d;ssrc=%X;npt=%g;seq=%d;rtptime=%d", 
@@ -202,6 +204,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	tmp->rtp_ch = gf_rtp_new();
 	if (ctrl) tmp->control = strdup(ctrl);
 	tmp->ES_ID = ESID;
+	tmp->OD_ID = ODID;
 
 	memset(&trans, 0, sizeof(GF_RTSPTransport));
 	trans.Profile = media->Profile;

@@ -595,12 +595,16 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	ctx->switch_res = 0;
 
 	if (!ctx->os_hwnd) {
+		u32 styles;
 		if (flags & GF_TERM_WINDOWLESS) ctx->windowless = 1;
+
 
 #ifdef _WIN32_WCE
 		ctx->os_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC DirectDraw Output"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #else
-		ctx->os_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", ctx->windowless ? WS_POPUP : WS_OVERLAPPEDWINDOW, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+		styles = WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+		styles |= ctx->windowless ? WS_POPUP : WS_OVERLAPPEDWINDOW;
+		ctx->os_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", styles, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #endif
 		if (ctx->os_hwnd == NULL) {
 			return 0;

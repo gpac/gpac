@@ -31,6 +31,9 @@ static GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
 {
 	Bool hasSize, cmd_stream;
 
+	if (info->config.elementaryMasks) gf_list_del(info->config.elementaryMasks);
+	info->config.elementaryMasks = NULL	;
+
 	if (version==2) {
 		info->config.Use3DMeshCoding = gf_bs_read_int(bs, 1);
 		info->config.UsePredictiveMFField = gf_bs_read_int(bs, 1);

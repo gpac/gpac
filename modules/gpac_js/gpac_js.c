@@ -228,6 +228,7 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 	if ((argc >= 1) && JSVAL_IS_STRING(argv[0])) {
 		JSString *js_dir = JSVAL_TO_STRING(argv[0]);
 		dir = JS_GetStringBytes(js_dir);
+		if (!strcmp(dir, "/")) browse_root = 1;
 	}
 	if ((argc >= 2) && JSVAL_IS_STRING(argv[1])) {
 		JSString *js_fil = JSVAL_TO_STRING(argv[1]);
@@ -239,7 +240,6 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 	}
 	if ((argc >= 3) && JSVAL_IS_BOOLEAN(argv[2])) {
 		if (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) {
-			Bool browse_root = 0;
 			url = gf_url_concatenate(dir, "..");
 			if (!strcmp(url, "..") || (url[0]==0)) {
 				if ((dir[1]==':') && ((dir[2]=='/') || (dir[2]=='\\')) ) browse_root = 1;
@@ -256,6 +256,7 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 		cbk.is_dir = 1;
 		gf_enum_directory("/", 1, enum_dir_fct, &cbk, NULL);
 		*rval = OBJECT_TO_JSVAL(cbk.array);
+		if (url) free(url);
 		return JS_TRUE;
 	}
 
@@ -318,10 +319,14 @@ static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 			term->compositor->scene_height = h;
 			term->compositor->has_size_info = 1;
 		}
+		gf_sc_set_size(term->compositor, w, h);
 		evt.type = GF_EVENT_SIZE;
 		evt.size.width = w;
 		evt.size.height = h;
 		gf_term_send_event(term, &evt);
+	} else if (override_size_info) {
+		term->compositor->has_size_info = 0;
+		term->compositor->recompute_ar = 1;
 	}
 
 	return JS_TRUE;
@@ -366,11 +371,14 @@ static JSBool gpac_exit(JSContext *c, JSObject *obj, uintN argc, jsval *argv, js
 
 static JSBool gpac_set_3d(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	Bool set_3d = 1;
+	u32 type_3d = 0;
 	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
-	if (argc && JSVAL_IS_BOOLEAN(argv[0])) set_3d = JSVAL_TO_BOOLEAN(argv[0]);
-	term->compositor->inherit_type_3d = set_3d;
-	term->compositor->root_visual_setup = 0;
+	if (argc && JSVAL_IS_INT(argv[0])) type_3d = JSVAL_TO_INT(argv[0]);
+	if (term->compositor->inherit_type_3d != type_3d) {
+		term->compositor->inherit_type_3d = type_3d;
+		term->compositor->root_visual_setup = 0;
+		term->compositor->reset_graphics = 1;
+	}
 	return JS_TRUE;
 }
 

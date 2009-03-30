@@ -229,7 +229,12 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	
 	gf_mx2d_init(mat);
-	gf_mx2d_add_scale(&mat, sx, sy);
+	if (tr_state->pixel_metrics) {
+		gf_mx2d_add_scale(&mat, sx, sy);
+	} else {
+		/*if we are not in pixelMetrics, undo the meterMetrics->pixelMetrics transformation*/
+		gf_mx2d_add_scale(&mat, gf_divfix(sx, tr_state->min_hsize), gf_divfix(sy, tr_state->min_hsize) );
+	}
 	gf_mx2d_add_translation(&mat, tx, ty);
 
 	gf_mx2d_add_translation(&mat, -gf_mulfix(vp->position.x,sx), -gf_mulfix(vp->position.y,sy) );
