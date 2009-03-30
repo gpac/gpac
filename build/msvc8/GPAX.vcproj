@@ -26,6 +26,7 @@
 			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
+			UseOfATL="2"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
@@ -126,6 +127,7 @@
 			IntermediateDirectory="Smartphone 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
+			UseOfATL="2"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
@@ -134,9 +136,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				Description="Performing registration"
-				CommandLine="regsvr32 /s /c &quot;$(TargetPath)&quot;&#x0D;&#x0A;echo regsvr32 exec. time &gt; &quot;$(OutDir)\regsvr32.trg&quot;&#x0D;&#x0A;"
-				Outputs="$(OutDir)\regsvr32.trg"
+				Description=""
+				CommandLine=""
+				Outputs=""
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -155,7 +157,7 @@
 				ExecutionBucket="7"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_WINDOWS;_USRDLL"
+				PreprocessorDefinitions="_DEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_CE_ALLOW_SINGLE_THREADED_OBJECTS_IN_MTA;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_USR_DLL"
 				MinimalRebuild="true"
 				RuntimeLibrary="3"
 				PrecompiledHeaderFile=".\obj/w32_deb/GPAX.pch"
@@ -172,7 +174,7 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
+				PreprocessorDefinitions="UNDER_CE=$(CEVER),_WIN32_WCE=$(CEVER),DEBUG,UNICODE,_UNICODE,$(CePlatform),ARM,_ARM_,ARMV4"
 				Culture="1033"
 			/>
 			<Tool
@@ -180,7 +182,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib"
 				OutputFile="../../bin/w32_deb_vc8/GPAX.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -284,6 +286,7 @@
 			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
+			UseOfATL="2"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
@@ -384,6 +387,7 @@
 			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
 			ConfigurationType="2"
 			UseOfMFC="0"
+			UseOfATL="2"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
@@ -392,9 +396,9 @@
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				Description="Performing registration"
-				CommandLine="regsvr32 /s /c &quot;$(TargetPath)&quot;&#x0D;&#x0A;echo regsvr32 exec. time &gt; &quot;$(OutDir)\regsvr32.trg&quot;&#x0D;&#x0A;"
-				Outputs="$(OutDir)\regsvr32.trg"
+				Description=""
+				CommandLine=""
+				Outputs=""
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -413,8 +417,8 @@
 				ExecutionBucket="7"
 				Optimization="4"
 				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_WINDOWS;_USRDLL"
-				MinimalRebuild="true"
+				PreprocessorDefinitions="NDEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_CE_ALLOW_SINGLE_THREADED_OBJECTS_IN_MTA;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_USR_DLL"
+				MinimalRebuild="false"
 				RuntimeLibrary="2"
 				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
 				AssemblerListingLocation="$(IntDir)\"
@@ -429,24 +433,24 @@
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
-				Culture="2052"
+				PreprocessorDefinitions="UNDER_CE=$(CEVER);_WIN32_WCE=$(CEVER);NDEBUG;UNICODE;_UNICODE;$(CePlatform);ARM;_ARM_;ARMV4"
+				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName"
 				ModuleDefinitionFile="..\..\applications\GPAX\GPAX.def"
-				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\obj/w32_rel/GPAX.pdb"
+				GenerateDebugInformation="false"
+				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="9"
-				ImportLibrary=".\obj/w32_rel/GPAX.lib"
+				ImportLibrary="$(PlatformName)/$(ConfigurationName)/$(ProjectName).lib"
 				TargetMachine="3"
 			/>
 			<Tool

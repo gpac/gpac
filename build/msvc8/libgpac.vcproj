@@ -7053,7 +7053,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\gpac\config.h"
+				RelativePath="..\..\include\gpac\compositor.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\config_file.h"
 				>
 			</File>
 			<File
@@ -7073,6 +7077,18 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\gpac\esi.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\events.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\filestreamer.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\modules\font.h"
 				>
 			</File>
@@ -7082,6 +7098,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\ismacryp.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\iso639.h"
 				>
 			</File>
 			<File
@@ -7137,6 +7157,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\gpac\nodes_xbl.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\options.h"
 				>
 			</File>
@@ -7174,6 +7198,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\setup.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\svg_types.h"
 				>
 			</File>
 			<File

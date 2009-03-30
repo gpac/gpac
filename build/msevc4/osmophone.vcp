@@ -109,7 +109,6 @@ DEP_CPP_MAIN_=\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -125,11 +124,11 @@ DEP_CPP_MAIN_=\
 	{$(INCLUDE)}"aygshell.h"\
 	{$(INCLUDE)}"gx.h"\
 	{$(INCLUDE)}"sipapi.h"\
+	{$(INCLUDE)}"vibrate.h"\
 	{$(INCLUDE)}"winuserm.h"\
 	
 NODEP_CPP_MAIN_=\
 	"..\..\include\gpac\config.h"\
-	"C:\Program Files\Windows CE Tools\wce420\POCKET PC 2003\Include\ARMV4\vibrate.h"\
 	
 # End Source File
 # Begin Source File
@@ -137,17 +136,16 @@ NODEP_CPP_MAIN_=\
 SOURCE=..\..\applications\osmophone\openfile.cpp
 DEP_CPP_OPENF=\
 	"..\..\include\gpac\config_file.h"\
-	"..\..\include\gpac\internal\config.h"\
 	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	{$(INCLUDE)}"aygshell.h"\
 	{$(INCLUDE)}"sipapi.h"\
+	{$(INCLUDE)}"vibrate.h"\
 	{$(INCLUDE)}"winuserm.h"\
 	
 NODEP_CPP_OPENF=\
 	"..\..\include\gpac\config.h"\
-	"C:\Program Files\Windows CE Tools\wce420\POCKET PC 2003\Include\ARMV4\vibrate.h"\
 	
 # End Source File
 # Begin Source File

@@ -1096,7 +1096,7 @@ EXPORTS
 	gf_sg_js_get_node
 	gf_sg_js_event_add_listener
 	gf_sg_js_event_remove_listener
-	gf_sg_listener_post_add
+	gf_node_dom_listener_add
 
 ;terminal.h exports
 	gf_term_new

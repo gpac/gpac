@@ -795,9 +795,6 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 
 
 		if (tr_state->traversing_mode == TRAVERSE_SORT) {
-			GF_Matrix model;
-			visual_3d_matrix_get(tr_state->visual, V3D_MATRIX_MODELVIEW, model.m);
-
 			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
 			visual_3d_matrix_load(tr_state->visual, tr_state->camera->projection.m);
 			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
@@ -813,7 +810,7 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
 			visual_3d_matrix_load(tr_state->visual, tr_state->camera->projection.m);
 			visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
-			visual_3d_matrix_load(tr_state->visual, model.m);
+			visual_3d_matrix_load(tr_state->visual, tr_state->camera->modelview.m);
 
 			visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
 		} else if (tr_state->traversing_mode == TRAVERSE_PICK) {
