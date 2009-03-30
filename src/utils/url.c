@@ -105,7 +105,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 		goto check_spaces;
 	}
 
-	/*upnp addressing*/
+	/*upnp addressing a la Platinum*/
 	rad = strstr(parentName, "%3fpath=");
 	if (!rad) rad = strstr(parentName, "%3Fpath=");
 	if (!rad) rad = strstr(parentName, "?path=");
@@ -117,9 +117,13 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 		i=0;
 		while (1) {
 			if (the_path[i]==0) break;
-			if (!strnicmp(the_path+i, "%5c", 3)) {
+			if (!strnicmp(the_path+i, "%5c", 3) || !strnicmp(the_path+i, "%2f", 3) ) {
 				the_path[i] = '/';
 				memmove(the_path+i+1, the_path+i+3, strlen(the_path+i+3)+1);
+			}
+			else if (!strnicmp(the_path+i, "%05c", 4) || !strnicmp(the_path+i, "%02f", 4) ) {
+				the_path[i] = '/';
+				memmove(the_path+i+1, the_path+i+4, strlen(the_path+i+4)+1);
 			}
 			i++;
 		}
