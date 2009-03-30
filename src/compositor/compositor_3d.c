@@ -110,7 +110,11 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 #else
 	evt.setup.opengl_mode = 1;
 #endif
-	compositor->video_out->ProcessEvent(compositor->video_out, &evt);
+
+	if (compositor->video_out->ProcessEvent(compositor->video_out, &evt)<0) {
+		compositor->reset_graphics=1;
+		return GF_OK;
+	}
 
 #ifdef GPAC_USE_TINYGL
 	{

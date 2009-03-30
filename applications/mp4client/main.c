@@ -91,8 +91,9 @@ void PrintUsage()
 	fprintf(stdout, "Usage MP4Client [options] [filename]\n"
 		"\t-c fileName:    user-defined configuration file\n"
 		"\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
-		"\t-rtix fileName:  same as -rti but driven by GPAC logs\n"
+		"\t-rtix fileName: same as -rti but driven by GPAC logs\n"
 		"\t-quiet:         removes script message, buffering and downloading status\n"
+		"\t-opt	option:    Overrides an option in the configuration file. String format is section:key=value\n"
 		"\t-log-file file: sets output log file.\n"
 		"\t-log-level lev: sets log level. Possible values are:\n"
 		"\t        \"error\"      : logs only error messages\n"
@@ -129,6 +130,8 @@ void PrintUsage()
 		"                   possible v values: t(op), m(iddle), b(ottom)\n"
 		"                   possible h values: l(eft), m(iddle), r(ight)\n"
 		"                   default alignment is top-left\n"
+		"                   default alignment is top-left\n"
+		"\n"
 		"Dumper Options:\n"
 		"\t-bmp [times]:   dumps given frames to bmp\n"
 		"\t-raw [times]:   dumps given frames to bmp\n"
@@ -1047,7 +1050,6 @@ int main (int argc, char **argv)
 					gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
 				}
 			}
-			gf_cfg_set_key(cfg_file, szSec, szKey, szVal);
 			i++;
 		}
 		else if (!strncmp(arg, "-run-for=", 9)) simulation_time = atoi(arg+9);
@@ -1514,13 +1516,13 @@ force_input:
 	gf_term_del(term);
 	fprintf(stdout, "OK\n");
 
-	fprintf(stdout, "Unloading modules... ");
+	fprintf(stdout, "GPAC cleanup ...\n");
 	gf_modules_del(user.modules);
-	fprintf(stdout, "OK\n");
 	gf_cfg_del(cfg_file);
 	gf_sys_close();
 	if (rti_logs) fclose(rti_logs);
 	if (logfile) fclose(logfile);
+	fprintf(stdout, "Bye\n");
 	return 0;
 }
 

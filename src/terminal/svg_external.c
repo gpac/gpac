@@ -192,9 +192,6 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 	new_resource = gf_svg_get_subscene(node, &xlinkp, &syncp, primary_resource ? 1 : 0, primary_resource);
 	if (!new_resource) return NULL;
 
-	/*remember parent node for event propagation*/
-	gf_list_add(new_resource->inline_nodes, node);
-
 	/*play*/
 	gf_mo_play(new_resource->root_od->mo, 0, -1, 0);
 
@@ -211,9 +208,7 @@ void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo)
 	}
 	if (mo->num_open) {
 		mo->num_open--;
-		gf_list_del_item(mo->odm->subscene->inline_nodes, node);
 		if (!mo->num_open) {
-
 			/*do we simply stop the associated document or unload it??? to check*/
 //			gf_mo_stop(mo);
 			gf_odm_disconnect(mo->odm, 1);

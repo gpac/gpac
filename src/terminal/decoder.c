@@ -153,9 +153,10 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		}
 		if ((codec->type==GF_STREAM_AUDIO) && (max<2)) max = 2;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] Creating composition buffer for codec %s - %d units %d bytes each\n", codec->decio->module_name, max, CUsize));
 		/*setup CB*/
 		if (!codec->CB && max) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] Creating composition buffer for codec %s - %d units %d bytes each\n", codec->decio->module_name, max, CUsize));
+
 			codec->CB = gf_cm_new(CUsize, max);
 			codec->CB->Min = min;
 			codec->CB->odm = codec->odm;
@@ -358,7 +359,7 @@ check_unit:
 
 	/*check seeking and update timing - do NOT use the base layer, since BIFS streams may depend on other 
 	streams not on the same clock*/
-	if (codec->last_unit_cts == AU->CTS ) {
+	if (codec->last_unit_cts == AU->CTS) {
 		/*hack for RTSP streaming of systems streams, except InputSensor*/
 		if (!ch->is_pulling && (codec->type != GF_STREAM_INTERACT) && (AU->dataLength == codec->prev_au_size)) {
 			gf_es_drop_au(ch);
@@ -368,7 +369,6 @@ check_unit:
 		/*seeking for systems is done by not releasing the graph until seek is done*/
 		check_next_unit = 1;
 		mm_level = GF_CODEC_LEVEL_SEEK;
-		au_time = AU->DTS;
 
 	} 
 	/*set system stream timing*/
@@ -377,8 +377,12 @@ check_unit:
 		/*we're droping the frame*/
 		if (scene_locked) codec->nb_droped ++;
 		mm_level = GF_CODEC_LEVEL_NORMAL;
-		au_time = AU->DTS;
 	}
+	/*this is what the spec says (since DTS == CTS)*/
+	//au_time = AU->DTS;
+	/*however in order to handle the cases where no CTS was set for the BIFS, which may be interpreted as "now" (although not compliant), 
+	we use the object clock*/
+	au_time = obj_time;
 
 	/*lock scene*/
 	if (!scene_locked) {
@@ -738,6 +742,10 @@ scalable_retry:
 		case GF_OK:
 			if (unit_size) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded frame TS %d in %d ms (DTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, obj_time, AU->CTS, now, AU->DTS));
+			} 
+			/*if no size the decoder is not using the composition memory - if the object is in intitial buffering resume it!!*/
+			else if (codec->CB->Status == CB_BUFFER) {
+				gf_cm_abort_buffering(codec->CB);
 			}
 			/*in seek don't dispatch any output*/
 			if (mmlevel	== GF_CODEC_LEVEL_SEEK) 

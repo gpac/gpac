@@ -1516,9 +1516,15 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 
 		/*setup OpenGL & camera mode*/
 #ifndef GPAC_DISABLE_3D
+		if (compositor->inherit_type_3d && !compositor->visual->type_3d) {
+			compositor->visual->type_3d = 2;
+			compositor->visual->camera.is_3D = 1;
+		}
 		/*request for OpenGL drawing in 2D*/
-		if ((compositor->inherit_type_3d || compositor->force_opengl_2d) && !compositor->visual->type_3d)
+		else if (compositor->force_opengl_2d && !compositor->visual->type_3d) {
 			compositor->visual->type_3d = 1;
+			compositor->visual->camera.is_3D = 0;
+		}
 
 		if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
 			compositor->visual->type_3d = 0;
@@ -1942,7 +1948,10 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	GF_SceneGraph *in_scene;
 	GF_Node *inline_root = gf_sg_get_root_node(subscene);
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
+
 	if (!inline_root) return;
+	/*we don't traverse subscenes until the root one is setup*/
+	if (!compositor->root_visual_setup) return;
 
 	flip_coords = 0;
 	in_scene = gf_node_get_graph(inline_root);
@@ -2081,6 +2090,7 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 	GF_Event *ev;
 #else
 	Bool ret;
+	u32 retry;
 #endif
 
 	if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVENT_MOUSEWHEEL)) {
@@ -2129,7 +2139,15 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 	}
 	return 0;
 #else
-	if (!gf_mx_try_lock(compositor->mx)) return 0;
+	retry = 10;
+	while (retry) {
+		if (gf_mx_try_lock(compositor->mx)) 
+			break;
+		retry--;
+		gf_sleep(0);
+		if (!retry) 
+			return 0;
+	}
 	ret = gf_sc_exec_event(compositor, event);
 	gf_sc_lock(compositor, 0);
 	if (!ret && !from_user) {
@@ -2427,7 +2445,7 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 #endif
 		return 1;
 	case GF_JSAPI_OP_PAUSE_SVG:
-		{
+		if (n) {
 			u32 tag = gf_node_get_tag(n);
 			switch(tag) {
 #ifndef GPAC_DISABLE_SVG
@@ -2436,6 +2454,8 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 			case TAG_SVG_animation: svg_pause_animation(n, 1); break;
 #endif
 			}
+		} else {
+			return 0;
 		}
 		return 1;
 	case GF_JSAPI_OP_RESUME_SVG:

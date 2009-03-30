@@ -663,6 +663,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 
 	/*Update texture info - draw even if texture not created (this may happen if the media is removed)*/
 	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
+	else if (ctx->aspect.line_texture && ctx->aspect.line_texture->needs_refresh) ctx->flags |= CTX_TEXTURE_DIRTY;
 
 	/*not clear in the spec: what happens when a transparent node is in form/layout ?? this may 
 	completely break layout of children. We consider the node should be drawn*/

@@ -674,12 +674,16 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 			gf_sg_route_activate(route);
 	}
 
+#if 0
 	/*reset all regular route activation times - if we don't do so, creating a proto by script and then manipulating one of its
 	ISed field may not trigger the proper routes*/
 	i=0;
 	while ((route = (GF_Route*)gf_list_enum(proto_node->sgprivate->scenegraph->Routes, &i))) {
-		if (!route->IS_route) route->lastActivateTime = 0;
+		if (!route->IS_route) {
+			route->lastActivateTime = 0;
+		}
 	}
+#endif
 	proto_node->is_loaded = 1;
 }
 

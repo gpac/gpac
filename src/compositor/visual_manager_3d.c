@@ -119,12 +119,12 @@ static void visual_3d_setup_traversing_state(GF_VisualManager *visual, GF_Traver
 			tr_state->camera->vp.height = INT2FIX(tr_state->visual->compositor->vp_height);
 
 			/*2D ortho, scale is already present in the root user transform*/
-			if (visual->type_3d==1) {
-				tr_state->camera->width = INT2FIX(tr_state->visual->compositor->vp_width);
-				tr_state->camera->height = INT2FIX(tr_state->visual->compositor->vp_height);
-			} else {
+			if (visual->type_3d==0) {
 				tr_state->camera->width = INT2FIX(tr_state->visual->width);
 				tr_state->camera->height = INT2FIX(tr_state->visual->height);
+			} else {
+				tr_state->camera->width = INT2FIX(tr_state->visual->compositor->vp_width);
+				tr_state->camera->height = INT2FIX(tr_state->visual->compositor->vp_height);
 			}
 		} else {
 			Fixed sw, sh;
@@ -1261,7 +1261,7 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 	}
 
 	/*strike path*/
-	if (!asp->pen_props.width) return;
+	if (!asp->pen_props.width || !GF_COL_A(asp->line_color)) return;
 
 	si = drawable_get_strikeinfo(tr_state->visual->compositor, st, asp, tr_state->appear, NULL, 0, tr_state);
 	if (!si) return;

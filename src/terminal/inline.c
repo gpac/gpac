@@ -86,7 +86,6 @@ GF_InlineScene *gf_inline_new(GF_InlineScene *parentScene)
 	tmp->ODlist = gf_list_new();
 	tmp->media_objects = gf_list_new();
 	tmp->extern_protos = gf_list_new();
-	tmp->inline_nodes = gf_list_new();
 	tmp->extra_scenes = gf_list_new();
 	/*init inline scene*/
 	if (parentScene) {
@@ -106,7 +105,6 @@ GF_InlineScene *gf_inline_new(GF_InlineScene *parentScene)
 void gf_inline_del(GF_InlineScene *is)
 {
 	gf_list_del(is->ODlist);
-	gf_list_del(is->inline_nodes);
 	assert(!gf_list_count(is->extra_scenes) );
 	gf_list_del(is->extra_scenes);
 
@@ -209,11 +207,11 @@ void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown)
 	}
 	
 	root_node = gf_sg_get_root_node(is->graph);
-	if (for_shutdown) {
+	if (for_shutdown && is->root_od->mo) {
 		/*reset private stack of all inline nodes still registered*/
-		while (gf_list_count(is->inline_nodes)) {
-			GF_Node *n = (GF_Node *)gf_list_get(is->inline_nodes, 0);
-			gf_list_rem(is->inline_nodes, 0);
+		while (gf_list_count(is->root_od->mo->nodes)) {
+			GF_Node *n = (GF_Node *)gf_list_get(is->root_od->mo->nodes, 0);
+			gf_list_rem(is->root_od->mo->nodes, 0);
 			switch (gf_node_get_tag(n)) {
 			case TAG_MPEG4_Inline:
 			case TAG_X3D_Inline:
@@ -357,6 +355,7 @@ void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for
 			/*dynamic OD*/
 			(obj->URLs.count && odm->OD && odm->OD->URLString && !stricmp(obj->URLs.vals[0].url, odm->OD->URLString)) 
 		) {
+			Bool discard_obj = 0;
 			gf_odm_lock(odm, 1);
 			obj->flags = 0;
 			if (obj->odm) obj->odm->mo = NULL;
@@ -382,12 +381,35 @@ void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for
 				gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 				gf_list_del(obj->nodes);
 				free(obj);
+				discard_obj = 1;
 			} else if (!for_shutdown) {
 				/*if dynamic OD and more than 1 URLs resetup*/
-				if ((obj->OD_ID==GF_MEDIA_EXTERNAL_ID) && (obj->URLs.count>1)) IS_ReinsertObject(is, obj);
+				if ((obj->OD_ID==GF_MEDIA_EXTERNAL_ID) && (obj->URLs.count>1)) {
+					discard_obj = 0;
+					IS_ReinsertObject(is, obj);
+				} else {
+					discard_obj = 2;
+				}
 			}
 			/*discard media object*/
-			else if (for_shutdown==2) {
+			else if (for_shutdown==2)
+				discard_obj = 1;
+			
+			/*reset private stack of all inline nodes still registered*/
+			if (discard_obj) {
+				while (gf_list_count(obj->nodes)) {
+					GF_Node *n = (GF_Node *)gf_list_get(obj->nodes, 0);
+					gf_list_rem(obj->nodes, 0);
+					switch (gf_node_get_tag(n)) {
+					case TAG_MPEG4_Inline:
+					case TAG_X3D_Inline:
+						gf_node_set_private(n, NULL);
+						break;
+					}
+				}
+			}
+
+			if (discard_obj==1) {
 				gf_list_rem(is->media_objects, i-1);
 				gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 				gf_list_del(obj->nodes);
@@ -520,11 +542,8 @@ static Bool Inline_SetScene(M_Inline *root)
 	}
 	/*assign inline scene as private stack of inline node, and remember inline node for event propagation*/
 	gf_node_set_private((GF_Node *)root, mo->odm->subscene);
-	if (gf_list_find(mo->odm->subscene->inline_nodes, root)<0) {
-		gf_list_add(mo->odm->subscene->inline_nodes, root);
-		/*play*/
-		gf_mo_play(mo, 0, -1, 0);
-	}
+	/*play*/
+	gf_mo_play(mo, 0, -1, 0);
 	return 1;
 }
 
@@ -619,6 +638,46 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url)
 	return gf_mo_is_same_url_ex(obj, an_url, NULL, 0);
 }
 
+static void gf_is_notify_event(GF_InlineScene *is, u32 event_type, GF_Node *n)
+{
+	/*fire resize event*/
+#ifndef GPAC_DISABLE_SVG
+	GF_Node *root;
+	u32 i, count;
+	u32 w, h;
+	GF_DOM_Event evt;
+	memset(&evt, 0, sizeof(GF_DOM_Event));
+	w = h = 0;
+	root = gf_sg_get_root_node(is->graph);
+	if (!root) return;
+	gf_sg_get_scene_size_info(is->graph, &w, &h);
+	evt.type = event_type;
+	evt.screen_rect.width = INT2FIX(w);
+	evt.screen_rect.height = INT2FIX(h);
+	if (root) {
+		switch (gf_node_get_tag(root)) {
+		case TAG_MPEG4_Group:
+		case TAG_MPEG4_Layer3D:
+			evt.detail = 1;
+			break;
+		case TAG_X3D_Group:
+			evt.detail = 2;
+			break;
+		}
+	}
+	if (n) {
+		gf_dom_event_fire(n, &evt);
+	} else {
+		gf_dom_event_fire(root, &evt);
+	
+		count=is->root_od->mo ? gf_list_count(is->root_od->mo->nodes) : 0;
+		for (i=0;i<count; i++) {
+			gf_dom_event_fire( gf_list_get(is->root_od->mo->nodes, i), &evt );
+		}
+	}
+#endif
+}
+
 void gf_inline_on_modified(GF_Node *node)
 {
 	u32 ODID;
@@ -640,6 +699,17 @@ void gf_inline_on_modified(GF_Node *node)
 			}
 			if (mo->num_open) {
 				if (!changed) return;
+
+				gf_is_notify_event(pIS, GF_EVENT_UNLOAD, node);
+				gf_list_del_item(mo->nodes, node);
+
+				switch (gf_node_get_tag(node)) {
+				case TAG_MPEG4_Inline:
+				case TAG_X3D_Inline:
+					gf_node_set_private(node, NULL);
+					break;
+				}
+				
 				mo->num_open --;
 				if (!mo->num_open) {
 					if (ODID == GF_MEDIA_EXTERNAL_ID) {
@@ -717,9 +787,11 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(n);
 
 	if (is_destroy) {
-		GF_MediaObject *mo = (is && is->root_od) ? is->root_od->mo : NULL;
+		GF_MediaObject *mo;
+		if (!is) return;
+		mo = is->root_od ? is->root_od->mo : NULL;
 
-		if (is) gf_list_del_item(is->inline_nodes, n);
+		gf_is_notify_event(is, GF_EVENT_UNLOAD, n);
 		if (!mo) return;
 		gf_list_del_item(mo->nodes, n);
 
@@ -735,10 +807,11 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 					/*get parent scene and remove MediaObject in case the ressource
 					gets re-requested later on*/
 					is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) n) );
-					gf_list_del_item(is->media_objects, mo);
-					gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
-					gf_list_del(mo->nodes);
-					free(mo);
+					if (gf_list_del_item(is->media_objects, mo)>=0) {
+						gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
+						gf_list_del(mo->nodes);
+						free(mo);
+					}
 				} else {
 					gf_odm_stop(is->root_od, 1);
 					gf_inline_disconnect(is, 1);
@@ -812,39 +885,6 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 }
 
 
-static void gf_is_resize_event(GF_InlineScene *is)
-{
-	/*fire resize event*/
-#ifndef GPAC_DISABLE_SVG
-	GF_Node *root;
-	u32 i, count;
-	u32 w, h;
-	GF_DOM_Event evt;
-	memset(&evt, 0, sizeof(GF_DOM_Event));
-	w = h = 0;
-	root = gf_sg_get_root_node(is->graph);
-	gf_sg_get_scene_size_info(is->graph, &w, &h);
-	evt.type = GF_EVENT_LOAD;
-	evt.screen_rect.width = INT2FIX(w);
-	evt.screen_rect.height = INT2FIX(h);
-	if (root) {
-		switch (gf_node_get_tag(root)) {
-		case TAG_MPEG4_Group:
-		case TAG_MPEG4_Layer3D:
-		case TAG_X3D_Group:
-			evt.detail = 1;
-			break;
-		}
-	}
-	gf_dom_event_fire(root, &evt);
-	
-	count=gf_list_count(is->inline_nodes);
-	for (i=0;i<count; i++) {
-		gf_dom_event_fire( gf_list_get(is->inline_nodes, i), &evt );
-	}
-#endif
-}
-
 GF_EXPORT
 void gf_inline_attach_to_compositor(GF_InlineScene *is)
 {
@@ -869,9 +909,11 @@ void gf_inline_attach_to_compositor(GF_InlineScene *is)
 		gf_sc_set_scene(is->root_od->term->compositor, is->graph);
 	}
 	else {
-		u32 i, count=gf_list_count(is->inline_nodes);
-		for (i=0;i<count; i++) 
-			gf_node_dirty_parents( gf_list_get(is->inline_nodes, i) );
+		u32 i, count;
+		count = is->root_od->mo ? gf_list_count(is->root_od->mo->nodes) : 0;
+		for (i=0;i<count; i++) {
+			gf_node_dirty_parents( gf_list_get(is->root_od->mo->nodes, i) );
+		}
 		gf_term_invalidate_compositor(is->root_od->term);
 
 		if (is->root_od->parentscene->is_dynamic_scene) {
@@ -879,7 +921,7 @@ void gf_inline_attach_to_compositor(GF_InlineScene *is)
 			gf_sg_get_scene_size_info(is->graph, &w, &h);
 			gf_sc_set_size(is->root_od->term->compositor, w, h);
 		}
-		gf_is_resize_event(is);
+		gf_is_notify_event(is, GF_EVENT_LOAD, NULL);
 	}
 }
 
@@ -1537,6 +1579,7 @@ void gf_inline_regenerate(GF_InlineScene *is)
 		IS_UpdateVideoPos(is);
 	} else {
 		is->graph_attached = 1;
+		gf_is_notify_event(is, GF_EVENT_LOAD, NULL);
 		gf_term_invalidate_compositor(is->root_od->term);
 	}
 }
@@ -1645,7 +1688,7 @@ void gf_inline_force_scene_size(GF_InlineScene *is, u32 width, u32 height)
 	if (is->root_od->term->root_scene == is) 
 		gf_sc_set_scene(is->root_od->term->compositor, is->graph);
 
-	gf_is_resize_event(is);
+	gf_is_notify_event(is, GF_EVENT_LOAD, NULL);
 
 	IS_UpdateVideoPos(is);
 }
@@ -1716,9 +1759,12 @@ Bool gf_inline_process_anchor(GF_Node *caller, GF_Event *evt)
 		if (term->user->EventProc) return gf_term_send_event(term, evt);
 		return 1;
 	}
+
+	if (!is->root_od->mo) return 1;
+	
 	/*FIXME this is too restrictive, we assume the navigate URL is really a presentation one...*/
 	i=0;
-	while ((inl = (M_Inline*)gf_list_enum(is->inline_nodes, &i))) {
+	while ((inl = (M_Inline*)gf_list_enum(is->root_od->mo->nodes, &i))) {
 		switch (gf_node_get_tag((GF_Node *)inl)) {
 		case TAG_MPEG4_Inline:
 		case TAG_X3D_Inline:

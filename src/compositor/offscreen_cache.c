@@ -174,6 +174,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		} else {
 			group_ctx = drawable_init_context_svg(cache->drawable, tr_state);
 		}
+		if (!group_ctx) return 0;
 
 		/*step 4: now we have the bounds:
 			allocate the offscreen memory

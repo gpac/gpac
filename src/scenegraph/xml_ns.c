@@ -622,7 +622,7 @@ GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, 
 
 		while (att) {
 			if (((u32) att->tag == TAG_DOM_ATT_any) && 
-				((!ns && !strcmp(name, att->name)) || (!strncmp(att->name, ns, len) && !strcmp(att->name+len+1, name)))
+				((!ns && !strcmp(name, att->name)) || (ns && !strncmp(att->name, ns, len) && !strcmp(att->name+len+1, name)))
 			) {
 				field->fieldIndex = att->tag;
 				field->fieldType = att->data_type;

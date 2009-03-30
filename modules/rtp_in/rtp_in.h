@@ -206,7 +206,7 @@ typedef struct
 	LPNETCHANNEL channel;
 	u32 status;
 	
-	u32 ES_ID;
+	u32 ES_ID, OD_ID;
 	char *control;
 
 	/*rtp receive buffer*/

@@ -1,4 +1,6 @@
-07/01/09:
+30/03/09:
+  - Fixed streaming interoperability with Live555 
+  - More fixed and speed improvement in VRML/BIFS scripting
   - Added support for PBuffers on Win32/DirectX
 
 02/12/08: GPAC 0.4.5

@@ -108,14 +108,12 @@ struct _inline_scene
 
 	/*struct _od_managers used, namespace of this scene. The chain does not have the root_od
 	it only contains OD sent through OD UPDATE in the OD stream(s) attached 
-	to this scene. Remote ODs are not added, only there parents are*/
+	to this scene.*/
 	GF_List *ODlist;
 	/*list of MOs (links between OD and nodes)*/
 	GF_List *media_objects;
 	/*list of externproto libraries*/
 	GF_List *extern_protos;
-	/*list of nodes using this inline*/
-	GF_List *inline_nodes;
 	/*list of extra scene graphs (text streams, generic OSDs, ...)*/
 	GF_List *extra_scenes;
 	/*inline scene graph*/
@@ -503,6 +501,7 @@ struct _es_channel
 	Bool first_au_fetched;
 
 	/* used in Carousel, to skip packets until the end of AU */ 
+	Bool is_carousel;
 	Bool skip_carousel_au;
 	
 	/* TimeStamp to Media Time mapping*/

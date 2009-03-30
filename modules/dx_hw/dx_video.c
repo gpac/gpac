@@ -137,7 +137,6 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 static void RestoreWindow(DDContext *dd) 
 {
 	if (!dd->NeedRestore) return;
-
 	dd->NeedRestore = 0;
 
 #ifndef GPAC_DISABLE_3D
@@ -164,7 +163,7 @@ static void RestoreWindow(DDContext *dd)
 void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 {
 	if (!only_3d) {
-		RestoreWindow(dd);
+//		RestoreWindow(dd);
 
 		SAFE_DD_RELEASE(dd->rgb_pool.pSurface);
 		memset(&dd->rgb_pool, 0, sizeof(DDSurface));
@@ -204,7 +203,8 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 		dd->pb_HRC = NULL;
 	}
 	if (dd->pb_HDC) {
-		wglReleasePbufferDCARB(dd->pbuffer, dd->pb_HDC);
+//		wglReleasePbufferDCARB(dd->pbuffer, dd->pb_HDC);
+		ReleaseDC(dd->bound_hwnd, dd->pb_HDC);
 		dd->pb_HDC = NULL;
 	}
 	if (dd->pbuffer) {
@@ -213,7 +213,7 @@ void DestroyObjectsEx(DDContext *dd, Bool only_3d)
 	}
 	
 	if (dd->gl_HRC) {
-		wglMakeCurrent(NULL, NULL);
+		//wglMakeCurrent(NULL, NULL);
 		wglDeleteContext(dd->gl_HRC);
 		dd->gl_HRC = NULL;
 	}
@@ -320,6 +320,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
     if ( (pixelformat = ChoosePixelFormat(dd->gl_HDC, &pfd)) == FALSE ) return GF_IO_ERR; 
 	
     if (SetPixelFormat(dd->gl_HDC, pixelformat, &pfd) == FALSE) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX GL] Cannot select pixel format: error %d- disabling GL\n", GetLastError() ));
 		return GF_IO_ERR; 
 	}
 	
@@ -373,6 +374,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	
 	}
 #endif
+
 	if (dd->output_3d_type==1) {
 		evt.type = GF_EVENT_VIDEO_SETUP;
 		evt.setup.opengl_mode = 1;
@@ -451,8 +453,10 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "MaxResolution");
 	if (sOpt) sscanf(sOpt, "%dx%d", &MaxWidth, &MaxHeight);
 
+	if (dd->NeedRestore) RestoreWindow(dd);
 	/*destroy all objects*/
 	DestroyObjects(dd);
+
 	if (dd->timer) KillTimer(dd->cur_hwnd, dd->timer);
 	dd->timer = 0;
 	ShowWindow(dd->cur_hwnd, SW_HIDE);
