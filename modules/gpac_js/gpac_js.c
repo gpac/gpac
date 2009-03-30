@@ -104,7 +104,36 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_y)) );
 		return JS_TRUE;
 	}
-
+	if (!strcmp(prop_name, "batteryOn")) {
+		Bool on_battery = 0;
+		gf_sys_get_battery_state(&on_battery, NULL, NULL, NULL, NULL);
+		*vp = BOOLEAN_TO_JSVAL( on_battery ? JS_TRUE : JS_FALSE );
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "batteryCharging")) {
+		Bool on_charge = 0;
+		gf_sys_get_battery_state(NULL, &on_charge, NULL, NULL, NULL);
+		*vp = BOOLEAN_TO_JSVAL( on_charge ? JS_TRUE : JS_FALSE );
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "batteryPercent")) {
+		u32 level = 0;
+		gf_sys_get_battery_state(NULL, NULL, &level, NULL, NULL);
+		*vp = INT_TO_JSVAL( level );
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "batteryLifeTime")) {
+		u32 level = 0;
+		gf_sys_get_battery_state(NULL, NULL, NULL, &level, NULL);
+		*vp = INT_TO_JSVAL( level );
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "batteryFullLifeTime")) {
+		u32 level = 0;
+		gf_sys_get_battery_state(NULL, NULL, NULL, NULL, &level);
+		*vp = INT_TO_JSVAL( level );
+		return JS_TRUE;
+	}
 	return JS_TRUE;
 }
 static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
@@ -381,7 +410,6 @@ static JSBool gpac_set_3d(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	}
 	return JS_TRUE;
 }
-
 
 static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
 {

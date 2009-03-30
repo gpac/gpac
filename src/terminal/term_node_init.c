@@ -30,6 +30,7 @@
 /*includes X3D nodes for WorldInfo, Inline and Key/String sensors*/
 #include <gpac/nodes_x3d.h>
 #include <gpac/nodes_svg.h>
+#include <gpac/options.h>
 
 void InitMediaControl(GF_InlineScene *is, GF_Node *node);
 void MC_Modified(GF_Node *node);
@@ -139,23 +140,23 @@ void evaluate_term_cap(GF_Node *node, GF_Route *route)
 		tc->value = (u32) (rti.process_memory/1024);
 		break;
 	case 109: /*battery on/off*/
-		gf_sys_get_battery_state(&b_on, &b_charge, &b_level);
+		gf_sys_get_battery_state(&b_on, &b_charge, &b_level, NULL, NULL);
 		tc->value = b_on;
 		break;
 	case 110: /*battery charging*/
-		gf_sys_get_battery_state(&b_on, &b_charge, &b_level);
+		gf_sys_get_battery_state(&b_on, &b_charge, &b_level, NULL, NULL);
 		tc->value = b_charge;
 		break;
 	case 111: /*battery level*/
-		gf_sys_get_battery_state(&b_on, &b_charge, &b_level);
+		gf_sys_get_battery_state(&b_on, &b_charge, &b_level, NULL, NULL);
 		tc->value = b_level;
 		break;
 
 	case 112: /*audio vol*/
-		tc->value = gf_sys_get_battery_state(&b_on, &b_charge, &b_level);
+		tc->value = gf_sc_get_option(is->root_od->term->compositor, GF_OPT_AUDIO_VOLUME);
 		break;
 	case 113: /*audio pan*/
-		tc->value = gf_sys_get_battery_state(&b_on, &b_charge, &b_level);
+		tc->value = gf_sc_get_option(is->root_od->term->compositor, GF_OPT_AUDIO_PAN);
 		break;
 	default:
 		return;

@@ -177,11 +177,11 @@ typedef struct {
 #define PC
 #define PLATFORM "PC"
 #define LSBFIRST
-#else
-#elif defined(WIN32)
+#elif defined(WIN32) || defined(_WIN32_WCE)
 #define PC
 #define PLATFORM "PC"
 #define LSBFIRST
+#else
 #error "can't determine architecture; adapt typedefs.h to your platform"
 #endif
 

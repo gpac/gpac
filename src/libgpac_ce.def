@@ -1075,7 +1075,8 @@ EXPORTS
 	gf_sg_js_get_node
 	gf_sg_js_event_add_listener
 	gf_sg_js_event_remove_listener
-	gf_sg_listener_post_add
+	gf_sg_js_lock_runtime
+	gf_node_dom_listener_add 
 
 ;terminal.h exports
 	gf_term_new
@@ -1210,7 +1211,7 @@ EXPORTS
 	gf_m2ts_set_pes_framing
 	gf_m2ts_get_stream_name
 	gf_m2ts_crc32_check
-	gf_m2ts_decode_mjd_date
+
 
 ;laser.h exports
 	gf_laser_decoder_new

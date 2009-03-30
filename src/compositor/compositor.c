@@ -1727,7 +1727,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 					} 
 				} else if (l->event.type == GF_EVENT_BATTERY) { //&& l->observer.target == (SVG_SA_Element *)node) {
 					evt.type = GF_EVENT_BATTERY;
-					gf_sys_get_battery_state(&evt.onBattery, &evt.batteryState, &evt.batteryLevel);
+					gf_sys_get_battery_state(&evt.onBattery, &evt.batteryState, &evt.batteryLevel, NULL, NULL);
 					gf_dom_event_fire(root, NULL, &evt);
 				}
 			}
