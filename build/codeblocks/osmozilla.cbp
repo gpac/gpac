@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="osmozilla" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="release">
+				<Option output="..\..\bin\$(TARGET_STR)\nposmozilla" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj\$(TARGET_STR)\$(PROJECT_NAME)" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-W" />
+					<Add option="-fexceptions" />
+				</Compiler>
+			</Target>
+			<Target title="debug">
+				<Option output="..\..\bin\$(TARGET_STR)\nposmozilla" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj\$(TARGET_STR)\$(PROJECT_NAME)" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-W" />
+					<Add option="-g" />
+					<Add option="-fexceptions" />
+				</Compiler>
+			</Target>
+			<Environment>
+				<Variable name="TARGET_STR" value="$(TARGET_CC)_$(TARGET_NAME)" />
+			</Environment>
+		</Build>
+		<Compiler>
+			<Add option="-DNPBASIC_EXPORTS" />
+			<Add option="-DMOZILLA_STRICT_API" />
+			<Add option="-DXPCOM_GLUE" />
+			<Add option="-DXP_WIN" />
+			<Add directory="..\..\include" />
+			<Add directory="..\..\extra_lib\include\gecko-sdk\include" />
+		</Compiler>
+		<Linker>
+			<Add directory="..\..\bin\$(TARGET_STR)" />
+		</Linker>
+		<Unit filename="..\..\applications\osmozilla\np_entry.cpp" />
+		<Unit filename="..\..\applications\osmozilla\npn_gate.cpp" />
+		<Unit filename="..\..\applications\osmozilla\npp_gate.cpp" />
+		<Unit filename="..\..\applications\osmozilla\npplat.h" />
+		<Unit filename="..\..\applications\osmozilla\nsIOsmozilla.h" />
+		<Unit filename="..\..\applications\osmozilla\osmozilla.cpp" />
+		<Unit filename="..\..\applications\osmozilla\osmozilla.def" />
+		<Unit filename="..\..\applications\osmozilla\osmozilla.h" />
+		<Unit filename="..\..\applications\osmozilla\osmozilla.rc">
+			<Option compilerVar="WINDRES" />
+		</Unit>
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

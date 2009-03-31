@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="amr_float_dec" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="release">
+				<Option output="..\..\bin\$(TARGET_STR)\gm_$(PROJECT_NAME)" prefix_auto="0" extension_auto="1" />
+				<Option object_output="obj\$(TARGET_STR)\$(PROJECT_NAME)" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-W" />
+					<Add option="-fexceptions" />
+					<Add option="-DWIN32" />
+					<Add option="-DNDEBUG" />
+					<Add option="-D_WINDOWS" />
+					<Add option="-D_MBCS" />
+					<Add option="-D_USRDLL" />
+					<Add option="-DAMR_FLOAT_DEC_EXPORTS" />
+					<Add option="-DGPAC_HAS_AMR_FT" />
+					<Add option="-DGPAC_HAS_AMR_FT_WB" />
+					<Add directory="..\..\include" />
+				</Compiler>
+			</Target>
+			<Target title="debug">
+				<Option output="..\..\bin\$(TARGET_STR)\gm_$(PROJECT_NAME)" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj\$(TARGET_STR)\$(PROJECT_NAME)" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-W" />
+					<Add option="-g" />
+					<Add option="-fexceptions" />
+					<Add option="-DWIN32" />
+					<Add option="-D_DEBUG" />
+					<Add option="-D_WINDOWS" />
+					<Add option="-D_MBCS" />
+					<Add option="-D_USRDLL" />
+					<Add option="-DAMR_FLOAT_DEC_EXPORTS" />
+					<Add option="-DGPAC_HAS_AMR_FT" />
+					<Add option="-DGPAC_HAS_AMR_FT_WB" />
+					<Add directory="..\..\include" />
+				</Compiler>
+			</Target>
+			<Environment>
+				<Variable name="TARGET_STR" value="$(TARGET_CC)_$(TARGET_NAME)" />
+			</Environment>
+		</Build>
+		<Linker>
+			<Add library="gpac" />
+			<Add directory="..\..\bin\$(TARGET_STR)" />
+		</Linker>
+		<Unit filename="..\..\modules\amr_dec\amr_in.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_float_dec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_float_dec.def" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\interf_dec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\interf_dec.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\interf_enc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\interf_enc.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\interf_rom.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\rom_dec.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\rom_enc.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\sp_dec.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\sp_dec.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\sp_enc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\sp_enc.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_nb_ft\typedef.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_acelp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_acelp.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_dtx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_dtx.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_gain.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_gain.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_if.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_if.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_lpc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_lpc.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_main.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_rom.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_util.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\dec_util.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_acelp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_acelp.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_dtx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_dtx.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_gain.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_gain.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_if.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_if.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_lpc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_lpc.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_main.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_main.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_rom.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_util.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\enc_util.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\if_rom.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\if_rom.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\typedef.h" />
+		<Unit filename="..\..\modules\amr_float_dec\amr_wb_ft\typedefs.h" />
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
