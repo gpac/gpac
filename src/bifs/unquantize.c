@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -27,7 +27,7 @@
 u32 gf_bifs_dec_qp14_get_bits(GF_BifsDecoder *codec)
 {
 	if (!codec->ActiveQP || !codec->coord_stored) return 0;
-	return (u32) ceil(log(codec->NumCoord+1) / log(2) ); 
+	return (u32) ceil(log(codec->NumCoord+1) / log(2) );
 }
 
 void gf_bifs_dec_qp14_enter(GF_BifsDecoder * codec, Bool Enter)
@@ -58,9 +58,9 @@ GF_Err gf_bifs_dec_qp_set(GF_BifsDecoder *codec, GF_Node *qp)
 	assert(gf_node_get_tag(qp) == TAG_MPEG4_QuantizationParameter);
 
 	/*if we have an active QP, push it into the stack*/
-	if (codec->ActiveQP && ((GF_Node*)codec->ActiveQP != codec->scenegraph->global_qp) ) 
+	if (codec->ActiveQP && ((GF_Node*)codec->ActiveQP != codec->scenegraph->global_qp) )
 		gf_list_insert(codec->QPs, codec->ActiveQP, 0);
-	
+
 	codec->ActiveQP = (M_QuantizationParameter *)qp;
 	return GF_OK;
 }
@@ -88,7 +88,7 @@ Fixed gf_bifs_dec_mantissa_float(GF_BifsDecoder *codec, GF_BitStream *bs)
 	u32 mantLength, expLength, mantSign, mantissa, expSign, exponent;
 	unsigned char exp;
 
-	union {	
+	union {
 		Float f;
 		long l;
 	} ft_value;
@@ -235,7 +235,7 @@ GF_Err Q_DecFloat(GF_BifsDecoder *codec, GF_BitStream *bs, u32 FieldType, SFVec3
 	case GF_SG_VRML_SFINT32:
 		return GF_NON_COMPLIANT_BITSTREAM;
 	case GF_SG_VRML_SFFLOAT:
-		*((SFFloat *)field_ptr) = Q_InverseQuantize(BMin.x, BMax.x, NbBits, gf_bs_read_int(bs, NbBits)); 
+		*((SFFloat *)field_ptr) = Q_InverseQuantize(BMin.x, BMax.x, NbBits, gf_bs_read_int(bs, NbBits));
 		return GF_OK;
 	case GF_SG_VRML_SFVEC2F:
 		((SFVec2f *)field_ptr)->x = Q_InverseQuantize(BMin.x, BMax.x, NbBits, gf_bs_read_int(bs, NbBits));
@@ -274,11 +274,12 @@ GF_Err Q_DecInt(GF_BifsDecoder *codec, GF_BitStream *bs, u32 QType, SFInt32 b_mi
 	}
 }
 
-//SFRotation and SFVec3f are quantized as normalized vectors ,mapped on a cube 
+//SFRotation and SFVec3f are quantized as normalized vectors ,mapped on a cube
 //in the UnitSphere (R=1.0)
 GF_Err Q_DecCoordOnUnitSphere(GF_BifsDecoder *codec, GF_BitStream *bs, u32 NbBits, u32 NbComp, Fixed *m_ft)
 {
-    u32 i, orient, value, sign;
+    u32 i, orient, sign;
+    s32 value;
 	Fixed tang[4], delta;
 	s32 dir;
 
@@ -289,7 +290,7 @@ GF_Err Q_DecCoordOnUnitSphere(GF_BifsDecoder *codec, GF_BitStream *bs, u32 NbBit
 	if(NbComp == 2) dir -= 2 * gf_bs_read_int(bs, 1);
 
 	orient = gf_bs_read_int(bs, 2);
-	
+
 	for(i=0; i<NbComp; i++) {
 		value = gf_bs_read_int(bs, NbBits) - (1 << (NbBits-1) );
 		sign = (value >= 0) ? 1 : -1;
@@ -304,7 +305,7 @@ GF_Err Q_DecCoordOnUnitSphere(GF_BifsDecoder *codec, GF_BitStream *bs, u32 NbBit
 	m_ft[orient] = delta;
 
 	for (i=0; i<NbComp; i++) {
-		m_ft[ (orient + i+1) % (NbComp+1) ] = gf_mulfix(tang[i], delta);  
+		m_ft[ (orient + i+1) % (NbComp+1) ] = gf_mulfix(tang[i], delta);
 	}
 	return GF_OK;
 }
@@ -375,7 +376,7 @@ GF_Err gf_bifs_dec_unquant_field(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Nod
 	default:
 		return GF_EOS;
 	}
-	
+
 	/*check NDT*/
 	HasQ = gf_bifs_get_aq_info(node, field->fieldIndex, &QType, &AType, &b_min, &b_max, &NbBits);
 	if (!HasQ || !QType) return GF_EOS;

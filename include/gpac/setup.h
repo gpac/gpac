@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -29,13 +29,18 @@
 extern "C" {
 #endif
 
+#if defined(GPAC_STATIC_CONFIG_H)
+#ifndef GPAC_HAVE_CONFIG_H
+#define GPAC_HAVE_CONFIG_H
+#endif
+#endif
 
 /*WIN32 and WinCE config*/
 #if defined(WIN32) || defined(_WIN32_WCE)
 
 #ifdef GPAC_HAVE_CONFIG_H
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(GPAC_STATIC_CONFIG_H)
 #include <gpac/internal/config.h>
 #else
 #include <gpac/internal/config_static.h>
@@ -163,7 +168,7 @@ typedef unsigned int size_t;
 typedef unsigned __int64 u64;
 typedef __int64 s64;
 
-#else 
+#else
 
 /*FIXME - we don't have 64bit support here we should get rid of all 64bits divisions*/
 //typedef unsigned long long u64;
@@ -221,7 +226,7 @@ char * my_str_lwr(char *str);
 
 /*end SYMBIAN config*/
 
-#else 
+#else
 
 /*UNIX likes*/
 
@@ -366,7 +371,7 @@ char *gf_strdup(const char *str);
 
 #ifndef GF_EXPORT
 /*use def files for windows or let compiler decide*/
-#define GF_EXPORT 
+#define GF_EXPORT
 #endif
 
 

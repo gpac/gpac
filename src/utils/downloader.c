@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -88,7 +88,7 @@ struct __gf_download_session
 	u32 total_size, bytes_done, start_time, icy_metaint, icy_count, icy_bytes;
 	u32 bytes_per_sec, window_start, bytes_in_wnd;
 	u32 limit_data_rate;
-	
+
 	/*0: GET
 	  1: HEAD
 	  2: all the rest
@@ -136,7 +136,7 @@ static void init_prng (void)
 {
 	char namebuf[256];
 	const char *random_file;
-	
+
 	if (RAND_status ()) return;
 
 	namebuf[0] = '\0';
@@ -144,7 +144,7 @@ static void init_prng (void)
 
 	if (random_file && *random_file)
 		RAND_load_file(random_file, 16384);
-	
+
 	if (RAND_status ()) return;
 
 #ifdef WIN32
@@ -157,7 +157,7 @@ static void init_prng (void)
 static int ssl_init(GF_DownloadManager *dm, u32 mode)
 {
 	SSL_METHOD *meth;
-	
+
 	if (!dm) return 0;
     /* The SSL has already been initialized. */
 	if (dm->ssl_ctx) return 1;
@@ -168,7 +168,7 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
 	SSL_load_error_strings();
 	SSLeay_add_all_algorithms();
 	SSLeay_add_ssl_algorithms();
-	
+
 	switch (mode) {
 	case 0:
 		meth = SSLv23_client_method();
@@ -185,7 +185,7 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
 	default:
 		goto error;
 	}
-	
+
 	dm->ssl_ctx = SSL_CTX_new(meth);
 	if (!dm->ssl_ctx) goto error;
 	SSL_CTX_set_default_verify_paths(dm->ssl_ctx);
@@ -196,7 +196,7 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
      than examining the error stack after a failed SSL_connect.  */
 	SSL_CTX_set_verify(dm->ssl_ctx, SSL_VERIFY_NONE, NULL);
 
-	/* Since fd_write unconditionally assumes partial writes (and handles them correctly), 
+	/* Since fd_write unconditionally assumes partial writes (and handles them correctly),
 	allow them in OpenSSL.  */
 	SSL_CTX_set_mode(dm->ssl_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE);
 	return 1;
@@ -322,12 +322,12 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 
 	/*if threaded wait for thread exit*/
 	if (sess->th) {
-		while (!(sess->flags & GF_DOWNLOAD_SESSION_THREAD_DEAD)) 
+		while (!(sess->flags & GF_DOWNLOAD_SESSION_THREAD_DEAD))
 			gf_sleep(1);
 		gf_th_del(sess->th);
 		gf_mx_del(sess->mx);
 	}
-	
+
 	gf_list_del_item(sess->dm->sessions, sess);
 
 	if (sess->cache_name) {
@@ -335,7 +335,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 		if (opt && !stricmp(opt, "yes")) gf_delete_file(sess->cache_name);
 		free(sess->cache_name);
 	}
-	
+
 	if (sess->server_name) free(sess->server_name);
 	if (sess->remote_path) free(sess->remote_path);
 	if (sess->user) free(sess->user);
@@ -385,7 +385,7 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 		url += 7;
 		sess->port = 80;
 		sess->do_requests = http_do_requests;
-	} 
+	}
 	else if (!strnicmp(url, "https://", 8)) {
 		url += 8;
 		sess->port = 443;
@@ -400,7 +400,7 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 		sess->port = 21;
 		sess->do_requests = NULL;
 		return GF_NOT_SUPPORTED;
-	} 
+	}
 	/*relative URL*/
 	else if (!strstr(url, "://")) {
 		u32 i;
@@ -425,7 +425,7 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 	} else {
 		tmp_url = strdup(url);
 	}
-	
+
 	tmp = strrchr(tmp_url, ':');
 	if (tmp) {
 		sess->port = atoi(tmp+1);
@@ -537,7 +537,7 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_fla
 static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read)
 {
 	GF_Err e;
-	
+
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
 		u32 size = SSL_read(sess->ssl, data, data_size);
@@ -545,10 +545,10 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		data[size] = 0;
 		if (!size) e = GF_IP_NETWORK_EMPTY;
 		*out_read = size;
-	} else 
+	} else
 #endif
 		e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
-	
+
 	return e;
 }
 
@@ -600,13 +600,13 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	/*connect*/
 	sess->status = GF_NETIO_SETUP;
 	gf_dm_sess_notify_state(sess, sess->status, GF_OK);
-	
+
 	/*PROXY setup*/
 	proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Enabled");
 	if (proxy && !strcmp(proxy, "yes")) {
 		proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Port");
 		proxy_port = proxy ? atoi(proxy) : 80;
-		
+
 		proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Name");
 	} else {
 		proxy = NULL;
@@ -641,8 +641,8 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		sess->last_error = e;
 		gf_dm_sess_notify_state(sess, sess->status, e);
 		return;
-	} 
-	
+	}
+
 	sess->status = GF_NETIO_CONNECTED;
 	gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
 	//gf_sk_set_block_mode(sess->sock, 1);
@@ -664,7 +664,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		ret = SSL_connect(sess->ssl);
 		assert(ret>0);
 
-		cert = SSL_get_peer_certificate(sess->ssl);       
+		cert = SSL_get_peer_certificate(sess->ssl);
 		/*if we have a cert, check it*/
 		if (cert) {
 			vresult = SSL_get_verify_result(sess->ssl);
@@ -776,7 +776,7 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 }
 
 void gf_dm_set_auth_callback(GF_DownloadManager *dm,
-							  Bool (*GetUserPassword)(void *usr_cbk, const char *site_url, char *usr_name, char *password), 
+							  Bool (*GetUserPassword)(void *usr_cbk, const char *site_url, char *usr_name, char *password),
 							  void *usr_cbk)
 {
 	if (dm) {
@@ -808,7 +808,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, char *data, u
 {
 	GF_NETIO_Parameter par;
 	u32 runtime, rcv;
-	
+
 	rcv = nbBytes;
 
 	if (! (sess->flags & GF_NETIO_SESSION_NOT_CACHED)) {
@@ -829,7 +829,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, char *data, u
 		while (nbBytes) {
 			if (sess->icy_bytes == sess->icy_metaint) {
 				sess->icy_count = 1 + 16* (u8) data[0];
-				
+
 				/*skip icy metadata*/
 				if (sess->icy_count >= nbBytes) {
 					sess->icy_count -= nbBytes;
@@ -840,7 +840,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, char *data, u
 						char szData[4096];
 						memcpy(szData, data+1, sess->icy_count-1);
 						szData[sess->icy_count] = 0;
-	
+
 						par.error = 0;
 						par.msg_type = GF_NETIO_PARSE_HEADER;
 						par.name = "icy-meta";
@@ -1022,7 +1022,8 @@ void http_do_requests(GF_DownloadSession *sess)
 	char comp[400];
 	char *new_location;
 	char *hdr, *hdr_val;
-	u32 bytesRead, res;
+	u32 res;
+	s32 bytesRead;
 	s32 LinePos, Pos;
 	u32 rsp_code, ContentLength, first_byte, last_byte, total_size, range, no_range;
 	s32 BodyStart;
@@ -1068,12 +1069,12 @@ void http_do_requests(GF_DownloadSession *sess)
 			if (!sPass) sPass = "mix";
 			sprintf(https_get_buffer, "%s&login=%s&password=%s", sess->remote_path, sLogin, sPass);
 		}
-#endif	
+#endif
 
 		user_agent = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserAgent");
 		if (!user_agent) user_agent = GF_DOWNLOAD_AGENT_NAME;
 
-		
+
 		par.error = 0;
 		par.msg_type = GF_NETIO_GET_METHOD;
 		par.name = NULL;
@@ -1194,7 +1195,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			if (sess->ssl) {
 				e = GF_IP_NETWORK_FAILURE;
 				if (!SSL_write(sess->ssl, tmp_buf, len+par.size)) e = GF_OK;
-			} else 
+			} else
 #endif
 				e = gf_sk_send(sess->sock, tmp_buf, len+par.size);
 
@@ -1206,7 +1207,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			if (sess->ssl) {
 				e = GF_IP_NETWORK_FAILURE;
 				if (!SSL_write(sess->ssl, sHTTP, strlen(sHTTP))) e = GF_OK;
-			} else 
+			} else
 #endif
 				e = gf_sk_send(sess->sock, sHTTP, strlen(sHTTP));
 
@@ -1231,7 +1232,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		new_location = NULL;
 		while (1) {
 			e = gf_dm_read_data(sess, sHTTP + bytesRead, GF_DOWNLOAD_BUFFER_SIZE - bytesRead, &res);
-	
+
 			switch (e) {
 			case GF_IP_NETWORK_EMPTY:
 				if (!bytesRead) return;
@@ -1267,7 +1268,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			e = GF_REMOTE_SERVICE_ERROR;
 			goto exit;
 		}
-		if (!BodyStart) 
+		if (!BodyStart)
 			BodyStart = bytesRead;
 
 		sHTTP[BodyStart-1] = 0;
@@ -1324,7 +1325,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			gf_dm_sess_user_io(sess, &par);
 
 			if (!stricmp(hdr, "Content-Length") ) ContentLength = (u32) atoi(hdr_val);
-			else if (!stricmp(hdr, "Content-Type")) {			
+			else if (!stricmp(hdr, "Content-Type")) {
 				if (sess->mime_type) free(sess->mime_type);
 				sess->mime_type = strdup(hdr_val);
 				while (1) {
@@ -1339,7 +1340,7 @@ void http_do_requests(GF_DownloadSession *sess)
 				hdr = strchr(sess->mime_type, ';');
 				if (hdr) hdr[0] = 0;
 			}
-			else if (!stricmp(hdr, "Content-Range")) {			
+			else if (!stricmp(hdr, "Content-Range")) {
 				range = 1;
 				if (!strncmp(hdr_val, "bytes", 5)) {
 					hdr_val += 5;
@@ -1355,15 +1356,15 @@ void http_do_requests(GF_DownloadSession *sess)
 			else if (!stricmp(hdr, "Accept-Ranges")) {
 				if (strstr(hdr_val, "none")) no_range = 1;
 			}
-			else if (!stricmp(hdr, "Location")) 
+			else if (!stricmp(hdr, "Location"))
 				new_location = strdup(hdr_val);
-			else if (!stricmp(hdr, "icy-metaint")) 
+			else if (!stricmp(hdr, "icy-metaint"))
 				sess->icy_metaint = atoi(hdr_val);
-			else if (!stricmp(hdr, "ice") || !stricmp(hdr, "icy") ) 
+			else if (!stricmp(hdr, "ice") || !stricmp(hdr, "icy") )
 				is_ice = 1;
-			else if (!stricmp(hdr, "X-UserProfileID") ) 
+			else if (!stricmp(hdr, "X-UserProfileID") )
 				gf_cfg_set_key(sess->dm->cfg, "Downloader", "UserProfileID", hdr_val);
-/*			else if (!stricmp(hdr, "Connection") ) 
+/*			else if (!stricmp(hdr, "Connection") )
 				if (strstr(hdr_val, "close")) sess->http_read_type = 1; */
 
 
@@ -1378,7 +1379,7 @@ void http_do_requests(GF_DownloadSession *sess)
 				ContentLength = total_size;
 			}
 			if (ContentLength && (sess->cache_start_size == ContentLength) ) rsp_code = 200;
-		}	
+		}
 
 		par.msg_type = GF_NETIO_PARSE_REPLY;
 		par.error = GF_OK;
@@ -1402,7 +1403,7 @@ void http_do_requests(GF_DownloadSession *sess)
 				goto exit;
 			}
 			while (
-				(new_location[strlen(new_location)-1] == '\n') 
+				(new_location[strlen(new_location)-1] == '\n')
 				|| (new_location[strlen(new_location)-1] == '\r')  )
 				new_location[strlen(new_location)-1] = 0;
 
@@ -1467,7 +1468,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		}
 
 		/*done*/
-		if (sess->cache_start_size 
+		if (sess->cache_start_size
 			&& ( (total_size && sess->cache_start_size >= total_size) || (sess->cache_start_size == ContentLength)) ) {
 			sess->total_size = sess->bytes_done = sess->cache_start_size;
 			/*disconnect*/
@@ -1552,7 +1553,7 @@ exit:
 		}
 #endif
 		e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
-		if (!size || e == GF_IP_NETWORK_EMPTY) {	
+		if (!size || e == GF_IP_NETWORK_EMPTY) {
 			if (!sess->total_size && (gf_sys_clock() - sess->window_start > 2000)) {
 				sess->total_size = sess->bytes_done;
 				gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);

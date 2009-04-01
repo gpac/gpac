@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -63,7 +63,7 @@ void gf_modules_del(GF_ModuleManager *pm)
 	free(pm);
 }
 
-Bool gf_module_is_loaded(GF_ModuleManager *pm, char *filename) 
+Bool gf_module_is_loaded(GF_ModuleManager *pm, char *filename)
 {
 	u32 i = 0;
 	ModuleInstance *inst;
@@ -134,7 +134,7 @@ err_exit:
 
 	if (fail!=1)
 		gf_modules_unload_library(inst);
-	
+
 	return NULL;
 }
 
@@ -176,7 +176,7 @@ GF_EXPORT
 GF_Err gf_modules_close_interface(GF_BaseInterface *ifce)
 {
 	ModuleInstance *par;
-	u32 i;
+	s32 i;
 	if (!ifce) return GF_BAD_PARAM;
 	par = (ModuleInstance *) ifce->HPLUG;
 

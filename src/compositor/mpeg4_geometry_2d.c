@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -48,7 +48,7 @@ Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res)
 }
 
 /*
-		Shape 
+		Shape
 */
 static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 {
@@ -67,12 +67,12 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 	/*reset this node dirty flag (because bitmap may trigger bounds invalidation on the fly)*/
 	gf_node_dirty_clear(node, 0);
 
-	
+
 	/*check traverse mode, and take care of switch-off flag*/
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		GF_Node *m;
 		tr_state->appear = (GF_Node *) shape->appearance;
-		
+
 		/*this is done regardless of switch flag*/
 		gf_node_traverse((GF_Node *) shape->geometry, tr_state);
 
@@ -125,7 +125,7 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 			break;
 #ifndef GPAC_DISABLE_3D
 		/*if we're here we passed culler already*/
-		case TRAVERSE_DRAW_3D: 
+		case TRAVERSE_DRAW_3D:
 			gf_node_traverse((GF_Node *) shape->geometry, tr_state);
 			break;
 		case TRAVERSE_COLLIDE:
@@ -288,7 +288,7 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 		}
 		/*if failure retry with raster*/
 		if (res) return;
-	} 
+	}
 
 	visual_2d_texture_path(tr_state->visual, ctx->drawable->path, ctx, tr_state);
 	visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
@@ -351,10 +351,10 @@ static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*if alpha or not filled, transparent*/
 	if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) {
-	} 
+	}
 	/*if texture transparent, transparent*/
 	else if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->transparent) {
-	} 
+	}
 	/*if rotated, transparent (doesn't fill bounds)*/
 	else if (ctx->transform.m[1] || ctx->transform.m[3]) {
 	}
@@ -363,7 +363,7 @@ static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	/*otherwsie, not transparent*/
 	else {
-		ctx->flags &= ~CTX_IS_TRANSPARENT;	
+		ctx->flags &= ~CTX_IS_TRANSPARENT;
 	}
 	drawable_finalize_sort(ctx, tr_state, NULL);
 }
@@ -378,7 +378,7 @@ void compositor_init_rectangle(GF_Compositor  *compositor, GF_Node *node)
 
 #define CHECK_VALID_C2D(nbPts) if (!idx && cur_index+nbPts>=pt_count) { gf_path_reset(stack->path); return; }
 //#define CHECK_VALID_C2D(nbPts)
-#define GET_IDX(_i)	((idx && idx->count>_i) ? idx->vals[_i] : _i)
+#define GET_IDX(_i)	((idx && (idx->count>_i) && (idx->vals[_i]>=0) ) ? (u32) idx->vals[_i] : _i)
 
 void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state, MFInt32 *idx)
 {
@@ -398,7 +398,7 @@ void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_
 
 
 	pts = coord->point.vals;
-	if (!pts) 
+	if (!pts)
 		return;
 
 	cur_index = c2D->type.count ? 1 : 0;
@@ -454,7 +454,7 @@ void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_
 			ct_orig = ct_end;
 			orig = end;
 			break;
-		
+
 		/*all XCurve2D specific*/
 
 		/*CW and CCW ArcTo*/
@@ -496,7 +496,7 @@ void curve2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_
 		if (remain>1)
 			gf_path_add_bezier(stack->path, &pts[cur_index], remain);
 	}
-	
+
 	gf_node_dirty_clear(node, 0);
 	drawable_mark_modified(stack, tr_state);
 }
@@ -551,7 +551,7 @@ void compositor_init_curve2d(GF_Compositor  *compositor, GF_Node *node)
 
 
 /*
-	Note on point set 2D: this is a very bad node and should be avoided in DEF/USE, since the size 
+	Note on point set 2D: this is a very bad node and should be avoided in DEF/USE, since the size
 	of the rectangle representing the pixel shall always be 1 pixel w/h, therefore
 	the path object is likely not the same depending on transformation context...
 
@@ -578,11 +578,11 @@ static void pointset2d_check_changes(GF_Node *node, Drawable *stack, GF_Traverse
 
 	get_point_size(&tr_state->transform, &w, &h);
 	/*for PS2D don't add to avoid too  much antialiasing, just try to fill the given pixel*/
-	for (i=0; i < coord->point.count; i++) 
+	for (i=0; i < coord->point.count; i++)
 		gf_path_add_rect(stack->path, coord->point.vals[i].x, coord->point.vals[i].y, w, h);
 
 	stack->path->flags |= GF_PATH_FILL_ZERO_NONZERO;
-	
+
 	gf_node_dirty_clear(node, 0);
 	drawable_mark_modified(stack, tr_state);
 }
@@ -627,7 +627,7 @@ static void TraversePointSet2D(GF_Node *node, void *rs, Bool is_destroy)
 	M_PointSet2D *ps2D = (M_PointSet2D *)node;
 	Drawable *stack = (Drawable *)gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
-	
+
 	if (is_destroy) {
 		drawable_node_del(node);
 		return;
@@ -654,7 +654,7 @@ static void TraversePointSet2D(GF_Node *node, void *rs, Bool is_destroy)
 		visual_3d_set_material_2d_argb(tr_state->visual, asp.fill_color);
 		visual_3d_mesh_paint(tr_state, stack->mesh);
 		return;
-	} 
+	}
 #endif
 	case TRAVERSE_GET_BOUNDS:
 		gf_path_get_bounds(stack->path, &tr_state->bounds);

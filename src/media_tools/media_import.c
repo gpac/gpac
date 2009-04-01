@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -71,9 +71,9 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 		if (slc) gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
 		gf_odf_avc_cfg_del(avcc);
 
-		if ((par_n>1) && (par_d>1)) 
+		if ((par_n>1) && (par_d>1))
 			tk_w = tk_w * par_n / par_d;
-	} 
+	}
 	else if ((stype==GF_ISOM_SUBTYPE_MPEG4) || (stype==GF_ISOM_SUBTYPE_MPEG4_CRYP) ) {
 		GF_M4VDecSpecInfo dsi;
 		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
@@ -84,7 +84,7 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 		gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 
-		if ((dsi.par_num>1) && (dsi.par_num>1)) 
+		if ((dsi.par_num>1) && (dsi.par_num>1))
 			tk_w = dsi.width * dsi.par_num / dsi.par_den;
 	} else {
 		return GF_OK;
@@ -110,7 +110,7 @@ static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 	count = gf_isom_get_sample_count(file, track);
 	for (i=0; i<count; i++) {
 		GF_ISOSample *samp = gf_isom_get_sample_info(file, track, i+1, NULL, NULL);
-		
+
 		if (samp->dataLength>esd->decoderConfig->bufferSizeDB) esd->decoderConfig->bufferSizeDB = samp->dataLength;
 
 		if (esd->decoderConfig->bufferSizeDB < samp->dataLength) esd->decoderConfig->bufferSizeDB = samp->dataLength;
@@ -124,7 +124,7 @@ static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 
 		gf_isom_sample_del(&samp);
 	}
-	
+
 	br = (Double) (s64) gf_isom_get_media_duration(file, track);
 	br /= timescale;
 	esd->decoderConfig->avgBitrate = (u32) ((Double) (s64)avg_rate / br);
@@ -232,7 +232,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import)
 		import->esd->decoderConfig->decoderSpecificInfo->data = dsi;
 		import->esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_len;
 	}
-	
+
 	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_VISUAL, 1000);
 	if (!track) {
 		e = gf_isom_last_error(import->dest);
@@ -824,7 +824,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 				continue;
 			}
 			/*policy is to keep non coded frame (constant frame rate), add*/
-		} 
+		}
 		samp->IsRAP = 0;
 
 		if (ftype==2) {
@@ -846,7 +846,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 				nbP++;
 			}
 			/*even if no out-of-order frames we MUST adjust CTS if cts_offset is present is */
-			if (ref_frame && has_cts_offset) 
+			if (ref_frame && has_cts_offset)
 				gf_isom_modify_cts_offset(import->dest, track, ref_frame, (1+b_frames)*dts_inc);
 
 			ref_frame = nb_samp+1;
@@ -877,14 +877,14 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 
 	}
 	/*final flush*/
-	if (ref_frame && has_cts_offset) 
+	if (ref_frame && has_cts_offset)
 		gf_isom_modify_cts_offset(import->dest, track, ref_frame, (1+b_frames)*dts_inc);
 
 	gf_set_progress("Importing M4V", nb_samp, nb_samp);
 	if (has_cts_offset) {
 		gf_import_message(import, GF_OK, "Has B-Frames (%d max consecutive B-VOPs)", max_b);
 		gf_isom_set_cts_packing(import->dest, track, 0);
-		/*this is plain ugly but since some encoders (divx) don't use the video PL correctly 
+		/*this is plain ugly but since some encoders (divx) don't use the video PL correctly
 		we force the system video_pl to ASP@L5 since we have I, P, B in base layer*/
 		if (PL<=3) {
 			PL = 0xF5;
@@ -1086,7 +1086,7 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 			gf_isom_set_track_enabled(import->dest, track, 1);
 			if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 			import->final_trackID = gf_isom_get_track_id(import->dest, track);
-			
+
 			if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 			import->esd->slConfig->timestampResolution = timescale;
 
@@ -1117,7 +1117,7 @@ GF_Err gf_import_avi_video(GF_MediaImporter *import)
 				break;
 			}
 			i = 0;
-			
+
 			e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name: NULL, NULL, &di);
 			if (e) goto exit;
 			gf_isom_set_visual_info(import->dest, track, di, dsi.width, dsi.height);
@@ -1188,7 +1188,7 @@ proceed:
 							nbP++;
 						}
 						/*even if no out-of-order frames we MUST adjust CTS if cts_offset is present is */
-						if (ref_frame && has_cts_offset) 
+						if (ref_frame && has_cts_offset)
 							gf_isom_modify_cts_offset(import->dest, track, ref_frame, (1+b_frames)*dts_inc);
 
 						ref_frame = cur_samp+1;
@@ -1220,12 +1220,12 @@ proceed:
 		samp_offset = 0;
 		gf_set_progress("Importing AVI Video", i, num_samples);
 		if (duration && (samp->DTS > duration)) break;
-		if (import->flags & GF_IMPORT_DO_ABORT) 
+		if (import->flags & GF_IMPORT_DO_ABORT)
 			break;
 	}
 
 	/*final flush*/
-	if (ref_frame && has_cts_offset) 
+	if (ref_frame && has_cts_offset)
 		gf_isom_modify_cts_offset(import->dest, track, ref_frame, (1+b_frames)*dts_inc);
 
 	gf_set_progress("Importing AVI Video", num_samples, num_samples);
@@ -1236,7 +1236,7 @@ proceed:
 		gf_import_message(import, GF_OK, "Has B-Frames (%d max consecutive B-VOPs%s)", max_b, is_packed ? " - packed bitstream" : "");
 		/*repack CTS tables and adjust offsets for B-frames*/
 		gf_isom_set_cts_packing(import->dest, track, 0);
-		/*this is plain ugly but since some encoders (divx) don't use the video PL correctly 
+		/*this is plain ugly but since some encoders (divx) don't use the video PL correctly
 		we force the system video_pl to ASP@L5 since we have I, P, B in base layer*/
 		if (PL<=3) {
 			PL = 0xF5;
@@ -1340,7 +1340,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 		AVI_close(in);
 		return gf_import_message(import, GF_NOT_SUPPORTED, "Error: invalid MPEG Audio track");
 	}
-		
+
 	frame = NULL;
 	destroy_esd = 0;
 	if (!import->esd) {
@@ -1423,7 +1423,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 		if (duration && (samp->DTS > duration) ) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
-	
+
 	gf_set_progress("Importing AVI Audio", tot_size, tot_size);
 
 	gf_import_message(import, GF_OK, "Import done - %s bit rate MP3 detected", is_cbr ? "constant" : "variable");
@@ -1434,7 +1434,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, 0xFE);
 
-	
+
 exit:
 	if (import->esd && destroy_esd) {
 		gf_odf_desc_del((GF_Descriptor *) import->esd);
@@ -1531,7 +1531,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			sbr = dsi.has_sbr ? ((dsi.base_object_type==GF_M4A_AAC_SBR) ? 2 : 1) : 0;
 		}
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, PL);
-	} 
+	}
 	else if (mtype==GF_ISOM_MEDIA_SUBPIC) {
 		w = h = 0;
 		trans_x = trans_y = 0;
@@ -1542,7 +1542,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	}
 
 	gf_odf_desc_del((GF_Descriptor *) iod);
-	
+
 	/*check if MPEG-4 or not*/
 	is_clone = 0;
 	stype = gf_isom_get_media_subtype(import->orig, track_in, 1);
@@ -1634,7 +1634,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		mstype = gf_isom_get_mpeg4_subtype(import->orig, track_in, di);
 		if (!mstype) mstype = gf_isom_get_media_subtype(import->orig, track_in, di);
 		strcpy(szT, gf_4cc_to_str(mtype));
-		gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - media type \"%s:%s\"", 
+		gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - media type \"%s:%s\"",
 			trackID, szT, gf_4cc_to_str(mstype));
 	}
 		break;
@@ -1672,7 +1672,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			import->esd->decoderConfig = origin_esd ? origin_esd->decoderConfig : NULL;
 			if (origin_esd) origin_esd->decoderConfig = NULL;
 		}
-	}		
+	}
 
 	MP4T_RecomputeBitRate(import->dest, track);
 
@@ -1693,7 +1693,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	u32 track, di, streamID, mtype, w, h, ar, nb_streams, buf_len, frames, ref_frame, timescale, duration, file_size, dts_inc, last_pos;
 	Bool destroy_esd;
 
-	if (import->flags & GF_IMPORT_USE_DATAREF) 
+	if (import->flags & GF_IMPORT_USE_DATAREF)
 		return gf_import_message(import, GF_NOT_SUPPORTED, "Cannot use data referencing with MPEG-1/2 files");
 
 	/*no auto frame-rate detection*/
@@ -1851,7 +1851,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) return GF_OK;
 
-	if (import->flags & GF_IMPORT_USE_DATAREF) 
+	if (import->flags & GF_IMPORT_USE_DATAREF)
 		return gf_import_message(import, GF_NOT_SUPPORTED, "Cannot use data referencing with MPEG-1/2 files");
 
 	ps = mpeg2ps_init(import->in_name);
@@ -1879,7 +1879,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 		mpeg2ps_close(ps);
 		return gf_import_message(import, GF_BAD_PARAM, "Desired audio track not found in MPEG file (%d audio streams)", nb_streams);
 	}
-	
+
 	mtype = mpeg2ps_get_audio_stream_type(ps, streamID);
 	if (mtype != MPEG_AUDIO_MPEG) {
 		mpeg2ps_close(ps);
@@ -1890,7 +1890,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 		mpeg2ps_close(ps);
 		return gf_import_message(import, GF_IO_ERR, "Cannot fetch audio frame from MPEG file");
 	}
-    
+
 	hdr = GF_4CC((u8)buf[0],(u8)buf[1],(u8)buf[2],(u8)buf[3]);
 	mtype = gf_mp3_object_type_indication(hdr);
 	sr = gf_mp3_sampling_rate(hdr);
@@ -1994,7 +1994,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 		fclose(nhnt);
 		return gf_import_message(import, GF_URL_ERROR, "Cannot find MEDIA file %s", szMedia);
 	}
-	
+
 
 	e = GF_OK;
 	destroy_esd = 0;
@@ -2041,7 +2041,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 	import->esd->decoderConfig->avgBitrate = gf_bs_read_u32(bs);
 	import->esd->decoderConfig->maxBitrate = gf_bs_read_u32(bs);
 	import->esd->slConfig->timestampResolution = gf_bs_read_u32(bs);
-	
+
 	w = h = 0;
 	switch (import->esd->decoderConfig->streamType) {
 	case GF_STREAM_SCENE:
@@ -2151,7 +2151,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 		if (import->flags & GF_IMPORT_USE_DATAREF) {
 			if (!is_start) {
 				e = gf_import_message(import, GF_NOT_SUPPORTED, "Fragmented NHNT file detected - cannot use data referencing");
-				goto exit;	
+				goto exit;
 			}
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
 		} else {
@@ -2160,7 +2160,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 				max_size = samp->dataLength;
 			}
 			gf_f64_seek(mdia, offset, SEEK_SET);
-			fread( samp->data, samp->dataLength, 1, mdia); 
+			fread( samp->data, samp->dataLength, 1, mdia);
 			if (is_start) {
 				e = gf_isom_add_sample(import->dest, track, di, samp);
 			} else {
@@ -2175,7 +2175,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
 	if (media_done!=media_size) gf_set_progress("Importing NHNT", (u32) (media_size/1024), (u32) (media_size/1024));
-	gf_isom_sample_del(&samp);	
+	gf_isom_sample_del(&samp);
 	MP4T_RecomputeBitRate(import->dest, track);
 
 exit:
@@ -2377,7 +2377,7 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 	if (*max_size < stream.total_out) {
 		*max_size = samp->dataLength*ZLIB_COMPRESS_SAFE;
 		samp->data = realloc(samp->data, *max_size * sizeof(char));
-	} 
+	}
 
 	memcpy(samp->data + offset, dest, sizeof(char)*stream.total_out);
 	samp->dataLength = offset + stream.total_out;
@@ -2456,9 +2456,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	dims.streamType = 1;
 	dims.containsRedundant = 1;
 
-	if (stricmp(root->name, szRootName)) { 
+	if (stricmp(root->name, szRootName)) {
 		e = gf_import_message(import, GF_BAD_PARAM, "Error parsing %s file - \"%s\" root expected, got \"%s\"", szImpName, szRootName, root->name);
-		goto exit; 
+		goto exit;
 	}
 	dictionary = NULL;
 	use_dict = 0;
@@ -2538,7 +2538,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			}
 		}
 		else if (!stricmp(att->name, "content_script_types")) dims.content_script_types = att->value;
-	
+
 	}
 	if (sdesc.samplerate && !timescale) timescale = sdesc.samplerate;
 	if (!sdesc.bits_per_sample) sdesc.bits_per_sample = 16;
@@ -2556,7 +2556,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	specInfoSize = 0;
 	if (!streamType && !mtype && !sdesc.codec_tag) {
 		e = gf_import_message(import, GF_NOT_SUPPORTED, "Error parsing %s file - StreamType or MediaType not specified", szImpName);
-		goto exit; 
+		goto exit;
 	}
 
 	info = fopen(szInfo, "rb");
@@ -2592,8 +2592,8 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		specInfo = NULL;
 		specInfoSize = 0;
 		import->esd->slConfig->timestampResolution = timescale;
-	
-	
+
+
 		switch (import->esd->decoderConfig->streamType) {
 		case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_SCENE; break;
 		case GF_STREAM_VISUAL:
@@ -2610,8 +2610,8 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				if (e) goto exit;
 			}
 			break;
-		case GF_STREAM_AUDIO: 
-			mtype = GF_ISOM_MEDIA_AUDIO; 
+		case GF_STREAM_AUDIO:
+			mtype = GF_ISOM_MEDIA_AUDIO;
 			if (!sdesc.samplerate) sdesc.samplerate = 44100;
 			if (!sdesc.nb_channels) sdesc.nb_channels = 2;
 			break;
@@ -2658,7 +2658,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	gf_isom_set_track_enabled(import->dest, track, 1);
 	import->final_trackID = gf_isom_get_track_id(import->dest, track);
 	if (import->esd && !import->esd->ESID) import->esd->ESID = import->final_trackID;
-	
+
 	if (sdesc.width && sdesc.height) {
 		gf_isom_set_visual_info(import->dest, track, di, sdesc.width, sdesc.height);
 		if (par_den && par_num) {
@@ -2733,15 +2733,15 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			}
 			else if (!stricmp(att->name, "is-redundant") && !stricmp(att->value, "yes"))
 				dims_flags |= GF_DIMS_UNIT_I;
-			else if (!stricmp(att->name, "redundant-exit") && !stricmp(att->value, "yes")) 
+			else if (!stricmp(att->name, "redundant-exit") && !stricmp(att->value, "yes"))
 				dims_flags |= GF_DIMS_UNIT_D;
-			else if (!stricmp(att->name, "priority") && !stricmp(att->value, "high")) 
+			else if (!stricmp(att->name, "priority") && !stricmp(att->value, "high"))
 				dims_flags |= GF_DIMS_UNIT_P;
-			else if (!stricmp(att->name, "compress") && !stricmp(att->value, "yes")) 
+			else if (!stricmp(att->name, "compress") && !stricmp(att->value, "yes"))
 				dims_flags |= GF_DIMS_UNIT_C;
 
 		}
-		if (samp->IsRAP==1) 
+		if (samp->IsRAP==1)
 			dims_flags |= GF_DIMS_UNIT_M;
 		if (!count && samp->DTS) samp->DTS = 0;
 
@@ -2777,7 +2777,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			/*same DIMS unit*/
 			if (gf_isom_get_sample_from_dts(import->dest, track, samp->DTS))
 				append = 1;
-		
+
 		} else {
 			Bool close = 0;
 			FILE *f = mdia;
@@ -2810,8 +2810,8 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				bs = gf_bs_new(samp->data, samp->dataLength+3, GF_BITSTREAM_WRITE);
 				gf_bs_write_u16(bs, samp->dataLength+1);
 				gf_bs_write_u8(bs, (u8) dims_flags);
-				fread( samp->data+3, samp->dataLength, 1, f); 
-				gf_bs_del(bs);					
+				fread( samp->data+3, samp->dataLength, 1, f);
+				gf_bs_del(bs);
 				samp->dataLength+=3;
 
 				/*same DIMS unit*/
@@ -2822,7 +2822,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 					samp->data = (char*)realloc(samp->data, sizeof(char) * samp->dataLength);
 					max_size = samp->dataLength;
 				}
-				fread( samp->data, samp->dataLength, 1, f); 
+				fread( samp->data, samp->dataLength, 1, f);
 			}
 			if (close) fclose(f);
 		}
@@ -2874,7 +2874,7 @@ exit:
 	fclose(nhml);
 	if (samp) {
 		samp->dataLength = 1;
-		gf_isom_sample_del(&samp);	
+		gf_isom_sample_del(&samp);
 	}
 	if (mdia) fclose(mdia);
 	if (import->esd && destroy_esd) {
@@ -2910,7 +2910,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 
 	mdia = fopen(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
-	
+
 	update_gpp_cfg = 0;
 	oti = mtype = 0;
 	sample_rate = 8000;
@@ -2963,7 +2963,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 			fclose(mdia);
 			return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Corrupted AMR/SMV/EVRC file header");
 		}
-		
+
 		fseek(mdia, 0, SEEK_SET);
 		gf_import_message(import, GF_OK, "Importing %s Audio (File header corrupted, missing \"#!%s\\n\")", ext, ext);
 	}
@@ -2987,7 +2987,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 	gpp_cfg.frames_per_sample = import->frames_per_sample;
 	if (!gpp_cfg.frames_per_sample) gpp_cfg.frames_per_sample  = 1;
 	else if (gpp_cfg.frames_per_sample >15) gpp_cfg.frames_per_sample = 15;
-	
+
 	if (import->flags & GF_IMPORT_USE_DATAREF) gpp_cfg.frames_per_sample  = 1;
 
 
@@ -3025,7 +3025,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 
 	while (!feof(mdia)) {
 		u8 ft, toc;
-		
+
 		offset = ftell(mdia);
 		toc = fgetc(mdia);
 		switch (gpp_cfg.type) {
@@ -3058,9 +3058,9 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 			break;
 		}
 
-		if (samp->dataLength) 
+		if (samp->dataLength)
 			fread( samp->data + 1, samp->dataLength, 1, mdia);
-		
+
 		samp->dataLength += 1;
 		/*if last frame is "no data", abort - this happens in many files with constant mode (ie constant files), where
 		adding this last frame will result in a non-compact version of the stsz table, hence a bigger file*/
@@ -3085,7 +3085,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		if (duration && (samp->DTS > duration)) break;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 	}
-	gf_isom_sample_del(&samp);	
+	gf_isom_sample_del(&samp);
 	gf_isom_refresh_size_info(import->dest, track);
 
 	if (import->flags & GF_IMPORT_FORCE_MPEG4) MP4T_RecomputeBitRate(import->dest, track);
@@ -3134,7 +3134,7 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 
 	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
-	
+
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	gf_bs_read_data(bs, magic, 4);
 	if (strnicmp(magic, "RIFF", 4)) {
@@ -3353,7 +3353,7 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 		gf_bs_skip_bytes(bs, chunk_size);
 		if (has_pad) gf_bs_read_u8(bs);
 	}
-	gf_isom_sample_del(&samp);	
+	gf_isom_sample_del(&samp);
 	gf_isom_set_brand_info(import->dest, GF_ISOM_BRAND_3G2A, 65536);
 	if (import->flags & GF_IMPORT_FORCE_MPEG4) MP4T_RecomputeBitRate(import->dest, track);
 	gf_set_progress("Importing QCP", size_in_packets, size_in_packets);
@@ -3384,7 +3384,7 @@ u32 H263_NextStartCode(GF_BitStream *bs)
 	unsigned char h263_cache[H263_CACHE_SIZE];
 	u64 end, cache_start, load_size;
 	u64 start = gf_bs_get_position(bs);
-	
+
 	/*skip 16b header*/
 	gf_bs_read_u16(bs);
 	bpos = 0;
@@ -3621,12 +3621,12 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 		import->video_fps = 25.0;
 		detect_fps = 1;
 	}
-	
+
 	FPS = (Double) import->video_fps;
 	if (!FPS) FPS = GF_IMPORT_DEFAULT_FPS;
 	get_video_timing(FPS, &timescale, &dts_inc);
 
-restart_import:	
+restart_import:
 
 	memset(&avc, 0, sizeof(AVCState));
 	avccfg = gf_odf_avc_cfg_new();
@@ -3644,7 +3644,7 @@ restart_import:
 	/*if import in edit mode, use smallest NAL size and adjust on the fly*/
 	else if (gf_isom_get_mode(import->dest)!=GF_ISOM_OPEN_WRITE) size_length = 8;
 	else size_length = 32;
-	
+
 	trackID = 0;
 	e = GF_OK;
 	if (import->esd) trackID = import->esd->ESID;
@@ -3668,7 +3668,7 @@ restart_import:
 	total_size = gf_bs_get_size(bs);
 	nal_start = gf_bs_get_position(bs);
 	duration = (u32) ( ((Double)import->duration) * timescale / 1000.0);
-	
+
 	nb_i = nb_idr = nb_p = nb_b = nb_sp = nb_si = nb_sei = 0;
 	max_w = max_h = 0;
 	first_nal = 1;
@@ -3812,10 +3812,10 @@ restart_import:
 			gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
 			gf_bs_del(sample_data);
 			sample_data = NULL;
-			/*CTS recomuting is much trickier than with MPEG-4 ASP due to b-slice used as references - we therefore 
+			/*CTS recomuting is much trickier than with MPEG-4 ASP due to b-slice used as references - we therefore
 			store the poc as the CTS offset and update the whole table at the end*/
 			samp->CTS_Offset = last_poc - poc_shift;
-			assert(samp->CTS_Offset>=0);
+			assert(last_poc >= poc_shift);
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 			if (e) goto exit;
 
@@ -3824,7 +3824,7 @@ restart_import:
 			gf_set_progress("Importing AVC-H264", (u32) (nal_start/1024), (u32) (total_size/1024) );
 			first_nal = 1;
 
-			if (min_poc > last_poc) 
+			if (min_poc > last_poc)
 				min_poc = last_poc;
 		}
 
@@ -3837,7 +3837,7 @@ restart_import:
 
 				gf_import_message(import, GF_OK, "Adjusting AVC SizeLength to %d bits", size_length+diff_size);
 				avc_rewrite_samples(import->dest, track, size_length, size_length+diff_size);
-				
+
 				/*rewrite current sample*/
 				if (sample_data) {
 					char *sd;
@@ -3897,7 +3897,7 @@ restart_import:
 
 				/*if #pics, compute smallest POC increase*/
 				if (avc.s_info.poc != last_poc) {
-					if (!poc_diff || (poc_diff > abs(avc.s_info.poc-last_poc))) 
+					if (!poc_diff || (poc_diff > abs(avc.s_info.poc-last_poc)))
 						poc_diff = abs(avc.s_info.poc-last_poc);
 					last_poc = avc.s_info.poc;
 				}
@@ -3924,7 +3924,7 @@ restart_import:
 					/*need to store TS offsets*/
 					has_cts_offset = 1;
 					switch (avc.s_info.slice_type) {
-					case GF_AVC_TYPE_B: 
+					case GF_AVC_TYPE_B:
 					case GF_AVC_TYPE2_B:
 						if (!max_last_b_poc) {
 							b_frames ++;
@@ -4061,10 +4061,10 @@ restart_import:
 	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_AVC1, 1);
 
 	if (nb_sp || nb_si) {
-		gf_import_message(import, GF_OK, "Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR", 
+		gf_import_message(import, GF_OK, "Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
 			cur_samp, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
 	} else {
-		gf_import_message(import, GF_OK, "Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR", 
+		gf_import_message(import, GF_OK, "Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR",
 			cur_samp, nb_i, nb_p, nb_b, nb_sei, nb_idr);
 	}
 
@@ -4134,11 +4134,11 @@ static u32 get_ogg_serial_no_for_stream(char *fileName, u32 stream_num, Bool is_
 		ogg_stream_packetpeek(&os, &oggpacket);
 
 		if (is_video && (oggpacket.bytes >= 7) && !strncmp((char *)&oggpacket.packet[1], "theora", 6)) {
-			ogg_stream_clear(&os);		
+			ogg_stream_clear(&os);
 			break;
 		}
 		if (!is_video && (oggpacket.bytes >= 7) && !strncmp((char *)&oggpacket.packet[1], "vorbis", 6)) {
-			ogg_stream_clear(&os);		
+			ogg_stream_clear(&os);
 			break;
 		}
 		ogg_stream_clear(&os);
@@ -4235,7 +4235,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 
 	destroy_esd = 0;
 	samp = gf_isom_sample_new();
-	
+
 	/*avoids gcc warnings*/
 	duration = 0;
 	FPS = 0;
@@ -4300,7 +4300,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 
 		/*not our stream*/
         if (ogg_stream_pagein(&os, &oggpage) != 0) continue;
-	
+
 
 
 		while (ogg_stream_packetout(&os, &oggpacket ) > 0 ) {
@@ -4347,11 +4347,11 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 						duration = (u32) d;
 					}
 				}
-				
+
 				continue;
 			}
-			
-			/*we don't need adedicated parser for theora, just check it's a theora frame and get its key type 
+
+			/*we don't need adedicated parser for theora, just check it's a theora frame and get its key type
 			WATCHOUT theora bitsteram is in BE*/
 			oggpackB_readinit(&opb, oggpacket.packet, oggpacket.bytes);
 			flag = oggpackB_read(&opb, 1);
@@ -4382,7 +4382,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0xFE);
 	}
-	
+
 exit:
 	if (bs) gf_bs_del(bs);
 	samp->data = NULL;
@@ -4471,14 +4471,14 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 
 		/*not our stream*/
         if (ogg_stream_pagein(&os, &oggpage) != 0) continue;
-	
+
 
 
 		while (ogg_stream_packetout(&os, &oggpacket ) > 0 ) {
 			if (num_headers<3) {
 				if (!gf_vorbis_parse_header(&vp, (char*)oggpacket.packet, oggpacket.bytes)) {
 					e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Corrupted OGG Vorbis header");
-					goto exit;					
+					goto exit;
 				}
 
 				/*copy headers*/
@@ -4490,7 +4490,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 				if (num_headers==3) {
 					if (!vp.is_init) {
 						e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Corrupted OGG Vorbis headers found");
-						goto exit;					
+						goto exit;
 					}
 
 					gf_import_message(import, GF_OK, "OGG Vorbis import - sample rate %d - %d channel%s", vp.sample_rate, vp.channels, (vp.channels>1) ? "s" : "");
@@ -4529,7 +4529,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 				}
 				continue;
 			}
-		
+
 			block_size = gf_vorbis_check_frame(&vp, (char *)oggpacket.packet, oggpacket.bytes);
 			if (!block_size) continue;
 
@@ -4560,7 +4560,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 
 		MP4T_RecomputeBitRate(import->dest, track);
 	}
-	
+
 exit:
 	gf_isom_sample_del(&samp);
 	if (vbs) gf_bs_del(vbs);
@@ -4640,7 +4640,7 @@ exit:
 
 
 GF_Err gf_import_saf(GF_MediaImporter *import)
-{	
+{
 	GF_Err e;
 	u32 track, tot;
 	FILE *saf;
@@ -4674,7 +4674,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 		stream_id = gf_bs_read_int(bs, 12);
 		au_size-=2;
 		if (!stream_id) stream_id = 1000;
-		
+
 		if ((type==1) || (type==2) || (type==7)) {
 			Bool in_root_od = 0;
 			u32 mtype, stype;
@@ -4690,16 +4690,16 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 			au_size -= 7;
 
 
-			mtype = GF_ISOM_MEDIA_ESM; 
+			mtype = GF_ISOM_MEDIA_ESM;
 			stype = 0;
-			if (st==GF_STREAM_SCENE) { 
-				mtype = GF_ISOM_MEDIA_SCENE; 
+			if (st==GF_STREAM_SCENE) {
+				mtype = GF_ISOM_MEDIA_SCENE;
 				name = (char *) ( (oti==0x09) ? "LASeR Scene" : "BIFS Scene" );
 				stype = (oti==0x09) ? GF_4CC('L','A','S','R') : GF_4CC('B','I','F','S');
 				in_root_od = 1;
 			}
-			else if (st==GF_STREAM_VISUAL) { 
-				mtype = GF_ISOM_MEDIA_VISUAL; 
+			else if (st==GF_STREAM_VISUAL) {
+				mtype = GF_ISOM_MEDIA_VISUAL;
 				switch (oti) {
 				case 0x21: name = "AVC/H264 Video"; stype = GF_4CC('H','2','6','4'); break;
 				case 0x20: name = "MPEG-4 Video"; stype = GF_4CC('M','P','4','V'); break;
@@ -4709,7 +4709,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 				case 0x6D: name = "PNG Image"; stype = GF_4CC('P','N','G',' '); break;
 				}
 			}
-			else if (st==GF_STREAM_AUDIO) { 
+			else if (st==GF_STREAM_AUDIO) {
 				mtype = GF_ISOM_MEDIA_AUDIO;
 				switch (oti) {
 				case 0x69: name = "MPEG-2 Audio"; stype = GF_4CC('M','P','2','A'); break;
@@ -4819,7 +4819,7 @@ typedef struct
 } GF_TSImport;
 
 
-/* Determine the ESD corresponding to the current track info based on the PID and sets the additional info 
+/* Determine the ESD corresponding to the current track info based on the PID and sets the additional info
    in the track info as described in this esd */
 static void m2ts_set_track_mpeg4_probe_info(GF_ESD *esd,
 											struct __track_import_info* tk_info)
@@ -4862,9 +4862,9 @@ static void m2ts_set_track_mpeg4_probe_info(GF_ESD *esd,
 
 static void m2ts_set_tracks_mpeg4_probe_info(GF_MediaImporter *import, GF_M2TS_Program *prog, GF_List *ESDescriptors)
 {
-	u32 i, k, esd_count, stream_count; 
-	s32 tk_idx; 
-	
+	u32 i, k, esd_count, stream_count;
+	s32 tk_idx;
+
 	esd_count = gf_list_count(ESDescriptors);
 	stream_count = gf_list_count(prog->streams);
 	for (k = 0; k < esd_count; k++) {
@@ -4899,7 +4899,7 @@ static void m2ts_set_tracks_mpeg4_probe_info(GF_MediaImporter *import, GF_M2TS_P
 static void m2ts_set_track_mpeg4_creation_info(GF_MediaImporter *import, u32 *mtype, u32 *stype, u32 *oti)
 {
 	if (import->esd) {
-		*stype = import->esd->decoderConfig->streamType; 
+		*stype = import->esd->decoderConfig->streamType;
 		*oti = import->esd->decoderConfig->objectTypeIndication;
 		switch (*stype) {
 		case GF_STREAM_SCENE:
@@ -4953,7 +4953,7 @@ static void m2ts_create_track(GF_TSImport *tsimp, u32 mtype, u32 stype, u32 oti,
 		import->esd->decoderConfig->streamType = stype;
 		import->esd->decoderConfig->objectTypeIndication = oti;
 		import->esd->slConfig->timestampResolution = 90000;
-		
+
 		gf_isom_set_track_enabled(import->dest, tsimp->track, 1);
 
 		if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, tsimp->track);
@@ -4984,7 +4984,7 @@ static GF_ESD *m2ts_get_esd(GF_M2TS_ES *es)
 			break;
 		}
 	}
-	
+
 	if (!esd && es->program->additional_ods) {
 		u32 od_count, od_index;
 		od_count = gf_list_count(es->program->additional_ods);
@@ -5003,7 +5003,7 @@ static GF_ESD *m2ts_get_esd(GF_M2TS_ES *es)
 	return esd;
 }
 
-void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
+void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 {
 	GF_Err e;
 	GF_ISOSample *samp;
@@ -5024,7 +5024,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	case GF_M2TS_EVT_PMT_REPEAT:
 		/*abort upon first PMT repeat if not using 4on2. Otherwise we must parse the entire
 		bitstream to locate ODs sent in OD updates in order to get their stream types...*/
-		if (!ts->has_4on2 && (import->flags & GF_IMPORT_PROBE_ONLY) && !import->trackID) 
+		if (!ts->has_4on2 && (import->flags & GF_IMPORT_PROBE_ONLY) && !import->trackID)
 			//import->flags |= GF_IMPORT_DO_ABORT;
 		break;
 	/*case GF_M2TS_EVT_SDT_FOUND:
@@ -5034,15 +5034,15 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			strcpy(import->pg_info[i].name, sdt->service);
 			import->pg_info[i].number = sdt->service_id;
 		}
-		if (!ts->has_4on2 && import->flags & GF_IMPORT_PROBE_ONLY) 
+		if (!ts->has_4on2 && import->flags & GF_IMPORT_PROBE_ONLY)
 			//import->flags |= GF_IMPORT_DO_ABORT;
 		break;*/
 	case GF_M2TS_EVT_PMT_FOUND:
 		prog = (GF_M2TS_Program*)par;
 
 		if (import->flags & GF_IMPORT_PROBE_ONLY) {
-			/* 
-				we scan all the streams declared in this PMT to fill the tk_info structures 
+			/*
+				we scan all the streams declared in this PMT to fill the tk_info structures
 				NOTE: in the T-DMB case, we also need to decode ObjectDescriptor Updates see "case GF_M2TS_EVT_SL_PCK"
 			*/
 			count = gf_list_count(prog->streams);
@@ -5151,7 +5151,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 			es = ts->ess[import->trackID]; /* import->trackID == pid */
 			if (!es) break;
-			
+
 			if (es->flags & GF_M2TS_ES_IS_SECTION) {
 				ses = (GF_M2TS_SECTION_ES *)es;
 			} else {
@@ -5237,7 +5237,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						break;
 					}
 				}
-				if (!ts->has_4on2 && (import->trackID==pck->stream->pid) && (pck->stream->vid_h || pck->stream->aud_sr) ) 
+				if (!ts->has_4on2 && (import->trackID==pck->stream->pid) && (pck->stream->vid_h || pck->stream->aud_sr) )
 					//import->flags |= GF_IMPORT_DO_ABORT;
 				return;
 			}
@@ -5246,7 +5246,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			if (!(pck->stream->flags & GF_M2TS_ES_FIRST_DTS) && is_au_start) {
 				pck->stream->flags |= GF_M2TS_ES_FIRST_DTS;
 				pck->stream->first_dts = (pck->DTS?pck->DTS:pck->PTS);
-				if (!pck->stream->program->first_dts || 
+				if (!pck->stream->program->first_dts ||
 					pck->stream->program->first_dts > pck->stream->first_dts) {
 					pck->stream->program->first_dts = pck->stream->first_dts;
 				}
@@ -5259,7 +5259,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				GF_BitStream *bs;
 				s32 idx;
 				u32 nal_type = pck->data[4] & 0x1F;
-			
+
 				switch (nal_type) {
 				case GF_AVC_NALU_SEQ_PARAM:
 					bs = gf_bs_new(pck->data+5, pck->data_len-5, GF_BITSTREAM_READ);
@@ -5428,13 +5428,13 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 							od_count = gf_list_count(odU->objectDescriptors);
 							for (od_index=0; od_index<od_count; od_index++) {
 								GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, od_index);
-								gf_list_add(sl_pck->stream->program->additional_ods, od);						
+								gf_list_add(sl_pck->stream->program->additional_ods, od);
 								if (import->flags & GF_IMPORT_PROBE_ONLY) {
 									/* We need to set the remaining unset track info for the streams declared in this OD */
 									m2ts_set_tracks_mpeg4_probe_info(import, sl_pck->stream->program, od->ESDescriptors);
 								}
 							}
-							gf_list_reset(odU->objectDescriptors); 
+							gf_list_reset(odU->objectDescriptors);
 						}
 					}
 					gf_odf_codec_del(od_codec);
@@ -5460,7 +5460,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				}
 				return;
 			}
-			
+
 			if (sl_pck->stream->pid != import->trackID) return;
 
 			/* we create a track for the stream to import only if it was not created */
@@ -5486,7 +5486,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					if (!(sl_pck->stream->flags & GF_M2TS_ES_FIRST_DTS)) {
 						sl_pck->stream->flags |= GF_M2TS_ES_FIRST_DTS;
 						sl_pck->stream->first_dts = (hdr.decodingTimeStamp?hdr.decodingTimeStamp:hdr.compositionTimeStamp);
-						if (!sl_pck->stream->program->first_dts || 
+						if (!sl_pck->stream->program->first_dts ||
 							sl_pck->stream->program->first_dts > sl_pck->stream->first_dts) {
 							sl_pck->stream->program->first_dts = sl_pck->stream->first_dts;
 						}
@@ -5513,7 +5513,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					} else {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] negative time sample - skipping\n"));
 						sl_pck->stream->first_dts = samp->DTS;
-						if (!sl_pck->stream->program->first_dts || 
+						if (!sl_pck->stream->program->first_dts ||
 							sl_pck->stream->program->first_dts > sl_pck->stream->first_dts) {
 							sl_pck->stream->program->first_dts = sl_pck->stream->first_dts;
 						}
@@ -5537,8 +5537,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	u32 size;
 	FILE *mts;
 	char progress[1000];
-	
-	if (import->trackID > GF_M2TS_MAX_STREAMS) 
+
+	if (import->trackID > GF_M2TS_MAX_STREAMS)
 		return gf_import_message(import, GF_BAD_PARAM, "Invalid PID %d", import->trackID );
 
 	mts = gf_f64_open(import->in_name, "rb");
@@ -5564,8 +5564,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 
 		gf_m2ts_process_data(ts, data, size);
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
-		done += size;		
-		gf_set_progress(progress, (u32) (done/1024), (u32) (fsize/1024));		
+		done += size;
+		gf_set_progress(progress, (u32) (done/1024), (u32) (fsize/1024));
 	}
 	if (import->last_error) {
 		GF_Err e = import->last_error;
@@ -5577,7 +5577,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	}
 	import->esd = NULL;
 	gf_set_progress(progress, (u32) (fsize/1024), (u32) (fsize/1024));
-	
+
 	if (! (import->flags & GF_IMPORT_MPE_DEMUX)) {
 		gf_m2ts_print_info(ts);
 	}
@@ -5589,7 +5589,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
   			fclose(mts);
   			return gf_import_message(import, GF_BAD_PARAM, "Unknown PID %d", import->trackID);
   		}
-		
+
 		if (tsimp.avccfg) {
 			u32 w = ((GF_M2TS_PES*)es)->vid_w;
 			u32 h = ((GF_M2TS_PES*)es)->vid_h;
@@ -5599,7 +5599,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			gf_odf_avc_cfg_del(tsimp.avccfg);
 		}
 
-		
+
 
 		MP4T_RecomputeBitRate(import->dest, tsimp.track);
 		/* creation of the edit lists */
@@ -5611,8 +5611,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			assert(es->program->first_dts < es->first_dts);
 			offset = (u32)(es->first_dts - es->program->first_dts) * moov_ts / media_ts;
 			dur = gf_isom_get_media_duration(import->dest, tsimp.track) * moov_ts / media_ts;
-			gf_isom_set_edit_segment(import->dest, tsimp.track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);				
-			gf_isom_set_edit_segment(import->dest, tsimp.track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);				
+			gf_isom_set_edit_segment(import->dest, tsimp.track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);
+			gf_isom_set_edit_segment(import->dest, tsimp.track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);
 			//gf_import_message(import, GF_OK, "Timeline offset: %d ms", (u32)((pes->first_dts - pes->program->first_dts)/90));
 		}
 
@@ -5762,7 +5762,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 
 	err = gf_isom_add_sample(import->dest, track, di, samp);
 	if (err) goto error;
-	
+
 	subpic = vobsub->langs[trackID].subpos;
 	total  = gf_list_count(subpic);
 
@@ -5771,7 +5771,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		u32	    i, left, size, psize, dsize, hsize, duration;
 		char *packet;
 		vobsub_pos *pos = (vobsub_pos*)gf_list_get(subpic, c);
-		
+
 		if (import->duration && pos->start > import->duration) {
 			break;
 		}
@@ -6016,7 +6016,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 	ext = strrchr(importer->in_name, '.');
 	if (!ext) ext = "";
-	
+
 	if (importer->streamFormat) fmt = importer->streamFormat;
 
 
@@ -6044,26 +6044,26 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		return gf_import_ogg_audio(importer);
 	}
 	/*MPEG PS*/
-	if (!strnicmp(ext, ".mpg", 4) || !strnicmp(ext, ".mpeg", 5) 
+	if (!strnicmp(ext, ".mpg", 4) || !strnicmp(ext, ".mpeg", 5)
 		|| !strnicmp(ext, ".vob", 4) || !strnicmp(ext, ".vcd", 4) || !strnicmp(ext, ".svcd", 5)
-		|| !stricmp(fmt, "MPEG1") || !stricmp(fmt, "MPEG-PS")  || !stricmp(fmt, "MPEG2-PS") 
+		|| !stricmp(fmt, "MPEG1") || !stricmp(fmt, "MPEG-PS")  || !stricmp(fmt, "MPEG2-PS")
 		) {
 		e = gf_import_mpeg_ps_video(importer);
 		if (e) return e;
 		return gf_import_mpeg_ps_audio(importer);
 	}
 	/*MPEG-2 TS*/
-	if (!strnicmp(ext, ".ts", 3) || !strnicmp(ext, ".m2t", 4) 
-		|| !stricmp(fmt, "MPEGTS") || !stricmp(fmt, "MPEG-TS") 
-		|| !stricmp(fmt, "MPGTS") || !stricmp(fmt, "MPG-TS") 
-		|| !stricmp(fmt, "MPEG2TS")  || !stricmp(fmt, "MPEG2-TS") 
-		|| !stricmp(fmt, "MPG2TS")  || !stricmp(fmt, "MPG2-TS") 
+	if (!strnicmp(ext, ".ts", 3) || !strnicmp(ext, ".m2t", 4)
+		|| !stricmp(fmt, "MPEGTS") || !stricmp(fmt, "MPEG-TS")
+		|| !stricmp(fmt, "MPGTS") || !stricmp(fmt, "MPG-TS")
+		|| !stricmp(fmt, "MPEG2TS")  || !stricmp(fmt, "MPEG2-TS")
+		|| !stricmp(fmt, "MPG2TS")  || !stricmp(fmt, "MPG2-TS")
 		) {
 		return gf_import_mpeg_ts(importer);
 	}
 
 	/*MPEG1/2 Audio*/
-	if (!strnicmp(ext, ".mp2", 4) || !strnicmp(ext, ".mp3", 4) || !strnicmp(ext, ".m1a", 4) || !strnicmp(ext, ".m2a", 4) || !stricmp(fmt, "MP3") || !stricmp(fmt, "MPEG-AUDIO") ) 
+	if (!strnicmp(ext, ".mp2", 4) || !strnicmp(ext, ".mp3", 4) || !strnicmp(ext, ".m1a", 4) || !strnicmp(ext, ".m2a", 4) || !stricmp(fmt, "MP3") || !stricmp(fmt, "MPEG-AUDIO") )
 		return gf_import_mp3(importer);
 	/*NHNT*/
 	if (!strnicmp(ext, ".media", 5) || !strnicmp(ext, ".info", 5) || !strnicmp(ext, ".nhnt", 5) || !stricmp(fmt, "NHNT") )
@@ -6075,38 +6075,38 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!strnicmp(ext, ".jpg", 4) || !strnicmp(ext, ".jpeg", 5) || !strnicmp(ext, ".jp2", 4) || !strnicmp(ext, ".png", 4) || !stricmp(fmt, "JPEG") || !stricmp(fmt, "PNG") || !stricmp(fmt, "JP2") )
 		return gf_import_still_image(importer);
 	/*MPEG-2/4 AAC*/
-	if (!strnicmp(ext, ".aac", 4) || !stricmp(fmt, "AAC") || !stricmp(fmt, "MPEG4-AUDIO") ) 
+	if (!strnicmp(ext, ".aac", 4) || !stricmp(fmt, "AAC") || !stricmp(fmt, "MPEG4-AUDIO") )
 		return gf_import_aac_adts(importer);
 	/*AMR & 3GPP2 speec codecs*/
 	if (!strnicmp(ext, ".amr", 4) || !strnicmp(ext, ".awb", 4) || !strnicmp(ext, ".smv", 4) || !strnicmp(ext, ".evc", 4)
-		|| !stricmp(fmt, "AMR") || !stricmp(fmt, "EVRC") || !stricmp(fmt, "SMV") ) 
+		|| !stricmp(fmt, "AMR") || !stricmp(fmt, "EVRC") || !stricmp(fmt, "SMV") )
 		return gf_import_amr_evrc_smv(importer);
 	/*QCelp & other in QCP file format*/
-	if (!strnicmp(ext, ".qcp", 4) || !stricmp(fmt, "QCELP") ) 
+	if (!strnicmp(ext, ".qcp", 4) || !stricmp(fmt, "QCELP") )
 		return gf_import_qcp(importer);
 	/*MPEG-4 video*/
-	if (!strnicmp(ext, ".cmp", 4) || !strnicmp(ext, ".m4v", 4) || !stricmp(fmt, "CMP") || !stricmp(fmt, "MPEG4-Video") ) 
+	if (!strnicmp(ext, ".cmp", 4) || !strnicmp(ext, ".m4v", 4) || !stricmp(fmt, "CMP") || !stricmp(fmt, "MPEG4-Video") )
 		return gf_import_cmp(importer, 0);
 	/*MPEG-1/2 video*/
-	if (!strnicmp(ext, ".m2v", 4) || !strnicmp(ext, ".m1v", 4) || !stricmp(fmt, "MPEG2-Video") || !stricmp(fmt, "MPEG1-Video") ) 
+	if (!strnicmp(ext, ".m2v", 4) || !strnicmp(ext, ".m1v", 4) || !stricmp(fmt, "MPEG2-Video") || !stricmp(fmt, "MPEG1-Video") )
 		return gf_import_cmp(importer, 2);
 	/*H2632 video*/
-	if (!strnicmp(ext, ".263", 4) || !strnicmp(ext, ".h263", 5) || !stricmp(fmt, "H263") ) 
+	if (!strnicmp(ext, ".263", 4) || !strnicmp(ext, ".h263", 5) || !stricmp(fmt, "H263") )
 		return gf_import_h263(importer);
 	/*H264/AVC video*/
 	if (!strnicmp(ext, ".h264", 5) || !strnicmp(ext, ".264", 4) || !strnicmp(ext, ".x264", 5)
 		|| !strnicmp(ext, ".h26L", 5) || !strnicmp(ext, ".26l", 4)
-		|| !stricmp(fmt, "AVC") || !stricmp(fmt, "H264") ) 
+		|| !stricmp(fmt, "AVC") || !stricmp(fmt, "H264") )
 		return gf_import_h264(importer);
 	/*MPEG-4 SAF multiplex*/
-	if (!strnicmp(ext, ".saf", 4) || !strnicmp(ext, ".lsr", 4) || !stricmp(fmt, "SAF") ) 
+	if (!strnicmp(ext, ".saf", 4) || !strnicmp(ext, ".lsr", 4) || !stricmp(fmt, "SAF") )
 		return gf_import_saf(importer);
 	/*text subtitles*/
-	if (!strnicmp(ext, ".srt", 4) || !strnicmp(ext, ".sub", 4) || !strnicmp(ext, ".ttxt", 5) 
-		|| !stricmp(fmt, "SRT") || !stricmp(fmt, "SUB") || !stricmp(fmt, "TEXT") ) 
+	if (!strnicmp(ext, ".srt", 4) || !strnicmp(ext, ".sub", 4) || !strnicmp(ext, ".ttxt", 5)
+		|| !stricmp(fmt, "SRT") || !stricmp(fmt, "SUB") || !stricmp(fmt, "TEXT") )
 		return gf_import_timed_text(importer);
 	/*VobSub*/
-    if (!strnicmp(ext, ".idx", 4) || !stricmp(fmt, "VOBSUB")) 
+    if (!strnicmp(ext, ".idx", 4) || !stricmp(fmt, "VOBSUB"))
 		return gf_import_vobsub(importer);
 	/*raw importer*/
 	if (!stricmp(fmt, "RAW")) {
@@ -6136,7 +6136,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 		free(xml_type);
 	}
-		
+
 	return gf_import_message(importer, e, "Unknown input file type");
 }
 
@@ -6156,7 +6156,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 		e = gf_isom_avc_config_update(file, track, 1, avcc);
 		gf_odf_avc_cfg_del(avcc);
 		if (e) return e;
-	} 
+	}
 	else if (stype==GF_ISOM_SUBTYPE_MPEG4) {
 		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
 		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) ) {

@@ -10,22 +10,25 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 
 #ifndef _DXHW_H
 #define _DXHW_H
 
+#if defined(__GNUC__) && !defined(DIRECTSOUND_VERSION)
+#define DIRECTSOUND_VERSION 0x0500
+#endif
 
 /*driver interfaces*/
 #include <gpac/modules/audio_out.h>
@@ -34,15 +37,18 @@
 #include <gpac/constants.h>
 #include <gpac/thread.h>
 
+
+/*
 #include <windows.h>
+*/
+#include <ddraw.h>
+
 #include <mmsystem.h>
 #include <dsound.h>
 
 #ifndef _WIN32_WCE
 #include <vfw.h>
 #endif
-
-#include <ddraw.h>
 
 #ifdef _WIN32_WCE
 # ifndef SWP_ASYNCWINDOWPOS
@@ -113,7 +119,7 @@ typedef struct
 
 	/*HW surfaces for blitting+stretch*/
 	DDSurface rgb_pool, yuv_pool;
-	
+
 	/*if we own the window*/
 	GF_Thread *th;
 	u32 th_state;
@@ -194,4 +200,4 @@ void DeleteAudioOutput(void *);
 
 #define SAFE_DS_RELEASE(p) { if(p) { IDirectSound_Release(p); (p)=NULL; } }
 
-#endif 
+#endif

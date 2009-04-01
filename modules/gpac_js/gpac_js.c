@@ -89,11 +89,11 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		return JS_TRUE;
 	}
 	if (!strcmp(prop_name, "scale_x")) {
-		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->zoom) * FIX2FLT(term->compositor->scale_x)) );
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_x)) );
 		return JS_TRUE;
 	}
 	if (!strcmp(prop_name, "scale_y")) {
-		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->zoom) * FIX2FLT(term->compositor->scale_y)) );
+		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_y)) );
 		return JS_TRUE;
 	}
 	if (!strcmp(prop_name, "translation_x")) {
@@ -149,6 +149,14 @@ static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		if (!JSVAL_IS_STRING(*vp)) return JS_FALSE;
 		prop_val = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
 		gf_cfg_set_key(term->user->config, "General", "LastWorkingDir", prop_val);
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "caption")) {
+		GF_Event evt;
+		if (!JSVAL_IS_STRING(*vp)) return JS_FALSE;
+		evt.type = GF_EVENT_SET_CAPTION;
+		evt.caption.caption = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
+		gf_term_user_event(term, &evt);
 		return JS_TRUE;
 	}
 
@@ -418,20 +426,20 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 
 	GF_JSAPIParam par;
 	JSPropertySpec gpacClassProps[] = {
-		{0}
+		{0, 0, 0, 0, 0}
 	};
 	JSFunctionSpec gpacClassFuncs[] = {
-		{"getOption",		gpac_getOption, 3},
-		{"setOption",		gpac_setOption, 4},
-		{"enum_directory",	gpac_enum_directory, 1},
-		{"set_size",		gpac_set_size, 1},
-		{"get_horizontal_dpi",	gpac_get_horizontal_dpi, 0},
-		{"get_vertical_dpi",	gpac_get_vertical_dpi, 0},
-		{"get_screen_width",	gpac_get_screen_width, 0},
-		{"get_screen_height",	gpac_get_screen_height, 0},
-		{"exit",				gpac_exit, 0},
-		{"set_3d",				gpac_set_3d, 1},
-		{0}
+		{"getOption",		gpac_getOption, 3, 0, 0},
+		{"setOption",		gpac_setOption, 4, 0, 0},
+		{"enum_directory",	gpac_enum_directory, 1, 0, 0},
+		{"set_size",		gpac_set_size, 1, 0, 0},
+		{"get_horizontal_dpi",	gpac_get_horizontal_dpi, 0, 0, 0},
+		{"get_vertical_dpi",	gpac_get_vertical_dpi, 0, 0, 0},
+		{"get_screen_width",	gpac_get_screen_width, 0, 0, 0},
+		{"get_screen_height",	gpac_get_screen_height, 0, 0, 0},
+		{"exit",				gpac_exit, 0, 0, 0},
+		{"set_3d",				gpac_set_3d, 1, 0, 0},
+		{0, 0, 0, 0, 0}
 	};
 
 	/*nothing to do on unload*/

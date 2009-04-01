@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include <gpac/modules/service.h>
@@ -40,7 +40,7 @@
 typedef struct {
 	u32 freq;
 	u16 vpid;
-	u16 apid; 
+	u16 apid;
 	fe_spectral_inversion_t specInv;
 	fe_modulation_t modulation;
 	fe_bandwidth_t bandwidth;
@@ -81,11 +81,11 @@ typedef struct
 	GF_Mutex *mx;
 	/*net playing*/
 	GF_Socket *sock;
-	
+
 #ifdef GPAC_HAS_LINUX_DVB
 	/*dvb playing*/
 	GF_Tuner *tuner;
-#endif	
+#endif
 	/*local file playing*/
 	FILE *file;
 	char filename[GF_MAX_PATH];
@@ -114,7 +114,7 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 	int demux1, front1;
 	FILE *chanfile;
 	char line[255], chan_name_t[255];
-	char freq_str[255], inv[255], bw[255], lcr[255], hier[255], cr[255], 
+	char freq_str[255], inv[255], bw[255], lcr[255], hier[255], cr[255],
 		 mod[255], transm[255], gi[255], apid_str[255], vpid_str[255];
 	const char *chan_conf = ":%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:";
 	char *chan_name;
@@ -126,7 +126,7 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 	if (!chanfile) return GF_BAD_PARAM;
 
 	chan_name = url+6; // 6 = strlen("dvb://")
-	
+
 	// support for multiple frontends
 	tmp = strchr(chan_name, '@');
 	if (tmp) {
@@ -143,7 +143,7 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 			if (line[0]=='\r') continue;
 			if (line[0]=='\n') continue;
 
-			strncpy(chan_name_t, line, index(line, ':')-line); 
+			strncpy(chan_name_t, line, index(line, ':')-line);
 			if (strncmp(chan_name,chan_name_t,strlen(chan_name))==0) {
 				sscanf(strstr(line,":"), chan_conf, freq_str, inv, bw, lcr, cr, mod, transm, gi, hier, apid_str, vpid_str);
 				tuner->freq = (uint32_t) atoi(freq_str);
@@ -175,13 +175,13 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 				else if(! strcmp(cr, "FEC_7_8")) tuner->HP_CodeRate =FEC_7_8;
 				else if(! strcmp(cr, "FEC_NONE")) tuner->HP_CodeRate =FEC_NONE;
 				else tuner->HP_CodeRate =FEC_AUTO;
-				//Modulation			
+				//Modulation
 				if(! strcmp(mod, "QAM_128")) tuner->modulation = QAM_128;
 				else if(! strcmp(mod, "QAM_256")) tuner->modulation = QAM_256;
 				else if(! strcmp(mod, "QAM_64")) tuner->modulation = QAM_64;
 				else if(! strcmp(mod, "QAM_32")) tuner->modulation = QAM_32;
 				else if(! strcmp(mod, "QAM_16")) tuner->modulation = QAM_16;
-				//Bandwidth				
+				//Bandwidth
 				if(! strcmp(bw, "BANDWIDTH_6_MHZ")) tuner->bandwidth = BANDWIDTH_6_MHZ;
 				else if(! strcmp(bw, "BANDWIDTH_7_MHZ")) tuner->bandwidth = BANDWIDTH_7_MHZ;
 				else if(! strcmp(bw, "BANDWIDTH_8_MHZ")) tuner->bandwidth = BANDWIDTH_8_MHZ;
@@ -193,19 +193,19 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 				else if(! strcmp(gi, "GUARD_INTERVAL_1_16")) tuner->guardInterval = GUARD_INTERVAL_1_16;
 				else if(! strcmp(gi, "GUARD_INTERVAL_1_8")) tuner->guardInterval = GUARD_INTERVAL_1_8;
 				else tuner->guardInterval = GUARD_INTERVAL_1_4;
-				//Hierarchy			
+				//Hierarchy
 				if(! strcmp(hier, "HIERARCHY_1")) tuner->hierarchy = HIERARCHY_1;
 				else if(! strcmp(hier, "HIERARCHY_2")) tuner->hierarchy = HIERARCHY_2;
-				else if(! strcmp(hier, "HIERARCHY_4")) tuner->hierarchy = HIERARCHY_4;				
+				else if(! strcmp(hier, "HIERARCHY_4")) tuner->hierarchy = HIERARCHY_4;
 				else if(! strcmp(hier, "HIERARCHY_AUTO")) tuner->hierarchy = HIERARCHY_AUTO;
 				else tuner->hierarchy = HIERARCHY_NONE;
-				
+
 				break;
 			}
 		}
 	}
 	fclose(chanfile);
-        
+
 	sprintf(frontend_name, "/dev/dvb/adapter%d/frontend0", adapter_num);
 	sprintf(demux_name, "/dev/dvb/adapter%d/demux0", adapter_num);
 	sprintf(dvr_name, "/dev/dvb/adapter%d/dvr0", adapter_num);
@@ -250,7 +250,7 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
   /* The following code differs from mplayer and alike because the device is opened in blocking mode */
 	if ((tuner->ts_fd = open(dvr_name, O_RDONLY/*|O_NONBLOCK*/)) < 0){
 	        return GF_IO_ERR;
- 	}	
+ 	}
 	return GF_OK;
 }
 #endif
@@ -258,17 +258,17 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
-	
-	if (!strnicmp(url, "udp://", 6) 
-		|| !strnicmp(url, "mpegts-udp://", 13) 
-		|| !strnicmp(url, "mpegts-tcp://", 13) 
+
+	if (!strnicmp(url, "udp://", 6)
+		|| !strnicmp(url, "mpegts-udp://", 13)
+		|| !strnicmp(url, "mpegts-tcp://", 13)
 #ifdef GPAC_HAS_LINUX_DVB
-		|| !strnicmp(url, "dvb://", 6) 
+		|| !strnicmp(url, "dvb://", 6)
 #endif
 	) {
   	return 1;
 	}
-	
+
 	sExt = strrchr(url, '.');
 	if (!sExt) return 0;
 	if (gf_term_check_extension(plug, "video/mpeg-2", "ts m2t", "MPEG-2 TS", sExt)) return 1;
@@ -276,7 +276,7 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 }
 
 #ifdef GPAC_HAS_LINUX_DVB
-static u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url) 
+static u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url)
 {
 	FILE *channels_config_file;
 	char line[255], name[255], *tmp, *channel_name;
@@ -287,7 +287,7 @@ static u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char
 	tmp = strchr(url, '@');
 	if (tmp) tmp[0] = 0;
 
-	channel_name = url+6; 
+	channel_name = url+6;
 
 	channels_config_file = fopen(channels_config_path, "r");
 	if (!channels_config_file) return GF_BAD_PARAM;
@@ -301,7 +301,7 @@ static u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char
 
 			tmp = strchr(line, ':');
 			tmp[0] = 0;
-			if (!strcmp(line, channel_name)) {				
+			if (!strcmp(line, channel_name)) {
 				char *tmp2;
 				tmp++;
 				tmp2 = strchr(tmp, ':');
@@ -322,7 +322,7 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 
 #ifdef GPAC_HAS_LINUX_DVB
 	if (!stricmp(url, "dvb://EPG")) return 1;
-	if (!strnicmp(url, "dvb://", 6)) {		
+	if (!strnicmp(url, "dvb://", 6)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DVBIn] Checking reuse of the same tuner for %s\n", url));
 		const char *chan_conf = gf_modules_get_option((GF_BaseInterface *)plug, "DVB", "ChannelsFile");
 		if (!chan_conf) {
@@ -339,13 +339,13 @@ static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 				ret = 1;
 			}
 			if (frag) frag[0] = '#';
-		} 
-	} else 
+		}
+	} else
 #endif
-	if (!strnicmp(url, "udp://", 6) 
-		|| !strnicmp(url, "mpegts-udp://", 13) 
+	if (!strnicmp(url, "udp://", 6)
+		|| !strnicmp(url, "mpegts-udp://", 13)
 		|| !strnicmp(url, "mpegts-tcp://", 13))
-	{	
+	{
 		/* TODO: check IP address ...*/
 		ret = 0;
 	} else {
@@ -421,7 +421,7 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	esd->slConfig->useRandomAccessPointFlag = 1;
 	esd->slConfig->AUSeqNumLength = 0;
 	esd->slConfig->timestampResolution = 90000;
-	
+
 	/*decoder config*/
 	if (dsi) {
 		esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*dsi_size);
@@ -460,7 +460,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 		}
 		if (!found) return;
 	}
-#endif	
+#endif
 	m2ts->file_regulate = no_declare ? 0 : 1;
 
 	for (i=0; i<count; i++) {
@@ -472,7 +472,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 		if (!prog->pmt_iod && !no_declare) MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
 	}
 	/*force scene regeneration*/
-	if (regenerate_scene) 
+	if (regenerate_scene)
 		gf_term_add_media(m2ts->service, NULL, 0);
 }
 
@@ -506,7 +506,7 @@ static GFINLINE void MP2TS_SendSLPacket(M2TSIn *m2ts, GF_M2TS_SL_PCK *pck)
 	gf_term_on_sl_packet(m2ts->service, pck->stream->user, pck->data, pck->data_len, NULL, GF_OK);
 }
 
-static GF_ObjectDescriptor *M2TS_GenerateEPG_OD(M2TSIn *m2ts) 
+static GF_ObjectDescriptor *M2TS_GenerateEPG_OD(M2TSIn *m2ts)
 {
 	/* declaring a special stream for displaying eit */
 	GF_ObjectDescriptor *od;
@@ -530,7 +530,7 @@ static GF_ObjectDescriptor *M2TS_GenerateEPG_OD(M2TSIn *m2ts)
 	/*declare object to terminal*/
 	od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
 	gf_list_add(od->ESDescriptors, esd);
-	od->objectDescriptorID = GF_M2TS_PID_EIT_ST_CIT;	
+	od->objectDescriptorID = GF_M2TS_PID_EIT_ST_CIT;
 	return od;
 }
 
@@ -548,7 +548,7 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 		if (es==NULL) continue;
 
 		/*move to skip mode for all PES until asked for playback*/
-		if (!(es->flags & GF_M2TS_ES_IS_SECTION) && !es->user) 
+		if (!(es->flags & GF_M2TS_ES_IS_SECTION) && !es->user)
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
 		MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
 		gf_list_rem(m2ts->requested_pids, i);
@@ -616,7 +616,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_PMT_FOUND:
 		if (gf_list_count(m2ts->ts->programs) == 1)
 			gf_term_on_connect(m2ts->service, NULL, GF_OK);
-		
+
 		/*do not declare if  single program was requested for playback*/
 		MP2TS_SetupProgram(m2ts, param, m2ts->request_all_pids, m2ts->request_all_pids ? 0 : 1);
 
@@ -670,7 +670,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					com.command_type = GF_NET_BUFFER_QUERY;
 					gf_term_on_command(m2ts->service, &com, GF_OK);
 					if (com.buffer.occupancy) gf_sleep(diff);
-				
+
 					m2ts->nb_pck = 0;
 					m2ts->pcr_last = pcr;
 					m2ts->stb_at_last_pcr = gf_sys_clock();
@@ -706,7 +706,7 @@ u32 M2TS_Run(void *_p)
 		while (m2ts->run_state) {
 			s32 ts_size = read(m2ts->tuner->ts_fd, dvbts, DVB_BUFFER_SIZE);
 			if (ts_size>0) gf_m2ts_process_data(m2ts->ts, dvbts, (u32) ts_size);
-		}	
+		}
 	} else
 #endif
 	 if (m2ts->sock) {
@@ -810,13 +810,13 @@ void M2TS_SetupDVB(GF_InputService *plug, M2TSIn *m2ts, char *url)
 		e = GF_SERVICE_ERROR;
 		goto exit;
 	}
-	
+
 	if (!m2ts->tuner) GF_SAFEALLOC(m2ts->tuner, GF_Tuner);
 
 	if (m2ts->tuner->freq != 0 && m2ts->tuner->freq == gf_dvb_get_freq_from_url(chan_conf, url)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[DVBIn] Tuner already tuned to that frequency\n"));
 		goto exit;
-	} 
+	}
 
 	e = gf_dvb_tune(m2ts->tuner, url, chan_conf);
 	if (e) goto exit;
@@ -905,7 +905,7 @@ void M2TS_SetupFile(M2TSIn *m2ts, char *url)
 	if (m2ts->file && !strcmp(m2ts->filename, url)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEGTSIn] TS already being processed\n"));
 		return;
-	} 
+	}
 
 	m2ts->file = fopen(url, "rb");
 	if (!m2ts->file) {
@@ -916,9 +916,9 @@ void M2TS_SetupFile(M2TSIn *m2ts, char *url)
 
 	fseek(m2ts->file, 0, SEEK_END);
 	m2ts->file_size = ftell(m2ts->file);
-	
+
 #if 0
-	/* 
+	/*
 		estimate duration by reading the end of the file
 		m2ts->end_range is initialized to the PTS of the last TS packet
 		m2ts->nb_playing is initialized to the PID of the last TS packet
@@ -940,9 +940,9 @@ void M2TS_SetupFile(M2TSIn *m2ts, char *url)
 		nb_rwd ++;
 	}
 
-	/* 
-	   reset of the file 
-	   initialization of m2ts->start_range to the PTS of the first TS packet with PID = m2ts->nb_playing 
+	/*
+	   reset of the file
+	   initialization of m2ts->start_range to the PTS of the first TS packet with PID = m2ts->nb_playing
 	*/
 	fseek(m2ts->file, 0, SEEK_SET);
 	gf_m2ts_reset_parsers(m2ts->ts);
@@ -987,16 +987,16 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	m2ts->duration = 0;
 
 	if (!strnicmp(url, "udp://", 6)
-		|| !strnicmp(url, "mpegts-udp://", 13) 
-		|| !strnicmp(url, "mpegts-tcp://", 13) 
+		|| !strnicmp(url, "mpegts-udp://", 13)
+		|| !strnicmp(url, "mpegts-tcp://", 13)
 		) {
 		M2TS_SetupLive(plug, m2ts, (char *) szURL);
-	} 
+	}
 #ifdef GPAC_HAS_LINUX_DVB
 	else if (!strnicmp(url, "dvb://", 6)) {
 		// DVB Setup
 		M2TS_SetupDVB(plug, m2ts, (char *) szURL);
-	} 
+	}
 #endif
 	else {
 		M2TS_SetupFile(m2ts, (char *) szURL);
@@ -1034,8 +1034,8 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	if (frag) frag++;
 
 	/* consider the channel name in DVB URL as a fragment */
-	if (!frag && !strncmp(sub_url, "dvb://", 6)) { 
-		frag = sub_url + 6; 
+	if (!frag && !strncmp(sub_url, "dvb://", 6)) {
+		frag = (char*)sub_url + 6;
 	}
 
 	if (!frag) {
@@ -1070,14 +1070,14 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		gf_mx_v(m2ts->mx);
 	}
 
-	if (expect_type==GF_MEDIA_OBJECT_SCENE) {	
+	if (expect_type==GF_MEDIA_OBJECT_SCENE) {
 		if (gf_list_count(m2ts->ts->programs) == 1) {
 			GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, 0);
 			if (prog->pmt_iod) {
 				gf_odf_desc_copy((GF_Descriptor *)prog->pmt_iod, &desc);
 				return desc;
 			}
-		} 
+		}
 		if (m2ts->epg_requested) {
 			GF_ObjectDescriptor *od = M2TS_GenerateEPG_OD(m2ts);
 			m2ts->epg_requested = 0;
@@ -1108,7 +1108,7 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
 		sscanf(url, "ES_ID=%d", &ES_ID);
-		
+
 		/* In case there is a real IOD, we need to translate PID into ESID */
 		if (gf_list_count(m2ts->ts->programs) == 1) {
 			GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, 0);
@@ -1131,7 +1131,7 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 					}
 				}
 			}
-		} 
+		}
 
 		if (ES_ID == 18) {
 			e = GF_OK; /* 18 is the PID of EIT packets */

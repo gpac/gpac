@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -32,7 +32,7 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
-#include <jsapi.h> 
+#include <jsapi.h>
 
 #define JSVAL_CHECK_STRING(_v) (JSVAL_IS_STRING(_v) || JSVAL_IS_NULL(_v))
 #define JSVAL_GET_STRING(_v) (JSVAL_IS_NULL(_v) ? NULL : JS_GetStringBytes(JSVAL_TO_STRING(_v)) )
@@ -70,7 +70,7 @@ jsval dom_node_get_sibling(JSContext *c, GF_Node *n, Bool is_prev, Bool elt_only
 
 static GFINLINE Bool ScriptAction(GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
 {
-	if (scene->script_action) 
+	if (scene->script_action)
 		return scene->script_action(scene->script_action_cbck, type, node, param);
 	return 0;
 }
@@ -162,7 +162,7 @@ static JSBool svg_parse_xml(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	GF_Node *node;
 	char *str;
 	GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *sg, char *svg_str);
-	
+
 	doc_obj = JSVAL_TO_OBJECT(argv[1]);
 	if (!doc_obj) {
 		dom_throw_exception(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
@@ -237,17 +237,17 @@ static void svg_define_udom_exception(JSContext *c, JSObject *global)
 static JSBool global_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	GF_SceneGraph *sg;
-	if (!JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL) ) 
+	if (!JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL) )
 		return JS_TRUE;
 
 	sg = JS_GetContextPrivate(c);
 	if (JSVAL_IS_INT(id)) {
 		switch (JSVAL_TO_INT(id)) {
 		/*namespaceURI*/
-		case 0: 
+		case 0:
 			return JS_TRUE;
 		/*parent*/
-		case 1: 
+		case 1:
 			*vp = JSVAL_VOID;
 			if (sg->parent_scene && sg->parent_scene->svg_js) *vp = OBJECT_TO_JSVAL(sg->parent_scene->svg_js->global);
 			return JS_TRUE;
@@ -279,7 +279,7 @@ static JSBool dom_imp_has_feature(JSContext *c, JSObject *obj, uintN argc, jsval
 		else if (!stricmp(fname, "mouseevents")) *rval = BOOLEAN_TO_JSVAL(JS_TRUE);
 		else if (!stricmp(fname, "mutationevents")) *rval = BOOLEAN_TO_JSVAL(JS_TRUE);
 		else if (!stricmp(fname, "events")) *rval = BOOLEAN_TO_JSVAL(JS_TRUE);
-		
+
 		fname[len] = sep;
 	}
 	return JS_TRUE;
@@ -314,7 +314,7 @@ static JSBool svg_doc_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *
 	prop_id = JSVAL_TO_INT(id);
 	switch (prop_id) {
 	case 0:/*global*/
-		*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) ); 
+		*vp = OBJECT_TO_JSVAL( JS_GetGlobalObject(c) );
 		return JS_TRUE;
 	}
 	return JS_TRUE;
@@ -386,7 +386,7 @@ static JSBool svg_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 			return JS_TRUE;
 		}
 		return JS_TRUE;
-	case 6:/*currentRotate*/ 
+	case 6:/*currentRotate*/
 		if (n->sgprivate->tag!=TAG_SVG_svg) return JS_TRUE;
 		if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_ROTATION, (GF_Node *)n, &par)) {
 			d = JS_NewDouble(c, FIX2FLT(par.val) );
@@ -422,11 +422,11 @@ static JSBool svg_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 			return JS_TRUE;
 		}
 		return JS_TRUE;
-	case 9:/*currentTime*/ 
+	case 9:/*currentTime*/
 		d = JS_NewDouble(c, gf_node_get_scene_time((GF_Node *)n) );
 		*vp = DOUBLE_TO_JSVAL(d);
 		return JS_TRUE;
-	case 10:/*isPaused*/ 
+	case 10:/*isPaused*/
 		*vp = BOOLEAN_TO_JSVAL(JS_FALSE);
 		return JS_TRUE;
 	case 11:/*ownerSVGElement*/
@@ -451,7 +451,7 @@ static JSBool svg_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 	case 13:/*correspondingUseElement*/
 		*vp = dom_element_construct(c, get_corresponding_use(n));
 		return JS_TRUE;
-	default: 
+	default:
 		return JS_TRUE;
 	}
 	return JS_TRUE;
@@ -489,7 +489,7 @@ static JSBool svg_element_setProperty(JSContext *c, JSObject *obj, jsval id, jsv
 		}
 		return JS_TRUE;
 	/*currentScale*/
-	case 5: 
+	case 5:
 		if (!JSVAL_IS_NUMBER(*vp) || (n->sgprivate->tag!=TAG_SVG_svg)) return JS_TRUE;
 		JS_ValueToNumber(c, *vp, &d);
 		par.val = FLT2FIX(d);
@@ -501,7 +501,7 @@ static JSBool svg_element_setProperty(JSContext *c, JSObject *obj, jsval id, jsv
 		}
 		return JS_TRUE;
 	/*currentRotate*/
-	case 6: 
+	case 6:
 		if (!JSVAL_IS_NUMBER(*vp) || (n->sgprivate->tag!=TAG_SVG_svg)) return JS_TRUE;
 		JS_ValueToNumber(c, *vp, &d);
 		par.val = FLT2FIX(d);
@@ -518,7 +518,7 @@ static JSBool svg_element_setProperty(JSContext *c, JSObject *obj, jsval id, jsv
 			return JS_TRUE;
 		}
 		return JS_TRUE;
-	default: 
+	default:
 		return JS_TRUE;
 	}
 	return JS_TRUE;
@@ -556,7 +556,7 @@ JSBool svg_udom_smil_time_insert(JSContext *c, JSObject *obj, uintN argc, jsval 
 	SMIL_Time *newtime;
 	GF_Node *n = svg_udom_smil_check_instance(c, obj);
 	if (!n) return JS_TRUE;
-	
+
 
 	if (is_end) {
 		info.far_ptr = ((SVGTimedAnimBaseElement *)n)->timingp->end;
@@ -576,7 +576,7 @@ JSBool svg_udom_smil_time_insert(JSContext *c, JSObject *obj, uintN argc, jsval 
 		offset = d;
 	}
 	newtime->clock = gf_node_get_scene_time(n) + offset;
-	
+
 	/*insert in sorted order*/
 	count = gf_list_count(times);
 	for (i=0; i<count; i++) {
@@ -587,8 +587,8 @@ JSBool svg_udom_smil_time_insert(JSContext *c, JSObject *obj, uintN argc, jsval 
 			break;
 		}
 	}
-	gf_list_insert(times, newtime, i);	
-	
+	gf_list_insert(times, newtime, i);
+
 	info.fieldType = SMIL_Times_datatype;
 	gf_node_changed(n, &info);
 	return JS_TRUE;
@@ -936,7 +936,7 @@ JSBool svg_udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	} else if (argc==2) {
 		name = JSVAL_GET_STRING(argv[0]);
 		val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
-	} else 
+	} else
 		return JS_TRUE;
 	if (!name)  return JS_TRUE;
 	if (!strcmp(name, "#text")) {
@@ -1228,7 +1228,7 @@ JSBool svg_udom_create_matrix_components(JSContext *c, JSObject *obj, uintN argc
 	GF_Node *n = dom_get_element(c, obj);
 	if (!n) return JS_TRUE;
 	if (argc!=6) return JS_TRUE;
-	
+
 	GF_SAFEALLOC(mx, GF_Matrix2D)
 	JS_ValueToNumber(c, argv[0], &v);
 	mx->m[0] = FLT2FIX(v);
@@ -1312,7 +1312,7 @@ JSBool svg_udom_move_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv,
 	if ((argc!=1) || !JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
 
 	par.opt = JSVAL_TO_INT(argv[1]);
-	if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_SET_FOCUS, (GF_Node *)n, &par)) 
+	if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_SET_FOCUS, (GF_Node *)n, &par))
 		return JS_TRUE;
 	return JS_TRUE;
 }
@@ -1327,7 +1327,7 @@ JSBool svg_udom_set_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 
 	/*NOT IN THE GRAPH*/
 	if (!par.node || !par.node->sgprivate->num_instances) return JS_TRUE;
-	if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_SET_FOCUS, (GF_Node *)n, &par)) 
+	if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_SET_FOCUS, (GF_Node *)n, &par))
 		return JS_TRUE;
 	return JS_TRUE;
 }
@@ -1336,9 +1336,9 @@ JSBool svg_udom_get_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	GF_JSAPIParam par;
 	GF_Node *n = dom_get_element(c, obj);
 	if (!n || argc) return JS_TRUE;
-	
+
 	*rval = JSVAL_VOID;
-	if (!ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_FOCUS, (GF_Node *)n, &par)) 
+	if (!ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_FOCUS, (GF_Node *)n, &par))
 		return JS_TRUE;
 
 	if (par.node) {
@@ -1381,21 +1381,21 @@ static JSBool svg_connection_close(JSContext *c, JSObject *obj, uintN argc, jsva
 	return JS_TRUE;
 }
 static JSPropertySpec connectionProps[] = {
-	{"connected",			0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-	{0}
+	{"connected",			0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+	{0, 0, 0, 0, 0}
 };
 static JSFunctionSpec connectionFuncs[] = {
 	/*eventTarget interface*/
-	{"addEventListenerNS", dom_event_add_listener, 4},
-	{"removeEventListenerNS", dom_event_remove_listener, 4},
-	{"addEventListenerNS", dom_event_add_listener, 3},
-	{"removeEventListenerNS", dom_event_remove_listener, 3},
+	{"addEventListenerNS", dom_event_add_listener, 4, 0, 0},
+	{"removeEventListenerNS", dom_event_remove_listener, 4, 0, 0},
+	{"addEventListenerNS", dom_event_add_listener, 3, 0, 0},
+	{"removeEventListenerNS", dom_event_remove_listener, 3, 0, 0},
 	/*connection interface*/
-	{"setEncoding", svg_connection_set_encoding, 1},
-	{"connect", svg_connection_connect, 1},
-	{"send", svg_connection_send, 1},
-	{"close", svg_connection_close, 0},
-	{0}
+	{"setEncoding", svg_connection_set_encoding, 1, 0, 0},
+	{"connect", svg_connection_connect, 1, 0, 0},
+	{"send", svg_connection_send, 1, 0, 0},
+	{"close", svg_connection_close, 0, 0, 0},
+	{0, 0, 0, 0, 0}
 };
 
 static void baseCI_finalize(JSContext *c, JSObject *obj)
@@ -1600,10 +1600,10 @@ static JSBool svg_path_get_segment(JSContext *c, JSObject *obj, uintN argc, jsva
 	case 1: *vp = INT_TO_JSVAL(76); return JS_TRUE;	/* Line To */
 	case 2:/* Curve To */
 	case 3:/* next Curve To */
-		*vp = INT_TO_JSVAL(67); return JS_TRUE;	
+		*vp = INT_TO_JSVAL(67); return JS_TRUE;
 	case 4:/* Quad To */
 	case 5:/* next Quad To */
-		*vp = INT_TO_JSVAL(81); return JS_TRUE;	
+		*vp = INT_TO_JSVAL(81); return JS_TRUE;
 	case 6: *vp = INT_TO_JSVAL(90); return JS_TRUE;	/* Close */
 	}
 	return JS_TRUE;
@@ -1634,18 +1634,18 @@ static JSBool svg_path_get_segment_param(JSContext *c, JSObject *obj, uintN argc
 		}
 	}
 	switch (p->tags[idx]) {
-	case 0: 
-	case 1: 
+	case 0:
+	case 1:
 		if (param_idx>1) return JS_TRUE;
 		pt = &p->pts[pt_idx];
-		d = JS_NewDouble(c, param_idx ? pt->y : pt->x); 
-		*vp = DOUBLE_TO_JSVAL(d); 
+		d = JS_NewDouble(c, param_idx ? pt->y : pt->x);
+		*vp = DOUBLE_TO_JSVAL(d);
 		return JS_TRUE;
 	case 2:/* Curve To */
 		if (param_idx>5) return JS_TRUE;
 		pt = &p->pts[pt_idx + (param_idx/2) ];
 		d = JS_NewDouble(c, (param_idx%2) ? pt->y : pt->x);
-		*vp = DOUBLE_TO_JSVAL(d); 
+		*vp = DOUBLE_TO_JSVAL(d);
 		return JS_TRUE;
 	case 3:/* Next Curve To */
 		if (param_idx>5) return JS_TRUE;
@@ -1657,13 +1657,13 @@ static JSBool svg_path_get_segment_param(JSContext *c, JSObject *obj, uintN argc
 			pt = &p->pts[pt_idx + (param_idx/2)];
 			d = JS_NewDouble(c, (param_idx%2) ? pt->y : pt->x);
 		}
-		*vp = DOUBLE_TO_JSVAL(d); 
+		*vp = DOUBLE_TO_JSVAL(d);
 		return JS_TRUE;
 	case 4:/* Quad To */
 		if (param_idx>3) return JS_TRUE;
 		pt = &p->pts[pt_idx + (param_idx/2) ];
 		d = JS_NewDouble(c, (param_idx%2) ? pt->y : pt->x);
-		*vp = DOUBLE_TO_JSVAL(d); 
+		*vp = DOUBLE_TO_JSVAL(d);
 		return JS_TRUE;
 	case 5:/* Next Quad To */
 		if (param_idx>3) return JS_TRUE;
@@ -1675,12 +1675,12 @@ static JSBool svg_path_get_segment_param(JSContext *c, JSObject *obj, uintN argc
 			pt = &p->pts[pt_idx];
 			d = JS_NewDouble(c, param_idx ? pt->y : pt->x);
 		}
-		*vp = DOUBLE_TO_JSVAL(d); 
+		*vp = DOUBLE_TO_JSVAL(d);
 		return JS_TRUE;
 		/*spec is quite obscur here*/
 	case 6:
-		d = JS_NewDouble(c, 0); 
-		*vp = DOUBLE_TO_JSVAL(d);  
+		d = JS_NewDouble(c, 0);
+		*vp = DOUBLE_TO_JSVAL(d);
 		return JS_TRUE;
 	}
 	return JS_TRUE;
@@ -1982,18 +1982,18 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	JS_SetPrivate(scene->svg_js->js_ctx, scene->svg_js->global, scene);
 	{
 		JSPropertySpec globalClassProps[] = {
-			{"connected",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"parent",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{0}
+			{"connected",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"parent",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JSFunctionSpec globalClassFuncs[] = {
-			{"createConnection", svg_connection_create, 0},
-			{"gotoLocation", svg_nav_to_location, 1},
-			{"alert",           svg_echo,          0},
+			{"createConnection", svg_connection_create, 0, 0, 0},
+			{"gotoLocation", svg_nav_to_location, 1, 0, 0},
+			{"alert",           svg_echo,          0, 0, 0},
 			/*technically, this is part of Implementation interface, not global, but let's try not to complicate things too much*/
-			{"hasFeature", dom_imp_has_feature, 2},
-			{"parseXML",   svg_parse_xml,          0},
-			{0}
+			{"hasFeature", dom_imp_has_feature, 2, 0, 0},
+			{"parseXML",   svg_parse_xml,          0, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JS_DefineFunctions(scene->svg_js->js_ctx, scene->svg_js->global, globalClassFuncs);
 		JS_DefineProperties(scene->svg_js->js_ctx, scene->svg_js->global, globalClassProps);
@@ -2011,11 +2011,11 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	{
 
 		JSPropertySpec svgDocumentProps[] = {
-			{"global",				0,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"global",				0,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 			/*in our implementation, defaultView is just an alias to the global object*/
-			{"defaultView",			0,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-				
-			{0}
+			{"defaultView",			0,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+
+			{0, 0, 0, 0, 0}
 		};
 		JSObject *doc_proto = dom_js_get_document_proto(scene->svg_js->js_ctx);
 		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, doc_proto, &svg_rt->svgDocument, 0, 0, svgDocumentProps, 0, 0, 0);
@@ -2025,77 +2025,77 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	{
 		JSFunctionSpec svgElementFuncs[] = {
 			/*trait access interface*/
-			{"getTrait", svg_udom_get_trait, 1},
-			{"getTraitNS", svg_udom_get_trait, 2},
-			{"getFloatTrait", svg_udom_get_float_trait, 1},
-			{"getMatrixTrait", svg_udom_get_matrix_trait, 1},
-			{"getRectTrait", svg_udom_get_rect_trait, 1},
-			{"getPathTrait", svg_udom_get_path_trait, 1},
-			{"getRGBColorTrait", svg_udom_get_rgb_color_trait, 1},
+			{"getTrait", svg_udom_get_trait, 1, 0, 0},
+			{"getTraitNS", svg_udom_get_trait, 2, 0, 0},
+			{"getFloatTrait", svg_udom_get_float_trait, 1, 0, 0},
+			{"getMatrixTrait", svg_udom_get_matrix_trait, 1, 0, 0},
+			{"getRectTrait", svg_udom_get_rect_trait, 1, 0, 0},
+			{"getPathTrait", svg_udom_get_path_trait, 1, 0, 0},
+			{"getRGBColorTrait", svg_udom_get_rgb_color_trait, 1, 0, 0},
 			/*FALLBACK TO BASE-VALUE FOR NOW - WILL NEED EITHER DOM TREE-CLONING OR A FAKE RENDER
 			PASS FOR EACH PRESENTATION VALUE ACCESS*/
-			{"getPresentationTrait", svg_udom_get_trait, 1},
-			{"getPresentationTraitNS", svg_udom_get_trait, 2},
-			{"getFloatPresentationTrait", svg_udom_get_float_trait, 1},
-			{"getMatrixPresentationTrait", svg_udom_get_matrix_trait, 1},
-			{"getRectPresentationTrait", svg_udom_get_rect_trait, 1},
-			{"getPathPresentationTrait", svg_udom_get_path_trait, 1},
-			{"getRGBColorPresentationTrait", svg_udom_get_rgb_color_trait, 1},
-			{"setTrait", svg_udom_set_trait, 2},
-			{"setTraitNS", svg_udom_set_trait, 3},
-			{"setFloatTrait", svg_udom_set_float_trait, 2},
-			{"setMatrixTrait", svg_udom_set_matrix_trait, 2},
-			{"setRectTrait", svg_udom_set_rect_trait, 2},
-			{"setPathTrait", svg_udom_set_path_trait, 2},
-			{"setRGBColorTrait", svg_udom_set_rgb_color_trait, 2},
+			{"getPresentationTrait", svg_udom_get_trait, 1, 0, 0},
+			{"getPresentationTraitNS", svg_udom_get_trait, 2, 0, 0},
+			{"getFloatPresentationTrait", svg_udom_get_float_trait, 1, 0, 0},
+			{"getMatrixPresentationTrait", svg_udom_get_matrix_trait, 1, 0, 0},
+			{"getRectPresentationTrait", svg_udom_get_rect_trait, 1, 0, 0},
+			{"getPathPresentationTrait", svg_udom_get_path_trait, 1, 0, 0},
+			{"getRGBColorPresentationTrait", svg_udom_get_rgb_color_trait, 1, 0, 0},
+			{"setTrait", svg_udom_set_trait, 2, 0, 0},
+			{"setTraitNS", svg_udom_set_trait, 3, 0, 0},
+			{"setFloatTrait", svg_udom_set_float_trait, 2, 0, 0},
+			{"setMatrixTrait", svg_udom_set_matrix_trait, 2, 0, 0},
+			{"setRectTrait", svg_udom_set_rect_trait, 2, 0, 0},
+			{"setPathTrait", svg_udom_set_path_trait, 2, 0, 0},
+			{"setRGBColorTrait", svg_udom_set_rgb_color_trait, 2, 0, 0},
 			/*locatable interface*/
-			{"getBBox", svg_udom_get_local_bbox, 0},
-			{"getScreenCTM", svg_udom_get_screen_ctm, 0},
-			{"getScreenBBox", svg_udom_get_screen_bbox, 0},
+			{"getBBox", svg_udom_get_local_bbox, 0, 0, 0},
+			{"getScreenCTM", svg_udom_get_screen_ctm, 0, 0, 0},
+			{"getScreenBBox", svg_udom_get_screen_bbox, 0, 0, 0},
 			/*svgSVGElement interface*/
-			{"createSVGMatrixComponents", svg_udom_create_matrix_components, 0},
-			{"createSVGRect", svg_udom_create_rect, 0},
-			{"createSVGPath", svg_udom_create_path, 0},
-			{"createSVGRGBColor", svg_udom_create_color, 0},
-			{"createSVGPoint", svg_udom_create_point, 0},
+			{"createSVGMatrixComponents", svg_udom_create_matrix_components, 0, 0, 0},
+			{"createSVGRect", svg_udom_create_rect, 0, 0, 0},
+			{"createSVGPath", svg_udom_create_path, 0, 0, 0},
+			{"createSVGRGBColor", svg_udom_create_color, 0, 0, 0},
+			{"createSVGPoint", svg_udom_create_point, 0, 0, 0},
 
-			{"moveFocus", svg_udom_move_focus, 0},
-			{"setFocus", svg_udom_set_focus, 0},
-			{"getCurrentFocusedObject", svg_udom_get_focus, 0},
-			{"getCurrentTime", svg_udom_get_time, 0},
-			
+			{"moveFocus", svg_udom_move_focus, 0, 0, 0},
+			{"setFocus", svg_udom_set_focus, 0, 0, 0},
+			{"getCurrentFocusedObject", svg_udom_get_focus, 0, 0, 0},
+			{"getCurrentTime", svg_udom_get_time, 0, 0, 0},
+
 			/*timeControl interface*/
-			{"beginElementAt", svg_udom_smil_begin, 1},
-			{"beginElement", svg_udom_smil_begin, 0},
-			{"endElementAt", svg_udom_smil_end, 1},
-			{"endElement", svg_udom_smil_end, 0},
-			{"pauseElement", svg_udom_smil_pause, 0},
-			{"resumeElement", svg_udom_smil_resume, 0},
-			{0}
+			{"beginElementAt", svg_udom_smil_begin, 1, 0, 0},
+			{"beginElement", svg_udom_smil_begin, 0, 0, 0},
+			{"endElementAt", svg_udom_smil_end, 1, 0, 0},
+			{"endElement", svg_udom_smil_end, 0, 0, 0},
+			{"pauseElement", svg_udom_smil_pause, 0, 0, 0},
+			{"resumeElement", svg_udom_smil_resume, 0, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 
 		JSPropertySpec svgElementProps[] = {
 			/*svgElement interface*/
-			{"id",						0,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"id",						0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
 			/*elementTraversal interface - all SVGElement implement this*/
-			{"firstElementChild",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"lastElementChild",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"previousElementSibling",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"nextElementSibling",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"firstElementChild",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"lastElementChild",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"previousElementSibling",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"nextElementSibling",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 			/*svgSVGElement interface*/
-			{"currentScale",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"currentRotate",			6,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"currentTranslate",		7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"viewport",				8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"currentTime",				9,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
+			{"currentScale",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"currentRotate",			6,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"currentTranslate",		7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"viewport",				8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"currentTime",				9,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
 			/*timeControl interface*/
-			{"isPaused",				10,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"isPaused",				10,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 			/*old SVG1.1 stuff*/
-			{"ownerSVGElement",			11,		JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
+			{"ownerSVGElement",			11,		JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 			/*SVGElementInstance*/
-			{"correspondingElement",	12, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{"correspondingUseElement",	13, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{0}
+			{"correspondingElement",	12, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"correspondingUseElement",	13, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JSObject *elt_proto = dom_js_get_element_proto(scene->svg_js->js_ctx);
 		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, elt_proto, &svg_rt->svgElement, 0, 0, svgElementProps, svgElementFuncs, 0, 0);
@@ -2105,70 +2105,70 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	/*RGBColor class*/
 	{
 		JSPropertySpec rgbClassProps[] = {
-			{"red",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{"green",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{"blue",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{0}
+			{"red",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"green",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"blue",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->rgbClass, 0, 0, rgbClassProps, 0, 0, 0);
 	}
 	/*SVGRect class*/
 	{
 		JSPropertySpec rectClassProps[] = {
-			{"x",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{"y",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{"width",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{"height",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{0}
+			{"x",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"y",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"width",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"height",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->rectClass, 0, 0, rectClassProps, 0, 0, 0);
 	}
 	/*SVGPoint class*/
 	{
 		JSPropertySpec pointClassProps[] = {
-			{"x",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{"y",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{0}
+			{"x",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"y",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->pointClass, 0, 0, pointClassProps, 0, 0, 0);
 	}
 	/*SVGMatrix class*/
 	{
 		JSFunctionSpec matrixClassFuncs[] = {
-			{"getComponent", svg_mx2d_get_component, 1},
-			{"mMultiply", svg_mx2d_multiply, 1},
-			{"inverse", svg_mx2d_inverse, 0},
-			{"mTranslate", svg_mx2d_translate, 2},
-			{"mScale", svg_mx2d_scale, 1},
-			{"mRotate", svg_mx2d_rotate, 1},
-			{0}
+			{"getComponent", svg_mx2d_get_component, 1, 0, 0},
+			{"mMultiply", svg_mx2d_multiply, 1, 0, 0},
+			{"inverse", svg_mx2d_inverse, 0, 0, 0},
+			{"mTranslate", svg_mx2d_translate, 2, 0, 0},
+			{"mScale", svg_mx2d_scale, 1, 0, 0},
+			{"mRotate", svg_mx2d_rotate, 1, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JSPropertySpec matrixClassProps[] = {
-			{"a",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{"b",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{"c",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{"d",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{"e",	4,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{"f",	5,       JSPROP_ENUMERATE | JSPROP_PERMANENT },
-			{0}
+			{"a",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"b",	1,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"c",	2,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"d",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"e",	4,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"f",	5,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->matrixClass, 0, 0, matrixClassProps, matrixClassFuncs, 0, 0);
 	}
 	/*SVGPath class*/
 	{
 		JSFunctionSpec pathClassFuncs[] = {
-			{"getSegment", svg_path_get_segment, 1},
-			{"getSegmentParam", svg_path_get_segment_param, 2},
-			{"moveTo", svg_path_move_to, 2},
-			{"lineTo", svg_path_line_to, 2},
-			{"quadTo", svg_path_quad_to, 4},
-			{"curveTo", svg_path_curve_to, 6},
-			{"close", svg_path_close, 0},
-			{0}
+			{"getSegment", svg_path_get_segment, 1, 0, 0},
+			{"getSegmentParam", svg_path_get_segment_param, 2, 0, 0},
+			{"moveTo", svg_path_move_to, 2, 0, 0},
+			{"lineTo", svg_path_line_to, 2, 0, 0},
+			{"quadTo", svg_path_quad_to, 4, 0, 0},
+			{"curveTo", svg_path_curve_to, 6, 0, 0},
+			{"close", svg_path_close, 0, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JSPropertySpec pathClassProps[] = {
-			{"numberOfSegments",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY},
-			{0}
+			{"numberOfSegments",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		proto = JS_InitClass(scene->svg_js->js_ctx, scene->svg_js->global, 0, &svg_rt->pathClass, 0, 0, pathClassProps, pathClassFuncs, 0, 0);
 		JS_DefineProperty(scene->svg_js->js_ctx, proto, "MOVE_TO", INT_TO_JSVAL(77), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -2251,7 +2251,7 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 				for (i=0; i<count; i++) {
 					JSObject *obj = gf_list_get(n->sgprivate->scenegraph->objects, i);
 					GF_Node *a_node = JS_GetPrivate(svg_js->js_ctx, obj);
-					if (n==a_node) 
+					if (n==a_node)
 						JS_SetPrivate(svg_js->js_ctx, obj, NULL);
 				}
 
@@ -2427,7 +2427,7 @@ void JSScript_LoadSVG(GF_Node *node)
 			}
 		}
 		free(url);
-	} 
+	}
 	/*for scripts only, execute*/
 	else if (node->sgprivate->tag == TAG_SVG_script) {
 		txt = svg_get_text_child(node);
@@ -2495,11 +2495,11 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		} else {
 			ret = JS_CallFunctionName(svg_js->js_ctx, hdl->evt_listen_obj, "handleEvent", 1, argv, &rval);
 		}
-	} 
+	}
 	else if (JS_LookupProperty(svg_js->js_ctx, svg_js->global, txt->textContent, &fval) && !JSVAL_IS_VOID(fval) ) {
-		if (svg_script_execute(node->sgprivate->scenegraph, txt->textContent, event)) 
+		if (svg_script_execute(node->sgprivate->scenegraph, txt->textContent, event))
 			ret = JS_FALSE;
-	} 
+	}
 	else {
 		ret = JS_EvaluateScript(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
 	}

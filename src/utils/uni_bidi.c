@@ -10,24 +10,24 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
 #include <gpac/utf.h>
 
- 
+
 /*------------------------------------------------------------------------
 	Bidirectional Character Types
-	
+
 	as defined by the Unicode Bidirectional Algorithm Table 3-7.
 
 ------------------------------------------------------------------------*/
@@ -35,7 +35,7 @@ enum
 {
     // input types
 			 // ON MUST be zero, code relies on ON = N = 0
-    ON = 0,  // Other Neutral 
+    ON = 0,  // Other Neutral
     L,       // Left Letter
     R,       // Right Letter
     AN,      // Arabic Number
@@ -45,15 +45,15 @@ enum
     CS,      // Common Separator
     ES,      // European Separator
     ET,      // European Terminator (post/prefix e.g. $ and %)
-   
+
 	// resolved types
     BN,      // Boundary neutral (type of RLE etc after explicit levels)
-   
+
 	// input types,
     S,       // Segment Separator (TAB)		// used only in L1
     WS,      // White space					// used only in L1
     B,       // Paragraph Separator (aka as PS)
-   
+
 	// types for explicit controls
     RLO,     // these are used only in X1-X9
     RLE,
@@ -86,7 +86,7 @@ static int bidi_get_class(u32 val);
 
 
 GF_EXPORT
-Bool gf_utf8_is_right_to_left(u16 *utf_string) 
+Bool gf_utf8_is_right_to_left(u16 *utf_string)
 {
 	u32 i = 0;
 	while (1) {
@@ -133,12 +133,12 @@ Bool gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
 		Bool rtl = cur_dir;
 		u32 c = bidi_get_class(utf_string[i]);
 		switch (c) {
-		case R: 
+		case R:
 		case AN:
 		case AL:
 			rtl = 1;
 			break;
-		case L: 
+		case L:
 		case EN:
 			rtl = 0;
 			break;
@@ -151,7 +151,7 @@ Bool gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
 			continue;
 		}
 		if (cur_dir != rtl) {
-			if (!stop) 
+			if (!stop)
 				stop = i;
 
 			if (is_start) {
@@ -1253,7 +1253,7 @@ static int bidi_get_class(u32 val)
 	if ((val>=0x1D200) && (val<=0x1D241)) return ON;	//# So  [66] GREEK VOCAL NOTATION SYMBOL-1..GREEK INSTRUMENTAL NOTATION SYMBOL-54
 	if (val==0x0001D245) return ON;	//# So       GREEK MUSICAL LEIMMA
 	if ((val>=0x1D300) && (val<=0x1D356)) return ON;	//# So  [87] MONOGRAM FOR EARTH..TETRAGRAM FOR FOSTERING
-	if ((val>=0x0000) && (val<=0x0008)) return BN;	//# Cc   [9] <control-0000>..<control-0008>
+	if (/*(val>=0x0000) && */(val<=0x0008)) return BN;	//# Cc   [9] <control-0000>..<control-0008>
 	if ((val>=0x000E) && (val<=0x001B)) return BN;	//# Cc  [14] <control-000E>..<control-001B>
 	if ((val>=0x007F) && (val<=0x0084)) return BN;	//# Cc   [6] <control-007F>..<control-0084>
 	if ((val>=0x0086) && (val<=0x009F)) return BN;	//# Cc  [26] <control-0086>..<control-009F>
