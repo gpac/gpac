@@ -580,7 +580,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	memset(&wc, 0, sizeof(WNDCLASS));
 #ifndef _WIN32_WCE
 	wc.style = CS_BYTEALIGNWINDOW;
-	wc.hIcon = LoadIcon (NULL, IDI_APPLICATION);
+	wc.hIcon = LoadIcon (hInst, MAKEINTRESOURCE(IDI_OSMO_ICON) );
 	wc.lpszClassName = "GPAC DirectDraw Output";
 #else
 	wc.lpszClassName = _T("GPAC DirectDraw Output");

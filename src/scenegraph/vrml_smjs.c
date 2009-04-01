@@ -119,7 +119,7 @@ void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj
 		ext->load(ext, sg, c, obj, unload);
 	}
 
-	//if (js_rt->nb_inst==1) 
+	//if (js_rt->nb_inst==1)
 	{
 		GF_Terminal *term;
 		GF_JSAPIParam par;
@@ -311,7 +311,7 @@ static JSObject *node_get_binding(GF_ScriptPriv *priv, GF_Node *node, Bool is_co
 	field->node = node;
 	field->field.far_ptr = &field->node;
 	vrml_node_register(priv->js_ctx, node);
-	
+
 	obj = JS_NewObject(priv->js_ctx, &js_rt->SFNodeClass, 0, 0);
 	JS_SetPrivate(priv->js_ctx, obj, field);
 
@@ -339,7 +339,7 @@ static JSBool getScript(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *rva
 	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	GF_Node *node = JS_GetContextPrivate(c);
 	JSObject *an_obj = node_get_binding(priv, node, 0);
-	
+
 	if (an_obj) *rval = OBJECT_TO_JSVAL(an_obj);
 	return JS_TRUE;
 }
@@ -365,7 +365,7 @@ static JSBool getProto(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *rval
 		return JS_TRUE;
 	}
 	node = (GF_Node *) node->sgprivate->scenegraph->pOwningProto;
-	
+
 	an_obj = node_get_binding(priv, node, 0);
 	if (an_obj) *rval = OBJECT_TO_JSVAL(an_obj);
 	return JS_TRUE;
@@ -864,15 +864,15 @@ static void JS_ObjectDestroyed(JSContext *c, JSObject *obj, GF_JSField *ptr, Boo
 
 	if (ptr) {
 		/*if ptr is a node, remove node binding*/
-		if (ptr->node 
-			&& ptr->node->sgprivate->interact 
+		if (ptr->node
+			&& ptr->node->sgprivate->interact
 			&& ptr->node->sgprivate->interact->js_binding
 			&& (ptr->node->sgprivate->interact->js_binding->node == ptr)
 		) {
 				ptr->node->sgprivate->interact->js_binding->node = NULL;
-		} 
+		}
 
-		/*if ptr is a field, remove field binding from parent*/		
+		/*if ptr is a field, remove field binding from parent*/
 		if (ptr->owner && ptr->owner->sgprivate->interact && ptr->owner->sgprivate->interact->js_binding) {
 			gf_list_del_item(ptr->owner->sgprivate->interact->js_binding->fields, ptr);
 		}
@@ -898,7 +898,8 @@ static void JS_ObjectDestroyed(JSContext *c, JSObject *obj, GF_JSField *ptr, Boo
 
 static JSBool field_toString(JSContext *c, JSObject *obj, uintN n, jsval *v, jsval *rval)
 {
-	u32 i, len;
+	u32 i;
+	jsuint len;
 	jsdouble d;
 	char temp[1000];
 	char str[5000];
@@ -2088,7 +2089,8 @@ JSBool array_getElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 //this could be overloaded for each MF type...
 JSBool array_setElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 {
-	u32 ind, len;
+	u32 ind;
+	jsuint len;
 	jsdouble d;
 	GF_JSField *from;
 	JSBool ret;
@@ -2178,9 +2180,9 @@ JSBool array_setElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 		GF_Node *prev_n, *new_n;
 		JSObject *anobj;
 		GF_JSField *pf;
-		
+
 		if (!ptr->owner) return JS_TRUE;
-		
+
 		anobj = JSVAL_TO_OBJECT(*rval);
 		pf = JS_GetPrivate(c, anobj);
 
@@ -2312,10 +2314,10 @@ JSBool array_setLength(JSContext *c, JSObject *obj, jsval v, jsval *val)
 	case GF_SG_VRML_MFVEC3F: the_sf_class = &js_rt->SFVec3fClass; break;
 	case GF_SG_VRML_MFCOLOR: the_sf_class = &js_rt->SFColorClass; break;
 	case GF_SG_VRML_MFROTATION: the_sf_class = &js_rt->SFRotationClass; break;
-	case GF_SG_VRML_MFNODE: 
+	case GF_SG_VRML_MFNODE:
 		fprintf(stdout, "NOT SUPPORTED!!!\n");
 		return JS_TRUE;
-		//the_sf_class = &js_rt->SFNodeClass; 
+		//the_sf_class = &js_rt->SFNodeClass;
 		break;
 	}
 	sftype = gf_sg_vrml_get_sf_type(ptr->field.fieldType);
@@ -2557,9 +2559,9 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 	JS_InitStandardClasses(sc->js_ctx, sc->js_obj);
 	{
 		JSFunctionSpec globalFunctions[] = {
-			{"print",           JSPrint,          0},
-			{"alert",           JSPrint,          0},
-			{ 0 }
+			{"print", JSPrint, 0, 0, 0},
+			{"alert", JSPrint, 0, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JS_DefineFunctions(sc->js_ctx, sc->js_obj, globalFunctions );
 	}
@@ -2576,115 +2578,115 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 	JS_DefineProperty(sc->js_ctx, sc->js_browser, "_this", PRIVATE_TO_JSVAL(script), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT );
 	{
 		JSFunctionSpec browserFunctions[] = {
-		  {"getName", getName, 0},
-		  {"getVersion", getVersion, 0},
-		  {"getCurrentSpeed", getCurrentSpeed, 0},
-		  {"getCurrentFrameRate", getCurrentFrameRate, 0},
-		  {"getWorldURL", getWorldURL, 0},
-		  {"replaceWorld", replaceWorld, 0},
-		  {"addRoute", addRoute, 0},
-		  {"deleteRoute", deleteRoute, 0},
-		  {"loadURL", loadURL, 0},
-		  {"createVrmlFromString", createVrmlFromString, 0},
-		  {"setDescription", setDescription, 0},
-		  {"print",           JSPrint,          0},
-		  {"getOption",  getOption,          0},
-		  {"setOption",  setOption,          0},
-		  {"getScript",  getScript,          0},
-		  {"getProto",  getProto,          0},
-		  {"loadScript",  loadScript,          0},
-		  {"getElementById",  getElementById,          0},
-		  {0}
+		  {"getName", getName, 0, 0, 0},
+		  {"getVersion", getVersion, 0, 0, 0},
+		  {"getCurrentSpeed", getCurrentSpeed, 0, 0, 0},
+		  {"getCurrentFrameRate", getCurrentFrameRate, 0, 0, 0},
+		  {"getWorldURL", getWorldURL, 0, 0, 0},
+		  {"replaceWorld", replaceWorld, 1, 0, 0},
+		  {"addRoute", addRoute, 4, 0, 0},
+		  {"deleteRoute", deleteRoute, 4, 0, 0},
+		  {"loadURL", loadURL, 1, 0, 0},
+		  {"createVrmlFromString", createVrmlFromString, 1, 0, 0},
+		  {"setDescription", setDescription, 1, 0, 0},
+		  {"print",           JSPrint,          1, 0, 0},
+		  {"getOption",  getOption,          2, 0, 0},
+		  {"setOption",  setOption,          3, 0, 0},
+		  {"getScript",  getScript,          0, 0, 0},
+		  {"getProto",  getProto,          0, 0, 0},
+		  {"loadScript",  loadScript,          1, 0, 0},
+		  {"getElementById",  getElementById,   1, 0, 0},
+		  {0, 0, 0, 0, 0}
 		};
 		JS_DefineFunctions(sc->js_ctx, sc->js_browser, browserFunctions);
 	}
 
 	{
 		JSFunctionSpec SFNodeMethods[] = {
-			{"toString", node_toString, 0},
+			{"toString", node_toString, 0, 0, 0},
 #ifndef GPAC_DISABLE_SVG
-			{"addEventListenerNS", vrml_event_add_listener, 4},
-			{"removeEventListenerNS", vrml_event_remove_listener, 4},
-			{"addEventListener", vrml_event_add_listener, 3},
-			{"removeEventListener", vrml_event_remove_listener, 3},
-			{"dispatchEvent", vrml_dom3_not_implemented, 1},
+			{"addEventListenerNS", vrml_event_add_listener, 4, 0, 0},
+			{"removeEventListenerNS", vrml_event_remove_listener, 4, 0, 0},
+			{"addEventListener", vrml_event_add_listener, 3, 0, 0},
+			{"removeEventListener", vrml_event_remove_listener, 3, 0, 0},
+			{"dispatchEvent", vrml_dom3_not_implemented, 1, 0, 0},
 #endif
-			{0}
+			{0, 0, 0, 0, 0}
 		};
 		JSPropertySpec SFNodeProps[] = {
-			{"__dummy",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{0}
+			{"__dummy",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JS_InitClass(sc->js_ctx, sc->js_obj, 0, &js_rt->SFNodeClass, SFNodeConstructor, 1, SFNodeProps, SFNodeMethods, 0, 0);
 	}
 	{
 		JSPropertySpec SFVec2fProps[] = {
-			{"x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{0}
+			{"x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JSFunctionSpec SFVec2fMethods[] = {
-			{"add",             vec2f_add,      1},
-			{"divide",          vec2f_divide,   1},
-			{"dot",             vec2f_dot,      1},
-			{"length",          vec2f_length,   0},
-			{"multiply",        vec2f_multiply, 1},
-			{"normalize",       vec2f_normalize,0},
-			{"subtract",        vec2f_subtract, 1},
-			{"negate",          vec2f_negate,   0},
-			{"toString",        field_toString,       0},
-			{0}
+			{"add",             vec2f_add,      1, 0, 0},
+			{"divide",          vec2f_divide,   1, 0, 0},
+			{"dot",             vec2f_dot,      1, 0, 0},
+			{"length",          vec2f_length,   0, 0, 0},
+			{"multiply",        vec2f_multiply, 1, 0, 0},
+			{"normalize",       vec2f_normalize,0, 0, 0},
+			{"subtract",        vec2f_subtract, 1, 0, 0},
+			{"negate",          vec2f_negate,   0, 0, 0},
+			{"toString",        field_toString,       0, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JS_InitClass(sc->js_ctx, sc->js_obj, 0, &js_rt->SFVec2fClass, SFVec2fConstructor, 0, SFVec2fProps, SFVec2fMethods, 0, 0);
 	}
 	{
 		JSPropertySpec SFVec3fProps[] = {
-			{"x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"z",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{0}
+			{"x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"z",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JSFunctionSpec SFVec3fMethods[] = {
-			{"add",             vec3f_add,      1},
-			{"divide",          vec3f_divide,   1},
-			{"dot",             vec3f_dot,      1},
-			{"length",          vec3f_length,   0},
-			{"multiply",        vec3f_multiply, 1},
-			{"normalize",       vec3f_normalize,0},
-			{"subtract",        vec3f_subtract, 1},
-			{"cross",			vec3f_cross,	1},
-			{"negate",          vec3f_negate,   0},
-			{"toString",        field_toString,	0},
-			{0}
+			{"add",             vec3f_add,      1, 0, 0},
+			{"divide",          vec3f_divide,   1, 0, 0},
+			{"dot",             vec3f_dot,      1, 0, 0},
+			{"length",          vec3f_length,   0, 0, 0},
+			{"multiply",        vec3f_multiply, 1, 0, 0},
+			{"normalize",       vec3f_normalize,0, 0, 0},
+			{"subtract",        vec3f_subtract, 1, 0, 0},
+			{"cross",			vec3f_cross,	1, 0, 0},
+			{"negate",          vec3f_negate,   0, 0, 0},
+			{"toString",        field_toString,	0, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JS_InitClass(sc->js_ctx, sc->js_obj, 0, &js_rt->SFVec3fClass, SFVec3fConstructor, 0, SFVec3fProps, SFVec3fMethods, 0, 0);
 	}
 	{
 		JSPropertySpec SFRotationProps[] = {
-			{"xAxis",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"yAxis",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"zAxis",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"angle",   3,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{0}
+			{"xAxis",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"yAxis",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"zAxis",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"angle",   3,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JSFunctionSpec SFRotationMethods[] = {
-			{"getAxis",         rot_getAxis,      1},
-			{"inverse",         rot_inverse,   1},
-			{"multiply",        rot_multiply,      1},
-			{"multVec",         rot_multVec,   0},
-			{"setAxis",			rot_setAxis, 1},
-			{"slerp",			rot_slerp,0},
-			{"toString",        field_toString,	0},
-			{0}
+			{"getAxis",         rot_getAxis,      1, 0, 0},
+			{"inverse",         rot_inverse,   1, 0, 0},
+			{"multiply",        rot_multiply,      1, 0, 0},
+			{"multVec",         rot_multVec,   0, 0, 0},
+			{"setAxis",			rot_setAxis, 1, 0, 0},
+			{"slerp",			rot_slerp,0, 0, 0},
+			{"toString",        field_toString,	0, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JS_InitClass(sc->js_ctx, sc->js_obj, 0, &js_rt->SFRotationClass, SFRotationConstructor, 0, SFRotationProps, SFRotationMethods, 0, 0);
 	}
 	{
 		JSPropertySpec SFColorProps[] = {
-			{"r",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"g",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"b",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{0}
+			{"r",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"g",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"b",       2,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JSFunctionSpec SFColorMethods[] = {
 			{"setHSV",          color_setHSV,   3, 0, 0},
@@ -2696,11 +2698,11 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 	}
 	{
 		JSPropertySpec SFImageProps[] = {
-			{"x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"comp",    2,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{"array",   3,       JSPROP_ENUMERATE | JSPROP_PERMANENT},
-			{0}
+			{"x",       0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"y",       1,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"comp",    2,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"array",   3,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 		JS_InitClass(sc->js_ctx, sc->js_obj, 0, &js_rt->SFImageClass, SFImageConstructor, 0, SFImageProps, 0, 0, 0);
 	}
@@ -2712,8 +2714,8 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 			{ 0, 0, 0, 0, 0 }
 		};
 		JSFunctionSpec MFArrayMethods[] = {
-			{"toString",        field_toString,       0},
-			{0}
+			{"toString",        field_toString,       0, 0, 0},
+			{0, 0, 0, 0, 0}
 		};
 
 		JS_InitClass(sc->js_ctx, sc->js_obj, 0, &js_rt->MFInt32Class, MFInt32Constructor, 0, MFArrayProp, MFArrayMethods, 0, 0);
@@ -3134,13 +3136,14 @@ static void gf_sg_script_update_cached_object(GF_ScriptPriv *priv, JSObject *obj
 		break;
 	/*
 		MFNode is tricky because in VRML/MPEG-4, SFNode are assigned by referenced, not copy.
-		We therefore need to make sure we reuse existing SFNode object rather than 
+		We therefore need to make sure we reuse existing SFNode object rather than
 		blindly recreating them
 	*/
 	case GF_SG_VRML_MFNODE:
 		{
 			GF_ChildNodeItem *f = *(GF_ChildNodeItem **) field->far_ptr;
-			u32 count, cache_count, j;
+			u32 cache_count, j;
+			jsuint count;
 			GF_List *temp_objs = gf_list_new();
 
 			/*1: find all existing objs for each node*/
@@ -3288,12 +3291,12 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 		obj = JS_NewObject(priv->js_ctx, &js_rt->SFImageClass, 0, priv->js_obj);
 		break;
 	case GF_SG_VRML_SFNODE:
-		if (! *(GF_Node**) field->far_ptr) 
+		if (! *(GF_Node**) field->far_ptr)
 			return JSVAL_NULL;
-			
+
 		obj = node_get_binding(priv, *(GF_Node**) field->far_ptr, 0);
 		jsf = JS_GetPrivate(priv->js_ctx, obj);
-		if (!jsf->owner) 
+		if (!jsf->owner)
 			jsf->owner = parent;
 		else
 			return OBJECT_TO_JSVAL(obj);
@@ -3485,7 +3488,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 				GF_SAFEALLOC(parent->sgprivate->interact->js_binding, struct _node_js_binding);
 				parent->sgprivate->interact->js_binding->fields = gf_list_new();
 			}
-			
+
 			if ( gf_list_find(parent->sgprivate->interact->js_binding->fields, jsf) < 0) {
 				assert(jsf->owner == parent);
 				gf_list_add(parent->sgprivate->interact->js_binding->fields, jsf);
@@ -3500,7 +3503,8 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 			/*our JS Array object (MFXXX) are always rooted and added to the cache upon construction*/
 			if (jsf->js_list) {
-				u32 i, count;
+				u32 i;
+				jsuint count;
 
 				JS_GetArrayLength(jsf->js_ctx, jsf->js_list, &count);
 
@@ -3555,9 +3559,9 @@ static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 
 		if (jsf->js_list)
 			array_finalize_ex(priv->js_ctx, obj, 0);
-		else if (jsf->node) 
+		else if (jsf->node)
 			node_finalize_ex(priv->js_ctx, obj, 0);
-		else 
+		else
 			jsf->js_ctx=NULL;
 	}
 }
@@ -3578,7 +3582,7 @@ static void JS_PreDestroy(GF_Node *node)
 	JS_ReleaseRootObjects(priv);
 
 	gf_sg_load_script_extensions(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj, 1);
-	
+
 #ifndef GPAC_DISABLE_SVG
 	dom_js_pre_destroy(priv->js_ctx);
 #endif
@@ -3884,7 +3888,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	}
 
 	/*call initialize if present*/
-	if (JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval) && !JSVAL_IS_VOID(fval)) 
+	if (JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval) && !JSVAL_IS_VOID(fval))
 		JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 
 	flush_event_out(node, priv);
@@ -4044,7 +4048,8 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 				jsf->owner = NULL;
 
 				if (jsf->js_list) {
-					u32 j, count;
+					u32 j;
+					jsuint count;
 					JS_GetArrayLength(jsf->js_ctx, jsf->js_list, &count);
 
 					for (j=0; j<count; j++) {
@@ -4071,10 +4076,10 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 
 			/*if field is a script field, rewrite it right away because script fields are exposed
 			as global variables within the script
-			
+
 			We also have a special value '-1' for the NDT for addChildren and removeChildren*/
 
-			if ((info->NDTtype==-1) || (node == (GF_Node*)JS_GetScript(jsf->js_ctx))) {
+			if ((info->NDTtype == (u32) -1) || (node == (GF_Node*)JS_GetScript(jsf->js_ctx))) {
 				gf_sg_script_update_cached_object( JS_GetScriptStack(jsf->js_ctx), jsf->obj, jsf, &jsf->field, node);
 			}
 			return;

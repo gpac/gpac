@@ -10,17 +10,17 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *		
+ *
  */
 
 #ifndef _WXOSMO4_H
@@ -73,10 +73,11 @@ private:
 
 #define MAX_VIEWPOINTS	50
 
-enum {
-	// Menu commands
-	FILE_OPEN = wxID_HIGHEST+1,
-	FILE_OPEN_URL,
+// Menu commands
+enum
+{
+	GWX_FILE_OPEN = wxID_HIGHEST,
+	GWX_FILE_OPEN_URL,
 	FILE_RELOAD,
 	FILE_RELOAD_CONFIG,
 	FILE_PLAY,
@@ -235,10 +236,10 @@ public:
 	GF_Terminal *m_term;
 	GF_User m_user;
 	Bool m_connected, m_can_seek, m_console_off, m_loop, m_lookforsubs;
-	
+
 	void DoConnect();
 
-	void ConnectAcknowledged(Bool bOk); 
+	void ConnectAcknowledged(Bool bOk);
 	void SetStatus(wxString str);
 
 	void OnFilePlay(wxCommandEvent &event);
@@ -258,7 +259,7 @@ public:
 	u32 m_last_grab_time, m_last_grab_pos;
 	wxWindow *m_pVisual;
 #endif
-	wxSlider *m_pProg;	
+	wxSlider *m_pProg;
 	wxPlaylist *m_pPlayList;
 
 	void DoLayout(u32 v_width = 0, u32 v_height = 0);
@@ -364,7 +365,7 @@ private:
 	wxMenuButton *m_pPrevBut, *m_pNextBut;
 	wxToolBar *m_pToolBar;
 	wxMyComboBox *m_Address;
-	
+
 	wxMenu *vp_list;
 	wxMenu *sel_menu;
 	wxMenu *chap_menu;
@@ -385,5 +386,5 @@ private:
 };
 
 
-#endif 
+#endif  //_WXOSMO4_H
 

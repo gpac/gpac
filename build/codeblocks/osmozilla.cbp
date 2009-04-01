@@ -33,14 +33,24 @@
 			</Environment>
 		</Build>
 		<Compiler>
+			<Add option="-fexceptions" />
+			<Add option="[[" />
+			<Add option='if (PLATFORM == PLATFORM_MSW) { print(_T(&quot;-DXP_WIN&quot;));}' />
+			<Add option='else if (PLATFORM == PLATFORM_MAC) { print(_T(&quot;-DXP_MAC&quot;));}' />
+			<Add option='else { print(_T(&quot;-DXP_UNIX -DMOZ_X11&quot;));}' />
+			<Add option="]]" />
 			<Add option="-DNPBASIC_EXPORTS" />
 			<Add option="-DMOZILLA_STRICT_API" />
 			<Add option="-DXPCOM_GLUE" />
-			<Add option="-DXP_WIN" />
+			<Add option="-DHAVE_CPP_MODERN_SPECIALIZE_TEMPLATE_SYNTAX" />
 			<Add directory="..\..\include" />
 			<Add directory="..\..\extra_lib\include\gecko-sdk\include" />
 		</Compiler>
 		<Linker>
+			<Add option="[[" />
+			<Add option='if (PLATFORM == PLATFORM_MSW) { print(_T(&quot;-lwinmm -lgdi32&quot;));}' />
+			<Add option="]]" />
+			<Add library="gpac" />
 			<Add directory="..\..\bin\$(TARGET_STR)" />
 		</Linker>
 		<Unit filename="..\..\applications\osmozilla\np_entry.cpp" />

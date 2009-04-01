@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -159,9 +159,15 @@
 #define 	GL_OPERAND0_ALPHA_EXT   0x8598
 #define 	GL_OPERAND1_ALPHA_EXT   0x8599
 #define 	GL_OPERAND2_ALPHA_EXT   0x859A
-#define 	GL_LOGIC_OP   GL_INDEX_LOGIC_OP
-#define 	GL_TEXTURE_COMPONENTS   GL_TEXTURE_INTERNAL_FORMAT
 
+#endif
+
+#ifndef GL_LOGIC_OP
+#define 	GL_LOGIC_OP   GL_INDEX_LOGIC_OP
+#endif
+
+#ifndef GL_TEXTURE_COMPONENTS
+#define 	GL_TEXTURE_COMPONENTS   GL_TEXTURE_INTERNAL_FORMAT
 #endif
 
 #ifndef COMBINE_RGB_ARB
@@ -181,8 +187,8 @@
 #define GL_ADD_SIGNED_ARB  								0x8574
 #define GL_SUBTRACT_ARB  								0x84E7
 #define GL_SOURCE0_ALPHA_ARB  							0x8588
-#define GL_SOURCE1_ALPHA_ARB 	0x8589 	
-#define GL_SOURCE2_ALPHA_ARB 	0x858A 	
+#define GL_SOURCE1_ALPHA_ARB 	0x8589
+#define GL_SOURCE2_ALPHA_ARB 	0x858A
 #endif
 
 

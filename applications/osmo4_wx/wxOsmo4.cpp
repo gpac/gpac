@@ -10,17 +10,17 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
- *		
+ *
  */
 
 
@@ -215,7 +215,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 
 		/*log*/
-		if (evt->message.error) 
+		if (evt->message.error)
 			::wxLogMessage(wxString(evt->message.message, wxConvUTF8) + wxT(" (") + wxString(servName, wxConvUTF8) + wxT(") ") + wxString(gf_error_to_string(evt->message.error), wxConvUTF8) );
 		else
 			::wxLogMessage(wxString(evt->message.message, wxConvUTF8) + wxT(" (") + wxString(servName, wxConvUTF8) + wxT(")"));
@@ -270,7 +270,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				gf_term_set_option(app->m_term, GF_OPT_NAVIGATION_TYPE, 1);
 				break;
 			case GF_KEY_ESCAPE:
-				if (gf_term_get_option(app->m_term, GF_OPT_FULLSCREEN)) 
+				if (gf_term_get_option(app->m_term, GF_OPT_FULLSCREEN))
 					gf_term_set_option(app->m_term, GF_OPT_FULLSCREEN, 0);
 				break;
 			default:
@@ -382,7 +382,7 @@ bool wxOsmo4App::OnInit()
 	wxFrame *frame = new wxOsmo4Frame();
 	frame->Show(TRUE);
 	SetTopWindow(frame);
-	return true;	
+	return true;
 }
 
 
@@ -407,7 +407,7 @@ bool myDropfiles::OnDropFiles(wxCoord x, wxCoord y, const wxArrayString& filenam
 		}
 	}
 
-	for (u32 i=0; i<count; i++) 
+	for (u32 i=0; i<count; i++)
 		m_pMain->m_pPlayList->QueueURL(filenames.Item(i));
 
 	m_pMain->m_pPlayList->RefreshList();
@@ -660,7 +660,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 		  m_user.modules = NULL;
 			if ( dlg.ShowModal() != wxID_OK ) return false;
 			str = dlg.GetPath().mb_str(wxConvUTF8);
-	
+
 			m_user.modules = gf_modules_new(str, m_user.config);
 			if (!m_user.modules || !gf_modules_get_count(m_user.modules) ) {
 				wxMessageDialog(NULL, wxT("Cannot find any modules for GPAC"), wxT("Init error"), wxOK);
@@ -718,12 +718,12 @@ Bool wxOsmo4Frame::LoadTerminal()
 #if defined(__DARWIN__) || defined(__APPLE__)
 		wxDirDialog dlg3(NULL, wxT("Please specify a cache directory for GPAC"));
 		dlg3.SetPath(wxT("/tmp"));
-		if ( dlg3.ShowModal() == wxID_OK ) 
+		if ( dlg3.ShowModal() == wxID_OK )
 			gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) dlg3.GetPath().mb_str(wxConvUTF8) );
 
 		wxDirDialog dlg2(NULL, wxT("Please locate a TrueType font repository on your system for text support"));
 		dlg2.SetPath(wxT("/usr/share/fonts/truetype"));
-		if ( dlg2.ShowModal() == wxID_OK ) 
+		if ( dlg2.ShowModal() == wxID_OK )
 			gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) dlg2.GetPath().mb_str(wxConvUTF8) );
 
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "SDL Video Output");
@@ -759,7 +759,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 		}
 
 #endif
-	}	
+	}
 	if (! gf_modules_get_count(m_user.modules) ) {
 		wxMessageDialog(NULL, wxT("No modules available - system cannot work"), wxT("Fatal Error"), wxOK).ShowModal();
 		gf_modules_del(m_user.modules);
@@ -822,8 +822,8 @@ wxDEFAULT_FRAME_STYLE
 	wxMenuBar *b = new wxMenuBar();
 	/*file*/
 	wxMenu *menu = new wxMenu();
-	menu->Append(FILE_OPEN, wxT("&Open File\tCtrl+O"), wxT("Open local presentation"));
-	menu->Append(FILE_OPEN_URL, wxT("&Open URL\tCtrl+U"), wxT("Open remote presentation"));
+	menu->Append(GWX_FILE_OPEN, wxT("&Open File\tCtrl+O"), wxT("Open local presentation"));
+	menu->Append(GWX_FILE_OPEN_URL, wxT("&Open URL\tCtrl+U"), wxT("Open remote presentation"));
 	menu->AppendSeparator();
 	menu->Append(FILE_PROPERTIES, wxT("&Properties\tCtrl+I"), wxT("Show presentation properties"));
 	menu->Enable(FILE_PROPERTIES, 0);
@@ -942,8 +942,8 @@ wxDEFAULT_FRAME_STYLE
 	m_pConfig = new wxBitmap(tool_config);
 	m_pSW2D = new wxBitmap(tool_sw_2d);
 	m_pSW3D = new wxBitmap(tool_sw_3d);
-	
-	m_pToolBar->AddTool(FILE_OPEN, wxT(""), *m_pOpenFile, wxT("Open File"));
+
+	m_pToolBar->AddTool(GWX_FILE_OPEN, wxT(""), *m_pOpenFile, wxT("Open File"));
 	m_pToolBar->AddSeparator();
 	m_pPrevBut = new wxMenuButton(m_pToolBar, FILE_PREV, *m_pPrev);
 	m_pPrevBut->SetToolTip(wxT("Previous Location"));
@@ -1011,7 +1011,7 @@ wxDEFAULT_FRAME_STYLE
 	sOpt = gf_cfg_get_key(m_user.config, "General", "LookForSubtitles");
 	m_lookforsubs = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
 	gf_term_set_option(m_term, GF_OPT_AUDIO_VOLUME, 100);
-	
+
 	ReloadURLs();
 	Raise();
 	m_pStatusbar->SetStatusText(wxT("Ready"), 2);
@@ -1094,8 +1094,8 @@ wxOsmo4Frame::~wxOsmo4Frame()
 
 BEGIN_EVENT_TABLE(wxOsmo4Frame, wxFrame)
 	EVT_CLOSE(wxOsmo4Frame::OnCloseApp)
-	EVT_MENU(FILE_OPEN, wxOsmo4Frame::OnFileOpen)
-	EVT_MENU(FILE_OPEN_URL, wxOsmo4Frame::OnFileOpenURL)
+	EVT_MENU(GWX_FILE_OPEN, wxOsmo4Frame::OnFileOpen)
+	EVT_MENU(GWX_FILE_OPEN_URL, wxOsmo4Frame::OnFileOpenURL)
 	EVT_MENU(FILE_RELOAD_CONFIG, wxOsmo4Frame::OnFileReloadConfig)
 	EVT_MENU(FILE_RELOAD, wxOsmo4Frame::OnFileReload)
 	EVT_MENU(FILE_PROPERTIES, wxOsmo4Frame::OnFileProperties)
@@ -1125,7 +1125,7 @@ BEGIN_EVENT_TABLE(wxOsmo4Frame, wxFrame)
 	EVT_MENU(ID_MCACHE_ABORT, wxOsmo4Frame::OnCacheAbort)
 	EVT_UPDATE_UI(ID_MCACHE_STOP, wxOsmo4Frame::OnUpdateCacheAbort)
 	EVT_UPDATE_UI(ID_MCACHE_ABORT, wxOsmo4Frame::OnUpdateCacheAbort)
-	
+
 
 	EVT_MENU(APP_SHORTCUTS, wxOsmo4Frame::OnShortcuts)
 	EVT_MENU(APP_NAV_KEYS, wxOsmo4Frame::OnNavInfo)
@@ -1153,39 +1153,39 @@ BEGIN_EVENT_TABLE(wxOsmo4Frame, wxFrame)
 	EVT_COMBOBOX(ID_ADDRESS, wxOsmo4Frame::OnURLSelect)
 
     EVT_MENU_RANGE(ID_SELSTREAM_0, ID_SELSTREAM_9, wxOsmo4Frame::OnStreamSel)
-	EVT_UPDATE_UI_RANGE(ID_SELSTREAM_0, ID_SELSTREAM_9, wxOsmo4Frame::OnUpdateStreamSel)  
+	EVT_UPDATE_UI_RANGE(ID_SELSTREAM_0, ID_SELSTREAM_9, wxOsmo4Frame::OnUpdateStreamSel)
 
     EVT_MENU_RANGE(ID_SETCHAP_FIRST, ID_SETCHAP_LAST, wxOsmo4Frame::OnChapterSel)
-	EVT_UPDATE_UI_RANGE(ID_SETCHAP_FIRST, ID_SETCHAP_LAST, wxOsmo4Frame::OnUpdateChapterSel)  
+	EVT_UPDATE_UI_RANGE(ID_SETCHAP_FIRST, ID_SETCHAP_LAST, wxOsmo4Frame::OnUpdateChapterSel)
 
     EVT_MENU_RANGE(ID_VIEWPOINT_FIRST, ID_VIEWPOINT_LAST, wxOsmo4Frame::OnViewport)
-	EVT_UPDATE_UI_RANGE(ID_VIEWPOINT_FIRST, ID_VIEWPOINT_LAST, wxOsmo4Frame::OnUpdateViewport)  
+	EVT_UPDATE_UI_RANGE(ID_VIEWPOINT_FIRST, ID_VIEWPOINT_LAST, wxOsmo4Frame::OnUpdateViewport)
 
     EVT_MENU_RANGE(ID_NAVIGATE_NONE, ID_NAVIGATE_GAME, wxOsmo4Frame::OnNavigate)
-	EVT_UPDATE_UI_RANGE(ID_NAVIGATE_NONE, ID_NAVIGATE_GAME, wxOsmo4Frame::OnUpdateNavigation)  
+	EVT_UPDATE_UI_RANGE(ID_NAVIGATE_NONE, ID_NAVIGATE_GAME, wxOsmo4Frame::OnUpdateNavigation)
 	EVT_MENU(ID_NAVIGATE_RESET, wxOsmo4Frame::OnNavigateReset)
 
     EVT_MENU_RANGE(ID_COLLIDE_NONE, ID_COLLIDE_DISP, wxOsmo4Frame::OnCollide)
-	EVT_UPDATE_UI_RANGE(ID_COLLIDE_NONE, ID_COLLIDE_DISP, wxOsmo4Frame::OnUpdateCollide)  
+	EVT_UPDATE_UI_RANGE(ID_COLLIDE_NONE, ID_COLLIDE_DISP, wxOsmo4Frame::OnUpdateCollide)
 
 	EVT_MENU(ID_HEADLIGHT, wxOsmo4Frame::OnHeadlight)
-	EVT_UPDATE_UI(ID_HEADLIGHT, wxOsmo4Frame::OnUpdateHeadlight)  
+	EVT_UPDATE_UI(ID_HEADLIGHT, wxOsmo4Frame::OnUpdateHeadlight)
 	EVT_MENU(ID_GRAVITY, wxOsmo4Frame::OnGravity)
-	EVT_UPDATE_UI(ID_GRAVITY, wxOsmo4Frame::OnUpdateGravity)  
+	EVT_UPDATE_UI(ID_GRAVITY, wxOsmo4Frame::OnUpdateGravity)
 
 	EVT_UPDATE_UI(FILE_PROPERTIES, wxOsmo4Frame::OnUpdateNeedsConnect)
-	EVT_UPDATE_UI(FILE_RELOAD, wxOsmo4Frame::OnUpdateNeedsConnect)  
-	EVT_UPDATE_UI(FILE_PLAY, wxOsmo4Frame::OnUpdatePlay)  
-	EVT_UPDATE_UI(FILE_STOP, wxOsmo4Frame::OnUpdateNeedsConnect)  
-	EVT_UPDATE_UI(FILE_STEP, wxOsmo4Frame::OnUpdateNeedsConnect)  
-	EVT_UPDATE_UI(VIEW_ORIGINAL, wxOsmo4Frame::OnUpdateNeedsConnect)  
-	EVT_UPDATE_UI(VIEW_FULLSCREEN, wxOsmo4Frame::OnUpdateFullScreen)  
+	EVT_UPDATE_UI(FILE_RELOAD, wxOsmo4Frame::OnUpdateNeedsConnect)
+	EVT_UPDATE_UI(FILE_PLAY, wxOsmo4Frame::OnUpdatePlay)
+	EVT_UPDATE_UI(FILE_STOP, wxOsmo4Frame::OnUpdateNeedsConnect)
+	EVT_UPDATE_UI(FILE_STEP, wxOsmo4Frame::OnUpdateNeedsConnect)
+	EVT_UPDATE_UI(VIEW_ORIGINAL, wxOsmo4Frame::OnUpdateNeedsConnect)
+	EVT_UPDATE_UI(VIEW_FULLSCREEN, wxOsmo4Frame::OnUpdateFullScreen)
 	EVT_UPDATE_UI(VIEW_AR_KEEP, wxOsmo4Frame::OnUpdateAR)
 	EVT_UPDATE_UI(VIEW_AR_FILL, wxOsmo4Frame::OnUpdateAR)
 	EVT_UPDATE_UI(VIEW_AR_169, wxOsmo4Frame::OnUpdateAR)
 	EVT_UPDATE_UI(VIEW_AR_43, wxOsmo4Frame::OnUpdateAR)
 
-	EVT_SIZE(wxOsmo4Frame::OnSize) 
+	EVT_SIZE(wxOsmo4Frame::OnSize)
 END_EVENT_TABLE()
 
 void wxOsmo4Frame::DoLayout(u32 v_width, u32 v_height)
@@ -1279,7 +1279,7 @@ wxString wxOsmo4Frame::GetFileFilter()
 		if (sFiles.Find(wxString(sDesc, wxConvUTF8) )>=0) continue;
 		/*if same extensions for # mime types skip (don't polluate the file list)*/
 		if (sExts.Find(wxString(szKeyList, wxConvUTF8) )>=0) continue;
-	
+
 		sExts += wxString(szKeyList, wxConvUTF8);
 		sExts += wxT(" ");
 		sFiles += wxString(sDesc, wxConvUTF8);
@@ -1325,7 +1325,7 @@ void wxOsmo4Frame::OnFileOpen(wxCommandEvent & WXUNUSED(event))
 	} else {
 		m_pPlayList->Clear();
 	}
-	for (u32 i=0; i<stra.GetCount(); i++) 
+	for (u32 i=0; i<stra.GetCount(); i++)
 		m_pPlayList->QueueURL(stra[i]);
 
 	m_pPlayList->RefreshList();
@@ -1352,7 +1352,7 @@ void wxOsmo4Frame::OnFileProperties(wxCommandEvent & WXUNUSED(event))
 
 void wxOsmo4Frame::OnFileReload(wxCommandEvent & WXUNUSED(event))
 {
-	gf_term_disconnect(m_term); 
+	gf_term_disconnect(m_term);
 	m_connected = 0;
 	DoConnect();
 }
@@ -1459,11 +1459,11 @@ void wxOsmo4Frame::OnUpdateAR(wxUpdateUIEvent &event)
 	u32 val = gf_term_get_option(m_term, GF_OPT_ASPECT_RATIO);
 	if ((event.GetId() == VIEW_AR_FILL) && (val==GF_ASPECT_RATIO_FILL_SCREEN))
 		event.Check(1);
-	else if ((event.GetId() == VIEW_AR_KEEP) && (val==GF_ASPECT_RATIO_KEEP)) 
+	else if ((event.GetId() == VIEW_AR_KEEP) && (val==GF_ASPECT_RATIO_KEEP))
 		event.Check(1);
-	else if ((event.GetId() == VIEW_AR_169) && (val==GF_ASPECT_RATIO_16_9)) 
+	else if ((event.GetId() == VIEW_AR_169) && (val==GF_ASPECT_RATIO_16_9))
 		event.Check(1);
-	else if ((event.GetId() == VIEW_AR_43) && (val==GF_ASPECT_RATIO_4_3)) 
+	else if ((event.GetId() == VIEW_AR_43) && (val==GF_ASPECT_RATIO_4_3))
 		event.Check(1);
 	else event.Check(0);
 }
@@ -1486,12 +1486,12 @@ void wxOsmo4Frame::OnShortcuts(wxCommandEvent & WXUNUSED(event))
 		wxT("\n")
 		wxT("Shortcuts with focus on video frame:\n")
 		wxT("Seek +5% into presentation: Alt + right arrow\n")
-		wxT("Seek -5% into presentation: Alt + left arrow\n")		
+		wxT("Seek -5% into presentation: Alt + left arrow\n")
 		wxT("Seek +1min into presentation: Alt + up arrow\n")
 		wxT("Seek -1min into presentation: Alt + down arrow\n")
 		wxT("Next Playlist Entry: Ctrl + right arrow\n")
 		wxT("Prev Playlist Entry: Ctrl + left arrow\n")
-		
+
 		, wxT("Shortcuts Available on Osmo4")
 		, wxOK);
 
@@ -1620,7 +1620,7 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 				m_pPlayList->PlayNext();
 			}
 			return;
-		} 
+		}
 		cmd = get_pref_browser(m_user.config);
 		cmd += wxT(" ");
 		cmd += event.to_url;
@@ -1682,7 +1682,7 @@ static wxString format_time(u32 duration, u32 timescale)
 
 void wxOsmo4Frame::SetStatus(wxString str)
 {
-	//m_pStatusbar->SetStatusText(str, 2); 
+	//m_pStatusbar->SetStatusText(str, 2);
 	m_LastStatusTime = gf_sys_clock();
 }
 
@@ -1694,7 +1694,7 @@ void wxOsmo4Frame::OnRTI(wxCommandEvent & event)
 		if (!m_pTimer->IsRunning()) m_pTimer->Start(RTI_REFRESH_MS, 0);
 	} else if (!m_connected && m_pTimer->IsRunning()) {
 		m_LastStatusTime = 0;
-		m_pStatusbar->SetStatusText(wxT("Ready"), 2); 
+		m_pStatusbar->SetStatusText(wxT("Ready"), 2);
 		m_pTimer->Stop();
 	}
 }
@@ -1707,7 +1707,7 @@ void wxOsmo4Frame::OnTimer(wxTimerEvent& WXUNUSED(event))
 		now = gf_sys_clock();
 		if (now > 1000+m_LastStatusTime) {
 			m_LastStatusTime = 0;
-			m_pStatusbar->SetStatusText(wxT("Ready"), 2); 
+			m_pStatusbar->SetStatusText(wxT("Ready"), 2);
 		}
 	}
 
@@ -1716,10 +1716,10 @@ void wxOsmo4Frame::OnTimer(wxTimerEvent& WXUNUSED(event))
 		if (!gf_sys_get_rti(RTI_REFRESH_MS, &rti, 0)) return;
 		if (rti.gpac_memory) rti.process_memory = rti.gpac_memory;
 
-		str = wxString::Format(wxT("CPU %02d (%02d) - Mem %d kB" ), 
+		str = wxString::Format(wxT("CPU %02d (%02d) - Mem %d kB" ),
 						rti.total_cpu_usage, rti.process_cpu_usage, rti.gpac_memory/1024);
 
-		m_pStatusbar->SetStatusText(str, 2); 
+		m_pStatusbar->SetStatusText(str, 2);
 	}
 	if (!m_connected) return;
 
@@ -1771,7 +1771,7 @@ void wxOsmo4Frame::OnTimer(wxTimerEvent& WXUNUSED(event))
 	}
 }
 
-void wxOsmo4Frame::ConnectAcknowledged(Bool bOk) 
+void wxOsmo4Frame::ConnectAcknowledged(Bool bOk)
 {
 	if (bOk) {
 		m_pTimer->Start(RTI_REFRESH_MS, 0);
@@ -1857,7 +1857,7 @@ void wxOsmo4Frame::OnSlide(wxScrollEvent &event)
 	  now *= m_duration;
 	  wxString str = format_time((u32) (now), 1000);
 	  m_pStatusbar->SetStatusText(str);
-	} 
+	}
 	else if (m_bGrabbed){
 	    m_bGrabbed = 0;
 	    Double res = (Double) m_pProg->GetValue();
@@ -1947,7 +1947,7 @@ void wxOsmo4Frame::OnUpdateNavigation(wxUpdateUIEvent & event)
 	else if (ID==ID_NAVIGATE_SLIDE) { event.Enable(enable); event.Check((mode==GF_NAVIGATE_SLIDE) ? 1 : 0); }
 
 	if (type==GF_NAVIGATE_TYPE_2D) return;
-	event.Enable(enable); 	
+	event.Enable(enable);
 	if (ID==ID_NAVIGATE_WALK) event.Check((mode==GF_NAVIGATE_WALK) ? 1 : 0);
 	else if (ID==ID_NAVIGATE_FLY) event.Check((mode==GF_NAVIGATE_FLY) ? 1 : 0);
 	else if (ID==ID_NAVIGATE_PAN) event.Check((mode==GF_NAVIGATE_PAN) ? 1 : 0);
@@ -1970,7 +1970,7 @@ void wxOsmo4Frame::UpdateRenderSwitch()
 {
 	const char *opt = gf_cfg_get_key(m_user.config, "Compositor", "ForceOpenGL");
 	m_pToolBar->RemoveTool(SWITCH_RENDER);
-	if (opt && !stricmp(opt, "yes")) 
+	if (opt && !stricmp(opt, "yes"))
 		m_pToolBar->InsertTool(12, SWITCH_RENDER, *m_pSW2D, wxNullBitmap, FALSE, NULL, wxT("2D Rasterizer"));
 	else
 		m_pToolBar->InsertTool(12, SWITCH_RENDER, *m_pSW3D, wxNullBitmap, FALSE, NULL, wxT("OpenGL Rendering"));
@@ -2090,7 +2090,7 @@ void wxOsmo4Frame::ReloadURLs()
 	}
 }
 
-void wxOsmo4Frame::SelectionReady() 
+void wxOsmo4Frame::SelectionReady()
 {
 	wxString urlVal = m_Address->GetValue();
 	if (urlVal.Find(wxT("://"))>0) {
@@ -2364,14 +2364,14 @@ void wxOsmo4Frame::OnUpdateCacheEnable(wxUpdateUIEvent & event)
 	switch (state) {
 	case GF_MEDIA_CACHE_ENABLED:
 		event.Enable(1);
-		event.SetText(wxT("Enabled")); 
+		event.SetText(wxT("Enabled"));
 		break;
-	case GF_MEDIA_CACHE_RUNNING: 
-		event.SetText(wxT("Running")); 
+	case GF_MEDIA_CACHE_RUNNING:
+		event.SetText(wxT("Running"));
 		event.Enable(0);
 		break;
-	case GF_MEDIA_CACHE_DISABLED: 
-		event.SetText(wxT("Disabled")); 
+	case GF_MEDIA_CACHE_DISABLED:
+		event.SetText(wxT("Disabled"));
 		break;
 	}
 }
@@ -2428,7 +2428,7 @@ void wxOsmo4Frame::BuildChapterList(Bool reset_only)
 		if (com.artist) { title.Append(wxString(com.artist, wxConvUTF8)); title += wxT(" "); }
 		if (com.name) { title.Append(wxString(com.name, wxConvUTF8)); title += wxT(" "); }
 		if (com.album) { title += wxT("("); title.Append(wxString(com.album, wxConvUTF8)); title += wxT(")"); }
-		
+
 		if (title.length()) SetTitle(title);
 	}
 

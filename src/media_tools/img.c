@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -56,7 +56,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 	u64 pos;
 	pos = gf_bs_get_position(bs);
 	gf_bs_seek(bs, 0);
-	
+
 	*mtype = *width = *height = 0;
 	*OTI = 0;
 	if (dsi) {
@@ -125,11 +125,11 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 	/*PNG*/
 	else if ((b1==0x89) && (b2==0x50) && (b3==0x4E)) {
 		/*check for PNG sig*/
-		if ( (gf_bs_read_u8(bs) != 0x47) || (gf_bs_read_u8(bs) != 0x0D) || (gf_bs_read_u8(bs) != 0x0A) 
+		if ( (gf_bs_read_u8(bs) != 0x47) || (gf_bs_read_u8(bs) != 0x0D) || (gf_bs_read_u8(bs) != 0x0A)
 			|| (gf_bs_read_u8(bs) != 0x1A) || (gf_bs_read_u8(bs) != 0x0A) ) goto exit;
 		gf_bs_read_u32(bs);
 		/*check for PNG IHDR*/
-		if ( (gf_bs_read_u8(bs) != 'I') || (gf_bs_read_u8(bs) != 'H') 
+		if ( (gf_bs_read_u8(bs) != 'I') || (gf_bs_read_u8(bs) != 'H')
 			|| (gf_bs_read_u8(bs) != 'D') || (gf_bs_read_u8(bs) != 'R')) goto exit;
 
 		*width = gf_bs_read_u32(bs);
@@ -220,7 +220,7 @@ typedef struct
 	struct jpeg_decompress_struct cinfo;
 } JPGCtx;
 
-void _fatal_error(j_common_ptr cinfo) 
+void _fatal_error(j_common_ptr cinfo)
 {
 	JPGErr *err = (JPGErr *) cinfo->err;
 	longjmp(err->jmpbuf, 1);
@@ -499,7 +499,7 @@ void my_png_write(png_structp png, png_bytep data, png_size_t size)
 	memcpy(p->buffer+p->pos, data, sizeof(char)*size);
 	p->pos += size;
 }
-void my_png_flush(png_structp png) 
+void my_png_flush(png_structp png)
 {
 }
 
@@ -509,43 +509,43 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char 
 	GFpng udta;
 	png_color_8 sig_bit;
 	png_uint_32 k;
-	u32 type, nb_comp;
 	png_bytep *row_pointers;
 	png_structp png_ptr;
 	png_infop info_ptr;
+	u32 type, nb_comp;
 
 	type = 0;
 	nb_comp = 0;
 	switch (pixel_format) {
-	case GF_PIXEL_GREYSCALE: 
+	case GF_PIXEL_GREYSCALE:
 		nb_comp = 1;
-		type = PNG_COLOR_TYPE_GRAY; 
+		type = PNG_COLOR_TYPE_GRAY;
 		break;
-	case GF_PIXEL_ALPHAGREY: 
+	case GF_PIXEL_ALPHAGREY:
 		nb_comp = 1;
-		type = PNG_COLOR_TYPE_GRAY_ALPHA; 
+		type = PNG_COLOR_TYPE_GRAY_ALPHA;
 		break;
-	case GF_PIXEL_RGB_24: 
-	case GF_PIXEL_BGR_24: 
-	case GF_PIXEL_RGB_32: 
-	case GF_PIXEL_BGR_32: 
+	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_BGR_24:
+	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_BGR_32:
 		nb_comp = 3;
-		type = PNG_COLOR_TYPE_RGB; 
+		type = PNG_COLOR_TYPE_RGB;
 		break;
-	case GF_PIXEL_RGBA: 
-	case GF_PIXEL_ARGB: 
+	case GF_PIXEL_RGBA:
+	case GF_PIXEL_ARGB:
 		nb_comp = 4;
-		type = PNG_COLOR_TYPE_RGB_ALPHA; 
+		type = PNG_COLOR_TYPE_RGB_ALPHA;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
 	if (*dst_size < width*height*nb_comp) return GF_BUFFER_TOO_SMALL;
 
-	
+
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	//      png_voidp user_error_ptr, user_error_fn, user_warning_fn);
-	
+
 	if (png_ptr == NULL) return GF_IO_ERR;
 
 	/* Allocate/initialize the image information data.  REQUIRED */
@@ -554,7 +554,7 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char 
 		png_destroy_write_struct(&png_ptr,  png_infopp_NULL);
 		return GF_IO_ERR;
 	}
-	
+
 	/* Set error handling.  REQUIRED if you aren't supplying your own
     * error handling functions in the png_create_write_struct() call.
     */
@@ -562,7 +562,7 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char 
 		png_destroy_write_struct(&png_ptr, &info_ptr);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
-	
+
 	udta.buffer = dst;
 	udta.pos = 0;
 	png_set_write_fn(png_ptr, &udta, my_png_write, my_png_flush);
@@ -597,12 +597,12 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char 
 #endif
 
 	png_write_info(png_ptr, info_ptr);
-	
+
 	/* Shift the pixels up to a legal bit depth and fill in
     * as appropriate to correctly scale the image.
     */
 	png_set_shift(png_ptr, &sig_bit);
-	
+
 	/* pack pixels into bytes */
 	png_set_packing(png_ptr);
 
@@ -611,7 +611,7 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char 
 
 	if ((pixel_format==GF_PIXEL_RGB_32) || (pixel_format==GF_PIXEL_BGR_32))
 	   png_set_filler(png_ptr, 0, PNG_FILLER_BEFORE);
-	
+
 	if ((pixel_format==GF_PIXEL_BGR_24) || (pixel_format==GF_PIXEL_BGR_32))
 		png_set_bgr(png_ptr);
 

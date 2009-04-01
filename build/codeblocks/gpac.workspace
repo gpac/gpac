@@ -8,7 +8,7 @@
 		<Project filename="amr_dec.cbp" />
 		<Project filename="amr_float_dec.cbp" />
 		<Project filename="bifs_dec.cbp" />
-		<Project filename="..\..\applications\testapps\broadcaster\broadcaster.cbp" active="1" />
+		<Project filename="..\..\applications\testapps\broadcaster\broadcaster.cbp" />
 		<Project filename="ctx_load.cbp" />
 		<Project filename="dummy_in.cbp" />
 		<Project filename="dx_hw.cbp" />
@@ -39,7 +39,7 @@
 		<Project filename="svg_in.cbp" />
 		<Project filename="timedtext.cbp" />
 		<Project filename="wav_out.cbp" />
-		<Project filename="wxOsmo4.cbp" />
+		<Project filename="wxOsmo4.cbp" active="1" />
 		<Project filename="xvid_dec.cbp" />
 	</Workspace>
 </CodeBlocks_workspace_file>

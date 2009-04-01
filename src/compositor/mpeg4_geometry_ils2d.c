@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -36,7 +36,7 @@ static void ils2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState
 	M_Coordinate2D *coord;
 
 	if (! gf_node_dirty_get(node)) return;
-	
+
 	drawable_reset_path(stack);
 	gf_node_dirty_clear(node, 0);
 	drawable_mark_modified(stack, tr_state);
@@ -92,7 +92,7 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 		visual_2d_draw_path(tr_state->visual, ctx->drawable->path, ctx, NULL, NULL, tr_state);
 		return;
 	}
-	
+
 	alpha = INT2FIX(GF_COL_A(ctx->aspect.line_color)) / 255;
 	pts = coord->point.vals;
 
@@ -109,7 +109,7 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 			if ((i==end_at) || (ils2D->coordIndex.count && ils2D->coordIndex.vals[i] == -1)) {
 
 				/*draw current*/
-				col_ind = (ils2D->colorIndex.count) ? ils2D->colorIndex.vals[count] : count;
+				col_ind = (ils2D->colorIndex.count && (ils2D->colorIndex.vals[count]>=0) ) ? (u32) ils2D->colorIndex.vals[count] : count;
 				if (col_ind>=color->color.count) col_ind=color->color.count-1;
 				col = color->color.vals[col_ind];
 				ctx->aspect.line_color = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
@@ -120,20 +120,20 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 				if (i>=end_at) break;
 				gf_path_reset(path);
 
-				ind = ils2D->coordIndex.count ? ils2D->coordIndex.vals[i] : i;
+				ind = (ils2D->coordIndex.count && (ils2D->coordIndex.vals[i]>=0)) ? (u32) ils2D->coordIndex.vals[i] : i;
 				gf_path_add_move_to(path, pts[ind].x, pts[ind].y);
 
 				if (ils2D->coordIndex.count) count++;
 				continue;
 			} else {
-				ind = ils2D->coordIndex.count ? ils2D->coordIndex.vals[i] : i;
+				ind = (ils2D->coordIndex.count && (ils2D->coordIndex.vals[i]>=0) ) ? (u32) ils2D->coordIndex.vals[i] : i;
 				gf_path_add_line_to(path, pts[ind].x, pts[ind].y);
 			}
 		}
 		gf_path_del(path);
 		return;
 	}
-	
+
 	raster = NULL;
 	end_at = ils2D->coordIndex.count;
 	if (!end_at) end_at = coord->point.count;
@@ -144,7 +144,7 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	path = gf_path_new();
 	while (1) {
 		gf_path_reset(path);
-		ind = ils2D->coordIndex.count ? ils2D->coordIndex.vals[i] : i;
+		ind = (ils2D->coordIndex.count && (ils2D->coordIndex.vals[i]>=0)) ? (u32) ils2D->coordIndex.vals[i] : i;
 		start = pts[ind];
 		num_col = 1;
 		i++;

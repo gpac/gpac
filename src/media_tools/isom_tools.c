@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / Media Tools sub-project
@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -38,32 +38,32 @@ static const u32 ISMA_AUDIO_ES_ID = 101;
 static const char ISMA_BIFS_CONFIG[] = {0x00, 0x00, 0x60 };
 
 /*ISMA audio*/
-static const u8 ISMA_BIFS_AUDIO[] = 
+static const u8 ISMA_BIFS_AUDIO[] =
 {
 	0xC0, 0x10, 0x12, 0x81, 0x30, 0x2A, 0x05, 0x7C
 };
 /*ISMA video*/
-static const u8 ISMA_GF_BIFS_VIDEO[] = 
+static const u8 ISMA_GF_BIFS_VIDEO[] =
 {
 	0xC0, 0x10, 0x12, 0x60, 0x42, 0x82, 0x28, 0x29,
 	0xD0, 0x4F, 0x00
 };
 /*ISMA audio-video*/
-static const u8 ISMA_BIFS_AV[] = 
+static const u8 ISMA_BIFS_AV[] =
 {
-	0xC0, 0x10, 0x12, 0x81, 0x30, 0x2A, 0x05, 0x72, 
+	0xC0, 0x10, 0x12, 0x81, 0x30, 0x2A, 0x05, 0x72,
 	0x60, 0x42, 0x82, 0x28, 0x29, 0xD0, 0x4F, 0x00
 };
 
 /*image only - uses same visual OD ID as video*/
-static const u8 ISMA_BIFS_IMAGE[] = 
+static const u8 ISMA_BIFS_IMAGE[] =
 {
-	0xC0, 0x11, 0xA4, 0xCD, 0x53, 0x6A, 0x0A, 0x44, 
+	0xC0, 0x11, 0xA4, 0xCD, 0x53, 0x6A, 0x0A, 0x44,
 	0x13, 0x00
 };
 
 /*ISMA audio-image*/
-static const u8 ISMA_BIFS_AI[] = 
+static const u8 ISMA_BIFS_AI[] =
 {
 	0xC0, 0x11, 0xA5, 0x02, 0x60, 0x54, 0x0A, 0xE4,
 	0xCD, 0x53, 0x6A, 0x0A, 0x44, 0x13, 0x00
@@ -84,7 +84,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	GF_ISOSample *samp;
 	GF_BitStream *bs;
 	u8 audioPL, visualPL;
-	
+
 	switch (gf_isom_get_mode(mp4file)) {
 	case GF_ISOM_OPEN_EDIT:
 	case GF_ISOM_OPEN_WRITE:
@@ -169,7 +169,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	//create the OD AU
 	bifs = 0;
 	odU = (GF_ODUpdate *) gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
-	
+
 	a_esd = v_esd = NULL;
 	update_vid_esd = 0;
 
@@ -187,7 +187,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 
 	VideoTrack = gf_isom_get_track_by_id(mp4file, VID);
 	AudioTrack = gf_isom_get_track_by_id(mp4file, AID);
-	
+
 	w = h = 0;
 	if (VideoTrack) {
 		bifs = 1;
@@ -274,7 +274,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	samp->CTS_Offset = 0;
 	samp->DTS = 0;
 	samp->IsRAP = 1;
-	
+
 	/*create the OD track*/
 	odT = gf_isom_new_track(mp4file, odID, GF_ISOM_MEDIA_OD, gf_isom_get_timescale(mp4file));
 	if (!odT) return gf_isom_last_error(mp4file);
@@ -321,7 +321,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	gf_odf_desc_del((GF_Descriptor *)_esd);
 	gf_bs_del(bs);
 	gf_isom_set_visual_info(mp4file, bifsT, descIndex, w, h);
-	
+
 	samp = gf_isom_sample_new();
 	samp->CTS_Offset = 0;
 	samp->DTS = 0;
@@ -478,12 +478,12 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 		case GF_ISOM_MEDIA_TEXT:
 			nb_txt++;
 			break;
-		
+
 		case GF_ISOM_MEDIA_SCENE:
 			if (stype == GF_ISOM_MEDIA_DIMS) {
 				nb_dims++;
 				break;
-			} 
+			}
 		/*clean file*/
 		default:
 			if (mType==GF_ISOM_MEDIA_HINT) {
@@ -518,7 +518,7 @@ remove_track:
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 0);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 0);
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP Generic file\n"));
-		} 
+		}
 		/*commented for QT compatibility, although this is correct (qt doesn't understand 3GP6 brand)*/
 		else if (nb_txt && 0) {
 			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GP6, 1024);
@@ -562,10 +562,10 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 	for (i=0; i<count; i++) {
 		switch (gf_isom_get_media_type(mp4, i+1)) {
 		case GF_ISOM_MEDIA_VISUAL:
-			nb_v++; 
+			nb_v++;
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
-			nb_a++; 
+			nb_a++;
 			break;
 		}
 	}
@@ -633,7 +633,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 	nb_samp = 0;
 	fragmenters = gf_list_new();
-	
+
 	/*FIXME - ALL THESE SHOULD GO DO A clone_movie item !!*/
 	e = gf_isom_set_brand_info(output, GF_ISOM_BRAND_MP42, 1);
 	if (e) goto err_exit;
@@ -662,8 +662,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	}
 
 	if (gf_isom_apple_get_tag(input, 0, &tag, &tag_len) == GF_OK) {
-		for (i=GF_ISOM_ITUNE_ALBUM; i<GF_ISOM_ITUNE_WRITER; i++) {
-			if (gf_isom_apple_get_tag(input, GF_ISOM_ITUNE_NAME, &tag, &tag_len)==GF_OK) 
+		for (i=GF_ISOM_ITUNE_ALBUM; i<(u32) GF_ISOM_ITUNE_WRITER; i++) {
+			if (gf_isom_apple_get_tag(input, GF_ISOM_ITUNE_NAME, &tag, &tag_len)==GF_OK)
 				gf_isom_apple_set_tag(output, GF_ISOM_ITUNE_NAME, tag, tag_len);
 		}
 	}
@@ -687,12 +687,12 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		}
 		//otherwise setup fragmented
 		else {
-			gf_isom_get_fragment_defaults(input, i+1, 
+			gf_isom_get_fragment_defaults(input, i+1,
 										 &defaultDuration, &defaultSize, &defaultDescriptionIndex, &defaultRandomAccess, &defaultPadding, &defaultDegradationPriority);
 			//otherwise setup fragmentation
-			e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum), 
-						defaultDescriptionIndex, defaultDuration, 
-						defaultSize, (u8) defaultRandomAccess, 
+			e = gf_isom_setup_track_fragment(output, gf_isom_get_track_id(output, TrackNum),
+						defaultDescriptionIndex, defaultDuration,
+						defaultSize, (u8) defaultRandomAccess,
 						defaultPadding, defaultDegradationPriority);
 			if (e) goto err_exit;
 
@@ -729,9 +729,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				e = gf_isom_set_fragment_option(output, tf->TrackID, GF_ISOM_TRAF_RANDOM_ACCESS, 1);
 				if (e) goto err_exit;
 			}
-		}	
+		}
 		sample = NULL;
-		
+
 		//process track by track
 		for (i=0; i<count; i++) {
 			tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
@@ -750,7 +750,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 					defaultDuration = tf->DefaultDuration;
 				}
 
-				e = gf_isom_fragment_add_sample(output, tf->TrackID, sample, descIndex, 
+				e = gf_isom_fragment_add_sample(output, tf->TrackID, sample, descIndex,
 								 defaultDuration, NbBits, 0);
 				if (e) goto err_exit;
 
@@ -807,7 +807,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 
 	e = gf_isom_remove_chapter(file, 0, 0);
 	if (e) goto err_exit;
-	
+
 	cur_chap = 0;
 	ts = 0;
 	state = 0;
@@ -851,9 +851,9 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 			sscanf(sL, "AddChapterByTime(%d,%d,%d,%s)", &h, &m, &s, szTitle);
 			ts = 3600*h + 60*m + s;
 			ts *= 1000;
-			sL = strchr(sL, ','); 
-			if (sL) sL = strchr(sL+1, ','); 
-			if (sL) sL = strchr(sL+1, ','); 
+			sL = strchr(sL, ',');
+			if (sL) sL = strchr(sL+1, ',');
+			if (sL) sL = strchr(sL+1, ',');
 			strcpy(szTitle, sL+1); sL = strrchr(szTitle, ')'); if (sL) sL[0] = 0;
 		}
 		/*regular or SMPTE time codes*/
@@ -862,7 +862,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 			if (strlen(sL)==8) {
 				sscanf(sL, "%02d:%02d:%02d", &h, &m, &s);
 				ts = (h*3600 + m*60+s)*1000;
-			} 
+			}
 			else {
 				char szTS[20], *tok;
 				strncpy(szTS, sL, 18);
@@ -894,7 +894,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 					ts = (h*3600 + m*60+s) * 1000;
 				}
 			}
-		} 
+		}
 		/*CHAPTERX= and CHAPTERXNAME=*/
 		else if (!strnicmp(sL, "CHAPTER", 7)) {
 			u32 idx;

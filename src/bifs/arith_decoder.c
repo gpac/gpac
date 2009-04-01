@@ -10,19 +10,19 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
-#include "quant.h" 
+#include "quant.h"
 
 /*
 	Adaptive Arithmethic Decoder from Annex G (Normative)
@@ -54,7 +54,7 @@
 #define AAM_Q1 16384
 #define AAM_Q2 32768
 #define AAM_Q3 49152
-#define AAM_TOP 65535 
+#define AAM_TOP 65535
 #define AAM_ZEROMAX 22
 #define AAM_MAX_FREQ 16383
 
@@ -64,7 +64,7 @@ struct _aamodel
 	s32	*cumul_freq;
 	s32 *freq;
 };
-  
+
 struct _aadecoder
 {
 	u32 low, high, code_value;
@@ -163,12 +163,12 @@ static Bool bit_out_psc_layer(GF_AADecoder *dec)
 	}
 	dec->Bit = v;
 	dec->needs_flush = 1;
-	
+
 	if (!dec->Bit)
 		dec->zero_run++;
-	else 
+	else
 		dec->zero_run = 0;
-	
+
 	return 1;
 }
 
@@ -180,7 +180,7 @@ void gp_bifs_aa_dec_resync(GF_AADecoder *dec)
 	/*magic number from IM1 (spec is wrong there)*/
 	rewind = 14;
 	if (dec->skip_bits < rewind) gf_bs_rewind_bits(dec->bs, rewind - dec->skip_bits);
-	
+
 	dec->needs_flush = 0;
 	dec->code_value = 0;
 	dec->low = 0;
@@ -203,7 +203,7 @@ void gp_bifs_aa_dec_flush(GF_AADecoder *dec)
 
 void gp_bifs_aa_dec_resync_bit(GF_AADecoder *dec)
 {
-	if (dec->needs_flush && (dec->skip_bits < 16)) 
+	if (dec->needs_flush && (dec->skip_bits < 16))
 		gf_bs_rewind_bits(dec->bs, 16 - dec->skip_bits);
 
 	dec->needs_flush = 0;
@@ -241,12 +241,12 @@ static s32 AADec_Dec(GF_AADecoder *dec, GF_AAModel *model)
 
 	len = dec->high - dec->low + 1;
 	sum = (-1 + (dec->code_value - dec->low + 1) * model->cumul_freq[0]) / len;
-	
+
 	for (sac_index = 1; model->cumul_freq[sac_index] > sum; sac_index++) {
 	}
 	dec->high = dec->low - 1 + (len * model->cumul_freq[sac_index-1]) / model->cumul_freq[0];
 	dec->low += (len * model->cumul_freq[sac_index]) / model->cumul_freq[0];
-  
+
 	for ( ; ; ) {
 		if (dec->high < AAM_Q2) {
 		} else if (dec->low >= AAM_Q2) {
@@ -261,7 +261,7 @@ static s32 AADec_Dec(GF_AADecoder *dec, GF_AAModel *model)
 		} else {
 			break;
 		}
-		
+
 		dec->low *= 2;
 		dec->high = 2 * dec->high + 1;
 		if (!bit_out_psc_layer(dec)) return -1;

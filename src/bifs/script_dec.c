@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -27,7 +27,7 @@
 
 #define BINOP_MINVAL ET_EQ
 
-typedef struct 
+typedef struct
 {
 	GF_Node *script;
 	GF_BifsDecoder *codec;
@@ -136,14 +136,14 @@ GF_Err ParseScriptField(ScriptParser *parser)
 static void SFS_IncIndent(ScriptParser *pars) { pars->indent++; }
 static void SFS_DecIndent(ScriptParser *pars) { pars->indent--; }
 static void SFS_Space(ScriptParser *pars) { if (pars->new_line) SFS_AddString(pars, " ");}
-static void SFS_Indent(ScriptParser *pars) 
+static void SFS_Indent(ScriptParser *pars)
 {
 	u32 i;
 	if (pars->new_line) {
 		for (i=0; i<pars->indent; i++) SFS_AddString(pars, " ");
 	}
 }
-static GFINLINE void SFS_Line(ScriptParser *parser) 
+static GFINLINE void SFS_Line(ScriptParser *parser)
 {
 	if (parser->new_line) {
 		SFS_AddString(parser, parser->new_line);
@@ -249,7 +249,7 @@ void SFS_Arguments(ScriptParser *parser, Bool is_var)
 	u32 val;
 	if (parser->codec->LastError) return;
 	if (!is_var) SFS_AddString(parser, "(");
-	
+
 	val = gf_bs_read_int(parser->bs, 1);
 	while (val) {
 		SFS_Identifier(parser);
@@ -488,7 +488,7 @@ void SFS_Expression(ScriptParser *parser)
 	case ET_NEW:
         SFS_NewObject(parser);
 		break;
-	case ET_OBJECT_MEMBER_ACCESS: 
+	case ET_OBJECT_MEMBER_ACCESS:
    		SFS_ObjectMemberAccess(parser);
 		break;
 	case ET_OBJECT_METHOD_CALL:
@@ -653,7 +653,7 @@ void SFS_Expression(ScriptParser *parser)
 		SFS_AddString(parser, "|=");
 		SFS_Expression(parser);
 		break;
-    case ET_BOOLEAN: 
+    case ET_BOOLEAN:
 		SFS_GetBoolean(parser);
         break;
 	case ET_VAR:
@@ -737,16 +737,16 @@ void SFS_GetNumber(ScriptParser *parser)
 
 	if (parser->codec->LastError) return;
 	// integer
-	if (gf_bs_read_int(parser->bs, 1)) { 
+	if (gf_bs_read_int(parser->bs, 1)) {
 		nbBits = gf_bs_read_int(parser->bs, 5);
 		val = gf_bs_read_int(parser->bs, nbBits);
 		SFS_AddInt(parser, val);
 		return;
-	} 
+	}
 	// real number
 	val = gf_bs_read_int(parser->bs, 4);
 	while ( val != 15) {
-		if (val>=0 && val<=9) {
+		if (val<=9) {
 			SFS_AddChar(parser, (char) (val + '0') );
 		} else if (val==10) {
 			SFS_AddChar(parser, '.');

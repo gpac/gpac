@@ -6,80 +6,42 @@
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
-			<Target title="Win32 Release">
-				<Option output="..\..\bin\w32_rel\wxOsmo4" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj\osmo4_wx_rel" />
+			<Target title="release">
+				<Option output="..\..\bin\$(TARGET_STR)\Osmo4" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj\$(TARGET_STR)\$(PROJECT_NAME)" />
 				<Option type="0" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add option="-W" />
-					<Add option="-fexceptions" />
 					<Add option="-O2" />
-					<Add option="-DWIN32" />
-					<Add option="-DNDEBUG" />
-					<Add option="-D_WINDOWS" />
-					<Add option="-D_MBCS" />
+					<Add option="-W" />
+					<Add option="-fexceptions" />
 					<Add directory="..\..\include" />
 				</Compiler>
-				<Linker>
-					<Add library="kernel32" />
-					<Add library="user32" />
-					<Add library="gdi32" />
-					<Add library="winspool" />
-					<Add library="comdlg32" />
-					<Add library="advapi32" />
-					<Add library="shell32" />
-					<Add library="ole32" />
-					<Add library="oleaut32" />
-					<Add library="uuid" />
-					<Add library="odbc32" />
-					<Add library="odbccp32" />
-					<Add library="wxbase26" />
-					<Add library="wxmsw26_core" />
-					<Add library="comctl32" />
-					<Add library="ws2_32" />
-					<Add library="rpcrt4" />
-				</Linker>
 			</Target>
-			<Target title="Win32 Debug">
-				<Option output="..\..\bin\w32_deb\wxOsmo4" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj\osmo4_wx_deb" />
+			<Target title="debug">
+				<Option output="..\..\bin\$(TARGET_STR)\Osmo4" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj\$(TARGET_STR)\$(PROJECT_NAME)" />
 				<Option type="0" />
 				<Option compiler="gcc" />
 				<Compiler>
 					<Add option="-W" />
-					<Add option="-fexceptions" />
 					<Add option="-g" />
-					<Add option="-DWIN32" />
-					<Add option="-D_DEBUG" />
-					<Add option="-D_WINDOWS" />
-					<Add option="-D_MBCS" />
+					<Add option="-fexceptions" />
 					<Add directory="..\..\include" />
 				</Compiler>
-				<Linker>
-					<Add library="kernel32" />
-					<Add library="user32" />
-					<Add library="gdi32" />
-					<Add library="winspool" />
-					<Add library="comdlg32" />
-					<Add library="advapi32" />
-					<Add library="shell32" />
-					<Add library="ole32" />
-					<Add library="oleaut32" />
-					<Add library="uuid" />
-					<Add library="odbc32" />
-					<Add library="odbccp32" />
-					<Add library="wxbase26d" />
-					<Add library="wxmsw26d_core" />
-					<Add library="comctl32" />
-					<Add library="rpcrt4" />
-					<Add directory="..\..\extra_lib\lib\w32_deb" />
-				</Linker>
 			</Target>
 			<Environment>
 				<Variable name="TARGET_STR" value="$(TARGET_CC)_$(TARGET_NAME)" />
 			</Environment>
 		</Build>
+		<ResourceCompiler>
+			<Add directory="..\..\applications\osmo4_wx" />
+		</ResourceCompiler>
+		<Linker>
+			<Add option='[[print(_T(&quot;-lwx_msw_core-2.8 -lwx_base-2.8 -luuid -loleaut32 -lole32 -lcomctl32&quot;));;]]' />
+			<Add library="gpac" />
+			<Add directory="..\..\bin\$(TARGET_STR)" />
+		</Linker>
 		<Unit filename="..\..\applications\osmo4_wx\Playlist.cpp" />
 		<Unit filename="..\..\applications\osmo4_wx\Playlist.h" />
 		<Unit filename="..\..\applications\osmo4_wx\fileprops.cpp" />

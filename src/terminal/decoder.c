@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -48,16 +48,16 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 
 	if (PL<0) PL = 0xFF;
 	*e = Codec_Load(tmp, base_layer, PL);
-	
+
 	if (*e) {
 		free(tmp);
 		return NULL;
 	}
 	/*remember codec type*/
 	tmp->type = base_layer->decoderConfig->streamType;
-	tmp->inChannels = gf_list_new();	
+	tmp->inChannels = gf_list_new();
 	tmp->Status = GF_ESM_CODEC_STOP;
-	
+
 	return tmp;
 }
 
@@ -67,7 +67,7 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm)
 	if (!codec->decio) return NULL;
 	GF_SAFEALLOC(tmp, GF_Codec);
 	tmp->type = codec->type;
-	tmp->inChannels = gf_list_new();	
+	tmp->inChannels = gf_list_new();
 	tmp->Status = GF_ESM_CODEC_STOP;
 	tmp->odm = odm;
 	tmp->flags = codec->flags | GF_ESM_CODEC_IS_USE;
@@ -95,7 +95,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		if (ch->esd->decoderConfig->decoderSpecificInfo) {
 			dsi = ch->esd->decoderConfig->decoderSpecificInfo->data;
 			dsiSize = ch->esd->decoderConfig->decoderSpecificInfo->dataLength;
-		} 
+		}
 		/*For objects declared in OD stream, override with network DSI if any*/
 		if (ch->service && !(ch->odm->flags & GF_ODM_NOT_IN_OD_STREAM) ) {
 			com.command_type = GF_NET_CHAN_GET_DSI;
@@ -165,7 +165,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		/*check re-ordering - set by default on all codecs*/
 		codec->is_reordering = 1;
 		cap.CapCode = GF_CODEC_REORDER;
-		if (gf_codec_get_capability(codec, &cap) == GF_OK);
+		if (gf_codec_get_capability(codec, &cap) == GF_OK)
 			codec->is_reordering = cap.cap.valueInt;
 
 		/*setup net channel config*/
@@ -185,7 +185,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 				cap.CapCode = GF_CODEC_CU_DURATION;
 				gf_codec_get_capability(ch->odm->codec, &cap);
 				com.cfg.frame_duration = cap.cap.valueInt;
-			} 
+			}
 			gf_term_service_command(ch->service, &com);
 		}
 	}
@@ -270,7 +270,7 @@ static void Decoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, GF_DB
 		if ((codec->type==GF_STREAM_OCR) && ch->IsClockInit) {
 			/*check duration - we assume that scalable OCR streams are just pure nonsense...*/
 			if (ch->is_pulling && codec->odm->duration) {
-				if (gf_clock_time(codec->ck) > codec->odm->duration) 
+				if (gf_clock_time(codec->ck) > codec->odm->duration)
 					gf_es_on_eos(ch);
 			}
 			return;
@@ -292,7 +292,7 @@ static void Decoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, GF_DB
 	}
 
 	/*FIXME - we're breaking sync (couple of frames delay)*/
-	if (*nextAU && codec->is_reordering) 
+	if (*nextAU && codec->is_reordering)
 		(*nextAU)->CTS = (*nextAU)->DTS;
 }
 
@@ -308,13 +308,13 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	GF_Err e = GF_OK;
 
 	scene_locked = 0;
-	
+
 	/*for resync, if needed - the logic behind this is that there is no composition memory on sytems codecs so
 	"frame dropping" is done by preventing the compositor from redrawing after an update and decoding following AU
-	so that the compositor is always woken up once all late systems AUs are decoded. This flag is overriden when 
+	so that the compositor is always woken up once all late systems AUs are decoded. This flag is overriden when
 	seeking*/
 	check_next_unit = (codec->odm->term->flags & GF_TERM_SYSDEC_RESYNC) ? 1 : 0;
-	
+
 check_unit:
 
 	/*muting systems codec means we don't decode until mute is off - likely there will be visible however
@@ -335,7 +335,7 @@ check_unit:
 			if (!cap.cap.valueInt) {
 				gf_term_stop_codec(codec);
 				if ((codec->type==GF_STREAM_OD) && (codec->nb_dec_frames==1)) {
-					/*this is just by safety, since seeking is only allowed when a single clock is present 
+					/*this is just by safety, since seeking is only allowed when a single clock is present
 					in the scene*/
 					if (gf_list_count(codec->odm->net_service->Clocks)==1)
 						codec->odm->subscene->static_media_ressources=1;
@@ -344,8 +344,8 @@ check_unit:
 		}
 		goto exit;
 	}
-	
-	if (ch && ch->odm->media_ctrl && !ch->odm->media_ctrl->media_speed) 
+
+	if (ch && ch->odm->media_ctrl && !ch->odm->media_ctrl->media_speed)
 		goto exit;
 
 	/*get the object time*/
@@ -357,7 +357,7 @@ check_unit:
 	/*check timing based on the input channel and main FPS*/
 	if (AU->DTS > obj_time /*+ codec->odm->term->half_frame_duration*/) goto exit;
 
-	/*check seeking and update timing - do NOT use the base layer, since BIFS streams may depend on other 
+	/*check seeking and update timing - do NOT use the base layer, since BIFS streams may depend on other
 	streams not on the same clock*/
 	if (codec->last_unit_cts == AU->CTS) {
 		/*hack for RTSP streaming of systems streams, except InputSensor*/
@@ -370,7 +370,7 @@ check_unit:
 		check_next_unit = 1;
 		mm_level = GF_CODEC_LEVEL_SEEK;
 
-	} 
+	}
 	/*set system stream timing*/
 	else {
 		codec->last_unit_cts = AU->CTS;
@@ -380,7 +380,7 @@ check_unit:
 	}
 	/*this is what the spec says (since DTS == CTS)*/
 	//au_time = AU->DTS;
-	/*however in order to handle the cases where no CTS was set for the BIFS, which may be interpreted as "now" (although not compliant), 
+	/*however in order to handle the cases where no CTS was set for the BIFS, which may be interpreted as "now" (although not compliant),
 	we use the object clock*/
 	au_time = obj_time;
 
@@ -393,7 +393,7 @@ check_unit:
 		if (codec->odm->term->play_state) codec->odm->term->compositor->step_mode=1;
 	}
 
-	/*current media time for system objects is the clock time, since the media is likely to have random 
+	/*current media time for system objects is the clock time, since the media is likely to have random
 	updates in time*/
 	codec->odm->current_time = gf_clock_time(codec->ck);
 
@@ -421,7 +421,7 @@ check_unit:
 		if (codec->flags & GF_ESM_CODEC_IS_STATIC_OD) gf_clock_reset(codec->ck);
 		/*generate a temp scene if none is in place*/
 		if (is->graph_attached != 1) {
-			Bool prev_dyn = is->is_dynamic_scene; 
+			Bool prev_dyn = is->is_dynamic_scene;
 			is->is_dynamic_scene = 1;
 			gf_inline_regenerate(is);
 			is->graph_attached = 2;
@@ -432,7 +432,7 @@ check_unit:
 
 	/*if no release restart*/
 	if (check_next_unit) goto check_unit;
-	
+
 exit:
 	if (scene_locked) gf_term_lock_compositor(codec->odm->term, 0);
 	return e;
@@ -448,7 +448,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	GF_Channel *ch;
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)codec->decio;
 	GF_Err e = GF_OK;
-	
+
 	/*muting systems codec means we don't decode until mute is off - likely there will be visible however
 	there is no other way to decode system AUs without modifying the content, which is what mute is about on visual...*/
 	if (codec->Muted) return GF_OK;
@@ -516,7 +516,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 static GFINLINE GF_Err LockCompositionUnit(GF_Codec *dec, u32 CU_TS, GF_CMUnit **cu, u32 *cu_size)
 {
 	if (!dec->CB) return GF_BAD_PARAM;
-	
+
 	*cu = gf_cm_lock_input(dec->CB, CU_TS, dec->is_reordering);
 	if (! *cu ) return GF_OUT_OF_MEM;
 	*cu_size = dec->CB->UnitSize;
@@ -530,7 +530,7 @@ static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 c
 	if (CU->TS < dec->CB->LastRenderedTS) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[ODM] CU (TS %d) later than last frame drawn (TS %d) - droping\n", CU->TS, dec->CB->LastRenderedTS));
 		cu_size = 0;
-	} 
+	}
 
 	/*unlock the CB*/
 	gf_cm_unlock_input(dec->CB, CU, cu_size, dec->is_reordering);
@@ -541,7 +541,7 @@ static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 c
 static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 {
 	if (!dec || !dec->CB) return GF_BAD_PARAM;
-	
+
 	/*update config*/
 	gf_mo_update_caps(dec->odm->mo);
 
@@ -551,7 +551,7 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] Resizing composition buffer for codec %s - %d bytes per unit\n", dec->decio->module_name, NewSize));
 			gf_cm_resize(dec->CB, NewSize);
 		}
-	} 
+	}
 	/*audio: make sure we have enough data in CM to entirely fill the HW audio buffer...*/
 	else {
 		u32 unit_size, audio_buf_len, unit_count;
@@ -608,7 +608,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		if (codec->Status == GF_ESM_CODEC_EOS) {
 			/*if codec is reordering, try to flush it*/
 			if (codec->is_reordering) {
-				if ( LockCompositionUnit(codec, codec->last_unit_cts+1, &CU, &unit_size) == GF_OUT_OF_MEM) 
+				if ( LockCompositionUnit(codec, codec->last_unit_cts+1, &CU, &unit_size) == GF_OUT_OF_MEM)
 					return GF_OK;
 				e = mdec->ProcessData(mdec, NULL, 0, 0, CU->data, &unit_size, 0, 0);
 				if (e==GF_OK) e = UnlockCompositionUnit(codec, CU, unit_size);
@@ -617,7 +617,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			if (codec->CB) gf_cm_set_eos(codec->CB);
 		}
 		/*if no data, and channel not buffering, ABORT CB buffer (data timeout or EOS not detectable)*/
-		else if (ch && !ch->BufferOn) 
+		else if (ch && !ch->BufferOn)
 			gf_cm_abort_buffering(codec->CB);
 		return GF_OK;
 	}
@@ -690,7 +690,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				AU->CTS = codec->last_unit_cts + ch->ts_offset + (u32) (codec->cur_video_frames * 1000 / codec->fps);
 			}
 		}
-		if ( LockCompositionUnit(codec, AU->CTS, &CU, &unit_size) == GF_OUT_OF_MEM) 
+		if ( LockCompositionUnit(codec, AU->CTS, &CU, &unit_size) == GF_OUT_OF_MEM)
 			return GF_OK;
 
 scalable_retry:
@@ -712,7 +712,7 @@ scalable_retry:
 		/*this happens a lot when using non-MPEG-4 streams (ex: ffmpeg demuxer)*/
 		case GF_PACKED_FRAMES:
 			/*in seek don't dispatch any output*/
-			if (mmlevel	== GF_CODEC_LEVEL_SEEK) 
+			if (mmlevel	== GF_CODEC_LEVEL_SEEK)
 				unit_size = 0;
 			e = UnlockCompositionUnit(codec, CU, unit_size);
 
@@ -742,13 +742,13 @@ scalable_retry:
 		case GF_OK:
 			if (unit_size) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded frame TS %d in %d ms (DTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, obj_time, AU->CTS, now, AU->DTS));
-			} 
+			}
 			/*if no size the decoder is not using the composition memory - if the object is in intitial buffering resume it!!*/
 			else if (codec->CB->Status == CB_BUFFER) {
 				gf_cm_abort_buffering(codec->CB);
 			}
 			/*in seek don't dispatch any output*/
-			if (mmlevel	== GF_CODEC_LEVEL_SEEK) 
+			if (mmlevel	== GF_CODEC_LEVEL_SEEK)
 				unit_size = 0;
 
 			codec_update_stats(codec, AU->dataLength, now);
@@ -829,7 +829,7 @@ GF_Err gf_codec_process(GF_Codec *codec, u32 TimeAvailable)
 			if (codec->Status == GF_ESM_CODEC_EOS) {
 				gf_term_stop_codec(codec);
 				/*if a mediacontrol is ruling this OCR*/
-				if (codec->odm->media_ctrl && codec->odm->media_ctrl->control->loop) MC_Restart(codec->odm); 
+				if (codec->odm->media_ctrl && codec->odm->media_ctrl->control->loop) MC_Restart(codec->odm);
 			}
 		}
 	}
@@ -877,7 +877,7 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 	else codec->Status = Status;
 
 	if (!codec->CB) return;
-	
+
 	/*notify CB*/
 	switch (Status) {
 	case GF_ESM_CODEC_PLAY:
@@ -918,7 +918,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	}
 
 	ifce_type = GF_SCENE_DECODER_INTERFACE;
-	if ((esd->decoderConfig->streamType==GF_STREAM_AUDIO) 
+	if ((esd->decoderConfig->streamType==GF_STREAM_AUDIO)
 		|| (esd->decoderConfig->streamType==GF_STREAM_VISUAL)
 		|| (esd->decoderConfig->streamType==GF_STREAM_ND_SUBPIC)
 		)
@@ -932,7 +932,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		sOpt = NULL;
 		switch (esd->decoderConfig->streamType) {
 		case GF_STREAM_VISUAL:
-			if ((esd->decoderConfig->objectTypeIndication==0x6C) || (esd->decoderConfig->objectTypeIndication==0x6D)) 
+			if ((esd->decoderConfig->objectTypeIndication==0x6C) || (esd->decoderConfig->objectTypeIndication==0x6D))
 				sOpt = gf_cfg_get_key(term->user->config, "Systems", "DefImageDec");
 			else
 				sOpt = gf_cfg_get_key(term->user->config, "Systems", "DefVideoDec");
@@ -944,7 +944,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 			break;
 		}
 	}
-	
+
 	if (sOpt) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
 		if (ifce) {
@@ -952,7 +952,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 				codec->decio = ifce;
 				return GF_OK;
 			}
-			gf_modules_close_interface((GF_BaseInterface *) ifce);		
+			gf_modules_close_interface((GF_BaseInterface *) ifce);
 		}
 	}
 
@@ -966,7 +966,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 				codec->decio = ifce;
 				return GF_OK;
 			}
-			gf_modules_close_interface((GF_BaseInterface *) ifce);		
+			gf_modules_close_interface((GF_BaseInterface *) ifce);
 		}
 	}
 	/*not found, check all modules*/
@@ -1001,7 +1001,7 @@ GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	/*load decoder module*/
 	case GF_STREAM_VISUAL:
 	case GF_STREAM_AUDIO:
-		if (!esd->decoderConfig->objectTypeIndication) 
+		if (!esd->decoderConfig->objectTypeIndication)
 			return GF_NON_COMPLIANT_BITSTREAM;
 	default:
 		return Codec_LoadModule(codec, esd, PL);
