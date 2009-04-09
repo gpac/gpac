@@ -658,7 +658,9 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 
 	if (!is_flush) {
 		gf_list_del(tr_state->vrml_sensors);
+#ifndef GPAC_DISABLE_3D
 		if (tr_state->layer3d) compositor->traverse_state->layer3d = tr_state->layer3d;
+#endif
 		free(tr_state);
 	}
 	return res;
