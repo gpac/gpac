@@ -599,8 +599,10 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	
 	/*this is just an instance removed*/
 	if (pNode->sgprivate->num_instances) {
+#ifdef GPAC_HAS_SPIDERMONKEY
 		if (pNode->sgprivate->scenegraph->on_node_modified && (pNode->sgprivate->num_instances==1) && pNode->sgprivate->interact && pNode->sgprivate->interact->js_binding) {
 			pNode->sgprivate->scenegraph->on_node_modified(pNode->sgprivate->scenegraph, pNode, NULL, NULL);
+#endif
 		}
 		return GF_OK;
 	}
