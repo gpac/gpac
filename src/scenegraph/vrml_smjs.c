@@ -46,11 +46,12 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 JSBool js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp);
 
+static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
 
-void JSScriptFromFile(GF_Node *node, const char *opt_file);
+void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain);
 
 /*define this macro to force Garbage Collection after each input to JS (script initialize/shutdown and all eventIn) */
-//#define FORCE_GC
+#define FORCE_GC
 
 
 #define _ScriptMessage(_c, _e, _msg) {	\
@@ -346,12 +347,15 @@ static JSBool getScript(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *rva
 
 static JSBool loadScript(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval *rval)
 {
+	Bool no_complain = 0;
 	char *url;
 	GF_Node *node = JS_GetContextPrivate(c);
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
 
+	if ((argc>1) && JSVAL_IS_BOOLEAN(argv[1])) no_complain = (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE) ? 1 : 0;
+
 	url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	if (url) JSScriptFromFile(node, url);
+	if (url) JSScriptFromFile(node, url, no_complain);
 	return JS_TRUE;
 }
 
@@ -2955,6 +2959,8 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 			gf_node_register(child, owner);
 		}
 		Script_FieldChanged(c, owner, parent, field);
+		/*and mark the field as changed*/
+		JSScript_NodeModified(owner->sgprivate->scenegraph, owner, field, NULL);
 		return;
 	}
 
@@ -3253,10 +3259,14 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 				/*make sure we use the same JS context*/
 				(jsf->js_ctx == priv->js_ctx)
 				&& (jsf->owner == parent)
+#if 0
 				&& (jsf->field.fieldIndex == field->fieldIndex)
 				/*type check needed for MFNode entries*/
 				&& (jsf->field.fieldType==field->fieldType)
-			) {
+#else
+				&& (jsf->field.far_ptr==field->far_ptr)
+#endif
+				) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] found cached jsobj 0x%08x (field %s) in script %s bank (%d entries)\n", obj, field->name, gf_node_get_log_name((GF_Node*)JS_GetScript(priv->js_ctx)), gf_list_count(priv->js_cache) ) );
 				if (!force_evaluate && !jsf->field.NDTtype) return OBJECT_TO_JSVAL(obj);
 
@@ -3750,7 +3760,7 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 }
 
 /*fetches each listed URL and attempts to load the script - this is SYNCHRONOUS*/
-void JSScriptFromFile(GF_Node *node, const char *opt_file)
+void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 {
 	GF_JSAPIParam par;
 	u32 i;
@@ -3793,7 +3803,7 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file)
 		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
 			Bool res = vrml_js_load_script(script, url, opt_file ? 0 : 1);
 			free(url);
-			if (res) return;
+			if (res || no_complain) return;
 		} else {
 			GF_DownloadSession *sess = gf_dm_sess_new(dnld_man, url, 0, NULL, NULL, &e);
 			if (sess) {
@@ -3874,7 +3884,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	priv->JS_EventIn = JS_EventIn;
 
 	if (!local_script) {
-		JSScriptFromFile(node, NULL);
+		JSScriptFromFile(node, NULL, 0);
 		return;
 	}
 

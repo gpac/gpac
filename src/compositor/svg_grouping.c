@@ -534,6 +534,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state, NULL);
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
 		Fixed opacity = FIX_ONE;
+		Bool clear = 0;
 		SVGgStack *group = gf_node_get_private(node);
 
 		if (tr_state->parent_use_opacity) {
@@ -543,7 +544,10 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		if (all_atts.opacity) {
 			opacity = gf_mulfix(opacity, all_atts.opacity->value);
 		}
-		if (gf_node_dirty_get(node)&GF_SG_CHILD_DIRTY) drawable_reset_group_highlight(tr_state, node);
+		if (gf_node_dirty_get(node)&GF_SG_CHILD_DIRTY) {
+			drawable_reset_group_highlight(tr_state, node);
+			clear=1;
+		}
 
 		if (opacity < FIX_ONE) {
 			if (!group->cache) {
@@ -559,8 +563,6 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 #else
 			group_cache_traverse(node, group->cache, tr_state, group->cache->force_recompute, 0);
 #endif
-			gf_node_dirty_clear(node, 0);
-
 		} else {
 #ifdef GF_SR_USE_VIDEO_CACHE
 			Bool group_cached;
@@ -599,6 +601,8 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 			compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
 #endif
 		}
+		if (clear) gf_node_dirty_clear(node, 0);
+
 		drawable_check_focus_highlight(node, tr_state, NULL);
 	} else {
 			compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);

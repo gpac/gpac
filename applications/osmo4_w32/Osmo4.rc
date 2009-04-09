@@ -896,7 +896,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDR_MAINFRAME           ICON    DISCARDABLE     "res\\osmo4.ico"
+IDR_MAINFRAME           ICON    DISCARDABLE     "..\\..\\doc\\osmo4.ico"
 IDI_PLAY                ICON    DISCARDABLE     "res\\play.ico"
 IDI_STOP                ICON    DISCARDABLE     "res\\stop.ico"
 IDI_PAUSE               ICON    DISCARDABLE     "res\\pause.ico"

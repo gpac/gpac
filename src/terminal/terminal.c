@@ -1144,7 +1144,7 @@ void gf_term_navigate_to(GF_Terminal *term, const char *toURL)
 	if (term->reload_url) free(term->reload_url);
 	term->reload_url = NULL;
 	if (toURL) {
-		if (term->root_scene) 
+		if (term->root_scene && term->root_scene->root_od && term->root_scene->root_od->net_service) 
 			term->reload_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, toURL);
 		if (!term->reload_url) term->reload_url = strdup(toURL);
 	}

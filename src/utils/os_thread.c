@@ -414,7 +414,7 @@ Bool gf_mx_try_lock(GF_Mutex *mx)
 	switch (WaitForSingleObject(mx->hMutex, 1)) {
 	case WAIT_ABANDONED:
 	case WAIT_TIMEOUT:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] Couldn't release it for thread %s (grabbed by thread %s)\n", mx->log_name, log_th_name(caller), log_th_name(mx->Holder) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] Couldn't be locked by thread %s (grabbed by thread %s)\n", mx->log_name, log_th_name(caller), log_th_name(mx->Holder) ));
 		return 0;
 	default:
 		break;

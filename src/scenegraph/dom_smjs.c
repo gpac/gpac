@@ -2051,16 +2051,16 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 
 		/*VRML ones*/
 		case 60:/*width*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->screen_rect.width) );
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->screen_rect.width) ) );
 			return JS_TRUE;
 		case 61:/*height*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->screen_rect.height) );
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->screen_rect.height)) );
 			return JS_TRUE;
 		case 62:/*h_translation*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_translate.x) );
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->new_translate.x)) );
 			return JS_TRUE;
 		case 63:/*v_translation*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->new_translate.y) );
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->new_translate.y)) );
 			return JS_TRUE;
 		case 64:/*type3d*/
 			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;

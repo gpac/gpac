@@ -170,7 +170,9 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx2d_add_rotation(&mat, 0, 0, vp->orientation);
 
 	//compute scaling ratio
-	rc = gf_rect_center(vp->size.x, vp->size.y);
+	sx = (vp->size.x>=0) ? vp->size.x : w;
+	sy = (vp->size.y>=0) ? vp->size.y : h;
+	rc = gf_rect_center(sx, sy);
 	ar = gf_divfix(h, w);
 	rc_bckup = rc;
 

@@ -338,8 +338,10 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	}
 
 	/*animate current camera - if returns TRUE draw next frame*/
-	if (camera_animate(tr_state->camera)) 
+	if (camera_animate(tr_state->camera)) {
+		if (tr_state->visual->compositor->active_layer) gf_node_dirty_set(tr_state->visual->compositor->active_layer, 0, 1);
 		gf_sc_invalidate(tr_state->visual->compositor, NULL);
+	}
 
 	visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
 

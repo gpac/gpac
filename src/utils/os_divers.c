@@ -314,6 +314,8 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 
 	if (!dir || !enum_dir_fct) return GF_BAD_PARAM;
 
+	if (filter && (!strcmp(filter, "*") || !filter[0])) filter=NULL;
+
 	if (!strcmp(dir, "/")) {
 #if defined(WIN32) && !defined(_WIN32_WCE)
 		u32 len;

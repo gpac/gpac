@@ -157,14 +157,18 @@ void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 		bi = dri->current_bounds;
 		while (bi) {
 			_cur = bi;
-			if (is_reg) ra_add(&dri->visual->to_redraw, &bi->clip);
+			if (is_reg && bi->clip.width) {
+				ra_add(&dri->visual->to_redraw, &bi->clip);
+			}
 			bi = bi->next;
 			free(_cur);
 		}
 		bi = dri->previous_bounds;
 		while (bi) {
 			_cur = bi;
-			if (is_reg) ra_add(&dri->visual->to_redraw, &bi->clip);
+			if (is_reg && bi->clip.width) {
+				ra_add(&dri->visual->to_redraw, &bi->clip);
+			}
 			bi = bi->next;
 			free(_cur);
 		}
