@@ -197,7 +197,7 @@ void visual_2d_setup_projection(GF_VisualManager *visual, GF_TraverseState *tr_s
 
 	visual->surf_rect = gf_rect_pixelize(&rc);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] output rectangle setup - width %d height %d\n", visual->surf_rect.width, visual->surf_rect.height));
+//	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] output rectangle setup - width %d height %d\n", visual->surf_rect.width, visual->surf_rect.height));
 
 	/*setup top clipper*/
 	if (visual->center_coords) {
@@ -222,7 +222,7 @@ void visual_2d_setup_projection(GF_VisualManager *visual, GF_TraverseState *tr_s
 
 	visual->top_clipper = gf_rect_pixelize(&rc);
 	tr_state->clipper = rc;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Cliper setup - %d:%d@%dx%d\n", visual->top_clipper.x, visual->top_clipper.y, visual->top_clipper.width, visual->top_clipper.height));
+//	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Cliper setup - %d:%d@%dx%d\n", visual->top_clipper.x, visual->top_clipper.y, visual->top_clipper.width, visual->top_clipper.height));
 }
 
 GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
@@ -417,6 +417,8 @@ void gf_irect_union(GF_IRect *rc1, GF_IRect *rc2)
 void ra_union_rect(GF_RectArray *ra, GF_IRect *rc) 
 {
 	u32 i;
+
+	assert(rc->width && rc->height);
 
 	for (i=0; i<ra->count; i++) { 
 		if (gf_irect_overlaps(&ra->list[i], rc)) { 
@@ -636,8 +638,10 @@ skip_background:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redraw %d / %d nodes (all: %s)", num_changed, num_nodes, redraw_all ? "yes" : "no"));
 		if (visual->to_redraw.count>1) GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("\n"));
 
-		for (i=0; i<visual->to_redraw.count; i++)
+		for (i=0; i<visual->to_redraw.count; i++) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("\tDirtyRect #%d: %d:%d@%dx%d\n", i+1, visual->to_redraw.list[i].x, visual->to_redraw.list[i].y, visual->to_redraw.list[i].width, visual->to_redraw.list[i].height));
+			assert(visual->to_redraw.list[i].width);
+		}
 	}
 #endif
 	

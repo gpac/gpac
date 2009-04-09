@@ -78,7 +78,8 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 
 	ext = (const char *) glGetString(GL_EXTENSIONS);
 	/*store OGL extension to config for app usage*/
-	gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLExtensions", ext ? ext : "None");
+	if (gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLExtensions")==NULL)
+		gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLExtensions", ext ? ext : "None");
 	if (!ext) return;
 	memset(&compositor->gl_caps, 0, sizeof(GLCaps));
 
@@ -1562,8 +1563,8 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
 #ifndef GPAC_USE_TINYGL
-		glPixelTransferf(GL_DEPTH_SCALE, compositor->OGLDepthGain); 
-		glPixelTransferf(GL_DEPTH_BIAS, compositor->OGLDepthOffset); 
+		glPixelTransferf(GL_DEPTH_SCALE, FIX2FLT(compositor->OGLDepthGain) ); 
+		glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset) ); 
 #endif
 		/*the following is the inverse z-transform of OpenGL*/		
 #if 0		
@@ -1610,8 +1611,8 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		
 		glReadPixels(0, 0, fb->width, fb->height, GL_RGBA, GL_UNSIGNED_BYTE, fb->video_buffer);
 
-		glPixelTransferf(GL_DEPTH_SCALE, compositor->OGLDepthGain); 
-		glPixelTransferf(GL_DEPTH_BIAS, compositor->OGLDepthOffset); 
+		glPixelTransferf(GL_DEPTH_SCALE, FIX2FLT(compositor->OGLDepthGain)); 
+		glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset)); 
 		
 		depth_data = (char*) malloc(sizeof(char)*fb->width*fb->height);
 		glReadPixels(0, 0, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, depth_data);

@@ -2,7 +2,7 @@
 // Microsoft Developer Studio generated include file.
 // Used by wxOsmo4.rc
 //
-#define IDI_ICON1                       101
+#define IDI_OSMO_ICON                       101
 
 // Next default values for new objects
 // 

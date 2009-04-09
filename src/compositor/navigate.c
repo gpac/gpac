@@ -33,6 +33,7 @@ static void camera_changed(GF_Compositor *compositor, GF_Camera *cam)
 {
 	cam->flags |= CAM_IS_DIRTY;
 	gf_sc_invalidate(compositor, NULL);
+	if (compositor->active_layer) gf_node_dirty_set(compositor->active_layer, 0, 1);
 }
 
 /*shortcut*/

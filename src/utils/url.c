@@ -197,11 +197,20 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 		if (outPath[i]=='\\') outPath[i] = '/';
 
 check_spaces:
-	while (1) {
-		char *str = strstr(outPath, "%20");
-		if (!str) break;
-		str[0] = ' ';
-		memmove(str+1, str+3, strlen(str)-2);
+	i=0;
+	while (outPath[i]) {
+		if (outPath[i] == '?') break;
+
+		if (outPath[i] != '%') {
+			i++;
+			continue;
+		}
+		if (!strnicmp(outPath+i, "%3f", 3)) break;
+		if (!strnicmp(outPath+i, "%20", 3)) {
+			outPath[i]=' ';
+			memmove(outPath + i+1, outPath+i+3, strlen(outPath+i)-2);
+		}
+		i++;
 	}
 	return outPath;
 }

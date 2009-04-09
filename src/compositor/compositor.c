@@ -1065,15 +1065,24 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	
 #ifdef GPAC_TRISCOPE_MODE
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3dsDepthBuffGain");
-	if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthGain); else ((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthGain = 1;
+	if (sOpt) ((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthGain = FLT2FIX(atof(sOpt)); 
+	((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthGain = FIX_ONE;
+	
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3dsDepthBuffOffset");
-	if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthOffset); else ((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthOffset = 0;
+	if (sOpt) ((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthOffset  FLT2FIX(atof(sOpt)); 
+	else ((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthOffset = 0;
+	
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FlatDepthBuffGain");
-	if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->FlatDepthGain); else ((GF_RenoirHandler *) compositor->RenoirHandler)->FlatDepthGain = 1.0;
+	if (sOpt) ((GF_RenoirHandler *)compositor->RenoirHandler)->FlatDepthGain = FLT2FIX(atof(sOpt)); 
+	else ((GF_RenoirHandler *) compositor->RenoirHandler)->FlatDepthGain = FIX_ONE;
+
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffGain");
-	if (sOpt) sscanf(sOpt, "%f", &compositor->OGLDepthGain); else compositor->OGLDepthGain = 1.0;
+	if (sOpt) compositor->OGLDepthGain = FLT2FIX(atof(sOpt)); 
+	else compositor->OGLDepthGain = FIX_ONE;
+	
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffOffset");
-	if (sOpt) sscanf(sOpt, "%f", &compositor->OGLDepthOffset); else compositor->OGLDepthOffset = 0;
+	if (sOpt) compositor->OGLDepthOffset = FLT2FIX(atof(sOpt)); 
+	else compositor->OGLDepthOffset = 0;
 #endif
 
 	
@@ -1782,6 +1791,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	count = gf_list_count(compositor->textures);
 	for (i=0; i<count; i++) {
 		GF_TextureHandler *txh = (GF_TextureHandler *)gf_list_get(compositor->textures, i);
+		if (!txh) break;
 		/*signal graphics reset before updating*/
 		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
 		txh->update_texture_fcnt(txh);

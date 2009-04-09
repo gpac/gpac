@@ -104,6 +104,15 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_y)) );
 		return JS_TRUE;
 	}
+	if (!strcmp(prop_name, "rectangular_textures")) {
+		Bool any_size = 0;
+#ifndef GPAC_DISABLE_3D
+		if (term->compositor->gl_caps.npot_texture || term->compositor->gl_caps.rect_texture)
+			any_size = 1;
+#endif
+		*vp = BOOLEAN_TO_JSVAL( any_size ? JS_TRUE : JS_FALSE );
+		return JS_TRUE;
+	}
 	if (!strcmp(prop_name, "batteryOn")) {
 		Bool on_battery = 0;
 		gf_sys_get_battery_state(&on_battery, NULL, NULL, NULL, NULL);
@@ -356,8 +365,8 @@ static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 			term->compositor->scene_height = h;
 			term->compositor->has_size_info = 1;
 		}
-		gf_sc_set_size(term->compositor, w, h);
-		evt.type = GF_EVENT_SIZE;
+//		gf_sc_set_size(term->compositor, w, h);
+		evt.type = GF_EVENT_SCENE_SIZE;
 		evt.size.width = w;
 		evt.size.height = h;
 		gf_term_send_event(term, &evt);
@@ -419,6 +428,23 @@ static JSBool gpac_set_3d(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	return JS_TRUE;
 }
 
+static JSBool gpac_get_scene_time(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_SceneGraph *sg = NULL;
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
+	if (!argc || !JSVAL_IS_OBJECT(argv[0])) {
+		sg = term->root_scene->graph;
+	} else {
+		GF_Node *n = gf_sg_js_get_node(c, JSVAL_TO_OBJECT(argv[0]));
+		sg = n ? n->sgprivate->scenegraph : term->root_scene->graph;
+	}
+	*rval = DOUBLE_TO_JSVAL( JS_NewDouble(c, sg->GetSceneTime(sg->userpriv) ) );
+
+	return JS_TRUE;
+}
+
+
+
 static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
 {
 	GF_GPACJSExt *gjs;
@@ -439,6 +465,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		{"get_screen_height",	gpac_get_screen_height, 0, 0, 0},
 		{"exit",				gpac_exit, 0, 0, 0},
 		{"set_3d",				gpac_set_3d, 1, 0, 0},
+		{"get_scene_time",				gpac_get_scene_time, 1, 0, 0},
 		{0, 0, 0, 0, 0}
 	};
 

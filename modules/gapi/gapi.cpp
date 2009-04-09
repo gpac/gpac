@@ -71,6 +71,15 @@ static void GAPI_GetCoordinates(DWORD lParam, GF_Event *evt)
 	evt->mouse.x = LOWORD(lParam);
 	evt->mouse.y = HIWORD(lParam);
 
+	if (ctx->scale_coords) {
+		evt->mouse.x = LOWORD(lParam) * the_video_driver->max_screen_width / ctx->sys_w;
+		evt->mouse.y = HIWORD(lParam) * the_video_driver->max_screen_height / ctx->sys_h;
+	} else {
+	 	evt->mouse.x = LOWORD(lParam);
+		evt->mouse.y = HIWORD(lParam);
+	}
+
+
 	if (ctx->fullscreen) {
 		POINT pt;
 		pt.x = evt->mouse.x;
@@ -838,6 +847,13 @@ GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no
     GetClientRect(gctx->hWnd, &rc);
 	gctx->backup_w = rc.right - rc.left;
 	gctx->backup_h = rc.bottom - rc.top;
+
+	gctx->sys_w = GetSystemMetrics(SM_CXSCREEN);
+	gctx->sys_h = GetSystemMetrics(SM_CYSCREEN);
+	gctx->scale_coords = 0;
+	if (gctx->sys_w != dr->max_screen_width) gctx->scale_coords = 1;
+	else if (gctx->sys_h != dr->max_screen_height) gctx->scale_coords = 1;
+
 	return GAPI_InitBackBuffer(dr, gctx->backup_w, gctx->backup_h);
 }
 

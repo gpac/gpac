@@ -410,6 +410,7 @@ void gf_smil_timing_delete_runtime_info(GF_Node *timed_elt, SMIL_Timing_RTI *rti
 	sg = timed_elt->sgprivate->scenegraph;
 	while (sg->parent_scene) sg = sg->parent_scene;
 	gf_list_del_item(sg->smil_timed_elements, rti);
+	gf_list_del_item(sg->modified_smil_timed_elements, rti);
 
 	/*remove all associated listeners*/
 	if (rti->timingp->begin) gf_smil_timing_reset_time_list(* rti->timingp->begin);

@@ -1,4 +1,7 @@
 #include <windows.h>
+
+#ifdef _WIN32_WCE
+
 #include <aygshell.h>
 
 #include <gpac/config_file.h>
@@ -396,4 +399,7 @@ Bool gf_file_dialog(HINSTANCE inst, HWND parent, char *url, const char *ext_list
 	if (iResult>0) return 1;
 	return 0;
 }
+
+
+#endif
 

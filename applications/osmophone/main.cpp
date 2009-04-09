@@ -34,10 +34,20 @@
 #include <windows.h>
 #include <commdlg.h>
 #include <commctrl.h>
-#include <aygshell.h>
-#include "resource.h"
 
+#ifdef _WIN32_WCE
+#include <aygshell.h>
 #include <gx.h>
+
+#else
+
+#ifndef _T
+#define _T(__a) (LPCSTR) __a
+#endif
+
+#endif
+
+#include "resource.h"
 
 #define WM_LOADTERM	WM_USER + 1
 #define STATE_TIMER_ID		20
@@ -100,9 +110,13 @@ static u32 playlist_act = 0;
 void set_status(char *state)
 {
 	if (show_status && g_hwnd_status) {
+#ifdef _WIN32_WCE
 		TCHAR wstate[1024];
 		CE_CharToWide(state, (u16 *) wstate);
 		SendMessage(g_hwnd_status, WM_SETTEXT, 0, (LPARAM) wstate);
+#else
+		SendMessage(g_hwnd_status, WM_SETTEXT, 0, (LPARAM) state);
+#endif
 		last_state_time = GetTickCount();
 	}
 }
@@ -234,7 +248,7 @@ static void setup_logs()
 			while (val) {
 				sep = strchr(val, ':');
 				if (sep) sep[0] = 0;
-				if (!stricmp(val, "core")) lt |= GF_LOG_CODING;
+				if (!stricmp(val, "core")) lt |= GF_LOG_CORE;
 				else if (!stricmp(val, "coding")) lt |= GF_LOG_CODING;
 				else if (!stricmp(val, "container")) lt |= GF_LOG_CONTAINER;
 				else if (!stricmp(val, "network")) lt |= GF_LOG_NETWORK;
@@ -351,6 +365,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		break;
 	case GF_EVENT_QUIT:
+		PostMessage(g_hwnd, WM_DESTROY, 0, 0);
 		break;
 	case GF_EVENT_KEYDOWN:
 		switch (evt->key.key_code) {
@@ -376,7 +391,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			gf_term_navigate_to(term, evt->navigate.to_url);
 			return 1;
 		} else {
+#ifdef _WIN32_WCE
 			u16 dst[1024];
+#endif
 			SHELLEXECUTEINFO info;
 
 /*
@@ -385,11 +402,15 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 */
 			memset(&info, 0, sizeof(SHELLEXECUTEINFO));
 			info.cbSize = sizeof(SHELLEXECUTEINFO);
-			info.lpVerb = L"open";
+			info.lpVerb = _T("open");
 			info.fMask = SEE_MASK_NOCLOSEPROCESS;
-			info.lpFile = L"iexplore";
+			info.lpFile = _T("iexplore");
+#ifdef _WIN32_WCE
 			CE_CharToWide((char *) evt->navigate.to_url, dst);
 			info.lpParameters = (LPCTSTR) dst;
+#else
+			info.lpParameters = evt->navigate.to_url;
+#endif
 			info.nShow = SW_SHOWNORMAL;
 			ShellExecuteEx(&info);
 		}
@@ -398,7 +419,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	return 0;
 }
 
-#define TERM_NOT_THREADED
+//#define TERM_NOT_THREADED
 
 Bool LoadTerminal()
 {
@@ -425,11 +446,12 @@ Bool LoadTerminal()
 		return 0;
 	}
 
+#ifdef _WIN32_WCE
 	screen_w = term->compositor->video_out->max_screen_width;
 	screen_h = term->compositor->video_out->max_screen_height;
 	disp_w = screen_w;
 	disp_h = screen_h - menu_h /*- caption_h*/;
-
+#endif
 
 #ifdef TERM_NOT_THREADED
 	::SetTimer(g_hwnd, GPAC_TIMER_ID, GPAC_TIMER_DUR, NULL);
@@ -451,16 +473,22 @@ void do_layout(Bool notif_size)
 		w = screen_w;
 		h = screen_h;
 		::ShowWindow(g_hwnd_status, SW_HIDE);
+#ifdef _WIN32_WCE
 		::ShowWindow(g_hwnd_menu1, SW_HIDE);
 		::ShowWindow(g_hwnd_menu2, SW_HIDE);
+#endif
 
+#ifdef _WIN32_WCE
 		SHFullScreen(g_hwnd, SHFS_HIDESIPBUTTON);
+#endif
 		::MoveWindow(g_hwnd, 0, 0, screen_w, screen_h, 1);
 		::MoveWindow(g_hwnd_disp, 0, 0, screen_w, screen_h, 1);
 		SetForegroundWindow(g_hwnd_disp);
 	} else {
+#ifdef _WIN32_WCE
 		::ShowWindow(g_hwnd_menu1, menu_switched ? SW_HIDE : SW_SHOW);
 		::ShowWindow(g_hwnd_menu2, menu_switched ? SW_SHOW : SW_HIDE);
+#endif
 		if (show_status) {
 			::MoveWindow(g_hwnd, 0, 0, disp_w, disp_h, 1);
 			::ShowWindow(g_hwnd_status, SW_SHOW);
@@ -483,12 +511,11 @@ void do_layout(Bool notif_size)
 
 void set_backlight_state(Bool disable) 
 {
+#ifdef _WIN32_WCE
 	HKEY hKey = 0;
 	DWORD dwSize;
 	DWORD dwValue;
 	HANDLE hBL;
-
-
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, _T("ControlPanel\\Backlight"), 0, 0, &hKey ) != ERROR_SUCCESS) return;
 
 	if (disable) {
@@ -520,6 +547,7 @@ void set_backlight_state(Bool disable)
 		SetEvent(hBL);
 		CloseHandle(hBL);
 	}
+#endif
 }
 
 static Bool do_resume = 0;
@@ -551,6 +579,7 @@ void freeze_display(Bool do_freeze)
 
 static void show_taskbar(Bool show_it)
 {
+#ifdef _WIN32_WCE
 	HWND wnd;
 	if (!is_ppc) return;
 
@@ -563,10 +592,12 @@ static void show_taskbar(Bool show_it)
 		::ShowWindow(::FindWindow(_T("HHTaskbar"),NULL), SW_HIDE);
 		SHFullScreen(wnd, SHFS_HIDESTARTICON | SHFS_HIDETASKBAR| SHFS_HIDESIPBUTTON);
 	}
+#endif
 }
 
 void refresh_recent_files()
 {
+#ifdef _WIN32_WCE
 	u32 count = gf_cfg_get_key_count(user.config, "RecentFiles");
 
     HMENU hMenu = (HMENU)SendMessage(g_hwnd_menu1, SHCMBM_GETSUBMENU, 0, ID_MENU_FILE);
@@ -587,6 +618,7 @@ void refresh_recent_files()
 		CE_CharToWide(name, (u16 *) txt);
 		AppendMenu(hMenu, MF_STRING, IDM_OPEN_FILE1+i, txt);
 	}
+#endif
 }
 
 
@@ -610,8 +642,11 @@ void open_file(HWND hwnd)
 		strcat(ext_list, szKeyList);
 		strcat(ext_list, " ");
 	}
+#ifdef _WIN32_WCE
 	res = gf_file_dialog(g_hinst, hwnd, the_url, ext_list, user.config);
-
+#else
+	res = 0;
+#endif
 	freeze_display(0);
 
 	/*let's go*/
@@ -633,6 +668,7 @@ BOOL CALLBACK AboutDialogProc(const HWND hWnd, const UINT Msg, const WPARAM wPar
     switch (Msg) {
     case WM_INITDIALOG:
 	{
+#ifdef _WIN32_WCE
 	    TCHAR           psz[80];
 		ZeroMemory(psz, sizeof(psz));
 		SHINITDLGINFO sid;
@@ -651,6 +687,7 @@ BOOL CALLBACK AboutDialogProc(const HWND hWnd, const UINT Msg, const WPARAM wPar
 		mbi.nBmpId = 0;
 		mbi.cBmpImages = 0;	
 		SHCreateMenuBar(&mbi);
+#endif
 	}
         break;
     case WM_COMMAND:
@@ -674,19 +711,26 @@ void view_about(HWND hwnd)
 void pause_file()
 {
 	if (!is_connected) return;
+#ifdef _WIN32_WCE
 	TBBUTTONINFO tbbi; 
 	tbbi.cbSize = sizeof(tbbi); 
 	tbbi.dwMask = TBIF_TEXT; 
+#endif
 
 	if (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) {
 		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+#ifdef _WIN32_WCE
 		tbbi.pszText = _T("Resume"); 
+#endif
 	} else {
 		gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
+#ifdef _WIN32_WCE
 		tbbi.pszText = _T("Pause"); 
+#endif
 	}
+#ifdef _WIN32_WCE
 	SendMessage(g_hwnd_menu1, TB_SETBUTTONINFO, IDM_FILE_PAUSE, (LPARAM)&tbbi); 
-
+#endif
 }
 
 void set_svg_progressive()
@@ -719,10 +763,15 @@ void do_copy_paste()
 	if (IsClipboardFormatAvailable(CF_TEXT) && (gf_term_paste_text(term, NULL, 1)==GF_OK)) {
 		HGLOBAL hglbCopy = GetClipboardData(CF_TEXT);
 		if (hglbCopy) {
+#ifdef _WIN32_WCE
 			char szString[1024];
 			LPCTSTR paste_string = (LPCTSTR) GlobalLock(hglbCopy);
 			CE_WideToChar((u16 *) paste_string, szString);
 			gf_term_paste_text(term, szString, 0);
+#else
+			char *szString = (char *)GlobalLock(hglbCopy);
+			gf_term_paste_text(term, szString, 0);
+#endif
 			GlobalUnlock(hglbCopy); 
 		}
 	}
@@ -734,9 +783,15 @@ void do_copy_paste()
 			EmptyClipboard();
 			len = strlen(text);
 
+#ifdef _WIN32_WCE
 			HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, (len + 1) * sizeof(u16)); 
 			LPCTSTR new_string = (LPCTSTR) GlobalLock(hglbCopy);
 			CE_CharToWide((char*)text, (u16*)new_string); 
+#else
+			HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, (len + 1) * sizeof(u8)); 
+			char *new_string = (char*) GlobalLock(hglbCopy);
+			strcpy(new_string, text); 
+#endif
 			GlobalUnlock(hglbCopy); 
 			SetClipboardData(CF_TEXT, hglbCopy);
 		}
@@ -961,6 +1016,7 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	switch (msg) {
 	case WM_CREATE:
 	{
+#ifdef _WIN32_WCE
 		SHMENUBARINFO mbi;
 		memset(&mbi, 0, sizeof(SHMENUBARINFO));
 		mbi.cbSize = sizeof(SHMENUBARINFO);
@@ -976,8 +1032,12 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		mbi.nToolBarId = IDM_MAIN_MENU2;
 		SHCreateMenuBar(&mbi);
 		g_hwnd_menu2 = mbi.hwndMB;
+#else
+		g_hwnd_menu1 = g_hwnd_menu2 = NULL;
+#endif
 
 		g_hwnd_status = CreateWindow(TEXT("STATIC"), TEXT("Status"), WS_CHILD|WS_VISIBLE|SS_LEFT, 0, 0, disp_w, caption_h-1, hwnd, NULL, g_hinst, NULL);
+
 		do_layout(1);
 	}
 		break;
@@ -1020,19 +1080,25 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		freeze_display(0);
 		break;
     case WM_KILLFOCUS:
-		freeze_display(1);
+        if ((HWND) wParam==g_hwnd) {
+			freeze_display(1);
+		}
 		break;
     case WM_ACTIVATE:
         if (WA_INACTIVE != LOWORD(wParam)) {
-			freeze_display(0);
-			SetFocus(hwnd);
+			if ((HWND) lParam == g_hwnd) {
+				freeze_display(0);
+				SetFocus(hwnd);
+			}
 		} else {
-			freeze_display(1);
+			if ((HWND) lParam == g_hwnd_disp) {
+				freeze_display(1);
+			}
 		}
         break;
 	case WM_LOADTERM:
 		if (!LoadTerminal()) {
-			MessageBox(hwnd, L"Cannot load GPAC", L"Error", MB_OK);
+			MessageBox(hwnd, _T("Cannot load GPAC"), _T("Error"), MB_OK);
 			PostQuitMessage(0);
 		}
 		break;
@@ -1062,8 +1128,14 @@ BOOL InitInstance (int CmdShow)
     wc.lpszClassName	= _T("Osmophone");
 	RegisterClass(&wc);
 
+#ifdef _WIN32_WCE
+	int style = WS_VISIBLE;
+#else
+	int style = WS_POPUP;
+#endif
+
 	g_hwnd = CreateWindow(_T("Osmophone"), _T("Osmophone"), 
-						  WS_VISIBLE,
+						  style,
 						  0, caption_h, disp_w, disp_h, 
 						  NULL, NULL, g_hinst, NULL);
 	
@@ -1085,7 +1157,9 @@ BOOL InitInstance (int CmdShow)
 Bool initial_setup(const char *szExePath)
 {
 	char szPath[GF_MAX_PATH];
+#ifdef _WIN32_WCE
 	TCHAR wzPath[GF_MAX_PATH];
+#endif
 	strcpy(szPath, szExePath);
 	strcat(szPath, "GPAC.cfg");
 	FILE *f = fopen(szPath, "wt");
@@ -1098,8 +1172,12 @@ Bool initial_setup(const char *szExePath)
 
 	strcpy(szPath, szExePath);
 	strcat(szPath, "cache");
+#ifdef _WIN32_WCE
 	CE_CharToWide(szPath, (u16 *) wzPath);
 	CreateDirectory(wzPath, NULL);
+#else
+	CreateDirectory(szPath, NULL);
+#endif
 	gf_cfg_set_key(user.config, "General", "CacheDirectory", szPath);
 
 	/*base rendering options*/
@@ -1135,11 +1213,17 @@ Bool initial_setup(const char *szExePath)
 
 int WINAPI WinMain(HINSTANCE hInstance, 
 				   HINSTANCE hPrevInstance, 
+#ifdef _WIN32_WCE
 				   LPWSTR lpCmdLine, 
+#else
+				   LPSTR lpCmdLine, 
+#endif
 				   int nShowCmd 
 ) {
 	MSG 	msg;
+#ifdef _WIN32_WCE
 	TCHAR wzExePath[GF_MAX_PATH];
+#endif
 	char szExePath[GF_MAX_PATH];
 
 	HWND 	hwndOld = NULL;	
@@ -1155,8 +1239,12 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	memset(&user, 0, sizeof(GF_User));
 	term = NULL;
 
+#ifdef _WIN32_WCE
 	GetModuleFileName(NULL, wzExePath, GF_MAX_PATH);
 	CE_WideToChar((u16 *) wzExePath, szExePath);
+#else
+	GetModuleFileName(NULL, szExePath, GF_MAX_PATH);
+#endif
 	char *sep = strrchr(szExePath, '\\');
 	sep[1] = 0;
 
@@ -1166,15 +1254,14 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	caption_h = GetSystemMetrics(SM_CYCAPTION) - 3;
 	screen_w = GetSystemMetrics(SM_CXSCREEN);
 	screen_h = GetSystemMetrics(SM_CYSCREEN);
-	disp_w = screen_w;
-	disp_h = screen_h - menu_h /*- caption_h*/;
 
 	
+#ifdef _WIN32_WCE
 	TCHAR      szBuf[MAX_PATH];
 	SystemParametersInfo(SPI_GETPLATFORMTYPE, MAX_PATH, szBuf, 0);
-
 	if (! lstrcmp(szBuf, __TEXT("PocketPC"))) is_ppc = 1;
 	else if (! lstrcmp(szBuf, __TEXT("Palm PC2"))) is_ppc = 1;
+#endif
 
 
 	user.config = gf_cfg_new(szExePath, "GPAC.cfg");
@@ -1186,6 +1273,19 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		MessageBox(NULL, _T("Couldn't locate GPAC config file"), _T("Fatal Error"), MB_OK);
 		return 0;
 	}
+
+
+    str = gf_cfg_get_key(user.config, "Compositor", "ScreenWidth");
+	if (str) screen_w = atoi(str);
+    str = gf_cfg_get_key(user.config, "Compositor", "ScreenHeight");
+	if (str) screen_h = atoi(str);
+	disp_w = screen_w;
+#ifdef _WIN32_WCE
+	disp_h = screen_h - menu_h /*- caption_h*/;
+#else
+	disp_h = screen_h;
+#endif
+
 	str = gf_cfg_get_key(user.config, "General", "ModulesDirectory");
 	if (!str) {
 		gf_cfg_del(user.config);
@@ -1194,7 +1294,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	}
 
 	gf_sys_init();
-
 	user.modules = gf_modules_new(str, user.config);
 	if (!gf_modules_get_count(user.modules)) {
 		MessageBox(GetForegroundWindow(), _T("No modules found"), _T("GPAC Init Error"), MB_OK);
@@ -1235,7 +1334,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	show_status = (str && !strcmp(str, "yes")) ? 1 : 0;
 
 
+#ifdef _WIN32_WCE
 	if (is_ppc) GXOpenInput();
+#endif
 
 	if (InitInstance(nShowCmd)) {
 		SetForegroundWindow(g_hwnd);
@@ -1254,7 +1355,9 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		}
 		show_taskbar(1);
 	}
+#ifdef _WIN32_WCE
 	if (is_ppc) GXCloseInput();
+#endif
 
 	/*and destroy*/
 	if (term) gf_term_del(term);

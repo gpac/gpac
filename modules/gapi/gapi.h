@@ -58,6 +58,9 @@ typedef struct
 	Bool force_gx;
 	Bool gx_mode;
 
+	u32 sys_w, sys_h;
+	Bool scale_coords;
+
 	/*main surface info*/
 	char *backbuffer;
 	u32 bb_size, bb_width, bb_height, bb_pitch;

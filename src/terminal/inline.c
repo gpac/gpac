@@ -377,10 +377,6 @@ void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for
 						break;
 					}
 				}
-				gf_list_rem(is->media_objects, i-1);
-				gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
-				gf_list_del(obj->nodes);
-				free(obj);
 				discard_obj = 1;
 			} else if (!for_shutdown) {
 				/*if dynamic OD and more than 1 URLs resetup*/
@@ -718,10 +714,11 @@ void gf_inline_on_modified(GF_Node *node)
 						gf_odm_disconnect(pIS->root_od, 1);
 						/*and force removal of the media object*/
 						if (parent) {
-							gf_list_del_item(parent->media_objects, mo);
-							gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
-							gf_list_del(mo->nodes);
-							free(mo);
+							if (gf_list_del_item(parent->media_objects, mo)>=0) {
+								gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
+								gf_list_del(mo->nodes);
+								free(mo);
+							}
 						}
 					} else {
 						gf_term_lock_net(pIS->root_od->term, 1);
@@ -1264,6 +1261,10 @@ const char *IS_GetSceneViewName(GF_InlineScene *is)
 	char *seg_name;
 	/*check any viewpoint*/
 	seg_name = strrchr(is->root_od->net_service->url, '#');
+	if (!seg_name && is->root_od->mo) {
+		if (is->root_od->mo->URLs.count && is->root_od->mo->URLs.vals[0].url)
+			seg_name = strrchr(is->root_od->mo->URLs.vals[0].url, '#');
+	}
 	if (!seg_name) return NULL;
 	seg_name += 1;
 	/*look for a media segment with this name - if none found, this is a viewpoint name*/

@@ -238,7 +238,18 @@ static void composite_update(GF_TextureHandler *txh)
 	if (w<0) w = 0;
 	if (h<0) h = 0;
 
-	if (!w || !h) return;
+	if (!w || !h) {
+		if (txh->tx_io) {
+#ifdef GPAC_USE_TINYGL
+			if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
+#endif
+			gf_sc_texture_release(txh);
+			if (txh->data) free(txh->data);
+			txh->data = NULL;
+			txh->width = txh->height = txh->stride = 0;
+		}
+		return;
+	}
 	invalidate_all = 0;
 
 	/*rebuild stencil*/
@@ -644,8 +655,10 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 	compositor->sensors = tmp1;
 	compositor->previous_sensors = tmp2;
 
+
 	if (!is_flush) {
 		gf_list_del(tr_state->vrml_sensors);
+		if (tr_state->layer3d) compositor->traverse_state->layer3d = tr_state->layer3d;
 		free(tr_state);
 	}
 	return res;

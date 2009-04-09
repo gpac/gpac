@@ -54,7 +54,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON1               ICON    DISCARDABLE     "osmo4.ico"
+IDI_OSMO_ICON               ICON    DISCARDABLE     "..\..\doc\osmo4.ico"
 #endif    // French (France) resources
 /////////////////////////////////////////////////////////////////////////////
 

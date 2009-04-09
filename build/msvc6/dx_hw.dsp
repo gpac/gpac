@@ -137,6 +137,10 @@ SOURCE=..\..\modules\dx_hw\res\hand.cur
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\doc\osmo4.ico
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\modules\dx_hw\resource.h
 # End Source File
 # End Target
