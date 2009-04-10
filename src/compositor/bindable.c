@@ -134,7 +134,7 @@ Bool Bindable_GetSetBind(GF_Node *bindable)
 	}
 }
 
-void Bindable_SetSetBind(GF_Node *bindable, Bool val)
+void Bindable_SetSetBindEx(GF_Node *bindable, Bool val, GF_List *stack)
 {
 	if (!bindable) return;
 	switch (gf_node_get_tag(bindable)) {
@@ -144,7 +144,7 @@ void Bindable_SetSetBind(GF_Node *bindable, Bool val)
 		break;
 	case TAG_MPEG4_Viewport: 
 		((M_Viewport*)bindable)->set_bind = val;
-		((M_Viewport*)bindable)->on_set_bind(bindable, NULL);
+		((M_Viewport*)bindable)->on_set_bind(bindable, (GF_Route*)stack);
 		break;
 	case TAG_MPEG4_Background: case TAG_X3D_Background:
 		((M_Background*)bindable)->set_bind = val;
@@ -165,8 +165,12 @@ void Bindable_SetSetBind(GF_Node *bindable, Bool val)
 	default: return;
 	}
 }
+void Bindable_SetSetBind(GF_Node *bindable, Bool val)
+{
+	Bindable_SetSetBindEx(bindable, val, NULL);
+}
 
-void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list)
+void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list, GF_List *for_stack)
 {
 	u32 i;
 	Bool on_top, is_bound, set_bind;
@@ -181,6 +185,8 @@ void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list)
 
 	i=0;
 	while ((stack = (GF_List*)gf_list_enum(stack_list, &i))) {
+		if (for_stack && (for_stack!=stack)) continue;
+
 		on_top = (gf_list_get(stack, 0)==bindable) ? 1 : 0;
 
 		if (!set_bind) {

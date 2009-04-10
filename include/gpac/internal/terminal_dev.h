@@ -146,6 +146,8 @@ struct _inline_scene
 	like RTSP TEARDOWN/SETUP*/
 	Bool static_media_ressources;
 
+	/*URL of the current parent Inline node, only set during traversal*/
+	MFURL *current_url;
 	/*current simulation time of the compositor*/
 	Double simulation_time;
 
