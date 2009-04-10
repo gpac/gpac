@@ -23,6 +23,7 @@
  */
 
 #include "visual_manager.h"
+#include "nodes_stacks.h"
 #include <gpac/nodes_mpeg4.h>
 #ifndef GPAC_DISABLE_SVG
 #include <gpac/nodes_svg.h>
@@ -77,12 +78,12 @@ void visual_del(GF_VisualManager *visual)
 		free(cur);
 	}
 
-	if (visual->back_stack) gf_list_del(visual->back_stack);
-	if (visual->view_stack) gf_list_del(visual->view_stack);
+	if (visual->back_stack) BindableStackDelete(visual->back_stack);
+	if (visual->view_stack) BindableStackDelete(visual->view_stack);
 
 #ifndef GPAC_DISABLE_3D
-	if (visual->navigation_stack) gf_list_del(visual->navigation_stack);
-	if (visual->fog_stack) gf_list_del(visual->fog_stack);
+	if (visual->navigation_stack) BindableStackDelete(visual->navigation_stack);
+	if (visual->fog_stack) BindableStackDelete(visual->fog_stack);
 	gf_list_del(visual->alpha_nodes_to_draw);
 #endif
 	free(visual);

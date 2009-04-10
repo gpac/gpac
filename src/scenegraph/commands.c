@@ -175,6 +175,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		/*DO NOT TOUCH node registry*/
 		/*DO NOT TOUCH UNREGISTERED PROTOS*/
 
+		/*if no protos (previously aggregated command) create proto list*/
+		if (!graph->protos) graph->protos = gf_list_new();
+
 		/*move all protos in graph*/
 		while (gf_list_count(com->new_proto_list)) {
 			GF_Proto *p = (GF_Proto*)gf_list_get(com->new_proto_list, 0);

@@ -781,6 +781,7 @@ static void IS_CheckMediaRestart(GF_InlineScene *is)
 
 static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 {
+	MFURL *current_url;
 	GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(n);
 
 	if (is_destroy) {
@@ -877,8 +878,11 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 	}
 	/*clear dirty flags for any sub-inlines, bitmaps or protos*/
 	gf_node_dirty_clear(n, 0);
-	
+
+	current_url = is->current_url;
+	is->current_url = & ((M_Inline*)n)->url;
 	gf_sc_traverse_subscene(is->root_od->term->compositor, n, is->graph, rs);
+	is->current_url = current_url;
 }
 
 
@@ -1256,14 +1260,18 @@ GF_MediaObject *gf_inline_find_object(GF_InlineScene *is, u16 ODID, char *url)
 }
 
 
-const char *IS_GetSceneViewName(GF_InlineScene *is) 
+static const char *gf_is_get_scene_fragment_name(GF_InlineScene *is) 
 {
 	char *seg_name;
 	/*check any viewpoint*/
 	seg_name = strrchr(is->root_od->net_service->url, '#');
-	if (!seg_name && is->root_od->mo) {
-		if (is->root_od->mo->URLs.count && is->root_od->mo->URLs.vals[0].url)
-			seg_name = strrchr(is->root_od->mo->URLs.vals[0].url, '#');
+	
+	/*check the URL of the parent*/
+	if (!seg_name && is->current_url) {
+		if (is->current_url->count && is->current_url->vals[0].url) 
+			seg_name = strrchr(is->current_url->vals[0].url, '#');
+	} else if (!seg_name && is->root_od->mo && is->root_od->mo->URLs.count && is->root_od->mo->URLs.vals[0].url) {
+		seg_name = strrchr(is->root_od->mo->URLs.vals[0].url, '#');
 	}
 	if (!seg_name) return NULL;
 	seg_name += 1;
@@ -1282,7 +1290,7 @@ Bool gf_inline_default_scene_viewpoint(GF_Node *node)
 
 	nname = gf_node_get_name(node);
 	if (!nname) return 0;
-	sname = IS_GetSceneViewName(is);
+	sname = gf_is_get_scene_fragment_name(is);
 	if (!sname) return 0;
 	return (!strcmp(nname, sname));
 }

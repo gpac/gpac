@@ -64,11 +64,16 @@ Bool Bindable_GetIsBound(GF_Node *bindable);
 /*sets isBound*/
 void Bindable_SetIsBound(GF_Node *bindable, Bool val);
 /*generic on_set_bind for all bindables*/
-void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list);
+void Bindable_OnSetBind(GF_Node *bindable, GF_List *stack_list, GF_List *for_stack);
 /*remove all bindable references to this stack and destroy chain*/
 void BindableStackDelete(GF_List *stack);
 /*for user-modif of viewport/viewpoint*/
 void Bindable_SetSetBind(GF_Node *bindable, Bool val);
+
+/*special user-modif of viewport/viewpoint: 
+ if stack is not NULL, binding is only performed in this stack
+ otherwise,  binding is performed on all stack*/
+void Bindable_SetSetBindEx(GF_Node *bindable, Bool val, GF_List *stack);
 
 
 /*Viewport/Viewpoint/NavigationInfo/Fog stack - exported for generic bindable handling*/
