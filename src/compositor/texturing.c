@@ -92,7 +92,7 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 	gf_mo_play(txh->stream, start_offset, end_offset, can_loop);
 
 	txh->last_frame_time = (u32) (-1);
-	gf_sc_invalidate(txh->compositor, NULL);
+	//gf_sc_invalidate(txh->compositor, NULL);
 	txh->is_open = 1;
 	return GF_OK;
 }

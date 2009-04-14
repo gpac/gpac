@@ -1697,10 +1697,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 
 	gf_term_sample_clocks(compositor->term);
-	
-	/*setup root visual before triggering animations in case they in turn use the viewport*/
-//	if (!compositor->root_visual_setup)
-//		gf_sc_setup_root_visual(compositor, gf_sg_get_root_node(compositor->scene));
 
 #ifndef GPAC_DISABLE_LOG
 	route_time = gf_sys_clock();
