@@ -1542,6 +1542,10 @@ exit:
 	/*fetch data*/
 	while (1) {
 		u32 size;
+
+		if (sess->status==GF_NETIO_DISCONNECTED) 
+			return;
+
 #if 1
 		if (sess->limit_data_rate && sess->bytes_per_sec) {
 			if (sess->bytes_per_sec>sess->limit_data_rate) {

@@ -404,7 +404,7 @@ static void composite_update(GF_TextureHandler *txh)
 	txh->needs_refresh = visual_draw_frame(st->visual, st->txh.owner, tr_state, 0);
 
 	/*set active viewport in image coordinates top-left=(0, 0), not in BIFS*/
-	if (gf_list_count(st->visual->view_stack)) {
+	if (0 && gf_list_count(st->visual->view_stack)) {
 		M_Viewport *vp = (M_Viewport *)gf_list_get(st->visual->view_stack, 0);
 
 		if (vp->isBound) {

@@ -1518,8 +1518,10 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 	/*ugly ugly hack ...*/
 	if (!strcmp(name, "id") || !strcmp(name, "xml:id") ) {
 		char *sID = (char *) gf_node_get_name(n);
-		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, sID ? sID : "") );
-		goto exit;
+		if (sID) {
+			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, sID ? sID : "") );
+			goto exit;
+		}
 	}
 
 	if (n->sgprivate->tag==TAG_DOMFullNode) {
@@ -1527,7 +1529,7 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 		GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
 		while (att) {
 			if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
-				*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, (char*)att->data ) );
+				*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, *(char**)att->data ) );
 				goto exit;
 			}
 			att = (GF_DOMFullAttribute *) att->next;

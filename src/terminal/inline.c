@@ -697,6 +697,7 @@ void gf_inline_on_modified(GF_Node *node)
 				if (!changed) return;
 
 				gf_is_notify_event(pIS, GF_EVENT_UNLOAD, node);
+				gf_node_dirty_parents(node);
 				gf_list_del_item(mo->nodes, node);
 
 				switch (gf_node_get_tag(node)) {

@@ -375,6 +375,30 @@ static JSBool getProto(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *rval
 	return JS_TRUE;
 }
 
+char *js_get_utf8(jsval val);
+jsval dom_element_construct(JSContext *c, GF_Node *n);
+
+static JSBool vrml_parse_xml(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_SceneGraph *sg;
+	GF_Node *node;
+	char *str;
+	GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *sg, char *svg_str);
+
+	str = js_get_utf8(argv[0]);
+	if (!str) return JS_TRUE;
+
+	node = JS_GetContextPrivate(c);
+	sg = node->sgprivate->scenegraph;
+
+	node = gf_sm_load_svg_from_string(sg, str);
+	free(str);
+	*rval = dom_element_construct(c, node);
+
+	return JS_TRUE;
+}
+
+
 static JSBool getElementById(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_Node *elt;
@@ -2565,6 +2589,7 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 		JSFunctionSpec globalFunctions[] = {
 			{"print", JSPrint, 0, 0, 0},
 			{"alert", JSPrint, 0, 0, 0},
+			{"parseXML",   vrml_parse_xml,          0, 0, 0},
 			{0, 0, 0, 0, 0}
 		};
 		JS_DefineFunctions(sc->js_ctx, sc->js_obj, globalFunctions );
@@ -3805,7 +3830,7 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 			free(url);
 			if (res || no_complain) return;
 		} else {
-			GF_DownloadSession *sess = gf_dm_sess_new(dnld_man, url, 0, NULL, NULL, &e);
+			GF_DownloadSession *sess = gf_dm_sess_new(dnld_man, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
 			if (sess) {
 				e = gf_dm_sess_process(sess);
 				if (e==GF_OK) {
