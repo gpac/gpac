@@ -1049,7 +1049,7 @@ void Osmo4::OnFileStop()
 
 void Osmo4::OnUpdateFileStop(CCmdUI* pCmdUI) 
 {
-	pCmdUI->Enable(m_isopen);	
+//	pCmdUI->Enable(m_isopen);	
 }
 
 void Osmo4::OnSwitchRender() 

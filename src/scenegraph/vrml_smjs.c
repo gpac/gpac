@@ -80,6 +80,7 @@ typedef struct
 	JSRuntime *js_runtime;
 	u32 nb_inst;
 	GF_Mutex *lock;
+	u32 owner;
 
 	JSClass globalClass;
 	JSClass browserClass;
@@ -109,6 +110,11 @@ typedef struct
 static GF_JSRuntime *js_rt = NULL;
 
 
+#ifdef FORCE_GC
+void MyJSGC(JSContext *c) {
+	if (gf_th_id() == js_rt->owner) JS_GC(c);
+}
+#endif
 
 
 void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj, Bool unload)
@@ -465,7 +471,7 @@ static void on_route_to_object(GF_Node *node, GF_Route *r)
 	if (JSVAL_IS_GCTHING(argv[1])) JS_RemoveRoot(priv->js_ctx, &argv[1]);
 
 #ifdef FORCE_GC
-	JS_GC(priv->js_ctx);
+	MyJSGC(priv->js_ctx);
 #endif
 	gf_sg_js_lock_runtime(0);
 }
@@ -3619,7 +3625,7 @@ static void JS_PreDestroy(GF_Node *node)
 	gf_sg_load_script_extensions(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj, 1);
 
 #ifndef GPAC_DISABLE_SVG
-	dom_js_pre_destroy(priv->js_ctx);
+	dom_js_pre_destroy(priv->js_ctx, node->sgprivate->scenegraph);
 #endif
 
 	gf_sg_ecmascript_del(priv->js_ctx);
@@ -3741,7 +3747,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	flush_event_out(node, priv);
 
 #ifdef FORCE_GC
-	JS_GC(priv->js_ctx);
+	MyJSGC(priv->js_ctx);
 #endif
 }
 
@@ -3929,7 +3935,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	flush_event_out(node, priv);
 
 #ifdef FORCE_GC
-	JS_GC(priv->js_ctx);
+	MyJSGC(priv->js_ctx);
 #endif
 
 	gf_sg_js_lock_runtime(0);
@@ -4013,6 +4019,7 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 		GF_SAFEALLOC(js_rt, GF_JSRuntime);
 		js_rt->js_runtime = js_runtime;
 		js_rt->lock = gf_mx_new("ECMAScript");
+		js_rt->owner = gf_th_id();
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated 0x%08x\n", js_runtime));
 		gf_sg_load_script_modules(sg);
 	}
