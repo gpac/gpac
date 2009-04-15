@@ -2214,9 +2214,6 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 			sep[0] = '(';
 		}
 	}
-	/*clean-up*/
-	JS_GC(sg->svg_js->js_ctx);
-
 	gf_sg_js_lock_runtime(0);
 
 	return (ret==JS_FALSE) ? 0 : 1;
@@ -2231,6 +2228,10 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 
 		if (svg_js->nb_scripts) {
 			svg_js->nb_scripts--;
+
+			/*detach this script from our object cache*/
+			dom_js_pre_destroy(svg_js->js_ctx, n->sgprivate->scenegraph);
+
 			if (!svg_js->nb_scripts) {
 				/*user-defined extensions*/
 				gf_sg_load_script_extensions(n->sgprivate->scenegraph, svg_js->js_ctx, svg_js->global, 1);
@@ -2244,17 +2245,6 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 					free(svg_rt);
 					svg_rt = NULL;
 				}
-			} else {
-				u32 i, count;
-				/*detach this script from our object cache*/
-				count = gf_list_count(n->sgprivate->scenegraph->objects);
-				for (i=0; i<count; i++) {
-					JSObject *obj = gf_list_get(n->sgprivate->scenegraph->objects, i);
-					GF_Node *a_node = JS_GetPrivate(svg_js->js_ctx, obj);
-					if (n==a_node)
-						JS_SetPrivate(svg_js->js_ctx, obj, NULL);
-				}
-
 			}
 		}
 	}

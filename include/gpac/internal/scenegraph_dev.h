@@ -927,7 +927,7 @@ typedef struct
 
 struct _node_js_binding
 {
-	GF_JSField *node;
+	void *node;	/*GF_JSField for VRML, JSObject otherwise*/
 	GF_List *fields;
 };
 
@@ -958,7 +958,7 @@ void dom_js_load(GF_SceneGraph *scene, struct JSContext *c, struct JSObject *glo
 to releases all resources used by DOM JS)*/
 void dom_js_unload();
 /*unloads DOM core before the JSContext is being destroyed */
-void dom_js_pre_destroy(struct JSContext *c);
+void dom_js_pre_destroy(struct JSContext *c, GF_SceneGraph *sg);
 
 /*defines a new global object "document" of type Document*/
 void dom_js_define_document(struct JSContext *c, struct JSObject *global, GF_SceneGraph *doc);

@@ -254,6 +254,13 @@ struct __gf_uri_relocator
 	GF_TERM_URI_RELOCATOR	
 };
 
+typedef struct 
+{	
+	GF_TERM_URI_RELOCATOR	
+	GF_Terminal *term;
+	char *szPath;
+} GF_TermLocales;
+
 struct _tag_terminal
 {
 	u32 flags;
@@ -318,6 +325,9 @@ struct _tag_terminal
 	GF_List *unthreaded_extensions;	/*list of extensions to call at each frame*/
 	GF_List *filtering_extensions;	/*list of extensions filtering events*/
 
+
+	/*static URI relocator for locales*/
+	GF_TermLocales locales;
 
 	GF_List *uri_relocators;	/*list of GF_URIRelocator*/
 };

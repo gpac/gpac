@@ -1696,6 +1696,12 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	event_time = 0;
 #endif
 
+	/*since 0.4.6, some threaded modules outside the compositor may access the scripting module. 
+	This access is exclusive (mutex at the JS runtime level). In order to avoid deadlocks on the compositor, 
+	we release it during routes / smil anim
+	*/
+	gf_sc_lock(compositor, 0);
+	
 	gf_term_sample_clocks(compositor->term);
 
 #ifndef GPAC_DISABLE_LOG
@@ -1758,6 +1764,10 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 
 #endif
+	
+	/*cf note above - relock the compositor for tree traversal*/
+	gf_sc_lock(compositor, 1);
+
 
 #ifndef GPAC_DISABLE_LOG
 	time_node_time = gf_sys_clock();
@@ -1945,7 +1955,7 @@ void gf_sc_visual_unregister(GF_Compositor *compositor, GF_VisualManager *visual
 
 void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, GF_SceneGraph *subscene, void *rs)
 {
-	Fixed min_hsize;
+	Fixed min_hsize, vp_scale;
 	Bool use_pm, prev_pm, prev_coord;
 	SFVec2f prev_vp;
 	s32 flip_coords;
@@ -2016,6 +2026,7 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	prev_pm = tr_state->pixel_metrics;
 	prev_vp = tr_state->vp_size;
 	prev_coord = tr_state->fliped_coords;
+	vp_scale = FIX_ONE;
 	gf_mx2d_init(transf);
 
 	/*compute center<->top-left transform*/
@@ -2023,8 +2034,12 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 		gf_mx2d_add_scale(&transf, FIX_ONE, -FIX_ONE);
 
 	/*if scene size is given in the child document, scale to fit the entire vp*/
-	if (w && h) 
-		gf_mx2d_add_scale(&transf, tr_state->vp_size.x/w, tr_state->vp_size.y/h);
+	if (w && h) {
+		Fixed scale_w = tr_state->vp_size.x/w;
+		Fixed scale_h = tr_state->vp_size.y/h;
+		vp_scale = MIN(scale_w, scale_h);
+		gf_mx2d_add_scale(&transf, vp_scale, vp_scale);
+	}
 	if (flip_coords) {
 		gf_mx2d_add_translation(&transf, flip_coords * tr_state->vp_size.x/2, tr_state->vp_size.y/2);
 		tr_state->fliped_coords = !tr_state->fliped_coords;
@@ -2033,8 +2048,8 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	/*if scene size is given in the child document, scale back vp to take into account the above scale
 	otherwise the scene won't be properly clipped*/
 	if (w && h) {
-		tr_state->vp_size.x = INT2FIX(w);
-		tr_state->vp_size.y = INT2FIX(h);
+		tr_state->vp_size.x = gf_divfix(tr_state->vp_size.x, vp_scale);
+		tr_state->vp_size.y = gf_divfix(tr_state->vp_size.y, vp_scale);
 	}
 
 

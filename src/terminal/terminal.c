@@ -153,6 +153,43 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 }
 
 
+static char *term_check_locales(void *__self, char *parent_uri, char *uri)
+{
+	FILE *f;
+	char *str;
+	const char *opt;
+	u32 len;
+
+	GF_TermLocales *loc = (GF_TermLocales*)__self;
+	opt = gf_cfg_get_key(loc->term->user->config, "Systems", "Language2CC");
+	if (!opt) return NULL;
+
+	/*only for relative uri*/
+	if (strstr(uri, "://") || (uri[0]=='/') || strstr(uri, ":\\")) {
+		return NULL;
+	}
+	/*only for local resource*/
+	if (parent_uri && strstr(parent_uri, "://") && strnicmp(parent_uri, "file://", 7)) {
+		return NULL;
+	}
+	len = strlen(uri);
+	str = malloc(sizeof(char) * (len+20));
+	sprintf(str, "locales/%s/%s", opt, uri);
+
+	if (loc->szPath) free(loc->szPath);
+	
+	loc->szPath = gf_url_concatenate(parent_uri, str);
+	if (!loc->szPath) loc->szPath = strdup(str);
+	free(str);
+
+	f = fopen(loc->szPath, "rb");
+	if (f) {
+		fclose(f);
+		return loc->szPath;
+	}
+	return NULL;
+}
+
 static void gf_term_reload_cfg(GF_Terminal *term)
 {
 	const char *sOpt;
@@ -423,6 +460,9 @@ GF_Terminal *gf_term_new(GF_User *user)
 		tmp->filtering_extensions = NULL;
 	}
 	tmp->uri_relocators = gf_list_new();
+	tmp->locales.relocate_uri = term_check_locales;
+	tmp->locales.term = tmp;
+	gf_list_add(tmp->uri_relocators, &tmp->locales);
 
 	cf = gf_cfg_get_key(user->config, "General", "GUIFile");
 	if (cf) {
@@ -496,7 +536,9 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_list_del(term->media_queue);
 	if (term->downloader) gf_dm_del(term->downloader);
 
+	if (term->locales.szPath) free(term->locales.szPath);
 	gf_list_del(term->uri_relocators);
+
 
 	if (term->dcci_doc) {
 		if (term->dcci_doc->modified) {
@@ -989,6 +1031,7 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	GF_Err e;
 	gf_term_lock_net(term, 1);
 
+	/*try to relocate the url*/
 	i=0;
 	count = gf_list_count(term->uri_relocators);
 	for (i=0; i<count; i++) {
