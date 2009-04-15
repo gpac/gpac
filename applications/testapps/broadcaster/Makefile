@@ -20,6 +20,8 @@ endif
 
 #common obj
 OBJS=RTP_serv_generator.o RTP_serv_packetizer.o RTP_serv_sender.o broadcaster.o sdp_generator.o
+
+LDFLAGS += -L../../../bin/gcc
 LIBS=-lgpac
 
 all: broadcaster

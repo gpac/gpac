@@ -17,7 +17,7 @@ int sdp_generator(PNC_CallbackData * data, char *ip_dest, char *sdp_fmt)
 
 	fp = fopen("broadcaster.sdp", "w+");
 	if(fp == NULL) {
-		fprintf(stdout, "Cannot open SDP file %s\n");
+		fprintf(stdout, "Cannot open SDP file broadcaster.sdp\n");
 		exit(1);
 	}
 
