@@ -93,7 +93,7 @@ GF_Err PNC_processBIFSGenerator(PNC_CallbackData * data) {
 	unsigned char buffer[66000];
 	u32 byteRead=0;
 	GF_BitStream * bs; 
-	unsigned char *bsBuffer;
+	char *bsBuffer;
 	u32 bsSize=0; 
 	int retour=0;
 	GF_Err e;

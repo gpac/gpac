@@ -32,12 +32,21 @@ typedef struct tmp_PNC_CallbackData {
   int formatedPacketLength;
   GP_RTPPacketizer *rtpBuilder;
   void * codec;
-  GF_Socket *socket; /// Socket pour recevoir les demandes de mise à jour.
-  GF_Socket *feedback_socket;	// socket pour envoyer les données de retour débit à l'interface
+  
+  /* socket on which updates are received */
+  GF_Socket *socket; 
+  /* socket on which bitrate feedback is sent */
+  GF_Socket *feedback_socket;	
+
   void * extension;
+
+  /* indication that the Access Unit is a RAP */
   int RAP;
+  /* RAP counter */
   int RAPsent;
-  int SAUN_inc; // On incremente le SequAUNumber de l'entete SL
+  /* indication that the Access Unit Sequence Number should be increased */
+  int SAUN_inc; 
+
   GF_Mutex *carrousel_mutex;
 } PNC_CallbackData;
 
@@ -50,7 +59,7 @@ typedef struct tmp_PNC_CallbackExt {
 
 /*Les fonctions exportees*/
 extern GF_Err PNC_RAP(PNC_CallbackData * data);
-extern PNC_CallbackData*  PNC_Init_SceneGenerator(GF_RTPChannel * p_chan, GF_RTPHeader * p_hdr, char * default_scene, int socketPort);
+extern PNC_CallbackData*  PNC_Init_SceneGenerator(GF_RTPChannel * p_chan, GF_RTPHeader * p_hdr, char * default_scene, u16 socketPort);
 extern GF_Err PNC_processBIFSGenerator(PNC_CallbackData*);
 extern void PNC_Close_SceneGenerator(PNC_CallbackData*);
 
