@@ -229,7 +229,7 @@ int main (int argc, char** argv)
 	char config_file_name[MAX_BUF];
 
 	int tcp_port, dest_port; 
-	TCP_Input *tcp_conf;
+	TCP_Input *tcp_conf = NULL;
 	GF_Thread *tcp_thread;
 	GF_Err th_err_tcp;
 
@@ -368,24 +368,24 @@ int main (int argc, char** argv)
 	rap_conf->status = 0;
 	while (rap_conf->status != 2)
 		gf_sleep(0);
+	free(rap_conf);
+	gf_th_del(rap_thread);
 
 	/* waiting for termination of the TCP listening thread */
-	tcp_conf->status = 0;
-	while (tcp_conf->status != 2)
-		gf_sleep(0);
+	if (tcp_conf) {
+		tcp_conf->status = 0;
+		while (tcp_conf->status != 2)
+			gf_sleep(0);
+		free(tcp_conf);
+		gf_th_del(tcp_thread);
+	}
 
 	PNC_Close_SceneGenerator(data);
 	
-	free(tcp_conf);
-	free(rap_conf);
 	free(conf);
 	
 	if (gf_config_file)
 		gf_cfg_del(gf_config_file);
-	gf_delete_file("temp.cfg");
-
-	gf_th_del(tcp_thread);
-	gf_th_del(rap_thread);
 
 	gf_mx_del(carrousel_mutex);
 	gf_sys_close();
