@@ -263,8 +263,20 @@ int main (int argc, char** argv)
 	
 	gf_config_file = NULL;
 	if (config_flag == 1) {
+		char *cfg_path;
+		char *cfg_fname;
+		char *tmp;
 		
-		gf_config_file = gf_cfg_new(NULL, config_file_name);
+		cfg_fname = config_file_name;
+		cfg_path = config_file_name;
+		tmp = strrchr(cfg_fname, GF_PATH_SEPARATOR);
+		if (tmp) {
+			cfg_fname = tmp+1;
+			tmp[0] = 0;
+		} else {
+			cfg_path = ".";
+		}
+		gf_config_file = gf_cfg_new(cfg_path, cfg_fname);	
 		if (!gf_config_file) {
 			fprintf(stderr, "Cannot open config file %s\n", config_file_name);
 			return -1;

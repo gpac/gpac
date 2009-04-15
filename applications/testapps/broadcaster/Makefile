@@ -27,7 +27,7 @@ LIBS=-lgpac
 all: broadcaster
 
 broadcaster: $(OBJS) 
-	@$(CC) -o $(APPNAME) $(OBJS) $(LIBS)
+	@$(CC) -o $(APPNAME) $(OBJS) $(LIBS) $(LDFLAGS) 
 
 .c.o:
 	@$(CC) -g -c $(CFLAGS) $*.c
