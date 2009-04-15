@@ -13,7 +13,7 @@ PNC_CallbackData * PNC_Init_SceneGenerator(GF_RTPChannel * p_chan, GF_RTPHeader 
 
 	/* Loading the initial scene as the encoding context */
 	data->codec = gf_beng_init(data, default_scene);
-	if (data->codec) {
+	if (!data->codec) {
 		fprintf(stderr, "Cannot create BIFS Engine from %s\n", default_scene);
 		free(data);
 		return NULL;
