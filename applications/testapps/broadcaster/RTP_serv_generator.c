@@ -19,7 +19,7 @@ PNC_CallbackData * PNC_Init_SceneGenerator(GF_RTPChannel * p_chan, GF_RTPHeader 
 		return NULL;
 	}
 	data->socket = gf_sk_new(GF_SOCK_TYPE_UDP); 
-	e = gf_sk_bind(data->socket, "localhost", (u16) socketPort, NULL, 0, 0);
+	e = gf_sk_bind(data->socket, NULL, (u16) socketPort, NULL, 0, 0);
 	e |= gf_sk_set_block_mode(data->socket,0);
 	if (e) {
 		fprintf(stderr, "Cannot bind UDP socket to port %d (%s)\n", socketPort, gf_error_to_string(e));
