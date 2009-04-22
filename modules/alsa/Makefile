@@ -31,7 +31,7 @@ endif
 all: $(LIB)
 
 $(LIB): $(OBJSPIC)
-	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac -lasound
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac -lasound
 
 
 %.o: %.c
