@@ -520,7 +520,7 @@ u64 gf_f64_tell(FILE *fp)
 #elif defined(GPAC_CONFIG_LINUX)
 	return (u64) ftello64(fp);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
-	return (u64) ftell(fp);
+	return (u64) ftello(fp);
 #else
 	return (u64) ftell(fp);
 #endif
@@ -544,7 +544,7 @@ u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
 #elif defined(GPAC_CONFIG_LINUX)
 	return fseeko64(fp, (off64_t) offset, whence);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
-	return fseek(fp, offset, whence);
+	return fseeko(fp, (off_t) offset, whence);
 #else
 	return fseek(fp, (s32) offset, whence);
 #endif
