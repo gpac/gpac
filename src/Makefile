@@ -227,7 +227,7 @@ depend:
 	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
 
 clean: 
-	rm -f $(OBJS) $(LIB)
+	rm -f $(OBJS) ../bin/gcc/$(LIB)
 	rm -rf ../bin/gcc/libgpac_static.a
 
 distclean: clean
