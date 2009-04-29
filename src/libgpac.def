@@ -1097,6 +1097,12 @@ EXPORTS
 	gf_sg_js_event_add_listener
 	gf_sg_js_event_remove_listener
 	gf_node_dom_listener_add
+	gf_dom_event_type_by_name
+	gf_dom_event_fire
+	gf_dom_set_textContent
+	gf_dom_flatten_textContent
+	gf_node_get_attribute_by_name
+	gf_svg_dump_attribute
 
 ;terminal.h exports
 	gf_term_new
