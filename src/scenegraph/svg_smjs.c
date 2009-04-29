@@ -640,7 +640,7 @@ JSBool svg_udom_smil_resume(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 
 JSBool svg_udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char attValue[1024], *ns, *name;
+	char *attValue, *ns, *name;
 	GF_Err e;
 	GF_FieldInfo info;
 	GF_Node *n = dom_get_element(c, obj);
@@ -723,8 +723,9 @@ JSBool svg_udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	case SVG_ID_datatype:
 	case SVG_GradientOffset_datatype:
 /*end of DOM string traits*/
-		gf_svg_dump_attribute(n, &info, attValue);
+		attValue = gf_svg_dump_attribute(n, &info);
 		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, attValue) );
+		if (attValue) free(attValue);
 		return JS_TRUE;
 		/*dump to trait*/
 		break;

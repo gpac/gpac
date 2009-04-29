@@ -2293,7 +2293,7 @@ GF_Err DumpLSRNewScene(GF_SceneDumper *sdump, GF_Command *com)
 
 GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 {
-	char szAtt[80000];
+	char szID[100];
 	Bool is_text = 0;
 	GF_CommandField *f;
 	char *lsrns = sd_get_lsr_namespace(com->in_scene);
@@ -2302,7 +2302,7 @@ GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 
 	DUMP_IND(sdump);
 
-	fprintf(sdump->trace, "<%s%s ref=\"%s\" ", lsrns, com_name, lsr_format_node_id(com->node, com->RouteID, szAtt));
+	fprintf(sdump->trace, "<%s%s ref=\"%s\" ", lsrns, com_name, lsr_format_node_id(com->node, com->RouteID, szID));
 	f = (GF_CommandField *) gf_list_get(com->command_fields, 0);
 	if (f && (f->pos>=0) ) fprintf(sdump->trace, "index=\"%d\" ", f->pos);
 	if (f) {
@@ -2317,23 +2317,25 @@ GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 
 			fprintf(sdump->trace, "attributeName=\"%s\" ", att_name);
 			if (f->field_ptr) {
+				char *att;
 				info.far_ptr = f->field_ptr;
 				info.fieldIndex = f->fieldIndex;
 				info.fieldType = f->fieldType;
 				info.name = att_name;
 
 				if ((s32) f->pos >= 0) {
-					gf_svg_dump_attribute_indexed(com->node, &info, szAtt);
+					att = gf_svg_dump_attribute_indexed(com->node, &info);
 				} else {
-					gf_svg_dump_attribute(com->node, &info, szAtt);
+					att = gf_svg_dump_attribute(com->node, &info);
 				}
-				fprintf(sdump->trace, "value=\"%s\" ", szAtt);
+				fprintf(sdump->trace, "value=\"%s\" ", att ? att : "");
+				if (att) free(att);
 			}
 
 			if (com->fromNodeID) {
 				GF_FieldInfo op_info;
 				GF_Node *op = gf_sg_find_node(sdump->sg, com->fromNodeID);
-				fprintf(sdump->trace, "operandElementId=\"%s\" ", lsr_format_node_id(op, com->RouteID, szAtt));
+				fprintf(sdump->trace, "operandElementId=\"%s\" ", lsr_format_node_id(op, com->RouteID, szID));
 				gf_node_get_field(op, com->fromFieldIndex, &op_info);
 				fprintf(sdump->trace, "operandAttributeName=\"%s\" ", op_info.name);
 			}
@@ -2592,7 +2594,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root)
 {
 	GF_ChildNodeItem *list;
-	char attName[100], attValue[81920];
+	char attName[100], *attValue, attID[100];
 	u32 i, count, nID;
 	Bool needs_cr;
 	SVG_Element *svg = (SVG_Element *)n;
@@ -2646,7 +2648,7 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 	fprintf(sdump->trace, "<%s", gf_node_get_class_name(n));
 	ns = gf_xml_get_element_namespace(n);
 
-	if (nID) fprintf(sdump->trace, " id=\"%s\"", lsr_format_node_id(n, 0, attValue));
+	if (nID) fprintf(sdump->trace, " id=\"%s\"", lsr_format_node_id(n, 0, attID));
 
 	att = svg->attributes;
 	while (att) {
@@ -2691,9 +2693,12 @@ void SD_DumpSVG_Element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool
 			}
 		}
 		info.far_ptr = att->data;
-		gf_svg_dump_attribute((GF_Node*)svg, &info, attValue);
+		attValue = gf_svg_dump_attribute((GF_Node*)svg, &info);
 		if (/*strcmp(info.name, "xmlns") &&*/ (info.fieldType = strlen(attValue)))
 			fprintf(sdump->trace, " %s=\"%s\"", info.name, attValue);
+		
+		if (attValue) free(attValue);
+
 		fflush(sdump->trace);
 		att = att->next;
 	}

@@ -1536,9 +1536,9 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 		}
 
 		if (gf_node_get_attribute_by_name(n, name, ns_code, 0, 0, &info)==GF_OK) {
-			char szAtt[4096];
-			gf_svg_dump_attribute(n, &info, szAtt);
+			char *szAtt = gf_svg_dump_attribute(n, &info);
 			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) );
+			if (szAtt) free(szAtt);
 			goto exit;
 		}
 	}
