@@ -552,8 +552,8 @@ char *gf_svg_attribute_type_to_string(u32 att_type);
 GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type);
 void gf_svg_parse_style(GF_Node *n, char *style);
 
-GF_Err gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info, char *attValue);
-GF_Err gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info, char *attValue);
+char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info);
+char *gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info);
 
 void gf_svg_path_build(GF_Path *path, GF_List *commands, GF_List *points);
 
