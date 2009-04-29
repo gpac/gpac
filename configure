@@ -502,7 +502,7 @@ fi
 
 
 if test "$has_js" != "no" ; then
-if test "$linux" != "yes" ; then
+if test "$linux" = "yes" ; then
 
 #WARNING: there is a bug in MOZJS packages, the MOZILLA_1_8_BRANCH macro is not signaled, there is no way of knowing
 #if the lib has been compiled with or without the macro. We currently just decide that if the macro is present
