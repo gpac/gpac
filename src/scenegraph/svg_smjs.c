@@ -54,7 +54,6 @@ JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval 
 char *js_get_utf8(jsval val);
 
 void dom_node_set_textContent(GF_Node *n, char *text);
-char *dom_node_flatten_text(GF_Node *n);
 
 jsval dom_node_get_sibling(JSContext *c, GF_Node *n, Bool is_prev, Bool elt_only);
 
@@ -658,7 +657,7 @@ JSBool svg_udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 
 	if (!name) return JS_TRUE;
 	if (!strcmp(name, "#text")) {
-		char *res = dom_node_flatten_text(n);
+		char *res = gf_dom_flatten_textContent(n);
 		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
 		free(res);
 		return JS_TRUE;

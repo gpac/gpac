@@ -205,6 +205,12 @@ typedef struct
 /*creates a new text node, assign string (does NOT duplicate it) and register node with parent if desired*/
 GF_DOMText *gf_dom_add_text_node(GF_Node *parent, char *text_data);
 
+/*replace text content of node by the specified string - if string is NULL, only resets the children of the node*/
+void gf_dom_set_textContent(GF_Node *n, char *text);
+
+/*flatten text content of the node and returns the result - result shall be free'ed by the caller*/
+char *gf_dom_flatten_textContent(GF_Node *n);
+
 /*creates a new text node - this DOES NOT register the node at all*/
 GF_DOMText *gf_dom_new_text_node(GF_SceneGraph *sg);
 

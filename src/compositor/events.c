@@ -49,11 +49,11 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 
 	if (compositor->edited_text)
 		return 0;
-	if (compositor->text_selection)
-		return 1;
+	if (compositor->text_selection )
+		return compositor->hit_text ? 1 : 0;
 	switch (event->type) {
 	case GF_EVENT_MOUSEMOVE:
-		if (compositor->text_selection)
+		if (compositor->text_selection && compositor->hit_text)
 			return 1;
 		break;
 	case GF_EVENT_MOUSEDOWN:
@@ -739,7 +739,10 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 
 
 	hs_grabbed = NULL;
-	stype = GF_CURSOR_NORMAL;
+	/*if we have a hit node at the compositor level, use "touch" as default cursor - this avoid
+	resetting the cursor when the picked node is a DOM node in a composite texture*/
+	stype = (compositor->hit_node!=NULL) ? GF_CURSOR_TOUCH : GF_CURSOR_NORMAL;
+
 	count = gf_list_count(compositor->previous_sensors);
 	for (i=0; i<count; i++) {
 		hs = (GF_SensorHandler*)gf_list_get(compositor->previous_sensors, i);

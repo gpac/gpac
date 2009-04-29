@@ -686,6 +686,13 @@ void gf_smil_setup_events(GF_Node *node)
 		gf_smil_setup_event_list(node, * (GF_List **)info.far_ptr, 0);
 }
 
+void gf_dom_set_textContent(GF_Node *n, char *text)
+{
+	GF_ParentNode *par = (GF_ParentNode *)n;
+	gf_node_unregister_children(n, par->children);
+	par->children = NULL;
+	if (text) gf_dom_add_text_node(n, strdup( text) );
+}
 
 GF_DOMText *gf_dom_add_text_node(GF_Node *parent, char *text_data)
 {
@@ -706,6 +713,35 @@ GF_DOMText *gf_dom_new_text_node(GF_SceneGraph *sg)
 	gf_node_setup((GF_Node *)text, TAG_DOMText);
 	text->sgprivate->scenegraph = sg;
 	return text;
+}
+
+char *gf_dom_flatten_textContent(GF_Node *n)
+{
+	u32 len = 0;
+	char *res = NULL;
+	GF_ChildNodeItem *list;
+
+	if ((n->sgprivate->tag==TAG_DOMText) && ((GF_DOMText*)n)->textContent) {
+		/*if ( ((GF_DOMText*)n)->type == GF_DOM_TEXT_REGULAR) */{
+			res = strdup(((GF_DOMText*)n)->textContent);
+			len = strlen(res);
+		}
+	}
+
+	list = ((GF_ParentNode *)n)->children;
+	while (list) {
+		char *t = gf_dom_flatten_textContent(list->node);
+		if (t) {
+			u32 sub_len = strlen(t);
+			res = realloc(res, sizeof(char)*(len+sub_len+1));
+			if (!len) res[0] = 0;
+			len += sub_len;
+			strcat(res, t);
+			free(t);
+		}
+		list = list->next;
+	}
+	return res;
 }
 
 GF_DOMUpdates *gf_dom_add_updates_node(GF_Node *parent)

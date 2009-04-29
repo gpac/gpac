@@ -1406,6 +1406,7 @@ picked:
 	compositor->end_sel.y = compositor->hit_world_point.y;
 	if (compositor->text_selection) {
 		compositor->draw_next_frame = 1;
+		if (tr_state->visual->offscreen) gf_node_dirty_set(tr_state->visual->offscreen, GF_SG_CHILD_DIRTY, 0);
 		span->flags |= GF_TEXT_SPAN_SELECTED;
 	} else {
 		compositor->start_sel = compositor->end_sel;

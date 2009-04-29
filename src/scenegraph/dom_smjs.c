@@ -369,34 +369,6 @@ jsval dom_node_get_sibling(JSContext *c, GF_Node *n, Bool is_prev, Bool elt_only
 	return dom_node_construct(c, val);
 }
 
-char *dom_node_flatten_text(GF_Node *n)
-{
-	u32 len = 0;
-	char *res = NULL;
-	GF_ChildNodeItem *list;
-
-	if ((n->sgprivate->tag==TAG_DOMText) && ((GF_DOMText*)n)->textContent) {
-		/*if ( ((GF_DOMText*)n)->type == GF_DOM_TEXT_REGULAR) */{
-			res = strdup(((GF_DOMText*)n)->textContent);
-			len = strlen(res);
-		}
-	}
-
-	list = ((GF_ParentNode *)n)->children;
-	while (list) {
-		char *t = dom_node_flatten_text(list->node);
-		if (t) {
-			u32 sub_len = strlen(t);
-			res = realloc(res, sizeof(char)*(len+sub_len+1));
-			if (!len) res[0] = 0;
-			len += sub_len;
-			strcat(res, t);
-			free(t);
-		}
-		list = list->next;
-	}
-	return res;
-}
 
 
 /*dom3 NodeList/NamedNodeMap*/
@@ -1202,7 +1174,7 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	case 15:
 		*vp = JSVAL_VOID;
 		if (!sg)  {
-			char *res = dom_node_flatten_text(n);
+			char *res = gf_dom_flatten_textContent(n);
 			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
 			free(res);
 		}
@@ -1214,10 +1186,7 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 
 void dom_node_set_textContent(GF_Node *n, char *text)
 {
-	GF_ParentNode *par = (GF_ParentNode *)n;
-	gf_node_unregister_children(n, par->children);
-	par->children = NULL;
-	if (text) gf_dom_add_text_node(n, strdup( text) );
+	gf_dom_set_textContent(n, text);
 	dom_node_changed(n, 1, NULL);
 }
 

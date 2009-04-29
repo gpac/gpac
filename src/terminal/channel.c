@@ -787,6 +787,14 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			else if (!ch->DTS) {
 				ch->ts_offset += gf_clock_real_time(ch->clock);
 			}
+			/*deal with some broken DMB streams were the timestamps on BIFS/OD are not set (0) or completely out of sync
+			of the OCR clock (usually audio). If the audio codec (BSAC ...) is not found, we force re-initializing of the clock
+			so that video can play back correctly*/
+			else if (gf_clock_time(ch->clock) * 1000 < ch->DTS) {
+				ch->clock->clock_init = 0;
+				gf_clock_set_time(ch->clock, ch->DTS);
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: re-initializing clock at STB %d - AU DTS %d - %d buffering\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering));
+			}
 			if (ch->clock->clock_init) ch->IsClockInit = 1;
 		}
 		/*if the AU Length is carried in SL, get its size*/
