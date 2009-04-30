@@ -284,12 +284,15 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 }
 static jsval dom_node_construct(JSContext *c, GF_Node *n)
 {
-	JSClass *__class = &dom_rt->domElementClass;
+	JSClass *__class = NULL;
+
 	if (!n) return JSVAL_NULL;
 	if (n->sgprivate->scenegraph->dcci_doc)
 		__class = &dom_rt->DCCIClass;
 	else if (dom_rt->get_element_class)
 		__class = (JSClass *) dom_rt->get_element_class(n);
+
+	if (!__class ) __class  = &dom_rt->domElementClass;
 
 	/*in our implementation ONLY ELEMENTS are created, never attributes. We therefore always
 	create Elements when asked to create a node !!*/
@@ -297,12 +300,15 @@ static jsval dom_node_construct(JSContext *c, GF_Node *n)
 }
 jsval dom_element_construct(JSContext *c, GF_Node *n)
 {
-	JSClass *__class = &dom_rt->domElementClass;
+	JSClass *__class = NULL;
+
 	if (!n) return JSVAL_NULL;
 	if (n->sgprivate->scenegraph->dcci_doc)
 		__class = &dom_rt->DCCIClass;
 	else if (dom_rt->get_element_class)
 		__class = (JSClass *) dom_rt->get_element_class(n);
+
+	if (!__class) __class = &dom_rt->domElementClass;
 
 	return dom_base_node_construct(c, __class, n);
 }

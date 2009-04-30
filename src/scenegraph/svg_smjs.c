@@ -1961,11 +1961,18 @@ jsval svg_udom_new_point(JSContext *c, Fixed x, Fixed y)
 
 void *svg_get_element_class(GF_Node *n)
 {
-	return &svg_rt->svgElement;
+	if (!n) return NULL;
+	if ((n->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG))
+		return &svg_rt->svgElement;
+	return NULL;
 }
-void *svg_get_document_class(GF_SceneGraph *n)
+void *svg_get_document_class(GF_SceneGraph *sg)
 {
-	return &svg_rt->svgDocument;
+	GF_Node *n = sg->RootNode;
+	if (!n) return NULL;
+	if ((n->sgprivate->tag>=GF_NODE_RANGE_FIRST_SVG) && (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG))
+		return &svg_rt->svgDocument;
+	return NULL;
 }
 
 
