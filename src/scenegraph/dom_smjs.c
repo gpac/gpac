@@ -494,7 +494,7 @@ static void dom_handler_remove(GF_Node *node, void *rs, Bool is_destroy)
 }
 
 /*eventListeners routines used by document, element and connection interfaces*/
-JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node)
+JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *on_node)
 {
 	GF_DOMEventTarget *target;
 	GF_FieldInfo info;
@@ -520,8 +520,8 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 		return JS_TRUE;
 #endif
 	} else {
-		if (vrml_node) {
-			n = vrml_node;
+		if (on_node) {
+			n = on_node;
 		} else {
 			n = dom_get_element(c, obj);
 		}
@@ -611,9 +611,10 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 		handler->handle_event = gf_sg_handle_dom_event;
 #endif
 
-	if (vrml_node) {
-		handler->handle_event = gf_sg_handle_dom_event_for_vrml;
+	if (on_node) {
 		handler->js_context = c;
+		if (on_node->sgprivate->tag <= GF_NODE_RANGE_LAST_VRML)
+			handler->handle_event = gf_sg_handle_dom_event_for_vrml;
 	}
 
 	/*don't add listener directly, post it and wait for event processing*/

@@ -1990,6 +1990,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 			{"createConnection", svg_connection_create, 0, 0, 0},
 			{"gotoLocation", svg_nav_to_location, 1, 0, 0},
 			{"alert",           svg_echo,          0, 0, 0},
+			{"print",           svg_echo,          0, 0, 0},
 			/*technically, this is part of Implementation interface, not global, but let's try not to complicate things too much*/
 			{"hasFeature", dom_imp_has_feature, 2, 0, 0},
 			{"parseXML",   svg_parse_xml,          0, 0, 0},
