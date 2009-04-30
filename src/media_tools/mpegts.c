@@ -618,7 +618,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		/*look for proper table*/
 		table_id = data[0];
 
-		if ((table_id == GF_M2TS_TABLE_ID_PMT || table_id == GF_M2TS_TABLE_ID_NIT_ACTUAL) && ts->on_event) {
+		if ((table_id == GF_M2TS_TABLE_ID_PAT || table_id == GF_M2TS_TABLE_ID_SDT_ACTUAL || table_id == GF_M2TS_TABLE_ID_PMT || table_id == GF_M2TS_TABLE_ID_NIT_ACTUAL) && ts->on_event) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
@@ -1714,7 +1714,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->SDTs = gf_list_new();
 
 	ts->pat = gf_m2ts_section_filter_new(gf_m2ts_process_pat, 0);
-	ts->sdt = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_sdt*/, 1);
+	ts->sdt = gf_m2ts_section_filter_new(gf_m2ts_process_sdt, 1);
 	ts->nit = gf_m2ts_section_filter_new(gf_m2ts_process_nit, 0);
 	ts->eit = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_eit*/, 1);
 	ts->tdt_tot_st = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_tdt_tot_st*/, 1);
