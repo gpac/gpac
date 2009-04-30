@@ -230,9 +230,11 @@ static jsval dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 		sg->reference_count++;
 	gf_node_register(sg->RootNode, NULL);
 
-	jsclass = &dom_rt->domDocumentClass;
+	jsclass = NULL;
 	if (dom_rt->get_document_class)
 		jsclass = (JSClass *) dom_rt->get_document_class(sg);
+
+	if (!jsclass) jsclass = &dom_rt->domDocumentClass;
 
 	new_obj = JS_NewObject(c, jsclass, 0, 0);
 	JS_SetPrivate(c, new_obj, sg);
@@ -1186,6 +1188,41 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 			free(res);
 		}
 		return JS_TRUE;
+
+	case 16:/*firstElementChild*/
+		*vp = JSVAL_NULL;
+		if (n->sgprivate->tag!=TAG_DOMText) {
+			GF_ChildNodeItem *child = ((GF_ParentNode*)n)->children;
+			while (child) {
+				if (child->node->sgprivate->tag != TAG_DOMText) {
+					*vp = dom_element_construct(c, child->node);
+					break;
+				}
+				child = child->next;
+			}
+		}
+		return JS_TRUE;
+	case 17:/*lastElementChild*/
+		*vp = JSVAL_NULL;
+		if (n->sgprivate->tag!=TAG_DOMText) {
+			GF_Node *last = NULL;
+			GF_ChildNodeItem *child = ((GF_ParentNode*)n)->children;
+			while (child) {
+				if (child->node->sgprivate->tag != TAG_DOMText) {
+					last = child->node;
+				}
+				child = child->next;
+			}
+			if (last) *vp = dom_element_construct(c, last);
+		}
+		return JS_TRUE;
+	case 18:/*previousElementSibling*/
+		*vp = dom_node_get_sibling(c, n, 1, 1);
+		return JS_TRUE;
+	case 19:/*nextElementSibling*/
+		*vp = dom_node_get_sibling(c, n, 0, 1);
+		return JS_TRUE;
+
 	}
 	/*not supported*/
 	return JS_TRUE;
@@ -3115,6 +3152,12 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			{"localName",		13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 			{"baseURI",			14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 			{"textContent",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			/*elementTraversal interface*/
+			{"firstElementChild",		16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"lastElementChild",		17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"previousElementSibling",	18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"nextElementSibling",		19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+
 			{0, 0, 0, 0, 0}
 		};
 		dom_rt->dom_node_proto = JS_InitClass(c, global, 0, &dom_rt->domNodeClass, 0, 0, nodeProps, nodeFuncs, 0, 0);
@@ -3435,9 +3478,10 @@ static void dom_js_define_document_ex(JSContext *c, JSObject *global, GF_SceneGr
 	if (doc->reference_count)
 		doc->reference_count++;
 
-	__class = &dom_rt->domDocumentClass;
+	__class = NULL;
 	if (dom_rt->get_document_class)
 		__class = dom_rt->get_document_class(doc);
+	if (!__class) __class = &dom_rt->domDocumentClass;
 
 	obj = JS_DefineObject(c, global, name, __class, 0, 0 );
 	gf_node_register(doc->RootNode, NULL);

@@ -343,40 +343,6 @@ static JSBool svg_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 		}
 		return JS_TRUE;
 	}
-	case 1:/*firstElementChild*/
-		*vp = JSVAL_NULL;
-		if (n->sgprivate->tag!=TAG_DOMText) {
-			GF_ChildNodeItem *child = ((GF_ParentNode*)n)->children;
-			while (child) {
-				if (child->node->sgprivate->tag != TAG_DOMText) {
-					*vp = dom_element_construct(c, child->node);
-					break;
-				}
-				child = child->next;
-			}
-		}
-		return JS_TRUE;
-	case 2:/*lastElementChild*/
-		*vp = JSVAL_NULL;
-		if (n->sgprivate->tag!=TAG_DOMText) {
-			GF_Node *last = NULL;
-			GF_ChildNodeItem *child = ((GF_ParentNode*)n)->children;
-			while (child) {
-				if (child->node->sgprivate->tag != TAG_DOMText) {
-					last = child->node;
-				}
-				child = child->next;
-			}
-			if (last) *vp = dom_element_construct(c, last);
-		}
-		return JS_TRUE;
-	case 3:/*previousElementSibling*/
-		*vp = dom_node_get_sibling(c, n, 1, 1);
-		return JS_TRUE;
-	case 4:/*nextElementSibling*/
-		*vp = dom_node_get_sibling(c, n, 0, 1);
-		return JS_TRUE;
-
 	case 5:/*currentScale*/
 		if (n->sgprivate->tag!=TAG_SVG_svg) return JS_TRUE;
 		if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_SCALE, (GF_Node *)n, &par)) {
@@ -2085,11 +2051,6 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 		JSPropertySpec svgElementProps[] = {
 			/*svgElement interface*/
 			{"id",						0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
-			/*elementTraversal interface - all SVGElement implement this*/
-			{"firstElementChild",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"lastElementChild",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"previousElementSibling",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"nextElementSibling",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 			/*svgSVGElement interface*/
 			{"currentScale",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
 			{"currentRotate",			6,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
