@@ -483,7 +483,7 @@ static void SVG_Update_video(GF_TextureHandler *txh)
 	/*we have no choice but retraversing the graph until we're inactive since the movie framerate and
 	the compositor framerate are likely to be different */
 	if (!txh->stream_finished) 
-//	if (txh->needs_refresh)
+	if (txh->needs_refresh)
 		gf_sc_invalidate(txh->compositor, NULL);
 
 	if (stack->stop_requested) {
