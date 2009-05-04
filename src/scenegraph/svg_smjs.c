@@ -147,7 +147,7 @@ static JSBool svg_nav_to_location(JSContext *c, JSObject *obj, uintN argc, jsval
 	GF_JSAPIParam par;
 	GF_SceneGraph *sg;
 	if ((argc!=1) || !JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL)) return JS_TRUE;
-	sg = JS_GetContextPrivate(c);
+	sg = JS_GetPrivate(c, obj);
 	par.uri.url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	par.uri.nb_params = 0;
 	ScriptAction(sg, GF_JSAPI_OP_LOAD_URL, sg->RootNode, &par);
@@ -181,28 +181,18 @@ static JSBool svg_parse_xml(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 
 static void svg_script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
 {
-//	GF_SceneGraph *sg = JS_GetContextPrivate(c);
-//	_ScriptMessage(sg, GF_SCRIPT_ERROR, msg);
 	GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d (%s)", msg, jserr->lineno, jserr->linebuf));
 }
 
-static JSBool svg_echo(JSContext *c, JSObject *p, uintN argc, jsval *argv, jsval *rval)
+static JSBool svg_echo(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	u32 i;
-	char buf[5000];
-	GF_SceneGraph *sg = JS_GetContextPrivate(c);
+	GF_SceneGraph *sg;
+	if ((argc!=1) || !JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL)) return JS_TRUE;
+	sg = JS_GetPrivate(c, obj);
 	if (!sg) return JS_TRUE;
 
-	strcpy(buf, "");
-	for (i = 0; i < argc; i++) {
-		jschar*utf;
-		JSString *str = JS_ValueToString(c, argv[i]);
-		if (!str) return JS_TRUE;
-		if (i) strcat(buf, " ");
-		utf = JS_GetStringChars(str);
-		strcat(buf, JS_GetStringBytes(str));
-	}
-	_ScriptMessage(sg, GF_SCRIPT_INFO, buf);
+	if (JSVAL_IS_STRING(argv[0]))
+		_ScriptMessage(sg, GF_SCRIPT_INFO, JS_GetStringBytes(JS_ValueToString(c, argv[0]) ) );
 	return JS_TRUE;
 }
 
@@ -239,7 +229,7 @@ static JSBool global_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *v
 	if (!JS_InstanceOf(c, obj, &svg_rt->globalClass, NULL) )
 		return JS_TRUE;
 
-	sg = JS_GetContextPrivate(c);
+	sg = JS_GetPrivate(c, obj);
 	if (JSVAL_IS_INT(id)) {
 		switch (JSVAL_TO_INT(id)) {
 		/*namespaceURI*/
