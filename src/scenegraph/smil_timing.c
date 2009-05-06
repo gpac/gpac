@@ -443,6 +443,13 @@ Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 	if (!sg) return 0;
 
 	active_count = 0;
+
+	/*
+		Note: whenever a timed element is active, we trigger a gf_node_dirty_parent_graph so that the parent graph 
+		is aware that some modifications may happen in the subtree. This is needed for cases where the subtree
+		is in an offscreen surface, to force retraversing of the subtree and thus apply the animation. 
+
+	*/
 	
 	/* notify the new scene time to the register timed elements 
 	   this might modify other timed elements or the element itself 
@@ -469,9 +476,11 @@ Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 			   but which require a tree traversal */
 			i--;
 			active_count ++;
+			gf_node_dirty_parent_graph(rti->timed_elt);
 			break;
 		case 1:
 			active_count++;
+			gf_node_dirty_parent_graph(rti->timed_elt);
 			break;
 		case 0:
 		default:
@@ -502,9 +511,11 @@ Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg)
 			break;
 		case -3:
 			active_count++;
+			gf_node_dirty_parent_graph(rti->timed_elt);
 			break;
 		case 1:
 			active_count++;
+			gf_node_dirty_parent_graph(rti->timed_elt);
 			break;
 		case 0:
 		default:
