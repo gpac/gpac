@@ -1487,6 +1487,14 @@ static void dirty_parents(GF_Node *node)
 		}
 	}
 }
+GF_EXPORT
+void gf_node_dirty_parent_graph(GF_Node *node)
+{
+	/*if root node of the scenegraph*/
+	if (node->sgprivate->scenegraph->NodeCallback ) {
+		node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_GRAPH_DIRTY, NULL, NULL);
+	}
+}
 
 GF_EXPORT
 void gf_node_dirty_set(GF_Node *node, u32 flags, Bool and_dirty_parents)

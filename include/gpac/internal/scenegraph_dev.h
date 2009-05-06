@@ -296,6 +296,8 @@ void *gf_node_get_name_address(GF_Node*node);
 
 void gf_node_changed_internal(GF_Node *node, GF_FieldInfo *field, Bool notify_scripts);
 
+void gf_node_dirty_parent_graph(GF_Node *node);
+
 struct _route
 {
 	u8 is_setup;
