@@ -17,6 +17,13 @@ endif
 LOCAL_LIB=
 LINKLIBS=-lgpac -lavcodec -lavformat -lz
 
+#old ffmpeg lib
+ifeq ($(CONFIG_FFMPEG_OLD), local)
+CFLAGS+=-DFFMPEG_OLD_HEADERS
+else
+LINKLIBS+=-lswscale
+endif
+
 #common obj
 OBJS=ffmpeg_decode.o ffmpeg_demux.o ffmpeg_load.o
 
