@@ -732,20 +732,28 @@ fi
 
 
 #look for FFMPEG support
+
 cat > $TMPC << EOF
-#include <stddef.h>
+#include <libavcodec/avcodec.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc $TMPO -c $TMPC 2> /dev/null  ; then
+old_ffmpeg_inc="no"
+else
+
+old_ffmpeg_inc="yes"
+
+cat > $TMPC << EOF
 #include <ffmpeg/avcodec.h>
 int main( void ) { return 0; }
 EOF
 
+fi
+
+
 if test "$cross_prefix"  != "" ; then
-  echo "HELLO"
-  echo "HELLO"
-  echo "HELLO"
   if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib -lz -lavcodec -lavformat -lavutil 2> /dev/null  ; then
-  echo "HELLO"
-  echo "HELLO"
-  echo "HELLO"
      has_ffmpeg="system"
   else
      if $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
@@ -1582,6 +1590,8 @@ echo "CONFIG_OGG=$has_ogg" >> config.mak
 echo "CONFIG_VORBIS=$has_vorbis" >> config.mak
 echo "CONFIG_THEORA=$has_theora" >> config.mak
 echo "CONFIG_FFMPEG=$has_ffmpeg" >> config.mak
+echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
+
 echo "CONFIG_OSS_AUDIO=$has_oss_audio" >> config.mak
 echo "CONFIG_ALSA=$has_alsa" >> config.mak
 echo "CONFIG_JACK=$has_jack" >> config.mak

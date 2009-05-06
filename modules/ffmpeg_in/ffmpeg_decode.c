@@ -241,7 +241,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 	/*setup audio streams*/
 	if (ffd->st==GF_STREAM_AUDIO) {
-		if ((ffd->codec->type == CODEC_ID_MP3LAME) || (ffd->codec->type == CODEC_ID_MP2)) {
+		if (ffd->codec->type == CODEC_ID_MP2) {
 			ffd->ctx->frame_size = (ffd->ctx->sample_rate > 24000) ? 1152 : 576;
 		}
 		/*may be 0 (cfg not known yet)*/
@@ -643,7 +643,7 @@ redecode:
         	                NULL, NULL, NULL);
 			
 			if (ffd->sws_ctx)
-				sws_scale(ffd->sws_ctx, ffd->frame->data, ffd->frame->linesize, 0, ffd->ctx->height->codec->height, pict.data, pict.linesize);
+				sws_scale(ffd->sws_ctx, ffd->frame->data, ffd->frame->linesize, 0, ffd->ctx->height, pict.data, pict.linesize);
 
 #endif
 

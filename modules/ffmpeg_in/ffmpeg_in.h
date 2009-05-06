@@ -56,14 +56,23 @@
 
 
 /*include FFMPEG APIs*/
+
+#ifdef FFMPEG_OLD_HEADERS
 #include <ffmpeg/avformat.h>
+#else
+#include <libavformat/avformat.h>
+#endif
 
 void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl);
 
 
 #if LIBAVCODEC_VERSION_INT > ((52<<16)+(0<<8)+0)
 #define FFMPEG_SWSCALE
+#ifdef FFMPEG_OLD_HEADERS
 #include <ffmpeg/swscale.h>
+#else
+#include <libswscale/swscale.h>
+#endif
 #endif
 
 /*FFMPEG decoder module */
