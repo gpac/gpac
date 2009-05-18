@@ -619,6 +619,13 @@ u32 gf_node_x3d_type_by_class_name(const char *node_name);
 /*exported for URL handling in compositor*/
 void gf_sg_mfurl_del(MFURL url);
 
+/*returns 1 if proto is a hardcoded proto acting as a grouping node*/
+Bool gf_node_proto_is_grouping(GF_Node *node);
+
+/*tags a hardcoded proto as being a grouping node*/
+GF_Err gf_node_proto_set_grouping(GF_Node *node);
+
+
 #ifdef __cplusplus
 }
 #endif

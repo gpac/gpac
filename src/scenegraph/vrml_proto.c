@@ -596,7 +596,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 		}
 		/*couldn't find proto in the given lib, consider the proto as loaded (give up)*/
 		if (!proto) {
-			proto_node->is_loaded = 1;
+			proto_node->flags |= GF_SG_PROTO_LOADED;
 			return;
 		}
 		/*cf VRML: once an external proto is loaded, copy back the default field values of the external proto*/
@@ -681,7 +681,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 		}
 	}
 #endif
-	proto_node->is_loaded = 1;
+	proto_node->flags |= GF_SG_PROTO_LOADED;
 }
 
 void gf_sg_proto_mark_field_loaded(GF_Node *proto_inst, GF_FieldInfo *info)
@@ -756,7 +756,7 @@ GF_Err gf_sg_proto_load_code(GF_Node *node)
 	if (node->sgprivate->tag != TAG_ProtoNode) return GF_BAD_PARAM;
 	inst = (GF_ProtoInstance *) node;
 	if (!inst->proto_interface) return GF_BAD_PARAM;
-	if (inst->is_loaded) return GF_OK;
+	if (inst->flags & GF_SG_PROTO_LOADED) return GF_OK;
 	gf_sg_proto_instanciate(inst);
 	return GF_OK;
 }
@@ -1238,6 +1238,21 @@ GF_SceneGraph *Node_GetExternProtoScene(GF_Node *node)
 	return sg;
 }
 
+GF_EXPORT
+GF_Err gf_node_proto_set_grouping(GF_Node *node)
+{
+	if (!node || (node->sgprivate->tag!=TAG_ProtoNode)) return GF_BAD_PARAM;
+	((GF_ProtoInstance *)node)->flags |= GF_SG_PROTO_IS_GROUPING;
+	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_node_proto_is_grouping(GF_Node *node)
+{
+	if (!node || (node->sgprivate->tag!=TAG_ProtoNode)) return 0;
+	if ( ((GF_ProtoInstance *)node)->flags & GF_SG_PROTO_IS_GROUPING) return 1;
+	return 0;
+}
 
 GF_EXPORT
 GF_Node *gf_node_get_proto_root(GF_Node *node)

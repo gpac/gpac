@@ -767,6 +767,11 @@ struct _proto
 u32 gf_sg_proto_get_num_fields(GF_Node *node, u8 code_mode);
 GF_Err gf_sg_proto_get_field(GF_Proto *proto, GF_Node *node, GF_FieldInfo *field);
 
+enum
+{
+	GF_SG_PROTO_LOADED	=	1,
+	GF_SG_PROTO_IS_GROUPING =	2,
+};
 
 typedef struct _proto_instance
 {
@@ -792,7 +797,7 @@ typedef struct _proto_instance
 	/*scripts are loaded once all IS routes are activated and node code is loaded*/
 	GF_List *scripts_to_load;
 
-	Bool is_loaded;
+	u32 flags;
 } GF_ProtoInstance;
 
 /*destroy proto*/

@@ -395,8 +395,11 @@ static void SVG_Update_image(GF_TextureHandler *txh)
 
 	gf_sc_texture_update_frame(txh, 0);
 	/*URL is present but not opened - redraw till fetch*/
-	if (txh->stream && (!txh->tx_io || txh->needs_refresh) ) 
+	if (txh->stream && (!txh->tx_io || txh->needs_refresh) ) {
+		/*mark all subtrees using this image as dirty*/
+		gf_node_dirty_parents(txh->owner);
 		gf_sc_invalidate(txh->compositor, NULL);
+	}
 }
 
 static void svg_traverse_image(GF_Node *node, void *rs, Bool is_destroy)

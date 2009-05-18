@@ -440,6 +440,7 @@ void compositor_init_plane_clipper(GF_Compositor *compositor, GF_Node *node)
 		gf_node_dirty_set(node, GF_SG_CHILD_DIRTY, 0);
 
 		stack->pc = pc;
+		gf_node_proto_set_grouping(node);
 	}
 }
 
@@ -539,6 +540,7 @@ void compositor_init_offscreen_group(GF_Compositor *compositor, GF_Node *node)
 		gf_node_set_callback_function(node, TraverseOffscreenGroup);
 		stack->og = og;
 		if (og.offscreen) stack->flags |= GROUP_IS_CACHED;
+		gf_node_proto_set_grouping(node);
 	}
 }
 
@@ -635,12 +637,13 @@ void compositor_init_depth_group(GF_Compositor *compositor, GF_Node *node)
 		gf_node_set_private(node, stack);
 		gf_node_set_callback_function(node, TraverseDepthGroup);
 		stack->dg = dg;
+		gf_node_proto_set_grouping(node);
 	}
 }
 
 
 
-/*PathExtrusion hardcoded proto*/
+/*IndexedCurve2D hardcoded proto*/
 
 typedef struct
 {
@@ -774,7 +777,7 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode==TRAVERSE_SORT) {
 		if (gf_node_dirty_get(node)) {
 			Untransform_GetNode(node, &stack->untr); /*lets place it below*/
-			gf_node_dirty_clear(node, 0);
+			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 		}
 	}
 
@@ -847,8 +850,12 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 		GF_Matrix2D mx2d_backup;
 		gf_mx2d_copy(mx2d_backup, tr_state->transform);
 		gf_mx2d_init(tr_state->transform);
-		gf_node_traverse_children((GF_Node *)&stack->untr, tr_state);
+
+		group_2d_traverse((GF_Node *)&stack->untr, (GroupingNode2D *)stack, tr_state);
+
 		gf_mx2d_copy(tr_state->transform, mx2d_backup);
+
+
 	}
 }
 
@@ -861,6 +868,7 @@ void compositor_init_untransform(GF_Compositor *compositor, GF_Node *node)
 		gf_node_set_private(node, stack);
 		gf_node_set_callback_function(node, TraverseUntransform);
 		stack->untr = tr;
+		gf_node_proto_set_grouping(node);
 	}
 }
 
