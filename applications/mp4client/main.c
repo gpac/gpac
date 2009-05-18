@@ -467,7 +467,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		if (right_down && (user.init_flags & GF_TERM_WINDOWLESS) ) {
 			GF_Event move;
 			move.move.x = evt->mouse.x - last_x;
-			move.move.y = evt->mouse.y - last_y;
+			move.move.y = last_y-evt->mouse.y;
 			move.type = GF_EVENT_MOVE;
 			move.move.relative = 1;
 			gf_term_user_event(term, &move);
