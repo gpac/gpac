@@ -1029,6 +1029,10 @@ static Bool is_focus_target(GF_Node *elt)
 			case GF_EVENT_FOCUSIN:
 			case GF_EVENT_FOCUSOUT:
 			case GF_EVENT_ACTIVATE:
+			/*although this is not in the SVGT1.2 spec, we also enable focus switching if key events are listened on the element*/
+			case GF_EVENT_KEYDOWN:
+			case GF_EVENT_KEYUP:
+			case GF_EVENT_LONGKEYPRESS:
 				return 1;
 			}
 		}
@@ -1126,7 +1130,22 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			break;
 
 		case TAG_ProtoNode:
-			CALL_SET_FOCUS(gf_node_get_proto_root(elt));
+			/*hardcoded proto acting as a grouping node*/
+			if (gf_node_proto_is_grouping(elt)) {
+				GF_FieldInfo info;
+				if (!current_focus) {
+					/*get the base grouping stack (*/
+					BaseGroupingStack *grp = (BaseGroupingStack*)gf_node_get_private(elt);
+					if (grp && (grp->flags & (GROUP_HAS_SENSORS | GROUP_IS_ANCHOR) )) 
+						return elt;
+				}
+				if (gf_node_get_field_by_name(elt, "children", &info) != GF_OK) return NULL;
+				if (info.fieldType != GF_SG_VRML_MFNODE) return NULL;
+				child = *(GF_ChildNodeItem **) info.far_ptr;
+			} else {
+				CALL_SET_FOCUS(gf_node_get_proto_root(elt));
+			}
+			break;
 		
 		case TAG_MPEG4_Inline: case TAG_X3D_Inline: 
 			CALL_SET_FOCUS(gf_sc_get_subscene_root(elt));
@@ -1156,8 +1175,8 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		default:
 			return NULL;
 		}
-
-		child = ((GF_ParentNode*)elt)->children;
+		if (!child)
+			child = ((GF_ParentNode*)elt)->children;
 	} else {
 #ifndef GPAC_DISABLE_SVG
 		SVGAllAttributes atts;
@@ -1319,6 +1338,19 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 		case TAG_MPEG4_CompositeTexture2D: case TAG_MPEG4_CompositeTexture3D:
 			child = ((GF_ParentNode*)par)->children;
 			break;
+		case TAG_ProtoNode:
+			/*hardcoded proto acting as a grouping node*/
+			if (gf_node_proto_is_grouping(par)) {
+				GF_FieldInfo info;
+				if ((gf_node_get_field_by_name(par, "children", &info) == GF_OK) 
+					&& (info.fieldType == GF_SG_VRML_MFNODE) 
+				) {
+					child = *(GF_ChildNodeItem **) info.far_ptr;
+					break;
+				}
+			}
+			/*fall through*/
+
 		/*for all other node, locate parent*/
 		default:
 			gf_list_rem_last(compositor->focus_ancestors);

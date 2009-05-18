@@ -945,35 +945,39 @@ void gf_node_traverse(GF_Node *node, void *renderStack)
 	}
 	if (node->sgprivate->tag != TAG_ProtoNode) return;
 
-	/*proto only traverses its first child*/
-	if (((GF_ProtoInstance *) node)->RenderingNode) {
-		node = ((GF_ProtoInstance *) node)->RenderingNode;
-		/*if rendering node is a proto and not a hardcoded proto, traverse it*/
-		if (!node->sgprivate->UserCallback && (node->sgprivate->tag == TAG_ProtoNode)) {
-			gf_node_traverse(node, renderStack);
-			return;
-		}
-	}
 	/*if no rendering function is assigned this is a real proto (otherwise this is an hardcoded one)*/
-	else if (!node->sgprivate->UserCallback) {
-		/*if no rendering node, check if the proto is fully instanciated (externProto)*/
-		GF_ProtoInstance *proto_inst = (GF_ProtoInstance *) node;
-		gf_node_dirty_clear(node, 0);
-		/*proto has been deleted or dummy proto (without node code)*/
-		if (!proto_inst->proto_interface || proto_inst->is_loaded) return;
-		/*try to load the code*/
-		gf_sg_proto_instanciate(proto_inst);
+	if (!node->sgprivate->UserCallback) {
 
-		/*if user callback is set, this is an hardcoded proto. If not, locate the first traversable node*/
-		if (!node->sgprivate->UserCallback) {
-			if (!proto_inst->RenderingNode) {
-				gf_node_dirty_set(node, 0, 1);
+		/*if a rendering node is assigned use it*/
+		if (((GF_ProtoInstance *) node)->RenderingNode) {
+			node = ((GF_ProtoInstance *) node)->RenderingNode;
+			/*if rendering node is a proto and not a hardcoded proto, traverse it*/
+			if (!node->sgprivate->UserCallback && (node->sgprivate->tag == TAG_ProtoNode)) {
+				gf_node_traverse(node, renderStack);
 				return;
 			}
-			/*signal we have been loaded*/
-			node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, node, NULL);
+		}
+		/*if no rendering node, check if the proto is fully instanciated (externProto)*/
+		else {
+			GF_ProtoInstance *proto_inst = (GF_ProtoInstance *) node;
+			gf_node_dirty_clear(node, 0);
+			/*proto has been deleted or dummy proto (without node code)*/
+			if (!proto_inst->proto_interface || (proto_inst->flags & GF_SG_PROTO_LOADED) ) return;
+			/*try to load the code*/
+			gf_sg_proto_instanciate(proto_inst);
+
+			/*if user callback is set, this is an hardcoded proto. If not, locate the first traversable node*/
+			if (!node->sgprivate->UserCallback) {
+				if (!proto_inst->RenderingNode) {
+					gf_node_dirty_set(node, 0, 1);
+					return;
+				}
+				/*signal we have been loaded*/
+				node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, node, NULL);
+			}
 		}
 	}
+
 	if (node->sgprivate->UserCallback) {
 #ifdef GF_CYCLIC_TRAVERSE_ON
 		if (node->sgprivate->flags & GF_NODE_IN_TRAVERSE) return;
