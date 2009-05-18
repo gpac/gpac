@@ -2165,7 +2165,7 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 		if (gf_mx_try_lock(compositor->mx)) 
 			break;
 		retry--;
-		gf_sleep(0);
+		gf_sleep(1);
 		if (!retry) 
 			return 0;
 	}
