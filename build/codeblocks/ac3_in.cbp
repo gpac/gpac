@@ -47,7 +47,7 @@
 			<Add library="gpac" />
 			<Add library="a52" />
 			<Add directory="..\..\bin\$(TARGET_STR)" />
-			<Add directory="..\..\extra_lib\lib\gcc_w32" />
+			<Add directory="..\..\extra_lib\lib\w32" />
 		</Linker>
 		<Unit filename="..\..\modules\ac3_in\ac3_in.c">
 			<Option compilerVar="CC" />

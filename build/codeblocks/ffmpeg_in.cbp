@@ -18,9 +18,6 @@
 					<Add directory="..\..\include" />
 					<Add directory="..\..\extra_lib\include\" />
 				</Compiler>
-				<Linker>
-					<Add directory="..\..\extra_lib\lib\w32_rel" />
-				</Linker>
 			</Target>
 			<Target title="debug">
 				<Option output="..\..\bin\$(TARGET_STR)\gm_$(PROJECT_NAME)" prefix_auto="1" extension_auto="1" />
@@ -34,9 +31,6 @@
 					<Add directory="..\..\include" />
 					<Add directory="..\..\extra_lib\include" />
 				</Compiler>
-				<Linker>
-					<Add directory="..\..\extra_lib\lib\w32_deb" />
-				</Linker>
 			</Target>
 			<Environment>
 				<Variable name="TARGET_STR" value="$(TARGET_CC)_$(TARGET_NAME)" />
@@ -50,6 +44,7 @@
 			<Add library="avcodec-51" />
 			<Add library="gpac" />
 			<Add directory="..\..\bin\$(TARGET_STR)" />
+			<Add directory="..\..\extra_lib\lib\w32" />
 		</Linker>
 		<Unit filename="..\..\modules\ffmpeg_in\ffmpeg_decode.c">
 			<Option compilerVar="CC" />

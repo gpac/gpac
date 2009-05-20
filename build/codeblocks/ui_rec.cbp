@@ -2,7 +2,7 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="xvid_dec" />
+		<Option title="ui_rec" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
@@ -15,6 +15,7 @@
 					<Add option="-O2" />
 					<Add option="-W" />
 					<Add option="-fexceptions" />
+					<Add directory="..\..\include" />
 				</Compiler>
 			</Target>
 			<Target title="debug">
@@ -26,6 +27,7 @@
 					<Add option="-W" />
 					<Add option="-g" />
 					<Add option="-fexceptions" />
+					<Add directory="..\..\include" />
 				</Compiler>
 			</Target>
 			<Environment>
@@ -34,18 +36,15 @@
 		</Build>
 		<Compiler>
 			<Add directory="..\..\include" />
-			<Add directory="..\..\extra_lib\include\xvid" />
 		</Compiler>
 		<Linker>
 			<Add library="gpac" />
-			<Add library="xvidcore" />
-			<Add directory="..\..\extra_lib\lib\w32" />
 			<Add directory="..\..\bin\$(TARGET_STR)" />
 		</Linker>
-		<Unit filename="..\..\modules\xvid_dec\xvid_dec.c">
+		<Unit filename="..\..\modules\ui_rec\ui_rec.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\..\modules\xvid_dec\xvid_dec.def" />
+		<Unit filename="..\..\modules\ui_rec\ui_rec.def" />
 		<Extensions>
 			<code_completion />
 			<debugger />
