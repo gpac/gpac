@@ -1,0 +1,86 @@
+InitialObjectDescriptor {
+ objectDescriptorID 1
+ audioProfileLevelIndication 255
+ visualProfileLevelIndication 254
+ sceneProfileLevelIndication 1
+ graphicsProfileLevelIndication 1
+ ODProfileLevelIndication 1
+ esDescr [
+  ES_Descriptor {
+   ES_ID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     isCommandStream true
+     pixelMetric true
+     pixelWidth 400
+     pixelHeight 300
+    }
+   }
+  }
+  ES_Descriptor {
+   ES_ID 2
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 1
+   }
+  }
+ ]
+}
+
+OrderedGroup {
+ children [
+  Background2D {
+   backColor 1 1 1
+  }
+  WorldInfo {
+   info ["This shows usage of a demo InputSensor" "" "GPAC Regression Tests" "$Date: 2009-05-20 15:59:18 $ - $Revision: 1.1 $" "(C) 2009 ENST"]
+   title "InputSensor Test - Demo device"
+  }
+  Transform2D {
+   translation 0 90
+   children [
+    Shape {
+     appearance DEF APP Appearance {
+      material Material2D {
+       emissiveColor 0 0 0
+       filled TRUE
+      }
+     }
+     geometry DEF TEXT Text {
+      string ["DemoSensor", ""]
+      fontStyle FontStyle {
+       justify ["MIDDLE" "MIDDLE"]
+       size 30
+      }
+     }
+    }
+   ]
+  }
+  InputSensor {
+   url [od:10]
+   buffer {
+    REPLACE TEXT.string[1] BY ""
+   }
+  }
+ ]
+}
+
+AT 0 {
+  UPDATE OD [
+   ObjectDescriptor {
+    objectDescriptorID 10
+    esDescr [
+     ES_Descriptor {
+      ES_ID 5
+      decConfigDescr DecoderConfigDescriptor {
+       streamType 10
+       decSpecificInfo UIConfig {
+        deviceName "DemoSensor"
+       }
+      }
+     }
+    ]
+   }
+  ]
+}
+
