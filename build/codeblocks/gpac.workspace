@@ -42,5 +42,8 @@
 		<Project filename="xvid_dec.cbp" />
 		<Project filename="wiiis.cbp" />
 		<Project filename="demo_is.cbp" />
+		<Project filename="ui_rec.cbp">
+			<Depends filename="libgpac.cbp" />
+		</Project>
 	</Workspace>
 </CodeBlocks_workspace_file>

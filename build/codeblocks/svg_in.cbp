@@ -40,7 +40,7 @@
 			<Add library="gpac" />
 			<Add library="z" />
 			<Add directory="..\..\bin\$(TARGET_STR)" />
-			<Add directory="..\..\extra_lib\lib\gcc_w32" />
+			<Add directory="..\..\extra_lib\lib\w32" />
 		</Linker>
 		<Unit filename="..\..\modules\svg_in\svg_in.c">
 			<Option compilerVar="CC" />

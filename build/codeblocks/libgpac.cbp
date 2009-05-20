@@ -52,7 +52,7 @@
 			<Add library="z" />
 			<Add library="jpeg" />
 			<Add library="png" />
-			<Add directory="..\..\extra_lib\lib\gcc_w32" />
+			<Add directory="..\..\extra_lib\lib\w32" />
 		</Linker>
 		<Unit filename="..\..\include\gpac\avparse.h" />
 		<Unit filename="..\..\include\gpac\base_coding.h" />
