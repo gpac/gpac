@@ -2,7 +2,7 @@
 <CodeBlocks_project_file>
 	<FileVersion major="1" minor="6" />
 	<Project>
-		<Option title="ffmpeg_in" />
+		<Option title="wiiis" />
 		<Option pch_mode="2" />
 		<Option compiler="gcc" />
 		<Build>
@@ -16,11 +16,7 @@
 					<Add option="-W" />
 					<Add option="-fexceptions" />
 					<Add directory="..\..\include" />
-					<Add directory="..\..\extra_lib\include\" />
 				</Compiler>
-				<Linker>
-					<Add directory="..\..\extra_lib\lib\w32_rel" />
-				</Linker>
 			</Target>
 			<Target title="debug">
 				<Option output="..\..\bin\$(TARGET_STR)\gm_$(PROJECT_NAME)" prefix_auto="1" extension_auto="1" />
@@ -32,36 +28,25 @@
 					<Add option="-g" />
 					<Add option="-fexceptions" />
 					<Add directory="..\..\include" />
-					<Add directory="..\..\extra_lib\include" />
 				</Compiler>
-				<Linker>
-					<Add directory="..\..\extra_lib\lib\w32_deb" />
-				</Linker>
 			</Target>
 			<Environment>
 				<Variable name="TARGET_STR" value="$(TARGET_CC)_$(TARGET_NAME)" />
 			</Environment>
 		</Build>
 		<Compiler>
-			<Add option="-DFFMPEG_OLD_HEADERS" />
+			<Add directory="..\..\extra_lib\include" />
 		</Compiler>
 		<Linker>
-			<Add library="avformat-51" />
-			<Add library="avcodec-51" />
 			<Add library="gpac" />
+			<Add library="wiiuse" />
 			<Add directory="..\..\bin\$(TARGET_STR)" />
+			<Add directory="..\..\extra_lib\lib\gcc_w32" />
 		</Linker>
-		<Unit filename="..\..\modules\ffmpeg_in\ffmpeg_decode.c">
+		<Unit filename="..\..\modules\wiiis\wiiis.c">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="..\..\modules\ffmpeg_in\ffmpeg_demux.c">
-			<Option compilerVar="CC" />
-		</Unit>
-		<Unit filename="..\..\modules\ffmpeg_in\ffmpeg_in.def" />
-		<Unit filename="..\..\modules\ffmpeg_in\ffmpeg_in.h" />
-		<Unit filename="..\..\modules\ffmpeg_in\ffmpeg_load.c">
-			<Option compilerVar="CC" />
-		</Unit>
+		<Unit filename="..\..\modules\wiiis\wiiis.def" />
 		<Extensions>
 			<code_completion />
 			<debugger />

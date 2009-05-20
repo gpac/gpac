@@ -90,7 +90,7 @@ EXPORTS
 	gf_bs_get_position
 	gf_bs_get_size
 	gf_bs_get_refreshed_size
-
+	
 ;thread.h exports
 	gf_th_new
 	gf_th_del
@@ -255,6 +255,7 @@ EXPORTS
 	gf_mx2d_apply_coords
 	gf_mx2d_apply_point
 	gf_mx2d_apply_rect
+	gf_get_bit_size
 
 ;exported for 3D tools
 	gf_vec_len

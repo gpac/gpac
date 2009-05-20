@@ -911,7 +911,7 @@ GF_Err configuration(Streamer *streamer, char *cfg_file, char *src_file, char *i
 		} else {
 			file = gf_isom_open(src_file, GF_ISOM_OPEN_READ, NULL);
 			if (!file) {
-				fprintf(stderr, "Error opening file %s of session %u: %s - skipping\n", opt, i+1, gf_error_to_string(gf_isom_last_error(NULL)));
+				fprintf(stderr, "Error opening file %s of session %u: %s - skipping\n", src_file, i+1, gf_error_to_string(gf_isom_last_error(NULL)));
 				return GF_IO_ERR;
 			}
 		}

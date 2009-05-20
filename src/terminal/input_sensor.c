@@ -71,6 +71,38 @@ static void add_field(ISPriv *priv, u32 fieldType, const char *fieldName)
 	gf_list_add(priv->ddf, field);
 }
 
+static void isdev_add_field(GF_InputSensorDevice *dev, u32 fieldType, const char *fieldName)
+{
+	ISPriv *is = (ISPriv *)dev->input_decoder->privateStack;
+	add_field(is, fieldType, fieldName);
+}
+
+static void isdev_dispatch_frame(struct __input_device *dev, u8 *data, u32 data_len)
+{
+	GF_SLHeader slh;
+	GF_Codec*cod;
+	u32 i;
+	ISPriv *priv = (ISPriv *)dev->input_decoder->privateStack;
+
+	memset(&slh, 0, sizeof(GF_SLHeader));
+	slh.accessUnitStartFlag = slh.accessUnitEndFlag = 1;
+	slh.compositionTimeStampFlag = 1;
+	/*note we could use an exact TS but it's not needed: since the input is generated locally
+	we want it to be decoded as soon as possible, thus using 0 emulates permanent seeking on 
+	InputSensor stream, hence forces input frame resync*/
+	slh.compositionTimeStamp = 0;
+
+	/*get all decoders and send frame*/
+	i=0;
+	while ((cod = (GF_Codec*)gf_list_enum(priv->scene->root_od->term->input_streams, &i))) {
+		ISPriv *is = (ISPriv *)cod->decio->privateStack;
+		if (is->type==priv->type) {
+			GF_Channel *ch = (GF_Channel *)gf_list_get(cod->inChannels, 0);
+			gf_es_receive_sl_packet(ch->service, ch, data, data_len, &slh, GF_OK);
+		}
+	}
+}
+
 static GF_Err IS_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 {
 	GF_BitStream *bs;
@@ -92,9 +124,9 @@ static GF_Err IS_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		devName[i] = gf_bs_read_int(bs, 8);
 	}
 	devName[i] = 0;
+	is->type = gf_crc_32(devName, len);
 	size = len + 1;
 
-	is->type = 0;
 	if (!stricmp(devName, "KeySensor")) {
 		is->type = IS_KeySensor;
 		add_field(is, GF_SG_VRML_SFINT32, "keyPressed");
@@ -127,53 +159,28 @@ static GF_Err IS_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		add_field(is, GF_SG_VRML_SFBOOL, "middleButtonDown");
 		add_field(is, GF_SG_VRML_SFBOOL, "rightButtonDown");
 		add_field(is, GF_SG_VRML_SFFLOAT, "wheel");
-
-#if GPAC_HTK_DEMO
-	} else if (!stricmp(devName, "HTKSensor")) {
-		FILE *f;
-		u32 nb_word, nbPhone, c, j;
-		char szPh[3];
-		char szName[1024];
-		char *szPath = gf_cfg_get_key(is->scene->root_od->term->user->config, "HTK", "HTKDirectory");
-		if (!szPath) szPath = gf_cfg_get_key(is->scene->root_od->term->user->config, "General", "ModulesDirectory");
-		strcpy(is->szHTKPath, szPath);
-		if (szPath[strlen(szPath)-1] != GF_PATH_SEPARATOR) is->szHTKPath[strlen(szPath)] = GF_PATH_SEPARATOR;
-
-		add_field(is, GF_SG_VRML_SFSTRING, "word");
-		add_field(is, GF_SG_VRML_SFINT32, "wordIndex");
-		add_field(is, GF_SG_VRML_SFFLOAT, "wordScore");
-	
-		if (!htk_num_users) {
-			HTK_Init(is->szHTKPath);
-			htk_num_users++;
-		}
-		
-		sprintf(szName, "HTKD_%d", (u32) is);
-		strcat(is->szHTKPath, szName);
-
-		f = fopen(is->szHTKPath, "wt");
-		szPh[2] = 0;
-		nb_word = gf_bs_read_int(bs, 8);
-		for (i=0; i<nb_word; i++) {
-			nbPhone = gf_bs_read_int(bs, 8);
-			while ((c=gf_bs_read_int(bs, 8))) fprintf(f, "%c", c);
-			fprintf(f, " ");
-			for (j=0; j<nbPhone; j++) {
-				gf_bs_read_data(bs, szPh, 2);
-				if (j) fprintf(f, " ");
-				if (!stricmp(szPh, "vc")) fprintf(f, "vcl");
-				else fprintf(f, "%s", szPh);
-			}
-			fprintf(f, "\n");
-		}
-		fprintf(f, "RIEN sp\nSENT-END [] endsil\nSENT-START [] inisil\n");
-		fclose(f);
-		is->type = IS_HTKSensor;
-
-		StartHTK(is);
-#endif
-	
 	}
+	else {
+		GF_InputSensorDevice *ifce;
+		/*not found, check all modules*/
+		u32 plugCount = gf_modules_get_count(is->scene->root_od->term->user->modules);
+		for (i = 0; i < plugCount ; i++) {
+			ifce = (GF_InputSensorDevice *) gf_modules_load_interface(is->scene->root_od->term->user->modules, i, GF_INPUT_DEVICE_INTERFACE);
+			if (!ifce) continue;
+			ifce->input_decoder = plug;
+			if (ifce->RegisterDevice && ifce->RegisterDevice(ifce, devName, bs, isdev_add_field) ) {
+				is->io_dev = ifce;
+				break;
+			}
+			gf_modules_close_interface((GF_BaseInterface *) ifce);
+		}
+		if (!is->io_dev) return GF_NOT_SUPPORTED;
+
+		is->io_dev->DispatchFrame = isdev_dispatch_frame;
+		plug->module_name = is->io_dev->module_name;
+		plug->author_name = is->io_dev->author_name;
+	}
+
 	gf_bs_del(bs);
 	return GF_OK;
 }
@@ -182,15 +189,6 @@ static GF_Err IS_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
 	ISPriv *is = (ISPriv *)plug->privateStack;
 	is->ES_ID = 0;
-#if GPAC_HTK_DEMO
-	if (htk_num_users) {
-		htk_num_users--;
-		if (!htk_num_users) {
-			while (is->htk_running) gf_sleep(10);
-			HTK_Close();
-		}
-	}
-#endif
 	return GF_OK;
 }
 
@@ -345,7 +343,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffer
 	return e;
 }
 
-void ISDec_Delete(GF_BaseDecoder *plug)
+void gf_isdec_del(GF_BaseDecoder *plug)
 {
 	ISPriv *priv = (ISPriv *)plug->privateStack;
 	gf_list_del(priv->is_nodes);
@@ -357,15 +355,12 @@ void ISDec_Delete(GF_BaseDecoder *plug)
 		free(fi);
 	}
 	gf_list_del(priv->ddf);
-#if GPAC_HTK_DEMO
-	gf_th_del(priv->th);
-#endif
 	free(priv);
 	free(plug);
 }
 
 
-GF_BaseDecoder *NewISCodec(u32 PL)
+GF_BaseDecoder *gf_isdec_new(GF_ESD *esd, u32 PL)
 {
 	ISPriv *priv;
 	GF_SceneDecoder *tmp;
@@ -391,10 +386,6 @@ GF_BaseDecoder *NewISCodec(u32 PL)
 	tmp->AttachScene = NULL;
 
 	GF_REGISTER_MODULE_INTERFACE(tmp, GF_SCENE_DECODER_INTERFACE, "GPAC InputSensor Decoder", "gpac distribution")
-
-#if GPAC_HTK_DEMO
-	priv->th = gf_th_new("HTKDecoder");
-#endif
 	return (GF_BaseDecoder *) tmp;
 }
 
@@ -426,13 +417,17 @@ static void IS_Unregister(GF_Node *node, ISStack *st)
 	/*stop stream*/
 	if (st->mo->num_open) gf_mo_stop(st->mo);
 	st->mo = NULL;
-	st->registered = 0;
+	if (st->registered) {
+		st->registered = 0;
+		if (is_dec->io_dev && is_dec->io_dev->Stop) is_dec->io_dev->Start(is_dec->io_dev);
+	}
 }
 
 static void IS_Register(GF_Node *n)
 {
 	GF_ObjectManager *odm;
 	ISPriv *is_dec;
+	u32 i;
 	ISStack *st = (ISStack *)gf_node_get_private(n);
 	odm = st->mo->odm;
 	if (!odm) return;
@@ -442,14 +437,22 @@ static void IS_Register(GF_Node *n)
 	/*get IS dec*/
 	is_dec = (ISPriv*)odm->codec->decio->privateStack;
 	gf_list_add(is_dec->is_nodes, st);
-	st->registered = 1;
-#if GPAC_HTK_DEMO
-	StartHTK(is_dec);
-#endif
+
 	/*start stream*/
 	gf_mo_play(st->mo, 0, -1, 0);
 
 	gf_term_unqueue_node_traverse(odm->term, n);
+
+	/*we want at least one sensor enabled*/
+	i=0;
+	while ((st = gf_list_enum(is_dec->is_nodes, &i))) {
+		if (st->is->enabled) {
+			st->registered = 1;
+			if (is_dec->io_dev && is_dec->io_dev->Start) is_dec->io_dev->Start(is_dec->io_dev);
+			break;
+		}
+	}
+
 }
 
 static void TraverseInputSensor(GF_Node *node, void *rs, Bool is_destroy)
@@ -485,10 +488,6 @@ void InitInputSensor(GF_InlineScene *is, GF_Node *node)
 /*check only URL changes*/
 void InputSensorModified(GF_Node *node)
 {
-#if GPAC_HTK_DEMO
-	GF_ObjectManager *odm;
-	ISPriv *is_dec;
-#endif
 	GF_MediaObject *mo;
 	ISStack *st = (ISStack *)gf_node_get_private(node);
 
@@ -506,16 +505,6 @@ void InputSensorModified(GF_Node *node)
 		IS_Unregister(node, st);
 		return;
 	}
-
-#if GPAC_HTK_DEMO
-	/*turn audio analyse on/off*/
-	if (!st->is_dec || !st->is_dec->od_man) return;
-	odm = st->is_dec->od_man;
-	assert(odm->codec && (odm->codec->type == GF_STREAM_INTERACT));
-	/*get IS dec*/
-	is_dec = odm->codec->decio->privateStack;
-	StartHTK(is_dec);
-#endif
 }
 
 
@@ -900,89 +889,3 @@ void InitStringSensor(GF_InlineScene *is, GF_Node *node)
 	gf_node_set_callback_function(node, DestroyStringSensor);
 	gf_list_add(is->root_od->term->x3d_sensors, node);
 }
-
-#if GPAC_HTK_DEMO
-u32 RunHTKDec(void *par)
-{
-	GF_BitStream *bs;
-	char *szWord;
-	s32 word_index;
-	u32 len, val, i;
-	Float word_score;
-	GF_SLHeader slh;
-	GF_Codec *cod;
-	unsigned char *buf;
-	u32 buf_size;
-
-
-	ISPriv *is_dec = (ISPriv *)par;
-//	while (is_dec->htk_running)
-
-	HTK_DoDetection();
-	szWord = HTK_GetWord();
-	word_index = HTK_GetWordIndex();
-	word_score = HTK_GetWordScore();
-
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	
-	/*HTK sensor buffer format: SFString - SFInt32 - SFFloat*/
-	gf_bs_write_int(bs, 1, 1); 
-	len = strlen(szWord);
-	val = gf_get_bit_size(len);
-	gf_bs_write_int(bs, val, 5);
-	gf_bs_write_int(bs, len, val);
-	for (i=0; i<len; i++) gf_bs_write_int(bs, szWord[i], 8);
-
-	gf_bs_write_int(bs, 1, 1); 
-	gf_bs_write_int(bs, word_index, 32);
-	gf_bs_write_int(bs, 1, 1); 
-	gf_bs_write_float(bs, word_score);
-
-	gf_bs_align(bs);
-	gf_bs_get_content(bs, &buf, &buf_size);
-	gf_bs_del(bs);
-
-	memset(&slh, 0, sizeof(GF_SLHeader));
-	slh.accessUnitStartFlag = slh.accessUnitEndFlag = 1;
-	slh.compositionTimeStamp = 0;
-
-	/*get all IS keySensor decoders and send frame*/
-	i=0; 
-	while ((cod = gf_list_enum(is_dec->scene->root_od->term->input_streams, &i))) {
-		ISPriv *is = cod->decio->privateStack;
-		if (is != is_dec) continue;
-		if (is->type==IS_HTKSensor) {
-			GF_Channel *ch = gf_list_get(cod->inChannels, 0);
-			gf_es_receive_sl_packet(ch->service, ch, buf, buf_size, &slh, GF_OK);
-		}
-	}
-	free(buf);
-
-	is_dec->htk_running = 0;
-	return 0;
-}
-
-void StartHTK(ISPriv *is_dec)
-{
-	u32 j;
-	Bool run;
-	ISStack *st;
-	run = 0;
-	j=0;
-	while ((st = gf_list_enum(is_dec->is_nodes, &j))) {
-		if (st->is->enabled) {
-			run = 1;
-			break;
-		}
-	}
-	if (is_dec->htk_running && run) return;
-	if (!is_dec->htk_running && !run) return;
-	
-	is_dec->htk_running = run;
-	if (run) {
-		HTK_SetDictionary(is_dec->szHTKPath);
-		gf_th_run(is_dec->th, RunHTKDec, is_dec);
-	}
-}
-#endif
-

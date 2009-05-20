@@ -4,6 +4,7 @@
 	<Project>
 		<Option title="mp4client" />
 		<Option pch_mode="2" />
+		<Option default_target="debug" />
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="release">
@@ -20,9 +21,11 @@
 			</Target>
 			<Target title="debug">
 				<Option output="..\..\bin\$(TARGET_STR)\MP4Client" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="..\..\bin\$(TARGET_STR)" />
 				<Option object_output="obj\$(TARGET_STR)\$(PROJECT_NAME)" />
 				<Option type="1" />
 				<Option compiler="gcc" />
+				<Option parameters="..\..\modules\demo_is\demo-sensor.bt" />
 				<Compiler>
 					<Add option="-W" />
 					<Add option="-g" />

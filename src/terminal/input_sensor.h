@@ -39,6 +39,7 @@ enum
 
 #define GPAC_HTK_DEMO  0
 
+
 typedef struct
 {
 	/*parent scene*/
@@ -49,6 +50,9 @@ typedef struct
 	u16 ES_ID;
 	/*uncompressed data frame*/
 	GF_List *ddf;
+
+	GF_InputSensorDevice *io_dev;
+
 	u32 type;
 
 	/*string sensor sep char */
@@ -67,8 +71,8 @@ typedef struct
 } ISPriv;
 
 
-GF_BaseDecoder *NewISCodec(u32 PL);
-void ISDec_Delete(GF_BaseDecoder *plug);
+GF_BaseDecoder *gf_isdec_new(GF_ESD *esd, u32 PL);
+void gf_isdec_del(GF_BaseDecoder *plug);
 GF_Err IS_Configure(GF_BaseDecoder *plug, GF_InlineScene *scene, Bool is_remote);
 
 

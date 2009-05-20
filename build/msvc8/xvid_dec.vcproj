@@ -487,6 +487,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Pocket PC 2003 (ARMV4)"
+			OutputDirectory="$(SolutionDir)Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
@@ -1279,7 +1280,7 @@
 					>
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="armasm -CPU StrongARM1 -o &quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)"
+						CommandLine="armasm -CPU StrongARM1 -o &quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)&#x0D;&#x0A;"
 						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"
 					/>
 				</FileConfiguration>
