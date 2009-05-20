@@ -182,7 +182,7 @@
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="9"
-				ImportLibrary="$(IntDir)/$(ProjectName).lib"
+				ImportLibrary="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac.lib"
 				TargetMachine="3"
 				CLRUnmanagedCodeCheck="false"
 			/>
@@ -440,7 +440,7 @@
 				ModuleDefinitionFile="..\..\src\libgpac_ce.def"
 				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				SubSystem="9"
-				ImportLibrary="$(IntDir)/$(ProjectName)/libgpac.lib"
+				ImportLibrary="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac.lib"
 				TargetMachine="3"
 			/>
 			<Tool
@@ -532,6 +532,10 @@
 	<References>
 	</References>
 	<Files>
+		<File
+			RelativePath="..\..\src\libgpac.def"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

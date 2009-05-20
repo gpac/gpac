@@ -469,6 +469,7 @@
 		</Configuration>
 		<Configuration
 			Name="Debug|Pocket PC 2003 (ARMV4)"
+			OutputDirectory="$(SolutionDir)Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
@@ -490,6 +491,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
+				AdditionalIncludeDirectories="../../include"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -532,11 +534,11 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\modules\dx_hw\collide.cur"
+			RelativePath="..\..\modules\dx_hw\res\collide.cur"
 			>
 		</File>
 		<File
-			RelativePath="..\..\modules\dx_hw\res\collide.cur"
+			RelativePath="..\..\modules\dx_hw\collide.cur"
 			>
 		</File>
 		<File
@@ -788,11 +790,11 @@
 			</FileConfiguration>
 		</File>
 		<File
-			RelativePath="..\..\modules\dx_hw\hand.cur"
+			RelativePath="..\..\modules\dx_hw\res\hand.cur"
 			>
 		</File>
 		<File
-			RelativePath="..\..\modules\dx_hw\res\hand.cur"
+			RelativePath="..\..\modules\dx_hw\hand.cur"
 			>
 		</File>
 		<File

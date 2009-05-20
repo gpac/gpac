@@ -994,7 +994,7 @@ GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		return GF_OK;
 	/*InteractionStream is currently hardcoded*/
 	case GF_STREAM_INTERACT:
-		codec->decio = (GF_BaseDecoder *) NewISCodec(PL);
+		codec->decio = (GF_BaseDecoder *) gf_isdec_new(esd, PL);
 		assert(codec->decio->InterfaceType == GF_SCENE_DECODER_INTERFACE);
 		return GF_OK;
 
@@ -1018,7 +1018,7 @@ void gf_codec_del(GF_Codec *codec)
 		/*input sensor streams are handled internally for now*/
 		case GF_STREAM_INTERACT:
 			gf_mx_p(codec->odm->term->net_mx);
-			ISDec_Delete(codec->decio);
+			gf_isdec_del(codec->decio);
 			gf_list_del_item(codec->odm->term->input_streams, codec);
 			gf_mx_v(codec->odm->term->net_mx);
 			break;
