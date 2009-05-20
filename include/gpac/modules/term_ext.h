@@ -71,7 +71,7 @@ enum
 	GF_TERM_EXT_EVENT,
 	
 	/*load/unload js bindings of this extension
-		associated param: GF_Event *evt
+		associated param: GF_TermExtJS *jsext
 		@return: ignored
 	*/
 	GF_TERM_EXT_JSBIND,
@@ -98,9 +98,10 @@ struct _term_ext
 	/*caps of the module*/
 	u32 caps;
 
-	/*load JS extension
+	/*terminal extension proc
 	 termext: pointer to the module
-	 term: pointer to GPAC terminal
+	 action: action type of this call
+	 param: associated param of the call
 	*/
 	Bool (*process)(GF_TermExt *termext, u32 action, void *param);
 

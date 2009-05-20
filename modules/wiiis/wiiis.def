@@ -1,0 +1,6 @@
+LIBRARY     gm_wiiis.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface

@@ -223,6 +223,27 @@ typedef struct _scenedecoder
 
 } GF_SceneDecoder;
 
+
+
+/*interface name and version for scene decoder */
+#define GF_INPUT_DEVICE_INTERFACE		GF_4CC('G', 'I', 'D', 0x01)
+
+typedef struct __input_device
+{
+	/* interface declaration*/
+	GF_DECL_MODULE_INTERFACE
+
+	Bool (*RegisterDevice)(struct __input_device *, const char *urn, GF_BitStream *dsi, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name));
+	void (*Start)(struct __input_device *);
+	void (*Stop)(struct __input_device *);
+
+	void *udta;
+
+	/*this is set upon loading and shall not be modified*/
+	GF_BaseDecoder *input_decoder;
+	void (*DispatchFrame)(struct __input_device *, u8 *data, u32 data_len);
+} GF_InputSensorDevice;
+
 #ifdef __cplusplus
 }
 #endif
