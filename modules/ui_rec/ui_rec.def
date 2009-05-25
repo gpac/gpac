@@ -1,0 +1,6 @@
+LIBRARY     gm_ui_rec.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface
