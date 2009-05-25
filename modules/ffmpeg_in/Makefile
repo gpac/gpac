@@ -18,7 +18,7 @@ LOCAL_LIB=
 LINKLIBS=-lgpac -lavcodec -lavformat -lz
 
 #old ffmpeg lib
-ifeq ($(CONFIG_FFMPEG_OLD), local)
+ifeq ($(CONFIG_FFMPEG_OLD), yes)
 CFLAGS+=-DFFMPEG_OLD_HEADERS
 else
 LINKLIBS+=-lswscale
