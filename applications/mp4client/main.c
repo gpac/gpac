@@ -692,6 +692,9 @@ GF_Config *loadconfigfile(char *filepath)
 			cfg = gf_cfg_new(cfg_dir, cfg_dir+1);
 			cfg_dir[0] = c;
 			if (cfg) goto success;
+		} else {
+			cfg = gf_cfg_new(".", filepath);
+			if (cfg) goto success;
 		}
 	}
 	
