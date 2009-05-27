@@ -659,6 +659,12 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			if (!ch->skip_sl && (AU->CTS + 100 < obj_time) ) {
 				mmlevel = GF_CODEC_LEVEL_DROP;
 				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Decoder] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
+
+				if (ch->resync_drift && (AU->CTS + ch->resync_drift < obj_time)) {
+					ch->clock->StartTime += (obj_time - AU->CTS);
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Decoder] ODM%d: decoder too slow on OCR stream - rewinding clock of %d ms\n", codec->odm->OD->objectDescriptorID, obj_time - AU->CTS));
+					obj_time = gf_clock_time(codec->ck);
+				}
 			}
 			/*we are late according to the media manager*/
 			else if (codec->PriorityBoost) {
