@@ -235,6 +235,12 @@ GF_Err gf_es_start(GF_Channel *ch)
 	}
 	ch->last_au_time = gf_term_get_time(ch->odm->term);
 	ch->es_state = GF_ESM_ES_RUNNING;
+
+	ch->resync_drift = 0;
+	if (ch->clock->clockID==ch->esd->ESID) {
+		const char *opt = gf_cfg_get_key(ch->clock->term->user->config, "Systems", "ResyncLateClock");
+		if (opt) ch->resync_drift = atoi(opt);
+	}
 	return GF_OK;
 }
 

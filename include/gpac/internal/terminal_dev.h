@@ -549,6 +549,8 @@ struct _es_channel
 	GF_IPMPTool *ipmp_tool;
 	Bool is_protected;
 
+	u32 resync_drift;
+
 	/*TSs as received from network - these are used for cache storage*/
 	u64 net_dts, net_cts;
 };

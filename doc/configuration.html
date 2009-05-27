@@ -10,7 +10,7 @@
 <br/>
 <b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.5</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified $Date: 2008-12-02 18:04:42 $</span></b>
+<b><span style="Font-Size: 18pt">Last Modified $Date: 2009-05-27 12:40:02 $</span></b>
 </p>
 
 <br/><br/>
@@ -223,6 +223,11 @@ handling and "Multi" means that each decoder runs in its own thread.
 <b>Priority</b> [value: <i>"low" "normal" "high" "real-time"</i>]
 <p style="text-indent: 5%">
 Specifies the priority of the decoders (priority is applied to decoder thread(s) regardless of threading mode).
+</p>
+<b>ResyncLateClock</b> [value: <i>unsigned integer</i>]
+<p style="text-indent: 5%">
+Specifies the threshold after which late clocks are resynchronized to timestamps for OCR streams. By default, no threashold (0) is used and clocks are never resynchronized. This allows to 
+resync clocks to the media owning the clock when the decoding is really too slow, and should only be used for debugging purposes.
 </p>
 <b>NoVisualThread</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
