@@ -2551,6 +2551,8 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			ctx->document = gf_sg_new();
 			/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
 			ctx->document->reference_count = 1;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] content type %s not supported\n", parameter->value));
 		}
 		return;
 	case GF_NETIO_DATA_EXCHANGE:
@@ -2778,7 +2780,11 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		/*responseXML*/
 		case 3:
 			if (ctx->readyState<3) return JS_TRUE;
-			*vp = dom_document_construct(c, ctx->document);
+			if (ctx->data) {
+				*vp = dom_document_construct(c, ctx->document);
+			} else {
+				*vp = JSVAL_VOID;
+			}
 			return JS_TRUE;
 		/*status*/
 		case 4:

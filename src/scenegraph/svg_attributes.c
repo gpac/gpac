@@ -1035,29 +1035,35 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 		if (str[i] == ',') i++;
 		while (str[i] == ' ') i++;
 		if (strstr(str+i, "scale")==str+i) {
-			Fixed sx, sy;
 			i += 5;
-			while(str[i] != 0 && str[i] == ' ') i++;
+			while(str[i] == ' ') i++;
 			if (str[i] == '(') {
+				Fixed sx, sy;
 				i++;
 				i+=svg_parse_float(&(str[i]), &sx, 0);
 				if (str[i] == ')') {
 					sy = sx;
 				} else {
 					i+=svg_parse_float(&(str[i]), &sy, 0);
+				}							
+				gf_mx2d_init(tmp);
+				gf_mx2d_add_scale(&tmp, sx, sy);
+				gf_mx2d_add_matrix(&tmp, mat);
+				gf_mx2d_copy(*mat, tmp);
+
+				while(str[i] == ' ') i++;
+				if (str[i] == ')') i++;
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
 				}
-				i++;
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
 			}
-			gf_mx2d_init(tmp);
-			gf_mx2d_add_scale(&tmp, sx, sy);
-			gf_mx2d_add_matrix(&tmp, mat);
-			gf_mx2d_copy(*mat, tmp);
-			while(str[i] != 0 && str[i] == ' ') i++;
 		} else if (strstr(str+i, "translate")==str+i) {
-			Fixed tx, ty;
 			i += 9;
-			while(str[i] != 0 && str[i] == ' ') i++;
+			while(str[i] == ' ') i++;
 			if (str[i] == '(') {
+				Fixed tx, ty;
 				i++;
 				i+=svg_parse_float(&(str[i]), &tx, 0);
 				if (str[i] == ')') {
@@ -1065,18 +1071,23 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 				} else {
 					i+=svg_parse_float(&(str[i]), &ty, 0);
 				}
-				i++;
+				gf_mx2d_init(tmp);
+				gf_mx2d_add_translation(&tmp, tx, ty);
+				gf_mx2d_add_matrix(&tmp, mat);
+				gf_mx2d_copy(*mat, tmp);
+				while(str[i] == ' ') i++;
+				if (str[i] == ')') i++;
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+				}
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
 			}
-			gf_mx2d_init(tmp);
-			gf_mx2d_add_translation(&tmp, tx, ty);
-			gf_mx2d_add_matrix(&tmp, mat);
-			gf_mx2d_copy(*mat, tmp);
-			while(str[i] != 0 && str[i] == ' ') i++;
 		} else if (strstr(str+i, "rotate")==str+i) {
-			Fixed angle, cx, cy;
 			i += 6;
-			while(str[i] != 0 && str[i] == ' ') i++;
+			while(str[i] == ' ') i++;
 			if (str[i] == '(') {
+				Fixed angle, cx, cy;
 				i++;
 				i+=svg_parse_float(&(str[i]), &angle, 1);
 				if (str[i] == ')') {
@@ -1085,44 +1096,59 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 					i+=svg_parse_float(&(str[i]), &cx, 0);
 					i+=svg_parse_float(&(str[i]), &cy, 0);
 				}
-				i++;
+				gf_mx2d_init(tmp);
+				gf_mx2d_add_rotation(&tmp, cx, cy, angle);
+				gf_mx2d_add_matrix(&tmp, mat);
+				gf_mx2d_copy(*mat, tmp);
+				while(str[i] == ' ') i++;
+				if (str[i] == ')') i++;
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+				}
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
 			}
-			gf_mx2d_init(tmp);
-			gf_mx2d_add_rotation(&tmp, cx, cy, angle);
-			gf_mx2d_add_matrix(&tmp, mat);
-			gf_mx2d_copy(*mat, tmp);
-			while(str[i] != 0 && str[i] == ' ') i++;
 		} else if (strstr(str+i, "skewX")==str+i) {
-			Fixed angle;
 			i += 5;
-			while(str[i] != 0 && str[i] == ' ') i++;
+			while(str[i] == ' ') i++;
 			if (str[i] == '(') {
+				Fixed angle;
 				i++;
 				i+=svg_parse_float(&(str[i]), &angle, 1);
-				i++;
+				gf_mx2d_init(tmp);
+				gf_mx2d_add_skew_x(&tmp, angle);
+				gf_mx2d_add_matrix(&tmp, mat);
+				gf_mx2d_copy(*mat, tmp);
+				while(str[i] == ' ') i++;
+				if (str[i] == ')') i++;
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+				}
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
 			}
-			gf_mx2d_init(tmp);
-			gf_mx2d_add_skew_x(&tmp, angle);
-			gf_mx2d_add_matrix(&tmp, mat);
-			gf_mx2d_copy(*mat, tmp);
-			while(str[i] != 0 && str[i] == ' ') i++;
 		} else if (strstr(str+i, "skewY")==str+i) {
-			Fixed angle;
 			i += 5;
-			while(str[i] != 0 && str[i] == ' ') i++;
+			while(str[i] == ' ') i++;
 			if (str[i] == '(') {
+				Fixed angle;
 				i++;
 				i+=svg_parse_float(&(str[i]), &angle, 1);
-				i++;
+				gf_mx2d_init(tmp);
+				gf_mx2d_add_skew_y(&tmp, angle);
+				gf_mx2d_add_matrix(&tmp, mat);
+				gf_mx2d_copy(*mat, tmp);
+				while(str[i] == ' ') i++;
+				if (str[i] == ')') i++;
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+				}
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
 			}
-			gf_mx2d_init(tmp);
-			gf_mx2d_add_skew_y(&tmp, angle);
-			gf_mx2d_add_matrix(&tmp, mat);
-			gf_mx2d_copy(*mat, tmp);
-			while(str[i] != 0 && str[i] == ' ') i++;
 		} else if (strstr(str+i, "matrix")==str+i) {
 			i+=6;
-			while(str[i] != 0 && str[i] == ' ') i++;
+			while(str[i] == ' ') i++;
 			if (str[i] == '(') {
 				i++;
 				i+=svg_parse_float(&(str[i]), &(tmp.m[0]), 0);
@@ -1131,12 +1157,16 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 				i+=svg_parse_float(&(str[i]), &(tmp.m[4]), 0);
 				i+=svg_parse_float(&(str[i]), &(tmp.m[2]), 0);
 				i+=svg_parse_float(&(str[i]), &(tmp.m[5]), 0);
-				i++;
+				gf_mx2d_add_matrix(&tmp, mat);
+				gf_mx2d_copy(*mat, tmp);
+				while(str[i] == ' ') i++;
+				if (str[i] == ')') i++;
+				else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+				}
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
 			}
-			gf_mx2d_add_matrix(&tmp, mat);
-			gf_mx2d_copy(*mat, tmp);
-			while(str[i] != 0 && str[i] == ' ') i++;
-			if (str[i] == ')') i++;
 		}
 		/*for svgView parsing*/
 		if (str[i] == ')') i++;
@@ -1151,31 +1181,37 @@ static Bool svg_parse_transform(SVG_Transform *t, char *attribute_content)
 	str = attribute_content;
 	i = 0;
 
-	if ((str = strstr(attribute_content, "ref("))) {
+	if ((str = strstr(attribute_content, "ref"))) {
 		t->is_ref = 1;
 		gf_mx2d_init(t->mat);
-		str+=4;
-		while(str[i] != 0 && str[i] == ' ') i++;
-		if (str[i] == 's' && str[i+1] == 'v' && str[i+2] == 'g') {
-			i+=3;
-			while(str[i] != 0 && str[i] == ' ') i++;
-			if (str[i] == ',') i++;
-			else if (str[i] == ')') {
-				i++;
-				return GF_OK;
-			}
-			i+=svg_parse_float(&(str[i]), &(t->mat.m[2]), 0);
-			i+=svg_parse_float(&(str[i]), &(t->mat.m[5]), 0);
-			while(str[i] != 0 && str[i] == ' ') i++;
-			if (str[i] == ')')  i++;
+		str+=2;
+		while (str[i] == ' ') i++;
+		if (str[i] == '(') {
 			i++;
+			while (str[i] == ' ') i++;
+			if (str[i] == 's' && str[i+1] == 'v' && str[i+2] == 'g') {
+				i+=3;
+				while (str[i] == ' ') i++;
+				if (str[i] == ',') i++;
+				else if (str[i] == ')') {
+					i++;
+					return GF_OK;
+				}
+				i+=svg_parse_float(&(str[i]), &(t->mat.m[2]), 0);
+				i+=svg_parse_float(&(str[i]), &(t->mat.m[5]), 0);
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Unsupported syntax for ref transform attribute"));
+			}
+			while (str[i] == ' ') i++;
+			if (str[i] == ')') i++;
+			else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+			}
 			return GF_OK;
 		} else {
-			while(str[i] != 0 && str[i] != ')') i++;
-			i++;
-			return GF_NOT_SUPPORTED;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in ref transform attribute"));
+			return GF_BAD_PARAM;
 		}
-
 	} else {
 		gf_svg_parse_transformlist(&t->mat, attribute_content);
 	}
