@@ -812,7 +812,19 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	} else {
 		gf_sc_reset_collide_cursor(compositor);
 	}
-	return count ? 1 : 0;
+	if (count) {
+		GF_SceneGraph *sg;
+		/*apply event cascade - this is needed for cases where several events are processed inbetween 
+		2 simultaion tick. If we don't flush the routes stack, the result will likely be wrong
+		*/
+		gf_sg_activate_routes(compositor->scene);
+		i = 0;
+		while ((sg = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
+			gf_sg_activate_routes(sg);
+		}
+		return 1;
+	}
+	return 0;
 }
 
 
