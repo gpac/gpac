@@ -4071,7 +4071,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			szT = svg_dump_iri(iri);
 			len = strlen(szT);
 			if (len) {
-				attVal = realloc(attVal, sizeof(char)*(len+strlen(attVal)+ (i ? 2 : 1)));
+				attVal = realloc(attVal, sizeof(char)*(len+strlen(attVal)+ (i ? 2 : 1) ));
 				if (i) strcat(attVal, " ");
 				strcat(attVal, szT);
 			}
@@ -4098,7 +4098,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			char szT[200];
 			SVG_Point *p = (SVG_Point *)gf_list_get(l, i);
 			sprintf(szT, "%g %g", FIX2FLT(p->x), FIX2FLT(p->y));
-			attVal = realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1)));
+			attVal = realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
 			if (i) strcat(attVal, " ");
 			strcat(attVal, szT);
 		}
@@ -4119,7 +4119,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			char szT[1000];
 			Fixed *p = (Fixed *)gf_list_get(l, i);
 			sprintf(szT, "%g", FIX2FLT(*p));
-			attVal = realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1)));
+			attVal = realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
 			if (i) strcat(attVal, " ");
 			strcat(attVal, szT);
 		}
@@ -4138,7 +4138,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			char *szT;
 			SVG_Coordinate *p = (SVG_Coordinate *)gf_list_get(l, i);
 			szT = svg_dump_number((SVG_Length *)p);
-			attVal = realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1)));
+			attVal = realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
 			if (i) strcat(attVal, " ");
 			strcat(attVal, szT);
 			free(szT);
@@ -4169,7 +4169,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			for (i=0; i<p->array.count; i++) {
 				char szT[100];
 				sprintf(szT, "%g", FIX2FLT(p->array.vals[i]));
-				attVal = realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1)));
+				attVal = realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
 				if (i) strcat(attVal, " ");
 				strcat(attVal, szT);
 			}
@@ -4244,7 +4244,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 		attVal[0] =  0;
 		for (i=0; i<count; i++) {
 			char *p1 = (char *)gf_list_get(l1, i);
-			attVal = realloc(attVal, sizeof(char)*(strlen(p1)+strlen(attVal)+ (i ? 2 : 1)));
+			attVal = realloc(attVal, sizeof(char)*(strlen(p1)+strlen(attVal)+ (i ? 2 : 1) ));
 			if (i) strcat(attVal, " ");
 			strcat(attVal, p1);
 		}
@@ -4263,7 +4263,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			char *szT;
 			SVG_Number *p = (SVG_Number *)gf_list_get(l1, i);
 			szT = svg_dump_number(p);
-			attVal = realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1)));
+			attVal = realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
 			if (i) strcat(attVal, " ");
 			strcat(attVal, szT);
 			free(szT);
@@ -4402,7 +4402,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 					strcat(szBuf, szCk);
 				}
 			}
-			attVal = realloc(attVal, sizeof(char)*(strlen(attVal)+strlen(szBuf)+ (i ? 2 : 1)));
+			attVal = realloc(attVal, sizeof(char)*(strlen(attVal)+strlen(szBuf)+ (i ? 2 : 1) ));
 			if (i) strcat(attVal, ";");
 			strcat(attVal, szBuf);
 		}
@@ -4475,7 +4475,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 				a_fi.far_ptr = gf_list_get(av->values, i);
 				szBuf = gf_svg_dump_attribute(elt, &a_fi);
 
-				attVal = realloc(attVal, sizeof(char)*(strlen(attVal)+strlen(szBuf)+ (i ? 2 : 1)));
+				attVal = realloc(attVal, sizeof(char)*(strlen(attVal)+strlen(szBuf)+ (i ? 2 : 1) ));
 				if (i) strcat(attVal, ";");
 				strcat(attVal, szBuf);
 				free(szBuf);

@@ -821,7 +821,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, char *data, u
 		if (sess->th) {
 			par.msg_type = GF_NETIO_DATA_EXCHANGE;
 			par.error = GF_OK;
-			par.data = NULL;
+			par.data = data;
 			par.size = nbBytes;
 			gf_dm_sess_user_io(sess, &par);
 		}
