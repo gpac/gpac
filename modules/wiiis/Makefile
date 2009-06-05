@@ -14,6 +14,9 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
+CFLAGS+= -I$(LOCAL_INC_PATH)
+EXTRALIBS+= -L../../extra_lib/lib/gcc -lwiiuse
+
 #common obj
 OBJS= wiiis.o
 
