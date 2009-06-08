@@ -700,13 +700,13 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 				status |=  GF_M2TS_TABLE_FOUND;
 			}
 
-			t->last_version_number = t->version_number;
-
 			if (t->last_section_number == t->section_number) {
 				status |= GF_M2TS_TABLE_END;
 				t->is_init = 1;
 				/*reset section number*/
 				t->section_number = 0;
+				/*only update version number at the last section of the table*/
+				t->last_version_number = t->version_number;
 			}
 
 			if (sec->process_individual) {
