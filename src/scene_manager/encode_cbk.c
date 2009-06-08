@@ -349,6 +349,10 @@ exit:
 GF_EXPORT
 GF_Err gf_beng_encode_context(GF_BifsEngine *codec, GF_Err (*AUCallback)(void *, char *, u32 , u64 ))
 {
+	if (!codec) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] Cannot encode context. No codec provided\n"));
+		return GF_BAD_PARAM;
+	}
 	return gf_sm_live_encode_scene_au(codec, 0, AUCallback);
 } 
 
