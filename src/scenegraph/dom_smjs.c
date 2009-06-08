@@ -2649,15 +2649,64 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 
 	ctx->data = data ? strdup(data) : NULL;
 	ctx->use_cache = 0;
-	ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, (ctx->use_cache ? 0 : GF_NETIO_SESSION_NOT_CACHED), xml_http_on_data, ctx, &e);
-	if (!ctx->sess) return JS_TRUE;
-
-	/*just wait for destruction*/
-	if (!ctx->async) {
-		while (ctx->sess) {
-			gf_sleep(20);
+	if (!strncmp(ctx->url, "http://", 7)) {
+		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, (ctx->use_cache ? 0 : GF_NETIO_SESSION_NOT_CACHED), xml_http_on_data, ctx, &e);
+		
+		if (!ctx->sess) return JS_TRUE;
+	
+		/*just wait for destruction*/
+		if (!ctx->async) {
+			while (ctx->sess) {
+				gf_sleep(20);
+			}
 		}
+	} else {
+		u32 fsize;
+		FILE * xmlf;
+		
+		if (ctx->data) free(ctx->data);
+		ctx->data = NULL;
+		ctx->size = 0;
+		ctx->cur_header = 0;
+		ctx->html_status = 0;
+		if (ctx->statusText) {
+			free(ctx->statusText);
+			ctx->statusText = NULL;
+		}
+
+		xmlf = fopen(ctx->url, "rt");
+		if (!xmlf) {
+			ctx->html_status = 404;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] cannot parse %s\n", ctx->url));
+			return JS_TRUE;
+		}
+		ctx->readyState = 2;
+		xml_http_state_change(ctx);
+		
+		fseek(xmlf, 0, SEEK_END);
+		fsize = ftell(xmlf);
+		fseek(xmlf, 0, SEEK_SET);
+		
+		ctx->data = malloc(sizeof(char)*(fsize+1));
+		fread(ctx->data, sizeof(char)*fsize, 1, xmlf);
+		fclose(xmlf);
+		ctx->data[fsize] = 0;
+
+		ctx->sax = gf_xml_sax_new(xml_http_sax_start, xml_http_sax_end, xml_http_sax_text, ctx);
+		ctx->node_stack = gf_list_new();
+		ctx->document = gf_sg_new();
+		/*mark this doc as "nomade", and let it leave until all references to it are destroyed*/
+		ctx->document->reference_count = 1;
+
+		gf_xml_sax_parse_file(ctx->sax, ctx->url, NULL);
+
+		ctx->readyState = 3;
+		xml_http_state_change(ctx);
+		ctx->readyState = 4;
+		ctx->html_status = 200;
+		xml_http_state_change(ctx);
 	}
+
 	return JS_TRUE;
 }
 
