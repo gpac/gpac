@@ -816,6 +816,9 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		/*do not register the listener, this will be done in gf_node_dom_listener_add. We don't want to
 		insert the implicit listener in the DOM*/
 
+		/*however remember the listener at the handler level in case the handler gets destroyed*/
+		gf_node_set_private(node, (GF_Node*)listener );
+
 		/* this listener listens to the given type of event */
 		type = gf_dom_event_type_by_name(ev_event);
 		gf_node_get_attribute_by_tag(node, TAG_XMLEV_ATT_event, 1, 0, &info);

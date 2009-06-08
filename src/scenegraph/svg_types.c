@@ -78,9 +78,17 @@ void gf_svg_node_del(GF_Node *node)
 		GF_DOMEventTarget *evt = node->sgprivate->UserPrivate;
 		node->sgprivate->UserPrivate = NULL;
 		gf_dom_listener_del(node, evt);
+		return;
+	}
+	/*if this is a handler with a UserPrivate, this is a handler with an implicit listener 
+	(eg handler with ev:event=""). Destroy the associated listener*/
+	if (p->sgprivate->tag==TAG_SVG_handler) {
+		if (p->sgprivate->UserPrivate) {
+			gf_svg_node_del((GF_Node *) p->sgprivate->UserPrivate);
+		}
 	}
 	/*remove this node from associated listeners*/
-	else if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) {
+	if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) {
 		u32 i, count;
 		count = gf_dom_listener_count(node);
 		for (i=0; i<count; i++) {
