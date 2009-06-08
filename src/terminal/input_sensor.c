@@ -23,10 +23,10 @@
  */
 
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/utf.h>
 #include <gpac/nodes_x3d.h>
 #include <gpac/constants.h>
-#include <gpac/compositor.h>
 
 #include "input_sensor.h"
 
@@ -550,6 +550,8 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 
 	/*get BIFS coordinates*/
 	gf_sc_map_point(term->compositor, X, Y, &bX, &bY);
+	bX = gf_divfix(bX, term->compositor->scale_x);
+	bY = gf_divfix(bY, term->compositor->scale_y);
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 

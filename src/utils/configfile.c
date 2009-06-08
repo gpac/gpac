@@ -56,7 +56,8 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 	FILE *file;
 	char *ret;
 	char fileName[GF_MAX_PATH];
-	char line[MAX_INI_LINE];
+	char *line;
+	u32 line_alloc = MAX_INI_LINE;
 	GF_Config *tmp;
 
 	if (filePath) {
@@ -81,10 +82,19 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 
 	//load the file
 	p = NULL;
+	line = malloc(sizeof(char)*line_alloc);
+	memset(line, 0, sizeof(char)*line_alloc);
 
 	while (!feof(file)) {
-		ret = fgets(line, MAX_INI_LINE, file);
-
+		u32 read;
+		ret = fgets(line, line_alloc, file);
+		read = strlen(line);
+		while (read + 1 == line_alloc) {
+			line_alloc += MAX_INI_LINE;
+			line = realloc(line, sizeof(char)*line_alloc);
+			ret = fgets(line+read, MAX_INI_LINE, file);
+			read = strlen(line);
+		}
 		if (!ret) continue;
 
 		//get rid of the end of line stuff
@@ -114,6 +124,7 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 				free(tmp->filePath);
 				free(tmp);
 				fclose(file);
+				free(line);
 				return NULL;
 			}
 //			GF_SAFEALLOC(k, IniKey)
@@ -133,6 +144,7 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 			gf_list_add(p->keys, k);
 		}
 	}
+	free(line);
 	fclose(file);
 	return tmp;
 }
