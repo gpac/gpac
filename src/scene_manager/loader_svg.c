@@ -1363,8 +1363,14 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			return;
 		}
 		if ((parser->load->type==GF_SM_LOAD_XSR) && !parser->laser_au && !cond) {
-			svg_report(parser, GF_BAD_PARAM, "LASeR Scene unit not defined for command %s", name);
-			return;
+
+			if (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) {
+				assert(parser->laser_es);
+				parser->laser_au = gf_sm_stream_au_new(parser->laser_es, 0, 0, 0);
+			} else {
+				svg_report(parser, GF_BAD_PARAM, "LASeR sceneUnit not defined for command %s", name);
+				return;
+			}
 		}
 		/*command parsing*/
 		com_type = lsr_get_command_by_name(name);
@@ -1385,6 +1391,13 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			} else if (parser->laser_au) {
 				gf_list_add(parser->laser_au->commands, parser->command);
 			}
+			switch (com_type) {
+			case GF_SG_LSR_NEW_SCENE:
+			case GF_SG_LSR_REFRESH_SCENE:
+				parser->laser_au->is_rap = 1;
+				break;
+			}
+
 			/*this is likely a conditional start - update unknown depth level*/	
 			top = (SVG_NodeStack*)gf_list_last(parser->node_stack);
 			if (top) {
@@ -1781,6 +1794,32 @@ static GF_Err gf_sm_load_init_svg_string_ex(GF_SceneLoader *load, char *str_data
 		}
 		str_data += 4;
 	}
+
+	/*chunk parsing*/
+	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
+		u32 i;
+		GF_StreamContext *sc;
+		if (!load->ctx) {
+			gf_sm_load_done_svg(load);
+			return GF_BAD_PARAM;
+		}
+
+		/*restore context - note that base layer are ALWAYS declared BEFORE enhancement layers with gpac parsers*/
+		i=0;
+		while ((sc = (GF_StreamContext*)gf_list_enum(load->ctx->streams, &i))) {
+			switch (sc->streamType) {
+			case GF_STREAM_SCENE: if (!parser->laser_es) parser->laser_es = sc; break;
+			default: break;
+			}
+		}
+		/*need at least one scene stream - FIXME - accept SVG as root? */
+		if (!parser->laser_es) {
+			gf_sm_load_done_svg(load);
+			return GF_BAD_PARAM;
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("SVG: MPEG-4 (LASeR) Scene Chunk Parsing"));
+	}
+
 	return gf_xml_sax_parse(parser->sax_parser, str_data);
 }
 
