@@ -1802,10 +1802,7 @@ static GF_Err gf_sm_load_init_svg_string_ex(GF_SceneLoader *load, char *str_data
 	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
 		u32 i;
 		GF_StreamContext *sc;
-		if (!load->ctx) {
-			gf_sm_load_done_svg(load);
-			return GF_BAD_PARAM;
-		}
+		if (!load->ctx) return GF_BAD_PARAM;
 
 		/*restore context - note that base layer are ALWAYS declared BEFORE enhancement layers with gpac parsers*/
 		i=0;
@@ -1816,10 +1813,7 @@ static GF_Err gf_sm_load_init_svg_string_ex(GF_SceneLoader *load, char *str_data
 			}
 		}
 		/*need at least one scene stream - FIXME - accept SVG as root? */
-		if (!parser->laser_es) {
-			gf_sm_load_done_svg(load);
-			return GF_BAD_PARAM;
-		}
+		if (!parser->laser_es) return GF_BAD_PARAM;
 		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("SVG: MPEG-4 (LASeR) Scene Chunk Parsing"));
 	}
 

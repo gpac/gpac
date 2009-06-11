@@ -703,7 +703,10 @@ scalable_retry:
 
 		now = gf_term_get_time(codec->odm->term);
 
-		e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, CU->data, &unit_size, AU->PaddingBits, mmlevel);
+		if (!CU->data && unit_size)
+			e = GF_OUT_OF_MEM;
+		else
+			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, CU->data, &unit_size, AU->PaddingBits, mmlevel);
 		now = gf_term_get_time(codec->odm->term) - now;
 		if (codec->Status == GF_ESM_CODEC_STOP) return GF_OK;
 

@@ -74,17 +74,24 @@ void gf_svg_node_del(GF_Node *node)
 		gf_smil_anim_delete_animations((GF_Node *)p);
 	}
 	if (p->sgprivate->tag==TAG_SVG_listener) {
-		/*remove from parent's listener list*/
+		/*remove from target's listener list*/
 		GF_DOMEventTarget *evt = node->sgprivate->UserPrivate;
 		node->sgprivate->UserPrivate = NULL;
-		gf_dom_listener_del(node, evt);
-		return;
+		if (evt) 
+			gf_list_del_item(evt->evt_list, p);
+#if 0
+		if (evt && (gf_node_get_attribute_by_tag(p, TAG_XMLEV_ATT_event, 0, 0, &info) == GF_OK)) {
+			u32 type = ((XMLEV_Event *)info.far_ptr)->type;
+			gf_sg_unregister_event_type(p->sgprivate->scenegraph, gf_dom_event_get_category(type));
+		}
+#endif
 	}
 	/*if this is a handler with a UserPrivate, this is a handler with an implicit listener 
 	(eg handler with ev:event=""). Destroy the associated listener*/
 	if (p->sgprivate->tag==TAG_SVG_handler) {
-		if (p->sgprivate->UserPrivate) {
-			gf_svg_node_del((GF_Node *) p->sgprivate->UserPrivate);
+		GF_Node *listener = p->sgprivate->UserPrivate;
+		if (listener && (listener->sgprivate->tag==TAG_SVG_listener)) {
+			gf_svg_node_del(listener);
 		}
 	}
 	/*remove this node from associated listeners*/
