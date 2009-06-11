@@ -73,7 +73,7 @@ static GF_Err BM_ParseMultipleIndexedReplace(GF_BifsDecoder *codec, GF_BitStream
 			inf->new_node = gf_bifs_dec_node(codec, bs, field.NDTtype);
 			if (codec->LastError) goto err;
 			inf->field_ptr = &inf->new_node;
-			gf_node_register(inf->new_node, node);
+			gf_node_register(inf->new_node, NULL);
 		} else {
 			field.far_ptr = inf->field_ptr = gf_sg_vrml_field_pointer_new(inf->fieldType);
 			e = gf_bifs_dec_sf_field(codec, bs, node, &field);
@@ -306,7 +306,7 @@ GF_Err BM_ParseNodeInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_
 		inf->fieldType = GF_SG_VRML_SFNODE;
 		gf_list_add(com_list, com);
 		/*register*/
-		gf_node_register(node, def);
+		gf_node_register(node, NULL);
 	}
 	return codec->LastError;
 }
@@ -370,7 +370,7 @@ GF_Err BM_ParseIndexInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com
 			inf->field_ptr = &inf->new_node;
 			gf_list_add(com_list, com);
 			/*register*/
-			gf_node_register(node, def);
+			gf_node_register(node, NULL);
 		}
 	} else {
 		com = gf_sg_command_new(codec->current_graph, GF_SG_INDEXED_INSERT);
@@ -594,18 +594,6 @@ GF_Err BM_ParseFieldReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *co
 	/*parse the field*/
 	codec->LastError = gf_bifs_dec_field(codec, bs, node, &field);
 
-	/*register nodes*/
-#if 0
-	if (inf->fieldType == GF_SG_VRML_SFNODE) {
-		gf_node_register(inf->new_node, com->node);
-	} else if (inf->fieldType == GF_SG_VRML_MFNODE) {
-		GF_Node *p;
-		u32 i=0;
-		while ((p = gf_list_enum(inf->node_list, &i))) {
-			gf_node_register(p, com->node);
-		}
-	}
-#endif
 	gf_list_add(com_list, com);
 	return codec->LastError;
 }
@@ -658,7 +646,7 @@ GF_Err BM_ParseIndexValueReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Lis
 		inf->fieldType = GF_SG_VRML_SFNODE;
 		inf->new_node = gf_bifs_dec_node(codec, bs, field.NDTtype);
 		inf->field_ptr = &inf->new_node;
-		if (inf->new_node) gf_node_register(inf->new_node, com->node);
+		if (inf->new_node) gf_node_register(inf->new_node, NULL);
 	} else {
 		memcpy(&sffield, &field, sizeof(GF_FieldInfo));
 		sffield.fieldType = gf_sg_vrml_get_sf_type(field.fieldType);

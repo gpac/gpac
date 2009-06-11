@@ -54,17 +54,38 @@ static GF_CMUnit *gf_cm_unit_new()
 	return tmp;
 }
 
+#ifdef _WIN32_WCE
+#include <winbase.h>
+static GFINLINE void *my_large_alloc(u32 size) {
+	void *ptr;
+	if (!size) return NULL;
+	ptr = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	if (!ptr) {
+		DWORD res = GetLastError();
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("Cannot resize composition buffer to %d bytes - error %d", size, res));
+		return NULL;
+	}
+	return ptr;
+}
+static GFINLINE void my_large_free(void *ptr) {
+	if (ptr) VirtualFree(ptr, 0, MEM_RELEASE);
+}
+#else
+#define my_large_alloc(_size)	(_size ? malloc(sizeof(char)*_size) : NULL)
+#define my_large_free(_ptr)	free(_ptr)
+#endif
+
+
 static void gf_cm_unit_del(GF_CMUnit *cb)
 {
 	if (cb->next) gf_cm_unit_del(cb->next);
 	cb->next = NULL;
 	if (cb->data) {
-		free(cb->data);
+		my_large_free(cb->data);
 		cb->data = NULL;
 	}
 	free(cb);
 }
-
 
 GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
 {
@@ -89,7 +110,7 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
 			cu->prev = prev;
 		}
 		cu->dataLength = 0;
-		cu->data = UnitSize ? (char*)malloc(sizeof(char)*UnitSize) : NULL;
+		cu->data = UnitSize ? (char*)my_large_alloc(sizeof(char)*UnitSize) : NULL;
 		if (cu->data) memset(cu->data, 0, sizeof(char)*UnitSize);
 		prev = cu;
 		capacity --;
@@ -366,11 +387,12 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 	cu = cb->input;
 
 	cb->UnitSize = newCapacity;
-	/*don't touch any existing memory (it may happen on the fly with audio)*/
-	cu->data = (char*)realloc(cu->data, sizeof(char)*newCapacity);
+	my_large_free(cu->data);
+	cu->data = (char*) my_large_alloc(newCapacity);
 	cu = cu->next;
 	while (cu != cb->input) {
-		cu->data = (char*)realloc(cu->data, sizeof(char)*newCapacity);
+		my_large_free(cu->data);
+		cu->data = (char*) my_large_alloc(newCapacity);
 		cu = cu->next;
 	}
 
@@ -406,7 +428,7 @@ void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity)
 			cu->prev = prev;
 		}
 		cu->dataLength = 0;
-		cu->data = (char*)malloc(sizeof(char)*UnitSize);
+		cu->data = (char*)my_large_alloc(UnitSize);
 		prev = cu;
 		Capacity --;
 		i++;

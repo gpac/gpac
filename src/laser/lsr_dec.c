@@ -4713,7 +4713,7 @@ static GF_Err lsr_read_add_replace_insert(GF_LASeRCodec *lsr, GF_List *com_list,
 				field->fieldIndex = -1;
 			} else if (count==1) {
 				field->new_node = lsr_read_update_content_model(lsr, (SVG_Element *) n);
-				gf_node_register(field->new_node, n);
+				gf_node_register(field->new_node, NULL);
 				if (att_type>=0) field->fieldIndex = gf_lsr_anim_type_to_attribute(att_type);
 			} else {
 				field->field_ptr = &field->node_list;
