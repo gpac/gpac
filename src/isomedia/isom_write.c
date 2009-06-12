@@ -31,7 +31,7 @@ GF_Err CanAccessMovie(GF_ISOFile *movie, u32 Mode)
 	if (!movie) return GF_BAD_PARAM;
 	if (movie->openMode < Mode) return GF_ISOM_INVALID_MODE;
 
-#ifndef	GF_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_ISOM_NO_FRAGMENTS
 	if (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) return GF_ISOM_INVALID_MODE;
 #endif
 	return GF_OK;
