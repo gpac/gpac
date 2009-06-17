@@ -488,6 +488,8 @@ redecode:
 		/*more frames in the current sample*/
 		return GF_PACKED_FRAMES;
 	} else {
+		AVPacket pkt;
+
 		s32 w = ffd->ctx->width;
 		s32 h = ffd->ctx->height;
 
@@ -528,7 +530,12 @@ redecode:
 			}
 		}
 
-		if (avcodec_decode_video(ffd->ctx, ffd->frame, &gotpic, inBuffer, inBufferLength) < 0) {
+		av_init_packet(&pkt);
+		pkt.data = inBuffer;
+		pkt.size = inBufferLength;
+
+//		if (avcodec_decode_video(ffd->ctx, ffd->frame, &gotpic, inBuffer, inBufferLength) < 0) {
+		if (avcodec_decode_video2(ffd->ctx, ffd->frame, &gotpic, &pkt) < 0) {
 			if (!ffd->check_short_header) {
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
@@ -582,7 +589,7 @@ redecode:
 		if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
 
 		if (gotpic) {
-#if defined(_WIN32_WCE) ||  defined(__SYMBIAN32__)
+#if /*defined(_WIN32_WCE) ||  */defined(__SYMBIAN32__)
 			if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
 				memcpy(outBuffer, ffd->frame->data[0], sizeof(char)*3*ffd->ctx->width);
 			} else {

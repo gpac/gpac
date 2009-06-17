@@ -545,11 +545,13 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 
 	switch (res) {
+#ifndef _WIN32_WCE
 	case 0: e = GF_OK; break;
 	case AVERROR_IO: e = GF_URL_ERROR; goto err_exit;
 	case AVERROR_INVALIDDATA: e = GF_NON_COMPLIANT_BITSTREAM; goto err_exit;
 	case AVERROR_NOMEM: e = GF_OUT_OF_MEM; goto err_exit;
 	case AVERROR_NOFMT: e = GF_NOT_SUPPORTED; goto err_exit;
+#endif
 	default: e = GF_SERVICE_ERROR; goto err_exit;
 	}
 

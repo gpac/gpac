@@ -18,9 +18,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef INTFLOAT_READWRITE_H
-#define INTFLOAT_READWRITE_H
+#ifndef AVUTIL_INTFLOAT_READWRITE_H
+#define AVUTIL_INTFLOAT_READWRITE_H
 
+#if !defined(WIN32) && !defined(_WIN32_WCE)
+#include <stdint.h>
+#endif
 #include "common.h"
 
 /* IEEE 80 bits extended float */
@@ -29,11 +32,11 @@ typedef struct AVExtFloat  {
     uint8_t mantissa[8];
 } AVExtFloat;
 
-double av_int2dbl(int64_t v);
-float av_int2flt(int32_t v);
-double av_ext2dbl(const AVExtFloat ext);
-int64_t av_dbl2int(double d);
-int32_t av_flt2int(float d);
-AVExtFloat av_dbl2ext(double d);
+double av_int2dbl(int64_t v) av_const;
+float av_int2flt(int32_t v) av_const;
+double av_ext2dbl(const AVExtFloat ext) av_const;
+int64_t av_dbl2int(double d) av_const;
+int32_t av_flt2int(float d) av_const;
+AVExtFloat av_dbl2ext(double d) av_const;
 
-#endif /* INTFLOAT_READWRITE_H */
+#endif /* AVUTIL_INTFLOAT_READWRITE_H */
