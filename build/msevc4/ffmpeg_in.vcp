@@ -50,7 +50,7 @@ RSC=rc.exe
 # ADD BASE RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "NDEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "NDEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD BASE CPP /nologo /W3 /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "FFMPEG_IN_EXPORTS" /YX /O2 /M$(CECrtMT) /c
-# ADD CPP /nologo /W3 /Oxt /I "../../include" /I "../../extra_lib/include" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "FFMPEG_IN_EXPORTS" /M$(CECrtMT) /c
+# ADD CPP /nologo /W3 /Oxt /I "../../include" /I "../../extra_lib/include" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "NDEBUG" /D "_USRDLL" /D "CONFIG_WIN32" /D "CONFIG_MSVC" /D "EMULATE_INTTYPES" /M$(CECrtMT) /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "NDEBUG" /mktyplib203 /o "NUL" /win32
@@ -59,7 +59,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 commctrl.lib coredll.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
-# ADD LINK32 avcodec-52.lib avformat-52.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc03_rel/gm_ffmpeg_in.dll" /libpath:"../../extra_lib/lib/arm_ppc03_rel" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 avcodec-52.lib avformat-52.lib avutil-50.lib swscale-0.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc03_rel/gm_ffmpeg_in.dll" /libpath:"../../extra_lib/lib/arm_ppc03_rel" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
 
 !ELSEIF  "$(CFG)" == "ffmpeg_in - Win32 (WCE ARMV4) Debug"
 
@@ -81,7 +81,7 @@ LINK32=link.exe
 # ADD BASE RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "DEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD RSC /l 0x409 /d UNDER_CE=$(CEVersion) /d _WIN32_WCE=$(CEVersion) /d "DEBUG" /d "UNICODE" /d "_UNICODE" /d "$(CePlatform)" /d "ARM" /d "_ARM_" /d "ARMV4" /r
 # ADD BASE CPP /nologo /W3 /Zi /Od /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_USRDLL" /D "FFMPEG_IN_EXPORTS" /YX /M$(CECrtMTDebug) /c
-# ADD CPP /nologo /W3 /Zi /Od /I "../../include" /I "../../extra_lib/include" /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_USRDLL" /M$(CECrtMTDebug) /c
+# ADD CPP /nologo /W3 /Zi /Od /I "../../include" /I "../../extra_lib/include" /D "DEBUG" /D _WIN32_WCE=$(CEVersion) /D "$(CePlatform)" /D "ARM" /D "_ARM_" /D "ARMV4" /D UNDER_CE=$(CEVersion) /D "UNICODE" /D "_UNICODE" /D "_USRDLL" /D "CONFIG_WIN32" /D "CONFIG_MSVC" /D "EMULATE_INTTYPES" /M$(CECrtMTDebug) /c
 # SUBTRACT CPP /YX
 # ADD BASE MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
 # ADD MTL /nologo /D "_DEBUG" /mktyplib203 /o "NUL" /win32
@@ -90,7 +90,7 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 commctrl.lib coredll.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
-# ADD LINK32 avcodec-52.lib avformat-52.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc03_deb/gm_ffmpeg_in.dll" /libpath:"../../extra_lib/lib/arm_ppc03_deb" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
+# ADD LINK32 avcodec-52.lib avformat-52.lib avutil-50.lib swscale-0.lib /nologo /base:"0x00100000" /stack:0x10000,0x1000 /entry:"_DllMainCRTStartup" /dll /debug /nodefaultlib:"$(CENoDefaultLib)" /out:"../../bin/arm_ppc03_deb/gm_ffmpeg_in.dll" /libpath:"../../extra_lib/lib/arm_ppc03_deb" /subsystem:$(CESubsystem) /align:"4096" /MACHINE:ARM
 
 !ENDIF 
 
@@ -102,16 +102,18 @@ LINK32=link.exe
 
 SOURCE=..\..\modules\ffmpeg_in\ffmpeg_decode.c
 DEP_CPP_FFMPE=\
-	"..\..\extra_lib\include\ffmpeg\avcodec.h"\
-	"..\..\extra_lib\include\ffmpeg\avformat.h"\
-	"..\..\extra_lib\include\ffmpeg\avio.h"\
-	"..\..\extra_lib\include\ffmpeg\avutil.h"\
-	"..\..\extra_lib\include\ffmpeg\common.h"\
-	"..\..\extra_lib\include\ffmpeg\integer.h"\
-	"..\..\extra_lib\include\ffmpeg\intfloat_readwrite.h"\
-	"..\..\extra_lib\include\ffmpeg\log.h"\
-	"..\..\extra_lib\include\ffmpeg\mathematics.h"\
-	"..\..\extra_lib\include\ffmpeg\rational.h"\
+	"..\..\extra_lib\include\libavcodec\avcodec.h"\
+	"..\..\extra_lib\include\libavformat\avformat.h"\
+	"..\..\extra_lib\include\libavformat\avio.h"\
+	"..\..\extra_lib\include\libavutil\avutil.h"\
+	"..\..\extra_lib\include\libavutil\common.h"\
+	"..\..\extra_lib\include\libavutil\intfloat_readwrite.h"\
+	"..\..\extra_lib\include\libavutil\log.h"\
+	"..\..\extra_lib\include\libavutil\mathematics.h"\
+	"..\..\extra_lib\include\libavutil\mem.h"\
+	"..\..\extra_lib\include\libavutil\pixfmt.h"\
+	"..\..\extra_lib\include\libavutil\rational.h"\
+	"..\..\extra_lib\include\libswscale\swscale.h"\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
@@ -130,10 +132,8 @@ DEP_CPP_FFMPE=\
 	"..\..\modules\ffmpeg_in\ffmpeg_in.h"\
 	
 NODEP_CPP_FFMPE=\
-	"..\..\extra_lib\include\ffmpeg\berrno.h"\
-	"..\..\extra_lib\include\ffmpeg\config.h"\
-	"..\..\extra_lib\include\ffmpeg\internal.h"\
-	"..\..\extra_lib\include\ffmpeg\os_support.h"\
+	"..\..\extra_lib\include\libavutil\config.h"\
+	"..\..\extra_lib\include\libavutil\internal.h"\
 	"..\..\include\gpac\config.h"\
 	
 # End Source File
@@ -141,16 +141,18 @@ NODEP_CPP_FFMPE=\
 
 SOURCE=..\..\modules\ffmpeg_in\ffmpeg_demux.c
 DEP_CPP_FFMPEG=\
-	"..\..\extra_lib\include\ffmpeg\avcodec.h"\
-	"..\..\extra_lib\include\ffmpeg\avformat.h"\
-	"..\..\extra_lib\include\ffmpeg\avio.h"\
-	"..\..\extra_lib\include\ffmpeg\avutil.h"\
-	"..\..\extra_lib\include\ffmpeg\common.h"\
-	"..\..\extra_lib\include\ffmpeg\integer.h"\
-	"..\..\extra_lib\include\ffmpeg\intfloat_readwrite.h"\
-	"..\..\extra_lib\include\ffmpeg\log.h"\
-	"..\..\extra_lib\include\ffmpeg\mathematics.h"\
-	"..\..\extra_lib\include\ffmpeg\rational.h"\
+	"..\..\extra_lib\include\libavcodec\avcodec.h"\
+	"..\..\extra_lib\include\libavformat\avformat.h"\
+	"..\..\extra_lib\include\libavformat\avio.h"\
+	"..\..\extra_lib\include\libavutil\avutil.h"\
+	"..\..\extra_lib\include\libavutil\common.h"\
+	"..\..\extra_lib\include\libavutil\intfloat_readwrite.h"\
+	"..\..\extra_lib\include\libavutil\log.h"\
+	"..\..\extra_lib\include\libavutil\mathematics.h"\
+	"..\..\extra_lib\include\libavutil\mem.h"\
+	"..\..\extra_lib\include\libavutil\pixfmt.h"\
+	"..\..\extra_lib\include\libavutil\rational.h"\
+	"..\..\extra_lib\include\libswscale\swscale.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
@@ -168,10 +170,8 @@ DEP_CPP_FFMPEG=\
 	"..\..\modules\ffmpeg_in\ffmpeg_in.h"\
 	
 NODEP_CPP_FFMPEG=\
-	"..\..\extra_lib\include\ffmpeg\berrno.h"\
-	"..\..\extra_lib\include\ffmpeg\config.h"\
-	"..\..\extra_lib\include\ffmpeg\internal.h"\
-	"..\..\extra_lib\include\ffmpeg\os_support.h"\
+	"..\..\extra_lib\include\libavutil\config.h"\
+	"..\..\extra_lib\include\libavutil\internal.h"\
 	"..\..\include\gpac\config.h"\
 	
 # End Source File
@@ -187,16 +187,18 @@ SOURCE=..\..\modules\ffmpeg_in\ffmpeg_in.h
 
 SOURCE=..\..\modules\ffmpeg_in\ffmpeg_load.c
 DEP_CPP_FFMPEG_=\
-	"..\..\extra_lib\include\ffmpeg\avcodec.h"\
-	"..\..\extra_lib\include\ffmpeg\avformat.h"\
-	"..\..\extra_lib\include\ffmpeg\avio.h"\
-	"..\..\extra_lib\include\ffmpeg\avutil.h"\
-	"..\..\extra_lib\include\ffmpeg\common.h"\
-	"..\..\extra_lib\include\ffmpeg\integer.h"\
-	"..\..\extra_lib\include\ffmpeg\intfloat_readwrite.h"\
-	"..\..\extra_lib\include\ffmpeg\log.h"\
-	"..\..\extra_lib\include\ffmpeg\mathematics.h"\
-	"..\..\extra_lib\include\ffmpeg\rational.h"\
+	"..\..\extra_lib\include\libavcodec\avcodec.h"\
+	"..\..\extra_lib\include\libavformat\avformat.h"\
+	"..\..\extra_lib\include\libavformat\avio.h"\
+	"..\..\extra_lib\include\libavutil\avutil.h"\
+	"..\..\extra_lib\include\libavutil\common.h"\
+	"..\..\extra_lib\include\libavutil\intfloat_readwrite.h"\
+	"..\..\extra_lib\include\libavutil\log.h"\
+	"..\..\extra_lib\include\libavutil\mathematics.h"\
+	"..\..\extra_lib\include\libavutil\mem.h"\
+	"..\..\extra_lib\include\libavutil\pixfmt.h"\
+	"..\..\extra_lib\include\libavutil\rational.h"\
+	"..\..\extra_lib\include\libswscale\swscale.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
 	"..\..\include\gpac\constants.h"\
@@ -214,10 +216,8 @@ DEP_CPP_FFMPEG_=\
 	"..\..\modules\ffmpeg_in\ffmpeg_in.h"\
 	
 NODEP_CPP_FFMPEG_=\
-	"..\..\extra_lib\include\ffmpeg\berrno.h"\
-	"..\..\extra_lib\include\ffmpeg\config.h"\
-	"..\..\extra_lib\include\ffmpeg\internal.h"\
-	"..\..\extra_lib\include\ffmpeg\os_support.h"\
+	"..\..\extra_lib\include\libavutil\config.h"\
+	"..\..\extra_lib\include\libavutil\internal.h"\
 	"..\..\include\gpac\config.h"\
 	
 # End Source File
