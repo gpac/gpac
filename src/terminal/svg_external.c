@@ -63,7 +63,10 @@ char *gf_term_resolve_xlink(GF_Node *node, char *the_url)
 		if (is->redirect_xml_base) {
 			the_url = gf_url_concatenate(is->redirect_xml_base, url);
 		} else {
-			the_url = gf_url_concatenate(is->root_od->net_service->url, url);
+//			the_url = gf_url_concatenate(is->root_od->net_service->url, url);
+			/*the root url of a document should be "." if not specified, so that the final URL resolve happens only once
+			at the service level*/
+			the_url = strdup(url);
 		}
 		free(url);
 		return the_url;
