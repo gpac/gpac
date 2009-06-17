@@ -1200,6 +1200,19 @@ Bool initial_setup(const char *szExePath)
 	sprintf((char *) szPath, "%sgpac.mp4", szExePath);
 	gf_cfg_set_key(user.config, "General", "StartupFile", (const char *) szPath);
 
+	/*FFMPEG registration - FFMPEG DLLs compiled with CEGCC cannot be loaded directly under WM 6.1
+	cf http://cegcc.sourceforge.net/docs/faq.html#DllDoesNotWorkWithWindowsMobile6.1
+	*/
+	HKEY hKey = NULL;
+	DWORD dwSize;
+	DWORD dwValue;
+	RegCreateKeyEx(HKEY_LOCAL_MACHINE, _T("System\\Loader\\LoadModuleLow"), 0, NULL, REG_OPTION_NON_VOLATILE, KEY_WRITE, NULL, &hKey, &dwSize);
+	dwSize = 4; dwValue = 1;
+	LONG res = RegSetValueEx(hKey, _T("avcodec-52.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
+	res = RegSetValueEx(hKey, _T("avformat-52.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
+	res = RegSetValueEx(hKey, _T("avutil-50.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
+	res = RegSetValueEx(hKey, _T("swscale-0.dll"), NULL, REG_DWORD, (unsigned char *)&dwValue, dwSize);
+	RegCloseKey(hKey);
 
 	/*save*/
 	gf_cfg_del(user.config);

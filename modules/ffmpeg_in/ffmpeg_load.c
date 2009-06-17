@@ -24,6 +24,10 @@
 
 #include "ffmpeg_in.h"
 
+#if defined(_WIN32_WCE) && !defined(__GNUC__)
+#pragma comment(lib, "toolhelp")
+#pragma comment(lib, "winsock")
+#endif
 
 GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
