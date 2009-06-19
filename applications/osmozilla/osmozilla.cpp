@@ -233,7 +233,7 @@ void nsOsmozillaInstance::SetOptions()
 				fclose(test);
 			}
 		}
-		else if ((m_szURL[1] == ':') && (m_szURL[2] == '\\')) absolute_url = 1;
+		else if ((m_szURL[1] == ':') && ((m_szURL[2] == '\\') || (m_szURL[2] == '/'))) absolute_url = 1;
 
 		if (!absolute_url) {
 			char *url = m_szURL;
@@ -277,7 +277,7 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	gpac_cfg = (char *)"GPAC.cfg";
 #ifdef _DEBUG
 //#if 0
-	strcpy((char *) config_path, "C:\\CVS\\gpac\\bin\\w32_deb");
+	strcpy((char *) config_path, "D:\\CVS\\gpac\\bin\\win32\\debug");
 #else
 	HKEY hKey = NULL;
 	DWORD dwSize;
@@ -566,7 +566,11 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 
 	gf_term_set_option(m_term, GF_OPT_ASPECT_RATIO, aspect_ratio);
 	mInitialized = TRUE;
-	
+
+#ifdef XP_WIN
+	SetFocus((HWND)aWindow->window);
+#endif
+
 	/*stream not ready*/
 	if (!m_szURL || !m_bAutoStart) return TRUE;
 

@@ -272,7 +272,7 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	gpac_cfg = "GPAC.cfg";
 
 #if defined(_DEBUG) && !defined(_WIN32_WCE)
-	strcpy((char *) config_path, "D:\\cvs\\gpac\\bin\\w32_deb\\");
+	strcpy((char *) config_path, "D:\\cvs\\gpac\\bin\\win32\\debug\\");
 #else
 	//Here we retrieve GPAC config file in the install diractory, which is indicated in the 
 	//Registry
