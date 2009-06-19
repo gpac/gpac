@@ -535,6 +535,7 @@ GF_Err gf_streamer_send_next_packet(GF_FileStreamer *streamer, s32 send_ahead_de
 	} else {
 		e = gf_rtp_builder_process(to_send->packetizer, to_send->au->data, to_send->au->dataLength, (u8) 1, to_send->au->dataLength, to_send->sample_duration, (u8) to_send->sample_desc_index);
 	}
+	to_send->packetizer->sl_header.AU_sequenceNumber += 1;
 	/*delete sample*/
 	gf_isom_sample_del(&to_send->au);
 

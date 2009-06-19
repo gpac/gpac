@@ -28,6 +28,7 @@
 /*RTP packetizer flags*/
 #include <gpac/ietf.h>
 #include <gpac/ismacryp.h>
+#include <gpac/filestreamer.h>
 
 #include <time.h>
 
@@ -400,6 +401,7 @@ void PrintExtractUsage()
 			" -saf                 remux file to SAF multiplex\n"
 			" -dvbhdemux           demux DVB-H file into IP Datagrams\n"
 			"                       * Note: can be used when encoding scene descriptions\n"
+			" -diod                extracts file IOD in raw format when supported\n" 
 			"\n");
 }
 void PrintDumpUsage()
@@ -488,6 +490,26 @@ void PrintSWFUsage()
 		);
 }
 
+void PrintStreamerUsage()
+{
+	fprintf(stdout, "File Streamer Options\n"
+			"\n"
+			"MP4Box can stream ISO files to RTP. The streamer currently doesn't support\n"
+			"data carrouselling and will therefore not handle BIFS and OD streams properly.\n"
+			"\n"
+			" -rtp         enables streamer\n"
+			" -noloop      disables looping when streaming\n"
+			" -mpeg4       forces MPEG-4 ES Generic for all RTP streams\n"
+			" -port	PORT   output port of the first stream. Default: 7000\n"
+			" -mtu MTU     path MTU for RTP packets. Default is 1450 bytes\n"
+			" -dst DEST    IP destination (uni/multi-cast). Default: 127.0.0.1\n"
+			" -ifce IFCE   IP address of the physical interface to use. Default: ANY\n"
+			" -ttl TTL     time to live for multicast packets. Default: 1\n"
+			" -sdp Name    file name of the generated SDP. Default: \"session.sdp\"\n"
+			"\n"
+		);
+}
+
 void PrintUsage()
 {
 	fprintf (stdout, "MP4Box [option] input [option]\n"
@@ -505,6 +527,7 @@ void PrintUsage()
 			" -h swf               Flash (SWF) options help\n"
 			" -h crypt             ISMA E&A options help\n"
 			" -h format            supported formats help\n"
+			" -h rtp               streamer help\n"
 			"\n"
 			" -nodes               lists supported MPEG4 nodes\n"
 			" -node NodeName       gets MPEG4 node syntax and QP info\n"
@@ -1101,7 +1124,15 @@ int main(int argc, char **argv)
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat;
 	GF_ISOFile *file;
-
+	char *sdp_file = "session.sdp";
+	char *ip_dest = "127.0.0.1";
+	char *ifce_addr = NULL;
+	u16 port = 7000;
+	u32 ttl = 1;
+	Bool loop = 1, stream_rtp = 0;
+	Bool force_mpeg4 = 0;
+	u32 path_mtu = 1450;
+	Bool dump_iod=0;
 
 	if (argc < 2) {
 		PrintUsage();
@@ -1221,6 +1252,9 @@ int main(int argc, char **argv)
 			trackID = atoi(argv[i+1]);
 			i++;
 		}
+		else if (!stricmp(arg, "-diod")) {
+			dump_iod = 1;
+		}
 		else if (!stricmp(arg, "-node")) { CHECK_NEXT_ARG PrintNode(argv[i+1], 0); return (0); }
 		else if (!stricmp(arg, "-xnode")) { CHECK_NEXT_ARG PrintNode(argv[i+1], 1); return (0); }
 		else if (!stricmp(arg, "-snode")) { CHECK_NEXT_ARG PrintNode(argv[i+1], 2); return (0); }
@@ -1271,6 +1305,41 @@ int main(int argc, char **argv)
 				i++;
 			}
 		}
+		/*streamer options*/
+		else if (!stricmp(arg, "-rtp")) stream_rtp = 1;
+		else if (!stricmp(arg, "-noloop")) loop = 0;
+		else if (!stricmp(arg, "-mpeg4")) force_mpeg4 = 1;
+		else if (!stricmp(arg, "-port")) {
+			CHECK_NEXT_ARG
+			port = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-mtu")) {
+			CHECK_NEXT_ARG
+			path_mtu = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-dst")) {
+			CHECK_NEXT_ARG
+			ip_dest = argv[i+1];
+			i++;
+		}
+		else if (!stricmp(arg, "-ttl")) {
+			CHECK_NEXT_ARG
+			ttl = atoi(argv[i+1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-ifce")) {
+			CHECK_NEXT_ARG
+			ifce_addr = argv[i+1];
+			i++;
+		}
+		else if (!stricmp(arg, "-sdp")) {
+			CHECK_NEXT_ARG
+			sdp_file = argv[i+1];
+			i++;
+		}
+
 
 #ifndef GPAC_READ_ONLY
 		/*SWF importer options*/
@@ -1811,6 +1880,7 @@ int main(int argc, char **argv)
 			else if (!strcmp(argv[i+1], "extract")) PrintExtractUsage();
 			else if (!strcmp(argv[i+1], "dump")) PrintDumpUsage();
 			else if (!strcmp(argv[i+1], "swf")) PrintSWFUsage();
+			else if (!strcmp(argv[i+1], "rtp")) PrintStreamerUsage();
 #ifndef GPAC_READ_ONLY
 			else if (!strcmp(argv[i+1], "general")) PrintGeneralUsage();
 			else if (!strcmp(argv[i+1], "hint")) PrintHintUsage();
@@ -1852,6 +1922,43 @@ int main(int argc, char **argv)
 	if (!inName) {
 		PrintUsage();
 		return 1;
+	}
+
+	if (stream_rtp) {
+		GF_FileStreamer *file_streamer;
+		if (!gf_isom_probe_file(inName)) {
+			fprintf(stdout, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
+			return 1;
+		}
+
+		gf_sys_init();
+
+		gf_log_set_tools(GF_LOG_RTP);
+		gf_log_set_level(GF_LOG_WARNING);	//set to debug to have packet list
+
+		file_streamer = gf_streamer_new(inName, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, ifce_addr);
+		if (!file_streamer) {
+			fprintf(stdout, "Cannot create file streamer\n");
+		} else {
+			u32 check = 100;
+			fprintf(stdout, "Starting streaming %s to %s:%d\n", inName, ip_dest, port);
+			gf_streamer_write_sdp(file_streamer, sdp_file);
+
+			while (1) {
+				gf_streamer_send_next_packet(file_streamer, 0, 0);
+				check--;
+				if (!check) {
+					if (gf_prompt_has_input()) {
+						char c = (char) gf_prompt_get_char(); 
+						if (c=='q') break;
+					}
+					check = 100;
+				}
+			}
+			gf_streamer_del(file_streamer);
+		}
+		gf_sys_close();
+		return 0;
 	}
 
 	if (raw_cat) {
@@ -2219,6 +2326,34 @@ int main(int argc, char **argv)
 		fprintf(stdout, "\n");
 	}
 	if (dump_cart) dump_cover_art(file, outfile);
+
+	if (dump_iod) {
+		GF_InitialObjectDescriptor *iod = (GF_InitialObjectDescriptor *)gf_isom_get_root_od(file);
+		if (!iod) {
+			fprintf(stdout, "File %s has no IOD", inName);
+		} else {
+			char szName[GF_MAX_PATH];
+			FILE *iodf;
+			GF_BitStream *bs;
+
+			sprintf(szName, "%s.iod", outfile);
+			iodf = fopen(szName, "wb");
+			if (!iodf) {
+				fprintf(stdout, "Cannot open destination %s\n", szName);
+			} else {
+				char *desc;
+				u32 size;
+				bs = gf_bs_from_file(iodf, GF_BITSTREAM_WRITE);
+				if (gf_odf_desc_write((GF_Descriptor *)iod, &desc, &size)==GF_OK) {
+					fwrite(desc, 1, size, iodf);
+					free(desc);
+				} else {
+					fprintf(stdout, "Error writing IOD\n", szName);
+				}
+				fclose(iodf);
+			}
+		}
+	}
 
 #ifndef GPAC_READ_ONLY
 	if (split_duration || split_size) {

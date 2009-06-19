@@ -1060,6 +1060,7 @@ Bool check_exit()
 	return 0;
 }
 
+
 int main(int argc, char **argv)
 {
 	char *cfg = NULL;
