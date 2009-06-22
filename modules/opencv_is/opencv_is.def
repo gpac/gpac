@@ -1,0 +1,6 @@
+LIBRARY     gm_opencv_is.dll
+
+EXPORTS
+	QueryInterface
+	LoadInterface
+	ShutdownInterface
