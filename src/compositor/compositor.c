@@ -194,7 +194,9 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 Bool gf_sc_draw_frame(GF_Compositor *compositor)
 {	
 	gf_sc_simulation_tick(compositor);
-	return compositor->draw_next_frame;
+	if (compositor->draw_next_frame) return 1;
+	if (compositor->fonts_pending) return 1;
+	return 0;
 }
 
 static u32 gf_sc_proc(void *par)
@@ -759,6 +761,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	if (scene_graph) {
 #ifndef GPAC_DISABLE_SVG
 		SVG_Length *w, *h;
+		SVG_ViewBox *vb;
 		Bool is_svg = 0;
 #endif
 		const char *opt;
@@ -779,6 +782,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 
 #ifndef GPAC_DISABLE_SVG
 		w = h = NULL;
+		vb = NULL;
 		if ((tag>=GF_NODE_RANGE_FIRST_SVG) && (tag<=GF_NODE_RANGE_LAST_SVG)) {
 			GF_FieldInfo info;
 			is_svg = 1;
@@ -786,6 +790,8 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 				w = info.far_ptr;
 			if (gf_node_get_attribute_by_tag(top_node, TAG_SVG_ATT_height, 0, 0, &info)==GF_OK) 
 				h = info.far_ptr;
+			if (gf_node_get_attribute_by_tag(top_node, TAG_SVG_ATT_viewBox, 0, 0, &info)==GF_OK) 
+				vb = info.far_ptr;
 		}
 		/*default back color is white*/
 		if (is_svg && ! (compositor->user->init_flags & GF_TERM_WINDOWLESS)) compositor->back_color = 0xFFFFFFFF;
@@ -795,12 +801,16 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 			do_notif = 1;
 			if (w->type!=SVG_NUMBER_PERCENTAGE) {
 				width = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, w) );
+			} else if ((u32) FIX2INT(vb->width)<compositor->video_out->max_screen_width)  {
+				width = FIX2INT(vb->width);
 			} else {
 				width = SC_DEF_WIDTH;
 				do_notif = 0;
 			}
 			if (h->type!=SVG_NUMBER_PERCENTAGE) {
 				height = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, h) );
+			} else if ((u32) FIX2INT(vb->height)<compositor->video_out->max_screen_height)  {
+				height = FIX2INT(vb->height);
 			} else {
 				height = SC_DEF_HEIGHT;
 				do_notif = 0;

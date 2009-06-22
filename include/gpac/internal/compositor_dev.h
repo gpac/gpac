@@ -201,6 +201,7 @@ struct __tag_compositor
 	GF_FontManager *font_manager;
 	/*set whenever a new font has been received*/
 	Bool reset_fonts;
+	s32 fonts_pending;
 
 	/*options*/
 	u32 aspect_ratio, antiAlias, texture_text_mode;
