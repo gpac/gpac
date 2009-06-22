@@ -206,7 +206,7 @@ static void svg_font_on_load(GF_Node *handler, GF_DOM_Event *event, GF_Node *obs
 	/*brute-force signaling that all fonts have changed and texts must be recomputed*/
 	compositor->reset_fonts = 1;
 	compositor->draw_next_frame = 1;
-
+	compositor->fonts_pending--;
 }
 
 void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node)
@@ -513,6 +513,7 @@ void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, svg_traverse_font_face_uri);
 
 	font->not_loaded = 1;
+	compositor->fonts_pending++;
 	svg_font_uri_check(node, stack);
 }
 
