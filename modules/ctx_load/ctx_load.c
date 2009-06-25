@@ -92,20 +92,40 @@ static void CTXLoad_Reset(CTXLoadPriv *priv)
 	}
 }
 
-void CTXLoad_OnActivate(GF_Node *node, GF_Route *route)
+static void CTXLoad_ExecuteConditional(M_Conditional *c, GF_InlineScene *is)
+{
+	GF_List *clist = c->buffer.commandList;
+	c->buffer.commandList = NULL;
+
+	gf_sg_command_apply_list(gf_node_get_graph((GF_Node*)c), clist, gf_inline_get_time(is));
+
+	if (c->buffer.commandList != NULL) {
+		while (gf_list_count(clist)) {
+			GF_Command *sub_com = (GF_Command *)gf_list_get(clist, 0);
+			gf_sg_command_del(sub_com);
+			gf_list_rem(clist, 0);
+		}
+		gf_list_del(clist);
+	} else {
+		c->buffer.commandList = clist;
+	}
+}
+
+static void CTXLoad_OnActivate(GF_Node *node, GF_Route *route)
 {
 	GF_InlineScene *is = (GF_InlineScene *) gf_node_get_private(node);
 	M_Conditional*c = (M_Conditional*)node;
 	/*always apply in parent graph to handle protos correctly*/
-	if (c->activate) gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_inline_get_time(is));
+	if (c->activate) CTXLoad_ExecuteConditional(c, is);
 }
-void CTXLoad_OnReverseActivate(GF_Node *node, GF_Route *route)
+
+static void CTXLoad_OnReverseActivate(GF_Node *node, GF_Route *route)
 {
 	GF_InlineScene *is = (GF_InlineScene *) gf_node_get_private(node);
 	M_Conditional*c = (M_Conditional*)node;
 	/*always apply in parent graph to handle protos correctly*/
 	if (!c->reverseActivate) 
-		gf_sg_command_apply_list(gf_node_get_graph(node), c->buffer.commandList, gf_inline_get_time(is));
+		CTXLoad_ExecuteConditional(c, is);
 }
 
 void CTXLoad_NodeCallback(void *cbk, u32 type, GF_Node *node, void *param)
