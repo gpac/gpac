@@ -534,10 +534,6 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\modules\dx_hw\res\collide.cur"
-			>
-		</File>
-		<File
 			RelativePath="..\..\modules\dx_hw\collide.cur"
 			>
 		</File>
@@ -788,10 +784,6 @@
 					PreprocessorDefinitions=""
 				/>
 			</FileConfiguration>
-		</File>
-		<File
-			RelativePath="..\..\modules\dx_hw\res\hand.cur"
-			>
 		</File>
 		<File
 			RelativePath="..\..\modules\dx_hw\hand.cur"
