@@ -48,7 +48,7 @@ void gf_sg_command_del(GF_Command *com)
 	GF_Proto *proto;
 	if (!com) return;
 
-	if (com->tag < GF_SG_LAST_BIFS_COMMAND) {
+		if (com->tag < GF_SG_LAST_BIFS_COMMAND) {
 		while (gf_list_count(com->command_fields)) {
 			GF_CommandField *inf = (GF_CommandField *)gf_list_get(com->command_fields, 0);
 			gf_list_rem(com->command_fields, 0);
@@ -197,42 +197,6 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		if (inf->new_node) gf_node_register(inf->new_node, NULL);
 		break;
 
-	case GF_SG_FIELD_REPLACE_OP:
-	{
-		void *src_ptr;
-		u32 src_type;
-		u32 j=0;
-		GF_FieldInfo src;
-		def = gf_sg_find_node(com->in_scene, com->fromNodeID);
-		if (!def) return GF_SG_UNKNOWN_NODE;
-		e = gf_node_get_field(def, com->fromFieldIndex, &src);
-		if (e) return e;
-
-		src_type = src.fieldType;
-		src_ptr = src.far_ptr;
-		if (com->send_event_x>=0) {
-			src_type = gf_sg_vrml_get_sf_type(src.fieldType);
-			e = gf_sg_vrml_mf_get_item(src.far_ptr, src.fieldType, &src_ptr, com->send_event_x);
-			if (e) return e;
-		}
-
-		while ((inf = (GF_CommandField*)gf_list_enum(com->command_fields, &j))) {
-			e = gf_node_get_field(com->node, inf->fieldIndex, &field);
-			if (e) return e;
-			if (inf->pos>=0) {
-				void *slot_ptr;
-				e = gf_sg_vrml_mf_get_item(field.far_ptr, field.fieldType, & slot_ptr, inf->pos);
-				if (e) return e;
-				gf_sg_vrml_field_copy(slot_ptr, src_ptr, src_type);
-			} else {
-				gf_sg_vrml_field_copy(field.far_ptr, src_ptr, src_type);
-			}
-		}
-
-		SG_CheckFieldChange(com->node, &field);
-	}
-		break;
-
 	case GF_SG_MULTIPLE_REPLACE:
 	case GF_SG_FIELD_REPLACE:
 	{
@@ -280,6 +244,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				SFCommandBuffer *cb_src = (SFCommandBuffer *)inf->field_ptr;
 
 				/*reset dest*/
+				if (!cb_dst->commandList) cb_dst->commandList = gf_list_new();
+
 				while (gf_list_count(cb_dst->commandList)) {
 					GF_Command *sub_com = (GF_Command *)gf_list_get(cb_dst->commandList, 0);
 					gf_sg_command_del(sub_com);
@@ -814,7 +780,7 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bool fo
 		fd->pos = fo->pos;
 		if (fo->field_ptr) {
 			fd->field_ptr = gf_sg_vrml_field_pointer_new(fd->fieldType);
-			gf_sg_vrml_field_copy(fd->field_ptr, fo->field_ptr, fo->fieldType);
+			gf_sg_vrml_field_clone(fd->field_ptr, fo->field_ptr, fo->fieldType, dest->in_scene);
 		}
 
 		if (fo->new_node) {

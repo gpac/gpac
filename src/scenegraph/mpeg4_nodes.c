@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Feb 17 14:17:57 2009
+	DO NOT MOFIFY - File generated on GMT Thu Jun 25 11:28:59 2009
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -4597,6 +4597,157 @@ GF_Node *ElevationGrid_Create()
 
 
 /*
+	Expression Node deletion
+*/
+
+static void Expression_Del(GF_Node *node)
+{
+	M_Expression *p = (M_Expression *) node;
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 Expression_Def2All[] = { 0, 1, 2, 3, 4, 5};
+static const u16 Expression_In2All[] = { 0, 1, 2, 3, 4, 5};
+static const u16 Expression_Out2All[] = { 0, 1, 2, 3, 4, 5};
+
+static u32 Expression_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 6;
+	case GF_SG_FIELD_CODING_DEF: return 6;
+	case GF_SG_FIELD_CODING_OUT: return 6;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 6;
+	}
+}
+
+static GF_Err Expression_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = Expression_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = Expression_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = Expression_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err Expression_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "expression_select1";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_Expression *) node)->expression_select1;
+		return GF_OK;
+	case 1:
+		info->name = "expression_intensity1";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_Expression *) node)->expression_intensity1;
+		return GF_OK;
+	case 2:
+		info->name = "expression_select2";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_Expression *) node)->expression_select2;
+		return GF_OK;
+	case 3:
+		info->name = "expression_intensity2";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_Expression *) node)->expression_intensity2;
+		return GF_OK;
+	case 4:
+		info->name = "init_face";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_Expression *) node)->init_face;
+		return GF_OK;
+	case 5:
+		info->name = "expression_def";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_Expression *) node)->expression_def;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 Expression_get_field_index_by_name(char *name)
+{
+	if (!strcmp("expression_select1", name)) return 0;
+	if (!strcmp("expression_intensity1", name)) return 1;
+	if (!strcmp("expression_select2", name)) return 2;
+	if (!strcmp("expression_intensity2", name)) return 3;
+	if (!strcmp("init_face", name)) return 4;
+	if (!strcmp("expression_def", name)) return 5;
+	return -1;
+	}
+static Bool Expression_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(31);
+		return 1;
+	case 1:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 6;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(63);
+		return 1;
+	case 2:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(31);
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 6;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(63);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *Expression_Create()
+{
+	M_Expression *p;
+	GF_SAFEALLOC(p, M_Expression);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_Expression);
+
+	/*default field values*/
+	p->expression_select1 = 0;
+	p->expression_intensity1 = 0;
+	p->expression_select2 = 0;
+	p->expression_intensity2 = 0;
+	return (GF_Node *)p;
+}
+
+
+/*
 	Extrusion Node deletion
 */
 
@@ -4841,6 +4992,1835 @@ GF_Node *Extrusion_Create()
 	p->spine.vals[1].x = FLT2FIX(0);
 	p->spine.vals[1].y = FLT2FIX(1);
 	p->spine.vals[1].z = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	Face Node deletion
+*/
+
+static void Face_Del(GF_Node *node)
+{
+	M_Face *p = (M_Face *) node;
+	gf_node_unregister((GF_Node *) p->fap, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->fdp, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->fit, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->ttsSource, (GF_Node *) p);	
+	gf_node_unregister_children((GF_Node *) p, p->renderedFace);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 Face_Def2All[] = { 0, 1, 2, 3, 4};
+static const u16 Face_In2All[] = { 0, 1, 2, 3, 4};
+static const u16 Face_Out2All[] = { 0, 1, 2, 3, 4};
+
+static u32 Face_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 5;
+	case GF_SG_FIELD_CODING_DEF: return 5;
+	case GF_SG_FIELD_CODING_OUT: return 5;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 5;
+	}
+}
+
+static GF_Err Face_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = Face_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = Face_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = Face_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err Face_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "fap";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFFAPNode;
+		info->far_ptr = & ((M_Face *)node)->fap;
+		return GF_OK;
+	case 1:
+		info->name = "fdp";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFFDPNode;
+		info->far_ptr = & ((M_Face *)node)->fdp;
+		return GF_OK;
+	case 2:
+		info->name = "fit";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFFITNode;
+		info->far_ptr = & ((M_Face *)node)->fit;
+		return GF_OK;
+	case 3:
+		info->name = "ttsSource";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFAudioNode;
+		info->far_ptr = & ((M_Face *)node)->ttsSource;
+		return GF_OK;
+	case 4:
+		info->name = "renderedFace";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_Face *)node)->renderedFace;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 Face_get_field_index_by_name(char *name)
+{
+	if (!strcmp("fap", name)) return 0;
+	if (!strcmp("fdp", name)) return 1;
+	if (!strcmp("fit", name)) return 2;
+	if (!strcmp("ttsSource", name)) return 3;
+	if (!strcmp("renderedFace", name)) return 4;
+	return -1;
+	}
+static Bool Face_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *Face_Create()
+{
+	M_Face *p;
+	GF_SAFEALLOC(p, M_Face);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_Face);
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	FaceDefMesh Node deletion
+*/
+
+static void FaceDefMesh_Del(GF_Node *node)
+{
+	M_FaceDefMesh *p = (M_FaceDefMesh *) node;
+	gf_node_unregister((GF_Node *) p->faceSceneGraphNode, (GF_Node *) p);	
+	gf_sg_mfint32_del(p->intervalBorders);
+	gf_sg_mfint32_del(p->coordIndex);
+	gf_sg_mfvec3f_del(p->displacements);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 FaceDefMesh_Def2All[] = { 0, 1, 2, 3};
+
+static u32 FaceDefMesh_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 0;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 0;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err FaceDefMesh_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = FaceDefMesh_Def2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err FaceDefMesh_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "faceSceneGraphNode";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_FaceDefMesh *)node)->faceSceneGraphNode;
+		return GF_OK;
+	case 1:
+		info->name = "intervalBorders";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_FaceDefMesh *) node)->intervalBorders;
+		return GF_OK;
+	case 2:
+		info->name = "coordIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_FaceDefMesh *) node)->coordIndex;
+		return GF_OK;
+	case 3:
+		info->name = "displacements";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC3F;
+		info->far_ptr = & ((M_FaceDefMesh *) node)->displacements;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 FaceDefMesh_get_field_index_by_name(char *name)
+{
+	if (!strcmp("faceSceneGraphNode", name)) return 0;
+	if (!strcmp("intervalBorders", name)) return 1;
+	if (!strcmp("coordIndex", name)) return 2;
+	if (!strcmp("displacements", name)) return 3;
+	return -1;
+	}
+static Bool FaceDefMesh_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 1:
+		*AType = 0;
+		*QType = 0;
+		return 1;
+	case 2:
+		*AType = 0;
+		*QType = 0;
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 0;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *FaceDefMesh_Create()
+{
+	M_FaceDefMesh *p;
+	GF_SAFEALLOC(p, M_FaceDefMesh);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_FaceDefMesh);
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	FaceDefTables Node deletion
+*/
+
+static void FaceDefTables_Del(GF_Node *node)
+{
+	M_FaceDefTables *p = (M_FaceDefTables *) node;
+	gf_node_unregister_children((GF_Node *) p, p->faceDefMesh);	
+	gf_node_unregister_children((GF_Node *) p, p->faceDefTransform);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 FaceDefTables_Def2All[] = { 0, 1, 2, 3};
+static const u16 FaceDefTables_In2All[] = { 2, 3};
+static const u16 FaceDefTables_Out2All[] = { 2, 3};
+
+static u32 FaceDefTables_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 2;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 2;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err FaceDefTables_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = FaceDefTables_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = FaceDefTables_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = FaceDefTables_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err FaceDefTables_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "fapID";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FaceDefTables *) node)->fapID;
+		return GF_OK;
+	case 1:
+		info->name = "highLevelSelect";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FaceDefTables *) node)->highLevelSelect;
+		return GF_OK;
+	case 2:
+		info->name = "faceDefMesh";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFFaceDefMeshNode;
+		info->far_ptr = & ((M_FaceDefTables *)node)->faceDefMesh;
+		return GF_OK;
+	case 3:
+		info->name = "faceDefTransform";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFFaceDefTransformNode;
+		info->far_ptr = & ((M_FaceDefTables *)node)->faceDefTransform;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 FaceDefTables_get_field_index_by_name(char *name)
+{
+	if (!strcmp("fapID", name)) return 0;
+	if (!strcmp("highLevelSelect", name)) return 1;
+	if (!strcmp("faceDefMesh", name)) return 2;
+	if (!strcmp("faceDefTransform", name)) return 3;
+	return -1;
+	}
+static Bool FaceDefTables_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 7;
+		*b_min = FLT2FIX(1);
+		*b_max = FLT2FIX( 68);
+		return 1;
+	case 1:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 6;
+		*b_min = FLT2FIX(1);
+		*b_max = FLT2FIX( 64);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *FaceDefTables_Create()
+{
+	M_FaceDefTables *p;
+	GF_SAFEALLOC(p, M_FaceDefTables);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_FaceDefTables);
+
+	/*default field values*/
+	p->fapID = 1;
+	p->highLevelSelect = 1;
+	return (GF_Node *)p;
+}
+
+
+/*
+	FaceDefTransform Node deletion
+*/
+
+static void FaceDefTransform_Del(GF_Node *node)
+{
+	M_FaceDefTransform *p = (M_FaceDefTransform *) node;
+	gf_node_unregister((GF_Node *) p->faceSceneGraphNode, (GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 FaceDefTransform_Def2All[] = { 0, 1, 2, 3, 4};
+
+static u32 FaceDefTransform_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 0;
+	case GF_SG_FIELD_CODING_DEF: return 5;
+	case GF_SG_FIELD_CODING_OUT: return 0;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 5;
+	}
+}
+
+static GF_Err FaceDefTransform_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = FaceDefTransform_Def2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err FaceDefTransform_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "faceSceneGraphNode";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_FaceDefTransform *)node)->faceSceneGraphNode;
+		return GF_OK;
+	case 1:
+		info->name = "fieldId";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FaceDefTransform *) node)->fieldId;
+		return GF_OK;
+	case 2:
+		info->name = "rotationDef";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((M_FaceDefTransform *) node)->rotationDef;
+		return GF_OK;
+	case 3:
+		info->name = "scaleDef";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_FaceDefTransform *) node)->scaleDef;
+		return GF_OK;
+	case 4:
+		info->name = "translationDef";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_FaceDefTransform *) node)->translationDef;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 FaceDefTransform_get_field_index_by_name(char *name)
+{
+	if (!strcmp("faceSceneGraphNode", name)) return 0;
+	if (!strcmp("fieldId", name)) return 1;
+	if (!strcmp("rotationDef", name)) return 2;
+	if (!strcmp("scaleDef", name)) return 3;
+	if (!strcmp("translationDef", name)) return 4;
+	return -1;
+	}
+static Bool FaceDefTransform_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 2:
+		*AType = 0;
+		*QType = 10;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 7;
+		return 1;
+	case 4:
+		*AType = 0;
+		*QType = 1;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *FaceDefTransform_Create()
+{
+	M_FaceDefTransform *p;
+	GF_SAFEALLOC(p, M_FaceDefTransform);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_FaceDefTransform);
+
+	/*default field values*/
+	p->fieldId = 1;
+	p->rotationDef.x = FLT2FIX(0);
+	p->rotationDef.y = FLT2FIX(0);
+	p->rotationDef.z = FLT2FIX(1);
+	p->rotationDef.q = FLT2FIX(0);
+	p->scaleDef.x = FLT2FIX(1);
+	p->scaleDef.y = FLT2FIX(1);
+	p->scaleDef.z = FLT2FIX(1);
+	p->translationDef.x = FLT2FIX(0);
+	p->translationDef.y = FLT2FIX(0);
+	p->translationDef.z = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	FAP Node deletion
+*/
+
+static void FAP_Del(GF_Node *node)
+{
+	M_FAP *p = (M_FAP *) node;
+	gf_node_unregister((GF_Node *) p->viseme, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->expression, (GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 FAP_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67};
+static const u16 FAP_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67};
+static const u16 FAP_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67};
+
+static u32 FAP_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 68;
+	case GF_SG_FIELD_CODING_DEF: return 68;
+	case GF_SG_FIELD_CODING_OUT: return 68;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 68;
+	}
+}
+
+static GF_Err FAP_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = FAP_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = FAP_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = FAP_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err FAP_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "viseme";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFVisemeNode;
+		info->far_ptr = & ((M_FAP *)node)->viseme;
+		return GF_OK;
+	case 1:
+		info->name = "expression";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFExpressionNode;
+		info->far_ptr = & ((M_FAP *)node)->expression;
+		return GF_OK;
+	case 2:
+		info->name = "open_jaw";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->open_jaw;
+		return GF_OK;
+	case 3:
+		info->name = "lower_t_midlip";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->lower_t_midlip;
+		return GF_OK;
+	case 4:
+		info->name = "raise_b_midlip";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_b_midlip;
+		return GF_OK;
+	case 5:
+		info->name = "stretch_l_corner";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->stretch_l_corner;
+		return GF_OK;
+	case 6:
+		info->name = "stretch_r_corner";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->stretch_r_corner;
+		return GF_OK;
+	case 7:
+		info->name = "lower_t_lip_lm";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->lower_t_lip_lm;
+		return GF_OK;
+	case 8:
+		info->name = "lower_t_lip_rm";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->lower_t_lip_rm;
+		return GF_OK;
+	case 9:
+		info->name = "lower_b_lip_lm";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->lower_b_lip_lm;
+		return GF_OK;
+	case 10:
+		info->name = "lower_b_lip_rm";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->lower_b_lip_rm;
+		return GF_OK;
+	case 11:
+		info->name = "raise_l_cornerlip";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_l_cornerlip;
+		return GF_OK;
+	case 12:
+		info->name = "raise_r_cornerlip";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_r_cornerlip;
+		return GF_OK;
+	case 13:
+		info->name = "thrust_jaw";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->thrust_jaw;
+		return GF_OK;
+	case 14:
+		info->name = "shift_jaw";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->shift_jaw;
+		return GF_OK;
+	case 15:
+		info->name = "push_b_lip";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->push_b_lip;
+		return GF_OK;
+	case 16:
+		info->name = "push_t_lip";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->push_t_lip;
+		return GF_OK;
+	case 17:
+		info->name = "depress_chin";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->depress_chin;
+		return GF_OK;
+	case 18:
+		info->name = "close_t_l_eyelid";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->close_t_l_eyelid;
+		return GF_OK;
+	case 19:
+		info->name = "close_t_r_eyelid";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->close_t_r_eyelid;
+		return GF_OK;
+	case 20:
+		info->name = "close_b_l_eyelid";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->close_b_l_eyelid;
+		return GF_OK;
+	case 21:
+		info->name = "close_b_r_eyelid";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->close_b_r_eyelid;
+		return GF_OK;
+	case 22:
+		info->name = "yaw_l_eyeball";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->yaw_l_eyeball;
+		return GF_OK;
+	case 23:
+		info->name = "yaw_r_eyeball";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->yaw_r_eyeball;
+		return GF_OK;
+	case 24:
+		info->name = "pitch_l_eyeball";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->pitch_l_eyeball;
+		return GF_OK;
+	case 25:
+		info->name = "pitch_r_eyeball";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->pitch_r_eyeball;
+		return GF_OK;
+	case 26:
+		info->name = "thrust_l_eyeball";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->thrust_l_eyeball;
+		return GF_OK;
+	case 27:
+		info->name = "thrust_r_eyeball";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->thrust_r_eyeball;
+		return GF_OK;
+	case 28:
+		info->name = "dilate_l_pupil";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->dilate_l_pupil;
+		return GF_OK;
+	case 29:
+		info->name = "dilate_r_pupil";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->dilate_r_pupil;
+		return GF_OK;
+	case 30:
+		info->name = "raise_l_i_eyebrow";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_l_i_eyebrow;
+		return GF_OK;
+	case 31:
+		info->name = "raise_r_i_eyebrow";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_r_i_eyebrow;
+		return GF_OK;
+	case 32:
+		info->name = "raise_l_m_eyebrow";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_l_m_eyebrow;
+		return GF_OK;
+	case 33:
+		info->name = "raise_r_m_eyebrow";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_r_m_eyebrow;
+		return GF_OK;
+	case 34:
+		info->name = "raise_l_o_eyebrow";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_l_o_eyebrow;
+		return GF_OK;
+	case 35:
+		info->name = "raise_r_o_eyebrow";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_r_o_eyebrow;
+		return GF_OK;
+	case 36:
+		info->name = "squeeze_l_eyebrow";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->squeeze_l_eyebrow;
+		return GF_OK;
+	case 37:
+		info->name = "squeeze_r_eyebrow";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->squeeze_r_eyebrow;
+		return GF_OK;
+	case 38:
+		info->name = "puff_l_cheek";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->puff_l_cheek;
+		return GF_OK;
+	case 39:
+		info->name = "puff_r_cheek";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->puff_r_cheek;
+		return GF_OK;
+	case 40:
+		info->name = "lift_l_cheek";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->lift_l_cheek;
+		return GF_OK;
+	case 41:
+		info->name = "lift_r_cheek";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->lift_r_cheek;
+		return GF_OK;
+	case 42:
+		info->name = "shift_tongue_tip";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->shift_tongue_tip;
+		return GF_OK;
+	case 43:
+		info->name = "raise_tongue_tip";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_tongue_tip;
+		return GF_OK;
+	case 44:
+		info->name = "thrust_tongue_tip";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->thrust_tongue_tip;
+		return GF_OK;
+	case 45:
+		info->name = "raise_tongue";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_tongue;
+		return GF_OK;
+	case 46:
+		info->name = "tongue_roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->tongue_roll;
+		return GF_OK;
+	case 47:
+		info->name = "head_pitch";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->head_pitch;
+		return GF_OK;
+	case 48:
+		info->name = "head_yaw";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->head_yaw;
+		return GF_OK;
+	case 49:
+		info->name = "head_roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->head_roll;
+		return GF_OK;
+	case 50:
+		info->name = "lower_t_midlip_o";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->lower_t_midlip_o;
+		return GF_OK;
+	case 51:
+		info->name = "raise_b_midlip_o";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_b_midlip_o;
+		return GF_OK;
+	case 52:
+		info->name = "stretch_l_cornerlip";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->stretch_l_cornerlip;
+		return GF_OK;
+	case 53:
+		info->name = "stretch_r_cornerlip";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->stretch_r_cornerlip;
+		return GF_OK;
+	case 54:
+		info->name = "lower_t_lip_lm_o";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->lower_t_lip_lm_o;
+		return GF_OK;
+	case 55:
+		info->name = "lower_t_lip_rm_o";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->lower_t_lip_rm_o;
+		return GF_OK;
+	case 56:
+		info->name = "raise_b_lip_lm_o";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_b_lip_lm_o;
+		return GF_OK;
+	case 57:
+		info->name = "raise_b_lip_rm_o";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_b_lip_rm_o;
+		return GF_OK;
+	case 58:
+		info->name = "raise_l_cornerlip_o";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_l_cornerlip_o;
+		return GF_OK;
+	case 59:
+		info->name = "raise_r_cornerlip_o";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_r_cornerlip_o;
+		return GF_OK;
+	case 60:
+		info->name = "stretch_l_nose";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->stretch_l_nose;
+		return GF_OK;
+	case 61:
+		info->name = "stretch_r_nose";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->stretch_r_nose;
+		return GF_OK;
+	case 62:
+		info->name = "raise_nose";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_nose;
+		return GF_OK;
+	case 63:
+		info->name = "bend_nose";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->bend_nose;
+		return GF_OK;
+	case 64:
+		info->name = "raise_l_ear";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_l_ear;
+		return GF_OK;
+	case 65:
+		info->name = "raise_r_ear";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->raise_r_ear;
+		return GF_OK;
+	case 66:
+		info->name = "pull_l_ear";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->pull_l_ear;
+		return GF_OK;
+	case 67:
+		info->name = "pull_r_ear";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FAP *) node)->pull_r_ear;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 FAP_get_field_index_by_name(char *name)
+{
+	if (!strcmp("viseme", name)) return 0;
+	if (!strcmp("expression", name)) return 1;
+	if (!strcmp("open_jaw", name)) return 2;
+	if (!strcmp("lower_t_midlip", name)) return 3;
+	if (!strcmp("raise_b_midlip", name)) return 4;
+	if (!strcmp("stretch_l_corner", name)) return 5;
+	if (!strcmp("stretch_r_corner", name)) return 6;
+	if (!strcmp("lower_t_lip_lm", name)) return 7;
+	if (!strcmp("lower_t_lip_rm", name)) return 8;
+	if (!strcmp("lower_b_lip_lm", name)) return 9;
+	if (!strcmp("lower_b_lip_rm", name)) return 10;
+	if (!strcmp("raise_l_cornerlip", name)) return 11;
+	if (!strcmp("raise_r_cornerlip", name)) return 12;
+	if (!strcmp("thrust_jaw", name)) return 13;
+	if (!strcmp("shift_jaw", name)) return 14;
+	if (!strcmp("push_b_lip", name)) return 15;
+	if (!strcmp("push_t_lip", name)) return 16;
+	if (!strcmp("depress_chin", name)) return 17;
+	if (!strcmp("close_t_l_eyelid", name)) return 18;
+	if (!strcmp("close_t_r_eyelid", name)) return 19;
+	if (!strcmp("close_b_l_eyelid", name)) return 20;
+	if (!strcmp("close_b_r_eyelid", name)) return 21;
+	if (!strcmp("yaw_l_eyeball", name)) return 22;
+	if (!strcmp("yaw_r_eyeball", name)) return 23;
+	if (!strcmp("pitch_l_eyeball", name)) return 24;
+	if (!strcmp("pitch_r_eyeball", name)) return 25;
+	if (!strcmp("thrust_l_eyeball", name)) return 26;
+	if (!strcmp("thrust_r_eyeball", name)) return 27;
+	if (!strcmp("dilate_l_pupil", name)) return 28;
+	if (!strcmp("dilate_r_pupil", name)) return 29;
+	if (!strcmp("raise_l_i_eyebrow", name)) return 30;
+	if (!strcmp("raise_r_i_eyebrow", name)) return 31;
+	if (!strcmp("raise_l_m_eyebrow", name)) return 32;
+	if (!strcmp("raise_r_m_eyebrow", name)) return 33;
+	if (!strcmp("raise_l_o_eyebrow", name)) return 34;
+	if (!strcmp("raise_r_o_eyebrow", name)) return 35;
+	if (!strcmp("squeeze_l_eyebrow", name)) return 36;
+	if (!strcmp("squeeze_r_eyebrow", name)) return 37;
+	if (!strcmp("puff_l_cheek", name)) return 38;
+	if (!strcmp("puff_r_cheek", name)) return 39;
+	if (!strcmp("lift_l_cheek", name)) return 40;
+	if (!strcmp("lift_r_cheek", name)) return 41;
+	if (!strcmp("shift_tongue_tip", name)) return 42;
+	if (!strcmp("raise_tongue_tip", name)) return 43;
+	if (!strcmp("thrust_tongue_tip", name)) return 44;
+	if (!strcmp("raise_tongue", name)) return 45;
+	if (!strcmp("tongue_roll", name)) return 46;
+	if (!strcmp("head_pitch", name)) return 47;
+	if (!strcmp("head_yaw", name)) return 48;
+	if (!strcmp("head_roll", name)) return 49;
+	if (!strcmp("lower_t_midlip_o", name)) return 50;
+	if (!strcmp("raise_b_midlip_o", name)) return 51;
+	if (!strcmp("stretch_l_cornerlip", name)) return 52;
+	if (!strcmp("stretch_r_cornerlip", name)) return 53;
+	if (!strcmp("lower_t_lip_lm_o", name)) return 54;
+	if (!strcmp("lower_t_lip_rm_o", name)) return 55;
+	if (!strcmp("raise_b_lip_lm_o", name)) return 56;
+	if (!strcmp("raise_b_lip_rm_o", name)) return 57;
+	if (!strcmp("raise_l_cornerlip_o", name)) return 58;
+	if (!strcmp("raise_r_cornerlip_o", name)) return 59;
+	if (!strcmp("stretch_l_nose", name)) return 60;
+	if (!strcmp("stretch_r_nose", name)) return 61;
+	if (!strcmp("raise_nose", name)) return 62;
+	if (!strcmp("bend_nose", name)) return 63;
+	if (!strcmp("raise_l_ear", name)) return 64;
+	if (!strcmp("raise_r_ear", name)) return 65;
+	if (!strcmp("pull_l_ear", name)) return 66;
+	if (!strcmp("pull_r_ear", name)) return 67;
+	return -1;
+	}
+static Bool FAP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 2:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 4:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 5:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 6:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 7:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 8:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 9:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 10:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 11:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 12:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 13:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	case 14:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 15:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 16:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 17:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 18:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 19:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 20:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 21:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 22:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 23:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 24:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 25:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 26:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 27:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 28:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 29:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 30:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 31:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 32:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 33:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 34:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 35:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 36:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 37:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 38:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 39:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 40:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	case 41:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	case 42:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 43:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 44:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 45:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 46:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	case 47:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 48:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 49:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 50:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 51:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 52:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 53:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 54:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 55:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 56:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 57:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 58:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 59:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 60:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 61:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 62:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 63:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 64:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 65:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 66:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 67:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *FAP_Create()
+{
+	M_FAP *p;
+	GF_SAFEALLOC(p, M_FAP);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_FAP);
+
+	/*default field values*/
+	p->open_jaw = 2 << 31;
+	p->lower_t_midlip = 2 << 31;
+	p->raise_b_midlip = 2 << 31;
+	p->stretch_l_corner = 2 << 31;
+	p->stretch_r_corner = 2 << 31;
+	p->lower_t_lip_lm = 2 << 31;
+	p->lower_t_lip_rm = 2 << 31;
+	p->lower_b_lip_lm = 2 << 31;
+	p->lower_b_lip_rm = 2 << 31;
+	p->raise_l_cornerlip = 2 << 31;
+	p->raise_r_cornerlip = 2 << 31;
+	p->thrust_jaw = 2 << 31;
+	p->shift_jaw = 2 << 31;
+	p->push_b_lip = 2 << 31;
+	p->push_t_lip = 2 << 31;
+	p->depress_chin = 2 << 31;
+	p->close_t_l_eyelid = 2 << 31;
+	p->close_t_r_eyelid = 2 << 31;
+	p->close_b_l_eyelid = 2 << 31;
+	p->close_b_r_eyelid = 2 << 31;
+	p->yaw_l_eyeball = 2 << 31;
+	p->yaw_r_eyeball = 2 << 31;
+	p->pitch_l_eyeball = 2 << 31;
+	p->pitch_r_eyeball = 2 << 31;
+	p->thrust_l_eyeball = 2 << 31;
+	p->thrust_r_eyeball = 2 << 31;
+	p->dilate_l_pupil = 2 << 31;
+	p->dilate_r_pupil = 2 << 31;
+	p->raise_l_i_eyebrow = 2 << 31;
+	p->raise_r_i_eyebrow = 2 << 31;
+	p->raise_l_m_eyebrow = 2 << 31;
+	p->raise_r_m_eyebrow = 2 << 31;
+	p->raise_l_o_eyebrow = 2 << 31;
+	p->raise_r_o_eyebrow = 2 << 31;
+	p->squeeze_l_eyebrow = 2 << 31;
+	p->squeeze_r_eyebrow = 2 << 31;
+	p->puff_l_cheek = 2 << 31;
+	p->puff_r_cheek = 2 << 31;
+	p->lift_l_cheek = 2 << 31;
+	p->lift_r_cheek = 2 << 31;
+	p->shift_tongue_tip = 2 << 31;
+	p->raise_tongue_tip = 2 << 31;
+	p->thrust_tongue_tip = 2 << 31;
+	p->raise_tongue = 2 << 31;
+	p->tongue_roll = 2 << 31;
+	p->head_pitch = 2 << 31;
+	p->head_yaw = 2 << 31;
+	p->head_roll = 2 << 31;
+	p->lower_t_midlip_o = 2 << 31;
+	p->raise_b_midlip_o = 2 << 31;
+	p->stretch_l_cornerlip = 2 << 31;
+	p->stretch_r_cornerlip = 2 << 31;
+	p->lower_t_lip_lm_o = 2 << 31;
+	p->lower_t_lip_rm_o = 2 << 31;
+	p->raise_b_lip_lm_o = 2 << 31;
+	p->raise_b_lip_rm_o = 2 << 31;
+	p->raise_l_cornerlip_o = 2 << 31;
+	p->raise_r_cornerlip_o = 2 << 31;
+	p->stretch_l_nose = 2 << 31;
+	p->stretch_r_nose = 2 << 31;
+	p->raise_nose = 2 << 31;
+	p->bend_nose = 2 << 31;
+	p->raise_l_ear = 2 << 31;
+	p->raise_r_ear = 2 << 31;
+	p->pull_l_ear = 2 << 31;
+	p->pull_r_ear = 2 << 31;
+	return (GF_Node *)p;
+}
+
+
+/*
+	FDP Node deletion
+*/
+
+static void FDP_Del(GF_Node *node)
+{
+	M_FDP *p = (M_FDP *) node;
+	gf_node_unregister((GF_Node *) p->featurePointsCoord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->textureCoord, (GF_Node *) p);	
+	gf_node_unregister_children((GF_Node *) p, p->faceDefTables);	
+	gf_node_unregister_children((GF_Node *) p, p->faceSceneGraph);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 FDP_Def2All[] = { 0, 1, 2, 3, 4};
+static const u16 FDP_In2All[] = { 0, 1, 2, 3};
+static const u16 FDP_Out2All[] = { 0, 1, 2, 3};
+
+static u32 FDP_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 5;
+	case GF_SG_FIELD_CODING_OUT: return 4;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 5;
+	}
+}
+
+static GF_Err FDP_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = FDP_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = FDP_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = FDP_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err FDP_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "featurePointsCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((M_FDP *)node)->featurePointsCoord;
+		return GF_OK;
+	case 1:
+		info->name = "textureCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureCoordinateNode;
+		info->far_ptr = & ((M_FDP *)node)->textureCoord;
+		return GF_OK;
+	case 2:
+		info->name = "faceDefTables";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFFaceDefTablesNode;
+		info->far_ptr = & ((M_FDP *)node)->faceDefTables;
+		return GF_OK;
+	case 3:
+		info->name = "faceSceneGraph";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_FDP *)node)->faceSceneGraph;
+		return GF_OK;
+	case 4:
+		info->name = "useOrthoTexture";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_FDP *) node)->useOrthoTexture;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 FDP_get_field_index_by_name(char *name)
+{
+	if (!strcmp("featurePointsCoord", name)) return 0;
+	if (!strcmp("textureCoord", name)) return 1;
+	if (!strcmp("faceDefTables", name)) return 2;
+	if (!strcmp("faceSceneGraph", name)) return 3;
+	if (!strcmp("useOrthoTexture", name)) return 4;
+	return -1;
+	}
+static Bool FDP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *FDP_Create()
+{
+	M_FDP *p;
+	GF_SAFEALLOC(p, M_FDP);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_FDP);
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	FIT Node deletion
+*/
+
+static void FIT_Del(GF_Node *node)
+{
+	M_FIT *p = (M_FIT *) node;
+	gf_sg_mfint32_del(p->FAPs);
+	gf_sg_mfint32_del(p->Graph);
+	gf_sg_mfint32_del(p->numeratorExp);
+	gf_sg_mfint32_del(p->denominatorExp);
+	gf_sg_mfint32_del(p->numeratorImpulse);
+	gf_sg_mfint32_del(p->numeratorTerms);
+	gf_sg_mfint32_del(p->denominatorTerms);
+	gf_sg_mffloat_del(p->numeratorCoefs);
+	gf_sg_mffloat_del(p->denominatorCoefs);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 FIT_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
+static const u16 FIT_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
+static const u16 FIT_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
+
+static u32 FIT_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 9;
+	case GF_SG_FIELD_CODING_DEF: return 9;
+	case GF_SG_FIELD_CODING_OUT: return 9;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 9;
+	}
+}
+
+static GF_Err FIT_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = FIT_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = FIT_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = FIT_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err FIT_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "FAPs";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_FIT *) node)->FAPs;
+		return GF_OK;
+	case 1:
+		info->name = "Graph";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_FIT *) node)->Graph;
+		return GF_OK;
+	case 2:
+		info->name = "numeratorExp";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_FIT *) node)->numeratorExp;
+		return GF_OK;
+	case 3:
+		info->name = "denominatorExp";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_FIT *) node)->denominatorExp;
+		return GF_OK;
+	case 4:
+		info->name = "numeratorImpulse";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_FIT *) node)->numeratorImpulse;
+		return GF_OK;
+	case 5:
+		info->name = "numeratorTerms";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_FIT *) node)->numeratorTerms;
+		return GF_OK;
+	case 6:
+		info->name = "denominatorTerms";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_FIT *) node)->denominatorTerms;
+		return GF_OK;
+	case 7:
+		info->name = "numeratorCoefs";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_FIT *) node)->numeratorCoefs;
+		return GF_OK;
+	case 8:
+		info->name = "denominatorCoefs";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_FIT *) node)->denominatorCoefs;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 FIT_get_field_index_by_name(char *name)
+{
+	if (!strcmp("FAPs", name)) return 0;
+	if (!strcmp("Graph", name)) return 1;
+	if (!strcmp("numeratorExp", name)) return 2;
+	if (!strcmp("denominatorExp", name)) return 3;
+	if (!strcmp("numeratorImpulse", name)) return 4;
+	if (!strcmp("numeratorTerms", name)) return 5;
+	if (!strcmp("denominatorTerms", name)) return 6;
+	if (!strcmp("numeratorCoefs", name)) return 7;
+	if (!strcmp("denominatorCoefs", name)) return 8;
+	return -1;
+	}
+static Bool FIT_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 7;
+		*b_min = FLT2FIX(-1);
+		*b_max = FLT2FIX(68);
+		return 1;
+	case 1:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 7;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(68);
+		return 1;
+	case 2:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 4;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(15);
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 4;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(15);
+		return 1;
+	case 4:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 10;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(1023);
+		return 1;
+	case 5:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 4;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(10);
+		return 1;
+	case 6:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 4;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(10);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *FIT_Create()
+{
+	M_FIT *p;
+	GF_SAFEALLOC(p, M_FIT);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_FIT);
+
+	/*default field values*/
 	return (GF_Node *)p;
 }
 
@@ -13413,6 +15393,135 @@ GF_Node *VisibilitySensor_Create()
 
 
 /*
+	Viseme Node deletion
+*/
+
+static void Viseme_Del(GF_Node *node)
+{
+	M_Viseme *p = (M_Viseme *) node;
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 Viseme_Def2All[] = { 0, 1, 2, 3};
+static const u16 Viseme_In2All[] = { 0, 1, 2, 3};
+static const u16 Viseme_Out2All[] = { 0, 1, 2, 3};
+
+static u32 Viseme_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 4;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err Viseme_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = Viseme_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = Viseme_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = Viseme_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err Viseme_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "viseme_select1";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_Viseme *) node)->viseme_select1;
+		return GF_OK;
+	case 1:
+		info->name = "viseme_select2";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_Viseme *) node)->viseme_select2;
+		return GF_OK;
+	case 2:
+		info->name = "viseme_blend";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_Viseme *) node)->viseme_blend;
+		return GF_OK;
+	case 3:
+		info->name = "viseme_def";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_Viseme *) node)->viseme_def;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 Viseme_get_field_index_by_name(char *name)
+{
+	if (!strcmp("viseme_select1", name)) return 0;
+	if (!strcmp("viseme_select2", name)) return 1;
+	if (!strcmp("viseme_blend", name)) return 2;
+	if (!strcmp("viseme_def", name)) return 3;
+	return -1;
+	}
+static Bool Viseme_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(31);
+		return 1;
+	case 1:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(31);
+		return 1;
+	case 2:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 6;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(63);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *Viseme_Create()
+{
+	M_Viseme *p;
+	GF_SAFEALLOC(p, M_Viseme);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_Viseme);
+
+	/*default field values*/
+	p->viseme_select1 = 0;
+	p->viseme_select2 = 0;
+	p->viseme_blend = 0;
+	return (GF_Node *)p;
+}
+
+
+/*
 	WorldInfo Node deletion
 */
 
@@ -14062,6 +16171,4697 @@ GF_Node *ApplicationWindow_Create()
 	p->stopTime = 0;
 	p->size.x = FLT2FIX(0);
 	p->size.y = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	BAP Node deletion
+*/
+
+static void BAP_Del(GF_Node *node)
+{
+	M_BAP *p = (M_BAP *) node;
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 BAP_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295};
+static const u16 BAP_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295};
+static const u16 BAP_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285, 286, 287, 288, 289, 290, 291, 292, 293, 294, 295};
+
+static u32 BAP_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 296;
+	case GF_SG_FIELD_CODING_DEF: return 296;
+	case GF_SG_FIELD_CODING_OUT: return 296;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 296;
+	}
+}
+
+static GF_Err BAP_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = BAP_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = BAP_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = BAP_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err BAP_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "sacroiliac_tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->sacroiliac_tilt;
+		return GF_OK;
+	case 1:
+		info->name = "sacroiliac_torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->sacroiliac_torsion;
+		return GF_OK;
+	case 2:
+		info->name = "sacroiliac_roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->sacroiliac_roll;
+		return GF_OK;
+	case 3:
+		info->name = "l_hip_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_hip_flexion;
+		return GF_OK;
+	case 4:
+		info->name = "r_hip_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_hip_flexion;
+		return GF_OK;
+	case 5:
+		info->name = "l_hip_abduct";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_hip_abduct;
+		return GF_OK;
+	case 6:
+		info->name = "r_hip_abduct";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_hip_abduct;
+		return GF_OK;
+	case 7:
+		info->name = "l_hip_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_hip_twisting;
+		return GF_OK;
+	case 8:
+		info->name = "r_hip_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_hip_twisting;
+		return GF_OK;
+	case 9:
+		info->name = "l_knee_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_knee_flexion;
+		return GF_OK;
+	case 10:
+		info->name = "r_knee_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_knee_flexion;
+		return GF_OK;
+	case 11:
+		info->name = "l_knee_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_knee_twisting;
+		return GF_OK;
+	case 12:
+		info->name = "r_knee_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_knee_twisting;
+		return GF_OK;
+	case 13:
+		info->name = "l_ankle_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_ankle_flexion;
+		return GF_OK;
+	case 14:
+		info->name = "r_ankle_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_ankle_flexion;
+		return GF_OK;
+	case 15:
+		info->name = "l_ankle_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_ankle_twisting;
+		return GF_OK;
+	case 16:
+		info->name = "r_ankle_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_ankle_twisting;
+		return GF_OK;
+	case 17:
+		info->name = "l_subtalar_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_subtalar_flexion;
+		return GF_OK;
+	case 18:
+		info->name = "r_subtalar_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_subtalar_flexion;
+		return GF_OK;
+	case 19:
+		info->name = "l_midtarsal_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_midtarsal_flexion;
+		return GF_OK;
+	case 20:
+		info->name = "r_midtarsal_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_midtarsal_flexion;
+		return GF_OK;
+	case 21:
+		info->name = "l_metatarsal_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_metatarsal_flexion;
+		return GF_OK;
+	case 22:
+		info->name = "r_metatarsal_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_metatarsal_flexion;
+		return GF_OK;
+	case 23:
+		info->name = "l_sternoclavicular_abduct";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_sternoclavicular_abduct;
+		return GF_OK;
+	case 24:
+		info->name = "r_sternoclavicular_abduct";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_sternoclavicular_abduct;
+		return GF_OK;
+	case 25:
+		info->name = "l_sternoclavicular_rotate";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_sternoclavicular_rotate;
+		return GF_OK;
+	case 26:
+		info->name = "r_sternoclavicular_rotate";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_sternoclavicular_rotate;
+		return GF_OK;
+	case 27:
+		info->name = "l_acromioclavicular_abduct";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_acromioclavicular_abduct;
+		return GF_OK;
+	case 28:
+		info->name = "r_acromioclavicular_abduct";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_acromioclavicular_abduct;
+		return GF_OK;
+	case 29:
+		info->name = "l_acromioclavicular_rotate";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_acromioclavicular_rotate;
+		return GF_OK;
+	case 30:
+		info->name = "r_acromioclavicular_rotate";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_acromioclavicular_rotate;
+		return GF_OK;
+	case 31:
+		info->name = "l_shoulder_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_shoulder_flexion;
+		return GF_OK;
+	case 32:
+		info->name = "r_shoulder_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_shoulder_flexion;
+		return GF_OK;
+	case 33:
+		info->name = "l_shoulder_abduct";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_shoulder_abduct;
+		return GF_OK;
+	case 34:
+		info->name = "r_shoulder_abduct";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_shoulder_abduct;
+		return GF_OK;
+	case 35:
+		info->name = "l_shoulder_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_shoulder_twisting;
+		return GF_OK;
+	case 36:
+		info->name = "r_shoulder_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_shoulder_twisting;
+		return GF_OK;
+	case 37:
+		info->name = "l_elbow_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_elbow_flexion;
+		return GF_OK;
+	case 38:
+		info->name = "r_elbow_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_elbow_flexion;
+		return GF_OK;
+	case 39:
+		info->name = "l_elbow_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_elbow_twisting;
+		return GF_OK;
+	case 40:
+		info->name = "r_elbow_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_elbow_twisting;
+		return GF_OK;
+	case 41:
+		info->name = "l_wrist_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_wrist_flexion;
+		return GF_OK;
+	case 42:
+		info->name = "r_wrist_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_wrist_flexion;
+		return GF_OK;
+	case 43:
+		info->name = "l_wrist_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_wrist_pivot;
+		return GF_OK;
+	case 44:
+		info->name = "r_wrist_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_wrist_pivot;
+		return GF_OK;
+	case 45:
+		info->name = "l_wrist_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_wrist_twisting;
+		return GF_OK;
+	case 46:
+		info->name = "r_wrist_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_wrist_twisting;
+		return GF_OK;
+	case 47:
+		info->name = "skullbase_roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->skullbase_roll;
+		return GF_OK;
+	case 48:
+		info->name = "skullbase_torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->skullbase_torsion;
+		return GF_OK;
+	case 49:
+		info->name = "skullbase_tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->skullbase_tilt;
+		return GF_OK;
+	case 50:
+		info->name = "vc1roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc1roll;
+		return GF_OK;
+	case 51:
+		info->name = "vc1torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc1torsion;
+		return GF_OK;
+	case 52:
+		info->name = "vc1tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc1tilt;
+		return GF_OK;
+	case 53:
+		info->name = "vc2roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc2roll;
+		return GF_OK;
+	case 54:
+		info->name = "vc2torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc2torsion;
+		return GF_OK;
+	case 55:
+		info->name = "vc2tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc2tilt;
+		return GF_OK;
+	case 56:
+		info->name = "vc3roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc3roll;
+		return GF_OK;
+	case 57:
+		info->name = "vc3torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc3torsion;
+		return GF_OK;
+	case 58:
+		info->name = "vc3tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc3tilt;
+		return GF_OK;
+	case 59:
+		info->name = "vc4roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc4roll;
+		return GF_OK;
+	case 60:
+		info->name = "vc4torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc4torsion;
+		return GF_OK;
+	case 61:
+		info->name = "vc4tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc4tilt;
+		return GF_OK;
+	case 62:
+		info->name = "vc5roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc5roll;
+		return GF_OK;
+	case 63:
+		info->name = "vc5torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc5torsion;
+		return GF_OK;
+	case 64:
+		info->name = "vc5tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc5tilt;
+		return GF_OK;
+	case 65:
+		info->name = "vc6roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc6roll;
+		return GF_OK;
+	case 66:
+		info->name = "vc6torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc6torsion;
+		return GF_OK;
+	case 67:
+		info->name = "vc6tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc6tilt;
+		return GF_OK;
+	case 68:
+		info->name = "vc7roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc7roll;
+		return GF_OK;
+	case 69:
+		info->name = "vc7torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc7torsion;
+		return GF_OK;
+	case 70:
+		info->name = "vc7tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vc7tilt;
+		return GF_OK;
+	case 71:
+		info->name = "vt1roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt1roll;
+		return GF_OK;
+	case 72:
+		info->name = "vt1torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt1torsion;
+		return GF_OK;
+	case 73:
+		info->name = "vt1tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt1tilt;
+		return GF_OK;
+	case 74:
+		info->name = "vt2roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt2roll;
+		return GF_OK;
+	case 75:
+		info->name = "vt2torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt2torsion;
+		return GF_OK;
+	case 76:
+		info->name = "vt2tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt2tilt;
+		return GF_OK;
+	case 77:
+		info->name = "vt3roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt3roll;
+		return GF_OK;
+	case 78:
+		info->name = "vt3torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt3torsion;
+		return GF_OK;
+	case 79:
+		info->name = "vt3tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt3tilt;
+		return GF_OK;
+	case 80:
+		info->name = "vt4roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt4roll;
+		return GF_OK;
+	case 81:
+		info->name = "vt4torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt4torsion;
+		return GF_OK;
+	case 82:
+		info->name = "vt4tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt4tilt;
+		return GF_OK;
+	case 83:
+		info->name = "vt5roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt5roll;
+		return GF_OK;
+	case 84:
+		info->name = "vt5torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt5torsion;
+		return GF_OK;
+	case 85:
+		info->name = "vt5tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt5tilt;
+		return GF_OK;
+	case 86:
+		info->name = "vt6roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt6roll;
+		return GF_OK;
+	case 87:
+		info->name = "vt6torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt6torsion;
+		return GF_OK;
+	case 88:
+		info->name = "vt6tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt6tilt;
+		return GF_OK;
+	case 89:
+		info->name = "vt7roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt7roll;
+		return GF_OK;
+	case 90:
+		info->name = "vt7torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt7torsion;
+		return GF_OK;
+	case 91:
+		info->name = "vt7tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt7tilt;
+		return GF_OK;
+	case 92:
+		info->name = "vt8roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt8roll;
+		return GF_OK;
+	case 93:
+		info->name = "vt8torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt8torsion;
+		return GF_OK;
+	case 94:
+		info->name = "vt8tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt8tilt;
+		return GF_OK;
+	case 95:
+		info->name = "vt9roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt9roll;
+		return GF_OK;
+	case 96:
+		info->name = "vt9torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt9torsion;
+		return GF_OK;
+	case 97:
+		info->name = "vt9tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt9tilt;
+		return GF_OK;
+	case 98:
+		info->name = "vt10roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt10roll;
+		return GF_OK;
+	case 99:
+		info->name = "vt10torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt10torsion;
+		return GF_OK;
+	case 100:
+		info->name = "vt10tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt10tilt;
+		return GF_OK;
+	case 101:
+		info->name = "vt11roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt11roll;
+		return GF_OK;
+	case 102:
+		info->name = "vt11torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt11torsion;
+		return GF_OK;
+	case 103:
+		info->name = "vt11tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt11tilt;
+		return GF_OK;
+	case 104:
+		info->name = "vt12roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt12roll;
+		return GF_OK;
+	case 105:
+		info->name = "vt12torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt12torsion;
+		return GF_OK;
+	case 106:
+		info->name = "vt12tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vt12tilt;
+		return GF_OK;
+	case 107:
+		info->name = "vl1roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl1roll;
+		return GF_OK;
+	case 108:
+		info->name = "vl1torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl1torsion;
+		return GF_OK;
+	case 109:
+		info->name = "vl1tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl1tilt;
+		return GF_OK;
+	case 110:
+		info->name = "vl2roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl2roll;
+		return GF_OK;
+	case 111:
+		info->name = "vl2torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl2torsion;
+		return GF_OK;
+	case 112:
+		info->name = "vl2tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl2tilt;
+		return GF_OK;
+	case 113:
+		info->name = "vl3roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl3roll;
+		return GF_OK;
+	case 114:
+		info->name = "vl3torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl3torsion;
+		return GF_OK;
+	case 115:
+		info->name = "vl3tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl3tilt;
+		return GF_OK;
+	case 116:
+		info->name = "vl4roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl4roll;
+		return GF_OK;
+	case 117:
+		info->name = "vl4torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl4torsion;
+		return GF_OK;
+	case 118:
+		info->name = "vl4tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl4tilt;
+		return GF_OK;
+	case 119:
+		info->name = "vl5roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl5roll;
+		return GF_OK;
+	case 120:
+		info->name = "vl5torsion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl5torsion;
+		return GF_OK;
+	case 121:
+		info->name = "vl5tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->vl5tilt;
+		return GF_OK;
+	case 122:
+		info->name = "l_pinky0_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_pinky0_flexion;
+		return GF_OK;
+	case 123:
+		info->name = "r_pinky0_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_pinky0_flexion;
+		return GF_OK;
+	case 124:
+		info->name = "l_pinky1_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_pinky1_flexion;
+		return GF_OK;
+	case 125:
+		info->name = "r_pinky1_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_pinky1_flexion;
+		return GF_OK;
+	case 126:
+		info->name = "l_pinky1_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_pinky1_pivot;
+		return GF_OK;
+	case 127:
+		info->name = "r_pinky1_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_pinky1_pivot;
+		return GF_OK;
+	case 128:
+		info->name = "l_pinky1_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_pinky1_twisting;
+		return GF_OK;
+	case 129:
+		info->name = "r_pinky1_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_pinky1_twisting;
+		return GF_OK;
+	case 130:
+		info->name = "l_pinky2_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_pinky2_flexion;
+		return GF_OK;
+	case 131:
+		info->name = "r_pinky2_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_pinky2_flexion;
+		return GF_OK;
+	case 132:
+		info->name = "l_pinky3_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_pinky3_flexion;
+		return GF_OK;
+	case 133:
+		info->name = "r_pinky3_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_pinky3_flexion;
+		return GF_OK;
+	case 134:
+		info->name = "l_ring0_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_ring0_flexion;
+		return GF_OK;
+	case 135:
+		info->name = "r_ring0_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_ring0_flexion;
+		return GF_OK;
+	case 136:
+		info->name = "l_ring1_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_ring1_flexion;
+		return GF_OK;
+	case 137:
+		info->name = "r_ring1_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_ring1_flexion;
+		return GF_OK;
+	case 138:
+		info->name = "l_ring1_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_ring1_pivot;
+		return GF_OK;
+	case 139:
+		info->name = "r_ring1_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_ring1_pivot;
+		return GF_OK;
+	case 140:
+		info->name = "l_ring1_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_ring1_twisting;
+		return GF_OK;
+	case 141:
+		info->name = "r_ring1_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_ring1_twisting;
+		return GF_OK;
+	case 142:
+		info->name = "l_ring2_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_ring2_flexion;
+		return GF_OK;
+	case 143:
+		info->name = "r_ring2_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_ring2_flexion;
+		return GF_OK;
+	case 144:
+		info->name = "l_ring3_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_ring3_flexion;
+		return GF_OK;
+	case 145:
+		info->name = "r_ring3_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_ring3_flexion;
+		return GF_OK;
+	case 146:
+		info->name = "l_middle0_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_middle0_flexion;
+		return GF_OK;
+	case 147:
+		info->name = "r_middle0_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_middle0_flexion;
+		return GF_OK;
+	case 148:
+		info->name = "l_middle1_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_middle1_flexion;
+		return GF_OK;
+	case 149:
+		info->name = "r_middle1_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_middle1_flexion;
+		return GF_OK;
+	case 150:
+		info->name = "l_middle1_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_middle1_pivot;
+		return GF_OK;
+	case 151:
+		info->name = "r_middle1_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_middle1_pivot;
+		return GF_OK;
+	case 152:
+		info->name = "l_middle1_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_middle1_twisting;
+		return GF_OK;
+	case 153:
+		info->name = "r_middle1_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_middle1_twisting;
+		return GF_OK;
+	case 154:
+		info->name = "l_middle2_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_middle2_flexion;
+		return GF_OK;
+	case 155:
+		info->name = "r_middle2_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_middle2_flexion;
+		return GF_OK;
+	case 156:
+		info->name = "l_middle3_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_middle3_flexion;
+		return GF_OK;
+	case 157:
+		info->name = "r_middle3_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_middle3_flexion;
+		return GF_OK;
+	case 158:
+		info->name = "l_index0_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_index0_flexion;
+		return GF_OK;
+	case 159:
+		info->name = "r_index0_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_index0_flexion;
+		return GF_OK;
+	case 160:
+		info->name = "l_index1_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_index1_flexion;
+		return GF_OK;
+	case 161:
+		info->name = "r_index1_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_index1_flexion;
+		return GF_OK;
+	case 162:
+		info->name = "l_index1_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_index1_pivot;
+		return GF_OK;
+	case 163:
+		info->name = "r_index1_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_index1_pivot;
+		return GF_OK;
+	case 164:
+		info->name = "l_index1_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_index1_twisting;
+		return GF_OK;
+	case 165:
+		info->name = "r_index1_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_index1_twisting;
+		return GF_OK;
+	case 166:
+		info->name = "l_index2_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_index2_flexion;
+		return GF_OK;
+	case 167:
+		info->name = "r_index2_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_index2_flexion;
+		return GF_OK;
+	case 168:
+		info->name = "l_index3_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_index3_flexion;
+		return GF_OK;
+	case 169:
+		info->name = "r_index3_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_index3_flexion;
+		return GF_OK;
+	case 170:
+		info->name = "l_thumb1_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_thumb1_flexion;
+		return GF_OK;
+	case 171:
+		info->name = "r_thumb1_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_thumb1_flexion;
+		return GF_OK;
+	case 172:
+		info->name = "l_thumb1_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_thumb1_pivot;
+		return GF_OK;
+	case 173:
+		info->name = "r_thumb1_pivot";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_thumb1_pivot;
+		return GF_OK;
+	case 174:
+		info->name = "l_thumb1_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_thumb1_twisting;
+		return GF_OK;
+	case 175:
+		info->name = "r_thumb1_twisting";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_thumb1_twisting;
+		return GF_OK;
+	case 176:
+		info->name = "l_thumb2_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_thumb2_flexion;
+		return GF_OK;
+	case 177:
+		info->name = "r_thumb2_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_thumb2_flexion;
+		return GF_OK;
+	case 178:
+		info->name = "l_thumb3_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->l_thumb3_flexion;
+		return GF_OK;
+	case 179:
+		info->name = "r_thumb3_flexion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->r_thumb3_flexion;
+		return GF_OK;
+	case 180:
+		info->name = "HumanoidRoot_tr_vertical";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->HumanoidRoot_tr_vertical;
+		return GF_OK;
+	case 181:
+		info->name = "HumanoidRoot_tr_lateral";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->HumanoidRoot_tr_lateral;
+		return GF_OK;
+	case 182:
+		info->name = "HumanoidRoot_tr_frontal";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->HumanoidRoot_tr_frontal;
+		return GF_OK;
+	case 183:
+		info->name = "HumanoidRoot_rt_body_turn";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->HumanoidRoot_rt_body_turn;
+		return GF_OK;
+	case 184:
+		info->name = "HumanoidRoot_rt_body_roll";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->HumanoidRoot_rt_body_roll;
+		return GF_OK;
+	case 185:
+		info->name = "HumanoidRoot_rt_body_tilt";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->HumanoidRoot_rt_body_tilt;
+		return GF_OK;
+	case 186:
+		info->name = "extensionBap187";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap187;
+		return GF_OK;
+	case 187:
+		info->name = "extensionBap188";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap188;
+		return GF_OK;
+	case 188:
+		info->name = "extensionBap189";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap189;
+		return GF_OK;
+	case 189:
+		info->name = "extensionBap190";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap190;
+		return GF_OK;
+	case 190:
+		info->name = "extensionBap191";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap191;
+		return GF_OK;
+	case 191:
+		info->name = "extensionBap192";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap192;
+		return GF_OK;
+	case 192:
+		info->name = "extensionBap193";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap193;
+		return GF_OK;
+	case 193:
+		info->name = "extensionBap194";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap194;
+		return GF_OK;
+	case 194:
+		info->name = "extensionBap195";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap195;
+		return GF_OK;
+	case 195:
+		info->name = "extensionBap196";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap196;
+		return GF_OK;
+	case 196:
+		info->name = "extensionBap197";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap197;
+		return GF_OK;
+	case 197:
+		info->name = "extensionBap198";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap198;
+		return GF_OK;
+	case 198:
+		info->name = "extensionBap199";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap199;
+		return GF_OK;
+	case 199:
+		info->name = "extensionBap200";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap200;
+		return GF_OK;
+	case 200:
+		info->name = "extensionBap201";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap201;
+		return GF_OK;
+	case 201:
+		info->name = "extensionBap202";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap202;
+		return GF_OK;
+	case 202:
+		info->name = "extensionBap203";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap203;
+		return GF_OK;
+	case 203:
+		info->name = "extensionBap204";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap204;
+		return GF_OK;
+	case 204:
+		info->name = "extensionBap205";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap205;
+		return GF_OK;
+	case 205:
+		info->name = "extensionBap206";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap206;
+		return GF_OK;
+	case 206:
+		info->name = "extensionBap207";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap207;
+		return GF_OK;
+	case 207:
+		info->name = "extensionBap208";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap208;
+		return GF_OK;
+	case 208:
+		info->name = "extensionBap209";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap209;
+		return GF_OK;
+	case 209:
+		info->name = "extensionBap210";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap210;
+		return GF_OK;
+	case 210:
+		info->name = "extensionBap211";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap211;
+		return GF_OK;
+	case 211:
+		info->name = "extensionBap212";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap212;
+		return GF_OK;
+	case 212:
+		info->name = "extensionBap213";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap213;
+		return GF_OK;
+	case 213:
+		info->name = "extensionBap214";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap214;
+		return GF_OK;
+	case 214:
+		info->name = "extensionBap215";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap215;
+		return GF_OK;
+	case 215:
+		info->name = "extensionBap216";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap216;
+		return GF_OK;
+	case 216:
+		info->name = "extensionBap217";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap217;
+		return GF_OK;
+	case 217:
+		info->name = "extensionBap218";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap218;
+		return GF_OK;
+	case 218:
+		info->name = "extensionBap219";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap219;
+		return GF_OK;
+	case 219:
+		info->name = "extensionBap220";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap220;
+		return GF_OK;
+	case 220:
+		info->name = "extensionBap221";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap221;
+		return GF_OK;
+	case 221:
+		info->name = "extensionBap222";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap222;
+		return GF_OK;
+	case 222:
+		info->name = "extensionBap223";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap223;
+		return GF_OK;
+	case 223:
+		info->name = "extensionBap224";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap224;
+		return GF_OK;
+	case 224:
+		info->name = "extensionBap225";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap225;
+		return GF_OK;
+	case 225:
+		info->name = "extensionBap226";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap226;
+		return GF_OK;
+	case 226:
+		info->name = "extensionBap227";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap227;
+		return GF_OK;
+	case 227:
+		info->name = "extensionBap228";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap228;
+		return GF_OK;
+	case 228:
+		info->name = "extensionBap229";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap229;
+		return GF_OK;
+	case 229:
+		info->name = "extensionBap230";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap230;
+		return GF_OK;
+	case 230:
+		info->name = "extensionBap231";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap231;
+		return GF_OK;
+	case 231:
+		info->name = "extensionBap232";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap232;
+		return GF_OK;
+	case 232:
+		info->name = "extensionBap233";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap233;
+		return GF_OK;
+	case 233:
+		info->name = "extensionBap234";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap234;
+		return GF_OK;
+	case 234:
+		info->name = "extensionBap235";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap235;
+		return GF_OK;
+	case 235:
+		info->name = "extensionBap236";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap236;
+		return GF_OK;
+	case 236:
+		info->name = "extensionBap237";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap237;
+		return GF_OK;
+	case 237:
+		info->name = "extensionBap238";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap238;
+		return GF_OK;
+	case 238:
+		info->name = "extensionBap239";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap239;
+		return GF_OK;
+	case 239:
+		info->name = "extensionBap240";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap240;
+		return GF_OK;
+	case 240:
+		info->name = "extensionBap241";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap241;
+		return GF_OK;
+	case 241:
+		info->name = "extensionBap242";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap242;
+		return GF_OK;
+	case 242:
+		info->name = "extensionBap243";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap243;
+		return GF_OK;
+	case 243:
+		info->name = "extensionBap244";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap244;
+		return GF_OK;
+	case 244:
+		info->name = "extensionBap245";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap245;
+		return GF_OK;
+	case 245:
+		info->name = "extensionBap246";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap246;
+		return GF_OK;
+	case 246:
+		info->name = "extensionBap247";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap247;
+		return GF_OK;
+	case 247:
+		info->name = "extensionBap248";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap248;
+		return GF_OK;
+	case 248:
+		info->name = "extensionBap249";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap249;
+		return GF_OK;
+	case 249:
+		info->name = "extensionBap250";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap250;
+		return GF_OK;
+	case 250:
+		info->name = "extensionBap251";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap251;
+		return GF_OK;
+	case 251:
+		info->name = "extensionBap252";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap252;
+		return GF_OK;
+	case 252:
+		info->name = "extensionBap253";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap253;
+		return GF_OK;
+	case 253:
+		info->name = "extensionBap254";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap254;
+		return GF_OK;
+	case 254:
+		info->name = "extensionBap255";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap255;
+		return GF_OK;
+	case 255:
+		info->name = "extensionBap256";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap256;
+		return GF_OK;
+	case 256:
+		info->name = "extensionBap257";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap257;
+		return GF_OK;
+	case 257:
+		info->name = "extensionBap258";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap258;
+		return GF_OK;
+	case 258:
+		info->name = "extensionBap259";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap259;
+		return GF_OK;
+	case 259:
+		info->name = "extensionBap260";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap260;
+		return GF_OK;
+	case 260:
+		info->name = "extensionBap261";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap261;
+		return GF_OK;
+	case 261:
+		info->name = "extensionBap262";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap262;
+		return GF_OK;
+	case 262:
+		info->name = "extensionBap263";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap263;
+		return GF_OK;
+	case 263:
+		info->name = "extensionBap264";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap264;
+		return GF_OK;
+	case 264:
+		info->name = "extensionBap265";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap265;
+		return GF_OK;
+	case 265:
+		info->name = "extensionBap266";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap266;
+		return GF_OK;
+	case 266:
+		info->name = "extensionBap267";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap267;
+		return GF_OK;
+	case 267:
+		info->name = "extensionBap268";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap268;
+		return GF_OK;
+	case 268:
+		info->name = "extensionBap269";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap269;
+		return GF_OK;
+	case 269:
+		info->name = "extensionBap270";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap270;
+		return GF_OK;
+	case 270:
+		info->name = "extensionBap271";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap271;
+		return GF_OK;
+	case 271:
+		info->name = "extensionBap272";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap272;
+		return GF_OK;
+	case 272:
+		info->name = "extensionBap273";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap273;
+		return GF_OK;
+	case 273:
+		info->name = "extensionBap274";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap274;
+		return GF_OK;
+	case 274:
+		info->name = "extensionBap275";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap275;
+		return GF_OK;
+	case 275:
+		info->name = "extensionBap276";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap276;
+		return GF_OK;
+	case 276:
+		info->name = "extensionBap277";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap277;
+		return GF_OK;
+	case 277:
+		info->name = "extensionBap278";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap278;
+		return GF_OK;
+	case 278:
+		info->name = "extensionBap279";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap279;
+		return GF_OK;
+	case 279:
+		info->name = "extensionBap280";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap280;
+		return GF_OK;
+	case 280:
+		info->name = "extensionBap281";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap281;
+		return GF_OK;
+	case 281:
+		info->name = "extensionBap282";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap282;
+		return GF_OK;
+	case 282:
+		info->name = "extensionBap283";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap283;
+		return GF_OK;
+	case 283:
+		info->name = "extensionBap284";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap284;
+		return GF_OK;
+	case 284:
+		info->name = "extensionBap285";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap285;
+		return GF_OK;
+	case 285:
+		info->name = "extensionBap286";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap286;
+		return GF_OK;
+	case 286:
+		info->name = "extensionBap287";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap287;
+		return GF_OK;
+	case 287:
+		info->name = "extensionBap288";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap288;
+		return GF_OK;
+	case 288:
+		info->name = "extensionBap289";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap289;
+		return GF_OK;
+	case 289:
+		info->name = "extensionBap290";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap290;
+		return GF_OK;
+	case 290:
+		info->name = "extensionBap291";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap291;
+		return GF_OK;
+	case 291:
+		info->name = "extensionBap292";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap292;
+		return GF_OK;
+	case 292:
+		info->name = "extensionBap293";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap293;
+		return GF_OK;
+	case 293:
+		info->name = "extensionBap294";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap294;
+		return GF_OK;
+	case 294:
+		info->name = "extensionBap295";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap295;
+		return GF_OK;
+	case 295:
+		info->name = "extensionBap296";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BAP *) node)->extensionBap296;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 BAP_get_field_index_by_name(char *name)
+{
+	if (!strcmp("sacroiliac_tilt", name)) return 0;
+	if (!strcmp("sacroiliac_torsion", name)) return 1;
+	if (!strcmp("sacroiliac_roll", name)) return 2;
+	if (!strcmp("l_hip_flexion", name)) return 3;
+	if (!strcmp("r_hip_flexion", name)) return 4;
+	if (!strcmp("l_hip_abduct", name)) return 5;
+	if (!strcmp("r_hip_abduct", name)) return 6;
+	if (!strcmp("l_hip_twisting", name)) return 7;
+	if (!strcmp("r_hip_twisting", name)) return 8;
+	if (!strcmp("l_knee_flexion", name)) return 9;
+	if (!strcmp("r_knee_flexion", name)) return 10;
+	if (!strcmp("l_knee_twisting", name)) return 11;
+	if (!strcmp("r_knee_twisting", name)) return 12;
+	if (!strcmp("l_ankle_flexion", name)) return 13;
+	if (!strcmp("r_ankle_flexion", name)) return 14;
+	if (!strcmp("l_ankle_twisting", name)) return 15;
+	if (!strcmp("r_ankle_twisting", name)) return 16;
+	if (!strcmp("l_subtalar_flexion", name)) return 17;
+	if (!strcmp("r_subtalar_flexion", name)) return 18;
+	if (!strcmp("l_midtarsal_flexion", name)) return 19;
+	if (!strcmp("r_midtarsal_flexion", name)) return 20;
+	if (!strcmp("l_metatarsal_flexion", name)) return 21;
+	if (!strcmp("r_metatarsal_flexion", name)) return 22;
+	if (!strcmp("l_sternoclavicular_abduct", name)) return 23;
+	if (!strcmp("r_sternoclavicular_abduct", name)) return 24;
+	if (!strcmp("l_sternoclavicular_rotate", name)) return 25;
+	if (!strcmp("r_sternoclavicular_rotate", name)) return 26;
+	if (!strcmp("l_acromioclavicular_abduct", name)) return 27;
+	if (!strcmp("r_acromioclavicular_abduct", name)) return 28;
+	if (!strcmp("l_acromioclavicular_rotate", name)) return 29;
+	if (!strcmp("r_acromioclavicular_rotate", name)) return 30;
+	if (!strcmp("l_shoulder_flexion", name)) return 31;
+	if (!strcmp("r_shoulder_flexion", name)) return 32;
+	if (!strcmp("l_shoulder_abduct", name)) return 33;
+	if (!strcmp("r_shoulder_abduct", name)) return 34;
+	if (!strcmp("l_shoulder_twisting", name)) return 35;
+	if (!strcmp("r_shoulder_twisting", name)) return 36;
+	if (!strcmp("l_elbow_flexion", name)) return 37;
+	if (!strcmp("r_elbow_flexion", name)) return 38;
+	if (!strcmp("l_elbow_twisting", name)) return 39;
+	if (!strcmp("r_elbow_twisting", name)) return 40;
+	if (!strcmp("l_wrist_flexion", name)) return 41;
+	if (!strcmp("r_wrist_flexion", name)) return 42;
+	if (!strcmp("l_wrist_pivot", name)) return 43;
+	if (!strcmp("r_wrist_pivot", name)) return 44;
+	if (!strcmp("l_wrist_twisting", name)) return 45;
+	if (!strcmp("r_wrist_twisting", name)) return 46;
+	if (!strcmp("skullbase_roll", name)) return 47;
+	if (!strcmp("skullbase_torsion", name)) return 48;
+	if (!strcmp("skullbase_tilt", name)) return 49;
+	if (!strcmp("vc1roll", name)) return 50;
+	if (!strcmp("vc1torsion", name)) return 51;
+	if (!strcmp("vc1tilt", name)) return 52;
+	if (!strcmp("vc2roll", name)) return 53;
+	if (!strcmp("vc2torsion", name)) return 54;
+	if (!strcmp("vc2tilt", name)) return 55;
+	if (!strcmp("vc3roll", name)) return 56;
+	if (!strcmp("vc3torsion", name)) return 57;
+	if (!strcmp("vc3tilt", name)) return 58;
+	if (!strcmp("vc4roll", name)) return 59;
+	if (!strcmp("vc4torsion", name)) return 60;
+	if (!strcmp("vc4tilt", name)) return 61;
+	if (!strcmp("vc5roll", name)) return 62;
+	if (!strcmp("vc5torsion", name)) return 63;
+	if (!strcmp("vc5tilt", name)) return 64;
+	if (!strcmp("vc6roll", name)) return 65;
+	if (!strcmp("vc6torsion", name)) return 66;
+	if (!strcmp("vc6tilt", name)) return 67;
+	if (!strcmp("vc7roll", name)) return 68;
+	if (!strcmp("vc7torsion", name)) return 69;
+	if (!strcmp("vc7tilt", name)) return 70;
+	if (!strcmp("vt1roll", name)) return 71;
+	if (!strcmp("vt1torsion", name)) return 72;
+	if (!strcmp("vt1tilt", name)) return 73;
+	if (!strcmp("vt2roll", name)) return 74;
+	if (!strcmp("vt2torsion", name)) return 75;
+	if (!strcmp("vt2tilt", name)) return 76;
+	if (!strcmp("vt3roll", name)) return 77;
+	if (!strcmp("vt3torsion", name)) return 78;
+	if (!strcmp("vt3tilt", name)) return 79;
+	if (!strcmp("vt4roll", name)) return 80;
+	if (!strcmp("vt4torsion", name)) return 81;
+	if (!strcmp("vt4tilt", name)) return 82;
+	if (!strcmp("vt5roll", name)) return 83;
+	if (!strcmp("vt5torsion", name)) return 84;
+	if (!strcmp("vt5tilt", name)) return 85;
+	if (!strcmp("vt6roll", name)) return 86;
+	if (!strcmp("vt6torsion", name)) return 87;
+	if (!strcmp("vt6tilt", name)) return 88;
+	if (!strcmp("vt7roll", name)) return 89;
+	if (!strcmp("vt7torsion", name)) return 90;
+	if (!strcmp("vt7tilt", name)) return 91;
+	if (!strcmp("vt8roll", name)) return 92;
+	if (!strcmp("vt8torsion", name)) return 93;
+	if (!strcmp("vt8tilt", name)) return 94;
+	if (!strcmp("vt9roll", name)) return 95;
+	if (!strcmp("vt9torsion", name)) return 96;
+	if (!strcmp("vt9tilt", name)) return 97;
+	if (!strcmp("vt10roll", name)) return 98;
+	if (!strcmp("vt10torsion", name)) return 99;
+	if (!strcmp("vt10tilt", name)) return 100;
+	if (!strcmp("vt11roll", name)) return 101;
+	if (!strcmp("vt11torsion", name)) return 102;
+	if (!strcmp("vt11tilt", name)) return 103;
+	if (!strcmp("vt12roll", name)) return 104;
+	if (!strcmp("vt12torsion", name)) return 105;
+	if (!strcmp("vt12tilt", name)) return 106;
+	if (!strcmp("vl1roll", name)) return 107;
+	if (!strcmp("vl1torsion", name)) return 108;
+	if (!strcmp("vl1tilt", name)) return 109;
+	if (!strcmp("vl2roll", name)) return 110;
+	if (!strcmp("vl2torsion", name)) return 111;
+	if (!strcmp("vl2tilt", name)) return 112;
+	if (!strcmp("vl3roll", name)) return 113;
+	if (!strcmp("vl3torsion", name)) return 114;
+	if (!strcmp("vl3tilt", name)) return 115;
+	if (!strcmp("vl4roll", name)) return 116;
+	if (!strcmp("vl4torsion", name)) return 117;
+	if (!strcmp("vl4tilt", name)) return 118;
+	if (!strcmp("vl5roll", name)) return 119;
+	if (!strcmp("vl5torsion", name)) return 120;
+	if (!strcmp("vl5tilt", name)) return 121;
+	if (!strcmp("l_pinky0_flexion", name)) return 122;
+	if (!strcmp("r_pinky0_flexion", name)) return 123;
+	if (!strcmp("l_pinky1_flexion", name)) return 124;
+	if (!strcmp("r_pinky1_flexion", name)) return 125;
+	if (!strcmp("l_pinky1_pivot", name)) return 126;
+	if (!strcmp("r_pinky1_pivot", name)) return 127;
+	if (!strcmp("l_pinky1_twisting", name)) return 128;
+	if (!strcmp("r_pinky1_twisting", name)) return 129;
+	if (!strcmp("l_pinky2_flexion", name)) return 130;
+	if (!strcmp("r_pinky2_flexion", name)) return 131;
+	if (!strcmp("l_pinky3_flexion", name)) return 132;
+	if (!strcmp("r_pinky3_flexion", name)) return 133;
+	if (!strcmp("l_ring0_flexion", name)) return 134;
+	if (!strcmp("r_ring0_flexion", name)) return 135;
+	if (!strcmp("l_ring1_flexion", name)) return 136;
+	if (!strcmp("r_ring1_flexion", name)) return 137;
+	if (!strcmp("l_ring1_pivot", name)) return 138;
+	if (!strcmp("r_ring1_pivot", name)) return 139;
+	if (!strcmp("l_ring1_twisting", name)) return 140;
+	if (!strcmp("r_ring1_twisting", name)) return 141;
+	if (!strcmp("l_ring2_flexion", name)) return 142;
+	if (!strcmp("r_ring2_flexion", name)) return 143;
+	if (!strcmp("l_ring3_flexion", name)) return 144;
+	if (!strcmp("r_ring3_flexion", name)) return 145;
+	if (!strcmp("l_middle0_flexion", name)) return 146;
+	if (!strcmp("r_middle0_flexion", name)) return 147;
+	if (!strcmp("l_middle1_flexion", name)) return 148;
+	if (!strcmp("r_middle1_flexion", name)) return 149;
+	if (!strcmp("l_middle1_pivot", name)) return 150;
+	if (!strcmp("r_middle1_pivot", name)) return 151;
+	if (!strcmp("l_middle1_twisting", name)) return 152;
+	if (!strcmp("r_middle1_twisting", name)) return 153;
+	if (!strcmp("l_middle2_flexion", name)) return 154;
+	if (!strcmp("r_middle2_flexion", name)) return 155;
+	if (!strcmp("l_middle3_flexion", name)) return 156;
+	if (!strcmp("r_middle3_flexion", name)) return 157;
+	if (!strcmp("l_index0_flexion", name)) return 158;
+	if (!strcmp("r_index0_flexion", name)) return 159;
+	if (!strcmp("l_index1_flexion", name)) return 160;
+	if (!strcmp("r_index1_flexion", name)) return 161;
+	if (!strcmp("l_index1_pivot", name)) return 162;
+	if (!strcmp("r_index1_pivot", name)) return 163;
+	if (!strcmp("l_index1_twisting", name)) return 164;
+	if (!strcmp("r_index1_twisting", name)) return 165;
+	if (!strcmp("l_index2_flexion", name)) return 166;
+	if (!strcmp("r_index2_flexion", name)) return 167;
+	if (!strcmp("l_index3_flexion", name)) return 168;
+	if (!strcmp("r_index3_flexion", name)) return 169;
+	if (!strcmp("l_thumb1_flexion", name)) return 170;
+	if (!strcmp("r_thumb1_flexion", name)) return 171;
+	if (!strcmp("l_thumb1_pivot", name)) return 172;
+	if (!strcmp("r_thumb1_pivot", name)) return 173;
+	if (!strcmp("l_thumb1_twisting", name)) return 174;
+	if (!strcmp("r_thumb1_twisting", name)) return 175;
+	if (!strcmp("l_thumb2_flexion", name)) return 176;
+	if (!strcmp("r_thumb2_flexion", name)) return 177;
+	if (!strcmp("l_thumb3_flexion", name)) return 178;
+	if (!strcmp("r_thumb3_flexion", name)) return 179;
+	if (!strcmp("HumanoidRoot_tr_vertical", name)) return 180;
+	if (!strcmp("HumanoidRoot_tr_lateral", name)) return 181;
+	if (!strcmp("HumanoidRoot_tr_frontal", name)) return 182;
+	if (!strcmp("HumanoidRoot_rt_body_turn", name)) return 183;
+	if (!strcmp("HumanoidRoot_rt_body_roll", name)) return 184;
+	if (!strcmp("HumanoidRoot_rt_body_tilt", name)) return 185;
+	if (!strcmp("extensionBap187", name)) return 186;
+	if (!strcmp("extensionBap188", name)) return 187;
+	if (!strcmp("extensionBap189", name)) return 188;
+	if (!strcmp("extensionBap190", name)) return 189;
+	if (!strcmp("extensionBap191", name)) return 190;
+	if (!strcmp("extensionBap192", name)) return 191;
+	if (!strcmp("extensionBap193", name)) return 192;
+	if (!strcmp("extensionBap194", name)) return 193;
+	if (!strcmp("extensionBap195", name)) return 194;
+	if (!strcmp("extensionBap196", name)) return 195;
+	if (!strcmp("extensionBap197", name)) return 196;
+	if (!strcmp("extensionBap198", name)) return 197;
+	if (!strcmp("extensionBap199", name)) return 198;
+	if (!strcmp("extensionBap200", name)) return 199;
+	if (!strcmp("extensionBap201", name)) return 200;
+	if (!strcmp("extensionBap202", name)) return 201;
+	if (!strcmp("extensionBap203", name)) return 202;
+	if (!strcmp("extensionBap204", name)) return 203;
+	if (!strcmp("extensionBap205", name)) return 204;
+	if (!strcmp("extensionBap206", name)) return 205;
+	if (!strcmp("extensionBap207", name)) return 206;
+	if (!strcmp("extensionBap208", name)) return 207;
+	if (!strcmp("extensionBap209", name)) return 208;
+	if (!strcmp("extensionBap210", name)) return 209;
+	if (!strcmp("extensionBap211", name)) return 210;
+	if (!strcmp("extensionBap212", name)) return 211;
+	if (!strcmp("extensionBap213", name)) return 212;
+	if (!strcmp("extensionBap214", name)) return 213;
+	if (!strcmp("extensionBap215", name)) return 214;
+	if (!strcmp("extensionBap216", name)) return 215;
+	if (!strcmp("extensionBap217", name)) return 216;
+	if (!strcmp("extensionBap218", name)) return 217;
+	if (!strcmp("extensionBap219", name)) return 218;
+	if (!strcmp("extensionBap220", name)) return 219;
+	if (!strcmp("extensionBap221", name)) return 220;
+	if (!strcmp("extensionBap222", name)) return 221;
+	if (!strcmp("extensionBap223", name)) return 222;
+	if (!strcmp("extensionBap224", name)) return 223;
+	if (!strcmp("extensionBap225", name)) return 224;
+	if (!strcmp("extensionBap226", name)) return 225;
+	if (!strcmp("extensionBap227", name)) return 226;
+	if (!strcmp("extensionBap228", name)) return 227;
+	if (!strcmp("extensionBap229", name)) return 228;
+	if (!strcmp("extensionBap230", name)) return 229;
+	if (!strcmp("extensionBap231", name)) return 230;
+	if (!strcmp("extensionBap232", name)) return 231;
+	if (!strcmp("extensionBap233", name)) return 232;
+	if (!strcmp("extensionBap234", name)) return 233;
+	if (!strcmp("extensionBap235", name)) return 234;
+	if (!strcmp("extensionBap236", name)) return 235;
+	if (!strcmp("extensionBap237", name)) return 236;
+	if (!strcmp("extensionBap238", name)) return 237;
+	if (!strcmp("extensionBap239", name)) return 238;
+	if (!strcmp("extensionBap240", name)) return 239;
+	if (!strcmp("extensionBap241", name)) return 240;
+	if (!strcmp("extensionBap242", name)) return 241;
+	if (!strcmp("extensionBap243", name)) return 242;
+	if (!strcmp("extensionBap244", name)) return 243;
+	if (!strcmp("extensionBap245", name)) return 244;
+	if (!strcmp("extensionBap246", name)) return 245;
+	if (!strcmp("extensionBap247", name)) return 246;
+	if (!strcmp("extensionBap248", name)) return 247;
+	if (!strcmp("extensionBap249", name)) return 248;
+	if (!strcmp("extensionBap250", name)) return 249;
+	if (!strcmp("extensionBap251", name)) return 250;
+	if (!strcmp("extensionBap252", name)) return 251;
+	if (!strcmp("extensionBap253", name)) return 252;
+	if (!strcmp("extensionBap254", name)) return 253;
+	if (!strcmp("extensionBap255", name)) return 254;
+	if (!strcmp("extensionBap256", name)) return 255;
+	if (!strcmp("extensionBap257", name)) return 256;
+	if (!strcmp("extensionBap258", name)) return 257;
+	if (!strcmp("extensionBap259", name)) return 258;
+	if (!strcmp("extensionBap260", name)) return 259;
+	if (!strcmp("extensionBap261", name)) return 260;
+	if (!strcmp("extensionBap262", name)) return 261;
+	if (!strcmp("extensionBap263", name)) return 262;
+	if (!strcmp("extensionBap264", name)) return 263;
+	if (!strcmp("extensionBap265", name)) return 264;
+	if (!strcmp("extensionBap266", name)) return 265;
+	if (!strcmp("extensionBap267", name)) return 266;
+	if (!strcmp("extensionBap268", name)) return 267;
+	if (!strcmp("extensionBap269", name)) return 268;
+	if (!strcmp("extensionBap270", name)) return 269;
+	if (!strcmp("extensionBap271", name)) return 270;
+	if (!strcmp("extensionBap272", name)) return 271;
+	if (!strcmp("extensionBap273", name)) return 272;
+	if (!strcmp("extensionBap274", name)) return 273;
+	if (!strcmp("extensionBap275", name)) return 274;
+	if (!strcmp("extensionBap276", name)) return 275;
+	if (!strcmp("extensionBap277", name)) return 276;
+	if (!strcmp("extensionBap278", name)) return 277;
+	if (!strcmp("extensionBap279", name)) return 278;
+	if (!strcmp("extensionBap280", name)) return 279;
+	if (!strcmp("extensionBap281", name)) return 280;
+	if (!strcmp("extensionBap282", name)) return 281;
+	if (!strcmp("extensionBap283", name)) return 282;
+	if (!strcmp("extensionBap284", name)) return 283;
+	if (!strcmp("extensionBap285", name)) return 284;
+	if (!strcmp("extensionBap286", name)) return 285;
+	if (!strcmp("extensionBap287", name)) return 286;
+	if (!strcmp("extensionBap288", name)) return 287;
+	if (!strcmp("extensionBap289", name)) return 288;
+	if (!strcmp("extensionBap290", name)) return 289;
+	if (!strcmp("extensionBap291", name)) return 290;
+	if (!strcmp("extensionBap292", name)) return 291;
+	if (!strcmp("extensionBap293", name)) return 292;
+	if (!strcmp("extensionBap294", name)) return 293;
+	if (!strcmp("extensionBap295", name)) return 294;
+	if (!strcmp("extensionBap296", name)) return 295;
+	return -1;
+	}
+static Bool BAP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 1:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 2:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 4:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 5:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 6:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 7:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 8:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 9:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 10:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 11:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 12:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 13:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 14:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 15:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 16:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 17:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 18:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 19:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 20:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 21:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 22:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 23:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 24:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 25:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 26:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 27:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 28:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 29:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 30:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 31:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 32:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 33:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 34:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 35:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 36:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 37:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 38:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 39:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 40:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 41:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 42:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 43:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 44:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 45:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 46:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 47:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 48:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 49:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 50:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 51:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 52:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 53:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 54:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 55:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 56:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 57:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 58:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 59:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 60:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 61:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 62:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 63:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 64:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 65:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 66:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 67:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 68:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 69:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 70:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 71:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 72:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 73:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 74:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 75:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 76:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 77:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 78:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 79:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 80:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 81:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 82:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 83:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 84:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 85:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 86:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 87:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 88:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 89:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 90:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 91:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 92:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 93:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 94:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 95:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 96:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 97:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 98:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 99:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 100:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 101:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 102:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 103:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 104:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 105:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 106:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 107:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 108:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 109:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 110:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 111:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 112:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 113:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 114:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 115:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 116:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 117:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 118:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 119:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 120:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 121:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 122:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 123:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 124:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 125:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 126:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 127:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 128:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 129:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 130:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 131:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 132:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 133:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 134:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 135:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 136:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 137:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 138:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 139:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 140:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 141:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 142:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 143:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 144:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 145:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 146:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 147:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 148:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 149:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 150:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 151:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 152:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 153:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 154:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 155:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 156:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 157:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 158:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 159:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 160:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 161:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 162:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 163:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 164:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 165:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 166:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 167:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 168:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 169:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 170:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 171:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 172:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 173:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 174:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 175:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 176:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 177:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 178:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 179:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 180:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 181:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 182:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 183:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 184:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 185:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 186:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 187:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 188:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 189:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 190:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 191:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 192:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 193:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 194:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 195:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 196:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 197:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 198:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 199:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 200:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 201:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 202:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 203:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 204:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 205:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 206:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 207:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 208:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 209:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 210:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 211:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 212:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 213:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 214:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 215:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 216:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 217:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 218:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 219:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 220:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 221:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 222:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 223:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 224:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 225:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 226:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 227:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 228:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 229:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 230:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 231:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 232:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 233:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 234:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 235:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 236:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 237:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 238:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 239:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 240:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 241:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 242:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 243:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 244:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 245:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 246:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 247:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 248:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 249:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 250:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 251:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 252:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 253:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 254:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 255:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 256:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 257:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 258:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 259:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 260:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 261:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 262:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 263:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 264:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 265:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 266:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 267:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 268:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 269:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 270:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 271:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 272:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 273:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 274:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 275:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 276:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 277:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 278:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 279:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 280:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 281:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 282:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 283:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 284:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 285:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 286:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 287:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 288:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 289:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 290:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 291:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 292:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 293:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 294:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 295:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *BAP_Create()
+{
+	M_BAP *p;
+	GF_SAFEALLOC(p, M_BAP);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_BAP);
+
+	/*default field values*/
+	p->sacroiliac_tilt = 2 << 31;
+	p->sacroiliac_torsion = 2 << 31;
+	p->sacroiliac_roll = 2 << 31;
+	p->l_hip_flexion = 2 << 31;
+	p->r_hip_flexion = 2 << 31;
+	p->l_hip_abduct = 2 << 31;
+	p->r_hip_abduct = 2 << 31;
+	p->l_hip_twisting = 2 << 31;
+	p->r_hip_twisting = 2 << 31;
+	p->l_knee_flexion = 2 << 31;
+	p->r_knee_flexion = 2 << 31;
+	p->l_knee_twisting = 2 << 31;
+	p->r_knee_twisting = 2 << 31;
+	p->l_ankle_flexion = 2 << 31;
+	p->r_ankle_flexion = 2 << 31;
+	p->l_ankle_twisting = 2 << 31;
+	p->r_ankle_twisting = 2 << 31;
+	p->l_subtalar_flexion = 2 << 31;
+	p->r_subtalar_flexion = 2 << 31;
+	p->l_midtarsal_flexion = 2 << 31;
+	p->r_midtarsal_flexion = 2 << 31;
+	p->l_metatarsal_flexion = 2 << 31;
+	p->r_metatarsal_flexion = 2 << 31;
+	p->l_sternoclavicular_abduct = 2 << 31;
+	p->r_sternoclavicular_abduct = 2 << 31;
+	p->l_sternoclavicular_rotate = 2 << 31;
+	p->r_sternoclavicular_rotate = 2 << 31;
+	p->l_acromioclavicular_abduct = 2 << 31;
+	p->r_acromioclavicular_abduct = 2 << 31;
+	p->l_acromioclavicular_rotate = 2 << 31;
+	p->r_acromioclavicular_rotate = 2 << 31;
+	p->l_shoulder_flexion = 2 << 31;
+	p->r_shoulder_flexion = 2 << 31;
+	p->l_shoulder_abduct = 2 << 31;
+	p->r_shoulder_abduct = 2 << 31;
+	p->l_shoulder_twisting = 2 << 31;
+	p->r_shoulder_twisting = 2 << 31;
+	p->l_elbow_flexion = 2 << 31;
+	p->r_elbow_flexion = 2 << 31;
+	p->l_elbow_twisting = 2 << 31;
+	p->r_elbow_twisting = 2 << 31;
+	p->l_wrist_flexion = 2 << 31;
+	p->r_wrist_flexion = 2 << 31;
+	p->l_wrist_pivot = 2 << 31;
+	p->r_wrist_pivot = 2 << 31;
+	p->l_wrist_twisting = 2 << 31;
+	p->r_wrist_twisting = 2 << 31;
+	p->skullbase_roll = 2 << 31;
+	p->skullbase_torsion = 2 << 31;
+	p->skullbase_tilt = 2 << 31;
+	p->vc1roll = 2 << 31;
+	p->vc1torsion = 2 << 31;
+	p->vc1tilt = 2 << 31;
+	p->vc2roll = 2 << 31;
+	p->vc2torsion = 2 << 31;
+	p->vc2tilt = 2 << 31;
+	p->vc3roll = 2 << 31;
+	p->vc3torsion = 2 << 31;
+	p->vc3tilt = 2 << 31;
+	p->vc4roll = 2 << 31;
+	p->vc4torsion = 2 << 31;
+	p->vc4tilt = 2 << 31;
+	p->vc5roll = 2 << 31;
+	p->vc5torsion = 2 << 31;
+	p->vc5tilt = 2 << 31;
+	p->vc6roll = 2 << 31;
+	p->vc6torsion = 2 << 31;
+	p->vc6tilt = 2 << 31;
+	p->vc7roll = 2 << 31;
+	p->vc7torsion = 2 << 31;
+	p->vc7tilt = 2 << 31;
+	p->vt1roll = 2 << 31;
+	p->vt1torsion = 2 << 31;
+	p->vt1tilt = 2 << 31;
+	p->vt2roll = 2 << 31;
+	p->vt2torsion = 2 << 31;
+	p->vt2tilt = 2 << 31;
+	p->vt3roll = 2 << 31;
+	p->vt3torsion = 2 << 31;
+	p->vt3tilt = 2 << 31;
+	p->vt4roll = 2 << 31;
+	p->vt4torsion = 2 << 31;
+	p->vt4tilt = 2 << 31;
+	p->vt5roll = 2 << 31;
+	p->vt5torsion = 2 << 31;
+	p->vt5tilt = 2 << 31;
+	p->vt6roll = 2 << 31;
+	p->vt6torsion = 2 << 31;
+	p->vt6tilt = 2 << 31;
+	p->vt7roll = 2 << 31;
+	p->vt7torsion = 2 << 31;
+	p->vt7tilt = 2 << 31;
+	p->vt8roll = 2 << 31;
+	p->vt8torsion = 2 << 31;
+	p->vt8tilt = 2 << 31;
+	p->vt9roll = 2 << 31;
+	p->vt9torsion = 2 << 31;
+	p->vt9tilt = 2 << 31;
+	p->vt10roll = 2 << 31;
+	p->vt10torsion = 2 << 31;
+	p->vt10tilt = 2 << 31;
+	p->vt11roll = 2 << 31;
+	p->vt11torsion = 2 << 31;
+	p->vt11tilt = 2 << 31;
+	p->vt12roll = 2 << 31;
+	p->vt12torsion = 2 << 31;
+	p->vt12tilt = 2 << 31;
+	p->vl1roll = 2 << 31;
+	p->vl1torsion = 2 << 31;
+	p->vl1tilt = 2 << 31;
+	p->vl2roll = 2 << 31;
+	p->vl2torsion = 2 << 31;
+	p->vl2tilt = 2 << 31;
+	p->vl3roll = 2 << 31;
+	p->vl3torsion = 2 << 31;
+	p->vl3tilt = 2 << 31;
+	p->vl4roll = 2 << 31;
+	p->vl4torsion = 2 << 31;
+	p->vl4tilt = 2 << 31;
+	p->vl5roll = 2 << 31;
+	p->vl5torsion = 2 << 31;
+	p->vl5tilt = 2 << 31;
+	p->l_pinky0_flexion = 2 << 31;
+	p->r_pinky0_flexion = 2 << 31;
+	p->l_pinky1_flexion = 2 << 31;
+	p->r_pinky1_flexion = 2 << 31;
+	p->l_pinky1_pivot = 2 << 31;
+	p->r_pinky1_pivot = 2 << 31;
+	p->l_pinky1_twisting = 2 << 31;
+	p->r_pinky1_twisting = 2 << 31;
+	p->l_pinky2_flexion = 2 << 31;
+	p->r_pinky2_flexion = 2 << 31;
+	p->l_pinky3_flexion = 2 << 31;
+	p->r_pinky3_flexion = 2 << 31;
+	p->l_ring0_flexion = 2 << 31;
+	p->r_ring0_flexion = 2 << 31;
+	p->l_ring1_flexion = 2 << 31;
+	p->r_ring1_flexion = 2 << 31;
+	p->l_ring1_pivot = 2 << 31;
+	p->r_ring1_pivot = 2 << 31;
+	p->l_ring1_twisting = 2 << 31;
+	p->r_ring1_twisting = 2 << 31;
+	p->l_ring2_flexion = 2 << 31;
+	p->r_ring2_flexion = 2 << 31;
+	p->l_ring3_flexion = 2 << 31;
+	p->r_ring3_flexion = 2 << 31;
+	p->l_middle0_flexion = 2 << 31;
+	p->r_middle0_flexion = 2 << 31;
+	p->l_middle1_flexion = 2 << 31;
+	p->r_middle1_flexion = 2 << 31;
+	p->l_middle1_pivot = 2 << 31;
+	p->r_middle1_pivot = 2 << 31;
+	p->l_middle1_twisting = 2 << 31;
+	p->r_middle1_twisting = 2 << 31;
+	p->l_middle2_flexion = 2 << 31;
+	p->r_middle2_flexion = 2 << 31;
+	p->l_middle3_flexion = 2 << 31;
+	p->r_middle3_flexion = 2 << 31;
+	p->l_index0_flexion = 2 << 31;
+	p->r_index0_flexion = 2 << 31;
+	p->l_index1_flexion = 2 << 31;
+	p->r_index1_flexion = 2 << 31;
+	p->l_index1_pivot = 2 << 31;
+	p->r_index1_pivot = 2 << 31;
+	p->l_index1_twisting = 2 << 31;
+	p->r_index1_twisting = 2 << 31;
+	p->l_index2_flexion = 2 << 31;
+	p->r_index2_flexion = 2 << 31;
+	p->l_index3_flexion = 2 << 31;
+	p->r_index3_flexion = 2 << 31;
+	p->l_thumb1_flexion = 2 << 31;
+	p->r_thumb1_flexion = 2 << 31;
+	p->l_thumb1_pivot = 2 << 31;
+	p->r_thumb1_pivot = 2 << 31;
+	p->l_thumb1_twisting = 2 << 31;
+	p->r_thumb1_twisting = 2 << 31;
+	p->l_thumb2_flexion = 2 << 31;
+	p->r_thumb2_flexion = 2 << 31;
+	p->l_thumb3_flexion = 2 << 31;
+	p->r_thumb3_flexion = 2 << 31;
+	p->HumanoidRoot_tr_vertical = 2 << 31;
+	p->HumanoidRoot_tr_lateral = 2 << 31;
+	p->HumanoidRoot_tr_frontal = 2 << 31;
+	p->HumanoidRoot_rt_body_turn = 2 << 31;
+	p->HumanoidRoot_rt_body_roll = 2 << 31;
+	p->HumanoidRoot_rt_body_tilt = 2 << 31;
+	p->extensionBap187 = 2 << 31;
+	p->extensionBap188 = 2 << 31;
+	p->extensionBap189 = 2 << 31;
+	p->extensionBap190 = 2 << 31;
+	p->extensionBap191 = 2 << 31;
+	p->extensionBap192 = 2 << 31;
+	p->extensionBap193 = 2 << 31;
+	p->extensionBap194 = 2 << 31;
+	p->extensionBap195 = 2 << 31;
+	p->extensionBap196 = 2 << 31;
+	p->extensionBap197 = 2 << 31;
+	p->extensionBap198 = 2 << 31;
+	p->extensionBap199 = 2 << 31;
+	p->extensionBap200 = 2 << 31;
+	p->extensionBap201 = 2 << 31;
+	p->extensionBap202 = 2 << 31;
+	p->extensionBap203 = 2 << 31;
+	p->extensionBap204 = 2 << 31;
+	p->extensionBap205 = 2 << 31;
+	p->extensionBap206 = 2 << 31;
+	p->extensionBap207 = 2 << 31;
+	p->extensionBap208 = 2 << 31;
+	p->extensionBap209 = 2 << 31;
+	p->extensionBap210 = 2 << 31;
+	p->extensionBap211 = 2 << 31;
+	p->extensionBap212 = 2 << 31;
+	p->extensionBap213 = 2 << 31;
+	p->extensionBap214 = 2 << 31;
+	p->extensionBap215 = 2 << 31;
+	p->extensionBap216 = 2 << 31;
+	p->extensionBap217 = 2 << 31;
+	p->extensionBap218 = 2 << 31;
+	p->extensionBap219 = 2 << 31;
+	p->extensionBap220 = 2 << 31;
+	p->extensionBap221 = 2 << 31;
+	p->extensionBap222 = 2 << 31;
+	p->extensionBap223 = 2 << 31;
+	p->extensionBap224 = 2 << 31;
+	p->extensionBap225 = 2 << 31;
+	p->extensionBap226 = 2 << 31;
+	p->extensionBap227 = 2 << 31;
+	p->extensionBap228 = 2 << 31;
+	p->extensionBap229 = 2 << 31;
+	p->extensionBap230 = 2 << 31;
+	p->extensionBap231 = 2 << 31;
+	p->extensionBap232 = 2 << 31;
+	p->extensionBap233 = 2 << 31;
+	p->extensionBap234 = 2 << 31;
+	p->extensionBap235 = 2 << 31;
+	p->extensionBap236 = 2 << 31;
+	p->extensionBap237 = 2 << 31;
+	p->extensionBap238 = 2 << 31;
+	p->extensionBap239 = 2 << 31;
+	p->extensionBap240 = 2 << 31;
+	p->extensionBap241 = 2 << 31;
+	p->extensionBap242 = 2 << 31;
+	p->extensionBap243 = 2 << 31;
+	p->extensionBap244 = 2 << 31;
+	p->extensionBap245 = 2 << 31;
+	p->extensionBap246 = 2 << 31;
+	p->extensionBap247 = 2 << 31;
+	p->extensionBap248 = 2 << 31;
+	p->extensionBap249 = 2 << 31;
+	p->extensionBap250 = 2 << 31;
+	p->extensionBap251 = 2 << 31;
+	p->extensionBap252 = 2 << 31;
+	p->extensionBap253 = 2 << 31;
+	p->extensionBap254 = 2 << 31;
+	p->extensionBap255 = 2 << 31;
+	p->extensionBap256 = 2 << 31;
+	p->extensionBap257 = 2 << 31;
+	p->extensionBap258 = 2 << 31;
+	p->extensionBap259 = 2 << 31;
+	p->extensionBap260 = 2 << 31;
+	p->extensionBap261 = 2 << 31;
+	p->extensionBap262 = 2 << 31;
+	p->extensionBap263 = 2 << 31;
+	p->extensionBap264 = 2 << 31;
+	p->extensionBap265 = 2 << 31;
+	p->extensionBap266 = 2 << 31;
+	p->extensionBap267 = 2 << 31;
+	p->extensionBap268 = 2 << 31;
+	p->extensionBap269 = 2 << 31;
+	p->extensionBap270 = 2 << 31;
+	p->extensionBap271 = 2 << 31;
+	p->extensionBap272 = 2 << 31;
+	p->extensionBap273 = 2 << 31;
+	p->extensionBap274 = 2 << 31;
+	p->extensionBap275 = 2 << 31;
+	p->extensionBap276 = 2 << 31;
+	p->extensionBap277 = 2 << 31;
+	p->extensionBap278 = 2 << 31;
+	p->extensionBap279 = 2 << 31;
+	p->extensionBap280 = 2 << 31;
+	p->extensionBap281 = 2 << 31;
+	p->extensionBap282 = 2 << 31;
+	p->extensionBap283 = 2 << 31;
+	p->extensionBap284 = 2 << 31;
+	p->extensionBap285 = 2 << 31;
+	p->extensionBap286 = 2 << 31;
+	p->extensionBap287 = 2 << 31;
+	p->extensionBap288 = 2 << 31;
+	p->extensionBap289 = 2 << 31;
+	p->extensionBap290 = 2 << 31;
+	p->extensionBap291 = 2 << 31;
+	p->extensionBap292 = 2 << 31;
+	p->extensionBap293 = 2 << 31;
+	p->extensionBap294 = 2 << 31;
+	p->extensionBap295 = 2 << 31;
+	p->extensionBap296 = 2 << 31;
+	return (GF_Node *)p;
+}
+
+
+/*
+	BDP Node deletion
+*/
+
+static void BDP_Del(GF_Node *node)
+{
+	M_BDP *p = (M_BDP *) node;
+	gf_node_unregister_children((GF_Node *) p, p->bodyDefTables);	
+	gf_node_unregister_children((GF_Node *) p, p->bodySceneGraph);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 BDP_Def2All[] = { 0, 1};
+static const u16 BDP_In2All[] = { 0, 1};
+static const u16 BDP_Out2All[] = { 0, 1};
+
+static u32 BDP_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 2;
+	case GF_SG_FIELD_CODING_DEF: return 2;
+	case GF_SG_FIELD_CODING_OUT: return 2;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 2;
+	}
+}
+
+static GF_Err BDP_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = BDP_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = BDP_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = BDP_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err BDP_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "bodyDefTables";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFBodyDefTableNode;
+		info->far_ptr = & ((M_BDP *)node)->bodyDefTables;
+		return GF_OK;
+	case 1:
+		info->name = "bodySceneGraph";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_BDP *)node)->bodySceneGraph;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 BDP_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bodyDefTables", name)) return 0;
+	if (!strcmp("bodySceneGraph", name)) return 1;
+	return -1;
+	}
+static Bool BDP_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *BDP_Create()
+{
+	M_BDP *p;
+	GF_SAFEALLOC(p, M_BDP);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_BDP);
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	Body Node deletion
+*/
+
+static void Body_Del(GF_Node *node)
+{
+	M_Body *p = (M_Body *) node;
+	gf_node_unregister((GF_Node *) p->bdp, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->bap, (GF_Node *) p);	
+	gf_node_unregister_children((GF_Node *) p, p->renderedBody);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 Body_Def2All[] = { 0, 1, 2};
+static const u16 Body_In2All[] = { 0, 1, 2};
+static const u16 Body_Out2All[] = { 0, 1, 2};
+
+static u32 Body_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 3;
+	case GF_SG_FIELD_CODING_DEF: return 3;
+	case GF_SG_FIELD_CODING_OUT: return 3;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 3;
+	}
+}
+
+static GF_Err Body_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = Body_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = Body_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = Body_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err Body_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "bdp";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFBDPNode;
+		info->far_ptr = & ((M_Body *)node)->bdp;
+		return GF_OK;
+	case 1:
+		info->name = "bap";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFBAPNode;
+		info->far_ptr = & ((M_Body *)node)->bap;
+		return GF_OK;
+	case 2:
+		info->name = "renderedBody";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_Body *)node)->renderedBody;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 Body_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bdp", name)) return 0;
+	if (!strcmp("bap", name)) return 1;
+	if (!strcmp("renderedBody", name)) return 2;
+	return -1;
+	}
+static Bool Body_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *Body_Create()
+{
+	M_Body *p;
+	GF_SAFEALLOC(p, M_Body);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_Body);
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	BodyDefTable Node deletion
+*/
+
+static void BodyDefTable_Del(GF_Node *node)
+{
+	M_BodyDefTable *p = (M_BodyDefTable *) node;
+	gf_sg_sfstring_del(p->bodySceneGraphNodeName);
+	gf_sg_mfint32_del(p->bapIDs);
+	gf_sg_mfint32_del(p->vertexIds);
+	gf_sg_mfint32_del(p->bapCombinations);
+	gf_sg_mfvec3f_del(p->displacements);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 BodyDefTable_Def2All[] = { 0, 1, 2, 3, 4, 5};
+static const u16 BodyDefTable_In2All[] = { 0, 1, 2, 3, 4, 5};
+static const u16 BodyDefTable_Out2All[] = { 0, 1, 2, 3, 4, 5};
+
+static u32 BodyDefTable_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 6;
+	case GF_SG_FIELD_CODING_DEF: return 6;
+	case GF_SG_FIELD_CODING_OUT: return 6;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 6;
+	}
+}
+
+static GF_Err BodyDefTable_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = BodyDefTable_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = BodyDefTable_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = BodyDefTable_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err BodyDefTable_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "bodySceneGraphNodeName";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((M_BodyDefTable *) node)->bodySceneGraphNodeName;
+		return GF_OK;
+	case 1:
+		info->name = "bapIDs";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_BodyDefTable *) node)->bapIDs;
+		return GF_OK;
+	case 2:
+		info->name = "vertexIds";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_BodyDefTable *) node)->vertexIds;
+		return GF_OK;
+	case 3:
+		info->name = "bapCombinations";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_BodyDefTable *) node)->bapCombinations;
+		return GF_OK;
+	case 4:
+		info->name = "displacements";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC3F;
+		info->far_ptr = & ((M_BodyDefTable *) node)->displacements;
+		return GF_OK;
+	case 5:
+		info->name = "numInterpolateKeys";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BodyDefTable *) node)->numInterpolateKeys;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 BodyDefTable_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bodySceneGraphNodeName", name)) return 0;
+	if (!strcmp("bapIDs", name)) return 1;
+	if (!strcmp("vertexIds", name)) return 2;
+	if (!strcmp("bapCombinations", name)) return 3;
+	if (!strcmp("displacements", name)) return 4;
+	if (!strcmp("numInterpolateKeys", name)) return 5;
+	return -1;
+	}
+static Bool BodyDefTable_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 1:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 9;
+		*b_min = FLT2FIX(1);
+		*b_max = FLT2FIX(296);
+		return 1;
+	case 2:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 5:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FLT2FIX(2);
+		*b_max = FIX_MAX;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *BodyDefTable_Create()
+{
+	M_BodyDefTable *p;
+	GF_SAFEALLOC(p, M_BodyDefTable);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_BodyDefTable);
+
+	/*default field values*/
+	p->numInterpolateKeys = 2;
+	return (GF_Node *)p;
+}
+
+
+/*
+	BodySegmentConnectionHint Node deletion
+*/
+
+static void BodySegmentConnectionHint_Del(GF_Node *node)
+{
+	M_BodySegmentConnectionHint *p = (M_BodySegmentConnectionHint *) node;
+	gf_sg_sfstring_del(p->firstSegmentNodeName);
+	gf_sg_sfstring_del(p->secondSegmentNodeName);
+	gf_sg_mfint32_del(p->firstVertexIdList);
+	gf_sg_mfint32_del(p->secondVertexIdList);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 BodySegmentConnectionHint_Def2All[] = { 0, 1, 2, 3};
+static const u16 BodySegmentConnectionHint_In2All[] = { 0, 1, 2, 3};
+static const u16 BodySegmentConnectionHint_Out2All[] = { 0, 1, 2, 3};
+
+static u32 BodySegmentConnectionHint_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 4;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err BodySegmentConnectionHint_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = BodySegmentConnectionHint_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = BodySegmentConnectionHint_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = BodySegmentConnectionHint_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err BodySegmentConnectionHint_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "firstSegmentNodeName";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((M_BodySegmentConnectionHint *) node)->firstSegmentNodeName;
+		return GF_OK;
+	case 1:
+		info->name = "secondSegmentNodeName";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((M_BodySegmentConnectionHint *) node)->secondSegmentNodeName;
+		return GF_OK;
+	case 2:
+		info->name = "firstVertexIdList";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_BodySegmentConnectionHint *) node)->firstVertexIdList;
+		return GF_OK;
+	case 3:
+		info->name = "secondVertexIdList";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_BodySegmentConnectionHint *) node)->secondVertexIdList;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 BodySegmentConnectionHint_get_field_index_by_name(char *name)
+{
+	if (!strcmp("firstSegmentNodeName", name)) return 0;
+	if (!strcmp("secondSegmentNodeName", name)) return 1;
+	if (!strcmp("firstVertexIdList", name)) return 2;
+	if (!strcmp("secondVertexIdList", name)) return 3;
+	return -1;
+	}
+static Bool BodySegmentConnectionHint_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 2:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 0;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *BodySegmentConnectionHint_Create()
+{
+	M_BodySegmentConnectionHint *p;
+	GF_SAFEALLOC(p, M_BodySegmentConnectionHint);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_BodySegmentConnectionHint);
+
+	/*default field values*/
 	return (GF_Node *)p;
 }
 
@@ -16066,6 +22866,108 @@ GF_Node *MediaSensor_Create()
 
 
 /*
+	BitWrapper Node deletion
+*/
+
+static void BitWrapper_Del(GF_Node *node)
+{
+	M_BitWrapper *p = (M_BitWrapper *) node;
+	gf_node_unregister((GF_Node *) p->node, (GF_Node *) p);	
+	gf_sg_mfurl_del(p->url);
+	gf_sg_sfstring_del(p->buffer);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 BitWrapper_Def2All[] = { 0, 1, 2, 3};
+
+static u32 BitWrapper_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 0;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 0;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err BitWrapper_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = BitWrapper_Def2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err BitWrapper_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "node";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFWorldNode;
+		info->far_ptr = & ((M_BitWrapper *)node)->node;
+		return GF_OK;
+	case 1:
+		info->name = "type";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_BitWrapper *) node)->type;
+		return GF_OK;
+	case 2:
+		info->name = "url";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFURL;
+		info->far_ptr = & ((M_BitWrapper *) node)->url;
+		return GF_OK;
+	case 3:
+		info->name = "buffer";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((M_BitWrapper *) node)->buffer;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 BitWrapper_get_field_index_by_name(char *name)
+{
+	if (!strcmp("node", name)) return 0;
+	if (!strcmp("type", name)) return 1;
+	if (!strcmp("url", name)) return 2;
+	if (!strcmp("buffer", name)) return 3;
+	return -1;
+	}
+static Bool BitWrapper_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *BitWrapper_Create()
+{
+	M_BitWrapper *p;
+	GF_SAFEALLOC(p, M_BitWrapper);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_BitWrapper);
+
+	/*default field values*/
+	p->type = 0;
+	return (GF_Node *)p;
+}
+
+
+/*
 	CoordinateInterpolator4D Node deletion
 */
 
@@ -16187,6 +23089,1564 @@ GF_Node *CoordinateInterpolator4D_Create()
 
 
 /*
+	DepthImage Node deletion
+*/
+
+static void DepthImage_Del(GF_Node *node)
+{
+	M_DepthImage *p = (M_DepthImage *) node;
+	gf_node_unregister((GF_Node *) p->diTexture, (GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 DepthImage_Def2All[] = { 0, 1, 2, 3, 4, 5, 6};
+
+static u32 DepthImage_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 0;
+	case GF_SG_FIELD_CODING_DEF: return 7;
+	case GF_SG_FIELD_CODING_OUT: return 0;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 7;
+	}
+}
+
+static GF_Err DepthImage_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = DepthImage_Def2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err DepthImage_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "diTexture";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFDepthTextureNode;
+		info->far_ptr = & ((M_DepthImage *)node)->diTexture;
+		return GF_OK;
+	case 1:
+		info->name = "farPlane";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_DepthImage *) node)->farPlane;
+		return GF_OK;
+	case 2:
+		info->name = "fieldOfView";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC2F;
+		info->far_ptr = & ((M_DepthImage *) node)->fieldOfView;
+		return GF_OK;
+	case 3:
+		info->name = "nearPlane";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_DepthImage *) node)->nearPlane;
+		return GF_OK;
+	case 4:
+		info->name = "orientation";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((M_DepthImage *) node)->orientation;
+		return GF_OK;
+	case 5:
+		info->name = "orthographic";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_DepthImage *) node)->orthographic;
+		return GF_OK;
+	case 6:
+		info->name = "position";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_DepthImage *) node)->position;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 DepthImage_get_field_index_by_name(char *name)
+{
+	if (!strcmp("diTexture", name)) return 0;
+	if (!strcmp("farPlane", name)) return 1;
+	if (!strcmp("fieldOfView", name)) return 2;
+	if (!strcmp("nearPlane", name)) return 3;
+	if (!strcmp("orientation", name)) return 4;
+	if (!strcmp("orthographic", name)) return 5;
+	if (!strcmp("position", name)) return 6;
+	return -1;
+	}
+static Bool DepthImage_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *DepthImage_Create()
+{
+	M_DepthImage *p;
+	GF_SAFEALLOC(p, M_DepthImage);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_DepthImage);
+
+	/*default field values*/
+	p->farPlane = FLT2FIX(100);
+	p->fieldOfView.x = FLT2FIX(0.785398);
+	p->fieldOfView.y = FLT2FIX(0.785398);
+	p->nearPlane = FLT2FIX(10);
+	p->orientation.x = FLT2FIX(0);
+	p->orientation.y = FLT2FIX(0);
+	p->orientation.z = FLT2FIX(1);
+	p->orientation.q = FLT2FIX(0);
+	p->orthographic = 1;
+	p->position.x = FLT2FIX(0);
+	p->position.y = FLT2FIX(0);
+	p->position.z = FLT2FIX(10);
+	return (GF_Node *)p;
+}
+
+
+/*
+	FFD Node deletion
+*/
+
+static void FFD_Del(GF_Node *node)
+{
+	M_FFD *p = (M_FFD *) node;
+	gf_sg_mfvec4f_del(p->controlPoint);
+	gf_sg_mffloat_del(p->uKnot);
+	gf_sg_mffloat_del(p->vKnot);
+	gf_sg_mffloat_del(p->wKnot);
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 FFD_Def2All[] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+static const u16 FFD_In2All[] = { 0, 1, 2, 3};
+static const u16 FFD_Out2All[] = { 2, 3};
+static const u16 FFD_Dyn2All[] = { 3};
+
+static u32 FFD_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 11;
+	case GF_SG_FIELD_CODING_OUT: return 2;
+	case GF_SG_FIELD_CODING_DYN: return 1;
+	default:
+		return 13;
+	}
+}
+
+static GF_Err FFD_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = FFD_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = FFD_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = FFD_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = FFD_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err FFD_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "addChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_FFD *)node)->on_addChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_FFD *)node)->addChildren;
+		return GF_OK;
+	case 1:
+		info->name = "removeChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_FFD *)node)->on_removeChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_FFD *)node)->removeChildren;
+		return GF_OK;
+	case 2:
+		info->name = "children";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_FFD *)node)->children;
+		return GF_OK;
+	case 3:
+		info->name = "controlPoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC4F;
+		info->far_ptr = & ((M_FFD *) node)->controlPoint;
+		return GF_OK;
+	case 4:
+		info->name = "uDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FFD *) node)->uDimension;
+		return GF_OK;
+	case 5:
+		info->name = "uKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_FFD *) node)->uKnot;
+		return GF_OK;
+	case 6:
+		info->name = "uOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FFD *) node)->uOrder;
+		return GF_OK;
+	case 7:
+		info->name = "vDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FFD *) node)->vDimension;
+		return GF_OK;
+	case 8:
+		info->name = "vKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_FFD *) node)->vKnot;
+		return GF_OK;
+	case 9:
+		info->name = "vOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FFD *) node)->vOrder;
+		return GF_OK;
+	case 10:
+		info->name = "wDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FFD *) node)->wDimension;
+		return GF_OK;
+	case 11:
+		info->name = "wKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_FFD *) node)->wKnot;
+		return GF_OK;
+	case 12:
+		info->name = "wOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_FFD *) node)->wOrder;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 FFD_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("children", name)) return 2;
+	if (!strcmp("controlPoint", name)) return 3;
+	if (!strcmp("uDimension", name)) return 4;
+	if (!strcmp("uKnot", name)) return 5;
+	if (!strcmp("uOrder", name)) return 6;
+	if (!strcmp("vDimension", name)) return 7;
+	if (!strcmp("vKnot", name)) return 8;
+	if (!strcmp("vOrder", name)) return 9;
+	if (!strcmp("wDimension", name)) return 10;
+	if (!strcmp("wKnot", name)) return 11;
+	if (!strcmp("wOrder", name)) return 12;
+	return -1;
+	}
+static Bool FFD_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 3:
+		*AType = 15;
+		*QType = 15;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 4:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 8;
+		*b_min = FLT2FIX(2);
+		*b_max = FLT2FIX(257);
+		return 1;
+	case 6:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(2);
+		*b_max = FLT2FIX(33);
+		return 1;
+	case 7:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 8;
+		*b_min = FLT2FIX(2);
+		*b_max = FLT2FIX(257);
+		return 1;
+	case 9:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(2);
+		*b_max = FLT2FIX(33);
+		return 1;
+	case 10:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 8;
+		*b_min = FLT2FIX(2);
+		*b_max = FLT2FIX(257);
+		return 1;
+	case 12:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(2);
+		*b_max = FLT2FIX(33);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *FFD_Create()
+{
+	M_FFD *p;
+	GF_SAFEALLOC(p, M_FFD);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_FFD);
+	gf_sg_vrml_parent_setup((GF_Node *) p);
+
+	/*default field values*/
+	p->uDimension = 2;
+	p->uOrder = 2;
+	p->vDimension = 2;
+	p->vOrder = 2;
+	p->wDimension = 2;
+	p->wOrder = 2;
+	return (GF_Node *)p;
+}
+
+
+/*
+	Implicit Node deletion
+*/
+
+static void Implicit_Del(GF_Node *node)
+{
+	M_Implicit *p = (M_Implicit *) node;
+	gf_sg_mffloat_del(p->c);
+	gf_sg_mfint32_del(p->densities);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 Implicit_Def2All[] = { 0, 1, 2, 3, 4};
+static const u16 Implicit_In2All[] = { 0, 1, 2, 3, 4};
+static const u16 Implicit_Out2All[] = { 0, 1, 2, 3, 4};
+static const u16 Implicit_Dyn2All[] = { 0, 1};
+
+static u32 Implicit_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 5;
+	case GF_SG_FIELD_CODING_DEF: return 5;
+	case GF_SG_FIELD_CODING_OUT: return 5;
+	case GF_SG_FIELD_CODING_DYN: return 2;
+	default:
+		return 5;
+	}
+}
+
+static GF_Err Implicit_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = Implicit_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = Implicit_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = Implicit_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = Implicit_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err Implicit_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "bboxSize";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_Implicit *) node)->bboxSize;
+		return GF_OK;
+	case 1:
+		info->name = "c";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_Implicit *) node)->c;
+		return GF_OK;
+	case 2:
+		info->name = "densities";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_Implicit *) node)->densities;
+		return GF_OK;
+	case 3:
+		info->name = "dual";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_Implicit *) node)->dual;
+		return GF_OK;
+	case 4:
+		info->name = "solid";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_Implicit *) node)->solid;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 Implicit_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bboxSize", name)) return 0;
+	if (!strcmp("c", name)) return 1;
+	if (!strcmp("densities", name)) return 2;
+	if (!strcmp("dual", name)) return 3;
+	if (!strcmp("solid", name)) return 4;
+	return -1;
+	}
+static Bool Implicit_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 11;
+		*QType = 11;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	case 1:
+		*AType = 7;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *Implicit_Create()
+{
+	M_Implicit *p;
+	GF_SAFEALLOC(p, M_Implicit);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_Implicit);
+
+	/*default field values*/
+	p->bboxSize.x = FLT2FIX(2);
+	p->bboxSize.y = FLT2FIX(2);
+	p->bboxSize.z = FLT2FIX(2);
+	return (GF_Node *)p;
+}
+
+
+/*
+	XXLFM_Appearance Node deletion
+*/
+
+static void XXLFM_Appearance_Del(GF_Node *node)
+{
+	M_XXLFM_Appearance *p = (M_XXLFM_Appearance *) node;
+	gf_node_unregister((GF_Node *) p->blendList, (GF_Node *) p);	
+	gf_node_unregister_children((GF_Node *) p, p->lightMapList);	
+	gf_node_unregister_children((GF_Node *) p, p->tileList);	
+	gf_node_unregister((GF_Node *) p->vertexFrameList, (GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 XXLFM_Appearance_Def2All[] = { 0, 1, 2, 3};
+static const u16 XXLFM_Appearance_In2All[] = { 0, 1, 2, 3};
+static const u16 XXLFM_Appearance_Out2All[] = { 0, 1, 2, 3};
+
+static u32 XXLFM_Appearance_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 4;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err XXLFM_Appearance_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = XXLFM_Appearance_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = XXLFM_Appearance_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = XXLFM_Appearance_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err XXLFM_Appearance_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "blendList";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFBlendListNode;
+		info->far_ptr = & ((M_XXLFM_Appearance *)node)->blendList;
+		return GF_OK;
+	case 1:
+		info->name = "lightMapList";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFLightMapNode;
+		info->far_ptr = & ((M_XXLFM_Appearance *)node)->lightMapList;
+		return GF_OK;
+	case 2:
+		info->name = "tileList";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFTextureNode;
+		info->far_ptr = & ((M_XXLFM_Appearance *)node)->tileList;
+		return GF_OK;
+	case 3:
+		info->name = "vertexFrameList";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFFrameListNode;
+		info->far_ptr = & ((M_XXLFM_Appearance *)node)->vertexFrameList;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 XXLFM_Appearance_get_field_index_by_name(char *name)
+{
+	if (!strcmp("blendList", name)) return 0;
+	if (!strcmp("lightMapList", name)) return 1;
+	if (!strcmp("tileList", name)) return 2;
+	if (!strcmp("vertexFrameList", name)) return 3;
+	return -1;
+	}
+static Bool XXLFM_Appearance_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *XXLFM_Appearance_Create()
+{
+	M_XXLFM_Appearance *p;
+	GF_SAFEALLOC(p, M_XXLFM_Appearance);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_XXLFM_Appearance);
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	XXLFM_BlendList Node deletion
+*/
+
+static void XXLFM_BlendList_Del(GF_Node *node)
+{
+	M_XXLFM_BlendList *p = (M_XXLFM_BlendList *) node;
+	gf_sg_mfint32_del(p->blendMode);
+	gf_sg_mfint32_del(p->lightMapIndex);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 XXLFM_BlendList_Def2All[] = { 0, 1};
+static const u16 XXLFM_BlendList_In2All[] = { 0, 1};
+static const u16 XXLFM_BlendList_Out2All[] = { 0, 1};
+
+static u32 XXLFM_BlendList_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 2;
+	case GF_SG_FIELD_CODING_DEF: return 2;
+	case GF_SG_FIELD_CODING_OUT: return 2;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 2;
+	}
+}
+
+static GF_Err XXLFM_BlendList_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = XXLFM_BlendList_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = XXLFM_BlendList_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = XXLFM_BlendList_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err XXLFM_BlendList_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "blendMode";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_XXLFM_BlendList *) node)->blendMode;
+		return GF_OK;
+	case 1:
+		info->name = "lightMapIndex";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_XXLFM_BlendList *) node)->lightMapIndex;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 XXLFM_BlendList_get_field_index_by_name(char *name)
+{
+	if (!strcmp("blendMode", name)) return 0;
+	if (!strcmp("lightMapIndex", name)) return 1;
+	return -1;
+	}
+static Bool XXLFM_BlendList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 1;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(1);
+		return 1;
+	case 1:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *XXLFM_BlendList_Create()
+{
+	M_XXLFM_BlendList *p;
+	GF_SAFEALLOC(p, M_XXLFM_BlendList);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_XXLFM_BlendList);
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	XXLFM_FrameList Node deletion
+*/
+
+static void XXLFM_FrameList_Del(GF_Node *node)
+{
+	M_XXLFM_FrameList *p = (M_XXLFM_FrameList *) node;
+	gf_sg_mfint32_del(p->index);
+	gf_sg_mfvec3f_del(p->frame);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 XXLFM_FrameList_Def2All[] = { 0, 1};
+static const u16 XXLFM_FrameList_In2All[] = { 0, 1};
+static const u16 XXLFM_FrameList_Out2All[] = { 0, 1};
+
+static u32 XXLFM_FrameList_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 2;
+	case GF_SG_FIELD_CODING_DEF: return 2;
+	case GF_SG_FIELD_CODING_OUT: return 2;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 2;
+	}
+}
+
+static GF_Err XXLFM_FrameList_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = XXLFM_FrameList_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = XXLFM_FrameList_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = XXLFM_FrameList_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err XXLFM_FrameList_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "index";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_XXLFM_FrameList *) node)->index;
+		return GF_OK;
+	case 1:
+		info->name = "frame";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC3F;
+		info->far_ptr = & ((M_XXLFM_FrameList *) node)->frame;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 XXLFM_FrameList_get_field_index_by_name(char *name)
+{
+	if (!strcmp("index", name)) return 0;
+	if (!strcmp("frame", name)) return 1;
+	return -1;
+	}
+static Bool XXLFM_FrameList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	case 1:
+		*AType = 0;
+		*QType = 1;
+		*b_min = FLT2FIX(-1);
+		*b_max = FLT2FIX(1);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *XXLFM_FrameList_Create()
+{
+	M_XXLFM_FrameList *p;
+	GF_SAFEALLOC(p, M_XXLFM_FrameList);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_XXLFM_FrameList);
+
+	/*default field values*/
+	p->index.vals = (SFInt32*)malloc(sizeof(SFInt32)*1);
+	p->index.count = 1;
+	p->index.vals[0] = -1;
+	p->frame.vals = (SFVec3f *)malloc(sizeof(SFVec3f)*3);
+	p->frame.count = 3;
+	p->frame.vals[0].x = FLT2FIX(1);
+	p->frame.vals[0].y = FLT2FIX(0);
+	p->frame.vals[0].z = FLT2FIX(0);
+	p->frame.vals[1].x = FLT2FIX(0);
+	p->frame.vals[1].y = FLT2FIX(1);
+	p->frame.vals[1].z = FLT2FIX(0);
+	p->frame.vals[2].x = FLT2FIX(0);
+	p->frame.vals[2].y = FLT2FIX(0);
+	p->frame.vals[2].z = FLT2FIX(1);
+	return (GF_Node *)p;
+}
+
+
+/*
+	XXLFM_LightMap Node deletion
+*/
+
+static void XXLFM_LightMap_Del(GF_Node *node)
+{
+	M_XXLFM_LightMap *p = (M_XXLFM_LightMap *) node;
+	gf_node_unregister((GF_Node *) p->surfaceMapList, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->viewMapList, (GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 XXLFM_LightMap_Def2All[] = { 0, 1, 2, 3, 4};
+static const u16 XXLFM_LightMap_In2All[] = { 0, 1, 2, 3, 4};
+static const u16 XXLFM_LightMap_Out2All[] = { 0, 1, 2, 3, 4};
+
+static u32 XXLFM_LightMap_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 5;
+	case GF_SG_FIELD_CODING_DEF: return 5;
+	case GF_SG_FIELD_CODING_OUT: return 5;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 5;
+	}
+}
+
+static GF_Err XXLFM_LightMap_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = XXLFM_LightMap_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = XXLFM_LightMap_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = XXLFM_LightMap_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err XXLFM_LightMap_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "biasRGB";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_XXLFM_LightMap *) node)->biasRGB;
+		return GF_OK;
+	case 1:
+		info->name = "priorityLevel";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_XXLFM_LightMap *) node)->priorityLevel;
+		return GF_OK;
+	case 2:
+		info->name = "scaleRGB";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_XXLFM_LightMap *) node)->scaleRGB;
+		return GF_OK;
+	case 3:
+		info->name = "surfaceMapList";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFSurfaceMapNode;
+		info->far_ptr = & ((M_XXLFM_LightMap *)node)->surfaceMapList;
+		return GF_OK;
+	case 4:
+		info->name = "viewMapList";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFViewMapNode;
+		info->far_ptr = & ((M_XXLFM_LightMap *)node)->viewMapList;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 XXLFM_LightMap_get_field_index_by_name(char *name)
+{
+	if (!strcmp("biasRGB", name)) return 0;
+	if (!strcmp("priorityLevel", name)) return 1;
+	if (!strcmp("scaleRGB", name)) return 2;
+	if (!strcmp("surfaceMapList", name)) return 3;
+	if (!strcmp("viewMapList", name)) return 4;
+	return -1;
+	}
+static Bool XXLFM_LightMap_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 0;
+		*QType = 7;
+		*b_min = FLT2FIX(-1);
+		*b_max = FLT2FIX(1);
+		return 1;
+	case 1:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 8;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(255);
+		return 1;
+	case 2:
+		*AType = 0;
+		*QType = 7;
+		*b_min = FLT2FIX(-1);
+		*b_max = FLT2FIX(1);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *XXLFM_LightMap_Create()
+{
+	M_XXLFM_LightMap *p;
+	GF_SAFEALLOC(p, M_XXLFM_LightMap);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_XXLFM_LightMap);
+
+	/*default field values*/
+	p->biasRGB.x = FLT2FIX(0);
+	p->biasRGB.y = FLT2FIX(0);
+	p->biasRGB.z = FLT2FIX(0);
+	p->priorityLevel = 0;
+	p->scaleRGB.x = FLT2FIX(1);
+	p->scaleRGB.y = FLT2FIX(1);
+	p->scaleRGB.z = FLT2FIX(1);
+	return (GF_Node *)p;
+}
+
+
+/*
+	XXLFM_SurfaceMapList Node deletion
+*/
+
+static void XXLFM_SurfaceMapList_Del(GF_Node *node)
+{
+	M_XXLFM_SurfaceMapList *p = (M_XXLFM_SurfaceMapList *) node;
+	gf_sg_mfint32_del(p->tileIndex);
+	gf_node_unregister((GF_Node *) p->triangleCoordinate, (GF_Node *) p);	
+	gf_sg_mfint32_del(p->triangleIndex);
+	gf_sg_mfint32_del(p->viewMapIndex);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 XXLFM_SurfaceMapList_Def2All[] = { 0, 1, 2, 3};
+static const u16 XXLFM_SurfaceMapList_In2All[] = { 0, 1, 2, 3};
+static const u16 XXLFM_SurfaceMapList_Out2All[] = { 0, 1, 2, 3};
+
+static u32 XXLFM_SurfaceMapList_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 4;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err XXLFM_SurfaceMapList_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = XXLFM_SurfaceMapList_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = XXLFM_SurfaceMapList_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = XXLFM_SurfaceMapList_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err XXLFM_SurfaceMapList_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "tileIndex";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_XXLFM_SurfaceMapList *) node)->tileIndex;
+		return GF_OK;
+	case 1:
+		info->name = "triangleCoordinate";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureCoordinateNode;
+		info->far_ptr = & ((M_XXLFM_SurfaceMapList *)node)->triangleCoordinate;
+		return GF_OK;
+	case 2:
+		info->name = "triangleIndex";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_XXLFM_SurfaceMapList *) node)->triangleIndex;
+		return GF_OK;
+	case 3:
+		info->name = "viewMapIndex";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_XXLFM_SurfaceMapList *) node)->viewMapIndex;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 XXLFM_SurfaceMapList_get_field_index_by_name(char *name)
+{
+	if (!strcmp("tileIndex", name)) return 0;
+	if (!strcmp("triangleCoordinate", name)) return 1;
+	if (!strcmp("triangleIndex", name)) return 2;
+	if (!strcmp("viewMapIndex", name)) return 3;
+	return -1;
+	}
+static Bool XXLFM_SurfaceMapList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	case 2:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *XXLFM_SurfaceMapList_Create()
+{
+	M_XXLFM_SurfaceMapList *p;
+	GF_SAFEALLOC(p, M_XXLFM_SurfaceMapList);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_XXLFM_SurfaceMapList);
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	XXLFM_ViewMapList Node deletion
+*/
+
+static void XXLFM_ViewMapList_Del(GF_Node *node)
+{
+	M_XXLFM_ViewMapList *p = (M_XXLFM_ViewMapList *) node;
+	gf_node_unregister((GF_Node *) p->textureOrigin, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->textureSize, (GF_Node *) p);	
+	gf_sg_mfint32_del(p->tileIndex);
+	gf_sg_mfint32_del(p->vertexIndex);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 XXLFM_ViewMapList_Def2All[] = { 0, 1, 2, 3};
+static const u16 XXLFM_ViewMapList_In2All[] = { 0, 1, 2, 3};
+static const u16 XXLFM_ViewMapList_Out2All[] = { 0, 1, 2, 3};
+
+static u32 XXLFM_ViewMapList_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 4;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err XXLFM_ViewMapList_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = XXLFM_ViewMapList_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = XXLFM_ViewMapList_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = XXLFM_ViewMapList_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err XXLFM_ViewMapList_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "textureOrigin";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureCoordinateNode;
+		info->far_ptr = & ((M_XXLFM_ViewMapList *)node)->textureOrigin;
+		return GF_OK;
+	case 1:
+		info->name = "textureSize";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureCoordinateNode;
+		info->far_ptr = & ((M_XXLFM_ViewMapList *)node)->textureSize;
+		return GF_OK;
+	case 2:
+		info->name = "tileIndex";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_XXLFM_ViewMapList *) node)->tileIndex;
+		return GF_OK;
+	case 3:
+		info->name = "vertexIndex";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_XXLFM_ViewMapList *) node)->vertexIndex;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 XXLFM_ViewMapList_get_field_index_by_name(char *name)
+{
+	if (!strcmp("textureOrigin", name)) return 0;
+	if (!strcmp("textureSize", name)) return 1;
+	if (!strcmp("tileIndex", name)) return 2;
+	if (!strcmp("vertexIndex", name)) return 3;
+	return -1;
+	}
+static Bool XXLFM_ViewMapList_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 2:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *XXLFM_ViewMapList_Create()
+{
+	M_XXLFM_ViewMapList *p;
+	GF_SAFEALLOC(p, M_XXLFM_ViewMapList);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_XXLFM_ViewMapList);
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	MeshGrid Node deletion
+*/
+
+static void MeshGrid_Del(GF_Node *node)
+{
+	M_MeshGrid *p = (M_MeshGrid *) node;
+	gf_sg_mfint32_del(p->set_colorIndex);
+	gf_sg_mfint32_del(p->set_coordIndex);
+	gf_sg_mfint32_del(p->set_normalIndex);
+	gf_sg_mfint32_del(p->set_texCoordIndex);
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->gridCoord, (GF_Node *) p);	
+	gf_sg_mfint32_del(p->nLevels);
+	gf_node_unregister((GF_Node *) p->normal, (GF_Node *) p);	
+	gf_sg_mfint32_del(p->nSlices);
+	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);	
+	gf_sg_mffloat_del(p->vertexOffset);
+	gf_sg_mfint32_del(p->vertexLink);
+	gf_sg_mfint32_del(p->colorIndex);
+	gf_sg_mfint32_del(p->coordIndex);
+	gf_sg_mfint32_del(p->normalIndex);
+	gf_sg_mfint32_del(p->texCoordIndex);
+	gf_sg_mfint32_del(p->nVertices);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 MeshGrid_Def2All[] = { 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
+static const u16 MeshGrid_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+static const u16 MeshGrid_Out2All[] = { 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 21, 22};
+static const u16 MeshGrid_Dyn2All[] = { 6, 7, 9, 10, 12, 14};
+
+static u32 MeshGrid_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 16;
+	case GF_SG_FIELD_CODING_DEF: return 17;
+	case GF_SG_FIELD_CODING_OUT: return 14;
+	case GF_SG_FIELD_CODING_DYN: return 6;
+	default:
+		return 23;
+	}
+}
+
+static GF_Err MeshGrid_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = MeshGrid_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = MeshGrid_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = MeshGrid_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = MeshGrid_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err MeshGrid_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "set_colorIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_MeshGrid *)node)->on_set_colorIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->set_colorIndex;
+		return GF_OK;
+	case 1:
+		info->name = "set_coordIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_MeshGrid *)node)->on_set_coordIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->set_coordIndex;
+		return GF_OK;
+	case 2:
+		info->name = "set_normalIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_MeshGrid *)node)->on_set_normalIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->set_normalIndex;
+		return GF_OK;
+	case 3:
+		info->name = "set_texCoordIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_MeshGrid *)node)->on_set_texCoordIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->set_texCoordIndex;
+		return GF_OK;
+	case 4:
+		info->name = "color";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFColorNode;
+		info->far_ptr = & ((M_MeshGrid *)node)->color;
+		return GF_OK;
+	case 5:
+		info->name = "coord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((M_MeshGrid *)node)->coord;
+		return GF_OK;
+	case 6:
+		info->name = "displayLevel";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->displayLevel;
+		return GF_OK;
+	case 7:
+		info->name = "filterType";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->filterType;
+		return GF_OK;
+	case 8:
+		info->name = "gridCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((M_MeshGrid *)node)->gridCoord;
+		return GF_OK;
+	case 9:
+		info->name = "hierarchicalLevel";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->hierarchicalLevel;
+		return GF_OK;
+	case 10:
+		info->name = "nLevels";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->nLevels;
+		return GF_OK;
+	case 11:
+		info->name = "normal";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFNormalNode;
+		info->far_ptr = & ((M_MeshGrid *)node)->normal;
+		return GF_OK;
+	case 12:
+		info->name = "nSlices";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->nSlices;
+		return GF_OK;
+	case 13:
+		info->name = "texCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureCoordinateNode;
+		info->far_ptr = & ((M_MeshGrid *)node)->texCoord;
+		return GF_OK;
+	case 14:
+		info->name = "vertexOffset";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_MeshGrid *) node)->vertexOffset;
+		return GF_OK;
+	case 15:
+		info->name = "vertexLink";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->vertexLink;
+		return GF_OK;
+	case 16:
+		info->name = "colorIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->colorIndex;
+		return GF_OK;
+	case 17:
+		info->name = "coordIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->coordIndex;
+		return GF_OK;
+	case 18:
+		info->name = "normalIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->normalIndex;
+		return GF_OK;
+	case 19:
+		info->name = "solid";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_MeshGrid *) node)->solid;
+		return GF_OK;
+	case 20:
+		info->name = "texCoordIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->texCoordIndex;
+		return GF_OK;
+	case 21:
+		info->name = "isLoading";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_MeshGrid *) node)->isLoading;
+		return GF_OK;
+	case 22:
+		info->name = "nVertices";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_MeshGrid *) node)->nVertices;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 MeshGrid_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_colorIndex", name)) return 0;
+	if (!strcmp("set_coordIndex", name)) return 1;
+	if (!strcmp("set_normalIndex", name)) return 2;
+	if (!strcmp("set_texCoordIndex", name)) return 3;
+	if (!strcmp("color", name)) return 4;
+	if (!strcmp("coord", name)) return 5;
+	if (!strcmp("displayLevel", name)) return 6;
+	if (!strcmp("filterType", name)) return 7;
+	if (!strcmp("gridCoord", name)) return 8;
+	if (!strcmp("hierarchicalLevel", name)) return 9;
+	if (!strcmp("nLevels", name)) return 10;
+	if (!strcmp("normal", name)) return 11;
+	if (!strcmp("nSlices", name)) return 12;
+	if (!strcmp("texCoord", name)) return 13;
+	if (!strcmp("vertexOffset", name)) return 14;
+	if (!strcmp("vertexLink", name)) return 15;
+	if (!strcmp("colorIndex", name)) return 16;
+	if (!strcmp("coordIndex", name)) return 17;
+	if (!strcmp("normalIndex", name)) return 18;
+	if (!strcmp("solid", name)) return 19;
+	if (!strcmp("texCoordIndex", name)) return 20;
+	if (!strcmp("isLoading", name)) return 21;
+	if (!strcmp("nVertices", name)) return 22;
+	return -1;
+	}
+static Bool MeshGrid_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 6:
+		*AType = 13;
+		*QType = 13;
+		*QT13_bits = 32;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	case 7:
+		*AType = 13;
+		*QType = 13;
+		*QT13_bits = 2;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX( 1);
+		return 1;
+	case 9:
+		*AType = 13;
+		*QType = 13;
+		*QT13_bits = 32;
+		*b_min = FLT2FIX(-1);
+		*b_max = FIX_MAX;
+		return 1;
+	case 10:
+		*AType = 7;
+		*QType = 7;
+		return 1;
+	case 12:
+		*AType = 7;
+		*QType = 7;
+		return 1;
+	case 14:
+		*AType = 7;
+		*QType = 7;
+		*b_min = FLT2FIX(0.0);
+		*b_max = FLT2FIX( 2.0);
+		return 1;
+	case 15:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 2;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX( 3);
+		return 1;
+	case 16:
+		*AType = 0;
+		*QType = 14;
+		*b_min = FLT2FIX(-1);
+		*b_max = FIX_MAX;
+		return 1;
+	case 17:
+		*AType = 0;
+		*QType = 14;
+		*b_min = FLT2FIX(-1);
+		*b_max = FIX_MAX;
+		return 1;
+	case 18:
+		*AType = 0;
+		*QType = 14;
+		*b_min = FLT2FIX(-1);
+		*b_max = FIX_MAX;
+		return 1;
+	case 20:
+		*AType = 0;
+		*QType = 14;
+		*b_min = FLT2FIX(-1);
+		*b_max = FIX_MAX;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *MeshGrid_Create()
+{
+	M_MeshGrid *p;
+	GF_SAFEALLOC(p, M_MeshGrid);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_MeshGrid);
+
+	/*default field values*/
+	p->displayLevel = 0;
+	p->filterType = 0;
+	p->hierarchicalLevel = 0;
+	p->solid = 1;
+	return (GF_Node *)p;
+}
+
+
+/*
 	NonLinearDeformer Node deletion
 */
 
@@ -16302,6 +24762,1450 @@ GF_Node *NonLinearDeformer_Create()
 	p->axis.z = FLT2FIX(1);
 	p->param = FLT2FIX(0);
 	p->type = 0;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsCurve Node deletion
+*/
+
+static void NurbsCurve_Del(GF_Node *node)
+{
+	M_NurbsCurve *p = (M_NurbsCurve *) node;
+	gf_sg_mfint32_del(p->set_colorIndex);
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
+	gf_sg_mfvec4f_del(p->controlPoint);
+	gf_sg_mfint32_del(p->colorIndex);
+	gf_sg_mffloat_del(p->knot);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 NurbsCurve_Def2All[] = { 1, 2, 3, 4, 5, 6, 7};
+static const u16 NurbsCurve_In2All[] = { 0, 1, 2, 3};
+static const u16 NurbsCurve_Out2All[] = { 1, 2, 3};
+static const u16 NurbsCurve_Dyn2All[] = { 2};
+
+static u32 NurbsCurve_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 7;
+	case GF_SG_FIELD_CODING_OUT: return 3;
+	case GF_SG_FIELD_CODING_DYN: return 1;
+	default:
+		return 8;
+	}
+}
+
+static GF_Err NurbsCurve_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = NurbsCurve_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = NurbsCurve_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = NurbsCurve_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = NurbsCurve_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err NurbsCurve_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "set_colorIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_NurbsCurve *)node)->on_set_colorIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_NurbsCurve *) node)->set_colorIndex;
+		return GF_OK;
+	case 1:
+		info->name = "color";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFColorNode;
+		info->far_ptr = & ((M_NurbsCurve *)node)->color;
+		return GF_OK;
+	case 2:
+		info->name = "controlPoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC4F;
+		info->far_ptr = & ((M_NurbsCurve *) node)->controlPoint;
+		return GF_OK;
+	case 3:
+		info->name = "tessellation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_NurbsCurve *) node)->tessellation;
+		return GF_OK;
+	case 4:
+		info->name = "colorIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_NurbsCurve *) node)->colorIndex;
+		return GF_OK;
+	case 5:
+		info->name = "colorPerVertex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_NurbsCurve *) node)->colorPerVertex;
+		return GF_OK;
+	case 6:
+		info->name = "knot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_NurbsCurve *) node)->knot;
+		return GF_OK;
+	case 7:
+		info->name = "order";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_NurbsCurve *) node)->order;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 NurbsCurve_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_colorIndex", name)) return 0;
+	if (!strcmp("color", name)) return 1;
+	if (!strcmp("controlPoint", name)) return 2;
+	if (!strcmp("tessellation", name)) return 3;
+	if (!strcmp("colorIndex", name)) return 4;
+	if (!strcmp("colorPerVertex", name)) return 5;
+	if (!strcmp("knot", name)) return 6;
+	if (!strcmp("order", name)) return 7;
+	return -1;
+	}
+static Bool NurbsCurve_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 2:
+		*AType = 15;
+		*QType = 15;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 4:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	case 7:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(3);
+		*b_max = FLT2FIX(34);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *NurbsCurve_Create()
+{
+	M_NurbsCurve *p;
+	GF_SAFEALLOC(p, M_NurbsCurve);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_NurbsCurve);
+
+	/*default field values*/
+	p->tessellation = 0;
+	p->colorPerVertex = 1;
+	p->order = 4;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsCurve2D Node deletion
+*/
+
+static void NurbsCurve2D_Del(GF_Node *node)
+{
+	M_NurbsCurve2D *p = (M_NurbsCurve2D *) node;
+	gf_sg_mfint32_del(p->set_colorIndex);
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
+	gf_sg_mfvec3f_del(p->controlPoint);
+	gf_sg_mfint32_del(p->colorIndex);
+	gf_sg_mffloat_del(p->knot);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 NurbsCurve2D_Def2All[] = { 1, 2, 3, 4, 5, 6, 7};
+static const u16 NurbsCurve2D_In2All[] = { 0, 1, 2, 3};
+static const u16 NurbsCurve2D_Out2All[] = { 1, 2, 3};
+static const u16 NurbsCurve2D_Dyn2All[] = { 2};
+
+static u32 NurbsCurve2D_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 7;
+	case GF_SG_FIELD_CODING_OUT: return 3;
+	case GF_SG_FIELD_CODING_DYN: return 1;
+	default:
+		return 8;
+	}
+}
+
+static GF_Err NurbsCurve2D_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = NurbsCurve2D_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = NurbsCurve2D_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = NurbsCurve2D_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = NurbsCurve2D_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err NurbsCurve2D_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "set_colorIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_NurbsCurve2D *)node)->on_set_colorIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_NurbsCurve2D *) node)->set_colorIndex;
+		return GF_OK;
+	case 1:
+		info->name = "color";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFColorNode;
+		info->far_ptr = & ((M_NurbsCurve2D *)node)->color;
+		return GF_OK;
+	case 2:
+		info->name = "controlPoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC3F;
+		info->far_ptr = & ((M_NurbsCurve2D *) node)->controlPoint;
+		return GF_OK;
+	case 3:
+		info->name = "tessellation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_NurbsCurve2D *) node)->tessellation;
+		return GF_OK;
+	case 4:
+		info->name = "colorIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_NurbsCurve2D *) node)->colorIndex;
+		return GF_OK;
+	case 5:
+		info->name = "colorPerVertex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_NurbsCurve2D *) node)->colorPerVertex;
+		return GF_OK;
+	case 6:
+		info->name = "knot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_NurbsCurve2D *) node)->knot;
+		return GF_OK;
+	case 7:
+		info->name = "order";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_NurbsCurve2D *) node)->order;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 NurbsCurve2D_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_colorIndex", name)) return 0;
+	if (!strcmp("color", name)) return 1;
+	if (!strcmp("controlPoint", name)) return 2;
+	if (!strcmp("tessellation", name)) return 3;
+	if (!strcmp("colorIndex", name)) return 4;
+	if (!strcmp("colorPerVertex", name)) return 5;
+	if (!strcmp("knot", name)) return 6;
+	if (!strcmp("order", name)) return 7;
+	return -1;
+	}
+static Bool NurbsCurve2D_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 2:
+		*AType = 2;
+		*QType = 2;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 4:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	case 7:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(3);
+		*b_max = FLT2FIX(34);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *NurbsCurve2D_Create()
+{
+	M_NurbsCurve2D *p;
+	GF_SAFEALLOC(p, M_NurbsCurve2D);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_NurbsCurve2D);
+
+	/*default field values*/
+	p->tessellation = 0;
+	p->colorPerVertex = 1;
+	p->order = 4;
+	return (GF_Node *)p;
+}
+
+
+/*
+	NurbsSurface Node deletion
+*/
+
+static void NurbsSurface_Del(GF_Node *node)
+{
+	M_NurbsSurface *p = (M_NurbsSurface *) node;
+	gf_sg_mfint32_del(p->set_colorIndex);
+	gf_sg_mfint32_del(p->set_texColorIndex);
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
+	gf_sg_mfvec4f_del(p->controlPoint);
+	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);	
+	gf_sg_mfint32_del(p->colorIndex);
+	gf_sg_mfint32_del(p->texColorIndex);
+	gf_sg_mffloat_del(p->uKnot);
+	gf_sg_mffloat_del(p->vKnot);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 NurbsSurface_Def2All[] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17};
+static const u16 NurbsSurface_In2All[] = { 0, 1, 2, 3, 4, 5, 6};
+static const u16 NurbsSurface_Out2All[] = { 2, 3, 4, 5, 6};
+static const u16 NurbsSurface_Dyn2All[] = { 3};
+
+static u32 NurbsSurface_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 7;
+	case GF_SG_FIELD_CODING_DEF: return 16;
+	case GF_SG_FIELD_CODING_OUT: return 5;
+	case GF_SG_FIELD_CODING_DYN: return 1;
+	default:
+		return 18;
+	}
+}
+
+static GF_Err NurbsSurface_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = NurbsSurface_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = NurbsSurface_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = NurbsSurface_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = NurbsSurface_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err NurbsSurface_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "set_colorIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_NurbsSurface *)node)->on_set_colorIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_NurbsSurface *) node)->set_colorIndex;
+		return GF_OK;
+	case 1:
+		info->name = "set_texColorIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_NurbsSurface *)node)->on_set_texColorIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_NurbsSurface *) node)->set_texColorIndex;
+		return GF_OK;
+	case 2:
+		info->name = "color";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFColorNode;
+		info->far_ptr = & ((M_NurbsSurface *)node)->color;
+		return GF_OK;
+	case 3:
+		info->name = "controlPoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC4F;
+		info->far_ptr = & ((M_NurbsSurface *) node)->controlPoint;
+		return GF_OK;
+	case 4:
+		info->name = "texCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureCoordinateNode;
+		info->far_ptr = & ((M_NurbsSurface *)node)->texCoord;
+		return GF_OK;
+	case 5:
+		info->name = "uTessellation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_NurbsSurface *) node)->uTessellation;
+		return GF_OK;
+	case 6:
+		info->name = "vTessellation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_NurbsSurface *) node)->vTessellation;
+		return GF_OK;
+	case 7:
+		info->name = "ccw";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_NurbsSurface *) node)->ccw;
+		return GF_OK;
+	case 8:
+		info->name = "colorIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_NurbsSurface *) node)->colorIndex;
+		return GF_OK;
+	case 9:
+		info->name = "colorPerVertex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_NurbsSurface *) node)->colorPerVertex;
+		return GF_OK;
+	case 10:
+		info->name = "solid";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_NurbsSurface *) node)->solid;
+		return GF_OK;
+	case 11:
+		info->name = "texColorIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_NurbsSurface *) node)->texColorIndex;
+		return GF_OK;
+	case 12:
+		info->name = "uDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_NurbsSurface *) node)->uDimension;
+		return GF_OK;
+	case 13:
+		info->name = "uKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_NurbsSurface *) node)->uKnot;
+		return GF_OK;
+	case 14:
+		info->name = "uOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_NurbsSurface *) node)->uOrder;
+		return GF_OK;
+	case 15:
+		info->name = "vDimension";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_NurbsSurface *) node)->vDimension;
+		return GF_OK;
+	case 16:
+		info->name = "vKnot";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_NurbsSurface *) node)->vKnot;
+		return GF_OK;
+	case 17:
+		info->name = "vOrder";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_NurbsSurface *) node)->vOrder;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 NurbsSurface_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_colorIndex", name)) return 0;
+	if (!strcmp("set_texColorIndex", name)) return 1;
+	if (!strcmp("color", name)) return 2;
+	if (!strcmp("controlPoint", name)) return 3;
+	if (!strcmp("texCoord", name)) return 4;
+	if (!strcmp("uTessellation", name)) return 5;
+	if (!strcmp("vTessellation", name)) return 6;
+	if (!strcmp("ccw", name)) return 7;
+	if (!strcmp("colorIndex", name)) return 8;
+	if (!strcmp("colorPerVertex", name)) return 9;
+	if (!strcmp("solid", name)) return 10;
+	if (!strcmp("texColorIndex", name)) return 11;
+	if (!strcmp("uDimension", name)) return 12;
+	if (!strcmp("uKnot", name)) return 13;
+	if (!strcmp("uOrder", name)) return 14;
+	if (!strcmp("vDimension", name)) return 15;
+	if (!strcmp("vKnot", name)) return 16;
+	if (!strcmp("vOrder", name)) return 17;
+	return -1;
+	}
+static Bool NurbsSurface_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 3:
+		*AType = 15;
+		*QType = 15;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 8:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	case 11:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	case 12:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 8;
+		*b_min = FLT2FIX(3);
+		*b_max = FLT2FIX(258);
+		return 1;
+	case 14:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(3);
+		*b_max = FLT2FIX(34);
+		return 1;
+	case 15:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 8;
+		*b_min = FLT2FIX(3);
+		*b_max = FLT2FIX(258);
+		return 1;
+	case 17:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(3);
+		*b_max = FLT2FIX(34);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *NurbsSurface_Create()
+{
+	M_NurbsSurface *p;
+	GF_SAFEALLOC(p, M_NurbsSurface);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_NurbsSurface);
+
+	/*default field values*/
+	p->uTessellation = 0;
+	p->vTessellation = 0;
+	p->ccw = 1;
+	p->colorPerVertex = 1;
+	p->solid = 1;
+	p->uDimension = 4;
+	p->uOrder = 4;
+	p->vDimension = 4;
+	p->vOrder = 4;
+	return (GF_Node *)p;
+}
+
+
+/*
+	OctreeImage Node deletion
+*/
+
+static void OctreeImage_Del(GF_Node *node)
+{
+	M_OctreeImage *p = (M_OctreeImage *) node;
+	gf_node_unregister_children((GF_Node *) p, p->images);	
+	gf_sg_mfint32_del(p->octree);
+	gf_sg_mfint32_del(p->voxelImageIndex);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 OctreeImage_Def2All[] = { 0, 1, 2, 3};
+
+static u32 OctreeImage_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 0;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 0;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err OctreeImage_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = OctreeImage_Def2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err OctreeImage_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "images";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFDepthImageNode;
+		info->far_ptr = & ((M_OctreeImage *)node)->images;
+		return GF_OK;
+	case 1:
+		info->name = "octree";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_OctreeImage *) node)->octree;
+		return GF_OK;
+	case 2:
+		info->name = "octreeResolution";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_OctreeImage *) node)->octreeResolution;
+		return GF_OK;
+	case 3:
+		info->name = "voxelImageIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_OctreeImage *) node)->voxelImageIndex;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 OctreeImage_get_field_index_by_name(char *name)
+{
+	if (!strcmp("images", name)) return 0;
+	if (!strcmp("octree", name)) return 1;
+	if (!strcmp("octreeResolution", name)) return 2;
+	if (!strcmp("voxelImageIndex", name)) return 3;
+	return -1;
+	}
+static Bool OctreeImage_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 1:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 8;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(255);
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 8;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(255);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *OctreeImage_Create()
+{
+	M_OctreeImage *p;
+	GF_SAFEALLOC(p, M_OctreeImage);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_OctreeImage);
+
+	/*default field values*/
+	p->octreeResolution = 256;
+	return (GF_Node *)p;
+}
+
+
+/*
+	XXParticles Node deletion
+*/
+
+static void XXParticles_Del(GF_Node *node)
+{
+	M_XXParticles *p = (M_XXParticles *) node;
+	gf_node_unregister_children((GF_Node *) p, p->influences);	
+	gf_node_unregister((GF_Node *) p->init, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->primitive, (GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 XXParticles_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};
+static const u16 XXParticles_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};
+static const u16 XXParticles_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};
+
+static u32 XXParticles_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 25;
+	case GF_SG_FIELD_CODING_DEF: return 25;
+	case GF_SG_FIELD_CODING_OUT: return 25;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 25;
+	}
+}
+
+static GF_Err XXParticles_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = XXParticles_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = XXParticles_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = XXParticles_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err XXParticles_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "creationRate";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticles *) node)->creationRate;
+		return GF_OK;
+	case 1:
+		info->name = "creationRateVariation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticles *) node)->creationRateVariation;
+		return GF_OK;
+	case 2:
+		info->name = "emitAlpha";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticles *) node)->emitAlpha;
+		return GF_OK;
+	case 3:
+		info->name = "emitColor";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFCOLOR;
+		info->far_ptr = & ((M_XXParticles *) node)->emitColor;
+		return GF_OK;
+	case 4:
+		info->name = "emitColorVariation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFCOLOR;
+		info->far_ptr = & ((M_XXParticles *) node)->emitColorVariation;
+		return GF_OK;
+	case 5:
+		info->name = "emitterPosition";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_XXParticles *) node)->emitterPosition;
+		return GF_OK;
+	case 6:
+		info->name = "emitVelocity";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_XXParticles *) node)->emitVelocity;
+		return GF_OK;
+	case 7:
+		info->name = "emitVelocityVariation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_XXParticles *) node)->emitVelocityVariation;
+		return GF_OK;
+	case 8:
+		info->name = "enabled";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_XXParticles *) node)->enabled;
+		return GF_OK;
+	case 9:
+		info->name = "fadeAlpha";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticles *) node)->fadeAlpha;
+		return GF_OK;
+	case 10:
+		info->name = "fadeColor";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFCOLOR;
+		info->far_ptr = & ((M_XXParticles *) node)->fadeColor;
+		return GF_OK;
+	case 11:
+		info->name = "fadeRate";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticles *) node)->fadeRate;
+		return GF_OK;
+	case 12:
+		info->name = "force";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_XXParticles *) node)->force;
+		return GF_OK;
+	case 13:
+		info->name = "influences";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFInfluenceNode;
+		info->far_ptr = & ((M_XXParticles *)node)->influences;
+		return GF_OK;
+	case 14:
+		info->name = "init";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFWorldNode;
+		info->far_ptr = & ((M_XXParticles *)node)->init;
+		return GF_OK;
+	case 15:
+		info->name = "maxLifeTime";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((M_XXParticles *) node)->maxLifeTime;
+		return GF_OK;
+	case 16:
+		info->name = "maxLifeTimeVariation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticles *) node)->maxLifeTimeVariation;
+		return GF_OK;
+	case 17:
+		info->name = "maxParticles";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_XXParticles *) node)->maxParticles;
+		return GF_OK;
+	case 18:
+		info->name = "minRange";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticles *) node)->minRange;
+		return GF_OK;
+	case 19:
+		info->name = "maxRange";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticles *) node)->maxRange;
+		return GF_OK;
+	case 20:
+		info->name = "primitive";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFWorldNode;
+		info->far_ptr = & ((M_XXParticles *)node)->primitive;
+		return GF_OK;
+	case 21:
+		info->name = "primitiveType";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_XXParticles *) node)->primitiveType;
+		return GF_OK;
+	case 22:
+		info->name = "particleRadius";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticles *) node)->particleRadius;
+		return GF_OK;
+	case 23:
+		info->name = "particleRadiusRate";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticles *) node)->particleRadiusRate;
+		return GF_OK;
+	case 24:
+		info->name = "particleRadiusVariation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticles *) node)->particleRadiusVariation;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 XXParticles_get_field_index_by_name(char *name)
+{
+	if (!strcmp("creationRate", name)) return 0;
+	if (!strcmp("creationRateVariation", name)) return 1;
+	if (!strcmp("emitAlpha", name)) return 2;
+	if (!strcmp("emitColor", name)) return 3;
+	if (!strcmp("emitColorVariation", name)) return 4;
+	if (!strcmp("emitterPosition", name)) return 5;
+	if (!strcmp("emitVelocity", name)) return 6;
+	if (!strcmp("emitVelocityVariation", name)) return 7;
+	if (!strcmp("enabled", name)) return 8;
+	if (!strcmp("fadeAlpha", name)) return 9;
+	if (!strcmp("fadeColor", name)) return 10;
+	if (!strcmp("fadeRate", name)) return 11;
+	if (!strcmp("force", name)) return 12;
+	if (!strcmp("influences", name)) return 13;
+	if (!strcmp("init", name)) return 14;
+	if (!strcmp("maxLifeTime", name)) return 15;
+	if (!strcmp("maxLifeTimeVariation", name)) return 16;
+	if (!strcmp("maxParticles", name)) return 17;
+	if (!strcmp("minRange", name)) return 18;
+	if (!strcmp("maxRange", name)) return 19;
+	if (!strcmp("primitive", name)) return 20;
+	if (!strcmp("primitiveType", name)) return 21;
+	if (!strcmp("particleRadius", name)) return 22;
+	if (!strcmp("particleRadiusRate", name)) return 23;
+	if (!strcmp("particleRadiusVariation", name)) return 24;
+	return -1;
+	}
+static Bool XXParticles_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *XXParticles_Create()
+{
+	M_XXParticles *p;
+	GF_SAFEALLOC(p, M_XXParticles);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_XXParticles);
+
+	/*default field values*/
+	p->creationRate = FLT2FIX(500);
+	p->creationRateVariation = FLT2FIX(0);
+	p->emitAlpha = FLT2FIX(1.0);
+	p->emitColor.red = FLT2FIX(1);
+	p->emitColor.green = FLT2FIX(1);
+	p->emitColor.blue = FLT2FIX(1);
+	p->emitColorVariation.red = FLT2FIX(0);
+	p->emitColorVariation.green = FLT2FIX(0);
+	p->emitColorVariation.blue = FLT2FIX(0);
+	p->emitterPosition.x = FLT2FIX(0);
+	p->emitterPosition.y = FLT2FIX(3);
+	p->emitterPosition.z = FLT2FIX(0);
+	p->emitVelocity.x = FLT2FIX(0);
+	p->emitVelocity.y = FLT2FIX(0);
+	p->emitVelocity.z = FLT2FIX(0);
+	p->emitVelocityVariation.x = FLT2FIX(1);
+	p->emitVelocityVariation.y = FLT2FIX(1);
+	p->emitVelocityVariation.z = FLT2FIX(1);
+	p->enabled = 1;
+	p->fadeAlpha = FLT2FIX(1.0);
+	p->fadeColor.red = FLT2FIX(0.25);
+	p->fadeColor.green = FLT2FIX(0.25);
+	p->fadeColor.blue = FLT2FIX(0.25);
+	p->fadeRate = FLT2FIX(0.25);
+	p->force.x = FLT2FIX(0);
+	p->force.y = FLT2FIX(-9.8);
+	p->force.z = FLT2FIX(0);
+	p->maxLifeTime = 5;
+	p->maxLifeTimeVariation = FLT2FIX(0);
+	p->maxParticles = 500;
+	p->minRange = FLT2FIX(1);
+	p->maxRange = FLT2FIX(-1);
+	p->primitiveType = 2;
+	p->particleRadius = FLT2FIX(0.1);
+	p->particleRadiusRate = FLT2FIX(0);
+	p->particleRadiusVariation = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	XXParticleInitBox Node deletion
+*/
+
+static void XXParticleInitBox_Del(GF_Node *node)
+{
+	M_XXParticleInitBox *p = (M_XXParticleInitBox *) node;
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 XXParticleInitBox_Def2All[] = { 0, 1};
+static const u16 XXParticleInitBox_In2All[] = { 0, 1};
+static const u16 XXParticleInitBox_Out2All[] = { 0, 1};
+
+static u32 XXParticleInitBox_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 2;
+	case GF_SG_FIELD_CODING_DEF: return 2;
+	case GF_SG_FIELD_CODING_OUT: return 2;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 2;
+	}
+}
+
+static GF_Err XXParticleInitBox_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = XXParticleInitBox_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = XXParticleInitBox_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = XXParticleInitBox_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err XXParticleInitBox_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "falloff";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXParticleInitBox *) node)->falloff;
+		return GF_OK;
+	case 1:
+		info->name = "size";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_XXParticleInitBox *) node)->size;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 XXParticleInitBox_get_field_index_by_name(char *name)
+{
+	if (!strcmp("falloff", name)) return 0;
+	if (!strcmp("size", name)) return 1;
+	return -1;
+	}
+static Bool XXParticleInitBox_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *XXParticleInitBox_Create()
+{
+	M_XXParticleInitBox *p;
+	GF_SAFEALLOC(p, M_XXParticleInitBox);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_XXParticleInitBox);
+
+	/*default field values*/
+	p->falloff = FLT2FIX(0);
+	p->size.x = FLT2FIX(1);
+	p->size.y = FLT2FIX(1);
+	p->size.z = FLT2FIX(1);
+	return (GF_Node *)p;
+}
+
+
+/*
+	XXPlanarObstacle Node deletion
+*/
+
+static void XXPlanarObstacle_Del(GF_Node *node)
+{
+	M_XXPlanarObstacle *p = (M_XXPlanarObstacle *) node;
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 XXPlanarObstacle_Def2All[] = { 0, 1, 2, 3};
+static const u16 XXPlanarObstacle_In2All[] = { 0, 1, 2, 3};
+static const u16 XXPlanarObstacle_Out2All[] = { 0, 1, 2, 3};
+
+static u32 XXPlanarObstacle_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 4;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err XXPlanarObstacle_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = XXPlanarObstacle_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = XXPlanarObstacle_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = XXPlanarObstacle_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err XXPlanarObstacle_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "distance";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_XXPlanarObstacle *) node)->distance;
+		return GF_OK;
+	case 1:
+		info->name = "normal";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_XXPlanarObstacle *) node)->normal;
+		return GF_OK;
+	case 2:
+		info->name = "reflection";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXPlanarObstacle *) node)->reflection;
+		return GF_OK;
+	case 3:
+		info->name = "absorption";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXPlanarObstacle *) node)->absorption;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 XXPlanarObstacle_get_field_index_by_name(char *name)
+{
+	if (!strcmp("distance", name)) return 0;
+	if (!strcmp("normal", name)) return 1;
+	if (!strcmp("reflection", name)) return 2;
+	if (!strcmp("absorption", name)) return 3;
+	return -1;
+	}
+static Bool XXPlanarObstacle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *XXPlanarObstacle_Create()
+{
+	M_XXPlanarObstacle *p;
+	GF_SAFEALLOC(p, M_XXPlanarObstacle);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_XXPlanarObstacle);
+
+	/*default field values*/
+	p->distance.x = FLT2FIX(0);
+	p->distance.y = FLT2FIX(0);
+	p->distance.z = FLT2FIX(0);
+	p->normal.x = FLT2FIX(0);
+	p->normal.y = FLT2FIX(1);
+	p->normal.z = FLT2FIX(0);
+	p->reflection = FLT2FIX(0);
+	p->absorption = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	XXPointAttractor Node deletion
+*/
+
+static void XXPointAttractor_Del(GF_Node *node)
+{
+	M_XXPointAttractor *p = (M_XXPointAttractor *) node;
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 XXPointAttractor_Def2All[] = { 0, 1, 2, 3};
+static const u16 XXPointAttractor_In2All[] = { 0, 1, 2, 3};
+static const u16 XXPointAttractor_Out2All[] = { 0, 1, 2, 3};
+
+static u32 XXPointAttractor_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 4;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err XXPointAttractor_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = XXPointAttractor_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = XXPointAttractor_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = XXPointAttractor_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err XXPointAttractor_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "innerRadius";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXPointAttractor *) node)->innerRadius;
+		return GF_OK;
+	case 1:
+		info->name = "outerRadius";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXPointAttractor *) node)->outerRadius;
+		return GF_OK;
+	case 2:
+		info->name = "position";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_XXPointAttractor *) node)->position;
+		return GF_OK;
+	case 3:
+		info->name = "rate";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_XXPointAttractor *) node)->rate;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 XXPointAttractor_get_field_index_by_name(char *name)
+{
+	if (!strcmp("innerRadius", name)) return 0;
+	if (!strcmp("outerRadius", name)) return 1;
+	if (!strcmp("position", name)) return 2;
+	if (!strcmp("rate", name)) return 3;
+	return -1;
+	}
+static Bool XXPointAttractor_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *XXPointAttractor_Create()
+{
+	M_XXPointAttractor *p;
+	GF_SAFEALLOC(p, M_XXPointAttractor);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_XXPointAttractor);
+
+	/*default field values*/
+	p->innerRadius = FLT2FIX(10);
+	p->outerRadius = FLT2FIX(100);
+	p->position.x = FLT2FIX(0);
+	p->position.y = FLT2FIX(0);
+	p->position.z = FLT2FIX(0);
+	p->rate = FLT2FIX(1);
+	return (GF_Node *)p;
+}
+
+
+/*
+	PointTexture Node deletion
+*/
+
+static void PointTexture_Del(GF_Node *node)
+{
+	M_PointTexture *p = (M_PointTexture *) node;
+	gf_sg_mfcolor_del(p->color);
+	gf_sg_mfint32_del(p->depth);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 PointTexture_Def2All[] = { 0, 1, 2, 3, 4};
+
+static u32 PointTexture_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 0;
+	case GF_SG_FIELD_CODING_DEF: return 5;
+	case GF_SG_FIELD_CODING_OUT: return 0;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 5;
+	}
+}
+
+static GF_Err PointTexture_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = PointTexture_Def2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err PointTexture_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "color";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFCOLOR;
+		info->far_ptr = & ((M_PointTexture *) node)->color;
+		return GF_OK;
+	case 1:
+		info->name = "depth";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_PointTexture *) node)->depth;
+		return GF_OK;
+	case 2:
+		info->name = "depthNbBits";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_PointTexture *) node)->depthNbBits;
+		return GF_OK;
+	case 3:
+		info->name = "height";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_PointTexture *) node)->height;
+		return GF_OK;
+	case 4:
+		info->name = "width";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_PointTexture *) node)->width;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 PointTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("color", name)) return 0;
+	if (!strcmp("depth", name)) return 1;
+	if (!strcmp("depthNbBits", name)) return 2;
+	if (!strcmp("height", name)) return 3;
+	if (!strcmp("width", name)) return 4;
+	return -1;
+	}
+static Bool PointTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 2:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(31);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *PointTexture_Create()
+{
+	M_PointTexture *p;
+	GF_SAFEALLOC(p, M_PointTexture);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_PointTexture);
+
+	/*default field values*/
+	p->depthNbBits = 7;
+	p->height = 256;
+	p->width = 256;
 	return (GF_Node *)p;
 }
 
@@ -16844,6 +26748,1783 @@ GF_Node *PositionInterpolator4D_Create()
 
 
 /*
+	ProceduralTexture Node deletion
+*/
+
+static void ProceduralTexture_Del(GF_Node *node)
+{
+	M_ProceduralTexture *p = (M_ProceduralTexture *) node;
+	gf_sg_mfvec2f_del(p->aWarpmap);
+	gf_sg_mffloat_del(p->aWeights);
+	gf_sg_mfvec2f_del(p->bWarpmap);
+	gf_sg_mffloat_del(p->bWeights);
+	gf_sg_mfcolor_del(p->color);
+	gf_sg_mfvec2f_del(p->xWarpmap);
+	gf_sg_mfvec2f_del(p->yWarpmap);
+	gf_sg_sfimage_del(p->image_changed);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 ProceduralTexture_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
+static const u16 ProceduralTexture_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18};
+static const u16 ProceduralTexture_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19};
+
+static u32 ProceduralTexture_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 19;
+	case GF_SG_FIELD_CODING_DEF: return 19;
+	case GF_SG_FIELD_CODING_OUT: return 20;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 20;
+	}
+}
+
+static GF_Err ProceduralTexture_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = ProceduralTexture_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = ProceduralTexture_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = ProceduralTexture_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err ProceduralTexture_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "aSmooth";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->aSmooth;
+		return GF_OK;
+	case 1:
+		info->name = "aWarpmap";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC2F;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->aWarpmap;
+		return GF_OK;
+	case 2:
+		info->name = "aWeights";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->aWeights;
+		return GF_OK;
+	case 3:
+		info->name = "bSmooth";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->bSmooth;
+		return GF_OK;
+	case 4:
+		info->name = "bWarpmap";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC2F;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->bWarpmap;
+		return GF_OK;
+	case 5:
+		info->name = "bWeights";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->bWeights;
+		return GF_OK;
+	case 6:
+		info->name = "cellWidth";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->cellWidth;
+		return GF_OK;
+	case 7:
+		info->name = "cellHeight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->cellHeight;
+		return GF_OK;
+	case 8:
+		info->name = "color";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFCOLOR;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->color;
+		return GF_OK;
+	case 9:
+		info->name = "distortion";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->distortion;
+		return GF_OK;
+	case 10:
+		info->name = "height";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->height;
+		return GF_OK;
+	case 11:
+		info->name = "roughness";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->roughness;
+		return GF_OK;
+	case 12:
+		info->name = "seed";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->seed;
+		return GF_OK;
+	case 13:
+		info->name = "type";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->type;
+		return GF_OK;
+	case 14:
+		info->name = "xSmooth";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->xSmooth;
+		return GF_OK;
+	case 15:
+		info->name = "xWarpmap";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC2F;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->xWarpmap;
+		return GF_OK;
+	case 16:
+		info->name = "ySmooth";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->ySmooth;
+		return GF_OK;
+	case 17:
+		info->name = "yWarpmap";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC2F;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->yWarpmap;
+		return GF_OK;
+	case 18:
+		info->name = "width";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->width;
+		return GF_OK;
+	case 19:
+		info->name = "image_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFIMAGE;
+		info->far_ptr = & ((M_ProceduralTexture *) node)->image_changed;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 ProceduralTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("aSmooth", name)) return 0;
+	if (!strcmp("aWarpmap", name)) return 1;
+	if (!strcmp("aWeights", name)) return 2;
+	if (!strcmp("bSmooth", name)) return 3;
+	if (!strcmp("bWarpmap", name)) return 4;
+	if (!strcmp("bWeights", name)) return 5;
+	if (!strcmp("cellWidth", name)) return 6;
+	if (!strcmp("cellHeight", name)) return 7;
+	if (!strcmp("color", name)) return 8;
+	if (!strcmp("distortion", name)) return 9;
+	if (!strcmp("height", name)) return 10;
+	if (!strcmp("roughness", name)) return 11;
+	if (!strcmp("seed", name)) return 12;
+	if (!strcmp("type", name)) return 13;
+	if (!strcmp("xSmooth", name)) return 14;
+	if (!strcmp("xWarpmap", name)) return 15;
+	if (!strcmp("ySmooth", name)) return 16;
+	if (!strcmp("yWarpmap", name)) return 17;
+	if (!strcmp("width", name)) return 18;
+	if (!strcmp("image_changed", name)) return 19;
+	return -1;
+	}
+static Bool ProceduralTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 1:
+		*AType = 0;
+		*QType = 2;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(1);
+		return 1;
+	case 4:
+		*AType = 0;
+		*QType = 2;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX( 1);
+		return 1;
+	case 6:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 4;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(15);
+		return 1;
+	case 7:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 4;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(15);
+		return 1;
+	case 8:
+		*AType = 0;
+		*QType = 4;
+		return 1;
+	case 9:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 16;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(1);
+		return 1;
+	case 10:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 4;
+		*b_min = FLT2FIX(1);
+		*b_max = FLT2FIX(15);
+		return 1;
+	case 11:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 4;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(15);
+		return 1;
+	case 13:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 3;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(4);
+		return 1;
+	case 15:
+		*AType = 0;
+		*QType = 2;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(1);
+		return 1;
+	case 17:
+		*AType = 0;
+		*QType = 2;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(1);
+		return 1;
+	case 18:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 4;
+		*b_min = FLT2FIX(1);
+		*b_max = FLT2FIX(15);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *ProceduralTexture_Create()
+{
+	M_ProceduralTexture *p;
+	GF_SAFEALLOC(p, M_ProceduralTexture);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_ProceduralTexture);
+
+	/*default field values*/
+	p->aWarpmap.vals = (SFVec2f*)malloc(sizeof(SFVec2f)*2);
+	p->aWarpmap.count = 2;
+	p->aWarpmap.vals[0].x = FLT2FIX(0);
+	p->aWarpmap.vals[0].y = FLT2FIX(0);
+	p->aWarpmap.vals[1].x = FLT2FIX(1);
+	p->aWarpmap.vals[1].y = FLT2FIX(1);
+	p->aWeights.vals = (SFFloat*)malloc(sizeof(SFFloat)*16);
+	p->aWeights.count = 16;
+	p->aWeights.vals[0] = FLT2FIX(0);
+	p->aWeights.vals[1] = FLT2FIX(0);
+	p->aWeights.vals[2] = FLT2FIX(0);
+	p->aWeights.vals[3] = FLT2FIX(0);
+	p->aWeights.vals[4] = FLT2FIX(0);
+	p->aWeights.vals[5] = FLT2FIX(0);
+	p->aWeights.vals[6] = FLT2FIX(0);
+	p->aWeights.vals[7] = FLT2FIX(0);
+	p->aWeights.vals[8] = FLT2FIX(0);
+	p->aWeights.vals[9] = FLT2FIX(0);
+	p->aWeights.vals[10] = FLT2FIX(0);
+	p->aWeights.vals[11] = FLT2FIX(0);
+	p->aWeights.vals[12] = FLT2FIX(1);
+	p->aWeights.vals[13] = FLT2FIX(0);
+	p->aWeights.vals[14] = FLT2FIX(0);
+	p->aWeights.vals[15] = FLT2FIX(0);
+	p->bWarpmap.vals = (SFVec2f*)malloc(sizeof(SFVec2f)*2);
+	p->bWarpmap.count = 2;
+	p->bWarpmap.vals[0].x = FLT2FIX(0);
+	p->bWarpmap.vals[0].y = FLT2FIX(0);
+	p->bWarpmap.vals[1].x = FLT2FIX(1);
+	p->bWarpmap.vals[1].y = FLT2FIX(1);
+	p->bWeights.vals = (SFFloat*)malloc(sizeof(SFFloat)*16);
+	p->bWeights.count = 16;
+	p->bWeights.vals[0] = FLT2FIX(0);
+	p->bWeights.vals[1] = FLT2FIX(0);
+	p->bWeights.vals[2] = FLT2FIX(0);
+	p->bWeights.vals[3] = FLT2FIX(0);
+	p->bWeights.vals[4] = FLT2FIX(0);
+	p->bWeights.vals[5] = FLT2FIX(1);
+	p->bWeights.vals[6] = FLT2FIX(0);
+	p->bWeights.vals[7] = FLT2FIX(0);
+	p->bWeights.vals[8] = FLT2FIX(0);
+	p->bWeights.vals[9] = FLT2FIX(0);
+	p->bWeights.vals[10] = FLT2FIX(0);
+	p->bWeights.vals[11] = FLT2FIX(0);
+	p->bWeights.vals[12] = FLT2FIX(0);
+	p->bWeights.vals[13] = FLT2FIX(0);
+	p->bWeights.vals[14] = FLT2FIX(0);
+	p->bWeights.vals[15] = FLT2FIX(0);
+	p->cellWidth = 4;
+	p->cellHeight = 4;
+	p->color.vals = (SFColor*)malloc(sizeof(SFColor)*4);
+	p->color.count = 4;
+	p->color.vals[0].red = FLT2FIX(0.3);
+	p->color.vals[0].green = FLT2FIX(0.698);
+	p->color.vals[0].blue = FLT2FIX(1);
+	p->color.vals[1].red = FLT2FIX(0.8);
+	p->color.vals[1].green = FLT2FIX(0.8);
+	p->color.vals[1].blue = FLT2FIX(0.8);
+	p->color.vals[2].red = FLT2FIX(1);
+	p->color.vals[2].green = FLT2FIX(1);
+	p->color.vals[2].blue = FLT2FIX(1);
+	p->color.vals[3].red = FLT2FIX(0);
+	p->color.vals[3].green = FLT2FIX(0);
+	p->color.vals[3].blue = FLT2FIX(0);
+	p->distortion = FLT2FIX(0);
+	p->height = 7;
+	p->roughness = 0;
+	p->seed = 129093;
+	p->type = 0;
+	p->width = 7;
+	return (GF_Node *)p;
+}
+
+
+/*
+	Quadric Node deletion
+*/
+
+static void Quadric_Del(GF_Node *node)
+{
+	M_Quadric *p = (M_Quadric *) node;
+	gf_sg_mfint32_del(p->densities);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 Quadric_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+static const u16 Quadric_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+static const u16 Quadric_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+static const u16 Quadric_Dyn2All[] = { 0, 3, 4, 5, 6, 7, 8};
+
+static u32 Quadric_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 10;
+	case GF_SG_FIELD_CODING_DEF: return 10;
+	case GF_SG_FIELD_CODING_OUT: return 10;
+	case GF_SG_FIELD_CODING_DYN: return 7;
+	default:
+		return 10;
+	}
+}
+
+static GF_Err Quadric_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = Quadric_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = Quadric_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = Quadric_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = Quadric_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err Quadric_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "bboxSize";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_Quadric *) node)->bboxSize;
+		return GF_OK;
+	case 1:
+		info->name = "densities";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_Quadric *) node)->densities;
+		return GF_OK;
+	case 2:
+		info->name = "dual";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_Quadric *) node)->dual;
+		return GF_OK;
+	case 3:
+		info->name = "P0";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC4F;
+		info->far_ptr = & ((M_Quadric *) node)->P0;
+		return GF_OK;
+	case 4:
+		info->name = "P1";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC4F;
+		info->far_ptr = & ((M_Quadric *) node)->P1;
+		return GF_OK;
+	case 5:
+		info->name = "P2";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC4F;
+		info->far_ptr = & ((M_Quadric *) node)->P2;
+		return GF_OK;
+	case 6:
+		info->name = "P3";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC4F;
+		info->far_ptr = & ((M_Quadric *) node)->P3;
+		return GF_OK;
+	case 7:
+		info->name = "P4";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC4F;
+		info->far_ptr = & ((M_Quadric *) node)->P4;
+		return GF_OK;
+	case 8:
+		info->name = "P5";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC4F;
+		info->far_ptr = & ((M_Quadric *) node)->P5;
+		return GF_OK;
+	case 9:
+		info->name = "solid";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_Quadric *) node)->solid;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 Quadric_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bboxSize", name)) return 0;
+	if (!strcmp("densities", name)) return 1;
+	if (!strcmp("dual", name)) return 2;
+	if (!strcmp("P0", name)) return 3;
+	if (!strcmp("P1", name)) return 4;
+	if (!strcmp("P2", name)) return 5;
+	if (!strcmp("P3", name)) return 6;
+	if (!strcmp("P4", name)) return 7;
+	if (!strcmp("P5", name)) return 8;
+	if (!strcmp("solid", name)) return 9;
+	return -1;
+	}
+static Bool Quadric_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 11;
+		*QType = 11;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	case 3:
+		*AType = 15;
+		*QType = 15;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 4:
+		*AType = 15;
+		*QType = 15;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 5:
+		*AType = 15;
+		*QType = 15;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 6:
+		*AType = 15;
+		*QType = 15;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 7:
+		*AType = 15;
+		*QType = 15;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 8:
+		*AType = 15;
+		*QType = 15;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *Quadric_Create()
+{
+	M_Quadric *p;
+	GF_SAFEALLOC(p, M_Quadric);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_Quadric);
+
+	/*default field values*/
+	p->bboxSize.x = FLT2FIX(2);
+	p->bboxSize.y = FLT2FIX(2);
+	p->bboxSize.z = FLT2FIX(2);
+	p->P0.x = FLT2FIX(-1);
+	p->P0.y = FLT2FIX(0);
+	p->P0.z = FLT2FIX(0);
+	p->P0.q = FLT2FIX(1);
+	p->P1.x = FLT2FIX(1);
+	p->P1.y = FLT2FIX(0);
+	p->P1.z = FLT2FIX(0);
+	p->P1.q = FLT2FIX(1);
+	p->P2.x = FLT2FIX(0);
+	p->P2.y = FLT2FIX(1);
+	p->P2.z = FLT2FIX(0);
+	p->P2.q = FLT2FIX(0);
+	p->P3.x = FLT2FIX(0);
+	p->P3.y = FLT2FIX(0);
+	p->P3.z = FLT2FIX(1);
+	p->P3.q = FLT2FIX(0);
+	p->P4.x = FLT2FIX(0);
+	p->P4.y = FLT2FIX(1);
+	p->P4.z = FLT2FIX(0);
+	p->P4.q = FLT2FIX(1);
+	p->P5.x = FLT2FIX(0);
+	p->P5.y = FLT2FIX(0);
+	p->P5.z = FLT2FIX(1);
+	p->P5.q = FLT2FIX(1);
+	return (GF_Node *)p;
+}
+
+
+/*
+	SBBone Node deletion
+*/
+
+static void SBBone_Del(GF_Node *node)
+{
+	M_SBBone *p = (M_SBBone *) node;
+	gf_sg_mffloat_del(p->ikPitchLimit);
+	gf_sg_mffloat_del(p->ikRollLimit);
+	gf_sg_mffloat_del(p->ikTxLimit);
+	gf_sg_mffloat_del(p->ikTyLimit);
+	gf_sg_mffloat_del(p->ikTzLimit);
+	gf_sg_mffloat_del(p->ikYawLimit);
+	gf_sg_mffloat_del(p->sectionInner);
+	gf_sg_mffloat_del(p->sectionOuter);
+	gf_sg_mffloat_del(p->sectionPosition);
+	gf_sg_mfint32_del(p->skinCoordIndex);
+	gf_sg_mffloat_del(p->skinCoordWeight);
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 SBBone_Def2All[] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
+static const u16 SBBone_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
+static const u16 SBBone_Out2All[] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
+static const u16 SBBone_Dyn2All[] = { 3, 5, 14, 16, 17, 23};
+
+static u32 SBBone_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 24;
+	case GF_SG_FIELD_CODING_DEF: return 22;
+	case GF_SG_FIELD_CODING_OUT: return 22;
+	case GF_SG_FIELD_CODING_DYN: return 6;
+	default:
+		return 24;
+	}
+}
+
+static GF_Err SBBone_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = SBBone_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = SBBone_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = SBBone_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = SBBone_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err SBBone_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "addChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SBBone *)node)->on_addChildren;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBBone *)node)->addChildren;
+		return GF_OK;
+	case 1:
+		info->name = "removeChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SBBone *)node)->on_removeChildren;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBBone *)node)->removeChildren;
+		return GF_OK;
+	case 2:
+		info->name = "boneID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SBBone *) node)->boneID;
+		return GF_OK;
+	case 3:
+		info->name = "center";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SBBone *) node)->center;
+		return GF_OK;
+	case 4:
+		info->name = "children";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBBone *)node)->children;
+		return GF_OK;
+	case 5:
+		info->name = "endpoint";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SBBone *) node)->endpoint;
+		return GF_OK;
+	case 6:
+		info->name = "falloff";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SBBone *) node)->falloff;
+		return GF_OK;
+	case 7:
+		info->name = "ikChainPosition";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SBBone *) node)->ikChainPosition;
+		return GF_OK;
+	case 8:
+		info->name = "ikPitchLimit";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_SBBone *) node)->ikPitchLimit;
+		return GF_OK;
+	case 9:
+		info->name = "ikRollLimit";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_SBBone *) node)->ikRollLimit;
+		return GF_OK;
+	case 10:
+		info->name = "ikTxLimit";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_SBBone *) node)->ikTxLimit;
+		return GF_OK;
+	case 11:
+		info->name = "ikTyLimit";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_SBBone *) node)->ikTyLimit;
+		return GF_OK;
+	case 12:
+		info->name = "ikTzLimit";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_SBBone *) node)->ikTzLimit;
+		return GF_OK;
+	case 13:
+		info->name = "ikYawLimit";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_SBBone *) node)->ikYawLimit;
+		return GF_OK;
+	case 14:
+		info->name = "rotation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((M_SBBone *) node)->rotation;
+		return GF_OK;
+	case 15:
+		info->name = "rotationOrder";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SBBone *) node)->rotationOrder;
+		return GF_OK;
+	case 16:
+		info->name = "scale";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SBBone *) node)->scale;
+		return GF_OK;
+	case 17:
+		info->name = "scaleOrientation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((M_SBBone *) node)->scaleOrientation;
+		return GF_OK;
+	case 18:
+		info->name = "sectionInner";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_SBBone *) node)->sectionInner;
+		return GF_OK;
+	case 19:
+		info->name = "sectionOuter";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_SBBone *) node)->sectionOuter;
+		return GF_OK;
+	case 20:
+		info->name = "sectionPosition";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_SBBone *) node)->sectionPosition;
+		return GF_OK;
+	case 21:
+		info->name = "skinCoordIndex";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SBBone *) node)->skinCoordIndex;
+		return GF_OK;
+	case 22:
+		info->name = "skinCoordWeight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_SBBone *) node)->skinCoordWeight;
+		return GF_OK;
+	case 23:
+		info->name = "translation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SBBone *) node)->translation;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 SBBone_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("boneID", name)) return 2;
+	if (!strcmp("center", name)) return 3;
+	if (!strcmp("children", name)) return 4;
+	if (!strcmp("endpoint", name)) return 5;
+	if (!strcmp("falloff", name)) return 6;
+	if (!strcmp("ikChainPosition", name)) return 7;
+	if (!strcmp("ikPitchLimit", name)) return 8;
+	if (!strcmp("ikRollLimit", name)) return 9;
+	if (!strcmp("ikTxLimit", name)) return 10;
+	if (!strcmp("ikTyLimit", name)) return 11;
+	if (!strcmp("ikTzLimit", name)) return 12;
+	if (!strcmp("ikYawLimit", name)) return 13;
+	if (!strcmp("rotation", name)) return 14;
+	if (!strcmp("rotationOrder", name)) return 15;
+	if (!strcmp("scale", name)) return 16;
+	if (!strcmp("scaleOrientation", name)) return 17;
+	if (!strcmp("sectionInner", name)) return 18;
+	if (!strcmp("sectionOuter", name)) return 19;
+	if (!strcmp("sectionPosition", name)) return 20;
+	if (!strcmp("skinCoordIndex", name)) return 21;
+	if (!strcmp("skinCoordWeight", name)) return 22;
+	if (!strcmp("translation", name)) return 23;
+	return -1;
+	}
+static Bool SBBone_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 2:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 10;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(1023);
+		return 1;
+	case 3:
+		*AType = 1;
+		*QType = 1;
+		return 1;
+	case 5:
+		*AType = 1;
+		*QType = 1;
+		return 1;
+	case 6:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 3;
+		*b_min = FLT2FIX(-1);
+		*b_max = FLT2FIX(4);
+		return 1;
+	case 7:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 2;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(3);
+		return 1;
+	case 14:
+		*AType = 10;
+		*QType = 10;
+		return 1;
+	case 15:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 5;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(23);
+		return 1;
+	case 16:
+		*AType = 11;
+		*QType = 7;
+		return 1;
+	case 17:
+		*AType = 10;
+		*QType = 10;
+		return 1;
+	case 21:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	case 23:
+		*AType = 1;
+		*QType = 1;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *SBBone_Create()
+{
+	M_SBBone *p;
+	GF_SAFEALLOC(p, M_SBBone);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_SBBone);
+	gf_sg_vrml_parent_setup((GF_Node *) p);
+
+	/*default field values*/
+	p->boneID = 0;
+	p->center.x = FLT2FIX(0);
+	p->center.y = FLT2FIX(0);
+	p->center.z = FLT2FIX(0);
+	p->endpoint.x = FLT2FIX(0);
+	p->endpoint.y = FLT2FIX(0);
+	p->endpoint.z = FLT2FIX(1);
+	p->falloff = 1;
+	p->ikChainPosition = 0;
+	p->rotation.x = FLT2FIX(0);
+	p->rotation.y = FLT2FIX(0);
+	p->rotation.z = FLT2FIX(1);
+	p->rotation.q = FLT2FIX(0);
+	p->rotationOrder = 0;
+	p->scale.x = FLT2FIX(0);
+	p->scale.y = FLT2FIX(0);
+	p->scale.z = FLT2FIX(0);
+	p->scaleOrientation.x = FLT2FIX(0);
+	p->scaleOrientation.y = FLT2FIX(0);
+	p->scaleOrientation.z = FLT2FIX(1);
+	p->scaleOrientation.q = FLT2FIX(0);
+	p->translation.x = FLT2FIX(0);
+	p->translation.y = FLT2FIX(0);
+	p->translation.z = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	SBMuscle Node deletion
+*/
+
+static void SBMuscle_Del(GF_Node *node)
+{
+	M_SBMuscle *p = (M_SBMuscle *) node;
+	gf_node_unregister((GF_Node *) p->muscleCurve, (GF_Node *) p);	
+	gf_sg_mfint32_del(p->skinCoordIndex);
+	gf_sg_mffloat_del(p->skinCoordWeight);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 SBMuscle_Def2All[] = { 0, 1, 2, 3, 4, 5};
+static const u16 SBMuscle_In2All[] = { 0, 1, 2, 3, 4, 5};
+static const u16 SBMuscle_Out2All[] = { 0, 1, 2, 3, 4, 5};
+static const u16 SBMuscle_Dyn2All[] = { 3};
+
+static u32 SBMuscle_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 6;
+	case GF_SG_FIELD_CODING_DEF: return 6;
+	case GF_SG_FIELD_CODING_OUT: return 6;
+	case GF_SG_FIELD_CODING_DYN: return 1;
+	default:
+		return 6;
+	}
+}
+
+static GF_Err SBMuscle_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = SBMuscle_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = SBMuscle_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = SBMuscle_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = SBMuscle_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err SBMuscle_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "falloff";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SBMuscle *) node)->falloff;
+		return GF_OK;
+	case 1:
+		info->name = "muscleCurve";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFGeometryNode;
+		info->far_ptr = & ((M_SBMuscle *)node)->muscleCurve;
+		return GF_OK;
+	case 2:
+		info->name = "muscleID";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SBMuscle *) node)->muscleID;
+		return GF_OK;
+	case 3:
+		info->name = "radius";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SBMuscle *) node)->radius;
+		return GF_OK;
+	case 4:
+		info->name = "skinCoordIndex";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SBMuscle *) node)->skinCoordIndex;
+		return GF_OK;
+	case 5:
+		info->name = "skinCoordWeight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFFLOAT;
+		info->far_ptr = & ((M_SBMuscle *) node)->skinCoordWeight;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 SBMuscle_get_field_index_by_name(char *name)
+{
+	if (!strcmp("falloff", name)) return 0;
+	if (!strcmp("muscleCurve", name)) return 1;
+	if (!strcmp("muscleID", name)) return 2;
+	if (!strcmp("radius", name)) return 3;
+	if (!strcmp("skinCoordIndex", name)) return 4;
+	if (!strcmp("skinCoordWeight", name)) return 5;
+	return -1;
+	}
+static Bool SBMuscle_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 3;
+		*b_min = FLT2FIX(-1);
+		*b_max = FLT2FIX(4);
+		return 1;
+	case 2:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 10;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(1023);
+		return 1;
+	case 3:
+		*AType = 11;
+		*QType = 7;
+		return 1;
+	case 4:
+		*AType = 0;
+		*QType = 14;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *SBMuscle_Create()
+{
+	M_SBMuscle *p;
+	GF_SAFEALLOC(p, M_SBMuscle);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_SBMuscle);
+
+	/*default field values*/
+	p->falloff = 1;
+	p->muscleID = 0;
+	p->radius = 1;
+	return (GF_Node *)p;
+}
+
+
+/*
+	SBSegment Node deletion
+*/
+
+static void SBSegment_Del(GF_Node *node)
+{
+	M_SBSegment *p = (M_SBSegment *) node;
+	gf_sg_mfvec3f_del(p->momentsOfInertia);
+	gf_sg_sfstring_del(p->name);
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 SBSegment_Def2All[] = { 2, 3, 4, 5, 6};
+static const u16 SBSegment_In2All[] = { 0, 1, 2, 3, 4, 5, 6};
+static const u16 SBSegment_Out2All[] = { 2, 3, 4, 5, 6};
+static const u16 SBSegment_Dyn2All[] = { 2};
+
+static u32 SBSegment_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 7;
+	case GF_SG_FIELD_CODING_DEF: return 5;
+	case GF_SG_FIELD_CODING_OUT: return 5;
+	case GF_SG_FIELD_CODING_DYN: return 1;
+	default:
+		return 7;
+	}
+}
+
+static GF_Err SBSegment_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = SBSegment_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = SBSegment_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = SBSegment_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = SBSegment_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err SBSegment_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "addChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SBSegment *)node)->on_addChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBSegment *)node)->addChildren;
+		return GF_OK;
+	case 1:
+		info->name = "removeChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SBSegment *)node)->on_removeChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBSegment *)node)->removeChildren;
+		return GF_OK;
+	case 2:
+		info->name = "centerOfMass";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SBSegment *) node)->centerOfMass;
+		return GF_OK;
+	case 3:
+		info->name = "children";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBSegment *)node)->children;
+		return GF_OK;
+	case 4:
+		info->name = "mass";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_SBSegment *) node)->mass;
+		return GF_OK;
+	case 5:
+		info->name = "momentsOfInertia";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC3F;
+		info->far_ptr = & ((M_SBSegment *) node)->momentsOfInertia;
+		return GF_OK;
+	case 6:
+		info->name = "name";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((M_SBSegment *) node)->name;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 SBSegment_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("centerOfMass", name)) return 2;
+	if (!strcmp("children", name)) return 3;
+	if (!strcmp("mass", name)) return 4;
+	if (!strcmp("momentsOfInertia", name)) return 5;
+	if (!strcmp("name", name)) return 6;
+	return -1;
+	}
+static Bool SBSegment_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 2:
+		*AType = 1;
+		*QType = 1;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *SBSegment_Create()
+{
+	M_SBSegment *p;
+	GF_SAFEALLOC(p, M_SBSegment);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_SBSegment);
+	gf_sg_vrml_parent_setup((GF_Node *) p);
+
+	/*default field values*/
+	p->centerOfMass.x = FLT2FIX(0);
+	p->centerOfMass.y = FLT2FIX(0);
+	p->centerOfMass.z = FLT2FIX(0);
+	p->mass = FLT2FIX(0);
+	p->momentsOfInertia.vals = (SFVec3f *)malloc(sizeof(SFVec3f)*3);
+	p->momentsOfInertia.count = 3;
+	p->momentsOfInertia.vals[0].x = FLT2FIX(0);
+	p->momentsOfInertia.vals[0].y = FLT2FIX(0);
+	p->momentsOfInertia.vals[0].z = FLT2FIX(0);
+	p->momentsOfInertia.vals[1].x = FLT2FIX(0);
+	p->momentsOfInertia.vals[1].y = FLT2FIX(0);
+	p->momentsOfInertia.vals[1].z = FLT2FIX(0);
+	p->momentsOfInertia.vals[2].x = FLT2FIX(0);
+	p->momentsOfInertia.vals[2].y = FLT2FIX(0);
+	p->momentsOfInertia.vals[2].z = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	SBSite Node deletion
+*/
+
+static void SBSite_Del(GF_Node *node)
+{
+	M_SBSite *p = (M_SBSite *) node;
+	gf_sg_sfstring_del(p->name);
+	gf_sg_vrml_parent_destroy((GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 SBSite_Def2All[] = { 2, 3, 4, 5, 6, 7, 8};
+static const u16 SBSite_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
+static const u16 SBSite_Out2All[] = { 2, 3, 4, 5, 6, 7, 8};
+static const u16 SBSite_Dyn2All[] = { 2, 5, 6, 7, 8};
+
+static u32 SBSite_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 9;
+	case GF_SG_FIELD_CODING_DEF: return 7;
+	case GF_SG_FIELD_CODING_OUT: return 7;
+	case GF_SG_FIELD_CODING_DYN: return 5;
+	default:
+		return 9;
+	}
+}
+
+static GF_Err SBSite_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = SBSite_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = SBSite_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = SBSite_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = SBSite_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err SBSite_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "addChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SBSite *)node)->on_addChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBSite *)node)->addChildren;
+		return GF_OK;
+	case 1:
+		info->name = "removeChildren";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SBSite *)node)->on_removeChildren;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBSite *)node)->removeChildren;
+		return GF_OK;
+	case 2:
+		info->name = "center";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SBSite *) node)->center;
+		return GF_OK;
+	case 3:
+		info->name = "children";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBSite *)node)->children;
+		return GF_OK;
+	case 4:
+		info->name = "name";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((M_SBSite *) node)->name;
+		return GF_OK;
+	case 5:
+		info->name = "rotation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((M_SBSite *) node)->rotation;
+		return GF_OK;
+	case 6:
+		info->name = "scale";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SBSite *) node)->scale;
+		return GF_OK;
+	case 7:
+		info->name = "scaleOrientation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((M_SBSite *) node)->scaleOrientation;
+		return GF_OK;
+	case 8:
+		info->name = "translation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SBSite *) node)->translation;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 SBSite_get_field_index_by_name(char *name)
+{
+	if (!strcmp("addChildren", name)) return 0;
+	if (!strcmp("removeChildren", name)) return 1;
+	if (!strcmp("center", name)) return 2;
+	if (!strcmp("children", name)) return 3;
+	if (!strcmp("name", name)) return 4;
+	if (!strcmp("rotation", name)) return 5;
+	if (!strcmp("scale", name)) return 6;
+	if (!strcmp("scaleOrientation", name)) return 7;
+	if (!strcmp("translation", name)) return 8;
+	return -1;
+	}
+static Bool SBSite_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 2:
+		*AType = 1;
+		*QType = 1;
+		return 1;
+	case 5:
+		*AType = 10;
+		*QType = 10;
+		return 1;
+	case 6:
+		*AType = 11;
+		*QType = 7;
+		return 1;
+	case 7:
+		*AType = 10;
+		*QType = 10;
+		return 1;
+	case 8:
+		*AType = 1;
+		*QType = 1;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *SBSite_Create()
+{
+	M_SBSite *p;
+	GF_SAFEALLOC(p, M_SBSite);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_SBSite);
+	gf_sg_vrml_parent_setup((GF_Node *) p);
+
+	/*default field values*/
+	p->center.x = FLT2FIX(0);
+	p->center.y = FLT2FIX(0);
+	p->center.z = FLT2FIX(0);
+	p->rotation.x = FLT2FIX(0);
+	p->rotation.y = FLT2FIX(0);
+	p->rotation.z = FLT2FIX(1);
+	p->rotation.q = FLT2FIX(0);
+	p->scale.x = FLT2FIX(1);
+	p->scale.y = FLT2FIX(1);
+	p->scale.z = FLT2FIX(1);
+	p->scaleOrientation.x = FLT2FIX(0);
+	p->scaleOrientation.y = FLT2FIX(0);
+	p->scaleOrientation.z = FLT2FIX(1);
+	p->scaleOrientation.q = FLT2FIX(0);
+	p->translation.x = FLT2FIX(0);
+	p->translation.y = FLT2FIX(0);
+	p->translation.z = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	SBSkinnedModel Node deletion
+*/
+
+static void SBSkinnedModel_Del(GF_Node *node)
+{
+	M_SBSkinnedModel *p = (M_SBSkinnedModel *) node;
+	gf_node_unregister_children((GF_Node *) p, p->bones);	
+	gf_node_unregister_children((GF_Node *) p, p->muscles);	
+	gf_sg_sfstring_del(p->name);
+	gf_node_unregister_children((GF_Node *) p, p->segments);	
+	gf_node_unregister_children((GF_Node *) p, p->sites);	
+	gf_node_unregister_children((GF_Node *) p, p->skeleton);	
+	gf_node_unregister_children((GF_Node *) p, p->skin);	
+	gf_node_unregister((GF_Node *) p->skinCoord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->skinNormal, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->weighsComputationSkinCoord, (GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 SBSkinnedModel_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
+static const u16 SBSkinnedModel_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
+static const u16 SBSkinnedModel_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14};
+static const u16 SBSkinnedModel_Dyn2All[] = { 1, 4, 6, 7, 13};
+
+static u32 SBSkinnedModel_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 15;
+	case GF_SG_FIELD_CODING_DEF: return 15;
+	case GF_SG_FIELD_CODING_OUT: return 15;
+	case GF_SG_FIELD_CODING_DYN: return 5;
+	default:
+		return 15;
+	}
+}
+
+static GF_Err SBSkinnedModel_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = SBSkinnedModel_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = SBSkinnedModel_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = SBSkinnedModel_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = SBSkinnedModel_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err SBSkinnedModel_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "bones";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFSBBoneNode;
+		info->far_ptr = & ((M_SBSkinnedModel *)node)->bones;
+		return GF_OK;
+	case 1:
+		info->name = "center";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SBSkinnedModel *) node)->center;
+		return GF_OK;
+	case 2:
+		info->name = "muscles";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFSBMuscleNode;
+		info->far_ptr = & ((M_SBSkinnedModel *)node)->muscles;
+		return GF_OK;
+	case 3:
+		info->name = "name";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFSTRING;
+		info->far_ptr = & ((M_SBSkinnedModel *) node)->name;
+		return GF_OK;
+	case 4:
+		info->name = "rotation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((M_SBSkinnedModel *) node)->rotation;
+		return GF_OK;
+	case 5:
+		info->name = "segments";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFSBSegmentNode;
+		info->far_ptr = & ((M_SBSkinnedModel *)node)->segments;
+		return GF_OK;
+	case 6:
+		info->name = "scale";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SBSkinnedModel *) node)->scale;
+		return GF_OK;
+	case 7:
+		info->name = "scaleOrientation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFROTATION;
+		info->far_ptr = & ((M_SBSkinnedModel *) node)->scaleOrientation;
+		return GF_OK;
+	case 8:
+		info->name = "sites";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFSBSiteNode;
+		info->far_ptr = & ((M_SBSkinnedModel *)node)->sites;
+		return GF_OK;
+	case 9:
+		info->name = "skeleton";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBSkinnedModel *)node)->skeleton;
+		return GF_OK;
+	case 10:
+		info->name = "skin";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBSkinnedModel *)node)->skin;
+		return GF_OK;
+	case 11:
+		info->name = "skinCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((M_SBSkinnedModel *)node)->skinCoord;
+		return GF_OK;
+	case 12:
+		info->name = "skinNormal";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFNormalNode;
+		info->far_ptr = & ((M_SBSkinnedModel *)node)->skinNormal;
+		return GF_OK;
+	case 13:
+		info->name = "translation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SBSkinnedModel *) node)->translation;
+		return GF_OK;
+	case 14:
+		info->name = "weighsComputationSkinCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBSkinnedModel *)node)->weighsComputationSkinCoord;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 SBSkinnedModel_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bones", name)) return 0;
+	if (!strcmp("center", name)) return 1;
+	if (!strcmp("muscles", name)) return 2;
+	if (!strcmp("name", name)) return 3;
+	if (!strcmp("rotation", name)) return 4;
+	if (!strcmp("segments", name)) return 5;
+	if (!strcmp("scale", name)) return 6;
+	if (!strcmp("scaleOrientation", name)) return 7;
+	if (!strcmp("sites", name)) return 8;
+	if (!strcmp("skeleton", name)) return 9;
+	if (!strcmp("skin", name)) return 10;
+	if (!strcmp("skinCoord", name)) return 11;
+	if (!strcmp("skinNormal", name)) return 12;
+	if (!strcmp("translation", name)) return 13;
+	if (!strcmp("weighsComputationSkinCoord", name)) return 14;
+	return -1;
+	}
+static Bool SBSkinnedModel_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 1:
+		*AType = 1;
+		*QType = 1;
+		return 1;
+	case 4:
+		*AType = 10;
+		*QType = 10;
+		return 1;
+	case 6:
+		*AType = 11;
+		*QType = 7;
+		return 1;
+	case 7:
+		*AType = 10;
+		*QType = 10;
+		return 1;
+	case 13:
+		*AType = 1;
+		*QType = 1;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *SBSkinnedModel_Create()
+{
+	M_SBSkinnedModel *p;
+	GF_SAFEALLOC(p, M_SBSkinnedModel);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_SBSkinnedModel);
+
+	/*default field values*/
+	p->center.x = FLT2FIX(0);
+	p->center.y = FLT2FIX(0);
+	p->center.z = FLT2FIX(0);
+	p->rotation.x = FLT2FIX(0);
+	p->rotation.y = FLT2FIX(0);
+	p->rotation.z = FLT2FIX(1);
+	p->rotation.q = FLT2FIX(0);
+	p->scale.x = FLT2FIX(1);
+	p->scale.y = FLT2FIX(1);
+	p->scale.z = FLT2FIX(1);
+	p->scaleOrientation.x = FLT2FIX(0);
+	p->scaleOrientation.y = FLT2FIX(0);
+	p->scaleOrientation.z = FLT2FIX(1);
+	p->scaleOrientation.q = FLT2FIX(0);
+	p->translation.x = FLT2FIX(0);
+	p->translation.y = FLT2FIX(0);
+	p->translation.z = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	SBVCAnimation Node deletion
+*/
+
+static void SBVCAnimation_Del(GF_Node *node)
+{
+	M_SBVCAnimation *p = (M_SBVCAnimation *) node;
+	gf_sg_mfurl_del(p->url);
+	gf_node_unregister_children((GF_Node *) p, p->virtualCharacters);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 SBVCAnimation_Def2All[] = { 0, 1};
+static const u16 SBVCAnimation_In2All[] = { 0, 1};
+static const u16 SBVCAnimation_Out2All[] = { 0, 1};
+
+static u32 SBVCAnimation_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 2;
+	case GF_SG_FIELD_CODING_DEF: return 2;
+	case GF_SG_FIELD_CODING_OUT: return 2;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 2;
+	}
+}
+
+static GF_Err SBVCAnimation_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = SBVCAnimation_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = SBVCAnimation_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = SBVCAnimation_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err SBVCAnimation_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "url";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFURL;
+		info->far_ptr = & ((M_SBVCAnimation *) node)->url;
+		return GF_OK;
+	case 1:
+		info->name = "virtualCharacters";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SBVCAnimation *)node)->virtualCharacters;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 SBVCAnimation_get_field_index_by_name(char *name)
+{
+	if (!strcmp("url", name)) return 0;
+	if (!strcmp("virtualCharacters", name)) return 1;
+	return -1;
+	}
+static Bool SBVCAnimation_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *SBVCAnimation_Create()
+{
+	M_SBVCAnimation *p;
+	GF_SAFEALLOC(p, M_SBVCAnimation);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_SBVCAnimation);
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
 	ScalarAnimator Node deletion
 */
 
@@ -17025,6 +28706,799 @@ GF_Node *ScalarAnimator_Create()
 	p->keySpline.vals[1].y = FLT2FIX(1);
 	p->keyValueType = 0;
 	p->offset = FLT2FIX(0);
+	return (GF_Node *)p;
+}
+
+
+/*
+	SimpleTexture Node deletion
+*/
+
+static void SimpleTexture_Del(GF_Node *node)
+{
+	M_SimpleTexture *p = (M_SimpleTexture *) node;
+	gf_node_unregister((GF_Node *) p->depth, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->texture, (GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 SimpleTexture_Def2All[] = { 0, 1};
+
+static u32 SimpleTexture_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 0;
+	case GF_SG_FIELD_CODING_DEF: return 2;
+	case GF_SG_FIELD_CODING_OUT: return 0;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 2;
+	}
+}
+
+static GF_Err SimpleTexture_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = SimpleTexture_Def2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err SimpleTexture_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "depth";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureNode;
+		info->far_ptr = & ((M_SimpleTexture *)node)->depth;
+		return GF_OK;
+	case 1:
+		info->name = "texture";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureNode;
+		info->far_ptr = & ((M_SimpleTexture *)node)->texture;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 SimpleTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("depth", name)) return 0;
+	if (!strcmp("texture", name)) return 1;
+	return -1;
+	}
+static Bool SimpleTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *SimpleTexture_Create()
+{
+	M_SimpleTexture *p;
+	GF_SAFEALLOC(p, M_SimpleTexture);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_SimpleTexture);
+
+	/*default field values*/
+	return (GF_Node *)p;
+}
+
+
+/*
+	SolidRep Node deletion
+*/
+
+static void SolidRep_Del(GF_Node *node)
+{
+	M_SolidRep *p = (M_SolidRep *) node;
+	gf_sg_mfint32_del(p->densityList);
+	gf_node_unregister((GF_Node *) p->solidTree, (GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 SolidRep_Def2All[] = { 0, 1, 2};
+static const u16 SolidRep_In2All[] = { 0, 1, 2};
+static const u16 SolidRep_Out2All[] = { 0, 1, 2};
+static const u16 SolidRep_Dyn2All[] = { 0};
+
+static u32 SolidRep_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 3;
+	case GF_SG_FIELD_CODING_DEF: return 3;
+	case GF_SG_FIELD_CODING_OUT: return 3;
+	case GF_SG_FIELD_CODING_DYN: return 1;
+	default:
+		return 3;
+	}
+}
+
+static GF_Err SolidRep_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = SolidRep_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = SolidRep_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = SolidRep_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = SolidRep_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err SolidRep_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "bboxSize";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SolidRep *) node)->bboxSize;
+		return GF_OK;
+	case 1:
+		info->name = "densityList";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SolidRep *) node)->densityList;
+		return GF_OK;
+	case 2:
+		info->name = "solidTree";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SF3DNode;
+		info->far_ptr = & ((M_SolidRep *)node)->solidTree;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 SolidRep_get_field_index_by_name(char *name)
+{
+	if (!strcmp("bboxSize", name)) return 0;
+	if (!strcmp("densityList", name)) return 1;
+	if (!strcmp("solidTree", name)) return 2;
+	return -1;
+	}
+static Bool SolidRep_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 11;
+		*QType = 11;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *SolidRep_Create()
+{
+	M_SolidRep *p;
+	GF_SAFEALLOC(p, M_SolidRep);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_SolidRep);
+
+	/*default field values*/
+	p->bboxSize.x = FLT2FIX(2);
+	p->bboxSize.y = FLT2FIX(2);
+	p->bboxSize.z = FLT2FIX(2);
+	return (GF_Node *)p;
+}
+
+
+/*
+	SubdivisionSurface Node deletion
+*/
+
+static void SubdivisionSurface_Del(GF_Node *node)
+{
+	M_SubdivisionSurface *p = (M_SubdivisionSurface *) node;
+	gf_sg_mfint32_del(p->set_colorIndex);
+	gf_sg_mfint32_del(p->set_coordIndex);
+	gf_sg_mfint32_del(p->set_cornerVertexIndex);
+	gf_sg_mfint32_del(p->set_creaseEdgeIndex);
+	gf_sg_mfint32_del(p->set_creaseVertexIndex);
+	gf_sg_mfint32_del(p->set_dartVertexIndex);
+	gf_sg_mfint32_del(p->set_texCoordIndex);
+	gf_node_unregister((GF_Node *) p->color, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->coord, (GF_Node *) p);	
+	gf_node_unregister((GF_Node *) p->texCoord, (GF_Node *) p);	
+	gf_node_unregister_children((GF_Node *) p, p->sectors);	
+	gf_sg_mfint32_del(p->invisibleEdgeIndex);
+	gf_sg_mfint32_del(p->colorIndex);
+	gf_sg_mfint32_del(p->coordIndex);
+	gf_sg_mfint32_del(p->cornerVertexIndex);
+	gf_sg_mfint32_del(p->creaseEdgeIndex);
+	gf_sg_mfint32_del(p->creaseVertexIndex);
+	gf_sg_mfint32_del(p->dartVertexIndex);
+	gf_sg_mfint32_del(p->texCoordIndex);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 SubdivisionSurface_Def2All[] = { 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25};
+static const u16 SubdivisionSurface_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13};
+static const u16 SubdivisionSurface_Out2All[] = { 7, 8, 9, 10, 11, 12, 13};
+
+static u32 SubdivisionSurface_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 14;
+	case GF_SG_FIELD_CODING_DEF: return 19;
+	case GF_SG_FIELD_CODING_OUT: return 7;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 26;
+	}
+}
+
+static GF_Err SubdivisionSurface_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = SubdivisionSurface_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = SubdivisionSurface_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = SubdivisionSurface_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err SubdivisionSurface_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "set_colorIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SubdivisionSurface *)node)->on_set_colorIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->set_colorIndex;
+		return GF_OK;
+	case 1:
+		info->name = "set_coordIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SubdivisionSurface *)node)->on_set_coordIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->set_coordIndex;
+		return GF_OK;
+	case 2:
+		info->name = "set_cornerVertexIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SubdivisionSurface *)node)->on_set_cornerVertexIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->set_cornerVertexIndex;
+		return GF_OK;
+	case 3:
+		info->name = "set_creaseEdgeIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SubdivisionSurface *)node)->on_set_creaseEdgeIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->set_creaseEdgeIndex;
+		return GF_OK;
+	case 4:
+		info->name = "set_creaseVertexIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SubdivisionSurface *)node)->on_set_creaseVertexIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->set_creaseVertexIndex;
+		return GF_OK;
+	case 5:
+		info->name = "set_dartVertexIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SubdivisionSurface *)node)->on_set_dartVertexIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->set_dartVertexIndex;
+		return GF_OK;
+	case 6:
+		info->name = "set_texCoordIndex";
+		info->eventType = GF_SG_EVENT_IN;
+		info->on_event_in = ((M_SubdivisionSurface *)node)->on_set_texCoordIndex;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->set_texCoordIndex;
+		return GF_OK;
+	case 7:
+		info->name = "color";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFColorNode;
+		info->far_ptr = & ((M_SubdivisionSurface *)node)->color;
+		return GF_OK;
+	case 8:
+		info->name = "coord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFCoordinateNode;
+		info->far_ptr = & ((M_SubdivisionSurface *)node)->coord;
+		return GF_OK;
+	case 9:
+		info->name = "texCoord";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFTextureCoordinateNode;
+		info->far_ptr = & ((M_SubdivisionSurface *)node)->texCoord;
+		return GF_OK;
+	case 10:
+		info->name = "sectors";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFNODE;
+		info->NDTtype = NDT_SFSubdivSurfaceSectorNode;
+		info->far_ptr = & ((M_SubdivisionSurface *)node)->sectors;
+		return GF_OK;
+	case 11:
+		info->name = "subdivisionLevel";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->subdivisionLevel;
+		return GF_OK;
+	case 12:
+		info->name = "subdivisionType";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->subdivisionType;
+		return GF_OK;
+	case 13:
+		info->name = "subdivisionSubType";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->subdivisionSubType;
+		return GF_OK;
+	case 14:
+		info->name = "invisibleEdgeIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->invisibleEdgeIndex;
+		return GF_OK;
+	case 15:
+		info->name = "ccw";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->ccw;
+		return GF_OK;
+	case 16:
+		info->name = "colorIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->colorIndex;
+		return GF_OK;
+	case 17:
+		info->name = "colorPerVertex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->colorPerVertex;
+		return GF_OK;
+	case 18:
+		info->name = "convex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->convex;
+		return GF_OK;
+	case 19:
+		info->name = "coordIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->coordIndex;
+		return GF_OK;
+	case 20:
+		info->name = "cornerVertexIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->cornerVertexIndex;
+		return GF_OK;
+	case 21:
+		info->name = "creaseEdgeIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->creaseEdgeIndex;
+		return GF_OK;
+	case 22:
+		info->name = "creaseVertexIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->creaseVertexIndex;
+		return GF_OK;
+	case 23:
+		info->name = "dartVertexIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->dartVertexIndex;
+		return GF_OK;
+	case 24:
+		info->name = "solid";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->solid;
+		return GF_OK;
+	case 25:
+		info->name = "texCoordIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_MFINT32;
+		info->far_ptr = & ((M_SubdivisionSurface *) node)->texCoordIndex;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 SubdivisionSurface_get_field_index_by_name(char *name)
+{
+	if (!strcmp("set_colorIndex", name)) return 0;
+	if (!strcmp("set_coordIndex", name)) return 1;
+	if (!strcmp("set_cornerVertexIndex", name)) return 2;
+	if (!strcmp("set_creaseEdgeIndex", name)) return 3;
+	if (!strcmp("set_creaseVertexIndex", name)) return 4;
+	if (!strcmp("set_dartVertexIndex", name)) return 5;
+	if (!strcmp("set_texCoordIndex", name)) return 6;
+	if (!strcmp("color", name)) return 7;
+	if (!strcmp("coord", name)) return 8;
+	if (!strcmp("texCoord", name)) return 9;
+	if (!strcmp("sectors", name)) return 10;
+	if (!strcmp("subdivisionLevel", name)) return 11;
+	if (!strcmp("subdivisionType", name)) return 12;
+	if (!strcmp("subdivisionSubType", name)) return 13;
+	if (!strcmp("invisibleEdgeIndex", name)) return 14;
+	if (!strcmp("ccw", name)) return 15;
+	if (!strcmp("colorIndex", name)) return 16;
+	if (!strcmp("colorPerVertex", name)) return 17;
+	if (!strcmp("convex", name)) return 18;
+	if (!strcmp("coordIndex", name)) return 19;
+	if (!strcmp("cornerVertexIndex", name)) return 20;
+	if (!strcmp("creaseEdgeIndex", name)) return 21;
+	if (!strcmp("creaseVertexIndex", name)) return 22;
+	if (!strcmp("dartVertexIndex", name)) return 23;
+	if (!strcmp("solid", name)) return 24;
+	if (!strcmp("texCoordIndex", name)) return 25;
+	return -1;
+	}
+static Bool SubdivisionSurface_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 12:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 2;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(3);
+		return 1;
+	case 13:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 2;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(3);
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *SubdivisionSurface_Create()
+{
+	M_SubdivisionSurface *p;
+	GF_SAFEALLOC(p, M_SubdivisionSurface);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_SubdivisionSurface);
+
+	/*default field values*/
+	p->subdivisionLevel = 0;
+	p->subdivisionType = 0;
+	p->subdivisionSubType = 0;
+	p->ccw = 1;
+	p->colorPerVertex = 1;
+	p->convex = 1;
+	p->solid = 1;
+	return (GF_Node *)p;
+}
+
+
+/*
+	SubdivSurfaceSector Node deletion
+*/
+
+static void SubdivSurfaceSector_Del(GF_Node *node)
+{
+	M_SubdivSurfaceSector *p = (M_SubdivSurfaceSector *) node;
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 SubdivSurfaceSector_Def2All[] = { 0, 1, 2, 3, 4, 5, 6};
+static const u16 SubdivSurfaceSector_In2All[] = { 0, 1, 2, 3, 4};
+static const u16 SubdivSurfaceSector_Out2All[] = { 0, 1, 2, 3, 4};
+
+static u32 SubdivSurfaceSector_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 5;
+	case GF_SG_FIELD_CODING_DEF: return 7;
+	case GF_SG_FIELD_CODING_OUT: return 5;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 7;
+	}
+}
+
+static GF_Err SubdivSurfaceSector_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = SubdivSurfaceSector_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = SubdivSurfaceSector_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = SubdivSurfaceSector_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err SubdivSurfaceSector_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "flatness";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_SubdivSurfaceSector *) node)->flatness;
+		return GF_OK;
+	case 1:
+		info->name = "normal";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFVEC3F;
+		info->far_ptr = & ((M_SubdivSurfaceSector *) node)->normal;
+		return GF_OK;
+	case 2:
+		info->name = "normalTension";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_SubdivSurfaceSector *) node)->normalTension;
+		return GF_OK;
+	case 3:
+		info->name = "_tag";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SubdivSurfaceSector *) node)->_tag;
+		return GF_OK;
+	case 4:
+		info->name = "theta";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_SubdivSurfaceSector *) node)->theta;
+		return GF_OK;
+	case 5:
+		info->name = "faceIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SubdivSurfaceSector *) node)->faceIndex;
+		return GF_OK;
+	case 6:
+		info->name = "vertexIndex";
+		info->eventType = GF_SG_EVENT_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SubdivSurfaceSector *) node)->vertexIndex;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 SubdivSurfaceSector_get_field_index_by_name(char *name)
+{
+	if (!strcmp("flatness", name)) return 0;
+	if (!strcmp("normal", name)) return 1;
+	if (!strcmp("normalTension", name)) return 2;
+	if (!strcmp("_tag", name)) return 3;
+	if (!strcmp("theta", name)) return 4;
+	if (!strcmp("faceIndex", name)) return 5;
+	if (!strcmp("vertexIndex", name)) return 6;
+	return -1;
+	}
+static Bool SubdivSurfaceSector_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 0;
+		*QType = 7;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(1);
+		return 1;
+	case 1:
+		*AType = 0;
+		*QType = 9;
+		return 1;
+	case 2:
+		*AType = 0;
+		*QType = 7;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(1);
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 2;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(2);
+		return 1;
+	case 4:
+		*AType = 0;
+		*QType = 6;
+		*b_min = FLT2FIX(0);
+		*b_max = FLT2FIX(6.2831853);
+		return 1;
+	case 5:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	case 6:
+		*AType = 0;
+		*QType = 14;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *SubdivSurfaceSector_Create()
+{
+	M_SubdivSurfaceSector *p;
+	GF_SAFEALLOC(p, M_SubdivSurfaceSector);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_SubdivSurfaceSector);
+
+	/*default field values*/
+	p->flatness = FLT2FIX(0);
+	p->normal.x = FLT2FIX(0);
+	p->normal.y = FLT2FIX(0);
+	p->normal.z = FLT2FIX(0);
+	p->normalTension = FLT2FIX(0);
+	p->_tag = 0;
+	p->theta = FLT2FIX(0);
+	p->faceIndex = 0;
+	p->vertexIndex = 0;
+	return (GF_Node *)p;
+}
+
+
+/*
+	WaveletSubdivisionSurface Node deletion
+*/
+
+static void WaveletSubdivisionSurface_Del(GF_Node *node)
+{
+	M_WaveletSubdivisionSurface *p = (M_WaveletSubdivisionSurface *) node;
+	gf_node_unregister((GF_Node *) p->baseMesh, (GF_Node *) p);	
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 WaveletSubdivisionSurface_Def2All[] = { 0, 1, 2, 3};
+static const u16 WaveletSubdivisionSurface_In2All[] = { 0, 1, 2, 3};
+static const u16 WaveletSubdivisionSurface_Out2All[] = { 0, 1, 2, 3};
+
+static u32 WaveletSubdivisionSurface_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 4;
+	case GF_SG_FIELD_CODING_DEF: return 4;
+	case GF_SG_FIELD_CODING_OUT: return 4;
+	case GF_SG_FIELD_CODING_DYN: return 0;
+	default:
+		return 4;
+	}
+}
+
+static GF_Err WaveletSubdivisionSurface_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = WaveletSubdivisionSurface_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = WaveletSubdivisionSurface_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = WaveletSubdivisionSurface_Out2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err WaveletSubdivisionSurface_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "baseMesh";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFNODE;
+		info->NDTtype = NDT_SFGeometryNode;
+		info->far_ptr = & ((M_WaveletSubdivisionSurface *)node)->baseMesh;
+		return GF_OK;
+	case 1:
+		info->name = "fieldOfView";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_WaveletSubdivisionSurface *) node)->fieldOfView;
+		return GF_OK;
+	case 2:
+		info->name = "frequency";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_WaveletSubdivisionSurface *) node)->frequency;
+		return GF_OK;
+	case 3:
+		info->name = "quality";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_WaveletSubdivisionSurface *) node)->quality;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 WaveletSubdivisionSurface_get_field_index_by_name(char *name)
+{
+	if (!strcmp("baseMesh", name)) return 0;
+	if (!strcmp("fieldOfView", name)) return 1;
+	if (!strcmp("frequency", name)) return 2;
+	if (!strcmp("quality", name)) return 3;
+	return -1;
+	}
+static Bool WaveletSubdivisionSurface_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *WaveletSubdivisionSurface_Create()
+{
+	M_WaveletSubdivisionSurface *p;
+	GF_SAFEALLOC(p, M_WaveletSubdivisionSurface);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_WaveletSubdivisionSurface);
+
+	/*default field values*/
+	p->fieldOfView = FLT2FIX(0.785398);
+	p->frequency = FLT2FIX(1.0);
+	p->quality = 1;
 	return (GF_Node *)p;
 }
 
@@ -18221,6 +30695,204 @@ GF_Node *RadialGradient_Create()
 
 
 /*
+	SynthesizedTexture Node deletion
+*/
+
+static void SynthesizedTexture_Del(GF_Node *node)
+{
+	M_SynthesizedTexture *p = (M_SynthesizedTexture *) node;
+	gf_sg_mfvec3f_del(p->translation);
+	gf_sg_mfrotation_del(p->rotation);
+	gf_sg_mfurl_del(p->url);
+	gf_node_free((GF_Node *) p);
+}
+
+static const u16 SynthesizedTexture_Def2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
+static const u16 SynthesizedTexture_In2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8};
+static const u16 SynthesizedTexture_Out2All[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+static const u16 SynthesizedTexture_Dyn2All[] = { 0, 1, 5};
+
+static u32 SynthesizedTexture_get_field_count(GF_Node *node, u8 IndexMode)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN: return 9;
+	case GF_SG_FIELD_CODING_DEF: return 9;
+	case GF_SG_FIELD_CODING_OUT: return 11;
+	case GF_SG_FIELD_CODING_DYN: return 3;
+	default:
+		return 11;
+	}
+}
+
+static GF_Err SynthesizedTexture_get_field_index(GF_Node *n, u32 inField, u8 IndexMode, u32 *allField)
+{
+	switch(IndexMode) {
+	case GF_SG_FIELD_CODING_IN:
+		*allField = SynthesizedTexture_In2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DEF:
+		*allField = SynthesizedTexture_Def2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_OUT:
+		*allField = SynthesizedTexture_Out2All[inField];
+		return GF_OK;
+	case GF_SG_FIELD_CODING_DYN:
+		*allField = SynthesizedTexture_Dyn2All[inField];
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+static GF_Err SynthesizedTexture_get_field(GF_Node *node, GF_FieldInfo *info)
+{
+	switch (info->fieldIndex) {
+	case 0:
+		info->name = "translation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFVEC3F;
+		info->far_ptr = & ((M_SynthesizedTexture *) node)->translation;
+		return GF_OK;
+	case 1:
+		info->name = "rotation";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFROTATION;
+		info->far_ptr = & ((M_SynthesizedTexture *) node)->rotation;
+		return GF_OK;
+	case 2:
+		info->name = "pixelWidth";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SynthesizedTexture *) node)->pixelWidth;
+		return GF_OK;
+	case 3:
+		info->name = "pixelHeight";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFINT32;
+		info->far_ptr = & ((M_SynthesizedTexture *) node)->pixelHeight;
+		return GF_OK;
+	case 4:
+		info->name = "loop";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_SynthesizedTexture *) node)->loop;
+		return GF_OK;
+	case 5:
+		info->name = "speed";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFFLOAT;
+		info->far_ptr = & ((M_SynthesizedTexture *) node)->speed;
+		return GF_OK;
+	case 6:
+		info->name = "startTime";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((M_SynthesizedTexture *) node)->startTime;
+		return GF_OK;
+	case 7:
+		info->name = "stopTime";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((M_SynthesizedTexture *) node)->stopTime;
+		return GF_OK;
+	case 8:
+		info->name = "url";
+		info->eventType = GF_SG_EVENT_EXPOSED_FIELD;
+		info->fieldType = GF_SG_VRML_MFURL;
+		info->far_ptr = & ((M_SynthesizedTexture *) node)->url;
+		return GF_OK;
+	case 9:
+		info->name = "duration_changed";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFTIME;
+		info->far_ptr = & ((M_SynthesizedTexture *) node)->duration_changed;
+		return GF_OK;
+	case 10:
+		info->name = "isActive";
+		info->eventType = GF_SG_EVENT_OUT;
+		info->fieldType = GF_SG_VRML_SFBOOL;
+		info->far_ptr = & ((M_SynthesizedTexture *) node)->isActive;
+		return GF_OK;
+	default:
+		return GF_BAD_PARAM;
+	}
+}
+
+
+static s32 SynthesizedTexture_get_field_index_by_name(char *name)
+{
+	if (!strcmp("translation", name)) return 0;
+	if (!strcmp("rotation", name)) return 1;
+	if (!strcmp("pixelWidth", name)) return 2;
+	if (!strcmp("pixelHeight", name)) return 3;
+	if (!strcmp("loop", name)) return 4;
+	if (!strcmp("speed", name)) return 5;
+	if (!strcmp("startTime", name)) return 6;
+	if (!strcmp("stopTime", name)) return 7;
+	if (!strcmp("url", name)) return 8;
+	if (!strcmp("duration_changed", name)) return 9;
+	if (!strcmp("isActive", name)) return 10;
+	return -1;
+	}
+static Bool SynthesizedTexture_get_aq_info(GF_Node *n, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (FieldIndex) {
+	case 0:
+		*AType = 1;
+		*QType = 1;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 1:
+		*AType = 10;
+		*QType = 10;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	case 2:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 16;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX /*WARNING: modified to allow 16.16 fixed point version!!*/;
+		return 1;
+	case 3:
+		*AType = 0;
+		*QType = 13;
+		*QT13_bits = 16;
+		*b_min = FLT2FIX(0);
+		*b_max = FIX_MAX /*WARNING: modified to allow 16.16 fixed point version!!*/;
+		return 1;
+	case 5:
+		*AType = 7;
+		*QType = 0;
+		*b_min = FIX_MIN;
+		*b_max = FIX_MAX;
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+
+
+GF_Node *SynthesizedTexture_Create()
+{
+	M_SynthesizedTexture *p;
+	GF_SAFEALLOC(p, M_SynthesizedTexture);
+	if(!p) return NULL;
+	gf_node_setup((GF_Node *)p, TAG_MPEG4_SynthesizedTexture);
+
+	/*default field values*/
+	p->pixelWidth = -1;
+	p->pixelHeight = -1;
+	p->speed = FLT2FIX(1.0);
+	p->startTime = 0;
+	p->stopTime = 0;
+	return (GF_Node *)p;
+}
+
+
+/*
 	TransformMatrix2D Node deletion
 */
 
@@ -19280,8 +31952,24 @@ GF_Node *gf_sg_mpeg4_node_new(u32 NodeTag)
 		return DiscSensor_Create();
 	case TAG_MPEG4_ElevationGrid:
 		return ElevationGrid_Create();
+	case TAG_MPEG4_Expression:
+		return Expression_Create();
 	case TAG_MPEG4_Extrusion:
 		return Extrusion_Create();
+	case TAG_MPEG4_Face:
+		return Face_Create();
+	case TAG_MPEG4_FaceDefMesh:
+		return FaceDefMesh_Create();
+	case TAG_MPEG4_FaceDefTables:
+		return FaceDefTables_Create();
+	case TAG_MPEG4_FaceDefTransform:
+		return FaceDefTransform_Create();
+	case TAG_MPEG4_FAP:
+		return FAP_Create();
+	case TAG_MPEG4_FDP:
+		return FDP_Create();
+	case TAG_MPEG4_FIT:
+		return FIT_Create();
 	case TAG_MPEG4_Fog:
 		return Fog_Create();
 	case TAG_MPEG4_FontStyle:
@@ -19394,6 +32082,8 @@ GF_Node *gf_sg_mpeg4_node_new(u32 NodeTag)
 		return Viewpoint_Create();
 	case TAG_MPEG4_VisibilitySensor:
 		return VisibilitySensor_Create();
+	case TAG_MPEG4_Viseme:
+		return Viseme_Create();
 	case TAG_MPEG4_WorldInfo:
 		return WorldInfo_Create();
 	case TAG_MPEG4_AcousticMaterial:
@@ -19402,6 +32092,16 @@ GF_Node *gf_sg_mpeg4_node_new(u32 NodeTag)
 		return AcousticScene_Create();
 	case TAG_MPEG4_ApplicationWindow:
 		return ApplicationWindow_Create();
+	case TAG_MPEG4_BAP:
+		return BAP_Create();
+	case TAG_MPEG4_BDP:
+		return BDP_Create();
+	case TAG_MPEG4_Body:
+		return Body_Create();
+	case TAG_MPEG4_BodyDefTable:
+		return BodyDefTable_Create();
+	case TAG_MPEG4_BodySegmentConnectionHint:
+		return BodySegmentConnectionHint_Create();
 	case TAG_MPEG4_DirectiveSound:
 		return DirectiveSound_Create();
 	case TAG_MPEG4_Hierarchical3DMesh:
@@ -19426,18 +32126,84 @@ GF_Node *gf_sg_mpeg4_node_new(u32 NodeTag)
 		return MediaControl_Create();
 	case TAG_MPEG4_MediaSensor:
 		return MediaSensor_Create();
+	case TAG_MPEG4_BitWrapper:
+		return BitWrapper_Create();
 	case TAG_MPEG4_CoordinateInterpolator4D:
 		return CoordinateInterpolator4D_Create();
+	case TAG_MPEG4_DepthImage:
+		return DepthImage_Create();
+	case TAG_MPEG4_FFD:
+		return FFD_Create();
+	case TAG_MPEG4_Implicit:
+		return Implicit_Create();
+	case TAG_MPEG4_XXLFM_Appearance:
+		return XXLFM_Appearance_Create();
+	case TAG_MPEG4_XXLFM_BlendList:
+		return XXLFM_BlendList_Create();
+	case TAG_MPEG4_XXLFM_FrameList:
+		return XXLFM_FrameList_Create();
+	case TAG_MPEG4_XXLFM_LightMap:
+		return XXLFM_LightMap_Create();
+	case TAG_MPEG4_XXLFM_SurfaceMapList:
+		return XXLFM_SurfaceMapList_Create();
+	case TAG_MPEG4_XXLFM_ViewMapList:
+		return XXLFM_ViewMapList_Create();
+	case TAG_MPEG4_MeshGrid:
+		return MeshGrid_Create();
 	case TAG_MPEG4_NonLinearDeformer:
 		return NonLinearDeformer_Create();
+	case TAG_MPEG4_NurbsCurve:
+		return NurbsCurve_Create();
+	case TAG_MPEG4_NurbsCurve2D:
+		return NurbsCurve2D_Create();
+	case TAG_MPEG4_NurbsSurface:
+		return NurbsSurface_Create();
+	case TAG_MPEG4_OctreeImage:
+		return OctreeImage_Create();
+	case TAG_MPEG4_XXParticles:
+		return XXParticles_Create();
+	case TAG_MPEG4_XXParticleInitBox:
+		return XXParticleInitBox_Create();
+	case TAG_MPEG4_XXPlanarObstacle:
+		return XXPlanarObstacle_Create();
+	case TAG_MPEG4_XXPointAttractor:
+		return XXPointAttractor_Create();
+	case TAG_MPEG4_PointTexture:
+		return PointTexture_Create();
 	case TAG_MPEG4_PositionAnimator:
 		return PositionAnimator_Create();
 	case TAG_MPEG4_PositionAnimator2D:
 		return PositionAnimator2D_Create();
 	case TAG_MPEG4_PositionInterpolator4D:
 		return PositionInterpolator4D_Create();
+	case TAG_MPEG4_ProceduralTexture:
+		return ProceduralTexture_Create();
+	case TAG_MPEG4_Quadric:
+		return Quadric_Create();
+	case TAG_MPEG4_SBBone:
+		return SBBone_Create();
+	case TAG_MPEG4_SBMuscle:
+		return SBMuscle_Create();
+	case TAG_MPEG4_SBSegment:
+		return SBSegment_Create();
+	case TAG_MPEG4_SBSite:
+		return SBSite_Create();
+	case TAG_MPEG4_SBSkinnedModel:
+		return SBSkinnedModel_Create();
+	case TAG_MPEG4_SBVCAnimation:
+		return SBVCAnimation_Create();
 	case TAG_MPEG4_ScalarAnimator:
 		return ScalarAnimator_Create();
+	case TAG_MPEG4_SimpleTexture:
+		return SimpleTexture_Create();
+	case TAG_MPEG4_SolidRep:
+		return SolidRep_Create();
+	case TAG_MPEG4_SubdivisionSurface:
+		return SubdivisionSurface_Create();
+	case TAG_MPEG4_SubdivSurfaceSector:
+		return SubdivSurfaceSector_Create();
+	case TAG_MPEG4_WaveletSubdivisionSurface:
+		return WaveletSubdivisionSurface_Create();
 	case TAG_MPEG4_Clipper2D:
 		return Clipper2D_Create();
 	case TAG_MPEG4_ColorTransform:
@@ -19450,6 +32216,8 @@ GF_Node *gf_sg_mpeg4_node_new(u32 NodeTag)
 		return PathLayout_Create();
 	case TAG_MPEG4_RadialGradient:
 		return RadialGradient_Create();
+	case TAG_MPEG4_SynthesizedTexture:
+		return SynthesizedTexture_Create();
 	case TAG_MPEG4_TransformMatrix2D:
 		return TransformMatrix2D_Create();
 	case TAG_MPEG4_Viewport:
@@ -19534,8 +32302,24 @@ const char *gf_sg_mpeg4_node_get_class_name(u32 NodeTag)
 		return "DiscSensor";
 	case TAG_MPEG4_ElevationGrid:
 		return "ElevationGrid";
+	case TAG_MPEG4_Expression:
+		return "Expression";
 	case TAG_MPEG4_Extrusion:
 		return "Extrusion";
+	case TAG_MPEG4_Face:
+		return "Face";
+	case TAG_MPEG4_FaceDefMesh:
+		return "FaceDefMesh";
+	case TAG_MPEG4_FaceDefTables:
+		return "FaceDefTables";
+	case TAG_MPEG4_FaceDefTransform:
+		return "FaceDefTransform";
+	case TAG_MPEG4_FAP:
+		return "FAP";
+	case TAG_MPEG4_FDP:
+		return "FDP";
+	case TAG_MPEG4_FIT:
+		return "FIT";
 	case TAG_MPEG4_Fog:
 		return "Fog";
 	case TAG_MPEG4_FontStyle:
@@ -19648,6 +32432,8 @@ const char *gf_sg_mpeg4_node_get_class_name(u32 NodeTag)
 		return "Viewpoint";
 	case TAG_MPEG4_VisibilitySensor:
 		return "VisibilitySensor";
+	case TAG_MPEG4_Viseme:
+		return "Viseme";
 	case TAG_MPEG4_WorldInfo:
 		return "WorldInfo";
 	case TAG_MPEG4_AcousticMaterial:
@@ -19656,6 +32442,16 @@ const char *gf_sg_mpeg4_node_get_class_name(u32 NodeTag)
 		return "AcousticScene";
 	case TAG_MPEG4_ApplicationWindow:
 		return "ApplicationWindow";
+	case TAG_MPEG4_BAP:
+		return "BAP";
+	case TAG_MPEG4_BDP:
+		return "BDP";
+	case TAG_MPEG4_Body:
+		return "Body";
+	case TAG_MPEG4_BodyDefTable:
+		return "BodyDefTable";
+	case TAG_MPEG4_BodySegmentConnectionHint:
+		return "BodySegmentConnectionHint";
 	case TAG_MPEG4_DirectiveSound:
 		return "DirectiveSound";
 	case TAG_MPEG4_Hierarchical3DMesh:
@@ -19680,18 +32476,84 @@ const char *gf_sg_mpeg4_node_get_class_name(u32 NodeTag)
 		return "MediaControl";
 	case TAG_MPEG4_MediaSensor:
 		return "MediaSensor";
+	case TAG_MPEG4_BitWrapper:
+		return "BitWrapper";
 	case TAG_MPEG4_CoordinateInterpolator4D:
 		return "CoordinateInterpolator4D";
+	case TAG_MPEG4_DepthImage:
+		return "DepthImage";
+	case TAG_MPEG4_FFD:
+		return "FFD";
+	case TAG_MPEG4_Implicit:
+		return "Implicit";
+	case TAG_MPEG4_XXLFM_Appearance:
+		return "XXLFM_Appearance";
+	case TAG_MPEG4_XXLFM_BlendList:
+		return "XXLFM_BlendList";
+	case TAG_MPEG4_XXLFM_FrameList:
+		return "XXLFM_FrameList";
+	case TAG_MPEG4_XXLFM_LightMap:
+		return "XXLFM_LightMap";
+	case TAG_MPEG4_XXLFM_SurfaceMapList:
+		return "XXLFM_SurfaceMapList";
+	case TAG_MPEG4_XXLFM_ViewMapList:
+		return "XXLFM_ViewMapList";
+	case TAG_MPEG4_MeshGrid:
+		return "MeshGrid";
 	case TAG_MPEG4_NonLinearDeformer:
 		return "NonLinearDeformer";
+	case TAG_MPEG4_NurbsCurve:
+		return "NurbsCurve";
+	case TAG_MPEG4_NurbsCurve2D:
+		return "NurbsCurve2D";
+	case TAG_MPEG4_NurbsSurface:
+		return "NurbsSurface";
+	case TAG_MPEG4_OctreeImage:
+		return "OctreeImage";
+	case TAG_MPEG4_XXParticles:
+		return "XXParticles";
+	case TAG_MPEG4_XXParticleInitBox:
+		return "XXParticleInitBox";
+	case TAG_MPEG4_XXPlanarObstacle:
+		return "XXPlanarObstacle";
+	case TAG_MPEG4_XXPointAttractor:
+		return "XXPointAttractor";
+	case TAG_MPEG4_PointTexture:
+		return "PointTexture";
 	case TAG_MPEG4_PositionAnimator:
 		return "PositionAnimator";
 	case TAG_MPEG4_PositionAnimator2D:
 		return "PositionAnimator2D";
 	case TAG_MPEG4_PositionInterpolator4D:
 		return "PositionInterpolator4D";
+	case TAG_MPEG4_ProceduralTexture:
+		return "ProceduralTexture";
+	case TAG_MPEG4_Quadric:
+		return "Quadric";
+	case TAG_MPEG4_SBBone:
+		return "SBBone";
+	case TAG_MPEG4_SBMuscle:
+		return "SBMuscle";
+	case TAG_MPEG4_SBSegment:
+		return "SBSegment";
+	case TAG_MPEG4_SBSite:
+		return "SBSite";
+	case TAG_MPEG4_SBSkinnedModel:
+		return "SBSkinnedModel";
+	case TAG_MPEG4_SBVCAnimation:
+		return "SBVCAnimation";
 	case TAG_MPEG4_ScalarAnimator:
 		return "ScalarAnimator";
+	case TAG_MPEG4_SimpleTexture:
+		return "SimpleTexture";
+	case TAG_MPEG4_SolidRep:
+		return "SolidRep";
+	case TAG_MPEG4_SubdivisionSurface:
+		return "SubdivisionSurface";
+	case TAG_MPEG4_SubdivSurfaceSector:
+		return "SubdivSurfaceSector";
+	case TAG_MPEG4_WaveletSubdivisionSurface:
+		return "WaveletSubdivisionSurface";
 	case TAG_MPEG4_Clipper2D:
 		return "Clipper2D";
 	case TAG_MPEG4_ColorTransform:
@@ -19704,6 +32566,8 @@ const char *gf_sg_mpeg4_node_get_class_name(u32 NodeTag)
 		return "PathLayout";
 	case TAG_MPEG4_RadialGradient:
 		return "RadialGradient";
+	case TAG_MPEG4_SynthesizedTexture:
+		return "SynthesizedTexture";
 	case TAG_MPEG4_TransformMatrix2D:
 		return "TransformMatrix2D";
 	case TAG_MPEG4_Viewport:
@@ -19788,8 +32652,24 @@ void gf_sg_mpeg4_node_del(GF_Node *node)
 		DiscSensor_Del(node); return;
 	case TAG_MPEG4_ElevationGrid:
 		ElevationGrid_Del(node); return;
+	case TAG_MPEG4_Expression:
+		Expression_Del(node); return;
 	case TAG_MPEG4_Extrusion:
 		Extrusion_Del(node); return;
+	case TAG_MPEG4_Face:
+		Face_Del(node); return;
+	case TAG_MPEG4_FaceDefMesh:
+		FaceDefMesh_Del(node); return;
+	case TAG_MPEG4_FaceDefTables:
+		FaceDefTables_Del(node); return;
+	case TAG_MPEG4_FaceDefTransform:
+		FaceDefTransform_Del(node); return;
+	case TAG_MPEG4_FAP:
+		FAP_Del(node); return;
+	case TAG_MPEG4_FDP:
+		FDP_Del(node); return;
+	case TAG_MPEG4_FIT:
+		FIT_Del(node); return;
 	case TAG_MPEG4_Fog:
 		Fog_Del(node); return;
 	case TAG_MPEG4_FontStyle:
@@ -19902,6 +32782,8 @@ void gf_sg_mpeg4_node_del(GF_Node *node)
 		Viewpoint_Del(node); return;
 	case TAG_MPEG4_VisibilitySensor:
 		VisibilitySensor_Del(node); return;
+	case TAG_MPEG4_Viseme:
+		Viseme_Del(node); return;
 	case TAG_MPEG4_WorldInfo:
 		WorldInfo_Del(node); return;
 	case TAG_MPEG4_AcousticMaterial:
@@ -19910,6 +32792,16 @@ void gf_sg_mpeg4_node_del(GF_Node *node)
 		AcousticScene_Del(node); return;
 	case TAG_MPEG4_ApplicationWindow:
 		ApplicationWindow_Del(node); return;
+	case TAG_MPEG4_BAP:
+		BAP_Del(node); return;
+	case TAG_MPEG4_BDP:
+		BDP_Del(node); return;
+	case TAG_MPEG4_Body:
+		Body_Del(node); return;
+	case TAG_MPEG4_BodyDefTable:
+		BodyDefTable_Del(node); return;
+	case TAG_MPEG4_BodySegmentConnectionHint:
+		BodySegmentConnectionHint_Del(node); return;
 	case TAG_MPEG4_DirectiveSound:
 		DirectiveSound_Del(node); return;
 	case TAG_MPEG4_Hierarchical3DMesh:
@@ -19934,18 +32826,84 @@ void gf_sg_mpeg4_node_del(GF_Node *node)
 		MediaControl_Del(node); return;
 	case TAG_MPEG4_MediaSensor:
 		MediaSensor_Del(node); return;
+	case TAG_MPEG4_BitWrapper:
+		BitWrapper_Del(node); return;
 	case TAG_MPEG4_CoordinateInterpolator4D:
 		CoordinateInterpolator4D_Del(node); return;
+	case TAG_MPEG4_DepthImage:
+		DepthImage_Del(node); return;
+	case TAG_MPEG4_FFD:
+		FFD_Del(node); return;
+	case TAG_MPEG4_Implicit:
+		Implicit_Del(node); return;
+	case TAG_MPEG4_XXLFM_Appearance:
+		XXLFM_Appearance_Del(node); return;
+	case TAG_MPEG4_XXLFM_BlendList:
+		XXLFM_BlendList_Del(node); return;
+	case TAG_MPEG4_XXLFM_FrameList:
+		XXLFM_FrameList_Del(node); return;
+	case TAG_MPEG4_XXLFM_LightMap:
+		XXLFM_LightMap_Del(node); return;
+	case TAG_MPEG4_XXLFM_SurfaceMapList:
+		XXLFM_SurfaceMapList_Del(node); return;
+	case TAG_MPEG4_XXLFM_ViewMapList:
+		XXLFM_ViewMapList_Del(node); return;
+	case TAG_MPEG4_MeshGrid:
+		MeshGrid_Del(node); return;
 	case TAG_MPEG4_NonLinearDeformer:
 		NonLinearDeformer_Del(node); return;
+	case TAG_MPEG4_NurbsCurve:
+		NurbsCurve_Del(node); return;
+	case TAG_MPEG4_NurbsCurve2D:
+		NurbsCurve2D_Del(node); return;
+	case TAG_MPEG4_NurbsSurface:
+		NurbsSurface_Del(node); return;
+	case TAG_MPEG4_OctreeImage:
+		OctreeImage_Del(node); return;
+	case TAG_MPEG4_XXParticles:
+		XXParticles_Del(node); return;
+	case TAG_MPEG4_XXParticleInitBox:
+		XXParticleInitBox_Del(node); return;
+	case TAG_MPEG4_XXPlanarObstacle:
+		XXPlanarObstacle_Del(node); return;
+	case TAG_MPEG4_XXPointAttractor:
+		XXPointAttractor_Del(node); return;
+	case TAG_MPEG4_PointTexture:
+		PointTexture_Del(node); return;
 	case TAG_MPEG4_PositionAnimator:
 		PositionAnimator_Del(node); return;
 	case TAG_MPEG4_PositionAnimator2D:
 		PositionAnimator2D_Del(node); return;
 	case TAG_MPEG4_PositionInterpolator4D:
 		PositionInterpolator4D_Del(node); return;
+	case TAG_MPEG4_ProceduralTexture:
+		ProceduralTexture_Del(node); return;
+	case TAG_MPEG4_Quadric:
+		Quadric_Del(node); return;
+	case TAG_MPEG4_SBBone:
+		SBBone_Del(node); return;
+	case TAG_MPEG4_SBMuscle:
+		SBMuscle_Del(node); return;
+	case TAG_MPEG4_SBSegment:
+		SBSegment_Del(node); return;
+	case TAG_MPEG4_SBSite:
+		SBSite_Del(node); return;
+	case TAG_MPEG4_SBSkinnedModel:
+		SBSkinnedModel_Del(node); return;
+	case TAG_MPEG4_SBVCAnimation:
+		SBVCAnimation_Del(node); return;
 	case TAG_MPEG4_ScalarAnimator:
 		ScalarAnimator_Del(node); return;
+	case TAG_MPEG4_SimpleTexture:
+		SimpleTexture_Del(node); return;
+	case TAG_MPEG4_SolidRep:
+		SolidRep_Del(node); return;
+	case TAG_MPEG4_SubdivisionSurface:
+		SubdivisionSurface_Del(node); return;
+	case TAG_MPEG4_SubdivSurfaceSector:
+		SubdivSurfaceSector_Del(node); return;
+	case TAG_MPEG4_WaveletSubdivisionSurface:
+		WaveletSubdivisionSurface_Del(node); return;
 	case TAG_MPEG4_Clipper2D:
 		Clipper2D_Del(node); return;
 	case TAG_MPEG4_ColorTransform:
@@ -19958,6 +32916,8 @@ void gf_sg_mpeg4_node_del(GF_Node *node)
 		PathLayout_Del(node); return;
 	case TAG_MPEG4_RadialGradient:
 		RadialGradient_Del(node); return;
+	case TAG_MPEG4_SynthesizedTexture:
+		SynthesizedTexture_Del(node); return;
 	case TAG_MPEG4_TransformMatrix2D:
 		TransformMatrix2D_Del(node); return;
 	case TAG_MPEG4_Viewport:
@@ -20009,7 +32969,15 @@ u32 gf_sg_mpeg4_node_get_field_count(GF_Node *node, u8 code_mode)
 	case TAG_MPEG4_DirectionalLight:return DirectionalLight_get_field_count(node, code_mode);
 	case TAG_MPEG4_DiscSensor:return DiscSensor_get_field_count(node, code_mode);
 	case TAG_MPEG4_ElevationGrid:return ElevationGrid_get_field_count(node, code_mode);
+	case TAG_MPEG4_Expression:return Expression_get_field_count(node, code_mode);
 	case TAG_MPEG4_Extrusion:return Extrusion_get_field_count(node, code_mode);
+	case TAG_MPEG4_Face:return Face_get_field_count(node, code_mode);
+	case TAG_MPEG4_FaceDefMesh:return FaceDefMesh_get_field_count(node, code_mode);
+	case TAG_MPEG4_FaceDefTables:return FaceDefTables_get_field_count(node, code_mode);
+	case TAG_MPEG4_FaceDefTransform:return FaceDefTransform_get_field_count(node, code_mode);
+	case TAG_MPEG4_FAP:return FAP_get_field_count(node, code_mode);
+	case TAG_MPEG4_FDP:return FDP_get_field_count(node, code_mode);
+	case TAG_MPEG4_FIT:return FIT_get_field_count(node, code_mode);
 	case TAG_MPEG4_Fog:return Fog_get_field_count(node, code_mode);
 	case TAG_MPEG4_FontStyle:return FontStyle_get_field_count(node, code_mode);
 	case TAG_MPEG4_Form:return Form_get_field_count(node, code_mode);
@@ -20066,10 +33034,16 @@ u32 gf_sg_mpeg4_node_get_field_count(GF_Node *node, u8 code_mode)
 	case TAG_MPEG4_Valuator:return Valuator_get_field_count(node, code_mode);
 	case TAG_MPEG4_Viewpoint:return Viewpoint_get_field_count(node, code_mode);
 	case TAG_MPEG4_VisibilitySensor:return VisibilitySensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_Viseme:return Viseme_get_field_count(node, code_mode);
 	case TAG_MPEG4_WorldInfo:return WorldInfo_get_field_count(node, code_mode);
 	case TAG_MPEG4_AcousticMaterial:return AcousticMaterial_get_field_count(node, code_mode);
 	case TAG_MPEG4_AcousticScene:return AcousticScene_get_field_count(node, code_mode);
 	case TAG_MPEG4_ApplicationWindow:return ApplicationWindow_get_field_count(node, code_mode);
+	case TAG_MPEG4_BAP:return BAP_get_field_count(node, code_mode);
+	case TAG_MPEG4_BDP:return BDP_get_field_count(node, code_mode);
+	case TAG_MPEG4_Body:return Body_get_field_count(node, code_mode);
+	case TAG_MPEG4_BodyDefTable:return BodyDefTable_get_field_count(node, code_mode);
+	case TAG_MPEG4_BodySegmentConnectionHint:return BodySegmentConnectionHint_get_field_count(node, code_mode);
 	case TAG_MPEG4_DirectiveSound:return DirectiveSound_get_field_count(node, code_mode);
 	case TAG_MPEG4_Hierarchical3DMesh:return Hierarchical3DMesh_get_field_count(node, code_mode);
 	case TAG_MPEG4_MaterialKey:return MaterialKey_get_field_count(node, code_mode);
@@ -20082,18 +33056,52 @@ u32 gf_sg_mpeg4_node_get_field_count(GF_Node *node, u8 code_mode)
 	case TAG_MPEG4_MediaBuffer:return MediaBuffer_get_field_count(node, code_mode);
 	case TAG_MPEG4_MediaControl:return MediaControl_get_field_count(node, code_mode);
 	case TAG_MPEG4_MediaSensor:return MediaSensor_get_field_count(node, code_mode);
+	case TAG_MPEG4_BitWrapper:return BitWrapper_get_field_count(node, code_mode);
 	case TAG_MPEG4_CoordinateInterpolator4D:return CoordinateInterpolator4D_get_field_count(node, code_mode);
+	case TAG_MPEG4_DepthImage:return DepthImage_get_field_count(node, code_mode);
+	case TAG_MPEG4_FFD:return FFD_get_field_count(node, code_mode);
+	case TAG_MPEG4_Implicit:return Implicit_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_Appearance:return XXLFM_Appearance_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_BlendList:return XXLFM_BlendList_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_FrameList:return XXLFM_FrameList_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_LightMap:return XXLFM_LightMap_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_SurfaceMapList:return XXLFM_SurfaceMapList_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXLFM_ViewMapList:return XXLFM_ViewMapList_get_field_count(node, code_mode);
+	case TAG_MPEG4_MeshGrid:return MeshGrid_get_field_count(node, code_mode);
 	case TAG_MPEG4_NonLinearDeformer:return NonLinearDeformer_get_field_count(node, code_mode);
+	case TAG_MPEG4_NurbsCurve:return NurbsCurve_get_field_count(node, code_mode);
+	case TAG_MPEG4_NurbsCurve2D:return NurbsCurve2D_get_field_count(node, code_mode);
+	case TAG_MPEG4_NurbsSurface:return NurbsSurface_get_field_count(node, code_mode);
+	case TAG_MPEG4_OctreeImage:return OctreeImage_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXParticles:return XXParticles_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXParticleInitBox:return XXParticleInitBox_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXPlanarObstacle:return XXPlanarObstacle_get_field_count(node, code_mode);
+	case TAG_MPEG4_XXPointAttractor:return XXPointAttractor_get_field_count(node, code_mode);
+	case TAG_MPEG4_PointTexture:return PointTexture_get_field_count(node, code_mode);
 	case TAG_MPEG4_PositionAnimator:return PositionAnimator_get_field_count(node, code_mode);
 	case TAG_MPEG4_PositionAnimator2D:return PositionAnimator2D_get_field_count(node, code_mode);
 	case TAG_MPEG4_PositionInterpolator4D:return PositionInterpolator4D_get_field_count(node, code_mode);
+	case TAG_MPEG4_ProceduralTexture:return ProceduralTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_Quadric:return Quadric_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBBone:return SBBone_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBMuscle:return SBMuscle_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBSegment:return SBSegment_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBSite:return SBSite_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBSkinnedModel:return SBSkinnedModel_get_field_count(node, code_mode);
+	case TAG_MPEG4_SBVCAnimation:return SBVCAnimation_get_field_count(node, code_mode);
 	case TAG_MPEG4_ScalarAnimator:return ScalarAnimator_get_field_count(node, code_mode);
+	case TAG_MPEG4_SimpleTexture:return SimpleTexture_get_field_count(node, code_mode);
+	case TAG_MPEG4_SolidRep:return SolidRep_get_field_count(node, code_mode);
+	case TAG_MPEG4_SubdivisionSurface:return SubdivisionSurface_get_field_count(node, code_mode);
+	case TAG_MPEG4_SubdivSurfaceSector:return SubdivSurfaceSector_get_field_count(node, code_mode);
+	case TAG_MPEG4_WaveletSubdivisionSurface:return WaveletSubdivisionSurface_get_field_count(node, code_mode);
 	case TAG_MPEG4_Clipper2D:return Clipper2D_get_field_count(node, code_mode);
 	case TAG_MPEG4_ColorTransform:return ColorTransform_get_field_count(node, code_mode);
 	case TAG_MPEG4_Ellipse:return Ellipse_get_field_count(node, code_mode);
 	case TAG_MPEG4_LinearGradient:return LinearGradient_get_field_count(node, code_mode);
 	case TAG_MPEG4_PathLayout:return PathLayout_get_field_count(node, code_mode);
 	case TAG_MPEG4_RadialGradient:return RadialGradient_get_field_count(node, code_mode);
+	case TAG_MPEG4_SynthesizedTexture:return SynthesizedTexture_get_field_count(node, code_mode);
 	case TAG_MPEG4_TransformMatrix2D:return TransformMatrix2D_get_field_count(node, code_mode);
 	case TAG_MPEG4_Viewport:return Viewport_get_field_count(node, code_mode);
 	case TAG_MPEG4_XCurve2D:return XCurve2D_get_field_count(node, code_mode);
@@ -20140,7 +33148,15 @@ GF_Err gf_sg_mpeg4_node_get_field(GF_Node *node, GF_FieldInfo *field)
 	case TAG_MPEG4_DirectionalLight: return DirectionalLight_get_field(node, field);
 	case TAG_MPEG4_DiscSensor: return DiscSensor_get_field(node, field);
 	case TAG_MPEG4_ElevationGrid: return ElevationGrid_get_field(node, field);
+	case TAG_MPEG4_Expression: return Expression_get_field(node, field);
 	case TAG_MPEG4_Extrusion: return Extrusion_get_field(node, field);
+	case TAG_MPEG4_Face: return Face_get_field(node, field);
+	case TAG_MPEG4_FaceDefMesh: return FaceDefMesh_get_field(node, field);
+	case TAG_MPEG4_FaceDefTables: return FaceDefTables_get_field(node, field);
+	case TAG_MPEG4_FaceDefTransform: return FaceDefTransform_get_field(node, field);
+	case TAG_MPEG4_FAP: return FAP_get_field(node, field);
+	case TAG_MPEG4_FDP: return FDP_get_field(node, field);
+	case TAG_MPEG4_FIT: return FIT_get_field(node, field);
 	case TAG_MPEG4_Fog: return Fog_get_field(node, field);
 	case TAG_MPEG4_FontStyle: return FontStyle_get_field(node, field);
 	case TAG_MPEG4_Form: return Form_get_field(node, field);
@@ -20197,10 +33213,16 @@ GF_Err gf_sg_mpeg4_node_get_field(GF_Node *node, GF_FieldInfo *field)
 	case TAG_MPEG4_Valuator: return Valuator_get_field(node, field);
 	case TAG_MPEG4_Viewpoint: return Viewpoint_get_field(node, field);
 	case TAG_MPEG4_VisibilitySensor: return VisibilitySensor_get_field(node, field);
+	case TAG_MPEG4_Viseme: return Viseme_get_field(node, field);
 	case TAG_MPEG4_WorldInfo: return WorldInfo_get_field(node, field);
 	case TAG_MPEG4_AcousticMaterial: return AcousticMaterial_get_field(node, field);
 	case TAG_MPEG4_AcousticScene: return AcousticScene_get_field(node, field);
 	case TAG_MPEG4_ApplicationWindow: return ApplicationWindow_get_field(node, field);
+	case TAG_MPEG4_BAP: return BAP_get_field(node, field);
+	case TAG_MPEG4_BDP: return BDP_get_field(node, field);
+	case TAG_MPEG4_Body: return Body_get_field(node, field);
+	case TAG_MPEG4_BodyDefTable: return BodyDefTable_get_field(node, field);
+	case TAG_MPEG4_BodySegmentConnectionHint: return BodySegmentConnectionHint_get_field(node, field);
 	case TAG_MPEG4_DirectiveSound: return DirectiveSound_get_field(node, field);
 	case TAG_MPEG4_Hierarchical3DMesh: return Hierarchical3DMesh_get_field(node, field);
 	case TAG_MPEG4_MaterialKey: return MaterialKey_get_field(node, field);
@@ -20213,18 +33235,52 @@ GF_Err gf_sg_mpeg4_node_get_field(GF_Node *node, GF_FieldInfo *field)
 	case TAG_MPEG4_MediaBuffer: return MediaBuffer_get_field(node, field);
 	case TAG_MPEG4_MediaControl: return MediaControl_get_field(node, field);
 	case TAG_MPEG4_MediaSensor: return MediaSensor_get_field(node, field);
+	case TAG_MPEG4_BitWrapper: return BitWrapper_get_field(node, field);
 	case TAG_MPEG4_CoordinateInterpolator4D: return CoordinateInterpolator4D_get_field(node, field);
+	case TAG_MPEG4_DepthImage: return DepthImage_get_field(node, field);
+	case TAG_MPEG4_FFD: return FFD_get_field(node, field);
+	case TAG_MPEG4_Implicit: return Implicit_get_field(node, field);
+	case TAG_MPEG4_XXLFM_Appearance: return XXLFM_Appearance_get_field(node, field);
+	case TAG_MPEG4_XXLFM_BlendList: return XXLFM_BlendList_get_field(node, field);
+	case TAG_MPEG4_XXLFM_FrameList: return XXLFM_FrameList_get_field(node, field);
+	case TAG_MPEG4_XXLFM_LightMap: return XXLFM_LightMap_get_field(node, field);
+	case TAG_MPEG4_XXLFM_SurfaceMapList: return XXLFM_SurfaceMapList_get_field(node, field);
+	case TAG_MPEG4_XXLFM_ViewMapList: return XXLFM_ViewMapList_get_field(node, field);
+	case TAG_MPEG4_MeshGrid: return MeshGrid_get_field(node, field);
 	case TAG_MPEG4_NonLinearDeformer: return NonLinearDeformer_get_field(node, field);
+	case TAG_MPEG4_NurbsCurve: return NurbsCurve_get_field(node, field);
+	case TAG_MPEG4_NurbsCurve2D: return NurbsCurve2D_get_field(node, field);
+	case TAG_MPEG4_NurbsSurface: return NurbsSurface_get_field(node, field);
+	case TAG_MPEG4_OctreeImage: return OctreeImage_get_field(node, field);
+	case TAG_MPEG4_XXParticles: return XXParticles_get_field(node, field);
+	case TAG_MPEG4_XXParticleInitBox: return XXParticleInitBox_get_field(node, field);
+	case TAG_MPEG4_XXPlanarObstacle: return XXPlanarObstacle_get_field(node, field);
+	case TAG_MPEG4_XXPointAttractor: return XXPointAttractor_get_field(node, field);
+	case TAG_MPEG4_PointTexture: return PointTexture_get_field(node, field);
 	case TAG_MPEG4_PositionAnimator: return PositionAnimator_get_field(node, field);
 	case TAG_MPEG4_PositionAnimator2D: return PositionAnimator2D_get_field(node, field);
 	case TAG_MPEG4_PositionInterpolator4D: return PositionInterpolator4D_get_field(node, field);
+	case TAG_MPEG4_ProceduralTexture: return ProceduralTexture_get_field(node, field);
+	case TAG_MPEG4_Quadric: return Quadric_get_field(node, field);
+	case TAG_MPEG4_SBBone: return SBBone_get_field(node, field);
+	case TAG_MPEG4_SBMuscle: return SBMuscle_get_field(node, field);
+	case TAG_MPEG4_SBSegment: return SBSegment_get_field(node, field);
+	case TAG_MPEG4_SBSite: return SBSite_get_field(node, field);
+	case TAG_MPEG4_SBSkinnedModel: return SBSkinnedModel_get_field(node, field);
+	case TAG_MPEG4_SBVCAnimation: return SBVCAnimation_get_field(node, field);
 	case TAG_MPEG4_ScalarAnimator: return ScalarAnimator_get_field(node, field);
+	case TAG_MPEG4_SimpleTexture: return SimpleTexture_get_field(node, field);
+	case TAG_MPEG4_SolidRep: return SolidRep_get_field(node, field);
+	case TAG_MPEG4_SubdivisionSurface: return SubdivisionSurface_get_field(node, field);
+	case TAG_MPEG4_SubdivSurfaceSector: return SubdivSurfaceSector_get_field(node, field);
+	case TAG_MPEG4_WaveletSubdivisionSurface: return WaveletSubdivisionSurface_get_field(node, field);
 	case TAG_MPEG4_Clipper2D: return Clipper2D_get_field(node, field);
 	case TAG_MPEG4_ColorTransform: return ColorTransform_get_field(node, field);
 	case TAG_MPEG4_Ellipse: return Ellipse_get_field(node, field);
 	case TAG_MPEG4_LinearGradient: return LinearGradient_get_field(node, field);
 	case TAG_MPEG4_PathLayout: return PathLayout_get_field(node, field);
 	case TAG_MPEG4_RadialGradient: return RadialGradient_get_field(node, field);
+	case TAG_MPEG4_SynthesizedTexture: return SynthesizedTexture_get_field(node, field);
 	case TAG_MPEG4_TransformMatrix2D: return TransformMatrix2D_get_field(node, field);
 	case TAG_MPEG4_Viewport: return Viewport_get_field(node, field);
 	case TAG_MPEG4_XCurve2D: return XCurve2D_get_field(node, field);
@@ -20271,7 +33327,15 @@ GF_Err gf_sg_mpeg4_node_get_field_index(GF_Node *node, u32 inField, u8 code_mode
 	case TAG_MPEG4_DirectionalLight: return DirectionalLight_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_DiscSensor: return DiscSensor_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_ElevationGrid: return ElevationGrid_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Expression: return Expression_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_Extrusion: return Extrusion_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Face: return Face_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FaceDefMesh: return FaceDefMesh_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FaceDefTables: return FaceDefTables_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FaceDefTransform: return FaceDefTransform_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FAP: return FAP_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FDP: return FDP_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FIT: return FIT_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_Fog: return Fog_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_FontStyle: return FontStyle_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_Form: return Form_get_field_index(node, inField, code_mode, fieldIndex);
@@ -20328,10 +33392,16 @@ GF_Err gf_sg_mpeg4_node_get_field_index(GF_Node *node, u32 inField, u8 code_mode
 	case TAG_MPEG4_Valuator: return Valuator_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_Viewpoint: return Viewpoint_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_VisibilitySensor: return VisibilitySensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Viseme: return Viseme_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_WorldInfo: return WorldInfo_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_AcousticMaterial: return AcousticMaterial_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_AcousticScene: return AcousticScene_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_ApplicationWindow: return ApplicationWindow_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_BAP: return BAP_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_BDP: return BDP_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Body: return Body_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_BodyDefTable: return BodyDefTable_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_BodySegmentConnectionHint: return BodySegmentConnectionHint_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_DirectiveSound: return DirectiveSound_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_Hierarchical3DMesh: return Hierarchical3DMesh_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_MaterialKey: return MaterialKey_get_field_index(node, inField, code_mode, fieldIndex);
@@ -20344,18 +33414,52 @@ GF_Err gf_sg_mpeg4_node_get_field_index(GF_Node *node, u32 inField, u8 code_mode
 	case TAG_MPEG4_MediaBuffer: return MediaBuffer_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_MediaControl: return MediaControl_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_MediaSensor: return MediaSensor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_BitWrapper: return BitWrapper_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_CoordinateInterpolator4D: return CoordinateInterpolator4D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_DepthImage: return DepthImage_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_FFD: return FFD_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Implicit: return Implicit_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_Appearance: return XXLFM_Appearance_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_BlendList: return XXLFM_BlendList_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_FrameList: return XXLFM_FrameList_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_LightMap: return XXLFM_LightMap_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_SurfaceMapList: return XXLFM_SurfaceMapList_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXLFM_ViewMapList: return XXLFM_ViewMapList_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_MeshGrid: return MeshGrid_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_NonLinearDeformer: return NonLinearDeformer_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_NurbsCurve: return NurbsCurve_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_NurbsCurve2D: return NurbsCurve2D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_NurbsSurface: return NurbsSurface_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_OctreeImage: return OctreeImage_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXParticles: return XXParticles_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXParticleInitBox: return XXParticleInitBox_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXPlanarObstacle: return XXPlanarObstacle_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_XXPointAttractor: return XXPointAttractor_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_PointTexture: return PointTexture_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_PositionAnimator: return PositionAnimator_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_PositionAnimator2D: return PositionAnimator2D_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_PositionInterpolator4D: return PositionInterpolator4D_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_ProceduralTexture: return ProceduralTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_Quadric: return Quadric_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBBone: return SBBone_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBMuscle: return SBMuscle_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBSegment: return SBSegment_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBSite: return SBSite_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBSkinnedModel: return SBSkinnedModel_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SBVCAnimation: return SBVCAnimation_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_ScalarAnimator: return ScalarAnimator_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SimpleTexture: return SimpleTexture_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SolidRep: return SolidRep_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SubdivisionSurface: return SubdivisionSurface_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SubdivSurfaceSector: return SubdivSurfaceSector_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_WaveletSubdivisionSurface: return WaveletSubdivisionSurface_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_Clipper2D: return Clipper2D_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_ColorTransform: return ColorTransform_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_Ellipse: return Ellipse_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_LinearGradient: return LinearGradient_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_PathLayout: return PathLayout_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_RadialGradient: return RadialGradient_get_field_index(node, inField, code_mode, fieldIndex);
+	case TAG_MPEG4_SynthesizedTexture: return SynthesizedTexture_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_TransformMatrix2D: return TransformMatrix2D_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_Viewport: return Viewport_get_field_index(node, inField, code_mode, fieldIndex);
 	case TAG_MPEG4_XCurve2D: return XCurve2D_get_field_index(node, inField, code_mode, fieldIndex);
@@ -20402,7 +33506,15 @@ Bool gf_sg_mpeg4_node_get_aq_info(GF_Node *node, u32 FieldIndex, u8 *QType, u8 *
 	case TAG_MPEG4_DirectionalLight: return DirectionalLight_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_DiscSensor: return DiscSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_ElevationGrid: return ElevationGrid_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Expression: return Expression_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_Extrusion: return Extrusion_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Face: return Face_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FaceDefMesh: return FaceDefMesh_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FaceDefTables: return FaceDefTables_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FaceDefTransform: return FaceDefTransform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FAP: return FAP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FDP: return FDP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FIT: return FIT_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_Fog: return Fog_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_FontStyle: return FontStyle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_Form: return Form_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
@@ -20459,10 +33571,16 @@ Bool gf_sg_mpeg4_node_get_aq_info(GF_Node *node, u32 FieldIndex, u8 *QType, u8 *
 	case TAG_MPEG4_Valuator: return Valuator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_Viewpoint: return Viewpoint_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_VisibilitySensor: return VisibilitySensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Viseme: return Viseme_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_WorldInfo: return WorldInfo_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_AcousticMaterial: return AcousticMaterial_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_AcousticScene: return AcousticScene_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_ApplicationWindow: return ApplicationWindow_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_BAP: return BAP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_BDP: return BDP_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Body: return Body_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_BodyDefTable: return BodyDefTable_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_BodySegmentConnectionHint: return BodySegmentConnectionHint_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_DirectiveSound: return DirectiveSound_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_Hierarchical3DMesh: return Hierarchical3DMesh_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_MaterialKey: return MaterialKey_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
@@ -20475,18 +33593,52 @@ Bool gf_sg_mpeg4_node_get_aq_info(GF_Node *node, u32 FieldIndex, u8 *QType, u8 *
 	case TAG_MPEG4_MediaBuffer: return MediaBuffer_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_MediaControl: return MediaControl_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_MediaSensor: return MediaSensor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_BitWrapper: return BitWrapper_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_CoordinateInterpolator4D: return CoordinateInterpolator4D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_DepthImage: return DepthImage_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_FFD: return FFD_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Implicit: return Implicit_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_Appearance: return XXLFM_Appearance_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_BlendList: return XXLFM_BlendList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_FrameList: return XXLFM_FrameList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_LightMap: return XXLFM_LightMap_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_SurfaceMapList: return XXLFM_SurfaceMapList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXLFM_ViewMapList: return XXLFM_ViewMapList_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_MeshGrid: return MeshGrid_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_NonLinearDeformer: return NonLinearDeformer_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_NurbsCurve: return NurbsCurve_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_NurbsCurve2D: return NurbsCurve2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_NurbsSurface: return NurbsSurface_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_OctreeImage: return OctreeImage_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXParticles: return XXParticles_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXParticleInitBox: return XXParticleInitBox_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXPlanarObstacle: return XXPlanarObstacle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_XXPointAttractor: return XXPointAttractor_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_PointTexture: return PointTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_PositionAnimator: return PositionAnimator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_PositionAnimator2D: return PositionAnimator2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_PositionInterpolator4D: return PositionInterpolator4D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_ProceduralTexture: return ProceduralTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_Quadric: return Quadric_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBBone: return SBBone_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBMuscle: return SBMuscle_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBSegment: return SBSegment_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBSite: return SBSite_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBSkinnedModel: return SBSkinnedModel_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SBVCAnimation: return SBVCAnimation_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_ScalarAnimator: return ScalarAnimator_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SimpleTexture: return SimpleTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SolidRep: return SolidRep_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SubdivisionSurface: return SubdivisionSurface_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SubdivSurfaceSector: return SubdivSurfaceSector_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_WaveletSubdivisionSurface: return WaveletSubdivisionSurface_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_Clipper2D: return Clipper2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_ColorTransform: return ColorTransform_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_Ellipse: return Ellipse_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_LinearGradient: return LinearGradient_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_PathLayout: return PathLayout_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_RadialGradient: return RadialGradient_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	case TAG_MPEG4_SynthesizedTexture: return SynthesizedTexture_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_TransformMatrix2D: return TransformMatrix2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_Viewport: return Viewport_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	case TAG_MPEG4_XCurve2D: return XCurve2D_get_aq_info(node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
@@ -20511,6 +33663,9 @@ u32 gf_sg_mpeg4_node_get_child_ndt(GF_Node *node)
 	case TAG_MPEG4_Collision: return NDT_SF3DNode;
 	case TAG_MPEG4_CompositeTexture2D: return NDT_SF2DNode;
 	case TAG_MPEG4_CompositeTexture3D: return NDT_SF3DNode;
+	case TAG_MPEG4_Face: return NDT_SF3DNode;
+	case TAG_MPEG4_FaceDefTables: return NDT_SFFaceDefMeshNode;
+	case TAG_MPEG4_FDP: return NDT_SFFaceDefTablesNode;
 	case TAG_MPEG4_Form: return NDT_SF2DNode;
 	case TAG_MPEG4_Group: return NDT_SF3DNode;
 	case TAG_MPEG4_LOD: return NDT_SF3DNode;
@@ -20521,8 +33676,20 @@ u32 gf_sg_mpeg4_node_get_child_ndt(GF_Node *node)
 	case TAG_MPEG4_Switch: return NDT_SF3DNode;
 	case TAG_MPEG4_Transform: return NDT_SF3DNode;
 	case TAG_MPEG4_Transform2D: return NDT_SF2DNode;
+	case TAG_MPEG4_BDP: return NDT_SFBodyDefTableNode;
+	case TAG_MPEG4_Body: return NDT_SF3DNode;
 	case TAG_MPEG4_TemporalTransform: return NDT_SF3DNode;
 	case TAG_MPEG4_TemporalGroup: return NDT_SFTemporalNode;
+	case TAG_MPEG4_FFD: return NDT_SF3DNode;
+	case TAG_MPEG4_XXLFM_Appearance: return NDT_SFLightMapNode;
+	case TAG_MPEG4_OctreeImage: return NDT_SFDepthImageNode;
+	case TAG_MPEG4_XXParticles: return NDT_SFInfluenceNode;
+	case TAG_MPEG4_SBBone: return NDT_SF3DNode;
+	case TAG_MPEG4_SBSegment: return NDT_SF3DNode;
+	case TAG_MPEG4_SBSite: return NDT_SF3DNode;
+	case TAG_MPEG4_SBSkinnedModel: return NDT_SFSBBoneNode;
+	case TAG_MPEG4_SBVCAnimation: return NDT_SF3DNode;
+	case TAG_MPEG4_SubdivisionSurface: return NDT_SFSubdivSurfaceSectorNode;
 	case TAG_MPEG4_Clipper2D: return NDT_SF2DNode;
 	case TAG_MPEG4_ColorTransform: return NDT_SF3DNode;
 	case TAG_MPEG4_PathLayout: return NDT_SF2DNode;
@@ -20569,7 +33736,15 @@ u32 gf_node_mpeg4_type_by_class_name(const char *node_name)
 	if (!strcmp(node_name, "DirectionalLight")) return TAG_MPEG4_DirectionalLight;
 	if (!strcmp(node_name, "DiscSensor")) return TAG_MPEG4_DiscSensor;
 	if (!strcmp(node_name, "ElevationGrid")) return TAG_MPEG4_ElevationGrid;
+	if (!strcmp(node_name, "Expression")) return TAG_MPEG4_Expression;
 	if (!strcmp(node_name, "Extrusion")) return TAG_MPEG4_Extrusion;
+	if (!strcmp(node_name, "Face")) return TAG_MPEG4_Face;
+	if (!strcmp(node_name, "FaceDefMesh")) return TAG_MPEG4_FaceDefMesh;
+	if (!strcmp(node_name, "FaceDefTables")) return TAG_MPEG4_FaceDefTables;
+	if (!strcmp(node_name, "FaceDefTransform")) return TAG_MPEG4_FaceDefTransform;
+	if (!strcmp(node_name, "FAP")) return TAG_MPEG4_FAP;
+	if (!strcmp(node_name, "FDP")) return TAG_MPEG4_FDP;
+	if (!strcmp(node_name, "FIT")) return TAG_MPEG4_FIT;
 	if (!strcmp(node_name, "Fog")) return TAG_MPEG4_Fog;
 	if (!strcmp(node_name, "FontStyle")) return TAG_MPEG4_FontStyle;
 	if (!strcmp(node_name, "Form")) return TAG_MPEG4_Form;
@@ -20626,10 +33801,16 @@ u32 gf_node_mpeg4_type_by_class_name(const char *node_name)
 	if (!strcmp(node_name, "Valuator")) return TAG_MPEG4_Valuator;
 	if (!strcmp(node_name, "Viewpoint")) return TAG_MPEG4_Viewpoint;
 	if (!strcmp(node_name, "VisibilitySensor")) return TAG_MPEG4_VisibilitySensor;
+	if (!strcmp(node_name, "Viseme")) return TAG_MPEG4_Viseme;
 	if (!strcmp(node_name, "WorldInfo")) return TAG_MPEG4_WorldInfo;
 	if (!strcmp(node_name, "AcousticMaterial")) return TAG_MPEG4_AcousticMaterial;
 	if (!strcmp(node_name, "AcousticScene")) return TAG_MPEG4_AcousticScene;
 	if (!strcmp(node_name, "ApplicationWindow")) return TAG_MPEG4_ApplicationWindow;
+	if (!strcmp(node_name, "BAP")) return TAG_MPEG4_BAP;
+	if (!strcmp(node_name, "BDP")) return TAG_MPEG4_BDP;
+	if (!strcmp(node_name, "Body")) return TAG_MPEG4_Body;
+	if (!strcmp(node_name, "BodyDefTable")) return TAG_MPEG4_BodyDefTable;
+	if (!strcmp(node_name, "BodySegmentConnectionHint")) return TAG_MPEG4_BodySegmentConnectionHint;
 	if (!strcmp(node_name, "DirectiveSound")) return TAG_MPEG4_DirectiveSound;
 	if (!strcmp(node_name, "Hierarchical3DMesh")) return TAG_MPEG4_Hierarchical3DMesh;
 	if (!strcmp(node_name, "MaterialKey")) return TAG_MPEG4_MaterialKey;
@@ -20642,18 +33823,52 @@ u32 gf_node_mpeg4_type_by_class_name(const char *node_name)
 	if (!strcmp(node_name, "MediaBuffer")) return TAG_MPEG4_MediaBuffer;
 	if (!strcmp(node_name, "MediaControl")) return TAG_MPEG4_MediaControl;
 	if (!strcmp(node_name, "MediaSensor")) return TAG_MPEG4_MediaSensor;
+	if (!strcmp(node_name, "BitWrapper")) return TAG_MPEG4_BitWrapper;
 	if (!strcmp(node_name, "CoordinateInterpolator4D")) return TAG_MPEG4_CoordinateInterpolator4D;
+	if (!strcmp(node_name, "DepthImage")) return TAG_MPEG4_DepthImage;
+	if (!strcmp(node_name, "FFD")) return TAG_MPEG4_FFD;
+	if (!strcmp(node_name, "Implicit")) return TAG_MPEG4_Implicit;
+	if (!strcmp(node_name, "XXLFM_Appearance")) return TAG_MPEG4_XXLFM_Appearance;
+	if (!strcmp(node_name, "XXLFM_BlendList")) return TAG_MPEG4_XXLFM_BlendList;
+	if (!strcmp(node_name, "XXLFM_FrameList")) return TAG_MPEG4_XXLFM_FrameList;
+	if (!strcmp(node_name, "XXLFM_LightMap")) return TAG_MPEG4_XXLFM_LightMap;
+	if (!strcmp(node_name, "XXLFM_SurfaceMapList")) return TAG_MPEG4_XXLFM_SurfaceMapList;
+	if (!strcmp(node_name, "XXLFM_ViewMapList")) return TAG_MPEG4_XXLFM_ViewMapList;
+	if (!strcmp(node_name, "MeshGrid")) return TAG_MPEG4_MeshGrid;
 	if (!strcmp(node_name, "NonLinearDeformer")) return TAG_MPEG4_NonLinearDeformer;
+	if (!strcmp(node_name, "NurbsCurve")) return TAG_MPEG4_NurbsCurve;
+	if (!strcmp(node_name, "NurbsCurve2D")) return TAG_MPEG4_NurbsCurve2D;
+	if (!strcmp(node_name, "NurbsSurface")) return TAG_MPEG4_NurbsSurface;
+	if (!strcmp(node_name, "OctreeImage")) return TAG_MPEG4_OctreeImage;
+	if (!strcmp(node_name, "XXParticles")) return TAG_MPEG4_XXParticles;
+	if (!strcmp(node_name, "XXParticleInitBox")) return TAG_MPEG4_XXParticleInitBox;
+	if (!strcmp(node_name, "XXPlanarObstacle")) return TAG_MPEG4_XXPlanarObstacle;
+	if (!strcmp(node_name, "XXPointAttractor")) return TAG_MPEG4_XXPointAttractor;
+	if (!strcmp(node_name, "PointTexture")) return TAG_MPEG4_PointTexture;
 	if (!strcmp(node_name, "PositionAnimator")) return TAG_MPEG4_PositionAnimator;
 	if (!strcmp(node_name, "PositionAnimator2D")) return TAG_MPEG4_PositionAnimator2D;
 	if (!strcmp(node_name, "PositionInterpolator4D")) return TAG_MPEG4_PositionInterpolator4D;
+	if (!strcmp(node_name, "ProceduralTexture")) return TAG_MPEG4_ProceduralTexture;
+	if (!strcmp(node_name, "Quadric")) return TAG_MPEG4_Quadric;
+	if (!strcmp(node_name, "SBBone")) return TAG_MPEG4_SBBone;
+	if (!strcmp(node_name, "SBMuscle")) return TAG_MPEG4_SBMuscle;
+	if (!strcmp(node_name, "SBSegment")) return TAG_MPEG4_SBSegment;
+	if (!strcmp(node_name, "SBSite")) return TAG_MPEG4_SBSite;
+	if (!strcmp(node_name, "SBSkinnedModel")) return TAG_MPEG4_SBSkinnedModel;
+	if (!strcmp(node_name, "SBVCAnimation")) return TAG_MPEG4_SBVCAnimation;
 	if (!strcmp(node_name, "ScalarAnimator")) return TAG_MPEG4_ScalarAnimator;
+	if (!strcmp(node_name, "SimpleTexture")) return TAG_MPEG4_SimpleTexture;
+	if (!strcmp(node_name, "SolidRep")) return TAG_MPEG4_SolidRep;
+	if (!strcmp(node_name, "SubdivisionSurface")) return TAG_MPEG4_SubdivisionSurface;
+	if (!strcmp(node_name, "SubdivSurfaceSector")) return TAG_MPEG4_SubdivSurfaceSector;
+	if (!strcmp(node_name, "WaveletSubdivisionSurface")) return TAG_MPEG4_WaveletSubdivisionSurface;
 	if (!strcmp(node_name, "Clipper2D")) return TAG_MPEG4_Clipper2D;
 	if (!strcmp(node_name, "ColorTransform")) return TAG_MPEG4_ColorTransform;
 	if (!strcmp(node_name, "Ellipse")) return TAG_MPEG4_Ellipse;
 	if (!strcmp(node_name, "LinearGradient")) return TAG_MPEG4_LinearGradient;
 	if (!strcmp(node_name, "PathLayout")) return TAG_MPEG4_PathLayout;
 	if (!strcmp(node_name, "RadialGradient")) return TAG_MPEG4_RadialGradient;
+	if (!strcmp(node_name, "SynthesizedTexture")) return TAG_MPEG4_SynthesizedTexture;
 	if (!strcmp(node_name, "TransformMatrix2D")) return TAG_MPEG4_TransformMatrix2D;
 	if (!strcmp(node_name, "Viewport")) return TAG_MPEG4_Viewport;
 	if (!strcmp(node_name, "XCurve2D")) return TAG_MPEG4_XCurve2D;
@@ -20698,7 +33913,15 @@ s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name)
 	case TAG_MPEG4_DirectionalLight: return DirectionalLight_get_field_index_by_name(name);
 	case TAG_MPEG4_DiscSensor: return DiscSensor_get_field_index_by_name(name);
 	case TAG_MPEG4_ElevationGrid: return ElevationGrid_get_field_index_by_name(name);
+	case TAG_MPEG4_Expression: return Expression_get_field_index_by_name(name);
 	case TAG_MPEG4_Extrusion: return Extrusion_get_field_index_by_name(name);
+	case TAG_MPEG4_Face: return Face_get_field_index_by_name(name);
+	case TAG_MPEG4_FaceDefMesh: return FaceDefMesh_get_field_index_by_name(name);
+	case TAG_MPEG4_FaceDefTables: return FaceDefTables_get_field_index_by_name(name);
+	case TAG_MPEG4_FaceDefTransform: return FaceDefTransform_get_field_index_by_name(name);
+	case TAG_MPEG4_FAP: return FAP_get_field_index_by_name(name);
+	case TAG_MPEG4_FDP: return FDP_get_field_index_by_name(name);
+	case TAG_MPEG4_FIT: return FIT_get_field_index_by_name(name);
 	case TAG_MPEG4_Fog: return Fog_get_field_index_by_name(name);
 	case TAG_MPEG4_FontStyle: return FontStyle_get_field_index_by_name(name);
 	case TAG_MPEG4_Form: return Form_get_field_index_by_name(name);
@@ -20755,10 +33978,16 @@ s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name)
 	case TAG_MPEG4_Valuator: return Valuator_get_field_index_by_name(name);
 	case TAG_MPEG4_Viewpoint: return Viewpoint_get_field_index_by_name(name);
 	case TAG_MPEG4_VisibilitySensor: return VisibilitySensor_get_field_index_by_name(name);
+	case TAG_MPEG4_Viseme: return Viseme_get_field_index_by_name(name);
 	case TAG_MPEG4_WorldInfo: return WorldInfo_get_field_index_by_name(name);
 	case TAG_MPEG4_AcousticMaterial: return AcousticMaterial_get_field_index_by_name(name);
 	case TAG_MPEG4_AcousticScene: return AcousticScene_get_field_index_by_name(name);
 	case TAG_MPEG4_ApplicationWindow: return ApplicationWindow_get_field_index_by_name(name);
+	case TAG_MPEG4_BAP: return BAP_get_field_index_by_name(name);
+	case TAG_MPEG4_BDP: return BDP_get_field_index_by_name(name);
+	case TAG_MPEG4_Body: return Body_get_field_index_by_name(name);
+	case TAG_MPEG4_BodyDefTable: return BodyDefTable_get_field_index_by_name(name);
+	case TAG_MPEG4_BodySegmentConnectionHint: return BodySegmentConnectionHint_get_field_index_by_name(name);
 	case TAG_MPEG4_DirectiveSound: return DirectiveSound_get_field_index_by_name(name);
 	case TAG_MPEG4_Hierarchical3DMesh: return Hierarchical3DMesh_get_field_index_by_name(name);
 	case TAG_MPEG4_MaterialKey: return MaterialKey_get_field_index_by_name(name);
@@ -20771,18 +34000,52 @@ s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name)
 	case TAG_MPEG4_MediaBuffer: return MediaBuffer_get_field_index_by_name(name);
 	case TAG_MPEG4_MediaControl: return MediaControl_get_field_index_by_name(name);
 	case TAG_MPEG4_MediaSensor: return MediaSensor_get_field_index_by_name(name);
+	case TAG_MPEG4_BitWrapper: return BitWrapper_get_field_index_by_name(name);
 	case TAG_MPEG4_CoordinateInterpolator4D: return CoordinateInterpolator4D_get_field_index_by_name(name);
+	case TAG_MPEG4_DepthImage: return DepthImage_get_field_index_by_name(name);
+	case TAG_MPEG4_FFD: return FFD_get_field_index_by_name(name);
+	case TAG_MPEG4_Implicit: return Implicit_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_Appearance: return XXLFM_Appearance_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_BlendList: return XXLFM_BlendList_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_FrameList: return XXLFM_FrameList_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_LightMap: return XXLFM_LightMap_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_SurfaceMapList: return XXLFM_SurfaceMapList_get_field_index_by_name(name);
+	case TAG_MPEG4_XXLFM_ViewMapList: return XXLFM_ViewMapList_get_field_index_by_name(name);
+	case TAG_MPEG4_MeshGrid: return MeshGrid_get_field_index_by_name(name);
 	case TAG_MPEG4_NonLinearDeformer: return NonLinearDeformer_get_field_index_by_name(name);
+	case TAG_MPEG4_NurbsCurve: return NurbsCurve_get_field_index_by_name(name);
+	case TAG_MPEG4_NurbsCurve2D: return NurbsCurve2D_get_field_index_by_name(name);
+	case TAG_MPEG4_NurbsSurface: return NurbsSurface_get_field_index_by_name(name);
+	case TAG_MPEG4_OctreeImage: return OctreeImage_get_field_index_by_name(name);
+	case TAG_MPEG4_XXParticles: return XXParticles_get_field_index_by_name(name);
+	case TAG_MPEG4_XXParticleInitBox: return XXParticleInitBox_get_field_index_by_name(name);
+	case TAG_MPEG4_XXPlanarObstacle: return XXPlanarObstacle_get_field_index_by_name(name);
+	case TAG_MPEG4_XXPointAttractor: return XXPointAttractor_get_field_index_by_name(name);
+	case TAG_MPEG4_PointTexture: return PointTexture_get_field_index_by_name(name);
 	case TAG_MPEG4_PositionAnimator: return PositionAnimator_get_field_index_by_name(name);
 	case TAG_MPEG4_PositionAnimator2D: return PositionAnimator2D_get_field_index_by_name(name);
 	case TAG_MPEG4_PositionInterpolator4D: return PositionInterpolator4D_get_field_index_by_name(name);
+	case TAG_MPEG4_ProceduralTexture: return ProceduralTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_Quadric: return Quadric_get_field_index_by_name(name);
+	case TAG_MPEG4_SBBone: return SBBone_get_field_index_by_name(name);
+	case TAG_MPEG4_SBMuscle: return SBMuscle_get_field_index_by_name(name);
+	case TAG_MPEG4_SBSegment: return SBSegment_get_field_index_by_name(name);
+	case TAG_MPEG4_SBSite: return SBSite_get_field_index_by_name(name);
+	case TAG_MPEG4_SBSkinnedModel: return SBSkinnedModel_get_field_index_by_name(name);
+	case TAG_MPEG4_SBVCAnimation: return SBVCAnimation_get_field_index_by_name(name);
 	case TAG_MPEG4_ScalarAnimator: return ScalarAnimator_get_field_index_by_name(name);
+	case TAG_MPEG4_SimpleTexture: return SimpleTexture_get_field_index_by_name(name);
+	case TAG_MPEG4_SolidRep: return SolidRep_get_field_index_by_name(name);
+	case TAG_MPEG4_SubdivisionSurface: return SubdivisionSurface_get_field_index_by_name(name);
+	case TAG_MPEG4_SubdivSurfaceSector: return SubdivSurfaceSector_get_field_index_by_name(name);
+	case TAG_MPEG4_WaveletSubdivisionSurface: return WaveletSubdivisionSurface_get_field_index_by_name(name);
 	case TAG_MPEG4_Clipper2D: return Clipper2D_get_field_index_by_name(name);
 	case TAG_MPEG4_ColorTransform: return ColorTransform_get_field_index_by_name(name);
 	case TAG_MPEG4_Ellipse: return Ellipse_get_field_index_by_name(name);
 	case TAG_MPEG4_LinearGradient: return LinearGradient_get_field_index_by_name(name);
 	case TAG_MPEG4_PathLayout: return PathLayout_get_field_index_by_name(name);
 	case TAG_MPEG4_RadialGradient: return RadialGradient_get_field_index_by_name(name);
+	case TAG_MPEG4_SynthesizedTexture: return SynthesizedTexture_get_field_index_by_name(name);
 	case TAG_MPEG4_TransformMatrix2D: return TransformMatrix2D_get_field_index_by_name(name);
 	case TAG_MPEG4_Viewport: return Viewport_get_field_index_by_name(name);
 	case TAG_MPEG4_XCurve2D: return XCurve2D_get_field_index_by_name(name);

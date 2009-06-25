@@ -1153,7 +1153,7 @@ void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_fiel
 }
 
 GF_EXPORT
-void gf_sg_vrml_field_copy(void *dest, void *orig, u32 field_type)
+void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGraph *inScene)
 {
 	u32 size, i, sf_type;
 	void *dst_field, *orig_field;
@@ -1210,17 +1210,26 @@ void gf_sg_vrml_field_copy(void *dest, void *orig, u32 field_type)
 		memcpy(((SFImage *)dest)->pixels, ((SFImage *)orig)->pixels, sizeof(char)*size);
 		break;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
-		gf_sg_sfcommand_del( *(SFCommandBuffer *)dest);
-		((SFCommandBuffer *)dest)->commandList = gf_list_new();
-		((SFCommandBuffer *)dest)->bufferSize = ((SFCommandBuffer *)orig)->bufferSize;
-		if (((SFCommandBuffer *)dest)->bufferSize) {
-			((SFCommandBuffer *)dest)->buffer = (u8*)malloc(sizeof(char)*((SFCommandBuffer *)orig)->bufferSize);
-			memcpy(((SFCommandBuffer *)dest)->buffer, 
-				((SFCommandBuffer *)orig)->buffer,
-				sizeof(char)*((SFCommandBuffer *)orig)->bufferSize);
+	{
+		SFCommandBuffer *cb_dst = (SFCommandBuffer *)dest;
+		SFCommandBuffer *cb_src = (SFCommandBuffer *)orig;
+
+		cb_dst->bufferSize = cb_src->bufferSize;
+		if (cb_dst->bufferSize) {
+			cb_dst->buffer = (u8*)malloc(sizeof(char)*cb_dst->bufferSize);
+			memcpy(cb_dst->buffer, cb_src->buffer, sizeof(char)*cb_src->bufferSize);
 		} else {
-			((SFCommandBuffer *)dest)->buffer = NULL;
+			u32 j, c2;
+			cb_dst->buffer = NULL;
+			/*clone command list*/
+			c2 = gf_list_count(cb_src->commandList);
+			for (j=0; j<c2;j++) {
+				GF_Command *sub_com = (GF_Command *)gf_list_get(cb_src->commandList, j);
+				GF_Command *new_com = gf_sg_command_clone(sub_com, inScene, 0);
+				gf_list_add(cb_dst->commandList, new_com);
+			}
 		}
+	}
 		break;
 
 	/*simply copy text string*/
@@ -1267,6 +1276,11 @@ void gf_sg_vrml_field_copy(void *dest, void *orig, u32 field_type)
 	}
 }
 
+GF_EXPORT
+void gf_sg_vrml_field_copy(void *dest, void *orig, u32 field_type)
+{
+	gf_sg_vrml_field_clone(dest, orig, field_type, NULL);
+}
 
 GF_EXPORT
 Bool gf_sg_vrml_field_equal(void *dest, void *orig, u32 field_type)

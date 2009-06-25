@@ -372,7 +372,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 				strcat(szNodeName, inst_id_suffix);
 			}
 		} 
-		//else if (orig_name) szNodeName = strdup(orig_name);
+		else if (orig_name) szNodeName = strdup(orig_name);
 	}
 
 	if (id) {
@@ -380,7 +380,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		/*node already created, USE*/
 		if (node) {
 			gf_node_register(node, cloned_parent);
-			if (inst_id_suffix[0] && szNodeName) free(szNodeName);
+			if (szNodeName) free(szNodeName);
 			return node;
 		}
 	}
@@ -398,6 +398,14 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 	is_script = 0;
 	if ((orig->sgprivate->tag==TAG_MPEG4_Script) || (orig->sgprivate->tag==TAG_X3D_Script)) is_script = 1;
 	if (is_script) gf_sg_script_prepare_clone(node, orig);
+
+
+	/*register node*/
+	if (id) {
+		gf_node_set_id(node, id, szNodeName);
+		if (szNodeName) free(szNodeName);
+	}
+	gf_node_register(node, cloned_parent);
 
 	/*copy each field*/
 	for (i=0; i<count; i++) {
@@ -436,7 +444,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 			}
 			break;
 		default:
-			gf_sg_vrml_field_copy(field.far_ptr, field_orig.far_ptr, field.fieldType);
+			gf_sg_vrml_field_clone(field.far_ptr, field_orig.far_ptr, field.fieldType, inScene);
 			break;
 		}
 	}
@@ -451,13 +459,6 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 			gf_list_add(clone_is->buffer.commandList, com_f);
 		}
 	}
-
-	/*register node*/
-	if (id) {
-		gf_node_set_id(node, id, szNodeName);
-		if (inst_id_suffix[0] && szNodeName) free(szNodeName);
-	}
-	gf_node_register(node, cloned_parent);
 
 	/*init node before creating ISed routes so the eventIn handler are in place*/
 	if (node->sgprivate->tag == TAG_MPEG4_Conditional) BIFS_SetupConditionalClone(node, orig);

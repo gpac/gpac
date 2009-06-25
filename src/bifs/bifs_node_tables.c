@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Feb 17 14:17:57 2009
+	DO NOT MOFIFY - File generated on GMT Thu Jun 25 11:28:59 2009
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -905,6 +905,14 @@ u32 gf_bifs_get_node_type(u32 NDT_Tag, u32 NodeTag, u32 Version)
 		return NDT_SF3DNode;
 	case TAG_MPEG4_TemporalGroup:
 		return NDT_SFTemporalNode;
+	case TAG_MPEG4_FFD:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_SBBone:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_SBSegment:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_SBSite:
+		return NDT_SF3DNode;
 	case TAG_MPEG4_Clipper2D:
 		return NDT_SF2DNode;
 	case TAG_MPEG4_ColorTransform:

@@ -55,15 +55,19 @@ void gf_modules_free_module(ModuleInstance *inst)
 
 Bool gf_modules_load_library(ModuleInstance *inst)
 {
+#ifdef WIN32
+	DWORD res;
+
 #ifdef _WIN32_WCE
 	char s_path[GF_MAX_PATH];
 	unsigned short path[GF_MAX_PATH];
 #else
 	char path[GF_MAX_PATH];
-#ifndef WIN32
-	s32 _flags;
 #endif
 
+#else
+	char path[GF_MAX_PATH];
+	s32 _flags;
 #endif
 	
 	if (inst->lib_handle) return 1;
@@ -79,8 +83,9 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 #ifdef WIN32
 	inst->lib_handle = LoadLibrary(path);
 	if (!inst->lib_handle) {
+		res = GetLastError();
 #ifdef _WIN32_WCE
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s\n", s_path));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s: error %d\n", s_path, res));
 #else
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s\n", path));
 #endif

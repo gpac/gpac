@@ -1952,11 +1952,11 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 {
 	s32 pos;
 	GF_Route *r;
-	GF_Node *n, *newnode, *opnode;
+	GF_Node *n, *newnode;
 	GF_Command *com;
 	GF_CommandField *inf;
 	GF_FieldInfo info;
-	char *str, field[1000], *sep;
+	char *str, field[1000];
 	if (!name) {
 		str = gf_bt_get_next(parser, 0);
 	} else {
@@ -1966,7 +1966,6 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 	pos = -2;
 	/*REPLACE commands*/
  	if (!strcmp(str, "REPLACE")) {
-		Bool is_op = 0;
 		str = gf_bt_get_next(parser, 1);
 		if (!strcmp(str, "ROUTE")) {
 			str = gf_bt_get_next(parser, 0);
@@ -2043,60 +2042,11 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			return parser->last_error;
 		}
 		str = gf_bt_get_next(parser, 0);
-		if (!strcmp(str, "FROM"))
-			is_op = 1;
-		else if (strcmp(str, "BY")) return gf_bt_report(parser, GF_BAD_PARAM, "BY expected got %s", str);
+		if (strcmp(str, "BY")) return gf_bt_report(parser, GF_BAD_PARAM, "BY expected got %s", str);
 
 		parser->last_error = gf_node_get_field_by_name(n, field, &info);
 		if (parser->last_error)
 			return gf_bt_report(parser, parser->last_error, "%s: Unknown node field", field);
-
-		if (is_op) {
-			u32 op_type;
-			s32 op_idx = -1;
-			GF_FieldInfo src;
-			str = gf_bt_get_next(parser, 0);
-			sep = strchr(str, '.');
-			if (!sep) return gf_bt_report(parser, GF_BAD_PARAM, "\'.\' expected");
-			sep[0] = 0;
-			opnode = gf_bt_peek_node(parser, str);
-			if (!opnode) return gf_bt_report(parser, GF_BAD_PARAM, "%s: unknown node", str);
-			sep[0] = '.';
-			sep++;
-
-			if (gf_bt_check_code(parser, '[')) {
-				if ( (parser->last_error = gf_bt_parse_int(parser, "index", &op_idx)) ) return parser->last_error;
-				if (!gf_bt_check_code(parser, ']'))
-					return gf_bt_report(parser, GF_BAD_PARAM, "] expected");
-			}
-			parser->last_error = gf_node_get_field_by_name(opnode, sep, &src);
-			if (parser->last_error)
-				return gf_bt_report(parser, parser->last_error, "%s: Unknown node field", sep);
-
-			op_type = src.fieldType;
-			if (op_idx>=0) op_type = gf_sg_vrml_get_sf_type(src.fieldType);
-
-			if (pos>=0) {
-				if (op_type != gf_sg_vrml_get_sf_type(info.fieldType) )
-					return gf_bt_report(parser, parser->last_error, "Field type mismatch between %s and %s", info.name, src.name);
-			} else {
-				if (src.fieldType != info.fieldType)
-					return gf_bt_report(parser, parser->last_error, "Field type mismatch between %s and %s", info.name, src.name);
-			}
-			com = gf_sg_command_new(parser->load->scene_graph, GF_SG_FIELD_REPLACE_OP);
-			bd_set_com_node(com, n);
-			com->fromNodeID = gf_node_get_id(opnode);
-			com->fromFieldIndex = src.fieldIndex;
-			com->send_event_x = op_idx;
-
-			inf = gf_sg_command_field_new(com);
-			inf->fieldIndex = info.fieldIndex;
-			inf->fieldType = info.fieldType;
-			inf->pos = pos;
-			gf_list_add(cmdList, com);
-			parser->cur_com = com;
-			return parser->last_error;
-		}
 
 		/*field replace*/
 		if (pos==-2) {
@@ -2170,6 +2120,197 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 		parser->cur_com = com;
 		return parser->last_error;
 	}
+	/*XREPLACE commands*/
+ 	if (!strcmp(str, "XREPLACE")) {
+		u32 j;
+		Bool force_sf=0;
+		char csep;
+		GF_Node *targetNode, *idxNode, *childNode, *fromNode;
+		GF_FieldInfo targetField, idxField, childField, fromField;
+		
+		targetNode = idxNode = childNode = fromNode = NULL;
+		str = gf_bt_get_next(parser, 1);
+		/*get source node*/
+		strcpy(field, str);
+		targetNode = gf_bt_peek_node(parser, str);
+		if (!targetNode) return gf_bt_report(parser, GF_BAD_PARAM, "%s: unknown node", field);
+		if (!gf_bt_check_code(parser, '.')) {
+			return gf_bt_report(parser, GF_BAD_PARAM, "XREPLACE: '.' expected");
+		}
+		/*get source field*/
+		str = gf_bt_get_next(parser, 0);
+		strcpy(field, str);
+		parser->last_error = gf_node_get_field_by_name(targetNode, field, &targetField);
+		if (parser->last_error)
+			return gf_bt_report(parser, parser->last_error, "%s: Unknown node field", field);
+
+		if (gf_bt_check_code(parser, '[')) {
+			pos = -2;
+			str = gf_bt_get_next(parser, 1);
+			force_sf = 1;
+			if (sscanf(str, "%d", &pos) != 1) {
+				pos = -2;
+				if (!strcmp(str, "LAST")) pos = -1;
+				else if (!strcmp(str, "first")) pos = 0;
+				else {
+					strcpy(field, str);
+					/*get idx node*/
+					idxNode = gf_bt_peek_node(parser, str);
+					if (!idxNode) return gf_bt_report(parser, GF_BAD_PARAM, "%s: unknown node", field);
+					if (!gf_bt_check_code(parser, '.')) 
+						return gf_bt_report(parser, GF_BAD_PARAM, "XREPLACE: '.' expected");
+
+					/*get idx field*/
+					str = gf_bt_get_next(parser, 0);
+					strcpy(field, str);
+					parser->last_error = gf_node_get_field_by_name(idxNode, field, &idxField);
+					if (parser->last_error)
+						return gf_bt_report(parser, parser->last_error, "%s: Unknown node field", field);
+				}
+			}
+			gf_bt_check_code(parser, ']');
+		
+			/*check if we have a child node*/
+			if (gf_bt_check_code(parser, '.')) {
+				s32 apos = pos;
+				force_sf = 0;
+				if (idxNode) {
+					apos = 0;
+					switch (idxField.fieldType) {
+					case GF_SG_VRML_SFBOOL:
+						if (*(SFBool*)idxField.far_ptr) apos = 1;
+						break;
+					case GF_SG_VRML_SFINT32:
+						if (*(SFInt32*)idxField.far_ptr >=0) apos = *(SFInt32*)idxField.far_ptr;
+						break;
+					case GF_SG_VRML_SFFLOAT:
+						if ( (*(SFFloat *)idxField.far_ptr) >=0) apos = (s32) floor( FIX2FLT(*(SFFloat*)idxField.far_ptr) );
+						break;
+					case GF_SG_VRML_SFTIME:
+						if ( (*(SFTime *)idxField.far_ptr) >=0) apos = (s32) floor( (*(SFTime *)idxField.far_ptr) );
+						break;
+					}
+				}
+				childNode = gf_node_list_get_child(*(GF_ChildNodeItem **)targetField.far_ptr, apos);
+				if (!childNode)
+					return gf_bt_report(parser, GF_BAD_PARAM, "Cannot find child node at specified index");
+
+				str = gf_bt_get_next(parser, 0);
+				strcpy(field, str);
+				parser->last_error = gf_node_get_field_by_name(childNode, field, &childField);
+				if (parser->last_error)
+					return gf_bt_report(parser, parser->last_error, "%s: Unknown node field", field);
+			}
+		}
+
+		str = gf_bt_get_next(parser, 0);
+		if (strcmp(str, "BY")) return gf_bt_report(parser, GF_BAD_PARAM, "BY expected got %s", str);
+
+		/*peek the next word*/
+		j = 0;
+		while (strchr(" \n\t\0", parser->line_buffer[parser->line_pos + j])) j++;
+		str = parser->line_buffer + parser->line_pos + j;
+		j = 0;
+		while (!strchr(" .\0", str[j])) j++;
+		csep = str[j];
+		str[j]=0;
+		strcpy(field, str);
+		str[j] = csep;
+		fromNode = gf_bt_peek_node(parser, field);
+		if (fromNode) {
+			gf_bt_get_next(parser, 1);
+
+			if (!gf_bt_check_code(parser, '.')) {
+				return gf_bt_report(parser, GF_BAD_PARAM, "XREPLACE: '.' expected");
+			}
+			/*get source field*/
+			str = gf_bt_get_next(parser, 0);
+			strcpy(field, str);
+			parser->last_error = gf_node_get_field_by_name(fromNode, field, &fromField);
+			if (parser->last_error)
+				return gf_bt_report(parser, parser->last_error, "%s: Unknown node field", field);
+
+		} else {
+			/*regular parsing*/
+		}
+
+		com = gf_sg_command_new(parser->load->scene_graph, GF_SG_XREPLACE);
+		bd_set_com_node(com, fromNode);
+		if (fromNode) {
+			com->fromNodeID = gf_node_get_id(fromNode);
+			com->fromFieldIndex = fromField.fieldIndex;
+		}
+		if (idxNode) {
+			com->toNodeID = gf_node_get_id(idxNode);
+			com->toFieldIndex = idxField.fieldIndex;
+		}
+		if (childNode) {
+			com->RouteID = gf_node_get_id(childNode);
+			com->child_field = childField.fieldIndex;
+		}
+		inf = gf_sg_command_field_new(com);
+		inf->fieldIndex = targetField.fieldIndex;
+		inf->pos = pos;
+		if (force_sf) {
+			inf->fieldType = gf_sg_vrml_get_sf_type(targetField.fieldType);
+		} else if (childNode) {
+			inf->fieldType = childField.fieldType;
+		} else {
+			inf->fieldType = targetField.fieldType;
+		}
+		if (!fromNode) {
+			switch (inf->fieldType) {
+			case GF_SG_VRML_SFNODE:
+				inf->new_node = gf_bt_sf_node(parser, NULL, NULL, NULL);
+				inf->field_ptr = &inf->new_node;
+				if (childNode) {
+					if (!gf_bt_check_ndt(parser, &childField, inf->new_node, childNode)) goto err;
+				} else {
+					if (!gf_bt_check_ndt(parser, &targetField, inf->new_node, targetNode)) goto err;
+				}
+				break;
+			case GF_SG_VRML_MFNODE:
+			{
+				GF_ChildNodeItem *last = NULL;
+				if (!gf_bt_check_code(parser, '[')) break;
+				inf->field_ptr = &inf->node_list;
+				while (!gf_bt_check_code(parser, ']')) {
+					newnode = gf_bt_sf_node(parser, NULL, NULL, NULL);
+					if (!newnode) goto err;
+					if (parser->last_error!=GF_OK) goto err;
+
+					if (childNode) {
+						if (!gf_bt_check_ndt(parser, &childField, inf->new_node, childNode)) goto err;
+					} else {
+						if (!gf_bt_check_ndt(parser, &targetField, inf->new_node, targetNode)) goto err;
+					}
+
+					gf_node_list_add_child_last(& inf->node_list, newnode, &last);
+				}
+			}
+				break;
+			default:
+				inf->field_ptr = gf_sg_vrml_field_pointer_new(inf->fieldType);
+				info.far_ptr = inf->field_ptr;
+				info.fieldType = inf->fieldType;
+
+				if (gf_sg_vrml_is_sf_field(inf->fieldType)) {
+					gf_bt_sffield(parser, &info, childNode ? childNode : targetNode);
+				} else {
+					gf_bt_mffield(parser, &info, childNode ? childNode : targetNode);
+				}
+				if (parser->last_error) goto err;
+				break;
+			}
+		}
+
+		if (parser->last_error) goto err;
+		gf_list_add(cmdList, com);
+		parser->cur_com = com;
+		return parser->last_error;
+	}
+
+
 	/*INSERT commands*/
 	if (!strcmp(str, "INSERT") || !strcmp(str, "APPEND")) {
 		Bool is_append = !strcmp(str, "APPEND") ? 1 : 0;
