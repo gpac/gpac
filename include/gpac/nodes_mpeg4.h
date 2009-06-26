@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Tue Feb 17 14:17:57 2009
+	DO NOT MOFIFY - File generated on GMT Thu Jun 25 11:28:59 2009
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -589,6 +589,18 @@ typedef struct _tagElevationGrid
 } M_ElevationGrid;
 
 
+typedef struct _tagExpression
+{
+	BASE_NODE
+	SFInt32 expression_select1;	/*exposedField*/
+	SFInt32 expression_intensity1;	/*exposedField*/
+	SFInt32 expression_select2;	/*exposedField*/
+	SFInt32 expression_intensity2;	/*exposedField*/
+	SFBool init_face;	/*exposedField*/
+	SFBool expression_def;	/*exposedField*/
+} M_Expression;
+
+
 typedef struct _tagExtrusion
 {
 	BASE_NODE
@@ -611,6 +623,148 @@ typedef struct _tagExtrusion
 	SFBool solid;	/*field*/
 	MFVec3f spine;	/*field*/
 } M_Extrusion;
+
+
+typedef struct _tagFace
+{
+	BASE_NODE
+	GF_Node *fap;	/*exposedField*/
+	GF_Node *fdp;	/*exposedField*/
+	GF_Node *fit;	/*exposedField*/
+	GF_Node *ttsSource;	/*exposedField*/
+	GF_ChildNodeItem *renderedFace;	/*exposedField*/
+} M_Face;
+
+
+typedef struct _tagFaceDefMesh
+{
+	BASE_NODE
+	GF_Node *faceSceneGraphNode;	/*field*/
+	MFInt32 intervalBorders;	/*field*/
+	MFInt32 coordIndex;	/*field*/
+	MFVec3f displacements;	/*field*/
+} M_FaceDefMesh;
+
+
+typedef struct _tagFaceDefTables
+{
+	BASE_NODE
+	SFInt32 fapID;	/*field*/
+	SFInt32 highLevelSelect;	/*field*/
+	GF_ChildNodeItem *faceDefMesh;	/*exposedField*/
+	GF_ChildNodeItem *faceDefTransform;	/*exposedField*/
+} M_FaceDefTables;
+
+
+typedef struct _tagFaceDefTransform
+{
+	BASE_NODE
+	GF_Node *faceSceneGraphNode;	/*field*/
+	SFInt32 fieldId;	/*field*/
+	SFRotation rotationDef;	/*field*/
+	SFVec3f scaleDef;	/*field*/
+	SFVec3f translationDef;	/*field*/
+} M_FaceDefTransform;
+
+
+typedef struct _tagFAP
+{
+	BASE_NODE
+	GF_Node *viseme;	/*exposedField*/
+	GF_Node *expression;	/*exposedField*/
+	SFInt32 open_jaw;	/*exposedField*/
+	SFInt32 lower_t_midlip;	/*exposedField*/
+	SFInt32 raise_b_midlip;	/*exposedField*/
+	SFInt32 stretch_l_corner;	/*exposedField*/
+	SFInt32 stretch_r_corner;	/*exposedField*/
+	SFInt32 lower_t_lip_lm;	/*exposedField*/
+	SFInt32 lower_t_lip_rm;	/*exposedField*/
+	SFInt32 lower_b_lip_lm;	/*exposedField*/
+	SFInt32 lower_b_lip_rm;	/*exposedField*/
+	SFInt32 raise_l_cornerlip;	/*exposedField*/
+	SFInt32 raise_r_cornerlip;	/*exposedField*/
+	SFInt32 thrust_jaw;	/*exposedField*/
+	SFInt32 shift_jaw;	/*exposedField*/
+	SFInt32 push_b_lip;	/*exposedField*/
+	SFInt32 push_t_lip;	/*exposedField*/
+	SFInt32 depress_chin;	/*exposedField*/
+	SFInt32 close_t_l_eyelid;	/*exposedField*/
+	SFInt32 close_t_r_eyelid;	/*exposedField*/
+	SFInt32 close_b_l_eyelid;	/*exposedField*/
+	SFInt32 close_b_r_eyelid;	/*exposedField*/
+	SFInt32 yaw_l_eyeball;	/*exposedField*/
+	SFInt32 yaw_r_eyeball;	/*exposedField*/
+	SFInt32 pitch_l_eyeball;	/*exposedField*/
+	SFInt32 pitch_r_eyeball;	/*exposedField*/
+	SFInt32 thrust_l_eyeball;	/*exposedField*/
+	SFInt32 thrust_r_eyeball;	/*exposedField*/
+	SFInt32 dilate_l_pupil;	/*exposedField*/
+	SFInt32 dilate_r_pupil;	/*exposedField*/
+	SFInt32 raise_l_i_eyebrow;	/*exposedField*/
+	SFInt32 raise_r_i_eyebrow;	/*exposedField*/
+	SFInt32 raise_l_m_eyebrow;	/*exposedField*/
+	SFInt32 raise_r_m_eyebrow;	/*exposedField*/
+	SFInt32 raise_l_o_eyebrow;	/*exposedField*/
+	SFInt32 raise_r_o_eyebrow;	/*exposedField*/
+	SFInt32 squeeze_l_eyebrow;	/*exposedField*/
+	SFInt32 squeeze_r_eyebrow;	/*exposedField*/
+	SFInt32 puff_l_cheek;	/*exposedField*/
+	SFInt32 puff_r_cheek;	/*exposedField*/
+	SFInt32 lift_l_cheek;	/*exposedField*/
+	SFInt32 lift_r_cheek;	/*exposedField*/
+	SFInt32 shift_tongue_tip;	/*exposedField*/
+	SFInt32 raise_tongue_tip;	/*exposedField*/
+	SFInt32 thrust_tongue_tip;	/*exposedField*/
+	SFInt32 raise_tongue;	/*exposedField*/
+	SFInt32 tongue_roll;	/*exposedField*/
+	SFInt32 head_pitch;	/*exposedField*/
+	SFInt32 head_yaw;	/*exposedField*/
+	SFInt32 head_roll;	/*exposedField*/
+	SFInt32 lower_t_midlip_o;	/*exposedField*/
+	SFInt32 raise_b_midlip_o;	/*exposedField*/
+	SFInt32 stretch_l_cornerlip;	/*exposedField*/
+	SFInt32 stretch_r_cornerlip;	/*exposedField*/
+	SFInt32 lower_t_lip_lm_o;	/*exposedField*/
+	SFInt32 lower_t_lip_rm_o;	/*exposedField*/
+	SFInt32 raise_b_lip_lm_o;	/*exposedField*/
+	SFInt32 raise_b_lip_rm_o;	/*exposedField*/
+	SFInt32 raise_l_cornerlip_o;	/*exposedField*/
+	SFInt32 raise_r_cornerlip_o;	/*exposedField*/
+	SFInt32 stretch_l_nose;	/*exposedField*/
+	SFInt32 stretch_r_nose;	/*exposedField*/
+	SFInt32 raise_nose;	/*exposedField*/
+	SFInt32 bend_nose;	/*exposedField*/
+	SFInt32 raise_l_ear;	/*exposedField*/
+	SFInt32 raise_r_ear;	/*exposedField*/
+	SFInt32 pull_l_ear;	/*exposedField*/
+	SFInt32 pull_r_ear;	/*exposedField*/
+} M_FAP;
+
+
+typedef struct _tagFDP
+{
+	BASE_NODE
+	GF_Node *featurePointsCoord;	/*exposedField*/
+	GF_Node *textureCoord;	/*exposedField*/
+	GF_ChildNodeItem *faceDefTables;	/*exposedField*/
+	GF_ChildNodeItem *faceSceneGraph;	/*exposedField*/
+	SFBool useOrthoTexture;	/*field*/
+} M_FDP;
+
+
+typedef struct _tagFIT
+{
+	BASE_NODE
+	MFInt32 FAPs;	/*exposedField*/
+	MFInt32 Graph;	/*exposedField*/
+	MFInt32 numeratorExp;	/*exposedField*/
+	MFInt32 denominatorExp;	/*exposedField*/
+	MFInt32 numeratorImpulse;	/*exposedField*/
+	MFInt32 numeratorTerms;	/*exposedField*/
+	MFInt32 denominatorTerms;	/*exposedField*/
+	MFFloat numeratorCoefs;	/*exposedField*/
+	MFFloat denominatorCoefs;	/*exposedField*/
+} M_FIT;
 
 
 typedef struct _tagFog
@@ -1358,6 +1512,16 @@ typedef struct _tagVisibilitySensor
 } M_VisibilitySensor;
 
 
+typedef struct _tagViseme
+{
+	BASE_NODE
+	SFInt32 viseme_select1;	/*exposedField*/
+	SFInt32 viseme_select2;	/*exposedField*/
+	SFInt32 viseme_blend;	/*exposedField*/
+	SFBool viseme_def;	/*exposedField*/
+} M_Viseme;
+
+
 typedef struct _tagWorldInfo
 {
 	BASE_NODE
@@ -1405,6 +1569,347 @@ typedef struct _tagApplicationWindow
 	MFURL url;	/*exposedField*/
 	SFVec2f size;	/*exposedField*/
 } M_ApplicationWindow;
+
+
+typedef struct _tagBAP
+{
+	BASE_NODE
+	SFInt32 sacroiliac_tilt;	/*exposedField*/
+	SFInt32 sacroiliac_torsion;	/*exposedField*/
+	SFInt32 sacroiliac_roll;	/*exposedField*/
+	SFInt32 l_hip_flexion;	/*exposedField*/
+	SFInt32 r_hip_flexion;	/*exposedField*/
+	SFInt32 l_hip_abduct;	/*exposedField*/
+	SFInt32 r_hip_abduct;	/*exposedField*/
+	SFInt32 l_hip_twisting;	/*exposedField*/
+	SFInt32 r_hip_twisting;	/*exposedField*/
+	SFInt32 l_knee_flexion;	/*exposedField*/
+	SFInt32 r_knee_flexion;	/*exposedField*/
+	SFInt32 l_knee_twisting;	/*exposedField*/
+	SFInt32 r_knee_twisting;	/*exposedField*/
+	SFInt32 l_ankle_flexion;	/*exposedField*/
+	SFInt32 r_ankle_flexion;	/*exposedField*/
+	SFInt32 l_ankle_twisting;	/*exposedField*/
+	SFInt32 r_ankle_twisting;	/*exposedField*/
+	SFInt32 l_subtalar_flexion;	/*exposedField*/
+	SFInt32 r_subtalar_flexion;	/*exposedField*/
+	SFInt32 l_midtarsal_flexion;	/*exposedField*/
+	SFInt32 r_midtarsal_flexion;	/*exposedField*/
+	SFInt32 l_metatarsal_flexion;	/*exposedField*/
+	SFInt32 r_metatarsal_flexion;	/*exposedField*/
+	SFInt32 l_sternoclavicular_abduct;	/*exposedField*/
+	SFInt32 r_sternoclavicular_abduct;	/*exposedField*/
+	SFInt32 l_sternoclavicular_rotate;	/*exposedField*/
+	SFInt32 r_sternoclavicular_rotate;	/*exposedField*/
+	SFInt32 l_acromioclavicular_abduct;	/*exposedField*/
+	SFInt32 r_acromioclavicular_abduct;	/*exposedField*/
+	SFInt32 l_acromioclavicular_rotate;	/*exposedField*/
+	SFInt32 r_acromioclavicular_rotate;	/*exposedField*/
+	SFInt32 l_shoulder_flexion;	/*exposedField*/
+	SFInt32 r_shoulder_flexion;	/*exposedField*/
+	SFInt32 l_shoulder_abduct;	/*exposedField*/
+	SFInt32 r_shoulder_abduct;	/*exposedField*/
+	SFInt32 l_shoulder_twisting;	/*exposedField*/
+	SFInt32 r_shoulder_twisting;	/*exposedField*/
+	SFInt32 l_elbow_flexion;	/*exposedField*/
+	SFInt32 r_elbow_flexion;	/*exposedField*/
+	SFInt32 l_elbow_twisting;	/*exposedField*/
+	SFInt32 r_elbow_twisting;	/*exposedField*/
+	SFInt32 l_wrist_flexion;	/*exposedField*/
+	SFInt32 r_wrist_flexion;	/*exposedField*/
+	SFInt32 l_wrist_pivot;	/*exposedField*/
+	SFInt32 r_wrist_pivot;	/*exposedField*/
+	SFInt32 l_wrist_twisting;	/*exposedField*/
+	SFInt32 r_wrist_twisting;	/*exposedField*/
+	SFInt32 skullbase_roll;	/*exposedField*/
+	SFInt32 skullbase_torsion;	/*exposedField*/
+	SFInt32 skullbase_tilt;	/*exposedField*/
+	SFInt32 vc1roll;	/*exposedField*/
+	SFInt32 vc1torsion;	/*exposedField*/
+	SFInt32 vc1tilt;	/*exposedField*/
+	SFInt32 vc2roll;	/*exposedField*/
+	SFInt32 vc2torsion;	/*exposedField*/
+	SFInt32 vc2tilt;	/*exposedField*/
+	SFInt32 vc3roll;	/*exposedField*/
+	SFInt32 vc3torsion;	/*exposedField*/
+	SFInt32 vc3tilt;	/*exposedField*/
+	SFInt32 vc4roll;	/*exposedField*/
+	SFInt32 vc4torsion;	/*exposedField*/
+	SFInt32 vc4tilt;	/*exposedField*/
+	SFInt32 vc5roll;	/*exposedField*/
+	SFInt32 vc5torsion;	/*exposedField*/
+	SFInt32 vc5tilt;	/*exposedField*/
+	SFInt32 vc6roll;	/*exposedField*/
+	SFInt32 vc6torsion;	/*exposedField*/
+	SFInt32 vc6tilt;	/*exposedField*/
+	SFInt32 vc7roll;	/*exposedField*/
+	SFInt32 vc7torsion;	/*exposedField*/
+	SFInt32 vc7tilt;	/*exposedField*/
+	SFInt32 vt1roll;	/*exposedField*/
+	SFInt32 vt1torsion;	/*exposedField*/
+	SFInt32 vt1tilt;	/*exposedField*/
+	SFInt32 vt2roll;	/*exposedField*/
+	SFInt32 vt2torsion;	/*exposedField*/
+	SFInt32 vt2tilt;	/*exposedField*/
+	SFInt32 vt3roll;	/*exposedField*/
+	SFInt32 vt3torsion;	/*exposedField*/
+	SFInt32 vt3tilt;	/*exposedField*/
+	SFInt32 vt4roll;	/*exposedField*/
+	SFInt32 vt4torsion;	/*exposedField*/
+	SFInt32 vt4tilt;	/*exposedField*/
+	SFInt32 vt5roll;	/*exposedField*/
+	SFInt32 vt5torsion;	/*exposedField*/
+	SFInt32 vt5tilt;	/*exposedField*/
+	SFInt32 vt6roll;	/*exposedField*/
+	SFInt32 vt6torsion;	/*exposedField*/
+	SFInt32 vt6tilt;	/*exposedField*/
+	SFInt32 vt7roll;	/*exposedField*/
+	SFInt32 vt7torsion;	/*exposedField*/
+	SFInt32 vt7tilt;	/*exposedField*/
+	SFInt32 vt8roll;	/*exposedField*/
+	SFInt32 vt8torsion;	/*exposedField*/
+	SFInt32 vt8tilt;	/*exposedField*/
+	SFInt32 vt9roll;	/*exposedField*/
+	SFInt32 vt9torsion;	/*exposedField*/
+	SFInt32 vt9tilt;	/*exposedField*/
+	SFInt32 vt10roll;	/*exposedField*/
+	SFInt32 vt10torsion;	/*exposedField*/
+	SFInt32 vt10tilt;	/*exposedField*/
+	SFInt32 vt11roll;	/*exposedField*/
+	SFInt32 vt11torsion;	/*exposedField*/
+	SFInt32 vt11tilt;	/*exposedField*/
+	SFInt32 vt12roll;	/*exposedField*/
+	SFInt32 vt12torsion;	/*exposedField*/
+	SFInt32 vt12tilt;	/*exposedField*/
+	SFInt32 vl1roll;	/*exposedField*/
+	SFInt32 vl1torsion;	/*exposedField*/
+	SFInt32 vl1tilt;	/*exposedField*/
+	SFInt32 vl2roll;	/*exposedField*/
+	SFInt32 vl2torsion;	/*exposedField*/
+	SFInt32 vl2tilt;	/*exposedField*/
+	SFInt32 vl3roll;	/*exposedField*/
+	SFInt32 vl3torsion;	/*exposedField*/
+	SFInt32 vl3tilt;	/*exposedField*/
+	SFInt32 vl4roll;	/*exposedField*/
+	SFInt32 vl4torsion;	/*exposedField*/
+	SFInt32 vl4tilt;	/*exposedField*/
+	SFInt32 vl5roll;	/*exposedField*/
+	SFInt32 vl5torsion;	/*exposedField*/
+	SFInt32 vl5tilt;	/*exposedField*/
+	SFInt32 l_pinky0_flexion;	/*exposedField*/
+	SFInt32 r_pinky0_flexion;	/*exposedField*/
+	SFInt32 l_pinky1_flexion;	/*exposedField*/
+	SFInt32 r_pinky1_flexion;	/*exposedField*/
+	SFInt32 l_pinky1_pivot;	/*exposedField*/
+	SFInt32 r_pinky1_pivot;	/*exposedField*/
+	SFInt32 l_pinky1_twisting;	/*exposedField*/
+	SFInt32 r_pinky1_twisting;	/*exposedField*/
+	SFInt32 l_pinky2_flexion;	/*exposedField*/
+	SFInt32 r_pinky2_flexion;	/*exposedField*/
+	SFInt32 l_pinky3_flexion;	/*exposedField*/
+	SFInt32 r_pinky3_flexion;	/*exposedField*/
+	SFInt32 l_ring0_flexion;	/*exposedField*/
+	SFInt32 r_ring0_flexion;	/*exposedField*/
+	SFInt32 l_ring1_flexion;	/*exposedField*/
+	SFInt32 r_ring1_flexion;	/*exposedField*/
+	SFInt32 l_ring1_pivot;	/*exposedField*/
+	SFInt32 r_ring1_pivot;	/*exposedField*/
+	SFInt32 l_ring1_twisting;	/*exposedField*/
+	SFInt32 r_ring1_twisting;	/*exposedField*/
+	SFInt32 l_ring2_flexion;	/*exposedField*/
+	SFInt32 r_ring2_flexion;	/*exposedField*/
+	SFInt32 l_ring3_flexion;	/*exposedField*/
+	SFInt32 r_ring3_flexion;	/*exposedField*/
+	SFInt32 l_middle0_flexion;	/*exposedField*/
+	SFInt32 r_middle0_flexion;	/*exposedField*/
+	SFInt32 l_middle1_flexion;	/*exposedField*/
+	SFInt32 r_middle1_flexion;	/*exposedField*/
+	SFInt32 l_middle1_pivot;	/*exposedField*/
+	SFInt32 r_middle1_pivot;	/*exposedField*/
+	SFInt32 l_middle1_twisting;	/*exposedField*/
+	SFInt32 r_middle1_twisting;	/*exposedField*/
+	SFInt32 l_middle2_flexion;	/*exposedField*/
+	SFInt32 r_middle2_flexion;	/*exposedField*/
+	SFInt32 l_middle3_flexion;	/*exposedField*/
+	SFInt32 r_middle3_flexion;	/*exposedField*/
+	SFInt32 l_index0_flexion;	/*exposedField*/
+	SFInt32 r_index0_flexion;	/*exposedField*/
+	SFInt32 l_index1_flexion;	/*exposedField*/
+	SFInt32 r_index1_flexion;	/*exposedField*/
+	SFInt32 l_index1_pivot;	/*exposedField*/
+	SFInt32 r_index1_pivot;	/*exposedField*/
+	SFInt32 l_index1_twisting;	/*exposedField*/
+	SFInt32 r_index1_twisting;	/*exposedField*/
+	SFInt32 l_index2_flexion;	/*exposedField*/
+	SFInt32 r_index2_flexion;	/*exposedField*/
+	SFInt32 l_index3_flexion;	/*exposedField*/
+	SFInt32 r_index3_flexion;	/*exposedField*/
+	SFInt32 l_thumb1_flexion;	/*exposedField*/
+	SFInt32 r_thumb1_flexion;	/*exposedField*/
+	SFInt32 l_thumb1_pivot;	/*exposedField*/
+	SFInt32 r_thumb1_pivot;	/*exposedField*/
+	SFInt32 l_thumb1_twisting;	/*exposedField*/
+	SFInt32 r_thumb1_twisting;	/*exposedField*/
+	SFInt32 l_thumb2_flexion;	/*exposedField*/
+	SFInt32 r_thumb2_flexion;	/*exposedField*/
+	SFInt32 l_thumb3_flexion;	/*exposedField*/
+	SFInt32 r_thumb3_flexion;	/*exposedField*/
+	SFInt32 HumanoidRoot_tr_vertical;	/*exposedField*/
+	SFInt32 HumanoidRoot_tr_lateral;	/*exposedField*/
+	SFInt32 HumanoidRoot_tr_frontal;	/*exposedField*/
+	SFInt32 HumanoidRoot_rt_body_turn;	/*exposedField*/
+	SFInt32 HumanoidRoot_rt_body_roll;	/*exposedField*/
+	SFInt32 HumanoidRoot_rt_body_tilt;	/*exposedField*/
+	SFInt32 extensionBap187;	/*exposedField*/
+	SFInt32 extensionBap188;	/*exposedField*/
+	SFInt32 extensionBap189;	/*exposedField*/
+	SFInt32 extensionBap190;	/*exposedField*/
+	SFInt32 extensionBap191;	/*exposedField*/
+	SFInt32 extensionBap192;	/*exposedField*/
+	SFInt32 extensionBap193;	/*exposedField*/
+	SFInt32 extensionBap194;	/*exposedField*/
+	SFInt32 extensionBap195;	/*exposedField*/
+	SFInt32 extensionBap196;	/*exposedField*/
+	SFInt32 extensionBap197;	/*exposedField*/
+	SFInt32 extensionBap198;	/*exposedField*/
+	SFInt32 extensionBap199;	/*exposedField*/
+	SFInt32 extensionBap200;	/*exposedField*/
+	SFInt32 extensionBap201;	/*exposedField*/
+	SFInt32 extensionBap202;	/*exposedField*/
+	SFInt32 extensionBap203;	/*exposedField*/
+	SFInt32 extensionBap204;	/*exposedField*/
+	SFInt32 extensionBap205;	/*exposedField*/
+	SFInt32 extensionBap206;	/*exposedField*/
+	SFInt32 extensionBap207;	/*exposedField*/
+	SFInt32 extensionBap208;	/*exposedField*/
+	SFInt32 extensionBap209;	/*exposedField*/
+	SFInt32 extensionBap210;	/*exposedField*/
+	SFInt32 extensionBap211;	/*exposedField*/
+	SFInt32 extensionBap212;	/*exposedField*/
+	SFInt32 extensionBap213;	/*exposedField*/
+	SFInt32 extensionBap214;	/*exposedField*/
+	SFInt32 extensionBap215;	/*exposedField*/
+	SFInt32 extensionBap216;	/*exposedField*/
+	SFInt32 extensionBap217;	/*exposedField*/
+	SFInt32 extensionBap218;	/*exposedField*/
+	SFInt32 extensionBap219;	/*exposedField*/
+	SFInt32 extensionBap220;	/*exposedField*/
+	SFInt32 extensionBap221;	/*exposedField*/
+	SFInt32 extensionBap222;	/*exposedField*/
+	SFInt32 extensionBap223;	/*exposedField*/
+	SFInt32 extensionBap224;	/*exposedField*/
+	SFInt32 extensionBap225;	/*exposedField*/
+	SFInt32 extensionBap226;	/*exposedField*/
+	SFInt32 extensionBap227;	/*exposedField*/
+	SFInt32 extensionBap228;	/*exposedField*/
+	SFInt32 extensionBap229;	/*exposedField*/
+	SFInt32 extensionBap230;	/*exposedField*/
+	SFInt32 extensionBap231;	/*exposedField*/
+	SFInt32 extensionBap232;	/*exposedField*/
+	SFInt32 extensionBap233;	/*exposedField*/
+	SFInt32 extensionBap234;	/*exposedField*/
+	SFInt32 extensionBap235;	/*exposedField*/
+	SFInt32 extensionBap236;	/*exposedField*/
+	SFInt32 extensionBap237;	/*exposedField*/
+	SFInt32 extensionBap238;	/*exposedField*/
+	SFInt32 extensionBap239;	/*exposedField*/
+	SFInt32 extensionBap240;	/*exposedField*/
+	SFInt32 extensionBap241;	/*exposedField*/
+	SFInt32 extensionBap242;	/*exposedField*/
+	SFInt32 extensionBap243;	/*exposedField*/
+	SFInt32 extensionBap244;	/*exposedField*/
+	SFInt32 extensionBap245;	/*exposedField*/
+	SFInt32 extensionBap246;	/*exposedField*/
+	SFInt32 extensionBap247;	/*exposedField*/
+	SFInt32 extensionBap248;	/*exposedField*/
+	SFInt32 extensionBap249;	/*exposedField*/
+	SFInt32 extensionBap250;	/*exposedField*/
+	SFInt32 extensionBap251;	/*exposedField*/
+	SFInt32 extensionBap252;	/*exposedField*/
+	SFInt32 extensionBap253;	/*exposedField*/
+	SFInt32 extensionBap254;	/*exposedField*/
+	SFInt32 extensionBap255;	/*exposedField*/
+	SFInt32 extensionBap256;	/*exposedField*/
+	SFInt32 extensionBap257;	/*exposedField*/
+	SFInt32 extensionBap258;	/*exposedField*/
+	SFInt32 extensionBap259;	/*exposedField*/
+	SFInt32 extensionBap260;	/*exposedField*/
+	SFInt32 extensionBap261;	/*exposedField*/
+	SFInt32 extensionBap262;	/*exposedField*/
+	SFInt32 extensionBap263;	/*exposedField*/
+	SFInt32 extensionBap264;	/*exposedField*/
+	SFInt32 extensionBap265;	/*exposedField*/
+	SFInt32 extensionBap266;	/*exposedField*/
+	SFInt32 extensionBap267;	/*exposedField*/
+	SFInt32 extensionBap268;	/*exposedField*/
+	SFInt32 extensionBap269;	/*exposedField*/
+	SFInt32 extensionBap270;	/*exposedField*/
+	SFInt32 extensionBap271;	/*exposedField*/
+	SFInt32 extensionBap272;	/*exposedField*/
+	SFInt32 extensionBap273;	/*exposedField*/
+	SFInt32 extensionBap274;	/*exposedField*/
+	SFInt32 extensionBap275;	/*exposedField*/
+	SFInt32 extensionBap276;	/*exposedField*/
+	SFInt32 extensionBap277;	/*exposedField*/
+	SFInt32 extensionBap278;	/*exposedField*/
+	SFInt32 extensionBap279;	/*exposedField*/
+	SFInt32 extensionBap280;	/*exposedField*/
+	SFInt32 extensionBap281;	/*exposedField*/
+	SFInt32 extensionBap282;	/*exposedField*/
+	SFInt32 extensionBap283;	/*exposedField*/
+	SFInt32 extensionBap284;	/*exposedField*/
+	SFInt32 extensionBap285;	/*exposedField*/
+	SFInt32 extensionBap286;	/*exposedField*/
+	SFInt32 extensionBap287;	/*exposedField*/
+	SFInt32 extensionBap288;	/*exposedField*/
+	SFInt32 extensionBap289;	/*exposedField*/
+	SFInt32 extensionBap290;	/*exposedField*/
+	SFInt32 extensionBap291;	/*exposedField*/
+	SFInt32 extensionBap292;	/*exposedField*/
+	SFInt32 extensionBap293;	/*exposedField*/
+	SFInt32 extensionBap294;	/*exposedField*/
+	SFInt32 extensionBap295;	/*exposedField*/
+	SFInt32 extensionBap296;	/*exposedField*/
+} M_BAP;
+
+
+typedef struct _tagBDP
+{
+	BASE_NODE
+	GF_ChildNodeItem *bodyDefTables;	/*exposedField*/
+	GF_ChildNodeItem *bodySceneGraph;	/*exposedField*/
+} M_BDP;
+
+
+typedef struct _tagBody
+{
+	BASE_NODE
+	GF_Node *bdp;	/*exposedField*/
+	GF_Node *bap;	/*exposedField*/
+	GF_ChildNodeItem *renderedBody;	/*exposedField*/
+} M_Body;
+
+
+typedef struct _tagBodyDefTable
+{
+	BASE_NODE
+	SFString bodySceneGraphNodeName;	/*exposedField*/
+	MFInt32 bapIDs;	/*exposedField*/
+	MFInt32 vertexIds;	/*exposedField*/
+	MFInt32 bapCombinations;	/*exposedField*/
+	MFVec3f displacements;	/*exposedField*/
+	SFInt32 numInterpolateKeys;	/*exposedField*/
+} M_BodyDefTable;
+
+
+typedef struct _tagBodySegmentConnectionHint
+{
+	BASE_NODE
+	SFString firstSegmentNodeName;	/*exposedField*/
+	SFString secondSegmentNodeName;	/*exposedField*/
+	MFInt32 firstVertexIdList;	/*exposedField*/
+	MFInt32 secondVertexIdList;	/*exposedField*/
+} M_BodySegmentConnectionHint;
 
 
 typedef struct _tagDirectiveSound
@@ -1577,6 +2082,16 @@ typedef struct _tagMediaSensor
 } M_MediaSensor;
 
 
+typedef struct _tagBitWrapper
+{
+	BASE_NODE
+	GF_Node *node;	/*field*/
+	SFInt32 type;	/*field*/
+	MFURL url;	/*field*/
+	SFString buffer;	/*field*/
+} M_BitWrapper;
+
+
 typedef struct _tagCoordinateInterpolator4D
 {
 	BASE_NODE
@@ -1588,6 +2103,137 @@ typedef struct _tagCoordinateInterpolator4D
 } M_CoordinateInterpolator4D;
 
 
+typedef struct _tagDepthImage
+{
+	BASE_NODE
+	GF_Node *diTexture;	/*field*/
+	SFFloat farPlane;	/*field*/
+	SFVec2f fieldOfView;	/*field*/
+	SFFloat nearPlane;	/*field*/
+	SFRotation orientation;	/*field*/
+	SFBool orthographic;	/*field*/
+	SFVec3f position;	/*field*/
+} M_DepthImage;
+
+
+typedef struct _tagFFD
+{
+	BASE_NODE
+	VRML_CHILDREN
+	MFVec4f controlPoint;	/*exposedField*/
+	SFInt32 uDimension;	/*field*/
+	MFFloat uKnot;	/*field*/
+	SFInt32 uOrder;	/*field*/
+	SFInt32 vDimension;	/*field*/
+	MFFloat vKnot;	/*field*/
+	SFInt32 vOrder;	/*field*/
+	SFInt32 wDimension;	/*field*/
+	MFFloat wKnot;	/*field*/
+	SFInt32 wOrder;	/*field*/
+} M_FFD;
+
+
+typedef struct _tagImplicit
+{
+	BASE_NODE
+	SFVec3f bboxSize;	/*exposedField*/
+	MFFloat c;	/*exposedField*/
+	MFInt32 densities;	/*exposedField*/
+	SFBool dual;	/*exposedField*/
+	SFBool solid;	/*exposedField*/
+} M_Implicit;
+
+
+typedef struct _tagXXLFM_Appearance
+{
+	BASE_NODE
+	GF_Node *blendList;	/*exposedField*/
+	GF_ChildNodeItem *lightMapList;	/*exposedField*/
+	GF_ChildNodeItem *tileList;	/*exposedField*/
+	GF_Node *vertexFrameList;	/*exposedField*/
+} M_XXLFM_Appearance;
+
+
+typedef struct _tagXXLFM_BlendList
+{
+	BASE_NODE
+	MFInt32 blendMode;	/*exposedField*/
+	MFInt32 lightMapIndex;	/*exposedField*/
+} M_XXLFM_BlendList;
+
+
+typedef struct _tagXXLFM_FrameList
+{
+	BASE_NODE
+	MFInt32 index;	/*exposedField*/
+	MFVec3f frame;	/*exposedField*/
+} M_XXLFM_FrameList;
+
+
+typedef struct _tagXXLFM_LightMap
+{
+	BASE_NODE
+	SFVec3f biasRGB;	/*exposedField*/
+	SFInt32 priorityLevel;	/*exposedField*/
+	SFVec3f scaleRGB;	/*exposedField*/
+	GF_Node *surfaceMapList;	/*exposedField*/
+	GF_Node *viewMapList;	/*exposedField*/
+} M_XXLFM_LightMap;
+
+
+typedef struct _tagXXLFM_SurfaceMapList
+{
+	BASE_NODE
+	MFInt32 tileIndex;	/*exposedField*/
+	GF_Node *triangleCoordinate;	/*exposedField*/
+	MFInt32 triangleIndex;	/*exposedField*/
+	MFInt32 viewMapIndex;	/*exposedField*/
+} M_XXLFM_SurfaceMapList;
+
+
+typedef struct _tagXXLFM_ViewMapList
+{
+	BASE_NODE
+	GF_Node *textureOrigin;	/*exposedField*/
+	GF_Node *textureSize;	/*exposedField*/
+	MFInt32 tileIndex;	/*exposedField*/
+	MFInt32 vertexIndex;	/*exposedField*/
+} M_XXLFM_ViewMapList;
+
+
+typedef struct _tagMeshGrid
+{
+	BASE_NODE
+	MFInt32 set_colorIndex;	/*eventIn*/
+	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	MFInt32 set_coordIndex;	/*eventIn*/
+	void (*on_set_coordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	MFInt32 set_normalIndex;	/*eventIn*/
+	void (*on_set_normalIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	MFInt32 set_texCoordIndex;	/*eventIn*/
+	void (*on_set_texCoordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	GF_Node *color;	/*exposedField*/
+	GF_Node *coord;	/*exposedField*/
+	SFInt32 displayLevel;	/*exposedField*/
+	SFInt32 filterType;	/*exposedField*/
+	GF_Node *gridCoord;	/*exposedField*/
+	SFInt32 hierarchicalLevel;	/*exposedField*/
+	MFInt32 nLevels;	/*exposedField*/
+	GF_Node *normal;	/*exposedField*/
+	MFInt32 nSlices;	/*exposedField*/
+	GF_Node *texCoord;	/*exposedField*/
+	MFFloat vertexOffset;	/*exposedField*/
+	MFInt32 vertexLink;	/*exposedField*/
+	MFInt32 colorIndex;	/*field*/
+	MFInt32 coordIndex;	/*field*/
+	MFInt32 normalIndex;	/*field*/
+	SFBool solid;	/*field*/
+	MFInt32 texCoordIndex;	/*field*/
+	SFBool isLoading;	/*eventOut*/
+	MFInt32 nVertices;	/*eventOut*/
+} M_MeshGrid;
+
+
 typedef struct _tagNonLinearDeformer
 {
 	BASE_NODE
@@ -1597,6 +2243,142 @@ typedef struct _tagNonLinearDeformer
 	SFFloat param;	/*exposedField*/
 	SFInt32 type;	/*exposedField*/
 } M_NonLinearDeformer;
+
+
+typedef struct _tagNurbsCurve
+{
+	BASE_NODE
+	MFInt32 set_colorIndex;	/*eventIn*/
+	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	GF_Node *color;	/*exposedField*/
+	MFVec4f controlPoint;	/*exposedField*/
+	SFInt32 tessellation;	/*exposedField*/
+	MFInt32 colorIndex;	/*field*/
+	SFBool colorPerVertex;	/*field*/
+	MFFloat knot;	/*field*/
+	SFInt32 order;	/*field*/
+} M_NurbsCurve;
+
+
+typedef struct _tagNurbsCurve2D
+{
+	BASE_NODE
+	MFInt32 set_colorIndex;	/*eventIn*/
+	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	GF_Node *color;	/*exposedField*/
+	MFVec3f controlPoint;	/*exposedField*/
+	SFInt32 tessellation;	/*exposedField*/
+	MFInt32 colorIndex;	/*field*/
+	SFBool colorPerVertex;	/*field*/
+	MFFloat knot;	/*field*/
+	SFInt32 order;	/*field*/
+} M_NurbsCurve2D;
+
+
+typedef struct _tagNurbsSurface
+{
+	BASE_NODE
+	MFInt32 set_colorIndex;	/*eventIn*/
+	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	MFInt32 set_texColorIndex;	/*eventIn*/
+	void (*on_set_texColorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	GF_Node *color;	/*exposedField*/
+	MFVec4f controlPoint;	/*exposedField*/
+	GF_Node *texCoord;	/*exposedField*/
+	SFInt32 uTessellation;	/*exposedField*/
+	SFInt32 vTessellation;	/*exposedField*/
+	SFBool ccw;	/*field*/
+	MFInt32 colorIndex;	/*field*/
+	SFBool colorPerVertex;	/*field*/
+	SFBool solid;	/*field*/
+	MFInt32 texColorIndex;	/*field*/
+	SFInt32 uDimension;	/*field*/
+	MFFloat uKnot;	/*field*/
+	SFInt32 uOrder;	/*field*/
+	SFInt32 vDimension;	/*field*/
+	MFFloat vKnot;	/*field*/
+	SFInt32 vOrder;	/*field*/
+} M_NurbsSurface;
+
+
+typedef struct _tagOctreeImage
+{
+	BASE_NODE
+	GF_ChildNodeItem *images;	/*field*/
+	MFInt32 octree;	/*field*/
+	SFInt32 octreeResolution;	/*field*/
+	MFInt32 voxelImageIndex;	/*field*/
+} M_OctreeImage;
+
+
+typedef struct _tagXXParticles
+{
+	BASE_NODE
+	SFFloat creationRate;	/*exposedField*/
+	SFFloat creationRateVariation;	/*exposedField*/
+	SFFloat emitAlpha;	/*exposedField*/
+	SFColor emitColor;	/*exposedField*/
+	SFColor emitColorVariation;	/*exposedField*/
+	SFVec3f emitterPosition;	/*exposedField*/
+	SFVec3f emitVelocity;	/*exposedField*/
+	SFVec3f emitVelocityVariation;	/*exposedField*/
+	SFBool enabled;	/*exposedField*/
+	SFFloat fadeAlpha;	/*exposedField*/
+	SFColor fadeColor;	/*exposedField*/
+	SFFloat fadeRate;	/*exposedField*/
+	SFVec3f force;	/*exposedField*/
+	GF_ChildNodeItem *influences;	/*exposedField*/
+	GF_Node *init;	/*exposedField*/
+	SFTime maxLifeTime;	/*exposedField*/
+	SFFloat maxLifeTimeVariation;	/*exposedField*/
+	SFInt32 maxParticles;	/*exposedField*/
+	SFFloat minRange;	/*exposedField*/
+	SFFloat maxRange;	/*exposedField*/
+	GF_Node *primitive;	/*exposedField*/
+	SFInt32 primitiveType;	/*exposedField*/
+	SFFloat particleRadius;	/*exposedField*/
+	SFFloat particleRadiusRate;	/*exposedField*/
+	SFFloat particleRadiusVariation;	/*exposedField*/
+} M_XXParticles;
+
+
+typedef struct _tagXXParticleInitBox
+{
+	BASE_NODE
+	SFFloat falloff;	/*exposedField*/
+	SFVec3f size;	/*exposedField*/
+} M_XXParticleInitBox;
+
+
+typedef struct _tagXXPlanarObstacle
+{
+	BASE_NODE
+	SFVec3f distance;	/*exposedField*/
+	SFVec3f normal;	/*exposedField*/
+	SFFloat reflection;	/*exposedField*/
+	SFFloat absorption;	/*exposedField*/
+} M_XXPlanarObstacle;
+
+
+typedef struct _tagXXPointAttractor
+{
+	BASE_NODE
+	SFFloat innerRadius;	/*exposedField*/
+	SFFloat outerRadius;	/*exposedField*/
+	SFVec3f position;	/*exposedField*/
+	SFFloat rate;	/*exposedField*/
+} M_XXPointAttractor;
+
+
+typedef struct _tagPointTexture
+{
+	BASE_NODE
+	MFColor color;	/*field*/
+	MFInt32 depth;	/*field*/
+	SFInt32 depthNbBits;	/*field*/
+	SFInt32 height;	/*field*/
+	SFInt32 width;	/*field*/
+} M_PointTexture;
 
 
 typedef struct _tagPositionAnimator
@@ -1650,6 +2432,141 @@ typedef struct _tagPositionInterpolator4D
 } M_PositionInterpolator4D;
 
 
+typedef struct _tagProceduralTexture
+{
+	BASE_NODE
+	SFBool aSmooth;	/*exposedField*/
+	MFVec2f aWarpmap;	/*exposedField*/
+	MFFloat aWeights;	/*exposedField*/
+	SFBool bSmooth;	/*exposedField*/
+	MFVec2f bWarpmap;	/*exposedField*/
+	MFFloat bWeights;	/*exposedField*/
+	SFInt32 cellWidth;	/*exposedField*/
+	SFInt32 cellHeight;	/*exposedField*/
+	MFColor color;	/*exposedField*/
+	SFFloat distortion;	/*exposedField*/
+	SFInt32 height;	/*exposedField*/
+	SFInt32 roughness;	/*exposedField*/
+	SFInt32 seed;	/*exposedField*/
+	SFInt32 type;	/*exposedField*/
+	SFBool xSmooth;	/*exposedField*/
+	MFVec2f xWarpmap;	/*exposedField*/
+	SFBool ySmooth;	/*exposedField*/
+	MFVec2f yWarpmap;	/*exposedField*/
+	SFInt32 width;	/*exposedField*/
+	SFImage image_changed;	/*eventOut*/
+} M_ProceduralTexture;
+
+
+typedef struct _tagQuadric
+{
+	BASE_NODE
+	SFVec3f bboxSize;	/*exposedField*/
+	MFInt32 densities;	/*exposedField*/
+	SFBool dual;	/*exposedField*/
+	SFVec4f P0;	/*exposedField*/
+	SFVec4f P1;	/*exposedField*/
+	SFVec4f P2;	/*exposedField*/
+	SFVec4f P3;	/*exposedField*/
+	SFVec4f P4;	/*exposedField*/
+	SFVec4f P5;	/*exposedField*/
+	SFBool solid;	/*exposedField*/
+} M_Quadric;
+
+
+typedef struct _tagSBBone
+{
+	BASE_NODE
+	VRML_CHILDREN
+	SFInt32 boneID;	/*exposedField*/
+	SFVec3f center;	/*exposedField*/
+	SFVec3f endpoint;	/*exposedField*/
+	SFInt32 falloff;	/*exposedField*/
+	SFInt32 ikChainPosition;	/*exposedField*/
+	MFFloat ikPitchLimit;	/*exposedField*/
+	MFFloat ikRollLimit;	/*exposedField*/
+	MFFloat ikTxLimit;	/*exposedField*/
+	MFFloat ikTyLimit;	/*exposedField*/
+	MFFloat ikTzLimit;	/*exposedField*/
+	MFFloat ikYawLimit;	/*exposedField*/
+	SFRotation rotation;	/*exposedField*/
+	SFInt32 rotationOrder;	/*exposedField*/
+	SFVec3f scale;	/*exposedField*/
+	SFRotation scaleOrientation;	/*exposedField*/
+	MFFloat sectionInner;	/*exposedField*/
+	MFFloat sectionOuter;	/*exposedField*/
+	MFFloat sectionPosition;	/*exposedField*/
+	MFInt32 skinCoordIndex;	/*exposedField*/
+	MFFloat skinCoordWeight;	/*exposedField*/
+	SFVec3f translation;	/*exposedField*/
+} M_SBBone;
+
+
+typedef struct _tagSBMuscle
+{
+	BASE_NODE
+	SFInt32 falloff;	/*exposedField*/
+	GF_Node *muscleCurve;	/*exposedField*/
+	SFInt32 muscleID;	/*exposedField*/
+	SFInt32 radius;	/*exposedField*/
+	MFInt32 skinCoordIndex;	/*exposedField*/
+	MFFloat skinCoordWeight;	/*exposedField*/
+} M_SBMuscle;
+
+
+typedef struct _tagSBSegment
+{
+	BASE_NODE
+	VRML_CHILDREN
+	SFVec3f centerOfMass;	/*exposedField*/
+	SFFloat mass;	/*exposedField*/
+	MFVec3f momentsOfInertia;	/*exposedField*/
+	SFString name;	/*exposedField*/
+} M_SBSegment;
+
+
+typedef struct _tagSBSite
+{
+	BASE_NODE
+	VRML_CHILDREN
+	SFVec3f center;	/*exposedField*/
+	SFString name;	/*exposedField*/
+	SFRotation rotation;	/*exposedField*/
+	SFVec3f scale;	/*exposedField*/
+	SFRotation scaleOrientation;	/*exposedField*/
+	SFVec3f translation;	/*exposedField*/
+} M_SBSite;
+
+
+typedef struct _tagSBSkinnedModel
+{
+	BASE_NODE
+	GF_ChildNodeItem *bones;	/*exposedField*/
+	SFVec3f center;	/*exposedField*/
+	GF_ChildNodeItem *muscles;	/*exposedField*/
+	SFString name;	/*exposedField*/
+	SFRotation rotation;	/*exposedField*/
+	GF_ChildNodeItem *segments;	/*exposedField*/
+	SFVec3f scale;	/*exposedField*/
+	SFRotation scaleOrientation;	/*exposedField*/
+	GF_ChildNodeItem *sites;	/*exposedField*/
+	GF_ChildNodeItem *skeleton;	/*exposedField*/
+	GF_ChildNodeItem *skin;	/*exposedField*/
+	GF_Node *skinCoord;	/*exposedField*/
+	GF_Node *skinNormal;	/*exposedField*/
+	SFVec3f translation;	/*exposedField*/
+	GF_Node *weighsComputationSkinCoord;	/*exposedField*/
+} M_SBSkinnedModel;
+
+
+typedef struct _tagSBVCAnimation
+{
+	BASE_NODE
+	MFURL url;	/*exposedField*/
+	GF_ChildNodeItem *virtualCharacters;	/*exposedField*/
+} M_SBVCAnimation;
+
+
 typedef struct _tagScalarAnimator
 {
 	BASE_NODE
@@ -1666,6 +2583,85 @@ typedef struct _tagScalarAnimator
 	SFFloat endValue;	/*eventOut*/
 	SFFloat value_changed;	/*eventOut*/
 } M_ScalarAnimator;
+
+
+typedef struct _tagSimpleTexture
+{
+	BASE_NODE
+	GF_Node *depth;	/*field*/
+	GF_Node *texture;	/*field*/
+} M_SimpleTexture;
+
+
+typedef struct _tagSolidRep
+{
+	BASE_NODE
+	SFVec3f bboxSize;	/*exposedField*/
+	MFInt32 densityList;	/*exposedField*/
+	GF_Node *solidTree;	/*exposedField*/
+} M_SolidRep;
+
+
+typedef struct _tagSubdivisionSurface
+{
+	BASE_NODE
+	MFInt32 set_colorIndex;	/*eventIn*/
+	void (*on_set_colorIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	MFInt32 set_coordIndex;	/*eventIn*/
+	void (*on_set_coordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	MFInt32 set_cornerVertexIndex;	/*eventIn*/
+	void (*on_set_cornerVertexIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	MFInt32 set_creaseEdgeIndex;	/*eventIn*/
+	void (*on_set_creaseEdgeIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	MFInt32 set_creaseVertexIndex;	/*eventIn*/
+	void (*on_set_creaseVertexIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	MFInt32 set_dartVertexIndex;	/*eventIn*/
+	void (*on_set_dartVertexIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	MFInt32 set_texCoordIndex;	/*eventIn*/
+	void (*on_set_texCoordIndex)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	GF_Node *color;	/*exposedField*/
+	GF_Node *coord;	/*exposedField*/
+	GF_Node *texCoord;	/*exposedField*/
+	GF_ChildNodeItem *sectors;	/*exposedField*/
+	SFInt32 subdivisionLevel;	/*exposedField*/
+	SFInt32 subdivisionType;	/*exposedField*/
+	SFInt32 subdivisionSubType;	/*exposedField*/
+	MFInt32 invisibleEdgeIndex;	/*field*/
+	SFBool ccw;	/*field*/
+	MFInt32 colorIndex;	/*field*/
+	SFBool colorPerVertex;	/*field*/
+	SFBool convex;	/*field*/
+	MFInt32 coordIndex;	/*field*/
+	MFInt32 cornerVertexIndex;	/*field*/
+	MFInt32 creaseEdgeIndex;	/*field*/
+	MFInt32 creaseVertexIndex;	/*field*/
+	MFInt32 dartVertexIndex;	/*field*/
+	SFBool solid;	/*field*/
+	MFInt32 texCoordIndex;	/*field*/
+} M_SubdivisionSurface;
+
+
+typedef struct _tagSubdivSurfaceSector
+{
+	BASE_NODE
+	SFFloat flatness;	/*exposedField*/
+	SFVec3f normal;	/*exposedField*/
+	SFFloat normalTension;	/*exposedField*/
+	SFInt32 _tag;	/*exposedField*/
+	SFFloat theta;	/*exposedField*/
+	SFInt32 faceIndex;	/*field*/
+	SFInt32 vertexIndex;	/*field*/
+} M_SubdivSurfaceSector;
+
+
+typedef struct _tagWaveletSubdivisionSurface
+{
+	BASE_NODE
+	GF_Node *baseMesh;	/*exposedField*/
+	SFFloat fieldOfView;	/*exposedField*/
+	SFFloat frequency;	/*exposedField*/
+	SFInt32 quality;	/*exposedField*/
+} M_WaveletSubdivisionSurface;
 
 
 typedef struct _tagClipper2D
@@ -1752,6 +2748,23 @@ typedef struct _tagRadialGradient
 	SFInt32 spreadMethod;	/*exposedField*/
 	GF_Node *transform;	/*exposedField*/
 } M_RadialGradient;
+
+
+typedef struct _tagSynthesizedTexture
+{
+	BASE_NODE
+	MFVec3f translation;	/*exposedField*/
+	MFRotation rotation;	/*exposedField*/
+	SFInt32 pixelWidth;	/*exposedField*/
+	SFInt32 pixelHeight;	/*exposedField*/
+	SFBool loop;	/*exposedField*/
+	SFFloat speed;	/*exposedField*/
+	SFTime startTime;	/*exposedField*/
+	SFTime stopTime;	/*exposedField*/
+	MFURL url;	/*exposedField*/
+	SFTime duration_changed;	/*eventOut*/
+	SFBool isActive;	/*eventOut*/
+} M_SynthesizedTexture;
 
 
 typedef struct _tagTransformMatrix2D
