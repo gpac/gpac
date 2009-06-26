@@ -40,15 +40,13 @@ void gf_bifs_enc_name(GF_BifsEncoder *codec, GF_BitStream *bs, char *name)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] DEF\t\t%d\t\t%s\n", 8*i, name));
 }
 
-
-
 static GF_Err BE_XReplace(GF_BifsEncoder * codec, GF_Command *com, GF_BitStream *bs)
 {
-	u32 i,nbBits, count, maxPos, nbBitsPos;
+	u32 i,nbBits;
 	GF_FieldInfo field;
 	GF_Err e;
 	GF_CommandField *inf;
-	if (!gf_list_count(com->command_fields)) return GF_OK; 
+	if (!gf_list_count(com->command_fields)) return GF_BAD_PARAM; 
 	inf = (GF_CommandField *)gf_list_get(com->command_fields, 0);
 
 	
@@ -84,44 +82,46 @@ static GF_Err BE_XReplace(GF_BifsEncoder * codec, GF_Command *com, GF_BitStream 
 		}
 	}
 	if (field.fieldType==GF_SG_VRML_MFNODE) {
-		if (com->RouteID) {
-			GF_Node *n = gf_bifs_enc_find_node(codec, com->RouteID);
+		if (com->ChildNodeTag) {
+			GF_Node *n;
+			if (com->ChildNodeTag>0) {
+				n = gf_node_new(codec->scene_graph, com->RouteID);
+			} else {
+				GF_Proto *proto = gf_sg_find_proto(codec->scene_graph, -com->ChildNodeTag , NULL);
+				if (!proto) return GF_SG_UNKNOWN_NODE;
+				n = gf_sg_proto_create_instance(codec->scene_graph, proto);
+			}
+			if (!n) return GF_SG_UNKNOWN_NODE;
+			gf_node_register(n, NULL);
+
 			GF_BIFS_WRITE_INT(codec, bs, 1, 1, "childField", NULL);
 
-			GF_BIFS_WRITE_INT(codec, bs, com->RouteID-1, codec->info->config.NodeIDBits, "childNodeID", NULL);
 			nbBits = gf_get_bit_size(gf_node_get_num_fields_in_mode(n, GF_SG_FIELD_CODING_IN)-1);
 			gf_bifs_field_index_by_mode(n, com->child_field, GF_SG_FIELD_CODING_IN, &i);
 			GF_BIFS_WRITE_INT(codec, bs, i, nbBits, "childField", NULL);
+			gf_node_unregister(n, NULL);
 		} else {
 			GF_BIFS_WRITE_INT(codec, bs, 0, 1, "childField", NULL);
 		}
 	}
 	if (com->fromNodeID) {
-	}
+		GF_Node *n = gf_bifs_enc_find_node(codec, com->fromNodeID);
+		GF_BIFS_WRITE_INT(codec, bs, 1, 1, "valueFromNode", NULL);
 
-	field.fieldType = inf->fieldType;
+		GF_BIFS_WRITE_INT(codec, bs, com->fromNodeID-1, codec->info->config.NodeIDBits, "sourceNodeID", NULL);
+		nbBits = gf_get_bit_size(gf_node_get_num_fields_in_mode(n, GF_SG_FIELD_CODING_DEF)-1);
+		gf_bifs_field_index_by_mode(n, com->fromFieldIndex, GF_SG_FIELD_CODING_DEF, &i);
+		GF_BIFS_WRITE_INT(codec, bs, i, nbBits, "sourceField", NULL);
 
-	count = gf_list_count(com->command_fields);
-	maxPos = 0;
-	for (i=0; i<count; i++) {
-		inf = (GF_CommandField *)gf_list_get(com->command_fields, i);
-		if (maxPos < (u32) inf->pos) maxPos = inf->pos;
-	}
-	nbBitsPos = gf_get_bit_size(maxPos);
-	GF_BIFS_WRITE_INT(codec, bs, nbBitsPos, 5, "nbBitsPos", NULL);
+		return GF_OK;
+	} 
 	
-	nbBits = gf_get_bit_size(count);
-	GF_BIFS_WRITE_INT(codec, bs, nbBits, 5, "nbBits", NULL);
-	GF_BIFS_WRITE_INT(codec, bs, count, nbBits, "count", NULL);
+	GF_BIFS_WRITE_INT(codec, bs, 0, 1, "valueFromNode", NULL);
 
-	for (i=0; i<count; i++) {
-		inf = (GF_CommandField *)gf_list_get(com->command_fields, i);
-		GF_BIFS_WRITE_INT(codec, bs, inf->pos, nbBitsPos, "idx", NULL);
-		field.far_ptr = inf->field_ptr;
-		e = gf_bifs_enc_field(codec, bs, com->node, &field);
-		if (e) return e;
-	}
-	return GF_OK;
+	field.far_ptr = inf->field_ptr;
+	field.fieldType = inf->fieldType;
+	e = gf_bifs_enc_field(codec, bs, com->node, &field);
+	return e;
 }
 
 static GF_Err BE_MultipleIndexedReplace(GF_BifsEncoder * codec, GF_Command *com, GF_BitStream *bs)
@@ -286,6 +286,9 @@ static GF_Err BE_ExtendedUpdate(GF_BifsEncoder * codec, GF_Command *com, GF_BitS
 		GF_BIFS_WRITE_INT(codec, bs, 6, 8, "MultipleReplace", NULL);
 		GF_BIFS_WRITE_INT(codec, bs, gf_node_get_id(com->node) - 1, codec->info->config.NodeIDBits, "NodeID", NULL);
 		return GF_OK;
+	case GF_SG_XREPLACE:
+		GF_BIFS_WRITE_INT(codec, bs, 7, 8, "XReplace", NULL);
+		return BE_XReplace(codec, com, bs);
 	default:
 		return GF_BAD_PARAM;
 	}

@@ -700,6 +700,7 @@ typedef struct
 		*/
 		Bool use_names;
 		u32 RouteID;
+		s32 ChildNodeTag;
 	};
 
 	/*proto list to insert - BIFS only*/
