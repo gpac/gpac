@@ -469,7 +469,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		GF_ChildNodeItem *list, *cur, *prev;
 		GF_FieldInfo value;
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
-		if (!inf) return GF_OK;
+		if (!inf) return GF_SG_UNKNOWN_NODE;
 
 		e = gf_node_get_field(com->node, inf->fieldIndex, &field);
 		if (e) return e;
@@ -480,7 +480,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			if ((inf->pos != -2) || com->toNodeID) {
 				if (com->toNodeID) {
 					GF_Node *idxNode = gf_sg_find_node(graph, com->toNodeID);
-					if (!idxNode) return GF_OK;
+					if (!idxNode) return GF_SG_UNKNOWN_NODE;
 				
 					if (gf_node_get_field(idxNode, com->toFieldIndex, &idxField) != GF_OK) return GF_OK;
 					pos = 0;
@@ -504,17 +504,18 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			}
 		}
 		/*override target node*/
-		if ((field.fieldType==GF_SG_VRML_MFNODE) && (pos>=-1) && com->RouteID) {
+		if ((field.fieldType==GF_SG_VRML_MFNODE) && (pos>=-1) && com->ChildNodeTag) {
 			target = gf_node_list_get_child(*(GF_ChildNodeItem **)field.far_ptr, pos);
-			if (!target) return GF_OK;
-			if (gf_node_get_field(target, com->child_field, &field) != GF_OK) return GF_OK;
+			if (!target) return GF_SG_UNKNOWN_NODE;
+			if (gf_node_get_field(target, com->child_field, &field) != GF_OK) return GF_SG_UNKNOWN_NODE;
 			pos=-2;
 		}
 
 		if (com->fromNodeID) {
 			GF_Node *fromNode = gf_sg_find_node(graph, com->fromNodeID);
-			if (!fromNode) return GF_OK;		
-			if (gf_node_get_field(fromNode, com->fromFieldIndex, &value) != GF_OK) return GF_OK;
+			if (!fromNode) return GF_SG_UNKNOWN_NODE;
+			e = gf_node_get_field(fromNode, com->fromFieldIndex, &value);
+			if (e) return e;
 		} else {
 			value.far_ptr = inf->field_ptr;
 			value.fieldType = inf->fieldType;
@@ -523,8 +524,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		if (pos>=-1) {
 			/*if MFNode remove the child and set new node*/
 			if (field.fieldType == GF_SG_VRML_MFNODE) {
-				gf_node_replace_child(target, (GF_ChildNodeItem**) field.far_ptr, pos, *(GF_Node**)value.far_ptr);
-				if (inf->new_node) gf_node_register(inf->new_node, NULL);
+				GF_Node *nn = *(GF_Node**)value.far_ptr;
+				gf_node_replace_child(target, (GF_ChildNodeItem**) field.far_ptr, pos, nn);
+				if (nn) gf_node_register(nn, NULL);
 			}
 			/*erase the field item*/
 			else {

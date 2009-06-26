@@ -41,6 +41,215 @@ void gf_bifs_dec_name(GF_BitStream *bs, char *name)
 	}
 }
 
+
+static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
+{
+	GF_FieldInfo targetField, fromField;
+	GF_Node *target, *n, *fromNode;
+	s32 pos = -2;
+	void *slot_ptr;
+	u32 id, nbBits, ind, aind;
+	GF_Err e;
+
+
+	id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
+	target = gf_sg_find_node(codec->current_graph, id);
+	if (!target) return GF_SG_UNKNOWN_NODE;
+
+	nbBits = gf_get_bit_size(gf_node_get_num_fields_in_mode(target, GF_SG_FIELD_CODING_IN)-1);
+	ind = gf_bs_read_int(bs, nbBits);
+	e = gf_bifs_get_field_index(target, ind, GF_SG_FIELD_CODING_IN, &aind);
+	if (e) return e;
+	e = gf_node_get_field(target, aind, &targetField);
+	if (e) return e;
+
+	if (!gf_sg_vrml_is_sf_field(targetField.fieldType)) {
+		/*this is indexed replacement*/
+		if (gf_bs_read_int(bs, 1)) {
+			/*index is dynamic*/
+			if (gf_bs_read_int(bs, 1)) {
+				id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
+				n = gf_sg_find_node(codec->current_graph, id);
+				if (!n) return GF_SG_UNKNOWN_NODE;
+
+				nbBits = gf_get_bit_size(gf_node_get_num_fields_in_mode(n, GF_SG_FIELD_CODING_DEF)-1);
+				ind = gf_bs_read_int(bs, nbBits);
+				e = gf_bifs_get_field_index(n, ind, GF_SG_FIELD_CODING_DEF, &aind);
+				if (e) return e;
+				e = gf_node_get_field(n, aind, &fromField);
+				if (e) return e;
+
+				pos = 0;
+				switch (fromField.fieldType) {
+				case GF_SG_VRML_SFBOOL:
+					if (*(SFBool*)fromField.far_ptr) pos = 1;
+					break;
+				case GF_SG_VRML_SFINT32:
+					if (*(SFInt32*)fromField.far_ptr >=0) pos = *(SFInt32*)fromField.far_ptr;
+					break;
+				case GF_SG_VRML_SFFLOAT:
+					if ( (*(SFFloat *)fromField.far_ptr) >=0) pos = (s32) floor( FIX2FLT(*(SFFloat*)fromField.far_ptr) );
+					break;
+				case GF_SG_VRML_SFTIME:
+					if ( (*(SFTime *)fromField.far_ptr) >=0) pos = (s32) floor( (*(SFTime *)fromField.far_ptr) );
+					break;
+				}
+			} else {
+				u32 type = gf_bs_read_int(bs, 2);
+				switch (type) {
+				case 0:
+					pos = gf_bs_read_int(bs, 16);
+					break;
+				case 2:
+					pos = 0;
+					break;
+				case 3:
+					pos = -1;
+					break;
+				}
+			}
+		}
+
+		if (targetField.fieldType==GF_SG_VRML_MFNODE) {
+			if (gf_bs_read_int(bs, 1)) {
+				target = gf_node_list_get_child(*(GF_ChildNodeItem **)targetField.far_ptr, pos);
+				if (!target) return GF_SG_UNKNOWN_NODE;
+
+				nbBits = gf_get_bit_size(gf_node_get_num_fields_in_mode(target, GF_SG_FIELD_CODING_IN)-1);
+				ind = gf_bs_read_int(bs, nbBits);
+				e = gf_bifs_get_field_index(target, ind, GF_SG_FIELD_CODING_IN, &aind);
+				if (e) return e;
+				e = gf_node_get_field(target, aind, &targetField);
+				if (e) return e;
+				pos = -2;
+			}
+		}
+	}
+
+	fromNode = NULL;
+	if (gf_bs_read_int(bs, 1)) {
+		id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
+		fromNode = gf_sg_find_node(codec->current_graph, id);
+		if (!fromNode) return GF_SG_UNKNOWN_NODE;
+
+		nbBits = gf_get_bit_size(gf_node_get_num_fields_in_mode(fromNode, GF_SG_FIELD_CODING_DEF)-1);
+		ind = gf_bs_read_int(bs, nbBits);
+		e = gf_bifs_get_field_index(fromNode, ind, GF_SG_FIELD_CODING_DEF, &aind);
+		if (e) return e;
+		e = gf_node_get_field(fromNode, aind, &fromField);
+		if (e) return e;
+	}
+
+	/*indexed replacement*/
+	if (pos>=-1) {
+		/*if MFNode remove the child and set new node*/
+		if (targetField.fieldType == GF_SG_VRML_MFNODE) {
+			GF_Node *newnode;
+			if (fromNode) {
+				newnode = *(GF_Node**)fromField.far_ptr;
+			} else {
+				newnode = gf_bifs_dec_node(codec, bs, targetField.NDTtype);
+			}
+			gf_node_replace_child(target, (GF_ChildNodeItem**) targetField.far_ptr, pos, newnode);
+			if (newnode) gf_node_register(newnode, NULL);
+		}
+		/*erase the field item*/
+		else {
+			u32 sftype;
+			if ((pos < 0) || ((u32) pos >= ((GenMFField *) targetField.far_ptr)->count) ) {
+				pos = ((GenMFField *)targetField.far_ptr)->count - 1;
+				/*may happen with text and default value*/
+				if (pos < 0) {
+					pos = 0;
+					gf_sg_vrml_mf_alloc(targetField.far_ptr, targetField.fieldType, 1);
+				}
+			}
+			e = gf_sg_vrml_mf_get_item(targetField.far_ptr, targetField.fieldType, & slot_ptr, pos);
+			if (e) return e;
+			sftype = gf_sg_vrml_get_sf_type(targetField.fieldType);
+
+			if (fromNode) {
+				if (sftype==fromField.fieldType)
+					gf_sg_vrml_field_copy(slot_ptr, fromField.far_ptr, sftype);
+			} else {
+				GF_FieldInfo sffield;
+				memcpy(&sffield, &targetField, sizeof(GF_FieldInfo));
+				sffield.fieldType = sftype;
+				sffield.far_ptr = slot_ptr;
+				gf_bifs_dec_sf_field(codec, bs, target, &sffield);
+			}
+		}
+		gf_bifs_check_field_change(target, &targetField);
+		return GF_OK;
+	} 
+	switch (targetField.fieldType) {
+	case GF_SG_VRML_SFNODE:
+	{
+		GF_Node *newnode;
+		if (fromNode) {
+			newnode = *(GF_Node**)fromField.far_ptr;
+		} else {
+			newnode = gf_bifs_dec_node(codec, bs, targetField.NDTtype);
+		}
+
+		n = *((GF_Node **) targetField.far_ptr);
+
+		*((GF_Node **) targetField.far_ptr) = newnode;
+		if (newnode) gf_node_register(newnode, target);
+
+		if (n) gf_node_unregister(n, target);
+
+		break;
+	}
+	case GF_SG_VRML_MFNODE:
+	{
+		GF_ChildNodeItem *previous = * (GF_ChildNodeItem **) targetField.far_ptr;
+		* ((GF_ChildNodeItem **) targetField.far_ptr) = NULL;
+
+		if (fromNode) {
+			GF_ChildNodeItem *list, *prev, *cur;
+			list = * ((GF_ChildNodeItem **) targetField.far_ptr);
+			prev=NULL;
+			while (list) {
+				cur = malloc(sizeof(GF_ChildNodeItem));
+				cur->next = NULL;
+				cur->node = list->node;
+				if (prev) {
+					prev->next = cur;
+				} else {
+					* ((GF_ChildNodeItem **) targetField.far_ptr) = cur;
+				}
+				gf_node_register(list->node, target);
+				prev = cur;
+				list = list->next;
+			}
+		} else {
+			e = gf_bifs_dec_field(codec, bs, target, &targetField);
+			if (e) return e;
+		}
+		if (previous)
+			gf_node_unregister_children(target, previous);
+
+		break;
+	}
+	default:
+		if (!gf_sg_vrml_is_sf_field(targetField.fieldType)) {
+			e = gf_sg_vrml_mf_reset(targetField.far_ptr, targetField.fieldType);
+		}
+		if (e) return e;
+
+		if (fromNode) {
+			if (fromField.fieldType == targetField.fieldType) 
+				gf_sg_vrml_field_clone(targetField.far_ptr, fromField.far_ptr, targetField.fieldType, codec->current_graph);
+		} else {	
+			e = gf_bifs_dec_field(codec, bs, target, &targetField);
+		}
+		break;
+	}
+	gf_bifs_check_field_change(target, &targetField);
+	return GF_OK;
+}
+
 static GF_Err BD_DecProtoDelete(GF_BifsDecoder * codec, GF_BitStream *bs)
 {
 	u32 ID, flag, count;
@@ -308,7 +517,7 @@ static GF_Err BD_DecExtendedUpdate(GF_BifsDecoder * codec, GF_BitStream *bs)
 	case 6:
 		return BD_DecNodeDeleteEx(codec, bs);
 	case 7:
-		return BD_DecOperandReplace(codec, bs);
+		return BD_XReplace(codec, bs);
 	default:
 		return GF_BIFS_UNKNOWN_VERSION;
 	}

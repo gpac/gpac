@@ -2245,7 +2245,11 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			com->toFieldIndex = idxField.fieldIndex;
 		}
 		if (childNode) {
-			com->RouteID = (u32) childNode;
+			com->ChildNodeTag = gf_node_get_tag(childNode);
+			if (com->ChildNodeTag==1) {
+				com->ChildNodeTag = ((GF_ProtoInstance*)childNode)->proto_interface->ID;
+				com->ChildNodeTag = -com->ChildNodeTag ;
+			}
 			com->child_field = childField.fieldIndex;
 		}
 		inf = gf_sg_command_field_new(com);
