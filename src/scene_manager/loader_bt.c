@@ -2235,7 +2235,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 		}
 
 		com = gf_sg_command_new(parser->load->scene_graph, GF_SG_XREPLACE);
-		bd_set_com_node(com, fromNode);
+		bd_set_com_node(com, targetNode);
 		if (fromNode) {
 			com->fromNodeID = gf_node_get_id(fromNode);
 			com->fromFieldIndex = fromField.fieldIndex;
@@ -2245,7 +2245,7 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 			com->toFieldIndex = idxField.fieldIndex;
 		}
 		if (childNode) {
-			com->RouteID = gf_node_get_id(childNode);
+			com->RouteID = (u32) childNode;
 			com->child_field = childField.fieldIndex;
 		}
 		inf = gf_sg_command_field_new(com);

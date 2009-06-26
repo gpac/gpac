@@ -462,6 +462,133 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		}
 		/*DO NOT TOUCH UNREGISTERED PROTOS*/
 		return GF_OK;
+	case GF_SG_XREPLACE:
+	{
+		s32 pos = -2; 
+		GF_Node *target = NULL;
+		GF_ChildNodeItem *list, *cur, *prev;
+		GF_FieldInfo value;
+		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
+		if (!inf) return GF_OK;
+
+		e = gf_node_get_field(com->node, inf->fieldIndex, &field);
+		if (e) return e;
+		target = com->node;
+
+		if (!gf_sg_vrml_is_sf_field(field.fieldType)) {
+			GF_FieldInfo idxField;
+			if ((inf->pos != -2) || com->toNodeID) {
+				if (com->toNodeID) {
+					GF_Node *idxNode = gf_sg_find_node(graph, com->toNodeID);
+					if (!idxNode) return GF_OK;
+				
+					if (gf_node_get_field(idxNode, com->toFieldIndex, &idxField) != GF_OK) return GF_OK;
+					pos = 0;
+					switch (idxField.fieldType) {
+					case GF_SG_VRML_SFBOOL:
+						if (*(SFBool*)idxField.far_ptr) pos = 1;
+						break;
+					case GF_SG_VRML_SFINT32:
+						if (*(SFInt32*)idxField.far_ptr >=0) pos = *(SFInt32*)idxField.far_ptr;
+						break;
+					case GF_SG_VRML_SFFLOAT:
+						if ( (*(SFFloat *)idxField.far_ptr) >=0) pos = (s32) floor( FIX2FLT(*(SFFloat*)idxField.far_ptr) );
+						break;
+					case GF_SG_VRML_SFTIME:
+						if ( (*(SFTime *)idxField.far_ptr) >=0) pos = (s32) floor( (*(SFTime *)idxField.far_ptr) );
+						break;
+					}
+				} else {
+					pos = inf->pos;
+				}
+			}
+		}
+		/*override target node*/
+		if ((field.fieldType==GF_SG_VRML_MFNODE) && (pos>=-1) && com->RouteID) {
+			target = gf_node_list_get_child(*(GF_ChildNodeItem **)field.far_ptr, pos);
+			if (!target) return GF_OK;
+			if (gf_node_get_field(target, com->child_field, &field) != GF_OK) return GF_OK;
+			pos=-2;
+		}
+
+		if (com->fromNodeID) {
+			GF_Node *fromNode = gf_sg_find_node(graph, com->fromNodeID);
+			if (!fromNode) return GF_OK;		
+			if (gf_node_get_field(fromNode, com->fromFieldIndex, &value) != GF_OK) return GF_OK;
+		} else {
+			value.far_ptr = inf->field_ptr;
+			value.fieldType = inf->fieldType;
+		}
+		/*indexed replacement*/
+		if (pos>=-1) {
+			/*if MFNode remove the child and set new node*/
+			if (field.fieldType == GF_SG_VRML_MFNODE) {
+				gf_node_replace_child(target, (GF_ChildNodeItem**) field.far_ptr, pos, *(GF_Node**)value.far_ptr);
+				if (inf->new_node) gf_node_register(inf->new_node, NULL);
+			}
+			/*erase the field item*/
+			else {
+				u32 sftype;
+				if ((pos < 0) || ((u32) pos >= ((GenMFField *) field.far_ptr)->count) ) {
+					pos = ((GenMFField *)field.far_ptr)->count - 1;
+					/*may happen with text and default value*/
+					if (pos < 0) {
+						pos = 0;
+						gf_sg_vrml_mf_alloc(field.far_ptr, field.fieldType, 1);
+					}
+				}
+				e = gf_sg_vrml_mf_get_item(field.far_ptr, field.fieldType, & slot_ptr, pos);
+				if (e) return e;
+				sftype = gf_sg_vrml_get_sf_type(field.fieldType);
+				gf_sg_vrml_field_copy(slot_ptr, value.far_ptr, sftype);
+				/*note we don't add time offset, since there's no MFTime*/
+			}
+		} else {
+			switch (field.fieldType) {
+			case GF_SG_VRML_SFNODE:
+			{
+				node = *((GF_Node **) field.far_ptr);
+				e = gf_node_unregister(node, target);
+				*((GF_Node **) field.far_ptr) = *((GF_Node **) value.far_ptr) ;
+				if (!e) gf_node_register(*(GF_Node **) value.far_ptr, target);
+				break;
+			}
+			case GF_SG_VRML_MFNODE:
+				gf_node_unregister_children(target, * ((GF_ChildNodeItem **) field.far_ptr));
+				* ((GF_ChildNodeItem **) field.far_ptr) = NULL;
+
+				list = * ((GF_ChildNodeItem **) value.far_ptr);
+				prev=NULL;
+				while (list) {
+					cur = malloc(sizeof(GF_ChildNodeItem));
+					cur->next = NULL;
+					cur->node = list->node;
+					if (prev) {
+						prev->next = cur;
+					} else {
+						* ((GF_ChildNodeItem **) field.far_ptr) = cur;
+					}
+					gf_node_register(list->node, target);
+					prev = cur;
+					list = list->next;
+				}
+				break;
+
+			default:
+				if (!gf_sg_vrml_is_sf_field(field.fieldType)) {
+					e = gf_sg_vrml_mf_reset(field.far_ptr, field.fieldType);
+				}
+				if (e) return e;
+				gf_sg_vrml_field_clone(field.far_ptr, value.far_ptr, field.fieldType, graph);
+				
+				if ((field.fieldType==GF_SG_VRML_SFTIME) && !strstr(field.name, "media"))
+					*(SFTime *)field.far_ptr = *(SFTime *)field.far_ptr + time_offset;
+				break;
+			}
+		}
+		SG_CheckFieldChange(target, &field);
+	}
+		return GF_OK;
 	/*only used by BIFS*/
 	case GF_SG_GLOBAL_QUANTIZER:
 		return GF_OK;
