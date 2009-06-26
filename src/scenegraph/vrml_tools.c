@@ -1216,10 +1216,11 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 
 		cb_dst->bufferSize = cb_src->bufferSize;
 		if (cb_dst->bufferSize) {
-			cb_dst->buffer = (u8*)malloc(sizeof(char)*cb_dst->bufferSize);
+			cb_dst->buffer = (u8*)realloc(cb_dst->buffer, sizeof(char)*cb_dst->bufferSize);
 			memcpy(cb_dst->buffer, cb_src->buffer, sizeof(char)*cb_src->bufferSize);
 		} else {
 			u32 j, c2;
+			if (cb_dst->buffer) free(cb_dst->buffer);
 			cb_dst->buffer = NULL;
 			/*clone command list*/
 			c2 = gf_list_count(cb_src->commandList);
