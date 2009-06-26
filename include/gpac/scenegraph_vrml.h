@@ -290,6 +290,7 @@ enum
 	/*used types in GPAC but not defined in the MPEG4 spec*/
 	GF_SG_VRML_MFURL,
 	GF_SG_VRML_MFSCRIPT,
+	GF_SG_VRML_MFCOMMANDBUFFER,
 
 	/*used types in X3D*/
 	GF_SG_VRML_MFDOUBLE,
@@ -345,11 +346,18 @@ GF_Err gf_sg_vrml_mf_get_item(void *mf, u32 FieldType, void **new_ptr, u32 ItemP
 /*remove all items of the MFField*/
 GF_Err gf_sg_vrml_mf_reset(void *mf, u32 FieldType);
 
-/*clones a field content EXCEPT SF/MFNode. Pointers to field shall be used
+/*copies a field content EXCEPT SF/MFNode. Pointers to field shall be used
 @dest, @orig: pointers to field
 @FieldType: type of the field
 */
 void gf_sg_vrml_field_copy(void *dest, void *orig, u32 FieldType);
+
+/*clones a field content EXCEPT SF/MFNode. Pointers to field shall be used
+@dest, @orig: pointers to field
+@FieldType: type of the field
+@inScene: target scene graph for SFCommandBuffers cloning
+*/
+void gf_sg_vrml_field_clone(void *dest, void *orig, u32 FieldType, GF_SceneGraph *inScene);
 
 /*indicates whether 2 fields of same type EXCEPT SF/MFNode are equal
 @dest, @orig: pointers to field

@@ -622,8 +622,7 @@ enum
 	GF_SG_NODE_DELETE_EX,
 
 	/*BIFS*/
-	GF_SG_FIELD_REPLACE_OP, 
-	GF_SG_INDEXED_REPLACE_OP,
+	GF_SG_XREPLACE, 
 
 	GF_SG_LAST_BIFS_COMMAND,
 
@@ -690,50 +689,50 @@ typedef struct
 	/*for authoring purposes - must be cleaned by user*/
 	Bool unresolved;
 	char *unres_name;
-	
-	/*scene replace command: 
-		root node is stored in com->node
-		protos are stored in com->new_proto_list
-		routes are stored as RouteInsert in the same frame
-		BIFS only
-	*/
-	Bool use_names;
+
+
+	union {
+		/*scene replace command: 
+			root node is stored in com->node
+			protos are stored in com->new_proto_list
+			routes are stored as RouteInsert in the same frame
+			BIFS only
+		*/
+		Bool use_names;
+		u32 RouteID;
+	};
 
 	/*proto list to insert - BIFS only*/
 	GF_List *new_proto_list;
 	/*proto ID list to delete - BIFS only*/
 	u32 *del_proto_list;
-	u32 del_proto_list_size;
+	union {
+		u32 del_proto_list_size;
+		u32 child_field;
+	};
 
-
-	/*route insert, replace and delete (BIFS only)
-		fromNodeID is also used to identify operandElementId in LASeR Add/Replace
-
-	OR
-		sendEvent
-	*/
-//	union {
-		u32 RouteID;
-		u32 send_event_name;
-//	};
-//	union {
+	union {
 		char *def_name;
 		char *send_event_string;
-//	};
-//	union {
+	};
+	union {
+		//route insertion - fromNodeID is also used to identify operandElementId in LASeR Add/Replace
 		u32 fromNodeID;
 		s32 send_event_integer;
-//	};
-	u32 fromFieldIndex;
+	};
+	union {
+		u32 fromFieldIndex;
+		u32 send_event_name;
+	};
 
-//	union {
+	union {
 		u32 toNodeID;
 		s32 send_event_x;
-//	};
-//	union {
+	};
+	union {
 		u32 toFieldIndex;
 		s32 send_event_y;
-//	};
+	};
 	Bool aggregated;
 } GF_Command;
 
