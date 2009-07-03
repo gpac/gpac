@@ -154,9 +154,9 @@ SectionEnd
 Section "FFMPEG Reader and Decoder"
   SectionIn 1
   File "..\gm_ffmpeg_in.dll"
-  File "..\avcodec-51.dll"
-  File "..\avformat-51.dll"
-  File "..\avutil-49.dll"
+  File "..\avcodec-52.dll"
+  File "..\avformat-52.dll"
+  File "..\avutil-50.dll"
 SectionEnd
 
 Section "XviD Video Decoder"
@@ -164,10 +164,10 @@ Section "XviD Video Decoder"
   File "..\gm_xvid_dec.dll"
 SectionEnd
 
-Section "3GPP AMR NB & WB Speech Decoder"
-  SectionIn 1
-  File "..\gm_amr_float_dec.dll"
-SectionEnd
+;Section "3GPP AMR NB & WB Speech Decoder"
+;  SectionIn 1
+;  File "..\gm_amr_float_dec.dll"
+;SectionEnd
 
 Section "Subtitle & TimedText Support"
   SectionIn 1
@@ -216,7 +216,7 @@ SectionEnd
 
 Section "Xiph Ogg Reader - Vorbis and Theora Decoders"
   SectionIn 1
-  File "..\gm_ogg_xiph.dll"
+  File "..\gm_ogg.dll"
 SectionEnd
 
 
