@@ -244,6 +244,7 @@ static jsval dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 
 static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 {
+	Bool force_tracking = 0;
 	GF_SceneGraph *sg;
 	JSObject *new_obj;
 	if (!n || !n->sgprivate->scenegraph) return JSVAL_VOID;
@@ -252,7 +253,11 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 	sg = n->sgprivate->scenegraph;
 
 	/*fixme - this should not be needed, but there are crashes with JS GC*/
-	if (!sg->svg_js) {
+	if (!sg->svg_js) force_tracking = 1;
+	else if (n->sgprivate->tag==TAG_SVG_handler) force_tracking = 1;
+	else if (n->sgprivate->tag==TAG_SVG_script) force_tracking = 1;
+
+	if (force_tracking) {
 		u32 i, count;
 		count = gf_list_count(sg->objects);
 		for (i=0; i<count; i++) {
@@ -273,8 +278,7 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 	JS_SetPrivate(c, new_obj, n);
 	gf_list_add(sg->objects, new_obj);
 
-	/*fixme - this should not be needed, but there are crashes with JS GC*/
-	if (!sg->svg_js) {
+	if (force_tracking) {
 		if (!n->sgprivate->interact) GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
 		if (!n->sgprivate->interact->js_binding) {
 			GF_SAFEALLOC(n->sgprivate->interact->js_binding, struct _node_js_binding);
@@ -748,6 +752,7 @@ static void dom_node_finalize(JSContext *c, JSObject *obj)
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!n) return;
 	if (!n->sgprivate) return;
+	JS_SetPrivate(c, obj, NULL);
 	gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
 	dom_unregister_node(n);
 }
@@ -2288,7 +2293,7 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 		/*we're sure the graph is a "nomade" one since we initially put the refcount to 1 ourselves*/
 		ctx->document->reference_count--;
 		if (!ctx->document->reference_count) {
-			dom_js_pre_destroy(ctx->c, ctx->document);
+			dom_js_pre_destroy(ctx->c, ctx->document, NULL);
 			gf_sg_del(ctx->document);
 		}
 	}
@@ -3481,7 +3486,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 	}
 }
 
-void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg)
+void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 {
 	u32 i, count;
 
@@ -3496,6 +3501,22 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg)
 				node->sgprivate->interact->js_binding->node=NULL;
 			}
 		}	
+	}
+	else if (n) {
+		switch (n->sgprivate->tag) {
+		case TAG_SVG_handler:
+		case TAG_SVG_script:
+			if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
+				JSObject *obj = n->sgprivate->interact->js_binding->node;
+				JS_SetPrivate(c, obj, NULL);
+				gf_list_del_item(sg->objects, obj);
+
+				JS_RemoveRoot(c, &n->sgprivate->interact->js_binding->node);
+				n->sgprivate->interact->js_binding->node=NULL;
+			}
+
+			break;
+		}
 	}
 
 	count = gf_list_count(dom_rt->handlers);
