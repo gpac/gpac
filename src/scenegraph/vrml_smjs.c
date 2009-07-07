@@ -3625,7 +3625,7 @@ static void JS_PreDestroy(GF_Node *node)
 	gf_sg_load_script_extensions(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj, 1);
 
 #ifndef GPAC_DISABLE_SVG
-	dom_js_pre_destroy(priv->js_ctx, node->sgprivate->scenegraph);
+	dom_js_pre_destroy(priv->js_ctx, node->sgprivate->scenegraph, NULL);
 #endif
 
 	gf_sg_ecmascript_del(priv->js_ctx);

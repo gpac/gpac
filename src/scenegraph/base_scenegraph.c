@@ -1681,7 +1681,7 @@ const char *gf_node_get_class_name(GF_Node *node)
 	else if (node->sgprivate->tag==TAG_ProtoNode) return ((GF_ProtoInstance*)node)->proto_name;
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(node->sgprivate->tag);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(node->sgprivate->tag);
-	else if (node->sgprivate->tag==TAG_DOMText) return "";
+	else if (node->sgprivate->tag==TAG_DOMText) return "DOMText";
 	else if (node->sgprivate->tag==TAG_DOMFullNode) {
 		char *xmlns;
 		GF_DOMFullNode*full = (GF_DOMFullNode*)node;

@@ -2189,7 +2189,7 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 			svg_js->nb_scripts--;
 
 			/*detach this script from our object cache*/
-			dom_js_pre_destroy(svg_js->js_ctx, n->sgprivate->scenegraph);
+			dom_js_pre_destroy(svg_js->js_ctx, n->sgprivate->scenegraph, n);
 
 			if (!svg_js->nb_scripts) {
 				/*user-defined extensions*/
@@ -2453,6 +2453,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		ret = JS_EvaluateScript(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);
+	if (txt ) hdl->js_fun=0;
 
 	gf_sg_js_lock_runtime(0);
 
