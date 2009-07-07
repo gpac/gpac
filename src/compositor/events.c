@@ -757,11 +757,14 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	}
 
 	count = gf_list_count(compositor->sensors);
-	for (i=0; i<count; i++) {
-		hs = (GF_SensorHandler*)gf_list_get(compositor->sensors, i);
-		hs->OnUserEvent(hs, ((hs==hs_grabbed) || !hs_grabbed) ? 1 : 0, ev, compositor);
-		stype = gf_node_get_tag(hs->sensor);
-		if (hs==hs_grabbed) hs_grabbed = NULL;
+	if (!count) stype = GF_CURSOR_NORMAL;
+	else {
+		for (i=0; i<count; i++) {
+			hs = (GF_SensorHandler*)gf_list_get(compositor->sensors, i);
+			hs->OnUserEvent(hs, ((hs==hs_grabbed) || !hs_grabbed) ? 1 : 0, ev, compositor);
+			stype = gf_node_get_tag(hs->sensor);
+			if (hs==hs_grabbed) hs_grabbed = NULL;
+		}
 	}
 	/*switch sensors*/
 	tmp = compositor->sensors;
