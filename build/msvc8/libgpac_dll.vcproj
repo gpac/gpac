@@ -471,6 +471,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Pocket PC 2003 (ARMV4)"
+			IntermediateDirectory="Pocket PC 2003 (ARMV4)\$(ConfigurationName)"
 			ConfigurationType="1"
 			>
 			<Tool
@@ -532,6 +533,10 @@
 	<References>
 	</References>
 	<Files>
+		<File
+			RelativePath="..\..\src\empty.cpp"
+			>
+		</File>
 		<File
 			RelativePath="..\..\src\libgpac.def"
 			>
