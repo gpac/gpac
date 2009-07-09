@@ -145,8 +145,10 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 			}
 #endif
 			/*check AU start type*/
-			if (nal_type==GF_AVC_NALU_ACCESS_UNIT)
+			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
 				pck.flags = GF_M2TS_PES_PCK_AU_START;
+				force_new_au = 0;
+			}
 			else pck.flags = 0;
 			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 
@@ -168,8 +170,11 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 			pck.data = data;
 			pck.data_len = data_len;
 		}
-		if (force_new_au)
-				pck.flags |= GF_M2TS_PES_PCK_AU_START;
+		if (force_new_au) {
+			pck.flags |= GF_M2TS_PES_PCK_AU_START;
+			force_new_au = 0;
+		}
+
 		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 	}
 }
@@ -1382,6 +1387,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 				/*OK read header*/
 				gf_m2ts_pes_header(pes, pes->data+3, pes->data_len-3, &pesh);
 
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Got PES header PTS %d\n", pes->pid, pesh.PTS));
 				/*3-byte start-code + 6 bytes header + hdr extensions*/
 				len = 9 + pesh.hdr_data_len;
 				pes->reframe(ts, pes, pesh.DTS, pesh.PTS, pes->data+len, pes->data_len-len);
