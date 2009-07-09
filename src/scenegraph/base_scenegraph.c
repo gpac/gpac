@@ -2038,3 +2038,13 @@ const char *gf_sg_get_namespace(GF_SceneGraph *sg, u32 xmlns_id)
 }
 
 
+char *gf_node_dump_attribute(GF_Node *n, GF_FieldInfo *info)
+{
+#ifndef GPAC_DISABLE_SVG
+	if (gf_node_get_tag(n) >= GF_NODE_FIRST_DOM_NODE_TAG) {
+		return gf_svg_dump_attribute(n, info);
+	} else 
+#endif
+		return gf_node_vrml_dump_attribute(n, info);
+}
+

@@ -874,7 +874,8 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 			} else {
 				u32 id = 0;
 				char *odstr = str;
-				if (!strnicmp(str, "od:", 3)) odstr += 3;
+				if (!strnicmp(str, "od://", 5)) odstr += 5;
+				else if (!strnicmp(str, "od:", 3)) odstr += 3;
 				/*be carefull, an url like "11-regression-test.mp4" will return 1 on sscanf :)*/
 				if (sscanf(odstr, "%d", &id) == 1) {
 					char szURL[20];
