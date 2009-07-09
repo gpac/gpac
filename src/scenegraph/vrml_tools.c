@@ -1528,3 +1528,97 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field)
 }
 
 
+char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info)
+{
+	char szVal[1024];
+
+	switch (info->fieldType) {
+	case GF_SG_VRML_SFBOOL:
+		strcpy(szVal, *((SFBool*)info->far_ptr) ? "TRUE" : "FALSE");
+		return strdup(szVal);
+	case GF_SG_VRML_SFINT32:
+		sprintf(szVal, "%d", *((SFInt32*)info->far_ptr) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFFLOAT:
+		sprintf(szVal, "%g", FIX2FLT( *((SFFloat*)info->far_ptr) ) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFDOUBLE:
+		sprintf(szVal, "%g", *((SFDouble *)info->far_ptr) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFTIME:
+		sprintf(szVal, "%g", *((SFTime *)info->far_ptr) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFVEC2F:
+		sprintf(szVal, "%g %g", FIX2FLT(((SFVec2f *)info->far_ptr)->x), FIX2FLT( ((SFVec2f *)info->far_ptr)->y) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFVEC2D:
+		sprintf(szVal, "%g %g", ((SFVec2d *)info->far_ptr)->x, ((SFVec2d *)info->far_ptr)->y);
+		return strdup(szVal);
+	case GF_SG_VRML_SFVEC3F:
+		sprintf(szVal, "%g %g %g", FIX2FLT(((SFVec3f *)info->far_ptr)->x), FIX2FLT( ((SFVec3f *)info->far_ptr)->y) , FIX2FLT( ((SFVec3f *)info->far_ptr)->z) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFVEC3D:
+		sprintf(szVal, "%g %g %g", ((SFVec3d *)info->far_ptr)->x, ((SFVec3d *)info->far_ptr)->y, ((SFVec3d *)info->far_ptr)->z);
+		return strdup(szVal);
+	case GF_SG_VRML_SFCOLOR:
+		sprintf(szVal, "%g %g %g", FIX2FLT(((SFColor *)info->far_ptr)->red), FIX2FLT( ((SFColor *)info->far_ptr)->green) , FIX2FLT( ((SFColor *)info->far_ptr)->blue) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFCOLORRGBA:
+		sprintf(szVal, "%g %g %g %g", FIX2FLT(((SFColorRGBA *)info->far_ptr)->red), FIX2FLT( ((SFColorRGBA*)info->far_ptr)->green) , FIX2FLT( ((SFColorRGBA*)info->far_ptr)->blue) , FIX2FLT( ((SFColorRGBA*)info->far_ptr)->alpha) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFROTATION:
+		sprintf(szVal, "%g %g %g %g", FIX2FLT(((SFRotation *)info->far_ptr)->x), FIX2FLT( ((SFRotation *)info->far_ptr)->y) , FIX2FLT( ((SFRotation *)info->far_ptr)->z), FIX2FLT( ((SFRotation *)info->far_ptr)->q) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFSTRING:
+		if (!((SFString*)info->far_ptr)->buffer ) return strdup("");
+		return strdup( ((SFString*)info->far_ptr)->buffer );
+
+	case GF_SG_VRML_SFURL:
+		if (((SFURL *)info->far_ptr)->url) {
+			return strdup( ((SFURL *)info->far_ptr)->url );
+		} else {
+			sprintf(szVal, "od://%d", ((SFURL *)info->far_ptr)->OD_ID);
+			return strdup(szVal);
+		}
+
+	case GF_SG_VRML_SFIMAGE:
+	{
+		u32 i, count;
+		char *buf;
+		SFImage *img = (SFImage *)info->far_ptr;
+
+		count = img->width * img->height * img->numComponents;
+		i = (3/*' 0x'*/ + 2/*%02X*/*img->numComponents)*count + 20;
+		buf = malloc(sizeof(char) * i);
+
+		sprintf(buf , "%d %d %d", img->width, img->height, img->numComponents);
+
+		for (i=0; i<count; ) {
+			switch (img->numComponents) {
+			case 1:
+				sprintf(szVal, " 0x%02X", img->pixels[i]);
+				i++;
+				break;
+			case 2:
+				sprintf(szVal, " 0x%02X%02X", img->pixels[i], img->pixels[i+1]);
+				i+=2;
+				break;
+			case 3:
+				sprintf(szVal, " 0x%02X%02X%02X", img->pixels[i], img->pixels[i+1], img->pixels[i+2]);
+				i+=3;
+				break;
+			case 4:
+				sprintf(szVal, " 0x%02X%02X%02X%02X", img->pixels[i], img->pixels[i+1], img->pixels[i+2], img->pixels[i+3]);
+				i+=4;
+				break;
+			}
+			strcat(buf, szVal);
+		}
+		return buf;
+	}
+	default:
+		break;
+	}
+	/*todo - dump MFFields*/
+	return NULL;
+}

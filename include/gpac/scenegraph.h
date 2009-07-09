@@ -586,6 +586,8 @@ void gf_sg_script_load(GF_Node *script);
 Bool gf_sg_has_scripting();
 
 
+char *gf_node_dump_attribute(GF_Node *elt, GF_FieldInfo *info);
+
 
 /*
 			scene graph command tools used for BIFS and LASeR

@@ -1103,7 +1103,7 @@ EXPORTS
 	gf_dom_set_textContent
 	gf_dom_flatten_textContent
 	gf_node_get_attribute_by_name
-	gf_svg_dump_attribute
+	gf_node_dump_attribute
 	gf_dom_listener_build
 	gf_sg_handle_dom_event
 	gf_sg_handle_dom_event_for_vrml

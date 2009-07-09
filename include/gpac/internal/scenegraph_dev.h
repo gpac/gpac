@@ -377,6 +377,7 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 during the reset. If so don't attempt to unregister the node*/
 GF_Err gf_node_try_destroy(GF_SceneGraph *sg, GF_Node *pNode, GF_Node *parentNode);
 
+char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info);
 
 #ifndef GPAC_DISABLE_SVG
 
