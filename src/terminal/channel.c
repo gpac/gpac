@@ -37,7 +37,7 @@ static void ch_buffer_off(GF_Channel *ch)
 	if (ch->BufferOn) {
 		ch->BufferOn = 0;
 		gf_clock_buffer_off(ch->clock);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: buffering off at %d (nb buffering on clock: %d)\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->clock->Buffering));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: buffering off at STB %d (OTB %d) (nb buffering on clock: %d)\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), gf_clock_time(ch->clock), ch->clock->Buffering));
 	}
 }
 
@@ -514,7 +514,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	ch->au_duration = 0;
 	if (duration) ch->au_duration = (u32) ((u64)1000 * duration / ch->ts_res);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch AU size %d CTS %d time %d Buffer %d Nb AUs %d\n", ch->esd->ESID, au->dataLength, au->CTS, gf_clock_time(ch->clock), ch->BufferTime, ch->AU_Count));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch AU DTS %d - CTS %d - size %d time %d Buffer %d Nb AUs %d\n", ch->esd->ESID, au->DTS, au->CTS, au->dataLength, gf_clock_time(ch->clock), ch->BufferTime, ch->AU_Count));
 
 	/*little optimisation: if direct dispatching is possible, try to decode the AU
 	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or 
@@ -623,12 +623,11 @@ void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamB
 
 
 /*handles reception of an SL-PDU, logical or physical*/
-void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength, GF_SLHeader *header, GF_Err reception_status)
+void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *payload, u32 payload_size, GF_SLHeader *header, GF_Err reception_status)
 {
 	GF_SLHeader hdr;
-	u32 nbAU, OldLength, size, AUSeqNum, SLHdrLen;
+	u32 nbAU, OldLength, size, AUSeqNum;
 	Bool EndAU, NewAU;
-	char *payload;
 
 	if (ch->bypass_sl_and_db) {
 		GF_SceneDecoder *sdec;
@@ -639,7 +638,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			sdec = (GF_SceneDecoder *)ch->odm->codec->decio;
 		}
 		gf_mx_p(ch->mx);
-		sdec->ProcessData(sdec, StreamBuf, StreamLength, ch->esd->ESID, 0, 0);
+		sdec->ProcessData(sdec, payload, payload_size, ch->esd->ESID, 0, 0);
 		gf_mx_v(ch->mx);
 		return;
 	}
@@ -648,19 +647,47 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 
 	/*physical SL-PDU - depacketize*/
 	if (!header) {
-		if (!StreamLength) return;
-		gf_sl_depacketize(ch->esd->slConfig, &hdr, StreamBuf, StreamLength, &SLHdrLen);
-		StreamLength -= SLHdrLen;
+		u32 SLHdrLen;
+		if (!payload_size) return;
+		gf_sl_depacketize(ch->esd->slConfig, &hdr, payload, payload_size, &SLHdrLen);
+		payload_size -= SLHdrLen;
+		payload += SLHdrLen;
 	} else {
 		hdr = *header;
-		SLHdrLen = 0;
 	}
-	payload = StreamBuf + SLHdrLen;
 
 	if (ch->skip_sl) {
-		Channel_ReceiveSkipSL(serv, ch, payload, StreamLength);
+		Channel_ReceiveSkipSL(serv, ch, payload, payload_size);
 		return;
 	}
+
+	/*we ignore OCRs for the moment*/
+	if (hdr.OCRflag) {
+		if (!ch->IsClockInit) {
+			/*channel is the OCR, re-initialize the clock with the proper OCR*/
+			if (gf_es_owns_clock(ch)) {
+				u64 OCR_TS = (u64) (hdr.objectClockReference * ch->ocr_scale);
+				ch->clock->clock_init = 0;
+				gf_clock_set_time(ch->clock, (u32) OCR_TS);
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d from OCR TS %d - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), OCR_TS, ch->clock->Buffering, gf_clock_time(ch->clock) ));
+				if (ch->clock->clock_init) ch->IsClockInit = 1;
+			}
+		}
+#if 0
+		/*compute clock drift*/
+		else {
+			u64 OCR_TS = (u64) ( hdr.objectClockReference * ch->ocr_scale);
+			u32 ck = gf_clock_time(ch->clock);
+
+			fprintf(stdout, "OCR %d OTB %d Diff %d Buffer %d (%d AUs) \n", (u32) OCR_TS, ck, (u32) (OCR_TS - ck), ch->BufferTime, ch->AU_Count);
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d adjusting OCR to %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS));
+			gf_clock_set_time(ch->clock, (u32) OCR_TS);
+		}
+#endif
+		if (!payload_size) return;
+	}
+
 
 	/*check state*/
 	if (!ch->codec_resilient && (reception_status==GF_CORRUPTED_DATA)) {
@@ -787,7 +814,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 			else if (gf_es_owns_clock(ch)) {
 				ch->clock->clock_init = 0;
 				gf_clock_set_time(ch->clock, ch->DTS);
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d - %d buffering\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering));
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering, gf_clock_time(ch->clock) ));
 			}
 			/*if channel is not the OCR, shift all time stamps to match the current time at clock init*/
 			else if (!ch->DTS) {
@@ -864,32 +891,18 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	/* we need to skip all the packets of the current AU in the carousel scenario */
 	if (ch->skip_carousel_au == 1) return;
 
-	/*we ignore OCRs for the moment*/
-#if 0
-	/*Apply OCR*/
-	if (!ch->BufferOn && ch->IsClockInit && hdr.OCRflag) {
-		u32 OCR_TS = (u32) (s64) (((s64) hdr.objectClockReference) * ch->ocr_scale);
-		u32 ck = gf_clock_time(ch->clock);
-		OCR_TS += ch->BufferTime;
-		fprintf(stdout, "OCR %d OTB %d Diff %d Buffer %d (%d AUs) \n", OCR_TS, ck, OCR_TS - ck, ch->BufferTime, ch->AU_Count);
-
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d adjusting OCR to %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS));
-		gf_clock_set_time(ch->clock, OCR_TS);
-	}
-#endif
-
 	/*get AU end state*/	
 	OldLength = ch->buffer ? ch->len : 0;
 	EndAU = hdr.accessUnitEndFlag;
-	if (ch->AULength == OldLength + StreamLength) EndAU = 1;
+	if (ch->AULength == OldLength + payload_size) EndAU = 1;
 	if (EndAU) ch->NextIsAUStart = 1;
 
-	if (!StreamLength && EndAU && ch->buffer) {
+	if (!payload_size && EndAU && ch->buffer) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: Empty packet, flushing buffer\n", ch->esd->ESID));
 		Channel_DispatchAU(ch, 0);
 		return;
 	}
-	if (!StreamLength) return;
+	if (!payload_size) return;
 
 	/*missed begining, unusable*/
 	if (!ch->buffer && !NewAU) {
@@ -905,7 +918,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		/*we should NEVER have a bitstream at this stage*/
 		assert(!ch->buffer);
 		/*ignore length fields*/
-		size = StreamLength + ch->media_padding_bytes;
+		size = payload_size + ch->media_padding_bytes;
 		ch->buffer = (char*)malloc(sizeof(char) * size);
 		if (!ch->buffer) {
 			assert(0);
@@ -925,7 +938,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 		evt.event_type=GF_IPMP_TOOL_PROCESS_DATA;
 		evt.channel = ch;
 		evt.data = payload;
-		evt.data_size = StreamLength;
+		evt.data_size = payload_size;
 		evt.is_encrypted = hdr.isma_encrypted;
 		evt.isma_BSO = hdr.isma_BSO;
 		e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
@@ -953,15 +966,15 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *Strea
 	} else {
 		/*check if enough space*/
 		size = ch->allocSize;
-		if (size && (StreamLength + ch->len <= size)) {
-			memcpy(ch->buffer+ch->len, payload, StreamLength);
-			ch->len += StreamLength;
+		if (size && (payload_size + ch->len <= size)) {
+			memcpy(ch->buffer+ch->len, payload, payload_size);
+			ch->len += payload_size;
 		} else {
-			size = StreamLength + ch->len + ch->media_padding_bytes;
+			size = payload_size + ch->len + ch->media_padding_bytes;
 			ch->buffer = (char*)realloc(ch->buffer, sizeof(char) * size);
-			memcpy(ch->buffer+ch->len, payload, StreamLength);
+			memcpy(ch->buffer+ch->len, payload, payload_size);
 			ch->allocSize = size;
-			ch->len += StreamLength;
+			ch->len += payload_size;
 		}
 		if (hdr.paddingFlag) ch->padingBits = hdr.paddingBits;
 	}

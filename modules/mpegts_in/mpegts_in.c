@@ -368,8 +368,7 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	/*create a stream description for this channel*/
 	esd = gf_odf_desc_esd_new(0);
 	esd->ESID = stream->pid;
-	/*ASSIGN PCR here*/
-	esd->OCRESID = stream->program->pcr_pid;
+
 	switch (stream->stream_type) {
 	case GF_M2TS_VIDEO_MPEG1:
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
@@ -421,6 +420,12 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	esd->slConfig->useRandomAccessPointFlag = 1;
 	esd->slConfig->AUSeqNumLength = 0;
 	esd->slConfig->timestampResolution = 90000;
+
+	/*ASSIGN PCR here*/
+	esd->OCRESID = stream->program->pcr_pid;
+	if (stream->pid == stream->program->pcr_pid) {
+		esd->slConfig->OCRResolution = 27000000;
+	}
 
 	/*decoder config*/
 	if (dsi) {
@@ -482,19 +487,14 @@ static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 
 	if (!pck->stream->user) return;
 
-	if (!pck->stream->program->first_dts && pck->PTS) {
-		pck->stream->program->first_dts = (pck->DTS ? pck->DTS : pck->PTS) - m2ts->start_range * 90;
-	}
-
 	memset(&slh, 0, sizeof(GF_SLHeader));
 	slh.accessUnitStartFlag = (pck->flags & GF_M2TS_PES_PCK_AU_START) ? 1 : 0;
 	if (slh.accessUnitStartFlag) {
-		if (pck->PTS < pck->stream->program->first_dts) return;
 		slh.compositionTimeStampFlag = 1;
-		slh.compositionTimeStamp = pck->PTS - pck->stream->program->first_dts;
+		slh.compositionTimeStamp = pck->PTS;
 		if (pck->DTS) {
 			slh.decodingTimeStampFlag = 1;
-			slh.decodingTimeStamp = pck->DTS - pck->stream->program->first_dts;
+			slh.decodingTimeStamp = pck->DTS;
 		}
 		slh.randomAccessPointFlag = (pck->flags & GF_M2TS_PES_PCK_RAP) ? 1 : 0;
 	}
@@ -650,12 +650,22 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			gf_m2ts_set_pes_framing(pck->stream, GF_M2TS_PES_FRAMING_SKIP);
 			MP2TS_DeclareStream(m2ts, pck->stream, pck->data, pck->data_len);
 			m2ts->file_regulate = 1;
+			pck->stream->first_dts=1;
 			/*force scene regeneration*/
 			gf_term_add_media(m2ts->service, NULL, 0);
 		}
 	}
 		break;
 	case GF_M2TS_EVT_PES_PCR:
+		/*send pcr*/
+		if (((GF_M2TS_PES_PCK *) param)->stream && ((GF_M2TS_PES_PCK *) param)->stream->user) {
+			GF_SLHeader slh;
+			memset(&slh, 0, sizeof(GF_SLHeader) );
+			slh.OCRflag = 1;
+			slh.objectClockReference = ((GF_M2TS_PES_PCK *) param)->PTS;
+			gf_term_on_sl_packet(m2ts->service, ((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, &slh, GF_OK);
+		}
+
 		if (m2ts->file_regulate) {
 			u64 pcr = ((GF_M2TS_PES_PCK *) param)->PTS;
 			u32 stb = gf_sys_clock();
@@ -669,7 +679,12 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					GF_NetworkCommand com;
 					com.command_type = GF_NET_BUFFER_QUERY;
 					gf_term_on_command(m2ts->service, &com, GF_OK);
-					if (com.buffer.occupancy) gf_sleep(diff);
+					if (com.buffer.occupancy > M2TS_BUFFER_MAX) {
+						/*We don't sleep for the entire buffer occupancy, because we would take
+						the risk of starving the audio chains. We try to keep buffers half full*/
+						//fprintf(stdout, "%d ms in buffer - sleeping %d ms\n", com.buffer.occupancy, com.buffer.occupancy - M2TS_BUFFER_MAX/2);
+						gf_sleep(com.buffer.occupancy - M2TS_BUFFER_MAX/2);
+					}
 
 					m2ts->nb_pck = 0;
 					m2ts->pcr_last = pcr;
