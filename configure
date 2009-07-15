@@ -1727,7 +1727,7 @@ int main( void ) {
 }
 EOF
 
-if $cc -o $TMPE $TMPC -liconv > /dev/null 2>&1  ; then
+if $cc -o $TMPE $TMPC -L$local_lib -liconv > /dev/null 2>&1  ; then
 GPAC_ENST=yes
 echo "LIBGPAC_ENST=`cd src; ls enst/*.c | sed -e 's/\.c/.o/' | tr -s '\r\n' ' ' ; cd ..`" >> config.mak
 else
