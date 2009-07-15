@@ -405,7 +405,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 				if (!ch->MaxBuffer || ch->dispatch_after_db || ch->bypass_sl_and_db || ch->IsEndOfStream) continue;
 				if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
 				if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
-				if ((ch->AU_Count > 2)  && ((u32) ch->BufferTime<com->buffer.occupancy))
+				if (/*(ch->AU_Count > 2)  && */ ((u32) ch->BufferTime<com->buffer.occupancy))
 					com->buffer.occupancy = ch->BufferTime;
 			}
 		}
