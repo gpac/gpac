@@ -797,7 +797,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		if (is_svg && ! (compositor->user->init_flags & GF_TERM_WINDOWLESS)) compositor->back_color = 0xFFFFFFFF;
 
 		/*hack for SVG where size is set in % - negotiate a canvas size*/
-		if (!compositor->has_size_info && w && h) {
+		if (!compositor->has_size_info && w && h && vb) {
 			do_notif = 1;
 			if (w->type!=SVG_NUMBER_PERCENTAGE) {
 				width = FIX2INT(gf_sc_svg_convert_length_to_display(compositor, w) );
