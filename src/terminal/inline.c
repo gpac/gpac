@@ -342,7 +342,9 @@ void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for
 	u32 i;
 	GF_MediaObject *obj;
 
+	gf_term_lock_net(odm->term, 1);
 	gf_list_del_item(is->ODlist, odm);
+	gf_term_lock_net(odm->term, 0);
 
 
 	i=0;
