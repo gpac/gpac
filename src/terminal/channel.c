@@ -666,7 +666,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		if (!ch->IsClockInit) {
 			/*channel is the OCR, re-initialize the clock with the proper OCR*/
 			if (gf_es_owns_clock(ch)) {
-				u64 OCR_TS = (u64) (hdr.objectClockReference * (__int64)ch->ocr_scale);
+				u64 OCR_TS = (u64) (hdr.objectClockReference * (s64)ch->ocr_scale);
 				ch->clock->clock_init = 0;
 				gf_clock_set_time(ch->clock, (u32) OCR_TS);
 				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d from OCR TS %d - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), OCR_TS, ch->clock->Buffering, gf_clock_time(ch->clock) ));
@@ -676,7 +676,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 #if 0
 		/*compute clock drift*/
 		else {
-			u64 OCR_TS = (u64) ( hdr.objectClockReference * (__int64)ch->ocr_scale);
+			u64 OCR_TS = (u64) ( hdr.objectClockReference * (s64)ch->ocr_scale);
 			u32 ck = gf_clock_time(ch->clock);
 
 			fprintf(stdout, "OCR %d OTB %d Diff %d Buffer %d (%d AUs) \n", (u32) OCR_TS, ck, (u32) (OCR_TS - ck), ch->BufferTime, ch->AU_Count);
