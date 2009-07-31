@@ -193,7 +193,9 @@ void gf_term_on_node_init(void *_scene, GF_Node *node)
 #ifndef GPAC_DISABLE_VRML
 
 	case TAG_MPEG4_Inline: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Inline: 
+#endif
 		gf_init_inline(scene, node); break;
 	case TAG_MPEG4_MediaBuffer: break;
 	case TAG_MPEG4_MediaControl: InitMediaControl(scene, node); break;
@@ -205,13 +207,17 @@ void gf_term_on_node_init(void *_scene, GF_Node *node)
 	case TAG_MPEG4_QuantizationParameter: break;
 	/*world info is stored at the inline scene level*/
 	case TAG_MPEG4_WorldInfo:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_WorldInfo:
+#endif
 		gf_node_set_callback_function(node, TraverseWorldInfo);
 		gf_node_set_private(node, scene);
 		break;
 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_KeySensor: InitKeySensor(scene, node); break;
 	case TAG_X3D_StringSensor: InitStringSensor(scene, node); break;
+#endif
 
 	case TAG_MPEG4_TermCap: 
 		InitTermCap(scene, node); break;
@@ -242,7 +248,9 @@ void gf_term_on_node_modified(void *_is, GF_Node *node)
 	switch (gf_node_get_tag(node)) {
 #ifndef GPAC_DISABLE_VRML
 	case TAG_MPEG4_Inline: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Inline: 
+#endif
 		gf_inline_on_modified(node); 
 		break;
 	case TAG_MPEG4_MediaBuffer: 

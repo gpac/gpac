@@ -107,10 +107,12 @@ static void TraversePathLayout(GF_Node *node, void *rs, Bool is_destroy)
 		case TAG_MPEG4_IndexedLineSet2D:
 		case TAG_MPEG4_IndexedFaceSet2D:
 		case TAG_MPEG4_Rectangle:
+#ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_Disk2D:
 		case TAG_X3D_Arc2D:
 		case TAG_X3D_Polyline2D:
 		case TAG_X3D_TriangleSet2D:
+#endif
 			dr = (Drawable *) gf_node_get_private( (GF_Node *) pl->geometry);
 			break;
 		default:

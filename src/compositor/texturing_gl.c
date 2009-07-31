@@ -729,7 +729,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 #endif
 	}
 
-#ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_X3D
 	if (tx_transform) {
 		GF_Matrix tmp;
 		switch (gf_node_get_tag(tx_transform)) {
@@ -777,7 +777,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 			break;
 		}
 	}
-#endif /*GPAC_DISABLE_VRML*/
+#endif /*GPAC_DISABLE_X3D*/
 	return ret;
 }
 

@@ -474,7 +474,11 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 	tag = gf_node_get_tag(text);
 
 #ifndef GPAC_DISABLE_VRML
-	if ( (tag==TAG_MPEG4_Text) || (tag==TAG_X3D_Text)) {
+	if ( (tag==TAG_MPEG4_Text) 
+#ifndef GPAC_DISABLE_X3D
+		|| (tag==TAG_X3D_Text)
+#endif
+	) {
 		M_FontStyle *fs = (M_FontStyle *) ((M_Text *)text)->fontStyle;
 		if (!fs) return 0;
 		if (!strstr(fs->style.buffer, "editable") && !strstr(fs->style.buffer, "EDITABLE")) return 0;
@@ -793,26 +797,43 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	if (compositor->sensor_type != GF_CURSOR_COLLIDE) {
 		switch (stype) {
 		case TAG_MPEG4_Anchor: 
-		case TAG_X3D_Anchor: 
 			stype = GF_CURSOR_ANCHOR; 
 			break;
 		case TAG_MPEG4_PlaneSensor2D:
 		case TAG_MPEG4_PlaneSensor: 
-		case TAG_X3D_PlaneSensor: 
-			stype = GF_CURSOR_PLANE; break;
+			stype = GF_CURSOR_PLANE;
+			break;
 		case TAG_MPEG4_CylinderSensor: 
-		case TAG_X3D_CylinderSensor: 
 		case TAG_MPEG4_DiscSensor:
 		case TAG_MPEG4_SphereSensor:
-		case TAG_X3D_SphereSensor:
-			stype = GF_CURSOR_ROTATE; break;
+			stype = GF_CURSOR_ROTATE; 
+			break;
 		case TAG_MPEG4_ProximitySensor2D:
 		case TAG_MPEG4_ProximitySensor:
-		case TAG_X3D_ProximitySensor:
-			stype = GF_CURSOR_PROXIMITY; break;
+			stype = GF_CURSOR_PROXIMITY; 
+			break;
 		case TAG_MPEG4_TouchSensor: 
+			stype = GF_CURSOR_TOUCH; 
+			break;
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_Anchor: 
+			stype = GF_CURSOR_ANCHOR; 
+			break;
+		case TAG_X3D_PlaneSensor: 
+			stype = GF_CURSOR_PLANE;
+			break;
+		case TAG_X3D_CylinderSensor: 
+		case TAG_X3D_SphereSensor:
+			stype = GF_CURSOR_ROTATE; 
+			break;
+		case TAG_X3D_ProximitySensor:
+			stype = GF_CURSOR_PROXIMITY; 
+			break;
 		case TAG_X3D_TouchSensor: 
-			stype = GF_CURSOR_TOUCH; break;
+			stype = GF_CURSOR_TOUCH; 
+			break;
+#endif
+
 		default: stype = GF_CURSOR_NORMAL; break;
 		}
 		if ((stype != GF_CURSOR_NORMAL) || (compositor->sensor_type != stype)) {
@@ -853,15 +874,20 @@ static Bool exec_vrml_key_event(GF_Compositor *compositor, GF_Node *node, GF_Eve
 
 	switch (gf_node_get_tag(node)) {
 	case TAG_MPEG4_Text:
-	case TAG_X3D_Text:
 		return 0;
 	case TAG_MPEG4_Layout:
 		hdl = compositor_mpeg4_layout_get_sensor_handler(node);
 		break;
 	case TAG_MPEG4_Anchor:
+		hdl = compositor_mpeg4_get_sensor_handler(node);
+		break;
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Text:
+		return 0;
 	case TAG_X3D_Anchor:
 		hdl = compositor_mpeg4_get_sensor_handler(node);
 		break;
+#endif
 	}
 	child = ((GF_ParentNode*)node)->children;
 	if (hdl) {
@@ -1045,8 +1071,11 @@ static Bool is_focus_target(GF_Node *elt)
 
 #ifndef GPAC_DISABLE_VRML
 	case TAG_MPEG4_Anchor:
+		return 1;
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Anchor:
 		return 1;
+#endif
 #endif
 
 	default:
@@ -1111,11 +1140,11 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		switch (tag) {
 #ifndef GPAC_DISABLE_VRML
 
-		case TAG_MPEG4_Group: case TAG_X3D_Group:
-		case TAG_MPEG4_Transform: case TAG_X3D_Transform:
-		case TAG_MPEG4_Billboard: case TAG_X3D_Billboard:
-		case TAG_MPEG4_Collision: case TAG_X3D_Collision: 
-		case TAG_MPEG4_LOD: case TAG_X3D_LOD: 
+		case TAG_MPEG4_Group: 
+		case TAG_MPEG4_Transform: 
+		case TAG_MPEG4_Billboard:
+		case TAG_MPEG4_Collision:
+		case TAG_MPEG4_LOD: 
 		case TAG_MPEG4_OrderedGroup:
 		case TAG_MPEG4_Transform2D:
 		case TAG_MPEG4_TransformMatrix2D:
@@ -1124,7 +1153,15 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		case TAG_MPEG4_Layer2D:
 		case TAG_MPEG4_PathLayout:
 		case TAG_MPEG4_Form:
-		case TAG_MPEG4_Anchor: case TAG_X3D_Anchor:
+		case TAG_MPEG4_Anchor: 
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_Group:
+		case TAG_X3D_Transform:
+		case TAG_X3D_Billboard:
+		case TAG_X3D_Collision: 
+		case TAG_X3D_LOD: 
+		case TAG_X3D_Anchor:
+#endif
 			if (!current_focus) {
 				/*get the base grouping stack (*/
 				BaseGroupingStack *grp = (BaseGroupingStack*)gf_node_get_private(elt);
@@ -1132,14 +1169,20 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 					return elt;
 			}
 			break;
-		case TAG_MPEG4_Switch: case TAG_X3D_Switch:
-		{
+		case TAG_MPEG4_Switch: 
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_Switch:
+#endif
+			{
 			s32 i, wc;
 			GF_ChildNodeItem *child;
+#ifndef GPAC_DISABLE_X3D
 			if (tag==TAG_X3D_Switch) {
 				child = ((X_Switch*)elt)->children;
 				wc = ((X_Switch*)elt)->whichChoice;
-			} else {
+			} else 
+#endif
+			{
 				child = ((M_Switch*)elt)->choice;
 				wc = ((M_Switch*)elt)->whichChoice;
 			}
@@ -1152,7 +1195,10 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			return NULL;
 		}
 
-		case TAG_MPEG4_Text: case TAG_X3D_Text:
+		case TAG_MPEG4_Text: 
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_Text:
+#endif
 			if (!current_focus) {
 				M_FontStyle *fs = (M_FontStyle *) ((M_Text *)elt)->fontStyle;
 				if (!fs) return NULL;
@@ -1184,10 +1230,16 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			}
 			break;
 		
-		case TAG_MPEG4_Inline: case TAG_X3D_Inline: 
+		case TAG_MPEG4_Inline: 
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_Inline: 
+#endif
 			CALL_SET_FOCUS(gf_scene_get_subscene_root(elt));
 
-		case TAG_MPEG4_Shape: case TAG_X3D_Shape:
+		case TAG_MPEG4_Shape:
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_Shape:
+#endif
 			gf_list_add(compositor->focus_ancestors, elt);
 			n = set_focus(compositor, ((M_Shape*)elt)->geometry, current_focus, prev_focus);
 			if (n) return n;
@@ -1196,10 +1248,14 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			gf_list_rem_last(compositor->focus_ancestors);
 			return NULL;
 
-		case TAG_MPEG4_Appearance: case TAG_X3D_Appearance: 
+		case TAG_MPEG4_Appearance: 
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_Appearance: 
+#endif
 			CALL_SET_FOCUS(((M_Appearance*)elt)->texture);
 
-		case TAG_MPEG4_CompositeTexture2D: case TAG_MPEG4_CompositeTexture3D:
+		case TAG_MPEG4_CompositeTexture2D: 
+		case TAG_MPEG4_CompositeTexture3D:
 			/*CompositeTextures are not grouping nodes per say*/
 			child = ((GF_ParentNode*)elt)->children;
 			while (child) {
@@ -1360,11 +1416,11 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) {
 		switch (tag) {
 #ifndef GPAC_DISABLE_VRML
-		case TAG_MPEG4_Group: case TAG_X3D_Group:
-		case TAG_MPEG4_Transform: case TAG_X3D_Transform:
-		case TAG_MPEG4_Billboard: case TAG_X3D_Billboard:
-		case TAG_MPEG4_Collision: case TAG_X3D_Collision: 
-		case TAG_MPEG4_LOD: case TAG_X3D_LOD: 
+		case TAG_MPEG4_Group: 
+		case TAG_MPEG4_Transform: 
+		case TAG_MPEG4_Billboard: 
+		case TAG_MPEG4_Collision: 
+		case TAG_MPEG4_LOD: 
 		case TAG_MPEG4_OrderedGroup:
 		case TAG_MPEG4_Transform2D:
 		case TAG_MPEG4_TransformMatrix2D:
@@ -1374,7 +1430,15 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 		case TAG_MPEG4_Layout:
 		case TAG_MPEG4_PathLayout:
 		case TAG_MPEG4_Form:
-		case TAG_MPEG4_Anchor: case TAG_X3D_Anchor:
+		case TAG_MPEG4_Anchor: 
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_Anchor:
+		case TAG_X3D_Group:
+		case TAG_X3D_Transform:
+		case TAG_X3D_Billboard:
+		case TAG_X3D_Collision: 
+		case TAG_X3D_LOD: 
+#endif
 		case TAG_MPEG4_CompositeTexture2D: case TAG_MPEG4_CompositeTexture3D:
 			child = ((GF_ParentNode*)par)->children;
 			break;

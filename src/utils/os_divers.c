@@ -861,8 +861,10 @@ void gf_sys_close()
 	}
 }
 
+#ifdef GPAC_MEMORY_TRACKING
 extern size_t gpac_allocated_memory;
 extern size_t gpac_nb_alloc_blocs;
+#endif
 
 /*CPU and Memory Usage*/
 
@@ -899,7 +901,9 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		GlobalMemoryStatus(&ms);
 		rti->physical_memory = ms.dwTotalPhys;
 		rti->physical_memory_avail = ms.dwAvailPhys;
+#ifdef GPAC_MEMORY_TRACKING
 		rti->gpac_memory = (u64) gpac_allocated_memory;
+#endif
 		return 1;
 	}
 
@@ -1092,7 +1096,9 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 	GlobalMemoryStatus(&ms);
 	the_rti.physical_memory = ms.dwTotalPhys;
+#ifdef GPAC_MEMORY_TRACKING
 	the_rti.gpac_memory = (u64) gpac_allocated_memory;
+#endif
 	the_rti.physical_memory_avail = ms.dwAvailPhys;
 
 #if defined(_WIN32_WCE)	

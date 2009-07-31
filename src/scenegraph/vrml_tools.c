@@ -50,9 +50,12 @@ Bool gf_node_in_table_by_tag(u32 tag, u32 NDTType)
 		return 1;
 #endif
 
-	} else if (tag<=GF_NODE_RANGE_LAST_X3D) {
+	} 
+#ifndef GPAC_DISABLE_X3D
+	else if (tag<=GF_NODE_RANGE_LAST_X3D) {
 		return gf_x3d_get_node_type(NDTType, tag);
 	}
+#endif
 	return 0;
 }
 
@@ -1382,10 +1385,16 @@ u32 gf_node_get_num_fields_in_mode(GF_Node *Node, u8 IndexMode)
 {
 	assert(Node);
 	if (Node->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_get_num_fields(Node, IndexMode);
-	else if ((Node->sgprivate->tag == TAG_MPEG4_Script) || (Node->sgprivate->tag == TAG_X3D_Script) )
+	else if ((Node->sgprivate->tag == TAG_MPEG4_Script)
+#ifndef GPAC_DISABLE_X3D
+		|| (Node->sgprivate->tag == TAG_X3D_Script)
+#endif
+	)
 		return gf_sg_script_get_num_fields(Node, IndexMode);
 	else if (Node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_field_count(Node, IndexMode);
+#ifndef GPAC_DISABLE_X3D
 	else if (Node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_field_count(Node);
+#endif
 	else return 0;
 }
 
@@ -1423,27 +1432,41 @@ Bool gf_sg_vrml_node_init(GF_Node *node)
 {
 	switch (node->sgprivate->tag) {
 	case TAG_MPEG4_ColorInterpolator: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_ColorInterpolator:
+#endif
 		return InitColorInterpolator((M_ColorInterpolator *)node);
 	case TAG_MPEG4_CoordinateInterpolator: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_CoordinateInterpolator: 
+#endif
 		return InitCoordinateInterpolator((M_CoordinateInterpolator *)node);
 	case TAG_MPEG4_CoordinateInterpolator2D: 
 		return InitCoordinateInterpolator2D((M_CoordinateInterpolator2D *)node);
 	case TAG_MPEG4_NormalInterpolator: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_NormalInterpolator: 
+#endif
 		return InitNormalInterpolator((M_NormalInterpolator*)node);
 	case TAG_MPEG4_OrientationInterpolator: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_OrientationInterpolator: 
+#endif
 		return InitOrientationInterpolator((M_OrientationInterpolator*)node);
 	case TAG_MPEG4_PositionInterpolator: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_PositionInterpolator: 
+#endif
 		return InitPositionInterpolator((M_PositionInterpolator *)node);
 	case TAG_MPEG4_PositionInterpolator2D:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_PositionInterpolator2D:
+#endif
 		return InitPositionInterpolator2D((M_PositionInterpolator2D *)node);
 	case TAG_MPEG4_ScalarInterpolator: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_ScalarInterpolator: 
+#endif
 		return InitScalarInterpolator((M_ScalarInterpolator *)node);
 	case TAG_MPEG4_Valuator:
 		return InitValuator((M_Valuator *)node);
@@ -1458,9 +1481,12 @@ Bool gf_sg_vrml_node_init(GF_Node *node)
 	case TAG_MPEG4_CoordinateInterpolator4D: 
 		return InitCoordinateInterpolator4D((M_CoordinateInterpolator4D *)node);
 	case TAG_MPEG4_Script: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Script: 
+#endif
 		return 1;
 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_BooleanFilter: InitBooleanFilter(node); return 1;
 	case TAG_X3D_BooleanSequencer: InitBooleanSequencer(node); return 1;
 	case TAG_X3D_BooleanToggle: InitBooleanToggle(node); return 1;
@@ -1468,6 +1494,7 @@ Bool gf_sg_vrml_node_init(GF_Node *node)
 	case TAG_X3D_IntegerSequencer: InitIntegerSequencer(node); return 1;
 	case TAG_X3D_IntegerTrigger: InitIntegerTrigger(node); return 1;
 	case TAG_X3D_TimeTrigger: InitTimeTrigger(node); return 1;
+#endif
 	}
 	return 0;
 }
@@ -1479,23 +1506,24 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field)
 		/*hardcoded protos need modification notifs*/
 		if (node->sgprivate->UserCallback) return 0;
 	case TAG_MPEG4_ColorInterpolator: 
-	case TAG_X3D_ColorInterpolator:
 	case TAG_MPEG4_CoordinateInterpolator: 
-	case TAG_X3D_CoordinateInterpolator: 
 	case TAG_MPEG4_CoordinateInterpolator2D: 
 	case TAG_MPEG4_NormalInterpolator: 
-	case TAG_X3D_NormalInterpolator: 
 	case TAG_MPEG4_OrientationInterpolator: 
-	case TAG_X3D_OrientationInterpolator: 
 	case TAG_MPEG4_PositionInterpolator: 
-	case TAG_X3D_PositionInterpolator: 
 	case TAG_MPEG4_PositionInterpolator2D: 
 	case TAG_MPEG4_ScalarInterpolator: 
-	case TAG_X3D_ScalarInterpolator: 
 	case TAG_MPEG4_Valuator:
 	case TAG_MPEG4_PositionInterpolator4D:
 	case TAG_MPEG4_CoordinateInterpolator4D:
 	case TAG_MPEG4_Script:
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_ColorInterpolator:
+	case TAG_X3D_CoordinateInterpolator: 
+	case TAG_X3D_NormalInterpolator: 
+	case TAG_X3D_OrientationInterpolator: 
+	case TAG_X3D_PositionInterpolator: 
+	case TAG_X3D_ScalarInterpolator: 
 	case TAG_X3D_Script:
 	case TAG_X3D_BooleanFilter:
 	case TAG_X3D_BooleanSequencer:
@@ -1504,6 +1532,7 @@ Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field)
 	case TAG_X3D_IntegerSequencer:
 	case TAG_X3D_IntegerTrigger:
 	case TAG_X3D_TimeTrigger:
+#endif
 		return 1;
 	case TAG_MPEG4_PositionAnimator: PA_Modified(node, field); return 1;
 	case TAG_MPEG4_PositionAnimator2D: PA2D_Modified(node, field); return 1;

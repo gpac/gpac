@@ -30,7 +30,7 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_x3d.h>
 
-#ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_LOADER_XMT
 
 
 /*for QP types*/
@@ -600,12 +600,17 @@ static u32 xmt_get_node_tag(GF_XMTParser *parser, const char *node_name)
 	u32 tag;
 	/*if VRML and allowing non MPEG4 nodes, use X3D*/
 	if ((parser->doc_type==2) && !(parser->load->flags & GF_SM_LOAD_MPEG4_STRICT)) {
+#ifndef GPAC_DISABLE_X3D
 		tag = gf_node_x3d_type_by_class_name(node_name);
-		if (!tag) tag = gf_node_mpeg4_type_by_class_name(node_name);
+		if (!tag) 
+#endif
+			tag = gf_node_mpeg4_type_by_class_name(node_name);
 	} else {
 		tag = gf_node_mpeg4_type_by_class_name(node_name);
 		/*if allowing non MPEG4 nodes, try X3D*/
+#ifndef GPAC_DISABLE_X3D
 		if (!tag && !(parser->load->flags & GF_SM_LOAD_MPEG4_STRICT)) tag = gf_node_x3d_type_by_class_name(node_name);
+#endif
 	}
 	return tag;
 }
@@ -1389,7 +1394,11 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 		}
 		return NULL;
 	}
-	if (parent && parent->node && ((parent->node->sgprivate->tag==TAG_MPEG4_Script) || (parent->node->sgprivate->tag==TAG_X3D_Script)) ) {
+	if (parent && parent->node && ((parent->node->sgprivate->tag==TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+		|| (parent->node->sgprivate->tag==TAG_X3D_Script)
+#endif
+		) ) {
 		is_script = 1;
 		if (!strcmp(name, "field")) {
 			xmt_parse_script_field(parser, parent->node, attributes, nb_attributes);
@@ -1508,7 +1517,11 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			}
 			if ( (e = gf_node_get_field_by_name(last->node, atField, &nfield)) != GF_OK) {
 				u32 l_tag = gf_node_get_tag(last->node);
-				if ((l_tag!=TAG_MPEG4_Script) && (l_tag!=TAG_X3D_Script)) {
+				if ((l_tag!=TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+					&& (l_tag!=TAG_X3D_Script)
+#endif
+					) {
 					xmt_report(parser, e, "connect: %s not an field of node %s", atField, gf_node_get_class_name(last->node) );
 					return NULL;
 				}
@@ -2702,7 +2715,11 @@ attach_node:
 		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
 			/*load scripts*/
 			if (!parser->parsing_proto) {
-				if ((tag==TAG_MPEG4_Script) || (tag==TAG_X3D_Script) ) {
+				if ((tag==TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+					|| (tag==TAG_X3D_Script) 
+#endif
+				) {
 					/*it may happen that the script uses itself as a field (not sure this is compliant since this
 					implies a cyclic structure, but happens in some X3D conformance seq)*/
 					if (!top || (top->node != node)) {
@@ -2746,7 +2763,9 @@ static void xmt_text_content(void *sax_cbck, const char *text_content, Bool is_c
 
 	switch (gf_node_get_tag((GF_Node *)node)) {
 	case TAG_MPEG4_Script:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Script:
+#endif
 		if (is_cdata) {
 			SFScript *sc_f;
 			M_Script *sc = (M_Script *) node;
@@ -2864,4 +2883,4 @@ GF_Err gf_sm_load_done_xmt(GF_SceneLoader *load)
 }
 
 
-#endif /*GPAC_DISABLE_VRML*/
+#endif /*GPAC_DISABLE_LOADER_XMT*/

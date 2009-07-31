@@ -63,10 +63,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_get_char) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_set_echo_off) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crc_32) )
+
+#ifdef GPAC_MEMORY_TRACKING
 #pragma comment (linker, EXPORT_SYMBOL(gf_malloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_realloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_free) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_strdup) )
+#endif /*GPAC_MEMORY_TRACKING*/
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_del) )
@@ -394,13 +397,14 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_com_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_del) )
 
-#ifndef GPAC_MINIMAL_ODF
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_slc_set_pref) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_bifs_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_text_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_ui_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_laser_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_encode_ui_config) )
+
+#ifndef GPAC_MINIMAL_ODF
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_add_desc) )
@@ -1028,6 +1032,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_remove_stream) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decode_au) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decode_command_list) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_get_aq_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_get_node_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_proto_field_set_aq_info) )
+#ifndef GPAC_DISABLE_BIFS_ENC
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_new_stream) )
@@ -1035,9 +1043,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_get_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_get_version) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_encoder_get_rap) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_get_aq_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_get_node_type) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_proto_field_set_aq_info) )
+#endif
 #endif /*GPAC_DISABLE_BIFS*/
 
 
@@ -1144,7 +1150,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_sfrotation_interpolate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_mfurl_del) )
 #ifndef GPAC_DISABLE_VRML
-#pragma comment (linker, EXPORT_SYMBOL(gf_sg_handle_dom_event_for_vrml) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_get_num_fields_in_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_insert_child) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_remove_child) )
@@ -1204,13 +1209,21 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_script_load) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_script_event_in) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_mpeg4_type_by_class_name) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_node_x3d_type_by_class_name) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_x3d_get_node_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_get_next_available_route_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_set_max_defined_route_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_get_next_available_proto_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_set_proto_loader) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_sfcolor_to_rgba) )
+
+#ifndef GPAC_DISABLE_X3D
+#pragma comment (linker, EXPORT_SYMBOL(gf_node_x3d_type_by_class_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_x3d_get_node_type) )
+#endif
+
+#ifndef GPAC_DISABLE_SVG
+#pragma comment (linker, EXPORT_SYMBOL(gf_sg_handle_dom_event_for_vrml) )
+#endif 
+
 #endif /*GPAC_DISABLE_VRML*/
 
 

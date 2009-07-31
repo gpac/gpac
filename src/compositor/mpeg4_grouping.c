@@ -49,7 +49,11 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		but still mark the group as empty*/
 		group->bounds.width = 0;
 		/*special case for anchor which is a parent node acting as a sensor*/
-		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
+		if ((ntag==TAG_MPEG4_Anchor) 
+#ifndef GPAC_DISABLE_X3D
+			|| (ntag==TAG_X3D_Anchor)
+#endif
+		) {
 			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
 		} else {
 			child = ((GF_ParentNode *)node)->children;
@@ -224,7 +228,11 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 		group->flags &= ~GROUP_HAS_SENSORS;
 		drawable_reset_group_highlight(tr_state, node);
 		/*special case for anchor which is a parent node acting as a sensor*/
-		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
+		if ((ntag==TAG_MPEG4_Anchor) 
+#ifndef GPAC_DISABLE_X3D
+			|| (ntag==TAG_X3D_Anchor)
+#endif
+		) {
 			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
 		} else {
 			list = ((GF_ParentNode *)node)->children;
@@ -673,7 +681,11 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
 		/*special case for anchor which is a parent node acting as a sensor*/
-		if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) {
+		if ((ntag==TAG_MPEG4_Anchor) 
+#ifndef GPAC_DISABLE_X3D
+			|| (ntag==TAG_X3D_Anchor)
+#endif
+		) {
 			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
 		} else {
 			l = ((GF_ParentNode *)node)->children;

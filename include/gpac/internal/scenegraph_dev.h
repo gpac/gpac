@@ -360,6 +360,7 @@ const char *gf_sg_mpeg4_node_get_class_name(u32 NodeTag);
 Bool gf_sg_mpeg4_node_get_aq_info(GF_Node *node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits);
 s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name);
 
+#ifndef GPAC_DISABLE_X3D
 /*X3D def*/
 GF_Node *gf_sg_x3d_node_new(u32 NodeTag);
 GF_Err gf_sg_x3d_node_get_field(GF_Node *node, GF_FieldInfo *field);
@@ -368,6 +369,8 @@ void gf_sg_x3d_node_del(GF_Node *node);
 const char *gf_sg_x3d_node_get_class_name(u32 NodeTag);
 s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name);
 Bool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag);
+#endif
+
 
 /*VRML/X3D types*/
 void gf_sg_mfint32_del(MFInt32 par);

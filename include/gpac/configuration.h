@@ -111,6 +111,9 @@
 /*disables VRML/BIFS scene graphs*/
 //#define GPAC_DISABLE_VRML
 
+/*disables X3D scene graphs*/
+//#define GPAC_DISABLE_X3D
+
 /*disables MPEG-4 OD Framework - this only minimalize the set of OD features used, however all cannot be removed all */
 //#define GPAC_MINIMAL_ODF
 
@@ -161,6 +164,12 @@
 
 /*disables ISOM -> scene decoder*/
 //#define GPAC_DISABLE_LOADER_ISOM
+
+/*disables BT/WRL/X3DV -> scene decoder*/
+//#define GPAC_DISABLE_LOADER_BT
+
+/*disables XMTA/X3D -> scene decoder*/
+//#define GPAC_DISABLE_LOADER_XMT
 
 /*disables OD graph textual dump*/
 //#define GPAC_DISABLE_OD_DUMP

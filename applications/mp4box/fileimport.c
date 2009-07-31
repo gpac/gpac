@@ -1392,7 +1392,7 @@ err_exit:
 #endif /*GPAC_DISABLE_SCENE_ENCODER*/
 
 
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 /*
 		MPEG-4 chunk encoding
 */
@@ -1543,7 +1543,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	return e;
 }
 
-#endif /*GPAC_DISABLE_BIFS*/
+#endif /*GPAC_DISABLE_BIFS_ENC*/
 
 /**
  * @chunkFile BT chunk to be encoded

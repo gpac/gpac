@@ -67,6 +67,7 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_l
 GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_length, GF_List *com_list);
 
 
+#ifndef GPAC_DISABLE_BIFS_ENC
 /*BIFS encoding*/
 typedef struct __tag_bifs_enc GF_BifsEncoder;
 
@@ -87,6 +88,8 @@ u8 gf_bifs_encoder_get_version(GF_BifsEncoder *codec, u16 ESID);
 
 /*Encodes current graph as a scene replace*/
 GF_Err gf_bifs_encoder_get_rap(GF_BifsEncoder *codec, char **out_data, u32 *out_data_length);
+
+#endif /*GPAC_DISABLE_BIFS_ENC*/
 
 #endif /*GPAC_DISABLE_BIFS*/
 

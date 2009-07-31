@@ -1198,7 +1198,9 @@ static Bool scene_dump_vrml_can_dump(GF_SceneDumper *sdump, GF_Node *node)
 		if (node->sgprivate->tag==TAG_MPEG4_Rectangle) return 1;
 		if (node->sgprivate->tag==TAG_MPEG4_Circle) return 1;
 		name = gf_node_get_class_name(node);
+#ifndef GPAC_DISABLE_X3D
 		tag = gf_node_x3d_type_by_class_name(name);
+#endif
 		return tag ? 1 : 0;
 	} else {
 		if (node->sgprivate->tag<=GF_NODE_RANGE_LAST_MPEG4) return 1;

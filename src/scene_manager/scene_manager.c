@@ -236,21 +236,21 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 	return e;
 }
 
-#ifndef GPAC_DISABLE_VRML
-
+#ifndef GPAC_DISABLE_LOADER_BT
 GF_Err gf_sm_load_init_bt(GF_SceneLoader *load);
 void gf_sm_load_done_bt(GF_SceneLoader *load);
 GF_Err gf_sm_load_run_bt(GF_SceneLoader *load);
 GF_Err gf_sm_load_init_bt_string(GF_SceneLoader *load, char *str);
 GF_Err gf_sm_load_done_bt_string(GF_SceneLoader *load);
+#endif 
 
+#ifndef GPAC_DISABLE_LOADER_XMT
 GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load);
 void gf_sm_load_done_xmt(GF_SceneLoader *load);
 GF_Err gf_sm_load_run_xmt(GF_SceneLoader *load);
 GF_Err gf_sm_load_init_xmt_string(GF_SceneLoader *load, char *str);
+#endif
 
-
-#endif /*GPAC_DISABLE_VRML*/
 
 GF_Err gf_sm_load_init_isom(GF_SceneLoader *load);
 void gf_sm_load_done_isom(GF_SceneLoader *load);
@@ -296,11 +296,14 @@ static GF_Err gf_sm_load_init_from_string(GF_SceneLoader *load, char *str)
 	if (!load->scene_graph) load->scene_graph = load->ctx->scene_graph;
 
 	switch (load->type) {
-#ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_LOADER_BT
 	case GF_SM_LOAD_BT: 
 	case GF_SM_LOAD_VRML:
 	case GF_SM_LOAD_X3DV:
 		return gf_sm_load_init_bt_string(load, str);
+#endif
+
+#ifndef GPAC_DISABLE_LOADER_XMT
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_init_xmt_string(load, str);
@@ -327,12 +330,15 @@ static GF_Err gf_sm_load_init_from_string(GF_SceneLoader *load, char *str)
 static void gf_sm_load_done_string(GF_SceneLoader *load, Bool do_clean)
 {
 	switch (load->type) {
-#ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_LOADER_BT
 	case GF_SM_LOAD_BT:
 	case GF_SM_LOAD_VRML:
 	case GF_SM_LOAD_X3DV:
 		gf_sm_load_done_bt_string(load); 
 		break;
+#endif
+
+#ifndef GPAC_DISABLE_LOADER_XMT
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
 		/*we do not reset it here to enable SAX parsing*/
@@ -398,8 +404,10 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 			if (strstr(szExt, "bt")) load->type = GF_SM_LOAD_BT;
 			else if (strstr(szExt, "wrl")) load->type = GF_SM_LOAD_VRML;
 			else if (strstr(szExt, "x3dv")) load->type = GF_SM_LOAD_X3DV;
+#ifndef GPAC_DISABLE_LOADER_XMT
 			else if (strstr(szExt, "xmt") || strstr(szExt, "xmta")) load->type = GF_SM_LOAD_XMTA;
 			else if (strstr(szExt, "x3d")) load->type = GF_SM_LOAD_X3D;
+#endif
 			else if (strstr(szExt, "swf")) load->type = GF_SM_LOAD_SWF;
 			else if (strstr(szExt, "mov")) load->type = GF_SM_LOAD_QT;
 			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG_DA;
@@ -423,11 +431,13 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	if (!load->scene_graph) load->scene_graph = load->ctx->scene_graph;
 
 	switch (load->type) {
-#ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_LOADER_BT
 	case GF_SM_LOAD_BT: 
 	case GF_SM_LOAD_VRML:
 	case GF_SM_LOAD_X3DV:
 		return gf_sm_load_init_bt(load);
+#endif
+#ifndef GPAC_DISABLE_LOADER_XMT
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_init_xmt(load);
@@ -466,12 +476,15 @@ GF_EXPORT
 void gf_sm_load_done(GF_SceneLoader *load)
 {
 	switch (load->type) {
-#ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_LOADER_BT
 	case GF_SM_LOAD_BT:
 	case GF_SM_LOAD_VRML:
 	case GF_SM_LOAD_X3DV:
 		gf_sm_load_done_bt(load); 
 		break;
+#endif
+
+#ifndef GPAC_DISABLE_LOADER_XMT
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
 		gf_sm_load_done_xmt(load); 
@@ -515,11 +528,13 @@ GF_EXPORT
 GF_Err gf_sm_load_run(GF_SceneLoader *load)
 {
 	switch (load->type) {
-#ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_LOADER_BT
 	case GF_SM_LOAD_BT:
 	case GF_SM_LOAD_VRML:
 	case GF_SM_LOAD_X3DV:
 		return gf_sm_load_run_bt(load);
+#endif
+#ifndef GPAC_DISABLE_LOADER_XMT
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
 		return gf_sm_load_run_xmt(load);

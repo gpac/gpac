@@ -56,21 +56,7 @@ install:
 	install bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
 	rm -f $(DESTDIR)$(moddir)/libgpac.$(DYN_LIB_SUFFIX)
 	rm -f $(DESTDIR)$(moddir)/nposmozilla.$(DYN_LIB_SUFFIX)
-ifeq ($(CONFIG_WIN32),yes)
-	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(prefix)/$(libdir)
-else
-ifeq ($(DEBUGBUILD),no)
-	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
-endif
-ifeq ($(CONFIG_DARWIN),yes)
-	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
-	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
-else
-	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
-	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
-	ldconfig || true
-endif
-endif
+	$(MAKE) installdylib
 	install -d "$(DESTDIR)$(mandir)"
 	install -d "$(DESTDIR)$(mandir)/man1"
 	if [ -d  doc ] ; then \
@@ -92,6 +78,23 @@ uninstall:
 	rm -rf $(mandir)/man1/gpac.1
 	rm -rf $(prefix)/share/gpac
 
+installdylib:
+ifeq ($(CONFIG_WIN32),yes)
+	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(prefix)/$(libdir)
+else
+ifeq ($(DEBUGBUILD),no)
+	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
+endif
+ifeq ($(CONFIG_DARWIN),yes)
+	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
+	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
+else
+	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
+	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
+	ldconfig || true
+endif
+endif
+
 install-lib:
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac"
 	install -m 644 $(SRC_PATH)/include/gpac/*.h "$(DESTDIR)$(prefix)/include/gpac"
@@ -99,14 +102,14 @@ install-lib:
 	install -m 644 $(SRC_PATH)/include/gpac/internal/*.h "$(DESTDIR)$(prefix)/include/gpac/internal"
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/modules"
 	install -m 644 $(SRC_PATH)/include/gpac/modules/*.h "$(DESTDIR)$(prefix)/include/gpac/modules"
+	install -m 644 $(SRC_PATH)/config.h "$(DESTDIR)$(prefix)/include/gpac/configuration.h"
 ifeq ($(GPAC_ENST), yes)
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/enst"
 	install -m 644 $(SRC_PATH)/include/gpac/enst/*.h "$(DESTDIR)$(prefix)/include/gpac/enst"
 endif
-	mkdir -p "$(DESTDIR)$(prefix)/lib"
-	install -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/lib"
 	mkdir -p "$(DESTDIR)$(prefix)/$(libdir)"
 	install -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/$(libdir)"
+	$(MAKE) installdylib
 
 uninstall-lib:
 	rm -rf "$(prefix)/include/gpac/internal"

@@ -220,7 +220,9 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 #ifndef GPAC_DISABLE_VRML
 			switch (gf_node_get_tag(n)) {
 			case TAG_MPEG4_Inline:
+#ifndef GPAC_DISABLE_X3D
 			case TAG_X3D_Inline:
+#endif
 				gf_node_set_private(n, NULL);
 				break;
 			}
@@ -410,7 +412,9 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, Bool for_shu
 #ifndef GPAC_DISABLE_VRML
 					switch (gf_node_get_tag(n)) {
 					case TAG_MPEG4_Inline:
+#ifndef GPAC_DISABLE_X3D
 					case TAG_X3D_Inline:
+#endif
 						gf_node_set_private(n, NULL);
 						break;
 					}
@@ -1279,7 +1283,9 @@ Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt)
 	while ((inl = (M_Inline*)gf_list_enum(scene->root_od->mo->nodes, &i))) {
 		switch (gf_node_get_tag((GF_Node *)inl)) {
 		case TAG_MPEG4_Inline:
+#ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_Inline:
+#endif
 			gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
 			gf_sg_vrml_mf_alloc(&inl->url, GF_SG_VRML_MFURL, 1);
 			inl->url.vals[0].url = strdup(evt->navigate.to_url ? evt->navigate.to_url : "");
@@ -1332,7 +1338,9 @@ GF_Node *gf_scene_get_subscene_root(GF_Node *node)
 	switch (gf_node_get_tag(node)) {
 #ifndef GPAC_DISABLE_VRML
 	case TAG_MPEG4_Inline: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Inline: 
+#endif
 		break;
 #endif
 	default:

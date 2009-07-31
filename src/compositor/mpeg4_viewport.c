@@ -42,7 +42,12 @@ GF_Err gf_sc_get_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const c
 	n = (GF_Node*)gf_list_get(compositor->visual->view_stack, viewpoint_idx-1);
 	switch (gf_node_get_tag(n)) {
 	case TAG_MPEG4_Viewport: *outName = ((M_Viewport*)n)->description.buffer; *is_bound = ((M_Viewport*)n)->isBound;return GF_OK;
-	case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: *outName = ((M_Viewpoint*)n)->description.buffer; *is_bound = ((M_Viewpoint*)n)->isBound; return GF_OK;
+	case TAG_MPEG4_Viewpoint: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Viewpoint: 
+#endif
+		*outName = ((M_Viewpoint*)n)->description.buffer; *is_bound = ((M_Viewpoint*)n)->isBound; 
+		return GF_OK;
 	default: *outName = NULL; return GF_OK;
 	}
 #else
@@ -71,8 +76,17 @@ GF_Err gf_sc_set_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const c
 		char *name = NULL;
 		n = (GF_Node*)gf_list_get(compositor->visual->view_stack, viewpoint_idx-1);
 		switch (gf_node_get_tag(n)) {
-		case TAG_MPEG4_Viewport: name = ((M_Viewport*)n)->description.buffer; break;
-		case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: name = ((M_Viewpoint*)n)->description.buffer; break;
+		case TAG_MPEG4_Viewport: 
+			name = ((M_Viewport*)n)->description.buffer; 
+			break;
+		case TAG_MPEG4_Viewpoint: 
+			name = ((M_Viewpoint*)n)->description.buffer; 
+			break;
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_Viewpoint: 
+			name = ((M_Viewpoint*)n)->description.buffer; 
+			break;
+#endif
 		default: break;
 		}
 		if (name && !stricmp(name, viewpoint_name)) {

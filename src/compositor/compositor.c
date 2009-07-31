@@ -1520,12 +1520,16 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 #endif
 			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(scene);
 			break;
+#ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_Group:
 #ifndef GPAC_DISABLE_3D
 			compositor->visual->type_3d = 3;
 #endif
 			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(scene);
 			break;
+#endif /*GPAC_DISABLE_X3D*/
+
+
 
 #endif /*GPAC_DISABLE_VRML*/
 
@@ -2020,7 +2024,11 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 			of bindable stacks and gives us free 2D/3D integration*/
 			if (tag==TAG_MPEG4_OrderedGroup) {
 				new_tag = TAG_MPEG4_Layer2D;
-			} else if ((tag==TAG_MPEG4_Group) || (tag==TAG_X3D_Group)) {
+			} else if ((tag==TAG_MPEG4_Group) 
+#ifndef GPAC_DISABLE_X3D
+				|| (tag==TAG_X3D_Group)
+#endif
+				) {
 				new_tag = TAG_MPEG4_Layer3D;
 			}
 		}

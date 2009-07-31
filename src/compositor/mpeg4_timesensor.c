@@ -37,7 +37,9 @@ typedef struct
 	Double start_time, cycle_interval;
 	u32 num_cycles;
 	GF_Compositor *compositor;
+#ifndef GPAC_DISABLE_X3D
 	Bool is_x3d;
+#endif
 } TimeSensorStack;
 
 static void timesensor_destroy(GF_Node *ts, void *rs, Bool is_destroy)
@@ -94,10 +96,12 @@ void timesensor_update_time(GF_TimeNode *st)
 			stack->time_handle.needs_unregister = 1;
 			return;
 		}
+#ifndef GPAC_DISABLE_X3D
 		if (stack->is_x3d && !TS->loop) {
 			if (!stack->start_time) return;
 			if (currentTime >= TS->startTime+stack->cycle_interval) return;
 		}
+#endif
 	}
 
 	cycleTime = currentTime - stack->start_time - stack->num_cycles * stack->cycle_interval;
@@ -168,7 +172,9 @@ void compositor_init_timesensor(GF_Compositor *compositor, GF_Node *node)
 	st->time_handle.udta = node;
 	st->store_info = 1;
 	st->compositor = compositor;
+#ifndef GPAC_DISABLE_X3D
 	st->is_x3d = (gf_node_get_tag(node)==TAG_X3D_TimeSensor) ? 1 : 0;
+#endif
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, timesensor_destroy);
 	/*time sensor needs to be run only if def'ed, otherwise it doesn't impact scene*/

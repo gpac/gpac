@@ -52,7 +52,9 @@ enum
 	QC_NOTDEF			=	16,
 };
 
+#ifdef GPAC_ENABLE_BIFS_PMF
 GF_Err gf_bifs_dec_pred_mf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field);
+#endif
 
 Bool Q_IsTypeOn(M_QuantizationParameter *qp, u32 q_type, u32 *NbBits, SFVec3f *b_min, SFVec3f *b_max);
 
@@ -69,6 +71,8 @@ GF_Err gf_bifs_dec_qp_remove(GF_BifsDecoder *codec, Bool ActivatePrev);
 SFFloat gf_bifs_dec_mantissa_float(GF_BifsDecoder * codec, GF_BitStream *bs);
 GF_Err gf_bifs_dec_unquant_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field);
 
+#ifndef GPAC_DISABLE_BIFS_ENC
+
 /*QP14 encode*/
 u32 gf_bifs_enc_qp14_get_bits(GF_BifsEncoder *codec);
 void gf_bifs_enc_qp14_enter(GF_BifsEncoder *codec, Bool Enter);
@@ -80,7 +84,9 @@ GF_Err gf_bifs_enc_qp_remove(GF_BifsEncoder *codec, Bool ActivatePrev);
 void gf_bifs_enc_mantissa_float(GF_BifsEncoder * codec, SFFloat val, GF_BitStream *bs);
 GF_Err gf_bifs_enc_quant_field(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field);
 
+#endif /*GPAC_DISABLE_BIFS_ENC*/
 
+#ifdef GPAC_ENABLE_BIFS_PMF
 
 /*
 		Predictive MFField decode - mainly IM1 code (GPL H263 AA coder used)
@@ -105,6 +111,10 @@ void gp_bifs_aa_dec_resync(GF_AADecoder *dec);
 s32 gp_bifs_aa_decode(GF_AADecoder *dec, GF_AAModel *model);
 /*reset decoder - called after each parsed I frame*/
 void gp_bifs_aa_dec_reset(GF_AADecoder *dec);
+
+
+#endif /*GPAC_ENABLE_BIFS_PMF*/
+
 
 #endif /*GPAC_DISABLE_BIFS*/
 

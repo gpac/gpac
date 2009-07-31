@@ -392,7 +392,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	GF_ISOSample *samp;
 	GF_StreamContext *sc;
 	GF_ESD *esd;
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 	GF_BifsEncoder *bifs_enc;
 #endif
 #ifndef GPAC_DISABLE_LASER
@@ -449,7 +449,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		if ((scene_type==0) && (gf_node_get_tag(n)>GF_NODE_RANGE_LAST_X3D) ) return GF_OK;
 	}
 
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 	bifs_enc = NULL;
 #endif
 #ifndef GPAC_DISABLE_LASER
@@ -457,7 +457,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 #endif
 
 	if (!scene_type) {
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 		bifs_enc = gf_bifs_encoder_new(ctx->scene_graph);
 		/*no streams defined, encode a RAP*/
 		if (!j) {
@@ -597,7 +597,7 @@ force_scene_rap:
 
 		/*BIFS setup*/
 		if (!scene_type) {
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 			GF_BIFSConfig *bcfg;
 			Bool delete_bcfg = 0;
 
@@ -690,7 +690,7 @@ force_scene_rap:
 			samp = gf_isom_sample_new();
 			samp->IsRAP = 1;
 		
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 			if (bifs_enc)
 				e = gf_bifs_encoder_get_rap(bifs_enc, &samp->data, &samp->dataLength);
 #endif
@@ -737,7 +737,7 @@ force_scene_rap:
 			if (rap_mode==3) {
 				if (samp->DTS - last_rap < rap_delay) {
 					/*first encode command*/
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 					if (bifs_enc)
 						e = gf_bifs_encode_au(bifs_enc, sc->ESID, au->commands, &samp->data, &samp->dataLength);
 #endif
@@ -753,7 +753,7 @@ force_scene_rap:
 					/*first apply commands*/
 					e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
 					/*then get RAP*/
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 					if (bifs_enc)
 						e = gf_bifs_encoder_get_rap(bifs_enc, &samp->data, &samp->dataLength);
 #endif
@@ -767,7 +767,7 @@ force_scene_rap:
 					last_rap = samp->DTS;
 				}
 			} else {
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 				if (bifs_enc)
 					e = gf_bifs_encode_au(bifs_enc, sc->ESID, au->commands, &samp->data, &samp->dataLength);
 #endif
@@ -787,7 +787,7 @@ force_scene_rap:
 					u64 r_dts = samp->DTS;
 				
 					/*then get RAP*/
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 					if (bifs_enc)
 						e = gf_bifs_encoder_get_rap(bifs_enc, &car_samp->data, &car_samp->dataLength);
 #endif
@@ -856,7 +856,7 @@ force_scene_rap:
 				last_rap = samp->DTS = au->timing - init_offset;
 				samp->IsRAP = 1;
 				/*RAP generation*/
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 				if (bifs_enc)
 					e = gf_bifs_encoder_get_rap(bifs_enc, &samp->data, &samp->dataLength);
 #endif
@@ -882,7 +882,7 @@ force_scene_rap:
 	gf_isom_set_pl_indication(mp4, GF_ISOM_PL_GRAPHICS, 1);
 
 exit:
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 	if (bifs_enc) gf_bifs_encoder_del(bifs_enc);
 #endif
 #ifndef GPAC_DISABLE_LASER

@@ -398,7 +398,13 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 	count = gf_node_get_field_count(orig);
 
 	is_script = 0;
-	if ((orig->sgprivate->tag==TAG_MPEG4_Script) || (orig->sgprivate->tag==TAG_X3D_Script)) is_script = 1;
+	if ((orig->sgprivate->tag==TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+		|| (orig->sgprivate->tag==TAG_X3D_Script)
+#endif
+		) 
+		is_script = 1;
+	
 	if (is_script) gf_sg_script_prepare_clone(node, orig);
 
 
@@ -670,7 +676,12 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 		if (!route->IS_route || !route->ToNode) continue;
 /*		assert(route->is_setup);
 		if ((route->FromField.eventType == GF_SG_EVENT_OUT) || (route->FromField.eventType == GF_SG_EVENT_IN) ) continue;
-*/		if ((route->ToNode->sgprivate->tag==TAG_MPEG4_Script) || (route->ToNode->sgprivate->tag==TAG_X3D_Script) )
+*/		
+		if ((route->ToNode->sgprivate->tag==TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+			|| (route->ToNode->sgprivate->tag==TAG_X3D_Script) 
+#endif
+		)
 			gf_sg_route_activate(route);
 	}
 

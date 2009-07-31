@@ -224,9 +224,9 @@ GF_TextureHandler *gf_sc_texture_get_handler(GF_Node *n)
 	if (!n) return NULL;
 	switch (gf_node_get_tag(n)) {
 #ifndef GPAC_DISABLE_VRML
-	case TAG_MPEG4_ImageTexture: case TAG_X3D_ImageTexture: return it_get_texture(n);
-	case TAG_MPEG4_MovieTexture: case TAG_X3D_MovieTexture: return mt_get_texture(n);
-	case TAG_MPEG4_PixelTexture: case TAG_X3D_PixelTexture: return pt_get_texture(n);
+	case TAG_MPEG4_ImageTexture: return it_get_texture(n);
+	case TAG_MPEG4_MovieTexture: return mt_get_texture(n);
+	case TAG_MPEG4_PixelTexture: return pt_get_texture(n);
 
 	case TAG_MPEG4_CompositeTexture2D: 
 	case TAG_MPEG4_CompositeTexture3D: 
@@ -242,6 +242,13 @@ GF_TextureHandler *gf_sc_texture_get_handler(GF_Node *n)
 		return hdl;
 	}
 #endif /*GPAC_DISABLE_VRML*/
+
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_ImageTexture: return it_get_texture(n);
+	case TAG_X3D_MovieTexture: return mt_get_texture(n);
+	case TAG_X3D_PixelTexture: return pt_get_texture(n);
+#endif
+
 
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_linearGradient: 

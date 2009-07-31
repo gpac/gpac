@@ -29,6 +29,17 @@
 #include <assert.h>
 #endif
 
+
+/*This is to handle cases where config.h is generated at the root of the gpac build tree (./configure)
+This is only needed when building libgpac and modules when libgpac is not installed*/
+#ifdef GPAC_HAVE_CONFIG_H
+# include "config.h"
+#else
+# include <gpac/configuration.h>
+#endif
+
+#ifdef GPAC_MEMORY_TRACKING
+
 /*GPAC memory tracking*/
 size_t gpac_allocated_memory = 0;
 size_t gpac_nb_alloc_blocs = 0;
@@ -78,6 +89,10 @@ char *gf_strdup(const char *str)
 	memcpy(ptr, str, len);
 	return ptr;
 }
+
+
+#endif /*GPAC_MEMORY_TRACKING*/
+
 
 
 #include <gpac/tools.h>

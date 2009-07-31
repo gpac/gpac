@@ -640,7 +640,11 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 			f_id2 = atoi(f2+6);
 			if (gf_node_get_field(n2, f_id2, &info) != GF_OK) return JS_FALSE;
 		} else {
-			if ((n2->sgprivate->tag==TAG_MPEG4_Script) || (n2->sgprivate->tag==TAG_X3D_Script)) {
+			if ((n2->sgprivate->tag==TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+				|| (n2->sgprivate->tag==TAG_X3D_Script)
+#endif
+				) {
 				GF_FieldInfo src = info;
 				if (gf_node_get_field_by_name(n2, f2, &info) != GF_OK) {
 					gf_sg_script_field_new(n2, GF_SG_SCRIPT_TYPE_EVENT_IN, src.fieldType, f2);
@@ -794,6 +798,7 @@ static JSBool setDescription(JSContext*c, JSObject*o, uintN argc, jsval *argv, j
 
 static JSBool createVrmlFromString(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval *rval)
 {
+#ifndef GPAC_DISABLE_LOADER_BT
 	GF_ScriptPriv *priv;
 	GF_FieldInfo field;
 	/*BT/VRML from string*/
@@ -824,6 +829,9 @@ static JSBool createVrmlFromString(JSContext*c, JSObject*obj, uintN argc, jsval 
 	}
 	gf_list_del(nlist);
 	return JS_TRUE;
+#else
+	return JS_FALSE;
+#endif
 }
 
 static JSBool getOption(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsval *rval)
@@ -892,7 +900,11 @@ void Script_FieldChanged(JSContext *c, GF_Node *parent, GF_JSField *parent_owner
 	if (!parent) return;
 
 	script_field = 0;
-	if ((parent->sgprivate->tag == TAG_MPEG4_Script) || (parent->sgprivate->tag == TAG_X3D_Script) ) {
+	if ((parent->sgprivate->tag == TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+		|| (parent->sgprivate->tag == TAG_X3D_Script) 
+#endif
+		) {
 		script_field = 1;
 		if ( (GF_Node *) JS_GetContextPrivate(c) == parent) script_field = 2;
 	}
@@ -1163,10 +1175,15 @@ locate_proto:
 			return JS_FALSE;
 		}
 	} else {
-		if (sc->sgprivate->tag==TAG_MPEG4_Script) {
+		switch (sc->sgprivate->tag) {
+		case TAG_MPEG4_Script:
 			tag = gf_node_mpeg4_type_by_class_name(node_name);
-		} else {
+			break;
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_Script:
 			tag = gf_node_x3d_type_by_class_name(node_name);
+			break;
+#endif
 		}
 		if (!tag) goto locate_proto;
 		new_node = gf_node_new(sc->sgprivate->scenegraph, tag);
@@ -4067,7 +4084,9 @@ static void JSScript_Load(GF_Node *node)
 
 	switch (node->sgprivate->tag) {
 	case TAG_MPEG4_Script:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Script:
+#endif
 		JSScript_LoadVRML(node);
 		break;
 #ifndef GPAC_DISABLE_SVG
@@ -4107,7 +4126,9 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 		if (node->sgprivate->parents) {
 			switch (node->sgprivate->parents->node->sgprivate->tag) {
 			case TAG_MPEG4_Script:
+#ifndef GPAC_DISABLE_X3D
 			case TAG_X3D_Script:
+#endif
 				/*node is no longer used in the graph, remove root and let the script handle it, */
 				if (node->sgprivate->interact->js_binding->node) {
 					GF_JSField *field = node->sgprivate->interact->js_binding->node;

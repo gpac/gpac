@@ -137,7 +137,11 @@ GF_Err gf_sg_script_get_field(GF_Node *node, GF_FieldInfo *info)
 	//static fields
 	if (info->fieldIndex < nb_static) {
 		if (nb_static==3) return gf_sg_mpeg4_node_get_field(node, info);
+#ifndef GPAC_DISABLE_X3D
 		return gf_sg_x3d_node_get_field(node, info);
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 
 	//dyn fields
@@ -186,7 +190,11 @@ GF_ScriptField *gf_sg_script_field_new(GF_Node *node, u32 eventType, u32 fieldTy
 {
 	GF_ScriptPriv *priv;
 	GF_ScriptField *field;
-	if (!name || ((node->sgprivate->tag != TAG_MPEG4_Script) && (node->sgprivate->tag != TAG_X3D_Script)))
+	if (!name || ((node->sgprivate->tag != TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+		&& (node->sgprivate->tag != TAG_X3D_Script)
+#endif
+		))
 		return NULL;
 
 	if (eventType > GF_SG_SCRIPT_TYPE_EVENT_OUT) return NULL;

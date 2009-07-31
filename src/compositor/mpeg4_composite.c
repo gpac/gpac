@@ -698,7 +698,11 @@ Bool compositor_is_composite_texture(GF_Node *appear)
 	u32 tag;
 	if (!appear) return 0;
 	tag = gf_node_get_tag(appear);
-	if ((tag==TAG_MPEG4_Appearance) || (tag==TAG_X3D_Appearance)) {
+	if ((tag==TAG_MPEG4_Appearance) 
+#ifndef GPAC_DISABLE_X3D
+		|| (tag==TAG_X3D_Appearance)
+#endif
+	) {
 		M_Appearance *ap = (M_Appearance *)appear;
 		if (!ap->texture) return 0;
 		switch (gf_node_get_tag(((M_Appearance *)appear)->texture)) {

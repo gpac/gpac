@@ -35,6 +35,8 @@
 
 #ifndef GPAC_DISABLE_BIFS
 
+/*defined to support BIFS predictive MF fields*/
+//#define GPAC_ENABLE_BIFS_PMF
 
 typedef struct {
 	/*node this mask is for*/
@@ -154,6 +156,8 @@ void gf_bifs_check_field_change(GF_Node *node, GF_FieldInfo *field);
 
 GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec);
 
+#ifndef GPAC_DISABLE_BIFS_ENC
+
 struct __tag_bifs_enc
 {
 	GF_Err LastError;
@@ -201,6 +205,8 @@ GF_Node *gf_bifs_enc_find_node(GF_BifsEncoder *codec, u32 nodeID);
 	} \
 
 GF_Route *gf_bifs_enc_is_field_ised(GF_BifsEncoder *codec, GF_Node *node, u32 fieldIndex);
+
+#endif /*GPAC_DISABLE_BIFS_ENC*/
 
 /*get field QP and anim info*/
 Bool gf_bifs_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits);

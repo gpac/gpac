@@ -514,8 +514,10 @@ u32 drawable_get_aspect_2d_mpeg4(GF_Node *node, DrawAspect2D *asp, GF_TraverseSt
 	case TAG_MPEG4_Material2D:
 		break;
 	case TAG_MPEG4_Material:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Material:
-	{	
+#endif
+		{	
 		M_Material *mat = (M_Material *)m;
 		asp->pen_props.width = 0;
 		asp->fill_color = GF_COL_ARGB_FIXED(FIX_ONE, mat->diffuseColor.red, mat->diffuseColor.green, mat->diffuseColor.blue);
