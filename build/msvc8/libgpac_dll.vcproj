@@ -545,7 +545,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\src\empty.cpp"
+			RelativePath="..\..\src\export.cpp"
 			>
 		</File>
 	</Files>
