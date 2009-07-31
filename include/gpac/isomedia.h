@@ -32,9 +32,11 @@
 extern "C" {
 #endif
 
+#include <gpac/tools.h>
+
+#ifndef GPAC_DISABLE_ISOM
 
 #include <gpac/mpeg4_odf.h>
-
 
 /*the isomedia file*/
 typedef struct __tag_isom GF_ISOFile;
@@ -709,7 +711,7 @@ Bool gf_isom_is_single_av(GF_ISOFile *file);
 u32 gf_isom_guess_specification(GF_ISOFile *file);
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 /********************************************************************
@@ -1032,6 +1034,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, GF_ISOFile *f2,
 
 GF_Err gf_isom_set_JPEG2000(GF_ISOFile *mov, Bool set_on);
 
+#ifndef GPAC_DISBALE_ISOM_FRAGMENTS
+
 /*
 			Movie Fragments Writing API
 		Movie Fragments is a feature of ISO media files for fragmentation
@@ -1133,6 +1137,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *the_file, u32 TrackID, GF_ISOSamp
 CANNOT be used with OD tracks*/
 GF_Err gf_isom_fragment_append_data(GF_ISOFile *the_file, u32 TrackID, char *data, u32 data_size, u8 PaddingBits);
 
+#endif /*GPAC_DISBALE_ISOM_FRAGMENTS*/
 
 
 /******************************************************************
@@ -1195,6 +1200,8 @@ enum
 {
 	GF_ISOM_HINT_RTP = GF_4CC('r', 't', 'p', ' '),
 };
+
+#ifndef GPAC_DISABLE_ISOM_HINTING
 
 
 /*Setup the resources based on the hint format
@@ -1325,7 +1332,21 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *the_file, const char *text);
 /*remove all SDP info at the movie level*/
 GF_Err gf_isom_sdp_clean(GF_ISOFile *the_file);
 
-#endif	/*GPAC_READ_ONLY*/
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
+
+
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
+
+/*dumps file structures into XML trace file */
+GF_Err gf_isom_dump(GF_ISOFile *file, FILE *trace);
+
+#ifndef GPAC_DISABLE_ISOM_HINTING
+
+/*dumps RTP hint samples structure into XML trace file
+	@trackNumber, @SampleNum: hint track and hint sample number
+	@trace: output
+*/
+GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 SampleNum, FILE * trace);
 
 /*Get SDP info at the movie level*/
 GF_Err gf_isom_sdp_get(GF_ISOFile *the_file, const char **sdp, u32 *length);
@@ -1335,13 +1356,6 @@ GF_Err gf_isom_sdp_track_get(GF_ISOFile *the_file, u32 trackNumber, const char *
 u32 gf_isom_get_payt_count(GF_ISOFile *the_file, u32 trackNumber);
 const char *gf_isom_get_payt_info(GF_ISOFile *the_file, u32 trackNumber, u32 index, u32 *payID);
 
-/*dumps file structures into XML trace file */
-GF_Err gf_isom_dump(GF_ISOFile *file, FILE *trace);
-/*dumps RTP hint samples structure into XML trace file
-	@trackNumber, @SampleNum: hint track and hint sample number
-	@trace: output
-*/
-GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 SampleNum, FILE * trace);
 
 
 
@@ -1371,6 +1385,9 @@ as the hint sample timestamp + ts_offset, some packets may need to be sent earli
 @sample_num (optional): indicates hint sample number the packet belongs to
 */
 GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pck_data, u32 *pck_size, Bool *disposable, Bool *repeated, u32 *trans_ts, u32 *sample_num);
+
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
+
 
 
 /*
@@ -1403,24 +1420,24 @@ typedef struct
 
 /*return the 3GP config for this tream description, NULL if not a 3GPP track*/
 GF_3GPConfig *gf_isom_3gp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex);
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 /*create the track config*/
 GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfig *config, char *URLname, char *URNname, u32 *outDescriptionIndex);
 /*update the track config - subtypes shall NOT differ*/
 GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfig *config, u32 DescriptionIndex);
-#endif	/*GPAC_READ_ONLY*/
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
 /*AVC/H264 extensions - GF_AVCConfig is defined in mpeg4_odf.h*/
 
 /*gets uncompressed AVC config - user is responsible for deleting it*/
 GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 /*creates new AVC config*/
 GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
 /*updates AVC config*/
 GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg);
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /*
@@ -1462,7 +1479,7 @@ GF_TextSample *gf_isom_new_text_sample();
 /*destroy text sample handle*/
 void gf_isom_delete_text_sample(GF_TextSample *tx_samp);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 /*Create a new TextSampleDescription in the file. 
 The URL and URN are used to describe external media, this will create a data reference for the media
@@ -1528,7 +1545,7 @@ GF_Err gf_isom_text_set_wrap(GF_TextSample * samp, u8 wrap_flags);
 text sample content is kept untouched*/
 GF_ISOSample *gf_isom_text_to_sample(GF_TextSample * tx_samp);
 
-#endif	//GPAC_READ_ONLY
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
 /*****************************************************
 		ISMACryp Samples
@@ -1599,7 +1616,7 @@ GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, const char **outSchemeURI, const char **outKMS_URI, Bool *outSelectiveEncryption, u32 *outIVLength, u32 *outKeyIndicationLength);
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 /*removes ISMACryp protection info (does not perform decryption :)*/
 GF_Err gf_isom_remove_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex);
 
@@ -1619,7 +1636,7 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 						   char *contentID, char *kms_URI, u32 encryption_type, u64 plainTextLength, char *textual_headers, u32 textual_headers_len,
 						   Bool selective_encryption, u32 KI_length, u32 IV_length);
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /*xml dumpers*/
 GF_Err gf_isom_dump_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, FILE * trace);
@@ -1686,7 +1703,7 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 /*retirves primary item ID, 0 if none found (primary can also be stored through meta XML)*/
 u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 /*sets meta type (four char int, eg "mp21", ... 
 	Creates a meta box if none found
@@ -1716,7 +1733,7 @@ GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num,
 /*sets the given item as the primary one. You SHALL NOT use this if the meta has a valid XML data*/
 GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num);
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /********************************************************************
@@ -1725,10 +1742,10 @@ GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track
 
 GF_Err gf_isom_get_timed_meta_data_info(GF_ISOFile *file, u32 track, u32 sampleDescription, Bool *is_xml, const char **mime_or_namespace, const char **content_encoding, const char **schema_loc);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 /*create a new timed metat data sample description for this track*/
 GF_Err gf_isom_timed_meta_data_config_new(GF_ISOFile *movie, u32 trackNumber, Bool is_xml, char *mime_or_namespace, char *content_encoding, char *schema_loc, char *URLname, char *URNname, u32 *outDescriptionIndex);
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /********************************************************************
@@ -1765,7 +1782,7 @@ and the data_len to the genre ID
 returns GF_URL_ERROR if no tag is present in the file
 */
 GF_Err gf_isom_apple_get_tag(GF_ISOFile *mov, u32 tag, const char **data, u32 *data_len);
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 /*set the given tag info. If data and data_len are 0, removes the given tag
 For 'genre', data may be NULL in which case the genre ID taken from the data_len parameter
 */
@@ -1773,7 +1790,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 
 /*sets compatibility tag on AVC tracks (needed by iPod to play files... hurray for standards)*/
 GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber);
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /*3GPP Alternate Group API - (c) 2007 ENST & ResonateMP4*/
@@ -1793,7 +1810,7 @@ criteriaListSize: number of criteria items in returned list
 */
 const u32 *gf_isom_get_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u32 group_index, u32 *switchGroupID, u32 *criteriaListSize);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 /*sets a new (switch) group for this track
 trackNumber: track
 trackRefGroup: number of a track belonging to the same alternate group. If 0, a new alternate group will be created for this track
@@ -1811,7 +1828,7 @@ GF_Err gf_isom_reset_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, 
 /*resets ALL track switch group information in the entire movie*/
 GF_Err gf_isom_reset_switch_parameters(GF_ISOFile *movie);
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 typedef struct
@@ -1828,10 +1845,10 @@ typedef struct
 } GF_DIMSDescription;
 
 GF_Err gf_isom_get_dims_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_DIMSDescription *desc);
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 *outDescriptionIndex);
 GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 DescriptionIndex);
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -1847,10 +1864,12 @@ typedef struct
 	u8 brcode;
 } GF_AC3Config;
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Config *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+#endif /*GPAC_DISABLE_ISOM*/
 
 #ifdef __cplusplus
 }

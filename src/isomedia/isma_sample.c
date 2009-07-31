@@ -24,6 +24,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 GF_ISMASample *gf_isom_ismacryp_new_sample()
 {
 	GF_ISMASample *tmp = (GF_ISMASample *) malloc(sizeof(GF_ISMASample));
@@ -305,7 +307,7 @@ GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gf_isom_remove_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex)
 {
@@ -489,4 +491,7 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 	return GF_OK;
 }
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+#endif /*GPAC_DISABLE_ISOM*/

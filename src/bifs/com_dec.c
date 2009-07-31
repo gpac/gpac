@@ -26,6 +26,9 @@
 #include <gpac/internal/bifs_dev.h>
 #include "quant.h" 
 
+#ifndef GPAC_DISABLE_BIFS
+
+
 GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field);
 GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node, GF_FieldInfo *field);
 
@@ -1369,3 +1372,4 @@ GF_Err gf_bifs_dec_command(GF_BifsDecoder * codec, GF_BitStream *bs)
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_BIFS*/

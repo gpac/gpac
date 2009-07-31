@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-CFLAGS+=-I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H -I../../
+CFLAGS+=-I$(SRC_PATH)/include
 # -I/usr/local/arm/3.3.2/include
 
 
@@ -58,7 +58,7 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_x11_out.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols  
+#LDFLAGS+=-export-symbols  
 endif
 
 ifeq ($(WANT_PIC),yes)

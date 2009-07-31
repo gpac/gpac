@@ -24,6 +24,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 GF_Err Media_GetSampleDesc(GF_MediaBox *mdia, u32 SampleDescIndex, GF_SampleEntryBox **out_entry, u32 *dataRefIndex)
 {
 	GF_SampleDescriptionBox *stsd;
@@ -520,7 +522,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 			stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp-1, &DTSprev);
 			trak->Media->mediaHeader->duration += (DTS - DTSprev);
 		} else {
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 			if (trak->moov->mov->editFileMap && trak->Media->information->sampleTable->CompositionOffset) {
 				u32 count, i;
 				u64 max_ts;
@@ -551,7 +553,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 					}
 				}
 			}
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 			trak->Media->mediaHeader->duration += ent->sampleDelta;
 		}
 #endif
@@ -562,7 +564,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 	
 GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname, u32 *dataRefIndex)
@@ -807,4 +809,6 @@ GF_Err Media_UpdateSampleReference(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSa
 }
 
 
-#endif	//GPAC_READ_ONLY
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
+
+#endif /*GPAC_DISABLE_ISOM*/

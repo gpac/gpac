@@ -601,8 +601,12 @@ char *gf_node_dump_attribute(GF_Node *elt, GF_FieldInfo *info);
 */
 enum
 {
+	GF_SG_RESERVED = 0,
+
+#ifndef GPAC_DISABLE_VRML
+
 	/*BIFS commands*/
-	GF_SG_SCENE_REPLACE = 0,
+	GF_SG_SCENE_REPLACE,
 	GF_SG_NODE_REPLACE,
 	GF_SG_FIELD_REPLACE, 
 	GF_SG_INDEXED_REPLACE,
@@ -626,6 +630,7 @@ enum
 	/*BIFS*/
 	GF_SG_XREPLACE, 
 
+#endif
 	GF_SG_LAST_BIFS_COMMAND,
 
 
@@ -752,10 +757,6 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *inScene, GF_Command *com, Double time_
 GF_Err gf_sg_command_apply_list(GF_SceneGraph *graph, GF_List *comList, Double time_offset);
 /*returns new commandFieldInfo structure and registers it with command*/
 GF_CommandField *gf_sg_command_field_new(GF_Command *com);
-/*clones the command in another graph - needed for uncompressed conditional in protos
-if force_clone is not set and the target graph is the same as the command graph, nodes are just registered
-with the new commands rather than cloned*/
-GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bool force_clone);
 
 #ifdef __cplusplus
 }

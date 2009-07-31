@@ -14,11 +14,11 @@
  * All modifications are placed under the license of libmcrypt.
  */
 
-/* $Id: des.c,v 1.1.1.1 2005-07-13 14:36:35 jeanlf Exp $ */
+/* $Id: des.c,v 1.2 2009-07-31 07:37:43 jeanlf Exp $ */
 
 #include <gpac/internal/crypt_dev.h>
 
-#ifndef GPAC_CRYPT_ISMA_ONLY
+#if !defined(GPAC_CRYPT_ISMA_ONLY) && !defined(GPAC_DISABLE_MCRYPT)
 
 typedef struct des_key {
 	char kn[16][8];
@@ -577,4 +577,4 @@ void gf_crypt_register_des(GF_Crypt *td)
 	td->algo_size = sizeof(DES_KEY);
 }
 
-#endif
+#endif /*!defined(GPAC_CRYPT_ISMA_ONLY) && !defined(GPAC_DISABLE_MCRYPT)*/

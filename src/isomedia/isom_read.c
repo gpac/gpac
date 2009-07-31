@@ -25,6 +25,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 //the only static var. Used to store any error happening while opening a movie
 static GF_Err MP4_API_IO_Err;
 
@@ -132,10 +134,10 @@ GF_Err gf_isom_open_progressive(const char *fileName, GF_ISOFile **the_file, u64
 		return e;
 	}
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	movie->editFileMap = NULL;
 	movie->finalName = NULL;
-#endif	//GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 	e = gf_isom_parse_movie_boxes(movie, BytesMissing);
 	if (e == GF_ISOM_INCOMPLETE_FILE) {
@@ -173,7 +175,7 @@ GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir
 		movie = gf_isom_open_file(fileName, OpenMode, NULL);
 		break;
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 	case GF_ISOM_OPEN_WRITE:
 		movie = gf_isom_create_movie(fileName, OpenMode, tmp_dir);
@@ -185,7 +187,7 @@ GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir
 		movie = gf_isom_create_movie(fileName, OpenMode, tmp_dir);
 		break;
 
-#endif	//GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 	default:
 		return NULL;
@@ -200,12 +202,12 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 	if (movie == NULL) return GF_ISOM_INVALID_FILE;
 	e = GF_OK;
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 	//write our movie to the file
 	if (movie->openMode != GF_ISOM_OPEN_READ) {
 		gf_isom_get_duration(movie);
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		//movie fragment mode, just store the fragment
 		if ( (movie->openMode == GF_ISOM_OPEN_WRITE) && (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) {
 			e = StoreFragment(movie);
@@ -214,7 +216,7 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 			e = WriteToFile(movie);
 	}
 
-#endif	//GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 	//free and return;
 	gf_isom_delete_movie(movie);
@@ -396,7 +398,7 @@ u32 gf_isom_get_timescale(GF_ISOFile *movie)
 GF_EXPORT
 u64 gf_isom_get_duration(GF_ISOFile *movie)
 {
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	u32 i;
 	u64 maxDur;
 	GF_TrackBox *trak;
@@ -407,7 +409,7 @@ u64 gf_isom_get_duration(GF_ISOFile *movie)
 	//if file was open in Write or Edit mode, recompute the duration
 	//the duration of a movie is the MaxDuration of all the tracks...
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 	if (movie->openMode != GF_ISOM_OPEN_READ) {
 		maxDur = 0;
@@ -420,7 +422,7 @@ u64 gf_isom_get_duration(GF_ISOFile *movie)
 		movie->moov->mvhd->duration = maxDur;
 	}
 
-#endif	//GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 	return movie->moov->mvhd->duration;
 }
@@ -494,7 +496,7 @@ u64 gf_isom_get_track_duration(GF_ISOFile *movie, u32 trackNumber)
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return 0;
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	/*in all modes except dump recompute duration in case headers are wrong*/
 	if (movie->openMode != GF_ISOM_OPEN_READ_DUMP) {
 		SetTrackDuration(trak);
@@ -658,7 +660,7 @@ u64 gf_isom_get_media_duration(GF_ISOFile *movie, u32 trackNumber)
 	if (!trak) return 0;
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 	/*except in dump mode always recompute the duration*/
 	if (movie->openMode != GF_ISOM_OPEN_READ_DUMP) {
@@ -1741,7 +1743,7 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 GF_EXPORT
 GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes)
 {
-#ifdef	GPAC_ISOM_NO_FRAGMENTS
+#ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	return GF_NOT_SUPPORTED;
 #else
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
@@ -1960,7 +1962,7 @@ GF_EXPORT
 const char *gf_isom_get_filename(GF_ISOFile *movie)
 {
 	if (!movie) return NULL;
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	if (movie->finalName && !movie->fileName) return movie->finalName;
 #endif
 	return movie->fileName;
@@ -2328,3 +2330,5 @@ u32 gf_isom_get_next_alternate_group_id(GF_ISOFile *movie)
 	return id+1;
 }
 
+
+#endif /*GPAC_DISABLE_ISOM*/

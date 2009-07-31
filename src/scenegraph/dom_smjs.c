@@ -42,17 +42,7 @@
 
 #include <jsapi.h>
 
-JSBool js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp)
-{
-	*vp = JS_FALSE;
-	if (JSVAL_IS_OBJECT(val)) {
-		JSObject *p;
-		JSClass *js_class = JS_GET_CLASS(c, obj);
-		p = JSVAL_TO_OBJECT(val);
-		if (JS_InstanceOf(c, p, js_class, NULL) ) *vp = JS_TRUE;
-	}
-	return JS_TRUE;
-}
+JSBool my_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp);
 
 static GFINLINE Bool ScriptAction(GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
 {
@@ -625,8 +615,10 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 
 	if (on_node) {
 		handler->js_context = c;
+#ifndef GPAC_DISABLE_VRML
 		if (on_node->sgprivate->tag <= GF_NODE_RANGE_LAST_VRML)
 			handler->handle_event = gf_sg_handle_dom_event_for_vrml;
+#endif
 	}
 
 	/*don't add listener directly, post it and wait for event processing*/
@@ -2370,7 +2362,9 @@ static JSBool xml_http_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 
 	/*concatenate URL*/
 	scene = xml_get_scenegraph(c);
+#ifndef GPAC_DISABLE_VRML
 	while (scene->pOwningProto && scene->parent_scene) scene = scene->parent_scene;
+#endif
 
 	par.uri.nb_params = 0;
 	par.uri.url = JSVAL_GET_STRING(argv[1]);

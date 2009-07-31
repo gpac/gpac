@@ -21,7 +21,7 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_ismacryp.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols ismacryp.def 
+#LDFLAGS+=-export-symbols ismacryp.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

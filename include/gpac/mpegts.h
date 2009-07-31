@@ -27,6 +27,9 @@
 #define _GF_MPEG_TS_H_
 
 #include <gpac/list.h>
+
+#ifndef GPAC_DISABLE_MPEG2TS
+
 #include <gpac/internal/odf_dev.h>
 #include <gpac/network.h>
 #include <time.h>
@@ -703,5 +706,7 @@ typedef struct
 
 
 void gf_m2ts_print_info(GF_M2TS_Demuxer *ts);
+
+#endif /*GPAC_DISABLE_MPEG2TS*/
 
 #endif	//_GF_MPEG_TS_H_

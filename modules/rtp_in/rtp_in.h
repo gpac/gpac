@@ -25,11 +25,13 @@
 #ifndef RTP_IN_H
 #define RTP_IN_H
 
+/*module interface*/
+#include <gpac/modules/service.h>
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/thread.h>
 #include <gpac/constants.h>
 #include <gpac/base_coding.h>
-/*module interface*/
-#include <gpac/modules/service.h>
 /*IETF lib*/
 #include <gpac/ietf.h>
 
@@ -332,6 +334,9 @@ typedef struct _sdp_fetch
 
 
 void RP_SaveSessionState(RTPClient *rtp);
+
+
+#endif /*GPAC_DISABLE_STREAMING*/
 
 #endif
 

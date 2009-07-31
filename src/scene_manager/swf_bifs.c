@@ -27,7 +27,10 @@
 #include <gpac/internal/swf_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
 
-#ifndef GPAC_READ_ONLY
+
+#ifndef GPAC_DISABLE_VRML
+
+#ifndef GPAC_DISABLE_SWF_IMPORT
 
 #define SWF_TEXT_SCALE				(1/1024.0f)
 
@@ -2248,5 +2251,12 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	return GF_OK;
 }
 
-#endif
+#endif /*GPAC_DISABLE_SWF_IMPORT*/
 
+#else
+GF_Err swf_to_bifs_init(SWFReader *read)
+{
+	return GF_NOT_SUPPORTED;
+}
+
+#endif /*GPAC_DISABLE_VRML*/

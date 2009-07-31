@@ -29,7 +29,7 @@
 
 #include <zlib.h>
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_SWF_IMPORT
 
 
 /*display list item (one per layer only)*/
@@ -1954,6 +1954,9 @@ static GF_Err swf_soundstream_hdr(SWFReader *read)
 
 static GF_Err swf_soundstream_block(SWFReader *read)
 {
+#ifdef GPAC_DISABLE_AV_PARSERS
+	return swf_func_skip(read);
+#else
 	unsigned char bytes[4];
 	u32 hdr, alloc_size, size, tot_size, samplesPerFrame, delay;
 	char *frame;
@@ -2007,6 +2010,7 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 	}
 	free(frame);
 	return GF_OK;
+#endif
 }
 
 static GF_Err swf_def_hdr_jpeg(SWFReader *read)
@@ -2481,6 +2485,7 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 	}
 
 	e = swf_to_bifs_init(read);
+	if (e) goto exit;
 
 	/*parse all tags*/
 	while (e == GF_OK) {
@@ -2494,5 +2499,5 @@ exit:
 	return e;
 }
 
-#endif
+#endif /*GPAC_DISABLE_SWF_IMPORT*/
 

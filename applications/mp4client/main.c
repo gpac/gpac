@@ -35,9 +35,19 @@
 #ifndef WIN32
 #include <pwd.h>
 #include <unistd.h>
+
 #else
 /*for GetModuleFileName*/
 #include <windows.h>
+
+/*get rid of console*/
+/*
+#ifdef _MSC_VER 
+#pragma comment(linker,"/SUBSYSTEM:CONSOLE") // or "/subsystem:windows"
+#pragma comment(linker,"/ENTRY:main")
+#endif // _MSC_VER
+*/
+
 #endif
 
 /*local prototypes*/
@@ -81,10 +91,8 @@ u32 init_h = 0;
 u32 last_x, last_y;
 Bool right_down = 0;
 
-#ifndef GPAC_READ_ONLY
 void dump_frame(GF_Terminal *term, char *rad_path, u32 dump_type, u32 frameNum);
 Bool dump_file(char *the_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times);
-#endif
 
 void PrintUsage()
 {
@@ -1153,7 +1161,7 @@ int main (int argc, char **argv)
 
 	Run = 1;
 	ret = 1;
-#ifndef GPAC_READ_ONLY
+
 	if (dump_mode) {
 		if (!nb_times) {
 			times[0] = 0;
@@ -1162,7 +1170,6 @@ int main (int argc, char **argv)
 		ret = dump_file(url_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
 		Run = 0;
 	} else
-#endif
 
 	/*connect if requested*/
 	if (url_arg) {

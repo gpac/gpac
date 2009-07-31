@@ -27,7 +27,7 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_soft_raster.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols rast_soft.def 
+#LDFLAGS+=-export-symbols rast_soft.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

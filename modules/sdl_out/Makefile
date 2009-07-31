@@ -32,7 +32,7 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_sdl_out.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols sdl_out.def 
+#LDFLAGS+=-export-symbols sdl_out.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

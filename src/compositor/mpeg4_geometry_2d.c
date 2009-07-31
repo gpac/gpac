@@ -47,6 +47,8 @@ Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res)
 	return 1;
 }
 
+#ifndef GPAC_DISABLE_VRML
+
 /*
 		Shape
 */
@@ -129,7 +131,7 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 			gf_node_traverse((GF_Node *) shape->geometry, tr_state);
 			break;
 		case TRAVERSE_COLLIDE:
-			visual_3d_drawable_collide(shape->geometry, tr_state);
+			visual_3d_vrml_drawable_collide(shape->geometry, tr_state);
 			break;
 #endif
 		}
@@ -181,7 +183,7 @@ static void TraverseCircle(GF_Node *node, void *rs, Bool is_destroy)
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
-		drawable_pick(stack, tr_state);
+		vrml_drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_SORT:
 #ifndef GPAC_DISABLE_3D
@@ -233,7 +235,7 @@ static void TraverseEllipse(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_PICK:
-		drawable_pick(stack, tr_state);
+		vrml_drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
@@ -332,7 +334,7 @@ static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_PICK:
-		drawable_pick(stack, tr_state);
+		vrml_drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
@@ -526,7 +528,7 @@ static void TraverseCurve2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_PICK:
-		drawable_pick(stack, tr_state);
+		vrml_drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
@@ -681,3 +683,5 @@ void compositor_init_pointset2d(GF_Compositor  *compositor, GF_Node *node)
 	stack->flags = DRAWABLE_USE_TRAVERSE_DRAW;
 	gf_node_set_callback_function(node, TraversePointSet2D);
 }
+
+#endif /*GPAC_DISABLE_VRML*/

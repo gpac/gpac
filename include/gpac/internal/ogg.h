@@ -23,14 +23,16 @@
 #ifndef _GF_OGG_H_
 #define _GF_OGG_H_
 
+#include <gpac/tools.h>
+
+#ifndef GPAC_DISABLE_OGG
+
 /*DON'T CLASH WITH OFFICIAL OGG IF ALREADY INCLUDED*/
 #ifndef _OGG_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include <gpac/tools.h>
 
 typedef struct {
   s32 endbyte;
@@ -204,6 +206,8 @@ void ogg_packet_clear(ogg_packet *op);
 
 
 #endif	/*_OGG_H*/
+
+#endif /*GPAC_DISABLE_OGG*/
 
 #endif	/*_GF_OGG_H_*/
 

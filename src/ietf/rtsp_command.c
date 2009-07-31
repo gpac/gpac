@@ -24,6 +24,9 @@
 
 
 #include <gpac/internal/ietf_dev.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/token.h>
 
 GF_EXPORT
@@ -564,16 +567,4 @@ exit:
 	return e;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+#endif /*GPAC_DISABLE_STREAMING*/

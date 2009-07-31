@@ -24,6 +24,8 @@
  */
 #include "mpeg2_ps.h"
 
+#ifndef GPAC_DISABLE_MPEG2PS
+
 
 static GFINLINE u16 convert16 (u8 *p)
 {
@@ -70,42 +72,6 @@ typedef struct mpeg2ps_record_pes_t
   u64 location;
 } mpeg2ps_record_pes_t;
 
-s32 MPEG12_FindNextStartCode(unsigned char *pbuffer, u32 buflen, u32 *optr, u32 *scode)
-{
-  u32 value;
-  u32 offset;
-
-  if (buflen < 4) return -1;
-  for (offset = 0; offset < buflen - 3; offset++, pbuffer++) {
-#ifdef GPAC_BIG_ENDIAN
-    value = *(u32 *)pbuffer >> 8;
-#else
-    value = (pbuffer[0] << 16) | (pbuffer[1] << 8) | (pbuffer[2] << 0); 
-#endif
-
-    if (value == MPEG12_START_CODE_PREFIX) {
-      *optr = offset;
-      *scode = (value << 8) | pbuffer[3];
-      return 0;
-    }
-  }
-  return -1;
-}
-
-s32 MPEG12_FindNextSliceStart(unsigned char *pbuffer, u32 startoffset, u32 buflen, u32 *slice_offset)
-{
-	u32 slicestart, code;
-	while (MPEG12_FindNextStartCode(pbuffer + startoffset, buflen - startoffset, &slicestart, &code) >= 0) {
-		if ((code >= MPEG12_SLICE_MIN_START) && (code <= MPEG12_SLICE_MAX_START)) {
-			*slice_offset = slicestart + startoffset;
-			return 0;
-		}
-		startoffset += slicestart + 4;
-	}
-	return -1;
-}
-
-#ifndef GPAC_READ_ONLY
 /*
  * information about reading a stream
  */
@@ -475,7 +441,7 @@ static Bool find_pack_start (FILE *fd,
     return 0;
   }
   while (1) {
-    if (MPEG12_FindNextStartCode(buffer + buffer_on,
+    if (gf_mv12_next_start_code(buffer + buffer_on,
 				 sizeof(buffer) - buffer_on, 
 				 &new_offset, 
 				 &scode) >= 0) {
@@ -806,7 +772,7 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
       return 0;
     }
   }
-  while (MPEG12_FindNextStartCode(sptr->pes_buffer + sptr->pes_buffer_on, 
+  while (gf_mv12_next_start_code(sptr->pes_buffer + sptr->pes_buffer_on, 
 				  sptr->pes_buffer_size - sptr->pes_buffer_on,
 				  &offset,
 				  &scode) < 0 ||
@@ -843,7 +809,7 @@ mpeg2ps_stream_find_mpeg_video_frame (mpeg2ps_stream_t *sptr)
   start = 4 + sptr->pes_buffer_on;
   while (1) {
     
-    if (MPEG12_FindNextStartCode(sptr->pes_buffer + start, 
+    if (gf_mv12_next_start_code(sptr->pes_buffer + start, 
 				 sptr->pes_buffer_size - start,
 				 &offset,
 				 &scode) < 0) {
@@ -1804,5 +1770,4 @@ s64 mpeg2ps_get_audio_pos(mpeg2ps_t *ps, u32 streamno)
   return gf_f64_tell(ps->audio_streams[streamno]->m_fd);
 }
 
-#endif
-
+#endif /*GPAC_DISABLE_MPEG2PS*/

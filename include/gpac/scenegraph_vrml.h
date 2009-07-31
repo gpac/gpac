@@ -306,18 +306,7 @@ enum
 
 	GF_SG_VRML_UNKNOWN
 };
-const char *gf_sg_vrml_get_field_type_by_name(u32 FieldType);
 
-
-/*
-allocates a new field and gets it back. 
-	NOTE:
-			GF_SG_VRML_MFNODE will return a pointer to a GF_List structure (eg GF_List *)
-			GF_SG_VRML_SFNODE will return NULL
-*/
-void *gf_sg_vrml_field_pointer_new(u32 FieldType);
-/*deletes a field pointer (including SF an,d MF nodes)*/
-void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType);
 
 Bool gf_sg_vrml_is_sf_field(u32 FieldType);
 
@@ -325,45 +314,43 @@ Bool gf_sg_vrml_is_sf_field(u32 FieldType);
 u32 gf_sg_vrml_get_sf_type(u32 FieldType);
 
 
-/*
-	MFField manipulation  - MFNode cannot use these, use the GF_List functions instead
-	or the Node_* insertion functions
-	FieldType shall always be given when manipulating MFFields
-*/
 /*Insert (+alloc) a slot in the MFField with a specified position for insertion and sets the ptr
 to the newly created slot
 @InsertAt is the 0-based index for the new slot
 */
 GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertAt);
-/*adds at the end and gets the ptr*/
-GF_Err gf_sg_vrml_mf_append(void *mf, u32 FieldType, void **new_ptr);
-/*remove the desired item*/
-GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom);
-/*alloc a fixed array*/
-GF_Err gf_sg_vrml_mf_alloc(void *mf, u32 FieldType, u32 NbItems);
-/*get the item in the array*/
-GF_Err gf_sg_vrml_mf_get_item(void *mf, u32 FieldType, void **new_ptr, u32 ItemPos);
 /*remove all items of the MFField*/
 GF_Err gf_sg_vrml_mf_reset(void *mf, u32 FieldType);
 
-/*copies a field content EXCEPT SF/MFNode. Pointers to field shall be used
-@dest, @orig: pointers to field
-@FieldType: type of the field
-*/
-void gf_sg_vrml_field_copy(void *dest, void *orig, u32 FieldType);
+/*exported for URL handling in compositor*/
+void gf_sg_mfurl_del(MFURL url);
+void gf_sg_vrml_copy_mfurl(MFURL *dst, MFURL *src);
+/*exported for 3D camera in compositor*/
+SFRotation gf_sg_sfrotation_interpolate(SFRotation kv1, SFRotation kv2, Fixed fraction);
 
-/*clones a field content EXCEPT SF/MFNode. Pointers to field shall be used
-@dest, @orig: pointers to field
-@FieldType: type of the field
-@inScene: target scene graph for SFCommandBuffers cloning
+/*adds a new node to the "children" field
+position is the 0-BASED index in the list of children, -1 means end of list (append)
+DOES NOT CHECK CHILD/PARENT type compatibility
 */
-void gf_sg_vrml_field_clone(void *dest, void *orig, u32 FieldType, GF_SceneGraph *inScene);
+GF_Err gf_node_insert_child(GF_Node *parent, GF_Node *new_child, s32 Position);
+/*removes an existing node from the "children" field*/
+GF_Err gf_node_remove_child(GF_Node *parent, GF_Node *toremove_child);
+/*remove and replace given child by specified node. If node is NULL, only delete target node
+position is the 0-BASED index in the list of children, -1 means end of list (append)
+DOES NOT CHECK CHILD/PARENT type compatibility
+*/
+GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 pos, GF_Node *newNode);
 
-/*indicates whether 2 fields of same type EXCEPT SF/MFNode are equal
-@dest, @orig: pointers to field
-@FieldType: type of the field
+/*set proto loader - callback is the same as simulation time callback
+	GetExternProtoLib is a pointer to the proto lib loader - this callback shall return the LPSCENEGRAPH
+of the extern proto lib if found and loaded, NULL if not found and GF_SG_INTERNAL_PROTO for internal
+hardcoded protos (extensions of MPEG-4 scene graph used for module deveopment)
 */
-Bool gf_sg_vrml_field_equal(void *dest, void *orig, u32 FieldType);
+#define GF_SG_INTERNAL_PROTO	(GF_SceneGraph *) 0xFFFFFFFF
+
+
+#ifndef GPAC_DISABLE_VRML
+
 
 
 
@@ -400,12 +387,51 @@ void gf_sg_vrml_parent_setup(GF_Node *pNode);
 void gf_sg_vrml_parent_destroy(GF_Node *pNode);
 
 
-/*set proto loader - callback is the same as simulation time callback
-	GetExternProtoLib is a pointer to the proto lib loader - this callback shall return the LPSCENEGRAPH
-of the extern proto lib if found and loaded, NULL if not found and GF_SG_INTERNAL_PROTO for internal
-hardcoded protos (extensions of MPEG-4 scene graph used for module deveopment)
+Bool gf_node_in_table_by_tag(u32 tag, u32 NDTType);
+
+
+const char *gf_sg_vrml_get_field_type_by_name(u32 FieldType);
+
+
+/*
+allocates a new field and gets it back. 
+	NOTE:
+			GF_SG_VRML_MFNODE will return a pointer to a GF_List structure (eg GF_List *)
+			GF_SG_VRML_SFNODE will return NULL
 */
-#define GF_SG_INTERNAL_PROTO	(GF_SceneGraph *) 0xFFFFFFFF
+void *gf_sg_vrml_field_pointer_new(u32 FieldType);
+/*deletes a field pointer (including SF an,d MF nodes)*/
+void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType);
+
+
+/*adds at the end and gets the ptr*/
+GF_Err gf_sg_vrml_mf_append(void *mf, u32 FieldType, void **new_ptr);
+/*remove the desired item*/
+GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom);
+/*alloc a fixed array*/
+GF_Err gf_sg_vrml_mf_alloc(void *mf, u32 FieldType, u32 NbItems);
+/*get the item in the array*/
+GF_Err gf_sg_vrml_mf_get_item(void *mf, u32 FieldType, void **new_ptr, u32 ItemPos);
+
+/*copies a field content EXCEPT SF/MFNode. Pointers to field shall be used
+@dest, @orig: pointers to field
+@FieldType: type of the field
+*/
+void gf_sg_vrml_field_copy(void *dest, void *orig, u32 FieldType);
+
+/*clones a field content EXCEPT SF/MFNode. Pointers to field shall be used
+@dest, @orig: pointers to field
+@FieldType: type of the field
+@inScene: target scene graph for SFCommandBuffers cloning
+*/
+void gf_sg_vrml_field_clone(void *dest, void *orig, u32 FieldType, GF_SceneGraph *inScene);
+
+/*indicates whether 2 fields of same type EXCEPT SF/MFNode are equal
+@dest, @orig: pointers to field
+@FieldType: type of the field
+*/
+Bool gf_sg_vrml_field_equal(void *dest, void *orig, u32 FieldType);
+
 
 /*GF_Route manip: routes are used to pass events between nodes. Event handling is managed by the scene graph
 however only the nodes overloading the EventIn handler associated with the event will process the eventIn*/
@@ -596,24 +622,6 @@ void gf_sg_set_proto_loader(GF_SceneGraph *scene, GF_SceneGraph *(*GetExternProt
 /*get a pointer to the MF URL field for externProto info - DO NOT TOUCH THIS FIELD*/
 MFURL *gf_sg_proto_get_extern_url(GF_Proto *proto);
 
-SFRotation gf_sg_sfrotation_interpolate(SFRotation kv1, SFRotation kv2, Fixed fraction);
-
-
-
-
-/*adds a new node to the "children" field
-position is the 0-BASED index in the list of children, -1 means end of list (append)
-DOES NOT CHECK CHILD/PARENT type compatibility
-*/
-GF_Err gf_node_insert_child(GF_Node *parent, GF_Node *new_child, s32 Position);
-/*removes an existing node from the "children" field*/
-GF_Err gf_node_remove_child(GF_Node *parent, GF_Node *toremove_child);
-/*remove and replace given child by specified node. If node is NULL, only delete target node
-position is the 0-BASED index in the list of children, -1 means end of list (append)
-DOES NOT CHECK CHILD/PARENT type compatibility
-*/
-GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 pos, GF_Node *newNode);
-
 /*signals eventOut has been set. FieldIndex/eventName identify the eventOut field. Routes are automatically triggered
 when the event is signaled*/
 void gf_node_event_out(GF_Node *node, u32 FieldIndex);
@@ -624,8 +632,9 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName);
 u32 gf_node_mpeg4_type_by_class_name(const char *node_name);
 u32 gf_node_x3d_type_by_class_name(const char *node_name);
 
-/*exported for URL handling in compositor*/
-void gf_sg_mfurl_del(MFURL url);
+
+#endif /*GPAC_DISABLE_VRML*/
+
 
 /*returns 1 if proto is a hardcoded proto acting as a grouping node*/
 Bool gf_node_proto_is_grouping(GF_Node *node);

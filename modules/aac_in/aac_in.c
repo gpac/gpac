@@ -27,6 +27,8 @@
 #include <gpac/avparse.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 typedef struct
 {
 	GF_ClientService *service;
@@ -720,10 +722,15 @@ void AAC_Delete(void *ifce)
 	free(plug);
 }
 
+#endif
+
+
 GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
+#endif
 #ifdef GPAC_HAS_FAAD
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
 #endif
@@ -738,7 +745,9 @@ void DeleteFAADDec(GF_BaseDecoder *ifcg);
 GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)AAC_Load();
+#endif
 #ifdef GPAC_HAS_FAAD
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewFAADDec();
 #endif
@@ -754,8 +763,10 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		DeleteFAADDec((GF_BaseDecoder *)ifce);
 		break;
 #endif
+#ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_NET_CLIENT_INTERFACE:
 		AAC_Delete(ifce);
 		break;
+#endif
 	}
 }

@@ -27,6 +27,8 @@
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
+#ifndef GPAC_DISABLE_VRML
+
 
 GF_EXPORT
 GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, GF_Node *toNode, u32 toField)
@@ -394,3 +396,4 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName)
 	}
 }
 
+#endif	/*GPAC_DISABLE_VRML*/

@@ -26,6 +26,8 @@
 
 #include "nodes_stacks.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 #ifndef GPAC_DISABLE_3D
 
 #include "visual_manager.h"
@@ -133,3 +135,5 @@ void compositor_init_directional_light(GF_Compositor *compositor, GF_Node *node)
 }
 
 #endif /*GPAC_DISABLE_3D*/
+
+#endif /*GPAC_DISABLE_VRML*/

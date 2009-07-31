@@ -106,7 +106,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 					1- first remove from parent scene without destroying object, this will trigger a re-setup
 					if other URLs are present
 					2- then destroy object*/
-					gf_inline_remove_object(root->parentscene, root, 0);
+					gf_scene_remove_object(root->parentscene, root, 0);
 					gf_odm_disconnect(root, 1);
 				}
 				return;
@@ -136,7 +136,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 				GF_ObjectManager *odm = (GF_ObjectManager*)gf_list_get(ODs, 0);
 				gf_list_rem(ODs, 0);
 				/*force re-setup*/
-				gf_inline_setup_object(odm->parentscene, odm);
+				gf_scene_setup_object(odm->parentscene, odm);
 			}
 			gf_list_del(ODs);
 		} else {
@@ -248,17 +248,17 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 {
 	u32 i;
 	GF_MediaObject *the_mo;
-	GF_InlineScene *is;
+	GF_Scene *scene;
 	GF_ObjectManager *odm, *root;
 	GF_ObjectDescriptor *od;
 	GET_TERM();
 
 	root = service->owner;
-	is = root->subscene ? root->subscene : root->parentscene;
+	scene = root->subscene ? root->subscene : root->parentscene;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Service %s] %s\n", service->url, media_desc ? "Adding new media object" : "Regenerating scene graph"));
 	if (!media_desc) {
-		if (!no_scene_check) gf_inline_regenerate(is);
+		if (!no_scene_check) gf_scene_regenerate(scene);
 		return;
 	}
 
@@ -281,10 +281,10 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	/*check if we have a mediaObject in the scene not attached and matching this object*/
 	the_mo = NULL;
 	odm = NULL;
-	for (i=0; i<gf_list_count(is->media_objects); i++) {
+	for (i=0; i<gf_list_count(scene->scene_objects); i++) {
 		char *frag, *ext;
 		GF_ESD *esd;
-		GF_MediaObject *mo = gf_list_get(is->media_objects, i);
+		GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
 		if (!mo->odm) continue;
 		/*already assigned object - this may happen since the compositor has no control on when objects are declared by the service, 
 		therefore opening file#video and file#audio may result in the objects being declared twice if the service doesn't
@@ -349,8 +349,8 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	if (!odm) {
 		odm = gf_odm_new();
 		odm->term = term;
-		odm->parentscene = is;
-		gf_list_add(is->ODlist, odm);
+		odm->parentscene = scene;
+		gf_list_add(scene->resources, odm);
 	}
 	odm->OD = od;
 	odm->mo = the_mo;
@@ -361,7 +361,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	gf_odm_setup_object(odm, service);
 
 	/*OD inserted by service: resetup scene*/
-	if (!no_scene_check && is->is_dynamic_scene) gf_inline_regenerate(is);
+	if (!no_scene_check && scene->is_dynamic_scene) gf_scene_regenerate(scene);
 }
 
 static void term_on_command(void *user_priv, GF_ClientService *service, GF_NetworkCommand *com, GF_Err response)
@@ -383,9 +383,9 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		/*browse all channels in the scene, running on this service, and get buffer info*/
 		od_list = NULL;
 		if (service->owner->parentscene) {
-			od_list = service->owner->parentscene->ODlist;
+			od_list = service->owner->parentscene->resources;
 		} else if (service->owner->subscene) {
-			od_list = service->owner->subscene->ODlist;
+			od_list = service->owner->subscene->resources;
 		}
 		if (!od_list) {
 			com->buffer.occupancy = 0;

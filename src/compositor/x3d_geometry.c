@@ -27,6 +27,8 @@
 #include "visual_manager.h"
 #include "drawable.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 static void disk2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
 {
 	if (gf_node_dirty_get(node)) {
@@ -68,7 +70,7 @@ static void TraverseDisk2D(GF_Node *node, void *rs, Bool is_destroy)
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
-		drawable_pick(stack, tr_state);
+		vrml_drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_SORT:
 #ifndef GPAC_DISABLE_3D
@@ -136,7 +138,7 @@ static void TraverseArc2D(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 		return;
 	case TRAVERSE_PICK:
-		drawable_pick(stack, tr_state);
+		vrml_drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_SORT:
 #ifndef GPAC_DISABLE_3D
@@ -199,7 +201,7 @@ static void TraversePolyline2D(GF_Node *node, void *rs, Bool is_destroy)
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
-		drawable_pick(stack, tr_state);
+		vrml_drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_SORT:
 #ifndef GPAC_DISABLE_3D
@@ -299,7 +301,7 @@ static void TraverseTriangleSet2D(GF_Node *node, void *rs, Bool is_destroy)
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
 		return;
 	case TRAVERSE_PICK:
-		drawable_pick(stack, tr_state);
+		vrml_drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_SORT:
 #ifndef GPAC_DISABLE_3D
@@ -1011,3 +1013,5 @@ void compositor_init_indexed_triangle_fan_set(GF_Compositor *compositor, GF_Node
 }
 
 #endif /*GPAC_DISABLE_3D*/
+
+#endif /*GPAC_DISABLE_VRML*/

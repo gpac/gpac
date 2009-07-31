@@ -49,8 +49,10 @@ typedef struct
 
 static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
 	GF_M4ADecSpecInfo a_cfg;
+#endif
 	FAADCTX();
 	
 	if (ctx->ES_ID && ctx->ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
@@ -65,10 +67,14 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		return GF_IO_ERR;
 	}
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 	e = gf_m4a_get_config((unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 	if (e) return e;
+#endif
+
 	if ( (s8) faacDecInit2(ctx->codec, (unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (u32 *) &ctx->sample_rate, (u8 *) &ctx->num_channels) < 0) 
 	{
+#ifndef GPAC_DISABLE_AV_PARSERS
 		s8 res;
 		char *dsi;
 		u32 dsi_len;
@@ -90,13 +96,17 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		gf_m4a_write_config(&a_cfg, &dsi, &dsi_len);
 		res = faacDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (u32 *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
 		free(dsi);
-		if (res < 0) {
+		if (res < 0) 
+#endif
+		{
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing stream %d\n", esd->ESID));
 			return GF_NOT_SUPPORTED;
 		}
 	}
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 	ctx->is_sbr = a_cfg.has_sbr;
+#endif
 	ctx->num_samples = 1024;
 	ctx->out_size = 2 * ctx->num_samples * ctx->num_channels;
 	ctx->ES_ID = esd->ESID;
@@ -306,7 +316,9 @@ static const char *FAAD_GetCodecName(GF_BaseDecoder *ifcg)
 
 static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4ADecSpecInfo a_cfg;
+#endif
 	/*audio decs*/	
 	if (StreamType != GF_STREAM_AUDIO) return 0;
 
@@ -325,9 +337,11 @@ static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 Object
 		return 0;
 	}
 	if (!decSpecInfoSize || !decSpecInfo) return 0;
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (gf_m4a_get_config((unsigned char *) decSpecInfo, decSpecInfoSize, &a_cfg) != GF_OK) return 0;
 	/*BSAC not supported*/
 	if (a_cfg.base_object_type == GF_M4A_ER_BSAC) return 0;
+#endif
 	return 1;
 
 }

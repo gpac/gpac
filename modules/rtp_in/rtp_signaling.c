@@ -24,6 +24,8 @@
 
 #include "rtp_in.h"
 
+#ifndef GPAC_DISABLE_STREAMING
+
 
 Bool channel_is_valid(RTPClient *rtp, RTPStream *ch)
 {
@@ -821,3 +823,4 @@ void RP_Teardown(RTSPSession *sess, RTPStream *ch)
 	RP_QueueCommand(sess, ch, com, 1);
 }
 
+#endif /*GPAC_DISABLE_STREAMING*/

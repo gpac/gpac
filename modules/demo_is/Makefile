@@ -21,7 +21,7 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_demo_is.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols demo_is.def 
+#LDFLAGS+=-export-symbols demo_is.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

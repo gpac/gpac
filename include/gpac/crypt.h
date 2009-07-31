@@ -56,6 +56,9 @@ extern "C" {
 
 #include <gpac/tools.h>
 
+#ifndef GPAC_DISABLE_MCRYPT
+
+
 /*max number of possible key sizes for all supported modes*/
 #define MAX_KEY_SIZES	4
 
@@ -150,6 +153,7 @@ u32 gf_crypt_str_module_get_algo_block_size(const char *algorithm);
 u32 gf_crypt_str_module_get_algo_key_size(const char *algorithm);
 u32 gf_crypt_str_get_algo_supported_key_sizes(const char *algorithm, int *keys);
 
+#endif /*GPAC_DISABLE_MCRYPT*/
 
 
 /*SHA1 from Christophe Devine*/
@@ -181,6 +185,7 @@ void gf_sha1_csum(u8 *buf, u32 buflen, u8 digest[20]);
  * Output HMAC-SHA-1(key,buf)
  */
 void gf_sha1_hmac(u8 *key, u32 keylen, u8 *buf, u32 buflen, u8 digest[20]);
+
 
 #ifdef __cplusplus
 }

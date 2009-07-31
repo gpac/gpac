@@ -148,6 +148,7 @@ static void visual_2d_set_options(GF_Compositor *compositor, GF_SURFACE rend, Bo
 }
 
 
+#ifndef GPAC_DISABLE_VRML
 static void visual_2d_get_texture_transform(GF_Node *__appear, GF_TextureHandler *txh, GF_Matrix2D *mat, Bool line_texture, Fixed final_width, Fixed final_height)
 {
 	u32 node_tag;
@@ -197,13 +198,13 @@ static void visual_2d_get_texture_transform(GF_Node *__appear, GF_TextureHandler
 		return;
 	}
 }
-
+#endif /*GPAC_DISABLE_VRML*/
 
 static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_TraverseState *tr_state, GF_Matrix2D *ext_mx, GF_Rect *orig_bounds)
 {
 	GF_Rect rc;
 	GF_STENCIL stencil;
-	GF_Matrix2D g_mat, txt_mat;
+	GF_Matrix2D g_mat;
 	GF_Raster2D *raster = visual->compositor->rasterizer;
 
 	if (!txh) txh = ctx->aspect.fill_texture;
@@ -219,10 +220,14 @@ static void visual_2d_draw_gradient(GF_VisualManager *visual, GF_Path *path, GF_
 	stencil = gf_sc_texture_get_stencil(txh);
 	if (!stencil) return;
 
+#ifndef GPAC_DISABLE_VRML
 	if (ctx->flags & CTX_HAS_APPEARANCE) {
+		GF_Matrix2D txt_mat;
 		visual_2d_get_texture_transform(ctx->appear, txh, &txt_mat, (txh == ctx->aspect.fill_texture) ? 0 : 1, INT2FIX(txh->width), INT2FIX(txh->height));
 		gf_mx2d_add_matrix(&g_mat, &txt_mat);
 	}
+#endif
+
 	/*move to bottom-left corner of bounds */
 	if (ext_mx) gf_mx2d_add_matrix(&g_mat, ext_mx);
 	if (orig_bounds) gf_mx2d_add_translation(&g_mat, (orig_bounds->x), (orig_bounds->y - orig_bounds->height));
@@ -319,7 +324,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	Fixed sS, sT;
 	u32 tx_tile;
 	GF_STENCIL tx_raster;
-	GF_Matrix2D mx_texture, tex_trans;
+	GF_Matrix2D mx_texture;
 	GF_Rect rc, orig_rc;
 	GF_Raster2D *raster = visual->compositor->rasterizer;
 
@@ -363,11 +368,14 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	gf_mx2d_init(mx_texture);
 	gf_mx2d_add_scale(&mx_texture, sS, sT);
 
+#ifndef GPAC_DISABLE_VRML
 	/*apply texture transform*/
 	if (ctx->flags & CTX_HAS_APPEARANCE) {
+		GF_Matrix2D tex_trans;
 		visual_2d_get_texture_transform(ctx->appear, txh, &tex_trans, (txh == ctx->aspect.fill_texture) ? 0 : 1, txh->width * sS, txh->height * sT);
 		gf_mx2d_add_matrix(&mx_texture, &tex_trans);
 	}
+#endif
 
 	/*move to bottom-left corner of bounds */
 	gf_mx2d_add_translation(&mx_texture, (orig_rc.x), (orig_rc.y - orig_rc.height));

@@ -25,7 +25,7 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef GPAC_READ_ONLY
+#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)
 
 #define GPAC_ISOM_CPRT_NOTICE "IsoMedia File Produced with GPAC "GPAC_FULL_VERSION
 
@@ -1281,5 +1281,4 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 
 
 
-#endif	//GPAC_READ_ONLY
-
+#endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/

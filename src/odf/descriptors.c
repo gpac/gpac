@@ -25,6 +25,47 @@
 #include <gpac/internal/odf_dev.h>
 #include <gpac/constants.h>
 
+
+
+GF_EXPORT
+const char *gf_odf_stream_type_name(u32 streamType)
+{
+	switch (streamType) {
+	case GF_STREAM_OD: return "ObjectDescriptor";
+	case GF_STREAM_OCR: return "ClockReference";
+	case GF_STREAM_SCENE: return "SceneDescription";
+	case GF_STREAM_VISUAL: return "Visual";
+	case GF_STREAM_AUDIO: return "Audio";
+	case GF_STREAM_MPEG7: return "MPEG7";
+	case GF_STREAM_IPMP: return "IPMP";
+	case GF_STREAM_OCI: return "OCI";
+	case GF_STREAM_MPEGJ: return "MPEGJ";
+	case GF_STREAM_INTERACT: return "Interaction";
+	case GF_STREAM_TEXT: return "Text";
+	case GF_STREAM_ND_SUBPIC: return "NeroDigital Subpicture";
+	default: return "Unknown";
+	}
+}
+
+GF_EXPORT
+u32 gf_odf_stream_type_by_name(const char *streamType)
+{
+	if (!streamType) return 0;
+	if (!stricmp(streamType, "ObjectDescriptor")) return GF_STREAM_OD;
+	if (!stricmp(streamType, "ClockReference")) return GF_STREAM_OCR;
+	if (!stricmp(streamType, "SceneDescription")) return GF_STREAM_SCENE;
+	if (!stricmp(streamType, "Visual")) return GF_STREAM_VISUAL;
+	if (!stricmp(streamType, "Audio")) return GF_STREAM_AUDIO;
+	if (!stricmp(streamType, "MPEG7")) return GF_STREAM_MPEG7;
+	if (!stricmp(streamType, "IPMP")) return GF_STREAM_IPMP;
+	if (!stricmp(streamType, "OCI")) return GF_STREAM_OCI;
+	if (!stricmp(streamType, "MPEGJ")) return GF_STREAM_MPEGJ;
+	if (!stricmp(streamType, "Interaction")) return GF_STREAM_INTERACT;
+	if (!stricmp(streamType, "Text")) return GF_STREAM_TEXT;
+	return 0;
+}
+
+
 s32 gf_odf_size_field_size(u32 size_desc)
 {
 	if (size_desc < 0x00000080) {
@@ -80,7 +121,13 @@ GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc
 		else if (!tag || (tag == 0xFF)) {
 			return GF_ODF_INVALID_DESCRIPTOR;
 		}
+#ifndef GPAC_MINIMAL_ODF
 		return GF_OUT_OF_MEM;
+#else
+		gf_bs_skip_bytes(bs, size);
+		*desc_size = size + sizeHeader - gf_odf_size_field_size(*desc_size);
+		return GF_OK;
+#endif
 	}
 
 	newDesc->tag = tag;
@@ -125,30 +172,6 @@ GF_Err gf_odf_delete_descriptor_list(GF_List *descList)
 	return GF_OK;
 }
 
-
-
-
-GF_Err gf_odf_size_descriptor_list(GF_List *descList, u32 *outSize)
-{
-	GF_Err e;
-	GF_Descriptor *tmp;
-	u32 tmpSize, count, i;
-	if (! descList) return GF_OK;
-
-	count = gf_list_count(descList);
-	for ( i = 0; i < count; i++ ) {
-		tmp = (GF_Descriptor*)gf_list_get(descList, i);
-		if (tmp) {
-			e = gf_odf_size_descriptor(tmp, &tmpSize);
-			if (e) return e;
-			if (tmpSize) *outSize += tmpSize + gf_odf_size_field_size(tmpSize);
-		}
-	}
-	return GF_OK;
-}
-
-
-
 GF_Err gf_odf_write_base_descriptor(GF_BitStream *bs, u8 tag, u32 size)
 {
 	u32 length;
@@ -185,6 +208,64 @@ GF_Err gf_odf_write_base_descriptor(GF_BitStream *bs, u8 tag, u32 size)
 	}
 	return GF_OK;
 }
+
+
+GF_Err gf_odf_size_descriptor_list(GF_List *descList, u32 *outSize)
+{
+	GF_Err e;
+	GF_Descriptor *tmp;
+	u32 tmpSize, count, i;
+	if (! descList) return GF_OK;
+
+	count = gf_list_count(descList);
+	for ( i = 0; i < count; i++ ) {
+		tmp = (GF_Descriptor*)gf_list_get(descList, i);
+		if (tmp) {
+			e = gf_odf_size_descriptor(tmp, &tmpSize);
+			if (e) return e;
+			if (tmpSize) *outSize += tmpSize + gf_odf_size_field_size(tmpSize);
+		}
+	}
+	return GF_OK;
+}
+
+GF_Err gf_odf_write_descriptor_list(GF_BitStream *bs, GF_List *descList)
+{
+	GF_Err e;
+	u32 count, i;
+	GF_Descriptor *tmp;
+
+	if (! descList) return GF_OK;
+	count = gf_list_count(descList);
+	for ( i = 0; i < count; i++ ) {
+		tmp = (GF_Descriptor*)gf_list_get(descList, i);
+		if (tmp) {
+			e = gf_odf_write_descriptor(bs, tmp);
+			if (e) return e;
+		} 
+	}
+	return GF_OK;
+}
+
+GF_Err gf_odf_write_descriptor_list_filter(GF_BitStream *bs, GF_List *descList, u8 only_tag)
+{
+	GF_Err e;
+	u32 count, i;
+	GF_Descriptor *tmp;
+
+	if (! descList) return GF_OK;
+	count = gf_list_count(descList);
+	for ( i = 0; i < count; i++ ) {
+		tmp = (GF_Descriptor*)gf_list_get(descList, i);
+		if (tmp && (tmp->tag==only_tag) ) {
+			e = gf_odf_write_descriptor(bs, tmp);
+			if (e) return e;
+		} 
+	}
+	return GF_OK;
+}
+#ifndef GPAC_DISABLE_ODF
+
 
 u32 gf_ipmpx_array_size(GF_BitStream *bs, u32 *array_size)
 {
@@ -235,80 +316,7 @@ void gf_ipmpx_write_array(GF_BitStream *bs, char *data, u32 data_len)
 }
 
 
-GF_Err gf_odf_write_descriptor_list(GF_BitStream *bs, GF_List *descList)
-{
-	GF_Err e;
-	u32 count, i;
-	GF_Descriptor *tmp;
-
-	if (! descList) return GF_OK;
-	count = gf_list_count(descList);
-	for ( i = 0; i < count; i++ ) {
-		tmp = (GF_Descriptor*)gf_list_get(descList, i);
-		if (tmp) {
-			e = gf_odf_write_descriptor(bs, tmp);
-			if (e) return e;
-		} 
-	}
-	return GF_OK;
-}
-
-GF_Err gf_odf_write_descriptor_list_filter(GF_BitStream *bs, GF_List *descList, u8 only_tag)
-{
-	GF_Err e;
-	u32 count, i;
-	GF_Descriptor *tmp;
-
-	if (! descList) return GF_OK;
-	count = gf_list_count(descList);
-	for ( i = 0; i < count; i++ ) {
-		tmp = (GF_Descriptor*)gf_list_get(descList, i);
-		if (tmp && (tmp->tag==only_tag) ) {
-			e = gf_odf_write_descriptor(bs, tmp);
-			if (e) return e;
-		} 
-	}
-	return GF_OK;
-}
-
-GF_EXPORT
-const char *gf_odf_stream_type_name(u32 streamType)
-{
-	switch (streamType) {
-	case GF_STREAM_OD: return "ObjectDescriptor";
-	case GF_STREAM_OCR: return "ClockReference";
-	case GF_STREAM_SCENE: return "SceneDescription";
-	case GF_STREAM_VISUAL: return "Visual";
-	case GF_STREAM_AUDIO: return "Audio";
-	case GF_STREAM_MPEG7: return "MPEG7";
-	case GF_STREAM_IPMP: return "IPMP";
-	case GF_STREAM_OCI: return "OCI";
-	case GF_STREAM_MPEGJ: return "MPEGJ";
-	case GF_STREAM_INTERACT: return "Interaction";
-	case GF_STREAM_TEXT: return "Text";
-	case GF_STREAM_ND_SUBPIC: return "NeroDigital Subpicture";
-	default: return "Unknown";
-	}
-}
-
-GF_EXPORT
-u32 gf_odf_stream_type_by_name(const char *streamType)
-{
-	if (!streamType) return 0;
-	if (!stricmp(streamType, "ObjectDescriptor")) return GF_STREAM_OD;
-	if (!stricmp(streamType, "ClockReference")) return GF_STREAM_OCR;
-	if (!stricmp(streamType, "SceneDescription")) return GF_STREAM_SCENE;
-	if (!stricmp(streamType, "Visual")) return GF_STREAM_VISUAL;
-	if (!stricmp(streamType, "Audio")) return GF_STREAM_AUDIO;
-	if (!stricmp(streamType, "MPEG7")) return GF_STREAM_MPEG7;
-	if (!stricmp(streamType, "IPMP")) return GF_STREAM_IPMP;
-	if (!stricmp(streamType, "OCI")) return GF_STREAM_OCI;
-	if (!stricmp(streamType, "MPEGJ")) return GF_STREAM_MPEGJ;
-	if (!stricmp(streamType, "Interaction")) return GF_STREAM_INTERACT;
-	if (!stricmp(streamType, "Text")) return GF_STREAM_TEXT;
-	return 0;
-}
-
+#endif /*GPAC_MINIMAL_ODF*/
 
 /*special authoring functions*/
 GF_EXPORT
@@ -653,6 +661,7 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 		cfg->nb_compatible_formats = gf_bs_read_int(bs, 8);
 		for (i=0; i<cfg->nb_compatible_formats; i++) cfg->compatible_formats[i] = gf_bs_read_int(bs, 8);
 	}
+#ifndef GPAC_DISABLE_ISOM
 	if (has_sd) {
 		u8 sample_index;
 		GF_TextSampleDescriptor *txdesc;
@@ -693,6 +702,8 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 			gf_isom_box_del((GF_Box *)a);
 		}
 	}
+#endif
+
 	if (cfg->has_vid_info) {
 		cfg->video_width = gf_bs_read_int(bs, 16);
 		cfg->video_height = gf_bs_read_int(bs, 16);

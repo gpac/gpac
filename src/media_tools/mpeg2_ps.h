@@ -27,6 +27,9 @@
 
 #include <gpac/avparse.h>
 
+#ifndef GPAC_DISABLE_MPEG2PS
+
+
 #define MPEG2_PS_START      0x00000100
 #define MPEG2_PS_START_MASK 0xffffff00
 #define MPEG2_PS_PACKSTART  0x000001BA
@@ -198,7 +201,11 @@ typedef void (*error_msg_func_t)(int loglevel,
   void mpeg2ps_set_loglevel(int loglevel);
   void mpeg2ps_set_error_func(error_msg_func_t func);
 
+
+#endif /*GPAC_DISABLE_MPEG2PS*/
+
 #ifdef __cplusplus
 }
 #endif
+
 #endif

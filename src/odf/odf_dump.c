@@ -27,6 +27,8 @@
 /*for import flags*/
 #include <gpac/media_tools.h>
 
+#ifndef GPAC_DISABLE_OD_DUMP
+
 #define OD_MAX_TREE		100
 
 #define OD_FORMAT_INDENT( ind_buf, indent ) \
@@ -1698,10 +1700,12 @@ GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump
 	if (mi->GroupID) DumpInt(trace, "GroupID", mi->GroupID, indent, 1);
 	if (mi->startTime) DumpInt(trace, "startTime", mi->startTime, indent, 1);
 	if (mi->duration) DumpInt(trace, "duration", mi->duration, indent, 1);
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 	if (mi->import_flags & GF_IMPORT_USE_DATAREF) DumpBool(trace, "useDataReference", 1, indent, 1);
 	if (mi->import_flags & GF_IMPORT_NO_FRAME_DROP) DumpBool(trace, "noFrameDrop", 1, indent, 1);
 	if (mi->import_flags & GF_IMPORT_SBR_IMPLICIT) DumpString(trace, "SBR_Type", "implicit", indent, 1);
 	else if (mi->import_flags & GF_IMPORT_SBR_EXPLICIT) DumpString(trace, "SBR_Type", "explicit", indent, 1);
+#endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 	if (mi->textNode) DumpString(trace, "textNode", mi->textNode, indent, 1);
 	if (mi->fontNode) DumpString(trace, "fontNode", mi->fontNode, indent, 1);
@@ -1938,3 +1942,5 @@ GF_Err gf_oci_dump_au(u8 version, char *au, u32 au_length, FILE *trace, u32 inde
 	gf_oci_codec_del(codec);
 	return e;
 }
+
+#endif /*GPAC_DISABLE_OD_DUMP*/

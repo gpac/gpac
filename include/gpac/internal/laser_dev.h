@@ -29,6 +29,8 @@
 
 #include <gpac/laser.h>
 
+#ifndef GPAC_DISABLE_LASER
+
 /*per_stream config support*/
 typedef struct 
 {
@@ -332,6 +334,8 @@ enum
 	LSR_AMD1_EXT_streamSource,
 	LSR_AMD1_EXT_updateSource,
 };
+
+#endif /*GPAC_DISABLE_LASER*/
 
 #endif
 

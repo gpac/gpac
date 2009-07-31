@@ -29,6 +29,9 @@
 #include "mpeg4_grouping.h"
 #include "visual_manager.h"
 
+#ifndef GPAC_DISABLE_VRML
+
+
 #ifdef GPAC_DISABLE_3D
 
 static void TraverseGroup(GF_Node *node, void *rs, Bool is_destroy)
@@ -408,3 +411,6 @@ void compositor_init_lod(GF_Compositor *compositor, GF_Node *node)
 }
 
 #endif /*GPAC_DISABLE_3D*/
+
+
+#endif /*GPAC_DISABLE_VRML*/

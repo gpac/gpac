@@ -34,7 +34,7 @@
 /*since 0.2.2, we use zlib for xmt/x3d reading to handle gz files*/
 #include <zlib.h>
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 #define GF_IMPORT_DEFAULT_FPS	25.0
 
@@ -54,8 +54,10 @@ GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...)
 	return e;
 }
 
+
 static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	u32 tk_w, tk_h, stype;
 	GF_Err e;
 
@@ -90,10 +92,15 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 		return GF_OK;
 	}
 	return gf_isom_set_track_layout_info(file, track, tk_w<<16, tk_h<<16, 0, 0, 0);
+#else
+	return GF_OK;
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 }
+
 
 static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 {
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	u32 i, count, timescale;
 	u64 time_wnd, rate, max_rate, avg_rate;
 	Double br;
@@ -134,6 +141,7 @@ static void MP4T_RecomputeBitRate(GF_ISOFile *file, u32 track)
 
 	gf_isom_change_mpeg4_description(file, track, 1, esd);
 	gf_odf_desc_del((GF_Descriptor *)esd);
+#endif
 }
 
 static void get_video_timing(Double fps, u32 *timescale, u32 *dts_inc)
@@ -272,6 +280,7 @@ exit:
 	return e;
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 GF_Err gf_import_mp3(GF_MediaImporter *import)
 {
@@ -403,6 +412,10 @@ exit:
 	fclose(in);
 	return e;
 }
+
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 typedef struct
 {
@@ -661,6 +674,11 @@ exit:
 	fclose(in);
 	return e;
 }
+
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 {
@@ -929,7 +947,12 @@ exit:
 	return e;
 }
 
-GF_Err gf_import_avi_video(GF_MediaImporter *import)
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
+
+#ifndef GPAC_DISABLE_AVILIB
+
+static GF_Err gf_import_avi_video(GF_MediaImporter *import)
 {
 	GF_Err e;
 	Double FPS;
@@ -1285,10 +1308,6 @@ exit:
 	return e;
 }
 
-
-
-
-/*credits to CISCO MPEG4/IP for MP3 parsing*/
 GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 {
 	GF_Err e;
@@ -1444,6 +1463,8 @@ exit:
 	AVI_close(in);
 	return e;
 }
+#endif /*GPAC_DISABLE_AVILIB*/
+
 
 GF_Err gf_import_isomedia(GF_MediaImporter *import)
 {
@@ -1505,6 +1526,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		u8 PL = iod ? iod->visual_profileAndLevel : 0xFE;
 		w = h = 0;
 		gf_isom_get_visual_info(import->orig, track_in, 1, &w, &h);
+#ifndef GPAC_DISABLE_AV_PARSERS
 		/*for MPEG-4 visual, always check size (don't trust input file)*/
 		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==0x20)) {
 			GF_M4VDecSpecInfo dsi;
@@ -1513,6 +1535,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			h = dsi.height;
 			PL = dsi.VideoPL;
 		}
+#endif
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, PL);
 	}
 	else if (mtype==GF_ISOM_MEDIA_AUDIO) {
@@ -1521,6 +1544,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		sr = ch = sbr_sr = 0;
 		sbr = 0;
 		gf_isom_get_audio_info(import->orig, track_in, 1, &sr, &ch, &bps);
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==0x40)) {
 			GF_M4ADecSpecInfo dsi;
 			gf_m4a_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
@@ -1530,6 +1554,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			PL = dsi.audioPL;
 			sbr = dsi.has_sbr ? ((dsi.base_object_type==GF_M4A_AAC_SBR) ? 2 : 1) : 0;
 		}
+#endif
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, PL);
 	}
 	else if (mtype==GF_ISOM_MEDIA_SUBPIC) {
@@ -1680,6 +1705,8 @@ exit:
 	if (origin_esd) gf_odf_desc_del((GF_Descriptor *) origin_esd);
 	return e;
 }
+
+#ifndef GPAC_DISABLE_MPEG2PS
 
 #include "mpeg2_ps.h"
 
@@ -1957,6 +1984,8 @@ exit:
 	mpeg2ps_close(ps);
 	return e;
 }
+#endif /*GPAC_DISABLE_MPEG2PS*/
+
 
 GF_Err gf_import_nhnt(GF_MediaImporter *import)
 {
@@ -2052,6 +2081,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 		break;
 	case GF_STREAM_VISUAL:
 		mtype = GF_ISOM_MEDIA_VISUAL;
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (import->esd->decoderConfig->objectTypeIndication==0x20) {
 			GF_M4VDecSpecInfo dsi;
 			if (!import->esd->decoderConfig->decoderSpecificInfo) {
@@ -2063,6 +2093,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 			w = dsi.width;
 			h = dsi.height;
 		}
+#endif
 		break;
 	case GF_STREAM_AUDIO:
 		mtype = GF_ISOM_MEDIA_AUDIO;
@@ -2598,6 +2629,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		case GF_STREAM_SCENE: mtype = GF_ISOM_MEDIA_SCENE; break;
 		case GF_STREAM_VISUAL:
 			mtype = GF_ISOM_MEDIA_VISUAL;
+#ifndef GPAC_DISABLE_AV_PARSERS
 			if (import->esd->decoderConfig->objectTypeIndication==0x20) {
 				GF_M4VDecSpecInfo dsi;
 				if (!import->esd->decoderConfig->decoderSpecificInfo) {
@@ -2609,6 +2641,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				sdesc.height = dsi.height;
 				if (e) goto exit;
 			}
+#endif
 			break;
 		case GF_STREAM_AUDIO:
 			mtype = GF_ISOM_MEDIA_AUDIO;
@@ -3585,6 +3618,8 @@ static void avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 
 	free(buffer);
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 GF_Err gf_import_h264(GF_MediaImporter *import)
 {
 	u64 nal_start, nal_end, total_size;
@@ -4090,6 +4125,11 @@ exit:
 	fclose(mdia);
 	return e;
 }
+
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
+#ifndef GPAC_DISABLE_OGG
+
 #define OGG_BUFFER_SIZE 4096
 
 Bool OGG_ReadPage(FILE *f_in, ogg_sync_state *oy, ogg_page *oggpage)
@@ -4399,6 +4439,10 @@ exit:
 
 GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 {
+#if defined(GPAC_DISABLE_AV_PARSERS)
+	return GF_NOT_SUPPORTED;
+#else
+
 	GF_Err e;
     ogg_sync_state oy;
 	u32 di, track, duration;
@@ -4572,7 +4616,11 @@ exit:
 	}
 	fclose(f_in);
 	return e;
+#endif /*defined(GPAC_DISABLE_AV_PARSERS) */
 }
+
+#endif /*GPAC_DISABLE_OGG*/
+
 
 GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 {
@@ -4812,12 +4860,15 @@ typedef struct
 	GF_MediaImporter *import;
 	u32 track;
 	u32 nb_i, nb_p, nb_b;
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_AVCConfig *avccfg;
 	AVCState avc;
+#endif
 	Bool force_next_au_start;
 	Bool stream_setup;
 } GF_TSImport;
 
+#ifndef GPAC_DISABLE_MPEG2TS
 
 /* Determine the ESD corresponding to the current track info based on the PID and sets the additional info
    in the track info as described in this esd */
@@ -5629,6 +5680,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_MPEG2TS*/
+
 GF_Err gf_import_vobsub(GF_MediaImporter *import)
 {
 	static u8 null_subpic[] = { 0x00, 0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0xFF };
@@ -5873,6 +5926,7 @@ error:
 	return err;
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 GF_Err gf_import_ac3(GF_MediaImporter *import)
 {
@@ -6001,6 +6055,7 @@ exit:
 	fclose(in);
 	return e;
 }
+#endif
 
 
 GF_EXPORT
@@ -6031,18 +6086,25 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 	}
 
+#ifndef GPAC_DISABLE_AVILIB
 	/*AVI audio/video*/
 	if (!strnicmp(ext, ".avi", 4) || !stricmp(fmt, "AVI") ) {
 		e = gf_import_avi_video(importer);
 		if (e) return e;
 		return gf_import_avi_audio(importer);
 	}
+#endif
+
+#ifndef GPAC_DISABLE_OGG
 	/*OGG audio/video*/
 	if (!strnicmp(ext, ".ogg", 4) || !stricmp(fmt, "OGG")) {
 		e = gf_import_ogg_video(importer);
 		if (e) return e;
 		return gf_import_ogg_audio(importer);
 	}
+#endif
+
+#ifndef GPAC_DISABLE_MPEG2PS
 	/*MPEG PS*/
 	if (!strnicmp(ext, ".mpg", 4) || !strnicmp(ext, ".mpeg", 5)
 		|| !strnicmp(ext, ".vob", 4) || !strnicmp(ext, ".vcd", 4) || !strnicmp(ext, ".svcd", 5)
@@ -6052,6 +6114,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		if (e) return e;
 		return gf_import_mpeg_ps_audio(importer);
 	}
+#endif
+
+#ifndef GPAC_DISABLE_MPEG2TS
 	/*MPEG-2 TS*/
 	if (!strnicmp(ext, ".ts", 3) || !strnicmp(ext, ".m2t", 4)
 		|| !stricmp(fmt, "MPEGTS") || !stricmp(fmt, "MPEG-TS")
@@ -6061,29 +6126,15 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		) {
 		return gf_import_mpeg_ts(importer);
 	}
+#endif
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 	/*MPEG1/2 Audio*/
 	if (!strnicmp(ext, ".mp2", 4) || !strnicmp(ext, ".mp3", 4) || !strnicmp(ext, ".m1a", 4) || !strnicmp(ext, ".m2a", 4) || !stricmp(fmt, "MP3") || !stricmp(fmt, "MPEG-AUDIO") )
 		return gf_import_mp3(importer);
-	/*NHNT*/
-	if (!strnicmp(ext, ".media", 5) || !strnicmp(ext, ".info", 5) || !strnicmp(ext, ".nhnt", 5) || !stricmp(fmt, "NHNT") )
-		return gf_import_nhnt(importer);
-	/*NHML*/
-	if (!strnicmp(ext, ".nhml", 5) || !stricmp(fmt, "NHML") )
-		return gf_import_nhml_dims(importer, 0);
-	/*jpg & png & jp2*/
-	if (!strnicmp(ext, ".jpg", 4) || !strnicmp(ext, ".jpeg", 5) || !strnicmp(ext, ".jp2", 4) || !strnicmp(ext, ".png", 4) || !stricmp(fmt, "JPEG") || !stricmp(fmt, "PNG") || !stricmp(fmt, "JP2") )
-		return gf_import_still_image(importer);
 	/*MPEG-2/4 AAC*/
 	if (!strnicmp(ext, ".aac", 4) || !stricmp(fmt, "AAC") || !stricmp(fmt, "MPEG4-AUDIO") )
 		return gf_import_aac_adts(importer);
-	/*AMR & 3GPP2 speec codecs*/
-	if (!strnicmp(ext, ".amr", 4) || !strnicmp(ext, ".awb", 4) || !strnicmp(ext, ".smv", 4) || !strnicmp(ext, ".evc", 4)
-		|| !stricmp(fmt, "AMR") || !stricmp(fmt, "EVRC") || !stricmp(fmt, "SMV") )
-		return gf_import_amr_evrc_smv(importer);
-	/*QCelp & other in QCP file format*/
-	if (!strnicmp(ext, ".qcp", 4) || !stricmp(fmt, "QCELP") )
-		return gf_import_qcp(importer);
 	/*MPEG-4 video*/
 	if (!strnicmp(ext, ".cmp", 4) || !strnicmp(ext, ".m4v", 4) || !stricmp(fmt, "CMP") || !stricmp(fmt, "MPEG4-Video") )
 		return gf_import_cmp(importer, 0);
@@ -6098,6 +6149,27 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		|| !strnicmp(ext, ".h26L", 5) || !strnicmp(ext, ".26l", 4)
 		|| !stricmp(fmt, "AVC") || !stricmp(fmt, "H264") )
 		return gf_import_h264(importer);
+	/*AC3*/
+	if (!strnicmp(ext, ".ac3", 4) || !stricmp(fmt, "AC3") )
+		return gf_import_ac3(importer);
+#endif
+
+	/*NHNT*/
+	if (!strnicmp(ext, ".media", 5) || !strnicmp(ext, ".info", 5) || !strnicmp(ext, ".nhnt", 5) || !stricmp(fmt, "NHNT") )
+		return gf_import_nhnt(importer);
+	/*NHML*/
+	if (!strnicmp(ext, ".nhml", 5) || !stricmp(fmt, "NHML") )
+		return gf_import_nhml_dims(importer, 0);
+	/*jpg & png & jp2*/
+	if (!strnicmp(ext, ".jpg", 4) || !strnicmp(ext, ".jpeg", 5) || !strnicmp(ext, ".jp2", 4) || !strnicmp(ext, ".png", 4) || !stricmp(fmt, "JPEG") || !stricmp(fmt, "PNG") || !stricmp(fmt, "JP2") )
+		return gf_import_still_image(importer);
+	/*AMR & 3GPP2 speec codecs*/
+	if (!strnicmp(ext, ".amr", 4) || !strnicmp(ext, ".awb", 4) || !strnicmp(ext, ".smv", 4) || !strnicmp(ext, ".evc", 4)
+		|| !stricmp(fmt, "AMR") || !stricmp(fmt, "EVRC") || !stricmp(fmt, "SMV") )
+		return gf_import_amr_evrc_smv(importer);
+	/*QCelp & other in QCP file format*/
+	if (!strnicmp(ext, ".qcp", 4) || !stricmp(fmt, "QCELP") )
+		return gf_import_qcp(importer);
 	/*MPEG-4 SAF multiplex*/
 	if (!strnicmp(ext, ".saf", 4) || !strnicmp(ext, ".lsr", 4) || !stricmp(fmt, "SAF") )
 		return gf_import_saf(importer);
@@ -6112,9 +6184,6 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!stricmp(fmt, "RAW")) {
 		return gf_import_raw_unit(importer);
 	}
-	/*AC3*/
-	if (!strnicmp(ext, ".ac3", 4) || !stricmp(fmt, "AC3") )
-		return gf_import_ac3(importer);
 	/*DIMS*/
 	if (!strnicmp(ext, ".dml", 4) || !stricmp(fmt, "DIMS") )
 		return gf_import_nhml_dims(importer, 1);
@@ -6151,11 +6220,13 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 
 	stype = gf_isom_get_media_subtype(file, track, 1);
 	if (stype==GF_ISOM_SUBTYPE_AVC_H264) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
 		AVC_ChangePAR(avcc, ar_num, ar_den);
 		e = gf_isom_avc_config_update(file, track, 1, avcc);
 		gf_odf_avc_cfg_del(avcc);
 		if (e) return e;
+#endif
 	}
 	else if (stype==GF_ISOM_SUBTYPE_MPEG4) {
 		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
@@ -6163,12 +6234,14 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 			if (esd)  gf_odf_desc_del((GF_Descriptor *) esd);
 			return GF_NOT_SUPPORTED;
 		}
+#ifndef GPAC_DISABLE_AV_PARSERS
 		if (esd->decoderConfig->objectTypeIndication==0x20) {
 			e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
 			if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
 			gf_odf_desc_del((GF_Descriptor *) esd);
 			if (e) return e;
 		}
+#endif
 	} else {
 		return GF_BAD_PARAM;
 	}
@@ -6185,4 +6258,4 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 	return gf_isom_set_track_layout_info(file, track, tk_w<<16, tk_h<<16, 0, 0, 0);
 }
 
-#endif
+#endif /*GPAC_DISABLE_MEDIA_IMPORT*/

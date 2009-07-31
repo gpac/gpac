@@ -36,7 +36,7 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_mp3_in.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols mp3_in.def 
+#LDFLAGS+=-export-symbols mp3_in.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

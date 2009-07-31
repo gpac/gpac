@@ -34,6 +34,8 @@
 
 #include <gpac/internal/scenegraph_dev.h>
 
+#ifndef GPAC_DISABLE_VRML
+
 /*for NDT tag definitions*/
 #include <gpac/nodes_mpeg4.h>
 
@@ -10626,3 +10628,6 @@ Bool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag)
 	for(i=0; i<count; i++) { if (types[i]==NodeTag) return 1;}
 	return 0;
 }
+
+
+#endif /*GPAC_DISABLE_VRML*/

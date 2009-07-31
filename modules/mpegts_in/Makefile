@@ -26,7 +26,7 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_mpegts_in.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols mpegts_in.def 
+#LDFLAGS+=-export-symbols mpegts_in.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

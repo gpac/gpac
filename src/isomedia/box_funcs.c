@@ -24,6 +24,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 //Add this funct to handle incomplete files...
 //bytesExpected is 0 most of the time. If the file is incomplete, bytesExpected
 //is the number of bytes missing to parse the box...
@@ -230,8 +232,7 @@ GF_Err gf_isom_read_box_list(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)
 	return gf_isom_read_box_list_ex(parent, bs, add_box, 0);
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gf_isom_box_get_size(GF_Box *ptr)
 {
@@ -320,7 +321,7 @@ GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *gf_isom_box_new(u32 boxType)
 {
@@ -393,6 +394,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_New();
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_New();
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
 		a = ghnt_New();
 		if (a) a->type = boxType;
@@ -421,8 +423,9 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_DMAX: return dmax_New();
 	case GF_ISOM_BOX_TYPE_PAYT: return payt_New();
 	case GF_ISOM_BOX_TYPE_NAME: return name_New();
-	
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: return mvex_New();
 	case GF_ISOM_BOX_TYPE_MEHD: return mehd_New();
 	case GF_ISOM_BOX_TYPE_TREX: return trex_New();
@@ -622,6 +625,7 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_STSF: stsf_del(a); return;
 	case GF_ISOM_BOX_TYPE_PDIN: pdin_del(a); return;
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD: ghnt_del(a); return;
 	case GF_ISOM_BOX_TYPE_RTPO: rtpo_del(a); return;
 	case GF_ISOM_BOX_TYPE_HNTI: hnti_del(a); return;
@@ -647,8 +651,9 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_DMAX: dmax_del(a); return;
 	case GF_ISOM_BOX_TYPE_PAYT: payt_del(a); return;
 	case GF_ISOM_BOX_TYPE_NAME: name_del(a); return;
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: mvex_del(a); return;
 	case GF_ISOM_BOX_TYPE_MEHD: mehd_del(a); return;
 	case GF_ISOM_BOX_TYPE_TREX: trex_del(a); return;
@@ -841,6 +846,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Read(a, bs);
 	
+#ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_RTPO: return rtpo_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_HNTI: return hnti_Read(a, bs);
@@ -866,8 +872,9 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_DMAX: return dmax_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_PAYT: return payt_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_NAME: return name_Read(a, bs);
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
 	
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: return mvex_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_MEHD: return mehd_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TREX: return trex_Read(a, bs);
@@ -989,8 +996,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	}
 }
 
-/*from here, for write/edit versions*/
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 {
@@ -1055,6 +1061,7 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Write(a, bs);
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_RTPO: return rtpo_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_HNTI: return hnti_Write(a, bs);
@@ -1080,8 +1087,9 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_DMAX: return dmax_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_PAYT: return payt_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_NAME: return name_Write(a, bs);
-	
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: return mvex_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_MEHD: return mehd_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TREX: return trex_Write(a, bs);
@@ -1266,6 +1274,7 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Size(a);
 	case GF_ISOM_BOX_TYPE_PDIN: return pdin_Size(a);
 	
+#ifndef GPAC_DISABLE_ISOM_HINTING
 	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_Size(a);
 	case GF_ISOM_BOX_TYPE_RTPO: return rtpo_Size(a);
 	case GF_ISOM_BOX_TYPE_HNTI: return hnti_Size(a);
@@ -1291,8 +1300,10 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_DMAX: return dmax_Size(a);
 	case GF_ISOM_BOX_TYPE_PAYT: return payt_Size(a);
 	case GF_ISOM_BOX_TYPE_NAME: return name_Size(a);
-		
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
+
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: return mvex_Size(a);
 	case GF_ISOM_BOX_TYPE_MEHD: return mehd_Size(a);
 	case GF_ISOM_BOX_TYPE_TREX: return trex_Size(a);
@@ -1412,5 +1423,6 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	}
 }
 
-#endif 
+#endif /*GPAC_DISABLE_ISOM_WRITE*/ 
 
+#endif /*GPAC_DISABLE_ISOM*/

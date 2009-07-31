@@ -24,6 +24,7 @@
 
 #include <gpac/internal/ogg.h>
 
+#ifndef GPAC_DISABLE_OGG
 
 #define BUFFER_INCREMENT 256
 
@@ -1324,3 +1325,4 @@ void ogg_packet_clear(ogg_packet *op) {
   memset(op, 0, sizeof(*op));
 }
 
+#endif /*GPAC_DISABLE_OGG*/

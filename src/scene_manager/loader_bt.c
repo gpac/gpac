@@ -32,6 +32,10 @@
 /*for key codes...*/
 #include <gpac/user.h>
 
+#ifndef GPAC_DISABLE_VRML
+
+#include <gpac/mpeg4_odf.h>
+
 /*since 0.2.2, we use zlib for bt reading to handle wrl.gz files*/
 #include <zlib.h>
 
@@ -3628,3 +3632,6 @@ GF_Err gf_sm_load_init_bt_string(GF_SceneLoader *load, char *str)
 	if (e) gf_sm_load_done_bt_string(load);
 	return e;
 }
+
+
+#endif //GPAC_DISABLE_VRML

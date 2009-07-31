@@ -25,6 +25,8 @@
 
 #include "isom_in.h"
 
+#ifndef GPAC_DISABLE_ISOM
+
 
 void isor_reset_reader(ISOMChannel *ch)
 {
@@ -208,3 +210,4 @@ void isor_reader_release_sample(ISOMChannel *ch)
 
 
 
+#endif /*GPAC_DISABLE_ISOM*/

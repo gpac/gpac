@@ -31,6 +31,7 @@ extern "C" {
 #endif
 
 #include <gpac/isomedia.h>
+#include <gpac/mpeg4_odf.h>
 #include <gpac/scenegraph_vrml.h>
 
 /*
@@ -199,15 +200,17 @@ typedef struct
 	/*scene graph worked on - may be NULL if ctx is present*/
 	GF_SceneGraph *scene_graph;
 
-	struct _inline_scene  *is;
+	struct _scene  *is;
 
 	/*context manager to load (MUST BE RESETED BEFORE if needed) - may be NULL for loaders not using commands, 
 	in which case the graph will be directly updated*/
 	GF_SceneManager *ctx;
 	/*file to import except IsoMedia files*/
 	const char *fileName;
+#ifndef GPAC_DISABLE_ISOM
 	/*IsoMedia file to import (we need to be able to load from an opened file for scene stats)*/
 	GF_ISOFile *isom;
+#endif
 	/*swf import flags*/
 	u32 swf_import_flags;
 	/*swf flatten limit: angle limit below which 2 lines are considered as aligned, 
@@ -242,41 +245,7 @@ to clean ressources (needed for SAX progressive loading)
 */
 GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str, Bool clean_at_end);
 
-
-/*scene dump mode*/
-enum
-{
-	/*BT*/
-	GF_SM_DUMP_BT = 0,
-	/*XMT-A*/
-	GF_SM_DUMP_XMTA,
-	/*VRML Text (WRL)*/
-	GF_SM_DUMP_VRML,
-	/*X3D Text (x3dv)*/
-	GF_SM_DUMP_X3D_VRML,
-	/*X3D XML*/
-	GF_SM_DUMP_X3D_XML,
-	/*LASeR XML*/
-	GF_SM_DUMP_LASER,
-	/*SVG dump (only dumps svg root of the first LASeR unit*/
-	GF_SM_DUMP_SVG,
-	/*blind XML dump*/
-	GF_SM_DUMP_XML,
-	/*automatic selection of MPEG4 vs X3D, text mode*/
-	GF_SM_DUMP_AUTO_TXT,
-	/*automatic selection of MPEG4 vs X3D, xml mode*/
-	GF_SM_DUMP_AUTO_XML,
-};
-
-#ifndef GPAC_READ_ONLY
-
-/*dumps scene context to BT or XMT
-@rad_name: file name & loc without extension - if NULL dump will happen in stdout
-@dump_mode: one of the above*/
-GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode);
-
-#endif
-
+#ifndef GPAC_DISABLE_SCENE_ENCODER
 
 /*encoding flags*/
 enum
@@ -316,7 +285,42 @@ if @log is set, generates BIFS encoder log file
 */
 GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOptions *opt);
 
+#endif /*GPAC_DISABLE_SCENE_ENCODER*/
+
+
 /*Dumping tools*/
+#ifndef GPAC_DISABLE_SCENE_DUMP
+
+/*scene dump mode*/
+enum
+{
+	/*BT*/
+	GF_SM_DUMP_BT = 0,
+	/*XMT-A*/
+	GF_SM_DUMP_XMTA,
+	/*VRML Text (WRL)*/
+	GF_SM_DUMP_VRML,
+	/*X3D Text (x3dv)*/
+	GF_SM_DUMP_X3D_VRML,
+	/*X3D XML*/
+	GF_SM_DUMP_X3D_XML,
+	/*LASeR XML*/
+	GF_SM_DUMP_LASER,
+	/*SVG dump (only dumps svg root of the first LASeR unit*/
+	GF_SM_DUMP_SVG,
+	/*blind XML dump*/
+	GF_SM_DUMP_XML,
+	/*automatic selection of MPEG4 vs X3D, text mode*/
+	GF_SM_DUMP_AUTO_TXT,
+	/*automatic selection of MPEG4 vs X3D, xml mode*/
+	GF_SM_DUMP_AUTO_XML,
+};
+
+/*dumps scene context to BT or XMT
+@rad_name: file name & loc without extension - if NULL dump will happen in stdout
+@dump_mode: one of the above*/
+GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode);
+
 typedef struct _scenedump GF_SceneDumper;
 /*create a scene dumper 
 @graph: scene graph being dumped
@@ -340,8 +344,9 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 */
 GF_Err gf_sm_dump_graph(GF_SceneDumper *sdump, Bool skip_proto, Bool skip_routes);
 
+#endif /*GPAC_DISABLE_SCENE_DUMP*/
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_SCENE_STATS
 
 /*stat object - to refine :)*/
 
@@ -362,6 +367,7 @@ typedef struct
 typedef struct _scenestat
 {
 	GF_List *node_stats;
+
 	GF_List *proto_stats;
 	
 	/*ranges of all SFVec2fs for points only (MFVec2fs)*/
@@ -417,7 +423,7 @@ GF_Err gf_sm_stats_for_scene(GF_StatManager *stat, GF_SceneManager *sm);
 /*produces stat report for the given command*/
 GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com);
 
-#endif
+#endif /*GPAC_DISABLE_SCENE_STATS*/
 
 
 #ifdef __cplusplus

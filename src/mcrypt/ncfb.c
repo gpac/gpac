@@ -19,7 +19,7 @@
 
 #include <gpac/internal/crypt_dev.h>
 
-#ifndef GPAC_CRYPT_ISMA_ONLY
+#if !defined(GPAC_CRYPT_ISMA_ONLY) && !defined(GPAC_DISABLE_MCRYPT)
 
 typedef struct ncfb_buf {
 	u8*   enc_s_register;
@@ -317,5 +317,4 @@ void gf_crypt_register_ncfb(GF_Crypt *td)
 	td->mode_version = 20020307;
 }
 
-#endif
-
+#endif /*!defined(GPAC_CRYPT_ISMA_ONLY) && !defined(GPAC_DISABLE_MCRYPT)*/

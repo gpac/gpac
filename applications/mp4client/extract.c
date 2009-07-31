@@ -27,8 +27,6 @@
 #include <gpac/terminal.h>
 #include <gpac/options.h>
 
-#ifndef GPAC_READ_ONLY
-
 
 #ifdef WIN32
 #include <windows.h>
@@ -281,7 +279,7 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 
 
 /* creates a .bmp format greyscale image of the byte depthbuffer and a binary with only the content of the depthbuffer */
-void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, avi_t *avi_out)
+void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, void *avi_out)
 {
 	GF_Err e;
 	u32 i, k;
@@ -356,8 +354,10 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 				dst += 3;
 			}
 		}
+#ifndef GPAC_DISABLE_AVILIB
 		if (AVI_write_frame(avi_out, conv_buf, fb.height*fb.width*3, 1) <0)
 			printf("Error writing frame\n");
+#endif
 		break;
 	case 2:
 		write_bmp(&fb, rad_name, frameNum);
@@ -378,7 +378,7 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 	if (dump_type!=8) gf_sc_release_screen_buffer(term->compositor, &fb);
 }
 
-void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, avi_t *avi_out)
+void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, char *conv_buf, void *avi_out)
 {
 	GF_Err e = GF_OK;
 	u32 i, k, out_size;
@@ -490,6 +490,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 				break;
 			}
 		}
+#ifndef GPAC_DISABLE_AVILIB
 		if (dump_type!=5 && dump_type!= 10) { 
 			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
 			printf("Error writing frame\n");
@@ -497,6 +498,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
 			printf("Error writing frame\n");				
 		}
+#endif
 		break;
 	case 2:
 		write_bmp(&fb, rad_name, frameNum);
@@ -582,6 +584,10 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 	}
 
 	if (dump_mode==1 || dump_mode==5 || dump_mode==8 || dump_mode==10) {
+#ifdef GPAC_DISABLE_AVILIB
+		fprintf(stdout, "AVILib is disabled in this build of GPAC\n");
+		return 0;
+#else
 		u32 time, prev_time, nb_frames, dump_dur;
 		char *conv_buf;
 		avi_t *avi_out = NULL; 
@@ -652,6 +658,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 		if (dump_mode==8) AVI_close(depth_avi_out);
 		free(conv_buf);
 		fprintf(stdout, "AVI Extraction 100/100\n");
+#endif /*GPAC_DISABLE_AVILIB*/
 	} else {
 		if (times[0]) gf_term_step_clocks(term, times[0]);
 
@@ -671,6 +678,4 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 	}
 	return 0;
 }
-
-#endif
 

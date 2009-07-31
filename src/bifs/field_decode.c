@@ -28,6 +28,7 @@
 #include "quant.h" 
 #include "script.h" 
 
+#ifndef GPAC_DISABLE_BIFS
 
 void SFCommandBufferChanged(GF_BifsDecoder * codec, GF_Node *node)
 {
@@ -892,3 +893,4 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 	return new_node;
 }
 
+#endif /*GPAC_DISABLE_BIFS*/

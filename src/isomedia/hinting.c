@@ -24,6 +24,7 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_HINTING)
 
 GF_Box *ghnt_New()
 {
@@ -79,7 +80,7 @@ GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err ghnt_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -110,7 +111,7 @@ GF_Err ghnt_Size(GF_Box *s)
 }
 
 
-#endif	//GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 GF_HintSample *gf_isom_hint_sample_new(u32 ProtocolType)
@@ -186,7 +187,7 @@ GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sample
 }
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gf_isom_hint_sample_write(GF_HintSample *ptr, GF_BitStream *bs)
 {
@@ -226,7 +227,7 @@ u32 gf_isom_hint_sample_size(GF_HintSample *ptr)
 	return size;
 }
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -261,7 +262,7 @@ GF_Err gf_isom_hint_pck_read(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs)
 	}
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gf_isom_hint_pck_write(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs)
 {
@@ -318,7 +319,7 @@ u32 gf_isom_hint_pck_length(u8 HintType, GF_HintPacket *ptr)
 }
 
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -706,7 +707,7 @@ u32 gf_isom_hint_rtp_length(GF_RTPPacket *ptr)
 }
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 u32 gf_isom_hint_rtp_size(GF_RTPPacket *ptr)
 {
@@ -775,7 +776,7 @@ GF_Err gf_isom_hint_rtp_write(GF_RTPPacket *ptr, GF_BitStream *bs)
 	return GF_OK;
 }
 
-#endif	//GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_EXPORT
 GF_Err gf_isom_reset_hint_reader(GF_ISOFile *the_file, u32 trackNumber, u32 sample_start, u32 ts_offset, u32 sn_offset, u32 ssrc)
@@ -980,3 +981,5 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 	}
 	return GF_OK;
 }
+
+#endif /* !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_HINTING)*/

@@ -23,6 +23,9 @@
  */
 
 #include <gpac/internal/ietf_dev.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/constants.h>
 #include <gpac/math.h>
 
@@ -87,8 +90,10 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 	switch (builder->rtp_payt) {
 	case GF_RTP_PAYT_MPEG4:
 		return gp_rtp_builder_do_mpeg4(builder, data, data_size, IsAUEnd, FullAUSize);
+#ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_RTP_PAYT_MPEG12_VIDEO:
 		return gp_rtp_builder_do_mpeg12_video(builder, data, data_size, IsAUEnd, FullAUSize);
+#endif
 	case GF_RTP_PAYT_MPEG12_AUDIO:
 		return gp_rtp_builder_do_mpeg12_audio(builder, data, data_size, IsAUEnd, FullAUSize);
 	case GF_RTP_PAYT_H263:
@@ -111,7 +116,7 @@ GF_Err gf_rtp_builder_process(GP_RTPPacketizer *builder, char *data, u32 data_si
 	case GF_RTP_PAYT_AC3: 
 		return gp_rtp_builder_do_ac3(builder, data, data_size, IsAUEnd, FullAUSize); 
  	default:
-		return GF_BAD_PARAM;
+		return GF_NOT_SUPPORTED;
 	}
 }
 
@@ -574,3 +579,4 @@ GF_Err gf_rtp_builder_format_sdp(GP_RTPPacketizer *builder, char *payload_name, 
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_STREAMING*/

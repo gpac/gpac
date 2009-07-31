@@ -27,6 +27,15 @@
 #include <gpac/constants.h>
 #include <gpac/isomedia.h>
 
+
+enum
+{
+	TYPE_AMR = 0,
+	TYPE_AMR_WB,
+	TYPE_EVRC,
+	TYPE_SMV,
+};
+
 typedef struct
 {
 	GF_ClientService *service;
@@ -69,20 +78,20 @@ static GF_ESD *AMR_GetESD(AMR_Reader *read)
 	esd->slConfig->useAccessUnitEndFlag = esd->slConfig->useAccessUnitStartFlag = 0;
 	esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 
-	if ((read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) || (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR_WB)) {
+	if ((read->mtype==TYPE_AMR) || (read->mtype==TYPE_AMR_WB)) {
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
 		dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(dsi, read->mtype);
-		gf_bs_write_u32(dsi, (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) ? 8000 : 16000);
+		gf_bs_write_u32(dsi, (read->mtype==TYPE_AMR) ? 8000 : 16000);
 		gf_bs_write_u16(dsi, 1);
-		gf_bs_write_u16(dsi, (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR) ? 160 : 320);
+		gf_bs_write_u16(dsi, (read->mtype==TYPE_AMR) ? 160 : 320);
 		gf_bs_write_u8(dsi, 16);
 		gf_bs_write_u8(dsi, 1);
 		gf_bs_get_content(dsi, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(dsi);
 	} 
-	else if (read->mtype==GF_ISOM_SUBTYPE_3GP_EVRC) esd->decoderConfig->objectTypeIndication = 0xA0;
-	else if (read->mtype==GF_ISOM_SUBTYPE_3GP_SMV) esd->decoderConfig->objectTypeIndication = 0xA1;
+	else if (read->mtype==TYPE_EVRC) esd->decoderConfig->objectTypeIndication = 0xA0;
+	else if (read->mtype==TYPE_SMV) esd->decoderConfig->objectTypeIndication = 0xA1;
 	return esd;
 }
 
@@ -130,19 +139,19 @@ static Bool AMR_ConfigureFromFile(AMR_Reader *read)
 
 	if (!strnicmp(magic, "#!AMR\n", 6)) {
 		fseek(read->stream, 6, SEEK_SET);
-		read->mtype = GF_ISOM_SUBTYPE_3GP_AMR;
+		read->mtype = TYPE_AMR;
 	}
 	else if (!strnicmp(magic, "#!EVRC\n", 7)) {
 		fseek(read->stream, 7, SEEK_SET);
 		read->start_offset = 7;
-		read->mtype = GF_ISOM_SUBTYPE_3GP_EVRC;
+		read->mtype = TYPE_EVRC;
 	}
 	else if (!strnicmp(magic, "#!SMV\n", 6)) {
 		fseek(read->stream, 6, SEEK_SET);
-		read->mtype = GF_ISOM_SUBTYPE_3GP_SMV;
+		read->mtype = TYPE_SMV;
 	}
 	else if (!strnicmp(magic, "#!AMR-WB\n", 9)) {
-		read->mtype = GF_ISOM_SUBTYPE_3GP_AMR_WB;
+		read->mtype = TYPE_AMR_WB;
 		read->start_offset = 9;
 		read->sample_rate = 16000;
 		read->block_size = 320;
@@ -160,10 +169,10 @@ static Bool AMR_ConfigureFromFile(AMR_Reader *read)
 		while (!feof(read->stream)) {
 			u8 ft = fgetc(read->stream);
 			switch (read->mtype) {
-			case GF_ISOM_SUBTYPE_3GP_AMR:
-			case GF_ISOM_SUBTYPE_3GP_AMR_WB:
+			case TYPE_AMR:
+			case TYPE_AMR_WB:
 				ft = (ft >> 3) & 0x0F;
-				size = (read->mtype==GF_ISOM_SUBTYPE_3GP_AMR_WB) ? GF_AMR_WB_FRAME_SIZE[ft] : GF_AMR_FRAME_SIZE[ft];
+				size = (read->mtype==TYPE_AMR_WB) ? GF_AMR_WB_FRAME_SIZE[ft] : GF_AMR_FRAME_SIZE[ft];
 				break;
 			default:
 				for (i=0; i<GF_SMV_EVRC_RATE_TO_SIZE_NB; i++) {
@@ -453,11 +462,11 @@ fetch_next:
 
 		toc = fgetc(read->stream);
 		switch (read->mtype) {
-		case GF_ISOM_SUBTYPE_3GP_AMR:
+		case TYPE_AMR:
 			ft = (toc >> 3) & 0x0F;
 			read->data_size = GF_AMR_FRAME_SIZE[ft];
 			break;
-		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
+		case TYPE_AMR_WB:
 			ft = (toc >> 3) & 0x0F;
 			read->data_size = GF_AMR_WB_FRAME_SIZE[ft];
 			break;

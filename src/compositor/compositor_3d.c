@@ -153,11 +153,14 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 
 GF_Camera *compositor_3d_get_camera(GF_Compositor *compositor) 
 {
+#ifndef GPAC_DISABLE_VRML
 	if (compositor->active_layer) {
 		return compositor_layer3d_get_camera(compositor->active_layer);
-	} else {
-		return &compositor->visual->camera;
 	}
+#endif
+	if (compositor->visual->type_3d)
+		return &compositor->visual->camera;
+	return NULL;
 }
 
 void compositor_3d_reset_camera(GF_Compositor *compositor)
@@ -234,7 +237,9 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 
 	sx = bmp_scale_x; if (sx<0) sx = FIX_ONE;
 	sy = bmp_scale_y; if (sy<0) sy = FIX_ONE;
+#ifndef GPAC_DISABLE_VRML
 	compositor_adjust_scale(txh->owner, &sx, &sy);
+#endif
 
 	/*add top level scale if any*/
 	sx = gf_mulfix(sx, compositor->scale_x);

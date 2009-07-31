@@ -33,8 +33,8 @@ extern "C" {
 
 #include <gpac/scene_manager.h>
 
-#ifndef GPAC_READ_ONLY
-	
+#ifndef GPAC_DISABLE_BENG
+
 typedef struct __tag_bifs_engine GF_BifsEngine;
 
 /**
@@ -126,7 +126,7 @@ GF_Err gf_beng_aggregate_context(GF_BifsEngine *beng);
 void gf_beng_terminate(GF_BifsEngine *beng);
 
 
-#endif
+#endif /*GPAC_DISABLE_BENG*/
 
 
 #ifdef __cplusplus

@@ -78,6 +78,8 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_VRML
+
 static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxInfo *mux)
 {
 	GF_Err e;
@@ -327,6 +329,10 @@ exit:
 	fclose(srt_in);
 	return e;
 }
+#endif /*GPAC_DISABLE_VRML*/
+
+
+#ifndef GPAC_DISABLE_VRML
 
 static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxInfo *mux)
 {
@@ -505,10 +511,13 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	fclose(sub_in);
 	return e;
 }
+#endif
+
 
 GF_EXPORT
 GF_Err gf_sm_import_bifs_subtitle(GF_SceneManager *ctx, GF_ESD *src, GF_MuxInfo *mux)
 {
+#ifndef GPAC_DISABLE_VRML
 	GF_Err e;
 	u32 fmt;
 	e = gf_text_guess_format(mux->file_name, &fmt);
@@ -517,5 +526,8 @@ GF_Err gf_sm_import_bifs_subtitle(GF_SceneManager *ctx, GF_ESD *src, GF_MuxInfo 
 
 	if (fmt==1) return gf_text_import_srt_bifs(ctx, src, mux);
 	else return gf_text_import_sub_bifs(ctx, src, mux);
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 

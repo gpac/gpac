@@ -29,6 +29,8 @@
 #include <gpac/color.h>
 
 #ifndef GPAC_DISABLE_3D
+
+
 /*for GPAC_HAS_GLU*/
 #include "gl_inc.h"
 
@@ -247,6 +249,7 @@ void mesh_recompute_normals(GF_Mesh *mesh)
 	}
 }
 
+#ifndef GPAC_DISABLE_VRML
 void mesh_generate_tex_coords(GF_Mesh *mesh, GF_Node *__texCoords)
 {
 	u32 i;
@@ -267,6 +270,7 @@ void mesh_generate_tex_coords(GF_Mesh *mesh, GF_Node *__texCoords)
 		}
 	}
 }
+#endif GPAC_DISABLE_VRML
 
 
 void mesh_new_box(GF_Mesh *mesh, SFVec3f size)
@@ -729,7 +733,7 @@ void mesh_from_path_intern(GF_Mesh *mesh, GF_Path *path, Bool make_ccw)
 	}
 	/*we need to tesselate the path*/
 #ifndef GPAC_USE_OGL_ES
-	TesselatePath(mesh, path, 0);
+	gf_mesh_tesselate_path(mesh, path, 0);
 #endif
 }
 
@@ -761,6 +765,10 @@ void mesh_get_outline(GF_Mesh *mesh, GF_Path *path)
 	}
 	mesh_update_bounds(mesh);
 }
+
+
+#ifndef GPAC_DISABLE_VRML
+
 
 #define COL_TO_RGBA(res, col) { res.red = col.red; res.green = col.green; res.blue = col.blue; res.alpha = FIX_ONE; }
 
@@ -2193,3 +2201,4 @@ void mesh_new_extrusion(GF_Mesh *mesh, GF_Node *node)
 
 #endif	/* GPAC_DISABLE_3D*/
 
+#endif /*GPAC_DISABLE_VRML*/

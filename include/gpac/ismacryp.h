@@ -32,6 +32,15 @@ extern "C" {
 
 #include <gpac/isomedia.h>
 
+/*loads key and salt from a LOCAL gpac-DRM file (cf MP4Box doc)*/
+GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char *salt);
+
+/*loads key and salt for MPEG4IP protected files*/
+Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt);
+
+/*computes file hash. If file is ISO-based, computre hash according to OMA (P)DCF (without MutableDRMInformation box)*/
+GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]);
+	
 enum
 {
 	/*no selective encryption*/
@@ -80,6 +89,8 @@ typedef struct
 
 } GF_TrackCryptInfo;
 
+#if !defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)
+
 /*encrypts track - logs, progress: info callbacks, NULL for stdout*/
 GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u32 done, u32 total), void *cbk);
 
@@ -98,14 +109,8 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4file, const char *drm_file);
 */
 GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4file, const char *drm_file);
 
-/*loads key and salt from a LOCAL gpac-DRM file (cf MP4Box doc)*/
-GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char *salt);
+#endif /*!defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
-/*loads key and salt for MPEG4IP protected files*/
-Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt);
-
-/*computes file hash. If file is ISO-based, computre hash according to OMA (P)DCF (without MutableDRMInformation box)*/
-GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]);
 
 #ifdef __cplusplus
 }

@@ -19,6 +19,8 @@
 
 #include <gpac/internal/crypt_dev.h>
 
+#if !defined(GPAC_DISABLE_MCRYPT)
+
 typedef struct ctr_buf {
 	u8* enc_counter;
 	u8* c_counter;
@@ -232,3 +234,4 @@ void gf_crypt_register_ctr(GF_Crypt *td)
 	td->mode_size = sizeof(CTR_BUFFER);
 	td->mode_version = 20020307;
 }
+#endif /*!defined(GPAC_DISABLE_MCRYPT)*/

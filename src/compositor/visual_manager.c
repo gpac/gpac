@@ -42,16 +42,21 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 	tmp->center_coords = 1;
 	tmp->compositor = compositor;
 	ra_init(&tmp->to_redraw);
+#ifndef GPAC_DISABLE_VRML
 	tmp->back_stack = gf_list_new();
 	tmp->view_stack = gf_list_new();
+#endif
+
 	tmp->raster_brush = compositor->rasterizer->stencil_new(compositor->rasterizer, GF_STENCIL_SOLID);
 
 	tmp->DrawBitmap = visual_draw_bitmap_stub;
 	tmp->ClearSurface = visual_2d_clear_surface;
 
 #ifndef GPAC_DISABLE_3D
+#ifndef GPAC_DISABLE_VRML
 	tmp->navigation_stack = gf_list_new();
 	tmp->fog_stack = gf_list_new();
+#endif /*GPAC_DISABLE_VRML*/
 	tmp->alpha_nodes_to_draw = gf_list_new();
 #endif
 
@@ -78,12 +83,18 @@ void visual_del(GF_VisualManager *visual)
 		free(cur);
 	}
 
+#ifndef GPAC_DISABLE_VRML
 	if (visual->back_stack) BindableStackDelete(visual->back_stack);
 	if (visual->view_stack) BindableStackDelete(visual->view_stack);
+#endif /*GPAC_DISABLE_VRML*/
 
 #ifndef GPAC_DISABLE_3D
+
+#ifndef GPAC_DISABLE_VRML
 	if (visual->navigation_stack) BindableStackDelete(visual->navigation_stack);
 	if (visual->fog_stack) BindableStackDelete(visual->fog_stack);
+#endif /*GPAC_DISABLE_VRML*/
+
 	gf_list_del(visual->alpha_nodes_to_draw);
 #endif
 	free(visual);
@@ -186,11 +197,13 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 	if (!children) return;
 
 	size.x = size.y = -FIX_ONE;
+#ifndef GPAC_DISABLE_VRML
 	switch (gf_node_get_tag(self)) {
 	case TAG_MPEG4_Layer2D: size = ((M_Layer2D *)self)->size; break;
 	case TAG_MPEG4_Layer3D: size = ((M_Layer3D *)self)->size; break;
 	case TAG_MPEG4_Form: size = ((M_Form *)self)->size; break;
 	}
+#endif
 	if ((size.x>=0) && (size.y>=0)) {
 		tr_state->bounds = gf_rect_center(size.x, size.y);
 		return;

@@ -31,6 +31,8 @@ extern "C" {
 
 #include <gpac/isomedia.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 
 //the default size is 64, cause we need to handle large boxes...
 #define GF_ISOM_BOX			\
@@ -131,7 +133,7 @@ enum
 	GF_ISOM_BOX_TYPE_PDIN	= GF_4CC( 'p', 'd', 'i', 'n' ),
 	GF_ISOM_BOX_TYPE_SDTP	= GF_4CC( 's', 'd', 't', 'p' ),
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*Movie Fragments*/
 	GF_ISOM_BOX_TYPE_MVEX	= GF_4CC( 'm', 'v', 'e', 'x' ),
 	GF_ISOM_BOX_TYPE_MEHD	= GF_4CC( 'm', 'e', 'h', 'd' ),
@@ -402,7 +404,7 @@ typedef struct
 	GF_MovieHeaderBox *mvhd;
 	GF_ObjectDescriptorBox *iods;
 	GF_UserDataBox *udta;
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	struct __tag_mvex_box *mvex;
 #endif
 	/*meta box if any*/
@@ -584,7 +586,7 @@ typedef struct
 	GF_SttsEntry *entries;
 	u32 nb_entries, alloc_size;
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	/*cache for WRITE*/
 	u32 w_currentSampleNum;
 	u64 w_LastDTS;
@@ -609,7 +611,7 @@ typedef struct
 	GF_DttsEntry *entries;
 	u32 nb_entries, alloc_size;
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	u32 w_LastSampleNumber;
 	/*force one sample per entry*/
 	Bool unpack_mode;
@@ -631,7 +633,7 @@ typedef struct
 {
 	GF_ISOM_FULL_BOX
 	GF_List *entryList;
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	/*Cache for write*/
 	GF_StsfEntry *w_currentEntry;
 	u32 w_currentEntryIndex;
@@ -710,7 +712,7 @@ typedef struct
 
 void gf_isom_video_sample_entry_init(GF_VisualSampleEntryBox *ent);
 GF_Err gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStream *bs);
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ent, GF_BitStream *bs);
 void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent);
 #endif
@@ -787,7 +789,7 @@ typedef struct
 
 void gf_isom_audio_sample_entry_init(GF_AudioSampleEntryBox *ptr);
 GF_Err gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream *bs);
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream *bs);
 void gf_isom_audio_sample_entry_size(GF_AudioSampleEntryBox *ptr);
 #endif
@@ -1198,7 +1200,7 @@ typedef struct
 {
 	u64 extent_offset;
 	u64 extent_length;
-#ifndef GPAC_READ_OLNLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	/*for storage only*/
 	u64 original_extent_offset;
 #endif
@@ -1209,7 +1211,7 @@ typedef struct
 	u16 item_ID;
 	u16 data_reference_index;
 	u64 base_offset;
-#ifndef GPAC_READ_OLNLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	/*for storage only*/
 	u64 original_base_offset;
 #endif
@@ -1333,7 +1335,7 @@ typedef struct __tag_meta_box
 
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 /*V2 boxes - Movie Fragments*/
 
@@ -1450,7 +1452,7 @@ typedef struct
 	u32 CTS_Offset;
 } GF_TrunEntry;
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 
 /*RTP Hint Track Sample Entry*/
@@ -1775,7 +1777,7 @@ typedef struct
 	GF_ISOM_BASE_DATA_HANDLER
 	FILE *stream;
 	Bool last_acces_was_read;
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	char *temp_file;
 #endif
 } GF_FileDataMap;
@@ -1801,7 +1803,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode);
 void gf_isom_fdm_del(GF_FileDataMap *ptr);
 u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, char *buffer, u32 bufferLength, u64 fileOffset);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_DataMap *gf_isom_fdm_new_temp(const char *sTempPath);
 #endif
 
@@ -1810,7 +1812,7 @@ GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode);
 void gf_isom_fmo_del(GF_FileMappingDataMap *ptr);
 u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, char *buffer, u32 bufferLength, u64 fileOffset);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 u64 gf_isom_datamap_get_offset(GF_DataMap *map);
 GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, char *data, u32 dataSize);
 #endif	
@@ -1823,7 +1825,7 @@ GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, char *data, u32 dataSize);
 /*time def for MP4/QT/MJ2K files*/
 #define GF_ISOM_MAC_TIME_OFFSET 2082758400/*208284480 */
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 #define GF_ISOM_FORMAT_FRAG_FLAGS(pad, sync, deg) ( ( (pad) << 17) | ( ( !(sync) ) << 16) | (deg) );
 #define GF_ISOM_GET_FRAG_PAD(flag) ( (flag) >> 17) & 0x7
 #define GF_ISOM_GET_FRAG_SYNC(flag) ( ! ( ( (flag) >> 16) & 0x1))
@@ -1849,7 +1851,7 @@ struct __tag_isom {
 	the moov*/
 	GF_DataMap *movieFileMap;
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	/*the final file name*/
 	char *finalName;
 	/*the file where we store edited samples (for READ_WRITE and WRITE mode only)*/
@@ -1876,7 +1878,7 @@ struct __tag_isom {
 	/*meta box if any*/
 	GF_MetaBox *meta;
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u32 FragmentsFlags, NextMoofNumber;
 	/*active fragment*/
 	GF_MovieFragmentBox *moof;
@@ -1961,7 +1963,7 @@ GF_Err gf_isom_rewrite_text_sample(GF_ISOSample *samp, u32 sampleDescriptionInde
 
 GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 box_type, bin128 *uuid);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err FlushCaptureMode(GF_ISOFile *movie);
 GF_Err CanAccessMovie(GF_ISOFile *movie, u32 Mode);
@@ -2019,11 +2021,11 @@ GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSampleFragments(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber);
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err StoreFragment(GF_ISOFile *movie);
 #endif
 
-#endif	
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 GF_Err GetNextMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime);
@@ -2056,6 +2058,8 @@ GF_Err AVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd);
 void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
 
+
+#ifndef GPAC_DISABLE_ISOM_HINTING
 
 /*
 		Hinting stuff
@@ -2154,6 +2158,7 @@ GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sample
 GF_Err gf_isom_hint_sample_write(GF_HintSample *ptr, GF_BitStream *bs);
 u32 gf_isom_hint_sample_size(GF_HintSample *ptr);
 
+
 /*****************************************************
 		Hint Packets (generic packet for future protocol support)
 *****************************************************/
@@ -2205,6 +2210,8 @@ u32 gf_isom_hint_rtp_size(GF_RTPPacket *ptr);
 GF_Err gf_isom_hint_rtp_offset(GF_RTPPacket *ptr, u32 offset, u32 HintSampleNumber);
 u32 gf_isom_hint_rtp_length(GF_RTPPacket *ptr);
 
+
+#endif
 
 
 struct _3gpp_text_sample 
@@ -2484,6 +2491,7 @@ GF_Err void_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err pdin_Read(GF_Box *s, GF_BitStream *bs);
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
 
 GF_Box *hinf_New();
 GF_Box *trpy_New();
@@ -2615,6 +2623,8 @@ GF_Err hnti_Size(GF_Box *s);
 GF_Err sdp_Size(GF_Box *s);
 GF_Err rtpo_Size(GF_Box *s);
 
+#endif
+
 
 GF_Box *ftyp_New();
 void ftyp_del(GF_Box *s);
@@ -2637,7 +2647,7 @@ void gppc_del(GF_Box *s);
 GF_Err gppa_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err gppv_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err gppc_Read(GF_Box *s, GF_BitStream *bs);
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err gppa_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err gppv_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err gppc_Write(GF_Box *s, GF_BitStream *bs);
@@ -2647,7 +2657,7 @@ GF_Err gppc_Size(GF_Box *s);
 #endif
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Box *mvex_New();
 GF_Box *trex_New();
 GF_Box *moof_New();
@@ -2756,7 +2766,7 @@ GF_Err tbox_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err blnk_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err twrp_Read(GF_Box *s, GF_BitStream *bs);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err ftab_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err tx3g_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err styl_Write(GF_Box *s, GF_BitStream *bs);
@@ -2826,7 +2836,7 @@ GF_Err frma_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err schm_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err schi_Read(GF_Box *s, GF_BitStream *bs);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err meta_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err xml_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err bxml_Write(GF_Box *s, GF_BitStream *bs);
@@ -2864,7 +2874,7 @@ void iKMS_del(GF_Box *s);
 void iSFM_del(GF_Box *s);
 GF_Err iKMS_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err iSFM_Read(GF_Box *s, GF_BitStream *bs);
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err iKMS_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err iSFM_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err iKMS_Size(GF_Box *s);
@@ -2881,7 +2891,7 @@ GF_Err data_Read(GF_Box *s, GF_BitStream *bs);
 GF_Box *ilst_New();
 GF_Box *ListItem_New(u32 type);
 GF_Box *data_New();
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err ilst_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err ListItem_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err data_Write(GF_Box *s, GF_BitStream *bs);
@@ -2975,7 +2985,7 @@ GF_Err rtpo_dump(GF_Box *a, FILE * trace);
 
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err mvex_dump(GF_Box *a, FILE * trace);
 GF_Err mehd_dump(GF_Box *a, FILE * trace);
 GF_Err trex_dump(GF_Box *a, FILE * trace);
@@ -3029,9 +3039,9 @@ GF_Err data_dump(GF_Box *a, FILE * trace);
 /*Apple extensions*/
 GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov);
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /*OMA extensions*/
 GF_Box *ohdr_New();
@@ -3131,6 +3141,9 @@ GF_Err dac3_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err dac3_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err dac3_Size(GF_Box *s);
 GF_Err dac3_dump(GF_Box *a, FILE * trace);
+
+
+#endif /*GPAC_DISABLE_ISOM*/
 
 #ifdef __cplusplus
 }

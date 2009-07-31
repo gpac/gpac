@@ -1073,7 +1073,6 @@ EXPORTS
 	gf_sg_command_apply
 	gf_sg_command_apply_list
 	gf_sg_command_field_new
-	gf_sg_command_clone
 	gf_sg_get_next_available_node_id
 	gf_sg_get_max_node_id
 	gf_sg_get_next_available_route_id
@@ -1204,19 +1203,17 @@ EXPORTS
 	gf_sc_audio_restart
 
 ;terminal_dev exports
-	gf_inline_new
-	gf_inline_del
-	gf_inline_get_time
-	gf_inline_attach_to_compositor
-	gf_inline_find_odm
-	gf_inline_set_duration
-	gf_inline_setup_object
-	gf_inline_default_scene_viewpoint
-	gf_inline_register_extra_graph
-	gf_inline_force_scene_size
-	gf_inline_get_proto_lib
-	gf_inline_process_anchor
-	gf_inline_disconnect
+	gf_scene_new
+	gf_scene_del
+	gf_scene_get_time
+	gf_scene_attach_to_compositor
+	gf_scene_find_odm
+	gf_scene_set_duration
+	gf_scene_setup_object
+	gf_scene_register_extra_graph
+	gf_scene_force_size
+	gf_scene_process_anchor
+	gf_scene_disconnect
 	gf_odm_new
 	gf_odm_setup_object
 	gf_odm_disconnect

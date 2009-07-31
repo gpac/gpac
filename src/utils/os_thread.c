@@ -135,6 +135,7 @@ void *RunThread(void *ptr)
 	t->id = gf_th_id();
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Thread %s] Entering thread proc - thread ID 0x%08x\n", t->log_name, t->id));
 #endif
+
 	/* Each thread has its own seed */
 	gf_rand_init(0);
 

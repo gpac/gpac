@@ -21,7 +21,7 @@ OBJS=wav_out.o
 SRCS := $(OBJS:.o=.c) 
 
 LIB=gm_wav_audio.$(DYN_LIB_SUFFIX)
-LDFLAGS+=-export-symbols wav_out.def 
+#LDFLAGS+=-export-symbols wav_out.def 
 
 all: $(LIB)
 

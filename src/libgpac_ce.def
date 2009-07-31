@@ -1185,16 +1185,16 @@ EXPORTS
 ;terminal_dev exports
 	gf_inline_new
 	gf_inline_del
-	gf_inline_get_time
+	gf_scene_get_time
 	gf_inline_attach_to_compositor
 	gf_inline_find_odm
-	gf_inline_set_duration
-	gf_inline_setup_object
+	gf_scene_set_duration
+	gf_scene_setup_object
 	gf_inline_default_scene_viewpoint
-	gf_inline_register_extra_graph
-	gf_inline_force_scene_size
+	gf_scene_register_extra_graph
+	gf_scene_force_size
 	gf_inline_get_proto_lib
-	gf_inline_process_anchor
+	gf_scene_process_anchor
 	gf_inline_disconnect
 	gf_odm_new
 	gf_odm_setup_object

@@ -24,6 +24,8 @@
 
 #include "isom_in.h"
 
+#ifndef GPAC_DISABLE_ISOM
+
 void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 {
 	GF_Segment *prev_seg;
@@ -141,12 +143,16 @@ void isor_declare_objects(ISOMReader *read)
 	gf_term_add_media(read->service, NULL, 0);
 }
 
+#endif /*GPAC_DISABLE_ISOM*/
+
 
 GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
+#ifndef GPAC_DISABLE_ISOM
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
-#ifndef GPAC_READ_ONLY
+#endif
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	if (InterfaceType == GF_STREAMING_MEDIA_CACHE) return 1;
 #endif
 	return 0;
@@ -155,10 +161,11 @@ Bool QueryInterface(u32 InterfaceType)
 GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
+#ifndef GPAC_DISABLE_ISOM
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) 
 		return (GF_BaseInterface *)isor_client_load();
-
-#ifndef GPAC_READ_ONLY
+#endif
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	if (InterfaceType == GF_STREAMING_MEDIA_CACHE) 
 		return (GF_BaseInterface *)isow_load_cache();
 #endif
@@ -169,8 +176,10 @@ GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
+#ifndef GPAC_DISABLE_ISOM
 	case GF_NET_CLIENT_INTERFACE: isor_client_del(ifce); break;
-#ifndef GPAC_READ_ONLY
+#endif
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	case GF_STREAMING_MEDIA_CACHE: isow_delete_cache(ifce); break;
 #endif
 	}

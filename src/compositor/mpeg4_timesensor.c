@@ -27,6 +27,9 @@
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
+
+#ifndef GPAC_DISABLE_VRML
+
 typedef struct
 {
 	GF_TimeNode time_handle;
@@ -191,3 +194,5 @@ void compositor_timesensor_modified(GF_Node *t)
 		}
 	}
 }
+
+#endif /*GPAC_DISABLE_VRML*/

@@ -24,6 +24,8 @@
 
 #include "rtp_in.h"
 
+#ifndef GPAC_DISABLE_STREAMING
+
 
 void RP_SDPFromData(RTPClient *rtp, char *s_url, RTPStream *stream)
 {
@@ -177,3 +179,4 @@ void RP_FetchSDP(RTPClient *rtp, char *url, RTPStream *stream, char *original_ur
 	/*service confirm is done once fetched*/
 }
 
+#endif /*GPAC_DISABLE_STREAMING*/

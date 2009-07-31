@@ -492,9 +492,8 @@ typedef struct _gf_sc_texture_handler
 	GF_MediaObject *stream;
 	/*texture is open (for DEF/USE)*/
 	Bool is_open;
-	/*this is needed in case the Url is changed - note that media nodes cannot point to different
-	URLs (when they could in VRML), the MF is only holding media segment descriptions*/
-	MFURL current_url;
+	/*this is needed in case the Url is changed*/
+//	MFURL current_url;
 	/*to override by each texture node*/
 	void (*update_texture_fcnt)(struct _gf_sc_texture_handler *txh);
 	/*needs_release if a visual frame is grabbed (not used by modules)*/
@@ -520,12 +519,15 @@ typedef struct _gf_sc_texture_handler
 	/*image data for natural media*/
 	char *data;
 	u32 width, height, stride, pixelformat, pixel_ar;
+
+#ifndef GPAC_DISABLE_VRML
 	/*if set texture has been transformed by MatteTexture -> disable blit*/
 	Bool has_cmat;
 
 	/*matteTexture parent if any*/
 	GF_Node *matteTexture;
-	
+#endif
+
 
 #ifdef GPAC_TRISCOPE_MODE
 
@@ -663,9 +665,12 @@ struct _traversing_state
 	/*the one and only visual manager currently being traversed*/
 	GF_VisualManager *visual;
 	
+#ifndef GPAC_DISABLE_VRML
 	/*current background and viewport stacks*/
 	GF_List *backgrounds;
 	GF_List *viewpoints;
+#endif
+
 
 	/*current transformation from top-level*/
 	GF_Matrix2D transform;
@@ -700,6 +705,7 @@ struct _traversing_state
 	Bool ignore_strike;
 	
 	GF_List *use_stack;
+
 	/* Styling Property and others for SVG context */
 #ifndef GPAC_DISABLE_SVG
 	SVG_Number *parent_use_opacity;
@@ -761,10 +767,12 @@ struct _traversing_state
 	/*current object (model) transformation from top-level, view is NOT included*/
 	GF_Matrix model_matrix;
 
+#ifndef GPAC_DISABLE_VRML
 	/*fog bind stack*/
-	GF_List *fogs; /*holds fogs info*/
+	GF_List *fogs; 
 	/*navigation bind stack*/
 	GF_List *navigations;
+#endif
 
 	/*when drawing, signals the mesh is transparent (enables blending)*/
 	Bool mesh_is_transparent;
@@ -940,7 +948,6 @@ typedef struct
 	Fixed speed, intensity;
 	Bool stream_finished;
 	Bool need_release;
-	MFURL url;
 	u32 is_open;
 	Bool is_muted;
 	Bool register_with_renderer, register_with_parent;
@@ -1157,11 +1164,9 @@ void gf_font_spans_get_selection(GF_Node *node, GF_List *spans, GF_TraverseState
 GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles, Bool check_only);
 
 
-GF_SceneGraph *gf_sc_get_subscene(GF_Node *inline_node);
-GF_Node *gf_sc_get_subscene_root(GF_Node *inline_node);
-
-
 u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev);
+
+Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev);
 
 #endif	/*_COMPOSITOR_DEV_H_*/
 

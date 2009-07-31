@@ -28,6 +28,9 @@
 #include "mpeg4_grouping.h"
 #include "visual_manager.h"
 
+#ifndef GPAC_DISABLE_VRML
+
+
 typedef struct
 {
 	PARENT_NODE_STACK_2D
@@ -672,3 +675,5 @@ static void av_apply(FormStack *st, u32 *group_idx, u32 count)
 		fg_update_bounds(form_get_group(st, group_idx[i]));
 	}
 }
+
+#endif /*GPAC_DISABLE_VRML*/

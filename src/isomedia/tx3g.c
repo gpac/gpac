@@ -25,8 +25,9 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_ISOM
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, GF_TextSampleDescriptor *desc)
 {
@@ -389,7 +390,7 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 	return GF_OK;
 }
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_TextSample *gf_isom_new_text_sample()
 {
@@ -709,3 +710,4 @@ GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_ISOM*/

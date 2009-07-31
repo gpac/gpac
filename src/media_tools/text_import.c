@@ -31,7 +31,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 enum
 {
@@ -1706,5 +1706,5 @@ GF_Err gf_import_timed_text(GF_MediaImporter *import)
 	}
 }
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 

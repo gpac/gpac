@@ -151,13 +151,13 @@ EXPORTS
 	gf_inline_default_scene_viewpoint @ 150 NONAME
 	gf_inline_disconnect @ 151 NONAME
 	gf_inline_find_odm @ 152 NONAME
-	gf_inline_force_scene_size @ 153 NONAME
+	gf_scene_force_size @ 153 NONAME
 	gf_inline_get_proto_lib @ 154 NONAME
-	gf_inline_get_time @ 155 NONAME
-	gf_inline_process_anchor @ 156 NONAME
-	gf_inline_register_extra_graph @ 157 NONAME
-	gf_inline_set_duration @ 158 NONAME
-	gf_inline_setup_object @ 159 NONAME
+	gf_scene_get_time @ 155 NONAME
+	gf_scene_process_anchor @ 156 NONAME
+	gf_scene_register_extra_graph @ 157 NONAME
+	gf_scene_set_duration @ 158 NONAME
+	gf_scene_setup_object @ 159 NONAME
 	gf_invfix @ 160 NONAME
 	gf_ismacryp_crypt_file @ 161 NONAME
 	gf_ismacryp_decrypt_file @ 162 NONAME

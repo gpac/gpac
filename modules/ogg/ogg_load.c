@@ -93,14 +93,18 @@ void DeleteOGGDecoder(GF_BaseDecoder *ifcd)
 
 Bool QueryInterface(u32 InterfaceType) 
 {
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
+#endif
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
 	return 0;
 }
 
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)OGG_LoadDemux();
+#endif
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)OGG_LoadDecoder();
 	return NULL;
 }
@@ -108,9 +112,11 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
 	case GF_NET_CLIENT_INTERFACE:
 		OGG_DeleteDemux(ifce);
 		break;
+#endif
 	case GF_MEDIA_DECODER_INTERFACE:
 		DeleteOGGDecoder((GF_BaseDecoder *) ifce);
 		break;

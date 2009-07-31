@@ -46,17 +46,21 @@ GF_ObjectManager *gf_odm_new()
 	tmp->OD_PL = (u8) -1;
 	tmp->Scene_PL = (u8) -1;
 	tmp->Visual_PL = (u8) -1;
+	tmp->mx = gf_mx_new("ODM");
+#ifndef GPAC_DISABLE_VRML
 	tmp->ms_stack = gf_list_new();
 	tmp->mc_stack = gf_list_new();
-	tmp->mx = gf_mx_new("ODM");
+#endif
 	return tmp;
 }
 
 void gf_odm_del(GF_ObjectManager *odm)
 {
 	Bool lock;
+#ifndef GPAC_DISABLE_VRML
 	u32 i;
 	MediaSensorStack *media_sens;
+#endif
 
 	/*make sure we are not in the media queue*/
 	gf_mx_p(odm->term->net_mx);
@@ -64,18 +68,21 @@ void gf_odm_del(GF_ObjectManager *odm)
 	gf_mx_v(odm->term->net_mx);
 
 	lock = gf_mx_try_lock(odm->mx);
+
+#ifndef GPAC_DISABLE_VRML
 	i=0;
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i))) {
 		MS_Stop(media_sens);
 		/*and detach from stream object*/
 		media_sens->is_init = 0;
 	}
+	gf_list_del(odm->ms_stack);
+	gf_list_del(odm->mc_stack);
+#endif
 	if (odm->mo) odm->mo->odm = NULL;
 
 
 	gf_list_del(odm->channels);
-	gf_list_del(odm->ms_stack);
-	gf_list_del(odm->mc_stack);
 	gf_odf_desc_del((GF_Descriptor *)odm->OD);
 	assert (!odm->net_service);
 	if (lock) gf_mx_v(odm->mx);
@@ -110,7 +117,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	gf_odm_stop(odm, 1);
 
 	/*disconnect sub-scene*/
-	if (odm->subscene) gf_inline_disconnect(odm->subscene, do_remove);
+	if (odm->subscene) gf_scene_disconnect(odm->subscene, do_remove);
 
 	/*no destroy*/
 	if (!do_remove) return;
@@ -120,7 +127,9 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	/*unload the decoders before deleting the channels to prevent any access fault*/
 	if (odm->codec) gf_term_remove_codec(odm->term, odm->codec);
 	if (odm->ocr_codec) gf_term_remove_codec(odm->term, odm->ocr_codec);
+#ifndef GPAC_MINIMAL_ODF
 	if (odm->oci_codec) gf_term_remove_codec(odm->term, odm->oci_codec);
+#endif
 
 	/*then delete all the channels in this OD */
 	while (gf_list_count(odm->channels)) {
@@ -143,10 +152,12 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 		gf_codec_del(odm->ocr_codec);
 		odm->ocr_codec = NULL;
 	}
+#ifndef GPAC_MINIMAL_ODF
 	if (odm->oci_codec) {
 		gf_codec_del(odm->oci_codec);
 		odm->oci_codec = NULL;
 	}
+#endif
 
 	/*detach from network service */
 	if (odm->net_service) {
@@ -160,7 +171,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 				if (ns->nb_odm_users && odm->parentscene) {
 					GF_ObjectManager *new_root;
 					u32 i = 0;
-					while ((new_root = (GF_ObjectManager *)gf_list_enum(odm->parentscene->ODlist, &i)) ) {
+					while ((new_root = (GF_ObjectManager *)gf_list_enum(odm->parentscene->resources, &i)) ) {
 						if (new_root == odm) continue;
 						if (new_root->net_service != ns) continue;
 						ns->owner = new_root;
@@ -177,8 +188,8 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
-		gf_inline_remove_object(odm->parentscene, odm, do_remove);
-		if (odm->subscene) gf_inline_del(odm->subscene);
+		gf_scene_remove_object(odm->parentscene, odm, do_remove);
+		if (odm->subscene) gf_scene_del(odm->subscene);
 		gf_odm_del(odm);
 		return;
 	}
@@ -187,7 +198,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	if (odm->term->root_scene) {
 		GF_Event evt;
 		assert(odm->term->root_scene == odm->subscene);
-		gf_inline_del(odm->subscene);
+		gf_scene_del(odm->subscene);
 		/*reset main pointer*/
 		odm->term->root_scene = NULL;
 
@@ -208,7 +219,6 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	char *sub_url = (char *) service_sub_url;
 	GF_Terminal *term;
 	GF_Descriptor *desc;
-	GF_IPMP_ToolList *toolList;
 
 //	assert(odm->OD==NULL);
 
@@ -228,7 +238,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	/*for remote ODs, get expected OD type in case the service needs to generate the IOD on the fly*/
 	if (odm->parentscene && odm->OD && odm->OD->URLString) {
 		GF_MediaObject *mo;
-		mo = gf_inline_find_object(odm->parentscene, odm->OD->objectDescriptorID, odm->OD->URLString);
+		mo = gf_scene_find_object(odm->parentscene, odm->OD->objectDescriptorID, odm->OD->URLString);
 		if (mo) od_type = mo->type;
 		ext = strchr(odm->OD->URLString, '#');
 		if (ext) sub_url = ext;
@@ -251,12 +261,11 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		/*new subscene*/
 		if (!odm->subscene) {
 			assert(odm->parentscene);
-			odm->subscene = gf_inline_new(odm->parentscene);
+			odm->subscene = gf_scene_new(odm->parentscene);
 			odm->subscene->root_od = odm;
 		}
 	}
 
-	toolList = NULL;
 	switch (desc->tag) {
 	case GF_ODF_IOD_TAG:
 	{
@@ -272,7 +281,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		odm->Visual_PL = the_iod->visual_profileAndLevel;
 		odm->flags |= GF_ODM_HAS_PROFILES;
 		if (the_iod->inlineProfileFlag) odm->flags |= GF_ODM_INLINE_PROFILES;
-		toolList = the_iod->IPMPToolList;
+		gf_odf_desc_del((GF_Descriptor *) the_iod->IPMPToolList);
 		free(the_iod);
 	}
 		break;
@@ -285,25 +294,6 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		goto err_exit;
 	}
 	
-	if (toolList) {
-		Bool ipmp_failed = 0;
-/*
-		GF_IPMP_Tool *ipmpt;
-		i=0;
-		while ((ipmpt = gf_list_enum(toolList->ipmp_tools, &i))) {
-			if (!Term_CheckIPMPTool(odm->term, ipmpt)) {
-				ipmp_failed = 1;
-				break;
-			}
-		}
-*/
-		gf_odf_desc_del((GF_Descriptor *)toolList);
-		if (ipmp_failed) {
-			gf_term_message(odm->term, odm->net_service->url, "MPEG4 IPMP Setup Failure - cannot process content", GF_SERVICE_ERROR);
-			goto err_exit;
-		}
-	}
-
 	gf_term_lock_net(term, 1);
 	gf_odm_setup_object(odm, odm->net_service);
 	gf_term_lock_net(term, 0);
@@ -489,7 +479,7 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline)
 /*connection of OD and setup of streams. The streams are not requested if the OD
 is in an unexecuted state
 the ODM is created either because of IOD / remoteOD, or by the OD codec. In the later
-case, the GF_InlineScene pointer will be set by the OD codec.*/
+case, the GF_Scene pointer will be set by the OD codec.*/
 GF_EXPORT
 void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 {
@@ -519,7 +509,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			propagation (stored at the inline level)
 		*/
 		if (odm->mo && (odm->mo->type==GF_MEDIA_OBJECT_SCENE)) {
-			odm->subscene = gf_inline_new(odm->parentscene);
+			odm->subscene = gf_scene_new(odm->parentscene);
 			odm->subscene->root_od = odm;
 		}
 		gf_term_connect_object(odm->term, odm, url, parent ? parent->url : NULL);
@@ -548,10 +538,10 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		hasInline = 0;
 	}
 
-	/*if there is a BIFS stream in the OD, we need an GF_InlineScene (except if we already 
+	/*if there is a BIFS stream in the OD, we need an GF_Scene (except if we already 
 	have one, which means this is the first IOD)*/
 	if (hasInline && !odm->subscene) {
-		odm->subscene = gf_inline_new(odm->parentscene);
+		odm->subscene = gf_scene_new(odm->parentscene);
 		odm->subscene->root_od = odm;
 	}
 
@@ -592,7 +582,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	
 	/*setup mediaobject info except for top-level OD*/
 	if (odm->parentscene) {
-		gf_inline_setup_object(odm->parentscene, odm);
+		gf_scene_setup_object(odm->parentscene, odm);
 	} else {
 		/*othewise send a connect ack for top level*/
 		GF_Event evt;
@@ -615,7 +605,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	if (odm->term->root_scene->is_dynamic_scene && (odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID) && (odm->flags & GF_ODM_REMOTE_OD)) {
 		GF_Event evt;
 		if (odm->OD_PL) {
-			gf_inline_select_object(odm->term->root_scene, odm);
+			gf_scene_select_object(odm->term->root_scene, odm);
 			odm->OD_PL = 0;
 		}
 		evt.type = GF_EVENT_STREAMLIST;
@@ -646,7 +636,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	u16 clockID;
 	Bool emulated_od = 0;
 	GF_Err e;
-	GF_InlineScene *is;
+	GF_Scene *scene;
 
 	/*find the clock for this new channel*/
 	ck = NULL;
@@ -667,8 +657,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	}
 
 	/*get clocks namespace (eg, parent scene)*/
-	is = odm->subscene ? odm->subscene : odm->parentscene;
-	if (is->force_sub_clock_id) esd->OCRESID = is->force_sub_clock_id;
+	scene = odm->subscene ? odm->subscene : odm->parentscene;
 
 	ck_namespace = odm->net_service->Clocks;
 	/*little trick for non-OD addressing: if object is a remote one, and service owner already has clocks, 
@@ -699,10 +688,10 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 
 	/*override clock dependencies if specified*/
 	if (odm->term->flags & GF_TERM_SINGLE_CLOCK) {
-		if (is->scene_codec) {
-			clockID = is->scene_codec->ck->clockID;
-		} else if (is->od_codec) {
-			clockID = is->od_codec->ck->clockID;
+		if (scene->scene_codec) {
+			clockID = scene->scene_codec->ck->clockID;
+		} else if (scene->od_codec) {
+			clockID = scene->od_codec->ck->clockID;
 		}
 		ck_namespace = odm->term->root_scene->root_od->net_service->Clocks;
 	}
@@ -717,7 +706,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	}
 
 	/*attach clock in namespace*/
-	ck = gf_clock_attach(ck_namespace, is, clockID, esd->ESID, flag);
+	ck = gf_clock_attach(ck_namespace, scene, clockID, esd->ESID, flag);
 	if (!ck) return GF_OUT_OF_MEM;
 	esd->OCRESID = ck->clockID;
 
@@ -771,6 +760,7 @@ clock_setup:
 			dec = odm->subscene->scene_codec;
 		}
 		break;
+#ifndef GPAC_MINIMAL_ODF
 	case GF_STREAM_OCI:
 		/*OCI - only one per OD */
 		if (odm->oci_codec) {
@@ -781,6 +771,7 @@ clock_setup:
 			gf_term_add_codec(odm->term, odm->oci_codec);
 		}
 		break;
+#endif
 
 	case GF_STREAM_AUDIO:
 	case GF_STREAM_VISUAL:
@@ -793,11 +784,12 @@ clock_setup:
 		break;
 
 	/*interaction stream*/
+#ifndef GPAC_DISABLE_VRML
 	case GF_STREAM_INTERACT:
 		if (!odm->codec) {
 			odm->codec = gf_codec_new(odm, esd, odm->OD_PL, &e);
 			if (!e) {
-				IS_Configure(odm->codec->decio, odm->parentscene, esd->URLString ? 1 : 0);
+				gf_isdec_configure(odm->codec->decio, odm->parentscene, esd->URLString ? 1 : 0);
 				gf_term_add_codec(odm->term, odm->codec);
 				/*register it*/
 				gf_list_add(odm->term->input_streams, odm->codec);
@@ -808,6 +800,7 @@ clock_setup:
 			emulated_od = 1;
 		}
 		break;
+#endif
 
 	case GF_STREAM_PRIVATE_SCENE:
 		if (odm->subscene) {
@@ -846,18 +839,18 @@ clock_setup:
 	/*setup scene decoder*/
 	if (dec->decio && (dec->decio->InterfaceType==GF_SCENE_DECODER_INTERFACE) ) {
 		GF_SceneDecoder *sdec = (GF_SceneDecoder *) dec->decio;
-		is = odm->subscene ? odm->subscene : odm->parentscene;
+		scene = odm->subscene ? odm->subscene : odm->parentscene;
 		if (sdec->AttachScene) {
 			/*if a node asked for this media object, use the scene graph of the node (AnimationStream in PROTO)*/
 			if (odm->mo && odm->mo->node_ptr) {
-				GF_SceneGraph *sg = is->graph;
+				GF_SceneGraph *sg = scene->graph;
 				/*FIXME - this MUST be cleaned up*/
-				is->graph = gf_node_get_graph((GF_Node*)odm->mo->node_ptr);
-				sdec->AttachScene(sdec, is, (is->scene_codec==dec) ? 1: 0);
-				is->graph = sg;
+				scene->graph = gf_node_get_graph((GF_Node*)odm->mo->node_ptr);
+				sdec->AttachScene(sdec, scene, (scene->scene_codec==dec) ? 1: 0);
+				scene->graph = sg;
 				odm->mo->node_ptr = NULL;
 			} else {
-				sdec->AttachScene(sdec, is, (is->scene_codec==dec) ? 1: 0);
+				sdec->AttachScene(sdec, scene, (scene->scene_codec==dec) ? 1: 0);
 			}
 		}
 	}
@@ -1048,8 +1041,10 @@ void ODM_DeleteChannel(GF_ObjectManager *odm, GF_Channel *ch)
 		count = gf_codec_remove_channel(odm->codec, ch);
 	if (!count && odm->ocr_codec)
 		count = gf_codec_remove_channel(odm->ocr_codec, ch);
+#ifndef GPAC_MINIMAL_ODF
 	if (!count && odm->oci_codec)
 		count = gf_codec_remove_channel(odm->oci_codec, ch);
+#endif
 	if (!count && odm->subscene) {
 		if (odm->subscene->scene_codec) count = gf_codec_remove_channel(odm->subscene->scene_codec, ch);
 		if (!count) count = gf_codec_remove_channel(odm->subscene->od_codec, ch);
@@ -1146,7 +1141,9 @@ void gf_odm_play(GF_ObjectManager *odm)
 	u64 range_end;
 	Bool skip_od_st;
 	GF_NetworkCommand com;
+#ifndef GPAC_DISABLE_VRML
 	MediaControlStack *ctrl;
+#endif
 	GF_Clock *parent_ck = NULL;
 
 	if (odm->parentscene) {
@@ -1211,8 +1208,9 @@ void gf_odm_play(GF_ObjectManager *odm)
 			}
 		}
 
+#ifndef GPAC_DISABLE_VRML
 		/*if object shares parent scene clock, do not use media control*/
-		ctrl = parent_ck ? NULL : ODM_GetMediaControl(odm);
+		ctrl = parent_ck ? NULL : gf_odm_get_mediacontrol(odm);
 		/*override range and speed with MC*/
 		if (ctrl) {
 			MC_GetRange(ctrl, &com.play.start_range, &com.play.end_range);
@@ -1236,6 +1234,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 				com.play.start_range += ck_time;
 			}
 		}
+#endif
+
 		/*full object playback*/
 		if (com.play.end_range<=0) {
 			odm->media_stop_time = odm->subscene ? 0 : odm->duration;
@@ -1286,11 +1286,13 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 		if (odm->flags & GF_ODM_REGENERATE_SCENE) {
 			odm->flags &= ~GF_ODM_REGENERATE_SCENE;
-			gf_inline_regenerate(odm->subscene);
+			gf_scene_regenerate(odm->subscene);
 		}
 	}
 	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec);
+#ifndef GPAC_MINIMAL_ODF
 	if (odm->oci_codec) gf_term_start_codec(odm->oci_codec);
+#endif
 }
 
 
@@ -1298,8 +1300,11 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 {
 	GF_Channel *ch;
 	u32 i;
+#ifndef GPAC_DISABLE_VRML
 	MediaControlStack *ctrl;
 	MediaSensorStack *media_sens;
+#endif
+
 	GF_NetworkCommand com;
 	
 	if (!odm->state) return;
@@ -1339,12 +1344,14 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 		if (odm->subscene->od_codec) gf_term_stop_codec(odm->subscene->od_codec);
 
 		/*stops all resources of the subscene as well*/
-		while ((sub_odm=(GF_ObjectManager *)gf_list_enum(odm->subscene->ODlist, &i))) {
+		while ((sub_odm=(GF_ObjectManager *)gf_list_enum(odm->subscene->resources, &i))) {
 			gf_odm_stop(sub_odm, force_close);
 		}
 	}
 	if (odm->ocr_codec) gf_term_stop_codec(odm->ocr_codec);
+#ifndef GPAC_MINIMAL_ODF
 	if (odm->oci_codec) gf_term_stop_codec(odm->oci_codec);
+#endif
 
 	gf_term_lock_net(odm->term, 1);
 
@@ -1382,6 +1389,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	odm->state = GF_ODM_STATE_STOP;
 	odm->current_time = 0;
 
+#ifndef GPAC_DISABLE_VRML
 	/*reset media sensor(s)*/
 	if (force_close!=2) {
 		i = 0;
@@ -1390,13 +1398,17 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 		}
 	}
 	/*reset media control state*/
-	ctrl = ODM_GetMediaControl(odm);
+	ctrl = gf_odm_get_mediacontrol(odm);
 	if (ctrl) ctrl->current_seg = 0;
+#endif
+
 }
 
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 {
+#ifndef GPAC_DISABLE_VRML
 	if (gf_odm_check_segment_switch(odm)) return;
+#endif
 
 	gf_term_service_media_event(odm, GF_EVENT_MEDIA_END_OF_DATA);
 	
@@ -1409,7 +1421,9 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 		return;
 	}
 	if (on_channel->esd->decoderConfig->streamType==GF_STREAM_OCI) {
+#ifndef GPAC_MINIMAL_ODF
 		gf_codec_set_status(odm->oci_codec, GF_ESM_CODEC_EOS);
+#endif
 		return;
 	}
 	if (!odm->subscene) return;
@@ -1442,7 +1456,7 @@ void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *ch, u64 stream_durat
 	}
 
 	/*update scene duration*/
-	gf_inline_set_duration(odm->subscene ? odm->subscene : (odm->parentscene ? odm->parentscene : odm->term->root_scene));
+	gf_scene_set_duration(odm->subscene ? odm->subscene : (odm->parentscene ? odm->parentscene : odm->term->root_scene));
 }
 
 
@@ -1456,89 +1470,6 @@ GF_Clock *gf_odm_get_media_clock(GF_ObjectManager *odm)
 }
 
 
-void ODM_SetMediaControl(GF_ObjectManager *odm, MediaControlStack *ctrl)
-{
-	u32 i;
-	GF_Channel *ch;
-
-	/*keep track of it*/
-	if (ctrl && (gf_list_find(odm->mc_stack, ctrl) < 0)) gf_list_add(odm->mc_stack, ctrl);
-	if (ctrl && !ctrl->control->enabled) return;
-
-	if (odm->subscene && odm->subscene->is_dynamic_scene) {
-		if (odm->subscene->dyn_ck) {
-			/*deactivate current control*/
-			if (ctrl && odm->subscene->dyn_ck->mc) {
-				odm->subscene->dyn_ck->mc->control->enabled = 0;
-				gf_node_event_out_str((GF_Node *)odm->subscene->dyn_ck->mc->control, "enabled");
-			}
-			odm->subscene->dyn_ck->mc = ctrl;
-		}
-	} else {
-		/*for each clock in the controled OD*/
-		i=0;
-		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
-			if (ch->clock->mc != ctrl) {
-				/*deactivate current control*/
-				if (ctrl && ch->clock->mc) {
-					ch->clock->mc->control->enabled = 0;
-					gf_node_event_out_str((GF_Node *)ch->clock->mc->control, "enabled");
-				}
-				/*and attach this control to the clock*/
-				ch->clock->mc = ctrl;
-			}
-		}
-	}
-	/*store active control on media*/
-	odm->media_ctrl = ODM_GetMediaControl(odm);
-}
-
-MediaControlStack *ODM_GetMediaControl(GF_ObjectManager *odm)
-{
-	GF_Clock *ck;
-	ck = gf_odm_get_media_clock(odm);
-	if (!ck) return NULL;
-	return ck->mc;
-}
-
-MediaControlStack *ODM_GetObjectMediaControl(GF_ObjectManager *odm)
-{
-	MediaControlStack *ctrl;
-	ctrl = ODM_GetMediaControl(odm);
-	if (!ctrl) return NULL;
-	/*inline scene control*/
-	if (odm->subscene && (ctrl->stream->odm == odm->subscene->root_od) ) return ctrl;
-	if (ctrl->stream->OD_ID != odm->OD->objectDescriptorID) return NULL;
-	return ctrl;
-}
-
-void ODM_RemoveMediaControl(GF_ObjectManager *odm, MediaControlStack *ctrl)
-{
-	gf_list_del_item(odm->mc_stack, ctrl);
-	/*removed. Note the spec doesn't say what to do in this case...*/
-	if (odm->media_ctrl == ctrl) ODM_SetMediaControl(odm, NULL);
-}
-
-Bool ODM_SwitchMediaControl(GF_ObjectManager *odm, MediaControlStack *ctrl)
-{
-	u32 i;
-	MediaControlStack *st2;
-	if (!ctrl->control->enabled) return 0;
-
-	/*for all media controls other than this one force enable to false*/
-	i=0;
-	while ((st2 = (MediaControlStack *)gf_list_enum(odm->mc_stack, &i))) {
-		if (st2 == ctrl) continue;
-		if (st2->control->enabled) {
-			st2->control->enabled = 0;
-			gf_node_event_out_str((GF_Node *) st2->control, "enabled");
-		}
-		st2->enabled = 0;
-	}
-	if (ctrl == odm->media_ctrl) return 0;
-	ODM_SetMediaControl(odm, ctrl);
-	return 1;
-}
 
 Bool gf_odm_shares_clock(GF_ObjectManager *odm, GF_Clock *ck)
 {
@@ -1556,7 +1487,9 @@ void gf_odm_pause(GF_ObjectManager *odm)
 {
 	u32 i;
 	GF_NetworkCommand com;
+#ifndef GPAC_DISABLE_VRML
 	MediaSensorStack *media_sens;
+#endif
 	GF_Channel *ch;
 
 	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
@@ -1574,7 +1507,9 @@ void gf_odm_pause(GF_ObjectManager *odm)
 		if (odm->subscene->od_codec) gf_term_stop_codec(odm->subscene->od_codec);
 	}
 	if (odm->ocr_codec) gf_term_stop_codec(odm->ocr_codec);
+#ifndef GPAC_MINIMAL_ODF
 	if (odm->oci_codec) gf_term_stop_codec(odm->oci_codec);
+#endif
 
 	com.command_type = GF_NET_CHAN_PAUSE;
 	i=0;
@@ -1584,6 +1519,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 		gf_term_service_command(ch->service, &com);
 	}
 
+#ifndef GPAC_DISABLE_VRML
 	/*mediaSensor  shall generate isActive false when paused*/
 	i=0;
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i)) ) {
@@ -1592,6 +1528,8 @@ void gf_odm_pause(GF_ObjectManager *odm)
 			gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
 		}
 	}
+#endif
+
 }
 
 void gf_odm_resume(GF_ObjectManager *odm)
@@ -1599,7 +1537,9 @@ void gf_odm_resume(GF_ObjectManager *odm)
 	u32 i;
 	GF_NetworkCommand com;
 	GF_Channel *ch;
+#ifndef GPAC_DISABLE_VRML
 	MediaSensorStack *media_sens;
+#endif
 
 	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
 
@@ -1616,8 +1556,10 @@ void gf_odm_resume(GF_ObjectManager *odm)
 		if (odm->subscene->od_codec) gf_term_start_codec(odm->subscene->od_codec);
 	}
 	if (odm->ocr_codec) gf_term_start_codec(odm->ocr_codec);
+#ifndef GPAC_MINIMAL_ODF
 	if (odm->oci_codec) gf_term_start_codec(odm->oci_codec);
-	
+#endif
+
 	com.command_type = GF_NET_CHAN_RESUME;
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ){
@@ -1626,6 +1568,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 		gf_term_service_command(ch->service, &com);
 	}
 
+#ifndef GPAC_DISABLE_VRML
 	/*mediaSensor shall generate isActive TRUE when resumed*/
 	i=0;
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i)) ){
@@ -1634,6 +1577,7 @@ void gf_odm_resume(GF_ObjectManager *odm)
 			gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
 		}
 	}
+#endif
 }
 
 void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed)
@@ -1733,62 +1677,5 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 			gf_odm_insert_segment(odm, seg, list);
 		}
 	}
-}
-
-Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
-{
-	u32 count, i;
-	GF_Segment *cur, *next;
-	MediaControlStack *ctrl = ODM_GetMediaControl(odm);
-
-	/*if no control or control not on this object ignore segment switch*/
-	if (!ctrl || (ctrl->stream->odm != odm)) return 0;
-
-	count = gf_list_count(ctrl->seg);
-	/*reached end of controled stream (no more segments)*/
-	if (ctrl->current_seg>=count) return 0;
-
-	/*synth media, trigger if end of segment run-time*/
-	if (!odm->codec || ((odm->codec->type!=GF_STREAM_VISUAL) && (odm->codec->type!=GF_STREAM_AUDIO))) {
-		GF_Clock *ck = gf_odm_get_media_clock(odm);
-		u32 now = gf_clock_time(ck);
-		u64 dur = odm->subscene ? odm->subscene->duration : odm->duration;
-		cur = (GF_Segment *)gf_list_get(ctrl->seg, ctrl->current_seg);
-		if (odm->subscene && odm->subscene->needs_restart) return 0;
-		if (cur) dur = (u32) ((cur->Duration+cur->startTime)*1000);
-		if (now<=dur) return 0;
-	} else {
-		/*FIXME - for natural media with scalability, we should only process when all streams of the object are done*/
-	}
-
-	/*get current segment and move to next one*/
-	cur = (GF_Segment *)gf_list_get(ctrl->seg, ctrl->current_seg);
-	ctrl->current_seg ++;
-
-	/*resync in case we have been issuing a play range over several segments*/
-	for (i=ctrl->current_seg; i<count; i++) {
-		next = (GF_Segment *)gf_list_get(ctrl->seg, i);
-		if (
-			/*if next seg start is after cur seg start*/
-			(cur->startTime < next->startTime) 
-			/*if next seg start is before cur seg end*/
-			&& (cur->startTime + cur->Duration > next->startTime) 
-			/*if next seg start is already passed*/
-			&& (1000*next->startTime < odm->current_time)
-			/*then next segment was taken into account when requesting play*/
-			) {
-			cur = next;
-			ctrl->current_seg ++;
-		}
-	}
-	/*if last segment in ctrl is done, end of stream*/
-	if (ctrl->current_seg >= count) return 0;
-	next = (GF_Segment *)gf_list_get(ctrl->seg, ctrl->current_seg);
-
-	/*if next seg start is not in current seg, media needs restart*/
-	if ((next->startTime < cur->startTime) || (cur->startTime + cur->Duration < next->startTime))
-		MC_Restart(odm);
-
-	return 1;
 }
 

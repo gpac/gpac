@@ -942,6 +942,7 @@ typedef struct tagODCoDec
 	GF_List *CommandList;
 } GF_ODCodec;
 
+
 /*construction / destruction*/
 GF_ODCodec *gf_odf_codec_new();
 void gf_odf_codec_del(GF_ODCodec *codec);
@@ -980,57 +981,9 @@ GF_Err gf_odf_com_del(GF_ODCom **com);
 GF_Descriptor *gf_odf_desc_new(u8 tag);
 void gf_odf_desc_del(GF_Descriptor *desc);
 
-/*use this function to decode a standalone descriptor
-the raw descriptor MUST be formatted with tag and size field!!!
-a new desc is created and you must delete it when done*/
-GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor * *outDesc);
-
-/*use this function to encode a standalone descriptor
-the desc will be formatted with tag and size field
-the output buffer is allocated and you must delete it when done*/
-GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize);
-
-/*use this function to get the size of a standalone descriptor (including tag and size fields)
-return 0 if error*/
-u32 gf_odf_desc_size(GF_Descriptor *desc);
-
-/*this is usefull to duplicate on the fly a descriptor*/
-GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc);
-
-
-/*This functions handles internally what desc can be added to another desc
-and adds it. NO DUPLICATION of the descriptor, so
-once a desc is added to its parent, destroying the parent WILL DESTROY 
-this descriptor*/
-GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc);
-
-
 /*this is a helper for building a preformatted GF_ESD with decoderConfig, decoderSpecificInfo with no data and 
 SLConfig descriptor with predefined*/
 GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined);
-
-
-/*Since IPMP V2, we introduce a new set of functions to read / write a list of descriptors
-that have no containers (a bit like an OD command, but for descriptors)
-This is usefull for IPMPv2 DecoderSpecificInfo which contains a set of IPMP_Declarators
-As it could be used for other purposes we keep it generic
-you must create the list yourself, the functions just encode/decode from/to the list*/
-
-/*uncompress an encoded list of descriptors. You must pass an empty GF_List structure
-to know exactly what was in the buffer*/
-GF_Err gf_odf_desc_list_read(char *raw_list, u32 raw_size, GF_List *descList);
-/*compress all descriptors in the list into a single buffer. The buffer is allocated
-by the lib and must be destroyed by your app
-you must pass (outEncList != NULL  && *outEncList == NULL)*/
-GF_Err gf_odf_desc_list_write(GF_List *descList, char **outEncList, u32 *outSize);
-/*returns size of encoded desc list*/
-GF_Err gf_odf_desc_list_size(GF_List *descList, u32 *outSize);
-/*destroy the descriptors in a list but not the list*/
-GF_Err gf_odf_desc_list_del(GF_List *descList);
-
-/*retuns NULL if unknown, otherwise value*/
-const char *gf_odf_stream_type_name(u32 streamType);
-u32 gf_odf_stream_type_by_name(const char *streamType);
 
 /*special function for authoring - convert DSI to BIFSConfig*/
 GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti);
@@ -1051,6 +1004,56 @@ GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size);
 /*writes GF_AVCConfig as MPEG-4 DSI*/
 GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize);
 
+/*destroy the descriptors in a list but not the list*/
+GF_Err gf_odf_desc_list_del(GF_List *descList);
+
+/*use this function to decode a standalone descriptor
+the raw descriptor MUST be formatted with tag and size field!!!
+a new desc is created and you must delete it when done*/
+GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor * *outDesc);
+
+/*use this function to encode a standalone descriptor
+the desc will be formatted with tag and size field
+the output buffer is allocated and you must delete it when done*/
+GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize);
+
+/*use this function to get the size of a standalone descriptor (including tag and size fields)
+return 0 if error*/
+u32 gf_odf_desc_size(GF_Descriptor *desc);
+
+/*this is usefull to duplicate on the fly a descriptor*/
+GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc);
+
+/*This functions handles internally what desc can be added to another desc
+and adds it. NO DUPLICATION of the descriptor, so
+once a desc is added to its parent, destroying the parent WILL DESTROY 
+this descriptor*/
+GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc);
+
+
+
+/*Since IPMP V2, we introduce a new set of functions to read / write a list of descriptors
+that have no containers (a bit like an OD command, but for descriptors)
+This is usefull for IPMPv2 DecoderSpecificInfo which contains a set of IPMP_Declarators
+As it could be used for other purposes we keep it generic
+you must create the list yourself, the functions just encode/decode from/to the list*/
+
+/*uncompress an encoded list of descriptors. You must pass an empty GF_List structure
+to know exactly what was in the buffer*/
+GF_Err gf_odf_desc_list_read(char *raw_list, u32 raw_size, GF_List *descList);
+/*compress all descriptors in the list into a single buffer. The buffer is allocated
+by the lib and must be destroyed by your app
+you must pass (outEncList != NULL  && *outEncList == NULL)*/
+GF_Err gf_odf_desc_list_write(GF_List *descList, char **outEncList, u32 *outSize);
+/*returns size of encoded desc list*/
+GF_Err gf_odf_desc_list_size(GF_List *descList, u32 *outSize);
+
+/*retuns NULL if unknown, otherwise value*/
+const char *gf_odf_stream_type_name(u32 streamType);
+u32 gf_odf_stream_type_by_name(const char *streamType);
+
+
+#ifndef GPAC_MINIMAL_ODF
 
 
 /************************************************************
@@ -1122,6 +1125,8 @@ you MUST delete events */
 OCIEvent *gf_oci_codec_get_event(OCICodec *codec);
 
 
+#ifndef GPAC_DISABLE_OD_DUMP
+
 /*OD dump tools*/
 GF_Err gf_odf_dump_au(char *data, u32 dataLength, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_odf_dump_com(void *p, FILE *trace, u32 indent, Bool XMTDump);
@@ -1132,10 +1137,15 @@ GF_Err gf_odf_dump_com_list(GF_List *commandList, FILE *trace, u32 indent, Bool 
 GF_Err gf_oci_dump_event(OCIEvent *ev, FILE *trace, u32 indent, Bool XMTDump);
 GF_Err gf_oci_dump_au(u8 version, char *au, u32 au_length, FILE *trace, u32 indent, Bool XMTDump);
 
+#endif /*GPAC_DISABLE_OD_DUMP*/
+
+
+#endif /*GPAC_MINIMAL_ODF*/
 
 /*OD parsing tools (XMT/BT)*/
 /*returns desc tag based on name*/
 u32 gf_odf_get_tag_by_name(char *descName);
+
 /*field type for OD/QoS/IPMPX/etc*/
 enum
 {
@@ -1155,9 +1165,11 @@ enum
 	GF_ODF_FT_IPMPX_BA_LIST = 6,
 };
 u32 gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName);
+
 /*set non-descriptor field value - value string shall be presented without ' or " characters*/
 GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val);
 
+#ifndef GPAC_MINIMAL_ODF
 
 
 
@@ -1689,6 +1701,7 @@ GF_Err gf_ipmpx_set_byte_array(GF_IPMPX_Data *p, char *field, char *str);
 GF_Err gf_ipmpx_dump_data(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDump);
 
 
+#endif /*GPAC_MINIMAL_ODF*/
 
 #ifdef __cplusplus
 }

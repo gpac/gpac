@@ -25,6 +25,7 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_ISOM
 
 void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc)
 {
@@ -139,7 +140,7 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 	return cfg_new;	
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -215,7 +216,7 @@ GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber)
 	return GF_OK;
 }
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_EXPORT
 GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
@@ -253,7 +254,7 @@ GF_Box *btrt_New()
 	return (GF_Box *)tmp;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err btrt_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -274,7 +275,7 @@ GF_Err btrt_Size(GF_Box *s)
 	ptr->size += 12;
 	return e;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -308,7 +309,7 @@ GF_Box *m4ds_New()
 	return (GF_Box *)tmp;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err m4ds_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -338,7 +339,7 @@ GF_Err m4ds_Size(GF_Box *s)
 	ptr->size += descSize;
 	return e;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -391,7 +392,7 @@ GF_Box *avcc_New()
 	return (GF_Box *)tmp;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i, count;
@@ -444,6 +445,7 @@ GF_Err avcc_Size(GF_Box *s)
 	for (i=0; i<count; i++) ptr->size += 2 + ((GF_AVCConfigSlot *)gf_list_get(ptr->config->pictureParameterSets, i))->size;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+#endif /*GPAC_DISABLE_ISOM*/

@@ -24,6 +24,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 GF_TrackBox *GetTrackbyID(GF_MovieBox *moov, u32 TrackID)
 {
 	GF_TrackBox *trak;
@@ -338,7 +340,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 }
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset)
 {
@@ -431,7 +433,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset
 #endif
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 //used to check if a TrackID is available
 u8 RequestTrack(GF_MovieBox *moov, u32 TrackID)
@@ -788,5 +790,6 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	return GF_OK;
 }
 
-#endif	//GPAC_READ_ONLY
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
+#endif /*GPAC_DISABLE_ISOM*/

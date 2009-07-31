@@ -25,6 +25,9 @@
 
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/mpeg4_odf.h>
+#include <gpac/nodes_x3d.h>
+
+#ifndef GPAC_DISABLE_BIFS
 
 
 static GF_Err ParseConfig(GF_BitStream *bs, BIFSStreamInfo *info, u32 version)
@@ -455,4 +458,39 @@ u8 gf_bifs_encoder_get_version(GF_BifsEncoder *codec, u16 ESID)
 //	gf_mx_v(codec->mx);
 	return ret;
 }
+
+
+u32 gf_bifs_get_child_table(GF_Node *Node)
+{
+	assert(Node);
+	return gf_sg_mpeg4_node_get_child_ndt(Node);
+}
+
+
+GF_Err gf_bifs_get_field_index(GF_Node *Node, u32 inField, u8 IndexMode, u32 *allField)
+{
+	assert(Node);
+	switch (Node->sgprivate->tag) {
+	case TAG_ProtoNode:
+		return gf_sg_proto_get_field_ind_static(Node, inField, IndexMode, allField);
+	case TAG_MPEG4_Script: 
+	case TAG_X3D_Script: 
+		return gf_sg_script_get_field_index(Node, inField, IndexMode, allField);
+	default: 
+		return gf_sg_mpeg4_node_get_field_index(Node, inField, IndexMode, allField);
+	}
+}
+
+
+/* QUANTIZATION AND BIFS_Anim Info */
+GF_EXPORT
+Bool gf_bifs_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
+{
+	switch (Node->sgprivate->tag) {
+	case TAG_ProtoNode: return gf_sg_proto_get_aq_info(Node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	default: return gf_sg_mpeg4_node_get_aq_info(Node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
+	}
+}
+
+#endif /*GPAC_DISABLE_BIFS*/
 

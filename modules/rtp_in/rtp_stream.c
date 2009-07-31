@@ -25,6 +25,7 @@
 #include "rtp_in.h"
 #include <gpac/internal/ietf_dev.h>
 
+#ifndef GPAC_DISABLE_STREAMING
 
 void RP_ConfirmChannelConnect(RTPStream *ch, GF_Err e)
 {
@@ -428,3 +429,4 @@ void RP_ReadStream(RTPStream *ch)
 	}
 }
 
+#endif /*GPAC_DISABLE_STREAMING*/

@@ -124,7 +124,7 @@ static void CALLBACK mesh_tess_combine(GLdouble coords[3], void* vertex_data[4],
 	*out_data = new_idx;
 }
 
-void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
+void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 {
 	u32 i, j, cur, nb_pts;
 	u32 *idx;
@@ -214,7 +214,7 @@ void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 
 #else
 
-void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style) { }
+void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style) { }
 
 #endif
 
@@ -485,5 +485,3 @@ void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *pt
 
 
 #endif	/*GPAC_DISABLE_3D*/
-
-

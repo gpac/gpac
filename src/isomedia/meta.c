@@ -26,6 +26,7 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
 
 GF_MetaBox *gf_isom_get_meta(GF_ISOFile *file, Bool root_meta, u32 track_num)
 {
@@ -140,7 +141,11 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 				break;
 			} else if (is_self_reference && !iloc->base_offset) {
 				GF_ItemExtentEntry *entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
-				if (!entry->extent_length && !entry->original_extent_offset)
+				if (!entry->extent_length
+#ifndef GPAC_DISABLE_ISOM_WRITE
+					&& !entry->original_extent_offset
+#endif
+					)
 					*is_self_reference = 1;
 			}
 		}
@@ -209,7 +214,11 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 	count = gf_list_count(location_entry->extent_entries);
 	if (!location_entry->base_offset && (count==1)) {
 		extent_entry = (GF_ItemExtentEntry *)gf_list_get(location_entry->extent_entries, 0);
-		if (!extent_entry->extent_length && !extent_entry->original_extent_offset) return GF_BAD_PARAM;
+		if (!extent_entry->extent_length 
+#ifndef GPAC_DISABLE_ISOM_WRITE
+			&& !extent_entry->original_extent_offset
+#endif
+			) return GF_BAD_PARAM;
 	}
 
 	if (dump_file_name) {
@@ -246,7 +255,7 @@ u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *file, Bool root_meta, u32 track
 }
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 metaType)
@@ -556,6 +565,8 @@ GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track
 }
 
 
-#endif	//GPAC_READ_ONLY
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
 
+
+#endif /*GPAC_DISABLE_ISOM*/

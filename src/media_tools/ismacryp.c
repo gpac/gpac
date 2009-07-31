@@ -257,7 +257,7 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 	return 0;
 }
 
-#ifndef GPAC_READ_ONLY
+#if !defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)
 
 static GFINLINE void resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
 {
@@ -889,7 +889,7 @@ GF_Err gf_ismacryp_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	return e;
 }
 
-#endif
+#endif /*!defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
 GF_EXPORT
 GF_Err gf_media_get_file_hash(const char *file, u8 hash[20]) 
@@ -898,9 +898,11 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 	u32 read;
 	u64 size, tot;
 	FILE *in;
-	GF_BitStream *bs = NULL;
 	GF_SHA1Context ctx;
+#ifndef GPAC_DISABLE_ISOM
+	GF_BitStream *bs = NULL;
 	Bool is_isom = gf_isom_probe_file(file);
+#endif
 
 	in = fopen(file, "rb");
 	gf_f64_seek(in, 0, SEEK_END);
@@ -909,9 +911,12 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 
 	gf_sha1_starts(&ctx);
 	tot = 0;
+#ifndef GPAC_DISABLE_ISOM
 	if (is_isom) bs = gf_bs_from_file(in, GF_BITSTREAM_READ);
+#endif
 
 	while (tot<size) {
+#ifndef GPAC_DISABLE_ISOM
 		if (is_isom) {
 			u64 box_size = gf_bs_peek_bits(bs, 32, 0);
 			u32 box_type = gf_bs_peek_bits(bs, 32, 4);
@@ -935,14 +940,18 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 				}
 				tot += box_size;
 			}
-		} else {
+		} else
+#endif
+		{
 			read = fread(block, 1, 1024, in);
 			gf_sha1_update(&ctx, block, read);
 			tot += read;
 		}
 	}
 	gf_sha1_finish(&ctx, hash);
+#ifndef GPAC_DISABLE_ISOM
 	if (bs) gf_bs_del(bs);
+#endif
 	fclose(in);
 	return GF_OK;
 }

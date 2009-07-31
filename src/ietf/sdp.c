@@ -25,7 +25,11 @@
 
 
 #include <gpac/ietf.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/token.h>
+
 
 #define SDP_WRITE_STEPALLOC		2048
 
@@ -1151,3 +1155,4 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 	return GF_OK;
 }	
 
+#endif /*GPAC_DISABLE_STREAMING*/

@@ -81,9 +81,6 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 	/*if existing texture in cache destroy it - we don't destroy it on stop to handle MovieTexture*/
 	if (txh->tx_io) gf_sc_texture_release(txh);
 
-	/*store url*/
-	gf_sg_vrml_field_copy(&txh->current_url, url, GF_SG_VRML_MFURL);
-
 	/*get media object*/
 	txh->stream = gf_mo_register(txh->owner, url, lock_scene_timeline);
 	/*bad/Empty URL*/
@@ -121,7 +118,6 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 	}
 	gf_sc_invalidate(txh->compositor, NULL);
 	gf_mo_stop(txh->stream);
-	gf_sg_vrml_mf_reset(&txh->current_url, GF_SG_VRML_MFURL);
 	txh->is_open = 0;
 
 	/*and deassociate object*/
@@ -227,6 +223,7 @@ GF_TextureHandler *gf_sc_texture_get_handler(GF_Node *n)
 {
 	if (!n) return NULL;
 	switch (gf_node_get_tag(n)) {
+#ifndef GPAC_DISABLE_VRML
 	case TAG_MPEG4_ImageTexture: case TAG_X3D_ImageTexture: return it_get_texture(n);
 	case TAG_MPEG4_MovieTexture: case TAG_X3D_MovieTexture: return mt_get_texture(n);
 	case TAG_MPEG4_PixelTexture: case TAG_X3D_PixelTexture: return pt_get_texture(n);
@@ -244,6 +241,7 @@ GF_TextureHandler *gf_sc_texture_get_handler(GF_Node *n)
 		if (hdl) hdl->matteTexture = n;
 		return hdl;
 	}
+#endif /*GPAC_DISABLE_VRML*/
 
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_linearGradient: 

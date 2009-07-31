@@ -27,6 +27,9 @@
 /*MPEG4 tags (for internal nodes)*/
 #include <gpac/nodes_mpeg4.h>
 
+
+#ifndef GPAC_DISABLE_VRML
+
 static Fixed Interpolate(Fixed keyValue1, Fixed keyValue2, Fixed fraction)
 {
 	return gf_mulfix(keyValue2 - keyValue1, fraction) + keyValue1;
@@ -790,3 +793,4 @@ void SA_Init(GF_Node *n)
 }
 
 
+#endif	/*GPAC_DISABLE_VRML*/

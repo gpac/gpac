@@ -271,7 +271,7 @@ for_outline:
 	 1, zero-non-zero windining rule without texCoords
 	 2, zero-non-zero windining rule with texCoords
 */
-void TesselatePath(GF_Mesh *mesh, GF_Path *path, u32 outline_style);
+void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style);
 
 /*appends given face (and tesselate if needed) to the mesh. Only vertices are used in the face
 indices are ignored. 

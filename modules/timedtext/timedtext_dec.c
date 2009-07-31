@@ -28,6 +28,8 @@
 #include <gpac/constants.h>
 #include <gpac/nodes_mpeg4.h>
 
+#ifndef GPAC_DISABLE_VRML
+
 
 /*
 	this decoder is simply a scene decoder generating its own scene graph based on input data, 
@@ -66,7 +68,7 @@
 
 typedef struct 
 {
-	GF_InlineScene *inlineScene;
+	GF_Scene *inlineScene;
 	GF_Terminal *app;
 	u32 PL, nb_streams;
 
@@ -111,7 +113,7 @@ static void TTD_UpdateSizeInfo(TTDPriv *priv)
 		}
 		gf_sg_get_scene_size_info(priv->sg, &w, &h);
 		if (!w || !h) return;
-		gf_inline_force_scene_size(priv->inlineScene, w, h);
+		gf_scene_force_size(priv->inlineScene, w, h);
 	}
 
 	if (!w || !h) return;
@@ -133,7 +135,7 @@ static void TTD_UpdateSizeInfo(TTDPriv *priv)
 		}
 		if (set_size) {
 			gf_sg_set_scene_size_info(priv->sg, w, h, 1);
-			gf_inline_force_scene_size(priv->inlineScene, w, h);
+			gf_scene_force_size(priv->inlineScene, w, h);
 		}
 	} else {
 		/*otherwise override (mainly used for SRT & TTXT file direct loading*/
@@ -193,15 +195,15 @@ static GF_Err TTD_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 		if (capability.cap.valueInt) {
 			TTD_ResetDisplay(priv);
 			TTD_UpdateSizeInfo(priv);
-			gf_inline_register_extra_graph(priv->inlineScene, priv->sg, 0);
+			gf_scene_register_extra_graph(priv->inlineScene, priv->sg, 0);
 		} else {
-			gf_inline_register_extra_graph(priv->inlineScene, priv->sg, 1);
+			gf_scene_register_extra_graph(priv->inlineScene, priv->sg, 1);
 		}			
 	}
 	return GF_OK;
 }
 
-GF_Err TTD_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
+GF_Err TTD_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_scene_decoder)
 {
 	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	if (priv->nb_streams) return GF_BAD_PARAM;
@@ -346,7 +348,7 @@ static GF_Err TTD_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	if (!priv->nb_streams) return GF_BAD_PARAM;
 
-	gf_inline_register_extra_graph(priv->inlineScene, priv->sg, 1);
+	gf_scene_register_extra_graph(priv->inlineScene, priv->sg, 1);
 
 	gf_node_unregister((GF_Node *) priv->ts_blink, NULL);
 	gf_node_unregister((GF_Node *) priv->process_blink, NULL);
@@ -1141,7 +1143,7 @@ Bool QueryInterface(u32 InterfaceType)
 }
 
 
-#ifndef GPAC_READ_ONLY
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 void DeleteTTReader(void *ifce);
 void *NewTTReader();
 #endif
@@ -1151,7 +1153,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
 	case GF_SCENE_DECODER_INTERFACE: return (GF_BaseInterface *)NewTimedTextDec();
-#ifndef GPAC_READ_ONLY
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	case GF_NET_CLIENT_INTERFACE: return (GF_BaseInterface *)NewTTReader();
 #endif
 	default: return NULL;
@@ -1165,10 +1167,22 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	case GF_SCENE_DECODER_INTERFACE:
 		DeleteTimedTextDec((GF_BaseDecoder *)ifce);
 		break;
-#ifndef GPAC_READ_ONLY
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	case GF_NET_CLIENT_INTERFACE:
 		DeleteTTReader(ifce);
 		break;
 #endif
 	}
 }
+
+#else
+
+GF_EXPORT
+Bool QueryInterface(u32 InterfaceType) { return 0; }
+GF_EXPORT
+GF_BaseInterface *LoadInterface(u32 InterfaceType) { return NULL; }
+GF_EXPORT
+void ShutdownInterface(GF_BaseInterface *ifce) {}
+
+
+#endif /*GPAC_DISABLE_VRML*/

@@ -24,6 +24,51 @@
 
 #include <gpac/internal/odf_dev.h>
 
+#ifndef GPAC_MINIMAL_ODF
+
+/************************************************************
+		QoSQualifiers Functions
+************************************************************/
+
+GF_EXPORT
+GF_QoS_Default *gf_odf_qos_new(u8 tag)
+{
+
+	GF_QoS_Default *NewQoS(u8 tag);
+
+	GF_QoS_Default *qos;
+
+	qos = NewQoS(tag);
+	return qos;
+}
+
+GF_EXPORT
+GF_Err gf_odf_qos_del(GF_QoS_Default **qos)
+{
+	if (*qos) gf_odf_delete_qos_qual(*qos);
+	*qos = NULL;
+	return GF_OK;
+}
+
+
+//same function, but for QoS, as a Qualifier IS NOT a descriptor
+GF_EXPORT
+GF_Err gf_odf_qos_add_qualif(GF_QoS_Descriptor *desc, GF_QoS_Default *qualif)
+{
+	u32 i;
+	GF_QoS_Default *def;
+
+	if (desc->tag != GF_ODF_QOS_TAG) return GF_BAD_PARAM;
+	if (desc->predefined) return GF_ODF_FORBIDDEN_DESCRIPTOR;
+
+	i=0;
+	while ((def = (GF_QoS_Default *)gf_list_enum(desc->QoS_Qualifiers, &i))) {
+		//if same Qualifier, not allowed...
+		if (def->tag == qualif->tag) return GF_ODF_FORBIDDEN_DESCRIPTOR;
+	}
+	return gf_list_add(desc->QoS_Qualifiers, qualif);
+}
+
 void gf_odf_delete_qos_qual(GF_QoS_Default *qos)
 {
 	switch (qos->tag) {
@@ -387,4 +432,6 @@ GF_Err gf_odf_write_qos(GF_BitStream *bs, GF_QoS_Descriptor *qos)
 	return GF_OK;
 }
 
+
+#endif /*GPAC_MINIMAL_ODF*/
 

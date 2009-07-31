@@ -25,11 +25,8 @@
 #include <gpac/internal/ietf_dev.h>
 #include <gpac/base_coding.h>
 
-#ifdef _WIN32_WCE
-#define RTSP_TRACE		0
-#else
-#define RTSP_TRACE		1
-#endif
+
+#ifndef GPAC_DISABLE_STREAMING
 
 
 GF_Err RTSP_UnpackURL(char *sURL, char *Server, u16 *Port, char *Service, Bool *useTCP)
@@ -778,3 +775,5 @@ GF_Err gf_rtsp_get_remote_address(GF_RTSPSession *sess, char *buf)
 	if (!sess || !sess->connection) return GF_BAD_PARAM;
 	return gf_sk_get_remote_address(sess->connection, buf);
 }
+
+#endif /*GPAC_DISABLE_STREAMING*/

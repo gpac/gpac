@@ -25,7 +25,7 @@
 
 #include <gpac/bifsengine.h>
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_BENG
 
 #include <gpac/scene_manager.h>
 #include <gpac/bifs.h>
@@ -39,7 +39,9 @@ struct __tag_bifs_engine
 	void *calling_object;
 	GF_StreamContext *sc;
 	Bool owns_context;	
+#ifndef GPAC_DISABLE_BIFS
 	GF_BifsEncoder *bifsenc;
+#endif
 	u32 stream_ts_res;
 	/* TODO: maybe the currentAUCount should be a GF_List of u32 
 	to capture the number of AU per input BIFS stream */
@@ -60,7 +62,11 @@ static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_InitialObjectDescript
 	GF_BIFSConfig *bcfg;
 
 	e = GF_OK;
+#ifdef GPAC_DISABLE_BIFS
+	return GF_NOT_SUPPORTED;
+#else
 	codec->bifsenc = gf_bifs_encoder_new(codec->ctx->scene_graph);
+#endif
 
 	delete_desc = 0;
 	esd = NULL;
@@ -136,7 +142,9 @@ static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_InitialObjectDescript
 	encode_names = 0;
 
 	/* The BIFS Config that is passed here should be the BIFSConfig from the IOD */
+#ifndef GPAC_DISABLE_BIFS
 	gf_bifs_encoder_new_stream(codec->bifsenc, codec->sc->ESID, bcfg, encode_names, 0);
+#endif
 	if (delete_bcfg) gf_odf_desc_del((GF_Descriptor *)bcfg);
 
 	if (!esd->slConfig) esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
@@ -144,7 +152,9 @@ static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_InitialObjectDescript
 	if (!esd->slConfig->timestampResolution) esd->slConfig->timestampResolution = 1000;
 
 	esd->ESID = codec->sc->ESID;
+#ifndef GPAC_DISABLE_BIFS
 	gf_bifs_encoder_get_config(codec->bifsenc, codec->sc->ESID, &data, &data_len);
+#endif
 
 	if (esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) esd->decoderConfig->decoderSpecificInfo);
 	esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
@@ -155,7 +165,9 @@ static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_InitialObjectDescript
 	memcpy(codec->encoded_bifs_config, data, data_len);
 	codec->encoded_bifs_config_size = data_len;
 
+#ifndef GPAC_DISABLE_BIFS
 	esd->decoderConfig->objectTypeIndication = gf_bifs_encoder_get_version(codec->bifsenc, codec->sc->ESID);		
+#endif
 	return GF_OK;
 }
 
@@ -212,12 +224,16 @@ static GF_Err gf_sm_live_encode_scene_au(GF_BifsEngine *codec, u32 currentAUCoun
 	count = gf_list_count(codec->sc->AUs);
 	for (j=currentAUCount; j<count; j++) {
 		au = (GF_AUContext *)gf_list_get(codec->sc->AUs, j);
+		data = NULL;
+		size = 0;
 		/*in case using XMT*/
 		if (au->timing_sec) au->timing = (u64) (au->timing_sec * codec->stream_ts_res);
 		switch(codec->sc->objectType) {
 		case GPAC_OTI_SCENE_BIFS:
 		case GPAC_OTI_SCENE_BIFS_V2:
+#ifndef GPAC_DISABLE_BIFS
 			e = gf_bifs_encode_au(codec->bifsenc, codec->sc->ESID, au->commands, &data, &size);
+#endif
 			break;
 		case GPAC_OTI_SCENE_DIMS:
 			break;
@@ -263,12 +279,16 @@ GF_Err gf_beng_save_context(GF_BifsEngine *codec, char *  ctxFileName)
 	}
 
 	if (do_enc) {
+#ifndef GPAC_DISABLE_SCENE_ENCODER
 		GF_ISOFile *mp4;
 		strcat(szF, ".mp4");
 		mp4 = gf_isom_open(szF, GF_ISOM_OPEN_WRITE, NULL);
 		e = gf_sm_encode_to_file(codec->ctx, mp4, NULL);
 		if (e) gf_isom_delete(mp4);
 		else gf_isom_close(mp4);
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	} else {
 		e = gf_sm_dump(codec->ctx, szF, d_mode);
 	}
@@ -359,7 +379,9 @@ GF_Err gf_beng_encode_context(GF_BifsEngine *codec, GF_Err (*AUCallback)(void *,
 GF_EXPORT
 void gf_beng_terminate(GF_BifsEngine *codec)
 {
+#ifndef GPAC_DISABLE_BIFS
 	if (codec->bifsenc) gf_bifs_encoder_del(codec->bifsenc);
+#endif
 
 	if (codec->owns_context) {
 		if (codec->ctx) gf_sm_del(codec->ctx);
@@ -503,5 +525,5 @@ exit:
 }
 
 
-#endif
+#endif /*GPAC_DISABLE_BENG*/
 

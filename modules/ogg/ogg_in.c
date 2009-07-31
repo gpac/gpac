@@ -25,6 +25,8 @@
 #include "ogg_in.h"
 #include <ogg/ogg.h>
 
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
+
 typedef struct 
 {
 	u32 streamType;	/*MPEG-4 streamType*/
@@ -970,3 +972,5 @@ void OGG_DeleteDemux(void *ifce)
 	free(read);
 	free(plug);
 }
+
+#endif /* !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)*/

@@ -21,7 +21,6 @@
 					<Add option="-D_MBCS" />
 					<Add option="-D_USRDLL" />
 					<Add option="-DGPAC_JS_EXPORTS" />
-					<Add option="-DGPAC_HAS_SPIDERMONKEY" />
 					<Add directory="..\..\include" />
 					<Add directory="..\..\extra_lib\include\js" />
 				</Compiler>
@@ -41,7 +40,6 @@
 					<Add option="-D_MBCS" />
 					<Add option="-D_USRDLL" />
 					<Add option="-DGPAC_JS_EXPORTS" />
-					<Add option="-DGPAC_HAS_SPIDERMONKEY" />
 					<Add directory="..\..\include" />
 					<Add directory="..\..\extra_lib\include\js" />
 				</Compiler>

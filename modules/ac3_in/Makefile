@@ -34,7 +34,7 @@ endif
 
 LIB=gm_ac3_in.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols ac3_in.def 
+#LDFLAGS+=-export-symbols ac3_in.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

@@ -28,6 +28,7 @@
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
+#ifndef GPAC_DISABLE_VRML
 
 typedef struct
 {
@@ -395,3 +396,5 @@ void compositor_init_mattetexture(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, imagetexture_destroy);
 }
+
+#endif /*GPAC_DISABLE_VRML*/

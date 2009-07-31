@@ -26,6 +26,8 @@
 
 #include <gpac/nodes_mpeg4.h>
 
+#ifndef GPAC_DISABLE_VRML
+
 typedef struct
 {
 	GF_Compositor *compositor;
@@ -194,3 +196,5 @@ void compositor_animationstream_modified(GF_Node *node)
 	else
 		st->time_handle.needs_unregister = 0;
 }
+
+#endif /*GPAC_DISABLE_VRML*/

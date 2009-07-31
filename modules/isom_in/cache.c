@@ -24,7 +24,7 @@
 
 #include "isom_in.h"
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 static GF_Err ISOW_Open(GF_StreamingCache *mc, GF_ClientService *serv, const char *location_and_name, Bool keep_existing_files)
 {
@@ -263,5 +263,5 @@ void isow_delete_cache(GF_BaseInterface *bi)
 	free(bi);
 }
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 

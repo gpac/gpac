@@ -28,6 +28,8 @@
 #include "texturing.h"
 #include "nodes_stacks.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 
 #define B2D_PLANE_HSIZE		FLT2FIX(0.5025f)
 
@@ -412,3 +414,5 @@ Bool compositor_background_transparent(GF_Node *node)
 	/*consider all other background nodes transparent*/
 	return 1;
 }
+
+#endif /*GPAC_DISABLE_VRML*/

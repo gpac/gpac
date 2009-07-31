@@ -30,6 +30,9 @@
 
 #include <gpac/internal/scenegraph_dev.h>
 
+#ifndef GPAC_DISABLE_BIFS
+
+
 typedef struct 
 {
 	GF_Node *script;
@@ -1771,3 +1774,4 @@ void SFE_Params(ScriptEnc *sc_enc, u32 start, u32 end)
 	}
 }
 
+#endif	/*GPAC_DISABLE_BIFS*/

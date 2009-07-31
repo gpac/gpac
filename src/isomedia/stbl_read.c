@@ -24,6 +24,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 //Get the sample number
 GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber)
 {
@@ -511,3 +513,4 @@ u32 stbl_GetSampleFragmentSize(GF_SampleFragmentBox *stsf, u32 sampleNumber, u32
 	return 0;
 }
 
+#endif /*GPAC_DISABLE_ISOM*/

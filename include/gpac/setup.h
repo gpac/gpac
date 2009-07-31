@@ -29,24 +29,17 @@
 extern "C" {
 #endif
 
-#if defined(GPAC_STATIC_CONFIG_H)
-#ifndef GPAC_HAVE_CONFIG_H
-#define GPAC_HAVE_CONFIG_H
+/*This is to handle cases where config.h is generated at the root of the gpac build tree (./configure)
+This is only needed when building libgpac and modules when libgpac is not installed*/
+#ifdef GPAC_HAVE_CONFIG_H
+# include "config.h"
+#else
+# include <gpac/configuration.h>
 #endif
-#endif
+
 
 /*WIN32 and WinCE config*/
 #if defined(WIN32) || defined(_WIN32_WCE)
-
-#ifdef GPAC_HAVE_CONFIG_H
-
-#if defined(__GNUC__) && !defined(GPAC_STATIC_CONFIG_H)
-#include <gpac/internal/config.h>
-#else
-#include <gpac/internal/config_static.h>
-#endif
-
-#endif
 
 /*common win32 parts*/
 #include <stdio.h>
@@ -73,16 +66,6 @@ typedef char s8;
 
 /*WINCE config*/
 #if defined(_WIN32_WCE)
-
-/*winCE read-only (smaller)*/
-#ifndef GPAC_READ_ONLY
-#define GPAC_READ_ONLY
-#endif
-
-/*winCE always fixed-point*/
-#ifndef GPAC_FIXED_POINT
-#define GPAC_FIXED_POINT
-#endif
 
 /*win32 assert*/
 #ifndef assert
@@ -179,11 +162,6 @@ typedef signed int s64;
 
 #endif	/*symbian 8*/
 
-/*SYMBIAN always fixed-point*/
-#ifndef GPAC_FIXED_POINT
-#define GPAC_FIXED_POINT
-#endif
-
 
 typedef unsigned int u32;
 typedef unsigned short u16;
@@ -229,11 +207,6 @@ char * my_str_lwr(char *str);
 #else
 
 /*UNIX likes*/
-
-#ifdef GPAC_HAVE_CONFIG_H
-#include "config.h"
-#endif
-
 
 /*force large file support*/
 #ifndef _FILE_OFFSET_BITS
@@ -330,10 +303,7 @@ typedef u8 bin128[16];
 typedef u32 Bool;
 #endif
 
-/*GPAC memory tracking*/
-#define GPAC_MEMORY_TRACKING	0
-
-#if GPAC_MEMORY_TRACKING
+#ifdef GPAC_MEMORY_TRACKING
 void *gf_malloc(size_t size);
 void *gf_realloc(void *ptr, size_t size);
 void gf_free(void *ptr);
@@ -374,6 +344,56 @@ char *gf_strdup(const char *str);
 #define GF_EXPORT
 #endif
 
+
+
+	
+/*safety checks on macros*/
+
+#if defined(GPAC_DISABLE_VRML) 
+# ifndef GPAC_DISABLE_BIFS
+# define GPAC_DISABLE_BIFS
+# endif
+# ifndef GPAC_DISABLE_QTVR
+# define GPAC_DISABLE_QTVR
+# endif
+#endif
+
+#if defined(GPAC_DISABLE_SVG) 
+# ifndef GPAC_DISABLE_LASER
+# define GPAC_DISABLE_LASER
+# endif
+#endif
+
+
+#ifdef GPAC_DISABLE_AV_PARSERS
+# ifndef GPAC_DISABLE_MPEG2PS
+# define GPAC_DISABLE_MPEG2PS
+# endif
+#endif
+
+#ifdef GPAC_DISABLE_ISOM
+# ifndef GPAC_DISABLE_ISOM_WRITE
+# define GPAC_DISABLE_ISOM_WRITE
+# endif
+# ifndef GPAC_DISABLE_ISOM_HINTING
+# define GPAC_DISABLE_ISOM_HINTING
+# endif
+# ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+# define GPAC_DISABLE_ISOM_FRAGMENTS
+# endif
+#endif
+
+#ifdef GPAC_DISABLE_ISOM_WRITE
+# ifndef GPAC_DISABLE_MEDIA_IMPORT
+# define GPAC_DISABLE_MEDIA_IMPORT
+# endif
+#endif
+
+#ifdef GPAC_DISABLE_STREAMING
+# ifndef GPAC_DISABLE_ISOM_HINTING
+# define GPAC_DISABLE_ISOM_HINTING
+# endif
+#endif
 
 #ifdef __cplusplus
 }

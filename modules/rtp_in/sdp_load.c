@@ -25,6 +25,7 @@
 #include "rtp_in.h"
 #include <gpac/internal/ietf_dev.h>
 
+#ifndef GPAC_DISABLE_STREAMING
 
 GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 {
@@ -552,3 +553,5 @@ void RP_SaveSessionState(RTPClient *rtp)
 		}
 	}
 }
+
+#endif /*GPAC_DISABLE_STREAMING*/

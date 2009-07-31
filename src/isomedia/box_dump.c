@@ -25,6 +25,8 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/utf.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 static GF_Err apple_tag_dump(GF_Box *a, FILE * trace);
 
 void NullBoxErr(FILE * trace)
@@ -165,7 +167,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_FTYP: return ftyp_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_FADB: return padb_dump(a, trace);
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX: return mvex_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_MEHD: return mehd_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_TREX: return trex_dump(a, trace);
@@ -319,7 +321,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 		case GF_ISOM_BOX_TYPE_FREE:
 		case GF_ISOM_BOX_TYPE_META:
 		case GF_ISOM_BOX_TYPE_SKIP:
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_MOOF:
 #endif
 			break;
@@ -406,7 +408,7 @@ GF_Err moov_dump(GF_Box *a, FILE * trace)
 	if (p->meta) gf_box_dump(p->meta, trace);
 	gf_box_dump(p->mvhd, trace);
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (p->mvex) gf_box_dump(p->mvex, trace);
 #endif
 
@@ -666,7 +668,11 @@ GF_Err iods_dump(GF_Box *a, FILE * trace)
 	gf_full_box_dump(a, trace);
 
 	if (p->descriptor) {
+#ifndef GPAC_DISABLE_OD_DUMP
 		gf_odf_dump_desc(p->descriptor, trace, 1, 1);
+#else
+		fprintf(trace, "<!-- Object Descriptor Dumping disabled in this build of GPAC -->\n");
+#endif
 	} else {
 		fprintf(trace, "<!--WARNING: Object Descriptor not present-->\n");
 	}
@@ -1131,7 +1137,11 @@ GF_Err esds_dump(GF_Box *a, FILE * trace)
 	gf_full_box_dump(a, trace);
 
 	if (p->desc) {
+#ifndef GPAC_DISABLE_OD_DUMP
 		gf_odf_dump_desc(p->desc, trace, 1, 1);
+#else
+		fprintf(trace, "<!-- Object Descriptor Dumping disabled in this build of GPAC -->\n");
+#endif
 	} else {
 		fprintf(trace, "<!--INVALID MP4 FILE: ESD not present in MPEG Sample Description or corrupted-->\n");
 	}
@@ -1410,7 +1420,11 @@ GF_Err m4ds_dump(GF_Box *a, FILE * trace)
 
 	i=0;
 	while ((desc = (GF_Descriptor *)gf_list_enum(p->descriptors, &i))) {
+#ifndef GPAC_DISABLE_OD_DUMP
 		gf_odf_dump_desc(desc, trace, 1, 1);
+#else
+		fprintf(trace, "<!-- Object Descriptor Dumping disabled in this build of GPAC -->\n");
+#endif
 	}
 	DumpBox(a, trace);
 	fprintf(trace, "</MPEG4ExtensionDescriptorsBox>\n");
@@ -1974,7 +1988,7 @@ GF_Err rtpo_dump(GF_Box *a, FILE * trace)
 
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 GF_Err mvex_dump(GF_Box *a, FILE * trace)
 {
@@ -2132,6 +2146,8 @@ GF_Err trun_dump(GF_Box *a, FILE * trace)
 
 #endif
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
+
 GF_Err DTE_Dump(GF_List *dte, FILE * trace)
 {
 	GF_GenericDTE *p;
@@ -2245,6 +2261,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
 
 static void gpp_dump_box_nobox(FILE * trace, GF_BoxRecord *rec)
 {
@@ -3268,3 +3285,4 @@ GF_Err ac3_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_ISOM*/

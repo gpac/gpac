@@ -53,6 +53,8 @@ typedef struct
 
 typedef struct __tag_m4v_parser GF_M4VParser;
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 GF_M4VParser *gf_m4v_parser_new(char *data, u32 data_size, Bool mpeg12video);
 GF_M4VParser *gf_m4v_parser_bs_new(GF_BitStream *bs, Bool mpeg12video);
 void gf_m4v_parser_del(GF_M4VParser *m4v);
@@ -65,14 +67,25 @@ GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_ty
 u32 gf_m4v_get_object_start(GF_M4VParser *m4v);
 /*returns 1 if current object is a valid MPEG-4 Visual object*/
 Bool gf_m4v_is_valid_object_type(GF_M4VParser *m4v);
-/*returns readable description of profile*/
-const char *gf_m4v_get_profile_name(u8 video_pl);
 /*decodes DSI*/
 GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
 /*rewrites PL code in DSI*/
 void gf_m4v_rewrite_pl(char **io_dsi, u32 *io_dsi_len, u8 PL);
 /*rewrites PAR code in DSI. Negative values will remove the par*/
 GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d);
+
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
+/*returns readable description of profile*/
+const char *gf_m4v_get_profile_name(u8 video_pl);
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+s32 gf_mv12_next_start_code(unsigned char *pbuffer, u32 buflen, u32 *optr, u32 *scode);
+s32 gf_mv12_next_slice_start(unsigned char *pbuffer, u32 startoffset, u32 buflen, u32 *slice_offset);
+
+#endif /* GPAC_DISABLE_AV_PARSERS*/
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 /*MP3 tools*/
 u8 gf_mp3_num_channels(u32 hdr);
@@ -81,11 +94,18 @@ u16 gf_mp3_window_size(u32 hdr);
 u16 gf_mp3_bit_rate(u32 hdr);
 u8 gf_mp3_object_type_indication(u32 hdr);
 u8 gf_mp3_layer(u32 hdr);
-u8 gf_mp3_version(u32 hdr);
-const char *gf_mp3_version_name(u32 hdr);
 u16 gf_mp3_frame_size(u32 hdr);
 u32 gf_mp3_get_next_header(FILE* in);
 u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos);
+
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
+u8 gf_mp3_version(u32 hdr);
+const char *gf_mp3_version_name(u32 hdr);
+
+
+
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)
 
 /*vorbis tools*/
 typedef struct
@@ -106,6 +126,8 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len);
 /*returns 0 if init error or not a vorbis frame, otherwise returns the number of audio samples
 in this frame*/
 u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length);
+
+#endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
 
 
 enum
@@ -143,6 +165,8 @@ enum
     GF_M4A_ALS = 36,
 };
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 static const u32 GF_M4ASampleRates[] =
 {
     96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 
@@ -164,11 +188,17 @@ typedef struct
 GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg);
 /*gets audioPL for given cfg*/
 u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg);
-const char *gf_m4a_object_type_name(u32 objectType);
-const char *gf_m4a_get_profile_name(u8 audio_pl);
 
 GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size);
 GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_known);
+
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
+const char *gf_m4a_object_type_name(u32 objectType);
+const char *gf_m4a_get_profile_name(u8 audio_pl);
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 
 typedef struct
 {
@@ -185,8 +215,10 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse);
 
 
 GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
-
 const char *gf_avc_get_profile_name(u8 video_prof);
+
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
 
 
 /*gets image size (bs must contain the whole image) 

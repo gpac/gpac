@@ -34,7 +34,7 @@
 
 #include <gpac/nodes_mpeg4.h>
 
-
+#ifndef GPAC_DISABLE_BIFS
 
 u32 ALL_GetNodeType(const u32 *table, const u32 count, u32 NodeTag, u32 Version);
 
@@ -655,6 +655,7 @@ u32 NDT_V6_GetNodeType(u32 NDT_Tag, u32 NodeTag);
 u32 NDT_GetChildTable(u32 NodeTag);
 
 
+#endif
 
 
 #endif		/*_NDT_H*/

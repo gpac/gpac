@@ -27,6 +27,9 @@
 /*MPEG4 tags (for internal nodes)*/
 #include <gpac/nodes_mpeg4.h>
 
+
+#ifndef GPAC_DISABLE_VRML
+
 static void format_sftime_string(Fixed _val, char *str)
 {
 	u32 h, m, s;
@@ -499,3 +502,6 @@ Bool InitValuator(M_Valuator *node)
 	
 	return 1;
 }
+
+
+#endif /*GPAC_DISABLE_VRML*/

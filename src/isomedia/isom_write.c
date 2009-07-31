@@ -24,14 +24,14 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef GPAC_READ_ONLY
+#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)
 
 GF_Err CanAccessMovie(GF_ISOFile *movie, u32 Mode)
 {
 	if (!movie) return GF_BAD_PARAM;
 	if (movie->openMode < Mode) return GF_ISOM_INVALID_MODE;
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) return GF_ISOM_INVALID_MODE;
 #endif
 	return GF_OK;
@@ -3789,6 +3789,6 @@ GF_Err gf_isom_timed_meta_data_config_new(GF_ISOFile *movie, u32 trackNumber, Bo
 	return e;
 }
 
-#endif	//GPAC_READ_ONLY
+#endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
 

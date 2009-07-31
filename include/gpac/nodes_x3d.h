@@ -38,7 +38,7 @@ extern "C" {
 
 #include <gpac/scenegraph_vrml.h>
 
-
+#ifndef GPAC_DISABLE_VRML
 
 enum {
 	TAG_X3D_Anchor = GF_NODE_RANGE_FIRST_X3D,
@@ -1385,6 +1385,7 @@ typedef struct _tagX3DWorldInfo
 	GF_Node *metadata;	/*exposedField*/
 } X_WorldInfo;
 
+#endif /*GPAC_DISABLE_VRML*/
 
 #ifdef __cplusplus
 }

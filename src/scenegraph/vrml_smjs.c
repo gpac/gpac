@@ -24,16 +24,8 @@
 
 #include <gpac/internal/scenegraph_dev.h>
 
-/*MPEG4 & X3D tags (for node tables & script handling)*/
-#include <gpac/nodes_mpeg4.h>
-#include <gpac/nodes_x3d.h>
 
 #ifdef GPAC_HAS_SPIDERMONKEY
-
-#ifndef GPAC_DISABLE_SVG
-/*SVG tags for script handling*/
-#include <gpac/nodes_svg.h>
-#endif
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/modules/term_ext.h>
@@ -41,14 +33,14 @@
 
 #include <jsapi.h>
 
-void gf_sg_script_to_node_field(struct JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
-jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool force_evaluate);
 
-JSBool js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp);
-
-static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
-
-void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain);
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE)
+#  pragma comment(lib, "js")
+# elif defined (WIN32)
+#  pragma comment(lib, "js32")
+# endif
+#endif
 
 /*define this macro to force Garbage Collection after each input to JS (script initialize/shutdown and all eventIn) */
 #define FORCE_GC
@@ -64,7 +56,7 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain);
 		}	\
 		}
 
-Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
+static Bool ScriptAction(JSContext *c, GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
 {
 	if (!scene) {
 		GF_Node *n = (GF_Node *) JS_GetContextPrivate(c);
@@ -82,9 +74,11 @@ typedef struct
 	GF_Mutex *lock;
 	u32 owner;
 
+	JSClass SFNodeClass;
+
+#ifndef GPAC_DISABLE_VRML
 	JSClass globalClass;
 	JSClass browserClass;
-	JSClass SFNodeClass;
 	JSClass SFVec2fClass;
 	JSClass SFVec3fClass;
 	JSClass SFRotationClass;
@@ -101,6 +95,7 @@ typedef struct
 	JSClass MFStringClass;
 	JSClass MFUrlClass;
 	JSClass MFNodeClass;
+#endif
 
 	/*extensions are loaded for the lifetime of the runtime NOT of the context - this avoids nasty
 	crashes with multiple contexts in SpiderMonkey (root'ing bug with InitStandardClasses)*/
@@ -108,13 +103,6 @@ typedef struct
 } GF_JSRuntime;
 
 static GF_JSRuntime *js_rt = NULL;
-
-
-#ifdef FORCE_GC
-void MyJSGC(JSContext *c) {
-	if (gf_th_id() == js_rt->owner) JS_GC(c);
-}
-#endif
 
 
 void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj, Bool unload)
@@ -152,6 +140,133 @@ void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj
 	}
 }
 
+
+static void gf_sg_load_script_modules(GF_SceneGraph *sg)
+{
+	GF_Terminal *term;
+	u32 i, count;
+	GF_JSAPIParam par;
+
+	js_rt->extensions = gf_list_new();
+
+	if (!sg->script_action) return;
+	if (!sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, sg->RootNode, &par))
+		return;
+
+	term = par.term;
+
+	count = gf_modules_get_count(term->user->modules);
+	for (i=0; i<count; i++) {
+		GF_JSUserExtension *ext = (GF_JSUserExtension *) gf_modules_load_interface(term->user->modules, i, GF_JS_USER_EXT_INTERFACE);
+		if (!ext) continue;
+		gf_list_add(js_rt->extensions, ext);
+	}
+}
+
+static void gf_sg_unload_script_modules()
+{
+	while (gf_list_count(js_rt->extensions)) {
+		GF_JSUserExtension *ext = gf_list_last(js_rt->extensions);
+		gf_list_rem_last(js_rt->extensions);
+		gf_modules_close_interface((GF_BaseInterface *) ext);
+	}
+	gf_list_del(js_rt->extensions);
+}
+
+
+#ifdef __SYMBIAN32__
+const long MAX_HEAP_BYTES = 256 * 1024L;
+#else
+const long MAX_HEAP_BYTES = 4*1024 * 1024L;
+#endif
+const long STACK_CHUNK_BYTES = 8*1024L;
+
+JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
+{
+	if (!js_rt) {
+		JSRuntime *js_runtime = JS_NewRuntime(MAX_HEAP_BYTES);
+		if (!js_runtime) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[ECMAScript] Cannot allocate ECMAScript runtime\n"));
+			return NULL;
+		}
+		GF_SAFEALLOC(js_rt, GF_JSRuntime);
+		js_rt->js_runtime = js_runtime;
+		js_rt->lock = gf_mx_new("ECMAScript");
+		js_rt->owner = gf_th_id();
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated 0x%08x\n", js_runtime));
+		gf_sg_load_script_modules(sg);
+	}
+	js_rt->nb_inst++;
+	return JS_NewContext(js_rt->js_runtime, STACK_CHUNK_BYTES);
+}
+
+void gf_sg_ecmascript_del(JSContext *ctx)
+{
+	JS_SetGlobalObject(ctx, NULL);
+	gf_mx_p(js_rt->lock);
+	JS_DestroyContext(ctx);
+	gf_mx_v(js_rt->lock);
+	if (js_rt) {
+		js_rt->nb_inst --;
+		if (js_rt->nb_inst == 0) {
+			JS_DestroyRuntime(js_rt->js_runtime);
+			JS_ShutDown();
+			gf_sg_unload_script_modules();
+			gf_mx_del(js_rt->lock);
+			free(js_rt);
+			js_rt = NULL;
+		}
+	}
+}
+
+void gf_sg_js_lock_runtime(Bool lock)
+{
+	if (lock) {
+		gf_mx_p(js_rt->lock);
+	} else {
+		gf_mx_v(js_rt->lock);
+	}
+}
+
+JSBool my_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp)
+{
+	*vp = JS_FALSE;
+	if (JSVAL_IS_OBJECT(val)) {
+		JSObject *p;
+		JSClass *js_class = JS_GET_CLASS(c, obj);
+		p = JSVAL_TO_OBJECT(val);
+		if (JS_InstanceOf(c, p, js_class, NULL) ) *vp = JS_TRUE;
+	}
+	return JS_TRUE;
+}
+
+#ifndef GPAC_DISABLE_SVG
+/*SVG tags for script handling*/
+#include <gpac/nodes_svg.h>
+
+GF_Node *dom_get_element(JSContext *c, JSObject *obj);
+#endif
+
+#ifndef GPAC_DISABLE_VRML
+
+/*MPEG4 & X3D tags (for node tables & script handling)*/
+#include <gpac/nodes_mpeg4.h>
+#include <gpac/nodes_x3d.h>
+
+
+void gf_sg_script_to_node_field(struct JSContext *c, jsval v, GF_FieldInfo *field, GF_Node *owner, GF_JSField *parent);
+jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_Node *parent, Bool force_evaluate);
+
+static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
+
+void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain);
+
+
+#ifdef FORCE_GC
+void MyJSGC(JSContext *c) {
+	if (gf_th_id() == js_rt->owner) JS_GC(c);
+}
+#endif
 
 
 void SFColor_fromHSV(SFColor *col)
@@ -2494,8 +2609,6 @@ static JSBool MFColorConstructor(JSContext *c, JSObject *obj, uintN argc, jsval 
 JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node);
 JSBool gf_sg_js_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node);
 
-GF_Node *dom_get_element(JSContext *c, JSObject *obj);
-
 JSBool vrml_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_Node *node;
@@ -3943,6 +4056,10 @@ static void JSScript_LoadVRML(GF_Node *node)
 
 static void JSScript_Load(GF_Node *node)
 {
+#ifndef GPAC_DISABLE_SVG
+	void JSScript_LoadSVG(GF_Node *node);
+#endif
+
 	switch (node->sgprivate->tag) {
 	case TAG_MPEG4_Script:
 	case TAG_X3D_Script:
@@ -3956,93 +4073,6 @@ static void JSScript_Load(GF_Node *node)
 #endif
 	default:
 		break;
-	}
-}
-
-void gf_sg_js_lock_runtime(Bool lock)
-{
-	if (lock) {
-		gf_mx_p(js_rt->lock);
-	} else {
-		gf_mx_v(js_rt->lock);
-	}
-}
-
-static void gf_sg_load_script_modules(GF_SceneGraph *sg)
-{
-	GF_Terminal *term;
-	u32 i, count;
-	GF_JSAPIParam par;
-
-	js_rt->extensions = gf_list_new();
-
-	if (!sg->script_action) return;
-	if (!sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, sg->RootNode, &par))
-		return;
-
-	term = par.term;
-
-	count = gf_modules_get_count(term->user->modules);
-	for (i=0; i<count; i++) {
-		GF_JSUserExtension *ext = (GF_JSUserExtension *) gf_modules_load_interface(term->user->modules, i, GF_JS_USER_EXT_INTERFACE);
-		if (!ext) continue;
-		gf_list_add(js_rt->extensions, ext);
-	}
-}
-
-static void gf_sg_unload_script_modules()
-{
-	while (gf_list_count(js_rt->extensions)) {
-		GF_JSUserExtension *ext = gf_list_last(js_rt->extensions);
-		gf_list_rem_last(js_rt->extensions);
-		gf_modules_close_interface((GF_BaseInterface *) ext);
-	}
-	gf_list_del(js_rt->extensions);
-}
-
-
-#ifdef __SYMBIAN32__
-const long MAX_HEAP_BYTES = 256 * 1024L;
-#else
-const long MAX_HEAP_BYTES = 4*1024 * 1024L;
-#endif
-const long STACK_CHUNK_BYTES = 8*1024L;
-
-JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
-{
-	if (!js_rt) {
-		JSRuntime *js_runtime = JS_NewRuntime(MAX_HEAP_BYTES);
-		if (!js_runtime) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[ECMAScript] Cannot allocate ECMAScript runtime\n"));
-			return NULL;
-		}
-		GF_SAFEALLOC(js_rt, GF_JSRuntime);
-		js_rt->js_runtime = js_runtime;
-		js_rt->lock = gf_mx_new("ECMAScript");
-		js_rt->owner = gf_th_id();
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated 0x%08x\n", js_runtime));
-		gf_sg_load_script_modules(sg);
-	}
-	js_rt->nb_inst++;
-	return JS_NewContext(js_rt->js_runtime, STACK_CHUNK_BYTES);
-}
-
-void gf_sg_ecmascript_del(JSContext *ctx)
-{
-	JS_SetGlobalObject(ctx, NULL);
-	gf_mx_p(js_rt->lock);
-	JS_DestroyContext(ctx);
-	gf_mx_v(js_rt->lock);
-	if (js_rt) {
-		js_rt->nb_inst --;
-		if (js_rt->nb_inst == 0) {
-			JS_DestroyRuntime(js_rt->js_runtime);
-			JS_ShutDown();
-			gf_sg_unload_script_modules();
-			gf_mx_del(js_rt->lock);
-			free(js_rt);
-			js_rt = NULL;
-		}
 	}
 }
 
@@ -4177,7 +4207,10 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 
 }
 
-#endif
+#endif	/*GPAC_DISABLE_VRML*/
+
+#endif /*GPAC_HAS_SPIDERMONKEY*/
+
 
 
 /*set JavaScript interface*/
@@ -4187,7 +4220,7 @@ void gf_sg_set_script_action(GF_SceneGraph *scene, gf_sg_script_action script_ac
 	scene->script_action = script_act;
 	scene->script_action_cbck = cbk;
 
-#ifdef GPAC_HAS_SPIDERMONKEY
+#if defined(GPAC_HAS_SPIDERMONKEY) && !defined(GPAC_DISABLE_VRML)
 	scene->script_load = JSScript_Load;
 	scene->on_node_modified = JSScript_NodeModified;
 #endif
@@ -4195,13 +4228,17 @@ void gf_sg_set_script_action(GF_SceneGraph *scene, gf_sg_script_action script_ac
 }
 
 #ifdef GPAC_HAS_SPIDERMONKEY
+
 GF_Node *gf_sg_js_get_node(JSContext *c, JSObject *obj)
 {
 	JSBool has_p;
+#ifndef GPAC_DISABLE_VRML
 	if (js_rt && JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) {
 		GF_JSField *ptr = (GF_JSField *) JS_GetPrivate(c, obj);
 		if (ptr->field.fieldType==GF_SG_VRML_SFNODE) return * ((GF_Node **)ptr->field.far_ptr);
 	}
+#endif
+
 #ifndef GPAC_DISABLE_SVG
 	has_p = 0;
 	if (JS_HasProperty(c, obj, "namespaceURI", &has_p)) {
@@ -4210,5 +4247,16 @@ GF_Node *gf_sg_js_get_node(JSContext *c, JSObject *obj)
 #endif
 	return NULL;
 }
+
 #endif
+
+
+Bool gf_sg_has_scripting()
+{
+#ifdef GPAC_HAS_SPIDERMONKEY
+	return 1;
+#else
+	return 0;
+#endif
+}
 

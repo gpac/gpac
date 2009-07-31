@@ -25,6 +25,8 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/network.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 void gf_isom_datamap_del(GF_DataMap *ptr)
 {
 	if (!ptr) return;
@@ -105,7 +107,7 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 	}
 	//we need a temp file ...
 	if (!strcmp(location, "mp4_tmp_edit")) {
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 		*outDataMap = gf_isom_fdm_new_temp(parentPath);
 		if (! (*outDataMap)) return GF_IO_ERR;
 		return GF_OK;
@@ -196,7 +198,7 @@ GF_Err gf_isom_datamap_open(GF_MediaBox *mdia, u32 dataRefIndex, u8 Edit)
 			if (mdia->mediaTrack->moov->mov->movieFileMap == NULL) return GF_ISOM_INVALID_FILE;
 			minf->dataHandler = mdia->mediaTrack->moov->mov->movieFileMap;
 		} else {
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 			if (mdia->mediaTrack->moov->mov->editFileMap == NULL) return GF_ISOM_INVALID_FILE;
 			minf->dataHandler = mdia->mediaTrack->moov->mov->editFileMap;
 #else
@@ -232,7 +234,7 @@ u32 gf_isom_datamap_get_data(GF_DataMap *map, char *buffer, u32 bufferLength, u6
 }
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 u64 FDM_GetTotalOffset(GF_FileDataMap *ptr);
 GF_Err FDM_AddData(GF_FileDataMap *ptr, char *data, u32 dataSize);
@@ -263,10 +265,6 @@ GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, char *data, u32 dataSize)
 	}
 }
 
-#endif
-
-
-#ifndef GPAC_READ_ONLY
 GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 {
 	GF_FileDataMap *tmp = (GF_FileDataMap *) malloc(sizeof(GF_FileDataMap));
@@ -301,7 +299,7 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 	return (GF_DataMap *)tmp;
 }
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 {
@@ -313,7 +311,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	tmp->type = GF_ISOM_DATA_FILE;
 	tmp->mode = mode;
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	//open a temp file
 	if (!strcmp(sPath, "mp4_tmp_edit")) {
 		//create  a temp file (that only occurs in EDIT/WRITE mode)
@@ -356,7 +354,7 @@ void gf_isom_fdm_del(GF_FileDataMap *ptr)
 	if (ptr->bs) gf_bs_del(ptr->bs);
 	if (ptr->stream) fclose(ptr->stream);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	if (ptr->temp_file) {
 		gf_delete_file(ptr->temp_file);
 		free(ptr->temp_file);
@@ -397,7 +395,7 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, char *buffer, u32 bufferLength, u6
 
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 u64 FDM_GetTotalOffset(GF_FileDataMap *ptr)
@@ -438,7 +436,7 @@ GF_Err FDM_AddData(GF_FileDataMap *ptr, char *data, u32 dataSize)
 	return GF_OK;
 }
 
-#endif	//GPAC_READ_ONLY
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
 
 #ifdef WIN32
@@ -558,5 +556,6 @@ u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, char *buffer, u32 bufferLen
 
 #endif
 
+#endif /*GPAC_DISABLE_ISOM*/
 
 

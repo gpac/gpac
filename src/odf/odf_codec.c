@@ -226,7 +226,6 @@ GF_Err gf_odf_com_del(GF_ODCom **com)
 }
 
 
-
 /************************************************************
 		Object Descriptors Functions
 ************************************************************/
@@ -247,6 +246,38 @@ void gf_odf_desc_del(GF_Descriptor *desc)
 {
 	if (desc) gf_odf_delete_descriptor(desc);
 }
+
+//this functions will destroy the descriptors in a list but not the list
+GF_EXPORT
+GF_Err gf_odf_desc_list_del(GF_List *descList)
+{
+	GF_Err e;
+	GF_Descriptor *tmp;
+
+	if (! descList) return GF_BAD_PARAM;
+
+	while (gf_list_count(descList)) {
+		tmp = (GF_Descriptor*)gf_list_get(descList, 0);
+		gf_list_rem(descList, 0);
+		e = gf_odf_delete_descriptor(tmp);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
+
+
+GF_EXPORT
+GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined)
+{
+	GF_ESD *esd;
+	esd = (GF_ESD *) gf_odf_desc_new(GF_ODF_ESD_TAG);
+	esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
+	esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+	esd->slConfig = (GF_SLConfig *) gf_odf_new_slc((u8) sl_predefined);
+	return esd;
+}
+
 
 //use this function to decode a standalone descriptor
 //the desc MUST be formatted with tag and size field!!!
@@ -338,7 +369,6 @@ GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc)
 	return e;
 }
 
-
 /************************************************************
 		Object Descriptors Edit Functions
 ************************************************************/
@@ -388,8 +418,6 @@ GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc)
 		return gf_list_add(((GF_TextConfig *)parentDesc)->sample_descriptions, newDesc);
 
 	case GF_ODF_QOS_TAG:
-		//tricky: the QoS doesnot accept a descriptor but a qualifier. 
-		//We have another function for that...
 		return GF_BAD_PARAM;
 
 	//MP4 File Format tags
@@ -413,52 +441,6 @@ GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc)
 		return GF_ODF_FORBIDDEN_DESCRIPTOR;
 	}
 }
-
-
-
-/************************************************************
-		QoSQualifiers Functions
-************************************************************/
-
-GF_EXPORT
-GF_QoS_Default *gf_odf_qos_new(u8 tag)
-{
-
-	GF_QoS_Default *NewQoS(u8 tag);
-
-	GF_QoS_Default *qos;
-
-	qos = NewQoS(tag);
-	return qos;
-}
-
-GF_EXPORT
-GF_Err gf_odf_qos_del(GF_QoS_Default **qos)
-{
-	if (*qos) gf_odf_delete_qos_qual(*qos);
-	*qos = NULL;
-	return GF_OK;
-}
-
-
-//same function, but for QoS, as a Qualifier IS NOT a descriptor
-GF_EXPORT
-GF_Err gf_odf_qos_add_qualif(GF_QoS_Descriptor *desc, GF_QoS_Default *qualif)
-{
-	u32 i;
-	GF_QoS_Default *def;
-
-	if (desc->tag != GF_ODF_QOS_TAG) return GF_BAD_PARAM;
-	if (desc->predefined) return GF_ODF_FORBIDDEN_DESCRIPTOR;
-
-	i=0;
-	while ((def = (GF_QoS_Default *)gf_list_enum(desc->QoS_Qualifiers, &i))) {
-		//if same Qualifier, not allowed...
-		if (def->tag == qualif->tag) return GF_ODF_FORBIDDEN_DESCRIPTOR;
-	}
-	return gf_list_add(desc->QoS_Qualifiers, qualif);
-}
-
 
 
 
@@ -530,36 +512,6 @@ GF_Err gf_odf_desc_list_size(GF_List *descList, u32 *outSize)
 	return gf_odf_size_descriptor_list(descList, outSize);
 }
 
-//this functions will destroy the descriptors in a list but not the list
-GF_EXPORT
-GF_Err gf_odf_desc_list_del(GF_List *descList)
-{
-	GF_Err e;
-	GF_Descriptor *tmp;
-
-	if (! descList) return GF_BAD_PARAM;
-
-	while (gf_list_count(descList)) {
-		tmp = (GF_Descriptor*)gf_list_get(descList, 0);
-		gf_list_rem(descList, 0);
-		e = gf_odf_delete_descriptor(tmp);
-		if (e) return e;
-	}
-	return GF_OK;
-}
-
-
-
-GF_EXPORT
-GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined)
-{
-	GF_ESD *esd;
-	esd = (GF_ESD *) gf_odf_desc_new(GF_ODF_ESD_TAG);
-	esd->decoderConfig = (GF_DecoderConfig *) gf_odf_desc_new(GF_ODF_DCD_TAG);
-	esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-	esd->slConfig = (GF_SLConfig *) gf_odf_new_slc((u8) sl_predefined);
-	return esd;
-}
 
 
 GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
@@ -650,4 +602,3 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 	}
 	return GF_NOT_SUPPORTED;
 }
-

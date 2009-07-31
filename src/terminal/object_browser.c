@@ -35,7 +35,7 @@
 #include <gpac/nodes_svg.h>
 
 
-static Bool check_in_scene(GF_InlineScene *scene, GF_ObjectManager *odm)
+static Bool check_in_scene(GF_Scene *scene, GF_ObjectManager *odm)
 {
 	u32 i;
 	GF_ObjectManager *ptr, *root;
@@ -45,7 +45,7 @@ static Bool check_in_scene(GF_InlineScene *scene, GF_ObjectManager *odm)
 	scene = root->subscene;
 
 	i=0;
-	while ((ptr = (GF_ObjectManager *)gf_list_enum(scene->ODlist, &i))) {
+	while ((ptr = (GF_ObjectManager *)gf_list_enum(scene->resources, &i))) {
 		if (ptr == odm) return 1;
 		if (check_in_scene(ptr->subscene, odm)) return 1;
 	}
@@ -73,7 +73,7 @@ u32 gf_term_get_object_count(GF_Terminal *term, GF_ObjectManager *scene_od)
 	if (!term || !scene_od) return 0;
 	if (!gf_term_check_odm(term, scene_od)) return 0;
 	if (!scene_od->subscene) return 0;
-	return gf_list_count(scene_od->subscene->ODlist);
+	return gf_list_count(scene_od->subscene->resources);
 }
 
 /*returns indexed (0-based) OD manager in the scene*/
@@ -82,18 +82,18 @@ GF_ObjectManager *gf_term_get_object(GF_Terminal *term, GF_ObjectManager *scene_
 	if (!term || !scene_od) return NULL;
 	if (!gf_term_check_odm(term, scene_od)) return NULL;
 	if (!scene_od->subscene) return NULL;
-	return (GF_ObjectManager *) gf_list_get(scene_od->subscene->ODlist, index);
+	return (GF_ObjectManager *) gf_list_get(scene_od->subscene->resources, index);
 }
 
 u32 gf_term_object_subscene_type(GF_Terminal *term, GF_ObjectManager *odm)
 {
-	Bool IS_IsProtoLibObject(GF_InlineScene *is, GF_ObjectManager *odm);
-
 	if (!term || !odm) return 0;
 	if (!gf_term_check_odm(term, odm)) return 0;
 
 	if (!odm->subscene) return 0;
-	if (odm->parentscene) return IS_IsProtoLibObject(odm->parentscene, odm) ? 3 : 2;
+#ifndef GPAC_DISABLE_VRML
+	if (odm->parentscene) return gf_inline_is_protolib_object(odm->parentscene, odm) ? 3 : 2;
+#endif
 	return 1;
 }
 
@@ -103,7 +103,7 @@ void gf_term_select_object(GF_Terminal *term, GF_ObjectManager *odm)
 	if (!term || !odm) return;
 	if (!gf_term_check_odm(term, odm)) return;
 
-	gf_inline_select_object(term->root_scene, odm);
+	gf_scene_select_object(term->root_scene, odm);
 }
 
 
@@ -300,7 +300,6 @@ GF_Err gf_term_get_service_info(GF_Terminal *term, GF_ObjectManager *odm, NetInf
 const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od, GF_List *descriptions)
 {
 	GF_Node *info;
-	u32 i;
 	if (!term) return NULL;
 	info = NULL;
 	if (!scene_od) {
@@ -317,20 +316,24 @@ const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od
 		//return ((SVG_titleElement *) info)->textContent;
 		return "TO FIX IN GPAC!!";
 	} else {
+#ifndef GPAC_DISABLE_VRML
 		M_WorldInfo *wi = (M_WorldInfo *) info;
 		if (descriptions) {
+			u32 i;
 			for (i=0; i<wi->info.count; i++) {
 				gf_list_add(descriptions, wi->info.vals[i]);
 			}
 		}
 		return wi->title.buffer;
+#endif
 	}
+	return "GPAC";
 }
 
 
 GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, Bool xml_dump, Bool skip_protos, GF_ObjectManager *scene_od)
 {
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_SCENE_DUMP
 	GF_SceneGraph *sg;
 	GF_ObjectManager *odm;
 	GF_SceneDumper *dumper;

@@ -28,7 +28,7 @@
 #include <gpac/bitstream.h>
 #include <gpac/math.h>
 
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 
 
 #include <gpac/events.h>
@@ -3941,4 +3941,4 @@ static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool r
 	return GF_OK;
 }
 
-#endif /*GPAC_DISABLE_SVG*/
+#endif /*GPAC_DISABLE_LASER*/

@@ -28,6 +28,8 @@
 #include "offscreen_cache.h"
 #include "mpeg4_grouping.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 #ifndef GPAC_DISABLE_3D
 
 /*PathExtrusion hardcoded proto*/
@@ -711,7 +713,7 @@ static void TraverseIndexedCurve2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_PICK:
-		drawable_pick(stack, tr_state);
+		vrml_drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
@@ -924,3 +926,4 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 
 }
 
+#endif /*GPAC_DISABLE_VRML*/

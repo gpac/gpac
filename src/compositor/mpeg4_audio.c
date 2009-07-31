@@ -25,6 +25,8 @@
 
 #include "nodes_stacks.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 typedef struct
 {
 	GF_AudioInput input;
@@ -608,3 +610,4 @@ void compositor_audiobuffer_modified(GF_Node *node)
 		st->time_handle.needs_unregister = 0;
 }
 
+#endif /*GPAC_DISABLE_VRML*/

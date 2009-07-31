@@ -117,7 +117,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy ..\..\applications\osmozilla\nsIOsmozilla.xpt_w32 ../../bin/$(PlatformName)/$(ConfigurationName)/nposmozilla.xpt"
+				CommandLine="copy ..\..\applications\osmozilla\nsIOsmozilla.xpt_w32 ..\..\bin\$(PlatformName)\$(ConfigurationName)\nposmozilla.xpt"
 			/>
 		</Configuration>
 		<Configuration

@@ -24,6 +24,9 @@
 
 
 #include <gpac/internal/ietf_dev.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/bitstream.h>
 
 #ifndef _WIN32_WCE
@@ -575,3 +578,5 @@ GF_Err gf_rtp_set_info_rtcp(GF_RTPChannel *ch, u32 InfoCode, char *info_string)
 	}
 	return GF_OK;
 }
+
+#endif /*GPAC_DISABLE_STREAMING*/

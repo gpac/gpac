@@ -25,12 +25,14 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/network.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 /**************************************************************
 		Some Local functions for movie creation
 **************************************************************/
 GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpected);
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 {
@@ -91,7 +93,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 	totSize = 0;
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*restart from where we stoped last*/
 	totSize = mov->current_top_box_start;
 	gf_bs_seek(mov->movieFileMap->bs, mov->current_top_box_start);
@@ -101,7 +103,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 	/*while we have some data, parse our boxes*/
 	while (gf_bs_available(mov->movieFileMap->bs)) {
 		*bytesMissing = 0;
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs);
 #endif
 
@@ -149,7 +151,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 					e = gf_list_add(mov->TopBoxes, mov->mdat);
 					if (e) return e;
 				}
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 				else if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) gf_list_add(mov->TopBoxes, a);
 #endif
 				else gf_isom_box_del(a);
@@ -189,7 +191,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 			break;
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_MOOF:
 			((GF_MovieFragmentBox *)a)->mov = mov;
 
@@ -230,13 +232,13 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 	/*we MUST have meta handler*/
 	if (mov->meta && !mov->meta->handler) return GF_ISOM_INVALID_FILE;
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 	if (mov->moov) {
 		/*set the default interleaving time*/
 		mov->interleavingTime = mov->moov->mvhd->timeScale;
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		/*not in open mode and successfully loaded the entire file, destroy all fragment
 		FIXME: we may need to keet it when trying http streaming of fragments...*/
 		if (!(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) && mov->moov->mvex) {
@@ -246,7 +248,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 #endif
 
 	}
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 	return GF_OK;
 }
@@ -302,13 +304,13 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 			return NULL;
 		}
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		if (OpenMode == GF_ISOM_OPEN_READ_DUMP) mov->FragmentsFlags |= GF_ISOM_FRAG_READ_DEBUG;
 #endif
 
 	} else {
 
-#ifdef GPAC_READ_ONLY
+#ifdef GPAC_DISABLE_ISOM_WRITE
 		//not allowed for READ_ONLY lib
 		gf_isom_delete_movie(mov);
 		gf_isom_set_last_error(NULL, GF_ISOM_INVALID_MODE);
@@ -372,7 +374,7 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 	//these are our two main files
 	if (mov->movieFileMap) gf_isom_datamap_del(mov->movieFileMap);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	if (mov->editFileMap) {
 		gf_isom_datamap_del(mov->editFileMap);
 	}
@@ -601,7 +603,7 @@ GF_Err GetPrevMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime)
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 void gf_isom_insert_moov(GF_ISOFile *file)
 {
@@ -703,5 +705,6 @@ GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode)
 	return ent;
 }
 
-#endif	//GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+#endif /*GPAC_DISABLE_ISOM*/

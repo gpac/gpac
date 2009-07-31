@@ -27,6 +27,127 @@
 #include <gpac/constants.h>
 #include <gpac/math.h>
 
+
+GF_EXPORT
+const char *gf_m4v_get_profile_name(u8 video_pl)
+{
+	switch (video_pl) {
+	case 0x00: return "Reserved (0x00) Profile";
+	case 0x01: return "Simple Profile @ Level 1";
+	case 0x02: return "Simple Profile @ Level 2";
+	case 0x03: return "Simple Profile @ Level 3";
+	case 0x08: return "Simple Profile @ Level 0";
+	case 0x10: return "Simple Scalable Profile @ Level 0";
+	case 0x11: return "Simple Scalable Profile @ Level 1";
+	case 0x12: return "Simple Scalable Profile @ Level 2";
+	case 0x15: return "AVC/H264 Profile";
+	case 0x21: return "Core Profile @ Level 1";
+	case 0x22: return "Core Profile @ Level 2";
+	case 0x32: return "Main Profile @ Level 2";
+	case 0x33: return "Main Profile @ Level 3";
+	case 0x34: return "Main Profile @ Level 4";
+	case 0x42: return "N-bit Profile @ Level 2";
+	case 0x51: return "Scalable Texture Profile @ Level 1";
+	case 0x61: return "Simple Face Animation Profile @ Level 1";
+	case 0x62: return "Simple Face Animation Profile @ Level 2";
+	case 0x63: return "Simple FBA Profile @ Level 1";
+	case 0x64: return "Simple FBA Profile @ Level 2";
+	case 0x71: return "Basic Animated Texture Profile @ Level 1";
+	case 0x72: return "Basic Animated Texture Profile @ Level 2";
+	case 0x81: return "Hybrid Profile @ Level 1";
+	case 0x82: return "Hybrid Profile @ Level 2";
+	case 0x91: return "Advanced Real Time Simple Profile @ Level 1";
+	case 0x92: return "Advanced Real Time Simple Profile @ Level 2";
+	case 0x93: return "Advanced Real Time Simple Profile @ Level 3";
+	case 0x94: return "Advanced Real Time Simple Profile @ Level 4";
+	case 0xA1: return "Core Scalable Profile @ Level1";
+	case 0xA2: return "Core Scalable Profile @ Level2";
+	case 0xA3: return "Core Scalable Profile @ Level3";
+	case 0xB1: return "Advanced Coding Efficiency Profile @ Level 1";
+	case 0xB2: return "Advanced Coding Efficiency Profile @ Level 2";
+	case 0xB3: return "Advanced Coding Efficiency Profile @ Level 3";
+	case 0xB4: return "Advanced Coding Efficiency Profile @ Level 4";
+	case 0xC1: return "Advanced Core Profile @ Level 1";
+	case 0xC2: return "Advanced Core Profile @ Level 2";
+	case 0xD1: return "Advanced Scalable Texture @ Level1";
+	case 0xD2: return "Advanced Scalable Texture @ Level2";
+	case 0xE1: return "Simple Studio Profile @ Level 1";
+	case 0xE2: return "Simple Studio Profile @ Level 2";
+	case 0xE3: return "Simple Studio Profile @ Level 3";
+	case 0xE4: return "Simple Studio Profile @ Level 4";
+	case 0xE5: return "Core Studio Profile @ Level 1";
+	case 0xE6: return "Core Studio Profile @ Level 2";
+	case 0xE7: return "Core Studio Profile @ Level 3";
+	case 0xE8: return "Core Studio Profile @ Level 4";
+	case 0xF0: return "Advanced Simple Profile @ Level 0";
+	case 0xF1: return "Advanced Simple Profile @ Level 1";
+	case 0xF2: return "Advanced Simple Profile @ Level 2";
+	case 0xF3: return "Advanced Simple Profile @ Level 3";
+	case 0xF4: return "Advanced Simple Profile @ Level 4";
+	case 0xF5: return "Advanced Simple Profile @ Level 5";
+	case 0xF7: return "Advanced Simple Profile @ Level 3b";
+	case 0xF8: return "Fine Granularity Scalable Profile @ Level 0";
+	case 0xF9: return "Fine Granularity Scalable Profile @ Level 1";
+	case 0xFA: return "Fine Granularity Scalable Profile @ Level 2";
+	case 0xFB: return "Fine Granularity Scalable Profile @ Level 3";
+	case 0xFC: return "Fine Granularity Scalable Profile @ Level 4";
+	case 0xFD: return "Fine Granularity Scalable Profile @ Level 5";
+	case 0xFE: return "Not part of MPEG-4 Visual profiles";
+	case 0xFF: return "No visual capability required";
+	default: return "ISO Reserved Profile";
+	}
+}
+
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+
+#define MPEG12_START_CODE_PREFIX          0x000001
+#define MPEG12_PICTURE_START_CODE         0x00000100
+#define MPEG12_SLICE_MIN_START            0x00000101
+#define MPEG12_SLICE_MAX_START            0x000001af
+#define MPEG12_USER_DATA_START_CODE       0x000001b2
+#define MPEG12_SEQUENCE_START_CODE        0x000001b3
+#define MPEG12_SEQUENCE_ERR_START_CODE    0x000001b4
+#define MPEG12_EXT_START_CODE             0x000001b5
+#define MPEG12_SEQUENCE_END_START_CODE    0x000001b7
+#define MPEG12_GOP_START_CODE             0x000001b8
+
+s32 gf_mv12_next_start_code(unsigned char *pbuffer, u32 buflen, u32 *optr, u32 *scode)
+{
+  u32 value;
+  u32 offset;
+
+  if (buflen < 4) return -1;
+  for (offset = 0; offset < buflen - 3; offset++, pbuffer++) {
+#ifdef GPAC_BIG_ENDIAN
+    value = *(u32 *)pbuffer >> 8;
+#else
+    value = (pbuffer[0] << 16) | (pbuffer[1] << 8) | (pbuffer[2] << 0); 
+#endif
+
+    if (value == MPEG12_START_CODE_PREFIX) {
+      *optr = offset;
+      *scode = (value << 8) | pbuffer[3];
+      return 0;
+    }
+  }
+  return -1;
+}
+
+s32 gf_mv12_next_slice_start(unsigned char *pbuffer, u32 startoffset, u32 buflen, u32 *slice_offset)
+{
+	u32 slicestart, code;
+	while (gf_mv12_next_start_code(pbuffer + startoffset, buflen - startoffset, &slicestart, &code) >= 0) {
+		if ((code >= MPEG12_SLICE_MIN_START) && (code <= MPEG12_SLICE_MAX_START)) {
+			*slice_offset = slicestart + startoffset;
+			return 0;
+		}
+		startoffset += slicestart + 4;
+	}
+	return -1;
+}
+
+
 /*
 	MPEG-4 video (14496-2)
 */
@@ -120,75 +241,6 @@ s32 M4V_LoadObject(GF_M4VParser *m4v)
 	return (s32) m4v->current_object_type;
 }
 
-GF_EXPORT
-const char *gf_m4v_get_profile_name(u8 video_pl)
-{
-	switch (video_pl) {
-	case 0x00: return "Reserved (0x00) Profile";
-	case 0x01: return "Simple Profile @ Level 1";
-	case 0x02: return "Simple Profile @ Level 2";
-	case 0x03: return "Simple Profile @ Level 3";
-	case 0x08: return "Simple Profile @ Level 0";
-	case 0x10: return "Simple Scalable Profile @ Level 0";
-	case 0x11: return "Simple Scalable Profile @ Level 1";
-	case 0x12: return "Simple Scalable Profile @ Level 2";
-	case 0x15: return "AVC/H264 Profile";
-	case 0x21: return "Core Profile @ Level 1";
-	case 0x22: return "Core Profile @ Level 2";
-	case 0x32: return "Main Profile @ Level 2";
-	case 0x33: return "Main Profile @ Level 3";
-	case 0x34: return "Main Profile @ Level 4";
-	case 0x42: return "N-bit Profile @ Level 2";
-	case 0x51: return "Scalable Texture Profile @ Level 1";
-	case 0x61: return "Simple Face Animation Profile @ Level 1";
-	case 0x62: return "Simple Face Animation Profile @ Level 2";
-	case 0x63: return "Simple FBA Profile @ Level 1";
-	case 0x64: return "Simple FBA Profile @ Level 2";
-	case 0x71: return "Basic Animated Texture Profile @ Level 1";
-	case 0x72: return "Basic Animated Texture Profile @ Level 2";
-	case 0x81: return "Hybrid Profile @ Level 1";
-	case 0x82: return "Hybrid Profile @ Level 2";
-	case 0x91: return "Advanced Real Time Simple Profile @ Level 1";
-	case 0x92: return "Advanced Real Time Simple Profile @ Level 2";
-	case 0x93: return "Advanced Real Time Simple Profile @ Level 3";
-	case 0x94: return "Advanced Real Time Simple Profile @ Level 4";
-	case 0xA1: return "Core Scalable Profile @ Level1";
-	case 0xA2: return "Core Scalable Profile @ Level2";
-	case 0xA3: return "Core Scalable Profile @ Level3";
-	case 0xB1: return "Advanced Coding Efficiency Profile @ Level 1";
-	case 0xB2: return "Advanced Coding Efficiency Profile @ Level 2";
-	case 0xB3: return "Advanced Coding Efficiency Profile @ Level 3";
-	case 0xB4: return "Advanced Coding Efficiency Profile @ Level 4";
-	case 0xC1: return "Advanced Core Profile @ Level 1";
-	case 0xC2: return "Advanced Core Profile @ Level 2";
-	case 0xD1: return "Advanced Scalable Texture @ Level1";
-	case 0xD2: return "Advanced Scalable Texture @ Level2";
-	case 0xE1: return "Simple Studio Profile @ Level 1";
-	case 0xE2: return "Simple Studio Profile @ Level 2";
-	case 0xE3: return "Simple Studio Profile @ Level 3";
-	case 0xE4: return "Simple Studio Profile @ Level 4";
-	case 0xE5: return "Core Studio Profile @ Level 1";
-	case 0xE6: return "Core Studio Profile @ Level 2";
-	case 0xE7: return "Core Studio Profile @ Level 3";
-	case 0xE8: return "Core Studio Profile @ Level 4";
-	case 0xF0: return "Advanced Simple Profile @ Level 0";
-	case 0xF1: return "Advanced Simple Profile @ Level 1";
-	case 0xF2: return "Advanced Simple Profile @ Level 2";
-	case 0xF3: return "Advanced Simple Profile @ Level 3";
-	case 0xF4: return "Advanced Simple Profile @ Level 4";
-	case 0xF5: return "Advanced Simple Profile @ Level 5";
-	case 0xF7: return "Advanced Simple Profile @ Level 3b";
-	case 0xF8: return "Fine Granularity Scalable Profile @ Level 0";
-	case 0xF9: return "Fine Granularity Scalable Profile @ Level 1";
-	case 0xFA: return "Fine Granularity Scalable Profile @ Level 2";
-	case 0xFB: return "Fine Granularity Scalable Profile @ Level 3";
-	case 0xFC: return "Fine Granularity Scalable Profile @ Level 4";
-	case 0xFD: return "Fine Granularity Scalable Profile @ Level 5";
-	case 0xFE: return "Not part of MPEG-4 Visual profiles";
-	case 0xFF: return "No visual capability required";
-	default: return "ISO Reserved Profile";
-	}
-}
 
 GF_EXPORT
 void gf_m4v_rewrite_pl(char **o_data, u32 *o_dataLen, u8 PL)
@@ -675,6 +727,8 @@ GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
 	gf_m4v_parser_del(vparse);
 	return e;
 }
+#endif
+
 
 /*
 	AAC parser
@@ -782,6 +836,8 @@ const char *gf_m4a_get_profile_name(u8 audio_pl)
 	default: return "ISO Reserved / User Private";
 	}
 }
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg)
 {
@@ -1013,16 +1069,29 @@ GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size)
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
-/*		
-	MP3 parser
-	credits go to CISCO - MPEG4IP
-*/
 GF_EXPORT
 u8 gf_mp3_version(u32 hdr)
 {
 	return ((hdr >> 19) & 0x3); 
 }
+
+GF_EXPORT
+const char *gf_mp3_version_name(u32 hdr)
+{
+	u32 v = gf_mp3_version(hdr);
+	switch (v) {
+	case 0: return "MPEG-2.5";
+	case 1: return "Reserved";
+	case 2: return "MPEG-2";
+	case 3: return "MPEG-1";
+	default: return "Unknown";
+	}
+}
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 
 static u8 MP3_GetLayerV(u32 hdr)
 {
@@ -1114,18 +1183,6 @@ u8 gf_mp3_object_type_indication(u32 hdr)
 	}
 }
 
-GF_EXPORT
-const char *gf_mp3_version_name(u32 hdr)
-{
-	u32 v = gf_mp3_version(hdr);
-	switch (v) {
-	case 0: return "MPEG-2.5";
-	case 1: return "Reserved";
-	case 2: return "MPEG-2";
-	case 3: return "MPEG-1";
-	default: return "Unknown";
-	}
-}
 
 static GFINLINE u32 get_MP3BitRates(u32 idx1, u32 idx2) 
 {
@@ -1410,14 +1467,28 @@ u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos)
 	return 0;
 }
 
-#ifndef GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
-/*
-	MPEG-4 AVC/H264 parser
 
-  Inspired from ffmpeg (LGPL) and MPEG4IP (MPL)
 
-*/
+
+GF_EXPORT
+const char *gf_avc_get_profile_name(u8 video_prof)
+{
+	switch (video_prof) {
+	case 0x42: return "Baseline";
+	case 0x4D: return "Main";
+	case 0x58: return "Extended";
+	case 0x64: return "High";
+	case 0x6E: return "High 10";
+	case 0x7A: return "High 4:2:2";
+	case 0x90: return "High 4:4:4";
+	default: return "Unknown";
+	}
+}
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 
 static u8 avc_golomb_bits[256] = {
 	8, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4, 3, 
@@ -2191,22 +2262,11 @@ GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *width, u32 *height
 	return GF_OK;
 }
 
-#endif
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
-GF_EXPORT
-const char *gf_avc_get_profile_name(u8 video_prof)
-{
-	switch (video_prof) {
-	case 0x42: return "Baseline";
-	case 0x4D: return "Main";
-	case 0x58: return "Extended";
-	case 0x64: return "High";
-	case 0x6E: return "High 10";
-	case 0x7A: return "High 4:2:2";
-	case 0x90: return "High 4:4:4";
-	default: return "Unknown";
-	}
-}
+
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 static u32 AC3_FindSyncCode(u8 *buf, u32 buflen)
 {
@@ -2382,7 +2442,10 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 	return 1;
 }
 
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
+
+#if !defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)
 
 /*
 	Vorbis parser
@@ -2634,3 +2697,6 @@ u32 gf_vorbis_check_frame(GF_VorbisParser *vp, char *data, u32 data_length)
 	if (block_size == -1) return 0;
 	return ((vp->mode_flag[block_size]) ? vp->max_block : vp->min_block) / (2);
 }
+
+#endif /*!defined(GPAC_DISABLE_AV_PARSERS) && !defined (GPAC_DISABLE_OGG)*/
+

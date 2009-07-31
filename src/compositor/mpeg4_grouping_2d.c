@@ -26,6 +26,8 @@
 #include "mpeg4_grouping.h"
 #include "visual_manager.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 typedef struct
 {
 	s32 last_switch;
@@ -405,3 +407,6 @@ void compositor_init_orderedgroup(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node, ptr);
 	gf_node_set_callback_function(node, TraverseOrderedGroup);
 }
+
+#endif	/*GPAC_DISABLE_VRML*/
+

@@ -58,7 +58,7 @@ endif
 
 LIB=gm_ogg_xiph.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols ogg.def 
+#LDFLAGS+=-export-symbols ogg.def 
 endif
 
 

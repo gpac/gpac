@@ -33,6 +33,16 @@ extern "C" {
 #include <gpac/isomedia.h>
 #include <gpac/avparse.h>
 
+
+#ifndef GPAC_DISABLE_ISOM
+/*creates (if needed) a GF_ESD for the given track - THIS IS RESERVED for local playback
+only, since the OTI used when emulated is not standard...*/
+GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
+#endif
+
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+
 /*			
 			track importers
 
@@ -172,6 +182,37 @@ typedef struct __track_import
 
 GF_Err gf_media_import(GF_MediaImporter *importer);
 
+
+/*adds chapter info contained in file - import_fps is optional (most formats don't use it), defaults to 25*/
+GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import_fps);
+
+
+/*save file as fragmented movie*/
+GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double MaxFragmentDuration);
+
+/*make the file ISMA compliant: creates ISMA BIFS / OD tracks if needed, and update audio/video IDs
+the file should not contain more than one audio and one video track
+@keepImage: if set, generates system info if image is found - only used for image imports
+*/
+GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr);
+
+/*make the file 3GP compliant && sets profile
+*/
+GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file);
+
+/*make the file playable on a PSP
+*/
+GF_Err gf_media_make_psp(GF_ISOFile *mp4file);
+
+/*changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info*/
+GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
+
+#endif /*GPAC_DISABLE_MEDIA_IMPORT*/
+
+
+
+#ifndef GPAC_DISABLE_MEDIA_EXPORT
+
 enum
 {
 	/*track dumper types are formatted as flags for conveniency for 
@@ -227,8 +268,10 @@ typedef struct __track_exporter
 /*if error returns same value as error signaled in message*/
 GF_Err gf_media_export(GF_MediaExporter *dump);
 
+#endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
 /*
 	RTP IsoMedia file hinting
 */
@@ -280,33 +323,8 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth);
 signal data mime-type (OD, BIFS or any) */
 Bool gf_hinter_can_embbed_data(char *data, u32 data_size, u32 streamType);
 
-/*save file as fragmented movie*/
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double MaxFragmentDuration);
 
-/*adds chapter info contained in file - import_fps is optional (most formats don't use it), defaults to 25*/
-GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import_fps);
-
-
-/*make the file ISMA compliant: creates ISMA BIFS / OD tracks if needed, and update audio/video IDs
-the file should not contain more than one audio and one video track
-@keepImage: if set, generates system info if image is found - only used for image imports
-*/
-GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, Bool no_ocr);
-
-/*make the file 3GP compliant && sets profile
-*/
-GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file);
-
-/*make the file playable on a PSP
-*/
-GF_Err gf_media_make_psp(GF_ISOFile *mp4file);
-
-/*creates (if needed) a GF_ESD for the given track - THIS IS RESERVED for local playback
-only, since the OTI used when emulated is not standard...*/
-GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
-
-/*changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info*/
-GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
 
 
 /*SAF Multiplexer object. The multiplexer supports concurencial (multi-threaded) access*/

@@ -24,6 +24,8 @@
 
 #include "rtp_in.h"
 
+#ifndef GPAC_DISABLE_STREAMING
+
 static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 {
 	const char *sOpt;
@@ -765,3 +767,14 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+#else
+
+GF_EXPORT
+Bool QueryInterface(u32 InterfaceType)  { return 0; }
+GF_EXPORT
+GF_BaseInterface *LoadInterface(u32 InterfaceType) { return NULL; }
+GF_EXPORT
+void ShutdownInterface(GF_BaseInterface *ifce) {}
+
+#endif /*GPAC_DISABLE_STREAMING*/

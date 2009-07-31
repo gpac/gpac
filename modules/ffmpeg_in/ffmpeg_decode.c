@@ -97,8 +97,10 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	u32 codec_id;
 	int gotpic;
 	GF_BitStream *bs;
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
+#endif
 	FFDec *ffd = (FFDec *)plug->privateStack;
 	if (ffd->ES_ID || esd->dependsOnESID || esd->decoderConfig->upstream) return GF_NOT_SUPPORTED;
 	if (!ffd->oti) return GF_NOT_SUPPORTED;
@@ -217,6 +219,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 
 				/*for regular MPEG-4, try to decode and if this fails try H263 decoder at first frame*/
 				if (ffd->oti==0x20) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 					e = gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 					if (e) return e;
 					ffd->ctx->width = dsi.width;
@@ -224,6 +227,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 					if (!dsi.width && !dsi.height) ffd->check_short_header = 1;
 					ffd->previous_par = (dsi.par_num<<16) | dsi.par_den;
 					ffd->no_par_update = 1;
+#endif
 				} else if (ffd->oti==0x21) {
 					ffd->check_h264_isma = 1;
 				}
@@ -589,7 +593,7 @@ redecode:
 		if (mmlevel	== GF_CODEC_LEVEL_SEEK) return GF_OK;
 
 		if (gotpic) {
-#if /*defined(_WIN32_WCE) ||  */defined(__SYMBIAN32__)
+#if defined(_WIN32_WCE) || defined(__SYMBIAN32__)
 			if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
 				memcpy(outBuffer, ffd->frame->data[0], sizeof(char)*3*ffd->ctx->width);
 			} else {

@@ -36,7 +36,8 @@ void drawable_draw(Drawable *drawable, GF_TraverseState *tr_state)
 }
 
 /*default point_over routine*/
-void drawable_pick(Drawable *drawable, GF_TraverseState *tr_state)
+#ifndef GPAC_DISABLE_VRML
+void vrml_drawable_pick(Drawable *drawable, GF_TraverseState *tr_state)
 {
 	DrawAspect2D asp;
 	GF_Matrix2D inv_2d;
@@ -47,7 +48,7 @@ void drawable_pick(Drawable *drawable, GF_TraverseState *tr_state)
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
-		visual_3d_drawable_pick(drawable->node, tr_state, NULL, drawable);
+		visual_3d_vrml_drawable_pick(drawable->node, tr_state, NULL, drawable);
 		return;
 	} 
 #endif
@@ -93,9 +94,12 @@ picked:
 	compositor->hit_texcoords.x = gf_divfix(x - drawable->path->bbox.x, drawable->path->bbox.width);
 	compositor->hit_texcoords.y = FIX_ONE - gf_divfix(drawable->path->bbox.y - y, drawable->path->bbox.height);
 
+#ifndef GPAC_DISABLE_VRML
 	if (compositor_is_composite_texture(tr_state->appear)) {
 		compositor->hit_appear = tr_state->appear;
-	} else {
+	} else 
+#endif
+	{
 		compositor->hit_appear = NULL;
 	}
 	compositor->hit_text = NULL;
@@ -106,6 +110,7 @@ picked:
 		gf_list_add(tr_state->visual->compositor->sensors, gf_list_get(tr_state->vrml_sensors, i));
 	}
 }
+#endif /*GPAC_DISABLE_VRML*/
 
 Drawable *drawable_new()
 {
@@ -463,6 +468,7 @@ void drawctx_update_info(DrawableContext *ctx, GF_VisualManager *visual)
 	//if (ctx->flags & CTX_HAS_APPEARANCE) gf_node_dirty_reset(ctx->appear);
 }
 
+#ifndef GPAC_DISABLE_VRML
 static Bool drawable_lineprops_dirty(GF_Node *node)
 {
 	LinePropStack *st = (LinePropStack *)gf_node_get_private(node);
@@ -602,6 +608,8 @@ check_default:
 	asp->line_texture = gf_sc_texture_get_handler(XLP->texture);
 	return ret;
 }
+#endif /*GPAC_DISABLE_VRML*/
+
 
 static Bool check_transparent_skip(DrawableContext *ctx, Bool skipFill)
 {
@@ -616,6 +624,7 @@ static Bool check_transparent_skip(DrawableContext *ctx, Bool skipFill)
 }
 
 
+#ifndef GPAC_DISABLE_VRML
 DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseState *tr_state)
 {
 	DrawableContext *ctx;
@@ -656,9 +665,11 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	skipFill = 0;
 	ctx->aspect.fill_texture = NULL;
 	switch (gf_node_get_tag(ctx->drawable->node) ) {
+#ifndef GPAC_DISABLE_VRML
 	case TAG_MPEG4_IndexedLineSet2D: 
 		skipFill = 1;
 		break;
+#endif
 	default:
 		break;
 	}
@@ -687,6 +698,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 #endif
 	return ctx;
 }
+#endif
 
 static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_state)
 {
@@ -952,10 +964,12 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 	if (path && !path->n_points) return NULL;
 
 	lp = NULL;
+#ifndef GPAC_DISABLE_VRML
 	if (appear && (gf_node_get_tag(appear) < GF_NODE_RANGE_LAST_X3D) ) {
 		lp = ((M_Appearance *)appear)->material;
 		if (lp) lp = ((M_Material2D *) lp)->lineProps;
 	}
+#endif
 
 	prev = NULL;
 	si = drawable->outline;
@@ -1004,7 +1018,12 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 	if (!asp->line_scale) return si;
 
 	/*node changed or outline not build*/
+#ifndef GPAC_DISABLE_VRML
 	dirty = lp ? drawable_lineprops_dirty(lp) : 0;
+#else
+	dirty = 0;
+#endif
+
 	if (!si->outline || dirty || (si->line_scale != asp->line_scale) || (si->path_length != asp->pen_props.path_length) || (svg_flags & CTX_SVG_OUTLINE_GEOMETRY_DIRTY)) {
 		u32 i;
 		Fixed w = asp->pen_props.width;
@@ -1080,6 +1099,7 @@ void drawable_reset_path(Drawable *st)
 #endif
 }
 
+#ifndef GPAC_DISABLE_VRML
 
 static void DestroyLineProps(GF_Node *n, void *rs, Bool is_destroy)
 {
@@ -1127,6 +1147,9 @@ void compositor_init_lineprops(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, DestroyLineProps);
 }
+
+#endif /*GPAC_DISABLE_VRML*/
+
 
 #ifdef GPAC_DISABLE_SVG
 

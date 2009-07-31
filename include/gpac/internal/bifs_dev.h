@@ -33,6 +33,9 @@
 #include <gpac/thread.h>
 #include <gpac/internal/scenegraph_dev.h>
 
+#ifndef GPAC_DISABLE_BIFS
+
+
 typedef struct {
 	/*node this mask is for*/
 	GF_Node *node;
@@ -219,5 +222,9 @@ u32 gf_bifs_get_ndt_bits(u32 NDT_Tag, u32 Version);
 /*return absolute node tag given its type in the NDT and the NDT version number*/
 u32 gf_bifs_ndt_get_node_type(u32 NDT_Tag, u32 NodeType, u32 Version);
 
+
+#endif	/*GPAC_DISABLE_BIFS*/
+
 #endif	//_GF_BIFS_DEV_H_
+
 

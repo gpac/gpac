@@ -26,7 +26,7 @@
 #include <gpac/modules/codec.h>
 #include <gpac/constants.h>
 
-#ifndef GPAC_READ_ONLY
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 
 #include <gpac/media_tools.h>
 
@@ -379,4 +379,4 @@ void DeleteTTReader(void *ifce)
 	free(plug);
 }
 
-#endif
+#endif /* !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)*/

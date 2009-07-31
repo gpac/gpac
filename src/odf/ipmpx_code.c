@@ -24,6 +24,9 @@
 
 #include <gpac/internal/odf_dev.h>
 
+#ifndef GPAC_MINIMAL_ODF
+
+
 #define GF_IPMPX_DATA_ALLOC(__ptr, __stname, __tag) \
 	__ptr = (__stname*)malloc(sizeof(__stname)); \
 	if (!__ptr) return NULL;	\
@@ -2015,3 +2018,4 @@ GF_Err gf_ipmpx_data_write(GF_BitStream *bs, GF_IPMPX_Data *_p)
 	}
 }
 
+#endif /*GPAC_MINIMAL_ODF*/

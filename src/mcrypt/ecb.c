@@ -19,7 +19,7 @@
 
 #include <gpac/internal/crypt_dev.h>
 
-#ifndef GPAC_CRYPT_ISMA_ONLY
+#if !defined(GPAC_CRYPT_ISMA_ONLY) && !defined(GPAC_DISABLE_MCRYPT)
 
 static GF_Err _init_mcrypt( void* ign, void *key, int lenofkey, void *IV, int size)
 {
@@ -81,5 +81,4 @@ void gf_crypt_register_ecb(GF_Crypt *td)
 	td->mode_version = 20010801;
 }
 
-#endif
-
+#endif /*!defined(GPAC_CRYPT_ISMA_ONLY) && !defined(GPAC_DISABLE_MCRYPT) */
