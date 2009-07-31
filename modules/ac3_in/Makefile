@@ -27,7 +27,7 @@ CFLAGS+=-DGPAC_HAS_LIBA52
 #local faad lib
 ifeq ($(CONFIG_FAAD), local)
 EXTRALIBS+=-L../../extra_lib/lib/gcc
-CFLAGS+= -I$(LOCAL_INC_PATH)/a52
+CFLAGS+= -I$(LOCAL_INC_PATH)
 endif
 EXTRALIBS+= -la52
 endif
