@@ -2,11 +2,13 @@ BGGradient
 
 XPStyle on
 WindowIcon on
-Icon "..\Osmo4.ico"
-UninstallIcon "..\Osmo4.ico"
+Icon "..\..\..\..\doc\osmo4.ico"
+UninstallIcon "..\..\..\..\doc\osmo4.ico"
 
-!define GPAC_VERSION	0.4.5
+!define GPAC_VERSION	0.4.6
 !define /date RELDATE "%Y%m%d"
+
+!define GPAC_ROOT ..\..\..\..
 
 Name "GPAC Framework ${GPAC_VERSION}"
 OutFile "GPAC.Framework.Setup-${RELDATE}.exe"
@@ -16,7 +18,7 @@ InstallDirRegKey HKLM SOFTWARE\GPAC "Install_Dir"
 
 
 LicenseText "GPAC Licence"
-LicenseData "..\..\..\COPYING"
+LicenseData "${GPAC_ROOT}\COPYING"
 
 DirText "This will install the GPAC Framework on your computer. Choose a directory"
 
@@ -73,14 +75,14 @@ Section "Osmo4/GPAC Player"
   SectionIn RO
   SetOutPath $INSTDIR
 
-  File /oname=ReadMe.txt "..\..\..\README"
-  File /oname=License.txt "..\..\..\COPYING"
-  File /oname=Changelog.txt "..\..\..\Changelog"
-  File "..\..\..\doc\configuration.html"
-  File "..\..\..\doc\gpac.mp4"
+  File /oname=ReadMe.txt "${GPAC_ROOT}\README"
+  File /oname=License.txt "${GPAC_ROOT}\COPYING"
+  File /oname=Changelog.txt "${GPAC_ROOT}\Changelog"
+  File "${GPAC_ROOT}\doc\configuration.html"
+  File "${GPAC_ROOT}\doc\gpac.mp4"
 
   File "..\Osmo4.exe"
-  File "..\Osmo4.ico"
+  File "..\..\..\..\doc\osmo4.ico"
   File "..\libgpac.dll"
   File "..\gm_dummy_in.dll"
   File "..\gm_dx_hw.dll"
@@ -157,6 +159,7 @@ Section "FFMPEG Reader and Decoder"
   File "..\avcodec-52.dll"
   File "..\avformat-52.dll"
   File "..\avutil-50.dll"
+  File "..\swscale-0.dll"
 SectionEnd
 
 Section "XviD Video Decoder"
@@ -194,6 +197,7 @@ Section "Progressive SVG Support"
   File "..\gm_svg_in.dll"
 SectionEnd
 
+
 Section "GDI+ Rasterizer"
   SectionIn 1
   call InsertGDIPLUS
@@ -219,6 +223,15 @@ Section "Xiph Ogg Reader - Vorbis and Theora Decoders"
   File "..\gm_ogg.dll"
 SectionEnd
 
+;Section "UPnP Support"
+;  SectionIn 1
+;  File "..\gm_platinum.dll"
+;SectionEnd
+
+;Section "Widget Manager"
+;  SectionIn 1
+;  File "..\gm_widgetman.dll"
+;SectionEnd
 
 SubSectionEnd
 
