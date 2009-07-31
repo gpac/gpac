@@ -23,6 +23,9 @@
  */
 
 #include <gpac/internal/ietf_dev.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/constants.h>
 
 static void rtp_amr_flush(GP_RTPPacketizer *builder)
@@ -768,3 +771,4 @@ GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, char *data, u32 data_siz
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_STREAMING*/

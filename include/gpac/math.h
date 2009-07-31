@@ -41,23 +41,6 @@ extern "C" {
 #include <math.h>
 #endif
 
-/*!
- \cond DUMMY_DOXY_SECTION
-*/
-
-#ifndef GPAC_FIXED_POINT
-/*note: 
-		to turn fp on, change to GPAC_FIXED_POINT
-		to turn fp off, change to GPAC_NO_FIXED_POINT
-	this is needed by configure+sed to modify this file directly
-*/
-#define GPAC_NO_FIXED_POINT
-#endif
-
-/*!
- \endcond
-*/
-
 
 /*!
  *\addtogroup math_grp math

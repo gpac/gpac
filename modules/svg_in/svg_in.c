@@ -34,7 +34,7 @@
 typedef struct
 {
 	GF_SceneLoader loader;
-	GF_InlineScene *inline_scene;
+	GF_Scene *scene;
 	u8 oti;
 	char *file_name;
 	u32 file_size;
@@ -105,7 +105,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 		gf_sm_load_done(&svgin->loader);
 		svgin->loader.fileName = NULL;
 		svgin->file_pos = 0;
-		gf_sg_reset(svgin->inline_scene->graph);
+		gf_sg_reset(svgin->scene->graph);
 		return GF_OK;
 	}
 
@@ -224,8 +224,8 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 	}
 
 exit:
-	if ((svgin->inline_scene->graph_attached!=1) && (gf_sg_get_root_node(svgin->loader.scene_graph)!=NULL) ) {
-		gf_inline_attach_to_compositor(svgin->inline_scene);
+	if ((svgin->scene->graph_attached!=1) && (gf_sg_get_root_node(svgin->loader.scene_graph)!=NULL) ) {
+		gf_scene_attach_to_compositor(svgin->scene);
 	}
 	/*prepare for next playback*/
 	if (e==GF_EOS) {
@@ -237,12 +237,12 @@ exit:
 
 
 
-static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
+static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_scene_decoder)
 {
 	SVGIn *svgin = (SVGIn *)plug->privateStack;
 	memset(&svgin->loader, 0, sizeof(GF_SceneLoader));
 	svgin->loader.is = scene;
-	svgin->inline_scene = scene;
+	svgin->scene = scene;
 	svgin->loader.scene_graph = scene->graph;
 	svgin->loader.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
 	/*Warning: svgin->loader.type may be overriden in attach stream */

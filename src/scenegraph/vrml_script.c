@@ -27,26 +27,13 @@
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
-#if defined(GPAC_HAS_SPIDERMONKEY) && !defined(__GNUC__)
-# if defined(_WIN32_WCE)
-#  pragma comment(lib, "js")
-# elif defined (WIN32)
-#  pragma comment(lib, "js32")
-# endif
-#endif
+
+#ifndef GPAC_DISABLE_VRML
+
 
 static u32 script_get_nb_static_field(GF_Node *node) 
 {
 	return (node->sgprivate->tag==TAG_MPEG4_Script) ? 3 : 4;
-}
-
-Bool gf_sg_has_scripting()
-{
-#ifdef GPAC_HAS_SPIDERMONKEY
-	return 1;
-#else
-	return 0;
-#endif
 }
 
 void Script_PreDestroy(GF_Node *node, void *eff, Bool is_destroy)
@@ -300,3 +287,4 @@ void gf_sg_script_event_in(GF_Node *node, GF_FieldInfo *in_field)
 }
 
 
+#endif /*GPAC_DISABLE_VRML*/

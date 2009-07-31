@@ -27,6 +27,7 @@
 #include <gpac/constants.h>
 #include <gpac/modules/codec.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 typedef struct
 {
@@ -644,6 +645,7 @@ void MP3_Delete(void *ifce)
 	free(plug);
 }
 
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
 #ifdef GPAC_HAS_MAD
 GF_BaseDecoder *NewMADDec();
@@ -653,7 +655,9 @@ void DeleteMADDec(GF_BaseDecoder *ifcg);
 GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
+#endif
 #ifdef GPAC_HAS_MAD
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
 #endif
@@ -663,7 +667,9 @@ Bool QueryInterface(u32 InterfaceType)
 GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)MP3_Load();
+#endif
 #ifdef GPAC_HAS_MAD
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewMADDec();
 #endif
@@ -679,8 +685,10 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		DeleteMADDec((GF_BaseDecoder *) ifce);
 		break;
 #endif
+#ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_NET_CLIENT_INTERFACE:
 		MP3_Delete(ifce);
 		break;
+#endif
 	}
 }

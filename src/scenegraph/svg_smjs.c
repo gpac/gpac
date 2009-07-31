@@ -34,6 +34,8 @@
 
 #include <jsapi.h>
 
+JSBool my_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp);
+
 #define JSVAL_CHECK_STRING(_v) (JSVAL_IS_STRING(_v) || JSVAL_IS_NULL(_v))
 #define JSVAL_GET_STRING(_v) (JSVAL_IS_NULL(_v) ? NULL : JS_GetStringBytes(JSVAL_TO_STRING(_v)) )
 
@@ -47,7 +49,6 @@ void dom_document_finalize(JSContext *c, JSObject *obj);
 GF_Node *dom_get_element(JSContext *c, JSObject *obj);
 GF_SceneGraph *dom_get_doc(JSContext *c, JSObject *obj);
 
-JSBool js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp);
 JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 

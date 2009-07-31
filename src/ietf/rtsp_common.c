@@ -23,6 +23,9 @@
  */
 
 #include <gpac/internal/ietf_dev.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/token.h>
 
 
@@ -365,3 +368,5 @@ const char *gf_rtsp_nc_to_string(u32 ErrCode)
 		return "Not Implemented";
 	}
 }
+
+#endif /*GPAC_DISABLE_STREAMING*/

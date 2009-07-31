@@ -46,11 +46,13 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 /*modify a viewpoint*/
 void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool animate_change, Fixed fieldOfView, SFVec3f position, SFRotation orientation, SFVec3f local_center);
 
-
+#ifndef GPAC_DISABLE_VRML
 /*checks if a 3D mesh or a 2D path is under the current ray. Updates hit info if so.*/
-void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *mesh, Drawable *drawable) ;
+void visual_3d_vrml_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *mesh, Drawable *drawable) ;
 /*performs collision on the given node (2D or 3D object)*/
-void visual_3d_drawable_collide(GF_Node *node, GF_TraverseState *tr_state);
+void visual_3d_vrml_drawable_collide(GF_Node *node, GF_TraverseState *tr_state);
+#endif
+
 
 /*register a geomery node for drawing. If the node is transparent, stacks it for later draw, otherwise draw it directly*/
 void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *node_to_draw);
@@ -60,12 +62,15 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 
 /*draws a 3D object, setting up material and texture*/
 void visual_3d_draw(GF_TraverseState *tr_state, GF_Mesh *mesh);
-/*draws a 2D object, setting up material and texture*/
-void visual_3d_draw_2d(Drawable *st, GF_TraverseState *tr_state);
 /*draws a 2D object, setting up material and texture with specified 2D aspect*/
 void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, DrawAspect2D *asp, Bool is_svg);
 /*draws a 2D SVG object - the DrawableContext MUST be set in the traversing state*/
 void visual_3d_draw_from_context(DrawableContext *ctx, GF_TraverseState *tr_state);
+
+#ifndef GPAC_DISABLE_VRML
+/*draws a 2D VRML object, setting up material and texture*/
+void visual_3d_draw_2d(Drawable *st, GF_TraverseState *tr_state);
+#endif
 
 
 /*sets 2D strike aspect 

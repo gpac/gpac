@@ -23,7 +23,7 @@ LDFLAGS+=-lcv -lcvaux -lhighgui -lcxcore
 
 LIB=gm_opencv.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols opencv.def 
+#LDFLAGS+=-export-symbols opencv.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

@@ -432,3 +432,129 @@ u32 gf_crc_32(char *data, u32 len)
     return crc;
 }
 
+#define CHECK_MAC(_a) "#_a :" ? (_a) ? "yes":"no"
+
+GF_EXPORT
+const char *gpac_features()
+{
+	const char *features = ""
+#ifdef GPAC_FIXED_POINT 
+		"GPAC_FIXED_POINT " 
+#endif
+#ifdef GPAC_MEMORY_TRACKING
+		"GPAC_MEMORY_TRACKING "
+#endif
+#ifdef GPAC_BIG_ENDIAN
+		"GPAC_BIG_ENDIAN "
+#endif
+#ifdef GPAC_HAS_SSL
+		"GPAC_HAS_SSL "
+#endif
+#ifdef GPAC_HAS_SPIDERMONKEY
+		"GPAC_HAS_SPIDERMONKEY "
+#endif
+#ifdef GPAC_HAS_JPEG
+		"GPAC_HAS_JPEG "
+#endif
+#ifdef GPAC_HAS_PNG
+		"GPAC_HAS_PNG "
+#endif
+#ifdef GPAC_DISABLE_3D
+		"GPAC_DISABLE_3D "
+#endif
+#ifdef GPAC_USE_TINYGL
+		"GPAC_USE_TINYGL "
+#endif
+#ifdef GPAC_USE_OGL_ES
+		"GPAC_USE_OGL_ES "
+#endif
+#if defined(_WIN32_WCE)
+#ifdef GPAC_USE_IGPP
+		"GPAC_USE_IGPP "
+#endif
+#ifdef GPAC_USE_IGPP_HP
+		"GPAC_USE_IGPP_HP "
+#endif
+#endif
+#ifdef GPAC_DISABLE_SVG
+		"GPAC_DISABLE_SVG "
+#endif
+#ifdef GPAC_DISABLE_VRML
+		"GPAC_DISABLE_VRML "
+#endif
+#ifdef GPAC_MINIMAL_ODF
+		"GPAC_MINIMAL_ODF "
+#endif
+#ifdef GPAC_DISABLE_BIFS
+		"GPAC_DISABLE_BIFS "
+#endif
+#ifdef GPAC_DISABLE_QTVR
+		"GPAC_DISABLE_QTVR "
+#endif
+#ifdef GPAC_DISABLE_AVILIB
+		"GPAC_DISABLE_AVILIB "
+#endif
+#ifdef GPAC_DISABLE_OGG
+		"GPAC_DISABLE_OGG "
+#endif
+#ifdef GPAC_DISABLE_MPEG2PS
+		"GPAC_DISABLE_MPEG2PS "
+#endif
+#ifdef GPAC_DISABLE_MPEG2PS
+		"GPAC_DISABLE_MPEG2TS "
+#endif
+#ifdef GPAC_DISABLE_BENG
+		"GPAC_DISABLE_BENG "
+#endif
+#ifdef GPAC_DISABLE_MEDIA_IMPORT
+		"GPAC_DISABLE_MEDIA_IMPORT "
+#endif
+#ifdef GPAC_DISABLE_AV_PARSERS
+		"GPAC_DISABLE_AV_PARSERS "
+#endif
+#ifdef GPAC_DISABLE_MEDIA_EXPORT
+		"GPAC_DISABLE_MEDIA_EXPORT "
+#endif
+#ifdef GPAC_DISABLE_SWF_IMPORT
+		"GPAC_DISABLE_SWF_IMPORT "
+#endif
+#ifdef GPAC_DISABLE_SCENE_STATS
+		"GPAC_DISABLE_SCENE_STATS "
+#endif
+#ifdef GPAC_DISABLE_SCENE_DUMP
+		"GPAC_DISABLE_SCENE_DUMP "
+#endif
+#ifdef GPAC_DISABLE_SCENE_ENCODER
+		"GPAC_DISABLE_SCENE_ENCODER "
+#endif
+#ifdef GPAC_DISABLE_LOADER_ISOM
+		"GPAC_DISABLE_LOADER_ISOM "
+#endif
+#ifdef GPAC_DISABLE_OD_DUMP
+		"GPAC_DISABLE_OD_DUMP "
+#endif
+#ifdef GPAC_DISABLE_MCRYPT
+		"GPAC_DISABLE_MCRYPT "
+#endif
+#ifdef GPAC_DISABLE_ISOM
+		"GPAC_DISABLE_MCRYPT "
+#endif
+#ifdef GPAC_DISABLE_ISOM_HINTING
+		"GPAC_DISABLE_ISOM_HINTING "
+#endif
+#ifdef GPAC_DISABLE_ISOM_WRITE
+		"GPAC_DISABLE_ISOM_WRITE "
+#endif
+#ifdef GPAC_DISABLE_ISOM_FRAGMENTS
+		"GPAC_DISABLE_ISOM_FRAGMENTS "
+#endif
+#ifdef GPAC_DISABLE_LASER
+		"GPAC_DISABLE_LASER "
+#endif
+#ifdef GPAC_DISABLE_STREAMING
+		"GPAC_DISABLE_STREAMING "
+#endif
+	
+	;
+	return features;
+}

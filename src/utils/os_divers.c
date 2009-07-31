@@ -220,7 +220,6 @@ u32 gf_rand()
 }
 
 
-#ifndef GPAC_READ_ONLY
 FILE *gf_temp_file_new()
 {
 #if defined(_WIN32_WCE)
@@ -247,7 +246,6 @@ FILE *gf_temp_file_new()
 	return tmpfile(); 
 #endif
 }
-#endif
 
 
 void gf_utc_time_since_1970(u32 *sec, u32 *msec)

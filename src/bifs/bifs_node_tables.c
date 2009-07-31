@@ -33,6 +33,7 @@
 
 #include <gpac/internal/bifs_tables.h>
 
+#ifndef GPAC_DISABLE_BIFS
 
 u32 ALL_GetNodeType(const u32 *table, const u32 count, u32 NodeTag, u32 Version)
 {
@@ -925,4 +926,6 @@ u32 gf_bifs_get_node_type(u32 NDT_Tag, u32 NodeTag, u32 Version)
 		return 0;
 	}
 }
+
+#endif /*GPAC_DISABLE_BIFS*/
 

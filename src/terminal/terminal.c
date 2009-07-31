@@ -102,19 +102,19 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		return 1;
 	}
 	if (type==GF_JSAPI_OP_GET_SUBSCENE) {
-		GF_InlineScene *is = (GF_InlineScene *)gf_node_get_private(n);
-		param->scene = is->graph;
+		GF_Scene *scene = (GF_Scene *)gf_node_get_private(n);
+		param->scene = scene->graph;
 		return 1;
 	}
 
 	if (type==GF_JSAPI_OP_RESOLVE_URI) {
 		char *par_url, *url;
 		u32 i, count;
-		GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(gf_node_get_graph(n));
+		GF_Scene *scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph(n));
 		url = (char *)param->uri.url;
-		par_url = is->root_od->net_service->url;
+		par_url = scene->root_od->net_service->url;
 		if (!url) {
-			param->uri.url = strdup(is->root_od->net_service->url);
+			param->uri.url = strdup(scene->root_od->net_service->url);
 			param->uri.nb_params = 0;
 			return 1;
 		}
@@ -128,7 +128,7 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 				return 1;
 			}
 		}
-		param->uri.url = gf_url_concatenate(is->root_od->net_service->url, url);
+		param->uri.url = gf_url_concatenate(scene->root_od->net_service->url, url);
 		return 1;
 	}
 
@@ -249,7 +249,7 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 	sOpt = gf_cfg_get_key(term->user->config, "Network", "DataTimeout");
 	if (sOpt) term->net_data_timeout = atoi(sOpt);
 
-	if (term->root_scene) gf_inline_set_duration(term->root_scene);
+	if (term->root_scene) gf_scene_set_duration(term->root_scene);
 
 #ifndef GPAC_DISABLE_SVG
 	if (term->dcci_doc) {
@@ -314,7 +314,7 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 
 static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u64 startTime, Bool pause_at_first_frame, Bool secondary_scene, const char *parent_path)
 {
-	GF_InlineScene *is;
+	GF_Scene *scene;
 	GF_ObjectManager *odm;
 	const char *main_url;
 	if (!URL || !strlen(URL)) return;
@@ -335,14 +335,14 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	gf_term_lock_net(term, 1);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Creating new root scene\n", URL));
 	/*create a new scene*/
-	is = gf_inline_new(NULL);
-	gf_sg_set_script_action(is->graph, term_script_action, term);
+	scene = gf_scene_new(NULL);
+	gf_sg_set_script_action(scene->graph, term_script_action, term);
 	odm = gf_odm_new();
 
-	is->root_od =  odm;
-	term->root_scene = is;
+	scene->root_od =  odm;
+	term->root_scene = scene;
 	odm->parentscene = NULL;
-	odm->subscene = is;
+	odm->subscene = scene;
 	odm->term = term;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] root scene created\n", URL));
 	gf_term_lock_net(term, 0);
@@ -541,6 +541,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 
 
 	if (term->dcci_doc) {
+#ifndef GPAC_DISABLE_SCENE_DUMP
 		if (term->dcci_doc->modified) {
 			char *pref_file = (char *)gf_cfg_get_key(term->user->config, "General", "EnvironmentFile");
 			GF_SceneDumper *dumper = gf_sm_dumper_new(term->dcci_doc, pref_file, ' ', GF_SM_DUMP_AUTO_XML);
@@ -548,6 +549,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 			e = gf_sm_dump_graph(dumper, 1, 0);
 			gf_sm_dumper_del(dumper);
 		}
+#endif
 		gf_sg_del(term->dcci_doc);
 	}
 	gf_mx_del(term->net_mx);
@@ -621,7 +623,7 @@ void gf_term_disconnect(GF_Terminal *term)
 	if (term->root_scene->root_od) {
 		gf_odm_disconnect(term->root_scene->root_od, 1);
 	} else {
-		gf_inline_del(term->root_scene);
+		gf_scene_del(term->root_scene);
 		term->root_scene = NULL;
 	}
 	while (term->root_scene || gf_list_count(term->net_services_to_remove)) {
@@ -696,17 +698,17 @@ Double gf_term_get_simulation_frame_rate(GF_Terminal *term)
 
 
 /*returns 0 if any of the clock still hasn't seen EOS*/
-u32 Term_CheckClocks(GF_ClientService *ns, GF_InlineScene *is)
+u32 Term_CheckClocks(GF_ClientService *ns, GF_Scene *scene)
 {
 	GF_Clock *ck;
 	u32 i;
-	if (is) {
+	if (scene) {
 		GF_ObjectManager *odm;
-		if (is->root_od->net_service != ns) {
-			if (!Term_CheckClocks(is->root_od->net_service, is)) return 0;
+		if (scene->root_od->net_service != ns) {
+			if (!Term_CheckClocks(scene->root_od->net_service, scene)) return 0;
 		}
 		i=0;
-		while ( (odm = (GF_ObjectManager*)gf_list_enum(is->ODlist, &i)) ) {
+		while ( (odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i)) ) {
 			if (odm->net_service != ns) {
 				if (!Term_CheckClocks(odm->net_service, NULL)) return 0;
 			}
@@ -964,7 +966,7 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 	GF_DOMMediaAccessEvent mae;
 	GF_DOM_Event evt;
 	GF_ObjectManager *an_od;
-	GF_InlineScene *is;
+	GF_Scene *scene;
 
 	if (!odm) return;
 	if (odm->mo) {
@@ -990,12 +992,12 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 		transport = 2;
 
 	min_time = min_buffer = (u32) -1;
-	is = odm->subscene ? odm->subscene : odm->parentscene;
+	scene = odm->subscene ? odm->subscene : odm->parentscene;
 	/*get buffering on root OD*/
-	mae_collect_info(odm->net_service, is->root_od, &mae, transport, &min_time, &min_buffer);
+	mae_collect_info(odm->net_service, scene->root_od, &mae, transport, &min_time, &min_buffer);
 	/*get buffering on all ODs*/
 	i=0;
-	while ((an_od = (GF_ObjectManager*)gf_list_enum(is->ODlist, &i))) {
+	while ((an_od = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
 		mae_collect_info(odm->net_service, an_od, &mae, transport, &min_time, &min_buffer);
 	}
 
@@ -1015,7 +1017,7 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 		gf_dom_event_fire(node, &evt);
 	}
 	if (!count) {
-		GF_Node *root = gf_sg_get_root_node(is->graph);
+		GF_Node *root = gf_sg_get_root_node(scene->graph);
 		if (root) gf_dom_event_fire(root, &evt);
 	}
 	if (locked) gf_sc_lock(odm->term->compositor, 0);
@@ -1129,7 +1131,7 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, Bool pause_at_first
 			gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
 
 		gf_sc_lock(term->compositor, 1);
-		gf_inline_restart_dynamic(term->root_scene, from_time);
+		gf_scene_restart_dynamic(term->root_scene, from_time);
 		gf_sc_lock(term->compositor, 0);
 		return 2;
 	} 
@@ -1138,7 +1140,7 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, Bool pause_at_first
 	gf_term_set_play_state(term, GF_STATE_PAUSED, 0, 1);
 	/*stop root*/
 	gf_odm_stop(term->root_scene->root_od, 1);
-	gf_inline_disconnect(term->root_scene, 0);
+	gf_scene_disconnect(term->root_scene, 0);
 	/*make sure we don't have OD queued*/
 	while (gf_list_count(term->media_queue)) gf_list_rem(term->media_queue, 0);
 	term->root_scene->root_od->media_start_time = from_time;
@@ -1219,17 +1221,17 @@ GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play)
 	mfurl.count = 1;
 	mfurl.vals = &sfurl;
 	/*only text tracks are supported for now...*/
-	mo = gf_inline_get_media_object(term->root_scene, &mfurl, GF_MEDIA_OBJECT_TEXT, 1);
+	mo = gf_scene_get_media_object(term->root_scene, &mfurl, GF_MEDIA_OBJECT_TEXT, 1);
 	if (mo) {
 		/*check if we must deactivate it*/
 		if (mo->odm) {
 			if (mo->num_open && !auto_play) {
-				gf_inline_select_object(term->root_scene, mo->odm);
+				gf_scene_select_object(term->root_scene, mo->odm);
 			} else {
 				mo->odm->OD_PL = auto_play ? 1 : 0;
 			}
 		} else {
-			gf_list_del_item(term->root_scene->media_objects, mo);
+			gf_list_del_item(term->root_scene->scene_objects, mo);
 			gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
 			free(mo);
 			mo = NULL;
@@ -1242,7 +1244,7 @@ GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play)
 void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 {
 	Bool net_check_interface(GF_InputService *ifce);
-	GF_InlineScene *is;
+	GF_Scene *scene;
 	GF_ObjectManager *odm;
 	if (!net_check_interface(service_hdl)) return;
 
@@ -1251,14 +1253,14 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 	gf_term_lock_net(term, 1);
 	
 	/*create a new scene*/
-	is = gf_inline_new(NULL);
+	scene = gf_scene_new(NULL);
 	odm = gf_odm_new();
-	gf_sg_set_script_action(is->graph, term_script_action, term);
+	gf_sg_set_script_action(scene->graph, term_script_action, term);
 
-	is->root_od = odm;
-	term->root_scene = is;
+	scene->root_od = odm;
+	term->root_scene = scene;
 	odm->parentscene = NULL;
-	odm->subscene = is;
+	odm->subscene = scene;
 	odm->term = term;
 
 	GF_SAFEALLOC(odm->net_service , GF_ClientService);
@@ -1296,7 +1298,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	if (!term->root_scene) {
 		gf_term_lock_net(term, 1);
 		/*create a new scene*/
-		term->root_scene = gf_inline_new(NULL);
+		term->root_scene = gf_scene_new(NULL);
 		gf_sg_set_script_action(term->root_scene->graph, term_script_action, term);
 		term->root_scene->root_od = gf_odm_new();
 		term->root_scene->root_od->parentscene = NULL;
@@ -1329,16 +1331,16 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	if (com[i]=='<') is_xml = 1;
 
 	load.type = is_xml ? GF_SM_LOAD_XMTA : GF_SM_LOAD_BT;
-	time = gf_inline_get_time(term->root_scene);
+	time = gf_scene_get_time(term->root_scene);
 
 
 	if (type && (!stricmp(type, "application/x-laser+xml") || !stricmp(type, "laser"))) {
 		load.type = GF_SM_LOAD_XSR;
-		time = gf_inline_get_time(term->root_scene);
+		time = gf_scene_get_time(term->root_scene);
 	}
 	else if (type && (!stricmp(type, "image/svg+xml") || !stricmp(type, "svg")) ) {
 		load.type = GF_SM_LOAD_XSR;
-		time = gf_inline_get_time(term->root_scene);
+		time = gf_scene_get_time(term->root_scene);
 	}
 	else if (type && (!stricmp(type, "model/x3d+xml") || !stricmp(type, "x3d")) ) load.type = GF_SM_LOAD_X3D;
 	else if (type && (!stricmp(type, "model/x3d+vrml") || !stricmp(type, "x3dv")) ) load.type = GF_SM_LOAD_X3DV;
@@ -1349,12 +1351,12 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 		tag = gf_node_get_tag(gf_sg_get_root_node(term->root_scene->graph));
 		if (tag >= GF_NODE_RANGE_FIRST_SVG) {
 			load.type = GF_SM_LOAD_XSR;
-			time = gf_inline_get_time(term->root_scene);
+			time = gf_scene_get_time(term->root_scene);
 		} else if (tag>=GF_NODE_RANGE_FIRST_X3D) {
 			load.type = is_xml ? GF_SM_LOAD_X3D : GF_SM_LOAD_X3DV;
 		} else {
 			load.type = is_xml ? GF_SM_LOAD_XMTA : GF_SM_LOAD_BT;
-			time = gf_inline_get_time(term->root_scene);
+			time = gf_scene_get_time(term->root_scene);
 		}
 	}
 
@@ -1378,7 +1380,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 //			load.ctx->scene_height = term->compositor->height;
 		}
 		gf_sg_set_scene_size_info(term->root_scene->graph, load.ctx->scene_width, load.ctx->scene_height, load.ctx->is_pixel_metrics);
-		gf_inline_attach_to_compositor(term->root_scene);
+		gf_scene_attach_to_compositor(term->root_scene);
 	}
 	gf_sm_del(load.ctx);
 	return e;
@@ -1397,14 +1399,14 @@ GF_Err gf_term_release_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebu
 }
 
 
-static void gf_term_sample_scenetime(GF_InlineScene *scene)
+static void gf_term_sample_scenetime(GF_Scene *scene)
 {
 	u32 i, count;
 	gf_term_lock_net(scene->root_od->term, 1);
-	gf_inline_sample_time(scene);
-	count = gf_list_count(scene->ODlist);
+	gf_scene_sample_time(scene);
+	count = gf_list_count(scene->resources);
 	for (i=0; i<count; i++) {
-		GF_ObjectManager *odm = gf_list_get(scene->ODlist, i);
+		GF_ObjectManager *odm = gf_list_get(scene->resources, i);
 		if (odm->subscene) gf_term_sample_scenetime(odm->subscene);
 	}
 	gf_term_lock_net(scene->root_od->term, 0);

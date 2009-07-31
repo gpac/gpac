@@ -32,6 +32,9 @@ extern "C" {
 #endif
 
 #include <gpac/list.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/bitstream.h>
 #include <gpac/sync_layer.h>
 #include <gpac/network.h>
@@ -1310,6 +1313,8 @@ void gf_rtp_depacketizer_process(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, cha
 
 void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *sl);
 
+
+#endif /*GPAC_DISABLE_STREAMING*/
 
 #ifdef __cplusplus
 }

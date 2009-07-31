@@ -10,6 +10,8 @@ License: see License.txt in the top level directory.
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 void ilst_del(GF_Box *s)
 {
 	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
@@ -51,8 +53,7 @@ GF_Box *ilst_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err ilst_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -77,7 +78,7 @@ GF_Err ilst_Size(GF_Box *s)
 	return gf_isom_box_array_size(s, ptr->tags);
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void ListItem_del(GF_Box *s)
 {
@@ -141,8 +142,7 @@ GF_Box *ListItem_New(u32 type)
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err ListItem_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -182,7 +182,7 @@ GF_Err ListItem_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void data_del(GF_Box *s)
 {
@@ -228,8 +228,7 @@ GF_Box *data_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err data_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -258,7 +257,7 @@ GF_Err data_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov)
 {
@@ -281,7 +280,7 @@ GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov)
 	return NULL;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 {
 	GF_Err e;
@@ -320,5 +319,7 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 
 	return meta;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+#endif /*GPAC_DISABLE_ISOM*/

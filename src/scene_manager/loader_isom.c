@@ -31,7 +31,7 @@
 
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_LOADER_ISOM
 
 static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 {
@@ -140,7 +140,9 @@ GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 	GF_StreamContext *sc;
 	GF_ESD *esd;
 	GF_ODCodec *od_dec;
+#ifndef GPAC_DISABLE_BIFS
 	GF_BifsDecoder *bifs_dec;
+#endif
 #ifndef GPAC_DISABLE_SVG
 	GF_LASeRCodec *lsr_dec;
 #endif
@@ -149,7 +151,9 @@ GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 
 	nbBifs = nbLaser = 0;
 	e = GF_OK;
+#ifndef GPAC_DISABLE_BIFS
 	bifs_dec = gf_bifs_decoder_new(load->scene_graph, 1);
+#endif
 	od_dec = gf_odf_codec_new();
 	logs = NULL;
 #ifndef GPAC_DISABLE_SVG
@@ -193,6 +197,7 @@ GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 
 		/*we still need to reconfig the BIFS*/
 		if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
+#ifndef GPAC_DISABLE_BIFS
 			/*BIFS*/
 			if (esd->decoderConfig->objectTypeIndication<=2) {
 				if (!esd->dependsOnESID && nbBifs && !i) 
@@ -206,9 +211,11 @@ GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 				if (e) goto exit;
 				nbBifs++;
 			}
+#endif
+
 #ifndef GPAC_DISABLE_SVG
 			/*LASER*/
-			else if (esd->decoderConfig->objectTypeIndication==0x09) {
+			if (esd->decoderConfig->objectTypeIndication==0x09) {
 				if (!esd->dependsOnESID && nbBifs && !i) 
 					mp4_report(load, GF_OK, "several scene namespaces used or improper scene dependencies in file - import may be incorrect");
 				e = gf_laser_decoder_configure_stream(lsr_dec, esd->ESID, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
@@ -241,10 +248,12 @@ GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 			au = gf_sm_stream_au_new(sc, samp->DTS, ((Double)(s64) samp->DTS) / sc->timeScale, samp->IsRAP);
 
 			if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
+#ifndef GPAC_DISABLE_BIFS
 				if (esd->decoderConfig->objectTypeIndication<=2) 
 					e = gf_bifs_decode_command_list(bifs_dec, esd->ESID, samp->data, samp->dataLength, au->commands);
+#endif
 #ifndef GPAC_DISABLE_SVG
-				else if (esd->decoderConfig->objectTypeIndication==0x09) 
+				if (esd->decoderConfig->objectTypeIndication==0x09) 
 					e = gf_laser_decode_command_list(lsr_dec, esd->ESID, samp->data, samp->dataLength, au->commands);
 #endif
 			} else {
@@ -275,7 +284,9 @@ GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 	gf_isom_text_set_streaming_mode(load->isom, 0);
 
 exit:
+#ifndef GPAC_DISABLE_BIFS
 	gf_bifs_decoder_del(bifs_dec);
+#endif
 	gf_odf_codec_del(od_dec);
 #ifndef GPAC_DISABLE_SVG
 	gf_laser_decoder_del(lsr_dec);
@@ -365,4 +376,4 @@ void gf_sm_load_done_isom(GF_SceneLoader *load)
 
 }
 
-#endif
+#endif /*GPAC_DISABLE_LOADER_ISOM*/

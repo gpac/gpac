@@ -26,6 +26,8 @@
 #include "mpeg4_grouping.h"
 #include "visual_manager.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 typedef struct
 {
 	PARENT_NODE_STACK_2D
@@ -804,3 +806,5 @@ GF_SensorHandler *compositor_mpeg4_layout_get_sensor_handler(GF_Node *node)
 	return &st->hdl;
 }
 
+
+#endif GPAC_DISABLE_VRML

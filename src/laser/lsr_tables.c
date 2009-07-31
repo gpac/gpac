@@ -32,7 +32,7 @@
 
 #include <gpac/internal/laser_dev.h>
 
-
+#ifndef GPAC_DISABLE_LASER
 
 s32 gf_lsr_anim_type_from_attribute(u32 tag) {
 	switch(tag) {
@@ -847,3 +847,4 @@ u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 	return 1;
 }
 
+#endif /*GPAC_DISABLE_LASER*/

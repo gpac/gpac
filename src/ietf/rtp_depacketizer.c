@@ -23,6 +23,9 @@
  */
 
 #include <gpac/internal/ietf_dev.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/esi.h>
 #include <gpac/base_coding.h>
 #include <gpac/constants.h>
@@ -232,6 +235,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 	gf_bs_del(hdr_bs);
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 static void gf_rtp_parse_mpeg12_audio(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
@@ -291,6 +295,8 @@ static void gf_rtp_parse_mpeg12_audio(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr
 	}
 	rtp->flags |= GF_RTP_NEW_AU;
 }
+
+#endif
 
 static void gf_rtp_parse_mpeg12_video(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
@@ -804,6 +810,7 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
@@ -846,6 +853,7 @@ static void gf_rtp_parse_ac3(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *p
 		rtp->on_sl_packet(rtp->udta, payload, size, &rtp->sl_hdr, GF_OK);
 	}
 }
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
 static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 {
@@ -1023,6 +1031,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	}
 
 	switch (rtp->payt) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_RTP_PAYT_LATM:
 	{
 		u32 AudioMuxVersion, AllStreamsSameTime, numSubFrames, numPrograms, numLayers;
@@ -1075,6 +1084,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->depacketize = gf_rtp_parse_latm;
 	}
 		break;
+#endif
 	case GF_RTP_PAYT_MPEG4:
 		/*mark if AU header is present*/
 		rtp->sl_map.auh_first_min_len = 0;
@@ -1109,12 +1119,15 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_mpeg4;
 		break;
+#ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_RTP_PAYT_MPEG12_AUDIO:
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
 		rtp->sl_map.ObjectTypeIndication = 0x69;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_mpeg12_audio;
 		break;
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
 	case GF_RTP_PAYT_MPEG12_VIDEO:
 		/*we signal RAPs*/
 		rtp->sl_map.RandomAccessIndication = 1;
@@ -1263,6 +1276,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->depacketize = gf_rtp_parse_ttxt;
 	}
 		break;
+#ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_RTP_PAYT_H264_AVC:
 	{
 		GF_SDP_FMTP *fmtp;
@@ -1328,6 +1342,8 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_h264;
 		break;
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
 	/*todo - rewrite DIMS config*/
 	case GF_RTP_PAYT_3GPP_DIMS:
 		rtp->sl_map.StreamType = GF_STREAM_SCENE;
@@ -1340,6 +1356,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_3gpp_dims;
 		break;
+#ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_RTP_PAYT_AC3:
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
 		rtp->sl_map.ObjectTypeIndication = 0xA5;
@@ -1347,6 +1364,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_ac3;
 		break;
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 	default:
 		return GF_NOT_SUPPORTED;
 	}
@@ -1463,3 +1481,5 @@ void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 	}
 }
 
+
+#endif /*GPAC_DISABLE_STREAMING*/

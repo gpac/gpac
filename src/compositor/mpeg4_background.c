@@ -26,6 +26,8 @@
 
 #include "nodes_stacks.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 #ifndef GPAC_DISABLE_3D
 
 #include "texturing.h"
@@ -535,3 +537,5 @@ void compositor_background_modified(GF_Node *node)
 }
 
 #endif /*GPAC_DISABLE_3D*/
+
+#endif	/*GPAC_DISABLE_VRML*/

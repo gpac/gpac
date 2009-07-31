@@ -408,8 +408,10 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 		if (ctx->flags & CTX_FLIPED_COORDS) return 0;
 	}
 	if (ctx->transform.m[1] || ctx->transform.m[3]) return 0;
+#ifndef GPAC_DISABLE_VRML
 	if ((ctx->flags & CTX_HAS_APPEARANCE) && ctx->appear && ((M_Appearance*)ctx->appear)->textureTransform)
 		return 0;
+#endif
 
 	alpha = GF_COL_A(ctx->aspect.fill_color);
 	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/

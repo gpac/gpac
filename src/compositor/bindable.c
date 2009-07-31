@@ -24,6 +24,8 @@
 
 #include "nodes_stacks.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 GF_List *Bindable_GetStack(GF_Node *bindable)
 {
 	void *st;
@@ -248,3 +250,4 @@ void PreDestroyBindable(GF_Node *bindable, GF_List *stack_list)
 	}
 }
 
+#endif /*GPAC_DISABLE_VRML*/

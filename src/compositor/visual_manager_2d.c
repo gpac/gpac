@@ -174,8 +174,10 @@ void visual_2d_setup_projection(GF_VisualManager *visual, GF_TraverseState *tr_s
 	GF_Rect rc;
 
 	tr_state->visual = visual;
+#ifndef GPAC_DISABLE_VRML
 	tr_state->backgrounds = visual->back_stack;
 	tr_state->viewpoints = visual->view_stack;
+#endif
 
 	/*setup clipper*/
 	if (visual->center_coords) {
@@ -214,11 +216,13 @@ void visual_2d_setup_projection(GF_VisualManager *visual, GF_TraverseState *tr_s
 	}
 
 	/*setup viewport*/
+#ifndef GPAC_DISABLE_VRML
 	if (gf_list_count(visual->view_stack)) {
 		tr_state->traversing_mode = TRAVERSE_BINDABLE;
 		tr_state->bounds = rc;
 		gf_node_traverse((GF_Node *) gf_list_get(visual->view_stack, 0), tr_state);
 	}
+#endif
 
 	visual->top_clipper = gf_rect_pixelize(&rc);
 	tr_state->clipper = rc;
@@ -230,8 +234,10 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	GF_Err e;
 	u32 rem, count;
 	struct _drawable_store *it, *prev;
+#ifndef GPAC_DISABLE_VRML
 	DrawableContext *ctx;
 	M_Background2D *bck;
+#endif
 	u32 draw_mode;
 	u32 time;
 	
@@ -290,6 +296,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Top visual initialized - %d nodes registered and %d removed - using %s rendering\n", count, rem, draw_mode ? "direct" : "dirty-rect"));
 	if (!draw_mode) return GF_OK;
 
+#ifndef GPAC_DISABLE_VRML
 	/*direct mode, draw background*/
 	bck = (M_Background2D*) gf_list_get(visual->back_stack, 0);
 	if (bck && bck->isBound) {
@@ -309,7 +316,9 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 		} else {
 			visual->ClearSurface(visual, NULL, 0);
 		}
-	} else {
+	} else
+#endif
+	{
 		visual->ClearSurface(visual, NULL, 0);
 	}
 	return GF_OK;
@@ -467,8 +476,11 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	u32 k, i, count, max_nodes_allowed, num_nodes, num_changed;
 	GF_IRect refreshRect, *check_rect;
 	Bool redraw_all;
-	M_Background2D *bck;
-	DrawableContext *bck_ctx, *ctx;
+#ifndef GPAC_DISABLE_VRML
+	M_Background2D *bck = NULL;
+	DrawableContext *bck_ctx = NULL;
+#endif
+	DrawableContext *ctx;
 	struct _drawable_store *it, *prev;
 #ifndef TRACK_OPAQUE_REGIONS
 	DrawableContext *first_opaque = NULL;
@@ -493,9 +505,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	redraw_all = tr_state->invalidate_all;
 
 	/*check for background changes for transparent nodes*/
-	bck = NULL;
-	bck_ctx = NULL;
-
+#ifndef GPAC_DISABLE_VRML
 	bck = (M_Background2D*)gf_list_get(visual->back_stack, 0);
 	if (bck) {
 		if (!bck->isBound) {
@@ -507,7 +517,9 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			bck_ctx = b2d_get_context(bck, visual->back_stack);
 			if (bck_ctx->flags & CTX_REDRAW_MASK) redraw_all = 1;
 		}
-	} else if (visual->last_had_back) {
+	} else 
+#endif
+	if (visual->last_had_back) {
 		visual->last_had_back = 0;
 		redraw_all = 1;
 	}
@@ -600,6 +612,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 #endif
 
 	/*redraw everything*/
+#ifndef GPAC_DISABLE_VRML
 	if (bck_ctx) {
 		drawable_check_bounds(bck_ctx, visual);
 		tr_state->ctx = bck_ctx;
@@ -615,7 +628,9 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		}
 		bck_ctx->bi->unclip = gf_rect_ft(&bck_ctx->bi->clip);
 		gf_node_traverse(bck_ctx->drawable->node, tr_state);
-	} else {
+	} else 
+#endif /*GPAC_DISABLE_VRML*/
+	{
 		count = visual->to_redraw.count;
 		for (k=0; k<count; k++) {
 			GF_IRect rc;

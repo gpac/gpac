@@ -228,18 +228,19 @@ SOURCE channel.c
 SOURCE clock.c
 SOURCE decoder.c
 SOURCE term_node_init.c
-SOURCE inline.c
 SOURCE input_sensor.c
 SOURCE media_control.c
 SOURCE media_manager.c
 SOURCE media_memory.c
 SOURCE media_object.c
 SOURCE media_sensor.c
+SOURCE mpeg4_inline.c
 SOURCE network_service.c
 SOURCE object_browser.c
 SOURCE object_manager.c
-SOURCE terminal.c 
+SOURCE scene.c
 SOURCE svg_external.c
+SOURCE terminal.c 
 
 //compositor
 SOURCEPATH ..\..\src\compositor

@@ -86,6 +86,15 @@ extern "C" {
  *	Macro formating a 4-character code (or 4CC) "abcd" as 0xAABBCCDD
 */
 #define GF_4CC(a,b,c,d) (((a)<<24)|((b)<<16)|((c)<<8)|(d))
+
+	
+/*!
+ *	\brief GPAC feature list
+ *
+ *	returns the list of features enabled/disabled in this GPAC build.
+*/
+const char *gpac_features();
+
 /*!
  *	\brief 4CC Printing
  *

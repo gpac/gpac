@@ -30,7 +30,7 @@
 #include <gpac/scenegraph.h>
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
@@ -1258,6 +1258,7 @@ GF_Err cat_multiple_files(GF_ISOFile *dest, char *fileName, u32 import_flags, Do
 }
 
 
+#ifndef GPAC_DISABLE_SCENE_ENCODER
 /*
 		MPEG-4 encoding
 */
@@ -1317,6 +1318,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 					fprintf(stdout, "encoded using a %d.8 representation\n", opts->coord_bits - 8);
 				}
 			} 
+#ifndef GPAC_DISABLE_VRML
 			/*BIFS*/
 			else if (stats->base_layer) {
 				GF_AUContext *au;
@@ -1354,6 +1356,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 					qp->scaleQuant = 1;
 				}
 			}
+#endif
 		}
 	}
 
@@ -1386,7 +1389,10 @@ err_exit:
 	gf_sg_del(sg);
 	return e;
 }
+#endif /*GPAC_DISABLE_SCENE_ENCODER*/
 
+
+#ifndef GPAC_DISABLE_BIFS
 /*
 		MPEG-4 chunk encoding
 */
@@ -1537,6 +1543,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	return e;
 }
 
+#endif /*GPAC_DISABLE_BIFS*/
 
 /**
  * @chunkFile BT chunk to be encoded
@@ -1548,6 +1555,10 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
  */
 GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *outputContext, const char *tmpdir) 
 {
+#ifdef GPAC_DISABLE_BIFS
+	fprintf(stdout, "BIFS is not supported in this build of GPAC\n");
+	return GF_NOT_SUPPORTED;
+#else
 	GF_Err e;
 	GF_SceneGraph *sg;
 	GF_SceneManager	*ctx;
@@ -1632,6 +1643,7 @@ exit:
 		gf_sg_del(sg);
 	}
 	return e;
+#endif
 }
 
 #include <gpac/xml.h>
@@ -1777,5 +1789,5 @@ exit:
 	return file;
 }
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 

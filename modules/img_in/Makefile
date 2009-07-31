@@ -47,7 +47,7 @@ SRCS := $(OBJS:.o=.c)
 LIB=gm_img_in.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
 LINKLIBS+=-lwinmm
-LDFLAGS+=-export-symbols img_in.def 
+#LDFLAGS+=-export-symbols img_in.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

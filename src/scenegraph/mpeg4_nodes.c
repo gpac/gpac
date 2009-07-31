@@ -34,6 +34,9 @@
 
 #include <gpac/internal/scenegraph_dev.h>
 
+#ifndef GPAC_DISABLE_VRML
+
+
 /*
 	Anchor Node deletion
 */
@@ -34056,3 +34059,4 @@ s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name)
 	}
 }
 
+#endif	/*GPAC_DISABLE_VRML*/

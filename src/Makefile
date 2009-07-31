@@ -42,7 +42,7 @@ LIBGPAC_MEDIATOOLS=media_tools/av_parsers.o media_tools/avilib.o media_tools/fil
 LIBGPAC_SCENEMANAGER=scene_manager/loader_bt.o scene_manager/loader_isom.o scene_manager/loader_qt.o scene_manager/loader_xmt.o scene_manager/scene_dump.o scene_manager/scene_manager.o scene_manager/scene_stats.o scene_manager/swf_parse.o scene_manager/swf_bifs.o scene_manager/text_to_bifs.o scene_manager/encode_cbk.o scene_manager/encode_isom.o scene_manager/loader_svg.o
 
 ## libgpac objects gathering: src/terminal
-LIBGPAC_TERMINAL=terminal/channel.o terminal/clock.o terminal/decoder.o terminal/term_node_init.o terminal/inline.o terminal/input_sensor.o terminal/media_control.o terminal/media_manager.o terminal/media_memory.o terminal/media_object.o terminal/media_sensor.o terminal/network_service.o terminal/object_browser.o terminal/object_manager.o terminal/terminal.o terminal/svg_external.o
+LIBGPAC_TERMINAL=terminal/channel.o terminal/clock.o terminal/decoder.o terminal/term_node_init.o terminal/input_sensor.o terminal/media_control.o terminal/media_manager.o terminal/media_memory.o terminal/media_object.o terminal/media_sensor.o terminal/mpeg4_inline.o terminal/network_service.o terminal/object_browser.o terminal/object_manager.o terminal/scene.o terminal/terminal.o terminal/svg_external.o
 
 ## libgpac objects gathering: src/compositor
 LIBGPAC_COMPOSITOR=compositor/audio_input.o compositor/audio_mixer.o compositor/audio_render.o compositor/bindable.o compositor/camera.o compositor/compositor.o compositor/compositor_2d.o compositor/compositor_3d.o compositor/compositor_node_init.o compositor/drawable.o compositor/events.o compositor/font_engine.o compositor/hardcoded_protos.o compositor/mesh.o compositor/mesh_collide.o compositor/mesh_tesselate.o compositor/mpeg4_animstream.o compositor/mpeg4_audio.o compositor/mpeg4_background.o compositor/mpeg4_background2d.o compositor/mpeg4_bitmap.o compositor/mpeg4_composite.o compositor/mpeg4_form.o compositor/mpeg4_geometry_2d.o compositor/mpeg4_geometry_3d.o compositor/mpeg4_geometry_ifs2d.o compositor/mpeg4_geometry_ils2d.o compositor/mpeg4_gradients.o compositor/mpeg4_grouping.o compositor/mpeg4_grouping_2d.o compositor/mpeg4_grouping_3d.o compositor/mpeg4_layer_2d.o compositor/mpeg4_layer_3d.o compositor/mpeg4_layout.o compositor/mpeg4_lighting.o compositor/mpeg4_path_layout.o compositor/mpeg4_sensors.o compositor/mpeg4_sound.o compositor/mpeg4_text.o compositor/mpeg4_textures.o compositor/mpeg4_timesensor.o compositor/mpeg4_viewport.o compositor/navigate.o compositor/offscreen_cache.o compositor/svg_base.o compositor/svg_font.o compositor/svg_geometry.o compositor/svg_grouping.o compositor/svg_media.o compositor/svg_paint_servers.o compositor/svg_text.o compositor/texturing.o compositor/texturing_gl.o compositor/visual_manager.o compositor/visual_manager_2d.o compositor/visual_manager_2d_draw.o compositor/visual_manager_3d.o compositor/visual_manager_3d_gl.o compositor/x3d_geometry.o
@@ -56,7 +56,6 @@ endif
 ## libgpac objects gathering: la totale ...
 OBJS=$(LIBGPAC_UTILS) $(LIBGPAC_MCRYPT) $(LIBGPAC_SCENE) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ISOM) $(LIBGPAC_ODF) $(LIBGPAC_MEDIATOOLS) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) $(LIBGPAC_COMPOSITOR) $(LIBGPAC_LASER)
 
-CFLAGS+=-I../ -DGPAC_HAVE_CONFIG_H 
 NEED_LOCAL_LIB="no"
 LINKLIBS=
 SCENEGRAPH_CFLAGS=

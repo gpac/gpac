@@ -26,6 +26,9 @@
 
 #include <gpac/internal/bifs_dev.h>
 
+
+#ifndef GPAC_DISABLE_BIFS
+
 /*private stack for conditional*/
 typedef struct
 {
@@ -144,15 +147,24 @@ void SetupConditional(GF_BifsDecoder *codec, GF_Node *node)
 	((M_Conditional *)node)->on_reverseActivate = Conditional_OnReverseActivate;
 }
 
+#endif	/*GPAC_DISABLE_BIFS*/
+
+
 /*this is ugly but we have no choice, we need to clone the conditional stack because of externProto*/
 void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig)
 {
+#ifndef GPAC_DISABLE_BIFS
 	M_Conditional *ptr;
-	u32 i;
 	ConditionalStack *priv_orig, *priv;
 	priv_orig = (ConditionalStack*)gf_node_get_private(orig);
 	/*looks we're not in BIFS*/
 	if (!priv_orig) {
+#else
+	{
+#endif
+
+#ifndef GPAC_DISABLE_VRML
+		u32 i;
 		GF_Command *ori_com;
 		M_Conditional *c_orig, *c_dest;
 		c_orig = (M_Conditional *)orig;
@@ -161,11 +173,14 @@ void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig)
 		/*and clone all commands*/
 		i=0;
 		while ((ori_com = (GF_Command*)gf_list_enum(c_orig->buffer.commandList, &i))) {
-			GF_Command *dest_com = gf_sg_command_clone(ori_com, gf_node_get_graph(node), 1);
+			GF_Command *dest_com = gf_sg_vrml_command_clone(ori_com, gf_node_get_graph(node), 1);
 			if (dest_com) gf_list_add(c_dest->buffer.commandList, dest_com);
 		}
+#endif
 		return;
 	}
+
+#ifndef GPAC_DISABLE_BIFS
 	priv = (ConditionalStack*)malloc(sizeof(ConditionalStack));
 	priv->codec = priv_orig->codec;
 	priv->info = priv_orig->info;
@@ -174,4 +189,6 @@ void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig)
 	ptr = (M_Conditional *)node;
 	ptr->on_activate = Conditional_OnActivate;
 	ptr->on_reverseActivate = Conditional_OnReverseActivate;
+#endif
+
 }

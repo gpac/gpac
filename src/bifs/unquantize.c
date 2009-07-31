@@ -24,6 +24,9 @@
 
 #include "quant.h"
 
+#ifndef GPAC_DISABLE_BIFS
+
+
 u32 gf_bifs_dec_qp14_get_bits(GF_BifsDecoder *codec)
 {
 	if (!codec->ActiveQP || !codec->coord_stored) return 0;
@@ -433,3 +436,4 @@ GF_Err gf_bifs_dec_unquant_field(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Nod
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_BIFS*/

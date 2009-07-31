@@ -185,7 +185,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib libxvidcore.lib"
+				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -1268,6 +1268,15 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
+					Name="Release|Smartphone 2003 (ARMV4)"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						CommandLine="armasm -CPU StrongARM1 -o &quot;$(IntDir)\$(InputName).obj&quot; $(InputPath)&#x0D;&#x0A;"
+						Outputs="&quot;$(IntDir)\$(InputName).obj&quot;"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
 					Name="Debug|Win32"
 					ExcludedFromBuild="true"
 					>
@@ -1300,6 +1309,7 @@
 			</FileConfiguration>
 			<FileConfiguration
 				Name="Release|Smartphone 2003 (ARMV4)"
+				ExcludedFromBuild="true"
 				>
 				<Tool
 					Name="VCCLCompilerTool"

@@ -21,7 +21,7 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_timedtext.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols timedtext.def 
+#LDFLAGS+=-export-symbols timedtext.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

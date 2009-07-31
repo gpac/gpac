@@ -28,10 +28,11 @@
 #include <gpac/network.h>
 #include <gpac/nodes_mpeg4.h>
 
+#ifndef GPAC_DISABLE_VRML
 
 typedef struct 
 {
-	GF_InlineScene *inline_scene;
+	GF_Scene *scene;
 	GF_Terminal *app;
 	GF_SceneManager *ctx;
 	GF_SceneLoader load;
@@ -61,20 +62,20 @@ static GF_Err CTXLoad_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapabi
 	return GF_OK;
 }
 
-static void ODS_SetupOD(GF_InlineScene *is, GF_ObjectDescriptor *od)
+static void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 {
 	GF_ObjectManager *odm;
-	odm = gf_inline_find_odm(is, od->objectDescriptorID);
+	odm = gf_scene_find_odm(scene, od->objectDescriptorID);
 	/*remove the old OD*/
 	if (odm) gf_odm_disconnect(odm, 1);
 	odm = gf_odm_new();
 	odm->OD = od;
-	odm->term = is->root_od->term;
-	odm->parentscene = is;
-	gf_list_add(is->ODlist, odm);
+	odm->term = scene->root_od->term;
+	odm->parentscene = scene;
+	gf_list_add(scene->resources, odm);
 
 	/*locate service owner*/
-	gf_odm_setup_object(odm, is->root_od->net_service);
+	gf_odm_setup_object(odm, scene->root_od->net_service);
 }
 
 
@@ -82,7 +83,7 @@ static void CTXLoad_Reset(CTXLoadPriv *priv)
 {
 	if (priv->ctx) gf_sm_del(priv->ctx);
 	priv->ctx = NULL;
-	gf_sg_reset(priv->inline_scene->graph);
+	gf_sg_reset(priv->scene->graph);
 	if (priv->load_flags != 3) priv->load_flags = 0;
 	while (gf_list_count(priv->files_to_delete)) {
 		char *fileName = (char*)gf_list_get(priv->files_to_delete, 0);
@@ -92,12 +93,12 @@ static void CTXLoad_Reset(CTXLoadPriv *priv)
 	}
 }
 
-static void CTXLoad_ExecuteConditional(M_Conditional *c, GF_InlineScene *is)
+static void CTXLoad_ExecuteConditional(M_Conditional *c, GF_Scene *scene)
 {
 	GF_List *clist = c->buffer.commandList;
 	c->buffer.commandList = NULL;
 
-	gf_sg_command_apply_list(gf_node_get_graph((GF_Node*)c), clist, gf_inline_get_time(is));
+	gf_sg_command_apply_list(gf_node_get_graph((GF_Node*)c), clist, gf_scene_get_time(scene));
 
 	if (c->buffer.commandList != NULL) {
 		while (gf_list_count(clist)) {
@@ -113,19 +114,19 @@ static void CTXLoad_ExecuteConditional(M_Conditional *c, GF_InlineScene *is)
 
 static void CTXLoad_OnActivate(GF_Node *node, GF_Route *route)
 {
-	GF_InlineScene *is = (GF_InlineScene *) gf_node_get_private(node);
+	GF_Scene *scene = (GF_Scene *) gf_node_get_private(node);
 	M_Conditional*c = (M_Conditional*)node;
 	/*always apply in parent graph to handle protos correctly*/
-	if (c->activate) CTXLoad_ExecuteConditional(c, is);
+	if (c->activate) CTXLoad_ExecuteConditional(c, scene);
 }
 
 static void CTXLoad_OnReverseActivate(GF_Node *node, GF_Route *route)
 {
-	GF_InlineScene *is = (GF_InlineScene *) gf_node_get_private(node);
+	GF_Scene *scene = (GF_Scene *) gf_node_get_private(node);
 	M_Conditional*c = (M_Conditional*)node;
 	/*always apply in parent graph to handle protos correctly*/
 	if (!c->reverseActivate) 
-		CTXLoad_ExecuteConditional(c, is);
+		CTXLoad_ExecuteConditional(c, scene);
 }
 
 void CTXLoad_NodeCallback(void *cbk, u32 type, GF_Node *node, void *param)
@@ -170,11 +171,11 @@ static GF_Err CTXLoad_Setup(GF_BaseDecoder *plug)
 	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
 	if (!priv->file_name) return GF_BAD_PARAM;
 
-	priv->ctx = gf_sm_new(priv->inline_scene->graph);
+	priv->ctx = gf_sm_new(priv->scene->graph);
 	memset(&priv->load, 0, sizeof(GF_SceneLoader));
 	priv->load.ctx = priv->ctx;
-	priv->load.is = priv->inline_scene;
-	priv->load.scene_graph = priv->inline_scene->graph;
+	priv->load.is = priv->scene;
+	priv->load.scene_graph = priv->scene->graph;
 	priv->load.fileName = priv->file_name;
 	priv->load.flags = GF_SM_LOAD_FOR_PLAYBACK;
 	priv->load.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
@@ -246,12 +247,12 @@ static GF_Err CTXLoad_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	return GF_OK;
 }
 
-static GF_Err CTXLoad_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
+static GF_Err CTXLoad_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_scene_decoder)
 {
 	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
 	if (priv->ctx) return GF_BAD_PARAM;
 
-	priv->inline_scene = scene;
+	priv->scene = scene;
 	priv->app = scene->root_od->term;
 	gf_sg_set_node_callback(scene->graph, CTXLoad_NodeCallback);
 
@@ -310,8 +311,8 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 		if (au && sc->in_root_od && (au->timing>max_dur)) max_dur = (u32) (au->timing * 1000 / sc->timeScale);
 	}
 	if (max_dur) {
-		priv->inline_scene->root_od->duration = max_dur;
-		gf_inline_set_duration(priv->inline_scene);
+		priv->scene->root_od->duration = max_dur;
+		gf_scene_set_duration(priv->scene);
 	}
 }
 
@@ -345,7 +346,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 			gf_sm_load_done(&priv->load);
 			priv->file_pos = 0;
 			/*this will call detach scene*/
-			gf_inline_disconnect(priv->inline_scene, 0);
+			gf_scene_disconnect(priv->scene, 0);
 			return CTXLoad_Setup((GF_BaseDecoder *)plug);
 		}
 		i=0;
@@ -396,9 +397,9 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 				diff = gf_sys_clock() - entry_time;
 				if (diff > priv->sax_max_duration) break;
 			}
-			if (!priv->inline_scene->graph_attached) {
-				gf_sg_set_scene_size_info(priv->inline_scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
-				gf_inline_attach_to_compositor(priv->inline_scene);
+			if (!priv->scene->graph_attached) {
+				gf_sg_set_scene_size_info(priv->scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
+				gf_scene_attach_to_compositor(priv->scene);
 
 				CTXLoad_CheckStreams(priv);
 			}
@@ -412,11 +413,11 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 			e = gf_sm_load_init(&priv->load);
 			if (!e) {
 				CTXLoad_CheckStreams(priv);
-				gf_sg_set_scene_size_info(priv->inline_scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
+				gf_sg_set_scene_size_info(priv->scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
 				/*VRML, override base clock*/
 				if ((priv->load.type==GF_SM_LOAD_VRML) || (priv->load.type==GF_SM_LOAD_X3DV) || (priv->load.type==GF_SM_LOAD_X3D)) {
 					/*override clock callback*/
-					gf_sg_set_scene_time_callback(priv->inline_scene->graph, CTXLoad_GetVRMLTime);
+					gf_sg_set_scene_time_callback(priv->scene->graph, CTXLoad_GetVRMLTime);
 				}
 			}
 		} 
@@ -439,7 +440,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 		if (priv->load_flags==2) {
 			CTXLoad_CheckStreams(priv);
 			if (!gf_list_count(priv->ctx->streams)) {
-				gf_inline_attach_to_compositor(priv->inline_scene);
+				gf_scene_attach_to_compositor(priv->scene);
 			}
 		}
 	}
@@ -507,7 +508,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 				/*apply the commands*/
 				k=0;
 				while ((com = (GF_Command *)gf_list_enum(au->commands, &k))) {
-					e = gf_sg_command_apply(priv->inline_scene->graph, com, 0);
+					e = gf_sg_command_apply(priv->scene->graph, com, 0);
 					if (e) break;
 					/*remove commands on base layer*/
 					if (can_delete_com) {
@@ -537,7 +538,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 							esd = (GF_ESD*)gf_list_get(od->ESDescriptors, 0);
 							if (!esd) {
 								if (od->URLString) {
-									ODS_SetupOD(priv->inline_scene, od);
+									ODS_SetupOD(priv->scene, od);
 								} else {
 									gf_odf_desc_del((GF_Descriptor *) od);
 								}
@@ -566,12 +567,12 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 									/*set ST to private scene to get sure the stream will be redirected to us*/
 									esd->decoderConfig->streamType = GF_STREAM_PRIVATE_SCENE;
 									esd->dependsOnESID = priv->base_stream_id;
-									ODS_SetupOD(priv->inline_scene, od);
+									ODS_SetupOD(priv->scene, od);
 								} else if (esd->decoderConfig->streamType==GF_STREAM_INTERACT) {
 									GF_UIConfig *cfg = (GF_UIConfig *) esd->decoderConfig->decoderSpecificInfo;
 									gf_odf_encode_ui_config(cfg, &esd->decoderConfig->decoderSpecificInfo);
 									gf_odf_desc_del((GF_Descriptor *) cfg);
-									ODS_SetupOD(priv->inline_scene, od);
+									ODS_SetupOD(priv->scene, od);
 								} else {
 									gf_odf_desc_del((GF_Descriptor *) od);
 								}
@@ -579,7 +580,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 							}
 							/*text import*/
 							if (mux->textNode) {
-#ifdef GPAC_READ_ONLY
+#ifdef GPAC_DISABLE_MEDIA_IMPORT
 								gf_odf_desc_del((GF_Descriptor *) od);
 								continue;
 #else
@@ -592,7 +593,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 								/*set ST to private scene and dependency to base to get sure the stream will be redirected to us*/
 								esd->decoderConfig->streamType = GF_STREAM_PRIVATE_SCENE;
 								esd->dependsOnESID = priv->base_stream_id;
-								ODS_SetupOD(priv->inline_scene, od);
+								ODS_SetupOD(priv->scene, od);
 								continue;
 #endif
 							}
@@ -617,7 +618,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 							od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 							od->URLString = remote;
 							od->objectDescriptorID = k;
-							ODS_SetupOD(priv->inline_scene, od);
+							ODS_SetupOD(priv->scene, od);
 						}
 						if (keep_com) break;
 					}
@@ -626,7 +627,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 					{
 						GF_ODRemove *odR = (GF_ODRemove*)com;
 						for (k=0; k<odR->NbODs; k++) {
-							GF_ObjectManager *odm = gf_inline_find_odm(priv->inline_scene, odR->OD_ID[k]);
+							GF_ObjectManager *odm = gf_scene_find_odm(priv->scene, odR->OD_ID[k]);
 							if (odm) gf_odm_disconnect(odm, 1);
 						}
 					}
@@ -646,8 +647,8 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 			}
 			sc->last_au_time = au_time + 1;
 			/*attach graph to renderer*/
-			if (!priv->inline_scene->graph_attached)
-				gf_inline_attach_to_compositor(priv->inline_scene);
+			if (!priv->scene->graph_attached)
+				gf_scene_attach_to_compositor(priv->scene);
 			if (e) return e;
 
 			/*for root streams remove completed AUs (no longer needed)*/
@@ -766,3 +767,13 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+#else
+
+GF_EXPORT
+Bool QueryInterface(u32 InterfaceType) { return 0; }
+GF_EXPORT
+GF_BaseInterface *LoadInterface(u32 InterfaceType) { return NULL; }
+GF_EXPORT
+void ShutdownInterface(GF_BaseInterface *ifce) {}
+
+#endif /*GPAC_DISABLE_VRML*/

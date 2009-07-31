@@ -29,6 +29,7 @@
 #include "quant.h" 
 #include "script.h" 
 
+#ifndef GPAC_DISABLE_BIFS
 
 GF_Err gf_bifs_field_index_by_mode(GF_Node *node, u32 all_ind, u8 indexMode, u32 *outField)
 {
@@ -600,3 +601,4 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 }
 
 
+#endif /*GPAC_DISABLE_BIFS*/

@@ -345,8 +345,10 @@ check_unit:
 		goto exit;
 	}
 
+#ifndef GPAC_DISABLE_VRML
 	if (ch && ch->odm->media_ctrl && !ch->odm->media_ctrl->media_speed)
 		goto exit;
+#endif
 
 	/*get the object time*/
 	obj_time = gf_clock_time(codec->ck);
@@ -415,17 +417,17 @@ check_unit:
 
 	/*in broadcast mode, generate a scene if none is available*/
 	if (codec->ck->no_time_ctrl) {
-		GF_InlineScene *is = codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene;
+		GF_Scene *scene = codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene;
 
 		/*static OD resources (embedded in ESD) in broadcast mode, reset time*/
 		if (codec->flags & GF_ESM_CODEC_IS_STATIC_OD) gf_clock_reset(codec->ck);
 		/*generate a temp scene if none is in place*/
-		if (is->graph_attached != 1) {
-			Bool prev_dyn = is->is_dynamic_scene;
-			is->is_dynamic_scene = 1;
-			gf_inline_regenerate(is);
-			is->graph_attached = 2;
-			is->is_dynamic_scene = prev_dyn;
+		if (scene->graph_attached != 1) {
+			Bool prev_dyn = scene->is_dynamic_scene;
+			scene->is_dynamic_scene = 1;
+			gf_scene_regenerate(scene);
+			scene->graph_attached = 2;
+			scene->is_dynamic_scene = prev_dyn;
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Decoder] Got OD resources before scene - generating temporary scene\n"));
 		}
 	}
@@ -579,7 +581,7 @@ static GF_Err ResizeCompositionBuffer(GF_Codec *dec, u32 NewSize)
 		if (!dec->CB->Min) dec->CB->Min = 1;
 	}
 	if ((dec->type==GF_STREAM_VISUAL) && dec->odm->parentscene->is_dynamic_scene) {
-		gf_inline_force_scene_size_video(dec->odm->parentscene, dec->odm->mo);
+		gf_scene_force_size_to_video(dec->odm->parentscene, dec->odm->mo);
 	}
 	return GF_OK;
 }
@@ -645,7 +647,12 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		if (!ch->skip_sl && codec->last_unit_cts && (codec->last_unit_cts == AU->CTS) && !ch->esd->dependsOnESID) {
 			mmlevel = GF_CODEC_LEVEL_SEEK;
 			/*object clock is paused by media control or terminal is paused: exact frame seek*/
-			if ((codec->ck->mc && codec->ck->mc->paused) || (codec->odm->term->play_state)) {
+			if (
+#ifndef GPAC_DISABLE_VRML
+				(codec->ck->mc && codec->ck->mc->paused) || 
+#endif
+				(codec->odm->term->play_state)
+			) {
 				gf_cm_rewind_input(codec->CB);
 				mmlevel = GF_CODEC_LEVEL_NORMAL;
 				/*force staying in step-mode*/
@@ -823,7 +830,11 @@ drop:
 GF_Err gf_codec_process(GF_Codec *codec, u32 TimeAvailable)
 {
 	if (codec->Status == GF_ESM_CODEC_STOP) return GF_OK;
+#ifndef GPAC_DISABLE_VRML
 	codec->Muted = (codec->odm->media_ctrl && codec->odm->media_ctrl->control->mute) ? 1 : 0;
+#else
+	codec->Muted = 0;
+#endif
 
 	/*OCR: needed for OCR in pull mode (dummy streams used to sync various sources)*/
 	if (codec->type==GF_STREAM_OCR) {
@@ -837,8 +848,10 @@ GF_Err gf_codec_process(GF_Codec *codec, u32 TimeAvailable)
 			/*if the codec is in EOS state, move to STOP*/
 			if (codec->Status == GF_ESM_CODEC_EOS) {
 				gf_term_stop_codec(codec);
+#ifndef GPAC_DISABLE_VRML
 				/*if a mediacontrol is ruling this OCR*/
-				if (codec->odm->media_ctrl && codec->odm->media_ctrl->control->loop) MC_Restart(codec->odm);
+				if (codec->odm->media_ctrl && codec->odm->media_ctrl->control->loop) mediacontrol_restart(codec->odm);
+#endif
 			}
 		}
 	}
@@ -1001,11 +1014,13 @@ GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	case GF_STREAM_OCR:
 		codec->decio = NULL;
 		return GF_OK;
-	/*InteractionStream is currently hardcoded*/
+#ifndef GPAC_DISABLE_VRML
+	/*InteractionStream */
 	case GF_STREAM_INTERACT:
 		codec->decio = (GF_BaseDecoder *) gf_isdec_new(esd, PL);
 		assert(codec->decio->InterfaceType == GF_SCENE_DECODER_INTERFACE);
 		return GF_OK;
+#endif
 
 	/*load decoder module*/
 	case GF_STREAM_VISUAL:
@@ -1025,12 +1040,14 @@ void gf_codec_del(GF_Codec *codec)
 	if (!(codec->flags & GF_ESM_CODEC_IS_USE)) {
 		switch (codec->type) {
 		/*input sensor streams are handled internally for now*/
+#ifndef GPAC_DISABLE_VRML
 		case GF_STREAM_INTERACT:
 			gf_mx_p(codec->odm->term->net_mx);
 			gf_isdec_del(codec->decio);
 			gf_list_del_item(codec->odm->term->input_streams, codec);
 			gf_mx_v(codec->odm->term->net_mx);
 			break;
+#endif
 		default:
 			gf_modules_close_interface((GF_BaseInterface *) codec->decio);
 			break;

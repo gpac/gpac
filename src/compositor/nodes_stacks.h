@@ -36,24 +36,32 @@
 #include "drawable.h"
 
 
+#ifndef GPAC_DISABLE_VRML
+
 void compositor_init_audiosource(GF_Compositor *compositor, GF_Node *node);
 void compositor_audiosource_modified(GF_Node *node);
+
 void compositor_init_audioclip(GF_Compositor *compositor, GF_Node *node);
 void compositor_audioclip_modified(GF_Node *node);
+
 void compositor_init_audiobuffer(GF_Compositor *compositor, GF_Node *node);
 void compositor_audiobuffer_modified(GF_Node *node);
+
 void compositor_init_animationstream(GF_Compositor *compositor, GF_Node *node);
 void compositor_animationstream_modified(GF_Node *node);
+
 void compositor_init_timesensor(GF_Compositor *compositor, GF_Node *node);
 void compositor_timesensor_modified(GF_Node *node);
+
 void compositor_init_imagetexture(GF_Compositor *compositor, GF_Node *node);
 void compositor_imagetexture_modified(GF_Node *node);
+GF_TextureHandler *it_get_texture(GF_Node *node);
+
 void compositor_init_movietexture(GF_Compositor *compositor, GF_Node *node);
 void compositor_movietexture_modified(GF_Node *node);
-void compositor_init_pixeltexture(GF_Compositor *compositor, GF_Node *node);
-
-GF_TextureHandler *it_get_texture(GF_Node *node);
 GF_TextureHandler *mt_get_texture(GF_Node *node);
+
+void compositor_init_pixeltexture(GF_Compositor *compositor, GF_Node *node);
 GF_TextureHandler *pt_get_texture(GF_Node *node);
 
 
@@ -183,7 +191,6 @@ GF_TextureHandler *compositor_get_composite_texture(GF_Node *node);
 void compositor_adjust_scale(GF_Node *node, Fixed *sx, Fixed *sy);
 Bool compositor_is_composite_texture(GF_Node *appear);
 Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node *composite_appear, GF_Event *ev, Bool is_flush);
-Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev);
 void compositor_compositetexture_sensor_delete(GF_Node *composite_appear, GF_SensorHandler *hdl);
 
 void compositor_init_text(GF_Compositor *compositor, GF_Node *node);
@@ -246,6 +253,19 @@ void compositor_init_triangle_fan_set(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_indexed_triangle_fan_set(GF_Compositor *compositor, GF_Node *node);
 #endif
 
+GF_TextureHandler *compositor_mpeg4_get_gradient_texture(GF_Node *node);
+
+/*hardcoded protos*/
+void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node);
+
+#ifndef GPAC_DISABLE_3D
+void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh *mesh, MFVec3f *thespine, Fixed creaseAngle, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool txAlongSpine);
+#endif
+
+void compositor_init_texture_text(GF_Compositor *compositor, GF_Node *node);
+
+#endif /*GPAC_DISABLE_VRML*/
+
 
 #ifndef GPAC_DISABLE_SVG
 void compositor_init_svg_svg(GF_Compositor *compositor, GF_Node *node);
@@ -291,17 +311,6 @@ void svg_pause_audio(GF_Node *n, Bool pause);
 void svg_pause_video(GF_Node *n, Bool pause);
 
 #endif
-
-GF_TextureHandler *compositor_mpeg4_get_gradient_texture(GF_Node *node);
-
-/*hardcoded protos*/
-void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node);
-
-#ifndef GPAC_DISABLE_3D
-void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh *mesh, MFVec3f *thespine, Fixed creaseAngle, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool txAlongSpine);
-#endif
-
-void compositor_init_texture_text(GF_Compositor *compositor, GF_Node *node);
 
 
 

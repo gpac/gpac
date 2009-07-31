@@ -32,10 +32,10 @@ extern "C" {
 
 #include <gpac/nodes_svg.h>
 
+#ifndef GPAC_DISABLE_LASER
+
 /*for LASeRConfig*/
 #include <gpac/mpeg4_odf.h>
-
-#ifndef GPAC_DISABLE_SVG
 
 typedef struct __tag_laser_codec GF_LASeRCodec;
 
@@ -78,7 +78,7 @@ GF_Err gf_laser_encoder_get_config(GF_LASeRCodec *codec, u16 ESID, char **out_da
 GF_Err gf_laser_encoder_get_rap(GF_LASeRCodec *codec, char **out_data, u32 *out_data_length);
 
 
-#endif
+#endif /*GPAC_DISABLE_LASER*/
 
 #ifdef __cplusplus
 }

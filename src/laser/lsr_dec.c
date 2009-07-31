@@ -29,7 +29,7 @@
 #include <gpac/math.h>
 #include <gpac/events.h>
 
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 
 
 #define GF_LSR_READ_INT(_codec, _val, _nbBits, _str)	{\
@@ -5232,4 +5232,4 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 	return e;
 }
 
-#endif /*GPAC_DISABLE_SVG*/
+#endif /*GPAC_DISABLE_LASER*/

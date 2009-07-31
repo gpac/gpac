@@ -26,9 +26,10 @@
  */
 
 #include <gpac/setup.h>
-#include <gpac/internal/avilib.h>
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_AVILIB
+
+#include <gpac/internal/avilib.h>
 
 
 #define PACKAGE "GPAC/avilib"
@@ -2970,5 +2971,4 @@ u64 AVI_max_size(void)
 }
 
 
-#endif
-
+#endif /*GPAC_DISABLE_AVILIB*/

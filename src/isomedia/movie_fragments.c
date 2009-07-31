@@ -24,7 +24,9 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef GPAC_DISABLE_ISOM
+
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 
 GF_TrackExtendsBox *GetTrex(GF_MovieBox *moov, u32 TrackID)
 {
@@ -38,7 +40,7 @@ GF_TrackExtendsBox *GetTrex(GF_MovieBox *moov, u32 TrackID)
 }
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_TrackFragmentBox *GetTraf(GF_ISOFile *mov, u32 TrackID)
 {
@@ -710,7 +712,7 @@ GF_Err gf_isom_fragment_append_data(GF_ISOFile *movie, u32 TrackID, char *data, 
 }
 
 
-#endif	//GPAC_READ_ONLY
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_EXPORT
 u32 gf_isom_is_track_fragmented(GF_ISOFile *movie, u32 TrackID)
@@ -775,4 +777,6 @@ u32 gf_isom_is_fragmented(GF_ISOFile *the_file)
 	return 0;
 }
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS)*/
+
+#endif /*GPAC_DISABLE_ISOM*/

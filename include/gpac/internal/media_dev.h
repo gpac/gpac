@@ -29,7 +29,19 @@
 #include <gpac/media_tools.h>
 #include <gpac/ietf.h>
 
+/*out-of-band sample desc (128 and 255 reserved in RFC)*/
+#define SIDX_OFFSET_3GPP		129
+
+#ifndef GPAC_DISABLE_ISOM
+void gf_media_get_sample_average_infos(GF_ISOFile *file, u32 Track, u32 *avgSize, u32 *MaxSize, u32 *TimeDelta, u32 *maxCTSDelta, u32 *const_duration, u32 *bandwidth);
+#endif
+
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...);
+#endif /*GPAC_DISABLE_MEDIA_IMPORT*/
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 /*returns 0 if not a start code, or size of start code (3 or 4 bytes). If start code, bitstream
 is positionned AFTER start code*/
@@ -137,6 +149,7 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc);
 
 GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
 
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
 typedef struct
 {
@@ -145,7 +158,7 @@ typedef struct
 } QCPRateTable;
 
 
-
+#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_STREAMING)
 
 GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file, 
 															  u32 TrackNum,
@@ -163,7 +176,9 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 															  u32 InterleaveGroupID, 
 															  u8 InterleaveGroupPriority);
 
-void gf_hinter_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, GF_ISOFile *file, u32 track);
+void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, GF_ISOFile *file, u32 track);
+
+#endif
 
 #endif		/*_GF_MEDIA_DEV_H_*/
 

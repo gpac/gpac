@@ -184,8 +184,10 @@ static void nav_fit_screen(GF_Compositor *compositor)
 	GF_Camera *cam;
 	GF_Node *top;
 
+#ifndef GPAC_DISABLE_VRML
 	if (gf_list_count(compositor->visual->back_stack)) return;
 	if (gf_list_count(compositor->visual->view_stack)) return;
+#endif
 
 	gf_mx_p(compositor->mx);
 	top = gf_sg_get_root_node(compositor->scene);
@@ -240,9 +242,12 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 
 	cam = NULL;
 	if (compositor->active_layer) {
+#ifndef GPAC_DISABLE_VRML
 		cam = compositor_layer3d_get_camera(compositor->active_layer);
 		is_pixel_metrics = gf_sg_use_pixel_metrics(gf_node_get_graph(compositor->active_layer));
+#endif
 	} 
+
 	if (!cam) {
 		cam = &compositor->visual->camera;
 		assert(compositor);

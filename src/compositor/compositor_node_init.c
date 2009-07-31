@@ -30,6 +30,7 @@
 void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 {
 	switch (gf_node_get_tag(node)) {
+#ifndef GPAC_DISABLE_VRML
 	case TAG_MPEG4_AnimationStream: compositor_init_animationstream(compositor, node); break;
 	case TAG_MPEG4_AudioBuffer: compositor_init_audiobuffer(compositor, node); break;
 	case TAG_MPEG4_AudioSource: compositor_init_audiosource(compositor, node); break;
@@ -144,6 +145,9 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 	case TAG_X3D_IndexedTriangleSet: compositor_init_indexed_triangle_set(compositor, node); break;
 #endif
 
+	case TAG_ProtoNode: compositor_init_hardcoded_proto(compositor, node); break;
+
+#endif /*GPAC_DISABLE_VRML*/
 
 #ifndef GPAC_DISABLE_SVG
 	/* SVG Part */
@@ -187,8 +191,6 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 	case TAG_SVG_foreignObject:		compositor_init_svg_foreign_object(compositor, node); break;
 #endif
 
-	case TAG_ProtoNode: compositor_init_hardcoded_proto(compositor, node); break;
-
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] node %s will not be rendered\n", gf_node_get_class_name(node)));
 		break;
@@ -204,6 +206,7 @@ void gf_sc_invalidate(GF_Compositor *compositor, GF_Node *byObj)
 		return;
 	}
 	switch (gf_node_get_tag(byObj)) {
+#ifndef GPAC_DISABLE_VRML
 	case TAG_MPEG4_AnimationStream: compositor_animationstream_modified(byObj); break;
 	case TAG_MPEG4_AudioBuffer: compositor_audiobuffer_modified(byObj); break;
 	case TAG_MPEG4_AudioSource: compositor_audiosource_modified(byObj); break;
@@ -217,6 +220,8 @@ void gf_sc_invalidate(GF_Compositor *compositor, GF_Node *byObj)
 	case TAG_MPEG4_Background: case TAG_X3D_Background: compositor_background_modified(byObj); break;
 #endif
 	case TAG_MPEG4_Layout: compositor_layout_modified(compositor, byObj); break;
+
+#endif /*GPAC_DISABLE_VRML*/
 
 	default:
 		/*for all nodes, invalidate parent graph - note we do that for sensors as well to force recomputing

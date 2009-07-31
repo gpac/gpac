@@ -25,6 +25,8 @@
 #include "nodes_stacks.h"
 #include "texturing.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 
 #define GRAD_TEXTURE_SIZE	128
 #define GRAD_TEXTURE_HSIZE	64
@@ -606,15 +608,20 @@ GF_TextureHandler *compositor_mpeg4_get_gradient_texture(GF_Node *node)
 	return &st->txh;
 }
 
+#endif /*GPAC_DISABLE_VRML*/
+
 void compositor_gradient_update(GF_TextureHandler *txh)
 {
 	switch (gf_node_get_tag(txh->owner) ) {
+#ifndef GPAC_DISABLE_VRML
 	case TAG_MPEG4_RadialGradient:
 		BuildRadialGradientTexture(txh);
 		break;
 	case TAG_MPEG4_LinearGradient:
 		BuildLinearGradientTexture(txh);
 		break;
+#endif
+
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_linearGradient:
 	case TAG_SVG_radialGradient:

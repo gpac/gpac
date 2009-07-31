@@ -26,9 +26,10 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
-#ifndef GPAC_READ_ONLY
+#if !defined(GPAC_DISABLE_QTVR)
 
 #include <gpac/nodes_mpeg4.h>
+
 
 
 static GF_Err gf_qt_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
@@ -187,4 +188,4 @@ GF_Err gf_sm_load_run_qt(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-#endif
+#endif	/*GPAC_DISABLE_QTVR*/

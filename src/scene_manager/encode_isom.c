@@ -26,14 +26,14 @@
 #include <gpac/constants.h>
 #include <gpac/media_tools.h>
 #include <gpac/bifs.h>
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 #include <gpac/laser.h>
 #include <gpac/nodes_svg.h>
 #endif
 #include <gpac/internal/scenegraph_dev.h>
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_SCENE_ENCODER
 
 static GF_MuxInfo *gf_sm_get_mux_info(GF_ESD *src)
 {
@@ -390,8 +390,10 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	GF_ISOSample *samp;
 	GF_StreamContext *sc;
 	GF_ESD *esd;
+#ifndef GPAC_DISABLE_BIFS
 	GF_BifsEncoder *bifs_enc;
-#ifndef GPAC_DISABLE_SVG
+#endif
+#ifndef GPAC_DISABLE_LASER
 	GF_LASeRCodec *lsr_enc;
 #endif
 
@@ -439,18 +441,21 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 	if (!j) {
 		GF_Node *n = gf_sg_get_root_node(ctx->scene_graph);
 		if (!n) return GF_OK;
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 		if ((scene_type==1) && (gf_node_get_tag(n)!=TAG_SVG_svg) ) return GF_OK;
 #endif
 		if ((scene_type==0) && (gf_node_get_tag(n)>GF_NODE_RANGE_LAST_X3D) ) return GF_OK;
 	}
 
+#ifndef GPAC_DISABLE_BIFS
 	bifs_enc = NULL;
-#ifndef GPAC_DISABLE_SVG
+#endif
+#ifndef GPAC_DISABLE_LASER
 	lsr_enc = NULL;
 #endif
 
 	if (!scene_type) {
+#ifndef GPAC_DISABLE_BIFS
 		bifs_enc = gf_bifs_encoder_new(ctx->scene_graph);
 		/*no streams defined, encode a RAP*/
 		if (!j) {
@@ -459,10 +464,13 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 			is_in_iod = 1;
 			goto force_scene_rap;
 		}
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 	
 	if (scene_type==1) {
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 		lsr_enc = gf_laser_encoder_new(ctx->scene_graph);
 		/*no streams defined, encode a RAP*/
 		if (!j) {
@@ -512,6 +520,8 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		if (!esd && sc->ESID) esd = gf_sm_locate_esd(ctx, sc->ESID);
 
 		au = NULL;
+
+#ifndef GPAC_DISABLE_VRML
 		/*special BIFS direct import from NHNT*/
 		au = (GF_AUContext*)gf_list_get(sc->AUs, 0);
 		if (gf_list_count(sc->AUs) == 1) {
@@ -522,6 +532,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 					au = NULL;
 			}
 		} 
+
 		/*sanity check: remove first command if it is REPLACE SCENE BY NULL*/
 		if (au && !au->timing && !au->timing_sec && (gf_list_count(au->commands) > 1)) {
 			GF_Command *com = (GF_Command *)gf_list_get(au->commands, 0);
@@ -532,6 +543,8 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 				}
 			}
 		}
+#endif
+
 		if (!au && !esd->URLString) {
 			/*if not in IOD, the stream will be imported when encoding the OD stream*/
 			if (!is_in_iod) continue;
@@ -582,6 +595,7 @@ force_scene_rap:
 
 		/*BIFS setup*/
 		if (!scene_type) {
+#ifndef GPAC_DISABLE_BIFS
 			GF_BIFSConfig *bcfg;
 			Bool delete_bcfg = 0;
 
@@ -623,9 +637,10 @@ force_scene_rap:
 			esd->decoderConfig->decoderSpecificInfo->data = data;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
 			esd->decoderConfig->objectTypeIndication = gf_bifs_encoder_get_version(bifs_enc, esd->ESID);		
+#endif
 		} 
 		/*LASeR setup*/
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 		if (scene_type==1) {
 			GF_LASERConfig lsrcfg;
 
@@ -673,10 +688,13 @@ force_scene_rap:
 			samp = gf_isom_sample_new();
 			samp->IsRAP = 1;
 		
+#ifndef GPAC_DISABLE_BIFS
 			if (bifs_enc)
 				e = gf_bifs_encoder_get_rap(bifs_enc, &samp->data, &samp->dataLength);
-#ifndef GPAC_DISABLE_SVG
-			else if (lsr_enc)
+#endif
+
+#ifndef GPAC_DISABLE_LASER
+			if (lsr_enc)
 				e = gf_laser_encoder_get_rap(lsr_enc, &samp->data, &samp->dataLength);
 #endif
 			if (!e && samp->dataLength) e = gf_isom_add_sample(mp4, track, di, samp);
@@ -717,10 +735,13 @@ force_scene_rap:
 			if (rap_mode==3) {
 				if (samp->DTS - last_rap < rap_delay) {
 					/*first encode command*/
+#ifndef GPAC_DISABLE_BIFS
 					if (bifs_enc)
 						e = gf_bifs_encode_au(bifs_enc, sc->ESID, au->commands, &samp->data, &samp->dataLength);
-#ifndef GPAC_DISABLE_SVG
-					else if (lsr_enc)
+#endif
+
+#ifndef GPAC_DISABLE_LASER
+					if (lsr_enc)
 						e = gf_laser_encode_au(lsr_enc, sc->ESID, au->commands, 0, &samp->data, &samp->dataLength);
 #endif
 
@@ -730,10 +751,13 @@ force_scene_rap:
 					/*first apply commands*/
 					e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
 					/*then get RAP*/
+#ifndef GPAC_DISABLE_BIFS
 					if (bifs_enc)
 						e = gf_bifs_encoder_get_rap(bifs_enc, &samp->data, &samp->dataLength);
-#ifndef GPAC_DISABLE_SVG
-					else if (lsr_enc)
+#endif
+
+#ifndef GPAC_DISABLE_LASER
+					if (lsr_enc)
 						e = gf_laser_encoder_get_rap(lsr_enc, &samp->data, &samp->dataLength);
 #endif
 
@@ -741,10 +765,13 @@ force_scene_rap:
 					last_rap = samp->DTS;
 				}
 			} else {
+#ifndef GPAC_DISABLE_BIFS
 				if (bifs_enc)
 					e = gf_bifs_encode_au(bifs_enc, sc->ESID, au->commands, &samp->data, &samp->dataLength);
-#ifndef GPAC_DISABLE_SVG
-				else if (lsr_enc)
+#endif
+
+#ifndef GPAC_DISABLE_LASER
+				if (lsr_enc)
 					e = gf_laser_encode_au(lsr_enc, sc->ESID, au->commands, 0, &samp->data, &samp->dataLength);
 #endif
 
@@ -758,10 +785,13 @@ force_scene_rap:
 					u64 r_dts = samp->DTS;
 				
 					/*then get RAP*/
+#ifndef GPAC_DISABLE_BIFS
 					if (bifs_enc)
 						e = gf_bifs_encoder_get_rap(bifs_enc, &car_samp->data, &car_samp->dataLength);
-#ifndef GPAC_DISABLE_SVG
-					else if (lsr_enc)
+#endif
+
+#ifndef GPAC_DISABLE_LASER
+					if (lsr_enc)
 						e = gf_laser_encoder_get_rap(lsr_enc, &car_samp->data, &car_samp->dataLength);
 #endif
 					car_samp->IsRAP = 2;					
@@ -824,8 +854,10 @@ force_scene_rap:
 				last_rap = samp->DTS = au->timing - init_offset;
 				samp->IsRAP = 1;
 				/*RAP generation*/
+#ifndef GPAC_DISABLE_BIFS
 				if (bifs_enc)
 					e = gf_bifs_encoder_get_rap(bifs_enc, &samp->data, &samp->dataLength);
+#endif
 
 				if (!e) e = gf_isom_add_sample_shadow(mp4, track, samp);
 				gf_isom_sample_del(&samp);
@@ -848,8 +880,10 @@ force_scene_rap:
 	gf_isom_set_pl_indication(mp4, GF_ISOM_PL_GRAPHICS, 1);
 
 exit:
+#ifndef GPAC_DISABLE_BIFS
 	if (bifs_enc) gf_bifs_encoder_del(bifs_enc);
-#ifndef GPAC_DISABLE_SVG
+#endif
+#ifndef GPAC_DISABLE_LASER
 	if (lsr_enc) gf_laser_encoder_del(lsr_enc);
 #endif
 	if (esd && delete_desc) gf_odf_desc_del((GF_Descriptor *) esd);
@@ -1216,4 +1250,4 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOp
 	return GF_OK;
 }
 
-#endif
+#endif /*GPAC_DISABLE_SCENE_ENCODER*/

@@ -28,6 +28,8 @@
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
+#ifndef GPAC_DISABLE_VRML
+
 
 GF_Proto *gf_sg_proto_new(GF_SceneGraph *inScene, u32 ProtoID, char *name, Bool unregistered)
 {
@@ -455,7 +457,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		M_InputSensor *clone_is = (M_InputSensor *)node;
 		M_InputSensor *orig_is = (M_InputSensor *)orig;
 		while ( (com_o = (GF_Command *)gf_list_enum(orig_is->buffer.commandList, &k) ) ) {
-			com_f = gf_sg_command_clone(com_o, node->sgprivate->scenegraph, 1);
+			com_f = gf_sg_vrml_command_clone(com_o, node->sgprivate->scenegraph, 1);
 			gf_list_add(clone_is->buffer.commandList, com_f);
 		}
 	}
@@ -1282,3 +1284,5 @@ Bool gf_node_is_proto_root(GF_Node *node)
 	if (gf_list_find(node->sgprivate->scenegraph->pOwningProto->node_code, node)>=0) return 1;
 	return 0;
 }
+
+#endif	/*GPAC_DISABLE_VRML*/

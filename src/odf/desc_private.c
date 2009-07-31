@@ -44,6 +44,49 @@ GF_Descriptor *gf_odf_create_descriptor(u8 tag)
 	case GF_ODF_SLC_TAG:
 		//default : we create it without any predefinition...
 		return gf_odf_new_slc(0);
+	case GF_ODF_MUXINFO_TAG:
+		return gf_odf_new_muxinfo();
+	case GF_ODF_BIFS_CFG_TAG:
+		return gf_odf_new_bifs_cfg();
+	case GF_ODF_UI_CFG_TAG:
+		return gf_odf_new_ui_cfg();
+	case GF_ODF_TEXT_CFG_TAG:
+		return gf_odf_new_text_cfg();
+	case GF_ODF_TX3G_TAG:
+		return gf_odf_new_tx3g();
+	case GF_ODF_ELEM_MASK_TAG:
+		return gf_odf_New_ElemMask();
+	case GF_ODF_LASER_CFG_TAG:
+		return gf_odf_new_laser_cfg();
+
+	case GF_ODF_DSI_TAG:
+		desc = gf_odf_new_default();
+		if (!desc) return desc;
+		desc->tag = GF_ODF_DSI_TAG;
+		return desc;
+
+	case GF_ODF_AUX_VIDEO_DATA:
+		return gf_odf_new_auxvid();
+
+	case GF_ODF_SEGMENT_TAG:
+		return gf_odf_new_segment();
+	case GF_ODF_MEDIATIME_TAG:
+		return gf_odf_new_mediatime();
+
+	//File Format Specific
+	case GF_ODF_ISOM_IOD_TAG:
+		return gf_odf_new_isom_iod();
+	case GF_ODF_ISOM_OD_TAG:
+		return gf_odf_new_isom_od();
+	case GF_ODF_ESD_INC_TAG:
+		return gf_odf_new_esd_inc();
+	case GF_ODF_ESD_REF_TAG:
+		return gf_odf_new_esd_ref();
+	case GF_ODF_LANG_TAG:
+		return gf_odf_new_lang();
+
+#ifndef GPAC_MINIMAL_ODF
+
 	case GF_ODF_CI_TAG:
 		return gf_odf_new_ci();
 	case GF_ODF_SCI_TAG:
@@ -71,8 +114,6 @@ GF_Descriptor *gf_odf_create_descriptor(u8 tag)
 		return gf_odf_new_kw();
 	case GF_ODF_RATING_TAG:
 		return gf_odf_new_rating();
-	case GF_ODF_LANG_TAG:
-		return gf_odf_new_lang();
 	case GF_ODF_SHORT_TEXT_TAG:
 		return gf_odf_new_short_text();
 	case GF_ODF_TEXT_TAG:
@@ -92,55 +133,15 @@ GF_Descriptor *gf_odf_create_descriptor(u8 tag)
 	case GF_ODF_PL_IDX_TAG:
 		return gf_odf_new_pl_idx();
 
-	//File Format Specific
-	case GF_ODF_ISOM_IOD_TAG:
-		return gf_odf_new_isom_iod();
-	case GF_ODF_ISOM_OD_TAG:
-		return gf_odf_new_isom_od();
-	case GF_ODF_ESD_INC_TAG:
-		return gf_odf_new_esd_inc();
-	case GF_ODF_ESD_REF_TAG:
-		return gf_odf_new_esd_ref();
-
-	case GF_ODF_SEGMENT_TAG:
-		return gf_odf_new_segment();
-	case GF_ODF_MEDIATIME_TAG:
-		return gf_odf_new_mediatime();
-
 	case GF_ODF_IPMP_TL_TAG:
 		return gf_odf_new_ipmp_tool_list();
 	case GF_ODF_IPMP_TOOL_TAG:
 		return gf_odf_new_ipmp_tool();
 
-	case GF_ODF_MUXINFO_TAG:
-		return gf_odf_new_muxinfo();
-	case GF_ODF_BIFS_CFG_TAG:
-		return gf_odf_new_bifs_cfg();
-	case GF_ODF_UI_CFG_TAG:
-		return gf_odf_new_ui_cfg();
-	case GF_ODF_TEXT_CFG_TAG:
-		return gf_odf_new_text_cfg();
-	case GF_ODF_TX3G_TAG:
-		return gf_odf_new_tx3g();
-	case GF_ODF_ELEM_MASK_TAG:
-		return gf_odf_New_ElemMask();
-	case GF_ODF_LASER_CFG_TAG:
-		return gf_odf_new_laser_cfg();
-
-	//default. The DecSpecInfo is handled as default
-	//the appropriate decoder (audio, video, bifs...) has to decode the DecSpecInfo alone !
-	case GF_ODF_DSI_TAG:
-		desc = gf_odf_new_default();
-		if (!desc) return desc;
-		desc->tag = GF_ODF_DSI_TAG;
-		return desc;
-
-	case GF_ODF_AUX_VIDEO_DATA:
-		return gf_odf_new_auxvid();
-
 	case 0:
 	case 0xFF:
 		return NULL;
+#endif /*GPAC_MINIMAL_ODF*/
 	default:
 		//ISO Reserved
 		if ( (tag >= GF_ODF_ISO_RES_BEGIN_TAG) &&
@@ -162,12 +163,46 @@ GF_Err gf_odf_delete_descriptor(GF_Descriptor *desc)
 	switch (desc->tag) {
 	case GF_ODF_IOD_TAG :
 		return gf_odf_del_iod((GF_InitialObjectDescriptor *)desc);
+	case GF_ODF_OD_TAG:
+		return gf_odf_del_od((GF_ObjectDescriptor *)desc);
 	case GF_ODF_ESD_TAG :
 		return gf_odf_del_esd((GF_ESD *)desc);
 	case GF_ODF_DCD_TAG :
 		return gf_odf_del_dcd((GF_DecoderConfig *)desc);
 	case GF_ODF_SLC_TAG:
 		return gf_odf_del_slc((GF_SLConfig *)desc);
+
+	case GF_ODF_ISOM_IOD_TAG:
+		return gf_odf_del_isom_iod((GF_IsomInitialObjectDescriptor *)desc);
+	case GF_ODF_ISOM_OD_TAG:
+		return gf_odf_del_isom_od((GF_IsomObjectDescriptor *)desc);
+
+	case GF_ODF_SEGMENT_TAG:
+		return gf_odf_del_segment((GF_Segment *) desc);
+	case GF_ODF_MEDIATIME_TAG:
+		return gf_odf_del_mediatime((GF_MediaTime *) desc);
+
+	case GF_ODF_MUXINFO_TAG:
+		return gf_odf_del_muxinfo((GF_MuxInfo *)desc);
+	case GF_ODF_BIFS_CFG_TAG:
+		return gf_odf_del_bifs_cfg((GF_BIFSConfig *)desc);
+	case GF_ODF_UI_CFG_TAG:
+		return gf_odf_del_ui_cfg((GF_UIConfig *)desc);
+	case GF_ODF_TEXT_CFG_TAG:
+		return gf_odf_del_text_cfg((GF_TextConfig *)desc);
+	case GF_ODF_TX3G_TAG:
+		return gf_odf_del_tx3g((GF_TextSampleDescriptor*)desc);
+	case GF_ODF_LASER_CFG_TAG:
+		return gf_odf_del_laser_cfg((GF_LASERConfig *)desc);
+
+	case GF_ODF_AUX_VIDEO_DATA:
+		return gf_odf_del_auxvid((GF_AuxVideoDescriptor *)desc);
+
+	case GF_ODF_LANG_TAG:
+		return gf_odf_del_lang((GF_Language *)desc);
+
+#ifndef GPAC_MINIMAL_ODF
+
 	case GF_ODF_CC_TAG:
 		return gf_odf_del_cc((GF_CCDescriptor *)desc);
 	case GF_ODF_CC_DATE_TAG:
@@ -193,14 +228,6 @@ GF_Err gf_odf_delete_descriptor(GF_Descriptor *desc)
 		return gf_odf_del_ipmp_ptr((GF_IPMPPtr *)desc);
 	case GF_ODF_KW_TAG:
 		return gf_odf_del_kw((GF_KeyWord *)desc);
-	case GF_ODF_LANG_TAG:
-		return gf_odf_del_lang((GF_Language *)desc);
-	case GF_ODF_ISOM_IOD_TAG:
-		return gf_odf_del_isom_iod((GF_IsomInitialObjectDescriptor *)desc);
-	case GF_ODF_ISOM_OD_TAG:
-		return gf_odf_del_isom_od((GF_IsomObjectDescriptor *)desc);
-	case GF_ODF_OD_TAG:
-		return gf_odf_del_od((GF_ObjectDescriptor *)desc);
 	case GF_ODF_OCI_DATE_TAG:
 		return gf_odf_del_oci_date((GF_OCI_Data *)desc);
 	case GF_ODF_OCI_NAME_TAG:
@@ -220,32 +247,12 @@ GF_Err gf_odf_delete_descriptor(GF_Descriptor *desc)
 	case GF_ODF_SCI_TAG:
 		return gf_odf_del_sup_cid((GF_SCIDesc *)desc);
 
-
-	case GF_ODF_SEGMENT_TAG:
-		return gf_odf_del_segment((GF_Segment *) desc);
-	case GF_ODF_MEDIATIME_TAG:
-		return gf_odf_del_mediatime((GF_MediaTime *) desc);
-
 	case GF_ODF_IPMP_TL_TAG:
 		return gf_odf_del_ipmp_tool_list((GF_IPMP_ToolList *)desc);
 	case GF_ODF_IPMP_TOOL_TAG:
 		return gf_odf_del_ipmp_tool((GF_IPMP_Tool *)desc);
 
-	case GF_ODF_MUXINFO_TAG:
-		return gf_odf_del_muxinfo((GF_MuxInfo *)desc);
-	case GF_ODF_BIFS_CFG_TAG:
-		return gf_odf_del_bifs_cfg((GF_BIFSConfig *)desc);
-	case GF_ODF_UI_CFG_TAG:
-		return gf_odf_del_ui_cfg((GF_UIConfig *)desc);
-	case GF_ODF_TEXT_CFG_TAG:
-		return gf_odf_del_text_cfg((GF_TextConfig *)desc);
-	case GF_ODF_TX3G_TAG:
-		return gf_odf_del_tx3g((GF_TextSampleDescriptor*)desc);
-	case GF_ODF_LASER_CFG_TAG:
-		return gf_odf_del_laser_cfg((GF_LASERConfig *)desc);
-
-	case GF_ODF_AUX_VIDEO_DATA:
-		return gf_odf_del_auxvid((GF_AuxVideoDescriptor *)desc);
+#endif /*GPAC_MINIMAL_ODF*/
 
 	default:
 		return gf_odf_del_default((GF_DefaultDescriptor *)desc);
@@ -270,6 +277,38 @@ GF_Err gf_odf_read_descriptor(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSiz
 		return gf_odf_read_dcd(bs, (GF_DecoderConfig *)desc, DescSize);
 	case GF_ODF_SLC_TAG :
 		return gf_odf_read_slc(bs, (GF_SLConfig *)desc, DescSize);
+	case GF_ODF_OD_TAG:
+		return gf_odf_read_od(bs, (GF_ObjectDescriptor *)desc, DescSize);
+
+	//MP4 File Format
+	case GF_ODF_ISOM_IOD_TAG:
+		return gf_odf_read_isom_iod(bs, (GF_IsomInitialObjectDescriptor *)desc, DescSize);
+	case GF_ODF_ISOM_OD_TAG:
+		return gf_odf_read_isom_od(bs, (GF_IsomObjectDescriptor *)desc, DescSize);
+	case GF_ODF_ESD_INC_TAG:
+		return gf_odf_read_esd_inc(bs, (GF_ES_ID_Inc *)desc, DescSize);
+	case GF_ODF_ESD_REF_TAG:
+		return gf_odf_read_esd_ref(bs, (GF_ES_ID_Ref *)desc, DescSize);
+
+	case GF_ODF_SEGMENT_TAG:
+		return gf_odf_read_segment(bs, (GF_Segment *) desc, DescSize);
+	case GF_ODF_MEDIATIME_TAG:
+		return gf_odf_read_mediatime(bs, (GF_MediaTime *) desc, DescSize);
+	case GF_ODF_MUXINFO_TAG:
+		return gf_odf_read_muxinfo(bs, (GF_MuxInfo *) desc, DescSize);
+
+	case GF_ODF_AUX_VIDEO_DATA:
+		return gf_odf_read_auxvid(bs, (GF_AuxVideoDescriptor *)desc, DescSize);
+
+	case GF_ODF_LANG_TAG:
+		return gf_odf_read_lang(bs, (GF_Language *)desc, DescSize);
+
+#ifndef GPAC_MINIMAL_ODF
+	case GF_ODF_IPMP_TAG:
+		return gf_odf_read_ipmp(bs, (GF_IPMP_Descriptor *)desc, DescSize);
+	case GF_ODF_IPMP_PTR_TAG:
+		return gf_odf_read_ipmp_ptr(bs, (GF_IPMPPtr *)desc, DescSize);
+
 	case GF_ODF_CC_TAG:
 		return gf_odf_read_cc(bs, (GF_CCDescriptor *)desc, DescSize);
 	case GF_ODF_CC_DATE_TAG:
@@ -285,16 +324,8 @@ GF_Err gf_odf_read_descriptor(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSiz
 	case GF_ODF_IPI_PTR_TAG:
 	case GF_ODF_ISOM_IPI_PTR_TAG:
 		return gf_odf_read_ipi_ptr(bs, (GF_IPIPtr *)desc, DescSize);
-	case GF_ODF_IPMP_TAG:
-		return gf_odf_read_ipmp(bs, (GF_IPMP_Descriptor *)desc, DescSize);
-	case GF_ODF_IPMP_PTR_TAG:
-		return gf_odf_read_ipmp_ptr(bs, (GF_IPMPPtr *)desc, DescSize);
 	case GF_ODF_KW_TAG:
 		return gf_odf_read_kw(bs, (GF_KeyWord *)desc, DescSize);
-	case GF_ODF_LANG_TAG:
-		return gf_odf_read_lang(bs, (GF_Language *)desc, DescSize);
-	case GF_ODF_OD_TAG:
-		return gf_odf_read_od(bs, (GF_ObjectDescriptor *)desc, DescSize);
 	case GF_ODF_OCI_DATE_TAG:
 		return gf_odf_read_oci_date(bs, (GF_OCI_Data *)desc, DescSize);
 	case GF_ODF_OCI_NAME_TAG:
@@ -313,37 +344,17 @@ GF_Err gf_odf_read_descriptor(GF_BitStream *bs, GF_Descriptor *desc, u32 DescSiz
 		return gf_odf_read_smpte_camera(bs, (GF_SMPTECamera *)desc, DescSize);
 	case GF_ODF_SCI_TAG:
 		return gf_odf_read_sup_cid(bs, (GF_SCIDesc *)desc, DescSize);
-	//MP4 File Format
-	case GF_ODF_ISOM_IOD_TAG:
-		return gf_odf_read_isom_iod(bs, (GF_IsomInitialObjectDescriptor *)desc, DescSize);
-	case GF_ODF_ISOM_OD_TAG:
-		return gf_odf_read_isom_od(bs, (GF_IsomObjectDescriptor *)desc, DescSize);
-	case GF_ODF_ESD_INC_TAG:
-		return gf_odf_read_esd_inc(bs, (GF_ES_ID_Inc *)desc, DescSize);
-	case GF_ODF_ESD_REF_TAG:
-		return gf_odf_read_esd_ref(bs, (GF_ES_ID_Ref *)desc, DescSize);
-
-	case GF_ODF_SEGMENT_TAG:
-		return gf_odf_read_segment(bs, (GF_Segment *) desc, DescSize);
-	case GF_ODF_MEDIATIME_TAG:
-		return gf_odf_read_mediatime(bs, (GF_MediaTime *) desc, DescSize);
 		
 	case GF_ODF_IPMP_TL_TAG:
 		return gf_odf_read_ipmp_tool_list(bs, (GF_IPMP_ToolList *)desc, DescSize);
 	case GF_ODF_IPMP_TOOL_TAG:
 		return gf_odf_read_ipmp_tool(bs, (GF_IPMP_Tool *)desc, DescSize);
 
-	case GF_ODF_MUXINFO_TAG:
-		return gf_odf_read_muxinfo(bs, (GF_MuxInfo *) desc, DescSize);
-
-	case GF_ODF_AUX_VIDEO_DATA:
-		return gf_odf_read_auxvid(bs, (GF_AuxVideoDescriptor *)desc, DescSize);
-
+#endif /*GPAC_MINIMAL_ODF*/
 	//default:
 	case GF_ODF_DSI_TAG:
 	default:
 		return gf_odf_read_default(bs, (GF_DefaultDescriptor *)desc, DescSize);
-	
 	}
 	return GF_OK;
 }
@@ -366,6 +377,32 @@ GF_Err gf_odf_size_descriptor(GF_Descriptor *desc, u32 *outSize)
 		return gf_odf_size_dcd((GF_DecoderConfig *)desc, outSize);
 	case GF_ODF_SLC_TAG : 
 		return gf_odf_size_slc((GF_SLConfig *)desc, outSize);
+
+	case GF_ODF_OD_TAG:
+		return gf_odf_size_od((GF_ObjectDescriptor *)desc, outSize);
+	case GF_ODF_ISOM_IOD_TAG:
+		return gf_odf_size_isom_iod((GF_IsomInitialObjectDescriptor *)desc, outSize);
+	case GF_ODF_ISOM_OD_TAG:
+		return gf_odf_size_isom_od((GF_IsomObjectDescriptor *)desc, outSize);
+	case GF_ODF_ESD_INC_TAG:
+		return gf_odf_size_esd_inc((GF_ES_ID_Inc *)desc, outSize);
+	case GF_ODF_ESD_REF_TAG:
+		return gf_odf_size_esd_ref((GF_ES_ID_Ref *)desc, outSize);
+
+	case GF_ODF_SEGMENT_TAG:
+		return gf_odf_size_segment((GF_Segment *) desc, outSize);
+	case GF_ODF_MEDIATIME_TAG:
+		return gf_odf_size_mediatime((GF_MediaTime *) desc, outSize);
+	case GF_ODF_MUXINFO_TAG:
+		return gf_odf_size_muxinfo((GF_MuxInfo *) desc, outSize);
+		
+	case GF_ODF_AUX_VIDEO_DATA:
+		return gf_odf_size_auxvid((GF_AuxVideoDescriptor *)desc, outSize);
+
+	case GF_ODF_LANG_TAG:
+		return gf_odf_size_lang((GF_Language *)desc, outSize);
+
+#ifndef GPAC_MINIMAL_ODF
 	case GF_ODF_CC_TAG:
 		return gf_odf_size_cc((GF_CCDescriptor *)desc, outSize);
 	case GF_ODF_CC_DATE_TAG:
@@ -387,10 +424,6 @@ GF_Err gf_odf_size_descriptor(GF_Descriptor *desc, u32 *outSize)
 		return gf_odf_size_ipmp_ptr((GF_IPMPPtr *)desc, outSize);
 	case GF_ODF_KW_TAG:
 		return gf_odf_size_kw((GF_KeyWord *)desc, outSize);
-	case GF_ODF_LANG_TAG:
-		return gf_odf_size_lang((GF_Language *)desc, outSize);
-	case GF_ODF_OD_TAG:
-		return gf_odf_size_od((GF_ObjectDescriptor *)desc, outSize);
 	case GF_ODF_OCI_DATE_TAG:
 		return gf_odf_size_oci_date((GF_OCI_Data *)desc, outSize);
 	case GF_ODF_OCI_NAME_TAG:
@@ -409,32 +442,14 @@ GF_Err gf_odf_size_descriptor(GF_Descriptor *desc, u32 *outSize)
 		return gf_odf_size_smpte_camera((GF_SMPTECamera *)desc, outSize);
 	case GF_ODF_SCI_TAG:
 		return gf_odf_size_sup_cid((GF_SCIDesc *)desc, outSize);
-	//MP4File
-	case GF_ODF_ISOM_IOD_TAG:
-		return gf_odf_size_isom_iod((GF_IsomInitialObjectDescriptor *)desc, outSize);
-	case GF_ODF_ISOM_OD_TAG:
-		return gf_odf_size_isom_od((GF_IsomObjectDescriptor *)desc, outSize);
-	case GF_ODF_ESD_INC_TAG:
-		return gf_odf_size_esd_inc((GF_ES_ID_Inc *)desc, outSize);
-	case GF_ODF_ESD_REF_TAG:
-		return gf_odf_size_esd_ref((GF_ES_ID_Ref *)desc, outSize);
 
-	case GF_ODF_SEGMENT_TAG:
-		return gf_odf_size_segment((GF_Segment *) desc, outSize);
-	case GF_ODF_MEDIATIME_TAG:
-		return gf_odf_size_mediatime((GF_MediaTime *) desc, outSize);
 
 	case GF_ODF_IPMP_TL_TAG:
 		return gf_odf_size_ipmp_tool_list((GF_IPMP_ToolList *)desc, outSize);
 	case GF_ODF_IPMP_TOOL_TAG:
 		return gf_odf_size_ipmp_tool((GF_IPMP_Tool *)desc, outSize);
 
-	case GF_ODF_MUXINFO_TAG:
-		return gf_odf_size_muxinfo((GF_MuxInfo *) desc, outSize);
-		
-	case GF_ODF_AUX_VIDEO_DATA:
-		return gf_odf_size_auxvid((GF_AuxVideoDescriptor *)desc, outSize);
-
+#endif /*GPAC_MINIMAL_ODF*/
 	default:
 		return gf_odf_size_default((GF_DefaultDescriptor *)desc, outSize);
 	}
@@ -456,6 +471,32 @@ GF_Err gf_odf_write_descriptor(GF_BitStream *bs, GF_Descriptor *desc)
 		return gf_odf_write_dcd(bs, (GF_DecoderConfig *)desc);
 	case GF_ODF_SLC_TAG : 
 		return gf_odf_write_slc(bs, (GF_SLConfig *)desc);
+	case GF_ODF_ESD_INC_TAG:
+		return gf_odf_write_esd_inc(bs, (GF_ES_ID_Inc *)desc);
+	case GF_ODF_ESD_REF_TAG:
+		return gf_odf_write_esd_ref(bs, (GF_ES_ID_Ref *)desc);
+
+
+	case GF_ODF_ISOM_IOD_TAG:
+		return gf_odf_write_isom_iod(bs, (GF_IsomInitialObjectDescriptor *)desc);
+	case GF_ODF_ISOM_OD_TAG:
+		return gf_odf_write_isom_od(bs, (GF_IsomObjectDescriptor *)desc);
+	case GF_ODF_OD_TAG:
+		return gf_odf_write_od(bs, (GF_ObjectDescriptor *)desc);
+	case GF_ODF_SEGMENT_TAG:
+		return gf_odf_write_segment(bs, (GF_Segment *) desc);
+	case GF_ODF_MEDIATIME_TAG:
+		return gf_odf_write_mediatime(bs, (GF_MediaTime *) desc);
+	case GF_ODF_MUXINFO_TAG:
+		return gf_odf_write_muxinfo(bs, (GF_MuxInfo *) desc);
+
+	case GF_ODF_AUX_VIDEO_DATA:
+		return gf_odf_write_auxvid(bs, (GF_AuxVideoDescriptor *)desc);
+
+	case GF_ODF_LANG_TAG:
+		return gf_odf_write_lang(bs, (GF_Language *)desc);
+
+#ifndef GPAC_MINIMAL_ODF
 	case GF_ODF_CC_TAG:
 		return gf_odf_write_cc(bs, (GF_CCDescriptor *)desc);
 	case GF_ODF_CC_DATE_TAG:
@@ -465,10 +506,6 @@ GF_Err gf_odf_write_descriptor(GF_BitStream *bs, GF_Descriptor *desc)
 	case GF_ODF_CI_TAG:
 		return gf_odf_write_ci(bs, (GF_CIDesc *)desc);
 
-	case GF_ODF_ESD_INC_TAG:
-		return gf_odf_write_esd_inc(bs, (GF_ES_ID_Inc *)desc);
-	case GF_ODF_ESD_REF_TAG:
-		return gf_odf_write_esd_ref(bs, (GF_ES_ID_Ref *)desc);
 	case GF_ODF_TEXT_TAG:
 		return gf_odf_write_exp_text(bs, (GF_ExpandedTextual *)desc);
 	case GF_ODF_EXT_PL_TAG:
@@ -482,14 +519,6 @@ GF_Err gf_odf_write_descriptor(GF_BitStream *bs, GF_Descriptor *desc)
 		return gf_odf_write_ipmp_ptr(bs, (GF_IPMPPtr *)desc);
 	case GF_ODF_KW_TAG:
 		return gf_odf_write_kw(bs, (GF_KeyWord *)desc);
-	case GF_ODF_LANG_TAG:
-		return gf_odf_write_lang(bs, (GF_Language *)desc);
-	case GF_ODF_ISOM_IOD_TAG:
-		return gf_odf_write_isom_iod(bs, (GF_IsomInitialObjectDescriptor *)desc);
-	case GF_ODF_ISOM_OD_TAG:
-		return gf_odf_write_isom_od(bs, (GF_IsomObjectDescriptor *)desc);
-	case GF_ODF_OD_TAG:
-		return gf_odf_write_od(bs, (GF_ObjectDescriptor *)desc);
 	case GF_ODF_OCI_DATE_TAG:
 		return gf_odf_write_oci_date(bs, (GF_OCI_Data *)desc);
 	case GF_ODF_OCI_NAME_TAG:
@@ -509,28 +538,16 @@ GF_Err gf_odf_write_descriptor(GF_BitStream *bs, GF_Descriptor *desc)
 	case GF_ODF_SCI_TAG:
 		return gf_odf_write_sup_cid(bs, (GF_SCIDesc *)desc);
 
-	case GF_ODF_SEGMENT_TAG:
-		return gf_odf_write_segment(bs, (GF_Segment *) desc);
-	case GF_ODF_MEDIATIME_TAG:
-		return gf_odf_write_mediatime(bs, (GF_MediaTime *) desc);
-
 	case GF_ODF_IPMP_TL_TAG:
 		return gf_odf_write_ipmp_tool_list(bs, (GF_IPMP_ToolList *)desc);
 	case GF_ODF_IPMP_TOOL_TAG:
 		return gf_odf_write_ipmp_tool(bs, (GF_IPMP_Tool *)desc);
-
-	case GF_ODF_MUXINFO_TAG:
-		return gf_odf_write_muxinfo(bs, (GF_MuxInfo *) desc);
-
-	case GF_ODF_AUX_VIDEO_DATA:
-		return gf_odf_write_auxvid(bs, (GF_AuxVideoDescriptor *)desc);
-
+#endif /*GPAC_MINIMAL_ODF*/
 	default:
 		return gf_odf_write_default(bs, (GF_DefaultDescriptor *)desc);
 	}
 	return GF_OK;
 }
-
 
 //
 //		CONSTRUCTORS
@@ -677,4 +694,3 @@ GF_Err gf_odf_write_command(GF_BitStream *bs, GF_ODCom *com)
 		return gf_odf_write_base_command(bs, (GF_BaseODCom *)com);
 	}
 }
-

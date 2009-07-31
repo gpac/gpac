@@ -174,6 +174,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 
 	compositor->dom_text_pos = 0;
 
+#ifndef GPAC_DISABLE_VRML
 	if (compositor->focus_text_type==3) {
 		MFString *mf = &((M_Text*)compositor->focus_node)->string;
 
@@ -189,7 +190,10 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 			return 0;
 		}
 		res = &mf->vals[compositor->dom_text_pos-1];
-	} else {
+	} else 
+#endif /*GPAC_DISABLE_VRML*/
+
+	{
 #ifndef GPAC_DISABLE_SVG
 		GF_ChildNodeItem *child = ((GF_ParentNode *) compositor->focus_node)->children;
 
@@ -468,6 +472,8 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 	if (compositor->hit_node==compositor->focus_node) return compositor->focus_text_type ? 1 : 0;
 
 	tag = gf_node_get_tag(text);
+
+#ifndef GPAC_DISABLE_VRML
 	if ( (tag==TAG_MPEG4_Text) || (tag==TAG_X3D_Text)) {
 		M_FontStyle *fs = (M_FontStyle *) ((M_Text *)text)->fontStyle;
 		if (!fs) return 0;
@@ -476,6 +482,8 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 		compositor->focus_node = text;
 		return 1;
 	}
+#endif /*GPAC_DISABLE_VRML*/
+
 #ifndef GPAC_DISABLE_SVG
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) return 0;
 	gf_svg_flatten_attributes((SVG_Element *)text, &atts);
@@ -713,6 +721,8 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 #endif
 }
 
+#ifndef GPAC_DISABLE_VRML
+
 Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 {
 	GF_SensorHandler *hs, *hs_grabbed;
@@ -870,7 +880,7 @@ static Bool exec_vrml_key_event(GF_Compositor *compositor, GF_Node *node, GF_Eve
 	return ret ? 1 : 0;
 }
 
-
+#endif /*GPAC_DISABLE_VRML*/
 
 Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
 {
@@ -958,7 +968,11 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 		/*no vrml sensors above*/
 		if (!gf_list_count(compositor->sensors) && !gf_list_count(compositor->previous_sensors)) return 0;
 	}
+#ifndef GPAC_DISABLE_VRML
 	return gf_sc_exec_event_vrml(compositor, ev);
+#else
+	return 0;
+#endif
 }
 
 u32 gf_sc_svg_focus_navigate(GF_Compositor *compositor, u32 key_code)
@@ -1028,9 +1042,13 @@ static Bool is_focus_target(GF_Node *elt)
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_a:
 #endif
+
+#ifndef GPAC_DISABLE_VRML
 	case TAG_MPEG4_Anchor:
 	case TAG_X3D_Anchor:
 		return 1;
+#endif
+
 	default:
 		break;
 	}
@@ -1091,6 +1109,8 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 	tag = gf_node_get_tag(elt);
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) {
 		switch (tag) {
+#ifndef GPAC_DISABLE_VRML
+
 		case TAG_MPEG4_Group: case TAG_X3D_Group:
 		case TAG_MPEG4_Transform: case TAG_X3D_Transform:
 		case TAG_MPEG4_Billboard: case TAG_X3D_Billboard:
@@ -1165,7 +1185,7 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			break;
 		
 		case TAG_MPEG4_Inline: case TAG_X3D_Inline: 
-			CALL_SET_FOCUS(gf_sc_get_subscene_root(elt));
+			CALL_SET_FOCUS(gf_scene_get_subscene_root(elt));
 
 		case TAG_MPEG4_Shape: case TAG_X3D_Shape:
 			gf_list_add(compositor->focus_ancestors, elt);
@@ -1188,6 +1208,8 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 				child = child->next;
 			}
 			break;
+
+#endif /*GPAC_DISABLE_VRML*/
 
 		default:
 			return NULL;
@@ -1337,6 +1359,7 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 	tag = gf_node_get_tag(par);
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) {
 		switch (tag) {
+#ifndef GPAC_DISABLE_VRML
 		case TAG_MPEG4_Group: case TAG_X3D_Group:
 		case TAG_MPEG4_Transform: case TAG_X3D_Transform:
 		case TAG_MPEG4_Billboard: case TAG_X3D_Billboard:
@@ -1367,6 +1390,8 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 				}
 			}
 			/*fall through*/
+
+#endif	/*GPAC_DISABLE_VRML*/
 
 		/*for all other node, locate parent*/
 		default:
@@ -1487,18 +1512,24 @@ u32 gf_sc_focus_switch_ring_ex(GF_Compositor *compositor, Bool move_prev, GF_Nod
 				evt.bubbles = 1;
 				evt.type = GF_EVENT_FOCUSOUT;
 				gf_dom_event_fire_ex(prev, &evt, cloned_use);
-			} else {
+			} 
+#ifndef GPAC_DISABLE_VRML
+			else {
 				exec_vrml_key_event(compositor, prev, &ev, 1);
 			}
+#endif
 		}
 		if (compositor->focus_node) {
 			if (compositor->focus_uses_dom_events) {
 				evt.bubbles = 1;
 				evt.type = GF_EVENT_FOCUSIN;
 				gf_dom_event_fire_ex(compositor->focus_node, &evt, compositor->focus_use_stack);
-			} else {
+			} 
+#ifndef GPAC_DISABLE_VRML
+			else {
 				exec_vrml_key_event(compositor, NULL, &ev, 0);
 			}
+#endif
 		}
 		/*invalidate in case we draw focus rect*/
 		gf_sc_invalidate(compositor, NULL);
@@ -1531,9 +1562,10 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 		/*FIXME - this is not working for mixed docs*/
 		if (compositor->focus_uses_dom_events) 
 			ret = exec_event_dom(compositor, ev);
+#ifndef GPAC_DISABLE_VRML
 		else 
 			ret = exec_vrml_key_event(compositor, compositor->focus_node, ev, 0);
-
+#endif
 		
 		if (ev->type==GF_EVENT_KEYDOWN) {
 			switch (ev->key.key_code) {

@@ -162,9 +162,6 @@ GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double 
 	/*bad URL*/
 	if (!ai->stream) return GF_NOT_SUPPORTED;
 
-	/*store url*/
-	gf_sg_vrml_field_copy(&ai->url, url, GF_SG_VRML_MFURL);
-
 	/*request play*/
 	gf_mo_play(ai->stream, clipBegin, clipEnd, 0);
 
@@ -185,7 +182,6 @@ void gf_sc_audio_stop(GF_AudioInput *ai)
 	assert(!ai->need_release);
 
 	gf_mo_stop(ai->stream);
-	gf_sg_vrml_mf_reset(&ai->url, GF_SG_VRML_MFURL);
 	ai->is_open = 0;
 	gf_mo_unregister(ai->owner, ai->stream);
 	ai->stream = NULL;

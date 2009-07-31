@@ -24,6 +24,8 @@
 
 #include "quant.h"
 
+#ifndef GPAC_DISABLE_BIFS
+
 /*
 	Adaptive Arithmethic Decoder from Annex G (Normative)
 
@@ -278,4 +280,6 @@ s32 gp_bifs_aa_decode(GF_AADecoder *dec, GF_AAModel *model)
 	UpdateAAModel(model, v);
 	return v;
 }
+
+#endif /*GPAC_DISABLE_BIFS*/
 

@@ -27,11 +27,11 @@
 #include <gpac/laser.h>
 #include <gpac/constants.h>
 
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 
 typedef struct 
 {
-	GF_InlineScene *pScene;
+	GF_Scene *pScene;
 	GF_Terminal *app;
 	GF_LASeRCodec *codec;
 	u32 PL, nb_streams;
@@ -50,7 +50,7 @@ static GF_Err LSR_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 	return GF_OK;
 }
 
-GF_Err LSR_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
+GF_Err LSR_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_scene_decoder)
 {
 	LSRPriv *priv = (LSRPriv *)plug->privateStack;
 	if (priv->codec) return GF_BAD_PARAM;
@@ -59,7 +59,7 @@ GF_Err LSR_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_sce
 	
 	priv->codec = gf_laser_decoder_new(scene->graph);
 	/*attach the clock*/
-	gf_laser_decoder_set_clock(priv->codec, gf_inline_get_time, scene);
+	gf_laser_decoder_set_clock(priv->codec, gf_scene_get_time, scene);
 	return GF_OK;
 }
 
@@ -101,7 +101,7 @@ static GF_Err LSR_ProcessData(GF_SceneDecoder*plug, char *inBuffer, u32 inBuffer
 	e = gf_laser_decode_au(priv->codec, ES_ID, inBuffer, inBufferLength);
 
 	/*if scene not attached do it*/
-	gf_inline_attach_to_compositor(priv->pScene);
+	gf_scene_attach_to_compositor(priv->pScene);
 	return e;
 }
 
@@ -193,4 +193,4 @@ GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 }
-#endif
+#endif /*GPAC_DISABLE_LASER*/

@@ -38,8 +38,8 @@
 char *gf_term_resolve_xlink(GF_Node *node, char *the_url)
 {
 	char *url;
-	GF_InlineScene *is = gf_sg_get_private(gf_node_get_graph(node));
-	if (!is) return NULL;
+	GF_Scene *scene = gf_sg_get_private(gf_node_get_graph(node));
+	if (!scene) return NULL;
 
 	url = strdup(the_url);
 	/*apply XML:base*/
@@ -58,10 +58,10 @@ char *gf_term_resolve_xlink(GF_Node *node, char *the_url)
 	/*if this is a fragment and no XML:BASE was found, this is a fragment of the current document*/
 	if (url[0]=='#') return url;
 
-	if (is) {
+	if (scene) {
 		char *the_url;
-		if (is->redirect_xml_base) {
-			the_url = gf_url_concatenate(is->redirect_xml_base, url);
+		if (scene->redirect_xml_base) {
+			the_url = gf_url_concatenate(scene->redirect_xml_base, url);
 		} else {
 //			the_url = gf_url_concatenate(is->root_od->net_service->url, url);
 			/*the root url of a document should be "." if not specified, so that the final URL resolve happens only once
@@ -82,8 +82,8 @@ GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 	SFURL *sfurl = NULL;
 	GF_FieldInfo info;
 	XMLRI *iri;
-	GF_InlineScene *is = gf_sg_get_private(gf_node_get_graph(node));
-	if (!is) return GF_BAD_PARAM;
+	GF_Scene *scene = gf_sg_get_private(gf_node_get_graph(node));
+	if (!scene) return GF_BAD_PARAM;
 
 	gf_sg_vrml_mf_reset(mfurl, GF_SG_VRML_MFURL);
 
@@ -103,7 +103,7 @@ GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 	if (stream_id) return GF_OK;
 
 	if (!strncmp(iri->string, "data:", 5)) {
-		const char *cache_dir = gf_cfg_get_key(is->root_od->term->user->config, "General", "CacheDirectory");
+		const char *cache_dir = gf_cfg_get_key(scene->root_od->term->user->config, "General", "CacheDirectory");
 		return gf_node_store_embedded_data(iri, cache_dir, "embedded_");
 	}
 	sfurl->url = gf_term_resolve_xlink(node, iri->string);
@@ -112,14 +112,14 @@ GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 
 
 /* Creates a subscene from the xlink:href */
-static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlinkp, SMILSyncAttributesPointers *syncp, Bool use_sync, Bool primary_resource)
+static GF_Scene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers *xlinkp, SMILSyncAttributesPointers *syncp, Bool use_sync, Bool primary_resource)
 {
 	MFURL url;
 	Bool lock_timelines = 0;
 	GF_MediaObject *mo;
 	GF_SceneGraph *graph = gf_node_get_graph(elt);
-	GF_InlineScene *is = (GF_InlineScene *)gf_sg_get_private(graph);
-	if (!is) return NULL;
+	GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
+	if (!scene) return NULL;
 
 	if (use_sync && syncp) {
 		switch ((syncp->syncBehavior?*syncp->syncBehavior:SMIL_SYNCBEHAVIOR_DEFAULT)) {
@@ -151,10 +151,10 @@ static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers
 
 	gf_term_get_mfurl_from_xlink(elt, &url);
 
-	while (is->secondary_resource && is->root_od->parentscene)
-		is = is->root_od->parentscene;
+	while (scene->secondary_resource && scene->root_od->parentscene)
+		scene = scene->root_od->parentscene;
 
-	mo = gf_inline_get_media_object_ex(is, &url, GF_MEDIA_OBJECT_SCENE, lock_timelines, NULL, primary_resource, elt);
+	mo = gf_scene_get_media_object_ex(scene, &url, GF_MEDIA_OBJECT_SCENE, lock_timelines, NULL, primary_resource, elt);
 	gf_sg_vrml_mf_reset(&url, GF_SG_VRML_MFURL);
 
 	if (!mo || !mo->odm) return NULL;
@@ -165,12 +165,12 @@ static GF_InlineScene *gf_svg_get_subscene(GF_Node *elt, XLinkAttributesPointers
 
 GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, Double clipBegin, Double clipEnd)
 {
-	GF_InlineScene *new_resource;
+	GF_Scene *new_resource;
 	SVGAllAttributes all_atts;
 	XLinkAttributesPointers xlinkp;
 	SMILSyncAttributesPointers syncp;
-	GF_InlineScene *is = gf_sg_get_private(gf_node_get_graph(node)); 
-	if (!is) return NULL;
+	GF_Scene *scene = gf_sg_get_private(gf_node_get_graph(node)); 
+	if (!scene) return NULL;
 
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
 	xlinkp.actuate = all_atts.xlink_actuate;

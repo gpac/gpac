@@ -24,6 +24,7 @@
 
 #include <gpac/internal/odf_dev.h>
 
+#ifndef GPAC_DISABLE_OD_DUMP
 
 #define GF_IPMPX_MAX_TREE		100
 
@@ -866,3 +867,5 @@ GF_Err gf_ipmpx_dump_data(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDu
 	default: return GF_BAD_PARAM;
 	}
 }
+
+#endif /*GPAC_DISABLE_OD_DUMP*/

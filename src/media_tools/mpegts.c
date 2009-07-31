@@ -23,6 +23,9 @@
  */
 
 #include <gpac/mpegts.h>
+
+#ifndef GPAC_DISABLE_MPEG2TS
+
 #include <gpac/constants.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/math.h>
@@ -79,8 +82,6 @@ static void gf_m2ts_reframe_default(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 	pck.stream = pes;
 	ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 }
-
-
 static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
 {
 	Bool force_new_au=0;
@@ -129,7 +130,7 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 			nal_type = pck.data[4] & 0x1F;
 
 			/*check for SPS and update stream info*/
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_AV_PARSERS
 			if (!pes->vid_w && (nal_type==GF_AVC_NALU_SEQ_PARAM)) {
 				AVCState avc;
 				s32 idx;
@@ -262,6 +263,8 @@ void gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, 
 	ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 static u32 latm_get_value(GF_BitStream *bs)
 {
 	u32 i, tmp, value = 0;
@@ -274,7 +277,7 @@ static u32 latm_get_value(GF_BitStream *bs)
 	return value;
 }
 
-void gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
+static void gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
 {
 	u32 sc_pos = 0;
 	u32 start = 0;
@@ -406,7 +409,10 @@ void gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u6
 
 	}
 }
+#endif
 
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 static void gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
 {
 	GF_M2TS_PES_PCK pck;
@@ -492,6 +498,7 @@ static void gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u6
 		pes->frame_state = 0;
 	}
 }
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
 static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, Bool simple_check)
 {
@@ -1692,6 +1699,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		case GF_M2TS_VIDEO_MPEG2:
 			pes->reframe = gf_m2ts_reframe_mpeg_video;
 			break;
+#ifndef GPAC_DISABLE_AV_PARSERS
 		case GF_M2TS_AUDIO_MPEG1:
 		case GF_M2TS_AUDIO_MPEG2:
 			pes->reframe = gf_m2ts_reframe_mpeg_audio;
@@ -1702,6 +1710,8 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		case GF_M2TS_AUDIO_LATM_AAC:
 			pes->reframe = gf_m2ts_reframe_aac_latm;
 			break;
+#endif
+
 		case GF_M2TS_PRIVATE_DATA:
 			/* TODO: handle DVB subtitle streams */
 		default:
@@ -1776,3 +1786,4 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 #endif
 }
 
+#endif /*GPAC_DISABLE_MPEG2TS*/

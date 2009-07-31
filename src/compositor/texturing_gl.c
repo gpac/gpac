@@ -209,7 +209,9 @@ void gf_sc_texture_disable(GF_TextureHandler *txh)
 
 Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 {
+#ifndef GPAC_DISABLE_VRML
 	u32 i, count;
+#endif
 
 //	compositor->gl_caps.yuv_texture = 0;
 	if (!compositor->gl_caps.rect_texture) return 0;
@@ -217,6 +219,7 @@ Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 	/*this happens ONLY with text texturing*/
 	if (!txh->owner) return 0;
 
+#ifndef GPAC_DISABLE_VRML
 	count = gf_node_get_parent_count(txh->owner);
 
 	/*background 2D can use RECT ext without pb*/
@@ -232,6 +235,7 @@ Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 			}
 		}
 	}
+#endif /*GPAC_DISABLE_VRML*/
 	return 0;
 }
 
@@ -696,7 +700,6 @@ void gf_get_tinygl_depth(GF_TextureHandler *txh) {
 
 Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Matrix *mx)
 {
-	GF_Matrix tmp;
 	Bool ret = 0;
 	gf_mx_init(*mx);
 
@@ -726,7 +729,9 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 #endif
 	}
 
+#ifndef GPAC_DISABLE_VRML
 	if (tx_transform) {
+		GF_Matrix tmp;
 		switch (gf_node_get_tag(tx_transform)) {
 		case TAG_MPEG4_TextureTransform:
 		case TAG_X3D_TextureTransform:
@@ -772,14 +777,14 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 			break;
 		}
 	}
+#endif /*GPAC_DISABLE_VRML*/
 	return ret;
 }
 
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_VRML)
+
 static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 {
-#ifdef GPAC_DISABLE_3D
-	return 0;
-#else
 	GF_TextureHandler *b_surf;
 #ifndef GPAC_USE_TINYGL
 	GF_TextureHandler *matte_hdl;
@@ -1098,12 +1103,15 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 #endif /*GPAC_USE_TINYGL*/
 
 #undef GLTEXPARAM
-#endif
 }
+#endif /* !defined(GPAC_DISABLE_3D) && !defined(GPAC_DISABLE_VRML) */
 
 
 Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh)
 {
+#ifdef GPAC_DISABLE_VRML
+	return txh->transparent;
+#else
 	M_MatteTexture *matte;
 	if (!txh->matteTexture) return txh->transparent;
 	matte = (M_MatteTexture *)txh->matteTexture;
@@ -1111,6 +1119,7 @@ Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh)
 	if (matte->alphaSurface) return 1;
 	if (!strcmp(matte->operation.buffer, "COLOR_MATRIX")) return 1;
 	return txh->transparent;
+#endif
 }
 
 #ifndef GPAC_DISABLE_3D
@@ -1120,6 +1129,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	GF_Matrix mx;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 
+#ifndef GPAC_DISABLE_VRML
 	if (txh->matteTexture) {
 		u32 ret = gf_sc_texture_enable_matte_texture(txh->matteTexture);
 		if (!ret) return 0;
@@ -1131,6 +1141,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		visual_3d_set_matrix_mode(compositor->visual, V3D_MATRIX_MODELVIEW);
 		return ret;
 	}
+#endif
 	if (!txh || !txh->tx_io) return 0;
 
 	if (txh->compute_gradient_matrix && gf_sc_texture_needs_reload(txh) ) {

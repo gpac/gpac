@@ -26,6 +26,9 @@
 #define _GF_IETF_DEV_H_
 
 #include <gpac/ietf.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/thread.h>
 
 /*
@@ -312,7 +315,9 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent);
 GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_h263(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_amr(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+#ifndef GPAC_DISABLE_AV_PARSERS
 GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
+#endif
 GF_Err gp_rtp_builder_do_mpeg12_audio(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration, u8 descIndex);
 GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
@@ -322,6 +327,8 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_si
 GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize, u32 duration);
 GF_Err gp_rtp_builder_do_ac3(GP_RTPPacketizer *builder, char *data, u32 data_size, u8 IsAUEnd, u32 FullAUSize);
 
+
+#endif /*GPAC_DISABLE_STREAMING*/
 
 #endif	/*_GF_IETF_DEV_H_*/
 

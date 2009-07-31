@@ -30,6 +30,9 @@
 #include <gpac/network.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_MPEG2TS
+
+
 #ifdef GPAC_HAS_LINUX_DVB
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -1338,3 +1341,15 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	case GF_NET_CLIENT_INTERFACE:  DeleteM2TSReader(ifce); break;
 	}
 }
+
+
+#else
+
+GF_EXPORT
+Bool QueryInterface(u32 InterfaceType)  { return 0; }
+GF_EXPORT
+GF_BaseInterface *LoadInterface(u32 InterfaceType) { return NULL; }
+GF_EXPORT
+void ShutdownInterface(GF_BaseInterface *ifce) {}
+
+#endif /*GPAC_DISABLE_MPEG2TS*/ 

@@ -24,6 +24,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_HINTING)
+
 Bool IsHintTrack(GF_TrackBox *trak)
 {
 	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_HINT) return 0;
@@ -52,7 +54,7 @@ Bool CheckHintFormat(GF_TrackBox *trak, u32 HintType)
 	return 1;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err AdjustHintInfo(GF_HintSampleEntryBox *entry, u32 HintSampleNumber)
 {
@@ -551,9 +553,6 @@ GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumbe
 	return gf_isom_hint_pck_add_dte(entry->hint_sample->HintType, pck, (GF_GenericDTE *)dte, AtBegin);
 }
 
-#endif //GPAC_READ_ONLY
-
-#ifndef GPAC_READ_ONLY
 
 GF_Err gf_isom_rtp_packet_set_flags(GF_ISOFile *the_file, u32 trackNumber,
 						   u8 PackingBit, 
@@ -868,7 +867,7 @@ GF_Err gf_isom_sdp_clean(GF_ISOFile *movie)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_EXPORT
 GF_Err gf_isom_sdp_get(GF_ISOFile *movie, const char **sdp, u32 *length)
@@ -986,4 +985,6 @@ const char *gf_isom_get_payt_info(GF_ISOFile *the_file, u32 trackNumber, u32 ind
 	}
 	return NULL;
 }
+
+#endif /*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_HINTING)*/
 

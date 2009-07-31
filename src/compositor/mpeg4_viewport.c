@@ -29,9 +29,9 @@
 #include <gpac/options.h>
 
 
-
 GF_Err gf_sc_get_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const char **outName, Bool *is_bound)
 {
+#ifndef GPAC_DISABLE_VRML
 	u32 count;
 	GF_Node *n;
 	if (!compositor->visual) return GF_BAD_PARAM;
@@ -45,10 +45,14 @@ GF_Err gf_sc_get_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const c
 	case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: *outName = ((M_Viewpoint*)n)->description.buffer; *is_bound = ((M_Viewpoint*)n)->isBound; return GF_OK;
 	default: *outName = NULL; return GF_OK;
 	}
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 GF_Err gf_sc_set_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const char *viewpoint_name)
 {
+#ifndef GPAC_DISABLE_VRML
 	u32 count, i;
 	GF_Node *n;
 	if (!compositor->visual) return GF_BAD_PARAM;
@@ -78,7 +82,13 @@ GF_Err gf_sc_set_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const c
 		}
 	}
 	return GF_BAD_PARAM;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
+
+#ifndef GPAC_DISABLE_VRML
+
 
 #define VPCHANGED(__rend) { GF_Event evt; evt.type = GF_EVENT_VIEWPOINTS; gf_term_send_event(__rend->term, &evt); }
 
@@ -136,7 +146,7 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 		if (gf_list_get(tr_state->viewpoints, 0) == vp) {
 			if (!vp->isBound) Bindable_SetIsBound(node, 1);
 		} else {
-			if (gf_inline_default_scene_viewpoint(node)) Bindable_SetSetBindEx(node, 1, tr_state->viewpoints);
+			if (gf_inline_is_default_viewpoint(node)) Bindable_SetSetBindEx(node, 1, tr_state->viewpoints);
 		}
 		VPCHANGED(tr_state->visual->compositor);
 		/*in any case don't draw the first time (since the viewport could have been declared last)*/
@@ -321,7 +331,7 @@ static void TraverseViewpoint(GF_Node *node, void *rs, Bool is_destroy)
 		if (gf_list_get(tr_state->viewpoints, 0) == vp) {
 			if (!vp->isBound) Bindable_SetIsBound(node, 1);
 		} else {
-			if (gf_inline_default_scene_viewpoint(node)) Bindable_SetSetBind(node, 1);
+			if (gf_inline_is_default_viewpoint(node)) Bindable_SetSetBind(node, 1);
 		}
 		VPCHANGED(tr_state->visual->compositor);
 		/*in any case don't draw the first time (since the viewport could have been declared last)*/
@@ -574,4 +584,6 @@ void compositor_init_fog(GF_Compositor *compositor, GF_Node *node)
 	((M_Fog*)node)->on_set_bind = fog_set_bind;
 }
 
-#endif
+#endif	/*GPAC_DISABLE_3D*/
+
+#endif /*GPAC_DISABLE_VRML*/

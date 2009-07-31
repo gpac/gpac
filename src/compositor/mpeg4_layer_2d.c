@@ -28,6 +28,8 @@
 #include "mpeg4_grouping.h"
 #include "visual_manager.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 
 typedef struct
 {
@@ -377,3 +379,4 @@ void compositor_init_layer2d(GF_Compositor *compositor, GF_Node *node)
 }
 
 
+#endif /*GPAC_DISABLE_VRML*/

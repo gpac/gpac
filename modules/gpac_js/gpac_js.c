@@ -489,11 +489,6 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 }
 
 
-#else
-static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
-{
-}
-#endif
 
 
 
@@ -520,17 +515,24 @@ void gjs_delete(GF_BaseInterface *ifce)
 	free(dr);
 }
 
+#endif
+
+
 GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
+#ifdef GPAC_HAS_SPIDERMONKEY
 	if (InterfaceType == GF_JS_USER_EXT_INTERFACE) return 1;
+#endif
 	return 0;
 }
 
 GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
+#ifdef GPAC_HAS_SPIDERMONKEY
 	if (InterfaceType == GF_JS_USER_EXT_INTERFACE) return (GF_BaseInterface *)gjs_new();
+#endif
 	return NULL;
 }
 
@@ -538,8 +540,10 @@ GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
+#ifdef GPAC_HAS_SPIDERMONKEY
 	case GF_JS_USER_EXT_INTERFACE:
 		gjs_delete(ifce);
 		break;
+#endif
 	}
 }

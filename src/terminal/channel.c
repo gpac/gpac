@@ -322,7 +322,7 @@ static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 			gf_term_message(ch->odm->term, ch->service->url, "Data timeout - aborting buffering", GF_OK); 
 			ch->MinBuffer = ch->MaxBuffer = 0;
 			ch->au_duration = 0;
-			gf_inline_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+			gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 			return 0;
 		} else {
 			now = ch->odm->term->net_data_timeout + ch->last_au_time - now;
@@ -355,13 +355,13 @@ static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 
 static void Channel_UpdateBuffering(GF_Channel *ch, Bool update_info)
 {
-	if (update_info && ch->MaxBuffer) gf_inline_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+	if (update_info && ch->MaxBuffer) gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 
 	gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_DATA_PROGRESS);
 	
 	if (!Channel_NeedsBuffering(ch, 0)) {
 		ch_buffer_off(ch);
-		if (ch->MaxBuffer && update_info) gf_inline_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
+		if (ch->MaxBuffer && update_info) gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 		if (ch->clock->no_time_ctrl) ch->clock->no_time_ctrl = 2;
 
 		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PLAYABLE);
@@ -666,9 +666,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		if (!ch->IsClockInit) {
 			/*channel is the OCR, re-initialize the clock with the proper OCR*/
 			if (gf_es_owns_clock(ch)) {
-				u64 OCR_TS = (u64) (hdr.objectClockReference * (s64)ch->ocr_scale);
+				u32 OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
 				ch->clock->clock_init = 0;
-				gf_clock_set_time(ch->clock, (u32) OCR_TS);
+				gf_clock_set_time(ch->clock, OCR_TS);
 				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d from OCR TS %d - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), OCR_TS, ch->clock->Buffering, gf_clock_time(ch->clock) ));
 				if (ch->clock->clock_init) ch->IsClockInit = 1;
 			}
@@ -950,9 +950,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				/*restart*/
 				if (evt.restart_requested) {
 					if (ch->odm->parentscene->is_dynamic_scene) {
-						gf_inline_restart_dynamic(ch->odm->parentscene, 0);
+						gf_scene_restart_dynamic(ch->odm->parentscene, 0);
 					} else {
-						MC_Restart(ch->odm);
+						mediacontrol_restart(ch->odm);
 					}
 				}
 			}
@@ -1051,9 +1051,9 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 					/*restart*/
 					if (evt.restart_requested) {
 						if (ch->odm->parentscene->is_dynamic_scene) {
-							gf_inline_restart_dynamic(ch->odm->parentscene, 0);
+							gf_scene_restart_dynamic(ch->odm->parentscene, 0);
 						} else {
-							MC_Restart(ch->odm);
+							mediacontrol_restart(ch->odm);
 						}
 					}
 				}
@@ -1158,7 +1158,7 @@ static void refresh_non_interactive_clocks(GF_ObjectManager *odm)
 	u32 i, j;
 	GF_Channel *ch;
 	GF_ObjectManager *test_od;
-	GF_InlineScene *in_scene;
+	GF_Scene *in_scene;
 
 	/*check for inline*/
 	in_scene = odm->subscene ? odm->subscene : odm->parentscene;
@@ -1171,7 +1171,7 @@ static void refresh_non_interactive_clocks(GF_ObjectManager *odm)
 	}
 
 	i=0;
-	while ((test_od = (GF_ObjectManager *)gf_list_enum(in_scene->ODlist, &i)) ) {
+	while ((test_od = (GF_ObjectManager *)gf_list_enum(in_scene->resources, &i)) ) {
 		j=0;
 		while ((ch = (GF_Channel*)gf_list_enum(test_od->channels, &j)) ) {
 			if (ch->clock->no_time_ctrl) {

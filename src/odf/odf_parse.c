@@ -88,6 +88,21 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	if (!stricmp(descName, "DecoderSpecificInfo")) return GF_ODF_DSI_TAG;
 	if (!stricmp(descName, "DecoderSpecificInfoString")) return GF_ODF_DSI_TAG;
 	if (!stricmp(descName, "SLConfigDescriptor")) return GF_ODF_SLC_TAG;
+	if (!stricmp(descName, "SegmentDescriptor")) return GF_ODF_SEGMENT_TAG;
+	if (!stricmp(descName, "MediaTimeDescriptor")) return GF_ODF_MEDIATIME_TAG;
+	if (!stricmp(descName, "MuxInfo")) return GF_ODF_MUXINFO_TAG;
+	if (!stricmp(descName, "StreamSource")) return GF_ODF_MUXINFO_TAG;
+	if (!stricmp(descName, "BIFSConfig") || !stricmp(descName, "BIFSv2Config")) return GF_ODF_BIFS_CFG_TAG;
+	if (!stricmp(descName, "ElementaryMask")) return GF_ODF_ELEM_MASK_TAG;
+	if (!stricmp(descName, "TextConfig")) return GF_ODF_TEXT_CFG_TAG;
+	if (!stricmp(descName, "TextSampleDescriptor")) return GF_ODF_TX3G_TAG;
+	if (!stricmp(descName, "UIConfig")) return GF_ODF_UI_CFG_TAG;
+	if (!stricmp(descName, "ES_ID_Ref")) return GF_ODF_ESD_REF_TAG;
+	if (!stricmp(descName, "ES_ID_Inc")) return GF_ODF_ESD_INC_TAG;
+	if (!stricmp(descName, "AuxiliaryVideoData")) return GF_ODF_AUX_VIDEO_DATA;
+	if (!stricmp(descName, "DefaultDescriptor")) return GF_ODF_DSI_TAG;
+
+#ifndef GPAC_MINIMAL_ODF
 	if (!stricmp(descName, "ContentIdentification")) return GF_ODF_CI_TAG;
 	if (!stricmp(descName, "SuppContentIdentification")) return GF_ODF_SCI_TAG;
 	if (!stricmp(descName, "IPIPtr")) return GF_ODF_IPI_PTR_TAG;
@@ -110,19 +125,7 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	if (!stricmp(descName, "OCI_CreatorName")) return GF_ODF_OCI_NAME_TAG;
 	if (!stricmp(descName, "OCI_CreationDate")) return GF_ODF_OCI_DATE_TAG;
 	if (!stricmp(descName, "SmpteCameraPosition")) return GF_ODF_SMPTE_TAG;
-	if (!stricmp(descName, "SegmentDescriptor")) return GF_ODF_SEGMENT_TAG;
-	if (!stricmp(descName, "MediaTimeDescriptor")) return GF_ODF_MEDIATIME_TAG;
-	if (!stricmp(descName, "MuxInfo")) return GF_ODF_MUXINFO_TAG;
-	if (!stricmp(descName, "StreamSource")) return GF_ODF_MUXINFO_TAG;
-	if (!stricmp(descName, "BIFSConfig") || !stricmp(descName, "BIFSv2Config")) return GF_ODF_BIFS_CFG_TAG;
-	if (!stricmp(descName, "ElementaryMask")) return GF_ODF_ELEM_MASK_TAG;
-	if (!stricmp(descName, "TextConfig")) return GF_ODF_TEXT_CFG_TAG;
-	if (!stricmp(descName, "TextSampleDescriptor")) return GF_ODF_TX3G_TAG;
-	if (!stricmp(descName, "UIConfig")) return GF_ODF_UI_CFG_TAG;
-	if (!stricmp(descName, "ES_ID_Ref")) return GF_ODF_ESD_REF_TAG;
-	if (!stricmp(descName, "ES_ID_Inc")) return GF_ODF_ESD_INC_TAG;
-	if (!stricmp(descName, "AuxiliaryVideoData")) return GF_ODF_AUX_VIDEO_DATA;
-	if (!stricmp(descName, "DefaultDescriptor")) return GF_ODF_DSI_TAG;
+#endif /*GPAC_MINIMAL_ODF*/
 	return 0;
 }
 
@@ -395,6 +398,8 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "GroupID")) ret += sscanf(val, "%d", &mi->GroupID);
 		else if (!stricmp(fieldName, "startTime")) ret += sscanf(val, "%d", &mi->startTime);
 		else if (!stricmp(fieldName, "duration")) ret += sscanf(val, "%d", &mi->duration);
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 		else if (!stricmp(fieldName, "compactSize"))
 		{ ret = 1; if (!stricmp(val, "true") || !stricmp(val, "1")) mi->import_flags |= GF_IMPORT_USE_COMPACT_SIZE; }
 		else if (!stricmp(fieldName, "useDataReference"))
@@ -406,6 +411,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			if (!stricmp(val, "implicit") || !stricmp(val, "1")) mi->import_flags |= GF_IMPORT_SBR_IMPLICIT;
 			else if (!stricmp(val, "explicit") || !stricmp(val, "2")) mi->import_flags |= GF_IMPORT_SBR_EXPLICIT;
 		}
+#endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 		else if (!stricmp(fieldName, "textNode")) GET_STRING(mi->textNode)
 		else if (!stricmp(fieldName, "fontNode")) GET_STRING(mi->fontNode)

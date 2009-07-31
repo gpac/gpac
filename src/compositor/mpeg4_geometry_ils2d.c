@@ -27,6 +27,8 @@
 #include "nodes_stacks.h"
 #include "visual_manager.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 static void ils2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
 {
 	u32 i;
@@ -262,7 +264,7 @@ static void TraverseILS2D(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_PICK:
-		drawable_pick(stack, tr_state);
+		vrml_drawable_pick(stack, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
 		gf_path_get_bounds(stack->path, &tr_state->bounds);
@@ -306,3 +308,5 @@ void compositor_init_indexed_line_set2d(GF_Compositor *compositor, GF_Node *node
 	ils2D->on_set_colorIndex = ILS2D_SetColorIndex;
 	ils2D->on_set_coordIndex = ILS2D_SetCoordIndex;
 }
+
+#endif /*GPAC_DISABLE_VRML*/

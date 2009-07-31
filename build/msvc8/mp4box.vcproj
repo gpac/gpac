@@ -76,11 +76,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				RegisterOutput="false"
+				LinkLibraryDependencies="true"
+				UseLibraryDependencyInputs="false"
 				AdditionalDependencies="zlib.lib winmm.lib"
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/MP4Box.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
+				AdditionalLibraryDirectories="&quot;../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)&quot;"
 				GenerateManifest="true"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"

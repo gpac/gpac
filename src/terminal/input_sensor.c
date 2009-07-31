@@ -28,6 +28,8 @@
 #include <gpac/nodes_x3d.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_VRML
+
 #include "input_sensor.h"
 
 #if GPAC_HTK_DEMO
@@ -49,7 +51,7 @@ static u32 htk_num_users = 0;
 				input sensor decoder(s) handling
 */
 
-GF_Err IS_Configure(GF_BaseDecoder *plug, GF_InlineScene *scene, Bool is_remote)
+GF_Err gf_isdec_configure(GF_BaseDecoder *plug, GF_Scene *scene, Bool is_remote)
 {
 	ISPriv *is = (ISPriv *)plug->privateStack;
 	/*we can only deal with encoded content (for now)*/
@@ -328,7 +330,7 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffer
 		if (!st->is->enabled) continue;
 
 		count = gf_list_count(st->is->buffer.commandList);
-		scene_time = gf_inline_get_time(priv->scene);
+		scene_time = gf_scene_get_time(priv->scene);
 		for (j=0; j<count; j++) {
 			GF_Command *com = (GF_Command *)gf_list_get(st->is->buffer.commandList, j);
 			GF_FieldInfo *field = (GF_FieldInfo *)gf_list_get(priv->ddf, j);
@@ -461,10 +463,10 @@ static void TraverseInputSensor(GF_Node *node, void *rs, Bool is_destroy)
 	M_InputSensor *is = (M_InputSensor *)node;
 
 	if (is_destroy) {
-		GF_InlineScene *is;
+		GF_Scene *scene;
 		if (st->registered) IS_Unregister(node, st);
-		is = (GF_InlineScene*)gf_sg_get_private(gf_node_get_graph(node));
-		gf_term_unqueue_node_traverse(is->root_od->term, node);
+		scene = (GF_Scene*)gf_sg_get_private(gf_node_get_graph(node));
+		gf_term_unqueue_node_traverse(scene->root_od->term, node);
 		free(st);
 	} else {
 		/*get decoder object */
@@ -475,14 +477,14 @@ static void TraverseInputSensor(GF_Node *node, void *rs, Bool is_destroy)
 }
 
 
-void InitInputSensor(GF_InlineScene *is, GF_Node *node)
+void InitInputSensor(GF_Scene *scene, GF_Node *node)
 {
 	ISStack *stack;
 	GF_SAFEALLOC(stack, ISStack);
 	stack->is = (M_InputSensor *) node;
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, TraverseInputSensor);
-	gf_term_queue_node_traverse(is->root_od->term, node);
+	gf_term_queue_node_traverse(scene->root_od->term, node);
 }
 
 /*check only URL changes*/
@@ -867,11 +869,11 @@ void DestroyKeySensor(GF_Node *node, void *rs, Bool is_destroy)
 		gf_list_del_item(term->x3d_sensors, node);
 	}
 }
-void InitKeySensor(GF_InlineScene *is, GF_Node *node)
+void InitKeySensor(GF_Scene *scene, GF_Node *node)
 {
-	gf_node_set_private(node, is->root_od->term);
+	gf_node_set_private(node, scene->root_od->term);
 	gf_node_set_callback_function(node, DestroyKeySensor);
-	gf_list_add(is->root_od->term->x3d_sensors, node);
+	gf_list_add(scene->root_od->term->x3d_sensors, node);
 }
 
 void DestroyStringSensor(GF_Node *node, void *rs, Bool is_destroy)
@@ -882,12 +884,26 @@ void DestroyStringSensor(GF_Node *node, void *rs, Bool is_destroy)
 		free(st);
 	}
 }
-void InitStringSensor(GF_InlineScene *is, GF_Node *node)
+void InitStringSensor(GF_Scene *scene, GF_Node *node)
 {
 	StringSensorStack*st;
 	GF_SAFEALLOC(st, StringSensorStack)
-	st->term = is->root_od->term;
+	st->term = scene->root_od->term;
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, DestroyStringSensor);
-	gf_list_add(is->root_od->term->x3d_sensors, node);
+	gf_list_add(scene->root_od->term->x3d_sensors, node);
 }
+
+
+#else
+void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
+{
+}
+void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp)
+{
+}
+void gf_term_string_input(GF_Terminal *term, u32 character)
+{
+}
+
+#endif /*GPAC_DISABLE_VRML*/

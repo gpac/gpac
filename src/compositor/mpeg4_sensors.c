@@ -31,6 +31,8 @@
 /*for anchor processing, which needs to be filtered at the inline scene level*/
 #include <gpac/internal/terminal_dev.h>
 
+#ifndef GPAC_DISABLE_VRML
+
 /*for event DOM filtering type ...*/
 #include <gpac/scenegraph_svg.h>
 
@@ -133,7 +135,7 @@ static void anchor_activation(GF_Node *node, AnchorStack *st, GF_Compositor *com
 				break;
 			}
 		} else if (compositor->term) {
-			if (gf_inline_process_anchor(node, &evt))
+			if (gf_scene_process_anchor(node, &evt))
 				break;
 		} else if (gf_term_send_event(compositor->term, &evt)) {
 			break;
@@ -1294,3 +1296,6 @@ Bool compositor_mpeg4_is_sensor_node(GF_Node *node)
 	if (sh && sh->IsEnabled(node)) return 1;
 	return 0;
 }
+
+
+#endif /*GPAC_DISABLE_VRML*/

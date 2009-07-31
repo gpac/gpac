@@ -26,6 +26,8 @@
 #include "mpeg4_grouping.h"
 #include "visual_manager.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 typedef struct
 {
 	PARENT_NODE_STACK_2D
@@ -270,3 +272,4 @@ void compositor_init_path_layout(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, TraversePathLayout);
 }
 
+#endif /*GPAC_DISABLE_VRML*/

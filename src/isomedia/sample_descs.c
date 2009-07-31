@@ -24,6 +24,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 void gf_isom_video_sample_entry_init(GF_VisualSampleEntryBox *ent)
 {
 	ent->horiz_res = ent->vert_res = 0x00480000;
@@ -56,7 +58,7 @@ GF_Err gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStrea
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ptr, GF_BitStream *bs)
 {
 
@@ -84,8 +86,7 @@ void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent)
 	ent->size += 78;
 }
 
-
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -124,7 +125,7 @@ GF_Err gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream *bs)
 {
@@ -148,7 +149,7 @@ void gf_isom_audio_sample_entry_size(GF_AudioSampleEntryBox *ptr)
 }
 
 
-#endif	//GPAC_READ_ONLY
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -187,7 +188,7 @@ GF_3GPConfig *gf_isom_3gp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	return res;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_EXPORT
 GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
@@ -351,7 +352,7 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 	*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
 	return e;
 }
-#endif	//GPAC_READ_ONLY
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -384,7 +385,7 @@ GF_Err gf_isom_get_dims_description(GF_ISOFile *movie, u32 trackNumber, u32 desc
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSDescription *desc, char *URLname, char *URNname, u32 *outDescriptionIndex)
 {
 	GF_TrackBox *trak;
@@ -477,5 +478,6 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 	}
 	return e;
 }
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+#endif /*GPAC_DISABLE_ISOM*/

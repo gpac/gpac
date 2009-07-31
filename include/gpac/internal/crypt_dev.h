@@ -31,13 +31,11 @@ extern "C" {
 
 #include <gpac/crypt.h>
 
+#ifndef GPAC_DISABLE_MCRYPT
+
 /*the samllest version of the lib: only AES-128-CTR supported*/
 #define GPAC_CRYPT_ISMA_ONLY
 
-
-#if !defined(GPAC_CRYPT_ISMA_ONLY) && defined(GPAC_READ_ONLY)
-#define GPAC_CRYPT_ISMA_ONLY
-#endif
 
 typedef void (*mcryptfunc)(void*,void*);
 typedef GF_Err (*mcrypt_setkeystream)(void *, const void *, int, const void *, int);
@@ -149,6 +147,7 @@ void memxor(unsigned char *o1, unsigned char *o2, int length)
 
 #define Bzero(x, y) memset(x, 0, y)
 
+#endif /*GPAC_DISABLE_MCRYPT*/
 
 #ifdef __cplusplus
 }

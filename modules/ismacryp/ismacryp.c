@@ -30,6 +30,7 @@
 #include <gpac/download.h>
 #include <gpac/internal/terminal_dev.h>
 
+#ifndef GPAC_DISABLE_MCRYPT
 
 #define OMA_DRM_MP4MC
 
@@ -320,12 +321,16 @@ GF_IPMPTool *NewISMACrypTool()
 	return (GF_IPMPTool *) tmp;
 }
 
+#endif /*GPAC_DISABLE_MCRYPT*/
+
 GF_EXPORT
 Bool QueryInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
+#ifndef GPAC_DISABLE_MCRYPT
 	case GF_IPMP_TOOL_INTERFACE:
 		return 1;
+#endif
 	default:
 		return 0;
 	}
@@ -335,8 +340,10 @@ GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
+#ifndef GPAC_DISABLE_MCRYPT
 	case GF_IPMP_TOOL_INTERFACE:
 		return (GF_BaseInterface *)NewISMACrypTool();
+#endif
 	default:
 		return NULL;
 	}
@@ -346,8 +353,10 @@ GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
+#ifndef GPAC_DISABLE_MCRYPT
 	case GF_IPMP_TOOL_INTERFACE:
 		DeleteISMACrypTool((GF_IPMPTool *)ifce);
 		break;
+#endif
 	}
 }

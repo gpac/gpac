@@ -4,14 +4,14 @@
  *			Copyright (c) Jean Le Feuvre 2000-2005 
  *					All rights reserved
  *
- *  This file is part of GPAC / Media terminal sub-project
+ *  This file scene part of GPAC / Media terminal sub-project
  *
- *  GPAC is free software; you can redistribute it and/or modify
+ *  GPAC scene free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
  *   
- *  GPAC is distributed in the hope that it will be useful,
+ *  GPAC scene distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
@@ -57,7 +57,7 @@ GF_Clock *gf_clock_find(GF_List *Clocks, u16 clockID, u16 ES_ID)
 	return NULL;
 }
 
-GF_Clock *CK_LookForClockDep(struct _inline_scene *is, u16 clockID)
+GF_Clock *CK_LookForClockDep(GF_Scene *scene, u16 clockID)
 {
 	u32 i, j;
 	GF_Channel *ch;
@@ -65,12 +65,12 @@ GF_Clock *CK_LookForClockDep(struct _inline_scene *is, u16 clockID)
 
 	/*check in top OD*/
 	i=0;
-	while ((ch = (GF_Channel*)gf_list_enum(is->root_od->channels, &i))) {
+	while ((ch = (GF_Channel*)gf_list_enum(scene->root_od->channels, &i))) {
 		if (ch->esd->ESID == clockID) return ch->clock;
 	}
 	/*check in sub ODs*/
 	j=0;
-	while ((odm = (GF_ObjectManager*)gf_list_enum(is->ODlist, &j))) {
+	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &j))) {
 		i=0;
 		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 			if (ch->esd->ESID == clockID) return ch->clock;
@@ -80,32 +80,36 @@ GF_Clock *CK_LookForClockDep(struct _inline_scene *is, u16 clockID)
 }
 
 /*remove clocks created due to out-of-order OCR dependencies*/
-void CK_ResolveClockDep(GF_List *clocks, struct _inline_scene *is, GF_Clock *ck, u16 Clock_ESID)
+void CK_ResolveClockDep(GF_List *clocks, GF_Scene *scene, GF_Clock *ck, u16 Clock_ESID)
 {
 	u32 i, j;
 	GF_Clock *clock;
 	GF_Channel *ch;
 	GF_ObjectManager *odm;
 
-	/*check all channels - if any is using a clock which ID is the clock_ESID then
+	/*check all channels - if any scene using a clock which ID scene the clock_ESID then
 	this clock shall be removed*/
 	i=0;
-	while ((ch = (GF_Channel*)gf_list_enum(is->root_od->channels, &i))) {
+	while ((ch = (GF_Channel*)gf_list_enum(scene->root_od->channels, &i))) {
 		if (ch->clock->clockID == Clock_ESID) {
-			if (is->scene_codec && is->scene_codec->ck == ch->clock) is->scene_codec->ck = ck;
-			if (is->od_codec && is->od_codec->ck == ch->clock) is->od_codec->ck = ck;
-			if (is->root_od->oci_codec && is->root_od->oci_codec->ck == ch->clock) is->root_od->oci_codec->ck = ck;
+			if (scene->scene_codec && scene->scene_codec->ck == ch->clock) scene->scene_codec->ck = ck;
+			if (scene->od_codec && scene->od_codec->ck == ch->clock) scene->od_codec->ck = ck;
+#ifndef GPAC_MINIMAL_ODF
+			if (scene->root_od->oci_codec && scene->root_od->oci_codec->ck == ch->clock) scene->root_od->oci_codec->ck = ck;
+#endif
 			ch->clock = ck;
 			if (ch->esd) ch->esd->OCRESID = ck->clockID;
 		}
 	}
 	j=0;
-	while ((odm = (GF_ObjectManager*)gf_list_enum(is->ODlist, &j))) {
+	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &j))) {
 		i=0;
 		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 			if (ch->clock->clockID == Clock_ESID) {
 				if (odm->codec && (odm->codec->ck==ch->clock)) odm->codec->ck = ck;
+#ifndef GPAC_MINIMAL_ODF
 				if (odm->oci_codec && (odm->oci_codec->ck==ch->clock)) odm->oci_codec->ck = ck;
+#endif
 				ch->clock = ck;
 				if (ch->esd) ch->esd->OCRESID = ck->clockID;
 			}
@@ -122,22 +126,22 @@ void CK_ResolveClockDep(GF_List *clocks, struct _inline_scene *is, GF_Clock *ck,
 	}
 }
 
-GF_Clock *gf_clock_attach(GF_List *clocks, struct _inline_scene *is, u16 clockID, u16 ES_ID, s32 hasOCR)
+GF_Clock *gf_clock_attach(GF_List *clocks, GF_Scene *scene, u16 clockID, u16 ES_ID, s32 hasOCR)
 {
 	Bool check_dep;
 	GF_Clock *tmp = gf_clock_find(clocks, clockID, ES_ID);
 	/*ck dep can only be solved if in the main service*/
-	check_dep = (is->root_od->net_service && is->root_od->net_service->Clocks==clocks) ? 1 : 0;
+	check_dep = (scene->root_od->net_service && scene->root_od->net_service->Clocks==clocks) ? 1 : 0;
 	/*this partly solves a->b->c*/
-	if (!tmp && check_dep) tmp = CK_LookForClockDep(is, clockID);
+	if (!tmp && check_dep) tmp = CK_LookForClockDep(scene, clockID);
 	if (!tmp) {
-		tmp = NewClock(is->root_od->term);
+		tmp = NewClock(scene->root_od->term);
 		tmp->clockID = clockID;
 		gf_list_add(clocks, tmp);
 	} else {
 		if (tmp->clockID == ES_ID) tmp->clockID = clockID;
 		/*this finally solves a->b->c*/
-		if (check_dep && (tmp->clockID != ES_ID)) CK_ResolveClockDep(clocks, is, tmp, ES_ID);
+		if (check_dep && (tmp->clockID != ES_ID)) CK_ResolveClockDep(clocks, scene, tmp, ES_ID);
 	}
 	if (hasOCR >= 0) tmp->use_ocr = hasOCR;
 	return tmp;
@@ -148,7 +152,7 @@ void gf_clock_reset(GF_Clock *ck)
 	ck->clock_init = 0;
 	ck->drift = 0;
 	ck->discontinuity_time = 0;
-	//do NOT reset buffering flag, because RESET is called only 
+	//do NOT reset buffering flag, because RESET scene called only 
 	//for the stream owning the clock, and other streams may 
 	//have signaled buffering on this clock
 	ck->init_time = 0;
@@ -237,7 +241,7 @@ Bool gf_clock_is_started(GF_Clock *ck)
 	return 1;
 }
 
-/*buffering is protected by a mutex because it may be triggered by composition memory (audio or visual threads)*/
+/*buffering scene protected by a mutex because it may be triggered by composition memory (audio or visual threads)*/
 void gf_clock_buffer_on(GF_Clock *ck)
 {
 	gf_mx_p(ck->mx);

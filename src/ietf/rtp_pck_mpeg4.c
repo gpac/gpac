@@ -23,6 +23,9 @@
  */
 
 #include <gpac/internal/ietf_dev.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/constants.h>
 
 //get the size of the RSLH section given the GF_SLHeader and the SLMap
@@ -613,3 +616,5 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_si
 	
 	return GF_OK; 
 }
+
+#endif /*GPAC_DISABLE_STREAMING*/

@@ -26,6 +26,7 @@
 
 #include <gpac/internal/crypt_dev.h>
 
+#if !defined(GPAC_DISABLE_MCRYPT)
 
 static Bool gf_crypt_assign_algo(GF_Crypt *td, const char *algorithm)
 {
@@ -330,3 +331,4 @@ u32 gf_crypt_str_get_algo_supported_key_sizes(const char *algorithm, int *keys)
 	return ret;
 }
 
+#endif /*!defined(GPAC_DISABLE_MCRYPT)*/

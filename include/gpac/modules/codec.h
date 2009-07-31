@@ -187,7 +187,7 @@ typedef struct _mediadecoder
 
 
 
-typedef struct _inline_scene *LPINLINESCENE;
+typedef struct _scene *LPSCENE;
 
 /*interface name and version for scene decoder */
 #define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', 0x02)
@@ -204,7 +204,7 @@ typedef struct _scenedecoder
 	or a re-entrant call, cf below)
 	This is called once upon creation of the decoder (several times if re-entrant)
 	*/
-	GF_Err (*AttachScene)(struct _scenedecoder *, LPINLINESCENE is, Bool is_scene_root);
+	GF_Err (*AttachScene)(struct _scenedecoder *, LPSCENE scene, Bool is_scene_root);
 	/*releases scene. If the decoder manages nodes / resources in the scene, 
 	THESE MUST BE DESTROYED. May be NULL if decoder doesn't manage nodes but only create them (like BIFS, OD) and
 	doesn't have to be instructed the scene is about to be resumed

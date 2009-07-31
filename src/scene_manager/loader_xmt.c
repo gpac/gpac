@@ -30,6 +30,9 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_x3d.h>
 
+#ifndef GPAC_DISABLE_VRML
+
+
 /*for QP types*/
 #include "../bifs/quant.h"
 
@@ -1327,6 +1330,7 @@ static void xmt_parse_proto(GF_XMTParser *parser, const GF_XMLAttribute *attribu
 }
 static u32 xmt_get_protofield_qp_type(const char *QP_Type)
 {
+#ifndef GPAC_DISABLE_BIFS
 	if (!strcmp(QP_Type, "position3D")) return QC_3DPOS;
 	else if (!strcmp(QP_Type, "position2D")) return QC_2DPOS;
 	else if (!strcmp(QP_Type, "drawingOrder")) return QC_ORDER;
@@ -1341,7 +1345,8 @@ static u32 xmt_get_protofield_qp_type(const char *QP_Type)
 	else if (!strcmp(QP_Type, "size2D")) return QC_SIZE_2D;
 	else if (!strcmp(QP_Type, "linear")) return QC_LINEAR_SCALAR;
 	else if (!strcmp(QP_Type, "coordIndex")) return QC_COORD_INDEX;
-	else return 0;
+#endif
+	return 0;
 }
 
 static GF_Err x3d_get_default_container(GF_Node *par, GF_Node *n, GF_FieldInfo *info)
@@ -2859,3 +2864,4 @@ GF_Err gf_sm_load_done_xmt(GF_SceneLoader *load)
 }
 
 
+#endif /*GPAC_DISABLE_VRML*/

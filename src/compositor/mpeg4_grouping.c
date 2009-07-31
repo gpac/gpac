@@ -27,6 +27,8 @@
 #include "mpeg4_grouping.h"
 #include "visual_manager.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 /*This is the generic routine for child traversing*/
 void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *tr_state)
 {
@@ -822,3 +824,5 @@ void parent_node_child_traverse_matrix(ChildGroup *cg, GF_TraverseState *tr_stat
 	}
 	tr_state->text_split_idx = 0;
 }
+
+#endif /*GPAC_DISABLE_VRML*/

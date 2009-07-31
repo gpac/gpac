@@ -34,7 +34,7 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_gpac_js.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols gpac_js.def 
+#LDFLAGS+=-export-symbols gpac_js.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

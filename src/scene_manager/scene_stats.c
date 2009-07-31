@@ -26,7 +26,7 @@
 #include <gpac/constants.h>
 #include <gpac/internal/scenegraph_dev.h>
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_SCENE_STATS
 
 struct _statman
 {
@@ -95,6 +95,7 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 	if (!stat) return;
 
 	if (n->sgprivate->tag == TAG_ProtoNode) {
+#ifndef GPAC_DISABLE_VRML
 		GF_ProtoInstance *pr = (GF_ProtoInstance *)n;
 		i=0;
 		while ((ptr = (GF_NodeStats *)gf_list_enum(stat->proto_stats, &i))) {
@@ -107,6 +108,7 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 			ptr->name = gf_sg_proto_get_class_name(pr->proto_interface);
 			gf_list_add(stat->proto_stats, ptr);
 		}
+#endif
 	} else {
 		i=0;
 		while ((ptr = (GF_NodeStats *)gf_list_enum(stat->node_stats, &i))) {
@@ -155,6 +157,8 @@ static void StatFixed(GF_SceneStatistics *stat, Fixed v, Bool scale)
 	if (stat->max_fixed < v) stat->max_fixed = v;
 	if (stat->min_fixed > v) stat->min_fixed = v;
 }
+
+
 
 static void StatSVGPoint(GF_SceneStatistics *stat, SFVec2f *val)
 {
@@ -365,10 +369,8 @@ Bool StatIsUSE(GF_StatManager *st, GF_Node *n)
 
 static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 {
-	GF_Node *child, *clone;
-	GF_ChildNodeItem *list;
-	u32 i, count;
-	GF_FieldInfo field, clone_field;
+	GF_Node *clone;
+	GF_FieldInfo field;
 
 	if (!n) return GF_OK;
 	StatNode(st->stats, n, StatIsUSE(st, n), 0, NULL);
@@ -376,8 +378,13 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 	if (n->sgprivate->tag != TAG_ProtoNode) {
 		clone = gf_node_new(n->sgprivate->scenegraph, n->sgprivate->tag);
 	} else {
+#ifndef GPAC_DISABLE_VRML
 		clone = gf_sg_proto_create_node(n->sgprivate->scenegraph, ((GF_ProtoInstance *)n)->proto_interface, NULL);
+#else
+		clone = NULL;
+#endif
 	}
+	if (!clone) return GF_OK;
 	gf_node_register(clone, NULL);
 
 #ifndef GPAC_DISABLE_SVG
@@ -401,7 +408,14 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 #endif
 	if (n->sgprivate->tag == TAG_DOMText) {
 	} else if (n->sgprivate->tag == TAG_DOMFullNode) {
-	} else {
+	} 
+#ifndef GPAC_DISABLE_VRML
+	else if (n->sgprivate->tag<= GF_NODE_RANGE_LAST_X3D) {
+		GF_Node *child;
+		GF_ChildNodeItem *list;
+		u32 i, count;
+		GF_FieldInfo clone_field;
+
 		count = gf_node_get_field_count(n);
 	
 		for (i=0; i<count; i++) {
@@ -430,6 +444,8 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 			}
 		}
 	}
+#endif
+
 	gf_node_unregister(clone, NULL);
 	return GF_OK;
 }
@@ -437,6 +453,9 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 GF_EXPORT
 GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 {
+#ifdef GPAC_DISABLE_VRML
+	return GF_NOT_SUPPORTED;
+#else
 	GF_FieldInfo field;
 	GF_Err e;
 	GF_ChildNodeItem *list;
@@ -528,6 +547,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com)
 		return GF_BAD_PARAM;
 	}
 	return GF_OK;
+#endif
 }
 
 static GF_Err gf_sm_stat_au(GF_List *commandList, GF_StatManager *st)
@@ -608,5 +628,5 @@ void gf_sm_stats_reset(GF_StatManager *stat)
 	ResetStatisitics(stat->stats);
 }
 
-#endif
+#endif /*GPAC_DISABLE_SCENE_STATS*/
 

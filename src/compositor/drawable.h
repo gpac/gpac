@@ -261,8 +261,11 @@ void DeleteDrawableContext(DrawableContext *);
 void drawctx_reset(DrawableContext *ctx);
 void drawctx_update_info(DrawableContext *ctx, GF_VisualManager *visual);
 
+#ifndef GPAC_DISABLE_VRML
 /*inits context - may return NULL if the node doesn't have to be drawn*/
 DrawableContext *drawable_init_context_mpeg4(Drawable *node, GF_TraverseState *tr_state);
+#endif
+
 /*inits context for SVG - may return NULL if the node doesn't have to be drawn*/
 DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState *tr_state);
 
@@ -271,8 +274,8 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 */
 void drawable_draw(Drawable *drawable, GF_TraverseState *tr_state);
 
-/*base picking function*/
-void drawable_pick(Drawable *drawable, GF_TraverseState *tr_state);
+/*picking function for VRML-based scene graphs*/
+void vrml_drawable_pick(Drawable *drawable, GF_TraverseState *tr_state);
 
 /*SVG picking function (uses SVG pointrer events)*/
 void svg_drawable_pick(GF_Node *node, Drawable *drawable, GF_TraverseState *tr_state);

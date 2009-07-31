@@ -25,6 +25,8 @@
 
 #include "script.h"
 
+#ifndef GPAC_DISABLE_BIFS
+
 #define BINOP_MINVAL ET_EQ
 
 typedef struct
@@ -776,3 +778,5 @@ void SFS_GetBoolean(ScriptParser *parser)
 		SFS_AddString(parser, "false");
 	}
 }
+
+#endif /*GPAC_DISABLE_BIFS*/

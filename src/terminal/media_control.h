@@ -32,6 +32,17 @@
 #include <gpac/nodes_mpeg4.h>
 
 
+/*restart object and takes care of media control/clock dependencies*/
+void mediacontrol_restart(GF_ObjectManager *odm);
+void mediacontrol_pause(GF_ObjectManager *odm);
+void mediacontrol_resume(GF_ObjectManager *odm);
+
+Bool MC_URLChanged(MFURL *old_url, MFURL *new_url);
+
+void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos);
+
+#ifndef GPAC_DISABLE_VRML
+
 /*to do: add preroll support*/
 typedef struct _media_control
 {
@@ -43,7 +54,7 @@ typedef struct _media_control
 	Bool enabled;
 	MFURL url;
 	
-	GF_InlineScene *parent;
+	GF_Scene *parent;
 	/*stream owner*/
 	GF_MediaObject *stream;
 	/*stream owner's clock*/
@@ -59,34 +70,28 @@ typedef struct _media_control
 	/*current active segment index (ie, controling the PLAY range of the media)*/
 	u32 current_seg;
 } MediaControlStack;
-void InitMediaControl(GF_InlineScene *is, GF_Node *node);
+void InitMediaControl(GF_Scene *scene, GF_Node *node);
 void MC_Modified(GF_Node *node);
 
 void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range);
 
 /*assign mediaControl for this object*/
-void ODM_SetMediaControl(GF_ObjectManager *odm, struct _media_control *ctrl);
+void gf_odm_set_mediacontrol(GF_ObjectManager *odm, struct _media_control *ctrl);
 /*get media control ruling the clock the media is running on*/
-struct _media_control *ODM_GetMediaControl(GF_ObjectManager *odm);
-/*get mediaControl controling and owned by the OD, or NULL if none*/
-struct _media_control *ODM_GetObjectMediaControl(GF_ObjectManager *odm);
+struct _media_control *gf_odm_get_mediacontrol(GF_ObjectManager *odm);
 /*removes control from OD context*/
-void ODM_RemoveMediaControl(GF_ObjectManager *odm, struct _media_control *ctrl);
+void gf_odm_remove_mediacontrol(GF_ObjectManager *odm, struct _media_control *ctrl);
 /*switches control (propagates enable=FALSE), returns 1 if control associated with OD has changed to new one*/
-Bool ODM_SwitchMediaControl(GF_ObjectManager *odm, struct _media_control *ctrl);
+Bool gf_odm_switch_mediacontrol(GF_ObjectManager *odm, struct _media_control *ctrl);
 
-/*restart object and takes care of media control/clock dependencies*/
-void MC_Restart(GF_ObjectManager *odm);
-void MC_Pause(GF_ObjectManager *odm);
-void MC_Resume(GF_ObjectManager *odm);
-
-Bool MC_URLChanged(MFURL *old_url, MFURL *new_url);
+/*returns 1 if this is a segment switch, 0 otherwise - takes care of object restart if segment switch*/
+Bool gf_odm_check_segment_switch(GF_ObjectManager *odm);
 
 typedef struct _media_sensor
 {
 	M_MediaSensor *sensor;
 
-	GF_InlineScene *parent;
+	GF_Scene *parent;
 
 	GF_List *seg;
 	Bool is_init;
@@ -97,11 +102,11 @@ typedef struct _media_sensor
 	u32 active_seg;
 } MediaSensorStack;
 
-void InitMediaSensor(GF_InlineScene *is, GF_Node *node);
+void InitMediaSensor(GF_Scene *scene, GF_Node *node);
 void MS_Modified(GF_Node *node);
 
-void MS_UpdateTiming(GF_ObjectManager *odm, Bool is_eos);
 void MS_Stop(MediaSensorStack *st);
 
+#endif	/*GPAC_DISABLE_VRML*/
 
 #endif	/*_MEDIA_CONTROL_H_*/

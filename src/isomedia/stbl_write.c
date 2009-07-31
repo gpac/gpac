@@ -24,11 +24,13 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 /*macro used for table realloc - we allocate much more than needed in order to keep the number of 
 realloc low, which greatly impacts performances for large files*/
 #define ALLOC_INC(a)	a = ((a<10) ? 100 : (a*3)/2);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 //adds a DTS in the table and get the sample number of this new sample
 //we could return an error if a sample with the same DTS already exists
@@ -1220,7 +1222,7 @@ GF_Err stbl_SampleSizeAppend(GF_SampleSizeBox *stsz, u32 data_size)
 	return GF_OK;
 }
 
-#endif	//GPAC_READ_ONLY
+#endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -1549,9 +1551,7 @@ err_exit:
 	return e;
 }
 
-#ifndef GPAC_READ_ONLY
-
-
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 static GFINLINE GF_Err stbl_AddOffset(GF_Box **a, u64 offset)
 {
@@ -1711,5 +1711,6 @@ GF_Err gf_isom_refresh_size_info(GF_ISOFile *file, u32 trackNumber)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+#endif /*GPAC_DISABLE_ISOM*/

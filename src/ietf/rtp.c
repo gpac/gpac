@@ -23,7 +23,8 @@
  */
 
 #include <gpac/internal/ietf_dev.h>
-#include <gpac/bitstream.h>
+
+#ifndef GPAC_DISABLE_STREAMING
 
 #define MAX_RTP_SN	0x10000
 
@@ -906,3 +907,6 @@ send_it:
 	free(t);
 	return ret;
 }
+
+#endif /*GPAC_DISABLE_STREAMING*/
+

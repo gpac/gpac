@@ -28,37 +28,34 @@
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
-/*this is not a NodeReplace, thus only the given container is updated - pos is 0-based*/
-GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 pos, GF_Node *newNode)
-{
-	GF_ChildNodeItem *child, *prev;
-	u32 tag;
-	u32 cur_pos = 0;
 
-	child = *container;
-	prev = NULL;
-	while (child->next) {
-		if ((pos<0) || (cur_pos!=(u32)pos)) {
-			prev = child;
-			child = child->next;
-			cur_pos++;
-			continue;
+#ifndef GPAC_DISABLE_VRML
+#include <gpac/internal/bifs_dev.h>
+
+
+Bool gf_node_in_table_by_tag(u32 tag, u32 NDTType)
+{
+	if (!tag) return 0;
+	if (tag==TAG_ProtoNode) return 1;
+	else if (tag<=GF_NODE_RANGE_LAST_MPEG4) {
+#ifndef GPAC_DISABLE_BIFS
+		u32 i;
+		for (i=0;i<GF_BIFS_LAST_VERSION; i++) {
+			if (gf_bifs_get_node_type(NDTType, tag, i+1)) return 1;
 		}
-		break;
+		return 0;
+#else
+		/*if BIFS is disabled, we don't have the NDTs - we therefore allow any node in any table otherwise we would reject 
+		them all*/
+		return 1;
+#endif
+
+	} else if (tag<=GF_NODE_RANGE_LAST_X3D) {
+		return gf_x3d_get_node_type(NDTType, tag);
 	}
-	tag = child->node->sgprivate->tag;
-	gf_node_unregister(child->node, node);
-	if (newNode) {
-		child->node = newNode;
-		if (tag==TAG_MPEG4_ColorTransform) 
-			node->sgprivate->flags |= GF_SG_VRML_COLOR_DIRTY;
-	} else {
-		if (prev) prev->next = child->next;
-		else *container = child->next;
-		free(child);
-	}
-	return GF_OK;
+	return 0;
 }
+
 
 static void Node_on_add_children(GF_Node *node, GF_Route *route)
 {
@@ -267,38 +264,6 @@ GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, char *name)
 }
 
 
-
-u32 gf_bifs_get_child_table(GF_Node *Node)
-{
-	assert(Node);
-	return gf_sg_mpeg4_node_get_child_ndt(Node);
-}
-
-
-GF_Err gf_bifs_get_field_index(GF_Node *Node, u32 inField, u8 IndexMode, u32 *allField)
-{
-	assert(Node);
-	switch (Node->sgprivate->tag) {
-	case TAG_ProtoNode:
-		return gf_sg_proto_get_field_ind_static(Node, inField, IndexMode, allField);
-	case TAG_MPEG4_Script: 
-	case TAG_X3D_Script: 
-		return gf_sg_script_get_field_index(Node, inField, IndexMode, allField);
-	default: 
-		return gf_sg_mpeg4_node_get_field_index(Node, inField, IndexMode, allField);
-	}
-}
-
-
-/* QUANTIZATION AND BIFS_Anim Info */
-GF_EXPORT
-Bool gf_bifs_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits)
-{
-	switch (Node->sgprivate->tag) {
-	case TAG_ProtoNode: return gf_sg_proto_get_aq_info(Node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	default: return gf_sg_mpeg4_node_get_aq_info(Node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
-	}
-}
 
 static SFBool *NewSFBool()
 {
@@ -551,18 +516,8 @@ void gf_sg_mfvec3f_del(MFVec3f par) { free(par.vals); }
 void gf_sg_mfvec3d_del(MFVec3d par) { free(par.vals); }
 void gf_sg_mfvec4f_del(MFVec4f par) { free(par.vals); }
 void gf_sg_sfimage_del(SFImage im) { free(im.pixels); }
-void gf_sg_sfurl_del(SFURL url) { if (url.url) free(url.url); }
 void gf_sg_sfstring_del(SFString par) { if (par.buffer) free(par.buffer); }
 void gf_sg_sfscript_del(SFScript par) { if (par.script_text) free(par.script_text); }
-
-void gf_sg_mfstring_del(MFString par)
-{
-	u32 i;
-	for (i=0; i<par.count; i++) {
-		if (par.vals[i]) free(par.vals[i]);
-	}
-	free(par.vals);
-}
 
 
 void gf_sg_sfcommand_del(SFCommandBuffer cb)
@@ -575,25 +530,6 @@ void gf_sg_sfcommand_del(SFCommandBuffer cb)
 	gf_list_del(cb.commandList);
 	if (cb.buffer) free(cb.buffer);
 }
-
-GF_EXPORT
-void gf_sg_mfurl_del(MFURL url)
-{
-	u32 i;
-	for (i=0; i<url.count; i++) {
-		gf_sg_sfurl_del(url.vals[i]);
-	}
-	free(url.vals);
-}
-void gf_sg_mfscript_del(MFScript sc)
-{
-	u32 i;
-	for (i=0; i<sc.count; i++) {
-		if (sc.vals[i].script_text) free(sc.vals[i].script_text);
-	}
-	free(sc.vals);
-}
-
 
 void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType) 
 {
@@ -691,14 +627,153 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 }
 
 
+/*********************************************************************
+		MF Fields manipulation (alloc, realloc, GetAt)
+*********************************************************************/
+const char *gf_sg_vrml_get_event_type_name(u32 EventType, Bool forX3D)
+{
+	switch (EventType) {
+	case GF_SG_EVENT_IN: return forX3D ? "inputOnly" : "eventIn";
+	case GF_SG_EVENT_FIELD: return forX3D ? "initializeOnly" : "field";
+	case GF_SG_EVENT_EXPOSED_FIELD: return forX3D ? "inputOutput" : "exposedField";
+	case GF_SG_EVENT_OUT: return forX3D ? "outputOnly" : "eventOut";
+	default: return "unknownEvent";
+	}
+}
+
+const char *gf_sg_vrml_get_field_type_by_name(u32 FieldType)
+{
+
+	switch (FieldType) {
+	case GF_SG_VRML_SFBOOL: return "SFBool";
+	case GF_SG_VRML_SFFLOAT: return "SFFloat";
+	case GF_SG_VRML_SFDOUBLE: return "SFDouble";
+	case GF_SG_VRML_SFTIME: return "SFTime";
+	case GF_SG_VRML_SFINT32: return "SFInt32";
+	case GF_SG_VRML_SFSTRING: return "SFString";
+	case GF_SG_VRML_SFVEC3F: return "SFVec3f";
+	case GF_SG_VRML_SFVEC2F: return "SFVec2f";
+	case GF_SG_VRML_SFVEC3D: return "SFVec3d";
+	case GF_SG_VRML_SFVEC2D: return "SFVec2d";
+	case GF_SG_VRML_SFCOLOR: return "SFColor";
+	case GF_SG_VRML_SFCOLORRGBA: return "SFColorRGBA";
+	case GF_SG_VRML_SFROTATION: return "SFRotation";
+	case GF_SG_VRML_SFIMAGE: return "SFImage";
+	case GF_SG_VRML_SFNODE: return "SFNode";
+	case GF_SG_VRML_SFVEC4F: return "SFVec4f";
+	case GF_SG_VRML_MFBOOL: return "MFBool";
+	case GF_SG_VRML_MFFLOAT: return "MFFloat";
+	case GF_SG_VRML_MFDOUBLE: return "MFDouble";
+	case GF_SG_VRML_MFTIME: return "MFTime";
+	case GF_SG_VRML_MFINT32: return "MFInt32";
+	case GF_SG_VRML_MFSTRING: return "MFString";
+	case GF_SG_VRML_MFVEC3F: return "MFVec3f";
+	case GF_SG_VRML_MFVEC2F: return "MFVec2f";
+	case GF_SG_VRML_MFVEC3D: return "MFVec3d";
+	case GF_SG_VRML_MFVEC2D: return "MFVec2d";
+	case GF_SG_VRML_MFCOLOR: return "MFColor";
+	case GF_SG_VRML_MFCOLORRGBA: return "MFColorRGBA";
+	case GF_SG_VRML_MFROTATION: return "MFRotation";
+	case GF_SG_VRML_MFIMAGE: return "MFImage";
+	case GF_SG_VRML_MFNODE: return "MFNode";
+	case GF_SG_VRML_MFVEC4F: return "MFVec4f";
+	case GF_SG_VRML_SFURL: return "SFURL";
+	case GF_SG_VRML_MFURL: return "MFURL";
+	case GF_SG_VRML_SFCOMMANDBUFFER: return "SFCommandBuffer";
+	case GF_SG_VRML_SFSCRIPT: return "SFScript";
+	case GF_SG_VRML_MFSCRIPT: return "MFScript";
+	default: return "UnknownType";
+	}
+}
+
+u32 gf_sg_field_type_by_name(char *fieldType)
+{
+	if (!stricmp(fieldType, "SFBool")) return GF_SG_VRML_SFBOOL;
+	else if (!stricmp(fieldType, "SFFloat")) return GF_SG_VRML_SFFLOAT;
+	else if (!stricmp(fieldType, "SFDouble")) return GF_SG_VRML_SFDOUBLE;
+	else if (!stricmp(fieldType, "SFTime")) return GF_SG_VRML_SFTIME;
+	else if (!stricmp(fieldType, "SFInt32")) return GF_SG_VRML_SFINT32;
+	else if (!stricmp(fieldType, "SFString")) return GF_SG_VRML_SFSTRING;
+	else if (!stricmp(fieldType, "SFVec2f")) return GF_SG_VRML_SFVEC2F;
+	else if (!stricmp(fieldType, "SFVec3f")) return GF_SG_VRML_SFVEC3F;
+	else if (!stricmp(fieldType, "SFVec2d")) return GF_SG_VRML_SFVEC2D;
+	else if (!stricmp(fieldType, "SFVec3d")) return GF_SG_VRML_SFVEC3D;
+	else if (!stricmp(fieldType, "SFColor")) return GF_SG_VRML_SFCOLOR;
+	else if (!stricmp(fieldType, "SFColorRGBA")) return GF_SG_VRML_SFCOLORRGBA;
+	else if (!stricmp(fieldType, "SFRotation")) return GF_SG_VRML_SFROTATION;
+	else if (!stricmp(fieldType, "SFImage")) return GF_SG_VRML_SFIMAGE;
+	else if (!stricmp(fieldType, "SFNode")) return GF_SG_VRML_SFNODE;
+
+	else if (!stricmp(fieldType, "MFBool")) return GF_SG_VRML_MFBOOL;
+	else if (!stricmp(fieldType, "MFFloat")) return GF_SG_VRML_MFFLOAT;
+	else if (!stricmp(fieldType, "MFDouble")) return GF_SG_VRML_MFDOUBLE;
+	else if (!stricmp(fieldType, "MFTime")) return GF_SG_VRML_MFTIME;
+	else if (!stricmp(fieldType, "MFInt32")) return GF_SG_VRML_MFINT32;
+	else if (!stricmp(fieldType, "MFString")) return GF_SG_VRML_MFSTRING;
+	else if (!stricmp(fieldType, "MFVec2f")) return GF_SG_VRML_MFVEC2F;
+	else if (!stricmp(fieldType, "MFVec3f")) return GF_SG_VRML_MFVEC3F;
+	else if (!stricmp(fieldType, "MFVec2d")) return GF_SG_VRML_MFVEC2D;
+	else if (!stricmp(fieldType, "MFVec3d")) return GF_SG_VRML_MFVEC3D;
+	else if (!stricmp(fieldType, "MFColor")) return GF_SG_VRML_MFCOLOR;
+	else if (!stricmp(fieldType, "MFColorRGBA")) return GF_SG_VRML_MFCOLORRGBA;
+	else if (!stricmp(fieldType, "MFRotation")) return GF_SG_VRML_MFROTATION;
+	else if (!stricmp(fieldType, "MFImage")) return GF_SG_VRML_MFIMAGE;
+	else if (!stricmp(fieldType, "MFNode")) return GF_SG_VRML_MFNODE;
+
+	return GF_SG_VRML_UNKNOWN;
+}
+
+#endif
+
+void gf_sg_sfurl_del(SFURL url) { if (url.url) free(url.url); }
+
 Bool gf_sg_vrml_is_sf_field(u32 FieldType)
 {
 	return (FieldType<GF_SG_VRML_FIRST_MF);
 }
 
-/*********************************************************************
-		MF Fields manipulation (alloc, realloc, GetAt)
-*********************************************************************/
+void gf_sg_mfstring_del(MFString par)
+{
+	u32 i;
+	for (i=0; i<par.count; i++) {
+		if (par.vals[i]) free(par.vals[i]);
+	}
+	free(par.vals);
+}
+
+
+GF_EXPORT
+void gf_sg_mfurl_del(MFURL url)
+{
+	u32 i;
+	for (i=0; i<url.count; i++) {
+		gf_sg_sfurl_del(url.vals[i]);
+	}
+	free(url.vals);
+}
+void gf_sg_mfscript_del(MFScript sc)
+{
+	u32 i;
+	for (i=0; i<sc.count; i++) {
+		if (sc.vals[i].script_text) free(sc.vals[i].script_text);
+	}
+	free(sc.vals);
+}
+
+
+void gf_sg_vrml_copy_mfurl(MFURL *dst, MFURL *src)
+{
+	u32 i;
+	gf_sg_vrml_mf_reset(dst, GF_SG_VRML_MFURL);
+	dst->count = src->count;
+	dst->vals = malloc(sizeof(SFURL)*src->count);
+	for (i=0; i<src->count; i++) {
+		dst->vals[i].OD_ID = src->vals[i].OD_ID;
+		dst->vals[i].url = src->vals[i].url ? strdup(src->vals[i].url) : NULL;
+	}
+}
+
+
 
 //return the size of fixed fields (eg no buffer in the field)
 u32 gf_sg_vrml_get_sf_size(u32 FieldType)
@@ -814,99 +889,6 @@ u32 gf_sg_vrml_get_sf_type(u32 FieldType)
 	}
 }
 
-const char *gf_sg_vrml_get_event_type_name(u32 EventType, Bool forX3D)
-{
-	switch (EventType) {
-	case GF_SG_EVENT_IN: return forX3D ? "inputOnly" : "eventIn";
-	case GF_SG_EVENT_FIELD: return forX3D ? "initializeOnly" : "field";
-	case GF_SG_EVENT_EXPOSED_FIELD: return forX3D ? "inputOutput" : "exposedField";
-	case GF_SG_EVENT_OUT: return forX3D ? "outputOnly" : "eventOut";
-	default: return "unknownEvent";
-	}
-}
-
-const char *gf_sg_vrml_get_field_type_by_name(u32 FieldType)
-{
-
-	switch (FieldType) {
-	case GF_SG_VRML_SFBOOL: return "SFBool";
-	case GF_SG_VRML_SFFLOAT: return "SFFloat";
-	case GF_SG_VRML_SFDOUBLE: return "SFDouble";
-	case GF_SG_VRML_SFTIME: return "SFTime";
-	case GF_SG_VRML_SFINT32: return "SFInt32";
-	case GF_SG_VRML_SFSTRING: return "SFString";
-	case GF_SG_VRML_SFVEC3F: return "SFVec3f";
-	case GF_SG_VRML_SFVEC2F: return "SFVec2f";
-	case GF_SG_VRML_SFVEC3D: return "SFVec3d";
-	case GF_SG_VRML_SFVEC2D: return "SFVec2d";
-	case GF_SG_VRML_SFCOLOR: return "SFColor";
-	case GF_SG_VRML_SFCOLORRGBA: return "SFColorRGBA";
-	case GF_SG_VRML_SFROTATION: return "SFRotation";
-	case GF_SG_VRML_SFIMAGE: return "SFImage";
-	case GF_SG_VRML_SFNODE: return "SFNode";
-	case GF_SG_VRML_SFVEC4F: return "SFVec4f";
-	case GF_SG_VRML_MFBOOL: return "MFBool";
-	case GF_SG_VRML_MFFLOAT: return "MFFloat";
-	case GF_SG_VRML_MFDOUBLE: return "MFDouble";
-	case GF_SG_VRML_MFTIME: return "MFTime";
-	case GF_SG_VRML_MFINT32: return "MFInt32";
-	case GF_SG_VRML_MFSTRING: return "MFString";
-	case GF_SG_VRML_MFVEC3F: return "MFVec3f";
-	case GF_SG_VRML_MFVEC2F: return "MFVec2f";
-	case GF_SG_VRML_MFVEC3D: return "MFVec3d";
-	case GF_SG_VRML_MFVEC2D: return "MFVec2d";
-	case GF_SG_VRML_MFCOLOR: return "MFColor";
-	case GF_SG_VRML_MFCOLORRGBA: return "MFColorRGBA";
-	case GF_SG_VRML_MFROTATION: return "MFRotation";
-	case GF_SG_VRML_MFIMAGE: return "MFImage";
-	case GF_SG_VRML_MFNODE: return "MFNode";
-	case GF_SG_VRML_MFVEC4F: return "MFVec4f";
-	case GF_SG_VRML_SFURL: return "SFURL";
-	case GF_SG_VRML_MFURL: return "MFURL";
-	case GF_SG_VRML_SFCOMMANDBUFFER: return "SFCommandBuffer";
-	case GF_SG_VRML_SFSCRIPT: return "SFScript";
-	case GF_SG_VRML_MFSCRIPT: return "MFScript";
-	default: return "UnknownType";
-	}
-}
-
-u32 gf_sg_field_type_by_name(char *fieldType)
-{
-	if (!stricmp(fieldType, "SFBool")) return GF_SG_VRML_SFBOOL;
-	else if (!stricmp(fieldType, "SFFloat")) return GF_SG_VRML_SFFLOAT;
-	else if (!stricmp(fieldType, "SFDouble")) return GF_SG_VRML_SFDOUBLE;
-	else if (!stricmp(fieldType, "SFTime")) return GF_SG_VRML_SFTIME;
-	else if (!stricmp(fieldType, "SFInt32")) return GF_SG_VRML_SFINT32;
-	else if (!stricmp(fieldType, "SFString")) return GF_SG_VRML_SFSTRING;
-	else if (!stricmp(fieldType, "SFVec2f")) return GF_SG_VRML_SFVEC2F;
-	else if (!stricmp(fieldType, "SFVec3f")) return GF_SG_VRML_SFVEC3F;
-	else if (!stricmp(fieldType, "SFVec2d")) return GF_SG_VRML_SFVEC2D;
-	else if (!stricmp(fieldType, "SFVec3d")) return GF_SG_VRML_SFVEC3D;
-	else if (!stricmp(fieldType, "SFColor")) return GF_SG_VRML_SFCOLOR;
-	else if (!stricmp(fieldType, "SFColorRGBA")) return GF_SG_VRML_SFCOLORRGBA;
-	else if (!stricmp(fieldType, "SFRotation")) return GF_SG_VRML_SFROTATION;
-	else if (!stricmp(fieldType, "SFImage")) return GF_SG_VRML_SFIMAGE;
-	else if (!stricmp(fieldType, "SFNode")) return GF_SG_VRML_SFNODE;
-
-	else if (!stricmp(fieldType, "MFBool")) return GF_SG_VRML_MFBOOL;
-	else if (!stricmp(fieldType, "MFFloat")) return GF_SG_VRML_MFFLOAT;
-	else if (!stricmp(fieldType, "MFDouble")) return GF_SG_VRML_MFDOUBLE;
-	else if (!stricmp(fieldType, "MFTime")) return GF_SG_VRML_MFTIME;
-	else if (!stricmp(fieldType, "MFInt32")) return GF_SG_VRML_MFINT32;
-	else if (!stricmp(fieldType, "MFString")) return GF_SG_VRML_MFSTRING;
-	else if (!stricmp(fieldType, "MFVec2f")) return GF_SG_VRML_MFVEC2F;
-	else if (!stricmp(fieldType, "MFVec3f")) return GF_SG_VRML_MFVEC3F;
-	else if (!stricmp(fieldType, "MFVec2d")) return GF_SG_VRML_MFVEC2D;
-	else if (!stricmp(fieldType, "MFVec3d")) return GF_SG_VRML_MFVEC3D;
-	else if (!stricmp(fieldType, "MFColor")) return GF_SG_VRML_MFCOLOR;
-	else if (!stricmp(fieldType, "MFColorRGBA")) return GF_SG_VRML_MFCOLORRGBA;
-	else if (!stricmp(fieldType, "MFRotation")) return GF_SG_VRML_MFROTATION;
-	else if (!stricmp(fieldType, "MFImage")) return GF_SG_VRML_MFIMAGE;
-	else if (!stricmp(fieldType, "MFNode")) return GF_SG_VRML_MFNODE;
-
-	return GF_SG_VRML_UNKNOWN;
-}
-
 //
 //	Insert (+alloc) an MFField with a specified position for insertion and sets the ptr to the 
 //	newly created slot
@@ -964,6 +946,39 @@ GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertA
 	mffield->count += 1;
 	return GF_OK;
 }
+
+
+GF_EXPORT
+GF_Err gf_sg_vrml_mf_reset(void *mf, u32 FieldType)
+{
+	GenMFField *mffield = (GenMFField *)mf;
+	if (!mffield->array) return GF_OK;
+
+	//field we can't copy
+	if (gf_sg_vrml_is_sf_field(FieldType)) return GF_BAD_PARAM;
+	if (!gf_sg_vrml_get_sf_size(FieldType)) return GF_BAD_PARAM;
+
+	switch (FieldType) {
+	case GF_SG_VRML_MFSTRING:
+		gf_sg_mfstring_del( * ((MFString *) mf));
+		break;
+	case GF_SG_VRML_MFURL:
+		gf_sg_mfurl_del( * ((MFURL *) mf));
+		break;
+	case GF_SG_VRML_MFSCRIPT:
+		gf_sg_mfscript_del( * ((MFScript *) mf));
+		break;
+	default:
+		if (mffield->array) free(mffield->array);
+		break;
+	}
+
+	mffield->array = NULL;
+	mffield->count = 0;
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_VRML
 
 #define MAX_MFFIELD_ALLOC		5000000
 GF_EXPORT
@@ -1050,36 +1065,6 @@ GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom)
 	free(mffield->array);
 	mffield->array = buffer;
 	mffield->count -= 1;
-	return GF_OK;
-}
-
-GF_EXPORT
-GF_Err gf_sg_vrml_mf_reset(void *mf, u32 FieldType)
-{
-	GenMFField *mffield = (GenMFField *)mf;
-	if (!mffield->array) return GF_OK;
-
-	//field we can't copy
-	if (gf_sg_vrml_is_sf_field(FieldType)) return GF_BAD_PARAM;
-	if (!gf_sg_vrml_get_sf_size(FieldType)) return GF_BAD_PARAM;
-
-	switch (FieldType) {
-	case GF_SG_VRML_MFSTRING:
-		gf_sg_mfstring_del( * ((MFString *) mf));
-		break;
-	case GF_SG_VRML_MFURL:
-		gf_sg_mfurl_del( * ((MFURL *) mf));
-		break;
-	case GF_SG_VRML_MFSCRIPT:
-		gf_sg_mfscript_del( * ((MFScript *) mf));
-		break;
-	default:
-		if (mffield->array) free(mffield->array);
-		break;
-	}
-
-	mffield->array = NULL;
-	mffield->count = 0;
 	return GF_OK;
 }
 
@@ -1226,7 +1211,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 			c2 = gf_list_count(cb_src->commandList);
 			for (j=0; j<c2;j++) {
 				GF_Command *sub_com = (GF_Command *)gf_list_get(cb_src->commandList, j);
-				GF_Command *new_com = gf_sg_command_clone(sub_com, inScene, 0);
+				GF_Command *new_com = gf_sg_vrml_command_clone(sub_com, inScene, 0);
 				gf_list_add(cb_dst->commandList, new_com);
 			}
 		}
@@ -1621,4 +1606,20 @@ char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 	}
 	/*todo - dump MFFields*/
 	return NULL;
+}
+
+#endif /*GPAC_DISABLE_VRML*/
+
+Bool gf_node_in_table(GF_Node *node, u32 NDTType)
+{
+#ifndef GPAC_DISABLE_VRML
+	u32 tag = node ? node->sgprivate->tag : 0;
+	if (tag==TAG_ProtoNode) {
+		tag = gf_sg_proto_get_root_tag(((GF_ProtoInstance *)node)->proto_interface);
+		if (tag==TAG_UndefinedNode) return 1;
+	}
+	return gf_node_in_table_by_tag(tag, NDTType);
+#else
+	return 1;
+#endif
 }

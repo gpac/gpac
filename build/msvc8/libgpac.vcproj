@@ -47,8 +47,9 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
+				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../include,../../extra_lib/include/zlib,../../extra_lib/include/js,../../extra_lib/include/jpeg,../../extra_lib/include/png"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_LIB;GPAC_HAVE_CONFIG_H"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_LIB;LIBGPACDLL_EXPORT"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -59,7 +60,7 @@
 				BrowseInformation="1"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -125,7 +126,7 @@
 				ExecutionBucket="7"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../include;../../extra_lib/include;../../extra_lib/include/zlib;../../extra_lib/include/js;../../extra_lib/include/jpeg;../../extra_lib/include/png"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_LIB;GPAC_HAVE_CONFIG_H"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_LIB"
 				MinimalRebuild="true"
 				RuntimeLibrary="3"
 				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
@@ -203,8 +204,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
-				AdditionalIncludeDirectories="../../include,../../extra_lib/include/zlib,../../extra_lib/include/js,../../extra_lib/include"
-				PreprocessorDefinitions="DEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_LIB;GPAC_HAS_SPIDERMONKEY;GPAC_USE_OGL_ES"
+				AdditionalIncludeDirectories="../../include;../../extra_lib/include;../../extra_lib/include/zlib;../../extra_lib/include/js;../../extra_lib/include/jpeg;../../extra_lib/include/png"
+				PreprocessorDefinitions="DEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_LIB;GPAC_USE_OGL_ES"
 				ObjectFile=".\obj/libgpac_arm_deb/"
 				ProgramDataBaseFileName=".\obj/libgpac_arm_deb/vc80.pdb"
 			/>
@@ -275,7 +276,7 @@
 				Optimization="1"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../include,../../extra_lib/include/zlib,../../extra_lib/include/js,../../extra_lib/include/jpeg,../../extra_lib/include/png"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_LIB;GPAC_HAVE_CONFIG_H"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_LIB"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -351,7 +352,7 @@
 				Optimization="1"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../include;../../extra_lib/include;../../extra_lib/include/zlib;../../extra_lib/include/js;../../extra_lib/include/jpeg;../../extra_lib/include/png"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_LIB;GPAC_HAVE_CONFIG_H;NDEBUG"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_LIB;NDEBUG"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -6113,46 +6114,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\..\src\terminal\inline.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Smartphone 2003 (ARMV4)"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="..\..\src\terminal\input_sensor.c"
 				>
 				<FileConfiguration
@@ -6405,6 +6366,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\src\terminal\mpeg4_inline.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\terminal\network_service.c"
 				>
 				<FileConfiguration
@@ -6523,6 +6488,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\src\terminal\scene.c"
+				>
 			</File>
 			<File
 				RelativePath="..\..\src\terminal\svg_external.c"
@@ -7053,11 +7022,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\gpac\config.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\include\gpac\internal\config_static.h"
+				RelativePath="..\..\include\gpac\configuration.h"
 				>
 			</File>
 			<File

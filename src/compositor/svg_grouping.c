@@ -89,7 +89,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 	gf_mx2d_init(mx);
 
 	if (stack->root_svg) {
-		const char *frag_uri = gf_inline_get_fragment_uri(node);
+		const char *frag_uri = gf_scene_get_fragment_uri(node);
 		if (frag_uri) {
 			/*SVGView*/
 			if (!strncmp(frag_uri, "svgView", 7)) {
@@ -791,7 +791,7 @@ static Bool is_timing_target(GF_Node *n)
 
 static void svg_a_set_view(GF_Node *handler, GF_Compositor *compositor, const char *url)
 {
-	gf_inline_set_fragment_uri(handler, url);
+	gf_scene_set_fragment_uri(handler, url);
 	/*force recompute viewbox of root SVG - FIXME in full this should be the parent svg*/
 	gf_node_dirty_set(gf_sg_get_root_node(gf_node_get_graph(handler)), 0, 0);
 
@@ -849,7 +849,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 
 			if (evt.navigate.to_url[0] != '#') {
 				if (compositor->term) {
-					gf_inline_process_anchor(handler, &evt);
+					gf_scene_process_anchor(handler, &evt);
 				} else {
 					gf_term_send_event(compositor->term, &evt);
 				}

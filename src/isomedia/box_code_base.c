@@ -24,6 +24,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 void co64_del(GF_Box *s)
 {
 	GF_ChunkLargeOffsetBox *ptr;
@@ -63,8 +65,7 @@ GF_Box *co64_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err co64_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -91,7 +92,7 @@ GF_Err co64_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void cprt_del(GF_Box *s)
 {
@@ -174,7 +175,7 @@ GF_Err chpl_Read(GF_Box *s,GF_BitStream *bs)
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err chpl_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -220,7 +221,7 @@ GF_Err chpl_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 GF_Err cprt_Read(GF_Box *s,GF_BitStream *bs)
@@ -272,8 +273,7 @@ GF_Box *cprt_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err cprt_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -308,7 +308,7 @@ GF_Err cprt_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void ctts_del(GF_Box *s)
 {
@@ -338,7 +338,7 @@ GF_Err ctts_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->entries[i].decodingOffset = gf_bs_read_u32(bs);
 		sampleCount += ptr->entries[i].sampleCount;
 	}
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	ptr->w_LastSampleNumber = sampleCount;
 #endif
 	return GF_OK;
@@ -359,8 +359,7 @@ GF_Box *ctts_New()
 
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err ctts_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -389,7 +388,7 @@ GF_Err ctts_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void url_del(GF_Box *s)
 {
@@ -427,8 +426,7 @@ GF_Box *url_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err url_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -459,7 +457,7 @@ GF_Err url_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void urn_del(GF_Box *s)
 {
@@ -533,8 +531,7 @@ GF_Box *urn_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 GF_Err urn_Write(GF_Box *s, GF_BitStream *bs)
@@ -571,7 +568,7 @@ GF_Err urn_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void defa_del(GF_Box *s)
 {
@@ -606,8 +603,7 @@ GF_Box *defa_New()
 	return (GF_Box *) tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err defa_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -633,7 +629,7 @@ GF_Err defa_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void uuid_del(GF_Box *s)
@@ -670,8 +666,7 @@ GF_Box *uuid_New()
 	return (GF_Box *) tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err uuid_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -697,7 +692,7 @@ GF_Err uuid_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void dinf_del(GF_Box *s)
@@ -737,8 +732,7 @@ GF_Box *dinf_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err dinf_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -767,7 +761,7 @@ GF_Err dinf_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void dref_del(GF_Box *s)
 {
@@ -823,8 +817,7 @@ GF_Box *dref_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err dref_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -854,7 +847,7 @@ GF_Err dref_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void edts_del(GF_Box *s)
 {
@@ -891,8 +884,7 @@ GF_Box *edts_New()
 	return (GF_Box *) tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err edts_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -927,7 +919,7 @@ GF_Err edts_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void elst_del(GF_Box *s)
 {
@@ -999,8 +991,7 @@ GF_Box *elst_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err elst_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1056,7 +1047,7 @@ GF_Err elst_Size(GF_Box *s)
 }
 
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void esds_del(GF_Box *s)
 {
@@ -1120,8 +1111,7 @@ GF_Box *esds_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err esds_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1152,7 +1142,7 @@ GF_Err esds_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void free_del(GF_Box *s)
 {
@@ -1188,8 +1178,7 @@ GF_Box *free_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err free_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1211,7 +1200,7 @@ GF_Err free_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void ftyp_del(GF_Box *s)
 {
@@ -1254,8 +1243,7 @@ GF_Err ftyp_Read(GF_Box *s,GF_BitStream *bs)
 
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err ftyp_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1284,7 +1272,7 @@ GF_Err ftyp_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -1305,8 +1293,7 @@ GF_Box *gnrm_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gnrm_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1336,7 +1323,7 @@ GF_Err gnrm_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void gnrv_del(GF_Box *s)
@@ -1357,8 +1344,7 @@ GF_Box *gnrv_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gnrv_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1389,7 +1375,7 @@ GF_Err gnrv_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -1411,8 +1397,7 @@ GF_Box *gnra_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gnra_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1443,7 +1428,7 @@ GF_Err gnra_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void hdlr_del(GF_Box *s)
 {
@@ -1492,8 +1477,7 @@ GF_Box *hdlr_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err hdlr_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1521,7 +1505,7 @@ GF_Err hdlr_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void hinf_del(GF_Box *s)
@@ -1578,7 +1562,7 @@ GF_Err hinf_Read(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_read_box_list(s, bs, hinf_AddBox);
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err hinf_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1598,7 +1582,7 @@ GF_Err hinf_Size(GF_Box *s)
 	if (e) return e;
 	return gf_isom_box_array_size(s, ptr->boxList);
 }
-#endif	
+#endif /*GPAC_DISABLE_ISOM_WRITE*/	
 
 void hmhd_del(GF_Box *s)
 {
@@ -1636,8 +1620,7 @@ GF_Box *hmhd_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err hmhd_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1664,7 +1647,7 @@ GF_Err hmhd_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *hnti_New()
 {
@@ -1774,7 +1757,7 @@ GF_Err hnti_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err hnti_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -1839,7 +1822,7 @@ GF_Err hnti_Size(GF_Box *s)
 	}
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /**********************************************************
 		GF_SDPBox
@@ -1875,7 +1858,7 @@ GF_Box *sdp_New()
 	tmp->type = GF_ISOM_BOX_TYPE_SDP;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err sdp_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -1898,7 +1881,7 @@ GF_Err sdp_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /**********************************************************
@@ -1923,7 +1906,7 @@ GF_Box *trpy_New()
 	tmp->nbBytes = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err trpy_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1944,7 +1927,7 @@ GF_Err trpy_Size(GF_Box *s)
 	s->size += 8;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /**********************************************************
 		TOTL GF_Box
@@ -1969,7 +1952,7 @@ GF_Box *totl_New()
 	return (GF_Box *)tmp;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err totl_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -1989,7 +1972,7 @@ GF_Err totl_Size(GF_Box *s)
 	s->size += 4;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /**********************************************************
@@ -2015,7 +1998,7 @@ GF_Box *nump_New()
 	return (GF_Box *)tmp;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err nump_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2034,7 +2017,7 @@ GF_Err nump_Size(GF_Box *s)
 	s->size += 8;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /**********************************************************
@@ -2059,7 +2042,7 @@ GF_Box *npck_New()
 	tmp->nbPackets = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err npck_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2078,7 +2061,7 @@ GF_Err npck_Size(GF_Box *s)
 	s->size += 4;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /**********************************************************
@@ -2104,7 +2087,7 @@ GF_Box *tpyl_New()
 	tmp->nbBytes = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err tpyl_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2123,7 +2106,7 @@ GF_Err tpyl_Size(GF_Box *s)
 	s->size += 8;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /**********************************************************
 		TPAY GF_Box
@@ -2147,7 +2130,7 @@ GF_Box *tpay_New()
 	tmp->nbBytes = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err tpay_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2166,7 +2149,7 @@ GF_Err tpay_Size(GF_Box *s)
 	s->size += 4;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /**********************************************************
@@ -2193,7 +2176,7 @@ GF_Box *maxr_New()
 	tmp->granularity = tmp->maxDataRate = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err maxr_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2213,7 +2196,7 @@ GF_Err maxr_Size(GF_Box *s)
 	s->size += 8;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /**********************************************************
@@ -2238,7 +2221,7 @@ GF_Box *dmed_New()
 	tmp->nbBytes = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err dmed_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2257,7 +2240,7 @@ GF_Err dmed_Size(GF_Box *s)
 	s->size += 8;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /**********************************************************
 		DIMM GF_Box
@@ -2281,7 +2264,7 @@ GF_Box *dimm_New()
 	tmp->nbBytes = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err dimm_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2300,7 +2283,7 @@ GF_Err dimm_Size(GF_Box *s)
 	s->size += 8;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 /**********************************************************
 		DREP GF_Box
@@ -2324,7 +2307,7 @@ GF_Box *drep_New()
 	tmp->nbBytes = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err drep_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2343,7 +2326,7 @@ GF_Err drep_Size(GF_Box *s)
 	s->size += 8;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -2369,7 +2352,7 @@ GF_Box *tmin_New()
 	tmp->minTime = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err tmin_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2388,7 +2371,7 @@ GF_Err tmin_Size(GF_Box *s)
 	s->size += 4;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /**********************************************************
@@ -2413,7 +2396,7 @@ GF_Box *tmax_New()
 	tmp->maxTime = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err tmax_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2432,7 +2415,7 @@ GF_Err tmax_Size(GF_Box *s)
 	s->size += 4;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /**********************************************************
@@ -2457,7 +2440,7 @@ GF_Box *pmax_New()
 	tmp->maxSize = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err pmax_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2476,7 +2459,7 @@ GF_Err pmax_Size(GF_Box *s)
 	s->size += 4;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /**********************************************************
@@ -2501,7 +2484,7 @@ GF_Box *dmax_New()
 	tmp->maxDur = 0;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err dmax_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2520,7 +2503,7 @@ GF_Err dmax_Size(GF_Box *s)
 	s->size += 4;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /**********************************************************
@@ -2556,7 +2539,7 @@ GF_Box *payt_New()
 	tmp->payloadString = NULL;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err payt_Write(GF_Box *s, GF_BitStream *bs)
 {
 	u32 len;
@@ -2581,7 +2564,7 @@ GF_Err payt_Size(GF_Box *s)
 	if (ptr->payloadString) ptr->size += strlen(ptr->payloadString) + 1;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 /**********************************************************
@@ -2614,7 +2597,7 @@ GF_Box *name_New()
 	tmp->string = NULL;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err name_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -2636,7 +2619,7 @@ GF_Err name_Size(GF_Box *s)
 	if (ptr->string) ptr->size += strlen(ptr->string) + 1;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void iods_del(GF_Box *s)
 {
@@ -2678,8 +2661,7 @@ GF_Box *iods_New()
 
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err iods_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -2708,7 +2690,7 @@ GF_Err iods_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void mdat_del(GF_Box *s)
 {
@@ -2740,8 +2722,7 @@ GF_Box *mdat_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err mdat_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -2769,7 +2750,7 @@ GF_Err mdat_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void mdhd_del(GF_Box *s)
 {
@@ -2832,8 +2813,7 @@ GF_Box *mdhd_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err mdhd_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -2873,7 +2853,7 @@ GF_Err mdhd_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void mdia_del(GF_Box *s)
@@ -2925,8 +2905,7 @@ GF_Box *mdia_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err mdia_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -2976,10 +2955,10 @@ GF_Err mdia_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 void mfhd_del(GF_Box *s)
 {
@@ -3009,8 +2988,7 @@ GF_Box *mfhd_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 GF_Err mfhd_Write(GF_Box *s, GF_BitStream *bs)
@@ -3037,9 +3015,9 @@ GF_Err mfhd_Size(GF_Box *s)
 
 
 
-#endif /*GPAC_READ_ONLY*/
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-#endif /*GPAC_ISOM_NO_FRAGMENTS*/
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 
 void minf_del(GF_Box *s)
@@ -3103,8 +3081,7 @@ GF_Box *minf_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err minf_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -3158,9 +3135,9 @@ GF_Err minf_Size(GF_Box *s)
 	return gf_isom_box_array_size(s, ptr->boxes);
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 void moof_del(GF_Box *s)
 {
@@ -3203,8 +3180,7 @@ GF_Box *moof_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err moof_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -3241,10 +3217,9 @@ GF_Err moof_Size(GF_Box *s)
 
 
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-
-#endif 
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 void moov_del(GF_Box *s)
 {
@@ -3255,7 +3230,7 @@ void moov_del(GF_Box *s)
 	if (ptr->meta) gf_isom_box_del((GF_Box *)ptr->meta);
 	if (ptr->iods) gf_isom_box_del((GF_Box *)ptr->iods);
 	if (ptr->udta) gf_isom_box_del((GF_Box *)ptr->udta);
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ptr->mvex) gf_isom_box_del((GF_Box *)ptr->mvex);
 #endif
 
@@ -3289,7 +3264,7 @@ GF_Err moov_AddBox(GF_Box *s, GF_Box *a)
 		ptr->udta = (GF_UserDataBox *)a;
 		return GF_OK;
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_MVEX:
 		if (ptr->mvex) return GF_ISOM_INVALID_FILE;
 		ptr->mvex = (GF_MovieExtendsBox *)a;
@@ -3339,8 +3314,8 @@ GF_Box *moov_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 GF_Err moov_Write(GF_Box *s, GF_BitStream *bs)
@@ -3363,7 +3338,7 @@ GF_Err moov_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->meta, bs);
 		if (e) return e;
 	}
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ptr->mvex) {
 		e = gf_isom_box_write((GF_Box *) ptr->mvex, bs);
 		if (e) return e;
@@ -3407,7 +3382,7 @@ GF_Err moov_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->meta->size;
 	}
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ptr->mvex) {
 		e = gf_isom_box_size((GF_Box *) ptr->mvex);
 		if (e) return e;
@@ -3420,7 +3395,7 @@ GF_Err moov_Size(GF_Box *s)
 	return gf_isom_box_array_size(s, ptr->boxes);
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void mp4a_del(GF_Box *s)
 {
@@ -3521,8 +3496,8 @@ GF_Box *enca_New()
 	return tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err mp4a_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -3560,7 +3535,7 @@ GF_Err mp4a_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void mp4s_del(GF_Box *s)
@@ -3618,8 +3593,8 @@ GF_Box *encs_New()
 	return tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err mp4s_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -3657,7 +3632,7 @@ GF_Err mp4s_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void mp4v_del(GF_Box *s)
 {
@@ -3755,8 +3730,8 @@ GF_Box *encv_New()
 	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_ENCV);
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -3852,11 +3827,11 @@ GF_Err mp4v_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 void mvex_del(GF_Box *s)
 {
@@ -3906,8 +3881,8 @@ GF_Box *mvex_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 GF_Err mvex_Write(GF_Box *s, GF_BitStream *bs)
@@ -3931,7 +3906,7 @@ GF_Err mvex_Size(GF_Box *s)
 
 
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *mehd_New()
 {
@@ -3959,7 +3934,7 @@ GF_Err mehd_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	return GF_OK;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err mehd_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_MovieExtendsHeaderBox *ptr = (GF_MovieExtendsHeaderBox *)s;
@@ -3981,9 +3956,9 @@ GF_Err mehd_Size(GF_Box *s)
 	s->size += (ptr->version == 1) ? 8 : 4;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-#endif 
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 
 void mvhd_del(GF_Box *s)
@@ -4054,8 +4029,8 @@ GF_Box *mvhd_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err mvhd_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -4108,7 +4083,7 @@ GF_Err mvhd_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void nmhd_del(GF_Box *s)
@@ -4136,8 +4111,8 @@ GF_Box *nmhd_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err nmhd_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -4149,7 +4124,7 @@ GF_Err nmhd_Size(GF_Box *s)
 	return gf_isom_full_box_get_size(s);
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -4201,8 +4176,8 @@ GF_Box *padb_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err padb_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -4240,7 +4215,7 @@ GF_Err padb_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void rely_del(GF_Box *s)
@@ -4269,7 +4244,7 @@ GF_Box *rely_New()
 }
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err rely_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -4291,7 +4266,7 @@ GF_Err rely_Size(GF_Box *s)
 	s->size += 1;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void rtpo_del(GF_Box *s)
@@ -4315,7 +4290,7 @@ GF_Box *rtpo_New()
 	tmp->type = GF_ISOM_BOX_TYPE_RTPO;
 	return (GF_Box *)tmp;
 }
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err rtpo_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -4338,7 +4313,7 @@ GF_Err rtpo_Size(GF_Box *s)
 	s->size += 4;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void smhd_del(GF_Box *s)
 {
@@ -4368,8 +4343,8 @@ GF_Box *smhd_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err smhd_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -4392,7 +4367,7 @@ GF_Err smhd_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -4419,7 +4394,7 @@ GF_Box *snro_New()
 }
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err snro_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -4440,7 +4415,7 @@ GF_Err snro_Size(GF_Box *s)
 	s->size += 4;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 #define WRITE_SAMPLE_FRAGMENTS		1
@@ -4593,8 +4568,8 @@ GF_Box *stbl_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stbl_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -4737,7 +4712,7 @@ GF_Err stbl_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void stco_del(GF_Box *s)
@@ -4782,8 +4757,8 @@ GF_Box *stco_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stco_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -4810,7 +4785,7 @@ GF_Err stco_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -4853,8 +4828,8 @@ GF_Box *stdp_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stdp_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -4881,7 +4856,7 @@ GF_Err stdp_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void stsc_del(GF_Box *s)
@@ -4933,8 +4908,8 @@ GF_Box *stsc_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stsc_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -4963,7 +4938,7 @@ GF_Err stsc_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void stsd_del(GF_Box *s)
 {
@@ -5060,8 +5035,8 @@ GF_Box *stsd_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stsd_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -5086,7 +5061,7 @@ GF_Err stsd_Size(GF_Box *s)
 	return gf_isom_box_array_size(s, ptr->boxList);
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void stsf_del(GF_Box *s)
 {
@@ -5136,7 +5111,7 @@ GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs)
 		}
 		gf_list_add(ptr->entryList, p);
 	}
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	ptr->w_currentEntry = p;
 	ptr->w_currentEntryIndex = nb_entries-1;
 #endif
@@ -5163,8 +5138,8 @@ GF_Box *stsf_New()
 
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stsf_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -5207,7 +5182,7 @@ GF_Err stsf_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void stsh_del(GF_Box *s)
 {
@@ -5261,8 +5236,8 @@ GF_Box *stsh_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stsh_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -5292,7 +5267,7 @@ GF_Err stsh_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -5333,8 +5308,8 @@ GF_Box *stss_New()
 	return (GF_Box*)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stss_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -5361,7 +5336,7 @@ GF_Err stss_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void stsz_del(GF_Box *s)
@@ -5465,8 +5440,8 @@ GF_Box *stsz_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stsz_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -5580,7 +5555,7 @@ GF_Err stsz_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void stts_del(GF_Box *s)
@@ -5600,7 +5575,7 @@ GF_Err stts_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	ptr->w_LastDTS = 0;
 #endif
 	ptr->nb_entries = gf_bs_read_u32(bs);
@@ -5610,13 +5585,13 @@ GF_Err stts_Read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<ptr->nb_entries; i++) {
 		ptr->entries[i].sampleCount = gf_bs_read_u32(bs);
 		ptr->entries[i].sampleDelta = gf_bs_read_u32(bs);
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 		ptr->w_currentSampleNum += ptr->entries[i].sampleCount;
 		ptr->w_LastDTS += ptr->entries[i].sampleCount * ptr->entries[i].sampleDelta;
 #endif
 	}
 	//remove the last sample delta.
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	if (ptr->nb_entries) ptr->w_LastDTS -= ptr->entries[ptr->nb_entries-1].sampleDelta;
 #endif
 	return GF_OK;
@@ -5632,8 +5607,8 @@ GF_Box *stts_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err stts_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -5662,10 +5637,10 @@ GF_Err stts_Size(GF_Box *s)
 }
 
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 void tfhd_del(GF_Box *s)
 {
@@ -5714,8 +5689,8 @@ GF_Box *tfhd_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 GF_Err tfhd_Write(GF_Box *s, GF_BitStream *bs)
@@ -5766,9 +5741,9 @@ GF_Err tfhd_Size(GF_Box *s)
 
 
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-#endif 
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 void tims_del(GF_Box *s)
 {
@@ -5792,7 +5767,7 @@ GF_Box *tims_New()
 	return (GF_Box *)tmp;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err tims_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -5814,7 +5789,7 @@ GF_Err tims_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif	
+#endif /*GPAC_DISABLE_ISOM_WRITE*/	
 
 
 void tkhd_del(GF_Box *s)
@@ -5879,8 +5854,8 @@ GF_Box *tkhd_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err tkhd_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -5934,11 +5909,11 @@ GF_Err tkhd_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 void traf_del(GF_Box *s)
 {
@@ -5983,8 +5958,8 @@ GF_Box *traf_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
@@ -6021,9 +5996,10 @@ GF_Err traf_Size(GF_Box *s)
 
 
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-#endif 
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
+ 
 
 void trak_del(GF_Box *s)
 {
@@ -6200,8 +6176,8 @@ GF_Box *trak_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err trak_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -6278,7 +6254,7 @@ GF_Err trak_Size(GF_Box *s)
 	return gf_isom_box_array_size(s, ptr->boxes);
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void tref_del(GF_Box *s)
@@ -6316,8 +6292,8 @@ GF_Box *tref_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err tref_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -6337,7 +6313,7 @@ GF_Err tref_Size(GF_Box *s)
 	return gf_isom_box_array_size(s, ptr->boxList);
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 void reftype_del(GF_Box *s)
 {
@@ -6400,8 +6376,8 @@ GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outR
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err reftype_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -6429,11 +6405,11 @@ GF_Err reftype_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 void trex_del(GF_Box *s)
 {
@@ -6469,8 +6445,8 @@ GF_Box *trex_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 GF_Err trex_Write(GF_Box *s, GF_BitStream *bs)
@@ -6501,12 +6477,13 @@ GF_Err trex_Size(GF_Box *s)
 
 
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-#endif
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
 
-#ifndef	GPAC_ISOM_NO_FRAGMENTS
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
 void trun_del(GF_Box *s)
 {
@@ -6591,8 +6568,8 @@ GF_Box *trun_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 
 GF_Err trun_Write(GF_Box *s, GF_BitStream *bs)
@@ -6669,9 +6646,10 @@ GF_Err trun_Size(GF_Box *s)
 
 
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-#endif 
+#endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
+ 
 
 void tsro_del(GF_Box *s)
 {
@@ -6696,7 +6674,7 @@ GF_Box *tsro_New()
 }
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err tsro_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -6717,7 +6695,7 @@ GF_Err tsro_Size(GF_Box *s)
 	s->size += 4;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void udta_del(GF_Box *s)
@@ -6815,8 +6793,8 @@ GF_Box *udta_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err udta_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -6856,7 +6834,7 @@ GF_Err udta_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void vmhd_del(GF_Box *s)
@@ -6889,8 +6867,8 @@ GF_Box *vmhd_New()
 }
 
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err vmhd_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -6913,7 +6891,7 @@ GF_Err vmhd_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 void void_del(GF_Box *s)
@@ -6936,8 +6914,8 @@ GF_Box *void_New()
 	return tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err void_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -6951,7 +6929,7 @@ GF_Err void_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -6996,8 +6974,8 @@ GF_Err pdin_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err pdin_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -7023,7 +7001,7 @@ GF_Err pdin_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -7064,8 +7042,8 @@ GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err sdtp_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -7087,7 +7065,7 @@ GF_Err sdtp_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 GF_Box *pasp_New()
@@ -7117,8 +7095,8 @@ GF_Err pasp_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err pasp_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -7138,7 +7116,7 @@ GF_Err pasp_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -7226,8 +7204,8 @@ GF_Err metx_Read(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_read_box_list(s, bs, metx_AddBox);
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err metx_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -7291,7 +7269,7 @@ GF_Err metx_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -7326,8 +7304,8 @@ GF_Err dac3_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err dac3_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -7355,7 +7333,7 @@ GF_Err dac3_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 
@@ -7390,8 +7368,8 @@ GF_Box *ac3_New()
 	return (GF_Box *)tmp;
 }
 
-//from here, for write/edit versions
-#ifndef GPAC_READ_ONLY
+ 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err ac3_Write(GF_Box *s, GF_BitStream *bs)
 {
@@ -7416,4 +7394,6 @@ GF_Err ac3_Size(GF_Box *s)
 	return GF_OK;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+#endif /*GPAC_DISABLE_ISOM*/

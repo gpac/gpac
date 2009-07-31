@@ -24,6 +24,9 @@
 
 #include "rtp_in.h"
 
+#ifndef GPAC_DISABLE_STREAMING
+
+
 void RP_SendFailure(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
 	char sMsg[1000];
@@ -385,3 +388,4 @@ void RP_DelSession(RTSPSession *sess)
 }
 
 
+#endif /*GPAC_DISABLE_STREAMING*/

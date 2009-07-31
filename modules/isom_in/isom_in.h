@@ -26,10 +26,12 @@
 #ifndef _ISMO_IN_H_
 #define _ISMO_IN_H_
 
-#include <gpac/modules/service.h>
-#include <gpac/media_tools.h>
 #include <gpac/constants.h>
+#include <gpac/modules/service.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
+#include <gpac/media_tools.h>
 /*
 			reader module
 
@@ -106,11 +108,12 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod);
 void isor_declare_objects(ISOMReader *read);
 
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_BaseInterface *isow_load_cache();
 void isow_delete_cache(GF_BaseInterface *bi);
 #endif
 
+#endif /*GPAC_DISABLE_ISOM*/
 
-#endif
+#endif /*_ISMO_IN_H_*/
 

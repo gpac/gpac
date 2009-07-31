@@ -30,6 +30,8 @@
 
 #include <gpac/tools.h>
 
+#ifndef GPAC_DISABLE_AVILIB
+
 #define AVI_MAX_TRACKS 8
 
 typedef struct
@@ -431,4 +433,7 @@ struct AVIStreamHeader {
   long  dwSampleSize;
 };
 
+#endif /*GPAC_DISABLE_AVILIB*/
+
 #endif	/*_GF_AVILIB_H_*/
+

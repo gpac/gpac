@@ -23,6 +23,9 @@
  */
 
 #include "isom_in.h"
+
+#ifndef GPAC_DISABLE_ISOM
+
 #include <gpac/ismacryp.h>
 
 ISOMChannel *isor_get_channel(ISOMReader *reader, LPNETCHANNEL channel)
@@ -834,3 +837,5 @@ void isor_client_del(GF_BaseInterface *bi)
 	free(read);
 	free(bi);
 }
+
+#endif /*GPAC_DISABLE_ISOM*/

@@ -21,7 +21,7 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_laser_dec.$(DYN_LIB_SUFFIX)
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-export-symbols laser_dec.def 
+#LDFLAGS+=-export-symbols laser_dec.def 
 endif
 
 ifeq ($(WANT_PIC),yes)

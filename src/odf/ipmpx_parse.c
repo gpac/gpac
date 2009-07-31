@@ -25,6 +25,8 @@
 
 #include <gpac/internal/odf_dev.h>
 
+#ifndef GPAC_MINIMAL_ODF
+
 void GF_IPMPX_AUTH_Delete(GF_IPMPX_Authentication *auth);
 
 
@@ -680,3 +682,5 @@ GF_Err gf_ipmpx_set_byte_array(GF_IPMPX_Data *p, char *field, char *str)
 	(*dest) = d;
 	return GF_OK;
 }
+
+#endif /*GPAC_MINIMAL_ODF*/

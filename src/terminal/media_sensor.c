@@ -26,6 +26,8 @@
 #include "media_control.h"
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_VRML
+
 /*render : setup media sensor and update timing in case of inline scenes*/
 void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 {
@@ -72,16 +74,16 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (ck && gf_clock_is_started(ck) ) {
 		st->stream->odm->current_time = gf_clock_time(ck);
-		MS_UpdateTiming(st->stream->odm, 0);
+		mediasensor_update_timing(st->stream->odm, 0);
 	}
 }
 
-void InitMediaSensor(GF_InlineScene *is, GF_Node *node)
+void InitMediaSensor(GF_Scene *scene, GF_Node *node)
 {
 	MediaSensorStack *st;
 	GF_SAFEALLOC(st, MediaSensorStack);
 
-	st->parent = is;
+	st->parent = scene;
 	st->sensor = (M_MediaSensor *)node;
 	st->seg = gf_list_new();
 	gf_node_set_callback_function(node, RenderMediaSensor);
@@ -107,7 +109,7 @@ void MS_Modified(GF_Node *node)
 	gf_term_invalidate_compositor(st->parent->root_od->term);
 }
 
-void MS_UpdateTiming(GF_ObjectManager *odm, Bool is_eos)
+void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 {
 	GF_Segment *desc;
 	u32 i, count, j, ms_count;
@@ -230,3 +232,5 @@ void MS_Stop(MediaSensorStack *st)
 	}
 	st->active_seg = 0;
 }
+
+#endif /*GPAC_DISABLE_VRML*/

@@ -29,6 +29,8 @@
 /*input sensor defs*/
 #include <gpac/nodes_mpeg4.h>
 
+#ifndef GPAC_DISABLE_VRML
+
 enum
 {
 	IS_KeySensor = 1,
@@ -43,7 +45,7 @@ enum
 typedef struct
 {
 	/*parent scene*/
-	GF_InlineScene *scene;
+	GF_Scene *scene;
 	/*list of attached nodes*/
 	GF_List *is_nodes;
 	/*stream ID*/
@@ -73,7 +75,7 @@ typedef struct
 
 GF_BaseDecoder *gf_isdec_new(GF_ESD *esd, u32 PL);
 void gf_isdec_del(GF_BaseDecoder *plug);
-GF_Err IS_Configure(GF_BaseDecoder *plug, GF_InlineScene *scene, Bool is_remote);
+GF_Err gf_isdec_configure(GF_BaseDecoder *plug, GF_Scene *scene, Bool is_remote);
 
 
 typedef struct
@@ -86,10 +88,10 @@ typedef struct
 } ISStack;
 
 
-void InitInputSensor(GF_InlineScene *is, GF_Node *node);
+void InitInputSensor(GF_Scene *scene, GF_Node *node);
 void InputSensorModified(GF_Node *n);
 
-void InitKeySensor(GF_InlineScene *is, GF_Node *node);
+void InitKeySensor(GF_Scene *scene, GF_Node *node);
 
 
 typedef struct
@@ -99,7 +101,10 @@ typedef struct
 	GF_Terminal *term;
 } StringSensorStack;
 
-void InitStringSensor(GF_InlineScene *is, GF_Node *node);
+void InitStringSensor(GF_Scene *scene, GF_Node *node);
+
+#endif /*GPAC_DISABLE_VRML*/
+
 
 #endif	/*_INPUT_SENSOR_H_*/
 

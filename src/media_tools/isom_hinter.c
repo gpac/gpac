@@ -22,14 +22,69 @@
  *
  */
 
-#include <gpac/media_tools.h>
+#include <gpac/internal/media_dev.h>
 #include <gpac/base_coding.h>
 #include <gpac/mpeg4_odf.h>
 #include <gpac/constants.h>
 #include <gpac/math.h>
 #include <gpac/ietf.h>
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM
+
+void gf_media_get_sample_average_infos(GF_ISOFile *file, u32 Track, u32 *avgSize, u32 *MaxSize, u32 *TimeDelta, u32 *maxCTSDelta, u32 *const_duration, u32 *bandwidth)
+{
+	u32 i, count, ts_diff;
+	u64 prevTS, DTS, tdelta;
+	Double bw;
+	GF_ISOSample *samp;
+
+	*avgSize = *MaxSize = 0;
+	*TimeDelta = 0;
+	*maxCTSDelta = 0;
+	bw = 0;
+	prevTS = 0;
+	DTS = 0;
+	tdelta = 0;
+
+	count = gf_isom_get_sample_count(file, Track);
+	*const_duration = 0;
+
+	for (i=0; i<count; i++) {
+		samp = gf_isom_get_sample_info(file, Track, i+1, NULL, NULL);
+		//get the size
+		*avgSize += samp->dataLength;
+		if (*MaxSize < samp->dataLength) *MaxSize = samp->dataLength;
+		ts_diff = (u32) (samp->DTS+samp->CTS_Offset - prevTS);
+		//get the time
+		tdelta += ts_diff;
+
+		if (i==1) {
+			*const_duration = ts_diff;
+		} else if ( (i<count-1) && (*const_duration != ts_diff) ) {
+			*const_duration = 0;
+		}
+
+		prevTS = samp->DTS+samp->CTS_Offset;
+		bw += 8*samp->dataLength;
+		
+		//get the CTS delta
+		if (samp->CTS_Offset > *maxCTSDelta) *maxCTSDelta = samp->CTS_Offset;
+		gf_isom_sample_del(&samp);
+	}
+	if (count>1) *TimeDelta = (u32) (tdelta/ (count-1) );
+	else *TimeDelta = (u32) tdelta;
+	*avgSize /= count;
+	bw *= gf_isom_get_media_timescale(file, Track);
+	bw /= (s64) gf_isom_get_media_duration(file, Track);
+	bw /= 1000;
+	(*bandwidth) = (u32) (bw+0.5);
+
+	//delta is NOT an average, we need to know exactly how many bits are
+	//needed to encode CTS-DTS for ANY samples
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_HINTING
 
 /*RTP track hinter*/
 struct __tag_isom_hinter
@@ -89,61 +144,6 @@ void MP4T_DumpSDP(GF_ISOFile *file, const char *name)
 	fclose(f);
 }
 
-
-/*out-of-band sample desc (128 and 255 reserved in RFC)*/
-#define SIDX_OFFSET_3GPP		129
-
-void GetAvgSampleInfos(GF_ISOFile *file, u32 Track, u32 *avgSize, u32 *MaxSize, u32 *TimeDelta, u32 *maxCTSDelta, u32 *const_duration, u32 *bandwidth)
-{
-	u32 i, count, ts_diff;
-	u64 prevTS, DTS, tdelta;
-	Double bw;
-	GF_ISOSample *samp;
-
-	*avgSize = *MaxSize = 0;
-	*TimeDelta = 0;
-	*maxCTSDelta = 0;
-	bw = 0;
-	prevTS = 0;
-	DTS = 0;
-	tdelta = 0;
-
-	count = gf_isom_get_sample_count(file, Track);
-	*const_duration = 0;
-
-	for (i=0; i<count; i++) {
-		samp = gf_isom_get_sample_info(file, Track, i+1, NULL, NULL);
-		//get the size
-		*avgSize += samp->dataLength;
-		if (*MaxSize < samp->dataLength) *MaxSize = samp->dataLength;
-		ts_diff = (u32) (samp->DTS+samp->CTS_Offset - prevTS);
-		//get the time
-		tdelta += ts_diff;
-
-		if (i==1) {
-			*const_duration = ts_diff;
-		} else if ( (i<count-1) && (*const_duration != ts_diff) ) {
-			*const_duration = 0;
-		}
-
-		prevTS = samp->DTS+samp->CTS_Offset;
-		bw += 8*samp->dataLength;
-		
-		//get the CTS delta
-		if (samp->CTS_Offset > *maxCTSDelta) *maxCTSDelta = samp->CTS_Offset;
-		gf_isom_sample_del(&samp);
-	}
-	if (count>1) *TimeDelta = (u32) (tdelta/ (count-1) );
-	else *TimeDelta = (u32) tdelta;
-	*avgSize /= count;
-	bw *= gf_isom_get_media_timescale(file, Track);
-	bw /= (s64) gf_isom_get_media_duration(file, Track);
-	bw /= 1000;
-	(*bandwidth) = (u32) (bw+0.5);
-
-	//delta is NOT an average, we need to know exactly how many bits are
-	//needed to encode CTS-DTS for ANY samples
-}
 
 void InitSL_RTP(GF_SLConfig *slc)
 {
@@ -235,319 +235,6 @@ void MP4T_OnNewPacket(void *cbk, GF_RTPHeader *header)
 	if (res) gf_isom_rtp_packet_set_offset(tkHint->file, tkHint->HintTrack, res);
 }
 
-GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file, 
-															  u32 TrackNum,
-															  void *cbk_obj, 
-															  void (*OnNewPacket)(void *cbk, GF_RTPHeader *header),
-															  void (*OnPacketDone)(void *cbk, GF_RTPHeader *header),
-															  void (*OnDataReference)(void *cbk, u32 payload_size, u32 offset_from_orig),
-															  void (*OnData)(void *cbk, char *data, u32 data_size, Bool is_head),
-															  u32 Path_MTU, 
-															  u32 max_ptime, 
-															  u32 default_rtp_rate, 
-															  u32 flags, 
-															  u8 PayloadID, 
-															  Bool copy_media, 
-															  u32 InterleaveGroupID, 
-															  u8 InterleaveGroupPriority)
-{
-	GF_SLConfig my_sl;
-	u32 MinSize, MaxSize, avgTS, streamType, oti, const_dur, nb_ch, maxDTSDelta;
-	u8 OfficialPayloadID;
-	u32 TrackMediaSubType, TrackMediaType, hintType, required_rate, force_dts_delta, avc_nalu_size, PL_ID, bandwidth, IV_length, KI_length;
-	const char *url, *urn;
-	char *mpeg4mode;
-	Bool is_crypted, has_mpeg4_mapping;
-	GF_ESD *esd;
-	GP_RTPPacketizer *rtp_packetizer = NULL;
-	
-	/*by default NO PL signaled*/
-	PL_ID = 0;
-	OfficialPayloadID = 0;
-	force_dts_delta = 0;
-	streamType = oti = 0;
-	mpeg4mode = NULL;
-	required_rate = 0;
-	is_crypted = 0;
-	IV_length = KI_length = 0;
-	oti = 0;
-	nb_ch = 0;
-	avc_nalu_size = 0;
-	has_mpeg4_mapping = 1;
-	TrackMediaType = gf_isom_get_media_type(file, TrackNum);
-	TrackMediaSubType = gf_isom_get_media_subtype(file, TrackNum, 1);
-	
-	/*for max compatibility with QT*/
-	if (!default_rtp_rate) default_rtp_rate = 90000;
-
-	/*timed-text is a bit special, we support multiple stream descriptions & co*/
-	if ((TrackMediaType==GF_ISOM_MEDIA_TEXT) || (TrackMediaType==GF_ISOM_MEDIA_SUBT) ) {
-		hintType = GF_RTP_PAYT_3GPP_TEXT;
-		oti = 0x08;
-		streamType = GF_STREAM_TEXT;
-		/*fixme - this works cos there's only one PL for text in mpeg4 at the current time*/
-		PL_ID = 0x10;
-	} else {
-		if (gf_isom_get_sample_description_count(file, TrackNum) > 1) return NULL;
-
-		TrackMediaSubType = gf_isom_get_media_subtype(file, TrackNum, 1);
-		switch (TrackMediaSubType) {
-		case GF_ISOM_SUBTYPE_MPEG4_CRYP: 
-			is_crypted = 1;
-		case GF_ISOM_SUBTYPE_MPEG4:
-			esd = gf_isom_get_esd(file, TrackNum, 1);
-			hintType = GF_RTP_PAYT_MPEG4;
-			if (esd) {
-				streamType = esd->decoderConfig->streamType;
-				oti = esd->decoderConfig->objectTypeIndication;
-				if (esd->URLString) hintType = 0;
-				/*AAC*/
-				if ((streamType==GF_STREAM_AUDIO) && esd->decoderConfig->decoderSpecificInfo
-				/*(nb: we use mpeg4 for MPEG-2 AAC)*/
-				&& ((oti==0x40) || (oti==0x40) || (oti==0x66) || (oti==0x67) || (oti==0x68)) ) {
-
-					u32 sample_rate;
-					GF_M4ADecSpecInfo a_cfg;
-					gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
-					nb_ch = a_cfg.nb_chan;
-					sample_rate = a_cfg.base_sr;
-					PL_ID = a_cfg.audioPL;
-					switch (a_cfg.base_object_type) {
-					case GF_M4A_AAC_MAIN:
-					case GF_M4A_AAC_LC:
-						if (flags & GP_RTP_PCK_USE_LATM_AAC) {
-							hintType = GF_RTP_PAYT_LATM;
-							break;
-						}
-					case GF_M4A_AAC_SBR:
-					case GF_M4A_AAC_LTP:
-					case GF_M4A_AAC_SCALABLE:
-					case GF_M4A_ER_AAC_LC:
-					case GF_M4A_ER_AAC_LTP:
-					case GF_M4A_ER_AAC_SCALABLE:
-						mpeg4mode = "AAC";
-						break;
-					case GF_M4A_CELP:
-					case GF_M4A_ER_CELP:
-						mpeg4mode = "CELP";
-						break;
-					}
-					required_rate = sample_rate;
-				}
-				/*MPEG1/2 audio*/
-				else if ((streamType==GF_STREAM_AUDIO) && ((oti==0x69) || (oti==0x6B))) {
-					u32 sample_rate;
-					if (!is_crypted) {
-						GF_ISOSample *samp = gf_isom_get_sample(file, TrackNum, 1, NULL);
-						u32 hdr = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
-						nb_ch = gf_mp3_num_channels(hdr);
-						sample_rate = gf_mp3_sampling_rate(hdr);
-						gf_isom_sample_del(&samp);
-						hintType = GF_RTP_PAYT_MPEG12_AUDIO;
-						/*use official RTP/AVP payload type*/
-						OfficialPayloadID = 14;
-						required_rate = 90000;
-					}
-					/*encrypted MP3 must be sent through MPEG-4 generic to signal all ISMACryp stuff*/
-					else {
-						u8 bps;
-						gf_isom_get_audio_info(file, TrackNum, 1, &sample_rate, &nb_ch, &bps);
-						required_rate = sample_rate;
-					}
-				}
-				/*QCELP audio*/
-				else if ((streamType==GF_STREAM_AUDIO) && (oti==0xE1)) {
-					hintType = GF_RTP_PAYT_QCELP;
-					OfficialPayloadID = 12;
-					required_rate = 8000;
-					streamType = GF_STREAM_AUDIO;
-					nb_ch = 1;
-				}
-				/*EVRC/SVM audio*/
-				else if ((streamType==GF_STREAM_AUDIO) && ((oti==0xA0) || (oti==0xA1)) ) {
-					hintType = GF_RTP_PAYT_EVRC_SMV;
-					required_rate = 8000;
-					streamType = GF_STREAM_AUDIO;
-					nb_ch = 1;
-				}
-				/*visual streams*/
-				else if (streamType==GF_STREAM_VISUAL) {
-					if (oti==0x20) {
-						GF_M4VDecSpecInfo dsi;
-						gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-						PL_ID = dsi.VideoPL;
-					}
-					/*MPEG1/2 video*/
-					if ( ((oti>=0x60) && (oti<=0x65)) || (oti==0x6A)) {
-						if (!is_crypted) {
-							hintType = GF_RTP_PAYT_MPEG12_VIDEO;
-							OfficialPayloadID = 32;
-						}
-					}
-					/*for ISMA*/
-					if (is_crypted) {
-						/*that's another pain with ISMACryp, even if no B-frames the DTS is signaled...*/
-						if (oti==0x20) force_dts_delta = 22;
-						flags |= GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_TS;
-					}
-
-					required_rate = default_rtp_rate;
-				}
-				/*systems streams*/
-				else if (gf_isom_has_sync_shadows(file, TrackNum) || gf_isom_has_sample_dependency(file, TrackNum)) {
-					flags |= GP_RTP_PCK_AUTO_CAROUSEL;
-				}
-				gf_odf_desc_del((GF_Descriptor*)esd);
-			}
-			break;
-		case GF_ISOM_SUBTYPE_3GP_H263:
-			hintType = GF_RTP_PAYT_H263;
-			required_rate = 90000;
-			streamType = GF_STREAM_VISUAL;
-			OfficialPayloadID = 34;
-			/*not 100% compliant (short header is missing) but should still work*/
-			oti = 0x20;
-			PL_ID = 0x01;
-			break;
-		case GF_ISOM_SUBTYPE_3GP_AMR:
-			required_rate = 8000;
-			hintType = GF_RTP_PAYT_AMR;
-			streamType = GF_STREAM_AUDIO;
-			has_mpeg4_mapping = 0;
-			nb_ch = 1;
-			break;
-		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
-			required_rate = 16000;
-			hintType = GF_RTP_PAYT_AMR_WB;
-			streamType = GF_STREAM_AUDIO;
-			has_mpeg4_mapping = 0;
-			nb_ch = 1;
-			break;
-		case GF_ISOM_SUBTYPE_AC3:
-			hintType = GF_RTP_PAYT_AC3;
-			streamType = GF_STREAM_AUDIO;
-			has_mpeg4_mapping = 1;
-			nb_ch = 1;
-			break;
-		case GF_ISOM_SUBTYPE_AVC_H264:
-		{
-			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, TrackNum, 1);
-			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
-			hintType = GF_RTP_PAYT_H264_AVC;
-			streamType = GF_STREAM_VISUAL;
-			avc_nalu_size = avcc->nal_unit_size;
-			oti = 0x21;
-			PL_ID = 0x0F;
-			gf_odf_avc_cfg_del(avcc);
-		}
-			break;
-		case GF_ISOM_SUBTYPE_3GP_QCELP:
-			required_rate = 8000;
-			hintType = GF_RTP_PAYT_QCELP;
-			streamType = GF_STREAM_AUDIO;
-			oti = 0xE1;
-			OfficialPayloadID = 12;
-			nb_ch = 1;
-			break;
-		case GF_ISOM_SUBTYPE_3GP_EVRC:
-		case GF_ISOM_SUBTYPE_3GP_SMV:
-			required_rate = 8000;
-			hintType = GF_RTP_PAYT_EVRC_SMV;
-			streamType = GF_STREAM_AUDIO;
-			oti = (TrackMediaSubType==GF_ISOM_SUBTYPE_3GP_EVRC) ? 0xA0 : 0xA1;
-			nb_ch = 1;
-			break;
-		default:
-			/*ERROR*/
-			hintType = 0;
-			break;
-		}
-	}
-
-	/*not hintable*/
-	if (!hintType) return NULL;
-	/*we only support self-contained files for hinting*/
-	gf_isom_get_data_reference(file, TrackNum, 1, &url, &urn);
-	if (url || urn) return NULL;
-	
-	/*override hinter type if requested and possible*/
-	if (has_mpeg4_mapping && (flags & GP_RTP_PCK_FORCE_MPEG4)) {
-		hintType = GF_RTP_PAYT_MPEG4;
-		avc_nalu_size = 0;
-	}
-	/*use static payload ID if enabled*/
-	else if (OfficialPayloadID && (flags & GP_RTP_PCK_USE_STATIC_ID) ) {
-		PayloadID = OfficialPayloadID;
-	}
-
-#if 0
-	tmp->file = file;
-	tmp->TrackNum = TrackNum;
-	tmp->avc_nalu_size = avc_nalu_size;
-	tmp->nb_chan = nb_ch;
-
-	/*spatial scalability check*/
-	tmp->has_ctts = gf_isom_has_time_offset(file, TrackNum);
-#endif
-
-	/*get sample info*/
-	GetAvgSampleInfos(file, TrackNum, &MinSize, &MaxSize, &avgTS, &maxDTSDelta, &const_dur, &bandwidth);
-
-	/*systems carousel: we need at least IDX and RAP signaling*/
-	if (flags & GP_RTP_PCK_AUTO_CAROUSEL) {
-		flags |= GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_AU_IDX;
-	}
-
-	/*update flags in MultiSL*/
-	if (flags & GP_RTP_PCK_USE_MULTI) {
-		if (MinSize != MaxSize) flags |= GP_RTP_PCK_SIGNAL_SIZE;
-		if (!const_dur) flags |= GP_RTP_PCK_SIGNAL_TS;
-	}
-#if 0
-	if (tmp->has_ctts) flags |= GP_RTP_PCK_SIGNAL_TS;
-#endif
-
-	/*default SL for RTP */
-	InitSL_RTP(&my_sl);
-
-	my_sl.timestampResolution = gf_isom_get_media_timescale(file, TrackNum);
-	/*override clockrate if set*/
-	if (required_rate) {
-		Double sc = required_rate;
-		sc /= my_sl.timestampResolution;
-		maxDTSDelta = (u32) (maxDTSDelta*sc);
-		my_sl.timestampResolution = required_rate;
-	}
-	/*switch to RTP TS*/
-	max_ptime = (u32) (max_ptime * my_sl.timestampResolution / 1000);
-
-	my_sl.AUSeqNumLength = gf_get_bit_size(gf_isom_get_sample_count(file, TrackNum));
-	my_sl.CUDuration = const_dur;
-
-	if (gf_isom_has_sync_points(file, TrackNum)) {
-		my_sl.useRandomAccessPointFlag = 1;
-	} else {
-		my_sl.useRandomAccessPointFlag = 0;
-		my_sl.hasRandomAccessUnitsOnlyFlag = 1;
-	}
-
-	if (is_crypted) {
-		Bool use_sel_enc;
-		gf_isom_get_ismacryp_info(file, TrackNum, 1, NULL, NULL, NULL, NULL, NULL, &use_sel_enc, &IV_length, &KI_length);
-		if (use_sel_enc) flags |= GP_RTP_PCK_SELECTIVE_ENCRYPTION;
-	}
-
-	rtp_packetizer = gf_rtp_builder_new(hintType, &my_sl, flags, cbk_obj, 
-								OnNewPacket, OnPacketDone, 
-								/*if copy, no data ref*/
-								copy_media ? NULL : OnDataReference, 
-								OnData);
-	
-	gf_rtp_builder_init(rtp_packetizer, PayloadID, Path_MTU, max_ptime,
-					   streamType, oti, PL_ID, MinSize, MaxSize, avgTS, maxDTSDelta, IV_length, KI_length, mpeg4mode);
-
-	return rtp_packetizer;
-}
 
 GF_EXPORT
 GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum, 
@@ -826,7 +513,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	tmp->has_ctts = gf_isom_has_time_offset(file, TrackNum);
 
 	/*get sample info*/
-	GetAvgSampleInfos(file, TrackNum, &MinSize, &MaxSize, &avgTS, &maxDTSDelta, &const_dur, &bandwidth);
+	gf_media_get_sample_average_infos(file, TrackNum, &MinSize, &MaxSize, &avgTS, &maxDTSDelta, &const_dur, &bandwidth);
 
 	/*systems carousel: we need at least IDX and RAP signaling*/
 	if (flags & GP_RTP_PCK_AUTO_CAROUSEL) {
@@ -1064,45 +751,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 	return GF_OK;
 }
 
-void gf_hinter_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, char *sdpLine, GF_ISOFile *file, u32 track)
-{
-	char buffer[2000];
-	u32 w, h, i, m_w, m_h;
-	s32 tx, ty;
-	s16 l;
-	sprintf(sdpLine, "a=fmtp:%d sver=60; ", builder->PayloadType);
-	gf_isom_get_track_layout_info(file, track, &w, &h, &tx, &ty, &l);
-	sprintf(buffer, "width=%d; height=%d; tx=%d; ty=%d; layer=%d; ", w, h, tx, ty, l);
-	strcat(sdpLine, buffer);
-	m_w = w;
-	m_h = h;
-	for (i=0; i<gf_isom_get_track_count(file); i++) {
-		switch (gf_isom_get_media_type(file, i+1)) {
-		case GF_ISOM_MEDIA_SCENE:
-		case GF_ISOM_MEDIA_VISUAL:
-			gf_isom_get_track_layout_info(file, i+1, &w, &h, &tx, &ty, &l);
-			if (w>m_w) m_w = w;
-			if (h>m_h) m_h = h;
-			break;
-		default:
-			break;
-		}
-	}
-	sprintf(buffer, "max-w=%d; max-h=%d", m_w, m_h);
-	strcat(sdpLine, buffer);
 
-	strcat(sdpLine, "; tx3g=");
-	for (i=0; i<gf_isom_get_sample_description_count(file, track); i++) {
-		char *tx3g;
-		u32 tx3g_len, len;
-		gf_isom_text_get_encoded_tx3g(file, track, i+1, SIDX_OFFSET_3GPP, &tx3g, &tx3g_len);
-		len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
-		free(tx3g);
-		buffer[len] = 0;
-		if (i) strcat(sdpLine, ", ");
-		strcat(sdpLine, buffer);
-	}
-}
 
 GF_EXPORT
 GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
@@ -1153,7 +802,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	}
 	/*Text*/
 	else if (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_3GPP_TEXT) {
-		gf_hinter_format_ttxt_sdp(tkHint->rtp_p, payloadName, sdpLine, tkHint->file, tkHint->TrackNum);
+		gf_media_format_ttxt_sdp(tkHint->rtp_p, payloadName, sdpLine, tkHint->file, tkHint->TrackNum);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
 	/*EVRC/SMV in non header-free mode*/
@@ -1485,5 +1134,6 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 }
 
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
 
+#endif /*GPAC_DISABLE_ISOM*/

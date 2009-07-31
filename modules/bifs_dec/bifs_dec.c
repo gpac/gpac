@@ -26,9 +26,11 @@
 #include <gpac/bifs.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_BIFS
+
 typedef struct 
 {
-	GF_InlineScene *pScene;
+	GF_Scene *pScene;
 	GF_Terminal *app;
 	GF_BifsDecoder *codec;
 	u32 PL, nb_streams;
@@ -47,7 +49,7 @@ static GF_Err BIFS_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapabilit
 	return GF_OK;
 }
 
-GF_Err BIFS_AttachScene(GF_SceneDecoder *plug, GF_InlineScene *scene, Bool is_scene_decoder)
+GF_Err BIFS_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_scene_decoder)
 {
 	BIFSPriv *priv = (BIFSPriv *)plug->privateStack;
 	if (priv->codec) return GF_BAD_PARAM;
@@ -99,7 +101,7 @@ static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, char *inBuffer, u32 inBuffe
 	e = gf_bifs_decode_au(priv->codec, ES_ID, inBuffer, inBufferLength, ((Double)AU_time)/1000.0);
 
 	/*if scene not attached do it*/
-	gf_inline_attach_to_compositor(priv->pScene);
+	gf_scene_attach_to_compositor(priv->pScene);
 	return e;
 }
 
@@ -185,3 +187,14 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+#else
+
+GF_EXPORT
+Bool QueryInterface(u32 InterfaceType) { return 0; }
+GF_EXPORT
+GF_BaseInterface *LoadInterface(u32 InterfaceType) { return NULL; }
+GF_EXPORT
+void ShutdownInterface(GF_BaseInterface *ifce) {}
+
+#endif /*GPAC_DISABLE_BIFS*/

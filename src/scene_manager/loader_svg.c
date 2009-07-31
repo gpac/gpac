@@ -143,10 +143,13 @@ static GF_Err svg_report(GF_SVG_Parser *parser, GF_Err e, char *format, ...)
 static void svg_progress(void *cbk, u32 done, u32 total)
 {
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)cbk;
-	if (parser->load && parser->load->is && parser->load->is->scene_codec && parser->load->is->scene_codec->odm) {
-		gf_term_service_media_event(parser->load->is->scene_codec->odm, GF_EVENT_MEDIA_DATA_PROGRESS); 
-		if (done == total) 
-			gf_term_service_media_event(parser->load->is->scene_codec->odm, GF_EVENT_MEDIA_END_OF_DATA); 
+
+	/*notify MediaEvent*/
+	if (parser->load && parser->load->is) {
+		parser->load->is->on_media_event(parser->load->is, GF_EVENT_MEDIA_DATA_PROGRESS); 
+		if (done == total) {
+			parser->load->is->on_media_event(parser->load->is, GF_EVENT_MEDIA_END_OF_DATA); 
+		}
 	}
 	gf_set_progress("SVG (Dynamic Attribute List) Parsing", done, total);
 }
@@ -1031,9 +1034,11 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 			info.fieldIndex = gf_xml_get_attribute_tag(parser->command->node, atAtt, parser->current_ns);
 			info.fieldType = gf_xml_get_attribute_type(info.fieldIndex);
 
+#ifndef GPAC_DISABLE_LASER
 			if (gf_lsr_anim_type_from_attribute(info.fieldIndex)<0) {
 				return svg_report(parser, GF_BAD_PARAM, "Attribute %s of element %s is not updatable\n", atAtt, gf_node_get_class_name(parser->command->node));
 			}
+#endif /*GPAC_DISABLE_LASER*/
 		}
 
 		opNode = NULL;

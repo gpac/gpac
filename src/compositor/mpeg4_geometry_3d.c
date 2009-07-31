@@ -26,6 +26,9 @@
 #include "visual_manager.h"
 #include "nodes_stacks.h"
 
+
+#ifndef GPAC_DISABLE_VRML
+
 #ifndef GPAC_DISABLE_3D
 
 #include <gpac/options.h>
@@ -55,7 +58,7 @@ void drawable_3d_base_traverse(GF_Node *n, void *rs, Bool is_destroy, void (*bui
 		tr_state->bbox = stack->mesh->bounds;
 		break;
 	case TRAVERSE_PICK:
-		visual_3d_drawable_pick(n, tr_state, stack->mesh, NULL);
+		visual_3d_vrml_drawable_pick(n, tr_state, stack->mesh, NULL);
 		return;
 	}
 }
@@ -521,3 +524,5 @@ void compositor_init_non_linear_deformer(GF_Compositor *compositor, GF_Node *nod
 }
 
 #endif /*GPAC_DISABLE_3D*/
+
+#endif /*GPAC_DISABLE_VRML*/

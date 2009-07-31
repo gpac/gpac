@@ -44,11 +44,14 @@ GF_Command *gf_sg_command_new(GF_SceneGraph *graph, u32 tag)
 GF_EXPORT
 void gf_sg_command_del(GF_Command *com)
 {
+#ifndef GPAC_DISABLE_VRML
 	u32 i;
 	GF_Proto *proto;
+#endif
 	if (!com) return;
 
-		if (com->tag < GF_SG_LAST_BIFS_COMMAND) {
+	if (com->tag < GF_SG_LAST_BIFS_COMMAND) {
+#ifndef GPAC_DISABLE_VRML
 		while (gf_list_count(com->command_fields)) {
 			GF_CommandField *inf = (GF_CommandField *)gf_list_get(com->command_fields, 0);
 			gf_list_rem(com->command_fields, 0);
@@ -75,6 +78,7 @@ void gf_sg_command_del(GF_Command *com)
 			}
 			free(inf);
 		}
+#endif
 	} else {
 #ifndef GPAC_DISABLE_SVG
 		while (gf_list_count(com->command_fields)) {
@@ -93,11 +97,13 @@ void gf_sg_command_del(GF_Command *com)
 	}
 	gf_list_del(com->command_fields);
 
+#ifndef GPAC_DISABLE_VRML
 	i=0;
 	while ((proto = (GF_Proto*)gf_list_enum(com->new_proto_list, &i))) {
 		gf_sg_proto_del(proto);
 	}
 	gf_list_del(com->new_proto_list);
+#endif
 
 	if (com->node) {
 		gf_node_try_destroy(com->in_scene, com->node, NULL);
@@ -115,12 +121,16 @@ static void SG_CheckFieldChange(GF_Node *node, GF_FieldInfo *field)
 	/*and propagate eventIn if any*/
 	if (field->on_event_in) {
 		field->on_event_in(node, NULL);
-	} else if ((field->eventType==GF_SG_EVENT_IN) && (gf_node_get_tag(node) == TAG_MPEG4_Script)) {
+	} 
+#ifndef GPAC_DISABLE_VRML
+	else if ((field->eventType==GF_SG_EVENT_IN) && (gf_node_get_tag(node) == TAG_MPEG4_Script)) {
 		gf_sg_script_event_in(node, field);
-	} else {
+	} 
+	else {
 		/*Notify eventOut in all cases to handle protos*/
 		gf_node_event_out(node, field->fieldIndex);
 	}
+#endif
 	/*signal node modif*/
 	gf_node_changed(node, field);
 }
@@ -143,14 +153,18 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 {
 	GF_Err e;
 	GF_CommandField *inf;
+#ifndef GPAC_DISABLE_VRML
 	GF_FieldInfo field;
-	GF_Node *def, *node;
 	void *slot_ptr;
+	GF_Node *def;
+#endif
+	GF_Node *node;
 
 	if (!com || !graph) return GF_BAD_PARAM;
 
 	e = GF_OK;
 	switch (com->tag) {
+#ifndef GPAC_DISABLE_VRML
 	case GF_SG_SCENE_REPLACE:
 		/*unregister root*/
 		gf_node_unregister(graph->RootNode, NULL);
@@ -261,7 +275,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				count = gf_list_count(cb_src->commandList);
 				for (i=0; i<count;i++) {
 					GF_Command *sub_com = (GF_Command *)gf_list_get(cb_src->commandList, i);
-					GF_Command *new_com = gf_sg_command_clone(sub_com, sg, 0);
+					GF_Command *new_com = gf_sg_vrml_command_clone(sub_com, sg, 0);
 					gf_list_add(cb_dst->commandList, new_com);
 				}
 			}
@@ -595,6 +609,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	case GF_SG_GLOBAL_QUANTIZER:
 		return GF_OK;
 
+#endif /*GPAC_DISABLE_VRML*/
+
+
 #ifndef GPAC_DISABLE_SVG
 	/*laser commands*/
 	case GF_SG_LSR_NEW_SCENE:
@@ -828,6 +845,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 	}
 	if (e) return e;
 
+#ifndef GPAC_DISABLE_VRML
 	if (com->scripts_to_load) {
 		while (gf_list_count(com->scripts_to_load)) {
 			GF_Node *script = (GF_Node *)gf_list_get(com->scripts_to_load, 0);
@@ -837,6 +855,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		gf_list_del(com->scripts_to_load);
 		com->scripts_to_load = NULL;
 	}
+#endif
+
 	return GF_OK;
 }
 
@@ -862,12 +882,12 @@ GF_Err gf_sg_command_apply_list(GF_SceneGraph *graph, GF_List *comList, Double t
 	return GF_OK;
 }
 
-GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bool force_clone)
+#ifndef GPAC_DISABLE_VRML
+GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bool force_clone)
 {
 	u32 i, count;
 	GF_Command *dest;
 	
-	if (com->tag==GF_SG_SCENE_REPLACE) return NULL;
 	/*FIXME - to do*/
 	if (gf_list_count(com->new_proto_list)) return NULL;
 	dest = gf_sg_command_new(inGraph, com->tag);
@@ -907,6 +927,8 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bool fo
 		fd->fieldIndex = fo->fieldIndex;
 		fd->fieldType = fo->fieldType;
 		fd->pos = fo->pos;
+
+		/*FIXME - this can also be LASeR commands, not supported for now*/
 		if (fo->field_ptr) {
 			fd->field_ptr = gf_sg_vrml_field_pointer_new(fd->fieldType);
 			gf_sg_vrml_field_clone(fd->field_ptr, fo->field_ptr, fo->fieldType, dest->in_scene);
@@ -944,4 +966,6 @@ GF_Command *gf_sg_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bool fo
 	}
 	return dest;
 }
+
+#endif
 

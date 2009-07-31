@@ -27,7 +27,7 @@
 #include <gpac/mpegts.h>
 #include <gpac/constants.h>
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_MEDIA_EXPORT
 
 #include <gpac/internal/avilib.h>
 #include <gpac/internal/ogg.h>
@@ -52,10 +52,12 @@ static GF_Err gf_export_message(GF_MediaExporter *dumper, GF_Err e, char *format
 #endif
 	return e;
 }
-
 /*that's very very crude, we only support vorbis & theora in MP4 - this will need cleanup as soon as possible*/
 static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 {
+#ifdef GPAC_DISABLE_OGG
+	return GF_NOT_SUPPORTED;
+#else
 	FILE *out;
 	ogg_stream_state os;
 	ogg_packet op;
@@ -168,10 +170,12 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
     ogg_stream_clear(&os);
 	fclose(out);
 	return GF_OK;
+#endif
 }
 
 GF_Err gf_export_hint(GF_MediaExporter *dumper)
 {
+#ifndef GPAC_DISABLE_ISOM_HINTING
 	GF_Err e;
 	char szName[1000], szType[5];
 	char *pck;
@@ -209,6 +213,9 @@ GF_Err gf_export_hint(GF_MediaExporter *dumper)
 	if (count) gf_set_progress("Hint Export", count, count);
 
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 static void write_jp2_file(GF_BitStream *bs, char *data, u32 data_size, char *dsi, u32 dsi_size)
@@ -551,6 +558,9 @@ static const char *QCP_SMV_GUID = "\x75\x2B\x7C\x8D\x97\xA7\x46\xED\x98\x5E\xD5\
 
 GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 {
+#ifdef GPAC_DISABLE_AV_PARSERS
+	return GF_NOT_SUPPORTED;
+#else
 	GF_DecoderConfig *dcfg;
 	GF_GenericSampleDescription *udesc;
 	char szName[1000], szEXT[5], GUID[16];
@@ -984,9 +994,11 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	gf_bs_del(bs);
 	fclose(out);
 	return GF_OK;
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 }
 
-GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
+#ifndef GPAC_DISABLE_AVILIB
+static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 {
 	GF_Err e;
 	u32 max_size, tot_size, num_samples, i;
@@ -1096,6 +1108,7 @@ exit:
 	AVI_close(in);
 	return e;
 }
+#endif /*GPAC_DISABLE_AVILIB*/
 
 GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 {
@@ -1204,6 +1217,7 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
 static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 inTrackNum, GF_ISOFile *outfile, Bool ResetDependancies, Bool AddToIOD)
 {
 	GF_ESD *esd;
@@ -1241,6 +1255,7 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 		if ((esd->decoderConfig->streamType == GF_STREAM_VISUAL) || (esd->decoderConfig->streamType == GF_STREAM_SCENE)) {
 			u32 w, h;
 			gf_isom_get_visual_info(infile, inTrackNum, 1, &w, &h);
+#ifndef GPAC_DISABLE_AV_PARSERS
 			/*this is because so many files have reserved values of 320x240 from v1 ... */
 			if ((esd->decoderConfig->objectTypeIndication == 0x20) ) {
 				GF_M4VDecSpecInfo dsi;
@@ -1248,6 +1263,7 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 				w = dsi.width;
 				h = dsi.height;
 			}
+#endif
 			gf_isom_set_visual_info(outfile, newTk, 1, w, h);
 		}
 		else if ((esd->decoderConfig->streamType == GF_STREAM_ND_SUBPIC) && (esd->decoderConfig->objectTypeIndication == 0xe0)) {
@@ -1315,11 +1331,15 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 	case GF_STREAM_VISUAL:
 		if (iod && (iod->tag==GF_ODF_IOD_TAG)) {
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_VISUAL, iod->visual_profileAndLevel);
-		} else if (esd->decoderConfig->objectTypeIndication==0x20) {
+		}
+#ifndef GPAC_DISABLE_AV_PARSERS
+		else if (esd->decoderConfig->objectTypeIndication==0x20) {
 			GF_M4VDecSpecInfo dsi;
 			gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_VISUAL, dsi.VideoPL);
-		} else {
+		}
+#endif
+		else {
 			gf_export_message(dumper, GF_OK, "Warning: Visual PLs not found in original MP4 - defaulting to No Profile Specified");
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_VISUAL, 0xFE);
 		}
@@ -1327,11 +1347,15 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 	case GF_STREAM_AUDIO:
 		if (iod && (iod->tag==GF_ODF_IOD_TAG)) {
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_AUDIO, iod->audio_profileAndLevel);
-		} else if (esd->decoderConfig->objectTypeIndication==0x40) {
+		}
+#ifndef GPAC_DISABLE_AV_PARSERS
+		else if (esd->decoderConfig->objectTypeIndication==0x40) {
 			GF_M4ADecSpecInfo cfg;
 			gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &cfg);
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_AUDIO, cfg.audioPL);
-		} else {
+		}
+#endif
+		else {
 			gf_export_message(dumper, GF_OK, "Warning: Audio PLs not found in original MP4 - defaulting to No Profile Specified");
 			gf_isom_set_pl_indication(outfile, GF_ISOM_PL_AUDIO, 0xFE);
 		}
@@ -1345,6 +1369,7 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 
 	return GF_OK;
 }
+
 
 GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 {
@@ -1401,6 +1426,11 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 
 	return e;
 }
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+#ifndef GPAC_DISABLE_AVILIB
 
 GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 {
@@ -1511,6 +1541,8 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	AVI_close(avi_out);
 	return GF_OK;
 }
+#endif /*GPAC_DISABLE_AVILIB*/
+
 
 GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 {
@@ -1840,6 +1872,8 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_MPEG2TS
+
 void m2ts_export_check(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
 {
 	if (evt_type == GF_M2TS_EVT_PAT_REPEAT) ts->user = NULL;
@@ -1971,6 +2005,8 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_MPEG2TS*/
+
 GF_EXPORT
 GF_Err gf_media_export(GF_MediaExporter *dumper)
 {
@@ -1978,23 +2014,30 @@ GF_Err gf_media_export(GF_MediaExporter *dumper)
 	if (!dumper->out_name && !dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_BAD_PARAM;
 	
 	if (dumper->flags & GF_EXPORT_NATIVE) {
+#ifndef GPAC_DISABLE_MPEG2TS
 		if (dumper->in_name) {
 			char *ext = strrchr(dumper->in_name, '.');
 			if (ext && (!strnicmp(ext, ".ts", 3) || !strnicmp(ext, ".m2t", 4)) ) {
 				return gf_media_export_ts_native(dumper);
 			}
 		}
+#endif /*GPAC_DISABLE_MPEG2TS*/
 		return gf_media_export_native(dumper);
 	}
 	else if (dumper->flags & GF_EXPORT_RAW_SAMPLES) return gf_media_export_samples(dumper);
 	else if (dumper->flags & GF_EXPORT_NHNT) return gf_media_export_nhnt(dumper);
-	else if (dumper->flags & GF_EXPORT_AVI) return gf_media_export_avi(dumper);
+#ifndef GPAC_DISABLE_ISOM_WRITE
 	else if (dumper->flags & GF_EXPORT_MP4) return gf_media_export_isom(dumper);
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+#ifndef GPAC_DISABLE_AVILIB
+	else if (dumper->flags & GF_EXPORT_AVI) return gf_media_export_avi(dumper);
 	else if (dumper->flags & GF_EXPORT_AVI_NATIVE) return gf_media_export_avi_track(dumper);
+#endif /*GPAC_DISABLE_AVILIB*/
 	else if (dumper->flags & GF_EXPORT_NHML) return gf_media_export_nhml(dumper, 0);
 	else if (dumper->flags & GF_EXPORT_SAF) return gf_media_export_saf(dumper);
-	else return GF_BAD_PARAM;
+	else return GF_NOT_SUPPORTED;
 }
 
-#endif
+#endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 

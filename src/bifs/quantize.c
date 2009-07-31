@@ -24,6 +24,7 @@
 
 #include "quant.h"
 
+#ifndef GPAC_DISABLE_BIFS
 
 GF_Err gf_bifs_enc_qp_set(GF_BifsEncoder *codec, GF_Node *qp)
 {
@@ -331,3 +332,5 @@ GF_Err gf_bifs_enc_quant_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node 
 	}
 	return e;
 }
+
+#endif	/*GPAC_DISABLE_BIFS*/

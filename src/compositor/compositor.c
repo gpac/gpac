@@ -1216,13 +1216,19 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 			if (cam->navigation_flags & NAV_ANY) {
 				/*if not specifying mode, try to (un)bind top*/
 				if (!value) {
+#ifndef GPAC_DISABLE_VRML
 					if (compositor->active_layer) {
 						compositor_layer3d_bind_camera(compositor->active_layer, 0, value);
 					} else {
 						GF_Node *n = (GF_Node*)gf_list_get(compositor->visual->navigation_stack, 0);
-						if (n) Bindable_SetSetBind(n, 0);
-						else cam->navigate_mode = value;
+						if (n) 
+							Bindable_SetSetBind(n, 0);
+						else 
+							cam->navigate_mode = value;
 					}
+#else
+					cam->navigate_mode = value;
+#endif
 				} else {
 					cam->navigate_mode = value;
 				}
@@ -1496,6 +1502,8 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 
 		node_tag = gf_node_get_tag(top_node);
 		switch (node_tag) {
+
+#ifndef GPAC_DISABLE_VRML
 		case TAG_MPEG4_OrderedGroup:
 		case TAG_MPEG4_Layer2D:
 #ifndef GPAC_DISABLE_3D
@@ -1518,6 +1526,9 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 #endif
 			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(scene);
 			break;
+
+#endif /*GPAC_DISABLE_VRML*/
+
 #ifndef GPAC_DISABLE_SVG
 		case TAG_SVG_svg:
 #ifndef GPAC_DISABLE_3D
@@ -1527,7 +1538,7 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 			compositor->visual->center_coords = 0;
 			compositor->root_visual_setup = 2;
 			break;
-#endif
+#endif /*GPAC_DISABLE_SVG*/
 		}
 
 		/*!! by default we don't set the focus on the content - this is conform to SVG and avoids displaying the 
@@ -1714,19 +1725,29 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	
 	gf_term_sample_clocks(compositor->term);
 
+#ifndef GPAC_DISABLE_VRML
+	/*execute all routes before updating textures, otherwise nodes inside composite texture may never see their dirty flag set*/
 #ifndef GPAC_DISABLE_LOG
 	route_time = gf_sys_clock();
 #endif
-	/*execute all routes before updating textures, otherwise nodes inside composite texture may never see their
-	dirty flag set*/
+
 	gf_sg_activate_routes(compositor->scene);
 	i = 0;
 	while ((sg = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
 		gf_sg_activate_routes(sg);
 	}
+
 #ifndef GPAC_DISABLE_LOG
 	route_time = gf_sys_clock() - route_time;
 #endif
+
+#else
+#ifndef GPAC_DISABLE_LOG
+	route_time = 0;
+#endif
+#endif /*GPAC_DISABLE_VRML*/
+
+
 
 #ifndef GPAC_DISABLE_SVG
 #if SVG_FIXME
@@ -1988,6 +2009,7 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	/*check child doc*/
 	tag = gf_node_get_tag(inline_root);
 	if (tag < GF_NODE_RANGE_LAST_VRML) {
+#ifndef GPAC_DISABLE_VRML
 		u32 new_tag = 0;
 		use_pm = gf_sg_use_pixel_metrics(in_scene);
 		if (gf_node_get_tag(inline_parent)>GF_NODE_RANGE_LAST_VRML) {
@@ -2023,7 +2045,10 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 			gf_node_init(new_root);
 		}
 
+#endif /*GPAC_DISABLE_VRML*/
+
 		gf_sg_get_scene_size_info(in_scene, &w, &h);
+
 	} else {
 		use_pm = 1;
 		if (gf_node_get_tag(inline_parent)<GF_NODE_RANGE_LAST_VRML) {
@@ -2453,6 +2478,7 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		return 1;
 	case GF_JSAPI_OP_LOAD_URL:
 	{
+#ifndef GPAC_DISABLE_VRML
 		GF_Node *target;
 		char *sub_url = strrchr(param->uri.url, '#');
 		if (!sub_url) return 0;
@@ -2462,6 +2488,7 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 			((M_Viewport *)target)->on_set_bind(n, NULL);
 			return 1;
 		}
+#endif
 		return 0;
 	}
 	case GF_JSAPI_OP_GET_FPS:
@@ -2591,27 +2618,4 @@ void gf_sc_check_focus_upon_destroy(GF_Node *n)
 	}
 	if (compositor->hit_node==n) compositor->hit_node = NULL;
 	if (compositor->hit_text==n) compositor->hit_text = NULL;
-}
-
-
-GF_SceneGraph *gf_sc_get_subscene(GF_Node *node)
-{
-	GF_InlineScene *is;
-	if (!node) return NULL;
-	switch (gf_node_get_tag(node)) {
-	case TAG_MPEG4_Inline: case TAG_X3D_Inline: 
-		break;
-	default:
-		return NULL;
-	}
-	is = (GF_InlineScene *)gf_node_get_private(node);
-	if (!is) return NULL;
-	return is->graph;
-}
-
-GF_Node *gf_sc_get_subscene_root(GF_Node *node)
-{
-	GF_SceneGraph *sg = gf_sc_get_subscene(node);
-	if (!sg) return NULL;
-	return gf_sg_get_root_node(sg);
 }

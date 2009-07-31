@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /YX /FD /c
-# ADD CPP /nologo /MD /W3 /GX /O1 /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /I "../../extra_lib/include/jpeg" /I "../../extra_lib/include/png" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAVE_CONFIG_H" /FD /c
+# ADD CPP /nologo /MD /W3 /GX /O1 /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /I "../../extra_lib/include/jpeg" /I "../../extra_lib/include/png" /D "WIN32" /D "NDEBUG" /D "_MBCS" /D "_LIB" /FD /c
 # SUBTRACT CPP /YX
 # ADD BASE RSC /l 0x40c /d "NDEBUG"
 # ADD RSC /l 0x40c /d "NDEBUG"
@@ -67,7 +67,7 @@ LIB32=link.exe -lib
 # PROP Target_Dir ""
 MTL=midl.exe
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /YX /FD /GZ /c
-# ADD CPP /nologo /MDd /W3 /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /I "../../extra_lib/include/jpeg" /I "../../extra_lib/include/png" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /D "GPAC_HAVE_CONFIG_H" /FD /GZ /c
+# ADD CPP /nologo /MDd /W3 /GX /ZI /Od /I "../../include" /I "../../extra_lib/include/zlib" /I "../../extra_lib/include/js" /I "../../extra_lib/include/jpeg" /I "../../extra_lib/include/png" /D "WIN32" /D "_DEBUG" /D "_MBCS" /D "_LIB" /FD /GZ /c
 # SUBTRACT CPP /Fr /YX
 # ADD BASE RSC /l 0x40c /d "_DEBUG"
 # ADD RSC /l 0x40c /d "_DEBUG"
@@ -797,10 +797,6 @@ SOURCE=..\..\src\terminal\decoder.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\terminal\inline.c
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\src\terminal\input_sensor.c
 # End Source File
 # Begin Source File
@@ -837,6 +833,10 @@ SOURCE=..\..\src\terminal\media_sensor.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\terminal\mpeg4_inline.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\terminal\network_service.c
 # End Source File
 # Begin Source File
@@ -846,6 +846,10 @@ SOURCE=..\..\src\terminal\object_browser.c
 # Begin Source File
 
 SOURCE=..\..\src\terminal\object_manager.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\terminal\scene.c
 # End Source File
 # Begin Source File
 
@@ -1217,7 +1221,7 @@ SOURCE=..\..\include\gpac\config_file.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\include\gpac\internal\config_static.h
+SOURCE=..\..\include\gpac\configuration.h
 # End Source File
 # Begin Source File
 

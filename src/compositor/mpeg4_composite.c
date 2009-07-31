@@ -28,6 +28,8 @@
 #include "visual_manager.h"
 #include "texturing.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 #ifdef GPAC_USE_TINYGL
 #include <GL/oscontext.h>
 #endif
@@ -707,3 +709,5 @@ Bool compositor_is_composite_texture(GF_Node *appear)
 	}
 	return 0;
 }
+
+#endif /*GPAC_DISABLE_VRML*/

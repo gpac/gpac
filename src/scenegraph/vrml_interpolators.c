@@ -28,6 +28,43 @@
 #include <gpac/nodes_x3d.h>
 
 
+GF_EXPORT
+SFRotation gf_sg_sfrotation_interpolate(SFRotation kv1, SFRotation kv2, Fixed fraction)
+{
+	SFRotation res;
+	Fixed newa, olda;
+	Bool stzero = ( ABS(kv1.q) < FIX_EPSILON) ? 1 : 0;
+	Bool endzero = ( ABS(kv2.q) < FIX_EPSILON) ? 1 : 0;
+	Fixed testa = gf_mulfix(kv1.x, kv2.x) + gf_mulfix(kv1.y, kv2.y) + gf_mulfix(kv1.y, kv2.y);
+
+	if (testa>= 0) {
+		res.x = kv1.x + gf_mulfix(fraction, kv2.x-kv1.x);
+		res.y = kv1.y + gf_mulfix(fraction, kv2.y-kv1.y);
+		res.z = kv1.z + gf_mulfix(fraction, kv2.z-kv1.z);
+		newa = kv2.q;
+	} else {
+		res.x = kv1.x + gf_mulfix(fraction, -kv2.x -kv1.x);
+		res.y = kv1.y + gf_mulfix(fraction, -kv2.y-kv1.y);
+		res.z = kv1.z + gf_mulfix(fraction, -kv2.z-kv1.z);
+		newa = -kv2.q;
+	}
+	olda = kv1.q;
+	if (stzero || endzero) {
+		res.x = stzero ? kv2.x : kv1.x;
+		res.y = stzero ? kv2.y : kv1.y;
+		res.z = stzero ? kv2.z : kv1.z;
+	}
+	res.q = olda + gf_mulfix(fraction, newa - olda);
+	if (res.q > GF_2PI) { 
+		res.q -= GF_2PI;
+	} else if (res.q < GF_2PI) {
+		res.q += GF_2PI;
+	}
+	return res;
+}
+
+#ifndef GPAC_DISABLE_VRML
+
 static Fixed Interpolate(Fixed keyValue1, Fixed keyValue2, Fixed fraction)
 {
 	return gf_mulfix(keyValue2 - keyValue1, fraction) + keyValue1;
@@ -328,40 +365,6 @@ Bool InitScalarInterpolator(M_ScalarInterpolator *node)
 	return 1;
 }
 
-GF_EXPORT
-SFRotation gf_sg_sfrotation_interpolate(SFRotation kv1, SFRotation kv2, Fixed fraction)
-{
-	SFRotation res;
-	Fixed newa, olda;
-	Bool stzero = ( ABS(kv1.q) < FIX_EPSILON) ? 1 : 0;
-	Bool endzero = ( ABS(kv2.q) < FIX_EPSILON) ? 1 : 0;
-	Fixed testa = gf_mulfix(kv1.x, kv2.x) + gf_mulfix(kv1.y, kv2.y) + gf_mulfix(kv1.y, kv2.y);
-
-	if (testa>= 0) {
-		res.x = kv1.x + gf_mulfix(fraction, kv2.x-kv1.x);
-		res.y = kv1.y + gf_mulfix(fraction, kv2.y-kv1.y);
-		res.z = kv1.z + gf_mulfix(fraction, kv2.z-kv1.z);
-		newa = kv2.q;
-	} else {
-		res.x = kv1.x + gf_mulfix(fraction, -kv2.x -kv1.x);
-		res.y = kv1.y + gf_mulfix(fraction, -kv2.y-kv1.y);
-		res.z = kv1.z + gf_mulfix(fraction, -kv2.z-kv1.z);
-		newa = -kv2.q;
-	}
-	olda = kv1.q;
-	if (stzero || endzero) {
-		res.x = stzero ? kv2.x : kv1.x;
-		res.y = stzero ? kv2.y : kv1.y;
-		res.z = stzero ? kv2.z : kv1.z;
-	}
-	res.q = olda + gf_mulfix(fraction, newa - olda);
-	if (res.q > GF_2PI) { 
-		res.q -= GF_2PI;
-	} else if (res.q < GF_2PI) {
-		res.q += GF_2PI;
-	}
-	return res;
-}
 
 static void OrientInt_SetFraction(GF_Node *node, GF_Route *route)
 {
@@ -707,3 +710,4 @@ void InitTimeTrigger(GF_Node *n)
 	tt->on_set_boolean = TimeTrigger_setTrigger;
 }
 
+#endif /*GPAC_DISABLE_VRML*/

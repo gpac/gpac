@@ -27,6 +27,9 @@
 #include <gpac/avparse.h>
 #include <gpac/constants.h>
 
+/*if we don't have M4V (A)SP parser, we con't get width and height and xvid is then unusable ...*/
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 #include "xvid.h"
 
 #ifndef XVID_DEC_FRAME
@@ -460,24 +463,31 @@ void DeleteXVIDDec(GF_BaseDecoder *ifcg)
 	free(ifcg);
 }
 
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 
 Bool QueryInterface(u32 InterfaceType) 
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
+#endif
 	return 0;
 }
 
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewXVIDDec();
+#endif
 	return NULL;
 }
 
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_MEDIA_DECODER_INTERFACE: 
 		DeleteXVIDDec((GF_BaseDecoder*)ifce);
 		break;
+#endif
 	}
 }

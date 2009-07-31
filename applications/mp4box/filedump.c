@@ -23,6 +23,13 @@
  */
 
 #include <gpac/scene_manager.h>
+
+#ifdef GPAC_DISABLE_ISOM
+
+#error "Cannot compile MP4Box if GPAC is not built with ISO File Format support"
+
+#else
+
 #include <gpac/nodes_x3d.h>
 #include <gpac/internal/bifs_dev.h>
 #include <gpac/constants.h>
@@ -40,7 +47,7 @@ extern u32 get_file_type_by_ext(char *inName);
 
 void scene_coding_log(void *cbk, u32 log_level, u32 log_tool, const char *fmt, va_list vlist);
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
 #endif
 
@@ -89,8 +96,6 @@ const char *GetLanguageCode(char *lang)
 	return "und";
 }
 
-#ifndef GPAC_READ_ONLY
-
 GF_Err dump_cover_art(GF_ISOFile *file, char *inName)
 {
 	const char *tag;
@@ -113,6 +118,7 @@ GF_Err dump_cover_art(GF_ISOFile *file, char *inName)
 	fclose(t);
 	return GF_OK;
 }
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 {
@@ -134,6 +140,10 @@ GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 	free(tag);
 	return e;
 }
+
+#endif
+
+#ifndef GPAC_DISABLE_SCENE_DUMP
 
 GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 {
@@ -216,6 +226,9 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	if (load.isom) gf_isom_delete(load.isom);
 	return e;
 }
+#endif
+
+#ifndef GPAC_DISABLE_SCENE_STATS
 
 static void dump_stats(FILE *dump, GF_SceneStatistics *stats)
 {
@@ -230,6 +243,7 @@ static void dump_stats(FILE *dump, GF_SceneStatistics *stats)
 		fprintf(dump, "<NodeStat NodeName=\"%s\">\n", ptr->name);
 		
 		switch (ptr->tag) {
+#ifndef GPAC_DISABLE_VRML
 		case TAG_MPEG4_Bitmap:
 		case TAG_MPEG4_Background2D:
 		case TAG_MPEG4_Background:
@@ -257,6 +271,7 @@ static void dump_stats(FILE *dump, GF_SceneStatistics *stats)
 			draw_deleted += ptr->nb_del;
 			draw_created += ptr->nb_created;
 			break;
+#endif /*GPAC_DISABLE_VRML*/
 		}
 		fprintf(dump, "<Instanciation NbObjects=\"%d\" NbUse=\"%d\" NbDestroy=\"%d\"/>\n", ptr->nb_created, ptr->nb_used, ptr->nb_del);
 		count += ptr->nb_created + ptr->nb_used;
@@ -464,9 +479,13 @@ exit:
 	if (dump && close) fclose(dump);
 	fprintf(stdout, "done\n");
 }
-#endif
+#endif /*GPAC_DISABLE_SCENE_STATS*/
 
-void PrintFixed(Fixed val, Bool add_space)
+
+
+#ifndef GPAC_DISABLE_VRML
+
+static void PrintFixed(Fixed val, Bool add_space)
 {
 	if (add_space) fprintf(stdout, " ");
 	if (val==FIX_MIN) fprintf(stdout, "-I");
@@ -474,7 +493,7 @@ void PrintFixed(Fixed val, Bool add_space)
 	else fprintf(stdout, "%g", FIX2FLT(val));
 }
 
-void PrintNodeSFField(u32 type, void *far_ptr)
+static void PrintNodeSFField(u32 type, void *far_ptr)
 {
 	if (!far_ptr) return;
 	switch (type) {
@@ -518,35 +537,25 @@ void PrintNodeSFField(u32 type, void *far_ptr)
 		break;
 	}
 }
-
-static Bool node_in_table_by_tag(u32 tag, u32 NDTType)
-{
-	if (!tag) return 0;
-	if (tag==TAG_ProtoNode) return 1;
-	else if (tag<=GF_NODE_RANGE_LAST_MPEG4) {
-		u32 i;
-
-		for (i=0;i<GF_BIFS_LAST_VERSION; i++) {
-			if (gf_bifs_get_node_type(NDTType, tag, i+1)) return 1;
-		}
-		return 0;
-	} else if (tag<=GF_NODE_RANGE_LAST_X3D) {
-		return gf_x3d_get_node_type(NDTType, tag);
-	}
-	return 0;
-}
+#endif
 
 void PrintNode(const char *name, u32 graph_type)
 {
+#ifdef GPAC_DISABLE_VRML
+	fprintf(stdout, "VRML/MPEG-4/X3D scene graph is disabled in this build of GPAC\n");
+	return;
+#else
 	const char *nname, *std_name;
 	char szField[1024];
 	GF_Node *node;
 	GF_SceneGraph *sg;
 	u32 tag, nbF, i;
 	GF_FieldInfo f;
+#ifndef GPAC_DISABLE_BIFS
 	u8 qt, at;
 	Fixed bmin, bmax;
 	u32 nbBits;
+#endif /*GPAC_DISABLE_BIFS*/
 	Bool is_nodefield = 0;
 
 	char *sep = strchr(name, '.');
@@ -599,7 +608,7 @@ void PrintNode(const char *name, u32 graph_type)
 		for (i=tfirst; i<tlast;i++) {
 			GF_Node *tmp = gf_node_new(sg, i);
 			gf_node_register(tmp, NULL);
-			if (node_in_table_by_tag(i, f.NDTtype)) {
+			if (gf_node_in_table_by_tag(i, f.NDTtype)) {
 				const char *nname = gf_node_get_class_name(tmp);
 				if (nname && strcmp(nname, "Unknown Node")) {
 					fprintf(stdout, "\t%s\n", nname); 
@@ -638,6 +647,7 @@ void PrintNode(const char *name, u32 graph_type)
 			}
 			fprintf(stdout, "]");
 		}
+#ifndef GPAC_DISABLE_BIFS
 		if (gf_bifs_get_aq_info(node, i, &qt, &at, &bmin, &bmax, &nbBits)) {
 			if (qt) {
 				fprintf(stdout, " #QP=%d", qt);
@@ -651,12 +661,14 @@ void PrintNode(const char *name, u32 graph_type)
 				}
 			}
 		}
+#endif /*GPAC_DISABLE_BIFS*/
 		fprintf(stdout, "\n");
 	}
 	fprintf(stdout, "}\n\n");
 
 	gf_node_unregister(node, NULL);
 	gf_sg_del(sg);
+#endif /*GPAC_DISABLE_VRML*/
 }
 
 void PrintBuiltInNodes(u32 graph_type)
@@ -666,14 +678,29 @@ void PrintBuiltInNodes(u32 graph_type)
 	u32 i, nb_in, nb_not_in, start_tag, end_tag;
 
 	if (graph_type==1) {
+#ifdef GPAC_DISABLE_VRML
+		fprintf(stdout, "X3D scene graph disabled in this build of GPAC\n");
+		return;
+#else
 		start_tag = GF_NODE_RANGE_FIRST_X3D;
 		end_tag = TAG_LastImplementedX3D;
+#endif
 	} else if (graph_type==2) {
+#ifdef GPAC_DISABLE_SVG
+		fprintf(stdout, "SVG scene graph disabled in this build of GPAC\n");
+		return;
+#else
 		start_tag = GF_NODE_RANGE_FIRST_SVG;
 		end_tag = GF_NODE_RANGE_LAST_SVG;
+#endif
 	} else {
+#ifdef GPAC_DISABLE_VRML
+		fprintf(stdout, "VRML/MPEG-4 scene graph disabled in this build of GPAC\n");
+		return;
+#else
 		start_tag = GF_NODE_RANGE_FIRST_MPEG4;
 		end_tag = TAG_LastImplementedMPEG4;
+#endif
 	}
 	nb_in = nb_not_in = 0;
 	sg = gf_sg_new();
@@ -722,6 +749,8 @@ void dump_file_mp4(GF_ISOFile *file, char *inName)
 	}
 }
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
+
 void dump_file_rtp(GF_ISOFile *file, char *inName)
 {
 	u32 i, j;
@@ -752,6 +781,7 @@ void dump_file_rtp(GF_ISOFile *file, char *inName)
 	fprintf(dump, "</RTPFile>\n");
 	if (inName) fclose(dump);
 }
+#endif
 
 void dump_file_ts(GF_ISOFile *file, char *inName)
 {
@@ -882,6 +912,7 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_
 	else fprintf(stdout, "Conversion done\n");
 }
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
 
 void DumpSDP(GF_ISOFile *file, char *inName)
 {
@@ -915,6 +946,8 @@ void DumpSDP(GF_ISOFile *file, char *inName)
 	fprintf(dump, "\n\n");
 	if (inName) fclose(dump);
 }
+
+#endif
 
 static char *format_duration(u64 dur, u32 timescale, char *szDur)
 {
@@ -1049,27 +1082,34 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				u32 w, h;
 				w = h = 0;
 				if (esd->decoderConfig->objectTypeIndication==0x20) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 					GF_M4VDecSpecInfo dsi;
 					gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 					if (full_dump) fprintf(stdout, "\t");
 					w = dsi.width;
 					h = dsi.height;
-					if (w && h) {
-						fprintf(stdout, "MPEG-4 Visual Size %d x %d - %s\n", dsi.width, dsi.height, gf_m4v_get_profile_name(dsi.VideoPL));
-						if (dsi.par_den && dsi.par_num) {
-							u32 tw, th;
-							gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
-							fprintf(stdout, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", dsi.par_num, dsi.par_den, tw, th);
-						}
+					fprintf(stdout, "MPEG-4 Visual Size %d x %d - %s\n", w, h, gf_m4v_get_profile_name(dsi.VideoPL));
+					if (dsi.par_den && dsi.par_num) {
+						u32 tw, th;
+						gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
+						fprintf(stdout, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", dsi.par_num, dsi.par_den, tw, th);
 					}
+#else
+					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+					fprintf(stdout, "MPEG-4 Visual Size %d x %d\n", w, h);
+#endif
+
 				} else if (esd->decoderConfig->objectTypeIndication==0x21) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 					GF_AVCConfig *avccfg;
 					GF_AVCConfigSlot *slc;
 					s32 par_n, par_d;
+#endif
 
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stdout, "\t");
 					fprintf(stdout, "AVC/H264 Video - Visual Size %d x %d - ", w, h);
+#ifndef GPAC_DISABLE_AV_PARSERS
 					avccfg = gf_isom_avc_config_get(file, trackNum, 1);
 					if (!avccfg) {
 						fprintf(stdout, "\n\n\tNon-compliant AVC track: SPS/PPS not found in sample description\n");
@@ -1077,7 +1117,6 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stdout, "Profile %s @ Level %g\n", gf_avc_get_profile_name(avccfg->AVCProfileIndication), ((Double)avccfg->AVCLevelIndication)/10.0 );
 						fprintf(stdout, "NAL Unit length bits: %d\n", 8*avccfg->nal_unit_size);
 
-#ifndef GPAC_READ_ONLY
 						slc = gf_list_get(avccfg->sequenceParameterSets, 0);
 						gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
 						if ((par_n>0) && (par_d>0)) {
@@ -1085,9 +1124,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 							gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
 							fprintf(stdout, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
 						}
-#endif
 						gf_odf_avc_cfg_del(avccfg);
 					}
+#endif /*GPAC_DISABLE_AV_PARSERS*/
 				} 
 				/*OGG media*/
 				else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_MEDIA_OGG) {
@@ -1104,15 +1143,19 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					fprintf(stdout, "Visual Size %d x %d\n", w, h);
 				}
 			} else if (esd->decoderConfig->streamType==GF_STREAM_AUDIO) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 				GF_M4ADecSpecInfo a_cfg;
 				GF_Err e;
-				u32 oti, is_mp2 = 0;
+				u32 oti;
+#endif
+				u32 is_mp2 = 0;
 				switch (esd->decoderConfig->objectTypeIndication) {
 				case 0x66:
 				case 0x67:
 				case 0x68:
 					is_mp2 = 1;
 				case 0x40:
+#ifndef GPAC_DISABLE_AV_PARSERS
 					e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 					if (full_dump) fprintf(stdout, "\t");
 					if (e) fprintf(stdout, "Corrupted AAC Config\n");
@@ -1121,12 +1164,16 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						if (a_cfg.has_sbr) fprintf(stdout, " - SBR SampleRate %d", a_cfg.sbr_sr);
 						fprintf(stdout, "\n");
 					}
+#else
+					fprintf(stdout, "MPEG-2/4 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
+#endif
 					break;
 				case 0x69:
 				case 0x6B:
 					if (msub_type == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
 						fprintf(stdout, "MPEG-1/2 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
 					} else {
+#ifndef GPAC_DISABLE_AV_PARSERS
 						GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, &oti);
 						oti = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
 						if (full_dump) fprintf(stdout, "\t");
@@ -1137,6 +1184,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 							gf_mp3_layer(oti)
 						);
 						gf_isom_sample_del(&samp);
+#else
+						fprintf(stdout, "MPEG-1/2 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
+#endif
 					}
 					break;
 				/*OGG media*/
@@ -1292,11 +1342,13 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		} else {
 			fprintf(stdout, "Streaming Hint Track (no refs)\n");
 		}
+#ifndef GPAC_DISABLE_ISOM_HINTING
 		refCount = gf_isom_get_payt_count(file, trackNum);
 		for (i=0;i<refCount;i++) {
 			const char *name = gf_isom_get_payt_info(file, trackNum, i+1, &refTrack);
 			fprintf(stdout, "\tPayload ID %d: type %s\n", refTrack, name);
 		}
+#endif
 	} else if (mtype==GF_ISOM_MEDIA_FLASH) {
 		fprintf(stdout, "Macromedia Flash Movie\n");
 	} else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT)) {
@@ -1556,6 +1608,11 @@ void DumpMovieInfo(GF_ISOFile *file)
 	}
 }
 
+#endif /*GPAC_DISABLE_ISOM*/
+
+
+#ifndef GPAC_DISABLE_MPEG2TS
+
 typedef struct
 {
 	/* when writing to file */
@@ -1732,3 +1789,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 		fclose(dumper.pes_out_info);
 	}
 }
+
+#endif /*GPAC_DISABLE_MPEG2TS*/
+
+

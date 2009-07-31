@@ -24,6 +24,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 GF_Box *meta_New()
 {
 	GF_MetaBox *tmp = (GF_MetaBox *) malloc(sizeof(GF_MetaBox));
@@ -108,7 +110,7 @@ GF_Err meta_Read(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_read_box_list(s, bs, meta_AddBox);
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err meta_Write(GF_Box *s, GF_BitStream *bs)
 {
 	u32 count, i;
@@ -204,7 +206,7 @@ GF_Err meta_Size(GF_Box *s)
 	}
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *xml_New()
 {
@@ -238,7 +240,7 @@ GF_Err xml_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err xml_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -260,7 +262,7 @@ GF_Err xml_Size(GF_Box *s)
 	ptr->size += ptr->xml_length;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *bxml_New()
 {
@@ -293,7 +295,7 @@ GF_Err bxml_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err bxml_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -315,7 +317,7 @@ GF_Err bxml_Size(GF_Box *s)
 	ptr->size += ptr->data_length;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *iloc_New()
 {
@@ -368,7 +370,7 @@ GF_Err iloc_Read(GF_Box *s, GF_BitStream *bs)
 		location_entry->item_ID = gf_bs_read_u16(bs);
 		location_entry->data_reference_index = gf_bs_read_u16(bs);
 		location_entry->base_offset = gf_bs_read_int(bs, 8*ptr->base_offset_size);
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 		location_entry->original_base_offset = location_entry->base_offset;
 #endif
 
@@ -379,7 +381,7 @@ GF_Err iloc_Read(GF_Box *s, GF_BitStream *bs)
 			gf_list_add(location_entry->extent_entries, extent_entry);
 			extent_entry->extent_offset = gf_bs_read_int(bs, 8*ptr->offset_size);
 			extent_entry->extent_length = gf_bs_read_int(bs, 8*ptr->length_size);
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 			extent_entry->original_extent_offset = extent_entry->extent_offset;
 #endif
 		}
@@ -387,7 +389,7 @@ GF_Err iloc_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err iloc_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -435,7 +437,7 @@ GF_Err iloc_Size(GF_Box *s)
 	}
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *pitm_New()
 {
@@ -464,7 +466,7 @@ GF_Err pitm_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err pitm_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -486,7 +488,7 @@ GF_Err pitm_Size(GF_Box *s)
 	ptr->size += 16;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *ipro_New()
 {
@@ -530,7 +532,7 @@ GF_Err ipro_Read(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_read_box_list(s, bs, ipro_AddBox);
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err ipro_Write(GF_Box *s, GF_BitStream *bs)
 {
 	u32 count, i;
@@ -570,7 +572,7 @@ GF_Err ipro_Size(GF_Box *s)
 	}
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *infe_New()
 {
@@ -636,7 +638,7 @@ GF_Err infe_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err infe_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -675,7 +677,7 @@ GF_Err infe_Size(GF_Box *s)
 	if (ptr->content_encoding) ptr->size += strlen(ptr->content_encoding)+1;
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_Box *iinf_New()
 {
@@ -727,7 +729,7 @@ GF_Err iinf_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err iinf_Write(GF_Box *s, GF_BitStream *bs)
 {
 	u32 count, i;
@@ -767,7 +769,8 @@ GF_Err iinf_Size(GF_Box *s)
 	}
 	return GF_OK;
 }
-#endif
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+#endif /*GPAC_DISABLE_ISOM*/
 

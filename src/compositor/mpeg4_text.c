@@ -22,14 +22,14 @@
  *
  */
 
-
-
 #include "nodes_stacks.h"
 #include "visual_manager.h"
 #include "mpeg4_grouping.h"
 #include "texturing.h"
 #include <gpac/utf.h>
 #include <gpac/options.h>
+
+#ifndef GPAC_DISABLE_VRML
 
 /*default value when no fontStyle*/
 #define FSFAMILY	(fs && fs->family.count) ? (const char *)fs->family.vals[0]	: ""
@@ -734,7 +734,9 @@ void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh 
 	gf_mesh_build_aabbtree(mesh);
 }
 
-#endif
+#endif /*GPAC_DISABLE_3D*/
 
+
+#endif /*GPAC_DISABLE_VRML*/
 
 

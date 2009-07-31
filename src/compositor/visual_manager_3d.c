@@ -100,10 +100,12 @@ static void visual_3d_setup_traversing_state(GF_VisualManager *visual, GF_Traver
 {
 	tr_state->visual = visual;
 	tr_state->camera = &visual->camera;
+#ifndef GPAC_DISABLE_VRML
 	tr_state->backgrounds = visual->back_stack;
 	tr_state->viewpoints = visual->view_stack;
 	tr_state->fogs = visual->fog_stack;
 	tr_state->navigations = visual->navigation_stack;
+#endif
 	tr_state->color_mat.identity = 1;
 	tr_state->camera->vp.x = tr_state->camera->vp.y = 0;
 	tr_state->min_hsize = INT2FIX(MIN(visual->width, visual->height) / 2);
@@ -253,16 +255,21 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 
 void visual_3d_setup_projection(GF_TraverseState *tr_state)
 {
+#ifndef GPAC_DISABLE_VRML
 	GF_Node *bindable;
+#endif
 	u32 mode = tr_state->traversing_mode;
 	tr_state->traversing_mode = TRAVERSE_BINDABLE;
 
 	/*setup viewpoint (this directly modifies the frustum)*/
+#ifndef GPAC_DISABLE_VRML
 	bindable = (GF_Node*)gf_list_get(tr_state->viewpoints, 0);
 	if (Bindable_GetIsBound(bindable)) {
 		gf_node_traverse(bindable, tr_state);
 		tr_state->camera->had_viewpoint = 1;
-	} else if (tr_state->camera->had_viewpoint) {
+	} else 
+#endif
+	if (tr_state->camera->had_viewpoint) {
 		if (tr_state->camera->is_3D) {
 			SFVec3f pos, center;
 			SFRotation r;
@@ -300,16 +307,21 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 {
 	u32 mode;
+#ifndef GPAC_DISABLE_VRML
 	GF_Node *bindable;
+#endif
 
 	/*if not in layer, traverse navigation node
 	FIXME: we should update the nav info according to the world transform at the current viewpoint (vrml)*/
 	tr_state->traversing_mode = TRAVERSE_BINDABLE;
+#ifndef GPAC_DISABLE_VRML
 	bindable = tr_state->navigations ? (GF_Node*) gf_list_get(tr_state->navigations, 0) : NULL;
 	if (Bindable_GetIsBound(bindable)) {
 		gf_node_traverse(bindable, tr_state);
 		tr_state->camera->had_nav_info = 1;
-	} else if (tr_state->camera->had_nav_info) {
+	} else 
+#endif
+	if (tr_state->camera->had_nav_info) {
 		/*if no navigation specified, use default VRML one*/
 		tr_state->camera->avatar_size.x = FLT2FIX(0.25f); tr_state->camera->avatar_size.y = FLT2FIX(1.6f); tr_state->camera->avatar_size.z = FLT2FIX(0.75f);
 		tr_state->camera->visibility = 0;
@@ -357,7 +369,6 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	/*setup background*/
 	mode = tr_state->traversing_mode;
 	tr_state->traversing_mode = TRAVERSE_BINDABLE;
-	bindable = (GF_Node*) gf_list_get(tr_state->backgrounds, 0);
 
 	/*if in layer clear z buffer (even if background)*/
 	if (layer_type) visual_3d_clear_depth(tr_state->visual);
@@ -371,11 +382,15 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		visual_3d_clear(tr_state->visual, col, 0);
 	}
 
+#ifndef GPAC_DISABLE_VRML
+	bindable = (GF_Node*) gf_list_get(tr_state->backgrounds, 0);
 	if (Bindable_GetIsBound(bindable)) {
 		gf_node_traverse(bindable, tr_state);
 	}
 	/*clear if not in layer*/
-	else if (!layer_type) {
+	else 
+#endif
+	if (!layer_type) {
 		SFColor col;
 		col.red = INT2FIX((tr_state->visual->compositor->back_color>>16)&0xFF) / 255;
 		col.green = INT2FIX((tr_state->visual->compositor->back_color>>8)&0xFF) / 255;
@@ -389,31 +404,34 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 
 static GFINLINE Bool visual_3d_has_alpha(GF_TraverseState *tr_state, GF_Node *geom)
 {
-	u32 tag;
 	Bool is_mat3D;
 	Drawable3D *stack;
-	GF_Node *mat = tr_state->appear ? ((M_Appearance *)tr_state->appear)->material : NULL;
+	
 
 	is_mat3D = 0;
-	if (mat) {
-		tag = gf_node_get_tag(mat);
-		switch (tag) {
-		/*for M2D: if filled & transparent we're transparent - otherwise we must check texture*/
-		case TAG_MPEG4_Material2D:
-			if (((M_Material2D *)mat)->filled && ((M_Material2D *)mat)->transparency) return 1;
-			break;
-		case TAG_MPEG4_Material:
-		case TAG_X3D_Material:
-			is_mat3D = 1;
-			if ( ((M_Material *)mat)->transparency) return 1;
-			break;
-		case TAG_MPEG4_MaterialKey:
-			return 1;
-			break;
+#ifndef GPAC_DISABLE_VRML
+	if (tr_state->appear) {
+		GF_Node *mat = ((M_Appearance *)tr_state->appear)->material;
+		if (mat) {
+			u32 tag = gf_node_get_tag(mat);
+			switch (tag) {
+			/*for M2D: if filled & transparent we're transparent - otherwise we must check texture*/
+			case TAG_MPEG4_Material2D:
+				if (((M_Material2D *)mat)->filled && ((M_Material2D *)mat)->transparency) return 1;
+				break;
+			case TAG_MPEG4_Material:
+			case TAG_X3D_Material:
+				is_mat3D = 1;
+				if ( ((M_Material *)mat)->transparency) return 1;
+				break;
+			case TAG_MPEG4_MaterialKey:
+				return 1;
+				break;
+			}
+		} else if (tr_state->camera->is_3D) {
+			GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
+			if (txh && txh->transparent) return 1;
 		}
-	} else if (tr_state->camera->is_3D && tr_state->appear) {
-		GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
-		if (txh && txh->transparent) return 1;
 	}
 
 	/*check alpha texture in3D or with bitmap*/
@@ -421,6 +439,9 @@ static GFINLINE Bool visual_3d_has_alpha(GF_TraverseState *tr_state, GF_Node *ge
 		GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
 		if (txh && txh->transparent) return 1;
 	}
+
+#endif /*GPAC_DISABLE_VRML*/
+
 	/*TODO - FIXME check alpha only...*/
 	if (!tr_state->color_mat.identity) return 1;
 
@@ -579,7 +600,9 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 }
 static void visual_3d_draw_node(GF_TraverseState *tr_state, GF_Node *root_node)
 {
+#ifndef GPAC_DISABLE_VRML
 	GF_Node *fog;
+#endif
 	if (!tr_state->camera || !tr_state->visual) return;
 
 	visual_3d_init_draw(tr_state, 0);
@@ -588,10 +611,12 @@ static void visual_3d_draw_node(GF_TraverseState *tr_state, GF_Node *root_node)
 	if ((tr_state->visual==tr_state->visual->compositor->visual) && tr_state->camera->is_3D) 
 		visual_3d_check_collisions(tr_state, NULL);
 
+#ifndef GPAC_DISABLE_VRML
 	/*setup fog*/
 	fog = (GF_Node*) gf_list_get(tr_state->visual->fog_stack, 0);
 	tr_state->traversing_mode = TRAVERSE_BINDABLE;
 	if (Bindable_GetIsBound(fog)) gf_node_traverse(fog, tr_state);
+#endif
 
 	/*turn global lights on*/
 	if (tr_state->visual->type_3d>1) {
@@ -967,7 +992,8 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 }
 
 
-void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *mesh, Drawable *drawable) 
+#ifndef GPAC_DISABLE_VRML
+void visual_3d_vrml_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *mesh, Drawable *drawable) 
 {
 	SFVec3f local_pt, world_pt, vdiff;
 	SFVec3f hit_normal;
@@ -1080,7 +1106,8 @@ void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *me
 
 	if (compositor_is_composite_texture(tr_state->appear)) {
 		compositor->hit_appear = tr_state->appear;
-	} else {
+	} else 
+	{
 		compositor->hit_appear = NULL;
 	}
 	compositor->hit_node = n;
@@ -1090,21 +1117,26 @@ void visual_3d_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mesh *me
 }
 
 
-void visual_3d_drawable_collide(GF_Node *node, GF_TraverseState *tr_state)
+void visual_3d_vrml_drawable_collide(GF_Node *node, GF_TraverseState *tr_state)
 {
 	SFVec3f pos, v1, v2, collide_pt, last_pos;
 	Fixed dist, m_dist;
 	GF_Matrix mx;
-	u32 ntag, cull_backup;
+	u32 cull_backup;
 	Drawable3D *st = (Drawable3D *)gf_node_get_private(node);
 	if (!st || !st->mesh) return;
 
 	/*no collision with lines & points*/
 	if (st->mesh->mesh_type != MESH_TRIANGLES) return;
-	/*no collision with text (vrml)*/
-	ntag = gf_node_get_tag(node);
-	if ((ntag==TAG_MPEG4_Text) || (ntag==TAG_X3D_Text)) return;
 
+#ifndef GPAC_DISABLE_VRML
+	/*no collision with text (vrml)*/
+	switch (gf_node_get_tag(node)) {
+	case TAG_MPEG4_Text:
+	case TAG_X3D_Text:
+		return;
+	}
+#endif
 
 	/*cull but don't use near plane to detect objects behind us*/
 	cull_backup = tr_state->cull_flag;
@@ -1194,6 +1226,9 @@ void visual_3d_drawable_collide(GF_Node *node, GF_TraverseState *tr_state)
 	}
 }
 
+#endif /*GPAC_DISABLE_VRML*/
+
+
 static GF_TextureHandler *visual_3d_setup_texture_2d(GF_TraverseState *tr_state, DrawAspect2D *asp, Bool is_svg, GF_Mesh *mesh)
 {
 	if (!asp->fill_texture) return NULL;
@@ -1211,7 +1246,9 @@ static GF_TextureHandler *visual_3d_setup_texture_2d(GF_TraverseState *tr_state,
 		gf_rect_from_bbox(&rc, &mesh->bounds);
 		tr_state->mesh_num_textures = gf_sc_texture_enable_ex(asp->fill_texture, NULL, &rc);
 	} else {
+#ifndef GPAC_DISABLE_VRML
 		tr_state->mesh_num_textures = gf_sc_texture_enable(asp->fill_texture, ((M_Appearance *)tr_state->appear)->textureTransform);
+#endif
 	}
 	if (tr_state->mesh_num_textures) return asp->fill_texture;
 	return NULL;
@@ -1273,7 +1310,7 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 		si->mesh_outline = new_mesh();
 #ifndef GPAC_USE_OGL_ES
 		if (si->is_vectorial) {
-			TesselatePath(si->mesh_outline, si->outline, asp->line_texture ? 2 : 1);
+			gf_mesh_tesselate_path(si->mesh_outline, si->outline, asp->line_texture ? 2 : 1);
 		} else 
 #endif
 			mesh_get_outline(si->mesh_outline, st->path);
@@ -1293,6 +1330,7 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 	}		
 }
 
+#ifndef GPAC_DISABLE_VRML
 void visual_3d_draw_2d(Drawable *st, GF_TraverseState *tr_state)
 {
 	DrawAspect2D asp;
@@ -1300,6 +1338,8 @@ void visual_3d_draw_2d(Drawable *st, GF_TraverseState *tr_state)
 	drawable_get_aspect_2d_mpeg4(st->node, &asp, tr_state);
 	visual_3d_draw_2d_with_aspect(st, tr_state, &asp, 0);
 }
+#endif
+
 
 void visual_3d_draw_from_context(DrawableContext *ctx, GF_TraverseState *tr_state)
 {
@@ -1313,8 +1353,10 @@ void visual_3d_draw_from_context(DrawableContext *ctx, GF_TraverseState *tr_stat
 
 static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 mesh_type, Fixed *diffuse_alpha)
 {
-	SFColor def;
+#ifndef GPAC_DISABLE_VRML
 	GF_Node *__mat;
+#endif
+	SFColor def;
 	def.red = def.green = def.blue = FIX_ONE;
 	/*store diffuse alpha*/
 	if (diffuse_alpha) *diffuse_alpha = FIX_ONE;
@@ -1325,6 +1367,7 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 		return 1;
 	}
 
+#ifndef GPAC_DISABLE_VRML
 	if (gf_node_get_tag(tr_state->appear)==TAG_X3D_Appearance) {
 		X_FillProperties *fp = (X_FillProperties *) ((X_Appearance*)tr_state->appear)->fillProperties;
 		if (fp && !fp->filled) return 0;
@@ -1449,10 +1492,14 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 		break;
 	}
 	return 1;
+#else
+	return 0;
+#endif	/*GPAC_DISABLE_VRML*/
 }
 
 Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 {
+#ifndef GPAC_DISABLE_VRML
 	GF_TextureHandler *txh;
 	tr_state->mesh_num_textures = 0;
 	if (!tr_state->appear) return 0;
@@ -1485,13 +1532,16 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 		}
 		return tr_state->mesh_num_textures;
 	}
+#endif /*GPAC_DISABLE_VRML*/
 	return 0;
 }
 
 void visual_3d_disable_texture(GF_TraverseState *tr_state)
 {
 	if (tr_state->mesh_num_textures) {
+#ifndef GPAC_DISABLE_VRML
 		gf_sc_texture_disable(gf_sc_texture_get_handler( ((M_Appearance *)tr_state->appear)->texture) );
+#endif
 		tr_state->mesh_num_textures = 0;
 	}
 }
@@ -1517,7 +1567,7 @@ void visual_3d_draw(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		visual_3d_mesh_paint(tr_state, mesh);
 		visual_3d_disable_texture(tr_state);
 	
-#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
 		if (tr_state->appear && gf_node_get_tag(tr_state->appear)==TAG_X3D_Appearance) {
 			X_Appearance *ap = (X_Appearance *)tr_state->appear;
 			X_FillProperties *fp = ap->fillProperties ? (X_FillProperties *) ap->fillProperties : NULL;

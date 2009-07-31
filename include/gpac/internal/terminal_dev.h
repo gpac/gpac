@@ -39,7 +39,7 @@ extern "C" {
 #include <gpac/mediaobject.h>
 #include <gpac/thread.h>
 
-typedef struct _inline_scene GF_InlineScene;
+typedef struct _scene GF_Scene;
 typedef struct _media_manager GF_MediaManager;
 typedef struct _object_clock GF_Clock;
 typedef struct _es_channel GF_Channel;
@@ -95,28 +95,36 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff);
 void gf_term_sample_clocks(GF_Terminal *term);
 
 /*
-		Inline scene stuff
+		GF_Scene object. This is the structure handling all scene management, mainly:
+			- list of resources (media objects) used
+			- scene time management
+			- reload/seek
+			- Dynamic scene (without a scene description)*
+		Each scene registers itself as the private data of its associated scene graph.
+
+		The scene object is also used by Inline nodes and all media resources of type "scene", eg <foreignObject>, <animation>
 */
-struct _inline_scene
+struct _scene
 {
 	/*root OD of the subscene, ALWAYS namespace of the parent scene*/
 	struct _od_manager *root_od;
 	/*scene codec: top level decoder decoding/generating the scene - can be BIFS, VRML parser, etc*/
 	struct _generic_codec *scene_codec;
-	/*OD codec - specific to MPEG-4, only present at the inline level (media ressources are always scoped here)*/
+	/*OD codec - specific to MPEG-4*/
 	struct _generic_codec *od_codec;
 
-	/*struct _od_managers used, namespace of this scene. The chain does not have the root_od
-	it only contains OD sent through OD UPDATE in the OD stream(s) attached 
-	to this scene.*/
-	GF_List *ODlist;
-	/*list of MOs (links between OD and nodes)*/
-	GF_List *media_objects;
-	/*list of externproto libraries*/
-	GF_List *extern_protos;
+	/*all sub resources of this scene (eg, list of GF_ObjectManager), namespace of this scene. This includes
+	both external resources (urls) and ODs sent in MPEG-4 systems*/
+	GF_List *resources;
+
+	/*list of GF_MediaObject - these are the links betwwen scene nodes (URL, xlink:href) and media resources.
+	We need this link because of MPEG-4 Systems, where an OD (media resource) can be removed or replaced by the server 
+	without the scene being modified*/
+	GF_List *scene_objects;
+
 	/*list of extra scene graphs (text streams, generic OSDs, ...)*/
 	GF_List *extra_scenes;
-	/*inline scene graph*/
+	/*scene graph*/
 	GF_SceneGraph *graph;
 	/*graph state - if not attached, no traversing of inline
 	0: not attached
@@ -124,93 +132,127 @@ struct _inline_scene
 	2: temp graph attached. The temp graph is generated when waiting for the first scene AU to be processed
 	*/
 	u32 graph_attached;
-	/*togles inline restart - needed because the restart may be triggered from inside the scene or from
-	parent scene, hence 2 render passes must be used
-	special value 2 means scene URL changes (for anchor navigation*/
-	u32 needs_restart;
+
+
+	/*current simulation time of the compositor*/
+	Double simulation_time;
+
+	/*set to 1 when single time-line presentation with only static resources (ONE OD AU is detected or no media removal/adding possible)
+	This allows preventing OD/BIFS streams shutdown/startup when seeking.*/
+	Bool static_media_ressources;
+
+
+	/*callback to call to dispatch SVG MediaEvent - this is a pointer to function only because of linking issues
+	with static libgpac (avoids depending on SpiderMonkey and OpenGL32 if not needed)*/
+	void (*on_media_event)(GF_Scene *scene, u32 type); 
+
 	/*duration of inline scene*/
 	u64 duration;
-	/*if not 0, all objects in the scene will run on this clock. Needed in GPAC when clock references do not
-	respect object graph (eg IOD depending on external stream for clock)*/
-	u16 force_sub_clock_id;
-	/*world info node or title node*/
+
+	/*WorldInfo node or <title> node*/
 	void *world_info;
 
+	/*current IRI fragment if any*/
+	char *fragment_uri;
+
+	/*secondary resource scene - this is specific to SVG: a secondary resource scene is <use> or <fonturi>, and all resources
+	identified in a secondary resource must be checked for existence and created in the primary resource*/
+	Bool secondary_resource;
+
+	/*needed by some apps in GPAC which manipulate the scene tree in different locations as the resources*/
+	char *redirect_xml_base;
+
+
+	/*FIXME - Dynamic scenes are only supported through VRML/BIFS nodes, we should add support for SVG scene graph
+	generation if needed*/
 	Bool is_dynamic_scene;
 	/*clock for dynamic scene - current assumption is that all selected streams are synchronized in the dyn scene*/
 	GF_Clock *dyn_ck;
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
 	SFURL visual_url, audio_url, text_url;
-	/*set to 1 when single time-line presentation with ONE OD AU is detected - the goal is to prevent
-	OD shutdown/startup when seeking. This will also remove unneeded net traffic for AddChannel/RemoveChannel
-	like RTSP TEARDOWN/SETUP*/
-	Bool static_media_ressources;
+
+#ifndef GPAC_DISABLE_VRML
+	/*list of externproto libraries*/
+	GF_List *extern_protos;
+
+	/*togles inline restart - needed because the restart may be triggered from inside the scene or from
+	parent scene, hence 2 render passes must be used
+	special value 2 means scene URL changes (for anchor navigation*/
+	u32 needs_restart;
 
 	/*URL of the current parent Inline node, only set during traversal*/
 	MFURL *current_url;
-	/*current simulation time of the compositor*/
-	Double simulation_time;
-
-	/*current IRI fragment if any*/
-	char *fragment_uri;
-
-	/*secondary resource scene*/
-	Bool secondary_resource;
-
-	char *redirect_xml_base;
+#endif
 };
 
-GF_InlineScene *gf_inline_new(GF_InlineScene *parentScene);
-void gf_inline_del(GF_InlineScene *is);
-struct _od_manager *gf_inline_find_odm(GF_InlineScene *is, u16 OD_ID);
-void gf_inline_disconnect(GF_InlineScene *is, Bool for_shutdown);
-void gf_inline_remove_object(GF_InlineScene *is, GF_ObjectManager *odm, Bool for_shutdown);
+GF_Scene *gf_scene_new(GF_Scene *parentScene);
+void gf_scene_del(GF_Scene *scene);
+struct _od_manager *gf_scene_find_odm(GF_Scene *scene, u16 OD_ID);
+void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown);
+void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, Bool for_shutdown);
 /*browse all (media) channels and send buffering info to the app*/
-void gf_inline_buffering_info(GF_InlineScene *is);
-void gf_inline_attach_to_compositor(GF_InlineScene *is);
-struct _mediaobj *gf_inline_get_media_object(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
-struct _mediaobj *gf_inline_get_media_object_ex(GF_InlineScene *is, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref, Bool force_new_if_not_attached, GF_Node *node_ptr);
-void gf_inline_setup_object(GF_InlineScene *is, GF_ObjectManager *odm);
-/*restarts inline scene - care has to be taken not to remove the scene while it is traversed*/
-void gf_inline_restart(GF_InlineScene *is);
+void gf_scene_buffering_info(GF_Scene *scene);
+void gf_scene_attach_to_compositor(GF_Scene *scene);
+struct _mediaobj *gf_scene_get_media_object(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines);
+struct _mediaobj *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines, struct _mediaobj *sync_ref, Bool force_new_if_not_attached, GF_Node *node_ptr);
+void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm);
 /*updates scene duration based on settings*/
-void gf_inline_set_duration(GF_InlineScene *is);
+void gf_scene_set_duration(GF_Scene *scene);
 /*locate media object by ODID (non dynamic ODs) or URL (dynamic ODs)*/
-struct _mediaobj *gf_inline_find_object(GF_InlineScene *is, u16 ODID, char *url);
+struct _mediaobj *gf_scene_find_object(GF_Scene *scene, u16 ODID, char *url);
 /*returns scene time in sec - exact meaning of time depends on standard used*/
-Double gf_inline_get_time(void *_is);
-/*returns true if the given node DEF name is the url target view (eg blabla#myview)*/
-Bool gf_inline_default_scene_viewpoint(GF_Node *node);
+Double gf_scene_get_time(void *_is);
 /*register extra scene graph for on-screen display*/
-void gf_inline_register_extra_graph(GF_InlineScene *is, GF_SceneGraph *extra_scene, Bool do_remove);
+void gf_scene_register_extra_graph(GF_Scene *scene, GF_SceneGraph *extra_scene, Bool do_remove);
 /*forces scene size info (without changing pixel metrics) - this may be needed by modules using extra graphs (like timedtext)*/
-void gf_inline_force_scene_size(GF_InlineScene *is, u32 width, u32 height);
+void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height);
 /*regenerate a scene graph based on available objects - can only be called for dynamic OD streams*/
-void gf_inline_regenerate(GF_InlineScene *is);
+void gf_scene_regenerate(GF_Scene *scene);
 /*selects given ODM for dynamic scenes*/
-void gf_inline_select_object(GF_InlineScene *is, GF_ObjectManager *odm);
+void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm);
 /*restarts dynamic scene from given time: scene graph is not reseted, objects are just restarted
 instead of closed and reopened. If a media control is present on inline, from_time is overriden by MC range*/
-void gf_inline_restart_dynamic(GF_InlineScene *is, u64 from_time);
-/*owner inline node has been modified*/
-void gf_inline_on_modified(GF_Node *node);
-/*returns scene graph associated with an externProto lib - exported for VRML/X3D loaded*/
-GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url);
+void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time);
 /*exported for compositor: handles filtering of "self" parameter indicating anchor only acts on container inline scene
 not root one. Returns 1 if handled (cf user.h, navigate event)*/
-Bool gf_inline_process_anchor(GF_Node *caller, GF_Event *evt);
+Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt);
+void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
+void gf_scene_sample_time(GF_Scene *scene);
+
+
+void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n);
+
+
+GF_Node *gf_scene_get_subscene_root(GF_Node *inline_node);
+
+#ifndef GPAC_DISABLE_VRML
+
 /*extern proto fetcher*/
-GF_SceneGraph *gf_inline_get_proto_lib(void *SceneCallback, MFURL *lib_url);
-void gf_inline_force_scene_size_video(GF_InlineScene *is, GF_MediaObject *mo);
-void gf_inline_sample_time(GF_InlineScene *is);
+typedef struct
+{
+	MFURL *url;
+	GF_MediaObject *mo;
+} GF_ProtoLink;
+
+/*returns true if the given node DEF name is the url target view (eg blabla#myview)*/
+Bool gf_inline_is_default_viewpoint(GF_Node *node);
+
+GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url);
+Bool gf_inline_is_protolib_object(GF_Scene *scene, GF_ObjectManager *odm);
+
+/*restarts inline scene - care has to be taken not to remove the scene while it is traversed*/
+void gf_inline_restart(GF_Scene *scene);
+
+#endif
+
 /*compares object URL with another URL - ONLY USE THIS WITH DYNAMIC ODs*/
-Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *inline_url);
+Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, u32 obj_hint_type);
 
 void gf_mo_update_caps(GF_MediaObject *mo);
 
 
-const char *gf_inline_get_fragment_uri(GF_Node *node);
-void gf_inline_set_fragment_uri(GF_Node *node, const char *uri);
+const char *gf_scene_get_fragment_uri(GF_Node *node);
+void gf_scene_set_fragment_uri(GF_Node *node, const char *uri);
 
 enum
 {
@@ -272,7 +314,7 @@ struct _tag_terminal
 	/*file downloader*/
 	GF_DownloadManager *downloader;
 	/*top level scene*/
-	GF_InlineScene *root_scene;
+	GF_Scene *root_scene;
 
 	/*Media manager*/
 	GF_List *codecs;
@@ -410,7 +452,7 @@ hasOCR indicates whether the stream being attached carries object clock referenc
 @clocks: list of clocks in ES namespace (service)
 @is: inline scene to solve clock dependencies
 */
-GF_Clock *gf_clock_attach(GF_List *clocks, GF_InlineScene *is, u16 OCR_ES_ID, u16 ES_ID, s32 hasOCR);
+GF_Clock *gf_clock_attach(GF_List *clocks, GF_Scene *scene, u16 OCR_ES_ID, u16 ES_ID, s32 hasOCR);
 /*reset clock (only called by channel owning clock)*/
 void gf_clock_reset(GF_Clock *ck);
 /*stops clock (only called for scene clock)*/
@@ -720,15 +762,17 @@ struct _od_manager
 	/*the service used by this ODM. If the service private data is this ODM, then the service was created for this ODM*/
 	GF_ClientService *net_service;
 	/*parent scene or NULL for root scene*/
-	struct _inline_scene *parentscene;
+	GF_Scene *parentscene;
 	/*channels associated with this object (media channels, OCR, IPMP, OCI, etc)*/
 	GF_List *channels;
 	/*sub scene for inline/animation or NULL */
-	struct _inline_scene *subscene;
+	GF_Scene *subscene;
 	/*object codec (media or BIFS for AnimationStream) attached if any*/
 	struct _generic_codec *codec;
+#ifndef GPAC_MINIMAL_ODF
 	/*OCI codec attached if any*/
 	struct _generic_codec *oci_codec;
+#endif
 	/*OCR codec attached if any*/
 	struct _generic_codec *ocr_codec;
 
@@ -761,12 +805,14 @@ struct _od_manager
 
 	u32 action_type;
 
+#ifndef GPAC_DISABLE_VRML
 	/*the one and only media control currently attached to this object*/
 	struct _media_control *media_ctrl;
 	/*the list of media control controling the object*/
 	GF_List *mc_stack;
 	/*the media sensor(s) attached to this object*/
 	GF_List *ms_stack;
+#endif
 };
 
 
@@ -796,8 +842,6 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close);
 ONLY called by service handler (media manager thread)*/
 void gf_odm_play(GF_ObjectManager *odm);
 
-/*returns 1 if this is a segment switch, 0 otherwise - takes care of object restart if segment switch*/
-Bool gf_odm_check_segment_switch(GF_ObjectManager *odm);
 /*pause object (mediaControl use only)*/
 void gf_odm_pause(GF_ObjectManager *odm);
 /*resume object (mediaControl use only)*/
@@ -882,7 +926,8 @@ Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt);
 /*media access events */
 void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type);
 
-u32 URL_GetODID(MFURL *url);
+/*checks the URL and returns the ODID (MPEG-4 od://) or GF_MEDIA_EXTERNAL_ID for all regular URLs*/
+u32 gf_mo_get_od_id(MFURL *url);
 
 #ifdef __cplusplus
 }

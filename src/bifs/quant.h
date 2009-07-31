@@ -28,7 +28,7 @@
 
 #include <gpac/internal/bifs_dev.h>
 
-//#define QP_PI		3.1415926535897932384626433832795
+#ifndef GPAC_DISABLE_BIFS
 
 /*Quantization Categories*/
 enum
@@ -106,5 +106,6 @@ s32 gp_bifs_aa_decode(GF_AADecoder *dec, GF_AAModel *model);
 /*reset decoder - called after each parsed I frame*/
 void gp_bifs_aa_dec_reset(GF_AADecoder *dec);
 
+#endif /*GPAC_DISABLE_BIFS*/
 
 #endif	

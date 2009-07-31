@@ -25,6 +25,8 @@
 
 #include <gpac/internal/odf_dev.h>
 
+#ifndef GPAC_MINIMAL_ODF
+
 
 //from OD
 GF_Err gf_odf_write_descriptor_list(GF_BitStream *bs, GF_List *descList);
@@ -420,3 +422,5 @@ OCIEvent *gf_oci_codec_get_event(OCICodec *codec)
 	gf_list_rem(codec->OCIEvents, 0);
 	return ev;
 }
+
+#endif /*GPAC_MINIMAL_ODF*/

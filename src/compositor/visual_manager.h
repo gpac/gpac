@@ -48,10 +48,13 @@ struct _visual_manager
 #endif
 
 
+#ifndef GPAC_DISABLE_VRML
 	/*background stack*/
 	GF_List *back_stack;
 	/*viewport stack*/
 	GF_List *view_stack;
+#endif
+
 
 	/*size in pixels*/
 	u32 width, height;
@@ -122,10 +125,13 @@ struct _visual_manager
 	 *	Visual Manager part for 3D drawing 
 	 */
 
+#ifndef GPAC_DISABLE_VRML
 	/*navigation stack*/
 	GF_List *navigation_stack;
 	/*fog stack*/
 	GF_List *fog_stack;
+#endif
+
 
 	/*the one and only camera associated with the visual*/
 	GF_Camera camera;

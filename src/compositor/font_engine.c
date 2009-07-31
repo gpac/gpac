@@ -771,7 +771,7 @@ static void span_strike_3d(GF_TextSpan *span, GF_TraverseState *tr_state, DrawAs
 #ifndef GPAC_USE_OGL_ES
 		if (vect_outline) {
 			GF_Path *outline = gf_path_get_outline(path, asp->pen_props);
-			TesselatePath(span->ext->outline, outline, asp->line_texture ? 2 : 1);
+			gf_mesh_tesselate_path(span->ext->outline, outline, asp->line_texture ? 2 : 1);
 			gf_path_del(outline);
 		} else {
 			mesh_get_outline(span->ext->outline, path);
@@ -818,6 +818,7 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 		which is too onerous (and not supported anyway) */
 		if (text_hl == 0x00FFFFFF) {
 			if (!asp) {
+#ifndef GPAC_DISABLE_VRML
 				if (tr_state->appear) {
 					SFColor c, rc;
 					c = ((M_Material *) ((M_Appearance *)  tr_state->appear)->material)->diffuseColor;
@@ -830,7 +831,9 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 					((M_Material *) ((M_Appearance *)  tr_state->appear)->material)->diffuseColor = rc;
 					visual_3d_setup_appearance(tr_state);
 					((M_Material *) ((M_Appearance *)  tr_state->appear)->material)->diffuseColor = c;
-				} else {
+				} else 
+#endif /*GPAC_DISABLE_VRML*/
+				{
 					hl_color.red = hl_color.green = hl_color.blue = 0;
 					hl_color.alpha = FIX_ONE;
 				}
@@ -1418,9 +1421,12 @@ picked:
 	compositor->hit_texcoords.x = gf_divfix(x, node_bounds->width) + FIX_ONE/2;
 	compositor->hit_texcoords.y = gf_divfix(y, node_bounds->height) + FIX_ONE/2;
 
+#ifndef GPAC_DISABLE_VRML
 	if (compositor_is_composite_texture(tr_state->appear)) {
 		compositor->hit_appear = tr_state->appear;
-	} else {
+	} else 
+#endif /*GPAC_DISABLE_VRML*/
+	{
 		compositor->hit_appear = NULL;
 	}
 

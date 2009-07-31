@@ -27,6 +27,8 @@
 #include <gpac/avparse.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 typedef struct
 {
 	GF_ClientService *service;
@@ -623,6 +625,8 @@ void AC3_Delete(void *ifce)
 	free(plug);
 }
 
+#endif /*GPAC_DISABLE_AV_PARSERS*/
+
 #ifdef GPAC_HAS_LIBA52
 GF_BaseDecoder *NewAC3Dec();
 void DeleteAC3Dec(GF_BaseDecoder *ifcg);
@@ -631,7 +635,9 @@ void DeleteAC3Dec(GF_BaseDecoder *ifcg);
 GF_EXPORT
 Bool QueryInterface(u32 InterfaceType) 
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
+#endif
 #ifdef GPAC_HAS_LIBA52
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
 #endif
@@ -641,7 +647,9 @@ Bool QueryInterface(u32 InterfaceType)
 GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
+#ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)AC3_Load();
+#endif
 #ifdef GPAC_HAS_LIBA52
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewAC3Dec();
 #endif
@@ -657,8 +665,10 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		DeleteAC3Dec((GF_BaseDecoder *)ifce);
 		break;
 #endif
+#ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_NET_CLIENT_INTERFACE:
 		AC3_Delete(ifce);
 		break;
+#endif
 	}
 }

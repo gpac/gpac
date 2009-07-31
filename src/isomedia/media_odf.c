@@ -24,6 +24,8 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#ifndef GPAC_DISABLE_ISOM
+
 // Rewrite the good dependancies when an OD AU is extracted from the file
 GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 {
@@ -514,3 +516,5 @@ u32 gf_isom_find_od_for_track(GF_ISOFile *file, u32 track)
 	}
 	return 0;
 }
+
+#endif /*GPAC_DISABLE_ISOM*/

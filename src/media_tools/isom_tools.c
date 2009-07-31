@@ -27,7 +27,9 @@
 #include <gpac/media_tools.h>
 #include <gpac/constants.h>
 
-#ifndef GPAC_READ_ONLY
+#ifndef GPAC_DISABLE_ISOM
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
 
 static const u32 ISMA_VIDEO_OD_ID = 20;
 static const u32 ISMA_AUDIO_OD_ID = 10;
@@ -209,6 +211,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 			gf_isom_get_track_layout_info(mp4file, VideoTrack, &w, &h, NULL, NULL, NULL);
 			if (!w || !h) {
 				gf_isom_get_visual_info(mp4file, VideoTrack, 1, &w, &h);
+#ifndef GPAC_DISABLE_AV_PARSERS
 				if ((v_esd->decoderConfig->objectTypeIndication==0x20) && (v_esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
 					GF_M4VDecSpecInfo dsi;
 					gf_m4v_get_config(v_esd->decoderConfig->decoderSpecificInfo->data, v_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
@@ -224,6 +227,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 					}
 					if (dsi.VideoPL) visualPL = dsi.VideoPL;
 				}
+#endif
 			}
 		}
 	}
@@ -249,11 +253,13 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 				bifs = 2;
 			}
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 			if (a_esd->decoderConfig->objectTypeIndication == 0x40) {
 				GF_M4ADecSpecInfo cfg;
 				gf_m4a_get_config(a_esd->decoderConfig->decoderSpecificInfo->data, a_esd->decoderConfig->decoderSpecificInfo->dataLength, &cfg);
 				audioPL = cfg.audioPL;
 			}
+#endif
 		}
 	}
 
@@ -956,7 +962,7 @@ err_exit:
 	return e;
 }
 
-#endif //GPAC_READ_ONLY
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 GF_EXPORT
 GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
@@ -1097,3 +1103,5 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	gf_bs_del(bs);
 	return esd;
 }
+
+#endif /*GPAC_DISABLE_ISOM*/

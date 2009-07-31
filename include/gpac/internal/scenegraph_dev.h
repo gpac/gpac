@@ -159,34 +159,12 @@ struct __tag_scene_graph
 	/*all DEF nodes (explicit)*/
 	NodeIDedItem *id_node, *id_node_last;
 
-	/*all routes available*/
-	GF_List *Routes;
-
-	/*all routes available*/
-	GF_List *exported_nodes;
-
-	/*when a proto is instanciated it creates its own scene graph. BIFS/VRML specify that the namespace is the same 
-	(eg cannot reuse a NodeID or route name/ID), but this could be done differently by some other stds
-	if NULL this is the main scenegraph*/
-	struct _proto_instance *pOwningProto;
-
-	/*all first-level protos of the graph (the only ones that can be instanciated in this graph)*/
-	GF_List *protos;
-	/*all first-level protos of the graph not currently registered - memory handling of graph only*/
-	GF_List *unregistered_protos;
-
 	/*pointer to the root node*/
 	GF_Node *RootNode;
 
-	/*routes to be activated (cascade model). This is used at the top-level graph only (eg
-	proto routes use that too, ecept ISed fields). It is the app responsability to 
-	correctly connect or browse scene graphs connected through Inline*/
-	GF_List *routes_to_activate;
+	/*nodes exported from this scene graph*/
+	GF_List *exported_nodes;
 
-	/*since events may trigger deletion of objects we use a 2 step delete*/
-	GF_List *routes_to_destroy;
-
-	u32 simulation_tick;
 
 	/*user private data*/
 	void *userpriv;
@@ -197,7 +175,7 @@ struct __tag_scene_graph
 	/*real scene time callback*/
 	Double (*GetSceneTime)(void *userpriv);
 
-	GF_SceneGraph *(*GetExternProtoLib)(void *userpriv, MFURL *lib_url);
+
 
 	/*parent scene if any*/
 	struct __tag_scene_graph *parent_scene;
@@ -218,26 +196,58 @@ struct __tag_scene_graph
 	/*callback to JS upon node modif*/
 	void (*on_node_modified)(struct __tag_scene_graph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
 
-	u32 max_defined_route_id;
+#ifdef GF_SELF_REPLACE_ENABLE
+	/*to detect replace scene from within conditionals*/
+	Bool graph_has_been_reset;
+#endif
+
 
 	/*namespaces list. This list is used while parsing/dumping the tree to store the hierarchy of xmlns attributes in subtrees.
 	It is a stack of GF_XMLNS structures pushed/popped at each element*/
 	GF_List *ns;
 
-#ifdef GF_SELF_REPLACE_ENABLE
-	/*to detect replace scene from within conditionals*/
-	Bool graph_has_been_reset;
-#endif
-	/*global qp used in BIFS coding*/
-	GF_Node *global_qp;
-
-	/*use stack as used in the dom_fire_event - this is only valid during an event fire, and may be NULL*/
-	GF_List *use_stack;
-
 	/*temp storage for name conversions*/
 	char szNameBuffer[100];
 
+#ifndef GPAC_DISABLE_VRML
+
+	/*all routes available*/
+	GF_List *Routes;
+
+	/*when a proto is instanciated it creates its own scene graph. BIFS/VRML specify that the namespace is the same 
+	(eg cannot reuse a NodeID or route name/ID), but this could be done differently by some other stds
+	if NULL this is the main scenegraph*/
+	struct _proto_instance *pOwningProto;
+
+	/*all first-level protos of the graph (the only ones that can be instanciated in this graph)*/
+	GF_List *protos;
+	/*all first-level protos of the graph not currently registered - memory handling of graph only*/
+	GF_List *unregistered_protos;
+
+	/*routes to be activated (cascade model). This is used at the top-level graph only (eg
+	proto routes use that too, ecept ISed fields). It is the app responsability to 
+	correctly connect or browse scene graphs connected through Inline*/
+	GF_List *routes_to_activate;
+
+	/*since events may trigger deletion of objects we use a 2 step delete*/
+	GF_List *routes_to_destroy;
+
+	u32 simulation_tick;
+
+	GF_SceneGraph *(*GetExternProtoLib)(void *userpriv, MFURL *lib_url);
+
+	u32 max_defined_route_id;
+
+	/*global qp used in BIFS coding*/
+	GF_Node *global_qp;
+#endif
+
+
 #ifndef GPAC_DISABLE_SVG
+	/*use stack as used in the dom_fire_event - this is only valid during an event fire, and may be NULL*/
+	GF_List *use_stack;
+
+
 	GF_DOMEventTarget dom_evt;
 	u32 nb_evts_focus;
 	u32 nb_evts_mouse;
@@ -298,6 +308,19 @@ void gf_node_changed_internal(GF_Node *node, GF_FieldInfo *field, Bool notify_sc
 
 void gf_node_dirty_parent_graph(GF_Node *node);
 
+
+/*BASE node (GF_Node) destructor*/
+void gf_node_free(GF_Node *node);
+
+/*node destructor dispatcher: redirects destruction for each graph type: VRML/MPEG4, X3D, SVG...)*/
+void gf_node_del(GF_Node *node);
+
+/*creates an undefined GF_Node - for parsing only*/
+GF_Node *gf_sg_new_base_node();
+
+
+#ifndef GPAC_DISABLE_VRML
+
 struct _route
 {
 	u8 is_setup;
@@ -322,9 +345,7 @@ void gf_sg_route_unqueue(GF_SceneGraph *sg, GF_Route *r);
 /*returns TRUE if route modified destination node*/
 Bool gf_sg_route_activate(GF_Route *r);
 void gf_sg_route_queue(GF_SceneGraph *pSG, GF_Route *r);
-
 void gf_sg_destroy_routes(GF_SceneGraph *sg);
-
 void gf_sg_route_setup(GF_Route *r);
 
 
@@ -346,9 +367,9 @@ u32 gf_sg_x3d_node_get_field_count(GF_Node *node);
 void gf_sg_x3d_node_del(GF_Node *node);
 const char *gf_sg_x3d_node_get_class_name(u32 NodeTag);
 s32 gf_sg_x3d_node_get_field_index_by_name(GF_Node *node, char *name);
-
 Bool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag);
 
+/*VRML/X3D types*/
 void gf_sg_mfint32_del(MFInt32 par);
 void gf_sg_mffloat_del(MFFloat par);
 void gf_sg_mfdouble_del(MFDouble par);
@@ -372,12 +393,172 @@ void gf_sg_sfurl_del(SFURL url);
 Bool gf_sg_vrml_node_init(GF_Node *node);
 Bool gf_sg_vrml_node_changed(GF_Node *node, GF_FieldInfo *field);
 
+char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info);
+
+
+
+//
+//		MF Fields tools
+//	WARNING: MF / SF Nodes CANNOT USE THESE FUNCTIONS
+//
+
+//return the size (in bytes) of fixed fields (buffers are handled as a char ptr , 1 byte)
+u32 gf_sg_vrml_get_sf_size(u32 FieldType);
+
+/*returns field type from its name*/
+u32 gf_sg_field_type_by_name(char *fieldType);
+
+/*clones the command in another graph - needed for uncompressed conditional in protos
+if force_clone is not set and the target graph is the same as the command graph, nodes are just registered
+with the new commands rather than cloned*/
+GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bool force_clone);
+
+
+/*
+			Proto node
+
+*/
+
+/*field interface to codec. This is used to do the node decoding, index translation
+and all QP/BIFS Anim parsing. */
+struct _protofield
+{
+	u8 EventType;
+	u8 FieldType;
+	/*if UseName, otherwise fieldN*/
+	char *FieldName;
+
+	/*default field value*/
+	void *def_value;
+	
+	GF_Node *def_sfnode_value;
+	GF_ChildNodeItem *def_mfnode_value;
+
+	/*coding indexes*/
+	u32 IN_index, OUT_index, DEF_index, ALL_index;
+
+	/*Quantization*/
+	u32 QP_Type, hasMinMax;
+	void *qp_min_value, *qp_max_value;
+	/*this is for QP=13 only*/
+	u32 NumBits;
+
+	/*Animation*/
+	u32 Anim_Type;
+
+	void *userpriv;
+	void (*OnDelete)(void *ptr);
+};
+
+GF_ProtoFieldInterface *gf_sg_proto_new_field_interface(u32 FieldType);
+
+/*set QP and anim info for a proto field (BIFS allows for that in proto coding)*/
+GF_Err gf_bifs_proto_field_set_aq_info(GF_ProtoFieldInterface *field, u32 QP_Type, u32 hasMinMax, u32 QPSFType, void *qp_min_value, void *qp_max_value, u32 QP13_NumBits);
+
+/*proto field instance. since it is useless to duplicate all coding info, names and the like
+we seperate proto declaration and proto instanciation*/
+typedef struct 
+{
+	u8 EventType;
+	u8 FieldType;
+	u8 has_been_accessed;
+	void *field_pointer;
+} GF_ProtoField;
+
+
+struct _proto
+{
+	/*1 - Prototype interface*/
+	u32 ID;
+	char *Name;
+	GF_List *proto_fields;
+
+	/*pointer to parent scene graph*/
+	struct __tag_scene_graph *parent_graph;
+	/*pointer to proto scene graph*/
+	struct __tag_scene_graph *sub_graph;
+
+	/*2 - proto implementation as declared in the bitstream*/
+	GF_List *node_code;
+
+	/*num fields*/
+	u32 NumIn, NumOut, NumDef, NumDyn;
+
+	void *userpriv;
+	void (*OnDelete)(void *ptr);
+
+	/*URL of extern proto lib (if none, URL is empty)*/
+	MFURL ExternProto;
+
+	/*list of instances*/
+	GF_List *instances;
+};
+
+/*proto field API*/
+u32 gf_sg_proto_get_num_fields(GF_Node *node, u8 code_mode);
+GF_Err gf_sg_proto_get_field(GF_Proto *proto, GF_Node *node, GF_FieldInfo *field);
+
+enum
+{
+	GF_SG_PROTO_LOADED	=	1,
+	GF_SG_PROTO_IS_GROUPING =	2,
+};
+
+typedef struct _proto_instance
+{
+	/*this is a node*/
+	BASE_NODE
+
+	/*Prototype interface for coding and field addressing*/
+	GF_Proto *proto_interface;
+
+	/*proto implementation at run-time (aka the state of the nodes may differ accross
+	different instances of the proto)*/
+	GF_List *fields;
+
+	/*a proto doesn't have one root SFnode but a collection of nodes for implementation*/
+	GF_List *node_code;
+
+	/*node for proto rendering, first of all declared nodes*/
+	GF_Node *RenderingNode;
+
+	/*in case the PROTO is destroyed*/
+	char *proto_name;
+
+	/*scripts are loaded once all IS routes are activated and node code is loaded*/
+	GF_List *scripts_to_load;
+
+	u32 flags;
+} GF_ProtoInstance;
+
+/*destroy proto*/
+void gf_sg_proto_del_instance(GF_ProtoInstance *inst);
+GF_Err gf_sg_proto_get_field_index(GF_ProtoInstance *proto, u32 index, u32 code_mode, u32 *all_index);
+Bool gf_sg_proto_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits);
+GF_Err gf_sg_proto_get_field_ind_static(GF_Node *Node, u32 inField, u8 IndexMode, u32 *allField);
+GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_ProtoInstance *from_inst);
+void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node);
+
+/*get tag of first node in proto code - used for validation only*/
+u32 gf_sg_proto_get_root_tag(GF_Proto *proto);
+
+
+/*to call when a proto field has been modified (at creation or through commands, modifications through events 
+are handled internally).
+node can be the proto instance or a node from the proto code
+this will call NodeChanged if needed, forward to proto/node or trigger any route if needed*/
+void gf_sg_proto_propagate_event(GF_Node *node, u32 fieldIndex, GF_Node *from_node);
+
+s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *name);
+
+GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id_suffix);
+
+#endif /*GPAC_DISABLE_VRML*/
+
 
 /*specialized node unregister for Memory Commands - checks if the node(s) used in the command have been destroyed
 during the reset. If so don't attempt to unregister the node*/
 GF_Err gf_node_try_destroy(GF_SceneGraph *sg, GF_Node *pNode, GF_Node *parentNode);
-
-char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info);
 
 #ifndef GPAC_DISABLE_SVG
 
@@ -661,168 +842,6 @@ void gf_smil_timing_resume(GF_Node *node);
 #endif
 
 
-//
-//		MF Fields tools
-//	WARNING: MF / SF Nodes CANNOT USE THESE FUNCTIONS
-//
-
-//return the size (in bytes) of fixed fields (buffers are handled as a char ptr , 1 byte)
-u32 gf_sg_vrml_get_sf_size(u32 FieldType);
-
-
-/*BASE node (GF_Node) destructor*/
-void gf_node_free(GF_Node *node);
-
-/*node destructor dispatcher: redirects destruction for each graph type: VRML/MPEG4, X3D, SVG...)*/
-void gf_node_del(GF_Node *node);
-
-/*creates an undefined GF_Node - for parsing only*/
-GF_Node *gf_sg_new_base_node();
-
-/*returns field type from its name*/
-u32 gf_sg_field_type_by_name(char *fieldType);
-
-
-
-/*
-			Proto node
-
-*/
-
-/*field interface to codec. This is used to do the node decoding, index translation
-and all QP/BIFS Anim parsing. */
-struct _protofield
-{
-	u8 EventType;
-	u8 FieldType;
-	/*if UseName, otherwise fieldN*/
-	char *FieldName;
-
-	/*default field value*/
-	void *def_value;
-	
-	GF_Node *def_sfnode_value;
-	GF_ChildNodeItem *def_mfnode_value;
-
-	/*coding indexes*/
-	u32 IN_index, OUT_index, DEF_index, ALL_index;
-
-	/*Quantization*/
-	u32 QP_Type, hasMinMax;
-	void *qp_min_value, *qp_max_value;
-	/*this is for QP=13 only*/
-	u32 NumBits;
-
-	/*Animation*/
-	u32 Anim_Type;
-
-	void *userpriv;
-	void (*OnDelete)(void *ptr);
-};
-
-GF_ProtoFieldInterface *gf_sg_proto_new_field_interface(u32 FieldType);
-
-/*set QP and anim info for a proto field (BIFS allows for that in proto coding)*/
-GF_Err gf_bifs_proto_field_set_aq_info(GF_ProtoFieldInterface *field, u32 QP_Type, u32 hasMinMax, u32 QPSFType, void *qp_min_value, void *qp_max_value, u32 QP13_NumBits);
-
-/*proto field instance. since it is useless to duplicate all coding info, names and the like
-we seperate proto declaration and proto instanciation*/
-typedef struct 
-{
-	u8 EventType;
-	u8 FieldType;
-	u8 has_been_accessed;
-	void *field_pointer;
-} GF_ProtoField;
-
-
-struct _proto
-{
-	/*1 - Prototype interface*/
-	u32 ID;
-	char *Name;
-	GF_List *proto_fields;
-
-	/*pointer to parent scene graph*/
-	struct __tag_scene_graph *parent_graph;
-	/*pointer to proto scene graph*/
-	struct __tag_scene_graph *sub_graph;
-
-	/*2 - proto implementation as declared in the bitstream*/
-	GF_List *node_code;
-
-	/*num fields*/
-	u32 NumIn, NumOut, NumDef, NumDyn;
-
-	void *userpriv;
-	void (*OnDelete)(void *ptr);
-
-	/*URL of extern proto lib (if none, URL is empty)*/
-	MFURL ExternProto;
-
-	/*list of instances*/
-	GF_List *instances;
-};
-
-/*proto field API*/
-u32 gf_sg_proto_get_num_fields(GF_Node *node, u8 code_mode);
-GF_Err gf_sg_proto_get_field(GF_Proto *proto, GF_Node *node, GF_FieldInfo *field);
-
-enum
-{
-	GF_SG_PROTO_LOADED	=	1,
-	GF_SG_PROTO_IS_GROUPING =	2,
-};
-
-typedef struct _proto_instance
-{
-	/*this is a node*/
-	BASE_NODE
-
-	/*Prototype interface for coding and field addressing*/
-	GF_Proto *proto_interface;
-
-	/*proto implementation at run-time (aka the state of the nodes may differ accross
-	different instances of the proto)*/
-	GF_List *fields;
-
-	/*a proto doesn't have one root SFnode but a collection of nodes for implementation*/
-	GF_List *node_code;
-
-	/*node for proto rendering, first of all declared nodes*/
-	GF_Node *RenderingNode;
-
-	/*in case the PROTO is destroyed*/
-	char *proto_name;
-
-	/*scripts are loaded once all IS routes are activated and node code is loaded*/
-	GF_List *scripts_to_load;
-
-	u32 flags;
-} GF_ProtoInstance;
-
-/*destroy proto*/
-void gf_sg_proto_del_instance(GF_ProtoInstance *inst);
-GF_Err gf_sg_proto_get_field_index(GF_ProtoInstance *proto, u32 index, u32 code_mode, u32 *all_index);
-Bool gf_sg_proto_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fixed *b_min, Fixed *b_max, u32 *QT13_bits);
-GF_Err gf_sg_proto_get_field_ind_static(GF_Node *Node, u32 inField, u8 IndexMode, u32 *allField);
-GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_ProtoInstance *from_inst);
-void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node);
-
-/*get tag of first node in proto code - used for validation only*/
-u32 gf_sg_proto_get_root_tag(GF_Proto *proto);
-
-
-/*to call when a proto field has been modified (at creation or through commands, modifications through events 
-are handled internally).
-node can be the proto instance or a node from the proto code
-this will call NodeChanged if needed, forward to proto/node or trigger any route if needed*/
-void gf_sg_proto_propagate_event(GF_Node *node, u32 fieldIndex, GF_Node *from_node);
-
-s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *name);
-
-GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_parent, char *inst_id_suffix);
-
 
 /*
 		Script node
@@ -901,7 +920,7 @@ struct _scriptfield
 	the_class.resolve = JS_ResolveStub;		\
 	the_class.convert = JS_ConvertStub;		\
 	the_class.finalize = fin;	\
-	the_class.hasInstance = js_has_instance;
+	the_class.hasInstance = my_js_has_instance;
 
 struct JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg);
 void gf_sg_ecmascript_del(struct JSContext *);
@@ -941,7 +960,6 @@ struct _node_js_binding
 
 
 #ifndef GPAC_DISABLE_SVG
-void JSScript_LoadSVG(GF_Node *node);
 
 typedef struct __tag_svg_script_ctx 
 {

@@ -23,6 +23,9 @@
  */
 
 #include <gpac/internal/ietf_dev.h>
+
+#ifndef GPAC_DISABLE_STREAMING
+
 #include <gpac/token.h>
 
 
@@ -706,3 +709,4 @@ exit:
 	return e;
 }
 
+#endif /*GPAC_DISABLE_STREAMING*/

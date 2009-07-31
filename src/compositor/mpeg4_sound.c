@@ -27,6 +27,8 @@
 #include "nodes_stacks.h"
 #include "visual_manager.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 typedef struct
 {
 	GF_SoundInterface snd_ifce;
@@ -279,5 +281,6 @@ void compositor_init_sound(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, TraverseSound);
 }
 
-#endif
+#endif /*GPAC_DISABLE_3D*/
 
+#endif /*GPAC_DISABLE_VRML*/
