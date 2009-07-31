@@ -1,13 +1,19 @@
 include ../config.mak
 
-APPDIRS= mp4box mp4client testapps/mp4_streamer testapps/mp42ts
-#APPDIRS= mp4client 
+APPDIRS= mp4client 
+
+ifeq ($(DISABLE_ISOFF), no)
+APPDIRS += mp4box testapps/mp4_streamer testapps/mp42ts
+endif
+
 ifeq ($(SRC_LOCAL_PATH), yes)
 ifeq ($(TARGET_ARCH_ARMV4L), yes)
 else
 APPDIRS +=generators
 endif
 endif
+
+
 
 V4STUDIODIR=
 INSTDIRS=mp4client
