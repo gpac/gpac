@@ -110,7 +110,9 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines)
 	/*MPEG-4 / VRML / X3D only*/
 	case TAG_MPEG4_AudioClip: 
 	case TAG_MPEG4_AudioSource: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_AudioClip: 
+#endif
 		obj_type = GF_MEDIA_OBJECT_AUDIO; 
 		break;
 	case TAG_MPEG4_AnimationStream: 
@@ -123,13 +125,17 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines)
 	case TAG_MPEG4_Background: 
 	case TAG_MPEG4_ImageTexture:
 	case TAG_MPEG4_MovieTexture: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Background: 
 	case TAG_X3D_ImageTexture:
 	case TAG_X3D_MovieTexture:
+#endif
 		obj_type = GF_MEDIA_OBJECT_VIDEO; 
 		break;
 	case TAG_MPEG4_Inline: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Inline: 
+#endif
 		obj_type = GF_MEDIA_OBJECT_SCENE; 
 		break;
 #endif /*GPAC_DISABLE_VRML*/

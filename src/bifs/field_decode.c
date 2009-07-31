@@ -231,7 +231,11 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		*((GF_Node **) field->far_ptr) = new_node;
 		break;
 	case GF_SG_VRML_SFSCRIPT:
+#ifdef GPAC_HAS_SPIDERMONKEY
 		codec->LastError = SFScript_Parse(codec, (SFScript*)field->far_ptr, bs, node);
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 		break;
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -466,7 +470,13 @@ GF_Err gf_bifs_dec_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 		/*predictiveMFField*/
 		if (codec->info->config.UsePredictiveMFField) {
 			flag = gf_bs_read_int(bs, 1);
-			if (flag)  return gf_bifs_dec_pred_mf_field(codec, bs, node, field);
+			if (flag)  
+#ifdef GPAC_ENABLE_BIFS_PMF
+				return gf_bifs_dec_pred_mf_field(codec, bs, node, field);
+#else
+				return GF_NOT_SUPPORTED;
+#endif
+
 		}
 
 		/*reserved*/

@@ -27,7 +27,7 @@
 
 #include <gpac/internal/bifs_dev.h>
 
-#ifndef GPAC_DISABLE_BIFS
+#if !defined(GPAC_DISABLE_BIFS) && defined(GPAC_HAS_SPIDERMONKEY)
 
 #define NUMBITS_STATEMENT	3
 #define NUMBITS_EXPR_TYPE	6
@@ -104,6 +104,6 @@ enum
 GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStream *bs, GF_Node *n);
 GF_Err SFScript_Encode(GF_BifsEncoder *codec, SFScript *script_field, GF_BitStream *bs, GF_Node *n);
 
-#endif /*GPAC_DISABLE_BIFS*/
+#endif /* !defined(GPAC_DISABLE_BIFS) && defined(GPAC_HAS_SPIDERMONKEY) */
 
 #endif

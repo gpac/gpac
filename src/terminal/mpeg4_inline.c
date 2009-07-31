@@ -99,7 +99,9 @@ void gf_inline_on_modified(GF_Node *node)
 
 				switch (gf_node_get_tag(node)) {
 				case TAG_MPEG4_Inline:
+#ifndef GPAC_DISABLE_X3D
 				case TAG_X3D_Inline:
+#endif
 					gf_node_set_private(node, NULL);
 					break;
 				}

@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Jun 25 11:28:59 2009
+	DO NOT MOFIFY - File generated on GMT Fri Jul 31 14:46:14 2009
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -35,7 +35,6 @@
 #include <gpac/internal/scenegraph_dev.h>
 
 #ifndef GPAC_DISABLE_VRML
-
 
 /*
 	Anchor Node deletion
@@ -34059,4 +34058,5 @@ s32 gf_sg_mpeg4_node_get_field_index_by_name(GF_Node *node, char *name)
 	}
 }
 
-#endif	/*GPAC_DISABLE_VRML*/
+
+#endif /*GPAC_DISABLE_VRML*/

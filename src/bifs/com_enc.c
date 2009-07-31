@@ -26,7 +26,7 @@
 #include <gpac/internal/bifs_dev.h>
 #include "quant.h" 
 
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 
 GF_Err BE_EncProtoList(GF_BifsEncoder *codec, GF_List *protoList, GF_BitStream *bs);
 
@@ -972,4 +972,4 @@ GF_Err gf_bifs_encoder_get_rap(GF_BifsEncoder *codec, char **out_data, u32 *out_
 	return e;
 }
 
-#endif	/*GPAC_DISABLE_BIFS*/
+#endif	/*GPAC_DISABLE_BIFS_ENC*/

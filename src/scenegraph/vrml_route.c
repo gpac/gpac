@@ -321,8 +321,11 @@ Bool gf_sg_route_activate(GF_Route *r)
 		r->ToField.on_event_in(r->ToNode, r);
 	}
 	//if this is a script eventIn call directly script
-	else if (((r->ToNode->sgprivate->tag==TAG_MPEG4_Script) || (r->ToNode->sgprivate->tag==TAG_X3D_Script) ) 
-		&& ((r->ToField.eventType==GF_SG_EVENT_IN) /*|| (r->ToField.eventType==GF_SG_EVENT_FIELD)*/) ) {
+	else if (((r->ToNode->sgprivate->tag==TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+		|| (r->ToNode->sgprivate->tag==TAG_X3D_Script)
+#endif
+	) && ((r->ToField.eventType==GF_SG_EVENT_IN) /*|| (r->ToField.eventType==GF_SG_EVENT_FIELD)*/) ) {
 		gf_sg_script_event_in(r->ToNode, &r->ToField);
 	}
 	//check if ISed or not - this will notify the node of any changes

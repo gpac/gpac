@@ -24,7 +24,7 @@
 
 #include "quant.h"
 
-#ifndef GPAC_DISABLE_BIFS
+#ifdef GPAC_ENABLE_BIFS_PMF
 
 u32 gf_bifs_dec_qp14_get_bits(GF_BifsDecoder *codec);
 
@@ -447,4 +447,4 @@ err_exit:
 	return e;
 }
 
-#endif /*GPAC_DISABLE_BIFS*/
+#endif /*GPAC_ENABLE_BIFS_PMF*/

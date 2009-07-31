@@ -226,6 +226,7 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs)
 	f = BeginFile(0);
 
 	fprintf(f, "#include <gpac/scenegraph_vrml.h>\n\n");
+	fprintf(f, "#ifndef GPAC_DISABLE_X3D\n\n");
 
 	//write all tags
 	fprintf(f, "\n\nenum {\n");
@@ -277,6 +278,7 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs)
 		fprintf(f, "} X_%s;\n\n\n", n->name);
 	}
 
+	fprintf(f, "#endif /*GPAC_DISABLE_X3D*/\n\n");
 	EndFile(f, 0);
 
 }
@@ -350,6 +352,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 	fprintf(vrml_code, "\n#include <gpac/nodes_x3d.h>\n");
 	fprintf(vrml_code, "\n#include <gpac/internal/scenegraph_dev.h>\n");
 	fprintf(vrml_code, "\n/*for NDT tag definitions*/\n#include <gpac/nodes_mpeg4.h>\n");
+	fprintf(vrml_code, "#ifndef GPAC_DISABLE_X3D\n\n");
 
 	for (k=0; k<gf_list_count(BNodes); k++) {
 		Bool is_parent = 0;
@@ -1234,6 +1237,7 @@ int main (int argc, char **argv)
 	WriteNodeCode(XNodes, nodes);
 
 	WriteNDT(nodes, XNodes, NDTs);
+	fprintf(nodes, "#endif /*GPAC_DISABLE_X3D*/\n\n");
 
 	EndFile(nodes, 1);
 

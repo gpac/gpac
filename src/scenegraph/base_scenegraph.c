@@ -762,7 +762,9 @@ exit:
 	always registered in MF/SFNodes fields of the script.*/
 	switch (FromNode->sgprivate->tag) {
 	case TAG_MPEG4_Script:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Script:
+#endif
 		if (FromNode->sgprivate->scenegraph->on_node_modified)
 			FromNode->sgprivate->scenegraph->on_node_modified(FromNode->sgprivate->scenegraph, node, NULL, FromNode);
 		break;
@@ -1724,8 +1726,11 @@ void gf_node_del(GF_Node *node)
 #endif
 #ifndef GPAC_DISABLE_VRML
 	else if (node->sgprivate->tag<=GF_NODE_RANGE_LAST_MPEG4) gf_sg_mpeg4_node_del(node);
+#ifndef GPAC_DISABLE_X3D
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) gf_sg_x3d_node_del(node);
 #endif
+#endif /*GPAC_DISABLE_VRML*/
+
 #ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_SVG) gf_svg_node_del(node);
 #endif
@@ -1755,7 +1760,9 @@ const char *gf_node_get_class_name(GF_Node *node)
 #ifndef GPAC_DISABLE_VRML
 	else if (node->sgprivate->tag==TAG_ProtoNode) return ((GF_ProtoInstance*)node)->proto_name;
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_class_name(node->sgprivate->tag);
+#ifndef GPAC_DISABLE_X3D
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_class_name(node->sgprivate->tag);
+#endif
 #endif
 	else if (node->sgprivate->tag==TAG_DOMText) return "DOMText";
 	else if (node->sgprivate->tag==TAG_DOMFullNode) {
@@ -1784,8 +1791,11 @@ u32 gf_sg_node_get_tag_by_class_name(const char *name, u32 ns)
 	tag = gf_node_mpeg4_type_by_class_name(name);
 	if (tag) return tag;
 
+#ifndef GPAC_DISABLE_X3D
 	tag = gf_node_x3d_type_by_class_name(name);	
 	if (tag) return tag;
+#endif
+
 #endif
 
 #ifndef GPAC_DISABLE_SVG
@@ -1806,7 +1816,9 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 	else if (tag==TAG_UndefinedNode) node = gf_sg_new_base_node();
 #ifndef GPAC_DISABLE_VRML
 	else if (tag <= GF_NODE_RANGE_LAST_MPEG4) node = gf_sg_mpeg4_node_new(tag);
+#ifndef GPAC_DISABLE_X3D
 	else if (tag <= GF_NODE_RANGE_LAST_X3D) node = gf_sg_x3d_node_new(tag);
+#endif
 #endif
 	else if (tag == TAG_DOMText) {
 		GF_DOMText *n;
@@ -1832,7 +1844,9 @@ GF_Node *gf_node_new(GF_SceneGraph *inScene, u32 tag)
 #ifndef GPAC_DISABLE_VRML
 	switch (tag) {
 	case TAG_MPEG4_Script:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Script:
+#endif
 		gf_sg_script_init(node);
 		break;
 	}
@@ -1853,11 +1867,17 @@ GF_Err gf_node_get_field(GF_Node *node, u32 FieldIndex, GF_FieldInfo *info)
 	if (node->sgprivate->tag==TAG_UndefinedNode) return GF_BAD_PARAM;
 #ifndef GPAC_DISABLE_VRML
 	else if (node->sgprivate->tag == TAG_ProtoNode) return gf_sg_proto_get_field(NULL, node, info);
-	else if ((node->sgprivate->tag == TAG_MPEG4_Script) || (node->sgprivate->tag == TAG_X3D_Script) )
+	else if ((node->sgprivate->tag == TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+		|| (node->sgprivate->tag == TAG_X3D_Script) 
+#endif
+		)
 		return gf_sg_script_get_field(node, info);
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) return gf_sg_mpeg4_node_get_field(node, info);
+#ifndef GPAC_DISABLE_X3D
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) return gf_sg_x3d_node_get_field(node, info);
 #endif
+#endif /*GPAC_DISABLE_VRML*/
 
 #ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag >= GF_NODE_FIRST_DOM_NODE_TAG) return gf_node_get_attribute_info(node, info);
@@ -1892,12 +1912,18 @@ GF_Err gf_node_get_field_by_name(GF_Node *node, char *name, GF_FieldInfo *field)
 	else if (node->sgprivate->tag == TAG_ProtoNode) {
 		res = gf_sg_proto_get_field_index_by_name(NULL, node, name);
 	}
-	else if ((node->sgprivate->tag == TAG_MPEG4_Script) || (node->sgprivate->tag == TAG_X3D_Script) ) {
+	else if ((node->sgprivate->tag == TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+		|| (node->sgprivate->tag == TAG_X3D_Script) 
+#endif
+		) {
 		return gf_node_get_field_by_name_enum(node, name, field);
 	}
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_MPEG4) res = gf_sg_mpeg4_node_get_field_index_by_name(node, name);
+#ifndef GPAC_DISABLE_X3D
 	else if (node->sgprivate->tag <= GF_NODE_RANGE_LAST_X3D) res = gf_sg_x3d_node_get_field_index_by_name(node, name);
 #endif
+#endif /*GPAC_DISABLE_VRML*/
 
 #ifndef GPAC_DISABLE_SVG
 	else if (node->sgprivate->tag >= GF_NODE_FIRST_DOM_NODE_TAG) return gf_node_get_attribute_by_name(node, name, 0, 1, 0, field);

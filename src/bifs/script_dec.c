@@ -25,7 +25,7 @@
 
 #include "script.h"
 
-#ifndef GPAC_DISABLE_BIFS
+#if !defined(GPAC_DISABLE_BIFS) && defined(GPAC_HAS_SPIDERMONKEY)
 
 #define BINOP_MINVAL ET_EQ
 
@@ -779,4 +779,4 @@ void SFS_GetBoolean(ScriptParser *parser)
 	}
 }
 
-#endif /*GPAC_DISABLE_BIFS*/
+#endif /*!defined(GPAC_DISABLE_BIFS) && defined(GPAC_HAS_SPIDERMONKEY)*/

@@ -280,6 +280,8 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 	f = BeginFile("nodes_mpeg4", 0);
 
 	fprintf(f, "#include <gpac/scenegraph_vrml.h>\n\n");
+	fprintf(f, "#ifndef GPAC_DISABLE_VRML\n\n");
+
 
 	//write all tags
 	fprintf(f, "\n\nenum {\n");
@@ -376,6 +378,7 @@ void WriteNodesFile(GF_List *BNodes, GF_List *NDTs, u32 NumVersions)
 	}
 	fprintf(f, "\tGF_BIFS_LAST_VERSION = GF_BIFS_V%d\n};\n\n", i);
 	fprintf(f, "\n\n");
+	fprintf(f, "#endif /*GPAC_DISABLE_VRML*/\n\n");
 
 	EndFile(f, "nodes_mpeg4", 0);
 
@@ -806,6 +809,9 @@ void WriteNodeCode(GF_List *BNodes)
 
 	fprintf(f, "#include <gpac/nodes_mpeg4.h>\n\n");
 	fprintf(f, "\n#include <gpac/internal/scenegraph_dev.h>\n");
+
+	fprintf(f, "\n#ifndef GPAC_DISABLE_VRML\n");
+
 
 	for (k=0; k<gf_list_count(BNodes); k++) {
 		Bool is_parent = 0;
@@ -1314,6 +1320,7 @@ void WriteNodeCode(GF_List *BNodes)
 	}
 	fprintf(f, "\tdefault:\n\t\treturn -1;\n\t}\n}\n\n");
 
+	fprintf(f, "\n#endif /*GPAC_DISABLE_VRML*/\n");
 
 	EndFile(f, "", 1);
 }
@@ -1615,7 +1622,10 @@ int main (int argc, char **argv)
 	ndt_c = BeginFile("NDT", 1);
 
 	fprintf(ndt_h, "#include <gpac/nodes_mpeg4.h>\n\n");
+	fprintf(ndt_h, "\n\n#ifndef GPAC_DISABLE_BIFS\n");
+
 	fprintf(ndt_c, "\n\n#include <gpac/internal/bifs_tables.h>\n");
+	fprintf(ndt_c, "\n\n#ifndef GPAC_DISABLE_BIFS\n");
 	
 	//prepare the encoding file
 	fprintf(ndt_h, "\n\nu32 ALL_GetNodeType(const u32 *table, const u32 count, u32 NodeTag, u32 Version);\n\n");
@@ -1669,7 +1679,9 @@ int main (int argc, char **argv)
 		}
 	}
 	fprintf(ndt_c, "\tdefault:\n\t\treturn 0;\n\t}\n}\n\n");
+	fprintf(ndt_c, "\n\n#endif /*GPAC_DISABLE_BIFS*/\n\n");
 
+	fprintf(ndt_h, "\n\n#endif /*GPAC_DISABLE_BIFS*/\n\n");
 	EndFile(ndt_h, "NDT", 0);
 	EndFile(ndt_c, "", 1);
 	

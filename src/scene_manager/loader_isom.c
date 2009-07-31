@@ -25,7 +25,7 @@
 #include <gpac/scene_manager.h>
 #include <gpac/constants.h>
 #include <gpac/bifs.h>
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 #include <gpac/laser.h>
 #endif
 
@@ -143,7 +143,7 @@ GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 #ifndef GPAC_DISABLE_BIFS
 	GF_BifsDecoder *bifs_dec;
 #endif
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 	GF_LASeRCodec *lsr_dec;
 #endif
 
@@ -156,7 +156,7 @@ GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 #endif
 	od_dec = gf_odf_codec_new();
 	logs = NULL;
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 	lsr_dec = gf_laser_decoder_new(load->scene_graph);
 #endif
 	esd = NULL;
@@ -213,7 +213,7 @@ GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 			}
 #endif
 
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 			/*LASER*/
 			if (esd->decoderConfig->objectTypeIndication==0x09) {
 				if (!esd->dependsOnESID && nbBifs && !i) 
@@ -252,7 +252,7 @@ GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 				if (esd->decoderConfig->objectTypeIndication<=2) 
 					e = gf_bifs_decode_command_list(bifs_dec, esd->ESID, samp->data, samp->dataLength, au->commands);
 #endif
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 				if (esd->decoderConfig->objectTypeIndication==0x09) 
 					e = gf_laser_decode_command_list(lsr_dec, esd->ESID, samp->data, samp->dataLength, au->commands);
 #endif
@@ -288,7 +288,7 @@ exit:
 	gf_bifs_decoder_del(bifs_dec);
 #endif
 	gf_odf_codec_del(od_dec);
-#ifndef GPAC_DISABLE_SVG
+#ifndef GPAC_DISABLE_LASER
 	gf_laser_decoder_del(lsr_dec);
 #endif
 	if (esd) gf_odf_desc_del((GF_Descriptor *) esd);

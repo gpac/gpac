@@ -27,7 +27,7 @@
 #include "visual_manager.h"
 #include "drawable.h"
 
-#ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_X3D
 
 static void disk2d_check_changes(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
 {
@@ -1014,4 +1014,4 @@ void compositor_init_indexed_triangle_fan_set(GF_Compositor *compositor, GF_Node
 
 #endif /*GPAC_DISABLE_3D*/
 
-#endif /*GPAC_DISABLE_VRML*/
+#endif /*GPAC_DISABLE_X3D*/

@@ -32,7 +32,7 @@
 /*for key codes...*/
 #include <gpac/user.h>
 
-#ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_LOADER_BT
 
 #include <gpac/mpeg4_odf.h>
 
@@ -1006,7 +1006,9 @@ Bool gf_bt_check_ndt(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *node, GF_
 {
 	if (!node) return 1;
 	if (parent->sgprivate->tag == TAG_MPEG4_Script) return 1;
+#ifndef GPAC_DISABLE_X3D
 	if (parent->sgprivate->tag == TAG_X3D_Script) return 1;
+#endif
 	if (node->sgprivate->tag == TAG_UndefinedNode) return 1;
 
 	/*this handles undefined nodes*/
@@ -1127,17 +1129,24 @@ u32 gf_bt_get_node_tag(GF_BTParser *parser, char *node_name)
 	u32 tag;
 	/*if VRML and allowing non MPEG4 nodes, use X3D*/
 	if (parser->is_wrl && !(parser->load->flags & GF_SM_LOAD_MPEG4_STRICT)) {
+#ifndef GPAC_DISABLE_X3D
 		tag = gf_node_x3d_type_by_class_name(node_name);
-		if (!tag) tag = gf_node_mpeg4_type_by_class_name(node_name);
+		if (!tag) 
+#endif
+			tag = gf_node_mpeg4_type_by_class_name(node_name);
 		if (tag) return tag;
+#ifndef GPAC_DISABLE_X3D
 		if (!strcmp(node_name, "Rectangle")) return TAG_X3D_Rectangle2D;
 		if (!strcmp(node_name, "Circle")) return TAG_X3D_Circle2D;
+#endif
 	} else {
 		tag = gf_node_mpeg4_type_by_class_name(node_name);
 		if (!tag) {
 			if (!strcmp(node_name, "Rectangle2D")) return TAG_MPEG4_Rectangle;
 			if (!strcmp(node_name, "Circle2D")) return TAG_MPEG4_Circle;
+#ifndef GPAC_DISABLE_X3D
 			if (!(parser->load->flags & GF_SM_LOAD_MPEG4_STRICT)) return gf_node_x3d_type_by_class_name(node_name);
+#endif
 		}
 	}
 	return tag;
@@ -1235,7 +1244,11 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 		if (!parser->parsing_proto) init_node = 1;
 	}
 	is_script = 0;
-	if ((tag==TAG_MPEG4_Script) || (tag==TAG_X3D_Script))
+	if ((tag==TAG_MPEG4_Script) 
+#ifndef GPAC_DISABLE_X3D
+		|| (tag==TAG_X3D_Script)
+#endif
+		)
 		is_script = 1;
 
 	if (!node) {
@@ -1323,6 +1336,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 					}
 				} else {
 					/*remaps old VRML/MPEG4 to X3D if possible*/
+#ifndef GPAC_DISABLE_X3D
 					if ((tag==TAG_X3D_LOD) && !strcmp(str, "level")) {
 						str = "children";
 						parser->last_error = gf_node_get_field_by_name(node, str, &info);
@@ -1331,7 +1345,9 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 						str = "children";
 						parser->last_error = gf_node_get_field_by_name(node, str, &info);
 					}
-					else if (!strcmp(str, "collide")) {
+					else 
+#endif
+					if (!strcmp(str, "collide")) {
 						Bool b;
 						gf_bt_parse_bool(parser, "enabled", &b);
 						parser->last_error = GF_OK;
@@ -2654,6 +2670,7 @@ err:
 
 GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name);
 
+#ifndef GPAC_MINIMAL_ODF
 GF_IPMPX_Data *gf_bt_parse_ipmpx(GF_BTParser *parser, char *name)
 {
 	char *str, field[500];
@@ -2794,6 +2811,7 @@ GF_IPMPX_Data *gf_bt_parse_ipmpx(GF_BTParser *parser, char *name)
 	}
 	return desc;
 }
+#endif
 
 static void gf_bt_add_desc(GF_BTParser *parser, GF_Descriptor *par, GF_Descriptor *child, char *fieldName)
 {
@@ -2841,6 +2859,7 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 
 		type = gf_odf_get_field_type(desc, str);
 		switch (type) {
+#ifndef GPAC_MINIMAL_ODF
 		/*IPMPX list*/
 		case GF_ODF_FT_IPMPX_LIST:
 			if(desc->tag!=GF_ODF_IPMP_TAG) {
@@ -2860,7 +2879,7 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 				}
 			}
 			break;
-		/*IPMPX*/
+			/*IPMPX*/
 		case GF_ODF_FT_IPMPX:
 			if(desc->tag!=GF_ODF_IPMP_TOOL_TAG) {
 				gf_bt_report(parser, GF_BAD_PARAM, "IPMPX_Data only allowed in GF_IPMP_Tool");
@@ -2886,6 +2905,7 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 				}
 			}
 			break;
+#endif
 
 		/*descriptor list*/
 		case GF_ODF_FT_OD_LIST:
@@ -3130,7 +3150,11 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 	/*create a default root node for all VRML nodes*/
 	if ((parser->is_wrl && !parser->top_nodes) && !vrml_root_node) {
 		if (initial_run ) {
+#ifndef GPAC_DISABLE_X3D
 			vrml_root_node = gf_node_new(parser->load->scene_graph, (parser->load->flags & GF_SM_LOAD_MPEG4_STRICT) ? TAG_MPEG4_Group : TAG_X3D_Group);
+#else
+			vrml_root_node = gf_node_new(parser->load->scene_graph, TAG_MPEG4_Group);
+#endif
 			gf_node_register(vrml_root_node, NULL);
 			gf_node_init(vrml_root_node);
 			gf_sg_set_root_node(parser->load->scene_graph, vrml_root_node);
@@ -3634,4 +3658,4 @@ GF_Err gf_sm_load_init_bt_string(GF_SceneLoader *load, char *str)
 }
 
 
-#endif //GPAC_DISABLE_VRML
+#endif /*GPAC_DISABLE_LOADER_BT*/

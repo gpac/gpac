@@ -39,7 +39,7 @@ struct __tag_bifs_engine
 	void *calling_object;
 	GF_StreamContext *sc;
 	Bool owns_context;	
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 	GF_BifsEncoder *bifsenc;
 #endif
 	u32 stream_ts_res;
@@ -62,7 +62,7 @@ static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_InitialObjectDescript
 	GF_BIFSConfig *bcfg;
 
 	e = GF_OK;
-#ifdef GPAC_DISABLE_BIFS
+#ifdef GPAC_DISABLE_BIFS_ENC
 	return GF_NOT_SUPPORTED;
 #else
 	codec->bifsenc = gf_bifs_encoder_new(codec->ctx->scene_graph);
@@ -142,7 +142,7 @@ static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_InitialObjectDescript
 	encode_names = 0;
 
 	/* The BIFS Config that is passed here should be the BIFSConfig from the IOD */
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 	gf_bifs_encoder_new_stream(codec->bifsenc, codec->sc->ESID, bcfg, encode_names, 0);
 #endif
 	if (delete_bcfg) gf_odf_desc_del((GF_Descriptor *)bcfg);
@@ -152,7 +152,7 @@ static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_InitialObjectDescript
 	if (!esd->slConfig->timestampResolution) esd->slConfig->timestampResolution = 1000;
 
 	esd->ESID = codec->sc->ESID;
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 	gf_bifs_encoder_get_config(codec->bifsenc, codec->sc->ESID, &data, &data_len);
 #endif
 
@@ -165,7 +165,7 @@ static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_InitialObjectDescript
 	memcpy(codec->encoded_bifs_config, data, data_len);
 	codec->encoded_bifs_config_size = data_len;
 
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 	esd->decoderConfig->objectTypeIndication = gf_bifs_encoder_get_version(codec->bifsenc, codec->sc->ESID);		
 #endif
 	return GF_OK;
@@ -231,7 +231,7 @@ static GF_Err gf_sm_live_encode_scene_au(GF_BifsEngine *codec, u32 currentAUCoun
 		switch(codec->sc->objectType) {
 		case GPAC_OTI_SCENE_BIFS:
 		case GPAC_OTI_SCENE_BIFS_V2:
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 			e = gf_bifs_encode_au(codec->bifsenc, codec->sc->ESID, au->commands, &data, &size);
 #endif
 			break;
@@ -379,7 +379,7 @@ GF_Err gf_beng_encode_context(GF_BifsEngine *codec, GF_Err (*AUCallback)(void *,
 GF_EXPORT
 void gf_beng_terminate(GF_BifsEngine *codec)
 {
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 	if (codec->bifsenc) gf_bifs_encoder_del(codec->bifsenc);
 #endif
 

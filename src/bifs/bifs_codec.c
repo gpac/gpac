@@ -270,6 +270,9 @@ void gf_bifs_decoder_set_time_offset(GF_BifsDecoder *codec, Double ts)
 	codec->cts_offset = ts;
 }
 
+
+#ifndef GPAC_DISABLE_BIFS_ENC
+
 GF_Node *gf_bifs_enc_find_node(GF_BifsEncoder *codec, u32 nodeID)
 {
 	if (codec->current_proto_graph) return gf_sg_find_node(codec->current_proto_graph, nodeID);
@@ -458,6 +461,7 @@ u8 gf_bifs_encoder_get_version(GF_BifsEncoder *codec, u16 ESID)
 //	gf_mx_v(codec->mx);
 	return ret;
 }
+#endif /*GPAC_DISABLE_BIFS_ENC*/
 
 
 u32 gf_bifs_get_child_table(GF_Node *Node)
@@ -474,7 +478,9 @@ GF_Err gf_bifs_get_field_index(GF_Node *Node, u32 inField, u8 IndexMode, u32 *al
 	case TAG_ProtoNode:
 		return gf_sg_proto_get_field_ind_static(Node, inField, IndexMode, allField);
 	case TAG_MPEG4_Script: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Script: 
+#endif
 		return gf_sg_script_get_field_index(Node, inField, IndexMode, allField);
 	default: 
 		return gf_sg_mpeg4_node_get_field_index(Node, inField, IndexMode, allField);

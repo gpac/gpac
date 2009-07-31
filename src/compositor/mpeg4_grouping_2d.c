@@ -56,12 +56,17 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 		node = node;
 	}
 	/*WARNING: X3D/MPEG4 NOT COMPATIBLE*/
-	if (gf_node_get_tag(node)==TAG_MPEG4_Switch) {
+	switch (gf_node_get_tag(node)) {
+	case TAG_MPEG4_Switch:
 		children = ((M_Switch *)node)->choice;
 		whichChoice = ((M_Switch *)node)->whichChoice;
-	} else {
+		break;
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Switch:
 		children = ((X_Switch *)node)->children;
 		whichChoice = ((X_Switch *)node)->whichChoice;
+		break;
+#endif
 	}
 
 	if (tr_state->traversing_mode!=TRAVERSE_GET_BOUNDS) {

@@ -29,6 +29,9 @@
 /*for import flags*/
 #include <gpac/media_tools.h>
 
+
+#if !defined(GPAC_DISABLE_LOADER_BT) && !defined(GPAC_DISABLE_LOADER_XMT)
+
 /* to complete...*/
 
 u32 gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName)
@@ -690,3 +693,4 @@ Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 	return 0;
 }
 
+#endif /* defined(GPAC_DISABLE_LOADER_BT) || defined(GPAC_DISABLE_LOADER_XMT)*/ 

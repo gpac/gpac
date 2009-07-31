@@ -34,11 +34,31 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 	case TAG_MPEG4_AnimationStream: compositor_init_animationstream(compositor, node); break;
 	case TAG_MPEG4_AudioBuffer: compositor_init_audiobuffer(compositor, node); break;
 	case TAG_MPEG4_AudioSource: compositor_init_audiosource(compositor, node); break;
-	case TAG_MPEG4_AudioClip: case TAG_X3D_AudioClip: compositor_init_audioclip(compositor, node); break;
-	case TAG_MPEG4_TimeSensor: case TAG_X3D_TimeSensor: compositor_init_timesensor(compositor, node); break;
-	case TAG_MPEG4_ImageTexture: case TAG_X3D_ImageTexture: compositor_init_imagetexture(compositor, node); break;
-	case TAG_MPEG4_PixelTexture: case TAG_X3D_PixelTexture: compositor_init_pixeltexture(compositor, node); break;
-	case TAG_MPEG4_MovieTexture: case TAG_X3D_MovieTexture: compositor_init_movietexture(compositor, node); break;		
+	case TAG_MPEG4_AudioClip: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_AudioClip: 
+#endif
+		compositor_init_audioclip(compositor, node); break;
+	case TAG_MPEG4_TimeSensor: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_TimeSensor: 
+#endif
+		compositor_init_timesensor(compositor, node); break;
+	case TAG_MPEG4_ImageTexture: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_ImageTexture: 
+#endif
+		compositor_init_imagetexture(compositor, node); break;
+	case TAG_MPEG4_PixelTexture: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_PixelTexture: 
+#endif
+		compositor_init_pixeltexture(compositor, node); break;
+	case TAG_MPEG4_MovieTexture: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_MovieTexture: 
+#endif
+		compositor_init_movietexture(compositor, node); break;		
 
 	case TAG_MPEG4_Background2D: compositor_init_background2d(compositor, node); break;
 	case TAG_MPEG4_Bitmap: compositor_init_bitmap(compositor, node); break;
@@ -73,18 +93,46 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 		
 		
 	/*sensors*/
-	case TAG_MPEG4_Anchor: case TAG_X3D_Anchor: compositor_init_anchor(compositor, node); break;
+	case TAG_MPEG4_Anchor: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Anchor: 
+#endif
+		compositor_init_anchor(compositor, node); break;
 	case TAG_MPEG4_DiscSensor: compositor_init_disc_sensor(compositor, node); break;
 	case TAG_MPEG4_PlaneSensor2D: compositor_init_plane_sensor2d(compositor, node); break;
 	case TAG_MPEG4_ProximitySensor2D: compositor_init_proximity_sensor2d(compositor, node); break;
-	case TAG_MPEG4_TouchSensor: case TAG_X3D_TouchSensor: compositor_init_touch_sensor(compositor, node); break;
+	case TAG_MPEG4_TouchSensor: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_TouchSensor: 
+#endif
+		compositor_init_touch_sensor(compositor, node); break;
 
-	case TAG_MPEG4_Group: case TAG_X3D_Group: compositor_init_group(compositor, node); break;
-	case TAG_MPEG4_Rectangle: case TAG_X3D_Rectangle2D: compositor_init_rectangle(compositor, node); break;
-	case TAG_MPEG4_Shape: case TAG_X3D_Shape: compositor_init_shape(compositor, node); break;
-	case TAG_MPEG4_Switch: case TAG_X3D_Switch: compositor_init_switch(compositor, node); break;
+	case TAG_MPEG4_Group: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Group: 
+#endif
+		compositor_init_group(compositor, node); break;
+	case TAG_MPEG4_Rectangle: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Rectangle2D: 
+#endif
+		compositor_init_rectangle(compositor, node); break;
+	case TAG_MPEG4_Shape: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Shape: 
+#endif
+		compositor_init_shape(compositor, node); break;
+	case TAG_MPEG4_Switch: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Switch: 
+#endif
+		compositor_init_switch(compositor, node); break;
 
-	case TAG_MPEG4_Text: case TAG_X3D_Text: compositor_init_text(compositor, node); break;
+	case TAG_MPEG4_Text: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Text: 
+#endif
+		compositor_init_text(compositor, node); break;
 
 #ifndef GPAC_DISABLE_3D
 	case TAG_MPEG4_Background: case TAG_X3D_Background: compositor_init_background(compositor, node); break;
@@ -128,6 +176,7 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 
 
 	/*X3D nodes*/
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_StaticGroup: compositor_init_static_group(compositor, node); break;
 	case TAG_X3D_Disk2D: compositor_init_disk2d(compositor, node); break;
 	case TAG_X3D_Arc2D: case TAG_X3D_ArcClose2D: compositor_init_arc2d(compositor, node); break;
@@ -144,6 +193,8 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 	case TAG_X3D_IndexedTriangleStripSet: compositor_init_indexed_triangle_strip_set(compositor, node); break;
 	case TAG_X3D_IndexedTriangleSet: compositor_init_indexed_triangle_set(compositor, node); break;
 #endif
+
+#endif /*GPAC_DISABLE_X3D*/
 
 	case TAG_ProtoNode: compositor_init_hardcoded_proto(compositor, node); break;
 
@@ -210,10 +261,26 @@ void gf_sc_invalidate(GF_Compositor *compositor, GF_Node *byObj)
 	case TAG_MPEG4_AnimationStream: compositor_animationstream_modified(byObj); break;
 	case TAG_MPEG4_AudioBuffer: compositor_audiobuffer_modified(byObj); break;
 	case TAG_MPEG4_AudioSource: compositor_audiosource_modified(byObj); break;
-	case TAG_MPEG4_AudioClip: case TAG_X3D_AudioClip: compositor_audioclip_modified(byObj); break;
-	case TAG_MPEG4_TimeSensor: case TAG_X3D_TimeSensor: compositor_timesensor_modified(byObj); break;
-	case TAG_MPEG4_ImageTexture: case TAG_X3D_ImageTexture: compositor_imagetexture_modified(byObj); break;
-	case TAG_MPEG4_MovieTexture: case TAG_X3D_MovieTexture: compositor_movietexture_modified(byObj); break;
+	case TAG_MPEG4_AudioClip: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_AudioClip: 
+#endif
+		compositor_audioclip_modified(byObj); break;
+	case TAG_MPEG4_TimeSensor: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_TimeSensor: 
+#endif
+		compositor_timesensor_modified(byObj); break;
+	case TAG_MPEG4_ImageTexture: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_ImageTexture: 
+#endif
+		compositor_imagetexture_modified(byObj); break;
+	case TAG_MPEG4_MovieTexture: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_MovieTexture: 
+#endif
+		compositor_movietexture_modified(byObj); break;
 
 	case TAG_MPEG4_Background2D: compositor_background2d_modified(byObj); break;
 #ifndef GPAC_DISABLE_3D

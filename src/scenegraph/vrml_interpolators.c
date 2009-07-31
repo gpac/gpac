@@ -503,6 +503,8 @@ Bool InitPositionInterpolator4D(M_PositionInterpolator4D *node)
 
 
 
+#ifndef GPAC_DISABLE_X3D
+
 static void BooleanFilter_setValue(GF_Node *n, GF_Route *route)
 {
 	X_BooleanFilter *bf = (X_BooleanFilter *)n;
@@ -709,5 +711,8 @@ void InitTimeTrigger(GF_Node *n)
 	X_TimeTrigger *tt = (X_TimeTrigger*)n;
 	tt->on_set_boolean = TimeTrigger_setTrigger;
 }
+
+#endif /*GPAC_DISABLE_X3D*/
+
 
 #endif /*GPAC_DISABLE_VRML*/

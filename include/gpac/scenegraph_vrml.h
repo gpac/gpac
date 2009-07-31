@@ -630,7 +630,10 @@ void gf_node_event_out_str(GF_Node *node, const char *eventName);
 
 /*exported for parsers*/
 u32 gf_node_mpeg4_type_by_class_name(const char *node_name);
+
+#ifndef GPAC_DISABLE_X3D
 u32 gf_node_x3d_type_by_class_name(const char *node_name);
+#endif
 
 
 #endif /*GPAC_DISABLE_VRML*/

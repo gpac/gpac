@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Thu Jun 25 11:28:59 2009
+	DO NOT MOFIFY - File generated on GMT Fri Jul 31 14:46:14 2009
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -39,6 +39,7 @@ extern "C" {
 #include <gpac/scenegraph_vrml.h>
 
 #ifndef GPAC_DISABLE_VRML
+
 
 
 enum {
@@ -2917,6 +2918,7 @@ enum {
 	GF_BIFS_V6,
 	GF_BIFS_LAST_VERSION = GF_BIFS_V6
 };
+
 
 
 #endif /*GPAC_DISABLE_VRML*/

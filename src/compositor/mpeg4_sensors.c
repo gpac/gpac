@@ -88,10 +88,15 @@ static void TraverseAnchor(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
 		MFURL *url;
-		if (gf_node_get_tag(node)==TAG_MPEG4_Anchor) {
+		switch (gf_node_get_tag(node)) {
+		case TAG_MPEG4_Anchor:
 			url = & ((M_Anchor *)node)->url;
-		} else {
+			break;
+#ifndef GPAC_DISABLE_X3D
+		case TAG_X3D_Anchor:
 			url = & ((X_Anchor *)node)->url;
+			break;
+#endif
 		}
 		st->enabled = 0;
 		if (url->count && url->vals[0].url && strlen(url->vals[0].url) )
@@ -111,14 +116,19 @@ static void anchor_activation(GF_Node *node, AnchorStack *st, GF_Compositor *com
 	GF_Event evt;
 	MFURL *url;
 	u32 i;
-	if (gf_node_get_tag(node)==TAG_MPEG4_Anchor) {
+	switch (gf_node_get_tag(node)) {
+	case TAG_MPEG4_Anchor:
 		url = & ((M_Anchor *)node)->url;
 		evt.navigate.param_count = ((M_Anchor *)node)->parameter.count;
 		evt.navigate.parameters = (const char **) ((M_Anchor *)node)->parameter.vals;
-	} else {
+		break;
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Anchor:
 		url = & ((X_Anchor *)node)->url;
 		evt.navigate.param_count = ((X_Anchor *)node)->parameter.count;
 		evt.navigate.parameters = (const char **) ((X_Anchor *)node)->parameter.vals;
+		break;
+#endif
 	}
 	evt.type = GF_EVENT_NAVIGATE;
 	i=0;
@@ -161,12 +171,17 @@ static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compos
 		st->over = 1;
 		if (compositor->user->EventProc) {
 			evt.type = GF_EVENT_NAVIGATE_INFO;
-			if (gf_node_get_tag(sh->sensor)==TAG_MPEG4_Anchor) {
+			switch (gf_node_get_tag(sh->sensor)) {
+			case TAG_MPEG4_Anchor:
 				evt.navigate.to_url = ((M_Anchor *)sh->sensor)->description.buffer;
 				url = & ((M_Anchor *)sh->sensor)->url;
-			} else {
+				break;
+#ifndef GPAC_DISABLE_X3D
+			case TAG_X3D_Anchor:
 				evt.navigate.to_url = ((X_Anchor *)sh->sensor)->description.buffer;
 				url = & ((X_Anchor *)sh->sensor)->url;
+				break;
+#endif
 			}
 			if (!evt.navigate.to_url || !strlen(evt.navigate.to_url)) evt.navigate.to_url = url->vals[0].url;
 			gf_term_send_event(compositor->term, &evt);
@@ -1254,9 +1269,13 @@ GF_SensorHandler *compositor_mpeg4_get_sensor_handler(GF_Node *n)
 	switch (gf_node_get_tag(n)) {
 	/*anchor is not considered as a child sensor node when picking sensors*/
 	case TAG_MPEG4_Anchor: 
+		hs = gf_sc_anchor_get_handler(n); 
+		break;
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Anchor: 
 		hs = gf_sc_anchor_get_handler(n); 
 		break;
+#endif
 	case TAG_MPEG4_DiscSensor: 
 		hs = disc_sensor_get_handler(n); 
 		break;
@@ -1267,23 +1286,35 @@ GF_SensorHandler *compositor_mpeg4_get_sensor_handler(GF_Node *n)
 		hs = proximity_sensor2d_get_handler(n);
 		break;
 	case TAG_MPEG4_TouchSensor:
+		hs = touch_sensor_get_handler(n);
+		break;
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_TouchSensor:
 		hs = touch_sensor_get_handler(n);
 		break;
+#endif
 #ifndef GPAC_DISABLE_3D
 	case TAG_MPEG4_CylinderSensor: 
-	case TAG_X3D_CylinderSensor: 
 		hs = cylinder_sensor_get_handler(n);
 		break;
 	case TAG_MPEG4_PlaneSensor: 
-	case TAG_X3D_PlaneSensor: 
 		hs = plane_sensor_get_handler(n);
 		break;
 	case TAG_MPEG4_SphereSensor: 
+		hs = sphere_get_handler(n);
+		break;
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_CylinderSensor: 
+		hs = cylinder_sensor_get_handler(n);
+		break;
+	case TAG_X3D_PlaneSensor: 
+		hs = plane_sensor_get_handler(n);
+		break;
 	case TAG_X3D_SphereSensor: 
 		hs = sphere_get_handler(n);
 		break;
 #endif
+#endif /*GPAC_DISABLE_3D*/
 	default: return NULL;
 	}
 	if (hs && hs->IsEnabled(n)) return hs;

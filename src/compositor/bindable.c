@@ -35,12 +35,22 @@ GF_List *Bindable_GetStack(GF_Node *bindable)
 	case TAG_MPEG4_Background2D: return ((Background2DStack*)st)->reg_stacks;
 	case TAG_MPEG4_Viewport:
 	case TAG_MPEG4_NavigationInfo: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_NavigationInfo: 
+#endif
 		return ((ViewStack*)st)->reg_stacks;
 #ifndef GPAC_DISABLE_3D
-	case TAG_MPEG4_Background: case TAG_X3D_Background: return ((BackgroundStack*)st)->reg_stacks;
-	case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: 
-	case TAG_MPEG4_Fog: case TAG_X3D_Fog:
+	case TAG_MPEG4_Background: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Background: 
+#endif
+		return ((BackgroundStack*)st)->reg_stacks;
+	case TAG_MPEG4_Viewpoint: 
+	case TAG_MPEG4_Fog: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Viewpoint: 
+	case TAG_X3D_Fog:
+#endif
 		return ((ViewStack*)st)->reg_stacks;
 #endif
 	default: return NULL;
@@ -53,10 +63,26 @@ Bool Bindable_GetIsBound(GF_Node *bindable)
 	switch (gf_node_get_tag(bindable)) {
 	case TAG_MPEG4_Background2D: return ((M_Background2D*)bindable)->isBound;
 	case TAG_MPEG4_Viewport: return ((M_Viewport*)bindable)->isBound;
-	case TAG_MPEG4_Background: case TAG_X3D_Background: return ((M_Background*)bindable)->isBound;
-	case TAG_MPEG4_NavigationInfo: case TAG_X3D_NavigationInfo: return ((M_NavigationInfo*)bindable)->isBound;
-	case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: return ((M_Viewpoint*)bindable)->isBound;
-	case TAG_MPEG4_Fog: case TAG_X3D_Fog: return ((M_Fog*)bindable)->isBound;
+	case TAG_MPEG4_Background: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Background: 
+#endif
+		return ((M_Background*)bindable)->isBound;
+	case TAG_MPEG4_NavigationInfo: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_NavigationInfo: 
+#endif
+		return ((M_NavigationInfo*)bindable)->isBound;
+	case TAG_MPEG4_Viewpoint: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Viewpoint: 
+#endif
+		return ((M_Viewpoint*)bindable)->isBound;
+	case TAG_MPEG4_Fog: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Fog: 
+#endif
+		return ((M_Fog*)bindable)->isBound;
 	default: return 0;
 	}
 }
@@ -76,38 +102,47 @@ void Bindable_SetIsBound(GF_Node *bindable, Bool val)
 		((M_Viewport*)bindable)->bindTime = gf_node_get_scene_time(bindable);
 		has_bind_time = 1;
 		break;
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Background:
 		if ( ((X_Background*)bindable)->isBound == val) return;
 		((X_Background*)bindable)->isBound = val;
 		((X_Background*)bindable)->bindTime = gf_node_get_scene_time(bindable);
 		has_bind_time = 1;
 		break;
+#endif
 	case TAG_MPEG4_Background:
 		if ( ((M_Background*)bindable)->isBound == val) return;
 		((M_Background*)bindable)->isBound = val;
 		break;
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_NavigationInfo: 
 		if ( ((X_NavigationInfo*)bindable)->isBound == val) return;
 		((X_NavigationInfo*)bindable)->isBound = val;
 		((X_NavigationInfo*)bindable)->bindTime = gf_node_get_scene_time(bindable);
 		has_bind_time = 1;
 		break;
+#endif
 	case TAG_MPEG4_NavigationInfo: 
 		if ( ((M_NavigationInfo*)bindable)->isBound == val) return;
 		((M_NavigationInfo*)bindable)->isBound = val;
 		break;
-	case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: 
+	case TAG_MPEG4_Viewpoint: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Viewpoint: 
+#endif
 		if ( ((M_Viewpoint*)bindable)->isBound == val) return;
 		((M_Viewpoint*)bindable)->isBound = val;
 		((M_Viewpoint*)bindable)->bindTime = gf_node_get_scene_time(bindable);
 		has_bind_time = 1;
 		break;
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Fog: 
 		if ( ((X_Fog*)bindable)->isBound == val) return;
 		((X_Fog*)bindable)->isBound = val;
 		((X_Fog*)bindable)->bindTime = gf_node_get_scene_time(bindable);
 		has_bind_time = 1;
 		break;
+#endif
 	case TAG_MPEG4_Fog: 
 		if ( ((M_Fog*)bindable)->isBound == val) return;
 		((M_Fog*)bindable)->isBound = val;
@@ -128,10 +163,26 @@ Bool Bindable_GetSetBind(GF_Node *bindable)
 	switch (gf_node_get_tag(bindable)) {
 	case TAG_MPEG4_Background2D: return ((M_Background2D*)bindable)->set_bind;
 	case TAG_MPEG4_Viewport: return ((M_Viewport*)bindable)->set_bind;
-	case TAG_MPEG4_Background: case TAG_X3D_Background: return ((M_Background*)bindable)->set_bind;
-	case TAG_MPEG4_NavigationInfo: case TAG_X3D_NavigationInfo: return ((M_NavigationInfo*)bindable)->set_bind;
-	case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: return ((M_Viewpoint*)bindable)->set_bind;
-	case TAG_MPEG4_Fog: case TAG_X3D_Fog: return ((M_Fog*)bindable)->set_bind;
+	case TAG_MPEG4_Background: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Background: 
+#endif
+		return ((M_Background*)bindable)->set_bind;
+	case TAG_MPEG4_NavigationInfo: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_NavigationInfo: 
+#endif
+		return ((M_NavigationInfo*)bindable)->set_bind;
+	case TAG_MPEG4_Viewpoint: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Viewpoint: 
+#endif
+		return ((M_Viewpoint*)bindable)->set_bind;
+	case TAG_MPEG4_Fog: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Fog: 
+#endif
+		return ((M_Fog*)bindable)->set_bind;
 	default: return 0;
 	}
 }
@@ -148,19 +199,31 @@ void Bindable_SetSetBindEx(GF_Node *bindable, Bool val, GF_List *stack)
 		((M_Viewport*)bindable)->set_bind = val;
 		((M_Viewport*)bindable)->on_set_bind(bindable, (GF_Route*)stack);
 		break;
-	case TAG_MPEG4_Background: case TAG_X3D_Background:
+	case TAG_MPEG4_Background: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Background:
+#endif
 		((M_Background*)bindable)->set_bind = val;
 		((M_Background*)bindable)->on_set_bind(bindable, NULL);
 		break;
-	case TAG_MPEG4_NavigationInfo: case TAG_X3D_NavigationInfo: 
+	case TAG_MPEG4_NavigationInfo: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_NavigationInfo: 
+#endif
 		((M_NavigationInfo*)bindable)->set_bind = val;
 		((M_NavigationInfo*)bindable)->on_set_bind(bindable, NULL);
 		break;
-	case TAG_MPEG4_Viewpoint: case TAG_X3D_Viewpoint: 
+	case TAG_MPEG4_Viewpoint: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Viewpoint: 
+#endif
 		((M_Viewpoint*)bindable)->set_bind = val;
 		((M_Viewpoint*)bindable)->on_set_bind(bindable, NULL);
 		break;
-	case TAG_MPEG4_Fog: case TAG_X3D_Fog: 
+	case TAG_MPEG4_Fog: 
+#ifndef GPAC_DISABLE_X3D
+	case TAG_X3D_Fog: 
+#endif
 		((M_Fog*)bindable)->set_bind = val;
 		((M_Fog*)bindable)->on_set_bind(bindable, NULL);
 		break;

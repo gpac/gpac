@@ -349,16 +349,25 @@ char *gf_strdup(const char *str);
 	
 /*safety checks on macros*/
 
-#if defined(GPAC_DISABLE_VRML) 
+#ifdef GPAC_DISABLE_VRML
 # ifndef GPAC_DISABLE_BIFS
 # define GPAC_DISABLE_BIFS
 # endif
 # ifndef GPAC_DISABLE_QTVR
 # define GPAC_DISABLE_QTVR
 # endif
+# ifndef GPAC_DISABLE_X3D
+# define GPAC_DISABLE_X3D
+# endif
+# ifndef GPAC_DISABLE_LOADER_BT
+# define GPAC_DISABLE_LOADER_BT
+# endif
+# ifndef GPAC_DISABLE_LOADER_XMT
+# define GPAC_DISABLE_LOADER_XMT
+# endif
 #endif
 
-#if defined(GPAC_DISABLE_SVG) 
+#ifdef GPAC_DISABLE_SVG
 # ifndef GPAC_DISABLE_LASER
 # define GPAC_DISABLE_LASER
 # endif
@@ -397,6 +406,22 @@ char *gf_strdup(const char *str);
 # define GPAC_DISABLE_ISOM_HINTING
 # endif
 #endif
+
+#ifdef GPAC_DISABLE_BIFS
+# ifndef GPAC_DISABLE_BIFS_ENC
+# define GPAC_DISABLE_BIFS_ENC
+# endif
+#endif
+
+#if defined(GPAC_DISABLE_BIFS_ENC) && defined(GPAC_DISABLE_LASER)
+# ifndef GPAC_DISABLE_LOADER_ISOM
+# define GPAC_DISABLE_LOADER_ISOM
+# endif
+# ifndef GPAC_DISABLE_BENG
+# define GPAC_DISABLE_BENG
+# endif
+#endif
+
 
 #ifdef __cplusplus
 }

@@ -35,7 +35,7 @@ typedef struct
 	GF_TextureHandler txh;
 
 	GF_TimeNode time_handle;
-	Bool fetch_first_frame, first_frame_fetched, is_vrml;
+	Bool fetch_first_frame, first_frame_fetched, is_x3d;
 	Double start_time;
 } MovieTextureStack;
 
@@ -131,7 +131,7 @@ static void movietexture_update_time(GF_TimeNode *st)
 	if (time < stack->start_time ||
 		/*special case if we're getting active AFTER stoptime */
 		(!mt->isActive && (mt->stopTime > stack->start_time) && (time>=mt->stopTime))
-		|| (!stack->start_time && stack->is_vrml && !mt->loop)
+		|| (!stack->start_time && !stack->is_x3d && !mt->loop)
 		) {
 		/*opens stream only at first access to fetch first frame*/
 		if (stack->fetch_first_frame) {
@@ -170,7 +170,9 @@ void compositor_init_movietexture(GF_Compositor *compositor, GF_Node *node)
 	if (((M_MovieTexture*)node)->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (((M_MovieTexture*)node)->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 	
-	st->is_vrml = (gf_node_get_tag(node)==TAG_X3D_MovieTexture) ? 1 : 0;
+#ifndef GPAC_DISABLE_X3D
+	st->is_x3d = (gf_node_get_tag(node)==TAG_X3D_MovieTexture) ? 1 : 0;
+#endif
 
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, movietexture_destroy);

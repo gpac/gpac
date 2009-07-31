@@ -29,7 +29,7 @@
 #include "quant.h" 
 #include "script.h" 
 
-#ifndef GPAC_DISABLE_BIFS
+#ifndef GPAC_DISABLE_BIFS_ENC
 
 GF_Err gf_bifs_field_index_by_mode(GF_Node *node, u32 all_ind, u8 indexMode, u32 *outField)
 {
@@ -179,7 +179,11 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		return gf_bifs_enc_node(codec, *((GF_Node **)field->far_ptr), field->NDTtype, bs);
 
 	case GF_SG_VRML_SFSCRIPT:
+#ifdef GPAC_HAS_SPIDERMONKEY
 		codec->LastError = SFScript_Encode(codec, (SFScript *)field->far_ptr, bs, node);
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 		break;
 	default:
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -601,4 +605,4 @@ GF_Err gf_bifs_enc_node(GF_BifsEncoder * codec, GF_Node *node, u32 NDT_Tag, GF_B
 }
 
 
-#endif /*GPAC_DISABLE_BIFS*/
+#endif /*GPAC_DISABLE_BIFS_ENC*/

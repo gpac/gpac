@@ -608,7 +608,9 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 	GF_BitStream *bs;
 	GF_SLHeader slh;
 	char *buf;
+#ifndef GPAC_DISABLE_X3D
 	X_KeySensor *n;
+#endif
 	u32 buf_size;
 	u32 actionKey = 0;
 	u32 shiftKeyDown, controlKeyDown, altKeyDown;
@@ -713,6 +715,7 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 	}
 	free(buf);
 	
+#ifndef GPAC_DISABLE_X3D
 	i=0;
 	while ((n = (X_KeySensor*)gf_list_enum(term->x3d_sensors, &i))) {
 		u16 tc[2];
@@ -772,6 +775,7 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 			gf_node_event_out_str((GF_Node *)n, "isActive");
 		}
 	}
+#endif
 }
 
 void gf_term_string_input(GF_Terminal *term, u32 character)
@@ -779,7 +783,9 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 	u32 i;
 	GF_BitStream *bs;
 	GF_SLHeader slh;
+#ifndef GPAC_DISABLE_X3D
 	X_StringSensor *n;
+#endif
 	GF_Codec *cod;
 	char *buf;
 	u32 buf_size;
@@ -818,6 +824,7 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 	}
 
 
+#ifndef GPAC_DISABLE_X3D
 	/*get all X3D StringSensors*/
 	i=0;
 	while ((n = (X_StringSensor*)gf_list_enum(term->x3d_sensors, &i))) {
@@ -860,7 +867,10 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 			gf_node_event_out_str((GF_Node *)n, "enteredText");
 		}
 	}
+#endif
 }
+
+#ifndef GPAC_DISABLE_X3D
 
 void DestroyKeySensor(GF_Node *node, void *rs, Bool is_destroy)
 {
@@ -894,6 +904,7 @@ void InitStringSensor(GF_Scene *scene, GF_Node *node)
 	gf_list_add(scene->root_od->term->x3d_sensors, node);
 }
 
+#endif /*GPAC_DISABLE_X3D*/
 
 #else
 void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
