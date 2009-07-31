@@ -484,8 +484,8 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 	}
 #endif /*GPAC_DISABLE_VRML*/
 
-#ifndef GPAC_DISABLE_SVG
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) return 0;
+#ifndef GPAC_DISABLE_SVG
 	gf_svg_flatten_attributes((SVG_Element *)text, &atts);
 	if (!atts.editable || !*atts.editable) return 0;
 	switch (tag) {

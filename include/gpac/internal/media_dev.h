@@ -147,7 +147,9 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc);
 /*remove SEI messages not allowed in MP4*/
 u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc);
 
+#ifndef GPAC_DISABLE_ISOM
 GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
+#endif
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 

@@ -118,6 +118,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 	return GF_OK;
 }
 
+
 #define TTXT_DEFAULT_WIDTH	400
 #define TTXT_DEFAULT_HEIGHT	60
 #define TTXT_DEFAULT_FONT_SIZE	18

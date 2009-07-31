@@ -1103,13 +1103,16 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_list_get_child) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_list_get_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_list_del_child_idx) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_node_dump_attribute) )
+
+#ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_dom_listener_add) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_event_type_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_event_fire) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_set_textContent) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_flatten_textContent) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_get_attribute_by_name) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_node_dump_attribute) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_listener_build) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_handle_dom_event) )
 
@@ -1124,12 +1127,16 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_register_iri) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_unregister_iri) )
 
+#endif
+
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_lock_runtime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_get_node) )
+#ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_add_listener) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_remove_listener) )
+#endif
 #endif
 
 /* scenegraph_vrml.h exports*/
@@ -1280,7 +1287,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_set_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_register_extra_graph) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_compositor) )
+
+#ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_svg_convert_length_to_display) )
+#endif
 
 /*compositor_dev.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_register_time_node) )

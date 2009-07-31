@@ -2158,6 +2158,7 @@ static u8 avc_get_sar_idx(u32 w, u32 h)
 	return 0xFF;
 }
 
+#ifndef GPAC_DISABLE_ISOM
 GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 {
 	GF_BitStream *orig, *mod;
@@ -2239,6 +2240,7 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 	}
 	return GF_OK;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d)

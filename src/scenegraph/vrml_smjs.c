@@ -496,11 +496,14 @@ static JSBool getProto(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *rval
 	return JS_TRUE;
 }
 
+#ifndef GPAC_DISABLE_SVG
 char *js_get_utf8(jsval val);
 jsval dom_element_construct(JSContext *c, GF_Node *n);
+#endif
 
 static JSBool vrml_parse_xml(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
+#ifndef GPAC_DISABLE_SVG
 	GF_SceneGraph *sg;
 	GF_Node *node;
 	char *str;
@@ -515,7 +518,7 @@ static JSBool vrml_parse_xml(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	node = gf_sm_load_svg_from_string(sg, str);
 	free(str);
 	*rval = dom_element_construct(c, node);
-
+#endif
 	return JS_TRUE;
 }
 
@@ -3796,11 +3799,13 @@ static void flush_event_out(GF_Node *node, GF_ScriptPriv *priv)
 		if (sf->activate_event_out) {
 			sf->activate_event_out = 0;
 			gf_node_event_out(node, sf->ALL_index);
+#ifndef GPAC_DISABLE_SVG
 			if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) {
 				GF_FieldInfo info;
 				if (gf_node_get_field(node, sf->ALL_index, &info)==GF_OK)
 					gf_node_changed(node, &info);
 			}
+#endif
 		}
 	}
 }
@@ -4163,6 +4168,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 
 void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node *observer)
 {
+#ifndef GPAC_DISABLE_SVG
 	GF_ScriptPriv *priv;
 	Bool prev_type;
 	JSBool ret = JS_FALSE;
@@ -4204,7 +4210,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 
 	event->is_vrml = prev_type;
 	JS_SetPrivate(priv->js_ctx, priv->event, prev_event);
-
+#endif
 }
 
 #endif	/*GPAC_DISABLE_VRML*/
