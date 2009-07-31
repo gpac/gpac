@@ -1282,7 +1282,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_compositor) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_svg_convert_length_to_display) )
 
-/*compositorr_dev.h exports*/
+/*compositor_dev.h exports*/
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_register_time_node) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_unregister_time_node) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_texture_setup) )

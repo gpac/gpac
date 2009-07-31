@@ -27,6 +27,7 @@
 #ifndef GPAC_DISABLE_STREAMING
 
 #include <gpac/constants.h>
+#include <gpac/avparse.h>
 
 static void mpa12_do_flush(GP_RTPPacketizer *builder, Bool start_new)
 {

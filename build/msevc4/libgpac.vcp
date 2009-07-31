@@ -442,7 +442,7 @@ NODEP_CPP_IPMPX=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\src\odf\ipmpx_parse.c
+SOURCE=..\..\src\odf\ipmpx_dump.c
 DEP_CPP_IPMPX_=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\configuration.h"\
@@ -454,6 +454,23 @@ DEP_CPP_IPMPX_=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_IPMPX_=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\odf\ipmpx_parse.c
+DEP_CPP_IPMPX_P=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\internal\odf_dev.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_IPMPX_P=\
 	"..\..\include\gpac\config.h"\
 	
 # End Source File
@@ -529,6 +546,27 @@ NODEP_CPP_ODF_COM=\
 # Begin Source File
 
 SOURCE=..\..\include\gpac\internal\odf_dev.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\odf\odf_dump.c
+DEP_CPP_ODF_D=\
+	"..\..\include\gpac\avparse.h"\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\internal\odf_dev.h"\
+	"..\..\include\gpac\isomedia.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\media_tools.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_ODF_D=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -1170,6 +1208,25 @@ NODEP_CPP_BOX_CODE_=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\isomedia\box_dump.c
+DEP_CPP_BOX_D=\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\internal\isomedia_dev.h"\
+	"..\..\include\gpac\isomedia.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\include\gpac\utf.h"\
+	
+NODEP_CPP_BOX_D=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\isomedia\box_funcs.c
 DEP_CPP_BOX_F=\
 	"..\..\include\gpac\bitstream.h"\
@@ -1614,6 +1671,7 @@ NODEP_CPP_RTP_PC=\
 
 SOURCE=..\..\src\ietf\rtp_pck_mpeg12.c
 DEP_CPP_RTP_PCK=\
+	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
@@ -2461,6 +2519,33 @@ SOURCE=..\..\include\gpac\internal\avilib.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\media_tools\filestreamer.c
+DEP_CPP_FILES=\
+	"..\..\include\gpac\avparse.h"\
+	"..\..\include\gpac\base_coding.h"\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\filestreamer.h"\
+	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\media_dev.h"\
+	"..\..\include\gpac\isomedia.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\math.h"\
+	"..\..\include\gpac\media_tools.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_FILES=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\media_tools\gpac_ogg.c
 DEP_CPP_GPAC_=\
 	"..\..\include\gpac\configuration.h"\
@@ -2539,6 +2624,7 @@ DEP_CPP_ISOM_H=\
 	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\media_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
@@ -2686,6 +2772,29 @@ NODEP_CPP_MPEGT=\
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\media_tools\saf.c
+DEP_CPP_SAF_C=\
+	"..\..\include\gpac\avparse.h"\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\media_dev.h"\
+	"..\..\include\gpac\isomedia.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\media_tools.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\network.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\thread.h"\
+	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_SAF_C=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\media_tools\text_import.c
 DEP_CPP_TEXT_=\
 	"..\..\include\gpac\avparse.h"\
@@ -2708,6 +2817,20 @@ DEP_CPP_TEXT_=\
 	"..\..\include\gpac\xml.h"\
 	
 NODEP_CPP_TEXT_=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\src\media_tools\vobsub.c
+DEP_CPP_VOBSU=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\internal\vobsub.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_VOBSU=\
 	"..\..\include\gpac\config.h"\
 	
 # End Source File
@@ -6807,10 +6930,6 @@ SOURCE=..\..\include\gpac\modules\codec.h
 # Begin Source File
 
 SOURCE=..\..\include\gpac\compositor.h
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\include\gpac\config.h
 # End Source File
 # Begin Source File
 
