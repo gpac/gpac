@@ -53,8 +53,6 @@ libdir="lib"
 #GPAC module config
 js_flags="XP_UNIX"
 js_lib="-ljs"
-iso_fragments="yes"
-make_readonly="no"
 has_mingw_directx="no"
 has_js="no"
 has_ft="no"
@@ -78,12 +76,10 @@ has_jack="no"
 has_x11="no"
 has_x11_shm="no"
 has_x11_xv="no"
-disable_svg="no"
 no_gcc_opt="no"
 use_fixed_point="no"
 use_memory_tracking="no"
 has_opengl="no"
-disable_opengl="no"
 has_tinygl="no"
 enable_tinygl="no"
 has_ssl="no"
@@ -99,6 +95,34 @@ has_xul="no"
 enable_joystick="no"
 enable_renoir="no"
 static_mp4box="no"
+disable_3d="no"
+disable_svg="no"
+disable_vrml="no"
+disable_od="no"
+disable_bifs="no"
+disable_laser="no"
+disable_beng="no"
+disable_qtvr="no"
+disable_avi="no"
+disable_m2ps="no"
+disable_m2ts="no"
+disable_ogg="no"
+disable_parsers="no"
+disable_import="no"
+disable_export="no"
+disable_swf="no"
+disable_scene_stats="no"
+disable_scene_dump="no"
+disable_scene_encode="no"
+disable_loader_isoff="no"
+disable_od_dump="no"
+disable_mcrypt="no"
+disable_isoff="no"
+disable_isoff_write="no"
+disable_isoff_frag="no"
+disable_isoff_hint="no"
+disable_isoff_frag="no"
+disable_streaming="no"
 
 win32="no"
 mingw32="no"
@@ -156,19 +180,14 @@ echo "  --enable-gprof           enable profiling"
 echo "  --enable-pic             enable Position Independant Code for shared objects"
 echo "  --strip                  enable strip"
 echo "  --track-memory           enable tracking of all memory allocated by gpac"
-echo "  --disable-fragments      disable movie fragments in ISO media support"
 echo "  --disable-opt            disable GCC optimizations"
 echo "  --disable-ipv6           disable IPV6 support"
 echo "  --disable-wx             disable wxWidgets support"
 echo "  --disable-oss-audio      disable OSS audio"
 echo "  --disable-x11-shm        disable X11 shared memory support"
 echo "  --disable-x11-xv         disable X11 Xvideo support"
-echo "  --disable-fragments      disable movie fragments in ISO media support"
-echo "  --enable-readonly        force ISO media to be read-only"
-echo "  --disable-svg            disable SVG support"
-echo "  --enable-fixed-point     enable fixed-point math (THIS MODIFIES GPAC MATH.H HEADER)"
+echo "  --enable-fixed-point     enable fixed-point math"
 echo "  --force-fixed-point      force fixed-point math without changing gpac math.h header"
-echo "  --disable-opengl         disable OpenGL support"
 echo "  --enable-tinygl          enable TinyGL support"
 echo "  --enable-joystick        enable joystick support"
 echo "  --enable-renoir          enable renoir 3D support"
@@ -177,7 +196,37 @@ echo "  --enable-amr-nb-fixed    enable AMR NB fixed-point decoder"
 echo "  --enable-amr-nb          enable AMR NB library"
 echo "  --enable-amr-wb          enable AMR WB library"
 echo "  --enable-amr             enable both AMR NB and WB libraries"
-echo "	--static-mp4box		 configure for static linking of MP4Box. This will disable many features."
+echo "	--static-mp4box          configure for static linking of MP4Box."
+echo ""
+echo "Configuration options for libgpac - all options can be enabled with --enable-optname"
+echo "  --disable-all            disables all features in libgpac"
+echo "  --disable-3d             disable 3D rendering"
+echo "  --disable-svg            disable SVG"
+echo "  --disable-vrml           disable MPEG-4/VRML/X3D"
+echo "  --disable-odf            disable full support of MPEG-4 OD Framework"
+echo "  --disable-bifs           disable BIFS coder"
+echo "  --disable-laser          disable LASeR coder"
+echo "  --disable-beng           disable scene encoder engine"
+echo "  --disable-qtvr           disable import of Cubic QTVR files"
+echo "  --disable-avi            disable AVI"
+echo "  --disable-ogg            disable OGG"
+echo "  --disable-m2ps           disable MPEG2 PS"
+echo "  --disable-m2ts           disable MPEG2 TS"
+echo "  --disable-parsers        disable AV parsers"
+echo "  --disable-import         disable media importers"
+echo "  --disable-export         disable media exporters"
+echo "  --disable-swf            disable SWF import"
+echo "  --disable-scene-stats    disable scene graph statistics"
+echo "  --disable-scene-dump     disable scene graph dump"
+echo "  --disable-od-dump        disable OD dump"
+echo "  --disable-mcrypt         disable mcrypt"
+echo "  --disable-scene-encode   disable BIFS & LASeR to ISO File Format encoding"
+echo "  --disable-loader-isoff   disable scene loading from ISO File Format"
+echo "  --disable-isoff          disable ISO File Format"
+echo "  --disable-isoff-write    disable ISO File Format edit/write"
+echo "  --disable-isoff-hint     disable ISO File Format hinting"
+echo "  --disable-isoff-frag     disable fragments in ISO File Format"
+echo "  --disable-streaming      disable RTP/RTSP/SDP"
 echo ""
 echo "Extra libraries configuration. You can turn a libray off or force using the local version in gpac/extra_lib/"
 echo "  --use-js=OPT             force SpiderMonkey ECMAScript OPT=[no,local]"
@@ -1039,27 +1088,17 @@ for opt do
   ;;
   --disable-wx) has_wx="no"
   ;;
-  --disable-fragments) iso_fragments="no"
-  ;;
-  --enable-readonly) make_readonly="yes"
-  ;;
   --disable-oss-audio) has_oss_audio="no"
   ;;
   --disable-x11-shm) has_x11_shm="no"
   ;;
   --disable-x11-xv) has_x11_xv="no"
   ;;
-  --disable-svg) disable_svg="yes"
-  ;;
   --enable-fixed-point) use_fixed_point="yes"
-  ;;
-  --force-fixed-point) use_fixed_point="forced"
   ;;
   --strip) INSTFLAGS="-s $INSTFLAGS"
   ;;
   --track-memory) use_memory_tracking="yes"
-  ;;
-  --disable-opengl) disable_opengl="yes"
   ;;
   --enable-tinygl) enable_tinygl="yes"
   ;;
@@ -1113,6 +1152,120 @@ has_png=$tmp_has_png
   ;;
   --enable-pulseaudio=*) has_pulseaudio="yes"
   ;;
+  
+  --disable-all) has_pulseaudio="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_laser="yes"; disable_beng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"
+  ;;
+  
+  --disable-3d) disable_3d="yes"
+  ;;
+  --enable-3d) disable_3d="no"
+  ;;
+  --disable-svg) disable_svg="yes"
+  ;;
+  --enable-svg) disable_svg="no"
+  ;;
+  --disable-vrml) disable_vrml="yes"
+  ;;
+  --enable-vrml) disable_vrml="no"
+  ;;
+  --disable-odf) disable_od="yes"
+  ;;
+  --enable-odf) disable_od="no"
+  ;;
+  --disable-bifs) disable_bifs="yes"
+  ;;
+  --enable-bifs) disable_bifs="no"
+  ;;
+  --disable-laser) disable_laser="yes"
+  ;;
+  --enable-laser) disable_laser="no"
+  ;;
+  --disable-beng) disable_beng="yes"
+  ;;
+  --enable-beng) disable_beng="no"
+  ;;
+  --disable-qtvr) disable_qtvr="yes"
+  ;;
+  --enable-qtvr) disable_qtvr="no"
+  ;;
+  --disable-avi) disable_avi="yes"
+  ;;
+  --enable-avi) disable_avi="no"
+  ;;
+  --disable-ogg) disable_ogg="yes"
+  ;;
+  --enable-ogg) disable_ogg="no"
+  ;;
+  --disable-m2ps) disable_m2ps="yes"
+  ;;
+  --enable-m2ps) disable_m2ps="no"
+  ;;
+  --disable-m2ts) disable_m2ts="yes"
+  ;;
+  --enable-m2ts) disable_m2ts="no"
+  ;;
+  --disable-parsers) disable_parsers="yes"
+  ;;
+  --enable-parsers) disable_parsers="no"
+  ;;
+  --disable-import) disable_import="yes"
+  ;;
+  --enable-import) disable_import="no"
+  ;;
+  --disable-export) disable_export="yes"
+  ;;
+  --enable-export) disable_export="no"
+  ;;
+  --disable-swf) disable_swf="yes"
+  ;;
+  --enable-swf) disable_swf="no"
+  ;;
+  --disable-scene-stats) disable_scene_stats="yes"
+  ;;
+  --enable-scene-stats) disable_scene_stats="no"
+  ;;
+  --disable-scene-dump) disable_scene_dump="yes"
+  ;;
+  --enable-scene-dump) disable_scene_dump="no"
+  ;;
+  --disable-scene-encode) disable_scene_encode="yes"
+  ;;
+  --enable-scene-encode) disable_scene_encode="no"
+  ;;
+  --disable-loader-isoff) disable_loader_isoff="yes"
+  ;;
+  --enable-loader-isoff) disable_loader_isoff="no"
+  ;;
+  --disable-od-dump) disable_od_dump="yes"
+  ;;
+  --enable-od-dump) disable_od_dump="no"
+  ;;
+  --disable-mcrypt) disable_mcrypt="yes"
+  ;;
+  --enable-mcrypt) disable_mcrypt="no"
+  ;;
+  --disable-isoff) disable_isoff="yes"
+  ;;
+  --enable-isoff) disable_isoff="no"
+  ;;
+  --disable-isoff-write) disable_isoff_write="yes"
+  ;;
+  --enable-isoff-write) disable_isoff_write="no"
+  ;;
+  --disable-isoff-hint) disable_isoff_hint="yes"
+  ;;
+  --enable-isoff-hint) disable_isoff_hint="no"
+  ;;
+  --disable-isoff-frag) disable_isoff_frag="yes"
+  ;;
+  --enable-isoff-frag) disable_isoff_frag="no"
+  ;;
+  --disable-streaming) disable_streaming="yes"
+  ;;
+  --enable-streaming) disable_streaming="no"
+  ;;
+  
+  
   esac
 done
 
@@ -1127,7 +1280,7 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if test "$disable_opengl" = "no" ; then
+if test "$disable_3d" = "no" ; then
   if test "$win32" = "yes" ; then
     LINK3D="-lopengl32 -lglu32"
   elif test "$darwin" = "yes" ; then
@@ -1331,6 +1484,14 @@ has_png="no"
 fi
 
 
+#prepare for config.h writing
+TMPH="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.h"
+echo "/* Automatically generated by configure */" > $TMPH
+echo "#ifndef GF_CONFIG_H" >> $TMPH
+echo "#define GF_CONFIG_H" >> $TMPH
+echo "#define GPAC_CONFIGURATION \"$GPAC_CONFIGURATION\"" >> $TMPH
+
+
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
 echo ""
 echo "** System Configuration"
@@ -1348,11 +1509,115 @@ echo "** GPAC $version Core Configuration **"
 echo "debug version: $debuginfo"
 echo "GProf enabled: $gprof_build"
 echo "Memory tracking enabled: $use_memory_tracking"
-echo "read-only version: $make_readonly"
 echo "fixed-point version: $use_fixed_point"
 echo "IPV6 Support: $has_ipv6"
-echo "IsoMedia MovieFragments support: $iso_fragments"
-echo "SVG Support disabled: $disable_svg"
+
+
+if test "$disable_svg" = "yes" ; then
+echo "SVG disabled"
+echo "#define GPAC_DISABLE_SVG" >> $TMPH
+fi
+if test "$disable_vrml" = "yes" ; then
+echo "MPEG-4/VRML/X3D disabled"
+echo "#define GPAC_DISABLE_VRML" >> $TMPH
+fi
+if test "$disable_od" = "yes" ; then
+echo "OD Full support disabled"
+echo "#define GPAC_MINIMAL_OD" >> $TMPH
+fi
+if test "$disable_bifs" = "yes" ; then
+echo "BIFS coder disabled"
+echo "#define GPAC_DISABLE_BIFS" >> $TMPH
+fi
+if test "$disable_laser" = "yes" ; then
+echo "LASeR coder disabled"
+echo "#define GPAC_DISABLE_LASER" >> $TMPH
+fi
+if test "$disable_beng" = "yes" ; then
+echo "Scene encoder engine disabled"
+echo "#define GPAC_DISABLE_BENG" >> $TMPH
+fi
+if test "$disable_qtvr" = "yes" ; then
+echo "Cubic QTVR import disabled"
+echo "#define GPAC_DISABLE_QTVR" >> $TMPH
+fi
+if test "$disable_avi" = "yes" ; then
+echo "AVI disabled"
+echo "#define GPAC_DISABLE_AVI" >> $TMPH
+fi
+if test "$disable_ogg" = "yes" ; then
+echo "OGG disabled"
+echo "#define GPAC_DISABLE_OGG" >> $TMPH
+fi
+if test "$disable_m2ps" = "yes" ; then
+echo "MPEG-2 PS disabled"
+echo "#define GPAC_DISABLE_MPEG2PS" >> $TMPH
+fi
+if test "$disable_m2ts" = "yes" ; then
+echo "MPEG-2 TS disabled"
+echo "#define GPAC_DISABLE_MPEG2TS" >> $TMPH
+fi
+if test "$disable_parsers" = "yes" ; then
+echo "AV Parsers disabled"
+echo "#define GPAC_DISABLE_AV_PARSERS" >> $TMPH
+fi
+if test "$disable_import" = "yes" ; then
+echo "Media importers disabled"
+echo "#define GPAC_DISABLE_MEDIA_IMPORT" >> $TMPH
+fi
+if test "$disable_export" = "yes" ; then
+echo "Media exmporters disabled"
+echo "#define GPAC_DISABLE_MEDIA_EXPORT" >> $TMPH
+fi
+if test "$disable_swf" = "yes" ; then
+echo "SWF import disabled"
+echo "#define GPAC_DISABLE_MEDIA_EXPORT" >> $TMPH
+fi
+if test "$disable_scene_stats" = "yes" ; then
+echo "Scene statistics disabled"
+echo "#define GPAC_DISABLE_SCENE_STATS" >> $TMPH
+fi
+if test "$disable_scene_dump" = "yes" ; then
+echo "Scene dump disabled"
+echo "#define GPAC_DISABLE_SCENE_DUMP" >> $TMPH
+fi
+if test "$disable_scene_encoder" = "yes" ; then
+echo "Scene encoder to ISO FF disabled"
+echo "#define GPAC_DISABLE_SCENE_ENCODER" >> $TMPH
+fi
+if test "$disable_loader_isoff" = "yes" ; then
+echo "Scene loader from ISO FF disabled"
+echo "#define GPAC_DISABLE_LOADER_ISOM" >> $TMPH
+fi
+if test "$disable_od_dump" = "yes" ; then
+echo "OD dump disabled"
+echo "#define GPAC_DISABLE_OD_DUMP" >> $TMPH
+fi
+if test "$disable_mcrypt" = "yes" ; then
+echo "MCrypt disabled"
+echo "#define GPAC_DISABLE_MCRYPT" >> $TMPH
+fi
+if test "$disable_isoff" = "yes" ; then
+echo "ISO File Format disabled"
+echo "#define GPAC_DISABLE_ISOM" >> $TMPH
+fi
+if test "$disable_isoff_write" = "yes" ; then
+echo "ISO File Format write disabled"
+echo "#define GPAC_DISABLE_ISOM_WRITE" >> $TMPH
+fi
+if test "$disable_isoff_hint" = "yes" ; then
+echo "ISO File Format hinting disabled"
+echo "#define GPAC_DISABLE_ISOM_HINTING" >> $TMPH
+fi
+if test "$disable_isoff_frag" = "yes" ; then
+echo "ISO File Format fragments disabled"
+echo "#define GPAC_DISABLE_ISOM_FRAGMENTS" >> $TMPH
+fi
+if test "$disable_streaming" = "yes" ; then
+echo "RTP/RTSP/SDP streaming disabled"
+echo "#define GPAC_DISABLE_STREAMING" >> $TMPH
+fi
+
 echo ""
 
 echo "** Detected libraries **"
@@ -1468,17 +1733,11 @@ fi
 ldir=`pwd`
 CFLAGS="$CFLAGS -DGPAC_HAVE_CONFIG_H -I$ldir"
 
-TMPH="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.h"
 
 echo "Creating config.mak"
 echo "# Automatically generated by configure - do not modify" > config.mak
-echo "/* Automatically generated by configure */" > $TMPH
-
-echo "#ifndef GF_CONFIG_H" >> $TMPH
-echo "#define GF_CONFIG_H" >> $TMPH
 
 echo "GPAC_CONFIGURATION=$GPAC_CONFIGURATION" >> config.mak
-echo "#define GPAC_CONFIGURATION \"$GPAC_CONFIGURATION\"" >> $TMPH
 
 echo "prefix=$prefix" >> config.mak
 echo "DESTDIR=$DESTDIR" >> config.mak
@@ -1528,9 +1787,7 @@ fi
 echo "EXTRALIBS=$extralibs" >> config.mak
 echo "VERSION=$version" >>config.mak
 
-if test "$use_fixed_point" = "forced"; then
-CFLAGS="$CFLAGS -DGPAC_FIXED_POINT"
-elif test "$use_fixed_point" = "yes"; then
+if test "$use_fixed_point" = "yes"; then
 echo "#define GPAC_FIXED_POINT" >> $TMPH
 fi
 
@@ -1610,13 +1867,10 @@ echo "CONFIG_A52=$has_a52" >> config.mak
 echo "DISABLE_SVG=$disable_svg" >> config.mak
 echo "GPAC_USE_TINYGL=$has_tinygl" >> config.mak
 echo "OGL_INCLS=$INCL3D" >> config.mak
-if test "$disable_svg" = "yes" ; then
-echo "#define GPAC_DISABLE_SVG" >> $TMPH
-fi
-echo "HAS_OPENGL=$has_opengl" >> config.mak
-echo "ENABLE_JOYSTICK=$has_joystick" >> config.mak
-echo "TRISCOPE_MODE=$enable_renoir" >> config.mak
 
+echo "DISABLE_ISOFF=$disable_isoff" >> config.mak
+
+echo "HAS_OPENGL=$has_opengl" >> config.mak
 if test "$has_opengl" = "yes" ; then
   echo "OGL_LIBS=$LINK3D" >> config.mak
 else
@@ -1626,6 +1880,9 @@ fi
 if test "$has_tinygl" = "yes" ; then
 echo "#define GPAC_USE_TINYGL" >> $TMPH
 fi
+
+echo "ENABLE_JOYSTICK=$has_joystick" >> config.mak
+echo "TRISCOPE_MODE=$enable_renoir" >> config.mak
 
 echo "HAS_OPENSSL=$has_ssl" >> config.mak
 if test "$has_ssl" = "yes" ; then
@@ -1649,15 +1906,6 @@ echo "CONFIG_AMR_NB_FT=$has_amr_nb" >> config.mak
 echo "CONFIG_AMR_WB_FT=$has_amr_wb" >> config.mak
 echo "DEBUGBUILD=$debuginfo" >> config.mak
 echo "GPROFBUILD=$gprof_build" >> config.mak
-
-echo "GPACREADONLY=$make_readonly" >> config.mak
-if test "$make_readonly" = "yes" ; then
- echo "#define GPAC_READ_ONLY" >> $TMPH
-fi
-echo "ISOFRAGMENTS=$iso_fragments" >> config.mak
-if test "$iso_fragments" = "no" ; then
- echo "#define GPAC_ISOM_NO_FRAGMENTS" >> $TMPH
-fi
 
 echo "CONFIG_IPV6=$has_ipv6" >> config.mak
 if test "$has_ipv6" = "yes" ; then
