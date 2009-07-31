@@ -28,7 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/nodes_mpeg4.h>
 
-#ifndef GPAC_DISABLE_VRML
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_ISOM)
 
 
 /*
@@ -1185,4 +1185,4 @@ GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce) {}
 
 
-#endif /*GPAC_DISABLE_VRML*/
+#endif /*!defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_ISOM)*/

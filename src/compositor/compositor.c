@@ -2451,12 +2451,14 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 
 
 		if (type==GF_JSAPI_OP_GET_LOCAL_BBOX) {
+#ifndef GPAC_DISABLE_SVG
 			GF_SAFEALLOC(tr_state.svg_props, SVGPropertiesPointers);
 			gf_svg_properties_init_pointers(tr_state.svg_props);
 			tr_state.abort_bounds_traverse=1;
 			gf_node_traverse(n, &tr_state);
 			gf_svg_properties_reset_pointers(tr_state.svg_props);
 			free(tr_state.svg_props);
+#endif
 		} else {
 			gf_node_traverse(gf_sg_get_root_node(compositor->scene), &tr_state);
 		}

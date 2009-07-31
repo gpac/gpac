@@ -381,6 +381,9 @@ char *gf_strdup(const char *str);
 # ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 # define GPAC_DISABLE_ISOM_FRAGMENTS
 # endif
+# ifndef GPAC_DISABLE_SCENE_ENCODER
+# define GPAC_DISABLE_SCENE_ENCODER
+# endif
 #endif
 
 #ifdef GPAC_DISABLE_ISOM_WRITE

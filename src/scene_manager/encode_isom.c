@@ -62,6 +62,7 @@ static void gf_sm_remove_mux_info(GF_ESD *src)
 
 static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
 {
+#ifndef GPAC_DISABLE_ISOFF
 	u32 track, mts, ts;
 	GF_MuxInfo *mux = gf_sm_get_mux_info(src);
 	if (!mux && !offset_ts) return;
@@ -85,6 +86,7 @@ static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
 		if (mux->import_flags & GF_IMPORT_USE_COMPACT_SIZE) 
 			gf_isom_use_compact_size(mp4, track, 1);
 	}
+#endif
 }
 
 static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src)
