@@ -1264,7 +1264,9 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
     mem_at_startup = the_rti.physical_memory_avail;
   }
   the_rti.process_memory = mem_at_startup - the_rti.physical_memory_avail;
+#ifdef GPAC_MEMORY_TRACKING
   the_rti.gpac_memory = gpac_allocated_memory;
+#endif
 
   last_process_k_u_time = process_u_k_time;
   last_cpu_idle_time = idle_time;
