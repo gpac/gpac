@@ -637,7 +637,7 @@ void gf_sys_close()
 	}
 }
 
-#if GPAC_MEMORY_TRACKING
+#ifdef GPAC_MEMORY_TRACKING
 extern size_t gpac_allocated_memory;
 #endif
 
@@ -697,7 +697,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	HAL::Get(HALData::EMemoryRAMFree, ram_free);		
 	rti->physical_memory = ram;
 	rti->physical_memory_avail = ram_free;
-#if GPAC_MEMORY_TRACKING
+#ifdef GPAC_MEMORY_TRACKING
 	rti->gpac_memory = gpac_allocated_memory;
 #endif
 	return 1;
