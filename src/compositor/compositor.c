@@ -2454,6 +2454,8 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 		tr_state.vp_size = compositor->traverse_state->vp_size;
 		tr_state.for_node = n;
 		tr_state.ignore_strike = 1;
+		tr_state.min_hsize = compositor->traverse_state->min_hsize;
+		tr_state.pixel_metrics = compositor->traverse_state->pixel_metrics;
 		gf_mx2d_init(tr_state.transform);
 		gf_mx2d_init(tr_state.mx_at_node);
 
