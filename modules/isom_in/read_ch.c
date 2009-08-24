@@ -127,11 +127,22 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			/*we jumped to another segment - if RAP is needed look for closest rap in decoding order and
 			force seek mode*/
 			if (ch->sample && !ch->sample->IsRAP && ch->has_rap && (ch->sample_num != prev_sample+1)) {
-				gf_isom_sample_del(&ch->sample);
+				GF_ISOSample *found = ch->sample;
+				u32 samp_num = ch->sample_num;
+				ch->sample = NULL;
 				e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
-				ch->edit_sync_frame = ch->sample_num;
-				ch->sample->DTS = ch->sample_time;
-				ch->sample->CTS_Offset = 0;
+				/*if no sync point in the past, use the first non-sync for the given time*/
+				if (!ch->sample || !ch->sample->data) {
+					gf_isom_sample_del(&ch->sample);
+					ch->sample = found;
+					ch->sample_time = ch->sample->DTS;
+					ch->sample_num = samp_num;
+				} else {
+					gf_isom_sample_del(&found);
+					ch->edit_sync_frame = ch->sample_num;
+					ch->sample->DTS = ch->sample_time;
+					ch->sample->CTS_Offset = 0;
+				}
 			} else {
 				if (ch->sample) ch->sample_time = ch->sample->DTS;
 			}
