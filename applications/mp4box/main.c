@@ -69,15 +69,27 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level);
 #endif
 void PrintNode(const char *name, u32 graph_type);
 void PrintBuiltInNodes(u32 graph_type);
-void dump_file_mp4(GF_ISOFile *file, char *inName);
+
+#ifndef GPAC_DISABLE_ISOM_DUMP
+void dump_isom_xml(GF_ISOFile *file, char *inName);
+#endif
+
+
 #ifndef GPAC_DISABLE_ISOM_HINTING
+#ifndef GPAC_DISABLE_ISOM_DUMP
 void dump_file_rtp(GF_ISOFile *file, char *inName);
+#endif
 void DumpSDP(GF_ISOFile *file, char *inName);
 #endif
 
 void dump_file_ts(GF_ISOFile *file, char *inName);
+
+#ifndef GPAC_DISABLE_ISOM_DUMP
 void dump_file_ismacryp(GF_ISOFile *file, char *inName);
 void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_convert, u32 dump_type);
+#endif /*GPAC_DISABLE_ISOM_DUMP*/
+
+
 void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump);
 void DumpMovieInfo(GF_ISOFile *file);
 void PrintLanguages();
@@ -2078,7 +2090,9 @@ int main(int argc, char **argv)
 			while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 			outfile[strlen(outfile)-1] = 0;
 		}
+#ifndef GPAC_DISABLE_ISOM_DUMP
 		dump_timed_text_track(file, gf_isom_get_track_id(file, 1), dump_std ? NULL : outfile, 1, (import_subtitle==2) ? 2 : dump_srt);
+#endif
 		gf_isom_delete(file);
 		gf_delete_file("ttxt_convert");
 		if (e) {
@@ -2378,13 +2392,16 @@ int main(int argc, char **argv)
 		if (info_track_id) DumpTrackInfo(file, info_track_id, 1);
 		else DumpMovieInfo(file);
 	}
-	if (dump_isom) dump_file_mp4(file, dump_std ? NULL : outfile);
+#ifndef GPAC_DISABLE_ISOM_DUMP
+	if (dump_isom) dump_isom_xml(file, dump_std ? NULL : outfile);
+	if (dump_cr) dump_file_ismacryp(file, dump_std ? NULL : outfile);
+	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, 0, dump_srt);
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	if (dump_rtp) dump_file_rtp(file, dump_std ? NULL : outfile);
 #endif
+#endif
+
 	if (dump_ts) dump_file_ts(file, dump_std ? NULL : outfile);
-	if (dump_cr) dump_file_ismacryp(file, dump_std ? NULL : outfile);
-	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, 0, dump_srt);
 	if (do_hash) {
 		u8 hash[20];
 		e = gf_media_get_file_hash(inName, hash);

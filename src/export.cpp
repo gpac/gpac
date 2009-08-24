@@ -520,10 +520,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_fragment_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_fragment_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_default_sync_track) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_streaming_mode) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_dump) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_layout_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pl_indication) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_media_encrypted) )
@@ -555,6 +553,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_primary_item_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_JPEG2000) )
 
+# ifndef GPAC_DISABLE_ISOM_DUMP
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_dump) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump_ismacryp_protection) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump_ismacryp_sample) )
+#endif
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_payt_count) )
@@ -563,7 +567,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_next_hint_packet) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_sdp_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_sdp_track_get) )
+# ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump_hint_sample) )
+#endif
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -670,8 +676,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_ismacryp_protection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_ismacryp_protection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_change_ismacryp_protection) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump_ismacryp_protection) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump_ismacryp_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_avc_config_update) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_new) )

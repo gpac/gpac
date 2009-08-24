@@ -1,7 +1,6 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
  *			Copyright (c) ENST 2008 - 
  *					All rights reserved
  *
@@ -114,7 +113,7 @@
 /*disables X3D scene graphs*/
 //#define GPAC_DISABLE_X3D
 
-/*disables MPEG-4 OD Framework - this only minimalize the set of OD features used, however all cannot be removed all */
+/*disables MPEG-4 OD Framework - this only minimalize the set of OD features used, however all cannot be removed*/
 //#define GPAC_MINIMAL_ODF
 
 /*disables BIFS coding*/
@@ -156,9 +155,6 @@
 /*disables all media export functions*/
 //#define GPAC_DISABLE_SCENE_STATS
 
-/*disables scene graph textual dump*/
-//#define GPAC_DISABLE_SCENE_DUMP
-
 /*disables scene -> MP4 encoder*/
 //#define GPAC_DISABLE_SCENE_ENCODER
 
@@ -170,9 +166,6 @@
 
 /*disables XMTA/X3D -> scene decoder*/
 //#define GPAC_DISABLE_LOADER_XMT
-
-/*disables OD graph textual dump*/
-//#define GPAC_DISABLE_OD_DUMP
 
 /*disables mcrypt*/
 //#define GPAC_DISABLE_MCRYPT
@@ -188,6 +181,15 @@
 
 /*disables ISO FF fragments*/
 //#define GPAC_DISABLE_ISOM_FRAGMENTS
+
+/*disables scene graph textual dump*/
+//#define GPAC_DISABLE_SCENE_DUMP
+
+/*disables OD graph textual dump*/
+//#define GPAC_DISABLE_OD_DUMP
+
+/*disables OD graph textual dump*/
+//#define GPAC_DISABLE_ISOM_DUMP
 
 /*disables IETF RTP/SDP/RTSP*/
 //#define GPAC_DISABLE_STREAMING
