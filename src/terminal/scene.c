@@ -155,6 +155,7 @@ void gf_scene_del(GF_Scene *scene)
 	if (scene->audio_url.url) free(scene->audio_url.url);
 	if (scene->visual_url.url) free(scene->visual_url.url);
 	if (scene->text_url.url) free(scene->text_url.url);
+	if (scene->dims_url.url) free(scene->dims_url.url);
 	if (scene->fragment_uri) free(scene->fragment_uri);
 	if (scene->redirect_xml_base) free(scene->redirect_xml_base);
 	free(scene);
@@ -873,6 +874,67 @@ static Bool is_odm_url(SFURL *url, GF_ObjectManager *odm)
 	return !stricmp(url->url, odm->OD->URLString);
 }
 
+static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFURL *node_url, u32 type)
+{
+	u32 w, h;
+	SFURL *sfu;
+	Bool url_changed = 0;
+	/*scene url is not set, find the first one*/
+	if (!media_url->OD_ID) {
+		u32 i=0;
+		GF_ObjectManager *odm = NULL;
+		while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
+			if (type==GF_STREAM_TEXT) {
+				if (!odm->codec || ((odm->codec->type!=type) && (odm->codec->type!=GF_STREAM_ND_SUBPIC))) continue;
+			}
+			else if (type==GF_STREAM_SCENE) {
+				if (!odm->subscene || odm->subscene->scene_codec) continue;
+			}
+			else {
+				if (!odm->codec || (odm->codec->type!=type)) continue;
+			}
+
+			media_url->OD_ID = odm->OD->objectDescriptorID;
+			if (media_url->OD_ID==GF_MEDIA_EXTERNAL_ID) media_url->url = strdup(odm->net_service->url);
+
+			if (!scene->dyn_ck) scene->dyn_ck = odm->codec->ck;
+
+			if (odm->mo && (type==GF_STREAM_VISUAL)) {
+				gf_scene_get_video_size(odm->mo, &w, &h);
+				gf_sg_set_scene_size_info(scene->graph, w, h, 1);
+			}
+			break;
+		}
+		if (!odm) {
+			if (media_url->OD_ID ) url_changed = 1;
+			media_url->OD_ID = 0;
+			if (media_url->url) {
+				free(media_url->url);
+				media_url->url = NULL;
+			}
+		}
+	}
+
+	if (media_url->OD_ID) {
+		if (!node_url->count) url_changed = 1;
+		else if (node_url->vals[0].OD_ID!=media_url->OD_ID) url_changed = 1;
+		else if (media_url->OD_ID==GF_MEDIA_EXTERNAL_ID) {
+			if (!node_url->vals[0].url || !media_url->url || strcmp(node_url->vals[0].url, media_url->url) ) url_changed = 1;
+		}
+	} else {
+		if (node_url->count) url_changed = 1;
+	}
+
+	if (url_changed) {
+		gf_sg_vrml_mf_reset(node_url, GF_SG_VRML_MFURL);
+		gf_sg_vrml_mf_append(node_url, GF_SG_VRML_MFURL, (void **) &sfu);
+		sfu->OD_ID = media_url->OD_ID;
+		if (media_url->url) sfu->url = strdup(media_url->url);
+
+		gf_node_changed(node, NULL);
+	}
+
+}
 
 /*regenerates the scene graph for dynamic scene.
 This will also try to reload any previously presented streams. Note that in the usual case the scene is generated
@@ -880,11 +942,8 @@ just once when receiving the first OD AU (ressources are NOT destroyed when seek
 to update the OD ressources, we still kake care of it*/
 void gf_scene_regenerate(GF_Scene *scene)
 {
-	u32 i, nb_obj, w, h;
 	GF_Node *n1, *n2;
-	SFURL *sfu;
 	GF_Event evt;
-	GF_ObjectManager *first_odm, *odm;
 	M_AudioClip *ac;
 	M_MovieTexture *mt;
 	M_AnimationStream *as;
@@ -896,182 +955,83 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 	gf_sc_lock(scene->root_od->term->compositor, 1);
 
-	if (scene->root_od->term->root_scene == scene) 
-		gf_sc_set_scene(scene->root_od->term->compositor, NULL);
-
-	gf_sg_reset(scene->graph);
-	gf_sg_get_scene_size_info(scene->graph, &w, &h);
-	gf_sg_set_scene_size_info(scene->graph, w, h, 1);
-
-	n1 = is_create_node(scene->graph, TAG_MPEG4_OrderedGroup, NULL);
-	gf_sg_set_root_node(scene->graph, n1);
-	gf_node_register(n1, NULL);
-
-	n2 = is_create_node(scene->graph, TAG_MPEG4_Sound2D, NULL);
-	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
-	gf_node_register(n2, n1);
-
-	ac = (M_AudioClip *) is_create_node(scene->graph, TAG_MPEG4_AudioClip, "DYN_AUDIO");
-	ac->startTime = gf_scene_get_time(scene);
-	((M_Sound2D *)n2)->source = (GF_Node *)ac;
-	gf_node_register((GF_Node *)ac, n2);
-
-	nb_obj = 0;
-	first_odm = NULL;
-	i=0;
-	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-		if (!odm->codec || (odm->codec->type!=GF_STREAM_AUDIO)) continue;
-
-		if (is_odm_url(&scene->audio_url, odm)) {
-			gf_sg_vrml_mf_append(&ac->url, GF_SG_VRML_MFURL, (void **) &sfu);
-			sfu->OD_ID = scene->audio_url.OD_ID;
-			if (scene->audio_url.url) sfu->url = strdup(scene->audio_url.url);
-			first_odm = NULL;
-			nb_obj++;
-			break;
-		}
-		if (!first_odm) first_odm = odm;
-	}
-	if (first_odm) {
-		if (scene->audio_url.url) free(scene->audio_url.url);
-		scene->audio_url.url = NULL;
-		scene->audio_url.OD_ID = first_odm->OD->objectDescriptorID;
-		if (scene->audio_url.OD_ID==GF_MEDIA_EXTERNAL_ID) scene->audio_url.url = strdup(first_odm->net_service->url);
-		gf_sg_vrml_mf_append(&ac->url, GF_SG_VRML_MFURL, (void **) &sfu);
-		sfu->OD_ID = scene->audio_url.OD_ID;
-		if (scene->audio_url.url) sfu->url = strdup(scene->audio_url.url);
-		nb_obj++;
-
-		if (!scene->dyn_ck) scene->dyn_ck = first_odm->codec->ck;
-	}
-
-	/*transform for any translation due to scene resize (3GPP)*/
-	n2 = is_create_node(scene->graph, TAG_MPEG4_Transform2D, "DYN_TRANS");
-	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
-	gf_node_register(n2, n1);
-	n1 = n2;
-
-	n2 = is_create_node(scene->graph, TAG_MPEG4_Shape, NULL);
-	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
-	gf_node_register(n2, n1);
-	n1 = n2;
-	n2 = is_create_node(scene->graph, TAG_MPEG4_Appearance, NULL);
-	((M_Shape *)n1)->appearance = n2;
-	gf_node_register(n2, n1);
-
-	/*note we create a movie texture even for images...*/
-	mt = (M_MovieTexture *) is_create_node(scene->graph, TAG_MPEG4_MovieTexture, "DYN_VIDEO");
-	mt->startTime = gf_scene_get_time(scene);
-	((M_Appearance *)n2)->texture = (GF_Node *)mt;
-	gf_node_register((GF_Node *)mt, n2);
-
-	first_odm = NULL;
-	i=0;
-	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-		if (!odm->codec || (odm->codec->type!=GF_STREAM_VISUAL)) continue;
-
-		if (is_odm_url(&scene->visual_url, odm)) {
-			gf_sg_vrml_mf_append(&mt->url, GF_SG_VRML_MFURL, (void **) &sfu);
-			sfu->OD_ID = scene->visual_url.OD_ID;
-			if (scene->visual_url.url) sfu->url = strdup(scene->visual_url.url);
-			if (odm->mo) {
-				gf_scene_get_video_size(odm->mo, &w, &h);
-				gf_sg_set_scene_size_info(scene->graph, w, h, 1);
-			}
-			first_odm = NULL;
-			nb_obj++;
-			break;
-		}
-		if (!first_odm)
-			first_odm = odm;
-	}
-	if (first_odm) {
-		if (scene->visual_url.url) free(scene->visual_url.url);
-		scene->visual_url.url = NULL;
-		scene->visual_url.OD_ID = first_odm->OD->objectDescriptorID;
-		if (scene->visual_url.OD_ID==GF_MEDIA_EXTERNAL_ID) scene->visual_url.url = strdup(first_odm->net_service->url);
-
-		gf_sg_vrml_mf_append(&mt->url, GF_SG_VRML_MFURL, (void **) &sfu);
-		sfu->OD_ID = scene->visual_url.OD_ID;
-		if (scene->visual_url.url) sfu->url = strdup(scene->visual_url.url);
+	ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
 	
-		if (first_odm->mo) {
-			gf_scene_get_video_size(first_odm->mo, &w, &h);
-			gf_sg_set_scene_size_info(scene->graph, w, h, 1);
-		}
-		nb_obj++;
-		if (!scene->dyn_ck) scene->dyn_ck = first_odm->codec->ck;
+	/*this is the first time, generate a scene graph*/
+	if (!ac) {
+		/*create an OrderedGroup*/
+		n1 = is_create_node(scene->graph, TAG_MPEG4_OrderedGroup, NULL);
+		gf_sg_set_root_node(scene->graph, n1);
+		gf_node_register(n1, NULL);
+
+		/*create an sound2D and an audioClip node*/
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Sound2D, NULL);
+		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
+		gf_node_register(n2, n1);
+
+		ac = (M_AudioClip *) is_create_node(scene->graph, TAG_MPEG4_AudioClip, "DYN_AUDIO");
+		ac->startTime = gf_scene_get_time(scene);
+		((M_Sound2D *)n2)->source = (GF_Node *)ac;
+		gf_node_register((GF_Node *)ac, n2);
+
+
+		/*transform for any translation due to scene resize (3GPP)*/
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Transform2D, "DYN_TRANS");
+		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
+		gf_node_register(n2, n1);
+		n1 = n2;
+		
+		/*create a shape and bitmap node*/
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Shape, NULL);
+		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
+		gf_node_register(n2, n1);
+		n1 = n2;
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Appearance, NULL);
+		((M_Shape *)n1)->appearance = n2;
+		gf_node_register(n2, n1);
+
+		/*note we create a movie texture even for images...*/
+		mt = (M_MovieTexture *) is_create_node(scene->graph, TAG_MPEG4_MovieTexture, "DYN_VIDEO");
+		mt->startTime = gf_scene_get_time(scene);
+		((M_Appearance *)n2)->texture = (GF_Node *)mt;
+		gf_node_register((GF_Node *)mt, n2);
+
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Bitmap, NULL);
+		((M_Shape *)n1)->geometry = n2;
+		gf_node_register(n2, n1);
+
+
+		/*text streams controlled through AnimationStream*/
+		n1 = gf_sg_get_root_node(scene->graph);
+		as = (M_AnimationStream *) is_create_node(scene->graph, TAG_MPEG4_AnimationStream, "DYN_TEXT");
+		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)as);
+		gf_node_register((GF_Node *)as, n1);
+
+
+		/*3GPP DIMS streams controlled */
+		n1 = gf_sg_get_root_node(scene->graph);
+		dims = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "DYN_SCENE");
+		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)dims);
+		gf_node_register((GF_Node *)dims, n1);
+
 	}
 
-	n2 = is_create_node(scene->graph, TAG_MPEG4_Bitmap, NULL);
-	((M_Shape *)n1)->geometry = n2;
-	gf_node_register(n2, n1);
+	ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
+	set_media_url(scene, &scene->audio_url, (GF_Node*)ac, &ac->url, GF_STREAM_AUDIO);
 
+	mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO");
+	set_media_url(scene, &scene->visual_url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
 
-	/*text streams controlled through AnimationStream*/
-	n1 = gf_sg_get_root_node(scene->graph);
-	as = (M_AnimationStream *) is_create_node(scene->graph, TAG_MPEG4_AnimationStream, "DYN_TEXT");
-	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)as);
-	gf_node_register((GF_Node *)as, n1);
+	as = (M_AnimationStream *) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
+	set_media_url(scene, &scene->text_url, (GF_Node*)as, &as->url, GF_STREAM_TEXT);
 
-	first_odm = NULL;
-	i=0;
-	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-		if (!odm->codec || ((odm->codec->type!=GF_STREAM_TEXT) && (odm->codec->type!=GF_STREAM_ND_SUBPIC)) ) continue;
-
-		if (!nb_obj || is_odm_url(&scene->text_url, odm)) {
-			if (scene->text_url.url) free(scene->text_url.url);
-			scene->text_url.url = NULL;
-
-			gf_sg_vrml_mf_append(&as->url, GF_SG_VRML_MFURL, (void **) &sfu);
-			sfu->OD_ID = scene->text_url.OD_ID = odm->OD->objectDescriptorID;
-			if (odm->OD->objectDescriptorID == GF_MEDIA_EXTERNAL_ID) {
-				sfu->url = strdup(odm->net_service->url);
-				scene->text_url.url = strdup(odm->net_service->url);
-			}
-			first_odm = NULL;
-			if (!scene->dyn_ck) scene->dyn_ck = odm->codec->ck;
-			break;
-		}
-		if (!first_odm) first_odm = odm;
-	}
-	if (first_odm) {
-		if (scene->text_url.url) free(scene->text_url.url);
-		scene->text_url.url = NULL;
-		gf_sg_vrml_mf_append(&as->url, GF_SG_VRML_MFURL, (void **) &sfu);
-		sfu->OD_ID = scene->text_url.OD_ID = first_odm->OD->objectDescriptorID;
-		if (scene->text_url.OD_ID==GF_MEDIA_EXTERNAL_ID) {
-			scene->text_url.url = strdup(first_odm->net_service->url);
-			sfu->url = strdup(first_odm->net_service->url);
-		}
-		if (!scene->dyn_ck) scene->dyn_ck = first_odm->codec->ck;
-	}
-
-
-	/*3GPP DIMS streams controlled */
-	n1 = gf_sg_get_root_node(scene->graph);
-	dims = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, "DYN_SCENE");
-	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, (GF_Node*)dims);
-	gf_node_register((GF_Node *)dims, n1);
-
-	i=0;
-	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-		if (!odm->subscene || !odm->subscene->scene_codec) continue;
-
-		gf_sg_vrml_mf_append(&dims->url, GF_SG_VRML_MFURL, (void **) &sfu);
-		sfu->OD_ID = odm->OD->objectDescriptorID;
-		if (odm->OD->objectDescriptorID == GF_MEDIA_EXTERNAL_ID) {
-			sfu->url = strdup(odm->net_service->url);
-		}
-		if (!scene->dyn_ck) scene->dyn_ck = odm->subscene->scene_codec->ck;
-		break;
-	}
+	dims = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "DYN_SCENE");
+	set_media_url(scene, &scene->dims_url, (GF_Node*)dims, &dims->url, GF_STREAM_SCENE);
 
 	gf_sc_lock(scene->root_od->term->compositor, 0);
 	
 	/*disconnect to force resize*/
 	if (scene->root_od->term->root_scene == scene) {
-		if (scene->graph_attached) gf_sc_set_scene(scene->root_od->term->compositor, NULL);
 		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 		scene->graph_attached = 1;
 		evt.type = GF_EVENT_STREAMLIST;

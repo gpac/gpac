@@ -131,7 +131,7 @@ static void movietexture_update_time(GF_TimeNode *st)
 	if (time < stack->start_time ||
 		/*special case if we're getting active AFTER stoptime */
 		(!mt->isActive && (mt->stopTime > stack->start_time) && (time>=mt->stopTime))
-		|| (!stack->start_time && !stack->is_x3d && !mt->loop)
+//		|| (!stack->start_time && !stack->is_x3d && !mt->loop)
 		) {
 		/*opens stream only at first access to fetch first frame*/
 		if (stack->fetch_first_frame) {
