@@ -110,7 +110,7 @@ GF_Box *chpl_New()
 	
 	tmp = (GF_ChapterListBox *) malloc(sizeof(GF_ChapterListBox));
 	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_CopyrightBox));
+	memset(tmp, 0, sizeof(GF_ChapterListBox));
 	tmp->list = gf_list_new();
 	gf_isom_full_box_init((GF_Box *)tmp);
 	tmp->type = GF_ISOM_BOX_TYPE_CHPL;
