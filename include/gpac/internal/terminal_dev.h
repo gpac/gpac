@@ -169,7 +169,7 @@ struct _scene
 	/*clock for dynamic scene - current assumption is that all selected streams are synchronized in the dyn scene*/
 	GF_Clock *dyn_ck;
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
-	SFURL visual_url, audio_url, text_url;
+	SFURL visual_url, audio_url, text_url, dims_url;
 
 #ifndef GPAC_DISABLE_VRML
 	/*list of externproto libraries*/

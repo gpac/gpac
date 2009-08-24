@@ -500,7 +500,7 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 
 		if (mo->odm->action_type!=GF_ODM_ACTION_PLAY) {
 			mo->odm->action_type = GF_ODM_ACTION_PLAY;
-			is_restart = 1;
+			is_restart = 0;
 		}
 
 		if (mo->odm->flags & GF_ODM_NO_TIME_CTRL) {
