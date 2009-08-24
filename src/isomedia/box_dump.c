@@ -25,7 +25,7 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/utf.h>
 
-#ifndef GPAC_DISABLE_ISOM
+#ifndef GPAC_DISABLE_ISOM_DUMP
 
 static GF_Err apple_tag_dump(GF_Box *a, FILE * trace);
 
@@ -3285,4 +3285,4 @@ GF_Err ac3_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-#endif /*GPAC_DISABLE_ISOM*/
+#endif /*GPAC_DISABLE_ISOM_DUMP*/

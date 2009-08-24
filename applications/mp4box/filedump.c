@@ -733,7 +733,9 @@ void PrintBuiltInNodes(u32 graph_type)
 	}
 }
 
-void dump_file_mp4(GF_ISOFile *file, char *inName)
+#ifndef GPAC_DISABLE_ISOM_DUMP
+
+void dump_isom_xml(GF_ISOFile *file, char *inName)
 {
 	FILE *dump;
 	char szBuf[1024];
@@ -748,8 +750,10 @@ void dump_file_mp4(GF_ISOFile *file, char *inName)
 		gf_isom_dump(file, stdout);
 	}
 }
+#endif
 
-#ifndef GPAC_DISABLE_ISOM_HINTING
+
+#if !defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_ISOM_DUMP)
 
 void dump_file_rtp(GF_ISOFile *file, char *inName)
 {
@@ -839,6 +843,8 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 	if (has_error) fprintf(stdout, "\tFile has CTTS table errors\n");
 }
 
+#ifndef GPAC_DISABLE_ISOM_DUMP
+
 void dump_file_ismacryp(GF_ISOFile *file, char *inName)
 {
 	u32 i, j;
@@ -911,6 +917,8 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_
 	if (e) fprintf(stdout, "Conversion failed (%s)\n", gf_error_to_string(e));
 	else fprintf(stdout, "Conversion done\n");
 }
+
+#endif /*GPAC_DISABLE_ISOM_DUMP*/
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 

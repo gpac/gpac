@@ -1337,16 +1337,23 @@ GF_Err gf_isom_sdp_clean(GF_ISOFile *the_file);
 
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
+#ifndef GPAC_DISABLE_ISOM_DUMP
+
 /*dumps file structures into XML trace file */
 GF_Err gf_isom_dump(GF_ISOFile *file, FILE *trace);
 
+#endif /*GPAC_DISABLE_ISOM_DUMP*/
+
+
 #ifndef GPAC_DISABLE_ISOM_HINTING
 
+#ifndef GPAC_DISABLE_ISOM_DUMP
 /*dumps RTP hint samples structure into XML trace file
 	@trackNumber, @SampleNum: hint track and hint sample number
 	@trace: output
 */
 GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 SampleNum, FILE * trace);
+#endif
 
 /*Get SDP info at the movie level*/
 GF_Err gf_isom_sdp_get(GF_ISOFile *the_file, const char **sdp, u32 *length);
@@ -1451,10 +1458,13 @@ GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Desc
 and ESD will be emulated for text tracks.*/
 GF_Err gf_isom_text_set_streaming_mode(GF_ISOFile *the_file, Bool do_convert);
 
+
+#ifndef GPAC_DISABLE_ISOM_DUMP
 /*exports text track to given format
 @dump_type: 0 for TTXT, 1 for srt, 2 for SVG
 */
 GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, u32 dump_type);
+#endif
 
 /*returns encoded TX3G box (text sample description for 3GPP text streams) as needed by RTP or other standards:
 	@sidx: 1-based stream description index
@@ -1638,9 +1648,11 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+#ifndef GPAC_DISABLE_ISOM_DUMP
 /*xml dumpers*/
 GF_Err gf_isom_dump_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, FILE * trace);
 GF_Err gf_isom_dump_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber, u32 SampleNum, FILE *trace);
+#endif
 
 
 /********************************************************************
