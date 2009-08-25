@@ -85,19 +85,16 @@ static void VR_write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *src, u32 s
 								 u32 src_width, u32 src_height, const GF_Window *src_wnd)
 {
 	unsigned char *pY, *pU, *pV;
-	u32 start_y;
 	pY = src;
 	pU = src + src_stride * src_height;
 	pV = src + 5*src_stride * src_height/4;
 
-	start_y = src_wnd->y;
-	/*because of U and V downsampling by 2x2, working with odd Y offset will lead to a half-line shift between Y and UV components. We
-	therefore force an even Y offset for U and V planes.*/
-	if (start_y % 2) start_y--;
 
 	pY = pY + src_stride * src_wnd->y + src_wnd->x;
-	pU = pU + ((src_stride * start_y) / 2 + src_wnd->x) / 2;
-	pV = pV + ((src_stride * start_y) / 2 + src_wnd->x) / 2;
+	/*because of U and V downsampling by 2x2, working with odd Y offset will lead to a half-line shift between Y and UV components. We
+	therefore force an even Y offset for U and V planes.*/
+	pU = pU + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
+	pV = pV + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
 
 
 	if (is_planar_yuv(vs->pixel_format)) {
