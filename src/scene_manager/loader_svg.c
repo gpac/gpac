@@ -1579,8 +1579,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 				break;
 			}
 			/*if we have associated event listeners, trigger the onLoad, only in playback mode */
-			if ((parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) && 
-				(node->sgprivate->interact && node->sgprivate->interact->dom_evt)) {
+			if (node->sgprivate->interact && node->sgprivate->interact->dom_evt) {
 				GF_DOM_Event evt;
 				memset(&evt, 0, sizeof(GF_DOM_Event));
 				evt.type = GF_EVENT_LOAD;

@@ -274,10 +274,16 @@ void gf_term_on_node_modified(void *_is, GF_Node *node)
 GF_EXPORT
 void gf_term_node_callback(void *_is, u32 type, GF_Node *n, void *param)
 {
-	if (type==GF_SG_CALLBACK_MODIFIED) gf_term_on_node_modified(_is, n);
-	else if (type==GF_SG_CALLBACK_INIT) gf_term_on_node_init(_is, n);
+	switch (type) {
+	case GF_SG_CALLBACK_MODIFIED:
+		gf_term_on_node_modified(_is, n);
+		break;
+	case GF_SG_CALLBACK_INIT:
+		gf_term_on_node_init(_is, n);
+		break;
 	/*get all inline nodes using this subscene and bubble up...*/
-	else if (type==GF_SG_CALLBACK_GRAPH_DIRTY) {
+	case GF_SG_CALLBACK_GRAPH_DIRTY:
+	{
 		u32 i=0;
 		GF_Node *root;
 		GF_Scene *scene = (GF_Scene *)_is;
@@ -286,5 +292,7 @@ void gf_term_node_callback(void *_is, u32 type, GF_Node *n, void *param)
 				gf_node_dirty_set(root, GF_SG_CHILD_DIRTY, 1);
 			}
 		}
+	}
+		break;
 	}
 }
