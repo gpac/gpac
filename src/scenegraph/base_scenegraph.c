@@ -2048,6 +2048,16 @@ GF_Node *gf_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *cloned_pa
 	return NULL;
 }
 
+u32 gf_xml_get_namespace_id(char *name)
+{
+	if (!strcmp(name, "http://www.w3.org/XML/1998/namespace")) return GF_XMLNS_XML;
+	else if (!strcmp(name, "http://www.w3.org/2001/xml-events")) return GF_XMLNS_XMLEV;
+	else if (!strcmp(name, "http://www.w3.org/1999/xlink")) return GF_XMLNS_XLINK;
+	else if (!strcmp(name, "http://www.w3.org/2000/svg")) return GF_XMLNS_SVG;
+	else if (!strcmp(name, "urn:mpeg:mpeg4:laser:2005")) return GF_XMLNS_LASER;
+	else if (!strcmp(name, "http://www.w3.org/ns/xbl")) return GF_XMLNS_XBL;
+	return GF_XMLNS_UNDEFINED;
+}
 
 GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 {
@@ -2055,13 +2065,7 @@ GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 	GF_XMLNS *ns;
 	if (!name) return GF_BAD_PARAM;
 
-	id = GF_XMLNS_NONE;
-	if (!strcmp(name, "http://www.w3.org/XML/1998/namespace")) id = GF_XMLNS_XML;
-	else if (!strcmp(name, "http://www.w3.org/2001/xml-events")) id = GF_XMLNS_XMLEV;
-	else if (!strcmp(name, "http://www.w3.org/1999/xlink")) id = GF_XMLNS_XLINK;
-	else if (!strcmp(name, "http://www.w3.org/2000/svg")) id = GF_XMLNS_SVG;
-	else if (!strcmp(name, "urn:mpeg:mpeg4:laser:2005")) id = GF_XMLNS_LASER;
-	else if (!strcmp(name, "http://www.w3.org/ns/xbl")) id = GF_XMLNS_XBL;
+	id = gf_xml_get_namespace_id(name);
 
 	if (!sg->ns) sg->ns = gf_list_new();
 
@@ -2113,7 +2117,7 @@ u32 gf_sg_get_namespace_code(GF_SceneGraph *sg, char *qname)
 		if (!strcmp(qname, "xml")) return GF_XMLNS_XML;
 		/*we could also add the basic namespaces in case this has been forgotten ?*/
 	}
-	return GF_XMLNS_NONE;
+	return GF_XMLNS_UNDEFINED;
 }
 
 u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name)
@@ -2128,7 +2132,7 @@ u32 gf_sg_get_namespace_code_from_name(GF_SceneGraph *sg, char *name)
 		if (!ns->name && !name) 
 			return ns->xmlns_id;
 	}
-	return GF_XMLNS_NONE;
+	return GF_XMLNS_UNDEFINED;
 }
 
 const char *gf_sg_get_namespace_qname(GF_SceneGraph *sg, u32 xmlns_id)

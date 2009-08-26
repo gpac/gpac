@@ -154,12 +154,10 @@ typedef struct __dom_full_node
 	u32 ns;
 } GF_DOMFullNode;
 
-
-
 enum
 {
-	/*no NS specified, it will be evaluated from attribute/node name*/
-	GF_XMLNS_NONE,
+	/*XMLNS is undefined*/
+	GF_XMLNS_UNDEFINED = 0,
 
 	GF_XMLNS_XML,
 	GF_XMLNS_XLINK,
@@ -170,6 +168,9 @@ enum
 
 	/*any other namespace uses the CRC32 of the namespace as an identifier*/
 };
+
+/*returns the built-in XMLNS id for this namespace if known, otherwise returns GF_XMLNS_UNDEFINED*/
+u32 gf_xml_get_namespace_id(char *name);
 
 GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname);
 GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *name, char *qname);

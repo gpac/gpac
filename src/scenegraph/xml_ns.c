@@ -322,6 +322,23 @@ void gf_xml_pop_namespaces(GF_DOMNode *elt)
 }
 
 
+static u32 gf_xml_get_namespace(GF_DOMNode *elt, const char *attribute_name)
+{
+	GF_DOMAttribute *att = elt->attributes;
+	while (att) {
+		if (att->tag==TAG_DOM_ATT_any) {
+			GF_DOMFullAttribute *datt = (GF_DOMFullAttribute*)att;
+			if (datt->name && !strncmp(datt->name, "xmlns", 5) && !strcmp(datt->name+6, attribute_name)) {
+				return gf_xml_get_namespace_id(*(DOM_String *)  datt->data);
+			}
+		}
+		att = att->next;
+	}
+	if (!elt->sgprivate->parents) return 0;
+	return gf_xml_get_namespace((GF_DOMNode*)elt->sgprivate->parents->node, attribute_name);
+}
+
+
 u32 gf_xml_get_attribute_tag(GF_Node *elt, char *attribute_name, u32 ns)
 {
 	char *ns_sep;
@@ -330,10 +347,11 @@ u32 gf_xml_get_attribute_tag(GF_Node *elt, char *attribute_name, u32 ns)
 
 	if (!ns) {
 		ns_sep = strchr(attribute_name, ':');
-		ns = 0;
+		ns = GF_XMLNS_UNDEFINED;
 		if (ns_sep) {
 			ns_sep[0] = 0;
 			ns = gf_sg_get_namespace_code(elt->sgprivate->scenegraph, attribute_name);
+			if (ns==GF_XMLNS_UNDEFINED) ns = gf_xml_get_namespace((GF_DOMNode*)elt, attribute_name);
 			ns_sep[0] = ':';
 			attribute_name = ++ns_sep;
 		} else {
@@ -549,7 +567,7 @@ u32 gf_xml_get_element_namespace(GF_Node *n)
 	for (i=0; i<count; i++) {
 		if (n->sgprivate->tag==xml_elements[i].tag) return xml_elements[i].xmlns;
 	}
-	return GF_XMLNS_NONE;
+	return GF_XMLNS_UNDEFINED;
 }
 
 
