@@ -1808,14 +1808,33 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 
 	if (n->sgprivate->tag<=GF_NODE_RANGE_LAST_SVG) {
 		GF_FieldInfo info;
+		u32 anim_value_type = 0;
 		u32 ns_code = 0;
 		if (ns) {
 			ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
 		} else {
 			ns_code = gf_xml_get_element_namespace(n);
 		}
+
+		if ((n->sgprivate->tag == TAG_SVG_animateTransform) && (strstr(name, "from") || strstr(name, "to")) ) {
+			if (gf_node_get_attribute_by_tag((GF_Node *)n, TAG_SVG_ATT_transform_type, 1, 0, &info) != GF_OK)
+				goto exit;
+
+			switch(*(SVG_TransformType *) info.far_ptr) {
+			case SVG_TRANSFORM_TRANSLATE: anim_value_type = SVG_Transform_Translate_datatype; break;
+			case SVG_TRANSFORM_SCALE: anim_value_type = SVG_Transform_Scale_datatype; break;
+			case SVG_TRANSFORM_ROTATE: anim_value_type = SVG_Transform_Rotate_datatype; break;
+			case SVG_TRANSFORM_SKEWX: anim_value_type = SVG_Transform_SkewX_datatype; break;
+			case SVG_TRANSFORM_SKEWY: anim_value_type = SVG_Transform_SkewY_datatype; break;
+			case SVG_TRANSFORM_MATRIX: anim_value_type = SVG_Transform_datatype; break;
+			default:
+				goto exit;
+			}
+		}
+
+
 		if (gf_node_get_attribute_by_name(n, name, ns_code,  1, 1, &info)==GF_OK) {
-			gf_svg_parse_attribute(n, &info, val, 0);
+			gf_svg_parse_attribute(n, &info, val, anim_value_type);
 
 			if (info.fieldType==SVG_ID_datatype) {
 				gf_svg_parse_element_id(n, *(SVG_String*)info.far_ptr, 0);
