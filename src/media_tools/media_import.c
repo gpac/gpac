@@ -5932,6 +5932,7 @@ error:
 GF_Err gf_import_ac3(GF_MediaImporter *import)
 {
 	GF_AC3Header hdr;
+	GF_AC3Config cfg;
 	Bool destroy_esd;
 	GF_Err e;
 	u16 sr;
@@ -5994,18 +5995,14 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 	if (import->esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) import->esd->decoderConfig->decoderSpecificInfo);
 	import->esd->decoderConfig->decoderSpecificInfo = NULL;
 
-	if (1) {
-		GF_AC3Config cfg;
-		cfg.acmod = hdr.acmod;
-		cfg.brcode = hdr.brcode;
-		cfg.bsid = hdr.bsid;
-		cfg.bsmod = hdr.bsmod;
-		cfg.fscod = hdr.fscod;
-		cfg.lfon = hdr.lfon;
-		gf_isom_ac3_config_new(import->dest, track, &cfg, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
-	} else {
-		gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
-	}
+	cfg.acmod = hdr.acmod;
+	cfg.brcode = hdr.brcode;
+	cfg.bsid = hdr.bsid;
+	cfg.bsmod = hdr.bsmod;
+	cfg.fscod = hdr.fscod;
+	cfg.lfon = hdr.lfon;
+
+	gf_isom_ac3_config_new(import->dest, track, &cfg, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
 	gf_isom_set_audio_info(import->dest, track, di, sr, nb_chan, 16);
 
 	gf_bs_seek(bs, 0);

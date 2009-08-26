@@ -212,7 +212,8 @@ typedef struct
 
 Bool gf_ac3_parser(u8 *buffer, u32 buffer_size, u32 *pos, GF_AC3Header *out_hdr, Bool full_parse);
 Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse);
-
+u32 gf_ac3_get_channels(GF_AC3Config *cfg);
+u32 gf_ac3_get_bitrate(GF_AC3Config *cfg);
 
 GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 const char *gf_avc_get_profile_name(u8 video_prof);

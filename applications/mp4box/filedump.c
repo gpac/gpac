@@ -1321,7 +1321,18 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_QCELP) {
 		fprintf(stdout, "\t3GPP QCELP stream - Sample Rate %d - %d channel(s) %d bits per samples\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_AC3) {
-		fprintf(stdout, "\tAC3 stream - Sample Rate %d - %d channel(s) %d bits per samples\n", sr, nb_ch, (u32) bps);
+		u32 br = 0;
+		Bool lfe = 0;
+#ifndef GPAC_DISABLE_AV_PARSERS
+		GF_AC3Config *ac3 = gf_isom_ac3_config_get(file, trackNum, 1);
+		if (ac3) {
+			nb_ch = gf_ac3_get_channels(ac3);
+			br = gf_ac3_get_bitrate(ac3);
+			lfe = ac3->lfon;
+			free(ac3);
+		}
+#endif
+		fprintf(stdout, "\tAC3 stream - Sample Rate %d - %d%s channel(s) - bitrate %d\n", sr, nb_ch, lfe ? ".1" : "", br);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_SMV) {
 		fprintf(stdout, "\t3GPP SMV stream - Sample Rate %d - %d channel(s) %d bits per samples\n", sr, nb_ch, (u32) bps);
 	} else if (msub_type == GF_ISOM_SUBTYPE_3GP_DIMS) {

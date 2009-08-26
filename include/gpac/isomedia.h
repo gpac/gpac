@@ -1876,6 +1876,8 @@ typedef struct
 	u8 brcode;
 } GF_AC3Config;
 
+GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex);
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Config *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

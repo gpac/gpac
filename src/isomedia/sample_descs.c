@@ -188,6 +188,23 @@ GF_3GPConfig *gf_isom_3gp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	return res;
 }
 
+GF_EXPORT
+GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex)
+{
+	GF_AC3Config *res;
+	GF_TrackBox *trak;
+	GF_AC3SampleEntryBox *entry;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !StreamDescriptionIndex) return NULL;
+
+	entry = (GF_AC3SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, StreamDescriptionIndex-1);
+	if (!entry || !entry->info || (entry->type!=GF_ISOM_BOX_TYPE_AC3) || (entry->info->type!=GF_ISOM_BOX_TYPE_DAC3) ) return NULL;
+
+	res = (GF_AC3Config*)malloc(sizeof(GF_AC3Config));
+	memcpy(res, &entry->info->cfg, sizeof(GF_AC3Config));
+	return res;
+}
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_EXPORT
