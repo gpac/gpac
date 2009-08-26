@@ -2327,16 +2327,16 @@ static const u32 ac3_mod_to_chans[] = {
   2, 1, 2, 3, 3, 4, 4, 5
 };
 
-u32 gf_ac3_get_channels(GF_AC3Config *cfg)
+u32 gf_ac3_get_channels(u32 acmod)
 {
 	u32 nb_ch;
-	nb_ch = ac3_mod_to_chans[cfg->acmod];
+	nb_ch = ac3_mod_to_chans[acmod];
 	return nb_ch;
 }
 
-u32 gf_ac3_get_bitrate(GF_AC3Config *cfg)
+u32 gf_ac3_get_bitrate(u32 brcode)
 {
-	return ac3_sizecod_to_bitrate[cfg->brcode];
+	return ac3_sizecod_to_bitrate[brcode];
 }
 
 Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Header *hdr, Bool full_parse)

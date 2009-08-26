@@ -1244,7 +1244,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				else
 					fprintf(stdout, "Synchronized on stream %d\n", esd->OCRESID);
 			} else {
-				fprintf(stdout, "\tDecoding Buffer size %d - Average bitrate %d kbps - Max Bitrate %d kbps\n", esd->decoderConfig->bufferSizeDB, esd->decoderConfig->avgBitrate/1024, esd->decoderConfig->maxBitrate/1024);
+				fprintf(stdout, "\tDecoding Buffer size %d - Average bitrate %d kbps - Max Bitrate %d kbps\n", esd->decoderConfig->bufferSizeDB, esd->decoderConfig->avgBitrate/1000, esd->decoderConfig->maxBitrate/1000);
 				if (esd->dependsOnESID)
 					fprintf(stdout, "\tDepends on stream %d for decoding\n", esd->dependsOnESID);
 				else
