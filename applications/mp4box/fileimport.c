@@ -1499,10 +1499,15 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 		}
 		/*NO CHANGE TO BIFSC otherwise the generated update will not match the input context*/
 		nbb = GetNbBits(ctx->max_node_id);
+		if (!bcfg->nodeIDbits) bcfg->nodeIDbits=nbb;
 		if (bcfg->nodeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.NodeIDBits TOO SMALL\n");
+
 		nbb = GetNbBits(ctx->max_route_id);
+		if (!bcfg->routeIDbits) bcfg->routeIDbits = nbb;
 		if (bcfg->routeIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.RouteIDBits TOO SMALL\n");
+
 		nbb = GetNbBits(ctx->max_proto_id);
+		if (!bcfg->protoIDbits) bcfg->protoIDbits=nbb;
 		if (bcfg->protoIDbits<nbb) fprintf(stdout, "Warning: BIFSConfig.ProtoIDBits TOO SMALL\n");
 
 		/*this is the real pb, not stored in cfg or file level, set at EACH replaceScene*/

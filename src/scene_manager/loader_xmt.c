@@ -2067,6 +2067,10 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 			}
 		}
 
+		/*if we are parsing in an already loaded context and no time is given, force a time != 0 to create a new command*/
+		if (!au_time && (parser->load->flags&GF_SM_LOAD_CONTEXT_READY))
+			au_time = 0.001;
+
 		atNode = NULL;
 		if (nodeName) {
 			if (fieldName) {
@@ -2266,6 +2270,10 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 			else if (!strcmp(att->name, "ES_ID")) es_ids = att->value;
 		}
 
+		/*if we are parsing in an already loaded context and no time is given, force a time != 0 to create a new command*/
+		if (!au_time && (parser->load->flags&GF_SM_LOAD_CONTEXT_READY))
+			au_time = 0.001;
+
 		if (!strcmp(name, "ObjectDescriptorUpdate")) tag = GF_ODF_OD_UPDATE_TAG;
 		else if (!strcmp(name, "ES_DescriptorUpdate")) tag = GF_ODF_ESD_UPDATE_TAG;
 		else if (!strcmp(name, "IPMP_DescriptorUpdate")) tag = GF_ODF_IPMP_UPDATE_TAG;
@@ -2350,14 +2358,19 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 		return;
 	}
 
-	/*init doc state*/
-	if (parser->state == XMT_STATE_INIT) {
+	/*init doc state with already loaded context (for chunk encoding)*/
+	if ((parser->state == XMT_STATE_INIT) && (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) && (parser->doc_type == 1)) {
+		parser->state = XMT_STATE_COMMANDS;
+	}
+	/*init doc state for regular parsing*/
+	else if (parser->state == XMT_STATE_INIT) {
 		/*XMT-A header*/
 		if ((parser->doc_type == 1) && !strcmp(name, "Header")) parser->state = XMT_STATE_HEAD;
 		/*X3D header*/
 		else if ((parser->doc_type == 2) && !strcmp(name, "head")) parser->state = XMT_STATE_HEAD;
 		/*XMT-O header*/
 		else if ((parser->doc_type == 3) && !strcmp(name, "head")) parser->state = XMT_STATE_HEAD;
+
 		return;
 	}
 
@@ -2810,6 +2823,37 @@ GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load)
 	if (!load->fileName) return GF_BAD_PARAM;
 	parser = xmt_new_parser(load);
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("XMT: MPEG-4 (XMT) Scene Parsing\n"));
+
+
+	/*chunk parsing*/
+	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
+		u32 i;
+		GF_StreamContext *sc;
+		if (!load->ctx) return GF_BAD_PARAM;
+
+		/*restore context - note that base layer are ALWAYS declared BEFORE enhancement layers with gpac parsers*/
+		i=0;
+		while ((sc = (GF_StreamContext*)gf_list_enum(load->ctx->streams, &i))){
+			switch (sc->streamType) {
+			case GF_STREAM_SCENE:
+			case GF_STREAM_PRIVATE_SCENE:
+				if (!parser->scene_es) parser->scene_es = sc; break;
+			case GF_STREAM_OD: if (!parser->od_es) parser->od_es = sc; break;
+			default: break;
+			}
+		}
+		/*scene creation - pick up a size*/
+		if (!parser->scene_es) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("XMT: No BIFS Streams found in existing context - creating one\n"));
+			parser->scene_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, 0);
+			parser->load->ctx->scene_width = 0;
+			parser->load->ctx->scene_height = 0;
+			parser->load->ctx->is_pixel_metrics = 1;
+		}
+		else parser->base_scene_id = parser->scene_es->ESID;
+		if (parser->od_es) parser->base_od_id = parser->od_es->ESID;
+	}
+
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);
 	if (e<0) xmt_report(parser, e, "Invalid XML document\n", gf_xml_sax_get_error(parser->sax_parser));
 	return parser->last_error;
