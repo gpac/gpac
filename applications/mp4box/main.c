@@ -1671,11 +1671,11 @@ int main(int argc, char **argv)
 			strcpy(szTK, argv[i+1]);
 			ext = strchr(szTK, '=');
 			if (!ext) {
-				fprintf(stdout, "Bad format for track delay - expecting ID=DLAY got %s\n", argv[i+1]);
+				fprintf(stdout, "Bad format for track name - expecting ID=name got %s\n", argv[i+1]);
 				return 1;
 			}
 			tracks[nb_track_act].act_type = 5;
-			tracks[nb_track_act].hdl_name = ext+1;
+			tracks[nb_track_act].hdl_name = strchr(argv[i+1], '=') + 1;
 			ext[0] = 0;
 			tracks[nb_track_act].trackID = atoi(szTK);
 			ext[0] = '=';
