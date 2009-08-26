@@ -528,6 +528,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_fragment_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_default_sync_track) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_ac3_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_set_streaming_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_layout_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_pl_indication) )
@@ -950,6 +951,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_write_config) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_parser_bs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_channels) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_bitrate) )
 #ifndef GPAC_DISABLE_OGG
 #pragma comment (linker, EXPORT_SYMBOL(gf_vorbis_parse_header) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_vorbis_check_frame) )
