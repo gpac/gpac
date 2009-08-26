@@ -48,7 +48,7 @@
 
 #if !defined(__GNUC__)
 
-#if defined(IPV6_MULTICAST_IF__dis)
+#if defined(IPV6_MULTICAST_IF)
 #define GPAC_HAS_IPV6 1
 #pragma message("Using WinSock IPV6")
 #else
@@ -71,6 +71,16 @@
 
 /*the number of sockets used. This because the WinSock lib needs init*/
 static int wsa_init = 0;
+
+#ifdef GPAC_HAS_IPV6
+# ifndef IPV6_ADD_MEMBERSHIP
+#  define IPV6_ADD_MEMBERSHIP IPV6_JOIN_GROUP
+# endif
+# ifndef IPV6_DROP_MEMBERSHIP
+#  define IPV6_DROP_MEMBERSHIP   IPV6_LEAVE_GROUP
+# endif
+#endif
+
 
 #include <gpac/network.h>
 
