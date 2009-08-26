@@ -1326,8 +1326,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 #ifndef GPAC_DISABLE_AV_PARSERS
 		GF_AC3Config *ac3 = gf_isom_ac3_config_get(file, trackNum, 1);
 		if (ac3) {
-			nb_ch = gf_ac3_get_channels(ac3);
-			br = gf_ac3_get_bitrate(ac3);
+			nb_ch = gf_ac3_get_channels(ac3->acmod);
+			br = gf_ac3_get_bitrate(ac3->brcode);
 			lfe = ac3->lfon;
 			free(ac3);
 		}
@@ -1455,8 +1455,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	rate = (u32) (size * 8 / (dur/1000));
 	max_rate *= 8;
 	if (rate >= 1500) {
-		rate /= 1024;
-		max_rate /= 1024;
+		rate /= 1000;
+		max_rate /= 1000;
 		fprintf(stdout, "\tAverage rate %d kbps - Max Rate %d kbps\n", rate, max_rate);
 	} else {
 		fprintf(stdout, "\tAverage rate %d bps - Max Rate %d bps\n", rate, max_rate);
