@@ -32,6 +32,13 @@
 #define EXPORT_SYMBOL(a) "/export:_"#a
 #endif
 
+#ifdef _WIN32_WCE
+#pragma comment (linker, EXPORT_SYMBOL(CE_Assert) )
+#pragma comment (linker, EXPORT_SYMBOL(CE_CharToWide) )
+#pragma comment (linker, EXPORT_SYMBOL(CE_WideToChar) )
+#endif
+
+
 #pragma comment (linker, EXPORT_SYMBOL(gpac_features) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sys_close) )
