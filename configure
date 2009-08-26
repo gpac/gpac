@@ -302,6 +302,10 @@ case "$cpu" in
   alpha)
     cpu="alpha"
   ;;
+  ppc64)
+    cpu="powerpc"
+    libdir="lib64"
+  ;;  
   "Power Macintosh"|ppc)
     cpu="powerpc"
   ;;
