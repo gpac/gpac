@@ -5982,7 +5982,7 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 
 	samp = NULL;
 	nb_chan = hdr.channels;
-	gf_import_message(import, GF_OK, "AC3 import - sample rate %d - %d channel%s", sr, nb_chan, (nb_chan>1) ? "s" : "");
+	gf_import_message(import, GF_OK, "AC3 import - sample rate %d - %d%s channel%s", sr, nb_chan, hdr.lfon?".1":"", (nb_chan>1) ? "s" : "");
 
 	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, sr);
 	if (!track) {
@@ -6034,7 +6034,7 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 		}
 		if (e) goto exit;
 
-		gf_set_progress("Importing AAC", done, tot_size);
+		gf_set_progress("Importing AC3", done, tot_size);
 
 		samp->DTS += 1536;
 		done += samp->dataLength;
