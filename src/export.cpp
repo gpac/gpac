@@ -906,6 +906,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_import) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_import_chapters) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_change_par) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_change_pl) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_fragment_file) )
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
