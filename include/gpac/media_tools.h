@@ -210,6 +210,9 @@ GF_Err gf_media_make_psp(GF_ISOFile *mp4file);
 /*changes pixel aspect ratio for visual tracks if supported. Negative values remove any PAR info*/
 GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den);
 
+/*changes the profile (if not 0) and level (if not 0) indication of the media - only AVC/H264 supported for now*/
+GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level);
+
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 

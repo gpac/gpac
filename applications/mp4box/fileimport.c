@@ -130,7 +130,7 @@ void convert_file_info(char *inName, u32 trackID)
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
-	u32 track_id, i, timescale, track, stype;
+	u32 track_id, i, timescale, track, stype, profile, level;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty;
 	Bool do_audio, do_video, do_all, disable, track_layout, chap_ref, is_chap, keep_handler;
@@ -158,6 +158,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	delay = 0;
 	group = 0;
 	stype = 0;
+	profile = level = 0;
 
 	tw = th = tx = ty = 0;
 	par_d = par_n = -2;
@@ -217,6 +218,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "stype=", 6)) {
 			stype = GF_4CC(ext[7], ext[8], ext[9], ext[10]);
 		}
+		else if (!strnicmp(ext+1, "profile=", 8)) profile = atoi(ext+9);
+		else if (!strnicmp(ext+1, "level=", 6)) level = atoi(ext+7);
 
 
 		/*unrecognized, assume name has colon in it*/
@@ -359,6 +362,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				gf_isom_set_track_reference(import.dest, chap_ref, GF_4CC('c','h','a','p'), gf_isom_get_track_id(import.dest, i+1) );
 				gf_isom_set_track_enabled(import.dest, i+1, 0);
 			}
+
+			if (profile || level) 
+				gf_media_change_pl(import.dest, i+1, profile, level);
 		}
 	} else {
 		for (i=0; i<import.nb_tracks; i++) {
@@ -427,8 +433,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (is_chap && chap_ref) {
 				gf_isom_set_track_reference(import.dest, chap_ref, GF_4CC('c','h','a','p'), gf_isom_get_track_id(import.dest, i+1) );
-				gf_isom_set_track_enabled(import.dest, i+1, 0);
+				gf_isom_set_track_enabled(import.dest, track, 0);
 			}
+
+			if (profile || level) 
+				gf_media_change_pl(import.dest, track, profile, level);
+
 		}
 		if (track_id) fprintf(stdout, "WARNING: Track ID %d not found in file\n", track_id);
 		else if (do_video) fprintf(stdout, "WARNING: Video track not found\n");
