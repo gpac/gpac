@@ -1088,8 +1088,9 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		tk_id = gf_isom_get_track_id(orig, i+1);
 		dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 		if (dst_tk) {
+			u32 stype = gf_isom_get_media_subtype(dest, dst_tk, 1);
 			/*we MUST have the same codec*/
-			if (gf_isom_get_media_subtype(orig, i+1, 1) != gf_isom_get_media_subtype(dest, dst_tk, 1)) dst_tk = 0;
+			if (gf_isom_get_media_subtype(orig, i+1, 1) != stype) dst_tk = 0;
 			/*we only support cat with the same number of sample descriptions*/
 			if (gf_isom_get_sample_description_count(orig, i+1) != gf_isom_get_sample_description_count(dest, dst_tk)) dst_tk = 0;
 			/*if not forcing cat, check the media codec config is the same*/
@@ -1100,6 +1101,34 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				gf_isom_get_visual_info(orig, i+1, 1, &ow, &oh);
 				gf_isom_get_visual_info(dest, dst_tk, 1, &w, &h);
 				if ((ow!=w) || (oh!=h)) dst_tk = 0;
+			}
+
+			if (!dst_tk && (stype == GF_ISOM_SUBTYPE_AVC_H264) ) {
+				GF_AVCConfig *avc_src, *avc_dst;
+				dst_tk = gf_isom_get_track_by_id(dest, tk_id);
+				
+				avc_src = gf_isom_avc_config_get(orig, i+1, 1);
+				avc_dst = gf_isom_avc_config_get(dest, dst_tk, 1);
+
+				if (avc_src->nal_unit_size != avc_dst->nal_unit_size) dst_tk = 0;
+				else if (avc_src->AVCLevelIndication!=avc_dst->AVCLevelIndication) dst_tk = 0;
+				else if (avc_src->AVCProfileIndication!=avc_dst->AVCProfileIndication) dst_tk = 0;
+				else {
+					while (gf_list_count(avc_src->sequenceParameterSets)) {
+						GF_AVCConfigSlot *slc = gf_list_get(avc_src->sequenceParameterSets, 0);
+						gf_list_rem(avc_src->sequenceParameterSets, 0);
+						gf_list_add(avc_dst->sequenceParameterSets, slc);
+					}
+
+					while (gf_list_count(avc_src->pictureParameterSets)) {
+						GF_AVCConfigSlot *slc = gf_list_get(avc_src->pictureParameterSets, 0);
+						gf_list_rem(avc_src->pictureParameterSets, 0);
+						gf_list_add(avc_dst->pictureParameterSets, slc);
+					}
+					gf_isom_avc_config_update(dest, dst_tk, 1, avc_dst);
+					gf_odf_avc_cfg_del(avc_src);
+					gf_odf_avc_cfg_del(avc_dst);
+				}
 			}
 		}
 
