@@ -1,7 +1,7 @@
 27/08/09:
   - Fixed chapters and text tracks handling for iTunes. Using the -ipd option in MP4Box should fix all subtitles tracks.
     When adding a track (including subtitle), it is now possible to override the track layout. For example:
-      MP4Box -add test.srt:0x20x0x-1 test.mp4
+      MP4Box -add test.srt:layout=0x20x0x-1 test.mp4
      will set the track box to be max width of the file tracks, 20 pixels height, translated by 0 pixels left and aligned to the bottom (max height - 20)
     To add a chapter track, you simply have to add ":chap" in the -add command. 
   - Added modular compilation of most libgpac features. See configure or include/gpac/configuration
