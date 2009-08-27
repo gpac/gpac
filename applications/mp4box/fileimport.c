@@ -133,7 +133,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	u32 track_id, i, timescale, track, stype;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty;
-	Bool do_audio, do_video, do_all, disable, track_layout, chap_ref, is_chap;
+	Bool do_audio, do_video, do_all, disable, track_layout, chap_ref, is_chap, keep_handler;
 	u32 group, handler;
 	const char *szLan;
 	GF_Err e;
@@ -158,6 +158,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	delay = 0;
 	group = 0;
 	stype = 0;
+
 	tw = th = tx = ty = 0;
 	par_d = par_n = -2;
 	/*use ':' as separator, but beware DOS paths...*/
@@ -243,6 +244,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	do_all = 1;
 	ext = strrchr(szName, '#');
 	if (ext) ext[0] = 0;
+
+	keep_handler = gf_isom_probe_file(szName);
 
 	import.in_name = szName;
 	import.flags = GF_IMPORT_PROBE_ONLY;
@@ -336,7 +339,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
 			}
 			if (handler_name) gf_isom_set_handler_name(import.dest, i+1, handler_name);
-			else {
+			else if (!keep_handler) {
 				sprintf(szName, "%s - Imported with GPAC %s", inName, GPAC_FULL_VERSION);
 				gf_isom_set_handler_name(import.dest, i+1, szName);
 			}
@@ -406,7 +409,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				e = gf_media_change_par(import.dest, track, par_n, par_d);
 			}
 			if (handler_name) gf_isom_set_handler_name(import.dest, track, handler_name);
-			else {
+			else if (!keep_handler) {
 				sprintf(szName, "%s - Imported with GPAC %s", inName, GPAC_FULL_VERSION);
 				gf_isom_set_handler_name(import.dest, track, szName);
 			}
