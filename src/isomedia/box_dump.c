@@ -203,7 +203,9 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_PASP: return pasp_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TX3G: return tx3g_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TX3G: 
+	case GF_ISOM_BOX_TYPE_TEXT:
+		return tx3g_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_STYL: return styl_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_HLIT: return hlit_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_HCLR: return hclr_dump(a, trace);
@@ -2345,7 +2347,13 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	}
 
 	txt = (GF_TextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
-	if (txt->type != GF_ISOM_BOX_TYPE_TX3G) return GF_BAD_PARAM;
+	switch (txt->type) {
+	case GF_ISOM_BOX_TYPE_TX3G:
+	case GF_ISOM_BOX_TYPE_TEXT:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
 
 	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 	fprintf(dump, "<!-- GPAC 3GPP Text Stream -->\n");

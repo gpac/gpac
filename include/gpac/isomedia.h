@@ -821,6 +821,8 @@ GF_Err gf_isom_remove_copyright(GF_ISOFile *the_file, u32 index);
 /*changes the handler type of the media*/
 GF_Err gf_isom_set_media_type(GF_ISOFile *movie, u32 trackNumber, u32 new_type);
 
+/*changes the type of the sampleDescriptionBox - USE AT YOUR OWN RISK, the file may not be understood afterwards*/
+GF_Err gf_isom_set_media_subtype(GF_ISOFile *movie, u32 trackNumber, u32 sampleDescriptionIndex, u32 new_type);
 
 GF_Err gf_isom_set_alternate_group_id(GF_ISOFile *movie, u32 trackNumber, u32 groupId);
 

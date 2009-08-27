@@ -130,9 +130,10 @@ void convert_file_info(char *inName, u32 trackID)
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
-	u32 track_id, i, timescale, track;
+	u32 track_id, i, timescale, track, stype;
 	s32 par_d, par_n, prog_id, delay;
-	Bool do_audio, do_video, do_all, disable;
+	s32 tw, th, tx, ty;
+	Bool do_audio, do_video, do_all, disable, track_layout, chap_ref, is_chap;
 	u32 group, handler;
 	const char *szLan;
 	GF_Err e;
@@ -150,9 +151,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 	handler = 0;
 	disable = 0;
+	chap_ref = 0;
+	is_chap = 0;
+	track_layout = 0;
 	szLan = NULL;
 	delay = 0;
 	group = 0;
+	stype = 0;
+	tw = th = tx = ty = 0;
 	par_d = par_n = -2;
 	/*use ':' as separator, but beware DOS paths...*/
 	ext = strchr(szName, ':');
@@ -172,6 +178,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (!strcmp(ext+5, "auto")) force_fps = 10000.0;
 			else force_fps = atof(ext+5);
 		}
+		else if (!stricmp(ext+1, "chap")) is_chap = 1;
 		else if (!stricmp(ext+1, "dref")) import_flags |= GF_IMPORT_USE_DATAREF;
 		else if (!stricmp(ext+1, "nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
 		else if (!stricmp(ext+1, "packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
@@ -202,6 +209,14 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "hdlr=", 5))
 			handler = GF_4CC(ext[6], ext[7], ext[8], ext[9]);
 		
+		else if (!strnicmp(ext+1, "layout=", 7)) {
+			sscanf(ext+8, "%dx%dx%dx%d", &tw, &th, &tx, &ty);
+			track_layout = 1;
+		}
+		else if (!strnicmp(ext+1, "stype=", 6)) {
+			stype = GF_4CC(ext[7], ext[8], ext[9], ext[10]);
+		}
+
 
 		/*unrecognized, assume name has colon in it*/
 		else {
@@ -253,6 +268,39 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	}
 	if (do_audio || do_video || track_id) do_all = 0;
 
+	if (track_layout || is_chap) {
+		u32 w, h, sw, sh, fw, fh, i;
+		w = h = sw = sh = fw = fh = 0;
+		chap_ref = 0;
+		for (i=0; i<gf_isom_get_track_count(dest); i++) {
+			switch (gf_isom_get_media_type(dest, i+1)) {
+			case GF_ISOM_MEDIA_SCENE:
+			case GF_ISOM_MEDIA_VISUAL:
+				if (!chap_ref && gf_isom_is_track_enabled(dest, i+1) ) chap_ref = i+1;
+
+				gf_isom_get_visual_info(dest, i+1, 1, &sw, &sh);
+				gf_isom_get_track_layout_info(dest, i+1, &fw, &fh, NULL, NULL, NULL);
+				if (w<sw) w = sw;
+				if (w<fw) w = fw;
+				if (h<sh) h = sh;
+				if (h<fh) h = fh;
+				break;
+			case GF_ISOM_MEDIA_AUDIO:
+				if (!chap_ref && gf_isom_is_track_enabled(dest, i+1) ) chap_ref = i+1;
+				break;
+			}
+		}
+		if (track_layout) {
+			if (!tw) tw = w;
+			if (!th) th = h;
+			if (ty==-1) ty = (h>th) ? h-th : 0;
+			import.twidth = tw;
+			import.theight = th;
+		}
+		if (is_chap && chap_ref) import_flags |= GF_IMPORT_NO_TEXT_FLUSH;
+	}
+
+
 	import.dest = dest;
 	import.video_fps = force_fps;
 	import.frames_per_sample = frames_per_sample;
@@ -288,7 +336,26 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				e = gf_media_change_par(import.dest, i+1, par_n, par_d);
 			}
 			if (handler_name) gf_isom_set_handler_name(import.dest, i+1, handler_name);
+			else {
+				sprintf(szName, "%s - Imported with GPAC %s", inName, GPAC_FULL_VERSION);
+				gf_isom_set_handler_name(import.dest, i+1, szName);
+			}
 			if (handler) gf_isom_set_media_type(import.dest, i+1, handler);
+			if (disable) gf_isom_set_track_enabled(import.dest, i+1, 0);
+
+			if (group) {
+				gf_isom_set_alternate_group_id(import.dest, i+1, group);
+			}
+			if (track_layout) {
+				gf_isom_set_track_layout_info(import.dest, i+1, tw<<16, th<<16, tx<<16, ty<<16, 0);
+			}
+			if (stype)
+				gf_isom_set_media_subtype(import.dest, i+1, 1, stype);
+
+			if (is_chap && chap_ref) {
+				gf_isom_set_track_reference(import.dest, chap_ref, GF_4CC('c','h','a','p'), gf_isom_get_track_id(import.dest, i+1) );
+				gf_isom_set_track_enabled(import.dest, i+1, 0);
+			}
 		}
 	} else {
 		for (i=0; i<import.nb_tracks; i++) {
@@ -339,10 +406,25 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				e = gf_media_change_par(import.dest, track, par_n, par_d);
 			}
 			if (handler_name) gf_isom_set_handler_name(import.dest, track, handler_name);
+			else {
+				sprintf(szName, "%s - Imported with GPAC %s", inName, GPAC_FULL_VERSION);
+				gf_isom_set_handler_name(import.dest, track, szName);
+			}
 			if (handler) gf_isom_set_media_type(import.dest, track, handler);
 
 			if (group) {
 				gf_isom_set_alternate_group_id(import.dest, track, group);
+			}
+
+			if (track_layout) {
+				gf_isom_set_track_layout_info(import.dest, track, tw<<16, th<<16, tx<<16, ty<<16, 0);
+			}
+			if (stype)
+				gf_isom_set_media_subtype(import.dest, track, 1, stype);
+
+			if (is_chap && chap_ref) {
+				gf_isom_set_track_reference(import.dest, chap_ref, GF_4CC('c','h','a','p'), gf_isom_get_track_id(import.dest, i+1) );
+				gf_isom_set_track_enabled(import.dest, i+1, 0);
 			}
 		}
 		if (track_id) fprintf(stdout, "WARNING: Track ID %d not found in file\n", track_id);

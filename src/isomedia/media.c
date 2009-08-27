@@ -183,6 +183,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		if (ESDa) esd = (GF_ESD *) ESDa->desc;
 		break;
 	case GF_ISOM_BOX_TYPE_TX3G:
+	case GF_ISOM_BOX_TYPE_TEXT:
 		if (!true_desc_only && mdia->mediaTrack->moov->mov->convert_streaming_text) {
 			GF_Err e = gf_isom_get_ttxt_esd(mdia, out_esd);
 			if (e) return e;
