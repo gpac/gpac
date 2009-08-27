@@ -1839,6 +1839,9 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 			if (info.fieldType==SVG_ID_datatype) {
 				gf_svg_parse_element_id(n, *(SVG_String*)info.far_ptr, 0);
 			}
+			if (info.fieldType==XMLRI_datatype) {
+				gf_node_dirty_set(n, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+			}
 			dom_node_changed(n, 0, &info);
 			goto exit;
 		}
