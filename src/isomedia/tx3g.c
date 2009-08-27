@@ -53,7 +53,13 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 
 	txt = (GF_TextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, descriptionIndex - 1);
 	if (!txt) return GF_BAD_PARAM;
-	if (txt->type != GF_ISOM_BOX_TYPE_TX3G) return GF_BAD_PARAM;
+	switch (txt->type) {
+	case GF_ISOM_BOX_TYPE_TX3G:
+	case GF_ISOM_BOX_TYPE_TEXT:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
 
 	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
@@ -368,7 +374,8 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 	for (i=0; i<count; i++) {
 		Bool same_fonts;
 		txt = (GF_TextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, i);
-		if (!txt|| (txt->type != GF_ISOM_BOX_TYPE_TX3G)) continue;
+		if (!txt) continue;
+		if ((txt->type != GF_ISOM_BOX_TYPE_TX3G) && (txt->type != GF_ISOM_BOX_TYPE_TEXT)) continue;
 		if (txt->back_color != desc->back_color) continue;
 		if (txt->displayFlags != desc->displayFlags) continue;
 		if (txt->vertical_justification != desc->vert_justif) continue;
@@ -549,7 +556,7 @@ static void gf_isom_write_tx3g(GF_TextSampleEntryBox *a, GF_BitStream *bs, u32 s
 	}
 	/*write TextSampleEntry box*/
 	gf_bs_write_u32(bs, size);
-	gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_TX3G);
+	gf_bs_write_u32(bs, a->type);
 	gf_bs_write_data(bs, a->reserved, 6);
 	gf_bs_write_u16(bs, a->dataReferenceIndex);
 	gf_bs_write_u32(bs, a->displayFlags);
@@ -627,7 +634,7 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 	for (i=0; i<count; i++) {
 		GF_TextSampleEntryBox *a;
 		a = (GF_TextSampleEntryBox *) gf_list_get(sampleDesc, i);
-		if (a->type != GF_ISOM_BOX_TYPE_TX3G) continue;
+		if ((a->type != GF_ISOM_BOX_TYPE_TX3G) && (a->type != GF_ISOM_BOX_TYPE_TEXT) ) continue;
 		gf_isom_write_tx3g(a, bs, i+1, SAMPLE_INDEX_OFFSET);
 	}
 	if (has_v_info) {
@@ -699,7 +706,8 @@ GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 
 	if (!trak) return GF_BAD_PARAM;
 
 	a = (GF_TextSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, sidx-1);
-	if (!a || (a->type != GF_ISOM_BOX_TYPE_TX3G)) return GF_BAD_PARAM;
+	if (!a) return GF_BAD_PARAM;
+	if ((a->type != GF_ISOM_BOX_TYPE_TX3G) && (a->type != GF_ISOM_BOX_TYPE_TEXT)) return GF_BAD_PARAM;
 	
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_isom_write_tx3g(a, bs, sidx, sidx_offset);

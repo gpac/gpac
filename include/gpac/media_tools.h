@@ -75,6 +75,8 @@ enum
 	GF_IMPORT_KEEP_ALL_TRACKS = 1<<7,
 	/*uses compact size in .MOV/.IsoMedia files*/
 	GF_IMPORT_USE_COMPACT_SIZE = 1<<8,
+	/*don't add a final empty sample when importing text tracks from srt*/
+	GF_IMPORT_NO_TEXT_FLUSH = 1<<9,
 	
 	/*when set, only updates tracks info and return*/
 	GF_IMPORT_PROBE_ONLY	= 1<<20,
@@ -165,6 +167,7 @@ typedef struct __track_import
 	/*for text import*/
 	u32 fontSize;
 	char *fontName;
+	u32 twidth, theight;
 
 	/*number of tracks after probing - may be set to 0, in which case no track 
 	selection can be performed. It may also be inaccurate if probing doesn't

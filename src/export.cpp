@@ -606,6 +606,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_interleave_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_copyright) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_media_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_media_subtype) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_copyright) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_watermark) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_edit_segment) )

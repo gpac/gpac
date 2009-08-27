@@ -273,7 +273,7 @@ void PrintImportUsage()
 			" \":hdlr=code\"         sets track handler type to the given code point (4CC)\n"
 			" \":disable\"           imported track(s) will be disabled\n"
 			" \":group=G\"           adds the track as part of the G alternate group.\n"
-			"                        * If G is 0, the first available GroupID will be picked.\n"
+			"                         If G is 0, the first available GroupID will be picked.\n"
 			" \":fps=VAL\"           same as -fps option\n"
 			" \":agg=VAL\"           same as -agg option\n"
 			" \":par=VAL\"           same as -par option\n"
@@ -285,6 +285,14 @@ void PrintImportUsage()
 			" \":mpeg4\"             same as -mpeg4 option\n"
 			" \":font=name\"         specifies font name for text import (default \"Serif\")\n"
 			" \":size=s\"            specifies font size for text import (default 18)\n"
+			" \":stype=4CC\"         forces the sample description type to a different value\n"
+			"                         !! THIS MAY BREAK THE FILE WRITING !!\n"
+			" \":chap\"              specifies the track is a chapter track\n"
+			" \":layout=WxHxXxY\"    specifies the track layout\n"
+			"                         - if W (resp H) = 0, the max width (resp height) of\n"
+			"                         the tracks in the file are used.\n"
+			"                         - if Y=-1, the layout is moved to the bottom of the\n"
+			"                         track area\n"
 			"\n"
 			" -add file              add file tracks to (new) output file\n"
 			" -cat file              concatenates file samples to (new) output file\n"
@@ -2652,11 +2660,33 @@ int main(int argc, char **argv)
 					else gf_isom_modify_alternate_brand(file, GF_4CC('M','4','A',' '), 1);
 					break;
 				case GF_ISOM_MEDIA_TEXT:
-					gf_isom_set_media_type(file, i+1, GF_ISOM_MEDIA_SUBT);
+					/*this is a text track track*/
+					if (gf_isom_get_media_subtype(file, i+1, 1) == GF_4CC('t','x','3','g')) {
+						u32 j;
+						Bool is_chap = 0;
+						for (j=0; j<gf_isom_get_track_count(file); j++) {
+							s32 count = gf_isom_get_reference_count(file, j+1, GF_4CC('c','h','a','p'));
+							if (count>0) {
+								u32 tk, k;
+								for (k=0; k<count; k++) {
+									gf_isom_get_reference(file, j+1, GF_4CC('c','h','a','p'), k+1, &tk);
+									if (tk==i+1) {
+										is_chap = 1;
+										break;
+									}
+								}
+								if (is_chap) break;
+							}
+							if (is_chap) break;
+						}
+						/*this is a subtitle track*/
+						if (!is_chap)
+							gf_isom_set_media_type(file, i+1, GF_ISOM_MEDIA_SUBT);
+					} 
 					break;
 				}
 			}
-			gf_isom_set_brand_info(file, major_brand, 0);
+			gf_isom_set_brand_info(file, major_brand, 1);
 			gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_MP42, 1);
 			needSave = 1;
 		}

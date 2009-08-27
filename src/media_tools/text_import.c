@@ -346,8 +346,8 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		} else {
 			if ((sd->default_pos.bottom==sd->default_pos.top) || (sd->default_pos.right==sd->default_pos.left)) {
 				sd->default_pos.top = sd->default_pos.left = 0;
-				sd->default_pos.right = w;
-				sd->default_pos.bottom = h;
+				sd->default_pos.right = import->twidth ? import->twidth : w;
+				sd->default_pos.bottom = import->theight ? import->theight : h;
 			}
 		}
 
@@ -564,7 +564,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	}
 
 	/*final flush*/	
-	if (end) {
+	if (end && !(import->flags & GF_IMPORT_NO_TEXT_FLUSH ) ) {
 		gf_isom_text_reset(samp);
 		s = gf_isom_text_to_sample(samp);
 		s->DTS = (u64) ((timescale*end)/1000);
@@ -697,8 +697,8 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		} else {
 			if ((sd->default_pos.bottom==sd->default_pos.top) || (sd->default_pos.right==sd->default_pos.left)) {
 				sd->default_pos.top = sd->default_pos.left = 0;
-				sd->default_pos.right = w;
-				sd->default_pos.bottom = h;
+				sd->default_pos.right = import->twidth ? import->twidth : w;
+				sd->default_pos.bottom = import->theight ? import->theight : h;
 			}
 		}
 
@@ -799,7 +799,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		if (duration && (end >= duration)) break;
 	}
 	/*final flush*/
-	if (end) {
+	if (end && !(import->flags & GF_IMPORT_NO_TEXT_FLUSH ) ) {
 		gf_isom_text_reset(samp);
 		s = gf_isom_text_to_sample(samp);
 		s->DTS = (u64)(FPS*(s64)end);
