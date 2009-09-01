@@ -123,7 +123,7 @@ static Bool MP3_ConfigureFromFile(MP3Reader *read)
 	/*we don't have the full file...*/
 	if (read->is_remote) return	1;
 
-	return 1;
+//	return 1;
 
 	read->duration = gf_mp3_window_size(hdr);
 	size = gf_mp3_frame_size(hdr);
@@ -507,7 +507,8 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 	u32 pos, hdr, start_from;
 	MP3Reader *read = plug->priv;
 
-	if (read->ch != channel) return GF_STREAM_NOT_FOUND;
+	if (read->ch != channel) 
+		return GF_STREAM_NOT_FOUND;
 
 	*out_reception_status = GF_OK;
 	*sl_compressed = 0;
@@ -559,7 +560,7 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 				hdr = gf_mp3_get_next_header(read->stream);
 				if (!hdr) {
 					read->start_range = 0;
-					*out_reception_status = GF_SERVICE_ERROR;
+					*out_reception_status = GF_EOS;
 					return GF_OK;
 				}
 				read->current_time += gf_mp3_window_size(hdr);

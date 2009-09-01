@@ -780,6 +780,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_process_step) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_screen_buffer) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_release_screen_buffer) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_process_shortcut) )
+
 
 /*ietf.h exports*/
 #ifndef GPAC_DISABLE_STREAMING

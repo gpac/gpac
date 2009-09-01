@@ -303,6 +303,16 @@ typedef struct
 	char *szPath;
 } GF_TermLocales;
 
+#define	MAX_SHORTCUTS	200
+
+typedef struct
+{
+	u8 code;
+	u8 mods;
+	u8 action;
+} GF_Shortcut;
+
+
 struct _tag_terminal
 {
 	u32 flags;
@@ -372,6 +382,10 @@ struct _tag_terminal
 	GF_TermLocales locales;
 
 	GF_List *uri_relocators;	/*list of GF_URIRelocator*/
+
+	GF_Shortcut shortcuts[MAX_SHORTCUTS];
+	Fixed speed_ratio;
+
 };
 
 

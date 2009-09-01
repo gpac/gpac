@@ -656,14 +656,12 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 	return 0;
 }
 
-
 Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev)
 {
 	if (!compositor->scene) return 0;
 #ifndef GPAC_DISABLE_3D
-	if ( (compositor->visual->type_3d>1) || compositor->active_layer) {
+	if ( (compositor->visual->type_3d>1) || compositor->active_layer) 
 		return compositor_handle_navigation_3d(compositor, ev);
-	}
 #endif
 	return compositor_handle_navigation_2d(compositor->visual, ev);
 }

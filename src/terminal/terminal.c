@@ -37,6 +37,8 @@
 
 #include "media_memory.h"
 
+void gf_term_load_shortcuts(GF_Terminal *term);
+
 u32 gf_term_get_time(GF_Terminal *term)
 {
 	assert(term);
@@ -190,6 +192,7 @@ static char *term_check_locales(void *__self, char *parent_uri, char *uri)
 	return NULL;
 }
 
+
 static void gf_term_reload_cfg(GF_Terminal *term)
 {
 	const char *sOpt;
@@ -258,6 +261,8 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 	}
 #endif
 	
+	gf_term_load_shortcuts(term);
+
 	/*reload compositor config*/
 	gf_sc_set_option(term->compositor, GF_OPT_RELOAD_CONFIG, 1);
 }
@@ -463,6 +468,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	tmp->locales.relocate_uri = term_check_locales;
 	tmp->locales.term = tmp;
 	gf_list_add(tmp->uri_relocators, &tmp->locales);
+	tmp->speed_ratio = FIX_ONE;
 
 	cf = gf_cfg_get_key(user->config, "General", "GUIFile");
 	if (cf) {
@@ -1116,7 +1122,7 @@ GF_Err gf_term_connect_remote_channel(GF_Terminal *term, GF_Channel *ch, char *U
 }
 
 GF_EXPORT
-u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, Bool pause_at_first_frame)
+u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, u32 pause_at_first_frame)
 {
 	if (!term || !term->root_scene || !term->root_scene->root_od) return 0;
 	if (term->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL) return 1;
@@ -1124,6 +1130,14 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, Bool pause_at_first
 	/*for dynamic scene OD ressources are static and all object use the same clock, so don't restart the root 
 	OD, just act as a mediaControl on all playing streams*/
 	if (term->root_scene->is_dynamic_scene) {
+
+		if (pause_at_first_frame==2) {
+			if (gf_term_get_option(term, GF_OPT_PLAY_STATE) != GF_STATE_PLAYING)
+				pause_at_first_frame = 1;
+			else
+				pause_at_first_frame = 0;
+		}
+
 		/*exit pause mode*/
 		gf_term_set_play_state(term, GF_STATE_PLAYING, 1, 1);
 
@@ -1451,4 +1465,222 @@ Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
 		return term->user->EventProc(term->user->opaque, evt);
 
 	return 0;
+}
+
+
+enum
+{
+	GF_ACTION_PLAY,
+	GF_ACTION_STOP,
+	GF_ACTION_STEP,
+	GF_ACTION_EXIT,
+	GF_ACTION_MUTE,
+	GF_ACTION_VOLUP,
+	GF_ACTION_VOLDOWN,
+	GF_ACTION_JUMP_FORWARD,
+	GF_ACTION_JUMP_BACKWARD,
+	GF_ACTION_JUMP_START,
+	GF_ACTION_JUMP_END,
+	GF_ACTION_FAST_FORWARD,
+	GF_ACTION_FINE_FORWARD,
+	GF_ACTION_SLOW_FORWARD,
+	GF_ACTION_FAST_REWIND,
+	GF_ACTION_FINE_REWIND,
+	GF_ACTION_SLOW_REWIND,
+};
+
+static void set_clocks_speed(GF_Terminal *term, Fixed ratio)
+{
+	u32 i, j;
+	GF_ClientService *ns;
+
+	/*pause all clocks on all services*/
+	i=0;
+	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+		GF_Clock *ck;
+		j=0;
+		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
+			Fixed s = gf_mulfix(ck->speed, ratio);
+			gf_clock_set_speed(ck, s);
+		}
+	}
+}
+
+
+void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
+{
+	GF_Event evt;
+	if (ev->type==GF_EVENT_KEYDOWN) {
+		u32 i;
+		u8 mod = 0;
+		if (ev->key.flags & GF_KEY_MOD_CTRL) mod |= GF_KEY_MOD_CTRL;
+		if (ev->key.flags & GF_KEY_MOD_ALT) mod |= GF_KEY_MOD_ALT;
+	
+		for (i=0; i<MAX_SHORTCUTS; i++) {
+			u32 val;
+			if (!term->shortcuts[i].code) break;
+			if (term->shortcuts[i].mods!=mod) continue;
+			if (term->shortcuts[i].code!=ev->key.key_code) continue;
+
+			switch (term->shortcuts[i].action) {
+			case GF_ACTION_PLAY:
+				if (gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_PAUSED) {
+					gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
+				} else if (term->speed_ratio != FIX_ONE) {
+					set_clocks_speed(term, gf_divfix(1, term->speed_ratio) );
+					term->speed_ratio = FIX_ONE;
+				} else {
+					gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+				}
+				break;
+			case GF_ACTION_STOP:
+				gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+				break;
+			case GF_ACTION_STEP:
+				gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
+				break;
+			case GF_ACTION_EXIT:
+				evt.type = GF_EVENT_QUIT;
+				gf_term_send_event(term, &evt);
+				break;
+			case GF_ACTION_MUTE:
+				gf_term_set_option(term, GF_OPT_AUDIO_MUTE, gf_term_get_option(term, GF_OPT_AUDIO_MUTE) ? 0 : 1);
+				break;
+			case GF_ACTION_VOLUP:
+				val = gf_term_get_option(term, GF_OPT_AUDIO_VOLUME);
+				if (val<95) val += 5;
+				else val = 100;
+				gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, val);
+				break;
+			case GF_ACTION_VOLDOWN:
+				val = gf_term_get_option(term, GF_OPT_AUDIO_VOLUME);
+				if (val>5) val -= 5;
+				else val = 0;
+				gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, val);
+				break;
+			case GF_ACTION_JUMP_FORWARD:
+			case GF_ACTION_JUMP_BACKWARD:
+			case GF_ACTION_FAST_REWIND:
+			case GF_ACTION_FINE_REWIND:
+			case GF_ACTION_SLOW_REWIND:
+				if (term->root_scene && !(term->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL) ) {
+					s32 res;
+					u32 dur = (u32) term->root_scene->duration ;
+					val  = gf_term_get_time_in_ms(term);
+					res = val;
+					switch (term->shortcuts[i].action) {
+					case GF_ACTION_JUMP_BACKWARD:
+					case GF_ACTION_FINE_REWIND:
+						res -= (s32) (5*dur/100);
+						if (res<0) res = 0;
+						break;
+					case GF_ACTION_FAST_REWIND:
+						res -= (s32) (10*dur/100);
+						if (res<0) res = 0;
+						break;
+					case GF_ACTION_SLOW_REWIND:
+						res -= (s32) (dur/100);
+						if (res<0) res = 0;
+						break;
+					default:
+						res += (s32) (5*dur/100);
+						if (res > dur) res = dur;
+						break;
+					}
+					gf_term_play_from_time(term, res, 2);
+				}
+				break;
+			case GF_ACTION_JUMP_START:
+				if (term->root_scene && !(term->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL) ) {
+					gf_term_play_from_time(term, 0, 2);
+				}
+				break;
+			case GF_ACTION_JUMP_END:
+				if (term->root_scene && !(term->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL) ) {
+					gf_term_play_from_time(term, term->root_scene->duration, 2);
+				}
+				break;
+			case GF_ACTION_FAST_FORWARD:
+			case GF_ACTION_SLOW_FORWARD:
+			case GF_ACTION_FINE_FORWARD:
+				if (term->speed_ratio != FIX_ONE) {
+					set_clocks_speed(term, gf_divfix(1, term->speed_ratio) );
+					term->speed_ratio = FIX_ONE;
+				}
+				else {
+					switch (term->shortcuts[i].action) {
+					case GF_ACTION_FAST_FORWARD:
+						term->speed_ratio = INT2FIX(4);
+						break;
+					case GF_ACTION_SLOW_FORWARD:
+						term->speed_ratio = INT2FIX(1)/4;
+						break;
+					case GF_ACTION_FINE_FORWARD:
+						term->speed_ratio = INT2FIX(2);
+						break;
+					}
+					set_clocks_speed(term, term->speed_ratio);
+				}
+				break;
+			}
+			break;
+		}
+	}
+}
+
+void gf_term_load_shortcuts(GF_Terminal *term)
+{
+	char szVal[51];
+	u32 i, k, count;
+
+	memset(term->shortcuts, 0, sizeof(GF_Shortcut)*MAX_SHORTCUTS);
+	count = gf_cfg_get_key_count(term->user->config, "Shortcuts");
+	k = 0;
+	for (i=0; i<count; i++) {
+		char *name = (char*)gf_cfg_get_key_name(term->user->config, "Shortcuts", i);
+		char *val = (char*)gf_cfg_get_key(term->user->config, "Shortcuts", name);
+		if (!name || !val) continue;
+
+		strncpy(szVal, val, 50);
+		strlwr(szVal);
+		val = szVal;
+
+		while (strchr(val, '+')) {
+			if (!strnicmp(val, "ctrl+", 5)) {
+				val += 5;
+				term->shortcuts[k].mods |= GF_KEY_MOD_CTRL;
+			}
+			if (!strnicmp(val, "alt+", 4)) {
+				val += 4;
+				term->shortcuts[k].mods |= GF_KEY_MOD_ALT;
+			}
+		}
+		term->shortcuts[k].code = gf_dom_get_key_type((char *)val);
+		if (!term->shortcuts[k].code) continue;
+
+		if (!stricmp(name, "Play") || !stricmp(name, "Pause")) term->shortcuts[k].action = GF_ACTION_PLAY;
+		else if (!stricmp(name, "Stop")) term->shortcuts[k].action = GF_ACTION_STOP;
+		else if (!stricmp(name, "Step")) term->shortcuts[k].action = GF_ACTION_STEP;
+		else if (!stricmp(name, "Exit")) term->shortcuts[k].action = GF_ACTION_EXIT;
+		else if (!stricmp(name, "Mute")) term->shortcuts[k].action = GF_ACTION_MUTE;
+		else if (!stricmp(name, "VolumeUp")) term->shortcuts[k].action = GF_ACTION_VOLUP;
+		else if (!stricmp(name, "VolumeDown")) term->shortcuts[k].action = GF_ACTION_VOLDOWN;
+		else if (!stricmp(name, "JumpForward")) term->shortcuts[k].action = GF_ACTION_JUMP_FORWARD;
+		else if (!stricmp(name, "JumpBackward")) term->shortcuts[k].action = GF_ACTION_JUMP_BACKWARD;
+		else if (!stricmp(name, "JumpStart")) term->shortcuts[k].action = GF_ACTION_JUMP_START;
+		else if (!stricmp(name, "JumpEnd")) term->shortcuts[k].action = GF_ACTION_JUMP_END;
+		else if (!stricmp(name, "FastForward")) term->shortcuts[k].action = GF_ACTION_FAST_FORWARD;
+		else if (!stricmp(name, "FineForward")) term->shortcuts[k].action = GF_ACTION_FINE_FORWARD;
+		else if (!stricmp(name, "SlowForward")) term->shortcuts[k].action = GF_ACTION_SLOW_FORWARD;
+		else if (!stricmp(name, "FastRewind")) term->shortcuts[k].action = GF_ACTION_FAST_REWIND;
+		else if (!stricmp(name, "FineRewind")) term->shortcuts[k].action = GF_ACTION_FINE_REWIND;
+		else if (!stricmp(name, "SlowRewind")) term->shortcuts[k].action = GF_ACTION_SLOW_REWIND;
+		else {
+			term->shortcuts[k].mods = 0;
+			term->shortcuts[k].code = 0;
+			continue;
+		}
+		k++;
+		if (k==MAX_SHORTCUTS) break;
+	}
 }
