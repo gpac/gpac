@@ -47,12 +47,14 @@ void gf_term_disconnect(GF_Terminal *term);
 This is the only safe way of restarting/jumping a presentation from inside the EventProc 
 where doing a disconnect/connect could deadlock if toURL is NULL, uses the current URL*/
 void gf_term_navigate_to(GF_Terminal *term, const char *toURL);
-/*restarts url from given time (in ms). Return value: 
+/*restarts url from given time (in ms). 
+@pause_at_first_frame: if 1, pauses at the first frame. If 2, pauses at the first frame only if the terminal is in paused state.
+Return value: 
 	0: service is not connected yet
 	1: service has no seeking capabilities
 	2: service has been seeked
 */
-u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, Bool pause_at_first_frame);
+u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, u32 pause_at_first_frame);
 /*connect URL and seek right away - only needed when reloading the complete player (avoids waiting
 for connection and post a seek..)*/
 void gf_term_connect_from_time(GF_Terminal *term, const char *URL, u64 time_in_ms, Bool pause_at_first_frame);
@@ -84,7 +86,7 @@ GF_Err gf_term_set_viewpoint(GF_Terminal *term, u32 viewpoint_idx, const char *v
 GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play);
 
 
-/*set/set option - most of the terminal cfg is done through options, please refer to user.h for details*/
+/*set/set option - most of the terminal cfg is done through options, please refer to options.h for details*/
 GF_Err gf_term_set_option(GF_Terminal *term, u32 opt_type, u32 opt_value);
 u32 gf_term_get_option(GF_Terminal *term, u32 opt_type);
 
@@ -96,6 +98,10 @@ Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_
 GF_Err gf_term_set_simulation_frame_rate(GF_Terminal * term, Double frame_rate);
 /*gets simulation frame rate*/
 Double gf_term_get_simulation_frame_rate(GF_Terminal *term);
+
+/*process shortcuts*/
+void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev);
+
 
 /*sends a set of scene commands (BT, XMT, X3D, LASeR+XML) to the scene
 type indicates the language used - accepted values are 

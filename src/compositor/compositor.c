@@ -1114,8 +1114,15 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 	case GF_OPT_PLAY_STATE: 
 		gf_sc_pause(compositor, value); 
 		break;
-	case GF_OPT_AUDIO_VOLUME: gf_sc_ar_set_volume(compositor->audio_renderer, value); break;
-	case GF_OPT_AUDIO_PAN: gf_sc_ar_set_pan(compositor->audio_renderer, value); break;
+	case GF_OPT_AUDIO_VOLUME: 
+		gf_sc_ar_set_volume(compositor->audio_renderer, value); 
+		break;
+	case GF_OPT_AUDIO_PAN: 
+		gf_sc_ar_set_pan(compositor->audio_renderer, value); 
+		break;
+	case GF_OPT_AUDIO_MUTE: 
+		gf_sc_ar_mute(compositor->audio_renderer, value); 
+		break;
 	case GF_OPT_OVERRIDE_SIZE:
 		compositor->override_size_flags = value ? 1 : 0;
 		compositor->draw_next_frame = 1; 
@@ -1324,6 +1331,8 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	case GF_OPT_STRESS_MODE: return compositor->stress_mode;
 	case GF_OPT_AUDIO_VOLUME: return compositor->audio_renderer->volume;
 	case GF_OPT_AUDIO_PAN: return compositor->audio_renderer->pan;
+	case GF_OPT_AUDIO_MUTE: return compositor->audio_renderer->mute;
+
 	case GF_OPT_ANTIALIAS: return compositor->antiAlias;
 	case GF_OPT_HIGHSPEED: return compositor->high_speed;
 	case GF_OPT_ASPECT_RATIO: return compositor->aspect_ratio;

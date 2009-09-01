@@ -105,6 +105,7 @@ typedef struct
 
 #define DOUBLECLICK_TIME_MS		250
 
+
 enum
 {
 	/*no text selection*/
@@ -894,7 +895,7 @@ typedef struct _audio_render
 	/*thread state: 0: not intit, 1: running, 2: waiting for stop, 3: done*/
 	u32 audio_th_state;
 
-	u32 audio_delay, volume, pan;
+	u32 audio_delay, volume, pan, mute;
 } GF_AudioRenderer;
 
 /*creates audio renderer*/

@@ -40,15 +40,18 @@
 /*for GetModuleFileName*/
 #include <windows.h>
 
-/*get rid of console*/
-/*
 #ifdef _MSC_VER 
-#pragma comment(linker,"/SUBSYSTEM:CONSOLE") // or "/subsystem:windows"
+/*get rid of console*/
+#if 0
+#pragma comment(linker,"/SUBSYSTEM:WINDOWS")
 #pragma comment(linker,"/ENTRY:main")
-#endif // _MSC_VER
-*/
-
+#else
+#pragma comment(linker,"/SUBSYSTEM:CONSOLE") 
 #endif
+
+#endif // _MSC_VER
+
+#endif	//WIN32
 
 /*local prototypes*/
 void PrintWorldInfo(GF_Terminal *term);
@@ -484,6 +487,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 
 	/*we use CTRL and not ALT for keys, since windows shortcuts keypressed with ALT*/
 	case GF_EVENT_KEYDOWN:
+		gf_term_process_shortcut(term, evt);
+#if 0
 		if ((evt->key.flags & GF_KEY_MOD_ALT)) {
 			switch (evt->key.key_code) {
 			case GF_KEY_LEFT:
@@ -559,6 +564,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			if (is_connected) ViewODs(term, 0);
 			break;
 		}
+#endif
 		break;
 
 	case GF_EVENT_CONNECT:

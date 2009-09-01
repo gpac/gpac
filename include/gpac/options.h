@@ -195,6 +195,8 @@ enum
 	GF_OPT_AUDIO_VOLUME,
 	/*set / get audio pan (value is pan between 0 (all left) and 100(all right) )*/
 	GF_OPT_AUDIO_PAN,
+	/*set / get audio mute*/
+	GF_OPT_AUDIO_MUTE,
 	/*get javascript flag (no set, depends on compil) - value: boolean, true if JS enabled in build*/
 	GF_OPT_HAS_JAVASCRIPT,
 	/*get selectable stream flag (no set) - value: boolean, true if audio/video/subtitle stream selection is 
