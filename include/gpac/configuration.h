@@ -131,7 +131,7 @@
 /*disables AVILib support*/
 //#define GPAC_DISABLE_AVILIB
 
-/*disables AVILib support*/
+/*disables OGG support*/
 //#define GPAC_DISABLE_OGG
 
 /*disables MPEG2 PS support*/
@@ -143,7 +143,7 @@
 /*disables all media import functions*/
 //#define GPAC_DISABLE_MEDIA_IMPORT
 
-/*disable all AV paring functions*/
+/*disable all AV parsing functions*/
 //#define GPAC_DISABLE_AV_PARSERS
 
 /*disables all media export functions*/
