@@ -911,6 +911,9 @@ void gf_sc_ar_control(GF_AudioRenderer *ar, u32 CtrlType);
 /*set volume and pan*/
 void gf_sc_ar_set_volume(GF_AudioRenderer *ar, u32 Volume);
 void gf_sc_ar_set_pan(GF_AudioRenderer *ar, u32 Balance);
+/*mute/unmute audio*/
+void gf_sc_ar_mute(GF_AudioRenderer *ar, Bool mute);
+
 /*set audio priority*/
 void gf_sc_ar_set_priority(GF_AudioRenderer *ar, u32 priority);
 /*gets time in msec - this is the only clock used by the whole ESM system - depends on the audio driver*/
