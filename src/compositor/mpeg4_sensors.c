@@ -398,6 +398,7 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 			ps->offset = ps->translation_changed;
 			gf_node_event_out_str(sh->sensor, "offset");
 		}
+
 		ps->isActive = 0;
 		gf_node_event_out_str(sh->sensor, "isActive");
 		compositor->grabbed_sensor = 0;
@@ -436,6 +437,8 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 			ps->translation_changed.x = res.x;
 			ps->translation_changed.y = res.y;
 			gf_node_event_out_str(sh->sensor, "translation_changed");
+
+			compositor->grabbed_sensor = 1;
 		}
 	} else {
 		if (!ps->isActive && is_over && (ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER)) {

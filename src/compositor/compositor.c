@@ -595,8 +595,8 @@ static GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Hei
 			compositor->scene_width = SC_DEF_WIDTH;
 		} else {
 			/*use current res*/
-			compositor->scene_width = compositor->display_width ? compositor->display_width : compositor->new_width;
-			compositor->scene_height = compositor->display_height ? compositor->display_height : compositor->new_height;
+			compositor->scene_width = compositor->new_width ? compositor->new_width : compositor->display_width;
+			compositor->scene_height = compositor->new_height ? compositor->new_height : compositor->display_height;
 		}
 	} else {
 		compositor->scene_height = Height;
