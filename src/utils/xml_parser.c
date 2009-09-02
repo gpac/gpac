@@ -1305,6 +1305,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	while (!gzeof(parser->gz_in)) {
 #endif
 		u32 read;
+		u8 sep_char;
 		if (cur_line == szLine2) {
 			cur_line = szLine1;
 		} else {
@@ -1344,11 +1345,14 @@ retry:
 			CPYCAT_ALLOC(cur_line, 1);
 			continue;
 		}
-		while (sep[0] && (sep[0] != '\"') ) sep++;
+		while (sep[0] && (sep[0] != '\"') && (sep[0] != '\'') ) sep++;
 		if (!sep[0]) continue;
+		sep_char = sep[0];
 		sep++;
 		while (sep[0] && strchr(" \n\r\t", sep[0]) ) sep++;
 		if (!sep[0]) continue;
+		if (!strchr(sep, sep_char)) 
+			continue;
 
 		/*found*/
 		if (!strncmp(sep, att_value, att_len)) {
