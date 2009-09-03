@@ -236,7 +236,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 	if (gf_node_dirty_get(n)) recompute_form = 1;
 
 #if FORM_CLIPS
-	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
+	if ((tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) && !tr_state->for_node) {
 		tr_state->bounds = st->clip;
 #ifndef GPAC_DISABLE_3D
 		gf_bbox_from_rect(&tr_state->bbox, &st->clip);
@@ -327,7 +327,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 		return;
 
 #if !FORM_CLIPS
-	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
+	if ((tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) && !tr_state->for_node) {
 		tr_state->bounds = st->clip;
 		gf_bbox_from_rect(&tr_state->bbox, &st->clip);
 		return;

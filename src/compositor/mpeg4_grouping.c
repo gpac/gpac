@@ -67,7 +67,7 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		}
 	}
 	/*sub-tree not dirty and getting bounds, direct copy */
-	else if ((tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) && group->bounds.width) {
+	else if ((tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) && !tr_state->for_node && group->bounds.width) {
 		tr_state->bounds = group->bounds;
 		return;
 	}

@@ -653,7 +653,7 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && !gf_sc_pick_in_clipper(tr_state, &st->clip)) 
 		goto layout_exit;
 
-	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
+	if ((tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) && !tr_state->for_node) {
 		tr_state->bounds = st->clip;
 #ifndef GPAC_DISABLE_3D
 		gf_bbox_from_rect(&tr_state->bbox, &st->clip);

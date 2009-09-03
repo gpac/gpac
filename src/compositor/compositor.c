@@ -2212,7 +2212,7 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 	}
 	return 0;
 #else
-	retry = 1000;
+	retry = 100;
 	while (retry) {
 		if (gf_mx_try_lock(compositor->mx)) 
 			break;
