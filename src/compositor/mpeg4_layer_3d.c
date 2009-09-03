@@ -378,9 +378,11 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_GET_BOUNDS:
-		tr_state->bounds = st->clip;
-		gf_bbox_from_rect(&tr_state->bbox, &st->clip);
-		return;
+		if (!tr_state->for_node) {
+			tr_state->bounds = st->clip;
+			gf_bbox_from_rect(&tr_state->bbox, &st->clip);
+			return;
+		}
 	case TRAVERSE_PICK:
 	case TRAVERSE_SORT:
 		/*layers can only be used in a 2D context*/

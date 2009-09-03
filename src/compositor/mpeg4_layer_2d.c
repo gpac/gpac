@@ -330,10 +330,14 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		}
 		break;
 	case TRAVERSE_GET_BOUNDS:
-		tr_state->bounds = st->clip;
+		if (tr_state->for_node) {
+			group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
+		} else {
+			tr_state->bounds = st->clip;
 #ifndef GPAC_DISABLE_3D
-		gf_bbox_from_rect(&tr_state->bbox, &st->clip);
+			gf_bbox_from_rect(&tr_state->bbox, &st->clip);
 #endif
+		}
 		break;
 
 	case TRAVERSE_DRAW_2D:
