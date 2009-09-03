@@ -91,7 +91,8 @@ void gf_svg_node_del(GF_Node *node)
 	if (p->sgprivate->tag==TAG_SVG_handler) {
 		GF_Node *listener = p->sgprivate->UserPrivate;
 		if (listener && (listener->sgprivate->tag==TAG_SVG_listener)) {
-			gf_svg_node_del(listener);
+			gf_node_unregister(listener, NULL);
+//			gf_svg_node_del(listener);
 		}
 	}
 	/*remove this node from associated listeners*/
