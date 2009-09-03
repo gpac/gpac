@@ -775,6 +775,9 @@ restart:
 				else if (c=='/') {
 					is_end = !i ? 1 : 2;
 					i++;
+				} else if (c=='<') {
+					parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+					return GF_CORRUPTED_DATA;
 				} else {
 					i++;
 				}
