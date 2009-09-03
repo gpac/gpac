@@ -242,9 +242,7 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 
 	sg = n->sgprivate->scenegraph;
 
-	/*fixme - this should not be needed, but there are crashes with JS GC*/
-	if (!sg->svg_js) force_tracking = 1;
-	else if (n->sgprivate->tag==TAG_SVG_handler) force_tracking = 1;
+	if (n->sgprivate->tag==TAG_SVG_handler) force_tracking = 1;
 	else if (n->sgprivate->tag==TAG_SVG_script) force_tracking = 1;
 
 	if (force_tracking) {
@@ -266,14 +264,15 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 	gf_node_register(n, NULL);
 	new_obj = JS_NewObject(c, _class, 0, 0);
 	JS_SetPrivate(c, new_obj, n);
-	gf_list_add(sg->objects, new_obj);
+
+	if (!n->sgprivate->interact) GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
+	if (!n->sgprivate->interact->js_binding) {
+		GF_SAFEALLOC(n->sgprivate->interact->js_binding, struct _node_js_binding);
+	}
+	n->sgprivate->interact->js_binding->node = new_obj;
 
 	if (force_tracking) {
-		if (!n->sgprivate->interact) GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
-		if (!n->sgprivate->interact->js_binding) {
-			GF_SAFEALLOC(n->sgprivate->interact->js_binding, struct _node_js_binding);
-		}
-		n->sgprivate->interact->js_binding->node = new_obj;
+		gf_list_add(sg->objects, new_obj);
 		JS_AddRoot(c, &n->sgprivate->interact->js_binding->node);
 	}
 	return OBJECT_TO_JSVAL(new_obj);
