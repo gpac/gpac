@@ -2193,6 +2193,7 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 			dom_js_pre_destroy(svg_js->js_ctx, n->sgprivate->scenegraph, n);
 
 			if (!svg_js->nb_scripts) {
+				dom_js_pre_destroy(svg_js->js_ctx, n->sgprivate->scenegraph, NULL);
 				/*user-defined extensions*/
 				gf_sg_load_script_extensions(n->sgprivate->scenegraph, svg_js->js_ctx, svg_js->global, 1);
 				gf_sg_ecmascript_del(svg_js->js_ctx);
