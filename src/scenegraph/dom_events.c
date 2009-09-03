@@ -672,7 +672,10 @@ static void gf_smil_setup_event_list(GF_Node *node, GF_List *l, Bool is_begin)
 		else {
 			continue;
 		}
+		/*We don't want to insert the implicit listener in the DOM. However remember 
+		the listener at the handler level in case the handler gets destroyed*/
 		gf_node_set_private((GF_Node *)hdl, node);
+		gf_node_register((GF_Node*)node, NULL);
 		/*we keep the t->element pointer in order to discard the source of identical events (begin of # elements, ...)*/
 	}
 }
