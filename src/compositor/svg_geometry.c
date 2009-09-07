@@ -491,6 +491,7 @@ static void svg_rect_rebuild(GF_Node *node, Drawable *stack, SVGAllAttributes *a
 	Fixed height = (atts->height ? atts->height->value : 0);
 
 	drawable_reset_path(stack);
+	if (!width || !height) return;
 
 	/*we follow SVG 1.1 and not 1.2 !!*/
 	if (rx || ry) {

@@ -745,6 +745,8 @@ static void dom_node_finalize(JSContext *c, JSObject *obj)
 	if (!n->sgprivate) return;
 	JS_SetPrivate(c, obj, NULL);
 	gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
+
+	dom_js_pre_destroy(c, n->sgprivate->scenegraph, n);
 	dom_unregister_node(n);
 }
 
@@ -1226,8 +1228,13 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 
 void dom_node_set_textContent(GF_Node *n, char *text)
 {
+	GF_FieldInfo info;
 	gf_dom_set_textContent(n, text);
-	dom_node_changed(n, 1, NULL);
+
+	gf_node_dirty_set(n, GF_SG_CHILD_DIRTY, 0);
+	memset(&info, 0, sizeof(GF_FieldInfo));
+	info.fieldIndex = (u32) -1;
+	gf_node_changed(n, &info);
 }
 
 static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
@@ -3505,33 +3512,26 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 {
 	u32 i, count;
 
-	if (!sg->svg_js) {
-		/*remove all rooted objects*/
-		count = gf_list_count(sg->objects);
-		for (i=0; i<count; i++) {
-			JSObject *obj = gf_list_get(sg->objects, i);
-			GF_Node *node = JS_GetPrivate(c, obj);
-			if (node->sgprivate->interact && node->sgprivate->interact->js_binding && node->sgprivate->interact->js_binding->node) {
-				JS_RemoveRoot(c, &node->sgprivate->interact->js_binding->node);
-				node->sgprivate->interact->js_binding->node=NULL;
-			}
-		}	
-	}
-	else if (n) {
-		switch (n->sgprivate->tag) {
-		case TAG_SVG_handler:
-		case TAG_SVG_script:
-			if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
-				JSObject *obj = n->sgprivate->interact->js_binding->node;
+
+	if (n) {
+		if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
+			JSObject *obj;
+			switch (n->sgprivate->tag) {
+			case TAG_SVG_handler:
+			case TAG_SVG_script:
+				obj = n->sgprivate->interact->js_binding->node;
 				JS_SetPrivate(c, obj, NULL);
 				gf_list_del_item(sg->objects, obj);
 
 				JS_RemoveRoot(c, &n->sgprivate->interact->js_binding->node);
 				n->sgprivate->interact->js_binding->node=NULL;
+				break;
+			default:
+				n->sgprivate->interact->js_binding->node=NULL;
+				break;
 			}
-
-			break;
 		}
+		return;
 	}
 
 	count = gf_list_count(dom_rt->handlers);
