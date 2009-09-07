@@ -97,10 +97,16 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 	compositor->draw_next_frame = 1;
 
 	if (final_flush) {
+		GF_FieldInfo info;
 		if (compositor->sel_buffer) free(compositor->sel_buffer);
 		compositor->sel_buffer = NULL;
 		compositor->sel_buffer_len = compositor->sel_buffer_alloc = 0;
 		compositor->edited_text = NULL;
+
+		memset(&info, 0, sizeof(GF_FieldInfo));
+		info.fieldIndex = (u32) -1;
+		gf_node_changed(compositor->focus_node, &info);
+
 	}
 }
 

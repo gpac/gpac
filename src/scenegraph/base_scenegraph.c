@@ -1650,6 +1650,7 @@ void gf_node_changed_internal(GF_Node *node, GF_FieldInfo *field, Bool notify_sc
 		evt.bubbles = 1;
 		evt.type = GF_EVENT_ATTR_MODIFIED;
 		evt.attr = field;
+		evt.detail = field->fieldIndex;
 		gf_dom_event_fire(node, &evt);
 	}
 #endif

@@ -202,8 +202,8 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 
 void gf_sg_ecmascript_del(JSContext *ctx)
 {
-	JS_SetGlobalObject(ctx, NULL);
 	gf_mx_p(js_rt->lock);
+	JS_SetGlobalObject(ctx, NULL);
 	JS_DestroyContext(ctx);
 	gf_mx_v(js_rt->lock);
 	if (js_rt) {
