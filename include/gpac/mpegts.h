@@ -42,6 +42,9 @@ typedef struct tag_m2ts_section_es GF_M2TS_SECTION_ES;
 /*Maximum number of streams in a TS*/
 #define GF_M2TS_MAX_STREAMS	8192
 
+/*Maximum number of service in a TS*/
+#define GF_M2TS_MAX_SERVICES	655535
+
 /*MPEG-2 TS Media types*/
 enum
 {
