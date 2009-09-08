@@ -1027,7 +1027,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 	/*Disable loopback*/
 	flag = 1;
 	ret = setsockopt(sock->socket, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &flag, sizeof(flag));
-	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
+//	if (ret == SOCKET_ERROR) return GF_IP_CONNECTION_FAILURE;
 
 	sock->dest_addr.sin_family = AF_INET;
 	sock->dest_addr.sin_addr.s_addr = M_req.imr_multiaddr.s_addr;
