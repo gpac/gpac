@@ -58,7 +58,7 @@ void gf_sg_command_del(GF_Command *com)
 
 			switch (inf->fieldType) {
 			case GF_SG_VRML_SFNODE:
-				if (inf->new_node) gf_node_try_destroy(com->in_scene, inf->new_node, com->node);
+				if (inf->new_node) gf_node_try_destroy(com->in_scene, inf->new_node, NULL);
 				break;
 			case GF_SG_VRML_MFNODE:
 				if (inf->field_ptr) {
@@ -66,7 +66,7 @@ void gf_sg_command_del(GF_Command *com)
 					child = inf->node_list;
 					while (child) {
 						cur = child;
-						gf_node_try_destroy(com->in_scene, child->node, com->node);
+						gf_node_try_destroy(com->in_scene, child->node, NULL);
 						child = child->next;
 						free(cur);
 					}
@@ -85,9 +85,16 @@ void gf_sg_command_del(GF_Command *com)
 			GF_CommandField *inf = (GF_CommandField *)gf_list_get(com->command_fields, 0);
 			gf_list_rem(com->command_fields, 0);
 
-			if (inf->new_node) gf_node_unregister(inf->new_node, com->node);
+			if (inf->new_node) gf_node_unregister(inf->new_node, NULL);
 			else if (inf->node_list) {
-				gf_node_unregister_children(com->node, inf->node_list);
+				GF_ChildNodeItem *cur, *child;
+				child = inf->node_list;
+				while (child) {
+					cur = child;
+					gf_node_try_destroy(com->in_scene, child->node, NULL);
+					child = child->next;
+					free(cur);
+				}
 			} else if (inf->field_ptr) {
 				gf_svg_delete_attribute_value(inf->fieldType, inf->field_ptr, com->in_scene);
 			}
