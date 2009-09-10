@@ -331,7 +331,7 @@ const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od
 }
 
 
-GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, Bool xml_dump, Bool skip_protos, GF_ObjectManager *scene_od)
+GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bool xml_dump, Bool skip_protos, GF_ObjectManager *scene_od)
 {
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	GF_SceneGraph *sg;
@@ -371,8 +371,10 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, Bool xml_dump, Bool
 	}
 
 	dumper = gf_sm_dumper_new(sg, rad_name, ' ', mode);
+
 	if (!dumper) return GF_IO_ERR;
 	e = gf_sm_dump_graph(dumper, skip_protos, 0);
+	if (filename) *filename = strdup(gf_sm_dump_get_name(dumper));
 	gf_sm_dumper_del(dumper);
 	return e;
 #else

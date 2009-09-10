@@ -49,6 +49,7 @@ struct _scenedump
 #endif
 	FILE *trace;
 	u32 indent;
+	char *filename;
 	
 	u32 dump_mode;
 	u16 CurrentESID;
@@ -68,7 +69,6 @@ struct _scenedump
 	Bool in_text;
 };
 
-
 static GF_Err gf_dump_vrml_route(GF_SceneDumper *sdump, GF_Route *r, u32 dump_type);
 static void gf_dump_vrml_node(GF_SceneDumper *sdump, GF_Node *node, Bool in_list, char *fieldContainer);
 
@@ -81,12 +81,10 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 GF_EXPORT
 GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char indent_char, u32 dump_mode)
 {
-	char rad_name[GF_MAX_PATH];
 	GF_SceneDumper *tmp;
 	if (!graph) return NULL;
 	GF_SAFEALLOC(tmp, GF_SceneDumper);
 
-	strcpy(rad_name, _rad_name ? _rad_name : "");
 	/*store original*/
 	tmp->dump_mode = dump_mode;
 
@@ -96,9 +94,11 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 		tmp->XMLDump = 1;
 		if (dump_mode==GF_SM_DUMP_LASER) tmp->LSRDump = 1;
 		if (_rad_name) {
-			strcat(rad_name, tmp->LSRDump ? ".xsr" : ".svg");
-
-			tmp->trace = fopen(rad_name, "wt");
+			const char* ext_name = tmp->LSRDump ? ".xsr" : ".svg";
+			tmp->filename = malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
+			strcpy(tmp->filename, _rad_name ? _rad_name : "");
+			strcat(tmp->filename, ext_name);
+			tmp->trace = fopen(tmp->filename, "wt");
 			if (!tmp->trace) {
 				free(tmp);
 				return NULL;
@@ -126,14 +126,18 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 		}
 
 		if (_rad_name) {
+			const char* ext_name;
 			switch (dump_mode) {
-			case GF_SM_DUMP_X3D_XML: strcat(rad_name, ".x3d"); tmp->XMLDump = 1; tmp->X3DDump = 1; break;
-			case GF_SM_DUMP_XMTA: strcat(rad_name, ".xmt"); tmp->XMLDump = 1; break;
-			case GF_SM_DUMP_X3D_VRML: strcat(rad_name, ".x3dv"); tmp->X3DDump = 1; break;
-			case GF_SM_DUMP_VRML: strcat(rad_name, ".wrl"); break;
-			default: strcat(rad_name, ".bt"); break;
+			case GF_SM_DUMP_X3D_XML:  ext_name = ".x3d";  tmp->XMLDump = 1; tmp->X3DDump = 1; break;
+			case GF_SM_DUMP_XMTA:     ext_name = ".xmt";  tmp->XMLDump = 1; break;
+			case GF_SM_DUMP_X3D_VRML: ext_name = ".x3dv"; tmp->X3DDump = 1; break;
+			case GF_SM_DUMP_VRML:     ext_name = ".wrl"; break;
+			default:                  ext_name = ".bt";  break;
 			}
-			tmp->trace = fopen(rad_name, "wt");
+			tmp->filename = malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
+			strcpy(tmp->filename, _rad_name ? _rad_name : "");
+			strcat(tmp->filename, ext_name);
+			tmp->trace = fopen(tmp->filename, "wt");
 			if (!tmp->trace) {
 				free(tmp);
 				return NULL;
@@ -168,7 +172,17 @@ void gf_sm_dumper_del(GF_SceneDumper *sdump)
 	gf_list_del(sdump->mem_def_nodes);
 	gf_list_del(sdump->inserted_routes);
 	if (sdump->trace != stdout) fclose(sdump->trace);
+	if (sdump->filename) {
+		free(sdump->filename);
+		sdump->filename = NULL;
+	}
 	free(sdump);
+}
+
+char *gf_sm_dump_get_name(GF_SceneDumper *bd)
+{
+	if (!bd) return NULL;
+	return bd->filename;
 }
 
 static void gf_dump_setup(GF_SceneDumper *sdump, GF_Descriptor *root_od)

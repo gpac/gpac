@@ -146,11 +146,12 @@ const char *gf_term_get_world_info(GF_Terminal *term, GF_ObjectManager *scene_od
 
 /*dumps scene graph in specified file, in BT or XMT format
 @rad_name: file radical (NULL for stdout) - if not NULL MUST BE GF_MAX_PATH length
+@filename [out]: if not null, returns the complete filename (rad + ext); MUST BE FREED BY THE CALLER
 if @skip_proto is set proto declarations are not dumped
 If @odm is or points to an inlined OD the inlined scene is dumped
 If @odm is NULL the main scene is dumped
 */
-GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, Bool xml_dump, Bool skip_proto, GF_ObjectManager *odm);
+GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bool xml_dump, Bool skip_proto, GF_ObjectManager *odm);
 
 
 #ifdef __cplusplus

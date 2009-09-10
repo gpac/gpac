@@ -322,6 +322,7 @@ enum
 GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, u32 dump_mode);
 
 typedef struct _scenedump GF_SceneDumper;
+
 /*create a scene dumper 
 @graph: scene graph being dumped
 @rad_name: file radical (NULL for stdout) - if not NULL MUST BE GF_MAX_PATH length
@@ -331,6 +332,11 @@ returns NULL if can't create a file
 */
 GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *rad_name, char indent_char, Bool XMLDump);
 void gf_sm_dumper_del(GF_SceneDumper *bd);
+
+/*gets a pointer to the filename (rad+ext) of the dumped file
+returns null if no file has been dumped
+*/
+char *gf_sm_dump_get_name(GF_SceneDumper *bd);
 
 /*dumps commands list
 @indent: indent to use
