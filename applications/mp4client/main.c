@@ -1395,19 +1395,19 @@ force_input:
 
 		case 'd':
 			if (is_connected) {
-				char file[GF_MAX_PATH], *sExt;
+				char radname[GF_MAX_PATH], *sExt;
 				GF_Err e;
 				Bool xml_dump, std_out;
 				fprintf(stdout, "Enter file radical name (+\'.x\' for XML dumping) - \"std\" for stdout: ");
-				scanf("%s", file);
-				sExt = strrchr(file, '.');
+				scanf("%s", radname);
+				sExt = strrchr(radname, '.');
 				xml_dump = 0;
 				if (sExt) {
 					if (!stricmp(sExt, ".x")) xml_dump = 1;
 					sExt[0] = 0;
 				}
-				std_out = strnicmp(file, "std", 3) ? 0 : 1;
-				e = gf_term_dump_scene(term, std_out ? NULL : file, xml_dump, 0, NULL);
+				std_out = strnicmp(radname, "std", 3) ? 0 : 1;
+				e = gf_term_dump_scene(term, std_out ? NULL : radname, NULL, xml_dump, 0, NULL);
 				fprintf(stdout, "Dump done (%s)\n", gf_error_to_string(e));
 			}
 			break;

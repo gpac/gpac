@@ -594,7 +594,7 @@ void wxFileProps::OnViewSG(wxCommandEvent &WXUNUSED(event))
 	}
 	strcpy(szOutFile, out_file.GetFullName().mb_str(wxConvUTF8));
 
-	GF_Err e = gf_term_dump_scene(m_pApp->m_term, szOutFile, dump_xmt, 0, m_current_odm);
+	GF_Err e = gf_term_dump_scene(m_pApp->m_term, szOutFile, NULL, dump_xmt, 0, m_current_odm);
 	if (e) {
 		wxMessageDialog dlg(this, wxString(gf_error_to_string(e), wxConvUTF8), wxT("Error while dumping"), wxOK);
 		dlg.ShowModal();

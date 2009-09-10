@@ -359,19 +359,20 @@ void CFileProps::OnWorld()
 
 void CFileProps::OnViewsg() 
 {
-	char szOutFile[GF_MAX_PATH];
+	char szOutRadname[GF_MAX_PATH], *pFilename=NULL;
 	Osmo4 *gpac = GetApp();
 
-	strcpy(szOutFile, gpac->szAppPath);
-	strcat(szOutFile, "scene_dump");
+	strcpy(szOutRadname, gpac->szAppPath);
+	strcat(szOutRadname, "scene_dump");
 
-	GF_Err e = gf_term_dump_scene(gpac->m_term, (char *) szOutFile, gpac->m_ViewXMTA, 0, current_odm);
+	GF_Err e = gf_term_dump_scene(gpac->m_term, (char *) szOutRadname, &pFilename, gpac->m_ViewXMTA, 0, current_odm);
 
 	if (e) {
 		MessageBox(gf_error_to_string(e), "Error while dumping");
 	} else {
-		ShellExecute(NULL, "open", szOutFile, NULL, NULL, SW_SHOWNORMAL);
+		ShellExecute(NULL, "open", pFilename, NULL, NULL, SW_SHOWNORMAL);
 	}
+	if (pFilename) free(pFilename);
 }
 
 void CFileProps::SetDecoderInfo()
