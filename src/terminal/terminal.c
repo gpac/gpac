@@ -1461,11 +1461,11 @@ enum
 	GF_ACTION_JUMP_BACKWARD,
 	GF_ACTION_JUMP_START,
 	GF_ACTION_JUMP_END,
+	GF_ACTION_VERY_FAST_FORWARD,
 	GF_ACTION_FAST_FORWARD,
-	GF_ACTION_FINE_FORWARD,
 	GF_ACTION_SLOW_FORWARD,
+	GF_ACTION_VERY_FAST_REWIND,
 	GF_ACTION_FAST_REWIND,
-	GF_ACTION_FINE_REWIND,
 	GF_ACTION_SLOW_REWIND,
 	GF_ACTION_NEXT,
 	GF_ACTION_PREVIOUS,
@@ -1553,8 +1553,8 @@ void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 				break;
 			case GF_ACTION_JUMP_FORWARD:
 			case GF_ACTION_JUMP_BACKWARD:
+			case GF_ACTION_VERY_FAST_REWIND:
 			case GF_ACTION_FAST_REWIND:
-			case GF_ACTION_FINE_REWIND:
 			case GF_ACTION_SLOW_REWIND:
 				if (term->root_scene && !(term->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL) ) {
 					s32 res;
@@ -1563,11 +1563,11 @@ void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 					res = val;
 					switch (term->shortcuts[i].action) {
 					case GF_ACTION_JUMP_BACKWARD:
-					case GF_ACTION_FINE_REWIND:
+					case GF_ACTION_FAST_REWIND:
 						res -= (s32) (5*dur/100);
 						if (res<0) res = 0;
 						break;
-					case GF_ACTION_FAST_REWIND:
+					case GF_ACTION_VERY_FAST_REWIND:
 						res -= (s32) (10*dur/100);
 						if (res<0) res = 0;
 						break;
@@ -1593,23 +1593,23 @@ void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 					gf_term_play_from_time(term, term->root_scene->duration, 2);
 				}
 				break;
+			case GF_ACTION_VERY_FAST_FORWARD:
 			case GF_ACTION_FAST_FORWARD:
 			case GF_ACTION_SLOW_FORWARD:
-			case GF_ACTION_FINE_FORWARD:
 				if (term->speed_ratio != FIX_ONE) {
 					set_clocks_speed(term, gf_divfix(1, term->speed_ratio) );
 					term->speed_ratio = FIX_ONE;
 				}
 				else {
 					switch (term->shortcuts[i].action) {
-					case GF_ACTION_FAST_FORWARD:
+					case GF_ACTION_VERY_FAST_FORWARD:
 						term->speed_ratio = INT2FIX(4);
+						break;
+					case GF_ACTION_FAST_FORWARD:
+						term->speed_ratio = INT2FIX(2);
 						break;
 					case GF_ACTION_SLOW_FORWARD:
 						term->speed_ratio = INT2FIX(1)/4;
-						break;
-					case GF_ACTION_FINE_FORWARD:
-						term->speed_ratio = INT2FIX(2);
 						break;
 					}
 					set_clocks_speed(term, term->speed_ratio);
@@ -1662,11 +1662,11 @@ void gf_term_load_shortcuts(GF_Terminal *term)
 		else if (!stricmp(name, "JumpBackward")) term->shortcuts[k].action = GF_ACTION_JUMP_BACKWARD;
 		else if (!stricmp(name, "JumpStart")) term->shortcuts[k].action = GF_ACTION_JUMP_START;
 		else if (!stricmp(name, "JumpEnd")) term->shortcuts[k].action = GF_ACTION_JUMP_END;
+		else if (!stricmp(name, "VeryFastForward")) term->shortcuts[k].action = GF_ACTION_VERY_FAST_FORWARD;
 		else if (!stricmp(name, "FastForward")) term->shortcuts[k].action = GF_ACTION_FAST_FORWARD;
-		else if (!stricmp(name, "FineForward")) term->shortcuts[k].action = GF_ACTION_FINE_FORWARD;
 		else if (!stricmp(name, "SlowForward")) term->shortcuts[k].action = GF_ACTION_SLOW_FORWARD;
+		else if (!stricmp(name, "VeryFastRewind")) term->shortcuts[k].action = GF_ACTION_VERY_FAST_REWIND;
 		else if (!stricmp(name, "FastRewind")) term->shortcuts[k].action = GF_ACTION_FAST_REWIND;
-		else if (!stricmp(name, "FineRewind")) term->shortcuts[k].action = GF_ACTION_FINE_REWIND;
 		else if (!stricmp(name, "SlowRewind")) term->shortcuts[k].action = GF_ACTION_SLOW_REWIND;
 		else if (!stricmp(name, "Next")) term->shortcuts[k].action = GF_ACTION_NEXT;
 		else if (!stricmp(name, "Previous")) term->shortcuts[k].action = GF_ACTION_PREVIOUS;

@@ -270,48 +270,20 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 	}
 		break;
 	case GF_EVENT_KEYDOWN:
-		if (gpac->can_seek && evt->key.flags & GF_KEY_MOD_ALT) {
-			s32 res;
-			switch (evt->key.key_code) {
-			case GF_KEY_LEFT:
-				res = gf_term_get_time_in_ms(gpac->m_term) - 5*gpac->max_duration/100;
-				if (res<0) res=0;
-				gpac->PlayFromTime(res);
-				break;
-			case GF_KEY_RIGHT:
-				res = gf_term_get_time_in_ms(gpac->m_term) + 5*gpac->max_duration/100;
-				if ((u32) res>=gpac->max_duration) res = 0;
-				gpac->PlayFromTime(res);
-				break;
-			case GF_KEY_DOWN:
-				res = gf_term_get_time_in_ms(gpac->m_term) - 60000;
-				if (res<0) res=0;
-				gpac->PlayFromTime(res);
-				break;
-			case GF_KEY_UP:
-				res = gf_term_get_time_in_ms(gpac->m_term) + 60000;
-				if ((u32) res>=gpac->max_duration) res = 0;
-				gpac->PlayFromTime(res);
-				break;
-			}
-		} else if (evt->key.flags & GF_KEY_MOD_CTRL) {
-			switch (evt->key.key_code) {
-			case GF_KEY_LEFT:
-				pFrame->m_pPlayList->PlayPrev();
-				break;
-			case GF_KEY_RIGHT:
-				pFrame->m_pPlayList->PlayNext();
-				break;
-			}
-		} else {
-			switch (evt->key.key_code) {
-			case GF_KEY_HOME:
-				gf_term_set_option(gpac->m_term, GF_OPT_NAVIGATION_TYPE, 1);
-				break;
-			case GF_KEY_ESCAPE:
-				pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
-				break;
-			}
+		gf_term_process_shortcut(gpac->m_term, evt);
+		switch (evt->key.key_code) {
+		case GF_KEY_HOME:
+			gf_term_set_option(gpac->m_term, GF_OPT_NAVIGATION_TYPE, 1);
+			break;
+		case GF_KEY_ESCAPE:
+			pFrame->PostMessage(WM_COMMAND, ID_VIEW_FULLSCREEN);
+			break;
+		case GF_KEY_MEDIANEXTTRACK:
+			pFrame->m_pPlayList->PlayNext();
+			break;
+		case GF_KEY_MEDIAPREVIOUSTRACK:
+			pFrame->m_pPlayList->PlayPrev();
+			break;
 		}
 		break;
 	case GF_EVENT_NAVIGATE:
