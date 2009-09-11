@@ -1246,7 +1246,7 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 
 	nb_sections = gf_list_count(sections);
 	if (nb_sections > 1) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("PMT on multiple sections not supported\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("PAT on multiple sections not supported\n"));
 	}
 
 	section = (GF_M2TS_Section *)gf_list_get(sections, 0);
