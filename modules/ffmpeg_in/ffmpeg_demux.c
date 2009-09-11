@@ -178,6 +178,8 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	if (!strnicmp(szName, "rtspu://", 8)) return 0;
 	if (!strnicmp(szName, "rtp://", 6)) return 0;
 	if (!strnicmp(szName, "plato://", 8)) return 0;
+	if (!strnicmp(szName, "udp://", 6)) return 0;
+	if (!strnicmp(szName, "tcp://", 6)) return 0;
 
 	ext = strrchr(szName, '.');
 	if (ext) {
