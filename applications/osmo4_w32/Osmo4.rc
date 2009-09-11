@@ -1,4 +1,4 @@
-//Microsoft Developer Studio generated resource script.
+// Microsoft Visual C++ generated resource script.
 //
 #include "resource.h"
 
@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// Anglais (États-Unis) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 #ifdef _WIN32
@@ -26,7 +26,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Menu
 //
 
-IDR_MAINFRAME MENU PRELOAD DISCARDABLE 
+IDR_MAINFRAME MENU 
 BEGIN
     POPUP "&File"
     BEGIN
@@ -142,22 +142,6 @@ END
 // Accelerator
 //
 
-IDR_MAINFRAME ACCELERATORS PRELOAD MOVEABLE PURE 
-BEGIN
-    "I",            ID_FILE_PROP,           VIRTKEY, CONTROL, NOINVERT
-    "L",            ID_VIEW_PL,             VIRTKEY, CONTROL, NOINVERT
-    "M",            ID_FILE_MIGRATE,        VIRTKEY, CONTROL, NOINVERT
-    "O",            ID_FILEOPEN,            VIRTKEY, CONTROL, NOINVERT
-    "P",            ID_FILE_PLAY,           VIRTKEY, CONTROL, NOINVERT
-    "R",            ID_FILE_RELOAD,         VIRTKEY, CONTROL, NOINVERT
-    "S",            ID_FILE_STEP,           VIRTKEY, CONTROL, NOINVERT
-    "U",            ID_OPEN_URL,            VIRTKEY, CONTROL, NOINVERT
-    VK_NUMPAD1,     ID_AR_KEEP,             VIRTKEY, CONTROL, NOINVERT
-    VK_NUMPAD2,     ID_AR_FILL,             VIRTKEY, CONTROL, NOINVERT
-    VK_NUMPAD3,     ID_AR_43,               VIRTKEY, CONTROL, NOINVERT
-    VK_NUMPAD4,     ID_AR_169,              VIRTKEY, CONTROL, NOINVERT
-    VK_RETURN,      ID_VIEW_FULLSCREEN,     VIRTKEY, ALT, NOINVERT
-END
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -166,44 +150,36 @@ END
 //
 
 IDD_ABOUTBOX DIALOGEX 0, 0, 209, 137
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_CLIENTEDGE
 CAPTION "Osmo4 / GPAC version X.X.X"
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
     ICON            IDR_MAINFRAME,IDC_STATIC,8,4,20,20
-    CTEXT           "Osmo4 Player - GPAC Multimedia Framework",IDC_STATIC,31,
-                    10,150,10,SS_NOPREFIX
-    CTEXT           "(c) Jean Le Feuvre 2000-2005 - (c) ENST 2005-200X\nAll Rights Reserved",
-                    IDC_STATIC,4,64,201,18
-    CTEXT           "This program is free software and may be distributed according to the terms of the GNU Lesser General Public License",
-                    IDC_STATIC,4,26,200,18
-    PUSHBUTTON      "http://gpac.sourceforge.net",IDC_GOGPAC,43,47,121,13,
-                    BS_FLAT,WS_EX_STATICEDGE
+    CTEXT           "Osmo4 Player - GPAC Multimedia Framework",IDC_STATIC,31,10,150,10,SS_NOPREFIX
+    CTEXT           "(c) Jean Le Feuvre 2000-2005 - (c) ENST 2005-200X\nAll Rights Reserved",IDC_STATIC,4,64,201,18
+    CTEXT           "This program is free software and may be distributed according to the terms of the GNU Lesser General Public License",IDC_STATIC,4,26,200,18
+    PUSHBUTTON      "http://gpac.sourceforge.net",IDC_GOGPAC,43,47,121,13,BS_FLAT,WS_EX_STATICEDGE
     GROUPBOX        "With Many Thanks To:",IDC_STATIC,3,82,203,53
-    CTEXT           "The FreeType Project\nMozilla SpiderMonkey (JavaScript support)\n\nZLIB, the PNG Group, the I.J.G.\nFFMPEG, FAAD, XVID, MAD",
-                    IDC_STATIC,9,92,189,41
+    CTEXT           "The FreeType Project\nMozilla SpiderMonkey (JavaScript support)\n\nZLIB, the PNG Group, the I.J.G.\nFFMPEG, FAAD, XVID, MAD",IDC_STATIC,9,92,189,41
 END
 
-IDD_PASSWD DIALOG DISCARDABLE  0, 0, 134, 71
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_PASSWD DIALOG  0, 0, 134, 71
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Enter user name and password"
 FONT 8, "MS Sans Serif"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,4,56,50,12
     PUSHBUTTON      "Cancel",IDCANCEL,80,56,50,12
-    LTEXT           "Static__________________________",IDC_TXT_SITE,25,4,105,
-                    8
+    LTEXT           "Static__________________________",IDC_TXT_SITE,25,4,105,8
     LTEXT           "Login",IDC_STATIC,7,21,18,8
     LTEXT           "Password",IDC_STATIC,7,37,32,8
     EDITTEXT        IDC_EDIT_USER,47,18,55,14,ES_AUTOHSCROLL
-    EDITTEXT        IDC_EDIT_PASSWORD,47,34,55,14,ES_PASSWORD | 
-                    ES_AUTOHSCROLL
+    EDITTEXT        IDC_EDIT_PASSWORD,47,34,55,14,ES_PASSWORD | ES_AUTOHSCROLL
     LTEXT           "Site",IDC_STATIC,7,4,13,8
 END
 
 
-#ifndef _MAC
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
@@ -226,18 +202,13 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "Comments", "\0"
-            VALUE "CompanyName", "\0"
-            VALUE "FileDescription", "Osmo4-GPAC\0"
-            VALUE "FileVersion", "0.4.5\0"
-            VALUE "InternalName", "Osmo4\0"
-            VALUE "LegalCopyright", "Copyright (C) 2005\0"
-            VALUE "LegalTrademarks", "\0"
-            VALUE "OriginalFilename", "Osmo4.EXE\0"
-            VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "Osmo4-GPAC\0"
-            VALUE "ProductVersion", "0.4.5\0"
-            VALUE "SpecialBuild", "\0"
+            VALUE "FileDescription", "Osmo4-GPAC"
+            VALUE "FileVersion", "0.4.5"
+            VALUE "InternalName", "Osmo4"
+            VALUE "LegalCopyright", "Copyright (C) 2005"
+            VALUE "OriginalFilename", "Osmo4.EXE"
+            VALUE "ProductName", "Osmo4-GPAC"
+            VALUE "ProductVersion", "0.4.5"
         END
     END
     BLOCK "VarFileInfo"
@@ -246,8 +217,6 @@ BEGIN
     END
 END
 
-#endif    // !_MAC
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -255,7 +224,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO 
 BEGIN
     IDD_ABOUTBOX, DIALOG
     BEGIN
@@ -270,7 +239,7 @@ END
 // Toolbar
 //
 
-IDR_MAINTOOLS TOOLBAR DISCARDABLE  16, 15
+IDR_MAINTOOLS TOOLBAR  16, 15
 BEGIN
     BUTTON      ID_FILEOPEN
     BUTTON      ID_NAV_PREV
@@ -291,25 +260,25 @@ END
 // Bitmap
 //
 
-IDR_MAINTOOLS           BITMAP  DISCARDABLE     "res\\maintool.bmp"
+IDR_MAINTOOLS           BITMAP                  "res\\maintool.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // String Table
 //
 
-STRINGTABLE PRELOAD DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDR_MAINFRAME           "Osmo4"
 END
 
-STRINGTABLE PRELOAD DISCARDABLE 
+STRINGTABLE 
 BEGIN
     AFX_IDS_APP_TITLE       "Osmo4"
     AFX_IDS_IDLEMESSAGE     "Ready"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_FILE_EXIT            "Quit the application; prompts to save documents\nExit"
     ID_H_ABOUT              "Display program information, version number and copyright\nAbout"
@@ -318,12 +287,12 @@ BEGIN
     ID_VIEW_ORIGINAL        "restore Original Aspect of presentation"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_VIEW_STATUS_BAR      "Show or hide the status bar\nToggle StatusBar"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     AFX_IDS_SCSIZE          "Change the window size"
     AFX_IDS_SCMOVE          "Change the window position"
@@ -334,13 +303,13 @@ BEGIN
     AFX_IDS_SCCLOSE         "Close the active window and prompts to save the documents"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     AFX_IDS_SCRESTORE       "Restore the window to normal size"
     AFX_IDS_SCTASKLIST      "Activate Task List"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_FILE_STOP            "Stops current presentation"
     ID_SWITCH_RENDER        "Switch between 2D and 3D renderers"
@@ -350,7 +319,7 @@ BEGIN
     ID_HEADLIGHT            "Turns headlight on/off"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_CLEAR_NAV            "Clears navigation history"
     ID_TIMER                " "
@@ -358,7 +327,7 @@ BEGIN
     ID_VIEW_PL              "View navigation history as a playlist"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_VIEW_FULLSCREEN      "Move to Full Screen mode (Esc to exit)"
     ID_AR_KEEP              "Keep Aspect Ratio of presentation"
@@ -373,7 +342,7 @@ BEGIN
     ID_NAVIGATE_NONE        "Disable navigation"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_NAVIGATE_WALK        "Turn walk navigation on"
     ID_AR_FILL              "Ignores Aspect Ratio and always fill screen"
@@ -382,7 +351,7 @@ BEGIN
     ID_NAV_RESET            "Restore last viewpoint"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_NAVIGATE_VR          "QT-VR like navigation"
     ID_REC_ENABLE           "Enable recording of streaming data"
@@ -390,18 +359,18 @@ BEGIN
     ID_REC_ABORT            "Stops recording and discard data"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     ID_FILE_COPY            "Copy selected text to clipboard"
     ID_FILE_PASTE           "Paste clipboard"
 END
 
-#endif    // English (U.S.) resources
+#endif    // Anglais (États-Unis) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// French (France) resources
+// Français (France) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FRA)
 #ifdef _WIN32
@@ -414,348 +383,261 @@ LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
 // Dialog
 //
 
-IDD_OPENFILE DIALOG DISCARDABLE  0, 0, 301, 23
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_OPENFILE DIALOG  0, 0, 301, 23
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Select Location"
 FONT 8, "MS Sans Serif"
 BEGIN
-    COMBOBOX        IDC_COMBOURL,3,5,273,67,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
-                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBOURL,3,5,273,67,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     DEFPUSHBUTTON   "OK",IDC_BUTGO,279,5,19,13
 END
 
-IDD_OPTIONS DIALOG DISCARDABLE  0, 0, 174, 106
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_OPTIONS DIALOG  0, 0, 174, 106
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Osmo4 Options"
 FONT 8, "MS Sans Serif"
 BEGIN
     PUSHBUTTON      "Apply",IDC_SAVEOPT,147,2,26,12
-    COMBOBOX        IDC_SELECT,42,2,99,173,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
+    COMBOBOX        IDC_SELECT,42,2,99,173,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Category",IDC_STATIC,7,4,29,8
 END
 
-IDD_OPT_GEN DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+IDD_OPT_GEN DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Loop At End",IDC_LOOP,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,4,4,55,10
-    CONTROL         "Look for subtitles",IDC_LOOKFORSUB,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,4,42,69,10
-    CONTROL         "Disable console messages",IDC_NO_CONSOLE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,4,17,99,10
-    CONTROL         "View Graph in XMT-A format",IDC_DUMP_XMT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,4,30,105,10
-    CONTROL         "Single Instance",IDC_SINGLE_INSTANCE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,4,54,65,10
+    CONTROL         "Loop At End",IDC_LOOP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,4,55,10
+    CONTROL         "Look for subtitles",IDC_LOOKFORSUB,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,42,69,10
+    CONTROL         "Disable console messages",IDC_NO_CONSOLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,17,99,10
+    CONTROL         "View Graph in XMT-A format",IDC_DUMP_XMT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,30,105,10
+    CONTROL         "Single Instance",IDC_SINGLE_INSTANCE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,54,65,10
 END
 
-IDD_OPT_RENDER DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+IDD_OPT_RENDER DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "Rendering Frame Rate",IDC_STATIC,5,4,72,8
-    COMBOBOX        IDC_BIFS_RATE,81,2,84,55,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
-    CONTROL         "Fast Rendering",IDC_FAST_RENDER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,6,49,64,10
-    CONTROL         "Force Scene Size",IDC_FORCE_SIZE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,96,49,72,10
+    COMBOBOX        IDC_BIFS_RATE,81,2,84,55,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Fast Rendering",IDC_FAST_RENDER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,49,64,10
+    CONTROL         "Force Scene Size",IDC_FORCE_SIZE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,96,49,72,10
     LTEXT           "Anti-Aliasing Level",IDC_STATIC,7,20,58,8
-    COMBOBOX        IDC_AA_LIST,81,17,84,46,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
-    CONTROL         "Use 3D Renderer",IDC_USE_RENDER3D,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,6,63,71,10
+    COMBOBOX        IDC_AA_LIST,81,17,84,46,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Use 3D Renderer",IDC_USE_RENDER3D,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,63,71,10
     LTEXT           "2D Rasterizer",IDC_STATIC,7,35,44,8
-    COMBOBOX        IDC_GD_LIST,81,33,84,44,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
-    COMBOBOX        IDC_DRAW_BOUNDS,109,60,56,44,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_GD_LIST,81,33,84,44,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_DRAW_BOUNDS,109,60,56,44,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Bounds",IDC_STATIC,82,64,25,8
 END
 
-IDD_OPT_AUDIO DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_CONTROL | WS_CHILD | WS_THICKFRAME
+IDD_OPT_AUDIO DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_CONTROL | WS_CHILD | WS_THICKFRAME
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Spin1",IDC_SPIN_AUDIO,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_ARROWKEYS,27,15,11,14
+    CONTROL         "Spin1",IDC_SPIN_AUDIO,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,27,15,11,14
     EDITTEXT        IDC_EDIT_AUDIO,5,15,19,14,ES_READONLY | ES_NUMBER
-    CONTROL         "Force Audio Config",IDC_FORCE_AUDIO,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,6,3,73,10
+    CONTROL         "Force Audio Config",IDC_FORCE_AUDIO,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,3,73,10
     LTEXT           "buffers",IDC_STATIC,43,18,23,8
-    CONTROL         "Spin1",IDC_SPIN_FPS,"msctls_updown32",UDS_SETBUDDYINT | 
-                    UDS_ARROWKEYS,104,15,11,14
+    CONTROL         "Spin1",IDC_SPIN_FPS,"msctls_updown32",UDS_SETBUDDYINT | UDS_ARROWKEYS,104,15,11,14
     EDITTEXT        IDC_AUDIO_FPS,77,15,24,14,ES_NUMBER
     LTEXT           "Audio Driver",IDC_STATIC,7,63,40,8
-    CONTROL         "No Resynchronization",IDC_AUDIO_RESYNC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,4,46,82,10
-    COMBOBOX        IDC_DRIVER_LIST,63,60,103,62,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Disable Notifications",IDC_AUDIO_NOTIFS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,89,47,79,10
-    CONTROL         "Disable Multichannel",IDC_AUDIO_MULTICH,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,4,34,81,10
+    CONTROL         "No Resynchronization",IDC_AUDIO_RESYNC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,46,82,10
+    COMBOBOX        IDC_DRIVER_LIST,63,60,103,62,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Disable Notifications",IDC_AUDIO_NOTIFS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,89,47,79,10
+    CONTROL         "Disable Multichannel",IDC_AUDIO_MULTICH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,34,81,10
     LTEXT           "ms total length",IDC_STATIC,118,18,49,8
 END
 
-IDD_OPT_VIDEO DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+IDD_OPT_VIDEO DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "Video Driver",IDC_STATIC,6,7,40,8
-    COMBOBOX        IDC_VIDEO_LIST,55,5,111,44,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
+    COMBOBOX        IDC_VIDEO_LIST,55,5,111,44,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Change video resolution in fullscreen",IDC_SWITCH_RES,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,29,131,10
     CONTROL         "Use Hardware Video Memory in 2D mode",IDC_HWMEMORY,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,44,143,10
 END
 
-IDD_OPT_HTTP DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+IDD_OPT_HTTP DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     PUSHBUTTON      "...",IDC_BROWSE_CACHE,57,4,109,12
-    CONTROL         "Clean cache at exit",IDC_CLEAN_CACHE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,3,19,77,10
-    CONTROL         "Always redownload incomplete cached files",
-                    IDC_RESTART_CACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    3,30,153,10
+    CONTROL         "Clean cache at exit",IDC_CLEAN_CACHE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,19,77,10
+    CONTROL         "Always redownload incomplete cached files",IDC_RESTART_CACHE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,30,153,10
     LTEXT           "Cache Directory",IDC_STATIC,5,5,52,8
-    CONTROL         "XML progressive load",IDC_SAX_PROGRESSIVE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,3,42,84,10
-    EDITTEXT        IDC_SAX_DELAY,142,41,22,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    CONTROL         "XML progressive load",IDC_SAX_PROGRESSIVE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,42,84,10
+    EDITTEXT        IDC_SAX_DELAY,142,41,22,12,ES_CENTER | ES_AUTOHSCROLL | ES_NUMBER
     LTEXT           "TimeSlice (ms)",IDC_STATIC,91,43,46,8
     EDITTEXT        IDC_HTTP_PROXY,54,58,111,12,ES_AUTOHSCROLL
-    CONTROL         "Use proxy",IDC_HTTP_USE_PROXY,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,3,59,47,10
+    CONTROL         "Use proxy",IDC_HTTP_USE_PROXY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,59,47,10
 END
 
-IDD_OPT_FONT DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+IDD_OPT_FONT DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "Font Engine",IDC_STATIC,6,11,39,8
-    COMBOBOX        IDC_FONT_LIST,60,8,105,44,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
+    COMBOBOX        IDC_FONT_LIST,60,8,105,44,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "...",IDC_BROWSE_FONT,2,40,164,12
     LTEXT           "System Font Directory",IDC_STATIC,46,29,70,8
-    COMBOBOX        IDC_TEXTURE_MODE,101,58,64,44,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_TEXTURE_MODE,101,58,64,44,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Text Texturing Mode",IDC_STATIC,7,60,69,8
 END
 
-IDD_OPT_SYSTEMS DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+IDD_OPT_SYSTEMS DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    COMBOBOX        IDC_LANG,75,4,92,58,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
-    LTEXT           "Prefered Language for stream selection",IDC_STATIC,3,3,
-                    61,17
+    COMBOBOX        IDC_LANG,75,4,92,58,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Prefered Language for stream selection",IDC_STATIC,3,3,61,17
     LTEXT           "Decoder Threading",IDC_STATIC,4,28,62,8
-    COMBOBOX        IDC_DEC_THREAD,75,25,92,57,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
-    CONTROL         "Always draw late BIFS frames",IDC_BIFSDROP,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,3,43,109,10
-    CONTROL         "Force Single Timeline",IDC_FORCE_DURATION,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,3,58,83,10
+    COMBOBOX        IDC_DEC_THREAD,75,25,92,57,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Always draw late BIFS frames",IDC_BIFSDROP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,43,109,10
+    CONTROL         "Force Single Timeline",IDC_FORCE_DURATION,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,58,83,10
 END
 
-IDD_OPT_STREAM DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+IDD_OPT_STREAM DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "Default Port",IDC_STATIC,6,6,40,8
-    COMBOBOX        IDC_PORT,52,3,113,61,CBS_DROPDOWNLIST | CBS_SORT | 
-                    WS_VSCROLL | WS_TABSTOP
-    CONTROL         "RTP over RTSP",IDC_RTSP,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,4,19,68,10
-    CONTROL         "use RTP reordering",IDC_REORDER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,81,19,76,10
-    LTEXT           "milliseconds before control timeout",IDC_STATIC,38,34,
-                    108,8
-    EDITTEXT        IDC_TIMEOUT,3,32,30,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
-    LTEXT           "milliseconds of Media Buffering ",IDC_STATIC,38,48,100,
-                    8
-    EDITTEXT        IDC_BUFFER,3,47,30,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
-    EDITTEXT        IDC_REBUFFER_LEN,83,60,30,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
-    CONTROL         "Rebuffer if less than",IDC_REBUFFER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,4,63,79,10
+    COMBOBOX        IDC_PORT,52,3,113,61,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "RTP over RTSP",IDC_RTSP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,19,68,10
+    CONTROL         "use RTP reordering",IDC_REORDER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,81,19,76,10
+    LTEXT           "milliseconds before control timeout",IDC_STATIC,38,34,108,8
+    EDITTEXT        IDC_TIMEOUT,3,32,30,12,ES_CENTER | ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "milliseconds of Media Buffering ",IDC_STATIC,38,48,100,8
+    EDITTEXT        IDC_BUFFER,3,47,30,12,ES_CENTER | ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_REBUFFER_LEN,83,60,30,12,ES_CENTER | ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Rebuffer if less than",IDC_REBUFFER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,63,79,10
     LTEXT           "milliseconds",IDC_STATIC,117,63,41,8
 END
 
 IDD_PROPERTIES DIALOGEX 0, 0, 338, 150
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Presentation Properties"
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
-    CONTROL         "Tree1",IDC_ODTREE,"SysTreeView32",TVS_HASBUTTONS | 
-                    TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | 
-                    TVS_SHOWSELALWAYS | TVS_TRACKSELECT | TVS_SINGLEEXPAND | 
-                    WS_BORDER | WS_TABSTOP,2,2,120,114
-    EDITTEXT        IDC_ODINFO,123,17,213,130,ES_MULTILINE | ES_AUTOVSCROLL | 
-                    ES_AUTOHSCROLL | ES_NOHIDESEL | ES_OEMCONVERT | 
-                    ES_READONLY | WS_VSCROLL | WS_HSCROLL,
-                    WS_EX_DLGMODALFRAME | WS_EX_STATICEDGE
+    CONTROL         "Tree1",IDC_ODTREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | TVS_TRACKSELECT | WS_BORDER | WS_TABSTOP | 0x400,2,2,120,114
+    EDITTEXT        IDC_ODINFO,123,17,213,130,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_NOHIDESEL | ES_OEMCONVERT | ES_READONLY | WS_VSCROLL | WS_HSCROLL,WS_EX_DLGMODALFRAME | WS_EX_STATICEDGE
     PUSHBUTTON      "Get World Info",IDC_WORLD,2,118,119,13
     PUSHBUTTON      "View Scene Graph",IDC_VIEWSG,2,134,119,13
-    CONTROL         "Tab1",IDC_VIEWSEL,"SysTabControl32",TCS_BUTTONS,124,2,
-                    208,14
+    CONTROL         "Tab1",IDC_VIEWSEL,"SysTabControl32",TCS_BUTTONS,124,2,208,14
 END
 
-IDD_OPT_DECODER DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+IDD_OPT_DECODER DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "Prefered Audio Module",-1,46,5,69,8
-    COMBOBOX        IDC_AUDEC_LIST,26,17,111,56,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_AUDEC_LIST,26,17,111,56,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Prefered Video Module",-1,48,40,69,8
-    COMBOBOX        IDC_VIDEC_LIST,25,52,113,55,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_VIDEC_LIST,25,52,113,55,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
-IDD_OPT_RENDER2D DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | WS_CHILD
+IDD_OPT_RENDER2D DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Disable YUV Hardware",IDC_YUV,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,5,54,89,10
+    CONTROL         "Disable YUV Hardware",IDC_YUV,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,54,89,10
     LTEXT           "Static",IDC_FORMAT_YUV,97,57,67,8
-    CONTROL         "Direct Rendering",IDC_DIRECTRENDER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,5,32,72,10
-    CONTROL         "Scalable Zoom",IDC_ZOOM_SCALABLE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,5,10,77,10
+    CONTROL         "Direct Rendering",IDC_DIRECTRENDER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,32,72,10
+    CONTROL         "Scalable Zoom",IDC_ZOOM_SCALABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,10,77,10
 END
 
-IDD_OPT_RENDER3D DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | WS_CHILD
+IDD_OPT_RENDER3D DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Use OpenGL Outlines",IDC_RASTER_OUTLINE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,5,2,84,10
+    CONTROL         "Use OpenGL Outlines",IDC_RASTER_OUTLINE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,5,2,84,10
     CONTROL         "Emulate power-of-two textures for video",IDC_EMUL_POW2,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,45,140,10
-    CONTROL         "Polygon Anti-Aliasing",IDC_DISABLE_POLY_AA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,90,2,78,10
-    CONTROL         "Disable rectangular texture extensions",
-                    IDC_DISABLE_TX_RECT,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,6,55,135,10
-    CONTROL         "Bitmap node uses direct pixel copy",
-                    IDC_BITMAP_USE_PIXEL,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,6,65,125,10
+    CONTROL         "Polygon Anti-Aliasing",IDC_DISABLE_POLY_AA,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,90,2,78,10
+    CONTROL         "Disable rectangular texture extensions",IDC_DISABLE_TX_RECT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,55,135,10
+    CONTROL         "Bitmap node uses direct pixel copy",IDC_BITMAP_USE_PIXEL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,6,65,125,10
     LTEXT           "Draw Normals",IDC_STATIC,4,17,45,8
-    COMBOBOX        IDC_DRAW_NORMALS,4,25,48,44,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_DRAW_NORMALS,4,25,48,44,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Backface Cull",IDC_STATIC,57,17,55,8
-    COMBOBOX        IDC_BACK_CULL,57,25,47,44,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
+    COMBOBOX        IDC_BACK_CULL,57,25,47,44,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Draw Mode",IDC_STATIC,113,17,55,8
-    COMBOBOX        IDC_DRAW_MODE,111,25,53,44,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
+    COMBOBOX        IDC_DRAW_MODE,111,25,53,44,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
-IDD_SLIDERS DIALOG DISCARDABLE  0, 0, 218, 18
-STYLE WS_CHILD
+IDD_SLIDERS DIALOG  0, 0, 218, 18
+STYLE DS_SETFONT | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    CONTROL         "Slider1",ID_SLIDER,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_TABSTOP,0,3,185,12
-    CONTROL         "Slider1",ID_AUDIO_VOL,"msctls_trackbar32",TBS_BOTH | 
-                    TBS_NOTICKS | WS_BORDER | WS_TABSTOP,187,3,30,13
+    CONTROL         "Slider1",ID_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,0,3,185,12
+    CONTROL         "Slider1",ID_AUDIO_VOL,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_BORDER | WS_TABSTOP,187,3,30,13
 END
 
 IDD_NAVBAR DIALOGEX 0, 0, 279, 15
-STYLE WS_CHILD
+STYLE DS_SETFONT | WS_CHILD
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
-    COMBOBOX        IDC_ADDRESS,29,1,130,196,CBS_DROPDOWN | CBS_AUTOHSCROLL | 
-                    WS_VSCROLL | WS_TABSTOP,WS_EX_ACCEPTFILES
+    COMBOBOX        IDC_ADDRESS,29,1,130,196,CBS_DROPDOWN | CBS_AUTOHSCROLL | WS_VSCROLL | WS_TABSTOP,WS_EX_ACCEPTFILES
     LTEXT           "Address",IDC_DUMTXT,1,4,26,8
 END
 
 IDD_PLAYLIST DIALOGEX 0, 0, 186, 54
-STYLE WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+STYLE DS_SETFONT | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 EXSTYLE WS_EX_TOOLWINDOW
 CAPTION "Osmo4 Playlist"
 FONT 8, "MS Sans Serif", 0, 0, 0x1
 BEGIN
-    CONTROL         "List4",IDC_FILELIST,"SysListView32",LVS_REPORT | 
-                    WS_BORDER | WS_TABSTOP,1,0,182,51
+    CONTROL         "List4",IDC_FILELIST,"SysListView32",LVS_REPORT | WS_BORDER | WS_TABSTOP,1,0,182,51
 END
 
-IDD_OPT_MCACHE DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+IDD_OPT_MCACHE DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     PUSHBUTTON      "...",IDC_BROWSE_MCACHE,41,2,126,12
-    CONTROL         "Overwrite existing files",IDC_MCACHE_OVERWRITE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,3,18,85,10
-    CONTROL         "Use filename",IDC_MCACHE_USENAME,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,3,31,57,10
+    CONTROL         "Overwrite existing files",IDC_MCACHE_OVERWRITE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,18,85,10
+    CONTROL         "Use filename",IDC_MCACHE_USENAME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,31,57,10
     LTEXT           "Record To",IDC_STATIC,4,4,35,8
-    EDITTEXT        IDC_BASEPRES,81,31,82,12,ES_CENTER | ES_AUTOHSCROLL | 
-                    ES_NUMBER
+    EDITTEXT        IDC_BASEPRES,81,31,82,12,ES_CENTER | ES_AUTOHSCROLL | ES_NUMBER
 END
 
-IDD_OPT_FILETYPES DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+IDD_OPT_FILETYPES DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
-    COMBOBOX        IDC_FILELIST,59,6,108,61,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
+    COMBOBOX        IDC_FILELIST,59,6,108,61,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Supported Files",IDC_STATIC,6,8,50,8
     LTEXT           "Extension",IDC_FILES_EXT,7,25,154,8
     LTEXT           "Mime Type",IDC_FILES_MIMES,7,37,156,8
-    CONTROL         "Associate with Osmo4",IDC_ASSOCIATE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,60,84,10
+    CONTROL         "Associate with Osmo4",IDC_ASSOCIATE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,60,84,10
     LTEXT           "Plugin",IDC_FILES_PLUG,8,49,154,8
 END
 
-IDD_OPT_LOGS DIALOG DISCARDABLE  0, 20, 169, 76
-STYLE DS_MODALFRAME | DS_CONTROL | WS_CHILD
+IDD_OPT_LOGS DIALOG  0, 20, 169, 76
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CONTROL | WS_CHILD
 FONT 8, "MS Sans Serif"
 BEGIN
     LTEXT           "Level",IDC_STATIC,6,7,18,8
-    COMBOBOX        IDC_LOG_LEVEL,30,4,64,74,CBS_DROPDOWNLIST | WS_VSCROLL | 
-                    WS_TABSTOP
-    CONTROL         "core",IDC_TOOL_CORE,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,3,23,30,10
-    CONTROL         "coding",IDC_TOOL_CODING,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,3,33,37,10
-    CONTROL         "container",IDC_TOOL_CONTAINER,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,3,43,45,10
-    CONTROL         "network",IDC_TOOL_NET,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,3,53,41,10
-    CONTROL         "rtp",IDC_TOOL_RTP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,
-                    3,63,24,10
-    CONTROL         "author",IDC_TOOL_AUTHOR,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,48,24,36,10
-    CONTROL         "sync",IDC_TOOL_SYNC,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,48,34,31,10
-    CONTROL         "codec",IDC_TOOL_CODEC,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,48,44,36,10
-    CONTROL         "parser",IDC_TOOL_PARSER,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,48,54,35,10
-    CONTROL         "media",IDC_TOOL_MEDIA,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,48,64,35,10
-    CONTROL         "scene",IDC_TOOL_SCENE,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,86,24,35,10
-    CONTROL         "script",IDC_TOOL_SCRIPT,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,86,34,33,10
-    CONTROL         "compose",IDC_TOOL_COMPOSE,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,86,44,45,10
-    CONTROL         "render",IDC_TOOL_RENDER,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,86,54,36,10
-    CONTROL         "mmio",IDC_TOOL_MMIO,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,86,64,32,10
+    COMBOBOX        IDC_LOG_LEVEL,30,4,64,74,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "core",IDC_TOOL_CORE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,23,30,10
+    CONTROL         "coding",IDC_TOOL_CODING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,33,37,10
+    CONTROL         "container",IDC_TOOL_CONTAINER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,43,45,10
+    CONTROL         "network",IDC_TOOL_NET,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,53,41,10
+    CONTROL         "rtp",IDC_TOOL_RTP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,3,63,24,10
+    CONTROL         "author",IDC_TOOL_AUTHOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,48,24,36,10
+    CONTROL         "sync",IDC_TOOL_SYNC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,48,34,31,10
+    CONTROL         "codec",IDC_TOOL_CODEC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,48,44,36,10
+    CONTROL         "parser",IDC_TOOL_PARSER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,48,54,35,10
+    CONTROL         "media",IDC_TOOL_MEDIA,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,48,64,35,10
+    CONTROL         "scene",IDC_TOOL_SCENE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,86,24,35,10
+    CONTROL         "script",IDC_TOOL_SCRIPT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,86,34,33,10
+    CONTROL         "compose",IDC_TOOL_COMPOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,86,44,45,10
+    CONTROL         "render",IDC_TOOL_RENDER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,86,54,36,10
+    CONTROL         "mmio",IDC_TOOL_MMIO,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,86,64,32,10
 END
 
 
@@ -765,7 +647,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO 
 BEGIN
     IDD_OPT_VIDEO, DIALOG
     BEGIN
@@ -832,7 +714,7 @@ END
 // Toolbar
 //
 
-IDR_PLAYLIST TOOLBAR DISCARDABLE  16, 15
+IDR_PLAYLIST TOOLBAR  16, 15
 BEGIN
     BUTTON      ID_PL_OPEN
     BUTTON      ID_PL_SAVE
@@ -849,7 +731,7 @@ END
 // Bitmap
 //
 
-IDR_PLAYLIST            BITMAP  DISCARDABLE     "res\\playlist.bmp"
+IDR_PLAYLIST            BITMAP                  "res\\playlist.bmp"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -857,18 +739,18 @@ IDR_PLAYLIST            BITMAP  DISCARDABLE     "res\\playlist.bmp"
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE DISCARDABLE 
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE 
+2 TEXTINCLUDE 
 BEGIN
     "#include ""afxres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE DISCARDABLE 
+3 TEXTINCLUDE 
 BEGIN
     "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
     "#define _AFX_NO_OLE_RESOURCES\r\n"
@@ -896,12 +778,12 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDR_MAINFRAME           ICON    DISCARDABLE     "..\\..\\doc\\osmo4.ico"
-IDI_PLAY                ICON    DISCARDABLE     "res\\play.ico"
-IDI_STOP                ICON    DISCARDABLE     "res\\stop.ico"
-IDI_PAUSE               ICON    DISCARDABLE     "res\\pause.ico"
-IDI_MESSAGE             ICON    DISCARDABLE     "res\\message.ico"
-IDI_ERR                 ICON    DISCARDABLE     "res\\error.ico"
+IDR_MAINFRAME           ICON                    "..\\..\\doc\\osmo4.ico"
+IDI_PLAY                ICON                    "res\\play.ico"
+IDI_STOP                ICON                    "res\\stop.ico"
+IDI_PAUSE               ICON                    "res\\pause.ico"
+IDI_MESSAGE             ICON                    "res\\message.ico"
+IDI_ERR                 ICON                    "res\\error.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -969,7 +851,7 @@ BEGIN
     0
 END
 
-#endif    // French (France) resources
+#endif    // Français (France) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
