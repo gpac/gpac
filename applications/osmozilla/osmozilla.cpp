@@ -699,7 +699,7 @@ void nsOsmozillaInstance::Print(NPPrint* printInfo)
 		for (ysrc=0; ysrc<fb.height; ysrc++)
 		{
 			char *dst = (char*)ligne;
-			src = fb.video_buffer + ysrc * fb.pitch;
+			src = fb.video_buffer + ysrc * fb.pitch_y;
 			for (xsrc=0; xsrc<fb.width; xsrc++)
 			{
 				switch (fb.pixel_format) {
