@@ -190,6 +190,7 @@ enum {
 	GF_EVENT_MIGRATE, /*indicates a session migration request*/
 	GF_EVENT_DISCONNECT, /*indicates the current url should be disconnected*/
 	GF_EVENT_SYS_COLORS,	/*queries the list of system colors*/
+	GF_EVENT_RESOLUTION, /*indicates the screen resolution has changed*/
 };
 
 /*GPAC/DOM3 key codes*/

@@ -298,6 +298,8 @@ struct __tag_compositor
 	/*set if content doesn't allow navigation*/
 	Bool navigation_disabled;
 
+	u32 rotate_mode;
+
 	/*user mouse navigation state:
 	 0: not active
 	 1: pre-active phase: mouse has been clicked and waiting for mouse move to confirm. This allows

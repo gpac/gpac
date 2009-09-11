@@ -58,8 +58,7 @@ typedef struct
 	u32 backup_w, backup_h;
 	s32 x_pitch, y_pitch;
 	Bool fullscreen;
-	Bool force_gx;
-	Bool gx_mode;
+	u32 gx_mode;
 
 	u32 sys_w, sys_h;
 	Bool scale_coords;

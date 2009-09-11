@@ -1,4 +1,4 @@
-//Microsoft eMbedded Visual C++ generated resource script.
+// Microsoft Visual C++ generated resource script.
 //
 #include "resource.h"
 
@@ -13,7 +13,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// Anglais (États-Unis) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 #ifdef _WIN32
@@ -28,7 +28,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON                ICON    DISCARDABLE     "../../doc/osmo4.ico"
+IDI_ICON                ICON                    "../../doc/osmo4.ico"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -36,18 +36,18 @@ IDI_ICON                ICON    DISCARDABLE     "../../doc/osmo4.ico"
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE DISCARDABLE 
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE DISCARDABLE 
+2 TEXTINCLUDE 
 BEGIN
     "#include ""newres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE DISCARDABLE 
+3 TEXTINCLUDE 
 BEGIN
     "\r\n"
     "\0"
@@ -58,41 +58,34 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Data
+// RCDATA
 //
 
-IDM_MAIN_MENU1 SHMENUBAR DISCARDABLE 
+IDM_MAIN_MENU1 RCDATA 
 BEGIN
-    IDM_MAIN_MENU1, 2,
-    I_IMAGENONE, ID_MENU_FILE, TBSTATE_ENABLED, 
-    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_FILE, 0, 0,
-    I_IMAGENONE, IDM_MENU_VIEW, TBSTATE_ENABLED, 
-    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_VIEW, 0, 1,
+    0x0066, 0x0002, 0xfffe, 0x9c53, 0x0004, 0x0018, 0x9c55, 0x0000, 0x0000, 
+    0xfffe, 0x9c58, 0x0004, 0x0018, 0x9c59, 0x0000, 0x0001
 END
 
-IDR_ABOUT_MENU SHMENUBAR DISCARDABLE 
+IDR_ABOUT_MENU RCDATA 
 BEGIN
-    IDR_ABOUT_MENU, 1,
-    I_IMAGENONE, IDM_ABOUT_OK, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, IDS_CAP_OK, 
-    0, NOMENU,
+    0x006b, 0x0001, 0xfffe, 0x9c77, 0x0004, 0x0010, 0x9c6c, 0x0000, 0xffff
+
 END
 
-IDM_MAIN_MENU2 SHMENUBAR DISCARDABLE 
+IDM_MAIN_MENU2 RCDATA 
 BEGIN
-    IDM_MAIN_MENU2, 2,
-    I_IMAGENONE, ID_OPTION, TBSTATE_ENABLED, 
-    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_OPTION, 0, 0,
-    I_IMAGENONE, ID_MENUITEM40071, TBSTATE_ENABLED, 
-    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_MENUITEM40072, 0, 1,
+    0x006c, 0x0002, 0xfffe, 0x9c83, 0x0004, 0x0018, 0x9c85, 0x0000, 0x0000, 
+    0xfffe, 0x9c87, 0x0004, 0x0018, 0x9c89, 0x0000, 0x0001
 END
 
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Menubar
+// Menu
 //
 
-IDM_MAIN_MENU1 MENU DISCARDABLE 
+IDM_MAIN_MENU MENU 
 BEGIN
     POPUP "File"
     BEGIN
@@ -139,45 +132,42 @@ BEGIN
         END
         MENUITEM SEPARATOR
         MENUITEM "Fullscreen",                  IDM_VIEW_FS
-        POPUP "Aspect Ratio"
+        POPUP "Info"
         BEGIN
-            MENUITEM "Keep Original",               IDM_VIEW_AR_NONE
-            MENUITEM "Fill Screen",                 IDM_VIEW_AR_FILL
-            MENUITEM "Ratio 4/3",                   IDM_VIEW_AR_4_3
-            MENUITEM "Ratio 16/9",                  IDM_VIEW_AR_16_9
+            MENUITEM "Status Bar",                  IDM_VIEW_STATUS
+            MENUITEM "CPU usage",                   IDM_VIEW_CPU
+            MENUITEM "Log RTI",                     IDM_FILE_LOG_RTI
         END
         MENUITEM SEPARATOR
-        MENUITEM "Options",                     IDM_MENU_SWITCH
-    END
-END
-
-IDR_ABOUT_MENU MENU DISCARDABLE 
-BEGIN
-    MENUITEM "OK",                          IDM_ABOUT_OK
-END
-
-IDM_MAIN_MENU2 MENU DISCARDABLE 
-BEGIN
-    POPUP "Options"
-    BEGIN
-        MENUITEM "15.0 FPS",                    IDM_VIEW_LOW_RATE
-        MENUITEM "Direct Draw",                 IDM_VIEW_DIRECT
-        MENUITEM SEPARATOR
-        MENUITEM "Status Bar",                  IDM_VIEW_STATUS
-        MENUITEM "CPU usage",                   IDM_VIEW_CPU
-        MENUITEM "Log RTI",                     IDM_FILE_LOG_RTI
-        MENUITEM SEPARATOR
-        MENUITEM "Close",                       IDM_MENU_SWITCH
-    END
-    POPUP "?"
-    BEGIN
-        MENUITEM "2D OpenGL",                   IDM_VIEW_FORCEGL
-        MENUITEM "Force GX",                    IDM_VIEW_FORCE_GX
-        MENUITEM "Progressive SVG ",            IDM_VIEW_SVG_LOAD
-        MENUITEM SEPARATOR
-        MENUITEM "Disable Playlist",            IDS_CAP_DISABLE_PLAYLIST
+        POPUP "Video"
+        BEGIN
+            MENUITEM "Direct FB",                   ID_VIDEO_DIRECTFB
+            MENUITEM "GAPI",                        ID_VIDEO_GAPI
+            MENUITEM "GDI",                         ID_VIDEO_GDI
+            MENUITEM SEPARATOR
+            MENUITEM "2D OpenGL",                   IDM_VIEW_FORCEGL
+            MENUITEM "Direct Draw",                 ID_VIDEO_DIRECTDRAW
+            MENUITEM "15.0 FPS",                    IDM_VIEW_LOW_RATE
+            POPUP "Aspect Ratio"
+            BEGIN
+                MENUITEM "Keep Original",               IDM_VIEW_AR_NONE
+                MENUITEM "Fill Screen",                 IDM_VIEW_AR_FILL
+                MENUITEM "Ratio 4/3",                   IDM_VIEW_AR_4_3
+                MENUITEM "Ratio 16/9",                  IDM_VIEW_AR_16_9
+            END
+        END
+        POPUP "Options"
+        BEGIN
+            MENUITEM "Progressive SVG ",            IDM_VIEW_SVG_LOAD
+            MENUITEM "Disable Playlist",            IDS_CAP_DISABLE_PLAYLIST
+        END
         MENUITEM "About",                       IDM_VIEW_ABOUT
     END
+END
+
+IDR_ABOUT_MENU MENU 
+BEGIN
+    MENUITEM "OK",                          IDM_ABOUT_OK
 END
 
 
@@ -186,14 +176,14 @@ END
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDS_CLASSNAME           "Osmophone"
     IDS_WINDOWNAME          "Osmo4"
     IDS_APPNAME             "Osmophone.exe"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDS_CAP_QUIT            "Exit"
     IDS_CAP_FILE            "File"
@@ -201,33 +191,33 @@ BEGIN
     IDS_CAP_VIEW            "View"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDS_CAP_OK              "OK"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDS_CAP_NAVIGATE        "Navigate"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDS_CAP_OPTION          "Options"
     IDS_CAP_MENUITEM40072   "?"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDS_CAP_DISABLE_PLAYLIST "Copy/Paste"
 END
 
-#endif    // English (U.S.) resources
+#endif    // Anglais (États-Unis) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// French (France) resources
+// Français (France) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FRA)
 #ifdef _WIN32
@@ -237,25 +227,22 @@ LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Data
+// RCDATA
 //
 
-IDR_MENU_OPEN SHMENUBAR DISCARDABLE 
+IDR_MENU_OPEN RCDATA 
 BEGIN
-    IDR_MENU_OPEN, 2,
-    I_IMAGENONE, IDM_OF_PL_ACT, TBSTATE_ENABLED, TBSTYLE_AUTOSIZE, 
-    IDS_CAP_ADD, 0, NOMENU,
-    I_IMAGENONE, ID_OF_VIEW, TBSTATE_ENABLED, 
-    TBSTYLE_DROPDOWN | TBSTYLE_AUTOSIZE, IDS_CAP_VIEW, 0, 1,
+    0x006a, 0x0002, 0xfffe, 0x9c9b, 0x0004, 0x0010, 0x9c9f, 0x0000, 0xffff, 
+    0xfffe, 0x9c9a, 0x0004, 0x0018, 0x9c59, 0x0000, 0x0001
 END
 
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Menubar
+// Menu
 //
 
-IDR_MENU_OPEN MENU DISCARDABLE 
+IDR_MENU_OPEN MENU 
 BEGIN
     MENUITEM "Add",                         IDM_OF_PL_ACT
     POPUP "View"
@@ -276,13 +263,13 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO DISCARDABLE 
+GUIDELINES DESIGNINFO 
 BEGIN
     IDD_APPABOUT, DIALOG
     BEGIN
         LEFTMARGIN, 1
-        RIGHTMARGIN, 93
-        BOTTOMMARGIN, 71
+        RIGHTMARGIN, 113
+        BOTTOMMARGIN, 74
     END
 
     IDD_FILEDIALOG, DIALOG
@@ -299,30 +286,26 @@ END
 // Dialog
 //
 
-IDD_APPABOUT DIALOG DISCARDABLE  0, 0, 94, 74
-STYLE DS_SETFOREGROUND | WS_POPUP | WS_CAPTION
+IDD_APPABOUT DIALOG  0, 0, 114, 77
+STYLE DS_SETFONT | DS_SETFOREGROUND | WS_POPUP | WS_CAPTION
 CAPTION "About Osmophone"
 FONT 8, "System"
 BEGIN
-    ICON            IDI_ICON,IDC_STATIC,6,4,20,20
-    LTEXT           "Osmo4/GPAC\n""0.4.5"" (build ""33"")",IDC_STATIC,33,6,
-                    46,17
-    CTEXT           "Copyright (c) 2007 ENST\nAll Rights Reserved\n\nLicensed under LGPL",
-                    IDC_STATIC,2,28,87,39
+    ICON            IDI_ICON,IDC_STATIC,1,0,16,16
+    CTEXT           "Osmo4/GPAC\n""0.4.5"" (build ""33"")",IDC_NAMECTRL,23,1,65,17
+    CTEXT           "Copyright (c) 2007 ENST\nAll Rights Reserved\nLicensed under LGPL",IDC_STATIC,2,44,111,33
 END
 
-IDD_FILEDIALOG DIALOG DISCARDABLE  0, 0, 104, 86
-STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+IDD_FILEDIALOG DIALOG  0, 0, 104, 86
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Select File"
 FONT 8, "System"
 BEGIN
     EDITTEXT        IDC_DIRNAME,1,3,100,12,ES_AUTOHSCROLL | ES_READONLY
-    LISTBOX         IDC_FILELIST,1,18,102,65,LBS_NOINTEGRALHEIGHT | 
-                    WS_VSCROLL | WS_TABSTOP
+    LISTBOX         IDC_FILELIST,1,18,102,65,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
 END
 
 
-#ifndef _MAC
 /////////////////////////////////////////////////////////////////////////////
 //
 // Version
@@ -345,18 +328,14 @@ BEGIN
     BEGIN
         BLOCK "040c04b0"
         BEGIN
-            VALUE "Comments", "\0"
-            VALUE "CompanyName", "ENST\0"
-            VALUE "FileDescription", "osmophone\0"
-            VALUE "FileVersion", "1, 0, 0, 1\0"
-            VALUE "InternalName", "osmophone\0"
-            VALUE "LegalCopyright", "Copyright © 2008\0"
-            VALUE "LegalTrademarks", "\0"
-            VALUE "OriginalFilename", "osmophone.exe\0"
-            VALUE "PrivateBuild", "\0"
-            VALUE "ProductName", "ENST GPAC\0"
-            VALUE "ProductVersion", "1, 0, 0, 1\0"
-            VALUE "SpecialBuild", "\0"
+            VALUE "CompanyName", "ENST"
+            VALUE "FileDescription", "osmophone"
+            VALUE "FileVersion", "1, 0, 0, 1"
+            VALUE "InternalName", "osmophone"
+            VALUE "LegalCopyright", "Copyright © 2008"
+            VALUE "OriginalFilename", "osmophone.exe"
+            VALUE "ProductName", "ENST GPAC"
+            VALUE "ProductVersion", "1, 0, 0, 1"
         END
     END
     BLOCK "VarFileInfo"
@@ -365,37 +344,35 @@ BEGIN
     END
 END
 
-#endif    // !_MAC
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDS_CAP_FILE            "+"
     IDS_CAP_VIEW            "View"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDS_CAP_OK              "OK"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDS_CAP_SELECT          "File"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE 
 BEGIN
     IDS_CAP_MENUITEM40092   "Add"
     IDS_CAP_ADD             "Add"
 END
 
-#endif    // French (France) resources
+#endif    // Français (France) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

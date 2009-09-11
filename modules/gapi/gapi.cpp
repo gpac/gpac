@@ -72,11 +72,8 @@ static void GAPI_GetCoordinates(DWORD lParam, GF_Event *evt)
 	evt->mouse.y = HIWORD(lParam);
 
 	if (ctx->scale_coords) {
-		evt->mouse.x = LOWORD(lParam) * the_video_driver->max_screen_width / ctx->sys_w;
-		evt->mouse.y = HIWORD(lParam) * the_video_driver->max_screen_height / ctx->sys_h;
-	} else {
-	 	evt->mouse.x = LOWORD(lParam);
-		evt->mouse.y = HIWORD(lParam);
+		evt->mouse.x = evt->mouse.x * the_video_driver->max_screen_width / ctx->sys_w;
+		evt->mouse.y = evt->mouse.y * the_video_driver->max_screen_height / ctx->sys_h;
 	}
 
 
@@ -351,8 +348,9 @@ LRESULT APIENTRY GAPI_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		{
 		GAPIPriv *gctx = (GAPIPriv *)the_video_driver->opaque;
 		if (gctx->gx_mode || !gctx->bitmap) break;
-		BitBlt(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, gctx->hdcBitmap, 0, 0, SRCCOPY);
-//		SetDIBitsToDevice(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, 0, 0, 0, gctx->bb_height, gctx->backbuffer, gctx->bmi, DIB_RGB_COLORS);
+		HDC dc = GetDC(gctx->hWnd);
+		BitBlt(dc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, gctx->hdcBitmap, 0, 0, SRCCOPY);
+		ReleaseDC(gctx->hWnd, dc);
 		}
 #endif
 		break;
@@ -526,6 +524,7 @@ GF_Err GAPI_Clear(GF_VideoOutput *dr, u32 color)
 	return GF_OK;
 }
 
+
 static void createPixmap(GAPIPriv *ctx, u32 pix_type)
 {
     const size_t    bmiSize = sizeof(BITMAPINFO) + 256U*sizeof(RGBQUAD);
@@ -561,7 +560,7 @@ static void createPixmap(GAPIPriv *ctx, u32 pix_type)
 		bpel = 24;
 		break;
 	}
-	ctx->hdc = GetDC(ctx->hWnd);
+	ctx->hdc = GetDC(NULL/*ctx->hWnd*/);
 	
 	if (pix_type==2) {
 #ifdef GPAC_USE_OGL_ES
@@ -579,6 +578,8 @@ static void createPixmap(GAPIPriv *ctx, u32 pix_type)
 		/*watchout - win32 always create DWORD align memory, so align our pitch*/
 		while ((ctx->bb_pitch % 4) != 0) ctx->bb_pitch ++;
 	}
+	ReleaseDC(NULL/*ctx->hWnd*/, ctx->hdc);
+
 	ctx->bmi = bmi;
 //	free(bmi);
 }
@@ -788,13 +789,12 @@ void GAPI_ReleaseObjects(GAPIPriv *ctx)
 		DeleteDC(ctx->hdcBitmap);
 		ctx->hdcBitmap = NULL;
 	}
-	if (ctx->hdc) ReleaseDC(ctx->hWnd, ctx->hdc);
+	if (ctx->hdc) ReleaseDC(NULL/*ctx->hWnd*/, ctx->hdc);
 	ctx->hdc = NULL;
 }
 
 GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool noover)
 {
-	const char *opt;
 	struct GXDisplayProperties gx = GXGetDisplayProperties();
 	RECT rc;
 	GAPICTX(dr);
@@ -829,17 +829,9 @@ GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no
 	} else {
 		return GF_NOT_SUPPORTED;
 	}
-	dr->max_screen_width = gctx->screen_w = gx.cxWidth;
-	dr->max_screen_height = gctx->screen_h = gx.cyHeight;
-	landscape = (gx.ffFormat & kfLandscape) ? 1 : 0;
-	gctx->x_pitch = gx.cbxPitch;
-	gctx->y_pitch = gx.cbyPitch;
 
 	GAPI_SetupWindow(dr);
 	if (!gctx->hWnd) return GF_IO_ERR;
-
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "GAPI", "ForceGX");
-	if (opt && !strcmp(opt, "yes")) gctx->force_gx = 1;
 
 	/*setup GX*/
 	if (!GXOpenDisplay(gctx->hWnd, 0L)) {
@@ -849,12 +841,6 @@ GF_Err GAPI_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, Bool no
     GetClientRect(gctx->hWnd, &rc);
 	gctx->backup_w = rc.right - rc.left;
 	gctx->backup_h = rc.bottom - rc.top;
-
-	gctx->sys_w = GetSystemMetrics(SM_CXSCREEN);
-	gctx->sys_h = GetSystemMetrics(SM_CYSCREEN);
-	gctx->scale_coords = 0;
-	if (gctx->sys_w != dr->max_screen_width) gctx->scale_coords = 1;
-	else if (gctx->sys_h != dr->max_screen_height) gctx->scale_coords = 1;
 
 	return GAPI_InitBackBuffer(dr, gctx->backup_w, gctx->backup_h);
 }
@@ -943,38 +929,6 @@ GF_Err GAPI_ClearFS(GAPIPriv *gctx, unsigned char *ptr)
 	return GF_OK;
 }
 
-static void GAPI_AdjustLandscape(GAPIPriv *gctx, GF_VideoSurface *dst, s32 x_pitch, s32 y_pitch)
-{
-	if (landscape) {
-		if (y_pitch>0) {
-			dst->pitch_x = -y_pitch;
-			/*start of frame-buffer is top-left corner*/
-			if (x_pitch>0) {
-				dst->video_buffer += dst->height * y_pitch;
-				dst->pitch_y = x_pitch;
-			} 
-			/*start of frame-buffer is top-right corner*/
-			else {
-				dst->video_buffer += dst->height * y_pitch + dst->width * x_pitch;
-				dst->pitch_y = -x_pitch;
-			}
-		} else {
-			dst->pitch_x = y_pitch;
-			/*start of frame-buffer is bottom-left corner*/
-			if (x_pitch>0) {
-				dst->pitch_y = x_pitch;
-			} 
-			/*start of frame-buffer is bottom-right corner*/
-			else {
-				dst->video_buffer += dst->width * x_pitch;
-				dst->pitch_y = x_pitch;
-			}
-		}
-	} else {
-		dst->pitch_x = x_pitch;
-		dst->pitch_y = y_pitch;
-	}
-}
 
 static GF_Err GAPI_FlipBackBuffer(GF_VideoOutput *dr)
 {
@@ -984,13 +938,12 @@ static GF_Err GAPI_FlipBackBuffer(GF_VideoOutput *dr)
 	if (!gctx || !gctx->gx_mode) return GF_BAD_PARAM;
 
 	/*get a pointer to video memory*/
-	if (gctx->raw_ptr) {
-		ptr = (unsigned char *) gctx->raw_ptr;
-	} else {
+	if (gctx->gx_mode==1) {
 		ptr = (unsigned char *) GXBeginDraw();
-		if (!ptr) return GF_IO_ERR;
-		GXEndDraw();
+	} else {
+		ptr = (unsigned char *) gctx->raw_ptr;
 	}
+	if (!ptr) return GF_IO_ERR;
 	
 	src.video_buffer = gctx->backbuffer;
 	src.width = gctx->bb_width;
@@ -1019,9 +972,9 @@ static GF_Err GAPI_FlipBackBuffer(GF_VideoOutput *dr)
 		gctx->dst_blt.y += gctx->off_y;
 	}
 
-
 	/*apply x/y offset*/
-	dst.video_buffer += gctx->dst_blt.x * gctx->x_pitch + gctx->y_pitch * gctx->dst_blt.y;
+	if (!gctx->fullscreen) 
+		dst.video_buffer += gctx->dst_blt.x * gctx->x_pitch + gctx->y_pitch * gctx->dst_blt.y;
 
 	if (gctx->contiguous_mem) {
 		memcpy(dst.video_buffer, src.video_buffer, src.width*gctx->BPP*src.height );
@@ -1041,7 +994,7 @@ static GF_Err GAPI_FlipBackBuffer(GF_VideoOutput *dr)
 		}
 	}
 
-	if (!gctx->raw_ptr) GXEndDraw();
+	if (gctx->gx_mode==1) GXEndDraw();
 	return GF_OK;
 }
 
@@ -1096,7 +1049,10 @@ static GF_Err GAPI_Flush(GF_VideoOutput *dr, GF_Window *dest)
 #ifndef DIRECT_BITBLT
 			InvalidateRect(gctx->hWnd, NULL, gctx->erase_dest);
 #else
-			BitBlt(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, gctx->hdcBitmap, 0, 0, SRCCOPY);
+//			BitBlt(gctx->hdc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, gctx->hdcBitmap, 0, 0, SRCCOPY);
+			HDC dc = GetDC(NULL);
+			BitBlt(dc, gctx->dst_blt.x, gctx->dst_blt.y, gctx->bb_width, gctx->bb_height, gctx->hdcBitmap, 0, 0, SRCCOPY);
+			ReleaseDC(NULL, dc);
 #endif
 			gctx->erase_dest = 0;
 		}
@@ -1158,6 +1114,36 @@ typedef struct GXDeviceInfo
 	unsigned long ffFormat; //18
 	char Unused[0x84-7*4];
 } GXDeviceInfo;
+
+
+static Bool check_resolution_switch(GF_VideoOutput *dr, u32 width, u32 height)
+{
+	GAPICTX(dr);
+
+	gctx->sys_w = GetSystemMetrics(SM_CXSCREEN);
+	gctx->sys_h = GetSystemMetrics(SM_CYSCREEN);
+	gctx->scale_coords = 0;
+	if (gctx->sys_w != width) gctx->scale_coords = 1;
+	else if (gctx->sys_h != height) gctx->scale_coords = 1;
+
+	if (gctx->scale_coords) {
+		gctx->off_x = gctx->off_x * width / gctx->sys_w;
+		gctx->off_y = gctx->off_y * height / gctx->sys_h;
+	}
+
+	if ((gctx->screen_w==width) && (gctx->screen_h==height)) return 0;
+
+	GF_Event evt;
+	dr->max_screen_width = gctx->screen_w = width;
+	dr->max_screen_height = gctx->screen_h = height;
+
+	evt.type = GF_EVENT_RESOLUTION;
+	evt.size.width = dr->max_screen_width;
+	evt.size.height = dr->max_screen_height;
+	dr->on_event(the_video_driver->evt_cbk_hdl, &evt);
+
+	return 1;
+}
 
 static GF_Err gapi_get_raw_fb(GF_VideoOutput *dr)
 {
@@ -1234,23 +1220,14 @@ static GF_Err gapi_get_raw_fb(GF_VideoOutput *dr)
 	}
 
 	gctx->raw_ptr = (unsigned char *)Info.pFramePointer;
-	// we need the physical start of the framebuffer
+
 	if (Info.cxStride<0) 
 		gctx->raw_ptr += (Info.cxStride * (Info.cxPixels-1));
 	if (Info.cyStride<0) 
 		gctx->raw_ptr += (Info.cyStride * (Info.cyPixels-1));
 
-	if (Info.cxPixels != gctx->screen_w) {
-		u32 r = Info.cxPixels / gctx->screen_w;
-		gctx->off_x *= r;
-	}
-	if (Info.cyPixels != gctx->screen_h) {
-		u32 r = Info.cyPixels / gctx->screen_h;
-		gctx->off_y *= r;
-	}
-
-	dr->max_screen_width = gctx->screen_w = Info.cxPixels;
-	dr->max_screen_height = gctx->screen_h = Info.cyPixels;
+	if (check_resolution_switch(dr, Info.cxPixels, Info.cyPixels)) 
+		return GF_EOS;
 
 	return GF_OK;
 }
@@ -1260,6 +1237,7 @@ static GF_Err gapi_get_raw_fb(GF_VideoOutput *dr)
 
 static GF_Err GAPI_InitBackBuffer(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoHeight)
 {
+	u32 gx_mode;
 	GAPICTX(dr);
 
 	if (!gctx || !VideoWidth || !VideoHeight) return GF_BAD_PARAM;
@@ -1275,32 +1253,104 @@ static GF_Err GAPI_InitBackBuffer(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoH
 		VideoHeight = t;
 	}
 
-	gctx->bb_size = VideoWidth * VideoHeight * gctx->BPP;
-	gctx->bb_width = VideoWidth;
-	gctx->bb_height = VideoHeight;
-	gctx->bb_pitch = VideoWidth * gctx->BPP;
-
 	RECT rc;
 	GetWindowRect(gctx->hWnd, &rc);
 	gctx->off_x = rc.left;
 	gctx->off_y = rc.top;
 	gctx->erase_dest = 1;
 
-	if (gctx->force_gx || gctx->fullscreen) {
-		gctx->backbuffer = (char *) malloc(sizeof(unsigned char) * gctx->bb_size);
-		gctx->gx_mode = 1;
+	const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "GAPI", "FBAccess");
+	if (!opt || !strcmp(opt, "raw")) gx_mode = 2;
+	else if (opt && !strcmp(opt, "gx")) gx_mode = 1;
+	else gx_mode = 0;
 
-		gapi_get_raw_fb(dr);
+	if ((gx_mode != gctx->gx_mode) || !gctx->screen_w) {
+		struct GXDisplayProperties gx = GXGetDisplayProperties();
+
+		gctx->x_pitch = gx.cbxPitch;
+		gctx->y_pitch = gx.cbyPitch;
+
+		gctx->gx_mode = gx_mode;
+
+		if (check_resolution_switch(dr, gx.cxWidth, gx.cyHeight)) {
+			gf_mx_v(gctx->mx);
+			return GF_OK;
+		}
+	}
+	if (gctx->gx_mode==2) {
+		GF_Err e = gapi_get_raw_fb(dr);
+		if (e) {
+			gf_mx_v(gctx->mx);
+			if (e==GF_EOS) return GF_OK;
+			else return e;
+		}
+	}
+
+
+	gctx->bb_size = VideoWidth * VideoHeight * gctx->BPP;
+	gctx->bb_width = VideoWidth;
+	gctx->bb_height = VideoHeight;
+	gctx->bb_pitch = VideoWidth * gctx->BPP;
+
+
+	if (gctx->gx_mode) {
+		gctx->backbuffer = (char *) malloc(sizeof(unsigned char) * gctx->bb_size);
 
 		gctx->contiguous_mem = ((gctx->x_pitch==gctx->BPP) && (gctx->y_pitch==gctx->screen_w*gctx->BPP)) ? 1 : 0;
 	} else {
 		createPixmap(gctx, 0);
-		gctx->gx_mode = 0;
 	}
 
 	gf_mx_v(gctx->mx);
 	return GF_OK;
 }
+
+
+static void GAPI_AdjustLandscape(GAPIPriv *gctx, GF_VideoSurface *dst, s32 x_pitch, s32 y_pitch)
+{
+	if (y_pitch>0) {
+#if 1
+		dst->pitch_x = -y_pitch;
+		/*start of frame-buffer is top-left corner*/
+		if (x_pitch>0) {
+			dst->video_buffer += dst->height * y_pitch;
+			dst->pitch_y = x_pitch;
+		} 
+		/*start of frame-buffer is top-right corner*/
+		else {
+			dst->video_buffer += dst->height * y_pitch + dst->width * x_pitch;
+			dst->pitch_y = -x_pitch;
+		}
+#else
+		dst->pitch_x = y_pitch;
+		/*start of frame-buffer is top-left corner*/
+		if (x_pitch>0) {
+			dst->video_buffer += y_pitch - x_pitch;
+			dst->pitch_y = -x_pitch;
+		} 
+		/*start of frame-buffer is top-right corner*/
+		else {
+			dst->video_buffer += dst->height * y_pitch + dst->width * x_pitch;
+			dst->pitch_y = -x_pitch;
+		}
+#endif
+	} else {
+		dst->pitch_x = y_pitch;
+		/*start of frame-buffer is bottom-left corner*/
+		if (x_pitch>0) {
+			dst->pitch_y = x_pitch;
+		} 
+		/*start of frame-buffer is bottom-right corner*/
+		else {
+			dst->video_buffer += dst->width * x_pitch;
+			dst->pitch_y = x_pitch;
+		}
+	}
+	u32 t = dst->width;
+	dst->width = dst->height;
+	dst->height = t;
+}
+
 static GF_Err GAPI_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool do_lock)
 {
 	GAPICTX(dr);
@@ -1315,7 +1365,8 @@ static GF_Err GAPI_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool 
 		vi->pitch_x = gctx->x_pitch;
 		vi->pitch_y = gctx->y_pitch;
 
-		GAPI_AdjustLandscape(gctx, vi, gctx->x_pitch, gctx->y_pitch);
+		if (landscape) 
+			GAPI_AdjustLandscape(gctx, vi, gctx->x_pitch, gctx->y_pitch);
 	}
 	return GF_OK;
 }
@@ -1332,7 +1383,6 @@ static void *NewGAPIVideoOutput()
 	memset(priv, 0, sizeof(GAPIPriv));
 	priv->mx = gf_mx_new("GAPI");
 	driv->opaque = priv;
-	priv->force_gx = 0;
 
 #ifdef GPAC_USE_OGL_ES
 	driv->hw_caps = GF_VIDEO_HW_OPENGL | GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;

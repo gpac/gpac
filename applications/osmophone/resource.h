@@ -1,5 +1,5 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft eMbedded Visual C++ generated include file.
+// Microsoft Visual C++ generated include file.
 // Used by osmophone.rc
 //
 #define IDS_CLASSNAME                   1
@@ -25,6 +25,7 @@
 #define IDC_LIST1                       1002
 #define IDC_FILELIST                    1002
 #define IDC_LIST2                       1003
+#define IDC_NAMECTRL                    1004
 #define IDM_FILE_EXIT                   40002
 #define IDM_HELP_ABOUT                  40003
 #define IDM_GRAB                        40004
@@ -106,19 +107,29 @@
 #define IDM_VIEW_CPU                    40098
 #define IDM_FILE_PAUSE                  40099
 #define IDM_VIEW_LOW_RATE               40100
-#define IDM_VIEW_DIRECT                 40101
 #define IDM_VIEW_SVG_LOAD               40102
 #define IDS_CAP_DISABLE_PLAYLIST        40103
 #define ID_FILE_CUT_PASTE               40104
-#define IDM_VIEW_FORCE_GX				40105
+#define Fra                             40105
+#define ID_VIDEO_DIRECTFB               40106
+#define ID_VIDEO_GAPI                   40107
+#define ID_VIDEO_GDI                    40108
+#define ID_VIDEO_DIRECTDRAW             40109
+#define ID_OPTIONS_TEST                 40111
+#define ID_VIEW_INFO                    40112
+#define ID_Menu                         40113
+#define ID_OPTIONS_TEST40114            40114
+#define ID_OPTIONS_VIDEOOUT             40115
+#define ID_VIDEOOUT_FD                  40116
+#define ID_OPTIONS_VIDEOOUT40117        40117
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        111
-#define _APS_NEXT_COMMAND_VALUE         40105
-#define _APS_NEXT_CONTROL_VALUE         1004
+#define _APS_NEXT_COMMAND_VALUE         40118
+#define _APS_NEXT_CONTROL_VALUE         1005
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -68,7 +68,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Switching fullscreen %s\n", compositor->fullscreen ? "off" : "on"));
 	/*move to FS*/
 	compositor->fullscreen = !compositor->fullscreen;
-	if (compositor->fullscreen && (compositor->scene_width>compositor->scene_height)
+	if (compositor->fullscreen && (compositor->scene_width>=compositor->scene_height)
 #ifndef GPAC_DISABLE_3D
 			&& !compositor->visual->type_3d 
 #endif
@@ -77,6 +77,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 	} else {
 		e = compositor->video_out->SetFullScreen(compositor->video_out, compositor->fullscreen, &compositor->display_width, &compositor->display_height);
 	}
+
 	if (e) {
 		GF_Event evt;
 		evt.type = GF_EVENT_MESSAGE;
