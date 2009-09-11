@@ -177,13 +177,15 @@ void gf_clock_set_time(GF_Clock *ck, u32 TS)
 		ck->PauseTime = ck->StartTime = gf_term_get_time(ck->term);
 		if (ck->term->play_state) ck->Paused ++;
 	}
+#if 0
 	/*TODO: test with pure OCR streams*/
 	else if (ck->use_ocr) {
 		/*just update the drift - we could also apply a drift algo*/
 		u32 now = gf_clock_real_time(ck);
-		s32 drift = now - (u32) TS;
+		s32 drift = (s32) TS - (s32) now;
 		ck->drift += drift;
 	}
+#endif
 }
 
 

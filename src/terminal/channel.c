@@ -621,6 +621,42 @@ void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamB
 	gf_es_lock(ch, 0);
 }
 
+static void gf_es_check_timing(GF_Channel *ch)
+{
+	/*the first data received inits the clock - this is needed to handle clock dependencies on non-initialized 
+	streams (eg, bifs/od depends on audio/video clock)*/
+	if (!ch->clock->clock_init) {
+		if (!ch->clock->use_ocr) {
+			gf_clock_set_time(ch->clock, ch->CTS);
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Forcing clock initialization at STB %d - AU DTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS));
+			ch->IsClockInit = 1;
+		} 
+	}
+	/*channel is the OCR, force a re-init of the clock since we cannot assume the AU used to init the clock was
+	not sent ahead of time*/
+	else if (gf_es_owns_clock(ch)) {
+		if (!ch->clock->use_ocr) {
+			ch->clock->clock_init = 0;
+			gf_clock_set_time(ch->clock, ch->DTS);
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering, gf_clock_time(ch->clock) ));
+			ch->IsClockInit = 1;
+		}
+	}
+	/*if channel is not the OCR, shift all time stamps to match the current time at clock init*/
+	else if (!ch->DTS) {
+		ch->ts_offset += gf_clock_real_time(ch->clock);
+		if (ch->clock->clock_init) ch->IsClockInit = 1;
+	}
+	/*deal with some broken DMB streams were the timestamps on BIFS/OD are not set (0) or completely out of sync
+	of the OCR clock (usually audio). If the audio codec (BSAC ...) is not found, we force re-initializing of the clock
+	so that video can play back correctly*/
+	else if (gf_clock_time(ch->clock) * 1000 < ch->DTS) {
+		ch->clock->clock_init = 0;
+		gf_clock_set_time(ch->clock, ch->DTS);
+		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: re-initializing clock at STB %d - AU DTS %d - %d buffering\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering));
+		ch->IsClockInit = 1;
+	}
+}
 
 /*handles reception of an SL-PDU, logical or physical*/
 void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *payload, u32 payload_size, GF_SLHeader *header, GF_Err reception_status)
@@ -676,12 +712,9 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 #if 0
 		/*compute clock drift*/
 		else {
-			u64 OCR_TS = (u64) ( hdr.objectClockReference * (s64)ch->ocr_scale);
+			u32 OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
 			u32 ck = gf_clock_time(ch->clock);
-
-			fprintf(stdout, "OCR %d OTB %d Diff %d Buffer %d (%d AUs) \n", (u32) OCR_TS, ck, (u32) (OCR_TS - ck), ch->BufferTime, ch->AU_Count);
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d adjusting OCR to %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d adjusting OCR to %d (diff %d)\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, (s32) OCR_TS - (s32) ck));
 			gf_clock_set_time(ch->clock, (u32) OCR_TS);
 		}
 #endif
@@ -802,34 +835,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			}
 		}
 
-		if (!ch->IsClockInit && (hdr.compositionTimeStampFlag || !ch->esd->slConfig->useTimestampsFlag) ) {
-			/*the first data received inits the clock - this is needed to handle clock dependencies on non-initialized 
-			streams (eg, bifs/od depends on audio/video clock)*/
-			if (!ch->clock->clock_init) {
-				gf_clock_set_time(ch->clock, ch->CTS);
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Forcing clock initialization at STB %d - AU DTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS));
-			} 
-			/*channel is the OCR, force a re-init of the clock since we cannot assume the AU used to init the clock was
-			not sent ahead of time*/
-			else if (gf_es_owns_clock(ch)) {
-				ch->clock->clock_init = 0;
-				gf_clock_set_time(ch->clock, ch->DTS);
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering, gf_clock_time(ch->clock) ));
-			}
-			/*if channel is not the OCR, shift all time stamps to match the current time at clock init*/
-			else if (!ch->DTS) {
-				ch->ts_offset += gf_clock_real_time(ch->clock);
-			}
-			/*deal with some broken DMB streams were the timestamps on BIFS/OD are not set (0) or completely out of sync
-			of the OCR clock (usually audio). If the audio codec (BSAC ...) is not found, we force re-initializing of the clock
-			so that video can play back correctly*/
-			else if (gf_clock_time(ch->clock) * 1000 < ch->DTS) {
-				ch->clock->clock_init = 0;
-				gf_clock_set_time(ch->clock, ch->DTS);
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: re-initializing clock at STB %d - AU DTS %d - %d buffering\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering));
-			}
-			if (ch->clock->clock_init) ch->IsClockInit = 1;
-		}
 		/*if the AU Length is carried in SL, get its size*/
 		if (ch->esd->slConfig->AULength > 0) {
 			ch->AULength = hdr.accessUnitLength;
@@ -888,14 +893,17 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 
 	/*update the RAP marker on a packet base (to cope with AVC/H264 NALU->AU reconstruction)*/
 	if (hdr.randomAccessPointFlag) ch->IsRap = 1;
-	/* we need to skip all the packets of the current AU in the carousel scenario */
-	if (ch->skip_carousel_au == 1) return;
 
 	/*get AU end state*/	
 	OldLength = ch->buffer ? ch->len : 0;
 	EndAU = hdr.accessUnitEndFlag;
 	if (ch->AULength == OldLength + payload_size) EndAU = 1;
 	if (EndAU) ch->NextIsAUStart = 1;
+
+	if (EndAU && !ch->IsClockInit) gf_es_check_timing(ch);
+
+	/* we need to skip all the packets of the current AU in the carousel scenario */
+	if (ch->skip_carousel_au == 1) return;
 
 	if (!payload_size && EndAU && ch->buffer) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: Empty packet, flushing buffer\n", ch->esd->ESID));
