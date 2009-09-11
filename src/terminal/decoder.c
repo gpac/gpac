@@ -798,6 +798,7 @@ drop:
 		prev_ch = ch;
 
 		gf_es_drop_au(ch);
+		AU = NULL;
 		if (e) {
 			UnlockCompositionUnit(codec, CU, unit_size);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Decoder %s] ODM%d: decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));

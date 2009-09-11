@@ -203,11 +203,9 @@ default_sync:
 	esd->slConfig->timestampResolution = trak->Media->mediaHeader->timeScale;
 	//NO OCR from MP4File streams (eg, constant OC Res one)
 	esd->slConfig->OCRLength = 0;
-	if (OCRTrack) {
-		esd->slConfig->OCRResolution = OCRTrack->Media->mediaHeader->timeScale;
-	} else {
-		esd->slConfig->OCRResolution = 0;
-	}
+	esd->slConfig->OCRResolution = 0;
+//	if (OCRTrack) esd->slConfig->OCRResolution = OCRTrack->Media->mediaHeader->timeScale;
+
 	stbl = trak->Media->information->sampleTable;
 	// a little optimization here: if all our samples are sync, 
 	//set the RAPOnly to true... for external users...
