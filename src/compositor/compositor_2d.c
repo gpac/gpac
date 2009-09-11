@@ -499,8 +499,13 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 		compositor->vp_width = compositor->visual->width = compositor->output_width;
 		compositor->vp_height = compositor->visual->height = compositor->output_height;
 	} else {
-		compositor->vp_width = compositor->display_width;
-		compositor->vp_height = compositor->display_height;
+		if (compositor->rotate_mode % 2) {
+			compositor->vp_height = compositor->display_width;
+			compositor->vp_width = compositor->display_height;
+		} else {
+			compositor->vp_width = compositor->display_width;
+			compositor->vp_height = compositor->display_height;
+		}
 
 		switch (compositor->aspect_ratio) {
 		case GF_ASPECT_RATIO_FILL_SCREEN:
@@ -657,6 +662,19 @@ void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fix
 		}
 	}
 	gf_mx2d_init(compositor->traverse_state->transform);
+
+	switch (compositor->rotate_mode) {
+	case 1:
+		gf_mx2d_add_rotation(&compositor->traverse_state->transform, 0, 0, -GF_PI/2);
+		break;
+	case 2:
+		gf_mx2d_add_scale(&compositor->traverse_state->transform, -1, -1);
+		break;
+	case 3:
+		gf_mx2d_add_rotation(&compositor->traverse_state->transform, 0, 0, GF_PI/2);
+		break;
+	}
+
 	gf_mx2d_add_scale(&compositor->traverse_state->transform, gf_mulfix(compositor->zoom,compositor->scale_x), gf_mulfix(compositor->zoom,compositor->scale_y));
 
 	gf_mx2d_add_translation(&compositor->traverse_state->transform, compositor->trans_x, compositor->trans_y);

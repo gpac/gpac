@@ -63,8 +63,7 @@ void do_layout(Bool notif_size);
 
 static HWND g_hwnd = NULL;
 static HWND g_hwnd_disp = NULL;
-static HWND g_hwnd_menu1 = NULL;
-static HWND g_hwnd_menu2 = NULL;
+static HWND g_hwnd_menu = NULL;
 static HWND g_hwnd_status = NULL;
 static HINSTANCE g_hinst = NULL;
 static Bool is_ppc = 0;
@@ -98,7 +97,6 @@ static Bool full_screen = 0;
 static Bool force_2d_gl = 0;
 static Bool ctrl_mod_down = 0;
 static Bool view_cpu = 1;
-static Bool menu_switched = 0;
 static Bool use_low_fps = 0;
 static Bool use_svg_prog = 0;
 
@@ -107,6 +105,24 @@ static FILE *rti_file = NULL;
 static u32 rti_update_time_ms = 200;
 
 static u32 playlist_act = 0;
+
+
+void recompute_res(u32 sw, u32 sh )
+{
+	caption_h = GetSystemMetrics(SM_CYCAPTION);
+	menu_h = GetSystemMetrics(SM_CYMENU)+2;
+	screen_w = GetSystemMetrics(SM_CXSCREEN);
+	screen_h = GetSystemMetrics(SM_CYSCREEN);
+
+	ratio_h = sh / screen_h;
+	screen_w = sw;
+	screen_h = sh;
+	menu_h *= ratio_h;
+//	caption_h *= ratio_h;
+	disp_w = screen_w;
+	disp_h = screen_h - menu_h /*- caption_h*/;
+}
+
 
 void set_status(char *state)
 {
@@ -347,11 +363,16 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	
 	case GF_EVENT_SIZE:
 		break;
+	case GF_EVENT_RESOLUTION:
+		recompute_res(evt->size.width, evt->size.height);
+		do_layout(1);
+		break;
+
 	case GF_EVENT_SCENE_SIZE:
 		do_layout(1);
 		break;
 	case GF_EVENT_DBLCLICK:
-		gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
+		set_full_screen();
 		return 0;
 	case GF_EVENT_CONNECT:
 		if (evt->connect.is_connected) {
@@ -366,7 +387,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		break;
 	case GF_EVENT_EOS:
-		gf_term_play_from_time(term, 0, 0);
+		if (Duration>2000)
+			gf_term_play_from_time(term, 0, 0);
 		break;
 	case GF_EVENT_QUIT:
 		PostMessage(g_hwnd, WM_DESTROY, 0, 0);
@@ -478,8 +500,7 @@ void do_layout(Bool notif_size)
 		h = screen_h;
 		::ShowWindow(g_hwnd_status, SW_HIDE);
 #ifdef _WIN32_WCE
-		::ShowWindow(g_hwnd_menu1, SW_HIDE);
-		::ShowWindow(g_hwnd_menu2, SW_HIDE);
+		::ShowWindow(g_hwnd_menu, SW_HIDE);
 #endif
 
 #ifdef _WIN32_WCE
@@ -490,16 +511,15 @@ void do_layout(Bool notif_size)
 		SetForegroundWindow(g_hwnd_disp);
 	} else {
 #ifdef _WIN32_WCE
-		::ShowWindow(g_hwnd_menu1, menu_switched ? SW_HIDE : SW_SHOW);
-		::ShowWindow(g_hwnd_menu2, menu_switched ? SW_SHOW : SW_HIDE);
+		::ShowWindow(g_hwnd_menu, SW_SHOW);
 #endif
 		if (show_status) {
 			::MoveWindow(g_hwnd, 0, 0, disp_w, disp_h, 1);
 			::ShowWindow(g_hwnd_status, SW_SHOW);
-			::MoveWindow(g_hwnd_status, 0, 0, disp_w, caption_h/ratio_h, 1);
+			::MoveWindow(g_hwnd_status, 0, 0, disp_w, caption_h, 1);
 			::MoveWindow(g_hwnd_disp, 0, caption_h, disp_w, disp_h - caption_h, 1);
 			w = disp_w;
-			h = disp_h - caption_h;
+			h = disp_h - caption_h*ratio_h;
 		} else {
 			::ShowWindow(g_hwnd_status, SW_HIDE);
 //			::MoveWindow(g_hwnd, 0, caption_h, disp_w, disp_h, 1);
@@ -604,7 +624,7 @@ void refresh_recent_files()
 #ifdef _WIN32_WCE
 	u32 count = gf_cfg_get_key_count(user.config, "RecentFiles");
 
-    HMENU hMenu = (HMENU)SendMessage(g_hwnd_menu1, SHCMBM_GETSUBMENU, 0, ID_MENU_FILE);
+    HMENU hMenu = (HMENU)SendMessage(g_hwnd_menu, SHCMBM_GETSUBMENU, 0, ID_MENU_FILE);
 	/*pos is hardcoded*/
 	hMenu = GetSubMenu(hMenu, 2);
 
@@ -692,6 +712,16 @@ BOOL CALLBACK AboutDialogProc(const HWND hWnd, const UINT Msg, const WPARAM wPar
 		mbi.cBmpImages = 0;	
 		SHCreateMenuBar(&mbi);
 #endif
+		char szText[4096];
+		u16 swText[4096];
+		sprintf(szText, "GPAC/Osmo4\nversion %s", GPAC_FULL_VERSION);
+		CE_CharToWide(szText, swText);
+
+		HWND hctl = GetDlgItem(hWnd, IDC_NAMECTRL);
+		SetWindowText(hctl, (LPCWSTR) swText);
+		MoveWindow(hctl, 0, 0, screen_w, 40, 1);
+		MoveWindow(hWnd, 0, 0, screen_w, disp_w, 1);
+
 	}
         break;
     case WM_COMMAND:
@@ -733,7 +763,7 @@ void pause_file()
 #endif
 	}
 #ifdef _WIN32_WCE
-	SendMessage(g_hwnd_menu1, TB_SETBUTTONINFO, IDM_FILE_PAUSE, (LPARAM)&tbbi); 
+	SendMessage(g_hwnd_menu, TB_SETBUTTONINFO, IDM_FILE_PAUSE, (LPARAM)&tbbi); 
 #endif
 }
 
@@ -749,14 +779,27 @@ void set_svg_progressive()
 	}
 }
 
-void set_gx_mode()
+void set_gx_mode(u32 mode)
 {
-	const char *opt = gf_cfg_get_key(user.config, "GAPI", "ForceGX"); 
-	gf_cfg_set_key(user.config, "GAPI", "ForceGX", (opt && !strcmp(opt, "yes")) ? "no" : "yes");
+	char *opt;
+	switch (mode) {
+	case 0:
+		opt = "raw";
+		break;
+	case 1:
+		opt = "gx";
+		break;
+	case 2:
+		opt = "gdi";
+		break;
+	}
+	gf_cfg_set_key(user.config, "GAPI", "FBAccess", opt);
 
-	gf_term_del(term);
-	term = gf_term_new(&user);
-	gf_term_connect(term, the_url);
+//	gf_term_del(term);
+//	term = gf_term_new(&user);
+//	gf_term_disconnect(term);
+//	gf_term_connect(term, the_url);
+	do_layout(1);
 }
 
 void do_copy_paste()
@@ -886,7 +929,7 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		use_low_fps = !use_low_fps;
 		gf_term_set_simulation_frame_rate(term, use_low_fps ? 15.0 : 30.0);
 		break;
-	case IDM_VIEW_DIRECT:
+	case ID_VIDEO_DIRECTDRAW:
 	{
 		Bool drend = gf_term_get_option(term, GF_OPT_DIRECT_DRAW) ? 0 : 1;
 		gf_term_set_option(term, GF_OPT_DIRECT_DRAW, drend);
@@ -894,11 +937,6 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	}
 		break;
 
-
-	case IDM_MENU_SWITCH:
-		menu_switched = !menu_switched;
-		do_layout(0);
-		break;
 	case ID_FILE_CUT_PASTE:
 		do_copy_paste();
 		break;
@@ -922,8 +960,14 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 	case IDM_VIEW_SVG_LOAD:
 		set_svg_progressive();
 		break;
-	case IDM_VIEW_FORCE_GX:
-		set_gx_mode();
+	case ID_VIDEO_DIRECTFB:
+		set_gx_mode(0);
+		break;
+	case ID_VIDEO_GAPI:
+		set_gx_mode(1);
+		break;
+	case ID_VIDEO_GDI:
+		set_gx_mode(2);
 		break;
 
 	case IDM_ITEM_QUIT:
@@ -935,31 +979,32 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 
 static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 {
-	if (menu_switched) {
-		const char *opt;
-		CheckMenuItem((HMENU)wParam, IDM_VIEW_STATUS, MF_BYCOMMAND| (show_status ? MF_CHECKED : MF_UNCHECKED) );
-		CheckMenuItem((HMENU)wParam, IDM_VIEW_FORCEGL, MF_BYCOMMAND| (force_2d_gl ? MF_CHECKED : MF_UNCHECKED) );
-		EnableMenuItem((HMENU)wParam, IDM_VIEW_CPU, MF_BYCOMMAND| (show_status ? MF_ENABLED : MF_GRAYED) );
-		if (show_status) CheckMenuItem((HMENU)wParam, IDM_VIEW_CPU, MF_BYCOMMAND| (view_cpu ? MF_CHECKED : MF_UNCHECKED) );
-		CheckMenuItem((HMENU)wParam, IDM_VIEW_LOW_RATE, MF_BYCOMMAND| (use_low_fps ? MF_CHECKED : MF_UNCHECKED) );
+	char *opt;
+	u32 type;
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_STATUS, MF_BYCOMMAND| (show_status ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_FORCEGL, MF_BYCOMMAND| (force_2d_gl ? MF_CHECKED : MF_UNCHECKED) );
+	EnableMenuItem((HMENU)wParam, IDM_VIEW_CPU, MF_BYCOMMAND| (show_status ? MF_ENABLED : MF_GRAYED) );
+	if (show_status) CheckMenuItem((HMENU)wParam, IDM_VIEW_CPU, MF_BYCOMMAND| (view_cpu ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_LOW_RATE, MF_BYCOMMAND| (use_low_fps ? MF_CHECKED : MF_UNCHECKED) );
 
-		EnableMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!force_2d_gl ? MF_ENABLED : MF_GRAYED) );
-		CheckMenuItem((HMENU)wParam, IDM_VIEW_DIRECT, MF_BYCOMMAND| (!force_2d_gl && gf_term_get_option(term, GF_OPT_DIRECT_DRAW) ? MF_CHECKED : MF_UNCHECKED) );
+	EnableMenuItem((HMENU)wParam, ID_VIDEO_DIRECTDRAW, MF_BYCOMMAND| (!force_2d_gl ? MF_ENABLED : MF_GRAYED) );
+	CheckMenuItem((HMENU)wParam, ID_VIDEO_DIRECTDRAW, MF_BYCOMMAND| (!force_2d_gl && gf_term_get_option(term, GF_OPT_DIRECT_DRAW) ? MF_CHECKED : MF_UNCHECKED) );
 
-		CheckMenuItem((HMENU)wParam, IDM_VIEW_SVG_LOAD, MF_BYCOMMAND| (use_svg_prog ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_SVG_LOAD, MF_BYCOMMAND| (use_svg_prog ? MF_CHECKED : MF_UNCHECKED) );
 
-		opt = gf_cfg_get_key(user.config, "GAPI", "ForceGX"); 
-		CheckMenuItem((HMENU)wParam, IDM_VIEW_FORCE_GX, MF_BYCOMMAND| ( (opt && !strcmp(opt,"yes")) ? MF_CHECKED : MF_UNCHECKED) );
+	opt = (char *)gf_cfg_get_key(user.config, "GAPI", "FBAccess"); 
+	if (!opt) opt = "raw";
+	CheckMenuItem((HMENU)wParam, ID_VIDEO_DIRECTFB, MF_BYCOMMAND| ( (!strcmp(opt,"raw")) ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, ID_VIDEO_GAPI, MF_BYCOMMAND| ( (!strcmp(opt,"gx")) ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, ID_VIDEO_GDI, MF_BYCOMMAND| ( (!strcmp(opt,"gdi")) ? MF_CHECKED : MF_UNCHECKED) );
 
-		return TRUE;
-	}
 
-	u32 opt = gf_term_get_option(term, GF_OPT_ASPECT_RATIO);	
+	type = gf_term_get_option(term, GF_OPT_ASPECT_RATIO);	
 	CheckMenuItem((HMENU)wParam, IDS_CAP_DISABLE_PLAYLIST, MF_BYCOMMAND| (!playlist_navigation_on ? MF_CHECKED : MF_UNCHECKED) );
-	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_NONE, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_KEEP) ? MF_CHECKED : MF_UNCHECKED);
-	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_FILL, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_FILL_SCREEN) ? MF_CHECKED : MF_UNCHECKED);
-	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_4_3, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_4_3) ? MF_CHECKED : MF_UNCHECKED);
-	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_16_9, MF_BYCOMMAND| (opt==GF_ASPECT_RATIO_16_9) ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_NONE, MF_BYCOMMAND| (type==GF_ASPECT_RATIO_KEEP) ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_FILL, MF_BYCOMMAND| (type==GF_ASPECT_RATIO_FILL_SCREEN) ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_4_3, MF_BYCOMMAND| (type==GF_ASPECT_RATIO_4_3) ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem((HMENU)wParam, IDM_VIEW_AR_16_9, MF_BYCOMMAND| (type==GF_ASPECT_RATIO_16_9) ? MF_CHECKED : MF_UNCHECKED);
 
 	EnableMenuItem((HMENU)wParam, IDM_FILE_PAUSE, MF_BYCOMMAND| (is_connected ? MF_ENABLED : MF_GRAYED) );
 
@@ -975,7 +1020,6 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 	
 	CheckMenuItem((HMENU)wParam, IDM_FILE_LOG_RTI, MF_BYCOMMAND| (log_rti) ? MF_CHECKED : MF_UNCHECKED);
 	
-	u32 type;
 	if (!is_connected) type = 0;
 	else type = gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE);
 	navigation_on = type ? 1 : 0;
@@ -1029,15 +1073,11 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		mbi.nBmpId = 0;
 		mbi.cBmpImages = 0;	
 		
-		mbi.nToolBarId = IDM_MAIN_MENU1;
+		mbi.nToolBarId = IDM_MAIN_MENU;
 		SHCreateMenuBar(&mbi);
-		g_hwnd_menu1 = mbi.hwndMB;
-
-		mbi.nToolBarId = IDM_MAIN_MENU2;
-		SHCreateMenuBar(&mbi);
-		g_hwnd_menu2 = mbi.hwndMB;
+		g_hwnd_menu = mbi.hwndMB;
 #else
-		g_hwnd_menu1 = g_hwnd_menu2 = NULL;
+		g_hwnd_menu = NULL;
 #endif
 
 		g_hwnd_status = CreateWindow(TEXT("STATIC"), TEXT("Status"), WS_CHILD|WS_VISIBLE|SS_LEFT, 0, 0, disp_w, caption_h, hwnd, NULL, g_hinst, NULL);
@@ -1267,8 +1307,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	g_hinst = hInstance;
 	
-	menu_h = GetSystemMetrics(SM_CYMENU)+2;
-	caption_h = GetSystemMetrics(SM_CYCAPTION);
 	screen_w = GetSystemMetrics(SM_CXSCREEN);
 	screen_h = GetSystemMetrics(SM_CYSCREEN);
 
@@ -1277,13 +1315,10 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	HDC DC = GetDC(NULL);
 	ExtEscape(DC, GETRAWFRAMEBUFFER, 0, NULL, sizeof(RawFrameBufferInfo), (char*)&Info);
 	ReleaseDC(NULL,DC);
-	if (Info.pFramePointer && (Info.cyPixels!=SM_CYSCREEN)) {
-		ratio_h = Info.cyPixels / screen_h;
-		screen_w = Info.cxPixels;
-		screen_h = Info.cyPixels;
-
-		menu_h *= ratio_h;
-		caption_h *= ratio_h;
+	if (Info.pFramePointer) {
+		recompute_res(Info.cxPixels, Info.cyPixels);
+	} else {
+		recompute_res(screen_w, screen_h);
 	}
 
 
