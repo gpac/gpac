@@ -529,7 +529,12 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 				in->in_bytes_used = src_size;
 				for (j=0; j<in_ch; j++) in->last_channels[j] = inChanNext[j];
 			} else {
-				for (j=0; j<in_ch; j++) in->last_channels[j] = in_s16 ? in_s16[in_ch*prev + j] : in_s8[in_ch*prev + j];
+				u32 idx;
+				idx = (prev>=src_samp) ? in_ch*(src_samp-1) : in_ch*prev;
+				for (j=0; j<in_ch; j++) {
+					assert(idx + j < src_size/2);
+					in->last_channels[j] = in_s16 ? in_s16[idx + j] : in_s8[idx + j];
+				}
 			}
 		}
 	}
