@@ -138,7 +138,8 @@ void RP_ProcessCommands(RTSPSession *sess)
 		return;
 	}
 	/*process*/
-	com->User_Agent = RTSP_CLIENTNAME;
+	com->User_Agent = (char*)gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(sess->owner->service), "Downloader", "UserAgent");
+	if (!com->User_Agent) com->User_Agent = "GPAC " GPAC_VERSION " RTSP Client";
 	com->Accept_Language = RTSP_LANGUAGE;
 	/*if no session assigned and a session ID is valid, use it*/
 	if (sess->session_id && !com->Session)

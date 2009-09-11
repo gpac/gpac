@@ -39,7 +39,6 @@
 #define RTP_BUFFER_SIZE			0x100000ul
 #define RTSP_BUFFER_SIZE		5000
 #define RTSP_TCP_BUFFER_SIZE    0x100000ul
-#define RTSP_CLIENTNAME		"GPAC " GPAC_VERSION " RTSP Client"
 #define RTSP_LANGUAGE		"English"
 
 
