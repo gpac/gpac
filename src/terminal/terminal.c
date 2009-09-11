@@ -703,31 +703,8 @@ Double gf_term_get_simulation_frame_rate(GF_Terminal *term)
 }
 
 
-/*returns 0 if any of the clock still hasn't seen EOS*/
-u32 Term_CheckClocks(GF_ClientService *ns, GF_Scene *scene)
-{
-	GF_Clock *ck;
-	u32 i;
-	if (scene) {
-		GF_ObjectManager *odm;
-		if (scene->root_od->net_service != ns) {
-			if (!Term_CheckClocks(scene->root_od->net_service, scene)) return 0;
-		}
-		i=0;
-		while ( (odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i)) ) {
-			if (odm->net_service != ns) {
-				if (!Term_CheckClocks(odm->net_service, NULL)) return 0;
-			}
-		}
-	}
-	i=0;
-	while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &i) ) ) {
-		if (!ck->has_seen_eos) return 0;
-	}
-	return 1;
-}
 
-u32 Term_CheckIsOver(GF_Terminal *term)
+u32 gf_term_check_end_of_scene(GF_Terminal *term)
 {
 	if (!term->root_scene) return 1;
 	/*if input sensors consider the scene runs forever*/
@@ -735,8 +712,9 @@ u32 Term_CheckIsOver(GF_Terminal *term)
 	if (gf_list_count(term->x3d_sensors)) return 0;
 
 	/*check no clocks are still running*/
-	if (!Term_CheckClocks(term->root_scene->root_od->net_service, term->root_scene)) return 0;
+	if (!gf_scene_check_clocks(term->root_scene->root_od->net_service, term->root_scene)) return 0;
 	if (term->root_scene->is_dynamic_scene) return 1;
+
 	/*ask compositor if there are sensors*/
 	return gf_sc_get_option(term->compositor, GF_OPT_IS_FINISHED);
 }
@@ -748,7 +726,7 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 	if (!term) return 0;
 	switch (type) {
 	case GF_OPT_HAS_JAVASCRIPT: return gf_sg_has_scripting();
-	case GF_OPT_IS_FINISHED: return Term_CheckIsOver(term);
+	case GF_OPT_IS_FINISHED: return gf_term_check_end_of_scene(term);
 	case GF_OPT_PLAY_STATE: 
 		if (term->compositor->step_mode) return GF_STATE_STEP_PAUSE;
 		if (term->root_scene) {
@@ -1487,6 +1465,8 @@ enum
 	GF_ACTION_FAST_REWIND,
 	GF_ACTION_FINE_REWIND,
 	GF_ACTION_SLOW_REWIND,
+	GF_ACTION_NEXT,
+	GF_ACTION_PREVIOUS,
 };
 
 static void set_clocks_speed(GF_Terminal *term, Fixed ratio)
@@ -1536,6 +1516,17 @@ void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 			case GF_ACTION_STOP:
 				gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
 				break;
+			case GF_ACTION_NEXT:
+				evt.type = GF_EVENT_KEYDOWN;
+				evt.key.key_code = GF_KEY_MEDIANEXTTRACK;
+				gf_term_send_event(term, &evt);
+				break;
+			case GF_ACTION_PREVIOUS:
+				evt.type = GF_EVENT_KEYDOWN;
+				evt.key.key_code = GF_KEY_MEDIAPREVIOUSTRACK;
+				gf_term_send_event(term, &evt);
+				break;
+
 			case GF_ACTION_STEP:
 				gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 				break;
@@ -1675,6 +1666,8 @@ void gf_term_load_shortcuts(GF_Terminal *term)
 		else if (!stricmp(name, "FastRewind")) term->shortcuts[k].action = GF_ACTION_FAST_REWIND;
 		else if (!stricmp(name, "FineRewind")) term->shortcuts[k].action = GF_ACTION_FINE_REWIND;
 		else if (!stricmp(name, "SlowRewind")) term->shortcuts[k].action = GF_ACTION_SLOW_REWIND;
+		else if (!stricmp(name, "Next")) term->shortcuts[k].action = GF_ACTION_NEXT;
+		else if (!stricmp(name, "Previous")) term->shortcuts[k].action = GF_ACTION_PREVIOUS;
 		else {
 			term->shortcuts[k].mods = 0;
 			term->shortcuts[k].code = 0;

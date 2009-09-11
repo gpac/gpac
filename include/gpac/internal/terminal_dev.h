@@ -219,6 +219,7 @@ Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt);
 void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
 void gf_scene_sample_time(GF_Scene *scene);
 
+Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene);
 
 void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n);
 
@@ -873,6 +874,7 @@ GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName);
 /*locks ODM with destruction check - returns 0 if object manager is not attached to object*/
 Bool gf_odm_lock_mo(struct _mediaobj *mo);
 
+void gf_odm_signal_eos(GF_ObjectManager *odm);
 
 /*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a 
 MediaObject and an ObjectManager, we have to keep them seperated in order to handle OD remove commands which destroy
