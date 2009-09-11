@@ -1105,16 +1105,16 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, u32 pause_at_first_
 	if (!term || !term->root_scene || !term->root_scene->root_od) return 0;
 	if (term->root_scene->root_od->flags & GF_ODM_NO_TIME_CTRL) return 1;
 
+	if (pause_at_first_frame==2) {
+		if (gf_term_get_option(term, GF_OPT_PLAY_STATE) != GF_STATE_PLAYING)
+			pause_at_first_frame = 1;
+		else
+			pause_at_first_frame = 0;
+	}
+
 	/*for dynamic scene OD ressources are static and all object use the same clock, so don't restart the root 
 	OD, just act as a mediaControl on all playing streams*/
 	if (term->root_scene->is_dynamic_scene) {
-
-		if (pause_at_first_frame==2) {
-			if (gf_term_get_option(term, GF_OPT_PLAY_STATE) != GF_STATE_PLAYING)
-				pause_at_first_frame = 1;
-			else
-				pause_at_first_frame = 0;
-		}
 
 		/*exit pause mode*/
 		gf_term_set_play_state(term, GF_STATE_PLAYING, 1, 1);
@@ -1138,7 +1138,9 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, u32 pause_at_first_
 	term->root_scene->root_od->media_start_time = from_time;
 
 	gf_odm_start(term->root_scene->root_od);
-	gf_term_set_play_state(term, pause_at_first_frame ? GF_STATE_STEP_PAUSE : GF_STATE_PLAYING, 0, 1);
+	gf_term_set_play_state(term, GF_STATE_PLAYING, 0, 1);
+	if (pause_at_first_frame) 
+		gf_sc_set_option(term->compositor, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 	return 2;
 }
 
@@ -1514,7 +1516,7 @@ void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 				}
 				break;
 			case GF_ACTION_STOP:
-				gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+				gf_term_play_from_time(term, 0, 1);
 				break;
 			case GF_ACTION_NEXT:
 				evt.type = GF_EVENT_KEYDOWN;
