@@ -84,6 +84,8 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 
 	opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode");
 
+#ifndef _WIN32_WCE
+
 	wglCreatePbufferARB = (CREATEPBUFFERARB) wglGetProcAddress("wglCreatePbufferARB");
 	if (opt && strcmp(opt, "PBuffer")) wglCreatePbufferARB = NULL;
 
@@ -97,7 +99,9 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 		driv->hw_caps |= GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
 
 		if (!opt) gf_modules_set_option((GF_BaseInterface *)driv, "Video", "GLOffscreenMode", "PBuffer");
-	} else {
+	} else 
+#endif
+	{
 		u32 gl_type = 1;
 		HINSTANCE hInst;
 

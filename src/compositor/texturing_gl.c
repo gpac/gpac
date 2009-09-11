@@ -455,16 +455,18 @@ Bool tx_convert(GF_TextureHandler *txh)
 	dst.height = src.height = txh->height;
 	dst.is_hardware_memory = src.is_hardware_memory = 0;
 
-	src.pitch = txh->stride;
+	src.pitch_x = 0;
+	src.pitch_y = txh->stride;
 	src.pixel_format = txh->pixelformat;
 	src.video_buffer = txh->data;
 
-	dst.pitch = out_stride;
+	dst.pitch_x = 0;
+	dst.pitch_y = out_stride;
 	txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB_24;
 	dst.video_buffer = txh->tx_io->conv_data;
 
 	/*stretch and flip*/
-	gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 1, NULL, NULL);
+	gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 1, NULL, NULL);
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 	txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 	return 1;
@@ -567,17 +569,19 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			GF_VideoSurface src, dst;
 			src.width = txh->width;
 			src.height = txh->height;
-			src.pitch = txh->stride;
+			src.pitch_x = 0;
+			src.pitch_y = txh->stride;
 			src.pixel_format = txh->pixelformat;
 			src.video_buffer = txh->data;
 
 			dst.width = txh->tx_io->rescale_width;
 			dst.height = txh->tx_io->rescale_height;
-			dst.pitch = txh->tx_io->rescale_width*txh->tx_io->nb_comp;
+			dst.pitch_x = 0;
+			dst.pitch_y = txh->tx_io->rescale_width*txh->tx_io->nb_comp;
 			dst.pixel_format = txh->pixelformat;
 			dst.video_buffer = txh->tx_io->scale_data;
 
-			gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 0, NULL, NULL);
+			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
 		}
 
 		if (first_load) {

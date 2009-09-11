@@ -47,6 +47,9 @@ typedef struct
 	DWORD orig_wnd_proc;
 	GF_Mutex *mx;
 
+	unsigned char *raw_ptr;
+	Bool contiguous_mem;
+
 	GXKeyList keys;
 
 	u32 screen_w, screen_h;

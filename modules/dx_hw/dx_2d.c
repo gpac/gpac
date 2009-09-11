@@ -358,7 +358,8 @@ static GF_Err DD_LockSurface(DDContext *dd, GF_VideoSurface *vi, void *surface)
 	vi->video_buffer = desc.lpSurface;
 	vi->width = desc.dwWidth;
 	vi->height = desc.dwHeight;
-	vi->pitch = desc.lPitch;
+	vi->pitch_x = 0;
+	vi->pitch_y = desc.lPitch;
 	vi->is_hardware_memory = dd->systems_memory ? 0 : 1;
 	return GF_OK;
 }

@@ -1312,4 +1312,27 @@ GF_Node *gf_scene_get_subscene_root(GF_Node *node)
 	return gf_sg_get_root_node(scene->graph);
 }
 
+/*returns 0 if any of the clock still hasn't seen EOS*/
+Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene)
+{
+	GF_Clock *ck;
+	u32 i;
+	if (scene) {
+		GF_ObjectManager *odm;
+		if (scene->root_od->net_service != ns) {
+			if (!gf_scene_check_clocks(scene->root_od->net_service, scene)) return 0;
+		}
+		i=0;
+		while ( (odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i)) ) {
+			if (odm->net_service != ns) {
+				if (!gf_scene_check_clocks(odm->net_service, NULL)) return 0;
+			}
+		}
+	}
+	i=0;
+	while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &i) ) ) {
+		if (!ck->has_seen_eos) return 0;
+	}
+	return 1;
+}
 

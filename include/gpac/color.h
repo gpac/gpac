@@ -54,9 +54,12 @@ typedef struct
 	u32 width;
 	/*!Height of the video framebuffer */
 	u32 height;
+	/*!Horizontal pitch of the video framebuffer (number of bytes to skip to go to next (right) pixel in the buffer). May be 
+	negative for some framebuffers (embedded devices). 0 means linear frame buffer (pitch_x==bytes per pixel)*/
+	s32 pitch_x;
 	/*!Vertical pitch of the video framebuffer (number of bytes to skip to go down one line in the buffer). May be 
 	negative for some framebuffers (embedded devices)*/
-	s32 pitch;
+	s32 pitch_y;
 	/*!Pixel format of the video framebuffer*/
 	u32 pixel_format;
 	/*!pointer to the begining of the video memory (top-left corner)*/
@@ -223,7 +226,7 @@ typedef struct
 /*!\brief not done yet
  *
  */
-GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, s32 dst_x_pitch, u8 alpha, Bool flip, GF_ColorKey *colorKey, GF_ColorMatrix * cmat);
+GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, u8 alpha, Bool flip, GF_ColorKey *colorKey, GF_ColorMatrix * cmat);
 
 
 

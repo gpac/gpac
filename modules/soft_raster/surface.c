@@ -94,7 +94,7 @@ GF_Err evg_surface_attach_to_callbacks(GF_SURFACE _this, GF_RasterCallback *call
 }
 
 
-GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
+GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat)
 {
 	u32 BPP;
 	EVGSurface *surf = (EVGSurface *)_this;
@@ -123,7 +123,9 @@ GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u
 	default:
 		return GF_NOT_SUPPORTED;
 	}
-	surf->stride = stride;
+	if (!pitch_x) pitch_x = BPP;
+	surf->pitch_x = pitch_x;
+	surf->pitch_y = pitch_y;
 	if (!surf->stencil_pix_run || (surf->width != width)) {
 		if (surf->stencil_pix_run) free(surf->stencil_pix_run);
 		surf->stencil_pix_run = (u32 *) malloc(sizeof(u32) * (width+2));
@@ -175,7 +177,8 @@ GF_Err evg_surface_attach_to_texture(GF_SURFACE _this, GF_STENCIL sten)
 	default:
 		return GF_NOT_SUPPORTED;
 	}
-	surf->stride = tx->stride;
+	surf->pitch_x = BPP;
+	surf->pitch_y = tx->stride;
 	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
 	surf->stencil_pix_run = (u32 *) malloc(sizeof(u32) * (tx->width+2));
 

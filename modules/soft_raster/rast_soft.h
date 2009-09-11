@@ -119,7 +119,8 @@ struct _evg_surface
 	/*surface info*/
 	char *pixels;
 	u32 pixelFormat, BPP;
-	u32 width, height, stride;
+	u32 width, height;
+	s32 pitch_x, pitch_y;
 	Bool center_coords;
 
 	/*color buffer for variable stencils - size of width*/
@@ -289,7 +290,7 @@ GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_Pixel
 GF_SURFACE evg_surface_new(GF_Raster2D *, Bool center_coords);
 void evg_surface_delete(GF_SURFACE _this);
 void evg_surface_detach(GF_SURFACE _this);
-GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat);
+GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat);
 GF_Err evg_surface_attach_to_texture(GF_SURFACE _this, GF_STENCIL sten);
 GF_Err evg_surface_attach_to_callbacks(GF_SURFACE _this, GF_RasterCallback *callbacks, u32 width, u32 height);
 
