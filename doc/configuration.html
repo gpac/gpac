@@ -10,7 +10,7 @@
 <br/>
 <b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.5</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified $Date: 2009-09-11 08:51:54 $</span></b>
+<b><span style="Font-Size: 18pt">Last Modified $Date: 2009-09-11 09:11:58 $</span></b>
 </p>
 
 <br/><br/>
@@ -654,7 +654,10 @@ Specifies whether the text shall be drawn using an intermediate texture or not.<
 
 <a name="SHORTCUTS"></a>
 <span style="text-decoration: underline;"><b>Section "Shortcuts"</b></span> <i><a href="#Overview">Back to top</a></i>
-<p>The "Shortcuts" section of the config file holds all shortcuts in GPAC. You can define a shorcut as "KeyName", "ctrl+keyname=action", "alt+keyname=action", "ctrl+alt+keyname=action". Shift is not supported as a key modifier, and case is insensitive. Currently defined actions are as follows:</p>
+<p>The "Shortcuts" section of the config file holds all shortcuts in GPAC. You can define a shorcut for an action as:<br> 
+'action'='keyname' or 'action'='ctrl+keyname' or 'action'='alt+keyname' or "='action'='ctrl+alt+keyname'<br> 
+Shift is not supported as a key modifier, and case is insensitive. 
+Currently defined actions are as follows:</p>
 <b>Play</b> or <b>Pause</b> <br/>
 <b>Stop</b> <br/>
 <b>Step</b> <br/>
