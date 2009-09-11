@@ -521,6 +521,10 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			case GF_KEY_PAGEDOWN:
 				if (Volume!=100) { Volume = MIN(Volume + 5, 100); gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, Volume); } 
 				break;
+			case GF_KEY_MEDIANEXTTRACK:
+				break;
+			case GF_KEY_MEDIAPREVIOUSTRACK:
+				break;
 			}
 		} else {
 			switch (evt->key.key_code) {
@@ -580,6 +584,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			gf_term_set_size(term, init_w, init_h);
 		}
 		ResetCaption();
+		break;
+	case GF_EVENT_EOS:
+		gf_term_play_from_time(term, 0, 0);
 		break;
 	case GF_EVENT_SIZE:
 		if (user.init_flags & GF_TERM_WINDOWLESS) {

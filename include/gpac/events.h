@@ -178,6 +178,7 @@ enum {
 	/*terminal events*/
 	GF_EVENT_CONNECT,	/*signal URL is connected*/
 	GF_EVENT_DURATION,	/*signal duration of presentation*/
+	GF_EVENT_EOS,	/*signal End of scene playback*/
 	GF_EVENT_AUTHORIZATION,	/*indicates a user and pass is queried*/
 	GF_EVENT_NAVIGATE, /*indicates the user app should load or jump to the given URL.*/
 	GF_EVENT_NAVIGATE_INFO, /*indicates the link or its description under the mouse pointer*/

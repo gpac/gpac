@@ -87,6 +87,7 @@ static u32 screen_w = 0;
 static u32 screen_h = 0;
 static u32 menu_h = 0;
 static u32 caption_h = 0;
+static u32 ratio_h = 1;
 static Bool backlight_off = 0;
 static u32 prev_batt_bl, prev_ac_bl;
 static Bool show_status = 1;
@@ -96,7 +97,7 @@ static Bool loop = 0;
 static Bool full_screen = 0;
 static Bool force_2d_gl = 0;
 static Bool ctrl_mod_down = 0;
-static Bool view_cpu = 0;
+static Bool view_cpu = 1;
 static Bool menu_switched = 0;
 static Bool use_low_fps = 0;
 static Bool use_svg_prog = 0;
@@ -128,7 +129,7 @@ void update_state_info()
 	u32 time, m, s;
 	if (!show_status) return;
 	if (last_state_time) {
-		if (GetTickCount() > last_state_time + 1000) {
+		if (GetTickCount() > last_state_time + 200) {
 			last_state_time = 0;
 			reset_status = 1;
 		}
@@ -364,6 +365,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			Duration = 0;
 		}
 		break;
+	case GF_EVENT_EOS:
+		gf_term_play_from_time(term, 0, 0);
+		break;
 	case GF_EVENT_QUIT:
 		PostMessage(g_hwnd, WM_DESTROY, 0, 0);
 		break;
@@ -492,7 +496,7 @@ void do_layout(Bool notif_size)
 		if (show_status) {
 			::MoveWindow(g_hwnd, 0, 0, disp_w, disp_h, 1);
 			::ShowWindow(g_hwnd_status, SW_SHOW);
-			::MoveWindow(g_hwnd_status, 0, 0, disp_w, caption_h, 1);
+			::MoveWindow(g_hwnd_status, 0, 0, disp_w, caption_h/ratio_h, 1);
 			::MoveWindow(g_hwnd_disp, 0, caption_h, disp_w, disp_h - caption_h, 1);
 			w = disp_w;
 			h = disp_h - caption_h;
@@ -1036,7 +1040,7 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		g_hwnd_menu1 = g_hwnd_menu2 = NULL;
 #endif
 
-		g_hwnd_status = CreateWindow(TEXT("STATIC"), TEXT("Status"), WS_CHILD|WS_VISIBLE|SS_LEFT, 0, 0, disp_w, caption_h-1, hwnd, NULL, g_hinst, NULL);
+		g_hwnd_status = CreateWindow(TEXT("STATIC"), TEXT("Status"), WS_CHILD|WS_VISIBLE|SS_LEFT, 0, 0, disp_w, caption_h, hwnd, NULL, g_hinst, NULL);
 
 		do_layout(1);
 	}
@@ -1263,12 +1267,27 @@ int WINAPI WinMain(HINSTANCE hInstance,
 
 	g_hinst = hInstance;
 	
-	menu_h = GetSystemMetrics(SM_CYMENU) - 6;
-	caption_h = GetSystemMetrics(SM_CYCAPTION) - 3;
+	menu_h = GetSystemMetrics(SM_CYMENU)+2;
+	caption_h = GetSystemMetrics(SM_CYCAPTION);
 	screen_w = GetSystemMetrics(SM_CXSCREEN);
 	screen_h = GetSystemMetrics(SM_CYSCREEN);
 
-	
+	/*are we in low res or high res*/
+	RawFrameBufferInfo Info;
+	HDC DC = GetDC(NULL);
+	ExtEscape(DC, GETRAWFRAMEBUFFER, 0, NULL, sizeof(RawFrameBufferInfo), (char*)&Info);
+	ReleaseDC(NULL,DC);
+	if (Info.pFramePointer && (Info.cyPixels!=SM_CYSCREEN)) {
+		ratio_h = Info.cyPixels / screen_h;
+		screen_w = Info.cxPixels;
+		screen_h = Info.cyPixels;
+
+		menu_h *= ratio_h;
+		caption_h *= ratio_h;
+	}
+
+
+
 #ifdef _WIN32_WCE
 	TCHAR      szBuf[MAX_PATH];
 	SystemParametersInfo(SPI_GETPLATFORMTYPE, MAX_PATH, szBuf, 0);
@@ -1331,7 +1350,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	}
 
 	str = gf_cfg_get_key(user.config, "General", "Loop");
-	loop = (str && !stricmp(str, "yes")) ? 1 : 0;
+	loop = (!str || !stricmp(str, "yes")) ? 1 : 0;
 
 	str = gf_cfg_get_key(user.config, "SAXLoader", "Progressive");
 	use_svg_prog = (str && !strcmp(str, "yes")) ? 1 : 0;

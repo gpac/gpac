@@ -697,7 +697,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	}
 	/*if the GF_Clock is the stream, check if we have embedded OCR in the stream...*/
 	if (clockID == esd->ESID) {
-		flag = (esd->slConfig && esd->slConfig->OCRLength > 0);
+		flag = (esd->slConfig && (esd->slConfig->OCRLength || esd->slConfig->OCRResolution));
 	}
 
 	if (!esd->slConfig) {
@@ -1676,6 +1676,16 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 			if (last_seg && (seg->startTime + seg->Duration > last_seg->startTime + last_seg->Duration) ) continue;
 			gf_odm_insert_segment(odm, seg, list);
 		}
+	}
+}
+
+void gf_odm_signal_eos(GF_ObjectManager *odm)
+{
+	if (odm->parentscene != odm->term->root_scene) return;
+	if (gf_term_check_end_of_scene(odm->term)) {
+		GF_Event evt;
+		evt.type = GF_EVENT_EOS;
+		gf_term_send_event(odm->term, &evt);
 	}
 }
 
