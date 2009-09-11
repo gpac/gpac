@@ -1111,14 +1111,16 @@ GF_Err X11_LockBackBuffer(struct _video_out * vout, GF_VideoSurface * vi, u32 do
 		if (xWindow->surface) {
 			vi->width = xWindow->surface->width;
 			vi->height = xWindow->surface->height;
-			vi->pitch = xWindow->surface->width*xWindow->bpp;
+			vi->pitch_x = xWindow->bpp;
+			vi->pitch_y = xWindow->surface->width*xWindow->bpp;
 			vi->pixel_format = xWindow->pixel_format;
 			vi->video_buffer = xWindow->surface->data;
 		} else {
 #ifdef GPAC_HAS_X11_SHM
 			vi->width = xWindow->pwidth;
 			vi->height = xWindow->pheight;
-			vi->pitch = xWindow->pwidth*xWindow->bpp;
+			vi->pitch_x = xWindow->bpp;
+			vi->pitch_y = xWindow->pwidth*xWindow->bpp;
 			vi->pixel_format = xWindow->pixel_format;
 			vi->video_buffer = (unsigned char *) xWindow->shmseginfo->shmaddr;
 #endif
