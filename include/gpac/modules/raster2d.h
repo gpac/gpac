@@ -209,10 +209,11 @@ typedef struct _raster2d_interface
 	/* attach surface object to memory buffer if supported
 		@pixels: texture data
 		@width, @height: texture size
-		@stride: texture horizontal pitch (bytes to skip to get to next row)
+		@pitch_x: texture horizontal pitch (bytes to skip to get to next pixel). O means linear frame buffer (eg pitch_x==bytes per pixel)
+		@pitch_y: texture vertical pitch (bytes to skip to get to next line)
 		@pixelFormat: texture pixel format
 	*/
-	GF_Err (*surface_attach_to_buffer) (GF_SURFACE _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat);
+	GF_Err (*surface_attach_to_buffer) (GF_SURFACE _this, char *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat);
 
 	GF_Err (*surface_attach_to_callbacks) (GF_SURFACE _this, GF_RasterCallback *callbacks, u32 width, u32 height);
 

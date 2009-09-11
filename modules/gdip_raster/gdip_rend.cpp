@@ -193,37 +193,43 @@ GF_Err gdip_attach_surface_to_texture(GF_SURFACE _this, GF_STENCIL sten)
 	return GF_OK;
 }
 static
-GF_Err gdip_attach_surface_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat)
+GF_Err gdip_attach_surface_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u32 height, s32 pitch_x, s32 pitch_y, GF_PixelFormat pixelFormat)
 {
 	GpMatrix *mat;
 	u32 pFormat;
 	GPGRAPH();
 
-	if (stride%4) return GF_NOT_SUPPORTED;
+	if (pitch_y%4) return GF_NOT_SUPPORTED;
 
 	switch (pixelFormat) {
 	case GF_PIXEL_ALPHAGREY:
 		pFormat = PixelFormat16bppGrayScale;
+		if (pitch_x != 2) return GF_NOT_SUPPORTED;
 		break;
 	case GF_PIXEL_RGB_555:
 		pFormat = PixelFormat16bppRGB555;
+		if (pitch_x != 2) return GF_NOT_SUPPORTED;
 		break;
 	case GF_PIXEL_RGB_565:
 		pFormat = PixelFormat16bppRGB565;
+		if (pitch_x != 2) return GF_NOT_SUPPORTED;
 		break;
 	case GF_PIXEL_RGB_24:
 		pFormat = PixelFormat24bppRGB;
+		if (pitch_x != 3) return GF_NOT_SUPPORTED;
 		break;
 	case GF_PIXEL_RGB_32:
 		pFormat = PixelFormat32bppRGB;
+		if (pitch_x != 4) return GF_NOT_SUPPORTED;
 		break;
 	case GF_PIXEL_ARGB:
 		pFormat = PixelFormat32bppARGB;
+		if (pitch_x != 4) return GF_NOT_SUPPORTED;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
-	GdipCreateBitmapFromScan0(width, height, stride, pFormat, (unsigned char*)pixels, &_graph->pBitmap);
+	GdipCreateBitmapFromScan0(width, height, pitch_y, pFormat, (unsigned char*)pixels, &_graph->pBitmap);
 	GdipGetImageGraphicsContext(_graph->pBitmap, &_graph->graph);
 	
 	_graph->w = width;

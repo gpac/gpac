@@ -25,8 +25,8 @@
 
 #include "gdip_priv.h"
 
-#define COL_565(c) ( ( ( (c>>16) & 248) << 8) + ( ( (c>>8) & 252) << 3)  + ( (c&0xFF) >> 3) )
-#define COL_555(c) ((( (c>>16) & 248)<<7) + (((c>>8) & 248)<<2)  + ((c&0xFF)>>3))
+#define COL_565(c) GF_COL_ARGB(0xFF, (u8) ( (val >> 7) & 0xf8), (u8) ( (val >> 2) & 0xf8), (u8) ( (val << 3) & 0xf8) )
+#define COL_555(c) GF_COL_ARGB(0xFF,  (u8) ( (val >> 8) & 0xf8), (u8) ( (val >> 3) & 0xfc),  (u8) ( (val << 3) & 0xf8)	)
 
 static
 GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u32 stride, GF_PixelFormat pixelFormat, GF_PixelFormat destination_format_hint, Bool no_copy)
@@ -423,16 +423,18 @@ void gdip_convert_texture(struct _stencil *sten)
 
 	src.height = sten->height;
 	src.width = sten->width;
-	src.pitch = sten->orig_stride;
+	src.pitch_x  =0;
+	src.pitch_y = sten->orig_stride;
 	src.pixel_format = sten->orig_format;
 	src.video_buffer = (char*)sten->orig_buf;
 
 	dst.width = sten->width;
 	dst.height = sten->height;
-	dst.pitch = BPP*sten->width;
+	dst.pitch_x = 0;
+	dst.pitch_y = BPP*sten->width;
 	dst.video_buffer = (char*)sten->conv_buf;
 
-	gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 0, NULL, NULL);
+	gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
 
 	if (sten->pBitmap) GdipDisposeImage(sten->pBitmap);
 	GdipCreateBitmapFromScan0(sten->width, sten->height, BPP*sten->width, format, sten->conv_buf, &sten->pBitmap);

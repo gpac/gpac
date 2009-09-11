@@ -787,7 +787,8 @@ static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_i
 		if (SDL_LockSurface(ctx->back_buffer)<0) return GF_IO_ERR;
 		video_info->width = ctx->back_buffer->w;
 		video_info->height = ctx->back_buffer->h;
-		video_info->pitch = ctx->back_buffer->pitch;
+		video_info->pitch_x = 0;
+		video_info->pitch_y = ctx->back_buffer->pitch;
 		video_info->video_buffer = ctx->back_buffer->pixels;
 		video_info->pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format);
 		video_info->is_hardware_memory = !ctx->systems_memory;
@@ -818,17 +819,19 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 		src.height = ctx->back_buffer->h;
 		src.width = ctx->back_buffer->w;
-		src.pitch = ctx->back_buffer->pitch;
+		src.pitch_x = 0;
+		src.pitch_y = ctx->back_buffer->pitch;
 		src.pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format);
 		src.video_buffer = ctx->back_buffer->pixels;
 
 		dst.height = ctx->screen->h;
 		dst.width = ctx->screen->w;
-		dst.pitch = ctx->screen->pitch;
+		dst.pitch_x = 0;
+		dst.pitch_y = ctx->screen->pitch;
 		dst.pixel_format = SDLVid_MapPixelFormat(ctx->screen->format);
 		dst.video_buffer = ctx->screen->pixels;
 
-		gf_stretch_bits(&dst, &src, dest, NULL, 0, 0xFF, 0, NULL, NULL);
+		gf_stretch_bits(&dst, &src, dest, NULL, 0xFF, 0, NULL, NULL);
 
 		SDL_UnlockSurface(ctx->back_buffer);
 		SDL_UnlockSurface(ctx->screen);

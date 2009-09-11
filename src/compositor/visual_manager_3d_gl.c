@@ -1553,12 +1553,13 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		return GF_NOT_SUPPORTED;
 #else
 
-		fb->pitch = compositor->vp_width; /* multiply by 4 if float depthbuffer */
+		fb->pitch_x = 0;
+		fb->pitch_y = compositor->vp_width; /* multiply by 4 if float depthbuffer */
 
 #ifndef GPAC_USE_TINYGL
-		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch * fb->height);
+		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch_y * fb->height);
 #else
-		fb->video_buffer = (char*)malloc(sizeof(char)* 2 * fb->pitch * fb->height);
+		fb->video_buffer = (char*)malloc(sizeof(char)* 2 * fb->pitch_y * fb->height);
 #endif
 
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
@@ -1597,12 +1598,13 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		return GF_NOT_SUPPORTED;
 #else
 		char *depth_data=NULL;
-		fb->pitch = compositor->vp_width*4; /* 4 bytes for each rgbds pixel */
+		fb->pitch_x = 4;
+		fb->pitch_y = compositor->vp_width*4; /* 4 bytes for each rgbds pixel */
 
 #ifndef GPAC_USE_TINYGL
-		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch * fb->height);
+		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch_y * fb->height);
 #else
-		fb->video_buffer = (char*)malloc(sizeof(char)* 2 * fb->pitch * fb->height);
+		fb->video_buffer = (char*)malloc(sizeof(char)* 2 * fb->pitch_y * fb->height);
 #endif
 
 
@@ -1647,20 +1649,21 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 #endif /*GPAC_USE_OGL_ES*/
 		
 	} else {
-		fb->pitch = 3*compositor->vp_width;
-		fb->video_buffer = (char*)malloc(sizeof(char) * fb->pitch * fb->height);
+		fb->pitch_x = 3;
+		fb->pitch_y = 3*compositor->vp_width;
+		fb->video_buffer = (char*)malloc(sizeof(char) * fb->pitch_y * fb->height);
 		fb->pixel_format = GF_PIXEL_RGB_24;
 
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
 	}
 
 	/*flip image (openGL always handle image data bottom to top) */
-	tmp = (char*)malloc(sizeof(char)*fb->pitch);
+	tmp = (char*)malloc(sizeof(char)*fb->pitch_y);
 	hy = fb->height/2;
 	for (i=0; i<hy; i++) {
-		memcpy(tmp, fb->video_buffer+ i*fb->pitch, fb->pitch);
-		memcpy(fb->video_buffer + i*fb->pitch, fb->video_buffer + (fb->height - 1 - i) * fb->pitch, fb->pitch);
-		memcpy(fb->video_buffer + (fb->height - 1 - i) * fb->pitch, tmp, fb->pitch);
+		memcpy(tmp, fb->video_buffer+ i*fb->pitch_y, fb->pitch_y);
+		memcpy(fb->video_buffer + i*fb->pitch_y, fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, fb->pitch_y);
+		memcpy(fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, tmp, fb->pitch_y);
 	}
 	free(tmp);
 	return GF_OK;

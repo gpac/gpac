@@ -615,18 +615,21 @@ static void load_line_yuva(char *src_bits, u32 x_offset, u32 y_offset, u32 y_pit
 static void gf_cmx_apply_argb(GF_ColorMatrix *_this, u8 *a_, u8 *r_, u8 *g_, u8 *b_);
 
 GF_EXPORT
-GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, s32 dst_x_pitch, u8 alpha, Bool flip, GF_ColorKey *key, GF_ColorMatrix *cmat)
+GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, u8 alpha, Bool flip, GF_ColorKey *key, GF_ColorMatrix *cmat)
 {
 	u8 *tmp, *rows;
 	u8 ka, kr, kg, kb, kl, kh;
 	s32 src_row;
 	u32 i, yuv_type = 0;
+	Bool no_memcpy;
 	Bool yuv_init = 0;
 	Bool has_alpha = (alpha!=0xFF) ? 1 : 0;
 	u32 dst_bpp, dst_w_size;
 	s32 pos_y, inc_y, inc_x, prev_row, x_off;
 	u32 src_w, src_h, dst_w, dst_h;
 	u8 *src_bits = NULL, *dst_bits = NULL, *dst_bits_prev = NULL, *dst_temp_bits = NULL;
+	s32 dst_x_pitch = dst->pitch_x;
+
 	copy_row_proto copy_row = NULL;
 	load_line_proto load_line = NULL;
 
@@ -739,7 +742,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	prev_row = -1;
 
 	dst_bits = (u8 *) dst->video_buffer;
-	if (dst_wnd) dst_bits += ((s32)dst_wnd->x) * dst_x_pitch + ((s32)dst_wnd->y) * dst->pitch;
+	if (dst_wnd) dst_bits += ((s32)dst_wnd->x) * dst_x_pitch + ((s32)dst_wnd->y) * dst->pitch_y;
 
 	dst_w_size = dst_bpp*dst_w;
 
@@ -763,6 +766,9 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		if (kh==kl) kh++;
 	}
 
+	/*do NOT use memcpy if the target buffer is not in systems memory*/
+	no_memcpy = (has_alpha || dst->is_hardware_memory || (dst_bpp!=dst_x_pitch)) ? 1 : 0;
+
 	while (dst_h) {
 		while ( pos_y >= 0x10000L ) {
 			src_row++;
@@ -778,9 +784,9 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 						the_row --;
 						if (flip) the_row = src->height-2 - the_row;
 						if (yuv_type==1) {
-							load_line_yv12(src->video_buffer, x_off, the_row, src->pitch, src_w, src->height, tmp);
+							load_line_yv12(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
 						} else {
-							load_line_yuva(src->video_buffer, x_off, the_row, src->pitch, src_w, src->height, tmp);
+							load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
 						}
 						the_row = src_row - 1;
 					}
@@ -788,9 +794,9 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 				} else {
 					if (flip) the_row = src->height-2 - the_row;
 					if (yuv_type==1) {
-						load_line_yv12(src->video_buffer, x_off, the_row, src->pitch, src_w, src->height, tmp);
+						load_line_yv12(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
 					} else {
-						load_line_yuva(src->video_buffer, x_off, the_row, src->pitch, src_w, src->height, tmp);
+						load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp);
 					}
 					yuv_init = 1;
 					rows = flip ? tmp + src_w * 4 : tmp;
@@ -821,7 +827,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 				}
 			} else {
 				if (flip) the_row = src->height-1 - the_row;
-				load_line((u8*)src->video_buffer, x_off, the_row, src->pitch, src_w, tmp);
+				load_line((u8*)src->video_buffer, x_off, the_row, src->pitch_y, src_w, tmp);
 				rows = tmp;
 				if (cmat) {
 					for (i=0; i<src_w; i++) {
@@ -853,7 +859,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 			}
 		}
 		/*do NOT use memcpy if the target buffer is not in systems memory*/
-		else if (has_alpha || dst->is_hardware_memory) {
+		else if (no_memcpy) {
 			copy_row(rows, src_w, dst_bits, dst_w, inc_x, dst_x_pitch, alpha);
 		} else {
 			memcpy(dst_bits, dst_bits_prev, dst_w_size);
@@ -863,7 +869,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		prev_row = src_row;
 
 		dst_bits_prev = dst_bits;
-		dst_bits += dst->pitch;
+		dst_bits += dst->pitch_y;
 		dst_h--;
 	}
 	if (dst_temp_bits) free(dst_temp_bits);

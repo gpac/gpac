@@ -220,6 +220,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		r2d->surface_attach_to_buffer(offscreen_surface, cache->txh.data,
 										cache->txh.width, 
 										cache->txh.height,
+										0, 
 										cache->txh.stride, 
 										cache->txh.pixelformat);
 		

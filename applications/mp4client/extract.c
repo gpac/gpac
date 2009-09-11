@@ -173,7 +173,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	if (fb->pixel_format==GF_PIXEL_GREYSCALE) fi.biBitCount = 24;
 	else fi.biBitCount = 24;
 	fi.biCompression = BI_RGB;
-	fi.biSizeImage = fb->pitch * fb->height;
+	fi.biSizeImage = fb->pitch_y * fb->height;
 
 	/*NOT ALIGNED!!*/
     fwrite(&fh.bfType, 2, 1, fout);
@@ -185,7 +185,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	fwrite(&fi, 1, 40, fout);
 
 	for (j=fb->height; j>0; j--) {
-		ptr = fb->video_buffer + (j-1)*fb->pitch;
+		ptr = fb->video_buffer + (j-1)*fb->pitch_y;
 		for (i=0;i<fb->width; i++) {
 			u32 res = put_pixel(fout, 0, fb->pixel_format, ptr);
 			assert(res);
@@ -239,7 +239,7 @@ void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 du
 	if (!fout) return;
 	for (j=0; j<fb->height;  j++) {
 		for (i=0;i<fb->width*4; i++) {
-			val = fputc(buf[i+j*fb->pitch], fout);
+			val = fputc(buf[i+j*fb->pitch_y], fout);
 		}
 	}
 	fclose(fout);
@@ -267,7 +267,7 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 
 	
 	for (j=0;j<fb->height; j++) {
-		ptr = fb->video_buffer + j*fb->pitch;
+		ptr = fb->video_buffer + j*fb->pitch_y;
 		for (i=0;i<fb->width; i++) {
 			u32 res = put_pixel(fout, 0, fb->pixel_format, ptr);
 			assert(res);
@@ -298,7 +298,7 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 			char *dst, *src;
 			u16 src_16;
 			dst = conv_buf + k*fb.width*3;
-			src = fb.video_buffer + (fb.height-k-1) * fb.pitch;
+			src = fb.video_buffer + (fb.height-k-1) * fb.pitch_y;
 			
 			for (i=0;i<fb.width; i++) {
 				switch (fb.pixel_format) {
@@ -407,7 +407,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 			u16 src_16;
 			if (dump_type==5 || dump_type==10) dst = conv_buf + k*fb.width*4;
 			else dst = conv_buf + k*fb.width*3;
-			src = fb.video_buffer + (fb.height-k-1) * fb.pitch;
+			src = fb.video_buffer + (fb.height-k-1) * fb.pitch_y;
 
 			switch (fb.pixel_format) {
 			case GF_PIXEL_RGB_32:

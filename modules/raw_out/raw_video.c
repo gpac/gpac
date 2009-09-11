@@ -81,7 +81,8 @@ static GF_Err RAW_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool d
 		vi->height = rc->height;
 		vi->width = rc->width;
 		vi->video_buffer = rc->pixels;
-		vi->pitch = NBPP * vi->width;
+		vi->pitch_x = NBPP;
+		vi->pitch_y = NBPP * vi->width;
 		vi->pixel_format = RAW_OUT_PIXEL_FORMAT;
 	}
 	return GF_OK;

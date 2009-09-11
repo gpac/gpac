@@ -63,7 +63,8 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hw_surface.video_buffer, 
 							compositor->hw_surface.width, 
 							compositor->hw_surface.height,
-							compositor->hw_surface.pitch,
+							compositor->hw_surface.pitch_x,
+							compositor->hw_surface.pitch_y,
 							(GF_PixelFormat) compositor->hw_surface.pixel_format);
 		if (!e) {
 			visual->is_attached = 1;
@@ -294,7 +295,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 	video_src.height = txh->height;
 	video_src.width = txh->width;
-	video_src.pitch = txh->stride;
+	video_src.pitch_x = 0;
+	video_src.pitch_y = txh->stride;
 	video_src.pixel_format = txh->pixelformat;
 	video_src.video_buffer = txh->data;
 	if (overlay_type) {
@@ -379,7 +381,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		GF_VideoSurface backbuffer;
 		e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 1);
 		if (!e) {
-			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, 0, alpha, 0, col_key, ctx->col_mat);
+			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, 0, col_key, ctx->col_mat);
 			e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 0);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
@@ -853,7 +855,8 @@ void visual_2d_draw_overlays(GF_VisualManager *visual)
 		txh = ol->ctx->aspect.fill_texture;
 		video_src.height = txh->height;
 		video_src.width = txh->width;
-		video_src.pitch = txh->stride;
+		video_src.pitch_x = 0;
+		video_src.pitch_y = txh->stride;
 		video_src.pixel_format = txh->pixelformat;
 		video_src.video_buffer = txh->data;
 

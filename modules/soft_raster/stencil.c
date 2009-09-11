@@ -794,17 +794,19 @@ void evg_set_texture_active(EVGStencil *st)
 
 	src.height = _this->height;
 	src.width = _this->width;
-	src.pitch = _this->orig_stride;
+	src.pitch_x = 0;
+	src.pitch_y = _this->orig_stride;
 	src.pixel_format = _this->orig_format;
 	src.video_buffer = _this->orig_buf;
 
 	dst.width = _this->width;
 	dst.height = _this->height;
-	dst.pitch = _this->Bpp * _this->width;
+	dst.pitch_x = _this->Bpp;
+	dst.pitch_y = _this->Bpp * _this->width;
 	dst.pixel_format = _this->pixel_format;
 	dst.video_buffer = _this->conv_buf;
 
-	gf_stretch_bits(&dst, &src, NULL, NULL, 0, 0xFF, 0, NULL, NULL);
+	gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
 
 	_this->is_converted = 1;
 	_this->pixels = (char *) _this->conv_buf;
