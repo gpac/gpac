@@ -387,7 +387,7 @@ void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const 
 			/*generic YV planar to YUV (planar or not) */
 			VR_write_yv12_to_yuv(dst_s, src_s->video_buffer, src_s->pitch_y, src_s->pixel_format, src_s->width, src_s->height, src_wnd);
 		} else {
-			gf_stretch_bits(dst_s, (GF_VideoSurface*) src_s, NULL, (GF_Window *)src_wnd, 0, 0xFF, 0, NULL, NULL);
+			gf_stretch_bits(dst_s, (GF_VideoSurface*) src_s, NULL, (GF_Window *)src_wnd, 0xFF, 0, NULL, NULL);
 		}
 	} else {
 		switch (dst_s->pixel_format) {
