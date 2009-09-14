@@ -11,10 +11,10 @@ int main(int argc, char **argv)
 	int i;
 	GF_BifsEngine *codec1 = NULL;
 	GF_BifsEngine * codec2 = NULL;
-	if (0) {
+	if (1) {
 		char *config;
 		u32 config_size;
-		char update[] = "\n AT \n 500 \n { \n REPLACE \n M.emissiveColor BY 1 0 0 } \n";
+		char update[] = "<par><Replace atNode=\"REC\" ><Node><Circle DEF=\"CIR\" radius=\"50\"/></Node></Replace></par>\n";
 
 		codec1 = gf_beng_init(NULL, argv[1]);
 		gf_beng_get_stream_config(codec1, &config, &config_size);

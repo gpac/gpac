@@ -299,9 +299,10 @@ GF_EXPORT
 GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (*AUCallback)(void *, char *, u32 , u64 ))
 {
 	GF_StreamContext *sc;
-	u32 i, count;
+	u32 i, count, load_type;
 	GF_Err e;
 
+	load_type = codec->load.type;
 	memset(&(codec->load), 0, sizeof(GF_SceneLoader));
 	codec->load.ctx = codec->ctx;
 	
@@ -318,7 +319,7 @@ GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, GF_Err (
 	codec->currentAUCount = gf_list_count(sc->AUs);
 
 	codec->load.flags = GF_SM_LOAD_MPEG4_STRICT | GF_SM_LOAD_CONTEXT_READY;
-	codec->load.type = GF_SM_LOAD_BT;
+	codec->load.type = load_type;
 
 	e = gf_sm_load_string(&codec->load, auString, 0);
 	if (e) goto exit;
