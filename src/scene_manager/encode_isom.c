@@ -1198,6 +1198,11 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOp
 	if (!ctx->scene_graph) return GF_BAD_PARAM;
 	if (ctx->root_od && (ctx->root_od->tag != GF_ODF_IOD_TAG) && (ctx->root_od->tag != GF_ODF_OD_TAG)) return GF_BAD_PARAM;
 
+
+	/*set MP4 brands*/
+	gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_MP42, 1);
+	gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_MP41, 1);
+
 	/*import specials, that is input remapping to BIFS*/
 	e = gf_sm_import_specials(ctx);
 	if (e) return e;
@@ -1248,7 +1253,6 @@ GF_Err gf_sm_encode_to_file(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEncodeOp
 		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_SCENE, 0xFE);
 		gf_isom_set_pl_indication(mp4, GF_ISOM_PL_GRAPHICS, 0xFE);
 	}
-
 	return GF_OK;
 }
 

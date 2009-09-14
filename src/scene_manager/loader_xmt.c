@@ -1885,6 +1885,7 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 				switch (esd->decoderConfig->streamType) {
 				case GF_STREAM_SCENE:
 				case GF_STREAM_OD:
+					if (!esd->decoderConfig->objectTypeIndication) esd->decoderConfig->objectTypeIndication = 1;
 					/*watchout for default BIFS stream*/
 					if (parser->scene_es && !parser->base_scene_id && (esd->decoderConfig->streamType==GF_STREAM_SCENE)) {
 						parser->scene_es->ESID = parser->base_scene_id = esd->ESID;
@@ -2815,6 +2816,39 @@ static GF_XMTParser *xmt_new_parser(GF_SceneLoader *load)
 	return parser;
 }
 
+static GF_Err xmt_restore_context(GF_SceneLoader *load)
+{
+	u32 i;
+	GF_StreamContext *sc;
+	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
+	if (!parser || !load->ctx) return GF_BAD_PARAM;
+
+	/*restore context - note that base layer are ALWAYS declared BEFORE enhancement layers with gpac parsers*/
+	i=0;
+	while ((sc = (GF_StreamContext*)gf_list_enum(load->ctx->streams, &i))){
+		switch (sc->streamType) {
+		case GF_STREAM_SCENE:
+		case GF_STREAM_PRIVATE_SCENE:
+			if (!parser->scene_es) parser->scene_es = sc; break;
+		case GF_STREAM_OD: if (!parser->od_es) parser->od_es = sc; break;
+		default: break;
+		}
+	}
+	/*scene creation - pick up a size*/
+	if (!parser->scene_es) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("XMT: No BIFS Streams found in existing context - creating one\n"));
+		parser->scene_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, 0);
+		parser->load->ctx->scene_width = 0;
+		parser->load->ctx->scene_height = 0;
+		parser->load->ctx->is_pixel_metrics = 1;
+	}
+	else parser->base_scene_id = parser->scene_es->ESID;
+	if (parser->od_es) parser->base_od_id = parser->od_es->ESID;
+
+	parser->doc_type = (load->type==GF_SM_LOAD_X3D) ? 2 : 1;
+	return GF_OK;
+}
+
 GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load)
 {
 	GF_Err e;
@@ -2827,31 +2861,8 @@ GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load)
 
 	/*chunk parsing*/
 	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
-		u32 i;
-		GF_StreamContext *sc;
-		if (!load->ctx) return GF_BAD_PARAM;
-
-		/*restore context - note that base layer are ALWAYS declared BEFORE enhancement layers with gpac parsers*/
-		i=0;
-		while ((sc = (GF_StreamContext*)gf_list_enum(load->ctx->streams, &i))){
-			switch (sc->streamType) {
-			case GF_STREAM_SCENE:
-			case GF_STREAM_PRIVATE_SCENE:
-				if (!parser->scene_es) parser->scene_es = sc; break;
-			case GF_STREAM_OD: if (!parser->od_es) parser->od_es = sc; break;
-			default: break;
-			}
-		}
-		/*scene creation - pick up a size*/
-		if (!parser->scene_es) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("XMT: No BIFS Streams found in existing context - creating one\n"));
-			parser->scene_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, 0);
-			parser->load->ctx->scene_width = 0;
-			parser->load->ctx->scene_height = 0;
-			parser->load->ctx->is_pixel_metrics = 1;
-		}
-		else parser->base_scene_id = parser->scene_es->ESID;
-		if (parser->od_es) parser->base_od_id = parser->od_es->ESID;
+		e = xmt_restore_context(load);
+		if (e) return e;
 	}
 
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);
@@ -2881,8 +2892,8 @@ GF_Err gf_sm_load_init_xmt_string(GF_SceneLoader *load, char *str_data)
 		str_data += 4;
 
 		if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
-			parser->doc_type = (load->type==GF_SM_LOAD_X3D) ? 2 : 1;
-			parser->state = XMT_STATE_COMMANDS;
+			e = xmt_restore_context(load);
+			if (e) return e;
 		}
 	}
 	e = gf_xml_sax_parse(parser->sax_parser, str_data);
