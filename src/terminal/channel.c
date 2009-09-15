@@ -394,8 +394,14 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 	} else {
 		s32 bt = ch->AU_buffer_last->DTS - gf_clock_time(ch->clock);
 		ch->BufferTime = 0;
-		if (bt>0) ch->BufferTime = (u32) bt;
+		if (bt>0) {
+			ch->BufferTime = (u32) bt;
+			if (ch->clock->speed != FIX_ONE) {
+				ch->BufferTime = FIX2INT( gf_divfix( INT2FIX(ch->AU_buffer_last->DTS - ch->AU_buffer_first->DTS) , ch->clock->speed)) ;
+			}
+		}
 	}
+
 	ch->BufferTime += ch->au_duration;
 }
 
@@ -702,7 +708,13 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		if (!ch->IsClockInit) {
 			/*channel is the OCR, re-initialize the clock with the proper OCR*/
 			if (gf_es_owns_clock(ch)) {
-				u32 OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
+				u32 OCR_TS;
+				/*if SL is mapped from network module(eg not coded), OCR=PCR shall be given in 27Mhz units*/
+				if (header) {
+					OCR_TS = (u32) ( hdr.objectClockReference / 27000);
+				} else {
+					OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
+				}
 				ch->clock->clock_init = 0;
 				gf_clock_set_time(ch->clock, OCR_TS);
 				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d from OCR TS %d - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), OCR_TS, ch->clock->Buffering, gf_clock_time(ch->clock) ));

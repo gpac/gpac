@@ -87,7 +87,7 @@ void CK_ResolveClockDep(GF_List *clocks, GF_Scene *scene, GF_Clock *ck, u16 Cloc
 	GF_Channel *ch;
 	GF_ObjectManager *odm;
 
-	/*check all channels - if any scene using a clock which ID scene the clock_ESID then
+	/*check all channels - if any scene using a clock which ID == the clock_ESID then
 	this clock shall be removed*/
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(scene->root_od->channels, &i))) {
@@ -270,7 +270,7 @@ void gf_clock_set_speed(GF_Clock *ck, Fixed speed)
 	if (speed==ck->speed) return;
 	time = gf_term_get_time(ck->term);
 	/*adjust start time*/
-	ck->discontinuity_time = gf_clock_time(ck);
+	ck->discontinuity_time = gf_clock_time(ck) - ck->init_time;
 	ck->PauseTime = ck->StartTime = time;
 	ck->speed = speed;
 }
