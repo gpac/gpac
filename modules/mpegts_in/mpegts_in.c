@@ -106,7 +106,7 @@ typedef struct
 	LPNETCHANNEL eit_channel;
 } M2TSIn;
 
-#define M2TS_BUFFER_MAX 400
+#define M2TS_BUFFER_MAX 800
 
 
 #ifdef GPAC_HAS_LINUX_DVB
@@ -469,7 +469,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 		if (!found) return;
 	}
 #endif
-	m2ts->file_regulate = no_declare ? 0 : 1;
+	if (m2ts->file) m2ts->file_regulate = no_declare ? 0 : 1;
 
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
@@ -479,8 +479,9 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
 		if (!prog->pmt_iod && !no_declare) MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
 	}
+
 	/*force scene regeneration*/
-	if (regenerate_scene)
+	if (!prog->pmt_iod && regenerate_scene)
 		gf_term_add_media(m2ts->service, NULL, 0);
 }
 
@@ -626,7 +627,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		M2TS_FlushRequested(m2ts);
 		break;
 	case GF_M2TS_EVT_PMT_REPEAT:
-	case GF_M2TS_EVT_PMT_UPDATE:
+//	case GF_M2TS_EVT_PMT_UPDATE:
 		M2TS_FlushRequested(m2ts);
 		break;
 	case GF_M2TS_EVT_SDT_REPEAT:
@@ -652,7 +653,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (!pck->stream->first_dts) {
 			gf_m2ts_set_pes_framing(pck->stream, GF_M2TS_PES_FRAMING_SKIP);
 			MP2TS_DeclareStream(m2ts, pck->stream, pck->data, pck->data_len);
-			m2ts->file_regulate = 1;
+			if (m2ts->file) m2ts->file_regulate = 1;
 			pck->stream->first_dts=1;
 			/*force scene regeneration*/
 			gf_term_add_media(m2ts->service, NULL, 0);
@@ -736,7 +737,7 @@ u32 M2TS_Run(void *_p)
 			/*m2ts chunks by chunks*/
 			e = gf_sk_receive(m2ts->sock, data, UDP_BUFFER_SIZE, 0, &size);
 			if (!size || e) {
-				gf_sleep(1);
+				gf_sleep(0);
 				continue;
 			}
 			if (first_run) {
