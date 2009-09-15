@@ -311,6 +311,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 GF_EXPORT
 char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestamp, u32 *size)
 {
+	Bool force_decode = 0;
 	u32 obj_time;
 	GF_CMUnit *CU;
 	*eos = 0;
@@ -340,6 +341,16 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		gf_odm_lock(mo->odm, 0);
 		return NULL;
 	}
+	if (! *eos && (mo->odm->codec->ck->speed > FIX_ONE))
+		force_decode = 1;
+
+	if (force_decode) {
+		gf_odm_lock(mo->odm, 0);
+		gf_term_lock_codec(mo->odm->codec, 1);
+		gf_codec_process(mo->odm->codec, 1);
+		gf_term_lock_codec(mo->odm->codec, 0);
+		gf_odm_lock(mo->odm, 1);
+	}
 
 	/*new frame to fetch, lock*/
 	CU = gf_cm_get_output(mo->odm->codec->CB);
@@ -359,7 +370,20 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 		u32 nb_droped = 0;
 		obj_time = gf_clock_time(mo->odm->codec->ck);
 		while (CU->TS < obj_time) {
-			if (!CU->next->dataLength) break;
+			if (!CU->next->dataLength) {
+				if (force_decode) {
+					obj_time = gf_clock_time(mo->odm->codec->ck);
+					gf_odm_lock(mo->odm, 0);
+					gf_term_lock_codec(mo->odm->codec, 1);
+					gf_codec_process(mo->odm->codec, 1);
+					gf_term_lock_codec(mo->odm->codec, 0);
+					gf_odm_lock(mo->odm, 1);
+					if (!CU->next->dataLength) 
+						break;
+				} else {
+					break;
+				}
+			}
 			/*figure out closest time*/
 			if (CU->next->TS > obj_time) {
 				*eos = 0;
@@ -373,11 +397,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 			/*discard*/
 			CU->RenderedLength = CU->dataLength = 0;
 			gf_cm_drop_output(mo->odm->codec->CB);
+
 			/*get next*/
 			CU = gf_cm_get_output(mo->odm->codec->CB);
 			*eos = gf_cm_is_eos(mo->odm->codec->CB);
 		}
 	}	
+
 	mo->framesize = CU->dataLength - CU->RenderedLength;
 	mo->frame = CU->data + CU->RenderedLength;
 	if (mo->timestamp != CU->TS) {
@@ -787,6 +813,13 @@ void gf_mo_set_speed(GF_MediaObject *mo, Fixed speed)
 #endif
 	gf_odm_set_speed(mo->odm, speed);
 }
+
+GF_EXPORT
+Fixed gf_mo_get_current_speed(GF_MediaObject *mo)
+{
+	return (mo && mo->odm && mo->odm->codec) ? mo->odm->codec->ck->speed : FIX_ONE;
+}
+
 
 GF_EXPORT
 Fixed gf_mo_get_speed(GF_MediaObject *mo, Fixed in_speed)

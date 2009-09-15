@@ -1490,10 +1490,13 @@ static void set_clocks_speed(GF_Terminal *term, Fixed ratio)
 
 void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 {
+	Double fps;
 	u32 i, j;
+	const char *opt;
 	GF_ClientService *ns;
+	if (!speed) return; 
 
-	/*pause all clocks on all services*/
+	/*adjust all clocks on all services*/
 	i=0;
 	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
 		GF_Clock *ck;
@@ -1502,6 +1505,17 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 			gf_clock_set_speed(ck, speed);
 		}
 	}
+
+	opt = gf_cfg_get_key(term->user->config, "Compositor", "FrameRate");
+	if (opt) {
+		fps = atof(opt);
+	} else {
+		fps = 30.0;
+	}
+	fps *= FIX2FLT(speed);
+	if (fps>100) fps = 1000;
+	term->frame_duration = (u32) (1000/fps);
+	gf_sc_set_fps(term->compositor, fps);
 }
 
 void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)

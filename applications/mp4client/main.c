@@ -72,6 +72,8 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 
+static Fixed bench_speed = FLT2FIX(2);
+
 static Bool request_next_playlist_item = 0;
 
 static GF_Config *cfg_file;
@@ -418,6 +420,16 @@ u32 get_sys_col(int idx)
 }
 #endif
 
+void switch_bench()
+{
+	if (is_connected) {
+		bench_mode = !bench_mode;
+		display_rti = !display_rti;
+		ResetCaption();
+		gf_term_set_speed(term, bench_mode ? bench_speed : FIX_ONE);
+	}
+}
+
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	if (!term) return 0;
@@ -486,90 +498,73 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		return 0;
 
-	/*we use CTRL and not ALT for keys, since windows shortcuts keypressed with ALT*/
+	case GF_EVENT_KEYUP:
+		switch (evt->key.key_code) {
+		case GF_KEY_SPACE:
+			if (evt->key.flags & GF_KEY_MOD_CTRL) switch_bench();
+			break;
+		}
+		break;
 	case GF_EVENT_KEYDOWN:
 		gf_term_process_shortcut(term, evt);
-#if 0
-		if ((evt->key.flags & GF_KEY_MOD_ALT)) {
-			switch (evt->key.key_code) {
-			case GF_KEY_LEFT:
-				if (Duration>=2000) {
-					s32 res = gf_term_get_time_in_ms(term) - (s32) (5*Duration/100);
-					if (res<0) res=0;
-					fprintf(stdout, "seeking to %.2f %% (", 100.0*(s64)res / (s64)Duration);
-					PrintTime(res);
-					fprintf(stdout, ")\n");
-					gf_term_play_from_time(term, res, 0);
-				} 
-				break;
-			case GF_KEY_RIGHT:
-				if (Duration>=2000) {
-					u32 res = gf_term_get_time_in_ms(term) + (s32) (5*Duration/100);
-					if (res>=Duration) res = 0;
-					fprintf(stdout, "seeking to %.2f %% (", 100.0*(s64)res / (s64)Duration);
-					PrintTime(res);
-					fprintf(stdout, ")\n");
-					gf_term_play_from_time(term, res, 0);
-				}
-				break;
-			/*these 2 are likely not supported by most audio ouput modules*/
-			case GF_KEY_UP:
-				if (Volume!=100) { Volume = MIN(Volume + 5, 100); gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, Volume); } 
-				break;
-			case GF_KEY_DOWN: 
-				if (Volume) { Volume = (Volume > 5) ? (Volume-5) : 0; gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, Volume); }
-				break;
-			case GF_KEY_PAGEDOWN:
-				if (Volume!=100) { Volume = MIN(Volume + 5, 100); gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, Volume); } 
-				break;
-			case GF_KEY_MEDIANEXTTRACK:
-				break;
-			case GF_KEY_MEDIAPREVIOUSTRACK:
-				break;
-			}
-		} else {
-			switch (evt->key.key_code) {
-			case GF_KEY_HOME:
-				gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 1);
-				break;
-			case GF_KEY_ESCAPE:
-				gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
-				break;
-			case GF_KEY_PAGEDOWN:
-				request_next_playlist_item = 1;
-				break;
-			}
-		}
-
-		if (!(evt->key.flags & GF_KEY_MOD_CTRL)) return 0;
 		switch (evt->key.key_code) {
+		case GF_KEY_SPACE:
+			if (evt->key.flags & GF_KEY_MOD_CTRL) {
+				/*ignore key repeat*/
+				if (!bench_mode) switch_bench();
+			}
+			break;
+		case GF_KEY_PAGEDOWN:
+		case GF_KEY_MEDIANEXTTRACK:
+			request_next_playlist_item = 1;
+			break;
+		case GF_KEY_MEDIAPREVIOUSTRACK:
+			break;
+		case GF_KEY_ESCAPE:
+			gf_term_set_option(term, GF_OPT_FULLSCREEN, !gf_term_get_option(term, GF_OPT_FULLSCREEN));
+			break;
 		case GF_KEY_F:
-			fprintf(stdout, "Rendering rate: %f FPS\n", gf_term_get_framerate(term, 0));
+			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stdout, "Rendering rate: %f FPS\n", gf_term_get_framerate(term, 0));
 			break;
 		case GF_KEY_T:
-			fprintf(stdout, "Scene Time: %f \n", gf_term_get_time_in_ms(term)/1000.0);
+			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stdout, "Scene Time: %f \n", gf_term_get_time_in_ms(term)/1000.0);
 			break;
 		case GF_KEY_D:
-			gf_term_set_option(term, GF_OPT_DIRECT_DRAW, !gf_term_get_option(term, GF_OPT_DIRECT_DRAW) );
+			if (evt->key.flags & GF_KEY_MOD_CTRL) gf_term_set_option(term, GF_OPT_DIRECT_DRAW, !gf_term_get_option(term, GF_OPT_DIRECT_DRAW) );
 			break;
-		case GF_KEY_4: gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3); break;
-		case GF_KEY_5: gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9); break;
-		case GF_KEY_6: gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN); break;
-		case GF_KEY_7: gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP); break;
+		case GF_KEY_4: 
+			if (evt->key.flags & GF_KEY_MOD_CTRL)
+				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_4_3); 
+			break;
+		case GF_KEY_5: 
+			if (evt->key.flags & GF_KEY_MOD_CTRL)
+				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_16_9); 
+			break;
+		case GF_KEY_6: 
+			if (evt->key.flags & GF_KEY_MOD_CTRL)
+				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN); 
+			break;
+		case GF_KEY_7: 
+			if (evt->key.flags & GF_KEY_MOD_CTRL)
+				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP); 
+			break;
 		case GF_KEY_P:
-			gf_term_set_option(term, GF_OPT_PLAY_STATE, (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) ? GF_STATE_PLAYING : GF_STATE_PAUSED);
+			if (evt->key.flags & GF_KEY_MOD_CTRL)
+				gf_term_set_option(term, GF_OPT_PLAY_STATE, (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) ? GF_STATE_PLAYING : GF_STATE_PAUSED);
 			break;
 		case GF_KEY_S:
-			gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
+			if (evt->key.flags & GF_KEY_MOD_CTRL)
+				gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 			break;
 		case GF_KEY_B:
-			if (is_connected) ViewODs(term, 1);
+			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
+				ViewODs(term, 1);
 			break;
 		case GF_KEY_M:
-			if (is_connected) ViewODs(term, 0);
+			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
+				ViewODs(term, 0);
 			break;
 		}
-#endif
 		break;
 
 	case GF_EVENT_CONNECT:
@@ -1543,10 +1538,7 @@ force_input:
 			break;
 
 		case 'B':
-			if (is_connected) {
-				bench_mode = !bench_mode;
-				gf_term_set_speed(term, bench_mode ? FLT2FIX(10) : FIX_ONE);
-			}
+			switch_bench();
 			break;
 
 		case 'h':

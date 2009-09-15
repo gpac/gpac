@@ -398,7 +398,7 @@ static void FFD_SetupObjects(FFDemux *ffd)
 	GF_ObjectDescriptor *od;
 	u32 audio_esid = 0;
 	
-	if (ffd->audio_st>=0) {
+	if ((ffd->audio_st>=0) && (ffd->service_type != 1)) {
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		esd = FFD_GetESDescriptor(ffd, 1);
 		od->objectDescriptorID = esd->ESID;
@@ -406,7 +406,7 @@ static void FFD_SetupObjects(FFDemux *ffd)
 		gf_list_add(od->ESDescriptors, esd);
 		gf_term_add_media(ffd->service, (GF_Descriptor*)od, (ffd->video_st>=0) ? 1 : 0);
 	}
-	if (ffd->video_st>=0) {
+	if ((ffd->video_st>=0) && (ffd->service_type != 2)) {
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		esd = FFD_GetESDescriptor(ffd, 0);
 		od->objectDescriptorID = esd->ESID;
@@ -629,7 +629,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 	/*let's go*/
 	gf_term_on_connect(serv, NULL, GF_OK);
-	if (!ffd->service_type) FFD_SetupObjects(ffd);
+	/*if (!ffd->service_type)*/ FFD_SetupObjects(ffd);
 	ffd->service_type = 0;
 	return GF_OK;
 
