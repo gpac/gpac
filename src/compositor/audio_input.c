@@ -64,7 +64,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	if (audio_delay_ms) {
 		/*CU is way too late, discard and fetch a new one - this usually happen when media speed is more than 1*/
 		if (drift>500) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Audio Input] Audio data too late (drift %d ms) - resync forced\n", drift));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Audio Input] Audio data too late obj time %d - CTS %d - drift %d ms - resync forced\n", obj_time - audio_delay_ms, ts, drift));
 			gf_mo_release_data(ai->stream, *size, 2);
 			ai->need_release = 0;
 			return gf_audio_input_fetch_frame(callback, size, audio_delay_ms);
