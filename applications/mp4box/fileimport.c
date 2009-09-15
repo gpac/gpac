@@ -80,6 +80,8 @@ void convert_file_info(char *inName, u32 trackID)
 
 		if (import.tk_info[i].lang) fprintf(stdout, " - lang %s", gf_4cc_to_str(import.tk_info[i].lang));
 
+		if (import.tk_info[i].mpeg4_es_id) fprintf(stdout, " - MPEG-4 ESID %d", import.tk_info[i].mpeg4_es_id);
+
 		if (import.tk_info[i].prog_num) {
 			if (!import.nb_progs) {
 				fprintf(stdout, " - Program %d", import.tk_info[i].prog_num);
@@ -343,8 +345,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 			if (handler_name) gf_isom_set_handler_name(import.dest, i+1, handler_name);
 			else if (!keep_handler) {
-				sprintf(szName, "%s - Imported with GPAC %s", inName, GPAC_FULL_VERSION);
-				gf_isom_set_handler_name(import.dest, i+1, szName);
+				char szHName[1024];
+				sprintf(szHName, "%s - Imported with GPAC %s", inName, GPAC_FULL_VERSION);
+				gf_isom_set_handler_name(import.dest, i+1, szHName);
 			}
 			if (handler) gf_isom_set_media_type(import.dest, i+1, handler);
 			if (disable) gf_isom_set_track_enabled(import.dest, i+1, 0);
@@ -416,8 +419,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 			if (handler_name) gf_isom_set_handler_name(import.dest, track, handler_name);
 			else if (!keep_handler) {
-				sprintf(szName, "%s - Imported with GPAC %s", inName, GPAC_FULL_VERSION);
-				gf_isom_set_handler_name(import.dest, track, szName);
+				char szHName[1024];
+				sprintf(szHName, "%s - Imported with GPAC %s", inName, GPAC_FULL_VERSION);
+				gf_isom_set_handler_name(import.dest, track, szHName);
 			}
 			if (handler) gf_isom_set_media_type(import.dest, track, handler);
 
