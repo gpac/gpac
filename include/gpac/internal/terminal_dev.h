@@ -438,6 +438,7 @@ For these nodes, the traverse effect passed will be NULL.*/
 void gf_term_queue_node_traverse(GF_Terminal *term, GF_Node *node);
 void gf_term_unqueue_node_traverse(GF_Terminal *term, GF_Node *node);
 
+void gf_term_lock_codec(GF_Codec *codec, Bool lock);
 
 
 /*clock*/

@@ -537,6 +537,27 @@ void gf_term_set_threading(GF_Terminal *term, u32 mode)
 	gf_mx_v(term->mm_mx);
 }
 
+void gf_term_lock_codec(GF_Codec *codec, Bool lock)
+{
+	CodecEntry *ce;
+	GF_Terminal *term = codec->odm->term;
+
+	/*this is only valid for media codecs with an output buffer*/
+	if (!codec->CB) return;
+
+	ce = mm_get_codec(term->codecs, codec);
+	if (!ce) return;
+
+	if (ce->mx) {
+		if (lock) gf_mx_p(ce->mx);
+		else gf_mx_v(ce->mx);
+	}
+	else {
+		if (lock) gf_mx_p(term->mm_mx);
+		else gf_mx_v(term->mm_mx);
+	}
+}
+
 void gf_term_set_priority(GF_Terminal *term, s32 Priority)
 {
 	u32 i;

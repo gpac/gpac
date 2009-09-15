@@ -1955,9 +1955,10 @@ timer_count++;
 
 	gf_sc_lock(compositor, 0);
 
-	compositor->current_frame = (compositor->current_frame+1) % GF_SR_FPS_COMPUTE_SIZE;
-	compositor->frame_time[compositor->current_frame] = end_time;
-
+	if (frame_drawn) {
+		compositor->current_frame = (compositor->current_frame+1) % GF_SR_FPS_COMPUTE_SIZE;
+		compositor->frame_time[compositor->current_frame] = end_time;
+	}
 	compositor->frame_number++;
 
 	/*step mode on, pause and return*/
@@ -1968,12 +1969,11 @@ timer_count++;
 	}
 	/*not threaded, let the owner decide*/
 	if ((compositor->user->init_flags & GF_TERM_NO_VISUAL_THREAD) || !compositor->frame_duration) return;
+	if (end_time > compositor->frame_duration) return;
 
-	/*compute sleep time till next frame, otherwise we'll kill the CPU*/
-	i = end_time / compositor->frame_duration + 1;
-//	while (i * compositor->frame_duration < end_time) i++;
-	in_time = i * compositor->frame_duration - end_time;
-	gf_sleep(in_time);
+	/*compute sleep time till next frame*/
+	end_time %= compositor->frame_duration;
+	gf_sleep(compositor->frame_duration - end_time);
 }
 
 Bool gf_sc_visual_is_registered(GF_Compositor *compositor, GF_VisualManager *visual)

@@ -24,13 +24,17 @@
 
 #include <gpac/internal/compositor_dev.h>
 
+/*diff time in ms to consider an audio frame too early and insert silence*/
 #define MIN_RESYNC_TIME		500
+/*diff time in ms to consider an audio frame too late and drop it*/
+#define MAX_RESYNC_TIME		500
 
 static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
 {
 	char *frame;
 	u32 obj_time, ts;
-	s32 drift;
+	s32 drift, resync_delay;
+	Fixed speed;
 	GF_AudioInput *ai = (GF_AudioInput *) callback;
 	/*even if the stream is signaled as finished we must check it, because it may have been restarted by a mediaControl*/
 	if (!ai->stream) return NULL;
@@ -46,24 +50,27 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 		return NULL;
 	}
 	ai->need_release = 1;
-	
-	
+
+	speed = gf_mo_get_current_speed(ai->stream);
+	resync_delay = FIX2INT(speed*ai->is_open);
+
 	gf_mo_get_object_time(ai->stream, &obj_time);
 	obj_time += audio_delay_ms;
 	drift = (s32)obj_time;
 	drift -= (s32)ts;
 
 	/*too early (silence insertions), skip*/
-	if (drift + (s32) (audio_delay_ms + ai->is_open) < 0) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Audio Input] audio too early %d (CTS %d)\n", drift + audio_delay_ms + MIN_RESYNC_TIME, ts));
+	if (drift + (s32) (audio_delay_ms + resync_delay) < 0) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Audio Input] audio too early %d (CTS %d)\n", drift + audio_delay_ms + resync_delay, ts));
 		ai->need_release = 0;
 		gf_mo_release_data(ai->stream, 0, 0);
 		return NULL;
 	}
 	/*adjust drift*/
 	if (audio_delay_ms) {
+		resync_delay = FIX2INT(speed * MAX_RESYNC_TIME);
 		/*CU is way too late, discard and fetch a new one - this usually happen when media speed is more than 1*/
-		if (drift>500) {
+		if (drift>resync_delay) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Audio Input] Audio data too late obj time %d - CTS %d - drift %d ms - resync forced\n", obj_time - audio_delay_ms, ts, drift));
 			gf_mo_release_data(ai->stream, *size, 2);
 			ai->need_release = 0;
@@ -88,7 +95,7 @@ static void gf_audio_input_release_frame(void *callback, u32 nb_bytes)
 static Fixed gf_audio_input_get_speed(void *callback)
 {
 	GF_AudioInput *ai = (GF_AudioInput *) callback;
-	return gf_mo_get_speed(ai->stream, ai->speed);
+	return gf_mo_get_current_speed(ai->stream);
 }
 
 static Bool gf_audio_input_get_volume(void *callback, Fixed *vol)

@@ -117,6 +117,8 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config);
 
+Fixed gf_mo_get_current_speed(GF_MediaObject *mo);
+
 /*checks if the service associated withthis object has an audio stream*/
 Bool gf_mo_has_audio(GF_MediaObject *mo);
 
