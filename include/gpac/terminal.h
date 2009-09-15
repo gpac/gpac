@@ -102,6 +102,7 @@ Double gf_term_get_simulation_frame_rate(GF_Terminal *term);
 /*process shortcuts*/
 void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev);
 
+void gf_term_set_speed(GF_Terminal *term, Fixed speed);
 
 /*sends a set of scene commands (BT, XMT, X3D, LASeR+XML) to the scene
 type indicates the language used - accepted values are 

@@ -162,7 +162,9 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 	gf_term_lock_net(term, 0);
 
 	if (err) {
-		gf_term_message(term, service->url, "Channel Connection Failed", err);
+		char szMsg[1024];
+		sprintf(szMsg, "Channel %d connection failure", ch->esd->ESID);
+		gf_term_message(term, service->url, szMsg, err);
 		ch->es_state = GF_ESM_ES_UNAVAILABLE;
 //		return;
 	}

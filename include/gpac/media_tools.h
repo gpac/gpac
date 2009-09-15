@@ -117,6 +117,8 @@ struct __track_import_info
 	struct __track_audio_info audio_info;
 
 	u32 lang;
+	/*for MPEG4 on MPEG-2 TS: mpeg4 ES-ID*/
+	u32 mpeg4_es_id;
 	/*for MPEG2 TS: program number*/
 	u16 prog_num;
 };
