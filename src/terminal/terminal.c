@@ -1488,6 +1488,21 @@ static void set_clocks_speed(GF_Terminal *term, Fixed ratio)
 	}
 }
 
+void gf_term_set_speed(GF_Terminal *term, Fixed speed)
+{
+	u32 i, j;
+	GF_ClientService *ns;
+
+	/*pause all clocks on all services*/
+	i=0;
+	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+		GF_Clock *ck;
+		j=0;
+		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
+			gf_clock_set_speed(ck, speed);
+		}
+	}
+}
 
 void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 {
