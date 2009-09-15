@@ -705,7 +705,6 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 		esd->slConfig->timestampResolution = 1000;
 	}
 
-	/*attach clock in namespace*/
 	ck = gf_clock_attach(ck_namespace, scene, clockID, esd->ESID, flag);
 	if (!ck) return GF_OUT_OF_MEM;
 	esd->OCRESID = ck->clockID;
@@ -1295,6 +1294,24 @@ void gf_odm_play(GF_ObjectManager *odm)
 #endif
 }
 
+Bool gf_odm_owns_clock(GF_ObjectManager *odm, GF_Clock *ck) 
+{
+	u32 i, j;
+	GF_ObjectManager *od;
+	GF_Channel *ch;
+	i=0;
+	while ((ch = gf_list_enum(odm->channels, &i))) {
+		if (ch->esd->ESID==ck->clockID) return 1;
+	}
+	j=0;
+	while ((od = gf_list_enum(odm->subscene->resources, &j))) {
+		i=0;
+		while ((ch = gf_list_enum(od->channels, &i))) {
+			if (ch->esd->ESID==ck->clockID) return 1;
+		}
+	}
+	return 0;
+}
 
 void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 {
@@ -1380,7 +1397,9 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
 		/*stops clock if this is a scene stop*/
-		if (!(odm->flags & GF_ODM_INHERIT_TIMELINE) && odm->subscene) gf_clock_stop(ch->clock);
+		if (!(odm->flags & GF_ODM_INHERIT_TIMELINE) && odm->subscene && gf_odm_owns_clock(odm, ch->clock) ) {
+			gf_clock_stop(ch->clock);
+		}
 		gf_es_stop(ch);
 	}
 
