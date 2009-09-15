@@ -64,6 +64,7 @@ void PrintGPACConfig();
 static Bool not_threaded = 0;
 static Bool no_audio = 0;
 static Bool no_regulation = 0;
+static Bool bench_mode = 0;
 Bool is_connected = 0;
 Bool startup_file = 0;
 GF_User user;
@@ -1402,9 +1403,27 @@ force_input:
 
 		case 'd':
 			if (is_connected) {
+				GF_ObjectManager *odm = NULL;
 				char radname[GF_MAX_PATH], *sExt;
 				GF_Err e;
+				u32 i, count, odid;
 				Bool xml_dump, std_out;
+				fprintf(stdout, "Enter Inline OD ID if any or 0");
+				radname[0] = 0;
+				scanf("%d", &odid);
+				if (odid) {
+					GF_ObjectManager *root_odm = gf_term_get_root_object(term);
+					if (!root_odm) return;
+					count = gf_term_get_object_count(term, root_odm);
+					for (i=0; i<count; i++) {
+						GF_MediaInfo info;
+						odm = gf_term_get_object(term, root_odm, i);
+						if (gf_term_get_object_info(term, odm, &info) == GF_OK) {
+							if (info.od->objectDescriptorID==odid) break;
+						}
+						odm = NULL;
+					}
+				}
 				fprintf(stdout, "Enter file radical name (+\'.x\' for XML dumping) - \"std\" for stdout: ");
 				scanf("%s", radname);
 				sExt = strrchr(radname, '.');
@@ -1414,7 +1433,7 @@ force_input:
 					sExt[0] = 0;
 				}
 				std_out = strnicmp(radname, "std", 3) ? 0 : 1;
-				e = gf_term_dump_scene(term, std_out ? NULL : radname, NULL, xml_dump, 0, NULL);
+				e = gf_term_dump_scene(term, std_out ? NULL : radname, NULL, xml_dump, 0, odm);
 				fprintf(stdout, "Dump done (%s)\n", gf_error_to_string(e));
 			}
 			break;
@@ -1521,6 +1540,13 @@ force_input:
 
 		case 'E':
 			gf_term_set_option(term, GF_OPT_RELOAD_CONFIG, 1); 
+			break;
+
+		case 'B':
+			if (is_connected) {
+				bench_mode = !bench_mode;
+				gf_term_set_speed(term, bench_mode ? FLT2FIX(10) : FIX_ONE);
+			}
 			break;
 
 		case 'h':
