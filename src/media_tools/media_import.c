@@ -4872,7 +4872,7 @@ typedef struct
 
 /* Determine the ESD corresponding to the current track info based on the PID and sets the additional info
    in the track info as described in this esd */
-static void m2ts_set_track_mpeg4_probe_info(GF_ESD *esd,
+static void m2ts_set_track_mpeg4_probe_info(GF_M2TS_ES *es, GF_ESD *esd,
 											struct __track_import_info* tk_info)
 {
 	if (esd && tk_info) {
@@ -4908,6 +4908,7 @@ static void m2ts_set_track_mpeg4_probe_info(GF_ESD *esd,
 			tk_info->type = GF_ISOM_MEDIA_ESM;
 			break;
 		}
+		if (es) tk_info->mpeg4_es_id = es->mpeg4_es_id;
 	}
 }
 
@@ -4931,6 +4932,10 @@ static void m2ts_set_tracks_mpeg4_probe_info(GF_MediaImporter *import, GF_M2TS_P
 		}
 		if (es == NULL) continue;
 
+		if (esd->decoderConfig->streamType==GF_STREAM_OD) 
+			es->flags |= GF_M2TS_ES_IS_MPEG4_OD;
+
+
 		tk_idx = -1;
 		for (i = 0; i < import->nb_tracks; i++) {
 			if (import->tk_info[i].track_num == es->pid) {
@@ -4942,7 +4947,7 @@ static void m2ts_set_tracks_mpeg4_probe_info(GF_MediaImporter *import, GF_M2TS_P
 		if (tk_idx == -1) continue;
 		if (import->tk_info[tk_idx].type != 0 && import->tk_info[tk_idx].type != GF_ISOM_MEDIA_ESM) continue;
 
-		m2ts_set_track_mpeg4_probe_info(esd, &import->tk_info[tk_idx]);
+		m2ts_set_track_mpeg4_probe_info(es, esd, &import->tk_info[tk_idx]);
 	}
 
 }
@@ -5079,6 +5084,11 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			import->flags |= GF_IMPORT_DO_ABORT;
 */
 		break;
+	case GF_M2TS_EVT_PMT_UPDATE:
+		gf_import_message(import, GF_OK, "[MPEG-2 TS] PMT Update found - cannot import any further"); 
+		import->flags |= GF_IMPORT_DO_ABORT;
+		break;
+
 	/*case GF_M2TS_EVT_SDT_FOUND:
 		import->nb_progs = gf_list_count(ts->SDTs);
 		for (i=0; i<import->nb_progs; i++) {
@@ -5163,7 +5173,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					}
 					if (prog->pmt_iod) {
 						GF_ESD *esd = m2ts_get_esd(es);
-						m2ts_set_track_mpeg4_probe_info(esd, &import->tk_info[idx]);
+						m2ts_set_track_mpeg4_probe_info(es, esd, &import->tk_info[idx]);
 						if (esd && esd->decoderConfig->streamType == GF_STREAM_OD) {
 							es->flags |= GF_M2TS_ES_IS_MPEG4_OD;
 						}
@@ -5481,10 +5491,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 							for (od_index=0; od_index<od_count; od_index++) {
 								GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, od_index);
 								gf_list_add(sl_pck->stream->program->additional_ods, od);
-								if (import->flags & GF_IMPORT_PROBE_ONLY) {
-									/* We need to set the remaining unset track info for the streams declared in this OD */
-									m2ts_set_tracks_mpeg4_probe_info(import, sl_pck->stream->program, od->ESDescriptors);
-								}
+
+								/* We need to set the remaining unset track info for the streams declared in this OD */
+								m2ts_set_tracks_mpeg4_probe_info(import, sl_pck->stream->program, od->ESDescriptors);
 							}
 							gf_list_reset(odU->objectDescriptors);
 						}
@@ -5610,6 +5619,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	ts->dvb_h_demux = (import->flags & GF_IMPORT_MPE_DEMUX) ? 1 : 0;
 
 	sprintf(progress, "Importing MPEG-2 TS (PID %d)", import->trackID);
+	gf_import_message(import, GF_OK, progress);
+
 	while (!feof(mts)) {
 		size = fread(data, 1, 188, mts);
 		if (size<188) break;
@@ -5619,6 +5630,8 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		done += size;
 		gf_set_progress(progress, (u32) (done/1024), (u32) (fsize/1024));
 	}
+	import->flags &= ~GF_IMPORT_DO_ABORT;
+
 	if (import->last_error) {
 		GF_Err e = import->last_error;
 		import->last_error = GF_OK;
