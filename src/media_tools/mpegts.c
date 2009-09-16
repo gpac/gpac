@@ -992,6 +992,7 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 		sl_pck.data = section->data;
 		sl_pck.data_len = section->data_size;
 		sl_pck.stream = (GF_M2TS_ES *)es;
+		sl_pck.version_number = version_number;
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_SL_PCK, &sl_pck);
 	}
 }
@@ -1632,6 +1633,40 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 		pos += 188;
 	}
 	return GF_OK;
+}
+
+GF_ESD *gf_m2ts_get_esd(GF_M2TS_ES *es)
+{
+	GF_ESD *esd;
+	u32 k, esd_count;
+
+	esd = NULL;
+	if (es->program->pmt_iod && es->program->pmt_iod->ESDescriptors) {
+		esd_count = gf_list_count(es->program->pmt_iod->ESDescriptors);
+		for (k = 0; k < esd_count; k++) {
+			GF_ESD *esd_tmp = (GF_ESD *)gf_list_get(es->program->pmt_iod->ESDescriptors, k);
+			if (esd_tmp->ESID != es->mpeg4_es_id) continue;
+			esd = esd_tmp;
+			break;
+		}
+	}
+
+	if (!esd && es->program->additional_ods) {
+		u32 od_count, od_index;
+		od_count = gf_list_count(es->program->additional_ods);
+		for (od_index = 0; od_index < od_count; od_index++) {
+			GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(es->program->additional_ods, od_index);
+			esd_count = gf_list_count(od->ESDescriptors);
+			for (k = 0; k < esd_count; k++) {
+				GF_ESD *esd_tmp = (GF_ESD *)gf_list_get(od->ESDescriptors, k);
+				if (esd_tmp->ESID != es->mpeg4_es_id) continue;
+				esd = esd_tmp;
+				break;
+			}
+		}
+	}
+
+	return esd;
 }
 
 void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)

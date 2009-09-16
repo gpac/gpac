@@ -507,7 +507,15 @@ static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 
 static GFINLINE void MP2TS_SendSLPacket(M2TSIn *m2ts, GF_M2TS_SL_PCK *pck)
 {
-	gf_term_on_sl_packet(m2ts->service, pck->stream->user, pck->data, pck->data_len, NULL, GF_OK);
+	/*build a SL Header*/
+	GF_SLHeader SLHeader, *slh = NULL;
+	u32 SLHdrLen = 0;
+	GF_ESD *esd;
+	if (esd = gf_m2ts_get_esd(pck->stream))	{
+		gf_sl_depacketize(esd->slConfig, &SLHeader, pck->data, pck->data_len, &SLHdrLen);
+		slh = &SLHeader;
+	}
+	gf_term_on_sl_packet(m2ts->service, pck->stream->user, pck->data+SLHdrLen, pck->data_len-SLHdrLen, slh, GF_OK);
 }
 
 static GF_ObjectDescriptor *M2TS_GenerateEPG_OD(M2TSIn *m2ts)

@@ -1368,6 +1368,7 @@
 
 /*mpegts.h exports*/
 #ifndef GPAC_DISABLE_MPEG2TS
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_esd) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demux_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_process_data) )
