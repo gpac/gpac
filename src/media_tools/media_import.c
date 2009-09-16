@@ -5025,40 +5025,6 @@ static void m2ts_create_track(GF_TSImport *tsimp, u32 mtype, u32 stype, u32 oti,
 	}
 }
 
-static GF_ESD *m2ts_get_esd(GF_M2TS_ES *es)
-{
-	GF_ESD *esd;
-	u32 k, esd_count;
-
-	esd = NULL;
-	if (es->program->pmt_iod && es->program->pmt_iod->ESDescriptors) {
-		esd_count = gf_list_count(es->program->pmt_iod->ESDescriptors);
-		for (k = 0; k < esd_count; k++) {
-			GF_ESD *esd_tmp = (GF_ESD *)gf_list_get(es->program->pmt_iod->ESDescriptors, k);
-			if (esd_tmp->ESID != es->mpeg4_es_id) continue;
-			esd = esd_tmp;
-			break;
-		}
-	}
-
-	if (!esd && es->program->additional_ods) {
-		u32 od_count, od_index;
-		od_count = gf_list_count(es->program->additional_ods);
-		for (od_index = 0; od_index < od_count; od_index++) {
-			GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(es->program->additional_ods, od_index);
-			esd_count = gf_list_count(od->ESDescriptors);
-			for (k = 0; k < esd_count; k++) {
-				GF_ESD *esd_tmp = (GF_ESD *)gf_list_get(od->ESDescriptors, k);
-				if (esd_tmp->ESID != es->mpeg4_es_id) continue;
-				esd = esd_tmp;
-				break;
-			}
-		}
-	}
-
-	return esd;
-}
-
 void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 {
 	GF_Err e;
@@ -5172,7 +5138,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						import->tk_info[idx].media_type = GF_4CC('M','4','S','S');
 					}
 					if (prog->pmt_iod) {
-						GF_ESD *esd = m2ts_get_esd(es);
+						GF_ESD *esd = gf_m2ts_get_esd(es);
 						m2ts_set_track_mpeg4_probe_info(es, esd, &import->tk_info[idx]);
 						if (esd && esd->decoderConfig->streamType == GF_STREAM_OD) {
 							es->flags |= GF_M2TS_ES_IS_MPEG4_OD;
@@ -5203,7 +5169,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				} else {
 					pes = (GF_M2TS_PES *)es;
 				}
-				esd = m2ts_get_esd(es);
+				esd = gf_m2ts_get_esd(es);
 				if (esd && esd->decoderConfig->streamType == GF_STREAM_OD) {
 					es->flags |= GF_M2TS_ES_IS_MPEG4_OD;
 				}
@@ -5257,7 +5223,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			case GF_M2TS_SYSTEMS_MPEG4_PES:
 			case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 				if (prog->pmt_iod && !import->esd) {
-					import->esd = m2ts_get_esd(es);
+					import->esd = gf_m2ts_get_esd(es);
 					m2ts_set_track_mpeg4_creation_info(import, &mtype, &stype, &oti);
 					is_in_iod = 1;
 				}
@@ -5469,7 +5435,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 
 			if (sl_pck->stream->flags & GF_M2TS_ES_IS_MPEG4_OD) {
 				/* We need to handle OD streams even if this is not the stream we are importing */
-				GF_ESD *esd = m2ts_get_esd(sl_pck->stream);
+				GF_ESD *esd = gf_m2ts_get_esd(sl_pck->stream);
 				if (esd) {
 					GF_SLHeader hdr;
 					u32 hdr_len;
@@ -5528,7 +5494,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			if (!gf_isom_get_track_by_id(import->dest, (import->esd?import->esd->ESID:import->trackID))) {
 				u32 mtype, stype, oti;
 				mtype = stype = oti = 0;
-				import->esd = m2ts_get_esd(sl_pck->stream);
+				import->esd = gf_m2ts_get_esd(sl_pck->stream);
 				m2ts_set_track_mpeg4_creation_info(import, &mtype, &stype, &oti);
 				m2ts_create_track(tsimp, mtype, stype, oti, 0);
 			}
