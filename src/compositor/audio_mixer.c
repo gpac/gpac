@@ -578,7 +578,7 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size)
 		gf_mixer_lock(am, 0);
 		return 0;
 	}
-goto do_mix;
+
 	/*this happens if input SR cannot be mapped to output audio hardware*/
 	if (single_source->src->samplerate != am->sample_rate) goto do_mix;
 	/*note we don't check output cfg: if the number of channel is the same then the channel cfg is the 
@@ -683,7 +683,7 @@ do_mix:
 	this is needed because mediaControl on an audio object doesn't deactivate it (eg the audio
 	object is still present in the mixer). this opt is typically usefull for language selection
 	content (cf mp4menu)*/
-//	if ((nb_act_src==1) && single_source) goto single_source_mix;
+	if ((nb_act_src==1) && single_source) goto single_source_mix;
 
 	/*step 2, fill all buffers*/
 	while (nb_act_src) {
