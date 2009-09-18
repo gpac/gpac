@@ -223,7 +223,9 @@ GF_Err gf_es_start(GF_Channel *ch)
 	/*and start buffering - pull channels always turn off buffering immediately, otherwise 
 	buffering size is setup by the network service - except InputSensor*/
 	if ((ch->esd->decoderConfig->streamType != GF_STREAM_INTERACT) || ch->esd->URLString) {
-		ch_buffer_on(ch);
+		/*don't trigger rebuffer*/
+		if (ch->MinBuffer || (ch->clock->clock_init && ch->clock->Paused))
+			ch_buffer_on(ch);
 	}
 	ch->last_au_time = gf_term_get_time(ch->odm->term);
 	ch->es_state = GF_ESM_ES_RUNNING;
@@ -463,9 +465,11 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		/*enable deinterleaving only for audio channels (some video transport may not be able to compute DTS, cf MPEG1-2/RTP)
 		HOWEVER, we must recompute a monotone increasing DTS in case the decoder does perform frame reordering
 		in which case the DTS is used for presentation time!!*/
-		else if (ch->odm->codec && (ch->odm->codec->type!=GF_STREAM_AUDIO)) {
+		else if (ch->esd->decoderConfig->streamType!=GF_STREAM_AUDIO) {
 			GF_DBUnit *au_prev, *ins_au;
 			u32 DTS;
+
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Media deinterleaving OD %d ch %d\n", ch->esd->ESID, ch->odm->OD->objectDescriptorID));
 
 			/*append AU*/
 			ch->AU_buffer_last->next = au;
