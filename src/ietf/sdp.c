@@ -554,13 +554,11 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			if (gf_sk_is_multicast_address(conn->host)) {
 				//a valid SDP will have TTL if address is multicast
 				pos = gf_token_get(LineBuf, pos, "/\r\n", comp, 3000);
-				if (pos <= 0) {
-					gf_sdp_conn_del(conn);
-					break;
+				if (pos > 0) {
+					conn->TTL = atoi(comp);
+					//multiple address indication is only valid for media
+					pos = gf_token_get(LineBuf, pos, "/\r\n", comp, 3000);
 				}
-				conn->TTL = atoi(comp);
-				//multiple address indication is only valid for media
-				pos = gf_token_get(LineBuf, pos, "/\r\n", comp, 3000);
 				if (pos > 0) {
 					if (!media) {
 						gf_sdp_conn_del(conn);
