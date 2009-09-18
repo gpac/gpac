@@ -375,12 +375,6 @@ check_unit:
 	/*check seeking and update timing - do NOT use the base layer, since BIFS streams may depend on other
 	streams not on the same clock*/
 	if (codec->last_unit_cts == AU->CTS) {
-		/*hack for RTSP streaming of systems streams, except InputSensor*/
-		if (!ch->is_pulling && (codec->type != GF_STREAM_INTERACT) && (AU->dataLength == codec->prev_au_size)) {
-			gf_es_drop_au(ch);
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[SysDec] Same MPEG-4 Systems AU detected - dropping\n"));
-			goto check_unit;
-		}
 		/*seeking for systems is done by not releasing the graph until seek is done*/
 		check_next_unit = 1;
 		mm_level = GF_CODEC_LEVEL_SEEK;
