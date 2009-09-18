@@ -346,9 +346,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 
 	if (force_decode) {
 		gf_odm_lock(mo->odm, 0);
-		gf_term_lock_codec(mo->odm->codec, 1);
-		gf_codec_process(mo->odm->codec, 1);
-		gf_term_lock_codec(mo->odm->codec, 0);
+		if (gf_term_lock_codec(mo->odm->codec, 1)) {
+			gf_codec_process(mo->odm->codec, 1);
+			gf_term_lock_codec(mo->odm->codec, 0);
+		}
 		gf_odm_lock(mo->odm, 1);
 	}
 
@@ -374,9 +375,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 				if (force_decode) {
 					obj_time = gf_clock_time(mo->odm->codec->ck);
 					gf_odm_lock(mo->odm, 0);
-					gf_term_lock_codec(mo->odm->codec, 1);
-					gf_codec_process(mo->odm->codec, 1);
-					gf_term_lock_codec(mo->odm->codec, 0);
+					if (gf_term_lock_codec(mo->odm->codec, 1)) {
+						gf_codec_process(mo->odm->codec, 1);
+						gf_term_lock_codec(mo->odm->codec, 0);
+					}
 					gf_odm_lock(mo->odm, 1);
 					if (!CU->next->dataLength) 
 						break;

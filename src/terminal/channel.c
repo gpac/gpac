@@ -128,16 +128,6 @@ GF_Channel *gf_es_new(GF_ESD *esd)
 		tmp->ocr_scale = 1000;
 		tmp->ocr_scale /= esd->slConfig->OCRResolution;
 	}
-	switch (tmp->esd->decoderConfig->streamType) {
-	case GF_STREAM_OD:
-	case GF_STREAM_SCENE:
-		tmp->is_carousel = esd->slConfig->AUSeqNumLength ? 1 : 0;
-		break;
-	default:
-		tmp->is_carousel = 0;
-		break;
-	}
-
 
 	Channel_Reset(tmp, 0);
 	return tmp;
@@ -145,7 +135,7 @@ GF_Channel *gf_es_new(GF_ESD *esd)
 
 
 /*reconfig SL settings for this channel - this is needed by some net services*/
-void gf_es_reconfig_sl(GF_Channel *ch, GF_SLConfig *slc)
+void gf_es_reconfig_sl(GF_Channel *ch, GF_SLConfig *slc, Bool use_m2ts_sections)
 {
 	u32 nbBits;
 	
@@ -168,14 +158,16 @@ void gf_es_reconfig_sl(GF_Channel *ch, GF_SLConfig *slc)
 		ch->ocr_scale = 1000;
 		ch->ocr_scale /= ch->esd->slConfig->OCRResolution;
 	}
-	switch (ch->esd->decoderConfig->streamType) {
-	case GF_STREAM_OD:
-	case GF_STREAM_SCENE:
-		ch->is_carousel = ch->esd->slConfig->AUSeqNumLength ? 1 : 0;
-		break;
-	default:
-		ch->is_carousel = 0;
-		break;
+	ch->carousel_type = GF_ESM_CAROUSEL_NONE;
+	if (use_m2ts_sections) {
+		ch->carousel_type = GF_ESM_CAROUSEL_MPEG2;
+	} else {
+		switch (ch->esd->decoderConfig->streamType) {
+		case GF_STREAM_OD:
+		case GF_STREAM_SCENE:
+			ch->carousel_type = ch->esd->slConfig->AUSeqNumLength ? GF_ESM_CAROUSEL_MPEG4 : GF_ESM_CAROUSEL_NONE;
+			break;
+		}
 	}
 }
 
@@ -710,7 +702,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			if (gf_es_owns_clock(ch)) {
 				u32 OCR_TS;
 				/*if SL is mapped from network module(eg not coded), OCR=PCR shall be given in 27Mhz units*/
-				if (header) {
+				if (hdr.m2ts_pcr) {
 					OCR_TS = (u32) ( hdr.objectClockReference / 27000);
 				} else {
 					OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
@@ -752,7 +744,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	/*get RAP*/
 	if (ch->esd->slConfig->hasRandomAccessUnitsOnlyFlag) {
 		hdr.randomAccessPointFlag = 1;
-	} else if (!ch->esd->slConfig->useRandomAccessPointFlag || ch->codec_resilient) {
+	} else if ((ch->carousel_type!=GF_ESM_CAROUSEL_MPEG2) && (!ch->esd->slConfig->useRandomAccessPointFlag || ch->codec_resilient) ) {
 		ch->stream_state = 0;
 	}
 
@@ -811,20 +803,22 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		}
 		AUSeqNum = hdr.AU_sequenceNumber;
 		/*Get CTS */
-		if (hdr.compositionTimeStampFlag) {
-			ch->net_dts = ch->net_cts = hdr.compositionTimeStamp;
-			/*get DTS */
-			if (hdr.decodingTimeStampFlag) ch->net_dts = hdr.decodingTimeStamp;
+		if (ch->esd->slConfig->useTimestampsFlag) {
+			if (hdr.compositionTimeStampFlag) {
+				ch->net_dts = ch->net_cts = hdr.compositionTimeStamp;
+				/*get DTS */
+				if (hdr.decodingTimeStampFlag) ch->net_dts = hdr.decodingTimeStamp;
 
-			/*until clock is not init check seed ts*/
-			if (!ch->IsClockInit && (ch->net_dts < ch->seed_ts)) 
-				ch->seed_ts = ch->net_dts;
+				/*until clock is not init check seed ts*/
+				if (!ch->IsClockInit && (ch->net_dts < ch->seed_ts)) 
+					ch->seed_ts = ch->net_dts;
 
-			ch->net_dts -= ch->seed_ts;
-			ch->net_cts -= ch->seed_ts;
-			/*TS Wraping not tested*/
-			ch->CTS = (u32) (ch->ts_offset + (s64) (ch->net_cts) * 1000 / ch->ts_res);
-			ch->DTS = (u32) (ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res);
+				ch->net_dts -= ch->seed_ts;
+				ch->net_cts -= ch->seed_ts;
+				/*TS Wraping not tested*/
+				ch->CTS = (u32) (ch->ts_offset + (s64) (ch->net_cts) * 1000 / ch->ts_res);
+				ch->DTS = (u32) (ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res);
+			}
 		} else {
 			/*use CU duration*/
 			if (!ch->IsClockInit) ch->DTS = ch->CTS = ch->ts_offset;
@@ -854,43 +848,66 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			ch->AULength = 0;
 		}
 		/*carousel for repeated AUs.*/
-		if (ch->is_carousel) {
-			if (hdr.randomAccessPointFlag) {
-				/*initial tune-in*/
-				if (ch->stream_state==1) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found - tuning in\n", ch->esd->ESID));
-					ch->au_sn = AUSeqNum;
-					ch->stream_state = 0;
-				}
-				/*carousel RAP*/
-				else if (AUSeqNum == ch->au_sn) {
-					/*error recovery*/
-					if (ch->stream_state==2) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found - recovering\n", ch->esd->ESID));
-						ch->stream_state = 0;
-					} 
-					else {
-						ch->skip_carousel_au = 1;
-						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found - skipping\n", ch->esd->ESID));
+		if (ch->carousel_type) {
+			Bool use_rap = hdr.randomAccessPointFlag;
+
+			if (ch->carousel_type==GF_ESM_CAROUSEL_MPEG2) {
+				AUSeqNum = hdr.m2ts_version_number_plus_one-1;
+				/*mpeg-2 section carrouseling does not take into account the RAP nature of the tables*/
+
+
+				if (AUSeqNum==ch->au_sn) {
+					if (ch->stream_state) {
+						ch->stream_state=0;
+						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: tuning in\n", ch->esd->ESID));
+					} else {
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: repeated AU - skipping\n", ch->esd->ESID));
 						return;
 					}
-				}
-				/*regular RAP*/
-				else {
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: updated AU\n", ch->esd->ESID));
+					ch->stream_state=0;
 					ch->au_sn = AUSeqNum;
-					ch->stream_state = 0;
 				}
-			} 
-			/*regular AU but waiting for RAP*/
-			else if (ch->stream_state) {
-				ch->skip_carousel_au = 1;
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Waiting for RAP Carousel - skipping\n", ch->esd->ESID));
-				return;
 			} else {
-				ch->au_sn = AUSeqNum;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: NON-RAP AU received\n", ch->esd->ESID));
+				if (hdr.randomAccessPointFlag) {
+					/*initial tune-in*/
+					if (ch->stream_state==1) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found - tuning in\n", ch->esd->ESID));
+						ch->au_sn = AUSeqNum;
+						ch->stream_state = 0;
+					}
+					/*carousel RAP*/
+					else if (AUSeqNum == ch->au_sn) {
+						/*error recovery*/
+						if (ch->stream_state==2) {
+							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found - recovering\n", ch->esd->ESID));
+							ch->stream_state = 0;
+						} 
+						else {
+							ch->skip_carousel_au = 1;
+							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found - skipping\n", ch->esd->ESID));
+							return;
+						}
+					}
+					/*regular RAP*/
+					else {
+						ch->au_sn = AUSeqNum;
+						ch->stream_state = 0;
+					}
+				} 
+				/*regular AU but waiting for RAP*/
+				else if (ch->stream_state) {
+					ch->skip_carousel_au = 1;
+					GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Waiting for RAP Carousel - skipping\n", ch->esd->ESID));
+					return;
+				} else {
+					ch->au_sn = AUSeqNum;
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: NON-RAP AU received\n", ch->esd->ESID));
+				}
 			}
 		}
+
 		/*no carousel signaling, tune-in at first RAP*/
 		else if (hdr.randomAccessPointFlag) {
 			ch->stream_state = 0;

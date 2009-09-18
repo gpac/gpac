@@ -581,6 +581,7 @@ void gf_m2ts_es_del(GF_M2TS_ES *es)
 		if (pes->data) free(pes->data);
 		if (pes->buf) free(pes->buf);
 	}
+	if (es->slcfg) free(es->slcfg);
 	free(es);
 }
 
@@ -981,8 +982,9 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 	GF_M2TS_Section *section;
 
 	/*skip if already received*/
-	if (status & GF_M2TS_TABLE_REPEAT)
-		return;
+	if (status & GF_M2TS_TABLE_REPEAT) 
+		if (!(es->flags & GF_M2TS_ES_SEND_REPEATED_SECTIONS))
+			return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Sections for PID %d\n", es->pid) );
 	/*send all sections (eg SL-packets)*/
@@ -1021,6 +1023,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PMT_REPEAT, pmt->program);
 		return;
 	}
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PMT Found or updated\n"));
 
 	nb_sections = gf_list_count(sections);
 	if (nb_sections > 1) {
@@ -1201,8 +1205,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 		if (!es) continue;
 
-		/*watchout for pmt update*/
-		if (/*(status==GF_M2TS_TABLE_UPDATE) && */ts->ess[pid]) {
+		/*watchout for pmt update - FIXME this likely won't work in most cases*/
+		if (ts->ess[pid]) {
 			GF_M2TS_ES *o_es = ts->ess[es->pid];
 
 			if ((o_es->stream_type == es->stream_type)
@@ -1212,7 +1216,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			) {
 				free(es);
 				es = NULL;
-
+			} else {
+				gf_m2ts_es_del(o_es);
+				ts->ess[es->pid] = NULL;
 			}
 		}
 
@@ -1724,10 +1730,25 @@ static void gf_m2ts_reframe_skip(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS,
 	res = 0;
 }
 
+static void gf_m2ts_process_section_discard(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
+{
+	u32 res;
+	res = 0;
+}
+
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 {
 	/*ignore request for section PIDs*/
-	if (pes->flags & GF_M2TS_ES_IS_SECTION) return GF_OK;
+	if (pes->flags & GF_M2TS_ES_IS_SECTION) {
+		if (pes->flags & GF_M2TS_ES_IS_SL) {
+			if (mode==GF_M2TS_PES_FRAMING_DEFAULT) {
+				((GF_M2TS_SECTION_ES *)pes)->sec->process_section = gf_m2ts_process_mpeg4section;
+			} else {
+				((GF_M2TS_SECTION_ES *)pes)->sec->process_section = gf_m2ts_process_section_discard;
+			}
+		}
+		return GF_OK;
+	}
 
 	if (pes->pid==pes->program->pmt_pid) return GF_BAD_PARAM;
 

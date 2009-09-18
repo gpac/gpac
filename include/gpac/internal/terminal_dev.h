@@ -438,7 +438,7 @@ For these nodes, the traverse effect passed will be NULL.*/
 void gf_term_queue_node_traverse(GF_Terminal *term, GF_Node *node);
 void gf_term_unqueue_node_traverse(GF_Terminal *term, GF_Node *node);
 
-void gf_term_lock_codec(GF_Codec *codec, Bool lock);
+Bool gf_term_lock_codec(GF_Codec *codec, Bool lock);
 
 
 /*clock*/
@@ -514,6 +514,13 @@ enum
 	GF_ESM_ES_UNAVAILABLE
 };
 
+enum
+{
+	GF_ESM_CAROUSEL_NONE = 0,
+	GF_ESM_CAROUSEL_MPEG4,
+	GF_ESM_CAROUSEL_MPEG2,
+};
+
 /*data channel (elementary stream)*/
 struct _es_channel 
 {
@@ -573,7 +580,7 @@ struct _es_channel
 	Bool first_au_fetched;
 
 	/* used in Carousel, to skip packets until the end of AU */ 
-	Bool is_carousel;
+	u8 carousel_type;
 	Bool skip_carousel_au;
 	
 	/* TimeStamp to Media Time mapping*/
@@ -636,7 +643,7 @@ void gf_es_drop_au(GF_Channel *ch);
 /*performs final setup upon connection confirm*/
 void gf_es_on_connect(GF_Channel *ch);
 /*reconfigure SL for this channel*/
-void gf_es_reconfig_sl(GF_Channel *ch, GF_SLConfig *slc);
+void gf_es_reconfig_sl(GF_Channel *ch, GF_SLConfig *slc, Bool use_m2ts_sections);
 /*hack for streaming: whenever a time map (media time <-> TS time) event is received on the channel reset decoding buffer
 this is needed because all server tested resend packets on already running channel*/
 void gf_es_map_time(GF_Channel *ch, Bool reset);
