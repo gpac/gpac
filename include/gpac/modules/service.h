@@ -135,6 +135,8 @@ typedef struct
 	u32 sync_id;
 	/*audio frame duration and sample rate if any - this is needed by some RTP payload*/
 	u32 frame_duration, sample_rate;
+	/*do we use MPEG-2 section for SL packets ? this field is not coded*/
+	Bool use_m2ts_sections;
 } GF_NetComConfig;
 
 /*GF_NET_CHAN_BUFFER, GF_NET_CHAN_BUFFER_QUERY*/

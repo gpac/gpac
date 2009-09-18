@@ -269,8 +269,10 @@ enum
 	/*all flags above this mask are used by importers & co*/
 	GF_M2TS_ES_STATIC_FLAGS_MASK = 0x0000FFFF,
 
+	/*always send sections regardless of their version_number*/
+	GF_M2TS_ES_SEND_REPEATED_SECTIONS = 1<<16,
 	/*Flag used by importers*/
-	GF_M2TS_ES_FIRST_DTS = 1<<20,
+	GF_M2TS_ES_FIRST_DTS = 1<<17,
 };
 
 /*Abstract Section/PES stream object, only used for type casting*/
@@ -280,6 +282,7 @@ enum
 			u32 pid; \
 			u32 stream_type; \
 			u32 mpeg4_es_id; \
+			GF_SLConfig *slcfg; \
 			s16 component_tag; \
 			void *user; \
 			u64 first_dts;

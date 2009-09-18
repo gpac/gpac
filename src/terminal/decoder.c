@@ -187,6 +187,19 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 				com.cfg.frame_duration = cap.cap.valueInt;
 			}
 			gf_term_service_command(ch->service, &com);
+
+			ch->carousel_type = GF_ESM_CAROUSEL_NONE;
+			if (com.cfg.use_m2ts_sections) {
+				ch->carousel_type = GF_ESM_CAROUSEL_MPEG2;
+			} else {
+				switch (ch->esd->decoderConfig->streamType) {
+				case GF_STREAM_OD:
+				case GF_STREAM_SCENE:
+					ch->carousel_type = ch->esd->slConfig->AUSeqNumLength ? GF_ESM_CAROUSEL_MPEG4 : GF_ESM_CAROUSEL_NONE;
+					break;
+				}
+			}
+		
 		}
 	}
 

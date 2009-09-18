@@ -433,7 +433,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 	/*SL reconfiguration*/
 	case GF_NET_CHAN_RECONFIG:
 		gf_term_lock_net(term, 1);
-		gf_es_reconfig_sl(ch, &com->cfg.sl_config);
+		gf_es_reconfig_sl(ch, &com->cfg.sl_config, com->cfg.use_m2ts_sections);
 		gf_term_lock_net(term, 0);
 		return;
 	/*time mapping (TS to media-time)*/

@@ -474,8 +474,8 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
-		/*move to skip mode for all PES until asked for playback*/
-		if (!(es->flags & GF_M2TS_ES_IS_SECTION) && !es->user)
+		/*move to skip mode for all ES until asked for playback*/
+		if (!es->user)
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
 		if (!prog->pmt_iod && !no_declare) MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
 	}
@@ -507,12 +507,13 @@ static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 
 static GFINLINE void MP2TS_SendSLPacket(M2TSIn *m2ts, GF_M2TS_SL_PCK *pck)
 {
-	/*build a SL Header*/
 	GF_SLHeader SLHeader, *slh = NULL;
 	u32 SLHdrLen = 0;
-	GF_ESD *esd;
-	if (esd = gf_m2ts_get_esd(pck->stream))	{
-		gf_sl_depacketize(esd->slConfig, &SLHeader, pck->data, pck->data_len, &SLHdrLen);
+	
+	/*build a SL Header*/
+	if (((GF_M2TS_ES*)pck->stream)->slcfg) {
+		gf_sl_depacketize(((GF_M2TS_ES*)pck->stream)->slcfg, &SLHeader, pck->data, pck->data_len, &SLHdrLen);
+		SLHeader.m2ts_version_number_plus_one = pck->version_number + 1;
 		slh = &SLHeader;
 	}
 	gf_term_on_sl_packet(m2ts->service, pck->stream->user, pck->data+SLHdrLen, pck->data_len-SLHdrLen, slh, GF_OK);
@@ -674,6 +675,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			GF_SLHeader slh;
 			memset(&slh, 0, sizeof(GF_SLHeader) );
 			slh.OCRflag = 1;
+			slh.m2ts_pcr = 1;
 			slh.objectClockReference = ((GF_M2TS_PES_PCK *) param)->PTS;
 			gf_term_on_sl_packet(m2ts->service, ((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, &slh, GF_OK);
 		}
@@ -1265,6 +1267,17 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				m2ts->file_regulate = 0;
 				gf_th_run(m2ts->th, M2TS_Run, m2ts);
 			}
+		}
+		return GF_OK;
+	case GF_NET_CHAN_CONFIG:
+		pes = M2TS_GetChannel(m2ts, com->base.on_channel);
+		/*filter all sections carrying SL data for the app to signal the version number of the section*/
+		if (pes->flags & GF_M2TS_ES_IS_SECTION) {
+			if (pes->slcfg) free(pes->slcfg);
+			pes->slcfg = malloc(sizeof(GF_SLConfig));
+			memcpy(pes->slcfg, &com->cfg.sl_config, sizeof(GF_SLConfig));
+			com->cfg.use_m2ts_sections = 1;
+			pes->flags |= GF_M2TS_ES_SEND_REPEATED_SECTIONS;
 		}
 		return GF_OK;
 	default:
