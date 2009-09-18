@@ -45,7 +45,7 @@ GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt, GF_SLConfig *slc, u32 flags,
 {
 	GP_RTPPacketizer *tmp;
 	if (!rtp_payt || !cbk_obj | !OnPacketDone) return NULL;
-	
+
 	GF_SAFEALLOC(tmp, GP_RTPPacketizer);
 	if (!tmp) return NULL;
 

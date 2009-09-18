@@ -225,7 +225,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 		if (pay_start >= size) break;
 		num_au ++;
 	}
-	assert(!au_hdr_size);
+//	assert(!au_hdr_size);
 
 	if (hdr->Marker)
 		rtp->flags |= GF_RTP_NEW_AU;
@@ -1108,6 +1108,10 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			rtp->sl_map.StreamType = GF_STREAM_VISUAL;
 			rtp->sl_map.ObjectTypeIndication = 0x20;
 		}
+		else if (!strnicmp(map->payload_name, "AAC", 3)) {
+			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
+			rtp->sl_map.ObjectTypeIndication = 0x40;
+		}
 		else if (!stricmp(map->payload_name, "MP4A-LATM")) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
 			rtp->sl_map.ObjectTypeIndication = 0x40;
@@ -1116,6 +1120,23 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		if ((rtp->sl_map.StreamType == GF_STREAM_VISUAL) && (rtp->sl_map.ObjectTypeIndication == 0x20) && !rtp->sl_map.RandomAccessIndication) {
 			rtp->flags |= GF_RTP_M4V_CHECK_RAP;
 		}
+#ifndef GPAC_DISABLE_AV_PARSERS
+		if ((rtp->sl_map.ObjectTypeIndication == 0x40) && !rtp->sl_map.config) {
+			GF_M4ADecSpecInfo cfg;
+			GF_RTPMap*map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
+
+			memset(&cfg, 0, sizeof(GF_M4ADecSpecInfo));
+			cfg.audioPL = rtp->sl_map.PL_ID;
+			cfg.nb_chan = map->AudioChannels;
+			cfg.nb_chan = 1;
+			cfg.base_sr = map->ClockRate/2;
+			cfg.sbr_sr = map->ClockRate;
+			cfg.base_object_type = GF_M4A_AAC_LC;
+			cfg.base_object_type = 5;
+			cfg.sbr_object_type = GF_M4A_AAC_MAIN;
+			gf_m4a_write_config(&cfg, &rtp->sl_map.config, &rtp->sl_map.configSize);
+		}
+#endif
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_mpeg4;
 		break;
