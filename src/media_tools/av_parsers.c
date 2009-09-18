@@ -995,6 +995,21 @@ GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size)
 {
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
+	if (!cfg->base_sr_index) {
+		if (!cfg->base_sr) return GF_BAD_PARAM;
+		while (GF_M4ASampleRates[cfg->base_sr_index]) {
+			if (GF_M4ASampleRates[cfg->base_sr_index]==cfg->base_sr)
+				break;
+			cfg->base_sr_index++;
+		}
+	}
+	if (cfg->sbr_sr && !cfg->sbr_sr_index) {
+		while (GF_M4ASampleRates[cfg->sbr_sr_index]) {
+			if (GF_M4ASampleRates[cfg->sbr_sr_index]==cfg->sbr_sr)
+				break;
+			cfg->sbr_sr_index++;
+		}
+	}
 	/*extended object type*/
 	if (cfg->base_object_type>=32) {
 		gf_bs_write_int(bs, 31, 5);
