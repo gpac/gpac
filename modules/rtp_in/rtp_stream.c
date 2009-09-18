@@ -417,7 +417,7 @@ void RP_ReadStream(RTPStream *ch)
 	if (ch->owner->udp_time_out) {
 		if (!ch->last_udp_time) {
 			ch->last_udp_time = gf_sys_clock();
-		} else {
+		} else if (ch->rtp_ch->net_info.IsUnicast){
 			u32 diff = gf_sys_clock() - ch->last_udp_time;
 			if (diff >= ch->owner->udp_time_out) {
 				char szMessage[1024];

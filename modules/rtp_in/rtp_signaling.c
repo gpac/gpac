@@ -459,7 +459,8 @@ static void SkipCommandOnSession(RTPStream *ch)
 	i=0;
 	while ((a_ch = (RTPStream *)gf_list_enum(ch->owner->channels, &i))) {
 		if ((ch == a_ch) || (a_ch->rtsp != ch->rtsp) ) continue;
-		a_ch->flags |= RTP_SKIP_NEXT_COM;
+		if (a_ch->status>=RTP_Connected)
+			a_ch->flags |= RTP_SKIP_NEXT_COM;
 	}
 }
 

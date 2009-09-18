@@ -202,7 +202,7 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 	if (priv->dnload) gf_term_download_del(priv->dnload);
 	priv->dnload = NULL;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[RTP] Opening service %s\n", url));
+	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Opening service %s\n", url));
 
 	/*load preferences*/
 	RT_LoadPrefs(plug, priv);
@@ -216,12 +216,12 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 			FILE *f = fopen(session_cache, "rb");
 			if (f) {
 				fclose(f);
-				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[RTP] Restarting RTSP session from %s\n", session_cache));
+				GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Restarting RTSP session from %s\n", session_cache));
 				RP_FetchSDP(priv, (char *) session_cache, NULL, (char *) url);
 				return GF_OK;
 			}
 			if (!strncmp(session_cache, "http://", 7)) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[RTP] Restarting RTSP session from %s\n", session_cache));
+				GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Restarting RTSP session from %s\n", session_cache));
 				RP_FetchSDP(priv, (char *) session_cache, NULL, (char *) url);
 				return GF_OK;
 			}
@@ -289,7 +289,7 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 	const char *opt;
 	RTSPSession *sess;
 	RTPClient *rtp = (RTPClient *)plug->priv;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[RTP] Closing service\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Closing service\n"));
 
 	RP_FlushCommands(rtp);
 
@@ -334,7 +334,7 @@ static GF_Descriptor *RP_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 	GF_Descriptor *desc;
 	RTPClient *priv = (RTPClient *)plug->priv;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[RTP] Fetching service descriptor\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Fetching service descriptor\n"));
 	if ((expect_type!=GF_MEDIA_OBJECT_UNDEF) && (expect_type!=GF_MEDIA_OBJECT_SCENE) && (expect_type!=GF_MEDIA_OBJECT_UPDATES)) {
 		/*ignore the SDP IOD and regenerate one*/
 		if (priv->session_desc) gf_odf_desc_del(priv->session_desc);
@@ -358,7 +358,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 	if (upstream) return GF_NOT_SUPPORTED;
 
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[RTP] Connecting channel @%08x - %s\n", channel, url));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Connecting channel @%08x - %s\n", channel, url));
 
 	ch = RP_FindChannel(priv, channel, 0, (char *) url, 0);
 	if (ch && (ch->status != RTP_Disconnected) ) return GF_SERVICE_ERROR;
@@ -421,7 +421,7 @@ static GF_Err RP_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	RTPStream *ch;
 	RTPClient *priv = (RTPClient *)plug->priv;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[RTP] Disconnecting channel @%08x\n", channel));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Disconnecting channel @%08x\n", channel));
 
 	ch = RP_FindChannel(priv, channel, 0, NULL, 0);
 	if (!ch) return GF_STREAM_NOT_FOUND;
@@ -501,7 +501,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 
 	case GF_NET_CHAN_PLAY:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[RTP] Processing play on channel @%08x - %s\n", ch, ch->rtsp ? "RTSP control" : "No control (RTP)" ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Processing play on channel @%08x - %s\n", ch, ch->rtsp ? "RTSP control" : "No control (RTP)" ));
 		/*is this RTSP or direct RTP?*/
 		ch->flags &= ~RTP_EOS;
 		if (ch->rtsp) {
