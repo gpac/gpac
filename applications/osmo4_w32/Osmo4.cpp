@@ -519,7 +519,13 @@ BOOL Osmo4::InitInstance()
 		/*by default use GDIplus, much faster than freetype on font loading*/
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "gm_soft_raster");
 
-	}	
+		/*set some shortcuts*/
+		gf_cfg_set_key(m_user.config, "Shortcuts", "VolumeUp", "ctrl+Up");
+		gf_cfg_set_key(m_user.config, "Shortcuts", "VolumeDown", "ctrl+Down");
+		gf_cfg_set_key(m_user.config, "Shortcuts", "FastRewind", "ctrl+Left");
+		gf_cfg_set_key(m_user.config, "Shortcuts", "FastForward", "ctrl+Right");
+		gf_cfg_set_key(m_user.config, "Shortcuts", "Play", "ctrl+ ");
+	}
 	if (! gf_modules_get_count(m_user.modules) ) {
 		MessageBox(NULL, "No modules available - system cannot work", "Fatal Error", MB_OK);
 		m_pMainWnd->PostMessage(WM_CLOSE);
