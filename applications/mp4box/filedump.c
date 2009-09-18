@@ -1126,11 +1126,13 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stdout, "NAL Unit length bits: %d\n", 8*avccfg->nal_unit_size);
 
 						slc = gf_list_get(avccfg->sequenceParameterSets, 0);
-						gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
-						if ((par_n>0) && (par_d>0)) {
-							u32 tw, th;
-							gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
-							fprintf(stdout, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
+						if (slc) {
+							gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
+							if ((par_n>0) && (par_d>0)) {
+								u32 tw, th;
+								gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
+								fprintf(stdout, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
+							}
 						}
 						gf_odf_avc_cfg_del(avccfg);
 					}
