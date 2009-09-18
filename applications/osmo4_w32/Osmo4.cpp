@@ -517,7 +517,7 @@ BOOL Osmo4::InitInstance()
 		if (!sOpt) gf_cfg_set_key(m_user.config, "Video", "UseHardwareMemory", "yes");
 
 		/*by default use GDIplus, much faster than freetype on font loading*/
-		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "gdip_rend");
+		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "gm_soft_raster");
 
 	}	
 	if (! gf_modules_get_count(m_user.modules) ) {
@@ -538,7 +538,7 @@ BOOL Osmo4::InitInstance()
 	/*check video driver, if none or raw_out use dx_hw by default*/
 	str = gf_cfg_get_key(m_user.config, "Video", "DriverName");
 	if (!str || !stricmp(str, "raw_out")) {
-		gf_cfg_set_key(m_user.config, "Video", "DriverName", "dx_hw");
+		gf_cfg_set_key(m_user.config, "Video", "DriverName", "DirectX Video Output");
 	}
 
 	/*reset session migration*/
