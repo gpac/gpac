@@ -807,4 +807,4 @@ GF_SensorHandler *compositor_mpeg4_layout_get_sensor_handler(GF_Node *node)
 }
 
 
-#endif GPAC_DISABLE_VRML
+#endif /*GPAC_DISABLE_VRML*/
