@@ -270,7 +270,7 @@ void mesh_generate_tex_coords(GF_Mesh *mesh, GF_Node *__texCoords)
 		}
 	}
 }
-#endif GPAC_DISABLE_VRML
+#endif /*GPAC_DISABLE_VRML*/
 
 
 void mesh_new_box(GF_Mesh *mesh, SFVec3f size)
