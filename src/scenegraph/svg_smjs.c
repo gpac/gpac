@@ -49,6 +49,8 @@ void dom_document_finalize(JSContext *c, JSObject *obj);
 GF_Node *dom_get_element(JSContext *c, JSObject *obj);
 GF_SceneGraph *dom_get_doc(JSContext *c, JSObject *obj);
 
+void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info);
+
 JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
 
@@ -93,19 +95,6 @@ static GF_SVGuDOM *svg_rt = NULL;
 
 static JSObject *svg_new_path_object(JSContext *c, SVG_PathData *d);
 
-
-static void svg_node_changed(GF_Node *n, GF_FieldInfo *info)
-{
-	if (!info) {
-		gf_node_changed(n, NULL);
-	} else {
-		u32 flag = gf_svg_get_modification_flags((SVG_Element *)n, info);
-		gf_node_dirty_set(n, flag, 0);
-	}
-	/*trigger rendering*/
-	if (n->sgprivate->scenegraph->NodeCallback)
-		n->sgprivate->scenegraph->NodeCallback(n->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_MODIFIED, n, info);
-}
 
 
 /*note we are using float to avoid conversions fixed to/from JS native */
@@ -910,7 +899,7 @@ JSBool svg_udom_set_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	e = gf_svg_parse_attribute(n, &info, val, 0);
 	if (e) return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
 
-	svg_node_changed(n, &info);
+	dom_node_changed(n, 0, &info);
 
 	return JS_TRUE;
 }
@@ -960,7 +949,7 @@ JSBool svg_udom_set_float_trait(JSContext *c, JSObject *obj, uintN argc, jsval *
 	default:
 		return JS_TRUE;
 	}
-	svg_node_changed(n, &info);
+	dom_node_changed(n, 0, &info);
 	return JS_TRUE;
 }
 JSBool svg_udom_set_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -985,7 +974,7 @@ JSBool svg_udom_set_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsval 
 
 	if (info.fieldType==SVG_Transform_datatype) {
 		gf_mx2d_copy(((SVG_Transform*)info.far_ptr)->mat, *mx);
-		svg_node_changed(n, NULL);
+		dom_node_changed(n, 0, NULL);
 		return JS_TRUE;
 	}
 	return JS_TRUE;
@@ -1016,7 +1005,7 @@ JSBool svg_udom_set_rect_trait(JSContext *c, JSObject *obj, uintN argc, jsval *a
 		v->y = FLT2FIX(rc->y);
 		v->width = FLT2FIX(rc->w);
 		v->height = FLT2FIX(rc->h);
-		svg_node_changed(n, NULL);
+		dom_node_changed(n, 0, NULL);
 		return JS_TRUE;
 	}
 	return JS_TRUE;
@@ -1072,7 +1061,7 @@ JSBool svg_udom_set_path_trait(JSContext *c, JSObject *obj, uintN argc, jsval *a
 			t->y = FLT2FIX(path->pts[i].y);
 			gf_list_add(d->points, t);
 		}
-		svg_node_changed(n, NULL);
+		dom_node_changed(n, 0, NULL);
 		return JS_TRUE;
 #endif
 	}
@@ -1107,7 +1096,7 @@ JSBool svg_udom_set_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, jsv
 		col->red = FLT2FIX(rgb->r / 255.0f);
 		col->green = FLT2FIX(rgb->g / 255.0f);
 		col->blue = FLT2FIX(rgb->b / 255.0f);
-		svg_node_changed(n, &info);
+		dom_node_changed(n, 0, &info);
 		return JS_TRUE;
 	}
 	case SVG_Paint_datatype:
@@ -1118,7 +1107,7 @@ JSBool svg_udom_set_rgb_color_trait(JSContext *c, JSObject *obj, uintN argc, jsv
 		paint->color.red = FLT2FIX(rgb->r / 255.0f);
 		paint->color.green = FLT2FIX(rgb->g / 255.0f);
 		paint->color.blue = FLT2FIX(rgb->b / 255.0f);
-		svg_node_changed(n, &info);
+		dom_node_changed(n, 0, &info);
 		return JS_TRUE;
 	}
 	}
