@@ -29,7 +29,7 @@ else
 EXT=
 PROG=LoadCompare
 #LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz
-LINKFLAGS+=-lgpac -lz $(XML2_LFLAGS)
+LINKFLAGS+=-lgpac -lz $(XML2_LIBS)
 endif
 
 

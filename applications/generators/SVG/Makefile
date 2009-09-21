@@ -35,7 +35,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 SVGGen$(EXE): $(OBJS) 
-	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(XML2_LFLAGS) $(EXTRALIBS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(XML2_LIBS) $(EXTRALIBS)
 
 
 %.o: %.c

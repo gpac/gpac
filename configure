@@ -87,6 +87,7 @@ has_ipv6="no"
 has_dvb4linux="no"
 has_xmlrpc="no"
 has_openjpeg="no"
+has_libxml2="no"
 gprof_build="no"
 PIC_CFLAGS=""
 want_pic="no"
@@ -979,6 +980,16 @@ fi
 
 fi
 #end wx test
+
+# If svg isn't disabled
+if test "$disable_svg" != "yes"; then
+# Then we check libxm2 presence via pkg-config
+  if pkg-config libxml-2.0 --exists > /dev/null 2>&1  ; then
+    libxml2_cflags=`pkg-config libxml-2.0 --cflags`
+    libxml2_lib_flags=`pkg-config libxml-2.0 --libs`
+    has_libxml2="yes"
+  fi
+fi
 
 
 # look for IPv6
@@ -1908,6 +1919,13 @@ echo "CONFIG_JACK=$has_jack" >> config.mak
 echo "CONFIG_A52=$has_a52" >> config.mak
 
 echo "DISABLE_SVG=$disable_svg" >> config.mak
+echo "HAS_LIBXML2=$has_libxml2" >> config.mak
+if test "$has_libxml2" = "yes"; then
+ echo "XML2_CFLAGS=$libxml2_cflags" >> config.mak
+ echo "XML2_LIBS=$libxml2_lib_flags" >> config.mak
+fi
+
+
 echo "GPAC_USE_TINYGL=$has_tinygl" >> config.mak
 echo "OGL_INCLS=$INCL3D" >> config.mak
 
