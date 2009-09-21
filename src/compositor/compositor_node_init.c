@@ -290,6 +290,12 @@ void gf_sc_invalidate(GF_Compositor *compositor, GF_Node *byObj)
 
 #endif /*GPAC_DISABLE_VRML*/
 
+#ifndef GPAC_DISABLE_SVG
+	case TAG_SVG_animation:
+		compositor_svg_animation_modified(byObj); 
+		break;
+#endif
+
 	default:
 		/*for all nodes, invalidate parent graph - note we do that for sensors as well to force recomputing
 		sensor list cached at grouping node level*/
