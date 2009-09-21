@@ -132,6 +132,8 @@ enum
 	GF_NETIO_SESSION_NOT_THREADED	=	1,
 	/*!session has no cache: data will be sent to the user if threaded mode (live streams like radios & co)*/
 	GF_NETIO_SESSION_NOT_CACHED	=	1<<1,
+	/*! ignores any data already in the cache*/
+	GF_NETIO_SESSION_FORCE_RESTART =	1<<2,
 };
 
 

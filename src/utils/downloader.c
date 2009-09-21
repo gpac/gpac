@@ -270,7 +270,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	free(tmp);
 
 	/*first try, check cached file*/
-	if (!sess->cache_start_size) {
+	if (!sess->cache_start_size && !(sess->flags&GF_NETIO_SESSION_FORCE_RESTART) ) {
 		/*if file present figure out how much of the file is downloaded - we assume 2^31 byte file max*/
 		FILE *the_cache = fopen(sess->cache_name, "rb");
 		if (the_cache) {
