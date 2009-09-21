@@ -271,6 +271,9 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		break;
 	case GF_EVENT_KEYDOWN:
 		gf_term_process_shortcut(gpac->m_term, evt);
+		/*update volume control*/
+		pFrame->m_Sliders.SetVolume();
+
 		switch (evt->key.key_code) {
 		case GF_KEY_HOME:
 			gf_term_set_option(gpac->m_term, GF_OPT_NAVIGATION_TYPE, 1);
