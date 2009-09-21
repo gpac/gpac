@@ -130,7 +130,7 @@ static JSBool xml_dom3_not_implemented(JSContext *c, JSObject *obj, uintN argc, 
 
 #define JS_DOM3_uDOM_FIRST_PROP		18
 
-static void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info)
+void dom_node_changed(GF_Node *n, Bool child_modif, GF_FieldInfo *info)
 {
 	if (info) {
 		if (child_modif) {
