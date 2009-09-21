@@ -1025,7 +1025,7 @@ void http_do_requests(GF_DownloadSession *sess)
 	u32 res;
 	s32 bytesRead;
 	s32 LinePos, Pos;
-	u32 rsp_code, ContentLength, first_byte, last_byte, total_size, range, no_range;
+	u32 rsp_code, ContentLength, first_byte, last_byte, total_size, range, no_range, no_cache;
 	s32 BodyStart;
 
 	/*sent HTTP request*/
@@ -1297,7 +1297,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		rsp_code = (u32) atoi(comp);
 		Pos = gf_token_get(buf, Pos, " \r\n", comp, 400);
 
-		no_range = range = ContentLength = first_byte = last_byte = total_size = 0;
+		no_range = range = ContentLength = first_byte = last_byte = total_size = no_cache = 0;
 		//parse header
 		while (1) {
 			char *sep, *hdr_sep;
@@ -1360,8 +1360,13 @@ void http_do_requests(GF_DownloadSession *sess)
 				new_location = strdup(hdr_val);
 			else if (!stricmp(hdr, "icy-metaint"))
 				sess->icy_metaint = atoi(hdr_val);
-			else if (!stricmp(hdr, "ice") || !stricmp(hdr, "icy") )
+			else if (!stricmp(hdr, "ice") || !stricmp(hdr, "icy") ) {
 				is_ice = 1;
+				no_cache = 1;
+			}
+			else if (!stricmp(hdr, "Cache-Control")) {
+				if (strstr(hdr_val, "no-cache")) no_cache = 1;
+			}
 			else if (!stricmp(hdr, "X-UserProfileID") )
 				gf_cfg_set_key(sess->dm->cfg, "Downloader", "UserProfileID", hdr_val);
 /*			else if (!stricmp(hdr, "Connection") )
@@ -1458,9 +1463,23 @@ void http_do_requests(GF_DownloadSession *sess)
 //		if (!is_ice && !ContentLength) e = GF_REMOTE_SERVICE_ERROR;
 		if (e) goto exit;
 
+		if (no_cache) {
+			sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
+			no_range = 1;
+			first_byte = 0;
+			if (sess->cache) {
+				fclose(sess->cache);
+				sess->cache = NULL;
+			}
+			if (sess->cache_name) {
+				gf_delete_file(sess->cache_name);
+				free(sess->cache_name);
+				sess->cache_name = NULL;
+			}
+			sess->cache_start_size = 0;
+		}
 		/*force disabling cache (no content length)*/
 		if (is_ice) {
-			sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
 			if (sess->mime_type && !stricmp(sess->mime_type, "video/nsv")) {
 				free(sess->mime_type);
 				sess->mime_type = strdup("audio/aac");
