@@ -660,8 +660,26 @@ static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGP
 	}
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
-		gf_term_get_mfurl_from_xlink(node, &(stack->aurl));
+		SVGAllAttributes atts;
+		if (stack->is_active) 
+			gf_sc_audio_stop(&stack->input);
+
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
+		gf_term_get_mfurl_from_xlink(node, &(stack->aurl));
+
+		gf_svg_flatten_attributes((SVG_Element*) node, &atts);
+
+		if (stack->aurl.count && (gf_sc_audio_open(&stack->input, &stack->aurl,
+				atts.clipBegin ? (*atts.clipBegin) : 0.0,
+				atts.clipEnd ? (*atts.clipEnd) : -1.0) == GF_OK) 
+
+		) {
+			gf_mo_set_speed(stack->input.stream, FIX_ONE);
+			stack->is_active = 1;
+		} else if (stack->is_active) {
+			gf_sc_audio_unregister(&stack->input);
+			stack->is_active = 0;
+		}
 	}
 
 	/*store mute flag*/
