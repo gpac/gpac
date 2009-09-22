@@ -263,7 +263,7 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 	initial_qp = codec->ActiveQP ? 1 : 0;
 
 	endFlag = gf_bs_read_int(bs, 1);
-	while (!endFlag) {
+	while (!endFlag  && (codec->LastError>=0)) {
 		e = GF_OK;;
 		if (field->fieldType != GF_SG_VRML_MFNODE) {
 			e = gf_sg_vrml_mf_append(field->far_ptr, field->fieldType, & sffield.far_ptr);
@@ -530,7 +530,7 @@ GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 	numBitsDEF = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF)-1);
 
 	flag = gf_bs_read_int(bs, 1);
-	while (!flag) {
+	while (!flag && (codec->LastError>=0)) {
 		if (codec->pCurrentProto) {
 			//IS'ed flag
 			flag = gf_bs_read_int(bs, 1);
