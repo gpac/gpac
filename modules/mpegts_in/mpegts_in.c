@@ -1272,7 +1272,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_CONFIG:
 		pes = M2TS_GetChannel(m2ts, com->base.on_channel);
 		/*filter all sections carrying SL data for the app to signal the version number of the section*/
-		if (pes->flags & GF_M2TS_ES_IS_SECTION) {
+		if (pes && pes->flags & GF_M2TS_ES_IS_SECTION) {
 			if (pes->slcfg) free(pes->slcfg);
 			pes->slcfg = malloc(sizeof(GF_SLConfig));
 			memcpy(pes->slcfg, &com->cfg.sl_config, sizeof(GF_SLConfig));
