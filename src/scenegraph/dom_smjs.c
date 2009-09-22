@@ -1294,12 +1294,15 @@ void dom_document_finalize(JSContext *c, JSObject *obj)
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!sg) return;
 
+	JS_SetPrivate(c, sg->document, NULL);
 	sg->document = NULL;
-	gf_node_unregister(sg->RootNode, NULL);
-	if (sg->reference_count) {
-		sg->reference_count--;
-		if (!sg->reference_count)
-			gf_sg_del(sg);
+	if (sg->RootNode) {
+		gf_node_unregister(sg->RootNode, NULL);
+		if (sg->reference_count) {
+			sg->reference_count--;
+			if (!sg->reference_count)
+				gf_sg_del(sg);
+		}
 	}
 }
 
@@ -3546,6 +3549,9 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 			i--;
 			count--;
 		}
+	}
+	if (sg->document) {
+		dom_document_finalize(c, sg->document);
 	}
 }
 
