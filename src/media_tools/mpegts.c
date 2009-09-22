@@ -710,10 +710,19 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			memcpy(section->data, sec->section + section_start, sizeof(unsigned char)*section->data_size);
 			gf_list_add(t->sections, section);
 
-			if (t->section_number == 1) status |= GF_M2TS_TABLE_START;
+			if (t->section_number == 1) {
+				status |= GF_M2TS_TABLE_START;
+				if (t->last_version_number == t->version_number) {
+					t->is_repeat = 1;
+				} else {
+					t->is_repeat = 0;
+				}
+				/*only update version number in the first section of the table*/
+				t->last_version_number = t->version_number;
+			}
 
 			if (t->is_init) {
-				if (t->last_version_number == t->version_number) {
+				if (t->is_repeat) {
 					status |=  GF_M2TS_TABLE_REPEAT;
 				} else {
 					status |=  GF_M2TS_TABLE_UPDATE;
@@ -727,8 +736,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 				t->is_init = 1;
 				/*reset section number*/
 				t->section_number = 0;
-				/*only update version number at the last section of the table*/
-				t->last_version_number = t->version_number;
+				t->is_repeat = 0;
 			}
 
 			if (sec->process_individual) {

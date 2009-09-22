@@ -155,8 +155,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 	ch = gf_term_get_channel(service, netch);
 	if (!ch) return;
 
-	/*confirm channel connection even if error - this allow playback of objects even if not all streams are setup
-	*/
+	/*confirm channel connection even if error - this allow playback of objects even if not all streams are setup*/
 	gf_term_lock_net(term, 1);
 	gf_es_on_connect(ch);
 	gf_term_lock_net(term, 0);
