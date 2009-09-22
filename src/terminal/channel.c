@@ -784,7 +784,6 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	}
 	/*IDLE stream shall be processed*/
 
-
 	NewAU = 0;
 	if (hdr.accessUnitStartFlag) {
 		NewAU = 1;
@@ -865,6 +864,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 						ch->stream_state=0;
 						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: tuning in\n", ch->esd->ESID));
 					} else {
+						ch->skip_carousel_au = 1;
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: repeated AU - skipping\n", ch->esd->ESID));
 						return;
 					}
