@@ -1263,21 +1263,6 @@ end:
 	tr_state->svg_flags = backup_flags;
 }
 
-void compositor_svg_animation_modified(GF_Node *node)
-{
-	SVGlinkStack *stack = gf_node_get_private(node);
-	if (!stack || !stack->resource) return;
-
-	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
-		GF_MediaObject *new_res = gf_mo_load_xlink_resource(node, 0, 0, -1);
-		if (new_res != stack->resource) {
-			if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
-			stack->resource = new_res;
-			stack->inline_sg = NULL;
-		}
-	}
-}
-
 void compositor_init_svg_animation(GF_Compositor *compositor, GF_Node *node)
 {
 	SVGlinkStack *stack;
