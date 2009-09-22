@@ -132,7 +132,7 @@ static GF_Err BM_ParseMultipleReplace(GF_BifsDecoder *codec, GF_BitStream *bs, G
 	} else {
 		flag = gf_bs_read_int(bs, 1);
 		nbBits = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF)-1);
-		while (!flag) {
+		while (!flag && (codec->LastError>=0)) {
 			field_ref = gf_bs_read_int(bs, nbBits);
 			e = gf_bifs_get_field_index(node, field_ref, GF_SG_FIELD_CODING_DEF, &fieldind);
 			if (e) goto exit;
