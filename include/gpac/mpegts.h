@@ -185,7 +185,8 @@ typedef struct __m2ts_demux_table
 {
 	struct __m2ts_demux_table *next;
 
-	Bool is_init;
+	u8 is_init;
+	u8 is_repeat;
 
 	/*table id*/
 	u8 table_id;

@@ -106,7 +106,7 @@ typedef struct
 	/*ISMACryp extensions*/
 	u8 isma_encrypted;
 	u64 isma_BSO;
-	/*version_number are pushed from m2ts sections to the mpeg4sl layer so as to handle mpeg4 stream dependancies*/
+	/*version_number are pushed from m2ts sections to the mpeg4sl layer so as to handle mpeg4 stream dependencies*/
 	u8 m2ts_version_number_plus_one;
 	u8 m2ts_pcr;
 } GF_SLHeader;
