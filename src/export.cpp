@@ -62,6 +62,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress_callback) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_delete_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_move_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_temp_file_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_f64_open) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_f64_seek) )
