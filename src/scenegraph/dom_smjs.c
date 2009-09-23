@@ -769,7 +769,7 @@ static Bool check_dom_parents(JSContext *c, GF_Node *n, GF_Node *parent)
 	return 1;
 }
 
-static void dom_node_inserted(GF_Node *par, GF_Node *n, s32 pos)
+static void dom_node_inserted(JSContext *c, GF_Node *par, GF_Node *n, s32 pos)
 {
 	GF_ParentNode *old_par;
 	Bool do_init = 0;
@@ -782,6 +782,9 @@ static void dom_node_inserted(GF_Node *par, GF_Node *n, s32 pos)
 		gf_node_list_del_child(&old_par->children, n);
 		gf_node_unregister(n, (GF_Node*)old_par);
 		n->sgprivate->num_instances--;
+
+		/*whenever we remove a node from the tree, call GC to cleanup the JS binding if any. Not doing so may screw up node IDs*/
+		JS_GC(c);
 	} else {
 		do_init = (n->sgprivate->UserCallback || n->sgprivate->UserPrivate) ? 0 : 1;
 	}
@@ -848,7 +851,7 @@ static JSBool xml_node_insert_before(JSContext *c, JSObject *obj, uintN argc, js
 			return dom_throw_exception(c, GF_DOM_EXC_NOT_FOUND_ERR);
 		}
 	}
-	dom_node_inserted(n, new_node, idx);
+	dom_node_inserted(c, n, new_node, idx);
 	*rval = argv[0];
 	return JS_TRUE;
 }
@@ -871,7 +874,7 @@ static JSBool xml_node_append_child(JSContext *c, JSObject *obj, uintN argc, jsv
 	if (!check_dom_parents(c, n, new_node))
 		return JS_FALSE;
 
-	dom_node_inserted(n, new_node, -1);
+	dom_node_inserted(c, n, new_node, -1);
 
 	*rval = argv[0];
 	return JS_TRUE;
@@ -900,7 +903,10 @@ static JSBool xml_node_replace_child(JSContext *c, JSObject *obj, uintN argc, js
 	gf_node_list_del_child(&par->children, old_node);
 	gf_node_unregister(old_node, n);
 
-	dom_node_inserted(n, new_node, -1);
+	dom_node_inserted(c, n, new_node, -1);
+
+	/*whenever we remove a node from the tree, call GC to cleanup the JS binding if any. Not doing so may screw up node IDs*/
+	JS_GC(c);
 
 	*rval = argv[0];
 	return JS_TRUE;
@@ -929,6 +935,8 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 	}
 	*rval = argv[0];
 	dom_node_changed(n, 1, NULL);
+	/*whenever we remove a node from the tree, call GC to cleanup the JS binding if any. Not doing so may screw up node IDs*/
+	JS_GC(c);
 	return JS_TRUE;
 }
 
