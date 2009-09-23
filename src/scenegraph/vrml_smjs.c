@@ -361,8 +361,11 @@ static void vrml_node_register(JSContext *c, GF_Node *node)
 
 static JSBool JSPrint(JSContext *c, JSObject *p, uintN argc, jsval *argv, jsval *rval)
 {
-	if (JSVAL_IS_STRING(argv[0]))
-		_ScriptMessage(c, GF_SCRIPT_INFO, JS_GetStringBytes(JS_ValueToString(c, argv[0]) ) );
+	if (JSVAL_IS_STRING(argv[0])) {
+		char *str = JS_GetStringBytes(JS_ValueToString(c, argv[0]) );
+		GF_LOG(GF_LOG_INFO, GF_LOG_SCRIPT, ("[Script] %s\n", str));
+		_ScriptMessage(c, GF_SCRIPT_INFO, str);
+	}
 	return JS_TRUE;
 }
 
