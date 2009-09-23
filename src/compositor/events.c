@@ -1073,6 +1073,7 @@ static Bool is_focus_target(GF_Node *elt)
 	switch (tag) {
 #ifndef GPAC_DISABLE_SVG
 	case TAG_SVG_a:
+		return 1;
 #endif
 
 #ifndef GPAC_DISABLE_VRML
