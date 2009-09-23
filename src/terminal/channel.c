@@ -364,7 +364,7 @@ static void Channel_UpdateBuffering(GF_Channel *ch, Bool update_info)
 
 static void Channel_UpdateBufferTime(GF_Channel *ch)
 {
-	if (!ch->AU_buffer_first) {
+	if (!ch->AU_buffer_first || !ch->IsClockInit) {
 		ch->BufferTime = 0;
 	}
 	else if (ch->skip_sl) {
