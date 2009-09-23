@@ -3510,9 +3510,11 @@ static char *svg_dump_iri(XMLRI*iri)
 		if (name) {
 			res = malloc(sizeof(char)*(strlen(name)+2));
 			sprintf(res, "#%s", name);
-		} else {
+		} else if (iri->target) {
 			res = malloc(sizeof(char)*32);
 			sprintf(res, "#N%d", gf_node_get_id((GF_Node *)iri->target) - 1);
+		} else {
+			res = strdup("");
 		}
 		return res;
 	}
