@@ -6,6 +6,10 @@
 #if !defined(AFX_STDAFX_H__1EEB44C5_1152_4872_8CA7_BD2994085EDC__INCLUDED_)
 #define AFX_STDAFX_H__1EEB44C5_1152_4872_8CA7_BD2994085EDC__INCLUDED_
 
+#ifndef WINVER      
+#define WINVER 0x0501 
+#endif
+
 #if _MSC_VER > 1000
 #pragma once
 #endif // _MSC_VER > 1000
