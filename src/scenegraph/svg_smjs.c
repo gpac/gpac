@@ -181,8 +181,11 @@ static JSBool svg_echo(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsv
 	sg = JS_GetPrivate(c, obj);
 	if (!sg) return JS_TRUE;
 
-	if (JSVAL_IS_STRING(argv[0]))
-		_ScriptMessage(sg, GF_SCRIPT_INFO, JS_GetStringBytes(JS_ValueToString(c, argv[0]) ) );
+	if (JSVAL_IS_STRING(argv[0])) {
+		char *str = JS_GetStringBytes(JS_ValueToString(c, argv[0]) );
+		GF_LOG(GF_LOG_INFO, GF_LOG_SCRIPT, ("[Script] %s\n", str));
+		_ScriptMessage(sg, GF_SCRIPT_INFO, str);
+	}
 	return JS_TRUE;
 }
 
