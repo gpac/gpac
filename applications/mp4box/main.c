@@ -877,13 +877,13 @@ void remove_systems_tracks(GF_ISOFile *file)
 u32 get_file_type_by_ext(char *inName)
 {
 	u32 type = 0;
-	char *__ext = strrchr(inName, '.');
-	if (__ext) {
-		char ext[20];
-		if (!strcmp(__ext, ".gz")) __ext = strrchr(__ext-1, '.');
-		strcpy(ext, __ext+1);
-		__ext = strchr(ext, '.');
-		if (__ext) __ext[0] = 0;
+	char *ext = strrchr(inName, '.');
+	if (ext) {
+		char *sep;
+		if (!strcmp(ext, ".gz")) ext = strrchr(ext-1, '.');
+		ext+=1;
+		sep = strchr(ext, '.');
+		if (sep) sep[0] = 0;
 
 		if (!stricmp(ext, "mp4") || !stricmp(ext, "3gp") || !stricmp(ext, "mov") || !stricmp(ext, "3g2")) type = 1;
 		else if (!stricmp(ext, "bt") || !stricmp(ext, "wrl") || !stricmp(ext, "x3dv")) type = 2;
@@ -893,9 +893,15 @@ u32 get_file_type_by_ext(char *inName)
 		else if (!stricmp(ext, "xsr")) type = 4;
 		else if (!stricmp(ext, "xml")) type = 4;
 		else if (!stricmp(ext, "swf")) type = 5;
-		else if (!stricmp(ext, "jp2")) return 0;
+		else if (!stricmp(ext, "jp2")) {
+			if (sep) sep[0] = '.';
+			return 0;
+		}
 		else type = 0;
+
+		if (sep) sep[0] = '.';
 	}
+
 
 	/*try open file in read mode*/
 	if (!type && gf_isom_probe_file(inName)) type = 1;
