@@ -25,7 +25,6 @@
 #include <gpac/module.h>
 #include <gpac/list.h>
 
-#define MAX_SECTION_NAME		500
 #define MAX_INI_LINE			2046
 
 typedef struct
@@ -36,7 +35,7 @@ typedef struct
 
 typedef struct
 {
-	char section_name[MAX_SECTION_NAME];
+	char *section_name;
 	GF_List *keys;
 } IniSection;
 
@@ -112,7 +111,7 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 		if (line[0] == '[') {
 			p = (IniSection *) malloc(sizeof(IniSection));
 			p->keys = gf_list_new();
-			strcpy(p->section_name, line + 1);
+			p->section_name = strdup(line + 1);
 			p->section_name[strlen(line) - 2] = 0;
 			while (p->section_name[strlen(p->section_name) - 1] == ']' || p->section_name[strlen(p->section_name) - 1] == ' ') p->section_name[strlen(p->section_name) - 1] = 0;
 			gf_list_add(tmp->sections, p);
@@ -163,6 +162,7 @@ static void DelSection(IniSection *ptr)
 		}
 		gf_list_del(ptr->keys);
 	}
+	if (ptr->section_name) free(ptr->section_name);
 	free(ptr);
 }
 
@@ -251,7 +251,7 @@ GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyNa
 	}
 	//need a new key
 	sec = (IniSection *) malloc(sizeof(IniSection));
-	strcpy(sec->section_name, secName);
+	sec->section_name = strdup(secName);
 	sec->keys = gf_list_new();
 	iniFile->hasChanged = 1;
 	gf_list_add(iniFile->sections, sec);
