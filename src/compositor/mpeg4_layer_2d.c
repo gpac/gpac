@@ -242,53 +242,55 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 
 			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
 			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
-			
-			tr_state->traversing_mode = TRAVERSE_SORT;
-			if (back && Bindable_GetIsBound(back) ) {
-				DrawableContext *ctx;
 
-				ctx = b2d_get_context((M_Background2D*) back, st->backs);
-				gf_mx2d_init(ctx->transform);
-				ctx->bi->clip = tr_state->visual->top_clipper;
-				ctx->bi->unclip = rc;
+			if (tr_state->visual->top_clipper.width && tr_state->visual->top_clipper.height) {
+				tr_state->traversing_mode = TRAVERSE_SORT;
+				if (back && Bindable_GetIsBound(back) ) {
+					DrawableContext *ctx;
 
-				if (tr_state->direct_draw) {
-					tr_state->ctx = ctx;
-					tr_state->traversing_mode = TRAVERSE_DRAW_2D;
-					gf_node_traverse(back, tr_state);
-					tr_state->traversing_mode = TRAVERSE_SORT;
-					tr_state->ctx = NULL;
-				} else {
-					DrawableContext *back_ctx = visual_2d_get_drawable_context(tr_state->visual);
+					ctx = b2d_get_context((M_Background2D*) back, st->backs);
+					gf_mx2d_init(ctx->transform);
+					ctx->bi->clip = tr_state->visual->top_clipper;
+					ctx->bi->unclip = rc;
 
-					gf_node_traverse(back, tr_state);
-
-					back_ctx->flags = ctx->flags;
-					back_ctx->flags &= ~CTX_IS_TRANSPARENT;
-					back_ctx->flags |= CTX_IS_BACKGROUND;
-					back_ctx->aspect = ctx->aspect;
-					back_ctx->drawable = ctx->drawable;
-					drawable_check_bounds(back_ctx, tr_state->visual);
-					back_ctx->bi->clip = ctx->bi->clip;
-					back_ctx->bi->unclip = ctx->bi->unclip;
-				}
-				/*keep track of node drawn*/
-				if (!(ctx->drawable->flags & DRAWABLE_REGISTERED_WITH_VISUAL) ) {
-					struct _drawable_store *it;
-					GF_SAFEALLOC(it, struct _drawable_store);
-					it->drawable = ctx->drawable;
-					if (tr_state->visual->last_prev_entry) {
-						tr_state->visual->last_prev_entry->next = it;
-						tr_state->visual->last_prev_entry = it;
+					if (tr_state->direct_draw) {
+						tr_state->ctx = ctx;
+						tr_state->traversing_mode = TRAVERSE_DRAW_2D;
+						gf_node_traverse(back, tr_state);
+						tr_state->traversing_mode = TRAVERSE_SORT;
+						tr_state->ctx = NULL;
 					} else {
-						tr_state->visual->prev_nodes = tr_state->visual->last_prev_entry = it;
-					}
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer2D] Registering new drawn node %s on visual\n", gf_node_get_class_name(it->drawable->node)));
-					ctx->drawable->flags |= DRAWABLE_REGISTERED_WITH_VISUAL;
-				}
-			}
+						DrawableContext *back_ctx = visual_2d_get_drawable_context(tr_state->visual);
 
-			group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
+						gf_node_traverse(back, tr_state);
+
+						back_ctx->flags = ctx->flags;
+						back_ctx->flags &= ~CTX_IS_TRANSPARENT;
+						back_ctx->flags |= CTX_IS_BACKGROUND;
+						back_ctx->aspect = ctx->aspect;
+						back_ctx->drawable = ctx->drawable;
+						drawable_check_bounds(back_ctx, tr_state->visual);
+						back_ctx->bi->clip = ctx->bi->clip;
+						back_ctx->bi->unclip = ctx->bi->unclip;
+					}
+					/*keep track of node drawn*/
+					if (!(ctx->drawable->flags & DRAWABLE_REGISTERED_WITH_VISUAL) ) {
+						struct _drawable_store *it;
+						GF_SAFEALLOC(it, struct _drawable_store);
+						it->drawable = ctx->drawable;
+						if (tr_state->visual->last_prev_entry) {
+							tr_state->visual->last_prev_entry->next = it;
+							tr_state->visual->last_prev_entry = it;
+						} else {
+							tr_state->visual->prev_nodes = tr_state->visual->last_prev_entry = it;
+						}
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer2D] Registering new drawn node %s on visual\n", gf_node_get_class_name(it->drawable->node)));
+						ctx->drawable->flags |= DRAWABLE_REGISTERED_WITH_VISUAL;
+					}
+				}
+
+				group_2d_traverse(node, (GroupingNode2D *)st, tr_state);
+			}
 			tr_state->visual->top_clipper = prev_clip;
 			gf_mx2d_copy(tr_state->transform, backup);
 		}
