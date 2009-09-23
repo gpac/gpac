@@ -208,7 +208,7 @@ static void on_gpac_rti_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list 
 {
 	GF_SystemRTInfo rti;
 
-	if (lm != GF_LOG_RTI) return;
+	if (lm & GF_LOG_RTI) return;
 
 	gf_sys_get_rti(rti_update_time_ms, &rti, 0);
 	
@@ -237,7 +237,7 @@ static void setup_logs()
 	gf_log_set_callback(NULL, NULL);
 
 	if (log_rti) {
-		rti_file = fopen("\\gpac_rti.txt", "a+t");
+		rti_file = fopen("\\gpac_logs.txt", "a+t");
 
 		fprintf(rti_file, "!! GPAC RunTime Info for file %s !!\n", the_url);
 		fprintf(rti_file, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
@@ -288,7 +288,7 @@ static void setup_logs()
 			}
 			gf_log_set_tools(lt);
 		}
-		if (ll && (rti_file = fopen("\\gpac_logs.txt", "wt"))) {
+		if (ll && (rti_file = fopen("\\gpac_logs.txt", "a+t"))) {
 			gf_log_set_callback(rti_file, on_gpac_log);
 		}
 
