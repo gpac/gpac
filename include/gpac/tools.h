@@ -458,6 +458,16 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
  *	\param fileName absolute name of the file or name relative to the current working directory.
 */
 void gf_delete_file(char *fileName);
+
+/*!
+ *	\brief File Move
+ *
+ *	Moves or renames a file or directory.
+ *	\param fileName absolute path of the file / directory to move or rename
+ *	\param newFileName absolute new path/name of the file / directory
+*/
+void gf_move_file(char *fileName, char *newFileName);
+
 /*!
  *	\brief Temporary File Creation
  *

@@ -201,6 +201,21 @@ void gf_delete_file(char *fileName)
 #endif
 }
 
+void gf_move_file(char *fileName, char *newFileName)
+{
+#if defined(_WIN32_WCE)
+	TCHAR swzName[MAX_PATH];
+	TCHAR swzNewName[MAX_PATH];
+	CE_CharToWide(fileName, swzName);
+	CE_CharToWide(newFileName, swzNewName);
+	MoveFile(swzName, swzNewName);
+#elif defined(WIN32)
+	MoveFile(fileName, newFileName);
+#else
+	rename(fileName, newFileName);
+#endif
+}
+
 void gf_rand_init(Bool Reset)
 {
 	if (Reset) {
