@@ -245,6 +245,7 @@ static void setup_logs()
 		gf_log_set_level(GF_LOG_DEBUG);
 		gf_log_set_tools(GF_LOG_RTI);
 		gf_log_set_callback(rti_file, on_gpac_rti_log);
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
 	} else {
 		u32 lt, ll;
@@ -280,6 +281,7 @@ static void setup_logs()
 				else if (!stricmp(val, "interact")) lt |= GF_LOG_INTERACT;
 				else if (!stricmp(val, "compose")) lt |= GF_LOG_COMPOSE;
 				else if (!stricmp(val, "mmio")) lt |= GF_LOG_MMIO;
+				else if (!stricmp(val, "rti")) lt |= GF_LOG_RTI;
 				else if (!stricmp(val, "none")) ll = 0;
 				else if (!stricmp(val, "all")) lt = 0xFFFFFFFF;
 				if (!sep) break;
