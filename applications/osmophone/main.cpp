@@ -206,26 +206,30 @@ void set_full_screen()
 
 static void on_gpac_rti_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
-	GF_SystemRTInfo rti;
+	if (!rti_file) return;
 
-	if (lm & GF_LOG_RTI) return;
-
-	gf_sys_get_rti(rti_update_time_ms, &rti, 0);
+	if (lm & GF_LOG_RTI) {
+		GF_SystemRTInfo rti;
+		if (fmt) vfprintf(rti_file, fmt, list);	
 	
-	fprintf(rti_file, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t\t", 
-		gf_sys_clock(),
-		gf_term_get_time_in_ms(term),
-		rti.total_cpu_usage,
-		(u32) gf_term_get_framerate(term, 0),
-		(u32) ( rti.gpac_memory / 1024)
-	);
-	if (fmt) vfprintf(rti_file, fmt+6 /*[RTI] "*/, list);
+		gf_sys_get_rti(rti_update_time_ms, &rti, 0);
+	
+		fprintf(rti_file, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t\t", 
+			gf_sys_clock(),
+			gf_term_get_time_in_ms(term),
+			rti.total_cpu_usage,
+			(u32) gf_term_get_framerate(term, 0),
+			(u32) ( rti.gpac_memory / 1024)
+		);
+	} else if (fmt && (ll>=GF_LOG_INFO)) {
+		vfprintf(rti_file, fmt, list);	
+	}
 }
-
 static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
-	if (rti_file && fmt) vfprintf(rti_file, fmt, list);	
+	if (fmt && rti_file) vfprintf(rti_file, fmt, list);	
 }
+
 
 static void setup_logs()
 {
@@ -243,7 +247,7 @@ static void setup_logs()
 		fprintf(rti_file, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
 
 		gf_log_set_level(GF_LOG_DEBUG);
-		gf_log_set_tools(GF_LOG_RTI);
+		gf_log_set_tools(GF_LOG_RTI|GF_LOG_SCRIPT);
 		gf_log_set_callback(rti_file, on_gpac_rti_log);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
