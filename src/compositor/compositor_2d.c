@@ -322,8 +322,9 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 				o_rc.y = output_height/2- dst_wnd.y;
 			} else {
 				o_rc.x = dst_wnd.x;
-				o_rc.y = dst_wnd.y;
+				o_rc.y = dst_wnd.y + dst_wnd.h;
 			}
+
 			o_rc.width = dst_wnd.w;
 			o_rc.height = dst_wnd.h;
 			visual->ClearSurface(visual, &o_rc, visual->compositor->video_out->overlay_color_key);
