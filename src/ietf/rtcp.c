@@ -146,6 +146,8 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size)
 			rtcp_hdr.Length -= 1;
 
 process_reports:
+
+#if 0
 			//process all reports - we actually don't since we do not handle sources
 			//to add
 			for (i=0; i<rtcp_hdr.Count; i++) {
@@ -167,10 +169,7 @@ process_reports:
 				rtcp_hdr.Length -= 6;
 			}
 			//remaining bytes? we skip (this includes padding and crypto - not supported)
-			while (rtcp_hdr.Length) {
-				gf_bs_read_u32(bs);
-				rtcp_hdr.Length -= 1;
-			}
+#endif
 			break;
 
 		//SDES
