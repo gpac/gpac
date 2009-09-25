@@ -530,6 +530,10 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	DDSurface *pool;
 	DDCONTEXT;
 
+	if (!video_src) {
+		if (overlay_type && dd->yuv_pool.pSurface) IDirectDrawSurface2_UpdateOverlay(dd->yuv_pool.pSurface, NULL, dd->pPrimary, NULL, DDOVER_HIDE, NULL);
+		return GF_OK;
+	}
 	if (src_wnd) {
 		w = src_wnd->w;
 		h = src_wnd->h;

@@ -363,9 +363,10 @@ static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 	/*TODO check matrix for alpha*/
 	else if (!tr_state->color_mat.identity) {
 	}
-	/*otherwsie, not transparent*/
+	/*otherwise, not transparent*/
 	else {
 		ctx->flags &= ~CTX_IS_TRANSPARENT;
+		if (!ctx->aspect.pen_props.width) ctx->flags |= CTX_NO_ANTIALIAS;
 	}
 	drawable_finalize_sort(ctx, tr_state, NULL);
 }

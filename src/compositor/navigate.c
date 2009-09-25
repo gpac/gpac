@@ -267,6 +267,9 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 	dx = (x - compositor->grab_x); 
 	dy = (y - compositor->grab_y);
 
+	if (!compositor->visual->center_coords) dy = -dy;
+
+
 /*	trans_scale = is_pixel_metrics ? cam->width/2 : INT2FIX(10);
 	key_trans = is_pixel_metrics ? INT2FIX(10) : cam->avatar_size.x;
 */
