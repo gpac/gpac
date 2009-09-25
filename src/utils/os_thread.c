@@ -371,6 +371,7 @@ void gf_mx_v(GF_Mutex *mx)
 u32 gf_mx_p(GF_Mutex *mx)
 {
 	u32 caller;
+	assert(mx);
 	if (!mx) return 0;
 	caller = gf_th_id();
 	if (caller == mx->Holder) {
