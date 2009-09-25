@@ -190,6 +190,12 @@ GF_Err X11_Blit(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *
 	Window cur_wnd;
 	XWindow *xwin = (XWindow *)vout->opaque;
 
+	if (!video_src) {
+		if (overlay_type && xwin->xvport) {
+		}
+		return GF_OK;
+	}
+
 	if (video_src->pixel_format != GF_PIXEL_YV12) return GF_NOT_SUPPORTED;
 	cur_wnd = xwin->fullscreen ? xwin->full_wnd : xwin->wnd;
 	/*init if needed*/

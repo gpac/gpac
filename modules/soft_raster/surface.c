@@ -284,7 +284,7 @@ GF_Err evg_surface_set_raster_level(GF_SURFACE _this, GF_RasterLevel RasterSetti
 		break;
 	case GF_RASTER_HIGH_SPEED:
 	default:
-		surf->AALevel = 180;
+		surf->AALevel = 254;
 		surf->texture_filter = GF_TEXTURE_FILTER_HIGH_SPEED;
 		break;
 	}

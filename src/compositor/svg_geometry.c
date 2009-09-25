@@ -426,6 +426,8 @@ static void svg_drawable_traverse(GF_Node *node, void *rs, Bool is_destroy,
 					else if (ctx->transform.m[1] || ctx->transform.m[3]) {}
 					else {
 						ctx->flags &= ~CTX_IS_TRANSPARENT;
+						if (!ctx->aspect.pen_props.width) 
+							ctx->flags |= CTX_NO_ANTIALIAS;
 					}
 				}
 

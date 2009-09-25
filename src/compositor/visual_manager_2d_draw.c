@@ -28,7 +28,7 @@
 #include "texturing.h"
 #include <gpac/options.h>
 
-//	#define SKIP_DRAW
+//#define SKIP_DRAW
 
 GF_Err visual_2d_init_raster(GF_VisualManager *visual)
 {
@@ -94,7 +94,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 	/*background & direct drawing : use ctx clip*/
 	if ((ctx->flags & CTX_IS_BACKGROUND) || tr_state->direct_draw) {
 		if (ctx->bi->clip.width && ctx->bi->clip.height) {
-			//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s (direct draw)\n", gf_node_get_log_name(ctx->drawable->node) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s (direct draw)\n", gf_node_get_log_name(ctx->drawable->node) ));
 			raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
 			raster->surface_fill(visual->raster_surface, stencil);
 
@@ -112,7 +112,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &visual->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s (indirect draw)\n", gf_node_get_log_name(ctx->drawable->node) ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s (indirect draw @ dirty rect idx %d)\n", gf_node_get_log_name(ctx->drawable->node), i));
 				raster->surface_set_clipper(visual->raster_surface, &clip);
 				raster->surface_fill(visual->raster_surface, stencil);
 
@@ -126,7 +126,7 @@ static void visual_2d_set_options(GF_Compositor *compositor, GF_SURFACE rend, Bo
 {
 	GF_Raster2D *raster = compositor->rasterizer;
 	if (no_antialias) {
-		raster->surface_set_raster_level(rend, compositor->high_speed ? GF_RASTER_HIGH_SPEED : GF_RASTER_MID);
+		raster->surface_set_raster_level(rend, GF_RASTER_HIGH_SPEED);
 	} else {
 		switch (compositor->antiAlias) {
 		case GF_ANTIALIAS_NONE:
@@ -456,7 +456,8 @@ void visual_2d_draw_path_extended(GF_VisualManager *visual, GF_Path *path, Drawa
 		return;
 	}
 
-	if (! (ctx->flags & CTX_IS_BACKGROUND) ) visual_2d_set_options(visual->compositor, visual->raster_surface, ctx->flags & CTX_IS_TEXT, 0);
+	if (! (ctx->flags & CTX_IS_BACKGROUND) ) 
+		visual_2d_set_options(visual->compositor, visual->raster_surface, ctx->flags & CTX_IS_TEXT, ctx->flags & CTX_NO_ANTIALIAS);
 
 	dofill = dostrike = 0;
 	if (!(ctx->flags & CTX_PATH_FILLED) && GF_COL_A(ctx->aspect.fill_color) ) {
