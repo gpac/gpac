@@ -303,23 +303,33 @@ typedef u8 bin128[16];
 typedef u32 Bool;
 #endif
 
+
+/*GPAC memory tracking*/
 #ifdef GPAC_MEMORY_TRACKING
+
 void *gf_malloc(size_t size);
 void *gf_realloc(void *ptr, size_t size);
 void gf_free(void *ptr);
 char *gf_strdup(const char *str);
 
-#undef malloc
-#define malloc gf_malloc
-#undef realloc
-#define realloc gf_realloc
+/*always activated to avoid pointers to be re-freed*/
 #undef free
-#define free gf_free
+#undef malloc
+#undef realloc
 #undef strdup
-#define strdup gf_strdup
+#undef calloc /*not over-implemented yet*/
+
+#define free(ptr)   {gf_free(ptr); ptr = NULL; }
+#define malloc(size) gf_malloc(size)
+#define strdup(s)    gf_strdup(s)
+#define realloc(ptr1, ptr2) gf_realloc(ptr1, ptr2)
+
+/*check we wont be called recursively*/
+#define GPAC_ALLOCATIONS_REDEFINED 1
 
 #endif
 /*end GPAC memory tracking*/
+
 
 #if defined (WIN32) && !defined(__GNUC__)
 #define LLD "%I64d"

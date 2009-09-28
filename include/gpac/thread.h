@@ -185,7 +185,7 @@ void gf_mx_del(GF_Mutex *mx);
 /*
  *\brief mutex locking
  *
- *Locks the mutex object, making sure that another thread locking this mutex cannot exectute until the mutex is unlocked.
+ *Locks the mutex object, making sure that another thread locking this mutex cannot execute until the mutex is unlocked.
  *\param mx the mutex object
  *\return 1 if success, 0 if error locking the mutex (which should never happen)
 */
