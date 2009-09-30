@@ -120,7 +120,7 @@ static void viewport_set_bind(GF_Node *node, GF_Route *route)
 {
 	GF_Compositor *rend = gf_sc_get_compositor(node);
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
-	Bindable_OnSetBind(node, st->reg_stacks, (GF_List *)route);
+	Bindable_OnSetBind(node, st->reg_stacks, NULL);
 
 	gf_sc_invalidate(rend, NULL);
 	/*notify change of vp stack*/
@@ -169,7 +169,8 @@ static void TraverseViewport(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (tr_state->traversing_mode != TRAVERSE_BINDABLE) return;
-//	if (!vp->isBound) return;
+	if (!vp->isBound) return;
+
 	if (gf_list_get(tr_state->viewpoints, 0) != vp) 
 		return;
 
@@ -311,7 +312,7 @@ static void viewpoint_set_bind(GF_Node *node, GF_Route *route)
 
 	if (!((M_Viewpoint*)node)->isBound ) 
 		st->prev_was_bound = 0;
-	Bindable_OnSetBind(node, st->reg_stacks, (GF_List *)route);
+	Bindable_OnSetBind(node, st->reg_stacks, NULL);
 	gf_sc_invalidate(rend, NULL);
 	/*notify change of vp stack*/
 	VPCHANGED(rend);
@@ -405,7 +406,7 @@ void compositor_init_viewpoint(GF_Compositor *compositor, GF_Node *node)
 static void navinfo_set_bind(GF_Node *node, GF_Route *route)
 {
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
-	Bindable_OnSetBind(node, st->reg_stacks, (GF_List *)route);
+	Bindable_OnSetBind(node, st->reg_stacks, NULL);
 	gf_sc_invalidate( gf_sc_get_compositor(node), NULL);
 }
 
@@ -523,7 +524,7 @@ void compositor_init_navigation_info(GF_Compositor *compositor, GF_Node *node)
 static void fog_set_bind(GF_Node *node, GF_Route *route)
 {
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);
-	Bindable_OnSetBind(node, st->reg_stacks, (GF_List *)route);
+	Bindable_OnSetBind(node, st->reg_stacks, NULL);
 	gf_sc_invalidate(gf_sc_get_compositor(node), NULL);
 }
 
