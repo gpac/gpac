@@ -334,7 +334,13 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 static void b2D_set_bind(GF_Node *node, GF_Route *route)
 {
 	Background2DStack *stack = (Background2DStack *)gf_node_get_private(node);
-	Bindable_OnSetBind(node, stack->reg_stacks, (GF_List *)route);
+	Bindable_OnSetBind(node, stack->reg_stacks, NULL);
+
+	if (stack->drawable->flags & DRAWABLE_IS_OVERLAY) {
+		stack->txh.compositor->video_out->Blit(stack->txh.compositor->video_out, NULL, NULL, NULL, 1);
+	}
+	stack->flags |= CTX_APP_DIRTY;
+
 }
 
 DrawableContext *b2d_get_context(M_Background2D *node, GF_List *from_stack)
