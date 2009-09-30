@@ -34,7 +34,7 @@ OrderedGroup {
    backColor 1 1 1
   }
   WorldInfo {
-   info ["This shows an AnimationStream node" "using a BIFS-command stream" "" "GPAC Regression Tests" "$Date: 2007-07-27 09:46:10 $ - $Revision: 1.2 $" "(C) 2002-2004 GPAC Team"]
+   info ["This shows an AnimationStream node" "using a BIFS-command stream" "" "GPAC Regression Tests" "$Date: 2009-09-30 18:01:04 $ - $Revision: 1.3 $" "(C) 2002-2004 GPAC Team"]
    title "Animation Stream"
   }
   DEF N0 Transform2D {
@@ -109,7 +109,6 @@ RAP AT 0 {
        useAccessUnitEndFlag true
        useTimeStampsFlag true
        timeStampResolution 1000
-       OCRResolution 1000
        timeStampLength 32
       }
      }

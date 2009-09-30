@@ -43,7 +43,7 @@
 #endif
 
 /*define this macro to force Garbage Collection after each input to JS (script initialize/shutdown and all eventIn) */
-#define FORCE_GC
+//#define FORCE_GC
 
 
 #define _ScriptMessage(_c, _e, _msg) {	\
@@ -3880,13 +3880,14 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	if (JSVAL_IS_GCTHING(argv[0])) JS_RemoveRoot(priv->js_ctx, &argv[0]);
 	if (JSVAL_IS_GCTHING(argv[1])) JS_RemoveRoot(priv->js_ctx, &argv[1]);
 
+#ifdef FORCE_GC
+	MyJSGC(priv->js_ctx);
+#endif
+
 	gf_sg_js_lock_runtime(0);
 
 	flush_event_out(node, priv);
 
-#ifdef FORCE_GC
-	MyJSGC(priv->js_ctx);
-#endif
 }
 
 
