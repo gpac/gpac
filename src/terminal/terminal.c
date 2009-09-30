@@ -1708,3 +1708,4 @@ void gf_term_load_shortcuts(GF_Terminal *term)
 		if (k==MAX_SHORTCUTS) break;
 	}
 }
+

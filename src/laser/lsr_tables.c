@@ -848,3 +848,4 @@ u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 }
 
 #endif /*GPAC_DISABLE_LASER*/
+

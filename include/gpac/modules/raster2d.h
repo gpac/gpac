@@ -89,11 +89,11 @@ typedef enum
 /* rasterizer antialiasing depending on the graphics engine*/
 typedef enum
 {
-	/*raster should use fastest mode possible (eg, no antialiasing)*/
+	/*raster shall use no antialiasing */
 	GF_RASTER_HIGH_SPEED,
 	/*raster should use fast mode and good quality if possible*/
 	GF_RASTER_MID,
-	/*raster should use antialiasing*/
+	/*raster should use full antialiasing*/
 	GF_RASTER_HIGH_QUALITY
 } GF_RasterLevel;
 
