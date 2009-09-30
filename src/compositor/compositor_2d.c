@@ -279,7 +279,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			else if (tr_state->direct_draw || (ctx->next && ctx->next->drawable)) {
 				overlay_type = 2;
 			}
-
 			/*OK we can overlay this video - if full display, don't flush*/
 			if (overlay_type==1) {
 				if (dst_wnd.w==visual->compositor->display_width) flush_video = 0;

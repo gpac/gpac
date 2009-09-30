@@ -352,13 +352,13 @@ static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 	if (!ctx) return;
 
 	/*if alpha or not filled, transparent*/
-	if (GF_COL_A(ctx->aspect.fill_color) != 0xFF) {
+	if (ctx->aspect.fill_color && (GF_COL_A(ctx->aspect.fill_color) != 0xFF)) {
 	}
 	/*if texture transparent, transparent*/
 	else if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->transparent) {
 	}
 	/*if rotated, transparent (doesn't fill bounds)*/
-	else if (ctx->transform.m[1] || ctx->transform.m[3]) {
+	else if (tr_state->transform.m[1] || tr_state->transform.m[3]) {
 	}
 	/*TODO check matrix for alpha*/
 	else if (!tr_state->color_mat.identity) {
