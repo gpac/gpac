@@ -448,7 +448,7 @@ void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 
 void evg_rgba_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 {
-	u8 *dst = surf->pixels + y * surf->pitch_x;
+	u8 *dst = surf->pixels + y * surf->pitch_y;
 	u32 a, fin, col_no_a;
 	u8 aa_lev = surf->AALevel;
 	s32 i;
