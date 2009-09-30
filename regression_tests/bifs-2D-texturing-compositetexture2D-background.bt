@@ -32,7 +32,7 @@ OrderedGroup {
     "Here, the texture is a circle repeated on the X and Y directions. Just one circle object is used here, the result of the drawing is translated in each directions, the object is not duplicated." 
     "When the user moves the mouse over a circle, the background is changed. When the user clicks on a circle, the background is also changed." 
     "" 
-    "GPAC Regression Tests" "$Date: 2007-07-27 09:46:08 $ - $Revision: 1.3 $" 
+    "GPAC Regression Tests" "$Date: 2009-09-30 18:01:04 $ - $Revision: 1.4 $" 
     "(C) 2002-2006 GPAC Team"
    ]
    title "CompositeTexture and Background2D nodes"
@@ -41,6 +41,7 @@ OrderedGroup {
    appearance Appearance {
     material DEF M1 Material2D {
      emissiveColor 0 1 0
+     filled TRUE
     }
     texture CompositeTexture2D {
      pixelWidth 64
