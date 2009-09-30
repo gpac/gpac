@@ -404,6 +404,7 @@ static void composite_update(GF_TextureHandler *txh)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Entering draw cycle\n"));
 
 	txh->needs_refresh = visual_draw_frame(st->visual, st->txh.owner, tr_state, 0);
+	txh->transparent = (st->visual->last_had_back==2) ? 0 : 1;
 
 	/*set active viewport in image coordinates top-left=(0, 0), not in BIFS*/
 	if (0 && gf_list_count(st->visual->view_stack)) {
@@ -419,7 +420,6 @@ static void composite_update(GF_TextureHandler *txh)
 	}
 
 	if (txh->needs_refresh) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] First 4 pixel %x %x %x %x\n", txh->data[0], txh->data[4], txh->data[8], txh->data[12]));
 #ifndef GPAC_DISABLE_3D
 		if (st->visual->camera.is_3D) {
 			if (st->visual->compositor->visual->type_3d) {
