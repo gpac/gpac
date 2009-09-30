@@ -684,3 +684,4 @@ GF_Err gf_ipmpx_set_byte_array(GF_IPMPX_Data *p, char *field, char *str)
 }
 
 #endif /*GPAC_MINIMAL_ODF*/
+
