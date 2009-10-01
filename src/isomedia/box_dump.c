@@ -281,6 +281,9 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_AC3: return ac3_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_DAC3: return dac3_dump(a, trace);
 
+	case GF_ISOM_BOX_TYPE_LSR1: return lsr1_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_LSRC: return lsrc_dump(a, trace);
+
 	default: return defa_dump(a, trace);
 	}
 }
@@ -3287,10 +3290,33 @@ GF_Err ac3_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<AC3SampleEntry");
 	base_audio_entry_dump((GF_AudioSampleEntryBox *)p, trace);
 	fprintf(trace, ">\n");
-	gf_box_dump(p->info, trace);
 	DumpBox(a, trace);
+	gf_box_dump(p->info, trace);
 	fprintf(trace, "</AC3SampleEntry>\n");
 	return GF_OK;
 }
 
+GF_Err lsrc_dump(GF_Box *a, FILE * trace)
+{
+	GF_LASERConfigurationBox *p = (GF_LASERConfigurationBox *)a;
+
+	fprintf(trace, "<LASeRConfigurationBox ");
+	dump_data(trace, "LASeRHeader", p->hdr, p->hdr_size);
+	fprintf(trace, ">");
+	DumpBox(a, trace);
+	fprintf(trace, "</LASeRConfigurationBox>");
+	return GF_OK;
+}
+
+GF_Err lsr1_dump(GF_Box *a, FILE * trace)
+{
+	GF_LASeRSampleEntryBox *p = (GF_LASeRSampleEntryBox*)a;
+	fprintf(trace, "<LASeRSampleEntry DataReferenceIndex=\"%d\">\n", p->dataReferenceIndex);
+	DumpBox(a, trace);
+	if (p->lsr_config) gf_box_dump(p->lsr_config, trace);
+	if (p->bitrate) gf_box_dump(p->bitrate, trace);
+	if (p->descr) gf_box_dump(p->descr, trace);
+	fprintf(trace, "</LASeRSampleEntry>\n");
+	return GF_OK;
+}
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

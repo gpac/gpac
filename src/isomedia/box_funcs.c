@@ -551,6 +551,9 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_AC3: return ac3_New();
 	case GF_ISOM_BOX_TYPE_DAC3: return dac3_New();
 	
+	case GF_ISOM_BOX_TYPE_LSRC: return lsrc_New();
+	case GF_ISOM_BOX_TYPE_LSR1: return lsr1_New();
+
 	default:
 		a = defa_New();
 		if (a) a->type = boxType;
@@ -785,6 +788,9 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_AC3: ac3_del(a); return;
 	case GF_ISOM_BOX_TYPE_DAC3: dac3_del(a); return;
 
+	case GF_ISOM_BOX_TYPE_LSRC: lsrc_del(a); return;
+	case GF_ISOM_BOX_TYPE_LSR1: lsr1_del(a); return;
+
 	default:
 		defa_del(a);
 		return;
@@ -1000,6 +1006,9 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 
 	case GF_ISOM_BOX_TYPE_AC3: return ac3_Read(a, bs); 
 	case GF_ISOM_BOX_TYPE_DAC3: return dac3_Read(a, bs); 
+
+	case GF_ISOM_BOX_TYPE_LSRC: return lsrc_Read(a, bs); 
+	case GF_ISOM_BOX_TYPE_LSR1: return lsr1_Read(a, bs); 
 
 	default:
 		return defa_Read(a, bs);
@@ -1218,6 +1227,9 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_AC3: return ac3_Write(a, bs); 
 	case GF_ISOM_BOX_TYPE_DAC3: return dac3_Write(a, bs); 
 
+	case GF_ISOM_BOX_TYPE_LSRC: return lsrc_Write(a, bs); 
+	case GF_ISOM_BOX_TYPE_LSR1: return lsr1_Write(a, bs); 
+
 	default:
 		return defa_Write(a, bs);
 	}
@@ -1432,6 +1444,9 @@ GF_Err gf_isom_box_size(GF_Box *a)
 
 	case GF_ISOM_BOX_TYPE_AC3: return ac3_Size(a); 
 	case GF_ISOM_BOX_TYPE_DAC3: return dac3_Size(a); 
+
+	case GF_ISOM_BOX_TYPE_LSRC: return lsrc_Size(a); 
+	case GF_ISOM_BOX_TYPE_LSR1: return lsr1_Size(a); 
 
 	default: return defa_Size(a);
 	}

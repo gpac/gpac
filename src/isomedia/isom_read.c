@@ -326,7 +326,7 @@ GF_Descriptor *gf_isom_get_root_od(GF_ISOFile *movie)
 			if (!movie->LastError) movie->LastError = gf_list_add(iod->ESDescriptors, esd);
 			if (movie->LastError) {
 				gf_odf_desc_del(desc);
-				gf_odf_desc_del((GF_Descriptor *) &iod);
+				gf_odf_desc_del((GF_Descriptor *) iod);
 				return NULL;
 			}
 		}
@@ -922,6 +922,8 @@ GF_Err gf_isom_get_data_reference(GF_ISOFile *the_file, u32 trackNumber, u32 Str
 	GF_DataEntryURNBox *urn;
 	u32 drefIndex;
 	GF_Err e;
+
+	*outURL = *outURN = NULL;
 
 	if (!StreamDescriptionIndex || !trackNumber) return GF_BAD_PARAM;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);

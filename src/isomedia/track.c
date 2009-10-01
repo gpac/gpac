@@ -733,6 +733,11 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			e = AVC_UpdateESD((GF_MPEGVisualSampleEntryBox*)entry, esd);
 			if (e) return e;
 			break;
+		case GF_ISOM_BOX_TYPE_LSR1:
+			e = LSR_UpdateESD((GF_LASeRSampleEntryBox*)entry, esd);
+			if (e) return e;
+			break;
+			
 		default:
 			gf_odf_desc_del((GF_Descriptor *) esd);
 			break;
@@ -773,9 +778,15 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			entry = (GF_MPEGSampleEntryBox*) entry_a;
 			break;
 		default:
-			entry = (GF_MPEGSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4S);
-			entry->esd = (GF_ESDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ESDS);
-			entry->esd->desc = esd;
+			if ((esd->decoderConfig->streamType==0x03) && (esd->decoderConfig->objectTypeIndication==0x09)) {
+				entry = (GF_MPEGSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_LSR1);
+				if (!entry) return GF_OUT_OF_MEM;
+				e = LSR_UpdateESD((GF_LASeRSampleEntryBox*)entry, esd);
+			} else {
+				entry = (GF_MPEGSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4S);
+				entry->esd = (GF_ESDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ESDS);
+				entry->esd->desc = esd;
+			}
 			break;
 		}
 		entry->dataReferenceIndex = DataReferenceIndex;

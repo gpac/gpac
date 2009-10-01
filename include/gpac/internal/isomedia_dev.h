@@ -166,6 +166,10 @@ enum
 	GF_ISOM_BOX_TYPE_AVC1	= GF_4CC( 'a', 'v', 'c', '1' ),
 	GF_ISOM_BOX_TYPE_PASP	= GF_4CC( 'p', 'a', 's', 'p' ),
 
+	/*AVC / H264 extension*/
+	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
+	GF_ISOM_BOX_TYPE_LSR1	= GF_4CC( 'l', 's', 'r', '1' ),
+
 	/*3GPP extensions*/
 	GF_ISOM_BOX_TYPE_DAMR	= GF_4CC( 'd', 'a', 'm', 'r' ),
 	GF_ISOM_BOX_TYPE_D263	= GF_4CC( 'd', '2', '6', '3' ),
@@ -673,7 +677,21 @@ typedef struct
 	GF_ESD *desc;
 } GF_ESDBox;
 
-/*for all MPEG4 media except audio and video*/
+typedef struct
+{
+	GF_ISOM_BOX
+	u32 bufferSizeDB;
+	u32 maxBitrate;
+	u32 avgBitrate;
+} GF_MPEG4BitRateBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_List *descriptors;
+} GF_MPEG4ExtensionDescriptorsBox;
+
+/*for most MPEG4 media */
 typedef struct
 {
 	GF_ISOM_SAMPLE_ENTRY_FIELDS
@@ -681,6 +699,28 @@ typedef struct
 	/*used for hinting when extracting the OD stream...*/
 	GF_SLConfig *slc;
 } GF_MPEGSampleEntryBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	char *hdr;
+	u32 hdr_size;
+} GF_LASERConfigurationBox;
+
+
+typedef struct
+{
+	GF_ISOM_SAMPLE_ENTRY_FIELDS
+
+	GF_LASERConfigurationBox *lsr_config;
+	GF_MPEG4BitRateBox *bitrate;
+	GF_MPEG4ExtensionDescriptorsBox *descr;
+
+	/*used for hinting when extracting the OD stream...*/
+	GF_SLConfig *slc;
+} GF_LASeRSampleEntryBox;
+
+GF_Err LSR_UpdateESD(GF_LASeRSampleEntryBox *lsr, GF_ESD *esd);
 
 typedef struct
 {
@@ -717,20 +757,6 @@ GF_Err gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStrea
 void gf_isom_video_sample_entry_write(GF_VisualSampleEntryBox *ent, GF_BitStream *bs);
 void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent);
 #endif
-
-typedef struct
-{
-	GF_ISOM_BOX
-	u32 bufferSizeDB;
-	u32 maxBitrate;
-	u32 avgBitrate;
-} GF_MPEG4BitRateBox;
-
-typedef struct
-{
-	GF_ISOM_BOX
-	GF_List *descriptors;
-} GF_MPEG4ExtensionDescriptorsBox;
 
 typedef struct
 {
@@ -3037,6 +3063,9 @@ GF_Err ilst_dump(GF_Box *a, FILE * trace);
 GF_Err ListItem_dump(GF_Box *a, FILE * trace);
 GF_Err data_dump(GF_Box *a, FILE * trace);
 
+GF_Err lsrc_dump(GF_Box *a, FILE * trace);
+GF_Err lsr1_dump(GF_Box *a, FILE * trace);
+
 /*Apple extensions*/
 GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov);
 
@@ -3142,6 +3171,20 @@ GF_Err dac3_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err dac3_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err dac3_Size(GF_Box *s);
 GF_Err dac3_dump(GF_Box *a, FILE * trace);
+
+GF_Box *lsrc_New();
+void lsrc_del(GF_Box *s);
+GF_Err lsrc_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err lsrc_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err lsrc_Size(GF_Box *s);
+GF_Err lsrc_dump(GF_Box *a, FILE * trace);
+
+GF_Box *lsr1_New();
+void lsr1_del(GF_Box *s);
+GF_Err lsr1_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err lsr1_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err lsr1_Size(GF_Box *s);
+GF_Err lsr1_dump(GF_Box *a, FILE * trace);
 
 
 #endif /*GPAC_DISABLE_ISOM*/

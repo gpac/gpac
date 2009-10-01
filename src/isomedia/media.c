@@ -220,6 +220,21 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			return GF_OK;
 		}
 
+	case GF_ISOM_SUBTYPE_LSR1: 
+		if (true_desc_only) {
+			return GF_ISOM_INVALID_MEDIA;
+		} else {
+			GF_LASeRSampleEntryBox*ptr = (GF_LASeRSampleEntryBox*)entry;
+			esd =  gf_odf_desc_esd_new(2);
+			*out_esd = esd;
+			esd->decoderConfig->streamType = 0x03;
+			esd->decoderConfig->objectTypeIndication = 0x09;
+			esd->decoderConfig->decoderSpecificInfo->dataLength = ptr->lsr_config->hdr_size;
+			esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*ptr->lsr_config->hdr_size);
+			memcpy(esd->decoderConfig->decoderSpecificInfo->data, ptr->lsr_config->hdr, sizeof(char)*ptr->lsr_config->hdr_size);
+			return GF_OK;
+		}
+
 	default: return GF_ISOM_INVALID_MEDIA;
 	}
 
