@@ -497,4 +497,59 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+
+GF_Err LSR_UpdateESD(GF_LASeRSampleEntryBox *lsr, GF_ESD *esd)
+{
+	if (!lsr->bitrate) lsr->bitrate = (GF_MPEG4BitRateBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_BTRT);
+	if (lsr->descr) gf_isom_box_del((GF_Box *) lsr->descr);
+	lsr->descr = NULL;
+	lsr->bitrate->avgBitrate = esd->decoderConfig->avgBitrate;
+	lsr->bitrate->maxBitrate = esd->decoderConfig->maxBitrate;
+	lsr->bitrate->bufferSizeDB = esd->decoderConfig->bufferSizeDB;
+
+	if (gf_list_count(esd->IPIDataSet)
+		|| gf_list_count(esd->IPMPDescriptorPointers)
+		|| esd->langDesc
+		|| gf_list_count(esd->extensionDescriptors)
+		|| esd->ipiPtr || esd->qos || esd->RegDescriptor) {
+
+		lsr->descr = (GF_MPEG4ExtensionDescriptorsBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_M4DS);
+		if (esd->RegDescriptor) { gf_list_add(lsr->descr->descriptors, esd->RegDescriptor); esd->RegDescriptor = NULL; }
+		if (esd->qos) { gf_list_add(lsr->descr->descriptors, esd->qos); esd->qos = NULL; }
+		if (esd->ipiPtr) { gf_list_add(lsr->descr->descriptors, esd->ipiPtr); esd->ipiPtr= NULL; }
+
+		while (gf_list_count(esd->IPIDataSet)) {
+			GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(esd->IPIDataSet, 0);
+			gf_list_rem(esd->IPIDataSet, 0);
+			gf_list_add(lsr->descr->descriptors, desc);
+		}
+		while (gf_list_count(esd->IPMPDescriptorPointers)) {
+			GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(esd->IPMPDescriptorPointers, 0);
+			gf_list_rem(esd->IPMPDescriptorPointers, 0);
+			gf_list_add(lsr->descr->descriptors, desc);
+		}
+		if (esd->langDesc) {
+			gf_list_add(lsr->descr->descriptors, esd->langDesc);
+			esd->langDesc = NULL;
+		}
+		while (gf_list_count(esd->extensionDescriptors)) {
+			GF_Descriptor *desc = (GF_Descriptor *)gf_list_get(esd->extensionDescriptors, 0);
+			gf_list_rem(esd->extensionDescriptors, 0);
+			gf_list_add(lsr->descr->descriptors, desc);
+		}
+	}
+
+	/*update GF_AVCConfig*/
+	if (!lsr->lsr_config) lsr->lsr_config = (GF_LASERConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_LSRC);
+	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+		lsr->lsr_config->hdr = realloc(lsr->lsr_config->hdr, sizeof(char) * esd->decoderConfig->decoderSpecificInfo->dataLength);
+		lsr->lsr_config->hdr_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+		memcpy(lsr->lsr_config->hdr, esd->decoderConfig->decoderSpecificInfo->data, sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+	}
+	gf_odf_desc_del((GF_Descriptor *)esd);
+	return GF_OK;
+}
+
+
 #endif /*GPAC_DISABLE_ISOM*/

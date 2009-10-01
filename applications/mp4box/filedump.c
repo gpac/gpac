@@ -1073,7 +1073,11 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	gf_isom_get_audio_info(file, trackNum, 1, &sr, &nb_ch, &bps);
 	
 	msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
-	if ((msub_type==GF_ISOM_SUBTYPE_MPEG4) || (msub_type==GF_ISOM_SUBTYPE_MPEG4_CRYP) || (msub_type==GF_ISOM_SUBTYPE_AVC_H264))  {
+	if ((msub_type==GF_ISOM_SUBTYPE_MPEG4) 
+		|| (msub_type==GF_ISOM_SUBTYPE_MPEG4_CRYP) 
+		|| (msub_type==GF_ISOM_SUBTYPE_AVC_H264)
+		|| (msub_type==GF_ISOM_SUBTYPE_LSR1)
+	)  {
 		esd = gf_isom_get_esd(file, trackNum, 1);
 		if (!esd) {
 			fprintf(stdout, "WARNING: Broken MPEG-4 Track\n");

@@ -3062,6 +3062,20 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, GF_ISOFile *f2,
 			return ret;
 		}
 			break;
+		case GF_ISOM_BOX_TYPE_LSR1:
+		{
+			GF_LASeRSampleEntryBox *lsr1 = (GF_LASeRSampleEntryBox *)ent1;
+			GF_LASeRSampleEntryBox *lsr2 = (GF_LASeRSampleEntryBox *)ent2;
+			if (lsr1->lsr_config && lsr2->lsr_config 
+				&& lsr1->lsr_config->hdr && lsr2->lsr_config->hdr
+				&& (lsr1->lsr_config->hdr_size==lsr2->lsr_config->hdr_size)
+				&& !memcmp(lsr1->lsr_config->hdr, lsr2->lsr_config->hdr, lsr2->lsr_config->hdr_size)
+			) { 
+				return 1;
+			}
+			return 0;
+		}
+			break;
 		}
 	}
 	if (!need_memcmp) return 1;

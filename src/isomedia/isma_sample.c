@@ -382,6 +382,7 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	case GF_ISOM_BOX_TYPE_DEVC:
 	case GF_ISOM_BOX_TYPE_DQCP:
 	case GF_ISOM_BOX_TYPE_DSMV:
+	case GF_ISOM_BOX_TYPE_AC3:
 		original_format = sea->type;
 		sea->type = GF_ISOM_BOX_TYPE_ENCA;
 		break;
@@ -396,6 +397,7 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;
 		break;
 	case GF_ISOM_BOX_TYPE_MP4S:
+	case GF_ISOM_BOX_TYPE_LSR1:
 		original_format = sea->type;
 		sea->type = GF_ISOM_BOX_TYPE_ENCS;
 		break;
@@ -455,6 +457,7 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;
 		break;
 	case GF_ISOM_BOX_TYPE_MP4S:
+	case GF_ISOM_BOX_TYPE_LSR1:
 		original_format = sea->type;
 		sea->type = GF_ISOM_BOX_TYPE_ENCS;
 		break;
