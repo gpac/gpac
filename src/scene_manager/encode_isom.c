@@ -1002,10 +1002,10 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 		/*encode all samples and perform import - FIXME this is destructive...*/
 		j=0;
 		while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
-			
-			while (gf_list_count(au->commands) ) {
-				GF_ODCom *com = (GF_ODCom *) gf_list_get(au->commands, 0);
-				gf_list_rem(au->commands, 0);
+			GF_ODCom *com;
+			u32 k = 0;
+			while ((com = gf_list_enum(au->commands, &k))) {
+
 				/*only updates commandes need to be parsed for import*/
 				switch (com->tag) {
 				case GF_ODF_OD_UPDATE_TAG:
@@ -1079,7 +1079,8 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 				}
 			}
 
-			e = gf_odf_codec_encode(codec, 1);
+			/*encode but do not delete the content*/
+			e = gf_odf_codec_encode(codec, 0);
 			if (e) goto err_exit;
 
 			/*time in sec conversion*/
@@ -1162,7 +1163,8 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 			esd = NULL;
 		}
 		esd = NULL;
-		gf_isom_set_last_sample_duration(mp4, track, 0);
+		if (gf_isom_get_sample_count(mp4, track))
+			gf_isom_set_last_sample_duration(mp4, track, 0);
 
 		if (rap_codec) {
 			if (last_not_shadow) {

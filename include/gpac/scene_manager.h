@@ -64,6 +64,9 @@ typedef struct _stream_context
 {
 	/*ESID of stream, or 0 if unknown in which case it is automatically updated at encode stage*/
 	u16 ESID;
+	/*stream name if any (XMT), NULL otherwise*/
+	char *name;
+
 	/*stream type - used as a hint, the encoder(s) may override it*/
 	u8 streamType;
 	u8 objectType;
@@ -75,6 +78,10 @@ typedef struct _stream_context
 	u64 last_au_time;
 	/*set if stream is part of root OD (playback only)*/
 	Bool in_root_od;
+	/*number of previous AUs (used in live scene encoder only)*/
+	u32 current_au_count;
+	char *dec_cfg;
+	u32 dec_cfg_len;
 } GF_StreamContext;
 
 /*generic presentation context*/

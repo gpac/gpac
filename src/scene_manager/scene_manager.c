@@ -110,6 +110,8 @@ static void gf_sm_delete_stream(GF_StreamContext *sc)
 {
 	gf_sm_reset_stream(sc);
 	gf_list_del(sc->AUs);
+	if (sc->name) free(sc->name);
+	if (sc->dec_cfg) free(sc->dec_cfg);
 	free(sc);
 }
 
@@ -196,12 +198,34 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 	stream_count = gf_list_count(ctx->streams);
 	for (i=0; i<stream_count; i++) {
 		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
+
+
 		/*FIXME - do this as well for ODs*/
 #ifndef GPAC_DISABLE_VRML
 		if (sc->streamType == GF_STREAM_SCENE) {
+			/*we check for each stream if a RAP is carried (several streams may carry RAPs if inline nodes are used)*/
+			Bool stream_rap_found = 0;
 			/*apply all commands - this will also apply the SceneReplace*/
 			j=0;
 			while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
+
+				if (!stream_rap_found) {
+					u32 k=0;
+					while ((com = gf_list_enum(au->commands, &k))) {
+						switch (sc->objectType) {
+						case GPAC_OTI_SCENE_BIFS:
+						case GPAC_OTI_SCENE_BIFS_V2:
+							if (com->tag==GF_SG_SCENE_REPLACE)
+								stream_rap_found = 1;
+							break;
+						case GPAC_OTI_SCENE_LASER:
+							if (com->tag==GF_SG_LSR_NEW_SCENE)
+								stream_rap_found = 1;
+							break;
+						}
+						if (stream_rap_found) break;
+					}
+				}
 				e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
 				if (e) return e;
 			}
@@ -219,17 +243,34 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 				free(au);
 			}
 			/*and recreate scene replace*/
-			au = gf_sm_stream_au_new(sc, 0, 0, 1);
-			com = gf_sg_command_new(ctx->scene_graph, GF_SG_SCENE_REPLACE);
-			com->node = ctx->scene_graph->RootNode;
-			ctx->scene_graph->RootNode = NULL;
-			gf_list_del(com->new_proto_list);
-			com->new_proto_list = ctx->scene_graph->protos;
-			ctx->scene_graph->protos = NULL;
-			/*indicate the command is the aggregated scene graph, so that PROTOs and ROUTEs 
-			are taken from the scenegraph when encoding*/
-			com->aggregated = 1;
-			gf_list_add(au->commands, com);
+			if (stream_rap_found) {
+				au = gf_sm_stream_au_new(sc, 0, 0, 1);
+
+				switch (sc->objectType) {
+				case GPAC_OTI_SCENE_BIFS:
+				case GPAC_OTI_SCENE_BIFS_V2:
+					com = gf_sg_command_new(ctx->scene_graph, GF_SG_SCENE_REPLACE);
+					break;
+				case GPAC_OTI_SCENE_LASER:
+					com = gf_sg_command_new(ctx->scene_graph, GF_SG_LSR_NEW_SCENE);
+					break;
+				default:
+					com = NULL;
+					break;
+				}
+
+				if (com) {
+					com->node = ctx->scene_graph->RootNode;
+					ctx->scene_graph->RootNode = NULL;
+					gf_list_del(com->new_proto_list);
+					com->new_proto_list = ctx->scene_graph->protos;
+					ctx->scene_graph->protos = NULL;
+					/*indicate the command is the aggregated scene graph, so that PROTOs and ROUTEs 
+					are taken from the scenegraph when encoding*/
+					com->aggregated = 1;
+					gf_list_add(au->commands, com);
+				}
+			}
 		}
 #endif
 	}

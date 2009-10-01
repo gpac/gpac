@@ -164,6 +164,17 @@ static Bool xmt_esid_available(GF_XMTParser *parser, u16 ESID)
 	return 1;
 }
 
+static char *xmt_get_es_name(GF_XMTParser *parser, u16 ESID) 
+{
+	u32 i;
+	XMT_ESDLink *esdl;
+	i=0;
+	while ((esdl = (XMT_ESDLink *)gf_list_enum(parser->esd_links, &i))) {
+		if (esdl->esd->ESID == ESID) return esdl->desc_name;
+	}
+	return NULL;
+}
+
 static void xmt_new_od_link(GF_XMTParser *parser, GF_ObjectDescriptor *od, char *name, u32 ID)
 {
 	u32 i, j, count;
@@ -365,6 +376,15 @@ static u32 xmt_locate_stream(GF_XMTParser *parser, char *stream_name)
 			if (!strcmp(szN, stream_name)) return esdl->ESID;
 			sprintf(szN, "%d", esdl->ESID);
 			if (!strcmp(szN, stream_name)) return esdl->ESID;
+		}
+	}
+	if (parser->load->ctx) {
+		GF_StreamContext *sc;
+		i=0;
+		while ((sc = gf_list_enum(parser->load->ctx->streams, &i))) {
+			if (sc->name && !strcmp(sc->name, stream_name)) return sc->ESID;
+			sprintf(szN, "%d", sc->ESID);
+			if (!strcmp(szN, stream_name)) return sc->ESID;
 		}
 	}
 	/*create a temp one*/
@@ -1891,11 +1911,15 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 						parser->scene_es->ESID = parser->base_scene_id = esd->ESID;
 						parser->scene_es->timeScale = (esd->slConfig && esd->slConfig->timestampResolution) ? esd->slConfig->timestampResolution : 1000;
 					} else {
+						char *name;
 						GF_StreamContext *sc = gf_sm_stream_new(parser->load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 						/*set default timescale for systems tracks (ignored for other)*/
 						if (sc) sc->timeScale = (esd->slConfig && esd->slConfig->timestampResolution) ? esd->slConfig->timestampResolution : 1000;
 						if (!parser->base_scene_id && (esd->decoderConfig->streamType==GF_STREAM_SCENE)) parser->base_scene_id = esd->ESID;
 						else if (!parser->base_od_id && (esd->decoderConfig->streamType==GF_STREAM_OD)) parser->base_od_id = esd->ESID;
+
+						name = xmt_get_es_name(parser, esd->ESID);
+						if (name && !sc->name) sc->name = strdup(name);
 					}
 					break;
 				}
