@@ -1035,6 +1035,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_init_from_string) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_init_from_context) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_beng_get_stream_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_get_stream_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_encode_context) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_encode_from_file) )

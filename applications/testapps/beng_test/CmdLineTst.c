@@ -1,6 +1,6 @@
 #include <gpac/bifsengine.h>
 
-GF_Err SampleCallBack(void *calling_object, char *data, u32 size, u32 ts)
+GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
 {
 	fprintf(stdout, "Received at time %d, buffer %d bytes long.\n", ts, size);
 	return GF_OK;
@@ -11,14 +11,18 @@ int main(int argc, char **argv)
 	int i;
 	GF_BifsEngine *codec1 = NULL;
 	GF_BifsEngine * codec2 = NULL;
+
+	gf_sys_init();
+
+	gf_log_set_level(GF_LOG_INFO);
+	gf_log_set_tools(0xFFFFFFFF);
+
 	if (1) {
-		char *config;
-		u32 config_size;
-		char update[] = "<par><Replace atNode=\"REC\" ><Node><Circle DEF=\"CIR\" radius=\"50\"/></Node></Replace></par>\n";
+//		char update[] = "<par begin =\"4\" atES_ID=\"22\">\n<Replace atNode=\"TEXT_COUNTER\" atField=\"string\" value=\"'01'\"/>\n</par>\n";
+
+		char update[] = "<saf:sceneUnit time=\"2000\"><lsr:Replace ref=\"rect\" attributeName=\"fill-opacity\" value=\"0.5\"/></saf:sceneUnit>";
 
 		codec1 = gf_beng_init(NULL, argv[1]);
-		gf_beng_get_stream_config(codec1, &config, &config_size);
-		fprintf(stdout, "EncodedBifsConfig size is %d \n", config_size);
 
 		gf_beng_encode_context(codec1, SampleCallBack);
 		gf_beng_save_context(codec1, "initial_context.mp4");
@@ -28,14 +32,10 @@ int main(int argc, char **argv)
 		gf_beng_save_context(codec1, "aggregated_context.mp4");
 		gf_beng_terminate(codec1);
 	} else if (1) {
-		char *config;
-		u32 config_size;
 		char scene[] = "OrderedGroup {children [Background2D {backColor 1 1 1}Shape {appearance Appearance {material DEF M Material2D {emissiveColor 0 0 1 filled TRUE } } geometry Rectangle { size 100 75 } } ] }";
 		char update[] = "\n AT \n 500 \n { \n REPLACE \n M.emissiveColor BY 1 0 0 \n REPLACE \n M.filled BY FALSE} \n";
 
 		codec1 = gf_beng_init_from_string(NULL, scene, 200, 200, 1);
-		gf_beng_get_stream_config(codec1, &config, &config_size);
-		fprintf(stdout, "EncodedBifsConfig size is %d \n", config_size);
 
 		gf_beng_encode_context(codec1, SampleCallBack);
 		gf_beng_save_context(codec1, "initial_context.mp4");
@@ -83,7 +83,8 @@ int main(int argc, char **argv)
 		}
 		fprintf(stdout, "Done.\n");
 	}
+
+	gf_sys_close();
+
 	return 0;
 }
-
-

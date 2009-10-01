@@ -1,6 +1,6 @@
 #include "RTP_serv_generator.h"
 
-extern GF_Err SampleCallBack(void *calling_object, char *data, u32 size, u64 ts);
+extern GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts);
 
 PNC_CallbackData * PNC_Init_SceneGenerator(GF_RTPChannel * p_chan, GF_RTPHeader * p_hdr, char * default_scene, u16 socketPort) 
 {
@@ -51,7 +51,7 @@ void PNC_Close_SceneGenerator(PNC_CallbackData * data) {
 }
 
 /* Callback function called when encoding of BT is done */
-GF_Err SampleCallBack(void *calling_object, char *au, u32 size, u64 ts)
+GF_Err SampleCallBack(void *calling_object, u16 ESID, char *au, u32 size, u64 ts)
 {
 	PNC_CallbackData *data = (PNC_CallbackData *)calling_object;
 	/* call the packetizer to create RTP packets */

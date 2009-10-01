@@ -1,7 +1,7 @@
 #include "broadcaster.h"
 
 
-extern GF_Err SampleCallBack(void *calling_object, char *data, u32 size, u64 ts);
+extern GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts);
 
 void command_line_parsing(int* argc, char** argv, int* tcp_port, char *config_file, int *config_flag)
 {

@@ -37,6 +37,9 @@ extern "C" {
 
 typedef struct __tag_bifs_engine GF_BifsEngine;
 
+
+typedef void (*gf_beng_callback)(void *udta, u16 ESID, char *data, u32 size, u64 ts);
+
 /**
  * @calling_object is the calling object on which call back will be called
  * @inputContext is the name of a scene file (bt, xmt or mp4) to initialize the coding context
@@ -66,12 +69,21 @@ GF_BifsEngine *gf_beng_init_from_context(void *calling_object, GF_SceneManager *
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init
+ *
+ * must be called after BENC_Init
+ */
+u32 gf_beng_get_stream_count(GF_BifsEngine *beng);
+
+/**
+ * @beng, pointer to the GF_BifsEngine returned by BENC_Init
+ * @idx: stream index
+ * @ESID: pointer to the stream ID
  * @config: pointer to the encoded BIFS config (memory is not allocated)
  * @config_len: length of the buffer
  *
  * must be called after BENC_Init
  */
-void gf_beng_get_stream_config(GF_BifsEngine *beng, char **config, u32 *config_len);
+GF_Err gf_beng_get_stream_config(GF_BifsEngine *beng, u32 idx, u16 *ESID, const char **config, u32 *config_len);
 
 /**
  * Encodes the AU context which is not encoded when calling BENC_EncodeAUFromString/File
@@ -81,7 +93,7 @@ void gf_beng_get_stream_config(GF_BifsEngine *beng, char **config, u32 *config_l
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
  */
-GF_Err gf_beng_encode_context(GF_BifsEngine *beng, GF_Err (*AUCallback)(void *, char *data, u32 size, u64 ts));
+GF_Err gf_beng_encode_context(GF_BifsEngine *beng, gf_beng_callback callback);
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init
@@ -89,7 +101,7 @@ GF_Err gf_beng_encode_context(GF_BifsEngine *beng, GF_Err (*AUCallback)(void *, 
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
  */
-GF_Err gf_beng_encode_from_file(GF_BifsEngine *beng, char *auFile, GF_Err (*AUCallback)(void *, char *data, u32 size, u64 ts));
+GF_Err gf_beng_encode_from_file(GF_BifsEngine *beng, char *auFile, gf_beng_callback callback);
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init
@@ -97,7 +109,7 @@ GF_Err gf_beng_encode_from_file(GF_BifsEngine *beng, char *auFile, GF_Err (*AUCa
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
  */
-GF_Err gf_beng_encode_from_string(GF_BifsEngine *beng, char *auString, GF_Err (*AUCallback)(void *, char *data, u32 size, u64 ts));
+GF_Err gf_beng_encode_from_string(GF_BifsEngine *beng, char *auString, gf_beng_callback callback);
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by BENC_Init
