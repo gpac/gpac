@@ -365,11 +365,14 @@ static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 			term->compositor->scene_height = h;
 			term->compositor->has_size_info = 1;
 		}
-		gf_sc_set_size(term->compositor, w, h);
-		evt.type = GF_EVENT_SCENE_SIZE;
-		evt.size.width = w;
-		evt.size.height = h;
-		gf_term_send_event(term, &evt);
+		if (term->user->os_window_handler) {
+			evt.type = GF_EVENT_SCENE_SIZE;
+			evt.size.width = w;
+			evt.size.height = h;
+			gf_term_send_event(term, &evt);
+		} else {
+			gf_sc_set_size(term->compositor, w, h);
+		}
 	} else if (override_size_info) {
 		term->compositor->has_size_info = 0;
 		term->compositor->recompute_ar = 1;

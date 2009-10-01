@@ -110,6 +110,8 @@ err_exit:
 			gf_odf_delete_command(com);
 			gf_list_rem(codec->CommandList, 0);
 		}
+	} else {
+		gf_list_reset(codec->CommandList);
 	}
 	return e;
 }

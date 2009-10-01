@@ -1488,7 +1488,7 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 		}
 	}
 
-	if (e) {
+	if (e<0) {
 		fprintf(stdout, "Error loading file %s\n", gf_error_to_string(e));
 		goto err_exit;
 	} else {
