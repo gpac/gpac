@@ -1119,7 +1119,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 #else
 		s32 read = gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
 #endif
-		if ((read<=0) && !parser->node_depth) break;
+		if ((read<=0) /*&& !parser->node_depth*/) break;
 		szLine[read] = 0;
 		szLine[read+1] = 0;		
 		e = gf_xml_sax_parse(parser, szLine);
