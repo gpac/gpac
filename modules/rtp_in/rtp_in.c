@@ -521,7 +521,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (ch->rtp_ch) {
 				ch->check_rtp_time = 1;
 				gf_mx_p(priv->mx);
-				RP_InitStream(ch, 0);
+				RP_InitStream(ch, (ch->flags & RTP_CONNECTED) ? 1 : 0);
 				gf_mx_v(priv->mx);
 				gf_rtp_set_info_rtp(ch->rtp_ch, 0, 0, 0);
 			} else {

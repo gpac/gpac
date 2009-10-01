@@ -156,6 +156,9 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 			sscanf(att->Value, "server-port=%d-%d;ssrc=%X;npt=%g;seq=%d;rtptime=%d", 
 				&s_port_first, &s_port_last, &ssrc, &CurrentTime, &rtp_seq, &rtp_time);
 		}
+		else if (!stricmp(att->Name, "x-server-port") ) {
+			sscanf(att->Value, "%d-%d", &s_port_first, &s_port_last);
+		}
 	}
 
 	if (range) {
