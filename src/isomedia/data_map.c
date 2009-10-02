@@ -461,7 +461,7 @@ GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode)
 	memset(tmp, 0, sizeof(GF_FileMappingDataMap));
 	tmp->type = GF_ISOM_DATA_FILE_MAPPING;
 	tmp->mode = mode;	
-	tmp->name = _strdup(sPath);
+	tmp->name = strdup(sPath);
 
 	//
 	//	Open the file 

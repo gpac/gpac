@@ -44,8 +44,8 @@ This is only needed when building libgpac and modules when libgpac is not instal
 #error "GPAC_MEMORY_TRACKING will cause a stack overflow due to redefinitions of symbols. Abort"
 #endif
 
-static void register_address(void *ptr, size_t size);
-static int unregister_address(void *ptr, size_t size);
+static void register_address(void *ptr, size_t size, char *filename, int line);
+static int unregister_address(void *ptr, size_t size, char *filename, int line);
 
 void gf_memory_log(unsigned int level, const char *fmt, ...);
 enum
@@ -60,7 +60,7 @@ enum
 	GF_MEMORY_DEBUG,
 };
 
-void *gf_malloc(size_t size)
+void *gf_malloc(size_t size, char *filename, int line)
 {
 	void *ptr;
 	size_t size_g = size + sizeof(size_t);
@@ -69,66 +69,71 @@ void *gf_malloc(size_t size)
 		gf_memory_log(GF_MEMORY_ERROR, "malloc() has returned a NULL pointer\n");
 		assert(0);
 	} else {
-		register_address(ptr, size);
+		register_address(ptr, size, filename, line);
 	}
 	//gf_memory_log(GF_MEMORY_DEBUG, "malloc   %08X %8d %8d %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
-	*(size_t *)ptr = size;
-	return (void *) ( (char *)ptr + sizeof(size_t) );
+	*(size_t*)ptr = size;
+	return (void*) ((char *)ptr + sizeof(size_t));
 }
 
-void *gf_realloc(void *ptr, size_t size)
+void *gf_realloc(void *ptr, size_t size, char *filename, int line)
 {
 	size_t prev_size;
 	char *ptr_g = (char *)ptr;
 	if (!ptr) {
 		//gf_memory_log(GF_MEMORY_DEBUG, "realloc() from a null pointer: calling malloc() instead\n");
-		return gf_malloc(size);
+		return gf_malloc(size, filename, line);
 	}
 	ptr_g -= sizeof(size_t);
-	prev_size = *(size_t *)ptr_g;
-	unregister_address(ptr_g, prev_size);
+	prev_size = *(size_t*)ptr_g;
+	unregister_address(ptr_g, prev_size, filename, line);
 	//gf_memory_log(GF_MEMORY_DEBUG, "realloc- %08X %8d %8d %8d\n", ptr_g, prev_size, gpac_nb_alloc_blocs, gpac_allocated_memory);
-	ptr_g = (char *) realloc(ptr_g, size+sizeof(size_t));
-	register_address(ptr_g, size);
+	ptr_g = (char*)realloc(ptr_g, size+sizeof(size_t));
+	register_address(ptr_g, size, filename, line);
 	//gf_memory_log(GF_MEMORY_DEBUG, "realloc+ %08X %8d %8d %8d\n", ptr_g, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
-	*(size_t *)ptr_g = size;
+	*(size_t*)ptr_g = size;
 	return ptr_g + sizeof(size_t);
 }
 
-void gf_free(void *ptr)
+void gf_free(void *ptr, char *filename, int line)
 {
 	if (ptr) {
-		char *ptr_g = (char *)ptr - sizeof(size_t);
-		size_t size_g = *(size_t *)ptr_g;
-		if (unregister_address(ptr_g, size_g)) {
+		char *ptr_g = (char*)ptr - sizeof(size_t);
+		size_t size_g = *(size_t*)ptr_g;
+		if (unregister_address(ptr_g, size_g, filename, line)) {
 			//gf_memory_log(GF_MEMORY_DEBUG, "free     %08X %8d %8d %8d\n", ptr_g, size_g, gpac_nb_alloc_blocs, gpac_allocated_memory);
 			free(ptr_g);
 		}
 	}
 }
 
-char *gf_strdup(const char *str)
+char *gf_strdup(const char *str, char *filename, int line)
 {
-	char *ptr = (char *) gf_malloc(strlen(str) + 1);
+	char *ptr = (char*)gf_malloc(strlen(str)+1, filename, line);
 	strcpy(ptr, str);
 	return ptr;
 }
 
-struct memory_element;
-typedef struct
+typedef struct s_memory_element
 {
 	void *ptr;
-	struct memory_element *next;
+	int size;
+	char *filename;
+	int line;
+	struct s_memory_element *next;
 } memory_element;
 
 /*pointer to the first element of the list*/
 typedef memory_element* memory_list;
 
 /*this list is implemented as a stack to minimise the cost of freeing recent allocations*/
-static void gf_memory_add(memory_list *p, void *ptr)
+static void gf_memory_add(memory_list *p, void *ptr, int size, char *filename, int line)
 {
-	memory_element *element = malloc(sizeof(memory_element));
+	memory_element *element = (memory_element*)malloc(sizeof(memory_element));
 	element->ptr = ptr;
+	element->size = size;
+	element->filename = filename;
+	element->line = line;
 	element->next = *p;
 	*p = element;
 }
@@ -188,7 +193,7 @@ GF_Mutex *gpac_allocations_lock = NULL;
 size_t gpac_allocated_memory = 0;
 size_t gpac_nb_alloc_blocs = 0;
 
-static void register_address(void *ptr, size_t size)
+static void register_address(void *ptr, size_t size, char *filename, int line)
 {
 	/*mutex initialization*/
 	if (gpac_allocations_lock == 0) {
@@ -199,16 +204,14 @@ static void register_address(void *ptr, size_t size)
 	}
 	else if (gpac_allocations_lock == (void*)1) {
 		/*we're initializing the mutex (ie called by the above gf_mx_new())*/
-		//gf_memory_log(GF_MEMORY_DEBUG, "register   0x%08X (%8d Bytes in %4d Blocks allocated)\n", ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
-		gf_memory_add(&memory_add, ptr);
 		return;
 	}
 
 	/*lock*/
 	gf_mx_p(gpac_allocations_lock);
 
-	//gf_memory_log(GF_MEMORY_DEBUG, "register   0x%08X (%8d Bytes in %4d Blocks allocated)\n", ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
-	gf_memory_add(&memory_add, ptr);
+	//gf_memory_log(GF_MEMORY_DEBUG, "register   %7d bytes at 0x%08X (%8d Bytes in %4d Blocks allocated)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
+	gf_memory_add(&memory_add, ptr, size, filename, line);
 
 	/*the same block can be reallocated, so remove it from the deallocation list*/
 	gf_memory_del_item(&memory_rem, ptr);
@@ -221,24 +224,26 @@ static void register_address(void *ptr, size_t size)
 	gf_mx_v(gpac_allocations_lock);
 }
 
-static int unregister_address(void *ptr, size_t size)
+static int unregister_address(void *ptr, size_t size, char *filename, int line)
 {
 	int ret = 0; /*default: failure*/
 
 	/*lock*/
 	gf_mx_p(gpac_allocations_lock);
 
-	//gf_memory_log(GF_MEMORY_DEBUG, "unregister 0x%08X (%8d Bytes in %4d Blocks remaining)\n", ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
 	if (!memory_add) {
-		gf_memory_log(GF_MEMORY_ERROR, "calling free() before the first allocation occured\n");
-		assert(0);
+		if (!memory_rem) {
+			gf_memory_log(GF_MEMORY_ERROR, "calling free() before the first allocation occured\n");
+			assert(0);
+		}
 	} else {
+		//gf_memory_log(GF_MEMORY_DEBUG, "unregister %7d bytes at 0x%08X (%8d bytes in %4d blocks remaining)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
 		if (!gf_memory_find(memory_add, ptr)) {
 			if (!gf_memory_find(memory_rem, ptr)) {
-				gf_memory_log(GF_MEMORY_ERROR, "trying to free a never allocated block\n");
+				gf_memory_log(GF_MEMORY_ERROR, "trying to free a never allocated block (%08X)\n", ptr);
 				assert(0);
 			} else {
-				gf_memory_log(GF_MEMORY_ERROR, "trying to free an already freed block\n");
+				gf_memory_log(GF_MEMORY_ERROR, "the block %08X has already been freed line%5d from %s\n", line, filename);
 				assert(0);
 			}
 		} else {
@@ -253,15 +258,16 @@ static int unregister_address(void *ptr, size_t size)
 				assert(!gpac_allocated_memory);
 				assert(!gpac_nb_alloc_blocs);
 
+				/*we destroy the mutex we own, then we return*/
+				gf_mx_del(gpac_allocations_lock);
+				gpac_allocations_lock = NULL;
+
 				gf_memory_log(GF_MEMORY_DEBUG, "the allocated-blocks-list is empty: the freed-blocks-list will be emptied too.\n");
 				gf_memory_del(&memory_rem);
 
-				/*we destroy the mutex we own, then we return*/
-				gf_mx_del(gpac_allocations_lock);
-
 				return 1;
 			} else {
-				gf_memory_add(&memory_rem, ptr);
+				gf_memory_add(&memory_rem, ptr, size, filename, line);
 			}
 
 			ret = 1; /*success*/
@@ -274,15 +280,41 @@ static int unregister_address(void *ptr, size_t size)
 	return ret;
 }
 
-void gf_memory_log(unsigned int level, const char *fmt, ...)
+static void gf_memory_log(unsigned int level, const char *fmt, ...)
 {
 	va_list vl;
-	char msg[81]; /*we write our own messages so that they don't exceed 80 bytes + '\0'*/
+	char msg[255]; /*since we print*/
 	assert(strlen(fmt) < 80);
 	va_start(vl, fmt);
 	vsprintf(msg, fmt, vl);
 	GF_LOG(level, GF_LOG_RTI, (msg));
 	va_end(vl);
+}
+
+/*prints the state of current allocations*/
+void gf_memory_print()
+{
+	/*if lists are empty, the mutex is also NULL*/
+	if (!memory_add) {
+		assert(!gpac_allocations_lock);
+		gf_memory_log(GF_MEMORY_INFO, "gf_memory_print(): the memory tracker is not initialized.\n");
+	} else {
+		memory_element *curr_element=memory_add, *next_element;
+		assert(gpac_allocations_lock);
+
+		/*lock*/
+		gf_mx_p(gpac_allocations_lock);
+
+		while (curr_element) {
+			next_element = curr_element->next;
+			gf_memory_log(GF_MEMORY_INFO, "Memory Block 0x%08X allocated line%5d from %s\n", curr_element->ptr, curr_element->line, curr_element->filename);
+			curr_element = next_element;
+		}
+		gf_memory_log(GF_MEMORY_INFO, "Total: %d bytes allocated on %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
+
+		/*unlock*/
+		gf_mx_v(gpac_allocations_lock);
+	}
 }
 
 #endif
