@@ -34,6 +34,7 @@
 
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
+extern Bool keep_sys_tracks;
 
 const char *GetLanguageCode(char *lang);
 void scene_coding_log(void *cbk, u32 log_level, u32 log_tool, const char *fmt, va_list vlist);
@@ -368,6 +369,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (profile || level) 
 				gf_media_change_pl(import.dest, i+1, profile, level);
+
+			if (gf_isom_get_media_subtype(import.dest, i+1, 1)== GF_4CC( 'm', 'p', '4', 's' ))
+				keep_sys_tracks = 1;
 		}
 	} else {
 		for (i=0; i<import.nb_tracks; i++) {
@@ -443,6 +447,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (profile || level) 
 				gf_media_change_pl(import.dest, track, profile, level);
 
+			if (gf_isom_get_mpeg4_subtype(import.dest, track, 1))
+				keep_sys_tracks = 1;
 		}
 		if (track_id) fprintf(stdout, "WARNING: Track ID %d not found in file\n", track_id);
 		else if (do_video) fprintf(stdout, "WARNING: Video track not found\n");

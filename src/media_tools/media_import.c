@@ -4860,6 +4860,7 @@ typedef struct
 	GF_MediaImporter *import;
 	u32 track;
 	u32 nb_i, nb_p, nb_b;
+	u64 last_dts;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_AVCConfig *avccfg;
 	AVCState avc;
@@ -5526,6 +5527,10 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						samp->DTS -= sl_pck->stream->first_dts;
 						samp->IsRAP = import->esd->slConfig->useRandomAccessPointFlag ? hdr.randomAccessPointFlag: 1;
 
+						/*fix for some DMB streams where TSs are not coded*/
+						if ((tsimp->last_dts == samp->DTS) && gf_isom_get_sample_count(import->dest, tsimp->track))
+							samp->DTS += gf_isom_get_media_timescale(import->dest, tsimp->track);
+
 						samp->data = sl_pck->data + hdr_len;
 						samp->dataLength = sl_pck->data_len - hdr_len;
 
@@ -5536,6 +5541,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						if (import->duration && (import->duration<=(samp->DTS+samp->CTS_Offset)/90)) {
 							//import->flags |= GF_IMPORT_DO_ABORT;
 						}
+						tsimp->last_dts = samp->DTS;
 
 					} else {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] negative time sample - skipping\n"));
