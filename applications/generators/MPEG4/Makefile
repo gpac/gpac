@@ -15,13 +15,12 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS= main.o ../../../src/utils/list.o ../../../src/utils/error.o
+OBJS= main.o
 
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=MPEG4Gen$(EXE)
 else
-OBJS+=../../../src/utils/os_divers.o
 EXT=
 PROG=MPEG4Gen
 endif
@@ -31,7 +30,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 $(PROG): $(OBJS) 
-	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS) 
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS) -L../../../bin/gcc -L../../../extra_lib/lib/gcc -lgpac -lz
 
 
 %.o: %.c

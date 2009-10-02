@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS= html.o laser.o main.o v1.o v2.o v3.o ../../../src/utils/list.o ../../../src/utils/error.o
+OBJS= html.o laser.o main.o v1.o v2.o v3.o
 
 CFLAGS+=-g
 LDFLAGS+=-g
@@ -35,7 +35,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 SVGGen$(EXE): $(OBJS) 
-	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(XML2_LIBS) $(EXTRALIBS)
+	$(CC) $(LDFLAGS) -o $@ $(OBJS) $(XML2_LIBS) $(EXTRALIBS) -L../../../bin/gcc -L../../../extra_lib/lib/gcc -lgpac -lz
 
 
 %.o: %.c
