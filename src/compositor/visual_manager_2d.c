@@ -660,7 +660,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		ra_refresh(&visual->to_redraw);
 	}
 #ifdef TRACK_OPAQUE_REGIONS
-	assert(visual->to_redraw.opaque_node_index != NULL);
+	assert(!visual->to_redraw.count || (visual->to_redraw.opaque_node_index != NULL));
 #endif
 	
 	/*nothing to redraw*/
