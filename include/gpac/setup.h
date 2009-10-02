@@ -307,10 +307,11 @@ typedef u32 Bool;
 /*GPAC memory tracking*/
 #ifdef GPAC_MEMORY_TRACKING
 
-void *gf_malloc(size_t size);
-void *gf_realloc(void *ptr, size_t size);
-void gf_free(void *ptr);
-char *gf_strdup(const char *str);
+void *gf_malloc(size_t size, char *filename, int line);
+void *gf_realloc(void *ptr, size_t size, char *filename, int line);
+void gf_free(void *ptr, char *filename, int line);
+char *gf_strdup(const char *str, char *filename, int line);
+void gf_memory_print(void); /*prints the state of current allocations*/
 
 /*always activated to avoid pointers to be re-freed*/
 #undef free
@@ -319,10 +320,11 @@ char *gf_strdup(const char *str);
 #undef strdup
 #undef calloc /*not over-implemented yet*/
 
-#define free(ptr)   {gf_free(ptr); ptr = NULL; }
-#define malloc(size) gf_malloc(size)
-#define strdup(s)    gf_strdup(s)
-#define realloc(ptr1, ptr2) gf_realloc(ptr1, ptr2)
+#define free(ptr) gf_free(ptr, __FILE__, __LINE__)
+//#define free(ptr) { gf_free(ptr, __FILE__, __LINE__); ptr = NULL; } /*safe free()*/
+#define malloc(size) gf_malloc(size, __FILE__, __LINE__)
+#define strdup(s) gf_strdup(s, __FILE__, __LINE__)
+#define realloc(ptr1, ptr2) gf_realloc(ptr1, ptr2, __FILE__, __LINE__)
 
 /*check we wont be called recursively*/
 #define GPAC_ALLOCATIONS_REDEFINED 1

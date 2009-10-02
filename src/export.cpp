@@ -77,6 +77,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_realloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_free) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_strdup) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_memory_print) )
 #endif /*GPAC_MEMORY_TRACKING*/
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_new) )
