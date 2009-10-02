@@ -71,7 +71,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 
 	root = service->owner;
 	if (root && (root->net_service != service)) {
-		gf_term_message(term, service->url, "Incomaptible module type", GF_SERVICE_ERROR);
+		gf_term_message(term, service->url, "Incompatible module type", GF_SERVICE_ERROR);
 		return;
 	}
 	/*this is service connection*/
