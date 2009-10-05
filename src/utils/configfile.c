@@ -371,3 +371,39 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 	return GF_OK;
 }
 
+GF_EXPORT
+const char *gf_cfg_get_channel_info(GF_Config *iniFile, const char *secName, const char *keyName,u32 data_type)
+{
+	u32 i,j;
+	IniSection *sec;
+	IniKey *key;
+	char *info,*info_dup;
+
+	i=0;
+	j=0;
+	while ( (sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {
+		if (!strcmp(secName, sec->section_name)) goto get_key;
+	}
+	return NULL;
+
+get_key:
+	i=0;
+	while ( (key = (IniKey *) gf_list_enum(sec->keys, &i)) ) {
+		if (!strcmp(key->name, keyName)){
+
+			info_dup = strdup(key->value);
+			info = strtok (info_dup,";"); 
+			while(info!=NULL){ 
+				if(j !=  data_type)
+				{
+					j++;
+				}else{
+					return info;
+				}
+                    
+				info = strtok (NULL, ";");
+			}			
+		}
+	}
+	return NULL;
+}
