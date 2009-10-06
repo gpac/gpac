@@ -65,9 +65,7 @@ enum
 
 void *gf_malloc(size_t size, char *filename, int line)
 {
-	void *ptr;
-	size_t size_g = size + sizeof(size_t);
-	ptr = malloc(size_g);
+	void *ptr = malloc(size);
 	if (!ptr) {
 		gf_memory_log(GF_MEMORY_ERROR, "malloc() has returned a NULL pointer\n");
 		assert(0);
@@ -75,32 +73,31 @@ void *gf_malloc(size_t size, char *filename, int line)
 		register_address(ptr, size, filename, line);
 	}
 	//gf_memory_log(GF_MEMORY_DEBUG, "malloc   %08X %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
-	*(size_t*)ptr = size;
-	return (void*) ((char *)ptr + sizeof(size_t));
+	return ptr;
 }
 
 void *gf_realloc(void *ptr, size_t size, char *filename, int line)
 {
-	char *ptr_g = (char*)ptr - sizeof(size_t);
+	void *ptr_g;
+	int size_prev;
 	if (!ptr) {
 		//gf_memory_log(GF_MEMORY_DEBUG, "realloc() from a null pointer: calling malloc() instead\n");
 		return gf_malloc(size, filename, line);
 	}
-	unregister_address(ptr, filename, line);
-	//gf_memory_log(GF_MEMORY_DEBUG, "realloc- %08X %8d %8d %8d\n", ptr_g, *ptr_g, gpac_nb_alloc_blocs, gpac_allocated_memory);
-	ptr_g = (char*)realloc(ptr_g, size+sizeof(size_t));
+	size_prev = unregister_address(ptr, filename, line);
+	//gf_memory_log(GF_MEMORY_DEBUG, "realloc- %08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
+	ptr_g = realloc(ptr, size);
 	register_address(ptr_g, size, filename, line);
 	//gf_memory_log(GF_MEMORY_DEBUG, "realloc+ %08X %8d %8d %8d\n", ptr_g, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
-	*(size_t*)ptr_g = size;
-	return ptr_g + sizeof(size_t);
+	return ptr_g;
 }
 
 void gf_free(void *ptr, char *filename, int line)
 {
-	if (ptr && unregister_address(ptr, filename, line)) {
-		char *ptr_g = (char*)ptr-sizeof(size_t);
-		//gf_memory_log(GF_MEMORY_DEBUG, "free     %08X %8d %8d %8d\n", ptr_g, *ptr_g, gpac_nb_alloc_blocs, gpac_allocated_memory);
-		free(ptr_g);
+	int size_prev;
+	if (ptr && (size_prev=unregister_address(ptr, filename, line))) {
+		//gf_memory_log(GF_MEMORY_DEBUG, "free     %08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
+		free(ptr);
 	}
 }
 
@@ -147,19 +144,23 @@ static int gf_memory_find(memory_list p, void *ptr)
 	return 0;
 }
 
-static void gf_memory_del_item(memory_list *p, void *ptr)
+/*returns the size of the deleted item*/
+static int gf_memory_del_item(memory_list *p, void *ptr)
 {
+	int size;
 	memory_element *curr_element=*p, *prev_element=NULL;
 	while (curr_element) {
 		if (curr_element->ptr == ptr) {
 			if (prev_element) prev_element->next = curr_element->next;
 			else *p = curr_element->next;
+			size = curr_element->size;
 			free(curr_element);
-			return;
+			return size;
 		}
 		prev_element = curr_element;
 		curr_element = curr_element->next;
 	}
+	return 0;
 }
 
 static void gf_memory_del(memory_list *p)
@@ -205,27 +206,23 @@ static void register_address(void *ptr, size_t size, char *filename, int line)
 	/*lock*/
 	gf_mx_p(gpac_allocations_lock);
 
-	gf_memory_log(GF_MEMORY_DEBUG, "register   %7d bytes at 0x%08X (%8d Bytes in %4d Blocks allocated)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
 	gf_memory_add(&memory_add, ptr, size, filename, line);
-
-	/*the same block can be reallocated, so remove it from the deallocation list*/
-	gf_memory_del_item(&memory_rem, ptr);
+	gf_memory_del_item(&memory_rem, ptr); /*the same block can be reallocated, so remove it from the deallocation list*/
 
 	/*update stats*/
 	gpac_allocated_memory += size;
 	gpac_nb_alloc_blocs++;
+	
+	gf_memory_log(GF_MEMORY_DEBUG, "register   %7d bytes at 0x%08X (%8d Bytes in %4d Blocks allocated)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
 
 	/*unlock*/
 	gf_mx_v(gpac_allocations_lock);
 }
 
+/*returns the size of the unregistered block*/
 static int unregister_address(void *ptr, char *filename, int line)
 {
-	int size, ret = 0; /*default: failure*/
-
-	/*retrieve the size*/
-	char *ptr_g = (char*)ptr - sizeof(size_t);
-	size = *(size_t*)ptr_g;
+	int size = 0; /*default: failure*/
 
 	/*lock*/
 	gf_mx_p(gpac_allocations_lock);
@@ -236,21 +233,23 @@ static int unregister_address(void *ptr, char *filename, int line)
 			assert(0);
 		}
 	} else {
-		gf_memory_log(GF_MEMORY_DEBUG, "unregister %7d bytes at 0x%08X (%8d bytes in %4d blocks remaining)\n", size, ptr_g, gpac_allocated_memory, gpac_nb_alloc_blocs);
-		if (!gf_memory_find(memory_add, ptr_g)) {
-			if (!gf_memory_find(memory_rem, ptr_g)) {
-				gf_memory_log(GF_MEMORY_ERROR, "trying to free a never allocated block (%08X)\n", ptr_g);
+		if (!gf_memory_find(memory_add, ptr)) {
+			if (!gf_memory_find(memory_rem, ptr)) {
+				gf_memory_log(GF_MEMORY_ERROR, "trying to free a never allocated block (%08X)\n", ptr);
 				//assert(0); /*don't assert since this is often due to allocations that occured out of gpac (fonts, etc.)*/
 			} else {
 				gf_memory_log(GF_MEMORY_ERROR, "the block %08X has already been freed line%5d from %s\n", line, filename);
 				assert(0);
 			}
 		} else {
-			gf_memory_del_item(&memory_add, ptr_g);
+			size = gf_memory_del_item(&memory_add, ptr);
+			assert(size);
 
 			/*update stats*/
 			gpac_allocated_memory -= size;
 			gpac_nb_alloc_blocs--;
+
+			gf_memory_log(GF_MEMORY_DEBUG, "unregister %7d bytes at 0x%08X (%8d bytes in %4d blocks remaining)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
 
 			/*the allocation list is empty: free the lists to avoid a leak (we should be exiting)*/
 			if (!memory_add) {
@@ -264,19 +263,17 @@ static int unregister_address(void *ptr, char *filename, int line)
 				gf_memory_log(GF_MEMORY_DEBUG, "the allocated-blocks-list is empty: the freed-blocks-list will be emptied too.\n");
 				gf_memory_del(&memory_rem);
 
-				return 1;
+				return size;
 			} else {
-				gf_memory_add(&memory_rem, ptr_g, size, filename, line);
+				gf_memory_add(&memory_rem, ptr, size, filename, line);
 			}
-
-			ret = 1; /*success*/
 		}
 	}
 
 	/*unlock*/
 	gf_mx_v(gpac_allocations_lock);
 
-	return ret;
+	return size;
 }
 
 static void gf_memory_log(unsigned int level, const char *fmt, ...)
