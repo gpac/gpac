@@ -531,6 +531,20 @@ fi
 
 #look for spidermonkey JS support
 
+
+if test "$linux" = "yes" ; then
+
+if pkg-config --exists mozilla-js 2> /dev/null  ; then
+  js_flags=`pkg-config --cflags mozilla-js`
+  js_lib=`pkg-config --libs mozilla-js`
+  has_js="system"
+fi
+
+fi
+
+
+if test "$has_js" = "no" ; then
+
 cat > $TMPC << EOF
 #include <jsapi.h>
 int main( void ) { return 0; }
@@ -585,6 +599,9 @@ fi
 
 fi
 fi
+
+fi
+
 
 #end JS test
 
