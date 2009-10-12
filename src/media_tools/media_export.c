@@ -355,7 +355,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	} else if (m_stype==GF_ISOM_SUBTYPE_AC3) {
 		gf_export_message(dumper, GF_OK, "Extracting AC3 sample%s", szNum);
 		strcpy(szEXT, ".ac3");
-	} else if (m_stype==GF_ISOM_SUBTYPE_AVC_H264) {
+	} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264) || (m_stype==GF_ISOM_SUBTYPE_AVC2_H264) || (m_stype==GF_ISOM_SUBTYPE_SVC_H264) ) {
 		strcpy(szEXT, ".h264");
 		gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
 	} else if (m_type==GF_ISOM_MEDIA_FLASH) {
@@ -741,7 +741,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			strcat(szName, ".263");
 		} else if (m_stype==GF_ISOM_SUBTYPE_3GP_DIMS) {
 			return gf_media_export_nhml(dumper, 1);
-		} else if (m_stype==GF_ISOM_SUBTYPE_AVC_H264) {
+		} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264) || (m_stype==GF_ISOM_SUBTYPE_AVC2_H264) || (m_stype==GF_ISOM_SUBTYPE_SVC_H264) ) {
 			avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
 			strcat(szName, ".h264");
 			gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
@@ -1303,7 +1303,7 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 
 	if (msubtype == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
 		esd = gf_isom_get_esd(infile, inTrackNum, 1);
-	} else if (msubtype == GF_ISOM_SUBTYPE_AVC_H264) {
+	} else if ((msubtype == GF_ISOM_SUBTYPE_AVC_H264) || (msubtype == GF_ISOM_SUBTYPE_AVC2_H264) ) {
 		return gf_isom_set_pl_indication(outfile, GF_ISOM_PL_VISUAL, 0x0F);
 	} 
 	/*likely 3gp or any non-MPEG-4 isomedia file*/

@@ -27,8 +27,44 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
+static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
+{
+	u32 i, count;
+	GF_AVCConfigSlot *p1, *p2;
+	GF_AVCConfig *cfg_new = gf_odf_avc_cfg_new();
+	cfg_new->AVCLevelIndication = cfg->AVCLevelIndication;
+	cfg_new->AVCProfileIndication = cfg->AVCProfileIndication;
+	cfg_new->configurationVersion = cfg->configurationVersion;
+	cfg_new->nal_unit_size = cfg->nal_unit_size;
+	cfg_new->profile_compatibility = cfg->profile_compatibility;
+	cfg_new->complete_representation = cfg->complete_representation;
+
+	count = gf_list_count(cfg->sequenceParameterSets);
+	for (i=0; i<count; i++) {
+		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
+		p2 = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+		p2->size = p1->size;
+		p2->data = (char *)malloc(sizeof(char)*p1->size);
+		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
+		gf_list_add(cfg_new->sequenceParameterSets, p2);
+	}
+
+	count = gf_list_count(cfg->pictureParameterSets);
+	for (i=0; i<count; i++) {
+		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
+		p2 = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+		p2->size = p1->size;
+		p2->data = (char*)malloc(sizeof(char)*p1->size);
+		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
+		gf_list_add(cfg_new->pictureParameterSets, p2);
+	}
+	return cfg_new;	
+}
+
+
 void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc)
 {
+	GF_AVCConfig *avcc, *svcc;
 	if (avc->emul_esd) gf_odf_desc_del((GF_Descriptor *)avc->emul_esd);
 	avc->emul_esd = gf_odf_desc_esd_new(2);
 	avc->emul_esd->decoderConfig->streamType = GF_STREAM_VISUAL;
@@ -50,8 +86,29 @@ void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc)
 				gf_odf_desc_del(clone);
 		}
 	}
-	if (avc->avc_config && avc->avc_config->config) {
-		gf_odf_avc_cfg_write(avc->avc_config->config, &avc->emul_esd->decoderConfig->decoderSpecificInfo->data, &avc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
+	if (avc->avc_config) {
+		avcc = AVC_DuplicateConfig(avc->avc_config->config);
+		/*merge SVC config*/
+		if (avc->svc_config) {
+			svcc = AVC_DuplicateConfig(avc->svc_config->config);
+			while (gf_list_count(svcc->sequenceParameterSets)) {
+				GF_AVCConfigSlot *p = (GF_AVCConfigSlot*)gf_list_get(svcc->sequenceParameterSets, 0);
+				gf_list_rem(svcc->sequenceParameterSets, 0);
+				gf_list_add(avcc->sequenceParameterSets, p);
+			}
+			while (gf_list_count(svcc->pictureParameterSets)) {
+				GF_AVCConfigSlot *p = (GF_AVCConfigSlot*)gf_list_get(svcc->pictureParameterSets, 0);
+				gf_list_rem(svcc->pictureParameterSets, 0);
+				gf_list_add(avcc->pictureParameterSets, p);
+			}
+			gf_odf_avc_cfg_del(svcc);
+		}
+		gf_odf_avc_cfg_write(avcc, &avc->emul_esd->decoderConfig->decoderSpecificInfo->data, &avc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
+		gf_odf_avc_cfg_del(avcc);
+	} else {
+		svcc = AVC_DuplicateConfig(avc->svc_config->config);
+		gf_odf_avc_cfg_write(svcc, &avc->emul_esd->decoderConfig->decoderSpecificInfo->data, &avc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
+		gf_odf_avc_cfg_del(svcc);
 	}
 }
 
@@ -97,48 +154,18 @@ GF_Err AVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd)
 	}
 
 	/*update GF_AVCConfig*/
-	if (!avc->avc_config) avc->avc_config = (GF_AVCConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
-	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-		if (avc->avc_config->config) gf_odf_avc_cfg_del(avc->avc_config->config);
-		avc->avc_config->config = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+	if (!avc->svc_config) {
+		if (!avc->avc_config) avc->avc_config = (GF_AVCConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
+		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+			if (avc->avc_config->config) gf_odf_avc_cfg_del(avc->avc_config->config);
+			avc->avc_config->config = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+		}
+		gf_odf_desc_del((GF_Descriptor *)esd);
 	}
-	gf_odf_desc_del((GF_Descriptor *)esd);
 	AVC_RewriteESDescriptor(avc);
 	return GF_OK;
 }
 
-static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
-{
-	u32 i, count;
-	GF_AVCConfigSlot *p1, *p2;
-	GF_AVCConfig *cfg_new = gf_odf_avc_cfg_new();
-	cfg_new->AVCLevelIndication = cfg->AVCLevelIndication;
-	cfg_new->AVCProfileIndication = cfg->AVCProfileIndication;
-	cfg_new->configurationVersion = cfg->configurationVersion;
-	cfg_new->nal_unit_size = cfg->nal_unit_size;
-	cfg_new->profile_compatibility = cfg->profile_compatibility;
-
-	count = gf_list_count(cfg->sequenceParameterSets);
-	for (i=0; i<count; i++) {
-		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
-		p2 = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
-		p2->size = p1->size;
-		p2->data = (char *)malloc(sizeof(char)*p1->size);
-		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
-		gf_list_add(cfg_new->sequenceParameterSets, p2);
-	}
-
-	count = gf_list_count(cfg->pictureParameterSets);
-	for (i=0; i<count; i++) {
-		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
-		p2 = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
-		p2->size = p1->size;
-		p2->data = (char*)malloc(sizeof(char)*p1->size);
-		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
-		gf_list_add(cfg_new->pictureParameterSets, p2);
-	}
-	return cfg_new;	
-}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex)
@@ -175,7 +202,7 @@ GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfi
 	return e;
 }
 
-GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg)
+static GF_Err gf_isom_avc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg, u32 op_type)
 {
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -187,12 +214,54 @@ GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Desc
 	if (!trak || !trak->Media || !cfg || !DescriptionIndex) return GF_BAD_PARAM;
 	entry = (GF_MPEGVisualSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
 	if (!entry) return GF_BAD_PARAM;
-	if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return GF_BAD_PARAM;
+	switch (entry->type) {
+	case GF_ISOM_BOX_TYPE_AVC1:
+	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_SVC1:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
 
-	if (entry->avc_config->config) gf_odf_avc_cfg_del(entry->avc_config->config);
-	entry->avc_config->config = AVC_DuplicateConfig(cfg);
+	switch (op_type) {
+	/*AVCC replacement*/
+	case 0:
+		if (!entry->avc_config) entry->avc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
+		if (entry->avc_config->config) gf_odf_avc_cfg_del(entry->avc_config->config);
+		entry->avc_config->config = AVC_DuplicateConfig(cfg);
+		entry->type = GF_ISOM_BOX_TYPE_AVC1;
+		break;
+	/*SVCC replacement*/
+	case 1:
+		if (!entry->svc_config) entry->svc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
+		if (entry->svc_config->config) gf_odf_avc_cfg_del(entry->svc_config->config);
+		entry->svc_config->config = AVC_DuplicateConfig(cfg);
+		entry->type = GF_ISOM_BOX_TYPE_AVC1;
+		break;
+	/*SVCC replacement and AVC removal*/
+	case 2:
+		if (entry->avc_config) {
+			gf_isom_box_del((GF_Box*)entry->avc_config);
+			entry->avc_config = NULL;
+		}
+		if (!entry->svc_config) entry->svc_config = (GF_AVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
+		if (entry->svc_config->config) gf_odf_avc_cfg_del(entry->svc_config->config);
+		entry->svc_config->config = AVC_DuplicateConfig(cfg);
+		entry->type = GF_ISOM_BOX_TYPE_SVC1;
+		break;
+	}
 	AVC_RewriteESDescriptor(entry);
 	return GF_OK;
+}
+
+GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg)
+{
+	return gf_isom_avc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, 0);
+}
+
+GF_Err gf_isom_svc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg, Bool is_add)
+{
+	return gf_isom_avc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_add ? 1 : 2);
 }
 
 GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber)
@@ -208,7 +277,14 @@ GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber)
 	if (!trak || !trak->Media) return GF_BAD_PARAM;
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
 	if (!entry) return GF_OK;
-	if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return GF_OK;
+	switch (entry->type) {
+	case GF_ISOM_BOX_TYPE_AVC1:
+	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_SVC1:
+		break;
+	default:
+		return GF_OK;
+	}
 
 	if (!entry->ipod_ext) entry->ipod_ext = (GF_UnknownUUIDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UUID);
 	memcpy(entry->ipod_ext->uuid, ipod_ext, sizeof(u8)*16);
@@ -230,6 +306,19 @@ GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	//if (entry->type != GF_ISOM_BOX_TYPE_AVC1) return NULL;
 	if (!entry->avc_config) return NULL;
 	return AVC_DuplicateConfig(entry->avc_config->config);
+}
+
+GF_EXPORT
+GF_AVCConfig *gf_isom_svc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_MPEGVisualSampleEntryBox *entry;
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
+	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, DescriptionIndex-1);
+	if (!entry) return NULL;
+	if (!entry->svc_config) return NULL;
+	return AVC_DuplicateConfig(entry->svc_config->config);
 }
 
 void btrt_del(GF_Box *s)
@@ -360,7 +449,12 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->config->AVCProfileIndication = gf_bs_read_u8(bs);
 	ptr->config->profile_compatibility = gf_bs_read_u8(bs);
 	ptr->config->AVCLevelIndication = gf_bs_read_u8(bs);
-	gf_bs_read_int(bs, 6);
+	if (ptr->type==GF_ISOM_BOX_TYPE_AVCC) {
+		gf_bs_read_int(bs, 6);
+	} else {
+		ptr->config->complete_representation = gf_bs_read_int(bs, 1);
+		gf_bs_read_int(bs, 5);
+	}
 	ptr->config->nal_unit_size = 1 + gf_bs_read_int(bs, 2);
 	gf_bs_read_int(bs, 3);
 	count = gf_bs_read_int(bs, 5);
@@ -385,7 +479,7 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 }
 GF_Box *avcc_New()
 {
-	GF_AVCConfigurationBox *tmp = (GF_AVCConfigurationBox *) malloc(sizeof(GF_MPEG4BitRateBox));
+	GF_AVCConfigurationBox *tmp = (GF_AVCConfigurationBox *) malloc(sizeof(GF_AVCConfigurationBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_AVCConfigurationBox));
 	tmp->type = GF_ISOM_BOX_TYPE_AVCC;
@@ -407,7 +501,12 @@ GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->config->AVCProfileIndication);
 	gf_bs_write_u8(bs, ptr->config->profile_compatibility);
 	gf_bs_write_u8(bs, ptr->config->AVCLevelIndication);
-	gf_bs_write_int(bs, 0x3F, 6);
+	if (ptr->type==GF_ISOM_BOX_TYPE_AVCC) {
+		gf_bs_write_int(bs, 0x3F, 6);
+	} else {
+		gf_bs_write_int(bs, ptr->config->complete_representation, 1);
+		gf_bs_write_int(bs, 0x1F, 5);
+	}
 	gf_bs_write_int(bs, ptr->config->nal_unit_size - 1, 2);
 	gf_bs_write_int(bs, 0x7, 3);
 	count = gf_list_count(ptr->config->sequenceParameterSets);

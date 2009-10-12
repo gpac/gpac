@@ -306,6 +306,8 @@ GP_RTPPacketizer *gf_rtp_packetizer_create_and_init_from_file(GF_ISOFile *file,
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_AVC_H264:
+		case GF_ISOM_SUBTYPE_AVC2_H264:
+		case GF_ISOM_SUBTYPE_SVC_H264:
 		{
 			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, TrackNum, 1);
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/

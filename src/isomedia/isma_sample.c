@@ -393,6 +393,8 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 		break;
 	/*special case for AVC1*/
 	case GF_ISOM_BOX_TYPE_AVC1:
+	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_SVC1:
 		original_format = GF_4CC('2','6','4','b');
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;
 		break;
@@ -452,6 +454,8 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 		break;
 	case GF_ISOM_BOX_TYPE_MP4V:
 	case GF_ISOM_BOX_TYPE_AVC1:
+	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_SVC1:
 	case GF_ISOM_BOX_TYPE_D263:
 		original_format = sea->type;
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;

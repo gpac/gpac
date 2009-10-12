@@ -455,7 +455,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 		ch->total_pck++;
 		ch->total_bytes += pck_size-12;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP]\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP]\t%d\t%d\t%u\t%d\t%d\t%d\t%d\t%d\t%d\n", 
 									ch->SenderSSRC,
 									rtp_hdr->SequenceNumber,
 									rtp_hdr->TimeStamp,

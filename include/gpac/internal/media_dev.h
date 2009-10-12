@@ -50,9 +50,19 @@ u32 AVC_IsStartCode(GF_BitStream *bs);
 u32 AVC_NextStartCode(GF_BitStream *bs);
 /*returns NAL unit type - bitstream must be sync'ed!!*/
 u8 AVC_NALUType(GF_BitStream *bs);
-/*slice NALU*/
-Bool AVC_NALUIsSlice(u8 type);
 
+
+enum
+{
+	/*SPS has been parsed*/
+	AVC_SPS_PARSED = 1,
+	/*SPS has been declared to the upper layer*/
+	AVC_SPS_DECLARED = 1<<1,
+	/*SUB-SPS has been parsed*/
+	AVC_SUBSPS_PARSED = 1<<2,
+	/*SUB-SPS has been declared to the upper layer*/
+	AVC_SUBSPS_DECLARED = 1<<3,
+};
 
 typedef struct
 {
@@ -75,8 +85,9 @@ typedef struct
 
 	u32 width, height;
 	u32 par_num, par_den;
+	
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
-	u32 status;
+	u32 state;
 } AVC_SPS;
 
 typedef struct 
@@ -133,7 +144,7 @@ typedef struct
 } AVCState;
 
 /*return sps ID or -1 if error*/
-s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 *vui_flag_pos);
+s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, Bool is_subseq, u32 *vui_flag_pos);
 /*return pps ID or -1 if error*/
 s32 AVC_ReadPictParamSet(GF_BitStream *bs, AVCState *avc);
 /*is slice a RAP*/

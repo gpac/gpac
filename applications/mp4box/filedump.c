@@ -1076,6 +1076,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	if ((msub_type==GF_ISOM_SUBTYPE_MPEG4) 
 		|| (msub_type==GF_ISOM_SUBTYPE_MPEG4_CRYP) 
 		|| (msub_type==GF_ISOM_SUBTYPE_AVC_H264)
+		|| (msub_type==GF_ISOM_SUBTYPE_AVC2_H264)
+		|| (msub_type==GF_ISOM_SUBTYPE_SVC_H264)
 		|| (msub_type==GF_ISOM_SUBTYPE_LSR1)
 	)  {
 		esd = gf_isom_get_esd(file, trackNum, 1);
@@ -1113,22 +1115,22 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 
 				} else if (esd->decoderConfig->objectTypeIndication==0x21) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-					GF_AVCConfig *avccfg;
+					GF_AVCConfig *avccfg, *svccfg;
 					GF_AVCConfigSlot *slc;
 					s32 par_n, par_d;
 #endif
 
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stdout, "\t");
-					fprintf(stdout, "AVC/H264 Video - Visual Size %d x %d - ", w, h);
+					fprintf(stdout, "AVC/H264 Video - Visual Size %d x %d", w, h);
 #ifndef GPAC_DISABLE_AV_PARSERS
 					avccfg = gf_isom_avc_config_get(file, trackNum, 1);
-					if (!avccfg) {
+					svccfg = gf_isom_svc_config_get(file, trackNum, 1);
+					if (!avccfg && !svccfg) {
 						fprintf(stdout, "\n\n\tNon-compliant AVC track: SPS/PPS not found in sample description\n");
-					} else {
-						fprintf(stdout, "Profile %s @ Level %g\n", gf_avc_get_profile_name(avccfg->AVCProfileIndication), ((Double)avccfg->AVCLevelIndication)/10.0 );
+					} else if (avccfg) {
+						fprintf(stdout, " - Profile %s @ Level %g\n", gf_avc_get_profile_name(avccfg->AVCProfileIndication), ((Double)avccfg->AVCLevelIndication)/10.0 );
 						fprintf(stdout, "NAL Unit length bits: %d\n", 8*avccfg->nal_unit_size);
-
 						slc = gf_list_get(avccfg->sequenceParameterSets, 0);
 						if (slc) {
 							gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
@@ -1139,6 +1141,20 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 							}
 						}
 						gf_odf_avc_cfg_del(avccfg);
+					}
+					if (svccfg) {
+						fprintf(stdout, "\nSVC Profile %s @ Level %g\n", gf_avc_get_profile_name(svccfg->AVCProfileIndication), ((Double)svccfg->AVCLevelIndication)/10.0 );
+						fprintf(stdout, "SVC NAL Unit length bits: %d\n", 8*svccfg->nal_unit_size);
+						slc = gf_list_get(svccfg->sequenceParameterSets, 0);
+						if (slc) {
+							gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
+							if ((par_n>0) && (par_d>0)) {
+								u32 tw, th;
+								gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
+								fprintf(stdout, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
+							}
+						}
+						gf_odf_avc_cfg_del(svccfg);
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 				} 

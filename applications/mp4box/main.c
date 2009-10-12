@@ -2657,7 +2657,9 @@ int main(int argc, char **argv)
 				case GF_ISOM_MEDIA_VISUAL:
 					major_brand = GF_4CC('M','4','V',' ');
 					gf_isom_set_ipod_compatible(file, i+1);
-					if (gf_isom_get_media_subtype(file, i+1, 1) == GF_ISOM_SUBTYPE_AVC_H264) {
+					switch (gf_isom_get_media_subtype(file, i+1, 1)) {
+					case GF_ISOM_SUBTYPE_AVC_H264:
+					case GF_ISOM_SUBTYPE_AVC2_H264:
 						fprintf(stdout, "Forcing AVC/H264 SAR to 1:1...\n");
 						gf_media_change_par(file, i+1, 1, 1);
 					}

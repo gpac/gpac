@@ -77,6 +77,10 @@ enum
 	GF_IMPORT_USE_COMPACT_SIZE = 1<<8,
 	/*don't add a final empty sample when importing text tracks from srt*/
 	GF_IMPORT_NO_TEXT_FLUSH = 1<<9,
+	/*for SVC video: forces explicit SVC signaling */
+	GF_IMPORT_SVC_EXPLICIT = 1<<10,
+	/*for SVC video: removes all SVC extensions*/
+	GF_IMPORT_SVC_NONE = 1<<11,
 	
 	/*when set, only updates tracks info and return*/
 	GF_IMPORT_PROBE_ONLY	= 1<<20,

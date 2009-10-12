@@ -65,7 +65,7 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 	if (e) return e;
 
 	stype = gf_isom_get_media_subtype(file, track, 1);
-	if (stype==GF_ISOM_SUBTYPE_AVC_H264) {
+	if ((stype==GF_ISOM_SUBTYPE_AVC_H264) || (stype==GF_ISOM_SUBTYPE_AVC2_H264) ) {
 		s32 par_n, par_d;
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
 		GF_AVCConfigSlot *slc = (GF_AVCConfigSlot *)gf_list_get(avcc->sequenceParameterSets, 0);
@@ -1602,6 +1602,8 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			case GF_ISOM_SUBTYPE_MPEG4:
 			case GF_ISOM_SUBTYPE_MPEG4_CRYP:
 			case GF_ISOM_SUBTYPE_AVC_H264:
+			case GF_ISOM_SUBTYPE_AVC2_H264:
+			case GF_ISOM_SUBTYPE_SVC_H264:
 			case GF_ISOM_SUBTYPE_3GP_H263:
 			case GF_ISOM_SUBTYPE_3GP_AMR:
 			case GF_ISOM_SUBTYPE_3GP_AMR_WB:
@@ -3623,14 +3625,14 @@ static void avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 
 GF_Err gf_import_h264(GF_MediaImporter *import)
 {
 	u64 nal_start, nal_end, total_size;
-	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, duration, max_delay, max_total_delay;
+	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, duration, max_delay, max_total_delay, nb_ei, nb_ep, nb_eb;
 	s32 idx;
 	u8 nal_type;
 	GF_Err e;
 	FILE *mdia;
 	AVCState avc;
 	GF_AVCConfigSlot *slc;
-	GF_AVCConfig *avccfg;
+	GF_AVCConfig *avccfg, *svccfg, *dstcfg;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
 	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff;
@@ -3665,6 +3667,9 @@ restart_import:
 
 	memset(&avc, 0, sizeof(AVCState));
 	avccfg = gf_odf_avc_cfg_new();
+	svccfg = gf_odf_avc_cfg_new();
+	/*we don't handle split import (one track / layer)*/
+	svccfg->complete_representation = 1;
 	buffer = (char*)malloc(sizeof(char) * max_size);
 	sample_data = NULL;
 
@@ -3704,7 +3709,7 @@ restart_import:
 	nal_start = gf_bs_get_position(bs);
 	duration = (u32) ( ((Double)import->duration) * timescale / 1000.0);
 
-	nb_i = nb_idr = nb_p = nb_b = nb_sp = nb_si = nb_sei = 0;
+	nb_i = nb_idr = nb_p = nb_b = nb_sp = nb_si = nb_sei = nb_ei = nb_ep = nb_eb = 0;
 	max_w = max_h = 0;
 	first_nal = 1;
 	b_frames = ref_frame = pred_frame = 0;
@@ -3718,7 +3723,7 @@ restart_import:
 	poc_shift = 0;
 
 	while (gf_bs_available(bs)) {
-		u8 nal_hdr, skip_nal;
+		u8 nal_hdr, skip_nal, is_subseq, add_sps;
 		nal_size = AVC_NextStartCode(bs);
 
 		if (nal_size>max_size) {
@@ -3731,6 +3736,7 @@ restart_import:
 		nal_hdr = gf_bs_read_u8(bs);
 		nal_type = nal_hdr & 0x1F;
 
+		is_subseq = 0;
 		skip_nal = 0;
 		copy_size = flush_sample = 0;
 		switch (AVC_ParseNALU(bs, nal_hdr, &avc)) {
@@ -3748,7 +3754,103 @@ restart_import:
 			break;
 		}
 
-		if (AVC_NALUIsSlice(nal_type)) {
+		switch (nal_type) {
+		case GF_AVC_NALU_SUBSEQ_PARAM:
+			if (import->flags & GF_IMPORT_SVC_NONE) break;
+			is_subseq = 1;
+		case GF_AVC_NALU_SEQ_PARAM:
+			idx = AVC_ReadSeqInfo(bs, &avc, is_subseq, NULL);
+			if (idx<0) {
+				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing SeqInfo");
+				goto exit;
+			}
+			add_sps = 0;
+			dstcfg = (import->flags & GF_IMPORT_SVC_EXPLICIT) ? svccfg : avccfg;
+			if (is_subseq) {
+				if ((avc.sps[idx].state & AVC_SUBSPS_PARSED) && !(avc.sps[idx].state & AVC_SUBSPS_DECLARED)) {
+					avc.sps[idx].state |= AVC_SUBSPS_DECLARED;
+					add_sps = 1;
+				}
+				dstcfg = svccfg;
+			} else {
+				if ((avc.sps[idx].state & AVC_SPS_PARSED) && !(avc.sps[idx].state & AVC_SPS_DECLARED)) {
+					avc.sps[idx].state |= AVC_SPS_DECLARED;
+					add_sps = 1;
+				}
+			}
+			if (add_sps) {
+				dstcfg->configurationVersion = 1;
+				dstcfg->profile_compatibility = avc.sps[idx].prof_compat;
+				dstcfg->AVCProfileIndication = avc.sps[idx].profile_idc;
+				dstcfg->AVCLevelIndication = avc.sps[idx].level_idc;
+				slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->data = (char*)malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+				gf_list_add(dstcfg->sequenceParameterSets, slc);
+				/*disable frame rate scan, most bitstreams have wrong values there*/
+				if (detect_fps && avc.sps[idx].timing_info_present_flag && avc.sps[idx].fixed_frame_rate_flag
+					/*if detected FPS is greater than 50, assume wrong timing info*/
+					&& (avc.sps[idx].time_scale <= 50*avc.sps[idx].num_units_in_tick)
+					) {
+					timescale = avc.sps[idx].time_scale;
+					dts_inc = avc.sps[idx].num_units_in_tick;
+					FPS = (Double)timescale / dts_inc;
+					detect_fps = 0;
+					gf_isom_remove_track(import->dest, track);
+					if (sample_data) gf_bs_del(sample_data);
+					gf_odf_avc_cfg_del(avccfg);
+					avccfg = NULL;
+					gf_odf_avc_cfg_del(svccfg);
+					svccfg = NULL;
+					free(buffer);
+					buffer = NULL;
+					gf_bs_del(bs);
+					bs = NULL;
+					gf_f64_seek(mdia, 0, SEEK_SET);
+					goto restart_import;
+				}
+				if (!idx) {
+					if (import->flags & GF_IMPORT_SVC_EXPLICIT) {
+						if (!is_subseq) gf_import_message(import, GF_OK, "SVC-H264 import - frame size %d x %d at %02.3f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
+					} else if (is_subseq) {
+						gf_import_message(import, GF_OK, "SVC Detected - frame size %d x %d", avc.sps[idx].width, avc.sps[idx].height);
+					} else {
+						gf_import_message(import, GF_OK, "AVC-H264 import - frame size %d x %d at %02.3f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
+					}
+				}
+				if ((max_w <= avc.sps[idx].width) && (max_h <= avc.sps[idx].height)) {
+					max_w = avc.sps[idx].width;
+					max_h = avc.sps[idx].height;
+				}
+			}
+			break;
+		case GF_AVC_NALU_PIC_PARAM:
+			idx = AVC_ReadPictParamSet(bs, &avc);
+			if (idx<0) {
+				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
+				goto exit;
+			}
+			if (avc.pps[idx].status==1) {
+				avc.pps[idx].status = 2;
+				slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->data = (char*)malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+				dstcfg = (import->flags & GF_IMPORT_SVC_EXPLICIT) ? svccfg : avccfg;
+				gf_list_add(dstcfg->pictureParameterSets, slc);
+			}
+			break;
+		case GF_AVC_NALU_SEI:
+			copy_size = AVC_ReformatSEI_NALU(buffer, nal_size, &avc);
+			if (copy_size) nb_sei++;
+			break;
+
+		case GF_AVC_NALU_NON_IDR_SLICE:
+		case GF_AVC_NALU_DP_A_SLICE:
+		case GF_AVC_NALU_DP_B_SLICE:
+		case GF_AVC_NALU_DP_C_SLICE:
+		case GF_AVC_NALU_IDR_SLICE:
 			if (! skip_nal) {
 				copy_size = nal_size;
 				switch (avc.s_info.slice_type) {
@@ -3759,85 +3861,40 @@ restart_import:
 				case GF_AVC_TYPE_SI: case GF_AVC_TYPE2_SI: nb_si++; break;
 				}
 			}
-		} else {
-			switch (nal_type) {
-			case GF_AVC_NALU_SEQ_PARAM:
-				idx = AVC_ReadSeqInfo(bs, &avc, NULL);
-				if (idx<0) {
-					e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing SeqInfo");
-					goto exit;
-				}
-				if (avc.sps[idx].status==1) {
-					avc.sps[idx].status = 2;
-					avccfg->configurationVersion = 1;
-					avccfg->profile_compatibility = avc.sps[idx].prof_compat;
-					avccfg->AVCProfileIndication = avc.sps[idx].profile_idc;
-					avccfg->AVCLevelIndication = avc.sps[idx].level_idc;
-					slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
-					slc->size = nal_size;
-					slc->data = (char*)malloc(sizeof(char)*slc->size);
-					memcpy(slc->data, buffer, sizeof(char)*slc->size);
-					gf_list_add(avccfg->sequenceParameterSets, slc);
-					/*disable frame rate scan, most bitstreams have wrong values there*/
-					if (detect_fps && avc.sps[idx].timing_info_present_flag && avc.sps[idx].fixed_frame_rate_flag
-						/*if detected FPS is greater than 50, assume wrong timing info*/
-						&& (avc.sps[idx].time_scale <= 50*avc.sps[idx].num_units_in_tick)
-						) {
-						timescale = avc.sps[idx].time_scale;
-						dts_inc = avc.sps[idx].num_units_in_tick;
-						FPS = (Double)timescale / dts_inc;
-						detect_fps = 0;
-						gf_isom_remove_track(import->dest, track);
-						if (sample_data) gf_bs_del(sample_data);
-						gf_odf_avc_cfg_del(avccfg);
-						avccfg = NULL;
-						free(buffer);
-						buffer = NULL;
-						gf_bs_del(bs);
-						bs = NULL;
-						gf_f64_seek(mdia, 0, SEEK_SET);
-						goto restart_import;
-					}
-					if (!idx) {
-						gf_import_message(import, GF_OK, "AVC-H264 import - frame size %d x %d at %02.3f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
-					}
-					if ((max_w <= avc.sps[idx].width) && (max_h <= avc.sps[idx].height)) {
-						max_w = avc.sps[idx].width;
-						max_h = avc.sps[idx].height;
-					}
-				}
-				break;
-			case GF_AVC_NALU_PIC_PARAM:
-				idx = AVC_ReadPictParamSet(bs, &avc);
-				if (idx<0) {
-					e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
-					goto exit;
-				}
-				if (avc.pps[idx].status==1) {
-					avc.pps[idx].status = 2;
-					slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
-					slc->size = nal_size;
-					slc->data = (char*)malloc(sizeof(char)*slc->size);
-					memcpy(slc->data, buffer, sizeof(char)*slc->size);
-					gf_list_add(avccfg->pictureParameterSets, slc);
-				}
-				break;
-			case GF_AVC_NALU_SEI:
-				copy_size = AVC_ReformatSEI_NALU(buffer, nal_size, &avc);
-				if (copy_size) nb_sei++;
-				break;
-			/*remove*/
-			case GF_AVC_NALU_ACCESS_UNIT:
-			case GF_AVC_NALU_FILLER_DATA:
-			case GF_AVC_NALU_END_OF_SEQ:
-			case GF_AVC_NALU_END_OF_STREAM:
-				break;
-			default:
-				gf_import_message(import, GF_OK, "WARNING: NAL Unit type %d not handled - adding", nal_type);
+			break;
+
+		/*remove*/
+		case GF_AVC_NALU_ACCESS_UNIT:
+		case GF_AVC_NALU_FILLER_DATA:
+		case GF_AVC_NALU_END_OF_SEQ:
+		case GF_AVC_NALU_END_OF_STREAM:
+			break;
+
+		case GF_AVC_NALU_PREFIX_NALU:
+			if (import->flags & GF_IMPORT_SVC_NONE) break;
+			copy_size = nal_size;
+			break;
+		case GF_AVC_NALU_SVC_SLICE:
+			if (import->flags & GF_IMPORT_SVC_NONE) break;
+			if (! skip_nal) {
 				copy_size = nal_size;
-				break;
+				switch (avc.s_info.slice_type) {
+				case GF_AVC_TYPE_P: case GF_AVC_TYPE2_P: nb_ep++; break;
+				case GF_AVC_TYPE_I: case GF_AVC_TYPE2_I: nb_ei++; break;
+				case GF_AVC_TYPE_B: case GF_AVC_TYPE2_B: nb_eb++; break;
+				}
 			}
+			break;
+
+		case GF_AVC_NALU_SEQ_PARAM_EXT:
+		case GF_AVC_NALU_SLICE_AUX:
+
+		default:
+			gf_import_message(import, GF_OK, "WARNING: NAL Unit type %d not handled - adding", nal_type);
+			copy_size = nal_size;
+			break;
 		}
+
 		if (!nal_size) break;
 
 		if (flush_sample && sample_data) {
@@ -3900,7 +3957,15 @@ restart_import:
 			if (!sample_data) sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_int(sample_data, copy_size, size_length);
 			gf_bs_write_data(sample_data, buffer, copy_size);
-			if (AVC_NALUIsSlice(nal_type) ) {
+
+			switch (nal_type) {
+			case GF_AVC_NALU_NON_IDR_SLICE:
+			case GF_AVC_NALU_DP_A_SLICE:
+			case GF_AVC_NALU_DP_B_SLICE:
+			case GF_AVC_NALU_DP_C_SLICE:
+			case GF_AVC_NALU_IDR_SLICE:
+			case GF_AVC_NALU_SLICE_AUX:
+//			case GF_AVC_NALU_SVC_SLICE:
 				if (!is_paff && avc.s_info.bottom_field_flag)
 					is_paff = 1;
 
@@ -4088,7 +4153,14 @@ restart_import:
 
 	gf_isom_set_visual_info(import->dest, track, di, max_w, max_h);
 	avccfg->nal_unit_size = size_length/8;
-	gf_isom_avc_config_update(import->dest, track, 1, avccfg);
+	svccfg->nal_unit_size = size_length/8;
+
+	if (gf_list_count(avccfg->sequenceParameterSets)) {
+		gf_isom_avc_config_update(import->dest, track, 1, avccfg);
+		gf_isom_svc_config_update(import->dest, track, 1, svccfg, 1);
+	} else {
+		gf_isom_svc_config_update(import->dest, track, 1, svccfg, 0);
+	}
 	gf_media_update_par(import->dest, track);
 	MP4T_RecomputeBitRate(import->dest, track);
 
@@ -4102,6 +4174,9 @@ restart_import:
 		gf_import_message(import, GF_OK, "Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR",
 			cur_samp, nb_i, nb_p, nb_b, nb_sei, nb_idr);
 	}
+
+	if (nb_ei || nb_ep)
+		gf_import_message(import, GF_OK, "SVC Import results: Slices: %d I %d P %d B", nb_ei, nb_ep, nb_eb);
 
 	if (max_total_delay>1) {
 		gf_import_message(import, GF_OK, "\tStream uses B-slice references - max frame delay %d", max_total_delay);
@@ -4120,6 +4195,7 @@ restart_import:
 exit:
 	if (sample_data) gf_bs_del(sample_data);
 	gf_odf_avc_cfg_del(avccfg);
+	gf_odf_avc_cfg_del(svccfg);
 	free(buffer);
 	gf_bs_del(bs);
 	fclose(mdia);
@@ -5287,31 +5363,48 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				GF_AVCConfigSlot *slc;
 				GF_BitStream *bs;
 				s32 idx;
+				Bool add_sps, is_subseq = 0;
 				u32 nal_type = pck->data[4] & 0x1F;
 
 				switch (nal_type) {
+				case GF_AVC_NALU_SUBSEQ_PARAM:
+					is_subseq = 1;
 				case GF_AVC_NALU_SEQ_PARAM:
 					bs = gf_bs_new(pck->data+5, pck->data_len-5, GF_BITSTREAM_READ);
-					idx = AVC_ReadSeqInfo(bs, &tsimp->avc, NULL);
+					idx = AVC_ReadSeqInfo(bs, &tsimp->avc, 0, NULL);
 					gf_bs_del(bs);
-					if ((idx>=0) && (tsimp->avc.sps[idx].status==1)) {
-						tsimp->avc.sps[idx].status = 2;
-						/*always store nalu size on 4 bytes*/
-						tsimp->avccfg->nal_unit_size = 4;
-						tsimp->avccfg->configurationVersion = 1;
-						tsimp->avccfg->profile_compatibility = tsimp->avc.sps[idx].prof_compat;
-						tsimp->avccfg->AVCProfileIndication = tsimp->avc.sps[idx].profile_idc;
-						tsimp->avccfg->AVCLevelIndication = tsimp->avc.sps[idx].level_idc;
-						slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
-						slc->size = pck->data_len-4;
-						slc->data = (char*)malloc(sizeof(char)*slc->size);
-						memcpy(slc->data, pck->data+4, sizeof(char)*slc->size);
-						gf_list_add(tsimp->avccfg->sequenceParameterSets, slc);
 
-						if (pck->stream->vid_w < tsimp->avc.sps[idx].width)
-							pck->stream->vid_w = tsimp->avc.sps[idx].width;
-						if (pck->stream->vid_h < tsimp->avc.sps[idx].height)
-							pck->stream->vid_h = tsimp->avc.sps[idx].height;
+					add_sps = 0;
+					if (idx>=0) {
+						if (is_subseq) {
+							if ((tsimp->avc.sps[idx].state & AVC_SUBSPS_PARSED) && !(tsimp->avc.sps[idx].state & AVC_SUBSPS_DECLARED)) {
+								tsimp->avc.sps[idx].state |= AVC_SUBSPS_DECLARED;
+								add_sps = 1;
+							}
+						} else {
+							if ((tsimp->avc.sps[idx].state & AVC_SPS_PARSED) && !(tsimp->avc.sps[idx].state & AVC_SPS_DECLARED)) {
+								tsimp->avc.sps[idx].state |= AVC_SPS_DECLARED;
+								add_sps = 1;
+							}
+						}
+						if (add_sps) {
+							/*always store nalu size on 4 bytes*/
+							tsimp->avccfg->nal_unit_size = 4;
+							tsimp->avccfg->configurationVersion = 1;
+							tsimp->avccfg->profile_compatibility = tsimp->avc.sps[idx].prof_compat;
+							tsimp->avccfg->AVCProfileIndication = tsimp->avc.sps[idx].profile_idc;
+							tsimp->avccfg->AVCLevelIndication = tsimp->avc.sps[idx].level_idc;
+							slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+							slc->size = pck->data_len-4;
+							slc->data = (char*)malloc(sizeof(char)*slc->size);
+							memcpy(slc->data, pck->data+4, sizeof(char)*slc->size);
+							gf_list_add(tsimp->avccfg->sequenceParameterSets, slc);
+
+							if (pck->stream->vid_w < tsimp->avc.sps[idx].width)
+								pck->stream->vid_w = tsimp->avc.sps[idx].width;
+							if (pck->stream->vid_h < tsimp->avc.sps[idx].height)
+								pck->stream->vid_h = tsimp->avc.sps[idx].height;
+						}
 					}
 					return;
 				case GF_AVC_NALU_PIC_PARAM:
@@ -6202,7 +6295,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 	if (e) return e;
 
 	stype = gf_isom_get_media_subtype(file, track, 1);
-	if (stype==GF_ISOM_SUBTYPE_AVC_H264) {
+	if ((stype==GF_ISOM_SUBTYPE_AVC_H264) || (stype==GF_ISOM_SUBTYPE_AVC2_H264) ) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
 		AVC_ChangePAR(avcc, ar_num, ar_den);
@@ -6250,8 +6343,13 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 	GF_AVCConfig *avcc;
 
 	stype = gf_isom_get_media_subtype(file, track, 1);
-	if (stype!=GF_ISOM_SUBTYPE_AVC_H264) return GF_OK;
-
+	switch (stype) {
+	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_AVC2_H264:
+		break;
+	default:
+		return GF_OK;
+	}
 
 	avcc = gf_isom_avc_config_get(file, track, 1);
 	if (level) avcc->AVCLevelIndication = level;

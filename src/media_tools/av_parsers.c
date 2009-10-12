@@ -1486,13 +1486,14 @@ u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos)
 
 
 
-
 GF_EXPORT
 const char *gf_avc_get_profile_name(u8 video_prof)
 {
 	switch (video_prof) {
 	case 0x42: return "Baseline";
 	case 0x4D: return "Main";
+	case 0x53: return "Scalable Baseline";
+	case 0x56: return "Scalable High";
 	case 0x58: return "Extended";
 	case 0x64: return "High";
 	case 0x6E: return "High 10";
@@ -1603,11 +1604,6 @@ u32 AVC_NextStartCode(GF_BitStream *bs)
 }
 
 
-Bool AVC_NALUIsSlice(u8 type)
-{
-	return ((type >= GF_AVC_NALU_NON_IDR_SLICE) && (type <= GF_AVC_NALU_IDR_SLICE)) ? 1 : 0;
-}
-
 Bool AVC_SliceIsIDR(AVCState *avc) 
 {
   if (avc->sei.recovery_point.valid)
@@ -1635,7 +1631,7 @@ static const struct { u32 w, h; } avc_sar[14] =
     { 64, 33 }, { 160,99 },
 };
 
-s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 *vui_flag_pos)
+s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, Bool is_subseq, u32 *vui_flag_pos)
 {
 	AVC_SPS *sps;
 	s32 mb_width, mb_height;
@@ -1649,14 +1645,17 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 *vui_flag_pos)
     sps_id = avc_get_ue(bs);
 
 	sps = &avc->sps[sps_id];
-	if (!sps->status) sps->status = 1;
+	sps->state |= is_subseq ? AVC_SUBSPS_PARSED : AVC_SPS_PARSED;
 
-	/*High Profile cfg stuff*/	
+	/*High Profile and SVC*/	
 	switch (profile_idc) {
 	case 100:
 	case 110:
 	case 122:
-	case 144:
+	case 244:
+	case 44:
+	case 83:
+	case 86:
 		chroma_format_idc = avc_get_ue(bs);
 		if (chroma_format_idc == 3) /*residual_colour_transform_flag = */ gf_bs_read_int(bs, 1);
 		/*bit_depth_luma_minus8 = */ avc_get_ue(bs);
@@ -1795,7 +1794,7 @@ s32 AVC_ReadPictParamSet(GF_BitStream *bs, AVCState *avc)
     return pps_id;
 }
 
-static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si) 
+static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, AVCSliceInfo *si) 
 {
     s32 first_mb_in_slice, pps_id;
 
@@ -1815,14 +1814,12 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si)
 
 	si->field_pic_flag = 0;
 	si->bottom_field_flag = 0;
-    if (si->sps->frame_mbs_only_flag) {
-        /*s->picture_structure= PICT_FRAME;*/
-    } else {
+    if (!si->sps->frame_mbs_only_flag) {
 		si->field_pic_flag = gf_bs_read_int(bs, 1);
         if (si->field_pic_flag)
 			si->bottom_field_flag = gf_bs_read_int(bs, 1);
     }
-	if (si->nal_unit_type==GF_AVC_NALU_IDR_SLICE)
+	if ((si->nal_unit_type==GF_AVC_NALU_IDR_SLICE) || svc_idr_flag)
 		si->idr_pic_id = avc_get_ue(bs);
    
     if (si->sps->poc_type==0) {
@@ -1840,6 +1837,8 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si)
     }
 	return 0;
 }
+
+
 
 static s32 avc_parse_recovery_point_sei(GF_BitStream *bs, AVCState *avc) 
 {
@@ -1949,7 +1948,7 @@ static void avc_compute_poc(AVCSliceInfo *si)
 
 s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 {
-	u8 temp;
+	u8 temp, idr_flag;
 	s32 slice, ret;
 	AVCSliceInfo n_state;
 
@@ -1958,6 +1957,7 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 	temp = n_state.nal_unit_type = nal_hdr & 0x1F;
 	n_state.nal_ref_idc = (nal_hdr>>5) & 0x3;
 	
+	idr_flag = 0;
 	ret = 0;
 	switch (temp) {
 	case GF_AVC_NALU_ACCESS_UNIT:
@@ -1965,6 +1965,15 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 	case GF_AVC_NALU_END_OF_STREAM:
 		ret = 1;
 		break;
+
+	case GF_AVC_NALU_SVC_SLICE:
+		gf_bs_read_int(bs, 1);
+		idr_flag = gf_bs_read_int(bs, 1);
+		gf_bs_read_int(bs, 6);
+		gf_bs_read_u16(bs);
+		ret = 1;
+		break;
+
 	case GF_AVC_NALU_NON_IDR_SLICE:
 	case GF_AVC_NALU_DP_A_SLICE:
 	case GF_AVC_NALU_DP_B_SLICE:
@@ -1972,7 +1981,7 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 	case GF_AVC_NALU_IDR_SLICE:
 		slice = 1;
 		/* slice buffer - read the info and compare.*/
-		ret = avc_parse_slice(bs, avc, &n_state);
+		ret = avc_parse_slice(bs, avc, idr_flag, &n_state);
 		if (ret<0) return ret;
 		ret = 0;
 		if ((avc->s_info.nal_unit_type > GF_AVC_NALU_IDR_SLICE)
@@ -2020,6 +2029,7 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 		break;
 	case GF_AVC_NALU_SEQ_PARAM:
 	case GF_AVC_NALU_PIC_PARAM:
+	case GF_AVC_NALU_PREFIX_NALU:
 		return 0;
 	default:
 		if (avc->s_info.nal_unit_type <= GF_AVC_NALU_IDR_SLICE) ret = 1;
@@ -2189,7 +2199,7 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 		orig = gf_bs_new(slc->data, slc->size, GF_BITSTREAM_READ);
 		/*skip NALU type*/
 		gf_bs_read_int(orig, 8);
-		idx = AVC_ReadSeqInfo(orig, &avc, &bit_offset);
+		idx = AVC_ReadSeqInfo(orig, &avc, 0, &bit_offset);
 		if (idx<0) {
 			gf_bs_del(orig);
 			continue;
@@ -2268,7 +2278,7 @@ GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *width, u32 *height
 	bs = gf_bs_new(sps_data, sps_size, GF_BITSTREAM_READ);
 	/*skip NALU type*/
 	gf_bs_read_int(bs, 8);
-	idx = AVC_ReadSeqInfo(bs, &avc, NULL);
+	idx = AVC_ReadSeqInfo(bs, &avc, 0, NULL);
 	gf_bs_del(bs);
 	if (idx<0) return GF_NON_COMPLIANT_BITSTREAM;
 
