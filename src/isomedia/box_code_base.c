@@ -3641,6 +3641,7 @@ void mp4v_del(GF_Box *s)
 	if (ptr->esd) gf_isom_box_del((GF_Box *)ptr->esd);
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
 	if (ptr->avc_config) gf_isom_box_del((GF_Box *) ptr->avc_config);
+	if (ptr->svc_config) gf_isom_box_del((GF_Box *) ptr->svc_config);
 	if (ptr->bitrate) gf_isom_box_del((GF_Box *) ptr->bitrate);
 	if (ptr->descr) gf_isom_box_del((GF_Box *) ptr->descr);
 	if (ptr->ipod_ext) gf_isom_box_del((GF_Box *)ptr->ipod_ext);
@@ -3668,6 +3669,10 @@ GF_Err mp4v_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_AVCC:
 		if (ptr->avc_config) return GF_ISOM_INVALID_FILE;
 		ptr->avc_config = (GF_AVCConfigurationBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_SVCC:
+		if (ptr->svc_config) return GF_ISOM_INVALID_FILE;
+		ptr->svc_config = (GF_AVCConfigurationBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_BTRT:
 		if (ptr->bitrate) return GF_ISOM_INVALID_FILE;
@@ -3701,7 +3706,7 @@ GF_Err mp4v_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_read_box_list(s, bs, mp4v_AddBox);
 	if (e) return e;
 	/*this is an AVC sample desc*/
-	if (mp4v->avc_config) AVC_RewriteESDescriptor(mp4v);
+	if (mp4v->avc_config || mp4v->svc_config) AVC_RewriteESDescriptor(mp4v);
 	return GF_OK;
 }
 
@@ -3723,6 +3728,16 @@ GF_Box *mp4v_New()
 GF_Box *avc1_New()
 {
 	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_AVC1);
+}
+
+GF_Box *avc2_New()
+{
+	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_AVC2);
+}
+
+GF_Box *svc1_New()
+{
+	return mp4v_encv_avc1_new(GF_ISOM_BOX_TYPE_SVC1);
 }
 
 GF_Box *encv_New()
@@ -3755,6 +3770,10 @@ GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
 	else {
 		if (ptr->avc_config && ptr->avc_config->config) {
 			e = gf_isom_box_write((GF_Box *) ptr->avc_config, bs);
+			if (e) return e;
+		}
+		if (ptr->svc_config && ptr->svc_config->config) {
+			e = gf_isom_box_write((GF_Box *) ptr->svc_config, bs);
 			if (e) return e;
 		}
 		if (ptr->ipod_ext)	{
@@ -3790,11 +3809,19 @@ GF_Err mp4v_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->esd);
 		if (e) return e;
 		ptr->size += ptr->esd->size;
-	} else if (ptr->avc_config) {
+	} else {
+		if (!ptr->avc_config && !ptr->svc_config)
+			return GF_ISOM_INVALID_FILE;
+
 		if (ptr->avc_config && ptr->avc_config->config) {
 			e = gf_isom_box_size((GF_Box *) ptr->avc_config); 
 			if (e) return e;
 			ptr->size += ptr->avc_config->size;
+		}
+		if (ptr->svc_config && ptr->svc_config->config) {
+			e = gf_isom_box_size((GF_Box *) ptr->svc_config); 
+			if (e) return e;
+			ptr->size += ptr->svc_config->size;
 		}
 		if (ptr->ipod_ext) {
 			e = gf_isom_box_size((GF_Box *) ptr->ipod_ext);
@@ -3811,8 +3838,6 @@ GF_Err mp4v_Size(GF_Box *s)
 			if (e) return e;
 			ptr->size += ptr->descr->size;
 		}
-	} else {
-		return GF_ISOM_INVALID_FILE;
 	}
 	if (ptr->pasp) {
 		e = gf_isom_box_size((GF_Box *)ptr->pasp);
@@ -4963,6 +4988,8 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_GHNT:
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
 	case GF_ISOM_BOX_TYPE_AVC1:
+	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_SVC1:
 	case GF_ISOM_BOX_TYPE_TX3G:
 	case GF_ISOM_BOX_TYPE_TEXT:
 	case GF_ISOM_BOX_TYPE_ENCT:
@@ -6049,6 +6076,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_GHNT:
 		case GF_ISOM_BOX_TYPE_RTP_STSD:
 		case GF_ISOM_BOX_TYPE_AVC1:
+		case GF_ISOM_BOX_TYPE_AVC2:
+		case GF_ISOM_BOX_TYPE_SVC1:
 		case GF_ISOM_BOX_TYPE_TX3G:
 		case GF_ISOM_BOX_TYPE_TEXT:
 		case GF_ISOM_BOX_TYPE_ENCT:

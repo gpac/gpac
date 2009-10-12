@@ -730,6 +730,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			entry_a->esd->desc = esd;
 			break;
 		case GF_ISOM_BOX_TYPE_AVC1:
+		case GF_ISOM_BOX_TYPE_AVC2:
+		case GF_ISOM_BOX_TYPE_SVC1:
 			e = AVC_UpdateESD((GF_MPEGVisualSampleEntryBox*)entry, esd);
 			if (e) return e;
 			break;

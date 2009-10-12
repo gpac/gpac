@@ -189,6 +189,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
 		else if (!stricmp(ext+1, "sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
 		else if (!stricmp(ext+1, "sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
+		else if (!stricmp(ext+1, "svc")) import_flags |= GF_IMPORT_SVC_EXPLICIT;
+		else if (!stricmp(ext+1, "nosvc")) import_flags |= GF_IMPORT_SVC_NONE;
 		else if (!stricmp(ext+1, "mpeg4")) import_flags |= GF_IMPORT_FORCE_MPEG4;
 		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
 		else if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);
@@ -1113,7 +1115,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				if ((ow!=w) || (oh!=h)) dst_tk = 0;
 			}
 
-			if (!dst_tk && (stype == GF_ISOM_SUBTYPE_AVC_H264) ) {
+			if (!dst_tk && ((stype == GF_ISOM_SUBTYPE_AVC_H264) || (stype == GF_ISOM_SUBTYPE_AVC2_H264))  ) {
 				GF_AVCConfig *avc_src, *avc_dst;
 				dst_tk = gf_isom_get_track_by_id(dest, tk_id);
 				

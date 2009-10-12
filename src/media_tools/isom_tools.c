@@ -420,6 +420,8 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 				nb_non_mp4 ++;
 				break;
 			case GF_ISOM_SUBTYPE_AVC_H264:
+			case GF_ISOM_SUBTYPE_AVC2_H264:
+			case GF_ISOM_SUBTYPE_SVC_H264:
 				nb_vid++;
 				nb_avc++;
 				break;
@@ -978,6 +980,8 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	case GF_ISOM_SUBTYPE_MPEG4:
 	case GF_ISOM_SUBTYPE_MPEG4_CRYP:
 	case GF_ISOM_SUBTYPE_AVC_H264:
+	case GF_ISOM_SUBTYPE_AVC2_H264:
+	case GF_ISOM_SUBTYPE_SVC_H264:
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:

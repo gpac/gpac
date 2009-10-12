@@ -201,6 +201,8 @@ enum
 	/*AVC/H264 media type - not listed as an MPEG-4 type, ALTHOUGH this library automatically remaps
 	GF_AVCConfig to MPEG-4 ESD*/
 	GF_ISOM_SUBTYPE_AVC_H264		= GF_4CC( 'a', 'v', 'c', '1' ),
+	GF_ISOM_SUBTYPE_AVC2_H264		= GF_4CC( 'a', 'v', 'c', '2' ),
+	GF_ISOM_SUBTYPE_SVC_H264		= GF_4CC( 's', 'v', 'c', '1' ),
 
 	/*3GPP(2) extension subtypes*/
 	GF_ISOM_SUBTYPE_3GP_H263		= GF_4CC( 's', '2', '6', '3' ),
@@ -1442,12 +1444,16 @@ GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPCo
 
 /*gets uncompressed AVC config - user is responsible for deleting it*/
 GF_AVCConfig *gf_isom_avc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+/*gets uncompressed AVC config - user is responsible for deleting it*/
+GF_AVCConfig *gf_isom_svc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*creates new AVC config*/
 GF_Err gf_isom_avc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfig *cfg, char *URLname, char *URNname, u32 *outDescriptionIndex);
 /*updates AVC config*/
 GF_Err gf_isom_avc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg);
+/*updates SVC config. If is_additional is set, the SVCConfig will be added to the AVC sample description, otherwise the sample description will be SVC-only*/
+GF_Err gf_isom_svc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_AVCConfig *cfg, Bool is_additional);
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 

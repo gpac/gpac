@@ -812,6 +812,9 @@ typedef struct
 	
 	GF_List *sequenceParameterSets;
 	GF_List *pictureParameterSets;
+
+	/*for SVC*/
+	u8 complete_representation;
 } GF_AVCConfig;
 
 

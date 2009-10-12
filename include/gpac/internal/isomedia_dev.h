@@ -163,10 +163,13 @@ enum
 	GF_ISOM_BOX_TYPE_AVCC	= GF_4CC( 'a', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_BTRT	= GF_4CC( 'b', 't', 'r', 't' ),
 	GF_ISOM_BOX_TYPE_M4DS	= GF_4CC( 'm', '4', 'd', 's' ),
-	GF_ISOM_BOX_TYPE_AVC1	= GF_4CC( 'a', 'v', 'c', '1' ),
 	GF_ISOM_BOX_TYPE_PASP	= GF_4CC( 'p', 'a', 's', 'p' ),
+	GF_ISOM_BOX_TYPE_AVC1	= GF_4CC( 'a', 'v', 'c', '1' ),
+	GF_ISOM_BOX_TYPE_AVC2	= GF_4CC( 'a', 'v', 'c', '2' ),
+	GF_ISOM_BOX_TYPE_SVCC	= GF_4CC( 's', 'v', 'c', 'C' ),
+	GF_ISOM_BOX_TYPE_SVC1	= GF_4CC( 's', 'v', 'c', '1' ),
 
-	/*AVC / H264 extension*/
+	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
 	GF_ISOM_BOX_TYPE_LSR1	= GF_4CC( 'l', 's', 'r', '1' ),
 
@@ -773,6 +776,7 @@ typedef struct
 
 	/*avc extensions - we merged with regular 'mp4v' box to handle isma E&A signaling of AVC*/
 	GF_AVCConfigurationBox *avc_config;
+	GF_AVCConfigurationBox *svc_config;
 	GF_MPEG4BitRateBox *bitrate;
 	/*ext descriptors*/
 	GF_MPEG4ExtensionDescriptorsBox *descr;
@@ -2742,6 +2746,8 @@ GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err avcc_Size(GF_Box *s);
 
 GF_Box *avc1_New();
+GF_Box *avc2_New();
+GF_Box *svc1_New();
 
 GF_Box *m4ds_New();
 void m4ds_del(GF_Box *s);

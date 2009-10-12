@@ -526,6 +526,8 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		u32 current_frame;
 		GF_Terminal *term = ch->odm->term;
 		ch_buffer_off(ch);
+
+		gf_es_lock(ch, 0);
 		if (gf_mx_try_lock(term->mm_mx)) {
 			switch (ch->esd->decoderConfig->streamType) {
 			case GF_STREAM_OD:
@@ -540,6 +542,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 			}
 			gf_mx_v(term->mm_mx);
 		}
+		gf_es_lock(ch, 1);
 
 		current_frame = term->compositor->frame_number;
 		/*wait for initial setup to complete before giving back the hand to the caller service*/

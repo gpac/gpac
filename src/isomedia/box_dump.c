@@ -196,10 +196,15 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_D263:
 		return gppc_dump(a, trace);
 
-	case GF_ISOM_BOX_TYPE_AVCC: return avcc_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_AVCC: 
+	case GF_ISOM_BOX_TYPE_SVCC: 
+		return avcc_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_BTRT: return btrt_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_AVC1: return mp4v_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_AVC1: 
+	case GF_ISOM_BOX_TYPE_AVC2: 
+	case GF_ISOM_BOX_TYPE_SVC1: 
+		return mp4v_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_PASP: return pasp_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_dump(a, trace);
@@ -749,13 +754,12 @@ GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 
 	if (p->esd) {
 		gf_box_dump(p->esd, trace);
-	} else if (p->avc_config) {
+	} else {
 		if (p->avc_config) gf_box_dump(p->avc_config, trace);
+		if (p->svc_config) gf_box_dump(p->svc_config, trace);
 		if (p->ipod_ext) gf_box_dump(p->ipod_ext, trace);
 		if (p->descr) gf_box_dump(p->descr, trace);
 		if (p->bitrate) gf_box_dump(p->bitrate, trace);
-	} else {
-		fprintf(trace, "<!--INVALID MP4 FILE: ESDBox not present in MPEG Sample Description or corrupted-->\n");
 	}
 	if (a->type == GF_ISOM_BOX_TYPE_ENCV) {
 		gf_box_dump(p->protection_info, trace);
@@ -1390,10 +1394,15 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, count;
 	GF_AVCConfigurationBox *p = (GF_AVCConfigurationBox *) a;
-	fprintf(trace, "<AVCConfigurationBox>\n");
+	const char *name = (p->type==GF_ISOM_BOX_TYPE_SVCC) ? "SVC" : "AVC";
+	fprintf(trace, "<%sConfigurationBox>\n", name);
 
-	fprintf(trace, "<AVCDecoderConfigurationRecord configurationVersion=\"%d\" AVCProfileIndication=\"%d\" profile_compatibility=\"%d\" AVCLevelIndication=\"%d\" nal_unit_size=\"%d\">\n",
-					p->config->configurationVersion, p->config->AVCProfileIndication, p->config->profile_compatibility, p->config->AVCLevelIndication, p->config->nal_unit_size);
+	fprintf(trace, "<%sDecoderConfigurationRecord configurationVersion=\"%d\" AVCProfileIndication=\"%d\" profile_compatibility=\"%d\" AVCLevelIndication=\"%d\" nal_unit_size=\"%d\"",
+					name, p->config->configurationVersion, p->config->AVCProfileIndication, p->config->profile_compatibility, p->config->AVCLevelIndication, p->config->nal_unit_size);
+
+	if (p->type==GF_ISOM_BOX_TYPE_SVCC) 
+		fprintf(trace, " complete_representation=\"%d\"", p->config->complete_representation);
+	fprintf(trace, ">\n");
 
 	count = gf_list_count(p->config->sequenceParameterSets);
 	for (i=0; i<count; i++) {
@@ -1409,10 +1418,10 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 		DumpData(trace, c->data, c->size);
 		fprintf(trace, "\"/>\n");
 	}
-	fprintf(trace, "</AVCDecoderConfigurationRecord>\n");
+	fprintf(trace, "</%sDecoderConfigurationRecord>\n", name);
 
 	DumpBox(a, trace);
-	fprintf(trace, "</AVCConfigurationBox>\n");
+	fprintf(trace, "</%sConfigurationBox>\n", name);
 	return GF_OK;
 }
 

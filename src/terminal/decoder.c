@@ -418,6 +418,7 @@ check_unit:
 	gf_es_drop_au(ch);
 
 	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SysDec] Codec %s AU CTS %d Decode error %s\n", sdec->module_name , AU->CTS, gf_error_to_string(e) ));
 		if (e<0) ch->stream_state = 2;
 		goto exit;
 	}
