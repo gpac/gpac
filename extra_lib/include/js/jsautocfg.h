@@ -47,4 +47,6 @@
 #define JS_BYTES_PER_DWORD_LOG2  3L
 #define JS_WORDS_PER_DWORD_LOG2  1L
 
+#define JS_STACK_GROWTH_DIRECTION (-1)
+
 #endif /* js_cpucfg___ */

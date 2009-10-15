@@ -505,6 +505,7 @@ u32 drawable_get_aspect_2d_mpeg4(GF_Node *node, DrawAspect2D *asp, GF_TraverseSt
 		asp->fill_texture = gf_sc_texture_get_handler( ((M_Appearance *) tr_state->appear)->texture );
 	}
 
+
 	m = (M_Material2D *) ((M_Appearance *)tr_state->appear)->material;
 	if ( m == NULL) {
 		asp->fill_color &= 0x00FFFFFF;
@@ -697,7 +698,29 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 
 #ifdef GPAC_TRISCOPE_MODE
 	ctx->depth = tr_state->depth;
+        ctx->depth_gain=tr_state->depth_gain;
+        ctx->depth_offset=tr_state->depth_offset;
+	switch (tr_state->_3d_type){ 
+                case 0:
+                        ctx->flags |= CTX_IS_2D;
+                        break;
+                case 1:
+                        ctx->flags |= CTX_IS_3DFLAT;
+                        break;
+                case 2:
+                        ctx->flags |= CTX_IS_3DMAP;
+                        break;
+                case 3:
+                        ctx->flags |= CTX_IS_3DS;
+                        break;
+                //auto-set according to internal pixel format
+                case 4:
+                        break;
+                default:
+                        break;
+        }
 #endif
+
 	return ctx;
 }
 #endif
@@ -792,6 +815,7 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 	Fixed pw;
 	GF_Rect unclip, store_orig_bounds;
 
+
 	drawable_check_bounds(ctx, tr_state->visual);
 
 	if (orig_bounds) {
@@ -799,6 +823,7 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 	} else {
 		gf_path_get_bounds(ctx->drawable->path, &store_orig_bounds);
 	}
+    //if (store_orig_bounds) printf("store_orig_bounds: %d\n", (int) store_orig_bounds.width );
 	ctx->bi->unclip = store_orig_bounds;
 	gf_mx2d_apply_rect(&tr_state->transform, &ctx->bi->unclip);
 
@@ -847,6 +872,7 @@ void drawable_finalize_sort_ex(DrawableContext *ctx, GF_TraverseState *tr_state,
 	} else {
 		ctx->bi->clip.width = 0;
 	}
+
 
 	can_remove = drawable_finalize_end(ctx, tr_state);
 	if (ctx->drawable && !skip_focus)

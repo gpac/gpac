@@ -16,7 +16,11 @@ endif
 
 NEED_LOCAL_LIB="no"
 LOCAL_LIB=../../bin/gcc
+ifneq ($(STATICBUILD),yes)
 LINKLIBS= -lgpac
+else
+LINKLIBS= -lgpac_static
+endif
 
 #common objects
 OBJS=img_dec.o img_in.o bmp_dec.o png_dec.o jpeg_dec.o
@@ -61,6 +65,9 @@ all: $(LIB)
 
 $(LIB): $(OBJSPIC)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
+ifeq ($(STATICBUILD),yes)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_img_in-static.so $(OBJSPIC) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
+endif
 
 
 %.o: %.c

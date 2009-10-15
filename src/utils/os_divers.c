@@ -784,10 +784,59 @@ u32 OS_GetSysClockNORMAL() { return timeGetTime(); }
 
 #endif
 
+#if defined(__sh__) 
+/* Avoid exception for denormalized floating point values */
+static int
+sh4_get_fpscr()
+{
+   int ret;
+   asm volatile ("sts fpscr,%0" : "=r" (ret));
+   return ret;
+}
+
+static void
+sh4_put_fpscr(int nv)
+{
+    asm volatile ("lds %0,fpscr" : : "r" (nv));
+}
+
+#define SH4_FPSCR_FR 0x00200000
+#define SH4_FPSCR_SZ 0x00100000
+#define SH4_FPSCR_PR 0x00080000
+#define SH4_FPSCR_DN 0x00040000
+#define SH4_FPSCR_RN 0x00000003
+#define SH4_FPSCR_RN_N 0
+#define SH4_FPSCR_RN_Z 1
+
+extern int __fpscr_values[2];
+
+void
+sh4_change_fpscr(int off, int on)
+{
+   int b = sh4_get_fpscr();
+   off = ~off;
+   off |=   0x00180000;
+   on  &= ~ 0x00180000;
+   b &= off;
+   b |= on;
+   sh4_put_fpscr(b);
+   __fpscr_values[0] &= off;
+   __fpscr_values[0] |= on;
+   __fpscr_values[1] &= off;
+   __fpscr_values[1] |= on;
+}
+
+#endif 
 
 void gf_sys_init()
 {
 	if (!sys_init) {
+
+#if defined(__sh__)
+/* Round all denormalized floatting point number to 0.0 */
+        sh4_change_fpscr(0,SH4_FPSCR_DN) ;
+#endif
+
 #if defined(WIN32)
 
 #if defined(_WIN32_WCE)

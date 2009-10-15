@@ -89,12 +89,15 @@ has_xmlrpc="no"
 has_openjpeg="no"
 has_libxml2="no"
 gprof_build="no"
+static_build="no"
 PIC_CFLAGS=""
 want_pic="no"
 has_joystick="no"
 has_xul="no"
 enable_joystick="no"
 enable_renoir="no"
+disable_renoir_memory="no"
+disable_renoir_buffer="no"
 static_mp4box="no"
 disable_3d="no"
 disable_svg="no"
@@ -182,6 +185,7 @@ echo "  --mozdir=MOZ_PATH        specify mozilla main directory path for system 
 echo ""
 echo "  --enable-debug           produce debug version"
 echo "  --enable-gprof           enable profiling"
+echo "  --enable-static-bin      enable libgpac static linking of executable (only mp4client as for now) and modules"
 echo "  --enable-pic             enable Position Independant Code for shared objects"
 echo "  --strip                  enable strip"
 echo "  --track-memory           enable tracking of all memory allocated by gpac"
@@ -195,7 +199,9 @@ echo "  --enable-fixed-point     enable fixed-point math"
 echo "  --force-fixed-point      force fixed-point math without changing gpac math.h header"
 echo "  --enable-tinygl          enable TinyGL support"
 echo "  --enable-joystick        enable joystick support"
-echo "  --enable-renoir          enable renoir 3D support"
+echo "  --enable-renoir=OPT      enable renoir 3D support OPT=[hw, simulator, none]"
+echo "  --disable-renoir-memory  disable renoir memory space access, no memory map will be done" 
+echo "  --disable-renoir-buffer  disable renoir dedicated buffer allocation for renoir data" 
 echo "  --disable-ssl            disable OpenSSL support"
 echo "  --enable-amr-nb-fixed    enable AMR NB fixed-point decoder"
 echo "  --enable-amr-nb          enable AMR NB library"
@@ -579,28 +585,71 @@ else
    js_flags="-DXP_UNIX -I$local_inc/js"
    if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs 2> /dev/null  ; then
     has_js="local"
+    #dc added
+else
+#try prefix (DC)
+js_inc="$prefix/include/js"
+js_flags="-DXP_UNIX -I$prefix/include/js"
+if $cc -o $TMPO $TMPC $js_flags -L$prefix/lib -ljs 2> /dev/null  ; then
+has_js="prefix"
+#dc added end
    fi
   fi
  fi
-fi
+   fi
+  fi
+ fi
+
+#else
+#debian spidermonkey (smjs)
+#js_flags="-DXP_UNIX -I/usr/include/smjs"
+#js_inc="/usr/include/smjs"
+#if $cc -o $TMPO $TMPC $js_flags -lsmjs 2> /dev/null  ; then
+#has_js="system"
+#js_lib="-lsmjs"
+#else
+##debian spidermonkey (mozjs)
+#js_flags="-DXP_UNIX -I/usr/include/mozjs"
+#js_inc="/usr/include/mozjs"
+#if $cc -o $TMPO $TMPC $js_flags -lmozjs 2> /dev/null  ; then
+#has_js="system"
+#js_lib="-lmozjs"
+#else
+##try local
+#js_inc="$local_inc/js"
+#js_flags="-DXP_UNIX -I$local_inc/js"
+#if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs 2> /dev/null  ; then
+#has_js="local"
+#else
+##try prefix (DC)
+#js_inc="$prefix/include/js"
+#js_flags="-DXP_UNIX -I$prefix/include/js"
+#if $cc -o $TMPO $TMPC $js_flags -L$prefix/lib -ljs 2> /dev/null  ; then
+#has_js="prefix"
+#fi
+#fi
+#fi
+#fi
+#fi
 
 
-if test "$has_js" != "no" ; then
-if test "$linux" = "yes" ; then
+#if test "$has_js" != "no" ; then
+#if test "$linux" = "yes" ; then
 
 #WARNING: there is a bug in MOZJS packages, the MOZILLA_1_8_BRANCH macro is not signaled, there is no way of knowing
 #if the lib has been compiled with or without the macro. We currently just decide that if the macro is present
 #in the header, it was enabled in the build
-if grep "MOZILLA_1_8_BRANCH" $js_inc/jsapi.h > /dev/null 2>&1 ; then
-js_flags="-DMOZILLA_1_8_BRANCH $js_flags"
-echo "WARNING: Turning on MOZILLA_1_8_BRANCH SpiderMonkey macro"
-echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
-fi
+# DC, it seems to incorrectly activate macro
+#if grep "MOZILLA_1_8_BRANCH" $js_inc/jsapi.h > /dev/null 2>&1 ; then
+#js_flags="-DMOZILLA_1_8_BRANCH $js_flags"
+#echo "WARNING: Turning on MOZILLA_1_8_BRANCH SpiderMonkey macro"
+#echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
+#fi
 
-fi
-fi
+#fi
+#fi
 
-fi
+#fi
 
 
 #end JS test
@@ -614,7 +663,6 @@ cat > $TMPC << EOF
 #include FT_OUTLINE_H
 int main( void ) { return 0; }
 EOF
-echo $cross_prefix
 if test "$cross_prefix"  != "" ; then
   if test "`which $prefix/bin/freetype-config`" != ""; then
     ft_cflags="`$prefix/bin/freetype-config --cflags`"
@@ -688,6 +736,18 @@ if test "$cross_prefix"  != "" ; then
           has_jpeg="local"
        fi
     fi
+  else
+    jpeg_cflags="-I$prefix/include"
+    jpeg_lflags="-L$prefix/lib -ljpeg"
+    if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags 2> /dev/null  ; then
+       has_jpeg="system"
+    else
+       jpeg_cflags="-I$local_inc/jpeg"
+       jpeg_lflags="-L$local_lib -ljpeg"
+       if $cc -o $TMPO $TMPC $jpeg_cflags $jpeg_lflags 2> /dev/null  ; then
+          has_jpeg="local"
+       fi
+    fi
   fi
 else
   if $cc -o $TMPO $TMPC -ljpeg 2> /dev/null  ; then
@@ -727,9 +787,10 @@ EOF
 if test "$cross_prefix"  != "" ; then
   png_cflags="-I$prefix/include"
   png_lflags="-L$prefix/lib -lpng -lz"
-  echo $png_cflags
-  echo $png_lflags
+  #-nostdlib prevents from searching standard compiler libraries
+  #if $cc -o $TMPO $TMPC -nostdlib $png_cflags $png_lflags 2> /dev/null  ; then
   if $cc -o $TMPO $TMPC $png_cflags $png_lflags 2> /dev/null  ; then
+     echo "png in system"
      has_png="system"
   else
      png_cflags="-I$local_inc/png"
@@ -1084,6 +1145,12 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_jack="yes"
 fi
 
+#look for renoir device driver presence
+if [ -e src/compositor/triscope_renoir/libViRenDrivers_linux.a ] ; then
+  has_renoir_drivers="local" 
+  else
+  has_renoir_drivers="unknown"
+fi
 
 for opt do
   case "$opt" in
@@ -1118,6 +1185,8 @@ for opt do
   --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
   ;;
   --enable-gprof) gprof_build="yes";
+  ;;
+  --enable-static-bin) static_build="yes";
   ;;
   --enable-pic) PIC_CFLAGS="-fPIC -DPIC"; want_pic="yes";
   ;;
@@ -1187,7 +1256,11 @@ has_png=$tmp_has_png
   ;;
   --enable-joystick) enable_joystick="yes"
   ;;
-  --enable-renoir) enable_renoir="yes"
+  --enable-renoir=*) enable_renoir=${opt#--enable-renoir=}
+  ;;
+  --disable-renoir-memory) disable_renoir_memory="yes"
+  ;;
+  --disable-renoir-buffer) disable_renoir_buffer="yes"
   ;;
   --enable-pulseaudio=*) has_pulseaudio="yes"
   ;;
@@ -1363,11 +1436,11 @@ EOF
 #    has_tinygl="system"
 #    LINK3D="-lTinyGL"
 if test "$enable_tinygl" = "yes"  ;then
-  if $cc -o $TMPO $TMPC -I${source_path}/../../TinyGL/include -L${source_path}/../../TinyGL/lib/$target_bin_dir -lTinyGL 2> /dev/null  ; then
+  if $cc -o $TMPO $TMPC -I${source_path}/../TinyGL/include -L${source_path}/../TinyGL/lib/$target_bin_dir -lTinyGL 2> /dev/null  ; then
       has_tinygl="yes"
       has_opengl="yes"
-      LINK3D="-L${source_path}/../../TinyGL/lib/$target_bin_dir -lTinyGL"
-      INCL3D="-I${source_path}/../../TinyGL/include"
+      LINK3D="-L${source_path}/../TinyGL/lib/$target_bin_dir -lTinyGL"
+      INCL3D="-I${source_path}/../TinyGL/include"
 fi
 fi
 
@@ -1563,6 +1636,7 @@ echo ""
 echo "** GPAC $version Core Configuration **"
 echo "debug version: $debuginfo"
 echo "GProf enabled: $gprof_build"
+echo "Static build enabled: $static_build"
 echo "Memory tracking enabled: $use_memory_tracking"
 echo "fixed-point version: $use_fixed_point"
 echo "IPV6 Support: $has_ipv6"
@@ -1713,8 +1787,9 @@ echo "OpenSSL support: $has_ssl"
 
 echo "Mozilla XUL/GECKO support: $has_xul"
 
-echo "Joystick support: $has_joystick"
 echo "Renoir enabled: $enable_renoir"
+echo "Renoir memory mapping disabled: $disable_renoir_memory"
+echo "Renoir memory buffering disabled: $disable_renoir_buffer"
 
 if test "$win32" = "yes" ; then
 echo "DirectX Support: $has_mingw_directx"
@@ -1754,6 +1829,7 @@ else
 echo "Xiph Vorbis: $has_vorbis"
 echo "Xiph Theora: $has_theora"
 fi
+echo "Renoir device drivers: $has_renoir_drivers"
 echo "A52 (AC3): $has_a52"
 
 echo ""
@@ -1934,6 +2010,19 @@ echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
 echo "CONFIG_OSS_AUDIO=$has_oss_audio" >> config.mak
 echo "CONFIG_ALSA=$has_alsa" >> config.mak
 echo "CONFIG_JACK=$has_jack" >> config.mak
+echo "CONFIG_RENOIR_DRIVERS=$has_renoir_drivers" >> config.mak
+if test "$disable_renoir_buffer" != "no" ; then
+echo "#define NO_RENOIR_BUFFER_ALLOCATION" >> $TMPH
+fi
+if test "$disable_renoir_memory" != "no" ; then
+echo "#define RENOIR_MEMORY_DISABLED" >> $TMPH
+fi
+if test "$enable_renoir" = "none" ; then
+echo "#define TRISCOPE_NONE" >> $TMPH
+fi
+if test "$enable_renoir" = "simulator" ; then
+echo "#define RENOIR_SIMULATOR" >> $TMPH
+fi
 echo "CONFIG_A52=$has_a52" >> config.mak
 
 echo "DISABLE_SVG=$disable_svg" >> config.mak
@@ -1950,6 +2039,8 @@ echo "OGL_INCLS=$INCL3D" >> config.mak
 echo "DISABLE_ISOFF=$disable_isoff" >> config.mak
 
 echo "HAS_OPENGL=$has_opengl" >> config.mak
+echo "TRISCOPE_MODE=$enable_renoir" >> config.mak
+
 if test "$has_opengl" = "yes" ; then
   echo "OGL_LIBS=$LINK3D" >> config.mak
 else
@@ -1985,6 +2076,7 @@ echo "CONFIG_AMR_NB_FT=$has_amr_nb" >> config.mak
 echo "CONFIG_AMR_WB_FT=$has_amr_wb" >> config.mak
 echo "DEBUGBUILD=$debuginfo" >> config.mak
 echo "GPROFBUILD=$gprof_build" >> config.mak
+echo "STATICBUILD=$static_build" >> config.mak
 
 echo "CONFIG_IPV6=$has_ipv6" >> config.mak
 if test "$has_ipv6" = "yes" ; then
@@ -2022,6 +2114,7 @@ echo "OSS_LDFLAGS=$OSS_LDFLAGS" >> config.mak
 fi
 
 echo "CONFIG_X11=$has_x11" >> config.mak
+
 if test "$has_x11_shm" = "yes"; then
 echo "USE_X11_SHM=$has_x11_shm" >> config.mak
 fi
@@ -2069,7 +2162,7 @@ if test "$source_path_used" = "yes" ; then
     echo "Creating compilation tree image"
     SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/terminal src/mcrypt src/media_tools src/scene_manager src/compositor src/laser" 
 
-    if test "$enable_renoir" = "yes" ; then
+    if test "$enable_renoir" != "no" ; then
         SRC_DIRS+=" src/compositor/triscope_renoir"
     fi
     
@@ -2096,7 +2189,7 @@ if test "$source_path_used" = "yes" ; then
          ln -sf $source_path/$dir/Makefile $dir/Makefile
     done
 
-    MOD_DIRS="modules modules/aac_in modules/ac3_in modules/alsa modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/gpac_js modules/img_in modules/ismacryp modules/isom_in modules/jack modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/pulseaudio modules/raw_out modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec"
+    MOD_DIRS="modules modules/aac_in modules/ac3_in modules/alsa modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/gpac_js modules/img_in modules/ismacryp modules/isom_in modules/jack modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/pulseaudio modules/raw_out modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec modules/shix_out"
     cur_dir="`pwd`"
     for dir in $MOD_DIRS ; do
             mkdir -p $dir

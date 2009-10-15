@@ -36,6 +36,9 @@ all: $(LIB)
 
 $(LIB): $(OBJSPIC)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) -L../../bin/gcc -lgpac $(EXTRALIBS)
+ifeq ($(STATICBUILD),yes)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_rtp_in-static.so $(OBJSPIC) -L../../bin/gcc -lgpac_static $(EXTRALIBS) 
+endif
 
 
 %.o: %.c

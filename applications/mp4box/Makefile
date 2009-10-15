@@ -49,6 +49,13 @@ endif
 
 endif
 
+ifneq ($(TRISCOPE_MODE),no)
+LINKFLAGS+= -L$(prefix)/lib
+ifeq ($(CONFIG_RENOIR_DRIVERS), unknown)
+LINKFLAGS+= -lViRenDrivers_linux
+endif    
+endif    
+
 
 SRCS := $(OBJS:.o=.c) 
 

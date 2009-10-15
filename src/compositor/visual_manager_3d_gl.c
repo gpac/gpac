@@ -1542,6 +1542,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 	/*FIXME*/
 	u32 i, hy;
 	char *tmp;
+        GLenum err;
 
 	fb->width = compositor->vp_width;
 	fb->height = compositor->vp_height;
@@ -1564,25 +1565,61 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
 #ifndef GPAC_USE_TINYGL
-		glPixelTransferf(GL_DEPTH_SCALE, FIX2FLT(compositor->OGLDepthGain) ); 
-		glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset) ); 
+		//glPixelTransferf(GL_DEPTH_SCALE, FIX2FLT(compositor->OGLDepthGain) ); 
+		//glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset) ); 
 #endif
-		/*the following is the inverse z-transform of OpenGL*/		
-#if 0		
+
+#if 1		
+#ifndef GPAC_USE_TINYGL
 		/* GL_FLOAT for float depthbuffer */
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, fb->video_buffer); 
+                //inversion
+		for (i=0; i<fb->height*fb->width; i++) 
+			fb->video_buffer[i] = (char)(255 - (int) fb->video_buffer[i]) ;
+#else
+		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, tmp); 
+                //inversion is already done in tinygl
+		for (i=0; i<fb->height*fb->width; i++) 
+			fb->video_buffer[i] = tmp[2*i+1] ;
+                free (tmp);
+#endif //gpac_use_tinygl
+#ifdef DUMP_RENOIR_TEXTURE
+        {
+ 	FILE *fout;
+ 	int i, j;
+ 	char val;
+	fout = fopen("dump_depth_triscope", "wb");
+	 	if (!fout) return;
+
+	 	for (j=0; j<fb->height;  j++) {
+	 
+	 		for (i=0;i<fb->width; i++) {
+	 
+#ifdef GPAC_USE_TINYGL
+	 			val = fputc(fb->video_buffer[2*i+j*fb->width*sizeof(unsigned short)], fout);
+	 			val = fputc(fb->video_buffer[2*i+j*fb->width*sizeof(unsigned short) + 1], fout);
+#else
+	 			val = fputc(fb->video_buffer[i+j*fb->width], fout);
+#endif
+                        }
+                }
+	 	fclose(fout);
+        }
+#endif //DUMP_RENOIR_TEXTURE
 #else
 		{
 		float *buff = (float *) malloc(sizeof(float)* fb->width * fb->height);
 		Fixed n = compositor->traverse_state->camera->z_near;
 		Fixed f = compositor->traverse_state->camera->z_far;
 		
+#if 0
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_FLOAT, buff); 
-
+                //inverse transform and inversion of opengl z
 		for (i=0; i<fb->height*fb->width; i++) 
 			fb->video_buffer[i] = (char) (255 * (1.0 - buff[i]) / (1 - buff[i]*(1-(n/f))));
 
 		free(buff);
+#endif
 		
 		}
 		
@@ -1657,6 +1694,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
 	}
 
+#ifndef GPAC_USE_TINYGL
 	/*flip image (openGL always handle image data bottom to top) */
 	tmp = (char*)malloc(sizeof(char)*fb->pitch_y);
 	hy = fb->height/2;
@@ -1666,6 +1704,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		memcpy(fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, tmp, fb->pitch_y);
 	}
 	free(tmp);
+#endif
 	return GF_OK;
 }
 

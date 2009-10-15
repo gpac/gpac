@@ -34,7 +34,6 @@
 #include <GL/oscontext.h>
 #endif
 
-
 typedef struct
 {
 	GF_TextureHandler txh;
@@ -206,7 +205,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 #ifdef GPAC_USE_TINYGL
 	/*TinyGL pixel format is fixed at compile time, we cannot override it !*/
-	new_pixel_format = GF_PIXEL_RGBA;
+	if (st->visual->type_3d) new_pixel_format = GF_PIXEL_RGBA;
 #else
 
 	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
@@ -266,7 +265,8 @@ static void composite_update(GF_TextureHandler *txh)
 			if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
 #endif
 			gf_sc_texture_release(txh);
-			if (txh->data) free(txh->data);
+			if (txh->data) 
+				free(txh->data);
 			txh->data = NULL;
 		}
 

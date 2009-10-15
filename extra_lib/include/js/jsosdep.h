@@ -45,7 +45,7 @@
 
 #if defined(XP_WIN) || defined(XP_OS2)
 
-#if defined(_WIN32) || defined (XP_OS2) || defined (__SYMBIAN32__)
+#if defined(_WIN32) || defined (XP_OS2)
 #define JS_HAVE_LONG_LONG
 #else
 #undef JS_HAVE_LONG_LONG

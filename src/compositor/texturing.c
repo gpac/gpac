@@ -59,7 +59,7 @@ void gf_sc_texture_destroy(GF_TextureHandler *txh)
 	if (txh->is_open) gf_sc_texture_stop(txh);
 #ifdef GPAC_TRISCOPE_MODE
 	/*Destroy the renoir object associated to this texture*/
-	if (txh->RenoirObject) DestroyRenoirObject (txh->RenoirObject, (GF_RenoirHandler *) txh->compositor->RenoirHandler);
+	if (txh->RenoirObject) DestroyRenoirObject (txh);
 #endif
 	gf_list_del_item(txh->compositor->textures, txh);
 

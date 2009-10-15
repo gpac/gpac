@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/applications/mp4client
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include -I../../
 
 LINKLIBS=$(OGL_LIBS)
 
@@ -43,8 +43,12 @@ else
 ifneq ($(CONFIG_PNG), no)
 LINKLIBS+= -L$(prefix)/lib
 else
-ifneq ($(TRISCOPE_MODE), no)
+ifneq ($(TRISCOPE_MODE),no)
 LINKLIBS+= -L$(prefix)/lib
+else
+ifeq ($(CONFIG_JS),prefix)
+LINKLIBS+= -L$(prefix)/lib
+endif
 endif
 endif
 endif
@@ -54,31 +58,43 @@ else
 LINKLIBS+= -ljpeg
 endif
 
+ifeq ($(CONFIG_JS), prefix)
+LINKLIBS+= -ljs
+else
+endif
+
 ifeq ($(CONFIG_PNG), no)
 else    
 LINKLIBS+= -lpng
 endif
 
-ifeq ($(TRISCOPE_MODE), no)
-else
+ifneq ($(TRISCOPE_MODE),no)
+#if not local, they are supposed to be dynamic in system - need to link them
+ifeq ($(CONFIG_RENOIR_DRIVERS), unknown)
 LINKLIBS+= -lViRenDrivers_linux
+endif    
 endif    
 
 
 
-#ifeq ($(TARGET_ARCH_X86), yes)
-#EXTRALIBS+= -L/comelec/users/comalren/renoir-application-drivers/lower-layers/sh4-x86/LINUXSH4/lib/x86_linux
-#ifeq ($(CC), sh4-unknown-linux-gnu-gcc)
-#EXTRALIBS+= -L/comelec/users/comalren/renoir-application-drivers/lower-layers/sh4-x86/LINUXSH4/lib/sh4_linux
-#endif
-#endif
-#endif
 
 SRCS := $(OBJS:.o=.c) 
 
 all: $(PROG)
 
 MP4Client$(EXE): $(OBJS)
+#	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(LINKLIBS) -lz  
+#ifeq ($(STATICBUILD),yes)
+#ifeq ($(TRISCOPE_MODE),simulator)
+#	$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -L../../src/compositor/triscope_renoir -lgpac_static -lz $(LINKLIBS) -lViRenDrivers_linux -lEmulRen_linux -lViRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath -lpthread -ldl
+#else
+#ifneq ($(TRISCOPE_MODE),no)
+#	$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -L../../src/compositor/triscope_renoir -lgpac_static -lz $(LINKLIBS) -lViRenDrivers_linux -lViRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath -lpthread -ldl
+#else
+	#$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -lgpac_static -lz $(LINKLIBS) -lpthread -ldl
+##endif
+##endif
+##endif
 	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -L../../extra_lib/lib/gcc -lgpac -lz $(LINKLIBS)
 
 %.o: %.c
@@ -86,6 +102,18 @@ MP4Client$(EXE): $(OBJS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
+       
+#this creates an executable with libgpac_static.a (statically linked)
+static-bin:
+ifeq ($(TRISCOPE_MODE),simulator)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -L../../src/compositor/triscope_renoir -lgpac_static -lz $(LINKLIBS) -lViRenDrivers_linux -lEmulRen_linux -lViRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath -lpthread -ldl
+else
+ifneq ($(TRISCOPE_MODE),no)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -L../../src/compositor/triscope_renoir -lgpac_static -lz $(LINKLIBS) -lViRenDrivers_linux -lViRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath -lpthread -ldl
+else
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -lgpac_static -lz $(LINKLIBS) -lpthread -ldl
+endif
+endif
 
 install: clean
 	$(MAKE) -override BUILD_INSTALL=yes all

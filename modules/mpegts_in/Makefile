@@ -40,6 +40,9 @@ all: $(LIB)
 
 $(LIB): $(OBJSPIC)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac
+ifeq ($(STATICBUILD),yes)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_mpegts_in-static.so $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac_static
+endif
 
 
 %.o: %.c

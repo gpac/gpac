@@ -18,10 +18,6 @@ CFLAGS+=-I$(SRC_PATH)/include
 # -I/usr/local/arm/3.3.2/include
 
 
-ifeq ($(ENABLE_JOYSTICK), yes)
-CFLAGS+=-DENABLE_JOYSTICK
-endif
-
 ifeq ($(X11_INC_PATH), )
 else
 CFLAGS+=-I$(X11_INC_PATH)
@@ -72,7 +68,13 @@ all: $(LIB)
 
 $(LIB): $(OBJSPIC)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -lX11 -L../../bin/gcc -lgpac -o ../../bin/gcc/$@ $(OBJSPIC)
+ifeq ($(STATICBUILD),yes)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_x11_out-static.so $(OBJSPIC) -lX11 -L../../bin/gcc -lgpac_static
+endif
 
+#static-bin:
+#	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_x11_out-static.so $(OBJSPIC) -lX11 -L../../bin/gcc -lgpac_static
+                                                                                               
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 
 

@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/raw_out
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include -DGPAC_HAVE_CONFIG_H -I../../
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -13,6 +13,19 @@ ifeq ($(GPROFBUILD), yes)
 CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
+
+ifeq ($(ENABLE_JOYSTICK), yes)
+CFLAGS+=-DENABLE_JOYSTICK
+endif
+
+ifeq ($(ENABLE_JOYSTICK_NO_CURSOR), yes)
+CFLAGS+=-DENABLE_JOYSTICK_NO_CURSOR
+endif
+
+ifneq ($(TRISCOPE_MODE),no)
+CFLAGS+=-DGPAC_TRISCOPE_MODE
+endif
+
 
 #common obj
 OBJS= raw_video.o
@@ -35,6 +48,9 @@ all: $(LIB)
 
 $(LIB): $(OBJSPIC)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac
+ifeq ($(STATICBUILD),yes)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_raw_out-static.so $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac_static
+endif
 
 
 %.o: %.c
