@@ -63,7 +63,7 @@ static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	GF_BitStream *bs;
 	u32 packed;
 	AMRFTCTX();
-	if (esd->decoderConfig || !esd->decoderConfig->decoderSpecificInfo) return GF_NOT_SUPPORTED;	
+	if (esd->dependsOnESID || !esd->decoderConfig->decoderSpecificInfo) return GF_NOT_SUPPORTED;	
 
 	/*AMRWB dec is another module*/
 	if (!strnicmp(esd->decoderConfig->decoderSpecificInfo->data, "sawb", 4)) ctx->is_amr_wb = 1;
@@ -73,9 +73,9 @@ static GF_Err AMR_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 	bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 	gf_bs_read_u32(bs);
+	gf_bs_read_u32(bs);
+	ctx->num_channels = gf_bs_read_u16(bs);
 	gf_bs_read_u16(bs);
-	gf_bs_read_u16(bs);
-	ctx->num_channels = gf_bs_read_u8(bs);
 	gf_bs_read_u8(bs);
 	packed = gf_bs_read_u8(bs);
 	gf_bs_del(bs);
