@@ -396,6 +396,21 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 	RP_QueueCommand(sess, NULL, com, 0);
 }
 
+
+static void SkipCommandOnSession(RTPStream *ch)
+{
+	u32 i;
+	RTPStream *a_ch;
+	if (!ch || (ch->flags & RTP_SKIP_NEXT_COM) || !(ch->rtsp->flags & RTSP_AGG_CONTROL) ) return;
+	i=0;
+	while ((a_ch = (RTPStream *)gf_list_enum(ch->owner->channels, &i))) {
+		if ((ch == a_ch) || (a_ch->rtsp != ch->rtsp) ) continue;
+		if (a_ch->status>=RTP_Connected)
+			a_ch->flags |= RTP_SKIP_NEXT_COM;
+	}
+}
+
+
 /*
  						channel control functions
 																*/
@@ -430,7 +445,10 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 		}
 		/*this is a stop, no need for SessionID just skip*/
 		skip_it = 1;
+	} else {
+		SkipCommandOnSession(ch);
 	}
+
 	/*check if aggregation discards this command*/
 	if (skip_it || ( (sess->flags & RTSP_AGG_CONTROL) && (ch->flags & RTP_SKIP_NEXT_COM) )) {
 		ch->flags &= ~RTP_SKIP_NEXT_COM;
@@ -450,20 +468,6 @@ err_exit:
 	com->user_data = NULL;
 	return 0;
 }
-
-static void SkipCommandOnSession(RTPStream *ch)
-{
-	u32 i;
-	RTPStream *a_ch;
-	if (!ch || (ch->flags & RTP_SKIP_NEXT_COM) || !(ch->rtsp->flags & RTSP_AGG_CONTROL) ) return;
-	i=0;
-	while ((a_ch = (RTPStream *)gf_list_enum(ch->owner->channels, &i))) {
-		if ((ch == a_ch) || (a_ch->rtsp != ch->rtsp) ) continue;
-		if (a_ch->status>=RTP_Connected)
-			a_ch->flags |= RTP_SKIP_NEXT_COM;
-	}
-}
-
 
 void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
