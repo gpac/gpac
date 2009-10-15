@@ -193,7 +193,7 @@ void gf_rtsp_range_del(GF_RTSPRange *range)
 
 void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 {
-	char LineBuffer[400], buf[100], param_name[100], param_val[100];
+	char LineBuffer[400], buf[1000], param_name[100], param_val[1000];
 	s32 LinePos, Pos, nPos, s_val;
 	GF_RTPInfo *info;
 	GF_RTSPTransport *trans;
@@ -274,12 +274,12 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 			GF_SAFEALLOC(info, GF_RTPInfo);
 			Pos = 0;
 			while (1) {	
-				Pos = gf_token_get(LineBuffer, Pos, " ;", buf, 100);
+				Pos = gf_token_get(LineBuffer, Pos, " ;", buf, 1000);
 				if (Pos <= 0) break;
 				if (strstr(buf, "=")) {
 					nPos = gf_token_get(buf, 0, "=", param_name, 100);
 					nPos += 1;
-					nPos = gf_token_get(buf, nPos, "", param_val, 100);
+					nPos = gf_token_get(buf, nPos, "", param_val, 1000);
 				} else {
 					strcpy(param_name, buf);
 				}
