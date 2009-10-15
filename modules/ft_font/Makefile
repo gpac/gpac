@@ -25,7 +25,11 @@ ifeq ($(CONFIG_WIN32),yes)
 endif
 
 
+ifneq ($(STATICBUILD),yes)
 LINKVAR=-L../../bin/gcc -lgpac $(FT_LIBS)
+else
+LINKVAR=-L../../bin/gcc -lgpac_static $(FT_LIBS)
+endif
 
 
 ifeq ($(WANT_PIC),yes)
@@ -39,6 +43,9 @@ all: $(LIB)
 
 $(LIB): $(OBJSPIC)
 	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(LINKVAR) $(EXTRALIBS)
+ifeq ($(STATICBUILD),yes)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_ft_font-static.so $(OBJSPIC) $(LINKVAR) $(EXTRALIBS)
+endif
 
 
 %.o: %.c

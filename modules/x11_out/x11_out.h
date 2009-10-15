@@ -58,14 +58,14 @@ extern "C"
 #include <X11/extensions/Xvlib.h>
 #endif
 
-#ifdef ENABLE_JOYSTICK
+#if defined(ENABLE_JOYSTICK) || defined(ENABLE_JOYSTICK_NO_CURSOR)
 #include <linux/joystick.h>
 #include <unistd.h>
 #include <fcntl.h>
 #endif
 
 #define X11VID()	XWindow *xWindow = (XWindow *)vout->opaque;
-
+        
 #define RGB555(r,g,b) (((r&248)<<7) + ((g&248)<<2)  + (b>>3))
 #define RGB565(r,g,b) (((r&248)<<8) + ((g&252)<<3)  + (b>>3))
 
@@ -117,10 +117,9 @@ typedef struct
 	Window gl_wnd;
 	u32 offscreen_type;
 #endif
-#ifdef ENABLE_JOYSTICK
+#if defined(ENABLE_JOYSTICK) || defined(ENABLE_JOYSTICK_NO_CURSOR)
 	/*joystick device file descriptor*/
-	u32 fd;
-	s32 prev_x, prev_y;
+	s32 prev_x, prev_y, fd;
 #endif
 } XWindow;
 

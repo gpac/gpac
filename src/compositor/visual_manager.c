@@ -34,6 +34,7 @@ static Bool visual_draw_bitmap_stub(GF_VisualManager *visual, GF_TraverseState *
 	return 0;
 }
 
+
 GF_VisualManager *visual_new(GF_Compositor *compositor)
 {
 	GF_VisualManager *tmp;

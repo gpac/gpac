@@ -60,6 +60,15 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 
 	if (compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, 1)==GF_OK) {
 		compositor->hw_locked = 1;
+
+#ifdef GPAC_TRISCOPE_MODE 
+		if (!(((GF_RenoirHandler *) compositor->RenoirHandler)->flags & GF_TRISCOPE_OUTPUT_IS_SET)) {
+                        SetRenoirOutput(compositor);
+                        ((GF_RenoirHandler *)compositor->RenoirHandler)->flags |= GF_TRISCOPE_OUTPUT_IS_SET;
+                }
+		return GF_OK;
+#else
+
 		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hw_surface.video_buffer, 
 							compositor->hw_surface.width, 
 							compositor->hw_surface.height,
@@ -69,14 +78,13 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		if (!e) {
 			visual->is_attached = 1;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Video surface memory attached to raster\n"));
-#ifdef GPAC_TRISCOPE_MODE 
-		/*CALL SNOUTPUT FOR RENOIR*/
-		SetRenoirOutput(compositor);
-#endif
 			return GF_OK;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface memory to raster: %s\n", gf_error_to_string(e) ));
 		compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, 0);
+
+#endif
+
 	}
 	compositor->hw_locked = 0;
 	visual->is_attached = 0;
@@ -448,11 +456,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	if (tr_state->direct_draw) {
 		
 #ifdef GPAC_TRISCOPE_MODE
-#ifdef TRISCOPE_DEBUG
-   printf("\nEntering SetRenoirTexture...\n");
-#endif
-		return SetRenoirTexture(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0);
-		
+		return SetRenoirTexture(visual, ctx->aspect.fill_texture, ctx,
+                                &ctx->bi->clip, &ctx->bi->unclip, alpha, (u32 *) col_key, tr_state, 0);
 #else 		
 		return compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0);
 

@@ -29,6 +29,8 @@
 #include "nodes_stacks.h"
 #include <gpac/options.h>
 
+#include "../config.h"
+
 #ifndef GPAC_DISABLE_3D
 
 #ifdef GPAC_USE_TINYGL
@@ -116,7 +118,7 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 		return GF_OK;
 	}
 
-#ifdef GPAC_USE_TINYGL
+#if defined(GPAC_USE_TINYGL) && !defined(GPAC_TRISCOPE_MODE)
 	{
 		u32 bpp;
 		GF_VideoSurface bb;

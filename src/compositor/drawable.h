@@ -216,6 +216,11 @@ enum
 	CTX_SVG_OUTLINE_GEOMETRY_DIRTY = 1<<9,
 	/*indicates the context is in a flip coord state (used for image and text flip)*/
 	CTX_FLIPED_COORDS = 1<<10,
+        /*indicates that this triscope object is a 2d object*/
+        CTX_IS_2D = 1<<11,
+        CTX_IS_3DFLAT = 1<<12,
+        CTX_IS_3DMAP = 1<<13,
+        CTX_IS_3DS = 1<<14,
 };
 
 #define CTX_REDRAW_MASK	0x00000003
@@ -249,9 +254,11 @@ struct _drawable_context
 	*/
 	GF_Node *appear;
 	
-	/*depth z-axis info for 2d scenes in triscope mode*/
 #ifdef GPAC_TRISCOPE_MODE
+	/*depth z-axis info for 2d scenes in triscope mode*/
 	Fixed depth;
+        //local gain and offset
+        Fixed depth_gain, depth_offset;
 #endif
 	
 };	

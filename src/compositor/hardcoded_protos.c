@@ -455,7 +455,7 @@ typedef struct
 	BASE_NODE
 	CHILDREN
 
-    Bool offscreen;
+        Bool offscreen;
 	Fixed opacity;
 } OffscreenGroup;
 
@@ -554,6 +554,10 @@ typedef struct
 	CHILDREN
 
 	Fixed depth;
+        //forces type of renoir object: 0 2d, 1 3dflat, 2 3dmap, 3 3ds, 4 auto-detect
+	u32 _3d_type;
+        //set local depth gain and offset
+        Fixed depth_gain, depth_offset;
 } DepthGroup;
 
 typedef struct
@@ -575,6 +579,19 @@ static Bool DepthGroup_GetNode(GF_Node *node, DepthGroup *dg)
 	if (gf_node_get_field(node, 1, &field) != GF_OK) return 0;
 	if (field.fieldType != GF_SG_VRML_SFFLOAT) return 0;
 	dg->depth = * (SFFloat *) field.far_ptr;
+
+	if (gf_node_get_field(node, 2, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFINT32) return 0;
+	dg->_3d_type = * (SFInt32 *) field.far_ptr;
+
+	if (gf_node_get_field(node, 3, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFFLOAT) return 0;
+	dg->depth_gain = * (SFFloat *) field.far_ptr;
+
+	if (gf_node_get_field(node, 4, &field) != GF_OK) return 0;
+	if (field.fieldType != GF_SG_VRML_SFFLOAT) return 0;
+	dg->depth_offset = * (SFFloat *) field.far_ptr;
+
 	return 1;
 }
 
@@ -624,9 +641,23 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 	{
 		Fixed depth = tr_state->depth;
+                u32 _3d_type = tr_state->_3d_type;
+		Fixed depth_gain = tr_state->depth_gain;
+		Fixed depth_offset = tr_state->depth_offset;
+
+                //depth is cumulative
 		tr_state->depth += stack->dg.depth;
+                tr_state->_3d_type=stack->dg._3d_type;
+                //gain and offset are not cumulative
+		tr_state->depth_gain = stack->dg.depth_gain;
+		tr_state->depth_offset = stack->dg.depth_offset;
+
 		group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
+
 		tr_state->depth = depth;
+		tr_state->_3d_type = _3d_type;
+		tr_state->depth_gain = depth_gain;
+		tr_state->depth_offset = depth_offset;
 	}
 }
 
@@ -640,7 +671,8 @@ void compositor_init_depth_group(GF_Compositor *compositor, GF_Node *node)
 		gf_node_set_callback_function(node, TraverseDepthGroup);
 		stack->dg = dg;
 		gf_node_proto_set_grouping(node);
-	}
+	} else GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Unable to initialize depth group  \n"));
+        	
 }
 
 

@@ -94,6 +94,7 @@ MEDIATOOLS_CFLAGS+=-I$(LOCAL_INC_PATH)/jpeg
 endif
 endif
 
+
 #5 - PNG support
 ifeq ($(CONFIG_PNG), no)
 else
@@ -105,6 +106,40 @@ endif
 endif
 
 
+## libgpac compositor compilation options
+COMPOSITOR_CFLAGS=
+## SVG disabled
+ifeq ($(DISABLE_SVG), yes)
+COMPOSITOR_CFLAGS+=-DGPAC_DISABLE_SVG
+endif
+
+#triscope project compilation options
+ifneq ($(TRISCOPE_MODE),no)
+
+COMPOSITOR_CFLAGS+=-DGPAC_TRISCOPE_MODE
+EXTRALIBS+= -Lcompositor/triscope_renoir
+ifeq ($(TRISCOPE_MODE),simulator)
+EXTRALIBS+= -lViRen_linux -lViRenDrivers_linux -lEmulRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath
+else
+#EXTRALIBS+= -lViRen_linux -lViRenDrivers_linux -lViRenTools
+EXTRALIBS+= -lViRen_linux -lViRenDrivers_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath
+endif
+LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/triscope_renoir.o
+#special malloc for renoir memory
+LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/gltx_malloc.o
+endif
+
+## OpenGL not available
+ifeq ($(HAS_OPENGL),yes)
+EXTRALIBS+= $(OGL_LIBS)
+COMPOSITOR_CFLAGS+=$(OGL_INCLS)
+endif
+
+ifeq ($(NEED_LOCAL_LIB), "yes")
+EXTRALIBS+=-L../extra_lib/lib/gcc
+endif
+EXTRALIBS+=$(LINKLIBS)
+
 ifneq ($(prefix), /usr/local)
 EXTRALIBS+=-L$(prefix)/lib
 else
@@ -113,31 +148,8 @@ EXTRALIBS+=-L$(prefix)/lib
 endif
 endif
 
-## libgpac compositor compilation options
-COMPOSITOR_CFLAGS=
-## SVG disabled
-ifeq ($(DISABLE_SVG), yes)
-COMPOSITOR_CFLAGS+=-DGPAC_DISABLE_SVG
-endif
-
-# OpenGL support
-ifeq ($(HAS_OPENGL),yes)
-EXTRALIBS+= $(OGL_LIBS)
-COMPOSITOR_CFLAGS+=$(OGL_INCLS)
-endif
-
-ifeq ($(TRISCOPE_MODE), yes)
-COMPOSITOR_CFLAGS+=-DGPAC_TRISCOPE_MODE
-EXTRALIBS+= -Lcompositor/triscope_renoir
-#EXTRALIBS+= -lViRen_linux -lViRenDrivers_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath
-EXTRALIBS+= -lViRen_linux -lViRenDrivers_linux -lEmulRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath
-LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/triscope_renoir.o compositor/chrono.o
-#special malloc for renoir memory
-LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/gltx_malloc.o
-endif
-
 ifeq ($(GPAC_USE_TINYGL), yes)
-COMPOSITOR_CFLAGS+=-I$(SRC_PATH)/../../TinyGL/include
+COMPOSITOR_CFLAGS+=-I$(SRC_PATH)/../TinyGL/include
 endif
 ifeq ($(ENABLE_JOYSTICK), yes)
 COMPOSITOR_CFLAGS+=-DENABLE_JOYSTICK
@@ -149,10 +161,6 @@ ifeq ($(GPACREADONLY), yes)
 MEDIATOOLS_CFLAGS=-DGPAC_READ_ONLY
 endif
 
-ifeq ($(NEED_LOCAL_LIB), "yes")
-EXTRALIBS+=-L../extra_lib/lib/gcc
-endif
-EXTRALIBS+=$(LINKLIBS)
 
 ifeq ($(GPAC_ENST), yes)
 OBJS+=$(LIBGPAC_ENST)

@@ -41,6 +41,9 @@ all: $(LIB)
 
 $(LIB): $(OBJSPIC)
 	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac $(OSS_LDFLAGS)
+ifeq ($(STATICBUILD),yes)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_oss_audio-static.so $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac_static $(OSS_LDFLAGS)
+endif
 
 
 %.o: %.c

@@ -885,6 +885,7 @@ void gf_mx2d_apply_point(GF_Matrix2D *_this, GF_Point2D *pt)
 GF_EXPORT
 void gf_mx2d_apply_rect(GF_Matrix2D *_this, GF_Rect *rc)
 {
+
 	GF_Point2D c1, c2, c3, c4;
 	c1.x = c2.x = rc->x;
 	c3.x = c4.x = rc->x + rc->width;

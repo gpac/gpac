@@ -50,7 +50,7 @@ tar:
 install:
 	install -d "$(DESTDIR)$(prefix)"
 	install -d "$(DESTDIR)$(prefix)/bin"
-	install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
+	#install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
 	$(MAKE) -C applications install
 	install -d "$(DESTDIR)$(moddir)"
 	install bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"

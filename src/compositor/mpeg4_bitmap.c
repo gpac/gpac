@@ -28,8 +28,6 @@
 #include "visual_manager.h"
 #include "texturing.h"
 
-#ifndef GPAC_DISABLE_VRML
-
 typedef struct _bitmap_stack
 {
 	Drawable *graph;
@@ -53,6 +51,8 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 	if (! ((M_Appearance *)tr_state->appear)->texture) return;
 	txh = gf_sc_texture_get_handler( ((M_Appearance *)tr_state->appear)->texture );
 	/*bitmap not ready*/
+    /*triscope TODO: background bitmap twice not ready, never drawn -> bounds not stored,
+     * direct draw undone*/
 	if (!txh || !txh->tx_io || !txh->width || !txh->height) {
 		if (notify_changes) gf_node_dirty_set(node, 0, 1);
 		return;
@@ -62,6 +62,7 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 		*out_rc = st->rc;
 		return;
 	}
+
 	st->prev_tx_w = txh->width;
 	st->prev_tx_h = txh->height;
 
@@ -129,8 +130,7 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 
 	compositor = tr_state->visual->compositor;
 	/*bitmaps are NEVER rotated (forbidden in spec). In case a rotation was done we still display (reset the skew components)*/
-	if (!compositor->rotate_mode)
-		ctx->transform.m[1] = ctx->transform.m[3] = 0;
+	ctx->transform.m[1] = ctx->transform.m[3] = 0;
 
 	/*check for material key materialKey*/
 	key = NULL;
@@ -191,6 +191,7 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 #endif
 	case TRAVERSE_PICK:
+		//drawable_pick(st->graph, tr_state);
 		vrml_drawable_pick(st->graph, tr_state);
 		return;
 	case TRAVERSE_GET_BOUNDS:
@@ -220,6 +221,7 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 		visual_2d_remove_last_context(tr_state->visual);
 		return;
 	}
+
 
 	/*even if set this is not true*/
 	ctx->aspect.pen_props.width = 0;
@@ -267,4 +269,3 @@ void compositor_init_bitmap(GF_Compositor  *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, TraverseBitmap);
 }
 
-#endif /*GPAC_DISABLE_VRML*/

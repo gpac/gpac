@@ -26,6 +26,7 @@
 
 #include <gpac/terminal.h>
 #include <gpac/options.h>
+#include "config.h"
 
 
 #ifdef WIN32
@@ -87,9 +88,16 @@ static u32 put_pixel(FILE *fout, u32 type, u32 pf, char *ptr)
 
 	case GF_PIXEL_BGR_32:
 	case GF_PIXEL_RGBA:
+                //probably due to tinygl bug - verify
+#ifndef GPAC_USE_TINYGL
 		fputc(ptr[3], fout);
 		fputc(ptr[2], fout);
 		fputc(ptr[1], fout);
+#else
+		fputc(ptr[2], fout);
+		fputc(ptr[1], fout);
+		fputc(ptr[0], fout);
+#endif
 		return 4;
 
 	case GF_PIXEL_RGB_24:
@@ -153,7 +161,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	char *ptr, *prev;
 
 	prev = strrchr(rad_name, '.');
-	if (prev) prev[0] = '\0'; 
+	//if (prev) prev[0] = '\0'; 
 
 	if (fb->pixel_format==GF_PIXEL_GREYSCALE) sprintf(str, "%s_%d_depth.bmp", rad_name, img_num);
 	else sprintf(str, "%s_%d.bmp", rad_name, img_num);
@@ -183,7 +191,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
     fwrite(&fh.bfOffBits, 4, 1, fout);
 
 	fwrite(&fi, 1, 40, fout);
-
+//#ifndef GPAC_USE_TINYGL
 	for (j=fb->height; j>0; j--) {
 		ptr = fb->video_buffer + (j-1)*fb->pitch_y;
 		for (i=0;i<fb->width; i++) {
@@ -192,6 +200,18 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 			ptr += res;
 		}
 	}
+//#else
+#if 0
+	for (j=0; j<fb->height; j++) {
+		ptr = fb->video_buffer + j*fb->pitch;
+		for (i=0;i<fb->width; i++) {
+			u32 res = put_pixel(fout, 0, fb->pixel_format, ptr);
+			assert(res);
+			ptr += res;
+		}
+	}
+#endif
+
 	fclose(fout);
 }
 
@@ -552,8 +572,13 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 		gf_term_set_size(term, width, height);
 		gf_term_process_flush(term);
 	} 
-
+#ifndef GPAC_USE_TINYGL
+        printf("not tinygl\n");
 	e = gf_sc_get_screen_buffer(term->compositor, &fb, 0);
+#else
+        printf("tinygl\n");
+	e = gf_sc_get_screen_buffer(term->compositor, &fb, 1);
+#endif
 	if (e != GF_OK) {
 		fprintf(stdout, "Error grabbing screen buffer: %s\n", gf_error_to_string(e));
 		return 0;

@@ -27,6 +27,10 @@ ifeq ($(CONFIG_JS),local)
 NEED_LOCAL_LIB="yes"
 LOCAL_LIB+=-L../../extra_lib/lib/gcc
 endif
+ifeq ($(CONFIG_JS),prefix)
+NEED_LOCAL_LIB="yes"
+LOCAL_LIB+=-L$(prefix)/lib
+endif
 LINKLIBS+= $(JS_LIBS)
 endif
 
