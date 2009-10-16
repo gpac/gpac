@@ -253,7 +253,7 @@ void gf_sc_invalidate(GF_Compositor *compositor, GF_Node *byObj)
 {
 
 	if (!byObj) {
-		compositor->draw_next_frame = 1;
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		return;
 	}
 	switch (gf_node_get_tag(byObj)) {
@@ -294,7 +294,7 @@ void gf_sc_invalidate(GF_Compositor *compositor, GF_Node *byObj)
 		/*for all nodes, invalidate parent graph - note we do that for sensors as well to force recomputing
 		sensor list cached at grouping node level*/
 		gf_node_dirty_set(byObj, 0, 1);
-		compositor->draw_next_frame = 1;
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	}
 }

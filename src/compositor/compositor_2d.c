@@ -694,7 +694,7 @@ void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fix
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Changing Zoom (%g) and Pan (%g %g)\n", FIX2FLT(compositor->zoom), FIX2FLT(compositor->trans_x) , FIX2FLT(compositor->trans_y)));
 
 
-	compositor->draw_next_frame = 1;
+	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 	compositor->traverse_state->invalidate_all = 1;
 
 	/*for zoom&pan, send the event right away. For resize/scroll, wait for the frame to be drawn before sending it

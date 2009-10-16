@@ -182,7 +182,7 @@ void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 		dri = dri->next;
 		free(cur);
 	}
-	if (compositor) compositor->draw_next_frame = 1;
+	if (compositor) gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 
 	/*remove path object*/
 	if (dr->path) gf_path_del(dr->path);

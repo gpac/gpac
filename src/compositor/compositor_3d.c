@@ -29,8 +29,6 @@
 #include "nodes_stacks.h"
 #include <gpac/options.h>
 
-#include "../config.h"
-
 #ifndef GPAC_DISABLE_3D
 
 #ifdef GPAC_USE_TINYGL
