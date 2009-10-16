@@ -1271,8 +1271,12 @@ static GF_Err GAPI_InitBackBuffer(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoH
 		gctx->y_pitch = gx.cbyPitch;
 
 		gctx->gx_mode = gx_mode;
-
-		if (check_resolution_switch(dr, gx.cxWidth, gx.cyHeight)) {
+		if (gctx->gx_mode==2) {
+			if (gapi_get_raw_fb(dr) == GF_EOS) {
+				gf_mx_v(gctx->mx);
+				return GF_OK;
+			}
+		} else if (check_resolution_switch(dr, gx.cxWidth, gx.cyHeight)) {
 			gf_mx_v(gctx->mx);
 			return GF_OK;
 		}
