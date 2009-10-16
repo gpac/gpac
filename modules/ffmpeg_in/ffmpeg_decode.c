@@ -222,6 +222,8 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 #ifndef GPAC_DISABLE_AV_PARSERS
 					e = gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 					if (e) return e;
+					if (dsi.width%2) dsi.width++;
+					if (dsi.height%2) dsi.height++;
 					ffd->ctx->width = dsi.width;
 					ffd->ctx->height = dsi.height;
 					if (!dsi.width && !dsi.height) ffd->check_short_header = 1;
@@ -564,6 +566,13 @@ redecode:
 			}
 		}
 		ffd->ctx->hurry_up = 0;
+
+		/*some streams use odd width/height frame values*/
+		if (ffd->out_pix_fmt == GF_PIXEL_YV12) {
+			if (ffd->ctx->width%2) ffd->ctx->width++;
+			if (ffd->ctx->height%2) ffd->ctx->height++;
+		}
+
 		/*recompute outsize in case on-the-fly change*/
 		if ((w != ffd->ctx->width) || (h != ffd->ctx->height)) {
 			outsize = ffd->ctx->width * ffd->ctx->height * 3;
