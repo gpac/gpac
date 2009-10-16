@@ -205,7 +205,7 @@ static void svg_font_on_load(GF_Node *handler, GF_DOM_Event *event, GF_Node *obs
 
 	/*brute-force signaling that all fonts have changed and texts must be recomputed*/
 	compositor->reset_fonts = 1;
-	compositor->draw_next_frame = 1;
+	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 	compositor->fonts_pending--;
 }
 

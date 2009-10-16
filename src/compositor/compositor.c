@@ -48,6 +48,11 @@
 void gf_sc_simulation_tick(GF_Compositor *compositor);
 
 
+void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
+{
+	compositor->frame_draw_type = state;
+}
+
 GF_Err gf_sc_set_output_size(GF_Compositor *compositor, u32 Width, u32 Height)
 {
 	gf_sc_lock(compositor, 1);
@@ -55,7 +60,7 @@ GF_Err gf_sc_set_output_size(GF_Compositor *compositor, u32 Width, u32 Height)
 	compositor->display_width = Width;
 	compositor->display_height = Height;
 	compositor->recompute_ar = 1;
-	compositor->draw_next_frame = 1;
+	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 	gf_sc_lock(compositor, 0);
 	return GF_OK;
 }
@@ -172,7 +177,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 		if (compositor->msg_type & GF_SR_CFG_FULLSCREEN) {
 			compositor->msg_type &= ~GF_SR_CFG_FULLSCREEN;
 			gf_sc_set_fullscreen(compositor);
-			compositor->draw_next_frame = 1;
+			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		}
 		compositor->msg_type &= ~GF_SR_IN_RECONFIG;
 	}
@@ -195,7 +200,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 Bool gf_sc_draw_frame(GF_Compositor *compositor)
 {	
 	gf_sc_simulation_tick(compositor);
-	if (compositor->draw_next_frame) return 1;
+	if (compositor->frame_draw_type) return 1;
 	if (compositor->fonts_pending) return 1;
 	return 0;
 }
@@ -868,14 +873,15 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	
 	gf_sc_lock(compositor, 0);
 	if (scene_graph)
-		compositor->draw_next_frame = 1;
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+
 	/*here's a nasty trick: the app may respond to this by calling a gf_sc_set_size from a different
 	thread, but in an atomic way (typically happen on Win32 when changing the window size). WE MUST
 	NOTIFY THE SIZE CHANGE AFTER RELEASING THE RENDERER MUTEX*/
 	if (do_notif) {
 		GF_Event evt;
 		/*wait for user ack*/
-		compositor->draw_next_frame = 0;
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_NONE);
 
 		evt.type = GF_EVENT_SCENE_SIZE;
 		evt.size.width = width;
@@ -1126,7 +1132,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	/*RECT texture support - we must reload HW*/
 	compositor->reset_graphics = 1;
 
-	compositor->draw_next_frame = 1;
+	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 
 	gf_sc_lock(compositor, 0);
 }
@@ -1152,26 +1158,26 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		break;
 	case GF_OPT_OVERRIDE_SIZE:
 		compositor->override_size_flags = value ? 1 : 0;
-		compositor->draw_next_frame = 1; 
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_STRESS_MODE: 
 		compositor->stress_mode = value; 
 		break;
 	case GF_OPT_ANTIALIAS: 
 		compositor->antiAlias = value; 
-		compositor->draw_next_frame = 1; 
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_HIGHSPEED: 
 		compositor->high_speed = value; 
-		compositor->draw_next_frame = 1; 
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_DRAW_BOUNDS: 
 		compositor->draw_bvol = value; 
-		compositor->draw_next_frame = 1; 
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_TEXTURE_TEXT: 
 		compositor->texture_text_mode = value; 
-		compositor->draw_next_frame = 1; 
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_ASPECT_RATIO: 
 		compositor->aspect_ratio = value; 
@@ -1179,14 +1185,14 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		break;
 	case GF_OPT_INTERACTION_LEVEL: 
 		compositor->interaction_level = value; 
-		compositor->draw_next_frame = 1; 
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_REFRESH: 
 		compositor->reset_graphics = value; 
 		break;
 	case GF_OPT_FULLSCREEN:
 		if (compositor->fullscreen != value) compositor->msg_type |= GF_SR_CFG_FULLSCREEN; 
-		compositor->draw_next_frame = 1;
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_ORIGINAL_VIEW:
 		compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, 0);
@@ -1200,20 +1206,20 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 			evt.show.show_type = value ? 1 : 0;
 			e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 		}
-		compositor->draw_next_frame = 1; 
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_FREEZE_DISPLAY: 
 		compositor->freeze_display = value;
-		compositor->draw_next_frame = 1; 
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_RELOAD_CONFIG: 
 		gf_sc_reload_config(compositor);
-		compositor->draw_next_frame = 1; 
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_DIRECT_DRAW:
 		compositor->traverse_state->direct_draw = value ? 1 : 0;
 		/*force redraw*/
-		compositor->draw_next_frame = 1;
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_SCALABLE_ZOOM:
 		compositor->scalable_zoom = value;
@@ -1228,7 +1234,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 			/*force texture setup when switching to OpenGL*/
 			if (value) compositor->reset_graphics = 1;
 			/*force redraw*/
-			compositor->draw_next_frame = 1;
+			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		}
 		break;
 	case GF_OPT_YUV_HARDWARE:
@@ -1323,7 +1329,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		compositor->gravity_on = value;
 		/*force collision pass*/
 		cam->last_pos.z -= 1;
-		compositor->draw_next_frame = 1;
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 	}
 		break;	
 #endif
@@ -1637,7 +1643,7 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 			compositor_2d_set_aspect_ratio(compositor);
 		}
 
-		compositor->draw_next_frame = 0;
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_NONE);
 
 #ifndef GPAC_DISABLE_LOG
 		if ((gf_log_get_level() >= GF_LOG_DEBUG) && (gf_log_get_tools() & GF_LOG_RTI)) { 
@@ -1678,7 +1684,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 #ifdef GF_SR_USE_VIDEO_CACHE
 	gf_list_reset(compositor->cached_groups_queue);
 #endif
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Drawing done\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Frame %d - drawing done\n", compositor->frame_number));
 
 	/*only send the resize notification once the frame has been dra*/
 	if (compositor->recompute_ar) {
@@ -1733,7 +1739,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
      TIMER_START;
 #endif
 	if (compositor->reset_graphics)
-		compositor->draw_next_frame = 1;
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 
 #ifdef GF_SR_EVENT_QUEUE
 	/*process pending user events*/
@@ -1821,12 +1827,12 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	smil_timing_time = gf_sys_clock();
 #endif
 	if (gf_smil_notify_timed_elements(compositor->scene)) {
-		compositor->draw_next_frame = 1;
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 	}
 	i = 0;
 	while ((sg = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
 		if (gf_smil_notify_timed_elements(sg)) {
-			compositor->draw_next_frame = 1;
+			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		}
 	}
 
@@ -1880,10 +1886,10 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 
 
-	frame_drawn = (compositor->draw_next_frame==1) ? 1 : 0;
+	frame_drawn = (compositor->frame_draw_type==1) ? 1 : 0;
 
 	/*if invalidated, draw*/
-	if (compositor->draw_next_frame) {
+	if (compositor->frame_draw_type) {
 		GF_Window rc;
 #ifndef GPAC_DISABLE_LOG
 		traverse_time = gf_sys_clock();
@@ -1891,10 +1897,10 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 
 		/*video flush only*/
-		if (compositor->draw_next_frame==2) {
-			compositor->draw_next_frame = 0;
+		if (compositor->frame_draw_type==GF_SC_DRAW_FLUSH) {
+			compositor->frame_draw_type = 0;
 		} else {
-			compositor->draw_next_frame = 0;
+			compositor->frame_draw_type = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene\n"));
 			gf_sc_draw_scene(compositor);
 #ifndef GPAC_DISABLE_LOG
@@ -1924,7 +1930,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		compositor->last_had_overlays = compositor->visual->has_overlays;
 
 		if (compositor->stress_mode) {
-			compositor->draw_next_frame = 1;
+			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			compositor->reset_graphics = 1;
 		}
 		compositor->reset_fonts = 0;
@@ -2271,18 +2277,18 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	switch (event->type) {
 	case GF_EVENT_MOVE:
 	case GF_EVENT_REFRESH:
-		if (!compositor->draw_next_frame) {
+		if (!compositor->frame_draw_type) {
 			/*when refreshing the window in 3D or with overlays we redraw the scene */
 			if (compositor->last_had_overlays 
 #ifndef GPAC_DISABLE_3D
 				|| compositor->visual->type_3d
 #endif
 				) {
-				compositor->draw_next_frame = 1;
+				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			}
 			/*reflush only*/
 			else 
-				compositor->draw_next_frame = 2;
+				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FLUSH);
 		}
 		break;
 	case GF_EVENT_VIDEO_SETUP:

@@ -1542,7 +1542,6 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 	/*FIXME*/
 	u32 i, hy;
 	char *tmp;
-        GLenum err;
 
 	fb->width = compositor->vp_width;
 	fb->height = compositor->vp_height;

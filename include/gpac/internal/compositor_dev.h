@@ -118,6 +118,13 @@ enum
 	GF_SC_TSEL_RELEASED,
 };
 
+enum
+{
+	GF_SC_DRAW_NONE,
+	GF_SC_DRAW_FRAME,
+	GF_SC_DRAW_FLUSH,
+};
+
 struct __tag_compositor
 {
 	/*the main user*/
@@ -186,7 +193,7 @@ struct __tag_compositor
 	Bool fullscreen;
 	/*!! paused will not stop display (this enables pausing a VRML world and still examining it)*/
 	Bool paused, step_mode;
-	Bool draw_next_frame;
+	u32 frame_draw_type;
 	/*freeze_display prevents any screen updates - needed when output driver uses direct video memory access*/
 	Bool is_hidden, freeze_display;
 
@@ -1188,6 +1195,8 @@ GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles
 u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev);
 
 Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev);
+
+void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state);
 
 #endif	/*_COMPOSITOR_DEV_H_*/
 

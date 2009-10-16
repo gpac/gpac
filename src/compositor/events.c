@@ -94,7 +94,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 	}
 	gf_node_dirty_set(compositor->focus_node, 0, (compositor->focus_text_type==2));
 	gf_node_set_private(compositor->focus_highlight->node, NULL);
-	compositor->draw_next_frame = 1;
+	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 
 	if (final_flush) {
 		GF_FieldInfo info;
@@ -966,7 +966,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 			compositor->sel_buffer_alloc = 0;
 			compositor->sel_buffer_len = 0;
 
-			compositor->draw_next_frame = 1;
+			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		} else if (compositor->store_text_state == GF_SC_TSEL_RELEASED) {
 			compositor->store_text_state = GF_SC_TSEL_NONE;
 		}
