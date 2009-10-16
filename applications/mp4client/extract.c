@@ -26,8 +26,6 @@
 
 #include <gpac/terminal.h>
 #include <gpac/options.h>
-#include "config.h"
-
 
 #ifdef WIN32
 #include <windows.h>
