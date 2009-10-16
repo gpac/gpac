@@ -107,6 +107,41 @@ BEGIN
         MENUITEM "Pause",                       IDM_FILE_PAUSE
         MENUITEM "Copy/Paste",                  ID_FILE_CUT_PASTE
         MENUITEM SEPARATOR
+        POPUP "Logs"
+        BEGIN
+            POPUP "Level"
+            BEGIN
+                MENUITEM "None",                        ID_LOGLEVEL_NONE
+                MENUITEM "Error",                       ID_LOGLEVEL_ERROR
+                MENUITEM "Warning",                     ID_LOGLEVEL_WARNING
+                MENUITEM "Info",                        ID_LOGLEVEL_INFO
+                MENUITEM "Debug",                       ID_LOGLEVEL_DEBUG
+            END
+            POPUP "Tools"
+            BEGIN
+                MENUITEM "core",                        ID_TOOLS_CORE
+                MENUITEM "coding",                      ID_TOOLS_CODING
+                MENUITEM "container",                   ID_TOOLS_CONTAINER
+                MENUITEM "network",                     ID_TOOLS_NETWORK
+                MENUITEM "rtp",                         ID_TOOLS_RTP
+                MENUITEM "sync",                        ID_TOOLS_SYNC
+                MENUITEM "codec",                       ID_TOOLS_CODEC
+                MENUITEM "parser",                      ID_TOOLS_PARSER
+                MENUITEM "media",                       ID_TOOLS_MEDIA
+                MENUITEM "scene",                       ID_TOOLS_SCENE
+                MENUITEM "script",                      ID_TOOLS_SCRIPT
+                MENUITEM "interact",                    ID_TOOLS_INTERACT
+                MENUITEM "compose",                     ID_TOOLS_COMPOSE
+                MENUITEM "mmio",                        ID_TOOLS_MMIO
+                MENUITEM "rti",                         ID_TOOLS_RTI
+                MENUITEM SEPARATOR
+                MENUITEM "none",                        ID_TOOLS_NONE
+                MENUITEM "all",                         ID_TOOLS_ALL
+            END
+            MENUITEM "Reset",                       ID_LOGS_RESET
+            MENUITEM "Log CPU",                     IDM_FILE_LOG_RTI
+        END
+        MENUITEM SEPARATOR
         MENUITEM "Exit",                        IDM_ITEM_QUIT
     END
     POPUP "View"
@@ -136,7 +171,6 @@ BEGIN
         BEGIN
             MENUITEM "Status Bar",                  IDM_VIEW_STATUS
             MENUITEM "CPU usage",                   IDM_VIEW_CPU
-            MENUITEM "Log RTI",                     IDM_FILE_LOG_RTI
         END
         MENUITEM SEPARATOR
         POPUP "Video"

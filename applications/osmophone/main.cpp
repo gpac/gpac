@@ -101,7 +101,7 @@ static Bool use_low_fps = 0;
 static Bool use_svg_prog = 0;
 
 static Bool log_rti = 0;
-static FILE *rti_file = NULL;
+static FILE *log_file = NULL;
 static u32 rti_update_time_ms = 200;
 
 static u32 playlist_act = 0;
@@ -206,15 +206,15 @@ void set_full_screen()
 
 static void on_gpac_rti_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
-	if (!rti_file) return;
+	if (!log_file) return;
 
 	if (lm & GF_LOG_RTI) {
 		GF_SystemRTInfo rti;
-		if (fmt) vfprintf(rti_file, fmt, list);	
+		if (fmt) vfprintf(log_file, fmt, list);	
 	
 		gf_sys_get_rti(rti_update_time_ms, &rti, 0);
 	
-		fprintf(rti_file, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t\t", 
+		fprintf(log_file, "% 8d\t% 8d\t% 8d\t% 4d\t% 8d\t\t", 
 			gf_sys_clock(),
 			gf_term_get_time_in_ms(term),
 			rti.total_cpu_usage,
@@ -222,33 +222,33 @@ static void on_gpac_rti_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list 
 			(u32) ( rti.gpac_memory / 1024)
 		);
 	} else if (fmt && (ll>=GF_LOG_INFO)) {
-		vfprintf(rti_file, fmt, list);	
+		vfprintf(log_file, fmt, list);	
 	}
 }
 static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
 {
-	if (fmt && rti_file) vfprintf(rti_file, fmt, list);	
+	if (fmt && log_file) vfprintf(log_file, fmt, list);	
 }
 
 
 static void setup_logs()
 {
-	if (rti_file) fclose(rti_file);
-	rti_file = NULL;
+	if (log_file) fclose(log_file);
+	log_file = NULL;
 
 	gf_log_set_level(GF_LOG_ERROR);
 	gf_log_set_tools(0);
 	gf_log_set_callback(NULL, NULL);
 
 	if (log_rti) {
-		rti_file = fopen("\\gpac_logs.txt", "a+t");
+		log_file = fopen("\\gpac_logs.txt", "a+t");
 
-		fprintf(rti_file, "!! GPAC RunTime Info for file %s !!\n", the_url);
-		fprintf(rti_file, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
+		fprintf(log_file, "!! GPAC RunTime Info for file %s !!\n", the_url);
+		fprintf(log_file, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
 
 		gf_log_set_level(GF_LOG_DEBUG);
 		gf_log_set_tools(GF_LOG_RTI|GF_LOG_SCRIPT);
-		gf_log_set_callback(rti_file, on_gpac_rti_log);
+		gf_log_set_callback(log_file, on_gpac_rti_log);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI] System state when enabling log\n"));
 	} else {
@@ -294,8 +294,8 @@ static void setup_logs()
 			}
 			gf_log_set_tools(lt);
 		}
-		if (ll && (rti_file = fopen("\\gpac_logs.txt", "a+t"))) {
-			gf_log_set_callback(rti_file, on_gpac_log);
+		if (ll && (log_file = fopen("\\gpac_logs.txt", "a+t"))) {
+			gf_log_set_callback(log_file, on_gpac_log);
 		}
 
 	}
@@ -852,6 +852,40 @@ void do_copy_paste()
 	CloseClipboard(); 
 }
 
+static void rewrite_log_tools(const char *lt) 
+{
+	char *opt = (char *) gf_cfg_get_key(user.config, "General", "LogTools");
+	if (!opt || !strcmp(opt, "none")) opt="";
+
+	if (!strstr(opt, lt)) {
+		char *opt2 = (char*) malloc(sizeof(char) * (strlen(opt) + strlen(lt) + 2));
+		strcpy(opt2, opt);
+		if (strlen(opt)) strcat(opt2, ":");
+		strcat(opt2, lt);
+		gf_cfg_set_key(user.config, "General", "LogTools", opt2);
+		free(opt2);
+	} else {
+		char *opt2, *sep;
+		opt2 = strdup(opt);
+		opt2[0] = 0; 
+		
+		while (opt) {
+			sep = strchr(opt, ':');
+			if (sep) sep[0] = 0;
+			if (strcmp(opt, lt)) {
+				if (strlen(opt2)) strcat(opt2, ":");
+				strcat(opt2, opt);
+			}
+			if (sep) sep[0] = ':';
+			opt = sep ? sep+1 : NULL;;
+		}
+		if (!strlen(opt2)) strcpy(opt2, "none");
+		gf_cfg_set_key(user.config, "General", "LogTools", opt2);
+		free(opt2);
+	}
+	setup_logs();
+}
+
 BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 {
 	switch (LOWORD(wParam)) {
@@ -976,6 +1010,57 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		set_gx_mode(2);
 		break;
 
+	case ID_LOGLEVEL_NONE:
+		gf_cfg_set_key(user.config, "General", "LogLevel", "none");
+		setup_logs();
+		break;
+	case ID_LOGLEVEL_ERROR:
+		gf_cfg_set_key(user.config, "General", "LogLevel", "error");
+		setup_logs();
+		break;
+	case ID_LOGLEVEL_WARNING:
+		gf_cfg_set_key(user.config, "General", "LogLevel", "warning");
+		setup_logs();
+		break;
+	case ID_LOGLEVEL_INFO:
+		gf_cfg_set_key(user.config, "General", "LogLevel", "info");
+		setup_logs();
+		break;
+	case ID_LOGLEVEL_DEBUG:
+		gf_cfg_set_key(user.config, "General", "LogLevel", "debug");
+		setup_logs();
+		break;
+	case ID_TOOLS_CORE: rewrite_log_tools("core"); break;
+	case ID_TOOLS_CODING: rewrite_log_tools("coding"); break;
+	case ID_TOOLS_CONTAINER: rewrite_log_tools("container"); break;
+	case ID_TOOLS_NETWORK: rewrite_log_tools("network"); break;
+	case ID_TOOLS_RTP: rewrite_log_tools("rtp"); break;
+	case ID_TOOLS_SCRIPT: rewrite_log_tools("script"); break;
+	case ID_TOOLS_CODEC: rewrite_log_tools("codec"); break;
+	case ID_TOOLS_PARSER: rewrite_log_tools("parser"); break;
+	case ID_TOOLS_MEDIA: rewrite_log_tools("media"); break;
+	case ID_TOOLS_SCENE: rewrite_log_tools("scene"); break;
+	case ID_TOOLS_INTERACT: rewrite_log_tools("interact"); break;
+	case ID_TOOLS_COMPOSE: rewrite_log_tools("compose"); break;
+	case ID_TOOLS_MMIO: rewrite_log_tools("mmio"); break;
+	case ID_TOOLS_RTI: rewrite_log_tools("rti"); break;
+	case ID_TOOLS_ALL: 
+		gf_cfg_set_key(user.config, "General", "LogTools", "all");
+		setup_logs();
+		break;
+	case ID_TOOLS_NONE: 
+		gf_cfg_set_key(user.config, "General", "LogTools", "none");
+		setup_logs();
+		break;
+	case ID_LOGS_RESET: 
+		if (log_file) {
+			fclose(log_file);
+			log_file = NULL;
+		}
+		gf_delete_file("\\gpac_logs.txt");
+		setup_logs();
+		break;
+
 	case IDM_ITEM_QUIT:
 		DestroyWindow(hwnd);
 		return FALSE;
@@ -1060,6 +1145,32 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 			CheckMenuItem((HMENU)wParam, IDM_NAV_COL_DISP, MF_BYCOMMAND | ( (type==GF_COLLISION_DISPLACEMENT) ? MF_CHECKED : MF_UNCHECKED) );
 		}
 	}
+
+	opt = (char *) gf_cfg_get_key(user.config, "General", "LogLevel");
+	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_NONE, MF_BYCOMMAND | ( !strcmp(opt, "none") ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_ERROR, MF_BYCOMMAND | ( !strcmp(opt, "error") ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_WARNING, MF_BYCOMMAND | ( !strcmp(opt, "warning") ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_INFO, MF_BYCOMMAND | ( !strcmp(opt, "info") ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, ID_LOGLEVEL_DEBUG, MF_BYCOMMAND | ( !strcmp(opt, "debug") ? MF_CHECKED : MF_UNCHECKED) );
+
+#define CHECK_TOOL(_ID, _name) CheckMenuItem((HMENU)wParam, _ID, MF_BYCOMMAND | ( ((strstr(opt, _name) != NULL) || !strcmp(opt, "all")) ? MF_CHECKED : MF_UNCHECKED) );
+	opt = (char *) gf_cfg_get_key(user.config, "General", "LogTools");
+	CHECK_TOOL(ID_TOOLS_CORE, "core");
+	CHECK_TOOL(ID_TOOLS_CODING, "coding");
+	CHECK_TOOL(ID_TOOLS_CONTAINER, "container");
+	CHECK_TOOL(ID_TOOLS_NETWORK, "network");
+	CHECK_TOOL(ID_TOOLS_RTP, "rtp");
+	CHECK_TOOL(ID_TOOLS_SYNC, "sync");
+	CHECK_TOOL(ID_TOOLS_SCRIPT, "script");
+	CHECK_TOOL(ID_TOOLS_CODEC, "codec");
+	CHECK_TOOL(ID_TOOLS_PARSER, "parser");
+	CHECK_TOOL(ID_TOOLS_MEDIA, "media");
+	CHECK_TOOL(ID_TOOLS_SCENE, "scene");
+	CHECK_TOOL(ID_TOOLS_INTERACT, "interact");
+	CHECK_TOOL(ID_TOOLS_COMPOSE, "compose");
+	CHECK_TOOL(ID_TOOLS_MMIO, "mmio");
+	CHECK_TOOL(ID_TOOLS_RTI, "rti");
+
 
     return TRUE;
 }
@@ -1440,6 +1551,6 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	if (backlight_off) set_backlight_state(0);
 
 	gf_sys_close();
-	if (rti_file) fclose(rti_file);
+	if (log_file) fclose(log_file);
 	return 0;
 }
