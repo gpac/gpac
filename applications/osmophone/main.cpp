@@ -354,6 +354,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVENT_MESSAGE:
 	{
 		if (!evt->message.message) return 0;
+		if (evt->message.error==GF_SCRIPT_INFO) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_SCRIPT, ("[Script] %s\n", evt->message.message));
+		}
 		//set_status((char *) evt->message.message);
 	}
 		break;
