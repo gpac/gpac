@@ -1131,6 +1131,11 @@ static Bool check_resolution_switch(GF_VideoOutput *dr, u32 width, u32 height)
 		gctx->off_y = gctx->off_y * height / gctx->sys_h;
 	}
 
+	HDC hdc = GetDC(gctx->hWnd);
+	dr->dpi_x = (u32) (width * 25.4 / GetDeviceCaps(hdc, HORZSIZE) );
+	dr->dpi_y = (u32) (height * 25.4 / GetDeviceCaps(hdc, VERTSIZE) );
+	ReleaseDC(gctx->hWnd, hdc);
+
 	if ((gctx->screen_w==width) && (gctx->screen_h==height)) return 0;
 
 	GF_Event evt;
