@@ -276,7 +276,7 @@ GF_Err X11_Flush(struct _video_out *vout, GF_Window * dest)
 #endif
 	{
 		XSync(xWindow->display, False);
-		XRaiseWindow(xWindow->display, xWindow->wnd);
+		//XRaiseWindow(xWindow->display, xWindow->wnd);
 		XPutImage (xWindow->display, cur_wnd, xWindow->the_gc, xWindow->surface,
 			0, 0, dest->x, dest->y, dest->w, dest->h);
 	}
