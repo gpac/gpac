@@ -72,15 +72,6 @@
 /*the number of sockets used. This because the WinSock lib needs init*/
 static int wsa_init = 0;
 
-#ifdef GPAC_HAS_IPV6
-# ifndef IPV6_ADD_MEMBERSHIP
-#  define IPV6_ADD_MEMBERSHIP IPV6_JOIN_GROUP
-# endif
-# ifndef IPV6_DROP_MEMBERSHIP
-#  define IPV6_DROP_MEMBERSHIP   IPV6_LEAVE_GROUP
-# endif
-#endif
-
 
 #include <gpac/network.h>
 
@@ -125,7 +116,18 @@ static int wsa_init = 0;
 typedef s32 SOCKET;
 #define closesocket(v) close(v)
 
+#endif /*WIN32||_WIN32_WCE*/
+
+
+#ifdef GPAC_HAS_IPV6
+# ifndef IPV6_ADD_MEMBERSHIP
+#  define IPV6_ADD_MEMBERSHIP IPV6_JOIN_GROUP
+# endif
+# ifndef IPV6_DROP_MEMBERSHIP
+#  define IPV6_DROP_MEMBERSHIP   IPV6_LEAVE_GROUP
+# endif
 #endif
+
 
 #ifdef __SYMBIAN32__
 #define SSO_CAST
