@@ -218,7 +218,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "platinum", "..\..\modules\p
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp4_streamer", "..\..\applications\testapps\mp4_streamer\mp4_streamer.vcproj", "{82A7462F-D143-47FB-84CE-8C116047B5C4}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp4_streamer", "..\..\applications\testapps\mp4_streamer\mp4_streamer.vcproj", "{5B891573-9B5E-4A99-A717-582A6F6266E4}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
@@ -788,14 +788,14 @@ Global
 		{694C765F-DFD6-467E-A813-B3F887E822D4}.Release|Smartphone 2003 (ARMV4).Deploy.0 = Release|Smartphone 2003 (ARMV4)
 		{694C765F-DFD6-467E-A813-B3F887E822D4}.Release|Win32.ActiveCfg = Release|Win32
 		{694C765F-DFD6-467E-A813-B3F887E822D4}.Release|Win32.Build.0 = Release|Win32
-		{82A7462F-D143-47FB-84CE-8C116047B5C4}.Debug|Pocket PC 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{82A7462F-D143-47FB-84CE-8C116047B5C4}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{82A7462F-D143-47FB-84CE-8C116047B5C4}.Debug|Win32.ActiveCfg = Debug|Win32
-		{82A7462F-D143-47FB-84CE-8C116047B5C4}.Debug|Win32.Build.0 = Debug|Win32
-		{82A7462F-D143-47FB-84CE-8C116047B5C4}.Release|Pocket PC 2003 (ARMV4).ActiveCfg = Release|Win32
-		{82A7462F-D143-47FB-84CE-8C116047B5C4}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Win32
-		{82A7462F-D143-47FB-84CE-8C116047B5C4}.Release|Win32.ActiveCfg = Release|Win32
-		{82A7462F-D143-47FB-84CE-8C116047B5C4}.Release|Win32.Build.0 = Release|Win32
+		{5B891573-9B5E-4A99-A717-582A6F6266E4}.Debug|Pocket PC 2003 (ARMV4).ActiveCfg = Debug|Win32
+		{5B891573-9B5E-4A99-A717-582A6F6266E4}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Win32
+		{5B891573-9B5E-4A99-A717-582A6F6266E4}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5B891573-9B5E-4A99-A717-582A6F6266E4}.Debug|Win32.Build.0 = Debug|Win32
+		{5B891573-9B5E-4A99-A717-582A6F6266E4}.Release|Pocket PC 2003 (ARMV4).ActiveCfg = Release|Win32
+		{5B891573-9B5E-4A99-A717-582A6F6266E4}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Win32
+		{5B891573-9B5E-4A99-A717-582A6F6266E4}.Release|Win32.ActiveCfg = Release|Win32
+		{5B891573-9B5E-4A99-A717-582A6F6266E4}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
