@@ -76,6 +76,20 @@ void *gf_malloc(size_t size, char *filename, int line)
 	return ptr;
 }
 
+void *gf_calloc(size_t num, size_t size_of, char *filename, int line)
+{
+	int size = num*size_of;
+	void *ptr = calloc(num, size_of);
+	if (!ptr) {
+		gf_memory_log(GF_MEMORY_ERROR, "calloc() has returned a NULL pointer\n");
+		assert(0);
+	} else {
+		register_address(ptr, size, filename, line);
+	}
+	//gf_memory_log(GF_MEMORY_DEBUG, "calloc   %08X %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
+	return ptr;
+}
+
 void *gf_realloc(void *ptr, size_t size, char *filename, int line)
 {
 	void *ptr_g;
@@ -199,7 +213,7 @@ static void register_address(void *ptr, size_t size, char *filename, int line)
 		gpac_allocations_lock = gf_mx_new("gpac_allocations_lock");
 	}
 	else if (gpac_allocations_lock == (void*)1) {
-		/*we're initializing the mutex (ie called by the above gf_mx_new())*/
+		/*we're initializing the mutex (ie called by the gf_mx_new() above)*/
 		return;
 	}
 
@@ -229,8 +243,11 @@ static int unregister_address(void *ptr, char *filename, int line)
 
 	if (!memory_add) {
 		if (!memory_rem) {
-			gf_memory_log(GF_MEMORY_ERROR, "calling free() before the first allocation occured\n");
-			assert(0);
+			/*assume we're rather destroying the mutex (ie calling the gf_mx_del() below)
+			  than being called by free() before the first allocation occured*/
+			return 1;
+			//gf_memory_log(GF_MEMORY_ERROR, "calling free() before the first allocation occured\n");
+			//assert(0);
 		}
 	} else {
 		if (!gf_memory_find(memory_add, ptr)) {

@@ -310,6 +310,7 @@ typedef u32 Bool;
 #ifdef GPAC_MEMORY_TRACKING
 
 void *gf_malloc(size_t size, char *filename, int line);
+void *gf_calloc(size_t num, size_t size_of, char *filename, int line);
 void *gf_realloc(void *ptr, size_t size, char *filename, int line);
 void gf_free(void *ptr, char *filename, int line);
 char *gf_strdup(const char *str, char *filename, int line);
@@ -318,13 +319,14 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 /*always activated to avoid pointers to be re-freed*/
 #undef free
 #undef malloc
+#undef calloc
 #undef realloc
 #undef strdup
-#undef calloc /*not over-implemented yet*/
 
 #define free(ptr) gf_free(ptr, __FILE__, __LINE__)
 //#define free(ptr) { gf_free(ptr, __FILE__, __LINE__); ptr = NULL; } /*safe free()*/
 #define malloc(size) gf_malloc(size, __FILE__, __LINE__)
+#define calloc(num, size_of) gf_calloc(num, size_of, __FILE__, __LINE__)
 #define strdup(s) gf_strdup(s, __FILE__, __LINE__)
 #define realloc(ptr1, ptr2) gf_realloc(ptr1, ptr2, __FILE__, __LINE__)
 
