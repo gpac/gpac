@@ -2005,7 +2005,10 @@ dump_renoir_ram(compositor);
 	}
 	/*not threaded, let the owner decide*/
 	if ((compositor->user->init_flags & GF_TERM_NO_VISUAL_THREAD) || !compositor->frame_duration) return;
-	if (end_time > compositor->frame_duration) return;
+	if (end_time > compositor->frame_duration) {
+		gf_sleep(0);
+		return;
+	}
 
 	/*compute sleep time till next frame*/
 	end_time %= compositor->frame_duration;
