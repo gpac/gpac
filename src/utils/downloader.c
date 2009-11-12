@@ -749,8 +749,6 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 }
 
 
-
-
 GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 {
 	const char *opt;
@@ -1580,6 +1578,7 @@ exit:
 			if (!sess->total_size && (gf_sys_clock() - sess->window_start > 2000)) {
 				sess->total_size = sess->bytes_done;
 				gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
+				sess->status = GF_NETIO_DISCONNECTED;
 			}
 			return;
 		}
