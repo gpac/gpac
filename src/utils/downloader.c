@@ -1197,7 +1197,7 @@ void http_do_requests(GF_DownloadSession *sess)
 #endif
 				e = gf_sk_send(sess->sock, tmp_buf, len+par.size);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s\n\n", tmp_buf));
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request %s\n\n", tmp_buf));
 			free(tmp_buf);
 		} else {
 
@@ -1209,7 +1209,7 @@ void http_do_requests(GF_DownloadSession *sess)
 #endif
 				e = gf_sk_send(sess->sock, sHTTP, strlen(sHTTP));
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s\n\n", sHTTP));
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request %s\n\n", sHTTP));
 		}
 
 		if (e) {
