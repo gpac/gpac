@@ -992,7 +992,7 @@ static char *format_date(u64 time, char *szTime)
 	if (!time) {
 		strcpy(szTime, "UNKNOWN DATE");
 	} else {
-		time -= 2082758400;
+		time -= 2082844800;
 		now = (u32) time;
 		sprintf(szTime, "GMT %s", asctime(gmtime(&now)) );
 	}
