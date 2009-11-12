@@ -515,9 +515,6 @@ BOOL Osmo4::InitInstance()
 			gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");
 			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
 		}
-		/*check video config */
-		sOpt = gf_cfg_get_key(m_user.config, "Video", "UseHardwareMemory");
-		if (!sOpt) gf_cfg_set_key(m_user.config, "Video", "UseHardwareMemory", "yes");
 
 		/*by default use GDIplus, much faster than freetype on font loading*/
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "gm_soft_raster");
