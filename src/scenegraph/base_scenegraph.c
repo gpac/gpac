@@ -286,6 +286,7 @@ static GFINLINE u32 get_num_id_nodes(GF_SceneGraph *sg)
 GF_EXPORT
 void gf_sg_reset(GF_SceneGraph *sg)
 {
+	GF_SceneGraph *par;
 	GF_List *gc;
 	u32 type, count;
 	NodeIDedItem *reg_node;
@@ -459,6 +460,22 @@ restart:
 	}
 	gf_list_del(sg->ns);
 	sg->ns = 0;
+
+	par = sg;
+	while (par->parent_scene) par = par->parent_scene;
+
+	if (par != sg) {
+		u32 count, i;
+		count = gf_list_count(par->smil_timed_elements);
+		for (i=0; i<count; i++) {
+			SMIL_Timing_RTI *rti = gf_list_get(par->smil_timed_elements, i);
+			if (rti->timed_elt->sgprivate->scenegraph == sg) {
+				gf_list_rem(par->smil_timed_elements, i);
+				i--;
+				count--;
+			}
+		}
+	}
 
 #ifdef GF_SELF_REPLACE_ENABLE
 	sg->graph_has_been_reset = 1;
