@@ -1688,7 +1688,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 
 	/*only send the resize notification once the frame has been dra*/
 	if (compositor->recompute_ar) {
-		compositor_send_resize_event(compositor, 0, 0, 0, 1);
+		compositor_send_resize_event(compositor, NULL, 0, 0, 0, 1);
 		compositor->recompute_ar = 0;
 	}
 	compositor->zoom_changed = 0;
@@ -2051,6 +2051,8 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	if (!inline_root) return;
 	/*we don't traverse subscenes until the root one is setup*/
 	if (!compositor->root_visual_setup) return;
+
+	compositor_send_resize_event(compositor, subscene, 0, 0, 0, 1);
 
 	flip_coords = 0;
 	in_scene = gf_node_get_graph(inline_root);

@@ -600,11 +600,12 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	return GF_OK;
 }
 
-void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed old_tx, Fixed old_ty, Bool is_resize)
+void compositor_send_resize_event(GF_Compositor *compositor, GF_SceneGraph *subscene, Fixed old_z, Fixed old_tx, Fixed old_ty, Bool is_resize)
 {
 #ifndef GPAC_DISABLE_SVG
 	GF_Node *root;
-	root = gf_sg_get_root_node(compositor->scene);
+	GF_SceneGraph *scene = (subscene ? subscene : compositor->scene);
+	root = gf_sg_get_root_node(scene);
 	/*if root node is DOM, sent a resize event*/
 	if (root /* && (gf_node_get_tag(root) >= GF_NODE_FIRST_DOM_NODE_TAG) */) {
 		GF_DOM_Event evt;
@@ -615,8 +616,15 @@ void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed 
 
 		if (is_resize) {
 			evt.type = GF_EVENT_RESIZE;
-			evt.screen_rect.width = INT2FIX(compositor->display_width);
-			evt.screen_rect.height = INT2FIX(compositor->display_height);
+			if (subscene == NULL) {
+				evt.screen_rect.width = INT2FIX(compositor->display_width);
+				evt.screen_rect.height = INT2FIX(compositor->display_height);
+			} else {
+				u32 w, h;
+				gf_sg_get_scene_size_info(scene, &w, &h);
+				evt.screen_rect.width = INT2FIX(w);
+				evt.screen_rect.height = INT2FIX(h);
+			}
 		} else if (evt.prev_scale == evt.new_scale) {
 			/*cannot get params for scroll events*/
 			evt.type = GF_EVENT_SCROLL;
@@ -632,7 +640,7 @@ void compositor_send_resize_event(GF_Compositor *compositor, Fixed old_z, Fixed 
 			evt.type = GF_EVENT_ZOOM;
 			evt.bubbles = 0;
 		}
-		gf_dom_event_fire(gf_sg_get_root_node(compositor->scene), &evt);
+		gf_dom_event_fire(gf_sg_get_root_node(scene), &evt);
 	}
 #endif
 }
@@ -699,7 +707,7 @@ void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fix
 
 	/*for zoom&pan, send the event right away. For resize/scroll, wait for the frame to be drawn before sending it
 	otherwise viewport info of SVG nodes won't be correct*/
-	if (!is_resize) compositor_send_resize_event(compositor, old_z, old_tx, old_ty, 0);
+	if (!is_resize) compositor_send_resize_event(compositor, NULL, old_z, old_tx, old_ty, 0);
 	gf_sc_lock(compositor, 0);
 }
 
