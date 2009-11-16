@@ -39,7 +39,8 @@ enum
 	GF_MM_CE_THREADED = 1<<2,
 	GF_MM_CE_REQ_THREAD = 1<<3,
 	/*only used by threaded decs to signal end of thread*/
-	GF_MM_CE_DEAD = 1<<4
+	GF_MM_CE_DEAD = 1<<4,
+	GF_MM_CE_DISCRADED = 1<<5,
 };
 
 typedef struct
@@ -78,9 +79,22 @@ GF_Err gf_term_init_scheduler(GF_Terminal *term, u32 threading_mode)
 void gf_term_stop_scheduler(GF_Terminal *term)
 {
 	if (term->mm_thread) {
+		u32 count, i;
+
 		term->flags &= ~GF_TERM_RUNNING;
 		while (!(term->flags & GF_TERM_DEAD) ) 
 			gf_sleep(2);
+
+		count = gf_list_count(term->codecs);
+		for (i=0; i<count; i++) {
+			CodecEntry *ce = gf_list_get(term->codecs, i);
+			if (ce->flags & GF_MM_CE_DISCRADED) {
+				free(ce);
+				gf_list_rem(term->codecs, i);
+				count--;
+				i--;
+			}
+		}
 
 		assert(! gf_list_count(term->codecs));
 		gf_th_del(term->mm_thread);
@@ -219,8 +233,12 @@ void gf_term_remove_codec(GF_Terminal *term, GF_Codec *codec)
 			gf_th_del(ce->thread);
 			gf_mx_del(ce->mx);
 		}
-		free(ce);
-		gf_list_rem(term->codecs, i-1);
+		if (locked) {
+			free(ce);
+			gf_list_rem(term->codecs, i-1);
+		} else {
+			ce->flags |= GF_MM_CE_DISCRADED;
+		}
 		break;
 	}
 	if (locked) gf_mx_v(term->mm_mx);
@@ -289,7 +307,13 @@ static u32 MM_SimulationStep(GF_Terminal *term)
 
 		time_taken = gf_sys_clock() - time_taken;
 
-		if (ce->dec->CB && (ce->dec->CB->UnitCount >= ce->dec->CB->Min)) ce->dec->PriorityBoost = 0;
+		if (ce->flags & GF_MM_CE_DISCRADED) {
+			free(ce);
+			gf_list_rem(term->codecs, term->last_codec);
+			count--;
+		} else {
+			if (ce->dec->CB && (ce->dec->CB->UnitCount >= ce->dec->CB->Min)) ce->dec->PriorityBoost = 0;
+		}
 
 		remain -= 1;
 		if (!remain) break;
