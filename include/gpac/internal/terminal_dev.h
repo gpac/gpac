@@ -759,6 +759,9 @@ enum
 	/*flag set if object is an entry point of the network service*/
 	GF_ODM_SERVICE_ENTRY = (1<<7),
 
+	/*flag set if object has been started before any start request from the scene*/
+	GF_ODM_PREFETCH = (1<<8),
+
 	/*dynamic flags*/
 	
 	/*flag set if associated subscene must be regenerated*/
@@ -860,7 +863,7 @@ void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *, u64 stream_duratio
 /*signals end of stream on channels*/
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *);
 /*start Object streams and queue object for network PLAY*/
-void gf_odm_start(GF_ObjectManager *odm);
+void gf_odm_start(GF_ObjectManager *odm, Bool was_in_media_queue);
 /*stop OD streams*/
 void gf_odm_stop(GF_ObjectManager *odm, Bool force_close);
 /*send PLAY request to network - needed to properly handle multiplexed inputs 

@@ -568,17 +568,6 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		}
 		odm->state = GF_ODM_STATE_STOP;
 	}
-
-	/*special case for ODs only having OCRs: force a START since they're never refered to by media nodes*/
-	if (odm->ocr_codec) gf_odm_start(odm);
-
-#if 0
-	/*clean up - note that this will not be performed if one of the stream is using ESD URL*/
-	if (!numOK) {
-		gf_odm_disconnect(odm, 1);
-		return;
-	}
-#endif
 	
 	/*setup mediaobject info except for top-level OD*/
 	if (odm->parentscene) {
@@ -594,11 +583,24 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		gf_term_send_event(odm->term, &evt);
 	}
 
-	/* and connect ONLY if main scene - inlines are connected when attached to Inline nodes*/
+	/* start object*/
+	/*case 1: object is the root, always start*/
 	if (!odm->parentscene) {
 		assert(odm->subscene == odm->term->root_scene);
 		assert(odm->subscene->root_od==odm);
-		gf_odm_start(odm);
+		gf_odm_start(odm, 0);
+	}
+	/*case 2: object is a pure OCR object - connect*/
+	else if (odm->ocr_codec) {
+		gf_odm_start(odm, 0);
+	}
+	/*case 3: if the object is inserted from a broadcast, start it if not already done. This covers cases where the scene (BIFS, LASeR) and 
+	the media (images) are both carrouseled and the carrousels are interleaved. If we wait for the scene to trigger a PLAY, we will likely 
+	have to wait for an entire image carousel period to start filling the buffers, which is sub-optimal*/
+	else if (!odm->state && (odm->flags & GF_ODM_NO_TIME_CTRL)) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast - forcing play\n", odm->OD->objectDescriptorID));
+		gf_odm_start(odm, 0);
+		odm->flags |= GF_ODM_PREFETCH;
 	}
 		
 	/*for objects inserted by user (subs & co), auto select*/
@@ -697,7 +699,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	}
 	/*if the GF_Clock is the stream, check if we have embedded OCR in the stream...*/
 	if (clockID == esd->ESID) {
-		flag = (esd->slConfig && (esd->slConfig->OCRLength || esd->slConfig->OCRResolution));
+		flag = (esd->slConfig && esd->slConfig->OCRLength);
 	}
 
 	if (!esd->slConfig) {
@@ -1092,39 +1094,51 @@ esd_found:
 
 /*this is the tricky part: make sure the net is locked before doing anything since an async service 
 reply could destroy the object we're queuing for play*/
-void gf_odm_start(GF_ObjectManager *odm)
+void gf_odm_start(GF_ObjectManager *odm, Bool was_in_media_queue)
 {
+	Bool skip_register = 1;
 	gf_term_lock_net(odm->term, 1);
 
+	odm->flags &= ~GF_ODM_PREFETCH;
+
 	/*only if not open & ready (not waiting for ACK on channel setup)*/
-	if (!odm->state && !odm->pending_channels && odm->OD) {
-		GF_Channel *ch;
-		u32 i = 0;
-		odm->state = GF_ODM_STATE_PLAY;
+	if (!odm->pending_channels && odm->OD) {
+		/*object is not started - issue channel setup requests*/
+		if (!odm->state) {
+			GF_Channel *ch;
+			u32 i = 0;
+			odm->state = GF_ODM_STATE_PLAY;
 
-		/*look for a given segment name to play*/
-		if (odm->subscene) {
-			char *url, *frag;
-			assert(odm->subscene->root_od==odm);
+			/*look for a given segment name to play*/
+			if (odm->subscene) {
+				char *url, *frag;
+				assert(odm->subscene->root_od==odm);
 
-			url = (odm->mo && odm->mo->URLs.count) ? odm->mo->URLs.vals[0].url : odm->net_service->url;
-			frag = strrchr(url, '#');
-			if (frag) {
-				GF_Segment *seg = gf_odm_find_segment(odm, frag+1);
-				if (seg) {
-					odm->media_start_time = (u64) ((s64) seg->startTime*1000);
-					odm->media_stop_time =  (u64) ((s64) (seg->startTime + seg->Duration)*1000);
+				url = (odm->mo && odm->mo->URLs.count) ? odm->mo->URLs.vals[0].url : odm->net_service->url;
+				frag = strrchr(url, '#');
+				if (frag) {
+					GF_Segment *seg = gf_odm_find_segment(odm, frag+1);
+					if (seg) {
+						odm->media_start_time = (u64) ((s64) seg->startTime*1000);
+						odm->media_stop_time =  (u64) ((s64) (seg->startTime + seg->Duration)*1000);
+					}
 				}
 			}
+
+			/*start all channels and postpone play - this assures that all channels of a multiplexed are setup
+			before one starts playing*/
+			while ( (ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
+				gf_es_start(ch);
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %d starting channel\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
+			}
+			skip_register = 0;
+		}
+		/*object is already started - only reinsert in media queue if this function was called on an object already in the queue*/
+		else {
+			skip_register = was_in_media_queue ? 0 : 1;
 		}
 
-		/*start all channels and postpone play - this assures that all channels of a multiplexed are setup
-		before one starts playing*/
-		while ( (ch = (GF_Channel*)gf_list_enum(odm->channels, &i)) ) {
-			gf_es_start(ch);
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] CH%d: At OTB %d starting channel\n", odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_time(ch->clock)));
-		}
-		if (gf_list_find(odm->term->media_queue, odm)<0) {
+		if (!skip_register && (gf_list_find(odm->term->media_queue, odm)<0)) {
 			odm->action_type = GF_ODM_ACTION_PLAY;
 			gf_list_add(odm->term->media_queue, odm);
 		}

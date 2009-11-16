@@ -1511,9 +1511,9 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	hdr.continuity_counter = data[3] & 0xf;
 
 	if (hdr.error) GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d has error\n", hdr.pid));
-#if DEBUG_TS_PACKET
-	GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d\n", hdr.pid));
-#endif
+//#if DEBUG_TS_PACKET
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d\n", hdr.pid));
+//#endif
 
 	paf = NULL;
 	payload_size = 184;
@@ -1732,12 +1732,6 @@ void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 */
 }
 
-static void gf_m2ts_reframe_skip(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
-{
-	u32 res;
-	res = 0;
-}
-
 static void gf_m2ts_process_section_discard(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *es, GF_List *sections, u8 table_id, u16 ex_table_id, u8 version_number, u8 last_section_number, u32 status)
 {
 	u32 res;
@@ -1746,6 +1740,7 @@ static void gf_m2ts_process_section_discard(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION
 
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 {
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Setting pes framing mode of PID %d to %d\n", pes->pid, mode) );
 	/*ignore request for section PIDs*/
 	if (pes->flags & GF_M2TS_ES_IS_SECTION) {
 		if (pes->flags & GF_M2TS_ES_IS_SL) {
@@ -1764,7 +1759,13 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		pes->reframe = gf_m2ts_reframe_default;
 		return GF_OK;
 	} else if (mode==GF_M2TS_PES_FRAMING_SKIP) {
-		pes->reframe = gf_m2ts_reframe_skip;
+		if (pes->data) {
+			free(pes->data);
+			pes->data = NULL;
+		}
+		pes->data_len = 0;
+		pes->pes_len = 0;
+		pes->reframe = NULL;
 		return GF_OK;
 	} else { // mode==GF_M2TS_PES_FRAMING_DEFAULT
 		switch (pes->stream_type) {

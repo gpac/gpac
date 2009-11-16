@@ -160,7 +160,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 	gf_es_on_connect(ch);
 	gf_term_lock_net(term, 0);
 
-	if (err) {
+	if (err && ((err!=GF_STREAM_NOT_FOUND) || (ch->esd->decoderConfig->streamType!=GF_STREAM_INTERACT))) {
 		char szMsg[1024];
 		sprintf(szMsg, "Channel %d connection failure", ch->esd->ESID);
 		gf_term_message(term, service->url, szMsg, err);
@@ -175,7 +175,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 	if ( (ch->odm->mo && ch->odm->mo->num_open) 
 		|| !ch->odm->parentscene
 	) {
-		gf_odm_start(ch->odm);
+		gf_odm_start(ch->odm, 0);
 	}
 #if 0
 	else if (ch->odm->codec && ch->odm->codec->ck && ch->odm->codec->ck->no_time_ctrl) {

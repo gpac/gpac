@@ -519,16 +519,18 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 	if (!mo) return;
 
 	if (!mo->num_open && mo->odm) {
+		s32 res;
 		Bool is_restart = 0;
 
 		/*remove object from media queue*/
 		gf_term_lock_net(mo->odm->term, 1);
-		gf_list_del_item(mo->odm->term->media_queue, mo->odm);
+		res = gf_list_del_item(mo->odm->term->media_queue, mo->odm);
 		gf_term_lock_net(mo->odm->term, 0);
 
 		if (mo->odm->action_type!=GF_ODM_ACTION_PLAY) {
 			mo->odm->action_type = GF_ODM_ACTION_PLAY;
 			is_restart = 0;
+			res = -1;
 		}
 
 		if (mo->odm->flags & GF_ODM_NO_TIME_CTRL) {
@@ -557,7 +559,7 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 			/*FIXME - this breaks inital loading on JPEG and PNG files ...*/
 //			if (mo->odm->subscene && mo->odm->subscene->is_dynamic_scene) mo->odm->flags |= GF_ODM_REGENERATE_SCENE;
 
-			gf_odm_start(mo->odm);
+			gf_odm_start(mo->odm, (res>=0) ? 1 : 0);
 		}
 	} else if (mo->odm) {
 		if (mo->num_to_restart) mo->num_restart--;

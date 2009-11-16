@@ -516,7 +516,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	ch->au_duration = 0;
 	if (duration) ch->au_duration = (u32) ((u64)1000 * duration / ch->ts_res);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch AU DTS %d - CTS %d - size %d time %d Buffer %d Nb AUs %d\n", ch->esd->ESID, au->DTS, au->CTS, au->dataLength, gf_clock_time(ch->clock), ch->BufferTime, ch->AU_Count));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch AU DTS %d - CTS %d - size %d time %d Buffer %d Nb AUs %d\n", ch->esd->ESID, au->DTS, au->CTS, au->dataLength, gf_clock_real_time(ch->clock), ch->BufferTime, ch->AU_Count));
 
 	/*little optimisation: if direct dispatching is possible, try to decode the AU
 	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or 

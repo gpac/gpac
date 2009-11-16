@@ -673,7 +673,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			 NOTE: the 100 ms safety gard is to avoid discarding audio*/
 			if (!ch->skip_sl && (AU->CTS + 100 < obj_time) ) {
 				mmlevel = GF_CODEC_LEVEL_DROP;
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Decoder] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Decoder] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
 
 				if (ch->resync_drift && (AU->CTS + ch->resync_drift < obj_time)) {
 					ch->clock->StartTime += (obj_time - AU->CTS);
@@ -740,7 +740,7 @@ scalable_retry:
 				unit_size = 0;
 			e = UnlockCompositionUnit(codec, CU, unit_size);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded packed frame TS %d in %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, obj_time, AU->CTS, now));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded packed frame TS %d in %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now));
 			if (ch->skip_sl) {
 				if (codec->bytes_per_sec) {
 					codec->cur_audio_bytes += unit_size;
@@ -765,7 +765,7 @@ scalable_retry:
 		processing a scalable stream*/
 		case GF_OK:
 			if (unit_size) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded frame TS %d in %d ms (DTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, obj_time, AU->CTS, now, AU->DTS));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI|GF_LOG_CODEC, ("[%s] ODM%d at %d decoded frame TS %d in %d ms (DTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS));
 			}
 			/*if no size the decoder is not using the composition memory - if the object is in intitial buffering resume it!!*/
 			else if (codec->CB->Status == CB_BUFFER) {
@@ -787,6 +787,11 @@ scalable_retry:
 					codec->cur_video_frames += 1;
 				}
 			}
+#ifndef GPAC_DISABLE_LOGS
+			if (codec->odm->flags & GF_ODM_PREFETCH) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At %d decoding frame TS %d in prefetch mode\n", codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock) ));
+			}
+#endif
 			break;
 		default:
 			unit_size = 0;
