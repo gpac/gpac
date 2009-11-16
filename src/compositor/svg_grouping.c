@@ -917,6 +917,8 @@ typedef struct
 	const char *fragment_id;
 	Bool needs_play;
 	u32 init_vis_state;
+	Bool resize_sent;
+	SFVec2f prev_vp_size;
 } SVGlinkStack;
 
 
@@ -1232,6 +1234,11 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->vp_size.x = gf_sc_svg_convert_length_to_display(tr_state->visual->compositor, all_atts.width);
 	tr_state->vp_size.y = gf_sc_svg_convert_length_to_display(tr_state->visual->compositor, all_atts.height);
 
+	if ((stack->resize_sent==2) && ((stack->prev_vp_size.x != tr_state->vp_size.x) || (stack->prev_vp_size.y != tr_state->vp_size.y))) {
+		stack->resize_sent = 0;
+	}
+
+
 	/*setup new clipper*/
 	rc.width = tr_state->vp_size.x;
 	rc.height = tr_state->vp_size.y;
@@ -1242,12 +1249,31 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 	clip = gf_rect_pixelize(&rc);
 //	gf_irect_intersect(&tr_state->visual->top_clipper, &clip);
 
-	if (!stack->inline_sg && stack->resource) 
+	if (!stack->inline_sg && stack->resource) {
 		stack->inline_sg = gf_mo_get_scenegraph(stack->resource);
+	}
 
-	if (stack->inline_sg) {
+	/*we cannot send the resize event and render in the same pass, this could have unpredictable results
+	executing javascript during the draw pass in indirect rendering.*/
+	if (stack->resize_sent==1) {
+		GF_DOM_Event evt;
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.bubbles = 1;
+		evt.type = GF_EVENT_RESIZE;
+		gf_dom_event_fire(gf_sg_get_root_node(stack->inline_sg), &evt);
+		stack->resize_sent = 2;
+		stack->prev_vp_size = tr_state->vp_size;
+		gf_sc_next_frame_state(tr_state->visual->compositor, GF_SC_DRAW_FRAME);
+	} else if (stack->inline_sg) {
 		gf_sc_traverse_subscene(tr_state->visual->compositor, node, stack->inline_sg, tr_state);
 	}
+
+	/*signal resize only after one traverse of the subscene was done*/
+	if (!stack->resize_sent) {
+		GF_Node *root = gf_sg_get_root_node(stack->inline_sg);
+		if (root) stack->resize_sent = 1;
+	}
+
 
 	if (stack->init_vis_state == 2) {
 		stack->init_vis_state = 3;
