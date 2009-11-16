@@ -603,6 +603,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 
 		drawctx_update_info(ctx, visual);
 		if (!redraw_all) {
+			assert( gf_irect_inside(&visual->top_clipper, &ctx->bi->clip) );
 			if (register_context_rect(&visual->to_redraw, ctx, num_nodes, &first_opaque)) {
 				num_changed ++;
 			}
@@ -619,6 +620,8 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	while (it) {
 		while (drawable_get_previous_bound(it->drawable, &refreshRect, visual)) {
 			if (!redraw_all) {
+				//assert( gf_irect_inside(&visual->top_clipper, &refreshRect) );
+				gf_irect_intersect(&refreshRect, &visual->top_clipper);
 				register_dirty_rect(&visual->to_redraw, &refreshRect);
 				has_clear=1;
 			}
