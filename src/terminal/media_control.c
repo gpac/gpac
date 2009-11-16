@@ -101,7 +101,7 @@ void mediacontrol_restart(GF_ObjectManager *odm)
 	/*play on all ODs collected for restart*/
 	i=0;
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
-		gf_odm_start(ctrl_od);
+		gf_odm_start(ctrl_od, 0);
 	}
 	gf_list_del(to_restart);
 }

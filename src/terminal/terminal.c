@@ -1137,7 +1137,7 @@ u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, u32 pause_at_first_
 	while (gf_list_count(term->media_queue)) gf_list_rem(term->media_queue, 0);
 	term->root_scene->root_od->media_start_time = from_time;
 
-	gf_odm_start(term->root_scene->root_od);
+	gf_odm_start(term->root_scene->root_od, 0);
 	gf_term_set_play_state(term, GF_STATE_PLAYING, 0, 1);
 	if (pause_at_first_frame) 
 		gf_sc_set_option(term->compositor, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);

@@ -263,7 +263,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 			gf_scene_disconnect(scene, 0);
 			if (scene->root_od->media_ctrl) scene->root_od->media_ctrl->current_seg = current_seg;
 			/*3- restart the scene*/
-			gf_odm_start(scene->root_od);
+			gf_odm_start(scene->root_od, 0);
 		}
 		gf_node_dirty_set(n, 0, 1);
 		return;

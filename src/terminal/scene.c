@@ -709,7 +709,7 @@ existing:
 	gf_mo_update_caps(odm->mo);
 	/*media object playback has already been requested by the scene, trigger media start*/
 	if (odm->mo->num_open && !odm->state) {
-		gf_odm_start(odm);
+		gf_odm_start(odm, 0);
 		if (odm->mo->speed != FIX_ONE) gf_odm_set_speed(odm, odm->mo->speed);
 	}
 	if ((odm->mo->type==GF_MEDIA_OBJECT_VIDEO) && scene->is_dynamic_scene) {
@@ -1169,7 +1169,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
 		odm->media_start_time = from_time;
-		gf_odm_start(odm);
+		gf_odm_start(odm, 0);
 	}
 	gf_list_del(to_restart);
 
