@@ -243,7 +243,7 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 #endif
 
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] node %s will not be rendered\n", gf_node_get_class_name(node)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] node %s will not be rendered\n", gf_node_get_class_name(node)));
 		break;
 	}
 }
