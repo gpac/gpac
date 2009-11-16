@@ -48,7 +48,7 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 			e = compositor->rasterizer->surface_attach_to_device(visual->raster_surface, compositor->hw_context, compositor->vp_width, compositor->vp_height);
 			if (!e) {
 				visual->is_attached = 1;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Video surface handle attached to raster\n"));
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Video surface handle attached to raster\n"));
 				return GF_OK;
 			}
 			compositor->video_out->LockOSContext(compositor->video_out, 0);
@@ -77,7 +77,7 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 							(GF_PixelFormat) compositor->hw_surface.pixel_format);
 		if (!e) {
 			visual->is_attached = 1;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Video surface memory attached to raster\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Video surface memory attached to raster - w=%d h=%d pitch_x=%d pitch_y=%d\n", compositor->hw_surface.width, compositor->hw_surface.height, compositor->hw_surface.pitch_x, compositor->hw_surface.pitch_y));
 			return GF_OK;
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface memory to raster: %s\n", gf_error_to_string(e) ));
