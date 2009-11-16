@@ -2052,8 +2052,6 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	/*we don't traverse subscenes until the root one is setup*/
 	if (!compositor->root_visual_setup) return;
 
-	compositor_send_resize_event(compositor, subscene, 0, 0, 0, 1);
-
 	flip_coords = 0;
 	in_scene = gf_node_get_graph(inline_root);
 	w = h = 0;
