@@ -603,45 +603,47 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 void compositor_send_resize_event(GF_Compositor *compositor, GF_SceneGraph *subscene, Fixed old_z, Fixed old_tx, Fixed old_ty, Bool is_resize)
 {
 #ifndef GPAC_DISABLE_SVG
-	GF_Node *root;
+	GF_DOM_Event evt;
 	GF_SceneGraph *scene = (subscene ? subscene : compositor->scene);
-	root = gf_sg_get_root_node(scene);
-	/*if root node is DOM, sent a resize event*/
-	if (root /* && (gf_node_get_tag(root) >= GF_NODE_FIRST_DOM_NODE_TAG) */) {
-		GF_DOM_Event evt;
-		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.prev_scale = compositor->scale_x*old_z;
-		evt.new_scale = compositor->scale_x*compositor->zoom;
-		evt.bubbles = 1;
+	GF_Node *root = gf_sg_get_root_node(scene);
+	/*if root node is not DOM, sent a resize event (for VRML/BIFS). Otherwise this must be handled
+	by the composition code of the node*/
+	if (!root || (gf_node_get_tag(root) > GF_NODE_RANGE_LAST_VRML) ) 
+		return;
 
-		if (is_resize) {
-			evt.type = GF_EVENT_RESIZE;
-			if (subscene == NULL) {
-				evt.screen_rect.width = INT2FIX(compositor->display_width);
-				evt.screen_rect.height = INT2FIX(compositor->display_height);
-			} else {
-				u32 w, h;
-				gf_sg_get_scene_size_info(scene, &w, &h);
-				evt.screen_rect.width = INT2FIX(w);
-				evt.screen_rect.height = INT2FIX(h);
-			}
-		} else if (evt.prev_scale == evt.new_scale) {
-			/*cannot get params for scroll events*/
-			evt.type = GF_EVENT_SCROLL;
+	memset(&evt, 0, sizeof(GF_DOM_Event));
+	evt.prev_scale = compositor->scale_x*old_z;
+	evt.new_scale = compositor->scale_x*compositor->zoom;
+	evt.bubbles = 1;
+
+	if (is_resize) {
+		evt.type = GF_EVENT_RESIZE;
+		if (subscene == NULL) {
+			evt.screen_rect.width = INT2FIX(compositor->display_width);
+			evt.screen_rect.height = INT2FIX(compositor->display_height);
 		} else {
-			evt.screen_rect.x = INT2FIX(compositor->vp_x);
-			evt.screen_rect.y = INT2FIX(compositor->vp_y);
-			evt.screen_rect.width = INT2FIX(compositor->output_width);
-			evt.screen_rect.height = INT2FIX(compositor->output_height);
-			evt.prev_translate.x = old_tx;
-			evt.prev_translate.y = old_ty;
-			evt.new_translate.x = compositor->trans_x;
-			evt.new_translate.y = compositor->trans_y;
-			evt.type = GF_EVENT_ZOOM;
-			evt.bubbles = 0;
+			u32 w, h;
+			gf_sg_get_scene_size_info(scene, &w, &h);
+			evt.screen_rect.width = INT2FIX(w);
+			evt.screen_rect.height = INT2FIX(h);
 		}
-		gf_dom_event_fire(gf_sg_get_root_node(scene), &evt);
+	} else if (evt.prev_scale == evt.new_scale) {
+		/*cannot get params for scroll events*/
+		evt.type = GF_EVENT_SCROLL;
+	} else {
+		evt.screen_rect.x = INT2FIX(compositor->vp_x);
+		evt.screen_rect.y = INT2FIX(compositor->vp_y);
+		evt.screen_rect.width = INT2FIX(compositor->output_width);
+		evt.screen_rect.height = INT2FIX(compositor->output_height);
+		evt.prev_translate.x = old_tx;
+		evt.prev_translate.y = old_ty;
+		evt.new_translate.x = compositor->trans_x;
+		evt.new_translate.y = compositor->trans_y;
+		evt.type = GF_EVENT_ZOOM;
+		evt.bubbles = 0;
 	}
+	gf_dom_event_fire(gf_sg_get_root_node(scene), &evt);
+
 #endif
 }
 void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fixed tx, Fixed ty, Bool is_resize) 

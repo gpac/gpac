@@ -266,7 +266,7 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 
 static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 {
-	Bool rootmost_svg;
+	Bool rootmost_svg, send_resize;
 	u32 viewport_color;
 	SVGsvgStack *stack;
 	GF_Matrix2D backup_matrix, vb_bck;
@@ -332,11 +332,15 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_dirty  & GF_SG_CHILD_DIRTY) drawable_reset_group_highlight(tr_state, node);
 	gf_node_dirty_clear(node, 0);
 
-	if ((stack->parent_vp.x != tr_state->vp_size.x) || (stack->parent_vp.y != tr_state->vp_size.y))
+	send_resize = 0;
+	if ((stack->parent_vp.x != tr_state->vp_size.x) || (stack->parent_vp.y != tr_state->vp_size.y)) {
 		is_dirty = 1;
+		send_resize = 1;
+	}
 
-	if (is_dirty || tr_state->visual->compositor->recompute_ar) 
+	if (is_dirty || tr_state->visual->compositor->recompute_ar) {
 		svg_recompute_viewport_transformation(node, stack, tr_state, &all_atts);
+	}
 
 	gf_mx2d_copy(tr_state->vb_transform, stack->viewbox_mx);
 
@@ -419,6 +423,17 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	prev_vp = tr_state->vp_size;
 	tr_state->vp_size = stack->vp;
 
+	/*the event may trigger scripts which may delete nodes / modify the scene. We therefore send the resize event 
+	before traversing the scene*/
+	if (send_resize) {
+		GF_DOM_Event evt;
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		evt.bubbles = 1;
+		evt.type = GF_EVENT_RESIZE;
+		gf_dom_event_fire(node, &evt);
+//		gf_sc_next_frame_state(tr_state->visual->compositor, GF_SC_DRAW_FRAME);
+	}
+	
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state, NULL);
 	} else {
@@ -917,8 +932,6 @@ typedef struct
 	const char *fragment_id;
 	Bool needs_play;
 	u32 init_vis_state;
-	Bool resize_sent;
-	SFVec2f prev_vp_size;
 } SVGlinkStack;
 
 
@@ -1234,11 +1247,6 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->vp_size.x = gf_sc_svg_convert_length_to_display(tr_state->visual->compositor, all_atts.width);
 	tr_state->vp_size.y = gf_sc_svg_convert_length_to_display(tr_state->visual->compositor, all_atts.height);
 
-	if ((stack->resize_sent==2) && ((stack->prev_vp_size.x != tr_state->vp_size.x) || (stack->prev_vp_size.y != tr_state->vp_size.y))) {
-		stack->resize_sent = 0;
-	}
-
-
 	/*setup new clipper*/
 	rc.width = tr_state->vp_size.x;
 	rc.height = tr_state->vp_size.y;
@@ -1253,27 +1261,9 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 		stack->inline_sg = gf_mo_get_scenegraph(stack->resource);
 	}
 
-	/*we cannot send the resize event and render in the same pass, this could have unpredictable results
-	executing javascript during the draw pass in indirect rendering.*/
-	if (stack->resize_sent==1) {
-		GF_DOM_Event evt;
-		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.bubbles = 1;
-		evt.type = GF_EVENT_RESIZE;
-		gf_dom_event_fire(gf_sg_get_root_node(stack->inline_sg), &evt);
-		stack->resize_sent = 2;
-		stack->prev_vp_size = tr_state->vp_size;
-		gf_sc_next_frame_state(tr_state->visual->compositor, GF_SC_DRAW_FRAME);
-	} else if (stack->inline_sg) {
+	if (stack->inline_sg) {
 		gf_sc_traverse_subscene(tr_state->visual->compositor, node, stack->inline_sg, tr_state);
 	}
-
-	/*signal resize only after one traverse of the subscene was done*/
-	if (!stack->resize_sent) {
-		GF_Node *root = gf_sg_get_root_node(stack->inline_sg);
-		if (root) stack->resize_sent = 1;
-	}
-
 
 	if (stack->init_vis_state == 2) {
 		stack->init_vis_state = 3;
