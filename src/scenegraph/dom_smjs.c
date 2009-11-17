@@ -242,8 +242,10 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 
 	sg = n->sgprivate->scenegraph;
 
-	if (n->sgprivate->tag==TAG_SVG_handler) force_tracking = 1;
-	else if (n->sgprivate->tag==TAG_SVG_script) force_tracking = 1;
+	if (n->sgprivate->tag==TAG_SVG_handler) 
+		force_tracking = 1;
+	else if (n->sgprivate->tag==TAG_SVG_script) 
+		force_tracking = 1;
 
 	if (force_tracking) {
 		u32 i, count;
@@ -3543,6 +3545,15 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 			}
 		}
 		return;
+	}
+
+	/*force cleanup of scripts/handlers not destroyed - this usually happens when a script/handler node has been created in a script
+	but not inserted in the graph*/
+	while (gf_list_count(sg->objects)) {
+		GF_Node *n;
+		JSObject *obj = gf_list_get(sg->objects, 0);
+		n = dom_get_node(c, obj);
+		if (n) dom_js_pre_destroy(c, sg, n);
 	}
 
 	count = gf_list_count(dom_rt->handlers);
