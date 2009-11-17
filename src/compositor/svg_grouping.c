@@ -431,7 +431,6 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 		evt.bubbles = 1;
 		evt.type = GF_EVENT_RESIZE;
 		gf_dom_event_fire(node, &evt);
-//		gf_sc_next_frame_state(tr_state->visual->compositor, GF_SC_DRAW_FRAME);
 	}
 	
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
