@@ -378,7 +378,7 @@ Bool gf_net_is_ipv6(char *address);
  *
  * The gf_net_mobileip_ctrl_cbk type is the type for the callback of the \ref gf_net_set_mobileip_callback function. By default no mobileip is used
  *	\param cbck Opaque user data.
- *	\param start boolean indicating wether the MobileIP subsystem should be started or stoped.
+ *	\param start boolean indicating wether the MobileIP subsystem should be started or stopped.
  *	\return Error code if needed.
  *
  */

@@ -116,7 +116,7 @@ enum
 	GF_CODEC_SHOW_SCENE,
 	/*This is only called on scene decoders, GetCap only. If the decoder may continue modifying the scene once the last AU is received,
 	it must set cap.valueINT to 1 (typically, text stream decoder will hold the scene for a given duration
-	after the last AU). Otherwise the decoder will be stoped and ask to remove any extra scene being displayed*/
+	after the last AU). Otherwise the decoder will be stopped and ask to remove any extra scene being displayed*/
 	GF_CODEC_MEDIA_NOT_OVER,
 };
 

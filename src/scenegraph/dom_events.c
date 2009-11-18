@@ -372,7 +372,7 @@ static Bool sg_fire_dom_event(GF_DOMEventTarget *et, GF_DOM_Event *event, GF_Sce
 				count = post_count;
 			}
 		}
-		/*propagation stoped*/
+		/*propagation stopped*/
 		if (event->event_phase & (GF_DOM_EVENT_PHASE_CANCEL|GF_DOM_EVENT_PHASE_CANCEL_ALL) ) {
 			gf_dom_listener_process_add(sg);
 			return 0;

@@ -58,7 +58,7 @@ public:
 
 	u32 m_duration;
 	CString m_navigate_url;
-	Bool m_Loop, m_fit_screen, m_can_seek, m_open, m_disable_backlight, m_stoped, m_no_mime_fetch;
+	Bool m_Loop, m_fit_screen, m_can_seek, m_open, m_disable_backlight, m_stopped, m_no_mime_fetch;
 	void Pause();
 
 	u32 m_scene_width, m_scene_height, m_reconnect_time;

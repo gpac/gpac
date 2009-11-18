@@ -94,7 +94,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	/*restart from where we stoped last*/
+	/*restart from where we stopped last*/
 	totSize = mov->current_top_box_start;
 	gf_bs_seek(mov->movieFileMap->bs, mov->current_top_box_start);
 #endif

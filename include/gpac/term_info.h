@@ -61,7 +61,7 @@ typedef struct
 	GF_ObjectDescriptor *od;
 	Double duration;
 	Double current_time;
-	/*0: stoped, 1: playing, 2: paused, 3: not setup, 4; setup failed.*/
+	/*0: stopped, 1: playing, 2: paused, 3: not setup, 4; setup failed.*/
 	u32 status;
 	/*if set, the PL flags are valid*/
 	Bool has_profiles;

@@ -57,7 +57,7 @@ void gf_db_unit_del(GF_DBUnit *db);
 /*composition memory (composition buffer) status*/
 enum
 {
-	/*CB stoped (contains invalid data)*/
+	/*CB stopped (contains invalid data)*/
 	CB_STOP = 0,
 	/*CB playing (contains valid data)*/
 	CB_PLAY,
