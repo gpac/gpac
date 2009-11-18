@@ -127,12 +127,19 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 
 					if (store) ftpriv->font_sans = strdup(face->family_name);
 				}
-				if (!store && ftpriv->font_serif) {
-					if (!strnicmp(face->family_name, "Times New Roman", 15)) store = 1;
+
+				if (!strnicmp(face->family_name, "Times New Roman", 15)) {
+					if (ftpriv->font_serif) free(ftpriv->font_serif);
+					ftpriv->font_serif = strdup(face->family_name);
+				}
+				else if (!store && !ftpriv->font_serif) {
+					if (!strnicmp(face->family_name, "Times New Roman", 15))
+						store = 1;
 					else if (strstr(szfont, "sans") || strstr(szfont, "fixed")) store = 0;
 					else if (strstr(szfont, "serif")) store = 1;
 
-					if (store) ftpriv->font_sans = face->family_name;
+					if (store) 
+						ftpriv->font_serif = strdup(face->family_name);
 				}
 			}
 			free(szfont);
