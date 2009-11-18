@@ -2,7 +2,7 @@
 
 GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
 {
-	fprintf(stdout, "Received at time %d, buffer %d bytes long.\n", ts, size);
+	fprintf(stdout, "Received at time %I64d, buffer %d bytes long.\n", ts, size);
 	return GF_OK;
 }
 
