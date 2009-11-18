@@ -190,7 +190,7 @@ void CMainFrame::SetPauseButton(Bool force_play_button)
 	memset(&tb, 0, sizeof(tb));
     tb.idCommand = ID_FILE_PAUSE; tb.fsStyle = TBSTYLE_BUTTON;
 	
-	if (force_play_button || GetApp()->m_stoped || gf_term_get_option(GetApp()->m_term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) {
+	if (force_play_button || GetApp()->m_stopped || gf_term_get_option(GetApp()->m_term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) {
 		tb.iBitmap = 4;
 	} else {
 		tb.iBitmap = 1;
@@ -257,7 +257,7 @@ void CMainFrame::UpdateTime()
 	u32 now;
 
 	COsmo4 *app = GetApp();
-	if (!app->m_open || app->m_stoped) return;
+	if (!app->m_open || app->m_stopped) return;
 	now = gf_term_get_time_in_ms(app->m_term);
 	if (!now) return;
 
@@ -398,7 +398,7 @@ LONG CMainFrame::Open(WPARAM wParam, LPARAM lParam)
 	CloseURL();
 	char filename[5000];
 	CE_WideToChar((u16 *) (LPCTSTR) app->m_filename, filename);
-	app->m_stoped = 0;
+	app->m_stopped = 0;
 	
 	if (app->m_reconnect_time) {
 		gf_term_connect_from_time(app->m_term, filename, app->m_reconnect_time, 0);
@@ -457,10 +457,10 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 void CMainFrame::OnFilePause()
 {
 	COsmo4 *app = GetApp();
-	if (app->m_stoped) {
+	if (app->m_stopped) {
 		char filename[5000];
 		CE_WideToChar((u16 *) (LPCTSTR) app->m_filename, filename);
-		app->m_stoped = 0;
+		app->m_stopped = 0;
 		gf_term_connect(app->m_term, filename);
 		app->SetBacklightState(1);
 
@@ -475,14 +475,14 @@ void CMainFrame::OnFilePause()
 void CMainFrame::OnUpdateFilePause(CCmdUI* pCmdUI)
 {
 	COsmo4 *app = GetApp();
-	pCmdUI->Enable((app->m_open || app->m_stoped) ? TRUE : FALSE);
+	pCmdUI->Enable((app->m_open || app->m_stopped) ? TRUE : FALSE);
 }
 void CMainFrame::OnFileStop()
 {
 	COsmo4 *app = GetApp();
 	if (!app->m_open) return;
 	if (m_full_screen) OnViewFullscreen();
-	app->m_stoped = 1;
+	app->m_stopped = 1;
 	if (m_view_timing) KillTimer(PROGRESS_TIMER);
 	gf_term_disconnect(app->m_term);
 	m_progBar.SetPosition(0);

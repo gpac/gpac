@@ -666,7 +666,7 @@ enum
 	handling of the CB. 
 	For video, the output is kept alive, For audio, the output is reseted (don't want audio loop ;)*/
 	GF_ESM_CODEC_EOS	=	2,
-	/*pause: the decoder is stoped but the CB is kept intact
+	/*pause: the decoder is stopped but the CB is kept intact
 	THIS IS NOT USED AS A CODEC STATUS, but only for signaling that the CB shouldn't 
 	be reseted - the real status of a "paused" decoder is STOP*/
 	GF_ESM_CODEC_PAUSE	=	3,

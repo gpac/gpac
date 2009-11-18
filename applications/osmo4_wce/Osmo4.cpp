@@ -339,7 +339,7 @@ BOOL COsmo4::InitInstance()
 		m_pMainWnd->PostMessage(WM_QUIT);
 	}
 
-	m_stoped = 0;
+	m_stopped = 0;
 	m_open = 0;
 	m_can_seek = 0;
 	m_DoResume = 0;

@@ -1473,7 +1473,7 @@ force_input:
 		case 'A':
 			if (gf_term_get_option(term, GF_OPT_MEDIA_CACHE)==GF_MEDIA_CACHE_RUNNING) {
 				gf_term_set_option(term, GF_OPT_MEDIA_CACHE, (c=='S') ? GF_MEDIA_CACHE_DISABLED : GF_MEDIA_CACHE_DISCARD);
-				fprintf(stdout, "Streaming Cache stoped\n");
+				fprintf(stdout, "Streaming Cache stopped\n");
 			} else {
 				fprintf(stdout, "Streaming Cache not running\n");
 			}
@@ -1896,7 +1896,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 	}
 
 	switch (odi.status) {
-	case 0: fprintf(stdout, "Stoped - "); break;
+	case 0: fprintf(stdout, "Stopped - "); break;
 	case 1: fprintf(stdout, "Playing - "); break;
 	case 2: fprintf(stdout, "Paused - "); break;
 	case 3: fprintf(stdout, "Not setup yet\n"); return;
@@ -1966,7 +1966,7 @@ void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm)
 	switch (odi.status) {
 	case 1: fprintf(stdout, "Playing - "); break;
 	case 2: fprintf(stdout, "Paused - "); break;
-	default: fprintf(stdout, "Stoped - "); break;
+	default: fprintf(stdout, "Stopped - "); break;
 	}
 	if (odi.buffer>=0) fprintf(stdout, "Buffer: %d ms - ", odi.buffer);
 	else fprintf(stdout, "Not buffering - ");
@@ -1992,7 +1992,7 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm)
 	switch (odi.status) {
 	case 1: fprintf(stdout, "Playing"); break;
 	case 2: fprintf(stdout, "Paused"); break;
-	default: fprintf(stdout, "Stoped"); break;
+	default: fprintf(stdout, "Stopped"); break;
 	}
 	if (odi.buffer>=0) fprintf(stdout, " - Buffer: %d ms", odi.buffer);
 	if (odi.db_unit_count) fprintf(stdout, " - DB: %d AU", odi.db_unit_count);

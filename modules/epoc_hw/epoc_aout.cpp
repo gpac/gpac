@@ -192,10 +192,10 @@ void EPOCAudio::MaoscBufferCopied(TInt aError, const TDesC8& a_Buffer)
 void EPOCAudio::MaoscPlayComplete(TInt aError)
 {
 	if (aError) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOCAudio] Playback stoped due to error %d\n", aError));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[EPOCAudio] Playback stopped due to error %d\n", aError));
 		state = EPOC_AUDIO_ERROR;
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOCAudio] Playback stoped due to user request\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOCAudio] Playback stopped due to user request\n"));
 		state = EPOC_AUDIO_OPEN;
 	}
 }

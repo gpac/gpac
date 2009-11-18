@@ -203,7 +203,7 @@ GF_Err gf_es_start(GF_Channel *ch)
 	case GF_ESM_ES_SETUP:
 		return GF_BAD_PARAM;
 	/*if the channel is already running, don't reset its settings. This only happens in the case of broadcast 
-	objects started several times by the scene but not stoped at the ODManager level (cf gf_odm_stop)*/
+	objects started several times by the scene but not stopped at the ODManager level (cf gf_odm_stop)*/
 	case GF_ESM_ES_RUNNING:
 		return GF_OK;
 	default:
