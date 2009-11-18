@@ -702,6 +702,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 	if (local_ip) ip_add = inet_addr(local_ip);
 
 	if (!ip_add) {
+#if 0
 		buf[0] = 0;
 		ret = gethostname(buf, GF_MAX_IP_NAME_LEN);
 		/*get the IP address*/
@@ -712,10 +713,13 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 		} else {
 			ip_add = INADDR_ANY;
 		}
+#else
+		ip_add = INADDR_ANY;
+#endif
 	}
 	if (peer_name && peer_port) {
 #ifdef WIN32
-		if (inet_addr(peer_name)== ip_add) {
+		if ((inet_addr(peer_name)== ip_add)) {
 			optval = 1;
 			setsockopt(sock->socket, SOL_SOCKET, SO_USELOOPBACK, SSO_CAST &optval, sizeof(optval));
 		}
