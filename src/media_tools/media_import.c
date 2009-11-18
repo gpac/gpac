@@ -167,7 +167,7 @@ static void get_video_timing(Double fps, u32 *timescale, u32 *dts_inc)
 
 
 
-static GF_Err gf_import_still_image(GF_MediaImporter *import)
+static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_allowed)
 {
 	GF_BitStream *bs;
 	GF_Err e;
@@ -241,7 +241,12 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import)
 		import->esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_len;
 	}
 
-	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_VISUAL, 1000);
+
+	track = 0;
+	if (mult_desc_allowed) 
+		track = gf_isom_get_track_by_id(import->dest, import->esd->ESID);
+	if (!track)
+		track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_VISUAL, 1000);
 	if (!track) {
 		e = gf_isom_last_error(import->dest);
 		goto exit;
@@ -256,6 +261,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import)
 	samp = gf_isom_sample_new();
 	samp->IsRAP = 1;
 	samp->dataLength = size;
+	if (import->initial_time_offset) samp->DTS = import->initial_time_offset*1000;
 
 	gf_import_message(import, GF_OK, "%s import - size %d x %d", (OTI==0x6C) ? "JPEG" : (OTI==0x6D) ? "PNG" : "JPEG2000", w, h);
 
@@ -6238,7 +6244,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		return gf_import_nhml_dims(importer, 0);
 	/*jpg & png & jp2*/
 	if (!strnicmp(ext, ".jpg", 4) || !strnicmp(ext, ".jpeg", 5) || !strnicmp(ext, ".jp2", 4) || !strnicmp(ext, ".png", 4) || !stricmp(fmt, "JPEG") || !stricmp(fmt, "PNG") || !stricmp(fmt, "JP2") )
-		return gf_import_still_image(importer);
+		return gf_import_still_image(importer, 1);
 	/*AMR & 3GPP2 speec codecs*/
 	if (!strnicmp(ext, ".amr", 4) || !strnicmp(ext, ".awb", 4) || !strnicmp(ext, ".smv", 4) || !strnicmp(ext, ".evc", 4)
 		|| !stricmp(fmt, "AMR") || !stricmp(fmt, "EVRC") || !stricmp(fmt, "SMV") )

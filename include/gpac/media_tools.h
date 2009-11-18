@@ -175,6 +175,9 @@ typedef struct __track_import
 	char *fontName;
 	u32 twidth, theight;
 
+	/*Initial offset of the first AU to import*/
+	Double initial_time_offset;
+
 	/*number of tracks after probing - may be set to 0, in which case no track 
 	selection can be performed. It may also be inaccurate if probing doesn't
 	detect all available tracks (cf ogg import)*/

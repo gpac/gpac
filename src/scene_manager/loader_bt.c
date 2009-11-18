@@ -3036,8 +3036,8 @@ void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 			while (!parser->done) {
 				str = gf_bt_get_next(parser, 0);
 				if (gf_bt_check_code(parser, ']')) break;
-				if (strcmp(str, "ESDescriptor")) {
-					gf_bt_report(parser, GF_BAD_PARAM, "ESDescriptor expected got %s", str);
+				if (strcmp(str, "ES_Descriptor")) {
+					gf_bt_report(parser, GF_BAD_PARAM, "ES_Descriptor expected got %s", str);
 					break;
 				}
 				desc = gf_bt_parse_descriptor(parser, str);
