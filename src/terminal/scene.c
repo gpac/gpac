@@ -554,6 +554,7 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 	}
 	else {
+		GF_Node *root;
 		u32 i, count;
 		count = scene->root_od->mo ? gf_list_count(scene->root_od->mo->nodes) : 0;
 		for (i=0;i<count; i++) {
@@ -566,7 +567,12 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 			gf_sg_get_scene_size_info(scene->graph, &w, &h);
 			gf_sc_set_size(scene->root_od->term->compositor, w, h);
 		}
-		gf_scene_notify_event(scene, GF_EVENT_LOAD, NULL);
+
+		/*for vrml/bifs-based scene graphs, trigger a load event*/
+		root = gf_sg_get_root_node(scene->graph);
+		if (root && (gf_node_get_tag(root) <= GF_NODE_RANGE_LAST_VRML) ) {
+			gf_scene_notify_event(scene, GF_EVENT_LOAD, NULL);
+		}
 	}
 }
 
