@@ -67,7 +67,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 
 		/*only scan scalable fonts*/
 		if (face->face_flags & FT_FACE_FLAG_SCALABLE) {
-			Bool bold, italic, smallcaps;
+			Bool bold, italic;
 			szfont = malloc(sizeof(char)* (strlen(face->family_name)+100));
 			if (!szfont) continue;
 			strcpy(szfont, face->family_name);
@@ -83,21 +83,26 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 				if (gidx) ftpriv->font_dir = strdup(szfont);
 			}
 
-			bold = italic = smallcaps = 0;
+			bold = italic = 0;
 
 			if (face->style_name) {
 				char *name = strdup(face->style_name);
 				strupr(name);
 				if (strstr(name, "BOLD")) bold = 1;
 				if (strstr(name, "ITALIC")) italic = 1;
+				/*if font is not regular style, append all styles blindly*/
+				if (!strstr(name, "REGULAR")) {
+					strcat(szfont, " ");
+					strcat(szfont, face->style_name);
+				}
 				free(name);
 			} else {
 				if (face->style_flags & FT_STYLE_FLAG_BOLD) bold = 1;
 				if (face->style_flags & FT_STYLE_FLAG_ITALIC) italic = 1;
+
+				if (bold) strcat(szfont, " Bold");
+				if (italic) strcat(szfont, " Italic");
 			}
-			if (bold) strcat(szfont, " Bold");
-			if (italic) strcat(szfont, " Italic");
-			if (smallcaps) strcat(szfont, " Smallcaps");
 			gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", szfont, file_path);
 
 			/*try to assign default fixed fonts*/
