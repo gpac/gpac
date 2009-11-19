@@ -569,10 +569,7 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 		}
 
 		/*for vrml/bifs-based scene graphs, trigger a load event*/
-		root = gf_sg_get_root_node(scene->graph);
-		if (root && (gf_node_get_tag(root) <= GF_NODE_RANGE_LAST_VRML) ) {
-			gf_scene_notify_event(scene, GF_EVENT_LOAD, NULL);
-		}
+		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL);
 	}
 }
 
@@ -1045,7 +1042,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		IS_UpdateVideoPos(scene);
 	} else {
 		scene->graph_attached = 1;
-		gf_scene_notify_event(scene, GF_EVENT_LOAD, NULL);
+		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL);
 		gf_term_invalidate_compositor(scene->root_od->term);
 	}
 }
@@ -1212,7 +1209,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	if (scene->root_od->term->root_scene == scene) 
 		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 
-	gf_scene_notify_event(scene, GF_EVENT_LOAD, NULL);
+	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL);
 
 #ifndef GPAC_DISABLE_VRML
 	IS_UpdateVideoPos(scene);

@@ -145,6 +145,10 @@ enum {
 
 	/*same as mousedown, generated internally by GPAC*/
 	GF_EVENT_DBLCLICK,
+
+	/*scene attached event, dispatched when the root node of a scene is loaded and
+	attached to the window or parent object (animation, inline, ...)*/
+	GF_EVENT_SCENE_ATTACHED,
 	
 	/*window events*/
 	/*size has changed - indicate new w & h in .x end .y fields of event. 
