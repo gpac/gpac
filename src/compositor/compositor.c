@@ -53,24 +53,13 @@ void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 	compositor->frame_draw_type = state;
 }
 
-GF_Err gf_sc_set_output_size(GF_Compositor *compositor, u32 Width, u32 Height)
-{
-	gf_sc_lock(compositor, 1);
-	/*FIXME: need to check for max resolution*/
-	compositor->display_width = Width;
-	compositor->display_height = Height;
-	compositor->recompute_ar = 1;
-	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
-	gf_sc_lock(compositor, 0);
-	return GF_OK;
-}
 
 static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 {
 	GF_Err e;
 	if (!compositor->video_out->SetFullScreen) return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Switching fullscreen %s\n", compositor->fullscreen ? "off" : "on"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Switching fullscreen %s\n", compositor->fullscreen ? "off" : "on"));
 	/*move to FS*/
 	compositor->fullscreen = !compositor->fullscreen;
 	if (compositor->fullscreen && (compositor->scene_width>=compositor->scene_height)
@@ -93,7 +82,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 		compositor->fullscreen = 0;
 		e = compositor->video_out->SetFullScreen(compositor->video_out, 0, &compositor->display_width, &compositor->display_height);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] recomputing aspect ratio\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] recomputing aspect ratio\n"));
 	compositor->recompute_ar = 1;
 	/*force signaling graphics reset*/
 	compositor->reset_graphics = 1;
@@ -141,7 +130,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			Bool restore_fs = compositor->fullscreen;
 			compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Changing display size to %d x %d\n", compositor->new_width, compositor->new_height));
+			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing display size to %d x %d\n", compositor->new_width, compositor->new_height));
 			fs_width = fs_height = 0;
 			if (restore_fs) {
 				fs_width = compositor->display_width;
@@ -163,7 +152,10 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				compositor->display_height = fs_height;
 				compositor->recompute_ar = 1;
 			} else {
-				gf_sc_set_output_size(compositor, evt.size.width, evt.size.height);
+				compositor->display_width = evt.size.width;
+				compositor->display_height = evt.size.height;
+				compositor->recompute_ar = 1;
+				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			}
 			compositor->reset_graphics = 1;
 			
@@ -741,7 +733,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	if (!compositor) return GF_BAD_PARAM;
 
 	gf_sc_lock(compositor, 1);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, (scene_graph ? "[Compositor] Attaching new scene\n" : "[Compositor] Detaching scene\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, (scene_graph ? "[Compositor] Attaching new scene\n" : "[Compositor] Detaching scene\n"));
 
 	if (compositor->audio_renderer && (compositor->scene != scene_graph)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Reseting audio compositor\n"));
@@ -1610,7 +1602,7 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		camera_invalidate(&compositor->visual->camera);
 #endif
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Main scene setup - pixel metrics %d - center coords %d\n", compositor->traverse_state->pixel_metrics, compositor->visual->center_coords));
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Main scene setup - pixel metrics %d - center coords %d\n", compositor->traverse_state->pixel_metrics, compositor->visual->center_coords));
 
 #ifndef GPAC_DISABLE_3D
 		/*change in 2D/3D config, force AR recompute/video restup*/
