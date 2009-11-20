@@ -493,7 +493,7 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 {
 	switch (type) {
 	case GF_SG_VRML_SFBOOL:
-		fprintf(sdump->trace, "%s", * ((SFBool *)ptr) ? "TRUE" : "FALSE");
+		fprintf(sdump->trace, "%s", * ((SFBool *)ptr) ? "true" : "false");
 		break;
 	case GF_SG_VRML_SFINT32:
 		fprintf(sdump->trace, "%d", * ((SFInt32 *)ptr) );
