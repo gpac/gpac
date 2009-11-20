@@ -114,7 +114,7 @@ static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src)
 	return gf_isom_new_mpeg4_description(mp4, len, src, NULL, NULL, &i);
 }
 
-static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD *src, char *mediaSource)
+static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD *src, Double imp_time, char *mediaSource)
 {
 	u32 track, di;
 	GF_Err e;
@@ -253,6 +253,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	import.flags = mux->import_flags;
 	import.video_fps = mux->frame_rate;
 	import.in_name = szName;
+	import.initial_time_offset = imp_time;
 	e = gf_media_import(&import);
 	if (e) return e;
 
@@ -550,7 +551,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		if (!au && !esd->URLString) {
 			/*if not in IOD, the stream will be imported when encoding the OD stream*/
 			if (!is_in_iod) continue;
-			e = gf_sm_import_stream(ctx, mp4, esd, NULL);
+			e = gf_sm_import_stream(ctx, mp4, esd, au->timing_sec, NULL);
 			if (e) goto exit;
 			gf_sm_finalize_mux(mp4, esd, 0);
 			gf_isom_add_track_to_root_od(mp4, gf_isom_get_track_by_id(mp4, esd->ESID));
@@ -1004,6 +1005,10 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 		while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
 			GF_ODCom *com;
 			u32 k = 0;
+
+			if (au->timing_sec) au->timing = (u64) (au->timing_sec * esd->slConfig->timestampResolution + 0.0005);
+			else au->timing_sec = (s64) (au->timing / esd->slConfig->timestampResolution);
+
 			while ((com = gf_list_enum(au->commands, &k))) {
 
 				/*only updates commandes need to be parsed for import*/
@@ -1019,7 +1024,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 						while ((imp_esd = (GF_ESD*)gf_list_enum(od->ESDescriptors, &m))) {
 							switch (imp_esd->tag) {
 							case GF_ODF_ESD_TAG:
-								e = gf_sm_import_stream(ctx, mp4, imp_esd, mediaSource);
+								e = gf_sm_import_stream(ctx, mp4, imp_esd, au->timing_sec, mediaSource);
 								if (e) {
 									GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISO File Encode] cannot import stream %d (error %s)\n", imp_esd->ESID, gf_error_to_string(e)));
 									gf_odf_com_del(&com);
@@ -1048,7 +1053,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 					while ((imp_esd = (GF_ESD*)gf_list_enum(esdU->ESDescriptors, &m))) {
 						switch (imp_esd->tag) {
 						case GF_ODF_ESD_TAG:
-							e = gf_sm_import_stream(ctx, mp4, imp_esd, mediaSource);
+							e = gf_sm_import_stream(ctx, mp4, imp_esd, au->timing_sec, mediaSource);
 							if (e) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISO File Encode] cannot import stream %d (error %s)\n", imp_esd->ESID, gf_error_to_string(e)));
 								gf_odf_com_del(&com);
@@ -1082,9 +1087,6 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 			/*encode but do not delete the content*/
 			e = gf_odf_codec_encode(codec, 0);
 			if (e) goto err_exit;
-
-			/*time in sec conversion*/
-			if (au->timing_sec) au->timing = (u64) (au->timing_sec * esd->slConfig->timestampResolution + 0.0005);
 
 			if (j==1) init_offset = au->timing;
 
