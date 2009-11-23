@@ -917,9 +917,11 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	compositor->msg_type |= GF_SR_CFG_SET_SIZE;
 	
 	/*if same size only request for video setup */
-	if ((compositor->display_width == NewWidth) && (compositor->display_height == NewHeight) ) 
+	compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
+	if ((compositor->display_width == NewWidth) && (compositor->display_height == NewHeight) ) {
 		compositor->msg_type |= GF_SR_CFG_WINDOWSIZE_NOTIF;
-	
+	}
+
 	if (lock_ok) gf_sc_lock(compositor, 0);
 
 	return GF_OK;
