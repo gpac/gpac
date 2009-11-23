@@ -567,8 +567,7 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 			gf_sg_get_scene_size_info(scene->graph, &w, &h);
 			gf_sc_set_size(scene->root_od->term->compositor, w, h);
 		}
-
-		/*for vrml/bifs-based scene graphs, trigger a load event*/
+		/*trigger a scene attach event*/
 		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL);
 	}
 }
