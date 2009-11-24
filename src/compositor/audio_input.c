@@ -165,7 +165,7 @@ GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double 
 	if (ai->is_open) return GF_BAD_PARAM;
 
 	/*get media object*/
-	ai->stream = gf_mo_register(ai->owner, url, 0);
+	ai->stream = gf_mo_register(ai->owner, url, 0, 0);
 	/*bad URL*/
 	if (!ai->stream) return GF_NOT_SUPPORTED;
 
