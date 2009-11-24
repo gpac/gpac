@@ -235,6 +235,8 @@ enum
 	GPAC_OTI_PRIVATE_SCENE_XBL = 0xC3,
 	/*!OTI for EPG dummy streams (dsi = null) - GPAC internal*/
 	GPAC_OTI_PRIVATE_SCENE_EPG = 0xC4,
+	/*!OTI for WGT dummy streams (dsi = null) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_WGT = 0xC5,
 
 	/*!OTI for streaming SVG - GPAC internal*/
 	GPAC_OTI_SCENE_SVG = 0xD0,

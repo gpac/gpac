@@ -98,6 +98,7 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 		if (!ok) ok = gf_term_check_extension(plug, "image/svg+xml", "svg svg.gz svgz", "SVG Document", sExt);
 		if (!ok) ok = gf_term_check_extension(plug, "image/x-svgm", "svgm", "SVGM Document", sExt);
 		if (!ok) ok = gf_term_check_extension(plug, "application/x-LASeR+xml", "xsr", "LASeR Document", sExt);
+		if (!ok) ok = gf_term_check_extension(plug, "application/widget", "wgt", "W3C Widget Package", sExt);
 
 		if (cgi_par) cgi_par[0] = '?';
 		if (ok) return 1;
@@ -140,6 +141,7 @@ void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			if (strstr(param->value, "image/svg+xml")) read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
 			if (strstr(param->value, "image/x-svgm")) read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
 			if (strstr(param->value, "application/x-LASeR+xml")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			if (strstr(param->value, "application/widget")) read->oti = GPAC_OTI_PRIVATE_SCENE_WGT;
 		}
 		return;
 	} else if (!e && (param->msg_type!=GF_NETIO_DATA_EXCHANGE)) return;
@@ -222,6 +224,8 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			read->oti = GPAC_OTI_PRIVATE_SCENE_LASER;
 		else if (!stricmp(ext, "xbl"))
 			read->oti = GPAC_OTI_PRIVATE_SCENE_XBL;
+		else if (!stricmp(ext, "wgt"))
+			read->oti = GPAC_OTI_PRIVATE_SCENE_WGT;
 
 		if (cgi_par) cgi_par[0] = '?';
 	}
