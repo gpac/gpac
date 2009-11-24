@@ -88,7 +88,7 @@ static GF_MediaObject *get_sync_reference(GF_Scene *scene, XMLRI *iri, u32 o_typ
 }
 
 GF_EXPORT
-GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines)
+GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines, Bool force_new_res)
 {
 	u32 obj_type;
 #ifndef GPAC_DISABLE_SVG
@@ -174,12 +174,13 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines)
 	while (scene->secondary_resource && scene->root_od->parentscene)
 		scene = scene->root_od->parentscene;
 
-	res = gf_scene_get_media_object_ex(scene, url, obj_type, lock_timelines, syncRef, 0, node);
+	res = gf_scene_get_media_object_ex(scene, url, obj_type, lock_timelines, syncRef, force_new_res, node);
 
 	if (res) {
 	}
 	return res;
 }
+
 
 void gf_mo_unregister(GF_Node *node, GF_MediaObject *mo)
 {

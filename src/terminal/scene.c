@@ -554,7 +554,6 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 	}
 	else {
-		GF_Node *root;
 		u32 i, count;
 		count = scene->root_od->mo ? gf_list_count(scene->root_od->mo->nodes) : 0;
 		for (i=0;i<count; i++) {
@@ -597,11 +596,15 @@ GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 ob
 {
 	GF_MediaObject *obj;
 	Bool keep_fragment = 1;
+	Bool first_pass = force_new_if_not_attached ? 0 : 1;
 	u32 i, OD_ID;
 
 	OD_ID = gf_mo_get_od_id(url);
 	if (!OD_ID) return NULL;
 
+	/*the first pass is needed to detect objects already inserted and registered with the given nodes, regardless of 
+	the force_new_if_not_attached flag. This ty^pically occurs when a resource is first created then linked to an animation/inline*/
+restart:
 	obj = NULL;
 	i=0;
 	while ((obj = (GF_MediaObject *)gf_list_enum(scene->scene_objects, &i))) {
@@ -619,8 +622,7 @@ GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 ob
 			)
 		) {
 			
-
-			if (!force_new_if_not_attached) {
+			if (!first_pass && !force_new_if_not_attached) {
 				if (node && (gf_list_find(obj->nodes, node)<0))
 					gf_list_add(obj->nodes, node);
 				return obj;
@@ -630,6 +632,10 @@ GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 ob
 				return obj;
 			}
 		}
+	}
+	if (first_pass) {
+		first_pass = 0;
+		goto restart;
 	}
 
 	/*we cannot create an OD manager at this point*/

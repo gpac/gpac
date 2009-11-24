@@ -44,7 +44,7 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 	}
 
-	if (!st->stream) st->stream = gf_mo_register(node, &st->sensor->url, 0);
+	if (!st->stream) st->stream = gf_mo_register(node, &st->sensor->url, 0, 0);
 	if (!st->stream || !st->stream->odm) return;
 
 	if (!st->is_init) {
@@ -104,7 +104,7 @@ void MS_Modified(GF_Node *node)
 		gf_list_del_item(st->stream->odm->ms_stack, st);
 
 	gf_mo_unregister(node, st->stream);
-	st->stream = gf_mo_register(node, &st->sensor->url, 0);
+	st->stream = gf_mo_register(node, &st->sensor->url, 0, 0);
 	st->is_init = 0;
 	gf_term_invalidate_compositor(st->parent->root_od->term);
 }

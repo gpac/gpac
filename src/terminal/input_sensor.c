@@ -470,7 +470,7 @@ static void TraverseInputSensor(GF_Node *node, void *rs, Bool is_destroy)
 		free(st);
 	} else {
 		/*get decoder object */
-		if (!st->mo) st->mo = gf_mo_register(node, &is->url, 0);
+		if (!st->mo) st->mo = gf_mo_register(node, &is->url, 0, 0);
 		/*register with decoder*/
 		if (st->mo && !st->registered) IS_Register(node);
 	}
@@ -493,7 +493,7 @@ void InputSensorModified(GF_Node *node)
 	GF_MediaObject *mo;
 	ISStack *st = (ISStack *)gf_node_get_private(node);
 
-	mo = gf_mo_register(node, &st->is->url, 0);
+	mo = gf_mo_register(node, &st->is->url, 0, 0);
 	if ((mo!=st->mo) || !st->registered){
 		if (mo!=st->mo) {
 			if (st->mo) IS_Unregister(node, st);

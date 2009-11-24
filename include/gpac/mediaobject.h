@@ -51,7 +51,7 @@ typedef struct _mediaobj GF_MediaObject;
 /*locate media object related to the given node - url designes the object to find - returns NULL if
 URL cannot be handled - note that until the mediaObject.isInit member is true, the media object is not valid
 (and could actually never be) */
-GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines);
+GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines, Bool force_new_res);
 /*unregister the node from the media object*/
 void gf_mo_unregister(GF_Node *node, GF_MediaObject *mo);
 
