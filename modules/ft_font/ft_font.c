@@ -59,7 +59,7 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("[FreeType] Enumerating font %s (%s)\n", file_name, file_path));
 
 	if (FT_New_Face(ftpriv->library, file_path, 0, & face )) return 0;
-	if (!face) return 0;
+	if (!face || !face->family_name) return 0;
 
 	num_faces = face->num_faces;
 	/*locate right font in collection if several*/
