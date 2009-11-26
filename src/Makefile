@@ -117,6 +117,7 @@ endif
 ifneq ($(TRISCOPE_MODE),no)
 
 COMPOSITOR_CFLAGS+=-DGPAC_TRISCOPE_MODE
+SCENEGRAPH_CFLAGS+=-DGPAC_TRISCOPE_MODE
 EXTRALIBS+= -Lcompositor/triscope_renoir
 ifeq ($(TRISCOPE_MODE),simulator)
 EXTRALIBS+= -lViRen_linux -lViRenDrivers_linux -lEmulRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath
@@ -127,6 +128,8 @@ endif
 LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/triscope_renoir.o
 #special malloc for renoir memory
 LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/gltx_malloc.o
+#for dump
+LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/bmp.o
 endif
 
 ## OpenGL not available

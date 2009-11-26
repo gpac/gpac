@@ -608,7 +608,7 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (tr_state->traversing_mode==TRAVERSE_SORT) {
 		if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
-			//DepthGroup_GetNode(node, &stack->dg); /*lets place it below*/
+
 			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 			/*flag is not set for PROTO*/
 			gf_node_dirty_set(node, GF_SG_CHILD_DIRTY, 0);
@@ -641,16 +641,18 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 	{
 		Fixed depth = tr_state->depth;
-                u32 _3d_type = tr_state->_3d_type;
+        u32 _3d_type = tr_state->_3d_type;
 		Fixed depth_gain = tr_state->depth_gain;
 		Fixed depth_offset = tr_state->depth_offset;
 
-                //depth is cumulative
 		tr_state->depth += stack->dg.depth;
-                tr_state->_3d_type=stack->dg._3d_type;
-                //gain and offset are not cumulative
-		tr_state->depth_gain = stack->dg.depth_gain;
-		tr_state->depth_offset = stack->dg.depth_offset;
+        tr_state->_3d_type=stack->dg._3d_type;
+
+        // new offset is multiplied by previous gain and added to previous offset
+		tr_state->depth_offset = (stack->dg.depth_offset * tr_state->depth_gain) + tr_state->depth_offset;
+
+        // gain is multiplied by previous gain
+		tr_state->depth_gain *= stack->dg.depth_gain;
 
 		group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
 

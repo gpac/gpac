@@ -23,10 +23,13 @@ endif
 #common obj
 OBJS= main.o extract.o
 
+#not the same path as local in target
+ifneq ($(CROSS_COMPILING), yes)
 ifeq ($(BUILD_INSTALL), yes)
 INSTALL_FLAGS=-DGPAC_MODULES_PATH=\"$(moddir)\"
 else
 INSTALL_FLAGS=
+endif
 endif
 
 ifeq ($(CONFIG_WIN32),yes)
@@ -69,6 +72,7 @@ LINKLIBS+= -lpng
 endif
 
 ifneq ($(TRISCOPE_MODE),no)
+CFLAGS+=-DGPAC_TRISCOPE_MODE
 #if not local, they are supposed to be dynamic in system - need to link them
 ifeq ($(CONFIG_RENOIR_DRIVERS), unknown)
 LINKLIBS+= -lViRenDrivers_linux
