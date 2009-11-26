@@ -185,7 +185,6 @@ echo "  --mozdir=MOZ_PATH        specify mozilla main directory path for system 
 echo ""
 echo "  --enable-debug           produce debug version"
 echo "  --enable-gprof           enable profiling"
-echo "  --enable-static-bin      enable libgpac static linking of executable (only mp4client as for now) and modules"
 echo "  --enable-pic             enable Position Independant Code for shared objects"
 echo "  --strip                  enable strip"
 echo "  --track-memory           enable tracking of all memory allocated by gpac"
@@ -600,54 +599,21 @@ has_js="prefix"
   fi
  fi
 
-#else
-#debian spidermonkey (smjs)
-#js_flags="-DXP_UNIX -I/usr/include/smjs"
-#js_inc="/usr/include/smjs"
-#if $cc -o $TMPO $TMPC $js_flags -lsmjs 2> /dev/null  ; then
-#has_js="system"
-#js_lib="-lsmjs"
-#else
-##debian spidermonkey (mozjs)
-#js_flags="-DXP_UNIX -I/usr/include/mozjs"
-#js_inc="/usr/include/mozjs"
-#if $cc -o $TMPO $TMPC $js_flags -lmozjs 2> /dev/null  ; then
-#has_js="system"
-#js_lib="-lmozjs"
-#else
-##try local
-#js_inc="$local_inc/js"
-#js_flags="-DXP_UNIX -I$local_inc/js"
-#if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs 2> /dev/null  ; then
-#has_js="local"
-#else
-##try prefix (DC)
-#js_inc="$prefix/include/js"
-#js_flags="-DXP_UNIX -I$prefix/include/js"
-#if $cc -o $TMPO $TMPC $js_flags -L$prefix/lib -ljs 2> /dev/null  ; then
-#has_js="prefix"
-#fi
-#fi
-#fi
-#fi
-#fi
 
-
-#if test "$has_js" != "no" ; then
-#if test "$linux" = "yes" ; then
+if test "$has_js" != "no" ; then
+if test "$linux" = "yes" ; then
 
 #WARNING: there is a bug in MOZJS packages, the MOZILLA_1_8_BRANCH macro is not signaled, there is no way of knowing
 #if the lib has been compiled with or without the macro. We currently just decide that if the macro is present
 #in the header, it was enabled in the build
-# DC, it seems to incorrectly activate macro
-#if grep "MOZILLA_1_8_BRANCH" $js_inc/jsapi.h > /dev/null 2>&1 ; then
-#js_flags="-DMOZILLA_1_8_BRANCH $js_flags"
-#echo "WARNING: Turning on MOZILLA_1_8_BRANCH SpiderMonkey macro"
-#echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
-#fi
+if grep "MOZILLA_1_8_BRANCH" $js_inc/jsapi.h > /dev/null 2>&1 ; then
+js_flags="-DMOZILLA_1_8_BRANCH $js_flags"
+echo "WARNING: Turning on MOZILLA_1_8_BRANCH SpiderMonkey macro"
+echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
+fi
 
-#fi
-#fi
+fi
+fi
 
 #fi
 
@@ -664,18 +630,16 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 if test "$cross_prefix"  != "" ; then
-  if test "`which $prefix/bin/freetype-config`" != ""; then
-    ft_cflags="`$prefix/bin/freetype-config --cflags`"
-    ft_lflags="`$prefix/bin/freetype-config --libs`"
-    if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
+  ft_cflags="-I$prefix/include "
+  ft_lflags="-L$prefix/lib -lfreetype"
+  if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
        has_ft="system"
-    else
+  else
        ft_cflags="-I$local_inc/freetype"
        ft_lflags="-L$local_lib -lfreetype"
        if $cc -o $TMPO $TMPC $ft_cflags $ft_lflags 2> /dev/null  ; then
           has_ft="local"
        fi
-    fi
   fi
 else
   if test "`which freetype-config`" != ""; then
@@ -790,7 +754,6 @@ if test "$cross_prefix"  != "" ; then
   #-nostdlib prevents from searching standard compiler libraries
   #if $cc -o $TMPO $TMPC -nostdlib $png_cflags $png_lflags 2> /dev/null  ; then
   if $cc -o $TMPO $TMPC $png_cflags $png_lflags 2> /dev/null  ; then
-     echo "png in system"
      has_png="system"
   else
      png_cflags="-I$local_inc/png"
@@ -852,14 +815,22 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc -o $TMPO $TMPC -lxvidcore 2> /dev/null  ; then
-has_xvid="system"
-elif test "$alt_macosx_dir" != "" ; then
- if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lxvidcore 2> /dev/null ; then
- has_xvid="system"
- fi
-elif $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore 2> /dev/null  ; then
-has_xvid="local"
+if test "$cross_prefix"  != "" ; then
+  if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib -lxvidcore 2> /dev/null  ; then
+  has_xvid="system"
+  elif $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore 2> /dev/null  ; then
+  has_xvid="local"
+  fi
+else
+  if $cc -o $TMPO $TMPC -lxvidcore 2> /dev/null  ; then
+  has_xvid="system"
+  elif test "$alt_macosx_dir" != "" ; then
+   if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lxvidcore 2> /dev/null ; then
+   has_xvid="system"
+   fi
+  elif $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore 2> /dev/null  ; then
+  has_xvid="local"
+  fi
 fi
 
 #look for FAAD support
@@ -906,6 +877,7 @@ if test "$cross_prefix"  != "" ; then
   else
      if $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
         has_ffmpeg="local"
+        echo OK 
      fi
   fi
 else

@@ -228,9 +228,14 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	
 	}
 #ifdef GPAC_TRISCOPE_MODE
-        //near plane will match front side of the display's stereoscopic box
-        //-> n=D- (dD)/(e+d) 
-        tr_state->camera->z_near = tr_state->visual->compositor->view_distance -
+    /* 3D world calibration for stereoscopic screen */
+
+    //frustum placed to match user's real viewpoint
+	position.z = tr_state->visual->compositor->view_distance;
+
+    //near plane will match front side of the display's stereoscopic box
+    //-> n=D- (dD)/(e+d) 
+    tr_state->camera->z_near = tr_state->visual->compositor->view_distance -
                 (tr_state->visual->compositor->disparity*tr_state->visual->compositor->view_distance)/
                 (tr_state->visual->compositor->e + tr_state->visual->compositor->disparity); 
 #endif
@@ -278,9 +283,13 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 			SFVec3f pos, center;
 			SFRotation r;
 			Fixed fov = GF_PI/4;
-                        #ifdef GPAC_TRISCOPE_MODE
-			fov = 2*atan2((Fixed)(tr_state->visual->compositor->_3d_display_width/(2*tr_state->visual->compositor->view_distance)),1.0);
-                        #endif
+            #ifdef GPAC_TRISCOPE_MODE
+            /* 3D world calibration for stereoscopic screen */
+
+			fov = 2*atan2((Fixed)(tr_state->visual->compositor->_3d_display_width/
+                                    (2*tr_state->visual->compositor->view_distance)),1.0);
+            #endif
+
 			/*default viewpoint*/
 			pos.x = pos.y = 0; pos.z = 10 * FIX_ONE;
 			center.x = center.y = center.z = 0;

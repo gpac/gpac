@@ -682,15 +682,7 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 			/* if heaviest-weighted alpha bit is set (>128) , turn on shape bit*/
 			//if (ds & 0x80) depth |= 0x01;
 			if (alpha & 0x80) ds = (ds >> 1) | 0x80;
-                        //hack, same depth everywhere
-			//if (ds & 0x80) depth = 0xC0; //depth 64
-			//if (alpha & 0x80) ds = 0xCE; //max.depth! 
-			//if (alpha & 0x80) ds = 0xCF; 
-			//if (ds & 0x80) depth = 0xCF;
-			//if (ds & 0x80) depth = 0xA0; //depth 32
-			//if (ds & 0x80) depth = 0x80;
-			//if (ds & 0x80) depth = 0xFF;
-                        else ds = 0x0;
+            else ds = 0x0;
 			txh->data[i*4+3] = ds; /*insert depth onto alpha*/ 
 		}
 

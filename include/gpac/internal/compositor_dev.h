@@ -827,11 +827,11 @@ struct _traversing_state
 	
 	/*depth z-axis info for 2D scenes in triscope mode*/
 	Fixed depth;
-        //signals it is a 2d triscope object (no depth) regardless of depth value
-        u32 _3d_type;
+    //signals it is a 2d triscope object (no depth) regardless of depth value
+    u32 _3d_type;
 
-        //depth gain and offset applied to sub-tree
-        Fixed depth_gain, depth_offset;
+    //depth gain and offset applied to sub-tree
+    Fixed depth_gain, depth_offset;
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 	/*set to 1 if cache evaluation can be skipped - this is only set when there is not enough memory 

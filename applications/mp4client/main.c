@@ -299,10 +299,17 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	/*SDL not so fast with scalable zoom*/
 	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "no");
 #else
+#if defined(GPAC_TRISCOPE_MODE) && !defined(RENOIR_SIMULATOR)
+    //running on target
+	gf_cfg_set_key(cfg, "Video", "DriverName", "SHIX Video Output");
+	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "yes");
+	gf_cfg_set_key(cfg, "Audio", "DriverName", "No Audio Output Available");
+#else
 	gf_cfg_set_key(cfg, "Video", "DriverName", "X11 Video Output");
 	/*x11 only supports scalable zoom*/
 	gf_cfg_set_key(cfg, "Compositor", "ScalableZoom", "yes");
 	gf_cfg_set_key(cfg, "Audio", "DriverName", "SDL Audio Output");
+#endif
 #endif
 #endif
 	gf_cfg_set_key(cfg, "Video", "SwitchResolution", "no");
@@ -310,7 +317,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "Network", "UDPTimeout", "10000");
 	gf_cfg_set_key(cfg, "Network", "BufferLength", "3000");
 #ifdef GPAC_TRISCOPE_MODE
-	gf_cfg_set_key(cfg, "Compositor", "OGLDepthBuffGain", "5");
+	gf_cfg_set_key(cfg, "Compositor", "DirectDraw", "yes");
 #endif
 
 	/*store and reload*/

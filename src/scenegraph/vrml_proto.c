@@ -576,6 +576,15 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 		/*this is an hardcoded proto - all routes, node modifications and co are handled internally*/
 		if (extern_lib == GF_SG_INTERNAL_PROTO) {
 			proto_node->sgprivate->flags |= GF_SG_NODE_DIRTY;
+            // take default values
+		    count = gf_list_count(owner->proto_fields);
+		    for (i=0; i<count; i++) {
+			    GF_ProtoField *pf = (GF_ProtoField *)gf_list_get(proto_node->fields, i);
+			    if (!pf->has_been_accessed) {
+				    pfi = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
+				    gf_sg_vrml_field_copy(pf->field_pointer, pfi->def_value, pfi->FieldType);
+		        }
+            }
 			owner->parent_graph->NodeCallback(owner->parent_graph->userpriv, GF_SG_CALLBACK_INIT, (GF_Node *) proto_node, NULL);
 			return;
 		}

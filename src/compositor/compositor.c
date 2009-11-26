@@ -288,8 +288,13 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->visual->DrawBitmap = compositor_2d_draw_bitmap;
 
 #ifdef GPAC_TRISCOPE_MODE
-        //The framebuffer is handled by Renoir, no need to clear main visual
+
+    // The framebuffer is handled by Renoir, no need to clear main visual
 	compositor->visual->ClearSurface = visual_clear_surface_stub;
+
+    // default value for depth gain is not zero
+	compositor->traverse_state->depth_gain = 1.0;
+
 #endif
 
 	gf_list_add(compositor->visuals, compositor->visual);
@@ -345,6 +350,7 @@ static GF_Compositor *gf_sc_create(GF_User *user)
 	}
 
 	if (!tmp->video_out) {
+        printf("Video driver not found in config file, checking modules...");    
 		u32 i, count;
 		count = gf_modules_get_count(user->modules);
 		for (i=0; i<count; i++) {
@@ -697,6 +703,9 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	gf_mx2d_init(compositor->traverse_state->transform);
 	gf_cmx_init(&compositor->traverse_state->color_mat);
 	compositor->traverse_state->direct_draw = direct_draw;
+    #ifdef GPAC_TRISCOPE_MODE
+	compositor->traverse_state->depth_gain = 1.0;
+    #endif
 
 	assert(!compositor->visual->overlays);
 
@@ -1079,10 +1088,6 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #endif
 	
 #ifdef GPAC_TRISCOPE_MODE
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DepthGain");
-	if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->depth_gain); else ((GF_RenoirHandler *) compositor->RenoirHandler)->depth_gain = 0.0;
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DepthOffset");
-	if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->depth_offset); else ((GF_RenoirHandler *) compositor->RenoirHandler)->depth_offset = 0;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3D_disparity");
 	if (sOpt) sscanf(sOpt, "%f", &compositor->disparity); else compositor->disparity = 12;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3D_res");
@@ -1091,38 +1096,11 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	if (sOpt) sscanf(sOpt, "%f", &compositor->view_distance); else compositor->view_distance = 50;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3D_display_width");
 	if (sOpt) sscanf(sOpt, "%f", &display_width); else display_width = 9;
-        //transform from cm to pixel
-        compositor->view_distance*= compositor->_3d_display_width/display_width;
-        compositor->e= 3.4 * compositor->_3d_display_width/display_width;
-#endif
-        /*
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3dsDepthBuffGain");
-	if (sOpt) ((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthGain = FLT2FIX(atof(sOpt)); 
-	((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthGain = FIX_ONE;
-	
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3dsDepthBuffOffset");
-	if (sOpt) ((GF_RenoirHandler *)compositor->RenoirHandler)->MapDepthOffset  FLT2FIX(atof(sOpt)); 
-	else ((GF_RenoirHandler *) compositor->RenoirHandler)->MapDepthOffset = 0;
-	
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FlatDepthBuffGain");
-	if (sOpt) ((GF_RenoirHandler *)compositor->RenoirHandler)->FlatDepthGain = FLT2FIX(atof(sOpt)); 
-	else ((GF_RenoirHandler *) compositor->RenoirHandler)->FlatDepthGain = FIX_ONE;
-
->>>>>>> 1.109
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffGain");
-	if (sOpt) compositor->OGLDepthGain = FLT2FIX(atof(sOpt)); 
-	else compositor->OGLDepthGain = FIX_ONE;
-	
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OGLDepthBuffOffset");
-<<<<<<< compositor.c
-	if (sOpt) sscanf(sOpt, "%f", &compositor->OGLDepthOffset); else compositor->OGLDepthOffset = 0;
-=======
-	if (sOpt) compositor->OGLDepthOffset = FLT2FIX(atof(sOpt)); 
-	else compositor->OGLDepthOffset = 0;
+    //transform from cm to pixel
+    compositor->view_distance*= compositor->_3d_display_width/display_width;
+    compositor->e= 3.4 * compositor->_3d_display_width/display_width;
 #endif
 
-*/
-	
 	/*RECT texture support - we must reload HW*/
 	compositor->reset_graphics = 1;
 
@@ -2000,7 +1978,13 @@ dump_renoir_ram(compositor);
 	/*not threaded, let the owner decide*/
 	if ((compositor->user->init_flags & GF_TERM_NO_VISUAL_THREAD) || !compositor->frame_duration) return;
 	if (end_time > compositor->frame_duration) {
+	    /*compute sleep time till next frame*/
+#ifdef GPAC_TRISCOPE_MODE
+	    end_time %= compositor->frame_duration;
+	    gf_sleep(compositor->frame_duration - end_time);
+#else
 		gf_sleep(0);
+#endif
 		return;
 	}
 
@@ -2334,53 +2318,6 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			}
 			break;
 		
-#ifdef GPAC_TRISCOPE_MODE
-		case GF_KEY_JOYSTICK:
-			if (event->type==GF_EVENT_KEYUP) {
-				const char *sOpt;
-				switch (event->key.hw_code) {
-				case 4:
-					sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DepthGain");
-					if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->depth_gain); else ((GF_RenoirHandler *) compositor->RenoirHandler)->depth_gain = 1.0;
-					((GF_RenoirHandler *)compositor->RenoirHandler)->depth_gain -= 5;
-					sprintf(sOpt, "%f", ((GF_RenoirHandler *)compositor->RenoirHandler)->depth_gain);
-					gf_cfg_set_key(compositor->user->config, "Compositor", "DepthGain", sOpt);
-					gf_cfg_save(compositor->user->config);
-					return 0;
-
-				case 5:
-					sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DepthOffset");
-					if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->depth_offset); else ((GF_RenoirHandler *) compositor->RenoirHandler)->depth_offset = 0;
-					((GF_RenoirHandler *)compositor->RenoirHandler)->depth_offset -= 5;
-					sprintf(sOpt, "%f", ((GF_RenoirHandler *)compositor->RenoirHandler)->depth_offset);
-					gf_cfg_set_key(compositor->user->config, "Compositor", "DepthOffset", sOpt);
-					gf_cfg_save(compositor->user->config);
-					return 0;
-					
-				case 6:
-					sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DepthGain");
-					if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->depth_gain); else ((GF_RenoirHandler *) compositor->RenoirHandler)->depth_gain = 1.0;
-					((GF_RenoirHandler *)compositor->RenoirHandler)->depth_gain += 5;
-					sprintf(sOpt, "%f", ((GF_RenoirHandler *)compositor->RenoirHandler)->depth_gain);
-					gf_cfg_set_key(compositor->user->config, "Compositor", "DepthGain", sOpt);
-					gf_cfg_save(compositor->user->config);
-					return 0;
-					
-				case 7:
-					sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DepthOffset");
-					if (sOpt) sscanf(sOpt, "%f", &((GF_RenoirHandler *)compositor->RenoirHandler)->depth_offset); else ((GF_RenoirHandler *) compositor->RenoirHandler)->depth_offset = 0;
-					((GF_RenoirHandler *)compositor->RenoirHandler)->depth_offset += 5;
-					sprintf(sOpt, "%f", ((GF_RenoirHandler *)compositor->RenoirHandler)->depth_offset);
-					gf_cfg_set_key(compositor->user->config, "Compositor", "DepthOffset", sOpt);
-					gf_cfg_save(compositor->user->config);
-					return 0;
-					
-				default:
-				    break;
-				}
-			}
-			break;
-#endif
 		}	
 		
 		event->key.flags |= compositor->key_states;

@@ -216,12 +216,14 @@ enum
 	CTX_SVG_OUTLINE_GEOMETRY_DIRTY = 1<<9,
 	/*indicates the context is in a flip coord state (used for image and text flip)*/
 	CTX_FLIPED_COORDS = 1<<10,
-        /*indicates that this triscope object is a 2d object*/
-        CTX_IS_2D = 1<<11,
-        CTX_IS_3DFLAT = 1<<12,
-        CTX_IS_3DMAP = 1<<13,
-        CTX_IS_3DS = 1<<14,
+    /*indicates that this triscope object is a 2d object*/
+    CTX_IS_2D = 1<<11,
+    CTX_IS_3DFLAT = 1<<12,
+    CTX_IS_3DMAP = 1<<13,
+    CTX_IS_3DS = 1<<14,
 };
+
+#define CTX_3DTYPE_MASK 0x7800
 
 #define CTX_REDRAW_MASK	0x00000003
 
