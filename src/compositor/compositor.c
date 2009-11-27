@@ -350,7 +350,6 @@ static GF_Compositor *gf_sc_create(GF_User *user)
 	}
 
 	if (!tmp->video_out) {
-        printf("Video driver not found in config file, checking modules...");    
 		u32 i, count;
 		count = gf_modules_get_count(user->modules);
 		for (i=0; i<count; i++) {
