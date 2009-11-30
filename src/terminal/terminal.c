@@ -110,27 +110,18 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 	}
 
 	if (type==GF_JSAPI_OP_RESOLVE_URI) {
-		char *par_url, *url;
-		u32 i, count;
+		char *url, *new_url;
 		GF_Scene *scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph(n));
 		url = (char *)param->uri.url;
-		par_url = scene->root_od->net_service->url;
 		if (!url) {
 			param->uri.url = strdup(scene->root_od->net_service->url);
 			param->uri.nb_params = 0;
 			return 1;
 		}
 
-		count = gf_list_count(term->uri_relocators);
-		for (i=0; i<count; i++) {
-			GF_URIRelocator *urr = gf_list_get(term->uri_relocators, i);
-			char *new_url = urr->relocate_uri(urr, par_url, url);
-			if (new_url) {
-				param->uri.url = strdup(new_url);
-				return 1;
-			}
-		}
-		param->uri.url = gf_url_concatenate(scene->root_od->net_service->url, url);
+		new_url = gf_term_relocate_url(term, url, scene->root_od->net_service->url);
+		if (new_url) param->uri.url = strdup(new_url);
+		else param->uri.url = gf_url_concatenate(scene->root_od->net_service->url, url);
 		return 1;
 	}
 
@@ -189,6 +180,15 @@ static char *term_check_locales(void *__self, char *parent_uri, char *uri)
 		fclose(f);
 		return loc->szPath;
 	}
+
+	loc->szPath = gf_url_concatenate(parent_uri, uri);
+	if (!loc->szPath) loc->szPath = strdup(uri);
+	f = fopen(loc->szPath, "rb");
+	if (f) {
+		fclose(f);
+		return loc->szPath;
+	}
+
 	return NULL;
 }
 
@@ -1009,26 +1009,35 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 }
 
 
+/* Browses all registered relocators (ZIP-based, ISOFF-based or file-system-based to relocate a URI based on the locale */
+const char *gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url) 
+{
+	u32 i, count;
+
+	i=0;
+	count = gf_list_count(term->uri_relocators);
+	for (i=0; i<count; i++) {
+		GF_URIRelocator *uri_relocator = gf_list_get(term->uri_relocators, i);
+		char *new_url = uri_relocator->relocate_uri(uri_relocator, parent_url, service_url);
+		if (new_url) {
+			return new_url;
+		}
+	}
+	return NULL;
+}
+
 /*connects given OD manager to its URL*/
 void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
 {
 	GF_ClientService *ns;
-	u32 i, count;
+	u32 i;
 	GF_Err e;
+	char *relocated_url;
 	gf_term_lock_net(term, 1);
 
 	/*try to relocate the url*/
-	i=0;
-	count = gf_list_count(term->uri_relocators);
-	for (i=0; i<count; i++) {
-		GF_URIRelocator *uri = gf_list_get(term->uri_relocators, i);
-		char *new_url = uri->relocate_uri(uri, parent_url, serviceURL);
-		if (new_url) {
-			serviceURL = new_url;
-			break;
-		}
-	}
-
+	relocated_url = gf_term_relocate_url(term, serviceURL, parent_url);
+	if (relocated_url) serviceURL = relocated_url;
 
 	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
 	i=0;
