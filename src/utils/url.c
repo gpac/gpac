@@ -137,9 +137,8 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	}
 
 	/*rewrite path to use / not % encoding*/
-	rad = strstr(parentName, "%5");
-	if (!rad) rad = strstr(parentName, "%2");
-	if (rad) {
+	rad = strchr(parentName, '%');
+	if (rad && (!strnicmp(rad, "%5c", 3) || !strnicmp(rad, "%05c", 4) || !strnicmp(rad, "%2f", 3)  || !strnicmp(rad, "%02f", 4))) {
 		char *the_path = strdup(parentName);
 		i=0;
 		while (1) {
