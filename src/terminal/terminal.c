@@ -119,7 +119,7 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 			return 1;
 		}
 
-		new_url = gf_term_relocate_url(term, url, scene->root_od->net_service->url);
+		new_url = (char *) gf_term_relocate_url(term, url, scene->root_od->net_service->url);
 		if (new_url) param->uri.url = strdup(new_url);
 		else param->uri.url = gf_url_concatenate(scene->root_od->net_service->url, url);
 		return 1;
@@ -145,8 +145,7 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 	return 0;
 }
 
-
-static char *term_check_locales(void *__self, char *parent_uri, char *uri)
+static const char *term_check_locales(void *__self, const char *parent_uri, const char *uri)
 {
 	FILE *f;
 	char *str;
@@ -154,8 +153,6 @@ static char *term_check_locales(void *__self, char *parent_uri, char *uri)
 	u32 len;
 
 	GF_TermLocales *loc = (GF_TermLocales*)__self;
-	opt = gf_cfg_get_key(loc->term->user->config, "Systems", "Language2CC");
-	if (!opt) return NULL;
 
 	/*only for relative uri*/
 	if (strstr(uri, "://") || (uri[0]=='/') || strstr(uri, ":\\")) {
@@ -165,20 +162,26 @@ static char *term_check_locales(void *__self, char *parent_uri, char *uri)
 	if (parent_uri && strstr(parent_uri, "://") && strnicmp(parent_uri, "file://", 7)) {
 		return NULL;
 	}
-	len = strlen(uri);
-	str = malloc(sizeof(char) * (len+20));
-	sprintf(str, "locales/%s/%s", opt, uri);
 
-	if (loc->szPath) free(loc->szPath);
+	opt = gf_cfg_get_key(loc->term->user->config, "Systems", "Language2CC");
+	if (!opt) {
+
+		len = strlen(uri);
+		str = malloc(sizeof(char) * (len+20));
+		sprintf(str, "locales/%s/%s", opt, uri);
+
+		if (loc->szPath) free(loc->szPath);
+		
+		loc->szPath = gf_url_concatenate(parent_uri, str);
+		if (!loc->szPath) loc->szPath = strdup(str);
+		free(str);
+
+		f = fopen(loc->szPath, "rb");
+		if (f) {
+			fclose(f);
+			return loc->szPath;
+		}
 	
-	loc->szPath = gf_url_concatenate(parent_uri, str);
-	if (!loc->szPath) loc->szPath = strdup(str);
-	free(str);
-
-	f = fopen(loc->szPath, "rb");
-	if (f) {
-		fclose(f);
-		return loc->szPath;
 	}
 
 	loc->szPath = gf_url_concatenate(parent_uri, uri);
@@ -1018,7 +1021,7 @@ const char *gf_term_relocate_url(GF_Terminal *term, const char *service_url, con
 	count = gf_list_count(term->uri_relocators);
 	for (i=0; i<count; i++) {
 		GF_URIRelocator *uri_relocator = gf_list_get(term->uri_relocators, i);
-		char *new_url = uri_relocator->relocate_uri(uri_relocator, parent_url, service_url);
+		const char *new_url = uri_relocator->relocate_uri(uri_relocator, parent_url, service_url);
 		if (new_url) {
 			return new_url;
 		}
@@ -1032,12 +1035,12 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	GF_ClientService *ns;
 	u32 i;
 	GF_Err e;
-	char *relocated_url;
+	const char *relocated_url;
 	gf_term_lock_net(term, 1);
 
 	/*try to relocate the url*/
 	relocated_url = gf_term_relocate_url(term, serviceURL, parent_url);
-	if (relocated_url) serviceURL = relocated_url;
+	if (relocated_url) serviceURL = (char *) relocated_url;
 
 	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
 	i=0;
