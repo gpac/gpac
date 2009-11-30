@@ -290,7 +290,7 @@ otherwise returns the translated URI
 */
 
 #define GF_TERM_URI_RELOCATOR	\
-	char *(*relocate_uri)(void *__self, char *parent_uri, char *uri);		\
+	const char *(*relocate_uri)(void *__self, const char *parent_uri, const char *uri);		\
 
 typedef struct __gf_uri_relocator GF_URIRelocator;
 
