@@ -1034,7 +1034,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		const char *user_profile;
 		const char *param_string;
 		u32 size;
-		Bool has_accept, has_connection, has_range, has_agent, send_profile;
+		Bool has_accept, has_connection, has_range, has_agent, has_language, send_profile;
 
 		/*setup authentification*/
 		strcpy(pass_buf, "");
@@ -1104,7 +1104,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		if (!strcmp(sess->remote_path, "/")) strcat(sHTTP, "icy-metadata:1\r\n");
 
 		/*get all headers*/
-		has_agent = has_accept = has_connection = has_range = 0;
+		has_agent = has_accept = has_connection = has_range = has_language = 0;
 		while (1) {
 			par.msg_type = GF_NETIO_GET_HEADER;
 			par.name = NULL;
@@ -1119,6 +1119,8 @@ void http_do_requests(GF_DownloadSession *sess)
 			else if (!strcmp(par.name, "Connection")) has_connection = 1;
 			else if (!strcmp(par.name, "Range")) has_range = 1;
 			else if (!strcmp(par.name, "User-Agent")) has_agent = 1;
+			else if (!strcmp(par.name, "Accept-Language")) has_language = 1;
+			if (!par.msg_type) break;
 		}
 		if (!has_agent) {
 			strcat(sHTTP, "User-Agent: ");
@@ -1131,6 +1133,15 @@ void http_do_requests(GF_DownloadSession *sess)
 			sprintf(range_buf, "Range: bytes=%d-\r\n", sess->cache_start_size);
 			strcat(sHTTP, range_buf);
 		}
+		if (!has_language) {
+			const char *opt = gf_cfg_get_key(sess->dm->cfg, "Systems", "Language2CC");
+			if (opt) {
+				strcat(sHTTP, "Accept-Language: ");
+				strcat(sHTTP, opt);
+				strcat(sHTTP, "\r\n");
+			}
+		}
+
 		if (strlen(pass_buf)) {
 			strcat(sHTTP, pass_buf);
 			strcat(sHTTP, "\r\n");
@@ -1270,7 +1281,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			BodyStart = bytesRead;
 
 		sHTTP[BodyStart-1] = 0;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s\n\n", sHTTP));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] %s\n\n", sHTTP));
 
 		LinePos = gf_token_get_line(sHTTP, 0, bytesRead, buf, 1024);
 		Pos = gf_token_get(buf, 0, " \t\r\n", comp, 400);
