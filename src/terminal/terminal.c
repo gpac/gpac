@@ -162,30 +162,20 @@ static const char *term_check_locales(void *__self, const char *parent_uri, cons
 	if (parent_uri && strstr(parent_uri, "://") && strnicmp(parent_uri, "file://", 7)) {
 		return NULL;
 	}
-
 	opt = gf_cfg_get_key(loc->term->user->config, "Systems", "Language2CC");
-	if (!opt) {
+	if (!opt) return NULL;
 
-		len = strlen(uri);
-		str = malloc(sizeof(char) * (len+20));
-		sprintf(str, "locales/%s/%s", opt, uri);
 
-		if (loc->szPath) free(loc->szPath);
-		
-		loc->szPath = gf_url_concatenate(parent_uri, str);
-		if (!loc->szPath) loc->szPath = strdup(str);
-		free(str);
+	len = strlen(uri);
+	str = malloc(sizeof(char) * (len+20));
+	sprintf(str, "locales/%s/%s", opt, uri);
 
-		f = fopen(loc->szPath, "rb");
-		if (f) {
-			fclose(f);
-			return loc->szPath;
-		}
+	if (loc->szPath) free(loc->szPath);
 	
-	}
+	loc->szPath = gf_url_concatenate(parent_uri, str);
+	if (!loc->szPath) loc->szPath = strdup(str);
+	free(str);
 
-	loc->szPath = gf_url_concatenate(parent_uri, uri);
-	if (!loc->szPath) loc->szPath = strdup(uri);
 	f = fopen(loc->szPath, "rb");
 	if (f) {
 		fclose(f);
