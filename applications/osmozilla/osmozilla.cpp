@@ -275,18 +275,15 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	
 #ifdef XP_WIN
 	gpac_cfg = (char *)"GPAC.cfg";
-#ifdef _DEBUG
-//#if 0
-	strcpy((char *) config_path, "D:\\CVS\\gpac\\bin\\win32\\debug");
-#else
+
 	HKEY hKey = NULL;
 	DWORD dwSize;
-	RegOpenKeyEx(HKEY_CLASSES_ROOT, "GPAC", 0, KEY_READ, &hKey);
+	/*locate the key in current user, then in local machine*/
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\GPAC", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
+		RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\GPAC", 0, KEY_READ, &hKey);
 	dwSize = GF_MAX_PATH;
 	RegQueryValueEx(hKey, "InstallDir", NULL, NULL,(unsigned char*) config_path, &dwSize);
 	RegCloseKey(hKey);
-#endif
-
 #endif	/*XP_WIN*/
 
 #ifdef XP_UNIX

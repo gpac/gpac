@@ -6,15 +6,16 @@ Icon "..\..\..\..\doc\osmo4.ico"
 UninstallIcon "..\..\..\..\doc\osmo4.ico"
 
 !define GPAC_VERSION	0.4.6
-!define /date RELDATE "%Y%m%d"
+!define /date RELDATE "%Y%m%d_%H%M"
 
 !define GPAC_ROOT ..\..\..\..
 
 Name "GPAC Framework ${GPAC_VERSION}"
 OutFile "GPAC.Framework.Setup-${RELDATE}.exe"
 
-InstallDir $PROGRAMFILES\GPAC
-InstallDirRegKey HKLM SOFTWARE\GPAC "Install_Dir"
+
+InstallDir "$PROGRAMFILES\GPAC"
+InstallDirRegKey HKCU "SOFTWARE\GPAC" "InstallDir"
 
 
 LicenseText "GPAC Licence"
@@ -26,6 +27,110 @@ InstType Normal
 
 
 ComponentText "This will install the GPAC Framework on your computer. Select which optional things you want installed."
+
+
+Function FctWriteRegStrAuth
+   ;local var
+   Push $0
+   Push $R0
+   Push $R1
+   Push $R2
+   Push $R3
+   ;pop function arguments
+   Exch 5
+   Pop $R3
+   Exch 5
+   Pop $R2
+   Exch 5
+   Pop $R1
+   Exch 5
+   Pop $R0
+   
+   ;Romain: debug print
+   userInfo::getAccountType
+   Pop $0
+   DetailPrint "WriteRegStr $R0($0) $R1 $R2 $R3"
+
+   ;test if calling HKCR
+   StrCmp $R0 "HKCR" +1 +3
+   WriteRegStr HKCR $R1 $R2 $R3
+   goto lbl_end
+   
+   #has current user admin privileges?
+   userInfo::getAccountType
+   Pop $0
+   StrCmp $0 "Admin" lbl_admin lbl_not_admin
+
+   lbl_admin:
+      WriteRegStr HKLM $R1 $R2 $R3
+      DetailPrint "  WriteRegStr HKLM $R1 $R2 $R3"
+      goto lbl_end
+
+   lbl_not_admin:
+      WriteRegStr HKCU $R1 $R2 $R3
+      DetailPrint "  WriteRegStr HKCU $R1 $R2 $R3"
+
+   lbl_end:
+      Pop $R3
+      Pop $R2
+      Pop $R1
+      Pop $R0
+      Pop $0
+FunctionEnd
+
+!macro WriteRegStrAuth HKREG SUBREG ENTRY VALUESTR
+    Push "${HKREG}"
+    Push "${SUBREG}"
+    Push "${ENTRY}"
+    Push "${VALUESTR}"
+    Call FctWriteRegStrAuth
+!macroend
+ 
+!define WriteRegStrAuth "!insertmacro WriteRegStrAuth"
+
+
+Function un.FctDeleteRegKeyAuth
+   ;local var
+   Push $0
+   Push $R0
+   Push $R1
+   ;pop function arguments
+   Exch 3
+   Pop $R1
+   Exch 3
+   Pop $R0
+
+   ;test if calling HKCR
+   StrCmp $R0 "HKCR" +1 +3
+   DeleteRegKey HKCR $R1
+   goto lbl_end
+   
+   #has current user admin privileges?
+   userInfo::getAccountType
+   Pop $0
+   StrCmp $0 "Admin" lbl_admin lbl_not_admin
+   
+   lbl_admin:
+      DeleteRegKey HKLM $R1
+      goto lbl_end
+   
+   lbl_not_admin:
+      DeleteRegKey HKCU $R1
+
+   lbl_end:
+      Pop $0
+      Pop $R1
+      Pop $R0
+FunctionEnd
+
+!macro DeleteRegKeyAuth HKREG SUBREG
+    Push "${HKREG}"
+    Push "${SUBREG}"
+    Call un.FctDeleteRegKeyAuth
+!macroend
+ 
+!define DeleteRegKeyAuth "!insertmacro DeleteRegKeyAuth"
+
 
 Function InsertGDIPLUS
    Push $R0
@@ -93,11 +198,10 @@ Section "Osmo4/GPAC Player"
   SetOutPath $INSTDIR\cache
 
   SetOutPath $INSTDIR
-
-
-  WriteRegStr HKLM SOFTWARE\GPAC "Install_Dir" "$INSTDIR"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osmo4" "DisplayName" "Osmo4/GPAC (remove only)"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osmo4" "UninstallString" '"$INSTDIR\uninstall.exe"'
+  
+  ${WriteRegStrAuth} HKCU "SOFTWARE\GPAC" "InstallDir" "$INSTDIR"
+  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osmo4" "DisplayName" "Osmo4/GPAC (remove only)"
+  ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osmo4" "UninstallString" "$INSTDIR\uninstall.exe"
   WriteUninstaller "uninstall.exe"
 
 SectionEnd
@@ -239,6 +343,11 @@ SubSection "Osmo4 Shortcuts"
 
 Section "Add Start Menu Shortcuts"
   SectionIn 1
+  #has current user admin privileges?
+  userInfo::getAccountType
+  Pop $0
+  StrCmp $0 "Admin" +1 +2
+  SetShellVarContext all
   CreateDirectory "$SMPROGRAMS\Osmo4"
   CreateShortCut "$SMPROGRAMS\Osmo4\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
   CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
@@ -264,10 +373,9 @@ SectionEnd
 Section "Make Osmo4 the default MPEG-4 Player"
   SectionIn 1
   ;write file association
-  WriteRegStr HKCR GPAC\mp4\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
-  WriteRegStr HKCR GPAC\mp4\Shell\open\command "" '$INSTDIR\Osmo4.exe "%L" '
-  WriteRegStr HKCR .mp4 "" "GPAC\mp4"
-
+  ${WriteRegStrAuth} HKCR GPAC\mp4\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
+  ${WriteRegStrAuth} HKCR GPAC\mp4\Shell\open\command "" "$INSTDIR\Osmo4.exe %L"
+  ${WriteRegStrAuth} HKCR .mp4 "" "GPAC\mp4"
   !system 'shell32.dll::SHChangeNotify(i, i, i, i) v (${SHCNE_ASSOCCHANGED}, ${SHCNF_IDLIST}, 0, 0)'
 
 SectionEnd
@@ -275,18 +383,18 @@ SectionEnd
 Section "Associate 3GPP files (3GP) with Osmo4"
   SectionIn 1
   ;write file association
-  WriteRegStr HKCR GPAC\3gp\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
-  WriteRegStr HKCR GPAC\3gp\Shell\open\command "" '$INSTDIR\Osmo4.exe "%L" '
-  WriteRegStr HKCR .3gp "" "GPAC\3gp"
+  ${WriteRegStrAuth} HKCR GPAC\3gp\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
+  ${WriteRegStrAuth} HKCR GPAC\3gp\Shell\open\command "" "$INSTDIR\Osmo4.exe %L"
+  ${WriteRegStrAuth} HKCR .3gp "" "GPAC\3gp"
   !system 'shell32.dll::SHChangeNotify(i, i, i, i) v (${SHCNE_ASSOCCHANGED}, ${SHCNF_IDLIST}, 0, 0)'
 SectionEnd
 
 Section "Associate 3GPP2 files (3G2) with Osmo4"
   SectionIn 1
   ;write file association
-  WriteRegStr HKCR GPAC\3g2\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
-  WriteRegStr HKCR GPAC\3g2\Shell\open\command "" '$INSTDIR\Osmo4.exe "%L" '
-  WriteRegStr HKCR .3g2 "" "GPAC\3g2"
+  ${WriteRegStrAuth} HKCR GPAC\3g2\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
+  ${WriteRegStrAuth} HKCR GPAC\3g2\Shell\open\command "" "$INSTDIR\Osmo4.exe %L"
+  ${WriteRegStrAuth} HKCR .3g2 "" "GPAC\3g2"
   !system 'shell32.dll::SHChangeNotify(i, i, i, i) v (${SHCNE_ASSOCCHANGED}, ${SHCNF_IDLIST}, 0, 0)'
 SectionEnd
 
@@ -307,17 +415,16 @@ SectionEnd
 
 Section "Osmozilla (GPAC Plugin for Mozilla)"
   SectionIn 1
-  SetOutPath $INSTDIR\mozilla
+  SetOutPath $INSTDIR
   File "..\nposmozilla.dll"
   File "..\nposmozilla.xpt"
 
-  WriteRegStr HKCR GPAC "InstallDir" "$INSTDIR"
-  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Path" "$INSTDIR\mozilla\nposmozilla.dll"
-  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "XPTPath" "$INSTDIR\mozilla\nposmozilla.xpt"
-  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Version" "${GPAC_VERSION}"
-  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Vendor" "GPAC"
-  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Description" "GPAC plugin"
-  WriteRegStr HKLM "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "ProductName" "Osmozilla"
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Path" "$INSTDIR\nposmozilla.dll"
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "XPTPath" "$INSTDIR\nposmozilla.xpt"
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Version" "${GPAC_VERSION}"
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Vendor" "GPAC"
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Description" "GPAC plugin"
+  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "ProductName" "Osmozilla"
 SectionEnd
 
 
@@ -325,7 +432,6 @@ Section "GPAX (GPAC ActiveX Control)"
   SectionIn 1
   SetOutPath $INSTDIR
   File "..\GPAX.dll"
-  WriteRegStr HKCR GPAC "InstallDir" "$INSTDIR"
   RegDLL "$INSTDIR\GPAX.dll"
 SectionEnd
 
@@ -337,11 +443,15 @@ Section "MP4Client (GPAC Command-line client/grabber)"
 SectionEnd
 
 
-; Function .onInstSuccess
+Function .onInstSuccess
 ;  MessageBox MB_YESNO "GPAC Framework installation complete. Do you want to launch the Osmo4 player?" IDNO NoLaunch
-;    Exec $INSTDIR\Osmo4.exe
-;  NoLaunch:
-; FunctionEnd
+   #admins must launch Osmo4 to generate a cfg file (other users may not have access to the installation directory)
+   userInfo::getAccountType
+   Pop $0
+   StrCmp $0 "Admin" +1 +2
+   Exec $INSTDIR\Osmo4.exe
+   NoLaunch:
+FunctionEnd
 
 
 
@@ -354,27 +464,39 @@ UninstallText "This will uninstall OSMO4/GPAC from your computer. Hit next to co
 ; special uninstall section.
 Section "Uninstall"
   ; remove registry keys
-  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osmo4"
-  DeleteRegKey HKLM SOFTWARE\GPAC
-  DeleteRegKey HKCR mp4file\DefaultIcon
-  DeleteRegKey HKCR mp4file\shell
-  DeleteRegKey HKCR .mp4
-  DeleteRegKey HKCR btfile\shell
-  DeleteRegKey HKCR .bt
+  ${DeleteRegKeyAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Osmo4"
+  ${DeleteRegKeyAuth} HKCU "SOFTWARE\GPAC"
+  ${DeleteRegKeyAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0"
+  ${DeleteRegKeyAuth} HKCR GPAC\mp4\DefaultIcon
+  ${DeleteRegKeyAuth} HKCR GPAC\mp4\shell\open\command
+  ${DeleteRegKeyAuth} HKCR GPAC\mp4
+  ${DeleteRegKeyAuth} HKCR .mp4
+  ${DeleteRegKeyAuth} HKCR GPAC\3gp\DefaultIcon
+  ${DeleteRegKeyAuth} HKCR GPAC\3gp\shell\open\command
+  ${DeleteRegKeyAuth} HKCR GPAC\3gp
+  ${DeleteRegKeyAuth} HKCR .3gp
+  ${DeleteRegKeyAuth} HKCR GPAC\3g2\DefaultIcon
+  ${DeleteRegKeyAuth} HKCR GPAC\3g2\shell\open\command
+  ${DeleteRegKeyAuth} HKCR GPAC\3g2
+  ${DeleteRegKeyAuth} HKCR .3g2
+  ${DeleteRegKeyAuth} HKCR GPAC
 
   Delete $INSTDIR\cache\*.*
   RMDir "$INSTDIR\cache"
-  Delete $INSTDIR\mozilla\*.*
-  RMDir "$INSTDIR\mozilla"
   Delete $INSTDIR\*.*
   RMDir "$INSTDIR"
+  UnRegDLL "$INSTDIR\GPAX.dll"
+  Push $INSTDIR
+  Call un.RemoveFromPath
+  #has current user admin privileges?
+  userInfo::getAccountType
+  Pop $0
+  StrCmp $0 "Admin" +1 +2
+  SetShellVarContext all
   Delete "$SMPROGRAMS\Osmo4\*.*"
   RMDir "$SMPROGRAMS\Osmo4"
   Delete "$QUICKLAUNCH\Osmo4.lnk"
   Delete "$DESKTOP\Osmo4.lnk"
-  UnRegDLL "$INSTDIR\GPAX.dll"
-  Push $INSTDIR
-  Call un.RemoveFromPath
 
 SectionEnd
 
@@ -443,7 +565,16 @@ Function AddToPath
       StrCpy $0 "$1;$0"
     AddToPath_NTdoIt:
       WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "PATH" $0
-      SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
+
+    ReadRegStr $1 HKCU "Environment" "PATH"
+    StrCpy $2 $1 1 -1 # copy last char
+    StrCmp $2 ";" 0 +2 # if last char == ;
+      StrCpy $1 $1 -1 # remove last char
+    StrCmp $1 "" AddToPath_NTdoIt2
+      StrCpy $0 "$1;$0"
+    AddToPath_NTdoIt2:
+      WriteRegExpandStr HKCU "Environment" "PATH" $0
+    SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
   AddToPath_done:
     Pop $3
@@ -503,7 +634,7 @@ Function un.RemoveFromPath
       Goto unRemoveFromPath_done
 
   unRemoveFromPath_NT:
-    ReadRegStr $1 HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "PATH"
+    ReadRegStr $1 HKCU "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "PATH"
     StrCpy $5 $1 1 -1 # copy last char
     StrCmp $5 ";" +2 # if last char != ;
       StrCpy $1 "$1;" # append ;
@@ -525,7 +656,7 @@ Function un.RemoveFromPath
       StrCmp $5 ";" 0 +2 # if last char == ;
         StrCpy $3 $3 -1 # remove last char
 
-      WriteRegExpandStr HKLM "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "PATH" $3
+      WriteRegExpandStr HKCU "SYSTEM\CurrentControlSet\Control\Session Manager\Environment" "PATH" $3
       SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
 
   unRemoveFromPath_done:

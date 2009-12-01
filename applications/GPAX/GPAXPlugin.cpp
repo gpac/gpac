@@ -256,6 +256,8 @@ void CGPAXPlugin::LoadDATAUrl()
 
 }
 
+#define GPAC_REG_KEY	HKEY_CURRENT_USER
+
 //Create window message fuction. when the window is created, also initialize a instance of
 //GPAC player instance.
 LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHandled)
@@ -280,14 +282,16 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
     DWORD dwSize;
 #ifdef _WIN32_WCE
     u16 w_path[1024];
-	RegOpenKeyEx(HKEY_CLASSES_ROOT, TEXT("GPAC"), 0, KEY_READ, &hKey);
+	RegOpenKeyEx(GPAC_REG_KEY, TEXT("Software\\GPAC"), 0, KEY_READ, &hKey);
 	DWORD dwType = REG_SZ;
     dwSize = GF_MAX_PATH;
     RegQueryValueEx(hKey, TEXT("InstallDir"), 0, &dwType, (LPBYTE) w_path, &dwSize);
 	CE_WideToChar(w_path, (char *)config_path);
     RegCloseKey(hKey);
 #else
-    RegOpenKeyEx(HKEY_CLASSES_ROOT, "GPAC", 0, KEY_READ, &hKey);
+	/*locate the key in current user, then in local machine*/
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\GPAC", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
+		RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\GPAC", 0, KEY_READ, &hKey);
     dwSize = GF_MAX_PATH;
     RegQueryValueEx(hKey, "InstallDir", NULL, NULL, (unsigned char*) config_path, &dwSize);
     RegCloseKey(hKey);
