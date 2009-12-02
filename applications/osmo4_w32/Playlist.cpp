@@ -360,7 +360,7 @@ void Playlist::RefreshList()
 	}
 
 
-	strcpy((char *) szPath, GetApp()->szAppPath);
+	strcpy((char *) szPath, GetApp()->szUserPath);
 	strcat(szPath, "gpac_pl.m3u");
 	Save(szPath, 1);
 }
