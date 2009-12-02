@@ -37,7 +37,9 @@
 //#define GPAC_FIXED_POINT
 
 /*enables GPAC memory tracking*/
-//#define GPAC_MEMORY_TRACKING
+#ifdef _DEBUG
+#define GPAC_MEMORY_TRACKING
+#endif
 
 /*platform is big endian*/
 //#define GPAC_BIG_ENDIAN

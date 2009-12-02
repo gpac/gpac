@@ -41,6 +41,7 @@ static GF_Err PNG_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	u32 i = 0;
 	GF_Descriptor *d = NULL;
 	PNGCTX();
+	esd->OCRESID = 30;
 	if (ctx->ES_ID && ctx->ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
 	ctx->ES_ID = esd->ESID;
 
