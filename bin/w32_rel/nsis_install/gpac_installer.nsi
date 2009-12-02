@@ -45,11 +45,6 @@ Function FctWriteRegStrAuth
    Pop $R1
    Exch 5
    Pop $R0
-   
-   ;Romain: debug print
-   userInfo::getAccountType
-   Pop $0
-   DetailPrint "WriteRegStr $R0($0) $R1 $R2 $R3"
 
    ;test if calling HKCR
    StrCmp $R0 "HKCR" +1 +3
@@ -63,12 +58,10 @@ Function FctWriteRegStrAuth
 
    lbl_admin:
       WriteRegStr HKLM $R1 $R2 $R3
-      DetailPrint "  WriteRegStr HKLM $R1 $R2 $R3"
       goto lbl_end
 
    lbl_not_admin:
       WriteRegStr HKCU $R1 $R2 $R3
-      DetailPrint "  WriteRegStr HKCU $R1 $R2 $R3"
 
    lbl_end:
       Pop $R3
@@ -445,12 +438,8 @@ SectionEnd
 
 Function .onInstSuccess
 ;  MessageBox MB_YESNO "GPAC Framework installation complete. Do you want to launch the Osmo4 player?" IDNO NoLaunch
-   #admins must launch Osmo4 to generate a cfg file (other users may not have access to the installation directory)
-   userInfo::getAccountType
-   Pop $0
-   StrCmp $0 "Admin" +1 +2
-   Exec $INSTDIR\Osmo4.exe
-   NoLaunch:
+;  Exec $INSTDIR\Osmo4.exe
+;  NoLaunch:
 FunctionEnd
 
 
