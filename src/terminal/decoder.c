@@ -642,8 +642,10 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	}
 	/*image codecs - usually only one image is tolerated in the stream, but just in case force reset of CB*/
 	if ((codec->CB->Capacity==1) && codec->CB->UnitCount && (obj_time>=AU->CTS)) {
+		gf_mx_p(codec->odm->mx);
 		codec->CB->output->dataLength = 0;
 		codec->CB->UnitCount = 0;
+		gf_mx_v(codec->odm->mx);
 	}
 
 	/*try to refill the full buffer*/
