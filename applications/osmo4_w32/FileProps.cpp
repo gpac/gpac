@@ -362,7 +362,7 @@ void CFileProps::OnViewsg()
 	char szOutRadname[GF_MAX_PATH], *pFilename=NULL;
 	Osmo4 *gpac = GetApp();
 
-	strcpy(szOutRadname, gpac->szAppPath);
+	strcpy(szOutRadname, gpac->szUserPath);
 	strcat(szOutRadname, "scene_dump");
 
 	GF_Err e = gf_term_dump_scene(gpac->m_term, (char *) szOutRadname, &pFilename, gpac->m_ViewXMTA, 0, current_odm);

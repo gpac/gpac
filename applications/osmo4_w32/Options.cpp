@@ -1762,7 +1762,7 @@ void OptFiles::OnAssociate()
 	unsigned char szApp[MAX_PATH];
 	unsigned char szIco[MAX_PATH];
 
-	strcpy((char *) szApp, GetApp()->szAppPath);
+	strcpy((char *) szApp, GetApp()->szApplicationPath);
 	strcpy((char *) szIco, (const char *) szApp);
 	strcat((char *) szIco, "Osmo4.ico");
 	strcat((char *) szApp, "Osmo4.exe \"%L\"");

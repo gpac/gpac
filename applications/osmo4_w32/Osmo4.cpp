@@ -4,7 +4,7 @@
 #include "stdafx.h"
 #include "Osmo4.h"
 #include <gpac/network.h>
-
+#include <direct.h>
 #include "MainFrm.h"
 #include "OpenUrl.h"
 
@@ -370,6 +370,9 @@ static void osmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_lis
 
 BOOL Osmo4::InitInstance()
 {
+	char config_file[MAX_PATH];
+	FILE *ft;
+	Bool write_access;
 	CCommandLineInfo cmdInfo;
 
 	m_logs = NULL;
@@ -378,25 +381,55 @@ BOOL Osmo4::InitInstance()
 
 	memset(&m_user, 0, sizeof(GF_User));
 
-	strcpy((char *) szAppPath, AfxGetApp()->m_pszHelpFilePath);
-	while (szAppPath[strlen((char *) szAppPath)-1] != '\\') szAppPath[strlen((char *) szAppPath)-1] = 0;
-	if (szAppPath[strlen((char *) szAppPath)-1] != '\\') strcat(szAppPath, "\\");
+	/*get Osmo4.exe path*/
+	strcpy((char *) szApplicationPath, AfxGetApp()->m_pszHelpFilePath);
+	while (szApplicationPath[strlen((char *) szApplicationPath)-1] != '\\') szApplicationPath[strlen((char *) szApplicationPath)-1] = 0;
+	if (szApplicationPath[strlen((char *) szApplicationPath)-1] != '\\') strcat(szApplicationPath, "\\");
+
+	/*do we have the write privileges on this dir ? if no, use Documents and Settings*/
+	strcpy(config_file, szApplicationPath);
+	strcat(config_file, "test.txt");
+	ft = fopen(config_file, "wb");
+	if (ft != NULL) {
+		fclose(ft);
+		gf_delete_file(config_file);
+		write_access = 0;
+	} else {
+		write_access = 0;
+	}
+
+	/*get GPAC.cfg path*/
+	if (write_access) {
+		strcat(szUserPath, szApplicationPath);
+	} else {
+		SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, szUserPath);
+		if (szUserPath[strlen((char *) szUserPath)-1] != '\\') strcat(szUserPath, "\\");
+		strcat(szUserPath, "GPAC\\");
+		/*create GPAC dir*/
+		_mkdir(szUserPath);
+	}
 
 	/*setup user*/
 	memset(&m_user, 0, sizeof(GF_User));
 
 	Bool first_launch = 0;
 	/*init config and modules*/
-	m_user.config = gf_cfg_new((const char *) szAppPath, "GPAC.cfg");
+	m_user.config = gf_cfg_new((const char *) szUserPath, "GPAC.cfg");
 	if (!m_user.config) {
 		first_launch = 1;
 		/*create blank config file in the exe dir*/
-		unsigned char config_file[MAX_PATH];
-		strcpy((char *) config_file, (const char *) szAppPath);
+		char config_file[MAX_PATH];
+
+		strcpy(config_file, szUserPath);
+		/*create GPAC cache dir*/
+		strcat(config_file, "cache");
+		_mkdir(config_file);
+
+		strcpy((char *) config_file, (const char *) szUserPath);
 		strcat((char *) config_file, "GPAC.cfg");
-		FILE *ft = fopen((const char *) config_file, "wt");
+		ft = fopen((const char *) config_file, "wt");
 		fclose(ft);
-		m_user.config = gf_cfg_new((const char *) szAppPath, "GPAC.cfg");
+		m_user.config = gf_cfg_new((const char *) szUserPath, "GPAC.cfg");
 		if (!m_user.config) {
 			MessageBox(NULL, "GPAC Configuration file not found", "Fatal Error", MB_OK);
 			m_pMainWnd->PostMessage(WM_CLOSE);
@@ -475,17 +508,17 @@ BOOL Osmo4::InitInstance()
 	if (!m_user.modules) {
 		const char *sOpt;
 		/*inital launch*/
-		m_user.modules = gf_modules_new(szAppPath, m_user.config);
+		m_user.modules = gf_modules_new(szApplicationPath, m_user.config);
 		if (m_user.modules) {
 			unsigned char str_path[MAX_PATH];
-			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) szAppPath);
+			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) szApplicationPath);
 
 			sOpt = gf_cfg_get_key(m_user.config, "Compositor", "Raster2D");
 			if (!sOpt) gf_cfg_set_key(m_user.config, "Compositor", "Raster2D", "GPAC 2D Raster");
 
 			sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
 			if (!sOpt) {
-				sprintf((char *) str_path, "%scache", szAppPath);
+				sprintf((char *) str_path, "%scache", szUserPath);
 				gf_cfg_set_key(m_user.config, "General", "CacheDirectory", (const char *) str_path);
 			}
 			/*setup UDP traffic autodetect*/
@@ -504,7 +537,7 @@ BOOL Osmo4::InitInstance()
 				}
 			}
 
-			sprintf((char *) str_path, "%sgpac.mp4", szAppPath);
+			sprintf((char *) str_path, "%sgpac.mp4", szApplicationPath);
 			gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
 		}
 
@@ -643,7 +676,7 @@ BOOL Osmo4::InitInstance()
 		pFrame->m_pPlayList->PlayNext();
 	} else {
 		char sPL[MAX_PATH];
-		strcpy((char *) sPL, szAppPath);
+		strcpy((char *) sPL, szUserPath);
 		strcat(sPL, "gpac_pl.m3u");
 		pFrame->m_pPlayList->OpenPlayList(sPL);
 		const char *sOpt = gf_cfg_get_key(GetApp()->m_user.config, "General", "PLEntry");
