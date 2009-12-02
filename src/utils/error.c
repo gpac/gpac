@@ -260,7 +260,7 @@ static int unregister_address(void *ptr, char *filename, int line)
 			}
 		} else {
 			size = gf_memory_del_item(&memory_add, ptr);
-			assert(size);
+			assert(size>=0);
 
 			/*update stats*/
 			gpac_allocated_memory -= size;
