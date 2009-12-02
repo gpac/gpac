@@ -393,7 +393,7 @@ BOOL Osmo4::InitInstance()
 	if (ft != NULL) {
 		fclose(ft);
 		gf_delete_file(config_file);
-		write_access = 0;
+		write_access = 1;
 	} else {
 		write_access = 0;
 	}
