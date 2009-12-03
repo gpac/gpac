@@ -40,6 +40,8 @@
 #include <nsISupportsUtils.h>
 #include <nsISupports.h>
 #include <nsMemory.h>
+#include <direct.h>
+#include <shlobj.h>
 
 #include "osmozilla.h"
 
@@ -267,7 +269,8 @@ static void osmozilla_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va
 
 NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 {	
-	unsigned char config_path[GF_MAX_PATH];
+	FILE *ft;
+	char config_path[GF_MAX_PATH], config_test_file[GF_MAX_PATH];
 	char *gpac_cfg;
 	const char *str;
 	
@@ -284,6 +287,21 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	dwSize = GF_MAX_PATH;
 	RegQueryValueEx(hKey, "InstallDir", NULL, NULL,(unsigned char*) config_path, &dwSize);
 	RegCloseKey(hKey);
+
+	/*do we have write access?*/
+	strcpy(config_test_file, config_path);
+	assert(strlen(config_path)+strlen(gpac_cfg)+1<GF_MAX_PATH);
+	strcat(config_test_file, gpac_cfg);
+	ft = fopen(config_test_file, "wb");
+	if (ft) fclose(ft);
+	else {
+		/*we don't*/
+		SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, config_path);
+		if (config_path[strlen((char *) config_path)-1] != '\\') strcat(config_path, "\\");
+		strcat(config_path, "GPAC\\");
+		/*create GPAC dir*/
+		_mkdir(config_path);
+	}
 #endif	/*XP_WIN*/
 
 #ifdef XP_UNIX
