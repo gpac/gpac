@@ -26,7 +26,6 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
-#include <gpac/modules/term_ext.h>
 #include <gpac/constants.h>
 #include <gpac/options.h>
 #include <gpac/network.h>
@@ -432,7 +431,8 @@ GF_Terminal *gf_term_new(GF_User *user)
 		if (ifce) gf_list_add(tmp->extensions, ifce);
 	}
 	tmp->unthreaded_extensions = gf_list_new();
-	tmp->filtering_extensions = gf_list_new();
+	tmp->event_filters = gf_list_new();
+	tmp->evt_mx = gf_mx_new("Event Filter");
 	for (i=0; i< gf_list_count(tmp->extensions); i++) {
 		GF_TermExt *ifce = gf_list_get(tmp->extensions, i);
 		if (!ifce->process(ifce, GF_TERM_EXT_START, tmp)) {
@@ -446,16 +446,16 @@ GF_Terminal *gf_term_new(GF_User *user)
 			gf_list_add(tmp->unthreaded_extensions, ifce);
 
 		if (ifce->caps & GF_TERM_EXTENSION_FILTER_EVENT)
-			gf_list_add(tmp->filtering_extensions, ifce);
+			gf_list_add(tmp->event_filters, ifce);
 	}
 
 	if (!gf_list_count(tmp->unthreaded_extensions)) {
 		gf_list_del(tmp->unthreaded_extensions);
 		tmp->unthreaded_extensions = NULL;
 	}
-	if (!gf_list_count(tmp->filtering_extensions)) {
-		gf_list_del(tmp->filtering_extensions);
-		tmp->filtering_extensions = NULL;
+	if (!gf_list_count(tmp->event_filters)) {
+		gf_list_del(tmp->event_filters);
+		tmp->event_filters = NULL;
 	}
 	tmp->uri_relocators = gf_list_new();
 	tmp->locales.relocate_uri = term_check_locales;
@@ -508,6 +508,9 @@ GF_Err gf_term_del(GF_Terminal * term)
 	/*stop the media manager */
 	gf_term_stop_scheduler(term);
 
+	/*remove all event filters*/
+	gf_list_reset(term->event_filters);
+
 	/*unload extensions*/
 	for (i=0; i< gf_list_count(term->extensions); i++) {
 		GF_TermExt *ifce = gf_list_get(term->extensions, i);
@@ -515,10 +518,14 @@ GF_Err gf_term_del(GF_Terminal * term)
 	}
 	gf_list_del(term->extensions);
 	if (term->unthreaded_extensions) gf_list_del(term->unthreaded_extensions);
-	if (term->filtering_extensions) {
-		gf_list_del(term->filtering_extensions);
-		term->filtering_extensions = NULL;
+
+	gf_mx_p(term->evt_mx);
+	if (term->event_filters) {
+		gf_list_del(term->event_filters);
+		term->event_filters = NULL;
 	}
+	gf_mx_v(term->evt_mx);
+	gf_mx_del(term->evt_mx);
 
 	/*delete compositor before the input sensor stacks to avoid receiving events from the compositor
 	when destroying these stacks*/
@@ -1435,13 +1442,18 @@ GF_EXPORT
 Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
 {
 	if (!term) return 0;
-	if (term->filtering_extensions) {
+	
+	if (term->event_filters) {
 		GF_TermExt *ext;
 		u32 i=0;
-		while ((ext=gf_list_enum(term->filtering_extensions, &i))) {
-			if (ext->process(ext, GF_TERM_EXT_EVENT, evt))
+		gf_mx_p(term->evt_mx);
+		while ((ext=gf_list_enum(term->event_filters, &i))) {
+			if (ext->process(ext, GF_TERM_EXT_EVENT, evt)) {
+				gf_mx_v(term->evt_mx);
 				return 0;
+			}
 		}
+		gf_mx_v(term->evt_mx);
 	}
 	if (term->user->EventProc) 
 		return term->user->EventProc(term->user->opaque, evt);
@@ -1449,6 +1461,33 @@ Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
 	return 0;
 }
 
+void gf_term_register_event_filter(GF_Terminal *term, GF_TermExt *filter)
+{
+	if (!term || !filter) return;
+	if (!term->event_filters) {
+		term->event_filters = gf_list_new();
+	}
+	gf_mx_p(term->evt_mx);
+	if (gf_list_find(term->event_filters, filter)<0) {
+		gf_list_add(term->event_filters, filter);
+	}
+	gf_mx_v(term->evt_mx);
+}
+
+void gf_term_unregister_event_filter(GF_Terminal *term, GF_TermExt *filter)
+{
+	if (!term || !filter) return;
+	if (!term->event_filters) return;
+
+	gf_mx_p(term->evt_mx);
+	gf_list_del_item(term->event_filters, filter);
+
+	if (!gf_list_count(term->event_filters)) {
+		gf_list_del(term->event_filters);
+		term->event_filters = NULL;
+	}
+	gf_mx_v(term->evt_mx);
+}
 
 enum
 {

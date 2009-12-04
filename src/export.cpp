@@ -787,7 +787,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_process_shortcut) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_set_speed) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_relocate_url) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_register_event_filter) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_unregister_event_filter) )
 
 
 /*ietf.h exports*/
