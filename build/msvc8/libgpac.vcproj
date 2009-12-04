@@ -50,10 +50,10 @@
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../include,../../extra_lib/include/zlib,../../extra_lib/include/js,../../extra_lib/include/jpeg,../../extra_lib/include/png"
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_LIB;LIBGPACDLL_EXPORT"
-				MinimalRebuild="true"
+				MinimalRebuild="false"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
-				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				PrecompiledHeaderFile=""
 				AssemblerListingLocation="$(IntDir)\"
 				ObjectFile="$(IntDir)\"
 				ProgramDataBaseFileName="$(IntDir)\"
@@ -6606,6 +6606,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\gpac\internal\camera.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\compositor\compositor.c"
 				>
 			</File>
@@ -6615,6 +6619,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\compositor\compositor_3d.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\internal\compositor_dev.h"
 				>
 			</File>
 			<File
@@ -6647,6 +6655,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\compositor\mesh.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\internal\mesh.h"
 				>
 			</File>
 			<File
@@ -7022,6 +7034,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\gpac\compositor.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\config_file.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\configuration.h"
 				>
 			</File>
@@ -7038,6 +7058,18 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\gpac\esi.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\events.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\filestreamer.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\modules\font.h"
 				>
 			</File>
@@ -7047,6 +7079,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\ismacryp.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\iso639.h"
 				>
 			</File>
 			<File
@@ -7102,6 +7138,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\gpac\nodes_xbl.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\options.h"
 				>
 			</File>
@@ -7139,6 +7179,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\setup.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\svg_types.h"
 				>
 			</File>
 			<File
