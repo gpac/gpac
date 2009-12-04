@@ -77,6 +77,15 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath);
  */
 char *gf_url_concatenate(const char *parentName, const char *pathName);
 
+/*!
+ *\brief URL encodin
+ *
+ *Encodes URL by replacing special characters with their % encodings.
+ *\param path URL of the service
+ *\return encoded path name , or NULL if bad paths are provided.
+ \note the returned string must be freed by user
+ */
+char *gf_url_percent_encode(const char *path);
 
 /*!
  *\brief URL to file system
