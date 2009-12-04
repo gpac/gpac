@@ -38,6 +38,7 @@ extern "C" {
 #include <gpac/modules/ipmp.h>
 #include <gpac/mediaobject.h>
 #include <gpac/thread.h>
+#include <gpac/modules/term_ext.h>
 
 typedef struct _scene GF_Scene;
 typedef struct _media_manager GF_MediaManager;
@@ -378,8 +379,8 @@ struct _tag_terminal
 
 	GF_List *extensions;	/*list of all extensions*/
 	GF_List *unthreaded_extensions;	/*list of extensions to call at each frame*/
-	GF_List *filtering_extensions;	/*list of extensions filtering events*/
-
+	GF_List *event_filters;	/*list of extensions filtering events*/
+	GF_Mutex *evt_mx;
 
 	/*static URI relocator for locales*/
 	GF_TermLocales locales;
@@ -402,6 +403,8 @@ void gf_term_stop_codec(GF_Codec *codec);
 void gf_term_set_threading(GF_Terminal *term, u32 mode);
 void gf_term_set_priority(GF_Terminal *term, s32 Priority);
 
+void gf_term_register_event_filter(GF_Terminal *term, GF_TermExt *filter);
+void gf_term_unregister_event_filter(GF_Terminal *term, GF_TermExt *filter);
 
 /*error report function*/
 void gf_term_message(GF_Terminal *app, const char *service, const char *message, GF_Err error);
