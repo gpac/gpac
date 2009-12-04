@@ -258,3 +258,30 @@ void gf_url_to_fs_path(char *sURL)
 	}
 }
 
+char *gf_url_percent_encode(const char *path)
+{
+	char *outpath, *sep;
+	u32 count;
+	if (!path) return NULL;
+
+	sep = strchr(path, ' ');
+	if (!sep) return strdup(path);
+	count = 1;
+	sep ++;
+	while (1) {
+		sep = strchr(sep, ' ');
+		if (!sep) break;
+		count ++;
+	}
+	outpath = malloc(sizeof(char) * (strlen(path) + 2*count + 1));
+	strcpy(outpath, path);
+	while (1) {
+		sep = strchr(outpath, ' ');
+		if (!sep) break;
+		memmove(sep+3, sep+1, strlen(sep+1)+1);
+		sep[0] = '%';
+		sep[1] = '2';
+		sep[2] = '0';
+	}
+	return outpath;
+}

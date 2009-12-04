@@ -407,7 +407,9 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 		if (!sess->remote_path) return GF_BAD_PARAM;
 		tmp = gf_url_concatenate(sess->remote_path, url);
 		free(sess->remote_path);
-		sess->remote_path = tmp;
+		sess->remote_path = gf_url_percent_encode(tmp);
+		free(tmp);
+		if (!sess->remote_path) sess->remote_path = strdup(url);
 		for (i=0; i<strlen(sess->remote_path); i++)
 			if (sess->remote_path[i]=='\\') sess->remote_path[i]='/';
 
@@ -417,7 +419,7 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 
 
 	tmp = strchr(url, '/');
-	sess->remote_path = strdup(tmp ? tmp : "/");
+	sess->remote_path = gf_url_percent_encode(tmp ? tmp : "/");
 	if (tmp) {
 		tmp[0] = 0;
 		tmp_url = strdup(url);
