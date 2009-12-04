@@ -1316,8 +1316,10 @@ void gf_es_on_connect(GF_Channel *ch)
 	/*get duration*/
 	com.command_type = GF_NET_CHAN_DURATION;
 	com.base.on_channel = ch;
-	if (gf_term_service_command(ch->service, &com) == GF_OK)
-		gf_odm_set_duration(ch->odm, ch, (u64) (1000*com.duration.duration));
+	if (gf_term_service_command(ch->service, &com) == GF_OK) {
+		if (com.duration.duration>=0)
+			gf_odm_set_duration(ch->odm, ch, (u64) (1000*com.duration.duration));
+	}
 }
 
 void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
