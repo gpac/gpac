@@ -1,7 +1,0 @@
-LIBRARY     gm_dx_hw.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface
-

@@ -82,7 +82,7 @@
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\rtp_in\rtp_in.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
@@ -178,7 +178,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\rtp_in\rtp_in.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile=".\obj/rtp_in_rel/gm_rtp_in.pdb"
 				SubSystem="9"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -333,7 +333,7 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateManifest="true"
-				ModuleDefinitionFile="..\..\modules\rtp_in\rtp_in.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -429,7 +429,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\rtp_in\rtp_in.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/gm_$(ProjectName).pdb"
 				SubSystem="9"
@@ -528,6 +528,10 @@
 	</References>
 	<Files>
 		<File
+			RelativePath="..\..\modules\modules_export.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\..\modules\rtp_in\rtp_in.c"
 			>
 			<FileConfiguration
@@ -566,10 +570,6 @@
 					PreprocessorDefinitions=""
 				/>
 			</FileConfiguration>
-		</File>
-		<File
-			RelativePath="..\..\modules\rtp_in\rtp_in.def"
-			>
 		</File>
 		<File
 			RelativePath="..\..\modules\rtp_in\rtp_in.h"

@@ -162,7 +162,7 @@ typedef struct _basedecoder
 } GF_BaseDecoder;
 
 /*interface name and version for media decoder */
-#define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', 0x02)
+#define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', '1')
 
 /*the media module interface. A media module MUST be implemented in synchronous mode as time 
 and resources management is done by the terminal*/
@@ -190,7 +190,7 @@ typedef struct _mediadecoder
 typedef struct _scene *LPSCENE;
 
 /*interface name and version for scene decoder */
-#define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', 0x02)
+#define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', '1')
 
 typedef struct _scenedecoder
 {
@@ -226,7 +226,7 @@ typedef struct _scenedecoder
 
 
 /*interface name and version for scene decoder */
-#define GF_INPUT_DEVICE_INTERFACE		GF_4CC('G', 'I', 'D', 0x01)
+#define GF_INPUT_DEVICE_INTERFACE		GF_4CC('G', 'I', 'D', '1')
 
 typedef struct __input_device
 {

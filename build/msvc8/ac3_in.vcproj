@@ -82,7 +82,7 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
-				ModuleDefinitionFile="..\..\modules\ac3_in\ac3_in.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj\$(PlatformName)\$(ConfigurationName)\ac3_in/gm_ac3_in.pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -163,7 +163,7 @@
 				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib liba52.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
-				ModuleDefinitionFile="..\..\modules\ac3_in\ac3_in.def"
+				ModuleDefinitionFile=""
 				SubSystem="9"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="3"
@@ -257,7 +257,7 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
-				ModuleDefinitionFile="..\..\modules\ac3_in\ac3_in.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
@@ -334,7 +334,7 @@
 				AdditionalDependencies="coredll.lib corelibc.lib commctrl.lib secchk.lib ccrtrtti.lib liba52.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
-				ModuleDefinitionFile="..\..\modules\ac3_in\ac3_in.def"
+				ModuleDefinitionFile=""
 				SubSystem="9"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="3"
@@ -391,10 +391,6 @@
 			</FileConfiguration>
 		</File>
 		<File
-			RelativePath="..\..\modules\ac3_in\ac3_in.def"
-			>
-		</File>
-		<File
 			RelativePath="..\..\modules\ac3_in\liba52_dec.c"
 			>
 			<FileConfiguration
@@ -415,6 +411,10 @@
 					PreprocessorDefinitions=""
 				/>
 			</FileConfiguration>
+		</File>
+		<File
+			RelativePath="..\..\modules\modules_export.cpp"
+			>
 		</File>
 	</Files>
 	<Globals>

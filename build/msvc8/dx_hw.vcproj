@@ -84,7 +84,7 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="&quot;C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Lib&quot;;&quot;C:\Program Files\Microsoft DirectX SDK (August 2008)\Lib\x86&quot;"
-				ModuleDefinitionFile="..\..\modules\dx_hw\dx_hw.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
@@ -179,7 +179,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\dx_hw\dx_hw.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile=".\obj/dx_hw_rel/gm_dx_hw.pdb"
 				SubSystem="9"
 				ImportLibrary=".\obj/dx_hw_rel/gm_dx_hw.lib"
@@ -336,7 +336,7 @@
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="&quot;C:\Program Files\Microsoft DirectX 9.0 SDK (Summer 2004)\Lib&quot;;&quot;../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)&quot;"
 				GenerateManifest="true"
-				ModuleDefinitionFile="..\..\modules\dx_hw\dx_hw.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -433,7 +433,7 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/w32_deb"
-				ModuleDefinitionFile="..\..\modules\dx_hw\dx_hw.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/dx_hw_deb/gm_dx_hw.pdb"
 				SubSystem="9"
@@ -657,10 +657,6 @@
 			</FileConfiguration>
 		</File>
 		<File
-			RelativePath="..\..\modules\dx_hw\dx_hw.def"
-			>
-		</File>
-		<File
 			RelativePath="..\..\modules\dx_hw\dx_hw.h"
 			>
 		</File>
@@ -786,6 +782,10 @@
 		</File>
 		<File
 			RelativePath="..\..\modules\dx_hw\hand.cur"
+			>
+		</File>
+		<File
+			RelativePath="..\..\modules\modules_export.cpp"
 			>
 		</File>
 		<File

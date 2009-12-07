@@ -1,6 +1,0 @@
-LIBRARY     gm_soft_raster.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

@@ -28,10 +28,10 @@
 #include "GPAXPlugin.h"
 #include <gpac/network.h>
 #include <gpac/utf.h>
-#include <direct.h>
 #include <shlobj.h>
 
 #ifndef _WIN32_WCE
+#include <direct.h>
 #include <mshtml.h>
 #endif
 

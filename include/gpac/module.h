@@ -43,9 +43,9 @@ extern "C" {
  *A module is a dynamic/shared library providing one or several interfaces to the GPAC framework.
  *A module cannot provide several interfaces of the same type. Each module must export the following functions:
  \code
- *	Bool QueryInterface(u32 interface_type);
+ *	u32 *QueryInterfaces(u32 interface_type);
  \endcode
- *	This function is used to query supported interfaces. It returns non zero if the module handles this interface type, 0 otherwise.\n
+ *	This function is used to query supported interfaces. It returns a zero-terminated array of supported interface types.\n
  \code
  	GF_BaseInterface *LoadInterface(u32 interface_type);
  \endcode

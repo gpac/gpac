@@ -82,7 +82,7 @@
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\raw_out\raw_out.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
@@ -178,7 +178,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\raw_out\raw_out.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile=".\obj/raw_out_rel/gm_raw_out.pdb"
 				SubSystem="9"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -333,7 +333,7 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateManifest="true"
-				ModuleDefinitionFile="..\..\modules\raw_out\raw_out.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -401,7 +401,7 @@
 				ExecutionBucket="7"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NDEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_USR_DLL"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_DEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_USR_DLL"
 				MinimalRebuild="true"
 				RuntimeLibrary="3"
 				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
@@ -429,7 +429,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\raw_out\raw_out.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/gm_$(ProjectName).pdb"
 				SubSystem="9"
@@ -528,7 +528,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\modules\raw_out\raw_out.def"
+			RelativePath="..\..\modules\modules_export.cpp"
 			>
 		</File>
 		<File

@@ -82,7 +82,7 @@
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\amr_dec\amr_dec.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
 				StackReserveSize="8388608"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -151,7 +151,7 @@
 				Optimization="2"
 				InlineFunctionExpansion="1"
 				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_DEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_USR_DLL;MMS_IO"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NDEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_USR_DLL;MMS_IO"
 				StringPooling="true"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
@@ -179,7 +179,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\amr_dec\amr_dec.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile=".\obj/amr_dec_rel/gm_amr_dec.pdb"
 				SubSystem="9"
 				StackReserveSize="8388608"
@@ -335,7 +335,7 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateManifest="true"
-				ModuleDefinitionFile="..\..\modules\amr_dec\amr_dec.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -431,7 +431,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\amr_dec\amr_dec.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/amr_dec_deb/gm_amr_dec.pdb"
 				SubSystem="9"
@@ -5367,10 +5367,6 @@
 			</FileConfiguration>
 		</File>
 		<File
-			RelativePath="..\..\modules\amr_dec\amr_dec.def"
-			>
-		</File>
-		<File
 			RelativePath="..\..\modules\amr_dec\amr_in.c"
 			>
 			<FileConfiguration
@@ -5449,6 +5445,10 @@
 					PreprocessorDefinitions=""
 				/>
 			</FileConfiguration>
+		</File>
+		<File
+			RelativePath="..\..\modules\modules_export.cpp"
+			>
 		</File>
 	</Files>
 	<Globals>

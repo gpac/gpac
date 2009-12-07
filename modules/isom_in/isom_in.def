@@ -1,6 +1,0 @@
-LIBRARY     gm_isom_in.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

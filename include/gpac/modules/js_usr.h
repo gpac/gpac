@@ -34,7 +34,7 @@ extern "C" {
 #include <gpac/scenegraph.h>
 
 /*interface name and version for JavaScript User Extensions*/
-#define GF_JS_USER_EXT_INTERFACE		GF_4CC('G','J','S', 0x01)
+#define GF_JS_USER_EXT_INTERFACE		GF_4CC('G','J','S', '1')
 
 typedef struct _js_usr_ext GF_JSUserExtension;
 

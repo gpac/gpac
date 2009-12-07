@@ -1,6 +1,0 @@
-LIBRARY     gm_aac_in.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

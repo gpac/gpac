@@ -90,7 +90,7 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
-				ModuleDefinitionFile="..\..\modules\xvid_dec\xvid_dec.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
@@ -190,7 +190,7 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
-				ModuleDefinitionFile="..\..\modules\xvid_dec\xvid_dec.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile=".\obj/xvid_dec_rel/gm_xvid_dec.pdb"
 				SubSystem="9"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -353,7 +353,7 @@
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
 				GenerateManifest="true"
-				ModuleDefinitionFile="..\..\modules\xvid_dec\xvid_dec.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -453,7 +453,7 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
-				ModuleDefinitionFile="..\..\modules\xvid_dec\xvid_dec.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/gm_$(ProjectName).pdb"
 				SubSystem="9"
@@ -1296,6 +1296,10 @@
 			</File>
 		</Filter>
 		<File
+			RelativePath="..\..\modules\modules_export.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\..\modules\xvid_dec\xvid_dec.c"
 			>
 			<FileConfiguration
@@ -1336,10 +1340,6 @@
 					PreprocessorDefinitions=""
 				/>
 			</FileConfiguration>
-		</File>
-		<File
-			RelativePath="..\..\modules\xvid_dec\xvid_dec.def"
-			>
 		</File>
 		<File
 			RelativePath="..\..\modules\xvid_dec\xvid_dec_wce.cpp"

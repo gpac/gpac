@@ -726,15 +726,19 @@ void AAC_Delete(void *ifce)
 
 
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType) 
+const u32 *QueryInterfaces() 
 {
-#ifndef GPAC_DISABLE_AV_PARSERS
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
-#endif
-#ifdef GPAC_HAS_FAAD
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
-#endif
-	return 0;
+	static u32 si [] = {
+	#ifndef GPAC_DISABLE_AV_PARSERS
+		GF_NET_CLIENT_INTERFACE,
+	#endif
+	#ifdef GPAC_HAS_FAAD
+		GF_MEDIA_DECODER_INTERFACE,
+	#endif
+		0
+	};
+
+	return si;
 }
 
 #ifdef GPAC_HAS_FAAD

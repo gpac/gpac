@@ -83,7 +83,7 @@
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\gdip_raster\gdip_rend.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
@@ -179,7 +179,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\gdip_raster\gdip_rend.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile=".\obj/gdip_rel/gm_gdip_raster.pdb"
 				SubSystem="9"
 				ImportLibrary=".\obj/gdip_rel/gm_gdip_raster.lib"
@@ -336,7 +336,7 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				GenerateManifest="true"
-				ModuleDefinitionFile="..\..\modules\gdip_raster\gdip_rend.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -433,7 +433,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\gdip_raster\gdip_rend.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/gdip_deb/gm_gdip_raster.pdb"
 				SubSystem="9"
@@ -656,10 +656,6 @@
 			</FileConfiguration>
 		</File>
 		<File
-			RelativePath="..\..\modules\gdip_raster\gdip_rend.def"
-			>
-		</File>
-		<File
 			RelativePath="..\..\modules\gdip_raster\gdip_texture.cpp"
 			>
 			<FileConfiguration
@@ -698,6 +694,10 @@
 					PreprocessorDefinitions=""
 				/>
 			</FileConfiguration>
+		</File>
+		<File
+			RelativePath="..\..\modules\modules_export.cpp"
+			>
 		</File>
 	</Files>
 	<Globals>

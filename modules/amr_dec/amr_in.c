@@ -554,12 +554,13 @@ void DeleteAESReader(void *ifce)
 
 #ifdef GPAC_AMR_IN_STANDALONE
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)
+const u32 *QueryInterfaces() 
 {
-	switch (InterfaceType) {
-	case GF_NET_CLIENT_INTERFACE: return 1;
-	default: return 0;
-	}
+	static u32 si [] = {
+		GF_NET_CLIENT_INTERFACE,
+		0
+	};
+	return si;
 }
 
 GF_EXPORT

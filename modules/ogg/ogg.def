@@ -1,6 +1,0 @@
-LIBRARY     gm_ogg.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

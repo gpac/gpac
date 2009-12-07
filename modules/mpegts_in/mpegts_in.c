@@ -1340,19 +1340,27 @@ void DeleteM2TSReader(void *ifce)
 	free(plug);
 }
 
+#endif
 
-Bool QueryInterface(u32 InterfaceType)
+
+GF_EXPORT
+const u32 *QueryInterfaces() 
 {
-	switch (InterfaceType) {
-	case GF_NET_CLIENT_INTERFACE: return 1;
-	default: return 0;
-	}
+	static u32 si [] = {
+#ifndef GPAC_DISABLE_MPEG2TS
+		GF_NET_CLIENT_INTERFACE,
+#endif
+		0
+	};
+	return si; 
 }
 
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
+#ifndef GPAC_DISABLE_MPEG2TS
 	case GF_NET_CLIENT_INTERFACE: return (GF_BaseInterface *) NewM2TSReader();
+#endif
 	default: return NULL;
 	}
 }
@@ -1360,18 +1368,8 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
+#ifndef GPAC_DISABLE_MPEG2TS
 	case GF_NET_CLIENT_INTERFACE:  DeleteM2TSReader(ifce); break;
+#endif
 	}
 }
-
-
-#else
-
-GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)  { return 0; }
-GF_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) { return NULL; }
-GF_EXPORT
-void ShutdownInterface(GF_BaseInterface *ifce) {}
-
-#endif /*GPAC_DISABLE_MPEG2TS*/ 

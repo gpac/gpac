@@ -147,15 +147,18 @@ void isor_declare_objects(ISOMReader *read)
 
 
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType) 
+const u32 *QueryInterfaces() 
 {
+	static u32 si [] = {
 #ifndef GPAC_DISABLE_ISOM
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
+	GF_NET_CLIENT_INTERFACE,
 #endif
 #ifndef GPAC_DISABLE_ISOM_WRITE
-	if (InterfaceType == GF_STREAMING_MEDIA_CACHE) return 1;
+	GF_STREAMING_MEDIA_CACHE,
 #endif
-	return 0;
+		0
+	};
+	return si;
 }
 
 GF_EXPORT

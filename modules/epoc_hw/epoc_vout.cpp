@@ -485,12 +485,15 @@ void *EPOC_codec_new();
 	
 /*interface query*/
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)
+const u32 *QueryInterfaces() 
 {
-	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return 1;
-	if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE) return 1;
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
-	return 0;
+	static u32 si [] = {
+		GF_VIDEO_OUTPUT_INTERFACE,
+		GF_AUDIO_OUTPUT_INTERFACE,
+		GF_MEDIA_DECODER_INTERFACE,
+		0
+	};
+	return si;
 }
 /*interface create*/
 GF_EXPORT

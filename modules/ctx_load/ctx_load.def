@@ -1,6 +1,0 @@
-LIBRARY     gm_ctx_load.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

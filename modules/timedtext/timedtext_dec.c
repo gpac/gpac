@@ -1132,17 +1132,6 @@ GF_BaseDecoder *NewTimedTextDec()
 	return (GF_BaseDecoder *) tmp;
 }
 
-GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)
-{
-	switch (InterfaceType) {
-	case GF_SCENE_DECODER_INTERFACE: return 1;
-	case GF_NET_CLIENT_INTERFACE: return 1;
-	default: return 0;
-	}
-}
-
-
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 void DeleteTTReader(void *ifce);
 void *NewTTReader();
@@ -1178,11 +1167,22 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 #else
 
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType) { return 0; }
-GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) { return NULL; }
 GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce) {}
 
 
 #endif /*!defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_ISOM)*/
+
+GF_EXPORT
+const u32 *QueryInterfaces() 
+{
+	static u32 si [] = {
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_ISOM)
+		GF_SCENE_DECODER_INTERFACE,
+		GF_NET_CLIENT_INTERFACE,
+#endif
+		0
+	};
+	return si; 
+}

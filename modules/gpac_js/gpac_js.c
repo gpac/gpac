@@ -522,12 +522,15 @@ void gjs_delete(GF_BaseInterface *ifce)
 
 
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType) 
+const u32 *QueryInterfaces() 
 {
+	static u32 si [] = {
 #ifdef GPAC_HAS_SPIDERMONKEY
-	if (InterfaceType == GF_JS_USER_EXT_INTERFACE) return 1;
+		GF_JS_USER_EXT_INTERFACE,
 #endif
-	return 0;
+		0
+	};
+	return si;
 }
 
 GF_EXPORT

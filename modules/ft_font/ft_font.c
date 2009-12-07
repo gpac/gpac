@@ -584,10 +584,13 @@ void ft_delete(GF_BaseInterface *ifce)
 #ifndef GPAC_STANDALONE_RENDER_2D
 
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType) 
+const u32 *QueryInterfaces() 
 {
-	if (InterfaceType == GF_FONT_READER_INTERFACE) return 1;
-	return 0;
+	static u32 si [] = {
+		GF_FONT_READER_INTERFACE,
+		0
+	};
+	return si;
 }
 
 GF_EXPORT

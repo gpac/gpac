@@ -1,6 +1,0 @@
-LIBRARY     gm_raw_out.dll 
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

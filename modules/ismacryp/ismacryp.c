@@ -324,16 +324,15 @@ GF_IPMPTool *NewISMACrypTool()
 #endif /*GPAC_DISABLE_MCRYPT*/
 
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)
+const u32 *QueryInterfaces() 
 {
-	switch (InterfaceType) {
+	static u32 si [] = {
 #ifndef GPAC_DISABLE_MCRYPT
-	case GF_IPMP_TOOL_INTERFACE:
-		return 1;
+		GF_IPMP_TOOL_INTERFACE,
 #endif
-	default:
-		return 0;
-	}
+		0
+	};
+	return si;
 }
 
 GF_EXPORT

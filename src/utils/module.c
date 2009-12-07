@@ -85,27 +85,60 @@ GF_EXPORT
 GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug, u32 InterfaceFamily)
 {
 	const char *opt;
-	char *new_key;
 	char szKey[10];
 	ModuleInstance *inst;
 	GF_BaseInterface *ifce;
 	Bool fail;
-	u32 len;
 
 	if (!pm) return NULL;
 	inst = (ModuleInstance *) gf_list_get(pm->plug_list, whichplug);
 	if (!inst) return NULL;
 
+	/*look in cache*/
 	opt = gf_cfg_get_key(pm->cfg, "PluginsCache", inst->szName);
-	if (!opt) opt="";
-
-	sprintf(szKey, "%s:no", gf_4cc_to_str(InterfaceFamily));
-	if (opt && strstr(opt, szKey)) return NULL;
+	if (opt) {
+		sprintf(szKey, "%s:yes", gf_4cc_to_str(InterfaceFamily));
+		if (!strstr(opt, szKey)) return NULL;
+	}
 
 	fail = 0;
 	if (!gf_modules_load_library(inst)) fail = 1;
 	else if (!inst->query_func) fail = 2;
-	else if (!inst->query_func(InterfaceFamily) ) fail = 2;
+
+	if (fail) {
+		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->szName, "Invalid Plugin");
+		goto err_exit;
+	}
+
+	/*build cache*/
+	if (!opt) {
+		u32 i;
+		Bool found = 0;
+		char *key;
+		const u32 *si = inst->query_func();
+		if (!si) {
+			fail = 2;
+			goto err_exit;
+		}
+		i=0;
+		while (si[i]) i++;
+		
+		key = malloc(sizeof(char) * 10 * i);
+		key[0] = 0;
+		i=0;
+		while (si[i]) {
+			sprintf(szKey, "%s:yes ", gf_4cc_to_str(si[i]));
+			strcat(key, szKey);
+			if (InterfaceFamily==si[i]) found = 1;
+			i++;
+		}
+		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->szName, key);
+		free(key);
+		if (!found) {
+			fail = 2;
+			goto err_exit;
+		}
+	}
 
 	if (fail) goto err_exit;
 
@@ -126,12 +159,6 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	return ifce;
 
 err_exit:
-	len = strlen(opt)+strlen(szKey)+2;
-	new_key = malloc(sizeof(char)*len);
-	sprintf(new_key, "%s %s", opt, szKey);
-	gf_cfg_set_key(pm->cfg, "PluginsCache", inst->szName, new_key);
-	free(new_key);
-
 	if (fail!=1)
 		gf_modules_unload_library(inst);
 

@@ -1,6 +1,0 @@
-LIBRARY     gm_gdip_raster.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

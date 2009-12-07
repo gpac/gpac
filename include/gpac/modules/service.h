@@ -305,7 +305,7 @@ typedef union __netcommand
 */
 
 /*interface name and version for input service*/
-#define GF_NET_CLIENT_INTERFACE			GF_4CC('G', 'I', 'S', 0x01)
+#define GF_NET_CLIENT_INTERFACE			GF_4CC('G', 'I', 'S', '1')
 
 typedef struct _netinterface
 {

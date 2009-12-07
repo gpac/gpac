@@ -271,10 +271,15 @@ extern "C" {
 #endif
 
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType) 
+const u32 *QueryInterfaces() 
 {
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
-	return 0;
+	static u32 si [] = {
+#ifndef GPAC_DISABLE_AV_PARSERS
+		GF_MEDIA_DECODER_INTERFACE,
+#endif
+		0
+	};
+	return si; 
 }
 
 GF_EXPORT

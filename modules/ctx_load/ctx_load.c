@@ -736,23 +736,27 @@ GF_BaseDecoder *NewContextLoader()
 	return (GF_BaseDecoder*)tmp;
 }
 
+#endif
+
 
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)
+const u32 *QueryInterfaces() 
 {
-	switch (InterfaceType) {
-	case GF_SCENE_DECODER_INTERFACE:
-		return 1;
-	default:
-		return 0;
-	}
+static u32 si [] = {
+#ifndef GPAC_DISABLE_VRML
+	GF_SCENE_DECODER_INTERFACE,
+#endif
+	0};
+	return si;
 }
 
 GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
+#ifndef GPAC_DISABLE_VRML
 	case GF_SCENE_DECODER_INTERFACE: return (GF_BaseInterface *)NewContextLoader();
+#endif
 	default:
 		return NULL;
 	}
@@ -762,18 +766,12 @@ GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
+#ifndef GPAC_DISABLE_VRML
 	case GF_SCENE_DECODER_INTERFACE:
 		DeleteContextLoader((GF_BaseDecoder *)ifce);
 		break;
+#endif
 	}
 }
-#else
 
-GF_EXPORT
-Bool QueryInterface(u32 InterfaceType) { return 0; }
-GF_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) { return NULL; }
-GF_EXPORT
-void ShutdownInterface(GF_BaseInterface *ifce) {}
 
-#endif /*GPAC_DISABLE_VRML*/

@@ -757,7 +757,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 		delete pLibrary;
 		goto err_exit;
 	}
-	inst->query_func = (QueryInterface) pLibrary->Lookup(1);
+	inst->query_func = (QueryInterfaces) pLibrary->Lookup(1);
 	inst->load_func = (LoadInterface) pLibrary->Lookup(2);
 	inst->destroy_func = (ShutdownInterface) pLibrary->Lookup(3);
 	
