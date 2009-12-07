@@ -95,11 +95,11 @@ SOURCE=..\..\modules\ft_font\ft_font.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ft_font\ft_font.def
+SOURCE=..\..\modules\ft_font\ft_font.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ft_font\ft_font.h
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project

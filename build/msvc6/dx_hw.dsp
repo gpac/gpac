@@ -109,10 +109,6 @@ SOURCE=..\..\modules\dx_hw\dx_audio.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\dx_hw\dx_hw.def
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\dx_hw\dx_hw.h
 # End Source File
 # Begin Source File
@@ -134,6 +130,10 @@ SOURCE=..\..\modules\dx_hw\hand.cur
 # Begin Source File
 
 SOURCE=..\..\modules\dx_hw\res\hand.cur
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # Begin Source File
 

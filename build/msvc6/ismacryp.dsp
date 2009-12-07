@@ -94,7 +94,7 @@ SOURCE=..\..\modules\ismacryp\ismacryp.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ismacryp\ismacryp.def
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project

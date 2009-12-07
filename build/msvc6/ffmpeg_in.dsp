@@ -99,15 +99,15 @@ SOURCE=..\..\modules\ffmpeg_in\ffmpeg_demux.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ffmpeg_in\ffmpeg_in.def
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\ffmpeg_in\ffmpeg_in.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\ffmpeg_in\ffmpeg_load.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project

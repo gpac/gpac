@@ -89,11 +89,11 @@ LINK32=link.exe
 # Name "wav_out - Win32 Debug"
 # Begin Source File
 
-SOURCE=..\..\modules\wav_out\wav_out.c
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\wav_out\wav_out.def
+SOURCE=..\..\modules\wav_out\wav_out.c
 # End Source File
 # End Target
 # End Project

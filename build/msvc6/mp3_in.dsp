@@ -93,11 +93,11 @@ SOURCE=..\..\modules\mp3_in\mad_dec.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\mp3_in\mp3_in.c
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\mp3_in\mp3_in.def
+SOURCE=..\..\modules\mp3_in\mp3_in.c
 # End Source File
 # End Target
 # End Project

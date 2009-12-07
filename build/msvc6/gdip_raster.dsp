@@ -105,11 +105,11 @@ SOURCE=..\..\modules\gdip_raster\gdip_rend.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\gdip_raster\gdip_rend.def
+SOURCE=..\..\modules\gdip_raster\gdip_texture.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\gdip_raster\gdip_texture.cpp
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project

@@ -93,7 +93,7 @@ SOURCE=..\..\modules\laser_dec\laser_dec.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\laser_dec\laser_dec.def
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project

@@ -89,7 +89,7 @@ LINK32=link.exe
 # Name "raw_out - Win32 Debug"
 # Begin Source File
 
-SOURCE=..\..\modules\raw_out\raw_out.def
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # Begin Source File
 

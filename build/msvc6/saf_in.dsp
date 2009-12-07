@@ -87,17 +87,13 @@ LINK32=link.exe
 
 # Name "saf_in - Win32 Release"
 # Name "saf_in - Win32 Debug"
-# Begin Group "Source Files"
+# Begin Source File
 
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+SOURCE=..\..\modules\modules_export.cpp
+# End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\saf_in\saf_in.c
 # End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\saf_in\saf_in.def
-# End Source File
-# End Group
 # End Target
 # End Project

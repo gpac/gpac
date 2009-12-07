@@ -93,7 +93,7 @@ SOURCE=..\..\modules\bifs_dec\bifs_dec.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\bifs_dec\bifs_dec.def
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project

@@ -294,11 +294,11 @@ SOURCE=..\..\modules\amr_float_dec\amr_float_dec.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\amr_float_dec\amr_float_dec.def
+SOURCE=..\..\modules\amr_dec\amr_in.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\amr_dec\amr_in.c
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project

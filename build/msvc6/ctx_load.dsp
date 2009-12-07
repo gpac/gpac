@@ -93,7 +93,7 @@ SOURCE=..\..\modules\ctx_load\ctx_load.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ctx_load\ctx_load.def
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project

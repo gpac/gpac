@@ -93,7 +93,7 @@ SOURCE=..\..\modules\dummy_in\dummy_in.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\dummy_in\dummy_in.def
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project
