@@ -303,12 +303,13 @@ DeletePulseAudioOutput (void *ifce)
  * ********************************************************************
  * interface
  */
-Bool
-QueryInterface (u32 InterfaceType)
+const u32 *QueryInterface (u32 InterfaceType)
 {
-  if (InterfaceType == GF_AUDIO_OUTPUT_INTERFACE)
-    return 1;
-  return 0;
+	static u32 si [] = {
+		GF_VIDEO_OUTPUT_INTERFACE,
+		0
+	};
+	return si;
 }
 
 GF_BaseInterface *

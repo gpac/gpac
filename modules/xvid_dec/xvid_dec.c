@@ -465,12 +465,15 @@ void DeleteXVIDDec(GF_BaseDecoder *ifcg)
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
-Bool QueryInterface(u32 InterfaceType) 
+const u32 *QueryInterfaces() 
 {
+	static u32 si [] = {
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
+		GF_MEDIA_DECODER_INTERFACE,
 #endif
-	return 0;
+		0
+	};
+	return si; 
 }
 
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 

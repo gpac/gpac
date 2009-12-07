@@ -1,6 +1,0 @@
-LIBRARY     gm_demo_is.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

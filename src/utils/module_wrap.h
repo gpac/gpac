@@ -29,7 +29,7 @@
 #define _GF_MODULE_WRAP_H_
 
 /* interface api*/
-typedef Bool (*QueryInterface) (u32 InterfaceType);
+typedef const u32 *(*QueryInterfaces) ();
 typedef void * (*LoadInterface) (u32 InterfaceType);
 typedef void (*ShutdownInterface) (void *interface_obj);
 
@@ -42,7 +42,7 @@ typedef struct
 	
 	/*library is loaded only when an interface is attached*/
 	void *lib_handle;
-	QueryInterface query_func;
+	QueryInterfaces query_func;
 	LoadInterface load_func;
 	ShutdownInterface destroy_func;
 } ModuleInstance;

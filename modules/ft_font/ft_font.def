@@ -1,6 +1,0 @@
-LIBRARY     gm_ft_font.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

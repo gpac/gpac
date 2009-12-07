@@ -92,11 +92,11 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 		return 0;
 	}
 #if defined(_WIN32_WCE)
-	inst->query_func = (QueryInterface) GetProcAddress(inst->lib_handle, _T("QueryInterface"));
+	inst->query_func = (QueryInterfaces) GetProcAddress(inst->lib_handle, _T("QueryInterfaces"));
 	inst->load_func = (LoadInterface) GetProcAddress(inst->lib_handle, _T("LoadInterface"));
 	inst->destroy_func = (ShutdownInterface) GetProcAddress(inst->lib_handle, _T("ShutdownInterface"));
 #else
-	inst->query_func = (QueryInterface) GetProcAddress(inst->lib_handle, "QueryInterface");
+	inst->query_func = (QueryInterfaces) GetProcAddress(inst->lib_handle, "QueryInterfaces");
 	inst->load_func = (LoadInterface) GetProcAddress(inst->lib_handle, "LoadInterface");
 	inst->destroy_func = (ShutdownInterface) GetProcAddress(inst->lib_handle, "ShutdownInterface");
 #endif
@@ -113,7 +113,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s, error is %s\n", path, dlerror()));
 		return 0;
 	}
-	inst->query_func = (QueryInterface) dlsym(inst->lib_handle, "QueryInterface");
+	inst->query_func = (QueryInterfaces) dlsym(inst->lib_handle, "QueryInterfaces");
 	inst->load_func = (LoadInterface) dlsym(inst->lib_handle, "LoadInterface");
 	inst->destroy_func = (ShutdownInterface) dlsym(inst->lib_handle, "ShutdownInterface");
 #endif

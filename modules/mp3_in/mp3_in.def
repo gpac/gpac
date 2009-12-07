@@ -1,6 +1,0 @@
-LIBRARY     gm_mp3_in.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

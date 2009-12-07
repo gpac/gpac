@@ -1,6 +1,0 @@
-LIBRARY     gm_amr_dec.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

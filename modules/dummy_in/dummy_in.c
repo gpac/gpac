@@ -113,6 +113,7 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 			else if (!strcmp(rtype, "X3D")) handled = 1;
 			else if (!strcmp(rtype, "svg")) handled = 1;
 			else if (!strcmp(rtype, "bindings")) handled = 1;
+			else if (!strcmp(rtype, "widget")) handled = 1;
 			free(rtype);
 			return handled;
 		}
@@ -238,6 +239,7 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			else if (!strcmp(rtype, "XMT-A")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
 			else if (!strcmp(rtype, "X3D")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
 			else if (!strcmp(rtype, "bindings")) read->oti = GPAC_OTI_PRIVATE_SCENE_XBL;
+			else if (!strcmp(rtype, "widget")) read->oti = GPAC_OTI_PRIVATE_SCENE_WGT;
 			free(rtype);
 		}
 	}
@@ -410,10 +412,13 @@ Bool DC_CanHandleURLInService(GF_InputService *plug, const char *url)
 }
 
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)
+const u32 *QueryInterfaces() 
 {
-	if (InterfaceType==GF_NET_CLIENT_INTERFACE) return 1;
-	return 0;
+	static u32 si [] = {
+		GF_NET_CLIENT_INTERFACE,
+		0
+	};
+	return si;
 }
 
 GF_EXPORT

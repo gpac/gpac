@@ -72,7 +72,7 @@ GF_Terminal *term;
 u64 Duration;
 GF_Err last_error = GF_OK;
 
-static Fixed bench_speed = FLT2FIX(2);
+static Fixed bench_speed = FLT2FIX(20);
 
 static Bool request_next_playlist_item = 0;
 
@@ -457,6 +457,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		if (!evt->message.message) return 0;
 		if (evt->message.error==GF_SCRIPT_INFO) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_SCRIPT, ("[Script] %s\n", evt->message.message));
 			fprintf(stdout, "%s\n", evt->message.message);
 		} else if (evt->message.error) {
 			if (!is_connected) last_error = evt->message.error;

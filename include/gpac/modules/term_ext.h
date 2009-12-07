@@ -33,7 +33,7 @@ extern "C" {
 #include <gpac/terminal.h>
 
 /*interface name and version for Terminal Extensions services*/
-#define GF_TERM_EXT_INTERFACE		GF_4CC('G','T','E', 0x01)
+#define GF_TERM_EXT_INTERFACE		GF_4CC('G','T','E', '1')
 
 typedef struct _term_ext GF_TermExt;
 

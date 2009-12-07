@@ -145,10 +145,14 @@ void DeleteVideoOutput(void *ifce)
 #ifndef GPAC_STANDALONE_RENDER_2D
 
 /*interface query*/
-Bool QueryInterface(u32 InterfaceType)
+GF_EXPORT
+const u32 *QueryInterfaces() 
 {
-	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return 1;
-	return 0;
+	static u32 si [] = {
+		GF_VIDEO_OUTPUT_INTERFACE,
+		0
+	};
+	return si; 
 }
 /*interface create*/
 GF_BaseInterface *LoadInterface(u32 InterfaceType)

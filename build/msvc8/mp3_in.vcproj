@@ -85,7 +85,7 @@
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
 				GenerateManifest="true"
-				ModuleDefinitionFile="..\..\modules\mp3_in\mp3_in.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -182,7 +182,7 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)"
-				ModuleDefinitionFile="..\..\modules\mp3_in\mp3_in.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/gm_mp3_in.pdb"
 				SubSystem="9"
@@ -340,7 +340,7 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
-				ModuleDefinitionFile="..\..\modules\mp3_in\mp3_in.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
@@ -437,7 +437,7 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
-				ModuleDefinitionFile="..\..\modules\mp3_in\mp3_in.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile=".\obj/mp3_in_rel/gm_mp3_in.pdb"
 				SubSystem="9"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -574,6 +574,10 @@
 			</FileConfiguration>
 		</File>
 		<File
+			RelativePath="..\..\modules\modules_export.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\..\modules\mp3_in\mp3_in.c"
 			>
 			<FileConfiguration
@@ -612,10 +616,6 @@
 					PreprocessorDefinitions=""
 				/>
 			</FileConfiguration>
-		</File>
-		<File
-			RelativePath="..\..\modules\mp3_in\mp3_in.def"
-			>
 		</File>
 	</Files>
 	<Globals>

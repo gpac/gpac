@@ -74,10 +74,13 @@ void EVG_ShutdownRenderer(GF_Raster2D *dr)
 #ifndef GPAC_STANDALONE_RENDER_2D
 
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)
+const u32 *QueryInterfaces() 
 {
-	if (InterfaceType == GF_RASTER_2D_INTERFACE) return 1;
-	return 0;
+	static u32 si [] = {
+		GF_RASTER_2D_INTERFACE,
+		0
+	};
+	return si; 
 }
 
 GF_EXPORT

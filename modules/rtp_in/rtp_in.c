@@ -744,17 +744,27 @@ void RTP_Delete(GF_BaseInterface *bi)
 	free(bi);
 }
 
+#endif
+
+
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType) 
+const u32 *QueryInterfaces() 
 {
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
-	return 0;
+	static u32 si [] = {
+#ifndef GPAC_DISABLE_STREAMING
+		GF_NET_CLIENT_INTERFACE,
+#endif
+		0
+	};
+	return si; 
 }
 
 GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
+#ifndef GPAC_DISABLE_STREAMING
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)RTP_Load();
+#endif
 	return NULL;
 }
 
@@ -762,19 +772,10 @@ GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
+#ifndef GPAC_DISABLE_STREAMING
 	case GF_NET_CLIENT_INTERFACE:
 		RTP_Delete(ifce);
 		break;
+#endif
 	}
 }
-
-#else
-
-GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)  { return 0; }
-GF_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) { return NULL; }
-GF_EXPORT
-void ShutdownInterface(GF_BaseInterface *ifce) {}
-
-#endif /*GPAC_DISABLE_STREAMING*/

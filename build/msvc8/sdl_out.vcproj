@@ -85,7 +85,7 @@
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="&quot;C:\Outils\SDL-1.2.12\lib&quot;"
 				GenerateManifest="true"
-				ModuleDefinitionFile="..\..\modules\sdl_out\sdl_out.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
@@ -181,7 +181,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\sdl_out\sdl_out.def"
+				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(IntDir)/gm_$(ProjectName).pdb"
 				SubSystem="9"
@@ -339,7 +339,7 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="&quot;C:\Outils\SDL-1.2.12\lib&quot;"
-				ModuleDefinitionFile="..\..\modules\sdl_out\sdl_out.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"
 				TargetMachine="1"
@@ -435,7 +435,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				ModuleDefinitionFile="..\..\modules\sdl_out\sdl_out.def"
+				ModuleDefinitionFile=""
 				ProgramDatabaseFile=".\obj/sdl_out_rel/gm_sdl_out.pdb"
 				SubSystem="9"
 				ImportLibrary=".\obj/sdl_out_rel/gm_sdl_out.lib"
@@ -612,6 +612,10 @@
 			</FileConfiguration>
 		</File>
 		<File
+			RelativePath="..\..\modules\modules_export.cpp"
+			>
+		</File>
+		<File
 			RelativePath="..\..\modules\sdl_out\sdl_out.c"
 			>
 			<FileConfiguration
@@ -650,10 +654,6 @@
 					PreprocessorDefinitions=""
 				/>
 			</FileConfiguration>
-		</File>
-		<File
-			RelativePath="..\..\modules\sdl_out\sdl_out.def"
-			>
 		</File>
 		<File
 			RelativePath="..\..\modules\sdl_out\sdl_out.h"

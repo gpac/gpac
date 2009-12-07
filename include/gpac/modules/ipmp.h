@@ -104,7 +104,7 @@ typedef struct
 } GF_IPMPEvent;
 
 /*interface name and version for IPMP tools*/
-#define GF_IPMP_TOOL_INTERFACE		GF_4CC('G','I','P', 0x01)
+#define GF_IPMP_TOOL_INTERFACE		GF_4CC('G','I','P', '1')
 
 typedef struct _ipmp_tool GF_IPMPTool;
 

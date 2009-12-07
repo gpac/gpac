@@ -397,13 +397,6 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	free(sdec);
 }
 
-/*interface query*/
-GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)
-{
-	if (InterfaceType == GF_SCENE_DECODER_INTERFACE) return 1;
-	return 0;
-}
 #else
 
 
@@ -421,10 +414,17 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 {
 }
 
+#endif
+
 /*interface query*/
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)
+const u32 *QueryInterfaces() 
 {
-	return 0;
-}
+	static u32 si [] = {
+#ifndef GPAC_DISABLE_SVG
+		GF_SCENE_DECODER_INTERFACE,
 #endif
+		0
+	};
+	return si; 
+}

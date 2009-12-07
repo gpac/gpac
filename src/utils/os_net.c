@@ -596,7 +596,10 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 	size_t addrlen;
 	struct sockaddr_in LocalAdd;
 	struct hostent *Host;
+#if 0
 	char buf[GF_MAX_IP_NAME_LEN];
+#endif
+
 #endif
 	s32 ret;
 	s32 optval;

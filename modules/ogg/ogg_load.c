@@ -91,13 +91,16 @@ void DeleteOGGDecoder(GF_BaseDecoder *ifcd)
 }
 
 
-Bool QueryInterface(u32 InterfaceType) 
+const u32 *QueryInterfaces() 
 {
+	static u32 si [] = {
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return 1;
+		GF_NET_CLIENT_INTERFACE,
 #endif
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return 1;
-	return 0;
+		GF_MEDIA_DECODER_INTERFACE,
+		0
+	};
+	return si; 
 }
 
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 

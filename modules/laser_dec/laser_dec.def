@@ -1,6 +1,0 @@
-LIBRARY     gm_laser_dec.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

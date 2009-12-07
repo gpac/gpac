@@ -68,7 +68,9 @@ void *gf_malloc(size_t size, char *filename, int line)
 	void *ptr = malloc(size);
 	if (!ptr) {
 		gf_memory_log(GF_MEMORY_ERROR, "malloc() has returned a NULL pointer\n");
+#ifndef _WIN32_WCE
 		assert(0);
+#endif
 	} else {
 		register_address(ptr, size, filename, line);
 	}
@@ -82,7 +84,9 @@ void *gf_calloc(size_t num, size_t size_of, char *filename, int line)
 	void *ptr = calloc(num, size_of);
 	if (!ptr) {
 		gf_memory_log(GF_MEMORY_ERROR, "calloc() has returned a NULL pointer\n");
+#ifndef _WIN32_WCE
 		assert(0);
+#endif
 	} else {
 		register_address(ptr, size, filename, line);
 	}

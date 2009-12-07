@@ -360,17 +360,19 @@ void gdip_delete_font_driver(GF_FontReader *dr)
 	free(dr);
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-
-Bool QueryInterface(u32 InterfaceType)
+const u32 *QueryInterfaces() 
 {
-	if (InterfaceType == GF_FONT_READER_INTERFACE) return 1;
-	if (InterfaceType == GF_RASTER_2D_INTERFACE) return 1;
-	return 0;
+	static u32 si [] = {
+		GF_FONT_READER_INTERFACE,
+		GF_RASTER_2D_INTERFACE,
+		0
+	};
+	return si;
 }
-
-GF_Raster2D *gdip_LoadRenderer();
-void gdip_ShutdownRenderer(GF_Raster2D *driver);
 
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
@@ -391,3 +393,6 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
+#ifdef __cplusplus
+}
+#endif

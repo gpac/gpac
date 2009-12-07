@@ -1,6 +1,0 @@
-LIBRARY     gm_timedtext.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

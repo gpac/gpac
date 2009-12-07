@@ -1418,11 +1418,19 @@ static void DeleteVideoOutput(void *ifce)
 	free(driv);
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 /*interface query*/
-Bool QueryInterface(u32 InterfaceType)
+const u32 *QueryInterfaces() 
 {
-	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE) return 1;
-	return 0;
+	static u32 si [] = {
+		GF_VIDEO_OUTPUT_INTERFACE,
+		0
+	};
+	return si;
 }
 /*interface create*/
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
@@ -1440,4 +1448,9 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		break;
 	}
 }
+
+
+#ifdef __cplusplus
+}
+#endif
 

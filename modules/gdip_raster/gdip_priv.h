@@ -209,5 +209,7 @@ GF_FontReader *gdip_new_font_driver();
 void gdip_delete_font_driver(GF_FontReader *dr);
 
 
+GF_Raster2D *gdip_LoadRenderer();
+void gdip_ShutdownRenderer(GF_Raster2D *driver);
 
 #endif	//__GDIP_PRIV_H

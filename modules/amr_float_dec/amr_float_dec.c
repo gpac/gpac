@@ -292,14 +292,15 @@ void DeleteAMRFTDecoder(GF_BaseDecoder *ifcg)
 GF_InputService *NewAESReader();
 void DeleteAESReader(void *ifce);
 
-Bool QueryInterface(u32 InterfaceType)
+GF_EXPORT
+const u32 *QueryInterfaces() 
 {
-	switch (InterfaceType) {
-	case GF_MEDIA_DECODER_INTERFACE: return 1;
-	case GF_NET_CLIENT_INTERFACE: return 1;
-	default:
-		return 0;
-	}
+	static u32 si [] = {
+		GF_NET_CLIENT_INTERFACE,
+		GF_MEDIA_DECODER_INTERFACE,
+		0
+	};
+	return si;
 }
 
 GF_BaseInterface *LoadInterface(u32 InterfaceType)

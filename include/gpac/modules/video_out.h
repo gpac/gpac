@@ -71,7 +71,7 @@ enum
 };
 
 /*interface name and version for video output*/
-#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O',0x04) 
+#define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','1') 
 
 /*
 			video output interface

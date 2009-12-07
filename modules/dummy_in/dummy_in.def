@@ -1,6 +1,0 @@
-LIBRARY     gm_dummy_in.dll
-
-EXPORTS
-	QueryInterface
-	LoadInterface
-	ShutdownInterface

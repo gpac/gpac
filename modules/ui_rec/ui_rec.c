@@ -229,10 +229,13 @@ void uir_delete(GF_BaseInterface *ifce)
 }
 
 GF_EXPORT
-Bool QueryInterface(u32 InterfaceType)
+const u32 *QueryInterfaces() 
 {
-	if (InterfaceType == GF_TERM_EXT_INTERFACE) return 1;
-	return 0;
+	static u32 si [] = {
+		GF_TERM_EXT_INTERFACE,
+		0
+	};
+	return si;
 }
 
 GF_EXPORT
