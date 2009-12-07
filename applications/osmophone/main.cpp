@@ -1387,6 +1387,23 @@ Bool initial_setup(const char *szExePath)
 }
 
 
+#ifndef GETRAWFRAMEBUFFER
+    #define GETRAWFRAMEBUFFER   0x00020001
+    typedef struct _RawFrameBufferInfo
+    {
+	    WORD wFormat;
+	    WORD wBPP;
+	    VOID *pFramePointer;
+	    int	cxStride;
+	    int	cyStride;
+        int cxPixels;
+        int cyPixels;
+    } RawFrameBufferInfo;
+
+    #define FORMAT_565 1
+    #define FORMAT_555 2
+    #define FORMAT_OTHER 3
+#endif
 
 int WINAPI WinMain(HINSTANCE hInstance, 
 				   HINSTANCE hPrevInstance, 

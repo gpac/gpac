@@ -1150,6 +1150,24 @@ static Bool check_resolution_switch(GF_VideoOutput *dr, u32 width, u32 height)
 	return 1;
 }
 
+#ifndef GETRAWFRAMEBUFFER
+    #define GETRAWFRAMEBUFFER   0x00020001
+    typedef struct _RawFrameBufferInfo
+    {
+	    WORD wFormat;
+	    WORD wBPP;
+	    VOID *pFramePointer;
+	    int	cxStride;
+	    int	cyStride;
+        int cxPixels;
+        int cyPixels;
+    } RawFrameBufferInfo;
+
+    #define FORMAT_565 1
+    #define FORMAT_555 2
+    #define FORMAT_OTHER 3
+#endif
+
 static GF_Err gapi_get_raw_fb(GF_VideoOutput *dr)
 {
 	long tmp;

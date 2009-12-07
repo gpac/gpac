@@ -103,10 +103,12 @@ LINK32=link.exe
 SOURCE=..\..\modules\ctx_load\ctx_load.c
 DEP_CPP_CTX_L=\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
 	"..\..\include\gpac\list.h"\
@@ -114,7 +116,9 @@ DEP_CPP_CTX_L=\
 	"..\..\include\gpac\mediaobject.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\ipmp.h"\
 	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\modules\term_ext.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\network.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
@@ -128,10 +132,20 @@ DEP_CPP_CTX_L=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	
+NODEP_CPP_CTX_L=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ctx_load\ctx_load.def
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # End Target
 # End Project

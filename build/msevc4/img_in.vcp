@@ -104,9 +104,9 @@ SOURCE=..\..\modules\img_in\bmp_dec.c
 DEP_CPP_BMP_D=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -117,6 +117,9 @@ DEP_CPP_BMP_D=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\img_in\img_in.h"\
 	
+NODEP_CPP_BMP_D=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -124,9 +127,9 @@ SOURCE=..\..\modules\img_in\img_dec.c
 DEP_CPP_IMG_D=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -136,6 +139,9 @@ DEP_CPP_IMG_D=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\img_in\img_in.h"\
+	
+NODEP_CPP_IMG_D=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -145,9 +151,9 @@ DEP_CPP_IMG_I=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -158,10 +164,9 @@ DEP_CPP_IMG_I=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\img_in\img_in.h"\
 	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\img_in\img_in.def
+NODEP_CPP_IMG_I=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -174,9 +179,9 @@ DEP_CPP_JP2_D=\
 	"..\..\extra_lib\include\openjpeg\openjpeg.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -186,6 +191,9 @@ DEP_CPP_JP2_D=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\img_in\img_in.h"\
+	
+NODEP_CPP_JP2_D=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -195,9 +203,9 @@ DEP_CPP_JPEG_=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -208,6 +216,20 @@ DEP_CPP_JPEG_=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\img_in\img_in.h"\
 	
+NODEP_CPP_JPEG_=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -216,9 +238,9 @@ DEP_CPP_PNG_D=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -228,6 +250,9 @@ DEP_CPP_PNG_D=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\img_in\img_in.h"\
+	
+NODEP_CPP_PNG_D=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Target

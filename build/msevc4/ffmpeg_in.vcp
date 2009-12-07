@@ -117,9 +117,9 @@ DEP_CPP_FFMPE=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -155,9 +155,9 @@ DEP_CPP_FFMPEG=\
 	"..\..\extra_lib\include\libswscale\swscale.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -174,10 +174,6 @@ NODEP_CPP_FFMPEG=\
 	"..\..\extra_lib\include\libavutil\internal.h"\
 	"..\..\include\gpac\config.h"\
 	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\ffmpeg_in\ffmpeg_in.def
 # End Source File
 # Begin Source File
 
@@ -201,9 +197,9 @@ DEP_CPP_FFMPEG_=\
 	"..\..\extra_lib\include\libswscale\swscale.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -218,6 +214,17 @@ DEP_CPP_FFMPEG_=\
 NODEP_CPP_FFMPEG_=\
 	"..\..\extra_lib\include\libavutil\config.h"\
 	"..\..\extra_lib\include\libavutil\internal.h"\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
 	"..\..\include\gpac\config.h"\
 	
 # End Source File

@@ -103,12 +103,31 @@ LINK32=link.exe
 SOURCE=..\..\modules\mp3_in\mad_dec.c
 DEP_CPP_MAD_D=\
 	"..\..\extra_lib\include\mad\mad.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_MAD_D=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -117,7 +136,8 @@ SOURCE=..\..\modules\mp3_in\mp3_in.c
 DEP_CPP_MP3_I=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\list.h"\
@@ -129,10 +149,9 @@ DEP_CPP_MP3_I=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\mp3_in\mp3_in.def
+NODEP_CPP_MP3_I=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # End Target
 # End Project
