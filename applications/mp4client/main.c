@@ -1416,7 +1416,7 @@ force_input:
 				scanf("%d", &odid);
 				if (odid) {
 					GF_ObjectManager *root_odm = gf_term_get_root_object(term);
-					if (!root_odm) return;
+					if (!root_odm) break;
 					count = gf_term_get_object_count(term, root_odm);
 					for (i=0; i<count; i++) {
 						GF_MediaInfo info;

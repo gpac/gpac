@@ -91,11 +91,11 @@ LINK32=link.exe
 # Name "xvid_dec - Win32 Debug"
 # Begin Source File
 
-SOURCE=..\..\modules\xvid_dec\xvid_dec.c
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\xvid_dec\xvid_dec.def
+SOURCE=..\..\modules\xvid_dec\xvid_dec.c
 # End Source File
 # End Target
 # End Project

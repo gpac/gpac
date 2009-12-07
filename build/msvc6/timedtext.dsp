@@ -89,7 +89,7 @@ LINK32=link.exe
 # Name "timedtext - Win32 Debug"
 # Begin Source File
 
-SOURCE=..\..\modules\timedtext\timedtext.def
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # Begin Source File
 

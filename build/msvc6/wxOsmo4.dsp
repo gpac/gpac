@@ -80,7 +80,8 @@ BSC32=bscmake.exe
 # ADD BSC32 /nologo
 LINK32=link.exe
 # ADD BASE LINK32 kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /nologo /subsystem:windows /debug /machine:I386 /pdbtype:sept
-# ADD LINK32 wxbase26d.lib wxmsw26d_core.lib comctl32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib rpcrt4.lib /nologo /subsystem:windows /debug /machine:I386 /out:"../../bin/w32_deb/wxOsmo4.exe" /pdbtype:sept /libpath:"../../extra_lib/lib/w32_deb"
+# ADD LINK32 wxbase26d.lib wxmsw26d_core.lib shell32.lib comctl32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib rpcrt4.lib /nologo /subsystem:windows /pdb:none /machine:I386 /out:"../../bin/w32_deb/wxOsmo4.exe" /libpath:"../../extra_lib/lib/w32_deb"
+# SUBTRACT LINK32 /debug
 
 !ENDIF 
 

@@ -88,25 +88,13 @@ LINK32=link.exe
 
 # Name "mpegts_in - Win32 Release"
 # Name "mpegts_in - Win32 Debug"
-# Begin Group "Source Files"
+# Begin Source File
 
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+SOURCE=..\..\modules\modules_export.cpp
+# End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\mpegts_in\mpegts_in.c
 # End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\mpegts_in\mpegts_in.def
-# End Source File
-# End Group
-# Begin Group "Header Files"
-
-# PROP Default_Filter "h;hpp;hxx;hm;inl"
-# End Group
-# Begin Group "Resource Files"
-
-# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
-# End Group
 # End Target
 # End Project

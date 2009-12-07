@@ -95,11 +95,11 @@ SOURCE=..\..\modules\aac_in\aac_in.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\aac_in\aac_in.def
+SOURCE=..\..\modules\aac_in\faad_dec.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\aac_in\faad_dec.c
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project

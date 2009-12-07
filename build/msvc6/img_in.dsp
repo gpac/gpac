@@ -103,10 +103,6 @@ SOURCE=..\..\modules\img_in\img_in.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\img_in\img_in.def
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\img_in\img_in.h
 # End Source File
 # Begin Source File
@@ -116,6 +112,10 @@ SOURCE=..\..\modules\img_in\jp2_dec.c
 # Begin Source File
 
 SOURCE=..\..\modules\img_in\jpeg_dec.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # Begin Source File
 

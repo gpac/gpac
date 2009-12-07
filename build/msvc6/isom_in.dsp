@@ -94,15 +94,15 @@ SOURCE=..\..\modules\isom_in\cache.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\isom_in\isom_in.def
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\isom_in\isom_in.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\isom_in\load.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # Begin Source File
 

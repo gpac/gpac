@@ -968,15 +968,15 @@ SOURCE=..\..\modules\amr_dec\amr_dec.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\amr_dec\amr_dec.def
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\amr_dec\amr_in.c
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\amr_dec\amr_nb\enc_lag3.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project

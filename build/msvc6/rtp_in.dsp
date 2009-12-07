@@ -89,11 +89,11 @@ LINK32=link.exe
 # Name "rtp_in - Win32 Debug"
 # Begin Source File
 
-SOURCE=..\..\modules\rtp_in\rtp_in.c
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\rtp_in\rtp_in.def
+SOURCE=..\..\modules\rtp_in\rtp_in.c
 # End Source File
 # Begin Source File
 

@@ -89,11 +89,11 @@ LINK32=link.exe
 # Name "odf_dec - Win32 Debug"
 # Begin Source File
 
-SOURCE=..\..\modules\odf_dec\odf_dec.c
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\odf_dec\odf_dec.def
+SOURCE=..\..\modules\odf_dec\odf_dec.c
 # End Source File
 # End Target
 # End Project

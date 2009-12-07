@@ -93,11 +93,11 @@ SOURCE=..\..\modules\ac3_in\ac3_in.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ac3_in\ac3_in.def
+SOURCE=..\..\modules\ac3_in\liba52_dec.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ac3_in\liba52_dec.c
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # End Target
 # End Project

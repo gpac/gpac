@@ -98,11 +98,11 @@ SOURCE=..\..\modules\sdl_out\cursors.c
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\sdl_out\sdl_out.c
+SOURCE=..\..\modules\modules_export.cpp
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\sdl_out\sdl_out.def
+SOURCE=..\..\modules\sdl_out\sdl_out.c
 # End Source File
 # Begin Source File
 
