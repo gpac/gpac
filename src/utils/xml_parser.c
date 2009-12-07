@@ -200,6 +200,24 @@ static void xml_sax_swap(GF_SAXParser *parser)
 	}
 }
 
+static void format_sax_error(GF_SAXParser *parser, u32 linepos, const char* fmt, ...)
+{
+	va_list args;
+	u32 len;
+	char szM[20];
+
+	va_start(args, fmt);
+	vsprintf(parser->err_msg, fmt, args);
+	va_end(args);
+	
+	sprintf(szM, " - Line %d: ", parser->line + 1);
+	strcat(parser->err_msg, szM);
+	len = strlen(parser->err_msg);
+	strncpy(parser->err_msg + len, parser->buffer+ (linepos ? linepos : parser->current_pos), 10);
+	parser->err_msg[len + 10] = 0;
+	parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+}
+
 static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 {
 	char *name, *sep, c;
@@ -207,8 +225,7 @@ static void xml_sax_node_end(GF_SAXParser *parser, Bool had_children)
 	assert(parser->elt_name_start);
 	assert(parser->elt_name_end);
 	if (!parser->node_depth) {
-		parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-		sprintf(parser->err_msg, "Markup error");
+		format_sax_error(parser, 0, "Markup error");
 		return;
 	}
 	c = parser->buffer[parser->elt_name_end - 1];
@@ -327,8 +344,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					}
 					if (!parser->in_quote && (c=='/')) {
 						if (!parser->init_state) {
-							parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-							sprintf(parser->err_msg, "Markup error");
+							format_sax_error(parser, 0, "Markup error");
 							return 1;
 						}
 					}
@@ -336,8 +352,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 				case '"':
 					if (parser->sax_state==SAX_STATE_ATT_VALUE) break;
 					if (parser->in_quote && (parser->in_quote!=c) ) {
-						parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-						sprintf(parser->err_msg, "Markup error");
+						format_sax_error(parser, 0, "Markup error");
 						return 1;
 					}
 					if (parser->in_quote) parser->in_quote = 0;
@@ -348,8 +363,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					/*end of <!DOCTYPE>*/
 					if (parser->init_state) {
 						if (parser->init_state==1) {
-							parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-							sprintf(parser->err_msg, "Invalid DOCTYPE");
+							format_sax_error(parser, 0, "Invalid DOCTYPE");
 							return 1;
 						}
 						parser->sax_state = SAX_STATE_ELEMENT;
@@ -363,8 +377,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					if (parser->init_state) {
 						parser->current_pos+=1;
 						if (parser->init_state==1) {
-							parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-							sprintf(parser->err_msg, "Invalid DOCTYPE");
+							format_sax_error(parser, 0, "Invalid DOCTYPE");
 							return 1;
 						}
 						parser->sax_state = SAX_STATE_ELEMENT;
@@ -372,8 +385,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 					}
 					break;
 				case '<':
-					parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-					sprintf(parser->err_msg, "Invalid character");
+					format_sax_error(parser, 0, "Invalid character '<'");
 					return 0;
 				/*first char of attr name*/
 				default:
@@ -401,6 +413,7 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 
 		/*looking for '"'*/
 		if (parser->att_name_start) {
+			u32 i, first=1;
 			sep = strchr(parser->buffer + parser->att_name_start - 1, '=');
 			/*not enough data*/
 			if (!sep) return 1;
@@ -414,6 +427,23 @@ static Bool xml_sax_parse_attribute(GF_SAXParser *parser)
 				att->name_end --;
 			}
 			att->has_entities = 0;
+
+			for (i=att->name_start; i<att->name_end; i++) {
+				char c = parser->buffer[i-1];
+				if ((c>='a') && (c<='z')) {}
+				else if ((c>='A') && (c<='Z')) {}
+				else if ((c==':') || (c=='_')) {}
+
+				else if (!first && ((c=='-') || (c=='.') || ((c>='0') && (c<='9')) )) {}
+
+				else {
+					format_sax_error(parser, att->name_start-1, "Invalid character \'%c\' for attribute name", c);
+					return 1;
+				}
+
+				first=0;
+			}
+
 			parser->att_name_start = 0;
 			parser->current_pos++;
 			parser->sax_state = SAX_STATE_ATT_VALUE;
@@ -491,43 +521,6 @@ static void xml_sax_flush_text(GF_SAXParser *parser)
 {
 	char *text, c;
 	if (!parser->text_start || parser->init_state || !parser->sax_text_content) return;
-
-	/* This optimization should be done at the application level
-	   generic XML parsing should not try to remove any character !!*/
-#if 0
-	u32 offset;
-	offset = 0;
-	while (parser->text_start+offset<parser->text_end) {
-		c = parser->buffer[parser->text_start-1+offset];
-		if (c=='\r') offset++;
-		else if (c==' ') offset++;
-		else if (c=='\n') {
-			parser->line++;
-			offset++;
-		} else {
-			break;
-		}
-	}
-	parser->text_start+=offset;
-	if (parser->text_start == parser->text_end) {
-		parser->text_start = parser->text_end = 0;
-		return;
-	}
-
-	offset = 0;
-	while (offset<parser->text_end) {
-		c = parser->buffer[parser->text_end-2-offset];
-		if (c=='\r') offset++;
-		else if (c==' ') offset++;
-		else if (c=='\n') {
-			parser->line++;
-			offset++;
-		} else {
-			break;
-		}
-	}
-	parser->text_end-=offset;
-#endif
 
 	assert(parser->text_start < parser->text_end);
 
@@ -734,7 +727,7 @@ restart:
 					goto restart;
 				}
 				i++;
-				if (!is_text && (c=='\n')) parser->line++;
+				if (c=='\n') parser->line++;
 				if (parser->current_pos+i==parser->line_size) goto exit;
 			}
 			if (is_text && i) {
@@ -857,7 +850,7 @@ restart:
 		case SAX_STATE_COMMENT:
 			if (!xml_sax_parse_comments(parser)) {
 				xml_sax_swap(parser);
-				return GF_OK;
+				goto exit;
 			}
 			break;
 		case SAX_STATE_ATT_NAME:
@@ -891,7 +884,8 @@ exit:
 	}
 #endif
 	xml_sax_swap(parser);
-	return GF_OK;
+
+	return (parser->sax_state==SAX_STATE_SYNTAX_ERROR) ? GF_CORRUPTED_DATA : GF_OK;
 }
 
 static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
