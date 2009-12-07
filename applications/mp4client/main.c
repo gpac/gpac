@@ -935,6 +935,7 @@ int main (int argc, char **argv)
 	const char *str;
 	u32 i, times[100], nb_times, dump_mode;
 	u32 simulation_time = 0;
+	Bool logs_set = 0;
 	Bool start_fs = 0;
 	Bool use_rtix = 0;
 	Bool rgbds_dump = 0;
@@ -1042,9 +1043,11 @@ int main (int argc, char **argv)
 			i++;
 		} else if (!strcmp(arg, "-log-level") || !strcmp(arg, "-ll")) {
 			gf_log_set_level(parse_log_level(argv[i+1]));
+			logs_set = 1;
 			i++;
 		} else if (!strcmp(arg, "-log-tools") || !strcmp(arg, "-lt")) {
 			gf_log_set_tools(parse_log_tools(argv[i+1]));
+			logs_set = 1;
 			i++;
 		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
 			log_time_start = 1;
@@ -1094,7 +1097,12 @@ int main (int argc, char **argv)
 	}
 	if (dump_mode) rti_file = NULL;
 	gf_sys_init();
-	
+
+	if (!logs_set) {
+		gf_log_set_level(GF_LOG_ERROR);
+		gf_log_set_tools(0xFFFFFFFF);
+	}
+
 	gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
 	memory_at_gpac_startup = rti.physical_memory_avail;
 	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);

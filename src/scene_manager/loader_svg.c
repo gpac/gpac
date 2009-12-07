@@ -136,7 +136,10 @@ static GF_Err svg_report(GF_SVG_Parser *parser, GF_Err e, char *format, ...)
 		GF_LOG((u32) (e ? GF_LOG_ERROR : GF_LOG_WARNING), GF_LOG_PARSER, ("[SVG Parsing] line %d - %s\n", gf_xml_sax_get_line(parser->sax_parser), szMsg));
 	}
 #endif
-	if (e) parser->last_error = e;
+	if (e) {
+		parser->last_error = e;
+		gf_xml_sax_suspend(parser->sax_parser, 1);
+	}
 	return e;
 }
 
@@ -1537,7 +1540,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 				top->unknown_depth--;
 				return;
 			} else {
-				svg_report(parser, GF_BAD_PARAM, "SVG depth mismatch");
+				svg_report(parser, GF_BAD_PARAM, "SVG depth mismatch: expecting </%s> got </%s>", the_name, name);
 				return;
 			}
 		}
