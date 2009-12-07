@@ -105,10 +105,9 @@ DEP_CPP_FT_FO=\
 	"..\..\extra_lib\include\freetype\freetype\config\ftheader.h"\
 	"..\..\extra_lib\include\freetype\ft2build.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\config.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -125,11 +124,18 @@ NODEP_CPP_FT_FO=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ft_font\ft_font.def
+SOURCE=..\..\modules\ft_font\ft_font.h
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ft_font\ft_font.h
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # End Target
 # End Project

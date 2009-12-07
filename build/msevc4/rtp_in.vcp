@@ -98,16 +98,25 @@ LINK32=link.exe
 
 # Name "rtp_in - Win32 (WCE ARMV4) Release"
 # Name "rtp_in - Win32 (WCE ARMV4) Debug"
-# Begin Group "Source Files"
+# Begin Source File
 
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\rtp_in\rtp_in.c
 DEP_CPP_RTP_I=\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\ietf.h"\
@@ -122,10 +131,13 @@ DEP_CPP_RTP_I=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\rtp_in\rtp_in.h"\
 	
+NODEP_CPP_RTP_I=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\rtp_in\rtp_in.def
+SOURCE=..\..\modules\rtp_in\rtp_in.h
 # End Source File
 # Begin Source File
 
@@ -133,7 +145,8 @@ SOURCE=..\..\modules\rtp_in\rtp_session.c
 DEP_CPP_RTP_S=\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\ietf.h"\
@@ -147,6 +160,9 @@ DEP_CPP_RTP_S=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\rtp_in\rtp_in.h"\
+	
+NODEP_CPP_RTP_S=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -155,7 +171,8 @@ SOURCE=..\..\modules\rtp_in\rtp_signaling.c
 DEP_CPP_RTP_SI=\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\ietf.h"\
@@ -169,6 +186,9 @@ DEP_CPP_RTP_SI=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\rtp_in\rtp_in.h"\
+	
+NODEP_CPP_RTP_SI=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -177,10 +197,12 @@ SOURCE=..\..\modules\rtp_in\rtp_stream.c
 DEP_CPP_RTP_ST=\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\service.h"\
@@ -191,6 +213,9 @@ DEP_CPP_RTP_ST=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\rtp_in\rtp_in.h"\
+	
+NODEP_CPP_RTP_ST=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -199,7 +224,8 @@ SOURCE=..\..\modules\rtp_in\sdp_fetch.c
 DEP_CPP_SDP_F=\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\ietf.h"\
@@ -213,6 +239,9 @@ DEP_CPP_SDP_F=\
 	"..\..\include\gpac\thread.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\rtp_in\rtp_in.h"\
+	
+NODEP_CPP_SDP_F=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -221,10 +250,12 @@ SOURCE=..\..\modules\rtp_in\sdp_load.c
 DEP_CPP_SDP_L=\
 	"..\..\include\gpac\base_coding.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\ietf.h"\
+	"..\..\include\gpac\internal\ietf_dev.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\service.h"\
@@ -236,19 +267,9 @@ DEP_CPP_SDP_L=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\rtp_in\rtp_in.h"\
 	
+NODEP_CPP_SDP_L=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
-# End Group
-# Begin Group "Header Files"
-
-# PROP Default_Filter "h;hpp;hxx;hm;inl"
-# Begin Source File
-
-SOURCE=..\..\modules\rtp_in\rtp_in.h
-# End Source File
-# End Group
-# Begin Group "Resource Files"
-
-# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
-# End Group
 # End Target
 # End Project

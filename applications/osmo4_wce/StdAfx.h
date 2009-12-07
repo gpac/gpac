@@ -18,7 +18,6 @@
 #error This project can not be built for H/PC Pro 2.11 or earlier platforms.
 #endif
 
-
 #define VC_EXTRALEAN		// Exclude rarely-used stuff from Windows headers
 
 #include <afxwin.h>         // MFC core and standard components

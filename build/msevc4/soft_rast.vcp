@@ -98,15 +98,13 @@ LINK32=link.exe
 
 # Name "soft_rast - Win32 (WCE ARMV4) Release"
 # Name "soft_rast - Win32 (WCE ARMV4) Debug"
-# Begin Group "Source Files"
-
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
 SOURCE=..\..\modules\soft_raster\ftgrays.c
 DEP_CPP_FTGRA=\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -116,17 +114,32 @@ DEP_CPP_FTGRA=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\soft_raster\rast_soft.h"\
 	
+NODEP_CPP_FTGRA=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\soft_raster\rast_soft.def
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\soft_raster\rast_soft.h
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\soft_raster\raster_565.c
 DEP_CPP_RASTE=\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -135,6 +148,9 @@ DEP_CPP_RASTE=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\soft_raster\rast_soft.h"\
+	
+NODEP_CPP_RASTE=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -142,7 +158,8 @@ DEP_CPP_RASTE=\
 SOURCE=..\..\modules\soft_raster\raster_argb.c
 DEP_CPP_RASTER=\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -151,6 +168,9 @@ DEP_CPP_RASTER=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\soft_raster\rast_soft.h"\
+	
+NODEP_CPP_RASTER=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -158,7 +178,8 @@ DEP_CPP_RASTER=\
 SOURCE=..\..\modules\soft_raster\raster_load.c
 DEP_CPP_RASTER_=\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -167,6 +188,9 @@ DEP_CPP_RASTER_=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\soft_raster\rast_soft.h"\
+	
+NODEP_CPP_RASTER_=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -174,7 +198,8 @@ DEP_CPP_RASTER_=\
 SOURCE=..\..\modules\soft_raster\raster_rgb.c
 DEP_CPP_RASTER_R=\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -183,6 +208,9 @@ DEP_CPP_RASTER_R=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\soft_raster\rast_soft.h"\
+	
+NODEP_CPP_RASTER_R=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -190,7 +218,8 @@ DEP_CPP_RASTER_R=\
 SOURCE=..\..\modules\soft_raster\stencil.c
 DEP_CPP_STENC=\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -199,6 +228,9 @@ DEP_CPP_STENC=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\soft_raster\rast_soft.h"\
+	
+NODEP_CPP_STENC=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -206,7 +238,8 @@ DEP_CPP_STENC=\
 SOURCE=..\..\modules\soft_raster\surface.c
 DEP_CPP_SURFA=\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
@@ -216,19 +249,9 @@ DEP_CPP_SURFA=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\soft_raster\rast_soft.h"\
 	
+NODEP_CPP_SURFA=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
-# End Group
-# Begin Group "Header Files"
-
-# PROP Default_Filter "h;hpp;hxx;hm;inl"
-# Begin Source File
-
-SOURCE=..\..\modules\soft_raster\rast_soft.h
-# End Source File
-# End Group
-# Begin Group "Resource Files"
-
-# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
-# End Group
 # End Target
 # End Project

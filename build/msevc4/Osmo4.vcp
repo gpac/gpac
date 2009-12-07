@@ -110,7 +110,8 @@ DEP_CPP_MAINF=\
 	"..\..\applications\osmo4_wce\ProgressBar.h"\
 	"..\..\applications\osmo4_wce\StdAfx.h"\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\math.h"\
@@ -123,6 +124,9 @@ DEP_CPP_MAINF=\
 	"..\..\include\gpac\user.h"\
 	{$(INCLUDE)}"gx.h"\
 	
+NODEP_CPP_MAINF=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -132,7 +136,8 @@ DEP_CPP_OPEND=\
 	"..\..\applications\osmo4_wce\Osmo4.h"\
 	"..\..\applications\osmo4_wce\StdAfx.h"\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\math.h"\
@@ -142,6 +147,9 @@ DEP_CPP_OPEND=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	
+NODEP_CPP_OPEND=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -150,23 +158,31 @@ DEP_CPP_OPTIO=\
 	"..\..\applications\osmo4_wce\Options.h"\
 	"..\..\applications\osmo4_wce\Osmo4.h"\
 	"..\..\applications\osmo4_wce\StdAfx.h"\
+	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\iso639.h"\
+	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\math.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\audio_out.h"\
 	"..\..\include\gpac\modules\codec.h"\
 	"..\..\include\gpac\modules\font.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\options.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	{$(INCLUDE)}"gx.h"\
+	
+NODEP_CPP_OPTIO=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -181,7 +197,8 @@ DEP_CPP_OSMO4=\
 	"..\..\applications\osmo4_wce\StdAfx.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
@@ -198,6 +215,9 @@ DEP_CPP_OSMO4=\
 	"..\..\include\gpac\user.h"\
 	{$(INCLUDE)}"gx.h"\
 	
+NODEP_CPP_OSMO4=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -211,7 +231,8 @@ DEP_CPP_PROGR=\
 	"..\..\applications\osmo4_wce\ProgressBar.h"\
 	"..\..\applications\osmo4_wce\StdAfx.h"\
 	"..\..\include\gpac\color.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\math.h"\
@@ -220,6 +241,9 @@ DEP_CPP_PROGR=\
 	"..\..\include\gpac\terminal.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
+	
+NODEP_CPP_PROGR=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File

@@ -100,17 +100,26 @@ LINK32=link.exe
 # Name "timedtext - Win32 (WCE ARMV4) Debug"
 # Begin Source File
 
-SOURCE=..\..\modules\timedtext\timedtext.def
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\timedtext\timedtext_dec.c
 DEP_CPP_TIMED=\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\color.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\events.h"\
 	"..\..\include\gpac\internal\isomedia_dev.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -119,7 +128,9 @@ DEP_CPP_TIMED=\
 	"..\..\include\gpac\mediaobject.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\modules\ipmp.h"\
 	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\modules\term_ext.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\nodes_mpeg4.h"\
 	"..\..\include\gpac\scenegraph.h"\
@@ -132,6 +143,9 @@ DEP_CPP_TIMED=\
 	"..\..\include\gpac\user.h"\
 	"..\..\include\gpac\utf.h"\
 	
+NODEP_CPP_TIMED=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -139,7 +153,8 @@ SOURCE=..\..\modules\timedtext\timedtext_in.c
 DEP_CPP_TIMEDT=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -152,6 +167,9 @@ DEP_CPP_TIMEDT=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_TIMEDT=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Target

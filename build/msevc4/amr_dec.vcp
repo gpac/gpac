@@ -2244,7 +2244,8 @@ SOURCE=..\..\modules\amr_dec\amr_nb\weight_a.h
 SOURCE=..\..\modules\amr_dec\amr_dec.c
 DEP_CPP_AMR_D=\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\list.h"\
@@ -2277,17 +2278,17 @@ DEP_CPP_AMR_D=\
 	"..\..\modules\amr_dec\amr_nb\typedef.h"\
 	"..\..\modules\amr_dec\amr_nb\typedefs.h"\
 	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\amr_dec\amr_dec.def
+NODEP_CPP_AMR_D=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
 SOURCE=..\..\modules\amr_dec\amr_in.c
 DEP_CPP_AMR_I=\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -2299,6 +2300,20 @@ DEP_CPP_AMR_I=\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
+	
+NODEP_CPP_AMR_I=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Target

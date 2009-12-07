@@ -100,20 +100,30 @@ LINK32=link.exe
 # Name "wav_out - Win32 (WCE ARMV4) Debug"
 # Begin Source File
 
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\modules\wav_out\wav_out.c
 DEP_CPP_WAV_O=\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\audio_out.h"\
 	"..\..\include\gpac\setup.h"\
 	"..\..\include\gpac\tools.h"\
 	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\wav_out\wav_out.def
+NODEP_CPP_WAV_O=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # End Target
 # End Project

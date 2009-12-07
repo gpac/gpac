@@ -1,7 +1,13 @@
 // MainFrm.cpp : implementation of the CMainFrame class
 //
 
+#ifdef _DEBUG
 #include "stdafx.h"
+#else
+#include "stdafx.h"
+#undef _DEBUG
+#endif
+
 #include "Osmo4.h"
 
 #include <gpac/options.h>

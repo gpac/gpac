@@ -104,10 +104,9 @@ DEP_CPP_AC3_I=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\internal\config.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -123,19 +122,14 @@ NODEP_CPP_AC3_I=\
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ac3_in\ac3_in.def
-# End Source File
-# Begin Source File
-
 SOURCE=..\..\modules\ac3_in\liba52_dec.c
 DEP_CPP_LIBA5=\
 	"..\..\extra_lib\include\a52dec\a52.h"\
 	"..\..\extra_lib\include\a52dec\mm_accel.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\internal\config.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
@@ -145,6 +139,17 @@ DEP_CPP_LIBA5=\
 	"..\..\include\gpac\tools.h"\
 	
 NODEP_CPP_LIBA5=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
 	"..\..\include\gpac\config.h"\
 	
 # End Source File

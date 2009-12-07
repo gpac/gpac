@@ -439,7 +439,14 @@ InputName=xvid_ppc
 # End Group
 # Begin Source File
 
-SOURCE=..\..\modules\xvid_dec\xvid_dec.def
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -448,14 +455,20 @@ DEP_CPP_XVID_D=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\internal\config_static.h"\
+	"..\..\include\gpac\list.h"\
 	"..\..\include\gpac\module.h"\
 	"..\..\include\gpac\modules\codec.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\xvid_dec\xvid_wce\Rules.h"\
 	"..\..\modules\xvid_dec\xvid_wce\xvid.h"\
+	
+NODEP_CPP_XVID_D=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # End Target

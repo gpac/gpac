@@ -96,9 +96,6 @@ LINK32=link.exe
 
 # Name "ismacryp - Win32 (WCE ARMV4) Release"
 # Name "ismacryp - Win32 (WCE ARMV4) Debug"
-# Begin Group "Source Files"
-
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
 SOURCE=..\..\modules\ismacryp\ismacryp.c
@@ -107,11 +104,11 @@ DEP_CPP_ISMAC=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\crypt.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\ismacryp.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -122,6 +119,7 @@ DEP_CPP_ISMAC=\
 	"..\..\include\gpac\modules\codec.h"\
 	"..\..\include\gpac\modules\ipmp.h"\
 	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\modules\term_ext.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_vrml.h"\
@@ -132,19 +130,20 @@ DEP_CPP_ISMAC=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	
+NODEP_CPP_ISMAC=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\ismacryp\ismacryp.def
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
-# End Group
-# Begin Group "Header Files"
-
-# PROP Default_Filter "h;hpp;hxx;hm;inl"
-# End Group
-# Begin Group "Resource Files"
-
-# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
-# End Group
 # End Target
 # End Project

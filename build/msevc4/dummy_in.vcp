@@ -103,7 +103,8 @@ LINK32=link.exe
 SOURCE=..\..\modules\dummy_in\dummy_in.c
 DEP_CPP_DUMMY=\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\list.h"\
@@ -115,10 +116,20 @@ DEP_CPP_DUMMY=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\xml.h"\
 	
+NODEP_CPP_DUMMY=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\dummy_in\dummy_in.def
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # End Target
 # End Project

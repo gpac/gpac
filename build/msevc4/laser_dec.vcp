@@ -96,9 +96,6 @@ LINK32=link.exe
 
 # Name "laser_dec - Win32 (WCE ARMV4) Release"
 # Name "laser_dec - Win32 (WCE ARMV4) Debug"
-# Begin Group "Source Files"
-
-# PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
 SOURCE=..\..\modules\laser_dec\laser_dec.c
@@ -106,10 +103,10 @@ DEP_CPP_LASER=\
 	"..\..\include\gpac\bitstream.h"\
 	"..\..\include\gpac\color.h"\
 	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\events.h"\
-	"..\..\include\gpac\internal\config_static.h"\
 	"..\..\include\gpac\internal\terminal_dev.h"\
 	"..\..\include\gpac\laser.h"\
 	"..\..\include\gpac\list.h"\
@@ -119,8 +116,9 @@ DEP_CPP_LASER=\
 	"..\..\include\gpac\modules\codec.h"\
 	"..\..\include\gpac\modules\ipmp.h"\
 	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\modules\term_ext.h"\
 	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\nodes_svg_da.h"\
+	"..\..\include\gpac\nodes_svg.h"\
 	"..\..\include\gpac\path2d.h"\
 	"..\..\include\gpac\scenegraph.h"\
 	"..\..\include\gpac\scenegraph_svg.h"\
@@ -133,19 +131,20 @@ DEP_CPP_LASER=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\include\gpac\user.h"\
 	
+NODEP_CPP_LASER=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
-SOURCE=..\..\modules\laser_dec\laser_dec.def
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
-# End Group
-# Begin Group "Header Files"
-
-# PROP Default_Filter "h;hpp;hxx;hm;inl"
-# End Group
-# Begin Group "Resource Files"
-
-# PROP Default_Filter "ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
-# End Group
 # End Target
 # End Project

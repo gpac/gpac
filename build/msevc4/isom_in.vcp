@@ -104,7 +104,8 @@ SOURCE=..\..\modules\isom_in\cache.c
 DEP_CPP_CACHE=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -118,10 +119,9 @@ DEP_CPP_CACHE=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\isom_in\isom_in.h"\
 	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\isom_in\isom_in.def
+NODEP_CPP_CACHE=\
+	"..\..\include\gpac\config.h"\
+	
 # End Source File
 # Begin Source File
 
@@ -133,7 +133,8 @@ SOURCE=..\..\modules\isom_in\load.c
 DEP_CPP_LOAD_=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
-	"..\..\include\gpac\config.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -146,6 +147,20 @@ DEP_CPP_LOAD_=\
 	"..\..\include\gpac\sync_layer.h"\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\isom_in\isom_in.h"\
+	
+NODEP_CPP_LOAD_=\
+	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\modules_export.cpp
+DEP_CPP_MODUL=\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\setup.h"\
+	
+NODEP_CPP_MODUL=\
+	"..\..\include\gpac\config.h"\
 	
 # End Source File
 # Begin Source File
@@ -154,7 +169,34 @@ SOURCE=..\..\modules\isom_in\read.c
 DEP_CPP_READ_=\
 	"..\..\include\gpac\avparse.h"\
 	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
+	"..\..\include\gpac\constants.h"\
+	"..\..\include\gpac\download.h"\
+	"..\..\include\gpac\ismacryp.h"\
+	"..\..\include\gpac\isomedia.h"\
+	"..\..\include\gpac\list.h"\
+	"..\..\include\gpac\media_tools.h"\
+	"..\..\include\gpac\module.h"\
+	"..\..\include\gpac\modules\service.h"\
+	"..\..\include\gpac\mpeg4_odf.h"\
+	"..\..\include\gpac\setup.h"\
+	"..\..\include\gpac\sync_layer.h"\
+	"..\..\include\gpac\tools.h"\
+	"..\..\modules\isom_in\isom_in.h"\
+	
+NODEP_CPP_READ_=\
 	"..\..\include\gpac\config.h"\
+	
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\modules\isom_in\read_ch.c
+DEP_CPP_READ_C=\
+	"..\..\include\gpac\avparse.h"\
+	"..\..\include\gpac\bitstream.h"\
+	"..\..\include\gpac\config_file.h"\
+	"..\..\include\gpac\configuration.h"\
 	"..\..\include\gpac\constants.h"\
 	"..\..\include\gpac\download.h"\
 	"..\..\include\gpac\isomedia.h"\
@@ -168,26 +210,8 @@ DEP_CPP_READ_=\
 	"..\..\include\gpac\tools.h"\
 	"..\..\modules\isom_in\isom_in.h"\
 	
-# End Source File
-# Begin Source File
-
-SOURCE=..\..\modules\isom_in\read_ch.c
-DEP_CPP_READ_C=\
-	"..\..\include\gpac\avparse.h"\
-	"..\..\include\gpac\bitstream.h"\
+NODEP_CPP_READ_C=\
 	"..\..\include\gpac\config.h"\
-	"..\..\include\gpac\constants.h"\
-	"..\..\include\gpac\download.h"\
-	"..\..\include\gpac\isomedia.h"\
-	"..\..\include\gpac\list.h"\
-	"..\..\include\gpac\media_tools.h"\
-	"..\..\include\gpac\module.h"\
-	"..\..\include\gpac\modules\service.h"\
-	"..\..\include\gpac\mpeg4_odf.h"\
-	"..\..\include\gpac\setup.h"\
-	"..\..\include\gpac\sync_layer.h"\
-	"..\..\include\gpac\tools.h"\
-	"..\..\modules\isom_in\isom_in.h"\
 	
 # End Source File
 # End Target
