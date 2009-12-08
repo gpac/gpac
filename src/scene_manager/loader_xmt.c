@@ -2369,6 +2369,8 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 	if (parser->last_error) {
 		gf_xml_sax_suspend(parser->sax_parser, 1);
+		if (parser->command_buffer) 
+			parser->command_buffer->buffer = NULL;
 		return;
 	}
 
@@ -2935,6 +2937,10 @@ GF_Err gf_sm_load_done_xmt(GF_SceneLoader *load)
 {
 	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
 	if (!parser) return GF_OK;
+
+	xmt_resolve_routes(parser);
+	xmt_resolve_od_links(parser);
+
 	while (1) {
 		XMTNodeStack *st = (XMTNodeStack *)gf_list_last(parser->nodes);
 		if (!st) break;
@@ -2948,10 +2954,9 @@ GF_Err gf_sm_load_done_xmt(GF_SceneLoader *load)
 	gf_list_del(parser->descriptors);
 	gf_list_del(parser->def_nodes);
 	gf_list_del(parser->peeked_nodes);
-	xmt_resolve_routes(parser);
+
 	gf_list_del(parser->inserted_routes);
 	gf_list_del(parser->unresolved_routes);
-	xmt_resolve_od_links(parser);
 	gf_list_del(parser->od_links);
 	gf_list_del(parser->esd_links);
 	gf_xml_sax_del(parser->sax_parser);
