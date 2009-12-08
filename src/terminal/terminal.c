@@ -431,8 +431,8 @@ GF_Terminal *gf_term_new(GF_User *user)
 		if (ifce) gf_list_add(tmp->extensions, ifce);
 	}
 	tmp->unthreaded_extensions = gf_list_new();
-	tmp->event_filters = gf_list_new();
 	tmp->evt_mx = gf_mx_new("Event Filter");
+	tmp->event_filters = gf_list_new();
 	for (i=0; i< gf_list_count(tmp->extensions); i++) {
 		GF_TermExt *ifce = gf_list_get(tmp->extensions, i);
 		if (!ifce->process(ifce, GF_TERM_EXT_START, tmp)) {

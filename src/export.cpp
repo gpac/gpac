@@ -1150,6 +1150,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_flatten_textContent) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_get_attribute_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_listener_build) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dom_listener_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_handle_dom_event) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_svg_parse_attribute) )

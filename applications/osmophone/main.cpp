@@ -701,6 +701,9 @@ BOOL CALLBACK AboutDialogProc(const HWND hWnd, const UINT Msg, const WPARAM wPar
     switch (Msg) {
     case WM_INITDIALOG:
 	{
+		char szText[4096];
+		HWND hctl = GetDlgItem(hWnd, IDC_NAMECTRL);
+		sprintf(szText, "GPAC/Osmo4\nversion %s", GPAC_FULL_VERSION);
 #ifdef _WIN32_WCE
 	    TCHAR           psz[80];
 		ZeroMemory(psz, sizeof(psz));
@@ -720,14 +723,14 @@ BOOL CALLBACK AboutDialogProc(const HWND hWnd, const UINT Msg, const WPARAM wPar
 		mbi.nBmpId = 0;
 		mbi.cBmpImages = 0;	
 		SHCreateMenuBar(&mbi);
-#endif
-		char szText[4096];
+
 		u16 swText[4096];
-		sprintf(szText, "GPAC/Osmo4\nversion %s", GPAC_FULL_VERSION);
 		CE_CharToWide(szText, swText);
 
-		HWND hctl = GetDlgItem(hWnd, IDC_NAMECTRL);
 		SetWindowText(hctl, (LPCWSTR) swText);
+#else
+		SetWindowText(hctl, szText);
+#endif
 		MoveWindow(hctl, 0, 0, screen_w, 40, 1);
 		MoveWindow(hWnd, 0, 0, screen_w, disp_w, 1);
 
