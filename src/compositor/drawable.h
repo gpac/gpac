@@ -257,10 +257,8 @@ struct _drawable_context
 	GF_Node *appear;
 	
 #ifdef GPAC_TRISCOPE_MODE
-	/*depth z-axis info for 2d scenes in triscope mode*/
-	Fixed depth;
-        //local gain and offset
-        Fixed depth_gain, depth_offset;
+    //local gain and offset
+    Fixed depth_gain, depth_offset;
 #endif
 	
 };	
