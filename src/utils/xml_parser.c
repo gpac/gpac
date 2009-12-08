@@ -1263,6 +1263,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 {
 	u32 state, att_len, alloc_size;
 	z_off_t pos;
+	Bool dobreak=0;
 	char szLine1[XML_INPUT_SIZE+2], szLine2[XML_INPUT_SIZE+2], *szLine, *cur_line, *sep, *start, first_c, *result;
 #ifdef NO_GZIP
 	if (!parser->f_in) return NULL;
@@ -1303,6 +1304,9 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 #endif
 		u32 read;
 		u8 sep_char;
+
+		if (dobreak) break;
+
 		if (cur_line == szLine2) {
 			cur_line = szLine1;
 		} else {
@@ -1316,13 +1320,26 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 		cur_line[read] = cur_line[read+1] = 0;
 
 		CPYCAT_ALLOC(cur_line, 0);
+
+		if (end_pattern) {
+			start  = strstr(szLine, end_pattern);
+			if (start) {
+				start[0] = 0;
+				dobreak = 1;
+			}
+		}
+
 retry:
 		if (state == 2) goto fetch_attr;
 		sep = strstr(szLine, att_name);
 		if (!sep && !state) {
 			state = 0;
-			CPYCAT_ALLOC(cur_line, 1);
-			if (end_pattern && strstr(szLine, end_pattern)) goto exit;
+			start = strrchr(szLine, '<');
+			if (start) {
+				CPYCAT_ALLOC(start, 1);
+			} else {
+				CPYCAT_ALLOC(cur_line, 1);
+			}
 			continue;
 		}
 		if (!state) {
@@ -1331,7 +1348,8 @@ retry:
 			first_c = sep[0];
 			sep[0] = 0;
 			start = strrchr(szLine, '<');
-			if (!start) goto exit;
+			if (!start)
+				goto exit;
 			sep[0] = first_c;
 			CPYCAT_ALLOC(start, 1);
 			sep = strstr(szLine, att_name);
