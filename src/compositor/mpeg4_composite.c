@@ -213,7 +213,7 @@ static void composite_update(GF_TextureHandler *txh)
 	new_pixel_format = GF_PIXEL_RGBA;
 #else
 	/*no alpha support in offscreen rendering*/
-	if (!(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
+	if ( (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
 		new_pixel_format = GF_PIXEL_RGB_24;
 #endif
 

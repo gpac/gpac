@@ -697,9 +697,9 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 		ctx->flags |= CTX_FLIPED_COORDS;
 
 #ifdef GPAC_TRISCOPE_MODE
-	ctx->depth = tr_state->depth;
         ctx->depth_gain=tr_state->depth_gain;
         ctx->depth_offset=tr_state->depth_offset;
+
 	switch (tr_state->_3d_type){ 
                 case 0:
                         ctx->flags |= CTX_IS_2D;
