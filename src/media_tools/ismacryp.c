@@ -530,7 +530,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		}
 
 		if (KMS_URI && strlen(tci.KMS_URI) && strcmp(KMS_URI, tci.KMS_URI) )
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] KMS URI for trackID %d Mismatch\n", trackID));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISMA E&A] KMS URI for TrackID %d Mismatch: \"%s\" in file vs \"%s\" in licence\n", trackID, KMS_URI, tci.KMS_URI));
 
 		if (drm_file || (KMS_URI && strncmp(KMS_URI, "(key)", 5)) ) {
 			strcpy(tci.KMS_URI, KMS_URI ? KMS_URI : "");
