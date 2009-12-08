@@ -264,8 +264,8 @@ static void compositor_2d_draw_rectangle(GF_TraverseState *tr_state)
 	if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->data) {
 		Bool res;
 
-		/*get image size WITHOUT line size*/
-		if (ctx->aspect.pen_props.width) {
+		/*get image size WITHOUT line size or antialias margin*/
+		if ( !(ctx->flags & CTX_NO_ANTIALIAS) ) {
 			GF_Rect orig_unclip;
 			GF_IRect orig_clip;
 			orig_unclip = ctx->bi->unclip;
@@ -351,21 +351,25 @@ static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 	ctx = drawable_init_context_mpeg4(stack, tr_state);
 	if (!ctx) return;
 
-	/*if alpha or not filled, transparent*/
-	if (ctx->aspect.fill_color && (GF_COL_A(ctx->aspect.fill_color) != 0xFF)) {
+	/*if rotated, object is transparent (doesn't fill bounds) and antialias must be used*/
+	if (tr_state->transform.m[1] || tr_state->transform.m[3]) {
 	}
-	/*if texture transparent, transparent*/
-	else if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->transparent) {
-	}
-	/*if rotated, transparent (doesn't fill bounds)*/
-	else if (tr_state->transform.m[1] || tr_state->transform.m[3]) {
-	}
-	/*TODO check matrix for alpha*/
-	else if (!tr_state->color_mat.identity) {
-	}
-	/*otherwise, not transparent*/
 	else {
-		ctx->flags &= ~CTX_IS_TRANSPARENT;
+
+		/*if alpha or not filled, transparent*/
+		if (ctx->aspect.fill_color && (GF_COL_A(ctx->aspect.fill_color) != 0xFF)) {
+		}
+		/*if texture transparent, transparent*/
+		else if (ctx->aspect.fill_texture && ctx->aspect.fill_texture->transparent) {
+		}
+		/*TODO check matrix for alpha*/
+		else if (!tr_state->color_mat.identity) {
+		}
+		/*otherwise, not transparent*/
+		else {
+			ctx->flags &= ~CTX_IS_TRANSPARENT;
+		}
+		/*if no line width, we skip antialiasing*/
 		if (!ctx->aspect.pen_props.width) ctx->flags |= CTX_NO_ANTIALIAS;
 	}
 	drawable_finalize_sort(ctx, tr_state, NULL);
