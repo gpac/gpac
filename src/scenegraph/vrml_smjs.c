@@ -3750,9 +3750,13 @@ static void JS_PreDestroy(GF_Node *node)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[Script] Destroying script node %s", gf_node_get_log_name(node) ));
 
+	/*"shutdown" is no longer supported, as it is typically called when one of a parent node is destroyed through 
+	a GC call. Calling JS_LookupProperty or JS_CallFunctionValue when GC is running will crash SpiderMonkey*/
+#if 0
 	if (JS_LookupProperty(priv->js_ctx, priv->js_obj, "shutdown", &fval))
 		if (! JSVAL_IS_VOID(fval))
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
+#endif
 
 	/*unprotect all cached objects from GC*/
 	JS_ReleaseRootObjects(priv);
