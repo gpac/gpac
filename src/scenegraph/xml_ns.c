@@ -802,7 +802,7 @@ static void attributes_set_default_value(GF_Node *node, SVGAttribute *att)
 		break;
 
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene] Cannot create default value for SVG attribute %s\n", gf_svg_get_attribute_name(node, att->tag)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[Scene] Cannot create default value for SVG attribute %s\n", gf_svg_get_attribute_name(node, att->tag)));
 	}
 }
 
