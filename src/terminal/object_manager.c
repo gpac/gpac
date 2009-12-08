@@ -1439,9 +1439,18 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 {
+	u32 i, count, nb_eos;
 #ifndef GPAC_DISABLE_VRML
 	if (gf_odm_check_segment_switch(odm)) return;
 #endif
+
+	nb_eos = 0;
+	count = gf_list_count(odm->channels);
+	for (i=0; i<count; i++) {
+		GF_Channel *ch = gf_list_get(odm->channels, i);
+		if (ch->IsEndOfStream) nb_eos++;
+	}
+	if (nb_eos != count) return;
 
 	gf_term_service_media_event(odm, GF_EVENT_MEDIA_END_OF_DATA);
 	
