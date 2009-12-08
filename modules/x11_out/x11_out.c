@@ -1395,12 +1395,13 @@ DeleteX11VideoOutput (GF_VideoOutput * vout)
 /*
  * interface query
  */
-Bool
-QueryInterface (u32 InterfaceType)
+const u32 *QueryInterfaces() 
 {
-	if (InterfaceType == GF_VIDEO_OUTPUT_INTERFACE)
-		return 1;
-	return 0;
+	static u32 si [] = {
+		GF_VIDEO_OUTPUT_INTERFACE,
+		0
+	};
+	return si;
 }
 
 
