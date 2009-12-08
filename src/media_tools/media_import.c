@@ -1574,10 +1574,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 
 	gf_odf_desc_del((GF_Descriptor *) iod);
 
-	/*check if MPEG-4 or not*/
+	/*check if MPEG-4 or not - if crypted use clone track */
 	is_clone = 0;
 	stype = gf_isom_get_media_subtype(import->orig, track_in, 1);
-	if ((stype==GF_ISOM_SUBTYPE_MPEG4) || (stype==GF_ISOM_SUBTYPE_MPEG4_CRYP)) {
+	if ((stype==GF_ISOM_SUBTYPE_MPEG4) /*|| (stype==GF_ISOM_SUBTYPE_MPEG4_CRYP)*/) {
 		track = gf_isom_new_track(import->dest, import->esd ? import->esd->ESID : 0, gf_isom_get_media_type(import->orig, track_in), gf_isom_get_media_timescale(import->orig, track_in));
 		if (!track) {
 			e = gf_isom_last_error(import->dest);
