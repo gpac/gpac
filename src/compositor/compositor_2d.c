@@ -191,11 +191,19 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 #ifdef GPAC_FIXED_POINT
 #define ROUND_FIX(_v)	\
 	_v = FIX2INT(tmp);
+#define CEILING(_v)	\
+	_v = FIX2INT(tmp);	\
+	if (INT2FIX(_v)!=tmp) _v++;
 #else
 #define ROUND_FIX(_v)	\
 	_v = FIX2INT(tmp);	\
 	tmp -= INT2FIX(_v);	\
 	if (tmp>99*FIX_ONE/100) { _v++; tmp = 0; }	\
+	if (ABS(tmp) > FIX_EPSILON) use_blit = 0;
+#define CEILING(_v)	\
+	_v = FIX2INT(tmp);	\
+	tmp -= INT2FIX(_v);	\
+	if (tmp>0) { _v++; tmp = 0; }	\
 	if (ABS(tmp) > FIX_EPSILON) use_blit = 0;
 #endif
 
@@ -204,11 +212,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	src_wnd.x = src_wnd.y = 0;
 	tmp = gf_divfix(INT2FIX(clipped_final.x) - final.x, w_scale);
 	if (tmp<0) tmp=0;
-	ROUND_FIX(src_wnd.x);
+	CEILING(src_wnd.x);
 
 	tmp = gf_divfix(INT2FIX(clipped_final.y) - final.y, h_scale);
 	if (tmp<0) tmp=0;
-	ROUND_FIX(src_wnd.y);
+	CEILING(src_wnd.y);
 
 	tmp = gf_divfix(INT2FIX(clip->width), w_scale);
 	ROUND_FIX(src_wnd.w);
