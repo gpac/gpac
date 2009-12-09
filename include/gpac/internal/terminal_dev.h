@@ -712,6 +712,8 @@ struct _generic_codec
 	u32 last_unit_dts;
 	/*last processed CTS on base layer - seeking detection*/
 	u32 last_unit_cts;
+	/*SHA signature for the last processed unit. Only for images (Capacity==1)*/
+	u8 last_unit_signature[20];
 	/*in case the codec performs temporal re-ordering itself*/
 	Bool is_reordering;
 	u32 prev_au_size;
@@ -722,8 +724,10 @@ struct _generic_codec
 	u32 last_stat_start, cur_bit_size;
 	u32 avg_bit_rate, max_bit_rate;
 	u32 total_dec_time, nb_dec_frames, max_dec_time;
-	/*number of droped frames*/
+	/*number of frames dropped at the presentation*/
 	u32 nb_droped;
+	/*we detect if the same image is sent again and again to the decoder (using last_unit_signature)*/
+	u32 nb_repeted_frames;
 
 	/*for CTS reconstruction (channels not using SL): we cannot just update timing at each frame, not precise enough 
 	since we use ms and not microsec TSs*/
