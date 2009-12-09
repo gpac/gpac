@@ -1142,6 +1142,7 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 		if (gf_list_count(m2ts->ts->programs) == 1) {
 			GF_M2TS_Program *prog = gf_list_get(m2ts->ts->programs, 0);
 			if (prog->pmt_iod) {
+				/* IOD is present */
 				u32 i;
 				for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 					GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];
@@ -1159,9 +1160,12 @@ static GF_Err M2TS_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 						}
 					}
 				}
+				/* Stream not found */
+				return e;
 			}
 		}
 
+		/* No IOD */
 		if (ES_ID == 18) {
 			e = GF_OK; /* 18 is the PID of EIT packets */
 			m2ts->eit_channel = channel;
