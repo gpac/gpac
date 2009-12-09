@@ -27,6 +27,7 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/constants.h>
+#include <gpac/crypt.h>
 #include "media_memory.h"
 #include "media_control.h"
 #include "input_sensor.h"
@@ -640,12 +641,27 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 		gf_es_drop_au(ch);
 		return GF_BAD_PARAM;
 	}
-	/*image codecs - usually only one image is tolerated in the stream, but just in case force reset of CB*/
-	if ((codec->CB->Capacity==1) && codec->CB->UnitCount && (obj_time>=AU->CTS)) {
-		gf_mx_p(codec->odm->mx);
-		codec->CB->output->dataLength = 0;
-		codec->CB->UnitCount = 0;
-		gf_mx_v(codec->odm->mx);
+
+	/*image codecs*/
+	if (codec->CB->Capacity == 1) {
+		/*a SHA signature is computed for each AU. This avoids decoding/recompositing when identical (for instance streaming a carousel)*/
+		u8 new_unit_signature[20];
+		gf_sha1_csum(AU->data, AU->dataLength, new_unit_signature);
+		if (!memcmp(codec->last_unit_signature, new_unit_signature, sizeof(new_unit_signature))) {
+			codec->nb_repeted_frames++;
+			gf_es_drop_au(ch);
+			return GF_OK;
+		}
+		codec->nb_repeted_frames = 0;
+		memcpy(codec->last_unit_signature, new_unit_signature, sizeof(new_unit_signature));
+
+		/*usually only one image is tolerated in the stream, but just in case force reset of CB*/
+		if (codec->CB->UnitCount && (obj_time>=AU->CTS)) {
+			gf_mx_p(codec->odm->mx);
+			codec->CB->output->dataLength = 0;
+			codec->CB->UnitCount = 0;
+			gf_mx_v(codec->odm->mx);
+		}
 	}
 
 	/*try to refill the full buffer*/
@@ -911,6 +927,8 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 		codec->nb_dec_frames = codec->total_dec_time = codec->max_dec_time = 0;
 		codec->cur_audio_bytes = codec->cur_video_frames = 0;
 		codec->nb_droped = 0;
+		codec->nb_repeted_frames = 0;
+		memset(codec->last_unit_signature, 0, sizeof(codec->last_unit_signature));
 	}
 	else codec->Status = Status;
 
