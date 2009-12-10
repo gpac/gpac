@@ -40,7 +40,7 @@ returns GF_IO_ERR if client couldn't be shutdown normally*/
 GF_Err gf_term_del(GF_Terminal *term);
 
 /* Browses all registered relocators (ZIP-based, ISOFF-based or file-system-based to relocate a URL based on the user locale */
-const char *gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url);
+const char *gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url, char **localized_url);
 /*connects to a URL*/
 void gf_term_connect(GF_Terminal *term, const char *URL);
 /*disconnects the url*/

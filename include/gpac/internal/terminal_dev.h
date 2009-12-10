@@ -285,13 +285,10 @@ back the new (local or not) URI. Only the interface is defined, URI translators 
 
 relocate a URI - if NULL is returned, this relocator is not concerned with the URI
 otherwise returns the translated URI
-
-		char *(*relocate_uri)(GF_URIRelocator *urirl, char *parent_uri, char *uri);
-
 */
 
 #define GF_TERM_URI_RELOCATOR	\
-	const char *(*relocate_uri)(void *__self, const char *parent_uri, const char *uri);		\
+	const char *(*relocate_uri)(void *__self, const char *parent_uri, const char *uri, char **localized_uri);		\
 
 typedef struct __gf_uri_relocator GF_URIRelocator;
 
@@ -304,7 +301,7 @@ typedef struct
 {	
 	GF_TERM_URI_RELOCATOR	
 	GF_Terminal *term;
-	char *szPath;
+	char *szAbsRelocatedPath;
 } GF_TermLocales;
 
 #define	MAX_SHORTCUTS	200
