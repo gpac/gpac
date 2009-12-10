@@ -109,7 +109,9 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 	}
 
 	if (type==GF_JSAPI_OP_RESOLVE_URI) {
-		char *url, *new_url;
+		char *url;
+		char new_url[GF_MAX_PATH], localized_url[GF_MAX_PATH];
+		Bool result;
 		GF_Scene *scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph(n));
 		url = (char *)param->uri.url;
 		if (!url) {
@@ -118,8 +120,8 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 			return 1;
 		}
 
-		new_url = (char *) gf_term_relocate_url(term, url, scene->root_od->net_service->url, NULL);
-		if (new_url) param->uri.url = strdup(new_url);
+		result = gf_term_relocate_url(term, url, scene->root_od->net_service->url, new_url, localized_url);
+		if (result && new_url) param->uri.url = strdup(new_url);
 		else param->uri.url = gf_url_concatenate(scene->root_od->net_service->url, url);
 		return 1;
 	}
@@ -148,46 +150,57 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
    if this is the case, it returns the absolute localized path, otherwise it returns null.
    if the resource was localized, the last parameter is set to the localized relative path.
 */
-static const char *term_check_locales(void *__self, const char *locales_parent_path, const char *rel_path, char **localized_rel_path)
+static Bool term_check_locales(void *__self, const char *locales_parent_path, const char *rel_path, char *relocated_path, char *localized_rel_path)
 {
 	FILE *f;
 	char *str;
 	const char *opt;
 	u32 len;
+	Bool try_locale = 1;
 
 	GF_TermLocales *loc = (GF_TermLocales*)__self;
 
 	/* Checks if the rel_path argument really contains a relative path (no ':', no '/' at the beginning) */
 	if (strstr(rel_path, "://") || (rel_path[0]=='/') || strstr(rel_path, ":\\")) {
-		return NULL;
+		return 0;
 	}
 
 	/*Checks if the absolute path is really absolute and points to a local file (no http or else) */
 	if (!locales_parent_path || 
 		(locales_parent_path && (locales_parent_path[0] != '/') && strstr(locales_parent_path, "://") && strnicmp(locales_parent_path, "file://", 7))) {
-		return NULL;
+		return 0;
 	}
 	opt = gf_cfg_get_key(loc->term->user->config, "Systems", "Language2CC");
-	if (!opt) return NULL;
+	if (!opt) return 0;
 
 
 	len = strlen(rel_path);
 	str = malloc(sizeof(char) * (len+20));
 	sprintf(str, "locales/%s/%s", opt, rel_path);
 
+restart:
 	if (loc->szAbsRelocatedPath) free(loc->szAbsRelocatedPath);	
 	loc->szAbsRelocatedPath = gf_url_concatenate(locales_parent_path, str);
 	if (!loc->szAbsRelocatedPath) loc->szAbsRelocatedPath = strdup(str);
 	
-	if (localized_rel_path) *localized_rel_path = NULL;
 	f = fopen(loc->szAbsRelocatedPath, "rb");
 	if (f) {
 		fclose(f);
-		if (localized_rel_path) *localized_rel_path = str;
-		return loc->szAbsRelocatedPath;
+		strcpy(localized_rel_path, str);
+		strcpy(relocated_path, loc->szAbsRelocatedPath);
+		return 1;
 	}
-	free(str);
-	return NULL;
+	if (try_locale) {
+		try_locale = 0;
+		free(str);
+		str = rel_path;
+		goto restart;
+	}
+
+	/* if we did not find the localized file, both the relocated and localized strings are NULL */
+	strcpy(localized_rel_path, "");
+	strcpy(relocated_path, "");
+	return 0;
 }
 
 
@@ -1016,20 +1029,19 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 
 
 /* Browses all registered relocators (ZIP-based, ISOFF-based or file-system-based to relocate a URI based on the locale */
-const char *gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url, char **localized_url) 
+Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url, char *relocated_url, char *localized_url) 
 {
 	u32 i, count;
 
 	i=0;
 	count = gf_list_count(term->uri_relocators);
 	for (i=0; i<count; i++) {
+		Bool result;
 		GF_URIRelocator *uri_relocator = gf_list_get(term->uri_relocators, i);
-		const char *new_url = uri_relocator->relocate_uri(uri_relocator, parent_url, service_url, localized_url);
-		if (new_url) {
-			return new_url;
-		}
+		result = uri_relocator->relocate_uri(uri_relocator, parent_url, service_url, relocated_url, localized_url);
+		if (result) return 1;
 	}
-	return NULL;
+	return 0;
 }
 
 /*connects given OD manager to its URL*/
@@ -1038,12 +1050,13 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	GF_ClientService *ns;
 	u32 i;
 	GF_Err e;
-	const char *relocated_url;
+	Bool reloc_result; 
+	char relocated_url[GF_MAX_PATH], localized_url[GF_MAX_PATH];
 	gf_term_lock_net(term, 1);
 
 	/*try to relocate the url*/
-	relocated_url = gf_term_relocate_url(term, serviceURL, parent_url, NULL);
-	if (relocated_url) serviceURL = (char *) relocated_url;
+	reloc_result = gf_term_relocate_url(term, serviceURL, parent_url, relocated_url, localized_url);
+	if (reloc_result) serviceURL = (char *) relocated_url;
 
 	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
 	i=0;
