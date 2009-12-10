@@ -74,7 +74,7 @@ void *gf_malloc(size_t size, char *filename, int line)
 	} else {
 		register_address(ptr, size, filename, line);
 	}
-	//gf_memory_log(GF_MEMORY_DEBUG, "malloc   %08X %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
+	//gf_memory_log(GF_MEMORY_DEBUG, "malloc   0x%08X %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
 	return ptr;
 }
 
@@ -90,7 +90,7 @@ void *gf_calloc(size_t num, size_t size_of, char *filename, int line)
 	} else {
 		register_address(ptr, size, filename, line);
 	}
-	//gf_memory_log(GF_MEMORY_DEBUG, "calloc   %08X %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
+	//gf_memory_log(GF_MEMORY_DEBUG, "calloc   0x%08X %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
 	return ptr;
 }
 
@@ -103,10 +103,10 @@ void *gf_realloc(void *ptr, size_t size, char *filename, int line)
 		return gf_malloc(size, filename, line);
 	}
 	size_prev = unregister_address(ptr, filename, line);
-	//gf_memory_log(GF_MEMORY_DEBUG, "realloc- %08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
+	//gf_memory_log(GF_MEMORY_DEBUG, "realloc- 0x%08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
 	ptr_g = realloc(ptr, size);
 	register_address(ptr_g, size, filename, line);
-	//gf_memory_log(GF_MEMORY_DEBUG, "realloc+ %08X %8d %8d %8d\n", ptr_g, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
+	//gf_memory_log(GF_MEMORY_DEBUG, "realloc+ 0x%08X %8d %8d %8d\n", ptr_g, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
 	return ptr_g;
 }
 
@@ -114,7 +114,7 @@ void gf_free(void *ptr, char *filename, int line)
 {
 	int size_prev;
 	if (ptr && (size_prev=unregister_address(ptr, filename, line))) {
-		//gf_memory_log(GF_MEMORY_DEBUG, "free     %08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
+		//gf_memory_log(GF_MEMORY_DEBUG, "free     0x%08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
 		free(ptr);
 	}
 }
@@ -256,10 +256,10 @@ static int unregister_address(void *ptr, char *filename, int line)
 	} else {
 		if (!gf_memory_find(memory_add, ptr)) {
 			if (!gf_memory_find(memory_rem, ptr)) {
-				gf_memory_log(GF_MEMORY_ERROR, "trying to free a never allocated block (%08X)\n", ptr);
+				gf_memory_log(GF_MEMORY_ERROR, "trying to free a never allocated block (0x%08X)\n", ptr);
 				//assert(0); /*don't assert since this is often due to allocations that occured out of gpac (fonts, etc.)*/
 			} else {
-				gf_memory_log(GF_MEMORY_ERROR, "the block %08X has already been freed line%5d from %s\n", line, filename);
+				gf_memory_log(GF_MEMORY_ERROR, "the block 0x%08X has already been freed line%5d from %s\n", line, filename);
 				assert(0);
 			}
 		} else {
