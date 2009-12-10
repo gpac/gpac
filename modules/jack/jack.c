@@ -546,7 +546,6 @@ DeleteJackOutput (void *ifce)
  * interface
  */
 
-Bool
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
