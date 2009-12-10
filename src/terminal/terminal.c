@@ -171,7 +171,10 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 		return 0;
 	}
 	opt = gf_cfg_get_key(loc->term->user->config, "Systems", "Language2CC");
-	if (!opt) return 0;
+	if (!opt) {
+		gf_cfg_set_key(loc->term->user->config, "Systems", "Language2CC", "und");
+		opt = "und";
+	}
 
 
 	len = strlen(rel_path);
