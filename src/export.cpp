@@ -1299,6 +1299,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_text_selection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_paste_text) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_relocate_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_connect_with_path) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_register) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_unregister) )
