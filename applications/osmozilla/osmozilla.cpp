@@ -40,9 +40,10 @@
 #include <nsISupportsUtils.h>
 #include <nsISupports.h>
 #include <nsMemory.h>
+#ifdef WIN32
 #include <direct.h>
 #include <shlobj.h>
-
+#endif
 #include "osmozilla.h"
 
 #include <gpac/options.h>
