@@ -132,6 +132,9 @@ static const struct dom_event_def {u32 event;  const char *name; u32 category; }
 	{ GF_EVENT_MEDIA_STOP, "Stop", GF_DOM_EVENT_MEDIA_ACCESS },
 	{ GF_EVENT_MEDIA_ERROR, "Error", GF_DOM_EVENT_MEDIA_ACCESS },
 
+	/*GPAC internals*/
+	{ GF_EVENT_SCENE_ATTACHED, "gpac_scene_attached", GF_DOM_EVENT_DOM },
+	
 };
 
 u32 gf_dom_event_type_by_name(const char *name)
