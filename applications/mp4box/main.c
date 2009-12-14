@@ -54,7 +54,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 #endif
 
 
-GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir);
+GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool make_wgt);
 #endif
 
 GF_Err dump_cover_art(GF_ISOFile *file, char *inName);
@@ -1163,7 +1163,7 @@ int main(int argc, char **argv)
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat;
 	GF_ISOFile *file;
 	char *sdp_file = "session.sdp";
@@ -1193,7 +1193,7 @@ int main(int argc, char **argv)
 	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
-	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = 0;
+	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
@@ -1910,6 +1910,12 @@ int main(int argc, char **argv)
 			pack_file  = argv[i+1];
 			i++;
 		}
+		else if (!stricmp(arg, "-wgt")) {
+			CHECK_NEXT_ARG 
+			pack_file  = argv[i+1];
+			pack_wgt = 1;
+			i++;
+		}
 		
 		else if (!stricmp(arg, "-brand")) { 
 			char *b = argv[i+1];
@@ -2240,10 +2246,10 @@ int main(int argc, char **argv)
 		char *fileName = strchr(pack_file, ':');
 		if (fileName && ((fileName - pack_file)==4)) {
 			fileName[0] = 0;
-			file = package_file(fileName + 1, pack_file, tmpdir);
+			file = package_file(fileName + 1, pack_file, tmpdir, pack_wgt);
 			fileName[0] = ':';
 		} else {
-			file = package_file(pack_file, NULL, tmpdir);
+			file = package_file(pack_file, NULL, tmpdir, pack_wgt);
 		}
 		if (!outName) outName = inName;
 		needSave = 1;
