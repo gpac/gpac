@@ -551,7 +551,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		if (!au && !esd->URLString) {
 			/*if not in IOD, the stream will be imported when encoding the OD stream*/
 			if (!is_in_iod) continue;
-			e = gf_sm_import_stream(ctx, mp4, esd, au->timing_sec, NULL);
+			e = gf_sm_import_stream(ctx, mp4, esd, 0, NULL);
 			if (e) goto exit;
 			gf_sm_finalize_mux(mp4, esd, 0);
 			gf_isom_add_track_to_root_od(mp4, gf_isom_get_track_by_id(mp4, esd->ESID));
@@ -1007,7 +1007,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 			u32 k = 0;
 
 			if (au->timing_sec) au->timing = (u64) (au->timing_sec * esd->slConfig->timestampResolution + 0.0005);
-			else au->timing_sec = (s64) (au->timing / esd->slConfig->timestampResolution);
+			else au->timing_sec = (double) ((s64) (au->timing / esd->slConfig->timestampResolution));
 
 			while ((com = gf_list_enum(au->commands, &k))) {
 
