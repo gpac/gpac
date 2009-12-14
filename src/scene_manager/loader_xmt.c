@@ -237,6 +237,7 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 	u32 i, ID;
 	XMT_ODLink *odl;
 
+	/*find OD_ID*/
 	ID = 0;
 	if (!strnicmp(name, "od", 2)) ID = atoi(name + 2);
 	else if (!strnicmp(name, "iod", 3)) ID = atoi(name + 3);
@@ -251,6 +252,12 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 		}
 	}
 	else ID = 0;
+
+	/*write OD_ID*/
+	assert(url->count);
+	i = url->count - 1;
+	url->vals[i].OD_ID = 0;
+	url->vals->OD_ID = ID;
 	
 	i=0;
 	while ((odl = (XMT_ODLink*)gf_list_enum(parser->od_links, &i))) {
