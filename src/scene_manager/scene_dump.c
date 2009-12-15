@@ -2267,6 +2267,16 @@ static GF_Err DumpSceneReplace(GF_SceneDumper *sdump, GF_Command *com)
 	gf_dump_vrml_node(sdump, com->node, 0, NULL);
 	if (!sdump->XMLDump) fprintf(sdump->trace, "\n\n");
 
+	if (com->aggregated) {
+		u32 i, count;
+		count = gf_list_count(com->node->sgprivate->scenegraph->Routes);
+		for (i=0; i<count; i++) {
+			GF_Route *r = (GF_Route *)gf_list_get(com->node->sgprivate->scenegraph->Routes, i);
+			if (r->IS_route) continue;
+			gf_dump_vrml_route(sdump, r, 0);
+		}
+	}
+
 	return GF_OK;
 }
 
