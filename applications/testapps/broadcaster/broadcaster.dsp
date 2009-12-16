@@ -91,6 +91,10 @@ SOURCE=.\broadcaster.c
 # End Source File
 # Begin Source File
 
+SOURCE=.\debug.c
+# End Source File
+# Begin Source File
+
 SOURCE=.\RTP_serv_generator.c
 # End Source File
 # Begin Source File
@@ -112,6 +116,10 @@ SOURCE=.\sdp_generator.c
 # Begin Source File
 
 SOURCE=.\broadcaster.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\debug.h
 # End Source File
 # Begin Source File
 

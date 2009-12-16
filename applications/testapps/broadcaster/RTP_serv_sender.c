@@ -1,9 +1,10 @@
 #include "RTP_serv_sender.h"
 #include <gpac/internal/ietf_dev.h>
 #include <gpac/ietf.h>
+#include "debug.h"
 
 
-GF_Err PNC_InitRTP(GF_RTPChannel **chan, char * dest, int port){
+GF_Err PNC_InitRTP(GF_RTPChannel **chan, char * dest, int port, unsigned short mtu_size){
 	GF_Err res;
 	GF_RTSPTransport tr;
 
@@ -39,7 +40,7 @@ GF_Err PNC_InitRTP(GF_RTPChannel **chan, char * dest, int port){
 		return res;
 	}
 
-	res = gf_rtp_initialize(*chan, 0, 1, 1500, 0, 0, NULL);
+	res = gf_rtp_initialize(*chan, 0, 1, mtu_size, 0, 0, NULL);
 	if (res) {
 		fprintf(stderr, "Cannot initialize RTP transport %s\n", gf_error_to_string(res));
 		gf_rtp_del(*chan);
@@ -59,13 +60,14 @@ GF_Err PNC_SendRTP(PNC_CallbackData * data, char * payload, int payloadSize){
 	((PNC_CallbackExt * )data->extension)->lastTS = data->hdr->TimeStamp;
 	
 	e = gf_rtp_send_packet(data->chan, data->hdr, 0, 0, payload, payloadSize);
-  	fprintf(stdout, "SendPacket : %d, TimeStamp RTP = %d\n", e, data->hdr->TimeStamp);
-	
+  	dprintf(DEBUG_RTP_serv_sender, "SendPacket : %d, TimeStamp RTP = %d, sz= %d\n",
+	  e, data->hdr->TimeStamp, payloadSize);
+
 	// sending feedback bytes
 	memset(feedback_buffer, 0, sizeof(feedback_buffer));
 	sprintf((char *) feedback_buffer, "DataSent=%d\nRAPsent=%d\n", payloadSize, data->RAPsent);
 	e = gf_sk_send(data->feedback_socket, feedback_buffer, strlen((char *) feedback_buffer));
-  	fprintf(stdout, "Sent feedback data %d byte, return %d\n", payloadSize, e);
+  	dprintf(DEBUG_RTP_serv_packetizer, "Sent feedback data %d byte, return %d\n", payloadSize, e);
 
   	return GF_OK;
 }
