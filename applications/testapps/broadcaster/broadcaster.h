@@ -67,6 +67,7 @@ typedef struct tcp_input
 	u32 *RAPtimer;
 	CONF_Data *config;
 	u32 status;
+	int debug;
 } TCP_Input;
 
 typedef struct rap_input
@@ -77,8 +78,8 @@ typedef struct rap_input
 	u32 status;
 } RAP_Input;
 	
-void command_line_parsing(int* argc, char** argv, int *tcp_port, char *config_file, int *config_flag);
-int server_command_line(char *arg_a, char *arg_b, char *value, int argument);
+/*void command_line_parsing(int* argc, const char** argv, int *tcp_port, const char *config_file, int *config_flag);
+int server_command_line(char *arg_a, char *arg_b, char *value, int argument);*/
 u32 tcp_server(void *par);
 u32 RAP_send(void *par);
 void print_usage(void);

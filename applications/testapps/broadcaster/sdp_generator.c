@@ -1,4 +1,5 @@
 #include "sdp_generator.h"
+#include "debug.h"
 
 int sdp_generator(PNC_CallbackData * data, char *ip_dest, char *sdp_fmt)
 {
@@ -17,7 +18,7 @@ int sdp_generator(PNC_CallbackData * data, char *ip_dest, char *sdp_fmt)
 
 	fp = fopen("broadcaster.sdp", "w+");
 	if(fp == NULL) {
-		fprintf(stdout, "Cannot open SDP file broadcaster.sdp\n");
+		fprintf(stderr, "Cannot open SDP file broadcaster.sdp\n");
 		exit(1);
 	}
 
@@ -59,8 +60,8 @@ int sdp_generator(PNC_CallbackData * data, char *ip_dest, char *sdp_fmt)
 	
 	sprintf(temp, "%s\n", sdp_fmt);
 	ret = fwrite(temp, 1, strlen(temp), fp);
-	
+	fflush(fp);
 	fclose(fp);
-	fprintf(stdout, "SDP file generated in broadcaster.sdp\n");
+	dprintf(DEBUG_sdp_generator, "SDP file generated in broadcaster.sdp\n");
 	return GF_OK;
 }

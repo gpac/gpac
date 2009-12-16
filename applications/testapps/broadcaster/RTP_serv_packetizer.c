@@ -1,5 +1,6 @@
 #include "RTP_serv_packetizer.h"
 #include "RTP_serv_sender.h"
+#include <assert.h>
 
 #include <gpac/ietf.h>
 #include <gpac/mpeg4_odf.h>
@@ -7,14 +8,17 @@
 
 #define MAX_PACKET_SIZE 2000
 
+#include "debug.h"
+
+
 void OnNewPacket(void *cbk, GF_RTPHeader *header) {
   ((PNC_CallbackData *)cbk)->formatedPacketLength = 0; 
 }
 
 void  OnPacketDone(void *cbk, GF_RTPHeader *header) {
-  // 
-  printf("RTP Packet done");
-  PNC_SendRTP(((PNC_CallbackData *)cbk),  ((PNC_CallbackData *)cbk)->formatedPacket,  ((PNC_CallbackData *)cbk)->formatedPacketLength);
+  PNC_CallbackData * data = (PNC_CallbackData *)cbk;
+  dprintf(DEBUG_RTP_serv_packetizer, "RTP Packet done\n");
+  PNC_SendRTP(data,  ((PNC_CallbackData *)cbk)->formatedPacket,  ((PNC_CallbackData *)cbk)->formatedPacketLength);
   ((PNC_CallbackData *)cbk)->formatedPacketLength = 0; 
 }
 
@@ -23,7 +27,7 @@ void OnData(void *cbk, char *data, u32 data_size, Bool is_head){
   ((PNC_CallbackData *)cbk)->formatedPacketLength+=data_size;
 }
 
-void PNC_InitPacketiser(PNC_CallbackData * data, char *sdp_fmt)
+void PNC_InitPacketiser(PNC_CallbackData * data, char *sdp_fmt, unsigned short mtu_size)
 {
   GP_RTPPacketizer *p;
   GF_SLConfig sl;
@@ -46,7 +50,9 @@ void PNC_InitPacketiser(PNC_CallbackData * data, char *sdp_fmt)
 	  return;
   }
   
-  gf_rtp_builder_init(p, 96, 1470, 0, 3, 1, 1, 0, 0, 0, 0, 0, 0, NULL);
+  /* Mtu size - 20 = payload max size */
+  mtu_size-=20;
+  gf_rtp_builder_init(p, 96, mtu_size, 0, 3, 1, 1, 0, 0, 0, 0, 0, 0, NULL);
   gf_rtp_builder_format_sdp(p, "mpeg4-generic", sdp_fmt, NULL, 0);
   p->rtp_header.Version=2;
   p->rtp_header.SSRC=rand();  
@@ -64,6 +70,8 @@ void PNC_ClosePacketizer(PNC_CallbackData *data)
 
 GF_Err PNC_ProcessData(PNC_CallbackData * data, char *au, u32 size, u64 ts) 
 {
+	assert( data );
+	assert( au );
 	/* We need to set a TS different every time */
 	data->hdr->TimeStamp = (u32) gf_sys_clock(); 
 	data->rtpBuilder->sl_header.compositionTimeStamp = (u32) gf_sys_clock();

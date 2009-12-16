@@ -19,18 +19,18 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS=RTP_serv_generator.o RTP_serv_packetizer.o RTP_serv_sender.o broadcaster.o sdp_generator.o
+OBJS=RTP_serv_generator.o RTP_serv_packetizer.o RTP_serv_sender.o broadcaster.o sdp_generator.o debug.o
 
 LDFLAGS += -L../../../bin/gcc
 LIBS=-lgpac
 
 all: broadcaster
 
-broadcaster: $(OBJS) 
-	@$(CC) -o $(APPNAME) $(OBJS) $(LIBS) $(LDFLAGS) 
+broadcaster: $(OBJS) *.h
+	$(CC) -o $(APPNAME) $(OBJS) $(LIBS) $(LDFLAGS) 
 
 .c.o:
-	@$(CC) -g -c $(CFLAGS) $*.c
+	$(CC) -Wall -g -c $(CFLAGS) $*.c
 
 
 clean:
