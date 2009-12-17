@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* includes pour gpac library*/
+/* includes for gpac library */
 #include <gpac/bifsengine.h>
 #include <gpac/config_file.h>
 #include <gpac/thread.h>
@@ -15,21 +15,21 @@
 #include <gpac/scene_manager.h>
 #include <gpac/bifs.h>
 
-/* include pour carrousel BIFS */
-/* pour les envois RTP */
+/* includes for BIFS carousel */
+/* RTP sends */
 #include "RTP_serv_sender.h"
-/* pour la mise en paquets */
+/* packetization */
 #include "RTP_serv_packetizer.h"
-/* le module applicatif */
+/* applicative module */
 #include "RTP_serv_generator.h"
 
-/* include pour SDP generation */
+/* for SDP generation */
 #include "sdp_generator.h"
 
 /* definitions */
 #define MAX_BUF 4096
 
-/* données de configuration */
+/* configuration data*/
 #define MAIN_SECTION "Broadcaster"
 #define SCENE_INIT "InitialScene"
 #define RAP_TIMER "RAPPeriod"
@@ -44,7 +44,7 @@
 #define IP_FEEDBACK "IP"
 #define PORT_FEEDBACK "Port"
 
-/* structure pour les données de configuration du serveur */
+/* data struct on the server side */
 typedef struct config_data
 {
 	const char *rap_timer;
@@ -61,9 +61,9 @@ typedef struct config_data
 
 typedef struct tcp_input
 {
-	u16 port;	// port sur laquelle ouvrir le serveur
-	u32 *config_flag;	// pour savoir si le serveur tcp doit attendre donnees de configuration
-	// GF_Socket *socket;	// socket tcp pour l'interface
+	u16 port;	// server port
+	u32 *config_flag;	// indicates whether the tcp server waits for configuration data
+	// GF_Socket *socket;	// socket tcp for the GUI interface
 	u32 *RAPtimer;
 	CONF_Data *config;
 	u32 status;

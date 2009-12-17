@@ -2,46 +2,44 @@
 #define _RTP_SERV_GENERATOR_H_
 #include <stdlib.h>
 
-#include <unistd.h>
 #include <gpac/ietf.h>
-#include <gpac/network.h> // Pour les sockets
+#include <gpac/network.h> // sockets
 #include <gpac/internal/media_dev.h>
 #include <gpac/thread.h>
 #include <gpac/bifsengine.h>
-
 
 #include <time.h>
 #define RECV_BUFFER_SIZE_FOR_COMMANDS 262144
 
 
-/*Le type passe pour le callback (permet la reentrance)*/
+/*callback type (allows reentrance)*/
 typedef struct tmp_PNC_CallbackData {
-  GF_RTPChannel * chan;
-  GF_RTPHeader * hdr;
-  char * formatedPacket;
-  int formatedPacketLength;
-  GP_RTPPacketizer *rtpBuilder;
-  GF_BifsEngine * codec;
-  
-  /* socket on which updates are received */
-  GF_Socket *socket;
-  GF_Socket *server_socket;
-  /* socket on which bitrate feedback is sent */
-  GF_Socket *feedback_socket;	
+	GF_RTPChannel *chan;
+	GF_RTPHeader *hdr;
+	char * formatedPacket;
+	int formatedPacketLength;
+	GP_RTPPacketizer *rtpBuilder;
+	GF_BifsEngine *codec;
 
-  void * extension;
+	/* socket on which updates are received */
+	GF_Socket *socket;
+	GF_Socket *server_socket;
+	/* socket on which bitrate feedback is sent */
+	GF_Socket *feedback_socket;	
 
-  /* indication that the Access Unit is a RAP */
-  int RAP;
-  /* RAP counter */
-  int RAPsent;
-  /* indication that the Access Unit Sequence Number should be increased */
-  int SAUN_inc; 
+	void *extension;
 
-  GF_Mutex *carrousel_mutex;
-  char buffer[RECV_BUFFER_SIZE_FOR_COMMANDS];
-  int bufferPosition;
-  int debug;
+	/* indication that the Access Unit is a RAP */
+	int RAP;
+	/* RAP counter */
+	int RAPsent;
+	/* indication that the Access Unit Sequence Number should be increased */
+	int SAUN_inc; 
+
+	GF_Mutex *carrousel_mutex;
+	char buffer[RECV_BUFFER_SIZE_FOR_COMMANDS];
+	int bufferPosition;
+	int debug;
 } PNC_CallbackData;
 
 
@@ -49,15 +47,15 @@ typedef struct tmp_PNC_CallbackData {
 #define RTP_SERV_GENERATOR_DEBUG 0x4
 
 typedef struct tmp_PNC_CallbackExt {
-  int i;
-  int lastTS;
+	int i;
+	int lastTS;
 } PNC_CallbackExt;
 
 
-/*Les fonctions exportees*/
-extern GF_Err PNC_RAP(PNC_CallbackData * data);
-extern PNC_CallbackData*  PNC_Init_SceneGenerator(GF_RTPChannel * p_chan,
-	GF_RTPHeader * p_hdr, char * default_scene, u32 socketType, u16 socketPort, int debug);
+/*exports*/
+extern GF_Err PNC_RAP(PNC_CallbackData *data);
+extern PNC_CallbackData* PNC_Init_SceneGenerator(GF_RTPChannel *p_chan, GF_RTPHeader *p_hdr, char *default_scene, 
+												 u32 socketType, u16 socketPort, int debug);
 extern GF_Err PNC_processBIFSGenerator(PNC_CallbackData*);
 extern void PNC_Close_SceneGenerator(PNC_CallbackData*);
 

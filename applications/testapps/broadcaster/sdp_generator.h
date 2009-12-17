@@ -7,7 +7,7 @@
 #include <gpac/internal/ietf_dev.h>
 #include "RTP_serv_generator.h"
 
-/* definitions des structures */
+/* structure definitions */
 struct __tag_bifs_engine
 {
 	GF_SceneGraph *sg;
@@ -26,4 +26,4 @@ struct __tag_bifs_engine
 	u32 encoded_bifs_config_size;
 };
 
-int sdp_generator(PNC_CallbackData * data, char *ip_dest, char *sdp_fmt);
+int sdp_generator(PNC_CallbackData *data, char *ip_dest, char *sdp_fmt);

@@ -9,11 +9,10 @@ typedef enum _debugMode {
 	DEBUG_sdp_generator = 16
 } debugMode;
 
-void setDebugMode( int mode );
+void setDebugMode(int mode);
 
 int getDebugMode();
 
-void dprintf(debugMode debug, const char * msg, ...);
+void dprintf(debugMode debug, const char *msg, ...);
+
 #endif
-
-
