@@ -1,7 +1,7 @@
 #include "sdp_generator.h"
 #include "debug.h"
 
-int sdp_generator(PNC_CallbackData * data, char *ip_dest, char *sdp_fmt)
+int sdp_generator(PNC_CallbackData *data, char *ip_dest, char *sdp_fmt)
 {
 	GF_BifsEngine *codec;
 	GF_ESD *esd = NULL;

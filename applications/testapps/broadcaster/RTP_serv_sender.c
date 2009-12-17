@@ -4,7 +4,8 @@
 #include "debug.h"
 
 
-GF_Err PNC_InitRTP(GF_RTPChannel **chan, char * dest, int port, unsigned short mtu_size){
+GF_Err PNC_InitRTP(GF_RTPChannel **chan, char *dest, int port, unsigned short mtu_size)
+{
 	GF_Err res;
 	GF_RTSPTransport tr;
 
@@ -24,11 +25,11 @@ GF_Err PNC_InitRTP(GF_RTPChannel **chan, char * dest, int port, unsigned short m
 	tr.source = "0.0.0.0";
 	tr.SSRC=rand();
 
-	tr.port_first        = port;
-	tr.port_last         = port+1;
+	tr.port_first		= port;
+	tr.port_last		 = port+1;
 	if (tr.IsUnicast) {
 		tr.client_port_first = port;
-		tr.client_port_last  = port+1;
+		tr.client_port_last = port+1;
 	} else {
 		tr.source = dest;
 	}
@@ -50,29 +51,31 @@ GF_Err PNC_InitRTP(GF_RTPChannel **chan, char * dest, int port, unsigned short m
 }
 
 
-GF_Err PNC_SendRTP(PNC_CallbackData * data, char * payload, int payloadSize){
-  	GF_Err e;
+GF_Err PNC_SendRTP(PNC_CallbackData *data, char *payload, int payloadSize)
+{
+	GF_Err e;
 	unsigned char feedback_buffer[250];	
 	
 	if (!data->hdr->TimeStamp) 
 		data->hdr->TimeStamp = ((PNC_CallbackExt * )data->extension)->lastTS;
-  	
+
 	((PNC_CallbackExt * )data->extension)->lastTS = data->hdr->TimeStamp;
 	
 	e = gf_rtp_send_packet(data->chan, data->hdr, 0, 0, payload, payloadSize);
-  	dprintf(DEBUG_RTP_serv_sender, "SendPacket : %d, TimeStamp RTP = %d, sz= %d\n",
-	  e, data->hdr->TimeStamp, payloadSize);
+	dprintf(DEBUG_RTP_serv_sender, "SendPacket : %d, TimeStamp RTP = %d, sz= %d\n",
+			e, data->hdr->TimeStamp, payloadSize);
 
 	// sending feedback bytes
 	memset(feedback_buffer, 0, sizeof(feedback_buffer));
 	sprintf((char *) feedback_buffer, "DataSent=%d\nRAPsent=%d\n", payloadSize, data->RAPsent);
 	e = gf_sk_send(data->feedback_socket, feedback_buffer, strlen((char *) feedback_buffer));
-  	dprintf(DEBUG_RTP_serv_packetizer, "Sent feedback data %d byte, return %d\n", payloadSize, e);
+	dprintf(DEBUG_RTP_serv_packetizer, "Sent feedback data %d byte, return %d\n", payloadSize, e);
 
-  	return GF_OK;
+	return GF_OK;
 }
 
-GF_Err PNC_CloseRTP(GF_RTPChannel *chan){ 
+GF_Err PNC_CloseRTP(GF_RTPChannel *chan)
+{ 
 	gf_rtp_del(chan);
 	return GF_OK;
 }
