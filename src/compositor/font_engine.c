@@ -190,11 +190,28 @@ GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 n
 	GF_Font *the_font = NULL;
 
 	for (i=0; i<nb_fonts; i++) {
+		char *font_name;
+		const char *opt;
 		u32 weight_diff = 0xFFFFFFFF;
 		GF_Font *best_font = NULL;
 		GF_Font *font = fm->font;
+		font_name = alt_fonts[i];
+
+		if (!stricmp(font_name, "SERIF")) {
+			opt = gf_modules_get_option((GF_BaseInterface *)fm->reader, "FontEngine", "FontSerif");
+			if (opt) font_name = (char*)opt;
+		}
+		else if (!stricmp(font_name, "SANS") || !stricmp(font_name, "sans-serif")) {
+			opt = gf_modules_get_option((GF_BaseInterface *)fm->reader, "FontEngine", "FontSans");
+			if (opt) font_name = (char*)opt;
+		}
+		else if (!stricmp(font_name, "TYPEWRITER") || !stricmp(font_name, "monospace")) {
+				opt = gf_modules_get_option((GF_BaseInterface *)fm->reader, "FontEngine", "FontFixed");
+				if (opt) font_name = (char*)opt;
+		}
+
 		while (font) {
-			if ((check_only || !font->not_loaded) && font->name && !stricmp(font->name, alt_fonts[i])) {
+			if ((check_only || !font->not_loaded) && font->name && !stricmp(font->name, font_name)) {
 				s32 fw;
 				s32 w;
 				u32 diff;
@@ -254,12 +271,12 @@ GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 n
 		}
 		if (the_font) break;
 		if (fm->reader) {
-			e = fm->reader->set_font(fm->reader, alt_fonts[i], styles);
+			e = fm->reader->set_font(fm->reader, font_name, styles);
 			if (!e) {
 				GF_SAFEALLOC(the_font, GF_Font);
 				fm->reader->get_font_info(fm->reader, &the_font->name, &the_font->em_size, &the_font->ascent, &the_font->descent, &the_font->underline, &the_font->line_spacing, &the_font->max_advance_h, &the_font->max_advance_v);
 				the_font->styles = styles;
-				if (!the_font->name) the_font->name = strdup(alt_fonts[i]);
+				if (!the_font->name) the_font->name = strdup(font_name);
 			
 				if (fm->font) {
 					font = fm->font;
