@@ -569,7 +569,7 @@ u32 gf_sc_get_audio_buffer_length(GF_Compositor *compositor)
 }
 
 
-static void gf_sc_pause(GF_Compositor *compositor, u32 PlayState)
+static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 {
 	if (!compositor || !compositor->audio_renderer) return;
 	if (!compositor->paused && !PlayState) return;
@@ -578,9 +578,12 @@ static void gf_sc_pause(GF_Compositor *compositor, u32 PlayState)
 	/*step mode*/
 	if (PlayState==GF_STATE_STEP_PAUSE) {
 		compositor->step_mode = 1;
-		/*resume for next step*/
-		if (compositor->paused && compositor->term) gf_term_set_option(compositor->term, GF_OPT_PLAY_STATE, GF_STATE_PLAYING);
+		if (!compositor->paused) 
+			gf_term_set_option(compositor->term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
+		else
+			gf_term_step_clocks(compositor->term, compositor->frame_duration);
 	} else {
+		compositor->step_mode = 0;
 		if (compositor->audio_renderer) gf_sc_ar_control(compositor->audio_renderer, (compositor->paused && (PlayState==0xFF)) ? 2 : compositor->paused);
 		compositor->paused = (PlayState==GF_STATE_PAUSED) ? 1 : 0;
 	}
@@ -1116,7 +1119,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 	e = GF_OK;
 	switch (type) {
 	case GF_OPT_PLAY_STATE: 
-		gf_sc_pause(compositor, value); 
+		gf_sc_set_play_state(compositor, value); 
 		break;
 	case GF_OPT_AUDIO_VOLUME: 
 		gf_sc_ar_set_volume(compositor->audio_renderer, value); 
@@ -1960,20 +1963,25 @@ dump_renoir_ram(compositor);
 		flush_time, 
 		end_time));
 
-	gf_sc_lock(compositor, 0);
-
 	if (frame_drawn) {
 		compositor->current_frame = (compositor->current_frame+1) % GF_SR_FPS_COMPUTE_SIZE;
 		compositor->frame_time[compositor->current_frame] = end_time;
+		compositor->frame_number++;
 	}
-	compositor->frame_number++;
 
+	gf_sc_lock(compositor, 0);
+
+#if 0
 	/*step mode on, pause and return*/
-	if (compositor->step_mode) {
+	if (frame_drawn && compositor->step_mode) {
 		compositor->step_mode = 0;
 		if (compositor->term) gf_term_set_option(compositor->term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
 		return;
 	}
+#else
+	if (frame_drawn) compositor->step_mode = 0;
+#endif
+
 	/*not threaded, let the owner decide*/
 	if ((compositor->user->init_flags & GF_TERM_NO_VISUAL_THREAD) || !compositor->frame_duration) return;
 	if (end_time > compositor->frame_duration) {

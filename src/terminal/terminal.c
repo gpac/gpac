@@ -322,7 +322,10 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	else
 		gf_sc_set_option(term->compositor, GF_OPT_PLAY_STATE, PlayState);
 
-	if (PlayState==GF_STATE_STEP_PAUSE) PlayState = term->play_state ? GF_STATE_PLAYING : GF_STATE_PAUSED;
+	if (PlayState==GF_STATE_STEP_PAUSE) {
+		//PlayState = term->play_state ? GF_STATE_PLAYING : GF_STATE_PAUSED;
+		return;
+	}
 	if (term->play_state == PlayState) return;
 	term->play_state = PlayState;
 
