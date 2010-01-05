@@ -558,11 +558,15 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		case GF_KEY_P:
 			if (evt->key.flags & GF_KEY_MOD_CTRL)
-				gf_term_set_option(term, GF_OPT_PLAY_STATE, (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) ? GF_STATE_PLAYING : GF_STATE_PAUSED);
+				gf_term_set_option(term, GF_OPT_PLAY_STATE, (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) ? GF_STATE_PAUSED : GF_STATE_PLAYING);
 			break;
 		case GF_KEY_S:
-			if (evt->key.flags & GF_KEY_MOD_CTRL)
+			if (evt->key.flags & GF_KEY_MOD_CTRL) {
 				gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
+				fprintf(stdout, "\nStep time: ");
+				PrintTime(gf_term_get_time_in_ms(term));
+				fprintf(stdout, "\n");
+			}
 			break;
 		case GF_KEY_B:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)

@@ -649,7 +649,7 @@ static void gf_es_check_timing(GF_Channel *ch)
 	}
 	/*if channel is not the OCR, shift all time stamps to match the current time at clock init*/
 	else if (!ch->DTS) {
-		ch->ts_offset += gf_clock_real_time(ch->clock);
+//		ch->ts_offset += gf_clock_real_time(ch->clock);
 		if (ch->clock->clock_init) ch->IsClockInit = 1;
 	}
 	/*deal with some broken DMB streams were the timestamps on BIFS/OD are not set (0) or completely out of sync

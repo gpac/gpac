@@ -473,6 +473,8 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
 				forceDrop--;
 //				if (forceDrop) mo->odm->codec->nb_droped++;
 			} else {
+				/*we cannot drop since we don't know the speed of the playback (which can even be frame by frame)*/
+#if 0
 				obj_time = gf_clock_time(mo->odm->codec->ck);
 				if (mo->odm->codec->CB->output->next->dataLength) { 
 					if (2*obj_time < mo->timestamp + mo->odm->codec->CB->output->next->TS ) {
@@ -483,6 +485,9 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
 				} else {
 					gf_cm_drop_output(mo->odm->codec->CB);
 				}
+#else
+				mo->odm->codec->CB->output->RenderedLength = 0;
+#endif
 			}
 		}
 	}
