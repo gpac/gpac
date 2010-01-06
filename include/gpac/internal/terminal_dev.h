@@ -93,7 +93,7 @@ GF_Err gf_term_service_cache_close(GF_ClientService *ns, Bool no_save);
 this is mainly designed for movie dumping in MP4Client*/
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff);
 
-void gf_term_sample_clocks(GF_Terminal *term);
+u32 gf_term_sample_clocks(GF_Terminal *term);
 
 u32 gf_term_check_end_of_scene(GF_Terminal *term);
 
