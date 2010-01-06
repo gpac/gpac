@@ -304,7 +304,7 @@ static void gf_memory_log(unsigned int level, const char *fmt, ...)
 	assert(strlen(fmt) < 80);
 	va_start(vl, fmt);
 	vsprintf(msg, fmt, vl);
-	GF_LOG(level, GF_LOG_RTI, (msg));
+	GF_LOG(level, GF_LOG_MEMORY, (msg));
 	va_end(vl);
 }
 

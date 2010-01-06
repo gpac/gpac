@@ -325,6 +325,8 @@ enum
 	GF_LOG_RTI = 1<<16,
 	/*! Log for SMIL timing and animation*/
 	GF_LOG_SMIL = 1<<17,
+	/*! Log for memory tracker*/
+	GF_LOG_MEMORY = 1<<18,
 
 };
 
