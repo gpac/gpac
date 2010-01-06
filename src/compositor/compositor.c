@@ -1676,7 +1676,7 @@ extern u32 time_spent_in_anim;
 void gf_sc_simulation_tick(GF_Compositor *compositor)
 {	
 	GF_SceneGraph *sg;
-	u32 in_time, end_time, i, count;
+	u32 in_time, end_time, i, count, sim_time;
 	Bool frame_drawn;
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time, time_node_time, texture_time, traverse_time, flush_time;
@@ -1743,7 +1743,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	*/
 	gf_sc_lock(compositor, 0);
 	
-	gf_term_sample_clocks(compositor->term);
+	sim_time = gf_term_sample_clocks(compositor->term);
 
 #ifndef GPAC_DISABLE_VRML
 	/*execute all routes before updating textures, otherwise nodes inside composite texture may never see their dirty flag set*/
@@ -1875,7 +1875,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 			compositor->frame_draw_type = 0;
 		} else {
 			compositor->frame_draw_type = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene - OTB %d\n", sim_time));
 			gf_sc_draw_scene(compositor);
 #ifndef GPAC_DISABLE_LOG
 			traverse_time = gf_sys_clock() - traverse_time;

@@ -1440,9 +1440,10 @@ static void gf_term_sample_scenetime(GF_Scene *scene)
 	gf_term_lock_net(scene->root_od->term, 0);
 }
 
-void gf_term_sample_clocks(GF_Terminal *term)
+u32 gf_term_sample_clocks(GF_Terminal *term)
 {
 	gf_term_sample_scenetime(term->root_scene);
+	return (u32) (1000*term->root_scene->simulation_time);
 }
 
 const char *gf_term_get_text_selection(GF_Terminal *term, Bool probe_only)
