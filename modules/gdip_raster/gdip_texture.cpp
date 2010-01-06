@@ -50,7 +50,7 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 	case GF_PIXEL_GREYSCALE:
 		pFormat = PixelFormat24bppRGB;
 		BPP = 1;
-		/*cannot get it to work without using 24bpp rgb*/
+		/*no support for 8bit greyscale not indexed in GDIPlus ...*/
 		copy = 1;
 		break;
 	case GF_PIXEL_ALPHAGREY:
@@ -137,8 +137,8 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 		for (i=0; i<_sten->width; i++) {
 			switch (pixelFormat) {
 			case GF_PIXEL_GREYSCALE:
-				col = GF_COL_ARGB(255, *ptr, *ptr, *ptr);
-				ptr ++;
+				r = *ptr++;
+				col = GF_COL_ARGB(255, r, r, r);
 				break;
 			case GF_PIXEL_ALPHAGREY:
 				r = *ptr++;
