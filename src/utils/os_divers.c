@@ -759,7 +759,8 @@ u32 gf_sys_clock()
 #endif
 
 
-#if defined(_WIN32_WCE)
+#ifdef WIN32
+
 static u32 OS_GetSysClockHIGHRES()
 {
 	LARGE_INTEGER now;
@@ -768,21 +769,16 @@ static u32 OS_GetSysClockHIGHRES()
 	return (u32) ((now.QuadPart * 1000) / frequency.QuadPart);
 }
 
-static u32 OS_GetSysClockNORMAL() { return GetTickCount(); }
-
-#elif defined(WIN32)
-
-static u32 OS_GetSysClockHIGHRES()
-{
-	LARGE_INTEGER now;
-	QueryPerformanceCounter(&now);
-	now.QuadPart -= init_counter.QuadPart;
-	return (u32) (now.QuadPart * 1000 / frequency.QuadPart);
+static u32 OS_GetSysClockNORMAL() 
+{ 
+#ifdef _WIN32_WCE
+	return GetTickCount();
+#else
+	return timeGetTime();
+#endif
 }
 
-u32 OS_GetSysClockNORMAL() { return timeGetTime(); }
-
-#endif
+#endif //WIN32
 
 #if defined(__sh__) 
 /* Avoid exception for denormalized floating point values */
@@ -833,8 +829,8 @@ void gf_sys_init()
 	if (!sys_init) {
 
 #if defined(__sh__)
-/* Round all denormalized floatting point number to 0.0 */
-        sh4_change_fpscr(0,SH4_FPSCR_DN) ;
+	/* Round all denormalized floatting point number to 0.0 */
+    sh4_change_fpscr(0,SH4_FPSCR_DN) ;
 #endif
 
 #if defined(WIN32)
@@ -849,12 +845,13 @@ void gf_sys_init()
 			OS_GetSysClock = OS_GetSysClockHIGHRES;
 			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] using WIN32 performance timer\n"));
 		} else {
-#ifndef _WIN32_WCE
-			timeBeginPeriod(1);
-#endif
 			OS_GetSysClock = OS_GetSysClockNORMAL;
 			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] using WIN32 regular timer\n"));
 		}
+
+#ifndef _WIN32_WCE
+		timeBeginPeriod(1);
+#endif
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] checking for run-time info tools"));
 #if defined(_WIN32_WCE)
@@ -914,7 +911,7 @@ void gf_sys_close()
 		last_update_time = 0xFFFFFFFF;
 
 #if defined(WIN32) && !defined(_WIN32_WCE)
-		if (!frequency.QuadPart) timeEndPeriod(1);
+		timeEndPeriod(1);
 		
 		MyGetSystemTimes = NULL;
 		MyGetProcessMemoryInfo = NULL;
