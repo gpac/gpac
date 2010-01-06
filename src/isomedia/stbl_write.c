@@ -599,7 +599,7 @@ GF_Err stbl_AddChunkOffset(GF_MediaBox *mdia, u32 sampleNumber, u32 StreamDescIn
 	if (sampleNumber == stsc->nb_entries + 1) {
 		ent = &stsc->entries[stsc->nb_entries];
 	} else {
-		memmove(&stsc->entries[sampleNumber-1], &stsc->entries[sampleNumber], sizeof(GF_StscEntry)*(stsc->nb_entries+1-sampleNumber));
+		memmove(&stsc->entries[sampleNumber], &stsc->entries[sampleNumber-1], sizeof(GF_StscEntry)*(stsc->nb_entries+1-sampleNumber));
 		ent = &stsc->entries[sampleNumber-1];
 	}
 	ent->isEdited = 0;
