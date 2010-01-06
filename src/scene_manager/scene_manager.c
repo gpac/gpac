@@ -169,7 +169,7 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 			tmp->timing = timing;
 			tmp->timing_sec = time_sec;
 			tmp->owner = stream;
-			gf_list_insert(stream->AUs, tmp, i);
+			gf_list_insert(stream->AUs, tmp, i-1);
 			return tmp;
 		}
 	}
