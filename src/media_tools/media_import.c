@@ -1633,6 +1633,11 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		is_clone = 1;
 		di = 1;
 		if (e) goto exit;
+
+		if (import->esd && import->esd->ESID) {
+			e = gf_isom_set_track_id(import->dest, track, import->esd->ESID);
+			if (e) goto exit;
+		}
 	}
 	if (e) goto exit;
 	import->final_trackID = gf_isom_get_track_id(import->dest, track);
