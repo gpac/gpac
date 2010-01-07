@@ -426,7 +426,7 @@ void gf_sl_depacketize (GF_SLConfig *slConfig, GF_SLHeader *Header, char *PDU, u
 			Header->degradationPriorityFlag = gf_bs_read_int(bs, 1);
 			if (Header->degradationPriorityFlag) Header->degradationPriority = gf_bs_read_int(bs, slConfig->degradationPriorityLength);
 		}
-		if (Header->OCRflag) Header->objectClockReference = gf_bs_read_int(bs, slConfig->OCRLength);
+		if (Header->OCRflag) Header->objectClockReference = gf_bs_read_long_int(bs, slConfig->OCRLength);
 		if (Header->accessUnitStartFlag) {
 			if (slConfig->useRandomAccessPointFlag) Header->randomAccessPointFlag = gf_bs_read_int(bs, 1);
 			if (slConfig->AUSeqNumLength > 0) Header->AU_sequenceNumber = gf_bs_read_int(bs, slConfig->AUSeqNumLength);
