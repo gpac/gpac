@@ -191,6 +191,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_save) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_get_key) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cfg_get_sub_key) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_set_key) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_get_section_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_get_section_name) )
@@ -225,6 +226,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_stats) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_fetch_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_last_error) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_del) )
@@ -1407,3 +1409,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_laser_encoder_get_rap) )
 #endif /*GPAC_DISABLE_LASER*/
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_set_font) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_create_span) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_refresh_span_bounds) )
