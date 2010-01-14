@@ -372,38 +372,23 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 }
 
 GF_EXPORT
-const char *gf_cfg_get_channel_info(GF_Config *iniFile, const char *secName, const char *keyName,u32 data_type)
+const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const char *keyName, u32 sub_index)
 {
-	u32 i,j;
-	IniSection *sec;
-	IniKey *key;
-	char *info,*info_dup;
+	u32 j;
+	char *subKeyValue;
+	const char *keyValue;
+	
+	keyValue = gf_cfg_get_key(iniFile, secName, keyName);
+	if (!keyValue) return NULL;
 
-	i=0;
-	j=0;
-	while ( (sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {
-		if (!strcmp(secName, sec->section_name)) goto get_key;
-	}
-	return NULL;
-
-get_key:
-	i=0;
-	while ( (key = (IniKey *) gf_list_enum(sec->keys, &i)) ) {
-		if (!strcmp(key->name, keyName)){
-
-			info_dup = strdup(key->value);
-			info = strtok (info_dup,";"); 
-			while(info!=NULL){ 
-				if(j !=  data_type)
-				{
-					j++;
-				}else{
-					return info;
-				}
-                    
-				info = strtok (NULL, ";");
-			}			
+	j = 0;
+	subKeyValue = strtok (keyValue,";"); 
+	while (subKeyValue!=NULL) { 
+		if (j==sub_index) {
+			return strdup(subKeyValue);
 		}
+		j++;
+		subKeyValue = strtok (NULL, ";");
 	}
 	return NULL;
 }

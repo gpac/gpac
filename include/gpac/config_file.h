@@ -153,13 +153,13 @@ GF_Err gf_cfg_insert_key(GF_Config *cfgFile, const char *secName, const char *ke
  */
 void gf_cfg_del_section(GF_Config *cfgFile, const char *secName);
 
-/*get a  key in a given section. Returns an error if the key does not exist
+/*get a sub key (separator is ':') in a given key in a given section. Returns an error if the key does not exist
  *\param cfgFile the target configuration file
  *\param secName the target section
  *\param keyName the name of the target key
- *\param data_type the 0-based index position of the new key*/
+ *\param sub_index the 0-based index position of the sub key*/
 
-const char *gf_cfg_get_channel_info(GF_Config *iniFile, const char *secName, const char *keyName,u32 data_type);
+const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const char *keyName,u32 sub_index);
 
 
 #ifdef __cplusplus
