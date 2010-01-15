@@ -407,10 +407,11 @@ check_unit:
 	updates in time*/
 	codec->odm->current_time = gf_clock_time(codec->ck);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SysDec] Codec %s AU CTS %d channel %d OTB %d\n", sdec->module_name , AU->CTS, ch->esd->ESID, codec->odm->current_time));
 	now = gf_term_get_time(codec->odm->term);
 	e = sdec->ProcessData(sdec, AU->data, AU->dataLength, ch->esd->ESID, au_time, mm_level);
 	now = gf_term_get_time(codec->odm->term) - now;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %d in %d ms\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, codec->odm->current_time, AU->CTS, now));
 
 	codec_update_stats(codec, AU->dataLength, now);
 	codec->prev_au_size = AU->dataLength;
@@ -691,11 +692,11 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			 NOTE: the 100 ms safety gard is to avoid discarding audio*/
 			if (!ch->skip_sl && (AU->CTS + 100 < obj_time) ) {
 				mmlevel = GF_CODEC_LEVEL_DROP;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Decoder] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] ODM%d: frame too late (%d vs %d) - using drop level\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, AU->CTS, obj_time));
 
 				if (ch->resync_drift && (AU->CTS + ch->resync_drift < obj_time)) {
 					ch->clock->StartTime += (obj_time - AU->CTS);
-					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Decoder] ODM%d: decoder too slow on OCR stream - rewinding clock of %d ms\n", codec->odm->OD->objectDescriptorID, obj_time - AU->CTS));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] ODM%d: decoder too slow on OCR stream - rewinding clock of %d ms\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, obj_time - AU->CTS));
 					obj_time = gf_clock_time(codec->ck);
 				}
 			}
