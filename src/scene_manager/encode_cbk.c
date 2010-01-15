@@ -67,7 +67,8 @@ static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_StreamContext *sc, GF
 	if (!esd->decoderConfig || (esd->decoderConfig->streamType != GF_STREAM_SCENE)) return GF_BAD_PARAM;
 
 	e = GF_OK;
-	codec->bifsenc = gf_bifs_encoder_new(codec->ctx->scene_graph);
+	if (!codec->bifsenc)
+		codec->bifsenc = gf_bifs_encoder_new(codec->ctx->scene_graph);
 
 	delete_bcfg = 0;
 	/*inputctx is not properly setup, do it*/
@@ -232,19 +233,24 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 #ifndef GPAC_DISABLE_BIFS_ENC
 			case GPAC_OTI_SCENE_BIFS:
 			case GPAC_OTI_SCENE_BIFS_V2:
-				return gf_sm_setup_bifsenc(codec, sc, esd);
+				e = gf_sm_setup_bifsenc(codec, sc, esd);
+				break;
 #endif
 
 #ifndef GPAC_DISABLE_LASER
 			case GPAC_OTI_SCENE_LASER:
-				return gf_sm_setup_lsrenc(codec, sc, esd);
+				e = gf_sm_setup_lsrenc(codec, sc, esd);
+				break;
 #endif
 			case GPAC_OTI_SCENE_DIMS:
 				/* TODO */
-				return GF_NOT_SUPPORTED;
+				e = GF_NOT_SUPPORTED;
+				break;
 			default:
-				return GF_NOT_SUPPORTED;
+				e = GF_NOT_SUPPORTED;
+				break;
 			}	
+			if (e) return e;
 		}
 	}
 	return e;
