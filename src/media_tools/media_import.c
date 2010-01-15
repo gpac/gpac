@@ -263,7 +263,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	samp->dataLength = size;
 	if (import->initial_time_offset) samp->DTS = import->initial_time_offset*1000;
 
-	gf_import_message(import, GF_OK, "%s import - size %d x %d", (OTI==0x6C) ? "JPEG" : (OTI==0x6D) ? "PNG" : "JPEG2000", w, h);
+	gf_import_message(import, GF_OK, "%s import %s - size %d x %d", (OTI==0x6C) ? "JPEG" : (OTI==0x6D) ? "PNG" : "JPEG2000", import->in_name, w, h);
 
 	gf_set_progress("Importing Image", 0, 1);
 	if (import->flags & GF_IMPORT_USE_DATAREF) {
