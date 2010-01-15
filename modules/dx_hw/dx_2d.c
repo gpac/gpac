@@ -571,6 +571,10 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 		dst.y = pt.y;
 		MAKERECT(dst_rc, (&dst));
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX] Blit surface to dest %d x %d - overlay type %s\n", dst.w, dst.h,
+					(overlay_type==0)? "none" : ((overlay_type==1) ? "Top-Level" : "ColorKey") 
+		));
+
 #if 1
 		if (overlay_type==1) {
 			hr = IDirectDrawSurface2_UpdateOverlay(pool->pSurface, &src_rc, dd->pPrimary, &dst_rc, DDOVER_SHOW, NULL);
@@ -742,6 +746,9 @@ rem_fmt:
 		SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
 		memset(&dd->yuv_pool, 0, sizeof(DDSurface));
 	}
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
+	if (opt && !strcmp(opt, "never")) num_yuv = 0;
+
 	/*too bad*/
 	if (!num_yuv) {
 		dr->hw_caps &= ~(GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY);
@@ -769,7 +776,8 @@ rem_fmt:
 		gf_modules_set_option((GF_BaseInterface *)dr, "Video", "EnableOffscreenYUV", "yes");
 	}
 	if (!strcmp(opt, "yes")) dr->hw_caps |= GF_VIDEO_HW_HAS_YUV;
-	
+
+
 	/*get YUV overlay key*/
 	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "OverlayColorKey");
 	/*no set is the default*/
