@@ -1263,13 +1263,10 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 {
 	u32 state, att_len, alloc_size;
 	z_off_t pos;
+	Bool from_buffer;
 	Bool dobreak=0;
 	char szLine1[XML_INPUT_SIZE+2], szLine2[XML_INPUT_SIZE+2], *szLine, *cur_line, *sep, *start, first_c, *result;
-#ifdef NO_GZIP
-	if (!parser->f_in) return NULL;
-#else
-	if (!parser->gz_in) return NULL;
-#endif
+
 
 #define CPYCAT_ALLOC(__str, __is_copy) if ( strlen(__str) + (__is_copy ? 0 : strlen(szLine))>=alloc_size) {\
 								alloc_size = 1+strlen(__str);	\
@@ -1279,14 +1276,24 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 							if (__is_copy) strcpy(szLine, __str);	\
 							else strcat(szLine, __str); \
 
+	from_buffer=0;
+#ifdef NO_GZIP
+	if (!parser->f_in) from_buffer=1;
+#else
+	if (!parser->gz_in) from_buffer=1;
+#endif
+
 	result = NULL;
 
 	szLine1[0] = szLine2[0] = 0;
+	pos=0;
+	if (!from_buffer) {
 #ifdef NO_GZIP
-	pos = ftell(parser->f_in);
+		pos = ftell(parser->f_in);
 #else
-	pos = gztell(parser->gz_in);
+		pos = gztell(parser->gz_in);
 #endif
+	}
 	att_len = strlen(parser->buffer + parser->att_name_start);
 	if (att_len<2*XML_INPUT_SIZE) att_len = 2*XML_INPUT_SIZE;
 	alloc_size = att_len;
@@ -1297,13 +1304,16 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	state = 0;
 	goto retry;
 
-#ifdef NO_GZIP
-	while (!feof(parser->f_in)) {
-#else
-	while (!gzeof(parser->gz_in)) {
-#endif
+	while (1) {
 		u32 read;
 		u8 sep_char;
+		if (!from_buffer) {
+#ifdef NO_GZIP
+			if (!feof(parser->f_in)) break;
+#else
+			if (!gzeof(parser->gz_in)) break;
+#endif
+		}
 
 		if (dobreak) break;
 
@@ -1312,14 +1322,18 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 		} else {
 			cur_line = szLine2;
 		}
+		if (from_buffer) {
+			dobreak=1;
+		} else {
 #ifdef NO_GZIP
-		read = fread(cur_line, 1, XML_INPUT_SIZE, parser->f_in);
+			read = fread(cur_line, 1, XML_INPUT_SIZE, parser->f_in);
 #else
-		read = gzread(parser->gz_in, cur_line, XML_INPUT_SIZE);
+			read = gzread(parser->gz_in, cur_line, XML_INPUT_SIZE);
 #endif
-		cur_line[read] = cur_line[read+1] = 0;
+			cur_line[read] = cur_line[read+1] = 0;
 
-		CPYCAT_ALLOC(cur_line, 0);
+			CPYCAT_ALLOC(cur_line, 0);
+		}
 
 		if (end_pattern) {
 			start  = strstr(szLine, end_pattern);
@@ -1407,12 +1421,15 @@ fetch_attr:
 	}
 exit:
 	free(szLine);
+
+	if (!from_buffer) {
 #ifdef NO_GZIP
-	fseek(parser->f_in, pos, SEEK_SET);
+		fseek(parser->f_in, pos, SEEK_SET);
 #else
-	gzrewind(parser->gz_in);
-	gzseek(parser->gz_in, pos, SEEK_SET);
+		gzrewind(parser->gz_in);
+		gzseek(parser->gz_in, pos, SEEK_SET);
 #endif
+	}
 	return result;
 }
 
