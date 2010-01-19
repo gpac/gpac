@@ -377,6 +377,8 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	gf_term_connect_object(term, odm, (char *) URL, (char*)parent_path);
 }
 
+void gf_storage_clean_cache(GF_Config *cfg);
+
 GF_EXPORT
 GF_Terminal *gf_term_new(GF_User *user)
 {
@@ -488,6 +490,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	gf_list_add(tmp->uri_relocators, &tmp->locales);
 	tmp->speed_ratio = FIX_ONE;
 
+	gf_storage_clean_cache(user->config);
 	cf = gf_cfg_get_key(user->config, "General", "GUIFile");
 	if (cf) {
 		gf_term_connect_from_time_ex(tmp, cf, 0, 0, 1, NULL);
