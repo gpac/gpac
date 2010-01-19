@@ -433,7 +433,9 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 GF_EXPORT
 void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 forceDrop)
 {
+#if 0
 	u32 obj_time;
+#endif
 	if (!gf_odm_lock_mo(mo)) return;
 
 	if (!mo->nb_fetch || !mo->odm->codec) {
