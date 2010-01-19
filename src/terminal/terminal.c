@@ -1676,7 +1676,7 @@ void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 						break;
 					default:
 						res += (s32) (5*dur/100);
-						if (res > dur) res = dur;
+						if (res > (s32)dur) res = dur;
 						break;
 					}
 					gf_term_play_from_time(term, res, 2);

@@ -3744,7 +3744,9 @@ static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 
 static void JS_PreDestroy(GF_Node *node)
 {
+#if 0
 	jsval fval, rval;
+#endif
 	GF_ScriptPriv *priv = node->sgprivate->UserPrivate;
 	if (!priv) return;
 
