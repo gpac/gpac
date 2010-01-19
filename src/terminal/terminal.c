@@ -196,7 +196,7 @@ restart:
 	if (try_locale) {
 		try_locale = 0;
 		free(str);
-		str = rel_path;
+		str = (char *)rel_path;
 		goto restart;
 	}
 

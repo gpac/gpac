@@ -185,6 +185,10 @@ struct _scene
 
 	/*URL of the current parent Inline node, only set during traversal*/
 	MFURL *current_url;
+
+
+	/*list of M_Storage nodes active*/
+	GF_List *storages;
 #endif
 };
 

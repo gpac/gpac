@@ -56,6 +56,9 @@ Double gf_scene_get_time(void *_is)
 #endif
 }
 
+void gf_storage_save(M_Storage *storage);
+
+
 void gf_scene_sample_time(GF_Scene *scene)
 {
 	u32 ret;
@@ -99,6 +102,8 @@ GF_Scene *gf_scene_new(GF_Scene *parentScene)
 #ifndef GPAC_DISABLE_VRML
 	tmp->extern_protos = gf_list_new();
 	gf_sg_set_proto_loader(tmp->graph, gf_inline_get_proto_lib);
+	
+	tmp->storages = gf_list_new();
 #endif
 	tmp->on_media_event = inline_on_media_event;
 	return tmp;
@@ -151,6 +156,7 @@ void gf_scene_del(GF_Scene *scene)
 		free(obj);
 	}
 	gf_list_del(scene->scene_objects);
+	gf_list_del(scene->storages);
 
 	if (scene->audio_url.url) free(scene->audio_url.url);
 	if (scene->visual_url.url) free(scene->visual_url.url);
@@ -236,6 +242,14 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	while ((obj = (GF_MediaObject *)gf_list_enum(scene->resources, &i))) {
 		if (obj->nodes) gf_list_reset(obj->nodes);
 	}
+
+#ifndef GPAC_DISABLE_VRML
+	while (gf_list_count(scene->storages)) {
+		M_Storage *storage = gf_list_get(scene->storages, 0);
+		gf_list_rem(scene->storages, 0);
+		if (storage->_auto) gf_storage_save(storage);
+	}
+#endif	
 
 	if (scene->graph_attached && (scene->root_od->term->root_scene == scene)) {
 		gf_sc_set_scene(scene->root_od->term->compositor, NULL);
