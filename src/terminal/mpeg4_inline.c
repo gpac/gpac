@@ -32,6 +32,7 @@
 #include "media_control.h"
 #include <gpac/compositor.h>
 #include <gpac/nodes_x3d.h>
+#include <gpac/crypt.h>
 
 /*SVG properties*/
 #ifndef GPAC_DISABLE_SVG
@@ -413,6 +414,278 @@ void gf_init_inline(GF_Scene *scene, GF_Node *node)
 {
 	gf_node_set_callback_function(node, gf_inline_traverse);
 }
+
+static GF_Config *storage_get_cfg(M_Storage *storage)
+{
+	GF_Scene *scene;
+	scene = (GF_Scene *)gf_node_get_private((GF_Node*)storage);
+	return scene->root_od->term->user->config;
+}
+
+static char *storage_get_section(M_Storage *storage)
+{
+	GF_Scene *scene;
+	char *szPath;
+	u8 hash[20], name[50];
+	u32 i, len;
+
+	scene = (GF_Scene *)gf_node_get_private((GF_Node*)storage);
+
+	len = strlen(scene->root_od->net_service->url)+strlen(storage->name.buffer)+2;
+	szPath = malloc(sizeof(char)* len);
+	strcpy(szPath, scene->root_od->net_service->url);
+	strcat(szPath, "@");
+	strcat(szPath, storage->name.buffer);
+	gf_sha1_csum(szPath, strlen(szPath), hash);
+	free(szPath);
+
+	strcpy(name, "@cache=");
+	for (i=0; i<20; i++) {
+		char t[3];
+		t[2] = 0;
+		sprintf(t, "%02X", hash[i]);
+		strcat(name, t);
+	}
+	return strdup(name);
+}
+
+static void storage_parse_sf(void *ptr, u32 fieldType, char *opt)
+{
+	Float v1, v2, v3;
+	switch (fieldType) {
+	case GF_SG_VRML_SFBOOL:
+		sscanf(opt, "%d", ((SFBool *)ptr));
+		break;
+	case GF_SG_VRML_SFINT32:
+		sscanf(opt, "%d",  ((SFInt32 *)ptr) );
+		break;
+	case GF_SG_VRML_SFTIME:
+		sscanf(opt, "%g", ((SFTime *)ptr) );
+		break;
+	case GF_SG_VRML_SFFLOAT:
+		sscanf(opt, "%g", &v1);
+		* (SFFloat *)ptr = FLT2FIX(v1);
+		break;
+	case GF_SG_VRML_SFVEC2F:
+		sscanf(opt, "%g %g", &v1, &v2);
+		((SFVec2f*)ptr)->x = FLT2FIX(v1);
+		((SFVec2f*)ptr)->y = FLT2FIX(v2);
+		break;
+	case GF_SG_VRML_SFVEC3F:
+		sscanf(opt, "%g %g %g", &v1, &v2, &v3);
+		((SFVec3f*)ptr)->x = FLT2FIX(v1);
+		((SFVec3f*)ptr)->y = FLT2FIX(v2);
+		((SFVec3f*)ptr)->z = FLT2FIX(v3);
+		break;
+	case GF_SG_VRML_SFSTRING:
+		if ( ((SFString *)ptr)->buffer) free(((SFString *)ptr)->buffer);
+		((SFString *)ptr)->buffer = strdup(opt);
+		break;
+	default:
+		break;
+	}
+}
+
+static void gf_storage_load(M_Storage *storage)
+{
+	const char *opt;
+	char szID[20];
+	u32 i, count;
+	u32 sec, exp, frac;
+	GF_Config *cfg = storage_get_cfg(storage);
+	char *section = storage_get_section(storage);
+	if (!cfg || !section) return;
+
+	if (!gf_cfg_get_key_count(cfg, section)) {
+		free(section);
+		return;
+	}
+	opt = gf_cfg_get_key(cfg, section, "expireAfterNPT");
+	gf_net_get_ntp(&sec, &frac);
+	sscanf(opt, "%u", &exp);
+	if (exp && (exp<=sec)) {
+		gf_cfg_del_section(cfg, section);
+		free(section);
+		return;
+	}
+
+	count = gf_cfg_get_key_count(cfg, section)-1;
+	if (!count || (count!=storage->storageList.count)) {
+		gf_cfg_del_section(cfg, section);
+		free(section);
+		return;
+	}
+
+	for (i=0; i<count; i++) {
+		GF_FieldInfo info;
+		sprintf(szID, "%d", i);
+		opt = gf_cfg_get_key(cfg, section, szID);
+		if (!opt) break;
+		if (!storage->storageList.vals[i].node) break;
+		if (gf_node_get_field(storage->storageList.vals[i].node, storage->storageList.vals[i].fieldIndex, &info) != GF_OK) break;
+
+		if (gf_sg_vrml_is_sf_field(info.fieldType)) {
+			storage_parse_sf(info.far_ptr, info.fieldType, (char *) opt);
+		} else {
+			u32 sftype = gf_sg_vrml_get_sf_type(info.fieldType);
+			char *sep, *val;
+			void *slot;
+			gf_sg_vrml_mf_reset(info.far_ptr, info.fieldType);
+			while (1) {
+				val = strchr(opt, '\'');
+				sep = val ? strchr(val+1, '\'') : NULL;
+				if (!val || !sep) break;
+
+				sep[0] = 0;
+				gf_sg_vrml_mf_append(info.far_ptr, info.fieldType, &slot);
+				storage_parse_sf(slot, sftype, val+1);
+				sep[0] = '\'';
+				opt = sep+1;
+			}
+		}
+		gf_node_changed(storage->storageList.vals[i].node, &info);
+	}
+	free(section);
+}
+
+char *storage_serialize_sf(void *ptr, u32 fieldType)
+{
+	char szVal[50];
+	switch (fieldType) {
+	case GF_SG_VRML_SFBOOL:
+		sprintf(szVal, "%d", *((SFBool *)ptr) ? 1 : 0);
+		return strdup(szVal);
+	case GF_SG_VRML_SFINT32:
+		sprintf(szVal, "%d",  *((SFInt32 *)ptr) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFTIME:
+		sprintf(szVal, "%g", *((SFTime *)ptr) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFFLOAT:
+		sprintf(szVal, "%g", FIX2FLT( *((SFFloat *)ptr) ) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFVEC2F:
+		sprintf(szVal, "%g %g", FIX2FLT( ((SFVec2f *)ptr)->x), FIX2FLT( ((SFVec2f *)ptr)->y) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFVEC3F:
+		sprintf(szVal, "%g %g %g", FIX2FLT( ((SFVec3f *)ptr)->x), FIX2FLT( ((SFVec3f *)ptr)->y) , FIX2FLT( ((SFVec3f *)ptr)->z) );
+		return strdup(szVal);
+	case GF_SG_VRML_SFSTRING:
+		return strdup( ((SFString *)ptr)->buffer ? ((SFString *)ptr)->buffer : "");
+
+	default:
+		break;
+	}
+	return NULL;
+}
+
+void gf_storage_save(M_Storage *storage)
+{
+	char szID[20];
+	u32 i;
+	GF_Config *cfg = storage_get_cfg(storage);
+	char *section = storage_get_section(storage);
+	if (!cfg || !section) return;
+
+	gf_cfg_del_section(cfg, section);
+
+	if (storage->expireAfter) {
+		u32 sec, frac;
+		char szNPT[100];
+		gf_net_get_ntp(&sec, &frac);
+		sec += storage->expireAfter;
+		sprintf(szNPT, "%u", sec);
+		gf_cfg_set_key(cfg, section, "expireAfterNPT", szNPT);
+	} else {
+		gf_cfg_set_key(cfg, section, "expireAfterNPT", "0");
+	}
+
+	for (i=0; i<storage->storageList.count; i++) {
+		char *val;
+		GF_FieldInfo info;
+		sprintf(szID, "%d", i);
+
+		if (!storage->storageList.vals[i].node) break;
+		if (gf_node_get_field(storage->storageList.vals[i].node, storage->storageList.vals[i].fieldIndex, &info) != GF_OK) break;
+
+		if (gf_sg_vrml_is_sf_field(info.fieldType)) {
+			val = storage_serialize_sf(info.far_ptr, info.fieldType);
+		} else {
+			u32 sftype = gf_sg_vrml_get_sf_type(info.fieldType);
+			char *slotval;
+			void *slot;
+			val = NULL;
+			for (i=0; i<((GenMFField *)info.far_ptr)->count; i++) {
+				if (gf_sg_vrml_mf_get_item(info.far_ptr, info.fieldType, &slot, i) != GF_OK) break;
+				slotval = storage_serialize_sf(info.far_ptr, info.fieldType);
+				if (!slotval) break;
+				if (val) {
+					val = realloc(val, strlen(val) + 3 + strlen(slot));
+				} else {
+					val = malloc(3 + strlen(slot));
+					val[0] = 0;
+				}
+				strcat(val, "'");
+				strcat(val, slotval);
+				strcat(val, "'");
+				free(slot);
+			}
+		}
+		if (val) {
+			gf_cfg_set_key(cfg, section, szID, val);
+			free(val);
+		}
+	}
+	free(section);
+}
+
+
+static void gf_storage_traverse(GF_Node *n, void *rs, Bool is_destroy)
+{
+	if (is_destroy) {
+		GF_Scene *scene = gf_node_get_private(n);
+		GF_ClientService *net_service = scene->root_od->net_service;
+		while (scene->root_od->parentscene) { 
+			if (scene->root_od->parentscene->root_od->net_service != net_service)
+				break;
+			scene = scene->root_od->parentscene;
+		}
+		gf_list_del_item(scene->storages, n);
+	}
+}
+
+static void on_force_restore(GF_Node *n, void *_route)
+{
+	gf_storage_load((M_Storage *)n);
+}
+static void on_force_save(GF_Node *n, void *_route)
+{
+	gf_storage_save((M_Storage *)n);
+}
+
+void gf_scene_init_storage(GF_Scene *scene, GF_Node *node)
+{
+	GF_ClientService *net_service;
+	M_Storage *storage = (M_Storage *) node;
+
+	if (!storage->name.buffer || !strlen(storage->name.buffer) ) return;
+	if (!storage->storageList.count) return;
+
+	storage->on_forceSave = on_force_save;
+	storage->on_forceRestore = on_force_restore;
+	gf_node_set_callback_function(node, gf_storage_traverse);
+	gf_node_set_private(node, scene);
+
+	net_service = scene->root_od->net_service;
+	while (scene->root_od->parentscene) { 
+		if (scene->root_od->parentscene->root_od->net_service != net_service)
+			break;
+		scene = scene->root_od->parentscene;
+	}
+	gf_list_add(scene->storages, node);
+	if (storage->_auto) gf_storage_load(storage);
+}
+
 #endif
 
 

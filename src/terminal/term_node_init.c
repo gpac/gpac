@@ -42,6 +42,7 @@ void MS_Modified(GF_Node *node);
 void gf_init_inline(GF_Scene *scene, GF_Node *node);
 void gf_inline_on_modified(GF_Node *node);
 
+void gf_scene_init_storage(GF_Scene *scene, GF_Node *node);
 
 
 void TraverseWorldInfo(GF_Node *node, void *rs, Bool is_destroy)
@@ -222,6 +223,8 @@ void gf_term_on_node_init(void *_scene, GF_Node *node)
 	case TAG_MPEG4_TermCap: 
 		InitTermCap(scene, node); break;
 
+	case TAG_MPEG4_Storage: 
+		gf_scene_init_storage(scene, node); break;
 #endif
 
 
@@ -265,6 +268,8 @@ void gf_term_on_node_modified(void *_is, GF_Node *node)
 		InputSensorModified(node); 
 		break;
 	case TAG_MPEG4_Conditional: 
+		break;
+	case TAG_MPEG4_Storage: 
 		break;
 #endif
 	default: gf_sc_invalidate(scene->root_od->term->compositor, node); break;
