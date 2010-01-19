@@ -37,7 +37,7 @@
 //#define GPAC_FIXED_POINT
 
 /*enables GPAC memory tracking*/
-#ifdef _DEBUG
+#ifdef bla_DEBUG
 #define GPAC_MEMORY_TRACKING
 #endif
 

@@ -103,6 +103,9 @@ typedef struct
 
 #endif
 
+#define OPENGL_RASTER
+
+
 #define DOUBLECLICK_TIME_MS		250
 
 
@@ -215,6 +218,9 @@ struct __tag_compositor
 	u32 aspect_ratio, antiAlias, texture_text_mode;
 	Bool high_speed, stress_mode;
 	Bool force_opengl_2d;
+#ifdef OPENGL_RASTER
+	Bool opengl_raster;
+#endif
 
 	/*key modif*/
 	u32 key_states;
