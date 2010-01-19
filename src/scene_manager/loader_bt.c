@@ -106,6 +106,8 @@ GF_Err gf_bt_parse_bifs_command(GF_BTParser *parser, char *name, GF_List *cmdLis
 GF_Route *gf_bt_parse_route(GF_BTParser *parser, Bool skip_def, Bool is_insert, GF_Command *com);
 void gf_bt_resolve_routes(GF_BTParser *parser, Bool clean);
 
+GF_Node *gf_bt_peek_node(GF_BTParser *parser, char *defID);
+
 static GF_Err gf_bt_report(GF_BTParser *parser, GF_Err e, char *format, ...)
 {
 #ifndef GPAC_DISABLE_LOG
@@ -965,6 +967,25 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 			gf_bt_report(parser, GF_BAD_PARAM, "\" expected in Script");
 		}
 		sc->script_text = (unsigned char*)gf_bt_get_string(parser);
+	}
+		break;
+	case GF_SG_VRML_SFATTRREF:
+	{
+		SFAttrRef *ar = (SFAttrRef*) info->far_ptr;
+		char *str = gf_bt_get_next(parser, 1);
+		if (!gf_bt_check_code(parser, '.')) {
+			gf_bt_report(parser, GF_BAD_PARAM, "'.' expected in SFAttrRef");
+		} else {
+			GF_FieldInfo pinfo;
+			ar->node = gf_bt_peek_node(parser, str);
+			str = gf_bt_get_next(parser, 0);
+			if (gf_node_get_field_by_name(ar->node, str, &pinfo) != GF_OK) {
+				gf_bt_report(parser, GF_BAD_PARAM, "field %s is not a member of node %s", str, gf_node_get_class_name(ar->node) );
+			} else {
+				ar->fieldIndex = pinfo.fieldIndex;
+			}
+		}
+
 	}
 		break;
 	default:

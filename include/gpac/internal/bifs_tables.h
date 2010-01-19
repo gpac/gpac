@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Jul 31 14:46:15 2009
+	DO NOT MOFIFY - File generated on GMT Mon Jan 18 12:27:12 2010
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -652,6 +652,172 @@ static const u32 SFViewportNode_V6_TypeToTag[1] = {
 u32 NDT_V6_GetNumBits(u32 NDT_Tag);
 u32 NDT_V6_GetNodeTag(u32 Context_NDT_Tag, u32 NodeType);
 u32 NDT_V6_GetNodeType(u32 NDT_Tag, u32 NodeTag);
+
+
+
+
+/* NDT BIFS Version 7 */
+
+#define SFWorldNode_V7_NUMBITS		4
+#define SFWorldNode_V7_Count	11
+
+static const u32 SFWorldNode_V7_TypeToTag[11] = {
+ TAG_MPEG4_AdvancedAudioBuffer, TAG_MPEG4_AudioChannelConfig, TAG_MPEG4_DepthImageV2, TAG_MPEG4_MorphShape, TAG_MPEG4_MultiTexture, TAG_MPEG4_PointTextureV2, TAG_MPEG4_SBVCAnimationV2, TAG_MPEG4_SimpleTextureV2, TAG_MPEG4_SurroundingSound, TAG_MPEG4_Transform3DAudio, TAG_MPEG4_WideSound
+};
+
+#define SF3DNode_V7_NUMBITS		3
+#define SF3DNode_V7_Count	6
+
+static const u32 SF3DNode_V7_TypeToTag[6] = {
+ TAG_MPEG4_DepthImageV2, TAG_MPEG4_MorphShape, TAG_MPEG4_SBVCAnimationV2, TAG_MPEG4_SurroundingSound, TAG_MPEG4_Transform3DAudio, TAG_MPEG4_WideSound
+};
+
+#define SF2DNode_V7_NUMBITS		2
+#define SF2DNode_V7_Count	3
+
+static const u32 SF2DNode_V7_TypeToTag[3] = {
+ TAG_MPEG4_MorphShape, TAG_MPEG4_SBVCAnimationV2, TAG_MPEG4_Transform3DAudio
+};
+
+#define SFAudioNode_V7_NUMBITS		2
+#define SFAudioNode_V7_Count	2
+
+static const u32 SFAudioNode_V7_TypeToTag[2] = {
+ TAG_MPEG4_AdvancedAudioBuffer, TAG_MPEG4_AudioChannelConfig
+};
+
+#define SFTextureNode_V7_NUMBITS		1
+#define SFTextureNode_V7_Count	1
+
+static const u32 SFTextureNode_V7_TypeToTag[1] = {
+ TAG_MPEG4_MultiTexture
+};
+
+#define SFDepthImageNode_V7_NUMBITS		1
+#define SFDepthImageNode_V7_Count	1
+
+static const u32 SFDepthImageNode_V7_TypeToTag[1] = {
+ TAG_MPEG4_DepthImageV2
+};
+
+#define SFDepthTextureNode_V7_NUMBITS		2
+#define SFDepthTextureNode_V7_Count	2
+
+static const u32 SFDepthTextureNode_V7_TypeToTag[2] = {
+ TAG_MPEG4_PointTextureV2, TAG_MPEG4_SimpleTextureV2
+};
+
+
+u32 NDT_V7_GetNumBits(u32 NDT_Tag);
+u32 NDT_V7_GetNodeTag(u32 Context_NDT_Tag, u32 NodeType);
+u32 NDT_V7_GetNodeType(u32 NDT_Tag, u32 NodeTag);
+
+
+
+
+/* NDT BIFS Version 8 */
+
+#define SFWorldNode_V8_NUMBITS		2
+#define SFWorldNode_V8_Count	2
+
+static const u32 SFWorldNode_V8_TypeToTag[2] = {
+ TAG_MPEG4_ScoreShape, TAG_MPEG4_MusicScore
+};
+
+#define SF3DNode_V8_NUMBITS		1
+#define SF3DNode_V8_Count	1
+
+static const u32 SF3DNode_V8_TypeToTag[1] = {
+ TAG_MPEG4_ScoreShape
+};
+
+#define SF2DNode_V8_NUMBITS		1
+#define SF2DNode_V8_Count	1
+
+static const u32 SF2DNode_V8_TypeToTag[1] = {
+ TAG_MPEG4_ScoreShape
+};
+
+#define SFMusicScoreNode_V8_NUMBITS		1
+#define SFMusicScoreNode_V8_Count	1
+
+static const u32 SFMusicScoreNode_V8_TypeToTag[1] = {
+ TAG_MPEG4_MusicScore
+};
+
+
+u32 NDT_V8_GetNumBits(u32 NDT_Tag);
+u32 NDT_V8_GetNodeTag(u32 Context_NDT_Tag, u32 NodeType);
+u32 NDT_V8_GetNodeType(u32 NDT_Tag, u32 NodeTag);
+
+
+
+
+/* NDT BIFS Version 9 */
+
+#define SFWorldNode_V9_NUMBITS		3
+#define SFWorldNode_V9_Count	6
+
+static const u32 SFWorldNode_V9_TypeToTag[6] = {
+ TAG_MPEG4_FootPrintSetNode, TAG_MPEG4_FootPrintNode, TAG_MPEG4_BuildingPartNode, TAG_MPEG4_RoofNode, TAG_MPEG4_FacadeNode, TAG_MPEG4_Shadow
+};
+
+#define SF3DNode_V9_NUMBITS		3
+#define SF3DNode_V9_Count	6
+
+static const u32 SF3DNode_V9_TypeToTag[6] = {
+ TAG_MPEG4_FootPrintSetNode, TAG_MPEG4_FootPrintNode, TAG_MPEG4_BuildingPartNode, TAG_MPEG4_RoofNode, TAG_MPEG4_FacadeNode, TAG_MPEG4_Shadow
+};
+
+#define SFGeometryNode_V9_NUMBITS		3
+#define SFGeometryNode_V9_Count	6
+
+static const u32 SFGeometryNode_V9_TypeToTag[6] = {
+ TAG_MPEG4_FootPrintSetNode, TAG_MPEG4_FootPrintNode, TAG_MPEG4_BuildingPartNode, TAG_MPEG4_RoofNode, TAG_MPEG4_FacadeNode, TAG_MPEG4_Shadow
+};
+
+
+u32 NDT_V9_GetNumBits(u32 NDT_Tag);
+u32 NDT_V9_GetNodeTag(u32 Context_NDT_Tag, u32 NodeType);
+u32 NDT_V9_GetNodeType(u32 NDT_Tag, u32 NodeTag);
+
+
+
+
+/* NDT BIFS Version 10 */
+
+#define SFWorldNode_V10_NUMBITS		3
+#define SFWorldNode_V10_Count	5
+
+static const u32 SFWorldNode_V10_TypeToTag[5] = {
+ TAG_MPEG4_CacheTexture, TAG_MPEG4_EnvironmentTest, TAG_MPEG4_KeyNavigator, TAG_MPEG4_SpacePartition, TAG_MPEG4_Storage
+};
+
+#define SF3DNode_V10_NUMBITS		3
+#define SF3DNode_V10_Count	5
+
+static const u32 SF3DNode_V10_TypeToTag[5] = {
+ TAG_MPEG4_CacheTexture, TAG_MPEG4_EnvironmentTest, TAG_MPEG4_KeyNavigator, TAG_MPEG4_SpacePartition, TAG_MPEG4_Storage
+};
+
+#define SF2DNode_V10_NUMBITS		3
+#define SF2DNode_V10_Count	4
+
+static const u32 SF2DNode_V10_TypeToTag[4] = {
+ TAG_MPEG4_CacheTexture, TAG_MPEG4_EnvironmentTest, TAG_MPEG4_KeyNavigator, TAG_MPEG4_Storage
+};
+
+#define SFTextureNode_V10_NUMBITS		1
+#define SFTextureNode_V10_Count	1
+
+static const u32 SFTextureNode_V10_TypeToTag[1] = {
+ TAG_MPEG4_CacheTexture
+};
+
+
+u32 NDT_V10_GetNumBits(u32 NDT_Tag);
+u32 NDT_V10_GetNodeTag(u32 Context_NDT_Tag, u32 NodeType);
+u32 NDT_V10_GetNodeType(u32 NDT_Tag, u32 NodeTag);
 
 
 

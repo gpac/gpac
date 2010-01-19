@@ -185,8 +185,19 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		return GF_NOT_SUPPORTED;
 #endif
 		break;
+	case GF_SG_VRML_SFATTRREF:
+	{
+		u32 idx=0;
+		SFAttrRef *ar = (SFAttrRef *)field->far_ptr;
+		u32 nbBitsDEF = gf_get_bit_size(gf_node_get_num_fields_in_mode(ar->node, GF_SG_FIELD_CODING_DEF) - 1);
+		GF_BIFS_WRITE_INT(codec, bs, gf_node_get_id(ar->node) - 1, codec->info->config.NodeIDBits, "NodeID", NULL);
+			
+		gf_bifs_field_index_by_mode(ar->node, ar->fieldIndex, GF_SG_FIELD_CODING_DEF, &idx);
+		GF_BIFS_WRITE_INT(codec, bs, idx, nbBitsDEF, "field", NULL);
+	}
+		break;
 	default:
-		return GF_NON_COMPLIANT_BITSTREAM;
+		return GF_NOT_SUPPORTED;
 	}
 	return codec->LastError;
 }

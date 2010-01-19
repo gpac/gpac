@@ -529,6 +529,17 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 		fprintf(sdump->trace, "%g %g %g %g", FIX2FLT( ((SFRotation *)ptr)->x ), FIX2FLT( ((SFRotation *)ptr)->y ), FIX2FLT( ((SFRotation *)ptr)->z ), FIX2FLT( ((SFRotation *)ptr)->q ) );
 		break;
 
+	case GF_SG_VRML_SFATTRREF:
+	{
+		SFAttrRef *ar = (SFAttrRef *)ptr;
+		if (ar->node) {
+			GF_FieldInfo pinfo;
+			gf_node_get_field(ar->node, ar->fieldIndex, &pinfo);
+			scene_dump_vrml_id(sdump, ar->node);
+			fprintf(sdump->trace, ".%s", pinfo.name);
+		}
+	}
+		break;
 	case GF_SG_VRML_SFSCRIPT:
 	{
 		u32 len, i;
@@ -809,7 +820,33 @@ static void gf_dump_vrml_field(GF_SceneDumper *sdump, GF_Node *node, GF_FieldInf
 		EndElement(sdump, (char *) field.name, 1);
 	}
 		return;
+
+	case GF_SG_VRML_MFATTRREF:
+		if (sdump->XMLDump) {
+			MFAttrRef *ar = (MFAttrRef *)field.far_ptr;
+			StartElement(sdump, (char *) field.name);
+			EndElementHeader(sdump, 1);
+			sdump->indent++;
+
+			for (i=0; i<ar->count; i++) {
+				if (ar->vals[i].node) {
+					GF_FieldInfo pinfo;
+					DUMP_IND(sdump);
+					gf_node_get_field(ar->vals[i].node, ar->vals[i].fieldIndex, &pinfo);
+					fprintf(sdump->trace, "<store node=\"");
+					scene_dump_vrml_id(sdump, ar->vals[i].node);
+					fprintf(sdump->trace, "\" field=\"%s\"/>\n", pinfo.name);
+				}
+			}
+
+			sdump->indent--;
+			EndElement(sdump, (char *) field.name, 1);
+			return;
+		} 
+		break;
 	}
+
+
 	if (gf_sg_vrml_is_sf_field(field.fieldType)) {
 		StartAttribute(sdump, field.name);
 		gf_dump_vrml_sffield(sdump, field.fieldType, field.far_ptr, 0);
@@ -1377,6 +1414,16 @@ static void gf_dump_vrml_node(GF_SceneDumper *sdump, GF_Node *node, Bool in_list
 		{
 			SFCommandBuffer *p = (SFCommandBuffer *)field.far_ptr;
 			if (p->bufferSize || gf_list_count(p->commandList)) {
+				def_fields[i] = 2;
+				to_dump++;
+				sub_el++;
+			}
+		}
+			break;
+		case GF_SG_VRML_MFATTRREF:
+		{
+			MFAttrRef *p = (MFAttrRef*)field.far_ptr;
+			if (p->count) {
 				def_fields[i] = 2;
 				to_dump++;
 				sub_el++;

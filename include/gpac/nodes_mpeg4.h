@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Jul 31 14:46:14 2009
+	DO NOT MOFIFY - File generated on GMT Mon Jan 18 12:27:12 2010
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -214,6 +214,30 @@ enum {
 	TAG_MPEG4_XCurve2D,
 	TAG_MPEG4_XFontStyle,
 	TAG_MPEG4_XLineProperties,
+	TAG_MPEG4_AdvancedAudioBuffer,
+	TAG_MPEG4_AudioChannelConfig,
+	TAG_MPEG4_DepthImageV2,
+	TAG_MPEG4_MorphShape,
+	TAG_MPEG4_MultiTexture,
+	TAG_MPEG4_PointTextureV2,
+	TAG_MPEG4_SBVCAnimationV2,
+	TAG_MPEG4_SimpleTextureV2,
+	TAG_MPEG4_SurroundingSound,
+	TAG_MPEG4_Transform3DAudio,
+	TAG_MPEG4_WideSound,
+	TAG_MPEG4_ScoreShape,
+	TAG_MPEG4_MusicScore,
+	TAG_MPEG4_FootPrintSetNode,
+	TAG_MPEG4_FootPrintNode,
+	TAG_MPEG4_BuildingPartNode,
+	TAG_MPEG4_RoofNode,
+	TAG_MPEG4_FacadeNode,
+	TAG_MPEG4_Shadow,
+	TAG_MPEG4_CacheTexture,
+	TAG_MPEG4_EnvironmentTest,
+	TAG_MPEG4_KeyNavigator,
+	TAG_MPEG4_SpacePartition,
+	TAG_MPEG4_Storage,
 	TAG_LastImplementedMPEG4
 };
 
@@ -2849,6 +2873,376 @@ typedef struct _tagXLineProperties
 } M_XLineProperties;
 
 
+typedef struct _tagAdvancedAudioBuffer
+{
+	BASE_NODE
+	VRML_CHILDREN
+	SFBool loop;	/*exposedField*/
+	SFFloat pitch;	/*exposedField*/
+	SFTime startTime;	/*exposedField*/
+	SFTime stopTime;	/*exposedField*/
+	SFTime startLoadTime;	/*exposedField*/
+	SFTime stopLoadTime;	/*exposedField*/
+	SFInt32 loadMode;	/*exposedField*/
+	SFInt32 numAccumulatedBlocks;	/*exposedField*/
+	SFInt32 deleteBlock;	/*exposedField*/
+	SFInt32 playBlock;	/*exposedField*/
+	SFFloat length;	/*exposedField*/
+	SFInt32 numChan;	/*field*/
+	MFInt32 phaseGroup;	/*field*/
+	SFTime duration_changed;	/*eventOut*/
+	SFBool isActive;	/*eventOut*/
+} M_AdvancedAudioBuffer;
+
+
+typedef struct _tagAudioChannelConfig
+{
+	BASE_NODE
+	VRML_CHILDREN
+	SFInt32 generalChannelFormat;	/*exposedField*/
+	SFInt32 fixedPreset;	/*exposedField*/
+	SFInt32 fixedPresetSubset;	/*exposedField*/
+	SFInt32 fixedPresetAddInf;	/*exposedField*/
+	MFInt32 channelCoordinateSystems;	/*exposedField*/
+	MFFloat channelSoundLocation;	/*exposedField*/
+	MFInt32 channelDirectionalPattern;	/*exposedField*/
+	MFVec3f channelDirection;	/*exposedField*/
+	SFInt32 ambResolution2D;	/*exposedField*/
+	SFInt32 ambResolution3D;	/*exposedField*/
+	SFInt32 ambEncodingConvention;	/*exposedField*/
+	SFFloat ambNfcReferenceDistance;	/*exposedField*/
+	SFFloat ambSoundSpeed;	/*exposedField*/
+	SFInt32 ambArrangementRule;	/*exposedField*/
+	SFInt32 ambRecombinationPreset;	/*exposedField*/
+	MFInt32 ambComponentIndex;	/*exposedField*/
+	MFFloat ambBackwardMatrix;	/*exposedField*/
+	MFInt32 ambSoundfieldResolution;	/*exposedField*/
+	SFInt32 numChannel;	/*field*/
+} M_AudioChannelConfig;
+
+
+typedef struct _tagDepthImageV2
+{
+	BASE_NODE
+	GF_Node *diTexture;	/*field*/
+	SFFloat farPlane;	/*field*/
+	SFVec2f fieldOfView;	/*field*/
+	SFFloat nearPlane;	/*field*/
+	SFRotation orientation;	/*field*/
+	SFBool orthographic;	/*field*/
+	SFVec3f position;	/*field*/
+	SFVec2f splatMinMax;	/*field*/
+} M_DepthImageV2;
+
+
+typedef struct _tagMorphShape
+{
+	BASE_NODE
+	GF_Node *baseShape;	/*exposedField*/
+	SFInt32 morphID;	/*exposedField*/
+	GF_ChildNodeItem *targetShapes;	/*exposedField*/
+	MFFloat weights;	/*exposedField*/
+} M_MorphShape;
+
+
+typedef struct _tagMultiTexture
+{
+	BASE_NODE
+	SFFloat alpha;	/*exposedField*/
+	SFColor color;	/*exposedField*/
+	MFInt32 function;	/*exposedField*/
+	MFInt32 mode;	/*exposedField*/
+	MFInt32 source;	/*exposedField*/
+	GF_ChildNodeItem *texture;	/*exposedField*/
+	MFVec3f cameraVector;	/*exposedField*/
+	SFBool transparent;	/*exposedField*/
+} M_MultiTexture;
+
+
+typedef struct _tagPointTextureV2
+{
+	BASE_NODE
+	MFColor color;	/*field*/
+	MFInt32 depth;	/*field*/
+	SFInt32 depthNbBits;	/*field*/
+	SFInt32 height;	/*field*/
+	GF_Node *normal;	/*field*/
+	MFVec3f splatU;	/*field*/
+	MFVec3f splatV;	/*field*/
+	SFInt32 width;	/*field*/
+} M_PointTextureV2;
+
+
+typedef struct _tagSBVCAnimationV2
+{
+	BASE_NODE
+	MFInt32 activeUrlIndex;	/*exposedField*/
+	SFBool loop;	/*exposedField*/
+	SFFloat speed;	/*exposedField*/
+	SFTime startTime;	/*exposedField*/
+	SFTime stopTime;	/*exposedField*/
+	SFFloat transitionTime;	/*exposedField*/
+	MFURL url;	/*exposedField*/
+	GF_ChildNodeItem *virtualCharacters;	/*exposedField*/
+	SFTime duration_changed;	/*eventOut*/
+	SFBool isActive;	/*eventOut*/
+} M_SBVCAnimationV2;
+
+
+typedef struct _tagSimpleTextureV2
+{
+	BASE_NODE
+	GF_Node *depth;	/*field*/
+	GF_Node *normal;	/*field*/
+	GF_Node *splatU;	/*field*/
+	GF_Node *splatV;	/*field*/
+	GF_Node *texture;	/*field*/
+} M_SimpleTextureV2;
+
+
+typedef struct _tagSurroundingSound
+{
+	BASE_NODE
+	GF_Node *source;	/*exposedField*/
+	SFFloat intensity;	/*exposedField*/
+	SFFloat distance;	/*exposedField*/
+	SFVec3f location;	/*exposedField*/
+	SFFloat distortionFactor;	/*exposedField*/
+	SFRotation orientation;	/*exposedField*/
+	SFBool isTransformable;	/*exposedField*/
+} M_SurroundingSound;
+
+
+typedef struct _tagTransform3DAudio
+{
+	BASE_NODE
+	VRML_CHILDREN
+	SFFloat thirdCenterCoordinate;	/*exposedField*/
+	SFVec3f rotationVector;	/*exposedField*/
+	SFFloat thirdScaleCoordinate;	/*exposedField*/
+	SFVec3f scaleOrientationVector;	/*exposedField*/
+	SFFloat thirdTranslationCoordinate;	/*exposedField*/
+	SFRotation coordinateTransform;	/*exposedField*/
+} M_Transform3DAudio;
+
+
+typedef struct _tagWideSound
+{
+	BASE_NODE
+	GF_Node *source;	/*exposedField*/
+	SFFloat intensity;	/*exposedField*/
+	SFVec3f location;	/*exposedField*/
+	SFBool spatialize;	/*exposedField*/
+	GF_Node *perceptualParameters;	/*exposedField*/
+	SFBool roomEffect;	/*exposedField*/
+	SFInt32 shape;	/*exposedField*/
+	MFFloat size;	/*exposedField*/
+	SFVec3f direction;	/*exposedField*/
+	SFFloat density;	/*exposedField*/
+	SFInt32 diffuseSelect;	/*exposedField*/
+	SFFloat decorrStrength;	/*exposedField*/
+	SFFloat speedOfSound;	/*field*/
+	SFFloat distance;	/*field*/
+	SFBool useAirabs;	/*field*/
+} M_WideSound;
+
+
+typedef struct _tagScoreShape
+{
+	BASE_NODE
+	GF_Node *score;	/*exposedField*/
+	GF_Node *geometry;	/*exposedField*/
+} M_ScoreShape;
+
+
+typedef struct _tagMusicScore
+{
+	BASE_NODE
+	SFBool executeCommand;	/*eventIn*/
+	void (*on_executeCommand)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	SFString gotoLabel;	/*eventIn*/
+	void (*on_gotoLabel)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	SFInt32 gotoMeasure;	/*eventIn*/
+	void (*on_gotoMeasure)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	SFTime highlightTimePosition;	/*eventIn*/
+	void (*on_highlightTimePosition)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	SFVec3f mousePosition;	/*eventIn*/
+	void (*on_mousePosition)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	MFString argumentsOnExecute;	/*exposedField*/
+	SFString commandOnExecute;	/*exposedField*/
+	SFInt32 firstVisibleMeasure;	/*exposedField*/
+	SFBool hyperlinkEnable;	/*exposedField*/
+	SFBool loop;	/*exposedField*/
+	MFString partsLyrics;	/*exposedField*/
+	MFInt32 partsShown;	/*exposedField*/
+	SFTime scoreOffset;	/*exposedField*/
+	SFVec2f size;	/*exposedField*/
+	SFFloat speed;	/*exposedField*/
+	SFTime startTime;	/*exposedField*/
+	SFTime stopTime;	/*exposedField*/
+	SFFloat transpose;	/*exposedField*/
+	MFURL url;	/*exposedField*/
+	MFURL urlSA;	/*exposedField*/
+	SFString viewType;	/*exposedField*/
+	SFString activatedLink;	/*eventOut*/
+	MFString availableCommands;	/*eventOut*/
+	MFString availableLabels;	/*eventOut*/
+	MFString availableLyricLanguages;	/*eventOut*/
+	MFString availableViewTypes;	/*eventOut*/
+	SFBool isActive;	/*eventOut*/
+	SFVec3f highlightPosition;	/*eventOut*/
+	SFInt32 lastVisibleMeasure;	/*eventOut*/
+	SFInt32 numMeasures;	/*eventOut*/
+	MFString partNames;	/*eventOut*/
+} M_MusicScore;
+
+
+typedef struct _tagFootPrintSetNode
+{
+	BASE_NODE
+	VRML_CHILDREN
+} M_FootPrintSetNode;
+
+
+typedef struct _tagFootPrintNode
+{
+	BASE_NODE
+	SFInt32 index;	/*exposedField*/
+	GF_Node *footprint;	/*exposedField*/
+} M_FootPrintNode;
+
+
+typedef struct _tagBuildingPartNode
+{
+	BASE_NODE
+	SFInt32 index;	/*exposedField*/
+	GF_Node *footprint;	/*exposedField*/
+	SFInt32 buildingIndex;	/*exposedField*/
+	SFFloat height;	/*exposedField*/
+	SFFloat altitude;	/*exposedField*/
+	GF_ChildNodeItem *alternativeGeometry;	/*exposedField*/
+	GF_ChildNodeItem *roofs;	/*exposedField*/
+	GF_ChildNodeItem *facades;	/*exposedField*/
+} M_BuildingPartNode;
+
+
+typedef struct _tagRoofNode
+{
+	BASE_NODE
+	SFInt32 Type;	/*exposedField*/
+	SFFloat Height;	/*exposedField*/
+	MFFloat SlopeAngle;	/*exposedField*/
+	SFFloat EaveProjection;	/*exposedField*/
+	SFInt32 EdgeSupportIndex;	/*exposedField*/
+	SFURL RoofTextureURL;	/*exposedField*/
+	SFBool IsGenericTexture;	/*exposedField*/
+	SFFloat TextureXScale;	/*exposedField*/
+	SFFloat TextureYScale;	/*exposedField*/
+	SFFloat TextureXPosition;	/*exposedField*/
+	SFFloat TextureYPosition;	/*exposedField*/
+	SFFloat TextureRotation;	/*exposedField*/
+} M_RoofNode;
+
+
+typedef struct _tagFacadeNode
+{
+	BASE_NODE
+	SFFloat WidthRatio;	/*exposedField*/
+	SFFloat XScale;	/*exposedField*/
+	SFFloat YScale;	/*exposedField*/
+	SFFloat XPosition;	/*exposedField*/
+	SFFloat YPosition;	/*exposedField*/
+	SFFloat XRepeatInterval;	/*exposedField*/
+	SFFloat YRepeatInterval;	/*exposedField*/
+	SFBool Repeat;	/*exposedField*/
+	SFURL FacadePrimitive;	/*exposedField*/
+	SFInt32 NbStories;	/*exposedField*/
+	MFInt32 NbFacadeCellsByStorey;	/*exposedField*/
+	MFFloat StoreyHeight;	/*exposedField*/
+	GF_ChildNodeItem *FacadeCellsArray;	/*exposedField*/
+} M_FacadeNode;
+
+
+typedef struct _tagShadow
+{
+	BASE_NODE
+	VRML_CHILDREN
+	SFBool enabled;	/*exposedField*/
+	SFBool cast;	/*exposedField*/
+	SFBool receive;	/*exposedField*/
+	SFFloat penumbra;	/*exposedField*/
+} M_Shadow;
+
+
+typedef struct _tagCacheTexture
+{
+	BASE_NODE
+	SFInt32 objectTypeIndication;	/*field*/
+	SFString decoderSpecificInfo;	/*field*/
+	SFString image;	/*field*/
+	SFString cacheURL;	/*field*/
+	MFURL cacheOD;	/*field*/
+	SFInt32 expirationDate;	/*field*/
+	SFBool repeatS;	/*field*/
+	SFBool repeatT;	/*field*/
+} M_CacheTexture;
+
+
+typedef struct _tagEnvironmentTest
+{
+	BASE_NODE
+	SFBool evaluate;	/*eventIn*/
+	void (*on_evaluate)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	SFBool enabled;	/*exposedField*/
+	SFInt32 parameter;	/*exposedField*/
+	SFString compareValue;	/*exposedField*/
+	SFBool evaluateOnChange;	/*exposedField*/
+	SFBool valueLarger;	/*eventOut*/
+	SFBool valueEqual;	/*eventOut*/
+	SFBool valueSmaller;	/*eventOut*/
+	SFString parameterValue;	/*eventOut*/
+} M_EnvironmentTest;
+
+
+typedef struct _tagKeyNavigator
+{
+	BASE_NODE
+	SFBool setFocus;	/*eventIn*/
+	void (*on_setFocus)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	GF_Node *sensor;	/*exposedField*/
+	GF_Node *left;	/*exposedField*/
+	GF_Node *right;	/*exposedField*/
+	GF_Node *up;	/*exposedField*/
+	GF_Node *down;	/*exposedField*/
+	GF_Node *select;	/*exposedField*/
+	GF_Node *quit;	/*exposedField*/
+	SFFloat step;	/*exposedField*/
+	SFBool focusSet;	/*eventOut*/
+} M_KeyNavigator;
+
+
+typedef struct _tagSpacePartition
+{
+	BASE_NODE
+	VRML_CHILDREN
+	SFURL SPStream;	/*exposedField*/
+} M_SpacePartition;
+
+
+typedef struct _tagStorage
+{
+	BASE_NODE
+	SFBool forceSave;	/*eventIn*/
+	void (*on_forceSave)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	SFBool forceRestore;	/*eventIn*/
+	void (*on_forceRestore)(GF_Node *pThis, struct _route *route);	/*eventInHandler*/
+	SFBool _auto;	/*exposedField*/
+	SFInt32 expireAfter;	/*field*/
+	SFString name;	/*field*/
+	MFAttrRef storageList;	/*field*/
+} M_Storage;
+
+
 /*NodeDataType tags*/
 enum {
 	NDT_SFWorldNode = 1,
@@ -2903,11 +3297,12 @@ enum {
 	NDT_SFSBSegmentNode,
 	NDT_SFSBSiteNode,
 	NDT_SFBaseMeshNode,
-	NDT_SFSubdivSurfaceSectorNode
+	NDT_SFSubdivSurfaceSectorNode,
+	NDT_SFMusicScoreNode
 };
 
 /*All BIFS versions handled*/
-#define GF_BIFS_NUM_VERSION		6
+#define GF_BIFS_NUM_VERSION		10
 
 enum {
 	GF_BIFS_V1 = 1,
@@ -2916,7 +3311,11 @@ enum {
 	GF_BIFS_V4,
 	GF_BIFS_V5,
 	GF_BIFS_V6,
-	GF_BIFS_LAST_VERSION = GF_BIFS_V6
+	GF_BIFS_V7,
+	GF_BIFS_V8,
+	GF_BIFS_V9,
+	GF_BIFS_V10,
+	GF_BIFS_LAST_VERSION = GF_BIFS_V10
 };
 
 

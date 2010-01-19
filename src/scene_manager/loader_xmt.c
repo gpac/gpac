@@ -1661,6 +1661,31 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 					}
 					return NULL;
 				}
+				if (!strcmp(name, "store") && (parent->container_field.fieldType==GF_SG_VRML_MFATTRREF)) {
+					GF_FieldInfo pinfo;
+					GF_Node *atNode = NULL;
+					char *fieldName = NULL;
+					for (i=0; i<nb_attributes; i++) {
+						GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
+						if (!att->value || !strlen(att->value)) continue;
+						if (!strcmp(att->name, "node")) {
+							atNode = xmt_find_node(parser, att->value);
+							if (!atNode) xmt_report(parser, GF_BAD_PARAM, "Cannot locate node %s", att->value);
+						}
+						if (!strcmp(att->name, "field")) fieldName = att->value;
+					}
+					if (!fieldName || !atNode) {
+						xmt_report(parser, GF_BAD_PARAM, "Node or field name missing in <store>");
+					} else if (gf_node_get_field_by_name(atNode, fieldName, &pinfo) != GF_OK) {
+						xmt_report(parser, GF_BAD_PARAM, "Field %s not a member of node %s", fieldName, gf_node_get_class_name(node) );
+					} else {
+						SFAttrRef *ptr;
+						gf_sg_vrml_mf_append(parent->container_field.far_ptr , GF_SG_VRML_MFATTRREF, (void **) &ptr);
+						ptr->node = atNode;
+						ptr->fieldIndex = pinfo.fieldIndex;
+					}
+					return NULL;
+				}
 				parent->container_field.far_ptr = NULL;
 			}
 			else if (parser->command && (parser->command->tag == GF_SG_MULTIPLE_REPLACE)) {
