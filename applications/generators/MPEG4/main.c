@@ -710,7 +710,7 @@ void WriteNodeFields(FILE *f, BNode *n)
 
 		fprintf(f, "\tcase %d:\n", i);
 		
-		fprintf(f, "\t\tinfo->name = \"%s\";\n", bf->name);
+		fprintf(f, "\t\tinfo->name = \"%s\";\n", (bf->name[0]=='_') ? bf->name+1 : bf->name);
 
 		//skip all eventIn
 		if (!strcmp(bf->type, "eventIn")) {
@@ -751,7 +751,7 @@ void WriteNodeFields(FILE *f, BNode *n)
 	fprintf(f, "\nstatic s32 %s_get_field_index_by_name(char *name)\n{\n", n->name);
 	for (i=0;i<gf_list_count(n->Fields); i++) {
 		bf = gf_list_get(n->Fields, i);
-		fprintf(f, "\tif (!strcmp(\"%s\", name)) return %d;\n", bf->name, i);
+		fprintf(f, "\tif (!strcmp(\"%s\", name)) return %d;\n", (bf->name[0]=='_') ? bf->name+1 : bf->name, i);
 	}
 	fprintf(f, "\treturn -1;\n\t}\n");
 }
@@ -956,6 +956,11 @@ void WriteNodeCode(GF_List *BNodes)
 			//SFInt32
 			else if (!strcmp(bf->familly, "SFInt32")) {
 				fprintf(f, "\tp->%s = %s;\n", bf->name, bf->def);
+			}
+			//SFURL
+			else if (!strcmp(bf->familly, "SFURL")) {
+				if (strcmp(bf->def, "NULL"))
+					fprintf(f, "\tp->%s = %s;\n", bf->name, bf->def);
 			}
 			//SFColor
 			else if (!strcmp(bf->familly, "SFColor")) {
@@ -1409,6 +1414,7 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs, u32 version)
 				GetNextToken(f->name, " \t");
 				//fix for our own code :(
 				if (!strcmp(f->name, "tag")) strcpy(f->name, "_tag");
+				if (!strcmp(f->name, "auto")) strcpy(f->name, "_auto");
 
 				//has default
 				skip_sep(" \t");

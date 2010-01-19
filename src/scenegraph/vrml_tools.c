@@ -371,6 +371,12 @@ static SFScript *NewSFScript()
 	memset(tmp, 0, sizeof(SFScript));
 	return tmp;
 }
+static SFAttrRef *NewSFAttrRef()
+{
+	SFAttrRef *tmp;
+	GF_SAFEALLOC(tmp, SFAttrRef);
+	return tmp;
+}
 static MFBool *NewMFBool()
 {
 	MFBool *tmp = (MFBool *)malloc(sizeof(MFBool));
@@ -455,6 +461,12 @@ static MFScript *NewMFScript()
 	memset(tmp, 0, sizeof(MFScript));
 	return tmp;
 }
+static MFAttrRef *NewMFAttrRef()
+{
+	MFAttrRef *tmp;
+	GF_SAFEALLOC(tmp, MFAttrRef);
+	return tmp;
+}
 
 void *gf_sg_vrml_field_pointer_new(u32 FieldType) 
 {
@@ -473,6 +485,7 @@ void *gf_sg_vrml_field_pointer_new(u32 FieldType)
 	case GF_SG_VRML_SFCOLORRGBA: return NewSFColorRGBA();
 	case GF_SG_VRML_SFROTATION: return NewSFRotation();
 	case GF_SG_VRML_SFIMAGE: return NewSFImage();
+	case GF_SG_VRML_SFATTRREF: return NewSFAttrRef();
 	case GF_SG_VRML_MFBOOL: return NewMFBool();
 	case GF_SG_VRML_MFFLOAT: return NewMFFloat();
 	case GF_SG_VRML_MFTIME: return NewMFTime();
@@ -487,6 +500,7 @@ void *gf_sg_vrml_field_pointer_new(u32 FieldType)
 	case GF_SG_VRML_MFROTATION:
 	case GF_SG_VRML_MFVEC4F:
 		return NewMFRotation();
+	case GF_SG_VRML_MFATTRREF: return NewMFAttrRef();
 
 	//used in commands
 	case GF_SG_VRML_SFCOMMANDBUFFER:
@@ -518,6 +532,7 @@ void gf_sg_mfvec2d_del(MFVec2d par) { free(par.vals); }
 void gf_sg_mfvec3f_del(MFVec3f par) { free(par.vals); }
 void gf_sg_mfvec3d_del(MFVec3d par) { free(par.vals); }
 void gf_sg_mfvec4f_del(MFVec4f par) { free(par.vals); }
+void gf_sg_mfattrref_del(MFAttrRef par) { free(par.vals); }
 void gf_sg_sfimage_del(SFImage im) { free(im.pixels); }
 void gf_sg_sfstring_del(SFString par) { if (par.buffer) free(par.buffer); }
 void gf_sg_sfscript_del(SFScript par) { if (par.script_text) free(par.script_text); }
@@ -551,6 +566,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 	case GF_SG_VRML_SFCOLOR:
 	case GF_SG_VRML_SFCOLORRGBA:
 	case GF_SG_VRML_SFROTATION:
+	case GF_SG_VRML_SFATTRREF:
 		break;
 	case GF_SG_VRML_SFSTRING:
 		if ( ((SFString *)field)->buffer) free(((SFString *)field)->buffer);
@@ -613,6 +629,9 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 	case GF_SG_VRML_MFURL:
 		gf_sg_mfurl_del( * ((MFURL *) field));
 		break;		
+	case GF_SG_VRML_MFATTRREF:
+		gf_sg_mfattrref_del( * ((MFAttrRef *) field));
+		break;		
 	//used only in proto since this field is created by default for regular nodes
 	case GF_SG_VRML_MFNODE: 
 		assert(0);
@@ -664,6 +683,7 @@ const char *gf_sg_vrml_get_field_type_by_name(u32 FieldType)
 	case GF_SG_VRML_SFIMAGE: return "SFImage";
 	case GF_SG_VRML_SFNODE: return "SFNode";
 	case GF_SG_VRML_SFVEC4F: return "SFVec4f";
+	case GF_SG_VRML_SFATTRREF: return "SFAttrRef";
 	case GF_SG_VRML_MFBOOL: return "MFBool";
 	case GF_SG_VRML_MFFLOAT: return "MFFloat";
 	case GF_SG_VRML_MFDOUBLE: return "MFDouble";
@@ -682,6 +702,7 @@ const char *gf_sg_vrml_get_field_type_by_name(u32 FieldType)
 	case GF_SG_VRML_MFVEC4F: return "MFVec4f";
 	case GF_SG_VRML_SFURL: return "SFURL";
 	case GF_SG_VRML_MFURL: return "MFURL";
+	case GF_SG_VRML_MFATTRREF: return "MFAttrRef";
 	case GF_SG_VRML_SFCOMMANDBUFFER: return "SFCommandBuffer";
 	case GF_SG_VRML_SFSCRIPT: return "SFScript";
 	case GF_SG_VRML_MFSCRIPT: return "MFScript";
@@ -705,6 +726,7 @@ u32 gf_sg_field_type_by_name(char *fieldType)
 	else if (!stricmp(fieldType, "SFColorRGBA")) return GF_SG_VRML_SFCOLORRGBA;
 	else if (!stricmp(fieldType, "SFRotation")) return GF_SG_VRML_SFROTATION;
 	else if (!stricmp(fieldType, "SFImage")) return GF_SG_VRML_SFIMAGE;
+	else if (!stricmp(fieldType, "SFAttrRef")) return GF_SG_VRML_SFATTRREF;
 	else if (!stricmp(fieldType, "SFNode")) return GF_SG_VRML_SFNODE;
 
 	else if (!stricmp(fieldType, "MFBool")) return GF_SG_VRML_MFBOOL;
@@ -721,6 +743,7 @@ u32 gf_sg_field_type_by_name(char *fieldType)
 	else if (!stricmp(fieldType, "MFColorRGBA")) return GF_SG_VRML_MFCOLORRGBA;
 	else if (!stricmp(fieldType, "MFRotation")) return GF_SG_VRML_MFROTATION;
 	else if (!stricmp(fieldType, "MFImage")) return GF_SG_VRML_MFIMAGE;
+	else if (!stricmp(fieldType, "MFAttrRef")) return GF_SG_VRML_MFATTRREF;
 	else if (!stricmp(fieldType, "MFNode")) return GF_SG_VRML_MFNODE;
 
 	return GF_SG_VRML_UNKNOWN;
@@ -817,6 +840,9 @@ u32 gf_sg_vrml_get_sf_size(u32 FieldType)
 	case GF_SG_VRML_MFVEC4F:
 		return 4*sizeof(SFFloat);
 
+	case GF_SG_VRML_SFATTRREF:
+	case GF_SG_VRML_MFATTRREF:
+		return sizeof(SFAttrRef);
 	//check if that works!!
 	case GF_SG_VRML_SFSTRING:
 	case GF_SG_VRML_MFSTRING:
@@ -872,6 +898,9 @@ u32 gf_sg_vrml_get_sf_type(u32 FieldType)
 	case GF_SG_VRML_SFROTATION:
 	case GF_SG_VRML_MFROTATION:
 		return GF_SG_VRML_SFROTATION;
+	case GF_SG_VRML_SFATTRREF:
+	case GF_SG_VRML_MFATTRREF:
+		return GF_SG_VRML_SFATTRREF;
 
 	//check if that works!!
 	case GF_SG_VRML_SFSTRING:
@@ -1173,6 +1202,9 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 	case GF_SG_VRML_SFVEC3F:
 		memcpy(dest, orig, sizeof(SFVec3f));
 		break;
+	case GF_SG_VRML_SFATTRREF:
+		memcpy(dest, orig, sizeof(SFAttrRef));
+		break;
 	case GF_SG_VRML_SFSTRING:
 		if ( ((SFString*)dest)->buffer) free(((SFString*)dest)->buffer);
 		if ( ((SFString*)orig)->buffer )
@@ -1239,6 +1271,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 	case GF_SG_VRML_MFVEC2F:
 	case GF_SG_VRML_MFCOLOR:
 	case GF_SG_VRML_MFROTATION:
+	case GF_SG_VRML_MFATTRREF:
 		size = gf_sg_vrml_get_sf_size(field_type) * ((GenMFField *)orig)->count;
 		if (((GenMFField *)orig)->count != ((GenMFField *)dest)->count) {
 			((GenMFField *)dest)->array = realloc(((GenMFField *)dest)->array, size);
@@ -1330,12 +1363,16 @@ Bool gf_sg_vrml_field_equal(void *dest, void *orig, u32 field_type)
 		}
 		break;
 	case GF_SG_VRML_SFIMAGE:
+	case GF_SG_VRML_SFATTRREF:
 	case GF_SG_VRML_SFSCRIPT:
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 		changed = 1;
 		break;
 
 	//MFFields
+	case GF_SG_VRML_MFATTRREF:
+		changed = 1;
+		break;
 	case GF_SG_VRML_MFBOOL:
 	case GF_SG_VRML_MFFLOAT:
 	case GF_SG_VRML_MFTIME:

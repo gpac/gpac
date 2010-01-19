@@ -24,7 +24,7 @@
 
 
 /*
-	DO NOT MOFIFY - File generated on GMT Fri Jul 31 14:46:15 2009
+	DO NOT MOFIFY - File generated on GMT Mon Jan 18 12:27:12 2010
 
 	BY MPEG4Gen for GPAC Version 0.4.6-DEV
 */
@@ -804,6 +804,264 @@ u32 NDT_V6_GetNodeType(u32 NDT_Tag, u32 NodeTag)
 
 
 
+
+u32 NDT_V7_GetNodeTag(u32 Context_NDT_Tag, u32 NodeType)
+{
+	if (!NodeType) return 0;
+	/* adjust according to the table version */
+	/* v7: 0 reserved for extensions */
+	NodeType -= 1;
+	switch (Context_NDT_Tag) {
+	case NDT_SFWorldNode:
+		if (NodeType >= SFWorldNode_V7_Count) return 0;
+		return SFWorldNode_V7_TypeToTag[NodeType];
+	case NDT_SF3DNode:
+		if (NodeType >= SF3DNode_V7_Count) return 0;
+		return SF3DNode_V7_TypeToTag[NodeType];
+	case NDT_SF2DNode:
+		if (NodeType >= SF2DNode_V7_Count) return 0;
+		return SF2DNode_V7_TypeToTag[NodeType];
+	case NDT_SFAudioNode:
+		if (NodeType >= SFAudioNode_V7_Count) return 0;
+		return SFAudioNode_V7_TypeToTag[NodeType];
+	case NDT_SFTextureNode:
+		if (NodeType >= SFTextureNode_V7_Count) return 0;
+		return SFTextureNode_V7_TypeToTag[NodeType];
+	case NDT_SFDepthImageNode:
+		if (NodeType >= SFDepthImageNode_V7_Count) return 0;
+		return SFDepthImageNode_V7_TypeToTag[NodeType];
+	case NDT_SFDepthTextureNode:
+		if (NodeType >= SFDepthTextureNode_V7_Count) return 0;
+		return SFDepthTextureNode_V7_TypeToTag[NodeType];
+	default:
+		return 0;
+	}
+}
+
+
+u32 NDT_V7_GetNumBits(u32 NDT_Tag)
+{
+	switch (NDT_Tag) {
+	case NDT_SFWorldNode:
+		return SFWorldNode_V7_NUMBITS;
+	case NDT_SF3DNode:
+		return SF3DNode_V7_NUMBITS;
+	case NDT_SF2DNode:
+		return SF2DNode_V7_NUMBITS;
+	case NDT_SFAudioNode:
+		return SFAudioNode_V7_NUMBITS;
+	case NDT_SFTextureNode:
+		return SFTextureNode_V7_NUMBITS;
+	case NDT_SFDepthImageNode:
+		return SFDepthImageNode_V7_NUMBITS;
+	case NDT_SFDepthTextureNode:
+		return SFDepthTextureNode_V7_NUMBITS;
+	default:
+		return 0;
+	}
+}
+
+u32 NDT_V7_GetNodeType(u32 NDT_Tag, u32 NodeTag)
+{
+	if(!NDT_Tag || !NodeTag) return 0;
+	switch(NDT_Tag) {
+	case NDT_SFWorldNode:
+		return ALL_GetNodeType(SFWorldNode_V7_TypeToTag, SFWorldNode_V7_Count, NodeTag, GF_BIFS_V7);
+	case NDT_SF3DNode:
+		return ALL_GetNodeType(SF3DNode_V7_TypeToTag, SF3DNode_V7_Count, NodeTag, GF_BIFS_V7);
+	case NDT_SF2DNode:
+		return ALL_GetNodeType(SF2DNode_V7_TypeToTag, SF2DNode_V7_Count, NodeTag, GF_BIFS_V7);
+	case NDT_SFAudioNode:
+		return ALL_GetNodeType(SFAudioNode_V7_TypeToTag, SFAudioNode_V7_Count, NodeTag, GF_BIFS_V7);
+	case NDT_SFTextureNode:
+		return ALL_GetNodeType(SFTextureNode_V7_TypeToTag, SFTextureNode_V7_Count, NodeTag, GF_BIFS_V7);
+	case NDT_SFDepthImageNode:
+		return ALL_GetNodeType(SFDepthImageNode_V7_TypeToTag, SFDepthImageNode_V7_Count, NodeTag, GF_BIFS_V7);
+	case NDT_SFDepthTextureNode:
+		return ALL_GetNodeType(SFDepthTextureNode_V7_TypeToTag, SFDepthTextureNode_V7_Count, NodeTag, GF_BIFS_V7);
+	default:
+		return 0;
+	}
+}
+
+
+
+
+u32 NDT_V8_GetNodeTag(u32 Context_NDT_Tag, u32 NodeType)
+{
+	if (!NodeType) return 0;
+	/* adjust according to the table version */
+	/* v8: 0 reserved for extensions */
+	NodeType -= 1;
+	switch (Context_NDT_Tag) {
+	case NDT_SFWorldNode:
+		if (NodeType >= SFWorldNode_V8_Count) return 0;
+		return SFWorldNode_V8_TypeToTag[NodeType];
+	case NDT_SF3DNode:
+		if (NodeType >= SF3DNode_V8_Count) return 0;
+		return SF3DNode_V8_TypeToTag[NodeType];
+	case NDT_SF2DNode:
+		if (NodeType >= SF2DNode_V8_Count) return 0;
+		return SF2DNode_V8_TypeToTag[NodeType];
+	case NDT_SFMusicScoreNode:
+		if (NodeType >= SFMusicScoreNode_V8_Count) return 0;
+		return SFMusicScoreNode_V8_TypeToTag[NodeType];
+	default:
+		return 0;
+	}
+}
+
+
+u32 NDT_V8_GetNumBits(u32 NDT_Tag)
+{
+	switch (NDT_Tag) {
+	case NDT_SFWorldNode:
+		return SFWorldNode_V8_NUMBITS;
+	case NDT_SF3DNode:
+		return SF3DNode_V8_NUMBITS;
+	case NDT_SF2DNode:
+		return SF2DNode_V8_NUMBITS;
+	case NDT_SFMusicScoreNode:
+		return SFMusicScoreNode_V8_NUMBITS;
+	default:
+		return 0;
+	}
+}
+
+u32 NDT_V8_GetNodeType(u32 NDT_Tag, u32 NodeTag)
+{
+	if(!NDT_Tag || !NodeTag) return 0;
+	switch(NDT_Tag) {
+	case NDT_SFWorldNode:
+		return ALL_GetNodeType(SFWorldNode_V8_TypeToTag, SFWorldNode_V8_Count, NodeTag, GF_BIFS_V8);
+	case NDT_SF3DNode:
+		return ALL_GetNodeType(SF3DNode_V8_TypeToTag, SF3DNode_V8_Count, NodeTag, GF_BIFS_V8);
+	case NDT_SF2DNode:
+		return ALL_GetNodeType(SF2DNode_V8_TypeToTag, SF2DNode_V8_Count, NodeTag, GF_BIFS_V8);
+	case NDT_SFMusicScoreNode:
+		return ALL_GetNodeType(SFMusicScoreNode_V8_TypeToTag, SFMusicScoreNode_V8_Count, NodeTag, GF_BIFS_V8);
+	default:
+		return 0;
+	}
+}
+
+
+
+
+u32 NDT_V9_GetNodeTag(u32 Context_NDT_Tag, u32 NodeType)
+{
+	if (!NodeType) return 0;
+	/* adjust according to the table version */
+	/* v9: 0 reserved for extensions */
+	NodeType -= 1;
+	switch (Context_NDT_Tag) {
+	case NDT_SFWorldNode:
+		if (NodeType >= SFWorldNode_V9_Count) return 0;
+		return SFWorldNode_V9_TypeToTag[NodeType];
+	case NDT_SF3DNode:
+		if (NodeType >= SF3DNode_V9_Count) return 0;
+		return SF3DNode_V9_TypeToTag[NodeType];
+	case NDT_SFGeometryNode:
+		if (NodeType >= SFGeometryNode_V9_Count) return 0;
+		return SFGeometryNode_V9_TypeToTag[NodeType];
+	default:
+		return 0;
+	}
+}
+
+
+u32 NDT_V9_GetNumBits(u32 NDT_Tag)
+{
+	switch (NDT_Tag) {
+	case NDT_SFWorldNode:
+		return SFWorldNode_V9_NUMBITS;
+	case NDT_SF3DNode:
+		return SF3DNode_V9_NUMBITS;
+	case NDT_SFGeometryNode:
+		return SFGeometryNode_V9_NUMBITS;
+	default:
+		return 0;
+	}
+}
+
+u32 NDT_V9_GetNodeType(u32 NDT_Tag, u32 NodeTag)
+{
+	if(!NDT_Tag || !NodeTag) return 0;
+	switch(NDT_Tag) {
+	case NDT_SFWorldNode:
+		return ALL_GetNodeType(SFWorldNode_V9_TypeToTag, SFWorldNode_V9_Count, NodeTag, GF_BIFS_V9);
+	case NDT_SF3DNode:
+		return ALL_GetNodeType(SF3DNode_V9_TypeToTag, SF3DNode_V9_Count, NodeTag, GF_BIFS_V9);
+	case NDT_SFGeometryNode:
+		return ALL_GetNodeType(SFGeometryNode_V9_TypeToTag, SFGeometryNode_V9_Count, NodeTag, GF_BIFS_V9);
+	default:
+		return 0;
+	}
+}
+
+
+
+
+u32 NDT_V10_GetNodeTag(u32 Context_NDT_Tag, u32 NodeType)
+{
+	if (!NodeType) return 0;
+	/* adjust according to the table version */
+	/* v10: 0 reserved for extensions */
+	NodeType -= 1;
+	switch (Context_NDT_Tag) {
+	case NDT_SFWorldNode:
+		if (NodeType >= SFWorldNode_V10_Count) return 0;
+		return SFWorldNode_V10_TypeToTag[NodeType];
+	case NDT_SF3DNode:
+		if (NodeType >= SF3DNode_V10_Count) return 0;
+		return SF3DNode_V10_TypeToTag[NodeType];
+	case NDT_SF2DNode:
+		if (NodeType >= SF2DNode_V10_Count) return 0;
+		return SF2DNode_V10_TypeToTag[NodeType];
+	case NDT_SFTextureNode:
+		if (NodeType >= SFTextureNode_V10_Count) return 0;
+		return SFTextureNode_V10_TypeToTag[NodeType];
+	default:
+		return 0;
+	}
+}
+
+
+u32 NDT_V10_GetNumBits(u32 NDT_Tag)
+{
+	switch (NDT_Tag) {
+	case NDT_SFWorldNode:
+		return SFWorldNode_V10_NUMBITS;
+	case NDT_SF3DNode:
+		return SF3DNode_V10_NUMBITS;
+	case NDT_SF2DNode:
+		return SF2DNode_V10_NUMBITS;
+	case NDT_SFTextureNode:
+		return SFTextureNode_V10_NUMBITS;
+	default:
+		return 0;
+	}
+}
+
+u32 NDT_V10_GetNodeType(u32 NDT_Tag, u32 NodeTag)
+{
+	if(!NDT_Tag || !NodeTag) return 0;
+	switch(NDT_Tag) {
+	case NDT_SFWorldNode:
+		return ALL_GetNodeType(SFWorldNode_V10_TypeToTag, SFWorldNode_V10_Count, NodeTag, GF_BIFS_V10);
+	case NDT_SF3DNode:
+		return ALL_GetNodeType(SF3DNode_V10_TypeToTag, SF3DNode_V10_Count, NodeTag, GF_BIFS_V10);
+	case NDT_SF2DNode:
+		return ALL_GetNodeType(SF2DNode_V10_TypeToTag, SF2DNode_V10_Count, NodeTag, GF_BIFS_V10);
+	case NDT_SFTextureNode:
+		return ALL_GetNodeType(SFTextureNode_V10_TypeToTag, SFTextureNode_V10_Count, NodeTag, GF_BIFS_V10);
+	default:
+		return 0;
+	}
+}
+
+
+
 u32 gf_bifs_ndt_get_node_type(u32 NDT_Tag, u32 NodeType, u32 Version)
 {
 	switch (Version) {
@@ -819,6 +1077,14 @@ u32 gf_bifs_ndt_get_node_type(u32 NDT_Tag, u32 NodeType, u32 Version)
 		return NDT_V5_GetNodeTag(NDT_Tag, NodeType);
 	case GF_BIFS_V6:
 		return NDT_V6_GetNodeTag(NDT_Tag, NodeType);
+	case GF_BIFS_V7:
+		return NDT_V7_GetNodeTag(NDT_Tag, NodeType);
+	case GF_BIFS_V8:
+		return NDT_V8_GetNodeTag(NDT_Tag, NodeType);
+	case GF_BIFS_V9:
+		return NDT_V9_GetNodeTag(NDT_Tag, NodeType);
+	case GF_BIFS_V10:
+		return NDT_V10_GetNodeTag(NDT_Tag, NodeType);
 	default:
 		return 0;
 	}
@@ -839,6 +1105,14 @@ u32 gf_bifs_get_ndt_bits(u32 NDT_Tag, u32 Version)
 		return NDT_V5_GetNumBits(NDT_Tag);
 	case GF_BIFS_V6:
 		return NDT_V6_GetNumBits(NDT_Tag);
+	case GF_BIFS_V7:
+		return NDT_V7_GetNumBits(NDT_Tag);
+	case GF_BIFS_V8:
+		return NDT_V8_GetNumBits(NDT_Tag);
+	case GF_BIFS_V9:
+		return NDT_V9_GetNumBits(NDT_Tag);
+	case GF_BIFS_V10:
+		return NDT_V10_GetNumBits(NDT_Tag);
 	default:
 		return 0;
 	}
@@ -859,6 +1133,14 @@ u32 gf_bifs_get_node_type(u32 NDT_Tag, u32 NodeTag, u32 Version)
 		return NDT_V5_GetNodeType(NDT_Tag, NodeTag);
 	case GF_BIFS_V6:
 		return NDT_V6_GetNodeType(NDT_Tag, NodeTag);
+	case GF_BIFS_V7:
+		return NDT_V7_GetNodeType(NDT_Tag, NodeTag);
+	case GF_BIFS_V8:
+		return NDT_V8_GetNodeType(NDT_Tag, NodeTag);
+	case GF_BIFS_V9:
+		return NDT_V9_GetNodeType(NDT_Tag, NodeTag);
+	case GF_BIFS_V10:
+		return NDT_V10_GetNodeType(NDT_Tag, NodeTag);
 	default:
 		return 0;
 	}
@@ -924,6 +1206,18 @@ u32 gf_bifs_get_node_type(u32 NDT_Tag, u32 NodeTag, u32 Version)
 		return NDT_SF2DNode;
 	case TAG_MPEG4_TransformMatrix2D:
 		return NDT_SF2DNode;
+	case TAG_MPEG4_AdvancedAudioBuffer:
+		return NDT_SFAudioNode;
+	case TAG_MPEG4_AudioChannelConfig:
+		return NDT_SFAudioNode;
+	case TAG_MPEG4_Transform3DAudio:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_FootPrintSetNode:
+		return NDT_SFGeometryNode;
+	case TAG_MPEG4_Shadow:
+		return NDT_SF3DNode;
+	case TAG_MPEG4_SpacePartition:
+		return NDT_SF3DNode;
 	default:
 		return 0;
 	}
