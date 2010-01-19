@@ -1039,6 +1039,10 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ForceOpenGL");
 	compositor->force_opengl_2d = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
 
+#ifdef OPENGL_RASTER
+	compositor->opengl_raster = (sOpt && !strcmp(sOpt, "raster")) ? 1 : 0;
+#endif
+
 
 	/*currently:
 	- no tesselator for GL-ES, so use raster outlines.

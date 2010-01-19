@@ -32,12 +32,92 @@
 #include "../src/compositor/triscope_renoir/triscope_renoir.h"
 #endif
 
+#ifdef OPENGL_RASTER
+#include "gl_inc.h"
+
+static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
+{
+	glBegin(GL_LINES);
+	glColor3ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color));
+//	glColor3f(GF_COL_R(color)/255, GF_COL_G(color)/255, GF_COL_B(color)/255);
+	glVertex2i(x,y);
+	glVertex2i(x+run_h_len,y);
+	glEnd();
+}
+
+static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u32 alpha)
+{
+	glEnable(GL_BLEND);
+	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), (u8) alpha);
+	glBegin(GL_LINES);
+	glVertex2i(x,y);
+	glVertex2i(x+run_h_len,y);
+	glEnd();
+	glDisable(GL_BLEND);
+}
+
+#endif
+
 GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 {
 	GF_Err e;
 	GF_Compositor *compositor = visual->compositor;
 
+
 	if (!visual->raster_surface) return GF_BAD_PARAM;
+
+#ifdef OPENGL_RASTER
+	if (compositor->opengl_raster && compositor->rasterizer->surface_attach_to_callbacks) {
+		GLenum err;
+		GF_RasterCallback callbacks;
+		callbacks.cbk = visual;
+		callbacks.fill_run_alpha = c2d_gl_fill_alpha;
+		callbacks.fill_run_no_alpha = c2d_gl_fill_no_alpha;
+
+		e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &callbacks, compositor->vp_width, compositor->vp_height);
+		if (e==GF_OK) {
+			GF_Matrix mx;
+			Fixed hh, hw;
+			visual->is_attached = 2;
+
+			visual_3d_setup(visual);
+			glClear(GL_DEPTH_BUFFER_BIT);
+			glViewport(0, 0, compositor->vp_width, compositor->vp_height);
+
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			glLineWidth(1.0f);
+
+#ifndef GPAC_USE_OGL_ES
+			glDisable(GL_POLYGON_SMOOTH);
+#endif
+			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+			glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
+
+			glDisable(GL_NORMALIZE);
+			glDisable(GL_LINE_SMOOTH);
+			glDisable(GL_DEPTH_TEST);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			glDepthFunc(GL_LEQUAL);
+
+			hw = INT2FIX(compositor->vp_width)/2;
+			hh = INT2FIX(compositor->vp_height)/2;
+			gf_mx_ortho(&mx, -hw, hw, -hh, hh, 50, -50);
+			glMatrixMode(GL_PROJECTION);
+			glLoadMatrixf(mx.m);
+			err = glGetError();
+			glMatrixMode(GL_MODELVIEW);
+			gf_mx_init(mx);
+			gf_mx_add_scale(&mx, 1, -1, 1);
+			gf_mx_add_translation(&mx, -hw, -hh, 0);
+			glLoadMatrixf(mx.m);
+			err = glGetError();
+			return GF_OK;
+		}
+	}
+#endif
+
+
 	compositor->hw_locked = 0;
 	e = GF_IO_ERR;
 	
@@ -594,7 +674,13 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.setup.height = compositor->vp_height;
 	evt.setup.opengl_mode = 0;
 	evt.setup.system_memory = compositor->video_memory ? 0 : 1;
-
+#ifdef OPENGL_RASTER
+	if (compositor->opengl_raster) {
+		evt.setup.opengl_mode = 1;
+		evt.setup.system_memory = 0;
+		evt.setup.back_buffer = 1;
+	}
+#endif
 	e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 	if (e) return e;
 
