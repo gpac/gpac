@@ -261,7 +261,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	samp = gf_isom_sample_new();
 	samp->IsRAP = 1;
 	samp->dataLength = size;
-	if (import->initial_time_offset) samp->DTS = import->initial_time_offset*1000;
+	if (import->initial_time_offset) samp->DTS = (u64) (import->initial_time_offset*1000);
 
 	gf_import_message(import, GF_OK, "%s import %s - size %d x %d", (OTI==0x6C) ? "JPEG" : (OTI==0x6D) ? "PNG" : "JPEG2000", import->in_name, w, h);
 

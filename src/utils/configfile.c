@@ -382,7 +382,7 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
 	if (!keyValue) return NULL;
 
 	j = 0;
-	subKeyValue = strtok (keyValue,";"); 
+	subKeyValue = strtok((char*)keyValue,";"); 
 	while (subKeyValue!=NULL) { 
 		if (j==sub_index) {
 			return strdup(subKeyValue);
