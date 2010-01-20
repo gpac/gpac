@@ -780,10 +780,14 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	if (!count) stype = GF_CURSOR_NORMAL;
 	else {
 		for (i=0; i<count; i++) {
+			GF_Node *keynav;
 			hs = (GF_SensorHandler*)gf_list_get(compositor->sensors, i);
 			hs->OnUserEvent(hs, ((hs==hs_grabbed) || !hs_grabbed) ? 1 : 0, ev, compositor);
 			stype = gf_node_get_tag(hs->sensor);
 			if (hs==hs_grabbed) hs_grabbed = NULL;
+
+			keynav = gf_scene_get_keynav(gf_node_get_graph(hs->sensor), hs->sensor);
+			if (keynav) gf_sc_change_key_navigator(compositor, keynav);
 		}
 	}
 	/*switch sensors*/
@@ -970,7 +974,6 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 		} else if (compositor->store_text_state == GF_SC_TSEL_RELEASED) {
 			compositor->store_text_state = GF_SC_TSEL_NONE;
 		}
-
 	}
 
 	/*pick node*/
@@ -1644,7 +1647,10 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 				if (0&&compositor->focus_text_type) {
 					exec_text_input(compositor, NULL);
 					ret = 1;
-				} 
+				} else if (compositor->keynav_node && ((M_KeyNavigator*)compositor->keynav_node)->select) {
+					gf_sc_change_key_navigator(compositor, ((M_KeyNavigator*)compositor->keynav_node)->select);
+					ret=1;
+				}
 				break;
 			case GF_KEY_TAB:
 				ret += gf_sc_focus_switch_ring(compositor, (ev->key.flags & GF_KEY_MOD_SHIFT) ? 1 : 0);
@@ -1653,7 +1659,21 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 			case GF_KEY_DOWN:
 			case GF_KEY_LEFT:
 			case GF_KEY_RIGHT:
-				ret += gf_sc_svg_focus_navigate(compositor, ev->key.key_code);
+				if (compositor->focus_uses_dom_events) {
+					ret += gf_sc_svg_focus_navigate(compositor, ev->key.key_code);
+				} else if (compositor->keynav_node) {
+					GF_Node *next_nav = NULL;
+					switch (ev->key.key_code) {
+					case GF_KEY_UP: next_nav = ((M_KeyNavigator*)compositor->keynav_node)->up; break;
+					case GF_KEY_DOWN: next_nav = ((M_KeyNavigator*)compositor->keynav_node)->down; break;
+					case GF_KEY_LEFT: next_nav = ((M_KeyNavigator*)compositor->keynav_node)->left; break;
+					case GF_KEY_RIGHT: next_nav = ((M_KeyNavigator*)compositor->keynav_node)->right; break;
+					}
+					if (next_nav) {
+						gf_sc_change_key_navigator(compositor, next_nav);
+						ret=1;
+					}
+				}
 				break;
 			}
 		} 
@@ -1685,5 +1705,38 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	if (compositor->interaction_level & GF_INTERACT_NAVIGATION) return compositor_handle_navigation(compositor, evt);
 	return 0;
 }
+
+void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n)
+{
+	GF_Node *par;
+	M_KeyNavigator *kn;
+
+	gf_list_reset(sr->focus_ancestors);
+
+	if (sr->keynav_node) {
+		kn = (M_KeyNavigator*)sr->keynav_node;
+		kn->focusSet = 0;
+		gf_node_event_out_str(sr->keynav_node, "focusSet");
+	}
+	sr->keynav_node = n;
+	kn = (M_KeyNavigator*)n;
+	if (n) {
+		kn->focusSet = 1;
+		gf_node_event_out_str(sr->keynav_node, "focusSet");
+	}
+
+	par = n ? kn->sensor : NULL;
+	if (par) par = gf_node_get_parent(par, 0);
+
+	gf_sc_focus_switch_ring_ex(sr, 0, par, 1);
+}
+
+void gf_sc_key_navigator_del(GF_Compositor *sr, GF_Node *n)
+{
+	if (sr->keynav_node==n) {
+		sr->keynav_node = NULL;
+	}
+}
+
 
 

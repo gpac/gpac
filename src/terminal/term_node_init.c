@@ -51,6 +51,21 @@ void TraverseWorldInfo(GF_Node *node, void *rs, Bool is_destroy)
 	scene->world_info = is_destroy ? NULL : (M_WorldInfo *) node;
 }
 
+void TraverseKeyNavigator(GF_Node *node, void *rs, Bool is_destroy)
+{
+	if (is_destroy) {
+		GF_Scene *scene = (GF_Scene *)gf_node_get_private(node);
+		gf_list_del_item(scene->keynavigators, node);
+		gf_sc_key_navigator_del(scene->root_od->term->compositor, node);
+	}
+}
+
+void on_kn_set_focus(GF_Node*node, void *_route)
+{
+	GF_Scene *scene = (GF_Scene *)gf_node_get_private(node);
+	gf_sc_change_key_navigator(scene->root_od->term->compositor, node);
+}
+
 void evaluate_term_cap(GF_Node *node, GF_Route *route)
 {
 	GF_SystemRTInfo rti;
@@ -225,6 +240,14 @@ void gf_term_on_node_init(void *_scene, GF_Node *node)
 
 	case TAG_MPEG4_Storage: 
 		gf_scene_init_storage(scene, node); break;
+
+	case TAG_MPEG4_KeyNavigator:
+		gf_node_set_callback_function(node, TraverseKeyNavigator);
+		gf_node_set_private(node, scene);
+		gf_list_add(scene->keynavigators, node);
+		((M_KeyNavigator*)node)->on_setFocus = on_kn_set_focus;
+		break;
+		
 #endif
 
 

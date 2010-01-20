@@ -104,6 +104,8 @@ GF_Scene *gf_scene_new(GF_Scene *parentScene)
 	gf_sg_set_proto_loader(tmp->graph, gf_inline_get_proto_lib);
 	
 	tmp->storages = gf_list_new();
+	tmp->keynavigators = gf_list_new();
+	
 #endif
 	tmp->on_media_event = inline_on_media_event;
 	return tmp;
@@ -157,6 +159,7 @@ void gf_scene_del(GF_Scene *scene)
 	}
 	gf_list_del(scene->scene_objects);
 	gf_list_del(scene->storages);
+	gf_list_del(scene->keynavigators);
 
 	if (scene->audio_url.url) free(scene->audio_url.url);
 	if (scene->visual_url.url) free(scene->visual_url.url);

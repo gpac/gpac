@@ -289,6 +289,9 @@ struct __tag_compositor
 	/*indicates a sensor is currently active*/
 	Bool grabbed_sensor;
 
+	/*current keynav node if any*/
+	GF_Node *keynav_node;
+
 	/*hardware handle for 2D screen access - currently only used with win32 (HDC) */
 	void *hw_context;
 	/*indicates whether HW is locked*/
@@ -1064,6 +1067,10 @@ void compositor_set_ar_scale(GF_Compositor *sr, Fixed scaleX, Fixed scaleY);
 
 /*reset focus if node being deleted has the focus - must be called for each focusable node (internally called for 2D & 3D drawable nodes)*/
 void gf_sc_check_focus_upon_destroy(GF_Node *n);
+
+void gf_sc_key_navigator_del(GF_Compositor *sr, GF_Node *n);
+void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n);
+GF_Node *gf_scene_get_keynav(GF_SceneGraph *sg, GF_Node *sensor);
 
 #ifndef GPAC_DISABLE_SVG
 

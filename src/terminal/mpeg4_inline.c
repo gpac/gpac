@@ -716,4 +716,21 @@ void gf_storage_clean_cache(GF_Config *cfg)
 
 #endif
 
+GF_Node *gf_scene_get_keynav(GF_SceneGraph *sg, GF_Node *sensor)
+{
+#ifndef GPAC_DISABLE_VRML
+	u32 i, count;
+	GF_Scene *scene = gf_sg_get_private(sg);
+	if (!scene) return NULL;
+	if (!sensor) return gf_list_get(scene->keynavigators, 0);
+
+	count = gf_list_count(scene->keynavigators);
+	for (i=0; i<count; i++) {
+		M_KeyNavigator *kn = gf_list_get(scene->keynavigators, i);
+		if (kn->sensor==sensor) return (GF_Node *) kn;
+	}
+#endif
+	return NULL;
+}
+
 

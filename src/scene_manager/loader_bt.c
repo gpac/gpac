@@ -1404,7 +1404,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 			}
 
 			if (parser->last_error) {
-				gf_bt_report(parser, GF_OK, "%s: Unknown field", str);
+				gf_bt_report(parser, parser->last_error, "%s: Unknown field", str);
 				goto err;
 			}
 
