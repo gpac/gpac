@@ -189,6 +189,9 @@ struct _scene
 
 	/*list of M_Storage nodes active*/
 	GF_List *storages;
+
+	/*list of M_KeyNavigator nodes*/
+	GF_List *keynavigators;
 #endif
 };
 

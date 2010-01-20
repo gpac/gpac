@@ -830,8 +830,13 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		if (is_svg) {
 			compositor->has_size_info = 0;
 			gf_sc_focus_switch_ring(compositor, 0);
-		}
+		} else 
 #endif
+		{
+			GF_Node *keynav = gf_scene_get_keynav(compositor->scene, NULL);
+			if (keynav) gf_sc_change_key_navigator(compositor, keynav);
+		}
+
 		/*default back color is key color*/
 		if (compositor->user->init_flags & GF_TERM_WINDOWLESS) {
 			opt = gf_cfg_get_key(compositor->user->config, "Compositor", "ColorKey");

@@ -900,6 +900,9 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	GF_Compositor *compositor = tr_state->visual->compositor;
 
 	if (compositor->focus_node!=node) return;
+	/*if key navigator, don't draw a focus highlight*/
+	if (compositor->keynav_node) return;
+
 	if (compositor->focus_used) {
 		u32 count = gf_list_count(tr_state->use_stack);
 		if (!count || (gf_list_get(tr_state->use_stack, count-1)!=compositor->focus_used) ) 
