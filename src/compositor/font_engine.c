@@ -1192,6 +1192,7 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 */				
 		has_selection = 1;
 		if (ctx) {
+			g_rc.width+=1;
 			if (span->rot) {
 				gf_mx2d_init(ctx->transform);
 				gf_mx2d_add_rotation(&ctx->transform, g_rc.x , g_rc.y, span->rot[i]);
