@@ -2217,7 +2217,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 			GF_StreamContext *stream = gf_sm_stream_find(parser->load->ctx, (u16) stream_id);
 			if (!stream || (stream->streamType!=GF_STREAM_SCENE)) stream_id = parser->base_scene_id;
 
-			parser->scene_es = gf_sm_stream_new(parser->load->ctx, (u16) stream_id, GF_STREAM_SCENE, 0);
+			parser->scene_es = gf_sm_stream_new(parser->load->ctx, (u16) stream_id, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
 			parser->scene_au = gf_sm_stream_au_new(parser->scene_es, 0, au_time, au_is_rap);
 			gf_list_add(parser->scene_au->commands, parser->command);
 		}
