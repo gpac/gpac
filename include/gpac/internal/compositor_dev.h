@@ -292,6 +292,9 @@ struct __tag_compositor
 	/*current keynav node if any*/
 	GF_Node *keynav_node;
 
+	/*current keynav node if any*/
+	GF_List *env_tests;
+
 	/*hardware handle for 2D screen access - currently only used with win32 (HDC) */
 	void *hw_context;
 	/*indicates whether HW is locked*/
@@ -1071,6 +1074,7 @@ void gf_sc_check_focus_upon_destroy(GF_Node *n);
 void gf_sc_key_navigator_del(GF_Compositor *sr, GF_Node *n);
 void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n);
 GF_Node *gf_scene_get_keynav(GF_SceneGraph *sg, GF_Node *sensor);
+const char *gf_scene_get_service_url(GF_SceneGraph *sg);
 
 #ifndef GPAC_DISABLE_SVG
 

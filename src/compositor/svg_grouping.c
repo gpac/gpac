@@ -781,8 +781,8 @@ static void svg_traverse_a(GF_Node *node, void *rs, Bool is_destroy)
 		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state, NULL);
 	} else {
 		compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
-
-		drawable_check_focus_highlight(node, tr_state, NULL);
+		if (tr_state->traversing_mode==TRAVERSE_SORT)
+			drawable_check_focus_highlight(node, tr_state, NULL);
 	}
 	compositor_svg_restore_parent_transformation(tr_state, &backup_matrix, &mx_3d);
 	memcpy(tr_state->svg_props, &backup_props, styling_size);

@@ -90,16 +90,32 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		break;
 
 	case GF_SG_VRML_SFSTRING:
-	{
-		u32 i;
-		char *str = (char *) ((SFString*)field->far_ptr)->buffer;
-		u32 len = str ? strlen(str) : 0;
-		u32 val = gf_get_bit_size(len);
-		GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
-		GF_BIFS_WRITE_INT(codec, bs, len, val, "length", NULL);
-		for (i=0; i<len; i++) gf_bs_write_int(bs, str[i], 8);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] string\t\t%d\t\t%s\n", 8*len, str) );
-	}
+		if ((node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
+			u32 size, val;
+			char buf[4096];
+			FILE *f = fopen(((SFString*)field->far_ptr)->buffer, "rb");
+			if (!f) return GF_URL_ERROR;
+			fseek(f, 0, SEEK_END);
+			size = ftell(f);
+			val = gf_get_bit_size(size);
+			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
+			GF_BIFS_WRITE_INT(codec, bs, size, val, "length", NULL);
+			fseek(f, 0, SEEK_SET);
+			while (size) {
+				u32 read = fread(buf, 1, 4096, f);
+				gf_bs_write_data(bs, buf, read);
+				size -= read;
+			}
+		} else {
+			u32 i;
+			char *str = (char *) ((SFString*)field->far_ptr)->buffer;
+			u32 len = str ? strlen(str) : 0;
+			u32 val = gf_get_bit_size(len);
+			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
+			GF_BIFS_WRITE_INT(codec, bs, len, val, "length", NULL);
+			for (i=0; i<len; i++) gf_bs_write_int(bs, str[i], 8);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[BIFS] string\t\t%d\t\t%s\n", 8*len, str) );
+		}
 		break;
 
 	case GF_SG_VRML_SFTIME:

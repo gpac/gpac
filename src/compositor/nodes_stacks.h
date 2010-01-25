@@ -264,6 +264,10 @@ void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh 
 
 void compositor_init_texture_text(GF_Compositor *compositor, GF_Node *node);
 
+void compositor_init_envtest(GF_Compositor *compositor, GF_Node *node);
+void compositor_envtest_modified(GF_Node *node);
+void compositor_evaluate_envtests(GF_Compositor *compositor, u32 param_type);
+
 #endif /*GPAC_DISABLE_VRML*/
 
 

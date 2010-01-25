@@ -440,6 +440,7 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 		if (key) flags |= DDBLT_KEYSRC;
 		hr = IDirectDrawSurface_Blt(dd->pBack, dst_wnd ? &r_dst : NULL, src->pSurface, src_wnd ? &r_src : NULL, flags, NULL);
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Hardware blit result: %s\n", gf_error_to_string(FAILED(hr) ? GF_IO_ERR : GF_OK ) ));
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
 

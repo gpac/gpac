@@ -126,6 +126,9 @@ struct __tag_bifs_dec
 	Bool ignore_size;
 	Bool is_com_dec;
 	Double cts_offset;
+
+	char *extraction_path;
+	char *service_url;
 };
 
 

@@ -279,6 +279,8 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->prev_hit_use_stack = gf_list_new();
 	compositor->focus_ancestors = gf_list_new();
 	compositor->focus_use_stack = gf_list_new();
+
+	compositor->env_tests = gf_list_new();
 	
 	/*setup main visual*/
 	compositor->visual = visual_new(compositor);
@@ -511,6 +513,7 @@ void gf_sc_del(GF_Compositor *compositor)
 	gf_list_del(compositor->prev_hit_use_stack);
 	gf_list_del(compositor->focus_ancestors);
 	gf_list_del(compositor->focus_use_stack);
+	gf_list_del(compositor->env_tests);
 
 
 	gf_list_del(compositor->traverse_state->vrml_sensors);
@@ -1633,6 +1636,8 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 			compositor->visual_config_time = gf_sys_clock() - time;
 		}
 #endif
+
+		compositor_evaluate_envtests(compositor, 0);
 	} 
 }
 

@@ -1331,5 +1331,172 @@ Bool compositor_mpeg4_is_sensor_node(GF_Node *node)
 	return 0;
 }
 
+static void traverse_envtest(GF_Node *node, void *rs, Bool is_destroy)
+{
+	if (is_destroy) {
+		GF_Compositor *compositor = gf_node_get_private(node);
+		gf_list_del_item(compositor->env_tests, node);
+	}
+}
+
+void envtest_evaluate(GF_Node *node, void *_route)
+{
+	Bool smaller, larger, equal;
+	Float ar, arft;
+	u32 par;
+	char par_value[50];
+	const char *opt;
+	M_EnvironmentTest *envtest = (M_EnvironmentTest *)node;
+	GF_Compositor *compositor = (GF_Compositor *)gf_node_get_private(node);
+
+	if (envtest->parameterValue.buffer) free(envtest->parameterValue.buffer);
+	envtest->parameterValue.buffer=NULL;
+
+	smaller = larger = equal = 0;
+	switch (envtest->parameter) {
+	/*screen aspect ratio*/
+	case 0:
+		if (compositor->display_width>compositor->display_height) {
+			ar = (Float) compositor->display_width;
+			ar /= compositor->display_height;
+		} else {
+			ar = (Float) compositor->display_height;
+			ar /= compositor->display_width;
+		}
+		if (envtest->compareValue.buffer && (sscanf(envtest->compareValue.buffer, "%f", &arft)==1)) {
+			if (ar==arft) equal=1;
+			else if (ar>arft) smaller=1;
+			else larger=1;
+		}
+		sprintf(par_value, "%f", ar);
+		break;
+	/*screen is portrait */
+	case 1:
+		equal = (compositor->display_width < compositor->display_height) ? 1 : 2;
+		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
+		break;
+	/*screen width */
+	case 2:
+		if (envtest->compareValue.buffer && (sscanf(envtest->compareValue.buffer, "%u", &par)==1)) {
+			if (compositor->display_width==par) equal=1;
+			else if (compositor->display_width>par) smaller=1;
+			else larger=1;
+		}
+		sprintf(par_value, "%u", compositor->display_width);
+		break;
+	/*screen width */
+	case 3:
+		if (envtest->compareValue.buffer && (sscanf(envtest->compareValue.buffer, "%u", &par)==1)) {
+			if (compositor->display_height==par) equal=1;
+			else if (compositor->display_height>par) smaller=1;
+			else larger=1;
+		}
+		sprintf(par_value, "%u", compositor->display_height);
+		break;
+	/*screen dpi horizontal */
+	case 4:
+		if (envtest->compareValue.buffer && (sscanf(envtest->compareValue.buffer, "%u", &par)==1)) {
+			if (compositor->video_out->dpi_x==par) equal=1;
+			else if (compositor->video_out->dpi_x>par) smaller=1;
+			else larger=1;
+		}
+		sprintf(par_value, "%u", compositor->video_out->dpi_x);
+		break;
+	/*screen dpi vertical*/
+	case 5:
+		if (envtest->compareValue.buffer && (sscanf(envtest->compareValue.buffer, "%u", &par)==1)) {
+			if (compositor->video_out->dpi_y==par) equal=1;
+			else if (compositor->video_out->dpi_y>par) smaller=1;
+			else larger=1;
+		}
+		sprintf(par_value, "%u", compositor->video_out->dpi_y);
+		break;
+	/*automotive situation - fixme we should use a profile doc ?*/
+	case 6:
+		opt = gf_cfg_get_key(compositor->user->config, "Profile", "Automotive");
+		equal = (opt && !strcmp(opt, "yes")) ? 1 : 2;
+		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
+		break;
+	/*visually challenged - fixme we should use a profile doc ?*/
+	case 7:
+		opt = gf_cfg_get_key(compositor->user->config, "Profile", "VisuallyChallenged");
+		equal = (opt && !strcmp(opt, "yes")) ? 1 : 2;
+		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
+		break;
+	/*has touch - fixme we should find out by ourselves*/
+	case 8:
+		opt = gf_cfg_get_key(compositor->user->config, "Profile", "HasTouchScreen");
+		equal = (opt && !strcmp(opt, "yes")) ? 1 : 2;
+		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
+		break;
+	/*has touch - fixme we should find out by ourselves*/
+	case 9:
+		opt = gf_cfg_get_key(compositor->user->config, "Profile", "HasKeyPad");
+		equal = (opt && !strcmp(opt, "yes")) ? 1 : 2;
+		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
+		break;
+	}
+
+	if (equal) {
+		envtest->valueEqual=(equal==1) ? 1 : 0;
+		gf_node_event_out_str(node, "valueEqual");
+	}
+	else if (smaller) {
+		envtest->valueSmaller=1;
+		gf_node_event_out_str(node, "valueSmaller");
+	}
+	else if (larger) {
+		envtest->valueLarger=1;
+		gf_node_event_out_str(node, "valueLarger");
+	}
+	envtest->parameterValue.buffer = strdup(par_value);
+	gf_node_event_out_str(node, "parameterValue");
+}
+
+void compositor_evaluate_envtests(GF_Compositor *compositor, u32 param_type)
+{
+	u32 i, count;
+	count = gf_list_count(compositor->env_tests);
+	for (i=0;i<count;i++) {
+		GF_Node *envtest = gf_list_get(compositor->env_tests, i);
+		if (!((M_EnvironmentTest *)envtest)->evaluateOnChange) continue;
+
+		switch (((M_EnvironmentTest *)envtest)->parameter) {
+		/*screen-size related*/
+		case 0:
+		case 1:
+		case 2:
+		case 3:
+			if (param_type==0) envtest_evaluate(envtest, NULL);
+			break;
+		/*DPI related*/
+		case 4:
+		case 5:
+			if (param_type==1) envtest_evaluate(envtest, NULL);
+			break;
+		/*automotive situation*/
+		case 6:
+			if (param_type==2) envtest_evaluate(envtest, NULL);
+			break;
+		/*the rest are static events*/
+		}
+	}
+}
+
+void compositor_init_envtest(GF_Compositor *compositor, GF_Node *node)
+{
+	M_EnvironmentTest *envtest = (M_EnvironmentTest *)node;
+	gf_list_add(compositor->env_tests, node);
+	gf_node_set_private(node, compositor);
+	gf_node_set_callback_function(node, traverse_envtest);
+
+	envtest->on_evaluate = envtest_evaluate;
+}
+
+void compositor_envtest_modified(GF_Node *node)
+{
+	envtest_evaluate(node, NULL);
+}
+
 
 #endif /*GPAC_DISABLE_VRML*/
