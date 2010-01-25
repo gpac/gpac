@@ -124,6 +124,7 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines, B
 	case TAG_MPEG4_Background2D: 
 	case TAG_MPEG4_Background: 
 	case TAG_MPEG4_ImageTexture:
+	case TAG_MPEG4_CacheTexture:
 	case TAG_MPEG4_MovieTexture: 
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Background: 

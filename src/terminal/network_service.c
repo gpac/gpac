@@ -549,8 +549,8 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 {
 	u32 i;
 	GF_Err e;
-	char *sURL, *qm, *frag, *ext, *mime_type;
-	char szExt[500];
+	char *sURL, *qm, *frag, *ext, *mime_type, *url_res;
+	char szExt[50];
 	GF_InputService *ifce;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Looking for plugin for URL %s\n", url));
@@ -612,19 +612,22 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	}
 
 	/* The file extension, if any, is before '?' if any or before '#' if any.*/
-	qm = strchr(sURL, '?');
+	url_res = strrchr(sURL, '/');
+	if (!url_res) url_res = strrchr(sURL, '\\');
+	if (!url_res) url_res = sURL;
+	qm = strchr(url_res, '?');
 	if (qm) {
 		qm[0] = 0;
-		ext = strrchr(sURL, '.');
+		ext = strrchr(url_res, '.');
 		qm[0] = '?';
 	} else {
-		frag = strchr(sURL, '#');
+		frag = strchr(url_res, '#');
 		if (frag) {
 			frag[0] = 0;
-			ext = strrchr(sURL, '.');
+			ext = strrchr(url_res, '.');
 			frag[0] = '#';
 		} else {
-			ext = strrchr(sURL, '.');
+			ext = strrchr(url_res, '.');
 		}
 	}
 	if (ext && !stricmp(ext, ".gz")) {
@@ -637,12 +640,15 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	/*no mime type: either local or streaming. If streaming discard extension checking*/
 	if (!ifce && !mime_type && strstr(sURL, "://") && strnicmp(sURL, "file://", 7)) ext = NULL;
 
-	if (mime_type) free(mime_type);
+	if (mime_type) {
+		free(mime_type);
+		if (!ifce) return NULL;
+	}
 
 	/*browse extensions for prefered module*/
 	if (!ifce && ext) {
 		u32 keyCount;
-		strcpy(szExt, &ext[1]);
+		strncpy(szExt, &ext[1], 49);
 		ext = strrchr(szExt, '?');
 		if (ext) ext[0] = 0;
 		ext = strrchr(szExt, '#');

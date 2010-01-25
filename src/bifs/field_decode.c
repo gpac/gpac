@@ -25,6 +25,7 @@
 
 
 #include <gpac/internal/bifs_dev.h>
+#include <gpac/crypt.h>
 #include "quant.h" 
 #include "script.h" 
 
@@ -122,11 +123,62 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		length = gf_bs_read_int(bs, size);
 		if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 
-		if ( ((SFString *)field->far_ptr)->buffer ) free( ((SFString *)field->far_ptr)->buffer);
-		((SFString *)field->far_ptr)->buffer = (char *)malloc(sizeof(char)*(length+1));
-		memset(((SFString *)field->far_ptr)->buffer , 0, length+1);
-		for (i=0; i<length; i++) {
-			 ((SFString *)field->far_ptr)->buffer[i] = gf_bs_read_int(bs, 8);
+		if ((node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
+			char *name;
+			FILE *f;
+			M_CacheTexture *ct = (M_CacheTexture *) node;
+			char *buf = malloc(sizeof(char)*length);
+			gf_bs_read_data(bs, buf, length);
+			if (ct->cacheURL.buffer) {
+				name = strdup(ct->cacheURL.buffer);
+			} else {
+				char szImg[100], *ext;
+				switch (ct->objectTypeIndication) {
+				case 0x6C: ext = "jpg"; break;
+				case 0x6D: ext = "png"; break;
+				case 0x6E: ext = "jp2"; break;
+				default: ext = "img";
+				}
+				sprintf(szImg, "%04x%04x.%s", (u32) codec, (u32) ct, ext);
+				name = strdup(szImg);
+			}
+
+			if (codec->extraction_path) {
+				char *path;
+				u32 len = strlen(name)+strlen(codec->extraction_path)+2;
+				if (codec->service_url) len += 41;
+				path = malloc(sizeof(char)*len);
+				if (codec->service_url) {
+					u8 hash[20];
+					u32 i;
+					gf_sha1_csum(codec->service_url, strlen(codec->service_url), hash);
+					sprintf(path, "%s/", codec->extraction_path);
+					for (i=0; i<20; i++) {
+						char t[3];
+						t[2] = 0;
+						sprintf(t, "%02X", hash[i]);
+						strcat(path, t);
+					}
+					strcat(path, "_");
+					strcat(path, name);
+				} else {
+					sprintf(path, "%s/%s", codec->extraction_path, name);
+				}
+				free(name);
+				name = path;
+			}
+
+			((SFString *)field->far_ptr)->buffer = name;
+			f = fopen(name, "wb");
+			fwrite(buf, 1, length, f);
+			fclose(f);
+		} else {
+			if ( ((SFString *)field->far_ptr)->buffer ) free( ((SFString *)field->far_ptr)->buffer);
+			((SFString *)field->far_ptr)->buffer = (char *)malloc(sizeof(char)*(length+1));
+			memset(((SFString *)field->far_ptr)->buffer , 0, length+1);
+			for (i=0; i<length; i++) {
+				 ((SFString *)field->far_ptr)->buffer[i] = gf_bs_read_int(bs, 8);
+			}
 		}
 		break;
 	case GF_SG_VRML_SFURL:

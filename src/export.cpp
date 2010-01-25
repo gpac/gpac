@@ -1056,6 +1056,7 @@
 #ifndef GPAC_DISABLE_BIFS
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_set_extraction_path) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_ignore_size_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_configure_stream) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bifs_decoder_remove_stream) )
@@ -1165,6 +1166,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_svg_properties_reset_pointers) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_register_iri) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_unregister_iri) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_svg_parse_element_id) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_svg_is_animation_tag) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_xml_get_element_tag) )
+
 
 #endif
 

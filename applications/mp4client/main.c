@@ -1170,7 +1170,7 @@ int main (int argc, char **argv)
 		if (!strcmp(str, "No Audio Output Available")) fprintf(stdout, "WARNING: no audio output availble - make sure no other program is locking the sound card\n");
 
 		str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
-		no_mime_check = (!str || !stricmp(str, "yes")) ? 1 : 0;
+		no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
 	}
 
 	str = gf_cfg_get_key(cfg_file, "HTTPProxy", "Enabled");

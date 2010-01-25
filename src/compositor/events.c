@@ -486,8 +486,9 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 #endif
 	) {
 		M_FontStyle *fs = (M_FontStyle *) ((M_Text *)text)->fontStyle;
-		if (!fs) return 0;
-		if (!strstr(fs->style.buffer, "editable") && !strstr(fs->style.buffer, "EDITABLE")) return 0;
+		if (!fs || !fs->style.buffer) return 0;
+		if (!
+			(fs->style.buffer, "editable") && !strstr(fs->style.buffer, "EDITABLE")) return 0;
 		compositor->focus_text_type = 3;
 		compositor->focus_node = text;
 		return 1;
@@ -1211,7 +1212,7 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 #endif
 			if (!current_focus) {
 				M_FontStyle *fs = (M_FontStyle *) ((M_Text *)elt)->fontStyle;
-				if (!fs) return NULL;
+				if (!fs || !fs->style.buffer) return NULL;
 				if (!strstr(fs->style.buffer, "editable") && !strstr(fs->style.buffer, "EDITABLE")) return NULL;
 				compositor->focus_text_type = 3;
 				return elt;

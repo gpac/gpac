@@ -48,7 +48,9 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_ImageTexture: 
 #endif
+	case TAG_MPEG4_CacheTexture: 
 		compositor_init_imagetexture(compositor, node); break;
+
 	case TAG_MPEG4_PixelTexture: 
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_PixelTexture: 
@@ -172,6 +174,9 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 
 	case TAG_MPEG4_Layer3D: compositor_init_layer3d(compositor, node); break;
 	case TAG_MPEG4_CompositeTexture3D: compositor_init_compositetexture3d(compositor, node); break;
+
+
+	case TAG_MPEG4_EnvironmentTest: compositor_init_envtest(compositor, node); break;
 #endif
 
 
@@ -275,7 +280,9 @@ void gf_sc_invalidate(GF_Compositor *compositor, GF_Node *byObj)
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_ImageTexture: 
 #endif
+	case TAG_MPEG4_CacheTexture: 
 		compositor_imagetexture_modified(byObj); break;
+
 	case TAG_MPEG4_MovieTexture: 
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_MovieTexture: 
@@ -287,6 +294,7 @@ void gf_sc_invalidate(GF_Compositor *compositor, GF_Node *byObj)
 	case TAG_MPEG4_Background: case TAG_X3D_Background: compositor_background_modified(byObj); break;
 #endif
 	case TAG_MPEG4_Layout: compositor_layout_modified(compositor, byObj); break;
+	case TAG_MPEG4_EnvironmentTest: compositor_envtest_modified(byObj); break;
 
 #endif /*GPAC_DISABLE_VRML*/
 

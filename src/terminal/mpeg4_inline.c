@@ -500,7 +500,7 @@ static void gf_storage_load(M_Storage *storage)
 		free(section);
 		return;
 	}
-	opt = gf_cfg_get_key(cfg, section, "expireAfterNPT");
+	opt = gf_cfg_get_key(cfg, section, "expireAfterNTP");
 	gf_net_get_ntp(&sec, &frac);
 	sscanf(opt, "%u", &exp);
 	if (exp && (exp<=sec)) {
@@ -591,13 +591,13 @@ void gf_storage_save(M_Storage *storage)
 
 	if (storage->expireAfter) {
 		u32 sec, frac;
-		char szNPT[100];
+		char szNTP[100];
 		gf_net_get_ntp(&sec, &frac);
 		sec += storage->expireAfter;
-		sprintf(szNPT, "%u", sec);
-		gf_cfg_set_key(cfg, section, "expireAfterNPT", szNPT);
+		sprintf(szNTP, "%u", sec);
+		gf_cfg_set_key(cfg, section, "expireAfterNTP", szNTP);
 	} else {
-		gf_cfg_set_key(cfg, section, "expireAfterNPT", "0");
+		gf_cfg_set_key(cfg, section, "expireAfterNTP", "0");
 	}
 
 	for (i=0; i<storage->storageList.count; i++) {
@@ -684,34 +684,6 @@ void gf_scene_init_storage(GF_Scene *scene, GF_Node *node)
 	}
 	gf_list_add(scene->storages, node);
 	if (storage->_auto) gf_storage_load(storage);
-}
-
-void gf_storage_clean_cache(GF_Config *cfg)
-{
-	u32 i, count;
-	count = gf_cfg_get_section_count(cfg);
-	for (i=0; i<count; i++) {
-		const char *opt;
-		u32 sec, frac, exp;
-		const char *name = gf_cfg_get_section_name(cfg, i);
-		if (strncmp(name, "@cache=", 7)) continue;
-
-		opt = gf_cfg_get_key(cfg, name, "expireAfterNPT");
-		if (!opt) {
-			gf_cfg_del_section(cfg, name);
-			i--;
-			count--;
-			continue;
-		}
-		sscanf(opt, "%u", &exp);
-		gf_net_get_ntp(&sec, &frac);
-		if (exp && (exp<sec)) {
-			gf_cfg_del_section(cfg, name);
-			i--;
-			count--;
-			continue;
-		}
-	}
 }
 
 #endif

@@ -25,6 +25,7 @@
 #include "texturing.h"
 //#include "nodes_stacks.h"
 
+#include <gpac/network.h>
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
@@ -207,27 +208,54 @@ void compositor_movietexture_modified(GF_Node *node)
 	if (!st->time_handle.is_registered) gf_sc_register_time_node(st->txh.compositor, &st->time_handle);
 }
 
-typedef struct
-{
-	GF_TextureHandler txh;
-} ImageTextureStack;
-
 static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
-		ImageTextureStack *st = (ImageTextureStack *) gf_node_get_private(node);
-		gf_sc_texture_destroy(&st->txh);
-		free(st);
+		GF_TextureHandler *txh = (GF_TextureHandler *) gf_node_get_private(node);
+		
+		/*cleanup cache if needed*/ 
+		if (gf_node_get_tag(node)==TAG_MPEG4_CacheTexture) {
+			char section[16];
+			const char *opt, *file;
+			Bool delete_file = 1;
+			M_CacheTexture *ct = (M_CacheTexture*)node;
+
+			sprintf(section, "@cache=%08X", (u32) ct);
+			file = gf_cfg_get_key(txh->compositor->user->config, section, "cacheFile");
+			opt = gf_cfg_get_key(txh->compositor->user->config, section, "expireAfterNTP");
+
+			if (opt) {
+				u32 sec, frac, exp;
+				sscanf(opt, "%u", &exp);
+				gf_net_get_ntp(&sec, &frac);
+				if (!exp || (exp>sec)) delete_file=0;
+			}
+			if (delete_file) {
+				gf_delete_file((char*)file);
+				gf_cfg_del_section(txh->compositor->user->config, section);
+			}
+		}
+		gf_sc_texture_destroy(txh);
+		free(txh);
 	}
 }
 
 static void imagetexture_update(GF_TextureHandler *txh)
 {
-	M_ImageTexture *txnode = (M_ImageTexture *) txh->owner;
-	
+	MFURL url;
+	SFURL sfurl;
+	if (gf_node_get_tag(txh->owner)==TAG_MPEG4_ImageTexture) {
+		url = ((M_ImageTexture *) txh->owner)->url;
+	} else {
+		url.count = 1;
+		sfurl.OD_ID=GF_MEDIA_EXTERNAL_ID;
+		sfurl.url = ((M_CacheTexture *) txh->owner)->image.buffer;
+		url.vals = &sfurl;
+	}
+
 	/*setup texture if needed*/
-	if (!txh->is_open && txnode->url.count) {
-		gf_sc_texture_play(txh, &txnode->url);
+	if (!txh->is_open && url.count) {
+		gf_sc_texture_play(txh, &url);
 	}
 	gf_sc_texture_update_frame(txh, 0);
 	
@@ -244,38 +272,96 @@ static void imagetexture_update(GF_TextureHandler *txh)
 
 void compositor_init_imagetexture(GF_Compositor *compositor, GF_Node *node)
 {
-	ImageTextureStack *st;
-	GF_SAFEALLOC(st, ImageTextureStack);
-	gf_sc_texture_setup(&st->txh, compositor, node);
-	st->txh.update_texture_fcnt = imagetexture_update;
-	gf_node_set_private(node, st);
+	GF_TextureHandler *txh;
+	GF_SAFEALLOC(txh, GF_TextureHandler);
+	gf_sc_texture_setup(txh, compositor, node);
+	txh->update_texture_fcnt = imagetexture_update;
+	gf_node_set_private(node, txh);
 	gf_node_set_callback_function(node, imagetexture_destroy);
-	st->txh.flags = 0;
-	if (((M_ImageTexture*)node)->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
-	if (((M_ImageTexture*)node)->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
+	txh->flags = 0;
+
+	if (gf_node_get_tag(txh->owner)==TAG_MPEG4_ImageTexture) {
+		if (((M_ImageTexture*)node)->repeatS) txh->flags |= GF_SR_TEXTURE_REPEAT_S;
+		if (((M_ImageTexture*)node)->repeatT) txh->flags |= GF_SR_TEXTURE_REPEAT_T;
+	} else {
+		char section[16], *url;
+		u32 i, count;
+		M_CacheTexture*ct = (M_CacheTexture*)node;
+		if (!ct->image.buffer) return;
+
+		if (ct->repeatS) txh->flags |= GF_SR_TEXTURE_REPEAT_S;
+		if (ct->repeatT) txh->flags |= GF_SR_TEXTURE_REPEAT_T;
+
+		/*locate existing cache*/
+		url = gf_scene_get_service_url( gf_node_get_graph(node) );
+		count = gf_cfg_get_section_count(compositor->user->config);
+		for (i=0; i<count; i++) {
+			const char *opt;
+			const char *name = gf_cfg_get_section_name(compositor->user->config, i);
+			if (strncmp(name, "@cache=", 7)) continue;
+			opt = gf_cfg_get_key(compositor->user->config, name, "serviceURL");
+			if (!opt || stricmp(opt, url)) continue;
+			opt = gf_cfg_get_key(compositor->user->config, name, "cacheName");
+			if (opt && ct->cacheURL.buffer && !stricmp(opt, ct->cacheURL.buffer)) {
+				opt = gf_cfg_get_key(compositor->user->config, name, "cacheFile");
+				if (opt) gf_delete_file((char*)opt);
+				gf_cfg_del_section(compositor->user->config, name);
+				break;
+			}
+		}
+
+		sprintf(section, "@cache=%08X", (u32) ct);
+		gf_cfg_set_key(compositor->user->config, section, "serviceURL", url);
+		gf_cfg_set_key(compositor->user->config, section, "cacheFile", ct->image.buffer);
+
+		/*setup cache if needed*/ 
+		if (ct->cacheURL.buffer && (ct->expirationDate!=0) ) {
+			char exp[50];
+			u32 sec, frac;
+			gf_cfg_set_key(compositor->user->config, section, "cacheName", ct->cacheURL.buffer);
+
+			if (ct->expirationDate>0) {
+				gf_net_get_ntp(&sec, &frac);
+				sec += ct->expirationDate;
+				sprintf(exp, "%u", sec);
+			} else {
+				strcpy(exp, "0");
+			}
+			gf_cfg_set_key(compositor->user->config, section, "expireAfterNTP", exp);
+		}
+	}
 }
 
 GF_TextureHandler *it_get_texture(GF_Node *node)
 {
-	ImageTextureStack *st = (ImageTextureStack *) gf_node_get_private(node);
-	return &st->txh;
+	return gf_node_get_private(node);
 }
 void compositor_imagetexture_modified(GF_Node *node)
 {
-	M_ImageTexture *im = (M_ImageTexture *)node;
-	ImageTextureStack *st = (ImageTextureStack *) gf_node_get_private(node);
-	if (!st) return;
+	MFURL url;
+	SFURL sfurl;
+	GF_TextureHandler *txh = (GF_TextureHandler *) gf_node_get_private(node);
+	if (!txh) return;
+
+	if (gf_node_get_tag(node)==TAG_MPEG4_ImageTexture) {
+		url = ((M_ImageTexture *) node)->url;
+	} else {
+		url.count = 1;
+		sfurl.OD_ID=GF_MEDIA_EXTERNAL_ID;
+		sfurl.url = ((M_CacheTexture *) node)->image.buffer;
+		url.vals = &sfurl;
+	}
 
 	/*if open and changed, stop and play*/
-	if (st->txh.is_open) {
-		if (! gf_sc_texture_check_url_change(&st->txh, &im->url)) return;
-		gf_sc_texture_stop(&st->txh);
-		gf_sc_texture_play(&st->txh, &im->url);
+	if (txh->is_open) {
+		if (! gf_sc_texture_check_url_change(txh, &url)) return;
+		gf_sc_texture_stop(txh);
+		gf_sc_texture_play(txh, &url);
 		return;
 	}
 	/*if not open and changed play*/
-	if (im->url.count) 
-		gf_sc_texture_play(&st->txh, &im->url);
+	if (url.count) 
+		gf_sc_texture_play(txh, &url);
 }
 
 
@@ -390,12 +476,12 @@ static void matte_update(GF_TextureHandler *txh)
 
 void compositor_init_mattetexture(GF_Compositor *compositor, GF_Node *node)
 {
-	ImageTextureStack *st;
-	GF_SAFEALLOC(st, ImageTextureStack);
-	gf_sc_texture_setup(&st->txh, compositor, node);
-	st->txh.flags = GF_SR_TEXTURE_MATTE;
-	st->txh.update_texture_fcnt = matte_update;
-	gf_node_set_private(node, st);
+	GF_TextureHandler *txh;
+	GF_SAFEALLOC(txh, GF_TextureHandler);
+	gf_sc_texture_setup(txh, compositor, node);
+	txh->flags = GF_SR_TEXTURE_MATTE;
+	txh->update_texture_fcnt = matte_update;
+	gf_node_set_private(node, txh);
 	gf_node_set_callback_function(node, imagetexture_destroy);
 }
 

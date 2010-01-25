@@ -377,7 +377,49 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	gf_term_connect_object(term, odm, (char *) URL, (char*)parent_path);
 }
 
-void gf_storage_clean_cache(GF_Config *cfg);
+void gf_term_refresh_cache(GF_Config *cfg)
+{
+	u32 i, count;
+	count = gf_cfg_get_section_count(cfg);
+	for (i=0; i<count; i++) {
+		const char *opt;
+		u32 sec, frac, exp;
+		Bool force_delete;
+		const char *file;
+		const char *name = gf_cfg_get_section_name(cfg, i);
+		if (strncmp(name, "@cache=", 7)) continue;
+
+		file = gf_cfg_get_key(cfg, name, "cacheFile");
+		opt = gf_cfg_get_key(cfg, name, "expireAfterNTP");
+		if (!opt) {
+			if (file) gf_delete_file((char*) file);
+			gf_cfg_del_section(cfg, name);
+			i--;
+			count--;
+			continue;
+		}
+
+		force_delete = 0;
+		if (file) {
+			FILE *t = fopen(file, "r");
+			if (!t) force_delete = 1;
+			else fclose(t);
+		}
+		sscanf(opt, "%u", &exp);
+		gf_net_get_ntp(&sec, &frac);
+		if (exp && (exp<sec)) force_delete=1;
+		
+		if (force_delete) {
+			if (file) gf_delete_file((char*) opt);
+
+			gf_cfg_del_section(cfg, name);
+			i--;
+			count--;
+			continue;
+		}
+	}
+}
+
 
 GF_EXPORT
 GF_Terminal *gf_term_new(GF_User *user)
@@ -490,7 +532,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	gf_list_add(tmp->uri_relocators, &tmp->locales);
 	tmp->speed_ratio = FIX_ONE;
 
-	gf_storage_clean_cache(user->config);
+	gf_term_refresh_cache(user->config);
 	cf = gf_cfg_get_key(user->config, "General", "GUIFile");
 	if (cf) {
 		gf_term_connect_from_time_ex(tmp, cf, 0, 0, 1, NULL);
@@ -1057,7 +1099,7 @@ Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char
 void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
 {
 	GF_ClientService *ns;
-	u32 i;
+	u32 i, count;
 	GF_Err e;
 	Bool reloc_result; 
 	char relocated_url[GF_MAX_PATH], localized_url[GF_MAX_PATH];
@@ -1066,6 +1108,37 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	/*try to relocate the url*/
 	reloc_result = gf_term_relocate_url(term, serviceURL, parent_url, relocated_url, localized_url);
 	if (reloc_result) serviceURL = (char *) relocated_url;
+
+	/*check cache*/
+	if (parent_url) {
+		count = gf_cfg_get_section_count(term->user->config);
+		for (i=0; i<count; i++) {
+			u32 exp, sec, frac;
+			const char *opt;
+			const char *name = gf_cfg_get_section_name(term->user->config, i);
+			if (strncmp(name, "@cache=", 7)) continue;
+			opt = gf_cfg_get_key(term->user->config, name, "serviceURL");
+			if (!opt || stricmp(opt, parent_url)) continue;
+			opt = gf_cfg_get_key(term->user->config, name, "cacheName");
+			if (!opt || stricmp(opt, serviceURL)) continue;
+
+			serviceURL = (char*)gf_cfg_get_key(term->user->config, name, "cacheFile");
+			opt = gf_cfg_get_key(term->user->config, name, "expireAfterNTP");
+			if (opt) {
+				sscanf(opt, "%u", &exp);
+				gf_net_get_ntp(&sec, &frac);
+				if (exp && (exp<sec)) {
+					opt = gf_cfg_get_key(term->user->config, name, "cacheFile");
+					if (opt) gf_delete_file((char*) opt);
+					gf_cfg_del_section(term->user->config, name);
+					i--;
+					count--;
+					serviceURL = NULL;
+				}
+			}
+			break;
+		}
+	}
 
 	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
 	i=0;

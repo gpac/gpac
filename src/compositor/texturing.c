@@ -224,7 +224,9 @@ GF_TextureHandler *gf_sc_texture_get_handler(GF_Node *n)
 	if (!n) return NULL;
 	switch (gf_node_get_tag(n)) {
 #ifndef GPAC_DISABLE_VRML
-	case TAG_MPEG4_ImageTexture: return it_get_texture(n);
+	case TAG_MPEG4_ImageTexture: 
+	case TAG_MPEG4_CacheTexture: 
+		return it_get_texture(n);
 	case TAG_MPEG4_MovieTexture: return mt_get_texture(n);
 	case TAG_MPEG4_PixelTexture: return pt_get_texture(n);
 

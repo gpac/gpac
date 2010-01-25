@@ -1361,3 +1361,9 @@ Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene)
 	return 1;
 }
 
+const char *gf_scene_get_service_url(GF_SceneGraph *sg)
+{
+	GF_Scene *scene = gf_sg_get_private(sg);
+	if (scene) return scene->root_od->net_service->url;
+	return NULL;
+}
