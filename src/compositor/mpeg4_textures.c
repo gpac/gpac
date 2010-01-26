@@ -284,7 +284,8 @@ void compositor_init_imagetexture(GF_Compositor *compositor, GF_Node *node)
 		if (((M_ImageTexture*)node)->repeatS) txh->flags |= GF_SR_TEXTURE_REPEAT_S;
 		if (((M_ImageTexture*)node)->repeatT) txh->flags |= GF_SR_TEXTURE_REPEAT_T;
 	} else {
-		char section[16], *url;
+		char section[16];
+		const char *url;
 		u32 i, count;
 		M_CacheTexture*ct = (M_CacheTexture*)node;
 		if (!ct->image.buffer) return;
