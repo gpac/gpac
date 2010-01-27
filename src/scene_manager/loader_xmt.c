@@ -2895,7 +2895,7 @@ static GF_Err xmt_restore_context(GF_SceneLoader *load)
 	/*scene creation - pick up a size*/
 	if (!parser->scene_es) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("XMT: No BIFS Streams found in existing context - creating one\n"));
-		parser->scene_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, 0);
+		parser->scene_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
 		parser->load->ctx->scene_width = 0;
 		parser->load->ctx->scene_height = 0;
 		parser->load->ctx->is_pixel_metrics = 1;

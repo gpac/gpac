@@ -308,6 +308,46 @@ static GF_Err gf_sm_live_encode_scene_au(GF_BifsEngine *codec, gf_beng_callback 
 	return e;
 }
 
+/*marks the first command of the first AU of the stream as not appliable*/
+GF_EXPORT
+GF_Err gf_beng_mark_for_aggregation(GF_BifsEngine *codec, u16 ESID)
+{
+	GF_Err e = GF_STREAM_NOT_FOUND;
+	GF_StreamContext *sc;
+	GF_AUContext *au;
+	GF_Command *cmd;
+	u32 i = 0, j, k;
+	while (sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i))
+	{
+		e = GF_OK;
+		/*if 1) streamType is BIFS and 2) ESIDs match*/
+		if ((sc->objectType == GPAC_OTI_SCENE_BIFS || sc->objectType == GPAC_OTI_SCENE_BIFS_V2) && sc->ESID == ESID)
+		{
+			j = 0;
+			while (au = (GF_AUContext*)gf_list_enum(sc->AUs, &j)) {
+				k = 0;
+				while (cmd = (GF_Command*)gf_list_enum(au->commands, &k)) {
+					/*mark the first command of the first AU only*/
+					if (j==1 && k==1) {
+						/*replace scene don't need not to be applied*/
+						if (cmd->tag != GF_SG_SCENE_REPLACE)
+							cmd->never_apply = 1;
+					} else {
+						if (cmd->tag == GF_SG_SCENE_REPLACE)
+							return GF_NOT_SUPPORTED;
+
+						cmd->never_apply = 0;
+					}
+				}
+			}
+
+			return e;
+		}
+	}
+
+	return e;
+}
+
 GF_EXPORT
 GF_Err gf_beng_aggregate_context(GF_BifsEngine *codec)
 {

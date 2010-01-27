@@ -199,7 +199,6 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 	for (i=0; i<stream_count; i++) {
 		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
 
-
 		/*FIXME - do this as well for ODs*/
 #ifndef GPAC_DISABLE_VRML
 		if (sc->streamType == GF_STREAM_SCENE) {
@@ -208,7 +207,6 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 			/*apply all commands - this will also apply the SceneReplace*/
 			j=0;
 			while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
-
 				if (!stream_rap_found) {
 					u32 k=0;
 					while ((com = gf_list_enum(au->commands, &k))) {
@@ -226,21 +224,31 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 						if (stream_rap_found) break;
 					}
 				}
+				/*all commands will be applied, except those marked as 'never_apply'*/
 				e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
 				if (e) return e;
 			}
 
-			/* Delete all the commands in the stream */
-			while ( (au_count = gf_list_count(sc->AUs)) ) {
+			/* Delete all the commands in the stream, except those marked as 'never_apply'*/
+			au_count = gf_list_count(sc->AUs);
+			while (au_count) {
 				au = (GF_AUContext *)gf_list_get(sc->AUs, au_count-1);
-				gf_list_rem(sc->AUs, au_count-1);
-				while ( (com_count = gf_list_count(au->commands)) ) {
+				com_count = gf_list_count(au->commands);
+				while (com_count) {
 					com = (GF_Command*)gf_list_get(au->commands, com_count - 1);
-					gf_list_rem(au->commands, com_count - 1);
-					gf_sg_command_del(com);
+					if (!com->never_apply) {
+						gf_list_rem(au->commands, com_count - 1);
+						gf_sg_command_del(com);
+					}
+					else assert(!stream_rap_found);
+					com_count--;
 				}
-				gf_list_del(au->commands);
-				free(au);
+				if (!gf_list_count(au->commands)) {
+					gf_list_rem(sc->AUs, au_count-1);
+					gf_list_del(au->commands);
+					free(au);
+				}
+				au_count--;
 			}
 			/*and recreate scene replace*/
 			if (stream_rap_found) {
