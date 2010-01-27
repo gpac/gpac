@@ -1048,6 +1048,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_encode_from_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_encode_from_string) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_save_context) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_beng_mark_for_aggregation) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_aggregate_context) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_terminate) )
 #endif

@@ -68,20 +68,20 @@ GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char *inputContext
 GF_BifsEngine *gf_beng_init_from_context(void *calling_object, GF_SceneManager *ctx);
 
 /**
- * @beng, pointer to the GF_BifsEngine returned by BENC_Init
+ * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()
  *
- * must be called after BENC_Init
+ * must be called after gf_beng_init()
  */
 u32 gf_beng_get_stream_count(GF_BifsEngine *beng);
 
 /**
- * @beng, pointer to the GF_BifsEngine returned by BENC_Init
+ * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()
  * @idx: stream index
  * @ESID: pointer to the stream ID
  * @config: pointer to the encoded BIFS config (memory is not allocated)
  * @config_len: length of the buffer
  *
- * must be called after BENC_Init
+ * must be called after gf_beng_init()
  */
 GF_Err gf_beng_get_stream_config(GF_BifsEngine *beng, u32 idx, u16 *ESID, const char **config, u32 *config_len);
 
@@ -89,14 +89,14 @@ GF_Err gf_beng_get_stream_config(GF_BifsEngine *beng, u32 idx, u16 *ESID, const 
  * Encodes the AU context which is not encoded when calling BENC_EncodeAUFromString/File
  * Should be called after Aggregate.
  *
- * @beng, pointer to the GF_BifsEngine returned by BENC_Init
+ * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
  */
 GF_Err gf_beng_encode_context(GF_BifsEngine *beng, gf_beng_callback callback);
 
 /**
- * @beng, pointer to the GF_BifsEngine returned by BENC_Init
+ * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()
  * @auFile, name of a file containing a description for an access unit (BT or XMT)
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
@@ -104,7 +104,7 @@ GF_Err gf_beng_encode_context(GF_BifsEngine *beng, gf_beng_callback callback);
 GF_Err gf_beng_encode_from_file(GF_BifsEngine *beng, char *auFile, gf_beng_callback callback);
 
 /**
- * @beng, pointer to the GF_BifsEngine returned by BENC_Init
+ * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()
  * @auString, a char string to encode (must one or several complete nodes in BT
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
@@ -112,7 +112,7 @@ GF_Err gf_beng_encode_from_file(GF_BifsEngine *beng, char *auFile, gf_beng_callb
 GF_Err gf_beng_encode_from_string(GF_BifsEngine *beng, char *auString, gf_beng_callback callback);
 
 /**
- * @beng, pointer to the GF_BifsEngine returned by BENC_Init
+ * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()
  * @ctxFileName, name of the file to save the current state of the BIFS scene to
  *
  * save the current context of the beng.
@@ -122,7 +122,15 @@ GF_Err gf_beng_encode_from_string(GF_BifsEngine *beng, char *auString, gf_beng_c
 GF_Err gf_beng_save_context(GF_BifsEngine *beng, char *ctxFileName);
 
 /**
- * @beng, pointer to the GF_BifsEngine returned by BENC_Init
+ * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()
+ * @ESID, stream ID
+ *
+ * marks the first command of the first AU of the stream as 'never_apply'
+ */
+GF_Err gf_beng_mark_for_aggregation(GF_BifsEngine *codec, u16 ESID);
+
+/**
+ * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()
  *
  * aggregates the current context of the beng, creates a scene replace
  *
@@ -130,7 +138,7 @@ GF_Err gf_beng_save_context(GF_BifsEngine *beng, char *ctxFileName);
 GF_Err gf_beng_aggregate_context(GF_BifsEngine *beng);
 
 /**
- * @beng, pointer to the GF_BifsEngine returned by BENC_Init
+ * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()
  *
  * release the memory used by this beng, no more call on the beng should happen after this
  *

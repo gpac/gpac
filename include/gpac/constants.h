@@ -225,7 +225,7 @@ enum
 	/*!OTI forLASeR streams*/
 	GPAC_OTI_SCENE_LASER = 0x09,
 
-	/*!OTI for dummy streams (dsi = file name) using the generci context loader (BIFS/VRML/SWF/...) - GPAC internal*/
+	/*!OTI for dummy streams (dsi = file name) using the generic context loader (BIFS/VRML/SWF/...) - GPAC internal*/
 	GPAC_OTI_PRIVATE_SCENE_GENERIC = 0xC0,
 	/*!OTI for SVG dummy stream (dsi = file name) - GPAC internal*/
 	GPAC_OTI_PRIVATE_SCENE_SVG = 0xC1,

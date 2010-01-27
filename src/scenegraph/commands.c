@@ -169,6 +169,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 
 	if (!com || !graph) return GF_BAD_PARAM;
 
+	if (com->never_apply) return GF_OK;
+
 	e = GF_OK;
 	switch (com->tag) {
 #ifndef GPAC_DISABLE_VRML

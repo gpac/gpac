@@ -10,7 +10,7 @@ int main(int argc, char **argv)
 {
 	int i;
 	GF_BifsEngine *codec1 = NULL;
-	GF_BifsEngine * codec2 = NULL;
+	GF_BifsEngine *codec2 = NULL;
 
 	gf_sys_init();
 
@@ -18,18 +18,35 @@ int main(int argc, char **argv)
 	gf_log_set_tools(0xFFFFFFFF);
 
 	if (1) {
-//		char update[] = "<par begin =\"4\" atES_ID=\"22\">\n<Replace atNode=\"TEXT_COUNTER\" atField=\"string\" value=\"'01'\"/>\n</par>\n";
-
-		char update[] = "<saf:sceneUnit time=\"2000\"><lsr:Replace ref=\"rect\" attributeName=\"fill-opacity\" value=\"0.5\"/></saf:sceneUnit>";
+		/*these default update are related to rect_aggregate.bt*/
+		char update1[] = "AT 1000 IN 2 {\
+						INSERT AT OG.children[0] DEF TR2 Transform2D {\
+						translation -100 -50\
+						children [\
+						DEF S Shape {\
+						appearance Appearance {\
+						material Material2D {\
+						emissiveColor 1 0 0\
+						filled TRUE\
+						} }\
+						geometry DEF REC Rectangle {\
+						size 50 100\
+						} } ] } }";
+		char update2[] = "AT 2000 IN 3 {\
+						REPLACE REC.size BY 100 100\
+						}";
 
 		codec1 = gf_beng_init(NULL, argv[1]);
 
 		gf_beng_encode_context(codec1, SampleCallBack);
-		gf_beng_save_context(codec1, "initial_context.mp4");
-		gf_beng_encode_from_string(codec1, (char *) update, SampleCallBack);
-		gf_beng_save_context(codec1, "non_aggregated_context.mp4");
+		gf_beng_save_context(codec1, "initial_context.bt");
+		gf_beng_encode_from_string(codec1, (char*)update1, SampleCallBack);
+		gf_beng_save_context(codec1, "non_aggregated_context1.xmt");
+		gf_beng_encode_from_string(codec1, (char*)update2, SampleCallBack);
+		gf_beng_save_context(codec1, "non_aggregated_context2.xmt");
+		gf_beng_mark_for_aggregation(codec1, 2); /*mark ESID 2 for aggregation*/
 		gf_beng_aggregate_context(codec1);
-		gf_beng_save_context(codec1, "aggregated_context.mp4");
+		gf_beng_save_context(codec1, "aggregated_context2.xmt");
 		gf_beng_terminate(codec1);
 	} else if (1) {
 		char scene[] = "OrderedGroup {children [Background2D {backColor 1 1 1}Shape {appearance Appearance {material DEF M Material2D {emissiveColor 0 0 1 filled TRUE } } geometry Rectangle { size 100 75 } } ] }";
