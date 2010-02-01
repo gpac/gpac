@@ -377,9 +377,12 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
 	u32 j;
 	char *subKeyValue;
 	const char *keyValue;
+
 	
-	keyValue = gf_cfg_get_key(iniFile, secName, keyName);
-	if (!keyValue) return NULL;
+	keyValue = strdup(gf_cfg_get_key(iniFile, secName, keyName));
+	if (!keyValue){
+		return NULL;
+	}
 
 	j = 0;
 	subKeyValue = strtok((char*)keyValue,";"); 
@@ -390,5 +393,6 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
 		j++;
 		subKeyValue = strtok (NULL, ";");
 	}
+	free(keyValue);
 	return NULL;
 }
