@@ -375,7 +375,7 @@ GF_EXPORT
 const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const char *keyName, u32 sub_index)
 {
 	u32 j;
-	char *subKeyValue;
+	char *subKeyValue, *returnKey;
 	const char *keyValue;
 
 	
@@ -388,8 +388,9 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
 	subKeyValue = strtok((char*)keyValue,";"); 
 	while (subKeyValue!=NULL) { 
 		if (j==sub_index) {
+			returnKey = strdup(subKeyValue);
 			free(keyValue);
-			return strdup(subKeyValue);
+			return returnKey;
 		}
 		j++;
 		subKeyValue = strtok (NULL, ";");

@@ -190,6 +190,7 @@ void CE_CharToWide(char *str, unsigned short *w_str)
 
 void gf_delete_file(char *fileName)
 {
+
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
 	CE_CharToWide(fileName, swzName);
