@@ -5,7 +5,7 @@
  * Compile this file with -DNO_GZCOMPRESS to avoid the compression code.
  */
 
-/* @(#) $Id: gzio.cpp,v 1.2 2007-05-23 15:51:18 jeanlf Exp $ */
+/* @(#) $Id: gzio.cpp,v 1.3 2010-02-02 09:24:39 enst_devs Exp $ */
 
 #include <stdio.h>
 
@@ -401,10 +401,7 @@ local int destroy (gz_stream *s)
     return err;
 }
 
-/* ===========================================================================
-     Reads the given number of uncompressed bytes from the compressed file.
-   gzread returns the number of bytes actually read (0 for end of file).
-*/
+
 GZ_EXPORT
 int gzread (gzFile file, voidp buf, unsigned len)
 {
