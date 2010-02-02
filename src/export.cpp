@@ -72,8 +72,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_set_echo_off) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crc_32) )
 
+/* Font */
+#pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_new) )
+
 #ifdef GPAC_MEMORY_TRACKING
 #pragma comment (linker, EXPORT_SYMBOL(gf_malloc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_calloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_realloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_free) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_strdup) )
@@ -200,6 +204,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_insert_key) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_del_section) )
 
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_refresh) )
@@ -219,6 +224,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_is_right_to_left) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_utf8_reorder_bidi) )
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_process) )
@@ -226,7 +232,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_stats) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_fetch_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_last_error) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_del) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_del) )
@@ -1419,3 +1425,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_set_font) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_create_span) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_refresh_span_bounds) )
+
+/* dvb_mpe.h */
+#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_init) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_shutdown) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_print_mpe_info) )
