@@ -1427,8 +1427,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_refresh_span_bounds) )
 
 /* dvb_mpe.h */
+#ifdef GPAC_ENST_PRIVATE
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_shutdown) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_print_mpe_info) )
+#endif
