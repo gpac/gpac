@@ -1339,7 +1339,7 @@ static void traverse_envtest(GF_Node *node, void *rs, Bool is_destroy)
 	}
 }
 
-void envtest_evaluate(GF_Node *node, void *_route)
+void envtest_evaluate(GF_Node *node, GF_Route *_route)
 {
 	Bool smaller, larger, equal;
 	Float ar, arft;
