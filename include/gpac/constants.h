@@ -222,30 +222,45 @@ enum
 	GPAC_OTI_SCENE_BIFS_V2 = 0x02,
 	/*!OTI for BIFS InputSensor streams*/
 	GPAC_OTI_SCENE_INTERACT = 0x03,
-	/*!OTI forLASeR streams*/
+	/*!OTI for AFX streams with extended BIFS config*/
+	GPAC_OTI_SCENE_BIFS_EXTENDED = 0x04,
+	/*!OTI for AFX streams with extended AFXConfig*/
+	GPAC_OTI_SCENE_AFX = 0x05,
+    /*!OTI for Font data streams */
+	GPAC_OTI_FONT = 0x06,
+    /*!OTI for synthesized texture streams */
+	GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE = 0x07,
+    /*!OTI for streaming text streams */
+	GPAC_OTI_TEXT_MPEG4 = 0x08,
+	/*!OTI for LASeR streams*/
 	GPAC_OTI_SCENE_LASER = 0x09,
 
-	/*!OTI for dummy streams (dsi = file name) using the generic context loader (BIFS/VRML/SWF/...) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_GENERIC = 0xC0,
-	/*!OTI for SVG dummy stream (dsi = file name) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_SVG = 0xC1,
-	/*!OTI for LASeR/SAF+XML dummy stream (dsi = file name) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_LASER = 0xC2,
-	/*!OTI for XBL dummy streams (dsi = file name) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_XBL = 0xC3,
-	/*!OTI for EPG dummy streams (dsi = null) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_EPG = 0xC4,
-	/*!OTI for WGT dummy streams (dsi = null) - GPAC internal*/
-	GPAC_OTI_PRIVATE_SCENE_WGT = 0xC5,
-
-	/*!OTI for streaming SVG - GPAC internal*/
-	GPAC_OTI_SCENE_SVG = 0xD0,
-	/*!OTI for streaming SVG + gz - GPAC internal*/
-	GPAC_OTI_SCENE_SVG_GZ = 0xD1,
-	/*!OTI for DIMS (dsi = 3GPP DIMS configuration) - GPAC internal*/
-	GPAC_OTI_SCENE_DIMS = 0xD2,
-};
-
+	/*!OTI for MPEG-4 Video Part 2 streams*/
+	GPAC_OTI_VIDEO_MPEG4_PART2 = 0x20,
+	/*!OTI for MPEG-4 Video Part 10 (H.264 | AVC ) streams*/
+	GPAC_OTI_VIDEO_AVC = 0x21,
+	/*!OTI for AVC Parameter sets streams*/
+	GPAC_OTI_VIDEO_AVC_PS = 0x22,
+	/*!OTI for MPEG-4 AAC streams*/
+    GPAC_OTI_AUDIO_AAC_MPEG4 = 0x40,
+	/*!OTI for MPEG-2 AAC Main Profile streams*/
+    GPAC_OTI_AUDIO_AAC_MPEG2_MP = 0x66,
+	/*!OTI for MPEG-2 AAC Low Complexity Profile streams*/
+    GPAC_OTI_AUDIO_AAC_MPEG2_LCP = 0x67,
+	/*!OTI for MPEG-2 AAC Scaleable Sampling Rate Profile streams*/
+    GPAC_OTI_AUDIO_AAC_MPEG2_SSRP = 0x68,
+	/*!OTI for MPEG-2 Audio Part 3 streams*/
+    GPAC_OTI_AUDIO_MPEG2_PART3 = 0x69,
+	/*!OTI for MPEG-1 Video streams*/
+    GPAC_OTI_VIDEO_MPEG1 = 0x6A,
+	/*!OTI for MPEG-1 Audio streams*/
+    GPAC_OTI_AUDIO_MPEG1 = 0x6B,
+	/*!OTI for JPEG streams*/
+    GPAC_OTI_IMAGE_JPEG = 0x6C,
+	/*!OTI for PNG streams*/
+    GPAC_OTI_IMAGE_PNG = 0x6D,
+	/*!OTI for JPEG-2000 streams*/
+    GPAC_OTI_IMAGE_JPEG_2000 = 0x6E,
 
 /*!
  * \brief Extra ObjectTypeIndication
@@ -272,8 +287,7 @@ enum
  *	char *data: per-codec extensions till end of DSI bitstream
  \endcode
 */
-#define GPAC_OTI_MEDIA_GENERIC				0x80
-
+    GPAC_OTI_MEDIA_GENERIC = 0x80,
 /*!
  * \brief FFMPEG ObjectTypeIndication
  *
@@ -284,8 +298,52 @@ enum
  *	char *data: codec extensions till end of DSI bitstream
  \endcode
  */
-#define GPAC_OTI_MEDIA_FFMPEG				0x81
+    GPAC_OTI_MEDIA_FFMPEG = 0x81,
+    
+    /*!OTI for EVRC Voice streams*/
+    GPAC_OTI_AUDIO_EVRC_VOICE = 0xA0,
+	/*!OTI for SMV Voice streams*/
+    GPAC_OTI_AUDIO_SMV_VOICE = 0xA1,
+	/*!OTI for 3GPP2 CMF streams*/
+    GPAC_OTI_3GPP2_CMF = 0xA2,
+	/*!OTI for SMPTE VC-1 Video streams*/
+    GPAC_OTI_VIDEO_SMPTE_VC1 = 0xA3,
+	/*!OTI for Dirac Video streams*/
+    GPAC_OTI_VIDEO_DIRAC = 0xA4,
+	/*!OTI for AC-3 audio streams*/
+    GPAC_OTI_AUDIO_AC3 = 0xA5,
+	/*!OTI for enhanced AC-3 audio streams*/
+    GPAC_OTI_AUDIO_AC3_ENHANCED = 0xA6,
+	/*!OTI for DRA audio streams*/
+    GPAC_OTI_AUDIO_DRA = 0xA7,
+	/*!OTI for ITU G719 audio streams*/
+    GPAC_OTI_AUDIO_ITU_G719 = 0xA8,
+	/*!OTI for DTS Coherent Acoustics audio streams*/
+    GPAC_OTI_AUDIO_DTS_CA = 0xA9,
+	/*!OTI for DTS-HD High Resolution audio streams*/
+    GPAC_OTI_AUDIO_DTS_HD_HR = 0xAA,
+	/*!OTI for DTS-HD Master audio streams*/
+    GPAC_OTI_AUDIO_DTS_HD_MASTER = 0xAB,
+    
+    /*!OTI for dummy streams (dsi = file name) using the generic context loader (BIFS/VRML/SWF/...) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_GENERIC = 0xC0,
+	/*!OTI for SVG dummy stream (dsi = file name) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_SVG = 0xC1,
+	/*!OTI for LASeR/SAF+XML dummy stream (dsi = file name) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_LASER = 0xC2,
+	/*!OTI for XBL dummy streams (dsi = file name) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_XBL = 0xC3,
+	/*!OTI for EPG dummy streams (dsi = null) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_EPG = 0xC4,
+	/*!OTI for WGT dummy streams (dsi = null) - GPAC internal*/
+	GPAC_OTI_PRIVATE_SCENE_WGT = 0xC5,
 
+	/*!OTI for streaming SVG - GPAC internal*/
+	GPAC_OTI_SCENE_SVG = 0xD0,
+	/*!OTI for streaming SVG + gz - GPAC internal*/
+	GPAC_OTI_SCENE_SVG_GZ = 0xD1,
+	/*!OTI for DIMS (dsi = 3GPP DIMS configuration) - GPAC internal*/
+	GPAC_OTI_SCENE_DIMS = 0xD2,
 
 /*!
  * \brief OGG ObjectTypeIndication
@@ -299,7 +357,13 @@ enum
 		dsi_size -= packet_size;
 	}\endcode
 */
-#define GPAC_OTI_MEDIA_OGG				0xDD
+    GPAC_OTI_MEDIA_OGG = 0xDD,
+
+	/*!OTI for 13 Voice audio streams*/
+    GPAC_OTI_AUDIO_13K_VOICE = 0xE1,
+
+};
+
 
 
 /*channel cfg flags - DECODERS MUST OUTPUT STEREO/MULTICHANNEL IN THIS ORDER*/
