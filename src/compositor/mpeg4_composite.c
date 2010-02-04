@@ -208,13 +208,15 @@ static void composite_update(GF_TextureHandler *txh)
 	if (st->visual->type_3d) new_pixel_format = GF_PIXEL_RGBA;
 #else
 
-	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
-#ifdef GPAC_USE_OGL_ES
-	new_pixel_format = GF_PIXEL_RGBA;
-#else
+#ifndef GPAC_DISABLE_3D
 	/*no alpha support in offscreen rendering*/
 	if ( (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
 		new_pixel_format = GF_PIXEL_RGB_24;
+#endif
+
+	/*in OpenGL_ES, only RGBA can be safelly used with glReadPixels*/
+#ifdef GPAC_USE_OGL_ES
+	new_pixel_format = GF_PIXEL_RGBA;
 #endif
 
 #endif
