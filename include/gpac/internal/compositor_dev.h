@@ -103,7 +103,9 @@ typedef struct
 
 #endif
 
+#ifndef GPAC_DISABLE_3D
 #define OPENGL_RASTER
+#endif
 
 
 #define DOUBLECLICK_TIME_MS		250
