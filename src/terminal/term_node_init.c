@@ -60,7 +60,7 @@ void TraverseKeyNavigator(GF_Node *node, void *rs, Bool is_destroy)
 	}
 }
 
-void on_kn_set_focus(GF_Node*node, void *_route)
+void on_kn_set_focus(GF_Node*node, GF_Route *_route)
 {
 	GF_Scene *scene = (GF_Scene *)gf_node_get_private(node);
 	gf_sc_change_key_navigator(scene->root_od->term->compositor, node);
