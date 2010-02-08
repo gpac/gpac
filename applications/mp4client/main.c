@@ -1794,16 +1794,18 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 		case GF_STREAM_VISUAL:
 			fprintf(stdout, "\tVisual Stream - media type: ");
 			switch (esd->decoderConfig->objectTypeIndication) {
-			case 0x20: fprintf(stdout, "MPEG-4\n"); break;
-			case 0x60: fprintf(stdout, "MPEG-2 Simple Profile\n"); break;
-			case 0x61: fprintf(stdout, "MPEG-2 Main Profile\n"); break;
-			case 0x62: fprintf(stdout, "MPEG-2 SNR Profile\n"); break;
-			case 0x63: fprintf(stdout, "MPEG-2 Spatial Profile\n"); break;
-			case 0x64: fprintf(stdout, "MPEG-2 High Profile\n"); break;
-			case 0x65: fprintf(stdout, "MPEG-2 422 Profile\n"); break;
-			case 0x6A: fprintf(stdout, "MPEG-1\n"); break;
-			case 0x6C: fprintf(stdout, "JPEG\n"); break;
-			case 0x6D: fprintf(stdout, "PNG\n"); break;
+			case GPAC_OTI_VIDEO_MPEG4_PART2: fprintf(stdout, "MPEG-4\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_SIMPLE: fprintf(stdout, "MPEG-2 Simple Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_MAIN: fprintf(stdout, "MPEG-2 Main Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_SNR: fprintf(stdout, "MPEG-2 SNR Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_SPATIAL: fprintf(stdout, "MPEG-2 Spatial Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_HIGH: fprintf(stdout, "MPEG-2 High Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_422: fprintf(stdout, "MPEG-2 422 Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG1: fprintf(stdout, "MPEG-1\n"); break;
+			case GPAC_OTI_IMAGE_JPEG: fprintf(stdout, "JPEG\n"); break;
+			case GPAC_OTI_IMAGE_PNG: fprintf(stdout, "PNG\n"); break;
+			case GPAC_OTI_IMAGE_JPEG_2000: fprintf(stdout, "JPEG2000\n"); break;
+				
 			case 0x80:
 				memcpy(code, esd->decoderConfig->decoderSpecificInfo->data, 4);
 				code[4] = 0;
@@ -1818,12 +1820,12 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 		case GF_STREAM_AUDIO:
 			fprintf(stdout, "\tAudio Stream - media type: ");
 			switch (esd->decoderConfig->objectTypeIndication) {
-			case 0x40: fprintf(stdout, "MPEG-4\n"); break;
-			case 0x66: fprintf(stdout, "MPEG-2 AAC Main Profile\n"); break;
-			case 0x67: fprintf(stdout, "MPEG-2 AAC LowComplexity Profile\n"); break;
-			case 0x68: fprintf(stdout, "MPEG-2 AAC Scalable Sampling Rate Profile\n"); break;
-			case 0x69: fprintf(stdout, "MPEG-2 Audio\n"); break;
-			case 0x6B: fprintf(stdout, "MPEG-1 Audio\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG4: fprintf(stdout, "MPEG-4\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_MP: fprintf(stdout, "MPEG-2 AAC Main Profile\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_LCP: fprintf(stdout, "MPEG-2 AAC LowComplexity Profile\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP: fprintf(stdout, "MPEG-2 AAC Scalable Sampling Rate Profile\n"); break;
+			case GPAC_OTI_AUDIO_MPEG2_PART3: fprintf(stdout, "MPEG-2 Audio\n"); break;
+			case GPAC_OTI_AUDIO_MPEG1: fprintf(stdout, "MPEG-1 Audio\n"); break;
 			case 0xA0: fprintf(stdout, "EVRC Audio\n"); break;
 			case 0xA1: fprintf(stdout, "SMV Audio\n"); break;
 			case 0xE1: fprintf(stdout, "QCELP Audio\n"); break;

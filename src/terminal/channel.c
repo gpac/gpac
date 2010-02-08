@@ -1273,8 +1273,8 @@ void gf_es_on_connect(GF_Channel *ch)
 
 	/*turn off buffering for JPEG and PNG*/
 	switch (ch->esd->decoderConfig->objectTypeIndication) {
-	case 0x6C:
-	case 0x6D:
+	case GPAC_OTI_IMAGE_JPEG:
+	case GPAC_OTI_IMAGE_PNG:
 		can_buffer = 0;
 		break;
 	}

@@ -69,7 +69,7 @@ void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc)
 	avc->emul_esd = gf_odf_desc_esd_new(2);
 	avc->emul_esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 	/*AVC OTI is 0x21, AVC parameter set stream OTI (not supported in gpac) is 0x22*/
-	avc->emul_esd->decoderConfig->objectTypeIndication = 0x21;
+	avc->emul_esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_AVC;
 	if (avc->bitrate) {
 		avc->emul_esd->decoderConfig->bufferSizeDB = avc->bitrate->bufferSizeDB;
 		avc->emul_esd->decoderConfig->avgBitrate = avc->bitrate->avgBitrate;

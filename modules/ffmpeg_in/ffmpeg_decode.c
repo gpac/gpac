@@ -167,24 +167,24 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		if (ffd->st==GF_STREAM_VISUAL) {
 			ffd->ctx->codec_type = CODEC_TYPE_VIDEO;
 			switch (ffd->oti) {
-			case 0x20:
+			case GPAC_OTI_VIDEO_MPEG4_PART2:
 				codec_id = CODEC_ID_MPEG4;
 				break;
-			case 0x21:
+			case GPAC_OTI_VIDEO_AVC:
 				codec_id = CODEC_ID_H264;
 				/*ffmpeg H264/AVC needs that*/
 				//ffd->ctx->codec_tag = 0x31637661;
 				break;
-			case 0x6A:
-			case 0x60:
-			case 0x61:
-			case 0x62:
-			case 0x63:
-			case 0x64:
-			case 0x65:
+			case GPAC_OTI_VIDEO_MPEG1:
+			case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
+			case GPAC_OTI_VIDEO_MPEG2_MAIN:
+			case GPAC_OTI_VIDEO_MPEG2_SNR:
+			case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
+			case GPAC_OTI_VIDEO_MPEG2_HIGH:
+			case GPAC_OTI_VIDEO_MPEG2_422:
 				codec_id = CODEC_ID_MPEG2VIDEO;
 				break;
-			case 0x6C:
+			case GPAC_OTI_IMAGE_JPEG:
 				codec_id = CODEC_ID_MJPEG;
 				break;
 			case 0xFF:
@@ -194,8 +194,8 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		} else if (ffd->st==GF_STREAM_AUDIO) {
 			ffd->ctx->codec_type = CODEC_TYPE_AUDIO;
 			switch (ffd->oti) {
-			case 0x69:
-			case 0x6B:
+			case GPAC_OTI_AUDIO_MPEG2_PART3:
+			case GPAC_OTI_AUDIO_MPEG1:
 				ffd->ctx->frame_size = 1152;
 				codec_id = CODEC_ID_MP2;
 				break;
@@ -212,13 +212,13 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	/*setup MPEG-4 video streams*/
 	if ((ffd->st==GF_STREAM_VISUAL)) {
 		/*for all MPEG-4 variants get size*/
-		if ((ffd->oti==0x20) || (ffd->oti == 0x21)) {
+		if ((ffd->oti==GPAC_OTI_VIDEO_MPEG4_PART2) || (ffd->oti == GPAC_OTI_VIDEO_AVC)) {
 			/*if not set this may be a remap of non-mpeg4 transport (eg, transport on MPEG-TS) where
 			the DSI is carried in-band*/
 			if (esd->decoderConfig->decoderSpecificInfo->data) {
 
 				/*for regular MPEG-4, try to decode and if this fails try H263 decoder at first frame*/
-				if (ffd->oti==0x20) {
+				if (ffd->oti==GPAC_OTI_VIDEO_MPEG4_PART2) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 					e = gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 					if (e) return e;
@@ -230,7 +230,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 					ffd->previous_par = (dsi.par_num<<16) | dsi.par_den;
 					ffd->no_par_update = 1;
 #endif
-				} else if (ffd->oti==0x21) {
+				} else if (ffd->oti==GPAC_OTI_VIDEO_AVC) {
 					ffd->check_h264_isma = 1;
 				}
 
@@ -708,7 +708,7 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 	}
 	else if (StreamType==GF_STREAM_AUDIO) {
 		/*std MPEG-2 audio*/
-		if ((ObjectType==0x69) || (ObjectType==0x6B)) codec_id = CODEC_ID_MP2;
+		if ((ObjectType==GPAC_OTI_AUDIO_MPEG2_PART3) || (ObjectType==GPAC_OTI_AUDIO_MPEG1)) codec_id = CODEC_ID_MP2;
 		/*std AC3 audio*/
 		//if (ObjectType==0xA5) codec_id = CODEC_ID_AC3;
 	} 
@@ -717,21 +717,21 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 	else if (StreamType==GF_STREAM_VISUAL) {
 		switch (ObjectType) {
 		/*MPEG-4 v1 simple profile*/
-		case 0x20: codec_id = CODEC_ID_MPEG4; break;
+		case GPAC_OTI_VIDEO_MPEG4_PART2: codec_id = CODEC_ID_MPEG4; break;
 		/*H264 (not std OTI, just the way we use it internally)*/
-		case 0x21: codec_id = CODEC_ID_H264; break;
+		case GPAC_OTI_VIDEO_AVC: codec_id = CODEC_ID_H264; break;
 		/*MPEG1 video*/
-		case 0x6A:
+		case GPAC_OTI_VIDEO_MPEG1:
 		/*MPEG2 video*/
-		case 0x60:
-		case 0x61:
-		case 0x62:
-		case 0x63:
-		case 0x64:
-		case 0x65:
+		case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
+		case GPAC_OTI_VIDEO_MPEG2_MAIN:
+		case GPAC_OTI_VIDEO_MPEG2_SNR:
+		case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
+		case GPAC_OTI_VIDEO_MPEG2_HIGH:
+		case GPAC_OTI_VIDEO_MPEG2_422:
 			codec_id = CODEC_ID_MPEG2VIDEO; break;
 		/*JPEG*/
-		case 0x6C:
+		case GPAC_OTI_IMAGE_JPEG:
 			return 0; /*I'm having troubles with ffmpeg & jpeg, it appears to crash randomly*/
 			return 1;
 		default:

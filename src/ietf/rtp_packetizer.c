@@ -358,7 +358,7 @@ check_header:
 		builder->slMap.IV_delta_length = gf_get_bit_size(maxSize);
 	}
 	/*ISMACryp video mode*/
-	if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==0x20)
+	if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2)
 		&& (builder->flags & GP_RTP_PCK_SIGNAL_RAP) && builder->slMap.IV_length 
 		&& !(builder->flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(builder->flags & GP_RTP_PCK_SIGNAL_SIZE)
 		/*shall have SignalTS*/
@@ -367,7 +367,7 @@ check_header:
 		strcpy(builder->slMap.mode, "mpeg4-video");
 	}
 	/*ISMACryp AVC video mode*/
-	else if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==0x21)
+	else if ((builder->slMap.StreamType==GF_STREAM_VISUAL) && (builder->slMap.ObjectTypeIndication==GPAC_OTI_VIDEO_AVC)
 		&& (builder->flags & GP_RTP_PCK_SIGNAL_RAP) && builder->slMap.IV_length 
 		&& !(builder->flags & GP_RTP_PCK_SIGNAL_AU_IDX) && !(builder->flags & GP_RTP_PCK_SIGNAL_SIZE)
 		/*shall have SignalTS*/
@@ -428,7 +428,7 @@ Bool gf_rtp_builder_get_payload_name(GP_RTPPacketizer *rtpb, char *szPayloadName
 
 	switch (rtpb->rtp_payt) {
 	case GF_RTP_PAYT_MPEG4:
-		if ((rtpb->slMap.StreamType==GF_STREAM_VISUAL) && (rtpb->slMap.ObjectTypeIndication==0x20)) {
+		if ((rtpb->slMap.StreamType==GF_STREAM_VISUAL) && (rtpb->slMap.ObjectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2)) {
 			strcpy(szMediaName, "video");
 			/*ISMACryp video*/
 			if ( (flags & GP_RTP_PCK_SIGNAL_RAP) && rtpb->slMap.IV_length

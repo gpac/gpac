@@ -463,7 +463,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 			track->avc_nalu_size = avcc->nal_unit_size;
 			gf_odf_avc_cfg_del(avcc);
 			streamType = GF_STREAM_VISUAL;
-			oti = 0x21;
+			oti = GPAC_OTI_VIDEO_AVC;
 		}
 			break;
 		default:

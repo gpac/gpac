@@ -299,9 +299,9 @@ static Bool MAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectT
 
 	switch (ObjectType) {
 	/*MPEG1 audio*/
-	case 0x69:
+	case GPAC_OTI_AUDIO_MPEG2_PART3:
 	/*MPEG2 audio*/
-	case 0x6B:
+	case GPAC_OTI_AUDIO_MPEG1:
 		return 1;
 	/*cap query*/
 	case 0:

@@ -111,7 +111,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 		switch (mType) {
 		case GF_ISOM_MEDIA_VISUAL:
 			image_track = 0;
-			if (esd && ((esd->decoderConfig->objectTypeIndication==0x6C) || (esd->decoderConfig->objectTypeIndication==0x6D)) )
+			if (esd && ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_JPEG) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_PNG)) )
 				image_track = 1;
 
 			/*remove image tracks if wanted*/
@@ -212,7 +212,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 			if (!w || !h) {
 				gf_isom_get_visual_info(mp4file, VideoTrack, 1, &w, &h);
 #ifndef GPAC_DISABLE_AV_PARSERS
-				if ((v_esd->decoderConfig->objectTypeIndication==0x20) && (v_esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
+				if ((v_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) && (v_esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
 					GF_M4VDecSpecInfo dsi;
 					gf_m4v_get_config(v_esd->decoderConfig->decoderSpecificInfo->data, v_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 					if (!is_image && (!w || !h)) {
@@ -254,7 +254,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 			}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-			if (a_esd->decoderConfig->objectTypeIndication == 0x40) {
+			if (a_esd->decoderConfig->objectTypeIndication == GPAC_OTI_AUDIO_AAC_MPEG4) {
 				GF_M4ADecSpecInfo cfg;
 				gf_m4a_get_config(a_esd->decoderConfig->decoderSpecificInfo->data, a_esd->decoderConfig->decoderSpecificInfo->dataLength, &cfg);
 				audioPL = cfg.audioPL;
@@ -429,7 +429,7 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 				{
 					GF_ESD *esd = gf_isom_get_esd(mp4file, i+1, 1);
 					/*both MPEG4-Video and H264/AVC are supported*/
-					if ((esd->decoderConfig->objectTypeIndication==0x20) || (esd->decoderConfig->objectTypeIndication==0x21) ) {
+					if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) ) {
 						nb_vid++;
 					} else {
 						GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Video format not supported by 3GP - removing track ID %d\n", gf_isom_get_track_id(mp4file, i+1) ));
@@ -465,7 +465,7 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 				case 0xA0:
 				case 0xA1:
 					is_3g2 = 1;
-				case 0x40:
+				case GPAC_OTI_AUDIO_AAC_MPEG4:
 					nb_aud++;
 					break;
 				default:

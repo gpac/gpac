@@ -297,14 +297,14 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 		esd->slConfig->timestampResolution = ffd->audio_tscale.den;
  		switch (dec->codec_id) {
 		case CODEC_ID_MP2:
-			esd->decoderConfig->objectTypeIndication = 0x6B;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
 			break;
 		case CODEC_ID_MP3:
-			esd->decoderConfig->objectTypeIndication = 0x69;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG2_PART3;
 			break;
 		case CODEC_ID_AAC:
 			if (!dec->extradata_size) goto opaque_audio;
-			esd->decoderConfig->objectTypeIndication = 0x40;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
 			esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*dec->extradata_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, 
@@ -345,7 +345,7 @@ opaque_audio:
 			/*if dsi not detected force use ffmpeg*/
 			if (!dec->extradata_size) goto opaque_video;
 			/*otherwise use any MPEG-4 Visual*/
-			esd->decoderConfig->objectTypeIndication = (dec->codec_id==CODEC_ID_H264) ? 0x21 : 0x20;
+			esd->decoderConfig->objectTypeIndication = (dec->codec_id==CODEC_ID_H264) ? GPAC_OTI_VIDEO_AVC : GPAC_OTI_VIDEO_MPEG4_PART2;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
 			esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*dec->extradata_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, 
@@ -353,10 +353,10 @@ opaque_audio:
 					sizeof(char)*dec->extradata_size);
 			break;
 		case CODEC_ID_MPEG1VIDEO:
-			esd->decoderConfig->objectTypeIndication = 0x6A;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG1;
 			break;
 		case CODEC_ID_MPEG2VIDEO:
-			esd->decoderConfig->objectTypeIndication = 0x65;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_422;
 			break;
 		default:
 opaque_video:

@@ -324,11 +324,11 @@ static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 Object
 
 	switch (ObjectType) {
 	/*MPEG2 aac*/
-	case 0x66:
-	case 0x67:
-	case 0x68:
+	case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+	case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+	case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 	/*MPEG4 aac*/
-	case 0x40: 
+	case GPAC_OTI_AUDIO_AAC_MPEG4: 
 		break;
 	/*cap query*/
 	case 0:
