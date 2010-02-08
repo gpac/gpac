@@ -36,6 +36,7 @@
 #include <gpac/ietf.h>
 #include <gpac/ismacryp.h>
 #include <gpac/filestreamer.h>
+#include <gpac/constants.h>
 
 #include <time.h>
 
@@ -789,11 +790,11 @@ static void check_media_profile(GF_ISOFile *file, u32 track)
 	switch (esd->decoderConfig->streamType) {
 	case 0x04:
 		PL = gf_isom_get_pl_indication(file, GF_ISOM_PL_VISUAL);
-		if (esd->decoderConfig->objectTypeIndication==0x20) {
+		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
 			GF_M4VDecSpecInfo dsi;
 			gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 			if (dsi.VideoPL > PL) gf_isom_set_pl_indication(file, GF_ISOM_PL_VISUAL, dsi.VideoPL);
-		} else if (esd->decoderConfig->objectTypeIndication==0x21) {
+		} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
 			gf_isom_set_pl_indication(file, GF_ISOM_PL_VISUAL, 0x15);
 		} else if (!PL) {
 			gf_isom_set_pl_indication(file, GF_ISOM_PL_VISUAL, 0xFE);
@@ -802,7 +803,10 @@ static void check_media_profile(GF_ISOFile *file, u32 track)
 	case 0x05:
 		PL = gf_isom_get_pl_indication(file, GF_ISOM_PL_AUDIO);
 		switch (esd->decoderConfig->objectTypeIndication) {
-		case 0x66: case 0x67: case 0x68: case 0x40:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_MP: 
+		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP: 
+		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP: 
+		case GPAC_OTI_AUDIO_AAC_MPEG4:
 			gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 			if (dsi.audioPL > PL) gf_isom_set_pl_indication(file, GF_ISOM_PL_AUDIO, dsi.audioPL);
 			break;

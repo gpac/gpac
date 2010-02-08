@@ -158,7 +158,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 		od->objectDescriptorID = 2+i;
 		esd = gf_odf_desc_esd_new(2);
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = 0x6C;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_IMAGE_JPEG;
 		esd->ESID = 3+i;
 		/*extract image and remember it*/
 		mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);

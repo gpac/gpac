@@ -177,10 +177,10 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 		required_rate = sample_rate;
 		switch (oti) {
 		/*AAC*/
-		case 0x40:
-		case 0x66:
-		case 0x67:
-		case 0x68:
+		case GPAC_OTI_AUDIO_AAC_MPEG4:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 			PL_ID = 0x01;
 			mpeg4mode = "AAC";
 			rtp_type = GF_RTP_PAYT_MPEG4;
@@ -218,8 +218,8 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			break;
 
 			/*MPEG1/2 audio*/
-		case 0x69:
-		case 0x6B:
+		case GPAC_OTI_AUDIO_MPEG2_PART3:
+		case GPAC_OTI_AUDIO_MPEG1:
 			if (!is_crypted) {
 				rtp_type = GF_RTP_PAYT_MPEG12_AUDIO;
 				/*use official RTP/AVP payload type*/
@@ -255,13 +255,13 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 		required_rate = default_rtp_rate;
 		if (is_crypted) {
 			/*that's another pain with ISMACryp, even if no B-frames the DTS is signaled...*/
-			if (oti==0x20) force_dts_delta = 22;
+			if (oti==GPAC_OTI_VIDEO_MPEG4_PART2) force_dts_delta = 22;
 			flags |= GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_TS;
 		}
 
 		switch (oti) {
 		/*ISO/IEC 14496-2*/
-		case 0x20:
+		case GPAC_OTI_VIDEO_MPEG4_PART2:
 			PL_ID = 1;
 #ifndef GPAC_DISABLE_AV_PARSERS
 			if (dsi) {
@@ -273,20 +273,20 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			break;
 
 		/*MPEG1/2 video*/
-		case 0x6A:
-		case 0x60:
-		case 0x61:
-		case 0x62:
-		case 0x63:
-		case 0x64:
-		case 0x65:
+		case GPAC_OTI_VIDEO_MPEG1:
+		case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
+		case GPAC_OTI_VIDEO_MPEG2_MAIN:
+		case GPAC_OTI_VIDEO_MPEG2_SNR:
+		case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
+		case GPAC_OTI_VIDEO_MPEG2_HIGH:
+		case GPAC_OTI_VIDEO_MPEG2_422:
 			if (!is_crypted) {
 				rtp_type = GF_RTP_PAYT_MPEG12_VIDEO;
 				OfficialPayloadType = 32;
 			}
 			break;
 		/*AVC/H.264*/
-		case 0x21:
+		case GPAC_OTI_VIDEO_AVC:
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			rtp_type = GF_RTP_PAYT_H264_AVC;
 			PL_ID = 0x0F;
@@ -308,7 +308,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			streamType = GF_STREAM_VISUAL;
 			OfficialPayloadType = 34;
 			/*not 100% compliant (short header is missing) but should still work*/
-			oti = 0x20;
+			oti = GPAC_OTI_VIDEO_MPEG4_PART2;
 			PL_ID = 0x01;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -338,7 +338,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			rtp_type = GF_RTP_PAYT_H264_AVC;
 			streamType = GF_STREAM_VISUAL;
-			oti = 0x21;
+			oti = GPAC_OTI_VIDEO_AVC;
 			PL_ID = 0x0F;
 		}
 			break;

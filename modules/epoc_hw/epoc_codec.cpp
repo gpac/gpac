@@ -117,11 +117,11 @@ static GF_Err EDEC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	/*audio decs*/	
 	switch (esd->decoderConfig->objectTypeIndication) {
 	/*MPEG2 aac*/
-	case 0x66:
-	case 0x67:
-	case 0x68:
+	case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+	case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+	case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 	/*MPEG4 aac*/
-	case 0x40: 
+	case GPAC_OTI_AUDIO_AAC_MPEG4: 
 		if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return GF_NON_COMPLIANT_BITSTREAM;
 		if (gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return GF_NON_COMPLIANT_BITSTREAM;
 		
@@ -341,11 +341,11 @@ static Bool EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, u32 Objec
 	if (StreamType == GF_STREAM_AUDIO) {
 		switch (ObjectType) {
 		/*MPEG2 aac*/
-		case 0x66:
-		case 0x67:
-		case 0x68:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 		/*MPEG4 aac*/
-		case 0x40: 
+		case GPAC_OTI_AUDIO_AAC_MPEG4: 
 			if (!decSpecInfoSize || !decSpecInfo) return 0;
 			if (gf_m4a_get_config(decSpecInfo, decSpecInfoSize, &a_cfg) != GF_OK) return 0;
 			switch (a_cfg.base_object_type) {
@@ -358,9 +358,9 @@ static Bool EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, u32 Objec
 			}
 			break;
 		/*MPEG1 audio*/
-		case 0x69:
+		case GPAC_OTI_AUDIO_MPEG2_PART3:
 		/*MPEG2 audio*/
-		case 0x6B:
+		case GPAC_OTI_AUDIO_MPEG1:
 			/* NOT SUPPORTED YET if (ctx->caps & GF_EPOC_HAS_MP3) return 1; */
 			break;
 		/*non-mpeg4 codecs*/

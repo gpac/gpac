@@ -953,12 +953,12 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 		/*in case no IOD and no streamType/OTI in the file*/
 		if (!stricmp(param_val, "AAC-hbr") || !stricmp(param_val, "AAC-lbr") || !stricmp(param_val, "CELP-vbr") || !stricmp(param_val, "CELP-cbr")) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-			rtp->sl_map.ObjectTypeIndication = 0x40;
+			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
 		}
 		/*in case no IOD and no streamType/OTI in the file*/
 		else if (!stricmp(param_val, "avc-video") ) {
 			rtp->sl_map.StreamType = GF_STREAM_VISUAL;
-			rtp->sl_map.ObjectTypeIndication = 0x21;
+			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_AVC;
 		}
 	}
 
@@ -1078,7 +1078,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		gf_bs_del(bs);
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-		rtp->sl_map.ObjectTypeIndication = 0x40;
+		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
 
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_latm;
@@ -1106,22 +1106,22 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*RFC3016 flags*/
 		if (!stricmp(map->payload_name, "MP4V-ES")) {
 			rtp->sl_map.StreamType = GF_STREAM_VISUAL;
-			rtp->sl_map.ObjectTypeIndication = 0x20;
+			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_MPEG4_PART2;
 		}
 		else if (!strnicmp(map->payload_name, "AAC", 3)) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-			rtp->sl_map.ObjectTypeIndication = 0x40;
+			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
 		}
 		else if (!stricmp(map->payload_name, "MP4A-LATM")) {
 			rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-			rtp->sl_map.ObjectTypeIndication = 0x40;
+			rtp->sl_map.ObjectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
 		}
 		/*MPEG-4 video, check RAPs if not indicated*/
-		if ((rtp->sl_map.StreamType == GF_STREAM_VISUAL) && (rtp->sl_map.ObjectTypeIndication == 0x20) && !rtp->sl_map.RandomAccessIndication) {
+		if ((rtp->sl_map.StreamType == GF_STREAM_VISUAL) && (rtp->sl_map.ObjectTypeIndication == GPAC_OTI_VIDEO_MPEG4_PART2) && !rtp->sl_map.RandomAccessIndication) {
 			rtp->flags |= GF_RTP_M4V_CHECK_RAP;
 		}
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if ((rtp->sl_map.ObjectTypeIndication == 0x40) && !rtp->sl_map.config) {
+		if ((rtp->sl_map.ObjectTypeIndication == GPAC_OTI_AUDIO_AAC_MPEG4) && !rtp->sl_map.config) {
 			GF_M4ADecSpecInfo cfg;
 			GF_RTPMap*map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
 
@@ -1143,7 +1143,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 #ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_RTP_PAYT_MPEG12_AUDIO:
 		rtp->sl_map.StreamType = GF_STREAM_AUDIO;
-		rtp->sl_map.ObjectTypeIndication = 0x69;
+		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_AUDIO_MPEG2_PART3;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_mpeg12_audio;
 		break;
@@ -1154,7 +1154,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.RandomAccessIndication = 1;
 		rtp->sl_map.StreamType = GF_STREAM_VISUAL;
 		/*FIXME: how to differentiate MPEG1 from MPEG2 video before any frame is received??*/
-		rtp->sl_map.ObjectTypeIndication = 0x6A;
+		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_MPEG1;
 		/*assign depacketizer*/
 		rtp->depacketize = gf_rtp_parse_mpeg12_video;
 		break;
@@ -1308,7 +1308,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		avcc->configurationVersion = 1;
 		avcc->nal_unit_size = 4;
 		rtp->sl_map.StreamType = 4;
-		rtp->sl_map.ObjectTypeIndication = 0x21;
+		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_VIDEO_AVC;
 		/*we will signal RAPs*/
 		rtp->sl_map.RandomAccessIndication = 1;
 		/*rewrite sps and pps*/

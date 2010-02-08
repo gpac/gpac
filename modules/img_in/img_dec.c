@@ -31,12 +31,12 @@ static Bool DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectT
 	if (StreamType != GF_STREAM_VISUAL) return 0;
 
 	switch (ObjectType) {
-	case 0x6D: 
+	case GPAC_OTI_IMAGE_PNG: 
 		return NewPNGDec(dec);
-	case 0x6C: 
+	case GPAC_OTI_IMAGE_JPEG: 
 		return NewJPEGDec(dec);
 #ifdef GPAC_HAS_JP2
-	case 0x6E: 
+	case GPAC_OTI_IMAGE_JPEG_2000: 
 		return NewJP2Dec(dec);
 #endif
 	case GPAC_BMP_OTI:

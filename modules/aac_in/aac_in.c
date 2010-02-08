@@ -212,7 +212,7 @@ static Bool AAC_ConfigureFromFile(AACReader *read)
 	read->nb_ch = hdr.nb_ch;
 	read->prof = hdr.profile;
 	read->sr_idx = hdr.sr_idx;
-	read->oti = hdr.is_mp2 ? read->prof+0x66 : 0x40;
+	read->oti = hdr.is_mp2 ? read->prof+GPAC_OTI_AUDIO_AAC_MPEG2_MP : GPAC_OTI_AUDIO_AAC_MPEG4;
 	read->sample_rate = GF_M4ASampleRates[read->sr_idx];
 
 	read->duration = 0;
@@ -264,7 +264,7 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		read->nb_ch = hdr.nb_ch;
 		read->prof = hdr.profile;
 		read->sr_idx = hdr.sr_idx;
-		read->oti = hdr.is_mp2 ? read->prof+0x66-1 : 0x40;
+		read->oti = hdr.is_mp2 ? read->prof+GPAC_OTI_AUDIO_AAC_MPEG2_MP-1 : GPAC_OTI_AUDIO_AAC_MPEG4;
 		read->sample_rate = GF_M4ASampleRates[read->sr_idx];
 		read->is_live = 1;
 		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));

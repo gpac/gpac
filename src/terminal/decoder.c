@@ -989,7 +989,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		sOpt = NULL;
 		switch (esd->decoderConfig->streamType) {
 		case GF_STREAM_VISUAL:
-			if ((esd->decoderConfig->objectTypeIndication==0x6C) || (esd->decoderConfig->objectTypeIndication==0x6D))
+			if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_JPEG) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_PNG))
 				sOpt = gf_cfg_get_key(term->user->config, "Systems", "DefImageDec");
 			else
 				sOpt = gf_cfg_get_key(term->user->config, "Systems", "DefVideoDec");

@@ -220,7 +220,7 @@ static Bool XVID_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 Object
 {
 	if (StreamType != GF_STREAM_VISUAL) return 0;
 	switch (ObjectType) {
-	case 0x20:
+	case GPAC_OTI_VIDEO_MPEG4_PART2:
 		return 1;
 	/*cap query*/
 	case 0:

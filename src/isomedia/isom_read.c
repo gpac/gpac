@@ -24,6 +24,7 @@
 
 
 #include <gpac/internal/isomedia_dev.h>
+#include <gpac/constants.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -2133,14 +2134,22 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 				GF_DecoderConfig *dcd = gf_isom_get_decoder_config(file, i+1, 1);
 				switch (dcd->streamType) {
 				case 0x04:
-					if (dcd->objectTypeIndication==0x20) nb_m4v++;
-					else if (dcd->objectTypeIndication==0x21) nb_avc++;
+					if (dcd->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) nb_m4v++;
+					else if (dcd->objectTypeIndication==GPAC_OTI_VIDEO_AVC) nb_avc++;
 					else nb_v++;
 					break;
 				case 0x05:
 					switch (dcd->objectTypeIndication) {
-					case 0x66: case 0x67: case 0x68: case 0x40: nb_aac++; break;
-					case 0x69: case 0x6B: nb_mp3++; break;
+					case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+					case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+					case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP: 
+					case GPAC_OTI_AUDIO_AAC_MPEG4: 
+						nb_aac++; 
+						break;
+					case GPAC_OTI_AUDIO_MPEG2_PART3: 
+					case GPAC_OTI_AUDIO_MPEG1: 
+						nb_mp3++; 
+						break;
 					case 0xA0: nb_evrc++; break;
 					case 0xA1: nb_smv++; break;
 					case 0xE1: nb_qcelp++; break;

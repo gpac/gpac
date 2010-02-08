@@ -110,7 +110,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 				break;
 			}
 		}
-		*OTI = 0x6C;
+		*OTI = GPAC_OTI_IMAGE_JPEG;
 		*mtype = GF_4CC('j','p','e','g');
 		if (dsi) {
 			GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -134,7 +134,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 
 		*width = gf_bs_read_u32(bs);
 		*height = gf_bs_read_u32(bs);
-		*OTI = 0x6D;
+		*OTI = GPAC_OTI_IMAGE_PNG;
 		*mtype = GF_4CC('p','n','g',' ');
 	}
 	size = gf_bs_read_u8(bs);
@@ -143,7 +143,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 		|| (type==GF_4CC('j','p','2','h') ) ) {
 
 		if (type==GF_4CC('j','p','2','h')) {
-			*OTI = 0x6E;
+			*OTI = GPAC_OTI_IMAGE_JPEG_2000;
 			*mtype = GF_4CC('j','p','2',' ');
 			goto j2k_restart;
 		}
@@ -151,7 +151,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 		type = gf_bs_read_u32(bs);
 		if (type!=0x0D0A870A) goto exit;
 
-		*OTI = 0x6E;
+		*OTI = GPAC_OTI_IMAGE_JPEG_2000;
 		*mtype = GF_4CC('j','p','2',' ');
 
 		while (gf_bs_available(bs)) {

@@ -375,27 +375,27 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	switch (stream->stream_type) {
 	case GF_M2TS_VIDEO_MPEG1:
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = 0x6A;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG1;
 		break;
 	case GF_M2TS_VIDEO_MPEG2:
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = 0x65;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_422;
 		break;
 	case GF_M2TS_VIDEO_MPEG4:
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = 0x20;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG4_PART2;
 		break;
 	case GF_M2TS_VIDEO_H264:
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = 0x21;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_AVC;
 		break;
 	case GF_M2TS_AUDIO_MPEG1:
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		esd->decoderConfig->objectTypeIndication = 0x6B;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG1;
 		break;
 	case GF_M2TS_AUDIO_MPEG2:
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		esd->decoderConfig->objectTypeIndication = 0x69;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_MPEG2_PART3;
 		break;
 	case GF_M2TS_AUDIO_LATM_AAC:
 	case GF_M2TS_AUDIO_AAC:
@@ -408,7 +408,7 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 			return NULL;
 		}
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		esd->decoderConfig->objectTypeIndication = 0x40;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
 		break;
 	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 	default:

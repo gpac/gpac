@@ -327,16 +327,17 @@ void wxFileProps::SetStreamsInfo()
 		case GF_STREAM_VISUAL:
 			info += wxT("\tVisual Stream - media type: ");
 			switch (esd->decoderConfig->objectTypeIndication) {
-			case 0x20: info += wxT("MPEG-4\n"); break;
-			case 0x60: info += wxT("MPEG-2 Simple Profile\n"); break;
-			case 0x61: info += wxT("MPEG-2 Main Profile\n"); break;
-			case 0x62: info += wxT("MPEG-2 SNR Profile\n"); break;
-			case 0x63: info += wxT("MPEG-2 Spatial Profile\n"); break;
-			case 0x64: info += wxT("MPEG-2 High Profile\n"); break;
-			case 0x65: info += wxT("MPEG-2 422 Profile\n"); break;
-			case 0x6A: info += wxT("MPEG-1\n"); break;
-			case 0x6C: info += wxT("JPEG\n"); break;
-			case 0x6D: info += wxT("PNG\n"); break;
+			case GPAC_OTI_VIDEO_MPEG4_PART2: info += wxT("MPEG-4\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_SIMPLE: info += wxT("MPEG-2 Simple Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_MAIN: info += wxT("MPEG-2 Main Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_SNR: info += wxT("MPEG-2 SNR Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_SPATIAL: info += wxT("MPEG-2 Spatial Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_HIGH: info += wxT("MPEG-2 High Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_422: info += wxT("MPEG-2 422 Profile\n"); break;
+			case GPAC_OTI_VIDEO_MPEG1: info += wxT("MPEG-1\n"); break;
+			case GPAC_OTI_IMAGE_JPEG: info += wxT("JPEG\n"); break;
+			case GPAC_OTI_IMAGE_PNG: info += wxT("PNG\n"); break;
+			case GPAC_OTI_IMAGE_JPEG_2000: info += wxT("JPEG2000\n"); break;
 			case 0x80:
 				memcpy(code, esd->decoderConfig->decoderSpecificInfo->data, 4);
 				code[4] = 0;
@@ -351,12 +352,12 @@ void wxFileProps::SetStreamsInfo()
 		case GF_STREAM_AUDIO:
 			info += wxT("\tAudio Stream - media type: ");
 			switch (esd->decoderConfig->objectTypeIndication) {
-			case 0x40: info += wxT("MPEG-4\n"); break;
-			case 0x66: info += wxT("MPEG-2 AAC Main Profile\n"); break;
-			case 0x67: info += wxT("MPEG-2 AAC LowComplexity Profile\n"); break;
-			case 0x68: info += wxT("MPEG-2 AAC Scalable Sampling Rate Profile\n"); break;
-			case 0x69: info += wxT("MPEG-2 Audio\n"); break;
-			case 0x6B: info += wxT("MPEG-1 Audio\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG4: info += wxT("MPEG-4\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_MP: info += wxT("MPEG-2 AAC Main Profile\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_LCP: info += wxT("MPEG-2 AAC LowComplexity Profile\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP: info += wxT("MPEG-2 AAC Scalable Sampling Rate Profile\n"); break;
+			case GPAC_OTI_AUDIO_MPEG2_PART3: info += wxT("MPEG-2 Audio\n"); break;
+			case GPAC_OTI_AUDIO_MPEG1: info += wxT("MPEG-1 Audio\n"); break;
 			case 0xA0: info += wxT("EVRC Audio\n"); break;
 			case 0xA1: info += wxT("SMV Audio\n"); break;
 			case 0xE1: info += wxT("QCELP Audio\n"); break;

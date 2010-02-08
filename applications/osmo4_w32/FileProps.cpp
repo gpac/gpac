@@ -512,16 +512,17 @@ void CFileProps::SetStreamsInfo()
 			is_media = 1;
 			strcat(info, "Visual Stream - media type: ");
 			switch (esd->decoderConfig->objectTypeIndication) {
-			case 0x20: strcat(info, "MPEG-4\r\n"); break;
-			case 0x60: strcat(info, "MPEG-2 Simple Profile\r\n"); break;
-			case 0x61: strcat(info, "MPEG-2 Main Profile\r\n"); break;
-			case 0x62: strcat(info, "MPEG-2 SNR Profile\r\n"); break;
-			case 0x63: strcat(info, "MPEG-2 Spatial Profile\r\n"); break;
-			case 0x64: strcat(info, "MPEG-2 High Profile\r\n"); break;
-			case 0x65: strcat(info, "MPEG-2 422 Profile\r\n"); break;
-			case 0x6A: strcat(info, "MPEG-1\r\n"); break;
-			case 0x6C: strcat(info, "JPEG\r\n"); break;
-			case 0x6D: strcat(info, "PNG\r\n"); break;
+			case GPAC_OTI_VIDEO_MPEG4_PART2: strcat(info, "MPEG-4\r\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_SIMPLE: strcat(info, "MPEG-2 Simple Profile\r\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_MAIN: strcat(info, "MPEG-2 Main Profile\r\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_SNR: strcat(info, "MPEG-2 SNR Profile\r\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_SPATIAL: strcat(info, "MPEG-2 Spatial Profile\r\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_HIGH: strcat(info, "MPEG-2 High Profile\r\n"); break;
+			case GPAC_OTI_VIDEO_MPEG2_422: strcat(info, "MPEG-2 422 Profile\r\n"); break;
+			case GPAC_OTI_VIDEO_MPEG1: strcat(info, "MPEG-1\r\n"); break;
+			case GPAC_OTI_IMAGE_JPEG: strcat(info, "JPEG\r\n"); break;
+			case GPAC_OTI_IMAGE_PNG: strcat(info, "PNG\r\n"); break;
+			case GPAC_OTI_IMAGE_JPEG_2000: strcat(info, "JPEG2000\r\n"); break;
 			case 0x80:
 				memcpy(code, esd->decoderConfig->decoderSpecificInfo->data, 4);
 				code[4] = 0;
@@ -539,12 +540,12 @@ void CFileProps::SetStreamsInfo()
 			is_media = 1;
 			strcat(info, "Audio Stream - media type: ");
 			switch (esd->decoderConfig->objectTypeIndication) {
-			case 0x40: strcat(info, "MPEG-4\r\n"); break;
-			case 0x66: strcat(info, "MPEG-2 AAC Main Profile\r\n"); break;
-			case 0x67: strcat(info, "MPEG-2 AAC LowComplexity Profile\r\n"); break;
-			case 0x68: strcat(info, "MPEG-2 AAC Scalable Sampling Rate Profile\r\n"); break;
-			case 0x69: strcat(info, "MPEG-2 Audio\r\n"); break;
-			case 0x6B: strcat(info, "MPEG-1 Audio\r\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG4: strcat(info, "MPEG-4\r\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_MP: strcat(info, "MPEG-2 AAC Main Profile\r\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_LCP: strcat(info, "MPEG-2 AAC LowComplexity Profile\r\n"); break;
+			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP: strcat(info, "MPEG-2 AAC Scalable Sampling Rate Profile\r\n"); break;
+			case GPAC_OTI_AUDIO_MPEG2_PART3: strcat(info, "MPEG-2 Audio\r\n"); break;
+			case GPAC_OTI_AUDIO_MPEG1: strcat(info, "MPEG-1 Audio\r\n"); break;
 			case 0xA0: strcat(info, "EVRC Audio\r\n"); break;
 			case 0xA1: strcat(info, "SMV Audio\r\n"); break;
 			case 0xE1: strcat(info, "QCELP Audio\r\n"); break;

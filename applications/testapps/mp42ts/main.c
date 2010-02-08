@@ -956,26 +956,26 @@ M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __ele
 		/*just pick first valid stream_id in visual range*/
 		stream->mpeg2_stream_id = 0xE0;
 		switch (ifce->object_type_indication) {
-		case 0x20:
+		case GPAC_OTI_VIDEO_MPEG4_PART2:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG4;
 			break;
-		case 0x21:
+		case GPAC_OTI_VIDEO_AVC:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_H264;
 			break;
-		case 0x6A:
+		case GPAC_OTI_VIDEO_MPEG1:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG1;
 			break;
-		case 0x60:
-		case 0x61:
-		case 0x62:
-		case 0x63:
-		case 0x64:
-		case 0x65:
+		case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
+		case GPAC_OTI_VIDEO_MPEG2_MAIN:
+		case GPAC_OTI_VIDEO_MPEG2_SNR:
+		case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
+		case GPAC_OTI_VIDEO_MPEG2_HIGH:
+		case GPAC_OTI_VIDEO_MPEG2_422:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG2;
 			break;
 		/*JPEG/PNG carried in MPEG-4 PES*/
-		case 0x6C:
-		case 0x6D:
+		case GPAC_OTI_IMAGE_JPEG:
+		case GPAC_OTI_IMAGE_PNG:
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_PES;
 			stream->mpeg2_stream_id = 0xFA;
 			break;
@@ -985,13 +985,13 @@ M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __ele
 		break;
 	case GF_STREAM_AUDIO:
 		switch (ifce->object_type_indication) {
-		case 0x6B:
+		case GPAC_OTI_AUDIO_MPEG1:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_MPEG1;
 			break;
-		case 0x69:
+		case GPAC_OTI_AUDIO_MPEG2_PART3:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_MPEG2;
 			break;
-		case 0x40:
+		case GPAC_OTI_AUDIO_AAC_MPEG4:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AAC;
 			break;
 		}
@@ -1385,8 +1385,8 @@ static void fill_isom_es_ifce(GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_n
 
 	/*turn on image repeat*/
 	switch (ifce->object_type_indication) {
-	case 0x6C:
-	case 0x6D:
+	case GPAC_OTI_IMAGE_JPEG:
+	case GPAC_OTI_IMAGE_PNG:
 		//priv->refresh_rate_ms = 500;
 		break;
 	}

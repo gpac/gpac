@@ -79,7 +79,7 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 	else if ((stype==GF_ISOM_SUBTYPE_MPEG4) || (stype==GF_ISOM_SUBTYPE_MPEG4_CRYP) ) {
 		GF_M4VDecSpecInfo dsi;
 		GF_ESD *esd = gf_isom_get_esd(file, track, 1);
-		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) || (esd->decoderConfig->objectTypeIndication!=0x20)) {
+		if (!esd || !esd->decoderConfig || (esd->decoderConfig->streamType!=4) || (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_MPEG4_PART2)) {
 			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
 			return GF_NOT_SUPPORTED;
 		}
@@ -202,7 +202,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	if (!w || !h) {
 		free(data);
 		if (dsi) free(dsi);
-		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Invalid %s file", (OTI==0x6C) ? "JPEG" : (OTI==0x6D) ? "PNG" : "JPEG2000");
+		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Invalid %s file", (OTI==GPAC_OTI_IMAGE_JPEG) ? "JPEG" : (OTI==GPAC_OTI_IMAGE_PNG) ? "PNG" : "JPEG2000");
 	}
 
 
@@ -263,7 +263,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	samp->dataLength = size;
 	if (import->initial_time_offset) samp->DTS = (u64) (import->initial_time_offset*1000);
 
-	gf_import_message(import, GF_OK, "%s import %s - size %d x %d", (OTI==0x6C) ? "JPEG" : (OTI==0x6D) ? "PNG" : "JPEG2000", import->in_name, w, h);
+	gf_import_message(import, GF_OK, "%s import %s - size %d x %d", (OTI==GPAC_OTI_IMAGE_JPEG) ? "JPEG" : (OTI==GPAC_OTI_IMAGE_PNG) ? "PNG" : "JPEG2000", import->in_name, w, h);
 
 	gf_set_progress("Importing Image", 0, 1);
 	if (import->flags & GF_IMPORT_USE_DATAREF) {
@@ -342,7 +342,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 
 	samp = NULL;
 	nb_chan = gf_mp3_num_channels(hdr);
-	gf_import_message(import, GF_OK, "MP3 import - sample rate %d - %s audio - %d channel%s", sr, (oti==0x6B) ? "MPEG-1" : "MPEG-2", nb_chan, (nb_chan>1) ? "s" : "");
+	gf_import_message(import, GF_OK, "MP3 import - sample rate %d - %s audio - %d channel%s", sr, (oti==GPAC_OTI_AUDIO_MPEG1) ? "MPEG-1" : "MPEG-2", nb_chan, (nb_chan>1) ? "s" : "");
 
 	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, sr);
 	if (!track) {
@@ -509,7 +509,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	if (import->flags & GF_IMPORT_FORCE_MPEG4) hdr.is_mp2 = 0;
 
 	/*keep MPEG-2 AAC OTI even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
-	oti = hdr.is_mp2 ? hdr.profile+0x66-1 : 0x40;
+	oti = hdr.is_mp2 ? hdr.profile+GPAC_OTI_AUDIO_AAC_MPEG2_MP-1 : GPAC_OTI_AUDIO_AAC_MPEG4;
 	sr = GF_M4ASampleRates[hdr.sr_idx];
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
@@ -607,7 +607,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	gf_bs_del(dsi);
 
 	samp = NULL;
-	gf_import_message(import, GF_OK, "AAC import %s- sample rate %d - %s audio - %d channel%s", (import->flags & GF_IMPORT_SBR_IMPLICIT) ? "SBR (implicit) " : ((import->flags & GF_IMPORT_SBR_EXPLICIT) ? "SBR (explicit) " : ""), sr, (oti==0x40) ? "MPEG-4" : "MPEG-2", hdr.nb_ch, (hdr.nb_ch>1) ? "s" : "");
+	gf_import_message(import, GF_OK, "AAC import %s- sample rate %d - %s audio - %d channel%s", (import->flags & GF_IMPORT_SBR_IMPLICIT) ? "SBR (implicit) " : ((import->flags & GF_IMPORT_SBR_EXPLICIT) ? "SBR (explicit) " : ""), sr, (oti==GPAC_OTI_AUDIO_AAC_MPEG4) ? "MPEG-4" : "MPEG-2", hdr.nb_ch, (hdr.nb_ch>1) ? "s" : "");
 
 	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, sr);
 	if (!track) {
@@ -729,7 +729,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->tk_info[0].track_num = 1;
 		import->tk_info[0].type = GF_ISOM_MEDIA_VISUAL;
-		import->tk_info[0].media_type = mpeg12 ? ((dsi.VideoPL==0x6A) ? GF_4CC('M','P','G','1') : GF_4CC('M','P','G','2') ) : GF_4CC('M','P','4','V') ;
+		import->tk_info[0].media_type = mpeg12 ? ((dsi.VideoPL==GPAC_OTI_VIDEO_MPEG1) ? GF_4CC('M','P','G','1') : GF_4CC('M','P','G','2') ) : GF_4CC('M','P','4','V') ;
 		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_OVERRIDE_FPS;
 		if (!mpeg12) import->tk_info[0].flags |= GF_IMPORT_NO_FRAME_DROP | GF_IMPORT_FORCE_PACKED;
 		import->tk_info[0].video_info.width = dsi.width;
@@ -775,7 +775,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	if (mpeg12) {
 		import->esd->decoderConfig->objectTypeIndication = dsi.VideoPL;
 	} else {
-		import->esd->decoderConfig->objectTypeIndication = 0x20;
+		import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG4_PART2;
 	}
 	if (samp_offset) {
 		import->esd->decoderConfig->decoderSpecificInfo->data = (char*)malloc(sizeof(char) * samp_offset);
@@ -814,7 +814,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 	if (e) goto exit;
 	gf_isom_set_visual_info(import->dest, track, di, dsi.width, dsi.height);
 	if (mpeg12) {
-		gf_import_message(import, GF_OK, "MPEG-%d Video import - %d x %d @ %02.4f FPS", (dsi.VideoPL==0x6A) ? 1 : 2, dsi.width, dsi.height, FPS);
+		gf_import_message(import, GF_OK, "MPEG-%d Video import - %d x %d @ %02.4f FPS", (dsi.VideoPL==GPAC_OTI_VIDEO_MPEG1) ? 1 : 2, dsi.width, dsi.height, FPS);
 	} else {
 		gf_import_message(import, GF_OK, "MPEG-4 Video import - %d x %d @ %02.4f FPS\nIndicated Profile: %s", dsi.width, dsi.height, FPS, gf_m4v_get_profile_name((u8) PL));
 	}
@@ -1123,7 +1123,7 @@ static GF_Err gf_import_avi_video(GF_MediaImporter *import)
 			if (import->esd->decoderConfig->decoderSpecificInfo) gf_odf_desc_del((GF_Descriptor *) import->esd->decoderConfig->decoderSpecificInfo);
 			import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 			import->esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-			import->esd->decoderConfig->objectTypeIndication = 0x20;
+			import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG4_PART2;
 			import->esd->decoderConfig->decoderSpecificInfo->data = (char *) malloc(sizeof(char) * samp_offset);
 			memcpy(import->esd->decoderConfig->decoderSpecificInfo->data, frame, sizeof(char) * samp_offset);
 			import->esd->decoderConfig->decoderSpecificInfo->dataLength = samp_offset;
@@ -1388,7 +1388,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 	e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
 	if (e) goto exit;
 
-	gf_import_message(import, GF_OK, "AVI Audio import - sample rate %d - %s audio - %d channel%s", sampleRate, (oti==0x6B) ? "MPEG-1" : "MPEG-2", gf_mp3_num_channels(hdr), (gf_mp3_num_channels(hdr)>1) ? "s" : "");
+	gf_import_message(import, GF_OK, "AVI Audio import - sample rate %d - %s audio - %d channel%s", sampleRate, (oti==GPAC_OTI_AUDIO_MPEG1) ? "MPEG-1" : "MPEG-2", gf_mp3_num_channels(hdr), (gf_mp3_num_channels(hdr)>1) ? "s" : "");
 
 	AVI_seek_start(in);
 	AVI_set_audio_position(in, 0);
@@ -1534,7 +1534,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		gf_isom_get_visual_info(import->orig, track_in, 1, &w, &h);
 #ifndef GPAC_DISABLE_AV_PARSERS
 		/*for MPEG-4 visual, always check size (don't trust input file)*/
-		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==0x20)) {
+		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2)) {
 			GF_M4VDecSpecInfo dsi;
 			gf_m4v_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 			w = dsi.width;
@@ -1551,7 +1551,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		sbr = 0;
 		gf_isom_get_audio_info(import->orig, track_in, 1, &sr, &ch, &bps);
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==0x40)) {
+		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AAC_MPEG4)) {
 			GF_M4ADecSpecInfo dsi;
 			gf_m4a_get_config(origin_esd->decoderConfig->decoderSpecificInfo->data, origin_esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 			sr = dsi.base_sr;
@@ -1800,7 +1800,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	w = mpeg2ps_get_video_stream_width(ps, streamID);
 	h = mpeg2ps_get_video_stream_height(ps, streamID);
 	ar = mpeg2ps_get_video_stream_aspect_ratio(ps, streamID);
-	mtype = (mpeg2ps_get_video_stream_type(ps, streamID) == MPEG_VIDEO_MPEG2) ? 0x61 : 0x6A;
+	mtype = (mpeg2ps_get_video_stream_type(ps, streamID) == MPEG_VIDEO_MPEG2) ? GPAC_OTI_VIDEO_MPEG2_MAIN : GPAC_OTI_VIDEO_MPEG1;
 	FPS = mpeg2ps_get_video_stream_framerate(ps, streamID);
 	if (import->video_fps) FPS = (Double) import->video_fps;
 	get_video_timing(FPS, &timescale, &dts_inc);
@@ -1830,7 +1830,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, NULL, NULL, &di);
 	if (e) goto exit;
 
-	gf_import_message(import, GF_OK, "%s Video import - Resolution %d x %d @ %02.4f FPS", (mtype==0x6A) ? "MPEG-1" : "MPEG-2", w, h, FPS);
+	gf_import_message(import, GF_OK, "%s Video import - Resolution %d x %d @ %02.4f FPS", (mtype==GPAC_OTI_VIDEO_MPEG1) ? "MPEG-1" : "MPEG-2", w, h, FPS);
 	gf_isom_set_visual_info(import->dest, track, di, w, h);
 
 	gf_isom_set_cts_packing(import->dest, track, 1);
@@ -1959,7 +1959,7 @@ GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 	if (e) goto exit;
 
 	gf_isom_set_audio_info(import->dest, track, di, sr, nb_ch, 16);
-	gf_import_message(import, GF_OK, "%s Audio import - sample rate %d - %d channel%s", (mtype==0x6B) ? "MPEG-1" : "MPEG-2", sr, nb_ch, (nb_ch>1) ? "s" : "");
+	gf_import_message(import, GF_OK, "%s Audio import - sample rate %d - %d channel%s", (mtype==GPAC_OTI_AUDIO_MPEG1) ? "MPEG-1" : "MPEG-2", sr, nb_ch, (nb_ch>1) ? "s" : "");
 
 
 	duration = (u32) ((Double)import->duration/1000.0 * sr);
@@ -2095,7 +2095,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 	case GF_STREAM_VISUAL:
 		mtype = GF_ISOM_MEDIA_VISUAL;
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if (import->esd->decoderConfig->objectTypeIndication==0x20) {
+		if (import->esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
 			GF_M4VDecSpecInfo dsi;
 			if (!import->esd->decoderConfig->decoderSpecificInfo) {
 				e = GF_NON_COMPLIANT_BITSTREAM;
@@ -2643,7 +2643,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		case GF_STREAM_VISUAL:
 			mtype = GF_ISOM_MEDIA_VISUAL;
 #ifndef GPAC_DISABLE_AV_PARSERS
-			if (import->esd->decoderConfig->objectTypeIndication==0x20) {
+			if (import->esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
 				GF_M4VDecSpecInfo dsi;
 				if (!import->esd->decoderConfig->decoderSpecificInfo) {
 					e = GF_NON_COMPLIANT_BITSTREAM;
@@ -4840,20 +4840,26 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 			else if (st==GF_STREAM_VISUAL) {
 				mtype = GF_ISOM_MEDIA_VISUAL;
 				switch (oti) {
-				case 0x21: name = "AVC/H264 Video"; stype = GF_4CC('H','2','6','4'); break;
-				case 0x20: name = "MPEG-4 Video"; stype = GF_4CC('M','P','4','V'); break;
-				case 0x6A: name = "MPEG-1 Video"; stype = GF_4CC('M','P','1','V'); break;
-				case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: name = "MPEG-2 Video"; stype = GF_4CC('M','P','2','V'); break;
-				case 0x6C: name = "JPEG Image"; stype = GF_4CC('J','P','E','G'); break;
-				case 0x6D: name = "PNG Image"; stype = GF_4CC('P','N','G',' '); break;
+				case GPAC_OTI_VIDEO_AVC: name = "AVC/H264 Video"; stype = GF_4CC('H','2','6','4'); break;
+				case GPAC_OTI_VIDEO_MPEG4_PART2: name = "MPEG-4 Video"; stype = GF_4CC('M','P','4','V'); break;
+				case GPAC_OTI_VIDEO_MPEG1: name = "MPEG-1 Video"; stype = GF_4CC('M','P','1','V'); break;
+				case GPAC_OTI_VIDEO_MPEG2_SIMPLE: 
+				case GPAC_OTI_VIDEO_MPEG2_MAIN: 
+				case GPAC_OTI_VIDEO_MPEG2_SNR: 
+				case GPAC_OTI_VIDEO_MPEG2_SPATIAL: 
+				case GPAC_OTI_VIDEO_MPEG2_HIGH: 
+				case GPAC_OTI_VIDEO_MPEG2_422: 
+					name = "MPEG-2 Video"; stype = GF_4CC('M','P','2','V'); break;
+				case GPAC_OTI_IMAGE_JPEG: name = "JPEG Image"; stype = GF_4CC('J','P','E','G'); break;
+				case GPAC_OTI_IMAGE_PNG: name = "PNG Image"; stype = GF_4CC('P','N','G',' '); break;
 				}
 			}
 			else if (st==GF_STREAM_AUDIO) {
 				mtype = GF_ISOM_MEDIA_AUDIO;
 				switch (oti) {
-				case 0x69: name = "MPEG-2 Audio"; stype = GF_4CC('M','P','2','A'); break;
-				case 0x6B: name = "MPEG-1 Audio"; stype = GF_4CC('M','P','1','A'); break;
-				case 0x40: name = "MPEG-4 Audio"; stype = GF_4CC('M','P','4','A'); break;
+				case GPAC_OTI_AUDIO_MPEG2_PART3: name = "MPEG-2 Audio"; stype = GF_4CC('M','P','2','A'); break;
+				case GPAC_OTI_AUDIO_MPEG1: name = "MPEG-1 Audio"; stype = GF_4CC('M','P','1','A'); break;
+				case GPAC_OTI_AUDIO_AAC_MPEG4: name = "MPEG-4 Audio"; stype = GF_4CC('M','P','4','A'); break;
 				}
 			}
 
@@ -5296,33 +5302,39 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			switch (es->stream_type) {
 			case GF_M2TS_VIDEO_MPEG1:
 				mtype = GF_ISOM_MEDIA_VISUAL;
-				stype = GF_STREAM_VISUAL; oti = 0x6A;
+				stype = GF_STREAM_VISUAL; 
+				oti = GPAC_OTI_VIDEO_MPEG1;
 				break;
 			case GF_M2TS_VIDEO_MPEG2:
 				mtype = GF_ISOM_MEDIA_VISUAL;
-				stype = GF_STREAM_VISUAL; oti = 0x65;
+				stype = GF_STREAM_VISUAL; oti = GPAC_OTI_VIDEO_MPEG2_422;
 				break;
 			case GF_M2TS_VIDEO_MPEG4:
 				mtype = GF_ISOM_MEDIA_VISUAL;
-				stype = GF_STREAM_VISUAL; oti = 0x20;
+				stype = GF_STREAM_VISUAL; 
+				oti = GPAC_OTI_VIDEO_MPEG4_PART2;
 				break;
 			case GF_M2TS_VIDEO_H264:
 				mtype = GF_ISOM_MEDIA_VISUAL;
-				stype = GF_STREAM_VISUAL; oti = 0x21;
+				stype = GF_STREAM_VISUAL; 
+				oti = GPAC_OTI_VIDEO_AVC;
 				tsimp->avccfg = gf_odf_avc_cfg_new();
 				break;
 			case GF_M2TS_AUDIO_MPEG1:
 				mtype = GF_ISOM_MEDIA_AUDIO;
-				stype = GF_STREAM_AUDIO; oti = 0x6B;
+				stype = GF_STREAM_AUDIO; 
+				oti = GPAC_OTI_AUDIO_MPEG1;
 				break;
 			case GF_M2TS_AUDIO_MPEG2:
 				mtype = GF_ISOM_MEDIA_AUDIO;
-				stype = GF_STREAM_AUDIO; oti = 0x69;
+				stype = GF_STREAM_AUDIO; 
+				oti = GPAC_OTI_AUDIO_MPEG2_PART3;
 				break;
 			case GF_M2TS_AUDIO_LATM_AAC:
 			case GF_M2TS_AUDIO_AAC:
 				mtype = GF_ISOM_MEDIA_AUDIO;
-				stype = GF_STREAM_AUDIO; oti = 0x40;
+				stype = GF_STREAM_AUDIO; 
+				oti = GPAC_OTI_AUDIO_AAC_MPEG4;
 				break;
 			case GF_M2TS_SYSTEMS_MPEG4_PES:
 			case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
@@ -6338,7 +6350,7 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 			return GF_NOT_SUPPORTED;
 		}
 #ifndef GPAC_DISABLE_AV_PARSERS
-		if (esd->decoderConfig->objectTypeIndication==0x20) {
+		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
 			e = gf_m4v_rewrite_par(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, ar_num, ar_den);
 			if (!e) e = gf_isom_change_mpeg4_description(file, track, 1, esd);
 			gf_odf_desc_del((GF_Descriptor *) esd);

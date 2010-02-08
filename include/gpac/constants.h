@@ -246,6 +246,21 @@ enum
 	GPAC_OTI_VIDEO_AVC_PS = 0x22,
 	/*!OTI for MPEG-4 AAC streams*/
     GPAC_OTI_AUDIO_AAC_MPEG4 = 0x40,
+
+	/*!OTI for MPEG-2 Visual Simple Profile streams*/
+    GPAC_OTI_VIDEO_MPEG2_SIMPLE = 0x60,
+	/*!OTI for MPEG-2 Visual Main Profile streams*/
+    GPAC_OTI_VIDEO_MPEG2_MAIN = 0x61,
+	/*!OTI for MPEG-2 Visual SNR Profile streams*/
+    GPAC_OTI_VIDEO_MPEG2_SNR = 0x62,
+	/*!OTI for MPEG-2 Visual SNR Profile streams*/
+    GPAC_OTI_VIDEO_MPEG2_SPATIAL = 0x63,
+	/*!OTI for MPEG-2 Visual SNR Profile streams*/
+    GPAC_OTI_VIDEO_MPEG2_HIGH = 0x64,
+	/*!OTI for MPEG-2 Visual SNR Profile streams*/
+    GPAC_OTI_VIDEO_MPEG2_422 = 0x65,
+
+
 	/*!OTI for MPEG-2 AAC Main Profile streams*/
     GPAC_OTI_AUDIO_AAC_MPEG2_MP = 0x66,
 	/*!OTI for MPEG-2 AAC Low Complexity Profile streams*/

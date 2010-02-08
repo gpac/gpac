@@ -1095,7 +1095,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 			if (esd->decoderConfig->streamType==GF_STREAM_VISUAL) {
 				u32 w, h;
 				w = h = 0;
-				if (esd->decoderConfig->objectTypeIndication==0x20) {
+				if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 					GF_M4VDecSpecInfo dsi;
 					gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
@@ -1113,7 +1113,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					fprintf(stdout, "MPEG-4 Visual Size %d x %d\n", w, h);
 #endif
 
-				} else if (esd->decoderConfig->objectTypeIndication==0x21) {
+				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 					GF_AVCConfig *avccfg, *svccfg;
 					GF_AVCConfigSlot *slc;
@@ -1180,11 +1180,11 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 #endif
 				u32 is_mp2 = 0;
 				switch (esd->decoderConfig->objectTypeIndication) {
-				case 0x66:
-				case 0x67:
-				case 0x68:
+				case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+				case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+				case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 					is_mp2 = 1;
-				case 0x40:
+				case GPAC_OTI_AUDIO_AAC_MPEG4:
 #ifndef GPAC_DISABLE_AV_PARSERS
 					e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 					if (full_dump) fprintf(stdout, "\t");
@@ -1198,8 +1198,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					fprintf(stdout, "MPEG-2/4 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
 #endif
 					break;
-				case 0x69:
-				case 0x6B:
+				case GPAC_OTI_AUDIO_MPEG2_PART3:
+				case GPAC_OTI_AUDIO_MPEG1:
 					if (msub_type == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
 						fprintf(stdout, "MPEG-1/2 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
 					} else {
