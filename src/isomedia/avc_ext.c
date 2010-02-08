@@ -87,7 +87,7 @@ void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc)
 		}
 	}
 	if (avc->avc_config) {
-		avcc = AVC_DuplicateConfig(avc->avc_config->config);
+		avcc = avc->avc_config->config ? AVC_DuplicateConfig(avc->avc_config->config) : NULL;
 		/*merge SVC config*/
 		if (avc->svc_config) {
 			svcc = AVC_DuplicateConfig(avc->svc_config->config);
@@ -103,8 +103,10 @@ void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc)
 			}
 			gf_odf_avc_cfg_del(svcc);
 		}
-		gf_odf_avc_cfg_write(avcc, &avc->emul_esd->decoderConfig->decoderSpecificInfo->data, &avc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
-		gf_odf_avc_cfg_del(avcc);
+		if (avcc) {
+			gf_odf_avc_cfg_write(avcc, &avc->emul_esd->decoderConfig->decoderSpecificInfo->data, &avc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_odf_avc_cfg_del(avcc);
+		}
 	} else {
 		svcc = AVC_DuplicateConfig(avc->svc_config->config);
 		gf_odf_avc_cfg_write(svcc, &avc->emul_esd->decoderConfig->decoderSpecificInfo->data, &avc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);

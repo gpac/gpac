@@ -80,10 +80,13 @@ u32 gf_beng_get_stream_count(GF_BifsEngine *beng);
  * @ESID: pointer to the stream ID
  * @config: pointer to the encoded BIFS config (memory is not allocated)
  * @config_len: length of the buffer
+ * @streamType: pointer to get stream type
+ * @objectType: pointer to get object type
+ * @timeScale: pointer to get time scale
  *
  * must be called after gf_beng_init()
  */
-GF_Err gf_beng_get_stream_config(GF_BifsEngine *beng, u32 idx, u16 *ESID, const char **config, u32 *config_len);
+GF_Err gf_beng_get_stream_config(GF_BifsEngine *beng, u32 idx, u16 *ESID, const char **config, u32 *config_len, u32 *streamType, u32 *objectType, u32 *timeScale);
 
 /**
  * Encodes the AU context which is not encoded when calling BENC_EncodeAUFromString/File

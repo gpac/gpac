@@ -38,6 +38,12 @@
 #endif
 #include "GLES/egl.h"
 
+
+#elif defined (CONFIG_DARWIN_XCODE)
+
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+
 #else
 
 

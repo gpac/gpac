@@ -837,7 +837,7 @@ GF_Err gf_sk_send(GF_Socket *sock, char *buffer, u32 length)
 }
 
 
-u32 gf_sk_is_multicast_address(char *multi_IPAdd)
+u32 gf_sk_is_multicast_address(const char *multi_IPAdd)
 {
 #ifdef GPAC_HAS_IPV6
 	u32 val;

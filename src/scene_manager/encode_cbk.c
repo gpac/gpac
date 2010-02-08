@@ -485,13 +485,16 @@ void gf_beng_terminate(GF_BifsEngine *codec)
 }
 
 GF_EXPORT
-GF_Err gf_beng_get_stream_config(GF_BifsEngine *beng, u32 idx, u16 *ESID, const char **config, u32 *config_len)
+GF_Err gf_beng_get_stream_config(GF_BifsEngine *beng, u32 idx, u16 *ESID, const char **config, u32 *config_len, u32 *streamType, u32 *objectType, u32 *timeScale)
 {
 	GF_StreamContext *sc = gf_list_get(beng->ctx->streams, idx);
 	if (!sc || !ESID || !config || !config_len) return GF_BAD_PARAM;
 	*ESID = sc->ESID;
 	*config = sc->dec_cfg;
 	*config_len = sc->dec_cfg_len;
+	if (streamType) *streamType = sc->streamType;
+	if (objectType) *objectType = sc->objectType;
+	if (timeScale) *timeScale = sc->timeScale;
 	return GF_OK;
 }
 

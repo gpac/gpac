@@ -1825,7 +1825,7 @@ FILE *ts_file;
 				/*FIXME - better discontinuity check*/
 				hdr.Marker = (ts < hdr.TimeStamp) ? 1 : 0;
 				hdr.TimeStamp = ts;
-				e = gf_rtp_send_packet(ts_rtp, &hdr, 0, 0, (char*)ts_pck, 188);
+				e = gf_rtp_send_packet(ts_rtp, &hdr, (char*)ts_pck, 188, 0);
 				if (e) 
 					fprintf(stdout, "Error %s sending RTP packet\n", gf_error_to_string(e));
 				if (status>=GF_M2TS_STATE_PADDING) break;

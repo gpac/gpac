@@ -1078,80 +1078,84 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		GF_M2TS_PES *pes = NULL;
 		GF_M2TS_SECTION_ES *ses = NULL;
 		GF_M2TS_ES *es = NULL;
-		u32 pid, stream_type;
+		u32 pid, stream_type, reg_desc_format;
 
 		stream_type = data[0];
 		pid = ((data[1] & 0x1f) << 8) | data[2];
 		desc_len = ((data[3] & 0xf) << 8) | data[4];
+		reg_desc_format = 0;
 
 		switch (stream_type) {
-			/* PES */
-			case GF_M2TS_VIDEO_MPEG1:
-			case GF_M2TS_VIDEO_MPEG2:
-			case GF_M2TS_AUDIO_MPEG1:
-			case GF_M2TS_AUDIO_MPEG2:
-			case GF_M2TS_AUDIO_AAC:
-			case GF_M2TS_AUDIO_LATM_AAC:
-			case GF_M2TS_VIDEO_MPEG4:
-			case GF_M2TS_SYSTEMS_MPEG4_PES:
-			case GF_M2TS_VIDEO_H264:
-			case GF_M2TS_AUDIO_AC3:
-			case GF_M2TS_AUDIO_DTS:
-			case GF_M2TS_SUBTITLE_DVB:
-			case GF_M2TS_PRIVATE_DATA:
-				GF_SAFEALLOC(pes, GF_M2TS_PES);
-				es = (GF_M2TS_ES *)pes;
-				break;
-			/* Sections */
-			case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
-				GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
-				es = (GF_M2TS_ES *)ses;
-				es->flags |= GF_M2TS_ES_IS_SECTION;
-				/* carriage of ISO_IEC_14496 data in sections */
-				if (stream_type == GF_M2TS_SYSTEMS_MPEG4_SECTIONS) {
-					/*MPEG-4 sections need to be fully checked: if one section is lost, this means we lost
-					one SL packet in the AU so we must wait for the complete section again*/
-					ses->sec = gf_m2ts_section_filter_new(gf_m2ts_process_mpeg4section, 0);
-					/*create OD container*/
-					if (!pmt->program->additional_ods) {
-						pmt->program->additional_ods = gf_list_new();
-						ts->has_4on2 = 1;
-					}
+		/* PES */
+		case GF_M2TS_VIDEO_MPEG1:
+		case GF_M2TS_VIDEO_MPEG2:
+		case GF_M2TS_AUDIO_MPEG1:
+		case GF_M2TS_AUDIO_MPEG2:
+		case GF_M2TS_AUDIO_AAC:
+		case GF_M2TS_AUDIO_LATM_AAC:
+		case GF_M2TS_VIDEO_MPEG4:
+		case GF_M2TS_SYSTEMS_MPEG4_PES:
+		case GF_M2TS_VIDEO_H264:
+		case GF_M2TS_AUDIO_AC3:
+		case GF_M2TS_AUDIO_DTS:
+		case GF_M2TS_SUBTITLE_DVB:
+			GF_SAFEALLOC(pes, GF_M2TS_PES);
+			es = (GF_M2TS_ES *)pes;
+			break;
+		case GF_M2TS_PRIVATE_DATA:
+			GF_SAFEALLOC(pes, GF_M2TS_PES);
+			es = (GF_M2TS_ES *)pes;
+			break;
+		/* Sections */
+		case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
+			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
+			es = (GF_M2TS_ES *)ses;
+			es->flags |= GF_M2TS_ES_IS_SECTION;
+			/* carriage of ISO_IEC_14496 data in sections */
+			if (stream_type == GF_M2TS_SYSTEMS_MPEG4_SECTIONS) {
+				/*MPEG-4 sections need to be fully checked: if one section is lost, this means we lost
+				one SL packet in the AU so we must wait for the complete section again*/
+				ses->sec = gf_m2ts_section_filter_new(gf_m2ts_process_mpeg4section, 0);
+				/*create OD container*/
+				if (!pmt->program->additional_ods) {
+					pmt->program->additional_ods = gf_list_new();
+					ts->has_4on2 = 1;
 				}
-				break;
+			}
+			break;
 
-			case GF_M2TS_13818_6_ANNEX_D:
-			case GF_M2TS_PRIVATE_SECTION:
-				GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
-				es = (GF_M2TS_ES *)ses;
-				es->flags |= GF_M2TS_ES_IS_SECTION;
-				if (stream_type == GF_M2TS_13818_6_ANNEX_D)
-					printf("stream type DSM CC user private section: pid = %d \n", pid);
-				else
-					printf("unknown private section: pid = %d \n", pid);
-				/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
-				ses->sec = gf_m2ts_section_filter_new(NULL, 1);
-				break;
+		case GF_M2TS_13818_6_ANNEX_D:
+		case GF_M2TS_PRIVATE_SECTION:
+			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
+			es = (GF_M2TS_ES *)ses;
+			es->flags |= GF_M2TS_ES_IS_SECTION;
+			if (stream_type == GF_M2TS_13818_6_ANNEX_D)
+				printf("stream type DSM CC user private section: pid = %d \n", pid);
+			else
+				printf("unknown private section: pid = %d \n", pid);
+			/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
+			ses->sec = gf_m2ts_section_filter_new(NULL, 1);
+			break;
 
-			case GF_M2TS_MPE_SECTIONS:
-				printf("stream type MPE found : pid = %d \n", pid);
+		case GF_M2TS_MPE_SECTIONS:
+			printf("stream type MPE found : pid = %d \n", pid);
 #ifdef GPAC_ENST_PRIVATE
-				es = gf_dvb_mpe_section_new();
-				if (es->flags & GF_M2TS_ES_IS_SECTION) {
-					/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
-					((GF_M2TS_SECTION_ES*)es)->sec = gf_m2ts_section_filter_new(NULL, 1);
-				}
+			es = gf_dvb_mpe_section_new();
+			if (es->flags & GF_M2TS_ES_IS_SECTION) {
+				/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
+				((GF_M2TS_SECTION_ES*)es)->sec = gf_m2ts_section_filter_new(NULL, 1);
+			}
 #endif
-				break;
+			break;
 
-			default:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
-				//GF_LOG(/*GF_LOG_WARNING*/GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
-				break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
+			//GF_LOG(/*GF_LOG_WARNING*/GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
+			break;
 		}
 
 		if (es) {
-			es->stream_type = stream_type;
+			es->stream_type = (stream_type==GF_M2TS_PRIVATE_DATA) ? 0 : stream_type;
 			es->program = pmt->program;
 			es->pid = pid;
 			es->component_tag = -1;
@@ -1172,6 +1176,21 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					es->mpeg4_es_id = ((data[2] & 0x1f) << 8) | data[3];
 					es->flags |= GF_M2TS_ES_IS_SL;
 					break;
+				case GF_M2TS_REGISTRATION_DESCRIPTOR:
+					reg_desc_format = GF_4CC(data[2], data[3], data[4], data[5]);
+					/*cf http://www.smpte-ra.org/mpegreg/mpegreg.html*/
+					switch (reg_desc_format) {
+					case GF_4CC(0x41, 0x43, 0x2D, 0x33):
+						es->stream_type = GF_M2TS_AUDIO_AC3;
+						break;
+					case GF_4CC(0x56, 0x43, 0x2D, 0x31):
+						es->stream_type = GF_M2TS_VIDEO_VC1;
+						break;
+					}
+					break;
+				case GF_M2TS_DVB_EAC3_DESCRIPTOR:
+					es->stream_type = GF_M2TS_AUDIO_EC3;
+					break;
 				case GF_M2TS_DVB_DATA_BROADCAST_ID_DESCRIPTOR:
 					 {
 				 		u32 id = data[2]<<8 | data[3];
@@ -1181,14 +1200,14 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					 }
 					break;
 				case GF_M2TS_DVB_SUBTITLING_DESCRIPTOR:
-					{
-						pes->sub.language[0] = data[2];
-						pes->sub.language[1] = data[3];
-						pes->sub.language[2] = data[4];
-						pes->sub.type = data[5];
-						pes->sub.composition_page_id = (data[6]<<8) | data[7];
-						pes->sub.ancillary_page_id = (data[8]<<8) | data[9];
-					}
+					pes->sub.language[0] = data[2];
+					pes->sub.language[1] = data[3];
+					pes->sub.language[2] = data[4];
+					pes->sub.type = data[5];
+					pes->sub.composition_page_id = (data[6]<<8) | data[7];
+					pes->sub.ancillary_page_id = (data[8]<<8) | data[9];
+					
+					es->stream_type = GF_M2TS_DVB_SUBTITLE;
 					break;
 				case GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR:
 					{
@@ -1196,6 +1215,13 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 						printf("Component Tag: %d on Program %d\n", es->component_tag, es->program->number);
 					}
 					break;
+				case GF_M2TS_DVB_TELETEXT_DESCRIPTOR:
+					es->stream_type = GF_M2TS_DVB_TELETEXT;
+					break;
+				case GF_M2TS_DVB_VBI_DATA_DESCRIPTOR:
+					es->stream_type = GF_M2TS_DVB_VBI;
+					break;
+					
 				default:
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] skipping descriptor (0x%x) not supported\n", tag));
 					break;
@@ -1209,6 +1235,12 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				break;
 			}
 			desc_len-=len+2;
+		}
+
+		if (es && !es->stream_type) {
+			free(es);
+			es = NULL;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Private Stream type (0x%x) for PID %d not supported\n", stream_type, pid ) );
 		}
 
 		if (!es) continue;
@@ -1231,9 +1263,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		}
 
 		if (es) {
-			es->stream_type = stream_type;
-			es->program = pmt->program;
-			es->pid = pid;
 			ts->ess[es->pid] = es;
 			gf_list_add(pmt->program->streams, es);
 
@@ -1461,6 +1490,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 	if (paf && paf->random_access_indicator) pes->rap = 1;
 	if (!pes->pes_len && (pes->data_len>=6)) pes->pes_len = (pes->data[4]<<8) | pes->data[5];
+
 }
 
 

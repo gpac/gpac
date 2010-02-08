@@ -31,7 +31,7 @@
 /*this file defines all common macros for libgpac compilation*/
 
 /*except for symbian32 which uses .mmp directives ... */
-#ifndef __SYMBIAN32__
+#if defined(WIN32) || defined(_WIN32_WCE)
 
 /*enables GPAC fixed point*/
 //#define GPAC_FIXED_POINT
@@ -69,8 +69,6 @@
 //#define GPAC_USE_OGL_ES
 
 
-#endif /*(__SYMBIAN32__)*/
-
 #if defined(_WIN32_WCE)
 
 #ifndef GPAC_FIXED_POINT
@@ -90,7 +88,12 @@
 #define GPAC_USE_OGL_ES
 #endif
 
-#endif
+#endif /*_WIN32_WCE*/
+
+
+
+#endif /*defined(WIN32) || defined(_WIN32_WCE)*/
+
 
 #if defined(__SYMBIAN32__)
 

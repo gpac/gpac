@@ -540,7 +540,7 @@ void gf_rtp_del(GF_RTPChannel *ch);
 /*you configure a server channel through the transport structure, with the same info as a 
 client channel, the client_port_* info designing the REMOTE client and port_* designing
 your server channel*/
-GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, char *remote_address);
+GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, const char *remote_address);
 
 /*auto-setup of rtp/rtcp transport ports - only effective in unicast, non interleaved cases. 
 for multicast port setup MUST be done through the above gf_rtp_setup_transport function
@@ -617,8 +617,9 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 						void *rtsp_cbk);
 
 
-/*send RTP packet*/
-GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_header, u32 extra_header_size, char *pck, u32 pck_size);
+/*send RTP packet. In fast_send mode, user passes a pck pointer with 12 bytes available BEFORE pck to 
+write the header in place*/
+GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u32 pck_size, Bool fast_send);
 
 enum
 {
@@ -1020,6 +1021,9 @@ enum
 	/*signals that each sample will have its own key indicator - ignored in non-multi modes
 	if not set and key indicator changes, a new RTP packet will be forced*/
 	GP_RTP_PCK_KEY_IDX_PER_AU =	(1<<11),
+
+	/*is zip compression used in DIMS unit ?*/
+	GP_RTP_DIMS_COMPRESSED =	(1<<12),
 };
 
 
@@ -1158,8 +1162,8 @@ struct __tag_rtp_packetizer
 typedef struct __tag_rtp_packetizer GP_RTPPacketizer;
 
 /*creates a new builder
-	@hintType: hint media type, one of the above
-	@flags: hint flags (cf above)
+	@rtp_payt: rtp payload format, one of the above GF_RTP_PAYT_*
+	@flags: packetizer flags, one of the above GP_RTP_PCK_*
 	@slc: user-given SL config to use. If none specified, default RFC config is used
 	@cbk_obj: callback object passed back in functions
 	@OnNewPacket: callback function starting new RTP packet
@@ -1175,7 +1179,7 @@ typedef struct __tag_rtp_packetizer GP_RTPPacketizer;
 		@is_head: signal the data added MUST be inserted at the begining of the payload. Otherwise data
 		is concatenated as received
 */
-GP_RTPPacketizer *gf_rtp_builder_new(u32 hintType, 
+GP_RTPPacketizer *gf_rtp_builder_new(u32 rtp_payt, 
 						GF_SLConfig *slc, 
 						u32 flags,
 						void *cbk_obj, 

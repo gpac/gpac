@@ -66,7 +66,7 @@ void gf_rtp_del(GF_RTPChannel *ch)
 
 
 GF_EXPORT
-GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, char *remote_address)
+GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, const char *remote_address)
 {
 	if (!ch || !trans_info) return GF_BAD_PARAM;
 	//assert we have at least ONE source ID
@@ -495,10 +495,12 @@ Double gf_rtp_get_current_time(GF_RTPChannel *ch)
 
 
 GF_EXPORT
-GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_header, u32 extra_header_size, char *pck, u32 pck_size)
+GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u32 pck_size, Bool fast_send)
 {
 	GF_Err e;
 	u32 Start, i;
+	char *hdr = NULL;
+
 	GF_BitStream *bs;
 
 	if (!ch || !rtp_hdr 
@@ -507,13 +509,16 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_
 		|| (rtp_hdr->CSRCCount && !rtp_hdr->CSRC) 
 		|| (rtp_hdr->CSRCCount > 15)) return GF_BAD_PARAM;
 	
-	if (12 + extra_header_size + pck_size + 4*rtp_hdr->CSRCCount > ch->send_buffer_size) return GF_IO_ERR; 
+	if (rtp_hdr->CSRCCount) fast_send=0;
 
-	//we don't support multiple CSRC now. Only one source (the server) is allowed
-	if (rtp_hdr->CSRCCount) return GF_NOT_SUPPORTED;
+	if (12 + pck_size + 4*rtp_hdr->CSRCCount > ch->send_buffer_size) return GF_IO_ERR; 
 
-	bs = gf_bs_new(ch->send_buffer, ch->send_buffer_size, GF_BITSTREAM_WRITE);
-	
+	if (fast_send) {
+		hdr = pck - 12;
+		bs = gf_bs_new(hdr, 12, GF_BITSTREAM_WRITE);
+	} else {
+		bs = gf_bs_new(ch->send_buffer, ch->send_buffer_size, GF_BITSTREAM_WRITE);
+	}
 	//write header
 	gf_bs_write_int(bs, rtp_hdr->Version, 2);
 	gf_bs_write_int(bs, rtp_hdr->Padding, 1);
@@ -532,14 +537,13 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_
 	Start = (u32) gf_bs_get_position(bs);
 	gf_bs_del(bs);
 
-	//extra header
-	if (extra_header_size) {
-		memcpy(ch->send_buffer + Start, extra_header, extra_header_size);
-		Start += extra_header_size;
+	//copy payload
+	if (fast_send) {
+		e = gf_sk_send(ch->rtp, hdr, pck_size+12);
+	} else {
+		memcpy(ch->send_buffer + Start, pck, pck_size);		
+		e = gf_sk_send(ch->rtp, ch->send_buffer, Start + pck_size);
 	}
-	//payload
-	memcpy(ch->send_buffer + Start, pck, pck_size);
-	e = gf_sk_send(ch->rtp, ch->send_buffer, Start + pck_size);
 	if (e) return e;
 
 	//Update RTCP for sender reports
@@ -552,7 +556,7 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *extra_
 		ch->first_SR = 0;
 	}
 
-	ch->num_payload_bytes += pck_size + extra_header_size;
+	ch->num_payload_bytes += pck_size;
 	ch->num_pck_sent += 1;
 	//store timing
 	ch->last_pck_ts = rtp_hdr->TimeStamp;
@@ -694,8 +698,13 @@ u32 gf_rtp_get_tcp_bytes_sent(GF_RTPChannel *ch)
 GF_EXPORT
 void gf_rtp_get_ports(GF_RTPChannel *ch, u16 *rtp_port, u16 *rtcp_port)
 {
-	*rtp_port = ch->net_info.client_port_first;
-	*rtcp_port = ch->net_info.client_port_last;
+	if (ch->net_info.client_port_first) {
+		if (rtp_port) *rtp_port = ch->net_info.client_port_first;
+		if (rtcp_port) *rtcp_port = ch->net_info.client_port_last;
+	} else {
+		if (rtp_port) *rtp_port = ch->net_info.port_first;
+		if (rtcp_port) *rtcp_port = ch->net_info.port_last;
+	}
 }
 
 

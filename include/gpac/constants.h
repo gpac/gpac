@@ -102,6 +102,9 @@ enum
 	*the objectTypeIndication currently in use for these streams are documented below\n
 	*/
 	GF_STREAM_PRIVATE_SCENE	= 0x20,
+
+	/*used internally to signal the the OTI carries a 4CC code, typically media subtype (stsd entry in file format)*/
+	GF_STREAM_4CC		= 0xF0,
 };
 
 
@@ -463,6 +466,9 @@ static const u32 GF_SMV_EVRC_RATE_TO_SIZE_NB = 6;
 static const u32 GF_AMR_FRAME_SIZE[16] = { 12, 13, 15, 17, 19, 20, 26, 31, 5, 0, 0, 0, 0, 0, 0, 0 };
 static const u32 GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60, 5, 5, 0, 0, 0, 0, 0 };
 
+
+/*out-of-band sample desc (128 and 255 reserved in RFC)*/
+#define GF_RTP_TX3G_SIDX_OFFSET	129
 
 /*!
  \endcond
