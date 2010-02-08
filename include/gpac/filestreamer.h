@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef _GF_FILESTREAMER_H_
-#define _GF_FILESTREAMER_H_
+#ifndef _GF_ISOMRTPStreamer_H_
+#define _GF_ISOMRTPStreamer_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,19 +46,12 @@ extern "C" {
 #include <gpac/tools.h>
 
 
-enum
-{
-	GF_STREAMER_LOG_NONE = 0,
-	GF_STREAMER_LOG_AU,
-	GF_STREAMER_LOG_PACKET,
-};
-
-typedef struct __file_streamer GF_FileStreamer;
+typedef struct __isom_rtp_streamer GF_ISOMRTPStreamer;
 
 /*!
- *	\brief RTP File Streamer list constructor
+ *	\brief ISO File RTP Streamer list constructor
  *
- *	Constructs a new RTP file streamer
+ *	Constructs a new ISO file RTP streamer
  *\param file_name source file name to stream. Hint tracks will be ignored, all media tracks will be streamed
  *\param ip_dest destination IP address (V4 or V6, unicast or multicast)
  *\param port destination port
@@ -69,7 +62,7 @@ typedef struct __file_streamer GF_FileStreamer;
  *\param ifce_addr IP of the local interface to use (may be NULL)
  *\return new list object
  */
-GF_FileStreamer *gf_streamer_new(const char *file_name, const char *ip_dest, u16 port, Bool loop, Bool force_mpeg4, u32 path_mtu, u32 ttl, char *ifce_addr);
+GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_dest, u16 port, Bool loop, Bool force_mpeg4, u32 path_mtu, u32 ttl, char *ifce_addr);
 
 /*!
  *	\brief RTP file streamer destructor
@@ -77,7 +70,7 @@ GF_FileStreamer *gf_streamer_new(const char *file_name, const char *ip_dest, u16
  *	Destructs an RTP file streamer
  *	\param ptr object to destruct
  */
-void gf_streamer_del(GF_FileStreamer *streamer);
+void gf_isom_streamer_del(GF_ISOMRTPStreamer *streamer);
 
 /*!
  *	\brief writes the SDP file
@@ -86,7 +79,7 @@ void gf_streamer_del(GF_FileStreamer *streamer);
  *	\param streamer RTP streamer object
  *	\param sdpfilename SDP file name to create
  */
-GF_Err gf_streamer_write_sdp(GF_FileStreamer *streamer, char*sdpfilename);
+GF_Err gf_isom_streamer_write_sdp(GF_ISOMRTPStreamer *streamer, char*sdpfilename);
 
 /*!
  *	\brief gets the SDP file
@@ -95,7 +88,7 @@ GF_Err gf_streamer_write_sdp(GF_FileStreamer *streamer, char*sdpfilename);
  *	\param streamer RTP streamer object
  *	\param out_sdp_buffer location to the SDP buffer to allocate and fill
  */
-GF_Err gf_streamer_get_sdp(GF_FileStreamer *streamer, char **out_sdp_buffer);
+GF_Err gf_isom_streamer_get_sdp(GF_ISOMRTPStreamer *streamer, char **out_sdp_buffer);
 
 
 /*!
@@ -106,7 +99,7 @@ GF_Err gf_streamer_get_sdp(GF_FileStreamer *streamer, char **out_sdp_buffer);
  *	\param send_ahead_delay delay in milliseconds for packet sending. A packet is sent if (packet.timestamp + send_ahead_delay) is greate than the current time.
  *	\param max_sleep_time indicates that if the streamer has to wait more than max_sleep_time before sending the packet, it should return and send it later. 
  */
-GF_Err gf_streamer_send_next_packet(GF_FileStreamer *streamer, s32 send_ahead_delay, s32 max_sleep_time);
+GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_ahead_delay, s32 max_sleep_time);
 
 /*!
  *	\brief resets RTP sender
@@ -115,7 +108,7 @@ GF_Err gf_streamer_send_next_packet(GF_FileStreamer *streamer, s32 send_ahead_de
  *	\param streamer RTP streamer object
  *	\param is_loop indicates whether the RTP timelines shall continue from the end of the file or shall restart from 0
  */
-void gf_streamer_reset(GF_FileStreamer *streamer, Bool is_loop);
+void gf_isom_streamer_reset(GF_ISOMRTPStreamer *streamer, Bool is_loop);
 
 /*! @} */
 
@@ -124,5 +117,5 @@ void gf_streamer_reset(GF_FileStreamer *streamer, Bool is_loop);
 #endif
 
 
-#endif		/*_GF_FILESTREAMER_H_*/
+#endif		/*_GF_ISOMRTPStreamer_H_*/
 

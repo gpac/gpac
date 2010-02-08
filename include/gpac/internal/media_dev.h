@@ -29,9 +29,6 @@
 #include <gpac/media_tools.h>
 #include <gpac/ietf.h>
 
-/*out-of-band sample desc (128 and 255 reserved in RFC)*/
-#define SIDX_OFFSET_3GPP		129
-
 #ifndef GPAC_DISABLE_ISOM
 void gf_media_get_sample_average_infos(GF_ISOFile *file, u32 Track, u32 *avgSize, u32 *MaxSize, u32 *TimeDelta, u32 *maxCTSDelta, u32 *const_duration, u32 *bandwidth);
 #endif

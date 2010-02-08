@@ -18,7 +18,7 @@ endif
 LIBGPAC_UTILS=utils/os_divers.o utils/os_net.o utils/os_module.o utils/os_thread.o utils/list.o utils/base_encoding.o utils/bitstream.o utils/color.o utils/configfile.o utils/downloader.o utils/error.o utils/math.o utils/path2d.o utils/path2d_stroker.o utils/module.o utils/token.o utils/uni_bidi.o utils/url.o utils/utf.o utils/xml_parser.o
 
 ## libgpac objects gathering: src/ietf
-LIBGPAC_IETF=ietf/rtcp.o ietf/rtp.o ietf/rtp_packetizer.o ietf/rtp_pck_3gpp.o ietf/rtp_pck_mpeg12.o ietf/rtp_pck_mpeg4.o ietf/rtsp_command.o ietf/rtsp_common.o ietf/rtsp_response.o ietf/rtsp_session.o ietf/sdp.o ietf/rtp_depacketizer.o
+LIBGPAC_IETF=ietf/rtcp.o ietf/rtp.o ietf/rtp_packetizer.o ietf/rtp_pck_3gpp.o ietf/rtp_pck_mpeg12.o ietf/rtp_pck_mpeg4.o ietf/rtsp_command.o ietf/rtsp_common.o ietf/rtsp_response.o ietf/rtsp_session.o ietf/sdp.o ietf/rtp_depacketizer.o ietf/rtp_streamer.o
 
 ## libgpac objects gathering: src/bifs
 LIBGPAC_BIFS=bifs/arith_decoder.o bifs/bifs_codec.o bifs/bifs_node_tables.o bifs/com_dec.o bifs/com_enc.o bifs/conditional.o bifs/field_decode.o bifs/field_encode.o bifs/memory_decoder.o bifs/predictive_mffield.o bifs/quantize.o bifs/script_dec.o bifs/script_enc.o bifs/unquantize.o

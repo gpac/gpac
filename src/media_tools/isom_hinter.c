@@ -728,12 +728,12 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 				tkHint->base_offset_in_sample = samp->dataLength-remain;
 				remain -= size;
 				tkHint->rtp_p->sl_header.accessUnitEndFlag = remain ? 0 : 1;
-				e = gf_rtp_builder_process(tkHint->rtp_p, ptr, size, (u8) !remain, samp->dataLength, duration, (u8) (descIndex + SIDX_OFFSET_3GPP) );
+				e = gf_rtp_builder_process(tkHint->rtp_p, ptr, size, (u8) !remain, samp->dataLength, duration, (u8) (descIndex + GF_RTP_TX3G_SIDX_OFFSET) );
 				ptr += size;
 				tkHint->rtp_p->sl_header.accessUnitStartFlag = 0;
 			}
 		} else {
-			e = gf_rtp_builder_process(tkHint->rtp_p, samp->data, samp->dataLength, 1, samp->dataLength, duration, (u8) (descIndex + SIDX_OFFSET_3GPP) );
+			e = gf_rtp_builder_process(tkHint->rtp_p, samp->data, samp->dataLength, 1, samp->dataLength, duration, (u8) (descIndex + GF_RTP_TX3G_SIDX_OFFSET) );
 		}
 		tkHint->rtp_p->sl_header.packetSequenceNumber += 1;
 

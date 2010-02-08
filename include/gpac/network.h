@@ -326,7 +326,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_ip_add, u16 multi_port
  *\param multi_ip_add the multicast IP address to test
  *\return 1 if the address is a multicast one, 0 otherwise
  */
-u32 gf_sk_is_multicast_address(char *multi_ip_add);
+u32 gf_sk_is_multicast_address(const char *multi_ip_add);
 
 /*!
  *\brief send data with wait delay

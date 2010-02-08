@@ -2001,7 +2001,7 @@ int main(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_STREAMING
 	if (stream_rtp) {
-		GF_FileStreamer *file_streamer;
+		GF_ISOMRTPStreamer *file_streamer;
 		if (!gf_isom_probe_file(inName)) {
 			fprintf(stdout, "File %s is not a valid ISO Media file and cannot be streamed\n", inName);
 			return 1;
@@ -2012,16 +2012,16 @@ int main(int argc, char **argv)
 		gf_log_set_tools(GF_LOG_RTP);
 		gf_log_set_level(GF_LOG_WARNING);	//set to debug to have packet list
 
-		file_streamer = gf_streamer_new(inName, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, ifce_addr);
+		file_streamer = gf_isom_streamer_new(inName, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, ifce_addr);
 		if (!file_streamer) {
 			fprintf(stdout, "Cannot create file streamer\n");
 		} else {
 			u32 check = 100;
 			fprintf(stdout, "Starting streaming %s to %s:%d\n", inName, ip_dest, port);
-			gf_streamer_write_sdp(file_streamer, sdp_file);
+			gf_isom_streamer_write_sdp(file_streamer, sdp_file);
 
 			while (1) {
-				gf_streamer_send_next_packet(file_streamer, 0, 0);
+				gf_isom_streamer_send_next_packet(file_streamer, 0, 0);
 				check--;
 				if (!check) {
 					if (gf_prompt_has_input()) {
@@ -2031,7 +2031,7 @@ int main(int argc, char **argv)
 					check = 100;
 				}
 			}
-			gf_streamer_del(file_streamer);
+			gf_isom_streamer_del(file_streamer);
 		}
 		gf_sys_close();
 		return 0;

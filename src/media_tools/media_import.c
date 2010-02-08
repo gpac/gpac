@@ -3772,8 +3772,12 @@ restart_import:
 		case GF_AVC_NALU_SEQ_PARAM:
 			idx = AVC_ReadSeqInfo(bs, &avc, is_subseq, NULL);
 			if (idx<0) {
-				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing SeqInfo");
-				goto exit;
+				if (avc.sps[0].profile_idc) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Error parsing SeqInfo"));
+				} else {
+					e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing SeqInfo");
+					goto exit;
+				}
 			}
 			add_sps = 0;
 			dstcfg = (import->flags & GF_IMPORT_SVC_EXPLICIT) ? svccfg : avccfg;
@@ -5214,6 +5218,18 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				case GF_M2TS_AUDIO_AAC:
 				case GF_M2TS_AUDIO_LATM_AAC:
 					import->tk_info[idx].media_type = GF_4CC('M','P','4','A');
+					import->tk_info[idx].type = GF_ISOM_MEDIA_AUDIO;
+					import->tk_info[idx].lang = pes->lang;
+					import->nb_tracks++;
+					break;
+				case GF_M2TS_AUDIO_AC3:
+					import->tk_info[idx].media_type = GF_4CC('D','A','C','3');
+					import->tk_info[idx].type = GF_ISOM_MEDIA_AUDIO;
+					import->tk_info[idx].lang = pes->lang;
+					import->nb_tracks++;
+					break;
+				case GF_M2TS_AUDIO_EC3:
+					import->tk_info[idx].media_type = GF_4CC('D','E','C','3');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_AUDIO;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;

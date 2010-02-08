@@ -147,7 +147,7 @@ static void rtp_flush_channel(RTP_Stream *rtp)
 	while (pck) {
 		RTP_Packet *tmp = pck;
 
-		gf_rtp_send_packet(rtp->channel, &pck->header, 0, 0, pck->payload, pck->payload_len);
+		gf_rtp_send_packet(rtp->channel, &pck->header, pck->payload, pck->payload_len, 0);
 		currentPacketSize = (pck->payload_len + RTP_HEADER_SIZE);
 		rtp->session->dataLengthInBurst+= currentPacketSize; 
 		if (rtp->session->streamer->log_level == LOG_PACKET) fprintf(stdout, "  RTP SN %u - TS %u - M %u - Size %u\n", pck->header.SequenceNumber, pck->header.TimeStamp, pck->header.Marker, currentPacketSize);
@@ -194,7 +194,7 @@ static void burst_on_pck_done(void *cbk, GF_RTPHeader *header)
 	if (rtp->session->dataLengthInBurst + currentPacketSize < rtp->session->streamer->burstSize 
 		&& (burst_time - rtp_ts > 0) ) { 
 		
-		e = gf_rtp_send_packet(rtp->channel, header, 0, 0, rtp->packet.payload, rtp->packet.payload_len);
+		e = gf_rtp_send_packet(rtp->channel, header, rtp->packet.payload, rtp->packet.payload_len, 0);
 		if (e) 
 			fprintf(stdout, "Error %s sending RTP packet\n", gf_error_to_string(e));
 		rtp->session->dataLengthInBurst += currentPacketSize; 
@@ -275,7 +275,7 @@ static void on_pck_new(void *cbk, GF_RTPHeader *header)
 static void on_pck_done(void *cbk, GF_RTPHeader *header) 
 {
 	RTP_Stream *rtp = cbk;
-	GF_Err e = gf_rtp_send_packet(rtp->channel, header, 0, 0, rtp->packet.payload, rtp->packet.payload_len);
+	GF_Err e = gf_rtp_send_packet(rtp->channel, header, rtp->packet.payload, rtp->packet.payload_len, 0);
 	if (e) 
 		fprintf(stdout, "Error %s sending RTP packet\n", gf_error_to_string(e));
 	free(rtp->packet.payload);				
@@ -1108,24 +1108,24 @@ int main(int argc, char **argv)
 	gf_sys_init();
 
 	if (file_name) {
-		GF_FileStreamer *file_streamer;
+		GF_ISOMRTPStreamer *file_streamer;
 
 		gf_log_set_tools(GF_LOG_RTP);
 		gf_log_set_level(GF_LOG_WARNING);	//set to debug to have packet list
 
-		file_streamer = gf_streamer_new(file_name, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, ifce_addr);
+		file_streamer = gf_isom_streamer_new(file_name, ip_dest, port, loop, force_mpeg4, path_mtu, ttl, ifce_addr);
 		if (!file_streamer) {
 			fprintf(stdout, "Cannot create file streamer\n");
 		} else {
 			fprintf(stdout, "Starting streaming %s to %s:%d\n", file_name, ip_dest, port);
-			gf_streamer_write_sdp(file_streamer, sdp_file);
+			gf_isom_streamer_write_sdp(file_streamer, sdp_file);
 
 			while (1) {
-				gf_streamer_send_next_packet(file_streamer, 0, 0);
+				gf_isom_streamer_send_next_packet(file_streamer, 0, 0);
 				if (check_exit()) break;
 			}
 
-			gf_streamer_del(file_streamer);
+			gf_isom_streamer_del(file_streamer);
 		}
 	} else {
 		Streamer streamer;		/* Streamer metadata (from cfg file) */

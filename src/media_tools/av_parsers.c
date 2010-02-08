@@ -1696,7 +1696,8 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, Bool is_subseq, u32 *vui_fl
         sps->poc_cycle_length = avc_get_ue(bs);
         for(i=0; i<sps->poc_cycle_length; i++) sps->offset_for_ref_frame[i] = avc_get_se(bs);
     }
-    if (sps->poc_type > 2) return -1;
+    if (sps->poc_type > 2) 
+		return -1;
     avc_get_ue(bs); /*ref_frame_count*/
     gf_bs_read_int(bs, 1); /*gaps_in_frame_num_allowed_flag*/
     mb_width = avc_get_ue(bs) + 1;
@@ -2158,12 +2159,12 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 
 		gf_bs_skip_bytes(bs, (u64) (psize + size_fix));
 		gf_bs_align(bs);
-		if (gf_bs_available(bs)<2) {
+		if (gf_bs_available(bs)<=2) {
 			if (gf_bs_peek_bits(bs, 8, 0)==0x80) {
 				new_buffer[written] = (char) 0x80;
 				written += 1;
-				break;
 			}
+			break;
 		}
 	}
 	gf_bs_del(bs);

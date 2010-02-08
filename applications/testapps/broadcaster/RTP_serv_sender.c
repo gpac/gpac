@@ -61,7 +61,7 @@ GF_Err PNC_SendRTP(PNC_CallbackData *data, char *payload, int payloadSize)
 
 	((PNC_CallbackExt * )data->extension)->lastTS = data->hdr->TimeStamp;
 	
-	e = gf_rtp_send_packet(data->chan, data->hdr, 0, 0, payload, payloadSize);
+	e = gf_rtp_send_packet(data->chan, data->hdr, payload, payloadSize, 0);
 	dprintf(DEBUG_RTP_serv_sender, "SendPacket : %d, TimeStamp RTP = %d, sz= %d\n",
 			e, data->hdr->TimeStamp, payloadSize);
 
