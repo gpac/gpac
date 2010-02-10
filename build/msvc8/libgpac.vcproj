@@ -3478,6 +3478,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\src\ietf\rtp_streamer.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\ietf\rtsp_command.c"
 				>
 				<FileConfiguration
@@ -7031,6 +7035,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\renderer.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\rtp_streamer.h"
 				>
 			</File>
 			<File
