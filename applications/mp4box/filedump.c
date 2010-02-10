@@ -1231,9 +1231,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					fprintf(stdout, "Ogg/%s audio / GPAC Mux - Sample Rate %d - %d channel(s)\n", szName, sr, nb_ch);
 				}
 					break;
-				case 0xA0: fprintf(stdout, "EVRC Audio - Sample Rate 8000 - 1 channel\n"); break;
-				case 0xA1: fprintf(stdout, "SMV Audio - Sample Rate 8000 - 1 channel\n"); break;
-				case 0xE1: fprintf(stdout, "QCELP Audio - Sample Rate 8000 - 1 channel\n"); break;
+				case GPAC_OTI_AUDIO_EVRC_VOICE: fprintf(stdout, "EVRC Audio - Sample Rate 8000 - 1 channel\n"); break;
+				case GPAC_OTI_AUDIO_SMV_VOICE: fprintf(stdout, "SMV Audio - Sample Rate 8000 - 1 channel\n"); break;
+				case GPAC_OTI_AUDIO_13K_VOICE: fprintf(stdout, "QCELP Audio - Sample Rate 8000 - 1 channel\n"); break;
 				/*packetVideo hack for EVRC...*/
 				case 0xD1: 
 					if (esd->decoderConfig->decoderSpecificInfo && (esd->decoderConfig->decoderSpecificInfo->dataLength==8)
@@ -1252,7 +1252,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stdout, "\tWidth %d Height %d Pixel Metrics %s\n", b_cfg->pixelWidth, b_cfg->pixelHeight, b_cfg->pixelMetrics ? "yes" : "no"); 
 					}
 					gf_odf_desc_del((GF_Descriptor *)b_cfg);
-				} else if (esd->decoderConfig->objectTypeIndication==0x09) {
+				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_LASER) {
 					GF_LASERConfig l_cfg;
 					gf_odf_get_laser_config(esd->decoderConfig->decoderSpecificInfo, &l_cfg);
 					fprintf(stdout, "LASER Stream - %s\n", l_cfg.newSceneIndicator ? "Full Scene" : "Scene Segment"); 

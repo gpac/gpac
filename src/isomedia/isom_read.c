@@ -2133,12 +2133,12 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 			{
 				GF_DecoderConfig *dcd = gf_isom_get_decoder_config(file, i+1, 1);
 				switch (dcd->streamType) {
-				case 0x04:
+				case GF_STREAM_VISUAL:
 					if (dcd->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) nb_m4v++;
 					else if (dcd->objectTypeIndication==GPAC_OTI_VIDEO_AVC) nb_avc++;
 					else nb_v++;
 					break;
-				case 0x05:
+				case GF_STREAM_AUDIO:
 					switch (dcd->objectTypeIndication) {
 					case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
 					case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
@@ -2150,9 +2150,9 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 					case GPAC_OTI_AUDIO_MPEG1: 
 						nb_mp3++; 
 						break;
-					case 0xA0: nb_evrc++; break;
-					case 0xA1: nb_smv++; break;
-					case 0xE1: nb_qcelp++; break;
+					case GPAC_OTI_AUDIO_EVRC_VOICE: nb_evrc++; break;
+					case GPAC_OTI_AUDIO_SMV_VOICE: nb_smv++; break;
+					case GPAC_OTI_AUDIO_13K_VOICE: nb_qcelp++; break;
 					default: nb_a++; break;
 					}
 					break;

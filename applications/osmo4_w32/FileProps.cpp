@@ -523,7 +523,7 @@ void CFileProps::SetStreamsInfo()
 			case GPAC_OTI_IMAGE_JPEG: strcat(info, "JPEG\r\n"); break;
 			case GPAC_OTI_IMAGE_PNG: strcat(info, "PNG\r\n"); break;
 			case GPAC_OTI_IMAGE_JPEG_2000: strcat(info, "JPEG2000\r\n"); break;
-			case 0x80:
+			case GPAC_OTI_MEDIA_GENERIC:
 				memcpy(code, esd->decoderConfig->decoderSpecificInfo->data, 4);
 				code[4] = 0;
 				sprintf(buf, "GPAC Intern (%s)\r\n", code);
@@ -546,10 +546,10 @@ void CFileProps::SetStreamsInfo()
 			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP: strcat(info, "MPEG-2 AAC Scalable Sampling Rate Profile\r\n"); break;
 			case GPAC_OTI_AUDIO_MPEG2_PART3: strcat(info, "MPEG-2 Audio\r\n"); break;
 			case GPAC_OTI_AUDIO_MPEG1: strcat(info, "MPEG-1 Audio\r\n"); break;
-			case 0xA0: strcat(info, "EVRC Audio\r\n"); break;
-			case 0xA1: strcat(info, "SMV Audio\r\n"); break;
-			case 0xE1: strcat(info, "QCELP Audio\r\n"); break;
-			case 0x80:
+			case GPAC_OTI_AUDIO_EVRC_VOICE: strcat(info, "EVRC Audio\r\n"); break;
+			case GPAC_OTI_AUDIO_SMV_VOICE: strcat(info, "SMV Audio\r\n"); break;
+			case GPAC_OTI_AUDIO_13K_VOICE: strcat(info, "QCELP Audio\r\n"); break;
+			case GPAC_OTI_MEDIA_GENERIC:
 				memcpy(code, esd->decoderConfig->decoderSpecificInfo->data, 4);
 				code[4] = 0;
 				sprintf(buf, "GPAC Intern (%s)\r\n", code);

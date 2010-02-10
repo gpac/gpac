@@ -166,7 +166,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	/*timed-text is a bit special, we support multiple stream descriptions & co*/
 	switch (streamType) {
 	case GF_STREAM_TEXT:
-		if (oti!=0x08)
+		if (oti!=GPAC_OTI_TEXT_MPEG4)
 			return NULL;
 
 		rtp_type = GF_RTP_PAYT_3GPP_TEXT;
@@ -233,7 +233,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			break;
 
 		/*QCELP audio*/
-		case 0xE1:
+		case GPAC_OTI_AUDIO_13K_VOICE:
 			rtp_type = GF_RTP_PAYT_QCELP;
 			OfficialPayloadType = 12;
 			required_rate = 8000;
@@ -241,8 +241,8 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			break;
 
 		/*EVRC/SVM audio*/
-		case 0xA0:
-		case 0xA1:
+		case GPAC_OTI_AUDIO_EVRC_VOICE:
+		case GPAC_OTI_AUDIO_SMV_VOICE:
 			rtp_type = GF_RTP_PAYT_EVRC_SMV;
 			required_rate = 8000;
 			nb_ch = 1;
@@ -296,7 +296,12 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 
 	case GF_STREAM_SCENE:
 	case GF_STREAM_OD:
-		rtp_type = GF_RTP_PAYT_MPEG4;
+        if (oti == GPAC_OTI_SCENE_DIMS) {
+            rtp_type = GF_RTP_PAYT_3GPP_DIMS;
+            has_mpeg4_mapping = 0;
+        } else {
+            rtp_type = GF_RTP_PAYT_MPEG4;
+        }
 		break;
 
 
@@ -346,7 +351,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			required_rate = 8000;
 			rtp_type = GF_RTP_PAYT_QCELP;
 			streamType = GF_STREAM_AUDIO;
-			oti = 0xE1;
+			oti = GPAC_OTI_AUDIO_13K_VOICE;
 			OfficialPayloadType = 12;
 			nb_ch = 1;
 			break;
@@ -355,7 +360,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			required_rate = 8000;
 			rtp_type = GF_RTP_PAYT_EVRC_SMV;
 			streamType = GF_STREAM_AUDIO;
-			oti = (oti==GF_ISOM_SUBTYPE_3GP_EVRC) ? 0xA0 : 0xA1;
+			oti = (oti==GF_ISOM_SUBTYPE_3GP_EVRC) ? GPAC_OTI_AUDIO_EVRC_VOICE : GPAC_OTI_AUDIO_SMV_VOICE;
 			nb_ch = 1;
 			break;
 		}
