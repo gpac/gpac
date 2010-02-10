@@ -126,6 +126,31 @@ char *gf_strdup(const char *str, char *filename, int line)
 	return ptr;
 }
 
+
+#define GPAC_MEMORY_TRACKING_HASH_TABLE 1
+#if GPAC_MEMORY_TRACKING_HASH_TABLE
+
+#define HASH_ENTRIES 1024
+
+typedef struct s_memory_element
+{
+	void *ptr;
+	int size;
+	char *filename;
+	int line;
+	struct s_memory_element *next;
+} memory_element;
+
+/*pointer to the first element of the list*/
+typedef memory_element** memory_list;
+
+static int gf_memory_hash(void *ptr)
+{
+	return (((int)ptr>>4)+(int)ptr)%HASH_ENTRIES;
+}
+
+#else
+
 typedef struct s_memory_element
 {
 	void *ptr;
@@ -138,8 +163,11 @@ typedef struct s_memory_element
 /*pointer to the first element of the list*/
 typedef memory_element* memory_list;
 
-/*this list is implemented as a stack to minimise the cost of freeing recent allocations*/
-static void gf_memory_add(memory_list *p, void *ptr, int size, char *filename, int line)
+#endif
+
+
+/*base functions (add, find, del_item, del) are implemented upon a stack model*/
+static void gf_memory_add_stack(memory_element **p, void *ptr, int size, char *filename, int line)
 {
 	memory_element *element = (memory_element*)malloc(sizeof(memory_element));
 	element->ptr = ptr;
@@ -149,8 +177,7 @@ static void gf_memory_add(memory_list *p, void *ptr, int size, char *filename, i
 	element->next = *p;
 	*p = element;
 }
-
-static int gf_memory_find(memory_list p, void *ptr)
+static int gf_memory_find_stack(memory_element *p, void *ptr)
 {
 	memory_element *element = p;
 	while (element) {
@@ -163,7 +190,7 @@ static int gf_memory_find(memory_list p, void *ptr)
 }
 
 /*returns the size of the deleted item*/
-static int gf_memory_del_item(memory_list *p, void *ptr)
+static int gf_memory_del_item_stack(memory_element **p, void *ptr)
 {
 	int size;
 	memory_element *curr_element=*p, *prev_element=NULL;
@@ -181,7 +208,7 @@ static int gf_memory_del_item(memory_list *p, void *ptr)
 	return 0;
 }
 
-static void gf_memory_del(memory_list *p)
+static void gf_memory_del_stack(memory_element **p)
 {
 	memory_element *curr_element=*p, *next_element;
 	while (curr_element) {
@@ -191,6 +218,67 @@ static void gf_memory_del(memory_list *p)
 	}
 	*p = NULL;
 }
+
+
+#if GPAC_MEMORY_TRACKING_HASH_TABLE
+
+/*this list is implemented as a stack to minimise the cost of freeing recent allocations*/
+static void gf_memory_add(memory_list *p, void *ptr, int size, char *filename, int line)
+{
+	if (!*p) *p = calloc(HASH_ENTRIES, sizeof(memory_element*));
+	assert(*p);
+
+	gf_memory_add_stack(&((*p)[gf_memory_hash(ptr)]), ptr, size, filename, line);
+}
+
+
+static int gf_memory_find(memory_list p, void *ptr)
+{
+	assert(p);
+	if (!p) return 0;
+	return gf_memory_find_stack(p[gf_memory_hash(ptr)], ptr);
+}
+
+static int gf_memory_del_item(memory_list *p, void *ptr)
+{
+	int ret;
+	memory_element **sub_list;
+	if (!*p) *p = calloc(HASH_ENTRIES, sizeof(memory_element*));
+	assert(*p);
+	sub_list = &((*p)[gf_memory_hash(ptr)]);
+	if (!sub_list) return 0;
+	ret = gf_memory_del_item_stack(sub_list, ptr);
+	if (ret && !((*p)[gf_memory_hash(ptr)])) {
+		/*check for deletion*/
+		int i;
+		for (i=0; i<HASH_ENTRIES; i++)
+			if (&((*p)[i])) break;
+		if (i==HASH_ENTRIES) {
+			free(*p);
+			p = NULL;
+		}
+	}
+	return ret;
+}
+
+static void gf_memory_del(memory_list *p)
+{
+	int i;
+	for (i=0; i<HASH_ENTRIES; i++)
+		gf_memory_del_stack(&((*p)[i]));
+	free(*p);
+	p = NULL;
+}
+
+#else
+
+#define gf_memory_add		gf_memory_add_stack
+#define gf_memory_del		gf_memory_del_stack
+#define gf_memory_del_item	gf_memory_del_item_stack
+#define gf_memory_find		gf_memory_find_stack
+
+#endif
+
 
 #endif /*GPAC_MEMORY_TRACKING*/
 
@@ -231,7 +319,7 @@ static void register_address(void *ptr, size_t size, char *filename, int line)
 	gpac_allocated_memory += size;
 	gpac_nb_alloc_blocs++;
 	
-	gf_memory_log(GF_MEMORY_DEBUG, "register   %7d bytes at 0x%08X (%8d Bytes in %4d Blocks allocated)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
+	gf_memory_log(GF_MEMORY_DEBUG, "register   %6d bytes at 0x%08X (%8d Bytes in %4d Blocks allocated)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
 
 	/*unlock*/
 	gf_mx_v(gpac_allocations_lock);
@@ -270,7 +358,7 @@ static int unregister_address(void *ptr, char *filename, int line)
 			gpac_allocated_memory -= size;
 			gpac_nb_alloc_blocs--;
 
-			gf_memory_log(GF_MEMORY_DEBUG, "unregister %7d bytes at 0x%08X (%8d bytes in %4d blocks remaining)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
+			gf_memory_log(GF_MEMORY_DEBUG, "unregister %6d bytes at 0x%08X (%8d bytes in %4d blocks remaining)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
 
 			/*the allocation list is empty: free the lists to avoid a leak (we should be exiting)*/
 			if (!memory_add) {
@@ -316,18 +404,27 @@ void gf_memory_print()
 		assert(!gpac_allocations_lock);
 		gf_memory_log(GF_MEMORY_INFO, "gf_memory_print(): the memory tracker is not initialized.\n");
 	} else {
-		memory_element *curr_element=memory_add, *next_element;
+		int i=0;
 		assert(gpac_allocations_lock);
 
 		/*lock*/
 		gf_mx_p(gpac_allocations_lock);
-
-		while (curr_element) {
-			next_element = curr_element->next;
-			gf_memory_log(GF_MEMORY_INFO, "Memory Block 0x%08X allocated line%5d from %s\n", curr_element->ptr, curr_element->line, curr_element->filename);
-			curr_element = next_element;
+#if GPAC_MEMORY_TRACKING_HASH_TABLE
+		for (i=0; i<HASH_ENTRIES; i++) {
+			memory_element *curr_element = memory_add[i], *next_element;
+#else
+		{
+			memory_element *curr_element = memory_add, *next_element;
+#endif
+			while (curr_element) {
+				next_element = curr_element->next;
+				gf_memory_log(GF_MEMORY_INFO, "Memory Block 0x%08X allocated line%5d from %s\n", curr_element->ptr, curr_element->line, curr_element->filename);
+				printf("Memory Block 0x%08X allocated line%5d from %s\n", curr_element->ptr, curr_element->line, curr_element->filename);
+				curr_element = next_element;
+			}
 		}
 		gf_memory_log(GF_MEMORY_INFO, "Total: %d bytes allocated on %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
+		printf("Total: %d bytes allocated on %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
 
 		/*unlock*/
 		gf_mx_v(gpac_allocations_lock);
