@@ -296,7 +296,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	/*timed-text is a bit special, we support multiple stream descriptions & co*/
 	if ( (TrackMediaType==GF_ISOM_MEDIA_TEXT) || (TrackMediaType==GF_ISOM_MEDIA_SUBT)) {
 		hintType = GF_RTP_PAYT_3GPP_TEXT;
-		oti = 0x08;
+		oti = GPAC_OTI_TEXT_MPEG4;
 		streamType = GF_STREAM_TEXT;
 		/*fixme - this works cos there's only one PL for text in mpeg4 at the current time*/
 		PL_ID = 0x10;
@@ -317,7 +317,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 				/*AAC*/
 				if ((streamType==GF_STREAM_AUDIO) && esd->decoderConfig->decoderSpecificInfo
 				/*(nb: we use mpeg4 for MPEG-2 AAC)*/
-				&& ((oti==GPAC_OTI_AUDIO_AAC_MPEG4) || (oti==0x40) || (oti==GPAC_OTI_AUDIO_AAC_MPEG2_MP) || (oti==GPAC_OTI_AUDIO_AAC_MPEG2_LCP) || (oti==GPAC_OTI_AUDIO_AAC_MPEG2_SSRP)) ) {
+				&& ((oti==GPAC_OTI_AUDIO_AAC_MPEG4) || (oti==GPAC_OTI_AUDIO_AAC_MPEG4) || (oti==GPAC_OTI_AUDIO_AAC_MPEG2_MP) || (oti==GPAC_OTI_AUDIO_AAC_MPEG2_LCP) || (oti==GPAC_OTI_AUDIO_AAC_MPEG2_SSRP)) ) {
 
 					u32 sample_rate;
 					GF_M4ADecSpecInfo a_cfg;
@@ -369,7 +369,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					}
 				}
 				/*QCELP audio*/
-				else if ((streamType==GF_STREAM_AUDIO) && (oti==0xE1)) {
+				else if ((streamType==GF_STREAM_AUDIO) && (oti==GPAC_OTI_AUDIO_13K_VOICE)) {
 					hintType = GF_RTP_PAYT_QCELP;
 					OfficialPayloadID = 12;
 					required_rate = 8000;
@@ -377,7 +377,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					nb_ch = 1;
 				}
 				/*EVRC/SVM audio*/
-				else if ((streamType==GF_STREAM_AUDIO) && ((oti==0xA0) || (oti==0xA1)) ) {
+				else if ((streamType==GF_STREAM_AUDIO) && ((oti==GPAC_OTI_AUDIO_EVRC_VOICE) || (oti==GPAC_OTI_AUDIO_SMV_VOICE)) ) {
 					hintType = GF_RTP_PAYT_EVRC_SMV;
 					required_rate = 8000;
 					streamType = GF_STREAM_AUDIO;
@@ -458,7 +458,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			required_rate = 8000;
 			hintType = GF_RTP_PAYT_QCELP;
 			streamType = GF_STREAM_AUDIO;
-			oti = 0xE1;
+			oti = GPAC_OTI_AUDIO_13K_VOICE;
 			OfficialPayloadID = 12;
 			nb_ch = 1;
 			break;
@@ -467,7 +467,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			required_rate = 8000;
 			hintType = GF_RTP_PAYT_EVRC_SMV;
 			streamType = GF_STREAM_AUDIO;
-			oti = (TrackMediaSubType==GF_ISOM_SUBTYPE_3GP_EVRC) ? 0xA0 : 0xA1;
+			oti = (TrackMediaSubType==GF_ISOM_SUBTYPE_3GP_EVRC) ? GPAC_OTI_AUDIO_EVRC_VOICE : GPAC_OTI_AUDIO_SMV_VOICE;
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_DIMS:

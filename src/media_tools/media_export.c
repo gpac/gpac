@@ -93,7 +93,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 			fwrite(og.body, 1, og.body_len, out);
 			op.b_o_s = 0;
 
-			if (esd->decoderConfig->objectTypeIndication==0xDF) {
+			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_MEDIA_THEORA) {
 				u32 kff;
 				GF_BitStream *vbs = gf_bs_new((char*)op.packet, op.bytes, GF_BITSTREAM_READ);
 				gf_bs_skip_bytes(vbs, 40);
@@ -672,17 +672,17 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				is_ogg = 1;
 				gf_export_message(dumper, GF_OK, "Extracting Ogg audio");
 				break;
-			case 0xE1:
+			case GPAC_OTI_AUDIO_13K_VOICE:
 				strcat(szName, ".qcp"); qcp_type = 1;
 				memcpy(GUID, QCP_QCELP_GUID_1, sizeof(char)*16);
 				gf_export_message(dumper, GF_OK, "Extracting QCELP-13K (QCP file)");
 				break;
-			case 0xA0:
+			case GPAC_OTI_AUDIO_EVRC_VOICE:
 				memcpy(GUID, QCP_EVRC_GUID, sizeof(char)*16);
 				qcp_type = 3;
 				if (dumper->flags & GF_EXPORT_PROBE_ONLY) dumper->flags |= GF_EXPORT_USE_QCP;
 				break;
-			case 0xA1:
+			case GPAC_OTI_AUDIO_SMV_VOICE:
 				qcp_type = 2;
 				memcpy(GUID, QCP_SMV_GUID, sizeof(char)*16);
 				if (dumper->flags & GF_EXPORT_PROBE_ONLY) dumper->flags |= GF_EXPORT_USE_QCP;
@@ -704,7 +704,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		case GF_STREAM_ND_SUBPIC:
 			switch (dcfg->objectTypeIndication)
 			{
-			case 0xe0:
+			case GPAC_OTI_MEDIA_SUBPIC:
 				is_vobsub = 1;
 				dsi = dcfg->decoderSpecificInfo->data;
 				dcfg->decoderSpecificInfo->data = NULL;
@@ -1271,7 +1271,7 @@ static GF_Err MP4T_CopyTrack(GF_MediaExporter *dumper, GF_ISOFile *infile, u32 i
 #endif
 			gf_isom_set_visual_info(outfile, newTk, 1, w, h);
 		}
-		else if ((esd->decoderConfig->streamType == GF_STREAM_ND_SUBPIC) && (esd->decoderConfig->objectTypeIndication == 0xe0)) {
+		else if ((esd->decoderConfig->streamType == GF_STREAM_ND_SUBPIC) && (esd->decoderConfig->objectTypeIndication == GPAC_OTI_MEDIA_SUBPIC)) {
 			u32 w, h;
 			s32 trans_x, trans_y;
 			s16 layer;
