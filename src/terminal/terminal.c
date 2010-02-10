@@ -774,19 +774,20 @@ Double gf_term_get_simulation_frame_rate(GF_Terminal *term)
 
 
 
-u32 gf_term_check_end_of_scene(GF_Terminal *term)
+u32 gf_term_check_end_of_scene(GF_Terminal *term, Bool skip_interactions)
 {
 	if (!term->root_scene) return 1;
-	/*if input sensors consider the scene runs forever*/
-	if (gf_list_count(term->input_streams)) return 0;
-	if (gf_list_count(term->x3d_sensors)) return 0;
-
+	if (!skip_interactions) {
+		/*if input sensors consider the scene runs forever*/
+		if (gf_list_count(term->input_streams)) return 0;
+		if (gf_list_count(term->x3d_sensors)) return 0;
+	}
 	/*check no clocks are still running*/
 	if (!gf_scene_check_clocks(term->root_scene->root_od->net_service, term->root_scene)) return 0;
 	if (term->root_scene->is_dynamic_scene) return 1;
 
 	/*ask compositor if there are sensors*/
-	return gf_sc_get_option(term->compositor, GF_OPT_IS_FINISHED);
+	return gf_sc_get_option(term->compositor, skip_interactions ? GF_OPT_IS_OVER : GF_OPT_IS_FINISHED);
 }
 
 /*get rendering option*/
@@ -796,7 +797,8 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 	if (!term) return 0;
 	switch (type) {
 	case GF_OPT_HAS_JAVASCRIPT: return gf_sg_has_scripting();
-	case GF_OPT_IS_FINISHED: return gf_term_check_end_of_scene(term);
+	case GF_OPT_IS_FINISHED: return gf_term_check_end_of_scene(term, 0);
+	case GF_OPT_IS_OVER: return gf_term_check_end_of_scene(term, 1);
 	case GF_OPT_PLAY_STATE: 
 		if (term->compositor->step_mode) return GF_STATE_STEP_PAUSE;
 		if (term->root_scene) {

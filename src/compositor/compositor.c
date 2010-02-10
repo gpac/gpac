@@ -1342,11 +1342,25 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	case GF_OPT_PLAY_STATE: return compositor->paused ? 1 : 0;
 	case GF_OPT_OVERRIDE_SIZE: return (compositor->override_size_flags & 1) ? 1 : 0;
 	case GF_OPT_IS_FINISHED:
-	{
 		if (compositor->interaction_sensors) return 0;
-		if (gf_list_count(compositor->time_nodes)) return 0;
-		return 1;
+	case GF_OPT_IS_OVER:
+	{
+		u32 i, count;
+		count = gf_list_count(compositor->time_nodes);
+		for (i=0; i<count; i++) {
+			GF_TimeNode *tn = (GF_TimeNode *)gf_list_get(compositor->time_nodes, i);
+			if (tn->needs_unregister) continue;
+			switch (gf_node_get_tag((GF_Node *)tn->udta)) {
+			case TAG_MPEG4_TimeSensor: 
+#ifndef GPAC_DISABLE_X3D
+			case TAG_X3D_TimeSensor: 
+#endif
+				return 0;
+			}
+		}
 	}
+		/*FIXME - this does not work with SVG/SMIL*/
+		return 1;
 	case GF_OPT_STRESS_MODE: return compositor->stress_mode;
 	case GF_OPT_AUDIO_VOLUME: return compositor->audio_renderer->volume;
 	case GF_OPT_AUDIO_PAN: return compositor->audio_renderer->pan;

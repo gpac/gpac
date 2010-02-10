@@ -209,11 +209,11 @@ enum
 	/*set freeze display on/off / get freeze state freeze_display prevents any screen updates 
 	needed when output driver uses direct video memory access*/
 	GF_OPT_FREEZE_DISPLAY,
-	/*get isOver flag: if true the file can be restarted, otherwise it should not
-	this is used to check is there are several timelines, timesensors or interactions, in which case 
-	the file could be running for an undetermined period.
-	Note that nothing prevents the user app to restart such a file*/
+	/*Returns 1 if file playback is considered as done (all streams finished, no active time sensors 
+	and no user interactions in the scene)*/
 	GF_OPT_IS_FINISHED,
+	/*Returns 1 if file timeline is considered as done (all streams finished, no active time sensors)*/
+	GF_OPT_IS_OVER,
 	/*set/get aspect ratio (value: one of AspectRatio enum) */
 	GF_OPT_ASPECT_RATIO,
 	/*send a redraw message (SetOption only): all graphics info (display list, vectorial path) is 
