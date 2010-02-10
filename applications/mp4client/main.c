@@ -940,6 +940,7 @@ int main (int argc, char **argv)
 	const char *str;
 	u32 i, times[100], nb_times, dump_mode;
 	u32 simulation_time = 0;
+	Bool auto_exit = 0;
 	Bool logs_set = 0;
 	Bool start_fs = 0;
 	Bool use_rtix = 0;
@@ -1069,6 +1070,7 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
+		else if (!strcmp(arg, "-exit")) auto_exit = 1;
 		else if (!strcmp(arg, "-opt")) {
 			char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
 			sep = strchr(argv[i+1], ':');
@@ -1250,6 +1252,9 @@ int main (int argc, char **argv)
 			if (!use_rtix || display_rti) UpdateRTInfo(NULL);
 			if (not_threaded) {
 				gf_term_process_step(term);
+				if (auto_exit && gf_term_get_option(term, GF_OPT_IS_OVER)) {
+					Run = 0;
+				} 
 			} else {
 				gf_sleep(rti_update_time_ms);
 			}

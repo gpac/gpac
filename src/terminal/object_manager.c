@@ -1439,19 +1439,30 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 {
-	u32 i, count, nb_eos;
+	u32 i, count, nb_eos, nb_share_clock;
 #ifndef GPAC_DISABLE_VRML
 	if (gf_odm_check_segment_switch(odm)) return;
 #endif
 
+	nb_share_clock=0;
 	nb_eos = 0;
 	count = gf_list_count(odm->channels);
 	for (i=0; i<count; i++) {
 		GF_Channel *ch = gf_list_get(odm->channels, i);
+		if (on_channel) {
+			if (ch->clock != on_channel->clock) continue;
+			nb_share_clock++;
+		}
 		if (ch->IsEndOfStream) nb_eos++;
 	}
-	if (nb_eos != count) return;
-
+	if (on_channel) {
+		if (nb_eos==nb_share_clock) {
+			on_channel->clock->has_seen_eos = 1;
+		}
+		if (nb_eos != count) return;
+	} else {
+		if (nb_eos != count) return;
+	}
 	gf_term_service_media_event(odm, GF_EVENT_MEDIA_END_OF_DATA);
 	
 	if (odm->codec && (on_channel->esd->decoderConfig->streamType==odm->codec->type)) {
@@ -1724,7 +1735,7 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 void gf_odm_signal_eos(GF_ObjectManager *odm)
 {
 	if (odm->parentscene != odm->term->root_scene) return;
-	if (gf_term_check_end_of_scene(odm->term)) {
+	if (gf_term_check_end_of_scene(odm->term, 0)) {
 		GF_Event evt;
 		evt.type = GF_EVENT_EOS;
 		gf_term_send_event(odm->term, &evt);
