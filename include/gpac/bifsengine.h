@@ -148,6 +148,15 @@ GF_Err gf_beng_aggregate_context(GF_BifsEngine *beng);
  */
 void gf_beng_terminate(GF_BifsEngine *beng);
 
+/**
+ * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()
+ * @buf64, pointer to a buffer that will be allocated and will contain the base64 encoded version of the binary IOD
+ * @buf64, pointer to the size of the buffer
+ *
+ * encodes the IOD for this BIFS Engine into Base64
+ *
+ */
+void gf_beng_get_base64_iod(GF_BifsEngine *beng, char **buf64, u32 *size64);
 
 #endif /*GPAC_DISABLE_BENG*/
 

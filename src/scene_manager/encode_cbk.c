@@ -36,6 +36,7 @@
 #endif
 
 #include <gpac/constants.h>
+#include <gpac/base_coding.h>
 
 struct __tag_bifs_engine
 {
@@ -631,6 +632,18 @@ u32 gf_beng_get_stream_count(GF_BifsEngine *beng)
 	return gf_list_count(beng->ctx->streams);
 }
 
+GF_EXPORT
+void gf_beng_get_base64_iod(GF_BifsEngine *beng, char **buf64, u32 *size64)
+{
+    u32 size;
+    char *buffer;
+    size = 0;
+    gf_odf_desc_write((GF_Descriptor *) beng->ctx->root_od, &buffer, &size);
+    *buf64 = malloc(size*2);
+    *size64 = gf_base64_encode( buffer, size, *buf64, size*2);
+    (*buf64)[*size64] = 0;
+    free(buffer);
+}
 
 #endif /*GPAC_DISABLE_BENG*/
 
