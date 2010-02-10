@@ -232,6 +232,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_stats) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_fetch_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_last_error) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_del) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_new) )
@@ -1062,6 +1063,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_save_context) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_mark_for_aggregation) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_aggregate_context) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_beng_get_base64_iod) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_terminate) )
 #endif
 
