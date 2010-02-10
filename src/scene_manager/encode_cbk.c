@@ -55,7 +55,6 @@ struct __tag_bifs_engine
 };
 
 #ifndef GPAC_DISABLE_BIFS_ENC
-
 static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_StreamContext *sc, GF_ESD *esd)
 {
 	GF_Err e;
@@ -132,9 +131,7 @@ static GF_Err gf_sm_setup_bifsenc(GF_BifsEngine *codec, GF_StreamContext *sc, GF
 }
 #endif /*GPAC_DISABLE_BIFS_ENC*/
 
-
 #ifndef GPAC_DISABLE_LASER
-
 static GF_Err gf_sm_setup_lsrenc(GF_BifsEngine *codec, GF_StreamContext *sc, GF_ESD *esd)
 {
 	GF_Err e;
@@ -419,6 +416,59 @@ GF_Err gf_beng_encode_from_string(GF_BifsEngine *codec, char *auString, gf_beng_
 
 	e = gf_sm_live_encode_scene_au(codec, callback, 0); 
 exit:
+	return e;
+}
+
+GF_EXPORT
+GF_Err gf_beng_encode_from_commands(GF_BifsEngine *codec, u16 ESID, GF_List *commands, gf_beng_callback callback)
+{
+	GF_Err e;
+	u32	size;
+	char *data;
+    GF_StreamContext *sc;
+
+	if (!callback) return GF_BAD_PARAM;
+
+	e = GF_OK;
+    
+    /* if the ESID is not provided we try to use the first scene stream */
+    sc = NULL;
+    if (!ESID) {
+    	u32	i, nb_streams;
+	    nb_streams = gf_list_count(codec->ctx->streams);
+	    for (i=0; i<nb_streams;i++) {
+		    GF_StreamContext *tmp_sc = gf_list_get(codec->ctx->streams, i);
+		    if (tmp_sc->streamType != GF_STREAM_SCENE) continue;
+            sc = tmp_sc;
+            break;
+        }
+    }
+    if (!sc) return GF_BAD_PARAM;
+
+    data = NULL;
+	size = 0;
+
+    switch(sc->objectType) {
+#ifndef GPAC_DISABLE_BIFS_ENC
+		case GPAC_OTI_SCENE_BIFS:
+		case GPAC_OTI_SCENE_BIFS_V2:
+			e = gf_bifs_encode_au(codec->bifsenc, ESID, commands, &data, &size);
+			break;
+#endif
+
+#ifndef GPAC_DISABLE_BIFS_ENC
+		case GPAC_OTI_SCENE_LASER:
+			e = gf_laser_encode_au(codec->lsrenc, ESID, commands, 0, &data, &size);
+			break;
+#endif
+		case GPAC_OTI_SCENE_DIMS:
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("Cannot encode commands for Scene OTI %x\n", sc->objectType));
+			break;
+    }
+    callback(codec->calling_object, ESID, data, size, 0);
+	free(data);
 	return e;
 }
 
