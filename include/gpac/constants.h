@@ -221,8 +221,12 @@ enum
 {
 	/*!OTI for BIFS v1*/
 	GPAC_OTI_SCENE_BIFS = 0x01,
+	/*!OTI for OD v1*/
+	GPAC_OTI_OD_V1 = 0x01,
 	/*!OTI for BIFS v2*/
 	GPAC_OTI_SCENE_BIFS_V2 = 0x02,
+	/*!OTI for OD v2*/
+	GPAC_OTI_OD_V2 = 0x02,
 	/*!OTI for BIFS InputSensor streams*/
 	GPAC_OTI_SCENE_INTERACT = 0x03,
 	/*!OTI for AFX streams with extended BIFS config*/
@@ -376,8 +380,11 @@ enum
 	}\endcode
 */
     GPAC_OTI_MEDIA_OGG = 0xDD,
+    GPAC_OTI_MEDIA_THEORA = 0xDF,
 
-	/*!OTI for 13 Voice audio streams*/
+    GPAC_OTI_MEDIA_SUBPIC = 0xE0,
+
+    /*!OTI for 13K Voice / QCELP audio streams*/
     GPAC_OTI_AUDIO_13K_VOICE = 0xE1,
 
 };
