@@ -1567,7 +1567,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		w = h = 0;
 		trans_x = trans_y = 0;
 		layer = 0;
-		if (origin_esd && origin_esd->decoderConfig->objectTypeIndication == 0xe0) {
+		if (origin_esd && origin_esd->decoderConfig->objectTypeIndication == GPAC_OTI_MEDIA_SUBPIC) {
 			gf_isom_get_track_layout_info(import->orig, track_in, &w, &h, &trans_x, &trans_y, &layer);
 		}
 	}
@@ -2973,14 +2973,14 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		gf_import_message(import, GF_OK, "Importing EVRC Audio");
 		fseek(mdia, 7, SEEK_SET);
 		mtype = GF_ISOM_SUBTYPE_3GP_EVRC;
-		oti = 0xA0;
+		oti = GPAC_OTI_AUDIO_EVRC_VOICE;
 		msg = "Importing EVRC";
 	}
 	else if (!strnicmp(magic, "#!SMV\n", 6)) {
 		gf_import_message(import, GF_OK, "Importing SMV Audio");
 		fseek(mdia, 6, SEEK_SET);
 		mtype = GF_ISOM_SUBTYPE_3GP_SMV;
-		oti = 0xA1;
+		oti = GPAC_OTI_AUDIO_SMV_VOICE;
 		msg = "Importing SMV";
 	}
 	else if (!strnicmp(magic, "#!AMR_MC1.0\n", 12)) {
@@ -3003,8 +3003,8 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 	else {
 		char *ext = strrchr(import->in_name, '.');
 		if (ext && !stricmp(ext, ".amr")) { mtype = GF_ISOM_SUBTYPE_3GP_AMR; update_gpp_cfg = 1; ext = "AMR"; msg = "Importing AMR";}
-		else if (ext && !stricmp(ext, ".evc")) { mtype = GF_ISOM_SUBTYPE_3GP_EVRC; oti = 0xA0; ext = "EVRC"; msg = "Importing EVRC";}
-		else if (ext && !stricmp(ext, ".smv")) { mtype = GF_ISOM_SUBTYPE_3GP_SMV; oti = 0xA1; ext = "SMV"; msg = "Importing SMV";}
+		else if (ext && !stricmp(ext, ".evc")) { mtype = GF_ISOM_SUBTYPE_3GP_EVRC; oti = GPAC_OTI_AUDIO_EVRC_VOICE; ext = "EVRC"; msg = "Importing EVRC";}
+		else if (ext && !stricmp(ext, ".smv")) { mtype = GF_ISOM_SUBTYPE_3GP_SMV; oti = GPAC_OTI_AUDIO_SMV_VOICE; ext = "SMV"; msg = "Importing SMV";}
 		else {
 			fclose(mdia);
 			return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Corrupted AMR/SMV/EVRC file header");
@@ -3288,10 +3288,10 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 			delete_esd = 1;
 		}
 		if (!import->esd->decoderConfig) import->esd->decoderConfig = (GF_DecoderConfig*)gf_odf_desc_new(GF_ODF_DCD_TAG);
-		import->esd->decoderConfig->streamType = 0x05;
+		import->esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 		switch (gpp_cfg.type) {
 		case GF_ISOM_SUBTYPE_3GP_QCELP:
-			import->esd->decoderConfig->objectTypeIndication = 0xE1;
+			import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_13K_VOICE;
 			/*DSI is fmt*/
 			if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 			if (import->esd->decoderConfig->decoderSpecificInfo->data) free(import->esd->decoderConfig->decoderSpecificInfo->data);
@@ -3300,10 +3300,10 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 			memcpy(import->esd->decoderConfig->decoderSpecificInfo->data, fmt, 162);
 			break;
 		case GF_ISOM_SUBTYPE_3GP_EVRC:
-			import->esd->decoderConfig->objectTypeIndication = 0xA0;
+			import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_EVRC_VOICE;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_SMV:
-			import->esd->decoderConfig->objectTypeIndication = 0xA1;
+			import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_SMV_VOICE;
 			break;
 		}
 		e = gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
@@ -4833,8 +4833,8 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 			stype = 0;
 			if (st==GF_STREAM_SCENE) {
 				mtype = GF_ISOM_MEDIA_SCENE;
-				name = (char *) ( (oti==0x09) ? "LASeR Scene" : "BIFS Scene" );
-				stype = (oti==0x09) ? GF_4CC('L','A','S','R') : GF_4CC('B','I','F','S');
+				name = (char *) ( (oti==GPAC_OTI_SCENE_LASER) ? "LASeR Scene" : "BIFS Scene" );
+				stype = (oti==GPAC_OTI_SCENE_LASER) ? GF_4CC('L','A','S','R') : GF_4CC('B','I','F','S');
 				in_root_od = 1;
 			}
 			else if (st==GF_STREAM_VISUAL) {
@@ -5901,7 +5901,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 	}
 
 	import->esd->decoderConfig->streamType		 = GF_STREAM_ND_SUBPIC;
-	import->esd->decoderConfig->objectTypeIndication = 0xe0;
+	import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_SUBPIC;
 
 	import->esd->decoderConfig->decoderSpecificInfo->dataLength = sizeof(vobsub->palette);
 	import->esd->decoderConfig->decoderSpecificInfo->data	    = (char*)&vobsub->palette[0][0];
@@ -6093,7 +6093,7 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 	if (!import->esd->slConfig) import->esd->slConfig = (GF_SLConfig *) gf_odf_desc_new(GF_ODF_SLC_TAG);
 	/*update stream type/oti*/
 	import->esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-	import->esd->decoderConfig->objectTypeIndication = 0xA5;
+	import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AC3;
 	import->esd->decoderConfig->bufferSizeDB = 20;
 	import->esd->slConfig->timestampResolution = sr;
 

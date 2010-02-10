@@ -287,7 +287,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 
 	_esd = gf_odf_desc_esd_new(SLPredef_MP4);
 	_esd->decoderConfig->bufferSizeDB = samp->dataLength;
-	_esd->decoderConfig->objectTypeIndication = 0x01;
+	_esd->decoderConfig->objectTypeIndication = GPAC_OTI_OD_V1;
 	_esd->decoderConfig->streamType = GF_STREAM_OD;
 	_esd->ESID = odID;
 	_esd->OCRESID = no_ocr ? 0 : bifsID;
@@ -304,7 +304,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 
 	_esd = gf_odf_desc_esd_new(SLPredef_MP4);
 	_esd->decoderConfig->bufferSizeDB = sizeof(ISMA_BIFS_CONFIG);
-	_esd->decoderConfig->objectTypeIndication = 0x02;
+	_esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS_V2;
 	_esd->decoderConfig->streamType = GF_STREAM_SCENE;
 	_esd->ESID = bifsID;
 	_esd->OCRESID = 0;
@@ -461,9 +461,9 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 			{
 				GF_ESD *esd = gf_isom_get_esd(mp4file, i+1, 1);
 				switch (esd->decoderConfig->objectTypeIndication) {
-				case 0xE1:
-				case 0xA0:
-				case 0xA1:
+				case GPAC_OTI_AUDIO_13K_VOICE:
+				case GPAC_OTI_AUDIO_EVRC_VOICE:
+				case GPAC_OTI_AUDIO_SMV_VOICE:
 					is_3g2 = 1;
 				case GPAC_OTI_AUDIO_AAC_MPEG4:
 					nb_aud++;
@@ -1043,7 +1043,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		esd->ESID = gf_isom_get_track_id(mp4, track);
 		esd->OCRESID = esd->ESID;
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
-		esd->decoderConfig->objectTypeIndication = 0xA5;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AC3;
 		gf_odf_desc_del((GF_Descriptor*)esd->decoderConfig->decoderSpecificInfo);
 		esd->decoderConfig->decoderSpecificInfo = NULL;
 		return esd;
