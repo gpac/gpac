@@ -204,6 +204,9 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 		if (sc->streamType == GF_STREAM_SCENE) {
 			/*we check for each stream if a RAP is carried (several streams may carry RAPs if inline nodes are used)*/
 			Bool stream_rap_found = 0;
+
+            if (sc->objectType == GPAC_OTI_SCENE_DIMS) stream_rap_found = 1;
+
 			/*apply all commands - this will also apply the SceneReplace*/
 			j=0;
 			while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
@@ -220,6 +223,9 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 							if (com->tag==GF_SG_LSR_NEW_SCENE)
 								stream_rap_found = 1;
 							break;
+						case GPAC_OTI_SCENE_DIMS:
+                            /* Nothing to do, in DIMS the RAP is in the Graph not in the first AU */
+                            break;
 						}
 						if (stream_rap_found) break;
 					}
@@ -262,6 +268,8 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 				case GPAC_OTI_SCENE_LASER:
 					com = gf_sg_command_new(ctx->scene_graph, GF_SG_LSR_NEW_SCENE);
 					break;
+                case GPAC_OTI_SCENE_DIMS:
+                    /* We do not create a new command, empty AU is enough in DIMS*/
 				default:
 					com = NULL;
 					break;

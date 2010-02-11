@@ -43,20 +43,22 @@ typedef void (*gf_beng_callback)(void *udta, u16 ESID, char *data, u32 size, u64
 /**
  * @calling_object is the calling object on which call back will be called
  * @inputContext is the name of a scene file (bt, xmt or mp4) to initialize the coding context
+ * @load_type is the prefered loader type for the content (e.g. SVG vs DIMS)
  *
  * must be called only one time (by process calling the DLL) before other calls
  */
-GF_BifsEngine *gf_beng_init(void *calling_object, char *inputContext);
+GF_BifsEngine *gf_beng_init(void *calling_object, char *inputContext, u32 load_type);
 
 /**
  * @calling_object is the calling object on which call back will be called
  * @inputContext is an UTF-8 scene description (with or without IOD) in BT or XMT-A format
+ * @load_type is the prefered loader type for the content (e.g. SVG vs DIMS)
  * @width, @height: width and height of scene if no IOD is given in the context.
  * @usePixelMetrics: metrics system used in the scene, if no IOD is given in the context.
  *
  * must be called only one time (by process calling the DLL) before other calls
  */
-GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char *inputContext, u32 width, u32 height, Bool usePixelMetrics);
+GF_BifsEngine *gf_beng_init_from_string(void *calling_object, char *inputContext, u32 load_type, u32 width, u32 height, Bool usePixelMetrics);
 
 
 /**
@@ -113,6 +115,15 @@ GF_Err gf_beng_encode_from_file(GF_BifsEngine *beng, char *auFile, gf_beng_callb
  *
  */
 GF_Err gf_beng_encode_from_string(GF_BifsEngine *beng, char *auString, gf_beng_callback callback);
+
+/**
+ * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()
+ * @ESID, indicates the stream to which these commands apply (0 if first scene stream)
+ * @commans, the list of commands to encode
+ * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
+ *
+ */
+GF_Err gf_beng_encode_from_commands(GF_BifsEngine *codec, u16 ESID, u32 time, GF_List *commands, gf_beng_callback callback);
 
 /**
  * @beng, pointer to the GF_BifsEngine returned by gf_beng_init()

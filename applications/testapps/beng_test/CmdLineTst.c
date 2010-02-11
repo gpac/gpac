@@ -1,4 +1,4 @@
-	#include <gpac/bifsengine.h>
+#include <gpac/bifsengine.h>
 #include <gpac/rtp_streamer.h>
 
 typedef struct 
@@ -16,7 +16,7 @@ GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 
 		while ( (rtpst = gf_list_enum(list, &i))) {
 			if (rtpst->ESID == ESID) {
 				fprintf(stdout, "Received at time %I64d, buffer %d bytes long.\n", ts, size);
-				gf_rtp_streamer_send_au(rtpst->rtp, data, size, size, ts, ts, 0, 1, 1, 0, 0, 0);
+				gf_rtp_streamer_send_au(rtpst->rtp, data, size, ts, ts, 1);
 				return GF_OK;
 			}
 		}
@@ -47,8 +47,10 @@ static setup_rtp_streams(GF_BifsEngine *beng, GF_List *streams, char *ip, u16 po
 
 		gf_rtp_streamer_append_sdp(rtpst->rtp, ESID, config, config_len, NULL, &sdp);
 	}
-	fprintf(stdout, sdp);
-	free(sdp);
+    if (sdp) {
+        fprintf(stdout, sdp);
+	    free(sdp);
+    }
 }
 
 void shutdown_rtp_streams(GF_List *list)
@@ -81,8 +83,30 @@ int main(int argc, char **argv)
 
 	if (dst_port && dst) streams = gf_list_new();
 
+    if (1) {
+        char *scene = "<svg width='100%' height='100%' viewbox='0 0 640 480' \
+                  xmlns='http://www.w3.org/2000/svg' version='1.2' baseProfile='tiny'> \
+                    <rect id='r' x='20' y='20' width='20' height='20'/>\
+                    <rect x='50' y='20' width='30' height='15'/>\
+                    <rect x='20' y='50' width='20' height='20'/>\
+                    <rect x='50' y='50' width='20' height='40'/>\
+                    </svg>";
+        char *update = "<Replace ref='r' attributeName='x' value='100'/>";
 
-	if (1) {
+		codec1 = gf_beng_init_from_string(streams, scene, GF_SM_LOAD_DIMS, 0, 0, 1);
+		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port);
+		gf_beng_encode_context(codec1, SampleCallBack);
+
+        gf_beng_encode_from_string(codec1, update, SampleCallBack);
+
+		gf_beng_aggregate_context(codec1);
+
+        gf_beng_encode_context(codec1, SampleCallBack);
+
+		if (streams) shutdown_rtp_streams(streams);
+		gf_beng_save_context(codec1, "scene.svg");
+		gf_beng_terminate(codec1);
+    } else if (1) {
 		/*these default update are related to rect_aggregate.bt*/
 		update1 = "AT 1000 IN 2 {\
 						INSERT AT OG.children[0] DEF TR2 Transform2D {\
@@ -102,7 +126,7 @@ int main(int argc, char **argv)
 						REPLACE REC.size BY 100 100\
 						}";
 
-		codec1 = gf_beng_init(streams, argv[1]);
+		codec1 = gf_beng_init(streams, argv[1], 0);
 		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port);
 
 		gf_beng_encode_context(codec1, SampleCallBack);
@@ -121,7 +145,7 @@ int main(int argc, char **argv)
 		char scene[] = "OrderedGroup {children [Background2D {backColor 1 1 1}Shape {appearance Appearance {material DEF M Material2D {emissiveColor 0 0 1 filled TRUE } } geometry Rectangle { size 100 75 } } ] }";
 		char update[] = "\n AT \n 500 \n { \n REPLACE \n M.emissiveColor BY 1 0 0 \n REPLACE \n M.filled BY FALSE} \n";
 
-		codec1 = gf_beng_init_from_string(streams, scene, 200, 200, 1);
+		codec1 = gf_beng_init_from_string(streams, scene, 0, 200, 200, 1);
 		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port);
 
 		gf_beng_encode_context(codec1, SampleCallBack);
@@ -151,7 +175,7 @@ int main(int argc, char **argv)
 				strcpy(in_context, "rect.bt");
 			}
 
-			codec2 = gf_beng_init(NULL, in_context);
+			codec2 = gf_beng_init(NULL, in_context, 0);
 
 			sprintf(timed_update, "AT %i { %s }", 1000 + i, update);
 			

@@ -137,6 +137,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 
 		gf_isom_get_ismacryp_info(streamer->isom, track->track_num, 1, NULL, NULL, NULL, NULL, &KMS, NULL, NULL, NULL);
 
+        /*TODO retrieve DIMS content encoding from track to set the flags */
 		gf_rtp_streamer_append_sdp_extended(track->rtp, gf_isom_get_track_id(streamer->isom, track->track_num), dsi, dsi_len, streamer->isom, track->track_num, KMS, w, h, &sdp_media);
 		if (sdp_media) {
 			fprintf(sdp_out, "%s", sdp_media);

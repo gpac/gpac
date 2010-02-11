@@ -532,7 +532,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 	sprintf(sdp, "m=%s %d RTP/%s %d\n", mediaName, port, rtp->packetizer->slMap.IV_length ? "SAVP" : "AVP", rtp->packetizer->PayloadType);
 	sprintf(sdpLine, "a=rtpmap:%d %s/%d\n", rtp->packetizer->PayloadType, payloadName, rtp->packetizer->sl_config.timestampResolution);
 	strcat(sdp, sdpLine);
-	if (ESID) {
+    if (ESID && (rtp->packetizer->rtp_payt != GF_RTP_PAYT_3GPP_DIMS)) {
 		sprintf(sdpLine, "a=mpeg4-esid:%d\n", ESID);
 		strcat(sdp, sdpLine);		
 	}
@@ -609,6 +609,14 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 			strcat(sdpLine, "\n");
 		}
 	}
+    /*DIMS decoder config*/
+    else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_3GPP_DIMS) {
+        sprintf(sdpLine, "a=fmtp:%d Version-profile=%d", rtp->packetizer->PayloadType, 10);
+        if (rtp->packetizer->flags & GP_RTP_DIMS_COMPRESSED) {
+            strcat(sdpLine, ";content-coding=deflate");
+        }
+		strcat(sdpLine, "\n");
+    }
 	/*MPEG-4 Audio LATM*/
 	else if (rtp->packetizer->rtp_payt==GF_RTP_PAYT_LATM) { 
 		GF_BitStream *bs; 
