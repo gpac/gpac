@@ -67,7 +67,8 @@ typedef struct
 	GF_StreamContext *laser_es;
 	GF_AUContext *laser_au;
 	GF_Command *command;
-	/*SAF AU maps to OD AU and is used for each new media declaration*/
+
+    /*SAF AU maps to OD AU and is used for each new media declaration*/
 	GF_AUContext *saf_au;
 	GF_StreamContext *saf_es;
 
@@ -1195,6 +1196,27 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		parent = NULL;
 	}
 
+    /* If the loader was created with the DIMS type and this is the root element, 
+        we need to create the stream, mpeg-4 esd, ...*/
+    if (!parent && !parser->laser_es && (parser->load->type == GF_SM_LOAD_DIMS)) {
+		GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);
+		esd->ESID = 1;
+		esd->decoderConfig->streamType = GF_STREAM_SCENE;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_DIMS;
+		parser->laser_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, 
+            esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+		if (!parser->load->ctx->root_od) parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
+		parser->laser_es->timeScale = 1000;
+		gf_list_add(parser->load->ctx->root_od->ESDescriptors, esd);        
+        /* Create a default AU to behave as other streams (LASeR, BIFS)
+           but it is left empty, there is no notion of REPLACE Scene or NEw Scene, 
+           the RAP is the graph */
+        parser->laser_au = gf_sm_stream_au_new(parser->laser_es, 0, 0, 1);
+/*
+        parser->command = gf_sg_command_new(parser->load->scene_graph, GF_SG_LSR_NEW_SCENE);
+        gf_list_add(parser->laser_au->commands, parser->command);
+        */
+    } else
 	/*saf setup*/
 	if ((!parent && (parser->load->type!=GF_SM_LOAD_SVG_DA)) || cond) {
 		u32 com_type;
@@ -1246,7 +1268,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				esd->ESID = 0xFFFE;
 				esd->decoderConfig->streamType = GF_STREAM_OD;
 				esd->decoderConfig->objectTypeIndication = 1;
-				parser->saf_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, GF_STREAM_OD, 1);
+				parser->saf_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, GF_STREAM_OD, GPAC_OTI_OD_V1);
 				if (!parser->load->ctx->root_od) parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
 				parser->saf_es->timeScale = 1000;
 				gf_list_add(parser->load->ctx->root_od->ESDescriptors, esd);
@@ -1372,8 +1394,9 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		if (!strcmp(name, "endOfSAFSession") ) {
 			return;
 		}
-		if ((parser->load->type==GF_SM_LOAD_XSR) && !parser->laser_au && !cond) {
-
+        if ((parser->load->type==GF_SM_LOAD_DIMS) && !parser->laser_au && !cond) {
+            parser->laser_au = gf_list_last(parser->laser_es->AUs);
+        } else if ((parser->load->type==GF_SM_LOAD_XSR) && !parser->laser_au && !cond) {
 			if (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) {
 				assert(parser->laser_es);
 				parser->laser_au = gf_sm_stream_au_new(parser->laser_es, 0, 0, 0);
@@ -1505,7 +1528,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		if (parser->command) {
 			u32 com_type = lsr_get_command_by_name(name);
 			if (com_type == parser->command->tag) {
-				if (parser->load->type==GF_SM_LOAD_DIMS) {
+				if (parser->load->type==GF_SM_LOAD_DIMS && parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
 					gf_sg_command_apply(parser->load->scene_graph, parser->command, 0);
 					gf_sg_command_del(parser->command);
 				}
