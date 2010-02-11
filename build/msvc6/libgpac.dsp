@@ -453,6 +453,10 @@ SOURCE=..\..\src\ietf\rtp_pck_mpeg4.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\src\ietf\rtp_streamer.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\src\ietf\rtsp_command.c
 # End Source File
 # Begin Source File
