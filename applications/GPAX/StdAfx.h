@@ -14,7 +14,7 @@
 #ifndef _WIN32_WCE
 
 #ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0400
+#define _WIN32_WINNT 0x0501
 #endif
 #define _ATL_APARTMENT_THREADED
 
