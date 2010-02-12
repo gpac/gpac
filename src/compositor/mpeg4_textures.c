@@ -244,7 +244,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 {
 	MFURL url;
 	SFURL sfurl;
-	if (gf_node_get_tag(txh->owner)==TAG_MPEG4_ImageTexture) {
+	if (gf_node_get_tag(txh->owner)!=TAG_MPEG4_ImageTexture) {
 		url = ((M_ImageTexture *) txh->owner)->url;
 	} else {
 		url.count = 1;
@@ -280,7 +280,7 @@ void compositor_init_imagetexture(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, imagetexture_destroy);
 	txh->flags = 0;
 
-	if (gf_node_get_tag(txh->owner)==TAG_MPEG4_ImageTexture) {
+	if (gf_node_get_tag(txh->owner)!=TAG_MPEG4_CacheTexture) {
 		if (((M_ImageTexture*)node)->repeatS) txh->flags |= GF_SR_TEXTURE_REPEAT_S;
 		if (((M_ImageTexture*)node)->repeatT) txh->flags |= GF_SR_TEXTURE_REPEAT_T;
 	} else {
@@ -344,7 +344,7 @@ void compositor_imagetexture_modified(GF_Node *node)
 	GF_TextureHandler *txh = (GF_TextureHandler *) gf_node_get_private(node);
 	if (!txh) return;
 
-	if (gf_node_get_tag(node)==TAG_MPEG4_ImageTexture) {
+	if (gf_node_get_tag(node)!=TAG_MPEG4_ImageTexture) {
 		url = ((M_ImageTexture *) node)->url;
 	} else {
 		url.count = 1;
