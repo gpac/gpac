@@ -1197,8 +1197,10 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 	}
 
     /* If the loader was created with the DIMS type and this is the root element, 
-        we need to create the stream, mpeg-4 esd, ...*/
-    if (!parent && !parser->laser_es && (parser->load->type == GF_SM_LOAD_DIMS)) {
+        we need to create the stream, mpeg-4 esd, ...
+        In playback mode, DIMS does not use the scene manager (ctx) in the loader 
+        because we don't use the command / stream representation we directly manipulate the graph */
+    if (!parent && !parser->laser_es && (parser->load->type == GF_SM_LOAD_DIMS) && parser->load->ctx) {
 		GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);
 		esd->ESID = 1;
 		esd->decoderConfig->streamType = GF_STREAM_SCENE;
@@ -1394,7 +1396,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		if (!strcmp(name, "endOfSAFSession") ) {
 			return;
 		}
-        if ((parser->load->type==GF_SM_LOAD_DIMS) && !parser->laser_au && !cond) {
+        if ((parser->load->type==GF_SM_LOAD_DIMS) && parser->laser_es && !parser->laser_au && !cond) {
             parser->laser_au = gf_list_last(parser->laser_es->AUs);
         } else if ((parser->load->type==GF_SM_LOAD_XSR) && !parser->laser_au && !cond) {
 			if (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) {
