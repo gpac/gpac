@@ -64,6 +64,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_delete_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_move_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_temp_file_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_file_modification_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_f64_open) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_f64_seek) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_f64_tell) )
@@ -766,6 +767,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_append_sdp_extended) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_au) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_data) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_format_sdp_header) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_del) )
@@ -1065,6 +1068,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_mark_for_aggregation) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_aggregate_context) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_get_base64_iod) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_beng_set_carousel_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_beng_enable_aggregation) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_beng_next_rap_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_beng_update_rap_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_beng_get_iod) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_beng_terminate) )
 #endif
 

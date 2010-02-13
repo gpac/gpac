@@ -29,6 +29,7 @@
 #include <gpac/nodes_x3d.h>
 #include <gpac/nodes_svg.h>
 #include <gpac/events.h>
+#include <gpac/base_coding.h>
 
 #ifndef __SYMBIAN32__
 #include <wchar.h>
@@ -67,6 +68,8 @@ struct _scenedump
 	GF_List *inserted_routes;
 
 	Bool in_text;
+
+	Bool embbed_res;
 };
 
 static GF_Err gf_dump_vrml_route(GF_SceneDumper *sdump, GF_Route *r, u32 dump_type);
@@ -85,6 +88,10 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 	if (!graph) return NULL;
 	GF_SAFEALLOC(tmp, GF_SceneDumper);
 
+	if (dump_mode==GF_SM_DUMP_DIMS) {
+		dump_mode = GF_SM_DUMP_SVG;
+		tmp->embbed_res = 1;
+	} 
 	/*store original*/
 	tmp->dump_mode = dump_mode;
 
@@ -2783,6 +2790,49 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 			}
 			else if (xlink->type==XMLRI_STREAMID) {
 				fprintf(sdump->trace, " %s=\"#stream%d\"", info.name, xlink->lsr_stream_id);
+				att = att->next;
+				continue;
+			} else if (sdump->embbed_res) {
+				u32 size;
+				FILE *f;
+				f = fopen(xlink->string, "rb");
+				if (!f) {
+					fprintf(sdump->trace, " %s=\"%s\"", info.name, xlink->string);
+					att = att->next;
+					continue;
+				}
+				fseek(f, 0, SEEK_END);
+				size = ftell(f);
+				fseek(f, 0, SEEK_SET);
+				switch (gf_node_get_tag(n)) {
+				case TAG_SVG_script:
+					break;
+				default:
+				{
+					char *mtype;
+					char *buf64;
+					u32 size64;
+					char *buffer = malloc(sizeof(char)*size);
+					fread(buffer, 1, size, f);
+					buf64 = malloc(size*2);
+					size64 = gf_base64_encode(buffer, size, buf64, size*2);
+					buf64[size64] = 0;
+					free(buffer);
+					mtype = "application/data";
+					if (strstr(xlink->string, ".png") || strstr(xlink->string, ".PNG")) {
+						mtype = "image/png";
+					}
+					else if (strstr(xlink->string, ".jpg") || strstr(xlink->string, ".JPG")
+						|| strstr(xlink->string, ".jpeg") || strstr(xlink->string, ".JPEG")
+					) {
+						mtype = "image/jpg";
+					}
+					fprintf(sdump->trace, " %s=\"data:%s;base64,%s\"", info.name, mtype, buf64);
+					free(buf64);
+				}
+					break;
+				}
+				fclose(f);
 				att = att->next;
 				continue;
 			} else {

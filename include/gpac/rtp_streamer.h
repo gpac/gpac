@@ -92,6 +92,8 @@ GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, char *data, u32 size, u64 ct
 
 GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, char *data, u32 size, u32 fullsize, u64 cts, u64 dts, Bool is_rap, Bool au_start, Bool au_end, u32 au_sn, u32 sampleDuration, u32 sampleDescIndex);
 
+char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *session_name, GF_ObjectDescriptor *iod);
+
 /*! @} */
 
 #ifdef __cplusplus
