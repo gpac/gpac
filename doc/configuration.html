@@ -10,7 +10,7 @@
 <br/>
 <b><span style="Font-Size: 24pt">GPAC Configuration file documentation<br/>Version 0.4.5</span></b>
 <br/>
-<b><span style="Font-Size: 18pt">Last Modified $Date: 2009-09-11 09:11:58 $</span></b>
+<b><span style="Font-Size: 18pt">Last Modified $Date: 2010-02-13 09:57:25 $</span></b>
 </p>
 
 <br/><br/>
@@ -298,6 +298,12 @@ Specifies whether scalable zoom should be used or not. When scalable zoom is ena
 <b>DisableYUV</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Disables YUV hardware support (YUV hardware support may not be available for the current video output module).</p>
+
+
+<b>ForceOpenGL</b> [value: <i>"yes"  "no"</i>]
+<p style="text-indent: 5%">
+Specifies that 2D rendering will be performed by OpenGL rather than raster 2D. This will involve polygon tesselation which may not be supported on all platforms.</p>
+
 <b>RasterOutlines</b> [value: <i>"yes"  "no"</i>]
 <p style="text-indent: 5%">
 Specifies that outlining shall be done through OpenGL pen width rather than vectorial outlining.</p>
