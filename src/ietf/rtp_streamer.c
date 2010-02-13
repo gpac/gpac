@@ -661,6 +661,44 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 	return GF_OK;
 } 
 
+char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *session_name, GF_ObjectDescriptor *iod)
+{
+	u32 size;
+	char *sdp;
+	FILE *tmp = gf_temp_file_new();
+	if (!tmp) return NULL;
+
+	/* write SDP header*/
+	fprintf(tmp, "v=0\n");
+	fprintf(tmp, "o=%s 3326096807 1117107880000 IN IP%d %s\n", app_name, gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
+	fprintf(tmp, "s=%s\n", (session_name ? session_name : "GPAC Scene Streaming Session"));
+	fprintf(tmp, "c=IN IP%d %s\n", gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
+	fprintf(tmp, "t=0 0\n");
+	
+    if (iod) {
+        char *buf64;
+        u32 size64;
+        u32 size;
+        char *buffer;
+        size = 0;
+        gf_odf_desc_write((GF_Descriptor *) iod, &buffer, &size);
+        buf64 = malloc(size*2);
+        size64 = gf_base64_encode( buffer, size, buf64, size*2);
+        buf64[size64] = 0;
+        free(buffer);
+        fprintf(tmp, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"\n", buf64);
+        free(buf64);
+    }
+	fseek(tmp, 0, SEEK_END);
+	size = ftell(tmp);
+	fseek(tmp, 0, SEEK_SET);
+	sdp = malloc(sizeof(char) * (size+1));
+	fread(sdp, 1, size, tmp);
+	sdp[size] = 0;
+	fclose(tmp);
+	return sdp;
+}
+
 GF_Err gf_rtp_streamer_append_sdp(GF_RTPStreamer *rtp, u16 ESID, char *dsi, u32 dsi_len, char *KMS_URI, char **out_sdp_buffer) 
 {
 	return gf_rtp_streamer_append_sdp_extended(rtp, ESID, dsi, dsi_len, NULL, 0, KMS_URI, 0, 0, out_sdp_buffer);
@@ -684,6 +722,7 @@ GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, char *data, u32 size, u64 ct
 {
 	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, 1, 1, 0, 0, 0);
 }
+
 
 
 #endif /*GPAC_DISABLE_STREAMING*/

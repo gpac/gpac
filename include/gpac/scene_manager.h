@@ -82,6 +82,10 @@ typedef struct _stream_context
 	u32 current_au_count;
 	char *dec_cfg;
 	u32 dec_cfg_len;
+
+	u32 carousel_period;
+	u32 last_rap_time;
+	Bool aggregation_enabled;
 } GF_StreamContext;
 
 /*generic presentation context*/
@@ -315,6 +319,8 @@ enum
 	GF_SM_DUMP_LASER,
 	/*SVG dump (only dumps svg root of the first LASeR unit*/
 	GF_SM_DUMP_SVG,
+	/*same as GF_SM_DUMP_SVG but embbeds all resources in the dump (script and bas64 images/video/...)*/
+	GF_SM_DUMP_DIMS,
 	/*blind XML dump*/
 	GF_SM_DUMP_XML,
 	/*automatic selection of MPEG4 vs X3D, text mode*/

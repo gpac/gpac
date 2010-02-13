@@ -235,6 +235,37 @@ u32 gf_rand()
 	return rand();
 }
 
+#ifndef _WIN32_WCE
+#include <sys/stat.h>
+#endif
+
+u64 gf_file_modification_time(const char *filename)
+{
+#if defined(_WIN32_WCE) 
+	WCHAR _file[GF_MAX_PATH]; 
+	WIN32_FIND_DATA FindData;
+	HANDLE fh;
+	ULARGE_INTEGER uli;
+	ULONGLONG time_ms;
+	CE_CharToWide((char *) filename, _file);
+	fh = FindFirstFile(_file, &FindData);
+	if (fh == INVALID_HANDLE_VALUE) return 0;
+	uli.LowPart = FindData.ftLastWriteTime.dwLowDateTime;
+	uli.HighPart = FindData.ftLastWriteTime.dwHighDateTime;
+	FindClose(fh);
+	time_ms = uli.QuadPart/10000;
+	return time_ms;
+#elif defined(WIN32)
+	struct _stat64 sb;
+	if (_stat64(filename, &sb) != 0) return 0;
+	return sb.st_mtime;
+#else
+	struct stat sb;
+	if (stat(file_name, &sb) != 0) return 0;
+	return sb.st_mtime;
+#endif
+	return 0;
+}
 
 FILE *gf_temp_file_new()
 {

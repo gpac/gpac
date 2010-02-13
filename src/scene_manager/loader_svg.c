@@ -1201,24 +1201,19 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
         In playback mode, DIMS does not use the scene manager (ctx) in the loader 
         because we don't use the command / stream representation we directly manipulate the graph */
     if (!parent && !parser->laser_es && (parser->load->type == GF_SM_LOAD_DIMS) && parser->load->ctx) {
-		GF_ESD *esd = (GF_ESD*)gf_odf_desc_esd_new(2);
-		esd->ESID = 1;
-		esd->decoderConfig->streamType = GF_STREAM_SCENE;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_DIMS;
-		parser->laser_es = gf_sm_stream_new(parser->load->ctx, esd->ESID, 
-            esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-		if (!parser->load->ctx->root_od) parser->load->ctx->root_od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
-		parser->laser_es->timeScale = 1000;
-		gf_list_add(parser->load->ctx->root_od->ESDescriptors, esd);        
-        /* Create a default AU to behave as other streams (LASeR, BIFS)
-           but it is left empty, there is no notion of REPLACE Scene or NEw Scene, 
-           the RAP is the graph */
-        parser->laser_au = gf_sm_stream_au_new(parser->laser_es, 0, 0, 1);
-/*
-        parser->command = gf_sg_command_new(parser->load->scene_graph, GF_SG_LSR_NEW_SCENE);
-        gf_list_add(parser->laser_au->commands, parser->command);
-        */
-    } else
+		if (!gf_list_count(parser->load->ctx->streams)) {
+			parser->laser_es = gf_sm_stream_new(parser->load->ctx, 1, GF_STREAM_SCENE, GPAC_OTI_SCENE_DIMS);
+			parser->laser_es->timeScale = 1000;
+			/* Create a default AU to behave as other streams (LASeR, BIFS)
+			   but it is left empty, there is no notion of REPLACE Scene or NEw Scene, 
+			   the RAP is the graph */
+			parser->laser_au = gf_sm_stream_au_new(parser->laser_es, 0, 0, 1);
+		} else {
+			parser->laser_es = gf_list_get(parser->load->ctx->streams, 0);
+			parser->laser_au = gf_list_last(parser->laser_es->AUs);
+		}
+    } 
+
 	/*saf setup*/
 	if ((!parent && (parser->load->type!=GF_SM_LOAD_SVG_DA)) || cond) {
 		u32 com_type;
@@ -1396,9 +1391,8 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		if (!strcmp(name, "endOfSAFSession") ) {
 			return;
 		}
-        if ((parser->load->type==GF_SM_LOAD_DIMS) && parser->laser_es && !parser->laser_au && !cond) {
-            parser->laser_au = gf_list_last(parser->laser_es->AUs);
-        } else if ((parser->load->type==GF_SM_LOAD_XSR) && !parser->laser_au && !cond) {
+
+		if ((parser->load->type==GF_SM_LOAD_XSR) && !parser->laser_au && !cond) {
 			if (parser->load->flags & GF_SM_LOAD_CONTEXT_READY) {
 				assert(parser->laser_es);
 				parser->laser_au = gf_sm_stream_au_new(parser->laser_es, 0, 0, 0);
@@ -1413,6 +1407,23 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			SVG_NodeStack *top;
 			GF_Err e;
 			parser->command = gf_sg_command_new(parser->load->scene_graph, com_type);
+
+			/*this is likely a conditional start - update unknown depth level*/	
+			top = (SVG_NodeStack*)gf_list_last(parser->node_stack);
+			if (top) {
+				top->unknown_depth ++;
+				parser->command_depth++;
+			}
+
+			e = lsr_parse_command(parser, attributes, nb_attributes);
+			if (e!= GF_OK) {
+				parser->command->node = NULL;
+				gf_sg_command_del(parser->command);
+				parser->command = NULL;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[LASeR Parser] Error parsing %s command - skipping\n", (parser->load->type==GF_SM_LOAD_XSR) ? "LASeR" : "DIMS"));
+				return;
+			}
+
 			if (cond) {
 				GF_DOMUpdates *up = cond->children ? (GF_DOMUpdates *)cond->children->node : NULL;
 				if (!up) {
@@ -1432,16 +1443,6 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				parser->laser_au->is_rap = 1;
 				break;
 			}
-
-			/*this is likely a conditional start - update unknown depth level*/	
-			top = (SVG_NodeStack*)gf_list_last(parser->node_stack);
-			if (top) {
-				top->unknown_depth ++;
-				parser->command_depth++;
-			}
-
-			e = lsr_parse_command(parser, attributes, nb_attributes);
-			if (e!= GF_OK) parser->command->node = NULL;
 
 			return;
 		}

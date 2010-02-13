@@ -26,12 +26,12 @@ GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 
 	return GF_OK;
 }
 
-static setup_rtp_streams(GF_BifsEngine *beng, GF_List *streams, char *ip, u16 port)
+static setup_rtp_streams(GF_BifsEngine *beng, GF_List *streams, char *ip, u16 port, char *sdp_name)
 {
 	BRTP *rtpst;
 	u32 count = gf_beng_get_stream_count(beng);
 	u32 i;
-	char *sdp = NULL;
+	char *sdp = gf_rtp_streamer_format_sdp_header("GPACSceneStreamer", ip, NULL, gf_beng_get_iod(beng));
 	
 	for (i=0; i<count; i++) {
 		u16 ESID;
@@ -48,7 +48,9 @@ static setup_rtp_streams(GF_BifsEngine *beng, GF_List *streams, char *ip, u16 po
 		gf_rtp_streamer_append_sdp(rtpst->rtp, ESID, config, config_len, NULL, &sdp);
 	}
     if (sdp) {
-        fprintf(stdout, sdp);
+		FILE *out = fopen(sdp_name, "wt");
+        fprintf(out, sdp);
+		fclose(out);
 	    free(sdp);
     }
 }
@@ -63,7 +65,158 @@ void shutdown_rtp_streams(GF_List *list)
 	}
 }
 
+
 int main(int argc, char **argv)
+{
+	GF_Err e;
+	int i;
+	char *filename = NULL;
+	char *dst = NULL;
+	char *sdp_name = "session.sdp";
+	u16 dst_port = 7000;
+	u32 load_type=0;
+	u16 ESID;
+	s32 next_time;
+	u64 last_src_modif, mod_time;
+	char *src_name = NULL;
+	Bool run, has_carousel;
+
+	GF_List *streams = NULL;
+	GF_BifsEngine *beng = NULL;
+
+	gf_sys_init();
+
+	gf_log_set_level(GF_LOG_INFO);
+	gf_log_set_tools(0xFFFFFFFF);
+
+	for (i=0; i<argc; i++) {
+		char *arg = argv[i];
+		if (arg[0] != '-') filename = arg;
+		else if (!strnicmp(arg, "-dst=", 5)) dst = arg+5;
+		else if (!strnicmp(arg, "-port=", 6)) dst_port = atoi(arg+6);
+		else if (!strnicmp(arg, "-sdp=", 5)) sdp_name = arg+5;
+		else if (!strnicmp(arg, "-dims", 5)) load_type = GF_SM_LOAD_DIMS;
+		else if (!strnicmp(arg, "-src=", 5)) src_name = arg+5;
+	}
+	if (!filename) {
+		fprintf(stdout, "Missing filename\n");
+		exit(0);
+	}
+
+	if (dst_port && dst) streams = gf_list_new();
+
+	beng = gf_beng_init(streams, filename, load_type);
+	if (streams) setup_rtp_streams(beng, streams, dst, dst_port, sdp_name);
+
+	has_carousel = 0;
+	last_src_modif = 0;
+
+	for (i=0; i<argc; i++) {
+		char *arg = argv[i];
+		if (!strnicmp(arg, "-rap=", 5)) {
+			u32 period, id;
+			period = id = 0;
+			if (strchr(arg, ':')) {
+				sscanf(arg, "-rap=ESID=%d:%d", &id, &period);
+				e = gf_beng_enable_aggregation(beng, id, 1);
+				if (e) {
+					fprintf(stdout, "Cannot enable aggregation on stream %d: %s\n", id, gf_error_to_string(e));
+					goto exit;
+				}
+			} else {
+				sscanf(arg, "-rap=%d", &period);
+			}
+			e = gf_beng_set_carousel_time(beng, id, period);
+			if (e) {
+				fprintf(stdout, "Cannot set carousel time on stream %d to %d: %s\n", id, period, gf_error_to_string(e));
+				goto exit;
+			}
+			has_carousel = 1;
+		}
+	}
+
+	gf_beng_encode_context(beng, SampleCallBack);
+
+	run = 1;
+	while (run) {
+		if (gf_prompt_has_input()) {
+			char c = gf_prompt_get_char();
+			switch (c) {
+			case 'q':
+				run=0;
+				break;
+			case 'u':
+			case 'c':
+			{
+				GF_Err e;
+				char szCom[8192];
+				fprintf(stdout, "Enter command to send:\n");
+				fflush(stdin);
+				szCom[0] = 0;
+				scanf("%[^\t\n]", szCom);
+				e = gf_beng_encode_from_string(beng, szCom, SampleCallBack);
+				if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
+			}
+				break;
+			case 'p':
+			{
+				char rad[GF_MAX_PATH];
+				fprintf(stdout, "Enter output file name - \"std\" for stdout: ");
+				scanf("%s", rad);
+				e = gf_beng_save_context(beng, !strcmp(rad, "std") ? NULL : rad);
+				fprintf(stdout, "Dump done (%s)\n", gf_error_to_string(e));
+			}
+				break;
+			case 'a':
+				e = gf_beng_aggregate_context(beng);
+				fprintf(stdout, "Context aggreagated: %s\n", gf_error_to_string(e));
+				break;
+			case 'e':
+				e = gf_beng_encode_context(beng, SampleCallBack);
+				fprintf(stdout, "Context encoded: %s\n", gf_error_to_string(e));
+				break;
+			}
+			e = GF_OK;
+		}
+		if (src_name) {
+			mod_time = gf_file_modification_time(src_name);
+			if (mod_time != last_src_modif) {
+				fprintf(stdout, "Update file modified - processing\n");
+				last_src_modif = mod_time;
+				e = gf_beng_encode_from_file(beng, src_name, SampleCallBack);
+				if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
+				else gf_beng_aggregate_context(beng);
+			}
+
+		}
+		if (!has_carousel) {
+			gf_sleep(10);
+			continue;
+		}
+		next_time = gf_beng_next_rap_time(beng, &ESID);
+		if (next_time<0) {
+			gf_sleep(10);
+			continue;
+		}
+		if (next_time > 30) {
+			gf_sleep(0);
+			continue;
+		}
+		gf_sleep(next_time);
+		gf_beng_aggregate_context(beng);
+		gf_beng_encode_context(beng, SampleCallBack);
+		gf_beng_update_rap_time(beng, ESID);
+	}
+
+exit:
+	if (streams) shutdown_rtp_streams(streams);
+	gf_beng_terminate(beng);
+	gf_sys_close();
+	return e ? 1 : 0;
+}
+
+
+int main2(int argc, char **argv)
 {
 	int i;
 	const char * dst = "224.0.0.1";
@@ -94,7 +247,7 @@ int main(int argc, char **argv)
         char *update = "<Replace ref='r' attributeName='x' value='100'/>";
 
 		codec1 = gf_beng_init_from_string(streams, scene, GF_SM_LOAD_DIMS, 0, 0, 1);
-		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port);
+		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
 		gf_beng_encode_context(codec1, SampleCallBack);
 
         gf_beng_encode_from_string(codec1, update, SampleCallBack);
@@ -127,7 +280,7 @@ int main(int argc, char **argv)
 						}";
 
 		codec1 = gf_beng_init(streams, argv[1], 0);
-		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port);
+		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
 
 		gf_beng_encode_context(codec1, SampleCallBack);
 		gf_beng_save_context(codec1, "initial_context.bt");
@@ -146,7 +299,7 @@ int main(int argc, char **argv)
 		char update[] = "\n AT \n 500 \n { \n REPLACE \n M.emissiveColor BY 1 0 0 \n REPLACE \n M.filled BY FALSE} \n";
 
 		codec1 = gf_beng_init_from_string(streams, scene, 0, 200, 200, 1);
-		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port);
+		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
 
 		gf_beng_encode_context(codec1, SampleCallBack);
 		gf_beng_save_context(codec1, "initial_context.mp4");

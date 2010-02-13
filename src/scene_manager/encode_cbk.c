@@ -55,6 +55,7 @@ struct __tag_bifs_engine
 	GF_LASeRCodec *lsrenc;
 #endif
 
+	u32 start_time;
 };
 
 #ifndef GPAC_DISABLE_BIFS_ENC
@@ -256,6 +257,170 @@ static GF_Err gf_sm_live_setup(GF_BifsEngine *codec)
 	return e;
 }
 
+#define ZLIB_COMPRESS_SAFE	4
+
+static GF_Err compress_dims_payload(char **data, u32 data_len, u32 *max_size, u32 offset)
+{
+    z_stream stream;
+    int err;
+    char *dest = (char *)malloc(sizeof(char)*data_len*ZLIB_COMPRESS_SAFE);
+    stream.next_in = (Bytef*)(*data) + offset;
+    stream.avail_in = (uInt)data_len - offset;
+    stream.next_out = ( Bytef*)dest;
+    stream.avail_out = (uInt)data_len*ZLIB_COMPRESS_SAFE;
+    stream.zalloc = (alloc_func)NULL;
+    stream.zfree = (free_func)NULL;
+    stream.opaque = (voidpf)NULL;
+
+    err = deflateInit(&stream, 9);
+    if (err != Z_OK) {
+		free(dest);
+		return GF_IO_ERR;
+    }
+
+    err = deflate(&stream, Z_FINISH);
+    if (err != Z_STREAM_END) {
+        deflateEnd(&stream);
+		free(dest);
+        return GF_IO_ERR;
+    }
+    if (data_len - offset<stream.total_out) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SceneEngine] compressed data (%d) larger than input (%d)\n", (u32) stream.total_out, (u32) data_len - offset));
+    }
+
+    if (*max_size < stream.total_out) {
+		*max_size = data_len*ZLIB_COMPRESS_SAFE;
+		*data = realloc(*data, *max_size * sizeof(char));
+    } 
+
+    memcpy((*data) + offset, dest, sizeof(char)*stream.total_out);
+    *max_size = offset + stream.total_out;
+    free(dest);
+
+    deflateEnd(&stream);
+    return GF_OK;
+}
+static GF_Err gf_beng_encode_dims_au(GF_BifsEngine *codec, u16 ESID, GF_List *commands, char **data, u32 *size)
+{
+	GF_Err e;
+	GF_SceneDumper *dumper = NULL;
+	char rad_name[4096];
+	char file_name[4096];
+	FILE *file = NULL;
+	u32 fsize;
+	char *buffer = NULL;
+	GF_BitStream *bs = NULL;
+	u32 offset;
+	u8 dims_header;
+    Bool compress_dims;
+
+	u32 buffer_len;
+    char *cache_dir, *dump_name;
+
+    if (!data) return GF_BAD_PARAM;
+
+	e = GF_OK;
+
+    /* TODO: add these in the BIFSEngine */
+    cache_dir = "C:\\Windows\\Temp";
+    dump_name = "gpac_scene_encoding_dump";
+	compress_dims = 1;
+    
+    if (commands && gf_list_count(commands)) sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, dump_name, "_update");
+	else sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, "rap_", dump_name);
+	dumper = gf_sm_dumper_new(codec->ctx->scene_graph, rad_name, ' ', GF_SM_DUMP_DIMS);
+	if (!dumper) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name)); 
+		e = GF_IO_ERR;
+		goto exit;
+	}
+
+	if (commands && gf_list_count(commands)) {
+		e = gf_sm_dump_command_list(dumper, commands, 0, 0);
+	} else {
+		e = gf_sm_dump_graph(dumper, 0, 0);
+	}
+	gf_sm_dumper_del(dumper);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot dump DIMS Commands\n")); 
+		goto exit;
+	}
+	
+	sprintf(file_name, "%s.svg", rad_name);
+	file = fopen(file_name, "rb");
+	if (!file) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot open SVG dump file %s\n", file_name)); 
+		e = GF_IO_ERR;
+		goto exit;
+	}
+	fseek(file, 0, SEEK_END);
+	fsize = ftell(file);
+	
+	if (fsize == 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] SVG dump %s is empty\n", file_name)); 
+		goto exit;
+	}
+
+	/* First, read the dump in a buffer */
+	buffer = malloc(fsize * sizeof(char));
+	fseek(file, 0, SEEK_SET);
+	fread(buffer, 1, fsize, file);
+	fclose(file);
+    file = NULL;
+
+	/* Then, set DIMS unit header - TODO: notify redundant units*/
+	dims_header = 0;
+    if (commands && gf_list_count(commands)) {
+		dims_header = GF_DIMS_UNIT_P; /* streamer->all_non_rap_critical ? 0 : GF_DIMS_UNIT_P;*/
+	} else {
+		/*redundant RAP with complete scene*/
+		dims_header = GF_DIMS_UNIT_M | GF_DIMS_UNIT_S | GF_DIMS_UNIT_I | GF_DIMS_UNIT_P;
+	}
+
+	/* Then, if compression is asked, we do it */
+	buffer_len = fsize;
+	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len)); 
+	if (compress_dims) {
+		dims_header |= GF_DIMS_UNIT_C;
+		e = compress_dims_payload(&buffer, buffer_len, &buffer_len, 0);
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("/ compressed (%d)", buffer_len)); 
+		if (e) goto exit;
+	}
+    GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("\n")); 
+
+	/* Then,  prepare the DIMS data using a bitstream instead of direct manipulation for endianness
+           The new bitstream size should be:
+		the size of the (compressed) data 
+		+ 1 bytes for the header
+		+ 2 bytes for the size
+		+ 4 bytes if the size is greater than 65535
+	 */
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE); 
+	if (buffer_len > 65535) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[SceneEngine] Warning: DIMS Unit size too big !!!\n")); 
+		gf_bs_write_u16(bs, 0); /* internal GPAC hack to indicate that the size is larger than 65535 */
+		gf_bs_write_u32(bs, buffer_len+1);
+		offset = 6;
+	} else {
+		gf_bs_write_u16(bs, buffer_len+1);
+		offset = 2;
+	}
+	gf_bs_write_u8(bs, dims_header);
+	gf_bs_write_data(bs, buffer, buffer_len);
+
+	free(buffer);
+    buffer = NULL;
+
+    gf_bs_get_content(bs, data, size);
+	gf_bs_del(bs);
+
+exit:
+    if (buffer) free(buffer);
+    if (file) fclose(file);
+	return e;
+}
+
+
 static GF_Err gf_sm_live_encode_scene_au(GF_BifsEngine *codec, gf_beng_callback callback, Bool from_start)
 {
 	GF_Err e;
@@ -350,6 +515,8 @@ GF_Err gf_beng_mark_for_aggregation(GF_BifsEngine *codec, u16 ESID)
 	return e;
 }
 
+
+
 GF_EXPORT
 GF_Err gf_beng_aggregate_context(GF_BifsEngine *codec)
 {
@@ -362,15 +529,18 @@ GF_Err gf_beng_aggregate_context(GF_BifsEngine *codec)
 }
 
 GF_EXPORT
-GF_Err gf_beng_save_context(GF_BifsEngine *codec, char *  ctxFileName)
+GF_Err gf_beng_save_context(GF_BifsEngine *codec, char *ctxFileName)
 {
 	u32	d_mode, do_enc;
 	char szF[GF_MAX_PATH], *ext;
 	GF_Err	e;
 
 	/*check if we dump to BT, XMT or encode to MP4*/
-	strcpy(szF, ctxFileName);
-	ext = strrchr(szF, '.');
+	ext = NULL;
+	if (ctxFileName) {
+		strcpy(szF, ctxFileName);
+		ext = strrchr(szF, '.');
+	}
 	d_mode = GF_SM_DUMP_BT;
 	do_enc = 0;
 	if (ext) {
@@ -391,7 +561,7 @@ GF_Err gf_beng_save_context(GF_BifsEngine *codec, char *  ctxFileName)
 		return GF_NOT_SUPPORTED;
 #endif
 	} else {
-		e = gf_sm_dump(codec->ctx, szF, d_mode);
+		e = gf_sm_dump(codec->ctx, ctxFileName ? szF : NULL, d_mode);
 	}
 	return e;
 }
@@ -443,170 +613,6 @@ exit:
 	return e;
 }
 
-#define ZLIB_COMPRESS_SAFE	4
-
-static GF_Err compress_sample_data(char **data, u32 data_len, u32 *max_size, u32 offset)
-{
-    z_stream stream;
-    int err;
-    char *dest = (char *)malloc(sizeof(char)*data_len*ZLIB_COMPRESS_SAFE);
-    stream.next_in = (Bytef*)(*data) + offset;
-    stream.avail_in = (uInt)data_len - offset;
-    stream.next_out = ( Bytef*)dest;
-    stream.avail_out = (uInt)data_len*ZLIB_COMPRESS_SAFE;
-    stream.zalloc = (alloc_func)NULL;
-    stream.zfree = (free_func)NULL;
-    stream.opaque = (voidpf)NULL;
-
-    err = deflateInit(&stream, 9);
-    if (err != Z_OK) {
-		free(dest);
-		return GF_IO_ERR;
-    }
-
-    err = deflate(&stream, Z_FINISH);
-    if (err != Z_STREAM_END) {
-        deflateEnd(&stream);
-		free(dest);
-        return GF_IO_ERR;
-    }
-    if (data_len - offset<stream.total_out) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SceneEngine] compressed data (%d) larger than input (%d)\n", (u32) stream.total_out, (u32) data_len - offset));
-    }
-
-    if (*max_size < stream.total_out) {
-		*max_size = data_len*ZLIB_COMPRESS_SAFE;
-		*data = realloc(*data, *max_size * sizeof(char));
-    } 
-
-    memcpy((*data) + offset, dest, sizeof(char)*stream.total_out);
-    *max_size = offset + stream.total_out;
-    free(dest);
-
-    deflateEnd(&stream);
-    return GF_OK;
-}
-
-
-static GF_Err gf_beng_encode_dims_au(GF_BifsEngine *codec, u16 ESID, GF_List *commands, char **data, u32 *size)
-{
-	GF_Err e;
-	GF_SceneDumper *dumper = NULL;
-	char rad_name[4096];
-	char file_name[4096];
-	FILE *file = NULL;
-	u32 fsize;
-	char *buffer = NULL;
-	GF_BitStream *bs = NULL;
-	u32 offset;
-	u8 dims_header;
-    Bool compress_dims;
-
-	u32 buffer_len;
-    char *cache_dir, *dump_name;
-
-    if (!data) return GF_BAD_PARAM;
-
-	e = GF_OK;
-
-    /* TODO: add these in the BIFSEngine */
-    cache_dir = "C:\\Windows\\Temp";
-    dump_name = "gpac_scene_encoding_dump";
-	compress_dims = 1;
-    
-    if (commands && gf_list_count(commands)) sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, dump_name, "_update");
-	else sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, "rap_", dump_name);
-	dumper = gf_sm_dumper_new(codec->ctx->scene_graph, rad_name, ' ', GF_SM_DUMP_SVG);
-	if (!dumper) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name)); 
-		e = GF_IO_ERR;
-		goto exit;
-	}
-
-	if (commands && gf_list_count(commands)) {
-		e = gf_sm_dump_command_list(dumper, commands, 0, 0);
-	} else {
-		e = gf_sm_dump_graph(dumper, 0, 0);
-	}
-	gf_sm_dumper_del(dumper);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot dump DIMS Commands\n")); 
-		goto exit;
-	}
-	
-	sprintf(file_name, "%s.svg", rad_name);
-	file = fopen(file_name, "rb");
-	if (!file) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot open SVG dump file %s\n", file_name)); 
-		e = GF_IO_ERR;
-		goto exit;
-	}
-	fseek(file, 0, SEEK_END);
-	fsize = ftell(file);
-	
-	if (fsize == 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] SVG dump %s is empty\n", file_name)); 
-		goto exit;
-	}
-
-	/* First, read the dump in a buffer */
-	buffer = malloc(fsize * sizeof(char));
-	fseek(file, 0, SEEK_SET);
-	fread(buffer, 1, fsize, file);
-	fclose(file);
-    file = NULL;
-
-	/* Then, set DIMS unit header - TODO: notify redundant units*/
-	dims_header = 0;
-    if (commands && gf_list_count(commands)) {
-		dims_header = GF_DIMS_UNIT_P; /* streamer->all_non_rap_critical ? 0 : GF_DIMS_UNIT_P;*/
-	} else {
-		/*redundant RAP with complete scene*/
-		dims_header = GF_DIMS_UNIT_M | GF_DIMS_UNIT_S | GF_DIMS_UNIT_I | GF_DIMS_UNIT_P;
-	}
-
-	/* Then, if compression is asked, we do it */
-	buffer_len = fsize;
-	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len)); 
-	if (compress_dims) {
-		dims_header |= GF_DIMS_UNIT_C;
-		e = compress_sample_data(&buffer, buffer_len, &buffer_len, 0);
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("/ compressed (%d)", buffer_len)); 
-		if (e) goto exit;
-	}
-    GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("\n")); 
-
-	/* Then,  prepare the DIMS data using a bitstream instead of direct manipulation for endianness
-           The new bitstream size should be:
-		the size of the (compressed) data 
-		+ 1 bytes for the header
-		+ 2 bytes for the size
-		+ 4 bytes if the size is greater than 65535
-	 */
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE); 
-	if (buffer_len > 65535) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[SceneEngine] Warning: DIMS Unit size too big !!!\n")); 
-		gf_bs_write_u16(bs, 0); /* internal GPAC hack to indicate that the size is larger than 65535 */
-		gf_bs_write_u32(bs, buffer_len+1);
-		offset = 6;
-	} else {
-		gf_bs_write_u16(bs, buffer_len+1);
-		offset = 2;
-	}
-	gf_bs_write_u8(bs, dims_header);
-	gf_bs_write_data(bs, buffer, buffer_len);
-
-	free(buffer);
-    buffer = NULL;
-
-    gf_bs_get_content(bs, data, size);
-	gf_bs_del(bs);
-
-exit:
-    if (buffer) free(buffer);
-    if (file) fclose(file);
-	return e;
-}
 
 GF_EXPORT
 GF_Err gf_beng_encode_from_commands(GF_BifsEngine *codec, u16 ESID, u32 time, GF_List *commands, gf_beng_callback callback)
@@ -684,25 +690,34 @@ GF_Err gf_beng_encode_from_file(GF_BifsEngine *codec, char *auFile, gf_beng_call
 	GF_Err e;
 	GF_StreamContext *sc;
 	u32 i, count;
+	Bool dims = 0;
 
 	memset(&(codec->load), 0, sizeof(GF_SceneLoader));
 	codec->load.fileName = auFile;
 	codec->load.ctx = codec->ctx;
 
-	/* Assumes there is only one BIFS stream in the context
-	   TODO: check how to do it when several BIFS streams are encoded at the same time */
 	sc = NULL;
 	count = gf_list_count(codec->ctx->streams);
 	i=0;
 	while ((sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i))) {
 		sc->current_au_count = gf_list_count(sc->AUs);
 	}
-
-	codec->load.flags = GF_SM_LOAD_MPEG4_STRICT | GF_SM_LOAD_CONTEXT_READY;
+    /* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
+    sc = gf_list_get(codec->ctx->streams, 0);
+    if (sc->objectType == GPAC_OTI_SCENE_DIMS) {
+		dims = 1;
+        gf_beng_create_new_dims_au(sc, 0);
+    }
+	codec->load.flags = GF_SM_LOAD_CONTEXT_READY;
+	if (dims) {
+		codec->load.type = GF_SM_LOAD_DIMS;
+	} else {
+		codec->load.flags |= GF_SM_LOAD_MPEG4_STRICT;
+	}
 	e = gf_sm_load_init(&codec->load);
 	if (!e) e = gf_sm_load_run(&codec->load);
 	gf_sm_load_done(&codec->load);
-	if (e) {
+	if (e<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot load AU File %s (error %s)\n", auFile, gf_error_to_string(e)));
 		goto exit;
 	}
@@ -904,6 +919,113 @@ void gf_beng_get_base64_iod(GF_BifsEngine *beng, char **buf64, u32 *size64)
     *size64 = gf_base64_encode( buffer, size, *buf64, size*2);
     (*buf64)[*size64] = 0;
     free(buffer);
+}
+
+
+
+GF_EXPORT
+GF_Err gf_beng_enable_aggregation(GF_BifsEngine *codec, u16 ESID, Bool enable)
+{
+	GF_Err e = GF_STREAM_NOT_FOUND;
+	GF_StreamContext *sc;
+
+	if (ESID) {
+		u32 i=0;
+		while (sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i)) {
+			if (sc->ESID==ESID) break;
+		}
+	} else {
+		sc = (GF_StreamContext*)gf_list_get(codec->ctx->streams, 0);
+	}
+	if (!sc) return GF_STREAM_NOT_FOUND;
+
+	sc->aggregation_enabled = enable;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_beng_set_carousel_time(GF_BifsEngine *codec, u16 ESID, u32 period)
+{
+	GF_StreamContext *sc;
+	
+	if (ESID) {
+		u32 i=0;
+		while (sc = (GF_StreamContext*)gf_list_enum(codec->ctx->streams, &i)) {
+			if (sc->ESID==ESID) break;
+		}
+	} else {
+		sc = (GF_StreamContext*)gf_list_get(codec->ctx->streams, 0);
+	}
+	if (!sc) return GF_STREAM_NOT_FOUND;
+	sc->carousel_period = period;
+	sc->last_rap_time = 0;
+	return GF_OK;
+}
+
+s32 gf_beng_next_rap_time(GF_BifsEngine *beng, u16 *ESID)
+{
+	GF_StreamContext *to_send = NULL;
+	u32 i, time, count, now;
+
+	if (!beng->start_time) beng->start_time = gf_sys_clock();
+	now = gf_sys_clock() - beng->start_time;
+
+	time = (u32) -1;
+	count = gf_list_count(beng->ctx->streams);
+	for (i=0; i<count; i++) {
+		GF_StreamContext *sc = gf_list_get(beng->ctx->streams, i);
+		if (!sc->carousel_period) continue;
+
+		if (!sc->last_rap_time) sc->last_rap_time = now;
+
+		if (sc->last_rap_time + sc->carousel_period < time) {
+			to_send = sc;
+			time = sc->last_rap_time + sc->carousel_period;
+		}
+	}
+	if (!to_send) {
+		if (ESID) *ESID = 0;
+		return -1;
+	}
+	if (ESID) *ESID = to_send->ESID;
+
+	if (time>now) time-=now;
+	else time=0;
+
+	return time;
+}
+
+GF_Err gf_beng_update_rap_time(GF_BifsEngine *beng, u16 ESID)
+{
+	GF_StreamContext *sc = NULL;
+	if (!beng->start_time) return GF_BAD_PARAM;
+
+	if (ESID) {
+		u32 i=0;
+		while (sc = (GF_StreamContext*)gf_list_enum(beng->ctx->streams, &i)) {
+			if (sc->ESID==ESID) break;
+		}
+	} else {
+		sc = (GF_StreamContext*)gf_list_get(beng->ctx->streams, 0);
+	}
+	if (!sc) return GF_STREAM_NOT_FOUND;
+	sc->last_rap_time = gf_sys_clock() - beng->start_time;
+	return GF_OK;
+}
+
+
+GF_ObjectDescriptor *gf_beng_get_iod(GF_BifsEngine *beng)
+{
+	u32 i=0;
+	GF_StreamContext*sc = NULL;
+	if (!beng->ctx->root_od) return NULL;
+
+	while ((sc = (GF_StreamContext*)gf_list_enum(beng->ctx->streams, &i))) {
+		if ((sc->streamType == GF_STREAM_SCENE) && (sc->objectType != GPAC_OTI_SCENE_DIMS))
+			break;
+	}
+	if (sc) return beng->ctx->root_od;
+	return NULL;
 }
 
 #endif /*GPAC_DISABLE_BENG*/

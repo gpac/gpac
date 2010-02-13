@@ -478,6 +478,16 @@ void gf_move_file(char *fileName, char *newFileName);
  */
 FILE *gf_temp_file_new();
 
+
+/*!
+ *	\brief File Modification Time
+ *
+ *	Returns the modification time of the given file. The exact meaning of this value is system dependent
+ *	\param filename file to check
+ *	\return modification time of the file
+ */
+u64 gf_file_modification_time(const char *filename);
+
 /*!
  *	\brief Progress formatting
  *

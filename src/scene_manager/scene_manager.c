@@ -183,6 +183,17 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 	return tmp;
 }
 
+static Bool au_triggers_changes(GF_AUContext *au, Bool mark_for_aggregation)
+{
+	u32 i= 0;
+	GF_Command *com;
+	while ((com = gf_list_enum(au->commands, &i))) {
+		if ((i==1) && mark_for_aggregation) com->never_apply = 1;
+		if (!com->never_apply) return 1;
+	}
+	return 0;
+}
+
 GF_EXPORT
 GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 {
@@ -190,9 +201,10 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 	u32 i, stream_count;
 #ifndef GPAC_DISABLE_VRML
 	u32 j, au_count, com_count;
-	GF_AUContext *au;
+	GF_AUContext *au, *first_au;
 	GF_Command *com;
 #endif
+	Bool has_changes = 0;
 
 	e = GF_OK;
 	stream_count = gf_list_count(ctx->streams);
@@ -205,6 +217,7 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 			/*we check for each stream if a RAP is carried (several streams may carry RAPs if inline nodes are used)*/
 			Bool stream_rap_found = 0;
 
+			/*in DIMS we use an empty initial AU with no commands to signal the RAP*/
             if (sc->objectType == GPAC_OTI_SCENE_DIMS) stream_rap_found = 1;
 
 			/*apply all commands - this will also apply the SceneReplace*/
@@ -223,22 +236,32 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 							if (com->tag==GF_SG_LSR_NEW_SCENE)
 								stream_rap_found = 1;
 							break;
-						case GPAC_OTI_SCENE_DIMS:
-                            /* Nothing to do, in DIMS the RAP is in the Graph not in the first AU */
-                            break;
 						}
 						if (stream_rap_found) break;
 					}
 				}
-				/*all commands will be applied, except those marked as 'never_apply'*/
-				e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
+
+				/*FIXME - this doesn't work for route insert/replace/append, they are applied to the graph, not to a subtree
+				and will therefore end up in the base layer RAP (eg, SCENE REPLACE)*/
+
+				/*skip first command of first AU if aggregation is enabled (this first command is the pseudo-rap of this stream)*/
+				if (au_triggers_changes(au, (sc->aggregation_enabled && (j==1)) ? 1 : 0)) {
+					e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
+					has_changes = 1;
+				}
 				if (e) return e;
 			}
 
 			/* Delete all the commands in the stream, except those marked as 'never_apply'*/
 			au_count = gf_list_count(sc->AUs);
+
 			while (au_count) {
 				au = (GF_AUContext *)gf_list_get(sc->AUs, au_count-1);
+
+				/*if aggregating */
+				first_au = NULL;
+				if (sc->aggregation_enabled && (au_count>1)) first_au = gf_list_get(sc->AUs, 0);
+
 				com_count = gf_list_count(au->commands);
 				while (com_count) {
 					com = (GF_Command*)gf_list_get(au->commands, com_count - 1);
@@ -246,7 +269,11 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 						gf_list_rem(au->commands, com_count - 1);
 						gf_sg_command_del(com);
 					}
-					else assert(!stream_rap_found);
+					else {
+						/*reset never_apply flag*/
+						if (sc->aggregation_enabled) com->never_apply=0;
+						assert(!stream_rap_found);
+					}
 					com_count--;
 				}
 				if (!gf_list_count(au->commands)) {
