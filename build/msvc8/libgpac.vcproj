@@ -4838,46 +4838,6 @@
 			Name="scene_manager"
 			>
 			<File
-				RelativePath="..\..\src\scene_manager\encode_cbk.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Smartphone 2003 (ARMV4)"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath="..\..\src\scene_manager\encode_isom.c"
 				>
 				<FileConfiguration
@@ -5120,6 +5080,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\src\scene_manager\scene_engine.c"
+				>
 			</File>
 			<File
 				RelativePath="..\..\src\scene_manager\scene_manager.c"
@@ -6890,10 +6854,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\gpac\bifsengine.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\include\gpac\bitstream.h"
 				>
 			</File>
@@ -7039,6 +6999,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\rtp_streamer.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\scene_engine.h"
 				>
 			</File>
 			<File

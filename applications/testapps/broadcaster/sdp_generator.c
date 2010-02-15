@@ -3,7 +3,7 @@
 
 int sdp_generator(PNC_CallbackData *data, char *ip_dest, char *sdp_fmt)
 {
-	GF_BifsEngine *codec;
+	GF_SceneEngine *codec;
 	GF_ESD *esd = NULL;
 	u32 size,size64;
 	char *buffer;
@@ -33,7 +33,7 @@ int sdp_generator(PNC_CallbackData *data, char *ip_dest, char *sdp_fmt)
 	
 	ret = fwrite("t=0 0\n", 1, 6, fp);
 	
-	codec = (GF_BifsEngine *) data->codec;
+	codec = (GF_SceneEngine *) data->codec;
 	if (codec) {
 		buffer = NULL;
 		size = 0;

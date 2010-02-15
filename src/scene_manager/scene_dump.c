@@ -2700,7 +2700,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Bool is_root)
 {
 	GF_ChildNodeItem *list;
-	char attName[100], *attValue, attID[100];
+	char attName[100], *attValue, attID[100], *script_text;
 	u32 i, count, nID;
 	Bool needs_cr;
 	SVG_Element *svg = (SVG_Element *)n;
@@ -2756,6 +2756,8 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 
 	if (nID) fprintf(sdump->trace, " id=\"%s\"", lsr_format_node_id(n, 0, attID));
 
+	script_text = NULL;
+
 	att = svg->attributes;
 	while (att) {
 		if (att->data_type==SVG_ID_datatype) {
@@ -2806,6 +2808,9 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 				fseek(f, 0, SEEK_SET);
 				switch (gf_node_get_tag(n)) {
 				case TAG_SVG_script:
+					script_text = malloc(sizeof(char) * (size+1));
+					fread(script_text, 1, size, f);
+					script_text[size]=0;
 					break;
 				default:
 				{
@@ -2878,8 +2883,12 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 			}
 		}
 	}
-	if (svg->children) fprintf(sdump->trace, ">");
-	else {
+	if (svg->children) {
+		fprintf(sdump->trace, ">");
+	} else if (script_text) {
+		fprintf(sdump->trace, "><![CDATA[%s]]>", script_text);
+		free(script_text);
+	} else {
 		fprintf(sdump->trace, "/>");
 		return;
 	}

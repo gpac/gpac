@@ -4,7 +4,7 @@
 #include <string.h>
 
 /* includes for gpac library */
-#include <gpac/bifsengine.h>
+#include <gpac/scene_engine.h>
 #include <gpac/config_file.h>
 #include <gpac/thread.h>
 #include <gpac/network.h>

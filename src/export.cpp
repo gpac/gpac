@@ -1053,27 +1053,25 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_oci_dump_au) )
 #endif
 
-#ifndef GPAC_DISABLE_BENG
+#ifndef GPAC_DISABLE_SENG
 /*bifsengine exports*/
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_init) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_init_from_string) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_init_from_context) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_get_stream_count) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_get_stream_config) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_encode_context) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_encode_from_file) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_encode_from_string) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_encode_from_commands) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_save_context) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_mark_for_aggregation) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_aggregate_context) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_get_base64_iod) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_set_carousel_time) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_enable_aggregation) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_next_rap_time) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_update_rap_time) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_get_iod) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_beng_terminate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_init) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_init_from_string) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_init_from_context) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_stream_count) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_stream_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_encode_context) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_encode_from_file) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_encode_from_string) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_encode_from_commands) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_save_context) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_enable_aggregation) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_aggregate_context) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_base64_iod) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_set_carousel_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_next_rap_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_update_rap_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_terminate) )
 #endif
 
 /*bifs.h exports*/

@@ -2,7 +2,7 @@
 #include <gpac/constants.h>
 #include <gpac/scene_manager.h>
 #include <gpac/bifs.h>
-#include <gpac/bifsengine.h>
+#include <gpac/scene_engine.h>
 #include <gpac/network.h>
 #include <gpac/internal/ietf_dev.h>
 #include "RTP_serv_generator.h"

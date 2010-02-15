@@ -128,7 +128,7 @@
 //#define GPAC_DISABLE_LASER
 
 /*disables BIFS Engine support - TODO - merge DIMS and LASeR into BENG and rename it*/
-//#define GPAC_DISABLE_BENG
+//#define GPAC_DISABLE_SENG
 
 /*disables Cubic QTVR importing*/
 //#define GPAC_DISABLE_QTVR

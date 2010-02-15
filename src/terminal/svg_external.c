@@ -104,7 +104,10 @@ GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 
 	if (!strncmp(iri->string, "data:", 5)) {
 		const char *cache_dir = gf_cfg_get_key(scene->root_od->term->user->config, "General", "CacheDirectory");
-		return gf_node_store_embedded_data(iri, cache_dir, "embedded_");
+		e = gf_node_store_embedded_data(iri, cache_dir, "embedded_");
+		if (e) return e;
+		sfurl->url = strdup(iri->string);
+		return GF_OK;
 	}
 	sfurl->url = gf_term_resolve_xlink(node, iri->string);
 	return e;
