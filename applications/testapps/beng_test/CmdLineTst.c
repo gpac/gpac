@@ -1,4 +1,4 @@
-#include <gpac/bifsengine.h>
+#include <gpac/scene_engine.h>
 #include <gpac/rtp_streamer.h>
 
 typedef struct 
@@ -26,19 +26,21 @@ GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 
 	return GF_OK;
 }
 
-static setup_rtp_streams(GF_BifsEngine *beng, GF_List *streams, char *ip, u16 port, char *sdp_name)
+static setup_rtp_streams(GF_SceneEngine *seng, GF_List *streams, char *ip, u16 port, char *sdp_name)
 {
 	BRTP *rtpst;
-	u32 count = gf_beng_get_stream_count(beng);
+	u32 count = gf_seng_get_stream_count(seng);
 	u32 i;
-	char *sdp = gf_rtp_streamer_format_sdp_header("GPACSceneStreamer", ip, NULL, gf_beng_get_iod(beng));
-	
+	char *iod64 = gf_seng_get_base64_iod(seng);
+	char *sdp = gf_rtp_streamer_format_sdp_header("GPACSceneStreamer", ip, NULL, iod64);
+	if (iod64) free(iod64);
+
 	for (i=0; i<count; i++) {
 		u16 ESID;
 		u32 st, oti, ts;
 		char *config;
 		u32 config_len;
-		gf_beng_get_stream_config(beng, i, &ESID, &config, &config_len, &st, &oti, &ts);
+		gf_seng_get_stream_config(seng, i, &ESID, &config, &config_len, &st, &oti, &ts);
 		
 		GF_SAFEALLOC(rtpst, BRTP);
 		rtpst->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, 1400, 1, NULL, GP_RTP_PCK_SIGNAL_RAP, config, config_len);
@@ -82,7 +84,7 @@ int main(int argc, char **argv)
 	Bool run, has_carousel;
 
 	GF_List *streams = NULL;
-	GF_BifsEngine *beng = NULL;
+	GF_SceneEngine *seng = NULL;
 
 	gf_sys_init();
 
@@ -105,8 +107,8 @@ int main(int argc, char **argv)
 
 	if (dst_port && dst) streams = gf_list_new();
 
-	beng = gf_beng_init(streams, filename, load_type);
-	if (streams) setup_rtp_streams(beng, streams, dst, dst_port, sdp_name);
+	seng = gf_seng_init(streams, filename, load_type);
+	if (streams) setup_rtp_streams(seng, streams, dst, dst_port, sdp_name);
 
 	has_carousel = 0;
 	last_src_modif = 0;
@@ -118,7 +120,7 @@ int main(int argc, char **argv)
 			period = id = 0;
 			if (strchr(arg, ':')) {
 				sscanf(arg, "-rap=ESID=%d:%d", &id, &period);
-				e = gf_beng_enable_aggregation(beng, id, 1);
+				e = gf_seng_enable_aggregation(seng, id, 1);
 				if (e) {
 					fprintf(stdout, "Cannot enable aggregation on stream %d: %s\n", id, gf_error_to_string(e));
 					goto exit;
@@ -126,7 +128,7 @@ int main(int argc, char **argv)
 			} else {
 				sscanf(arg, "-rap=%d", &period);
 			}
-			e = gf_beng_set_carousel_time(beng, id, period);
+			e = gf_seng_set_carousel_time(seng, id, period);
 			if (e) {
 				fprintf(stdout, "Cannot set carousel time on stream %d to %d: %s\n", id, period, gf_error_to_string(e));
 				goto exit;
@@ -135,7 +137,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	gf_beng_encode_context(beng, SampleCallBack);
+	gf_seng_encode_context(seng, SampleCallBack);
 
 	run = 1;
 	while (run) {
@@ -154,7 +156,7 @@ int main(int argc, char **argv)
 				fflush(stdin);
 				szCom[0] = 0;
 				scanf("%[^\t\n]", szCom);
-				e = gf_beng_encode_from_string(beng, szCom, SampleCallBack);
+				e = gf_seng_encode_from_string(seng, szCom, SampleCallBack);
 				if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
 			}
 				break;
@@ -163,16 +165,16 @@ int main(int argc, char **argv)
 				char rad[GF_MAX_PATH];
 				fprintf(stdout, "Enter output file name - \"std\" for stdout: ");
 				scanf("%s", rad);
-				e = gf_beng_save_context(beng, !strcmp(rad, "std") ? NULL : rad);
+				e = gf_seng_save_context(seng, !strcmp(rad, "std") ? NULL : rad);
 				fprintf(stdout, "Dump done (%s)\n", gf_error_to_string(e));
 			}
 				break;
 			case 'a':
-				e = gf_beng_aggregate_context(beng);
+				e = gf_seng_aggregate_context(seng);
 				fprintf(stdout, "Context aggreagated: %s\n", gf_error_to_string(e));
 				break;
 			case 'e':
-				e = gf_beng_encode_context(beng, SampleCallBack);
+				e = gf_seng_encode_context(seng, SampleCallBack);
 				fprintf(stdout, "Context encoded: %s\n", gf_error_to_string(e));
 				break;
 			}
@@ -183,9 +185,9 @@ int main(int argc, char **argv)
 			if (mod_time != last_src_modif) {
 				fprintf(stdout, "Update file modified - processing\n");
 				last_src_modif = mod_time;
-				e = gf_beng_encode_from_file(beng, src_name, SampleCallBack);
+				e = gf_seng_encode_from_file(seng, src_name, SampleCallBack);
 				if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
-				else gf_beng_aggregate_context(beng);
+				else gf_seng_aggregate_context(seng);
 			}
 
 		}
@@ -193,7 +195,7 @@ int main(int argc, char **argv)
 			gf_sleep(10);
 			continue;
 		}
-		next_time = gf_beng_next_rap_time(beng, &ESID);
+		next_time = gf_seng_next_rap_time(seng, &ESID);
 		if (next_time<0) {
 			gf_sleep(10);
 			continue;
@@ -203,14 +205,14 @@ int main(int argc, char **argv)
 			continue;
 		}
 		gf_sleep(next_time);
-		gf_beng_aggregate_context(beng);
-		gf_beng_encode_context(beng, SampleCallBack);
-		gf_beng_update_rap_time(beng, ESID);
+		gf_seng_aggregate_context(seng);
+		gf_seng_encode_context(seng, SampleCallBack);
+		gf_seng_update_rap_time(seng, ESID);
 	}
 
 exit:
 	if (streams) shutdown_rtp_streams(streams);
-	gf_beng_terminate(beng);
+	gf_seng_terminate(seng);
 	gf_sys_close();
 	return e ? 1 : 0;
 }
@@ -225,8 +227,8 @@ int main2(int argc, char **argv)
 	const char *update2 = NULL;
 
 	GF_List *streams = NULL;
-	GF_BifsEngine *codec1 = NULL;
-	GF_BifsEngine *codec2 = NULL;
+	GF_SceneEngine *codec1 = NULL;
+	GF_SceneEngine *codec2 = NULL;
 
 	gf_sys_init();
 
@@ -246,19 +248,19 @@ int main2(int argc, char **argv)
                     </svg>";
         char *update = "<Replace ref='r' attributeName='x' value='100'/>";
 
-		codec1 = gf_beng_init_from_string(streams, scene, GF_SM_LOAD_DIMS, 0, 0, 1);
+		codec1 = gf_seng_init_from_string(streams, scene, GF_SM_LOAD_DIMS, 0, 0, 1);
 		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
-		gf_beng_encode_context(codec1, SampleCallBack);
+		gf_seng_encode_context(codec1, SampleCallBack);
 
-        gf_beng_encode_from_string(codec1, update, SampleCallBack);
+        gf_seng_encode_from_string(codec1, update, SampleCallBack);
 
-		gf_beng_aggregate_context(codec1);
+		gf_seng_aggregate_context(codec1);
 
-        gf_beng_encode_context(codec1, SampleCallBack);
+        gf_seng_encode_context(codec1, SampleCallBack);
 
 		if (streams) shutdown_rtp_streams(streams);
-		gf_beng_save_context(codec1, "scene.svg");
-		gf_beng_terminate(codec1);
+		gf_seng_save_context(codec1, "scene.svg");
+		gf_seng_terminate(codec1);
     } else if (1) {
 		/*these default update are related to rect_aggregate.bt*/
 		update1 = "AT 1000 IN 2 {\
@@ -279,37 +281,37 @@ int main2(int argc, char **argv)
 						REPLACE REC.size BY 100 100\
 						}";
 
-		codec1 = gf_beng_init(streams, argv[1], 0);
+		codec1 = gf_seng_init(streams, argv[1], 0);
 		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
 
-		gf_beng_encode_context(codec1, SampleCallBack);
-		gf_beng_save_context(codec1, "initial_context.bt");
-		gf_beng_encode_from_string(codec1, (char*)update1, SampleCallBack);
-		gf_beng_save_context(codec1, "non_aggregated_context1.xmt");
-		gf_beng_encode_from_string(codec1, (char*)update2, SampleCallBack);
-		gf_beng_save_context(codec1, "non_aggregated_context2.xmt");
-		gf_beng_mark_for_aggregation(codec1, 2); /*mark ESID 2 for aggregation*/
-		gf_beng_aggregate_context(codec1);
-		gf_beng_save_context(codec1, "aggregated_context2.xmt");
+		gf_seng_encode_context(codec1, SampleCallBack);
+		gf_seng_save_context(codec1, "initial_context.bt");
+		gf_seng_encode_from_string(codec1, (char*)update1, SampleCallBack);
+		gf_seng_save_context(codec1, "non_aggregated_context1.xmt");
+		gf_seng_encode_from_string(codec1, (char*)update2, SampleCallBack);
+		gf_seng_save_context(codec1, "non_aggregated_context2.xmt");
+		gf_seng_enable_aggregation(codec1, 2, 1); /*mark ESID 2 for aggregation*/
+		gf_seng_aggregate_context(codec1);
+		gf_seng_save_context(codec1, "aggregated_context2.xmt");
 
 		if (streams) shutdown_rtp_streams(streams);
-		gf_beng_terminate(codec1);
+		gf_seng_terminate(codec1);
 	} else if (1) {
 		char scene[] = "OrderedGroup {children [Background2D {backColor 1 1 1}Shape {appearance Appearance {material DEF M Material2D {emissiveColor 0 0 1 filled TRUE } } geometry Rectangle { size 100 75 } } ] }";
 		char update[] = "\n AT \n 500 \n { \n REPLACE \n M.emissiveColor BY 1 0 0 \n REPLACE \n M.filled BY FALSE} \n";
 
-		codec1 = gf_beng_init_from_string(streams, scene, 0, 200, 200, 1);
+		codec1 = gf_seng_init_from_string(streams, scene, 0, 200, 200, 1);
 		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
 
-		gf_beng_encode_context(codec1, SampleCallBack);
-		gf_beng_save_context(codec1, "initial_context.mp4");
-		gf_beng_encode_from_string(codec1, (char *) update, SampleCallBack);
-		gf_beng_save_context(codec1, "non_aggregated_context.mp4");
-		gf_beng_aggregate_context(codec1);
-		gf_beng_save_context(codec1, "aggregated_context.mp4");
+		gf_seng_encode_context(codec1, SampleCallBack);
+		gf_seng_save_context(codec1, "initial_context.mp4");
+		gf_seng_encode_from_string(codec1, (char *) update, SampleCallBack);
+		gf_seng_save_context(codec1, "non_aggregated_context.mp4");
+		gf_seng_aggregate_context(codec1);
+		gf_seng_save_context(codec1, "aggregated_context.mp4");
 
 		if (streams) shutdown_rtp_streams(streams);
-		gf_beng_terminate(codec1);
+		gf_seng_terminate(codec1);
 	} else {
 
 		for (i = 0; i <10; i++) {
@@ -328,24 +330,24 @@ int main2(int argc, char **argv)
 				strcpy(in_context, "rect.bt");
 			}
 
-			codec2 = gf_beng_init(NULL, in_context, 0);
+			codec2 = gf_seng_init(NULL, in_context, 0);
 
 			sprintf(timed_update, "AT %i { %s }", 1000 + i, update);
 			
-			gf_beng_encode_from_string(codec2, timed_update, SampleCallBack);
+			gf_seng_encode_from_string(codec2, timed_update, SampleCallBack);
 
 			sprintf(mp4_out_na_context, "na_%s_%i.mp4", context_rootname, i+1);
 			sprintf(bt_out_na_context, "na_%s_%i.bt", context_rootname, i+1);
 			sprintf(mp4_out_agg_context, "agg_%s_%i.mp4", context_rootname, i+1);
 			sprintf(bt_out_agg_context, "agg_%s_%i.bt", context_rootname, i+1);
 
-			gf_beng_save_context(codec2, mp4_out_na_context);
-			gf_beng_save_context(codec2, bt_out_na_context);
-			gf_beng_aggregate_context(codec2);
-			gf_beng_save_context(codec2, mp4_out_agg_context);
-			gf_beng_save_context(codec2, bt_out_agg_context);
+			gf_seng_save_context(codec2, mp4_out_na_context);
+			gf_seng_save_context(codec2, bt_out_na_context);
+			gf_seng_aggregate_context(codec2);
+			gf_seng_save_context(codec2, mp4_out_agg_context);
+			gf_seng_save_context(codec2, bt_out_agg_context);
 		
-			gf_beng_terminate(codec2);
+			gf_seng_terminate(codec2);
 		}
 		fprintf(stdout, "Done.\n");
 	}

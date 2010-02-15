@@ -661,7 +661,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 	return GF_OK;
 } 
 
-char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *session_name, GF_ObjectDescriptor *iod)
+char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *session_name, char *iod64)
 {
 	u32 size;
 	char *sdp;
@@ -675,20 +675,8 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 	fprintf(tmp, "c=IN IP%d %s\n", gf_net_is_ipv6(ip_dest) ? 6 : 4, ip_dest);
 	fprintf(tmp, "t=0 0\n");
 	
-    if (iod) {
-        char *buf64;
-        u32 size64;
-        u32 size;
-        char *buffer;
-        size = 0;
-        gf_odf_desc_write((GF_Descriptor *) iod, &buffer, &size);
-        buf64 = malloc(size*2);
-        size64 = gf_base64_encode( buffer, size, buf64, size*2);
-        buf64[size64] = 0;
-        free(buffer);
-        fprintf(tmp, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"\n", buf64);
-        free(buf64);
-    }
+    if (iod64) fprintf(tmp, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"\n", iod64);
+
 	fseek(tmp, 0, SEEK_END);
 	size = ftell(tmp);
 	fseek(tmp, 0, SEEK_SET);

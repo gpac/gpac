@@ -29,7 +29,7 @@ PNC_CallbackData *PNC_Init_SceneGenerator(GF_RTPChannel *p_chan, GF_RTPHeader *p
 	memset( (void*) (data->buffer), '\0', RECV_BUFFER_SIZE_FOR_COMMANDS);
 	data->bufferPosition = 0;
 	/* Loading the initial scene as the encoding context */
-	data->codec = gf_beng_init((void*)data, default_scene);
+	data->codec = gf_seng_init((void*)data, default_scene);
 	if (!data->codec) {
 		fprintf(stderr, "Cannot create BIFS Engine from %s\n", default_scene);
 		free(data);
@@ -86,13 +86,13 @@ void PNC_SendInitScene(PNC_CallbackData * data)
 {
 	data->RAP = 1; 
 	data->SAUN_inc = 1;
-	gf_beng_encode_context(data->codec, MySampleCallBack);
+	gf_seng_encode_context(data->codec, MySampleCallBack);
 }
 
 void PNC_Close_SceneGenerator(PNC_CallbackData * data)
 {
 	if (data->extension) free(data->extension);
-	gf_beng_terminate(data->codec);
+	gf_seng_terminate(data->codec);
 	gf_rtp_del(data->chan);
 	PNC_ClosePacketizer(data);
 	free(data);
@@ -128,7 +128,7 @@ static GF_Err processSend(PNC_CallbackData * data, char * bsBuffer)
 	assert( data->codec );
 	dprintf(DEBUG_RTP_serv_generator, "RTP STREAM SEND\n");
 	gf_mx_p(data->carrousel_mutex);
-	error = gf_beng_encode_from_string(data->codec, bsBuffer, MySampleCallBack);
+	error = gf_seng_encode_from_string(data->codec, bsBuffer, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
 	free( bsBuffer );
 	return error;
@@ -142,9 +142,9 @@ static GF_Err processRapReset(PNC_CallbackData * data, char * bsBuffer)
 	data->RAP = 1; 
 	data->RAPsent++;
 	data->SAUN_inc = 1;
-	error = gf_beng_aggregate_context(data->codec);
+	error = gf_seng_aggregate_context(data->codec);
 	if (error == GF_OK)
-		error = gf_beng_encode_context(data->codec, MySampleCallBack);
+		error = gf_seng_encode_context(data->codec, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
 	free( bsBuffer );
 	return error;
@@ -158,9 +158,9 @@ static GF_Err processRap(PNC_CallbackData * data, char * bsBuffer)
 	data->SAUN_inc = 1;
 	data->RAP = 1;
 	data->RAPsent++;
-	error = gf_beng_aggregate_context(data->codec);
+	error = gf_seng_aggregate_context(data->codec);
 	if (GF_OK == error)
-		error = gf_beng_encode_context(data->codec, MySampleCallBack);
+		error = gf_seng_encode_context(data->codec, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
 	free( bsBuffer );
 	return error;
@@ -172,7 +172,7 @@ static GF_Err processSendCritical(PNC_CallbackData * data, char * bsBuffer)
 	dprintf(DEBUG_RTP_serv_generator, "RTP STREAM SEND CRITICAL\n");
 	gf_mx_p(data->carrousel_mutex);
 	data->SAUN_inc = 1;
-	error = gf_beng_encode_from_string(data->codec, bsBuffer, MySampleCallBack);
+	error = gf_seng_encode_from_string(data->codec, bsBuffer, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
 	free( bsBuffer );
 	return error;

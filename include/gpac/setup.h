@@ -436,8 +436,8 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 # ifndef GPAC_DISABLE_LOADER_ISOM
 # define GPAC_DISABLE_LOADER_ISOM
 # endif
-# ifndef GPAC_DISABLE_BENG
-# define GPAC_DISABLE_BENG
+# ifndef GPAC_DISABLE_SENG
+# define GPAC_DISABLE_SENG
 # endif
 #endif
 

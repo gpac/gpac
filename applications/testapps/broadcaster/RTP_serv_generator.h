@@ -6,7 +6,7 @@
 #include <gpac/network.h> // sockets
 #include <gpac/internal/media_dev.h>
 #include <gpac/thread.h>
-#include <gpac/bifsengine.h>
+#include <gpac/scene_engine.h>
 
 #include <time.h>
 #define RECV_BUFFER_SIZE_FOR_COMMANDS 262144
@@ -19,7 +19,7 @@ typedef struct tmp_PNC_CallbackData {
 	char * formatedPacket;
 	int formatedPacketLength;
 	GP_RTPPacketizer *rtpBuilder;
-	GF_BifsEngine *codec;
+	GF_SceneEngine *codec;
 
 	/* socket on which updates are received */
 	GF_Socket *socket;

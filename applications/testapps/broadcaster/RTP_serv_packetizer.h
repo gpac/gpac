@@ -2,7 +2,7 @@
 #define __RTP_SERV_PACKETISER
 
 #include <gpac/ietf.h>
-#include "gpac/bifsengine.h" // For M4Sample
+#include "gpac/scene_engine.h" // For M4Sample
 #include "RTP_serv_generator.h"
 
 /*exports*/
