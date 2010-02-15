@@ -25,10 +25,14 @@
 #include "ffmpeg_in.h"
 #include <gpac/avparse.h>
 
+#ifndef FFMPEG_OLD_HEADERS
 #if (LIBAVCODEC_VERSION_INT <= AV_VERSION_INT(52, 20, 0))
 #define USE_AVCODEC2	0
 #else
 #define USE_AVCODEC2	1
+#endif
+#else
+#define USE_AVCODEC2	0
 #endif
 
 
