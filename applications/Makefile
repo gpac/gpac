@@ -3,7 +3,7 @@ include ../config.mak
 APPDIRS= mp4client 
 
 ifeq ($(DISABLE_ISOFF), no)
-APPDIRS += mp4box testapps/mp4_streamer testapps/mp42ts
+APPDIRS += mp4box
 endif
 
 ifeq ($(SRC_LOCAL_PATH), yes)
