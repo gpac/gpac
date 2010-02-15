@@ -261,7 +261,7 @@ u64 gf_file_modification_time(const char *filename)
 	return sb.st_mtime;
 #else
 	struct stat sb;
-	if (stat(file_name, &sb) != 0) return 0;
+	if (stat(filename, &sb) != 0) return 0;
 	return sb.st_mtime;
 #endif
 	return 0;
