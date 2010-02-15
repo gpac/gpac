@@ -25,6 +25,13 @@
 #include "ffmpeg_in.h"
 #include <gpac/avparse.h>
 
+#if (LIBAVCODEC_VERSION_INT <= AV_VERSION_INT(52, 20, 0))
+#define USE_AVCODEC2	0
+#else
+#define USE_AVCODEC2	1
+#endif
+
+
 static AVCodec *ffmpeg_get_codec(u32 codec_4cc)
 {
 	char name[5];
@@ -540,8 +547,11 @@ redecode:
 		pkt.data = inBuffer;
 		pkt.size = inBufferLength;
 
-//		if (avcodec_decode_video(ffd->ctx, ffd->frame, &gotpic, inBuffer, inBufferLength) < 0) {
+#if USE_AVCODEC2
 		if (avcodec_decode_video2(ffd->ctx, ffd->frame, &gotpic, &pkt) < 0) {
+#else
+		if (avcodec_decode_video(ffd->ctx, ffd->frame, &gotpic, inBuffer, inBufferLength) < 0) {
+#endif
 			if (!ffd->check_short_header) {
 				return GF_NON_COMPLIANT_BITSTREAM;
 			}
