@@ -640,8 +640,7 @@ static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGP
 	SVG_audio_stack *stack = (SVG_audio_stack *)gf_node_get_private(node);
 
 	if (is_destroy) {
-		gf_sc_audio_stop(&stack->input);
-		gf_sc_audio_unregister(&stack->input);
+		gf_sc_audio_predestroy(&stack->input);
 		gf_sg_mfurl_del(stack->aurl);
 		free(stack);
 		return;
