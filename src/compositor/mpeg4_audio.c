@@ -66,8 +66,7 @@ static void audioclip_traverse(GF_Node *node, void *rs, Bool is_destroy)
 	AudioClipStack *st = (AudioClipStack *)gf_node_get_private(node);
 
 	if (is_destroy) {
-		gf_sc_audio_stop(&st->input);
-		gf_sc_audio_unregister(&st->input);
+		gf_sc_audio_predestroy(&st->input);
 		if (st->time_handle.is_registered) {
 			gf_sc_unregister_time_node(st->input.compositor, &st->time_handle);
 		}
@@ -205,8 +204,7 @@ static void audiosource_traverse(GF_Node *node, void *rs, Bool is_destroy)
 
 
 	if (is_destroy) {
-		gf_sc_audio_stop(&st->input);
-		gf_sc_audio_unregister(&st->input);
+		gf_sc_audio_predestroy(&st->input);
 		if (st->time_handle.is_registered) {
 			gf_sc_unregister_time_node(st->input.compositor, &st->time_handle);
 		}
@@ -467,7 +465,7 @@ static char *audiobuffer_fetch_frame(void *callback, u32 *size, u32 audio_delay_
 		u32 written;
 		while (1) {
 			/*just try to completely fill it*/
-			written = gf_mixer_get_output(st->am, st->buffer + st->write_pos, st->buffer_size - st->write_pos);
+			written = gf_mixer_get_output(st->am, st->buffer + st->write_pos, st->buffer_size - st->write_pos, 0);
 			if (!written) break;
 			st->write_pos += written;
 			assert(st->write_pos<=st->buffer_size);

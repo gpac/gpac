@@ -887,7 +887,7 @@ void gf_mixer_add_input(GF_AudioMixer *am, GF_AudioInterface *src);
 void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src);
 void gf_mixer_lock(GF_AudioMixer *am, Bool lockIt);
 /*mix inputs in buffer, return number of bytes written to output*/
-u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size);
+u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 delay_ms);
 /*reconfig all sources if needed - returns TRUE if main audio config changed
 NOTE: this is called at each gf_mixer_get_output by the mixer. To call externally for audio hardware
 reconfiguration only*/
@@ -902,6 +902,35 @@ void gf_mixer_force_chanel_out(GF_AudioMixer *am, u32 num_channels);
 u32 gf_mixer_get_block_align(GF_AudioMixer *am);
 Bool gf_mixer_must_reconfig(GF_AudioMixer *am);
 Bool gf_mixer_empty(GF_AudioMixer *am);
+
+
+struct _audiofilterentry
+{
+	struct _audiofilterentry *next;
+	u32 in_block_size;
+	char *in_block;
+	u32 nb_bytes;
+	u32 delay_ms;
+	Bool enable, in_place;
+	GF_AudioFilter *filter;
+};
+
+typedef struct
+{
+	Bool enable_filters;
+	struct _audiofilterentry *filters;
+	/*filter processing takes place in a temp buffer since we don't know how many
+	samples a filter will output, and may ned to cache the output between 2 fill_buffer calls*/
+	char *tmp_block1, *tmp_block2;
+	u32 min_block_size, max_block_size, delay_ms;
+
+} GF_AudioFilterChain;
+
+GF_Err gf_afc_load(GF_AudioFilterChain *afc, GF_User *user, char *filterstring);
+GF_Err gf_afc_setup(GF_AudioFilterChain *afc, u32 bps, u32 sr, u32 chan, u32 ch_cfg, u32 *ch_out, u32 *ch_cfg_out);
+u32 gf_afc_process(GF_AudioFilterChain *afc, u32 nb_bytes);
+void gf_afc_unload(GF_AudioFilterChain *afc);
+void gf_afc_reset(GF_AudioFilterChain *afc);
 
 /*the audio renderer*/
 typedef struct _audio_render
@@ -925,10 +954,13 @@ typedef struct _audio_render
 
 	/*audio thread if output not self-threaded*/
 	GF_Thread *th;
-	/*thread state: 0: not intit, 1: running, 2: waiting for stop, 3: done*/
+	/*thread state: 0: not init, 1: running, 2: waiting for stop, 3: done*/
 	u32 audio_th_state;
 
 	u32 audio_delay, volume, pan, mute;
+
+	GF_AudioFilterChain filter_chain;
+	u32 nb_filled, nb_used; 
 } GF_AudioRenderer;
 
 /*creates audio renderer*/
@@ -973,6 +1005,8 @@ typedef struct _soundinterface
 	GF_Node *owner;
 } GF_SoundInterface;
 
+typedef struct __audiofilteritem GF_AudioFilterItem;
+
 /*audio common to AudioClip and AudioSource*/
 typedef struct
 {
@@ -990,9 +1024,12 @@ typedef struct
 	Bool register_with_renderer, register_with_parent;
 
 	GF_SoundInterface *snd;
+	GF_AudioFilterItem *filter;
 } GF_AudioInput;
 /*setup interface with audio renderer - overwrite any functions needed after setup EXCEPT callback object*/
 void gf_sc_audio_setup(GF_AudioInput *ai, GF_Compositor *sr, GF_Node *node);
+/*unregister interface from renderer/mixer and stops source - deleteing the interface is the caller responsability*/
+void gf_sc_audio_predestroy(GF_AudioInput *ai);
 /*open audio object*/
 GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double clipEnd);
 /*closes audio object*/
