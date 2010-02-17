@@ -544,12 +544,12 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 }
 
 
-u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size)
+u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 delay)
 {
 	MixerInput *in, *single_source;
 	Fixed pan[6];
 	Bool is_muted;
-	u32 i, j, count, size, in_size, nb_samples, delay, nb_written;
+	u32 i, j, count, size, in_size, nb_samples, nb_written;
 	s32 *out_mix, nb_act_src;
 	char *data, *ptr;
 
@@ -563,8 +563,6 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size)
 		gf_mixer_lock(am, 0);
 		return 0;
 	}
-	delay = 0;
-	if (am->ar && !am->ar->disable_resync) delay = am->ar->audio_delay;
 
 	single_source = NULL;
 	if (count!=1) goto do_mix;

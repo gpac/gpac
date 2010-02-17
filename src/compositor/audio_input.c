@@ -29,6 +29,24 @@
 /*diff time in ms to consider an audio frame too late and drop it*/
 #define MAX_RESYNC_TIME		500
 
+typedef struct __audiofilteritem
+{
+	GF_AudioInterface input;
+	GF_AudioInterface *src;
+
+	u32 out_chan, out_ch_cfg;
+
+	u32 nb_used, nb_filled;
+
+	GF_AudioFilterChain filter_chain;
+} GF_AudioFilterItem;
+
+
+GF_AudioFilterItem *gf_af_new(GF_Compositor *compositor, GF_AudioInterface *src, char *filter_name);
+void gf_af_del(GF_AudioFilterItem *af);
+void gf_af_reset(GF_AudioFilterItem *af);
+
+
 static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
 {
 	char *frame;
@@ -88,7 +106,7 @@ static void gf_audio_input_release_frame(void *callback, u32 nb_bytes)
 	if (!ai->stream) return;
 	gf_mo_release_data(ai->stream, nb_bytes, 1);
 	ai->need_release = 0;
-	/*as soon as we have released a frame for this audio stream, update resynbc tolerance*/
+	/*as soon as we have released a frame for this audio stream, update resync tolerance*/
 	ai->is_open = MIN_RESYNC_TIME;
 }
 
@@ -155,9 +173,16 @@ void gf_sc_audio_setup(GF_AudioInput *ai, GF_Compositor *compositor, GF_Node *no
 	ai->intensity = FIX_ONE;
 
 	ai->speed = FIX_ONE;
+
 }
 
+void gf_sc_audio_predestroy(GF_AudioInput *ai)
+{
+	gf_sc_audio_stop(ai);
+	gf_sc_audio_unregister(ai);
 
+	if (ai->filter) gf_af_del(ai->filter);
+}
 
 GF_EXPORT
 GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double clipEnd)
@@ -175,6 +200,13 @@ GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double 
 	ai->stream_finished = 0;
 	ai->is_open = 1;
 	gf_mo_set_flag(ai->stream, GF_MO_IS_INIT, 0);
+
+	if (ai->filter) gf_af_del(ai->filter);
+	ai->filter = NULL;
+
+	if ((url->count>1) && url->vals[1].url)
+		ai->filter = gf_af_new(ai->compositor, &ai->input_ifce, url->vals[1].url);
+
 	return GF_OK;
 }
 
@@ -193,6 +225,9 @@ void gf_sc_audio_stop(GF_AudioInput *ai)
 	gf_mo_unregister(ai->owner, ai->stream);
 	ai->stream = NULL;
 
+	if (ai->filter) gf_af_del(ai->filter);
+	ai->filter = NULL;
+
 	gf_mixer_lock(ai->compositor->audio_renderer->mixer, 0);
 
 }
@@ -204,6 +239,7 @@ void gf_sc_audio_restart(GF_AudioInput *ai)
 	if (ai->need_release) gf_mo_release_data(ai->stream, 0xFFFFFFFF, 2);
 	ai->need_release = 0;
 	ai->stream_finished = 0;
+	if (ai->filter) gf_af_reset(ai->filter);
 	gf_mo_restart(ai->stream);
 }
 
@@ -217,6 +253,8 @@ Bool gf_sc_audio_check_url(GF_AudioInput *ai, MFURL *url)
 GF_EXPORT
 void gf_sc_audio_register(GF_AudioInput *ai, GF_TraverseState *tr_state)
 {
+	GF_AudioInterface *aifce;
+
 	/*check interface is valid*/
 	if (!ai->input_ifce.FetchFrame
 		|| !ai->input_ifce.GetChannelVolume
@@ -226,11 +264,14 @@ void gf_sc_audio_register(GF_AudioInput *ai, GF_TraverseState *tr_state)
 		|| !ai->input_ifce.ReleaseFrame
 		) return;
 
+	aifce = &ai->input_ifce;
+	if (ai->filter) aifce = &ai->filter->input;
+
 	if (tr_state->audio_parent) {
 		/*this assume only one parent may use an audio node*/
 		if (ai->register_with_parent) return;
 		if (ai->register_with_renderer) {
-			gf_sc_ar_remove_src(ai->compositor->audio_renderer, &ai->input_ifce);
+			gf_sc_ar_remove_src(ai->compositor->audio_renderer, aifce);
 			ai->register_with_renderer = 0;
 		}
 		tr_state->audio_parent->add_source(tr_state->audio_parent, ai);
@@ -244,7 +285,7 @@ void gf_sc_audio_register(GF_AudioInput *ai, GF_TraverseState *tr_state)
 			gf_sc_invalidate(ai->compositor, NULL);
 		}
 
-		gf_sc_ar_add_src(ai->compositor->audio_renderer, &ai->input_ifce);
+		gf_sc_ar_add_src(ai->compositor->audio_renderer, aifce);
 		ai->register_with_renderer = 1;
 		ai->snd = tr_state->sound_holder;
 	}
@@ -253,9 +294,12 @@ void gf_sc_audio_register(GF_AudioInput *ai, GF_TraverseState *tr_state)
 GF_EXPORT
 void gf_sc_audio_unregister(GF_AudioInput *ai)
 {
+	GF_AudioInterface *aifce = &ai->input_ifce;
+	if (ai->filter) aifce = &ai->filter->input;
+
 	if (ai->register_with_renderer) {
 		ai->register_with_renderer = 0;
-		gf_sc_ar_remove_src(ai->compositor->audio_renderer, &ai->input_ifce);
+		gf_sc_ar_remove_src(ai->compositor->audio_renderer, aifce);
 	} else {
 		/*if used in a parent audio group, do a complete traverse to rebuild the group*/
 		gf_sc_invalidate(ai->compositor, NULL);
@@ -263,3 +307,110 @@ void gf_sc_audio_unregister(GF_AudioInput *ai)
 }
 
 
+static char *gf_af_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
+{
+	u32 nb_bytes;
+	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
+
+	*size = 0;
+	if (!af->nb_used) {
+		u32 copied;
+		char *data = af->src->FetchFrame(af->src->callback, &nb_bytes, audio_delay_ms + af->filter_chain.delay_ms);
+		if (!nb_bytes) return NULL;
+
+		copied = nb_bytes;
+		if (copied > af->filter_chain.min_block_size) copied = af->filter_chain.min_block_size;
+		memcpy(af->filter_chain.tmp_block1, data, copied);
+		af->src->ReleaseFrame(af->src->callback, copied);
+
+		af->nb_filled = gf_afc_process(&af->filter_chain, copied);
+	}
+	if (!af->nb_filled) return NULL;
+
+	*size = af->nb_filled - af->nb_used;
+	return af->filter_chain.tmp_block1 + af->nb_used;
+}
+static void gf_af_release_frame(void *callback, u32 nb_bytes)
+{
+	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
+
+	/*mark used bytes of filter output*/
+	af->nb_used += nb_bytes;
+	if (af->nb_used==af->nb_filled) {
+		af->nb_used = 0;
+		af->nb_filled = 0;
+	}
+}
+
+static Fixed gf_af_get_speed(void *callback)
+{
+	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
+	return af->src->GetSpeed(af->src->callback);
+}
+static Bool gf_af_get_channel_volume(void *callback, Fixed *vol)
+{
+	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
+	return af->src->GetChannelVolume(af->src->callback, vol);
+}
+
+static Bool gf_af_is_muted(void *callback)
+{
+	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
+	return af->src->IsMuted(af->src->callback);
+}
+
+static Bool gf_af_get_config(GF_AudioInterface *ai, Bool for_reconf)
+{
+	GF_AudioFilterItem *af = (GF_AudioFilterItem *)ai->callback;
+	
+	Bool res = af->src->GetConfig(af->src, for_reconf);
+	if (!res) return 0;
+
+
+	af->input.bps = af->src->bps;
+	af->input.samplerate = af->src->samplerate;
+
+	af->input.ch_cfg = af->src->ch_cfg;
+	af->input.chan = af->src->chan;
+
+	if (gf_afc_setup(&af->filter_chain, af->input.bps, af->input.samplerate, af->src->chan, af->src->ch_cfg, &af->input.chan, &af->input.ch_cfg)!=GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Audio Input] Failed to configure audio filter chain\n"));
+
+		return 0;
+	}
+	return 1;
+}
+
+GF_AudioFilterItem *gf_af_new(GF_Compositor *compositor, GF_AudioInterface *src, char *filter_name)
+{
+	GF_AudioFilterItem *filter;
+	GF_AudioFilter *filter_module = NULL;
+	if (!src || !filter_name) return NULL;
+
+	GF_SAFEALLOC(filter, GF_AudioFilterItem);
+
+	filter->src = src;
+	filter->input.FetchFrame = gf_af_fetch_frame;
+	filter->input.ReleaseFrame = gf_af_release_frame;
+	filter->input.GetSpeed = gf_af_get_speed;
+	filter->input.GetChannelVolume = gf_af_get_channel_volume;
+	filter->input.IsMuted = gf_af_is_muted;
+	filter->input.GetConfig = gf_af_get_config;
+	filter->input.callback = filter;
+
+	gf_afc_load(&filter->filter_chain, compositor->user, filter_name);
+	return filter;
+}
+
+void gf_af_del(GF_AudioFilterItem *af)
+{
+	gf_afc_unload(&af->filter_chain);
+	free(af);
+}
+
+void gf_af_reset(GF_AudioFilterItem *af)
+{
+	gf_afc_reset(&af->filter_chain);
+
+	af->nb_filled = af->nb_used = 0;
+}
