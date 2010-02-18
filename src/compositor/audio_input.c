@@ -29,7 +29,7 @@
 /*diff time in ms to consider an audio frame too late and drop it*/
 #define MAX_RESYNC_TIME		500
 
-typedef struct __audiofilteritem
+struct __audiofilteritem
 {
 	GF_AudioInterface input;
 	GF_AudioInterface *src;
@@ -39,7 +39,7 @@ typedef struct __audiofilteritem
 	u32 nb_used, nb_filled;
 
 	GF_AudioFilterChain filter_chain;
-} GF_AudioFilterItem;
+};
 
 
 GF_AudioFilterItem *gf_af_new(GF_Compositor *compositor, GF_AudioInterface *src, char *filter_name);
