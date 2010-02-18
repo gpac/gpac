@@ -187,6 +187,7 @@ void gf_sc_audio_predestroy(GF_AudioInput *ai)
 GF_EXPORT
 GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double clipEnd)
 {
+	u32 i;
 	if (ai->is_open) return GF_BAD_PARAM;
 
 	/*get media object*/
@@ -203,10 +204,14 @@ GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double 
 
 	if (ai->filter) gf_af_del(ai->filter);
 	ai->filter = NULL;
-
-	if ((url->count>1) && url->vals[1].url)
-		ai->filter = gf_af_new(ai->compositor, &ai->input_ifce, url->vals[1].url);
-
+	
+	for (i=0; i<url->count; i++) {
+		if (url->vals[i].url && !strnicmp(url->vals[i].url, "#filter=", 8)) {
+			ai->filter = gf_af_new(ai->compositor, &ai->input_ifce, url->vals[i].url+8);
+			if (ai->filter) 
+				break;
+		}
+	}
 	return GF_OK;
 }
 
@@ -309,23 +314,26 @@ void gf_sc_audio_unregister(GF_AudioInput *ai)
 
 static char *gf_af_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
 {
-	u32 nb_bytes;
 	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
 
 	*size = 0;
 	if (!af->nb_used) {
-		u32 copied;
-		char *data = af->src->FetchFrame(af->src->callback, &nb_bytes, audio_delay_ms + af->filter_chain.delay_ms);
-		if (!nb_bytes) return NULL;
+		/*force filling the filter chain output until no data is available, otherwise we may end up
+		with data in input and no data as output because of block framing of the filter chain*/
+		while (!af->nb_filled) {
+			u32 nb_bytes;
+			char *data = af->src->FetchFrame(af->src->callback, &nb_bytes, audio_delay_ms + af->filter_chain.delay_ms);
+			/*no input data*/
+			if (!data || !nb_bytes) 
+				return NULL;
 
-		copied = nb_bytes;
-		if (copied > af->filter_chain.min_block_size) copied = af->filter_chain.min_block_size;
-		memcpy(af->filter_chain.tmp_block1, data, copied);
-		af->src->ReleaseFrame(af->src->callback, copied);
+			if (nb_bytes > af->filter_chain.min_block_size) nb_bytes = af->filter_chain.min_block_size;
+			memcpy(af->filter_chain.tmp_block1, data, nb_bytes);
+			af->src->ReleaseFrame(af->src->callback, nb_bytes);
 
-		af->nb_filled = gf_afc_process(&af->filter_chain, copied);
+			af->nb_filled = gf_afc_process(&af->filter_chain, nb_bytes);
+		}
 	}
-	if (!af->nb_filled) return NULL;
 
 	*size = af->nb_filled - af->nb_used;
 	return af->filter_chain.tmp_block1 + af->nb_used;
@@ -333,7 +341,6 @@ static char *gf_af_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
 static void gf_af_release_frame(void *callback, u32 nb_bytes)
 {
 	GF_AudioFilterItem *af = (GF_AudioFilterItem *)callback;
-
 	/*mark used bytes of filter output*/
 	af->nb_used += nb_bytes;
 	if (af->nb_used==af->nb_filled) {
@@ -365,6 +372,7 @@ static Bool gf_af_get_config(GF_AudioInterface *ai, Bool for_reconf)
 	
 	Bool res = af->src->GetConfig(af->src, for_reconf);
 	if (!res) return 0;
+	if (!for_reconf) return 1;
 
 
 	af->input.bps = af->src->bps;
