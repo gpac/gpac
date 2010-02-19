@@ -56,19 +56,21 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, u32 load_
  * @load_type is the prefered loader type for the content (e.g. SVG vs DIMS)
  * @width, @height: width and height of scene if no IOD is given in the context.
  * @usePixelMetrics: metrics system used in the scene, if no IOD is given in the context.
+ * @dump_path is the path where scenes are dumped 
  *
  * must be called only one time (by process calling the DLL) before other calls
  */
-GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char *inputContext, u32 load_type, u32 width, u32 height, Bool usePixelMetrics);
+GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char *inputContext, u32 load_type, u32 width, u32 height, Bool usePixelMetrics, char *dump_path);
 
 
 /**
  * @calling_object is the calling object on which call back will be called
  * @ctx is an already loaded scene manager
+ * @dump_path is the path where scenes are dumped 
  *
  * must be called only one time (by process calling the DLL) before other calls
  */
-GF_SceneEngine *gf_seng_init_from_context(void *calling_object, GF_SceneManager *ctx);
+GF_SceneEngine *gf_seng_init_from_context(void *calling_object, GF_SceneManager *ctx, char *dump_path);
 
 /**
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()

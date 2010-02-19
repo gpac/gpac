@@ -802,7 +802,7 @@ exit:
 }
 
 GF_EXPORT
-GF_SceneEngine *gf_seng_init_from_context(void *calling_object, GF_SceneManager *ctx)
+GF_SceneEngine *gf_seng_init_from_context(void *calling_object, GF_SceneManager *ctx, char *dump_path)
 {
 	GF_SceneEngine *seng;
 	GF_Err e = GF_OK;
@@ -813,7 +813,7 @@ GF_SceneEngine *gf_seng_init_from_context(void *calling_object, GF_SceneManager 
 	if (!seng) return NULL;
 
 	seng->calling_object = calling_object;
-
+    seng->dump_path = dump_path;
 	/*Step 1: create context and load input*/
 	seng->sg = ctx->scene_graph;
 	seng->ctx = ctx;
@@ -832,7 +832,7 @@ exit:
 }
 
 GF_EXPORT
-GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputContext, u32 load_type, u32 width, u32 height, Bool usePixelMetrics)
+GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputContext, u32 load_type, u32 width, u32 height, Bool usePixelMetrics, char *dump_path)
 {
 	GF_SceneEngine *seng;
 	GF_Err e = GF_OK;
@@ -843,8 +843,8 @@ GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputConte
 	if (!seng) return NULL;
 
 	seng->calling_object = calling_object;
-
-	/*Step 1: create context and load input*/
+    seng->dump_path = dump_path;
+    /*Step 1: create context and load input*/
 	seng->sg = gf_sg_new();
 	seng->ctx = gf_sm_new(seng->sg);
 	seng->owns_context = 1;
