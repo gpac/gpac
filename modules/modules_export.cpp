@@ -23,7 +23,7 @@
  *
  */
 
-/*this file is only used with Win32&MSVC to export the symbols from libgpac(static) to libgpac(dynamic) based on the GPAC configuration*/
+/*this file is only used with Win32&MSVC to export the module interface symbols from each module DLL*/
 #include <gpac/setup.h>
 
 #ifdef _WIN32_WCE
