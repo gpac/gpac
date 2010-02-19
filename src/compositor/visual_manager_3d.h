@@ -63,7 +63,7 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 /*draws a 3D object, setting up material and texture*/
 void visual_3d_draw(GF_TraverseState *tr_state, GF_Mesh *mesh);
 /*draws a 2D object, setting up material and texture with specified 2D aspect*/
-void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, DrawAspect2D *asp, Bool is_svg);
+void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, DrawAspect2D *asp);
 /*draws a 2D SVG object - the DrawableContext MUST be set in the traversing state*/
 void visual_3d_draw_from_context(DrawableContext *ctx, GF_TraverseState *tr_state);
 

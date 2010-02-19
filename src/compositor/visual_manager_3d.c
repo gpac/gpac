@@ -1245,7 +1245,7 @@ void visual_3d_vrml_drawable_collide(GF_Node *node, GF_TraverseState *tr_state)
 #endif /*GPAC_DISABLE_VRML*/
 
 
-static GF_TextureHandler *visual_3d_setup_texture_2d(GF_TraverseState *tr_state, DrawAspect2D *asp, Bool is_svg, GF_Mesh *mesh)
+static GF_TextureHandler *visual_3d_setup_texture_2d(GF_TraverseState *tr_state, DrawAspect2D *asp, GF_Mesh *mesh)
 {
 	if (!asp->fill_texture) return NULL;
 
@@ -1257,13 +1257,13 @@ static GF_TextureHandler *visual_3d_setup_texture_2d(GF_TraverseState *tr_state,
 		gf_sc_texture_set_blend_mode(asp->fill_texture, TX_REPLACE);
 	}
 
-	if (is_svg) {
+	if (asp->fill_texture->flags & GF_SR_TEXTURE_SVG) {
 		GF_Rect rc;
 		gf_rect_from_bbox(&rc, &mesh->bounds);
 		tr_state->mesh_num_textures = gf_sc_texture_enable_ex(asp->fill_texture, NULL, &rc);
 	} else {
 #ifndef GPAC_DISABLE_VRML
-		tr_state->mesh_num_textures = gf_sc_texture_enable(asp->fill_texture, ((M_Appearance *)tr_state->appear)->textureTransform);
+		tr_state->mesh_num_textures = gf_sc_texture_enable(asp->fill_texture, tr_state->appear ? ((M_Appearance *)tr_state->appear)->textureTransform : NULL);
 #endif
 	}
 	if (tr_state->mesh_num_textures) return asp->fill_texture;
@@ -1293,12 +1293,12 @@ void visual_3d_set_2d_strike(GF_TraverseState *tr_state, DrawAspect2D *asp)
 }
 
 
-void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, DrawAspect2D *asp, Bool is_svg)
+void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, DrawAspect2D *asp)
 {
 	StrikeInfo2D *si;
 	GF_TextureHandler *fill_txh;
 
-	fill_txh = visual_3d_setup_texture_2d(tr_state, asp, is_svg, st->mesh);
+	fill_txh = visual_3d_setup_texture_2d(tr_state, asp, st->mesh);
 
 	/*fill path*/
 	if (fill_txh || (GF_COL_A(asp->fill_color)) ) {
@@ -1352,7 +1352,7 @@ void visual_3d_draw_2d(Drawable *st, GF_TraverseState *tr_state)
 	DrawAspect2D asp;
 	memset(&asp, 0, sizeof(DrawAspect2D));
 	drawable_get_aspect_2d_mpeg4(st->node, &asp, tr_state);
-	visual_3d_draw_2d_with_aspect(st, tr_state, &asp, 0);
+	visual_3d_draw_2d_with_aspect(st, tr_state, &asp);
 }
 #endif
 
@@ -1361,7 +1361,7 @@ void visual_3d_draw_from_context(DrawableContext *ctx, GF_TraverseState *tr_stat
 {
 	GF_Rect rc;
 	gf_path_get_bounds(ctx->drawable->path, &rc);
-	visual_3d_draw_2d_with_aspect(ctx->drawable, tr_state, &ctx->aspect, 1);
+	visual_3d_draw_2d_with_aspect(ctx->drawable, tr_state, &ctx->aspect);
 
 	drawable_check_focus_highlight(ctx->drawable->node, tr_state, &rc);
 }

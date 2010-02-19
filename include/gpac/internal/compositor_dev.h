@@ -514,6 +514,9 @@ enum
 	/*Set durin a composition cycle. If not set at the end of the cycle, 
 	the hardware binding is released*/
 	GF_SR_TEXTURE_USED = (1<<4),
+
+	/*texture is SVG (needs special treatment in OpenGL)*/
+	GF_SR_TEXTURE_SVG = (1<<5),
 };
 
 typedef struct _gf_sc_texture_handler

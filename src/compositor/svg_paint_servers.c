@@ -577,6 +577,7 @@ void compositor_init_svg_linearGradient(GF_Compositor *compositor, GF_Node *node
 	st->txh.owner = node;
 	st->txh.compositor = compositor;
 	st->txh.update_texture_fcnt = SVG_UpdateLinearGradient;
+	st->txh.flags = GF_SR_TEXTURE_SVG;
 
 	st->txh.compute_gradient_matrix = SVG_LG_ComputeMatrix;
 	st->linear = 1;
@@ -688,6 +689,7 @@ void compositor_init_svg_radialGradient(GF_Compositor *compositor, GF_Node *node
 	to release associated HW resource when no longer used*/
 	st->txh.owner = node;
 	st->txh.compositor = compositor;
+	st->txh.flags = GF_SR_TEXTURE_SVG;
 
 	st->txh.update_texture_fcnt = SVG_UpdateRadialGradient;
 	st->txh.compute_gradient_matrix = SVG_RG_ComputeMatrix;

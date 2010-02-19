@@ -295,7 +295,7 @@ static void TraverseIFS2D(GF_Node *node, void *rs, Bool is_destroy)
 			}
 			visual_3d_mesh_strike(tr_state, si->mesh_outline, asp.pen_props.width, asp.line_scale, asp.pen_props.dash);
 		} else {
-			visual_3d_draw_2d_with_aspect(stack, tr_state, &asp, 0);
+			visual_3d_draw_2d_with_aspect(stack, tr_state, &asp);
 		}
 		return;
 	} 

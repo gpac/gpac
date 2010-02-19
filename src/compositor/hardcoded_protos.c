@@ -524,9 +524,16 @@ static void TraverseOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
 		}
 		if (stack->cache) {
 			group_cache_traverse((GF_Node *)&stack->og, stack->cache, tr_state, stack->cache->force_recompute, 1);
+			gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
 		} else {
 			group_2d_traverse((GF_Node *)&stack->og, (GroupingNode2D*)stack, tr_state);
 		}
+	}
+	/*draw mode*/
+	else if (stack->cache && (tr_state->traversing_mode == TRAVERSE_DRAW_2D)) {
+		/*draw it*/
+		group_cache_draw(stack->cache, tr_state);
+		gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
 	} else {
 		group_2d_traverse((GF_Node *)&stack->og, (GroupingNode2D*)stack, tr_state);
 	}

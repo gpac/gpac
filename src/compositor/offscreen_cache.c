@@ -132,6 +132,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		DrawableContext *child_ctx;
 		Fixed temp_x, temp_y, scale_x, scale_y;
 
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Recomputing cache for subtree %s\n", gf_node_get_log_name(node)));
 		/*step 1 : store current state and indicate children should not be cached*/
 		tr_state->in_group_cache = 1;
 		prev_flags = tr_state->direct_draw;
@@ -295,6 +296,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		
 		/*update texture*/
 		cache->txh.transparent = 1;
+		cache->txh.flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 		gf_sc_texture_set_data(&cache->txh);
 		gf_sc_texture_push_image(&cache->txh, 0, type_3d ? 0 : 1);
 	}
@@ -312,7 +314,10 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 	}
 	if (!group_ctx) return 0;
 	group_ctx->flags |= CTX_NO_ANTIALIAS;
-	group_ctx->aspect.fill_color = GF_COL_ARGB_FIXED(cache->opacity, FIX_ONE, FIX_ONE, FIX_ONE);
+	if (cache->opacity != FIX_ONE) 
+		group_ctx->aspect.fill_color = GF_COL_ARGB_FIXED(cache->opacity, FIX_ONE, FIX_ONE, FIX_ONE);
+	else
+		group_ctx->aspect.fill_color = 0;
 	group_ctx->aspect.fill_texture = &cache->txh;
 
 	if (!cache->opacity) {

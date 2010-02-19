@@ -958,7 +958,7 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
 		gf_mx2d_copy(hl_ctx->transform, tr_state->transform);
-		visual_3d_draw_2d_with_aspect(hl_ctx->drawable, tr_state, &hl_ctx->aspect, 1);
+		visual_3d_draw_2d_with_aspect(hl_ctx->drawable, tr_state, &hl_ctx->aspect);
 		return;
 	}
 #endif
