@@ -252,7 +252,7 @@ int main2(int argc, char **argv)
                     </svg>";
         char *update = "<Replace ref='r' attributeName='x' value='100'/>";
 
-		codec1 = gf_seng_init_from_string(streams, scene, GF_SM_LOAD_DIMS, 0, 0, 1);
+		codec1 = gf_seng_init_from_string(streams, scene, GF_SM_LOAD_DIMS, 0, 0, 1, NULL);
 		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
 		gf_seng_encode_context(codec1, SampleCallBack);
 
@@ -304,7 +304,7 @@ int main2(int argc, char **argv)
 		char scene[] = "OrderedGroup {children [Background2D {backColor 1 1 1}Shape {appearance Appearance {material DEF M Material2D {emissiveColor 0 0 1 filled TRUE } } geometry Rectangle { size 100 75 } } ] }";
 		char update[] = "\n AT \n 500 \n { \n REPLACE \n M.emissiveColor BY 1 0 0 \n REPLACE \n M.filled BY FALSE} \n";
 
-		codec1 = gf_seng_init_from_string(streams, scene, 0, 200, 200, 1);
+		codec1 = gf_seng_init_from_string(streams, scene, 0, 200, 200, 1, NULL);
 		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
 
 		gf_seng_encode_context(codec1, SampleCallBack);
