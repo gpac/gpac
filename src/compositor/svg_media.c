@@ -417,7 +417,7 @@ void compositor_init_svg_image(GF_Compositor *compositor, GF_Node *node)
 
 	gf_sc_texture_setup(&stack->txh, compositor, node);
 	stack->txh.update_texture_fcnt = SVG_Update_image;
-	stack->txh.flags = 0;
+	stack->txh.flags = GF_SR_TEXTURE_SVG;
 
 	/*force first processing of xlink-href*/
 	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
@@ -539,7 +539,7 @@ void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node)
 
 	gf_sc_texture_setup(&stack->txh, compositor, node);
 	stack->txh.update_texture_fcnt = SVG_Update_video;
-	stack->txh.flags = 0;
+	stack->txh.flags = GF_SR_TEXTURE_SVG;
 
 	/*force first processing of xlink-href*/
 	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);

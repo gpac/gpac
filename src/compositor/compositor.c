@@ -1356,6 +1356,22 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 			case TAG_X3D_TimeSensor: 
 #endif
 				return 0;
+
+			case TAG_MPEG4_MovieTexture: 
+#ifndef GPAC_DISABLE_X3D
+			case TAG_X3D_MovieTexture: 
+#endif
+				if (((M_MovieTexture *)tn->udta)->loop) return 0;
+				break;
+			case TAG_MPEG4_AudioClip: 
+#ifndef GPAC_DISABLE_X3D
+			case TAG_X3D_AudioClip: 
+#endif
+				if (((M_AudioClip*)tn->udta)->loop) return 0;
+				break;
+			case TAG_MPEG4_AnimationStream: 
+				if (((M_AnimationStream*)tn->udta)->loop) return 0;
+				break;
 			}
 		}
 	}
