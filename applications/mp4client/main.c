@@ -61,6 +61,7 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 void ViewODs(GF_Terminal *term, Bool show_timing);
 void PrintGPACConfig();
 
+static Bool restart = 0;
 static Bool not_threaded = 0;
 static Bool no_audio = 0;
 static Bool no_regulation = 0;
@@ -594,7 +595,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		ResetCaption();
 		break;
 	case GF_EVENT_EOS:
-		gf_term_play_from_time(term, 0, 0);
+		restart = 1;
 		break;
 	case GF_EVENT_SIZE:
 		if (user.init_flags & GF_TERM_WINDOWLESS) {
@@ -1244,6 +1245,10 @@ int main (int argc, char **argv)
 		
 		/*we don't want getchar to block*/
 		if (!gf_prompt_has_input()) {
+			if (restart) {
+				restart = 0;
+				gf_term_play_from_time(term, 0, 0);
+			}
 			if (request_next_playlist_item) {
 				c = '\n';
 				request_next_playlist_item = 0;
