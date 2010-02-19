@@ -107,7 +107,11 @@ int main(int argc, char **argv)
 
 	if (dst_port && dst) streams = gf_list_new();
 
-	seng = gf_seng_init(streams, filename, load_type);
+	seng = gf_seng_init(streams, filename, load_type, NULL);
+    if (!seng) {
+		fprintf(stdout, "Cannot create scene engine\n");
+		exit(0);
+    }
 	if (streams) setup_rtp_streams(seng, streams, dst, dst_port, sdp_name);
 
 	has_carousel = 0;
@@ -281,7 +285,7 @@ int main2(int argc, char **argv)
 						REPLACE REC.size BY 100 100\
 						}";
 
-		codec1 = gf_seng_init(streams, argv[1], 0);
+		codec1 = gf_seng_init(streams, argv[1], 0, NULL);
 		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
 
 		gf_seng_encode_context(codec1, SampleCallBack);
@@ -330,7 +334,7 @@ int main2(int argc, char **argv)
 				strcpy(in_context, "rect.bt");
 			}
 
-			codec2 = gf_seng_init(NULL, in_context, 0);
+			codec2 = gf_seng_init(NULL, in_context, 0, NULL);
 
 			sprintf(timed_update, "AT %i { %s }", 1000 + i, update);
 			

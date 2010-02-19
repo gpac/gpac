@@ -56,6 +56,8 @@ struct __tag_scene_engine
 #endif
 
 	u32 start_time;
+
+    char *dump_path;
 };
 
 #ifndef GPAC_DISABLE_BIFS_ENC
@@ -343,9 +345,10 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 
 	e = GF_OK;
 
-    /* TODO: add these in the BIFSEngine */
-    cache_dir = "C:\\Windows\\Temp";
-    dump_name = "gpac_scene_encoding_dump";
+    if (!seng->dump_path) cache_dir = "C:\\Windows\\Temp";
+    else cache_dir = seng->dump_path;
+
+    dump_name = "gpac_scene_engine_dump";
 	compress_dims = 1;
     
     if (commands && gf_list_count(commands)) sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, dump_name, "_update");
@@ -754,7 +757,7 @@ GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, const
 
 
 GF_EXPORT
-GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load_type)
+GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load_type, char *dump_path)
 {
 	GF_SceneEngine *seng;
 	GF_Err e = GF_OK;
@@ -768,6 +771,7 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load
 
 	/*Step 1: create context and load input*/
 	seng->sg = gf_sg_new();
+    seng->dump_path = dump_path;
 	seng->ctx = gf_sm_new(seng->sg);
 	seng->owns_context = 1;
 	memset(&(seng->load), 0, sizeof(GF_SceneLoader));
@@ -888,6 +892,14 @@ GF_EXPORT
 u32 gf_seng_get_stream_count(GF_SceneEngine *seng)
 {
 	return gf_list_count(seng->ctx->streams);
+}
+
+GF_EXPORT
+u32 gf_seng_get_stream_info(GF_SceneEngine *seng, u32 i)
+{
+    GF_StreamContext *sc;
+    sc = gf_list_get(seng->ctx->streams, i);
+    return sc->streamType;
 }
 
 GF_EXPORT

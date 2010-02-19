@@ -5,7 +5,7 @@
  *				Copyright (c) 2005-200X ENST
  *					All rights reserved
  *
- *  This file is part of GPAC / ISO Media File Format sub-project
+ *  This file is part of GPAC 
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -44,10 +44,11 @@ typedef void (*gf_seng_callback)(void *udta, u16 ESID, char *data, u32 size, u64
  * @calling_object is the calling object on which call back will be called
  * @inputContext is the name of a scene file (bt, xmt or mp4) to initialize the coding context
  * @load_type is the prefered loader type for the content (e.g. SVG vs DIMS)
+ * @dump_path is the path where scenes are dumped 
  *
  * must be called only one time (by process calling the DLL) before other calls
  */
-GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, u32 load_type);
+GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, u32 load_type, char *dump_path);
 
 /**
  * @calling_object is the calling object on which call back will be called
@@ -75,6 +76,14 @@ GF_SceneEngine *gf_seng_init_from_context(void *calling_object, GF_SceneManager 
  * must be called after gf_seng_init()
  */
 u32 gf_seng_get_stream_count(GF_SceneEngine *seng);
+
+/**
+ * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
+ *
+ * returns the stream type of the i-th stream 
+ * must be called after gf_seng_init()
+ */
+u32 gf_seng_get_stream_info(GF_SceneEngine *seng, u32 i);
 
 /**
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
