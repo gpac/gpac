@@ -255,7 +255,7 @@ u64 gf_file_modification_time(const char *filename)
 	FindClose(fh);
 	time_ms = uli.QuadPart/10000;
 	return time_ms;
-#elif defined(WIN32)
+#elif defined(WIN32) && !defined(__GNUC__)
 	struct _stat64 sb;
 	if (_stat64(filename, &sb) != 0) return 0;
 	return sb.st_mtime;
