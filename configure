@@ -1377,7 +1377,7 @@ INCL3D=""
 cat > $TMPC << EOF
 #include <GL/gl.h>
 #include <GL/glu.h>
-int main( void ) { return 0; }
+int main( void ) { glEnable(GL_NORMALIZE); return 0; }
 EOF
 
 if test "$disable_3d" = "no" ; then
