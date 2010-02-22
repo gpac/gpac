@@ -35,11 +35,16 @@
 Bool SDLOUT_InitSDL();
 void SDLOUT_CloseSDL();
 
+//#define SDL_WINDOW_THREAD
+
+
 typedef struct
 {
+#ifdef	SDL_WINDOW_THREAD
 	GF_Thread *sdl_th;
-	GF_Mutex *evt_mx;
 	u32 sdl_th_state;
+#endif
+	GF_Mutex *evt_mx;
 	Bool is_init, fullscreen;
 	/*fullscreen display size*/
 	u32 fs_width, fs_height;
@@ -58,6 +63,10 @@ typedef struct
 
 	u32 output_3d_type;
 	void *os_handle;
+
+
+	u32 last_mouse_move;
+	Bool cursor_on;
 } SDLVidCtx;
 
 void SDL_DeleteVideo(void *ifce);

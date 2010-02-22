@@ -197,35 +197,7 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor)
 	return 0;
 }
 
-static u32 gf_sc_proc(void *par)
-{	
-	GF_Compositor *compositor = (GF_Compositor *) par;
-	compositor->video_th_state = 1;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Compositor] Entering thread ID %d\n", gf_th_id() ));
-
-	
-
-#ifdef GPAC_TRISCOPE_MODE	
-/* scene creation*/	
-	compositor->RenoirHandler = CreateRenoirScene();
-#endif	
-	
-	while (compositor->video_th_state == 1) {
-		if (compositor->is_hidden) 
-			gf_sleep(compositor->frame_duration);
-		else	
-
-			gf_sc_simulation_tick(compositor);
-
-	}
-	/*destroy video out here if w're using openGL, to avoid threading issues*/
-	compositor->video_out->Shutdown(compositor->video_out);
-	gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
-	compositor->video_out = NULL;
-	compositor->video_th_state = 3;
-	return 0;
-}
 
 /*forces graphics redraw*/
 GF_EXPORT
@@ -247,7 +219,7 @@ static void gf_sc_reset_framerate(GF_Compositor *compositor)
 
 static Bool gf_sc_on_event(void *cbck, GF_Event *event);
 
-static Bool gf_sc_set_check_raster2d(GF_Raster2D *ifce)
+static Bool gf_sc_set_check_raster2d(GF_Compositor *compositor, GF_Raster2D *ifce)
 {
 	/*check base*/
 	if (!ifce->stencil_new || !ifce->surface_new) return 0;
@@ -325,153 +297,199 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 }
 
 
-static GF_Compositor *gf_sc_create(GF_User *user)
+static GF_Err gf_sc_create(GF_Compositor *compositor)
 {
 	const char *sOpt;
-	GF_Compositor *tmp;
-
-	GF_SAFEALLOC(tmp, GF_Compositor);
-	if (!tmp) return NULL;
-	tmp->user = user;
 
 	/*load video out*/
-	sOpt = gf_cfg_get_key(user->config, "Video", "DriverName");
+	sOpt = gf_cfg_get_key(compositor->user->config, "Video", "DriverName");
 	if (sOpt) {
-		tmp->video_out = (GF_VideoOutput *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_VIDEO_OUTPUT_INTERFACE);
-		if (tmp->video_out) {
-			tmp->video_out->evt_cbk_hdl = tmp;
-			tmp->video_out->on_event = gf_sc_on_event;
+		compositor->video_out = (GF_VideoOutput *) gf_modules_load_interface_by_name(compositor->user->modules, sOpt, GF_VIDEO_OUTPUT_INTERFACE);
+		if (compositor->video_out) {
+			compositor->video_out->evt_cbk_hdl = compositor;
+			compositor->video_out->on_event = gf_sc_on_event;
 			/*init hw*/
-			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->init_flags) != GF_OK) {
-				gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
-				tmp->video_out = NULL;
+			if (compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags) != GF_OK) {
+				gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
+				compositor->video_out = NULL;
 			}
 		} else {
 			sOpt = NULL;
 		}
 	}
 
-	if (!tmp->video_out) {
+	if (!compositor->video_out) {
 		u32 i, count;
-		count = gf_modules_get_count(user->modules);
+		count = gf_modules_get_count(compositor->user->modules);
 		for (i=0; i<count; i++) {
-			tmp->video_out = (GF_VideoOutput *) gf_modules_load_interface(user->modules, i, GF_VIDEO_OUTPUT_INTERFACE);
-			if (!tmp->video_out) continue;
-			tmp->video_out->evt_cbk_hdl = tmp;
-			tmp->video_out->on_event = gf_sc_on_event;
+			compositor->video_out = (GF_VideoOutput *) gf_modules_load_interface(compositor->user->modules, i, GF_VIDEO_OUTPUT_INTERFACE);
+			if (!compositor->video_out) continue;
+			compositor->video_out->evt_cbk_hdl = compositor;
+			compositor->video_out->on_event = gf_sc_on_event;
 			/*init hw*/
-			if (tmp->video_out->Setup(tmp->video_out, user->os_window_handler, user->os_display, user->init_flags)==GF_OK) {
-				gf_cfg_set_key(user->config, "Video", "DriverName", tmp->video_out->module_name);
+			if (compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags)==GF_OK) {
+				gf_cfg_set_key(compositor->user->config, "Video", "DriverName", compositor->video_out->module_name);
 				break;
 			}
-			gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
-			tmp->video_out = NULL;
+			gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
+			compositor->video_out = NULL;
 		}
 	}
-	if (!tmp->video_out ) {
-		free(tmp);
-		return NULL;
+	if (!compositor->video_out ) {
+		return GF_IO_ERR;
 	}
 
 	/*try to load a raster driver*/
-	sOpt = gf_cfg_get_key(user->config, "Compositor", "Raster2D");
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "Raster2D");
 	if (sOpt) {
-		tmp->rasterizer = (GF_Raster2D *) gf_modules_load_interface_by_name(user->modules, sOpt, GF_RASTER_2D_INTERFACE);
-		if (!tmp->rasterizer) {
+		compositor->rasterizer = (GF_Raster2D *) gf_modules_load_interface_by_name(compositor->user->modules, sOpt, GF_RASTER_2D_INTERFACE);
+		if (!compositor->rasterizer) {
 			sOpt = NULL;
-		} else if (!gf_sc_set_check_raster2d(tmp->rasterizer)) {
-			gf_modules_close_interface((GF_BaseInterface *)tmp->rasterizer);
-			tmp->rasterizer = NULL;
+		} else if (!gf_sc_set_check_raster2d(compositor, compositor->rasterizer)) {
+			gf_modules_close_interface((GF_BaseInterface *)compositor->rasterizer);
+			compositor->rasterizer = NULL;
 			sOpt = NULL;
 		}
 	}
-	if (!tmp->rasterizer) {
+	if (!compositor->rasterizer) {
 		u32 i, count;
-		count = gf_modules_get_count(user->modules);
+		count = gf_modules_get_count(compositor->user->modules);
 		for (i=0; i<count; i++) {
-			tmp->rasterizer = (GF_Raster2D *) gf_modules_load_interface(user->modules, i, GF_RASTER_2D_INTERFACE);
-			if (!tmp->rasterizer) continue;
-			if (gf_sc_set_check_raster2d(tmp->rasterizer)) break;
-			gf_modules_close_interface((GF_BaseInterface *)tmp->rasterizer);
-			tmp->rasterizer = NULL;
+			compositor->rasterizer = (GF_Raster2D *) gf_modules_load_interface(compositor->user->modules, i, GF_RASTER_2D_INTERFACE);
+			if (!compositor->rasterizer) continue;
+			if (gf_sc_set_check_raster2d(compositor, compositor->rasterizer)) break;
+			gf_modules_close_interface((GF_BaseInterface *)compositor->rasterizer);
+			compositor->rasterizer = NULL;
 		}
-		if (tmp->rasterizer) gf_cfg_set_key(user->config, "Compositor", "Raster2D", tmp->rasterizer->module_name);
+		if (compositor->rasterizer) gf_cfg_set_key(compositor->user->config, "Compositor", "Raster2D", compositor->rasterizer->module_name);
 	}
-	if (!tmp->rasterizer) {
-		tmp->video_out->Shutdown(tmp->video_out);
-		gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
-		free(tmp);
-		return NULL;
+	if (!compositor->rasterizer) {
+		compositor->video_out->Shutdown(compositor->video_out);
+		gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
+		compositor->video_out = NULL;
+		return GF_IO_ERR;
 	}
 
 	/*and init*/
-	if (gf_sc_load(tmp) != GF_OK) {
-		gf_modules_close_interface((GF_BaseInterface *)tmp->rasterizer);
-		tmp->video_out->Shutdown(tmp->video_out);
-		gf_modules_close_interface((GF_BaseInterface *)tmp->video_out);
-		free(tmp);
-		return NULL;
+	if (gf_sc_load(compositor) != GF_OK) {
+		gf_modules_close_interface((GF_BaseInterface *)compositor->rasterizer);
+		compositor->rasterizer = NULL;
+		compositor->video_out->Shutdown(compositor->video_out);
+		gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
+		compositor->video_out = NULL;
+		return GF_IO_ERR;
 	}
 
-	tmp->mx = gf_mx_new("Compositor");
-	tmp->textures = gf_list_new();
-	tmp->frame_rate = 30.0;	
-	tmp->frame_duration = 33;
-	tmp->time_nodes = gf_list_new();
+	compositor->textures = gf_list_new();
+	compositor->frame_rate = 30.0;	
+	compositor->frame_duration = 33;
+	compositor->time_nodes = gf_list_new();
 #ifdef GF_SR_EVENT_QUEUE
-	tmp->events = gf_list_new();
-	tmp->ev_mx = gf_mx_new("EventQueue");
+	compositor->events = gf_list_new();
+	compositor->ev_mx = gf_mx_new("EventQueue");
 #endif
 
 #ifdef GF_SR_USE_VIDEO_CACHE
-	tmp->cached_groups = gf_list_new();
-	tmp->cached_groups_queue = gf_list_new();
+	compositor->cached_groups = gf_list_new();
+	compositor->cached_groups_queue = gf_list_new();
 #endif
 	
-	gf_sc_reset_framerate(tmp);	
-	tmp->font_manager = gf_font_manager_new(user);
+	/*load audio renderer*/
+	compositor->audio_renderer = gf_sc_ar_load(compositor->user);	
+
+	gf_sc_reset_framerate(compositor);	
+	compositor->font_manager = gf_font_manager_new(compositor->user);
 	
-	tmp->extra_scenes = gf_list_new();
-	tmp->interaction_level = GF_INTERACT_NORMAL | GF_INTERACT_INPUT_SENSOR | GF_INTERACT_NAVIGATION;
-	return tmp;
+	compositor->extra_scenes = gf_list_new();
+	compositor->interaction_level = GF_INTERACT_NORMAL | GF_INTERACT_INPUT_SENSOR | GF_INTERACT_NAVIGATION;
+
+#ifdef GPAC_TRISCOPE_MODE	
+	/* scene creation*/	
+	compositor->RenoirHandler = CreateRenoirScene();
+#endif	
+
+	return GF_OK;
+}
+
+enum
+{
+	GF_COMPOSITOR_THREAD_START = 0,
+	GF_COMPOSITOR_THREAD_RUN,
+	GF_COMPOSITOR_THREAD_ABORTING,
+	GF_COMPOSITOR_THREAD_DONE,
+	GF_COMPOSITOR_THREAD_INIT_FAILED,
+};
+
+static u32 gf_sc_proc(void *par)
+{	
+	GF_Err e;
+	GF_Compositor *compositor = (GF_Compositor *) par;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Compositor] Entering thread ID %d\n", gf_th_id() ));
+	
+	compositor->video_th_state = GF_COMPOSITOR_THREAD_START;
+	e = gf_sc_create(compositor);
+	if (e != GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Failed to initialize compositor: %s\n", gf_error_to_string(e) ));
+		compositor->video_th_state = GF_COMPOSITOR_THREAD_INIT_FAILED;
+		return 1;
+	}
+
+	compositor->video_th_state = GF_COMPOSITOR_THREAD_RUN;	
+	while (compositor->video_th_state == GF_COMPOSITOR_THREAD_RUN) {
+		if (compositor->is_hidden) 
+			gf_sleep(compositor->frame_duration);
+		else	
+			gf_sc_simulation_tick(compositor);
+	}
+	/*destroy video out here if w're using openGL, to avoid threading issues*/
+	compositor->video_out->Shutdown(compositor->video_out);
+	gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
+	compositor->video_out = NULL;
+	compositor->video_th_state = GF_COMPOSITOR_THREAD_DONE;
+	return 0;
 }
 
 GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 {
-	GF_Compositor *tmp = gf_sc_create(user);
+	GF_Err e;
+	GF_Compositor *tmp;
+	
+
+	GF_SAFEALLOC(tmp, GF_Compositor);
 	if (!tmp) return NULL;
+	tmp->user = user;
 	tmp->term = term;
+	tmp->mx = gf_mx_new("Compositor");
+	
 
-	/**/
-	tmp->audio_renderer = gf_sc_ar_load(user);	
-
-	gf_mx_p(tmp->mx);
-
-	/*run threaded*/
 	if (self_threaded) {
+
 		tmp->VisualThread = gf_th_new("Compositor");
 		gf_th_run(tmp->VisualThread, gf_sc_proc, tmp);
-		while (tmp->video_th_state!=1) {
-			gf_sleep(10);
-			if (tmp->video_th_state==3) {
-				gf_mx_v(tmp->mx);
-				gf_sc_del(tmp);
-				return NULL;
-			}
+
+		/*wait until init is done*/
+		while (tmp->video_th_state < GF_COMPOSITOR_THREAD_RUN) {
+			gf_sleep(0);
+		}
+		/*init failure*/		
+		if (tmp->video_th_state == GF_COMPOSITOR_THREAD_INIT_FAILED) {
+			gf_sc_del(tmp);
+			return NULL;
 		}
 	} else {
-#ifdef GPAC_TRISCOPE_MODE	
-/* scene creation*/	
-	tmp->RenoirHandler = CreateRenoirScene();
-#endif	
-    }
+		e = gf_sc_create(tmp);
+		if (e) {
+			gf_sc_del(tmp);
+			return NULL;
+		}
+	}
+
 
 	/*set default size if owning output*/
 	if (!tmp->user->os_window_handler) {
 		gf_sc_set_size(tmp, SC_DEF_WIDTH, SC_DEF_HEIGHT);
 	}
-
-	gf_mx_v(tmp->mx);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\tNetworks\tDecoders\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and direct Draw)\tTraverse (and direct Draw) without anim\tIndirect Draw\tTraverse And Draw (Indirect or Not)\tFlush\tCycle\n"));
 
@@ -487,8 +505,11 @@ void gf_sc_del(GF_Compositor *compositor)
 	gf_sc_lock(compositor, 1);
 
 	if (compositor->VisualThread) {
-		compositor->video_th_state = 2;
-		while (compositor->video_th_state!=3) gf_sleep(10);
+		if (compositor->video_th_state == GF_COMPOSITOR_THREAD_RUN) {
+			compositor->video_th_state = GF_COMPOSITOR_THREAD_ABORTING;
+			while (compositor->video_th_state != GF_COMPOSITOR_THREAD_DONE) 
+				gf_sleep(10);
+		}
 		gf_th_del(compositor->VisualThread);
 	}
 	if (compositor->video_out) {

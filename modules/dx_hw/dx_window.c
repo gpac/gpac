@@ -659,6 +659,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	return 1;
 }
 
+#ifdef USE_WINDOW_THREAD
 u32 DD_WindowThread(void *par)
 {
 	MSG msg;
@@ -678,6 +679,7 @@ u32 DD_WindowThread(void *par)
 	ctx->th_state = 2;
 	return 0;
 }
+#endif /*USE_WINDOW_THREAD*/
 
 
 void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
@@ -694,7 +696,7 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 	}
 	ctx->switch_res = flags;
 
-#if 1	
+#ifdef USE_WINDOW_THREAD
 	/*create event thread*/
 	ctx->th = gf_th_new("DirectX Video");
 	gf_th_run(ctx->th, DD_WindowThread, dr);
@@ -705,6 +707,7 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 	ctx->curs_normal = LoadCursor(NULL, IDC_ARROW);
 	ctx->curs_hand = ctx->curs_collide = ctx->curs_normal;
 	ctx->cursor_type = GF_CURSOR_NORMAL;
+	DD_InitWindows(dr, ctx);
 #endif
 	if (!the_video_output) the_video_output = dr;
 }
@@ -730,6 +733,7 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 	if (ctx->gl_hwnd) dd_closewindow(ctx->gl_hwnd);
 #endif
 
+#ifdef USE_WINDOW_THREAD
 	if (ctx->th) {
 		while (ctx->th_state!=2) 
 			gf_sleep(10);
@@ -737,6 +741,8 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 		gf_th_del(ctx->th);
 		ctx->th = NULL;
 	}
+#endif
+
 
 #ifdef _WIN32_WCE
 	UnregisterClass(_T("GPAC DirectDraw Output"), GetModuleHandle(_T("gm_dx_hw.dll")) );
@@ -795,6 +801,13 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	DDContext *ctx = (DDContext *)dr->opaque;
 
 	if (!evt) {
+#ifndef USE_WINDOW_THREAD
+		MSG msg;
+		while (PeekMessage (&(msg), NULL, 0, 0, PM_REMOVE)) {
+			TranslateMessage (&(msg));
+			DispatchMessage (&(msg));
+		}
+#endif
 		return GF_OK;
 	}
 

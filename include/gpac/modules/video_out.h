@@ -68,6 +68,9 @@ enum
 	/*HW supports OpenGL offscreen rendering with alpha. Whether this is OpenGL or OpenGL-ES depends on compilation settings
 	and cannot be changed at runtime*/
 	GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA = (1<<7),
+
+	/*HW supports locking a surface by device context (Win32 only)*/
+	GF_VIDEO_HW_HAS_HWND_HDC	= (1<<16),
 };
 
 /*interface name and version for video output*/
