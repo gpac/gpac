@@ -1948,7 +1948,7 @@ int main(int argc, char **argv)
 				fprintf(stdout, "\t%s\t%s\n", itags[i].name, itags[i].comment);
 			}
 			return 0;
-		} else if (!strchr(arg, '=')){
+		} else if (!live_scene && !stream_rtp) {
 			fprintf(stdout, "Option %s unknown. Please check usage\n", arg);
 			return 1;
 		}
