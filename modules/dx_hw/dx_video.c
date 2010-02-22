@@ -652,7 +652,7 @@ static void *NewDXVideoOutput()
 
     driv->max_screen_width = GetSystemMetrics(SM_CXSCREEN);
     driv->max_screen_height = GetSystemMetrics(SM_CYSCREEN);
-	driv->hw_caps = GF_VIDEO_HW_OPENGL | GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;
+	driv->hw_caps = GF_VIDEO_HW_OPENGL | GF_VIDEO_HW_OPENGL_OFFSCREEN | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA | GF_VIDEO_HW_HAS_HWND_HDC;
 
 	DD_SetupDDraw(driv);
 

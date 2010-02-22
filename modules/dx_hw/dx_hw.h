@@ -70,6 +70,9 @@
 #define USE_DX_3
 #endif
 
+
+//#define USE_WINDOW_THREAD
+
 typedef struct
 {
 #ifdef USE_DX_3
@@ -120,9 +123,11 @@ typedef struct
 	/*HW surfaces for blitting+stretch*/
 	DDSurface rgb_pool, yuv_pool;
 
+#ifdef USE_WINDOW_THREAD
 	/*if we own the window*/
 	GF_Thread *th;
 	u32 th_state;
+#endif
 
 
 	Bool owns_hwnd;

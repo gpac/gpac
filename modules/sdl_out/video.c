@@ -390,15 +390,18 @@ static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 #if 0
 void SDLVid_SetHack(void *os_handle, Bool set_on)
 {
-  unsetenv("SDL_WINDOWID=");
-	if (!os_handle) return;
-	if (set_on) {
-		char buf[16];
-		snprintf(buf, sizeof(buf), "%u", (u32) os_handle);
-		setenv("SDL_WINDOWID", buf, 1);
+	char buf[50];
+	if (set_on && os_handle) {
 		sprintf(buf, "SDL_WINDOWID=%u", (u32) os_handle);
-		putenv(buf);
+	} else {
+		strcpy(buf, "SDL_WINDOWID=");
 	}
+#ifdef WIN32
+	putenv(buf);
+#else
+	if (set_on) unsetenv("SDL_WINDOWID=");
+	else putenv(buf);
+#endif
 }
 #endif
 
@@ -462,34 +465,25 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 }
 
 
-u32 SDLVid_EventProc(void *par)
+static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 {
-	u32 flags, last_mouse_move;
-	Bool cursor_on;
-	SDL_Event sdl_evt;
-	GF_Event gpac_evt;
-	GF_VideoOutput *dr = (GF_VideoOutput *)par;
-	SDLVID();
+	u32 flags;
 
 	flags = SDL_WasInit(SDL_INIT_VIDEO);
 	if (!(flags & SDL_INIT_VIDEO)) {
 		if (SDL_InitSubSystem(SDL_INIT_VIDEO)<0) {
-			ctx->sdl_th_state = 3;
 			return 0;
 		}
 	}
 
-	/*note we create the window on the first resize. This is the only way to keep synchronous with X and cope with GL threading*/
-	
-	ctx->sdl_th_state = 1;
 	ctx->curs_def = SDL_GetCursor();
 	ctx->curs_hand = SDLVid_LoadCursor(hand_data);
 	ctx->curs_collide = SDLVid_LoadCursor(collide_data);
 	SDL_EnableUNICODE(1);
 	SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 
-	last_mouse_move = SDL_GetTicks();
-	cursor_on = 1;
+	ctx->last_mouse_move = SDL_GetTicks();
+	ctx->cursor_on = 1;
 
 	/*save display resolution (SDL doesn't give acees to that)*/
 	dr->max_screen_width = dr->max_screen_height = 0;
@@ -509,7 +503,113 @@ u32 SDLVid_EventProc(void *par)
 #endif
     
 
+	SDLVid_ResizeWindow(dr, 100, 100);
 	if (!ctx->os_handle) SDLVid_SetCaption();
+
+	return 1;
+}
+
+static void SDLVid_ShutdownWindow(SDLVidCtx *ctx)
+{
+	SDLVid_DestroyObjects(ctx);
+	SDL_FreeCursor(ctx->curs_hand);
+	SDL_FreeCursor(ctx->curs_collide);
+	SDL_QuitSubSystem(SDL_INIT_VIDEO);
+}
+
+
+Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
+{
+	SDL_Event sdl_evt;
+	GF_Event gpac_evt;
+
+	while (SDL_PollEvent(&sdl_evt)) {
+		switch (sdl_evt.type) {
+		case SDL_VIDEORESIZE:
+		  	gpac_evt.type = GF_EVENT_SIZE;
+			gpac_evt.size.width = sdl_evt.resize.w;
+			gpac_evt.size.height = sdl_evt.resize.h;
+			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			break;
+		case SDL_QUIT:
+			gpac_evt.type = GF_EVENT_QUIT;
+			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			return 0;
+
+		case SDL_VIDEOEXPOSE:
+			gpac_evt.type = GF_EVENT_REFRESH;
+			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			break;
+
+		/*keyboard*/
+		case SDL_KEYDOWN:
+		case SDL_KEYUP:
+			sdl_translate_key(sdl_evt.key.keysym.sym, &gpac_evt.key);
+			gpac_evt.type = (sdl_evt.key.type==SDL_KEYDOWN) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
+			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			if ((sdl_evt.key.type==SDL_KEYDOWN) && sdl_evt.key.keysym.unicode) {
+				gpac_evt.character.unicode_char = sdl_evt.key.keysym.unicode;
+				gpac_evt.type = GF_EVENT_TEXTINPUT;
+				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			}
+			break;
+
+		/*mouse*/
+		case SDL_MOUSEMOTION:
+			ctx->last_mouse_move = SDL_GetTicks();
+			gpac_evt.type = GF_EVENT_MOUSEMOVE;
+			gpac_evt.mouse.x = sdl_evt.motion.x;
+			gpac_evt.mouse.y = sdl_evt.motion.y;
+			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+			break;
+		case SDL_MOUSEBUTTONDOWN:
+		case SDL_MOUSEBUTTONUP:
+			ctx->last_mouse_move = SDL_GetTicks();
+			gpac_evt.mouse.x = sdl_evt.motion.x;
+			gpac_evt.mouse.y = sdl_evt.motion.y;
+			gpac_evt.type = (sdl_evt.type==SDL_MOUSEBUTTONUP) ? GF_EVENT_MOUSEUP : GF_EVENT_MOUSEDOWN;
+			switch (sdl_evt.button.button) {
+			case SDL_BUTTON_LEFT: 
+				gpac_evt.mouse.button = GF_MOUSE_LEFT;
+				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+				break;
+			case SDL_BUTTON_MIDDLE: 
+				gpac_evt.mouse.button = GF_MOUSE_MIDDLE;
+				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+				break;
+			case SDL_BUTTON_RIGHT: 
+				gpac_evt.mouse.button = GF_MOUSE_RIGHT;
+				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+				break;
+#ifdef SDL_BUTTON_WHEELUP
+			case SDL_BUTTON_WHEELUP:
+			case SDL_BUTTON_WHEELDOWN:
+				/*SDL handling is not perfect there, it just says up/down but no info on how much
+				the wheel was rotated...*/
+				gpac_evt.mouse.wheel_pos = (sdl_evt.button.button==SDL_BUTTON_WHEELUP) ? FIX_ONE : -FIX_ONE;
+				gpac_evt.type = GF_EVENT_MOUSEWHEEL;
+				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+				break;
+#endif
+			}
+			break;
+		}
+	}
+	return 1;
+}
+
+#ifdef	SDL_WINDOW_THREAD
+u32 SDLVid_EventProc(void *par)
+{
+	u32 flags, last_mouse_move;
+	Bool ret;
+	GF_VideoOutput *dr = (GF_VideoOutput *)par;
+	SDLVID();
+
+	ctx->sdl_th_state = 1;
+	if (!SDLVid_InitializeWindow(ctx, dr)) {
+		ctx->sdl_th_state = 3;
+	}
 
 	while (ctx->sdl_th_state==1) {
 		/*after much testing: we must ensure nothing is using the event queue when resizing window.
@@ -520,81 +620,8 @@ u32 SDLVid_EventProc(void *par)
 #ifndef WIN32
 		gf_mx_p(ctx->evt_mx);
 #endif
-		while (SDL_PollEvent(&sdl_evt)) {
-			switch (sdl_evt.type) {
-			case SDL_VIDEORESIZE:
-			  	gpac_evt.type = GF_EVENT_SIZE;
-				gpac_evt.size.width = sdl_evt.resize.w;
-				gpac_evt.size.height = sdl_evt.resize.h;
-				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-				break;
-			case SDL_QUIT:
-				if (ctx->sdl_th_state==1) {
-					gpac_evt.type = GF_EVENT_QUIT;
-					dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-				} else {
-					goto exit;
-				}
-				break;
-			case SDL_VIDEOEXPOSE:
-				gpac_evt.type = GF_EVENT_REFRESH;
-				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-				break;
 
-			/*keyboard*/
-			case SDL_KEYDOWN:
-			case SDL_KEYUP:
-				sdl_translate_key(sdl_evt.key.keysym.sym, &gpac_evt.key);
-				gpac_evt.type = (sdl_evt.key.type==SDL_KEYDOWN) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
-				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-				if ((sdl_evt.key.type==SDL_KEYDOWN) && sdl_evt.key.keysym.unicode) {
-					gpac_evt.character.unicode_char = sdl_evt.key.keysym.unicode;
-					gpac_evt.type = GF_EVENT_TEXTINPUT;
-					dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-				}
-				break;
-
-			/*mouse*/
-			case SDL_MOUSEMOTION:
-				last_mouse_move = SDL_GetTicks();
-				gpac_evt.type = GF_EVENT_MOUSEMOVE;
-				gpac_evt.mouse.x = sdl_evt.motion.x;
-				gpac_evt.mouse.y = sdl_evt.motion.y;
-				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-				break;
-			case SDL_MOUSEBUTTONDOWN:
-			case SDL_MOUSEBUTTONUP:
-				last_mouse_move = SDL_GetTicks();
-				gpac_evt.mouse.x = sdl_evt.motion.x;
-				gpac_evt.mouse.y = sdl_evt.motion.y;
-				gpac_evt.type = (sdl_evt.type==SDL_MOUSEBUTTONUP) ? GF_EVENT_MOUSEUP : GF_EVENT_MOUSEDOWN;
-				switch (sdl_evt.button.button) {
-				case SDL_BUTTON_LEFT: 
-					gpac_evt.mouse.button = GF_MOUSE_LEFT;
-					dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-					break;
-				case SDL_BUTTON_MIDDLE: 
-					gpac_evt.mouse.button = GF_MOUSE_MIDDLE;
-					dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-					break;
-				case SDL_BUTTON_RIGHT: 
-					gpac_evt.mouse.button = GF_MOUSE_RIGHT;
-					dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-					break;
-#ifdef SDL_BUTTON_WHEELUP
-				case SDL_BUTTON_WHEELUP:
-				case SDL_BUTTON_WHEELDOWN:
-					/*SDL handling is not perfect there, it just says up/down but no info on how much
-					the wheel was rotated...*/
-					gpac_evt.mouse.wheel_pos = (sdl_evt.button.button==SDL_BUTTON_WHEELUP) ? FIX_ONE : -FIX_ONE;
-					gpac_evt.type = GF_EVENT_MOUSEWHEEL;
-					dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
-					break;
-#endif
-				}
-				break;
-			}
-		}
+		ret = SDLVid_ProcessMessageQueue(ctx, dr);
 
 #ifndef WIN32
 		gf_mx_v(ctx->evt_mx);
@@ -610,31 +637,33 @@ u32 SDLVid_EventProc(void *par)
 			cursor_on = 1;
 		}
 #endif
-		
-		gf_sleep(5);
+	
+		/*QUIT message has been processed*/
+		if (!ret) break;
+
+		gf_sleep(0);
 	}
 
-exit:
-	SDLVid_DestroyObjects(ctx);
-	SDL_FreeCursor(ctx->curs_hand);
-	SDL_FreeCursor(ctx->curs_collide);
-	SDL_QuitSubSystem(SDL_INIT_VIDEO);
+	SDLVid_ShutdownWindow(ctx);
 	ctx->sdl_th_state = 3;
 	return 0;
 }
+#endif /*SDL_WINDOW_THREAD*/
 
 
 GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u32 init_flags)
 {
 	SDLVID();
 	/*we don't allow SDL hack, not stable enough*/
-	//if (os_handle) return GF_NOT_SUPPORTED;
+	//if (os_handle) SDLVid_SetHack(os_handle, 1);
+
 	ctx->os_handle = os_handle;
 	ctx->is_init = 0;
 	ctx->output_3d_type = 0;
 	ctx->systems_memory = (init_flags & (GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION) ) ? 2 : 0;
 	if (!SDLOUT_InitSDL()) return GF_IO_ERR;
 
+#ifdef	SDL_WINDOW_THREAD
 	ctx->sdl_th_state = 0;
 	gf_th_run(ctx->sdl_th, SDLVid_EventProc, dr);
 	while (!ctx->sdl_th_state) gf_sleep(10);
@@ -643,6 +672,13 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 		ctx->sdl_th_state = 0;
 		return GF_IO_ERR;
 	}
+#else
+	if (!SDLVid_InitializeWindow(ctx, dr)) {
+		SDLOUT_CloseSDL();
+		return GF_IO_ERR;
+	}
+#endif
+
 	ctx->is_init = 1;
 	return GF_OK;
 }
@@ -653,6 +689,7 @@ static void SDLVid_Shutdown(GF_VideoOutput *dr)
 	/*remove all surfaces*/
 
 	if (!ctx->is_init) return;
+#ifdef	SDL_WINDOW_THREAD
 	if (ctx->sdl_th_state==1) {
 		SDL_Event evt;
 		ctx->sdl_th_state = 2;
@@ -660,6 +697,10 @@ static void SDLVid_Shutdown(GF_VideoOutput *dr)
 		SDL_PushEvent(&evt);
 		while (ctx->sdl_th_state != 3) gf_sleep(100);
 	}
+#else
+	SDLVid_ShutdownWindow(ctx);
+#endif
+
 	SDLOUT_CloseSDL();
 	ctx->is_init = 0;
 }
@@ -865,7 +906,13 @@ static void SDLVid_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
 
 static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
-	if (!evt) return GF_OK;
+	if (!evt) {
+#ifndef	SDL_WINDOW_THREAD
+		SDLVID();
+		SDLVid_ProcessMessageQueue(ctx, dr);
+#endif		
+		return GF_OK;
+	}
 	switch (evt->type) {
 	case GF_EVENT_SET_CURSOR:
 		SDLVid_SetCursor(dr, evt->cursor.cursor_type);
@@ -915,7 +962,9 @@ void *SDL_NewVideo()
 
 	ctx = malloc(sizeof(SDLVidCtx));
 	memset(ctx, 0, sizeof(SDLVidCtx));
+#ifdef	SDL_WINDOW_THREAD
 	ctx->sdl_th = gf_th_new("SDLVideo");
+#endif
 	ctx->evt_mx = gf_mx_new("SDLEvents");
 	
 	driv->opaque = ctx;
@@ -940,7 +989,9 @@ void SDL_DeleteVideo(void *ifce)
 {
 	GF_VideoOutput *dr = (GF_VideoOutput *)ifce;
 	SDLVID();
+#ifdef	SDL_WINDOW_THREAD
 	gf_th_del(ctx->sdl_th);
+#endif
 	gf_mx_del(ctx->evt_mx);
 	free(ctx);
 	free(dr);
