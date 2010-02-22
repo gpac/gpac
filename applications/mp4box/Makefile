@@ -24,7 +24,7 @@ CFLAGS+=-DGPAC_DISABLE_SVG
 endif
 
 #common obj
-OBJS= main.o filedump.o fileimport.o
+OBJS= main.o filedump.o fileimport.o live.o
 
 LINKFLAGS=-L../../bin/gcc -L../../extra_lib/lib/gcc
 
