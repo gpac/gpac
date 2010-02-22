@@ -121,8 +121,11 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 	compositor->hw_locked = 0;
 	e = GF_IO_ERR;
 	
-	/*try from device*/
-	if (compositor->rasterizer->surface_attach_to_device && compositor->video_out->LockOSContext) {
+	/*try from video memory handle (WIN32) if supported*/
+	if ((compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_HWND_HDC) 
+		&& compositor->rasterizer->surface_attach_to_device 
+		&& compositor->video_out->LockOSContext
+		) {
 		compositor->hw_context = compositor->video_out->LockOSContext(compositor->video_out, 1);
 		if (compositor->hw_context) {
 			e = compositor->rasterizer->surface_attach_to_device(visual->raster_surface, compositor->hw_context, compositor->vp_width, compositor->vp_height);
