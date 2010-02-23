@@ -127,10 +127,10 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			char *name;
 			FILE *f;
 			M_CacheTexture *ct = (M_CacheTexture *) node;
-			char *buf = malloc(sizeof(char)*length);
+			char *buf = gf_malloc(sizeof(char)*length);
 			gf_bs_read_data(bs, buf, length);
 			if (ct->cacheURL.buffer) {
-				name = strdup(ct->cacheURL.buffer);
+				name = gf_strdup(ct->cacheURL.buffer);
 			} else {
 				char szImg[100], *ext;
 				switch (ct->objectTypeIndication) {
@@ -140,14 +140,14 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 				default: ext = "img";
 				}
 				sprintf(szImg, "%04x%04x.%s", (u32) codec, (u32) ct, ext);
-				name = strdup(szImg);
+				name = gf_strdup(szImg);
 			}
 
 			if (codec->extraction_path) {
 				char *path;
 				u32 len = strlen(name)+strlen(codec->extraction_path)+2;
 				if (codec->service_url) len += 41;
-				path = malloc(sizeof(char)*len);
+				path = gf_malloc(sizeof(char)*len);
 				if (codec->service_url) {
 					u8 hash[20];
 					u32 i;
@@ -164,7 +164,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 				} else {
 					sprintf(path, "%s/%s", codec->extraction_path, name);
 				}
-				free(name);
+				gf_free(name);
 				name = path;
 			}
 
@@ -173,8 +173,8 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			fwrite(buf, 1, length, f);
 			fclose(f);
 		} else {
-			if ( ((SFString *)field->far_ptr)->buffer ) free( ((SFString *)field->far_ptr)->buffer);
-			((SFString *)field->far_ptr)->buffer = (char *)malloc(sizeof(char)*(length+1));
+			if ( ((SFString *)field->far_ptr)->buffer ) gf_free( ((SFString *)field->far_ptr)->buffer);
+			((SFString *)field->far_ptr)->buffer = (char *)gf_malloc(sizeof(char)*(length+1));
 			memset(((SFString *)field->far_ptr)->buffer , 0, length+1);
 			for (i=0; i<length; i++) {
 				 ((SFString *)field->far_ptr)->buffer[i] = gf_bs_read_int(bs, 8);
@@ -186,7 +186,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		SFURL *url = (SFURL *) field->far_ptr;
 		size = gf_bs_read_int(bs, 1);
 		if (size) {
-			if (url->url) free(url->url );
+			if (url->url) gf_free(url->url );
 			url->url = NULL;
 			length = gf_bs_read_int(bs, 10);
 			url->OD_ID = length;
@@ -197,23 +197,23 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 			buffer = NULL;
 			if (length) {
-				buffer = (char *)malloc(sizeof(char)*(length+1));
+				buffer = (char *)gf_malloc(sizeof(char)*(length+1));
 				memset(buffer, 0, length+1);
 				for (i=0; i<length; i++) buffer[i] = gf_bs_read_int(bs, 8);
 			}
-			if (url->url) free( url->url);
+			if (url->url) gf_free( url->url);
 			/*if URL is empty set it to NULL*/
 			if (buffer && strlen(buffer)) {
 				url->url = buffer;
 			} else {
-				free(buffer);
+				gf_free(buffer);
 				url->url = NULL;
 			}
 		}
 	}
 		break;
 	case GF_SG_VRML_SFIMAGE:
-		if (((SFImage *)field->far_ptr)->pixels) free(((SFImage *)field->far_ptr)->pixels);
+		if (((SFImage *)field->far_ptr)->pixels) gf_free(((SFImage *)field->far_ptr)->pixels);
 		w = gf_bs_read_int(bs, 12);
 		h = gf_bs_read_int(bs, 12);
 		length = gf_bs_read_int(bs, 2);
@@ -225,7 +225,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		((SFImage *)field->far_ptr)->width = w;
 		((SFImage *)field->far_ptr)->height = h;
 		((SFImage *)field->far_ptr)->numComponents = length;
-		((SFImage *)field->far_ptr)->pixels = (unsigned char *)malloc(sizeof(char)*size);
+		((SFImage *)field->far_ptr)->pixels = (unsigned char *)gf_malloc(sizeof(char)*size);
 		//WARNING: Buffers are NOT ALIGNED IN THE BITSTREAM
 		for (i=0; i<size; i++) {
 			((SFImage *)field->far_ptr)->pixels[i] = gf_bs_read_int(bs, 8);
@@ -235,7 +235,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 	{
 		SFCommandBuffer *sfcb = (SFCommandBuffer *)field->far_ptr;
 		if (sfcb->buffer) {
-			free(sfcb->buffer);		
+			gf_free(sfcb->buffer);		
 			sfcb->buffer = NULL;
 		}
 		while (gf_list_count(sfcb->commandList)) {
@@ -250,7 +250,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 
 		sfcb->bufferSize = length;
 		if (length) {
-			sfcb->buffer = (unsigned char *)malloc(sizeof(char)*(length));
+			sfcb->buffer = (unsigned char *)gf_malloc(sizeof(char)*(length));
 			//WARNING Buffers are NOT ALIGNED IN THE BITSTREAM
 			for (i=0; i<length; i++) {
 				sfcb->buffer[i] = gf_bs_read_int(bs, 8);
@@ -265,7 +265,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		 2 - InputSensor only works on decompressed commands
 		*/
 		if (codec->dec_memory_mode || (node->sgprivate->tag==TAG_MPEG4_InputSensor)) {
-			CommandBufferItem *cbi = (CommandBufferItem *)malloc(sizeof(CommandBufferItem));
+			CommandBufferItem *cbi = (CommandBufferItem *)gf_malloc(sizeof(CommandBufferItem));
 			cbi->node = node;
 			cbi->cb = sfcb;
 			gf_list_add(codec->command_buffers, cbi);

@@ -66,7 +66,7 @@ Bool DC_RemoveChannel(DCReader *read, LPNETCHANNEL ch)
 	while ((dc = (DummyChannel *)gf_list_enum(read->channels, &i))) {
 		if (dc->ch && dc->ch==ch) {
 			gf_list_rem(read->channels, i-1);
-			free(dc);
+			gf_free(dc);
 			return 1;
 		}
 	}
@@ -115,7 +115,7 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 			else if (!strcmp(rtype, "svg")) handled = 1;
 			else if (!strcmp(rtype, "bindings")) handled = 1;
 			else if (!strcmp(rtype, "widget")) handled = 1;
-			free(rtype);
+			gf_free(rtype);
 			return handled;
 		}
 	}
@@ -242,7 +242,7 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 			else if (!strcmp(rtype, "X3D")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
 			else if (!strcmp(rtype, "bindings")) read->oti = GPAC_OTI_PRIVATE_SCENE_XBL;
 			else if (!strcmp(rtype, "widget")) read->oti = GPAC_OTI_PRIVATE_SCENE_WGT;
-			free(rtype);
+			gf_free(rtype);
 		}
 	}
 
@@ -457,7 +457,7 @@ void ShutdownInterface(GF_BaseInterface *bi)
 		DCReader *read = (DCReader*)ifcn->priv;
 		assert(!gf_list_count(read->channels));
 		gf_list_del(read->channels);
-		free(read);
-		free(bi);
+		gf_free(read);
+		gf_free(bi);
 	}
 }

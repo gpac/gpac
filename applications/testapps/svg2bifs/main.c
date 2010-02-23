@@ -313,15 +313,15 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 			gf_svg_parse_element_id((GF_Node *)elt, att->value, 0);
 			id_string = att->value;
 		} else if (anim && !stricmp(att->name, "to")) {
-			anim->to = strdup(att->value);
+			anim->to = gf_strdup(att->value);
 		} else if (anim && !stricmp(att->name, "from")) {
-			anim->from = strdup(att->value);
+			anim->from = gf_strdup(att->value);
 		} else if (anim && !stricmp(att->name, "by")) {
-			anim->by = strdup(att->value);
+			anim->by = gf_strdup(att->value);
 		} else if (anim && !stricmp(att->name, "values")) {
-			anim->values = strdup(att->value);
+			anim->values = gf_strdup(att->value);
 		} else if (anim && (tag == TAG_SVG_animateTransform) && !stricmp(att->name, "type")) {
-			anim->type = strdup(att->value);
+			anim->type = gf_strdup(att->value);
 		} else {
 			GF_FieldInfo info;
 			if (gf_node_get_field_by_name((GF_Node *)elt, att->name, &info)==GF_OK) {
@@ -339,7 +339,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 	memset(&converter->all_atts, 0, sizeof(SVGAllAttributes));
 	gf_svg_flatten_attributes(elt, &converter->all_atts);
 	
-	backup_props = malloc(sizeof(SVGPropertiesPointers));
+	backup_props = gf_malloc(sizeof(SVGPropertiesPointers));
 	memcpy(backup_props, &converter->svg_props, sizeof(SVGPropertiesPointers));
 	gf_node_set_private((GF_Node *)elt, backup_props);
 
@@ -700,7 +700,7 @@ static void svg2bifs_node_start(void *sax_cbck, const char *name, const char *na
 					text->fontStyle = (GF_Node *)fs;
 
 					gf_sg_vrml_mf_alloc(&fs->family, GF_SG_VRML_MFSTRING, 1);				
-					fs->family.vals[0] = strdup(converter->svg_props.font_family->value);				
+					fs->family.vals[0] = gf_strdup(converter->svg_props.font_family->value);				
 					fs->size = converter->svg_props.font_size->value;
 
 					shape->appearance = create_appearance(&converter->svg_props, converter->bifs_sg);
@@ -981,7 +981,7 @@ static void svg2bifs_node_end(void *sax_cbck, const char *name, const char *name
 
 	SVGPropertiesPointers *backup_props = gf_node_get_private(converter->svg_parent);
 	memcpy(&converter->svg_props, backup_props, sizeof(SVGPropertiesPointers));
-//	free(backup_props);
+//	gf_free(backup_props);
 	gf_node_set_private(converter->svg_parent, NULL);
 
 	if (!(gf_node_get_tag(converter->svg_parent) == TAG_SVG_animateTransform))
@@ -1001,7 +1001,7 @@ static void svg2bifs_text_content(void *sax_cbck, const char *text_content, Bool
 	if (converter->bifs_text_node) {
 		M_Text *text = (M_Text *)converter->bifs_text_node;
 		gf_sg_vrml_mf_alloc(&text->string, GF_SG_VRML_MFSTRING, 1);
-		text->string.vals[0] = strdup(text_content);
+		text->string.vals[0] = gf_strdup(text_content);
 	}
 }
 
@@ -1042,5 +1042,5 @@ int main(int argc, char **argv)
 
 	gf_xml_sax_del(converter->sax_parser);
 	
-	free(converter);
+	gf_free(converter);
 }

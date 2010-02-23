@@ -303,8 +303,8 @@ void DeleteISMACrypTool(GF_IPMPTool *plug)
 	ISMAEAPriv *priv = (ISMAEAPriv *)plug->udta;
 	/*in case something went wrong*/
 	if (priv->crypt) gf_crypt_close(priv->crypt);
-	free(priv);
-	free(plug);
+	gf_free(priv);
+	gf_free(plug);
 }
 
 GF_IPMPTool *NewISMACrypTool()

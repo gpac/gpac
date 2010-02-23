@@ -28,12 +28,12 @@
 
 GF_Box *ghnt_New()
 {
-	GF_HintSampleEntryBox *tmp = (GF_HintSampleEntryBox *) malloc(sizeof(GF_HintSampleEntryBox));
+	GF_HintSampleEntryBox *tmp = (GF_HintSampleEntryBox *) gf_malloc(sizeof(GF_HintSampleEntryBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_HintSampleEntryBox));
 	tmp->HintDataTable = gf_list_new();
 	if (!tmp->HintDataTable) {
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	//this type is used internally for protocols that share the same base entry
@@ -51,7 +51,7 @@ void ghnt_del(GF_Box *s)
 	ptr = (GF_HintSampleEntryBox *)s;
 	gf_isom_box_array_del(ptr->HintDataTable);
 	if (ptr->hint_sample) gf_isom_hint_sample_del(ptr->hint_sample);
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
@@ -142,18 +142,18 @@ void gf_isom_hint_sample_del(GF_HintSample *ptr)
 		gf_list_rem(ptr->packetTable, 0);
 	}
 	gf_list_del(ptr->packetTable);
-	if (ptr->AdditionalData) free(ptr->AdditionalData);
+	if (ptr->AdditionalData) gf_free(ptr->AdditionalData);
 
 	if (ptr->sample_cache) {
 		while (gf_list_count(ptr->sample_cache)) {
 			GF_HintDataCache *hdc = (GF_HintDataCache *)gf_list_get(ptr->sample_cache, 0);
 			gf_list_rem(ptr->sample_cache, 0);
 			if (hdc->samp) gf_isom_sample_del(&hdc->samp);
-			free(hdc);
+			gf_free(hdc);
 		}
 		gf_list_del(ptr->sample_cache);
 	}
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sampleSize)
@@ -180,7 +180,7 @@ GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sample
 	//do we have some more data after the packets ??
 	if ((u32)sizeOut < sampleSize) {
 		ptr->dataLength = sampleSize - (u32)sizeOut;
-		ptr->AdditionalData = (char*)malloc(sizeof(char) * ptr->dataLength);
+		ptr->AdditionalData = (char*)gf_malloc(sizeof(char) * ptr->dataLength);
 		gf_bs_read_data(bs, ptr->AdditionalData, ptr->dataLength);
 	}
 	return GF_OK;
@@ -329,14 +329,14 @@ u32 gf_isom_hint_pck_length(u8 HintType, GF_HintPacket *ptr)
 
 GF_GenericDTE *New_EmptyDTE()
 {
-	GF_EmptyDTE *dte = (GF_EmptyDTE *)malloc(sizeof(GF_EmptyDTE));
+	GF_EmptyDTE *dte = (GF_EmptyDTE *)gf_malloc(sizeof(GF_EmptyDTE));
 	dte->source = 0;
 	return (GF_GenericDTE *)dte;
 }
 
 GF_GenericDTE *New_ImmediateDTE()
 {
-	GF_ImmediateDTE *dte = (GF_ImmediateDTE *)malloc(sizeof(GF_ImmediateDTE));
+	GF_ImmediateDTE *dte = (GF_ImmediateDTE *)gf_malloc(sizeof(GF_ImmediateDTE));
 	dte->source = 1;
 	memset(dte->data, 0, 14);
 	dte->dataLength = 0;
@@ -345,7 +345,7 @@ GF_GenericDTE *New_ImmediateDTE()
 
 GF_GenericDTE *New_SampleDTE()
 {
-	GF_SampleDTE *dte = (GF_SampleDTE *)malloc(sizeof(GF_SampleDTE));
+	GF_SampleDTE *dte = (GF_SampleDTE *)gf_malloc(sizeof(GF_SampleDTE));
 	dte->source = 2;
 	//can be -1 in QT , so init at -2
 	dte->trackRefIndex = (s8) -2;
@@ -359,7 +359,7 @@ GF_GenericDTE *New_SampleDTE()
 
 GF_GenericDTE *New_StreamDescDTE()
 {
-	GF_StreamDescDTE *dte = (GF_StreamDescDTE *)malloc(sizeof(GF_StreamDescDTE));
+	GF_StreamDescDTE *dte = (GF_StreamDescDTE *)gf_malloc(sizeof(GF_StreamDescDTE));
 	dte->source = 3;
 	dte->byteOffset = 0;
 	dte->dataLength = 0;
@@ -391,16 +391,16 @@ GF_GenericDTE *NewDTE(u8 type)
 		Deletion of DataTable entries in the RTP sample
 ********************************************************************/
 void Del_EmptyDTE(GF_EmptyDTE *dte)
-{ free(dte); }
+{ gf_free(dte); }
 
 void Del_ImmediateDTE(GF_ImmediateDTE *dte)
-{ free(dte); }
+{ gf_free(dte); }
 
 void Del_SampleDTE(GF_SampleDTE *dte)
-{ free(dte); }
+{ gf_free(dte); }
 
 void Del_StreamDescDTE(GF_StreamDescDTE *dte)
-{ free(dte); }
+{ gf_free(dte); }
 
 //deletion of DTEs
 void DelDTE(GF_GenericDTE *dte)
@@ -570,7 +570,7 @@ GF_Err OffsetDTE(GF_GenericDTE *dte, u32 offset, u32 HintSampleNumber)
 
 GF_RTPPacket *gf_isom_hint_rtp_new()
 {
-	GF_RTPPacket *tmp = (GF_RTPPacket *)malloc(sizeof(GF_RTPPacket));
+	GF_RTPPacket *tmp = (GF_RTPPacket *)gf_malloc(sizeof(GF_RTPPacket));
 	tmp->TLV = gf_list_new();
 	tmp->DataTable = gf_list_new();
 	tmp->B_bit = tmp->M_bit = tmp->P_bit = tmp->payloadType = tmp->payloadType = tmp->R_bit = tmp->X_bit = 0;
@@ -591,7 +591,7 @@ void gf_isom_hint_rtp_del(GF_RTPPacket *ptr)
 	gf_list_del(ptr->DataTable);
 	//the TLV
 	gf_isom_box_array_del(ptr->TLV);
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)

@@ -97,9 +97,9 @@ static Fixed quadratic_knots[] = {0,0,0,FIX_ONE,FIX_ONE,FIX_ONE};
 
 static void anurbs_reset(anim_nurbs *nurbs)
 {
-	if (nurbs->n) free(nurbs->n);
-	if (nurbs->left) free(nurbs->left);
-	if (nurbs->right) free(nurbs->right);
+	if (nurbs->n) gf_free(nurbs->n);
+	if (nurbs->left) gf_free(nurbs->left);
+	if (nurbs->right) gf_free(nurbs->right);
 	nurbs->n = nurbs->left = nurbs->right = NULL;
 }
 
@@ -140,9 +140,9 @@ static void anurbs_basis(anim_nurbs *nurbs, s32 span, Fixed t)
 	u32 i, j;
 	Fixed saved, temp;
 	if (!nurbs->n) {
-		nurbs->n = (Fixed*)malloc(sizeof(Fixed) * (nurbs->p+1));
-		nurbs->left = (Fixed*)malloc(sizeof(Fixed) * (nurbs->p+1));
-		nurbs->right = (Fixed*)malloc(sizeof(Fixed) * (nurbs->p+1));
+		nurbs->n = (Fixed*)gf_malloc(sizeof(Fixed) * (nurbs->p+1));
+		nurbs->left = (Fixed*)gf_malloc(sizeof(Fixed) * (nurbs->p+1));
+		nurbs->right = (Fixed*)gf_malloc(sizeof(Fixed) * (nurbs->p+1));
 	}
 	nurbs->n[0] = FIX_ONE;
 
@@ -281,7 +281,7 @@ static void Anim_Destroy(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		AnimatorStack *stack = (AnimatorStack *)gf_node_get_private(node);
 		anurbs_reset(&stack->anurbs);
-		free(stack);
+		gf_free(stack);
 	}
 }
 

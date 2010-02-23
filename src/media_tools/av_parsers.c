@@ -199,7 +199,7 @@ GF_EXPORT
 void gf_m4v_parser_del(GF_M4VParser *m4v)
 {
 	gf_bs_del(m4v->bs);
-	free(m4v);
+	gf_free(m4v);
 }
 
 
@@ -257,14 +257,14 @@ void gf_m4v_rewrite_pl(char **o_data, u32 *o_dataLen, u8 PL)
 		pos ++;
 	}
 	/*emulate VOS at beggining*/
-	(*o_data) = (char *)malloc(sizeof(char)*(dataLen+5));
+	(*o_data) = (char *)gf_malloc(sizeof(char)*(dataLen+5));
 	(*o_data)[0] = 0;
 	(*o_data)[1] = 0;
 	(*o_data)[2] = 1;
 	(*o_data)[3] = (char) M4V_VOS_START_CODE;
 	(*o_data)[4] = PL;
 	memcpy( (*o_data + 5), data, sizeof(char)*dataLen);
-	free(data);
+	gf_free(data);
 	(*o_dataLen) = dataLen + 5;
 }
 
@@ -697,7 +697,7 @@ GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 	}
 	
 	gf_m4v_parser_del(m4v);
-	free(*o_data);
+	gf_free(*o_data);
 	gf_bs_get_content(mod, o_data, o_dataLen);
 	gf_bs_del(mod);
 	return GF_OK;
@@ -2063,7 +2063,7 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 	bs = gf_bs_new(buffer, nal_size, GF_BITSTREAM_READ);
 	gf_bs_read_int(bs, 8);
 
-	new_buffer = (char*)malloc(sizeof(char)*nal_size);
+	new_buffer = (char*)gf_malloc(sizeof(char)*nal_size);
 	new_buffer[0] = (char) hdr;
 	written = 1;
 
@@ -2169,7 +2169,7 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 	gf_bs_del(bs);
 	assert(written<=nal_size);
 	if (written) memcpy(buffer, new_buffer, sizeof(char)*written);
-	free(new_buffer);
+	gf_free(new_buffer);
 	/*if only hdr written ignore*/
 	return (written>1) ? written : 0;
 }
@@ -2257,7 +2257,7 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 			gf_bs_write_int(mod, flag, 1);
 		}
 		gf_bs_del(orig);
-		free(slc->data);
+		gf_free(slc->data);
 		slc->data = NULL;
 		gf_bs_get_content(mod, (char **) &slc->data, &flag);
 		slc->size = flag;
@@ -2639,12 +2639,12 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 			u32 *parts, *class_dims, count, rangebits;
 			u32 max_class = 0;
 			nb_part = oggpack_read(&opb, 5);
-			parts = (u32*)malloc(sizeof(u32) * nb_part);
+			parts = (u32*)gf_malloc(sizeof(u32) * nb_part);
 			for (j=0;j<nb_part;j++) {
 				parts[j] = oggpack_read(&opb, 4);
 				if (max_class<parts[j]) max_class = parts[j];
 			}
-			class_dims = (u32*)malloc(sizeof(u32) * (max_class+1));
+			class_dims = (u32*)gf_malloc(sizeof(u32) * (max_class+1));
 			for (j=0; j<max_class+1;j++) {
 				u32 class_sub;
 				class_dims[j] = oggpack_read(&opb, 3) + 1;
@@ -2659,8 +2659,8 @@ Bool gf_vorbis_parse_header(GF_VorbisParser *vp, char *data, u32 data_len)
 				count+=class_dims[parts[j]];
 				for (;k<count;k++) oggpack_read(&opb, rangebits);
 			}
-			free(parts);
-			free(class_dims);
+			gf_free(parts);
+			gf_free(class_dims);
 		} else {
 			u32 j, nb_books;
 			oggpack_read(&opb, 8+16+16+6+8);

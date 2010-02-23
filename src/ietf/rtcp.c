@@ -476,7 +476,7 @@ GF_Err gf_rtp_send_bye(GF_RTPChannel *ch,
 		else
 			e = GF_BAD_PARAM;
 	}
-	free(report_buf);
+	gf_free(report_buf);
 	return e;
 }
 
@@ -523,7 +523,7 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
 
 	ch->rtcp_bytes_sent += report_size;
 
-	free(report_buf);
+	gf_free(report_buf);
 	
 	if (!e) {
 		//Update the channel record if no error - otherwise next RTCP will triger an RR
@@ -535,7 +535,7 @@ GF_Err gf_rtp_send_rtcp_report(GF_RTPChannel *ch,
 
 
 
-#define RTCP_SAFE_FREE(p) if (p) free(p);	\
+#define RTCP_SAFE_FREE(p) if (p) gf_free(p);	\
 					p = NULL;
 
 GF_EXPORT
@@ -546,31 +546,31 @@ GF_Err gf_rtp_set_info_rtcp(GF_RTPChannel *ch, u32 InfoCode, char *info_string)
 	switch (InfoCode) {
 	case GF_RTCP_INFO_NAME:
 		RTCP_SAFE_FREE(ch->s_name);
-		if (info_string) ch->s_name = strdup(info_string);
+		if (info_string) ch->s_name = gf_strdup(info_string);
 		break;
 	case GF_RTCP_INFO_EMAIL:
 		RTCP_SAFE_FREE(ch->s_email);
-		if (info_string) ch->s_email = strdup(info_string);
+		if (info_string) ch->s_email = gf_strdup(info_string);
 		break;
 	case GF_RTCP_INFO_PHONE:
 		RTCP_SAFE_FREE(ch->s_phone);
-		if (info_string) ch->s_phone = strdup(info_string);
+		if (info_string) ch->s_phone = gf_strdup(info_string);
 		break;
 	case GF_RTCP_INFO_LOCATION:
 		RTCP_SAFE_FREE(ch->s_location);
-		if (info_string) ch->s_location = strdup(info_string);
+		if (info_string) ch->s_location = gf_strdup(info_string);
 		break;
 	case GF_RTCP_INFO_TOOL:
 		RTCP_SAFE_FREE(ch->s_tool);
-		if (info_string) ch->s_tool = strdup(info_string);
+		if (info_string) ch->s_tool = gf_strdup(info_string);
 		break;
 	case GF_RTCP_INFO_NOTE:
 		RTCP_SAFE_FREE(ch->s_note);
-		if (info_string) ch->s_note = strdup(info_string);
+		if (info_string) ch->s_note = gf_strdup(info_string);
 		break;
 	case GF_RTCP_INFO_PRIV:
 		RTCP_SAFE_FREE(ch->s_priv);
-		if (info_string) ch->s_name = strdup(info_string);
+		if (info_string) ch->s_name = gf_strdup(info_string);
 		break;
 	default:
 		return GF_BAD_PARAM;

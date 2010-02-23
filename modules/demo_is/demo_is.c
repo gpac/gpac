@@ -58,7 +58,7 @@ static void DEV_Start(struct __input_device *ifce)
 	gf_bs_del(bs);
 
 	ifce->DispatchFrame(ifce, buf, buf_size);
-	free(buf);
+	gf_free(buf);
 }
 
 static void DEV_Stop(struct __input_device *ifce)
@@ -97,6 +97,6 @@ void ShutdownInterface(GF_BaseInterface *bi)
 {
 	GF_InputSensorDevice *ifcn = (GF_InputSensorDevice*)bi;
 	if (ifcn->InterfaceType==GF_INPUT_DEVICE_INTERFACE) {
-		free(bi);
+		gf_free(bi);
 	}
 }

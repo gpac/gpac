@@ -58,7 +58,7 @@ static void TraversePathLayout(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		parent_node_predestroy((ParentNode2D *)gr);
 		if (gr->iter) gf_path_iterator_del(gr->iter);
-		free(gr);
+		gf_free(gr);
 		return;
 	}
 	if (!pl->geometry) return;

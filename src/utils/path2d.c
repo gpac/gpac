@@ -40,9 +40,9 @@ void gf_path_reset(GF_Path *gp)
 	Fixed fineness;
 	u32 flags;
 	if (!gp) return;
-	if (gp->contours) free(gp->contours);
-	if (gp->tags) free(gp->tags);
-	if (gp->points) free(gp->points);
+	if (gp->contours) gf_free(gp->contours);
+	if (gp->tags) gf_free(gp->tags);
+	if (gp->points) gf_free(gp->points);
 	fineness = gp->fineness ? gp->fineness : FIX_ONE;
 	flags = gp->flags;
 	memset(gp, 0, sizeof(GF_Path));
@@ -56,12 +56,12 @@ GF_Path *gf_path_clone(GF_Path *gp)
 	GF_Path *dst;
 	GF_SAFEALLOC(dst, GF_Path);
 	if (!dst) return NULL;
-	dst->contours = (u32 *)malloc(sizeof(u32)*gp->n_contours);
-	if (!dst->contours) { free(dst); return NULL; }
-	dst->points = (GF_Point2D *) malloc(sizeof(GF_Point2D)*gp->n_points);
-	if (!dst->points) { free(dst->contours); free(dst); return NULL; }
-	dst->tags = (u8 *) malloc(sizeof(u8)*gp->n_points);
-	if (!dst->tags) { free(dst->points); free(dst->contours); free(dst); return NULL; }
+	dst->contours = (u32 *)gf_malloc(sizeof(u32)*gp->n_contours);
+	if (!dst->contours) { gf_free(dst); return NULL; }
+	dst->points = (GF_Point2D *) gf_malloc(sizeof(GF_Point2D)*gp->n_points);
+	if (!dst->points) { gf_free(dst->contours); gf_free(dst); return NULL; }
+	dst->tags = (u8 *) gf_malloc(sizeof(u8)*gp->n_points);
+	if (!dst->tags) { gf_free(dst->points); gf_free(dst->contours); gf_free(dst); return NULL; }
 	memcpy(dst->contours, gp->contours, sizeof(u32)*gp->n_contours);
 	dst->n_contours = gp->n_contours;
 	memcpy(dst->points, gp->points, sizeof(GF_Point2D)*gp->n_points);
@@ -77,17 +77,17 @@ GF_EXPORT
 void gf_path_del(GF_Path *gp)
 {
 	if (!gp) return;
-	if (gp->contours) free(gp->contours);
-	if (gp->tags) free(gp->tags);
-	if (gp->points) free(gp->points);
-	free(gp);
+	if (gp->contours) gf_free(gp->contours);
+	if (gp->tags) gf_free(gp->tags);
+	if (gp->points) gf_free(gp->points);
+	gf_free(gp);
 }
 
 #define GF_2D_REALLOC(_gp)	\
 	if (_gp->n_alloc_points < _gp->n_points+3) {	\
 		_gp->n_alloc_points = (_gp->n_alloc_points<5) ? 10 : (_gp->n_alloc_points*3/2);	\
-		_gp->points = (GF_Point2D *)realloc(_gp->points, sizeof(GF_Point2D)*(_gp->n_alloc_points));	\
-		_gp->tags = (u8 *) realloc(_gp->tags, sizeof(u8)*(_gp->n_alloc_points));	\
+		_gp->points = (GF_Point2D *)gf_realloc(_gp->points, sizeof(GF_Point2D)*(_gp->n_alloc_points));	\
+		_gp->tags = (u8 *) gf_realloc(_gp->tags, sizeof(u8)*(_gp->n_alloc_points));	\
 	}	\
 
 
@@ -105,7 +105,7 @@ GF_Err gf_path_add_move_to(GF_Path *gp, Fixed x, Fixed y)
 	}
 #endif
 
-	gp->contours = (u32 *) realloc(gp->contours, sizeof(u32)*(gp->n_contours+1));
+	gp->contours = (u32 *) gf_realloc(gp->contours, sizeof(u32)*(gp->n_contours+1));
 	GF_2D_REALLOC(gp)
 
 	gp->points[gp->n_points].x = x;
@@ -275,16 +275,16 @@ GF_Err gf_path_add_subpath(GF_Path *gp, GF_Path *src, GF_Matrix2D *mx)
 {
 	u32 i;
 	if (!src) return GF_OK;
-	gp->contours = realloc(gp->contours, sizeof(u32) * (gp->n_contours + src->n_contours));
+	gp->contours = gf_realloc(gp->contours, sizeof(u32) * (gp->n_contours + src->n_contours));
 	if (!gp->contours) return GF_OUT_OF_MEM;
 	for (i=0; i<src->n_contours; i++) {
 		gp->contours[i+gp->n_contours] = src->contours[i] + gp->n_points;
 	}
 	gp->n_contours += src->n_contours;
 	gp->n_alloc_points += src->n_alloc_points;
-	gp->points = realloc(gp->points, sizeof(GF_Point2D)*gp->n_alloc_points);
+	gp->points = gf_realloc(gp->points, sizeof(GF_Point2D)*gp->n_alloc_points);
 	if (!gp->points) return GF_OUT_OF_MEM;
-	gp->tags = realloc(gp->tags, sizeof(u8)*gp->n_alloc_points);
+	gp->tags = gf_realloc(gp->tags, sizeof(u8)*gp->n_alloc_points);
 	if (!gp->tags) return GF_OUT_OF_MEM;
 	memcpy(gp->points + gp->n_points, src->points, sizeof(GF_Point2D)*src->n_points);
 	if (mx) {
@@ -356,13 +356,13 @@ GF_Err gf_path_add_bezier(GF_Path *gp, GF_Point2D *pts, u32 nbPoints)
 	GF_Point2D *newpts;
 	if (!gp->n_points) return GF_BAD_PARAM;
 
-	newpts = (GF_Point2D *) malloc(sizeof(GF_Point2D) * (nbPoints+1));
+	newpts = (GF_Point2D *) gf_malloc(sizeof(GF_Point2D) * (nbPoints+1));
 	newpts[0] = gp->points[gp->n_points-1];
 	memcpy(&newpts[1], pts, sizeof(GF_Point2D) * nbPoints);
 	
 	gf_add_n_bezier(gp, newpts, nbPoints + 1);
 
-	free(newpts);
+	gf_free(newpts);
 	return GF_OK;
 }
 
@@ -990,11 +990,11 @@ void gf_path_flatten(GF_Path *gp)
 	if (gp->flags & GF_PATH_FLATTENED) return;
 	if (!gp->n_points) return;
 	res = gf_path_get_flatten(gp);
-	if (gp->contours) free(gp->contours);
-	if (gp->points) free(gp->points);
-	if (gp->tags) free(gp->tags);
+	if (gp->contours) gf_free(gp->contours);
+	if (gp->points) gf_free(gp->points);
+	if (gp->tags) gf_free(gp->tags);
 	memcpy(gp, res, sizeof(GF_Path));
-	free(res);
+	gf_free(res);
 }
 
 
@@ -1164,10 +1164,10 @@ GF_PathIterator *gf_path_iterator_new(GF_Path *gp)
 	if (!it) return NULL;
 	flat = gf_path_get_flatten(gp);
 	if (!flat) {
-		free(it);
+		gf_free(it);
 		return NULL;
 	}
-	it->seg = (IterInfo *) malloc(sizeof(IterInfo) * flat->n_points);
+	it->seg = (IterInfo *) gf_malloc(sizeof(IterInfo) * flat->n_points);
 	it->num_seg = 0;
 	it->length = 0;
 	cur = 0;
@@ -1274,8 +1274,8 @@ found:
 GF_EXPORT
 void gf_path_iterator_del(GF_PathIterator *it)
 {
-	if (it->seg) free(it->seg);
-	free(it);
+	if (it->seg) gf_free(it->seg);
+	gf_free(it);
 }
 
 

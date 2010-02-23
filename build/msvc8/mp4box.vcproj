@@ -476,6 +476,10 @@
 			</FileConfiguration>
 		</File>
 		<File
+			RelativePath="..\..\applications\mp4box\live.c"
+			>
+		</File>
+		<File
 			RelativePath="..\..\applications\mp4box\main.c"
 			>
 			<FileConfiguration

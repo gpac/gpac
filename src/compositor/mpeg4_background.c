@@ -110,7 +110,7 @@ static void DestroyBackground(GF_Node *node)
 	gf_sc_texture_destroy(&ptr->txh_left);
 	gf_sc_texture_destroy(&ptr->txh_right);
 	
-	free(ptr);
+	gf_free(ptr);
 }
 
 #define COL_TO_RGBA(res, col) { res.red = col.red; res.green = col.green; res.blue = col.blue; res.alpha = FIX_ONE; }

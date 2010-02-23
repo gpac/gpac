@@ -495,7 +495,7 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 Sourc
 		if (!SampleNumber || (SampleNumber == trak->Media->information->sampleTable->SampleSize->sampleCount + 1)) {
 			//we adding some stuff in the current sample ...
 			dte->byteOffset += entry->hint_sample->dataLength;
-			entry->hint_sample->AdditionalData = (char*)realloc(entry->hint_sample->AdditionalData, sizeof(char) * (entry->hint_sample->dataLength + DataLength));
+			entry->hint_sample->AdditionalData = (char*)gf_realloc(entry->hint_sample->AdditionalData, sizeof(char) * (entry->hint_sample->dataLength + DataLength));
 			if (AtBegin) {
 				if (entry->hint_sample->dataLength)
 					memmove(entry->hint_sample->AdditionalData + DataLength, entry->hint_sample->AdditionalData, entry->hint_sample->dataLength);
@@ -690,12 +690,12 @@ static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
 		assert(st);
 		st += 2;
 		if (!st[0]) {
-			AddSDPLine(lines, strdup(cur), is_movie_sdp);
+			AddSDPLine(lines, gf_strdup(cur), is_movie_sdp);
 			break;
 		}
 		b = st[0];
 		st[0] = 0;
-		AddSDPLine(lines, strdup(cur), is_movie_sdp);
+		AddSDPLine(lines, gf_strdup(cur), is_movie_sdp);
 		st[0] = b;
 		cur = st;
 	}
@@ -704,7 +704,7 @@ static void ReorderSDP(char *sdp_text, Bool is_movie_sdp)
 		char *cur = (char *)gf_list_get(lines, 0);
 		gf_list_rem(lines, 0);
 		strcat(sdp_text, cur);
-		free(cur);
+		gf_free(cur);
 	}
 	gf_list_del(lines);
 }
@@ -739,16 +739,16 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 	sdp = (GF_SDPBox *) hnti->SDP;
 
 	if (!sdp->sdpText) {
-		sdp->sdpText = (char *)malloc(sizeof(char) * (strlen(text) + 3));
+		sdp->sdpText = (char *)gf_malloc(sizeof(char) * (strlen(text) + 3));
 		strcpy(sdp->sdpText, text);
 		strcat(sdp->sdpText, "\r\n");
 		return GF_OK;
 	}
-	buf = (char *)malloc(sizeof(char) * (strlen(sdp->sdpText) + strlen(text) + 3));
+	buf = (char *)gf_malloc(sizeof(char) * (strlen(sdp->sdpText) + strlen(text) + 3));
 	strcpy(buf, sdp->sdpText);
 	strcat(buf, text);
 	strcat(buf, "\r\n");
-	free(sdp->sdpText);
+	gf_free(sdp->sdpText);
 	ReorderSDP(buf, 0);
 	sdp->sdpText = buf;	
 	return GF_OK;
@@ -776,7 +776,7 @@ GF_Err gf_isom_sdp_clean_track(GF_ISOFile *the_file, u32 trackNumber)
 	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->boxList, 0);
 	if (!hnti->SDP) return GF_OK;
 	//and free the SDP
-	free(((GF_SDPBox *)hnti->SDP)->sdpText);
+	gf_free(((GF_SDPBox *)hnti->SDP)->sdpText);
 	((GF_SDPBox *)hnti->SDP)->sdpText = NULL;
 	return GF_OK;
 }
@@ -819,7 +819,7 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	if (!hnti->SDP) {
 		//we have to create it by hand, as we have a duplication of box type 
 		//(GF_RTPSampleEntryBox and GF_RTPBox have the same type...)
-		rtp = (GF_RTPBox *) malloc(sizeof(GF_RTPBox));
+		rtp = (GF_RTPBox *) gf_malloc(sizeof(GF_RTPBox));
 		rtp->subType = GF_ISOM_BOX_TYPE_SDP;
 		rtp->type = GF_ISOM_BOX_TYPE_RTP;
 		rtp->sdpText = NULL;
@@ -828,16 +828,16 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	rtp = (GF_RTPBox *) hnti->SDP;
 
 	if (!rtp->sdpText) {
-		rtp->sdpText = (char*)malloc(sizeof(char) * (strlen(text) + 3));
+		rtp->sdpText = (char*)gf_malloc(sizeof(char) * (strlen(text) + 3));
 		strcpy(rtp->sdpText, text);
 		strcat(rtp->sdpText, "\r\n");
 		return GF_OK;
 	}
-	buf = (char*)malloc(sizeof(char) * (strlen(rtp->sdpText) + strlen(text) + 3));
+	buf = (char*)gf_malloc(sizeof(char) * (strlen(rtp->sdpText) + strlen(text) + 3));
 	strcpy(buf, rtp->sdpText);
 	strcat(buf, text);
 	strcat(buf, "\r\n");
-	free(rtp->sdpText);
+	gf_free(rtp->sdpText);
 	ReorderSDP(buf, 1);
 	rtp->sdpText = buf;	
 	return GF_OK;

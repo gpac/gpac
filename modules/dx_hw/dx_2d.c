@@ -671,12 +671,12 @@ void DD_InitYUV(GF_VideoOutput *dr)
 #ifdef USE_DX_3
 	IDirectDraw_GetFourCCCodes(dd->pDD, &numCodes, NULL);
 	if (!numCodes) return;
-	codes = (DWORD *)malloc(numCodes*sizeof(DWORD));
+	codes = (DWORD *)gf_malloc(numCodes*sizeof(DWORD));
 	IDirectDraw_GetFourCCCodes(dd->pDD, &numCodes, codes);
 #else
 	IDirectDraw7_GetFourCCCodes(dd->pDD, &numCodes, NULL);
 	if (!numCodes) return;
-	codes = (DWORD *)malloc(numCodes*sizeof(DWORD));
+	codes = (DWORD *)gf_malloc(numCodes*sizeof(DWORD));
 	IDirectDraw7_GetFourCCCodes(dd->pDD, &numCodes, codes);
 #endif
 	
@@ -685,7 +685,7 @@ void DD_InitYUV(GF_VideoOutput *dr)
 		formats[num_yuv] = is_yuv_supported(codes[i]);
 		if (formats[num_yuv]) num_yuv++;
 	}
-	free(codes);
+	gf_free(codes);
 	/*too bad*/
 	if (!num_yuv) {
 		dr->hw_caps &= ~(GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_YUV_OVERLAY);

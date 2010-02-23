@@ -49,7 +49,7 @@ static void DestroyBackground2D(GF_Node *node)
 	while (gf_list_count(stack->status_stack)) {
 		BackgroundStatus *status = (BackgroundStatus *)gf_list_get(stack->status_stack, 0);
 		gf_list_rem(stack->status_stack, 0);
-		free(status);
+		gf_free(status);
 	}
 	gf_list_del(stack->status_stack);
 
@@ -58,7 +58,7 @@ static void DestroyBackground2D(GF_Node *node)
 #ifndef GPAC_DISABLE_3D
 	if (stack->mesh) mesh_free(stack->mesh);
 #endif
-	free(stack);
+	gf_free(stack);
 }
 
 static void b2D_new_status(Background2DStack *bck, M_Background2D*back)

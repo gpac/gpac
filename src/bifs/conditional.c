@@ -42,7 +42,7 @@ void Conditional_PreDestroy(GF_Node *n, void *eff, Bool is_destroy)
 {
 	if (is_destroy) {
 		ConditionalStack *priv = (ConditionalStack*)gf_node_get_private(n);
-		if (priv) free(priv);
+		if (priv) gf_free(priv);
 	}
 }
 
@@ -102,7 +102,7 @@ static void Conditional_execute(M_Conditional *node)
 	}
 #endif
 	if (node->buffer.buffer) {
-		free(buffer);
+		gf_free(buffer);
 	} else {
 		node->buffer.buffer = buffer;
 		node->buffer.bufferSize = len;
@@ -133,7 +133,7 @@ void SetupConditional(GF_BifsDecoder *codec, GF_Node *node)
 {
 	ConditionalStack *priv;
 	if (gf_node_get_tag(node) != TAG_MPEG4_Conditional) return;
-	priv = (ConditionalStack*)malloc(sizeof(ConditionalStack));
+	priv = (ConditionalStack*)gf_malloc(sizeof(ConditionalStack));
 
 	/*needed when initializing extern protos*/
 	if (!codec->info) codec->info = (BIFSStreamInfo*)gf_list_get(codec->streamInfo, 0);
@@ -181,7 +181,7 @@ void BIFS_SetupConditionalClone(GF_Node *node, GF_Node *orig)
 	}
 
 #ifndef GPAC_DISABLE_BIFS
-	priv = (ConditionalStack*)malloc(sizeof(ConditionalStack));
+	priv = (ConditionalStack*)gf_malloc(sizeof(ConditionalStack));
 	priv->codec = priv_orig->codec;
 	priv->info = priv_orig->info;
 	gf_node_set_callback_function(node, Conditional_PreDestroy);

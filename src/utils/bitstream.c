@@ -65,7 +65,7 @@ GF_BitStream *gf_bs_new(char *buffer, u64 BufferSize, u32 mode)
 	GF_BitStream *tmp;
 	if ( (buffer && ! BufferSize)) return NULL;
 
-	tmp = (GF_BitStream *)malloc(sizeof(GF_BitStream));
+	tmp = (GF_BitStream *)gf_malloc(sizeof(GF_BitStream));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_BitStream));
 
@@ -92,9 +92,9 @@ GF_BitStream *gf_bs_new(char *buffer, u64 BufferSize, u32 mode)
 			} else {
 				tmp->size = BS_MEM_BLOCK_ALLOC_SIZE;
 			}
-			tmp->original = (char *) malloc(sizeof(char) * ((u32) tmp->size));
+			tmp->original = (char *) gf_malloc(sizeof(char) * ((u32) tmp->size));
 			if (! tmp->original) {
-				free(tmp);
+				gf_free(tmp);
 				return NULL;
 			}
 			tmp->bsmode = GF_BITSTREAM_WRITE_DYN;
@@ -105,7 +105,7 @@ GF_BitStream *gf_bs_new(char *buffer, u64 BufferSize, u32 mode)
 		break;
 	default:
 		/*the stream constructor is not the same...*/
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	return tmp;
@@ -117,7 +117,7 @@ GF_BitStream *gf_bs_from_file(FILE *f, u32 mode)
 	GF_BitStream *tmp;
 	if (!f) return NULL;
 
-	tmp = (GF_BitStream *)malloc(sizeof(GF_BitStream));
+	tmp = (GF_BitStream *)gf_malloc(sizeof(GF_BitStream));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_BitStream));
 	/*switch to internal mode*/
@@ -142,8 +142,8 @@ void gf_bs_del(GF_BitStream *bs)
 {
 	if (!bs) return;
 	/*if we are in dynamic mode (alloc done by the bitstream), free the buffer if still present*/
-	if ((bs->bsmode == GF_BITSTREAM_WRITE_DYN) && bs->original) free(bs->original);
-	free(bs);
+	if ((bs->bsmode == GF_BITSTREAM_WRITE_DYN) && bs->original) gf_free(bs->original);
+	gf_free(bs);
 }
 
 
@@ -364,9 +364,9 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 		if (bs->position == bs->size) {
 			/*no more space...*/
 			if (bs->bsmode != GF_BITSTREAM_WRITE_DYN) return;
-			/*realloc if enough space...*/
+			/*gf_realloc if enough space...*/
 			if (bs->size > 0xFFFFFFFF) return;
-			bs->original = (char*)realloc(bs->original, (u32) (bs->size + BS_MEM_BLOCK_ALLOC_SIZE));
+			bs->original = (char*)gf_realloc(bs->original, (u32) (bs->size + BS_MEM_BLOCK_ALLOC_SIZE));
 			if (!bs->original) return;
 			bs->size += BS_MEM_BLOCK_ALLOC_SIZE;
 		}
@@ -374,7 +374,7 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 		bs->position++;
 		return;
 	}
-	/*we are in FILE mode, no pb for any realloc...*/
+	/*we are in FILE mode, no pb for any gf_realloc...*/
 	fputc(val, bs->stream);
 	/*check we didn't rewind the stream*/
 	if (bs->size == bs->position) bs->size++;
@@ -505,11 +505,11 @@ u32 gf_bs_write_data(GF_BitStream *bs, char *data, u32 nbBytes)
 			bs->position += nbBytes;
 			return nbBytes;
 		case GF_BITSTREAM_WRITE_DYN:
-			/*need to realloc ...*/
+			/*need to gf_realloc ...*/
 			if (bs->position+nbBytes > bs->size) {
 				if (bs->size + nbBytes > 0xFFFFFFFF) 
 					return 0;
-				bs->original = (char*)realloc(bs->original, sizeof(u32)*((u32) bs->size + nbBytes));
+				bs->original = (char*)gf_realloc(bs->original, sizeof(u32)*((u32) bs->size + nbBytes));
 				if (!bs->original) 
 					return 0;
 				bs->size += nbBytes;
@@ -583,7 +583,7 @@ u64 gf_bs_available(GF_BitStream *bs)
 
 /*call this funct to set the buffer size to the nb of bytes written 
 Used only in WRITE mode, as we don't know the real size during allocation...
-return -1 for bad param or malloc failed
+return -1 for bad param or gf_malloc failed
 return nbBytes cut*/
 static u32 BS_CutBuffer(GF_BitStream *bs)
 {	
@@ -594,7 +594,7 @@ static u32 BS_CutBuffer(GF_BitStream *bs)
 
 	nbBytes = (u32) (bs->size - bs->position);
 	if (!nbBytes || (nbBytes == 0xFFFFFFFF) || (bs->position >= 0xFFFFFFFF)) return 0;
-	bs->original = (char*)realloc(bs->original, (u32) bs->position);
+	bs->original = (char*)gf_realloc(bs->original, (u32) bs->position);
 	if (! bs->original) return (u32) -1;
 	/*just in case, re-adjust..*/
 	bs->size = bs->position;
@@ -610,7 +610,7 @@ void gf_bs_get_content(GF_BitStream *bs, char **output, u32 *outSize)
 	if (!bs->position && !bs->nbBits) {
 		*output = NULL;
 		*outSize = 0;
-		free(bs->original);
+		gf_free(bs->original);
 	} else {
 		BS_CutBuffer(bs);
 		*output = bs->original;
@@ -679,8 +679,8 @@ static GF_Err BS_SeekIntern(GF_BitStream *bs, u64 offset)
 		/*0 for write, read will be done automatically*/
 		if (offset >= bs->size) {
 			if ( (bs->bsmode == GF_BITSTREAM_READ) || (bs->bsmode == GF_BITSTREAM_WRITE) ) return GF_BAD_PARAM;
-			/*in DYN, realloc ...*/
-			bs->original = (char*)realloc(bs->original, (u32) (offset + 1));
+			/*in DYN, gf_realloc ...*/
+			bs->original = (char*)gf_realloc(bs->original, (u32) (offset + 1));
 			for (i = 0; i < (u32) (offset + 1 - bs->size); i++) {
 				bs->original[bs->size + i] = 0;
 			}

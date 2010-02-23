@@ -584,7 +584,7 @@ Bool loadcompare_one(void *cbck, char *item_name, char *item_path)
 
 	if (!lc->spread_repeat) {
 		print_load_data(lc, ld);
-		free(ld);
+		gf_free(ld);
 	}
 	return 0;
 }
@@ -664,7 +664,7 @@ int main(int argc, char **argv)
 		loadcompare_one(&lc, tmp+1, in);
 		ld = gf_list_get(lc.data, 0);
 		print_load_data(&lc, ld);
-		free(ld);
+		gf_free(ld);
 	} else {
 		if (lc.spread_repeat) {
 			for (lc.repeat_index = 0; lc.repeat_index < lc.nbloads; lc.repeat_index ++) {
@@ -678,7 +678,7 @@ int main(int argc, char **argv)
 			for (i=0; i<gf_list_count(lc.data); i++) {
 				LoadData *ld = gf_list_get(lc.data, i);
 				print_load_data(&lc, ld);
-				free(ld);
+				gf_free(ld);
 			}
 		} else {
 			if (lc.type == SVG) {

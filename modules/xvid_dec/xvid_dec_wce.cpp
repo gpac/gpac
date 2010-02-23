@@ -236,10 +236,10 @@ GF_BaseDecoder *NewXVIDDec()
 	GF_MediaDecoder *ifcd;
 	XVIDDec *dec;
 
-	ifcd = (GF_MediaDecoder*) malloc(sizeof(GF_MediaDecoder));
+	ifcd = (GF_MediaDecoder*) gf_malloc(sizeof(GF_MediaDecoder));
 	memset(ifcd, 0, sizeof(GF_MediaDecoder));
 	
-	dec = (XVIDDec*) malloc(sizeof(XVIDDec));
+	dec = (XVIDDec*) gf_malloc(sizeof(XVIDDec));
 	memset(dec, 0, sizeof(XVIDDec));
 
 	dec->cb_size = 4;
@@ -261,8 +261,8 @@ void DeleteXVIDDec(GF_BaseDecoder *ifcg)
 {
 	XVIDCTX();
 	if (ctx->codec) CloseCodec(ctx->codec);
-	free(ctx);
-	free(ifcg);
+	gf_free(ctx);
+	gf_free(ifcg);
 }
 
 

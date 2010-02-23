@@ -41,13 +41,13 @@ static char *xml_translate_xml_string(char *str)
 	char *value;
 	u32 size, i, j;
 	if (!str || !strlen(str)) return NULL;
-	value = (char *)malloc(sizeof(char) * 500);
+	value = (char *)gf_malloc(sizeof(char) * 500);
 	size = 500;
 	i = j = 0;
 	while (str[i]) {
 		if (j+20 >= size) {
 			size += 500;
-			value = (char *)realloc(value, sizeof(char)*size);
+			value = (char *)gf_realloc(value, sizeof(char)*size);
 		}
 		if (str[i] == '&') {
 			if (str[i+1]=='#') {
@@ -182,8 +182,8 @@ static GF_XMLSaxAttribute *xml_get_sax_attribute(GF_SAXParser *parser)
 {
 	if (parser->nb_attrs==parser->nb_alloc_attrs) {
 		parser->nb_alloc_attrs++;
-		parser->sax_attrs = (GF_XMLSaxAttribute *)realloc(parser->sax_attrs, sizeof(GF_XMLSaxAttribute)*parser->nb_alloc_attrs);
-		parser->attrs = (GF_XMLAttribute *)realloc(parser->attrs, sizeof(GF_XMLAttribute)*parser->nb_alloc_attrs);
+		parser->sax_attrs = (GF_XMLSaxAttribute *)gf_realloc(parser->sax_attrs, sizeof(GF_XMLSaxAttribute)*parser->nb_alloc_attrs);
+		parser->attrs = (GF_XMLAttribute *)gf_realloc(parser->attrs, sizeof(GF_XMLAttribute)*parser->nb_alloc_attrs);
 	}
 	return &parser->sax_attrs[parser->nb_attrs++];
 }
@@ -292,7 +292,7 @@ static void xml_sax_node_start(GF_SAXParser *parser)
 		for (i=0;i<parser->nb_attrs; i++) {
 			if (parser->sax_attrs[i].has_entities) {
 				parser->sax_attrs[i].has_entities = 0;
-				free(parser->attrs[i].value);
+				gf_free(parser->attrs[i].value);
 			}
 		}
 	}
@@ -533,7 +533,7 @@ static void xml_sax_flush_text(GF_SAXParser *parser)
 		char *xml_text = xml_translate_xml_string(text);
 		if (xml_text) {
 			parser->sax_text_content(parser->sax_cbck, xml_text, (parser->sax_state==SAX_STATE_CDATA) ? 1 : 0);
-			free(xml_text);
+			gf_free(xml_text);
 		}
 	} else {
 		parser->sax_text_content(parser->sax_cbck, text, (parser->sax_state==SAX_STATE_CDATA) ? 1 : 0);
@@ -576,7 +576,7 @@ static char *xml_get_current_text(GF_SAXParser *parser)
 
 	c = parser->buffer[parser->text_end-1];
 	parser->buffer[parser->text_end-1] = 0;
-	text = strdup(parser->buffer + parser->text_start-1);
+	text = gf_strdup(parser->buffer + parser->text_start-1);
 	parser->buffer[parser->text_end-1] = c;
 	parser->text_start = parser->text_end = 0;
 	return text;
@@ -634,7 +634,7 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 		else if (!ent && ((c=='\"') || (c=='\'')) ) {
 			szName[i] = 0;
 			GF_SAFEALLOC(ent, XML_Entity);
-			ent->name = strdup(szName);
+			ent->name = gf_strdup(szName);
 			ent->namelen = strlen(ent->name);
 			ent->sep = c;
 			parser->current_pos += 1+i;
@@ -647,7 +647,7 @@ static void xml_sax_parse_entity(GF_SAXParser *parser)
 			xml_sax_store_text(parser, i);
 
 			ent->value = xml_get_current_text(parser);
-			if (!ent->value) ent->value = strdup("");
+			if (!ent->value) ent->value = gf_strdup("");
 
 			parser->current_pos += 1;
 			assert(parser->current_pos < parser->line_size);
@@ -833,13 +833,13 @@ restart:
 						char *orig_buf;
 						GF_Err e;
 						parser->buffer[parser->elt_name_end-1] = sep;
-						orig_buf = strdup(parser->buffer + parser->current_pos);
+						orig_buf = gf_strdup(parser->buffer + parser->current_pos);
 						parser->current_pos = 0;
 						parser->line_size = 0;
 						parser->elt_start_pos = 0;
 						parser->sax_state = SAX_STATE_TEXT_CONTENT;
 						e = gf_xml_sax_parse_intern(parser, orig_buf);
-						free(orig_buf);
+						gf_free(orig_buf);
 						return e;
 					}
 				}
@@ -898,7 +898,7 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 	if ( (parser->alloc_size < size+nl_size+1) 
 		|| (parser->alloc_size / 2 ) > size+nl_size+1) 
 	{
-		parser->buffer = realloc(parser->buffer, sizeof(char) * (size+nl_size+1) );
+		parser->buffer = gf_realloc(parser->buffer, sizeof(char) * (size+nl_size+1) );
 		if (!parser->buffer ) return GF_OUT_OF_MEM;
 		parser->alloc_size = size+nl_size+1;
 	}
@@ -952,11 +952,11 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 
 			entityEnd[0] = 0;
 			len = strlen(entityStart) + strlen(current) + 1;
-			name = malloc(sizeof(char)*len);
+			name = gf_malloc(sizeof(char)*len);
 			sprintf(name, "%s%s;", entityStart+1, current);
 
 			ent = gf_xml_locate_entity(parser, name, &needs_text);
-			free(name);
+			gf_free(name);
 
 			if (!ent && !needs_text) {
 				xml_sax_append_string(parser, current);
@@ -1021,11 +1021,11 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string)
 	if (parser->unicode_type>1) {
 		const u16 *sptr = (const u16 *)string;
 		u32 len = 2*gf_utf8_wcslen(sptr);
-		utf_conv = (char *)malloc(sizeof(char)*(len+1));
+		utf_conv = (char *)gf_malloc(sizeof(char)*(len+1));
 		len = gf_utf8_wcstombs(utf_conv, len, &sptr);
 		if (len==(u32) -1) {
 			parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-			free(utf_conv);
+			gf_free(utf_conv);
 			return GF_CORRUPTED_DATA;
 		}
 		utf_conv[len] = 0;
@@ -1035,7 +1035,7 @@ GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string)
 	}
 
 	e = gf_xml_sax_parse_intern(parser, current);
-	if (utf_conv) free(utf_conv);
+	if (utf_conv) gf_free(utf_conv);
 	return e;
 }
 
@@ -1079,16 +1079,16 @@ static void xml_sax_reset(GF_SAXParser *parser)
 		XML_Entity *ent = (XML_Entity *)gf_list_last(parser->entities);
 		if (!ent) break;
 		gf_list_rem_last(parser->entities);
-		if (ent->name) free(ent->name);
-		if (ent->value) free(ent->value);
-		free(ent);
+		if (ent->name) gf_free(ent->name);
+		if (ent->value) gf_free(ent->value);
+		gf_free(ent);
 	}
-	if (parser->buffer) free(parser->buffer);
+	if (parser->buffer) gf_free(parser->buffer);
 	parser->buffer = NULL;
 	parser->current_pos = 0;
-	free(parser->attrs);
+	gf_free(parser->attrs);
 	parser->attrs = NULL;
-	free(parser->sax_attrs);
+	gf_free(parser->sax_attrs);
 	parser->sax_attrs = NULL;
 	parser->nb_alloc_attrs = parser->nb_attrs = 0;
 }
@@ -1217,7 +1217,7 @@ void gf_xml_sax_del(GF_SAXParser *parser)
 #else
 	if (parser->gz_in) gzclose(parser->gz_in);
 #endif
-	free(parser);
+	gf_free(parser);
 }
 
 GF_EXPORT
@@ -1271,7 +1271,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 #define CPYCAT_ALLOC(__str, __is_copy) if ( strlen(__str) + (__is_copy ? 0 : strlen(szLine))>=alloc_size) {\
 								alloc_size = 1+strlen(__str);	\
 								if (!__is_copy) alloc_size += strlen(szLine); \
-								szLine = realloc(szLine, alloc_size);	\
+								szLine = gf_realloc(szLine, alloc_size);	\
 							}\
 							if (__is_copy) strcpy(szLine, __str);	\
 							else strcat(szLine, __str); \
@@ -1297,7 +1297,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	att_len = strlen(parser->buffer + parser->att_name_start);
 	if (att_len<2*XML_INPUT_SIZE) att_len = 2*XML_INPUT_SIZE;
 	alloc_size = att_len;
-	szLine = (char *) malloc(sizeof(char)*alloc_size);
+	szLine = (char *) gf_malloc(sizeof(char)*alloc_size);
 	strcpy(szLine, parser->buffer + parser->att_name_start);
 	cur_line = szLine;
 	att_len = strlen(att_value);
@@ -1395,7 +1395,7 @@ retry:
 			state = 2;
 			if (!substitute || !get_attr || strcmp(sep, substitute) ) {
 				if (is_substitute) *is_substitute = 0;
-				result = strdup(sep);
+				result = gf_strdup(sep);
 				goto exit;
 			}
 			sep[pos] = first_c;
@@ -1411,7 +1411,7 @@ fetch_attr:
 			pos = 0;
 			while (!strchr(" \t\r\n/>", sep[pos])) pos++;
 			sep[pos-1] = 0;
-			result = strdup(sep);
+			result = gf_strdup(sep);
 			if (is_substitute) *is_substitute = 1;
 			goto exit;
 		}
@@ -1420,7 +1420,7 @@ fetch_attr:
 		goto retry;
 	}
 exit:
-	free(szLine);
+	gf_free(szLine);
 
 	if (!from_buffer) {
 #ifdef NO_GZIP
@@ -1449,7 +1449,7 @@ struct _peek_type
 static void on_peek_node_start(void *cbk, const char *name, const char *ns, const GF_XMLAttribute *attributes, u32 nb_attributes)
 {
 	struct _peek_type *pt = (struct _peek_type*)cbk;
-	pt->res = strdup(name);
+	pt->res = gf_strdup(name);
 	pt->parser->suspended = 1;
 }
 
@@ -1498,9 +1498,9 @@ void gf_xml_dom_node_del(GF_XMLNode *node)
 		while (gf_list_count(node->attributes)) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *)gf_list_last(node->attributes);
 			gf_list_rem_last(node->attributes);
-			if (att->name) free(att->name);
-			if (att->value) free(att->value);
-			free(att);
+			if (att->name) gf_free(att->name);
+			if (att->value) gf_free(att->value);
+			gf_free(att);
 		}
 		gf_list_del(node->attributes);
 	}
@@ -1512,9 +1512,9 @@ void gf_xml_dom_node_del(GF_XMLNode *node)
 		}
 		gf_list_del(node->content);
 	}
-	if (node->ns) free(node->ns);
-	if (node->name) free(node->name);
-	free(node);
+	if (node->ns) gf_free(node->ns);
+	if (node->name) gf_free(node->name);
+	gf_free(node);
 }
 
 static void on_dom_node_start(void *cbk, const char *name, const char *ns, const GF_XMLAttribute *attributes, u32 nb_attributes)
@@ -1533,13 +1533,13 @@ static void on_dom_node_start(void *cbk, const char *name, const char *ns, const
 	for (i=0; i<nb_attributes; i++) {
 		GF_XMLAttribute *att;
 		GF_SAFEALLOC(att, GF_XMLAttribute);
-		att->name = strdup(attributes[i].name);
-		att->value = strdup(attributes[i].value);
+		att->name = gf_strdup(attributes[i].name);
+		att->value = gf_strdup(attributes[i].value);
 		gf_list_add(node->attributes, att);
 	}
 	node->content = gf_list_new();
-	node->name = strdup(name);
-	if (ns) node->ns = strdup(ns);
+	node->name = gf_strdup(name);
+	if (ns) node->ns = gf_strdup(ns);
 	gf_list_add(par->stack, node);
 	if (!par->root) par->root = node;
 }
@@ -1574,7 +1574,7 @@ static void on_dom_text_content(void *cbk, const char *content, Bool is_cdata)
 
 	GF_SAFEALLOC(node, GF_XMLNode);
 	node->type = is_cdata ? GF_XML_CDATA_TYPE : GF_XML_TEXT_TYPE;
-	node->name = strdup(content);
+	node->name = gf_strdup(content);
 	gf_list_add(last->content, node);
 }
 
@@ -1613,7 +1613,7 @@ GF_EXPORT
 void gf_xml_dom_del(GF_DOMParser *parser)
 {
 	gf_xml_dom_reset(parser, 1);
-	free(parser);
+	gf_free(parser);
 }
 
 GF_EXPORT
@@ -1670,7 +1670,7 @@ static void gf_xml_dom_node_serialize(GF_XMLNode *node, Bool content_only, char 
 	vlen = strlen(v);	\
 	if (vlen+ (*size) >= (*alloc_size)) {	\
 		(*alloc_size) += 1024;	\
-		(*str) = realloc((*str), (*alloc_size));	\
+		(*str) = gf_realloc((*str), (*alloc_size));	\
 		(*str)[(*size)] = 0;	\
 	}	\
 	strcat((*str), v);	\

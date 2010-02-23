@@ -263,7 +263,7 @@ GF_MediaDecoder *NewAMRFTDecoder()
 	AMRFTDec *dec;
 	GF_MediaDecoder *ifce;
 	GF_SAFEALLOC(ifce , GF_MediaDecoder);
-	dec = malloc(sizeof(AMRFTDec));
+	dec = gf_malloc(sizeof(AMRFTDec));
 	memset(dec, 0, sizeof(AMRFTDec));
 	ifce->privateStack = dec;
 	ifce->CanHandleStream = AMR_CanHandleStream;
@@ -284,8 +284,8 @@ GF_MediaDecoder *NewAMRFTDecoder()
 void DeleteAMRFTDecoder(GF_BaseDecoder *ifcg)
 {
 	AMRFTCTX();
-	free(ctx);
-	free(ifcg);
+	gf_free(ctx);
+	gf_free(ifcg);
 }
 
 /*re-include AMR reader (we coul make it an independant module...)*/

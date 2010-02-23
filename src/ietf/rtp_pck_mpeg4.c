@@ -378,11 +378,11 @@ flush_packet:
 		/*notify payload*/
 		if (payl_buffer) {
 			builder->OnData(builder->cbk_obj, payl_buffer, payl_buffer_size, 0);
-			free(payl_buffer);
+			gf_free(payl_buffer);
 		}
 		/*flush packet*/
 		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
-		free(sl_buffer);
+		gf_free(sl_buffer);
 	}
 	//packet is done, update AU markers
 	if (IsAUEnd) {
@@ -588,14 +588,14 @@ GF_Err gp_rtp_builder_do_latm(GP_RTPPacketizer *builder, char *data, u32 data_si
 	
 		/* compute AudioMuxUnit header */ 
 		latm_hdr_size = (size / 255) + 1; 
-		latm_hdr = (unsigned char *)malloc( sizeof(char) * latm_hdr_size); 
+		latm_hdr = (unsigned char *)gf_malloc( sizeof(char) * latm_hdr_size); 
 		for (i=0; i<latm_hdr_size-1; i++)  latm_hdr[i] = 255; 
 		latm_hdr[latm_hdr_size-1] = size % 255; 
 		
 		/*add LATM header IN ORDER in case we aggregate audioMuxElements in RTP*/ 
 		builder->OnData(builder->cbk_obj, (char*) latm_hdr, latm_hdr_size, 0);
 		builder->bytesInPacket += latm_hdr_size;
-		free(latm_hdr);
+		gf_free(latm_hdr);
 		
 		/*add payload*/ 
 		if (builder->OnDataReference) {

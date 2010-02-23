@@ -148,7 +148,7 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 		*outDataMap = gf_isom_fdm_new(sPath, mode);
 	}
 
-	free(sPath);
+	gf_free(sPath);
 	if (! (*outDataMap)) return GF_URL_ERROR;
 	return GF_OK;
 }
@@ -267,7 +267,7 @@ GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, char *data, u32 dataSize)
 
 GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 {
-	GF_FileDataMap *tmp = (GF_FileDataMap *) malloc(sizeof(GF_FileDataMap));
+	GF_FileDataMap *tmp = (GF_FileDataMap *) gf_malloc(sizeof(GF_FileDataMap));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_FileDataMap));
 	tmp->type = GF_ISOM_DATA_FILE;
@@ -283,17 +283,17 @@ GF_DataMap *gf_isom_fdm_new_temp(const char *sPath)
 			sprintf(szPath, "%s%d_isotmp", sPath, (u32) tmp);
 		}
 		tmp->stream = gf_f64_open(szPath, "w+b");
-		tmp->temp_file = strdup(szPath);
+		tmp->temp_file = gf_strdup(szPath);
 	}
 	if (!tmp->stream) {
-		if (tmp->temp_file) free(tmp->temp_file);
-		free(tmp);
+		if (tmp->temp_file) gf_free(tmp->temp_file);
+		gf_free(tmp);
 		return NULL;
 	}
 	tmp->bs = gf_bs_from_file(tmp->stream, GF_BITSTREAM_READ);
 	if (!tmp->bs) {
 		fclose(tmp->stream);
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	return (GF_DataMap *)tmp;
@@ -305,7 +305,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 {
 	u8 bs_mode;
 
-	GF_FileDataMap *tmp = (GF_FileDataMap *) malloc(sizeof(GF_FileDataMap));
+	GF_FileDataMap *tmp = (GF_FileDataMap *) gf_malloc(sizeof(GF_FileDataMap));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_FileDataMap));
 	tmp->type = GF_ISOM_DATA_FILE;
@@ -332,17 +332,17 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 		bs_mode = GF_BITSTREAM_WRITE;
 		break;
 	default:
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	if (!tmp->stream) {
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	tmp->bs = gf_bs_from_file(tmp->stream, bs_mode);
 	if (!tmp->bs) {
 		fclose(tmp->stream);
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	return (GF_DataMap *)tmp;
@@ -357,10 +357,10 @@ void gf_isom_fdm_del(GF_FileDataMap *ptr)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	if (ptr->temp_file) {
 		gf_delete_file(ptr->temp_file);
-		free(ptr->temp_file);
+		gf_free(ptr->temp_file);
 	}
 #endif
-	free(ptr);
+	gf_free(ptr);
 }
 
 
@@ -456,12 +456,12 @@ GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode)
 	//only in read only
 	if (mode != GF_ISOM_DATA_MAP_READ) return NULL;
 
-	tmp = (GF_FileMappingDataMap *) malloc(sizeof(GF_FileMappingDataMap));
+	tmp = (GF_FileMappingDataMap *) gf_malloc(sizeof(GF_FileMappingDataMap));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_FileMappingDataMap));
 	tmp->type = GF_ISOM_DATA_FILE_MAPPING;
 	tmp->mode = mode;	
-	tmp->name = strdup(sPath);
+	tmp->name = gf_strdup(sPath);
 
 	//
 	//	Open the file 
@@ -479,16 +479,16 @@ GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode)
 
 	
 	if (fileH == INVALID_HANDLE_VALUE) {
-		free(tmp->name);
-		free(tmp);
+		gf_free(tmp->name);
+		gf_free(tmp);
 		return NULL;
 	}
 
 	tmp->file_size = GetFileSize(fileH, NULL);
 	if (tmp->file_size == 0xFFFFFFFF) {
 		CloseHandle(fileH);
-		free(tmp->name);
-		free(tmp);
+		gf_free(tmp->name);
+		gf_free(tmp);
 		return NULL;
 	}
 
@@ -498,8 +498,8 @@ GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode)
 	fileMapH = CreateFileMapping(fileH, NULL, PAGE_READONLY, 0, 0, NULL);
 	if (fileMapH == NULL) {
 		CloseHandle(fileH);
-		free(tmp->name);
-		free(tmp);
+		gf_free(tmp->name);
+		gf_free(tmp);
 		err = GetLastError();
 		return NULL;
 	}
@@ -508,8 +508,8 @@ GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode)
 	if (tmp->byte_map == NULL) {
 		CloseHandle(fileMapH);
 		CloseHandle(fileH);
-		free(tmp->name);
-		free(tmp);
+		gf_free(tmp->name);
+		gf_free(tmp);
 		return NULL;
 	}
 
@@ -527,8 +527,8 @@ void gf_isom_fmo_del(GF_FileMappingDataMap *ptr)
 
 	if (ptr->bs) gf_bs_del(ptr->bs);
 	if (ptr->byte_map) UnmapViewOfFile(ptr->byte_map);
-	free(ptr->name);
-	free(ptr);
+	gf_free(ptr->name);
+	gf_free(ptr);
 }
 
 

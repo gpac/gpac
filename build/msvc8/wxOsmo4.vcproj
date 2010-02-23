@@ -166,8 +166,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="wxbase26d.lib wxmsw26d_core.lib comctl32.lib ws2_32.lib odbc32.lib odbccp32.lib rpcrt4.lib"
-				OutputFile="../../bin/w32_deb/wxOsmo4.exe"
+				AdditionalDependencies="wxbase26.lib wxmsw26_core.lib wxmsw26_adv.lib comctl32.lib ws2_32.lib odbc32.lib odbccp32.lib rpcrt4.lib"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/Osmo4.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/w32_deb"

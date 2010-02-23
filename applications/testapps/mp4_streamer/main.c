@@ -153,8 +153,8 @@ static void rtp_flush_channel(RTP_Stream *rtp)
 		if (rtp->session->streamer->log_level == LOG_PACKET) fprintf(stdout, "  RTP SN %u - TS %u - M %u - Size %u\n", pck->header.SequenceNumber, pck->header.TimeStamp, pck->header.Marker, currentPacketSize);
 
 		pck = pck->next;
-		free(tmp->payload);
-		free(tmp);
+		gf_free(tmp->payload);
+		gf_free(tmp);
 	}
 	rtp->pck_queue = NULL;
 }
@@ -198,7 +198,7 @@ static void burst_on_pck_done(void *cbk, GF_RTPHeader *header)
 		if (e) 
 			fprintf(stdout, "Error %s sending RTP packet\n", gf_error_to_string(e));
 		rtp->session->dataLengthInBurst += currentPacketSize; 
-		free(rtp->packet.payload);				
+		gf_free(rtp->packet.payload);				
 		rtp->packet.payload = NULL;
 		rtp->packet.payload_len = 0;
 		
@@ -241,11 +241,11 @@ static void on_pck_data(void *cbk, char *data, u32 data_size, Bool is_head)
 	if (!data ||!data_size) return;
 
 	if (!rtp->packet.payload_len) {
-		rtp->packet.payload = malloc(data_size);
+		rtp->packet.payload = gf_malloc(data_size);
 		memcpy(rtp->packet.payload, data, data_size);
 		rtp->packet.payload_len = data_size;
 	} else {
-		rtp->packet.payload = realloc(rtp->packet.payload, rtp->packet.payload_len + data_size);
+		rtp->packet.payload = gf_realloc(rtp->packet.payload, rtp->packet.payload_len + data_size);
 		if (!is_head) {
 			memcpy(rtp->packet.payload+rtp->packet.payload_len, data, data_size);
 		} else {
@@ -278,7 +278,7 @@ static void on_pck_done(void *cbk, GF_RTPHeader *header)
 	GF_Err e = gf_rtp_send_packet(rtp->channel, header, rtp->packet.payload, rtp->packet.payload_len, 0);
 	if (e) 
 		fprintf(stdout, "Error %s sending RTP packet\n", gf_error_to_string(e));
-	free(rtp->packet.payload);				
+	gf_free(rtp->packet.payload);				
 
 	if (rtp->session->streamer->log_level == LOG_PACKET) 
 		fprintf(stdout, "  RTP SN %u - TS %u - M %u - Size %u\n", rtp->packet.header.SequenceNumber, rtp->packet.header.TimeStamp, rtp->packet.header.Marker, rtp->packet.payload_len + RTP_HEADER_SIZE);
@@ -469,7 +469,7 @@ GF_Err rtp_setup_sdp(RTP_Session *session, char *dest_ip)
 
 			gf_rtp_builder_format_sdp(rtp->packetizer, payloadName, sdpLine, config_bytes, config_size); 
 			fprintf(sdp_out, "%s\n", sdpLine);
-			free(config_bytes); 
+			gf_free(config_bytes); 
 		}
 		rtp = rtp->next;
 	}
@@ -1180,13 +1180,13 @@ int main(int argc, char **argv)
 				if (rtp->au) gf_isom_sample_del(&rtp->au);
 				if (rtp->channel) gf_rtp_del(rtp->channel);
 				if (rtp->packetizer) gf_rtp_builder_del(rtp->packetizer);
-				if (rtp->packet.payload) free(rtp->packet.payload);	
+				if (rtp->packet.payload) gf_free(rtp->packet.payload);	
 				rtp = rtp->next;
-				free(tmp);
+				gf_free(tmp);
 			}
 			if (session->mp4File) gf_isom_close(session->mp4File);
 			session = session->next;
-			free(_s);
+			gf_free(_s);
 		}	
 	}
 

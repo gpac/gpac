@@ -174,10 +174,10 @@ void *SDL_NewAudio()
 	GF_AudioOutput *dr;
 
 
-	ctx = malloc(sizeof(SDLAudCtx));
+	ctx = gf_malloc(sizeof(SDLAudCtx));
 	memset(ctx, 0, sizeof(SDLAudCtx));
 
-	dr = malloc(sizeof(GF_AudioOutput));
+	dr = gf_malloc(sizeof(GF_AudioOutput));
 	memset(dr, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_AUDIO_OUTPUT_INTERFACE, "SDL Audio Output", "gpac distribution");
 
@@ -204,7 +204,7 @@ void SDL_DeleteAudio(void *ifce)
 	GF_AudioOutput *dr = (GF_AudioOutput*)ifce;
 	SDLAUD();
 
-	free(ctx);
-	free(ifce);
+	gf_free(ctx);
+	gf_free(ifce);
 }
 

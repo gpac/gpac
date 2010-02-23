@@ -176,10 +176,10 @@ static void del_crypt_info(ISMACrypInfo *info)
 	while (gf_list_count(info->tcis)) {
 		GF_TrackCryptInfo *tci = (GF_TrackCryptInfo *)gf_list_last(info->tcis);
 		gf_list_rem_last(info->tcis);
-		free(tci);
+		gf_free(tci);
 	}
 	gf_list_del(info->tcis);
-	free(info);
+	gf_free(info);
 }
 
 static ISMACrypInfo *load_crypt_file(const char *file)
@@ -327,7 +327,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		samp = gf_isom_get_sample(mp4, track, i+1, &si); 
 		ismasamp = gf_isom_get_ismacryp_sample(mp4, track, samp, si);
 
-		free(samp->data);
+		gf_free(samp->data);
 		samp->data = ismasamp->data;
 		samp->dataLength = ismasamp->dataLength;
 		ismasamp->data = NULL;
@@ -412,7 +412,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 			j--;
 			gf_odf_com_del((GF_ODCom **)&com);
 		}
-		free(samp->data);
+		gf_free(samp->data);
 		samp->data = NULL;
 		samp->dataLength = 0;
 		gf_odf_codec_encode(cod, 1);
@@ -804,7 +804,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		gf_odf_codec_set_au(cod, samp->data, samp->dataLength);
 		gf_odf_codec_decode(cod);
 		gf_odf_codec_add_com(cod, (GF_ODCom *) ipmpdU);
-		free(samp->data);
+		gf_free(samp->data);
 		samp->data = NULL;
 		samp->dataLength = 0;
 		gf_odf_codec_encode(cod, 1);

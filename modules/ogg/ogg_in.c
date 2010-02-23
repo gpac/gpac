@@ -185,7 +185,7 @@ static GF_ObjectDescriptor *OGG_GetOD(OGGStream *st)
 	else esd->slConfig->useRandomAccessPointFlag = 1;
 
 	esd->decoderConfig->decoderSpecificInfo->dataLength = st->dsi_len;
-	esd->decoderConfig->decoderSpecificInfo->data = (char *) malloc(sizeof(char) * st->dsi_len);
+	esd->decoderConfig->decoderSpecificInfo->data = (char *) gf_malloc(sizeof(char) * st->dsi_len);
 	memcpy(esd->decoderConfig->decoderSpecificInfo->data, st->dsi, sizeof(char) * st->dsi_len);
 	gf_list_add(od->ESDescriptors, esd);
 	return od;
@@ -356,7 +356,7 @@ static void OGG_NewStream(OGGReader *read, ogg_page *oggpage)
 		|| ((read->service_type==2) && (st->info.streamType==GF_STREAM_VISUAL)) )
 	{
 	    ogg_stream_clear(&st->os);
-		free(st);
+		gf_free(st);
 		return;
 	}
 
@@ -463,7 +463,7 @@ void OGG_Process(OGGReader *read)
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (st->dsi) {
 				gf_bs_write_data(bs, st->dsi, st->dsi_len);
-				free(st->dsi);
+				gf_free(st->dsi);
 				st->dsi = NULL;
 				st->dsi_len=0;
 			}
@@ -931,7 +931,7 @@ static Bool OGG_CanHandleURLInService(GF_InputService *plug, const char *url)
 GF_InputService *OGG_LoadDemux()
 {
 	OGGReader *reader;
-	GF_InputService *plug = malloc(sizeof(GF_InputService));
+	GF_InputService *plug = gf_malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC OGG Reader", "gpac distribution")
 
@@ -944,7 +944,7 @@ GF_InputService *OGG_LoadDemux()
 	plug->ServiceCommand = OGG_ServiceCommand;
 	plug->CanHandleURLInService = OGG_CanHandleURLInService;
 
-	reader = malloc(sizeof(OGGReader));
+	reader = gf_malloc(sizeof(OGGReader));
 	memset(reader, 0, sizeof(OGGReader));
 	reader->streams = gf_list_new();
 	reader->demuxer = gf_th_new("OGGDemux");
@@ -965,12 +965,12 @@ void OGG_DeleteDemux(void *ifce)
 		OGGStream *st = gf_list_get(read->streams, 0);
 		gf_list_rem(read->streams, 0);
 		ogg_stream_clear(&st->os);
-		if (st->dsi) free(st->dsi);
-		free(st);
+		if (st->dsi) gf_free(st->dsi);
+		gf_free(st);
 	}
 	gf_list_del(read->streams);
-	free(read);
-	free(plug);
+	gf_free(read);
+	gf_free(plug);
 }
 
 #endif /* !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)*/

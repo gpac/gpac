@@ -62,7 +62,7 @@ GF_BaseDecoder *NewBaseDecoder()
 	if (!ifce) return NULL;
 	GF_SAFEALLOC(wrap, IMGDec);
 	if (!wrap) {
-		free(ifce);
+		gf_free(ifce);
 		return NULL;
 	}
 	ifce->privateStack = wrap;
@@ -95,8 +95,8 @@ void DeleteBaseDecoder(GF_BaseDecoder *ifcd)
 	default:
 		break;
 	}
-	free(wrap);
-	free(ifcd);
+	gf_free(wrap);
+	gf_free(ifcd);
 }
 
 GF_EXPORT

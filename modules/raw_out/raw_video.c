@@ -46,10 +46,10 @@ typedef struct
 static GF_Err raw_resize(GF_VideoOutput *dr, u32 w, u32 h)
 {
 	RAWCTX;
-	if (rc->pixels) free(rc->pixels);
+	if (rc->pixels) gf_free(rc->pixels);
 	rc->width = w;
 	rc->height = h;
-	rc->pixels = malloc(sizeof(char) * NBPP * w * h);
+	rc->pixels = gf_malloc(sizeof(char) * NBPP * w * h);
 	if (!rc->pixels) return GF_OUT_OF_MEM;
 	return GF_OK;
 }
@@ -66,7 +66,7 @@ static void RAW_Shutdown(GF_VideoOutput *dr)
 	RAWCTX;
         int err=0;
 
-	if (rc->pixels) free(rc->pixels);
+	if (rc->pixels) gf_free(rc->pixels);
 	rc->pixels = NULL;
 }
 
@@ -114,11 +114,11 @@ static GF_Err RAW_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 GF_VideoOutput *NewRawVideoOutput()
 {
 	RawContext *pCtx;
-	GF_VideoOutput *driv = (GF_VideoOutput *) malloc(sizeof(GF_VideoOutput));
+	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "Raw Video Output", "gpac distribution")
 
-	pCtx = malloc(sizeof(RawContext));
+	pCtx = gf_malloc(sizeof(RawContext));
 	memset(pCtx, 0, sizeof(RawContext));
 
 	driv->opaque = pCtx;
@@ -138,8 +138,8 @@ void DeleteVideoOutput(void *ifce)
 
 	RAW_Shutdown(driv);
 	rc = (RawContext *)driv->opaque;
-	free(rc);
-	free(driv);
+	gf_free(rc);
+	gf_free(driv);
 }
 
 #ifndef GPAC_STANDALONE_RENDER_2D

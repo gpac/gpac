@@ -37,12 +37,12 @@ static void mpa12_do_flush(GP_RTPPacketizer *builder, Bool start_new)
 	if (builder->pck_hdr) {
 		gf_bs_get_content(builder->pck_hdr, &tmp, &tmp_size);
 		builder->OnData(builder->cbk_obj, tmp, tmp_size, 1);
-		free(tmp);
+		gf_free(tmp);
 
 		if (gf_bs_get_size(builder->payload)) {
 			gf_bs_get_content(builder->payload, &tmp, &tmp_size);
 			builder->OnData(builder->cbk_obj, tmp, tmp_size, 0);
-			free(tmp);
+			gf_free(tmp);
 		}
 
 		builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);

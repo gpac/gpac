@@ -86,8 +86,8 @@ void DeleteOGGDecoder(GF_BaseDecoder *ifcd)
 	default:
 		break;
 	}
-	free(wrap);
-	free(ifcd);
+	gf_free(wrap);
+	gf_free(ifcd);
 }
 
 

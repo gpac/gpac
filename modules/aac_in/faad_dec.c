@@ -95,7 +95,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 		gf_m4a_write_config(&a_cfg, &dsi, &dsi_len);
 		res = faacDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (u32 *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
-		free(dsi);
+		gf_free(dsi);
 		if (res < 0) 
 #endif
 		{
@@ -372,8 +372,8 @@ void DeleteFAADDec(GF_BaseDecoder *ifcg)
 {
 	FAADCTX();
 	if (ctx->codec) faacDecClose(ctx->codec);
-	free(ctx);
-	free(ifcg);
+	gf_free(ctx);
+	gf_free(ifcg);
 }
 
 

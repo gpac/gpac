@@ -956,11 +956,11 @@ void *SDL_NewVideo()
 	SDLVidCtx *ctx;
 	GF_VideoOutput *driv;
 	
-	driv = malloc(sizeof(GF_VideoOutput));
+	driv = gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "SDL Video Output", "gpac distribution");
 
-	ctx = malloc(sizeof(SDLVidCtx));
+	ctx = gf_malloc(sizeof(SDLVidCtx));
 	memset(ctx, 0, sizeof(SDLVidCtx));
 #ifdef	SDL_WINDOW_THREAD
 	ctx->sdl_th = gf_th_new("SDLVideo");
@@ -993,7 +993,7 @@ void SDL_DeleteVideo(void *ifce)
 	gf_th_del(ctx->sdl_th);
 #endif
 	gf_mx_del(ctx->evt_mx);
-	free(ctx);
-	free(dr);
+	gf_free(ctx);
+	gf_free(dr);
 }
 

@@ -5,7 +5,7 @@
  * Compile this file with -DNO_GZCOMPRESS to avoid the compression code.
  */
 
-/* @(#) $Id: gzio.cpp,v 1.3 2010-02-02 09:24:39 enst_devs Exp $ */
+/* @(#) $Id: gzio.cpp,v 1.4 2010-02-23 16:24:20 jeanlf Exp $ */
 
 #include <stdio.h>
 
@@ -42,12 +42,12 @@ struct internal_state {int dummy;}; /* for buggy compilers */
 #endif
 
 #ifndef STDC
-//extern voidp  malloc OF((uInt size));
+//extern voidp  gf_malloc OF((uInt size));
 //extern void   free   OF((voidpf ptr));
 #endif
 
-#define ALLOC(size) malloc(size)
-#define TRYFREE(p) {if (p) free(p);}
+#define ALLOC(size) gf_malloc(size)
+#define TRYFREE(p) {if (p) gf_free(p);}
 
 static int const gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
 

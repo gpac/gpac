@@ -115,13 +115,13 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		GF_Scene *scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph(n));
 		url = (char *)param->uri.url;
 		if (!url) {
-			param->uri.url = strdup(scene->root_od->net_service->url);
+			param->uri.url = gf_strdup(scene->root_od->net_service->url);
 			param->uri.nb_params = 0;
 			return 1;
 		}
 
 		result = gf_term_relocate_url(term, url, scene->root_od->net_service->url, new_url, localized_url);
-		if (result && new_url) param->uri.url = strdup(new_url);
+		if (result && new_url) param->uri.url = gf_strdup(new_url);
 		else param->uri.url = gf_url_concatenate(scene->root_od->net_service->url, url);
 		return 1;
 	}
@@ -178,13 +178,13 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 
 
 	len = strlen(rel_path);
-	str = malloc(sizeof(char) * (len+20));
+	str = gf_malloc(sizeof(char) * (len+20));
 	sprintf(str, "locales/%s/%s", opt, rel_path);
 
 restart:
-	if (loc->szAbsRelocatedPath) free(loc->szAbsRelocatedPath);	
+	if (loc->szAbsRelocatedPath) gf_free(loc->szAbsRelocatedPath);	
 	loc->szAbsRelocatedPath = gf_url_concatenate(locales_parent_path, str);
-	if (!loc->szAbsRelocatedPath) loc->szAbsRelocatedPath = strdup(str);
+	if (!loc->szAbsRelocatedPath) loc->szAbsRelocatedPath = gf_strdup(str);
 	
 	f = fopen(loc->szAbsRelocatedPath, "rb");
 	if (f) {
@@ -195,7 +195,7 @@ restart:
 	}
 	if (try_locale) {
 		try_locale = 0;
-		free(str);
+		gf_free(str);
 		str = (char *)rel_path;
 		goto restart;
 	}
@@ -432,12 +432,12 @@ GF_Terminal *gf_term_new(GF_User *user)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Creating terminal\n"));
 
-	tmp = (GF_Terminal*)malloc(sizeof(GF_Terminal));
+	tmp = (GF_Terminal*)gf_malloc(sizeof(GF_Terminal));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_Terminal));
 
 	/*just for safety*/
-	gf_sys_init();
+	gf_sys_init(0);
 
 	tmp->user = user;
 
@@ -456,7 +456,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	/*setup scene compositor*/
 	tmp->compositor = gf_sc_new(user, !(tmp->flags & GF_TERM_DRAW_FRAME) , tmp);
 	if (!tmp->compositor) {
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] compositor loaded\n"));
@@ -612,7 +612,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_list_del(term->media_queue);
 	if (term->downloader) gf_dm_del(term->downloader);
 
-	if (term->locales.szAbsRelocatedPath) free(term->locales.szAbsRelocatedPath);
+	if (term->locales.szAbsRelocatedPath) gf_free(term->locales.szAbsRelocatedPath);
 	gf_list_del(term->uri_relocators);
 
 
@@ -631,7 +631,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_mx_del(term->net_mx);
 
 	gf_sys_close();
-	free(term);
+	gf_free(term);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Terminal destroyed\n"));
 	return e;
 }
@@ -922,7 +922,7 @@ void gf_term_handle_services(GF_Terminal *term)
 		term->reload_state = 0;
 		if (term->reload_url) {
 			gf_term_connect(term, term->reload_url);
-			free(term->reload_url);
+			gf_free(term->reload_url);
 		}
 		term->reload_url = NULL;
 	}
@@ -1292,12 +1292,12 @@ GF_EXPORT
 void gf_term_navigate_to(GF_Terminal *term, const char *toURL)
 {
 	if (!toURL && !term->root_scene) return;
-	if (term->reload_url) free(term->reload_url);
+	if (term->reload_url) gf_free(term->reload_url);
 	term->reload_url = NULL;
 	if (toURL) {
 		if (term->root_scene && term->root_scene->root_od && term->root_scene->root_od->net_service) 
 			term->reload_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, toURL);
-		if (!term->reload_url) term->reload_url = strdup(toURL);
+		if (!term->reload_url) term->reload_url = gf_strdup(toURL);
 	}
 	term->reload_state = 1;
 }
@@ -1339,7 +1339,7 @@ GF_Err gf_term_add_object(GF_Terminal *term, const char *url, Bool auto_play)
 		} else {
 			gf_list_del_item(term->root_scene->scene_objects, mo);
 			gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
-			free(mo);
+			gf_free(mo);
 			mo = NULL;
 		}
 	}
@@ -1373,7 +1373,7 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 	odm->net_service->term = term;
 	odm->net_service->owner = odm;
 	odm->net_service->ifce = service_hdl;
-	odm->net_service->url = strdup("Internal Service Handler");
+	odm->net_service->url = gf_strdup("Internal Service Handler");
 	odm->net_service->Clocks = gf_list_new();
 	gf_list_add(term->net_services, odm->net_service);
 

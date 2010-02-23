@@ -140,7 +140,7 @@ void drawable_reset_bounds(Drawable *dr, GF_VisualManager *visual)
 		while (bi) {
 			_cur = bi;
 			bi = bi->next;
-			free(_cur);
+			gf_free(_cur);
 		}
 		dri->previous_bounds = NULL;
 		return;
@@ -166,7 +166,7 @@ void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 				ra_add(&dri->visual->to_redraw, &bi->clip);
 			}
 			bi = bi->next;
-			free(_cur);
+			gf_free(_cur);
 		}
 		bi = dri->previous_bounds;
 		while (bi) {
@@ -175,12 +175,12 @@ void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 				ra_add(&dri->visual->to_redraw, &bi->clip);
 			}
 			bi = bi->next;
-			free(_cur);
+			gf_free(_cur);
 		}
 		if (is_reg) visual_2d_drawable_delete(dri->visual, dr);
 		cur = dri;
 		dri = dri->next;
-		free(cur);
+		gf_free(cur);
 	}
 	if (compositor) gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 
@@ -199,7 +199,7 @@ void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 		delete_strikeinfo2d(si);
 		si = next;
 	}
-	free(dr);
+	gf_free(dr);
 }
 
 void drawable_del(Drawable *dr)
@@ -317,7 +317,7 @@ Bool drawable_flush_bounds(Drawable *drawable, GF_VisualManager *on_visual, u32 
 				while (dri->previous_bounds) {
 					BoundInfo *bi = dri->previous_bounds;
 					dri->previous_bounds = bi->next;
-					free(bi);
+					gf_free(bi);
 				}
 			}
 		}
@@ -413,12 +413,12 @@ DrawableContext *NewDrawableContext()
 void DeleteDrawableContext(DrawableContext *ctx)
 {
 	drawctx_reset(ctx);
-	free(ctx);
+	gf_free(ctx);
 }
 void drawctx_reset(DrawableContext *ctx)
 {
 	DrawableContext *next = ctx->next;
-	if (ctx->col_mat) free(ctx->col_mat);
+	if (ctx->col_mat) gf_free(ctx->col_mat);
 	memset(ctx, 0, sizeof(DrawableContext));
 	ctx->next = next;
 
@@ -982,7 +982,7 @@ void delete_strikeinfo2d(StrikeInfo2D *info)
 #ifndef GPAC_DISABLE_3D
 	if (info->mesh_outline) mesh_free(info->mesh_outline);
 #endif
-	free(info);
+	gf_free(info);
 }
 
 
@@ -1015,7 +1015,7 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 #endif
 			if (prev) prev->next = si->next;
 			else drawable->outline = si->next;
-			free(si);
+			gf_free(si);
 			si = prev ? prev->next : drawable->outline;
 			continue;
 		}
@@ -1166,13 +1166,13 @@ static void DestroyLineProps(GF_Node *n, void *rs, Bool is_destroy)
 		}
 	}
 	
-	free(st);
+	gf_free(st);
 	
 }
 
 void compositor_init_lineprops(GF_Compositor *compositor, GF_Node *node)
 {
-	LinePropStack *st = (LinePropStack *)malloc(sizeof(LinePropStack));
+	LinePropStack *st = (LinePropStack *)gf_malloc(sizeof(LinePropStack));
 	st->compositor = compositor;
 	st->last_mod_time = 0;
 	gf_node_set_private(node, st);
@@ -1219,7 +1219,7 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 				iri->type = XMLRI_ELEMENTID;
 				iri->target = n;
 				gf_node_register_iri(sg, iri);
-				free(iri->string);
+				gf_free(iri->string);
 				iri->string = NULL;
 			}
 		}		
@@ -1280,7 +1280,7 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 				iri->type = XMLRI_ELEMENTID;
 				iri->target = n;
 				gf_node_register_iri(sg, iri);
-				free(iri->string);
+				gf_free(iri->string);
 				iri->string = NULL;
 			}
 		}		

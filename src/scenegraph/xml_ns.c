@@ -609,9 +609,9 @@ void gf_node_delete_attributes(GF_Node *node)
 		tmp = att;
 		att = att->next;
 		if (tmp->tag==TAG_DOM_ATT_any) {
-			free( ((GF_DOMFullAttribute*)tmp)->name);
+			gf_free( ((GF_DOMFullAttribute*)tmp)->name);
 		}
-		free(tmp);
+		gf_free(tmp);
 	}
 }
 
@@ -656,7 +656,7 @@ GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, 
 			att->tag = (u16) TAG_DOM_ATT_any;
 			att->data = gf_svg_create_attribute_value(att->data_type);
 
-			att->name = strdup(name);
+			att->name = gf_strdup(name);
 			if (!xmlns_code)
 				att->xmlns = gf_xml_get_element_namespace(node);
 			else
@@ -871,14 +871,14 @@ GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clone
 		n_src = (GF_DOMText *)orig;
 		n_dst = (GF_DOMText *)clone;
 		n_dst->type = n_src->type;
-		n_dst->textContent = strdup(n_src->textContent);
+		n_dst->textContent = gf_strdup(n_src->textContent);
 	} else {
 		if (orig->sgprivate->tag == TAG_DOMFullNode) {
 			GF_DOMFullNode *n_src,*n_dst;
 			n_src = (GF_DOMFullNode *)orig;
 			n_dst = (GF_DOMFullNode *)clone;
 			n_dst->ns = n_src->ns;
-			n_dst->name = strdup(n_dst->name);
+			n_dst->name = gf_strdup(n_dst->name);
 		} 
 		
 		att = ((GF_DOMNode *)orig)->attributes;
@@ -999,13 +999,13 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	if (!strncmp(sep, ";base64,", 8)) {
 		sep += 8;
 		data_size = 2*strlen(sep);
-		data = (char*)malloc(sizeof(char)*data_size);
+		data = (char*)gf_malloc(sizeof(char)*data_size);
 		if (!data) return GF_OUT_OF_MEM;
 		data_size = gf_base64_decode(sep, strlen(sep), data, data_size);
 	}
 	else if (!strncmp(sep, ";base16,", 8)) {
 		data_size = 2*strlen(sep);
-		data = (char*)malloc(sizeof(char)*data_size);
+		data = (char*)gf_malloc(sizeof(char)*data_size);
 		if (!data) return GF_OUT_OF_MEM;
 		sep += 8;
 		data_size = gf_base16_decode(sep, strlen(sep), data, data_size);
@@ -1032,17 +1032,17 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	if (!existing) {
 		f = fopen(szFile, "wb");
 		if (!f) {
-			free(data);
-			free(iri->string);
+			gf_free(data);
+			gf_free(iri->string);
 			iri->string = NULL;
 			return GF_IO_ERR;
 		}
 		fwrite(data, data_size, 1, f);
 		fclose(f);
 	}
-	free(data);
-	free(iri->string);
-	iri->string = strdup(szFile);
+	gf_free(data);
+	gf_free(iri->string);
+	iri->string = gf_strdup(szFile);
 	return GF_OK;
 }
 

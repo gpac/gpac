@@ -246,6 +246,8 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load);
 GF_Err gf_sm_load_run(GF_SceneLoader *load);
 /*terminates the context loader*/
 void gf_sm_load_done(GF_SceneLoader *load);
+/*suspends/resume context loading*/
+void gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend);
 
 /*parses memory scene (any textural format) into the context
 !! THE LOADER TYPE MUST BE ASSIGNED (BT/WRL/XMT/X3D/SVG only) !!

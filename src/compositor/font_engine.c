@@ -81,7 +81,7 @@ GF_FontManager *gf_font_manager_new(GF_User *user)
 	GF_SAFEALLOC(font_mgr, GF_FontManager);
 	font_mgr->reader = ifce;
 	font_mgr->id_buffer_size = 20;
-	font_mgr->id_buffer = malloc(sizeof(u32)*font_mgr->id_buffer_size);
+	font_mgr->id_buffer = gf_malloc(sizeof(u32)*font_mgr->id_buffer_size);
 	gf_font_manager_set_font(font_mgr, &def_font, 1, 0);
 	font_mgr->default_font = font_mgr->font;
 
@@ -117,12 +117,12 @@ void gf_font_del(GF_Font *font)
 		while (glyph) {
 			GF_Glyph *next = glyph->next;
 			gf_path_del(glyph->path);
-			free(glyph);
+			gf_free(glyph);
 			glyph = next;
 		}
 	}
-	free(font->name);
-	free(font);
+	gf_free(font->name);
+	gf_free(font);
 }
 
 
@@ -140,9 +140,9 @@ void gf_font_manager_del(GF_FontManager *fm)
 		gf_font_del(font);
 		font = next;
 	}
-	free(fm->id_buffer);
+	gf_free(fm->id_buffer);
 	gf_path_del(fm->line_path);
-	free(fm);
+	gf_free(fm);
 }
 
 GF_Err gf_font_manager_register_font(GF_FontManager *fm, GF_Font *font)
@@ -276,7 +276,7 @@ GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 n
 				GF_SAFEALLOC(the_font, GF_Font);
 				fm->reader->get_font_info(fm->reader, &the_font->name, &the_font->em_size, &the_font->ascent, &the_font->descent, &the_font->underline, &the_font->line_spacing, &the_font->max_advance_h, &the_font->max_advance_v);
 				the_font->styles = styles;
-				if (!the_font->name) the_font->name = strdup(font_name);
+				if (!the_font->name) the_font->name = gf_strdup(font_name);
 			
 				if (fm->font) {
 					font = fm->font;
@@ -368,7 +368,7 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 
 	if (e==GF_BUFFER_TOO_SMALL) {
 		fm->id_buffer_size = len;
-		fm->id_buffer = realloc(fm->id_buffer, sizeof(u32) * len);
+		fm->id_buffer = gf_realloc(fm->id_buffer, sizeof(u32) * len);
 		if (!fm->id_buffer) return NULL;
 	
 		if (font->get_glyphs)
@@ -388,17 +388,17 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 	if (fliped_text) span->flags |= GF_TEXT_SPAN_FLIP;
 	if (styles & GF_FONT_UNDERLINED) span->flags |= GF_TEXT_SPAN_UNDERLINE;
 	span->nb_glyphs = len;
-	span->glyphs = malloc(sizeof(void *)*len);
+	span->glyphs = gf_malloc(sizeof(void *)*len);
 	if (needs_x_offset) {
-		span->dx = malloc(sizeof(Fixed)*len);
+		span->dx = gf_malloc(sizeof(Fixed)*len);
 		memset(span->dx, 0, sizeof(Fixed)*len);
 	}
 	if (needs_y_offset) {
-		span->dy = malloc(sizeof(Fixed)*len);
+		span->dy = gf_malloc(sizeof(Fixed)*len);
 		memset(span->dy, 0, sizeof(Fixed)*len);
 	}
 	if (needs_rotate) {
-		span->rot = malloc(sizeof(Fixed)*len);
+		span->rot = gf_malloc(sizeof(Fixed)*len);
 		memset(span->rot, 0, sizeof(Fixed)*len);
 	}
 	
@@ -438,10 +438,10 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 {
 	if (span->user && span->font->spans) gf_list_del_item(span->font->spans, span);
 
-	free(span->glyphs);
-	if (span->dx) free(span->dx);
-	if (span->dy) free(span->dy);
-	if (span->rot) free(span->rot);
+	gf_free(span->glyphs);
+	if (span->dx) gf_free(span->dx);
+	if (span->dy) gf_free(span->dy);
+	if (span->rot) gf_free(span->rot);
 
 	if (span->ext) {
 		if (span->ext->path) gf_path_del(span->ext->path);
@@ -452,12 +452,12 @@ void gf_font_manager_delete_span(GF_FontManager *fm, GF_TextSpan *span)
 #endif
 		if (span->ext->txh) {
 			gf_sc_texture_destroy(span->ext->txh);
-			if (span->ext->txh->data) free(span->ext->txh->data);
-			free(span->ext->txh);
+			if (span->ext->txh->data) gf_free(span->ext->txh->data);
+			gf_free(span->ext->txh);
 		}
-		free(span->ext);
+		gf_free(span->ext);
 	}
-	free(span);
+	gf_free(span);
 }
 
 void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
@@ -692,8 +692,8 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 
 	if (span->ext->txh) {
 		gf_sc_texture_destroy(span->ext->txh);
-		if (span->ext->txh->data) free(span->ext->txh->data);
-		free(span->ext->txh);
+		if (span->ext->txh->data) gf_free(span->ext->txh->data);
+		gf_free(span->ext->txh);
 	}
 	GF_SAFEALLOC(span->ext->txh, GF_TextureHandler);
 	gf_sc_texture_setup(span->ext->txh, compositor, NULL);
@@ -714,7 +714,7 @@ static Bool span_setup_texture(GF_Compositor *compositor, GF_TextSpan *span, Boo
 		gf_sc_texture_release(span->ext->txh);
 		return 0;
 	}
-	span->ext->txh->data = (char *) malloc(sizeof(char)*span->ext->txh->stride*span->ext->txh->height);
+	span->ext->txh->data = (char *) gf_malloc(sizeof(char)*span->ext->txh->stride*span->ext->txh->height);
 	memset(span->ext->txh->data, 0, sizeof(char)*span->ext->txh->stride*span->ext->txh->height);
 
 	raster->stencil_set_texture(stencil, span->ext->txh->data, span->ext->txh->width, span->ext->txh->height, span->ext->txh->stride, span->ext->txh->pixelformat, span->ext->txh->pixelformat, 1);
@@ -1205,7 +1205,7 @@ static void gf_font_spans_select(GF_TextSpan *span, GF_TraverseState *tr_state, 
 			if (!compositor->sel_buffer_alloc || compositor->sel_buffer_len == compositor->sel_buffer_alloc) {
 				if (!compositor->sel_buffer_alloc) compositor->sel_buffer_alloc ++;
 				compositor->sel_buffer_alloc = 2*compositor->sel_buffer_alloc;
-				compositor->sel_buffer = realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
+				compositor->sel_buffer = gf_realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
 			}
 			compositor->sel_buffer[compositor->sel_buffer_len] = span->glyphs[i]->utf_name;
 			compositor->sel_buffer_len++;

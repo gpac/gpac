@@ -29,7 +29,7 @@
 /* ProtectionInfo Box */
 GF_Box *sinf_New()
 {
-	GF_ProtectionInfoBox *tmp = (GF_ProtectionInfoBox *) malloc(sizeof(GF_ProtectionInfoBox));
+	GF_ProtectionInfoBox *tmp = (GF_ProtectionInfoBox *) gf_malloc(sizeof(GF_ProtectionInfoBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_ProtectionInfoBox));
 	tmp->type = GF_ISOM_BOX_TYPE_SINF;
@@ -43,7 +43,7 @@ void sinf_del(GF_Box *s)
 	if (ptr->original_format) gf_isom_box_del((GF_Box *)ptr->original_format);
 	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
 	if (ptr->scheme_type) gf_isom_box_del((GF_Box *)ptr->scheme_type);
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_Err sinf_AddBox(GF_Box *s, GF_Box *a)
@@ -117,7 +117,7 @@ GF_Err sinf_Size(GF_Box *s)
 /* OriginalFormat Box */
 GF_Box *frma_New()
 {
-	GF_OriginalFormatBox *tmp = (GF_OriginalFormatBox *) malloc(sizeof(GF_OriginalFormatBox));
+	GF_OriginalFormatBox *tmp = (GF_OriginalFormatBox *) gf_malloc(sizeof(GF_OriginalFormatBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_OriginalFormatBox));
 	tmp->type = GF_ISOM_BOX_TYPE_FRMA;
@@ -128,7 +128,7 @@ void frma_del(GF_Box *s)
 {
 	GF_OriginalFormatBox *ptr = (GF_OriginalFormatBox *)s;
 	if (ptr == NULL) return;
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_Err frma_Read(GF_Box *s, GF_BitStream *bs)
@@ -165,7 +165,7 @@ GF_Err frma_Size(GF_Box *s)
 /* SchemeType Box */
 GF_Box *schm_New()
 {
-	GF_SchemeTypeBox *tmp = (GF_SchemeTypeBox *) malloc(sizeof(GF_SchemeTypeBox));
+	GF_SchemeTypeBox *tmp = (GF_SchemeTypeBox *) gf_malloc(sizeof(GF_SchemeTypeBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_SchemeTypeBox));
 	gf_isom_full_box_init((GF_Box *)tmp);
@@ -177,8 +177,8 @@ void schm_del(GF_Box *s)
 {
 	GF_SchemeTypeBox *ptr = (GF_SchemeTypeBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->URI) free(ptr->URI);
-	free(ptr);
+	if (ptr->URI) gf_free(ptr->URI);
+	gf_free(ptr);
 }
 
 GF_Err schm_Read(GF_Box *s, GF_BitStream *bs)
@@ -192,7 +192,7 @@ GF_Err schm_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->size -= 8;
 	if (ptr->size && (ptr->flags & 0x000001)) {
 		u32 len = (u32) (ptr->size);
-		ptr->URI = (char*)malloc(sizeof(char)*len);
+		ptr->URI = (char*)gf_malloc(sizeof(char)*len);
 		if (!ptr->URI) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->URI, len);
 	}
@@ -228,7 +228,7 @@ GF_Err schm_Size(GF_Box *s)
 /* SchemeInformation Box */
 GF_Box *schi_New()
 {
-	GF_SchemeInformationBox *tmp = (GF_SchemeInformationBox *) malloc(sizeof(GF_SchemeInformationBox));
+	GF_SchemeInformationBox *tmp = (GF_SchemeInformationBox *) gf_malloc(sizeof(GF_SchemeInformationBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_SchemeInformationBox));
 	tmp->type = GF_ISOM_BOX_TYPE_SCHI;
@@ -241,7 +241,7 @@ void schi_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->ikms) gf_isom_box_del((GF_Box *)ptr->ikms);
 	if (ptr->isfm) gf_isom_box_del((GF_Box *)ptr->isfm);
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_Err schi_AddBox(GF_Box *s, GF_Box *a)
@@ -326,7 +326,7 @@ GF_Err schi_Size(GF_Box *s)
 /* ISMAKMS Box */
 GF_Box *iKMS_New()
 {
-	GF_ISMAKMSBox *tmp = (GF_ISMAKMSBox *) malloc(sizeof(GF_ISMAKMSBox));
+	GF_ISMAKMSBox *tmp = (GF_ISMAKMSBox *) gf_malloc(sizeof(GF_ISMAKMSBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_ISMAKMSBox));
 	gf_isom_full_box_init((GF_Box *)tmp);
@@ -338,8 +338,8 @@ void iKMS_del(GF_Box *s)
 {
 	GF_ISMAKMSBox *ptr = (GF_ISMAKMSBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->URI) free(ptr->URI);
-	free(ptr);
+	if (ptr->URI) gf_free(ptr->URI);
+	gf_free(ptr);
 }
 
 GF_Err iKMS_Read(GF_Box *s, GF_BitStream *bs)
@@ -351,7 +351,7 @@ GF_Err iKMS_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	len = (u32) (ptr->size);
-	ptr->URI = (char*) malloc(sizeof(char)*len);
+	ptr->URI = (char*) gf_malloc(sizeof(char)*len);
 	if (!ptr->URI) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ptr->URI, len);
 	return GF_OK;
@@ -384,7 +384,7 @@ GF_Err iKMS_Size(GF_Box *s)
 /* ISMASampleFormat Box */
 GF_Box *iSFM_New()
 {
-	GF_ISMASampleFormatBox *tmp = (GF_ISMASampleFormatBox *) malloc(sizeof(GF_ISMASampleFormatBox));
+	GF_ISMASampleFormatBox *tmp = (GF_ISMASampleFormatBox *) gf_malloc(sizeof(GF_ISMASampleFormatBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_ISMASampleFormatBox));
 	gf_isom_full_box_init((GF_Box *)tmp);
@@ -396,7 +396,7 @@ void iSFM_del(GF_Box *s)
 {
 	GF_ISMASampleFormatBox *ptr = (GF_ISMASampleFormatBox *)s;
 	if (ptr == NULL) return;
-	free(ptr);
+	gf_free(ptr);
 }
 
 
@@ -460,10 +460,10 @@ void ohdr_del(GF_Box *s)
 	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox*)s;
 	if (ptr == NULL) return;
 	gf_isom_box_array_del(ptr->ExtendedHeaders);
-	if (ptr->ContentID) free(ptr->ContentID);
-	if (ptr->RightsIssuerURL) free(ptr->RightsIssuerURL);
-	if (ptr->TextualHeaders) free(ptr->TextualHeaders);
-	free(ptr);
+	if (ptr->ContentID) gf_free(ptr->ContentID);
+	if (ptr->RightsIssuerURL) gf_free(ptr->RightsIssuerURL);
+	if (ptr->TextualHeaders) gf_free(ptr->TextualHeaders);
+	gf_free(ptr);
 }
 
 GF_Err ohdr_AddBox(GF_Box *s, GF_Box *a)
@@ -490,19 +490,19 @@ GF_Err ohdr_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->size<cid_len+ri_len+ptr->TextualHeadersLen) return GF_ISOM_INVALID_FILE;
 
 	if (cid_len) {
-		ptr->ContentID = (char *)malloc(sizeof(char)*(cid_len+1));
+		ptr->ContentID = (char *)gf_malloc(sizeof(char)*(cid_len+1));
 		gf_bs_read_data(bs, ptr->ContentID, cid_len);
 		ptr->ContentID[cid_len]=0;
 	}
 
 	if (ri_len) {
-		ptr->RightsIssuerURL = (char *)malloc(sizeof(char)*(ri_len+1));
+		ptr->RightsIssuerURL = (char *)gf_malloc(sizeof(char)*(ri_len+1));
 		gf_bs_read_data(bs, ptr->RightsIssuerURL, ri_len);
 		ptr->RightsIssuerURL[ri_len]=0;
 	}
 	
 	if (ptr->TextualHeadersLen) {
-		ptr->TextualHeaders = (char *)malloc(sizeof(char)*(ptr->TextualHeadersLen+1));
+		ptr->TextualHeaders = (char *)gf_malloc(sizeof(char)*(ptr->TextualHeadersLen+1));
 		gf_bs_read_data(bs, ptr->TextualHeaders, ptr->TextualHeadersLen);
 		ptr->TextualHeaders[ptr->TextualHeadersLen] = 0;
 	}
@@ -569,9 +569,9 @@ void grpi_del(GF_Box *s)
 {
 	GF_OMADRMGroupIDBox *ptr = (GF_OMADRMGroupIDBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->GroupID) free(ptr->GroupID);
-	if (ptr->GroupKey) free(ptr->GroupKey);
-	free(ptr);
+	if (ptr->GroupID) gf_free(ptr->GroupID);
+	if (ptr->GroupKey) gf_free(ptr->GroupKey);
+	gf_free(ptr);
 }
 
 GF_Err grpi_Read(GF_Box *s, GF_BitStream *bs)
@@ -589,11 +589,11 @@ GF_Err grpi_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->size -= 1+2+2;
 	if (ptr->size<gid_len+ptr->GKLength) return GF_ISOM_INVALID_FILE;
 
-	ptr->GroupID = malloc(sizeof(char)*(gid_len+1));
+	ptr->GroupID = gf_malloc(sizeof(char)*(gid_len+1));
 	gf_bs_read_data(bs, ptr->GroupID, gid_len);
 	ptr->GroupID[gid_len]=0;
 	
-	ptr->GroupKey = (char *)malloc(sizeof(char)*ptr->GKLength);
+	ptr->GroupKey = (char *)gf_malloc(sizeof(char)*ptr->GKLength);
 	gf_bs_read_data(bs, ptr->GroupKey, ptr->GKLength);
 	ptr->size -= gid_len+ptr->GKLength;
 	return GF_OK;
@@ -649,7 +649,7 @@ void mdri_del(GF_Box *s)
 	GF_OMADRMMutableInformationBox*ptr = (GF_OMADRMMutableInformationBox*)s;
 	if (ptr == NULL) return;
 	gf_isom_box_array_del(ptr->boxes);
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_Err mdri_AddBox(GF_Box *s, GF_Box *a)
@@ -699,7 +699,7 @@ GF_Box *odtt_New()
 void odtt_del(GF_Box *s)
 {
 	GF_OMADRMTransactionTrackingBox *ptr = (GF_OMADRMTransactionTrackingBox*)s;
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_Err odtt_Read(GF_Box *s, GF_BitStream *bs)
@@ -753,8 +753,8 @@ GF_Box *odrb_New()
 void odrb_del(GF_Box *s)
 {
 	GF_OMADRMRightsObjectBox *ptr = (GF_OMADRMRightsObjectBox*)s;
-	if (ptr->oma_ro) free(ptr->oma_ro);
-	free(ptr);
+	if (ptr->oma_ro) gf_free(ptr->oma_ro);
+	gf_free(ptr);
 }
 
 GF_Err odrb_Read(GF_Box *s, GF_BitStream *bs)
@@ -765,7 +765,7 @@ GF_Err odrb_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	ptr->oma_ro_size = (u32) ptr->size;
-	ptr->oma_ro = (char*) malloc(sizeof(char)*ptr->oma_ro_size);
+	ptr->oma_ro = (char*) gf_malloc(sizeof(char)*ptr->oma_ro_size);
 	gf_bs_read_data(bs, ptr->oma_ro, ptr->oma_ro_size);
 	ptr->size = 0;
 	return GF_OK;
@@ -814,7 +814,7 @@ void odkm_del(GF_Box *s)
 	GF_OMADRMKMSBox *ptr = (GF_OMADRMKMSBox *)s;
 	if (ptr->hdr) gf_isom_box_del((GF_Box*)ptr->hdr);
 	if (ptr->fmt) gf_isom_box_del((GF_Box*)ptr->fmt);
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_Err odkm_Add(GF_Box *s, GF_Box *a)

@@ -270,104 +270,104 @@ GF_Proto *gf_sg_find_proto(GF_SceneGraph *sg, u32 ProtoID, char *name)
 
 static SFBool *NewSFBool()
 {
-	SFBool *tmp = (SFBool *)malloc(sizeof(SFBool));
+	SFBool *tmp = (SFBool *)gf_malloc(sizeof(SFBool));
 	memset(tmp, 0, sizeof(SFBool));
 	return tmp;
 }
 static SFFloat *NewSFFloat()
 {
-	SFFloat *tmp = (SFFloat *)malloc(sizeof(SFFloat));
+	SFFloat *tmp = (SFFloat *)gf_malloc(sizeof(SFFloat));
 	memset(tmp, 0, sizeof(SFFloat));
 	return tmp;
 }
 static SFDouble *NewSFDouble()
 {
-	SFDouble *tmp = (SFDouble *)malloc(sizeof(SFDouble));
+	SFDouble *tmp = (SFDouble *)gf_malloc(sizeof(SFDouble));
 	memset(tmp, 0, sizeof(SFDouble));
 	return tmp;
 }
 static SFTime *NewSFTime()
 {
-	SFTime *tmp = (SFTime *)malloc(sizeof(SFTime));
+	SFTime *tmp = (SFTime *)gf_malloc(sizeof(SFTime));
 	memset(tmp, 0, sizeof(SFTime));
 	return tmp;
 }
 static SFInt32 *NewSFInt32()
 {
-	SFInt32 *tmp = (SFInt32 *)malloc(sizeof(SFInt32));
+	SFInt32 *tmp = (SFInt32 *)gf_malloc(sizeof(SFInt32));
 	memset(tmp, 0, sizeof(SFInt32));
 	return tmp;
 }
 static SFString *NewSFString()
 {
-	SFString *tmp = (SFString *)malloc(sizeof(SFString));
+	SFString *tmp = (SFString *)gf_malloc(sizeof(SFString));
 	memset(tmp, 0, sizeof(SFString));
 	return tmp;
 }
 static SFVec3f *NewSFVec3f()
 {
-	SFVec3f *tmp = (SFVec3f *)malloc(sizeof(SFVec3f));
+	SFVec3f *tmp = (SFVec3f *)gf_malloc(sizeof(SFVec3f));
 	memset(tmp, 0, sizeof(SFVec3f));
 	return tmp;
 }
 static SFVec3d *NewSFVec3d()
 {
-	SFVec3d *tmp = (SFVec3d *)malloc(sizeof(SFVec3d));
+	SFVec3d *tmp = (SFVec3d *)gf_malloc(sizeof(SFVec3d));
 	memset(tmp, 0, sizeof(SFVec3d));
 	return tmp;
 }
 static SFVec2f *NewSFVec2f()
 {
-	SFVec2f *tmp = (SFVec2f *)malloc(sizeof(SFVec2f));
+	SFVec2f *tmp = (SFVec2f *)gf_malloc(sizeof(SFVec2f));
 	memset(tmp, 0, sizeof(SFVec2f));
 	return tmp;
 }
 static SFVec2d *NewSFVec2d()
 {
-	SFVec2d *tmp = (SFVec2d *)malloc(sizeof(SFVec2d));
+	SFVec2d *tmp = (SFVec2d *)gf_malloc(sizeof(SFVec2d));
 	memset(tmp, 0, sizeof(SFVec2d));
 	return tmp;
 }
 static SFColor *NewSFColor()
 {
-	SFColor *tmp = (SFColor *)malloc(sizeof(SFColor));
+	SFColor *tmp = (SFColor *)gf_malloc(sizeof(SFColor));
 	memset(tmp, 0, sizeof(SFColor));
 	return tmp;
 }
 static SFColorRGBA *NewSFColorRGBA()
 {
-	SFColorRGBA *tmp = (SFColorRGBA *)malloc(sizeof(SFColorRGBA));
+	SFColorRGBA *tmp = (SFColorRGBA *)gf_malloc(sizeof(SFColorRGBA));
 	memset(tmp, 0, sizeof(SFColorRGBA));
 	return tmp;
 }
 static SFRotation *NewSFRotation()
 {
-	SFRotation *tmp = (SFRotation *)malloc(sizeof(SFRotation));
+	SFRotation *tmp = (SFRotation *)gf_malloc(sizeof(SFRotation));
 	memset(tmp, 0, sizeof(SFRotation));
 	return tmp;
 }
 static SFImage *NewSFImage()
 {
-	SFImage *tmp = (SFImage *)malloc(sizeof(SFImage));
+	SFImage *tmp = (SFImage *)gf_malloc(sizeof(SFImage));
 	memset(tmp, 0, sizeof(SFImage));
 	return tmp;
 }
 static SFURL *NewSFURL()
 {
-	SFURL *tmp = (SFURL *)malloc(sizeof(SFURL));
+	SFURL *tmp = (SFURL *)gf_malloc(sizeof(SFURL));
 	memset(tmp, 0, sizeof(SFURL));
 	return tmp;
 }
 static SFCommandBuffer *NewSFCommandBuffer()
 {
-	SFCommandBuffer *tmp = (SFCommandBuffer *)malloc(sizeof(SFCommandBuffer));
+	SFCommandBuffer *tmp = (SFCommandBuffer *)gf_malloc(sizeof(SFCommandBuffer));
 	memset(tmp, 0, sizeof(SFCommandBuffer));
 	tmp->commandList = gf_list_new();
 	return tmp;
 }
 static SFScript *NewSFScript()
 {
-	SFScript *tmp = (SFScript *)malloc(sizeof(SFScript));
+	SFScript *tmp = (SFScript *)gf_malloc(sizeof(SFScript));
 	memset(tmp, 0, sizeof(SFScript));
 	return tmp;
 }
@@ -379,85 +379,85 @@ static SFAttrRef *NewSFAttrRef()
 }
 static MFBool *NewMFBool()
 {
-	MFBool *tmp = (MFBool *)malloc(sizeof(MFBool));
+	MFBool *tmp = (MFBool *)gf_malloc(sizeof(MFBool));
 	memset(tmp, 0, sizeof(MFBool));
 	return tmp;
 }
 static MFFloat *NewMFFloat()
 {
-	MFFloat *tmp = (MFFloat *)malloc(sizeof(MFFloat));
+	MFFloat *tmp = (MFFloat *)gf_malloc(sizeof(MFFloat));
 	memset(tmp, 0, sizeof(MFFloat));
 	return tmp;
 }
 static MFTime *NewMFTime()
 {
-	MFTime *tmp = (MFTime *)malloc(sizeof(MFTime));
+	MFTime *tmp = (MFTime *)gf_malloc(sizeof(MFTime));
 	memset(tmp, 0, sizeof(MFTime));
 	return tmp;
 }
 static MFInt32 *NewMFInt32()
 {
-	MFInt32 *tmp = (MFInt32 *)malloc(sizeof(MFInt32));
+	MFInt32 *tmp = (MFInt32 *)gf_malloc(sizeof(MFInt32));
 	memset(tmp, 0, sizeof(MFInt32));
 	return tmp;
 }
 static MFString *NewMFString()
 {
-	MFString *tmp = (MFString *)malloc(sizeof(MFString));
+	MFString *tmp = (MFString *)gf_malloc(sizeof(MFString));
 	memset(tmp, 0, sizeof(MFString));
 	return tmp;
 }
 static MFVec3f *NewMFVec3f()
 {
-	MFVec3f *tmp = (MFVec3f *)malloc(sizeof(MFVec3f));
+	MFVec3f *tmp = (MFVec3f *)gf_malloc(sizeof(MFVec3f));
 	memset(tmp, 0, sizeof(MFVec3f));
 	return tmp;
 }
 static MFVec3d *NewMFVec3d()
 {
-	MFVec3d *tmp = (MFVec3d *)malloc(sizeof(MFVec3d));
+	MFVec3d *tmp = (MFVec3d *)gf_malloc(sizeof(MFVec3d));
 	memset(tmp, 0, sizeof(MFVec3d));
 	return tmp;
 }
 static MFVec2f *NewMFVec2f()
 {
-	MFVec2f *tmp = (MFVec2f *)malloc(sizeof(MFVec2f));
+	MFVec2f *tmp = (MFVec2f *)gf_malloc(sizeof(MFVec2f));
 	memset(tmp, 0, sizeof(MFVec2f));
 	return tmp;
 }
 static MFVec2d *NewMFVec2d()
 {
-	MFVec2d *tmp = (MFVec2d *)malloc(sizeof(MFVec2d));
+	MFVec2d *tmp = (MFVec2d *)gf_malloc(sizeof(MFVec2d));
 	memset(tmp, 0, sizeof(MFVec2d));
 	return tmp;
 }
 static MFColor *NewMFColor()
 {
-	MFColor *tmp = (MFColor *)malloc(sizeof(MFColor));
+	MFColor *tmp = (MFColor *)gf_malloc(sizeof(MFColor));
 	memset(tmp, 0, sizeof(MFColor));
 	return tmp;
 }
 static MFColorRGBA *NewMFColorRGBA()
 {
-	MFColorRGBA *tmp = (MFColorRGBA *)malloc(sizeof(MFColorRGBA));
+	MFColorRGBA *tmp = (MFColorRGBA *)gf_malloc(sizeof(MFColorRGBA));
 	memset(tmp, 0, sizeof(MFColorRGBA));
 	return tmp;
 }
 static MFRotation *NewMFRotation()
 {
-	MFRotation *tmp = (MFRotation *)malloc(sizeof(MFRotation));
+	MFRotation *tmp = (MFRotation *)gf_malloc(sizeof(MFRotation));
 	memset(tmp, 0, sizeof(MFRotation));
 	return tmp;
 }
 static MFURL *NewMFURL()
 {
-	MFURL *tmp = (MFURL *)malloc(sizeof(MFURL));
+	MFURL *tmp = (MFURL *)gf_malloc(sizeof(MFURL));
 	memset(tmp, 0, sizeof(MFURL));
 	return tmp;
 }
 static MFScript *NewMFScript()
 {
-	MFScript *tmp = (MFScript *)malloc(sizeof(MFScript));
+	MFScript *tmp = (MFScript *)gf_malloc(sizeof(MFScript));
 	memset(tmp, 0, sizeof(MFScript));
 	return tmp;
 }
@@ -519,23 +519,23 @@ void *gf_sg_vrml_field_pointer_new(u32 FieldType)
 	return NULL;
 }
 
-void gf_sg_mfint32_del(MFInt32 par) { free(par.vals); }
-void gf_sg_mffloat_del(MFFloat par) { free(par.vals); }
-void gf_sg_mfdouble_del(MFDouble par) { free(par.vals); }
-void gf_sg_mfbool_del(MFBool par) { free(par.vals); }
-void gf_sg_mfcolor_del(MFColor par) { free(par.vals); }
-void gf_sg_mfcolor_rgba_del(MFColorRGBA par) { free(par.vals); }
-void gf_sg_mfrotation_del(MFRotation par) { free(par.vals); }
-void gf_sg_mftime_del(MFTime par) { free(par.vals); }
-void gf_sg_mfvec2f_del(MFVec2f par) { free(par.vals); }
-void gf_sg_mfvec2d_del(MFVec2d par) { free(par.vals); }
-void gf_sg_mfvec3f_del(MFVec3f par) { free(par.vals); }
-void gf_sg_mfvec3d_del(MFVec3d par) { free(par.vals); }
-void gf_sg_mfvec4f_del(MFVec4f par) { free(par.vals); }
-void gf_sg_mfattrref_del(MFAttrRef par) { free(par.vals); }
-void gf_sg_sfimage_del(SFImage im) { free(im.pixels); }
-void gf_sg_sfstring_del(SFString par) { if (par.buffer) free(par.buffer); }
-void gf_sg_sfscript_del(SFScript par) { if (par.script_text) free(par.script_text); }
+void gf_sg_mfint32_del(MFInt32 par) { gf_free(par.vals); }
+void gf_sg_mffloat_del(MFFloat par) { gf_free(par.vals); }
+void gf_sg_mfdouble_del(MFDouble par) { gf_free(par.vals); }
+void gf_sg_mfbool_del(MFBool par) { gf_free(par.vals); }
+void gf_sg_mfcolor_del(MFColor par) { gf_free(par.vals); }
+void gf_sg_mfcolor_rgba_del(MFColorRGBA par) { gf_free(par.vals); }
+void gf_sg_mfrotation_del(MFRotation par) { gf_free(par.vals); }
+void gf_sg_mftime_del(MFTime par) { gf_free(par.vals); }
+void gf_sg_mfvec2f_del(MFVec2f par) { gf_free(par.vals); }
+void gf_sg_mfvec2d_del(MFVec2d par) { gf_free(par.vals); }
+void gf_sg_mfvec3f_del(MFVec3f par) { gf_free(par.vals); }
+void gf_sg_mfvec3d_del(MFVec3d par) { gf_free(par.vals); }
+void gf_sg_mfvec4f_del(MFVec4f par) { gf_free(par.vals); }
+void gf_sg_mfattrref_del(MFAttrRef par) { gf_free(par.vals); }
+void gf_sg_sfimage_del(SFImage im) { gf_free(im.pixels); }
+void gf_sg_sfstring_del(SFString par) { if (par.buffer) gf_free(par.buffer); }
+void gf_sg_sfscript_del(SFScript par) { if (par.script_text) gf_free(par.script_text); }
 
 
 void gf_sg_sfcommand_del(SFCommandBuffer cb)
@@ -546,7 +546,7 @@ void gf_sg_sfcommand_del(SFCommandBuffer cb)
 		gf_sg_command_del(com);
 	}
 	gf_list_del(cb.commandList);
-	if (cb.buffer) free(cb.buffer);
+	if (cb.buffer) gf_free(cb.buffer);
 }
 
 void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType) 
@@ -569,7 +569,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 	case GF_SG_VRML_SFATTRREF:
 		break;
 	case GF_SG_VRML_SFSTRING:
-		if ( ((SFString *)field)->buffer) free(((SFString *)field)->buffer);
+		if ( ((SFString *)field)->buffer) gf_free(((SFString *)field)->buffer);
 		break;
 	case GF_SG_VRML_SFIMAGE:
 		gf_sg_sfimage_del(* ((SFImage *)field));
@@ -645,12 +645,12 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 		return;
 	}
 	//free pointer
-	free(field);
+	gf_free(field);
 }
 
 
 /*********************************************************************
-		MF Fields manipulation (alloc, realloc, GetAt)
+		MF Fields manipulation (alloc, gf_realloc, GetAt)
 *********************************************************************/
 const char *gf_sg_vrml_get_event_type_name(u32 EventType, Bool forX3D)
 {
@@ -751,7 +751,7 @@ u32 gf_sg_field_type_by_name(char *fieldType)
 
 #endif
 
-void gf_sg_sfurl_del(SFURL url) { if (url.url) free(url.url); }
+void gf_sg_sfurl_del(SFURL url) { if (url.url) gf_free(url.url); }
 
 Bool gf_sg_vrml_is_sf_field(u32 FieldType)
 {
@@ -762,9 +762,9 @@ void gf_sg_mfstring_del(MFString par)
 {
 	u32 i;
 	for (i=0; i<par.count; i++) {
-		if (par.vals[i]) free(par.vals[i]);
+		if (par.vals[i]) gf_free(par.vals[i]);
 	}
-	free(par.vals);
+	gf_free(par.vals);
 }
 
 
@@ -775,15 +775,15 @@ void gf_sg_mfurl_del(MFURL url)
 	for (i=0; i<url.count; i++) {
 		gf_sg_sfurl_del(url.vals[i]);
 	}
-	free(url.vals);
+	gf_free(url.vals);
 }
 void gf_sg_mfscript_del(MFScript sc)
 {
 	u32 i;
 	for (i=0; i<sc.count; i++) {
-		if (sc.vals[i].script_text) free(sc.vals[i].script_text);
+		if (sc.vals[i].script_text) gf_free(sc.vals[i].script_text);
 	}
-	free(sc.vals);
+	gf_free(sc.vals);
 }
 
 
@@ -792,10 +792,10 @@ void gf_sg_vrml_copy_mfurl(MFURL *dst, MFURL *src)
 	u32 i;
 	gf_sg_vrml_mf_reset(dst, GF_SG_VRML_MFURL);
 	dst->count = src->count;
-	dst->vals = malloc(sizeof(SFURL)*src->count);
+	dst->vals = gf_malloc(sizeof(SFURL)*src->count);
 	for (i=0; i<src->count; i++) {
 		dst->vals[i].OD_ID = src->vals[i].OD_ID;
-		dst->vals[i].url = src->vals[i].url ? strdup(src->vals[i].url) : NULL;
+		dst->vals[i].url = src->vals[i].url ? gf_strdup(src->vals[i].url) : NULL;
 	}
 }
 
@@ -942,8 +942,8 @@ GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertA
 	
 	//first item ever
 	if (!mffield->count || !mffield->array) {
-		if (mffield->array) free(mffield->array);
-		mffield->array = (char*)malloc(sizeof(char)*FieldSize);
+		if (mffield->array) gf_free(mffield->array);
+		mffield->array = (char*)gf_malloc(sizeof(char)*FieldSize);
 		memset(mffield->array, 0, sizeof(char)*FieldSize);
 		mffield->count = 1;
 		if (new_ptr) *new_ptr = mffield->array;
@@ -952,14 +952,14 @@ GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertA
 
 	//append at the end
 	if (InsertAt >= mffield->count) {
-		mffield->array = (char*)realloc(mffield->array, sizeof(char)*(1+mffield->count)*FieldSize);
+		mffield->array = (char*)gf_realloc(mffield->array, sizeof(char)*(1+mffield->count)*FieldSize);
 		memset(mffield->array + mffield->count * FieldSize, 0, FieldSize);
 		if (new_ptr) *new_ptr = mffield->array + mffield->count * FieldSize;
 		mffield->count += 1;
 		return GF_OK;
 	}
 	//alloc 1+itemCount
-	buffer = (char*)malloc(sizeof(char)*(1+mffield->count)*FieldSize);
+	buffer = (char*)gf_malloc(sizeof(char)*(1+mffield->count)*FieldSize);
 
 	//insert in the array
 	k=0;
@@ -973,7 +973,7 @@ GF_Err gf_sg_vrml_mf_insert(void *mf, u32 FieldType, void **new_ptr, u32 InsertA
 		}
 		memcpy(buffer + (k+i) * FieldSize , mffield->array + i*FieldSize, FieldSize);
 	}
-	free(mffield->array);
+	gf_free(mffield->array);
 	mffield->array = buffer;
 	mffield->count += 1;
 	return GF_OK;
@@ -1001,7 +1001,7 @@ GF_Err gf_sg_vrml_mf_reset(void *mf, u32 FieldType)
 		gf_sg_mfscript_del( * ((MFScript *) mf));
 		break;
 	default:
-		if (mffield->array) free(mffield->array);
+		if (mffield->array) gf_free(mffield->array);
 		break;
 	}
 
@@ -1031,7 +1031,7 @@ GF_Err gf_sg_vrml_mf_alloc(void *mf, u32 FieldType, u32 NbItems)
 	if (mffield->count==NbItems) return GF_OK;
 	gf_sg_vrml_mf_reset(mf, FieldType);
 	if (NbItems) {
-		mffield->array = (char*)malloc(sizeof(char)*FieldSize*NbItems);
+		mffield->array = (char*)gf_malloc(sizeof(char)*FieldSize*NbItems);
 		memset(mffield->array, 0, sizeof(char)*FieldSize*NbItems);
 	}
 	mffield->count = NbItems;
@@ -1080,13 +1080,13 @@ GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom)
 	if (!mffield->count || RemoveFrom >= mffield->count) return GF_BAD_PARAM;
 
 	if (mffield->count == 1) {
-		free(mffield->array);
+		gf_free(mffield->array);
 		mffield->array = NULL;
 		mffield->count = 0;
 		return GF_OK;
 	}
 	k=0;
-	buffer = (char*)malloc(sizeof(char)*(mffield->count-1)*FieldSize);
+	buffer = (char*)gf_malloc(sizeof(char)*(mffield->count-1)*FieldSize);
 	for (i=0; i<mffield->count; i++) {
 		if (RemoveFrom == i) {
 			k = 1;
@@ -1094,7 +1094,7 @@ GF_Err gf_sg_vrml_mf_remove(void *mf, u32 FieldType, u32 RemoveFrom)
 			memcpy(buffer + (i-k)*FieldSize, mffield->array + i*FieldSize, FieldSize);
 		}
 	}
-	free(mffield->array);
+	gf_free(mffield->array);
 	mffield->array = buffer;
 	mffield->count -= 1;
 	return GF_OK;
@@ -1116,26 +1116,26 @@ void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_fiel
 			url = ((SFURL *)orig);
 			if (url->OD_ID>0) {
 				sprintf(tmp, "%d", url->OD_ID);
-				if ( ((SFString*)dest)->buffer) free(((SFString*)dest)->buffer);
-				((SFString*)dest)->buffer = strdup(tmp);
+				if ( ((SFString*)dest)->buffer) gf_free(((SFString*)dest)->buffer);
+				((SFString*)dest)->buffer = gf_strdup(tmp);
 			} else {
-				if ( ((SFString*)dest)->buffer) free(((SFString*)dest)->buffer);
-				((SFString*)dest)->buffer = strdup(url->url);
+				if ( ((SFString*)dest)->buffer) gf_free(((SFString*)dest)->buffer);
+				((SFString*)dest)->buffer = gf_strdup(url->url);
 			}
 		}
 		/*for SFString to MFString cast*/
 		else if (ori_field_type == GF_SG_VRML_SFSTRING) {
-			if ( ((SFString*)dest)->buffer) free(((SFString*)dest)->buffer);
-			((SFString*)dest)->buffer = strdup(((SFString*)orig)->buffer);
+			if ( ((SFString*)dest)->buffer) gf_free(((SFString*)dest)->buffer);
+			((SFString*)dest)->buffer = gf_strdup(((SFString*)orig)->buffer);
 		}
 		return;
 	case GF_SG_VRML_SFURL:
 		if (ori_field_type != GF_SG_VRML_SFSTRING) return;
 		url = ((SFURL *)dest);
 		url->OD_ID = 0;
-		if (url->url) free(url->url);
+		if (url->url) gf_free(url->url);
 		if ( ((SFString*)orig)->buffer) 
-			url->url = strdup(((SFString*)orig)->buffer);
+			url->url = gf_strdup(((SFString*)orig)->buffer);
 		else 
 			url->url = NULL;
 		return;
@@ -1206,27 +1206,27 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 		memcpy(dest, orig, sizeof(SFAttrRef));
 		break;
 	case GF_SG_VRML_SFSTRING:
-		if ( ((SFString*)dest)->buffer) free(((SFString*)dest)->buffer);
+		if ( ((SFString*)dest)->buffer) gf_free(((SFString*)dest)->buffer);
 		if ( ((SFString*)orig)->buffer )
-			((SFString*)dest)->buffer = strdup(((SFString*)orig)->buffer);
+			((SFString*)dest)->buffer = gf_strdup(((SFString*)orig)->buffer);
 		else
 			((SFString*)dest)->buffer = NULL;
 		break;
 	case GF_SG_VRML_SFURL:
-		if ( ((SFURL *)dest)->url ) free( ((SFURL *)dest)->url );
+		if ( ((SFURL *)dest)->url ) gf_free( ((SFURL *)dest)->url );
 		((SFURL *)dest)->OD_ID = ((SFURL *)orig)->OD_ID;
 		if (((SFURL *)orig)->url) 
-			((SFURL *)dest)->url = strdup(((SFURL *)orig)->url);
+			((SFURL *)dest)->url = gf_strdup(((SFURL *)orig)->url);
 		else
 			((SFURL *)dest)->url = NULL;
 		break;
 	case GF_SG_VRML_SFIMAGE:
-		if (((SFImage *)dest)->pixels) free(((SFImage *)dest)->pixels);
+		if (((SFImage *)dest)->pixels) gf_free(((SFImage *)dest)->pixels);
 		((SFImage *)dest)->width = ((SFImage *)orig)->width;
 		((SFImage *)dest)->height = ((SFImage *)orig)->height;
 		((SFImage *)dest)->numComponents  = ((SFImage *)orig)->numComponents;
 		size = ((SFImage *)dest)->width * ((SFImage *)dest)->height * ((SFImage *)dest)->numComponents;
-		((SFImage *)dest)->pixels = (u8*)malloc(sizeof(char)*size);
+		((SFImage *)dest)->pixels = (u8*)gf_malloc(sizeof(char)*size);
 		memcpy(((SFImage *)dest)->pixels, ((SFImage *)orig)->pixels, sizeof(char)*size);
 		break;
 	case GF_SG_VRML_SFCOMMANDBUFFER:
@@ -1236,11 +1236,11 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 
 		cb_dst->bufferSize = cb_src->bufferSize;
 		if (cb_dst->bufferSize) {
-			cb_dst->buffer = (u8*)realloc(cb_dst->buffer, sizeof(char)*cb_dst->bufferSize);
+			cb_dst->buffer = (u8*)gf_realloc(cb_dst->buffer, sizeof(char)*cb_dst->bufferSize);
 			memcpy(cb_dst->buffer, cb_src->buffer, sizeof(char)*cb_src->bufferSize);
 		} else {
 			u32 j, c2;
-			if (cb_dst->buffer) free(cb_dst->buffer);
+			if (cb_dst->buffer) gf_free(cb_dst->buffer);
 			cb_dst->buffer = NULL;
 			/*clone command list*/
 			c2 = gf_list_count(cb_src->commandList);
@@ -1255,10 +1255,10 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 
 	/*simply copy text string*/
 	case GF_SG_VRML_SFSCRIPT:
-		if (((SFScript*)dest)->script_text) free(((SFScript*)dest)->script_text);		
+		if (((SFScript*)dest)->script_text) gf_free(((SFScript*)dest)->script_text);		
 		((SFScript*)dest)->script_text = NULL;
 		if ( ((SFScript*)orig)->script_text)
-			((SFScript *)dest)->script_text = (u8*)strdup( (char*) ((SFScript*)orig)->script_text );
+			((SFScript *)dest)->script_text = (u8*)gf_strdup( (char*) ((SFScript*)orig)->script_text );
 		break;
 
 
@@ -1274,7 +1274,7 @@ void gf_sg_vrml_field_clone(void *dest, void *orig, u32 field_type, GF_SceneGrap
 	case GF_SG_VRML_MFATTRREF:
 		size = gf_sg_vrml_get_sf_size(field_type) * ((GenMFField *)orig)->count;
 		if (((GenMFField *)orig)->count != ((GenMFField *)dest)->count) {
-			((GenMFField *)dest)->array = realloc(((GenMFField *)dest)->array, size);
+			((GenMFField *)dest)->array = gf_realloc(((GenMFField *)dest)->array, size);
 			((GenMFField *)dest)->count = ((GenMFField *)orig)->count;
 		}
 		memcpy(((GenMFField *)dest)->array, ((GenMFField *)orig)->array, size);
@@ -1586,50 +1586,50 @@ char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 	switch (info->fieldType) {
 	case GF_SG_VRML_SFBOOL:
 		strcpy(szVal, *((SFBool*)info->far_ptr) ? "TRUE" : "FALSE");
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFINT32:
 		sprintf(szVal, "%d", *((SFInt32*)info->far_ptr) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFFLOAT:
 		sprintf(szVal, "%g", FIX2FLT( *((SFFloat*)info->far_ptr) ) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFDOUBLE:
 		sprintf(szVal, "%g", *((SFDouble *)info->far_ptr) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFTIME:
 		sprintf(szVal, "%g", *((SFTime *)info->far_ptr) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFVEC2F:
 		sprintf(szVal, "%g %g", FIX2FLT(((SFVec2f *)info->far_ptr)->x), FIX2FLT( ((SFVec2f *)info->far_ptr)->y) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFVEC2D:
 		sprintf(szVal, "%g %g", ((SFVec2d *)info->far_ptr)->x, ((SFVec2d *)info->far_ptr)->y);
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFVEC3F:
 		sprintf(szVal, "%g %g %g", FIX2FLT(((SFVec3f *)info->far_ptr)->x), FIX2FLT( ((SFVec3f *)info->far_ptr)->y) , FIX2FLT( ((SFVec3f *)info->far_ptr)->z) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFVEC3D:
 		sprintf(szVal, "%g %g %g", ((SFVec3d *)info->far_ptr)->x, ((SFVec3d *)info->far_ptr)->y, ((SFVec3d *)info->far_ptr)->z);
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFCOLOR:
 		sprintf(szVal, "%g %g %g", FIX2FLT(((SFColor *)info->far_ptr)->red), FIX2FLT( ((SFColor *)info->far_ptr)->green) , FIX2FLT( ((SFColor *)info->far_ptr)->blue) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFCOLORRGBA:
 		sprintf(szVal, "%g %g %g %g", FIX2FLT(((SFColorRGBA *)info->far_ptr)->red), FIX2FLT( ((SFColorRGBA*)info->far_ptr)->green) , FIX2FLT( ((SFColorRGBA*)info->far_ptr)->blue) , FIX2FLT( ((SFColorRGBA*)info->far_ptr)->alpha) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFROTATION:
 		sprintf(szVal, "%g %g %g %g", FIX2FLT(((SFRotation *)info->far_ptr)->x), FIX2FLT( ((SFRotation *)info->far_ptr)->y) , FIX2FLT( ((SFRotation *)info->far_ptr)->z), FIX2FLT( ((SFRotation *)info->far_ptr)->q) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFSTRING:
-		if (!((SFString*)info->far_ptr)->buffer ) return strdup("");
-		return strdup( ((SFString*)info->far_ptr)->buffer );
+		if (!((SFString*)info->far_ptr)->buffer ) return gf_strdup("");
+		return gf_strdup( ((SFString*)info->far_ptr)->buffer );
 
 	case GF_SG_VRML_SFURL:
 		if (((SFURL *)info->far_ptr)->url) {
-			return strdup( ((SFURL *)info->far_ptr)->url );
+			return gf_strdup( ((SFURL *)info->far_ptr)->url );
 		} else {
 			sprintf(szVal, "od://%d", ((SFURL *)info->far_ptr)->OD_ID);
-			return strdup(szVal);
+			return gf_strdup(szVal);
 		}
 
 	case GF_SG_VRML_SFIMAGE:
@@ -1640,7 +1640,7 @@ char *gf_node_vrml_dump_attribute(GF_Node *n, GF_FieldInfo *info)
 
 		count = img->width * img->height * img->numComponents;
 		i = (3/*' 0x'*/ + 2/*%02X*/*img->numComponents)*count + 20;
-		buf = malloc(sizeof(char) * i);
+		buf = gf_malloc(sizeof(char) * i);
 
 		sprintf(buf , "%d %d %d", img->width, img->height, img->numComponents);
 

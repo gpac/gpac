@@ -78,7 +78,7 @@ struct __audiomix
 GF_AudioMixer *gf_mixer_new(struct _audio_render *ar)
 {
 	GF_AudioMixer *am;
-	am = (GF_AudioMixer *) malloc(sizeof(GF_AudioMixer));
+	am = (GF_AudioMixer *) gf_malloc(sizeof(GF_AudioMixer));
 	if (!am) return NULL;
 	memset(am, 0, sizeof(GF_AudioMixer));
 	am->mx = gf_mx_new("AudioMix");
@@ -102,8 +102,8 @@ void gf_mixer_del(GF_AudioMixer *am)
 {
 	gf_list_del(am->sources);
 	gf_mx_del(am->mx);
-	if (am->output) free(am->output);
-	free(am);
+	if (am->output) gf_free(am->output);
+	gf_free(am);
 }
 
 void gf_mixer_remove_all(GF_AudioMixer *am)
@@ -114,9 +114,9 @@ void gf_mixer_remove_all(GF_AudioMixer *am)
 		MixerInput *in = (MixerInput *)gf_list_get(am->sources, 0);
 		gf_list_rem(am->sources, 0);
 		for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
-			if (in->ch_buf[j]) free(in->ch_buf[j]);
+			if (in->ch_buf[j]) gf_free(in->ch_buf[j]);
 		}
-		free(in);
+		gf_free(in);
 	}
 	am->isEmpty = 1,
 	gf_mixer_lock(am, 0);
@@ -186,9 +186,9 @@ void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src)
 		if (in->src != src) continue;
 		gf_list_rem(am->sources, i);
 		for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
-			if (in->ch_buf[j]) free(in->ch_buf[j]);
+			if (in->ch_buf[j]) gf_free(in->ch_buf[j]);
 		}
-		free(in);
+		gf_free(in);
 		break;
 	}
 	am->isEmpty = gf_list_count(am->sources) ? 0 : 1;
@@ -622,8 +622,8 @@ do_mix:
 	nb_samples = buffer_size / (am->nb_channels * am->bits_per_sample / 8);
 	/*step 1, cfg*/
 	if (am->output_size<buffer_size) {
-		if (am->output) free(am->output);
-		am->output = (s32*)malloc(sizeof(s32) * buffer_size);
+		if (am->output) gf_free(am->output);
+		am->output = (s32*)gf_malloc(sizeof(s32) * buffer_size);
 		am->output_size = buffer_size;
 	}
 
@@ -634,8 +634,8 @@ do_mix:
 
 		if (in->buffer_size < nb_samples) { 
 			for (j=0; j<GF_SR_MAX_CHANNELS; j++) {
-				if (in->ch_buf[j]) free(in->ch_buf[j]); 
-				in->ch_buf[j] = (s32 *) malloc(sizeof(s32) * nb_samples);
+				if (in->ch_buf[j]) gf_free(in->ch_buf[j]); 
+				in->ch_buf[j] = (s32 *) gf_malloc(sizeof(s32) * nb_samples);
 			}
 			in->buffer_size = nb_samples; 
 		}

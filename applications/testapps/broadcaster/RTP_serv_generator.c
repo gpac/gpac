@@ -1,4 +1,3 @@
-#include <malloc.h>
 #include <assert.h>
 #include <string.h>
 #include <errno.h>
@@ -21,7 +20,7 @@ PNC_CallbackData *PNC_Init_SceneGenerator(GF_RTPChannel *p_chan, GF_RTPHeader *p
 										  u32 socketType, u16 socketPort, int debug) 
 {
 	GF_Err e;
-	PNC_CallbackData *data = malloc(sizeof(PNC_CallbackData));
+	PNC_CallbackData *data = gf_malloc(sizeof(PNC_CallbackData));
 	int *i;
 	data->chan = p_chan;
 	data->hdr = p_hdr;
@@ -32,7 +31,7 @@ PNC_CallbackData *PNC_Init_SceneGenerator(GF_RTPChannel *p_chan, GF_RTPHeader *p
 	data->codec = gf_seng_init((void*)data, default_scene);
 	if (!data->codec) {
 		fprintf(stderr, "Cannot create BIFS Engine from %s\n", default_scene);
-		free(data);
+		gf_free(data);
 		return NULL;
 	}
 	data->server_socket = NULL;
@@ -72,10 +71,10 @@ PNC_CallbackData *PNC_Init_SceneGenerator(GF_RTPChannel *p_chan, GF_RTPHeader *p
 			gf_sk_del(data->socket);
 		if (data->server_socket)
 			gf_sk_del(data->server_socket);
-		free(data);
+		gf_free(data);
 		return NULL;
 	}
-	data->extension = malloc(sizeof(PNC_CallbackExt));
+	data->extension = gf_malloc(sizeof(PNC_CallbackExt));
 	((PNC_CallbackExt * )data->extension)->i = 0;
 	((PNC_CallbackExt * )data->extension)->lastTS = 0;
 	i = &((PNC_CallbackExt*)data->extension)->i;
@@ -91,11 +90,11 @@ void PNC_SendInitScene(PNC_CallbackData * data)
 
 void PNC_Close_SceneGenerator(PNC_CallbackData * data)
 {
-	if (data->extension) free(data->extension);
+	if (data->extension) gf_free(data->extension);
 	gf_seng_terminate(data->codec);
 	gf_rtp_del(data->chan);
 	PNC_ClosePacketizer(data);
-	free(data);
+	gf_free(data);
 }
 
 
@@ -130,7 +129,7 @@ static GF_Err processSend(PNC_CallbackData * data, char * bsBuffer)
 	gf_mx_p(data->carrousel_mutex);
 	error = gf_seng_encode_from_string(data->codec, bsBuffer, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
-	free( bsBuffer );
+	gf_free( bsBuffer );
 	return error;
 }
 
@@ -146,7 +145,7 @@ static GF_Err processRapReset(PNC_CallbackData * data, char * bsBuffer)
 	if (error == GF_OK)
 		error = gf_seng_encode_context(data->codec, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
-	free( bsBuffer );
+	gf_free( bsBuffer );
 	return error;
 }
 
@@ -162,7 +161,7 @@ static GF_Err processRap(PNC_CallbackData * data, char * bsBuffer)
 	if (GF_OK == error)
 		error = gf_seng_encode_context(data->codec, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
-	free( bsBuffer );
+	gf_free( bsBuffer );
 	return error;
 }
 
@@ -174,7 +173,7 @@ static GF_Err processSendCritical(PNC_CallbackData * data, char * bsBuffer)
 	data->SAUN_inc = 1;
 	error = gf_seng_encode_from_string(data->codec, bsBuffer, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
-	free( bsBuffer );
+	gf_free( bsBuffer );
 	return error;
 }
 
@@ -197,7 +196,7 @@ static char * eat_buffer_to_bs(char * data, int newStart, int upToPosition, int 
 
 	/*new length + '\0'*/
 	assert(dataFullSize >= upToPosition-newStart+2);
-	newBuffer = (char*)malloc(dataFullSize);
+	newBuffer = (char*)gf_malloc(dataFullSize);
 	memcpy(newBuffer, data, dataFullSize);
 	memcpy(data, newBuffer+newStart, upToPosition-newStart+1);
 	data[upToPosition-newStart+1]='\0';

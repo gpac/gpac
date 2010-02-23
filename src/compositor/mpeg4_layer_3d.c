@@ -65,7 +65,7 @@ static void DestroyLayer3D(GF_Node *node)
 	if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
 #endif
 
-	if (st->txh.data) free(st->txh.data);
+	if (st->txh.data) gf_free(st->txh.data);
 	/*destroy texture*/
 	gf_sc_texture_destroy(&st->txh);
 
@@ -81,7 +81,7 @@ static void DestroyLayer3D(GF_Node *node)
 
 
 	if (compositor && compositor->active_layer == node) compositor->active_layer = NULL;
-	free(st);
+	gf_free(st);
 }
 
 static void l3d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool force_traverse)
@@ -201,7 +201,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 		if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
 #endif
 		gf_sc_texture_release(&st->txh);
-		if (st->txh.data) free(st->txh.data);
+		if (st->txh.data) gf_free(st->txh.data);
 		st->txh.data = NULL;
 	}
 
@@ -254,7 +254,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 		}
 	}
 #endif
-	st->txh.data = (char*)malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
+	st->txh.data = (char*)gf_malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
 	memset(st->txh.data, 0, sizeof(unsigned char) * st->txh.stride * st->txh.height);
 	e = compositor->rasterizer->stencil_set_texture(stencil, st->txh.data, st->txh.width, st->txh.height, st->txh.stride, st->txh.pixelformat, st->txh.pixelformat, 0);
 #ifdef GPAC_TRISCOPE_MODE
@@ -264,7 +264,7 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	if (e) {
 		compositor->rasterizer->stencil_delete(stencil);
 		gf_sc_texture_release(&st->txh);
-		free(st->txh.data);
+		gf_free(st->txh.data);
 		st->txh.data = NULL;
 	}
 #ifdef GPAC_USE_TINYGL

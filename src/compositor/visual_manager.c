@@ -81,7 +81,7 @@ void visual_del(GF_VisualManager *visual)
 	while (visual->prev_nodes) {
 		struct _drawable_store *cur = visual->prev_nodes;
 		visual->prev_nodes = cur->next;
-		free(cur);
+		gf_free(cur);
 	}
 
 #ifndef GPAC_DISABLE_VRML
@@ -98,7 +98,7 @@ void visual_del(GF_VisualManager *visual)
 
 	gf_list_del(visual->alpha_nodes_to_draw);
 #endif
-	free(visual);
+	gf_free(visual);
 }
 
 Bool visual_get_size_info(GF_TraverseState *tr_state, Fixed *surf_width, Fixed *surf_height)

@@ -75,7 +75,7 @@ static void ALSA_Shutdown(GF_AudioOutput*dr)
 		snd_pcm_close(ctx->playback_handle);
 		ctx->playback_handle = NULL;
 	}
-	if (ctx->wav_buf) free(ctx->wav_buf);
+	if (ctx->wav_buf) gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
 }
 
@@ -94,7 +94,7 @@ static GF_Err ALSA_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCh
 		snd_pcm_close(ctx->playback_handle);
 		ctx->playback_handle = NULL;
 	}
-	if (ctx->wav_buf) free(ctx->wav_buf);
+	if (ctx->wav_buf) gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
 
 	err = snd_pcm_open(&ctx->playback_handle, ctx->dev_name, SND_PCM_STREAM_PLAYBACK, 0/*SND_PCM_NONBLOCK*/);
@@ -191,7 +191,7 @@ static GF_Err ALSA_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCh
 	ctx->delay = (ctx->buf_size*1000) / (sr*ctx->block_align);
 
 	/*allocate a single buffer*/
-	ctx->wav_buf = malloc(ctx->buf_size*sizeof(char));
+	ctx->wav_buf = gf_malloc(ctx->buf_size*sizeof(char));
 	if(!ctx->wav_buf) return GF_OUT_OF_MEM;
 	memset(ctx->wav_buf, 0, ctx->buf_size*sizeof(char));
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[ALSA] Setup %d ch @ %d hz - %d periods of %d us - total buffer size %d - overall delay %d ms\n", ctx->nb_ch, sr, nb_bufs, period_time, ctx->buf_size, ctx->delay));
@@ -199,7 +199,7 @@ static GF_Err ALSA_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCh
 	return GF_OK;
 
 err_exit:
-	if (hw_params) snd_pcm_hw_params_free(hw_params);
+	if (hw_params) snd_pcm_hw_params_gf_free(hw_params);
 	snd_pcm_close(ctx->playback_handle);
 	ctx->playback_handle = NULL;
 	return GF_IO_ERR;
@@ -319,7 +319,7 @@ void *NewALSAOutput()
 
 	GF_SAFEALLOC(driv, GF_AudioOutput);
 	if(!driv) {
-		free(ctx);
+		gf_free(ctx);
 		return NULL;
 	}
 	driv->opaque = ctx;
@@ -341,8 +341,8 @@ void DeleteALSAOutput(void *ifce)
 {
 	GF_AudioOutput*dr = (GF_AudioOutput*) ifce;
 	ALSAContext *ctx = (ALSAContext *)dr->opaque;
-	free(ctx);
-	free(dr);
+	gf_free(ctx);
+	gf_free(dr);
 }
 
 

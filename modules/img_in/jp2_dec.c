@@ -220,13 +220,13 @@ static GF_Err JP2_ProcessData(GF_MediaDecoder *ifcg,
 	if (ctx->dsi) {
 		char *data;
 		
-		data = malloc(sizeof(char) * (ctx->dsi_size+inBufferLength));
+		data = gf_malloc(sizeof(char) * (ctx->dsi_size+inBufferLength));
 		memcpy(data, ctx->dsi, ctx->dsi_size);
 		memcpy(data+ctx->dsi_size, inBuffer, inBufferLength);
 		cio = opj_cio_open((opj_common_ptr)dinfo, data, ctx->dsi_size+inBufferLength);
 		/* decode the stream and fill the image structure */
 		image = opj_decode(dinfo, cio);
-		free(data);
+		gf_free(data);
 	} else {
 		cio = opj_cio_open((opj_common_ptr)dinfo, inBuffer, inBufferLength);
 		/* decode the stream and fill the image structure */
@@ -328,12 +328,12 @@ static GF_Err JP2_ProcessData(GF_MediaDecoder *ifcg,
 		}
 	}
 
-	/* free remaining structures */
+	/* gf_free( remaining structures */
 	if(dinfo) {
 		opj_destroy_decompress(dinfo);
 	}
 
-	/* free image data structure */
+	/* gf_free( image data structure */
 	opj_image_destroy(image);
 	
 	*outBufferLength = ctx->out_size;
@@ -349,7 +349,7 @@ static const char *JP2_GetCodecName(GF_BaseDecoder *dec)
 Bool NewJP2Dec(GF_BaseDecoder *ifcd)
 {
 	IMGDec *wrap = (IMGDec *) ifcd->privateStack;
-	JP2Dec *dec = (JP2Dec *) malloc(sizeof(JP2Dec));
+	JP2Dec *dec = (JP2Dec *) gf_malloc(sizeof(JP2Dec));
 	memset(dec, 0, sizeof(JP2Dec));
 	wrap->opaque = dec;
 	wrap->type = DEC_JPEG;
@@ -367,7 +367,7 @@ Bool NewJP2Dec(GF_BaseDecoder *ifcd)
 void DeleteJP2Dec(GF_BaseDecoder *ifcg)
 {
 	JP2CTX();
-	free(ctx);
+	gf_free(ctx);
 }
 
 #endif

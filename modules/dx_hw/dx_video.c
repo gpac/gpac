@@ -637,11 +637,11 @@ GF_Err GetDisplayMode(DDContext *dd)
 static void *NewDXVideoOutput()
 {
 	DDContext *pCtx;
-	GF_VideoOutput *driv = (GF_VideoOutput *) malloc(sizeof(GF_VideoOutput));
+	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "DirectX Video Output", "gpac distribution");
 
-	pCtx = malloc(sizeof(DDContext));
+	pCtx = gf_malloc(sizeof(DDContext));
 	memset(pCtx, 0, sizeof(DDContext));
 	driv->opaque = pCtx;
 	driv->Flush = DD_Flush;
@@ -663,8 +663,8 @@ static void DeleteVideoOutput(void *ifce)
 {
 	GF_VideoOutput *driv = (GF_VideoOutput *) ifce;
 	DDContext *dd = (DDContext *)driv->opaque;
-	free(dd);
-	free(driv);
+	gf_free(dd);
+	gf_free(driv);
 }
 
 /*interface query*/

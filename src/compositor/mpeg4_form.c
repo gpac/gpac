@@ -53,7 +53,7 @@ static void form_reset(FormStack *st)
 		FormGroup * fg = (FormGroup *) gf_list_get(st->grouplist, 0);
 		gf_list_rem(st->grouplist, 0);
 		gf_list_del(fg->children);
-		free(fg);
+		gf_free(fg);
 	}
 }
 
@@ -220,7 +220,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 		form_reset(st);
 		gf_list_del(st->grouplist);
 		parent_node_predestroy((ParentNode2D *)st);
-		free(st);
+		gf_free(st);
 		return;
 	}
 	/*update cliper*/

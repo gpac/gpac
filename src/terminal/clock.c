@@ -39,7 +39,7 @@ GF_Clock *NewClock(GF_Terminal *term)
 void gf_clock_del(GF_Clock *ck)
 {
 	gf_mx_del(ck->mx);
-	free(ck);
+	gf_free(ck);
 }
 
 GF_Clock *gf_clock_find(GF_List *Clocks, u16 clockID, u16 ES_ID)

@@ -38,19 +38,19 @@
 #define HIGH_SPEED_RATIO	2
 
 
-/*size alloc for meshes doubles memory at each realloc rather than using a fix-size increment 
+/*size alloc for meshes doubles memory at each gf_realloc rather than using a fix-size increment 
  (this really speeds up large meshes constructing). Final memory usage is adjusted when updating mesh bounds
 */
 #define MESH_CHECK_VERTEX(m)		\
 	if (m->v_count == m->v_alloc) {	\
 		m->v_alloc *= 2;	\
-		m->vertices = (GF_Vertex *)realloc(m->vertices, sizeof(GF_Vertex)*m->v_alloc);	\
+		m->vertices = (GF_Vertex *)gf_realloc(m->vertices, sizeof(GF_Vertex)*m->v_alloc);	\
 	}	\
 
 #define MESH_CHECK_IDX(m)		\
 	if (m->i_count == m->i_alloc) {	\
 		m->i_alloc *= 2;	\
-		m->indices = (IDX_TYPE*)realloc(m->indices, sizeof(IDX_TYPE)*m->i_alloc);	\
+		m->indices = (IDX_TYPE*)gf_realloc(m->indices, sizeof(IDX_TYPE)*m->i_alloc);	\
 	}	\
 
 
@@ -59,7 +59,7 @@ static void del_aabb_node(AABBNode *node)
 {
 	if (node->pos) del_aabb_node(node->pos);
 	if (node->neg) del_aabb_node(node->neg);
-	free(node);
+	gf_free(node);
 }
 
 void mesh_reset(GF_Mesh *mesh)
@@ -72,29 +72,29 @@ void mesh_reset(GF_Mesh *mesh)
 	memset(&mesh->bounds.max_edge, 0, sizeof(SFVec3f));
 	if (mesh->aabb_root) del_aabb_node(mesh->aabb_root);
 	mesh->aabb_root = NULL;
-	if (mesh->aabb_indices) free(mesh->aabb_indices);
+	if (mesh->aabb_indices) gf_free(mesh->aabb_indices);
 	mesh->aabb_indices = NULL;
 }
 
 void mesh_free(GF_Mesh *mesh)
 {
-	if (mesh->vertices) free(mesh->vertices);
-	if (mesh->indices) free(mesh->indices);
+	if (mesh->vertices) gf_free(mesh->vertices);
+	if (mesh->indices) gf_free(mesh->indices);
 	if (mesh->aabb_root) del_aabb_node(mesh->aabb_root);
 	mesh->aabb_root = NULL;
-	if (mesh->aabb_indices) free(mesh->aabb_indices);
-	free(mesh);
+	if (mesh->aabb_indices) gf_free(mesh->aabb_indices);
+	gf_free(mesh);
 }
 
 GF_Mesh *new_mesh()
 {
-	GF_Mesh *mesh = (GF_Mesh *)malloc(sizeof(GF_Mesh));
+	GF_Mesh *mesh = (GF_Mesh *)gf_malloc(sizeof(GF_Mesh));
 	if (mesh) {
 		memset(mesh, 0, sizeof(GF_Mesh));
 		mesh->v_alloc = 8;
-		mesh->vertices = (GF_Vertex*)malloc(sizeof(GF_Vertex)*mesh->v_alloc);
+		mesh->vertices = (GF_Vertex*)gf_malloc(sizeof(GF_Vertex)*mesh->v_alloc);
 		mesh->i_alloc = 8;
-		mesh->indices = (IDX_TYPE*)malloc(sizeof(IDX_TYPE)*mesh->i_alloc);
+		mesh->indices = (IDX_TYPE*)gf_malloc(sizeof(IDX_TYPE)*mesh->i_alloc);
 	}
 	return mesh;
 }
@@ -103,11 +103,11 @@ static void mesh_fit_alloc(GF_Mesh *m)
 {
 	if (m->v_count && (m->v_count < m->v_alloc)) {
 		m->v_alloc = m->v_count;
-		m->vertices = (GF_Vertex *)realloc(m->vertices, sizeof(GF_Vertex)*m->v_alloc);
+		m->vertices = (GF_Vertex *)gf_realloc(m->vertices, sizeof(GF_Vertex)*m->v_alloc);
 	}
 	if (m->i_count && (m->i_count  < m->i_alloc)) {
 		m->i_alloc = m->i_count;
-		m->indices = (IDX_TYPE*)realloc(m->indices, sizeof(IDX_TYPE)*m->i_alloc);
+		m->indices = (IDX_TYPE*)gf_realloc(m->indices, sizeof(IDX_TYPE)*m->i_alloc);
 	}
 }
 
@@ -139,14 +139,14 @@ void mesh_clone(GF_Mesh *dest, GF_Mesh *orig)
 {
 	if (dest->v_alloc<orig->v_alloc) {
 		dest->v_alloc = orig->v_alloc;
-		dest->vertices = (GF_Vertex *)realloc(dest->vertices, sizeof(GF_Vertex)*dest->v_alloc);
+		dest->vertices = (GF_Vertex *)gf_realloc(dest->vertices, sizeof(GF_Vertex)*dest->v_alloc);
 	}
 	dest->v_count = orig->v_count;
 	memcpy(dest->vertices, orig->vertices, sizeof(GF_Vertex)*dest->v_count);
 
 	if (dest->i_alloc < orig->i_alloc) {
 		dest->i_alloc = orig->i_alloc;
-		dest->indices = (IDX_TYPE*)realloc(dest->indices, sizeof(IDX_TYPE)*dest->i_alloc);
+		dest->indices = (IDX_TYPE*)gf_realloc(dest->indices, sizeof(IDX_TYPE)*dest->i_alloc);
 	}
 	dest->i_count = orig->i_count;
 	memcpy(dest->indices, orig->indices, sizeof(IDX_TYPE)*dest->i_count);
@@ -157,7 +157,7 @@ void mesh_clone(GF_Mesh *dest, GF_Mesh *orig)
 	/*and reset AABB*/
 	if (dest->aabb_root) del_aabb_node(dest->aabb_root);
 	dest->aabb_root = NULL;
-	if (dest->aabb_indices) free(dest->aabb_indices);
+	if (dest->aabb_indices) gf_free(dest->aabb_indices);
 	dest->aabb_indices = NULL;
 }
 
@@ -381,8 +381,8 @@ void mesh_new_cylinder(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, B
 
 	nfacets = CYLINDER_SUBDIV;
 	if (low_res) nfacets /= HIGH_SPEED_RATIO;
-	coords = (SFVec3f*) malloc(sizeof(SFVec3f) * nfacets);
-	texcoords = (SFVec2f*)malloc(sizeof(SFVec2f) * nfacets);
+	coords = (SFVec3f*) gf_malloc(sizeof(SFVec3f) * nfacets);
+	texcoords = (SFVec2f*)gf_malloc(sizeof(SFVec2f) * nfacets);
 
 	compute_cylinder(height, radius, nfacets, coords, texcoords);
 
@@ -457,8 +457,8 @@ void mesh_new_cylinder(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, B
 						(FIX_ONE + gf_sin(angle))/2, FIX_ONE - (FIX_ONE + gf_cos(angle))/2);
 		mesh_set_triangle(mesh, c_idx, mesh->v_count-2, mesh->v_count-1);
     }
-	free(texcoords);
-	free(coords);
+	gf_free(texcoords);
+	gf_free(coords);
 
     if (top && bottom && side) mesh->flags |= MESH_IS_SOLID;
 
@@ -483,8 +483,8 @@ void mesh_new_cone(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool 
 
     nfacets = CONE_SUBDIV;
     if (low_res) nfacets /= HIGH_SPEED_RATIO;
-    coords = (SFVec3f*)malloc(sizeof(SFVec3f) * nfacets);
-	texcoords = (SFVec2f*)malloc(sizeof(SFVec2f) * nfacets);
+    coords = (SFVec3f*)gf_malloc(sizeof(SFVec3f) * nfacets);
+	texcoords = (SFVec2f*)gf_malloc(sizeof(SFVec2f) * nfacets);
 	
 	compute_cylinder(height, radius, nfacets, coords, texcoords);
 
@@ -534,8 +534,8 @@ void mesh_new_cone(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool 
 									(FIX_ONE + gf_sin(angle))/2, FIX_ONE - (FIX_ONE + gf_cos(angle))/2);
 		mesh_set_triangle(mesh, c_idx, mesh->v_count-2, mesh->v_count-1); 
 	}
-	free(texcoords);
-	free(coords);
+	gf_free(texcoords);
+	gf_free(coords);
 
     if (bottom && side) mesh->flags |= MESH_IS_SOLID;
 
@@ -582,8 +582,8 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 	if (low_res) num_steps /= 2;
     npts = num_steps * num_steps;
 
-	coords = (SFVec3f*)malloc(sizeof(SFVec3f)*npts);
-	texcoords = (SFVec2f*)malloc(sizeof(SFVec2f)*npts);
+	coords = (SFVec3f*)gf_malloc(sizeof(SFVec3f)*npts);
+	texcoords = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*npts);
 	compute_sphere(radius, coords, texcoords, num_steps);
 
     for (i=0; i<num_steps-1; i++) {
@@ -614,8 +614,8 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 		mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-2, mesh->v_count-1);
 	}
 
-	free(coords);
-	free(texcoords);
+	gf_free(coords);
+	gf_free(texcoords);
 	mesh->flags |= MESH_IS_SOLID;
 
 	mesh->bounds.min_edge.x = mesh->bounds.min_edge.y = mesh->bounds.min_edge.z = -radius;
@@ -967,7 +967,7 @@ void register_point_in_face(struct face_info *fi, u32 pt_index)
 {
 	if (fi->idx_count==fi->idx_alloc) {
 		fi->idx_alloc += 10;
-		fi->idx = (u32*)realloc(fi->idx, sizeof(u32)*fi->idx_alloc);
+		fi->idx = (u32*)gf_realloc(fi->idx, sizeof(u32)*fi->idx_alloc);
 	}
 	fi->idx[fi->idx_count] = pt_index;
 	fi->idx_count++;
@@ -977,7 +977,7 @@ void register_face_in_point(struct pt_info *pi, u32 face_index)
 {
 	if (pi->face_count==pi->face_alloc) {
 		pi->face_alloc += 10;
-		pi->faces = (u32*)realloc(pi->faces, sizeof(u32)*pi->face_alloc);
+		pi->faces = (u32*)gf_realloc(pi->faces, sizeof(u32)*pi->face_alloc);
 	}
 	pi->faces[pi->face_count] = face_index;
 	pi->face_count++;
@@ -1146,7 +1146,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 		if (coordIndex->vals[count-1] != -1) face_count++;
 	}
 	
-	faces = (GF_Mesh**)malloc(sizeof(GF_Mesh *)*face_count);
+	faces = (GF_Mesh**)gf_malloc(sizeof(GF_Mesh *)*face_count);
 	for (i=0; i<face_count; i++) {
 		faces[i] = new_mesh();
 		if (coord2D) faces[i]->flags = MESH_IS_2D;
@@ -1156,9 +1156,9 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	
 	/*alloc face & normals tables*/
 	if (smooth_normals) {
-		faces_info = (struct face_info*)malloc(sizeof(struct face_info)*face_count);
+		faces_info = (struct face_info*)gf_malloc(sizeof(struct face_info)*face_count);
 		memset(faces_info, 0, sizeof(struct face_info)*face_count);
-		pts_info = (struct pt_info*)malloc(sizeof(struct pt_info)*c_count);
+		pts_info = (struct pt_info*)gf_malloc(sizeof(struct pt_info)*c_count);
 		memset(pts_info, 0, sizeof(struct pt_info)*c_count);
 	}
 
@@ -1257,12 +1257,12 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 			} } 
 
 			if (faces_info) {
-				for (i=0; i<face_count; i++) if (faces_info[i].idx) free(faces_info[i].idx);
-				free(faces_info);
+				for (i=0; i<face_count; i++) if (faces_info[i].idx) gf_free(faces_info[i].idx);
+				gf_free(faces_info);
 			}
 			if (pts_info) {
-				for (i=0; i<c_count; i++) if (pts_info[i].faces) free(pts_info[i].faces);
-				free(pts_info);
+				for (i=0; i<c_count; i++) if (pts_info[i].faces) gf_free(pts_info[i].faces);
+				gf_free(pts_info);
 			}
 			mesh->flags |= MESH_IS_SMOOTHED;
 		} else {
@@ -1287,7 +1287,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 		if (faces[i]->v_count) TesselateFaceMesh(mesh, faces[i]);
 		mesh_free(faces[i]);
 	}
-	free(faces);
+	gf_free(faces);
 	mesh_update_bounds(mesh);
 
 	if (!coord2D) gf_mesh_build_aabbtree(mesh);
@@ -1402,10 +1402,10 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 
 	/*alloc face & normals tables*/
 	if (smooth_normals) {
-		faces = (GF_Mesh **)malloc(sizeof(GF_Mesh *)*face_count);
-		faces_info = (struct face_info*)malloc(sizeof(struct face_info)*face_count);
+		faces = (GF_Mesh **)gf_malloc(sizeof(GF_Mesh *)*face_count);
+		faces_info = (struct face_info*)gf_malloc(sizeof(struct face_info)*face_count);
 		memset(faces_info, 0, sizeof(struct face_info)*face_count);
-		pts_info = (struct pt_info*)malloc(sizeof(struct pt_info)*pt_count);
+		pts_info = (struct pt_info*)gf_malloc(sizeof(struct pt_info)*pt_count);
 		memset(pts_info, 0, sizeof(struct pt_info)*pt_count);
 		faces[cur_face] = new_mesh();
 	}
@@ -1512,12 +1512,12 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 		} } 
 
 		if (faces_info) {
-			for (i=0; i<face_count; i++) if (faces_info[i].idx) free(faces_info[i].idx);
-			free(faces_info);
+			for (i=0; i<face_count; i++) if (faces_info[i].idx) gf_free(faces_info[i].idx);
+			gf_free(faces_info);
 		}
 		if (pts_info) {
-			for (i=0; i<pt_count; i++) if (pts_info[i].faces) free(pts_info[i].faces);
-			free(pts_info);
+			for (i=0; i<pt_count; i++) if (pts_info[i].faces) gf_free(pts_info[i].faces);
+			gf_free(pts_info);
 		}
 		mesh->flags |= MESH_IS_SMOOTHED;
 
@@ -1539,7 +1539,7 @@ void mesh_new_elevation_grid(GF_Mesh *mesh, GF_Node *node)
 		}
 
 		/*destroy faces*/
-		free(faces);
+		gf_free(faces);
 	}
 
 	mesh->mesh_type = MESH_TRIANGLES;
@@ -1632,25 +1632,25 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	pt_count = pts_per_cross * thespine->count;
 	smooth_normals = NEAR_ZERO(creaseAngle) ? 0 : 1;
 
-	faces = (GF_Mesh**)malloc(sizeof(GF_Mesh *)*face_count);
+	faces = (GF_Mesh**)gf_malloc(sizeof(GF_Mesh *)*face_count);
 	for (i=0; i<face_count; i++) faces[i] = new_mesh();
 	faces_info = NULL;
 	pts_info = NULL;
 	
 	/*alloc face & normals tables*/
 	if (smooth_normals) {
-		faces_info = (struct face_info*)malloc(sizeof(struct face_info)*face_count);
+		faces_info = (struct face_info*)gf_malloc(sizeof(struct face_info)*face_count);
 		memset(faces_info, 0, sizeof(struct face_info)*face_count);
-		pts_info = (struct pt_info*)malloc(sizeof(struct pt_info)*pt_count);
+		pts_info = (struct pt_info*)gf_malloc(sizeof(struct pt_info)*pt_count);
 		memset(pts_info, 0, sizeof(struct pt_info)*pt_count);
 	}
 
 	
 	spine = thespine->vals;
 	nb_spine = thespine->count;
-	SCPs = (SCP *)malloc(sizeof(SCP) * nb_spine);
+	SCPs = (SCP *)gf_malloc(sizeof(SCP) * nb_spine);
 	memset(SCPs, 0, sizeof(SCP) * nb_spine);
-	SCPi = (SCPInfo *) malloc(sizeof(SCPInfo) * nb_spine);
+	SCPi = (SCPInfo *) gf_malloc(sizeof(SCPInfo) * nb_spine);
 	memset(SCPi, 0, sizeof(SCPInfo) * nb_spine);
 
 	/*collect all # SCPs: 
@@ -1819,7 +1819,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 			}
 		}
 	}
-	free(SCPi);
+	gf_free(SCPi);
 
 	SCPbegin = SCPs[0];
 	SCPend = SCPs[nb_spine-1];
@@ -2087,12 +2087,12 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 		} } 
 
 		if (faces_info) {
-			for (i=0; i<face_count; i++) if (faces_info[i].idx) free(faces_info[i].idx);
-			free(faces_info);
+			for (i=0; i<face_count; i++) if (faces_info[i].idx) gf_free(faces_info[i].idx);
+			gf_free(faces_info);
 		}
 		if (pts_info) {
-			for (i=0; i<pt_count; i++) if (pts_info[i].faces) free(pts_info[i].faces);
-			free(pts_info);
+			for (i=0; i<pt_count; i++) if (pts_info[i].faces) gf_free(pts_info[i].faces);
+			gf_free(pts_info);
 		}
 		mesh->flags |= MESH_IS_SMOOTHED;
 	}
@@ -2117,7 +2117,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	if (begin_face) {
 		if (path->n_contours>1) {
 #ifdef GPAC_HAS_GLU
-			u32 *ptsPerFace = malloc(sizeof(u32)*path->n_contours);
+			u32 *ptsPerFace = gf_malloc(sizeof(u32)*path->n_contours);
 			/*we reversed begin cap!!!*/
 			cur = 0;
 			for (i=0; i<path->n_contours; i++) {
@@ -2126,7 +2126,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 				ptsPerFace[i] = nb_pts;
 			}
 			TesselateFaceMeshComplex(mesh, faces[begin_face], path->n_contours, ptsPerFace);
-			free(ptsPerFace);
+			gf_free(ptsPerFace);
 #endif
 		} else {
 			TesselateFaceMesh(mesh, faces[begin_face]);
@@ -2136,7 +2136,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 	if (end_face) {
 		if (path->n_contours>1) {
 #ifdef GPAC_HAS_GLU
-			u32 *ptsPerFace = malloc(sizeof(u32)*path->n_contours);
+			u32 *ptsPerFace = gf_malloc(sizeof(u32)*path->n_contours);
 			cur = 0;
 			for (i=0; i<path->n_contours; i++) {
 				nb_pts = 1+path->contours[i] - cur;
@@ -2144,15 +2144,15 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 				ptsPerFace[i] = nb_pts;
 			}
 			TesselateFaceMeshComplex(mesh, faces[end_face], path->n_contours, ptsPerFace);
-			free(ptsPerFace);
+			gf_free(ptsPerFace);
 #endif
 		} else {
 			TesselateFaceMesh(mesh, faces[end_face]);
 		}
 		mesh_free(faces[end_face]);
 	}
-	free(faces);
-	free(SCPs);
+	gf_free(faces);
+	gf_free(SCPs);
 
 	/*FIXME: this is correct except we need to handle path cw/ccw - until then no possibility 
 	to get correct lighting*/

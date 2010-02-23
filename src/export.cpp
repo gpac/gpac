@@ -77,11 +77,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_new) )
 
 #ifdef GPAC_MEMORY_TRACKING
-#pragma comment (linker, EXPORT_SYMBOL(gf_malloc) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_calloc) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_realloc) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_free) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_strdup) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mem_malloc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mem_calloc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mem_realloc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mem_free) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mem_strdup) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_memory_print) )
 #endif /*GPAC_MEMORY_TRACKING*/
 
@@ -1033,6 +1033,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_done) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_string) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_run) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_suspend) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_import_bifs_subtitle) )
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER

@@ -49,7 +49,7 @@ static void timesensor_destroy(GF_Node *ts, void *rs, Bool is_destroy)
 		if (st->time_handle.is_registered) {
 			gf_sc_unregister_time_node(st->compositor, &st->time_handle);
 		}
-		free(st);
+		gf_free(st);
 	}
 }
 

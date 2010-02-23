@@ -111,7 +111,7 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 		u32 i;
 		DrawableContext *last = visual->cur_context;
 		for (i=0; i<50; i++) {
-			last->next = malloc(sizeof(DrawableContext));
+			last->next = gf_malloc(sizeof(DrawableContext));
 			last = last->next;
 			last->drawable = NULL;
 			last->col_mat = NULL;
@@ -142,7 +142,7 @@ void visual_2d_drawable_delete(GF_VisualManager *visual, struct _drawable *drawa
 		if (prev) prev->next = it->next;
 		else visual->prev_nodes = it->next;
 		if (!it->next) visual->last_prev_entry = prev;
-		free(it);
+		gf_free(it);
 		break;
 	}
 	if (drawable->flags & DRAWABLE_IS_OVERLAY) {
@@ -286,7 +286,7 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 			else visual->prev_nodes = it->next;
 			if (!it->next) visual->last_prev_entry = prev;
 			rem++;
-			free(it);
+			gf_free(it);
 			it = prev ? prev->next : visual->prev_nodes;
 		} else {
 			/*mark drawable as already registered with visual*/
@@ -492,7 +492,7 @@ static Bool register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ct
 		ra_add(ra, rc); 
 #ifdef TRACK_OPAQUE_REGIONS
 		if (!ra->opaque_node_index)
-			ra->opaque_node_index = malloc(sizeof(u32)*ra->alloc);
+			ra->opaque_node_index = gf_malloc(sizeof(u32)*ra->alloc);
 
 		ra->opaque_node_index[ra->count-1] = is_transparent ? 0 : ctx_idx; 
 #endif
@@ -525,7 +525,7 @@ static void register_dirty_rect(GF_RectArray *ra, GF_IRect *rc)
 	ra_add(ra, rc); 
 #ifdef TRACK_OPAQUE_REGIONS
 	if (!ra->opaque_node_index)
-		ra->opaque_node_index = malloc(sizeof(u32)*ra->alloc);
+		ra->opaque_node_index = gf_malloc(sizeof(u32)*ra->alloc);
 
 	ra->opaque_node_index[ra->count-1] = 0; 
 #endif
@@ -536,7 +536,7 @@ static void register_dirty_rect(GF_RectArray *ra, GF_IRect *rc)
 
 #ifdef TRACK_OPAQUE_REGIONS
 	if (!ra->opaque_node_index)
-		ra->opaque_node_index = malloc(sizeof(u32)*ra->alloc);
+		ra->opaque_node_index = gf_malloc(sizeof(u32)*ra->alloc);
 
 	ra->opaque_node_index[ra->count-1] = 0; 
 #endif
@@ -642,7 +642,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			if (prev) prev->next = it->next;
 			else visual->prev_nodes = it->next;
 			if (!it->next) visual->last_prev_entry = prev;
-			free(it);
+			gf_free(it);
 			it = prev ? prev->next : visual->prev_nodes;
 		} else {
 			prev = it;
@@ -656,7 +656,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		ra_clear(&visual->to_redraw);
 		ra_add(&visual->to_redraw, &visual->surf_rect);
 #ifdef TRACK_OPAQUE_REGIONS
-		if (!visual->to_redraw.opaque_node_index) visual->to_redraw.opaque_node_index = malloc(sizeof(u32)*visual->to_redraw.alloc);
+		if (!visual->to_redraw.opaque_node_index) visual->to_redraw.opaque_node_index = gf_malloc(sizeof(u32)*visual->to_redraw.alloc);
 		visual->to_redraw.opaque_node_index[0]=0;
 #endif
 	} else {

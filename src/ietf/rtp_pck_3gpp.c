@@ -39,7 +39,7 @@ static void rtp_amr_flush(GP_RTPPacketizer *builder)
 	/*overwrite last frame F bit*/
 	hdr[builder->last_au_sn] &= 0x7F;
 	builder->OnData(builder->cbk_obj, hdr, hdr_size, 1);
-	free(hdr);
+	gf_free(hdr);
 	builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
 	builder->bytesInPacket = 0;
 	builder->last_au_sn = 0;
@@ -205,7 +205,7 @@ static void rtp_evrc_smv_flush(GP_RTPPacketizer *builder)
 		hdr[0] = 0;
 		hdr[1] = builder->last_au_sn-1;/*MMM + frameCount-1*/
 		builder->OnData(builder->cbk_obj, hdr, hdr_size, 1);
-		free(hdr);
+		gf_free(hdr);
 	}
 	builder->OnPacketDone(builder->cbk_obj, &builder->rtp_header);
 	builder->bytesInPacket = 0;
@@ -393,7 +393,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		gf_bs_del(bs);
 		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, 0);
 		builder->bytesInPacket += hdr_size;
-		free(hdr);
+		gf_free(hdr);
 		
 		if (txt_size) {
 			if (builder->OnDataReference) {
@@ -461,7 +461,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		gf_bs_del(bs);
 		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, 0);
 		builder->bytesInPacket += hdr_size;
-		free(hdr);
+		gf_free(hdr);
 	
 		if (builder->OnDataReference) {
 			builder->OnDataReference(builder->cbk_obj, size, pay_start + txt_done);
@@ -515,7 +515,7 @@ GF_Err gp_rtp_builder_do_tx3g(GP_RTPPacketizer *builder, char *data, u32 data_si
 		gf_bs_del(bs);
 		builder->OnData(builder->cbk_obj, (char *) hdr, hdr_size, 0);
 		builder->bytesInPacket += hdr_size;
-		free(hdr);
+		gf_free(hdr);
 
 		if (builder->OnDataReference) {
 			builder->OnDataReference(builder->cbk_obj, size, pay_start + txt_done);

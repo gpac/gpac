@@ -374,7 +374,7 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 
 	if (!dumper) return GF_IO_ERR;
 	e = gf_sm_dump_graph(dumper, skip_protos, 0);
-	if (filename) *filename = strdup(gf_sm_dump_get_name(dumper));
+	if (filename) *filename = gf_strdup(gf_sm_dump_get_name(dumper));
 	gf_sm_dumper_del(dumper);
 	return e;
 #else

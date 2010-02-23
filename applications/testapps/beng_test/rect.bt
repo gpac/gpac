@@ -22,7 +22,7 @@ InitialObjectDescriptor {
  ]
 }
 
-OrderedGroup {
+DEF OG OrderedGroup {
  children [
   Background2D {
    backColor 1 1 1

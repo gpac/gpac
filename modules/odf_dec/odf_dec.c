@@ -250,8 +250,8 @@ Bool ODF_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, c
 void DeleteODDec(GF_BaseDecoder *plug)
 {
 	ODPriv *priv = (ODPriv *)plug->privateStack;
-	free(priv);
-	free(plug);
+	gf_free(priv);
+	gf_free(plug);
 }
 
 GF_BaseDecoder *NewODDec()

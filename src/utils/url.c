@@ -70,14 +70,14 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 	/*abs path name*/
 	if (prot_type == GF_URL_TYPE_FILE) {
 	  /*abs path*/
-		if (!strstr(pathName, "://") && !strstr(pathName, "|//")) return strdup(pathName);
+		if (!strstr(pathName, "://") && !strstr(pathName, "|//")) return gf_strdup(pathName);
 		pathName += 6;
 		/*not sure if "file:///C:\..." is std, but let's handle it anyway*/
 		if ((pathName[0]=='/') && (pathName[2]==':')) pathName += 1;
-		return strdup(pathName);
+		return gf_strdup(pathName);
 	}
 	if (prot_type==GF_URL_TYPE_ANY) return NULL;
-	if (!parentPath) return strdup(pathName);
+	if (!parentPath) return gf_strdup(pathName);
 
 	/*try with the parent URL*/
 	prot_type = URL_GetProtocolType(parentPath);
@@ -85,7 +85,7 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 	if (prot_type == GF_URL_TYPE_FILE) return gf_url_concatenate(parentPath, pathName);
 	if (prot_type != GF_URL_TYPE_RELATIVE) return NULL;
 	/*if we are here, parentPath is also relative... return the original PathName*/
-	return strdup(pathName);
+	return gf_strdup(pathName);
 }
 
 
@@ -101,7 +101,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 
 	prot_type = URL_GetProtocolType(pathName);
 	if (prot_type != GF_URL_TYPE_RELATIVE) {
-		outPath = strdup(pathName);
+		outPath = gf_strdup(pathName);
 		goto check_spaces;
 	}
 
@@ -113,7 +113,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 		char *the_path;
 		rad = strchr(rad, '=');
 		rad[0] = 0;
-		the_path = strdup(rad+1);
+		the_path = gf_strdup(rad+1);
 		i=0;
 		while (1) {
 			if (the_path[i]==0) break;
@@ -128,18 +128,18 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 			i++;
 		}
 		name = gf_url_concatenate(the_path, pathName);
-		outPath = malloc(strlen(parentName) + strlen(name) + 2);
+		outPath = gf_malloc(strlen(parentName) + strlen(name) + 2);
 		sprintf(outPath, "%s=%s", parentName, name);
 		rad[0] = '=';
-		free(name);
-		free(the_path);
+		gf_free(name);
+		gf_free(the_path);
 		return outPath;
 	}
 
 	/*rewrite path to use / not % encoding*/
 	rad = strchr(parentName, '%');
 	if (rad && (!strnicmp(rad, "%5c", 3) || !strnicmp(rad, "%05c", 4) || !strnicmp(rad, "%2f", 3)  || !strnicmp(rad, "%02f", 4))) {
-		char *the_path = strdup(parentName);
+		char *the_path = gf_strdup(parentName);
 		i=0;
 		while (1) {
 			if (the_path[i]==0) break;
@@ -154,7 +154,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 			i++;
 		}
 		name = gf_url_concatenate(the_path, pathName);
-		free(the_path);
+		gf_free(the_path);
 		return name;
 	}
 
@@ -204,7 +204,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 			strcat(tmp, "../");
 			pathSepCount--;
 		}
-/*		outPath = strdup(pathName);
+/*		outPath = gf_strdup(pathName);
 		goto check_spaces;
 		*/	
 	} else {
@@ -212,7 +212,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	}
 
 	i = strlen(tmp);
-	outPath = (char *) malloc(i + strlen(name) + 1);
+	outPath = (char *) gf_malloc(i + strlen(name) + 1);
 	sprintf(outPath, "%s%s", tmp, name);
 
 	/*cleanup paths sep for win32*/
@@ -265,7 +265,7 @@ char *gf_url_percent_encode(const char *path)
 	if (!path) return NULL;
 
 	sep = strchr(path, ' ');
-	if (!sep) return strdup(path);
+	if (!sep) return gf_strdup(path);
 	count = 1;
 	sep ++;
 	while (1) {
@@ -273,7 +273,7 @@ char *gf_url_percent_encode(const char *path)
 		if (!sep) break;
 		count ++;
 	}
-	outpath = malloc(sizeof(char) * (strlen(path) + 2*count + 1));
+	outpath = gf_malloc(sizeof(char) * (strlen(path) + 2*count + 1));
 	strcpy(outpath, path);
 	while (1) {
 		sep = strchr(outpath, ' ');

@@ -429,7 +429,7 @@ GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg)
 	cfg->tag = GF_ODF_UI_CFG_TAG;	
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
 	len = gf_bs_read_int(bs, 8);
-	cfg->deviceName = (char*)malloc(sizeof(char) * (len+1));
+	cfg->deviceName = (char*)gf_malloc(sizeof(char) * (len+1));
 	for (i=0; i<len; i++) cfg->deviceName[i] = gf_bs_read_int(bs, 8);
 	cfg->deviceName[i] = 0;
 
@@ -491,18 +491,18 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 	while (gf_list_count(cfg->sequenceParameterSets)) {
 		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->sequenceParameterSets, 0);
 		gf_list_rem(cfg->sequenceParameterSets, 0);
-		if (sl->data) free(sl->data);
-		free(sl);
+		if (sl->data) gf_free(sl->data);
+		gf_free(sl);
 	}
 	gf_list_del(cfg->sequenceParameterSets);
 	while (gf_list_count(cfg->pictureParameterSets)) {
 		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->pictureParameterSets, 0);
 		gf_list_rem(cfg->pictureParameterSets, 0);
-		if (sl->data) free(sl->data);
-		free(sl);
+		if (sl->data) gf_free(sl->data);
+		gf_free(sl);
 	}
 	gf_list_del(cfg->pictureParameterSets);
-	free(cfg);
+	gf_free(cfg);
 }
 
 GF_EXPORT
@@ -554,17 +554,17 @@ GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size)
 	gf_bs_read_int(bs, 3);
 	count = gf_bs_read_int(bs, 5);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_malloc(sizeof(GF_AVCConfigSlot));
 		sl->size = gf_bs_read_int(bs, 16);
-		sl->data = (char*)malloc(sizeof(char)*sl->size);
+		sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(avcc->sequenceParameterSets, sl);
 	}
 	count = gf_bs_read_int(bs, 8);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_malloc(sizeof(GF_AVCConfigSlot));
 		sl->size = gf_bs_read_int(bs, 16);
-		sl->data = (char*)malloc(sizeof(char)*sl->size);
+		sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(avcc->pictureParameterSets, sl);
 	}
@@ -575,7 +575,7 @@ GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size)
 
 GF_Descriptor *gf_odf_new_tx3g()
 {
-	GF_TextSampleDescriptor *newDesc = (GF_TextSampleDescriptor*) malloc(sizeof(GF_TextSampleDescriptor));
+	GF_TextSampleDescriptor *newDesc = (GF_TextSampleDescriptor*) gf_malloc(sizeof(GF_TextSampleDescriptor));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_TextSampleDescriptor));
 	newDesc->tag = GF_ODF_TX3G_TAG;
@@ -585,16 +585,16 @@ GF_Err gf_odf_del_tx3g(GF_TextSampleDescriptor *sd)
 {
 	u32 i;
 	for (i=0; i<sd->font_count; i++) 
-		if (sd->fonts[i].fontName) free(sd->fonts[i].fontName);
-	free(sd->fonts);
-	free(sd);
+		if (sd->fonts[i].fontName) gf_free(sd->fonts[i].fontName);
+	gf_free(sd->fonts);
+	gf_free(sd);
 	return GF_OK;
 }
 
 /*TextConfig*/
 GF_Descriptor *gf_odf_new_text_cfg()
 {
-	GF_TextConfig *newDesc = (GF_TextConfig*) malloc(sizeof(GF_TextConfig));
+	GF_TextConfig *newDesc = (GF_TextConfig*) gf_malloc(sizeof(GF_TextConfig));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_TextConfig));
 	newDesc->tag = GF_ODF_TEXT_CFG_TAG;
@@ -624,7 +624,7 @@ GF_Err gf_odf_del_text_cfg(GF_TextConfig *desc)
 {
 	ResetTextConfig(desc);
 	gf_list_del(desc->sample_descriptions);
-	free(desc);
+	gf_free(desc);
 	return GF_OK;
 }
 
@@ -682,7 +682,7 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 				e = GF_NON_COMPLIANT_BITSTREAM;
 				goto exit;
 			}
-			txdesc = (GF_TextSampleDescriptor *)malloc(sizeof(GF_TextSampleDescriptor));
+			txdesc = (GF_TextSampleDescriptor *)gf_malloc(sizeof(GF_TextSampleDescriptor));
 			txdesc->sample_index = sample_index;
 			txdesc->displayFlags = a->displayFlags;
 			txdesc->back_color = a->back_color;
@@ -692,10 +692,10 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 			txdesc->horiz_justif = a->horizontal_justification;
 			txdesc->font_count = a->font_table ? a->font_table->entry_count : 0;
 			if (txdesc->font_count) {
-				txdesc->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord)*txdesc->font_count);
+				txdesc->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord)*txdesc->font_count);
 				for (j=0; j<txdesc->font_count; j++) {
 					txdesc->fonts[j].fontID = a->font_table->fonts[j].fontID;
-					txdesc->fonts[j].fontName = a->font_table->fonts[j].fontName ? strdup(a->font_table->fonts[j].fontName) : NULL;
+					txdesc->fonts[j].fontName = a->font_table->fonts[j].fontName ? gf_strdup(a->font_table->fonts[j].fontName) : NULL;
 				}
 			}
 			gf_list_add(cfg->sample_descriptions, txdesc);

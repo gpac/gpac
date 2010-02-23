@@ -432,7 +432,7 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 
 	/*decoder config*/
 	if (dsi) {
-		esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*dsi_size);
+		esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*dsi_size);
 		memcpy(esd->decoderConfig->decoderSpecificInfo->data, dsi, sizeof(char)*dsi_size);
 		esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_size;
 	}
@@ -565,7 +565,7 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
 		MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
 		gf_list_rem(m2ts->requested_pids, i);
-		free(req_pid);
+		gf_free(req_pid);
 		i--;
 		count--;
 		found++;
@@ -588,8 +588,8 @@ static void M2TS_FlushRequested(M2TSIn *m2ts)
 				if (ts_prog->number==req_prog->id) {
 					MP2TS_SetupProgram(m2ts, ts_prog, 0, 0);
 					found++;
-					free(req_prog->fragment);
-					free(req_prog);
+					gf_free(req_prog->fragment);
+					gf_free(req_prog);
 					gf_list_rem(m2ts->requested_progs, i);
 					req_prog_count--;
 					i--;
@@ -1093,7 +1093,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			if (!prog) {
 				GF_SAFEALLOC(prog, M2TSIn_Prog);
 				gf_list_add(m2ts->requested_progs, prog);
-				prog->fragment = strdup(frag);
+				prog->fragment = gf_strdup(frag);
 			}
 		}
 		gf_mx_v(m2ts->mx);
@@ -1277,8 +1277,8 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		pes = M2TS_GetChannel(m2ts, com->base.on_channel);
 		/*filter all sections carrying SL data for the app to signal the version number of the section*/
 		if (pes && pes->flags & GF_M2TS_ES_IS_SECTION) {
-			if (pes->slcfg) free(pes->slcfg);
-			pes->slcfg = malloc(sizeof(GF_SLConfig));
+			if (pes->slcfg) gf_free(pes->slcfg);
+			pes->slcfg = gf_malloc(sizeof(GF_SLConfig));
 			memcpy(pes->slcfg, &com->cfg.sl_config, sizeof(GF_SLConfig));
 			com->cfg.use_m2ts_sections = 1;
 			pes->flags |= GF_M2TS_ES_SEND_REPEATED_SECTIONS;
@@ -1293,7 +1293,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 GF_InputService *NewM2TSReader()
 {
 	M2TSIn *reader;
-	GF_InputService *plug = malloc(sizeof(GF_InputService));
+	GF_InputService *plug = gf_malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC MPEG-2 TS Reader", "gpac distribution")
 
@@ -1306,7 +1306,7 @@ GF_InputService *NewM2TSReader()
 	plug->DisconnectChannel = M2TS_DisconnectChannel;
 	plug->ServiceCommand = M2TS_ServiceCommand;
 
-	reader = malloc(sizeof(M2TSIn));
+	reader = gf_malloc(sizeof(M2TSIn));
 	memset(reader, 0, sizeof(M2TSIn));
 	plug->priv = reader;
 	reader->requested_progs = gf_list_new();
@@ -1328,20 +1328,20 @@ void DeleteM2TSReader(void *ifce)
 	count = gf_list_count(m2ts->requested_progs);
 	for (i = 0; i < count; i++) {
 		M2TSIn_Prog *prog = gf_list_get(m2ts->requested_progs, i);
-		free(prog->fragment);
-		free(prog);
+		gf_free(prog->fragment);
+		gf_free(prog);
 	}
 	gf_list_del(m2ts->requested_progs);
 	count = gf_list_count(m2ts->requested_pids);
 	for (i = 0; i < count; i++) {
 		M2TSIn_Prog *prog = gf_list_get(m2ts->requested_pids, i);
-		free(prog);
+		gf_free(prog);
 	}
 	gf_list_del(m2ts->requested_pids);
 	gf_m2ts_demux_del(m2ts->ts);
 	gf_mx_del(m2ts->mx);
-	free(m2ts);
-	free(plug);
+	gf_free(m2ts);
+	gf_free(plug);
 }
 
 #endif

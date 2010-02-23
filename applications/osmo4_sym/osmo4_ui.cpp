@@ -137,7 +137,7 @@ COsmo4AppUi::~COsmo4AppUi()
 	}
     if (iAppView) delete iAppView;
     if (iPlaylist) delete iPlaylist;
-	if (m_title) free(m_title);
+	if (m_title) gf_free(m_title);
 	m_title = NULL;
 }
 
@@ -427,9 +427,9 @@ void COsmo4AppUi::SetTitleInfo(const char *title)
 void COsmo4AppUi::SetTitle(const char *title, int store_it)
 {
 	if (store_it) {
-		if (m_title) free(m_title);
+		if (m_title) gf_free(m_title);
 		m_title = NULL;
-		if (title) m_title = strdup(title);
+		if (title) m_title = gf_strdup(title);
 	}
 	SetTitleInfo(title ? title : m_title);
 }

@@ -102,7 +102,7 @@ static void gf_sm_reset_stream(GF_StreamContext *sc)
 			}
 		}
 		gf_list_del(au->commands);
-		free(au);
+		gf_free(au);
 	}
 }
 
@@ -110,9 +110,9 @@ static void gf_sm_delete_stream(GF_StreamContext *sc)
 {
 	gf_sm_reset_stream(sc);
 	gf_list_del(sc->AUs);
-	if (sc->name) free(sc->name);
-	if (sc->dec_cfg) free(sc->dec_cfg);
-	free(sc);
+	if (sc->name) gf_free(sc->name);
+	if (sc->dec_cfg) gf_free(sc->dec_cfg);
+	gf_free(sc);
 }
 
 GF_EXPORT
@@ -134,7 +134,7 @@ void gf_sm_del(GF_SceneManager *ctx)
 	}
 	gf_list_del(ctx->streams);
 	if (ctx->root_od) gf_odf_desc_del((GF_Descriptor *) ctx->root_od);
-	free(ctx);
+	gf_free(ctx);
 }
 
 GF_EXPORT
@@ -163,7 +163,7 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 		else if (!time_sec && !timing && !tmp->timing && !tmp->timing_sec) return tmp;
 		/*insert AU*/
 		else if ((time_sec && time_sec<tmp->timing_sec) || (timing && timing<tmp->timing)) {
-			tmp = (GF_AUContext *)malloc(sizeof(GF_AUContext));
+			tmp = (GF_AUContext *)gf_malloc(sizeof(GF_AUContext));
 			tmp->commands = gf_list_new();
 			tmp->is_rap = isRap;
 			tmp->timing = timing;
@@ -173,7 +173,7 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 			return tmp;
 		}
 	}
-	tmp = (GF_AUContext *)malloc(sizeof(GF_AUContext));
+	tmp = (GF_AUContext *)gf_malloc(sizeof(GF_AUContext));
 	tmp->commands = gf_list_new();
 	tmp->is_rap = isRap;
 	tmp->timing = timing;
@@ -279,7 +279,7 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 				if (!gf_list_count(au->commands)) {
 					gf_list_rem(sc->AUs, au_count-1);
 					gf_list_del(au->commands);
-					free(au);
+					gf_free(au);
 				}
 				au_count--;
 			}
@@ -331,6 +331,7 @@ GF_Err gf_sm_load_done_bt_string(GF_SceneLoader *load);
 #ifndef GPAC_DISABLE_LOADER_XMT
 GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load);
 void gf_sm_load_done_xmt(GF_SceneLoader *load);
+void gf_sm_load_suspend_xmt(GF_SceneLoader *load, Bool suspend);
 GF_Err gf_sm_load_run_xmt(GF_SceneLoader *load);
 GF_Err gf_sm_load_init_xmt_string(GF_SceneLoader *load, char *str);
 #endif
@@ -346,6 +347,7 @@ GF_Err gf_sm_load_init_svg(GF_SceneLoader *load);
 GF_Err gf_sm_load_done_svg(GF_SceneLoader *load);
 GF_Err gf_sm_load_run_svg(GF_SceneLoader *load);
 GF_Err gf_sm_load_init_svg_string(GF_SceneLoader *load, char *str);
+GF_Err gf_sm_load_suspend_svg(GF_SceneLoader *load, Bool suspend);
 
 GF_Err gf_sm_load_init_xbl(GF_SceneLoader *load);
 GF_Err gf_sm_load_done_xbl(GF_SceneLoader *load);
@@ -505,7 +507,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 					else if (!strcmp(rtype, "X3D")) load->type = GF_SM_LOAD_X3D;
 					else if (!strcmp(rtype, "bindings")) load->type = GF_SM_LOAD_XBL;
 
-					free(rtype);
+					gf_free(rtype);
 				}
 			}
 		}
@@ -656,3 +658,54 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load)
 	}
 }
 
+
+GF_EXPORT
+void gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend)
+{
+	switch (load->type) {
+#ifndef GPAC_DISABLE_LOADER_BT
+	case GF_SM_LOAD_BT:
+	case GF_SM_LOAD_VRML:
+	case GF_SM_LOAD_X3DV:
+		//gf_sm_load_suspend_bt(load, suspend); 
+		break;
+#endif
+
+#ifndef GPAC_DISABLE_LOADER_XMT
+	case GF_SM_LOAD_XMTA:
+	case GF_SM_LOAD_X3D:
+		gf_sm_load_suspend_xmt(load, suspend); 
+		break;
+#endif
+
+#ifndef GPAC_DISABLE_SVG
+	case GF_SM_LOAD_SVG_DA:
+	case GF_SM_LOAD_XSR:
+	case GF_SM_LOAD_DIMS:
+		gf_sm_load_suspend_svg(load, suspend);
+		break;
+
+	case GF_SM_LOAD_XBL:
+		break;
+#endif
+
+#ifndef GPAC_DISABLE_SWF_IMPORT
+	case GF_SM_LOAD_SWF: 
+		//gf_sm_load_suspend_swf(load, suspend); 
+		break;
+#endif
+
+#ifndef GPAC_DISABLE_LOADER_ISOM
+	case GF_SM_LOAD_MP4: 
+		//gf_sm_load_suspend_isom(load, suspend); 
+		break;
+#endif
+
+#ifndef GPAC_DISABLE_QTVR
+	case GF_SM_LOAD_QT: 
+		gf_sm_load_done_qt(load); 
+		break;
+#endif
+
+	}
+}

@@ -451,7 +451,7 @@ GF_Err StoreFragment(GF_ISOFile *movie)
 		gf_bs_get_content(trun->cache, &buffer, &size);
 		gf_bs_write_data(movie->editFileMap->bs, buffer, size);
 		gf_bs_del(trun->cache);
-		free(buffer);
+		gf_free(buffer);
 		trun->cache = NULL;
 	}
 	//2- update MOOF MDAT header
@@ -584,7 +584,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 				gf_bs_write_data(movie->editFileMap->bs, buffer, buffer_size);
 				gf_bs_del(trun->cache);
 				trun->cache = NULL;
-				free(buffer);
+				gf_free(buffer);
 			}
 		}
 		traf_2 = (GF_TrackFragmentBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TRAF);
@@ -627,7 +627,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 			gf_bs_write_data(movie->editFileMap->bs, buffer, buffer_size);
 			gf_bs_del(trun->cache);
 			trun->cache = NULL;
-			free(buffer);
+			gf_free(buffer);
 		}
 	}
 

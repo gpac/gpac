@@ -47,7 +47,7 @@ void drawable_3d_del(GF_Node *n)
 	Drawable3D *d = (Drawable3D *)gf_node_get_private(n);
 	if (d) {
 		if (d->mesh) mesh_free(d->mesh);
-		free(d);
+		gf_free(d);
 	}
 	gf_sc_check_focus_upon_destroy(n);
 }
@@ -513,7 +513,7 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 	
 	i=0;
 	while ((ol = (DirectionalLightContext*)gf_list_enum(tr_state->local_lights, &i))) {
-		nl = (DirectionalLightContext*)malloc(sizeof(DirectionalLightContext));
+		nl = (DirectionalLightContext*)gf_malloc(sizeof(DirectionalLightContext));
 		memcpy(nl, ol, sizeof(DirectionalLightContext));
 		gf_list_add(ctx->directional_lights, nl);
 	}
@@ -599,7 +599,7 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		for (i=gf_list_count(ctx->directional_lights); i>0; i--) {
 			DirectionalLightContext *dl = (DirectionalLightContext*)gf_list_get(ctx->directional_lights, i-1);
 			gf_node_traverse(dl->dlight, tr_state);
-			free(dl);
+			gf_free(dl);
 		}
 
 		if (ctx->has_clipper) visual_3d_reset_clipper_2d(visual);
@@ -609,7 +609,7 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 
 		/*and destroy*/
 		gf_list_del(ctx->directional_lights);
-		free(ctx);
+		gf_free(ctx);
 	}
 	tr_state->pixel_metrics = pixel_metrics;
 	gf_list_reset(tr_state->visual->alpha_nodes_to_draw);

@@ -496,11 +496,11 @@ void bifs3d_viewpoints_merger(GF_ISOFile *file, char *szConfigFile, u32 width, u
 err_exit:
 /*	if (rendered_frames) {
 		for (viewpoint_index = 1; viewpoint_index <= nb_viewpoints; viewpoint_index++) {
-			if (rendered_frames[viewpoint_index-1]) free(rendered_frames[viewpoint_index-1]);
+			if (rendered_frames[viewpoint_index-1]) gf_free(rendered_frames[viewpoint_index-1]);
 		}
-		free(rendered_frames);
+		gf_free(rendered_frames);
 	}
-	if (output_merged_frame) free(output_merged_frame);
+	if (output_merged_frame) gf_free(output_merged_frame);
 */
 	if (user.modules) gf_modules_del(user.modules);
 	if (needs_raw) gf_cfg_set_key(user.config, "Video", "DriverName", old_driv);
@@ -655,7 +655,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 	height = fb.height;
 	if (avi_out) {
 		AVI_set_video(avi_out, width, height, fps, comp);
-		conv_buf = malloc(sizeof(char) * width * height * 3);
+		conv_buf = gf_malloc(sizeof(char) * width * height * 3);
 	}
 	printf("Dumping at BIFS resolution %d x %d\n\n", width, height);
 	gf_sc_release_screen_buffer(b2v.sr, &fb);
@@ -713,7 +713,7 @@ void bifs_to_vid(GF_ISOFile *file, char *szConfigFile, u32 width, u32 height, ch
 
 err_exit:
 	if (avi_out) AVI_close(avi_out);
-	if (conv_buf) free(conv_buf);
+	if (conv_buf) gf_free(conv_buf);
 	if (user.modules) gf_modules_del(user.modules);
 	if (needs_raw) gf_cfg_set_key(user.config, "Video", "DriverName", old_driv);
 	gf_cfg_del(user.config);

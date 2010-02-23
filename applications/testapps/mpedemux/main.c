@@ -100,6 +100,6 @@ int main(int argc, char **argv)
 	}
 
 	gf_m2ts_demux_del(mpedemux->ts_demux);
-	free(mpedemux);
+	gf_free(mpedemux);
 	return GF_OK;
 }

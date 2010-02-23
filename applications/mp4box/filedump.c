@@ -6,7 +6,7 @@
  *
  *  This file is part of GPAC / mp4box application
  *
- *  GPAC is free software; you can redistribute it and/or modify
+ *  GPAC is gf_free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
@@ -130,14 +130,14 @@ GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 	fseek(t, 0, SEEK_END);
 	tag_len = ftell(t);
 	fseek(t, 0, SEEK_SET);
-	tag = malloc(sizeof(char) * tag_len);
+	tag = gf_malloc(sizeof(char) * tag_len);
 	fread(tag, tag_len, 1, t);
 	fclose(t);
 	
 	ext = strrchr(inName, '.');
 	if (!stricmp(ext, ".png")) tag_len |= 0x80000000;
 	e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, tag, tag_len);
-	free(tag);
+	gf_free(tag);
 	return e;
 }
 
@@ -1351,7 +1351,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 			nb_ch = gf_ac3_get_channels(ac3->acmod);
 			br = gf_ac3_get_bitrate(ac3->brcode);
 			lfe = ac3->lfon;
-			free(ac3);
+			gf_free(ac3);
 		}
 #endif
 		fprintf(stdout, "\tAC3 stream - Sample Rate %d - %d%s channel(s) - bitrate %d\n", sr, nb_ch, lfe ? ".1" : "", br);
@@ -1411,9 +1411,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 			fprintf(stdout, "\tVendor code \"%s\" - Version %d - revision %d\n", gf_4cc_to_str(udesc->vendor_code), udesc->version, udesc->revision);
 			if (udesc->extension_buf) {
 				fprintf(stdout, "\tCodec configuration data size: %d bytes\n", udesc->extension_buf_size);
-				free(udesc->extension_buf);
+				gf_free(udesc->extension_buf);
 			}
-			free(udesc);
+			gf_free(udesc);
 		} else {
 			fprintf(stdout, "Unknown track type\n");
 		}

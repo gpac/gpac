@@ -267,11 +267,11 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 				u32 len;
 				char *buf;
 				len = strlen(szExtList) + strlen(szExt) + 10;
-				buf = malloc(sizeof(char)*len);
+				buf = gf_malloc(sizeof(char)*len);
 				sprintf(buf, "\"%s ", szExt);
 				strcat(buf, &szExtList[1]);
 				gf_modules_set_option((GF_BaseInterface *)plug, "MimeTypes", "application/x-ffmpeg", buf);
-				free(buf);
+				gf_free(buf);
 			}
 		}
 	}
@@ -306,7 +306,7 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 			if (!dec->extradata_size) goto opaque_audio;
 			esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
-			esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*dec->extradata_size);
+			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*dec->extradata_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, 
 					dec->extradata, 
 					sizeof(char)*dec->extradata_size);
@@ -347,7 +347,7 @@ opaque_audio:
 			/*otherwise use any MPEG-4 Visual*/
 			esd->decoderConfig->objectTypeIndication = (dec->codec_id==CODEC_ID_H264) ? GPAC_OTI_VIDEO_AVC : GPAC_OTI_VIDEO_MPEG4_PART2;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
-			esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*dec->extradata_size);
+			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*dec->extradata_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, 
 					dec->extradata, 
 					sizeof(char)*dec->extradata_size);
@@ -516,7 +516,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		ffd->buffer_size = 8192;
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "IOBufferSize"); 
 		if (sOpt) ffd->buffer_size = atoi(sOpt);
-		ffd->buffer = malloc(sizeof(char)*ffd->buffer_size);
+		ffd->buffer = gf_malloc(sizeof(char)*ffd->buffer_size);
 #ifdef FFMPEG_DUMP_REMOTE
 		ffd->outdbg = fopen("ffdeb.raw", "wb");
 #endif
@@ -700,7 +700,7 @@ static GF_Err FFD_CloseService(GF_InputService *plug)
 		gf_term_download_del(ffd->dnload);
 		ffd->dnload = NULL;
 	}
-	if (ffd->buffer) free(ffd->buffer);
+	if (ffd->buffer) gf_free(ffd->buffer);
 	ffd->buffer = NULL;
 
 	gf_term_on_disconnect(ffd->service, NULL, GF_OK);
@@ -851,10 +851,10 @@ static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 void *New_FFMPEG_Demux() 
 {
 	FFDemux *priv;
-	GF_InputService *ffd = malloc(sizeof(GF_InputService));
+	GF_InputService *ffd = gf_malloc(sizeof(GF_InputService));
 	memset(ffd, 0, sizeof(GF_InputService));
 
-	priv = malloc(sizeof(FFDemux));
+	priv = gf_malloc(sizeof(FFDemux));
 	memset(priv, 0, sizeof(FFDemux));
 
     /* register all codecs, demux and protocols */
@@ -888,8 +888,8 @@ void Delete_FFMPEG_Demux(void *ifce)
 	gf_th_del(ffd->thread);
 	gf_mx_del(ffd->mx);
 
-	free(ffd);
-	free(ptr);
+	gf_free(ffd);
+	gf_free(ptr);
 }
 
 

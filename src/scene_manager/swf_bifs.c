@@ -655,7 +655,7 @@ static void s2b_insert_shape(M_OrderedGroup *og, M_Shape *n, Bool is_proto)
 static void s2b_insert_rec_in_coord(M_Coordinate2D *c, SWFShapeRec *srec)
 {
 	u32 i, j;
-	srec->path->idx = malloc(sizeof(u32)*srec->path->nbPts);
+	srec->path->idx = gf_malloc(sizeof(u32)*srec->path->nbPts);
 
 	for (i=0; i<srec->path->nbPts; i++) {
 		for (j=0; j<c->point.count; j++) {
@@ -665,7 +665,7 @@ static void s2b_insert_rec_in_coord(M_Coordinate2D *c, SWFShapeRec *srec)
 		}
 		if (j==c->point.count) {
 			c->point.count++;
-			c->point.vals = realloc(c->point.vals, sizeof(SFVec2f)*c->point.count);
+			c->point.vals = gf_realloc(c->point.vals, sizeof(SFVec2f)*c->point.count);
 			c->point.vals[j] = srec->path->pts[i];
 		}
 		srec->path->idx[i] = j; 
@@ -864,35 +864,35 @@ static GF_Err swf_bifs_define_text(SWFReader *read, SWFText *text)
 			if (ft->fontName) {
 				gf_sg_vrml_mf_reset(&f->family, GF_SG_VRML_MFSTRING);
 				gf_sg_vrml_mf_append(&f->family, GF_SG_VRML_MFSTRING, &ptr);
-				((SFString*)ptr)->buffer = strdup(ft->fontName);
+				((SFString*)ptr)->buffer = gf_strdup(ft->fontName);
 			}
 			gf_sg_vrml_mf_reset(&f->justify, GF_SG_VRML_MFSTRING);
 			gf_sg_vrml_mf_append(&f->justify, GF_SG_VRML_MFSTRING, &ptr);
-			((SFString*)ptr)->buffer = strdup("BEGIN");
+			((SFString*)ptr)->buffer = gf_strdup("BEGIN");
 
-			if (f->style.buffer) free(f->style.buffer);
-			if (ft->is_italic && ft->is_bold) f->style.buffer = strdup("BOLDITALIC");
-			else if (ft->is_bold) f->style.buffer = strdup("BOLD");
-			else if (ft->is_italic) f->style.buffer = strdup("ITALIC");
-			else f->style.buffer = strdup("PLAIN");
+			if (f->style.buffer) gf_free(f->style.buffer);
+			if (ft->is_italic && ft->is_bold) f->style.buffer = gf_strdup("BOLDITALIC");
+			else if (ft->is_bold) f->style.buffer = gf_strdup("BOLD");
+			else if (ft->is_italic) f->style.buffer = gf_strdup("ITALIC");
+			else f->style.buffer = gf_strdup("PLAIN");
 
 			/*convert to UTF-8*/
-			str_w = (u16*)malloc(sizeof(u16) * (gr->nbGlyphs+1));
+			str_w = (u16*)gf_malloc(sizeof(u16) * (gr->nbGlyphs+1));
 			for (j=0; j<gr->nbGlyphs; j++) str_w[j] = ft->glyph_codes[gr->indexes[j]];
 			str_w[j] = 0;
-			str = (char*)malloc(sizeof(char) * (gr->nbGlyphs+2));
+			str = (char*)gf_malloc(sizeof(char) * (gr->nbGlyphs+2));
 			widestr = str_w;
 			j = gf_utf8_wcstombs(str, sizeof(u8) * (gr->nbGlyphs+1), (const unsigned short **) &widestr);
 			if (j != (u32) -1) {
 				str[j] = 0;
 				gf_sg_vrml_mf_reset(&t->string, GF_SG_VRML_MFSTRING);
 				gf_sg_vrml_mf_append(&t->string, GF_SG_VRML_MFSTRING, &ptr);
-				((SFString*)ptr)->buffer = (char*)malloc(sizeof(char) * (j+1));
+				((SFString*)ptr)->buffer = (char*)gf_malloc(sizeof(char) * (j+1));
 				memcpy(((SFString*)ptr)->buffer, str, sizeof(char) * (j+1));
 			}
 
-			free(str);
-			free(str_w);
+			gf_free(str);
+			gf_free(str_w);
 
 			gl = (M_Shape *) s2b_new_node(read, TAG_MPEG4_Shape);
 			gl->appearance = s2b_get_appearance(read, (GF_Node *) gl, gr->col, 0, 0);				
@@ -963,7 +963,7 @@ static void swf_ntext(void *sax_cbck, const char *content, Bool is_cdata)
 	t = (SWFFlatText *)sax_cbck;
 	len = strlen(content);
 	if (!len) return;
-	t->final = realloc(t->final, sizeof(char)*(t->len+len+1));
+	t->final = gf_realloc(t->final, sizeof(char)*(t->len+len+1));
 	t->final [t->len] = 0;
 	strcat(t->final, content);
 	t->len = strlen(t->final)+1;
@@ -1007,16 +1007,16 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 	gf_sg_vrml_mf_append(&f->justify, GF_SG_VRML_MFSTRING, (void**)&ptr);
 	switch (text->align) {
 	case 0:
-		((SFString*)ptr)->buffer = strdup("BEGIN"); 
+		((SFString*)ptr)->buffer = gf_strdup("BEGIN"); 
 		break;
 	case 1:
-		((SFString*)ptr)->buffer = strdup("END"); 
+		((SFString*)ptr)->buffer = gf_strdup("END"); 
 		break;
 	case 3:
-		((SFString*)ptr)->buffer = strdup("JUSTIFY"); 
+		((SFString*)ptr)->buffer = gf_strdup("JUSTIFY"); 
 		break;
 	default:
-		((SFString*)ptr)->buffer = strdup("MIDDLE"); 
+		((SFString*)ptr)->buffer = gf_strdup("MIDDLE"); 
 		break;
 	}
 
@@ -1024,8 +1024,8 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 	if (!text->read_only) strcat(styles, "EDITABLE");
 	if (text->password) strcat(styles, "PASSWORD");
 	
-	if (f->style.buffer) free(f->style.buffer);
-	f->style.buffer = strdup(styles);
+	if (f->style.buffer) gf_free(f->style.buffer);
+	f->style.buffer = gf_strdup(styles);
 
 	if (text->init_value) {
 		gf_sg_vrml_mf_reset(&t->string, GF_SG_VRML_MFSTRING);
@@ -1042,11 +1042,11 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 			gf_xml_sax_del(xml);
 
 			if (flat.final) {
-				((SFString*)ptr)->buffer = strdup(flat.final);
-				free(flat.final);
+				((SFString*)ptr)->buffer = gf_strdup(flat.final);
+				gf_free(flat.final);
 			}
 		} else {
-			((SFString*)ptr)->buffer = strdup(text->init_value);
+			((SFString*)ptr)->buffer = gf_strdup(text->init_value);
 		}
 	}
 
@@ -1061,16 +1061,16 @@ static GF_Err swf_bifs_define_edit_text(SWFReader *read, SWFEditText *text)
 		gf_sg_vrml_mf_append(&layout->justify, GF_SG_VRML_MFSTRING, NULL);
 		switch (text->align) {
 		case 0:
-			layout->justify.vals[0] = strdup("BEGIN"); 
+			layout->justify.vals[0] = gf_strdup("BEGIN"); 
 			break;
 		case 1:
-			layout->justify.vals[0] = strdup("END"); 
+			layout->justify.vals[0] = gf_strdup("END"); 
 			break;
 		case 3:
-			layout->justify.vals[0] = strdup("JUSTIFY"); 
+			layout->justify.vals[0] = gf_strdup("JUSTIFY"); 
 			break;
 		default:
-			layout->justify.vals[0] = strdup("MIDDLE"); 
+			layout->justify.vals[0] = gf_strdup("MIDDLE"); 
 			break;
 		}
 		if (text->multiline || text->word_wrap) layout->wrap = 1;
@@ -1373,7 +1373,7 @@ static GF_Err swf_bifs_setup_sound(SWFReader *read, SWFSound *snd, Bool soundstr
 
 	/*setup mux info*/
 	mux = (GF_MuxInfo*)gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
-	mux->file_name = strdup(snd->szFileName);
+	mux->file_name = gf_strdup(snd->szFileName);
 //	mux->startTime = snd->frame_delay_ms;
 	mux->startTime = 0;
 	/*MP3 in, destroy file once done*/
@@ -1467,7 +1467,7 @@ static GF_Err swf_bifs_setup_image(SWFReader *read, u32 ID, char *fileName)
 	/*setup mux info*/
 	mux = (GF_MuxInfo*)gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
 
-	mux->file_name = strdup(fileName);
+	mux->file_name = gf_strdup(fileName);
 	/*destroy file once done*/
 	//mux->delete_file = 1;
 	gf_list_add(esd->extensionDescriptors, mux);
@@ -1560,8 +1560,8 @@ static void s2b_set_field(SWFReader *read, GF_List *dst, GF_Node *n, char *field
 
 		if (type==GF_SG_VRML_SFSTRING) {
 			if (((SFString*)f->field_ptr)->buffer)
-				free(((SFString*)f->field_ptr)->buffer);
-			((SFString*)f->field_ptr)->buffer = strdup( (char *) val);
+				gf_free(((SFString*)f->field_ptr)->buffer);
+			((SFString*)f->field_ptr)->buffer = gf_strdup( (char *) val);
 		} else {
 			gf_sg_vrml_field_copy(f->field_ptr, val, type);
 		}
@@ -1576,7 +1576,7 @@ static void s2b_set_field(SWFReader *read, GF_List *dst, GF_Node *n, char *field
 	f = gf_sg_command_field_new(com);
 	f->field_ptr = gf_sg_vrml_field_pointer_new(type);
 	if (type==GF_SG_VRML_SFSTRING) {
-		((SFString*)f->field_ptr)->buffer = strdup( (char *) val);
+		((SFString*)f->field_ptr)->buffer = gf_strdup( (char *) val);
 	} else {
 		gf_sg_vrml_field_copy(f->field_ptr, val, type);
 	}
@@ -1929,7 +1929,7 @@ static GF_Err swf_bifs_define_button(SWFReader *read, SWF_Button *btn)
 				if (sprite_ctrl) {
 					S2BBtnRec *btnrec;
 					if (!read->buttons) read->buttons = gf_list_new();
-					btnrec = malloc(sizeof(S2BBtnRec));
+					btnrec = gf_malloc(sizeof(S2BBtnRec));
 					btnrec->btn_id = btn->ID;
 					btnrec->sprite_up_id = br->character_id;
 					gf_list_add(read->buttons, btnrec);
@@ -1975,7 +1975,7 @@ static void swf_bifs_finalize(SWFReader *read)
 	while (gf_list_count(read->buttons)) {
 		S2BBtnRec *btnrec = gf_list_get(read->buttons, 0);
 		gf_list_rem(read->buttons, 0);
-		free(btnrec);
+		gf_free(btnrec);
 	}
 
 	count = gf_list_count(read->fonts);
@@ -2098,13 +2098,13 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 	n = s2b_new_node(read, TAG_MPEG4_WorldInfo);
 	gf_node_insert_child(read->root, n, -1);
 	gf_node_register(n, read->root);
-	((M_WorldInfo *)n)->title.buffer = strdup("GPAC SWF CONVERTION DISCLAIMER");
+	((M_WorldInfo *)n)->title.buffer = gf_strdup("GPAC SWF CONVERTION DISCLAIMER");
 	gf_sg_vrml_mf_alloc( & ((M_WorldInfo *)n)->info, GF_SG_VRML_MFSTRING, 3);
 
 	sprintf(szMsg, "%s file converted to MPEG-4 Systems", read->load->fileName);
-	((M_WorldInfo *)n)->info.vals[0] = strdup(szMsg);
-	((M_WorldInfo *)n)->info.vals[1] = strdup("Conversion done using GPAC version " GPAC_FULL_VERSION " - (C) 2000-2005 GPAC");
-	((M_WorldInfo *)n)->info.vals[2] = strdup("Macromedia SWF to MPEG-4 Conversion mapping released under GPL license");
+	((M_WorldInfo *)n)->info.vals[0] = gf_strdup(szMsg);
+	((M_WorldInfo *)n)->info.vals[1] = gf_strdup("Conversion done using GPAC version " GPAC_FULL_VERSION " - (C) 2000-2005 GPAC");
+	((M_WorldInfo *)n)->info.vals[2] = gf_strdup("Macromedia SWF to MPEG-4 Conversion mapping released under GPL license");
 
 	/*background*/
 	n = s2b_new_node(read, TAG_MPEG4_Background2D);
@@ -2163,7 +2163,7 @@ GF_Err swf_to_bifs_init(SWFReader *read)
 		if (read->load->ctx) read->load->ctx->max_proto_id = 1;
 		gf_sg_vrml_mf_reset(&proto->ExternProto, GF_SG_VRML_MFURL);
 		gf_sg_vrml_mf_append(&proto->ExternProto, GF_SG_VRML_MFURL, (void **) &url);
-		url->url = strdup("urn:inet:gpac:builtin:IndexedCurve2D");
+		url->url = gf_strdup("urn:inet:gpac:builtin:IndexedCurve2D");
 
 		gf_sg_proto_field_new(proto, GF_SG_VRML_SFNODE, GF_SG_EVENT_EXPOSED_FIELD, "coord");
 		

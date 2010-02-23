@@ -34,7 +34,7 @@ static GFINLINE GF_Err OD_ReadUTF8String(GF_BitStream *bs, char **string, Bool i
 	*read = 1;
 	len = gf_bs_read_int(bs, 8) + 1;
 	if (!isUTF8) len *= 2;
-	(*string) = (char *) malloc(sizeof(char)*len);
+	(*string) = (char *) gf_malloc(sizeof(char)*len);
 	if (! (*string) ) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, (*string), len);
 	*read += len;
@@ -81,7 +81,7 @@ GF_Err gf_odf_read_url_string(GF_BitStream *bs, char **string, u32 *readBytes)
 	}
 
 	/*we want to use strlen to get rid of "stringLength" => we need an extra 0*/
-	(*string) = (char *) malloc(length + 1);
+	(*string) = (char *) gf_malloc(length + 1);
 	if (! string) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, (*string), length);
 	*readBytes += length;
@@ -118,7 +118,7 @@ u32 gf_odf_size_url_string(char *string)
 
 GF_Descriptor *gf_odf_new_esd()
 {
-	GF_ESD *newDesc = (GF_ESD *) malloc(sizeof(GF_ESD));
+	GF_ESD *newDesc = (GF_ESD *) gf_malloc(sizeof(GF_ESD));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_ESD));
 	newDesc->IPIDataSet = gf_list_new();
@@ -133,7 +133,7 @@ GF_Err gf_odf_del_esd(GF_ESD *esd)
 {
 	GF_Err e;
 	if (!esd) return GF_BAD_PARAM;
-	if (esd->URLString)	free(esd->URLString);
+	if (esd->URLString)	gf_free(esd->URLString);
 
 	if (esd->decoderConfig)	{
 		e = gf_odf_delete_descriptor((GF_Descriptor *) esd->decoderConfig);
@@ -166,7 +166,7 @@ GF_Err gf_odf_del_esd(GF_ESD *esd)
 	if (e) return e;
 	e = gf_odf_delete_descriptor_list(esd->extensionDescriptors);
 	if (e) return e;
-	free(esd);
+	gf_free(esd);
 	return GF_OK;
 }
 
@@ -410,7 +410,7 @@ GF_Err gf_odf_write_esd(GF_BitStream *bs, GF_ESD *esd)
 
 GF_Descriptor *gf_odf_new_iod()
 {
-	GF_InitialObjectDescriptor *newDesc = (GF_InitialObjectDescriptor *) malloc(sizeof(GF_InitialObjectDescriptor));
+	GF_InitialObjectDescriptor *newDesc = (GF_InitialObjectDescriptor *) gf_malloc(sizeof(GF_InitialObjectDescriptor));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_InitialObjectDescriptor));
 
@@ -427,7 +427,7 @@ GF_Err gf_odf_del_iod(GF_InitialObjectDescriptor *iod)
 {
 	GF_Err e;
 	if (!iod) return GF_BAD_PARAM;
-	if (iod->URLString)	free(iod->URLString);
+	if (iod->URLString)	gf_free(iod->URLString);
 	e = gf_odf_delete_descriptor_list(iod->ESDescriptors);
 	if (e) return e;
 	e = gf_odf_delete_descriptor_list(iod->OCIDescriptors);
@@ -437,7 +437,7 @@ GF_Err gf_odf_del_iod(GF_InitialObjectDescriptor *iod)
 	e = gf_odf_delete_descriptor_list(iod->extensionDescriptors);
 	if (e) return e;
 	if (iod->IPMPToolList) gf_odf_delete_descriptor((GF_Descriptor *) iod->IPMPToolList);
-	free(iod);
+	gf_free(iod);
 	return GF_OK;
 }
 
@@ -583,7 +583,7 @@ GF_Err gf_odf_write_iod(GF_BitStream *bs, GF_InitialObjectDescriptor *iod)
 
 GF_Descriptor *gf_odf_new_od()
 {
-	GF_ObjectDescriptor *newDesc = (GF_ObjectDescriptor *) malloc(sizeof(GF_ObjectDescriptor));
+	GF_ObjectDescriptor *newDesc = (GF_ObjectDescriptor *) gf_malloc(sizeof(GF_ObjectDescriptor));
 	if (!newDesc) return NULL;
 
 	newDesc->URLString = NULL;
@@ -600,7 +600,7 @@ GF_Err gf_odf_del_od(GF_ObjectDescriptor *od)
 {
 	GF_Err e;
 	if (!od) return GF_BAD_PARAM;
-	if (od->URLString)	free(od->URLString);
+	if (od->URLString)	gf_free(od->URLString);
 	e = gf_odf_delete_descriptor_list(od->ESDescriptors);
 	if (e) return e;
 	e = gf_odf_delete_descriptor_list(od->OCIDescriptors);
@@ -609,7 +609,7 @@ GF_Err gf_odf_del_od(GF_ObjectDescriptor *od)
 	if (e) return e;
 	e = gf_odf_delete_descriptor_list(od->extensionDescriptors);
 	if (e) return e;
-	free(od);
+	gf_free(od);
 	return GF_OK;
 }
 
@@ -729,7 +729,7 @@ GF_Err gf_odf_write_od(GF_BitStream *bs, GF_ObjectDescriptor *od)
 
 GF_Descriptor *gf_odf_new_isom_iod()
 {
-	GF_IsomInitialObjectDescriptor *newDesc = (GF_IsomInitialObjectDescriptor *) malloc(sizeof(GF_IsomInitialObjectDescriptor));
+	GF_IsomInitialObjectDescriptor *newDesc = (GF_IsomInitialObjectDescriptor *) gf_malloc(sizeof(GF_IsomInitialObjectDescriptor));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_IsomInitialObjectDescriptor));
 
@@ -753,7 +753,7 @@ GF_Err gf_odf_del_isom_iod(GF_IsomInitialObjectDescriptor *iod)
 {
 	GF_Err e;
 	if (!iod) return GF_BAD_PARAM;
-	if (iod->URLString)	free(iod->URLString);
+	if (iod->URLString)	gf_free(iod->URLString);
 	e = gf_odf_delete_descriptor_list(iod->ES_ID_IncDescriptors);
 	if (e) return e;
 	e = gf_odf_delete_descriptor_list(iod->ES_ID_RefDescriptors);
@@ -765,7 +765,7 @@ GF_Err gf_odf_del_isom_iod(GF_IsomInitialObjectDescriptor *iod)
 	e = gf_odf_delete_descriptor_list(iod->extensionDescriptors);
 	if (e) return e;
 	if (iod->IPMPToolList) gf_odf_delete_descriptor((GF_Descriptor *) iod->IPMPToolList);
-	free(iod);
+	gf_free(iod);
 	return GF_OK;
 }
 
@@ -923,7 +923,7 @@ GF_Err gf_odf_write_isom_iod(GF_BitStream *bs, GF_IsomInitialObjectDescriptor *i
 
 GF_Descriptor *gf_odf_new_isom_od()
 {
-	GF_IsomObjectDescriptor *newDesc = (GF_IsomObjectDescriptor *) malloc(sizeof(GF_IsomObjectDescriptor));
+	GF_IsomObjectDescriptor *newDesc = (GF_IsomObjectDescriptor *) gf_malloc(sizeof(GF_IsomObjectDescriptor));
 	if (!newDesc) return NULL;
 
 	newDesc->URLString = NULL;
@@ -941,7 +941,7 @@ GF_Err gf_odf_del_isom_od(GF_IsomObjectDescriptor *od)
 {
 	GF_Err e;
 	if (!od) return GF_BAD_PARAM;
-	if (od->URLString)	free(od->URLString);
+	if (od->URLString)	gf_free(od->URLString);
 	e = gf_odf_delete_descriptor_list(od->ES_ID_IncDescriptors);
 	if (e) return e;
 	e = gf_odf_delete_descriptor_list(od->ES_ID_RefDescriptors);
@@ -952,7 +952,7 @@ GF_Err gf_odf_del_isom_od(GF_IsomObjectDescriptor *od)
 	if (e) return e;
 	e = gf_odf_delete_descriptor_list(od->extensionDescriptors);
 	if (e) return e;
-	free(od);
+	gf_free(od);
 	return GF_OK;
 }
 
@@ -1087,7 +1087,7 @@ GF_Err gf_odf_write_isom_od(GF_BitStream *bs, GF_IsomObjectDescriptor *od)
 
 GF_Descriptor *gf_odf_new_dcd()
 {
-	GF_DecoderConfig *newDesc = (GF_DecoderConfig *) malloc(sizeof(GF_DecoderConfig));
+	GF_DecoderConfig *newDesc = (GF_DecoderConfig *) gf_malloc(sizeof(GF_DecoderConfig));
 	if (!newDesc) return NULL;
 
 	newDesc->avgBitrate = 0;
@@ -1113,7 +1113,7 @@ GF_Err gf_odf_del_dcd(GF_DecoderConfig *dcd)
 	}
 	e = gf_odf_delete_descriptor_list(dcd->profileLevelIndicationIndexDescriptor);
 	if (e) return e;
-	free(dcd);
+	gf_free(dcd);
 	return GF_OK;
 }
 
@@ -1223,7 +1223,7 @@ GF_Err gf_odf_write_dcd(GF_BitStream *bs, GF_DecoderConfig *dcd)
 
 GF_Descriptor *gf_odf_new_default()
 {
-	GF_DefaultDescriptor *newDesc = (GF_DefaultDescriptor *) malloc(sizeof(GF_DefaultDescriptor));
+	GF_DefaultDescriptor *newDesc = (GF_DefaultDescriptor *) gf_malloc(sizeof(GF_DefaultDescriptor));
 	if (!newDesc) return NULL;
 
 	newDesc->dataLength = 0;
@@ -1237,8 +1237,8 @@ GF_Err gf_odf_del_default(GF_DefaultDescriptor *dd)
 {
 	if (!dd) return GF_BAD_PARAM;
 
-	if (dd->data) free(dd->data);
-	free(dd);
+	if (dd->data) gf_free(dd->data);
+	gf_free(dd);
 	return GF_OK;
 }
 
@@ -1250,7 +1250,7 @@ GF_Err gf_odf_read_default(GF_BitStream *bs, GF_DefaultDescriptor *dd, u32 DescS
 	dd->dataLength = DescSize;
 	dd->data = NULL;
 	if (DescSize) {
-		dd->data = (char*)malloc(dd->dataLength);
+		dd->data = (char*)gf_malloc(dd->dataLength);
 		if (! dd->data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, dd->data, dd->dataLength);
 		nbBytes += dd->dataLength;
@@ -1285,7 +1285,7 @@ GF_Err gf_odf_write_default(GF_BitStream *bs, GF_DefaultDescriptor *dd)
 
 GF_Descriptor *gf_odf_new_esd_inc()
 {
-	GF_ES_ID_Inc *newDesc = (GF_ES_ID_Inc *) malloc(sizeof(GF_ES_ID_Inc));
+	GF_ES_ID_Inc *newDesc = (GF_ES_ID_Inc *) gf_malloc(sizeof(GF_ES_ID_Inc));
 	if (!newDesc) return NULL;
 	newDesc->tag = GF_ODF_ESD_INC_TAG;
 	newDesc->trackID = 0;
@@ -1295,7 +1295,7 @@ GF_Descriptor *gf_odf_new_esd_inc()
 GF_Err gf_odf_del_esd_inc(GF_ES_ID_Inc *esd_inc)
 {
 	if (!esd_inc) return GF_BAD_PARAM;
-	free(esd_inc);
+	gf_free(esd_inc);
 	return GF_OK;
 }
 GF_Err gf_odf_read_esd_inc(GF_BitStream *bs, GF_ES_ID_Inc *esd_inc, u32 DescSize)
@@ -1330,7 +1330,7 @@ GF_Err gf_odf_write_esd_inc(GF_BitStream *bs, GF_ES_ID_Inc *esd_inc)
 
 GF_Descriptor *gf_odf_new_esd_ref()
 {
-	GF_ES_ID_Ref *newDesc = (GF_ES_ID_Ref *) malloc(sizeof(GF_ES_ID_Ref));
+	GF_ES_ID_Ref *newDesc = (GF_ES_ID_Ref *) gf_malloc(sizeof(GF_ES_ID_Ref));
 	if (!newDesc) return NULL;
 	newDesc->tag = GF_ODF_ESD_REF_TAG;
 	newDesc->trackRef = 0;
@@ -1340,7 +1340,7 @@ GF_Descriptor *gf_odf_new_esd_ref()
 GF_Err gf_odf_del_esd_ref(GF_ES_ID_Ref *esd_ref)
 {
 	if (!esd_ref) return GF_BAD_PARAM;
-	free(esd_ref);
+	gf_free(esd_ref);
 	return GF_OK;
 }
 GF_Err gf_odf_read_esd_ref(GF_BitStream *bs, GF_ES_ID_Ref *esd_ref, u32 DescSize)
@@ -1379,7 +1379,7 @@ GF_Err gf_odf_write_esd_ref(GF_BitStream *bs, GF_ES_ID_Ref *esd_ref)
 
 GF_Descriptor *gf_odf_new_segment()
 {
-	GF_Segment *newDesc = (GF_Segment *) malloc(sizeof(GF_Segment));
+	GF_Segment *newDesc = (GF_Segment *) gf_malloc(sizeof(GF_Segment));
 	if (!newDesc) return NULL;
 
 	memset(newDesc, 0, sizeof(GF_Segment));
@@ -1391,8 +1391,8 @@ GF_Err gf_odf_del_segment(GF_Segment *sd)
 {
 	if (!sd) return GF_BAD_PARAM;
 
-	if (sd->SegmentName) free(sd->SegmentName);
-	free(sd);
+	if (sd->SegmentName) gf_free(sd->SegmentName);
+	gf_free(sd);
 	return GF_OK;
 }
 
@@ -1407,7 +1407,7 @@ GF_Err gf_odf_read_segment(GF_BitStream *bs, GF_Segment *sd, u32 DescSize)
 	size = gf_bs_read_int(bs, 8);
 	nbBytes += 1;
 	if (size) {
-		sd->SegmentName = (char*) malloc(sizeof(char)*(size+1));
+		sd->SegmentName = (char*) gf_malloc(sizeof(char)*(size+1));
 		if (!sd->SegmentName) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, sd->SegmentName, size);
 		sd->SegmentName[size] = 0;
@@ -1446,7 +1446,7 @@ GF_Err gf_odf_write_segment(GF_BitStream *bs, GF_Segment *sd)
 }
 GF_Descriptor *gf_odf_new_mediatime()
 {
-	GF_MediaTime *newDesc = (GF_MediaTime *) malloc(sizeof(GF_MediaTime));
+	GF_MediaTime *newDesc = (GF_MediaTime *) gf_malloc(sizeof(GF_MediaTime));
 	if (!newDesc) return NULL;
 
 	memset(newDesc, 0, sizeof(GF_MediaTime));
@@ -1456,7 +1456,7 @@ GF_Descriptor *gf_odf_new_mediatime()
 GF_Err gf_odf_del_mediatime(GF_MediaTime *mt)
 {
 	if (!mt) return GF_BAD_PARAM;
-	free(mt);
+	gf_free(mt);
 	return GF_OK;
 }
 GF_Err gf_odf_read_mediatime(GF_BitStream *bs, GF_MediaTime *mt, u32 DescSize)
@@ -1487,7 +1487,7 @@ GF_Err gf_odf_write_mediatime(GF_BitStream *bs, GF_MediaTime *mt)
 
 GF_Descriptor *gf_odf_new_lang()
 {
-	GF_Language *newDesc = (GF_Language *) malloc(sizeof(GF_Language));
+	GF_Language *newDesc = (GF_Language *) gf_malloc(sizeof(GF_Language));
 	if (!newDesc) return NULL;
 	newDesc->langCode = 0;
 	newDesc->tag = GF_ODF_LANG_TAG;
@@ -1497,7 +1497,7 @@ GF_Descriptor *gf_odf_new_lang()
 GF_Err gf_odf_del_lang(GF_Language *ld)
 {
 	if (!ld) return GF_BAD_PARAM;
-	free(ld);
+	gf_free(ld);
 	return GF_OK;
 }
 
@@ -1547,7 +1547,7 @@ GF_Descriptor *gf_odf_new_auxvid()
 GF_Err gf_odf_del_auxvid(GF_AuxVideoDescriptor *ld)
 {
 	if (!ld) return GF_BAD_PARAM;
-	free(ld);
+	gf_free(ld);
 	return GF_OK;
 }
 
@@ -1630,7 +1630,7 @@ GF_Err gf_odf_write_auxvid(GF_BitStream *bs, GF_AuxVideoDescriptor *ld)
 
 GF_Descriptor *gf_odf_new_muxinfo()
 {
-	GF_MuxInfo *newDesc = (GF_MuxInfo *) malloc(sizeof(GF_MuxInfo));
+	GF_MuxInfo *newDesc = (GF_MuxInfo *) gf_malloc(sizeof(GF_MuxInfo));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_MuxInfo));
 	newDesc->tag = GF_ODF_MUXINFO_TAG;
@@ -1640,11 +1640,11 @@ GF_Descriptor *gf_odf_new_muxinfo()
 GF_Err gf_odf_del_muxinfo(GF_MuxInfo *mi)
 {
 	if (!mi) return GF_BAD_PARAM;
-	if (mi->file_name) free(mi->file_name);
-	if (mi->streamFormat) free(mi->streamFormat);
-	if (mi->textNode) free(mi->textNode);
-	if (mi->fontNode) free(mi->fontNode);
-	free(mi);
+	if (mi->file_name) gf_free(mi->file_name);
+	if (mi->streamFormat) gf_free(mi->streamFormat);
+	if (mi->textNode) gf_free(mi->textNode);
+	if (mi->fontNode) gf_free(mi->fontNode);
+	gf_free(mi);
 	return GF_OK;
 }
 
@@ -1664,7 +1664,7 @@ GF_Err gf_odf_write_muxinfo(GF_BitStream *bs, GF_MuxInfo *mi)
 
 GF_Descriptor *gf_odf_New_ElemMask()
 {
-	GF_ElementaryMask *newDesc = (GF_ElementaryMask*) malloc (sizeof(GF_ElementaryMask));
+	GF_ElementaryMask *newDesc = (GF_ElementaryMask*) gf_malloc (sizeof(GF_ElementaryMask));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_ElementaryMask));
 	newDesc->tag = GF_ODF_ELEM_MASK_TAG;
@@ -1673,14 +1673,14 @@ GF_Descriptor *gf_odf_New_ElemMask()
 
 GF_Err gf_odf_del_ElemMask(GF_ElementaryMask *desc)
 {
-	if (desc->node_name) free(desc->node_name);
-	free(desc);
+	if (desc->node_name) gf_free(desc->node_name);
+	gf_free(desc);
 	return GF_OK;
 }
 
 GF_Descriptor *gf_odf_new_bifs_cfg()
 {
-	GF_BIFSConfig *newDesc = (GF_BIFSConfig *) malloc(sizeof(GF_BIFSConfig));
+	GF_BIFSConfig *newDesc = (GF_BIFSConfig *) gf_malloc(sizeof(GF_BIFSConfig));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_BIFSConfig));
 	newDesc->tag = GF_ODF_BIFS_CFG_TAG;
@@ -1693,18 +1693,18 @@ GF_Err gf_odf_del_bifs_cfg(GF_BIFSConfig *desc)
 		u32 i, count = gf_list_count(desc->elementaryMasks);
 		for (i=0; i<count; i++) {
 			GF_ElementaryMask *tmp = (GF_ElementaryMask *)gf_list_get(desc->elementaryMasks, i);
-			if (tmp->node_name) free(tmp->node_name);
-			free(tmp);
+			if (tmp->node_name) gf_free(tmp->node_name);
+			gf_free(tmp);
 		}
 		gf_list_del(desc->elementaryMasks);
 	}
-	free(desc);
+	gf_free(desc);
 	return GF_OK;
 }
 
 GF_Descriptor *gf_odf_new_laser_cfg()
 {
-	GF_LASERConfig *newDesc = (GF_LASERConfig *) malloc(sizeof(GF_LASERConfig));
+	GF_LASERConfig *newDesc = (GF_LASERConfig *) gf_malloc(sizeof(GF_LASERConfig));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_LASERConfig));
 	newDesc->tag = GF_ODF_LASER_CFG_TAG;
@@ -1713,13 +1713,13 @@ GF_Descriptor *gf_odf_new_laser_cfg()
 
 GF_Err gf_odf_del_laser_cfg(GF_LASERConfig *desc)
 {
-	free(desc);
+	gf_free(desc);
 	return GF_OK;
 }
 
 GF_Descriptor *gf_odf_new_ui_cfg()
 {
-	GF_UIConfig *newDesc = (GF_UIConfig *) malloc(sizeof(GF_UIConfig));
+	GF_UIConfig *newDesc = (GF_UIConfig *) gf_malloc(sizeof(GF_UIConfig));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_UIConfig));
 	newDesc->tag = GF_ODF_UI_CFG_TAG;
@@ -1728,9 +1728,9 @@ GF_Descriptor *gf_odf_new_ui_cfg()
 
 GF_Err gf_odf_del_ui_cfg(GF_UIConfig *desc)
 {
-	if (desc->deviceName) free(desc->deviceName);
-	if (desc->ui_data) free(desc->ui_data);
-	free(desc);
+	if (desc->deviceName) gf_free(desc->deviceName);
+	if (desc->ui_data) gf_free(desc->ui_data);
+	gf_free(desc);
 	return GF_OK;
 }
 
@@ -1743,7 +1743,7 @@ GF_Err gf_odf_del_ui_cfg(GF_UIConfig *desc)
 
 GF_Descriptor *gf_odf_new_cc()
 {
-	GF_CCDescriptor *newDesc = (GF_CCDescriptor *) malloc(sizeof(GF_CCDescriptor));
+	GF_CCDescriptor *newDesc = (GF_CCDescriptor *) gf_malloc(sizeof(GF_CCDescriptor));
 	if (!newDesc) return NULL;
 
 	newDesc->contentClassificationData = NULL;
@@ -1757,8 +1757,8 @@ GF_Descriptor *gf_odf_new_cc()
 GF_Err gf_odf_del_cc(GF_CCDescriptor *ccd)
 {
 	if (!ccd) return GF_BAD_PARAM;
-	if (ccd->contentClassificationData) free(ccd->contentClassificationData);
-	free(ccd);
+	if (ccd->contentClassificationData) gf_free(ccd->contentClassificationData);
+	gf_free(ccd);
 	return GF_OK;
 }
 
@@ -1771,7 +1771,7 @@ GF_Err gf_odf_read_cc(GF_BitStream *bs, GF_CCDescriptor *ccd, u32 DescSize)
 	ccd->classificationTable = gf_bs_read_int(bs, 16);
 	nbBytes += 6;
 	ccd->dataLength = DescSize - 6;
-	ccd->contentClassificationData = (char*)malloc(sizeof(char) * ccd->dataLength);
+	ccd->contentClassificationData = (char*)gf_malloc(sizeof(char) * ccd->dataLength);
 	if (!ccd->contentClassificationData) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, ccd->contentClassificationData, ccd->dataLength);
 	nbBytes += ccd->dataLength;
@@ -1805,7 +1805,7 @@ GF_Err gf_odf_write_cc(GF_BitStream *bs, GF_CCDescriptor *ccd)
 
 GF_Descriptor *gf_odf_new_cc_date()
 {
-	GF_CC_Date *newDesc = (GF_CC_Date *) malloc(sizeof(GF_CC_Date));
+	GF_CC_Date *newDesc = (GF_CC_Date *) gf_malloc(sizeof(GF_CC_Date));
 	if (!newDesc) return NULL;
 	memset(newDesc->contentCreationDate, 0, 5);
 	newDesc->tag = GF_ODF_CC_DATE_TAG;
@@ -1816,7 +1816,7 @@ GF_Descriptor *gf_odf_new_cc_date()
 GF_Err gf_odf_del_cc_date(GF_CC_Date *cdd)
 {
 	if (!cdd) return GF_BAD_PARAM;
-	free(cdd);
+	gf_free(cdd);
 	return GF_OK;
 }
 
@@ -1855,12 +1855,12 @@ GF_Err gf_odf_write_cc_date(GF_BitStream *bs, GF_CC_Date *cdd)
 
 GF_Descriptor *gf_odf_new_cc_name()
 {
-	GF_CC_Name *newDesc = (GF_CC_Name *) malloc(sizeof(GF_CC_Name));
+	GF_CC_Name *newDesc = (GF_CC_Name *) gf_malloc(sizeof(GF_CC_Name));
 	if (!newDesc) return NULL;
 
 	newDesc->ContentCreators = gf_list_new();
 	if (! newDesc->ContentCreators) {
-		free(newDesc);
+		gf_free(newDesc);
 		return NULL;
 	}
 	newDesc->tag = GF_ODF_CC_NAME_TAG;
@@ -1875,11 +1875,11 @@ GF_Err gf_odf_del_cc_name(GF_CC_Name *cnd)
 
 	i=0;
 	while ((tmp = (GF_ContentCreatorInfo *)gf_list_enum(cnd->ContentCreators, &i))) {
-		if (tmp->contentCreatorName) free(tmp->contentCreatorName);
-		free(tmp);
+		if (tmp->contentCreatorName) gf_free(tmp->contentCreatorName);
+		gf_free(tmp);
 	}
 	gf_list_del(cnd->ContentCreators);
-	free(cnd);
+	gf_free(cnd);
 	return GF_OK;
 }
 
@@ -1892,7 +1892,7 @@ GF_Err gf_odf_read_cc_name(GF_BitStream *bs, GF_CC_Name *cnd, u32 DescSize)
 	count = gf_bs_read_int(bs, 8);
 	nbBytes += 1;
 	for (i = 0; i< count; i++) {
-		GF_ContentCreatorInfo *tmp = (GF_ContentCreatorInfo*)malloc(sizeof(GF_ContentCreatorInfo));
+		GF_ContentCreatorInfo *tmp = (GF_ContentCreatorInfo*)gf_malloc(sizeof(GF_ContentCreatorInfo));
 		if (! tmp) return GF_OUT_OF_MEM;
 		memset(tmp , 0, sizeof(GF_ContentCreatorInfo));
 		tmp->langCode = gf_bs_read_int(bs, 24);
@@ -1949,7 +1949,7 @@ GF_Err gf_odf_write_cc_name(GF_BitStream *bs, GF_CC_Name *cnd)
 
 GF_Descriptor *gf_odf_new_ci()
 {
-	GF_CIDesc *newDesc = (GF_CIDesc *) malloc(sizeof(GF_CIDesc));
+	GF_CIDesc *newDesc = (GF_CIDesc *) gf_malloc(sizeof(GF_CIDesc));
 	if (!newDesc) return NULL;
 
 	newDesc->compatibility = 0;
@@ -1968,8 +1968,8 @@ GF_Err gf_odf_del_ci(GF_CIDesc *cid)
 {
 	if (!cid) return GF_BAD_PARAM;
 
-	if (cid->contentIdentifier) free(cid->contentIdentifier);
-	free(cid);
+	if (cid->contentIdentifier) gf_free(cid->contentIdentifier);
+	gf_free(cid);
 	return GF_OK;
 }
 
@@ -1994,7 +1994,7 @@ GF_Err gf_odf_read_ci(GF_BitStream *bs, GF_CIDesc *cid, u32 DescSize)
 	}
 	if (cid->contentIdentifierFlag) {
 		cid->contentIdentifierType = gf_bs_read_int(bs, 8);
-		cid->contentIdentifier = (char*)malloc(DescSize - 2 - cid->contentTypeFlag);
+		cid->contentIdentifier = (char*)gf_malloc(DescSize - 2 - cid->contentTypeFlag);
 		if (! cid->contentIdentifier) return GF_OUT_OF_MEM;
 
 		gf_bs_read_data(bs, cid->contentIdentifier, DescSize - 2 - cid->contentTypeFlag);
@@ -2046,18 +2046,18 @@ GF_Err gf_odf_write_ci(GF_BitStream *bs, GF_CIDesc *cid)
 
 GF_Descriptor *gf_odf_new_exp_text()
 {
-	GF_ExpandedTextual *newDesc = (GF_ExpandedTextual *) malloc(sizeof(GF_ExpandedTextual));
+	GF_ExpandedTextual *newDesc = (GF_ExpandedTextual *) gf_malloc(sizeof(GF_ExpandedTextual));
 	if (!newDesc) return NULL;
 
 	newDesc->itemDescriptionList = gf_list_new();
 	if (! newDesc->itemDescriptionList) {
-		free(newDesc);
+		gf_free(newDesc);
 		return NULL;
 	}
 	newDesc->itemTextList = gf_list_new();
 	if (! newDesc->itemTextList) {
-		free(newDesc->itemDescriptionList);
-		free(newDesc);
+		gf_free(newDesc->itemDescriptionList);
+		gf_free(newDesc);
 		return NULL;
 	}
 	newDesc->isUTF8 = 0;
@@ -2074,8 +2074,8 @@ GF_Err gf_odf_del_exp_text(GF_ExpandedTextual *etd)
 	while (gf_list_count(etd->itemDescriptionList)) {
 		GF_ETD_ItemText *tmp = (GF_ETD_ItemText*)gf_list_get(etd->itemDescriptionList, 0);
 		if (tmp) {
-			if (tmp->text) free(tmp->text);
-			free(tmp);
+			if (tmp->text) gf_free(tmp->text);
+			gf_free(tmp);
 		}
 		gf_list_rem(etd->itemDescriptionList, 0);
 	}
@@ -2084,15 +2084,15 @@ GF_Err gf_odf_del_exp_text(GF_ExpandedTextual *etd)
 	while (gf_list_count(etd->itemTextList)) {
 		GF_ETD_ItemText *tmp = (GF_ETD_ItemText*)gf_list_get(etd->itemTextList, 0);
 		if (tmp) {
-			if (tmp->text) free(tmp->text);
-			free(tmp);
+			if (tmp->text) gf_free(tmp->text);
+			gf_free(tmp);
 		}
 		gf_list_rem(etd->itemTextList, 0);
 	}
 	gf_list_del(etd->itemTextList);
 
-	if (etd->NonItemText) free(etd->NonItemText);
-	free(etd);
+	if (etd->NonItemText) gf_free(etd->NonItemText);
+	gf_free(etd);
 	return GF_OK;
 }
 
@@ -2112,7 +2112,7 @@ GF_Err gf_odf_read_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd, u32 DescS
 	for (i = 0; i< count; i++) {
 		//description
 		GF_ETD_ItemText *description, *Text;
-		description = (GF_ETD_ItemText*)malloc(sizeof(GF_ETD_ItemText));
+		description = (GF_ETD_ItemText*)gf_malloc(sizeof(GF_ETD_ItemText));
 		if (! description) return GF_OUT_OF_MEM;
 		description->text = NULL;
 		e = OD_ReadUTF8String(bs, & description->text, etd->isUTF8, &len); 
@@ -2122,7 +2122,7 @@ GF_Err gf_odf_read_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd, u32 DescS
 		nbBytes += len;
 
 		//text
-		Text = (GF_ETD_ItemText*)malloc(sizeof(GF_ETD_ItemText));
+		Text = (GF_ETD_ItemText*)gf_malloc(sizeof(GF_ETD_ItemText));
 		if (! Text) return GF_OUT_OF_MEM;
 		Text->text = NULL;
 		e = OD_ReadUTF8String(bs, & Text->text, etd->isUTF8, &len);
@@ -2143,7 +2143,7 @@ GF_Err gf_odf_read_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd, u32 DescS
 	if (nonLen) {
 		//here we have no choice but do the job ourselves
 		//because the length is not encoded on 8 bits
-		etd->NonItemText = (char *) malloc(sizeof(char) * (1+nonLen) * (etd->isUTF8 ? 1 : 2));
+		etd->NonItemText = (char *) gf_malloc(sizeof(char) * (1+nonLen) * (etd->isUTF8 ? 1 : 2));
 		if (! etd->NonItemText) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, etd->NonItemText, nonLen * (etd->isUTF8 ? 1 : 2));
 		nbBytes += nonLen * (etd->isUTF8 ? 1 : 2);
@@ -2245,7 +2245,7 @@ GF_Err gf_odf_write_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd)
 
 GF_Descriptor *gf_odf_new_pl_ext()
 {
-	GF_PLExt *newDesc = (GF_PLExt *) malloc(sizeof(GF_PLExt));
+	GF_PLExt *newDesc = (GF_PLExt *) gf_malloc(sizeof(GF_PLExt));
 	if (!newDesc) return NULL;
 	newDesc->AudioProfileLevelIndication = 0;
 	newDesc->GraphicsProfileLevelIndication = 0;
@@ -2262,7 +2262,7 @@ GF_Err gf_odf_del_pl_ext(GF_PLExt *pld)
 {
 	if (!pld) return GF_BAD_PARAM;
 
-	free(pld);
+	gf_free(pld);
 	return GF_OK;
 }
 
@@ -2315,7 +2315,7 @@ GF_Err gf_odf_write_pl_ext(GF_BitStream *bs, GF_PLExt *pld)
 
 GF_Descriptor *gf_odf_new_ipi_ptr()
 {
-	GF_IPIPtr *newDesc = (GF_IPIPtr *) malloc(sizeof(GF_IPIPtr));
+	GF_IPIPtr *newDesc = (GF_IPIPtr *) gf_malloc(sizeof(GF_IPIPtr));
 	if (!newDesc) return NULL;
 	newDesc->IPI_ES_Id = 0;
 	newDesc->tag = GF_ODF_IPI_PTR_TAG;
@@ -2325,7 +2325,7 @@ GF_Descriptor *gf_odf_new_ipi_ptr()
 GF_Err gf_odf_del_ipi_ptr(GF_IPIPtr *ipid)
 {
 	if (!ipid) return GF_BAD_PARAM;
-	free(ipid);
+	gf_free(ipid);
 	return GF_OK;
 }
 
@@ -2373,7 +2373,7 @@ GF_Descriptor *gf_odf_new_ipmp()
 GF_Err gf_odf_del_ipmp(GF_IPMP_Descriptor *ipmp)
 {
 	if (!ipmp) return GF_BAD_PARAM;
-	if (ipmp->opaque_data) free(ipmp->opaque_data);
+	if (ipmp->opaque_data) gf_free(ipmp->opaque_data);
 	/*TODO DELETE IPMPX*/
 	while (gf_list_count(ipmp->ipmpx_data)) {
 		GF_IPMPX_Data *p = (GF_IPMPX_Data *)gf_list_get(ipmp->ipmpx_data, 0);
@@ -2381,7 +2381,7 @@ GF_Err gf_odf_del_ipmp(GF_IPMP_Descriptor *ipmp)
 		gf_ipmpx_data_del(p);
 	}
 	gf_list_del(ipmp->ipmpx_data);
-	free(ipmp);
+	gf_free(ipmp);
 	return GF_OK;
 }
 
@@ -2418,7 +2418,7 @@ GF_Err gf_odf_read_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp, u32 DescSize
 	}
 	/*URL*/
 	else if (! ipmp->IPMPS_Type) {
-		ipmp->opaque_data = (char*)malloc(size + 1);
+		ipmp->opaque_data = (char*)gf_malloc(size + 1);
 		if (! ipmp->opaque_data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ipmp->opaque_data, size);
 		nbBytes += size;
@@ -2429,7 +2429,7 @@ GF_Err gf_odf_read_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp, u32 DescSize
 	/*data*/
 	else {
 		ipmp->opaque_data_size = size;
-		ipmp->opaque_data = (char*)malloc(size);
+		ipmp->opaque_data = (char*)gf_malloc(size);
 		if (! ipmp->opaque_data) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ipmp->opaque_data, size);
 		nbBytes += size;
@@ -2510,7 +2510,7 @@ GF_Descriptor *gf_odf_new_ipmp_ptr()
 GF_Err gf_odf_del_ipmp_ptr(GF_IPMPPtr *ipmpd)
 {
 	if (!ipmpd) return GF_BAD_PARAM;
-	free(ipmpd);
+	gf_free(ipmpd);
 	return GF_OK;
 }
 
@@ -2555,12 +2555,12 @@ GF_Err gf_odf_write_ipmp_ptr(GF_BitStream *bs, GF_IPMPPtr *ipmpd)
 
 GF_Descriptor *gf_odf_new_kw()
 {
-	GF_KeyWord *newDesc = (GF_KeyWord *) malloc(sizeof(GF_KeyWord));
+	GF_KeyWord *newDesc = (GF_KeyWord *) gf_malloc(sizeof(GF_KeyWord));
 	if (!newDesc) return NULL;
 
 	newDesc->keyWordsList = gf_list_new();
 	if (! newDesc->keyWordsList) {
-		free(newDesc);
+		gf_free(newDesc);
 		return NULL;
 	}
 	newDesc->isUTF8 = 0;
@@ -2576,12 +2576,12 @@ GF_Err gf_odf_del_kw(GF_KeyWord *kwd)
 	while (gf_list_count(kwd->keyWordsList)) {
 		GF_KeyWordItem *tmp = (GF_KeyWordItem*)gf_list_get(kwd->keyWordsList, 0);
 		if (tmp) {
-			if (tmp->keyWord) free(tmp->keyWord);
-			free(tmp);
+			if (tmp->keyWord) gf_free(tmp->keyWord);
+			gf_free(tmp);
 		}
 	}
 	gf_list_del(kwd->keyWordsList);
-	free(kwd);
+	gf_free(kwd);
 	return GF_OK;
 }
 
@@ -2598,7 +2598,7 @@ GF_Err gf_odf_read_kw(GF_BitStream *bs, GF_KeyWord *kwd, u32 DescSize)
 	nbBytes += 5;
 
 	for (i = 0 ; i < kwcount; i++) {
-		GF_KeyWordItem *tmp = (GF_KeyWordItem*)malloc(sizeof(GF_KeyWordItem));
+		GF_KeyWordItem *tmp = (GF_KeyWordItem*)gf_malloc(sizeof(GF_KeyWordItem));
 		if (! tmp) return GF_OUT_OF_MEM;
 		e = OD_ReadUTF8String(bs, & tmp->keyWord, kwd->isUTF8, &len);
 		if (e) return e;
@@ -2648,7 +2648,7 @@ GF_Err gf_odf_write_kw(GF_BitStream *bs, GF_KeyWord *kwd)
 
 GF_Descriptor *gf_odf_new_oci_date()
 {
-	GF_OCI_Data *newDesc = (GF_OCI_Data *) malloc(sizeof(GF_OCI_Data));
+	GF_OCI_Data *newDesc = (GF_OCI_Data *) gf_malloc(sizeof(GF_OCI_Data));
 	if (!newDesc) return NULL;
 	memset(newDesc->OCICreationDate, 0, 5);
 	newDesc->tag = GF_ODF_OCI_DATE_TAG;
@@ -2658,7 +2658,7 @@ GF_Descriptor *gf_odf_new_oci_date()
 GF_Err gf_odf_del_oci_date(GF_OCI_Data *ocd)
 {
 	if (!ocd) return GF_BAD_PARAM;
-	free(ocd);
+	gf_free(ocd);
 	return GF_OK;
 }
 
@@ -2696,12 +2696,12 @@ GF_Err gf_odf_write_oci_date(GF_BitStream *bs, GF_OCI_Data *ocd)
 
 GF_Descriptor *gf_odf_new_oci_name()
 {
-	GF_OCICreators *newDesc = (GF_OCICreators *) malloc(sizeof(GF_OCICreators));
+	GF_OCICreators *newDesc = (GF_OCICreators *) gf_malloc(sizeof(GF_OCICreators));
 	if (!newDesc) return NULL;
 
 	newDesc->OCICreators = gf_list_new();
 	if (! newDesc->OCICreators) {
-		free(newDesc);
+		gf_free(newDesc);
 		return NULL;
 	}
 	newDesc->tag = GF_ODF_OCI_NAME_TAG;
@@ -2715,11 +2715,11 @@ GF_Err gf_odf_del_oci_name(GF_OCICreators *ocn)
 	
 	i=0;
 	while ((tmp = (GF_OCICreator_item *)gf_list_enum(ocn->OCICreators, &i))) {
-		if (tmp->OCICreatorName) free(tmp->OCICreatorName);
-		free(tmp);
+		if (tmp->OCICreatorName) gf_free(tmp->OCICreatorName);
+		gf_free(tmp);
 	}
 	gf_list_del(ocn->OCICreators);
-	free(ocn);
+	gf_free(ocn);
 	return GF_OK;
 }
 
@@ -2733,7 +2733,7 @@ GF_Err gf_odf_read_oci_name(GF_BitStream *bs, GF_OCICreators *ocn, u32 DescSize)
 	count = gf_bs_read_int(bs, 8);
 	nbBytes += 1;
 	for (i = 0; i< count; i++) {
-		GF_OCICreator_item *tmp = (GF_OCICreator_item*)malloc(sizeof(GF_OCICreator_item));
+		GF_OCICreator_item *tmp = (GF_OCICreator_item*)gf_malloc(sizeof(GF_OCICreator_item));
 		if (! tmp) return GF_OUT_OF_MEM;
 		tmp->langCode = gf_bs_read_int(bs, 24);
 		tmp->isUTF8 = gf_bs_read_int(bs, 1);
@@ -2791,7 +2791,7 @@ GF_Err gf_odf_write_oci_name(GF_BitStream *bs, GF_OCICreators *ocn)
 
 GF_Descriptor *gf_odf_new_pl_idx()
 {
-	GF_PL_IDX *newDesc = (GF_PL_IDX *) malloc(sizeof(GF_PL_IDX));
+	GF_PL_IDX *newDesc = (GF_PL_IDX *) gf_malloc(sizeof(GF_PL_IDX));
 	if (!newDesc) return NULL;
 	newDesc->profileLevelIndicationIndex = 0;
 	newDesc->tag = GF_ODF_PL_IDX_TAG;
@@ -2801,7 +2801,7 @@ GF_Descriptor *gf_odf_new_pl_idx()
 GF_Err gf_odf_del_pl_idx(GF_PL_IDX *plid)
 {
 	if (!plid) return GF_BAD_PARAM;
-	free(plid);
+	gf_free(plid);
 	return GF_OK;
 }
 
@@ -2837,7 +2837,7 @@ GF_Err gf_odf_write_pl_idx(GF_BitStream *bs, GF_PL_IDX *plid)
 
 GF_Descriptor *gf_odf_new_rating()
 {
-	GF_Rating *newDesc = (GF_Rating *) malloc(sizeof(GF_Rating));
+	GF_Rating *newDesc = (GF_Rating *) gf_malloc(sizeof(GF_Rating));
 	if (!newDesc) return NULL;
 
 	newDesc->infoLength = 0;
@@ -2852,8 +2852,8 @@ GF_Err gf_odf_del_rating(GF_Rating *rd)
 {
 	if (!rd) return GF_BAD_PARAM;
 
-	if (rd->ratingInfo) free(rd->ratingInfo);
-	free(rd);
+	if (rd->ratingInfo) gf_free(rd->ratingInfo);
+	gf_free(rd);
 	return GF_OK;
 }
 
@@ -2867,7 +2867,7 @@ GF_Err gf_odf_read_rating(GF_BitStream *bs, GF_Rating *rd, u32 DescSize)
 	rd->infoLength = DescSize - 6;
 	nbBytes += 6;
 	
-	rd->ratingInfo = (char*)malloc(rd->infoLength);
+	rd->ratingInfo = (char*)gf_malloc(rd->infoLength);
 	if (! rd->ratingInfo) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, rd->ratingInfo, rd->infoLength);
 	nbBytes += rd->infoLength;
@@ -2901,7 +2901,7 @@ GF_Err gf_odf_write_rating(GF_BitStream *bs, GF_Rating *rd)
 
 GF_Descriptor *gf_odf_new_reg()
 {
-	GF_Registration *newDesc = (GF_Registration *) malloc(sizeof(GF_Registration));
+	GF_Registration *newDesc = (GF_Registration *) gf_malloc(sizeof(GF_Registration));
 	if (!newDesc) return NULL;
 	newDesc->additionalIdentificationInfo = NULL;
 	newDesc->dataLength = 0;
@@ -2914,8 +2914,8 @@ GF_Err gf_odf_del_reg(GF_Registration *reg)
 {
 	if (!reg) return GF_BAD_PARAM;
 
-	if (reg->additionalIdentificationInfo) free(reg->additionalIdentificationInfo);
-	free(reg);
+	if (reg->additionalIdentificationInfo) gf_free(reg->additionalIdentificationInfo);
+	gf_free(reg);
 	return GF_OK;
 }
 
@@ -2926,7 +2926,7 @@ GF_Err gf_odf_read_reg(GF_BitStream *bs, GF_Registration *reg, u32 DescSize)
 
 	reg->formatIdentifier = gf_bs_read_int(bs, 32);
 	reg->dataLength = DescSize - 4;
-	reg->additionalIdentificationInfo = (char*)malloc(reg->dataLength);
+	reg->additionalIdentificationInfo = (char*)gf_malloc(reg->dataLength);
 	if (! reg->additionalIdentificationInfo) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, reg->additionalIdentificationInfo, reg->dataLength);
 	nbBytes += reg->dataLength + 4;
@@ -2961,7 +2961,7 @@ GF_Err gf_odf_write_reg(GF_BitStream *bs, GF_Registration *reg)
 
 GF_Descriptor *gf_odf_new_short_text()
 {
-	GF_ShortTextual *newDesc = (GF_ShortTextual *) malloc(sizeof(GF_ShortTextual));
+	GF_ShortTextual *newDesc = (GF_ShortTextual *) gf_malloc(sizeof(GF_ShortTextual));
 	if (!newDesc) return NULL;
 
 	newDesc->eventName = NULL;
@@ -2976,9 +2976,9 @@ GF_Err gf_odf_del_short_text(GF_ShortTextual *std)
 {
 	if (!std) return GF_BAD_PARAM;
 
-	if (std->eventName) free(std->eventName);
-	if (std->eventText) free(std->eventText);
-	free(std);
+	if (std->eventName) gf_free(std->eventName);
+	if (std->eventText) gf_free(std->eventText);
+	gf_free(std);
 	return GF_OK;
 }
 
@@ -3032,12 +3032,12 @@ GF_Err gf_odf_write_short_text(GF_BitStream *bs, GF_ShortTextual *std)
 
 GF_Descriptor *gf_odf_new_smpte_camera()
 {
-	GF_SMPTECamera *newDesc = (GF_SMPTECamera *) malloc(sizeof(GF_SMPTECamera));
+	GF_SMPTECamera *newDesc = (GF_SMPTECamera *) gf_malloc(sizeof(GF_SMPTECamera));
 	if (!newDesc) return NULL;
 
 	newDesc->ParamList = gf_list_new();
 	if (! newDesc->ParamList) {
-		free(newDesc);
+		gf_free(newDesc);
 		return NULL;
 	}
 	newDesc->cameraID = 0;
@@ -3053,10 +3053,10 @@ GF_Err gf_odf_del_smpte_camera(GF_SMPTECamera *cpd)
 
 	i=0;
 	while ((tmp = (GF_SmpteParam *)gf_list_enum(cpd->ParamList, &i))) {
-		free(tmp);
+		gf_free(tmp);
 	}
 	gf_list_del(cpd->ParamList);
-	free(cpd);
+	gf_free(cpd);
 	return GF_OK;
 }
 GF_Err gf_odf_read_smpte_camera(GF_BitStream *bs, GF_SMPTECamera *cpd, u32 DescSize)
@@ -3070,7 +3070,7 @@ GF_Err gf_odf_read_smpte_camera(GF_BitStream *bs, GF_SMPTECamera *cpd, u32 DescS
 	nbBytes += 2;
 
 	for (i=0; i< count ; i++) {
-		GF_SmpteParam *tmp = (GF_SmpteParam*)malloc(sizeof(GF_SmpteParam));
+		GF_SmpteParam *tmp = (GF_SmpteParam*)gf_malloc(sizeof(GF_SmpteParam));
 		if (! tmp) return GF_OUT_OF_MEM;
 		tmp->paramID = gf_bs_read_int(bs, 8);
 		tmp->param = gf_bs_read_int(bs, 32);
@@ -3113,7 +3113,7 @@ GF_Err gf_odf_write_smpte_camera(GF_BitStream *bs, GF_SMPTECamera *cpd)
 
 GF_Descriptor *gf_odf_new_sup_cid()
 {
-	GF_SCIDesc *newDesc = (GF_SCIDesc *) malloc(sizeof(GF_SCIDesc));
+	GF_SCIDesc *newDesc = (GF_SCIDesc *) gf_malloc(sizeof(GF_SCIDesc));
 	if (!newDesc) return NULL;
 	newDesc->supplContentIdentifierTitle = NULL;
 	newDesc->supplContentIdentifierValue  =NULL;
@@ -3126,9 +3126,9 @@ GF_Err gf_odf_del_sup_cid(GF_SCIDesc *scid)
 {
 	if (!scid) return GF_BAD_PARAM;
 
-	if (scid->supplContentIdentifierTitle) free(scid->supplContentIdentifierTitle);
-	if (scid->supplContentIdentifierValue) free(scid->supplContentIdentifierValue);
-	free(scid);
+	if (scid->supplContentIdentifierTitle) gf_free(scid->supplContentIdentifierTitle);
+	if (scid->supplContentIdentifierValue) gf_free(scid->supplContentIdentifierValue);
+	gf_free(scid);
 	return GF_OK;
 }
 
@@ -3176,7 +3176,7 @@ GF_Err gf_odf_write_sup_cid(GF_BitStream *bs, GF_SCIDesc *scid)
 /*IPMPX stuff*/
 GF_Descriptor *gf_odf_new_ipmp_tool_list()
 {
-	GF_IPMP_ToolList*newDesc = (GF_IPMP_ToolList*) malloc(sizeof(GF_IPMP_ToolList));
+	GF_IPMP_ToolList*newDesc = (GF_IPMP_ToolList*) gf_malloc(sizeof(GF_IPMP_ToolList));
 	if (!newDesc) return NULL;
 	newDesc->ipmp_tools = gf_list_new();
 	newDesc->tag = GF_ODF_IPMP_TL_TAG;
@@ -3190,11 +3190,11 @@ GF_Err gf_odf_del_ipmp_tool_list(GF_IPMP_ToolList *ipmptl)
 	while (gf_list_count(ipmptl->ipmp_tools)) {
 		GF_IPMP_Tool *t = (GF_IPMP_Tool *) gf_list_get(ipmptl->ipmp_tools, 0);
 		gf_list_rem(ipmptl->ipmp_tools, 0);
-		if (t->tool_url) free(t->tool_url);
-		free(t);
+		if (t->tool_url) gf_free(t->tool_url);
+		gf_free(t);
 	}
 	gf_list_del(ipmptl->ipmp_tools);
-	free(ipmptl);
+	gf_free(ipmptl);
 	return GF_OK;
 }
 
@@ -3241,7 +3241,7 @@ GF_Err gf_odf_write_ipmp_tool_list(GF_BitStream *bs, GF_IPMP_ToolList *ipmptl)
 
 GF_Descriptor *gf_odf_new_ipmp_tool()
 {
-	GF_IPMP_Tool *newDesc = (GF_IPMP_Tool*) malloc(sizeof(GF_IPMP_Tool));
+	GF_IPMP_Tool *newDesc = (GF_IPMP_Tool*) gf_malloc(sizeof(GF_IPMP_Tool));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_IPMP_Tool));
 	newDesc->tag = GF_ODF_IPMP_TL_TAG;
@@ -3251,8 +3251,8 @@ GF_Descriptor *gf_odf_new_ipmp_tool()
 GF_Err gf_odf_del_ipmp_tool(GF_IPMP_Tool *ipmpt)
 {
 	if (!ipmpt) return GF_BAD_PARAM;
-	if (ipmpt->tool_url) free(ipmpt->tool_url);
-	free(ipmpt);
+	if (ipmpt->tool_url) gf_free(ipmpt->tool_url);
+	gf_free(ipmpt);
 	return GF_OK;
 }
 
@@ -3285,7 +3285,7 @@ GF_Err gf_odf_read_ipmp_tool(GF_BitStream *bs, GF_IPMP_Tool *ipmpt, u32 DescSize
 		u32 s;
 		nbBytes += gf_ipmpx_array_size(bs, &s);
 		if (s) {
-			ipmpt->tool_url = (char*)malloc(sizeof(char)*(s+1));
+			ipmpt->tool_url = (char*)gf_malloc(sizeof(char)*(s+1));
 			gf_bs_read_data(bs, ipmpt->tool_url, s);
 			ipmpt->tool_url[s] = 0;
 			nbBytes += s;

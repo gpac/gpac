@@ -319,7 +319,7 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 	SVGTimedAnimBaseElement *e = (SVGTimedAnimBaseElement *)timed_elt;
 
 	gf_svg_flatten_attributes((SVG_Element *)e, &all_atts);
-	e->timingp = malloc(sizeof(SMILTimingAttributesPointers));
+	e->timingp = gf_malloc(sizeof(SMILTimingAttributesPointers));
 	e->timingp->begin		= all_atts.begin;
 	e->timingp->clipBegin	= all_atts.clipBegin;
 	e->timingp->clipEnd		= all_atts.clipEnd;
@@ -403,8 +403,8 @@ void gf_smil_timing_delete_runtime_info(GF_Node *timed_elt, SMIL_Timing_RTI *rti
 	if (!rti || !timed_elt) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Destruction\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
-	free(rti->current_interval);
-	free(rti->next_interval);
+	gf_free(rti->current_interval);
+	gf_free(rti->next_interval);
 
 	/* we inform the rootmost scene graph that this node will not need notification of the scene time anymore */
 	sg = timed_elt->sgprivate->scenegraph;
@@ -416,7 +416,7 @@ void gf_smil_timing_delete_runtime_info(GF_Node *timed_elt, SMIL_Timing_RTI *rti
 	if (rti->timingp->begin) gf_smil_timing_reset_time_list(* rti->timingp->begin);
 	if (rti->timingp->end) gf_smil_timing_reset_time_list(* rti->timingp->end);
 	
-	free(rti);
+	gf_free(rti);
 }
 
 GF_EXPORT
@@ -951,7 +951,7 @@ Bool gf_svg_resolve_smil_times(GF_Node *anim, void *event_base_element,
 	
 		t->element = gf_sg_find_node_by_name(anim->sgprivate->scenegraph, t->element_id);
 		if (t->element) {
-			free(t->element_id);
+			gf_free(t->element_id);
 			t->element_id = NULL;
 			done++;
 		}
@@ -995,7 +995,7 @@ void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock)
 		/*remove past instanciations*/
 		if ((first->type==GF_SMIL_TIME_EVENT_RESOLVED) && (first->clock < begin->clock)) {
 			gf_list_rem(l, i);
-			free(first);
+			gf_free(first);
 			i--;
 			count--;
 			continue;

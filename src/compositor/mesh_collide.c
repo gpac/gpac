@@ -241,7 +241,7 @@ void gf_mesh_build_aabbtree(GF_Mesh *mesh)
 	if (mesh->i_count <= pars.min_tri_limit) return;
 
 	nb_idx = mesh->i_count / 3;
-	mesh->aabb_indices = (IDX_TYPE*)malloc(sizeof(IDX_TYPE) * nb_idx);
+	mesh->aabb_indices = (IDX_TYPE*)gf_malloc(sizeof(IDX_TYPE) * nb_idx);
 	for (i=0; i<nb_idx; i++) mesh->aabb_indices[i] = i;
 
 	GF_SAFEALLOC(mesh->aabb_root, AABBNode);

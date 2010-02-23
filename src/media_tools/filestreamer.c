@@ -141,7 +141,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		gf_rtp_streamer_append_sdp_extended(track->rtp, gf_isom_get_track_id(streamer->isom, track->track_num), dsi, dsi_len, streamer->isom, track->track_num, KMS, w, h, &sdp_media);
 		if (sdp_media) {
 			fprintf(sdp_out, "%s", sdp_media);
-			free(sdp_media);
+			gf_free(sdp_media);
 		}
 
 		if (dcd) gf_odf_desc_del((GF_Descriptor *)dcd);
@@ -157,8 +157,8 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		fseek(sdp_out, 0, SEEK_END);
 		size = ftell(sdp_out);
 		fseek(sdp_out, 0, SEEK_SET);
-		if (*out_sdp_buffer) free(*out_sdp_buffer);
-		*out_sdp_buffer = malloc(sizeof(char)*(size+1));
+		if (*out_sdp_buffer) gf_free(*out_sdp_buffer);
+		*out_sdp_buffer = gf_malloc(sizeof(char)*(size+1));
 		size = fread(*out_sdp_buffer, 1, size, sdp_out);
 		fclose(sdp_out);
 		(*out_sdp_buffer)[size]=0;
@@ -350,7 +350,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 	if (!path_mtu) path_mtu = 1450;
 
 	GF_SAFEALLOC(streamer, GF_ISOMRTPStreamer);
-	streamer->dest_ip = strdup(ip_dest);
+	streamer->dest_ip = gf_strdup(ip_dest);
 
 	dest_ip = ip_dest;
 	payt = 96;
@@ -501,7 +501,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 	return streamer;
 
 exit:
-	free(streamer);
+	gf_free(streamer);
 	return NULL;
 } 
 
@@ -513,11 +513,11 @@ void gf_isom_streamer_del(GF_ISOMRTPStreamer *streamer)
 		if (track->au) gf_isom_sample_del(&track->au);
 		if (track->rtp) gf_rtp_streamer_del(track->rtp);
 		track = track->next;
-		free(tmp);
+		gf_free(tmp);
 	}
 	if (streamer->isom) gf_isom_close(streamer->isom);
-	free(streamer->dest_ip);
-	free(streamer);
+	gf_free(streamer->dest_ip);
+	gf_free(streamer);
 }
 
 #endif /* !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_STREAMING) */

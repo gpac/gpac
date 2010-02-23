@@ -433,7 +433,7 @@ int main (const int argc, const char** argv)
 	rap_conf->status = 0;
 	while (rap_conf->status != 2)
 		gf_sleep(0);
-	free(rap_conf);
+	gf_free(rap_conf);
 	gf_th_del(rap_thread);
 
 	/* waiting for termination of the TCP listening thread */
@@ -441,13 +441,13 @@ int main (const int argc, const char** argv)
 		tcp_conf->status = 0;
 		while (tcp_conf->status != 2)
 			gf_sleep(0);
-		free(tcp_conf);
+		gf_free(tcp_conf);
 		gf_th_del(tcp_thread);
 	}
 
 	PNC_Close_SceneGenerator(data);
 	
-	free(conf);
+	gf_free(conf);
 	
 	if (gf_config_file)
 		gf_cfg_del(gf_config_file);

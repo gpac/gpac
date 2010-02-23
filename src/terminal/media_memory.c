@@ -43,8 +43,8 @@ void gf_db_unit_del(GF_DBUnit *db)
 {
 	if (!db) return;
 	if (db->next) gf_db_unit_del(db->next);
-	if (db->data) free(db->data);
-	free(db);
+	if (db->data) gf_free(db->data);
+	gf_free(db);
 }
 
 static GF_CMUnit *gf_cm_unit_new()
@@ -67,12 +67,12 @@ static GFINLINE void *my_large_alloc(u32 size) {
 	}
 	return ptr;
 }
-static GFINLINE void my_large_free(void *ptr) {
+static GFINLINE void my_large_gf_free(void *ptr) {
 	if (ptr) VirtualFree(ptr, 0, MEM_RELEASE);
 }
 #else
-#define my_large_alloc(_size)	(_size ? malloc(sizeof(char)*_size) : NULL)
-#define my_large_free(_ptr)	free(_ptr)
+#define my_large_alloc(_size)	(_size ? gf_malloc(sizeof(char)*_size) : NULL)
+#define my_large_gf_free(_ptr)	gf_free(_ptr)
 #endif
 
 
@@ -81,10 +81,10 @@ static void gf_cm_unit_del(GF_CMUnit *cb)
 	if (cb->next) gf_cm_unit_del(cb->next);
 	cb->next = NULL;
 	if (cb->data) {
-		my_large_free(cb->data);
+		my_large_gf_free(cb->data);
 		cb->data = NULL;
 	}
-	free(cb);
+	gf_free(cb);
 }
 
 GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity)
@@ -140,7 +140,7 @@ void gf_cm_del(GF_CompositionMemory *cb)
 	cb->input->prev->next = NULL;
 	gf_cm_unit_del(cb->input);
 	gf_odm_lock(cb->odm, 0);
-	free(cb);
+	gf_free(cb);
 }
 
 void gf_cm_rewind_input(GF_CompositionMemory *cb)
@@ -387,11 +387,11 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 	cu = cb->input;
 
 	cb->UnitSize = newCapacity;
-	my_large_free(cu->data);
+	my_large_gf_free(cu->data);
 	cu->data = (char*) my_large_alloc(newCapacity);
 	cu = cu->next;
 	while (cu != cb->input) {
-		my_large_free(cu->data);
+		my_large_gf_free(cu->data);
 		cu->data = (char*) my_large_alloc(newCapacity);
 		cu = cu->next;
 	}

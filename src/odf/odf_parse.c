@@ -139,16 +139,16 @@ u32 gf_odf_get_tag_by_name(char *descName)
 #define GET_BOOL(field) { ret = 1; field = (!stricmp(val, "true") || !stricmp(val, "1")) ? 1 : 0; }
 
 #define GET_DOUBLE(field) { Float v; ret = 1; sscanf(val, "%f", &v); field = (Double) v;}
-#define GET_STRING(field) { ret = 1; field = strdup(val); if (val[0] == '"') strcpy(field, val+1); if (field[strlen(field)-1] == '"') field[strlen(field)-1] = 0; }
+#define GET_STRING(field) { ret = 1; field = gf_strdup(val); if (val[0] == '"') strcpy(field, val+1); if (field[strlen(field)-1] == '"') field[strlen(field)-1] = 0; }
 
 void OD_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 {
 	u32 i, c;
 	char s[3];
 	u32 len = strlen(val) / 3;
-	if (*out_data) free(*out_data);
+	if (*out_data) gf_free(*out_data);
 	*out_data_size = len;
-	*out_data = (char*)malloc(sizeof(char) * len);
+	*out_data = (char*)gf_malloc(sizeof(char) * len);
 	s[2] = 0;
 	for (i=0; i<len; i++) {
 		s[0] = val[3*i+1];
@@ -162,7 +162,7 @@ void OD_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 {
 	FILE *f;
 	u32 size;
-	if (*out_data) free(*out_data);
+	if (*out_data) gf_free(*out_data);
 	*out_data = NULL;
 	*out_data_size = 0;
 	f = fopen(fileName, "rb");
@@ -174,7 +174,7 @@ void OD_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 	size = ftell(f);
 	fseek(f, 0, SEEK_SET);
 	*out_data_size = size;
-	*out_data = (char*)malloc(sizeof(char) * size);
+	*out_data = (char*)gf_malloc(sizeof(char) * size);
 	fread(*out_data, sizeof(char) * size, 1, f);
 	fclose(f);
 }
@@ -220,7 +220,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		GF_InitialObjectDescriptor *iod = (GF_InitialObjectDescriptor *)desc;
 		if (!stricmp(fieldName, "objectDescriptorID") || !stricmp(fieldName, "binaryID")) ret += sscanf(val, "%hd", &iod->objectDescriptorID);
 		else if (!stricmp(fieldName, "URLString")) {
-			iod->URLString = strdup(val);
+			iod->URLString = gf_strdup(val);
 			ret = 1;
 		}
 		else if (!stricmp(fieldName, "includeInlineProfileLevelFlag")) {
@@ -254,7 +254,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) desc;
 		if (!stricmp(fieldName, "objectDescriptorID") || !stricmp(fieldName, "binaryID")) ret += sscanf(val, "%hd", &od->objectDescriptorID);
 		else if (!stricmp(fieldName, "URLString")) {
-			od->URLString = strdup(val);
+			od->URLString = gf_strdup(val);
 			ret = 1;
 		}
 	}
@@ -317,7 +317,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "dependsOn_ES_ID") || !stricmp(fieldName, "dependsOnESID")) ret += sscanf(val, "%hd", &esd->dependsOnESID);
 		else if (!stricmp(fieldName, "OCR_ES_ID")) ret += sscanf(val, "%hd", &esd->OCRESID);
 		else if (!stricmp(fieldName, "URLstring")) {
-			esd->URLString = strdup(val);
+			esd->URLString = gf_strdup(val);
 			ret = 1;
 		}
 		/*ignore*/
@@ -368,7 +368,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		GF_ElementaryMask* em = (GF_ElementaryMask*)desc;
 		if (!stricmp(fieldName, "atNode")) {
 			GET_U32(em->node_id);
-			if (!ret || !em->node_id) em->node_name = strdup(val);
+			if (!ret || !em->node_id) em->node_name = gf_strdup(val);
 			ret = 1;
 		}
 		else if (!stricmp(fieldName, "numDynFields")) ret = 1;
@@ -543,7 +543,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "fontID") || !stricmp(fieldName, "fontName")) {
 			/*check if we need a new entry*/
 			if (!sd->font_count) {
-				sd->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
+				sd->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
 				sd->font_count = 1;
 				sd->fonts[0].fontID = 0;
 				sd->fonts[0].fontName = NULL;
@@ -553,7 +553,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 				else if (!stricmp(fieldName, "fontName") && sd->fonts[sd->font_count-1].fontName) realloc_fonts = 1;
 				if (realloc_fonts) {
 					sd->font_count += 1;
-					sd->fonts = (GF_FontRecord*)realloc(sd->fonts, sizeof(GF_FontRecord)*sd->font_count);
+					sd->fonts = (GF_FontRecord*)gf_realloc(sd->fonts, sizeof(GF_FontRecord)*sd->font_count);
 					sd->fonts[sd->font_count-1].fontID = 0;
 					sd->fonts[sd->font_count-1].fontName = NULL;
 				}

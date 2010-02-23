@@ -71,8 +71,8 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 					GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
 					gf_list_add(esd->extensionDescriptors, mi);
 					sprintf(szPath, "%s#%d", szName, esd->ESID);
-					mi->file_name = strdup(szPath);
-					mi->streamFormat = strdup("MP4");
+					mi->file_name = gf_strdup(szPath);
+					mi->streamFormat = gf_strdup("MP4");
 				}
 					break;
 				}
@@ -108,8 +108,8 @@ static void UpdateODCommand(GF_ISOFile *mp4, GF_ODCom *com)
 				GF_MuxInfo *mi = (GF_MuxInfo *) gf_odf_desc_new(GF_ODF_MUXINFO_TAG);
 				gf_list_add(esd->extensionDescriptors, mi);
 				sprintf(szPath, "%s#%d", szName, esd->ESID);
-				mi->file_name = strdup(szPath);
-				mi->streamFormat = strdup("MP4");
+				mi->file_name = gf_strdup(szPath);
+				mi->streamFormat = gf_strdup("MP4");
 			}
 				break;
 			}

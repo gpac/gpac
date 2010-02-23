@@ -179,13 +179,13 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 					inf->fieldType = style.fieldType;
 					inf->field_ptr = gf_sg_vrml_field_pointer_new(style.fieldType);
 					sfstr = (SFString *)inf->field_ptr;
-					if (bold && italic && underlined) sfstr->buffer = strdup("BOLDITALIC UNDERLINED");
-					else if (italic && underlined) sfstr->buffer = strdup("ITALIC UNDERLINED");
-					else if (bold && underlined) sfstr->buffer = strdup("BOLD UNDERLINED");
-					else if (underlined) sfstr->buffer = strdup("UNDERLINED");
-					else if (bold && italic) sfstr->buffer = strdup("BOLDITALIC");
-					else if (bold) sfstr->buffer = strdup("BOLD");
-					else sfstr->buffer = strdup("ITALIC");
+					if (bold && italic && underlined) sfstr->buffer = gf_strdup("BOLDITALIC UNDERLINED");
+					else if (italic && underlined) sfstr->buffer = gf_strdup("ITALIC UNDERLINED");
+					else if (bold && underlined) sfstr->buffer = gf_strdup("BOLD UNDERLINED");
+					else if (underlined) sfstr->buffer = gf_strdup("UNDERLINED");
+					else if (bold && italic) sfstr->buffer = gf_strdup("BOLDITALIC");
+					else if (bold) sfstr->buffer = gf_strdup("BOLD");
+					else sfstr->buffer = gf_strdup("ITALIC");
 					gf_list_add(au->commands, com);
 				}
 
@@ -319,7 +319,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 				len++;
 			}
 			szText[len] = 0;
-			sfstr->buffer = strdup(szText);
+			sfstr->buffer = gf_strdup(szText);
 			break;
 		}
 	}
@@ -504,7 +504,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		gf_list_add(au->commands, com);
 
 		gf_sg_vrml_mf_append(inf->field_ptr, GF_SG_VRML_MFSTRING, (void **) &sfstr);
-		sfstr->buffer = strdup(szText);
+		sfstr->buffer = gf_strdup(szText);
 	}
 
 	if (e) gf_sm_stream_del(ctx, srt);

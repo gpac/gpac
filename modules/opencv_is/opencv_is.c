@@ -119,7 +119,7 @@ void detect_and_draw_objects(GF_InputSensorDevice *ifce, IplImage* image,
 		gf_bs_get_content(bs, &buf, &buf_size);
 		gf_bs_del(bs);
 		ifce->DispatchFrame(ifce, buf, buf_size);
-		free(buf);
+		gf_free(buf);
 	}
 
 
@@ -214,6 +214,6 @@ void ShutdownInterface(GF_BaseInterface *bi)
 {
 	GF_InputSensorDevice *ifcn = (GF_InputSensorDevice*)bi;
 	if (ifcn->InterfaceType==GF_INPUT_DEVICE_INTERFACE) {
-		free(bi);
+		gf_free(bi);
 	}
 }

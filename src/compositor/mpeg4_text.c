@@ -140,12 +140,12 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 			if (split_words && (j+1!=len) && !is_space) 
 				continue;
 
-			span = (GF_TextSpan*) malloc(sizeof(GF_TextSpan));
+			span = (GF_TextSpan*) gf_malloc(sizeof(GF_TextSpan));
 			memcpy(span, tspan, sizeof(GF_TextSpan));
 
 			span->nb_glyphs = split_words ? (j - first_char) : 1;
 			if (split_words && !is_space) span->nb_glyphs++;
-			span->glyphs = malloc(sizeof(void *)*span->nb_glyphs);
+			span->glyphs = gf_malloc(sizeof(void *)*span->nb_glyphs);
 
 			span->bounds.height = st->ascent + st->descent;
 			span->bounds.y = start_y;
@@ -172,10 +172,10 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 			parent_node_end_text_group(tr_state->parent, &span->bounds, st->ascent, st->descent, idx);
 
 			if (is_space && split_words) {
-				span = (GF_TextSpan*) malloc(sizeof(GF_TextSpan));
+				span = (GF_TextSpan*) gf_malloc(sizeof(GF_TextSpan));
 				memcpy(span, tspan, sizeof(GF_TextSpan));
 				span->nb_glyphs = 1;
-				span->glyphs = malloc(sizeof(void *));
+				span->glyphs = gf_malloc(sizeof(void *));
 
 				gf_list_add(st->spans, span);
 				span->bounds.height = st->ascent + st->descent;
@@ -572,7 +572,7 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 		text_clean_paths(gf_sc_get_compositor(n), st);
 		drawable_del(st->graph);
 		gf_list_del(st->spans);
-		free(st);
+		gf_free(st);
 		return;
 	}
 
@@ -660,7 +660,7 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 void compositor_init_text(GF_Compositor *compositor, GF_Node *node)
 {
-	TextStack *stack = (TextStack *)malloc(sizeof(TextStack));
+	TextStack *stack = (TextStack *)gf_malloc(sizeof(TextStack));
 	stack->graph = drawable_new();
 	stack->graph->node = node;
 	stack->graph->flags = DRAWABLE_USE_TRAVERSE_DRAW;

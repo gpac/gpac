@@ -138,7 +138,7 @@ static const char *PNG_GetCodecName(GF_BaseDecoder *dec)
 Bool NewPNGDec(GF_BaseDecoder *ifcd)
 {
 	IMGDec *wrap = (IMGDec *) ifcd->privateStack;
-	PNGDec *dec = (PNGDec *) malloc(sizeof(PNGDec));
+	PNGDec *dec = (PNGDec *) gf_malloc(sizeof(PNGDec));
 	memset(dec, 0, sizeof(PNGDec));
 	wrap->opaque = dec;
 	wrap->type = DEC_PNG;
@@ -156,5 +156,5 @@ Bool NewPNGDec(GF_BaseDecoder *ifcd)
 void DeletePNGDec(GF_BaseDecoder *ifcg)
 {
 	PNGCTX();
-	free(ctx);
+	gf_free(ctx);
 }

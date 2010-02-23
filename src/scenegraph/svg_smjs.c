@@ -163,7 +163,7 @@ static JSBool svg_parse_xml(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	sg = dom_get_doc(c, doc_obj);
 
 	node = gf_sm_load_svg_from_string(sg, str);
-	free(str);
+	gf_free(str);
 	*rval = dom_element_construct(c, node);
 
 	return JS_TRUE;
@@ -345,7 +345,7 @@ static JSBool svg_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 		if (n->sgprivate->tag!=TAG_SVG_svg) return JS_TRUE;
 		if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_TRANSLATE, (GF_Node *)n, &par)) {
 			JSObject *r = JS_NewObject(c, &svg_rt->pointClass, 0, 0);
-			pointCI *rc = malloc(sizeof(pointCI));
+			pointCI *rc = gf_malloc(sizeof(pointCI));
 			rc->x = FIX2FLT(par.pt.x);
 			rc->y = FIX2FLT(par.pt.y);
 			rc->sg = n->sgprivate->scenegraph;
@@ -358,7 +358,7 @@ static JSBool svg_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 		if (n->sgprivate->tag!=TAG_SVG_svg) return JS_TRUE;
 		if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_VIEWPORT, (GF_Node *)n, &par)) {
 			JSObject *r = JS_NewObject(c, &svg_rt->rectClass, 0, 0);
-			rectCI *rc = malloc(sizeof(rectCI));
+			rectCI *rc = gf_malloc(sizeof(rectCI));
 			rc->x = FIX2FLT(par.rc.x);
 			rc->y = FIX2FLT(par.rc.y);
 			rc->w = FIX2FLT(par.rc.width);
@@ -425,12 +425,12 @@ static JSBool svg_element_setProperty(JSContext *c, JSObject *obj, jsval id, jsv
 				if (!nid) nid = gf_sg_get_next_available_node_id(n->sgprivate->scenegraph);
 				gf_node_set_id(n, nid, id);
 				if (gf_node_get_attribute_by_tag(n, TAG_XML_ATT_id, 1, 0, &info)==GF_OK) {
-					if (*(DOM_String *)info.far_ptr) free(*(DOM_String *)info.far_ptr);
-					*(DOM_String *)info.far_ptr = strdup(id);
+					if (*(DOM_String *)info.far_ptr) gf_free(*(DOM_String *)info.far_ptr);
+					*(DOM_String *)info.far_ptr = gf_strdup(id);
 				}
 				if (gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_id, 1, 0, &info)==GF_OK) {
-					if (*(DOM_String *)info.far_ptr) free(*(DOM_String *)info.far_ptr);
-					*(DOM_String *)info.far_ptr = strdup(id);
+					if (*(DOM_String *)info.far_ptr) gf_free(*(DOM_String *)info.far_ptr);
+					*(DOM_String *)info.far_ptr = gf_strdup(id);
 				}
 			}
 		}
@@ -607,7 +607,7 @@ JSBool svg_udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	if (!strcmp(name, "#text")) {
 		char *res = gf_dom_flatten_textContent(n);
 		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
-		free(res);
+		gf_free(res);
 		return JS_TRUE;
 	}
 	e = gf_node_get_field_by_name(n, name, &info);
@@ -673,7 +673,7 @@ JSBool svg_udom_get_trait(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 /*end of DOM string traits*/
 		attValue = gf_svg_dump_attribute(n, &info);
 		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, attValue) );
-		if (attValue) free(attValue);
+		if (attValue) gf_free(attValue);
 		return JS_TRUE;
 		/*dump to trait*/
 		break;
@@ -756,7 +756,7 @@ JSBool svg_udom_get_matrix_trait(JSContext *c, JSObject *obj, uintN argc, jsval 
 	if (gf_node_get_field_by_name(n, szName, &info) != GF_OK) return JS_TRUE;
 
 	if (info.fieldType==SVG_Transform_datatype) {
-		GF_Matrix2D *mx = malloc(sizeof(GF_Matrix2D));
+		GF_Matrix2D *mx = gf_malloc(sizeof(GF_Matrix2D));
 		mO = JS_NewObject(c, &svg_rt->matrixClass, 0, 0);
 		gf_mx2d_init(*mx);
 		gf_mx2d_copy(*mx, ((SVG_Transform*)info.far_ptr)->mat);
@@ -940,7 +940,7 @@ JSBool svg_udom_set_float_trait(JSContext *c, JSObject *obj, uintN argc, jsval *
 		while (gf_list_count(*l)) {
 			val = gf_list_get(*l, 0);
 			gf_list_rem(*l, 0);
-			free(val);
+			gf_free(val);
 		}
 		GF_SAFEALLOC(val, SVG_Coordinate);
 		val->type=SVG_NUMBER_VALUE;
@@ -1038,16 +1038,16 @@ JSBool svg_udom_set_path_trait(JSContext *c, JSObject *obj, uintN argc, jsval *a
 		while (gf_list_count(d->commands)) {
 			u8 *t = gf_list_get(d->commands, 0);
 			gf_list_rem(d->commands, 0);
-			free(t);
+			gf_free(t);
 		}
 		while (gf_list_count(d->points)) {
 			SVG_Point *t = gf_list_get(d->points, 0);
 			gf_list_rem(d->points, 0);
-			free(t);
+			gf_free(t);
 		}
 		nb_pts = 0;
 		for (i=0; i<path->nb_coms; i++) {
-			u8 *t = malloc(sizeof(u8));
+			u8 *t = gf_malloc(sizeof(u8));
 			*t = path->tags[i];
 			gf_list_add(d->commands, t);
 			switch (*t) {
@@ -1058,7 +1058,7 @@ JSBool svg_udom_set_path_trait(JSContext *c, JSObject *obj, uintN argc, jsval *a
 			}
 		}
 		for (i=0; i<nb_pts; i++) {
-			SVG_Point *t = malloc(sizeof(SVG_Point));
+			SVG_Point *t = gf_malloc(sizeof(SVG_Point));
 			t->x = FLT2FIX(path->pts[i].x);
 			t->y = FLT2FIX(path->pts[i].y);
 			gf_list_add(d->points, t);
@@ -1126,7 +1126,7 @@ static JSBool svg_get_bbox(JSContext *c, JSObject *obj, uintN argc, jsval *argv,
 	if (ScriptAction(n->sgprivate->scenegraph, get_screen ? GF_JSAPI_OP_GET_SCREEN_BBOX : GF_JSAPI_OP_GET_LOCAL_BBOX, (GF_Node *)n, &par) ) {
 		if (par.bbox.is_set) {
 			JSObject *rO = JS_NewObject(c, &svg_rt->rectClass, 0, 0);
-			rectCI *rc = malloc(sizeof(rectCI));
+			rectCI *rc = gf_malloc(sizeof(rectCI));
 			rc->sg = NULL;
 			rc->x = FIX2FLT(par.bbox.min_edge.x);
 			/*BBox is in 3D coord system style*/
@@ -1159,7 +1159,7 @@ JSBool svg_udom_get_screen_ctm(JSContext *c, JSObject *obj, uintN argc, jsval *a
 
 	if (ScriptAction(n->sgprivate->scenegraph, GF_JSAPI_OP_GET_TRANSFORM, (GF_Node *)n, &par)) {
 		JSObject *mO = JS_NewObject(c, &svg_rt->matrixClass, 0, 0);
-		GF_Matrix2D *mx = malloc(sizeof(GF_Matrix2D));
+		GF_Matrix2D *mx = gf_malloc(sizeof(GF_Matrix2D));
 		gf_mx2d_from_mx(mx, &par.mx);
 		JS_SetPrivate(c, mO, mx);
 		*rval = OBJECT_TO_JSVAL(mO);
@@ -1349,7 +1349,7 @@ static JSFunctionSpec connectionFuncs[] = {
 static void baseCI_finalize(JSContext *c, JSObject *obj)
 {
 	void *data = JS_GetPrivate(c, obj);
-	if (data) free(data);
+	if (data) gf_free(data);
 }
 
 static JSBool rgb_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
@@ -1485,10 +1485,10 @@ static JSObject *svg_new_path_object(JSContext *c, SVG_PathData *d)
 	if (d) {
 		u32 i, count;
 		p->nb_coms = gf_list_count(d->commands);
-		p->tags = malloc(sizeof(u8) * p->nb_coms);
+		p->tags = gf_malloc(sizeof(u8) * p->nb_coms);
 		for (i=0; i<p->nb_coms; i++) p->tags[i] = * (u8 *) gf_list_get(d->commands, i);
 		count = gf_list_count(d->points);
-		p->pts = malloc(sizeof(pointCI) * count);
+		p->pts = gf_malloc(sizeof(pointCI) * count);
 		for (i=0; i<count; i++) {
 			GF_Point2D *pt = gf_list_get(d->commands, i);
 			p->pts[i].x = FIX2FLT(pt->x);
@@ -1514,9 +1514,9 @@ static void pathCI_finalize(JSContext *c, JSObject *obj)
 {
 	pathCI *p = JS_GetPrivate(c, obj);
 	if (p) {
-		if (p->pts) free(p->pts);
-		if (p->tags) free(p->tags);
-		free(p);
+		if (p->pts) gf_free(p->pts);
+		if (p->tags) gf_free(p->tags);
+		gf_free(p);
 	}
 }
 
@@ -1648,7 +1648,7 @@ static u32 svg_path_realloc_pts(pathCI *p, u32 nb_pts)
 		case 5: orig_pts+=1; break;
 		}
 	}
-	p->pts = realloc(p->pts, sizeof(ptCI)*(nb_pts+orig_pts));
+	p->pts = gf_realloc(p->pts, sizeof(ptCI)*(nb_pts+orig_pts));
 	return orig_pts;
 }
 static JSBool svg_path_move_to(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *vp)
@@ -1665,7 +1665,7 @@ static JSBool svg_path_move_to(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	nb_pts = svg_path_realloc_pts(p, 1);
 	p->pts[nb_pts].x = (Float) x;
 	p->pts[nb_pts].y = (Float) y;
-	p->tags = realloc(p->tags, sizeof(u8)*(p->nb_coms+1) );
+	p->tags = gf_realloc(p->tags, sizeof(u8)*(p->nb_coms+1) );
 	p->tags[p->nb_coms] = 0;
 	p->nb_coms++;
 	return JS_TRUE;
@@ -1684,7 +1684,7 @@ static JSBool svg_path_line_to(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	nb_pts = svg_path_realloc_pts(p, 1);
 	p->pts[nb_pts].x = (Float) x;
 	p->pts[nb_pts].y = (Float) y;
-	p->tags = realloc(p->tags, sizeof(u8)*(p->nb_coms+1) );
+	p->tags = gf_realloc(p->tags, sizeof(u8)*(p->nb_coms+1) );
 	p->tags[p->nb_coms] = 1;
 	p->nb_coms++;
 	return JS_TRUE;
@@ -1706,7 +1706,7 @@ static JSBool svg_path_quad_to(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	nb_pts = svg_path_realloc_pts(p, 2);
 	p->pts[nb_pts].x = (Float) x1; p->pts[nb_pts].y = (Float) y1;
 	p->pts[nb_pts+1].x = (Float) x2; p->pts[nb_pts+1].y = (Float) y2;
-	p->tags = realloc(p->tags, sizeof(u8)*(p->nb_coms+1) );
+	p->tags = gf_realloc(p->tags, sizeof(u8)*(p->nb_coms+1) );
 	p->tags[p->nb_coms] = 4;
 	p->nb_coms++;
 	return JS_TRUE;
@@ -1730,7 +1730,7 @@ static JSBool svg_path_curve_to(JSContext *c, JSObject *obj, uintN argc, jsval *
 	p->pts[nb_pts].x = (Float) x1; p->pts[nb_pts].y = (Float) y1;
 	p->pts[nb_pts+1].x = (Float) x2; p->pts[nb_pts+1].y = (Float) y2;
 	p->pts[nb_pts+2].x = (Float) x; p->pts[nb_pts+2].y = (Float) y;
-	p->tags = realloc(p->tags, sizeof(u8)*(p->nb_coms+1) );
+	p->tags = gf_realloc(p->tags, sizeof(u8)*(p->nb_coms+1) );
 	p->tags[p->nb_coms] = 2;
 	p->nb_coms++;
 	return JS_TRUE;
@@ -1742,7 +1742,7 @@ static JSBool svg_path_close(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	p = JS_GetPrivate(c, obj);
 	if (!p) return JS_TRUE;
 	if (argc) return JS_TRUE;
-	p->tags = realloc(p->tags, sizeof(u8)*(p->nb_coms+1) );
+	p->tags = gf_realloc(p->tags, sizeof(u8)*(p->nb_coms+1) );
 	p->tags[p->nb_coms] = 6;
 	p->nb_coms++;
 	return JS_TRUE;
@@ -1886,7 +1886,7 @@ static JSBool svg_mx2d_rotate(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 jsval svg_udom_new_rect(JSContext *c, Fixed x, Fixed y, Fixed width, Fixed height)
 {
 	JSObject *r = JS_NewObject(c, &svg_rt->rectClass, 0, 0);
-	rectCI *rc = malloc(sizeof(rectCI));
+	rectCI *rc = gf_malloc(sizeof(rectCI));
 	rc->x = FIX2FLT(x);
 	rc->y = FIX2FLT(y);
 	rc->w = FIX2FLT(width);
@@ -1899,7 +1899,7 @@ jsval svg_udom_new_rect(JSContext *c, Fixed x, Fixed y, Fixed width, Fixed heigh
 jsval svg_udom_new_point(JSContext *c, Fixed x, Fixed y)
 {
 	JSObject *p = JS_NewObject(c, &svg_rt->pointClass, 0, 0);
-	pointCI *pt = malloc(sizeof(pointCI));
+	pointCI *pt = gf_malloc(sizeof(pointCI));
 	pt->x = FIX2FLT(x);
 	pt->y = FIX2FLT(y);
 	pt->sg = NULL;
@@ -2189,12 +2189,12 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 				gf_sg_load_script_extensions(n->sgprivate->scenegraph, svg_js->js_ctx, svg_js->global, 1);
 				gf_sg_ecmascript_del(svg_js->js_ctx);
 				dom_js_unload(svg_js->js_ctx, svg_js->global);
-				free(svg_js);
+				gf_free(svg_js);
 				n->sgprivate->scenegraph->svg_js = NULL;
 				assert(svg_rt);
 				svg_rt->nb_inst--;
 				if (!svg_rt->nb_inst) {
-					free(svg_rt);
+					gf_free(svg_rt);
 					svg_rt = NULL;
 				}
 			}
@@ -2209,7 +2209,7 @@ static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 	/*create new ecmascript context*/
 	svg_js->js_ctx = gf_sg_ecmascript_new(sg);
 	if (!svg_js->js_ctx) {
-		free(svg_js);
+		gf_free(svg_js);
 		return GF_SCRIPT_ERROR;
 	}
 	if (!svg_rt) {
@@ -2272,7 +2272,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 
 		if (abs_url) {
 			jsf = fopen(abs_url, "rb");
-			free(abs_url);
+			gf_free(abs_url);
 		}
 	}
 	if (!jsf) return 0;
@@ -2280,7 +2280,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 	fseek(jsf, 0, SEEK_END);
 	fsize = ftell(jsf);
 	fseek(jsf, 0, SEEK_SET);
-	jsscript = malloc(sizeof(char)*(fsize+1));
+	jsscript = gf_malloc(sizeof(char)*(fsize+1));
 	fread(jsscript, sizeof(char)*fsize, 1, jsf);
 	fclose(jsf);
 	jsscript[fsize] = 0;
@@ -2299,7 +2299,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 	if (ret==JS_FALSE) success = 0;
 	gf_dom_listener_process_add(script->sgprivate->scenegraph);
 
-	free(jsscript);
+	gf_free(jsscript);
 	return success;
 }
 
@@ -2368,7 +2368,7 @@ void JSScript_LoadSVG(GF_Node *node)
 				ScriptAction(node->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
 			}
 		}
-		free(url);
+		gf_free(url);
 	}
 	/*for scripts only, execute*/
 	else if (node->sgprivate->tag == TAG_SVG_script) {

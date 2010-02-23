@@ -118,7 +118,7 @@ void gf_inline_on_modified(GF_Node *node)
 							if (gf_list_del_item(parent->scene_objects, mo)>=0) {
 								gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
 								gf_list_del(mo->nodes);
-								free(mo);
+								gf_free(mo);
 							}
 						}
 					} else {
@@ -208,7 +208,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 					if (gf_list_del_item(scene->scene_objects, mo)>=0) {
 						gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
 						gf_list_del(mo->nodes);
-						free(mo);
+						gf_free(mo);
 					}
 				} else {
 					gf_odm_stop(scene->root_od, 1);
@@ -335,8 +335,8 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 				url2 = gf_url_concatenate(scene->root_od->net_service->url, lib_url->vals[0].url);
 				ok = 0;
 				if (url1 && url2 && !strcmp(url1, url2)) ok=1;
-				if (url1) free(url1);
-				if (url2) free(url2);
+				if (url1) gf_free(url1);
+				if (url2) gf_free(url2);
 				if (!ok) continue;
 				if (!pl->mo->odm || !pl->mo->odm->subscene) return NULL;
 				return pl->mo->odm->subscene->graph;
@@ -358,7 +358,7 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 		if (pl->url->vals[0].OD_ID && (pl->url->vals[0].OD_ID == lib_url->vals[0].OD_ID)) return NULL;
 		if (pl->url->vals[0].url && lib_url->vals[0].url && !stricmp(pl->url->vals[0].url, lib_url->vals[0].url) ) return NULL;
 	}
-	pl = (GF_ProtoLink*)malloc(sizeof(GF_ProtoLink));
+	pl = (GF_ProtoLink*)gf_malloc(sizeof(GF_ProtoLink));
 	pl->url = lib_url;
 	gf_list_add(scene->extern_protos, pl);
 	pl->mo = gf_scene_get_media_object(scene, lib_url, GF_MEDIA_OBJECT_SCENE, 0);
@@ -432,12 +432,12 @@ static char *storage_get_section(M_Storage *storage)
 	scene = (GF_Scene *)gf_node_get_private((GF_Node*)storage);
 
 	len = strlen(scene->root_od->net_service->url)+strlen(storage->name.buffer)+2;
-	szPath = malloc(sizeof(char)* len);
+	szPath = gf_malloc(sizeof(char)* len);
 	strcpy(szPath, scene->root_od->net_service->url);
 	strcat(szPath, "@");
 	strcat(szPath, storage->name.buffer);
 	gf_sha1_csum(szPath, strlen(szPath), hash);
-	free(szPath);
+	gf_free(szPath);
 
 	strcpy(name, "@cache=");
 	for (i=0; i<20; i++) {
@@ -446,7 +446,7 @@ static char *storage_get_section(M_Storage *storage)
 		sprintf(t, "%02X", hash[i]);
 		strcat(name, t);
 	}
-	return strdup(name);
+	return gf_strdup(name);
 }
 
 static void storage_parse_sf(void *ptr, u32 fieldType, char *opt)
@@ -478,8 +478,8 @@ static void storage_parse_sf(void *ptr, u32 fieldType, char *opt)
 		((SFVec3f*)ptr)->z = FLT2FIX(v3);
 		break;
 	case GF_SG_VRML_SFSTRING:
-		if ( ((SFString *)ptr)->buffer) free(((SFString *)ptr)->buffer);
-		((SFString *)ptr)->buffer = strdup(opt);
+		if ( ((SFString *)ptr)->buffer) gf_free(((SFString *)ptr)->buffer);
+		((SFString *)ptr)->buffer = gf_strdup(opt);
 		break;
 	default:
 		break;
@@ -497,7 +497,7 @@ static void gf_storage_load(M_Storage *storage)
 	if (!cfg || !section) return;
 
 	if (!gf_cfg_get_key_count(cfg, section)) {
-		free(section);
+		gf_free(section);
 		return;
 	}
 	opt = gf_cfg_get_key(cfg, section, "expireAfterNTP");
@@ -505,14 +505,14 @@ static void gf_storage_load(M_Storage *storage)
 	sscanf(opt, "%u", &exp);
 	if (exp && (exp<=sec)) {
 		gf_cfg_del_section(cfg, section);
-		free(section);
+		gf_free(section);
 		return;
 	}
 
 	count = gf_cfg_get_key_count(cfg, section)-1;
 	if (!count || (count!=storage->storageList.count)) {
 		gf_cfg_del_section(cfg, section);
-		free(section);
+		gf_free(section);
 		return;
 	}
 
@@ -545,7 +545,7 @@ static void gf_storage_load(M_Storage *storage)
 		}
 		gf_node_changed(storage->storageList.vals[i].node, &info);
 	}
-	free(section);
+	gf_free(section);
 }
 
 char *storage_serialize_sf(void *ptr, u32 fieldType)
@@ -554,24 +554,24 @@ char *storage_serialize_sf(void *ptr, u32 fieldType)
 	switch (fieldType) {
 	case GF_SG_VRML_SFBOOL:
 		sprintf(szVal, "%d", *((SFBool *)ptr) ? 1 : 0);
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFINT32:
 		sprintf(szVal, "%d",  *((SFInt32 *)ptr) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFTIME:
 		sprintf(szVal, "%g", *((SFTime *)ptr) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFFLOAT:
 		sprintf(szVal, "%g", FIX2FLT( *((SFFloat *)ptr) ) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFVEC2F:
 		sprintf(szVal, "%g %g", FIX2FLT( ((SFVec2f *)ptr)->x), FIX2FLT( ((SFVec2f *)ptr)->y) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFVEC3F:
 		sprintf(szVal, "%g %g %g", FIX2FLT( ((SFVec3f *)ptr)->x), FIX2FLT( ((SFVec3f *)ptr)->y) , FIX2FLT( ((SFVec3f *)ptr)->z) );
-		return strdup(szVal);
+		return gf_strdup(szVal);
 	case GF_SG_VRML_SFSTRING:
-		return strdup( ((SFString *)ptr)->buffer ? ((SFString *)ptr)->buffer : "");
+		return gf_strdup( ((SFString *)ptr)->buffer ? ((SFString *)ptr)->buffer : "");
 
 	default:
 		break;
@@ -620,23 +620,23 @@ void gf_storage_save(M_Storage *storage)
 				slotval = storage_serialize_sf(info.far_ptr, info.fieldType);
 				if (!slotval) break;
 				if (val) {
-					val = realloc(val, strlen(val) + 3 + strlen(slot));
+					val = gf_realloc(val, strlen(val) + 3 + strlen(slot));
 				} else {
-					val = malloc(3 + strlen(slot));
+					val = gf_malloc(3 + strlen(slot));
 					val[0] = 0;
 				}
 				strcat(val, "'");
 				strcat(val, slotval);
 				strcat(val, "'");
-				free(slot);
+				gf_free(slot);
 			}
 		}
 		if (val) {
 			gf_cfg_set_key(cfg, section, szID, val);
-			free(val);
+			gf_free(val);
 		}
 	}
-	free(section);
+	gf_free(section);
 }
 
 

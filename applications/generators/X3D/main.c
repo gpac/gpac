@@ -126,7 +126,7 @@ u32 GetNextToken(char *token, char *sep)
 
 X3DField *BlankField()
 {
-	X3DField *n = malloc(sizeof(X3DField));
+	X3DField *n = gf_malloc(sizeof(X3DField));
 	memset(n, 0, sizeof(X3DField));
 	return n;
 }
@@ -134,7 +134,7 @@ X3DField *BlankField()
 
 X3DNode *BlankNode()
 {
-	X3DNode *n = malloc(sizeof(X3DNode));
+	X3DNode *n = gf_malloc(sizeof(X3DNode));
 	memset(n, 0, sizeof(X3DNode));
 	n->NDT = gf_list_new();
 	n->Fields = gf_list_new();
@@ -161,7 +161,7 @@ void CheckInTable(char *token, GF_List *NDTs)
 		p = gf_list_get(NDTs, i);
 		if (!strcmp(p, token)) return;
 	}
-	p = malloc(strlen(token)+1);
+	p = gf_malloc(strlen(token)+1);
 	strcpy(p, token);
 	gf_list_add(NDTs, p);
 }
@@ -565,7 +565,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 			}
 			//SFString
 			else if (!strcmp(bf->familly, "SFString")) {
-				fprintf(vrml_code, "\tp->%s.buffer = (char*) malloc(sizeof(char) * %d);\n", bf->name, strlen(bf->def)+1);
+				fprintf(vrml_code, "\tp->%s.buffer = (char*) gf_malloc(sizeof(char) * %d);\n", bf->name, strlen(bf->def)+1);
 				fprintf(vrml_code, "\tstrcpy(p->%s.buffer, \"%s\");\n", bf->name, bf->def);
 			}
 		
@@ -578,7 +578,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, " ,")) j++;
 				j+=1;
-				fprintf(vrml_code, "\tp->%s.vals = (SFFloat *)malloc(sizeof(SFFloat)*%d);\n", bf->name, j);
+				fprintf(vrml_code, "\tp->%s.vals = (SFFloat *)gf_malloc(sizeof(SFFloat)*%d);\n", bf->name, j);
 				fprintf(vrml_code, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -596,7 +596,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, " ,")) j++;
 				j+=1;
-				fprintf(vrml_code, "\tp->%s.vals = (SFFloat*)malloc(sizeof(SFFloat)*%d);\n", bf->name, j);
+				fprintf(vrml_code, "\tp->%s.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*%d);\n", bf->name, j);
 				fprintf(vrml_code, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -614,7 +614,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(vrml_code, "\tp->%s.vals = (SFVec2f*) malloc(sizeof(SFVec2f)*%d);\n", bf->name, j);
+				fprintf(vrml_code, "\tp->%s.vals = (SFVec2f*) gf_malloc(sizeof(SFVec2f)*%d);\n", bf->name, j);
 				fprintf(vrml_code, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -639,7 +639,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(vrml_code, "\tp->%s.vals = (SFVec2f*)malloc(sizeof(SFVec2f)*%d);\n", bf->name, j);
+				fprintf(vrml_code, "\tp->%s.vals = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*%d);\n", bf->name, j);
 				fprintf(vrml_code, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -664,7 +664,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(vrml_code, "\tp->%s.vals = (SFVec3f*)malloc(sizeof(SFVec3f)*%d);\n", bf->name, j);
+				fprintf(vrml_code, "\tp->%s.vals = (SFVec3f*)gf_malloc(sizeof(SFVec3f)*%d);\n", bf->name, j);
 				fprintf(vrml_code, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -692,7 +692,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(vrml_code, "\tp->%s.vals = (SFVec2f*)malloc(sizeof(SFVec3f)*%d);\n", bf->name, j);
+				fprintf(vrml_code, "\tp->%s.vals = (SFVec2f*)gf_malloc(sizeof(SFVec3f)*%d);\n", bf->name, j);
 				fprintf(vrml_code, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -720,7 +720,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(vrml_code, "\tp->%s.vals = (GF_Vec4*)malloc(sizeof(GF_Vec4)*%d);\n", bf->name, j);
+				fprintf(vrml_code, "\tp->%s.vals = (GF_Vec4*)gf_malloc(sizeof(GF_Vec4)*%d);\n", bf->name, j);
 				fprintf(vrml_code, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -751,7 +751,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(vrml_code, "\tp->%s.vals = (SFInt32*)malloc(sizeof(SFInt32)*%d);\n", bf->name, j);
+				fprintf(vrml_code, "\tp->%s.vals = (SFInt32*)gf_malloc(sizeof(SFInt32)*%d);\n", bf->name, j);
 				fprintf(vrml_code, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -772,7 +772,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(vrml_code, "\tp->%s.vals = (SFColor*)malloc(sizeof(SFColor)*%d);\n", bf->name, j);
+				fprintf(vrml_code, "\tp->%s.vals = (SFColor*)gf_malloc(sizeof(SFColor)*%d);\n", bf->name, j);
 				fprintf(vrml_code, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -797,7 +797,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(vrml_code, "\tp->%s.vals = (char**)malloc(sizeof(SFString)*%d);\n", bf->name, j);
+				fprintf(vrml_code, "\tp->%s.vals = (char**)gf_malloc(sizeof(SFString)*%d);\n", bf->name, j);
 				fprintf(vrml_code, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -807,7 +807,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 					store = CurrentLine;
 					CurrentLine = token;
 					GetNextToken(tok, " \"");
-					fprintf(vrml_code, "\tp->%s.vals[%d] = (char*)malloc(sizeof(char) * %d);\n", bf->name, j, strlen(tok)+1);
+					fprintf(vrml_code, "\tp->%s.vals[%d] = (char*)gf_malloc(sizeof(char) * %d);\n", bf->name, j, strlen(tok)+1);
 					fprintf(vrml_code, "\tstrcpy(p->%s.vals[%d], \"%s\");\n", bf->name, j, tok);
 					j+=1;
 					CurrentLine = store;
@@ -819,7 +819,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(vrml_code, "\tp->%s.vals = (SFTime*)malloc(sizeof(SFTime)*%d);\n", bf->name, j);
+				fprintf(vrml_code, "\tp->%s.vals = (SFTime*)gf_malloc(sizeof(SFTime)*%d);\n", bf->name, j);
 				fprintf(vrml_code, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -1024,7 +1024,7 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs)
 
 					//update the NDT list
 					CheckInTable(token, NDTs);
-					p = malloc(strlen(token)+1);
+					p = gf_malloc(strlen(token)+1);
 					strcpy(p, token);
 					gf_list_add(n->NDT, p);
 				}
@@ -1104,7 +1104,7 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs)
 					case 'a':
 						printf("Corrupted X3D template file (quantization/animation not allowed)\n");
 						gf_list_del_item(n->Fields, f);
-						free(f);
+						gf_free(f);
 						return;
 					default:
 						break;
@@ -1113,7 +1113,7 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs)
 				/*we ignore these*/
 				if (!stricmp(f->name, "bboxCenter") || !stricmp(f->name, "bboxSize")) {
 					gf_list_del_item(n->Fields, f);
-					free(f);
+					gf_free(f);
 				}
 			}
 		}
@@ -1244,7 +1244,7 @@ int main (int argc, char **argv)
 	//free NDTs
 	while (gf_list_count(NDTs)) {
 		char *tmp = gf_list_get(NDTs, 0);
-		free(tmp);
+		gf_free(tmp);
 		gf_list_rem(NDTs, 0);
 	}
 	gf_list_del(NDTs);
@@ -1258,17 +1258,17 @@ int main (int argc, char **argv)
 		gf_list_rem(XNodes, 0);
 		while (gf_list_count(n->NDT)) {
 			char *tmp = gf_list_get(n->NDT, 0);
-			free(tmp);
+			gf_free(tmp);
 			gf_list_rem(n->NDT, 0);
 		}
 		gf_list_del(n->NDT);
 		while (gf_list_count(n->Fields)) {
 			bf = gf_list_get(n->Fields, 0);
-			free(bf);
+			gf_free(bf);
 			gf_list_rem(n->Fields, 0);
 		}
 		gf_list_del(n->Fields);
-		free(n);
+		gf_free(n);
 	}
 	gf_list_del(XNodes);
 

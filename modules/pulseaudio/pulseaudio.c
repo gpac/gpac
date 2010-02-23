@@ -269,7 +269,7 @@ NewPulseAudioOutput ()
   GF_SAFEALLOC (driv, GF_AudioOutput);
   if (!driv)
     {
-      free (ctx);
+      gf_free(ctx);
       return NULL;
     }
   driv->opaque = ctx;
@@ -295,7 +295,7 @@ DeletePulseAudioOutput (void *ifce)
   GF_AudioOutput *dr = (GF_AudioOutput *) ifce;
   free_pulseaudio_resources (dr);
   if (dr != NULL)
-    free (dr);
+    gf_free(dr);
 }
 
 

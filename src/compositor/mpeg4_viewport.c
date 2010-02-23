@@ -113,7 +113,7 @@ static void DestroyViewStack(GF_Node *node)
 	PreDestroyBindable(node, st->reg_stacks);
 	gf_list_del(st->reg_stacks);
 	VPCHANGED(gf_sc_get_compositor(node));
-	free(st);
+	gf_free(st);
 }
 
 static void viewport_set_bind(GF_Node *node, GF_Route *route)

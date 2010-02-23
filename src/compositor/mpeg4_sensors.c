@@ -82,7 +82,7 @@ static void TraverseAnchor(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		mpeg4_sensor_deleted(node, &st->hdl);
 		gf_sc_check_focus_upon_destroy(node);
-		free(st);
+		gf_free(st);
 		return;
 	}
 
@@ -243,7 +243,7 @@ static void DestroyDiscSensor(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		DiscSensorStack *st = (DiscSensorStack *) gf_node_get_private(node);
 		mpeg4_sensor_deleted(node, &st->hdl);
-		free(st);
+		gf_free(st);
 	}
 }
 
@@ -372,7 +372,7 @@ static void DestroyPlaneSensor2D(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		PS2DStack *st = (PS2DStack *) gf_node_get_private(node);
 		mpeg4_sensor_deleted(node, &st->hdl);
-		free(st);
+		gf_free(st);
 	}
 }
 
@@ -509,7 +509,7 @@ static void DestroyProximitySensor2D(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		Prox2DStack *st = (Prox2DStack *) gf_node_get_private(node);
 		mpeg4_sensor_deleted(node, &st->hdl);
-		free(st);
+		gf_free(st);
 	}
 }
 
@@ -592,7 +592,7 @@ static void DestroyTouchSensor(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		TouchSensorStack *st = (TouchSensorStack *) gf_node_get_private(node);
 		mpeg4_sensor_deleted(node, &st->hdl);
-		free(st);
+		gf_free(st);
 	}
 }
 
@@ -759,7 +759,7 @@ static void DestroyPlaneSensor(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		PSStack *st = (PSStack *) gf_node_get_private(node);
 		mpeg4_sensor_deleted(node, &st->hdl);
-		free(st);
+		gf_free(st);
 	}
 }
 
@@ -893,7 +893,7 @@ static void DestroyCylinderSensor(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		CylinderSensorStack *st = (CylinderSensorStack *) gf_node_get_private(node);
 		mpeg4_sensor_deleted(node, &st->hdl);
-		free(st);
+		gf_free(st);
 	}
 }
 
@@ -1071,7 +1071,7 @@ static void DestroySphereSensor(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		SphereSensorStack *st = (SphereSensorStack *) gf_node_get_private(node);
 		mpeg4_sensor_deleted(node, &st->hdl);
-		free(st);
+		gf_free(st);
 	}
 }
 
@@ -1349,7 +1349,7 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 	M_EnvironmentTest *envtest = (M_EnvironmentTest *)node;
 	GF_Compositor *compositor = (GF_Compositor *)gf_node_get_private(node);
 
-	if (envtest->parameterValue.buffer) free(envtest->parameterValue.buffer);
+	if (envtest->parameterValue.buffer) gf_free(envtest->parameterValue.buffer);
 	envtest->parameterValue.buffer=NULL;
 
 	smaller = larger = equal = 0;
@@ -1449,7 +1449,7 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 		envtest->valueLarger=1;
 		gf_node_event_out_str(node, "valueLarger");
 	}
-	envtest->parameterValue.buffer = strdup(par_value);
+	envtest->parameterValue.buffer = gf_strdup(par_value);
 	gf_node_event_out_str(node, "parameterValue");
 }
 

@@ -184,7 +184,7 @@ static const char *BMP_GetCodecName(GF_BaseDecoder *dec)
 Bool NewBMPDec(GF_BaseDecoder *ifcd)
 {
 	IMGDec *wrap = (IMGDec *) ifcd->privateStack;
-	BMPDec *dec = (BMPDec *) malloc(sizeof(BMPDec));
+	BMPDec *dec = (BMPDec *) gf_malloc(sizeof(BMPDec));
 	memset(dec, 0, sizeof(BMPDec));
 	wrap->opaque = dec;
 	wrap->type = DEC_BMP;
@@ -202,5 +202,5 @@ Bool NewBMPDec(GF_BaseDecoder *ifcd)
 void DeleteBMPDec(GF_BaseDecoder *ifcg)
 {
 	BMPCTX();
-	free(ctx);
+	gf_free(ctx);
 }

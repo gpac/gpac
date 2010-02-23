@@ -53,31 +53,31 @@ typedef struct
 
 #ifdef TRACK_OPAQUE_REGIONS
 /*inits structure - called as a constructor*/
-#define ra_init(ra) { (ra)->count = 0; (ra)->alloc = RA_DEFAULT_STEP; (ra)->list = (GF_IRect*)malloc(sizeof(GF_IRect)*(ra)->alloc); (ra)->opaque_node_index = NULL;}
+#define ra_init(ra) { (ra)->count = 0; (ra)->alloc = RA_DEFAULT_STEP; (ra)->list = (GF_IRect*)gf_malloc(sizeof(GF_IRect)*(ra)->alloc); (ra)->opaque_node_index = NULL;}
 /*deletes structure - called as a destructor*/
-#define ra_del(ra) { free((ra)->list); if ((ra)->opaque_node_index) { free((ra)->opaque_node_index); (ra)->opaque_node_index = NULL; } }
+#define ra_del(ra) { gf_free((ra)->list); if ((ra)->opaque_node_index) { gf_free((ra)->opaque_node_index); (ra)->opaque_node_index = NULL; } }
 
 
 /*adds rect to list - expand if needed*/
 #define ra_add(ra, rc) {	\
 	if ((ra)->count==(ra)->alloc) { \
 		(ra)->alloc += RA_DEFAULT_STEP; \
-		(ra)->list = (GF_IRect*)realloc((ra)->list, sizeof(GF_IRect) * (ra)->alloc); \
-		if ( (ra)->opaque_node_index) (ra)->opaque_node_index = (u32*)realloc((ra)->opaque_node_index, sizeof(u32) * (ra)->alloc); \
+		(ra)->list = (GF_IRect*)gf_realloc((ra)->list, sizeof(GF_IRect) * (ra)->alloc); \
+		if ( (ra)->opaque_node_index) (ra)->opaque_node_index = (u32*)gf_realloc((ra)->opaque_node_index, sizeof(u32) * (ra)->alloc); \
 	}	\
 	(ra)->list[(ra)->count] = *rc; (ra)->count++;	}
 
 #else
-#define ra_init(ra) { (ra)->count = 0; (ra)->alloc = RA_DEFAULT_STEP; (ra)->list = (GF_IRect*)malloc(sizeof(GF_IRect)*(ra)->alloc);}
+#define ra_init(ra) { (ra)->count = 0; (ra)->alloc = RA_DEFAULT_STEP; (ra)->list = (GF_IRect*)gf_malloc(sizeof(GF_IRect)*(ra)->alloc);}
 /*deletes structure - called as a destructor*/
-#define ra_del(ra) { free((ra)->list); }
+#define ra_del(ra) { gf_free((ra)->list); }
 
 
 /*adds rect to list - expand if needed*/
 #define ra_add(ra, rc) {	\
 	if ((ra)->count==(ra)->alloc) { \
 		(ra)->alloc += RA_DEFAULT_STEP; \
-		(ra)->list = (GF_IRect*)realloc((ra)->list, sizeof(GF_IRect) * (ra)->alloc); \
+		(ra)->list = (GF_IRect*)gf_realloc((ra)->list, sizeof(GF_IRect) * (ra)->alloc); \
 	}	\
 	(ra)->list[(ra)->count] = *rc; (ra)->count++;	}
 #endif

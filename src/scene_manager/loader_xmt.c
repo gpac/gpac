@@ -203,7 +203,7 @@ static void xmt_new_od_link(GF_XMTParser *parser, GF_ObjectDescriptor *od, char 
 			|| (odl->desc_name && name && !strcmp(odl->desc_name, name))
 		) {
 			if (!odl->od) odl->od = od;
-			if (!odl->desc_name && name) odl->desc_name = strdup(name);
+			if (!odl->desc_name && name) odl->desc_name = gf_strdup(name);
 			if (!od->objectDescriptorID) {
 				od->objectDescriptorID = ID;
 			} else if (ID && (od->objectDescriptorID != ID)) {
@@ -215,9 +215,9 @@ static void xmt_new_od_link(GF_XMTParser *parser, GF_ObjectDescriptor *od, char 
 				if (l2->od == od) {
 					odl->ID = od->objectDescriptorID = odl->od->objectDescriptorID;
 					gf_list_rem(parser->od_links, j);
-					if (l2->desc_name) free(l2->desc_name);
+					if (l2->desc_name) gf_free(l2->desc_name);
 					gf_list_del(l2->mf_urls);
-					free(l2);
+					gf_free(l2);
 					break;
 				}
 			}
@@ -228,7 +228,7 @@ static void xmt_new_od_link(GF_XMTParser *parser, GF_ObjectDescriptor *od, char 
 	odl->mf_urls = gf_list_new();
 	odl->od = od;
 	if (ID) od->objectDescriptorID = ID;
-	if (name) odl->desc_name = strdup(name);
+	if (name) odl->desc_name = gf_strdup(name);
 	gf_list_add(parser->od_links, odl);
 }
 
@@ -273,7 +273,7 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 	odl->mf_urls = gf_list_new();
 	if (url) gf_list_add(odl->mf_urls, url);
 	if (ID) odl->ID = ID;
-	else odl->desc_name = strdup(name);
+	else odl->desc_name = gf_strdup(name);
 	gf_list_add(parser->od_links, odl);
 }
 static void xmt_new_esd_link(GF_XMTParser *parser, GF_ESD *esd, char *desc_name, u32 binID)
@@ -303,7 +303,7 @@ static void xmt_new_esd_link(GF_XMTParser *parser, GF_ESD *esd, char *desc_name,
 			esdl->ESID = esdl->esd->ESID = binID;
 		}
 		if (desc_name && !esdl->desc_name) {
-			esdl->desc_name = strdup(desc_name);
+			esdl->desc_name = gf_strdup(desc_name);
 			if (!esdl->ESID && !strnicmp(desc_name, "es", 2)) esdl->ESID = atoi(&desc_name[2]);
 		}
 		return;
@@ -313,7 +313,7 @@ static void xmt_new_esd_link(GF_XMTParser *parser, GF_ESD *esd, char *desc_name,
 	esd->ESID = esdl->ESID = binID;
 	if (desc_name) {
 		if (!esdl->ESID && !strnicmp(desc_name, "es", 2)) esdl->ESID = atoi(&desc_name[2]);
-		esdl->desc_name = strdup(desc_name);
+		esdl->desc_name = gf_strdup(desc_name);
 	}
 	if (!esd->ESID) {
 		esd->ESID = 1;
@@ -333,9 +333,9 @@ static Bool xmt_set_depend_id(GF_XMTParser *parser, GF_ESD *desc, char *es_name,
 	while ((esdl = (XMT_ESDLink *)gf_list_enum(parser->esd_links, &i))) {
 		if (esdl->esd == desc) {
 			if (is_ocr_dep)
-				esdl->OCR_Name = strdup(es_name);
+				esdl->OCR_Name = gf_strdup(es_name);
 			else
-				esdl->Depends_Name = strdup(es_name);
+				esdl->Depends_Name = gf_strdup(es_name);
 			return 1;
 		}
 	}
@@ -395,11 +395,11 @@ static u32 xmt_locate_stream(GF_XMTParser *parser, char *stream_name)
 		}
 	}
 	/*create a temp one*/
-	esdl = (XMT_ESDLink *)malloc(sizeof(XMT_ESDLink));
+	esdl = (XMT_ESDLink *)gf_malloc(sizeof(XMT_ESDLink));
 	memset(esdl, 0, sizeof(XMT_ESDLink));
 	esdl->ESID = (u16) ( ((u32) esdl) >> 16) | ( ((u32)esdl) & 0x0000FFFF);
 	if (!strnicmp(stream_name, "es", 2)) esdl->ESID = atoi(&stream_name[2]);
-	esdl->desc_name = strdup(stream_name);
+	esdl->desc_name = gf_strdup(stream_name);
 	gf_list_add(parser->esd_links, esdl);
 	return esdl->ESID;
 }
@@ -429,8 +429,8 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 			xmt_report(parser, GF_BAD_PARAM, "Stream %s ID %d has no associated ES descriptor\n", esdl->desc_name ? esdl->desc_name : "", esdl->ESID);
 			i--;
 			gf_list_rem(parser->esd_links, i);
-			if (esdl->desc_name) free(esdl->desc_name);
-			free(esdl);
+			if (esdl->desc_name) gf_free(esdl->desc_name);
+			gf_free(esdl);
 			continue;
 		}
 		if (esdl->ESID) esdl->esd->ESID = esdl->ESID;
@@ -470,7 +470,7 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 		if (!esdl->esd->OCRESID) {
 			xmt_report(parser, GF_OK, "WARNING: Could not find clock reference %s for ES %s - forcing self-synchronization", esdl->OCR_Name, esdl->desc_name);
 		}
-		free(esdl->OCR_Name);
+		gf_free(esdl->OCR_Name);
 		esdl->OCR_Name = NULL;
 	}
 
@@ -503,15 +503,15 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 		if (!esdl->esd->dependsOnESID) {
 			xmt_report(parser, GF_OK, "WARNING: Could not find stream dependance %s for ES %s - forcing self-synchronization", esdl->Depends_Name, esdl->desc_name);
 		}
-		free(esdl->Depends_Name);
+		gf_free(esdl->Depends_Name);
 		esdl->Depends_Name = NULL;
 	}
 
 	while (gf_list_count(parser->esd_links)) {
 		esdl = (XMT_ESDLink *)gf_list_get(parser->esd_links, 0);
 		gf_list_rem(parser->esd_links, 0);
-		if (esdl->desc_name) free(esdl->desc_name);
-		free(esdl);
+		if (esdl->desc_name) gf_free(esdl->desc_name);
+		gf_free(esdl);
 	}
 
 	i=0;
@@ -545,9 +545,9 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 				}
 				j--;
 				gf_list_rem(parser->od_links, j);
-				if (l2->desc_name) free(l2->desc_name);
+				if (l2->desc_name) gf_free(l2->desc_name);
 				gf_list_del(l2->mf_urls);
-				free(l2);
+				gf_free(l2);
 			}
 		}
 	}
@@ -574,10 +574,10 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 					if (url->url) seg = strstr(url->url, "#");
 					if (seg) {
 						sprintf(szURL, "od:%d#%s", l->od->objectDescriptorID, seg+1);
-						free(url->url);
-						url->url = strdup(szURL);
+						gf_free(url->url);
+						url->url = gf_strdup(szURL);
 					} else {
-						if (url->url) free(url->url);
+						if (url->url) gf_free(url->url);
 						url->url = NULL;
 						url->OD_ID = l->od->objectDescriptorID;
 					}
@@ -585,9 +585,9 @@ static void xmt_resolve_od_links(GF_XMTParser *parser)
 			}
 		}
 
-		if (l->desc_name) free(l->desc_name);
+		if (l->desc_name) gf_free(l->desc_name);
 		gf_list_del(l->mf_urls);
-		free(l);
+		gf_free(l);
 		gf_list_rem(parser->od_links, 0);
 	}
 }
@@ -670,7 +670,7 @@ static GF_Node *xmt_find_node(GF_XMTParser *parser, char *ID)
 		}
 		if (!p) {
 			xmt_report(parser, GF_BAD_PARAM, "%s: not a valid/supported proto", node_class);
-			free(node_class);
+			gf_free(node_class);
 			return NULL;
 		}
 		n = gf_sg_proto_create_instance(parser->load->scene_graph, p);
@@ -678,7 +678,7 @@ static GF_Node *xmt_find_node(GF_XMTParser *parser, char *ID)
 		tag = xmt_get_node_tag(parser, node_class);
 		n = gf_node_new(parser->load->scene_graph, tag);
 	}
-	free(node_class);
+	gf_free(node_class);
 	if (n) {
 		u32 nID = xmt_get_node_id(parser, ID);
 		gf_node_set_id(n, nID, ID);
@@ -746,9 +746,9 @@ static u32 xmt_parse_string(GF_XMTParser *parser, const char *name, SFString *va
 	/*SF string, no inspection*/
 	if (!is_mf) {
 		len = strlen(str);
-		if (val->buffer) free(val->buffer);
+		if (val->buffer) gf_free(val->buffer);
 		val->buffer = NULL;
-		if (len) val->buffer = strdup(str);
+		if (len) val->buffer = gf_strdup(str);
 		return len+1;
 	}
 
@@ -767,15 +767,15 @@ static u32 xmt_parse_string(GF_XMTParser *parser, const char *name, SFString *va
 	/*handle as a single field (old GPAC XMT & any unknown cases...*/
 	else {
 		len = strlen(str);
-		if (val->buffer) free(val->buffer);
+		if (val->buffer) gf_free(val->buffer);
 		val->buffer = NULL;
-		if (len) val->buffer = strdup(str);
+		if (len) val->buffer = gf_strdup(str);
 		return len;
 	}
 	k = 0;
 	i += strlen(sep);
 
-	value = strdup(str);
+	value = gf_strdup(str);
 
 	if (strncmp(&str[i], sep, strlen(sep))) {
 
@@ -793,10 +793,10 @@ static u32 xmt_parse_string(GF_XMTParser *parser, const char *name, SFString *va
 	value[k] = 0;
 	len = strlen(sep) + i;
 	
-	if (val->buffer) free(val->buffer);
+	if (val->buffer) gf_free(val->buffer);
 	val->buffer = NULL;
-	if (strlen(value)) val->buffer = strdup(value);
-	free(value);
+	if (strlen(value)) val->buffer = gf_strdup(value);
+	gf_free(value);
 	return len;
 }
 
@@ -813,7 +813,7 @@ static u32 xmt_parse_url(GF_XMTParser *parser, const char *name, MFURL *val, GF_
 
 	assert(val->count);
 	idx = val->count - 1;
-	if (val->vals[idx].url) free(val->vals[idx].url);
+	if (val->vals[idx].url) gf_free(val->vals[idx].url);
 	val->vals[idx].url = sfstr.buffer;
 	val->vals[idx].OD_ID = 0;
 	/*empty*/
@@ -845,7 +845,7 @@ static u32 xmt_parse_script(GF_XMTParser *parser, const char *name, SFScript *va
 	res = xmt_parse_string(parser, name, &sfstr, is_mf, a_value);
 	if (parser->last_error) return res;
 
-	if (val->script_text) free(val->script_text);
+	if (val->script_text) gf_free(val->script_text);
 	val->script_text = (unsigned char*)sfstr.buffer;
 	return res;
 }
@@ -932,8 +932,8 @@ static u32 xmt_parse_sf_field(GF_XMTParser *parser, GF_FieldInfo *info, GF_Node 
 		if (parser->last_error) return res;
 		img->numComponents = v;
 		size = img->width * img->height * img->numComponents;
-		if (img->pixels) free(img->pixels);
-		img->pixels = (unsigned char*)malloc(sizeof(char) * size);
+		if (img->pixels) gf_free(img->pixels);
+		img->pixels = (unsigned char*)gf_malloc(sizeof(char) * size);
 		a_value += res;
 		res = 0;
 		for (k=0; k<size; k++) {
@@ -1079,7 +1079,7 @@ static void xmt_resolve_routes(GF_XMTParser *parser)
 			if (!com->RouteID) {
 				xmt_report(parser, GF_BAD_PARAM, "Cannot resolve GF_Route DEF %s", com->unres_name);
 			}
-			free(com->unres_name);
+			gf_free(com->unres_name);
 			com->unres_name = NULL;
 			com->unresolved = 0;
 			break;
@@ -1150,7 +1150,7 @@ static void xmt_parse_route(GF_XMTParser *parser, const GF_XMLAttribute *attribu
 		/*for insert command*/
 		if (rID) {
 			com->RouteID = rID;
-			com->def_name = strdup(ID);
+			com->def_name = gf_strdup(ID);
 			/*whenever not inserting in graph, keep track of max defined ID*/
 			gf_sg_set_max_defined_route_id(parser->load->scene_graph, rID);
 			if (rID>parser->load->ctx->max_route_id) parser->load->ctx->max_route_id = rID;
@@ -1951,7 +1951,7 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 						else if (!parser->base_od_id && (esd->decoderConfig->streamType==GF_STREAM_OD)) parser->base_od_id = esd->ESID;
 
 						name = xmt_get_es_name(parser, esd->ESID);
-						if (name && !sc->name) sc->name = strdup(name);
+						if (name && !sc->name) sc->name = gf_strdup(name);
 					}
 					break;
 				}
@@ -2270,13 +2270,13 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 		else if (routeName) {
 			u32 rID = xmt_get_route(parser, routeName, 0);
 			if (!rID) {
-				parser->command->unres_name = strdup(routeName);
+				parser->command->unres_name = gf_strdup(routeName);
 				parser->command->unresolved = 1;
 				gf_list_add(parser->unresolved_routes, parser->command);
 			} else {
 				parser->command->RouteID = rID;
 				/*for bt<->xmt conversions*/
-				parser->command->def_name = strdup(routeName);
+				parser->command->def_name = gf_strdup(routeName);
 			}
 		}
 		else if (tag == GF_SG_PROTO_DELETE) {
@@ -2290,7 +2290,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 
 				if (!p) xmt_report(parser, GF_OK, "Warning: Cannot locate proto %s - skipping", fieldValue);
 				else {
-					parser->command->del_proto_list = (u32*)realloc(parser->command->del_proto_list, sizeof(u32) * (parser->command->del_proto_list_size+1));
+					parser->command->del_proto_list = (u32*)gf_realloc(parser->command->del_proto_list, sizeof(u32) * (parser->command->del_proto_list_size+1));
 					parser->command->del_proto_list[parser->command->del_proto_list_size] = p->ID;
 					parser->command->del_proto_list_size++;
 				}
@@ -2362,7 +2362,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 				es_id = xmt_get_esd_id(parser, es_ids);
 				if (!es_id) xmt_report(parser, GF_OK, "Warning: Cannot find ES Descriptor %s - skipping", es_ids);
 				else {
-					esdR->ES_ID = (u16*)realloc(esdR->ES_ID, sizeof(u16) * (esdR->NbESDs+1));
+					esdR->ES_ID = (u16*)gf_realloc(esdR->ES_ID, sizeof(u16) * (esdR->NbESDs+1));
 					esdR->ES_ID[esdR->NbESDs] = es_id;
 					esdR->NbESDs++;
 				}
@@ -2381,7 +2381,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 				od_id = xmt_get_od_id(parser, od_ids);
 				if (!od_id) xmt_report(parser, GF_OK, "Warning: Cannot find Object Descriptor %s - skipping", od_ids);
 				else {
-					odR->OD_ID = (u16*)realloc(odR->OD_ID, sizeof(u16) * (odR->NbODs+1));
+					odR->OD_ID = (u16*)gf_realloc(odR->OD_ID, sizeof(u16) * (odR->NbODs+1));
 					odR->OD_ID[odR->NbODs] = od_id;
 					odR->NbODs++;
 				}
@@ -2665,7 +2665,7 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 		/*SF/MFNode proto field, just pop node stack*/
 		else if (!top->node && !strcmp(name, "field")) {
 			gf_list_rem_last(parser->nodes);
-			free(top);
+			gf_free(top);
 		} else if (top->node && top->node->sgprivate->tag == TAG_ProtoNode) {
 			if (!strcmp(name, "node") || !strcmp(name, "nodes")) {
 				top->container_field.far_ptr = NULL;
@@ -2674,14 +2674,14 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 			} else if (!strcmp(name, "ProtoInstance")) {
 				gf_list_rem_last(parser->nodes);
 				node = top->node;
-				free(top);
+				gf_free(top);
 				goto attach_node;
 			}
 		}
 	} else if (top->node->sgprivate->tag==tag) {
 		node = top->node;
 		gf_list_rem_last(parser->nodes);
-		free(top);
+		gf_free(top);
 
 attach_node:
 		top = (XMTNodeStack*)gf_list_last(parser->nodes);
@@ -2811,7 +2811,7 @@ attach_node:
 		}
 	} else if (parser->current_node_tag==tag) {
 		gf_list_rem_last(parser->nodes);
-		free(top);
+		gf_free(top);
 	} else {
 		xmt_report(parser, GF_OK, "Warning: closing element %s doesn't match created node %s", name, gf_node_get_class_name(top->node) );
 	}
@@ -2843,7 +2843,7 @@ static void xmt_text_content(void *sax_cbck, const char *text_content, Bool is_c
 			M_Script *sc = (M_Script *) node;
 			gf_sg_vrml_mf_reset(& sc->url, GF_SG_VRML_MFSCRIPT);
 			gf_sg_vrml_mf_append(& sc->url, GF_SG_VRML_MFSCRIPT, (void **) &sc_f);
-			sc->url.vals[0].script_text = (unsigned char*)strdup(text_content);
+			sc->url.vals[0].script_text = (unsigned char*)gf_strdup(text_content);
 		}
 		break;
 	default:
@@ -2979,9 +2979,9 @@ GF_Err gf_sm_load_done_xmt(GF_SceneLoader *load)
 		gf_list_rem_last(parser->nodes);
 		gf_node_register(st->node, NULL);
 		gf_node_unregister(st->node, NULL);
-		free(st);
+		gf_free(st);
 	}
-	if (parser->x3d_root) free(parser->x3d_root);
+	if (parser->x3d_root) gf_free(parser->x3d_root);
 	gf_list_del(parser->nodes);
 	gf_list_del(parser->descriptors);
 	gf_list_del(parser->def_nodes);
@@ -2993,9 +2993,15 @@ GF_Err gf_sm_load_done_xmt(GF_SceneLoader *load)
 	gf_list_del(parser->esd_links);
 	gf_xml_sax_del(parser->sax_parser);
 	if (parser->script_to_load) gf_list_del(parser->script_to_load);
-	free(parser);
+	gf_free(parser);
 	load->loader_priv = NULL;
 	return GF_OK;
+}
+
+void gf_sm_load_suspend_xmt(GF_SceneLoader *load, Bool suspend)
+{
+	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
+	gf_xml_sax_suspend(parser->sax_parser, suspend);
 }
 
 

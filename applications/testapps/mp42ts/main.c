@@ -107,8 +107,8 @@ void m2ts_mux_table_update(M2TS_Mux_Stream *stream, u8 table_id, u16 table_id_ex
 			M2TS_Mux_Section *sec = table->section;
 			while (sec) {
 				M2TS_Mux_Section *sec2 = sec->next;
-				free(sec->data);
-				free(sec);
+				gf_free(sec->data);
+				gf_free(sec);
 				sec = sec2;
 			}
 			table->version_number = (table->version_number + 1)%0x1F;
@@ -247,8 +247,8 @@ void m2ts_mux_table_update_mpeg4(M2TS_Mux_Stream *stream, u8 table_id, u16 table
 			M2TS_Mux_Section *sec = table->section;
 			while (sec) {
 				M2TS_Mux_Section *sec2 = sec->next;
-				free(sec->data);
-				free(sec);
+				gf_free(sec->data);
+				gf_free(sec);
 				sec = sec2;
 			}
 			table->version_number = (table->version_number + 1)%0x1F;
@@ -332,7 +332,7 @@ void m2ts_mux_table_update_mpeg4(M2TS_Mux_Stream *stream, u8 table_id, u16 table
 
 		/*write sl header*/
 		gf_bs_write_data(bs, slhdr, slhdr_size);
-		free(slhdr);
+		gf_free(slhdr);
 		/*write sl data*/
 		gf_bs_write_data(bs, table_payload + offset, sl_size);
 		offset += sl_size;
@@ -535,7 +535,7 @@ Bool m2ts_stream_process_pat(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 		gf_bs_del(bs);
 		m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_PAT, muxer->ts_id, payload, size, 1, 0, 0);
 		stream->table_needs_update = 0;
-		free(payload);
+		gf_free(payload);
 	}
 	return 1;
 }
@@ -581,7 +581,7 @@ Bool m2ts_stream_process_pmt(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 			gf_bs_write_int(bs,	2, 8);  // IOD_label
 			
 			gf_bs_write_data(bs, iod_data, iod_data_len);
-			free(iod_data);
+			gf_free(iod_data);
 		}	
 		es = stream->program->streams;
 		while (es) {
@@ -607,7 +607,7 @@ Bool m2ts_stream_process_pmt(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 
 		m2ts_mux_table_update(stream, GF_M2TS_TABLE_ID_PMT, stream->program->number, payload, length, 1, 0, 0);
 		stream->table_needs_update = 0;
-		free(payload);
+		gf_free(payload);
 	}
 	return 1;
 }
@@ -627,7 +627,7 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 	if (stream->ifce->caps & GF_ESI_AU_PULL_CAP) {
 		if (stream->pck.data_len) {
 			/*discard packet data if we use SL over PES*/
-			if (stream->mpeg2_stream_type==GF_M2TS_SYSTEMS_MPEG4_PES) free(stream->pck.data);
+			if (stream->mpeg2_stream_type==GF_M2TS_SYSTEMS_MPEG4_PES) gf_free(stream->pck.data);
 			/*release data*/
 			stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_RELEASE, NULL);
 		}
@@ -647,8 +647,8 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 			assert(stream->pck_first);
 			pck = stream->pck_first;
 			stream->pck_first = pck->next;
-			free(pck->data);
-			free(pck);
+			gf_free(pck->data);
+			gf_free(pck);
 		}
 		stream->pck_offset = 0;
 		stream->pck.data_len = 0;
@@ -714,7 +714,7 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 
 		/*discard src data*/
 		if (!(stream->ifce->caps & GF_ESI_AU_PULL_CAP)) {
-			free(src_data);
+			gf_free(src_data);
 			stream->pck_first->data = stream->pck.data;
 			stream->pck_first->data_len = stream->pck.data_len;
 		}
@@ -912,7 +912,7 @@ GF_Err m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 		GF_SAFEALLOC(pck, M2TS_Packet);
 		esi_pck = (GF_ESIPacket *)param;
 		pck->data_len = esi_pck->data_len;
-		pck->data = malloc(sizeof(char)*pck->data_len);
+		pck->data = gf_malloc(sizeof(char)*pck->data_len);
 		memcpy(pck->data, esi_pck->data, pck->data_len);
 		pck->flags = esi_pck->flags;
 		pck->cts = esi_pck->cts;
@@ -1077,21 +1077,21 @@ void m2ts_mux_stream_del(M2TS_Mux_Stream *st)
 		M2TS_Mux_Table *tab = st->tables->next;
 		while (st->tables->section) {
 			M2TS_Mux_Section *sec = st->tables->section->next;
-			free(st->tables->section->data);
-			free(st->tables->section);
+			gf_free(st->tables->section->data);
+			gf_free(st->tables->section);
 			st->tables->section = sec;
 		}
-		free(st->tables);
+		gf_free(st->tables);
 		st->tables = tab;
 	}
 	while (st->pck_first) {
 		M2TS_Packet *pck = st->pck_first;
 		st->pck_first = pck->next;
-		free(pck->data);
-		free(pck);
+		gf_free(pck->data);
+		gf_free(pck);
 	}
 	if (st->mx) gf_mx_del(st->mx);
-	free(st);
+	gf_free(st);
 }
 
 void m2ts_mux_program_del(M2TS_Mux_Program *prog)
@@ -1102,7 +1102,7 @@ void m2ts_mux_program_del(M2TS_Mux_Program *prog)
 		prog->streams = st;
 	}
 	m2ts_mux_stream_del(prog->pmt);
-	free(prog);
+	gf_free(prog);
 }
 
 void m2ts_mux_del(M2TS_Mux *mux)
@@ -1113,7 +1113,7 @@ void m2ts_mux_del(M2TS_Mux *mux)
 		mux->programs = p;
 	}
 	m2ts_mux_stream_del(mux->pat);
-	free(mux);
+	gf_free(mux);
 }
 
 void m2ts_mux_update_config(M2TS_Mux *mux, Bool reset_time)
@@ -1344,7 +1344,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		}
 		return GF_OK;
 	case GF_ESI_INPUT_DESTROY:
-		free(priv);
+		gf_free(priv);
 		ifce->input_udta = NULL;
 		return GF_OK;
 	default:
@@ -1442,7 +1442,7 @@ static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	case GF_ESI_INPUT_DESTROY:
 		gf_rtp_depacketizer_del(rtp->depacketizer);
 		gf_rtp_del(rtp->rtp_ch);
-		free(rtp);
+		gf_free(rtp);
 		ifce->input_udta = NULL;
 		return GF_OK;
 	}
@@ -1608,14 +1608,14 @@ Bool open_program(M2TSProgram *prog, const char *src)
 		fseek(_sdp, 0, SEEK_END);
 		sdp_size = ftell(_sdp);
 		fseek(_sdp, 0, SEEK_SET);
-		sdp_buf = (char*)malloc(sizeof(char)*sdp_size);
+		sdp_buf = (char*)gf_malloc(sizeof(char)*sdp_size);
 		memset(sdp_buf, 0, sizeof(char)*sdp_size);
 		fread(sdp_buf, sdp_size, 1, _sdp);
 		fclose(_sdp);
 
 		sdp = gf_sdp_info_new();
 		e = gf_sdp_info_parse(sdp, sdp_buf, sdp_size);
-		free(sdp_buf);
+		gf_free(sdp_buf);
 		if (e) {
 			fprintf(stderr, "Error opening %s : %s\n", src, gf_error_to_string(e));
 			gf_sdp_info_del(sdp);
@@ -1693,10 +1693,10 @@ FILE *ts_file;
 				if (sep) {
 					port = atoi(sep+1);
 					sep[0]=0;
-					ts_out = strdup(arg);
+					ts_out = gf_strdup(arg);
 					sep[0]=':';
 				} else {
-					ts_out = strdup(arg+6);
+					ts_out = gf_strdup(arg+6);
 				}
 			} 
 			else if (!strnicmp(arg, "udp://", 6)) {
@@ -1705,7 +1705,7 @@ FILE *ts_file;
 				real_time=1;
 			} else {
 				output_type = 0;
-				ts_out = strdup(arg);
+				ts_out = gf_strdup(arg);
 			}
 		}
 	}
@@ -1854,7 +1854,7 @@ exit:
 	if (ts_file) fclose(ts_file);
 	if (ts_udp) gf_sk_del(ts_udp);
 	if (ts_rtp) gf_rtp_del(ts_rtp);
-	if (ts_out) free(ts_out);
+	if (ts_out) gf_free(ts_out);
 	m2ts_mux_del(muxer);
 	
 	for (i=0; i<nb_progs; i++) {

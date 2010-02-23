@@ -312,7 +312,7 @@ static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			}
 			*is_new_data = 1;
 			fseek(read->stream, 0, SEEK_SET);
-			read->data = (char*) malloc(sizeof(char) * (read->data_size + read->pad_bytes));
+			read->data = (char*) gf_malloc(sizeof(char) * (read->data_size + read->pad_bytes));
 			fread(read->data, sizeof(char) * read->data_size, 1, read->stream);
 			fseek(read->stream, 0, SEEK_SET);
 			if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
@@ -331,7 +331,7 @@ static GF_Err IMG_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 
 	if (read->ch == channel) {
 		if (!read->data) return GF_BAD_PARAM;
-		free(read->data);
+		gf_free(read->data);
 		read->data = NULL;
 		read->done = 1;
 		return GF_OK;
@@ -367,6 +367,6 @@ void DeleteLoaderInterface(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
 	IMGLoader *read = (IMGLoader *)plug->priv;
-	free(read);
-	free(plug);
+	gf_free(read);
+	gf_free(plug);
 }

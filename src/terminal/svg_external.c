@@ -41,14 +41,14 @@ char *gf_term_resolve_xlink(GF_Node *node, char *the_url)
 	GF_Scene *scene = gf_sg_get_private(gf_node_get_graph(node));
 	if (!scene) return NULL;
 
-	url = strdup(the_url);
+	url = gf_strdup(the_url);
 	/*apply XML:base*/
 	while (node) {
 		GF_FieldInfo info;
 		if (gf_node_get_attribute_by_tag(node, TAG_XML_ATT_base, 0, 0, &info)==GF_OK) {
 			char *new_url = gf_url_concatenate( ((XMLRI*)info.far_ptr)->string, url);
 			if (new_url) {
-				free(url);
+				gf_free(url);
 				url = new_url;
 			}
 		}
@@ -66,9 +66,9 @@ char *gf_term_resolve_xlink(GF_Node *node, char *the_url)
 //			the_url = gf_url_concatenate(is->root_od->net_service->url, url);
 			/*the root url of a document should be "." if not specified, so that the final URL resolve happens only once
 			at the service level*/
-			the_url = strdup(url);
+			the_url = gf_strdup(url);
 		}
-		free(url);
+		gf_free(url);
 		return the_url;
 	} 
 	return url;
@@ -106,7 +106,7 @@ GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 		const char *cache_dir = gf_cfg_get_key(scene->root_od->term->user->config, "General", "CacheDirectory");
 		e = gf_node_store_embedded_data(iri, cache_dir, "embedded_");
 		if (e) return e;
-		sfurl->url = strdup(iri->string);
+		sfurl->url = gf_strdup(iri->string);
 		return GF_OK;
 	}
 	sfurl->url = gf_term_resolve_xlink(node, iri->string);

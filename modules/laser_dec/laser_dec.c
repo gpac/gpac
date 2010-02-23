@@ -117,8 +117,8 @@ void DeleteLSRDec(GF_BaseDecoder *plug)
 	LSRPriv *priv = (LSRPriv *)plug->privateStack;
 	/*in case something went wrong*/
 	if (priv->codec) gf_laser_decoder_del(priv->codec);
-	free(priv);
-	free(plug);
+	gf_free(priv);
+	gf_free(plug);
 }
 
 GF_BaseDecoder *NewLSRDec()

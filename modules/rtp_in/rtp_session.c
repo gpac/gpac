@@ -234,7 +234,7 @@ RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 	if (!session_control) return NULL;
 
 	/*little fix: some servers don't understand DESCRIBE URL/trackID=, so remove the trackID...*/
-	szCtrl = strdup(session_control);
+	szCtrl = gf_strdup(session_control);
 	szExt = szCtrl ? strrchr(szCtrl, '.') : NULL;
 	if (szExt) {
 		szExt = strchr(szExt, '/');
@@ -244,7 +244,7 @@ RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 	}
 
 	rtsp = gf_rtsp_session_new(szCtrl, rtp->default_port);
-	free(szCtrl);
+	gf_free(szCtrl);
 
 	if (!rtsp) return NULL;
 
@@ -320,8 +320,8 @@ GF_Err RP_AddStream(RTPClient *rtp, RTPStream *stream, char *session_control)
 			ctrl = strstr(stream->control, service_name);
 			if (ctrl && (strlen(ctrl) != strlen(service_name)) ) {
 				ctrl += strlen(service_name) + 1;
-				service_name = strdup(ctrl);
-				free(stream->control);
+				service_name = gf_strdup(ctrl);
+				gf_free(stream->control);
 				stream->control = service_name;
 			}
 		}
@@ -334,7 +334,7 @@ GF_Err RP_AddStream(RTPClient *rtp, RTPStream *stream, char *session_control)
 	if (in_session) {
 		in_session->flags |= RTSP_AGG_CONTROL;
 	} else if (stream->control) {
-		free(stream->control);
+		gf_free(stream->control);
 		stream->control = NULL;
 	}
 	stream->rtsp = in_session;
@@ -383,9 +383,9 @@ void RP_DelSession(RTSPSession *sess)
 	gf_list_del(sess->rtsp_commands);
 	gf_rtsp_response_del(sess->rtsp_rsp);
 	gf_rtsp_session_del(sess->session);
-	if (sess->control) free(sess->control);
-	if (sess->session_id) free(sess->session_id);
-	free(sess);
+	if (sess->control) gf_free(sess->control);
+	if (sess->session_id) gf_free(sess->session_id);
+	gf_free(sess);
 }
 
 

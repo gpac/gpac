@@ -40,7 +40,7 @@ GF_RTSPCommand *gf_rtsp_command_new()
 }
 
 
-#define COM_FREE_CLEAN(hdr)		if (com->hdr) free(com->hdr);	\
+#define COM_FREE_CLEAN(hdr)		if (com->hdr) gf_free(com->hdr);	\
 								com->hdr = NULL;
 
 GF_EXPORT
@@ -77,7 +77,7 @@ void gf_rtsp_command_reset(GF_RTSPCommand *com)
 
 	com->Bandwidth = com->Blocksize = com->Content_Length = com->CSeq = 0;
 	com->Scale = com->Speed = 0.0;
-	if (com->Range) free(com->Range);
+	if (com->Range) gf_free(com->Range);
 	com->Range = NULL;
 
 	while (gf_list_count(com->Transports)) {
@@ -88,9 +88,9 @@ void gf_rtsp_command_reset(GF_RTSPCommand *com)
 	while (gf_list_count(com->Xtensions)) {
 		att = (GF_X_Attribute*)gf_list_get(com->Xtensions, 0);
 		gf_list_rem(com->Xtensions, 0);
-		free(att->Name);
-		free(att->Value);
-		free(att);
+		gf_free(att->Name);
+		gf_free(att->Value);
+		gf_free(att);
 	}
 }
 
@@ -101,7 +101,7 @@ void gf_rtsp_command_del(GF_RTSPCommand *com)
 	gf_rtsp_command_reset(com);
 	gf_list_del(com->Xtensions);
 	gf_list_del(com->Transports);
-	free(com);
+	gf_free(com);
 }
 
 
@@ -116,7 +116,7 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 	*out_buffer = NULL;
 
 	size = RTSP_WRITE_STEPALLOC;
-	buffer = (char *) malloc(size);
+	buffer = (char *) gf_malloc(size);
 	cur_pos = 0;
 
 	//request
@@ -387,7 +387,7 @@ GF_Err gf_rtsp_send_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 	strcpy(sess->RTSPLastRequest, com->method);
 
 exit:
-	if (result) free(result);
+	if (result) gf_free(result);
 	return e;
 }
 
@@ -399,26 +399,26 @@ void gf_rtsp_set_command_value(GF_RTSPCommand *com, char *Header, char *Value)
 	GF_RTSPTransport *trans;
 	GF_X_Attribute *x_Att;
 
-	if (!stricmp(Header, "Accept")) com->Accept = strdup(Value);
-	else if (!stricmp(Header, "Accept-Encoding")) com->Accept_Encoding = strdup(Value);
-	else if (!stricmp(Header, "Accept-Language")) com->Accept_Language = strdup(Value);
-	else if (!stricmp(Header, "Authorization")) com->Authorization = strdup(Value);
+	if (!stricmp(Header, "Accept")) com->Accept = gf_strdup(Value);
+	else if (!stricmp(Header, "Accept-Encoding")) com->Accept_Encoding = gf_strdup(Value);
+	else if (!stricmp(Header, "Accept-Language")) com->Accept_Language = gf_strdup(Value);
+	else if (!stricmp(Header, "Authorization")) com->Authorization = gf_strdup(Value);
 	else if (!stricmp(Header, "Bandwidth")) sscanf(Value, "%d", &com->Bandwidth);
 	else if (!stricmp(Header, "Blocksize")) sscanf(Value, "%d", &com->Blocksize);
-	else if (!stricmp(Header, "Cache-Control")) com->Cache_Control = strdup(Value);
-	else if (!stricmp(Header, "Conference")) com->Conference = strdup(Value);
-	else if (!stricmp(Header, "Connection")) com->Connection = strdup(Value);
+	else if (!stricmp(Header, "Cache-Control")) com->Cache_Control = gf_strdup(Value);
+	else if (!stricmp(Header, "Conference")) com->Conference = gf_strdup(Value);
+	else if (!stricmp(Header, "Connection")) com->Connection = gf_strdup(Value);
 	else if (!stricmp(Header, "Content-Length")) sscanf(Value, "%d", &com->Content_Length);
 	else if (!stricmp(Header, "CSeq")) sscanf(Value, "%d", &com->CSeq);
-	else if (!stricmp(Header, "From")) com->From = strdup(Value);
-	else if (!stricmp(Header, "Proxy_Authorization")) com->Proxy_Authorization = strdup(Value);
-	else if (!stricmp(Header, "Proxy_Require")) com->Proxy_Require = strdup(Value);
+	else if (!stricmp(Header, "From")) com->From = gf_strdup(Value);
+	else if (!stricmp(Header, "Proxy_Authorization")) com->Proxy_Authorization = gf_strdup(Value);
+	else if (!stricmp(Header, "Proxy_Require")) com->Proxy_Require = gf_strdup(Value);
 	else if (!stricmp(Header, "Range")) com->Range = gf_rtsp_range_parse(Value);
-	else if (!stricmp(Header, "Referer")) com->Referer = strdup(Value);
+	else if (!stricmp(Header, "Referer")) com->Referer = gf_strdup(Value);
 	else if (!stricmp(Header, "Scale")) sscanf(Value, "%lf", &com->Scale);
-	else if (!stricmp(Header, "Session")) com->Session = strdup(Value);
+	else if (!stricmp(Header, "Session")) com->Session = gf_strdup(Value);
 	else if (!stricmp(Header, "Speed")) sscanf(Value, "%lf", &com->Speed);
-	else if (!stricmp(Header, "User_Agent")) com->User_Agent = strdup(Value);
+	else if (!stricmp(Header, "User_Agent")) com->User_Agent = gf_strdup(Value);
 	//Transports
 	else if (!stricmp(Header, "Transport")) {
 		LinePos = 0;
@@ -431,10 +431,10 @@ void gf_rtsp_set_command_value(GF_RTSPCommand *com, char *Header, char *Value)
 	}
 	//eXtensions attributes
 	else if (!strnicmp(Header, "x-", 2)) {
-		x_Att = (GF_X_Attribute*)malloc(sizeof(GF_X_Attribute));
-		x_Att->Name = strdup(Header+2);
+		x_Att = (GF_X_Attribute*)gf_malloc(sizeof(GF_X_Attribute));
+		x_Att->Name = gf_strdup(Header+2);
 		x_Att->Value = NULL;
-		if (Value && strlen(Value)) x_Att->Value = strdup(Value);
+		if (Value && strlen(Value)) x_Att->Value = gf_strdup(Value);
 		gf_list_add(com->Xtensions, x_Att);
 	}
 	//the rest is ignored
@@ -461,12 +461,12 @@ GF_Err RTSP_ParseCommandHeader(GF_RTSPSession *sess, GF_RTSPCommand *com, u32 Bo
 	//method
 	Pos = gf_token_get(LineBuffer, 0, " \t\r\n", ValBuf, 1024);
 	if (Pos <= 0) return GF_OK;
-	com->method = strdup((const char *) ValBuf);
+	com->method = gf_strdup((const char *) ValBuf);
 
 	//URL
 	Pos = gf_token_get(LineBuffer, Pos, " \t\r\n", ValBuf, 1024);
 	if (Pos <= 0) return GF_OK;
-	com->service_name = strdup(ValBuf);
+	com->service_name = gf_strdup(ValBuf);
 	
 	//RTSP version
 	Pos = gf_token_get(LineBuffer, Pos, "\t\r\n", ValBuf, 1024);
@@ -514,7 +514,7 @@ GF_Err gf_rtsp_get_command(GF_RTSPSession *sess, GF_RTSPCommand *com)
 
 	//copy the body if any
 	if (!e && com->Content_Length) {
-		com->body = (char *) malloc(sizeof(char) * (com->Content_Length));
+		com->body = (char *) gf_malloc(sizeof(char) * (com->Content_Length));
 		memcpy(com->body, sess->TCPBuffer+sess->CurrentPos + BodyStart, com->Content_Length);
 	}	
 	//reset TCP buffer

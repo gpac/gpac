@@ -38,10 +38,10 @@ static GF_Err _init_mcrypt( OFB_BUFFER* buf, void *key, int lenofkey, void *IV, 
     buf->blocksize = size;
     
     /* For ofb */
-	buf->s_register=malloc( size);
+	buf->s_register=gf_malloc( size);
     if (buf->s_register==NULL) goto freeall;
 
-	buf->enc_s_register=malloc( size);
+	buf->enc_s_register=gf_malloc( size);
     if (buf->enc_s_register==NULL) goto freeall;
 
 	if (IV!=NULL) {
@@ -54,8 +54,8 @@ static GF_Err _init_mcrypt( OFB_BUFFER* buf, void *key, int lenofkey, void *IV, 
 	return GF_OK;
 
 	freeall:
-		if (buf->s_register) free(buf->s_register);
-		if (buf->enc_s_register) free(buf->enc_s_register);
+		if (buf->s_register) gf_free(buf->s_register);
+		if (buf->enc_s_register) gf_free(buf->enc_s_register);
 		return GF_OUT_OF_MEM;
 }
 
@@ -82,8 +82,8 @@ static GF_Err _mcrypt_set_state( OFB_BUFFER* buf, void *IV, int size)
 
 
 static void _end_mcrypt( OFB_BUFFER* buf) {
-	free(buf->s_register);
-	free(buf->enc_s_register);
+	gf_free(buf->s_register);
+	gf_free(buf->enc_s_register);
 }
 
 

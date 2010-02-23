@@ -51,9 +51,9 @@ static void term_on_message(void *user_priv, GF_ClientService *service, GF_Err e
 			gf_term_message(term, service->url, szMsg, GF_OK);
 
 			/*reload scene*/
-			if (term->reload_url) free(term->reload_url);
+			if (term->reload_url) gf_free(term->reload_url);
 			term->reload_state = 1;
-			term->reload_url = strdup(term->root_scene->root_od->net_service->url);
+			term->reload_url = gf_strdup(term->root_scene->root_od->net_service->url);
 			gf_cfg_set_key(term->user->config, "Network", "UDPNotAvailable", "yes");
 			return;
 		}
@@ -128,7 +128,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 				if (gf_odm_post_es_setup(cs->ch, cs->dec, err) == GF_OK) {
 					if (cs->ch->odm && (gf_list_find(ODs, cs->ch->odm)==-1) ) gf_list_add(ODs, cs->ch->odm);
 				}
-				free(cs);
+				gf_free(cs);
 			}
 			gf_term_lock_net(term, 0);
 			/*finally setup all ODs concerned (we do this later in case of scalability)*/
@@ -517,7 +517,7 @@ static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
 		return NULL;
 	}
 	mime_type = (char *) gf_dm_sess_mime_type(sess);
-	if (mime_type) mime_type = strdup(mime_type);
+	if (mime_type) mime_type = gf_strdup(mime_type);
 	else *ret_code = gf_dm_sess_last_error(sess);
 	gf_dm_sess_del(sess);
 	return mime_type;
@@ -565,7 +565,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	if (parent_url) sURL = gf_url_concatenate(parent_url, url);
 
 	/*path absolute*/
-	if (!sURL) sURL = strdup(url);
+	if (!sURL) sURL = gf_strdup(url);
 
 	if (gf_url_is_local(sURL)) 
 		gf_url_to_fs_path(sURL);
@@ -579,7 +579,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		*/
 		mime_type = get_mime_type(term, sURL, &e);
 		if (e) {
-			free(sURL);
+			gf_free(sURL);
 			(*ret_code) = e;
 			return NULL;
 		}
@@ -591,7 +591,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 			|| !stricmp(mime_type, "application/octet-stream")
 		) 
 	) {
-		free(mime_type);
+		gf_free(mime_type);
 		mime_type = NULL;
 	}
 
@@ -642,7 +642,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	if (!ifce && !mime_type && strstr(sURL, "://") && strnicmp(sURL, "file://", 7)) ext = NULL;
 
 	if (mime_type) {
-		free(mime_type);
+		gf_free(mime_type);
 		if (!ifce) return NULL;
 	}
 
@@ -693,7 +693,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	}
 
 	if (!ifce) {
-		free(sURL);
+		gf_free(sURL);
 		(*ret_code) = GF_NOT_SUPPORTED;
 		return NULL;
 	}
@@ -732,7 +732,7 @@ Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_
 	ifce = gf_term_can_handle_service(term, fileName, parent_url, no_mime_check, &sURL, &e);
 	if (!ifce) return 0;
 	gf_modules_close_interface((GF_BaseInterface *) ifce);
-	free(sURL);
+	gf_free(sURL);
 	return 1;
 }
 
@@ -808,7 +808,7 @@ void NM_DeleteService(GF_ClientService *ns)
 	const char *sOpt = gf_cfg_get_key(ns->term->user->config, "StreamingCache", "AutoSave");
 	if (ns->cache) gf_term_service_cache_close(ns, (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
 	gf_modules_close_interface((GF_BaseInterface *)ns->ifce);
-	free(ns->url);
+	gf_free(ns->url);
 
 	assert(!ns->nb_odm_users);
 	assert(!ns->nb_ch_users);
@@ -824,7 +824,7 @@ void NM_DeleteService(GF_ClientService *ns)
 
 	assert(!gf_list_count(ns->dnloads));
 	gf_list_del(ns->dnloads);
-	free(ns);
+	gf_free(ns);
 }
 
 GF_EXPORT
@@ -843,9 +843,9 @@ GF_DownloadSession *gf_term_download_new(GF_ClientService *service, const char *
 
 	sURL = gf_url_concatenate(service->url, url);
 	/*path was absolute*/
-	if (!sURL) sURL = strdup(url);
+	if (!sURL) sURL = gf_strdup(url);
 	sess = gf_dm_sess_new(service->term->downloader, sURL, flags, user_io, cbk, &e);
-	free(sURL);
+	gf_free(sURL);
 	if (!sess) return NULL;
 	gf_dm_sess_set_private(sess, service);
 	gf_list_add(service->dnloads, sess);
@@ -924,7 +924,7 @@ void gf_term_register_mime_type(GF_InputService *ifce, const char *mimeType, con
 	if (!ifce || !mimeType || !extList || !description) return;
 
 	len = strlen(extList) + 3 + strlen(description) + 3 + strlen(ifce->module_name) + 1;
-	buf = (char*)malloc(sizeof(char)*len);
+	buf = (char*)gf_malloc(sizeof(char)*len);
 	sprintf(buf, "\"%s\" ", extList);
 	strlwr(buf);
 	strcat(buf, "\"");
@@ -932,7 +932,7 @@ void gf_term_register_mime_type(GF_InputService *ifce, const char *mimeType, con
 	strcat(buf, "\" ");
 	strcat(buf, ifce->module_name);
 	gf_modules_set_option((GF_BaseInterface *)(GF_BaseInterface *)ifce, "MimeTypes", mimeType, buf);
-	free(buf);
+	gf_free(buf);
 }
 
 GF_EXPORT

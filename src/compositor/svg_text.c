@@ -145,7 +145,7 @@ GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles
 			char *sep_end = strchr(a_font+1, '\'');
 			if (sep_end) sep_end[0] = 0;
 			a_font++;
-			fonts[nb_fonts] = strdup(a_font);
+			fonts[nb_fonts] = gf_strdup(a_font);
 			nb_fonts++;
 			if (sep_end) sep_end[0] = '\'';
 		} else {
@@ -153,7 +153,7 @@ GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles
 			skip = 0;
 			while (a_font[len-skip] == ' ') skip++;
 			if (skip) a_font[len-skip+1] = 0;
-			fonts[nb_fonts] = strdup(a_font);
+			fonts[nb_fonts] = gf_strdup(a_font);
 			nb_fonts++;
 			if (skip) a_font[len-skip] = ' ';
 		}
@@ -168,7 +168,7 @@ GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles
 	}
 	font = gf_font_manager_set_font_ex(fm, fonts, nb_fonts, styles, check_only);
 	while (nb_fonts) {
-		free(fonts[nb_fonts-1]);
+		gf_free(fonts[nb_fonts-1]);
 		nb_fonts--;
 	}
 	return font;
@@ -216,7 +216,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 	Bool preserve = (atts->xml_space && (*atts->xml_space==XML_SPACE_PRESERVE)) ? 1 : 0;
 
 	len = strlen(textContent);
-	dup_text = malloc(len+1);
+	dup_text = gf_malloc(len+1);
 		
 	switch (tr_state->last_char_type) {
 	case 2:
@@ -278,7 +278,7 @@ static GF_TextSpan *svg_get_text_span(GF_FontManager *fm, GF_Font *font, Fixed f
 	else tr_state->last_char_type = (dup_text[j-1]==' ') ? 1 : 2;
 	/*SVG text is fliped by default (text y-axis is the inverse of SVG y-axis*/
 	span = gf_font_manager_create_span(fm, font, dup_text, font_size, x_offsets, y_offsets, rotate, lang, 1, 0, tr_state->text_parent);
-	free(dup_text);
+	gf_free(dup_text);
 	if (span) span->flags |= GF_TEXT_SPAN_HORIZONTAL;
 	return span;
 }
@@ -321,7 +321,7 @@ static void svg_text_area_reset_state(GF_TraverseState *tr_state)
 			}
 			tr_state->refresh_children_bounds = 1;
 		}
-		free(st);
+		gf_free(st);
 	}
 	gf_list_reset(tr_state->x_anchors);
 }
@@ -338,7 +338,7 @@ static void svg_text_area_queue_state(GF_TraverseState *tr_state, GF_TextSpan *s
 			return;
 		}
 	}	
-	st = malloc(sizeof(textArea_state));
+	st = gf_malloc(sizeof(textArea_state));
 	st->first_glyph = first_glyph;
 	st->last_glyph = last_glyph;
 	st->span = span;
@@ -503,7 +503,7 @@ static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_Traverse
 		block_width = (span->glyphs[i] ? span->glyphs[i]->horiz_advance : font->max_advance_h) * span->font_scale;
 
 		//store width in tr_state->x_anchors
-		entry = (Fixed*)malloc(sizeof(Fixed));
+		entry = (Fixed*)gf_malloc(sizeof(Fixed));
 		if (span->flags & GF_TEXT_SPAN_RIGHT_TO_LEFT) *entry = -block_width;
 		else *entry = block_width;
 
@@ -524,7 +524,7 @@ static void get_domtext_width(GF_Node *node, SVGAllAttributes *atts, GF_Traverse
 		//if last indicated position, create a new item
 		if ((tr_state->count_x==1)||(tr_state->count_y==1)
 			|| !gf_list_count(tr_state->x_anchors) ) {
-			entry = (Fixed*)malloc(sizeof(Fixed));
+			entry = (Fixed*)gf_malloc(sizeof(Fixed));
 			*entry = block_width;
 
 			if (span->flags & GF_TEXT_SPAN_RIGHT_TO_LEFT) *entry = -block_width;
@@ -811,7 +811,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_del(st->drawable);
 		svg_reset_text_stack(st);
 		gf_list_del(st->spans);
-		free(st);
+		gf_free(st);
 		return;
 	}
 
@@ -962,7 +962,7 @@ static void svg_traverse_text(GF_Node *node, void *rs, Bool is_destroy)
 		while (gf_list_count(tr_state->x_anchors)) {
 			Fixed *f = gf_list_last(tr_state->x_anchors);
 			gf_list_rem_last(tr_state->x_anchors);
-			free(f);
+			gf_free(f);
 		}
 		gf_list_del(tr_state->x_anchors);
 		tr_state->x_anchors = NULL;
@@ -1034,7 +1034,7 @@ static void svg_traverse_tspan(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_del(st->drawable);
 		svg_reset_text_stack(st);
 		gf_list_del(st->spans);
-		free(st);
+		gf_free(st);
 		return;
 	}
 	if (tr_state->traversing_mode==TRAVERSE_DRAW_2D) {
@@ -1218,7 +1218,7 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 		drawable_del(st->drawable);
 		svg_reset_text_stack(st);
 		gf_list_del(st->spans);
-		free(st);
+		gf_free(st);
 		return;
 	}
 

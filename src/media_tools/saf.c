@@ -84,18 +84,18 @@ GF_SAFMuxer *gf_saf_mux_new()
 
 static void saf_stream_del(GF_SAFStream *str)
 {
-	if (str->mime_type) free(str->mime_type);
-	if (str->remote_url) free(str->remote_url);
-	if (str->dsi) free(str->dsi);
+	if (str->mime_type) gf_free(str->mime_type);
+	if (str->remote_url) gf_free(str->remote_url);
+	if (str->dsi) gf_free(str->dsi);
 
 	while (gf_list_count(str->aus)) {
 		GF_SAFSample *au = (GF_SAFSample *)gf_list_last(str->aus);
 		gf_list_rem_last(str->aus);
-		if (au->data) free(au->data);
-		free(au);
+		if (au->data) gf_free(au->data);
+		gf_free(au);
 	}
 	gf_list_del(str->aus);
-	free(str);
+	gf_free(str);
 }
 
 void gf_saf_mux_del(GF_SAFMuxer *mux)
@@ -107,7 +107,7 @@ void gf_saf_mux_del(GF_SAFMuxer *mux)
 	}
 	gf_list_del(mux->streams);
 	gf_mx_del(mux->mx);
-	free(mux);
+	gf_free(mux);
 }
 
 static GFINLINE GF_SAFStream *saf_get_stream(GF_SAFMuxer *mux, u32 stream_id)
@@ -136,15 +136,15 @@ GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 bu
 	str->stream_type = stream_type;
 	str->object_type = object_type;
 	if (mime_type) {
-		str->mime_type = strdup(mime_type);
+		str->mime_type = gf_strdup(mime_type);
 		str->stream_type = str->object_type = 0xFF;
 	}
 	str->dsi_len = dsi_len;
 	if (dsi_len) {
-		str->dsi = (char *) malloc(sizeof(char)*dsi_len);
+		str->dsi = (char *) gf_malloc(sizeof(char)*dsi_len);
 		memcpy(str->dsi, dsi, sizeof(char)*dsi_len);
 	}
-	if (remote_url) str->remote_url = strdup(remote_url);
+	if (remote_url) str->remote_url = gf_strdup(remote_url);
 	str->aus = gf_list_new();
 	mux->state = 0;
 	gf_list_add(mux->streams, str);
@@ -249,7 +249,7 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 		gf_bs_write_int(bs, au ? au->ts : 0, 30);
 		gf_bs_write_int(bs, dlen, 16);
 		gf_bs_write_data(bs, data, dlen);
-		free(data);
+		gf_free(data);
 		
 		/*mark as signaled*/
 		str->state |= 1;
@@ -287,8 +287,8 @@ GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_sess
 
 		src->last_au_sn ++;
 		src->last_au_ts = au->ts;
-		free(au->data);
-		free(au);
+		gf_free(au->data);
+		gf_free(au);
 	}
 
 	/*3: write all end of stream*/

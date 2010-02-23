@@ -356,8 +356,8 @@ void gdip_delete_font_driver(GF_FontReader *dr)
 	if (ctx->font) GdipDeleteFontFamily(ctx->font);
 	ctx->font = NULL;
 
-	free(dr->udta);
-	free(dr);
+	gf_free(dr->udta);
+	gf_free(dr);
 }
 
 #ifdef __cplusplus

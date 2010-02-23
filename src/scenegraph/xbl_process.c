@@ -106,7 +106,7 @@ static XBL_Element *xbl_parse_element(GF_XBL_Parser *parser, const char *name, c
 		if (attribute_tag!=TAG_DOM_ATT_any) {
 			/*FIXME do we need to check if the attribute is specified several times*/
 			GF_DOMAttribute *dom_att = gf_xml_create_attribute((GF_Node*)elt, attribute_tag);
-			dom_att->data = strdup(att->value);
+			dom_att->data = gf_strdup(att->value);
 		} else {
 			xbl_parse_report(parser, GF_OK, "Skipping attribute %s on node %s", att->name, name);
 		}
@@ -165,7 +165,7 @@ static void xbl_node_end(void *sax_cbck, const char *name, const char *name_spac
 				return;
 			}
 		}
-		free(top);
+		gf_free(top);
 		gf_list_rem_last(parser->node_stack);
 	} else if (top) {
 		if (top->unknown_depth) {
@@ -219,11 +219,11 @@ GF_Err gf_sm_load_done_xbl(GF_SceneLoader *load)
 	while (gf_list_count(parser->node_stack)) {
 		XBL_NodeStack *st = (XBL_NodeStack *)gf_list_last(parser->node_stack);
 		gf_list_rem_last(parser->node_stack);
-		free(st);
+		gf_free(st);
 	}
 	gf_list_del(parser->node_stack);
 	if (parser->sax_parser) gf_xml_sax_del(parser->sax_parser);
-	free(parser);
+	gf_free(parser);
 	load->loader_priv = NULL;
 	return GF_OK;
 }

@@ -640,7 +640,7 @@ void gf_hinter_track_del(GF_RTPHinter *tkHinter)
 	if (!tkHinter) return;
 
 	if (tkHinter->rtp_p) gf_rtp_builder_del(tkHinter->rtp_p);
-	free(tkHinter);
+	gf_free(tkHinter);
 }
 
 GF_EXPORT
@@ -688,7 +688,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 			/*one byte take for selective_enc flag*/
 			if (s->flags & GF_ISOM_ISMA_USE_SEL_ENC) tkHint->base_offset_in_sample += 1;
 			if (s->flags & GF_ISOM_ISMA_IS_ENCRYPTED) tkHint->base_offset_in_sample += s->IV_length + s->KI_length;
-			free(samp->data);
+			gf_free(samp->data);
 			samp->data = s->data;
 			samp->dataLength = s->dataLength;
 			gp_rtp_builder_set_cryp_info(tkHint->rtp_p, s->IV, (char*)s->key_indicator, (s->flags & GF_ISOM_ISMA_IS_ENCRYPTED) ? 1 : 0);
@@ -896,7 +896,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
  
 		gf_rtp_builder_format_sdp(tkHint->rtp_p, payloadName, sdpLine, config_bytes, config_size); 
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine); 
-		free(config_bytes); 
+		gf_free(config_bytes); 
 	}
 	/*3GPP DIMS*/
 	else if (tkHint->rtp_p->rtp_payt==GF_RTP_PAYT_3GPP_DIMS) { 
@@ -1048,7 +1048,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 					esd->decoderConfig->bufferSizeDB = samp->dataLength;
 					esd->decoderConfig->maxBitrate = 0;
 					size64 = strlen(sdpLine)+1;
-					esd->URLString = (char*)malloc(sizeof(char) * size64);
+					esd->URLString = (char*)gf_malloc(sizeof(char) * size64);
 					strcpy(esd->URLString, sdpLine);
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[rtp hinter] OD sample too large to be embedded in IOD - ISMA disabled\n"));
@@ -1082,7 +1082,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 				esd->decoderConfig->avgBitrate = 0;
 				esd->decoderConfig->bufferSizeDB = samp->dataLength;
 				esd->decoderConfig->maxBitrate = 0;
-				esd->URLString = (char*)malloc(sizeof(char) * (strlen(sdpLine)+1));
+				esd->URLString = (char*)gf_malloc(sizeof(char) * (strlen(sdpLine)+1));
 				strcpy(esd->URLString, sdpLine);
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp hinter] Scene description sample too large to be embedded in IOD - ISMA disabled\n"));
@@ -1127,7 +1127,7 @@ GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
 	//encode in Base64 the iod
 	size64 = gf_base64_encode(buffer, size, buf64, 2000);
 	buf64[size64] = 0;
-	free(buffer);
+	gf_free(buffer);
 
 	sprintf(sdpLine, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"", buf64);
 	gf_isom_sdp_add_line(file, sdpLine);

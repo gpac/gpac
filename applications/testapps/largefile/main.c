@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 
 	samp = gf_isom_sample_new();
 	samp->dataLength = 1024*1024;
-	samp->data = malloc(sizeof(char)*samp->dataLength);
+	samp->data = gf_malloc(sizeof(char)*samp->dataLength);
   memset(samp->data, 0, sizeof(char)*samp->dataLength);
   
 	for (i=0; i<nb_samp; i++) {

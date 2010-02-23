@@ -766,13 +766,13 @@ static void X11_ReleaseBackBuffer (GF_VideoOutput * vout)
 		if (xWindow->shmseginfo->shmaddr) shmdt(xWindow->shmseginfo->shmaddr);
 		if (xWindow->shmseginfo->shmid >= 0)
 			shmctl (xWindow->shmseginfo->shmid, IPC_RMID, NULL);
-		free (xWindow->shmseginfo);
+		gf_free(xWindow->shmseginfo);
 		xWindow->shmseginfo = NULL;
 	}
 #endif
 	if (xWindow->surface) {
 		if (xWindow->surface->data)
-			free (xWindow->surface->data);
+			gf_free(xWindow->surface->data);
 		XFree(xWindow->surface);
 		xWindow->surface = NULL;
 	}
@@ -839,7 +839,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 	} else
 #endif
 	{
-		char *data = (char *) malloc(sizeof(char)*size);
+		char *data = (char *) gf_malloc(sizeof(char)*size);
 		xWindow->surface = XCreateImage (xWindow->display, xWindow->visual,
 				      xWindow->depth, ZPixmap,
 				      0,
@@ -847,7 +847,7 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 				      VideoWidth, VideoHeight,
 				      xWindow->bpp*8, xWindow->bpp*VideoWidth);
 		if (!xWindow->surface) {
-			free(data);
+			gf_free(data);
 			return GF_IO_ERR;
 		}
 
@@ -1351,7 +1351,7 @@ void X11_Shutdown (struct _video_out *vout)
 	X11_XScreenSaverState(xWindow, 1);
 
 	XCloseDisplay (xWindow->display);
-	free (xWindow);
+	gf_free(xWindow);
 }
 
 
@@ -1365,7 +1365,7 @@ void *NewX11VideoOutput ()
 	if (!driv) return NULL;
 	GF_SAFEALLOC(xWindow, XWindow);
 	if (!xWindow) {
-		free(driv);
+		gf_free(driv);
 		return NULL;
 	}
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "X11 Video Output", "gpac distribution")
@@ -1389,7 +1389,7 @@ void *NewX11VideoOutput ()
 void
 DeleteX11VideoOutput (GF_VideoOutput * vout)
 {
-	free (vout);
+	gf_free(vout);
 }
 
 /*

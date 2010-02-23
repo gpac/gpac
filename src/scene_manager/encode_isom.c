@@ -1132,7 +1132,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 				last_rap = samp->DTS;
 				e = gf_odf_codec_encode(rap_codec, 0);
 				if (e) goto err_exit;
-				if (samp->data) free(samp->data);
+				if (samp->data) gf_free(samp->data);
 				samp->data = NULL;
 				samp->dataLength = 0;
 				e = gf_odf_codec_get_au(rap_codec, &samp->data, &samp->dataLength);

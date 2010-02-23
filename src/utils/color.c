@@ -727,7 +727,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 
 	if (yuv_type && (src_w%2)) src_w++;
 
-	tmp = (u8 *) malloc(sizeof(u8) * src_w * (yuv_type ? 8 : 4) );
+	tmp = (u8 *) gf_malloc(sizeof(u8) * src_w * (yuv_type ? 8 : 4) );
 	rows = tmp;
 
 	src_bits = (u8 *) src->video_buffer;
@@ -749,7 +749,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	/*small opt here: if we need to fetch data from destination, and if destination is 
 	hardware memory, we work on a copy of the destination line*/
 	if (has_alpha && dst->is_hardware_memory)
-		dst_temp_bits = (u8 *) malloc(sizeof(u8) * dst_bpp * dst_w);
+		dst_temp_bits = (u8 *) gf_malloc(sizeof(u8) * dst_bpp * dst_w);
 
 
 	/*for 2 and 4 bytes colors, precompute pitch for u16 and u32 type casting*/
@@ -873,8 +873,8 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		dst_bits += dst->pitch_y;
 		dst_h--;
 	}
-	if (dst_temp_bits) free(dst_temp_bits);
-	free(tmp);
+	if (dst_temp_bits) gf_free(dst_temp_bits);
+	gf_free(tmp);
 	return GF_OK;
 }
 

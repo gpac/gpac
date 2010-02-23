@@ -47,6 +47,7 @@
 #include "osmozilla.h"
 
 #include <gpac/options.h>
+#include <gpac/term_info.h>
 
 nsIServiceManager *gServiceManager = NULL;
 
@@ -206,8 +207,8 @@ void nsOsmozillaInstance::SetOptions()
 			m_bAutoStart = 0;
 
 		else if (!stricmp(m_argn[i],"src") ) {
-			if (m_szURL) free(m_szURL);
-			m_szURL = strdup(m_argv[i]);
+			if (m_szURL) gf_free(m_szURL);
+			m_szURL = gf_strdup(m_argv[i]);
 		}
 		else if (!stricmp(m_argn[i],"use3d") && (!stricmp(m_argv[i], "true") || !stricmp(m_argv[i], "yes") ) ) {
 			m_bUse3D = 1;
@@ -242,7 +243,7 @@ void nsOsmozillaInstance::SetOptions()
 			char *url = m_szURL;
 			m_szURL = NULL;
 			NPN_GetURL(mInstance, url, NULL);
-			free(url);
+			gf_free(url);
 		}
 	}
 
@@ -397,7 +398,7 @@ err_exit:
 
 void nsOsmozillaInstance::shut()
 {
-	if (m_szURL) free(m_szURL);
+	if (m_szURL) gf_free(m_szURL);
 	m_szURL = NULL;
 	if (m_term) {
 		GF_Terminal *a_term = m_term;
@@ -600,8 +601,8 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
 				    NPBool seekable, uint16 * stype)
 {
-	if (m_szURL) free(m_szURL);
-	m_szURL = strdup((const char *)stream->url);
+	if (m_szURL) gf_free(m_szURL);
+	m_szURL = gf_strdup((const char *)stream->url);
 
 	/*connect from 0 and pause if not autoplay*/
 	if (m_bAutoStart)
@@ -616,7 +617,7 @@ NPError nsOsmozillaInstance::DestroyStream(NPStream * stream, NPError reason)
 {
 	if (0 && m_szURL) {
 		gf_term_disconnect(m_term);
-		free(m_szURL);
+		gf_free(m_szURL);
 		m_szURL = NULL;
 	}
 	return NPERR_NO_ERROR;
@@ -780,7 +781,7 @@ void nsOsmozillaInstance::Print(NPPrint* printInfo)
 
 		/*unlock GPAC frame buffer */
 		gf_term_release_screen_buffer(m_term, &fb);
-		/* free temporary  objects */
+		/* gf_free temporary  objects */
 		GlobalFree(ligne);
 		LocalFree(infoSrc);
 #endif   // XP_WIN
@@ -791,7 +792,6 @@ void nsOsmozillaInstance::Print(NPPrint* printInfo)
 	}
 }
 
-#include <gpac/term_info.h>
 void nsOsmozillaInstance::Update(const char *type, const char *commands)
 {
 	if (m_term) {

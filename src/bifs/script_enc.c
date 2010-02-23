@@ -102,7 +102,7 @@ static GF_Err EncScriptFields(ScriptEnc *sc_enc)
 		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, info.fieldType, 6, "fieldType", NULL);
 		gf_bifs_enc_name(sc_enc->codec, sc_enc->bs, (char *) info.name);
 		/*this is an identifier for script*/
-		gf_list_add(sc_enc->identifiers, strdup(info.name));
+		gf_list_add(sc_enc->identifiers, gf_strdup(info.name));
 
 		if (sc_enc->codec->encoding_proto) {
 			GF_Route *isedField = gf_bifs_enc_is_field_ised(sc_enc->codec, sc_enc->script, i+3);
@@ -594,7 +594,7 @@ void SFE_PutIdentifier(ScriptEnc *sc_enc, char *id)
 		return;
 	} 
 	GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "received", id);
-	gf_list_add(sc_enc->identifiers, strdup(id));
+	gf_list_add(sc_enc->identifiers, gf_strdup(id));
 	gf_bifs_enc_name(sc_enc->codec, sc_enc->bs, id);
 }
 
@@ -661,7 +661,7 @@ u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 		case TOK_NUMBER:
 		case TOK_STRING:
 		case TOK_BOOLEAN:
-			gf_list_add(sc_enc->id_buf, strdup(sc_enc->token));
+			gf_list_add(sc_enc->id_buf, gf_strdup(sc_enc->token));
 			break;
 		case TOK_FUNCTION:
 			goto break_loop;
@@ -690,7 +690,7 @@ u32 SFE_LoadExpression(ScriptEnc *sc_enc, u32 *expr_sep)
 				SFE_NextToken(sc_enc);
 				if ((sc_enc->token_code == TOK_IDENTIFIER) || (sc_enc->token_code == TOK_NUMBER) 
 					|| (sc_enc->token_code == TOK_STRING) || (sc_enc->token_code == TOK_BOOLEAN) ) {
-					gf_list_add(sc_enc->id_buf, strdup(sc_enc->token));
+					gf_list_add(sc_enc->id_buf, gf_strdup(sc_enc->token));
 				}
 				sc_enc->expr_toks[sc_enc->expr_toks_len] = sc_enc->token_code;
 				sc_enc->expr_toks_len++;
@@ -709,7 +709,7 @@ break_loop:
 	expr_sep[nbExpr] = sc_enc->expr_toks_len;
 	if ((sc_enc->token_code == TOK_IDENTIFIER) || (sc_enc->token_code == TOK_NUMBER) 
 		|| (sc_enc->token_code == TOK_STRING) || (sc_enc->token_code == TOK_BOOLEAN) ) {
-		gf_list_add(sc_enc->id_buf, strdup(sc_enc->token));
+		gf_list_add(sc_enc->id_buf, gf_strdup(sc_enc->token));
 	}
 	
 	if ((sc_enc->token_code != TOK_CONDSEP) && (sc_enc->token_code != TOK_RIGHT_BRACE) && (sc_enc->expr_toks[0] != TOK_VAR)) {
@@ -1094,14 +1094,14 @@ GF_Err SFScript_Encode(GF_BifsEncoder *codec, SFScript *script_field, GF_BitStre
 	while (gf_list_count(sc_enc.identifiers)) {
 		ptr = (char *)gf_list_get(sc_enc.identifiers, 0);
 		gf_list_rem(sc_enc.identifiers, 0);
-		free(ptr);
+		gf_free(ptr);
 	}
 	gf_list_del(sc_enc.identifiers);
 	/*in case of error this is needed*/
 	while (gf_list_count(sc_enc.id_buf)) {
 		ptr = (char *)gf_list_get(sc_enc.id_buf, 0);
 		gf_list_rem(sc_enc.id_buf, 0);
-		free(ptr);
+		gf_free(ptr);
 	}
 	gf_list_del(sc_enc.id_buf);
 	
@@ -1578,19 +1578,19 @@ skip_token:
 		if (memberAccess) {
 		}
 		SFE_PutIdentifier(sc_enc, str);
-		free(str);
+		gf_free(str);
 		break;
 	case ET_NUMBER:
 		str = (char *)gf_list_get(sc_enc->id_buf, 0);
 		gf_list_rem(sc_enc->id_buf, 0);
 		SFE_PutNumber(sc_enc, str);
-		free(str);
+		gf_free(str);
 		break;
     case ET_BOOLEAN:
 		str = (char *)gf_list_get(sc_enc->id_buf, 0);
 		gf_list_rem(sc_enc->id_buf, 0);
 		SFE_PutBoolean(sc_enc, str);
-		free(str);
+		gf_free(str);
 		break;
     case ET_VAR:
 		while (1) {
@@ -1599,7 +1599,7 @@ skip_token:
 			gf_list_rem(sc_enc->id_buf, 0);
 			GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 1, 1, "hasArgument", NULL);
 			SFE_PutIdentifier(sc_enc, str);
-			free(str);
+			gf_free(str);
 		}
 		GF_BIFS_WRITE_INT(sc_enc->codec, sc_enc->bs, 0, 1, "hasArgument", NULL);
 		break;
@@ -1607,7 +1607,7 @@ skip_token:
 		str = (char *)gf_list_get(sc_enc->id_buf, 0);
 		gf_list_rem(sc_enc->id_buf, 0);
 		if (!sc_enc->emul) gf_bifs_enc_name(sc_enc->codec, sc_enc->bs, str);
-		free(str);
+		gf_free(str);
 		break;
 	case ET_NEGATIVE:
 	case ET_INCREMENT:
@@ -1668,7 +1668,7 @@ void SFE_FunctionCall(ScriptEnc *sc_enc, u32 start, u32 end)
 	str = (char *)gf_list_get(sc_enc->id_buf, 0);
 	gf_list_rem(sc_enc->id_buf, 0);
 	SFE_PutIdentifier(sc_enc, str);
-	free(str);
+	gf_free(str);
 	curTok = sc_enc->expr_toks[start++];
 	CHECK_TOK(TOK_LEFT_CURVE);
 	SFE_Params(sc_enc, start, end-1);
@@ -1689,7 +1689,7 @@ void SFE_ObjectMemberAccess(ScriptEnc *sc_enc, u32 start, u32 op, u32 end)
 	str = (char *)gf_list_get(sc_enc->id_buf, 0);
 	gf_list_rem(sc_enc->id_buf, 0);
     SFE_PutIdentifier(sc_enc, str);
-	free(str);
+	gf_free(str);
 }
 
 void SFE_ObjectMethodCall(ScriptEnc *sc_enc, u32 start, u32 op, u32 end)
@@ -1705,7 +1705,7 @@ void SFE_ObjectMethodCall(ScriptEnc *sc_enc, u32 start, u32 op, u32 end)
 	str = (char *)gf_list_get(sc_enc->id_buf, 0);
 	gf_list_rem(sc_enc->id_buf, 0);
     SFE_PutIdentifier(sc_enc, str);
-	free(str);
+	gf_free(str);
 	curTok = sc_enc->expr_toks[op+2];
 	CHECK_TOK(TOK_LEFT_CURVE);
 	SFE_Params(sc_enc, op+3, end-1);
@@ -1737,7 +1737,7 @@ void SFE_ObjectConstruct(ScriptEnc *sc_enc, u32 start, u32 op, u32 end)
 	str = (char *)gf_list_get(sc_enc->id_buf, 0);
 	gf_list_rem(sc_enc->id_buf, 0);
 	SFE_PutIdentifier(sc_enc, str);
-	free(str);
+	gf_free(str);
 	curTok = sc_enc->expr_toks[start++];
 	CHECK_TOK(TOK_LEFT_CURVE);
 	SFE_Params(sc_enc, start, end-1);

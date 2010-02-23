@@ -311,7 +311,7 @@ static GF_Err AMR_CloseService(GF_InputService *plug)
 	if (read->dnload) gf_term_download_del(read->dnload);
 	read->dnload = NULL;
 
-	if (read->data) free(read->data);
+	if (read->data) gf_free(read->data);
 	read->data = NULL;
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;
@@ -371,7 +371,7 @@ static GF_Err AMR_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	GF_Err e = GF_STREAM_NOT_FOUND;
 	if (read->ch == channel) {
 		read->ch = NULL;
-		if (read->data) free(read->data);
+		if (read->data) gf_free(read->data);
 		read->data = NULL;
 		e = GF_OK;
 	}
@@ -494,7 +494,7 @@ fetch_next:
 		
 		read->data_size++;
 		read->sl_hdr.compositionTimeStamp = read->current_time;
-		read->data = malloc(sizeof(char) * (read->data_size+read->pad_bytes));
+		read->data = gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
 		read->data[0] = toc;
 		if (read->data_size>1) fread(read->data + 1, read->data_size-1, 1, read->stream);
 		if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
@@ -511,7 +511,7 @@ static GF_Err AMR_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 
 	if (read->ch == channel) {
 		if (!read->data) return GF_BAD_PARAM;
-		free(read->data);
+		gf_free(read->data);
 		read->data = NULL;
 		read->current_time += read->block_size;
 		return GF_OK;
@@ -522,7 +522,7 @@ static GF_Err AMR_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 GF_InputService *NewAESReader()
 {
 	AMR_Reader *reader;
-	GF_InputService *plug = malloc(sizeof(GF_InputService));
+	GF_InputService *plug = gf_malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC AMR/EVRC/SMV Reader", "gpac distribution")
 
@@ -537,7 +537,7 @@ GF_InputService *NewAESReader()
 	plug->ChannelGetSLP = AMR_ChannelGetSLP;
 	plug->ChannelReleaseSLP = AMR_ChannelReleaseSLP;
 
-	reader = malloc(sizeof(AMR_Reader));
+	reader = gf_malloc(sizeof(AMR_Reader));
 	memset(reader, 0, sizeof(AMR_Reader));
 	plug->priv = reader;
 	return plug;
@@ -547,8 +547,8 @@ void DeleteAESReader(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
 	AMR_Reader *read = plug->priv;
-	free(read);
-	free(plug);
+	gf_free(read);
+	gf_free(plug);
 }
 
 

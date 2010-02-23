@@ -198,7 +198,7 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 			if (grad) {
 				raster->stencil_set_vertex_path(grad, path);
 
-				colors = (u32*)malloc(sizeof(u32) * num_col);
+				colors = (u32*)gf_malloc(sizeof(u32) * num_col);
 				for (j=0; j<num_col; j++) {
 					if (ils2D->colorIndex.count>0) {
 						col = color->color.vals[ils2D->colorIndex.vals[col_ind+j]];
@@ -210,7 +210,7 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 					colors[j] = GF_COL_ARGB_FIXED(alpha, col.red, col.green, col.blue);
 				}
 				raster->stencil_set_vertex_colors(grad, colors, num_col);
-				free(colors);
+				gf_free(colors);
 			}
 		}
 		raster->stencil_set_matrix(grad, &ctx->transform);

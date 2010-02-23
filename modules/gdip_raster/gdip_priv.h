@@ -43,7 +43,7 @@ typedef s16 INT16;
 typedef u16 UINT16;
 #endif
 
-#define SAFEALLOC(__ptr, __struc) __ptr = (__struc*)malloc(sizeof(__struc)); if (__ptr) memset(__ptr, 0, sizeof(__struc));
+#define SAFEALLOC(__ptr, __struc) __ptr = (__struc*)gf_malloc(sizeof(__struc)); if (__ptr) memset(__ptr, 0, sizeof(__struc));
 
 /*all GDIPLUS includes for C api*/
 

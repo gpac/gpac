@@ -183,7 +183,7 @@ GF_3GPConfig *gf_isom_3gp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	}
 	if (!config) return NULL;
 
-	res = (GF_3GPConfig*)malloc(sizeof(GF_3GPConfig));
+	res = (GF_3GPConfig*)gf_malloc(sizeof(GF_3GPConfig));
 	memcpy(res, config, sizeof(GF_3GPConfig));
 	return res;
 }
@@ -200,7 +200,7 @@ GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	entry = (GF_AC3SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, StreamDescriptionIndex-1);
 	if (!entry || !entry->info || (entry->type!=GF_ISOM_BOX_TYPE_AC3) || (entry->info->type!=GF_ISOM_BOX_TYPE_DAC3) ) return NULL;
 
-	res = (GF_AC3Config*)malloc(sizeof(GF_AC3Config));
+	res = (GF_AC3Config*)gf_malloc(sizeof(GF_AC3Config));
 	memcpy(res, &entry->info->cfg, sizeof(GF_AC3Config));
 	return res;
 }
@@ -440,12 +440,12 @@ GF_Err gf_isom_new_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DIMSD
 	dims->config->containsRedundant = desc->containsRedundant;
 	if (!dims->config->containsRedundant) dims->config->containsRedundant = 1;
 	dims->config->streamType = desc->streamType;
-	dims->config->textEncoding = strdup(desc->textEncoding ? desc->textEncoding : "");
-	dims->config->contentEncoding = strdup(desc->contentEncoding ? desc->contentEncoding : "");
+	dims->config->textEncoding = gf_strdup(desc->textEncoding ? desc->textEncoding : "");
+	dims->config->contentEncoding = gf_strdup(desc->contentEncoding ? desc->contentEncoding : "");
 
 	if (desc->content_script_types) {
 		dims->scripts = (GF_DIMSScriptTypesBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_DIST);
-		dims->scripts->content_script_types = strdup(desc->content_script_types);
+		dims->scripts->content_script_types = gf_strdup(desc->content_script_types);
 	}
 	return e;
 }
@@ -478,17 +478,17 @@ GF_Err gf_isom_update_dims_description(GF_ISOFile *movie, u32 trackNumber, GF_DI
 	dims->config->containsRedundant = desc->containsRedundant;
 	dims->config->streamType = desc->streamType;
 
-	if (dims->config->textEncoding) free(dims->config->textEncoding);
-	dims->config->textEncoding = strdup(desc->textEncoding ? desc->textEncoding : "");
+	if (dims->config->textEncoding) gf_free(dims->config->textEncoding);
+	dims->config->textEncoding = gf_strdup(desc->textEncoding ? desc->textEncoding : "");
 
-	if (dims->config->contentEncoding) free(dims->config->contentEncoding);
-	dims->config->contentEncoding = strdup(desc->contentEncoding ? desc->contentEncoding : "");
+	if (dims->config->contentEncoding) gf_free(dims->config->contentEncoding);
+	dims->config->contentEncoding = gf_strdup(desc->contentEncoding ? desc->contentEncoding : "");
 
 	if (desc->content_script_types) {
 		if (!dims->scripts)
 			dims->scripts = (GF_DIMSScriptTypesBox*) gf_isom_box_new(GF_ISOM_BOX_TYPE_DIST);
-		if (dims->scripts->content_script_types) free(dims->scripts->content_script_types);
-		dims->scripts->content_script_types = strdup(desc->content_script_types ? desc->content_script_types  :"");
+		if (dims->scripts->content_script_types) gf_free(dims->scripts->content_script_types);
+		dims->scripts->content_script_types = gf_strdup(desc->content_script_types ? desc->content_script_types  :"");
 	} else if (dims->scripts) {
 		gf_isom_box_del((GF_Box *) dims->scripts);
 		dims->scripts = NULL;
@@ -543,7 +543,7 @@ GF_Err LSR_UpdateESD(GF_LASeRSampleEntryBox *lsr, GF_ESD *esd)
 	/*update GF_AVCConfig*/
 	if (!lsr->lsr_config) lsr->lsr_config = (GF_LASERConfigurationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_LSRC);
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-		lsr->lsr_config->hdr = realloc(lsr->lsr_config->hdr, sizeof(char) * esd->decoderConfig->decoderSpecificInfo->dataLength);
+		lsr->lsr_config->hdr = gf_realloc(lsr->lsr_config->hdr, sizeof(char) * esd->decoderConfig->decoderSpecificInfo->dataLength);
 		lsr->lsr_config->hdr_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 		memcpy(lsr->lsr_config->hdr, esd->decoderConfig->decoderSpecificInfo->data, sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 	}

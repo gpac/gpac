@@ -159,7 +159,7 @@ static GFINLINE void gray_record_cell( TRaster *raster )
 		if (y>=0) {
 			AAScanline *sl = &raster->scanlines[y];
 			if (sl->num >= sl->alloc) {
-				sl->cells = (AACell*)realloc(sl->cells, sizeof(AACell)* (sl->alloc + AA_CELL_STEP_ALLOC));
+				sl->cells = (AACell*)gf_realloc(sl->cells, sizeof(AACell)* (sl->alloc + AA_CELL_STEP_ALLOC));
 				sl->alloc += AA_CELL_STEP_ALLOC;
 			}
 			cell = &sl->cells[sl->num];
@@ -726,7 +726,7 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 
 	size_y = raster->max_ey - raster->min_ey;
     if (raster->max_lines < size_y) {
-		raster->scanlines = (AAScanline*)realloc(raster->scanlines, sizeof(AAScanline)*size_y);
+		raster->scanlines = (AAScanline*)gf_realloc(raster->scanlines, sizeof(AAScanline)*size_y);
 		memset(&raster->scanlines[raster->max_lines], 0, sizeof(AAScanline)*(size_y-raster->max_lines) );
 		raster->max_lines = size_y;
 	}
@@ -753,9 +753,9 @@ int evg_raster_render(EVG_Raster raster, EVG_Raster_Params*  params)
 
 #if 0
 	for (i=0; i<raster->max_lines; i++) {
-		free(raster->scanlines[i].cells);
+		gf_free(raster->scanlines[i].cells);
 	}
-	free(raster->scanlines);
+	gf_free(raster->scanlines);
 	raster->scanlines = 0;
 	raster->max_lines = 0;
 #endif
@@ -774,10 +774,10 @@ void evg_raster_del(EVG_Raster raster)
 {
 	int i;
 	for (i=0; i<raster->max_lines; i++) {
-		free(raster->scanlines[i].cells);
+		gf_free(raster->scanlines[i].cells);
 	}
-	free(raster->scanlines);
-    free(raster);
+	gf_free(raster->scanlines);
+    gf_free(raster);
 }
 
 /* END */

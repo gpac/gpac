@@ -167,16 +167,16 @@ void evg_stencil_delete(GF_STENCIL st)
 	case GF_STENCIL_SOLID:
 	case GF_STENCIL_LINEAR_GRADIENT:
 	case GF_STENCIL_RADIAL_GRADIENT:
-		free(_this);
+		gf_free(_this);
 		return;
 	case GF_STENCIL_TEXTURE:
 	{
 		EVG_Texture *tx = (EVG_Texture *)_this;
 		/*destroy conversion buffer if any*/
-		if ( tx->conv_buf) free( tx->conv_buf );
+		if ( tx->conv_buf) gf_free( tx->conv_buf );
 		/*destroy local texture iof any*/
-		if (tx->owns_texture && tx->pixels) free(tx->pixels);
-		free(_this);
+		if (tx->owns_texture && tx->pixels) gf_free(tx->pixels);
+		gf_free(_this);
 	}
 		return;
 	}
@@ -787,9 +787,9 @@ void evg_set_texture_active(EVGStencil *st)
 		_this->pixel_format = GF_PIXEL_ARGB;
 	}
 	if (_this->Bpp * _this->width * _this->height > _this->conv_size) {
-		if (_this->conv_buf) free(_this->conv_buf);
+		if (_this->conv_buf) gf_free(_this->conv_buf);
 		_this->conv_size = _this->Bpp * _this->width * _this->height;
-		_this->conv_buf = (unsigned char *) malloc(sizeof(unsigned char)*_this->conv_size);
+		_this->conv_buf = (unsigned char *) gf_malloc(sizeof(unsigned char)*_this->conv_size);
 	}
 
 	src.height = _this->height;
@@ -848,8 +848,8 @@ GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_Pixel
 	_this->height = height;
 	_this->stride = width*_this->Bpp;
 
-	if (_this->pixels) free(_this->pixels);
-	_this->pixels = (char *) malloc(sizeof(char) * _this->stride * _this->height);
+	if (_this->pixels) gf_free(_this->pixels);
+	_this->pixels = (char *) gf_malloc(sizeof(char) * _this->stride * _this->height);
 	memset(_this->pixels, 0, sizeof(char) * _this->stride * _this->height);
 	_this->owns_texture = 1;
 	texture_set_callback(_this);

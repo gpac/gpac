@@ -164,7 +164,7 @@ void EPOCAudio::Close(Bool and_wait)
 		m_stream = NULL;
 	}
 	for (i=0; i<num_buffers; i++) {
-		if (buffers[i]) free(buffers[i]);
+		if (buffers[i]) gf_free(buffers[i]);
 		buffers[i] = NULL;
 	}
 	num_buffers = 0;
@@ -249,7 +249,7 @@ static GF_Err EAUD_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbC
 	ctx->total_duration = ctx->buffer_len * ctx->num_buffers;
 
 	for (i=0; i<ctx->num_buffers; i++) {
-		ctx->buffers[i] = (char *)malloc(sizeof(char)*ctx->buffer_size);
+		ctx->buffers[i] = (char *)gf_malloc(sizeof(char)*ctx->buffer_size);
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[EPOCAudio] Output audio stream configured - %d buffers of %d ms each\n", ctx->num_buffers, ctx->buffer_len));
 
@@ -326,7 +326,7 @@ extern "C" {
 void *EPOC_aout_new()
 {
 	GF_AudioOutput *driv;
-	driv = (GF_AudioOutput *) malloc(sizeof(GF_AudioOutput));
+	driv = (GF_AudioOutput *) gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "EPOC Audio Output", "gpac distribution")
 
@@ -352,7 +352,7 @@ void EPOC_aout_del(void *ifce)
 	GF_AudioOutput *dr = (GF_AudioOutput *) ifce;
 	EPOCAudio *ctx = (EPOCAudio*)dr->opaque;
 	delete ctx;
-	free(dr);
+	gf_free(dr);
 }
 
 #ifdef __cplusplus

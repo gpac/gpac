@@ -87,8 +87,8 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 					tk = i+1;
 					nb_samp = gf_isom_get_sample_count(src, i+1);
 				}
-				if (udesc->extension_buf) free(udesc->extension_buf);
-				free(udesc);
+				if (udesc->extension_buf) gf_free(udesc->extension_buf);
+				gf_free(udesc);
 			}
 			break;
 		case GF_4CC('q','t','v','r'):
@@ -143,7 +143,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	gf_node_register((GF_Node *)ni, (GF_Node *)gr);
 	gf_sg_vrml_mf_reset(&ni->type, GF_SG_VRML_MFSTRING);
 	gf_sg_vrml_mf_alloc(&ni->type, GF_SG_VRML_MFSTRING, 1);
-	ni->type.vals[0] = strdup("QTVR");
+	ni->type.vals[0] = gf_strdup("QTVR");
 
 	/*create ODs*/
 	st = gf_sm_stream_new(load->ctx, 2, GF_STREAM_OD, 1);
@@ -165,7 +165,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 		gf_list_add(esd->extensionDescriptors, mi);
 		mi->delete_file = 1;
 		sprintf(szName, "%s_img%d.jpg", load->fileName, esd->ESID);
-		mi->file_name = strdup(szName);
+		mi->file_name = gf_strdup(szName);
 		
 		gf_list_add(od->ESDescriptors, esd);
 		gf_list_add(odU->objectDescriptors, od);

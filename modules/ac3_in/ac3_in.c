@@ -157,7 +157,7 @@ static void AC3_OnLiveData(AC3Reader *read, char *data, u32 data_size)
 	GF_BitStream *bs;
 	GF_AC3Header hdr;
 	
-	read->data = realloc(read->data, sizeof(char)*(read->data_size+data_size) );
+	read->data = gf_realloc(read->data, sizeof(char)*(read->data_size+data_size) );
 	memcpy(read->data + read->data_size, data, sizeof(char)*data_size);
 	read->data_size += data_size;
 
@@ -198,9 +198,9 @@ static void AC3_OnLiveData(AC3Reader *read, char *data, u32 data_size)
 	if (pos) {
 		char *d;
 		read->data_size -= pos;
-		d = malloc(sizeof(char) * read->data_size);
+		d = gf_malloc(sizeof(char) * read->data_size);
 		memcpy(d, read->data + pos, sizeof(char) * read->data_size);
-		free(read->data);
+		gf_free(read->data);
 		read->data = d;
 	}
 	AC3_RegulateDataRate(read);
@@ -224,17 +224,17 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		}
 	} else if (param->msg_type==GF_NETIO_PARSE_HEADER) {
 		if (!strcmp(param->name, "icy-name")) {
-			if (read->icy_name) free(read->icy_name);
-			read->icy_name = strdup(param->value);
+			if (read->icy_name) gf_free(read->icy_name);
+			read->icy_name = gf_strdup(param->value);
 		}
 		if (!strcmp(param->name, "icy-genre")) {
-			if (read->icy_genre) free(read->icy_genre);
-			read->icy_genre = strdup(param->value);
+			if (read->icy_genre) gf_free(read->icy_genre);
+			read->icy_genre = gf_strdup(param->value);
 		}
 		if (!strcmp(param->name, "icy-meta")) {
 			GF_NetworkCommand com;
 			char *meta;
-			if (read->icy_track_name) free(read->icy_track_name);
+			if (read->icy_track_name) gf_free(read->icy_track_name);
 			read->icy_track_name = NULL;
 			meta = param->value;
 			while (meta && meta[0]) {
@@ -242,7 +242,7 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				if (sep) sep[0] = 0;
 	
 				if (!strnicmp(meta, "StreamTitle=", 12)) {
-					read->icy_track_name = strdup(meta+12);
+					read->icy_track_name = gf_strdup(meta+12);
 				}
 				if (!sep) break;
 				sep[0] = ';';
@@ -363,7 +363,7 @@ static GF_Err AC3_CloseService(GF_InputService *plug)
 	if (read->dnload) gf_term_download_del(read->dnload);
 	read->dnload = NULL;
 
-	if (read->data) free(read->data);
+	if (read->data) gf_free(read->data);
 	read->data = NULL;
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;
@@ -425,7 +425,7 @@ static GF_Err AC3_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	GF_Err e = GF_STREAM_NOT_FOUND;
 	if (read->ch == channel) {
 		read->ch = NULL;
-		if (read->data) free(read->data);
+		if (read->data) gf_free(read->data);
 		read->data = NULL;
 		e = GF_OK;
 	}
@@ -568,7 +568,7 @@ fetch_next:
 		
 		read->sl_hdr.compositionTimeStamp = read->current_time;
 
-		read->data = malloc(sizeof(char) * (read->data_size+read->pad_bytes));
+		read->data = gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
 		gf_bs_read_data(bs, read->data, read->data_size);
 		if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 		gf_bs_del(bs);
@@ -585,7 +585,7 @@ static GF_Err AC3_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 
 	if (read->ch == channel) {
 		if (!read->data) return GF_BAD_PARAM;
-		free(read->data);
+		gf_free(read->data);
 		read->data = NULL;
 		read->current_time += read->nb_samp;
 		return GF_OK;
@@ -596,7 +596,7 @@ static GF_Err AC3_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 GF_InputService *AC3_Load()
 {
 	AC3Reader *reader;
-	GF_InputService *plug = malloc(sizeof(GF_InputService));
+	GF_InputService *plug = gf_malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC AC3 Reader", "gpac distribution")
 
@@ -611,7 +611,7 @@ GF_InputService *AC3_Load()
 	plug->ChannelGetSLP = AC3_ChannelGetSLP;
 	plug->ChannelReleaseSLP = AC3_ChannelReleaseSLP;
 
-	reader = malloc(sizeof(AC3Reader));
+	reader = gf_malloc(sizeof(AC3Reader));
 	memset(reader, 0, sizeof(AC3Reader));
 	plug->priv = reader;
 	return plug;
@@ -621,8 +621,8 @@ void AC3_Delete(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
 	AC3Reader *read = plug->priv;
-	free(read);
-	free(plug);
+	gf_free(read);
+	gf_free(plug);
 }
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/

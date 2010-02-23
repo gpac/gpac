@@ -182,8 +182,8 @@ static s32 ft_stroke_border_grow(FT_StrokeBorder  border, u32 new_points)
 	u32 new_max = border->num_points + new_points;
 	if (new_max > border->max_points) {
 		u32 cur_max = new_max*2;
-		border->points = (GF_Point2D *) realloc(border->points, sizeof(GF_Point2D)*cur_max);
-		border->tags = (u8 *) realloc(border->tags, sizeof(u8)*cur_max);
+		border->points = (GF_Point2D *) gf_realloc(border->points, sizeof(GF_Point2D)*cur_max);
+		border->tags = (u8 *) gf_realloc(border->tags, sizeof(u8)*cur_max);
 		if (!border->points || !border->tags) return -1;
 		border->max_points = cur_max;
 	}
@@ -1445,11 +1445,11 @@ static GF_Err gf_path_mergedashes(GF_Path *gp, u32 start_contour_index)
 		gp->contours[i] = gp->contours[i+1] - dash_nb_pts; 
 	}
 	gp->n_contours--;
-	gp->contours = (u32 *)realloc(gp->contours, sizeof(u32)*gp->n_contours);
+	gp->contours = (u32 *)gf_realloc(gp->contours, sizeof(u32)*gp->n_contours);
 
 /*
-	gp->points = realloc(gp->points, sizeof(GF_Point2D)*gp->n_points);
-	gp->tags = realloc(gp->tags, sizeof(u8)*gp->n_points);
+	gp->points = gf_realloc(gp->points, sizeof(GF_Point2D)*gp->n_points);
+	gp->tags = gf_realloc(gp->tags, sizeof(u8)*gp->n_points);
 	gp->n_alloc_points = gp->n_points;
 */
 	return GF_OK;
@@ -1472,7 +1472,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 	Fixed phase;
 	s32 offset, toggle;
 	
-	dists = (Fixed *)malloc(sizeof (Fixed) * nb_pts);
+	dists = (Fixed *)gf_malloc(sizeof (Fixed) * nb_pts);
 	if (dists == NULL) return GF_OUT_OF_MEM;
 	
 	/* initial values */
@@ -1563,7 +1563,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 				gf_path_add_line_to_vec(dashed, &pts[i]); 
 			}
 		}
-		free(dists);
+		gf_free(dists);
 		return GF_OK;
 	}
 	
@@ -1632,7 +1632,7 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 
 err_exit:
 //	pen->dash_offset = dist;
-	free(dists);
+	gf_free(dists);
 	return GF_OK;
 }
 
@@ -1746,9 +1746,9 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 			FT_StrokeBorder sborder;
 			outline = gf_path_new();
 			if (nb_pt) {
-				outline->points = (GF_Point2D *) malloc(sizeof(GF_Point2D)*nb_pt);
-				outline->tags = (u8 *) malloc(sizeof(u8)*nb_pt);
-				outline->contours = (u32 *) malloc(sizeof(u32)*nb_cnt);
+				outline->points = (GF_Point2D *) gf_malloc(sizeof(GF_Point2D)*nb_pt);
+				outline->tags = (u8 *) gf_malloc(sizeof(u8)*nb_pt);
+				outline->contours = (u32 *) gf_malloc(sizeof(u32)*nb_cnt);
 				outline->n_alloc_points = nb_pt;
 				sborder = &stroker.borders[0];
 				if (sborder->valid ) ft_stroke_border_export(sborder, outline);
@@ -1771,10 +1771,10 @@ GF_Path *gf_path_get_outline(GF_Path *path, GF_PenSettings pen)
 		}
 	}
 
-	if (stroker.borders[0].points) free(stroker.borders[0].points);
-	if (stroker.borders[0].tags) free(stroker.borders[0].tags);
-	if (stroker.borders[1].points) free(stroker.borders[1].points);
-	if (stroker.borders[1].tags) free(stroker.borders[1].tags);
+	if (stroker.borders[0].points) gf_free(stroker.borders[0].points);
+	if (stroker.borders[0].tags) gf_free(stroker.borders[0].tags);
+	if (stroker.borders[1].points) gf_free(stroker.borders[1].points);
+	if (stroker.borders[1].tags) gf_free(stroker.borders[1].tags);
 	
 	if (dashed) gf_path_del(dashed);
 	if (scaled) gf_path_del(scaled);

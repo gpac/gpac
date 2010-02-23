@@ -498,7 +498,7 @@ static void TraverseOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		if (stack->cache) group_cache_del(stack->cache);
-		free(stack);
+		gf_free(stack);
 		return;
 	}
 
@@ -605,7 +605,7 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
 	if (is_destroy) {
-		free(stack);
+		gf_free(stack);
 		return;
 	}
 
@@ -806,7 +806,7 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
 	if (is_destroy) {
-		free(stack);
+		gf_free(stack);
 		return;
 	}
 

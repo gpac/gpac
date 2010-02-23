@@ -41,8 +41,8 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 			if (_free->dataSize) {
 				if (!strcmp(_free->data, GPAC_ISOM_CPRT_NOTICE)) return GF_OK;
 				if (strstr(_free->data, "File Produced with GPAC")) {
-					free(_free->data);
-					_free->data = strdup(GPAC_ISOM_CPRT_NOTICE);
+					gf_free(_free->data);
+					_free->data = gf_strdup(GPAC_ISOM_CPRT_NOTICE);
 					_free->dataSize = strlen(_free->data);
 					return GF_OK;
 				}
@@ -53,7 +53,7 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 	if (!a) return GF_OUT_OF_MEM;
 	_free = (GF_FreeSpaceBox *)a;
 	_free->dataSize = strlen(GPAC_ISOM_CPRT_NOTICE) + 1;
-	_free->data = strdup(GPAC_ISOM_CPRT_NOTICE);
+	_free->data = gf_strdup(GPAC_ISOM_CPRT_NOTICE);
 	if (!_free->data) return GF_OUT_OF_MEM;
 	return gf_list_add(movie->TopBoxes, _free);
 }
@@ -92,7 +92,7 @@ void CleanWriters(GF_List *writers)
 		writer = (TrackWriter*)gf_list_get(writers, 0);
 		gf_isom_box_del(writer->stco);
 		gf_isom_box_del((GF_Box *)writer->stsc);
-		free(writer);
+		gf_free(writer);
 		gf_list_rem(writers, 0);
 	}
 }
@@ -110,12 +110,12 @@ void ResetWriters(GF_List *writers)
 		gf_isom_box_del((GF_Box *)writer->stsc);
 		writer->stsc = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
 		if (writer->stco->type == GF_ISOM_BOX_TYPE_STCO) {
-			free(((GF_ChunkOffsetBox *)writer->stco)->offsets);
+			gf_free(((GF_ChunkOffsetBox *)writer->stco)->offsets);
 			((GF_ChunkOffsetBox *)writer->stco)->offsets = NULL;
 			((GF_ChunkOffsetBox *)writer->stco)->nb_entries = 0;
 			((GF_ChunkOffsetBox *)writer->stco)->alloc_size = 0;
 		} else {
-			free(((GF_ChunkLargeOffsetBox *)writer->stco)->offsets);
+			gf_free(((GF_ChunkLargeOffsetBox *)writer->stco)->offsets);
 			((GF_ChunkLargeOffsetBox *)writer->stco)->offsets = NULL;
 			((GF_ChunkLargeOffsetBox *)writer->stco)->nb_entries = 0;
 			((GF_ChunkLargeOffsetBox *)writer->stco)->alloc_size = 0;
@@ -225,7 +225,7 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 						co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
 						if (!co64) return GF_OUT_OF_MEM;
 						co64->nb_entries = stco->nb_entries;
-						co64->offsets = (u64*)malloc(co64->nb_entries * sizeof(u64));
+						co64->offsets = (u64*)gf_malloc(co64->nb_entries * sizeof(u64));
 						if (!co64) {
 							gf_isom_box_del((GF_Box *)co64);
 							return GF_OUT_OF_MEM;
@@ -348,7 +348,7 @@ GF_Err WriteSample(MovieWriter *mw, u32 size, u64 offset, u8 isEdited, GF_BitStr
 	u32 bytes;
 
 	if (size>mw->size) {
-		mw->buffer = (char*)realloc(mw->buffer, size);
+		mw->buffer = (char*)gf_realloc(mw->buffer, size);
 		mw->size = size;
 	}
 
@@ -943,7 +943,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 		char *blank;
 		u32 count, i;
 		i = count = 0;
-		blank = malloc(sizeof(char)*1024*1024);
+		blank = gf_malloc(sizeof(char)*1024*1024);
 		memset(blank, 0, sizeof(char)*1024*1024);
 		count = 4096;
 		memset(blank, 0, sizeof(char)*1024*1024);
@@ -953,7 +953,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 			i++;
 			fprintf(stdout, "writing blank block: %.02f done - %d/%d \r", (100.0*i)/count , i, count);
 		}
-		free(blank);
+		gf_free(blank);
 	}
 	mdatSize = 4096*1024;
 	mdatSize *= 1024;
@@ -1272,7 +1272,7 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 		gf_bs_del(bs);
 		fclose(stream);
 	}
-	if (mw.buffer) free(mw.buffer);
+	if (mw.buffer) gf_free(mw.buffer);
 	if (mw.nb_done<mw.total_samples) {
 		gf_set_progress("ISO File Writing", mw.total_samples, mw.total_samples);
 	}

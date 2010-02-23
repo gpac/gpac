@@ -7,7 +7,7 @@
  *
  *  This file is part of GPAC / command-line client
  *
- *  GPAC is free software; you can redistribute it and/or modify
+ *  GPAC is gf_free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
@@ -651,8 +651,8 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 		comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
 		AVI_set_video(avi_out, width, height, fps, comp);
 		if (dump_mode==8) AVI_set_video(depth_avi_out, width, height, fps, comp);
-		if (dump_mode != 5 && dump_mode!=10) conv_buf = malloc(sizeof(char) * width * height * 3);
-		else conv_buf = malloc(sizeof(char) * width * height * 4);
+		if (dump_mode != 5 && dump_mode!=10) conv_buf = gf_malloc(sizeof(char) * width * height * 3);
+		else conv_buf = gf_malloc(sizeof(char) * width * height * 4);
 		/*step to first frame*/
 		if (prev_time) gf_term_step_clocks(term, prev_time);
 
@@ -679,7 +679,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 		}
 		AVI_close(avi_out);
 		if (dump_mode==8) AVI_close(depth_avi_out);
-		free(conv_buf);
+		gf_free(conv_buf);
 		fprintf(stdout, "AVI Extraction 100/100\n");
 #endif /*GPAC_DISABLE_AVILIB*/
 	} else {

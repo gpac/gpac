@@ -233,7 +233,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			esd->decoderConfig->streamType = GF_STREAM_SCENE;
 			esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_LASER;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = ptr->lsr_config->hdr_size;
-			esd->decoderConfig->decoderSpecificInfo->data = malloc(sizeof(char)*ptr->lsr_config->hdr_size);
+			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*ptr->lsr_config->hdr_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, ptr->lsr_config->hdr, sizeof(char)*ptr->lsr_config->hdr_size);
 			return GF_OK;
 		}
@@ -346,7 +346,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	if (no_data) return GF_OK;
 
 	/*and finally get the data, include padding if needed*/
- 	(*samp)->data = (char *) malloc(sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
+ 	(*samp)->data = (char *) gf_malloc(sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
 	if (mdia->mediaTrack->padding_bytes)
 		memset((*samp)->data + (*samp)->dataLength, 0, sizeof(char) * mdia->mediaTrack->padding_bytes);
 
@@ -607,7 +607,7 @@ GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNna
 		//THIS IS URL
 		entry = (GF_DataEntryURLBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_URL);
 		entry->flags = 0;
-		entry->location = (char*)malloc(strlen(URLname)+1);
+		entry->location = (char*)gf_malloc(strlen(URLname)+1);
 		if (! entry->location) {
 			gf_isom_box_del((GF_Box *)entry);
 			return GF_OUT_OF_MEM;
@@ -621,7 +621,7 @@ GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNna
 		//THIS IS URN
 		entry = (GF_DataEntryURLBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_URN);
 		((GF_DataEntryURNBox *)entry)->flags = 0;
-		((GF_DataEntryURNBox *)entry)->nameURN = (char*)malloc(strlen(URNname)+1);
+		((GF_DataEntryURNBox *)entry)->nameURN = (char*)gf_malloc(strlen(URNname)+1);
 		if (! ((GF_DataEntryURNBox *)entry)->nameURN) {
 			gf_isom_box_del((GF_Box *)entry);
 			return GF_OUT_OF_MEM;
@@ -629,7 +629,7 @@ GF_Err Media_CreateDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNna
 		strcpy(((GF_DataEntryURNBox *)entry)->nameURN, URNname);
 		//check for URL
 		if (URLname) {
-			((GF_DataEntryURNBox *)entry)->location = (char*)malloc(strlen(URLname)+1);
+			((GF_DataEntryURNBox *)entry)->location = (char*)gf_malloc(strlen(URLname)+1);
 			if (! ((GF_DataEntryURNBox *)entry)->location) {
 				gf_isom_box_del((GF_Box *)entry);
 				return GF_OUT_OF_MEM;

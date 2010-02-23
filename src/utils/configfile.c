@@ -72,16 +72,16 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 	file = fopen(fileName, "rt");
 	if (!file) return NULL;
 
-	tmp = (GF_Config *)malloc(sizeof(GF_Config));
+	tmp = (GF_Config *)gf_malloc(sizeof(GF_Config));
 	memset((void *)tmp, 0, sizeof(GF_Config));
 
-	tmp->filePath = strdup(filePath);
-	tmp->fileName = strdup(fileName);
+	tmp->filePath = gf_strdup(filePath);
+	tmp->fileName = gf_strdup(fileName);
 	tmp->sections = gf_list_new();
 
 	//load the file
 	p = NULL;
-	line = malloc(sizeof(char)*line_alloc);
+	line = gf_malloc(sizeof(char)*line_alloc);
 	memset(line, 0, sizeof(char)*line_alloc);
 
 	while (!feof(file)) {
@@ -90,7 +90,7 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 		read = strlen(line);
 		while (read + 1 == line_alloc) {
 			line_alloc += MAX_INI_LINE;
-			line = realloc(line, sizeof(char)*line_alloc);
+			line = gf_realloc(line, sizeof(char)*line_alloc);
 			ret = fgets(line+read, MAX_INI_LINE, file);
 			read = strlen(line);
 		}
@@ -109,9 +109,9 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 		
 		//new section
 		if (line[0] == '[') {
-			p = (IniSection *) malloc(sizeof(IniSection));
+			p = (IniSection *) gf_malloc(sizeof(IniSection));
 			p->keys = gf_list_new();
-			p->section_name = strdup(line + 1);
+			p->section_name = gf_strdup(line + 1);
 			p->section_name[strlen(line) - 2] = 0;
 			while (p->section_name[strlen(p->section_name) - 1] == ']' || p->section_name[strlen(p->section_name) - 1] == ' ') p->section_name[strlen(p->section_name) - 1] = 0;
 			gf_list_add(tmp->sections, p);
@@ -119,31 +119,31 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 		else if (strlen(line) && (strchr(line, '=') != NULL) ) {
 			if (!p) {
 				gf_list_del(tmp->sections);
-				free(tmp->fileName);
-				free(tmp->filePath);
-				free(tmp);
+				gf_free(tmp->fileName);
+				gf_free(tmp->filePath);
+				gf_free(tmp);
 				fclose(file);
-				free(line);
+				gf_free(line);
 				return NULL;
 			}
 //			GF_SAFEALLOC(k, IniKey)
-			k = (IniKey *) malloc(sizeof(IniKey));
+			k = (IniKey *) gf_malloc(sizeof(IniKey));
 			memset((void *)k, 0, sizeof(IniKey));
 			ret = strchr(line, '=');
 			if (ret) {
 				ret[0] = 0;
-				k->name = strdup(line);
+				k->name = gf_strdup(line);
 				ret[0] = '=';
 				ret += 1;
 				while (ret[0] == ' ') ret++;
-				k->value = strdup(ret);
+				k->value = gf_strdup(ret);
 				while (k->name[strlen(k->name) - 1] == ' ') k->name[strlen(k->name) - 1] = 0;
 				while (k->value[strlen(k->value) - 1] == ' ') k->value[strlen(k->value) - 1] = 0;
 			}
 			gf_list_add(p->keys, k);
 		}
 	}
-	free(line);
+	gf_free(line);
 	fclose(file);
 	return tmp;
 }
@@ -155,15 +155,15 @@ static void DelSection(IniSection *ptr)
 	if (ptr->keys) {
 		while (gf_list_count(ptr->keys)) {
 			k = (IniKey *) gf_list_get(ptr->keys, 0);
-			if (k->value) free(k->value);
-			if (k->name) free(k->name);
-			free(k);
+			if (k->value) gf_free(k->value);
+			if (k->name) gf_free(k->name);
+			gf_free(k);
 			gf_list_rem(ptr->keys, 0);
 		}
 		gf_list_del(ptr->keys);
 	}
-	if (ptr->section_name) free(ptr->section_name);
-	free(ptr);
+	if (ptr->section_name) gf_free(ptr->section_name);
+	gf_free(ptr);
 }
 
 
@@ -207,9 +207,9 @@ void gf_cfg_del(GF_Config *iniFile)
 		gf_list_rem(iniFile->sections, 0);
 	}
 	gf_list_del(iniFile->sections);
-	free(iniFile->fileName);
-	free(iniFile->filePath);
-	free(iniFile);
+	gf_free(iniFile->fileName);
+	gf_free(iniFile->filePath);
+	gf_free(iniFile);
 }
 
 
@@ -250,8 +250,8 @@ GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyNa
 		if (!strcmp(secName, sec->section_name)) goto get_key;
 	}
 	//need a new key
-	sec = (IniSection *) malloc(sizeof(IniSection));
-	sec->section_name = strdup(secName);
+	sec = (IniSection *) gf_malloc(sizeof(IniSection));
+	sec->section_name = gf_strdup(secName);
 	sec->keys = gf_list_new();
 	iniFile->hasChanged = 1;
 	gf_list_add(iniFile->sections, sec);
@@ -263,26 +263,26 @@ get_key:
 	}
 	if (!keyValue) return GF_OK;
 	//need a new key
-	key = (IniKey *) malloc(sizeof(IniKey));
-	key->name = strdup(keyName);
-	key->value = strdup("");
+	key = (IniKey *) gf_malloc(sizeof(IniKey));
+	key->name = gf_strdup(keyName);
+	key->value = gf_strdup("");
 	iniFile->hasChanged = 1;
 	gf_list_add(sec->keys, key);
 
 set_value:
 	if (!keyValue) {
 		gf_list_del_item(sec->keys, key);
-		if (key->name) free(key->name);
-		if (key->value) free(key->value);
-		free(key);
+		if (key->name) gf_free(key->name);
+		if (key->value) gf_free(key->value);
+		gf_free(key);
 		iniFile->hasChanged = 1;
 		return GF_OK;
 	}
 	//same value, don't update
 	if (!strcmp(key->value, keyValue)) return GF_OK;
 
-	if (key->value) free(key->value);
-	key->value = strdup(keyValue);
+	if (key->value) gf_free(key->value);
+	key->value = gf_strdup(keyValue);
 	iniFile->hasChanged = 1;
 	return GF_OK;
 }
@@ -363,9 +363,9 @@ GF_Err gf_cfg_insert_key(GF_Config *iniFile, const char *secName, const char *ke
 		if (!strcmp(key->name, keyName)) return GF_BAD_PARAM;
 	}
 
-	key = (IniKey *) malloc(sizeof(IniKey));
-	key->name = strdup(keyName);
-	key->value = strdup(keyValue);
+	key = (IniKey *) gf_malloc(sizeof(IniKey));
+	key->name = gf_strdup(keyName);
+	key->value = gf_strdup(keyValue);
 	gf_list_insert(sec->keys, key, index);
 	iniFile->hasChanged = 1;
 	return GF_OK;
@@ -376,10 +376,10 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
 {
 	u32 j;
 	char *subKeyValue, *returnKey;
-	const char *keyValue;
+	char *keyValue;
 
 	
-	keyValue = strdup(gf_cfg_get_key(iniFile, secName, keyName));
+	keyValue = gf_strdup(gf_cfg_get_key(iniFile, secName, keyName));
 	if (!keyValue){
 		return NULL;
 	}
@@ -388,13 +388,13 @@ const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const ch
 	subKeyValue = strtok((char*)keyValue,";"); 
 	while (subKeyValue!=NULL) { 
 		if (j==sub_index) {
-			returnKey = strdup(subKeyValue);
-			free(keyValue);
+			returnKey = gf_strdup(subKeyValue);
+			gf_free(keyValue);
 			return returnKey;
 		}
 		j++;
 		subKeyValue = strtok (NULL, ";");
 	}
-	free(keyValue);
+	gf_free(keyValue);
 	return NULL;
 }

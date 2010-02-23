@@ -79,9 +79,9 @@ static void bifs_info_del(BIFSStreamInfo *info)
 		BIFSElementaryMask *em = (BIFSElementaryMask *)gf_list_last(info->config.elementaryMasks);
 		if (!em) break;
 		gf_list_rem_last(info->config.elementaryMasks);
-		free(em);
+		gf_free(em);
 	}
-	free(info);
+	gf_free(info);
 }
 
 GF_EXPORT
@@ -157,7 +157,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	}
 
 	if (e && (e != GF_ODF_INVALID_DESCRIPTOR)) {
-		free(pInfo);
+		gf_free(pInfo);
 		gf_bs_del(bs);
 		return GF_BIFS_UNKNOWN_VERSION;
 	}
@@ -189,7 +189,7 @@ GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID)
 	i=0;
 	while ((ptr = (BIFSStreamInfo*)gf_list_enum(codec->streamInfo, &i))) {
 		if(ptr->ESID==ESID) {
-			free(ptr);
+			gf_free(ptr);
 			gf_list_rem(codec->streamInfo, i-1);
 			return GF_OK;
 		}
@@ -213,15 +213,15 @@ void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 
 	while (gf_list_count(codec->command_buffers)) {
 		CommandBufferItem *cbi = (CommandBufferItem *)gf_list_get(codec->command_buffers, 0);
-		free(cbi);
+		gf_free(cbi);
 		gf_list_rem(codec->command_buffers, 0);
 	}
 	gf_list_del(codec->command_buffers);
 
-	if (codec->extraction_path) free(codec->extraction_path);
-	if (codec->service_url) free(codec->service_url);
+	if (codec->extraction_path) gf_free(codec->extraction_path);
+	if (codec->service_url) gf_free(codec->service_url);
 //	gf_mx_del(codec->mx);
-	free(codec);
+	gf_free(codec);
 }
 
 
@@ -323,7 +323,7 @@ void gf_bifs_encoder_del(GF_BifsEncoder *codec)
 	gf_list_del(codec->streamInfo);
 	gf_list_del(codec->encoded_nodes);
 //	gf_mx_del(codec->mx);
-	free(codec);
+	gf_free(codec);
 }
 
 GF_EXPORT
@@ -504,10 +504,10 @@ GF_EXPORT
 void gf_bifs_decoder_set_extraction_path(GF_BifsDecoder *codec, const char *path, const char *service_url)
 {
 	if (!codec) return;
-	if (codec->extraction_path) free(codec->extraction_path);
-	codec->extraction_path = path ? strdup(path) : NULL;
-	if (codec->service_url) free(codec->service_url);
-	codec->service_url = service_url ? strdup(service_url) : NULL;
+	if (codec->extraction_path) gf_free(codec->extraction_path);
+	codec->extraction_path = path ? gf_strdup(path) : NULL;
+	if (codec->service_url) gf_free(codec->service_url);
+	codec->service_url = service_url ? gf_strdup(service_url) : NULL;
 	
 }
 

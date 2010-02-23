@@ -393,7 +393,7 @@ void group_3d_delete(GF_Node *node)
 {
 	GroupingNode *group = (GroupingNode *)gf_node_get_private(node);
 
-	free(group);
+	gf_free(group);
 }
 
 GroupingNode *group_3d_new(GF_Node *node)
@@ -526,7 +526,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 			while (l) {
 				if (get_light_type(l->node)==1) {
 					/*store lights for alpha draw*/
-					dl = (DirectionalLightContext*)malloc(sizeof(DirectionalLightContext));
+					dl = (DirectionalLightContext*)gf_malloc(sizeof(DirectionalLightContext));
 					dl->dlight = l->node;
 					memcpy(&dl->light_matrix, &tr_state->model_matrix, sizeof(GF_Matrix));
 					gf_list_add(tr_state->local_lights, dl);
@@ -597,7 +597,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 			dl = (DirectionalLightContext*)gf_list_get(tr_state->local_lights, lcount-1);
 			gf_list_rem(tr_state->local_lights, lcount-1);
 			gf_node_traverse(dl->dlight, tr_state);
-			free(dl);
+			gf_free(dl);
 		}
 		/*and back to sort mode*/
 		tr_state->traversing_mode = TRAVERSE_SORT;
@@ -630,7 +630,7 @@ void parent_node_reset(ParentNode2D *group)
 	while (gf_list_count(group->groups)) {
 		ChildGroup *cg = (ChildGroup *)gf_list_get(group->groups, 0);
 		gf_list_rem(group->groups, 0);
-		free(cg);
+		gf_free(cg);
 	}
 }
 

@@ -111,8 +111,8 @@ static void RP_cleanup(RTPClient *rtp)
 	rtp->session_desc = NULL;
 
 	if (rtp->sdp_temp) {
-		free(rtp->sdp_temp->remote_url);
-		free(rtp->sdp_temp);
+		gf_free(rtp->sdp_temp->remote_url);
+		gf_free(rtp->sdp_temp);
 	}
 	rtp->sdp_temp = NULL;
 }
@@ -237,7 +237,7 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 	
 	/*rtsp and rtsp over udp*/
 	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8)) {
-		char *the_url = strdup(url);
+		char *the_url = gf_strdup(url);
 		char *the_ext = strrchr(the_url, '#');
 		if (the_ext) {
 			if (!stricmp(the_ext, "#audio")) priv->media_type = GF_MEDIA_OBJECT_AUDIO;
@@ -245,7 +245,7 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 			the_ext[0] = 0;
 		}
 		sess = RP_NewSession(priv, (char *) the_url);
-		free(the_url);
+		gf_free(the_url);
 		if (!sess) {
 			gf_term_on_connect(serv, NULL, GF_NOT_SUPPORTED);
 		} else {
@@ -389,7 +389,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 		) {
 		
 		GF_SAFEALLOC(ch, RTPStream);
-		ch->control = strdup(url);
+		ch->control = gf_strdup(url);
 		ch->owner = priv;
 		ch->channel = channel;
 		ch->status = RTP_Connected;
@@ -554,7 +554,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_GET_DSI:
 		if (ch->depacketizer && ch->depacketizer->sl_map.configSize) {
 			com->get_dsi.dsi_len = ch->depacketizer->sl_map.configSize;
-			com->get_dsi.dsi = (char*)malloc(sizeof(char)*com->get_dsi.dsi_len);
+			com->get_dsi.dsi = (char*)gf_malloc(sizeof(char)*com->get_dsi.dsi_len);
 			memcpy(com->get_dsi.dsi, ch->depacketizer->sl_map.config, sizeof(char)*com->get_dsi.dsi_len);
 		} else {
 			com->get_dsi.dsi = NULL;
@@ -731,8 +731,8 @@ void RTP_Delete(GF_BaseInterface *bi)
 	}
 	assert(retry);
 
-	if (rtp->session_state) free(rtp->session_state);
-	if (rtp->remote_session_state) free(rtp->remote_session_state);
+	if (rtp->session_state) gf_free(rtp->session_state);
+	if (rtp->remote_session_state) gf_free(rtp->remote_session_state);
 
 
 	RP_cleanup(rtp);
@@ -740,8 +740,8 @@ void RTP_Delete(GF_BaseInterface *bi)
 	gf_mx_del(rtp->mx);
 	gf_list_del(rtp->sessions);
 	gf_list_del(rtp->channels);
-	free(rtp);
-	free(bi);
+	gf_free(rtp);
+	gf_free(bi);
 }
 
 #endif

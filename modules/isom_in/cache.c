@@ -72,7 +72,7 @@ static GF_Err ISOW_Close(GF_StreamingCache *mc, Bool delete_cache)
 			gf_isom_add_sample(cache->mov, ch->track, 1, ch->cache_sample);
 			gf_isom_sample_del(&ch->cache_sample);
 		}
-		free(ch);
+		gf_free(ch);
 	}
 	if (delete_cache) {
 		gf_isom_delete(cache->mov);
@@ -158,7 +158,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 		mch->cache_sample = gf_isom_sample_new();
 		mch->cache_sample->IsRAP = sl_hdr->randomAccessPointFlag;
 		mch->cache_sample->dataLength = data_size;
-		mch->cache_sample->data = (char*)malloc(sizeof(char)*data_size);
+		mch->cache_sample->data = (char*)gf_malloc(sizeof(char)*data_size);
 		memcpy(mch->cache_sample->data, data, sizeof(char)*data_size);
 		return GF_OK;
 	}
@@ -207,7 +207,7 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 	mch->cache_sample->DTS = DTS + mch->frame_cts_offset;
 	mch->cache_sample->CTS_Offset = (u32) (sl_hdr->compositionTimeStamp - mch->cache_seed_ts - DTS);
 	mch->cache_sample->dataLength = data_size;
-	mch->cache_sample->data = (char*)malloc(sizeof(char)*data_size);
+	mch->cache_sample->data = (char*)gf_malloc(sizeof(char)*data_size);
 	memcpy(mch->cache_sample->data, data, sizeof(char)*data_size);
 	return GF_OK;
 }
@@ -259,8 +259,8 @@ void isow_delete_cache(GF_BaseInterface *bi)
 	GF_StreamingCache *mc = (GF_StreamingCache*) bi;
 	ISOMReader *cache = (ISOMReader *)mc->priv;
 	gf_list_del(cache->channels);
-	free(cache);
-	free(bi);
+	gf_free(cache);
+	gf_free(bi);
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

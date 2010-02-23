@@ -187,8 +187,8 @@ static void svg_traverse_font(GF_Node *node, void *rs, Bool is_destroy)
 		GF_Font *font = gf_node_get_private(node);
 		if (font) {
 			gf_font_manager_unregister_font(font->ft_mgr, font);
-			if (font->name) free(font->name);
-			free(font);
+			if (font->name) gf_free(font->name);
+			gf_free(font);
 		}
 	}
 }
@@ -227,7 +227,7 @@ void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node)
 	GF_SAFEALLOC(font, GF_Font);
 	e = gf_font_manager_register_font(compositor->font_manager, font);
 	if (e) {
-		free(font);
+		gf_free(font);
 		return;
 	}
 	font->ft_mgr = compositor->font_manager;
@@ -237,7 +237,7 @@ void compositor_init_svg_font(GF_Compositor *compositor, GF_Node *node)
 	font->udta = node_font;
 	gf_node_set_private(node_font, font);
 	gf_node_set_callback_function(node_font, svg_traverse_font);
-	font->name = strdup(atts.font_family->value);
+	font->name = gf_strdup(atts.font_family->value);
 
 	font->em_size = atts.units_per_em ? FIX2INT( gf_ceil(atts.units_per_em->value) ) : 1000;
 	/*Inconsistency between SVG 1.2 and 1.1
@@ -299,7 +299,7 @@ static void svg_traverse_glyph(GF_Node *node, void *rs, Bool is_destroy)
 		GF_Font *font;
 		GF_Glyph *prev_glyph, *a_glyph;
 		SVG_GlyphStack *st = gf_node_get_private(node);
-		if (st->unicode) free(st->unicode);
+		if (st->unicode) gf_free(st->unicode);
 
 		font = st->font;
 		prev_glyph = NULL;
@@ -314,7 +314,7 @@ static void svg_traverse_glyph(GF_Node *node, void *rs, Bool is_destroy)
 		} else {
 			font->glyph = st->glyph.next;
 		}
-		free(st);
+		gf_free(st);
 	}
 }
 
@@ -354,7 +354,7 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node)
 		st->uni_len = 1;
 	} else {
 		st->glyph.utf_name = (u32) st;
-		st->unicode = malloc(sizeof(u16)*len);
+		st->unicode = gf_malloc(sizeof(u16)*len);
 		st->uni_len = len;
 		memcpy(st->unicode, utf_name, sizeof(u16)*len);
 	}
@@ -456,10 +456,10 @@ static void svg_traverse_font_face_uri(GF_Node *node, void *rs, Bool is_destroy)
 		FontURIStack *st = gf_node_get_private(node);
 		if (st) {
 			gf_font_manager_unregister_font(st->font->ft_mgr, st->font);
-			if (st->font->name) free(st->font->name);
-			free(st->font);
+			if (st->font->name) gf_free(st->font->name);
+			gf_free(st->font);
 			if (st->mo) gf_mo_unload_xlink_resource(node, st->mo);
-			free(st);
+			gf_free(st);
 		}
 	}
 }
@@ -495,7 +495,7 @@ void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node)
 	GF_SAFEALLOC(font, GF_Font);
 	e = gf_font_manager_register_font(compositor->font_manager, font);
 	if (e) {
-		free(font);
+		gf_free(font);
 		return;
 	}
 	GF_SAFEALLOC(stack, FontURIStack);
@@ -508,7 +508,7 @@ void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node)
 	font->load_glyph = svg_font_uri_load_glyph;
 	font->get_alias = svg_font_uri_get_alias;
 	font->udta = node;
-	font->name = strdup(atts.font_family->value);
+	font->name = gf_strdup(atts.font_family->value);
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_font_face_uri);
 

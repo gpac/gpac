@@ -131,8 +131,8 @@ void DeleteBIFSDec(GF_BaseDecoder *plug)
 	BIFSPriv *priv = (BIFSPriv *)plug->privateStack;
 	/*in case something went wrong*/
 	if (priv->codec) gf_bifs_decoder_del(priv->codec);
-	free(priv);
-	free(plug);
+	gf_free(priv);
+	gf_free(plug);
 }
 
 GF_BaseDecoder *NewBIFSDec()

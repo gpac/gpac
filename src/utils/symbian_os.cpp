@@ -277,16 +277,16 @@ struct __tag_thread
 GF_EXPORT
 GF_Thread *gf_th_new(const char *name)
 {
-	GF_Thread *tmp = (GF_Thread *) malloc(sizeof(GF_Thread));
+	GF_Thread *tmp = (GF_Thread *) gf_malloc(sizeof(GF_Thread));
 	memset((void *)tmp, 0, sizeof(GF_Thread));
 	tmp->status = GF_THREAD_STATUS_STOP;
 #ifndef GPAC_DISABLE_LOG
 	if (name) {
-		tmp->log_name = strdup(name);
+		tmp->log_name = gf_strdup(name);
 	} else {
 		char szN[20];
 		sprintf(szN, "0x%08x", (u32) tmp);
-		tmp->log_name = strdup(szN);
+		tmp->log_name = gf_strdup(szN);
 	}
 #endif
 
@@ -412,9 +412,9 @@ void gf_th_del(GF_Thread *t)
 {
 	Thread_Stop(t, 0);
 #ifndef GPAC_DISABLE_LOG
-	free(t->log_name);
+	gf_free(t->log_name);
 #endif
-	free(t);
+	gf_free(t);
 }
 
 
@@ -464,22 +464,22 @@ struct __tag_mutex
 GF_EXPORT
 GF_Mutex *gf_mx_new(const char *name)
 {
-	GF_Mutex *tmp = (GF_Mutex *)malloc(sizeof(GF_Mutex));
+	GF_Mutex *tmp = (GF_Mutex *)gf_malloc(sizeof(GF_Mutex));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_Mutex));
 	
 	tmp->hMutex = new RMutex();
 	if( tmp->hMutex->CreateLocal() != KErrNone){
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 #ifndef GPAC_DISABLE_LOG
 	if (name) {
-		tmp->log_name = strdup(name);
+		tmp->log_name = gf_strdup(name);
 	} else {
 		char szN[20];
 		sprintf(szN, "0x%08x", (u32) tmp);
-		tmp->log_name = strdup(szN);
+		tmp->log_name = gf_strdup(szN);
 	}
 #endif
 	return tmp;
@@ -489,7 +489,7 @@ GF_EXPORT
 void gf_mx_del(GF_Mutex *mx)
 {
 	mx->hMutex->Close();
-	free(mx);
+	gf_free(mx);
 }
 
 GF_EXPORT
@@ -562,12 +562,12 @@ struct __tag_semaphore
 GF_EXPORT
 GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 {
-	GF_Semaphore *tmp = (GF_Semaphore *) malloc(sizeof(GF_Semaphore));
+	GF_Semaphore *tmp = (GF_Semaphore *) gf_malloc(sizeof(GF_Semaphore));
 
 	if (!tmp) return NULL;
 	tmp->hSemaphore = new RSemaphore();
 	if (!tmp->hSemaphore) {
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	TBuf<32>	semaName;
@@ -581,7 +581,7 @@ GF_EXPORT
 void gf_sema_del(GF_Semaphore *sm)
 {
 	sm->hSemaphore->Close();
-	free(sm);
+	gf_free(sm);
 }
 
 GF_EXPORT
@@ -724,7 +724,7 @@ void gf_modules_free_module(ModuleInstance *inst)
 		pLibrary->Close();
 	}
 	gf_list_del(inst->interfaces);
-	free(inst);
+	gf_free(inst);
 }
 
 Bool gf_modules_load_library(ModuleInstance *inst)

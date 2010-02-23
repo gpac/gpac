@@ -37,7 +37,7 @@ GF_Camera *new_camera()
 }
 void delete_camera(GF_Camera *cam)
 {
-	if (cam) free(cam);
+	if (cam) gf_free(cam);
 }
 
 void camera_invalidate(GF_Camera *cam)

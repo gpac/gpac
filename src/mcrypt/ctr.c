@@ -61,10 +61,10 @@ GF_Err _init_mcrypt( void *buf, void *key, int lenofkey, void *IV, int size)
     ((CTR_BUFFER* )buf)->c_counter_pos = 0;
     ((CTR_BUFFER* )buf)->blocksize = size;
 
-	((CTR_BUFFER* )buf)->c_counter = (u8 *)malloc(size);
+	((CTR_BUFFER* )buf)->c_counter = (u8 *)gf_malloc(size);
     if (((CTR_BUFFER* )buf)->c_counter==NULL) goto freeall;
 
-	((CTR_BUFFER* )buf)->enc_counter = (u8 *)malloc(size);
+	((CTR_BUFFER* )buf)->enc_counter = (u8 *)gf_malloc(size);
     if (((CTR_BUFFER* )buf)->enc_counter==NULL) goto freeall;
     
     if (IV!=NULL) {
@@ -76,8 +76,8 @@ GF_Err _init_mcrypt( void *buf, void *key, int lenofkey, void *IV, int size)
 
 	return GF_OK;
 	freeall:
-		free(((CTR_BUFFER* )buf)->c_counter);
-		free(((CTR_BUFFER* )buf)->enc_counter);
+		gf_free(((CTR_BUFFER* )buf)->c_counter);
+		gf_free(((CTR_BUFFER* )buf)->enc_counter);
 		return GF_OUT_OF_MEM;
 }
 
@@ -107,8 +107,8 @@ GF_Err _mcrypt_get_state(void *buf, void *IV, int *size)
 
 
 void _end_mcrypt(void *buf) {
-	free(((CTR_BUFFER* )buf)->c_counter);
-	free(((CTR_BUFFER* )buf)->enc_counter);
+	gf_free(((CTR_BUFFER* )buf)->c_counter);
+	gf_free(((CTR_BUFFER* )buf)->enc_counter);
 }
 
 static GFINLINE

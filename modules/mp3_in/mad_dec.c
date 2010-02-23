@@ -76,7 +76,7 @@ static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	mad_synth_init(&ctx->synth);
 	ctx->configured = 1;
 	
-	ctx->buffer = malloc(sizeof(char) * 2*MAD_BUFFER_MDLEN);
+	ctx->buffer = gf_malloc(sizeof(char) * 2*MAD_BUFFER_MDLEN);
 	
 	/*we need a frame to init, so use default values*/
 	ctx->num_samples = 1152;
@@ -93,7 +93,7 @@ static GF_Err MAD_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 	MADCTX();
 	if (ES_ID != ctx->ES_ID) return GF_BAD_PARAM;
 	ctx->ES_ID = 0;
-	if (ctx->buffer) free(ctx->buffer);
+	if (ctx->buffer) gf_free(ctx->buffer);
 	ctx->buffer = NULL;
 	ctx->sample_rate = ctx->out_size = ctx->num_samples = 0;
 	ctx->num_channels = 0;
@@ -342,8 +342,8 @@ void DeleteMADDec(GF_MediaDecoder *ifcg)
 		mad_frame_finish(&ctx->frame);
 		mad_synth_finish(&ctx->synth);
 	}
-	free(ctx);
-	free(ifcg);
+	gf_free(ctx);
+	gf_free(ifcg);
 }
 
 #endif

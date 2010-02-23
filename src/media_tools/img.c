@@ -317,18 +317,18 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 	jpx.cinfo.do_fancy_upsampling = FALSE;
 	jpx.cinfo.do_block_smoothing = FALSE;
 	if (!jpeg_start_decompress(&jpx.cinfo)) {
-		if (scan_line) free(scan_line);
+		if (scan_line) gf_free(scan_line);
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	if (jpx.cinfo.rec_outbuf_height>JPEG_MAX_SCAN_BLOCK_HEIGHT) {
-		if (scan_line) free(scan_line);
+		if (scan_line) gf_free(scan_line);
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_IO_ERR;
 	}
 
 	/*read scanlines (the scan is not one line by one line so alloc a placeholder for block scaning) */
-	scan_line = malloc(sizeof(char) * stride * jpx.cinfo.rec_outbuf_height);
+	scan_line = gf_malloc(sizeof(char) * stride * jpx.cinfo.rec_outbuf_height);
 	for (i = 0; i<jpx.cinfo.rec_outbuf_height;i++) {
 		lines[i] = scan_line + i * stride;
 	}
@@ -362,7 +362,7 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 	jpeg_finish_decompress(&jpx.cinfo);
 	jpeg_destroy_decompress(&jpx.cinfo);
 
-	free(scan_line);
+	gf_free(scan_line);
 
 	return GF_OK;
 }
@@ -479,13 +479,13 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 
 	/*read*/
 	stride = png_get_rowbytes(png_ptr, info_ptr);
-	rows = (png_bytepp) malloc(sizeof(png_bytep) * info_ptr->height);
+	rows = (png_bytepp) gf_malloc(sizeof(png_bytep) * info_ptr->height);
 	for (i=0; i<info_ptr->height; i++) {
 		rows[i] = dst + i*stride;
 	}
 	png_read_image(png_ptr, rows);
 	png_read_end(png_ptr, NULL);
-	free(rows);
+	gf_free(rows);
 
 	png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
 	png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
@@ -615,13 +615,13 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char 
 	if ((pixel_format==GF_PIXEL_BGR_24) || (pixel_format==GF_PIXEL_BGR_32))
 		png_set_bgr(png_ptr);
 
-	row_pointers = malloc(sizeof(png_bytep)*height);
+	row_pointers = gf_malloc(sizeof(png_bytep)*height);
 	for (k = 0; k < height; k++)
 		row_pointers[k] = data + k*width*nb_comp;
 
 	png_write_image(png_ptr, row_pointers);
 	png_write_end(png_ptr, info_ptr);
-	free(row_pointers);
+	gf_free(row_pointers);
 	/* clean up after the write, and free any memory allocated */
 	png_destroy_write_struct(&png_ptr, &info_ptr);
 

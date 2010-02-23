@@ -197,7 +197,7 @@ fetch_next:
 	if (ch->is_encrypted) {
 		GF_ISMASample *ismasamp = gf_isom_get_ismacryp_sample(ch->owner->mov, ch->track, ch->sample, 1);
 		if (ismasamp) {
-			free(ch->sample->data);
+			gf_free(ch->sample->data);
 			ch->sample->data = ismasamp->data;
 			ch->sample->dataLength = ismasamp->dataLength;
 			ismasamp->data = NULL;

@@ -366,7 +366,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		u32 len;
 		char *drives, *volume;
 		len = GetLogicalDriveStrings(0, NULL);
-		drives = malloc(sizeof(char)*(len+1));
+		drives = gf_malloc(sizeof(char)*(len+1));
 		drives[0]=0;
 		GetLogicalDriveStrings(len, drives);
 		len = strlen(drives);
@@ -376,7 +376,7 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 			volume += len+1;
 			len = strlen(volume);
 		}
-		free(drives);
+		gf_free(drives);
 		return GF_OK;
 #elif defined(__SYMBIAN32__)
 		RFs iFs;
@@ -856,9 +856,19 @@ sh4_change_fpscr(int off, int on)
 
 #endif 
 
-void gf_sys_init()
+#ifdef GPAC_MEMORY_TRACKING
+void gf_mem_enable_tracker();
+#endif
+
+void gf_sys_init(Bool enable_memory_tracker)
 {
 	if (!sys_init) {
+
+		if (enable_memory_tracker) {
+#ifdef GPAC_MEMORY_TRACKING
+			gf_mem_enable_tracker();
+#endif
+		}
 
 #if defined(__sh__)
 	/* Round all denormalized floatting point number to 0.0 */

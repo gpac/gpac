@@ -22,7 +22,7 @@ V4SceneGraph::~V4SceneGraph()
 {
   // TODO : pquoi fallait il commenter cette ligne ?
 	//if (m_pSm) gf_sm_del(m_pSm);
-	if (m_pOriginal_mp4) free(m_pOriginal_mp4);
+	if (m_pOriginal_mp4) gf_free(m_pOriginal_mp4);
 	if (m_pService) delete m_pService;
 }
 
@@ -74,7 +74,7 @@ void V4SceneGraph::LoadNew()
 		gf_sg_del(m_pSg);
 		m_pSg = NULL;
 	}
-	if (m_pOriginal_mp4) free(m_pOriginal_mp4);
+	if (m_pOriginal_mp4) gf_free(m_pOriginal_mp4);
 	m_pOriginal_mp4 = NULL;
 
 	m_pIs = gf_is_new(NULL);
@@ -129,7 +129,7 @@ void V4SceneGraph::LoadFile(const char *path)
 	m_term->root_scene = m_pIs;
 	
 	// TODO : what's the use of this ?
-	if (m_pOriginal_mp4) free(m_pOriginal_mp4);
+	if (m_pOriginal_mp4) gf_free(m_pOriginal_mp4);
 	m_pOriginal_mp4 = NULL;
 
 	/* Loading of a file (BT, MP4 ...) and modification of the SceneManager */

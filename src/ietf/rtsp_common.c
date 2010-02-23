@@ -102,10 +102,10 @@ GF_Err gf_rtsp_refill_buffer(GF_RTSPSession *sess)
 
 //	printf("Forcing reading\n");
 	
-	ptr = (char *)malloc(sizeof(char) * res);
+	ptr = (char *)gf_malloc(sizeof(char) * res);
 	memcpy(ptr, sess->TCPBuffer+sess->CurrentPos, res);
 	memcpy(sess->TCPBuffer, ptr, res);
-	free(ptr);
+	gf_free(ptr);
 
 	sess->CurrentPos = 0;
 	sess->CurrentSize = res;
@@ -165,18 +165,18 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 		
 		//very first param is the profile
 		if (IsFirst) {
-			tmp->Profile = strdup(param_name);
+			tmp->Profile = gf_strdup(param_name);
 			IsFirst = 0;
 			continue;
 		}
 
 		if (!stricmp(param_name, "destination")) {
-			if (tmp->destination) free(tmp->destination);
-			tmp->destination = strdup(param_val);
+			if (tmp->destination) gf_free(tmp->destination);
+			tmp->destination = gf_strdup(param_val);
 		}
 		else if (!stricmp(param_name, "source")) {
-			if (tmp->source) free(tmp->source);
-			tmp->source = strdup(param_val);
+			if (tmp->source) gf_free(tmp->source);
+			tmp->source = gf_strdup(param_val);
 		}
 		else if (!stricmp(param_name, "unicast")) tmp->IsUnicast = 1;
 		else if (!stricmp(param_name, "RECORD")) tmp->IsRecord = 1;

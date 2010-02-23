@@ -94,9 +94,9 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 					
 				//create our OD...
 				if (desc->tag == GF_ODF_ISOM_IOD_TAG) {
-					od = (GF_ObjectDescriptor *) malloc(sizeof(GF_InitialObjectDescriptor));
+					od = (GF_ObjectDescriptor *) gf_malloc(sizeof(GF_InitialObjectDescriptor));
 				} else {
-					od = (GF_ObjectDescriptor *) malloc(sizeof(GF_ObjectDescriptor));
+					od = (GF_ObjectDescriptor *) gf_malloc(sizeof(GF_ObjectDescriptor));
 				}
 				if (!od) {
 					e = GF_OUT_OF_MEM;
@@ -178,7 +178,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 			esdR2->ODID = esdR->ODID;
 			esdR2->NbESDs = esdR->NbESDs;
 			//alloc our stuff
-			esdR2->ES_ID = (unsigned short*)malloc(sizeof(u32) * esdR->NbESDs);
+			esdR2->ES_ID = (unsigned short*)gf_malloc(sizeof(u32) * esdR->NbESDs);
 			if (!esdR2->ES_ID) {
 				e = GF_OUT_OF_MEM;
 				goto err_exit;
@@ -194,10 +194,10 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 					esdR2->ES_ID[i - skipped] = mpod->trackIDs[esdR->ES_ID[i] - 1];
 				}
 			}
-			//realloc...
+			//gf_realloc...
 			if (skipped && (skipped != esdR2->NbESDs) ) {
 				esdR2->NbESDs -= skipped;
-				esdR2->ES_ID = (unsigned short*)realloc(esdR2->ES_ID, sizeof(u32) * esdR2->NbESDs);
+				esdR2->ES_ID = (unsigned short*)gf_realloc(esdR2->ES_ID, sizeof(u32) * esdR2->NbESDs);
 			}
 			gf_odf_com_del((GF_ODCom **)&esdR);
 			gf_odf_codec_add_com(ODencode, (GF_ODCom *)esdR2);
@@ -213,7 +213,7 @@ GF_Err Media_RewriteODFrame(GF_MediaBox *mdia, GF_ISOSample *sample)
 	if (e) goto err_exit;
 
 	//and set the buffer in the sample
-	free(sample->data);
+	gf_free(sample->data);
 	sample->data = NULL;
 	sample->dataLength = 0;
 	e = gf_odf_codec_get_au(ODencode, &sample->data, &sample->dataLength);
@@ -305,10 +305,10 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample, GF_ISOSample 
 				e = gf_odf_desc_copy(desc, (GF_Descriptor **)&od);
 				if (e) goto err_exit;
 				if (desc->tag == GF_ODF_OD_TAG) {
-					isom_od = (GF_IsomObjectDescriptor *) malloc(sizeof(GF_IsomObjectDescriptor));
+					isom_od = (GF_IsomObjectDescriptor *) gf_malloc(sizeof(GF_IsomObjectDescriptor));
 					isom_od->tag = GF_ODF_ISOM_OD_TAG;
 				} else {
-					isom_od = (GF_IsomObjectDescriptor *) malloc(sizeof(GF_IsomInitialObjectDescriptor));
+					isom_od = (GF_IsomObjectDescriptor *) gf_malloc(sizeof(GF_IsomInitialObjectDescriptor));
 					isom_od->tag = GF_ODF_ISOM_IOD_TAG;
 					//copy PL
 					((GF_IsomInitialObjectDescriptor *)isom_od)->inlineProfileFlag = ((GF_InitialObjectDescriptor *)od)->inlineProfileFlag;
@@ -382,7 +382,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, GF_ISOSample *sample, GF_ISOSample 
 			esdR2->NbESDs = esdR->NbESDs;
 			if (esdR->NbESDs) {
 				//alloc our stuff
-				esdR2->ES_ID = (unsigned short*)malloc(sizeof(u32) * esdR->NbESDs);
+				esdR2->ES_ID = (unsigned short*)gf_malloc(sizeof(u32) * esdR->NbESDs);
 				if (!esdR2->ES_ID) {
 					e = GF_OUT_OF_MEM;
 					goto err_exit;

@@ -779,7 +779,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				}
 			}
 			if (tf->SampleNum==tf->SampleCount) {
-				free(tf);
+				gf_free(tf);
 				gf_list_rem(fragmenters, i);
 				i--;
 				count --;
@@ -790,7 +790,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 err_exit:
 	while (gf_list_count(fragmenters)) {
 		tf = (TrackFragmenter *)gf_list_get(fragmenters, 0);
-		free(tf);
+		gf_free(tf);
 		gf_list_rem(fragmenters, 0);
 	}
 	gf_list_del(fragmenters);
@@ -1011,7 +1011,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 		gf_bs_write_u16(bs, (subtype == GF_ISOM_SUBTYPE_3GP_AMR) ? 160 : 320);
 		gf_bs_write_u8(bs, 16);
 		gf_bs_write_u8(bs, gpc ? gpc->frames_per_sample : 0);
-		if (gpc) free(gpc);
+		if (gpc) gf_free(gpc);
 		gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 		return esd;
@@ -1100,9 +1100,9 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	}
 	if (udesc && udesc->extension_buf_size) {
 		gf_bs_write_data(bs, udesc->extension_buf, udesc->extension_buf_size);
-		free(udesc->extension_buf);
+		gf_free(udesc->extension_buf);
 	}
-	if (udesc) free(udesc);
+	if (udesc) gf_free(udesc);
 	gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
 	gf_bs_del(bs);
 	return esd;

@@ -420,10 +420,10 @@ void *NewAudioOutput()
 	if( FAILED( hr = CoInitialize(NULL) ) ) return NULL;
 
 	
-	ctx = malloc(sizeof(DSContext));
+	ctx = gf_malloc(sizeof(DSContext));
 	memset(ctx, 0, sizeof(DSContext));
 
-	driv = malloc(sizeof(GF_AudioOutput));
+	driv = gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "DirectSound Audio Output", "gpac distribution");
 
@@ -450,8 +450,8 @@ void DeleteAudioOutput(void *ifce)
 	GF_AudioOutput *dr = (GF_AudioOutput *)ifce;
 	DSCONTEXT();
 
-	free(ctx);
-	free(ifce);
+	gf_free(ctx);
+	gf_free(ifce);
 	CoUninitialize();
 }
 

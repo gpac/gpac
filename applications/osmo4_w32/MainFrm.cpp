@@ -178,7 +178,7 @@ CMainFrame::CMainFrame()
 
 CMainFrame::~CMainFrame()
 {
-	if (m_chapters_start) free(m_chapters_start);
+	if (m_chapters_start) gf_free(m_chapters_start);
 	if (m_pProps != NULL) m_pProps->DestroyWindow();
 	if (m_pOpt != NULL) m_pOpt->DestroyWindow();
 	if (m_pPlayList != NULL) delete m_pPlayList;
@@ -781,7 +781,7 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 		if (str) {
 			m_pPlayList->Truncate();
 			m_pPlayList->QueueURL(str);
-			free(str);
+			gf_free(str);
 			m_pPlayList->RefreshList();
 			m_pPlayList->PlayNext();
 			return 0;
@@ -1401,7 +1401,7 @@ void CMainFrame::BuildChapterList(Bool reset_only)
 	pChaps = GetMenu()->GetSubMenu(2)->GetSubMenu(1);
 	while (pChaps->GetMenuItemCount()) pChaps->DeleteMenu(0, MF_BYPOSITION);
 
-	if (m_chapters_start) free(m_chapters_start);
+	if (m_chapters_start) gf_free(m_chapters_start);
 	m_chapters_start = NULL;
 	m_num_chapters = 0;
 	if (reset_only) return;
@@ -1424,7 +1424,7 @@ void CMainFrame::BuildChapterList(Bool reset_only)
 		}
 		pChaps->AppendMenu(MF_ENABLED, ID_SETCHAP_FIRST + m_num_chapters, szLabel);
 
-		m_chapters_start = (Double *) realloc(m_chapters_start, sizeof(Double)*(m_num_chapters+1));
+		m_chapters_start = (Double *) gf_realloc(m_chapters_start, sizeof(Double)*(m_num_chapters+1));
 		m_chapters_start[m_num_chapters] = seg->startTime;
 		m_num_chapters++;
 	}

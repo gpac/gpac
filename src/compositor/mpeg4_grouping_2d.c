@@ -47,7 +47,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		gf_sc_check_focus_upon_destroy(node);
-		free(st);
+		gf_free(st);
 		return;
 	}
 	
@@ -104,7 +104,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 
 void compositor_init_switch(GF_Compositor *compositor, GF_Node *node)
 {
-	SwitchStack *st = (SwitchStack *)malloc(sizeof(SwitchStack));
+	SwitchStack *st = (SwitchStack *)gf_malloc(sizeof(SwitchStack));
 	st->last_switch = -1;
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, TraverseSwitch);
@@ -174,7 +174,7 @@ static void TraverseTransform2D(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		gf_sc_check_focus_upon_destroy(node);
 		group_2d_destroy(node, (GroupingNode2D*)ptr);
-		free(ptr);
+		gf_free(ptr);
 		return;
 	}
 
@@ -234,7 +234,7 @@ static void TraverseTransformMatrix2D(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		gf_sc_check_focus_upon_destroy(node);
 		group_2d_destroy(node, (GroupingNode2D*)ptr);
-		free(ptr);
+		gf_free(ptr);
 		return;
 	}
 
@@ -283,7 +283,7 @@ static void TraverseColorTransform(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		gf_sc_check_focus_upon_destroy(node);
 		group_2d_destroy(node, (GroupingNode2D*)ptr);
-		free(ptr);
+		gf_free(ptr);
 		return;
 	}
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
@@ -372,8 +372,8 @@ static void TraverseOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		gf_sc_check_focus_upon_destroy(node);
 		group_2d_destroy(node, (GroupingNode2D*)stack);
-		if (stack->positions) free(stack->positions);
-		free(stack);
+		if (stack->positions) gf_free(stack->positions);
+		gf_free(stack);
 		return;
 	}
 
@@ -385,18 +385,18 @@ static void TraverseOrderedGroup(GF_Node *node, void *rs, Bool is_destroy)
 	invalidate_backup = tr_state->invalidate_all;
 	/*check whether the OrderedGroup node has changed*/
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
-		if (stack->positions) free(stack->positions);
+		if (stack->positions) gf_free(stack->positions);
 		count = gf_node_list_get_count(og->children);
-		priorities = (struct og_pos*)malloc(sizeof(struct og_pos)*count);
+		priorities = (struct og_pos*)gf_malloc(sizeof(struct og_pos)*count);
 		for (i=0; i<count; i++) {
 			priorities[i].position = i;
 			priorities[i].priority = (i<og->order.count) ? og->order.vals[i] : 0;
 		}
 		qsort(priorities, count, sizeof(struct og_pos), compare_priority);
 
-		stack->positions = (u32*)malloc(sizeof(u32) * count);
+		stack->positions = (u32*)gf_malloc(sizeof(u32) * count);
 		for (i=0; i<count; i++) stack->positions[i] = priorities[i].position;
-		free(priorities);
+		gf_free(priorities);
 		
 		tr_state->invalidate_all = 1;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);

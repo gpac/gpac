@@ -61,13 +61,13 @@ void PNC_InitPacketiser(PNC_CallbackData * data, char *sdp_fmt, unsigned short m
 	p->rtp_header.SSRC=rand();  
 	data->hdr=& p->rtp_header;
 	data->rtpBuilder=p;
-	data->formatedPacket = malloc(MAX_PACKET_SIZE);
+	data->formatedPacket = gf_malloc(MAX_PACKET_SIZE);
 	data->formatedPacketLength = 0;
 }
 
 void PNC_ClosePacketizer(PNC_CallbackData *data)
 {
-	free(data->formatedPacket);
+	gf_free(data->formatedPacket);
 	gf_rtp_builder_del(data->rtpBuilder);
 }
 

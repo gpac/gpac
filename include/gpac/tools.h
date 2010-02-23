@@ -77,7 +77,7 @@ extern "C" {
  *
  *	Macro allocating memory and zero-ing it
 */
-#define GF_SAFEALLOC(__ptr, __struct) { __ptr = (__struct *) malloc(sizeof(__struct)); if (__ptr) memset((void *) __ptr, 0, sizeof(__struct)); }
+#define GF_SAFEALLOC(__ptr, __struct) { __ptr = (__struct *) gf_malloc(sizeof(__struct)); if (__ptr) memset((void *) __ptr, 0, sizeof(__struct)); }
 
 /*!
  *	\brief 4CC Formatting
@@ -565,7 +565,7 @@ void gf_prompt_set_echo_off(Bool echo_off);
  * function before calling any other GPAC functions, since on some systems (like winCE) it may result in a better memory usage estimation.
  *	\note This can be called several times but only the first call will result in system setup. 
  */
-void gf_sys_init();
+void gf_sys_init(Bool enable_memory_tracker);
 /*!
  *	\brief System closing
  *

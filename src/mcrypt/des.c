@@ -5,7 +5,7 @@
  * Modified for additional speed - 6 December 1988 Phil Karn
  * Modified for parameterized key schedules - Jan 1991 Phil Karn
  * Callers now allocate a key schedule as follows:
- *	kn = (char (*)[8])malloc(sizeof(char) * 8 * 16);
+ *	kn = (char (*)[8])gf_malloc(sizeof(char) * 8 * 16);
  *	or
  *	char kn[16][8];
  */
@@ -14,7 +14,7 @@
  * All modifications are placed under the license of libmcrypt.
  */
 
-/* $Id: des.c,v 1.2 2009-07-31 07:37:43 jeanlf Exp $ */
+/* $Id: des.c,v 1.3 2010-02-23 16:24:20 jeanlf Exp $ */
 
 #include <gpac/internal/crypt_dev.h>
 
