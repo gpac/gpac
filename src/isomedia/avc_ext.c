@@ -42,9 +42,9 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 	count = gf_list_count(cfg->sequenceParameterSets);
 	for (i=0; i<count; i++) {
 		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
-		p2 = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+		p2 = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 		p2->size = p1->size;
-		p2->data = (char *)malloc(sizeof(char)*p1->size);
+		p2->data = (char *)gf_malloc(sizeof(char)*p1->size);
 		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
 		gf_list_add(cfg_new->sequenceParameterSets, p2);
 	}
@@ -52,9 +52,9 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 	count = gf_list_count(cfg->pictureParameterSets);
 	for (i=0; i<count; i++) {
 		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
-		p2 = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+		p2 = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 		p2->size = p1->size;
-		p2->data = (char*)malloc(sizeof(char)*p1->size);
+		p2->data = (char*)gf_malloc(sizeof(char)*p1->size);
 		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
 		gf_list_add(cfg_new->pictureParameterSets, p2);
 	}
@@ -326,7 +326,7 @@ GF_AVCConfig *gf_isom_svc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 void btrt_del(GF_Box *s)
 {
 	GF_MPEG4BitRateBox *ptr = (GF_MPEG4BitRateBox *)s;
-	if (ptr) free(ptr);
+	if (ptr) gf_free(ptr);
 }
 GF_Err btrt_Read(GF_Box *s, GF_BitStream *bs)
 {
@@ -338,7 +338,7 @@ GF_Err btrt_Read(GF_Box *s, GF_BitStream *bs)
 }
 GF_Box *btrt_New()
 {
-	GF_MPEG4BitRateBox *tmp = (GF_MPEG4BitRateBox *) malloc(sizeof(GF_MPEG4BitRateBox));
+	GF_MPEG4BitRateBox *tmp = (GF_MPEG4BitRateBox *) gf_malloc(sizeof(GF_MPEG4BitRateBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_MPEG4BitRateBox));
 	tmp->type = GF_ISOM_BOX_TYPE_BTRT;
@@ -375,7 +375,7 @@ void m4ds_del(GF_Box *s)
 	GF_MPEG4ExtensionDescriptorsBox *ptr = (GF_MPEG4ExtensionDescriptorsBox *)s;
 	gf_odf_desc_list_del(ptr->descriptors);
 	gf_list_del(ptr->descriptors);
-	free(ptr);
+	gf_free(ptr);
 }
 GF_Err m4ds_Read(GF_Box *s, GF_BitStream *bs)
 {
@@ -384,15 +384,15 @@ GF_Err m4ds_Read(GF_Box *s, GF_BitStream *bs)
 	GF_MPEG4ExtensionDescriptorsBox *ptr = (GF_MPEG4ExtensionDescriptorsBox *)s;
 	u32 od_size = (u32) ptr->size;
 	if (!od_size) return GF_OK;
-	enc_od = (char *)malloc(sizeof(char) * od_size);
+	enc_od = (char *)gf_malloc(sizeof(char) * od_size);
 	gf_bs_read_data(bs, enc_od, od_size);
 	e = gf_odf_desc_list_read((char *)enc_od, od_size, ptr->descriptors);
-	free(enc_od);
+	gf_free(enc_od);
 	return e;
 }
 GF_Box *m4ds_New()
 {
-	GF_MPEG4ExtensionDescriptorsBox *tmp = (GF_MPEG4ExtensionDescriptorsBox *) malloc(sizeof(GF_MPEG4ExtensionDescriptorsBox));
+	GF_MPEG4ExtensionDescriptorsBox *tmp = (GF_MPEG4ExtensionDescriptorsBox *) gf_malloc(sizeof(GF_MPEG4ExtensionDescriptorsBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_MPEG4ExtensionDescriptorsBox));
 	tmp->type = GF_ISOM_BOX_TYPE_M4DS;
@@ -416,7 +416,7 @@ GF_Err m4ds_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	if (enc_od_size) {
 		gf_bs_write_data(bs, enc_ods, enc_od_size);
-		free(enc_ods);
+		gf_free(enc_ods);
 	}
 	return GF_OK;
 }
@@ -438,7 +438,7 @@ void avcc_del(GF_Box *s)
 {
 	GF_AVCConfigurationBox *ptr = (GF_AVCConfigurationBox *)s;
 	if (ptr->config) gf_odf_avc_cfg_del(ptr->config);
-	free(ptr);
+	gf_free(ptr);
 }
 GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 {
@@ -462,18 +462,18 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 	count = gf_bs_read_int(bs, 5);
 
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *) malloc(sizeof(GF_AVCConfigSlot));
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *) gf_malloc(sizeof(GF_AVCConfigSlot));
 		sl->size = gf_bs_read_u16(bs);
-		sl->data = (char *)malloc(sizeof(char) * sl->size);
+		sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(ptr->config->sequenceParameterSets, sl);
 	}
 
 	count = gf_bs_read_u8(bs);
 	for (i=0; i<count; i++) {
-		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
+		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_malloc(sizeof(GF_AVCConfigSlot));
 		sl->size = gf_bs_read_u16(bs);
-		sl->data = (char *)malloc(sizeof(char) * sl->size);
+		sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(ptr->config->pictureParameterSets, sl);
 	}
@@ -481,7 +481,7 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 }
 GF_Box *avcc_New()
 {
-	GF_AVCConfigurationBox *tmp = (GF_AVCConfigurationBox *) malloc(sizeof(GF_AVCConfigurationBox));
+	GF_AVCConfigurationBox *tmp = (GF_AVCConfigurationBox *) gf_malloc(sizeof(GF_AVCConfigurationBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_AVCConfigurationBox));
 	tmp->type = GF_ISOM_BOX_TYPE_AVCC;

@@ -40,7 +40,7 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 			gf_list_del_item(st->stream->odm->ms_stack, st);
 
 		gf_list_del(st->seg);
-		free(st);
+		gf_free(st);
 		return;
 	}
 
@@ -191,7 +191,7 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 				/*set info*/
 				gf_sg_vrml_mf_reset(& media_sens->sensor->info, GF_SG_VRML_MFSTRING);
 				gf_sg_vrml_mf_alloc(& media_sens->sensor->info, GF_SG_VRML_MFSTRING, 1);
-				media_sens->sensor->info.vals[0] = desc->SegmentName ? strdup(desc->SegmentName) : NULL;
+				media_sens->sensor->info.vals[0] = desc->SegmentName ? gf_strdup(desc->SegmentName) : NULL;
 				gf_node_event_out_str((GF_Node *) media_sens->sensor, "info");
 				/*set duration*/
 				media_sens->sensor->mediaDuration = desc->Duration;

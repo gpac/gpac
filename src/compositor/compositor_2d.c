@@ -37,16 +37,52 @@
 
 static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
 {
+#if defined(GPAC_USE_OGL_ES)
+	GLfloat line[4];
+
+	line[0] = FIX2FLT(x);
+	line[1] = FIX2FLT(y);
+	line[2] = FIX2FLT(x+run_h_len);
+	line[3] = line[1];
+	
+	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), 0xFF);
+	glVertexPointer(2, GL_FLOAT, 0, line);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glDrawArrays(GL_LINES, 0, 2);
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+#else
 	glBegin(GL_LINES);
 	glColor3ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color));
 //	glColor3f(GF_COL_R(color)/255, GF_COL_G(color)/255, GF_COL_B(color)/255);
 	glVertex2i(x,y);
 	glVertex2i(x+run_h_len,y);
 	glEnd();
+#endif
 }
 
 static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u32 alpha)
 {
+
+
+#if defined(GPAC_USE_OGL_ES)
+	GLfloat line[4];
+
+	line[0] = FIX2FLT(x);
+	line[1] = FIX2FLT(y);
+	line[2] = FIX2FLT(x+run_h_len);
+	line[3] = line[1];
+	
+	glEnable(GL_BLEND);
+	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), (u8) alpha);
+
+	glVertexPointer(2, GL_FLOAT, 0, line);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glDrawArrays(GL_LINES, 0, 2);
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+	glDisable(GL_BLEND);
+#else
 	glEnable(GL_BLEND);
 	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), (u8) alpha);
 	glBegin(GL_LINES);
@@ -54,6 +90,7 @@ static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color c
 	glVertex2i(x+run_h_len,y);
 	glEnd();
 	glDisable(GL_BLEND);
+#endif
 }
 
 #endif
@@ -104,13 +141,21 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 			hh = INT2FIX(compositor->vp_height)/2;
 			gf_mx_ortho(&mx, -hw, hw, -hh, hh, 50, -50);
 			glMatrixMode(GL_PROJECTION);
+#ifdef GPAC_USE_OGL_ES
+			glLoadMatrixx(mx.m);
+#else
 			glLoadMatrixf(mx.m);
+#endif
 			err = glGetError();
 			glMatrixMode(GL_MODELVIEW);
 			gf_mx_init(mx);
 			gf_mx_add_scale(&mx, 1, -1, 1);
 			gf_mx_add_translation(&mx, -hw, -hh, 0);
+#ifdef GPAC_USE_OGL_ES
+			glLoadMatrixx(mx.m);
+#else
 			glLoadMatrixf(mx.m);
+#endif
 			err = glGetError();
 			return GF_OK;
 		}
@@ -1001,7 +1046,7 @@ void visual_2d_draw_overlays(GF_VisualManager *visual)
 		if (e) GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Visual2D] Error %s during overlay update\n", gf_error_to_string(e) ));
 
 		ra_del(&ol->ra);
-		free(ol);
+		gf_free(ol);
 	}
 }
 

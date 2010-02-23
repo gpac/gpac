@@ -144,7 +144,7 @@ static GF_Err XVID_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	/*output in YV12 only - let the player handle conversion*/
 	if (ctx->depth_codec) {
 		ctx->out_size = ctx->width * ctx->height * 5 / 2;
-		ctx->temp_uv = malloc(sizeof(char)*ctx->width * ctx->height / 2);
+		ctx->temp_uv = gf_malloc(sizeof(char)*ctx->width * ctx->height / 2);
 	} else {
 		ctx->yuv_size = ctx->out_size = ctx->width * ctx->height * 3 / 2;
 	}
@@ -163,7 +163,7 @@ static GF_Err XVID_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 		if (ctx->depth_codec) xvid_decore(ctx->depth_codec, XVID_DEC_DESTROY, NULL, NULL);
 		ctx->depth_codec = NULL;
 		ctx->depth_ES_ID = 0;
-		if (ctx->temp_uv) free(ctx->temp_uv);
+		if (ctx->temp_uv) gf_free(ctx->temp_uv);
 		ctx->temp_uv = NULL;
 	} 
 	return GF_OK;
@@ -459,8 +459,8 @@ void DeleteXVIDDec(GF_BaseDecoder *ifcg)
 	XVIDCTX();
 	if (ctx->base_codec) xvid_decore(ctx->base_codec, XVID_DEC_DESTROY, NULL, NULL);
 	if (ctx->depth_codec) xvid_decore(ctx->depth_codec, XVID_DEC_DESTROY, NULL, NULL);
-	free(ctx);
-	free(ifcg);
+	gf_free(ctx);
+	gf_free(ifcg);
 }
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/

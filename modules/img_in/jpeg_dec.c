@@ -122,7 +122,7 @@ static const char *JPEG_GetCodecName(GF_BaseDecoder *dec)
 Bool NewJPEGDec(GF_BaseDecoder *ifcd)
 {
 	IMGDec *wrap = (IMGDec *) ifcd->privateStack;
-	JPEGDec *dec = (JPEGDec *) malloc(sizeof(JPEGDec));
+	JPEGDec *dec = (JPEGDec *) gf_malloc(sizeof(JPEGDec));
 	memset(dec, 0, sizeof(JPEGDec));
 	wrap->opaque = dec;
 	wrap->type = DEC_JPEG;
@@ -140,5 +140,5 @@ Bool NewJPEGDec(GF_BaseDecoder *ifcd)
 void DeleteJPEGDec(GF_BaseDecoder *ifcg)
 {
 	JPEGCTX();
-	free(ctx);
+	gf_free(ctx);
 }

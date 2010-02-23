@@ -45,7 +45,7 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 		seg = (GF_Segment *) gf_odf_desc_new(GF_ODF_SEGMENT_TAG);
 		seg->startTime = (Double) (s64) start;
 		seg->startTime /= 1000;
-		seg->SegmentName = strdup(name);
+		seg->SegmentName = gf_strdup(name);
 		gf_list_add(iod->OCIDescriptors, seg);
 		if (prev_seg) {
 			prev_seg->Duration = (Double) (s64) (start - prev_start);
@@ -135,7 +135,7 @@ void isor_declare_objects(ISOMReader *read)
 				fclose(t);
 				od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 				od->objectDescriptorID = 1050;
-				od->URLString = strdup(szName);
+				od->URLString = gf_strdup(szName);
 				gf_term_add_media(read->service, (GF_Descriptor*)od, 1);
 			}
 		}

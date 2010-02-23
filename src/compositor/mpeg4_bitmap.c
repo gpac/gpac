@@ -177,7 +177,7 @@ static void TraverseBitmap(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		drawable_del(st->graph);
-		free(st);
+		gf_free(st);
 		return;
 	}
 

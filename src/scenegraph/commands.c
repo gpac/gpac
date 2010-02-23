@@ -68,7 +68,7 @@ void gf_sg_command_del(GF_Command *com)
 						cur = child;
 						gf_node_try_destroy(com->in_scene, child->node, NULL);
 						child = child->next;
-						free(cur);
+						gf_free(cur);
 					}
 				}
 				break;
@@ -76,7 +76,7 @@ void gf_sg_command_del(GF_Command *com)
 				if (inf->field_ptr) gf_sg_vrml_field_pointer_del(inf->field_ptr, inf->fieldType);
 				break;
 			}
-			free(inf);
+			gf_free(inf);
 		}
 #endif
 	} else {
@@ -93,12 +93,12 @@ void gf_sg_command_del(GF_Command *com)
 					cur = child;
 					gf_node_try_destroy(com->in_scene, child->node, NULL);
 					child = child->next;
-					free(cur);
+					gf_free(cur);
 				}
 			} else if (inf->field_ptr) {
 				gf_svg_delete_attribute_value(inf->fieldType, inf->field_ptr, com->in_scene);
 			}
-			free(inf);
+			gf_free(inf);
 		}
 #endif
 	}
@@ -116,11 +116,11 @@ void gf_sg_command_del(GF_Command *com)
 		gf_node_try_destroy(com->in_scene, com->node, NULL);
 	}
 
-	if (com->del_proto_list) free(com->del_proto_list);
-	if (com->def_name) free(com->def_name);
+	if (com->del_proto_list) gf_free(com->del_proto_list);
+	if (com->def_name) gf_free(com->def_name);
 	if (com->scripts_to_load) gf_list_del(com->scripts_to_load);
-	if (com->unres_name) free(com->unres_name);
-	free(com);
+	if (com->unres_name) gf_free(com->unres_name);
+	gf_free(com);
 }
 
 static void SG_CheckFieldChange(GF_Node *node, GF_FieldInfo *field)
@@ -150,7 +150,7 @@ static void gf_node_unregister_children_deactivate(GF_Node *container, GF_ChildN
 		gf_node_deactivate(child->node);
 		cur = child;
 		child = child->next;
-		free(cur);
+		gf_free(cur);
 	}
 }
 
@@ -246,7 +246,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				list = * ((GF_ChildNodeItem **) inf->field_ptr);
 				prev=NULL;
 				while (list) {
-					cur = malloc(sizeof(GF_ChildNodeItem));
+					cur = gf_malloc(sizeof(GF_ChildNodeItem));
 					cur->next = NULL;
 					cur->node = list->node;
 					if (prev) {
@@ -275,7 +275,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					gf_list_rem(cb_dst->commandList, 0);
 				}
 				if (cb_dst->buffer) {
-					free(cb_dst->buffer);
+					gf_free(cb_dst->buffer);
 					cb_dst->buffer = NULL;
 				}
 
@@ -361,7 +361,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		gf_sg_route_set_id(r, com->RouteID);
 		if (name) {
 			gf_sg_route_set_name(r, name);
-			free(name);
+			gf_free(name);
 		}
 		break;
 	}
@@ -391,7 +391,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			if ((inf->pos < 0) || ((u32) inf->pos >= ((GenMFField *) field.far_ptr)->count) ) {
 				inf->pos = ((GenMFField *)field.far_ptr)->count - 1;
 			}
-			/*this is a regular MFField, just remove the item (realloc)*/
+			/*this is a regular MFField, just remove the item (gf_realloc)*/
 			e = gf_sg_vrml_mf_remove(field.far_ptr, field.fieldType, inf->pos);
 		}
 		/*deletion -> node has changed*/
@@ -419,7 +419,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		if (com->RouteID) gf_sg_route_set_id(r, com->RouteID);
 		if (com->def_name) {
 			gf_sg_route_set_name(r, com->def_name);
-			free(com->def_name);
+			gf_free(com->def_name);
 			com->def_name = NULL;
 		}
 		break;
@@ -585,7 +585,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				list = * ((GF_ChildNodeItem **) value.far_ptr);
 				prev=NULL;
 				while (list) {
-					cur = malloc(sizeof(GF_ChildNodeItem));
+					cur = gf_malloc(sizeof(GF_ChildNodeItem));
 					cur->next = NULL;
 					cur->node = list->node;
 					if (prev) {
@@ -696,7 +696,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			prev = NULL;
 			child = inf->node_list;
 			while (child) {
-				cur = (GF_ChildNodeItem*)malloc(sizeof(GF_ChildNodeItem));
+				cur = (GF_ChildNodeItem*)gf_malloc(sizeof(GF_ChildNodeItem));
 				cur->next = NULL;
 				cur->node = child->node;
 				gf_node_register(child->node, com->node);
@@ -746,12 +746,12 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					if (com->tag == GF_SG_LSR_REPLACE) {
 						GF_DOMText *t = ((SVG_Element*)com->node)->children ? (GF_DOMText*) ((SVG_Element*)com->node)->children->node :NULL; 
 						if (t && (t->sgprivate->tag==TAG_DOMText)) {
-							if (t->textContent) free(t->textContent);
+							if (t->textContent) gf_free(t->textContent);
 							t->textContent = NULL;
-							if (str) t->textContent = strdup(str);
+							if (str) t->textContent = gf_strdup(str);
 						}
 					} else {
-						if (str) gf_dom_add_text_node(com->node, strdup(str));
+						if (str) gf_dom_add_text_node(com->node, gf_strdup(str));
 					}
 					/*signal node modif*/
 					gf_node_changed(com->node, NULL);
@@ -808,12 +808,12 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 				if (com->tag == GF_SG_LSR_REPLACE) {
 					GF_DOMText *t = ((SVG_Element*)com->node)->children ? (GF_DOMText*) ((SVG_Element*)com->node)->children->node :NULL; 
 					if (t && (t->sgprivate->tag==TAG_DOMText)) {
-						if (t->textContent) free(t->textContent);
+						if (t->textContent) gf_free(t->textContent);
 						t->textContent = NULL;
-						if (str) t->textContent = strdup(str);
+						if (str) t->textContent = gf_strdup(str);
 					}
 				} else {
-					if (str) gf_dom_add_text_node(com->node, strdup(str));
+					if (str) gf_dom_add_text_node(com->node, gf_strdup(str));
 				}
 			} else {
 				gf_node_get_field(com->node, inf->fieldIndex, &a);
@@ -912,7 +912,7 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 	}
 	/*route insert, replace and delete*/
 	dest->RouteID = com->RouteID;
-	if (com->def_name) dest->def_name = strdup(com->def_name);
+	if (com->def_name) dest->def_name = gf_strdup(com->def_name);
 	dest->fromNodeID = com->fromNodeID;
 	dest->fromFieldIndex = com->fromFieldIndex;
 	dest->toNodeID = com->toNodeID;
@@ -921,11 +921,11 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 	dest->send_event_x = com->send_event_x;
 	dest->send_event_y = com->send_event_y;
 	if (com->send_event_string)
-		dest->send_event_string = strdup(com->send_event_string);
+		dest->send_event_string = gf_strdup(com->send_event_string);
 
 	dest->del_proto_list_size = com->del_proto_list_size;
 	if (com->del_proto_list_size) {
-		dest->del_proto_list = (u32*)malloc(sizeof(u32) * com->del_proto_list_size);
+		dest->del_proto_list = (u32*)gf_malloc(sizeof(u32) * com->del_proto_list_size);
 		memcpy(dest->del_proto_list, com->del_proto_list, sizeof(u32) * com->del_proto_list_size);
 	}
 	count = gf_list_count(com->command_fields);
@@ -957,7 +957,7 @@ GF_Command *gf_sg_vrml_command_clone(GF_Command *com, GF_SceneGraph *inGraph, Bo
 			prev = NULL;
 			child = fo->node_list;
 			while (child) {
-				cur = (GF_ChildNodeItem*) malloc(sizeof(GF_ChildNodeItem));
+				cur = (GF_ChildNodeItem*) gf_malloc(sizeof(GF_ChildNodeItem));
 				if (force_clone) {
 					cur->node = gf_node_clone(inGraph, child->node, dest->node, "", 0);
 				} else {

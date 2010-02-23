@@ -413,7 +413,7 @@ GF_AudioFilterItem *gf_af_new(GF_Compositor *compositor, GF_AudioInterface *src,
 void gf_af_del(GF_AudioFilterItem *af)
 {
 	gf_afc_unload(&af->filter_chain);
-	free(af);
+	gf_free(af);
 }
 
 void gf_af_reset(GF_AudioFilterItem *af)

@@ -532,9 +532,9 @@ static void createPixmap(GAPIPriv *ctx, u32 pix_type)
     DWORD*          p;
 	u32 bpel = 0;
 
-	if (ctx->bmi) free(ctx->bmi);
+	if (ctx->bmi) gf_free(ctx->bmi);
 
-    bmi = (BITMAPINFO*)malloc(bmiSize);
+    bmi = (BITMAPINFO*)gf_malloc(bmiSize);
     memset(bmi, 0, bmiSize);
 
     bmi->bmiHeader.biSize           = sizeof(BITMAPINFOHEADER);
@@ -581,7 +581,7 @@ static void createPixmap(GAPIPriv *ctx, u32 pix_type)
 	ReleaseDC(NULL/*ctx->hWnd*/, ctx->hdc);
 
 	ctx->bmi = bmi;
-//	free(bmi);
+//	gf_free(bmi);
 }
 
 
@@ -779,7 +779,7 @@ void GAPI_ReleaseObjects(GAPIPriv *ctx)
 	else
 #endif
     if (ctx->bitmap) DeleteObject(ctx->bitmap);
-	else if (ctx->backbuffer) free(ctx->backbuffer);
+	else if (ctx->backbuffer) gf_free(ctx->backbuffer);
 	ctx->backbuffer = NULL;
 	ctx->bitmap = NULL;
 
@@ -1321,7 +1321,7 @@ static GF_Err GAPI_InitBackBuffer(GF_VideoOutput *dr, u32 VideoWidth, u32 VideoH
 
 
 	if (gctx->gx_mode) {
-		gctx->backbuffer = (char *) malloc(sizeof(unsigned char) * gctx->bb_size);
+		gctx->backbuffer = (char *) gf_malloc(sizeof(unsigned char) * gctx->bb_size);
 
 		gctx->contiguous_mem = ((gctx->x_pitch==gctx->BPP) && (gctx->y_pitch==gctx->screen_w*gctx->BPP)) ? 1 : 0;
 	} else {
@@ -1402,11 +1402,11 @@ static GF_Err GAPI_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool 
 static void *NewGAPIVideoOutput()
 {
 	GAPIPriv *priv;
-	GF_VideoOutput *driv = (GF_VideoOutput *) malloc(sizeof(GF_VideoOutput));
+	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "GAPI Video Output", "gpac distribution")
 
-	priv = (GAPIPriv *) malloc(sizeof(GAPIPriv));
+	priv = (GAPIPriv *) gf_malloc(sizeof(GAPIPriv));
 	memset(priv, 0, sizeof(GAPIPriv));
 	priv->mx = gf_mx_new("GAPI");
 	driv->opaque = priv;
@@ -1432,8 +1432,8 @@ static void DeleteVideoOutput(void *ifce)
 	GAPICTX(driv);
 	GAPI_Shutdown(driv);
 	gf_mx_del(gctx->mx);
-	free(gctx);
-	free(driv);
+	gf_free(gctx);
+	gf_free(driv);
 }
 
 #ifdef __cplusplus

@@ -108,14 +108,14 @@ void gf_svg_node_del(GF_Node *node)
 	if (gf_svg_is_timing_tag(node->sgprivate->tag)) {
 		SVGTimedAnimBaseElement *tap = (SVGTimedAnimBaseElement *)node;
 		if (tap->animp) {
-			free(tap->animp);
+			gf_free(tap->animp);
 			gf_smil_anim_remove_from_target((GF_Node *)tap, (GF_Node *)tap->xlinkp->href->target);
 		}
 		if (tap->timingp)		{
 			gf_smil_timing_delete_runtime_info((GF_Node *)tap, tap->timingp->runtime);
-			free(tap->timingp);
+			gf_free(tap->timingp);
 		}	
-		if (tap->xlinkp)	free(tap->xlinkp);
+		if (tap->xlinkp)	gf_free(tap->xlinkp);
 	}
 
 	gf_node_delete_attributes(node);
@@ -203,13 +203,13 @@ void gf_svg_reset_path(SVG_PathData d)
 	count = gf_list_count(d.commands);
 	for (i = 0; i < count; i++) {
 		u8 *command = (u8 *)gf_list_get(d.commands, i);
-		free(command);
+		gf_free(command);
 	}
 	gf_list_del(d.commands);
 	count = gf_list_count(d.points);
 	for (i = 0; i < count; i++) {
 		SVG_Point *pt = (SVG_Point *)gf_list_get(d.points, i);
-		free(pt);
+		gf_free(pt);
 	}
 	gf_list_del(d.points);
 #endif
@@ -305,8 +305,8 @@ void gf_smil_delete_times(GF_List *list)
 	count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
 		SMIL_Time *v = (SMIL_Time *)gf_list_get(list, i);
-		if (v->element_id) free(v->element_id);
-		free(v);
+		if (v->element_id) gf_free(v->element_id);
+		gf_free(v);
 	}
 	gf_list_del(list);
 }
@@ -316,7 +316,7 @@ void gf_svg_delete_points(GF_List *list)
 	u32 i, count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
 		SVG_Point *p = (SVG_Point *)gf_list_get(list, i);
-		free(p);
+		gf_free(p);
 	}
 	gf_list_del(list);
 }
@@ -326,7 +326,7 @@ void gf_svg_delete_coordinates(GF_List *list)
 	u32 i, count = gf_list_count(list);
 	for (i = 0; i < count; i++) {
 		SVG_Coordinate *c = (SVG_Coordinate *)gf_list_get(list, i);
-		free(c);
+		gf_free(c);
 	}
 	gf_list_del(list);
 }
@@ -334,7 +334,7 @@ void gf_svg_delete_coordinates(GF_List *list)
 void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI *iri) 
 {
 	if (!iri) return;
-	if (iri->string) free(iri->string);
+	if (iri->string) gf_free(iri->string);
 	gf_node_unregister_iri(sg, iri);
 }
 
@@ -342,7 +342,7 @@ void gf_svg_delete_paint(GF_SceneGraph *sg, SVG_Paint *paint)
 {
 	if (!paint) return;
 	if (paint->type == SVG_PAINT_URI && sg) gf_svg_reset_iri(sg, &paint->iri);
-	free(paint);
+	gf_free(paint);
 }
 
 static void svg_delete_one_anim_value(u8 anim_datatype, void *anim_value, GF_SceneGraph *sg)
@@ -379,29 +379,29 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	case XMLRI_datatype:
 	case XML_IDREF_datatype:
 		gf_svg_reset_iri(sg, (XMLRI *)value);
-		free(value);
+		gf_free(value);
 		break;
 	case SVG_Focus_datatype:
 		gf_svg_reset_iri(sg, & ((SVG_Focus*)value)->target);
-		free(value);
+		gf_free(value);
 		break;
 	case SVG_PathData_datatype:
 #if USE_GF_PATH
 		gf_path_del((GF_Path *)value);
 #else
-		free(value);
+		gf_free(value);
 #endif
 		break;
 	case SVG_ID_datatype:
 	case DOM_String_datatype:
 	case SVG_ContentType_datatype:
 	case SVG_LanguageID_datatype:
-		if (*(SVG_String *)value) free(*(SVG_String *)value);
-		free(value);
+		if (*(SVG_String *)value) gf_free(*(SVG_String *)value);
+		gf_free(value);
 		break;
 	case SVG_StrokeDashArray_datatype:
-		if (((SVG_StrokeDashArray*)value)->array.vals) free(((SVG_StrokeDashArray*)value)->array.vals);
-		free(value);
+		if (((SVG_StrokeDashArray*)value)->array.vals) gf_free(((SVG_StrokeDashArray*)value)->array.vals);
+		gf_free(value);
 		break;
 	case SVG_Numbers_datatype:
 	case SVG_Coordinates_datatype:
@@ -410,57 +410,57 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		while (gf_list_count(l)) {
 			void *n = gf_list_last(l);
 			gf_list_rem_last(l);
-			free(n);
+			gf_free(n);
 		}
 		gf_list_del(l);
-		free(value);
+		gf_free(value);
 		break;
 	case SVG_FontFamily_datatype:
 		{
 			SVG_FontFamily *ff = (SVG_FontFamily *)value;
-			if (ff->value) free(ff->value);
-			free(value);
+			if (ff->value) gf_free(ff->value);
+			gf_free(value);
 		}
 		break;
 	case SMIL_AttributeName_datatype:
 		{
 			SMIL_AttributeName *an = (SMIL_AttributeName *)value;
-			if (an->name) free(an->name);
-			free(value);
+			if (an->name) gf_free(an->name);
+			gf_free(value);
 		}
 		break;
 	case SMIL_Times_datatype:
 		gf_smil_delete_times(*(SMIL_Times *)value);
-		free(value);
+		gf_free(value);
 		break;
 	case SMIL_AnimateValue_datatype:
 		svg_delete_one_anim_value(((SMIL_AnimateValue *)value)->type, ((SMIL_AnimateValue *)value)->value, sg);
-		free(value);
+		gf_free(value);
 		break;
 	case SMIL_AnimateValues_datatype:
 		gf_svg_reset_animate_values(*((SMIL_AnimateValues *)value), sg);
-		free(value);
+		gf_free(value);
 		break;
 	case DOM_StringList_datatype:
 		l = *(GF_List**)value;
 		while (gf_list_count(l)) {
 			char *n = gf_list_last(l);
 			gf_list_rem_last(l);
-			free(n);
+			gf_free(n);
 		}
 		gf_list_del(l);
-		free(value);
+		gf_free(value);
 		break;
 	case XMLRI_List_datatype:
 		l = *(GF_List**)value;
 		while (gf_list_count(l)) {
 			XMLRI *r = gf_list_last(l);
 			gf_list_rem_last(l);
-			if (r->string) free(r->string);
-			free(r);
+			if (r->string) gf_free(r->string);
+			gf_free(r);
 		}
 		gf_list_del(l);
-		free(value);
+		gf_free(value);
 		break;
 	case SMIL_KeyTimes_datatype:
 	case SMIL_KeySplines_datatype:
@@ -468,10 +468,10 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		while (gf_list_count(l)) {
 			Fixed *f = gf_list_last(l);
 			gf_list_rem_last(l);
-			free(f);
+			gf_free(f);
 		}
 		gf_list_del(l);
-		free(value);
+		gf_free(value);
 		break;
 
 	case SMIL_RepeatCount_datatype:
@@ -481,7 +481,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 	case SVG_Visibility_datatype:
 	case SVG_Display_datatype:
 	default:
-		free(value);
+		gf_free(value);
 	} 
 }
 
@@ -491,7 +491,7 @@ void gf_smil_delete_key_types(GF_List *l)
 	while (gf_list_count(l)) {
 		Fixed *t = (Fixed *)gf_list_get(l, 0);
 		gf_list_rem(l, 0);
-		free(t);
+		gf_free(t);
 	}
 	gf_list_del(l);
 }

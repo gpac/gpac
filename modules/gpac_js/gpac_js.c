@@ -302,7 +302,7 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 		cbk.is_dir = 1;
 		gf_enum_directory("/", 1, enum_dir_fct, &cbk, NULL);
 		*rval = OBJECT_TO_JSVAL(cbk.array);
-		if (url) free(url);
+		if (url) gf_free(url);
 		return JS_TRUE;
 	}
 
@@ -315,7 +315,7 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 		GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 		/*try to concatenate with service url*/
 		char *an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
-		free(url);
+		gf_free(url);
 		url = an_url;
 		gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
 	}
@@ -327,14 +327,14 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 			GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 			/*try to concatenate with service url*/
 			char *an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
-			free(url);
+			gf_free(url);
 			url = an_url;
 			gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
 		}
 	}
 
 	*rval = OBJECT_TO_JSVAL(cbk.array);
-	if (url) free(url);
+	if (url) gf_free(url);
 	return JS_TRUE;
 }
 
@@ -499,7 +499,7 @@ GF_JSUserExtension *gjs_new()
 {
 	GF_JSUserExtension *dr;
 	GF_GPACJSExt *gjs;
-	dr = malloc(sizeof(GF_JSUserExtension));
+	dr = gf_malloc(sizeof(GF_JSUserExtension));
 	memset(dr, 0, sizeof(GF_JSUserExtension));
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_JS_USER_EXT_INTERFACE, "GPAC JavaScript Bindings", "gpac distribution");
 
@@ -514,8 +514,8 @@ void gjs_delete(GF_BaseInterface *ifce)
 {
 	GF_JSUserExtension *dr = (GF_JSUserExtension *) ifce;
 	GF_GPACJSExt *gjs = dr->udta;
-	free(gjs);
-	free(dr);
+	gf_free(gjs);
+	gf_free(dr);
 }
 
 #endif

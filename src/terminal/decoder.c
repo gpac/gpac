@@ -51,7 +51,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	*e = Codec_Load(tmp, base_layer, PL);
 
 	if (*e) {
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	/*remember codec type*/
@@ -106,7 +106,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 				dsi = com.get_dsi.dsi;
 				dsiSize = com.get_dsi.dsi_len;
 
-				if (ch->esd->decoderConfig->decoderSpecificInfo->data) free(ch->esd->decoderConfig->decoderSpecificInfo->data);
+				if (ch->esd->decoderConfig->decoderSpecificInfo->data) gf_free(ch->esd->decoderConfig->decoderSpecificInfo->data);
 				ch->esd->decoderConfig->decoderSpecificInfo->data = com.get_dsi.dsi;
 				ch->esd->decoderConfig->decoderSpecificInfo->dataLength = com.get_dsi.dsi_len;
 			}
@@ -1090,7 +1090,7 @@ void gf_codec_del(GF_Codec *codec)
 	}
 	if (codec->CB) gf_cm_del(codec->CB);
 	gf_list_del(codec->inChannels);
-	free(codec);
+	gf_free(codec);
 }
 
 

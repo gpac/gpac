@@ -409,6 +409,8 @@ BOOL Osmo4::InitInstance()
 		_mkdir(szUserPath);
 	}
 
+	gf_sys_init(0);
+
 	/*setup user*/
 	memset(&m_user, 0, sizeof(GF_User));
 
@@ -470,7 +472,7 @@ BOOL Osmo4::InitInstance()
 						strcat(static_szCmdLine, cmd);
 					} else {
 						strcat(static_szCmdLine, the_url);
-						free(the_url);
+						gf_free(the_url);
 					}
 					while ( (len = strlen(static_szCmdLine)) ) {
 						char s = static_szCmdLine[len-1];
@@ -636,8 +638,6 @@ BOOL Osmo4::InitInstance()
 		}
 		gf_log_set_tools(m_log_tools);
 	}
-
-	gf_sys_init();
 
 	m_user.opaque = this;
 	m_user.os_window_handler = pFrame->m_pWndView->m_hWnd;
@@ -918,11 +918,11 @@ void Osmo4::OnOpenFile()
 	/*looks like there's a bug here, main filter isn't used correctly while the others are*/
 	CFileDialog fd(TRUE,NULL,NULL, OFN_ALLOWMULTISELECT | OFN_HIDEREADONLY | OFN_FILEMUSTEXIST , sFiles);
 	fd.m_ofn.nMaxFile = 25000;
-	fd.m_ofn.lpstrFile = (char *) malloc(sizeof(char) * fd.m_ofn.nMaxFile);
+	fd.m_ofn.lpstrFile = (char *) gf_malloc(sizeof(char) * fd.m_ofn.nMaxFile);
 	fd.m_ofn.lpstrFile[0] = 0;
 
 	if (fd.DoModal()!=IDOK) {
-		free(fd.m_ofn.lpstrFile);
+		gf_free(fd.m_ofn.lpstrFile);
 		return;
 	}
 
@@ -945,7 +945,7 @@ void Osmo4::OnOpenFile()
 		CString file = fd.GetNextPathName(pos);
 		pFrame->m_pPlayList->QueueURL(file);
 	}
-	free(fd.m_ofn.lpstrFile);
+	gf_free(fd.m_ofn.lpstrFile);
 	pFrame->m_pPlayList->RefreshList();
 	pFrame->m_pPlayList->PlayNext();
 }

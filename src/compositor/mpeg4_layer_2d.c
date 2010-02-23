@@ -115,7 +115,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		gf_list_del(st->backs);
 		gf_list_del(st->views);
 		group_2d_destroy(node, (GroupingNode2D*)st);
-		free(st);
+		gf_free(st);
 		return;
 	}
 

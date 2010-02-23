@@ -191,7 +191,7 @@ static GF_Err EVID_InitSurface(GF_VideoOutput *dr)
 			return GF_IO_ERR;
 		}
 	    configSize = numOfConfigs;
-	    configList = (EGLConfig*) malloc(sizeof(EGLConfig)*configSize);
+	    configList = (EGLConfig*) gf_malloc(sizeof(EGLConfig)*configSize);
 
 		// Define properties for the wanted EGLSurface 
 		EGLint atts[7];
@@ -207,7 +207,7 @@ static GF_Err EVID_InitSurface(GF_VideoOutput *dr)
 			return GF_IO_ERR;
 		}
 		EGLConfig gl_cfg = configList[0];
-		free(configList);
+		gf_free(configList);
 
 		ctx->egl_surface = eglCreatePixmapSurface(ctx->egl_display, gl_cfg, ctx->surface, NULL);
 		if (ctx->egl_surface == NULL) {
@@ -279,7 +279,7 @@ static GF_Err EVID_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 heig
 		return GF_IO_ERR;
 	}
 	configSize = numOfConfigs;
-	configList = (EGLConfig*) malloc(sizeof(EGLConfig)*configSize);
+	configList = (EGLConfig*) gf_malloc(sizeof(EGLConfig)*configSize);
 
 	// Define properties for the wanted EGLSurface 
 	EGLint atts[13];
@@ -297,7 +297,7 @@ static GF_Err EVID_SetupOGL_ES_Offscreen(GF_VideoOutput *dr, u32 width, u32 heig
 		return GF_IO_ERR;
 	}
 	EGLConfig gl_cfg = configList[0];
-	free(configList);
+	gf_free(configList);
 
 	atts[0] = EGL_WIDTH; atts[1] = width;
 	atts[2] = EGL_HEIGHT; atts[3] = height;
@@ -468,8 +468,8 @@ static void EPOC_vout_del(void *ifce)
 {
 	GF_VideoOutput *driv = (GF_VideoOutput *) ifce;
 	EPOCVideo *priv = (EPOCVideo *)driv->opaque;
-	free(priv);
-	free(driv);
+	gf_free(priv);
+	gf_free(driv);
 }
 
 #ifdef __cplusplus

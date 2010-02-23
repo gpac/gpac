@@ -303,10 +303,10 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		for (i=0; i<count; i++) {
 			GF_TextSampleDescriptor *sd= (GF_TextSampleDescriptor *)gf_list_get(cfg->sample_descriptions, i);
 			if (!sd->font_count) {
-				sd->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
+				sd->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
 				sd->font_count = 1;
 				sd->fonts[0].fontID = 1;
-				sd->fonts[0].fontName = strdup("Serif");
+				sd->fonts[0].fontName = gf_strdup("Serif");
 			}
 			if (!sd->default_style.fontID) sd->default_style.fontID = sd->fonts[0].fontID;
 			if (!sd->default_style.font_size) sd->default_style.font_size = 16;
@@ -329,10 +329,10 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		entire display, and with bottom alignment things should be fine...*/
 		gf_isom_set_track_layout_info(import->dest, track, w<<16, h<<16, 0, 0, 0);
 		sd = (GF_TextSampleDescriptor*)gf_odf_desc_new(GF_ODF_TX3G_TAG);
-		sd->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
+		sd->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
 		sd->font_count = 1;
 		sd->fonts[0].fontID = 1;
-		sd->fonts[0].fontName = strdup(import->fontName ? import->fontName : "Serif");
+		sd->fonts[0].fontName = gf_strdup(import->fontName ? import->fontName : "Serif");
 		sd->back_color = 0x00000000;	/*transparent*/
 		sd->default_style.fontID = 1;
 		sd->default_style.font_size = import->fontSize ? import->fontSize : TTXT_DEFAULT_FONT_SIZE;
@@ -656,10 +656,10 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		for (i=0; i<count; i++) {
 			GF_TextSampleDescriptor *sd= (GF_TextSampleDescriptor *)gf_list_get(cfg->sample_descriptions, i);
 			if (!sd->font_count) {
-				sd->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
+				sd->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
 				sd->font_count = 1;
 				sd->fonts[0].fontID = 1;
-				sd->fonts[0].fontName = strdup("Serif");
+				sd->fonts[0].fontName = gf_strdup("Serif");
 			}
 			if (!sd->default_style.fontID) sd->default_style.fontID = sd->fonts[0].fontID;
 			if (!sd->default_style.font_size) sd->default_style.font_size = 16;
@@ -680,10 +680,10 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		entire display, and with bottom alignment things should be fine...*/
 		gf_isom_set_track_layout_info(import->dest, track, w<<16, h<<16, 0, 0, 0);
 		sd = (GF_TextSampleDescriptor*)gf_odf_desc_new(GF_ODF_TX3G_TAG);
-		sd->fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
+		sd->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
 		sd->font_count = 1;
 		sd->fonts[0].fontID = 1;
-		sd->fonts[0].fontName = strdup("Serif");
+		sd->fonts[0].fontName = gf_strdup("Serif");
 		sd->back_color = 0x00000000;	/*transparent*/
 		sd->default_style.fontID = 1;
 		sd->default_style.font_size = TTXT_DEFAULT_FONT_SIZE;
@@ -1069,11 +1069,11 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 								u32 m;
 								if (ftable->type || strcmp(ftable->name, "FontTableEntry")) continue;
 								td.font_count += 1;
-								td.fonts = (GF_FontRecord*)realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
+								td.fonts = (GF_FontRecord*)gf_realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
 								m=0;
 								while ( (att=(GF_XMLAttribute *)gf_list_enum(ftable->attributes, &m))) {
 									if (!stricmp(att->name, "fontID")) td.fonts[td.font_count-1].fontID = atoi(att->value);
-									else if (!stricmp(att->name, "fontName")) td.fonts[td.font_count-1].fontName = strdup(att->value);
+									else if (!stricmp(att->name, "fontName")) td.fonts[td.font_count-1].fontName = gf_strdup(att->value);
 								}
 							}
 						}
@@ -1089,13 +1089,13 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					}
 					if (!td.fonts) {
 						td.font_count = 1;
-						td.fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
+						td.fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
 						td.fonts[0].fontID = 1;
-						td.fonts[0].fontName = strdup("Serif");
+						td.fonts[0].fontName = gf_strdup("Serif");
 					}
 					gf_isom_new_text_description(import->dest, track, &td, NULL, NULL, &idx);
-					for (k=0; k<td.font_count; k++) free(td.fonts[k].fontName);
-					free(td.fonts);
+					for (k=0; k<td.font_count; k++) gf_free(td.fonts[k].fontName);
+					gf_free(td.fonts);
 					nb_descs ++;
 				}
 			}
@@ -1191,12 +1191,12 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 					while ( (att=(GF_XMLAttribute *)gf_list_enum(ext->attributes, &k))) {
 						if (!strcmp(att->name, "fromChar")) start = atoi(att->value);
 						else if (!strcmp(att->name, "toChar")) end = atoi(att->value);
-						else if (!strcmp(att->name, "URL")) url = strdup(att->value);
-						else if (!strcmp(att->name, "URLToolTip")) url_tt = strdup(att->value);
+						else if (!strcmp(att->name, "URL")) url = gf_strdup(att->value);
+						else if (!strcmp(att->name, "URLToolTip")) url_tt = gf_strdup(att->value);
 					}
 					gf_isom_text_add_hyperlink(samp, url, url_tt, start, end);
-					if (url) free(url);
-					if (url_tt) free(url_tt);
+					if (url) gf_free(url);
+					if (url_tt) gf_free(url_tt);
 				}
 				else if (!stricmp(ext->name, "Karaoke")) {
 					u32 startTime;
@@ -1469,10 +1469,10 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 							if (!strcmp(ftable->name, "font")) {
 								u32 n=0;
 								td.font_count += 1;
-								td.fonts = (GF_FontRecord*)realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
+								td.fonts = (GF_FontRecord*)gf_realloc(td.fonts, sizeof(GF_FontRecord)*td.font_count);
 								while ((att=(GF_XMLAttribute *)gf_list_enum(ftable->attributes, &n))) {
 									if (!stricmp(att->name, "id")) td.fonts[td.font_count-1].fontID = atoi(att->value);
-									else if (!stricmp(att->name, "name")) td.fonts[td.font_count-1].fontName = strdup(att->value);
+									else if (!stricmp(att->name, "name")) td.fonts[td.font_count-1].fontName = gf_strdup(att->value);
 								}
 							}
 						}
@@ -1530,9 +1530,9 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 				}
 				if (!td.fonts) {
 					td.font_count = 1;
-					td.fonts = (GF_FontRecord*)malloc(sizeof(GF_FontRecord));
+					td.fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
 					td.fonts[0].fontID = 1;
-					td.fonts[0].fontName = strdup("Serif");
+					td.fonts[0].fontName = gf_strdup("Serif");
 				}
 				gf_isom_text_has_similar_description(import->dest, track, &td, &descIndex, &same_box, &same_style);
 				if (!descIndex) {
@@ -1540,8 +1540,8 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 					same_style = same_box = 1;
 				}
 
-				for (k=0; k<td.font_count; k++) free(td.fonts[k].fontName);
-				free(td.fonts);
+				for (k=0; k<td.font_count; k++) gf_free(td.fonts[k].fontName);
+				gf_free(td.fonts);
 				nb_descs ++;
 			} 
 			else if (!strcmp(desc->name, "sampleData")) {
@@ -1629,12 +1629,12 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 						while ((att=(GF_XMLAttribute *)gf_list_enum(sub->attributes, &m))) {
 							if (!strcmp(att->name, "startMarker")) GET_MARKER_POS(start, 0)
 							else if (!strcmp(att->name, "endMarker")) GET_MARKER_POS(end, 1)
-							else if (!strcmp(att->name, "URL") || !strcmp(att->name, "href")) url = strdup(att->value);
-							else if (!strcmp(att->name, "URLToolTip") || !strcmp(att->name, "altString")) url_tt = strdup(att->value);
+							else if (!strcmp(att->name, "URL") || !strcmp(att->name, "href")) url = gf_strdup(att->value);
+							else if (!strcmp(att->name, "URLToolTip") || !strcmp(att->name, "altString")) url_tt = gf_strdup(att->value);
 						}
 						gf_isom_text_add_hyperlink(samp, url, url_tt, start, end);
-						if (url) free(url);
-						if (url_tt) free(url_tt);
+						if (url) gf_free(url);
+						if (url_tt) gf_free(url_tt);
 					}
 					else if (!stricmp(sub->name, "karaoke")) {
 						u32 time = 0;

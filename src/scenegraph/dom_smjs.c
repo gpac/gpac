@@ -75,17 +75,17 @@ char *js_get_utf8(jsval val)
 	/*locate SVG sequence responsible for this code add-on in test suit*/
 	utf16 = JS_GetStringChars(JSVAL_TO_STRING(val) );
 	len = gf_utf8_wcslen(utf16)*2 + 1;
-	txt = malloc(sizeof(char)*len);
+	txt = gf_malloc(sizeof(char)*len);
 	len = gf_utf8_wcstombs(txt, len, (const u16**) &utf16);
 	if ((s32)len<0) {
-		free(txt);
+		gf_free(txt);
 		return NULL;
 	}
 	txt[len]=0;
 	return txt;
 #else
 	if (!JSVAL_CHECK_STRING(val) || JSVAL_IS_NULL(val)) return NULL;
-	return strdup( JS_GetStringBytes(JSVAL_TO_STRING(val) ) );
+	return gf_strdup( JS_GetStringBytes(JSVAL_TO_STRING(val) ) );
 #endif
 }
 
@@ -417,10 +417,10 @@ static void dom_nodelist_finalize(JSContext *c, JSObject *obj)
 			GF_ChildNodeItem *child = nl->child;
 			nl->child = child->next;
 			dom_unregister_node(child->node);
-			free(child);
+			gf_free(child);
 		}
 	}
-	free(nl);
+	gf_free(nl);
 }
 
 static JSBool dom_nodelist_item(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -607,7 +607,7 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 	gf_node_get_attribute_by_tag((GF_Node*)handler, TAG_XMLEV_ATT_event, 1, 0, &info);
 	((XMLEV_Event*)info.far_ptr)->type = evtType;
 
-	if (callback) gf_dom_add_text_node((GF_Node *)handler, strdup(callback));
+	if (callback) gf_dom_add_text_node((GF_Node *)handler, gf_strdup(callback));
 
 #ifndef GPAC_DISABLE_SVG
 	if (handler->sgprivate->scenegraph->svg_js)
@@ -630,7 +630,7 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 	}
 
 err_exit:
-	if (inNS) free(inNS);
+	if (inNS) gf_free(inNS);
 	return JS_TRUE;
 }
 
@@ -729,7 +729,7 @@ JSBool gf_sg_js_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, j
 #endif
 
 err_exit:
-	if (inNS) free(inNS);
+	if (inNS) gf_free(inNS);
 	return JS_TRUE;
 }
 
@@ -1193,7 +1193,7 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		if (!sg)  {
 			char *res = gf_dom_flatten_textContent(n);
 			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, res) );
-			free(res);
+			gf_free(res);
 		}
 		return JS_TRUE;
 
@@ -1267,7 +1267,7 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	case 1:
 		if ((tag==TAG_DOMText) && JSVAL_CHECK_STRING(*vp)) {
 			GF_DOMText *txt = (GF_DOMText *)n;
-			if (txt->textContent) free(txt->textContent);
+			if (txt->textContent) gf_free(txt->textContent);
 			txt->textContent = js_get_utf8(*vp);
 			dom_node_changed(n, 1, NULL);
 		}
@@ -1283,7 +1283,7 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		char *txt;
 		txt = js_get_utf8(*vp);
 		dom_node_set_textContent(n, txt);
-		if (txt) free(txt);
+		if (txt) gf_free(txt);
 	}
 		return JS_TRUE;
 	}
@@ -1412,7 +1412,7 @@ static JSBool xml_document_create_element(JSContext *c, JSObject *obj, uintN arg
 		n = gf_node_new(sg, tag);
 		if (n && (tag == TAG_DOMFullNode)) {
 			GF_DOMFullNode *elt = (GF_DOMFullNode *)n;
-			elt->name = strdup(name);
+			elt->name = gf_strdup(name);
 			if (xmlns) {
 				gf_sg_add_namespace(sg, xmlns, NULL);
 				elt->ns	= gf_sg_get_namespace_code_from_name(sg, xmlns);
@@ -1420,7 +1420,7 @@ static JSBool xml_document_create_element(JSContext *c, JSObject *obj, uintN arg
 		}
 		*rval = dom_element_construct(c, n);
 	}
-	if (xmlns) free(xmlns);
+	if (xmlns) gf_free(xmlns);
 	return JS_TRUE;
 }
 
@@ -1433,7 +1433,7 @@ static JSBool xml_document_create_text(JSContext *c, JSObject *obj, uintN argc, 
 	n = gf_node_new(sg, TAG_DOMText);
 	if (argc) {
 		char *str = js_get_utf8(argv[0]);
-		if (!str) str = strdup("");
+		if (!str) str = gf_strdup("");
 		((GF_DOMText*)n)->textContent = str;
 	}
 	*rval = dom_text_construct(c, n);
@@ -1598,13 +1598,13 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 		if (gf_node_get_attribute_by_name(n, name, ns_code, 0, 0, &info)==GF_OK) {
 			char *szAtt = gf_svg_dump_attribute(n, &info);
 			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) );
-			if (szAtt) free(szAtt);
+			if (szAtt) gf_free(szAtt);
 			goto exit;
 		}
 	}
 	*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "") );
 exit:
-	if (ns) free(ns);
+	if (ns) gf_free(ns);
 	return JS_TRUE;
 }
 
@@ -1652,7 +1652,7 @@ static JSBool xml_element_has_attribute(JSContext *c, JSObject *obj, uintN argc,
 	}
 	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
 exit:
-	if (ns) free(ns);
+	if (ns) gf_free(ns);
 	return JS_TRUE;
 }
 
@@ -1698,16 +1698,16 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 		if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
 			if (prev) prev->next = att->next;
 			else node->attributes = att->next;
-			if (att->data) free(att->data);
-			free(att->name);
-			free(att);
+			if (att->data) gf_free(att->data);
+			gf_free(att->name);
+			gf_free(att);
 			dom_node_changed(n, 0, NULL);
 			goto exit;
 		} else if (tag==att->tag) {
 			if (prev) prev->next = att->next;
 			else node->attributes = att->next;
 			gf_svg_delete_attribute_value(att->data_type, att->data, n->sgprivate->scenegraph);
-			free(att);
+			gf_free(att);
 			dom_node_changed(n, 0, NULL);
 			goto exit;
 		}
@@ -1715,7 +1715,7 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 		att = (GF_DOMFullAttribute *) att->next;
 	}
 exit:
-	if (ns) free(ns);
+	if (ns) gf_free(ns);
 	return JS_TRUE;
 }
 
@@ -1786,14 +1786,14 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 				handler = (SVG_handlerElement *) ((XMLRI*)info.far_ptr)->target;
 				text = (GF_DOMText*)handler->children->node;
 				if (text->sgprivate->tag==TAG_DOMText) {
-					if (text->textContent) free(text->textContent);
-					text->textContent = strdup(val);
+					if (text->textContent) gf_free(text->textContent);
+					text->textContent = gf_strdup(val);
 				}
 				goto exit;
 			}
 			/*nope, create a listener*/
 			handler = gf_dom_listener_build(n, evtType, 0);
-			gf_dom_add_text_node((GF_Node*)handler, strdup(val) );
+			gf_dom_add_text_node((GF_Node*)handler, gf_strdup(val) );
 			goto exit;
 		}
 	}
@@ -1804,8 +1804,8 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 		GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
 		while (att) {
 			if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
-				if (att->data) free(att->data);
-				att->data = strdup(val);
+				if (att->data) gf_free(att->data);
+				att->data = gf_strdup(val);
 				dom_node_changed(n, 0, NULL);
 				goto exit;
 			}
@@ -1814,8 +1814,8 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 		}
 		/*create new att*/
 		GF_SAFEALLOC(att, GF_DOMFullAttribute);
-		att->name = strdup(name);
-		att->data = strdup(val);
+		att->name = gf_strdup(name);
+		att->data = gf_strdup(val);
 		if (prev) prev->next = (GF_DOMAttribute*) att;
 		else node->attributes = (GF_DOMAttribute*) att;
 		goto exit;
@@ -1866,7 +1866,7 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 		}
 	}
 exit:
-	if (ns) free(ns);
+	if (ns) gf_free(ns);
 	return JS_TRUE;
 }
 
@@ -1923,7 +1923,7 @@ static JSBool xml_element_set_id(JSContext *c, JSObject *obj, uintN argc, jsval 
 	}
 	if (is_id) {
 		if (!name) return JS_TRUE;
-		gf_node_set_id(n, gf_sg_get_max_node_id(n->sgprivate->scenegraph) + 1, strdup(name) );
+		gf_node_set_id(n, gf_sg_get_max_node_id(n->sgprivate->scenegraph) + 1, gf_strdup(name) );
 	} else if (node_id) {
 		gf_node_remove_id(n);
 	}
@@ -1969,11 +1969,11 @@ static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 
 	switch (prop_id) {
 	case 1: /*"data"*/
-		if (txt->textContent) free(txt->textContent);
+		if (txt->textContent) gf_free(txt->textContent);
 		txt->textContent = NULL;
 		if (JSVAL_CHECK_STRING(*vp)) {
 			char *str = js_get_utf8(*vp);
-			txt->textContent = str ? str : strdup("" );
+			txt->textContent = str ? str : gf_strdup("" );
 		}
 		dom_node_changed((GF_Node*)txt, 0, NULL);
 		return JS_TRUE;
@@ -2230,15 +2230,15 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 				|| !stricmp(hdr, "Proxy-Authorization")
 				|| !stricmp(hdr, "SOAPAction")
 				|| !stricmp(hdr, "Timeout") ) {
-				free(ctx->headers[nb_hdr+1]);
-				ctx->headers[nb_hdr+1] = strdup(val);
+				gf_free(ctx->headers[nb_hdr+1]);
+				ctx->headers[nb_hdr+1] = gf_strdup(val);
 				return;
 			}
 			/*append value*/
 			else {
-				char *new_val = malloc(sizeof(char) * (strlen(ctx->headers[nb_hdr+1])+strlen(val)+3));
+				char *new_val = gf_malloc(sizeof(char) * (strlen(ctx->headers[nb_hdr+1])+strlen(val)+3));
 				sprintf(new_val, "%s, %s", ctx->headers[nb_hdr+1], val);
-				free(ctx->headers[nb_hdr+1]);
+				gf_free(ctx->headers[nb_hdr+1]);
 				ctx->headers[nb_hdr+1] = new_val;
 				return;
 			}
@@ -2249,9 +2249,9 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 	if (ctx->headers) {
 		while (ctx->headers[nb_hdr]) nb_hdr+=2;
 	}
-	ctx->headers = realloc(ctx->headers, sizeof(char*)*(nb_hdr+3));
-	ctx->headers[nb_hdr] = strdup(hdr);
-	ctx->headers[nb_hdr+1] = strdup(val ? val : "");
+	ctx->headers = gf_realloc(ctx->headers, sizeof(char*)*(nb_hdr+3));
+	ctx->headers[nb_hdr] = gf_strdup(hdr);
+	ctx->headers[nb_hdr+1] = gf_strdup(val ? val : "");
 	ctx->headers[nb_hdr+2] = NULL;
 }
 
@@ -2260,11 +2260,11 @@ static void xml_http_reset_recv_hdr(XMLHTTPContext *ctx)
 	u32 nb_hdr = 0;
 	if (ctx->recv_headers) {
 		while (ctx->recv_headers[nb_hdr]) {
-			free(ctx->recv_headers[nb_hdr]);
-			free(ctx->recv_headers[nb_hdr+1]);
+			gf_free(ctx->recv_headers[nb_hdr]);
+			gf_free(ctx->recv_headers[nb_hdr+1]);
 			nb_hdr+=2;
 		}
-		free(ctx->recv_headers);
+		gf_free(ctx->recv_headers);
 		ctx->recv_headers = NULL;
 	}
 }
@@ -2274,9 +2274,9 @@ static void xml_http_append_recv_header(XMLHTTPContext *ctx, char *hdr, char *va
 	if (ctx->recv_headers) {
 		while (ctx->recv_headers[nb_hdr]) nb_hdr+=2;
 	}
-	ctx->recv_headers = realloc(ctx->recv_headers, sizeof(char*)*(nb_hdr+3));
-	ctx->recv_headers[nb_hdr] = strdup(hdr);
-	ctx->recv_headers[nb_hdr+1] = strdup(val ? val : "");
+	ctx->recv_headers = gf_realloc(ctx->recv_headers, sizeof(char*)*(nb_hdr+3));
+	ctx->recv_headers[nb_hdr] = gf_strdup(hdr);
+	ctx->recv_headers[nb_hdr+1] = gf_strdup(val ? val : "");
 	ctx->recv_headers[nb_hdr+2] = NULL;
 }
 
@@ -2284,17 +2284,17 @@ static void xml_http_append_recv_header(XMLHTTPContext *ctx, char *hdr, char *va
 static void xml_http_reset(XMLHTTPContext *ctx)
 {
 	u32 nb_hdr = 0;
-	if (ctx->method) { free(ctx->method); ctx->method = NULL; }
-	if (ctx->url) { free(ctx->url); ctx->url = NULL; }
+	if (ctx->method) { gf_free(ctx->method); ctx->method = NULL; }
+	if (ctx->url) { gf_free(ctx->url); ctx->url = NULL; }
 
 	xml_http_reset_recv_hdr(ctx);
 	if (ctx->headers) {
 		while (ctx->headers[nb_hdr]) {
-			free(ctx->headers[nb_hdr]);
-			free(ctx->headers[nb_hdr+1]);
+			gf_free(ctx->headers[nb_hdr]);
+			gf_free(ctx->headers[nb_hdr+1]);
 			nb_hdr+=2;
 		}
-		free(ctx->headers);
+		gf_free(ctx->headers);
 		ctx->headers = NULL;
 	}
 	if (ctx->sess) {
@@ -2302,15 +2302,15 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 		ctx->sess = NULL;
 	}
 	if (ctx->data) {
-		free(ctx->data);
+		gf_free(ctx->data);
 		ctx->data = NULL;
 	}
 	if (ctx->statusText) {
-		free(ctx->statusText);
+		gf_free(ctx->statusText);
 		ctx->statusText = NULL;
 	}
 	if (ctx->url) {
-		free(ctx->url);
+		gf_free(ctx->url);
 		ctx->url = NULL;
 	}
 	if (ctx->sax) {
@@ -2347,7 +2347,7 @@ static void xml_http_finalize(JSContext *c, JSObject *obj)
 	if (ctx) {
 		xml_http_reset(ctx);
 		if (ctx->onreadystatechange) JS_RemoveRoot(c, &ctx->onreadystatechange);
-		free(ctx);
+		gf_free(ctx);
 	}
 }
 static JSBool xml_http_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -2399,7 +2399,7 @@ static JSBool xml_http_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	&& strcmp(val, "PUT") && strcmp(val, "DELETE") && strcmp(val, "OPTIONS") )
 		return JS_TRUE;
 
-	ctx->method = strdup(val);
+	ctx->method = gf_strdup(val);
 
 	/*concatenate URL*/
 	scene = xml_get_scenegraph(c);
@@ -2459,7 +2459,7 @@ static void xml_http_sax_start(void *sax_cbck, const char *node_name, const char
 	XMLHTTPContext *ctx = (XMLHTTPContext *)sax_cbck;
 	GF_DOMFullNode *node = (GF_DOMFullNode *) gf_node_new(ctx->document, TAG_DOMFullNode);
 
-	node->name = strdup(node_name);
+	node->name = gf_strdup(node_name);
 	for (i=0; i<nb_attributes; i++) {
 		/* special case for 'xml:id' to be parsed as an ID
 		NOTE: we do not test for the 'id' attribute because without DTD we are not sure that it's an ID */
@@ -2470,10 +2470,10 @@ static void xml_http_sax_start(void *sax_cbck, const char *node_name, const char
 			GF_DOMFullAttribute *att;
 			GF_SAFEALLOC(att, GF_DOMFullAttribute);
 			att->tag = TAG_DOM_ATT_any;
-			att->name = strdup(attributes[i].name);
+			att->name = gf_strdup(attributes[i].name);
 			att->data_type = (u16) DOM_String_datatype;
 			att->data = gf_svg_create_attribute_value(att->data_type);
-			*((char **)att->data) = strdup(attributes[i].value);
+			*((char **)att->data) = gf_strdup(attributes[i].value);
 			if (prev) prev->next = (GF_DOMAttribute*)att;
 			else node->attributes = (GF_DOMAttribute*)att;
 			prev = att;
@@ -2514,7 +2514,7 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 		}
 		if (i==len) return;
 
-		txt = gf_dom_add_text_node((GF_Node *)par, strdup(content) );
+		txt = gf_dom_add_text_node((GF_Node *)par, gf_strdup(content) );
 		txt->type = is_cdata ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
 	}
 }
@@ -2537,13 +2537,13 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 		return;
 	case GF_NETIO_WAIT_FOR_REPLY:
 		/*reset send() state (data, current header) and prepare recv headers*/
-		if (ctx->data) free(ctx->data);
+		if (ctx->data) gf_free(ctx->data);
 		ctx->data = NULL;
 		ctx->size = 0;
 		ctx->cur_header = 0;
 		ctx->html_status = 0;
 		if (ctx->statusText) {
-			free(ctx->statusText);
+			gf_free(ctx->statusText);
 			ctx->statusText = NULL;
 		}
 		xml_http_reset_recv_hdr(ctx);
@@ -2554,7 +2554,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	case GF_NETIO_PARSE_REPLY:
 		ctx->html_status = parameter->reply;
 		if (parameter->value) {
-			ctx->statusText = strdup(parameter->value);
+			ctx->statusText = gf_strdup(parameter->value);
 		}
 		ctx->readyState = 3;
 		xml_http_state_change(ctx);
@@ -2608,7 +2608,7 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 				}
 			}
 #endif
-			ctx->data = realloc(ctx->data, sizeof(char)*(ctx->size+parameter->size+1));
+			ctx->data = gf_realloc(ctx->data, sizeof(char)*(ctx->size+parameter->size+1));
 			memcpy(ctx->data + ctx->size, parameter->data, sizeof(char)*parameter->size);
 			ctx->size += parameter->size;
 			ctx->data[ctx->size] = 0;
@@ -2685,9 +2685,9 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	if (!par.dnld_man) return JS_TRUE;
 
 	/*reset previous text*/
-	if (ctx->data) free(ctx->data);
+	if (ctx->data) gf_free(ctx->data);
 
-	ctx->data = data ? strdup(data) : NULL;
+	ctx->data = data ? gf_strdup(data) : NULL;
 	ctx->use_cache = 0;
 	if (!strncmp(ctx->url, "http://", 7)) {
 		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, (ctx->use_cache ? 0 : GF_NETIO_SESSION_NOT_CACHED), xml_http_on_data, ctx, &e);
@@ -2704,13 +2704,13 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 		u32 fsize;
 		FILE * xmlf;
 		
-		if (ctx->data) free(ctx->data);
+		if (ctx->data) gf_free(ctx->data);
 		ctx->data = NULL;
 		ctx->size = 0;
 		ctx->cur_header = 0;
 		ctx->html_status = 0;
 		if (ctx->statusText) {
-			free(ctx->statusText);
+			gf_free(ctx->statusText);
 			ctx->statusText = NULL;
 		}
 
@@ -2727,7 +2727,7 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 		fsize = ftell(xmlf);
 		fseek(xmlf, 0, SEEK_SET);
 		
-		ctx->data = malloc(sizeof(char)*(fsize+1));
+		ctx->data = gf_malloc(sizeof(char)*(fsize+1));
 		fread(ctx->data, sizeof(char)*fsize, 1, xmlf);
 		fclose(xmlf);
 		ctx->data[fsize] = 0;
@@ -3046,8 +3046,8 @@ static JSBool dcci_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 				if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
 					GF_DOMText *txt = (GF_DOMText *)child->node;
 					if (txt->type==GF_DOM_TEXT_REGULAR) {
-						if (txt->textContent) free(txt->textContent);
-						txt->textContent = strdup(str);
+						if (txt->textContent) gf_free(txt->textContent);
+						txt->textContent = gf_strdup(str);
 						break;
 
 					}
@@ -3055,7 +3055,7 @@ static JSBool dcci_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 				child = child->next;
 			}
 			if (!child)
-				gf_dom_add_text_node((GF_Node*)n, strdup(str) );
+				gf_dom_add_text_node((GF_Node*)n, gf_strdup(str) );
 
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.type = GF_EVENT_DCCI_PROP_CHANGE;
@@ -3580,7 +3580,7 @@ void dom_js_unload()
 	dom_rt->nb_inst--;
 	if (!dom_rt->nb_inst) {
 		gf_list_del(dom_rt->handlers);
-		free(dom_rt);
+		gf_free(dom_rt);
 		dom_rt = NULL;
 	}
 }
@@ -3653,7 +3653,7 @@ GF_Err gf_sg_new_from_xml_doc(const char *src, GF_SceneGraph **scene)
 	e = gf_xml_sax_parse_file(ctx->sax, src, NULL);
 	gf_xml_sax_del(ctx->sax);
 	gf_list_del(ctx->node_stack);
-	free(ctx);
+	gf_free(ctx);
 
 	*scene = NULL;
 	if (e<0) {
@@ -3702,8 +3702,8 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 		if (node->ns && name_space && strcmp(gf_sg_get_namespace(node->sgprivate->scenegraph, node->ns), name_space)) same_node = 0;
 
 		if (!same_node) {
-			if (node->name) free(node->name);
-			node->name = strdup(node_name);
+			if (node->name) gf_free(node->name);
+			node->name = gf_strdup(node_name);
 			node->ns = 0;
 			if (name_space) {
 				gf_sg_add_namespace(node->sgprivate->scenegraph, (char *) name_space, NULL);
@@ -3731,7 +3731,7 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 
 			/*create the new node*/
 			node = (GF_DOMFullNode *) gf_node_new(ctx->document, TAG_DOMFullNode);
-			node->name = strdup(node_name);
+			node->name = gf_strdup(node_name);
 			if (name_space) {
 				gf_sg_add_namespace(node->sgprivate->scenegraph, (char *)name_space, NULL);
 				node->ns = gf_sg_get_namespace_code(node->sgprivate->scenegraph, (char *)name_space);
@@ -3759,8 +3759,8 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 					found = 1;
 					if (strcmp(att->data, attributes[i].value)) {
 						atts_modified = 1;
-						free(att->data);
-						att->data = strdup(attributes[i].value);
+						gf_free(att->data);
+						att->data = gf_strdup(attributes[i].value);
 					}
 				}
 			}
@@ -3780,11 +3780,11 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 		GF_DOMFullAttribute *tmp, *att;
 		att = (GF_DOMFullAttribute *)node->attributes;
 		while (att) {
-			if (att->name) free(att->name);
-			if (att->data) free(att->data);
+			if (att->name) gf_free(att->name);
+			if (att->data) gf_free(att->data);
 			tmp = att;
 			att = (GF_DOMFullAttribute *)att->next;
-			free(tmp);
+			gf_free(tmp);
 		}
 
 		/*parse all atts*/
@@ -3796,8 +3796,8 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 				GF_DOMFullAttribute *att;
 				GF_SAFEALLOC(att, GF_DOMFullAttribute);
 				att->tag = TAG_DOM_ATT_any;
-				att->name = strdup(attributes[i].name);
-				att->data = strdup(attributes[i].value);
+				att->name = gf_strdup(attributes[i].name);
+				att->data = gf_strdup(attributes[i].value);
 				if (prev) prev->next = (GF_DOMAttribute*)att;
 				else node->attributes = (GF_DOMAttribute*)att;
 				prev = att;
@@ -3848,15 +3848,15 @@ static void xml_reload_text_content(void *sax_cbck, const char *content, Bool is
 			txt = (GF_DOMText *)child->node;
 			if (!strcmp(txt->textContent, content) && ((txt->type==GF_DOM_TEXT_REGULAR) || is_cdata))
 				return;
-			if (txt->textContent) free(txt->textContent);
-			txt->textContent = strdup(content);
+			if (txt->textContent) gf_free(txt->textContent);
+			txt->textContent = gf_strdup(content);
 			txt->type = is_cdata ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
 			break;
 		}
 		child = child->next;
 	}
 	if (!txt) {
-		txt = gf_dom_add_text_node((GF_Node *)par, strdup(content) );
+		txt = gf_dom_add_text_node((GF_Node *)par, gf_strdup(content) );
 		txt->type = is_cdata ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
 
 		memset(&evt, 0, sizeof(GF_DOM_Event));

@@ -213,7 +213,7 @@ void gf_sg_ecmascript_del(JSContext *ctx)
 			JS_ShutDown();
 			gf_sg_unload_script_modules();
 			gf_mx_del(js_rt->lock);
-			free(js_rt);
+			gf_free(js_rt);
 			js_rt = NULL;
 		}
 	}
@@ -410,7 +410,7 @@ static JSBool getWorldURL(JSContext*c, JSObject*obj, uintN n, jsval *v, jsval *r
 		JSString *s = JS_NewStringCopyZ(c, par.uri.url);
 		if (!s) return JS_FALSE;
 		*rval = STRING_TO_JSVAL(s);
-		free(par.uri.url);
+		gf_free(par.uri.url);
 		return JS_TRUE;
 	}
 	return JS_FALSE;
@@ -518,7 +518,7 @@ static JSBool vrml_parse_xml(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	sg = node->sgprivate->scenegraph;
 
 	node = gf_sm_load_svg_from_string(sg, str);
-	free(str);
+	gf_free(str);
 	*rval = dom_element_construct(c, node);
 #endif
 	return JS_TRUE;
@@ -1214,7 +1214,7 @@ static void node_finalize_ex(JSContext *c, JSObject *obj, Bool is_js_call)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering node %s (%s)\n", gf_node_get_name(ptr->node), gf_node_get_class_name(ptr->node)));
 			gf_node_unregister(ptr->node, (ptr->node==parent) ? NULL : parent);
 		}
-		free(ptr);
+		gf_free(ptr);
 	}
 }
 static void node_finalize(JSContext *c, JSObject *obj)
@@ -1343,7 +1343,7 @@ static void field_finalize(JSContext *c, JSObject *obj)
 	if (!ptr) return;
 
 	if (ptr->field_ptr) gf_sg_vrml_field_pointer_del(ptr->field_ptr, ptr->field.fieldType);
-	free(ptr);
+	gf_free(ptr);
 }
 
 
@@ -1363,7 +1363,7 @@ static GFINLINE GF_JSField *SFImage_Create(JSContext *c, JSObject *obj, u32 w, u
 	v->width = w;
 	v->height = h;
 	v->numComponents = nbComp;
-	v->pixels = (u8 *) malloc(sizeof(u8) * nbComp * w * h);
+	v->pixels = (u8 *) gf_malloc(sizeof(u8) * nbComp * w * h);
 	len = MIN(nbComp * w * h, pixels->count);
 	for (i=0; i<len; i++) v->pixels[i] = (u8) pixels->vals[i];
 	JS_SetPrivate(c, obj, field);
@@ -1434,19 +1434,19 @@ static JSBool image_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			ival = JSVAL_TO_INT(vp);
 			changed = ! (sfi->width == ival);
 			sfi->width = ival;
-			if (changed && sfi->pixels) { free(sfi->pixels); sfi->pixels = NULL; }
+			if (changed && sfi->pixels) { gf_free(sfi->pixels); sfi->pixels = NULL; }
 			break;
 		case 1:
 			ival = JSVAL_TO_INT(vp);
 			changed = ! (sfi->height == ival);
 			sfi->height = ival;
-			if (changed && sfi->pixels) { free(sfi->pixels); sfi->pixels = NULL; }
+			if (changed && sfi->pixels) { gf_free(sfi->pixels); sfi->pixels = NULL; }
 			break;
 		case 2:
 			ival = JSVAL_TO_INT(vp);
 			changed = ! (sfi->numComponents == ival);
 			sfi->numComponents = ival;
-			if (changed && sfi->pixels) { free(sfi->pixels); sfi->pixels = NULL; }
+			if (changed && sfi->pixels) { gf_free(sfi->pixels); sfi->pixels = NULL; }
 			break;
 		case 3:
 		{
@@ -1454,9 +1454,9 @@ static JSBool image_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			u32 len, i;
 			if (!JSVAL_IS_OBJECT(*vp) || !JS_InstanceOf(c, JSVAL_TO_OBJECT(*vp), &js_rt->MFInt32Class, NULL)) return JS_FALSE;
 			pixels = (MFInt32 *) ((GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(*vp)))->field.far_ptr;
-			if (sfi->pixels) free(sfi->pixels);
+			if (sfi->pixels) gf_free(sfi->pixels);
 			len = sfi->width*sfi->height*sfi->numComponents;
-			sfi->pixels = (char *) malloc(sizeof(char)*len);
+			sfi->pixels = (char *) gf_malloc(sizeof(char)*len);
 			len = MAX(len, pixels->count);
 			for (i=0; i<len; i++) sfi->pixels[i] = (u8) pixels->vals[i];
 			changed = 1;
@@ -2238,7 +2238,7 @@ static void array_finalize_ex(JSContext *c, JSObject *obj, Bool is_js_call)
 	if (ptr->field_ptr) {
 		gf_sg_vrml_field_pointer_del(ptr->field_ptr, ptr->field.fieldType);
 	}
-	free(ptr);
+	gf_free(ptr);
 }
 static void array_finalize(JSContext *c, JSObject *obj)
 {
@@ -2403,22 +2403,22 @@ JSBool array_setElement(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 		break;
 	case GF_SG_VRML_MFSTRING:
 		if (((MFString *)ptr->field.far_ptr)->vals[ind]) {
-			free(((MFString *)ptr->field.far_ptr)->vals[ind]);
+			gf_free(((MFString *)ptr->field.far_ptr)->vals[ind]);
 			((MFString *)ptr->field.far_ptr)->vals[ind] = NULL;
 		}
 		str = JSVAL_IS_STRING(*rval) ? JSVAL_TO_STRING(*rval) : JS_ValueToString(c, *rval);
 		str_val = JS_GetStringBytes(str);
-		((MFString *)ptr->field.far_ptr)->vals[ind] = strdup(str_val);
+		((MFString *)ptr->field.far_ptr)->vals[ind] = gf_strdup(str_val);
 		break;
 
 	case GF_SG_VRML_MFURL:
 		if (((MFURL *)ptr->field.far_ptr)->vals[ind].url) {
-			free(((MFURL *)ptr->field.far_ptr)->vals[ind].url);
+			gf_free(((MFURL *)ptr->field.far_ptr)->vals[ind].url);
 			((MFURL *)ptr->field.far_ptr)->vals[ind].url = NULL;
 		}
 		str = JSVAL_IS_STRING(*rval) ? JSVAL_TO_STRING(*rval) : JS_ValueToString(c, *rval);
 		str_val = JS_GetStringBytes(str);
-		((MFURL *)ptr->field.far_ptr)->vals[ind].url = strdup(str_val);
+		((MFURL *)ptr->field.far_ptr)->vals[ind].url = gf_strdup(str_val);
 		((MFURL *)ptr->field.far_ptr)->vals[ind].OD_ID = 0;
 		break;
 
@@ -2971,8 +2971,8 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		char *str_val = JS_GetStringBytes(str);
 		/*we do filter strings since rebuilding a text is quite slow, so let's avoid killing the compositors*/
 		if (!s->buffer || strcmp(str_val, s->buffer)) {
-			if ( s->buffer) free(s->buffer);
-			s->buffer = strdup(str_val);
+			if ( s->buffer) gf_free(s->buffer);
+			s->buffer = gf_strdup(str_val);
 			Script_FieldChanged(c, owner, parent, field);
 		}
 		return;
@@ -2980,8 +2980,8 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 	case GF_SG_VRML_SFURL:
 	{
 		JSString *str = JSVAL_IS_STRING(val) ? JSVAL_TO_STRING(val) : JS_ValueToString(c, val);
-		if (((SFURL*)field->far_ptr)->url) free(((SFURL*)field->far_ptr)->url);
-		((SFURL*)field->far_ptr)->url = strdup(JS_GetStringBytes(str));
+		if (((SFURL*)field->far_ptr)->url) gf_free(((SFURL*)field->far_ptr)->url);
+		((SFURL*)field->far_ptr)->url = gf_strdup(JS_GetStringBytes(str));
 		((SFURL*)field->far_ptr)->OD_ID = 0;
 		Script_FieldChanged(c, owner, parent, field);
 		return;
@@ -2991,7 +2991,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 			JSString *str = JSVAL_TO_STRING(val);
 			gf_sg_vrml_mf_reset(field->far_ptr, field->fieldType);
 			gf_sg_vrml_mf_alloc(field->far_ptr, field->fieldType, 1);
-			((MFString*)field->far_ptr)->vals[0] = strdup(JS_GetStringBytes(str));
+			((MFString*)field->far_ptr)->vals[0] = gf_strdup(JS_GetStringBytes(str));
 			Script_FieldChanged(c, owner, parent, field);
 			return;
 		}
@@ -3000,7 +3000,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 			JSString *str = JSVAL_TO_STRING(val);
 			gf_sg_vrml_mf_reset(field->far_ptr, field->fieldType);
 			gf_sg_vrml_mf_alloc(field->far_ptr, field->fieldType, 1);
-			((MFURL*)field->far_ptr)->vals[0].url = strdup(JS_GetStringBytes(str));
+			((MFURL*)field->far_ptr)->vals[0].url = gf_strdup(JS_GetStringBytes(str));
 			((MFURL*)field->far_ptr)->vals[0].OD_ID = 0;
 			Script_FieldChanged(c, owner, parent, field);
 			return;
@@ -3132,7 +3132,7 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 
 	/*again, check text changes*/
 	changed = (field->fieldType == GF_SG_VRML_MFSTRING) ? 0 : 1;
-	/*realloc*/
+	/*gf_realloc*/
 	if (len != ((GenMFField *)field->far_ptr)->count) {
 		gf_sg_vrml_mf_reset(field->far_ptr, field->fieldType);
 		gf_sg_vrml_mf_alloc(field->far_ptr, field->fieldType, len);
@@ -3171,8 +3171,8 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 			JSString *str = JSVAL_IS_STRING(item) ? JSVAL_TO_STRING(item) : JS_ValueToString(c, item);
 			char *str_val = JS_GetStringBytes(str);
 			if (!mfs->vals[i] || strcmp(str_val, mfs->vals[i]) ) {
-				if (mfs->vals[i]) free(mfs->vals[i]);
-				mfs->vals[i] = strdup(str_val);
+				if (mfs->vals[i]) gf_free(mfs->vals[i]);
+				mfs->vals[i] = gf_strdup(str_val);
 				changed = 1;
 			}
 		}
@@ -3181,8 +3181,8 @@ void gf_sg_script_to_node_field(JSContext *c, jsval val, GF_FieldInfo *field, GF
 		{
 			MFURL *mfu = (MFURL *) field->far_ptr;
 			JSString *str = JSVAL_IS_STRING(item) ? JSVAL_TO_STRING(item) : JS_ValueToString(c, item);
-			if (mfu->vals[i].url) free(mfu->vals[i].url);
-			mfu->vals[i].url = strdup(JS_GetStringBytes(str));
+			if (mfu->vals[i].url) gf_free(mfu->vals[i].url);
+			mfu->vals[i].url = gf_strdup(JS_GetStringBytes(str));
 			mfu->vals[i].OD_ID = 0;
 		}
 			break;
@@ -3912,7 +3912,7 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	fseek(jsf, 0, SEEK_END);
 	fsize = ftell(jsf);
 	fseek(jsf, 0, SEEK_SET);
-	jsscript = malloc(sizeof(char)*(fsize+1));
+	jsscript = gf_malloc(sizeof(char)*(fsize+1));
 	fread(jsscript, sizeof(char)*fsize, 1, jsf);
 	fclose(jsf);
 	jsscript[fsize] = 0;
@@ -3930,7 +3930,7 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	}
 	gf_sg_js_lock_runtime(0);
 
-	free(jsscript);
+	gf_free(jsscript);
 	return success;
 }
 
@@ -3971,13 +3971,13 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 
 		ext = strrchr(url, '.');
 		if (ext && strnicmp(ext, ".js", 3)) {
-			free(url);
+			gf_free(url);
 			continue;
 		}
 
 		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
 			Bool res = vrml_js_load_script(script, url, opt_file ? 0 : 1);
-			free(url);
+			gf_free(url);
 			if (res || no_complain) return;
 		} else {
 			GF_DownloadSession *sess = gf_dm_sess_new(dnld_man, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
@@ -3990,7 +3990,7 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 				}
 				gf_dm_sess_del(sess);
 			}
-			free(url);
+			gf_free(url);
 			if (!e) return;
 		}
 	}

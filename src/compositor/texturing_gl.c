@@ -111,14 +111,14 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 
 #ifndef GPAC_DISABLE_3D
 	if (txh->tx_io->id) glDeleteTextures(1, &txh->tx_io->id);
-	if (txh->tx_io->scale_data) free(txh->tx_io->scale_data);
-	if (txh->tx_io->conv_data) free(txh->tx_io->conv_data);
+	if (txh->tx_io->scale_data) gf_free(txh->tx_io->scale_data);
+	if (txh->tx_io->conv_data) gf_free(txh->tx_io->conv_data);
 #endif
 
 #ifdef GPAC_TRISCOPE_MODE
-	if (txh->tx_io->depth_data) free(txh->tx_io->depth_data);
+	if (txh->tx_io->depth_data) gf_free(txh->tx_io->depth_data);
 #endif
-	free(txh->tx_io);
+	gf_free(txh->tx_io);
 	txh->tx_io = NULL;
 }
 
@@ -144,7 +144,7 @@ void gf_sc_texture_reset(GF_TextureHandler *txh)
 	if (txh->RenoirObject) {
 		DestroyRenoirObject(txh);
 		if (txh->tx_io->depth_data) {
-			free(txh->tx_io->depth_data);
+			gf_free(txh->tx_io->depth_data);
 			txh->tx_io->depth_data = NULL;
 		}
 	    txh->RenoirObject = NULL;
@@ -320,7 +320,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	}
 	/*note we don't free the data if existing, since this only happen when re-setting up after context loss (same size)*/
 	if ((txh->tx_io->flags == TX_MUST_SCALE) & !txh->tx_io->scale_data) {
-		txh->tx_io->scale_data = (char*)malloc(sizeof(char) * txh->tx_io->nb_comp*txh->tx_io->rescale_width*txh->tx_io->rescale_height);
+		txh->tx_io->scale_data = (char*)gf_malloc(sizeof(char) * txh->tx_io->nb_comp*txh->tx_io->rescale_width*txh->tx_io->rescale_height);
 		memset(txh->tx_io->scale_data , 0, sizeof(char) * txh->tx_io->nb_comp*txh->tx_io->rescale_width*txh->tx_io->rescale_height);
 	}
 
@@ -376,7 +376,7 @@ void txh_unpack_yuv(GF_TextureHandler *txh)
 	u32 i, j;
 	u8 *dst, *y, *u, *v, *p_y, *p_u, *p_v;
 	if (!txh->tx_io->conv_data) {
-		txh->tx_io->conv_data = (char*)malloc(sizeof(char) * 2 * txh->width * txh->height);
+		txh->tx_io->conv_data = (char*)gf_malloc(sizeof(char) * 2 * txh->width * txh->height);
 	}
 	p_y = txh->data;
 	p_u = txh->data + txh->stride*txh->height;
@@ -414,7 +414,8 @@ hence is never flipped. Otherwise all textures attached to stream are flipped in
 Bool tx_convert(GF_TextureHandler *txh)
 {
 	GF_VideoSurface src, dst;
-	u32 out_stride;
+	u32 out_stride, i, hy;
+	char *tmp;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 
 	switch (txh->pixelformat) {
@@ -427,6 +428,21 @@ Bool tx_convert(GF_TextureHandler *txh)
 	case GF_PIXEL_RGBA:
 		txh->tx_io->conv_format = txh->pixelformat;
 		txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
+
+		if (!(txh->tx_io->flags & TX_IS_RECT)) return 1;
+		if (txh->flags & GF_SR_TEXTURE_NO_GL_FLIP) return 1;
+
+		/*if texture is using RECT extension, flip image manually because
+		texture transforms are not supported in this case ...*/
+		tmp = (char*)gf_malloc(sizeof(char)*txh->stride);
+		hy = txh->height/2;
+		for (i=0; i<hy; i++) {
+			memcpy(tmp, txh->data + i*txh->stride, txh->stride);
+			memcpy(txh->data + i*txh->stride, txh->data + (txh->height - 1 - i) * txh->stride, txh->stride);
+			memcpy(txh->data + (txh->height - 1 - i) * txh->stride, tmp, txh->stride);
+		}
+		gf_free(tmp);
+		txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 		return 1;
 	case GF_PIXEL_YV12:
 		if (txh->tx_io->gl_format == compositor->gl_caps.yuv_texture) {
@@ -445,12 +461,12 @@ Bool tx_convert(GF_TextureHandler *txh)
 			/*convert video to a po of 2 WITHOUT SCALING VIDEO*/
 			txh->tx_io->conv_w = gf_get_next_pow2(txh->width);
 			txh->tx_io->conv_h = gf_get_next_pow2(txh->height);
-			txh->tx_io->conv_data = (char*)malloc(sizeof(char) * 3 * txh->tx_io->conv_w * txh->tx_io->conv_h);
+			txh->tx_io->conv_data = (char*)gf_malloc(sizeof(char) * 3 * txh->tx_io->conv_w * txh->tx_io->conv_h);
 			memset(txh->tx_io->conv_data , 0, sizeof(char) * 3 * txh->tx_io->conv_w * txh->tx_io->conv_h);
 			txh->tx_io->conv_wscale = INT2FIX(txh->width) / txh->tx_io->conv_w;
 			txh->tx_io->conv_hscale = INT2FIX(txh->height) / txh->tx_io->conv_h;
 		} else {
-			txh->tx_io->conv_data = (char*)malloc(sizeof(char) * 3 * txh->width * txh->height);
+			txh->tx_io->conv_data = (char*)gf_malloc(sizeof(char) * 3 * txh->width * txh->height);
 		}
 	}
 	out_stride = 3 * ((txh->tx_io->flags & TX_EMULE_POW2) ? txh->tx_io->conv_w : txh->width);
@@ -664,7 +680,7 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 		//glPixelTransferf(GL_DEPTH_BIAS, txh->compositor->OGLDepthOffset); 
 		
 		/*obtain depthmap*/ 
-		if (!txh->tx_io->depth_data) txh->tx_io->depth_data = (char*)malloc(sizeof(char)*txh->width*txh->height);
+		if (!txh->tx_io->depth_data) txh->tx_io->depth_data = (char*)gf_malloc(sizeof(char)*txh->width*txh->height);
 		glReadPixels(0, 0, txh->width, txh->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, txh->tx_io->depth_data);
 	    /*	depth = alpha & 0xfe 
 		    shape = plan alpha & 0x01 */
@@ -705,14 +721,14 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 #endif
 	}
 	/*flip image because of openGL*/
-	tmp = (char*)malloc(sizeof(char)*txh->stride);
+	tmp = (char*)gf_malloc(sizeof(char)*txh->stride);
 	hy = txh->height/2;
 	for (i=0; i<hy; i++) {
 		memcpy(tmp, txh->data + i*txh->stride, txh->stride);
 		memcpy(txh->data + i*txh->stride, txh->data + (txh->height - 1 - i) * txh->stride, txh->stride);
 		memcpy(txh->data + (txh->height - 1 - i) * txh->stride, tmp, txh->stride);
 	}
-	free(tmp);
+	gf_free(tmp);
                 //dump depth and rgbds texture
 
 }
@@ -741,8 +757,8 @@ void gf_get_tinygl_depth(GF_TextureHandler *txh) {
                 u8 *depth=NULL;
                 u8 *tmp=NULL;
                 int i;
-		tmp = (char*)malloc(sizeof(char)*txh->width*2*txh->height);
-		depth = (char*)malloc(sizeof(char)*txh->width*txh->height);
+		tmp = (char*)gf_malloc(sizeof(char)*txh->width*2*txh->height);
+		depth = (char*)gf_malloc(sizeof(char)*txh->width*txh->height);
 
 #if 0
                 //get 16-bit tinygl depth buffer
@@ -753,7 +769,7 @@ void gf_get_tinygl_depth(GF_TextureHandler *txh) {
 #else
 		glReadPixels(0, 0, txh->width, txh->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, depth);
 #endif
-                        free(tmp);
+                        gf_free(tmp);
                         GF_VideoSurface fb;
                         char *str="dump";
                         memset(&fb, 0, sizeof(GF_VideoSurface));
@@ -766,7 +782,7 @@ void gf_get_tinygl_depth(GF_TextureHandler *txh) {
                         write_bmp(&fb, str, 1);
                         //dump raw depth and raw rgbds
 		        DumpRenoirTexture(txh);
-                        free(depth);
+                        gf_free(depth);
                 }
 #endif
 

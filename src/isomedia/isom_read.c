@@ -74,8 +74,8 @@ GF_EXPORT
 void gf_isom_sample_del(GF_ISOSample **samp)
 {
 	if (! *samp) return;
-	if ((*samp)->data && (*samp)->dataLength) free((*samp)->data);
-	free(*samp);
+	if ((*samp)->data && (*samp)->dataLength) gf_free((*samp)->data);
+	gf_free(*samp);
 	*samp = NULL;
 }
 
@@ -126,7 +126,7 @@ GF_Err gf_isom_open_progressive(const char *fileName, GF_ISOFile **the_file, u64
 	movie = gf_isom_new_movie();
 	if (!movie) return GF_OUT_OF_MEM;
 
-	movie->fileName = strdup(fileName);
+	movie->fileName = gf_strdup(fileName);
 	movie->openMode = GF_ISOM_OPEN_READ;
 	//do NOT use FileMapping on incomplete files
 	e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_READ, &movie->movieFileMap);
@@ -254,13 +254,13 @@ GF_Descriptor *gf_isom_get_root_od(GF_ISOFile *movie)
 
 	switch (movie->moov->iods->descriptor->tag) {
 	case GF_ODF_ISOM_OD_TAG:
-		od = (GF_ObjectDescriptor*)malloc(sizeof(GF_ObjectDescriptor));
+		od = (GF_ObjectDescriptor*)gf_malloc(sizeof(GF_ObjectDescriptor));
 		memset(od, 0, sizeof(GF_ObjectDescriptor));
 		od->ESDescriptors = gf_list_new();
 		useIOD = 0;
 		break;
 	case GF_ODF_ISOM_IOD_TAG:
-		iod = (GF_InitialObjectDescriptor*)malloc(sizeof(GF_InitialObjectDescriptor));
+		iod = (GF_InitialObjectDescriptor*)gf_malloc(sizeof(GF_InitialObjectDescriptor));
 		memset(iod, 0, sizeof(GF_InitialObjectDescriptor));
 		iod->ESDescriptors = gf_list_new();
 		useIOD = 1;
@@ -729,7 +729,7 @@ GF_Err gf_isom_get_watermark(GF_ISOFile *mov, bin128 UUID, u8** data, u32* lengt
 	wm = (GF_UnknownUUIDBox*)gf_list_get(map->boxList, 0);
 	if (!wm) return GF_NOT_SUPPORTED;
 
-	*data = (u8 *) malloc(sizeof(char)*wm->dataSize);
+	*data = (u8 *) gf_malloc(sizeof(char)*wm->dataSize);
 	memcpy(*data, wm->data, wm->dataSize);
 	*length = wm->dataSize;
 	return GF_OK;
@@ -1250,7 +1250,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 		//if no sample, the shadowSync is broken, return the sample
 		if (!shadow) return GF_OK;
 		(*sample)->IsRAP = 1;
-		free((*sample)->data);
+		gf_free((*sample)->data);
 		(*sample)->dataLength = shadow->dataLength;
 		(*sample)->data = shadow->data;
 		//set data length to 0 to keep the buffer alive...
@@ -1586,7 +1586,7 @@ found:
 	ptr = (GF_UnknownBox*)gf_list_get(map->boxList, UserDataIndex-1);
 
 	//ok alloc the data
-	*userData = (char *)malloc(sizeof(char)*ptr->dataSize);
+	*userData = (char *)gf_malloc(sizeof(char)*ptr->dataSize);
 	if (!*userData) return GF_OUT_OF_MEM;
 	memcpy(*userData, ptr->data, sizeof(char)*ptr->dataSize);
 	*userDataSize = ptr->dataSize;
@@ -1811,7 +1811,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		udesc->color_table_index = entry->color_table_index;
 		if (entry->data_size) {
 			udesc->extension_buf_size = entry->data_size;
-			udesc->extension_buf = (char*)malloc(sizeof(char) * entry->data_size);
+			udesc->extension_buf = (char*)gf_malloc(sizeof(char) * entry->data_size);
 			memcpy(udesc->extension_buf, entry->data, entry->data_size);
 		}
 		return udesc;
@@ -1831,7 +1831,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		udesc->nb_channels = gena->channel_count;
 		if (gena->data_size) {
 			udesc->extension_buf_size = gena->data_size;
-			udesc->extension_buf = (char*)malloc(sizeof(char) * gena->data_size);
+			udesc->extension_buf = (char*)gf_malloc(sizeof(char) * gena->data_size);
 			memcpy(udesc->extension_buf, gena->data, gena->data_size);
 		}
 		return udesc;
@@ -1845,7 +1845,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		}
 		if (genm->data_size) {
 			udesc->extension_buf_size = genm->data_size;
-			udesc->extension_buf = (char*)malloc(sizeof(char) * genm->data_size);
+			udesc->extension_buf = (char*)gf_malloc(sizeof(char) * genm->data_size);
 			memcpy(udesc->extension_buf, genm->data, genm->data_size);
 		}
 		return udesc;

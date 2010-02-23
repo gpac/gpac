@@ -45,7 +45,7 @@ static void isor_delete_channel(ISOMReader *reader, ISOMChannel *ch)
 	while ((ch2 = (ISOMChannel *)gf_list_enum(reader->channels, &i))) {
 		if (ch2 == ch) {
 			isor_reset_reader(ch);
-			free(ch);
+			gf_free(ch);
 			gf_list_rem(reader->channels, i-1);
 			return;
 		}
@@ -834,8 +834,8 @@ void isor_client_del(GF_BaseInterface *bi)
 	ISOMReader *read = (ISOMReader *)plug->priv;
 
 	gf_list_del(read->channels);
-	free(read);
-	free(bi);
+	gf_free(read);
+	gf_free(bi);
 }
 
 #endif /*GPAC_DISABLE_ISOM*/

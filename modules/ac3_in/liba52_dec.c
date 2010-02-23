@@ -331,8 +331,8 @@ void DeleteAC3Dec(GF_BaseDecoder *ifcg)
 {
 	A52CTX();
 	if (ctx->codec) a52_free(ctx->codec);
-	free(ctx);
-	free(ifcg);
+	gf_free(ctx);
+	gf_free(ifcg);
 }
 
 

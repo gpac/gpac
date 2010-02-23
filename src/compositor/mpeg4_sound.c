@@ -43,7 +43,7 @@ static void TraverseSound2D(GF_Node *node, void *rs, Bool is_destroy)
 	Sound2DStack *st = (Sound2DStack *)gf_node_get_private(node);
 	
 	if (is_destroy) {
-		free(st);
+		gf_free(st);
 		return;
 	}
 	if (!snd->source) return;
@@ -174,7 +174,7 @@ static void TraverseSound(GF_Node *node, void *rs, Bool is_destroy)
 	SoundStack *st = (SoundStack *)gf_node_get_private(node);
 
 	if (is_destroy) {
-		free(st);
+		gf_free(st);
 		return;
 	}
 	if (!snd->source) return;

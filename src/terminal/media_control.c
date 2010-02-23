@@ -282,7 +282,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 
 		gf_list_del(stack->seg);
 		gf_sg_vrml_mf_reset(&stack->url, GF_SG_VRML_MFURL);
-		free(stack);
+		gf_free(stack);
 		return;
 	}
 

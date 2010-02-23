@@ -64,7 +64,7 @@ OCIEvent *gf_oci_event_new(u16 EventID)
 {
 	OCIEvent *tmp;
 	if (EventID > MAX_OCIEVENT_ID) return NULL;
-	tmp = (OCIEvent *)malloc(sizeof(OCIEvent));
+	tmp = (OCIEvent *)gf_malloc(sizeof(OCIEvent));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(OCIEvent));
 	tmp->EventID = EventID;
@@ -84,7 +84,7 @@ void gf_oci_event_del(OCIEvent *event)
 		gf_odf_delete_descriptor(desc);
 	}
 	gf_list_del(event->OCIDescriptors);
-	free(event);	
+	gf_free(event);	
 }
 
 GF_EXPORT
@@ -194,7 +194,7 @@ OCICodec *gf_oci_codec_new(u8 IsEncoder, u8 Version)
 {
 	OCICodec *tmp;
 	if (Version != 0x01) return NULL;
-	tmp = (OCICodec *)malloc(sizeof(OCICodec));
+	tmp = (OCICodec *)gf_malloc(sizeof(OCICodec));
 	if (!tmp) return NULL;
 	tmp->Mode = IsEncoder ? 1 : 0;
 	tmp->Version = 0x01;
@@ -214,7 +214,7 @@ void gf_oci_codec_del(OCICodec *codec)
 		gf_list_rem(codec->OCIEvents, 0);
 	}
 	gf_list_del(codec->OCIEvents);
-	free(codec);
+	gf_free(codec);
 }
 
 GF_EXPORT

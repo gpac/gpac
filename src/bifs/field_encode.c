@@ -167,7 +167,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 	{
 		SFCommandBuffer *cb = (SFCommandBuffer *) field->far_ptr;
-		if (cb->buffer) free(cb->buffer);
+		if (cb->buffer) gf_free(cb->buffer);
 		cb->buffer = NULL;
 		cb->bufferSize = 0;
 		if (gf_list_count(cb->commandList)) {
@@ -393,7 +393,7 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	
 	numBitsDEF = gf_get_bit_size(gf_node_get_num_fields_in_mode(node, GF_SG_FIELD_CODING_DEF) - 1);
 
-	enc_fields = (s32*)malloc(sizeof(s32) * count);
+	enc_fields = (s32*)gf_malloc(sizeof(s32) * count);
 	nbFinal = 0;
 	for (i=0; i<count; i++) {
 		enc_fields[i] = -1;
@@ -513,7 +513,7 @@ GF_Err EncNodeFields(GF_BifsEncoder * codec, GF_BitStream *bs, GF_Node *node)
 	/*end flag*/
 	if (use_list) GF_BIFS_WRITE_INT(codec, bs, 1, 1, "end", NULL);
 exit:
-	free(enc_fields);
+	gf_free(enc_fields);
 	return e;
 }
 

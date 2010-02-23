@@ -254,7 +254,7 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 		if (stack->audio) {
 			gf_node_unregister(stack->audio, NULL);
 		}
-		free(stack);
+		gf_free(stack);
 		return;
 	} 
 
@@ -642,7 +642,7 @@ static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGP
 	if (is_destroy) {
 		gf_sc_audio_predestroy(&stack->input);
 		gf_sg_mfurl_del(stack->aurl);
-		free(stack);
+		gf_free(stack);
 		return;
 	}
 	if (stack->is_active) {

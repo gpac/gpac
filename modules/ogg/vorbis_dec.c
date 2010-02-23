@@ -68,14 +68,14 @@ static GF_Err VORB_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
 		oggpacket.bytes = gf_bs_read_u16(bs);
-		oggpacket.packet = malloc(sizeof(char) * oggpacket.bytes);
+		oggpacket.packet = gf_malloc(sizeof(char) * oggpacket.bytes);
 		gf_bs_read_data(bs, oggpacket.packet, oggpacket.bytes);
 		if (vorbis_synthesis_headerin(&ctx->vi, &ctx->vc, &oggpacket) < 0 ) {
-			free(oggpacket.packet);
+			gf_free(oggpacket.packet);
 			gf_bs_del(bs);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		free(oggpacket.packet);
+		gf_free(oggpacket.packet);
 	}
 	vorbis_synthesis_init(&ctx->vd, &ctx->vi);
 	vorbis_block_init(&ctx->vd, &ctx->vb); 
@@ -262,7 +262,7 @@ u32 NewVorbisDecoder(GF_BaseDecoder *ifcd)
 void DeleteVorbisDecoder(GF_BaseDecoder *ifcg)
 {
 	VORBISCTX();
-	free(ctx);
+	gf_free(ctx);
 }
 
 #endif

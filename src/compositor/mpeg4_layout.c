@@ -55,7 +55,7 @@ static void layout_reset_lines(LayoutStack *st)
 	while (gf_list_count(st->lines)) {
 		LineInfo *li = (LineInfo *)gf_list_get(st->lines, 0);
 		gf_list_rem(st->lines, 0);
-		free(li);
+		gf_free(li);
 	}
 }
 
@@ -626,7 +626,7 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 		layout_reset_lines(st);
 		parent_node_predestroy((ParentNode2D *)st);
 		gf_list_del(st->lines);
-		free(st);
+		gf_free(st);
 		return;
 	}
 	

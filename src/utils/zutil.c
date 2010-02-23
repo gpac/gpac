@@ -3,7 +3,7 @@
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
-/* @(#) $Id: zutil.c,v 1.1 2006-12-13 15:51:06 jeanlf Exp $ */
+/* @(#) $Id: zutil.c,v 1.2 2010-02-23 16:24:20 jeanlf Exp $ */
 
 #include "zutil.h"
 
@@ -189,10 +189,10 @@ void zmemzero(dest, len)
 
 #  define MY_ZCALLOC
 
-/* Turbo C malloc() does not allow dynamic allocation of 64K bytes
+/* Turbo C gf_malloc() does not allow dynamic allocation of 64K bytes
  * and farmalloc(64K) returns a pointer with an offset of 8, so we
  * must fix the pointer. Warning: the pointer must be put back to its
- * original form in order to free it, use zcfree().
+ * original form in order to free it, use zcgf_free().
  */
 
 #define MAX_PTR 10
@@ -237,18 +237,18 @@ voidpf zcalloc (voidpf opaque, unsigned items, unsigned size)
     return buf;
 }
 
-void  zcfree (voidpf opaque, voidpf ptr)
+void  zcgf_free(voidpf opaque, voidpf ptr)
 {
     int n;
     if (*(ush*)&ptr != 0) { /* object < 64K */
-        farfree(ptr);
+        fargf_free(ptr);
         return;
     }
     /* Find the original pointer */
     for (n = 0; n < next_ptr; n++) {
         if (ptr != table[n].new_ptr) continue;
 
-        farfree(table[n].org_ptr);
+        fargf_free(table[n].org_ptr);
         while (++n < next_ptr) {
             table[n-1] = table[n];
         }
@@ -278,10 +278,10 @@ voidpf zcalloc (voidpf opaque, unsigned items, unsigned size)
     return _halloc((long)items, size);
 }
 
-void  zcfree (voidpf opaque, voidpf ptr)
+void  zcgf_free(voidpf opaque, voidpf ptr)
 {
     if (opaque) opaque = 0; /* to make compiler happy */
-    _hfree(ptr);
+    _hgf_free(ptr);
 }
 
 #endif /* M_I86 */
@@ -292,8 +292,8 @@ void  zcfree (voidpf opaque, voidpf ptr)
 #ifndef MY_ZCALLOC /* Any system without a special alloc function */
 
 #ifndef STDC
-extern voidp  malloc OF((uInt size));
-extern voidp  calloc OF((uInt items, uInt size));
+extern voidp  gf_malloc OF((uInt size));
+extern voidp  gf_calloc OF((uInt items, uInt size));
 extern void   free   OF((voidpf ptr));
 #endif
 
@@ -303,15 +303,15 @@ voidpf zcalloc (opaque, items, size)
     unsigned size;
 {
     if (opaque) items += size - size; /* make compiler happy */
-    return sizeof(uInt) > 2 ? (voidpf)malloc(items * size) :
-                              (voidpf)calloc(items, size);
+    return sizeof(uInt) > 2 ? (voidpf)gf_malloc(items * size) :
+                              (voidpf)gf_calloc(items, size);
 }
 
-void  zcfree (opaque, ptr)
+void  zcgf_free(opaque, ptr)
     voidpf opaque;
     voidpf ptr;
 {
-    free(ptr);
+    gf_free(ptr);
     if (opaque) return; /* make compiler happy */
 }
 

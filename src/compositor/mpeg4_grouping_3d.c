@@ -39,7 +39,7 @@ static void TraverseGroup(GF_Node *node, void *rs, Bool is_destroy)
 	GroupingNode2D *group = (GroupingNode2D *) gf_node_get_private(node);
 	if (is_destroy) {
 		gf_sc_check_focus_upon_destroy(node);
-		free(group);
+		gf_free(group);
 	} else {
 		group_2d_traverse(node, group, (GF_TraverseState*)rs);
 	}
@@ -160,7 +160,7 @@ static void DestroyTransform(GF_Node *n)
 {
 	TransformStack *ptr = (TransformStack *)gf_node_get_private(n);
 	gf_sc_check_focus_upon_destroy(n);
-	free(ptr);
+	gf_free(ptr);
 }
 
 static void NewTransformStack(GF_Compositor *compositor, GF_Node *node, GF_ChildNodeItem **children)
@@ -343,7 +343,7 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 	s32 *prev_child = (s32 *)gf_node_get_private(node);
 
 	if (is_destroy) {
-		free(prev_child);
+		gf_free(prev_child);
 		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
@@ -404,7 +404,7 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 
 void compositor_init_lod(GF_Compositor *compositor, GF_Node *node)
 {
-	s32 *stack = (s32*)malloc(sizeof(s32));
+	s32 *stack = (s32*)gf_malloc(sizeof(s32));
 	*stack = -1;
 	gf_node_set_callback_function(node, TraverseLOD);
 	gf_node_set_private(node, stack);

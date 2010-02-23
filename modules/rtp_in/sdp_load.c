@@ -65,7 +65,7 @@ GF_Err RP_SetupSDP(RTPClient *rtp, GF_SDPInfo *sdp, RTPStream *stream)
 	if (url) {
 		migrate_sess = RP_NewSession(rtp, url);
 		if (migrate_sess && session_id) {
-			migrate_sess->session_id = strdup(session_id);
+			migrate_sess->session_id = gf_strdup(session_id);
 		}
 		sess_ctrl = url;
 	}
@@ -182,7 +182,7 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 	esd->decoderConfig->streamType = ch->depacketizer->sl_map.StreamType;
 	esd->decoderConfig->objectTypeIndication = ch->depacketizer->sl_map.ObjectTypeIndication;
 	if (ch->depacketizer->sl_map.config) {
-		esd->decoderConfig->decoderSpecificInfo->data = (char*)malloc(sizeof(char) * ch->depacketizer->sl_map.configSize);
+		esd->decoderConfig->decoderSpecificInfo->data = (char*)gf_malloc(sizeof(char) * ch->depacketizer->sl_map.configSize);
 		memcpy(esd->decoderConfig->decoderSpecificInfo->data, ch->depacketizer->sl_map.config, sizeof(char) * ch->depacketizer->sl_map.configSize);
 		esd->decoderConfig->decoderSpecificInfo->dataLength = ch->depacketizer->sl_map.configSize;
 	}
@@ -340,15 +340,15 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 				char *cdir = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), 
 					"General", "CacheDirectory");
 
-				rtp->session_state = malloc(sizeof(char)*4096);
+				rtp->session_state = gf_malloc(sizeof(char)*4096);
 				strcpy(rtp->session_state, cdir);
 				strcat(rtp->session_state, "/");
 				sprintf(temp, "mig%08x.sdp", (u32) rtp);
 				strcat(rtp->session_state, temp);
 
-				rtp->remote_session_state = strdup(cache);
+				rtp->remote_session_state = gf_strdup(cache);
 			} else {
-				rtp->session_state = strdup(cache);
+				rtp->session_state = gf_strdup(cache);
 			}
 
 			gf_sdp_info_write(sdp, &out);
@@ -358,10 +358,10 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 					fprintf(f, "%s", out);
 					fclose(f);
 				} else {
-					free(rtp->session_state);
+					gf_free(rtp->session_state);
 					rtp->session_state = NULL;
 				}
-				free(out);
+				gf_free(out);
 			}
 		}
 		gf_sdp_info_del(sdp);
@@ -394,7 +394,7 @@ void MigrateSDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			fclose(f);
 			szBody[len1+len2] = 0;
 
-			rtp->tmp_buf = strdup(szBody);
+			rtp->tmp_buf = gf_strdup(szBody);
 			param->data = rtp->tmp_buf;
 			param->size = strlen(szBody);
 	}
@@ -428,14 +428,14 @@ void RP_SaveSessionState(RTPClient *rtp)
 	fseek(f, 0, SEEK_END);
 	sdp_size = ftell(f);
 	fseek(f, 0, SEEK_SET);
-	sdp_buf = (char*)malloc(sdp_size);
+	sdp_buf = (char*)gf_malloc(sdp_size);
 	fread(sdp_buf, sdp_size, 1, f);
 	fclose(f);
 
 
 	sdp = gf_sdp_info_new();
 	e = gf_sdp_info_parse(sdp, sdp_buf, sdp_size);
-	free(sdp_buf);
+	gf_free(sdp_buf);
 
 	for (i=0; i<gf_list_count(rtp->channels); i++) {
 		GF_SDPMedia *media = NULL;
@@ -466,16 +466,16 @@ void RP_SaveSessionState(RTPClient *rtp)
 			for (j=0; j<gf_list_count(media->Attributes); j++) {
 				att = (GF_X_Attribute*)gf_list_get(media->Attributes, j);
 				if (!stricmp(att->Name, "x-stream-state") ) {
-					free(att->Name);
-					free(att->Value);
-					free(att);
+					gf_free(att->Name);
+					gf_free(att->Value);
+					gf_free(att);
 					gf_list_rem(media->Attributes, j);
 				}
 			}
 			ch->current_start += gf_rtp_get_current_time(ch->rtp_ch);
 
 			GF_SAFEALLOC(att, GF_X_Attribute);
-			att->Name = strdup("x-stream-state");
+			att->Name = gf_strdup("x-stream-state");
 			sprintf(szPorts, "server-port=%d-%d;ssrc=%X;npt=%g;seq=%d;rtptime=%d", 
 				ch->rtp_ch->net_info.port_first, 
 				ch->rtp_ch->net_info.port_last,
@@ -484,7 +484,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 				ch->rtp_ch->rtp_first_SN,
 				ch->rtp_ch->rtp_time
 			);
-			att->Value = strdup(szPorts);
+			att->Value = gf_strdup(szPorts);
 			gf_list_add(media->Attributes, att);
 
 			if (ch->rtsp)
@@ -499,24 +499,24 @@ void RP_SaveSessionState(RTPClient *rtp)
 		att = (GF_X_Attribute*)gf_list_get(sdp->Attributes, j);
 		if (!stricmp(att->Name, "x-session-id") || !stricmp(att->Name, "x-session-name")
 		) {
-			free(att->Name);
-			free(att->Value);
-			free(att);
+			gf_free(att->Name);
+			gf_free(att->Value);
+			gf_free(att);
 			gf_list_rem(sdp->Attributes, j);
 		}
 	}
 	if (sess && sess->session_id) {
 		GF_SAFEALLOC(att, GF_X_Attribute);
-		att->Name = strdup("x-session-id");
-		att->Value = strdup(sess->session_id);
+		att->Name = gf_strdup("x-session-id");
+		att->Value = gf_strdup(sess->session_id);
 		gf_list_add(sdp->Attributes, att);
 	}
 	{
 		char szURL[4096];
 		GF_SAFEALLOC(att, GF_X_Attribute);
-		att->Name = strdup("x-session-name");
+		att->Name = gf_strdup("x-session-name");
 		sprintf(szURL, "rtsp://%s:%d/%s", sess->session->Server, sess->session->Port, sess->session->Service);
-		att->Value = strdup(szURL);
+		att->Value = gf_strdup(szURL);
 		gf_list_add(sdp->Attributes, att);
 	}
 
@@ -527,7 +527,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 		gf_sdp_info_write(sdp, &out);
 		if (out) {
 			fprintf(f, "%s", out);
-			free(out);
+			gf_free(out);
 		}
 		fclose(f);
 	}
@@ -545,7 +545,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 			e = gf_dm_sess_fetch_data(rtp->dnload, buffer, 100, &read);
 			if (e && (e!=GF_IP_NETWORK_EMPTY)) break;
 		}
-		if (rtp->tmp_buf) free(rtp->tmp_buf);
+		if (rtp->tmp_buf) gf_free(rtp->tmp_buf);
 		gf_term_download_del(rtp->dnload);
 		rtp->dnload = NULL;
 		if (e<0) {

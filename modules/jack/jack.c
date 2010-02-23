@@ -99,7 +99,7 @@ Jack_cleanup (JackContext * ctx)
     }
   if (ctx->buffer != NULL)
     {
-      free (ctx->buffer);
+      gf_free(ctx->buffer);
       ctx->bufferSz = 0;
       ctx->buffer = NULL;
     }
@@ -111,7 +111,7 @@ Jack_cleanup (JackContext * ctx)
 	    jack_port_unregister (ctx->jack, ctx->jackPorts[channels]);
 	  ctx->jackPorts[channels] = NULL;
 	}
-      free (ctx->jackPorts);
+      gf_free(ctx->jackPorts);
       ctx->jackPorts = NULL;
     }
   if (ctx->jack != NULL)
@@ -120,7 +120,7 @@ Jack_cleanup (JackContext * ctx)
     }
   if (ctx->channels != NULL)
     {
-      free (ctx->channels);
+      gf_free(ctx->channels);
       ctx->channels = NULL;
     }
   ctx->numChannels = 0;
@@ -197,10 +197,9 @@ onBufferSizeChanged (jack_nframes_t nframes, void *arg)
   if (ctx->buffer != NULL && ctx->bufferSz == realBuffSize)
     return 0;
   if (ctx->channels != NULL)
-    free (ctx->channels);
+    gf_free(ctx->channels);
   ctx->channels = NULL;
-  ctx->channels =
-    calloc (ctx->numChannels, sizeof (jack_default_audio_sample_t *));
+  ctx->channels = gf_calloc (ctx->numChannels, sizeof (jack_default_audio_sample_t *));
   if (ctx->channels == NULL)
     {
       Jack_cleanup (ctx);
@@ -218,8 +217,8 @@ onBufferSizeChanged (jack_nframes_t nframes, void *arg)
     }
 
   if (ctx->buffer != NULL)
-    free (ctx->buffer);
-  ctx->buffer = calloc (realBuffSize, sizeof (char));
+    gf_free(ctx->buffer);
+  ctx->buffer = gf_calloc (realBuffSize, sizeof (char));
   if (ctx->buffer == NULL)
     {
       Jack_cleanup (ctx);
@@ -356,7 +355,7 @@ Jack_ConfigureOutput (GF_AudioOutput * dr, u32 * SampleRate, u32 * NbChannels,
 	  ("[Jack] Jack_ConfigureOutput channels=%d, srate=%d bits/sample=%d\n",
 	   *NbChannels, *SampleRate, *nbBitsPerSample));
   if (ctx->jackPorts == NULL)
-    ctx->jackPorts = calloc (ctx->numChannels, sizeof (jack_port_t *));
+    ctx->jackPorts = gf_calloc (ctx->numChannels, sizeof (jack_port_t *));
   if (ctx->jackPorts == NULL)
     {
       goto exit_cleanup;
@@ -498,7 +497,7 @@ NewJackOutput ()
   GF_SAFEALLOC (driv, GF_AudioOutput);
   if (!driv)
     {
-      free (ctx);
+      gf_free(ctx);
       return NULL;
     }
   driv->opaque = ctx;
@@ -536,9 +535,9 @@ DeleteJackOutput (void *ifce)
   GF_AudioOutput *dr = (GF_AudioOutput *) ifce;
   JackContext *ctx = (JackContext *) dr->opaque;
   Jack_cleanup (ctx);
-  free (ctx);
+  gf_free(ctx);
   dr->opaque = NULL;
-  free (dr);
+  gf_free(dr);
 }
 
 /*

@@ -142,7 +142,7 @@ static
 void gdip_delete_surface(GF_SURFACE _this)
 {
 	GPGRAPH();
-	free(_graph);
+	gf_free(_graph);
 }
 
 /*should give the best results with the clippers*/
@@ -500,6 +500,6 @@ void gdip_ShutdownRenderer(GF_Raster2D *driver)
 	struct _gdip_context *ctx = (struct _gdip_context *)driver->internal;
 
 	GdiplusShutdown(ctx->gdiToken);
-	free(driver->internal);
-	free(driver);
+	gf_free(driver->internal);
+	gf_free(driver);
 }

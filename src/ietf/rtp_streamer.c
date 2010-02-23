@@ -428,7 +428,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	
 	if (!stream->packetizer) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Failed to create packetizer\n"));
-		free(stream);
+		gf_free(stream);
 		return NULL;
 	}
 	
@@ -439,14 +439,14 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	e = rtp_stream_init_channel(stream, MTU + 12, ip_dest, port, TTL, ifce_addr);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Failed to create RTP channel - error %s\n", gf_error_to_string(e) ));
-		free(stream);
+		gf_free(stream);
 		return NULL;
 	}
 	stream->ts_scale = slc.timestampResolution;
 	stream->ts_scale /= timeScale;
 
 	stream->buffer_alloc = MTU+12;
-	stream->buffer = malloc(sizeof(char) * stream->buffer_alloc);
+	stream->buffer = gf_malloc(sizeof(char) * stream->buffer_alloc);
 
 	return stream;
 }
@@ -467,8 +467,8 @@ void gf_rtp_streamer_del(GF_RTPStreamer *streamer)
 	if (streamer) {
 		if (streamer->channel) gf_rtp_del(streamer->channel);
 		if (streamer->packetizer) gf_rtp_builder_del(streamer->packetizer);
-		if (streamer->buffer) free(streamer->buffer);				
-		free(streamer);
+		if (streamer->buffer) gf_free(streamer->buffer);				
+		gf_free(streamer);
 	}
 }
 
@@ -507,7 +507,7 @@ void gf_media_format_ttxt_sdp(GP_RTPPacketizer *builder, char *payload_name, cha
 		u32 tx3g_len, len;
 		gf_isom_text_get_encoded_tx3g(file, track, i+1, GF_RTP_TX3G_SIDX_OFFSET, &tx3g, &tx3g_len);
 		len = gf_base64_encode(tx3g, tx3g_len, buffer, 2000);
-		free(tx3g);
+		gf_free(tx3g);
 		buffer[len] = 0;
 		if (i) strcat(sdpLine, ", ");
 		strcat(sdpLine, buffer);
@@ -642,7 +642,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 		gf_bs_del(bs); 
 
 		gf_rtp_builder_format_sdp(rtp->packetizer, payloadName, sdpLine, config_bytes, config_size); 
-		free(config_bytes); 
+		gf_free(config_bytes); 
 		strcat(sdpLine, "\n");
 	}
 
@@ -650,11 +650,11 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 
 	size = strlen(sdp) + (*out_sdp_buffer ? strlen(*out_sdp_buffer) : 0) + 1;
 	if ( !*out_sdp_buffer) {
-		*out_sdp_buffer = malloc(sizeof(char)*size);
+		*out_sdp_buffer = gf_malloc(sizeof(char)*size);
 		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
 		strcpy(*out_sdp_buffer, sdp);
 	} else {
-		*out_sdp_buffer = realloc(*out_sdp_buffer, sizeof(char)*size);
+		*out_sdp_buffer = gf_realloc(*out_sdp_buffer, sizeof(char)*size);
 		if (! *out_sdp_buffer) return GF_OUT_OF_MEM;
 		strcat(*out_sdp_buffer, sdp);
 	}
@@ -680,7 +680,7 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 	fseek(tmp, 0, SEEK_END);
 	size = ftell(tmp);
 	fseek(tmp, 0, SEEK_SET);
-	sdp = malloc(sizeof(char) * (size+1));
+	sdp = gf_malloc(sizeof(char) * (size+1));
 	fread(sdp, 1, size, tmp);
 	sdp[size] = 0;
 	fclose(tmp);

@@ -118,6 +118,9 @@ enum
 	it must set cap.valueINT to 1 (typically, text stream decoder will hold the scene for a given duration
 	after the last AU). Otherwise the decoder will be stopped and ask to remove any extra scene being displayed*/
 	GF_CODEC_MEDIA_NOT_OVER,
+
+	/*special cap indicating the codec should abort processing as soon as possible because it is about to be destroyed*/
+	GF_CODEC_ABORT,
 };
 
 

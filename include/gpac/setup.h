@@ -309,33 +309,47 @@ typedef u32 Bool;
 /*GPAC memory tracking*/
 #ifdef GPAC_MEMORY_TRACKING
 
-void *gf_malloc(size_t size, char *filename, int line);
-void *gf_calloc(size_t num, size_t size_of, char *filename, int line);
-void *gf_realloc(void *ptr, size_t size, char *filename, int line);
-void gf_free(void *ptr, char *filename, int line);
-char *gf_strdup(const char *str, char *filename, int line);
+void *gf_mem_malloc(size_t size, char *filename, int line);
+void *gf_mem_calloc(size_t num, size_t size_of, char *filename, int line);
+void *gf_mem_realloc(void *ptr, size_t size, char *filename, int line);
+void gf_mem_free(void *ptr, char *filename, int line);
+char *gf_mem_strdup(const char *str, char *filename, int line);
 void gf_memory_print(void); /*prints the state of current allocations*/
 
-/*always activated to avoid pointers to be re-freed*/
-#undef free
-#undef malloc
-#undef calloc
-#undef realloc
-#undef strdup
-
-#define free(ptr) gf_free(ptr, __FILE__, __LINE__)
-//#define free(ptr) { gf_free(ptr, __FILE__, __LINE__); ptr = NULL; } /*safe free()*/
-#define malloc(size) gf_malloc(size, __FILE__, __LINE__)
-#define calloc(num, size_of) gf_calloc(num, size_of, __FILE__, __LINE__)
-#define strdup(s) gf_strdup(s, __FILE__, __LINE__)
-#define realloc(ptr1, ptr2) gf_realloc(ptr1, ptr2, __FILE__, __LINE__)
+#define gf_free(ptr) gf_mem_free(ptr, __FILE__, __LINE__)
+#define gf_malloc(size) gf_mem_malloc(size, __FILE__, __LINE__)
+#define gf_calloc(num, size_of) gf_mem_calloc(num, size_of, __FILE__, __LINE__)
+#define gf_strdup(s) gf_mem_strdup(s, __FILE__, __LINE__)
+#define gf_realloc(ptr1, ptr2) gf_mem_realloc(ptr1, ptr2, __FILE__, __LINE__)
 
 /*check we wont be called recursively*/
 #define GPAC_ALLOCATIONS_REDEFINED 1
 
-#endif
-/*end GPAC memory tracking*/
 
+/*make sure we always use gpac-enabled memory routines*/
+#undef free
+#define free	free_is_disabled_in_gpac_use_gf_free
+#undef malloc
+#define malloc	malloc_is_disabled_in_gpac_use_gf_malloc
+#undef calloc
+#define calloc	calloc_is_disabled_in_gpac_use_gf_calloc
+#undef realloc
+#define realloc	realloc_is_disabled_in_gpac_use_gf_realloc
+#undef strdup
+#define strdup strdup_is_disabled_in_gpac_use_gf_strdup
+
+
+#else
+
+#define gf_free(ptr) free(ptr)
+#define gf_malloc(size) malloc(size)
+#define gf_calloc(num, size_of) calloc(num, size_of)
+#define gf_strdup(s) strdup(s)
+#define gf_realloc(ptr1, ptr2) realloc(ptr1, ptr2)
+
+#endif
+
+/*end GPAC memory tracking*/
 
 #if defined (WIN32) && !defined(__GNUC__)
 #define LLD "%I64d"

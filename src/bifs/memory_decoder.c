@@ -206,7 +206,7 @@ static GF_Err BM_ParseProtoDelete(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Li
 		count = 0;
 		flag = gf_bs_read_int(bs, 1);
 		while (flag) {
-			com->del_proto_list = (u32*)realloc(com->del_proto_list, sizeof(u32) * (com->del_proto_list_size+1));
+			com->del_proto_list = (u32*)gf_realloc(com->del_proto_list, sizeof(u32) * (com->del_proto_list_size+1));
 			com->del_proto_list[count] = gf_bs_read_int(bs, codec->info->config.ProtoIDBits);
 			com->del_proto_list_size++;
 			flag = gf_bs_read_int(bs, 1);
@@ -214,7 +214,7 @@ static GF_Err BM_ParseProtoDelete(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Li
 	} else {
 		flag = gf_bs_read_int(bs, 5);
 		com->del_proto_list_size = gf_bs_read_int(bs, flag);
-		com->del_proto_list = (u32*)realloc(com->del_proto_list, sizeof(u32) * (com->del_proto_list_size));
+		com->del_proto_list = (u32*)gf_realloc(com->del_proto_list, sizeof(u32) * (com->del_proto_list_size));
 		flag = 0;
 		while (flag<com->del_proto_list_size) {
 			com->del_proto_list[flag] = gf_bs_read_int(bs, codec->info->config.ProtoIDBits);
@@ -430,7 +430,7 @@ GF_Err BM_ParseRouteInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com
 
 	com = gf_sg_command_new(codec->current_graph, GF_SG_ROUTE_INSERT);
 	com->RouteID = RouteID;
-	if (codec->UseName) com->def_name = strdup( name);
+	if (codec->UseName) com->def_name = gf_strdup( name);
 	com->fromNodeID = gf_node_get_id(OutNode);
 	com->fromFieldIndex = outField;
 	com->toNodeID = gf_node_get_id(InNode);
@@ -748,7 +748,7 @@ GF_Err BM_SceneReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_lis
 		ri->toFieldIndex = r->ToField.fieldIndex;
 		ri->toNodeID = gf_node_get_id(r->ToNode);
 		if (r->ID) ri->RouteID = r->ID;
-		ri->def_name = r->name ? strdup(r->name) : NULL;
+		ri->def_name = r->name ? gf_strdup(r->name) : NULL;
 		gf_list_add(com_list, ri);
 		gf_sg_route_del(r);
 	}
@@ -825,7 +825,7 @@ GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec)
 				gf_bs_del(bs);
 			}
 			if (!e) {
-				free(cbi);
+				gf_free(cbi);
 				continue;
 			}
 			/*this may be an error or a dependency pb - reset coimmand list and move to next pass*/
@@ -839,7 +839,7 @@ GF_Err gf_bifs_flush_command_list(GF_BifsDecoder *codec)
 					for (i=0; i<gf_list_count(codec->command_buffers); i++) {
 						CommandBufferItem *cbi2 = (CommandBufferItem *)gf_list_get(codec->command_buffers, i);
 						if (cbi2->cb == cf->field_ptr) {
-							free(cbi2);
+							gf_free(cbi2);
 							gf_list_rem(codec->command_buffers, i);
 							i--;
 						}
@@ -896,7 +896,7 @@ GF_Err gf_bifs_decode_command_list(GF_BifsDecoder *codec, u16 ESID, char *data, 
 	/*if err or not reset conditionals*/
 	while (gf_list_count(codec->command_buffers)) {
 		CommandBufferItem *cbi = (CommandBufferItem *)gf_list_get(codec->command_buffers, 0);
-		free(cbi);
+		gf_free(cbi);
 		gf_list_rem(codec->command_buffers, 0);
 	}
 

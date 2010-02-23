@@ -64,7 +64,7 @@ GF_Err gf_isdec_configure(GF_BaseDecoder *plug, GF_Scene *scene, Bool is_remote)
 
 static void add_field(ISPriv *priv, u32 fieldType, const char *fieldName)
 {
-	GF_FieldInfo *field = (GF_FieldInfo *) malloc(sizeof(GF_FieldInfo));
+	GF_FieldInfo *field = (GF_FieldInfo *) gf_malloc(sizeof(GF_FieldInfo));
 	memset(field, 0, sizeof(GF_FieldInfo));
 	field->fieldType = fieldType;
 	field->far_ptr = gf_sg_vrml_field_pointer_new(fieldType);
@@ -258,8 +258,8 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffer
 				length = gf_bs_read_int(bs, size);
 				if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 
-				if ( ((SFString *)field->far_ptr)->buffer ) free( ((SFString *)field->far_ptr)->buffer);
-				((SFString *)field->far_ptr)->buffer = (char*)malloc(sizeof(char)*(length+1));
+				if ( ((SFString *)field->far_ptr)->buffer ) gf_free( ((SFString *)field->far_ptr)->buffer);
+				((SFString *)field->far_ptr)->buffer = (char*)gf_malloc(sizeof(char)*(length+1));
 				memset(((SFString *)field->far_ptr)->buffer , 0, length+1);
 				for (j=0; j<length; j++) {
 					 ((SFString *)field->far_ptr)->buffer[j] = gf_bs_read_int(bs, 8);
@@ -288,11 +288,11 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffer
 		if (len && (priv->enteredText[len-1] == priv->termChar)) {
 			ptr = priv->enteredText;
 			len = gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
-			if (outText->buffer) free(outText->buffer);
-			outText->buffer = (char*)malloc(sizeof(char) * (len+1));
+			if (outText->buffer) gf_free(outText->buffer);
+			outText->buffer = (char*)gf_malloc(sizeof(char) * (len+1));
 			memcpy(outText->buffer, tmp_utf8, sizeof(char) * len);
 			outText->buffer[len] = 0;
-			if (inText->buffer) free(inText->buffer);
+			if (inText->buffer) gf_free(inText->buffer);
 			inText->buffer = NULL;
 			priv->text_len = 0;
 
@@ -312,8 +312,8 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffer
 			priv->text_len = len;
 			ptr = priv->enteredText;
 			len = gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
-			if (inText->buffer) free(inText->buffer);
-			inText->buffer = (char*)malloc(sizeof(char) * (len+1));
+			if (inText->buffer) gf_free(inText->buffer);
+			inText->buffer = (char*)gf_malloc(sizeof(char) * (len+1));
 			memcpy(inText->buffer, tmp_utf8, sizeof(char) * len);
 			inText->buffer[len] = 0;
 			field1->eventType = 1;
@@ -354,11 +354,11 @@ void gf_isdec_del(GF_BaseDecoder *plug)
 		GF_FieldInfo *fi = (GF_FieldInfo *)gf_list_get(priv->ddf, 0);
 		gf_list_rem(priv->ddf, 0);
 		gf_sg_vrml_field_pointer_del(fi->far_ptr, fi->fieldType);
-		free(fi);
+		gf_free(fi);
 	}
 	gf_list_del(priv->ddf);
-	free(priv);
-	free(plug);
+	gf_free(priv);
+	gf_free(plug);
 }
 
 
@@ -367,11 +367,11 @@ GF_BaseDecoder *gf_isdec_new(GF_ESD *esd, u32 PL)
 	ISPriv *priv;
 	GF_SceneDecoder *tmp;
 	
-	tmp = (GF_SceneDecoder*) malloc(sizeof(GF_SceneDecoder));
+	tmp = (GF_SceneDecoder*) gf_malloc(sizeof(GF_SceneDecoder));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_SceneDecoder));
 
-	priv = (ISPriv *) malloc(sizeof(ISPriv));
+	priv = (ISPriv *) gf_malloc(sizeof(ISPriv));
 	memset(priv, 0, sizeof(ISPriv));
 
 	priv->is_nodes = gf_list_new();
@@ -467,7 +467,7 @@ static void TraverseInputSensor(GF_Node *node, void *rs, Bool is_destroy)
 		if (st->registered) IS_Unregister(node, st);
 		scene = (GF_Scene*)gf_sg_get_private(gf_node_get_graph(node));
 		gf_term_unqueue_node_traverse(scene->root_od->term, node);
-		free(st);
+		gf_free(st);
 	} else {
 		/*get decoder object */
 		if (!st->mo) st->mo = gf_mo_register(node, &is->url, 0, 0);
@@ -599,7 +599,7 @@ void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event)
 			gf_es_receive_sl_packet(ch->service, ch, buf, buf_size, &slh, GF_OK);
 		}
 	}
-	free(buf);
+	gf_free(buf);
 }
 
 void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp)
@@ -713,7 +713,7 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 			IS_ProcessData((GF_SceneDecoder*)cod->decio, buf, buf_size, 0, 0, 0);
 		}
 	}
-	free(buf);
+	gf_free(buf);
 	
 #ifndef GPAC_DISABLE_X3D
 	i=0;
@@ -726,21 +726,21 @@ void gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool i
 		if (!n->enabled) return;
 
 		if (keyPressed) {
-			if (n->keyPress.buffer) free(n->keyPress.buffer);
+			if (n->keyPress.buffer) gf_free(n->keyPress.buffer);
 			tc[0] = keyPressed; tc[1] = 0;
 			ptr = tc;
 			len = gf_utf8_wcstombs(szStr, 10, &ptr);
-			n->keyPress.buffer = (char*)malloc(sizeof(char) * (len+1));
+			n->keyPress.buffer = (char*)gf_malloc(sizeof(char) * (len+1));
 			memcpy(n->keyPress.buffer, szStr, sizeof(char) * len);
 			n->keyPress.buffer[len] = 0;
 			gf_node_event_out_str((GF_Node *)n, "keyPress");
 		}
 		if (keyReleased) {
-			if (n->keyRelease.buffer) free(n->keyRelease.buffer);
+			if (n->keyRelease.buffer) gf_free(n->keyRelease.buffer);
 			tc[0] = keyReleased; tc[1] = 0;
 			ptr = tc;
 			len = gf_utf8_wcstombs(szStr, 10, &ptr);
-			n->keyRelease.buffer = (char*)malloc(sizeof(char) * (len+1));
+			n->keyRelease.buffer = (char*)gf_malloc(sizeof(char) * (len+1));
 			memcpy(n->keyRelease.buffer, szStr, sizeof(char) * len);
 			n->keyRelease.buffer[len] = 0;
 			gf_node_event_out_str((GF_Node *)n, "keyRelease");
@@ -819,7 +819,7 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 			
 			gf_es_receive_sl_packet(ch->service, ch, buf, buf_size, &slh, GF_OK);
 			
-			free(buf);
+			gf_free(buf);
 		}
 	}
 
@@ -843,15 +843,15 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 				st->enteredText[st->text_len] = 0;
 				ptr = st->enteredText;
 				len = gf_utf8_wcstombs(szStr, 10, &ptr);
-				if (n->enteredText.buffer) free(n->enteredText.buffer);
+				if (n->enteredText.buffer) gf_free(n->enteredText.buffer);
 				szStr[len] = 0;
-				n->enteredText.buffer = strdup(szStr);
+				n->enteredText.buffer = gf_strdup(szStr);
 				gf_node_event_out_str((GF_Node *)n, "enteredText");
 			}
 		} else if (character=='\r') {
-			if (n->finalText.buffer) free(n->finalText.buffer);
+			if (n->finalText.buffer) gf_free(n->finalText.buffer);
 			n->finalText.buffer = n->enteredText.buffer;
-			n->enteredText.buffer = strdup("");
+			n->enteredText.buffer = gf_strdup("");
 			st->text_len = 0;
 			gf_node_event_out_str((GF_Node *)n, "enteredText");
 			gf_node_event_out_str((GF_Node *)n, "finalText");
@@ -861,9 +861,9 @@ void gf_term_string_input(GF_Terminal *term, u32 character)
 			st->enteredText[st->text_len] = 0;
 			ptr = st->enteredText;
 			len = gf_utf8_wcstombs(szStr, 10, &ptr);
-			if (n->enteredText.buffer) free(n->enteredText.buffer);
+			if (n->enteredText.buffer) gf_free(n->enteredText.buffer);
 			szStr[len] = 0;
-			n->enteredText.buffer = strdup(szStr);
+			n->enteredText.buffer = gf_strdup(szStr);
 			gf_node_event_out_str((GF_Node *)n, "enteredText");
 		}
 	}
@@ -891,7 +891,7 @@ void DestroyStringSensor(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		StringSensorStack *st = (StringSensorStack *) gf_node_get_private(node);
 		gf_list_del_item(st->term->x3d_sensors, node);
-		free(st);
+		gf_free(st);
 	}
 }
 void InitStringSensor(GF_Scene *scene, GF_Node *node)

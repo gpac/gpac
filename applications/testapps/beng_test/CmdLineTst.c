@@ -33,7 +33,7 @@ static setup_rtp_streams(GF_SceneEngine *seng, GF_List *streams, char *ip, u16 p
 	u32 i;
 	char *iod64 = gf_seng_get_base64_iod(seng);
 	char *sdp = gf_rtp_streamer_format_sdp_header("GPACSceneStreamer", ip, NULL, iod64);
-	if (iod64) free(iod64);
+	if (iod64) gf_free(iod64);
 
 	for (i=0; i<count; i++) {
 		u16 ESID;
@@ -53,7 +53,7 @@ static setup_rtp_streams(GF_SceneEngine *seng, GF_List *streams, char *ip, u16 p
 		FILE *out = fopen(sdp_name, "wt");
         fprintf(out, sdp);
 		fclose(out);
-	    free(sdp);
+	    gf_free(sdp);
     }
 }
 
@@ -63,10 +63,34 @@ void shutdown_rtp_streams(GF_List *list)
 		BRTP *rtpst = gf_list_get(list, 0);
 		gf_list_rem(list, 0);
 		gf_rtp_streamer_del(rtpst->rtp);
-		free(rtpst);
+		gf_free(rtpst);
 	}
 }
-
+void Usage()
+{
+	fprintf(stdout, 
+		"Demo live scene streamer\n"
+		"Usage: [options] scene\n"
+		"Options:\n"
+		"-dst=ip    destination IP - default: NULL\n"
+		"-port=num  destination port - default: 7000\n"
+		"-sdp=name  ouput SDP file - default: session.sdp\n"
+		"-dims      turns on DIMS mode for SVG input - default: off\n"
+		"-src=file  source of updates - default: null\n"
+		"-rap=time  duration in ms of base carousel - default: 0 (off)\n"
+		"            you can specify the RAP period of a single ESID (not in DIMS):\n"
+		"                -rap=ESID=X:time\n"
+		"\n"
+		"Runtime options:\n"
+		"q:         quits application\n"
+		"u:         inputs some commands to be sent\n"
+		"a:         aggregates pending commands in the main scene\n"
+		"e:         encodes main scene and stream it\n"
+		"p:         dumps current scene\n"
+		"\n"
+		"GPAC version: " GPAC_FULL_VERSION "\n"
+		"");
+}
 
 int main(int argc, char **argv)
 {
@@ -86,12 +110,12 @@ int main(int argc, char **argv)
 	GF_List *streams = NULL;
 	GF_SceneEngine *seng = NULL;
 
-	gf_sys_init();
+	gf_sys_init(0);
 
 	gf_log_set_level(GF_LOG_INFO);
 	gf_log_set_tools(0xFFFFFFFF);
 
-	for (i=0; i<argc; i++) {
+	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
 		if (arg[0] != '-') filename = arg;
 		else if (!strnicmp(arg, "-dst=", 5)) dst = arg+5;
@@ -102,6 +126,7 @@ int main(int argc, char **argv)
 	}
 	if (!filename) {
 		fprintf(stdout, "Missing filename\n");
+		Usage();
 		exit(0);
 	}
 
@@ -152,7 +177,6 @@ int main(int argc, char **argv)
 				run=0;
 				break;
 			case 'u':
-			case 'c':
 			{
 				GF_Err e;
 				char szCom[8192];
@@ -222,141 +246,3 @@ exit:
 }
 
 
-int main2(int argc, char **argv)
-{
-	int i;
-	const char * dst = "224.0.0.1";
-	const u16 dst_port = 7000;
-	const char *update1 = NULL;
-	const char *update2 = NULL;
-
-	GF_List *streams = NULL;
-	GF_SceneEngine *codec1 = NULL;
-	GF_SceneEngine *codec2 = NULL;
-
-	gf_sys_init();
-
-	gf_log_set_level(GF_LOG_INFO);
-	gf_log_set_tools(0xFFFFFFFF);
-
-
-	if (dst_port && dst) streams = gf_list_new();
-
-    if (1) {
-        char *scene = "<svg width='100%' height='100%' viewbox='0 0 640 480' \
-                  xmlns='http://www.w3.org/2000/svg' version='1.2' baseProfile='tiny'> \
-                    <rect id='r' x='20' y='20' width='20' height='20'/>\
-                    <rect x='50' y='20' width='30' height='15'/>\
-                    <rect x='20' y='50' width='20' height='20'/>\
-                    <rect x='50' y='50' width='20' height='40'/>\
-                    </svg>";
-        char *update = "<Replace ref='r' attributeName='x' value='100'/>";
-
-		codec1 = gf_seng_init_from_string(streams, scene, GF_SM_LOAD_DIMS, 0, 0, 1, NULL);
-		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
-		gf_seng_encode_context(codec1, SampleCallBack);
-
-        gf_seng_encode_from_string(codec1, update, SampleCallBack);
-
-		gf_seng_aggregate_context(codec1);
-
-        gf_seng_encode_context(codec1, SampleCallBack);
-
-		if (streams) shutdown_rtp_streams(streams);
-		gf_seng_save_context(codec1, "scene.svg");
-		gf_seng_terminate(codec1);
-    } else if (1) {
-		/*these default update are related to rect_aggregate.bt*/
-		update1 = "AT 1000 IN 2 {\
-						INSERT AT OG.children[0] DEF TR2 Transform2D {\
-						translation -100 -50\
-						children [\
-						DEF S Shape {\
-						appearance Appearance {\
-						material Material2D {\
-						emissiveColor 1 0 0\
-						filled TRUE\
-						} }\
-						geometry DEF REC Rectangle {\
-						size 50 100\
-						} } ] } }";
-		
-		update2 = "AT 2000 IN 3 {\
-						REPLACE REC.size BY 100 100\
-						}";
-
-		codec1 = gf_seng_init(streams, argv[1], 0, NULL);
-		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
-
-		gf_seng_encode_context(codec1, SampleCallBack);
-		gf_seng_save_context(codec1, "initial_context.bt");
-		gf_seng_encode_from_string(codec1, (char*)update1, SampleCallBack);
-		gf_seng_save_context(codec1, "non_aggregated_context1.xmt");
-		gf_seng_encode_from_string(codec1, (char*)update2, SampleCallBack);
-		gf_seng_save_context(codec1, "non_aggregated_context2.xmt");
-		gf_seng_enable_aggregation(codec1, 2, 1); /*mark ESID 2 for aggregation*/
-		gf_seng_aggregate_context(codec1);
-		gf_seng_save_context(codec1, "aggregated_context2.xmt");
-
-		if (streams) shutdown_rtp_streams(streams);
-		gf_seng_terminate(codec1);
-	} else if (1) {
-		char scene[] = "OrderedGroup {children [Background2D {backColor 1 1 1}Shape {appearance Appearance {material DEF M Material2D {emissiveColor 0 0 1 filled TRUE } } geometry Rectangle { size 100 75 } } ] }";
-		char update[] = "\n AT \n 500 \n { \n REPLACE \n M.emissiveColor BY 1 0 0 \n REPLACE \n M.filled BY FALSE} \n";
-
-		codec1 = gf_seng_init_from_string(streams, scene, 0, 200, 200, 1, NULL);
-		if (streams) setup_rtp_streams(codec1, streams, dst, dst_port, "session.sdp");
-
-		gf_seng_encode_context(codec1, SampleCallBack);
-		gf_seng_save_context(codec1, "initial_context.mp4");
-		gf_seng_encode_from_string(codec1, (char *) update, SampleCallBack);
-		gf_seng_save_context(codec1, "non_aggregated_context.mp4");
-		gf_seng_aggregate_context(codec1);
-		gf_seng_save_context(codec1, "aggregated_context.mp4");
-
-		if (streams) shutdown_rtp_streams(streams);
-		gf_seng_terminate(codec1);
-	} else {
-
-		for (i = 0; i <10; i++) {
-			char context_rootname[] = "rect_context";
-			char in_context[100], 
-				 bt_out_na_context[100], bt_out_agg_context[100],
-				 mp4_out_na_context[100], mp4_out_agg_context[100];
-			char update[1000];// = "REPLACE M.emissiveColor BY 1 1 0";
-			char timed_update[1000];
-
-			sprintf(update, "REPLACE M.emissiveColor BY %f 0 0", i/10.0f);
-
-			if (i != 0) {
-				sprintf(in_context, "na_%s_%i.bt", context_rootname, i);
-			} else {
-				strcpy(in_context, "rect.bt");
-			}
-
-			codec2 = gf_seng_init(NULL, in_context, 0, NULL);
-
-			sprintf(timed_update, "AT %i { %s }", 1000 + i, update);
-			
-			gf_seng_encode_from_string(codec2, timed_update, SampleCallBack);
-
-			sprintf(mp4_out_na_context, "na_%s_%i.mp4", context_rootname, i+1);
-			sprintf(bt_out_na_context, "na_%s_%i.bt", context_rootname, i+1);
-			sprintf(mp4_out_agg_context, "agg_%s_%i.mp4", context_rootname, i+1);
-			sprintf(bt_out_agg_context, "agg_%s_%i.bt", context_rootname, i+1);
-
-			gf_seng_save_context(codec2, mp4_out_na_context);
-			gf_seng_save_context(codec2, bt_out_na_context);
-			gf_seng_aggregate_context(codec2);
-			gf_seng_save_context(codec2, mp4_out_agg_context);
-			gf_seng_save_context(codec2, bt_out_agg_context);
-		
-			gf_seng_terminate(codec2);
-		}
-		fprintf(stdout, "Done.\n");
-	}
-
-	gf_sys_close();
-
-	return 0;
-}

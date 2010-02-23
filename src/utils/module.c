@@ -40,7 +40,7 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 
 	tmp->plug_list = gf_list_new();
 	if (!tmp->plug_list) {
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	tmp->cfg = config;
@@ -60,7 +60,7 @@ void gf_modules_del(GF_ModuleManager *pm)
 		gf_list_rem(pm->plug_list, 0);
 	}
 	gf_list_del(pm->plug_list);
-	free(pm);
+	gf_free(pm);
 }
 
 Bool gf_module_is_loaded(GF_ModuleManager *pm, char *filename)
@@ -123,7 +123,7 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 		i=0;
 		while (si[i]) i++;
 		
-		key = malloc(sizeof(char) * 10 * i);
+		key = gf_malloc(sizeof(char) * 10 * i);
 		key[0] = 0;
 		i=0;
 		while (si[i]) {
@@ -133,7 +133,7 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 			i++;
 		}
 		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->szName, key);
-		free(key);
+		gf_free(key);
 		if (!found) {
 			fail = 2;
 			goto err_exit;

@@ -256,8 +256,8 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 			} else if (num_out==4) {
 				sprintf(str, "%.2f %.2f %.2f %.2f", FIX2FLT(sf_out.x), FIX2FLT(sf_out.y), FIX2FLT(sf_out.z), FIX2FLT(sf_out.q));
 			}
-			if (p->outSFString.buffer ) free(p->outSFString.buffer);
-			p->outSFString.buffer = strdup(str);
+			if (p->outSFString.buffer ) gf_free(p->outSFString.buffer);
+			p->outSFString.buffer = gf_strdup(str);
 			break;
 
 
@@ -319,8 +319,8 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 				} else if (num_out==4) {
 					sprintf(str, "%g %g %g %g", FIX2FLT(mf_output->vals[i].x), FIX2FLT(mf_output->vals[i].y), FIX2FLT(mf_output->vals[i].z), FIX2FLT(mf_output->vals[i].q));
 				}
-				if (p->outMFString.vals[i]) free(p->outMFString.vals[i]);
-				p->outMFString.vals[i] = strdup(str);
+				if (p->outMFString.vals[i]) gf_free(p->outMFString.vals[i]);
+				p->outMFString.vals[i] = gf_strdup(str);
 			}
 			break;
 		}

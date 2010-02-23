@@ -127,7 +127,7 @@ static GF_Err gf_sm_setup_bifsenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF
 	esd->decoderConfig->decoderSpecificInfo->data = data;
 	esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
 		
-	sc->dec_cfg = malloc(sizeof(char)*data_len);
+	sc->dec_cfg = gf_malloc(sizeof(char)*data_len);
 	memcpy(sc->dec_cfg, data, data_len);
 	sc->dec_cfg_len = data_len;
 
@@ -173,7 +173,7 @@ static GF_Err gf_sm_setup_lsrenc(GF_SceneEngine *seng, GF_StreamContext *sc, GF_
 	esd->decoderConfig->decoderSpecificInfo->data = data;
 	esd->decoderConfig->decoderSpecificInfo->dataLength = data_len;
 		
-	sc->dec_cfg = malloc(sizeof(char)*data_len);
+	sc->dec_cfg = gf_malloc(sizeof(char)*data_len);
 	memcpy(sc->dec_cfg, data, data_len);
 	sc->dec_cfg_len = data_len;
 	return GF_OK;
@@ -287,7 +287,7 @@ static GF_Err compress_dims_payload(char **data, u32 data_len, u32 *max_size, u3
 {
     z_stream stream;
     int err;
-    char *dest = (char *)malloc(sizeof(char)*data_len*ZLIB_COMPRESS_SAFE);
+    char *dest = (char *)gf_malloc(sizeof(char)*data_len*ZLIB_COMPRESS_SAFE);
     stream.next_in = (Bytef*)(*data) + offset;
     stream.avail_in = (uInt)data_len - offset;
     stream.next_out = ( Bytef*)dest;
@@ -298,14 +298,14 @@ static GF_Err compress_dims_payload(char **data, u32 data_len, u32 *max_size, u3
 
     err = deflateInit(&stream, 9);
     if (err != Z_OK) {
-		free(dest);
+		gf_free(dest);
 		return GF_IO_ERR;
     }
 
     err = deflate(&stream, Z_FINISH);
     if (err != Z_STREAM_END) {
         deflateEnd(&stream);
-		free(dest);
+		gf_free(dest);
         return GF_IO_ERR;
     }
     if (data_len - offset<stream.total_out) {
@@ -314,12 +314,12 @@ static GF_Err compress_dims_payload(char **data, u32 data_len, u32 *max_size, u3
 
     if (*max_size < stream.total_out) {
 		*max_size = data_len*ZLIB_COMPRESS_SAFE;
-		*data = realloc(*data, *max_size * sizeof(char));
+		*data = gf_realloc(*data, *max_size * sizeof(char));
     } 
 
     memcpy((*data) + offset, dest, sizeof(char)*stream.total_out);
     *max_size = offset + stream.total_out;
-    free(dest);
+    gf_free(dest);
 
     deflateEnd(&stream);
     return GF_OK;
@@ -387,7 +387,7 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	}
 
 	/* First, read the dump in a buffer */
-	buffer = malloc(fsize * sizeof(char));
+	buffer = gf_malloc(fsize * sizeof(char));
 	fseek(file, 0, SEEK_SET);
 	fread(buffer, 1, fsize, file);
 	fclose(file);
@@ -433,14 +433,14 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	gf_bs_write_u8(bs, dims_header);
 	gf_bs_write_data(bs, buffer, buffer_len);
 
-	free(buffer);
+	gf_free(buffer);
     buffer = NULL;
 
     gf_bs_get_content(bs, data, size);
 	gf_bs_del(bs);
 
 exit:
-    if (buffer) free(buffer);
+    if (buffer) gf_free(buffer);
     if (file) fclose(file);
 	return e;
 }
@@ -492,7 +492,7 @@ static GF_Err gf_sm_live_encode_scene_au(GF_SceneEngine *seng, gf_seng_callback 
 				break;
 			}
 			callback(seng->calling_object, sc->ESID, data, size, au->timing);
-			free(data);
+			gf_free(data);
 			data = NULL;
 			if (e) break;
 		}
@@ -665,7 +665,7 @@ GF_Err gf_seng_encode_from_commands(GF_SceneEngine *seng, u16 ESID, u32 time, GF
 			break;
     }
     callback(seng->calling_object, ESID, data, size, 0);
-	free(data);
+	gf_free(data);
 	return e;
 }
 
@@ -738,7 +738,7 @@ void gf_seng_terminate(GF_SceneEngine *seng)
 		if (seng->ctx) gf_sm_del(seng->ctx);
 		if (seng->sg) gf_sg_del(seng->sg);
 	}
-	free(seng);
+	gf_free(seng);
 }
 
 GF_EXPORT
@@ -920,10 +920,10 @@ char *gf_seng_get_base64_iod(GF_SceneEngine *seng)
 
     size = 0;
     gf_odf_desc_write((GF_Descriptor *) seng->ctx->root_od, &buffer, &size);
-    buf64 = malloc(size*2);
+    buf64 = gf_malloc(size*2);
     size64 = gf_base64_encode( buffer, size, buf64, size*2);
     buf64[size64] = 0;
-    free(buffer);
+    gf_free(buffer);
 	return buf64;
 }
 

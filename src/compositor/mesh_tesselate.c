@@ -117,7 +117,7 @@ static void CALLBACK mesh_tess_combine(GLdouble coords[3], void* vertex_data[4],
 		}
 	}
 
-	new_idx = (u32 *) malloc(sizeof(u32));
+	new_idx = (u32 *) gf_malloc(sizeof(u32));
 	gf_list_add(tess->vertex_index, new_idx);
 	*new_idx = tess->mesh->v_count;
 	mesh_set_vertex(tess->mesh, FLT2FIX( (Float) coords[0]), FLT2FIX( (Float) coords[1]), FLT2FIX( (Float) coords[2]), n.x, n.y, n.z, tx.x, tx.y);
@@ -133,12 +133,12 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 	GLdouble vertex[3];
 	MeshTess *tess;
 	if (!mesh || !path || !path->n_contours) return;
-	tess = malloc(sizeof(MeshTess));
+	tess = gf_malloc(sizeof(MeshTess));
 	if (!tess) return;
 	memset(tess, 0, sizeof(MeshTess));
     tess->tess_obj = gluNewTess();
     if (!tess->tess_obj) {
-		free(tess);
+		gf_free(tess);
 		return;
 	}
 	tess->vertex_index = gf_list_new();
@@ -179,7 +179,7 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 			Fixed u = gf_divfix(pt.x - rc.x, w);
 			Fixed v = gf_divfix(pt.y - min_y, h);
 
-			idx = (u32 *) malloc(sizeof(u32));
+			idx = (u32 *) gf_malloc(sizeof(u32));
 			*idx = mesh->v_count;
 			gf_list_add(tess->vertex_index, idx);
 			mesh_set_vertex(mesh, pt.x, pt.y, 0, 0, 0, FIX_ONE, u, v);
@@ -199,10 +199,10 @@ void gf_mesh_tesselate_path(GF_Mesh *mesh, GF_Path *path, u32 outline_style)
 	while (gf_list_count(tess->vertex_index)) {
 		u32 *idx = gf_list_get(tess->vertex_index, 0);
 		gf_list_rem(tess->vertex_index, 0);
-		free(idx);
+		gf_free(idx);
 	}
 	gf_list_del(tess->vertex_index);
-	free(tess);
+	gf_free(tess);
 
 	mesh->bounds.min_edge.x = rc.x;
 	mesh->bounds.min_edge.y = rc.y-rc.height;
@@ -364,12 +364,12 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 #ifdef GPAC_HAS_GLU
 	
 	/*tesselate it*/
-	tess = malloc(sizeof(MeshTess));
+	tess = gf_malloc(sizeof(MeshTess));
 	if (!tess) return;
 	memset(tess, 0, sizeof(MeshTess));
     tess->tess_obj = gluNewTess();
     if (!tess->tess_obj) {
-		free(tess);
+		gf_free(tess);
 		return;
 	}
 	tess->vertex_index = gf_list_new();
@@ -387,7 +387,7 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 
 
 	for (i=0; i<orig->v_count; i++) {
-		idx = (u32 *) malloc(sizeof(u32));
+		idx = (u32 *) gf_malloc(sizeof(u32));
 		*idx = dest->v_count;
 		gf_list_add(tess->vertex_index, idx);
 		mesh_set_vertex_vx(dest, &orig->vertices[i]);
@@ -405,10 +405,10 @@ void TesselateFaceMesh(GF_Mesh *dest, GF_Mesh *orig)
 	while (gf_list_count(tess->vertex_index)) {
 		u32 *idx = gf_list_get(tess->vertex_index, 0);
 		gf_list_rem(tess->vertex_index, 0);
-		free(idx);
+		gf_free(idx);
 	}
 	gf_list_del(tess->vertex_index);
-	free(tess);
+	gf_free(tess);
 #endif
 }
 
@@ -424,12 +424,12 @@ void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *pt
 	MeshTess *tess;
 	
 	/*tesselate it*/
-	tess = malloc(sizeof(MeshTess));
+	tess = gf_malloc(sizeof(MeshTess));
 	if (!tess) return;
 	memset(tess, 0, sizeof(MeshTess));
     tess->tess_obj = gluNewTess();
     if (!tess->tess_obj) {
-		free(tess);
+		gf_free(tess);
 		return;
 	}
 	tess->vertex_index = gf_list_new();
@@ -458,7 +458,7 @@ void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *pt
 			gluTessBeginContour(tess->tess_obj);
 		}
 
-		idx = (u32 *) malloc(sizeof(u32));
+		idx = (u32 *) gf_malloc(sizeof(u32));
 		*idx = dest->v_count;
 		gf_list_add(tess->vertex_index, idx);
 		mesh_set_vertex_vx(dest, &orig->vertices[i]);
@@ -476,10 +476,10 @@ void TesselateFaceMeshComplex(GF_Mesh *dest, GF_Mesh *orig, u32 nbFaces, u32 *pt
 	while (gf_list_count(tess->vertex_index)) {
 		u32 *idx = gf_list_get(tess->vertex_index, 0);
 		gf_list_rem(tess->vertex_index, 0);
-		free(idx);
+		gf_free(idx);
 	}
 	gf_list_del(tess->vertex_index);
-	free(tess);
+	gf_free(tess);
 }
 #endif
 

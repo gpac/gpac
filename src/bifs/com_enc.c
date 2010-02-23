@@ -869,7 +869,7 @@ GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStrea
 				while (gf_list_count(routes)) {
 					GF_Route *r = (GF_Route*)gf_list_get(routes, 0);
 					gf_list_rem(routes, 0);
-					free(r);
+					gf_free(r);
 				}
 				gf_list_del(routes);
 			} else {

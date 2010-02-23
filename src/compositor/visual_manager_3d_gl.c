@@ -353,7 +353,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		we must thus rebuild a dedicated array...*/
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			u32 i;
-			color_array = malloc(sizeof(Float)*4*mesh->v_count);
+			color_array = gf_malloc(sizeof(Float)*4*mesh->v_count);
 			for (i=0; i<mesh->v_count; i++) {
 				color_array[4*i] = FIX2FLT(mesh->vertices[i].color.red);
 				color_array[4*i+1] = FIX2FLT(mesh->vertices[i].color.green);
@@ -364,7 +364,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 			glColorPointer(4, GL_FLOAT, 4*sizeof(Float), color_array);
 			tr_state->mesh_is_transparent = 1;
 		} else {
-			color_array = malloc(sizeof(Float)*3*mesh->v_count);
+			color_array = gf_malloc(sizeof(Float)*3*mesh->v_count);
 			for (i=0; i<mesh->v_count; i++) {
 				color_array[3*i] = FIX2FLT(mesh->vertices[i].color.red);
 				color_array[3*i+1] = FIX2FLT(mesh->vertices[i].color.green);
@@ -518,7 +518,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (has_norm) glDisableClientState(GL_NORMAL_ARRAY);
 
 #if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
-	if (color_array) free(color_array);
+	if (color_array) gf_free(color_array);
 	if (!mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)) {
 		glMatrixMode(GL_TEXTURE);
 		glPopMatrix();
@@ -1559,9 +1559,9 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		fb->pitch_y = compositor->vp_width; /* multiply by 4 if float depthbuffer */
 
 #ifndef GPAC_USE_TINYGL
-		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch_y * fb->height);
+		fb->video_buffer = (char*)gf_malloc(sizeof(char)* fb->pitch_y * fb->height);
 #else
-		fb->video_buffer = (char*)malloc(sizeof(char)* 2 * fb->pitch_y * fb->height);
+		fb->video_buffer = (char*)gf_malloc(sizeof(char)* 2 * fb->pitch_y * fb->height);
 #endif
 
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
@@ -1609,7 +1609,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 #endif //DUMP_RENOIR_TEXTURE
 #else
 		{
-		float *buff = (float *) malloc(sizeof(float)* fb->width * fb->height);
+		float *buff = (float *) gf_malloc(sizeof(float)* fb->width * fb->height);
 		Fixed n = compositor->traverse_state->camera->z_near;
 		Fixed f = compositor->traverse_state->camera->z_far;
 		
@@ -1619,7 +1619,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		for (i=0; i<fb->height*fb->width; i++) 
 			fb->video_buffer[i] = (char) (255 * (1.0 - buff[i]) / (1 - buff[i]*(1-(n/f))));
 
-		free(buff);
+		gf_free(buff);
 #endif
 		
 		}
@@ -1640,9 +1640,9 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		fb->pitch_y = compositor->vp_width*4; /* 4 bytes for each rgbds pixel */
 
 #ifndef GPAC_USE_TINYGL
-		fb->video_buffer = (char*)malloc(sizeof(char)* fb->pitch_y * fb->height);
+		fb->video_buffer = (char*)gf_malloc(sizeof(char)* fb->pitch_y * fb->height);
 #else
-		fb->video_buffer = (char*)malloc(sizeof(char)* 2 * fb->pitch_y * fb->height);
+		fb->video_buffer = (char*)gf_malloc(sizeof(char)* 2 * fb->pitch_y * fb->height);
 #endif
 
 
@@ -1654,7 +1654,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		glPixelTransferf(GL_DEPTH_SCALE, FIX2FLT(compositor->OGLDepthGain)); 
 		glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset)); 
 		
-		depth_data = (char*) malloc(sizeof(char)*fb->width*fb->height);
+		depth_data = (char*) gf_malloc(sizeof(char)*fb->width*fb->height);
 		glReadPixels(0, 0, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, depth_data);
 
 		if (depth_dump_mode==2) {
@@ -1689,7 +1689,7 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 	} else {
 		fb->pitch_x = 3;
 		fb->pitch_y = 3*compositor->vp_width;
-		fb->video_buffer = (char*)malloc(sizeof(char) * fb->pitch_y * fb->height);
+		fb->video_buffer = (char*)gf_malloc(sizeof(char) * fb->pitch_y * fb->height);
 		fb->pixel_format = GF_PIXEL_RGB_24;
 
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
@@ -1697,21 +1697,21 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 
 #ifndef GPAC_USE_TINYGL
 	/*flip image (openGL always handle image data bottom to top) */
-	tmp = (char*)malloc(sizeof(char)*fb->pitch_y);
+	tmp = (char*)gf_malloc(sizeof(char)*fb->pitch_y);
 	hy = fb->height/2;
 	for (i=0; i<hy; i++) {
 		memcpy(tmp, fb->video_buffer+ i*fb->pitch_y, fb->pitch_y);
 		memcpy(fb->video_buffer + i*fb->pitch_y, fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, fb->pitch_y);
 		memcpy(fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, tmp, fb->pitch_y);
 	}
-	free(tmp);
+	gf_free(tmp);
 #endif
 	return GF_OK;
 }
 
 GF_Err compositor_3d_release_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer)
 {
-	free(framebuffer->video_buffer);
+	gf_free(framebuffer->video_buffer);
 	framebuffer->video_buffer = 0;
 	return GF_OK;
 }

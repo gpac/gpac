@@ -61,18 +61,18 @@ void gf_laser_encoder_del(GF_LASeRCodec *codec)
 	/*destroy all config*/
 	while (gf_list_count(codec->streamInfo)) {
 		LASeRStreamInfo *p = (LASeRStreamInfo *)gf_list_last(codec->streamInfo);
-		free(p);
+		gf_free(p);
 		gf_list_rem_last(codec->streamInfo);
 	}
 	gf_list_del(codec->streamInfo);
-	if (codec->col_table) free(codec->col_table);
+	if (codec->col_table) gf_free(codec->col_table);
 	while (gf_list_count(codec->font_table)) {
 		char *ft = (char *)gf_list_last(codec->font_table);
-		free(ft);
+		gf_free(ft);
 		gf_list_rem_last(codec->font_table);
 	}
 	gf_list_del(codec->font_table);
-	free(codec);
+	gf_free(codec);
 }
 
 
@@ -1149,7 +1149,7 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 		{
 			GF_List *l = *(GF_List **)att->data;
 			u32 j, tot_count, count = gf_list_count(l);
-			u8 *vals = (u8*)malloc(sizeof(u8)*count);
+			u8 *vals = (u8*)gf_malloc(sizeof(u8)*count);
 			tot_count = 0;
 			for (i=0; i<count; i++) {
 				char *ext;
@@ -1196,7 +1196,7 @@ static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)
 	        for (j=0; j<tot_count; j++) {
 				GF_LSR_WRITE_INT(lsr, vals[j], 6, "feature");
 			}
-			free(vals);
+			gf_free(vals);
 		}
 			break;
 
@@ -3675,14 +3675,14 @@ exit:
 		/*script is aligned*/
 		gf_bs_align(lsr->bs);
 		gf_bs_write_data(lsr->bs, data, data_size);
-		free(data);
+		gf_free(data);
 	}
 	return lsr->last_error;
 }
 
 static void lsr_add_color(GF_LASeRCodec *lsr, SVG_Color *color)
 {
-	lsr->col_table = (LSRCol*)realloc(lsr->col_table, sizeof(LSRCol)*(lsr->nb_cols+1));
+	lsr->col_table = (LSRCol*)gf_realloc(lsr->col_table, sizeof(LSRCol)*(lsr->nb_cols+1));
 	lsr->col_table[lsr->nb_cols].r = FIX2INT(color->red*lsr->color_scale);
 	lsr->col_table[lsr->nb_cols].g = FIX2INT(color->green*lsr->color_scale);
 	lsr->col_table[lsr->nb_cols].b = FIX2INT(color->blue*lsr->color_scale);
@@ -3715,7 +3715,7 @@ static void lsr_check_font_index(GF_LASeRCodec *lsr, SVG_FontFamily *font)
 				break;
 			}
 		}
-		if (!found) gf_list_add(lsr->font_table, strdup(font->value));
+		if (!found) gf_list_add(lsr->font_table, gf_strdup(font->value));
 	}
 }
 
@@ -3839,11 +3839,11 @@ static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool r
 	/*clean all tables*/
 	if (reset_encoding_context) {
 		lsr->nb_cols = 0;
-		if (lsr->col_table) free(lsr->col_table);
+		if (lsr->col_table) gf_free(lsr->col_table);
 		lsr->col_table = NULL;
 		while (gf_list_count(lsr->font_table)) {
 			char *ft = (char *)gf_list_last(lsr->font_table);
-			free(ft);
+			gf_free(ft);
 			gf_list_rem_last(lsr->font_table);
 		}
 	}

@@ -391,7 +391,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			s32         hh, mm, ss, ms;
 			char       *buf = "filepos:";
 
-			vspos = (vobsub_pos*)calloc(1, sizeof(vobsub_pos));
+			vspos = (vobsub_pos*)gf_calloc(1, sizeof(vobsub_pos));
 			if (vspos == NULL) {
 				error = 1;
 				continue;
@@ -402,7 +402,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 
 			if (sscanf(str, "%d%c%d%c%d%c%d", &hh, &c, &mm, &c, &ss, &c, &ms) != 7)
 			{
-				free(vspos);
+				gf_free(vspos);
 				error = 1;
 				continue;
 			}
@@ -412,7 +412,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			pos = strstr(str, buf);
 			if (pos == NULL)
 			{
-				free(vspos);
+				gf_free(vspos);
 				error = 1;
 				continue;
 			}
@@ -423,7 +423,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 			if (sscanf(pos + strlen(buf), "%llx", &vspos->filepos) != 1)
 #endif
 			{
-				free(vspos);
+				gf_free(vspos);
 				error = 1;
 				continue;
 			}
@@ -442,7 +442,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 
 			if (gf_list_add(vobsub->langs[id].subpos, vspos) != GF_OK)
 			{
-				free(vspos);
+				gf_free(vspos);
 				error = 1;
 				continue;
 			}
@@ -472,7 +472,7 @@ void vobsub_free(vobsub_file *vobsub)
 			do
 			{
 				vspos = (vobsub_pos*)gf_list_enum(list, &pos);
-				free(vspos);
+				gf_free(vspos);
 			}
 			while (vspos != NULL);
 		}

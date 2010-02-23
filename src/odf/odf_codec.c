@@ -37,7 +37,7 @@ GF_ODCodec *gf_odf_codec_new()
 	comList = gf_list_new();
 	if (!comList) return NULL;
 	
-	codec = (GF_ODCodec *) malloc(sizeof(GF_ODCodec));
+	codec = (GF_ODCodec *) gf_malloc(sizeof(GF_ODCodec));
 	if (!codec) {
 		gf_list_del(comList);
 		return NULL;
@@ -60,7 +60,7 @@ void gf_odf_codec_del(GF_ODCodec *codec)
 	}
 	gf_list_del(codec->CommandList);
 	if (codec->bs) gf_bs_del(codec->bs);
-	free(codec);
+	gf_free(codec);
 }
 
 
@@ -367,7 +367,7 @@ GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc)
 	e = gf_odf_desc_write(inDesc, &desc, &size);
 	if (e) return e;
 	e = gf_odf_desc_read(desc, size, outDesc);
-	free(desc);
+	gf_free(desc);
 	return e;
 }
 

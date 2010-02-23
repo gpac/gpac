@@ -30,7 +30,7 @@
 //
 GF_Descriptor *gf_odf_new_slc(u8 predef)
 {
-	GF_SLConfig *newDesc = (GF_SLConfig *) malloc(sizeof(GF_SLConfig));
+	GF_SLConfig *newDesc = (GF_SLConfig *) gf_malloc(sizeof(GF_SLConfig));
 	if (!newDesc) return NULL;
 	memset(newDesc, 0, sizeof(GF_SLConfig));
 	newDesc->tag = GF_ODF_SLC_TAG;
@@ -47,7 +47,7 @@ GF_Descriptor *gf_odf_new_slc(u8 predef)
 GF_Err gf_odf_del_slc(GF_SLConfig *sl)
 {
 	if (!sl) return GF_BAD_PARAM;
-	free(sl);
+	gf_free(sl);
 	return GF_OK;
 }
 

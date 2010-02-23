@@ -52,9 +52,9 @@ GF_Proto *gf_sg_proto_new(GF_SceneGraph *inScene, u32 ProtoID, char *name, Bool 
 	tmp->instances = gf_list_new();
 
 	if (name) 
-		tmp->Name = strdup(name);
+		tmp->Name = gf_strdup(name);
 	else
-		tmp->Name = strdup("Unnamed Proto");
+		tmp->Name = gf_strdup("Unnamed Proto");
 	tmp->ID = ProtoID;
 	if (!unregistered) {
 		gf_list_add(inScene->protos, tmp);
@@ -130,12 +130,12 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 		else if (field->def_value) 
 			gf_sg_vrml_field_pointer_del(field->def_value, field->FieldType);
 	
-		if (field->FieldName) free(field->FieldName);
+		if (field->FieldName) gf_free(field->FieldName);
 
-		/*QP fields are SF fields, we can safely free() them*/
-		if (field->qp_max_value) free(field->qp_max_value);
-		if (field->qp_min_value) free(field->qp_min_value);
-		free(field);
+		/*QP fields are SF fields, we can safely gf_free() them*/
+		if (field->qp_max_value) gf_free(field->qp_max_value);
+		if (field->qp_min_value) gf_free(field->qp_min_value);
+		gf_free(field);
 		gf_list_rem(proto->proto_fields, 0);
 	}
 	gf_list_del(proto->proto_fields);
@@ -150,10 +150,10 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 	gf_sg_del(proto->sub_graph);
 
 
-	if (proto->Name) free(proto->Name);
+	if (proto->Name) gf_free(proto->Name);
 	gf_sg_mfurl_del(proto->ExternProto);
 	gf_list_del(proto->instances);	
-	free(proto);
+	gf_free(proto);
 	return GF_OK;
 }
 
@@ -221,7 +221,7 @@ GF_ProtoFieldInterface *gf_sg_proto_field_new(GF_Proto *proto, u32 fieldType, u3
 		tmp->def_value = gf_sg_vrml_field_pointer_new(fieldType);
 	}
 	
-	if (fieldName) tmp->FieldName = strdup(fieldName);
+	if (fieldName) tmp->FieldName = gf_strdup(fieldName);
 	
 	tmp->ALL_index = gf_list_count(proto->proto_fields);
 	tmp->OUT_index = tmp->DEF_index = tmp->IN_index = (u32) -1;
@@ -369,12 +369,12 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		if (inst_id_suffix[0] && id) {
 			id = gf_sg_get_next_available_node_id(inScene);
 			if (orig_name) {
-				szNodeName = malloc(sizeof(char)*(strlen(orig_name)+strlen(inst_id_suffix)+1));
+				szNodeName = gf_malloc(sizeof(char)*(strlen(orig_name)+strlen(inst_id_suffix)+1));
 				strcpy(szNodeName, orig_name);
 				strcat(szNodeName, inst_id_suffix);
 			}
 		} 
-		else if (orig_name) szNodeName = strdup(orig_name);
+		else if (orig_name) szNodeName = gf_strdup(orig_name);
 	}
 
 	if (id) {
@@ -382,7 +382,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 		/*node already created, USE*/
 		if (node) {
 			gf_node_register(node, cloned_parent);
-			if (szNodeName) free(szNodeName);
+			if (szNodeName) gf_free(szNodeName);
 			return node;
 		}
 	}
@@ -411,7 +411,7 @@ GF_Node *gf_vrml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clon
 	/*register node*/
 	if (id) {
 		gf_node_set_id(node, id, szNodeName);
-		if (szNodeName) free(szNodeName);
+		if (szNodeName) gf_free(szNodeName);
 	}
 	gf_node_register(node, cloned_parent);
 
@@ -732,7 +732,7 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 	proto_node->proto_interface = proto;
 	gf_list_add(proto->instances, proto_node);
 
-	proto_node->proto_name = strdup(proto->Name);
+	proto_node->proto_name = gf_strdup(proto->Name);
 
 	/*create the namespace*/
 	proto_node->sgprivate->scenegraph = gf_sg_new_subscene(scene);
@@ -831,12 +831,12 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 					GF_ChildNodeItem *cur = list;
 					gf_node_unregister(list->node, (GF_Node *) inst);
 					list = list->next;
-					free(cur);
+					gf_free(cur);
 				}
 			}
 		}
 
-		free(field);
+		gf_free(field);
 		index++;
 	}
 	gf_list_del(inst->fields);
@@ -856,7 +856,7 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 
 	sg = inst->sgprivate->scenegraph;
 
-	free((char *) inst->proto_name);
+	gf_free((char *) inst->proto_name);
 
 	sg->pOwningProto = NULL;
 	/*and finally destroy the node. If the proto is a hardcoded one (UserCallback set), destroy the node first
@@ -921,7 +921,7 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 				GF_Route *r2;
 				GF_SAFEALLOC(r2, GF_Route);
 				if (!r2) {
-					free(r);
+					gf_free(r);
 					return GF_OUT_OF_MEM;
 				}
 				r2->IS_route = 1;
@@ -945,7 +945,7 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 			if (!node->sgprivate->interact->routes) node->sgprivate->interact->routes = gf_list_new();
 			break;
 		default:
-			free(r);
+			gf_free(r);
 			return GF_BAD_PARAM;
 		}
 	}
@@ -1002,7 +1002,7 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 				GF_Route *r2;
 				GF_SAFEALLOC(r2, GF_Route);
 				if (!r2) {
-					free(r);
+					gf_free(r);
 					return GF_OUT_OF_MEM;
 				}
 				r2->IS_route = 1;
@@ -1027,7 +1027,7 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 			gf_list_add(node->sgprivate->interact->routes, r);
 			break;
 		default:
-			free(r);
+			gf_free(r);
 			return GF_BAD_PARAM;
 		}
 	}

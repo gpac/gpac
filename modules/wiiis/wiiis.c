@@ -182,7 +182,7 @@ static u32 WII_Run(void *par)
 				gf_bs_del(bs);
 
 				ifce->DispatchFrame(ifce, buf, buf_size);
-				free(buf);
+				gf_free(buf);
 				break;
 			case WIIUSE_STATUS: /*A status report was obtained from the wiimote. */
 				break;
@@ -258,6 +258,6 @@ void ShutdownInterface(GF_BaseInterface *bi)
 	if (wii->wiimotes) {
 		wiiuse_cleanup(wii->wiimotes, wii->nb_wiimotes);
 	}
-	free(wii);
-	free(bi);
+	gf_free(wii);
+	gf_free(bi);
 }

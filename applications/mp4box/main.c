@@ -6,7 +6,7 @@
  *
  *  This file is part of GPAC / mp4box application
  *
- *  GPAC is free software; you can redistribute it and/or modify
+ *  GPAC is gf_free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
@@ -2003,7 +2003,7 @@ int main(int argc, char **argv)
 
 	}
 	/*init libgpac*/
-	gf_sys_init();
+	gf_sys_init(0);
 
 
 	if (do_saf && !encode) {
@@ -2381,7 +2381,7 @@ int main(int argc, char **argv)
 				bs = gf_bs_from_file(iodf, GF_BITSTREAM_WRITE);
 				if (gf_odf_desc_write((GF_Descriptor *)iod, &desc, &size)==GF_OK) {
 					fwrite(desc, 1, size, iodf);
-					free(desc);
+					gf_free(desc);
 				} else {
 					fprintf(stdout, "Error writing IOD\n", szName);
 				}
@@ -2791,14 +2791,14 @@ int main(int argc, char **argv)
 				fseek(t, 0, SEEK_END);
 				tlen = ftell(t);
 				fseek(t, 0, SEEK_SET);
-				d = malloc(sizeof(char) * tlen);
+				d = gf_malloc(sizeof(char) * tlen);
 				fread(d, tlen, 1, t);
 				fclose(t);
 				
 				ext = strrchr(val, '.');
 				if (!stricmp(ext, ".png")) tlen |= 0x80000000;
 				e = gf_isom_apple_set_tag(file, GF_ISOM_ITUNE_COVER_ART, d, tlen);
-				free(d);
+				gf_free(d);
 			}
 				break;
 			case GF_ISOM_ITUNE_TEMPO:

@@ -28,7 +28,7 @@
 
 GF_ISMASample *gf_isom_ismacryp_new_sample()
 {
-	GF_ISMASample *tmp = (GF_ISMASample *) malloc(sizeof(GF_ISMASample));
+	GF_ISMASample *tmp = (GF_ISMASample *) gf_malloc(sizeof(GF_ISMASample));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_ISMASample));
 	return tmp;
@@ -37,9 +37,9 @@ GF_EXPORT
 void gf_isom_ismacryp_delete_sample(GF_ISMASample *samp)
 {
 	if (!samp) return;
-	if (samp->data && samp->dataLength) free(samp->data);
-	if (samp->key_indicator) free(samp->key_indicator);
-	free(samp);
+	if (samp->data && samp->dataLength) gf_free(samp->data);
+	if (samp->key_indicator) gf_free(samp->key_indicator);
+	gf_free(samp);
 }
 
 
@@ -80,12 +80,12 @@ GF_ISMASample *gf_isom_ismacryp_sample_from_data(char *data, u32 dataLength, Boo
 		}
 		if (KI_length) {
 			if (s->dataLength < KI_length) goto exit;
-			s->key_indicator = (u8 *)malloc(KI_length);
+			s->key_indicator = (u8 *)gf_malloc(KI_length);
 			gf_bs_read_data(bs, (char*)s->key_indicator, KI_length);
 			s->dataLength -= KI_length;
 		}
 	}
-	s->data = (char*)malloc(sizeof(char)*s->dataLength);
+	s->data = (char*)gf_malloc(sizeof(char)*s->dataLength);
 	gf_bs_read_data(bs, s->data, s->dataLength);
 	gf_bs_del(bs);
 	return s;
@@ -111,7 +111,7 @@ GF_Err gf_isom_ismacryp_sample_to_sample(GF_ISMASample *s, GF_ISOSample *dest)
 		if (s->KI_length) gf_bs_write_data(bs, (char*)s->key_indicator, s->KI_length);
 	}
 	gf_bs_write_data(bs, s->data, s->dataLength);
-	if (dest->data) free(dest->data);
+	if (dest->data) gf_free(dest->data);
 	dest->data = NULL;
 	dest->dataLength = 0;
 	gf_bs_get_content(bs, &dest->data, &dest->dataLength);
@@ -351,12 +351,12 @@ GF_Err gf_isom_change_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber,
 	if (!sea->protection_info->scheme_type || !sea->protection_info->original_format) return GF_NON_COMPLIANT_BITSTREAM;
 
 	if (scheme_uri) {
-		free(sea->protection_info->scheme_type->URI);
-		sea->protection_info->scheme_type->URI = strdup(scheme_uri);
+		gf_free(sea->protection_info->scheme_type->URI);
+		sea->protection_info->scheme_type->URI = gf_strdup(scheme_uri);
 	}
 	if (kms_uri) {
-		free(sea->protection_info->info->ikms->URI);
-		sea->protection_info->info->ikms->URI = strdup(kms_uri);
+		gf_free(sea->protection_info->info->ikms->URI);
+		sea->protection_info->info->ikms->URI = gf_strdup(kms_uri);
 	}
 	return GF_OK;
 }
@@ -413,14 +413,14 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	sea->protection_info->scheme_type->scheme_version = scheme_version;
 	if (scheme_uri) {
 		sea->protection_info->scheme_type->flags |= 0x000001;
-		sea->protection_info->scheme_type->URI = strdup(scheme_uri);
+		sea->protection_info->scheme_type->URI = gf_strdup(scheme_uri);
 	}
 	sea->protection_info->original_format = (GF_OriginalFormatBox *)frma_New();
 	sea->protection_info->original_format->data_format = original_format;
 	sea->protection_info->info = (GF_SchemeInformationBox *)schi_New();
 
 	sea->protection_info->info->ikms = (GF_ISMAKMSBox *)iKMS_New();
-	sea->protection_info->info->ikms->URI = strdup(kms_URI);
+	sea->protection_info->info->ikms->URI = gf_strdup(kms_URI);
 
 	sea->protection_info->info->isfm = (GF_ISMASampleFormatBox *)iSFM_New();
 	sea->protection_info->info->isfm->selective_encryption = selective_encryption;
@@ -488,10 +488,10 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 	sea->protection_info->info->okms->hdr->EncryptionMethod = encryption_type;
 	sea->protection_info->info->okms->hdr->PaddingScheme = (encryption_type==0x01) ? 1 : 0;
 	sea->protection_info->info->okms->hdr->PlaintextLength = plainTextLength;
-	if (contentID) sea->protection_info->info->okms->hdr->ContentID = strdup(contentID);
-	if (kms_URI) sea->protection_info->info->okms->hdr->RightsIssuerURL = strdup(kms_URI);
+	if (contentID) sea->protection_info->info->okms->hdr->ContentID = gf_strdup(contentID);
+	if (kms_URI) sea->protection_info->info->okms->hdr->RightsIssuerURL = gf_strdup(kms_URI);
 	if (textual_headers) {
-		sea->protection_info->info->okms->hdr->TextualHeaders = malloc(sizeof(char)*textual_headers_len);
+		sea->protection_info->info->okms->hdr->TextualHeaders = gf_malloc(sizeof(char)*textual_headers_len);
 		memcpy(sea->protection_info->info->okms->hdr->TextualHeaders, textual_headers, sizeof(char)*textual_headers_len);
 		sea->protection_info->info->okms->hdr->TextualHeadersLen = textual_headers_len;
 	}

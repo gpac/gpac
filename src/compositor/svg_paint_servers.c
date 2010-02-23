@@ -51,10 +51,10 @@ static void SVG_DestroyPaintServer(GF_Node *node)
 {
 	SVG_GradientStack *st = (SVG_GradientStack *) gf_node_get_private(node);
 	if (st) {
-		if (st->cols) free(st->cols);
-		if (st->keys) free(st->keys);
+		if (st->cols) gf_free(st->cols);
+		if (st->keys) gf_free(st->keys);
 		gf_sc_texture_destroy(&st->txh);
-		free(st);
+		gf_free(st);
 	}
 }
 
@@ -77,7 +77,7 @@ static GF_Node *svg_copy_gradient_attributes_from(GF_Node *node, SVGAllAttribute
 				iri->type = XMLRI_ELEMENTID;
 				iri->target = n;
 				gf_node_register_iri(sg, iri);
-				free(iri->string);
+				gf_free(iri->string);
 				iri->string = NULL;
 			} else {
 				break;
@@ -141,9 +141,9 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 	if (gf_node_dirty_get(node)) {
 		is_dirty = all_dirty = 1;
 		gf_node_dirty_clear(node, 0);
-		if (st->cols) free(st->cols);
+		if (st->cols) gf_free(st->cols);
 		st->cols = NULL;
-		if (st->keys) free(st->keys);
+		if (st->keys) gf_free(st->keys);
 		st->keys = NULL;
 
 		st->animated = gf_node_animation_count(node) ? 1 : 0;
@@ -156,8 +156,8 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 
 	if (!st->cols) {
 		count = gf_node_list_get_count(children);
-		st->cols = (u32*)malloc(sizeof(u32)*count);
-		st->keys = (Fixed*)malloc(sizeof(Fixed)*count);
+		st->cols = (u32*)gf_malloc(sizeof(u32)*count);
+		st->keys = (Fixed*)gf_malloc(sizeof(Fixed)*count);
 	}
 	nb_col = 0;
 	max_offset = 0;
@@ -263,7 +263,7 @@ static void svg_update_gradient(SVG_GradientStack *st, GF_ChildNodeItem *childre
 		svg_gradient_traverse(node, tr_state, 0);
 
 		gf_svg_properties_reset_pointers(svgp);
-		free(svgp);
+		gf_free(svgp);
 		tr_state->svg_props = NULL;
 	} else {
 		svg_gradient_traverse(node, tr_state, 0);
@@ -361,7 +361,7 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	}
 
 	if (txh->data) {
-		free(txh->data);
+		gf_free(txh->data);
 		txh->data = NULL;
 	}
 	stencil = gf_sc_texture_get_stencil(txh);
@@ -381,14 +381,14 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 	
 	if (transparent) {
 		if (!txh->data) {
-			txh->data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			txh->data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 		} else {
 			memset(txh->data, 0, sizeof(char)*txh->stride*txh->height);
 		}
 		e = raster->stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
 	} else {
 		if (!txh->data) {
-			txh->data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
+			txh->data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
 		e = raster->stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB_24, GF_PIXEL_RGB_24, 1);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
@@ -396,14 +396,14 @@ void compositor_svg_build_gradient_texture(GF_TextureHandler *txh)
 			/*remember for later use*/
 			st->txh.flags |= GF_SR_TEXTURE_GRAD_NO_RGB;
 			transparent = 1;
-			free(txh->data);
-			txh->data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			gf_free(txh->data);
+			txh->data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 			e = raster->stencil_set_texture(texture2D, txh->data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
 		}
 	}
 
 	if (e) {
-		free(txh->data);
+		gf_free(txh->data);
 		txh->data = NULL;
 		raster->stencil_delete(texture2D);
 		raster->surface_delete(surface);
@@ -745,7 +745,7 @@ static void svg_traverse_solidColor(GF_Node *node, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
 		GF_SolidColorStack *st = gf_node_get_private(node);
-		free(st);
+		gf_free(st);
 		return;
 	}
 	svg_traverse_PaintServer(node, rs, is_destroy, 1);

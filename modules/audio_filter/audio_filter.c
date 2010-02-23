@@ -137,12 +137,12 @@ static GF_Err Configure(GF_AudioFilter *af, u32 in_sr, u32 in_bps, u32 in_nb_ch,
 		ctx->delai_buffer_size /= ctx->block_size;
 		ctx->delai_buffer_size *= ctx->block_size;
 
-		if (ctx->delai_buffer) free(ctx->delai_buffer);
-		ctx->delai_buffer = malloc(sizeof(char)*ctx->delai_buffer_size);
+		if (ctx->delai_buffer) gf_free(ctx->delai_buffer);
+		ctx->delai_buffer = gf_malloc(sizeof(char)*ctx->delai_buffer_size);
 		memset(ctx->delai_buffer, 0, sizeof(char)*ctx->delai_buffer_size);
 		
-		if (ctx->block_buffer) free(ctx->block_buffer);
-		ctx->block_buffer = malloc(sizeof(char)*ctx->block_size);
+		if (ctx->block_buffer) gf_free(ctx->block_buffer);
+		ctx->block_buffer = gf_malloc(sizeof(char)*ctx->block_size);
 		memset(ctx->block_buffer, 0, sizeof(char)*ctx->block_size);
 		break;
 	}
@@ -231,7 +231,7 @@ void *NewAudioFilter()
 
 	GF_SAFEALLOC(mod, GF_AudioFilter);
 	if(!mod) {
-		free(ctx);
+		gf_free(ctx);
 		return NULL;
 	}
 	mod->udta = ctx;
@@ -250,9 +250,9 @@ void DeleteAudioFilter(void *ifce)
 	GF_AudioFilter *dr = (GF_AudioFilter*) ifce;
 	FilterContext *ctx = (FilterContext *)dr->udta;
 
-	if (ctx->delai_buffer) free(ctx->delai_buffer);
-	free(ctx);
-	free(dr);
+	if (ctx->delai_buffer) gf_free(ctx->delai_buffer);
+	gf_free(ctx);
+	gf_free(dr);
 }
 
 

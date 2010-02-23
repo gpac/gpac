@@ -102,9 +102,9 @@ void RP_DeleteStream(RTPStream *ch)
 
 	if (ch->depacketizer) gf_rtp_depacketizer_del(ch->depacketizer);
 	if (ch->rtp_ch) gf_rtp_del(ch->rtp_ch);
-	if (ch->control) free(ch->control);
-	if (ch->session_id) free(ch->session_id);
-	free(ch);
+	if (ch->control) gf_free(ch->control);
+	if (ch->session_id) gf_free(ch->session_id);
+	gf_free(ch);
 }
 
 
@@ -206,7 +206,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 
 	/*create an RTP channel*/
 	tmp->rtp_ch = gf_rtp_new();
-	if (ctrl) tmp->control = strdup(ctrl);
+	if (ctrl) tmp->control = gf_strdup(ctrl);
 	tmp->ES_ID = ESID;
 	tmp->OD_ID = ODID;
 

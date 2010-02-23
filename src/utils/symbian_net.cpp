@@ -308,7 +308,7 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, u32 NonBlockingOn)
 }
 
 
-static void gf_sk_free(GF_Socket *sock)
+static void gf_sk_gf_free(GF_Socket *sock)
 {
 	/*leave multicast*/
 	if (sock->socket && (sock->flags & GF_SOCK_IS_MULTICAST) ) {
@@ -337,12 +337,12 @@ static void gf_sk_free(GF_Socket *sock)
 
 void gf_sk_del(GF_Socket *sock)
 {
-	gf_sk_free(sock);
+	gf_sk_gf_free(sock);
 #ifdef WIN32
 	wsa_init --;
 	if (!wsa_init) WSACleanup();
 #endif
-	free(sock);
+	gf_free(sock);
 }
 
 void gf_sk_reset(GF_Socket *sock)
@@ -366,7 +366,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *loca
 	u32 type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
 	struct addrinfo *res, *aip;
 
-	gf_sk_free(sock);
+	gf_sk_gf_free(sock);
 
 	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, AI_PASSIVE, type);
 	if (!res) return GF_IP_CONNECTION_FAILURE;
@@ -935,7 +935,7 @@ GF_Err gf_sk_accept(GF_Socket *sock, GF_Socket **newConnection)
 		}		
 	}
 
-	(*newConnection) = (GF_Socket *) malloc(sizeof(GF_Socket));
+	(*newConnection) = (GF_Socket *) gf_malloc(sizeof(GF_Socket));
 	(*newConnection)->socket = sk;
 	(*newConnection)->flags = sock->flags & ~GF_SOCK_IS_LISTENING;
 #ifdef GPAC_HAS_IPV6
@@ -1242,7 +1242,7 @@ typedef struct __tag_sock_group
 
 GF_SocketGroup *NewSockGroup()
 {	
-	GF_SocketGroup *tmp = (GF_SocketGroup*)malloc(sizeof(GF_SocketGroup));
+	GF_SocketGroup *tmp = (GF_SocketGroup*)gf_malloc(sizeof(GF_SocketGroup));
 	if (!tmp) return NULL;
 	FD_ZERO(&tmp->ReadGroup);
 	FD_ZERO(&tmp->WriteGroup);
@@ -1251,7 +1251,7 @@ GF_SocketGroup *NewSockGroup()
 
 void SKG_Delete(GF_SocketGroup *group)
 {
-	free(group);
+	gf_free(group);
 }
 
 void SKG_SetWatchTime(GF_SocketGroup *group, u32 DelayInS, u32 DelayInMicroS)

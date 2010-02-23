@@ -64,23 +64,23 @@ static GF_Crypt *gf_crypt_open_intern(const char *algorithm, const char *mode, B
 
 	
 	if (algorithm && !gf_crypt_assign_algo(td, algorithm)) {
-		free(td);
+		gf_free(td);
 		return NULL;
 	}
 	if (mode && !gf_crypt_assign_mode(td, mode)) {
-		free(td);
+		gf_free(td);
 		return NULL;
 	}
 	if (is_check) return td;
 
 	if (td->is_block_algo != td->is_block_algo_mode) {
-		free(td);
+		gf_free(td);
 		return NULL;
 	}
 	if (!td->_mcrypt || !td->_mdecrypt || !td->_mcrypt_set_state
 		|| !td->a_decrypt || !td->a_encrypt || !td->a_set_key)
 	{
-		free(td);
+		gf_free(td);
 		return NULL;
 	}
 	return td;
@@ -89,16 +89,16 @@ static GF_Crypt *gf_crypt_open_intern(const char *algorithm, const char *mode, B
 static void internal_end_mcrypt(GF_Crypt *td)
 {
 	if (!td || !td->keyword_given) return;
-	free(td->keyword_given);
+	gf_free(td->keyword_given);
 	td->keyword_given = NULL;
 
 	if (td->akey) {
-		free(td->akey);
+		gf_free(td->akey);
 		td->akey = NULL;
 	}
 	if (td->abuf) {
 		td->_end_mcrypt(td->abuf);
-		free(td->abuf);
+		gf_free(td->abuf);
 		td->abuf = NULL;
 	}
 }
@@ -114,7 +114,7 @@ GF_EXPORT
 void gf_crypt_close(GF_Crypt *td)
 {
 	internal_end_mcrypt(td);
-	free(td);
+	gf_free(td);
 }
 
 GF_Err gf_crypt_set_key(GF_Crypt *td, void *key, u32 keysize, const void *IV)
@@ -214,29 +214,29 @@ GF_Err gf_crypt_init(GF_Crypt *td, void *key, u32 lenofkey, const void *IV)
 		key_size = lenofkey;
 	}
 
-	td->keyword_given = (char*)malloc(sizeof(char)*gf_crypt_get_key_size(td));
+	td->keyword_given = (char*)gf_malloc(sizeof(char)*gf_crypt_get_key_size(td));
 	if (td->keyword_given==NULL) return GF_OUT_OF_MEM; 
 	
 	memmove(td->keyword_given, key, lenofkey);
 
-	td->akey = (char*)malloc(sizeof(char)*td->algo_size);
+	td->akey = (char*)gf_malloc(sizeof(char)*td->algo_size);
 	if (td->akey==NULL) {
-		free(td->keyword_given);
+		gf_free(td->keyword_given);
 		return GF_OUT_OF_MEM;
 	}
 	if (td->mode_size > 0) {
-		td->abuf = (char*)malloc(sizeof(char)*td->mode_size);
+		td->abuf = (char*)gf_malloc(sizeof(char)*td->mode_size);
 		if (td->abuf==NULL) {
-			free(td->keyword_given);
-			free(td->akey);
+			gf_free(td->keyword_given);
+			gf_free(td->akey);
 			return GF_OUT_OF_MEM;
 		}
 	}
 	e = td->_init_mcrypt(td->abuf, (void *) key, key_size, (void *) IV, gf_crypt_get_block_size(td));
 	if (e!=GF_OK) {
-		free(td->keyword_given);
-		free(td->akey);
-		free(td->abuf);
+		gf_free(td->keyword_given);
+		gf_free(td->akey);
+		gf_free(td->abuf);
 		return e;
 	}
 

@@ -201,7 +201,7 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
 	SSL_CTX_set_mode(dm->ssl_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE);
 	return 1;
 error:
-	if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
+	if (dm->ssl_ctx) SSL_CTX_gf_free(dm->ssl_ctx);
 	dm->ssl_ctx = NULL;
 	return 0;
 }
@@ -239,7 +239,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 
 	len = strlen(sess->server_name) + strlen(sess->remote_path) + 1;
 	if (len<50) len = 50;
-	tmp = malloc(sizeof(char) * len);
+	tmp = gf_malloc(sizeof(char) * len);
 	tmp[0] = 0;
 
 	/*generate hash of the full url*/
@@ -255,7 +255,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	}
 
 	len += strlen(sess->dm->cache_directory) + 6;
-	sess->cache_name = malloc(sizeof(char)*len);
+	sess->cache_name = gf_malloc(sizeof(char)*len);
 	sess->cache_name[0] = 0;
 
 	strcpy(sess->cache_name, sess->dm->cache_directory);
@@ -267,7 +267,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	if (ext) ext[0] = 0;
 	ext = strchr(tmp, '.');
 	if (ext && (strlen(ext)<6) ) strcat(sess->cache_name, ext);
-	free(tmp);
+	gf_free(tmp);
 
 	/*first try, check cached file*/
 	if (!sess->cache_start_size && !(sess->flags&GF_NETIO_SESSION_FORCE_RESTART) ) {
@@ -295,7 +295,7 @@ static void gf_dm_disconnect(GF_DownloadSession *sess)
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
 		SSL_shutdown(sess->ssl);
-		SSL_free(sess->ssl);
+		SSL_gf_free(sess->ssl);
 		sess->ssl = NULL;
 	}
 #endif
@@ -333,17 +333,17 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	if (sess->cache_name) {
 		opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "CleanCache");
 		if (opt && !stricmp(opt, "yes")) gf_delete_file(sess->cache_name);
-		free(sess->cache_name);
+		gf_free(sess->cache_name);
 	}
 
-	if (sess->server_name) free(sess->server_name);
-	if (sess->remote_path) free(sess->remote_path);
-	if (sess->user) free(sess->user);
-	if (sess->passwd) free(sess->passwd);
-	if (sess->mime_type) free(sess->mime_type);
+	if (sess->server_name) gf_free(sess->server_name);
+	if (sess->remote_path) gf_free(sess->remote_path);
+	if (sess->user) gf_free(sess->user);
+	if (sess->passwd) gf_free(sess->passwd);
+	if (sess->mime_type) gf_free(sess->mime_type);
 	if (sess->cache) fclose(sess->cache);
-	if (sess->init_data) free(sess->init_data);
-	free(sess);
+	if (sess->init_data) gf_free(sess->init_data);
+	gf_free(sess);
 }
 
 void http_do_requests(GF_DownloadSession *sess);
@@ -406,10 +406,10 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 		u32 i;
 		if (!sess->remote_path) return GF_BAD_PARAM;
 		tmp = gf_url_concatenate(sess->remote_path, url);
-		free(sess->remote_path);
+		gf_free(sess->remote_path);
 		sess->remote_path = gf_url_percent_encode(tmp);
-		free(tmp);
-		if (!sess->remote_path) sess->remote_path = strdup(url);
+		gf_free(tmp);
+		if (!sess->remote_path) sess->remote_path = gf_strdup(url);
 		for (i=0; i<strlen(sess->remote_path); i++)
 			if (sess->remote_path[i]=='\\') sess->remote_path[i]='/';
 
@@ -422,10 +422,10 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 	sess->remote_path = gf_url_percent_encode(tmp ? tmp : "/");
 	if (tmp) {
 		tmp[0] = 0;
-		tmp_url = strdup(url);
+		tmp_url = gf_strdup(url);
 		tmp[0] = '/';
 	} else {
-		tmp_url = strdup(url);
+		tmp_url = gf_strdup(url);
 	}
 
 	tmp = strrchr(tmp_url, ':');
@@ -435,23 +435,23 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 	}
 	tmp = strrchr(tmp_url, '@');
 	if (tmp) {
-		sess->server_name = strdup(tmp+1);
+		sess->server_name = gf_strdup(tmp+1);
 		tmp[0] = 0;
 		tmp = strchr(tmp_url, ':');
-		if (sess->user) free(sess->user);
+		if (sess->user) gf_free(sess->user);
 		sess->user = NULL;
-		if (sess->passwd) free(sess->passwd);
+		if (sess->passwd) gf_free(sess->passwd);
 		sess->passwd = NULL;
 
 		if (tmp) {
-			sess->passwd = strdup(tmp+1);
+			sess->passwd = gf_strdup(tmp+1);
 			tmp[0] = 0;
 		}
-		sess->user = strdup(tmp_url);
+		sess->user = gf_strdup(tmp_url);
 	} else {
-		sess->server_name = strdup(tmp_url);
+		sess->server_name = gf_strdup(tmp_url);
 	}
-	free(tmp_url);
+	gf_free(tmp_url);
 
 	/*setup BW limiter*/
 	sess->limit_data_rate = 0;
@@ -514,7 +514,7 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_fla
 		return NULL;
 	}
 
-	sess = (GF_DownloadSession *)malloc(sizeof(GF_DownloadSession));
+	sess = (GF_DownloadSession *)gf_malloc(sizeof(GF_DownloadSession));
 	memset((void *)sess, 0, sizeof(GF_DownloadSession));
 	sess->flags = dl_flags;
 	sess->user_proc = user_io;
@@ -676,7 +676,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 				X509_NAME_get_text_by_NID(X509_get_subject_name(cert), NID_commonName, common_name, sizeof (common_name));
 				if (!pattern_match(common_name, sess->server_name)) success = 0;
 			}
-			X509_free(cert);
+			X509_gf_free(cert);
 
 			if (!success) {
 				gf_dm_disconnect(sess);
@@ -763,10 +763,10 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 	opt = gf_cfg_get_key(cfg, "General", "CacheDirectory");
 	if (opt) {
 		if (opt[strlen(opt)-1] != GF_PATH_SEPARATOR) {
-			dm->cache_directory = (char *) malloc(sizeof(char)* (strlen(opt)+2));
+			dm->cache_directory = (char *) gf_malloc(sizeof(char)* (strlen(opt)+2));
 			sprintf(dm->cache_directory, "%s%c", opt, GF_PATH_SEPARATOR);
 		} else {
-			dm->cache_directory = strdup(opt);
+			dm->cache_directory = gf_strdup(opt);
 		}
 	}
 #ifdef GPAC_HAS_SSL
@@ -794,13 +794,13 @@ void gf_dm_del(GF_DownloadManager *dm)
 	}
 	gf_list_del(dm->sessions);
 
-	free(dm->cache_directory);
+	gf_free(dm->cache_directory);
 
 #ifdef GPAC_HAS_SSL
-	if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
+	if (dm->ssl_ctx) SSL_CTX_gf_free(dm->ssl_ctx);
 #endif
 
-	free(dm);
+	gf_free(dm);
 }
 
 
@@ -934,7 +934,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 		if (sess->init_data_size<=buffer_size) {
 			memcpy(buffer, sess->init_data, sizeof(char)*sess->init_data_size);
 			*read_size = sess->init_data_size;
-			free(sess->init_data);
+			gf_free(sess->init_data);
 			sess->init_data = NULL;
 			sess->init_data_size = 0;
 		} else {
@@ -1050,7 +1050,7 @@ void http_do_requests(GF_DownloadSession *sess)
 					sess->status = GF_NETIO_STATE_ERROR;
 					return;
 				}
-				sess->passwd = strdup(szPASS);
+				sess->passwd = gf_strdup(szPASS);
 			}
 			sprintf(pass_buf, "%s:%s", sess->user, sess->passwd);
 			size = gf_base64_encode(pass_buf, strlen(pass_buf), range_buf, 1024);
@@ -1189,7 +1189,7 @@ void http_do_requests(GF_DownloadSession *sess)
 
 		if (send_profile || par.data) {
 			u32 len = strlen(sHTTP);
-			char *tmp_buf = malloc(sizeof(char)*(len+par.size));
+			char *tmp_buf = gf_malloc(sizeof(char)*(len+par.size));
 			strcpy(tmp_buf, sHTTP);
 			if (par.data) {
 				memcpy(tmp_buf+len, par.data, par.size);
@@ -1211,7 +1211,7 @@ void http_do_requests(GF_DownloadSession *sess)
 				e = gf_sk_send(sess->sock, tmp_buf, len+par.size);
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending request %s\n\n", tmp_buf));
-			free(tmp_buf);
+			gf_free(tmp_buf);
 		} else {
 
 #ifdef GPAC_HAS_SSL
@@ -1288,14 +1288,14 @@ void http_do_requests(GF_DownloadSession *sess)
 		LinePos = gf_token_get_line(sHTTP, 0, bytesRead, buf, 1024);
 		Pos = gf_token_get(buf, 0, " \t\r\n", comp, 400);
 
-		if (sess->mime_type) free(sess->mime_type);
+		if (sess->mime_type) gf_free(sess->mime_type);
 		sess->mime_type = NULL;
 
 		is_ice = 0;
 		if (!strncmp("ICY", comp, 4)) {
 			is_ice = 1;
 			/*be prepared not to receive any mime type from ShoutCast servers*/
-			sess->mime_type = strdup("audio/mpeg");
+			sess->mime_type = gf_strdup("audio/mpeg");
 		} else if ((strncmp("HTTP", comp, 4) != 0)) {
 			e = GF_REMOTE_SERVICE_ERROR;
 			goto exit;
@@ -1337,8 +1337,8 @@ void http_do_requests(GF_DownloadSession *sess)
 
 			if (!stricmp(hdr, "Content-Length") ) ContentLength = (u32) atoi(hdr_val);
 			else if (!stricmp(hdr, "Content-Type")) {
-				if (sess->mime_type) free(sess->mime_type);
-				sess->mime_type = strdup(hdr_val);
+				if (sess->mime_type) gf_free(sess->mime_type);
+				sess->mime_type = gf_strdup(hdr_val);
 				while (1) {
 					u32 len = strlen(sess->mime_type);
 					char c = len ? sess->mime_type[len-1] : 0;
@@ -1368,7 +1368,7 @@ void http_do_requests(GF_DownloadSession *sess)
 				if (strstr(hdr_val, "none")) no_range = 1;
 			}
 			else if (!stricmp(hdr, "Location"))
-				new_location = strdup(hdr_val);
+				new_location = gf_strdup(hdr_val);
 			else if (!stricmp(hdr, "icy-metaint"))
 				sess->icy_metaint = atoi(hdr_val);
 			else if (!stricmp(hdr, "ice") || !stricmp(hdr, "icy") ) {
@@ -1484,7 +1484,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			}
 			if (sess->cache_name) {
 				gf_delete_file(sess->cache_name);
-				free(sess->cache_name);
+				gf_free(sess->cache_name);
 				sess->cache_name = NULL;
 			}
 			sess->cache_start_size = 0;
@@ -1492,8 +1492,8 @@ void http_do_requests(GF_DownloadSession *sess)
 		/*force disabling cache (no content length)*/
 		if (is_ice) {
 			if (sess->mime_type && !stricmp(sess->mime_type, "video/nsv")) {
-				free(sess->mime_type);
-				sess->mime_type = strdup("audio/aac");
+				gf_free(sess->mime_type);
+				sess->mime_type = gf_strdup("audio/aac");
 			}
 		}
 
@@ -1553,9 +1553,9 @@ void http_do_requests(GF_DownloadSession *sess)
 			gf_dm_data_received(sess, sHTTP + BodyStart, bytesRead - BodyStart);
 			/*store data if no callbacks or cache*/
 //			if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) {
-				if (sess->init_data) free(sess->init_data);
+				if (sess->init_data) gf_free(sess->init_data);
 				sess->init_data_size = bytesRead - BodyStart;
-				sess->init_data = (char *) malloc(sizeof(char) * sess->init_data_size);
+				sess->init_data = (char *) gf_malloc(sizeof(char) * sess->init_data_size);
 				memcpy(sess->init_data, sHTTP+BodyStart, sess->init_data_size);
 //			}
 		}

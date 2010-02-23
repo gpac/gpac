@@ -49,7 +49,7 @@ void gf_modules_free_module(ModuleInstance *inst)
 	if (inst->lib_handle) dlclose(inst->lib_handle);
 #endif
 	gf_list_del(inst->interfaces);
-	free(inst);
+	gf_free(inst);
 }
 
 

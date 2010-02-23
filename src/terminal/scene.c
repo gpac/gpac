@@ -121,7 +121,7 @@ void gf_scene_del(GF_Scene *scene)
 	while (gf_list_count(scene->extern_protos)) {
 		GF_ProtoLink *pl = (GF_ProtoLink *)gf_list_get(scene->extern_protos, 0);
 		gf_list_rem(scene->extern_protos, 0);
-		free(pl);
+		gf_free(pl);
 	}
 	gf_list_del(scene->extern_protos);
 #endif
@@ -155,19 +155,19 @@ void gf_scene_del(GF_Scene *scene)
 		gf_list_rem(scene->scene_objects, 0);
 		gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 		gf_list_del(obj->nodes);
-		free(obj);
+		gf_free(obj);
 	}
 	gf_list_del(scene->scene_objects);
 	gf_list_del(scene->storages);
 	gf_list_del(scene->keynavigators);
 
-	if (scene->audio_url.url) free(scene->audio_url.url);
-	if (scene->visual_url.url) free(scene->visual_url.url);
-	if (scene->text_url.url) free(scene->text_url.url);
-	if (scene->dims_url.url) free(scene->dims_url.url);
-	if (scene->fragment_uri) free(scene->fragment_uri);
-	if (scene->redirect_xml_base) free(scene->redirect_xml_base);
-	free(scene);
+	if (scene->audio_url.url) gf_free(scene->audio_url.url);
+	if (scene->visual_url.url) gf_free(scene->visual_url.url);
+	if (scene->text_url.url) gf_free(scene->text_url.url);
+	if (scene->dims_url.url) gf_free(scene->dims_url.url);
+	if (scene->fragment_uri) gf_free(scene->fragment_uri);
+	if (scene->redirect_xml_base) gf_free(scene->redirect_xml_base);
+	gf_free(scene);
 }
 
 GF_EXPORT
@@ -216,7 +216,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 		while (gf_list_count(scene->extern_protos)) {
 			GF_ProtoLink *pl = (GF_ProtoLink *)gf_list_get(scene->extern_protos, 0);
 			gf_list_rem(scene->extern_protos, 0);
-			free(pl);
+			gf_free(pl);
 		}
 #endif
 	}
@@ -276,7 +276,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 		if (obj->odm) obj->odm->mo = NULL;
 		gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 		gf_list_del(obj->nodes);
-		free(obj);
+		gf_free(obj);
 	}
 
 	if (for_shutdown && scene->root_od && scene->root_od->mo) {
@@ -306,8 +306,8 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 		GF_ESD *esd = gf_odf_desc_esd_new(0);
 		esd->decoderConfig->streamType = GF_STREAM_INTERACT;
 		esd->decoderConfig->objectTypeIndication = 1;
-		free(esd->decoderConfig->decoderSpecificInfo->data);
-		esd->decoderConfig->decoderSpecificInfo->data = strdup(" KeySensor");
+		gf_free(esd->decoderConfig->decoderSpecificInfo->data);
+		esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" KeySensor");
 		esd->decoderConfig->decoderSpecificInfo->data[0] = 9;
 		esd->decoderConfig->decoderSpecificInfo->dataLength = 10;
 		esd->ESID = esd->OCRESID = 65534;
@@ -316,8 +316,8 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 		GF_ESD *esd = gf_odf_desc_esd_new(0);
 		esd->decoderConfig->streamType = GF_STREAM_INTERACT;
 		esd->decoderConfig->objectTypeIndication = 1;
-		free(esd->decoderConfig->decoderSpecificInfo->data);
-		esd->decoderConfig->decoderSpecificInfo->data = strdup(" StringSensor");
+		gf_free(esd->decoderConfig->decoderSpecificInfo->data);
+		esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" StringSensor");
 		esd->decoderConfig->decoderSpecificInfo->data[0] = 12;
 		esd->decoderConfig->decoderSpecificInfo->dataLength = 13;
 		esd->ESID = esd->OCRESID = 65534;
@@ -326,8 +326,8 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 		GF_ESD *esd = gf_odf_desc_esd_new(0);
 		esd->decoderConfig->streamType = GF_STREAM_INTERACT;
 		esd->decoderConfig->objectTypeIndication = 1;
-		free(esd->decoderConfig->decoderSpecificInfo->data);
-		esd->decoderConfig->decoderSpecificInfo->data = strdup(" Mouse");
+		gf_free(esd->decoderConfig->decoderSpecificInfo->data);
+		esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" Mouse");
 		esd->decoderConfig->decoderSpecificInfo->data[0] = 5;
 		esd->decoderConfig->decoderSpecificInfo->dataLength = 6;
 		esd->ESID = esd->OCRESID = 65534;
@@ -336,10 +336,10 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 		if (!keep_fragment) {
 			char *frag = strrchr(mo->URLs.vals[0].url, '#');
 			if (frag) frag[0] = 0;
-			odm->OD->URLString = strdup(mo->URLs.vals[0].url);
+			odm->OD->URLString = gf_strdup(mo->URLs.vals[0].url);
 			if (frag) frag[0] = '#';
 		} else {
-			odm->OD->URLString = strdup(mo->URLs.vals[0].url);
+			odm->OD->URLString = gf_strdup(mo->URLs.vals[0].url);
 		}
 		if (lock_timelines) odm->flags |= GF_ODM_INHERIT_TIMELINE;
 	}
@@ -354,7 +354,7 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 static void gf_scene_reinsert_object(GF_Scene *scene, GF_MediaObject *mo)
 {
 	u32 i;
-	free(mo->URLs.vals[0].url);
+	gf_free(mo->URLs.vals[0].url);
 	mo->URLs.vals[0].url = NULL;
 	for (i=0; i<mo->URLs.count-1; i++) mo->URLs.vals[i].url = mo->URLs.vals[i+1].url;
 	mo->URLs.vals[mo->URLs.count-1].url = NULL;
@@ -444,7 +444,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, Bool for_shu
 				gf_list_rem(scene->scene_objects, i-1);
 				gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 				gf_list_del(obj->nodes);
-				free(obj);
+				gf_free(obj);
 			}
 			return;
 		}
@@ -559,11 +559,11 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 	/*locate fragment IRI*/
 	if (scene->root_od->net_service && scene->root_od->net_service->url) {
 		if (scene->fragment_uri) {
-			free(scene->fragment_uri);
+			gf_free(scene->fragment_uri);
 			scene->fragment_uri = NULL;
     	}
 	    url = strchr(scene->root_od->net_service->url, '#');
-	    if (url) scene->fragment_uri = strdup(url+1);
+	    if (url) scene->fragment_uri = gf_strdup(url+1);
     }
 
 	/*main display scene, setup compositor*/
@@ -920,7 +920,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 			}
 
 			media_url->OD_ID = odm->OD->objectDescriptorID;
-			if (media_url->OD_ID==GF_MEDIA_EXTERNAL_ID) media_url->url = strdup(odm->net_service->url);
+			if (media_url->OD_ID==GF_MEDIA_EXTERNAL_ID) media_url->url = gf_strdup(odm->net_service->url);
 
 			if (!scene->dyn_ck) scene->dyn_ck = odm->codec->ck;
 
@@ -934,7 +934,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 			if (media_url->OD_ID ) url_changed = 1;
 			media_url->OD_ID = 0;
 			if (media_url->url) {
-				free(media_url->url);
+				gf_free(media_url->url);
 				media_url->url = NULL;
 			}
 		}
@@ -954,7 +954,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 		gf_sg_vrml_mf_reset(node_url, GF_SG_VRML_MFURL);
 		gf_sg_vrml_mf_append(node_url, GF_SG_VRML_MFURL, (void **) &sfu);
 		sfu->OD_ID = media_url->OD_ID;
-		if (media_url->url) sfu->url = strdup(media_url->url);
+		if (media_url->url) sfu->url = gf_strdup(media_url->url);
 
 		gf_node_changed(node, NULL);
 	}
@@ -1082,7 +1082,7 @@ static Bool check_odm_deactivate(SFURL *url, GF_ObjectManager *odm, GF_Node *n)
 	GF_FieldInfo info;
 	if (!is_odm_url(url, odm) || !n) return 0;
 
-	if (url->url) free(url->url);
+	if (url->url) gf_free(url->url);
 	url->url = NULL;
 	url->OD_ID = 0;
 
@@ -1110,19 +1110,19 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	if (odm->codec->type == GF_STREAM_AUDIO) {
 		M_AudioClip *ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
 		if (!ac) return;
-		if (scene->audio_url.url) free(scene->audio_url.url);
+		if (scene->audio_url.url) gf_free(scene->audio_url.url);
 		scene->audio_url.url = NULL;
 		scene->audio_url.OD_ID = odm->OD->objectDescriptorID;
 		if (!ac->url.count) gf_sg_vrml_mf_alloc(&ac->url, GF_SG_VRML_MFURL, 1);
 		ac->url.vals[0].OD_ID = odm->OD->objectDescriptorID;
 		if (ac->url.vals[0].url) {
-			free(ac->url.vals[0].url);
+			gf_free(ac->url.vals[0].url);
 			ac->url.vals[0].url = NULL; 
 		}
 		url = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
 		if (url) {
-			scene->audio_url.url = strdup(url);
-			ac->url.vals[0].url = strdup(url);
+			scene->audio_url.url = gf_strdup(url);
+			ac->url.vals[0].url = gf_strdup(url);
 		}
 		ac->startTime = gf_scene_get_time(scene);
 		gf_node_changed((GF_Node *)ac, NULL);
@@ -1132,16 +1132,16 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	if (odm->codec->type == GF_STREAM_VISUAL) {
 		M_MovieTexture *mt = (M_MovieTexture*) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO");
 		if (!mt) return;
-		if (scene->visual_url.url) free(scene->visual_url.url);
+		if (scene->visual_url.url) gf_free(scene->visual_url.url);
 		scene->visual_url.url = NULL;
 		scene->visual_url.OD_ID = odm->OD->objectDescriptorID;
 		if (!mt->url.count) gf_sg_vrml_mf_alloc(&mt->url, GF_SG_VRML_MFURL, 1);
 		mt->url.vals[0].OD_ID = odm->OD->objectDescriptorID;
-		if (mt->url.vals[0].url) free(mt->url.vals[0].url);
+		if (mt->url.vals[0].url) gf_free(mt->url.vals[0].url);
 		url = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
 		if (url) {
-			scene->visual_url.url = strdup(url);
-			mt->url.vals[0].url = strdup(url);
+			scene->visual_url.url = gf_strdup(url);
+			mt->url.vals[0].url = gf_strdup(url);
 		}
 		mt->startTime = gf_scene_get_time(scene);
 		gf_node_changed((GF_Node *)mt, NULL);
@@ -1153,16 +1153,16 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	if (odm->codec->type == GF_STREAM_TEXT) {
 		M_AnimationStream *as = (M_AnimationStream*) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
 		if (!as) return;
-		if (scene->text_url.url) free(scene->text_url.url);
+		if (scene->text_url.url) gf_free(scene->text_url.url);
 		scene->text_url.url = NULL;
 		scene->text_url.OD_ID = odm->OD->objectDescriptorID;
 		if (!as->url.count) gf_sg_vrml_mf_alloc(&as->url, GF_SG_VRML_MFURL, 1);
 		as->url.vals[0].OD_ID = odm->OD->objectDescriptorID;
-		if (as->url.vals[0].url) free(as->url.vals[0].url);
+		if (as->url.vals[0].url) gf_free(as->url.vals[0].url);
 		url = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
 		if (url) {
-			scene->text_url.url = strdup(url);
-			as->url.vals[0].url = strdup(url);
+			scene->text_url.url = gf_strdup(url);
+			as->url.vals[0].url = gf_strdup(url);
 		}
 		as->startTime = gf_scene_get_time(scene);
 		gf_node_changed((GF_Node *)as, NULL);
@@ -1273,7 +1273,7 @@ Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt)
 #endif
 			gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
 			gf_sg_vrml_mf_alloc(&inl->url, GF_SG_VRML_MFURL, 1);
-			inl->url.vals[0].url = strdup(evt->navigate.to_url ? evt->navigate.to_url : "");
+			inl->url.vals[0].url = gf_strdup(evt->navigate.to_url ? evt->navigate.to_url : "");
 			/*signal URL change but don't destroy inline scene now since we got this event from inside the scene, 
 			this could crash compositors*/
 			scene->needs_restart = 2;
@@ -1309,10 +1309,10 @@ void gf_scene_set_fragment_uri(GF_Node *node, const char *uri)
 	GF_Scene *scene = sg ? (GF_Scene *) gf_sg_get_private(sg) : NULL;
 	if (!scene) return;
 	if (scene->fragment_uri) {
-		free(scene->fragment_uri);
+		gf_free(scene->fragment_uri);
 		scene->fragment_uri = NULL;
 	}
-	if (uri) scene->fragment_uri = strdup(uri);
+	if (uri) scene->fragment_uri = gf_strdup(uri);
 }
 
 

@@ -37,7 +37,7 @@
 GF_EXPORT
 GF_SDP_FMTP *gf_sdp_fmtp_new()
 {
-	GF_SDP_FMTP *tmp = (GF_SDP_FMTP*)malloc(sizeof(GF_SDP_FMTP));
+	GF_SDP_FMTP *tmp = (GF_SDP_FMTP*)gf_malloc(sizeof(GF_SDP_FMTP));
 	tmp->PayloadType = 0;
 	tmp->Attributes = gf_list_new();
 	return tmp;
@@ -51,12 +51,12 @@ void gf_sdp_fmtp_del(GF_SDP_FMTP *fmtp)
 	while (gf_list_count(fmtp->Attributes)) {
 		att = (GF_X_Attribute*)gf_list_get(fmtp->Attributes, 0);
 		gf_list_rem(fmtp->Attributes, 0);
-		if (att->Name) free(att->Name);
-		if (att->Value) free(att->Value);
-		free(att);
+		if (att->Name) gf_free(att->Name);
+		if (att->Value) gf_free(att->Value);
+		gf_free(att);
 	}
 	gf_list_del(fmtp->Attributes);
-	free(fmtp);
+	gf_free(fmtp);
 }
 
 GF_SDP_FMTP *SDP_GetFMTPForPayload(GF_SDPMedia *media, u32 PayloadType)
@@ -85,19 +85,19 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	if (!strcmp(comp, "cat")) {
 		if (media) return;
 		pos = gf_token_get(buffer, pos, ":\t\r\n", comp, 3000);
-		sdp->a_cat = strdup(comp);
+		sdp->a_cat = gf_strdup(comp);
 		return;
 	}
 	if (!strcmp(comp, "keywds")) {
 		if (media) return;
 		pos = gf_token_get(buffer, pos, ":\t\r\n", comp, 3000);
-		sdp->a_keywds = strdup(comp);
+		sdp->a_keywds = gf_strdup(comp);
 		return;
 	}
 	if (!strcmp(comp, "tool")) {
 		if (media) return;
 		pos = gf_token_get(buffer, pos, ":\r\n", comp, 3000);
-		sdp->a_tool = strdup(comp);
+		sdp->a_tool = gf_strdup(comp);
 		return;
 	}
 
@@ -134,36 +134,36 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	if (!strcmp(comp, "orient")) {
 		if (!media || media->Type) return;
 		pos = gf_token_get(buffer, pos, ":\r\n", comp, 3000);
-		media->orientation = strdup(comp);
+		media->orientation = gf_strdup(comp);
 		return;
 	}
 	if (!strcmp(comp, "type")) {
 		if (media) return;
 		pos = gf_token_get(buffer, pos, ":\r\n", comp, 3000);
-		sdp->a_type = strdup(comp);
+		sdp->a_type = gf_strdup(comp);
 		return;
 	}
 	if (!strcmp(comp, "charset")) {
 		if (media) return;
 		pos = gf_token_get(buffer, pos, ":\r\n", comp, 3000);
-		sdp->a_charset = strdup(comp);
+		sdp->a_charset = gf_strdup(comp);
 		return;
 	}
 	if (!strcmp(comp, "sdplang")) {
 		pos = gf_token_get(buffer, pos, ":\r\n", comp, 3000);
 		if (media) {
-			media->sdplang = strdup(comp);
+			media->sdplang = gf_strdup(comp);
 		} else {
-			sdp->a_sdplang = strdup(comp);
+			sdp->a_sdplang = gf_strdup(comp);
 		}
 		return;
 	}
 	if (!strcmp(comp, "lang")) {
 		pos = gf_token_get(buffer, pos, ":\r\n", comp, 3000);
 		if (media) {
-			media->lang = strdup(comp);
+			media->lang = gf_strdup(comp);
 		} else {
-			sdp->a_lang = strdup(comp);
+			sdp->a_lang = gf_strdup(comp);
 		}
 		return;
 	}
@@ -182,11 +182,11 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	}
 	if (!strcmp(comp, "rtpmap")) {
 		if (!media) return;
-		map = (GF_RTPMap*)malloc(sizeof(GF_RTPMap));
+		map = (GF_RTPMap*)gf_malloc(sizeof(GF_RTPMap));
 		pos = gf_token_get(buffer, pos, ": \r\n", comp, 3000);
 		map->PayloadType = atoi(comp);
 		pos = gf_token_get(buffer, pos, " /\r\n", comp, 3000);
-		map->payload_name = strdup(comp);
+		map->payload_name = gf_strdup(comp);
 		pos = gf_token_get(buffer, pos, " /\r\n", comp, 3000);
 		map->ClockRate = atoi(comp);
 		pos = gf_token_get(buffer, pos, " /\r\n", comp, 3000);
@@ -208,12 +208,12 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 		while (1) {
 			pos = gf_token_get(buffer, pos, "; =\r\n", comp, 3000);
 			if (pos <= 0) break;
-			att = (GF_X_Attribute*)malloc(sizeof(GF_X_Attribute));
-			att->Name = strdup(comp);
+			att = (GF_X_Attribute*)gf_malloc(sizeof(GF_X_Attribute));
+			att->Name = gf_strdup(comp);
 			att->Value = NULL;
 			pos ++;
 			pos = gf_token_get(buffer, pos, ";\r\n", comp, 3000);
-			if (pos > 0) att->Value = strdup(comp);
+			if (pos > 0) att->Value = gf_strdup(comp);
 			gf_list_add(fmtp->Attributes, att);
 		}
 		return;
@@ -223,13 +223,13 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 	//a= <attribute> || <attribute>:<value>
 	//we add <attribute> <value> in case ...
 	pos = gf_token_get(buffer, 0, " :\r\n", comp, 3000);
-	att = (GF_X_Attribute*)malloc(sizeof(GF_X_Attribute));
-	att->Name = strdup(comp);
+	att = (GF_X_Attribute*)gf_malloc(sizeof(GF_X_Attribute));
+	att->Name = gf_strdup(comp);
 	att->Value = NULL;
 	pos += 1;
 	if (buffer[pos] == ' ') pos += 1;
 	pos = gf_token_get(buffer, pos, "\r\n", comp, 3000);
-	if (pos > 0) att->Value = strdup(comp);
+	if (pos > 0) att->Value = gf_strdup(comp);
 
 	if (media) {
 		gf_list_add(media->Attributes, att);
@@ -240,7 +240,7 @@ void SDP_ParseAttribute(GF_SDPInfo *sdp, char *buffer, GF_SDPMedia *media)
 
 
 
-#define SDPM_DESTROY(p) if (media->p) free(media->p)
+#define SDPM_DESTROY(p) if (media->p) gf_free(media->p)
 GF_EXPORT
 void gf_sdp_media_del(GF_SDPMedia *media)
 {
@@ -261,16 +261,16 @@ void gf_sdp_media_del(GF_SDPMedia *media)
 	while (gf_list_count(media->Attributes)) {
 		att = (GF_X_Attribute*)gf_list_get(media->Attributes, 0);
 		gf_list_rem(media->Attributes, 0);
-		if (att->Name) free(att->Name);
-		if (att->Value) free(att->Value);
-		free(att);
+		if (att->Name) gf_free(att->Name);
+		if (att->Value) gf_free(att->Value);
+		gf_free(att);
 	}
 	gf_list_del(media->Attributes);
 
 	while (gf_list_count(media->RTPMaps)) {
 		map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
-		free(map->payload_name);
-		free(map);
+		gf_free(map->payload_name);
+		gf_free(map);
 		gf_list_rem(media->RTPMaps, 0);
 	}
 	gf_list_del(media->RTPMaps);
@@ -285,8 +285,8 @@ void gf_sdp_media_del(GF_SDPMedia *media)
 	while (gf_list_count(media->Bandwidths)) {
 		bw = (GF_SDPBandwidth*)gf_list_get(media->Bandwidths, 0);
 		gf_list_rem(media->Bandwidths, 0);
-		if (bw->name) free(bw->name);
-		free(bw);
+		if (bw->name) gf_free(bw->name);
+		gf_free(bw);
 	}
 	gf_list_del(media->Bandwidths);
 
@@ -297,7 +297,7 @@ void gf_sdp_media_del(GF_SDPMedia *media)
 	SDPM_DESTROY(fmt_list);
 	SDPM_DESTROY(k_method);
 	SDPM_DESTROY(k_key);
-	free(media);
+	gf_free(media);
 }
 
 
@@ -313,10 +313,10 @@ GF_SDPConnection *gf_sdp_conn_new()
 GF_EXPORT
 void gf_sdp_conn_del(GF_SDPConnection *conn)
 {
-	if (conn->add_type) free(conn->add_type);
-	if (conn->host) free(conn->host);
-	if (conn->net_type) free(conn->net_type);
-	free(conn);
+	if (conn->add_type) gf_free(conn->add_type);
+	if (conn->host) gf_free(conn->host);
+	if (conn->net_type) gf_free(conn->net_type);
+	gf_free(conn);
 }
 
 GF_EXPORT
@@ -346,7 +346,7 @@ GF_SDPInfo *gf_sdp_info_new()
 }
 
 #define SDP_DESTROY(p) if (sdp->p)	\
-					free(sdp->p);	\
+					gf_free(sdp->p);	\
 					sdp->p = NULL;
 
 
@@ -368,20 +368,20 @@ void gf_sdp_info_reset(GF_SDPInfo *sdp)
 	while (gf_list_count(sdp->Attributes)) {
 		att = (GF_X_Attribute*)gf_list_get(sdp->Attributes, 0);
 		gf_list_rem(sdp->Attributes, 0);
-		if (att->Name) free(att->Name);
-		if (att->Value) free(att->Value);
-		free(att);
+		if (att->Name) gf_free(att->Name);
+		if (att->Value) gf_free(att->Value);
+		gf_free(att);
 	}
 	while (gf_list_count(sdp->b_bandwidth)) {
 		bw = (GF_SDPBandwidth*)gf_list_get(sdp->b_bandwidth, 0);
 		gf_list_rem(sdp->b_bandwidth, 0);
-		if (bw->name) free(bw->name);
-		free(bw);
+		if (bw->name) gf_free(bw->name);
+		gf_free(bw);
 	}
 	while (gf_list_count(sdp->Timing)) {
 		timing = (GF_SDPTiming*)gf_list_get(sdp->Timing, 0);
 		gf_list_rem(sdp->Timing, 0);
-		free(timing);
+		gf_free(timing);
 	}
 
 	//then delete all info ...
@@ -422,7 +422,7 @@ void gf_sdp_info_del(GF_SDPInfo *sdp)
 	gf_list_del(sdp->Attributes);
 	gf_list_del(sdp->b_bandwidth);
 	gf_list_del(sdp->Timing);
-	free(sdp);
+	gf_free(sdp);
 }
 
 
@@ -502,40 +502,40 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			break;
 		case 'o':
 			pos = gf_token_get(LineBuf, 2, " \t\r\n", comp, 3000);
-			sdp->o_username = strdup(comp);
+			sdp->o_username = gf_strdup(comp);
 			pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
-			sdp->o_session_id = strdup(comp);
+			sdp->o_session_id = gf_strdup(comp);
 			pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
-			sdp->o_version = strdup(comp);
+			sdp->o_version = gf_strdup(comp);
 			
 			pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
-			sdp->o_net_type = strdup(comp);
+			sdp->o_net_type = gf_strdup(comp);
 
 			pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
-			sdp->o_add_type = strdup(comp);
+			sdp->o_add_type = gf_strdup(comp);
 
 			pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
-			sdp->o_address = strdup(comp);
+			sdp->o_address = gf_strdup(comp);
 			break;
 		case 's':
 			pos = gf_token_get(LineBuf, 2, "\t\r\n", comp, 3000);
-			sdp->s_session_name = strdup(comp);
+			sdp->s_session_name = gf_strdup(comp);
 			break;
 		case 'i':
 			pos = gf_token_get(LineBuf, 2, "\t\r\n", comp, 3000);
-			sdp->i_description = strdup(comp);
+			sdp->i_description = gf_strdup(comp);
 			break;
 		case 'u':
 			pos = gf_token_get(LineBuf, 2, "\t\r\n", comp, 3000);
-			sdp->u_uri = strdup(comp);
+			sdp->u_uri = gf_strdup(comp);
 			break;
 		case 'e':
 			pos = gf_token_get(LineBuf, 2, "\t\r\n", comp, 3000);
-			sdp->e_email = strdup(comp);
+			sdp->e_email = gf_strdup(comp);
 			break;
 		case 'p':
 			pos = gf_token_get(LineBuf, 2, "\t\r\n", comp, 3000);
-			sdp->p_phone = strdup(comp);
+			sdp->p_phone = gf_strdup(comp);
 			break;
 		case 'c':
 			//if at session level, only 1 is allowed for all SDP
@@ -544,13 +544,13 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			conn = gf_sdp_conn_new();
 
 			pos = gf_token_get(LineBuf, 2, " \t\r\n", comp, 3000);
-			conn->net_type = strdup(comp);
+			conn->net_type = gf_strdup(comp);
 			
 			pos = gf_token_get(LineBuf, pos, " \t\r\n", comp, 3000);
-			conn->add_type = strdup(comp);
+			conn->add_type = gf_strdup(comp);
 
 			pos = gf_token_get(LineBuf, pos, " /\r\n", comp, 3000);
-			conn->host = strdup(comp);
+			conn->host = gf_strdup(comp);
 			if (gf_sk_is_multicast_address(conn->host)) {
 				//a valid SDP will have TTL if address is multicast
 				pos = gf_token_get(LineBuf, pos, "/\r\n", comp, 3000);
@@ -577,8 +577,8 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			pos = gf_token_get(LineBuf, 2, ":\r\n", comp, 3000);
 			if (strcmp(comp, "CT") && strcmp(comp, "AS") && (comp[0] != 'X')) break;
 
-			bw = (GF_SDPBandwidth*)malloc(sizeof(GF_SDPBandwidth));
-			bw->name = strdup(comp);
+			bw = (GF_SDPBandwidth*)gf_malloc(sizeof(GF_SDPBandwidth));
+			bw->name = gf_strdup(comp);
 			pos = gf_token_get(LineBuf, pos, ":\r\n", comp, 3000);
 			bw->value = atoi(comp);
 			if (media) {
@@ -626,16 +626,16 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 		case 'k':
 			pos = gf_token_get(LineBuf, 2, ":\t\r\n", comp, 3000);
 			if (media) {
-				media->k_method = strdup(comp);
+				media->k_method = gf_strdup(comp);
 			} else {
-				sdp->k_method = strdup(comp);
+				sdp->k_method = gf_strdup(comp);
 			}
 			pos = gf_token_get(LineBuf, pos, ":\r\n", comp, 3000);
 			if (pos > 0) {
 				if (media) {
-					media->k_key = strdup(comp);
+					media->k_key = gf_strdup(comp);
 				} else {
-					sdp->k_key = strdup(comp);
+					sdp->k_key = gf_strdup(comp);
 				}
 			}
 			break;
@@ -674,9 +674,9 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 			}
 			//transport Profile
 			pos = gf_token_get(LineBuf, pos, " \r\n", comp, 3000);
-			media->Profile = strdup(comp);
+			media->Profile = gf_strdup(comp);
 			pos = gf_token_get(LineBuf, pos, " \r\n", comp, 3000);
-			media->fmt_list = strdup(comp);
+			media->fmt_list = gf_strdup(comp);
 
 			gf_list_add(sdp->media_desc, media);
 			break;
@@ -701,10 +701,10 @@ GF_Err gf_sdp_info_parse(GF_SDPInfo *sdp, char *sdp_text, u32 text_size)
 				}
 				strcat(LineBuf, comp);
 			}
-			free(media->fmt_list);
+			gf_free(media->fmt_list);
 			media->fmt_list = NULL;
 			if (strlen(LineBuf)) {
-				media->fmt_list = strdup(LineBuf);
+				media->fmt_list = gf_strdup(LineBuf);
 			}
 		}
 	}
@@ -809,7 +809,7 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 	if (str) { \
 		if (strlen(str)+pos + (space ? 1 : 0) >= buf_size) {	\
 			buf_size += SDP_WRITE_STEPALLOC;	\
-			buf = (char*)realloc(buf, sizeof(char)*buf_size);		\
+			buf = (char*)gf_realloc(buf, sizeof(char)*buf_size);		\
 		}	\
 		strcpy(buf+pos, str);		\
 		pos += strlen(str);		\
@@ -875,7 +875,7 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 	e = gf_sdp_info_check(sdp);
 	if (e) return e;
 
-	buf = (char *)malloc(SDP_WRITE_STEPALLOC);
+	buf = (char *)gf_malloc(SDP_WRITE_STEPALLOC);
 	buf_size = SDP_WRITE_STEPALLOC;
 	pos = 0;
 
@@ -1145,10 +1145,10 @@ GF_Err gf_sdp_info_write(GF_SDPInfo *sdp, char **out_str_buf)
 		}
 	}
 
-	//finally realloc
+	//finally gf_realloc
 	//finall NULL char
 	pos += 1;
-	buf = (char *)realloc(buf, pos);
+	buf = (char *)gf_realloc(buf, pos);
 	*out_str_buf = buf;
 	return GF_OK;
 }	

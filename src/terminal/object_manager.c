@@ -87,7 +87,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 	assert (!odm->net_service);
 	if (lock) gf_mx_v(odm->mx);
 	gf_mx_del(odm->mx);
-	free(odm);
+	gf_free(odm);
 }
 
 
@@ -270,7 +270,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	case GF_ODF_IOD_TAG:
 	{
 		GF_InitialObjectDescriptor *the_iod = (GF_InitialObjectDescriptor *)desc;
-		odm->OD = (GF_ObjectDescriptor*)malloc(sizeof(GF_ObjectDescriptor));
+		odm->OD = (GF_ObjectDescriptor*)gf_malloc(sizeof(GF_ObjectDescriptor));
 		memcpy(odm->OD, the_iod, sizeof(GF_ObjectDescriptor));
 		odm->OD->tag = GF_ODF_OD_TAG;
 		/*Check P&Ls of this IOD*/
@@ -282,7 +282,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		odm->flags |= GF_ODM_HAS_PROFILES;
 		if (the_iod->inlineProfileFlag) odm->flags |= GF_ODM_INLINE_PROFILES;
 		gf_odf_desc_del((GF_Descriptor *) the_iod->IPMPToolList);
-		free(the_iod);
+		gf_free(the_iod);
 	}
 		break;
 	case GF_ODF_OD_TAG:
@@ -513,7 +513,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			odm->subscene->root_od = odm;
 		}
 		gf_term_connect_object(odm->term, odm, url, parent ? parent->url : NULL);
-		free(url);
+		gf_free(url);
 		return;
 	}
 	/*restore OD ID */
@@ -884,7 +884,7 @@ clock_setup:
 		update is received, but this is not true with ESD URLs, where service setup may take some time (file
 		downloading, authentification, etc...). We therefore need to wait for the service connect response before 
 		setting up the channel...*/
-		cs = (GF_ChannelSetup*)malloc(sizeof(GF_ChannelSetup));
+		cs = (GF_ChannelSetup*)gf_malloc(sizeof(GF_ChannelSetup));
 		cs->ch = ch;
 		cs->dec = dec;
 
@@ -899,7 +899,7 @@ clock_setup:
 			s32 i = gf_list_find(odm->term->channels_pending, cs);
 			if (i>=0) {
 				gf_list_rem(odm->term->channels_pending, (u32) i);
-				free(cs);
+				gf_free(cs);
 				odm->pending_channels--;
 				ODM_CheckChannelService(ch);
 				gf_es_del(ch);
@@ -908,7 +908,7 @@ clock_setup:
 		gf_term_lock_net(odm->term, 0);
 		if (ch->service->owner) {
 			gf_list_del_item(odm->term->channels_pending, cs);
-			free(cs);
+			gf_free(cs);
 			return gf_odm_post_es_setup(ch, dec, GF_OK);
 		}
 		return e;

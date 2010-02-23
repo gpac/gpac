@@ -948,6 +948,7 @@ int main (int argc, char **argv)
 	Bool rgbds_dump = 0;
 	Bool rgbd_dump = 0;
 	Bool depth_dump = 0;
+	Bool enable_mem_tracker = 0;
 	Double fps = 25.0;
 	Bool ret, fill_ar, visible;
 	char *url_arg, *the_cfg, *rti_file;
@@ -973,9 +974,12 @@ int main (int argc, char **argv)
 		if (!strcmp(arg, "-c") || !strcmp(arg, "-cfg")) {
 			the_cfg = argv[i+1];
 			i++;
-			break;
 		}
+		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = 1;
 	}
+
+	gf_sys_init(enable_mem_tracker);
+
 	cfg_file = loadconfigfile(the_cfg);
 	if (!cfg_file) {
 		fprintf(stdout, "Error: Configuration File \"GPAC.cfg\" not found\n");
@@ -1072,6 +1076,7 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
 		else if (!strcmp(arg, "-exit")) auto_exit = 1;
+		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = 1;
 		else if (!strcmp(arg, "-opt")) {
 			char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
 			sep = strchr(argv[i+1], ':');
@@ -1104,7 +1109,6 @@ int main (int argc, char **argv)
 		return 1;
 	}
 	if (dump_mode) rti_file = NULL;
-	gf_sys_init();
 
 	if (!logs_set) {
 		gf_log_set_level(GF_LOG_ERROR);

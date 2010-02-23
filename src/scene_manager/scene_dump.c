@@ -102,12 +102,12 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 		if (dump_mode==GF_SM_DUMP_LASER) tmp->LSRDump = 1;
 		if (_rad_name) {
 			const char* ext_name = tmp->LSRDump ? ".xsr" : ".svg";
-			tmp->filename = malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
+			tmp->filename = gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name ? _rad_name : "");
 			strcat(tmp->filename, ext_name);
 			tmp->trace = fopen(tmp->filename, "wt");
 			if (!tmp->trace) {
-				free(tmp);
+				gf_free(tmp);
 				return NULL;
 			}
 		} else {
@@ -141,12 +141,12 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 			case GF_SM_DUMP_VRML:     ext_name = ".wrl"; break;
 			default:                  ext_name = ".bt";  break;
 			}
-			tmp->filename = malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
+			tmp->filename = gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name ? _rad_name : "");
 			strcat(tmp->filename, ext_name);
 			tmp->trace = fopen(tmp->filename, "wt");
 			if (!tmp->trace) {
-				free(tmp);
+				gf_free(tmp);
 				return NULL;
 			}
 		} else {
@@ -180,10 +180,10 @@ void gf_sm_dumper_del(GF_SceneDumper *sdump)
 	gf_list_del(sdump->inserted_routes);
 	if (sdump->trace != stdout) fclose(sdump->trace);
 	if (sdump->filename) {
-		free(sdump->filename);
+		gf_free(sdump->filename);
 		sdump->filename = NULL;
 	}
-	free(sdump);
+	gf_free(sdump);
 }
 
 char *gf_sm_dump_get_name(GF_SceneDumper *bd)
@@ -401,7 +401,7 @@ static void scene_dump_utf_string(GF_SceneDumper *sdump, Bool escape_xml, char *
 	if (!str) return;
 	len = strlen(str);
 	if (!len) return;
-	uniLine = (u16*)malloc(sizeof(u16) * len);
+	uniLine = (u16*)gf_malloc(sizeof(u16) * len);
 	len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
 	if (len != (size_t) (-1)) {
 		for (i=0; i<len; i++) {
@@ -436,7 +436,7 @@ static void scene_dump_utf_string(GF_SceneDumper *sdump, Bool escape_xml, char *
 			}
 		}
 	}
-	free(uniLine);
+	gf_free(uniLine);
 }
 
 #ifndef GPAC_DISABLE_VRML
@@ -554,7 +554,7 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 		u16 *uniLine;
 		str = (char*)((SFScript *)ptr)->script_text;
 		len = strlen(str);
-		uniLine = (u16*)malloc(sizeof(short) * len);
+		uniLine = (u16*)gf_malloc(sizeof(short) * len);
 		len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
 		if (len != (size_t) -1) {
 			if (!sdump->XMLDump) fputc('\"', sdump->trace);
@@ -591,7 +591,7 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 			} 
 			if (!sdump->XMLDump) fprintf(sdump->trace, "\"\n");
 		}
-		free(uniLine);
+		gf_free(uniLine);
 		DUMP_IND(sdump);
 	}
 		break;
@@ -1341,7 +1341,7 @@ static void gf_dump_vrml_node(GF_SceneDumper *sdump, GF_Node *node, Bool in_list
 
 	/*get all fields*/
 	count = gf_node_get_field_count(node);
-	def_fields = (u32*)malloc(sizeof(u32) * count);
+	def_fields = (u32*)gf_malloc(sizeof(u32) * count);
 
 	base = NULL;
 	switch (gf_node_get_tag(node)) {
@@ -1478,7 +1478,7 @@ static void gf_dump_vrml_node(GF_SceneDumper *sdump, GF_Node *node, Bool in_list
 				}
 			}
 		}
-		free(def_fields);
+		gf_free(def_fields);
 		return;
 	}
 
@@ -1600,7 +1600,7 @@ static void gf_dump_vrml_node(GF_SceneDumper *sdump, GF_Node *node, Bool in_list
 	} else {
 		EndElement(sdump, isProto ? "ProtoInstance" : name, sub_el);
 	}
-	free(def_fields);
+	gf_free(def_fields);
 }
 
 
@@ -2428,7 +2428,7 @@ static GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 					att = gf_svg_dump_attribute(com->node, &info);
 				}
 				fprintf(sdump->trace, "value=\"%s\" ", att ? att : "");
-				if (att) free(att);
+				if (att) gf_free(att);
 			}
 
 			if (com->fromNodeID) {
@@ -2808,7 +2808,7 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 				fseek(f, 0, SEEK_SET);
 				switch (gf_node_get_tag(n)) {
 				case TAG_SVG_script:
-					script_text = malloc(sizeof(char) * (size+1));
+					script_text = gf_malloc(sizeof(char) * (size+1));
 					fread(script_text, 1, size, f);
 					script_text[size]=0;
 					break;
@@ -2817,12 +2817,12 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 					char *mtype;
 					char *buf64;
 					u32 size64;
-					char *buffer = malloc(sizeof(char)*size);
+					char *buffer = gf_malloc(sizeof(char)*size);
 					fread(buffer, 1, size, f);
-					buf64 = malloc(size*2);
+					buf64 = gf_malloc(size*2);
 					size64 = gf_base64_encode(buffer, size, buf64, size*2);
 					buf64[size64] = 0;
-					free(buffer);
+					gf_free(buffer);
 					mtype = "application/data";
 					if (strstr(xlink->string, ".png") || strstr(xlink->string, ".PNG")) {
 						mtype = "image/png";
@@ -2833,7 +2833,7 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 						mtype = "image/jpg";
 					}
 					fprintf(sdump->trace, " %s=\"data:%s;base64,%s\"", info.name, mtype, buf64);
-					free(buf64);
+					gf_free(buf64);
 				}
 					break;
 				}
@@ -2851,7 +2851,7 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 		if (/*strcmp(info.name, "xmlns") &&*/ (info.fieldType = strlen(attValue)))
 			fprintf(sdump->trace, " %s=\"%s\"", info.name, attValue);
 		
-		if (attValue) free(attValue);
+		if (attValue) gf_free(attValue);
 
 		fflush(sdump->trace);
 		att = att->next;
@@ -2887,7 +2887,7 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 		fprintf(sdump->trace, ">");
 	} else if (script_text) {
 		fprintf(sdump->trace, "><![CDATA[%s]]>", script_text);
-		free(script_text);
+		gf_free(script_text);
 	} else {
 		fprintf(sdump->trace, "/>");
 		return;

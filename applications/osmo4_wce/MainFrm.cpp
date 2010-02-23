@@ -430,9 +430,9 @@ LONG CMainFrame::OnNavigate(WPARAM /*wParam*/, LPARAM /*lParam*/)
 		TCHAR w_to_url[MAX_PATH];
 		CE_WideToChar((u16 *) (LPCTSTR) app->m_filename, fileName);
 		char *str = gf_url_concatenate(fileName, to_url);
-		if (!str) str = strdup(to_url);
+		if (!str) str = gf_strdup(to_url);
 		CE_CharToWide(str, (u16 *)w_to_url);
-		free(str);
+		gf_free(str);
 		app->m_filename = w_to_url;
 		Open(0, 0);
 	} else {

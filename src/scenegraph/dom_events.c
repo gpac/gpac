@@ -182,7 +182,7 @@ typedef struct
 void gf_sg_listener_post_add(GF_Node *obs, GF_Node *listener)
 {
 	DOMAddListener *l;
-	l = (DOMAddListener*)malloc(sizeof(DOMAddListener));
+	l = (DOMAddListener*)gf_malloc(sizeof(DOMAddListener));
 	l->listener = listener;
 	l->obs = obs;
 	gf_list_add(obs->sgprivate->scenegraph->listeners_to_add, l);
@@ -195,7 +195,7 @@ void gf_dom_listener_process_add(GF_SceneGraph *sg)
 	for (i=0; i<count; i++) {
 		DOMAddListener *l = (DOMAddListener *)gf_list_get(sg->listeners_to_add, i);
 		gf_node_dom_listener_add(l->obs, l->listener);
-		free(l);
+		gf_free(l);
 	}
 	gf_list_reset(sg->listeners_to_add);
 }
@@ -205,7 +205,7 @@ void gf_dom_listener_reset_defered(GF_SceneGraph *sg)
 	while (gf_list_count(sg->listeners_to_add)) {
 		DOMAddListener *l = (DOMAddListener *)gf_list_get(sg->listeners_to_add, 0);
 		gf_list_rem(sg->listeners_to_add, 0);
-		free(l);
+		gf_free(l);
 	}
 }
 
@@ -563,7 +563,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 	for (i=0; i<count; i++) {
 		proto = (SMIL_Time*)gf_list_get(times, i);
 		if ((proto->type == GF_SMIL_TIME_EVENT_RESOLVED) && (proto->clock<scene_time) ) {
-			free(proto);
+			gf_free(proto);
 			gf_list_rem(times, i);
 			i--;
 			count--;
@@ -694,7 +694,7 @@ void gf_dom_set_textContent(GF_Node *n, char *text)
 	GF_ParentNode *par = (GF_ParentNode *)n;
 	gf_node_unregister_children(n, par->children);
 	par->children = NULL;
-	if (text) gf_dom_add_text_node(n, strdup( text) );
+	if (text) gf_dom_add_text_node(n, gf_strdup( text) );
 }
 
 GF_DOMText *gf_dom_add_text_node(GF_Node *parent, char *text_data)
@@ -726,7 +726,7 @@ char *gf_dom_flatten_textContent(GF_Node *n)
 
 	if ((n->sgprivate->tag==TAG_DOMText) && ((GF_DOMText*)n)->textContent) {
 		/*if ( ((GF_DOMText*)n)->type == GF_DOM_TEXT_REGULAR) */{
-			res = strdup(((GF_DOMText*)n)->textContent);
+			res = gf_strdup(((GF_DOMText*)n)->textContent);
 			len = strlen(res);
 		}
 	}
@@ -736,11 +736,11 @@ char *gf_dom_flatten_textContent(GF_Node *n)
 		char *t = gf_dom_flatten_textContent(list->node);
 		if (t) {
 			u32 sub_len = strlen(t);
-			res = realloc(res, sizeof(char)*(len+sub_len+1));
+			res = gf_realloc(res, sizeof(char)*(len+sub_len+1));
 			if (!len) res[0] = 0;
 			len += sub_len;
 			strcat(res, t);
-			free(t);
+			gf_free(t);
 		}
 		list = list->next;
 	}

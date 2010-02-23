@@ -6,7 +6,7 @@
  *
  *  This file is part of GPAC / Osmo4 wxWidgets GUI
  *
- *  GPAC is free software; you can redistribute it and/or modify
+ *  GPAC is gf_free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
@@ -31,7 +31,7 @@
 
 PLEntry::PLEntry(wxString url)
 {
-	m_url = strdup(url.mb_str(wxConvUTF8));
+	m_url = gf_strdup(url.mb_str(wxConvUTF8));
 	Bool is_remote = 0;;
 	wxCharBuffer the_url = (const char *) url.mb_str(wxConvUTF8);
 	const char *_url = strstr(the_url, "://");
@@ -41,11 +41,11 @@ PLEntry::PLEntry(wxString url)
 	char *str = (char*)strrchr(_url, '\\');
 	if (!str) str = (char*)strrchr(_url, '/');
 	if (str && strlen(str+1)) {
-		m_disp_name = strdup(str+1);
+		m_disp_name = gf_strdup(str+1);
 		str = strrchr(m_disp_name, '.');
 		if (str) str[0] = 0;
 	} else {
-		m_disp_name = strdup(_url);
+		m_disp_name = gf_strdup(_url);
 		if (!is_remote) {
 			str = strrchr(m_disp_name, '.');
 			if (str) str[0] = 0;
@@ -59,8 +59,8 @@ PLEntry::PLEntry(wxString url)
 
 PLEntry::~PLEntry()
 {
-	if (m_url) free(m_url);
-	if (m_disp_name) free(m_disp_name);
+	if (m_url) gf_free(m_url);
+	if (m_disp_name) gf_free(m_disp_name);
 
 }
 
@@ -551,8 +551,8 @@ void wxPlaylist::OpenPlaylist(wxString filename)
 			if (d>0) ple->m_duration = d;
 		} else if (ple && !strnicmp(szLine, "Title", 5)) {
 			char *st = strchr(szLine, '=');
-			free(ple->m_disp_name);
-			ple->m_disp_name = strdup(st + 6);
+			gf_free(ple->m_disp_name);
+			ple->m_disp_name = gf_strdup(st + 6);
 		}
 	}
 	fclose(pl);

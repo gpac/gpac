@@ -18,26 +18,26 @@ static char THIS_FILE[] = __FILE__;
 PLEntry::PLEntry(CString url, char *path)
 {
 	if (!path || strrchr(url, '\\') || strstr(url, "://")) {
-		m_url = strdup(url);
+		m_url = gf_strdup(url);
 	} else {
 		char szPath[MAX_PATH];
 		strcpy(szPath, path);
 		strcat(szPath, url);
-		m_url = strdup(szPath);
+		m_url = gf_strdup(szPath);
 	}
 	char *str = (char *) strrchr(url, '\\');
 	if (!str) str = (char *) strrchr(url, '/');
 	if (str && strlen(str+1)) {
-		m_disp_name = strdup(str+1);
+		m_disp_name = gf_strdup(str+1);
 		str = strrchr(m_disp_name, '.');
 		if (str) str[0] = 0;
 	} else {
 		str = (char *) strstr(url, "://");
 		if (str) {
 			str += 3;
-			m_disp_name = strdup(str);
+			m_disp_name = gf_strdup(str);
 		} else {
-			m_disp_name = strdup(url);
+			m_disp_name = gf_strdup(url);
 			str = strrchr(m_disp_name, '.');
 			if (str) str[0] = 0;
 		}
@@ -50,8 +50,8 @@ PLEntry::PLEntry(CString url, char *path)
 
 PLEntry::~PLEntry()
 {
-	if (m_url) free(m_url);
-	if (m_disp_name) free(m_disp_name);
+	if (m_url) gf_free(m_url);
+	if (m_disp_name) gf_free(m_disp_name);
 
 }
 
@@ -372,7 +372,7 @@ void Playlist::OnPlAddFile()
 	
 	CFileDialog fd(TRUE,NULL,NULL, OFN_ALLOWMULTISELECT | OFN_HIDEREADONLY | OFN_FILEMUSTEXIST , sFiles);
 	fd.m_ofn.nMaxFile = 25000;
-	fd.m_ofn.lpstrFile = (char *) malloc(sizeof(char) * fd.m_ofn.nMaxFile);
+	fd.m_ofn.lpstrFile = (char *) gf_malloc(sizeof(char) * fd.m_ofn.nMaxFile);
 	fd.m_ofn.lpstrFile[0] = 0;
 
 	if (fd.DoModal() == IDOK) {
@@ -382,7 +382,7 @@ void Playlist::OnPlAddFile()
 			QueueURL(fd.GetNextPathName(pos));
 		}
 	}
-	free(fd.m_ofn.lpstrFile);
+	gf_free(fd.m_ofn.lpstrFile);
 	m_all_dead_entries=-1;
 	RefreshList();
 }
@@ -659,8 +659,8 @@ void Playlist::OpenPlayList(CString fileName)
 			if (d>0) ple->m_duration = d;
 		} else if (ple && !strnicmp(szLine, "Title", 5)) {
 			char *st = strchr(szLine, '=');
-			free(ple->m_disp_name);
-			ple->m_disp_name = strdup(st + 6);
+			gf_free(ple->m_disp_name);
+			ple->m_disp_name = gf_strdup(st + 6);
 		}
 	}
 	fclose(pl);

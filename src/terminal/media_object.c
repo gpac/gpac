@@ -193,7 +193,7 @@ void gf_mo_unregister(GF_Node *node, GF_MediaObject *mo)
 GF_MediaObject *gf_mo_new()
 {
 	GF_MediaObject *mo;
-	mo = (GF_MediaObject *) malloc(sizeof(GF_MediaObject));
+	mo = (GF_MediaObject *) gf_malloc(sizeof(GF_MediaObject));
 	memset(mo, 0, sizeof(GF_MediaObject));
 	mo->speed = FIX_ONE;
 	mo->URLs.count = 0;
@@ -647,7 +647,7 @@ u32 gf_mo_get_od_id(MFURL *url)
 			str = url->vals[i].url;
 			if (!strnicmp(str, "od:", 3)) str += 3;
 			/*remove segment info*/
-			s_url = strdup(str);
+			s_url = gf_strdup(str);
 			j = 0;
 			while (j<strlen(s_url)) {
 				if (s_url[j]=='#') {
@@ -663,7 +663,7 @@ u32 gf_mo_get_od_id(MFURL *url)
 				sprintf(szURL, "%d", tmpid);
 				if (stricmp(szURL, s_url)) j = 0;
 			}
-			free(s_url);
+			gf_free(s_url);
 
 			if (j!= 1) {
 				/*dynamic OD if only one URL specified*/

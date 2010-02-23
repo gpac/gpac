@@ -106,7 +106,7 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	tti->mp4 = gf_isom_open(szFILE, GF_ISOM_OPEN_WRITE, NULL);
 	if (!tti->mp4) return gf_isom_last_error(NULL);
 
-	tti->szFile = strdup(szFILE);
+	tti->szFile = gf_strdup(szFILE);
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 	import.dest = tti->mp4;
@@ -193,7 +193,7 @@ static GF_Err TTIn_CloseService(GF_InputService *plug)
 	tti->mp4 = NULL;
 	if (tti->szFile) {
 		gf_delete_file(tti->szFile);
-		free(tti->szFile);
+		gf_free(tti->szFile);
 		tti->szFile = NULL;
 	}
 	if (tti->dnload) gf_term_download_del(tti->dnload);
@@ -375,8 +375,8 @@ void DeleteTTReader(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
 	TTIn *tti = (TTIn *)plug->priv;
-	free(tti);
-	free(plug);
+	gf_free(tti);
+	gf_free(plug);
 }
 
 #endif /* !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)*/

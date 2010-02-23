@@ -72,9 +72,9 @@ static void SFS_AddString(ScriptParser *parser, char *str)
 	if (!str) return;
 	if (strlen(parser->string) + strlen(str) >= parser->length) {
 		parser->length += PARSER_STEP_ALLOC;
-		new_str = (char *)malloc(sizeof(char)*parser->length);
+		new_str = (char *)gf_malloc(sizeof(char)*parser->length);
 		strcpy(new_str, parser->string);
-		free(parser->string);
+		gf_free(parser->string);
 		parser->string = new_str;
 	}
 	strcat(parser->string, str);
@@ -109,7 +109,7 @@ GF_Err ParseScriptField(ScriptParser *parser)
 	if (!field) return GF_NON_COMPLIANT_BITSTREAM;
 
 	//save the name in the list of identifiers
-	gf_list_add(parser->identifiers, strdup(name));
+	gf_list_add(parser->identifiers, gf_strdup(name));
 
 	if (parser->codec->pCurrentProto) {
 		Bool isISfield = gf_bs_read_int(parser->bs, 1);
@@ -167,7 +167,7 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 	parser.script = n;
 	parser.bs = bs;
 	parser.length = 500;
-	parser.string = (char *) malloc(sizeof(char)* parser.length);
+	parser.string = (char *) gf_malloc(sizeof(char)* parser.length);
 	parser.string[0] = 0;
 	parser.identifiers = gf_list_new();
 	parser.new_line = (char *) (codec->dec_memory_mode ? "\n" : NULL);
@@ -209,18 +209,18 @@ GF_Err SFScript_Parse(GF_BifsDecoder *codec, SFScript *script_field, GF_BitStrea
 
 	SFS_Line(&parser);
 
-	if (script_field->script_text) free(script_field->script_text);
-	script_field->script_text = (unsigned char *) strdup(parser.string);
+	if (script_field->script_text) gf_free(script_field->script_text);
+	script_field->script_text = (unsigned char *) gf_strdup(parser.string);
 
 exit:
 	//clean up
 	while (gf_list_count(parser.identifiers)) {
 		ptr = (char *)gf_list_get(parser.identifiers, 0);
-		free(ptr);
+		gf_free(ptr);
 		gf_list_rem(parser.identifiers, 0);
 	}
 	gf_list_del(parser.identifiers);
-	if (parser.string) free(parser.string);
+	if (parser.string) gf_free(parser.string);
 	return e;
 }
 
@@ -241,7 +241,7 @@ void SFS_Identifier(ScriptParser *parser)
 	//parse
 	else{
 		gf_bifs_dec_name(parser->bs, name);
-		gf_list_add(parser->identifiers, strdup(name));
+		gf_list_add(parser->identifiers, gf_strdup(name));
 		SFS_AddString(parser, name);
 	}
 }

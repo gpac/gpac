@@ -157,7 +157,7 @@ void gf_sg_del(GF_SceneGraph *sg)
 #endif
 
 	gf_list_del(sg->exported_nodes);
-	free(sg);
+	gf_free(sg);
 }
 
 /*recursive traverse of the whole graph to check for scope mixes (nodes from an inline graph
@@ -204,7 +204,7 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 					if (prev) prev->next = list->next;
 					else *(GF_ChildNodeItem **) info.far_ptr = list->next;
 					cur = list;
-					free(cur);
+					gf_free(cur);
 				} else {
 					SG_GraphRemoved(list->node, sg);
 				}
@@ -247,7 +247,7 @@ void SG_GraphRemoved(GF_Node *node, GF_SceneGraph *sg)
 									if (prev) prev->next = list->next;
 									else f->node_list = list->next;
 									cur = list;
-									free(cur);
+									gf_free(cur);
 								} else {
 									SG_GraphRemoved(list->node, sg);
 								}
@@ -404,7 +404,7 @@ restart:
 #endif
 				ReplaceDEFNode(nlist->node, reg_node->node, NULL, 0);
 			
-			free(nlist);
+			gf_free(nlist);
 			nlist = next;
 		}
 		if (ignore) {
@@ -454,9 +454,9 @@ restart:
 	while (gf_list_count(sg->ns)) {
 		GF_XMLNS *ns = gf_list_get(sg->ns, 0);
 		gf_list_rem(sg->ns, 0);
-		if (ns->name) free(ns->name);
-		if (ns->qname) free(ns->qname);
-		free(ns);
+		if (ns->name) gf_free(ns->name);
+		if (ns->qname) gf_free(ns->qname);
+		gf_free(ns);
 	}
 	gf_list_del(sg->ns);
 	sg->ns = 0;
@@ -578,8 +578,8 @@ void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 		sg->id_node = reg_node->next;
 		if (sg->id_node_last==reg_node) 
 			sg->id_node_last = reg_node->next;
-		if (reg_node->NodeName) free(reg_node->NodeName);
-		free(reg_node);
+		if (reg_node->NodeName) gf_free(reg_node->NodeName);
+		gf_free(reg_node);
 	} else {
 		NodeIDedItem *to_del;
 		while (reg_node->next) {
@@ -592,8 +592,8 @@ void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 			if (sg->id_node_last==to_del) {
 				sg->id_node_last = reg_node->next ? reg_node->next : reg_node;
 			}
-			if (to_del->NodeName) free(to_del->NodeName);
-			free(to_del);
+			if (to_del->NodeName) gf_free(to_del->NodeName);
+			gf_free(to_del);
 			break;
 		}
 	}
@@ -632,7 +632,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 				}
 				if (prev) prev->next = nlist->next;
 				else pNode->sgprivate->parents = nlist->next;
-				free(nlist);
+				gf_free(nlist);
 				break;
 			}
 		}
@@ -699,13 +699,13 @@ GF_Err gf_node_register(GF_Node *node, GF_Node *parentNode)
 	/*parent may be NULL (top node and proto)*/
 	if (parentNode) {
 		if (!node->sgprivate->parents) {
-			node->sgprivate->parents = (GF_ParentList*)malloc(sizeof(GF_ParentList));
+			node->sgprivate->parents = (GF_ParentList*)gf_malloc(sizeof(GF_ParentList));
 			node->sgprivate->parents->next = NULL;
 			node->sgprivate->parents->node = parentNode;
 		} else {
 			GF_ParentList *item, *nlist = node->sgprivate->parents;
 			while (nlist->next) nlist = nlist->next;
-			item = (GF_ParentList*)malloc(sizeof(GF_ParentList));
+			item = (GF_ParentList*)gf_malloc(sizeof(GF_ParentList));
 			item->next = NULL;
 			item->node = parentNode;
 			nlist->next = item;
@@ -834,7 +834,7 @@ static void ReplaceIRINode(GF_Node *FromNode, GF_Node *old_node, GF_Node *newNod
 		} else {
 			if (prev) prev->next = child->next;
 			else ((SVG_Element *)FromNode)->children = child->next;
-			free(child);
+			gf_free(child);
 		}
 		break;
 	}
@@ -912,10 +912,10 @@ static GFINLINE void insert_node_def(GF_SceneGraph *sg, GF_Node *def, u32 ID, co
 {
 	NodeIDedItem *reg_node, *cur;
 
-	reg_node = (NodeIDedItem *) malloc(sizeof(NodeIDedItem));
+	reg_node = (NodeIDedItem *) gf_malloc(sizeof(NodeIDedItem));
 	reg_node->node = def;
 	reg_node->NodeID = ID;
-	reg_node->NodeName = name ? strdup(name) : NULL;
+	reg_node->NodeName = name ? gf_strdup(name) : NULL;
 
 	if (!sg->id_node) {
 		sg->id_node = reg_node;
@@ -965,10 +965,10 @@ GF_Err gf_node_set_id(GF_Node *p, u32 ID, const char *name)
 	} 
 	/*reassigning ID, remove node def*/
 	else {
-		char *_name = strdup(name);
+		char *_name = gf_strdup(name);
 		remove_node_id(pSG, p);
 		insert_node_def(pSG, p, ID, _name);
-		free(_name);
+		gf_free(_name);
 	}
 	return GF_OK;
 }
@@ -1157,7 +1157,7 @@ void gf_node_setup(GF_Node *p, u32 tag)
 
 GF_Node *gf_sg_new_base_node()
 {
-	GF_Node *newnode = (GF_Node *)malloc(sizeof(GF_Node));
+	GF_Node *newnode = (GF_Node *)gf_malloc(sizeof(GF_Node));
 	gf_node_setup(newnode, TAG_UndefinedNode);
 	return newnode;
 }
@@ -1272,7 +1272,7 @@ void gf_node_unregister_children(GF_Node *container, GF_ChildNodeItem *child)
 		gf_node_unregister(child->node, container);
 		cur = child;
 		child = child->next;
-		free(cur);
+		gf_free(cur);
 	}
 }
 
@@ -1286,7 +1286,7 @@ GF_Err gf_node_list_insert_child(GF_ChildNodeItem **list, GF_Node *n, u32 pos)
 
 	child = *list;
 	
-	cur = (GF_ChildNodeItem*) malloc(sizeof(GF_ChildNodeItem));
+	cur = (GF_ChildNodeItem*) gf_malloc(sizeof(GF_ChildNodeItem));
 	if (!cur) return GF_OUT_OF_MEM;
 	cur->node = n;
 	cur->next = NULL;
@@ -1340,7 +1340,7 @@ GF_Err gf_node_list_add_child(GF_ChildNodeItem **list, GF_Node *n)
 
 	child = *list;
 	
-	cur = (GF_ChildNodeItem*) malloc(sizeof(GF_ChildNodeItem));
+	cur = (GF_ChildNodeItem*) gf_malloc(sizeof(GF_ChildNodeItem));
 	if (!cur) return GF_OUT_OF_MEM;
 	cur->node = n;
 	cur->next = NULL;
@@ -1361,7 +1361,7 @@ GF_Err gf_node_list_add_child_last(GF_ChildNodeItem **list, GF_Node *n, GF_Child
 
 	child = *list;
 	
-	cur = (GF_ChildNodeItem*) malloc(sizeof(GF_ChildNodeItem));
+	cur = (GF_ChildNodeItem*) gf_malloc(sizeof(GF_ChildNodeItem));
 	if (!cur) return GF_OUT_OF_MEM;
 	cur->node = n;
 	cur->next = NULL;
@@ -1392,7 +1392,7 @@ Bool gf_node_list_del_child(GF_ChildNodeItem **list, GF_Node *n)
 	if (!child) return 0;
 	if (child->node==n) {
 		*list = child->next;
-		free(child);
+		gf_free(child);
 		return 1;
 	}
 	
@@ -1403,7 +1403,7 @@ Bool gf_node_list_del_child(GF_ChildNodeItem **list, GF_Node *n)
 		}
 		cur = child->next;
 		child->next = cur->next;
-		free(cur);
+		gf_free(cur);
 		return 1;
 	}
 	return 0;
@@ -1421,7 +1421,7 @@ GF_Node *gf_node_list_del_child_idx(GF_ChildNodeItem **list, u32 pos)
 	if (!pos) {
 		*list = child->next;
 		ret = child->node;
-		free(child);
+		gf_free(child);
 		return ret;
 	}
 	
@@ -1434,7 +1434,7 @@ GF_Node *gf_node_list_del_child_idx(GF_ChildNodeItem **list, u32 pos)
 		cur = child->next;
 		child->next = cur->next;
 		ret = cur->node;
-		free(cur);
+		gf_free(cur);
 		return ret;
 	}
 	return NULL;
@@ -1475,7 +1475,7 @@ void gf_node_free(GF_Node *node)
 				gf_dom_listener_del(n, node->sgprivate->interact->dom_evt);
 			}
 			gf_list_del(node->sgprivate->interact->dom_evt->evt_list);
-			free(node->sgprivate->interact->dom_evt);
+			gf_free(node->sgprivate->interact->dom_evt);
 		}
 		if (node->sgprivate->interact->animations) {
 			gf_list_del(node->sgprivate->interact->animations);
@@ -1486,14 +1486,14 @@ void gf_node_free(GF_Node *node)
 			if (node->sgprivate->scenegraph->on_node_modified)
 				node->sgprivate->scenegraph->on_node_modified(node->sgprivate->scenegraph, node, NULL, NULL);
 			gf_list_del(node->sgprivate->interact->js_binding->fields);
-			free(node->sgprivate->interact->js_binding);
+			gf_free(node->sgprivate->interact->js_binding);
 		}
 #endif
-		free(node->sgprivate->interact);
+		gf_free(node->sgprivate->interact);
 	}
 	assert(! node->sgprivate->parents);
-	free(node->sgprivate);
-	free(node);
+	gf_free(node->sgprivate);
+	gf_free(node);
 }
 
 GF_EXPORT
@@ -1721,14 +1721,14 @@ void gf_node_del(GF_Node *node)
 	if (node->sgprivate->tag==TAG_UndefinedNode) gf_node_free(node);
 	else if (node->sgprivate->tag==TAG_DOMText) {
 		GF_DOMText *t = (GF_DOMText *)node;
-		if (t->textContent) free(t->textContent);
+		if (t->textContent) gf_free(t->textContent);
 		gf_sg_parent_reset(node);
 		gf_node_free(node);
 	} 
 	else if (node->sgprivate->tag==TAG_DOMUpdates) {
 		u32 i, count;
 		GF_DOMUpdates *up = (GF_DOMUpdates *)node;
-		if (up->data) free(up->data);
+		if (up->data) gf_free(up->data);
 		count = gf_list_count(up->updates);
 		for (i=0; i<count; i++) {
 			GF_Command *com = gf_list_get(up->updates, i);
@@ -1743,7 +1743,7 @@ void gf_node_del(GF_Node *node)
 #ifndef GPAC_DISABLE_SVG
 		gf_node_delete_attributes(node);
 #endif
-		if (n->name) free(n->name);
+		if (n->name) gf_free(n->name);
 		gf_sg_parent_reset(node);
 		gf_node_free(node);
 	}
@@ -2097,9 +2097,9 @@ GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 
 	GF_SAFEALLOC(ns, GF_XMLNS);
 	ns->xmlns_id = id ? id : gf_crc_32(name, strlen(name));
-	ns->name = strdup(name);
+	ns->name = gf_strdup(name);
 
-	ns->qname = qname ? strdup(qname) : NULL;
+	ns->qname = qname ? gf_strdup(qname) : NULL;
 	return gf_list_insert(sg->ns, ns, 0);
 }
 
@@ -2117,9 +2117,9 @@ GF_Err gf_sg_remove_namespace(GF_SceneGraph *sg, char *ns_name, char *q_name)
 
 		if (ok && ns->name && !strcmp(ns->name, ns_name)) {
 			gf_list_rem(sg->ns, i);
-			free(ns->name);
-			if (ns->qname) free(ns->qname);
-			free(ns);
+			gf_free(ns->name);
+			if (ns->qname) gf_free(ns->qname);
+			gf_free(ns);
 			return GF_OK;
 		}
 	}
@@ -2235,7 +2235,7 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 po
 	} else {
 		if (prev) prev->next = child->next;
 		else *container = child->next;
-		free(child);
+		gf_free(child);
 	}
 	return GF_OK;
 }

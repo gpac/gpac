@@ -159,7 +159,7 @@ char *GetFixedPrintout(char *val)
 
 BField *BlankField()
 {
-	BField *n = malloc(sizeof(BField));
+	BField *n = gf_malloc(sizeof(BField));
 	memset(n, 0, sizeof(BField));
 	return n;
 }
@@ -167,7 +167,7 @@ BField *BlankField()
 
 BNode *BlankNode()
 {
-	BNode *n = malloc(sizeof(BNode));
+	BNode *n = gf_malloc(sizeof(BNode));
 	memset(n, 0, sizeof(BNode));
 	n->NDT = gf_list_new();
 	n->Fields = gf_list_new();
@@ -194,7 +194,7 @@ void CheckInTable(char *token, GF_List *NDTs)
 		p = gf_list_get(NDTs, i);
 		if (!strcmp(p, token)) return;
 	}
-	p = malloc(strlen(token)+1);
+	p = gf_malloc(strlen(token)+1);
 	strcpy(p, token);
 	gf_list_add(NDTs, p);
 }
@@ -1020,7 +1020,7 @@ void WriteNodeCode(GF_List *BNodes)
 			}
 			//SFString
 			else if (!strcmp(bf->familly, "SFString")) {
-				fprintf(f, "\tp->%s.buffer = (char*)malloc(sizeof(char) * %d);\n", bf->name, strlen(bf->def)+1);
+				fprintf(f, "\tp->%s.buffer = (char*)gf_malloc(sizeof(char) * %d);\n", bf->name, strlen(bf->def)+1);
 				fprintf(f, "\tstrcpy(p->%s.buffer, \"%s\");\n", bf->name, bf->def);
 			}
 		
@@ -1033,7 +1033,7 @@ void WriteNodeCode(GF_List *BNodes)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, " ,")) j++;
 				j+=1;
-				fprintf(f, "\tp->%s.vals = (SFFloat*)malloc(sizeof(SFFloat)*%d);\n", bf->name, j);
+				fprintf(f, "\tp->%s.vals = (SFFloat*)gf_malloc(sizeof(SFFloat)*%d);\n", bf->name, j);
 				fprintf(f, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -1051,7 +1051,7 @@ void WriteNodeCode(GF_List *BNodes)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(f, "\tp->%s.vals = (SFVec2f*)malloc(sizeof(SFVec2f)*%d);\n", bf->name, j);
+				fprintf(f, "\tp->%s.vals = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*%d);\n", bf->name, j);
 				fprintf(f, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -1076,7 +1076,7 @@ void WriteNodeCode(GF_List *BNodes)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(f, "\tp->%s.vals = (SFVec3f *)malloc(sizeof(SFVec3f)*%d);\n", bf->name, j);
+				fprintf(f, "\tp->%s.vals = (SFVec3f *)gf_malloc(sizeof(SFVec3f)*%d);\n", bf->name, j);
 				fprintf(f, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -1104,7 +1104,7 @@ void WriteNodeCode(GF_List *BNodes)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(f, "\tp->%s.vals = (GF_Vec4*)malloc(sizeof(GF_Vec4)*%d);\n", bf->name, j);
+				fprintf(f, "\tp->%s.vals = (GF_Vec4*)gf_malloc(sizeof(GF_Vec4)*%d);\n", bf->name, j);
 				fprintf(f, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -1135,7 +1135,7 @@ void WriteNodeCode(GF_List *BNodes)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(f, "\tp->%s.vals = (SFInt32*)malloc(sizeof(SFInt32)*%d);\n", bf->name, j);
+				fprintf(f, "\tp->%s.vals = (SFInt32*)gf_malloc(sizeof(SFInt32)*%d);\n", bf->name, j);
 				fprintf(f, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -1156,7 +1156,7 @@ void WriteNodeCode(GF_List *BNodes)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(f, "\tp->%s.vals = (SFColor*)malloc(sizeof(SFColor)*%d);\n", bf->name, j);
+				fprintf(f, "\tp->%s.vals = (SFColor*)gf_malloc(sizeof(SFColor)*%d);\n", bf->name, j);
 				fprintf(f, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -1181,7 +1181,7 @@ void WriteNodeCode(GF_List *BNodes)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(f, "\tp->%s.vals = (char**)malloc(sizeof(SFString)*%d);\n", bf->name, j);
+				fprintf(f, "\tp->%s.vals = (char**)gf_malloc(sizeof(SFString)*%d);\n", bf->name, j);
 				fprintf(f, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -1191,7 +1191,7 @@ void WriteNodeCode(GF_List *BNodes)
 					store = CurrentLine;
 					CurrentLine = token;
 					GetNextToken(tok, " \"");
-					fprintf(f, "\tp->%s.vals[%d] = (char*)malloc(sizeof(char) * %d);\n", bf->name, j, strlen(tok)+1);
+					fprintf(f, "\tp->%s.vals[%d] = (char*)gf_malloc(sizeof(char) * %d);\n", bf->name, j, strlen(tok)+1);
 					fprintf(f, "\tstrcpy(p->%s.vals[%d], \"%s\");\n", bf->name, j, tok);
 					j+=1;
 					CurrentLine = store;
@@ -1203,7 +1203,7 @@ void WriteNodeCode(GF_List *BNodes)
 				CurrentLine = bf->def;
 				while (GetNextToken(token, ",")) j++;
 				j+=1;
-				fprintf(f, "\tp->%s.vals = (SFTime*)malloc(sizeof(SFTime)*%d);\n", bf->name, j);
+				fprintf(f, "\tp->%s.vals = (SFTime*)gf_malloc(sizeof(SFTime)*%d);\n", bf->name, j);
 				fprintf(f, "\tp->%s.count = %d;\n", bf->name, j);
 				j = 0;
 				go = 1;
@@ -1377,7 +1377,7 @@ void ParseTemplateFile(FILE *nodes, GF_List *BNodes, GF_List *NDTs, u32 version)
 
 					//update the NDT list
 					CheckInTable(token, NDTs);
-					p = malloc(strlen(token)+1);
+					p = gf_malloc(strlen(token)+1);
 					strcpy(p, token);
 					gf_list_add(n->NDT, p);
 				}
@@ -1694,7 +1694,7 @@ int main (int argc, char **argv)
 	//free NDTs
 	while (gf_list_count(NDTs)) {
 		char *tmp = gf_list_get(NDTs, 0);
-		free(tmp);
+		gf_free(tmp);
 		gf_list_rem(NDTs, 0);
 	}
 	gf_list_del(NDTs);
@@ -1704,17 +1704,17 @@ int main (int argc, char **argv)
 		gf_list_rem(BNodes, 0);
 		while (gf_list_count(n->NDT)) {
 			char *tmp = gf_list_get(n->NDT, 0);
-			free(tmp);
+			gf_free(tmp);
 			gf_list_rem(n->NDT, 0);
 		}
 		gf_list_del(n->NDT);
 		while (gf_list_count(n->Fields)) {
 			bf = gf_list_get(n->Fields, 0);
-			free(bf);
+			gf_free(bf);
 			gf_list_rem(n->Fields, 0);
 		}
 		gf_list_del(n->Fields);
-		free(n);
+		gf_free(n);
 	}
 	gf_list_del(BNodes);
 

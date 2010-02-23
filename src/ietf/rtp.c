@@ -46,21 +46,21 @@ void gf_rtp_del(GF_RTPChannel *ch)
 	if (!ch) return;
 	if (ch->rtp) gf_sk_del(ch->rtp);
 	if (ch->rtcp) gf_sk_del(ch->rtcp);
-	if (ch->net_info.source) free(ch->net_info.source);
-	if (ch->net_info.destination) free(ch->net_info.destination);
-	if (ch->net_info.Profile) free(ch->net_info.Profile);
+	if (ch->net_info.source) gf_free(ch->net_info.source);
+	if (ch->net_info.destination) gf_free(ch->net_info.destination);
+	if (ch->net_info.Profile) gf_free(ch->net_info.Profile);
 	if (ch->po) gf_rtp_reorderer_del(ch->po);
-	if (ch->send_buffer) free(ch->send_buffer);
+	if (ch->send_buffer) gf_free(ch->send_buffer);
 
-	if (ch->CName) free(ch->CName);
-	if (ch->s_name) free(ch->s_name);
-	if (ch->s_email) free(ch->s_email);
-	if (ch->s_location) free(ch->s_location);
-	if (ch->s_phone) free(ch->s_phone);
-	if (ch->s_tool) free(ch->s_tool);
-	if (ch->s_note) free(ch->s_note);
-	if (ch->s_priv) free(ch->s_priv);
-	free(ch);
+	if (ch->CName) gf_free(ch->CName);
+	if (ch->s_name) gf_free(ch->s_name);
+	if (ch->s_email) gf_free(ch->s_email);
+	if (ch->s_location) gf_free(ch->s_location);
+	if (ch->s_phone) gf_free(ch->s_phone);
+	if (ch->s_tool) gf_free(ch->s_tool);
+	if (ch->s_note) gf_free(ch->s_note);
+	if (ch->s_priv) gf_free(ch->s_priv);
+	gf_free(ch);
 }
 
 
@@ -72,28 +72,28 @@ GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, c
 	//assert we have at least ONE source ID
 	if (!trans_info->source && !remote_address) return GF_BAD_PARAM;
 
-	if (ch->net_info.destination) free(ch->net_info.destination);
-	if (ch->net_info.Profile) free(ch->net_info.Profile);
-	if (ch->net_info.source) free(ch->net_info.source);
+	if (ch->net_info.destination) gf_free(ch->net_info.destination);
+	if (ch->net_info.Profile) gf_free(ch->net_info.Profile);
+	if (ch->net_info.source) gf_free(ch->net_info.source);
 	memcpy(&ch->net_info, trans_info, sizeof(GF_RTSPTransport));
 
 	if (trans_info->destination) 
-		ch->net_info.destination = strdup(trans_info->destination);
+		ch->net_info.destination = gf_strdup(trans_info->destination);
 
 	if (trans_info->Profile) 
-		ch->net_info.Profile = strdup(trans_info->Profile);
+		ch->net_info.Profile = gf_strdup(trans_info->Profile);
 
 	if (!ch->net_info.IsUnicast && trans_info->destination) {
-		ch->net_info.source = strdup(trans_info->destination);
+		ch->net_info.source = gf_strdup(trans_info->destination);
 		if (ch->net_info.client_port_first) {
 			ch->net_info.port_first = ch->net_info.client_port_first;
 			ch->net_info.port_last = ch->net_info.client_port_last;
 		}
-		ch->net_info.source = strdup(trans_info->destination);
+		ch->net_info.source = gf_strdup(trans_info->destination);
 	} else if (trans_info->source) {
-		ch->net_info.source = strdup(trans_info->source);
+		ch->net_info.source = gf_strdup(trans_info->source);
 	} else {
-		ch->net_info.source = strdup(remote_address);
+		ch->net_info.source = gf_strdup(remote_address);
 	}
 	if (trans_info->SSRC) ch->SenderSSRC = trans_info->SSRC;
 
@@ -199,8 +199,8 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		if (UDPBufferSize) gf_sk_set_buffer_size(ch->rtp, IsSource, UDPBufferSize);
 
 		if (IsSource) {
-			if (ch->send_buffer) free(ch->send_buffer);
-			ch->send_buffer = (char *) malloc(sizeof(char) * PathMTU);
+			if (ch->send_buffer) gf_free(ch->send_buffer);
+			ch->send_buffer = (char *) gf_malloc(sizeof(char) * PathMTU);
 			ch->send_buffer_size = PathMTU;
 		}
 		
@@ -241,7 +241,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 	if (!ch->CName) {
 		//this is the real CName setup
 		if (!ch->rtp) {
-			ch->CName = strdup("mpeg4rtp");
+			ch->CName = gf_strdup("mpeg4rtp");
 		} else {
 			char name[GF_MAX_IP_NAME_LEN];
 
@@ -251,7 +251,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 			start = strlen(name);
 			//get host IP or loopback if error
 			if (gf_sk_get_local_ip(ch->rtp, name+start) != GF_OK) strcpy(name+start, "127.0.0.1");
-			ch->CName = strdup(name);
+			ch->CName = gf_strdup(name);
 		}
 	}
 	
@@ -321,7 +321,7 @@ u32 gf_rtp_read_rtp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 		pck = (char *) gf_rtp_reorderer_get(ch->po, &res);
 		if (pck) {
 			memcpy(buffer, pck, res);
-			free(pck);
+			gf_free(pck);
 		}
 	}
 	/*monitor keep-alive period*/
@@ -730,8 +730,8 @@ static void DelItem(GF_POItem *it)
 {
 	if (it) {
 		if (it->next) DelItem(it->next);
-		free(it->pck);
-		free(it);
+		gf_free(it->pck);
+		gf_free(it);
 	}
 }
 
@@ -739,7 +739,7 @@ static void DelItem(GF_POItem *it)
 void gf_rtp_reorderer_del(GF_RTPReorder *po)
 {
 	if (po->in) DelItem(po->in);
-	free(po);
+	gf_free(po);
 }
 
 void gf_rtp_reorderer_reset(GF_RTPReorder *po)
@@ -760,11 +760,11 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, void *pck, u32 pck_size, u32 pck_
 
 	if (!po) return GF_BAD_PARAM;
 
-	it = (GF_POItem *) malloc(sizeof(GF_POItem));
+	it = (GF_POItem *) gf_malloc(sizeof(GF_POItem));
 	it->pck_seq_num = pck_seqnum;
 	it->next = NULL;
 	it->size = pck_size;
-	it->pck = malloc(pck_size);
+	it->pck = gf_malloc(pck_size);
 	memcpy(it->pck, pck, pck_size);
 	/*reset timeout*/
 	po->LastTime = 0;
@@ -842,8 +842,8 @@ GF_Err gf_rtp_reorderer_add(GF_RTPReorder *po, void *pck, u32 pck_size, u32 pck_
 	
 
 discard:
-	free(it->pck);
-	free(it);
+	gf_free(it->pck);
+	gf_free(it);
 	GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[rtp] Packet Reorderer: Dropping packet %d", pck_seqnum));
 	return GF_OK;
 }
@@ -913,7 +913,7 @@ send_it:
 	po->Count -= 1;
 	//release the item
 	ret = t->pck;
-	free(t);
+	gf_free(t);
 	return ret;
 }
 

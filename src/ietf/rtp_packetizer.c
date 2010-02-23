@@ -79,7 +79,7 @@ void gf_rtp_builder_del(GP_RTPPacketizer *builder)
 
 	if (builder->payload) gf_bs_del(builder->payload);
 	if (builder->pck_hdr) gf_bs_del(builder->pck_hdr);
-	free(builder);
+	gf_free(builder);
 }
 
 GF_EXPORT
@@ -398,7 +398,7 @@ void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 		if (builder->key_indicator) {
 			/*force flush if no provision for keyIndicator per AU*/
 			builder->force_flush = (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) ? 0 : 1;
-			free(builder->key_indicator);
+			gf_free(builder->key_indicator);
 			builder->key_indicator = NULL;
 		}
 	} else if (!builder->key_indicator
@@ -408,7 +408,7 @@ void gp_rtp_builder_set_cryp_info(GP_RTPPacketizer *builder, u64 IV, char *key_i
 		/*force flush if no provision for keyIndicator per AU*/
 		builder->force_flush = (builder->flags & GP_RTP_PCK_KEY_IDX_PER_AU) ? 0 : 1;
 
-		if (!builder->key_indicator) builder->key_indicator = (char *) malloc(sizeof(char)*builder->slMap.KI_length);
+		if (!builder->key_indicator) builder->key_indicator = (char *) gf_malloc(sizeof(char)*builder->slMap.KI_length);
 		memcpy(builder->key_indicator, key_indicator, sizeof(char)*builder->slMap.KI_length);
 	}
 	if (builder->IV != IV) {

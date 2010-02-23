@@ -416,9 +416,9 @@ void gdip_convert_texture(struct _stencil *sten)
 		format = PixelFormat32bppARGB;
 	}
 	if (BPP*sten->width*sten->height > sten->conv_size) {
-		if (sten->conv_buf) free(sten->conv_buf);
+		if (sten->conv_buf) gf_free(sten->conv_buf);
 		sten->conv_size = BPP*sten->width*sten->height;
-		sten->conv_buf = (unsigned char *) malloc(sizeof(unsigned char)*sten->conv_size);
+		sten->conv_buf = (unsigned char *) gf_malloc(sizeof(unsigned char)*sten->conv_size);
 	}
 
 	src.height = sten->height;

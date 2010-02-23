@@ -32,7 +32,7 @@ void gppa_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
 	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
-	free(ptr);
+	gf_free(ptr);
 }
 
 
@@ -102,7 +102,7 @@ void gppv_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
 	if (ptr->protection_info) gf_isom_box_del((GF_Box *)ptr->protection_info);
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_Err gppv_Read(GF_Box *s, GF_BitStream *bs)
@@ -148,7 +148,7 @@ GF_Err gppv_Size(GF_Box *s)
 
 GF_Box *gppc_New(u32 type)
 {
-	GF_3GPPConfigBox *tmp = (GF_3GPPConfigBox *) malloc(sizeof(GF_3GPPConfigBox));
+	GF_3GPPConfigBox *tmp = (GF_3GPPConfigBox *) gf_malloc(sizeof(GF_3GPPConfigBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_3GPPConfigBox));
 	tmp->type = type;
@@ -159,7 +159,7 @@ void gppc_del(GF_Box *s)
 {
 	GF_3GPPConfigBox *ptr = (GF_3GPPConfigBox *)s;
 	if (ptr == NULL) return;
-	free(ptr);
+	gf_free(ptr);
 }
 
 
@@ -264,23 +264,23 @@ void ftab_del(GF_Box *s)
 	if (ptr->fonts) {
 		u32 i;
 		for (i=0; i<ptr->entry_count; i++) 
-			if (ptr->fonts[i].fontName) free(ptr->fonts[i].fontName);
-		free(ptr->fonts);
+			if (ptr->fonts[i].fontName) gf_free(ptr->fonts[i].fontName);
+		gf_free(ptr->fonts);
 	}
-	free(ptr);
+	gf_free(ptr);
 }
 GF_Err ftab_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
 	GF_FontTableBox *ptr = (GF_FontTableBox *)s;
 	ptr->entry_count = gf_bs_read_u16(bs);
-	ptr->fonts = (GF_FontRecord *) malloc(sizeof(GF_FontRecord)*ptr->entry_count);
+	ptr->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord)*ptr->entry_count);
 	for (i=0; i<ptr->entry_count; i++) {
 		u32 len;
 		ptr->fonts[i].fontID = gf_bs_read_u16(bs);
 		len = gf_bs_read_u8(bs);
 		if (len) {
-			ptr->fonts[i].fontName = (char *)malloc(sizeof(char)*(len+1));
+			ptr->fonts[i].fontName = (char *)gf_malloc(sizeof(char)*(len+1));
 			gf_bs_read_data(bs, ptr->fonts[i].fontName, len);
 			ptr->fonts[i].fontName[len] = 0;
 		}
@@ -341,7 +341,7 @@ void tx3g_del(GF_Box *s)
 {
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
 	if (ptr->font_table) gf_isom_box_del((GF_Box *)ptr->font_table);
-	free(ptr);
+	gf_free(ptr);
 }
 
 static u32 gpp_read_rgba(GF_BitStream *bs)
@@ -489,8 +489,8 @@ GF_Box *styl_New()
 void styl_del(GF_Box *s)
 {
 	GF_TextStyleBox*ptr = (GF_TextStyleBox*)s;
-	if (ptr->styles) free(ptr->styles);
-	free(ptr);
+	if (ptr->styles) gf_free(ptr->styles);
+	gf_free(ptr);
 }
 
 GF_Err styl_Read(GF_Box *s, GF_BitStream *bs)
@@ -499,7 +499,7 @@ GF_Err styl_Read(GF_Box *s, GF_BitStream *bs)
 	GF_TextStyleBox*ptr = (GF_TextStyleBox*)s;
 	ptr->entry_count = gf_bs_read_u16(bs);
 	if (ptr->entry_count) {
-		ptr->styles = (GF_StyleRecord*)malloc(sizeof(GF_StyleRecord)*ptr->entry_count);
+		ptr->styles = (GF_StyleRecord*)gf_malloc(sizeof(GF_StyleRecord)*ptr->entry_count);
 		for (i=0; i<ptr->entry_count; i++) {
 			gpp_read_style(bs, &ptr->styles[i]);
 		}
@@ -542,7 +542,7 @@ GF_Box *hlit_New()
 
 void hlit_del(GF_Box *s)
 {
-	free(s);
+	gf_free(s);
 }
 
 GF_Err hlit_Read(GF_Box *s, GF_BitStream *bs)
@@ -586,7 +586,7 @@ GF_Box *hclr_New()
 
 void hclr_del(GF_Box *s)
 {
-	free(s);
+	gf_free(s);
 }
 
 GF_Err hclr_Read(GF_Box *s, GF_BitStream *bs)
@@ -629,8 +629,8 @@ GF_Box *krok_New()
 void krok_del(GF_Box *s)
 {
 	GF_TextKaraokeBox*ptr = (GF_TextKaraokeBox*)s;
-	if (ptr->records) free(ptr->records);
-	free(ptr);
+	if (ptr->records) gf_free(ptr->records);
+	gf_free(ptr);
 }
 
 GF_Err krok_Read(GF_Box *s, GF_BitStream *bs)
@@ -641,7 +641,7 @@ GF_Err krok_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->nb_entries = gf_bs_read_u16(bs);
 	if (ptr->nb_entries) {
 		u32 i;
-		ptr->records = (KaraokeRecord*)malloc(sizeof(KaraokeRecord)*ptr->nb_entries);
+		ptr->records = (KaraokeRecord*)gf_malloc(sizeof(KaraokeRecord)*ptr->nb_entries);
 		for (i=0; i<ptr->nb_entries; i++) {
 			ptr->records[i].highlight_endtime = gf_bs_read_u32(bs);
 			ptr->records[i].start_charoffset = gf_bs_read_u16(bs);
@@ -692,7 +692,7 @@ GF_Box *dlay_New()
 
 void dlay_del(GF_Box *s)
 {
-	free(s);
+	gf_free(s);
 }
 
 GF_Err dlay_Read(GF_Box *s, GF_BitStream *bs)
@@ -735,9 +735,9 @@ GF_Box *href_New()
 void href_del(GF_Box *s)
 {
 	GF_TextHyperTextBox*ptr = (GF_TextHyperTextBox*)s;
-	if (ptr->URL) free(ptr->URL);
-	if (ptr->URL_hint) free(ptr->URL_hint);
-	free(ptr);
+	if (ptr->URL) gf_free(ptr->URL);
+	if (ptr->URL_hint) gf_free(ptr->URL_hint);
+	gf_free(ptr);
 }
 
 GF_Err href_Read(GF_Box *s, GF_BitStream *bs)
@@ -748,13 +748,13 @@ GF_Err href_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->endcharoffset = gf_bs_read_u16(bs);
 	len = gf_bs_read_u8(bs);
 	if (len) {
-		ptr->URL = (char *) malloc(sizeof(char) * (len+1));
+		ptr->URL = (char *) gf_malloc(sizeof(char) * (len+1));
 		gf_bs_read_data(bs, ptr->URL, len);
 		ptr->URL[len] = 0;
 	}
 	len = gf_bs_read_u8(bs);
 	if (len) {
-		ptr->URL_hint = (char *) malloc(sizeof(char) * (len+1));
+		ptr->URL_hint = (char *) gf_malloc(sizeof(char) * (len+1));
 		gf_bs_read_data(bs, ptr->URL_hint, len);
 		ptr->URL_hint[len]= 0;
 	}
@@ -814,7 +814,7 @@ GF_Box *tbox_New()
 
 void tbox_del(GF_Box *s)
 {
-	free(s);
+	gf_free(s);
 }
 
 GF_Err tbox_Read(GF_Box *s, GF_BitStream *bs)
@@ -857,7 +857,7 @@ GF_Box *blnk_New()
 
 void blnk_del(GF_Box *s)
 {
-	free(s);
+	gf_free(s);
 }
 
 GF_Err blnk_Read(GF_Box *s, GF_BitStream *bs)
@@ -901,7 +901,7 @@ GF_Box *twrp_New()
 
 void twrp_del(GF_Box *s)
 {
-	free(s);
+	gf_free(s);
 }
 
 GF_Err twrp_Read(GF_Box *s, GF_BitStream *bs)
@@ -936,8 +936,8 @@ void tsel_del(GF_Box *s)
 	GF_TrackSelectionBox *ptr;
 	ptr = (GF_TrackSelectionBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->attributeList) free(ptr->attributeList);
-	free(ptr);
+	if (ptr->attributeList) gf_free(ptr->attributeList);
+	gf_free(ptr);
 }
 
 GF_Err tsel_Read(GF_Box *s,GF_BitStream *bs)
@@ -951,7 +951,7 @@ GF_Err tsel_Read(GF_Box *s,GF_BitStream *bs)
 	ptr->size -= 4;
 	if (ptr->size % 4) return GF_ISOM_INVALID_FILE;
 	ptr->attributeListCount = (u32)ptr->size/4;
-	ptr->attributeList = malloc(ptr->attributeListCount*sizeof(u32));
+	ptr->attributeList = gf_malloc(ptr->attributeListCount*sizeof(u32));
 	if (ptr->attributeList == NULL) return GF_OUT_OF_MEM;
 	
 	for (i=0; i< ptr->attributeListCount; i++) {
@@ -964,7 +964,7 @@ GF_Box *tsel_New()
 {
 	GF_TrackSelectionBox *tmp;
 	
-	tmp = (GF_TrackSelectionBox *) malloc(sizeof(GF_TrackSelectionBox));
+	tmp = (GF_TrackSelectionBox *) gf_malloc(sizeof(GF_TrackSelectionBox));
 	if (tmp == NULL) return NULL;
 	memset(tmp, 0, sizeof(GF_TrackSelectionBox));
 	gf_isom_full_box_init((GF_Box *)tmp);
@@ -1018,9 +1018,9 @@ GF_Box *dimC_New()
 void dimC_del(GF_Box *s)
 {
 	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
-	if (p->contentEncoding) free(p->contentEncoding);
-	if (p->textEncoding) free(p->textEncoding);
-	free(p);
+	if (p->contentEncoding) gf_free(p->contentEncoding);
+	if (p->textEncoding) gf_free(p->textEncoding);
+	gf_free(p);
 }
 
 GF_Err dimC_Read(GF_Box *s, GF_BitStream *bs)
@@ -1048,7 +1048,7 @@ GF_Err dimC_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	if (s->size < i) return GF_ISOM_INVALID_FILE;
 	s->size -= i;
-	p->textEncoding = strdup(str);
+	p->textEncoding = gf_strdup(str);
 
 	i=0;
 	str[0]=0;
@@ -1059,7 +1059,7 @@ GF_Err dimC_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	if (s->size < i) return GF_ISOM_INVALID_FILE;
 	s->size -= i;
-	p->contentEncoding = strdup(str);
+	p->contentEncoding = gf_strdup(str);
 	return GF_OK;
 }
 
@@ -1103,8 +1103,8 @@ GF_Box *diST_New()
 void diST_del(GF_Box *s)
 {
 	GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;
-	if (p->content_script_types) free(p->content_script_types);
-	free(p);
+	if (p->content_script_types) gf_free(p->content_script_types);
+	gf_free(p);
 }
 
 GF_Err diST_Read(GF_Box *s, GF_BitStream *bs)
@@ -1122,7 +1122,7 @@ GF_Err diST_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	if (s->size < i) return GF_ISOM_INVALID_FILE;
 	s->size -= i;
-	p->content_script_types = strdup(str);
+	p->content_script_types = gf_strdup(str);
 	return GF_OK;
 }
 
@@ -1163,7 +1163,7 @@ void dims_del(GF_Box *s)
 	if (p->bitrate ) gf_isom_box_del((GF_Box *)p->bitrate);
 	if (p->protection_info) gf_isom_box_del((GF_Box *)p->protection_info);
 	if (p->scripts) gf_isom_box_del((GF_Box *)p->scripts);
-	free(p);
+	gf_free(p);
 }
 
 static GF_Err dims_AddBox(GF_Box *s, GF_Box *a)

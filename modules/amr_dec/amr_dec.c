@@ -250,7 +250,7 @@ GF_MediaDecoder *NewAMRDecoder()
 	AMRDec *dec;
 	GF_MediaDecoder *ifce;
 	GF_SAFEALLOC(ifce , GF_MediaDecoder);
-	dec = malloc(sizeof(AMRDec));
+	dec = gf_malloc(sizeof(AMRDec));
 	memset(dec, 0, sizeof(AMRDec));
 	ifce->privateStack = dec;
 	ifce->CanHandleStream = AMR_CanHandleStream;
@@ -271,8 +271,8 @@ GF_MediaDecoder *NewAMRDecoder()
 void DeleteAMRDecoder(GF_BaseDecoder *ifcg)
 {
 	AMRCTX();
-	free(ctx);
-	free(ifcg);
+	gf_free(ctx);
+	gf_free(ifcg);
 }
 
 GF_EXPORT

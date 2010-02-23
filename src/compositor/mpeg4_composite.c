@@ -75,7 +75,7 @@ static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		}
 
 		visual_del(st->visual);
-		if (st->txh.data) free(st->txh.data);
+		if (st->txh.data) gf_free(st->txh.data);
 		/*destroy texture*/
 		gf_sc_texture_destroy(&st->txh);
 #ifdef GPAC_USE_TINYGL
@@ -84,7 +84,7 @@ static void composite_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		gf_list_del(st->sensors);
 		gf_list_del(st->previous_sensors);
 
-		free(st);
+		gf_free(st);
 	} else {
 		gf_node_traverse_children(node, rs);
 	}
@@ -247,7 +247,7 @@ static void composite_update(GF_TextureHandler *txh)
 			if (st->tgl_ctx) ostgl_delete_context(st->tgl_ctx);
 #endif
 			gf_sc_texture_release(txh);
-			if (txh->data) free(txh->data);
+			if (txh->data) gf_free(txh->data);
 			txh->data = NULL;
 			txh->width = txh->height = txh->stride = 0;
 		}
@@ -268,7 +268,7 @@ static void composite_update(GF_TextureHandler *txh)
 #endif
 			gf_sc_texture_release(txh);
 			if (txh->data) 
-				free(txh->data);
+				gf_free(txh->data);
 			txh->data = NULL;
 		}
 
@@ -348,7 +348,7 @@ static void composite_update(GF_TextureHandler *txh)
 #endif
 
 		if (needs_stencil) {
-			txh->data = (char*)malloc(sizeof(unsigned char) * txh->stride * txh->height);
+			txh->data = (char*)gf_malloc(sizeof(unsigned char) * txh->stride * txh->height);
 			memset(txh->data, 0, sizeof(unsigned char) * txh->stride * txh->height);
 			e = raster->stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat, txh->pixelformat, 0);
 #ifdef GPAC_TRISCOPE_MODE
@@ -357,7 +357,7 @@ static void composite_update(GF_TextureHandler *txh)
 			if (e) {
 				raster->stencil_delete(stencil);
 				gf_sc_texture_release(txh);
-				free(txh->data);
+				gf_free(txh->data);
 				txh->data = NULL;
 				return;
 			}
@@ -451,7 +451,7 @@ static void composite_update(GF_TextureHandler *txh)
 		gf_sc_invalidate(st->txh.compositor, NULL);
 	}
 	gf_list_del(tr_state->vrml_sensors);
-	free(tr_state);
+	gf_free(tr_state);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Leaving draw cycle\n"));
 }
 
@@ -666,7 +666,7 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 #ifndef GPAC_DISABLE_3D
 		if (tr_state->layer3d) compositor->traverse_state->layer3d = tr_state->layer3d;
 #endif
-		free(tr_state);
+		gf_free(tr_state);
 	}
 	return res;
 }

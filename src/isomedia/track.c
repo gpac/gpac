@@ -565,7 +565,7 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 
 	mdhd->timeScale = TimeScale;
 	hdlr->handlerType = MediaType;
-	hdlr->nameUTF8 = strdup(str);
+	hdlr->nameUTF8 = gf_strdup(str);
 
 	//first set-up the sample table...
 	stbl = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);
@@ -595,7 +595,7 @@ err_exit:
 	if (mdhd) gf_isom_box_del((GF_Box *)mdhd);
 	if (minf) gf_isom_box_del((GF_Box *)minf);
 	if (hdlr) {
-		if (hdlr->nameUTF8) free(hdlr->nameUTF8);
+		if (hdlr->nameUTF8) gf_free(hdlr->nameUTF8);
 		gf_isom_box_del((GF_Box *)hdlr);
 	}
 	return e;

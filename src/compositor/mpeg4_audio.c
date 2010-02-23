@@ -70,7 +70,7 @@ static void audioclip_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		if (st->time_handle.is_registered) {
 			gf_sc_unregister_time_node(st->input.compositor, &st->time_handle);
 		}
-		free(st);
+		gf_free(st);
 		return;
 	}
 	if (st->failure) return;
@@ -208,7 +208,7 @@ static void audiosource_traverse(GF_Node *node, void *rs, Bool is_destroy)
 		if (st->time_handle.is_registered) {
 			gf_sc_unregister_time_node(st->input.compositor, &st->time_handle);
 		}
-		free(st);
+		gf_free(st);
 		return;
 	}
 	
@@ -341,9 +341,9 @@ static void audiobuffer_traverse(GF_Node *node, void *rs, Bool is_destroy)
 			gf_sc_unregister_time_node(st->output.compositor, &st->time_handle);
 
 		gf_mixer_del(st->am);
-		if (st->buffer) free(st->buffer);
+		if (st->buffer) gf_free(st->buffer);
 		gf_list_del(st->new_inputs);
-		free(st);
+		gf_free(st);
 		return;
 	}
 	parent = tr_state->audio_parent;
@@ -454,7 +454,7 @@ static char *audiobuffer_fetch_frame(void *callback, u32 *size, u32 audio_delay_
 		blockAlign = gf_mixer_get_block_align(st->am);
 		/*BLOCK ALIGN*/
 		while (st->buffer_size%blockAlign) st->buffer_size++;
-		st->buffer = (char*)malloc(sizeof(char) * st->buffer_size);
+		st->buffer = (char*)gf_malloc(sizeof(char) * st->buffer_size);
 		memset(st->buffer, 0, sizeof(char) * st->buffer_size);
 		st->read_pos = st->write_pos = 0;
 	}
@@ -527,7 +527,7 @@ static Bool audiobuffer_get_config(GF_AudioInterface *aifc, Bool for_reconf)
 
 	if (gf_mixer_must_reconfig(st->am)) {
 		if (gf_mixer_reconfig(st->am)) {
-			if (st->buffer) free(st->buffer);
+			if (st->buffer) gf_free(st->buffer);
 			st->buffer = NULL;
 			st->buffer_size = 0;
 		}

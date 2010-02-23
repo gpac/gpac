@@ -53,11 +53,11 @@ void evg_surface_delete(GF_SURFACE _this)
 {
 	EVGSurface *surf = (EVGSurface *)_this;
 #ifndef INLINE_POINT_CONVERSION
-	if (surf->points) free(surf->points);
+	if (surf->points) gf_free(surf->points);
 #endif
-	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
+	if (surf->stencil_pix_run) gf_free(surf->stencil_pix_run);
 	evg_raster_del(surf->raster);
-	free(surf);
+	gf_free(surf);
 }
 
 GF_Err evg_surface_set_matrix(GF_SURFACE _this, GF_Matrix2D *mat)
@@ -83,8 +83,8 @@ GF_Err evg_surface_attach_to_callbacks(GF_SURFACE _this, GF_RasterCallback *call
 
 	surf->width = width;
 	surf->height = height;
-	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
-	surf->stencil_pix_run = (u32 *) malloc(sizeof(u32) * (width+2));
+	if (surf->stencil_pix_run) gf_free(surf->stencil_pix_run);
+	surf->stencil_pix_run = (u32 *) gf_malloc(sizeof(u32) * (width+2));
 
 	surf->raster_cbk = callbacks->cbk;
 	surf->raster_fill_run_alpha = callbacks->fill_run_alpha;
@@ -127,8 +127,8 @@ GF_Err evg_surface_attach_to_buffer(GF_SURFACE _this, char *pixels, u32 width, u
 	surf->pitch_x = pitch_x;
 	surf->pitch_y = pitch_y;
 	if (!surf->stencil_pix_run || (surf->width != width)) {
-		if (surf->stencil_pix_run) free(surf->stencil_pix_run);
-		surf->stencil_pix_run = (u32 *) malloc(sizeof(u32) * (width+2));
+		if (surf->stencil_pix_run) gf_free(surf->stencil_pix_run);
+		surf->stencil_pix_run = (u32 *) gf_malloc(sizeof(u32) * (width+2));
 	}
 	surf->width = width;
 	surf->height = height;
@@ -179,8 +179,8 @@ GF_Err evg_surface_attach_to_texture(GF_SURFACE _this, GF_STENCIL sten)
 	}
 	surf->pitch_x = BPP;
 	surf->pitch_y = tx->stride;
-	if (surf->stencil_pix_run) free(surf->stencil_pix_run);
-	surf->stencil_pix_run = (u32 *) malloc(sizeof(u32) * (tx->width+2));
+	if (surf->stencil_pix_run) gf_free(surf->stencil_pix_run);
+	surf->stencil_pix_run = (u32 *) gf_malloc(sizeof(u32) * (tx->width+2));
 
 	surf->width = tx->width;
 	surf->height = tx->height;
@@ -503,7 +503,7 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 	surf->ftparams.mx = &surf->mat;
 #else
 	if (surf->pointlen < gp->n_points) {
-		surf->points = realloc(surf->points, sizeof(EVG_Vector) * gp->n_points);
+		surf->points = gf_realloc(surf->points, sizeof(EVG_Vector) * gp->n_points);
 		if (surf->points == NULL) {
 			surf->pointlen = 0;
 			return GF_OUT_OF_MEM;

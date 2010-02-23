@@ -72,7 +72,7 @@ void gf_svg_properties_init_pointers(SVGPropertiesPointers *svg_props)
 
 	GF_SAFEALLOC(svg_props->font_family, SVG_FontFamily);
 	svg_props->font_family->type = SVG_FONTFAMILY_VALUE;
-	svg_props->font_family->value = strdup("Arial");
+	svg_props->font_family->value = gf_strdup("Arial");
 
 	GF_SAFEALLOC(svg_props->font_size, SVG_FontSize);
 	svg_props->font_size->type = SVG_NUMBER_VALUE;
@@ -179,49 +179,49 @@ GF_EXPORT
 void gf_svg_properties_reset_pointers(SVGPropertiesPointers *svg_props)
 {
 	if (!svg_props) return;
-	if(svg_props->audio_level) free(svg_props->audio_level);
+	if(svg_props->audio_level) gf_free(svg_props->audio_level);
 	gf_svg_delete_paint(NULL, svg_props->color);
-	if(svg_props->color_rendering) free(svg_props->color_rendering);
-	if(svg_props->display) free(svg_props->display);
-	if(svg_props->display_align) free(svg_props->display_align);
+	if(svg_props->color_rendering) gf_free(svg_props->color_rendering);
+	if(svg_props->display) gf_free(svg_props->display);
+	if(svg_props->display_align) gf_free(svg_props->display_align);
 	gf_svg_delete_paint(NULL, svg_props->fill);
-	if(svg_props->fill_opacity) free(svg_props->fill_opacity);
-	if(svg_props->fill_rule) free(svg_props->fill_rule);
+	if(svg_props->fill_opacity) gf_free(svg_props->fill_opacity);
+	if(svg_props->fill_rule) gf_free(svg_props->fill_rule);
 	if(svg_props->font_family) {
-		if (svg_props->font_family->value) free(svg_props->font_family->value);
-		free(svg_props->font_family);
+		if (svg_props->font_family->value) gf_free(svg_props->font_family->value);
+		gf_free(svg_props->font_family);
 	}
-	if(svg_props->font_size) free(svg_props->font_size);
-	if(svg_props->font_style) free(svg_props->font_style);
-	if(svg_props->font_variant) free(svg_props->font_variant);
-	if(svg_props->font_weight) free(svg_props->font_weight);
-	if(svg_props->image_rendering) free(svg_props->image_rendering);
-	if(svg_props->line_increment) free(svg_props->line_increment);
-	if(svg_props->opacity) free(svg_props->opacity);
-	if(svg_props->pointer_events) free(svg_props->pointer_events);
-	if(svg_props->shape_rendering) free(svg_props->shape_rendering);
+	if(svg_props->font_size) gf_free(svg_props->font_size);
+	if(svg_props->font_style) gf_free(svg_props->font_style);
+	if(svg_props->font_variant) gf_free(svg_props->font_variant);
+	if(svg_props->font_weight) gf_free(svg_props->font_weight);
+	if(svg_props->image_rendering) gf_free(svg_props->image_rendering);
+	if(svg_props->line_increment) gf_free(svg_props->line_increment);
+	if(svg_props->opacity) gf_free(svg_props->opacity);
+	if(svg_props->pointer_events) gf_free(svg_props->pointer_events);
+	if(svg_props->shape_rendering) gf_free(svg_props->shape_rendering);
 	gf_svg_delete_paint(NULL, svg_props->solid_color);
-	if(svg_props->solid_opacity) free(svg_props->solid_opacity);
+	if(svg_props->solid_opacity) gf_free(svg_props->solid_opacity);
 	gf_svg_delete_paint(NULL, svg_props->stop_color);
-	if(svg_props->stop_opacity) free(svg_props->stop_opacity);
+	if(svg_props->stop_opacity) gf_free(svg_props->stop_opacity);
 	gf_svg_delete_paint(NULL, svg_props->stroke);
 	if(svg_props->stroke_dasharray) {
-		if (svg_props->stroke_dasharray->array.count) free(svg_props->stroke_dasharray->array.vals);
-		free(svg_props->stroke_dasharray);
+		if (svg_props->stroke_dasharray->array.count) gf_free(svg_props->stroke_dasharray->array.vals);
+		gf_free(svg_props->stroke_dasharray);
 	}
-	if(svg_props->stroke_dashoffset) free(svg_props->stroke_dashoffset);
-	if(svg_props->stroke_linecap) free(svg_props->stroke_linecap);
-	if(svg_props->stroke_linejoin) free(svg_props->stroke_linejoin);
-	if(svg_props->stroke_miterlimit) free(svg_props->stroke_miterlimit);
-	if(svg_props->stroke_opacity) free(svg_props->stroke_opacity);
-	if(svg_props->stroke_width) free(svg_props->stroke_width);
-	if(svg_props->text_align) free(svg_props->text_align);
-	if(svg_props->text_anchor) free(svg_props->text_anchor);
-	if(svg_props->text_rendering) free(svg_props->text_rendering);
-	if(svg_props->vector_effect) free(svg_props->vector_effect);
+	if(svg_props->stroke_dashoffset) gf_free(svg_props->stroke_dashoffset);
+	if(svg_props->stroke_linecap) gf_free(svg_props->stroke_linecap);
+	if(svg_props->stroke_linejoin) gf_free(svg_props->stroke_linejoin);
+	if(svg_props->stroke_miterlimit) gf_free(svg_props->stroke_miterlimit);
+	if(svg_props->stroke_opacity) gf_free(svg_props->stroke_opacity);
+	if(svg_props->stroke_width) gf_free(svg_props->stroke_width);
+	if(svg_props->text_align) gf_free(svg_props->text_align);
+	if(svg_props->text_anchor) gf_free(svg_props->text_anchor);
+	if(svg_props->text_rendering) gf_free(svg_props->text_rendering);
+	if(svg_props->vector_effect) gf_free(svg_props->vector_effect);
 	gf_svg_delete_paint(NULL, svg_props->viewport_fill);
-	if(svg_props->viewport_fill_opacity) free(svg_props->viewport_fill_opacity);
-	if(svg_props->visibility) free(svg_props->visibility);
+	if(svg_props->viewport_fill_opacity) gf_free(svg_props->viewport_fill_opacity);
+	if(svg_props->visibility) gf_free(svg_props->visibility);
 	memset(svg_props, 0, sizeof(SVGPropertiesPointers));
 }
 

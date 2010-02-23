@@ -74,7 +74,7 @@ GF_Err gf_odf_parse_command(GF_BitStream *bs, GF_ODCom **com, u32 *com_size)
 
 GF_ODCom *gf_odf_new_base_command()
 {
-	GF_BaseODCom *newCom = (GF_BaseODCom *) malloc(sizeof(GF_BaseODCom));
+	GF_BaseODCom *newCom = (GF_BaseODCom *) gf_malloc(sizeof(GF_BaseODCom));
 	if (!newCom) return NULL;
 	newCom->dataSize = 0;
 	newCom->data = NULL;
@@ -83,8 +83,8 @@ GF_ODCom *gf_odf_new_base_command()
 GF_Err gf_odf_del_base_command(GF_BaseODCom *bcRemove)
 {
 	if (! bcRemove) return GF_BAD_PARAM;
-	if (bcRemove->data) free(bcRemove->data);
-	free(bcRemove);
+	if (bcRemove->data) gf_free(bcRemove->data);
+	gf_free(bcRemove);
 	return GF_OK;
 }
 
@@ -93,7 +93,7 @@ GF_Err gf_odf_read_base_command(GF_BitStream *bs, GF_BaseODCom *bcRem, u32 gf_od
 	if (! bcRem) return GF_BAD_PARAM;
 
 	bcRem->dataSize = gf_odf_size_command;
-	bcRem->data = (char *) malloc(sizeof(char) * bcRem->dataSize);
+	bcRem->data = (char *) gf_malloc(sizeof(char) * bcRem->dataSize);
 	if (! bcRem->data) return GF_OUT_OF_MEM;
 	gf_bs_read_data(bs, bcRem->data, bcRem->dataSize);
 	return GF_OK;
@@ -120,7 +120,7 @@ GF_Err gf_odf_write_base_command(GF_BitStream *bs, GF_BaseODCom *bcRem)
 
 GF_ODCom *gf_odf_new_od_remove()
 {
-	GF_ODRemove *newCom = (GF_ODRemove *) malloc(sizeof(GF_ODRemove));
+	GF_ODRemove *newCom = (GF_ODRemove *) gf_malloc(sizeof(GF_ODRemove));
 	if (!newCom) return NULL;
 	newCom->NbODs = 0;
 	newCom->OD_ID = NULL;
@@ -130,8 +130,8 @@ GF_ODCom *gf_odf_new_od_remove()
 GF_Err gf_odf_del_od_remove(GF_ODRemove *ODRemove)
 {
 	if (! ODRemove) return GF_BAD_PARAM;
-	if (ODRemove->OD_ID) free(ODRemove->OD_ID);
-	free(ODRemove);
+	if (ODRemove->OD_ID) gf_free(ODRemove->OD_ID);
+	gf_free(ODRemove);
 	return GF_OK;
 }
 GF_Err gf_odf_read_od_remove(GF_BitStream *bs, GF_ODRemove *odRem, u32 gf_odf_size_command)
@@ -140,7 +140,7 @@ GF_Err gf_odf_read_od_remove(GF_BitStream *bs, GF_ODRemove *odRem, u32 gf_odf_si
 	if (! odRem) return GF_BAD_PARAM;
 
 	odRem->NbODs = (u32 ) (gf_odf_size_command * 8) / 10;
-	odRem->OD_ID = (u16 *) malloc(sizeof(u16) * odRem->NbODs);
+	odRem->OD_ID = (u16 *) gf_malloc(sizeof(u16) * odRem->NbODs);
 	if (! odRem->OD_ID) return GF_OUT_OF_MEM;
 
 	for (i = 0; i < odRem->NbODs ; i++) {
@@ -186,12 +186,12 @@ GF_Err gf_odf_write_od_remove(GF_BitStream *bs, GF_ODRemove *odRem)
 
 GF_ODCom *gf_odf_new_od_update()
 {
-	GF_ODUpdate *newCom = (GF_ODUpdate *) malloc(sizeof(GF_ODUpdate));
+	GF_ODUpdate *newCom = (GF_ODUpdate *) gf_malloc(sizeof(GF_ODUpdate));
 	if (!newCom) return NULL;
 	
 	newCom->objectDescriptors = gf_list_new();
 	if (! newCom->objectDescriptors) {
-		free(newCom);
+		gf_free(newCom);
 		return NULL;
 	}
 	newCom->tag = GF_ODF_OD_UPDATE_TAG;
@@ -210,7 +210,7 @@ GF_Err gf_odf_del_od_update(GF_ODUpdate *ODUpdate)
 		if (e) return e;
 	}
 	gf_list_del(ODUpdate->objectDescriptors);
-	free(ODUpdate);
+	gf_free(ODUpdate);
 	return GF_OK;
 }
 
@@ -292,12 +292,12 @@ GF_Err gf_odf_write_od_update(GF_BitStream *bs, GF_ODUpdate *odUp)
 
 GF_ODCom *gf_odf_new_esd_update()
 {
-	GF_ESDUpdate *newCom = (GF_ESDUpdate *) malloc(sizeof(GF_ESDUpdate));
+	GF_ESDUpdate *newCom = (GF_ESDUpdate *) gf_malloc(sizeof(GF_ESDUpdate));
 	if (!newCom) return NULL;
 	
 	newCom->ESDescriptors = gf_list_new();
 	if (! newCom->ESDescriptors) {
-		free(newCom);
+		gf_free(newCom);
 		return NULL;
 	}
 	newCom->tag = GF_ODF_ESD_UPDATE_TAG;
@@ -316,7 +316,7 @@ GF_Err gf_odf_del_esd_update(GF_ESDUpdate *ESDUpdate)
 		if (e) return e;
 	}
 	gf_list_del(ESDUpdate->ESDescriptors);
-	free(ESDUpdate);
+	gf_free(ESDUpdate);
 	return GF_OK;
 }
 
@@ -412,7 +412,7 @@ GF_Err gf_odf_write_esd_update(GF_BitStream *bs, GF_ESDUpdate *esdUp)
 
 GF_ODCom *gf_odf_new_esd_remove()
 {
-	GF_ESDRemove *newCom = (GF_ESDRemove *) malloc(sizeof(GF_ESDRemove));
+	GF_ESDRemove *newCom = (GF_ESDRemove *) gf_malloc(sizeof(GF_ESDRemove));
 	if (!newCom) return NULL;
 	newCom->NbESDs = 0;
 	newCom->ES_ID = NULL;
@@ -423,8 +423,8 @@ GF_ODCom *gf_odf_new_esd_remove()
 GF_Err gf_odf_del_esd_remove(GF_ESDRemove *ESDRemove)
 {
 	if (! ESDRemove) return GF_BAD_PARAM;
-	if (ESDRemove->ES_ID) free(ESDRemove->ES_ID);
-	free(ESDRemove);
+	if (ESDRemove->ES_ID) gf_free(ESDRemove->ES_ID);
+	gf_free(ESDRemove);
 	return GF_OK;
 }
 
@@ -446,7 +446,7 @@ GF_Err gf_odf_read_esd_remove(GF_BitStream *bs, GF_ESDRemove *esdRem, u32 gf_odf
 		return GF_OK;
 	}
 	esdRem->NbESDs = (gf_odf_size_command - 2) / 2;
-	esdRem->ES_ID = (u16 *) malloc(sizeof(u16) * esdRem->NbESDs);
+	esdRem->ES_ID = (u16 *) gf_malloc(sizeof(u16) * esdRem->NbESDs);
 	if (! esdRem->ES_ID) return GF_OUT_OF_MEM;
 	for (i = 0; i < esdRem->NbESDs ; i++) {
 		esdRem->ES_ID[i] = gf_bs_read_int(bs, 16);
@@ -486,7 +486,7 @@ GF_Err gf_odf_write_esd_remove(GF_BitStream *bs, GF_ESDRemove *esdRem)
 
 GF_ODCom *gf_odf_new_ipmp_remove()
 {
-	GF_IPMPRemove *newCom = (GF_IPMPRemove *) malloc(sizeof(GF_IPMPRemove));
+	GF_IPMPRemove *newCom = (GF_IPMPRemove *) gf_malloc(sizeof(GF_IPMPRemove));
 	if (!newCom) return NULL;
 	newCom->IPMPDescID  =NULL;
 	newCom->NbIPMPDs = 0;
@@ -497,8 +497,8 @@ GF_ODCom *gf_odf_new_ipmp_remove()
 GF_Err gf_odf_del_ipmp_remove(GF_IPMPRemove *IPMPDRemove)
 {
 	if (! IPMPDRemove) return GF_BAD_PARAM;
-	if (IPMPDRemove->IPMPDescID) free(IPMPDRemove->IPMPDescID);
-	free(IPMPDRemove);
+	if (IPMPDRemove->IPMPDescID) gf_free(IPMPDRemove->IPMPDescID);
+	gf_free(IPMPDRemove);
 	return GF_OK;
 }
 
@@ -512,7 +512,7 @@ GF_Err gf_odf_read_ipmp_remove(GF_BitStream *bs, GF_IPMPRemove *ipmpRem, u32 gf_
 	if (!gf_odf_size_command) return GF_OK;
 
 	ipmpRem->NbIPMPDs = gf_odf_size_command;
-	ipmpRem->IPMPDescID = (u8 *) malloc(sizeof(u8) * ipmpRem->NbIPMPDs);
+	ipmpRem->IPMPDescID = (u8 *) gf_malloc(sizeof(u8) * ipmpRem->NbIPMPDs);
 	if (! ipmpRem->IPMPDescID) return GF_OUT_OF_MEM;
 
 	for (i = 0; i < ipmpRem->NbIPMPDs; i++) {
@@ -551,11 +551,11 @@ GF_Err gf_odf_write_ipmp_remove(GF_BitStream *bs, GF_IPMPRemove *ipmpRem)
 
 GF_ODCom *gf_odf_new_ipmp_update()
 {
-	GF_IPMPUpdate *newCom = (GF_IPMPUpdate *) malloc(sizeof(GF_IPMPUpdate));
+	GF_IPMPUpdate *newCom = (GF_IPMPUpdate *) gf_malloc(sizeof(GF_IPMPUpdate));
 	if (!newCom) return NULL;
 	newCom->IPMPDescList = gf_list_new();
 	if (! newCom->IPMPDescList) {
-		free(newCom);
+		gf_free(newCom);
 		return NULL;
 	}
 	newCom->tag = GF_ODF_IPMP_UPDATE_TAG;
@@ -572,7 +572,7 @@ GF_Err gf_odf_del_ipmp_update(GF_IPMPUpdate *IPMPDUpdate)
 		e = gf_list_rem(IPMPDUpdate->IPMPDescList, 0);
 	}
 	gf_list_del(IPMPDUpdate->IPMPDescList);
-	free(IPMPDUpdate);
+	gf_free(IPMPDUpdate);
 	return GF_OK;
 }
 

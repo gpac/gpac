@@ -6,7 +6,7 @@
  *
  *  This file is part of GPAC / command-line client
  *
- *  GPAC is free software; you can redistribute it and/or modify
+ *  GPAC is gf_free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
@@ -585,16 +585,16 @@ void set_backlight_state(Bool disable)
 
 static Bool do_resume = 0;
 static Bool prev_backlight_state;
-void freeze_display(Bool do_freeze)
+void gf_freeze_display(Bool do_gf_freeze)
 {
-	if (do_freeze) {
+	if (do_gf_freeze) {
 		prev_backlight_state = backlight_off;
 		do_resume = 0;
 		if (0 && is_connected && gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) {
 			do_resume= 1;
 			gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PAUSED);
 		}
-		/*freeze display*/
+		/*gf_freeze display*/
 		gf_term_set_option(term, GF_OPT_FREEZE_DISPLAY, 1);
 		
 		set_backlight_state(0);
@@ -661,7 +661,7 @@ void open_file(HWND hwnd)
 	char ext_list[4096];
 	strcpy(ext_list, "");
 
-	freeze_display(1);
+	gf_freeze_display(1);
 
 	u32 count = gf_cfg_get_key_count(user.config, "MimeTypes");
 	for (u32 i=0; i<count; i++) {
@@ -680,7 +680,7 @@ void open_file(HWND hwnd)
 #else
 	res = 0;
 #endif
-	freeze_display(0);
+	gf_freeze_display(0);
 
 	/*let's go*/
 	if (res) do_open_file();
@@ -747,11 +747,11 @@ BOOL CALLBACK AboutDialogProc(const HWND hWnd, const UINT Msg, const WPARAM wPar
 }
 void view_about(HWND hwnd)
 {
-	freeze_display(1);
+	gf_freeze_display(1);
 //	::ShowWindow(g_hwnd_mb, SW_HIDE);
 	int iResult = DialogBox(g_hinst, MAKEINTRESOURCE(IDD_APPABOUT), hwnd,(DLGPROC)AboutDialogProc);
 //	::ShowWindow(g_hwnd_mb, SW_SHOW);
-	freeze_display(0);
+	gf_freeze_display(0);
 }
 
 void pause_file()
@@ -864,15 +864,15 @@ static void rewrite_log_tools(const char *lt)
 	if (!opt || !strcmp(opt, "none")) opt="";
 
 	if (!strstr(opt, lt)) {
-		char *opt2 = (char*) malloc(sizeof(char) * (strlen(opt) + strlen(lt) + 2));
+		char *opt2 = (char*) gf_malloc(sizeof(char) * (strlen(opt) + strlen(lt) + 2));
 		strcpy(opt2, opt);
 		if (strlen(opt)) strcat(opt2, ":");
 		strcat(opt2, lt);
 		gf_cfg_set_key(user.config, "General", "LogTools", opt2);
-		free(opt2);
+		gf_free(opt2);
 	} else {
 		char *opt2, *sep;
-		opt2 = strdup(opt);
+		opt2 = gf_strdup(opt);
 		opt2[0] = 0; 
 		
 		while (opt) {
@@ -887,7 +887,7 @@ static void rewrite_log_tools(const char *lt)
 		}
 		if (!strlen(opt2)) strcpy(opt2, "none");
 		gf_cfg_set_key(user.config, "General", "LogTools", opt2);
-		free(opt2);
+		gf_free(opt2);
 	}
 	setup_logs();
 }
@@ -1244,22 +1244,22 @@ BOOL CALLBACK MainWndProc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		DestroyWindow(hwnd);
 		break;
     case WM_SETFOCUS:
-		freeze_display(0);
+		gf_freeze_display(0);
 		break;
     case WM_KILLFOCUS:
         if ((HWND) wParam==g_hwnd) {
-			freeze_display(1);
+			gf_freeze_display(1);
 		}
 		break;
     case WM_ACTIVATE:
         if (WA_INACTIVE != LOWORD(wParam)) {
 			if ((HWND) lParam == g_hwnd) {
-				freeze_display(0);
+				gf_freeze_display(0);
 				SetFocus(hwnd);
 			}
 		} else {
 			if ((HWND) lParam == g_hwnd_disp) {
-				freeze_display(1);
+				gf_freeze_display(1);
 			}
 		}
         break;
@@ -1500,7 +1500,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 		return 0;
 	}
 
-	gf_sys_init();
+	gf_sys_init(0);
 	user.modules = gf_modules_new(str, user.config);
 	if (!gf_modules_get_count(user.modules)) {
 		MessageBox(GetForegroundWindow(), _T("No modules found"), _T("GPAC Init Error"), MB_OK);

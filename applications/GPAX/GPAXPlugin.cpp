@@ -7,7 +7,7 @@
  *
  *  This file is part of GPAC / ActiveX control
  *
- *  GPAC is free software; you can redistribute it and/or modify
+ *  GPAC is gf_free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
@@ -497,7 +497,7 @@ void CGPAXPlugin::UpdateURL()
 		char *abs_url = gf_url_concatenate(parent_url, m_url);
 		if (abs_url) {
 			strcpy(m_url, abs_url);
-			free(abs_url);
+			gf_free(abs_url);
 		}
 	}
 }
@@ -577,12 +577,12 @@ STDMETHODIMP CGPAXPlugin::Update(BSTR _mtype, BSTR _updates)
 		srcp = (u16 *)_updates;
 		len = gf_utf8_wcstombs(NULL, 0, (const u16 **)&srcp);
 		if (len) {
-			updates = (char *) malloc(sizeof(char) * (len+1));
+			updates = (char *) gf_malloc(sizeof(char) * (len+1));
 			srcp = (u16 *)_updates;
 			len = gf_utf8_wcstombs(updates, len, (const u16 **)&srcp);
 			updates[len] = 0;
 			gf_term_scene_update(m_term, mtype, updates);
-			free(updates);
+			gf_free(updates);
 		}
 	}
     return S_OK;

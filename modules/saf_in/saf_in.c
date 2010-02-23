@@ -149,7 +149,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	if (!read->run_state) return;
 
 	if (read->alloc_size < read->saf_size + param->size) {
-		read->saf_data = (char*)realloc(read->saf_data, sizeof(char)*(read->saf_size + param->size) );
+		read->saf_data = (char*)gf_realloc(read->saf_data, sizeof(char)*(read->saf_size + param->size) );
 		read->alloc_size = read->saf_size + param->size;
 	}
 	memcpy(read->saf_data + read->saf_size, param->data, sizeof(char)*param->size);
@@ -212,14 +212,14 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				}
 				if (type==7) {
 					u16 urlLen = gf_bs_read_u16(bs);
-					ch->esd->URLString = (char*)malloc(sizeof(char)*(urlLen+1));
+					ch->esd->URLString = (char*)gf_malloc(sizeof(char)*(urlLen+1));
 					gf_bs_read_data(bs, ch->esd->URLString, urlLen);
 					ch->esd->URLString[urlLen] = 0;
 					au_size -= urlLen+2;
 				}
 				if (au_size) {
 					ch->esd->decoderConfig->decoderSpecificInfo->dataLength = au_size;
-					ch->esd->decoderConfig->decoderSpecificInfo->data = (char*)malloc(sizeof(char)*au_size);
+					ch->esd->decoderConfig->decoderSpecificInfo->data = (char*)gf_malloc(sizeof(char)*au_size);
 					gf_bs_read_data(bs, ch->esd->decoderConfig->decoderSpecificInfo->data, au_size);
 				}
 				if (ch->esd->decoderConfig->streamType==4) ch->buffer_min=100;
@@ -232,7 +232,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 					gf_term_on_connect(read->service, NULL, GF_OK);
 				} else if (read->needs_connection) {
 					gf_odf_desc_del((GF_Descriptor *) ch->esd);
-					free(ch);
+					gf_free(ch);
 					ch = NULL;
 				} else {
 					GF_ObjectDescriptor *od;
@@ -479,7 +479,7 @@ static GF_Err SAF_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	if (ch) {
 		gf_list_del_item(read->channels, ch);
 		if (ch->esd) gf_odf_desc_del((GF_Descriptor*)ch->esd);
-		free(ch);
+		gf_free(ch);
 		e = GF_OK;
 	}
 	gf_term_on_disconnect(read->service, channel, e);
@@ -557,12 +557,12 @@ void DeleteSAFReader(void *ifce)
 		SAFChannel *ch = (SAFChannel *)gf_list_last(read->channels);
 		gf_list_rem_last(read->channels);
 		if (ch->esd) gf_odf_desc_del((GF_Descriptor *) ch->esd);
-		free(ch);
+		gf_free(ch);
 	}
 	gf_list_del(read->channels);
-	if (read->saf_data) free(read->saf_data);
-	free(read);
-	free(plug);
+	if (read->saf_data) gf_free(read->saf_data);
+	gf_free(read);
+	gf_free(plug);
 }
 
 

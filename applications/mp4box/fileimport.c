@@ -6,7 +6,7 @@
  *
  *  This file is part of GPAC / mp4box application
  *
- *  GPAC is free software; you can redistribute it and/or modify
+ *  GPAC is gf_free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
@@ -204,10 +204,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				sscanf(ext+5, "%d:%d", &par_n, &par_d);
 			}
 		}
-		else if (!strnicmp(ext+1, "name=", 5)) handler_name = strdup(ext+6);
-		else if (!strnicmp(ext+1, "font=", 5)) import.fontName = strdup(ext+6);
+		else if (!strnicmp(ext+1, "name=", 5)) handler_name = gf_strdup(ext+6);
+		else if (!strnicmp(ext+1, "font=", 5)) import.fontName = gf_strdup(ext+6);
 		else if (!strnicmp(ext+1, "size=", 5)) import.fontSize = atoi(ext+6);
-		else if (!strnicmp(ext+1, "fmt=", 4)) import.streamFormat = strdup(ext+5);
+		else if (!strnicmp(ext+1, "fmt=", 4)) import.streamFormat = gf_strdup(ext+5);
 		else if (!strnicmp(ext+1, "disable", 7)) disable = 1;
 		else if (!strnicmp(ext+1, "group=", 6)) {
 			group = atoi(ext+7);
@@ -458,9 +458,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	}
 
 exit:
-	if (handler_name) free(handler_name);
-	if (import.fontName) free(import.fontName);
-	if (import.streamFormat) free(import.streamFormat);
+	if (handler_name) gf_free(handler_name);
+	if (import.fontName) gf_free(import.fontName);
+	if (import.streamFormat) gf_free(import.streamFormat);
 	return e;
 }
 
@@ -517,7 +517,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 	if (!stricmp(ext, ".3gp") || !stricmp(ext, ".3g2")) conv_type = 2;
 
 	count = gf_isom_get_track_count(mp4);
-	tks = (TKInfo *)malloc(sizeof(TKInfo)*count);
+	tks = (TKInfo *)gf_malloc(sizeof(TKInfo)*count);
 	memset(tks, 0, sizeof(TKInfo)*count);
 
 	e = GF_OK;
@@ -582,7 +582,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			/*we don't support that*/
 			if (needs_rap_sync) {
 				fprintf(stdout, "More than one track has non-sync points - cannot split file\n");
-				free(tks);
+				gf_free(tks);
 				return GF_NOT_SUPPORTED;
 			}
 			needs_rap_sync = nb_tk+1;
@@ -592,24 +592,24 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 	}
 	if (!nb_tk) {
 		fprintf(stdout, "No suitable tracks found for spliting file\n");
-		free(tks);
+		gf_free(tks);
 		return GF_NOT_SUPPORTED;
 	}
 	if (chunk_start>=max_dur) {
 		fprintf(stdout, "Input file (%f) shorter than requested split start offset (%f)\n", max_dur, chunk_start);
-		free(tks);
+		gf_free(tks);
 		return GF_NOT_SUPPORTED;
 	}
 	if (max_dur<=split_dur) {
 		fprintf(stdout, "Input file (%f) shorter than requested split duration (%f)\n", max_dur, split_dur);
-		free(tks);
+		gf_free(tks);
 		return GF_NOT_SUPPORTED;
 	}
 	if (needs_rap_sync) {
 		tki = &tks[needs_rap_sync-1];
 		if ((gf_isom_get_sync_point_count(mp4, tki->tk)==1) && (chunk_start != 0.0f)) {
 			fprintf(stdout, "Not enough Random Access points in input file - cannot split\n");
-			free(tks);
+			gf_free(tks);
 			return GF_NOT_SUPPORTED;
 		}
 	}
@@ -631,7 +631,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				e = gf_isom_get_sample_for_media_time(mp4, tki->tk, (u64) (chunk_start*tki->time_scale), &di, GF_ISOM_SEARCH_SYNC_BACKWARD, &samp, &sample_num);
 				if (e!=GF_OK) {
 					fprintf(stdout, "Cannot locate RAP in track ID %d for chunk extraction from %02.2f sec\n", gf_isom_get_track_id(mp4, tki->tk), chunk_start);
-					free(tks);
+					gf_free(tks);
 					return GF_NOT_SUPPORTED;
 				}
 				start = (Double) (s64) samp->DTS;
@@ -999,7 +999,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 	gf_set_progress("Splitting", nb_samp, nb_samp);
 err_exit:
 	if (dest) gf_isom_delete(dest);
-	free(tks);
+	gf_free(tks);
 	return e;
 }
 
@@ -1676,7 +1676,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 				f = fopen(szName, "wb");
 				fwrite(data, data_len, 1, f);
 				fclose(f);
-				free(data);
+				gf_free(data);
 			}
 		}
 	}
@@ -1806,7 +1806,7 @@ void sax_node_start(void *sax_cbck, const char *node_name, const char *name_spac
 		if (!strnicmp(att->value, "od:", 3)) continue;
 		sprintf(szCheck, "%d", atoi(att->value));
 		if (!strcmp(szCheck, att->value)) continue;
-		gf_list_add(imports, strdup(att->value) );
+		gf_list_add(imports, gf_strdup(att->value) );
 	}
 }
 
@@ -1824,7 +1824,7 @@ static Bool wgt_enum_files(void *cbck, char *file_name, char *file_path)
 	if (!strcmp(wgt->root_file, file_path)) return 0;
 	/*remove CVS stuff*/
 	if (strstr(file_path, ".#")) return 0;
-	gf_list_add(wgt->imports, strdup(file_path) );
+	gf_list_add(wgt->imports, gf_strdup(file_path) );
 	return 0;
 }
 static Bool wgt_enum_dir(void *cbck, char *file_name, char *file_path)
@@ -1854,11 +1854,11 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 	if (make_wgt) {
 		if (strcmp(type, "widget")) {
 			fprintf(stdout, "XML Root type %s differs from \"widget\" \n", type);
-			free(type);
+			gf_free(type);
 			return NULL;
 		}
-		free(type);
-		type = strdup("application/mw-manifest+xml");
+		gf_free(type);
+		type = gf_strdup("application/mw-manifest+xml");
 		fcc = "mwgt";
 	}
 	imports = gf_list_new();
@@ -1918,7 +1918,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 				gf_list_rem(imports, i);
 				i--;
 				count--;
-				free(item);
+				gf_free(item);
 				continue;
 			}
 			fclose(test);
@@ -1959,7 +1959,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		char *ext, *mime, *encoding, *name = NULL;
 		char *item = gf_list_get(imports, i);
 
-		name = strdup(item + skip_chars);
+		name = gf_strdup(item + skip_chars);
 
 		if (make_wgt) {
 			char *sep;
@@ -1986,7 +1986,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		else if (!stricmp(ext, ".xmtz") || !stricmp(ext, ".xmt.gz")) { mime = "application/x-xmt"; encoding = "binary-gzip"; }
 
 		e = gf_isom_add_meta_item(file, 1, 0, 0, item, name, mime, NULL, NULL,  NULL);
-		free(name);
+		gf_free(name);
 		if (e) goto exit;
 	}
 
@@ -1994,11 +1994,11 @@ exit:
 	while (gf_list_count(imports)) {
 		char *item = gf_list_last(imports);
 		gf_list_rem_last(imports);
-		free(item);
+		gf_free(item);
 	}
 	gf_list_del(imports);
-	if (isom_src) free(isom_src);
-	if (type) free(type);
+	if (isom_src) gf_free(isom_src);
+	if (type) gf_free(type);
 	if (e) {
 		if (file) gf_isom_delete(file);
 		return NULL;

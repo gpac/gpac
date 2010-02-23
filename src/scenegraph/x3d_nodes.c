@@ -393,7 +393,7 @@ static GF_Node *ArcClose2D_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_ArcClose2D);
 
 	/*default field values*/
-	p->closureType.buffer = (char*) malloc(sizeof(char) * 4);
+	p->closureType.buffer = (char*) gf_malloc(sizeof(char) * 4);
 	strcpy(p->closureType.buffer, "PIE");
 	p->endAngle = FLT2FIX(1.5707963);
 	p->radius = FLT2FIX(1);
@@ -695,7 +695,7 @@ static GF_Node *Background_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_Background);
 
 	/*default field values*/
-	p->skyColor.vals = (SFColor*)malloc(sizeof(SFColor)*1);
+	p->skyColor.vals = (SFColor*)gf_malloc(sizeof(SFColor)*1);
 	p->skyColor.count = 1;
 	p->skyColor.vals[0].red = FLT2FIX(0);
 	p->skyColor.vals[0].green = FLT2FIX(0);
@@ -3342,7 +3342,7 @@ static GF_Node *EspduTransform_Create()
 	gf_sg_vrml_parent_setup((GF_Node *) p);
 
 	/*default field values*/
-	p->address.buffer = (char*) malloc(sizeof(char) * 10);
+	p->address.buffer = (char*) gf_malloc(sizeof(char) * 10);
 	strcpy(p->address.buffer, "localhost");
 	p->applicationID = 1;
 	p->articulationParameterCount = 0;
@@ -3392,7 +3392,7 @@ static GF_Node *EspduTransform_Create()
 	p->munitionStartPoint.x = FLT2FIX(0);
 	p->munitionStartPoint.y = FLT2FIX(0);
 	p->munitionStartPoint.z = FLT2FIX(0);
-	p->networkMode.buffer = (char*) malloc(sizeof(char) * 11);
+	p->networkMode.buffer = (char*) gf_malloc(sizeof(char) * 11);
 	strcpy(p->networkMode.buffer, "standAlone");
 	p->port = 0;
 	p->readInterval = 0.1;
@@ -3579,7 +3579,7 @@ static GF_Node *Extrusion_Create()
 	p->ccw = 1;
 	p->convex = 1;
 	p->creaseAngle = FLT2FIX(0.0);
-	p->crossSection.vals = (SFVec2f*) malloc(sizeof(SFVec2f)*5);
+	p->crossSection.vals = (SFVec2f*) gf_malloc(sizeof(SFVec2f)*5);
 	p->crossSection.count = 5;
 	p->crossSection.vals[0].x = FLT2FIX(1);
 	p->crossSection.vals[0].y = FLT2FIX(1);
@@ -3592,18 +3592,18 @@ static GF_Node *Extrusion_Create()
 	p->crossSection.vals[4].x = FLT2FIX(1);
 	p->crossSection.vals[4].y = FLT2FIX(1);
 	p->endCap = 1;
-	p->orientation.vals = (GF_Vec4*)malloc(sizeof(GF_Vec4)*1);
+	p->orientation.vals = (GF_Vec4*)gf_malloc(sizeof(GF_Vec4)*1);
 	p->orientation.count = 1;
 	p->orientation.vals[0].x = FLT2FIX(0);
 	p->orientation.vals[0].y = FLT2FIX(0);
 	p->orientation.vals[0].z = FLT2FIX(1);
 	p->orientation.vals[0].q = FLT2FIX(0);
-	p->scale.vals = (SFVec2f*) malloc(sizeof(SFVec2f)*1);
+	p->scale.vals = (SFVec2f*) gf_malloc(sizeof(SFVec2f)*1);
 	p->scale.count = 1;
 	p->scale.vals[0].x = FLT2FIX(1);
 	p->scale.vals[0].y = FLT2FIX(1);
 	p->solid = 1;
-	p->spine.vals = (SFVec3f*)malloc(sizeof(SFVec3f)*2);
+	p->spine.vals = (SFVec3f*)gf_malloc(sizeof(SFVec3f)*2);
 	p->spine.count = 2;
 	p->spine.vals[0].x = FLT2FIX(0);
 	p->spine.vals[0].y = FLT2FIX(0);
@@ -3787,7 +3787,7 @@ static GF_Node *Fog_Create()
 	p->color.red = FLT2FIX(1);
 	p->color.green = FLT2FIX(1);
 	p->color.blue = FLT2FIX(1);
-	p->fogType.buffer = (char*) malloc(sizeof(char) * 7);
+	p->fogType.buffer = (char*) gf_malloc(sizeof(char) * 7);
 	strcpy(p->fogType.buffer, "LINEAR");
 	p->visibilityRange = FLT2FIX(0);
 	return (GF_Node *)p;
@@ -3909,19 +3909,19 @@ static GF_Node *FontStyle_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_FontStyle);
 
 	/*default field values*/
-	p->family.vals = (char**)malloc(sizeof(SFString)*1);
+	p->family.vals = (char**)gf_malloc(sizeof(SFString)*1);
 	p->family.count = 1;
-	p->family.vals[0] = (char*)malloc(sizeof(char) * 6);
+	p->family.vals[0] = (char*)gf_malloc(sizeof(char) * 6);
 	strcpy(p->family.vals[0], "SERIF");
 	p->horizontal = 1;
-	p->justify.vals = (char**)malloc(sizeof(SFString)*1);
+	p->justify.vals = (char**)gf_malloc(sizeof(SFString)*1);
 	p->justify.count = 1;
-	p->justify.vals[0] = (char*)malloc(sizeof(char) * 6);
+	p->justify.vals[0] = (char*)gf_malloc(sizeof(char) * 6);
 	strcpy(p->justify.vals[0], "BEGIN");
 	p->leftToRight = 1;
 	p->size = FLT2FIX(1.0);
 	p->spacing = FLT2FIX(1.0);
-	p->style.buffer = (char*) malloc(sizeof(char) * 6);
+	p->style.buffer = (char*) gf_malloc(sizeof(char) * 6);
 	strcpy(p->style.buffer, "PLAIN");
 	p->topToBottom = 1;
 	return (GF_Node *)p;
@@ -4001,11 +4001,11 @@ static GF_Node *GeoCoordinate_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_GeoCoordinate);
 
 	/*default field values*/
-	p->geoSystem.vals = (char**)malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->geoSystem.count = 2;
-	p->geoSystem.vals[0] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[0] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[0], "GD");
-	p->geoSystem.vals[1] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[1] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[1], "WE");
 	return (GF_Node *)p;
 }
@@ -4202,13 +4202,13 @@ static GF_Node *GeoElevationGrid_Create()
 	p->ccw = 1;
 	p->colorPerVertex = 1;
 	p->creaseAngle = FLT2FIX(0.0);
-	p->geoGridOrigin.buffer = (char*) malloc(sizeof(char) * 6);
+	p->geoGridOrigin.buffer = (char*) gf_malloc(sizeof(char) * 6);
 	strcpy(p->geoGridOrigin.buffer, "0 0 0");
-	p->geoSystem.vals = (char**)malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->geoSystem.count = 2;
-	p->geoSystem.vals[0] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[0] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[0], "GD");
-	p->geoSystem.vals[1] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[1] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[1], "WE");
 	p->normalPerVertex = 1;
 	p->solid = 1;
@@ -4323,11 +4323,11 @@ static GF_Node *GeoLocation_Create()
 	p->geoCoords.x = (SFDouble) 0;
 	p->geoCoords.y = (SFDouble) 0;
 	p->geoCoords.z = (SFDouble) 0;
-	p->geoSystem.vals = (char**)malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->geoSystem.count = 2;
-	p->geoSystem.vals[0] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[0] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[0], "GD");
-	p->geoSystem.vals[1] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[1] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[1], "WE");
 	return (GF_Node *)p;
 }
@@ -4473,11 +4473,11 @@ static GF_Node *GeoLOD_Create()
 	p->center.x = (SFDouble) 0;
 	p->center.y = (SFDouble) 0;
 	p->center.z = (SFDouble) 0;
-	p->geoSystem.vals = (char**)malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->geoSystem.count = 2;
-	p->geoSystem.vals[0] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[0] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[0], "GD");
-	p->geoSystem.vals[1] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[1] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[1], "WE");
 	p->range = FLT2FIX(10);
 	return (GF_Node *)p;
@@ -4634,11 +4634,11 @@ static GF_Node *GeoOrigin_Create()
 	p->geoCoords.x = (SFDouble) 0;
 	p->geoCoords.y = (SFDouble) 0;
 	p->geoCoords.z = (SFDouble) 0;
-	p->geoSystem.vals = (char**)malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->geoSystem.count = 2;
-	p->geoSystem.vals[0] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[0] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[0], "GD");
-	p->geoSystem.vals[1] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[1] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[1], "WE");
 	return (GF_Node *)p;
 }
@@ -4747,11 +4747,11 @@ static GF_Node *GeoPositionInterpolator_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_GeoPositionInterpolator);
 
 	/*default field values*/
-	p->geoSystem.vals = (char**)malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->geoSystem.count = 2;
-	p->geoSystem.vals[0] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[0] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[0], "GD");
-	p->geoSystem.vals[1] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[1] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[1], "WE");
 	return (GF_Node *)p;
 }
@@ -4879,11 +4879,11 @@ static GF_Node *GeoTouchSensor_Create()
 
 	/*default field values*/
 	p->enabled = 1;
-	p->geoSystem.vals = (char**)malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->geoSystem.count = 2;
-	p->geoSystem.vals[0] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[0] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[0], "GD");
-	p->geoSystem.vals[1] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[1] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[1], "WE");
 	return (GF_Node *)p;
 }
@@ -5055,17 +5055,17 @@ static GF_Node *GeoViewpoint_Create()
 	p->fieldOfView = FLT2FIX(0.785398);
 	p->headlight = 1;
 	p->jump = 1;
-	p->navType.vals = (char**)malloc(sizeof(SFString)*2);
+	p->navType.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->navType.count = 2;
-	p->navType.vals[0] = (char*)malloc(sizeof(char) * 8);
+	p->navType.vals[0] = (char*)gf_malloc(sizeof(char) * 8);
 	strcpy(p->navType.vals[0], "EXAMINE");
-	p->navType.vals[1] = (char*)malloc(sizeof(char) * 4);
+	p->navType.vals[1] = (char*)gf_malloc(sizeof(char) * 4);
 	strcpy(p->navType.vals[1], "ANY");
-	p->geoSystem.vals = (char**)malloc(sizeof(SFString)*2);
+	p->geoSystem.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->geoSystem.count = 2;
-	p->geoSystem.vals[0] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[0] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[0], "GD");
-	p->geoSystem.vals[1] = (char*)malloc(sizeof(char) * 3);
+	p->geoSystem.vals[1] = (char*)gf_malloc(sizeof(char) * 3);
 	strcpy(p->geoSystem.vals[1], "WE");
 	p->orientation.x = FLT2FIX(0);
 	p->orientation.y = FLT2FIX(0);
@@ -5636,7 +5636,7 @@ static GF_Node *HAnimJoint_Create()
 	p->scaleOrientation.y = FLT2FIX(0);
 	p->scaleOrientation.z = FLT2FIX(1);
 	p->scaleOrientation.q = FLT2FIX(0);
-	p->stiffness.vals = (SFFloat *)malloc(sizeof(SFFloat)*3);
+	p->stiffness.vals = (SFFloat *)gf_malloc(sizeof(SFFloat)*3);
 	p->stiffness.count = 3;
 	p->stiffness.vals[0] = FLT2FIX(0);
 	p->stiffness.vals[1] = FLT2FIX(0);
@@ -5776,7 +5776,7 @@ static GF_Node *HAnimSegment_Create()
 	p->centerOfMass.y = FLT2FIX(0);
 	p->centerOfMass.z = FLT2FIX(0);
 	p->mass = FLT2FIX(0);
-	p->momentsOfInertia.vals = (SFFloat *)malloc(sizeof(SFFloat)*9);
+	p->momentsOfInertia.vals = (SFFloat *)gf_malloc(sizeof(SFFloat)*9);
 	p->momentsOfInertia.count = 9;
 	p->momentsOfInertia.vals[0] = FLT2FIX(0);
 	p->momentsOfInertia.vals[1] = FLT2FIX(0);
@@ -8429,25 +8429,25 @@ static GF_Node *NavigationInfo_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_NavigationInfo);
 
 	/*default field values*/
-	p->avatarSize.vals = (SFFloat *)malloc(sizeof(SFFloat)*3);
+	p->avatarSize.vals = (SFFloat *)gf_malloc(sizeof(SFFloat)*3);
 	p->avatarSize.count = 3;
 	p->avatarSize.vals[0] = FLT2FIX(0.25);
 	p->avatarSize.vals[1] = FLT2FIX(1.6);
 	p->avatarSize.vals[2] = FLT2FIX(0.75);
 	p->headlight = 1;
 	p->speed = FLT2FIX(1.0);
-	p->type.vals = (char**)malloc(sizeof(SFString)*2);
+	p->type.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->type.count = 2;
-	p->type.vals[0] = (char*)malloc(sizeof(char) * 5);
+	p->type.vals[0] = (char*)gf_malloc(sizeof(char) * 5);
 	strcpy(p->type.vals[0], "WALK");
-	p->type.vals[1] = (char*)malloc(sizeof(char) * 4);
+	p->type.vals[1] = (char*)gf_malloc(sizeof(char) * 4);
 	strcpy(p->type.vals[1], "ANY");
 	p->visibilityLimit = FLT2FIX(0.0);
-	p->transitionType.vals = (char**)malloc(sizeof(SFString)*2);
+	p->transitionType.vals = (char**)gf_malloc(sizeof(SFString)*2);
 	p->transitionType.count = 2;
-	p->transitionType.vals[0] = (char*)malloc(sizeof(char) * 5);
+	p->transitionType.vals[0] = (char*)gf_malloc(sizeof(char) * 5);
 	strcpy(p->transitionType.vals[0], "WALK");
-	p->transitionType.vals[1] = (char*)malloc(sizeof(char) * 4);
+	p->transitionType.vals[1] = (char*)gf_malloc(sizeof(char) * 4);
 	strcpy(p->transitionType.vals[1], "ANY");
 	return (GF_Node *)p;
 }
@@ -10977,12 +10977,12 @@ static GF_Node *ReceiverPdu_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_ReceiverPdu);
 
 	/*default field values*/
-	p->address.buffer = (char*) malloc(sizeof(char) * 10);
+	p->address.buffer = (char*) gf_malloc(sizeof(char) * 10);
 	strcpy(p->address.buffer, "localhost");
 	p->applicationID = 1;
 	p->entityID = 0;
 	p->multicastRelayPort = 0;
-	p->networkMode.buffer = (char*) malloc(sizeof(char) * 11);
+	p->networkMode.buffer = (char*) gf_malloc(sizeof(char) * 11);
 	strcpy(p->networkMode.buffer, "standAlone");
 	p->port = 0;
 	p->radioID = 0;
@@ -11515,14 +11515,14 @@ static GF_Node *SignalPdu_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_SignalPdu);
 
 	/*default field values*/
-	p->address.buffer = (char*) malloc(sizeof(char) * 10);
+	p->address.buffer = (char*) gf_malloc(sizeof(char) * 10);
 	strcpy(p->address.buffer, "localhost");
 	p->applicationID = 1;
 	p->dataLength = 0;
 	p->encodingScheme = 0;
 	p->entityID = 0;
 	p->multicastRelayPort = 0;
-	p->networkMode.buffer = (char*) malloc(sizeof(char) * 11);
+	p->networkMode.buffer = (char*) gf_malloc(sizeof(char) * 11);
 	strcpy(p->networkMode.buffer, "standAlone");
 	p->port = 0;
 	p->radioID = 0;
@@ -12479,12 +12479,12 @@ static GF_Node *TextureBackground_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_TextureBackground);
 
 	/*default field values*/
-	p->skyColor.vals = (SFColor*)malloc(sizeof(SFColor)*1);
+	p->skyColor.vals = (SFColor*)gf_malloc(sizeof(SFColor)*1);
 	p->skyColor.count = 1;
 	p->skyColor.vals[0].red = FLT2FIX(0);
 	p->skyColor.vals[0].green = FLT2FIX(0);
 	p->skyColor.vals[0].blue = FLT2FIX(0);
-	p->transparency.vals = (SFFloat *)malloc(sizeof(SFFloat)*1);
+	p->transparency.vals = (SFFloat *)gf_malloc(sizeof(SFFloat)*1);
 	p->transparency.count = 1;
 	p->transparency.vals[0] = FLT2FIX(0);
 	return (GF_Node *)p;
@@ -12615,7 +12615,7 @@ static GF_Node *TextureCoordinateGenerator_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_TextureCoordinateGenerator);
 
 	/*default field values*/
-	p->mode.buffer = (char*) malloc(sizeof(char) * 7);
+	p->mode.buffer = (char*) gf_malloc(sizeof(char) * 7);
 	strcpy(p->mode.buffer, "SPHERE");
 	return (GF_Node *)p;
 }
@@ -13504,7 +13504,7 @@ static GF_Node *TransmitterPdu_Create()
 	gf_node_setup((GF_Node *)p, TAG_X3D_TransmitterPdu);
 
 	/*default field values*/
-	p->address.buffer = (char*) malloc(sizeof(char) * 10);
+	p->address.buffer = (char*) gf_malloc(sizeof(char) * 10);
 	strcpy(p->address.buffer, "localhost");
 	p->antennaLocation.x = FLT2FIX(0);
 	p->antennaLocation.y = FLT2FIX(0);
@@ -13523,7 +13523,7 @@ static GF_Node *TransmitterPdu_Create()
 	p->modulationTypeSpreadSpectrum = 0;
 	p->modulationTypeSystem = 0;
 	p->multicastRelayPort = 0;
-	p->networkMode.buffer = (char*) malloc(sizeof(char) * 11);
+	p->networkMode.buffer = (char*) gf_malloc(sizeof(char) * 11);
 	strcpy(p->networkMode.buffer, "standAlone");
 	p->port = 0;
 	p->power = FLT2FIX(0.0);

@@ -59,12 +59,12 @@ static void ResetStatisitics(GF_SceneStatistics *stat)
 	while (gf_list_count(stat->node_stats)) {
 		GF_NodeStats *ptr = (GF_NodeStats *)gf_list_get(stat->node_stats, 0);
 		gf_list_rem(stat->node_stats, 0);
-		free(ptr);
+		gf_free(ptr);
 	}
 	while (gf_list_count(stat->proto_stats)) {
 		GF_NodeStats *ptr = (GF_NodeStats *)gf_list_get(stat->proto_stats, 0);
 		gf_list_rem(stat->proto_stats, 0);
-		free(ptr);
+		gf_free(ptr);
 	}
 	stat->max_2d.x = FIX_MIN;
 	stat->max_2d.y = FIX_MIN;
@@ -85,7 +85,7 @@ static void DeleteStatisitics(GF_SceneStatistics *stat)
 	ResetStatisitics(stat);
 	gf_list_del(stat->node_stats);
 	gf_list_del(stat->proto_stats);
-	free(stat);
+	gf_free(stat);
 }
 
 static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isDelete, GF_Node *prev)
@@ -600,7 +600,7 @@ GF_Err gf_sm_stats_for_graph(GF_StatManager *stat, GF_SceneGraph *sg)
 GF_EXPORT
 GF_StatManager *gf_sm_stats_new()
 {
-	GF_StatManager *sm = (GF_StatManager *)malloc(sizeof(GF_StatManager));
+	GF_StatManager *sm = (GF_StatManager *)gf_malloc(sizeof(GF_StatManager));
 	sm->def_nodes = gf_list_new();
 	sm->stats = NewSceneStats();
 	return sm;
@@ -612,7 +612,7 @@ void gf_sm_stats_del(GF_StatManager *stat)
 {
 	gf_list_del(stat->def_nodes);
 	DeleteStatisitics(stat->stats);
-	free(stat);
+	gf_free(stat);
 }
 
 GF_EXPORT

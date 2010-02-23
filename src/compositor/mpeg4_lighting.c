@@ -108,7 +108,7 @@ static void TraverseDirectionalLight(GF_Node *n, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
 	if (is_destroy) {
-		free(stack);
+		gf_free(stack);
 		return;
 	}
 	if (tr_state->switched_off || !dl->on) return;
@@ -128,7 +128,7 @@ static void TraverseDirectionalLight(GF_Node *n, void *rs, Bool is_destroy)
 void compositor_init_directional_light(GF_Compositor *compositor, GF_Node *node)
 {
 	/*our stack is just a boolean used to store whether the light was turned on successfully*/
-	Bool *stack = (Bool*)malloc(sizeof(Bool));
+	Bool *stack = (Bool*)gf_malloc(sizeof(Bool));
 	*stack = 0;
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, TraverseDirectionalLight);

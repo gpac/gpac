@@ -185,7 +185,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	fseek(src, 0, SEEK_END);
 	size = ftell(src);
 	fseek(src, 0, SEEK_SET);
-	data = (char*)malloc(sizeof(char)*size);
+	data = (char*)gf_malloc(sizeof(char)*size);
 	fread(data, sizeof(char)*size, 1, src);
 	fclose(src);
 
@@ -195,13 +195,13 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	gf_bs_del(bs);
 
 	if (!OTI) {
-		free(data);
+		gf_free(data);
 		return gf_import_message(import, GF_NOT_SUPPORTED, "Unrecognized file %s", import->in_name);
 	}
 
 	if (!w || !h) {
-		free(data);
-		if (dsi) free(dsi);
+		gf_free(data);
+		if (dsi) gf_free(dsi);
 		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Invalid %s file", (OTI==GPAC_OTI_IMAGE_JPEG) ? "JPEG" : (OTI==GPAC_OTI_IMAGE_PNG) ? "PNG" : "JPEG2000");
 	}
 
@@ -214,7 +214,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 		import->tk_info[0].video_info.width = w;
 		import->tk_info[0].video_info.height = h;
 		import->nb_tracks = 1;
-		if (dsi) free(dsi);
+		if (dsi) gf_free(dsi);
 		return GF_OK;
 	}
 
@@ -236,7 +236,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 
 	if (dsi) {
 		if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-		if (import->esd->decoderConfig->decoderSpecificInfo->data) free(import->esd->decoderConfig->decoderSpecificInfo->data);
+		if (import->esd->decoderConfig->decoderSpecificInfo->data) gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
 		import->esd->decoderConfig->decoderSpecificInfo->data = dsi;
 		import->esd->decoderConfig->decoderSpecificInfo->dataLength = dsi_len;
 	}
@@ -278,7 +278,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	gf_isom_sample_del(&samp);
 
 exit:
-	free(data);
+	gf_free(data);
 	if (import->esd && destroy_esd) {
 		gf_odf_desc_del((GF_Descriptor *) import->esd);
 		import->esd = NULL;
@@ -380,7 +380,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 		size = gf_mp3_frame_size(hdr);
 		assert(size);
 		if (size>max_size) {
-			samp->data = (char*)realloc(samp->data, sizeof(char) * size);
+			samp->data = (char*)gf_realloc(samp->data, sizeof(char) * size);
 			max_size = size;
 		}
 		samp->data[0] = (hdr >> 24) & 0xFF;
@@ -602,7 +602,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	import->esd->decoderConfig->bufferSizeDB = 20;
 	import->esd->slConfig->timestampResolution = sr;
 	if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-	if (import->esd->decoderConfig->decoderSpecificInfo->data) free(import->esd->decoderConfig->decoderSpecificInfo->data);
+	if (import->esd->decoderConfig->decoderSpecificInfo->data) gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
 	gf_bs_get_content(dsi, &import->esd->decoderConfig->decoderSpecificInfo->data, &import->esd->decoderConfig->decoderSpecificInfo->dataLength);
 	gf_bs_del(dsi);
 
@@ -625,7 +625,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	samp = gf_isom_sample_new();
 	samp->IsRAP = 1;
 	max_size = samp->dataLength = hdr.frame_size;
-	samp->data = (char*)malloc(sizeof(char)*hdr.frame_size);
+	samp->data = (char*)gf_malloc(sizeof(char)*hdr.frame_size);
 	offset = gf_bs_get_position(bs);
 	gf_bs_read_data(bs, samp->data, hdr.frame_size);
 
@@ -646,7 +646,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 		sync_frame = ADTS_SyncFrame(bs, &hdr);
 		if (!sync_frame) break;
 		if (hdr.frame_size>max_size) {
-			samp->data = (char*)realloc(samp->data, sizeof(char) * hdr.frame_size);
+			samp->data = (char*)gf_realloc(samp->data, sizeof(char) * hdr.frame_size);
 			max_size = hdr.frame_size;
 		}
 		samp->dataLength = hdr.frame_size;
@@ -741,7 +741,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 
 	samp = gf_isom_sample_new();
 	max_size = 4096;
-	samp->data = (char*)malloc(sizeof(char)*max_size);
+	samp->data = (char*)gf_malloc(sizeof(char)*max_size);
 	/*no auto frame-rate detection*/
 	if (import->video_fps == 10000.0) import->video_fps = 25.0;
 
@@ -778,7 +778,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 		import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG4_PART2;
 	}
 	if (samp_offset) {
-		import->esd->decoderConfig->decoderSpecificInfo->data = (char*)malloc(sizeof(char) * samp_offset);
+		import->esd->decoderConfig->decoderSpecificInfo->data = (char*)gf_malloc(sizeof(char) * samp_offset);
 		import->esd->decoderConfig->decoderSpecificInfo->dataLength = samp_offset;
 		pos = gf_bs_get_position(bs);
 		gf_bs_seek(bs, 0);
@@ -885,7 +885,7 @@ static GF_Err gf_import_cmp(GF_MediaImporter *import, Bool mpeg12)
 		} else {
 			if (samp->dataLength>max_size) {
 				max_size = samp->dataLength;
-				samp->data = (char*)realloc(samp->data, sizeof(char)*max_size);
+				samp->data = (char*)gf_realloc(samp->data, sizeof(char)*max_size);
 			}
 			gf_bs_seek(bs, frame_start);
 			gf_bs_read_data(bs, samp->data, samp->dataLength);
@@ -1081,7 +1081,7 @@ static GF_Err gf_import_avi_video(GF_MediaImporter *import)
 		}
 
 		if (size > max_size) {
-			frame = (char*)realloc(frame, sizeof(char) * size);
+			frame = (char*)gf_realloc(frame, sizeof(char) * size);
 			max_size = size;
 		}
 		AVI_read_frame(in, frame, &key);
@@ -1124,7 +1124,7 @@ static GF_Err gf_import_avi_video(GF_MediaImporter *import)
 			import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 			import->esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 			import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG4_PART2;
-			import->esd->decoderConfig->decoderSpecificInfo->data = (char *) malloc(sizeof(char) * samp_offset);
+			import->esd->decoderConfig->decoderSpecificInfo->data = (char *) gf_malloc(sizeof(char) * samp_offset);
 			memcpy(import->esd->decoderConfig->decoderSpecificInfo->data, frame, sizeof(char) * samp_offset);
 			import->esd->decoderConfig->decoderSpecificInfo->dataLength = samp_offset;
 
@@ -1309,7 +1309,7 @@ exit:
 		gf_odf_desc_del((GF_Descriptor *) import->esd);
 		import->esd = NULL;
 	}
-	if (frame) free(frame);
+	if (frame) gf_free(frame);
 	AVI_close(in);
 	return e;
 }
@@ -1401,7 +1401,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 		i++;
 	}
 
-	frame = (char*)malloc(sizeof(char) * max_size);
+	frame = (char*)gf_malloc(sizeof(char) * max_size);
 	AVI_seek_start(in);
 	AVI_set_audio_position(in, 0);
 
@@ -1420,7 +1420,7 @@ GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 
 		size = gf_mp3_frame_size(hdr);
 		if (size>max_size) {
-			frame = (char*)realloc(frame, sizeof(char) * size);
+			frame = (char*)gf_realloc(frame, sizeof(char) * size);
 			if (max_size) is_cbr = 0;
 			max_size = size;
 		}
@@ -1465,7 +1465,7 @@ exit:
 		gf_odf_desc_del((GF_Descriptor *) import->esd);
 		import->esd = NULL;
 	}
-	if (frame) free(frame);
+	if (frame) gf_free(frame);
 	AVI_close(in);
 	return e;
 }
@@ -2058,7 +2058,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 		import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 		fseek(info, 0, SEEK_END);
 		import->esd->decoderConfig->decoderSpecificInfo->dataLength = (u32) ftell(info);
-		import->esd->decoderConfig->decoderSpecificInfo->data = (char*)malloc(sizeof(char) * import->esd->decoderConfig->decoderSpecificInfo->dataLength);
+		import->esd->decoderConfig->decoderSpecificInfo->data = (char*)gf_malloc(sizeof(char) * import->esd->decoderConfig->decoderSpecificInfo->dataLength);
 		fseek(info, 0, SEEK_SET);
 		fread(import->esd->decoderConfig->decoderSpecificInfo->data, import->esd->decoderConfig->decoderSpecificInfo->dataLength, 1, info);
 		fclose(info);
@@ -2155,7 +2155,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 	duration = (u32) ( ((Double) import->duration)/ 1000 * import->esd->slConfig->timestampResolution);
 
 	samp = gf_isom_sample_new();
-	samp->data = (char*)malloc(sizeof(char) * 1024);
+	samp->data = (char*)gf_malloc(sizeof(char) * 1024);
 	max_size = 1024;
 	count = 0;
 	gf_f64_seek(mdia, 0, SEEK_END);
@@ -2200,7 +2200,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
 		} else {
 			if (samp->dataLength>max_size) {
-				samp->data = (char*)realloc(samp->data, sizeof(char) * samp->dataLength);
+				samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
 				max_size = samp->dataLength;
 			}
 			gf_f64_seek(mdia, offset, SEEK_SET);
@@ -2254,11 +2254,11 @@ static void nhml_node_start(void *sax_cbck, const char *node_name, const char *n
 	for (i=0; i<nb_attributes; i++) {
 		att = (GF_XMLAttribute *) &attributes[i];
 		if (stricmp(att->name, "DEF") && stricmp(att->name, "id")) continue;
-		node_id = strdup(att->value);
+		node_id = gf_strdup(att->value);
 		break;
 	}
 	if (!node_id) {
-		node_id = strdup("__nhml__none");
+		node_id = gf_strdup("__nhml__none");
 		gf_list_add(breaker->id_stack, node_id);
 		return;
 	}
@@ -2291,7 +2291,7 @@ static void nhml_node_end(void *sax_cbck, const char *node_name, const char *nam
 		breaker->to_pos = gf_xml_sax_get_node_end_pos(breaker->sax);
 		breaker->to_is_end = 0;
 	}
-	free(node_id);
+	gf_free(node_id);
 	if (!breaker->to_is_start && !breaker->from_is_start && !breaker->to_is_end && !breaker->from_is_end) {
 		gf_xml_sax_suspend(breaker->sax, 1);
 	}
@@ -2322,7 +2322,7 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 	else breaker.from_is_end = 1;
 	tmp = strchr(xmlFrom, '.');
 	*tmp = 0;
-	if (stricmp(xmlFrom, "doc")) breaker.from_id = strdup(xmlFrom);
+	if (stricmp(xmlFrom, "doc")) breaker.from_id = gf_strdup(xmlFrom);
 	/*doc start pos is 0, no need to look for it*/
 	else if (breaker.from_is_start) breaker.from_is_start = 0;
 	*tmp = '.';
@@ -2331,7 +2331,7 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 	else breaker.to_is_end = 1;
 	tmp = strchr(xmlTo, '.');
 	*tmp = 0;
-	if (stricmp(xmlTo, "doc")) breaker.to_id = strdup(xmlTo);
+	if (stricmp(xmlTo, "doc")) breaker.to_id = gf_strdup(xmlTo);
 	/*doc end pos is file size, no need to look for it*/
 	else if (breaker.to_is_end) breaker.to_is_end = 0;
 	*tmp = '.';
@@ -2357,7 +2357,7 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 	samp->dataLength = breaker.to_pos - breaker.from_pos;
 	if (*max_size < samp->dataLength) {
 		*max_size = samp->dataLength;
-		samp->data = (char*)realloc(samp->data, sizeof(char)*samp->dataLength);
+		samp->data = (char*)gf_realloc(samp->data, sizeof(char)*samp->dataLength);
 	}
 	fseek(xml, breaker.from_pos, SEEK_SET);
 	fread(samp->data, 1, samp->dataLength, xml);
@@ -2367,11 +2367,11 @@ exit:
 	while (gf_list_count(breaker.id_stack)) {
 		char *id = (char *)gf_list_last(breaker.id_stack);
 		gf_list_rem_last(breaker.id_stack);
-		free(id);
+		gf_free(id);
 	}
 	gf_list_del(breaker.id_stack);
-	if (breaker.from_id) free(breaker.from_id);
-	if (breaker.to_id) free(breaker.to_id);
+	if (breaker.from_id) gf_free(breaker.from_id);
+	if (breaker.to_id) gf_free(breaker.to_id);
 	return e;
 }
 
@@ -2381,7 +2381,7 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 {
     z_stream stream;
     int err;
-	char *dest = (char *)malloc(sizeof(char)*samp->dataLength*ZLIB_COMPRESS_SAFE);
+	char *dest = (char *)gf_malloc(sizeof(char)*samp->dataLength*ZLIB_COMPRESS_SAFE);
     stream.next_in = (Bytef*)samp->data + offset;
     stream.avail_in = (uInt)samp->dataLength - offset;
     stream.next_out = ( Bytef*)dest;
@@ -2392,7 +2392,7 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 
     err = deflateInit(&stream, 9);
     if (err != Z_OK) {
-		free(dest);
+		gf_free(dest);
 		return GF_IO_ERR;
 	}
 	if (dict && *dict) {
@@ -2400,32 +2400,32 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 		if (err != Z_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import] Error assigning dictionary\n"));
 			deflateEnd(&stream);
-			free(dest);
+			gf_free(dest);
 			return GF_IO_ERR;
 		}
 	}
     err = deflate(&stream, Z_FINISH);
     if (err != Z_STREAM_END) {
         deflateEnd(&stream);
-		free(dest);
+		gf_free(dest);
         return GF_IO_ERR;
     }
     if (samp->dataLength - offset<stream.total_out) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import] compressed data (%d) bigger than input data (%d)\n", (u32) stream.total_out, (u32) samp->dataLength - offset));
 	}
 	if (dict) {
-		if (*dict) free(*dict);
-		*dict = (char*)malloc(sizeof(char)*samp->dataLength);
+		if (*dict) gf_free(*dict);
+		*dict = (char*)gf_malloc(sizeof(char)*samp->dataLength);
 		memcpy(*dict, samp->data, samp->dataLength);
 	}
 	if (*max_size < stream.total_out) {
 		*max_size = samp->dataLength*ZLIB_COMPRESS_SAFE;
-		samp->data = realloc(samp->data, *max_size * sizeof(char));
+		samp->data = gf_realloc(samp->data, *max_size * sizeof(char));
 	}
 
 	memcpy(samp->data + offset, dest, sizeof(char)*stream.total_out);
 	samp->dataLength = offset + stream.total_out;
-	free(dest);
+	gf_free(dest);
 
     deflateEnd(&stream);
     return GF_OK;
@@ -2542,7 +2542,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				}
 				fseek(d, 0, SEEK_END);
 				d_size = ftell(d);
-				dictionary = (char*)malloc(sizeof(char)*(d_size+1));
+				dictionary = (char*)gf_malloc(sizeof(char)*(d_size+1));
 				fseek(d, 0, SEEK_SET);
 				fread(dictionary, 1, d_size, d);
 				dictionary[d_size]=0;
@@ -2607,7 +2607,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	if (info) {
 		fseek(info, 0, SEEK_END);
 		specInfoSize = (u32) ftell(info);
-		specInfo = (char*)malloc(sizeof(char) * specInfoSize);
+		specInfo = (char*)gf_malloc(sizeof(char) * specInfoSize);
 		fseek(info, 0, SEEK_SET);
 		fread(specInfo, specInfoSize, 1, info);
 		fclose(info);
@@ -2720,7 +2720,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	duration = (u32) ( ((Double) import->duration)/ 1000 * timescale);
 
 	samp = gf_isom_sample_new();
-	samp->data = (char*)malloc(sizeof(char) * 1024);
+	samp->data = (char*)gf_malloc(sizeof(char) * 1024);
 	max_size = 1024;
 	count = 0;
 	media_size = 0;
@@ -2810,7 +2810,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			samp->dataLength = 3 + strlen(content);
 
 			if (samp->dataLength>max_size) {
-				samp->data = (char*)realloc(samp->data, sizeof(char) * samp->dataLength);
+				samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
 				max_size = samp->dataLength;
 			}
 
@@ -2818,7 +2818,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			gf_bs_write_u16(bs, samp->dataLength-2);
 			gf_bs_write_u8(bs, (u8) dims_flags);
 			gf_bs_write_data(bs, content, (samp->dataLength-3));
-			free(content);
+			gf_free(content);
 			gf_bs_del(bs);
 			/*same DIMS unit*/
 			if (gf_isom_get_sample_from_dts(import->dest, track, samp->DTS))
@@ -2850,7 +2850,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			if (is_dims) {
 				GF_BitStream *bs;
 				if (samp->dataLength+3>max_size) {
-					samp->data = (char*)realloc(samp->data, sizeof(char) * (samp->dataLength+3));
+					samp->data = (char*)gf_realloc(samp->data, sizeof(char) * (samp->dataLength+3));
 					max_size = samp->dataLength+3;
 				}
 				bs = gf_bs_new(samp->data, samp->dataLength+3, GF_BITSTREAM_WRITE);
@@ -2865,7 +2865,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 					append = 1;
 			} else {
 				if (samp->dataLength>max_size) {
-					samp->data = (char*)realloc(samp->data, sizeof(char) * samp->dataLength);
+					samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
 					max_size = samp->dataLength;
 				}
 				fread( samp->data, samp->dataLength, 1, f);
@@ -2928,8 +2928,8 @@ exit:
 		import->esd = NULL;
 	}
 	gf_xml_dom_del(parser);
-	if (specInfo) free(specInfo);
-	if (dictionary) free(dictionary);
+	if (specInfo) gf_free(specInfo);
+	if (dictionary) gf_free(dictionary);
 	return e;
 }
 
@@ -3058,7 +3058,7 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 	duration /= 1000;
 
 	samp = gf_isom_sample_new();
-	samp->data = (char*)malloc(sizeof(char) * 200);
+	samp->data = (char*)gf_malloc(sizeof(char) * 200);
 	samp->IsRAP = 1;
 	max_size = 200;
 	offset = ftell(mdia);
@@ -3294,9 +3294,9 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 			import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_13K_VOICE;
 			/*DSI is fmt*/
 			if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-			if (import->esd->decoderConfig->decoderSpecificInfo->data) free(import->esd->decoderConfig->decoderSpecificInfo->data);
+			if (import->esd->decoderConfig->decoderSpecificInfo->data) gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
 			import->esd->decoderConfig->decoderSpecificInfo->dataLength = 162;
-			import->esd->decoderConfig->decoderSpecificInfo->data = (char*)malloc(sizeof(char)*162);
+			import->esd->decoderConfig->decoderSpecificInfo->data = (char*)gf_malloc(sizeof(char)*162);
 			memcpy(import->esd->decoderConfig->decoderSpecificInfo->data, fmt, 162);
 			break;
 		case GF_ISOM_SUBTYPE_3GP_EVRC:
@@ -3321,7 +3321,7 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 	duration /= 1000;
 
 	samp = gf_isom_sample_new();
-	samp->data = (char*)malloc(sizeof(char) * 200);
+	samp->data = (char*)gf_malloc(sizeof(char) * 200);
 	samp->IsRAP = 1;
 	max_size = 200;
 	offset = ftell(mdia);
@@ -3357,7 +3357,7 @@ GF_Err gf_import_qcp(GF_MediaImporter *import)
 					samp->dataLength = size;
 				}
 				if (max_size<samp->dataLength) {
-					samp->data = (char*)realloc(samp->data, sizeof(char)*samp->dataLength);
+					samp->data = (char*)gf_realloc(samp->data, sizeof(char)*samp->dataLength);
 					max_size=samp->dataLength;
 				}
 				if (import->flags & GF_IMPORT_USE_DATAREF) {
@@ -3553,14 +3553,14 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 	nb_samp = media_done = 0;
 
 	max_size = 4096;
-	samp_data = (char*)malloc(sizeof(char)*max_size);
+	samp_data = (char*)gf_malloc(sizeof(char)*max_size);
 	gf_bs_seek(bs, 0);
 	offset = 0;
 	while (gf_bs_available(bs)) {
 		samp->dataLength = H263_NextStartCode(bs);
 		if (samp->dataLength>max_size) {
 			max_size = samp->dataLength;
-			samp_data = (char*)realloc(samp_data, sizeof(char)*max_size);
+			samp_data = (char*)gf_realloc(samp_data, sizeof(char)*max_size);
 		}
 		gf_bs_read_data(bs, samp_data, samp->dataLength);
 		/*we ignore pict number and import at const FPS*/
@@ -3583,7 +3583,7 @@ GF_Err gf_import_h263(GF_MediaImporter *import)
 			break;
 		}
 	}
-	free(samp_data);
+	gf_free(samp_data);
 	gf_isom_sample_del(&samp);
 	gf_set_progress("Importing H263", nb_samp, nb_samp);
 	gf_isom_modify_alternate_brand(import->dest, GF_4CC('3','g','g','6'), 1);
@@ -3600,7 +3600,7 @@ static void avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 
 	char *buffer;
 
 	msize = 4096;
-	buffer = (char*)malloc(sizeof(char)*msize);
+	buffer = (char*)gf_malloc(sizeof(char)*msize);
 	count = gf_isom_get_sample_count(file, track);
 	for (i=0; i<count;i++) {
 		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, &di);
@@ -3613,14 +3613,14 @@ static void avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 
 			remain -= prev_size/8;
 			if (size>msize) {
 				msize = size;
-				buffer = (char*)realloc(buffer, sizeof(char)*msize);
+				buffer = (char*)gf_realloc(buffer, sizeof(char)*msize);
 			}
 			gf_bs_read_data(oldbs, buffer, size);
 			gf_bs_write_data(newbs, buffer, size);
 			remain -= size;
 		}
 		gf_bs_del(oldbs);
-		free(samp->data);
+		gf_free(samp->data);
 		samp->data = NULL;
 		samp->dataLength = 0;
 		gf_bs_get_content(newbs, &samp->data, &samp->dataLength);
@@ -3628,7 +3628,7 @@ static void avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 
 		gf_isom_update_sample(file, track, i+1, samp, 1);
 		gf_isom_sample_del(&samp);
 	}
-	free(buffer);
+	gf_free(buffer);
 }
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -3681,7 +3681,7 @@ restart_import:
 	svccfg = gf_odf_avc_cfg_new();
 	/*we don't handle split import (one track / layer)*/
 	svccfg->complete_representation = 1;
-	buffer = (char*)malloc(sizeof(char) * max_size);
+	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 	sample_data = NULL;
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
@@ -3738,7 +3738,7 @@ restart_import:
 		nal_size = AVC_NextStartCode(bs);
 
 		if (nal_size>max_size) {
-			buffer = (char*)realloc(buffer, sizeof(char)*nal_size);
+			buffer = (char*)gf_realloc(buffer, sizeof(char)*nal_size);
 			max_size = nal_size;
 		}
 		gf_bs_read_data(bs, buffer, nal_size);
@@ -3798,9 +3798,9 @@ restart_import:
 				dstcfg->profile_compatibility = avc.sps[idx].prof_compat;
 				dstcfg->AVCProfileIndication = avc.sps[idx].profile_idc;
 				dstcfg->AVCLevelIndication = avc.sps[idx].level_idc;
-				slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 				slc->size = nal_size;
-				slc->data = (char*)malloc(sizeof(char)*slc->size);
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
 				memcpy(slc->data, buffer, sizeof(char)*slc->size);
 				gf_list_add(dstcfg->sequenceParameterSets, slc);
 				/*disable frame rate scan, most bitstreams have wrong values there*/
@@ -3818,7 +3818,7 @@ restart_import:
 					avccfg = NULL;
 					gf_odf_avc_cfg_del(svccfg);
 					svccfg = NULL;
-					free(buffer);
+					gf_free(buffer);
 					buffer = NULL;
 					gf_bs_del(bs);
 					bs = NULL;
@@ -3848,9 +3848,9 @@ restart_import:
 			}
 			if (avc.pps[idx].status==1) {
 				avc.pps[idx].status = 2;
-				slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 				slc->size = nal_size;
-				slc->data = (char*)malloc(sizeof(char)*slc->size);
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
 				memcpy(slc->data, buffer, sizeof(char)*slc->size);
 				dstcfg = (import->flags & GF_IMPORT_SVC_EXPLICIT) ? svccfg : avccfg;
 				gf_list_add(dstcfg->pictureParameterSets, slc);
@@ -3958,13 +3958,13 @@ restart_import:
 						char *buf;
 						u32 s = gf_bs_read_int(prev_sd, size_length);
 						gf_bs_write_int(sample_data, s, size_length+diff_size);
-						buf = (char*)malloc(sizeof(char)*s);
+						buf = (char*)gf_malloc(sizeof(char)*s);
 						gf_bs_read_data(prev_sd, buf, s);
 						gf_bs_write_data(sample_data, buf, s);
-						free(buf);
+						gf_free(buf);
 					}
 					gf_bs_del(prev_sd);
-					free(sd);
+					gf_free(sd);
 				}
 				size_length+=diff_size;
 
@@ -4211,7 +4211,7 @@ exit:
 	if (sample_data) gf_bs_del(sample_data);
 	gf_odf_avc_cfg_del(avccfg);
 	gf_odf_avc_cfg_del(svccfg);
-	free(buffer);
+	gf_free(buffer);
 	gf_bs_del(bs);
 	fclose(mdia);
 	return e;
@@ -4767,7 +4767,7 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 	samp->dataLength = ftell(src);
 	fseek(src, 0, SEEK_SET);
 	samp->IsRAP = 1;
-	samp->data = (char *)malloc(sizeof(char)*samp->dataLength);
+	samp->data = (char *)gf_malloc(sizeof(char)*samp->dataLength);
 	fread(samp->data, samp->dataLength, 1, src);
 	e = gf_isom_add_sample(import->dest, track, di, samp);
 	gf_isom_sample_del(&samp);
@@ -4882,7 +4882,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 				if (!import->esd) {
 					import->esd = gf_odf_desc_esd_new(0);
 					delete_esd = 1;
-					if (import->esd->URLString) free(import->esd->URLString);
+					if (import->esd->URLString) gf_free(import->esd->URLString);
 					import->esd->URLString = NULL;
 				}
 				import->esd->decoderConfig->streamType = st;
@@ -4893,16 +4893,16 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 				}
 				if (type==7) {
 					u32 url_len = gf_bs_read_u16(bs);
-					import->esd->URLString = (char *)malloc(sizeof(char)*(url_len+1));
+					import->esd->URLString = (char *)gf_malloc(sizeof(char)*(url_len+1));
 					gf_bs_read_data(bs, import->esd->URLString, url_len);
 					import->esd->URLString[url_len] = 0;
 					au_size-=2+url_len;
 				}
 				if (au_size) {
 					if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-					if (import->esd->decoderConfig->decoderSpecificInfo->data ) free(import->esd->decoderConfig->decoderSpecificInfo->data);
+					if (import->esd->decoderConfig->decoderSpecificInfo->data ) gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
 					import->esd->decoderConfig->decoderSpecificInfo->dataLength = au_size;
-					import->esd->decoderConfig->decoderSpecificInfo->data = (char *)malloc(sizeof(char)*au_size);
+					import->esd->decoderConfig->decoderSpecificInfo->data = (char *)gf_malloc(sizeof(char)*au_size);
 					gf_bs_read_data(bs, import->esd->decoderConfig->decoderSpecificInfo->data, au_size);
 					au_size = 0;
 				}
@@ -4927,7 +4927,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 			if (import->flags & GF_IMPORT_USE_DATAREF) {
 				e = gf_isom_add_sample_reference(import->dest, track, 1, samp, gf_bs_get_position(bs) );
 			} else {
-				samp->data = (char *)malloc(sizeof(char)*samp->dataLength);
+				samp->data = (char *)gf_malloc(sizeof(char)*samp->dataLength);
 				gf_bs_read_data(bs, samp->data, samp->dataLength);
 				au_size = 0;
 				e = gf_isom_add_sample(import->dest, track, 1, samp);
@@ -5353,7 +5353,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			GF_ESD *esd = gf_isom_get_esd(import->dest, tsimp->track, 1);
 			if (esd) {
 				if (!esd->decoderConfig->decoderSpecificInfo) esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-				if (esd->decoderConfig->decoderSpecificInfo->data) free(esd->decoderConfig->decoderSpecificInfo->data);
+				if (esd->decoderConfig->decoderSpecificInfo->data) gf_free(esd->decoderConfig->decoderSpecificInfo->data);
 				esd->decoderConfig->decoderSpecificInfo->data = ((GF_M2TS_PES_PCK*)par)->data;
 				esd->decoderConfig->decoderSpecificInfo->dataLength = ((GF_M2TS_PES_PCK*)par)->data_len;
 				gf_isom_change_mpeg4_description(import->dest, tsimp->track, 1, esd);
@@ -5433,9 +5433,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 							tsimp->avccfg->profile_compatibility = tsimp->avc.sps[idx].prof_compat;
 							tsimp->avccfg->AVCProfileIndication = tsimp->avc.sps[idx].profile_idc;
 							tsimp->avccfg->AVCLevelIndication = tsimp->avc.sps[idx].level_idc;
-							slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+							slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 							slc->size = pck->data_len-4;
-							slc->data = (char*)malloc(sizeof(char)*slc->size);
+							slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
 							memcpy(slc->data, pck->data+4, sizeof(char)*slc->size);
 							gf_list_add(tsimp->avccfg->sequenceParameterSets, slc);
 
@@ -5452,9 +5452,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					gf_bs_del(bs);
 					if ((idx>=0) && (tsimp->avc.pps[idx].status==1)) {
 						tsimp->avc.pps[idx].status = 2;
-						slc = (GF_AVCConfigSlot*)malloc(sizeof(GF_AVCConfigSlot));
+						slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 						slc->size = pck->data_len-4;
-						slc->data = (char*)malloc(sizeof(char)*slc->size);
+						slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
 						memcpy(slc->data, pck->data+4, sizeof(char)*slc->size);
 						gf_list_add(tsimp->avccfg->pictureParameterSets, slc);
 					}
@@ -5970,7 +5970,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 
 		psize = (buf[buf[0x16] + 0x18] << 8) + buf[buf[0x16] + 0x19];
 		dsize = (buf[buf[0x16] + 0x1a] << 8) + buf[buf[0x16] + 0x1b];
-		packet = (char *) malloc(sizeof(char)*psize);
+		packet = (char *) gf_malloc(sizeof(char)*psize);
 		if (!packet) {
 			err = gf_import_message(import, GF_OUT_OF_MEM, "Memory allocation failed");
 			goto error;
@@ -6008,7 +6008,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 
 		err = gf_isom_add_sample(import->dest, track, di, samp);
 		if (err) goto error;
-		free(packet);
+		gf_free(packet);
 
 		gf_set_progress("Importing VobSub", c, total);
 
@@ -6143,7 +6143,7 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 			gf_bs_skip_bytes(bs, samp->dataLength);
 		} else {
 			if (samp->dataLength > max_size) {
-				samp->data = (char*)realloc(samp->data, sizeof(char) * samp->dataLength);
+				samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
 				max_size = samp->dataLength;
 			}
 			gf_bs_read_data(bs, samp->data, samp->dataLength);
@@ -6307,18 +6307,18 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	xml_type = gf_xml_get_root_type(importer->in_name, &e);
 	if (xml_type) {
 		if (!stricmp(xml_type, "TextStream") || !stricmp(xml_type, "text3GTrack") ) {
-			free(xml_type);
+			gf_free(xml_type);
 			return gf_import_timed_text(importer);
 		}
 		else if (!stricmp(xml_type, "NHNTStream")) {
-			free(xml_type);
+			gf_free(xml_type);
 			return gf_import_nhml_dims(importer, 0);
 		}
 		else if (!stricmp(xml_type, "DIMSStream") ) {
-			free(xml_type);
+			gf_free(xml_type);
 			return gf_import_nhml_dims(importer, 1);
 		}
-		free(xml_type);
+		gf_free(xml_type);
 	}
 
 	return gf_import_message(importer, e, "Unknown input file type");

@@ -66,10 +66,10 @@ GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node)
 void group_cache_del(GroupCache *cache)
 {
 	drawable_del(cache->drawable);
-	if (cache->txh.data) free(cache->txh.data);
+	if (cache->txh.data) gf_free(cache->txh.data);
 	gf_sc_texture_release(&cache->txh);
 	gf_sc_texture_destroy(&cache->txh);
-	free(cache);
+	gf_free(cache);
 }
 
 void group_cache_setup(GroupCache *cache, GF_Rect *path_bounds, GF_IRect *pix_bounds, GF_Compositor *compositor, Bool for_gl)
@@ -83,14 +83,14 @@ void group_cache_setup(GroupCache *cache, GF_Rect *path_bounds, GF_IRect *pix_bo
 	cache->txh.pixelformat = for_gl ? GF_PIXEL_RGBA : GF_PIXEL_ARGB;
 	cache->txh.transparent = 1;
 
-	if (cache->txh.data) free(cache->txh.data);
+	if (cache->txh.data) gf_free(cache->txh.data);
 #ifdef CACHE_DEBUG_ALPHA
 	cache->txh.stride = pix_bounds->width * 3;
 	cache->txh.pixelformat = GF_PIXEL_RGB_24;
 	cache->txh.transparent = 0;
 #endif
 
-	cache->txh.data = (u8 *) malloc (sizeof(char) * cache->txh.stride * cache->txh.height);
+	cache->txh.data = (u8 *) gf_malloc (sizeof(char) * cache->txh.stride * cache->txh.height);
 	memset(cache->txh.data, 0x0, sizeof(char) * cache->txh.stride * cache->txh.height);
 	/*the path of drawable_cache is a rectangle one that is the the bound of the object*/
 	gf_path_reset(cache->drawable->path);

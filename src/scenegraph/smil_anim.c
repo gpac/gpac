@@ -627,7 +627,7 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
 			gf_node_get_scene_time(rai->anim_elt), gf_node_get_log_name(rai->anim_elt), 
 			gf_svg_get_attribute_name(rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
 
-		if (str) free(str);
+		if (str) gf_free(str);
 	}
 #endif
 }
@@ -672,7 +672,7 @@ static void gf_smil_anim_get_last_specified_value(SMIL_Anim_RTI *rai)
 	if (!animp) return;
 
 	if (rai->path) {
-		if (!rai->last_specified_value.far_ptr) rai->last_specified_value.far_ptr = malloc(sizeof(GF_Matrix2D));
+		if (!rai->last_specified_value.far_ptr) rai->last_specified_value.far_ptr = gf_malloc(sizeof(GF_Matrix2D));
 		gf_svg_compute_path_anim(rai, rai->last_specified_value.far_ptr, FIX_ONE);
 		return;
 	} else if (rai->anim_elt->sgprivate->tag == TAG_SVG_set) { 		
@@ -787,7 +787,7 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 				gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt), 
 				gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
 
-			if (str) free(str);
+			if (str) gf_free(str);
 		}
 #endif
 
@@ -816,7 +816,7 @@ static void gf_smil_apply_additive(SMIL_Anim_RTI *rai)
 					gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt), 
 					gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
 
-				if (str) free(str);
+				if (str) gf_free(str);
 			}
 #endif
 		}
@@ -912,7 +912,7 @@ static void gf_smil_anim_remove(SMIL_Timing_RTI *rti, Fixed normalized_simple_ti
 			gf_log("[SMIL Animation] Time %f - Animation     %s - Presentation value changed for attribute %s, new value: %s\n", 
 				gf_node_get_scene_time((GF_Node*)rai->anim_elt), gf_node_get_log_name((GF_Node*)rai->anim_elt), 
 				gf_svg_get_attribute_name((GF_Node*)rai->anim_elt, rai->owner->presentation_value.fieldIndex), str);
-			if (str) free(str);
+			if (str) gf_free(str);
 		}
 #endif
 
@@ -1047,7 +1047,7 @@ void gf_svg_apply_animations(GF_Node *node, SVGPropertiesPointers *render_svg_pr
 					gf_node_get_scene_time(node), gf_node_get_log_name(node), 
 					gf_svg_get_attribute_name(node, aa->presentation_value.fieldIndex), str, aa->dirty_flags);
 
-				if (str) free(str);
+				if (str) gf_free(str);
 			}
 		}
 #endif
@@ -1334,7 +1334,7 @@ void gf_smil_anim_delete_runtime_info(SMIL_Anim_RTI *rai)
 	if (rai->path) gf_path_del(rai->path);
 #endif
 	if (rai->path_iterator) gf_path_iterator_del(rai->path_iterator);
-	free(rai);
+	gf_free(rai);
 }
 
 void gf_smil_anim_remove_from_target(GF_Node *anim, GF_Node *target)
@@ -1359,7 +1359,7 @@ void gf_smil_anim_remove_from_target(GF_Node *anim, GF_Node *target)
 										  target->sgprivate->scenegraph);
 			aa->presentation_value.far_ptr = aa->orig_dom_ptr;
 			gf_node_animation_rem((GF_Node *)target, i);
-			free(aa);
+			gf_free(aa);
 		}
 	}
 }
@@ -1380,7 +1380,7 @@ void gf_smil_anim_delete_animations(GF_Node *e)
 			gf_smil_anim_delete_runtime_info(rai);
 		}		
 		gf_list_del(aa->anims);
-		free(aa);
+		gf_free(aa);
 	}
 	gf_node_animation_del(e);
 }
@@ -1409,12 +1409,12 @@ void gf_smil_anim_init_node(GF_Node *node)
 	SVGTimedAnimBaseElement *e = (SVGTimedAnimBaseElement *)node;
 	
 	gf_svg_flatten_attributes((SVG_Element *)e, &all_atts);
-	e->xlinkp = malloc(sizeof(XLinkAttributesPointers));
+	e->xlinkp = gf_malloc(sizeof(XLinkAttributesPointers));
 	xlinkp = e->xlinkp;
 	xlinkp->href = all_atts.xlink_href;
 	xlinkp->type = all_atts.xlink_type;		
 
-	e->animp = malloc(sizeof(SMILAnimationAttributesPointers));
+	e->animp = gf_malloc(sizeof(SMILAnimationAttributesPointers));
 	animp = e->animp;
 	animp->accumulate	 = all_atts.accumulate;
 	animp->additive		 = all_atts.additive;

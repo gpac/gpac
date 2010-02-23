@@ -89,7 +89,7 @@ static void CTXLoad_Reset(CTXLoadPriv *priv)
 		char *fileName = (char*)gf_list_get(priv->files_to_delete, 0);
 		gf_list_rem(priv->files_to_delete, 0);
 		gf_delete_file(fileName);
-		free(fileName);
+		gf_free(fileName);
 	}
 }
 
@@ -210,7 +210,7 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	priv->file_size = gf_bs_read_u32(bs);
 	gf_bs_del(bs);
 	size = esd->decoderConfig->decoderSpecificInfo->dataLength - sizeof(u32);
-	priv->file_name = (char *) malloc(sizeof(char)*(1 + size) );
+	priv->file_name = (char *) gf_malloc(sizeof(char)*(1 + size) );
 	memcpy(priv->file_name, esd->decoderConfig->decoderSpecificInfo->data + sizeof(u32),  sizeof(char)*(esd->decoderConfig->decoderSpecificInfo->dataLength - sizeof(u32)) );
 	priv->file_name[size] = 0;
 	priv->nb_streams = 1;
@@ -493,7 +493,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 					j--;
 					gf_list_rem(sc->AUs, j);
 					gf_list_del(au->commands);
-					free(au);
+					gf_free(au);
 				}
 				continue;
 			}
@@ -609,10 +609,10 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 								fclose(t);
 							}
 							/*remap to remote URL*/
-							remote = strdup(mux->file_name);
+							remote = gf_strdup(mux->file_name);
 							k = od->objectDescriptorID;
 							/*if files were created we'll have to clean up (swf import)*/
-							if (mux->delete_file) gf_list_add(priv->files_to_delete, strdup(remote));
+							if (mux->delete_file) gf_list_add(priv->files_to_delete, gf_strdup(remote));
 
 							gf_odf_desc_del((GF_Descriptor *) od);
 							od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
@@ -656,7 +656,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 				j--;
 				gf_list_rem(sc->AUs, j);
 				gf_list_del(au->commands);
-				free(au);
+				gf_free(au);
 			}
 		}
 	}
@@ -706,11 +706,11 @@ Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectTyp
 void DeleteContextLoader(GF_BaseDecoder *plug)
 {
 	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
-	if (priv->file_name) free(priv->file_name);
+	if (priv->file_name) gf_free(priv->file_name);
 	assert(!priv->ctx);
 	gf_list_del(priv->files_to_delete);
-	free(priv);
-	free(plug);
+	gf_free(priv);
+	gf_free(plug);
 }
 
 GF_BaseDecoder *NewContextLoader()

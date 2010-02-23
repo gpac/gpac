@@ -71,9 +71,9 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, Bool from_ff_demux)
 
 	/*demuxer is ffmpeg, extra data can be copied directly*/
 	if (from_ff_demux) {
-		free(ffd->ctx->extradata);
+		gf_free(ffd->ctx->extradata);
 		ffd->ctx->extradata_size = dsi_size;
-		ffd->ctx->extradata = (uint8_t*) malloc(sizeof(char)*ffd->ctx->extradata_size);
+		ffd->ctx->extradata = (uint8_t*) gf_malloc(sizeof(char)*ffd->ctx->extradata_size);
 		gf_bs_read_data(bs, ffd->ctx->extradata, ffd->ctx->extradata_size);
 		return;
 	}
@@ -86,18 +86,18 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, Bool from_ff_demux)
 		/*there should be an 'SMI' entry*/
 		at_type = gf_bs_read_u32(bs);
 		if (at_type == GF_4CC('S', 'M', 'I', ' ')) {
-			free(ffd->ctx->extradata);
+			gf_free(ffd->ctx->extradata);
 			ffd->ctx->extradata_size = 0x5a + size;
-			ffd->ctx->extradata = (uint8_t*) malloc(sizeof(char)*ffd->ctx->extradata_size);
+			ffd->ctx->extradata = (uint8_t*) gf_malloc(sizeof(char)*ffd->ctx->extradata_size);
 			strcpy(ffd->ctx->extradata, "SVQ3");
 			gf_bs_read_data(bs, (unsigned char *)ffd->ctx->extradata + 0x5a, size);
 		}
 	}
 		break;
 	default:
-		free(ffd->ctx->extradata);
+		gf_free(ffd->ctx->extradata);
 		ffd->ctx->extradata_size = dsi_size;
-		ffd->ctx->extradata = (uint8_t*) malloc(sizeof(char)*ffd->ctx->extradata_size);
+		ffd->ctx->extradata = (uint8_t*) gf_malloc(sizeof(char)*ffd->ctx->extradata_size);
 		gf_bs_read_data(bs, ffd->ctx->extradata, ffd->ctx->extradata_size);
 		break;
 	}
@@ -246,7 +246,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				}
 
 				/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
-				ffd->ctx->extradata = malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+				ffd->ctx->extradata = gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 				memcpy(ffd->ctx->extradata, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 				ffd->ctx->extradata_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 			}
@@ -303,7 +303,7 @@ static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	ffd->ES_ID = 0;
 
 	if (ffd->ctx) {
-		if (ffd->ctx->extradata) free(ffd->ctx->extradata);
+		if (ffd->ctx->extradata) gf_free(ffd->ctx->extradata);
 		avcodec_close(ffd->ctx);
 		ffd->ctx = NULL;
 	}
@@ -804,7 +804,7 @@ void FFDEC_Delete(void *ifce)
 	FFDec *ffd = dec->privateStack;
 
 	if (ffd->ctx) avcodec_close(ffd->ctx);
-	free(ffd);
-	free(dec);
+	gf_free(ffd);
+	gf_free(dec);
 
 }

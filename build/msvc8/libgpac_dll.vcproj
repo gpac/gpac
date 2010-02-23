@@ -281,9 +281,10 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
+				GenerateManifest="false"
 				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
-				ImportLibrary="$(IntDir)/$(ProjectName).lib"
+				ImportLibrary="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac.lib"
 				TargetMachine="1"
 			/>
 			<Tool

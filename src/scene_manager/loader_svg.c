@@ -210,7 +210,7 @@ static void svg_process_media_href(GF_SVG_Parser *parser, XMLRI *iri)
 {
 	SVG_SAFExternalStream *st = svg_saf_get_stream(parser, 0, iri->string+1);
 	if (st) {
-		free(iri->string);
+		gf_free(iri->string);
 		iri->string = NULL;
 		iri->lsr_stream_id = st->id;
 		iri->type = XMLRI_STREAMID;
@@ -242,7 +242,7 @@ static GF_Node *svg_find_node(GF_SVG_Parser *parser, char *ID)
 	tag = gf_xml_get_element_tag(node_class, parser->current_ns);
 	n = gf_node_new(parser->load->scene_graph, tag);
 
-	free(node_class);
+	gf_free(node_class);
 
 	if (n) {
 		gf_svg_parse_element_id(n, ID, 0);
@@ -270,13 +270,13 @@ static void svg_delete_defered_anim(SVG_DeferedAnimation *anim, GF_List *defered
 {
 	if (defered_animations) gf_list_del_item(defered_animations, anim);
 
-	if (anim->target_id) free(anim->target_id);
-	if (anim->to) free(anim->to);
-	if (anim->from) free(anim->from);
-	if (anim->by) free(anim->by);
-	if (anim->values) free(anim->values);
-	if (anim->type) free(anim->type);
-	free(anim);
+	if (anim->target_id) gf_free(anim->target_id);
+	if (anim->to) gf_free(anim->to);
+	if (anim->from) gf_free(anim->from);
+	if (anim->by) gf_free(anim->by);
+	if (anim->values) gf_free(anim->values);
+	if (anim->type) gf_free(anim->type);
+	gf_free(anim);
 }
 
 static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_DeferedAnimation *anim, const char *nodeID, u32 force_type)
@@ -342,8 +342,8 @@ static Bool svg_parse_animation(GF_SVG_Parser *parser, GF_SceneGraph *sg, SVG_De
 					sep[0] = 0;
 					attname->type = gf_sg_get_namespace_code(anim->animation_elt->sgprivate->scenegraph, name);
 					sep[0] = ':';
-					name = strdup(sep+1);
-					free(attname->name);
+					name = gf_strdup(sep+1);
+					gf_free(attname->name);
 					attname->name = name;
 				} else {
 					attname->type = parser->current_ns;
@@ -450,7 +450,7 @@ static void svg_resolved_refs(GF_SVG_Parser *parser, GF_SceneGraph *sg, const ch
 			iri->type = XMLRI_ELEMENTID;
 			iri->target = targ;
 			gf_node_register_iri(sg, iri);
-			free(iri->string);
+			gf_free(iri->string);
 			iri->string = NULL;
 			gf_list_rem(parser->defered_hrefs, i);
 			i--;
@@ -616,7 +616,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		}
 		if (tag == TAG_DOMFullNode) {
 			GF_DOMFullNode *d = (GF_DOMFullNode *)elt;
-			d->name = strdup(name);
+			d->name = gf_strdup(name);
 			d->ns = xmlns;
 		}
 	}
@@ -690,23 +690,23 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		} 
 		if (anim) {
 			if (!stricmp(att_name, "to")) {
-				anim->to = strdup(att->value);
+				anim->to = gf_strdup(att->value);
 				continue;
 			}
 			if (!stricmp(att_name, "from")) {
-				anim->from = strdup(att->value);
+				anim->from = gf_strdup(att->value);
 				continue;
 			}
 			if (!stricmp(att_name, "by")) {
-				anim->by = strdup(att->value);
+				anim->by = gf_strdup(att->value);
 				continue;
 			}
 			if (!stricmp(att_name, "values")) {
-				anim->values = strdup(att->value);
+				anim->values = gf_strdup(att->value);
 				continue;
 			}
 			if ((tag == TAG_SVG_animateTransform) && !stricmp(att_name, "type")) {
-				anim->type = strdup(att->value);
+				anim->type = gf_strdup(att->value);
 				continue;
 			}
 		}
@@ -714,7 +714,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		if ((ns == GF_XMLNS_XLINK) && !stricmp(att_name, "href") ) {
 			if (gf_svg_is_animation_tag(tag)) {
 				assert(anim);
-				anim->target_id = strdup(att->value);
+				anim->target_id = gf_strdup(att->value);
 				/*may be NULL*/
 				anim->target = (SVG_Element *) gf_sg_find_node_by_name(parser->load->scene_graph, anim->target_id + 1);
 				continue;
@@ -769,7 +769,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			u32 evtType = gf_dom_event_type_by_name(att_name + 2);
 			if (evtType != GF_EVENT_UNKNOWN) {
 				SVG_handlerElement *handler = gf_dom_listener_build((GF_Node *) elt, evtType, 0);
-				gf_dom_add_text_node((GF_Node *)handler, strdup(att->value) );
+				gf_dom_add_text_node((GF_Node *)handler, gf_strdup(att->value) );
 				continue;
 			} 
 			svg_report(parser, GF_OK, "Skipping unknown event handler %s on node %s", att->name, name);
@@ -1015,7 +1015,7 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 			gf_node_register(parser->command->node, NULL);
 			if (atValue) {
 				field->field_ptr = gf_svg_create_attribute_value(field->fieldType);
-				*(SVG_String *)field->field_ptr = strdup(atValue);
+				*(SVG_String *)field->field_ptr = gf_strdup(atValue);
 			}
 			return GF_OK;
 		}
@@ -1107,7 +1107,7 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 		if (atString) {
 			u32 key = gf_dom_get_key_type(atString);
 			if (key == GF_KEY_UNIDENTIFIED) {
-				parser->command->send_event_string = strdup(atString);
+				parser->command->send_event_string = gf_strdup(atString);
 			} else {
 				parser->command->send_event_integer = key;
 			}
@@ -1278,7 +1278,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];
 				if (!strcmp(att->name, "time")) time = atoi(att->value);
 				else if (!strcmp(att->name, "rap")) rap = !strcmp(att->value, "yes") ? 1 : 0;
-				else if (!strcmp(att->name, "url")) url = strdup(att->value); 
+				else if (!strcmp(att->name, "url")) url = gf_strdup(att->value); 
 				else if (!strcmp(att->name, "streamID")) ID = att->value;
 				else if (!strcmp(att->name, "objectTypeIndication")) OTI = atoi(att->value);
 				else if (!strcmp(att->name, "streamType")) ST = atoi(att->value);
@@ -1290,7 +1290,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 			/*create new SAF stream*/
 			st = svg_saf_get_next_available_stream(parser);
-			st->stream_name = strdup(ID);
+			st->stream_name = gf_strdup(ID);
 
 			/*create new SAF unit*/
 			parser->saf_au = gf_sm_stream_au_new(parser->saf_es, time, 0, 0);
@@ -1317,7 +1317,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 				/*global source for stream, don't use nhml dumping*/
 				if (src) {
-					mux->file_name = strdup(src);
+					mux->file_name = gf_strdup(src);
 					st->nhml_info = NULL;
 				} else {
 					if (parser->load->localPath) {
@@ -1327,7 +1327,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 						strcpy(szName, ID);
 					}
 					strcat(szName, "_temp.nhml");
-					mux->file_name = strdup(szName);
+					mux->file_name = gf_strdup(szName);
 					st->nhml_info = mux->file_name;
 					nhml = fopen(st->nhml_info, "wt");
 					fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
@@ -1506,7 +1506,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		}
 	} else if (!parser->has_root ) {
 		gf_list_del_item(parser->node_stack, stack);
-		free(stack);
+		gf_free(stack);
 		gf_node_unregister((GF_Node *)elt, NULL);
 	} else if ((parser->has_root==2) && !parser->fragment_root) {
 		parser->fragment_root = (GF_Node *)elt;
@@ -1572,7 +1572,7 @@ static void svg_node_end(void *sax_cbck, const char *name, const char *name_spac
 		}
 		parser->current_ns = top->current_ns;
 		if (top->has_ns) gf_xml_pop_namespaces(top->node);
-		free(top);
+		gf_free(top);
 		gf_list_rem_last(parser->node_stack);
 
 		if (parser->load->flags & GF_SM_LOAD_FOR_PLAYBACK) {
@@ -1670,7 +1670,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 		/*create a text node but don't register it with any node*/
 		text = gf_dom_new_text_node(parser->load->scene_graph);
 		gf_node_register((GF_Node *)text, NULL);
-		text->textContent = strdup(text_content);
+		text->textContent = gf_strdup(text_content);
 
 		if (field->new_node) {
 			field->field_ptr = &field->node_list;
@@ -1713,7 +1713,7 @@ static void svg_text_content(void *sax_cbck, const char *text_content, Bool is_c
 	}
 
 	if (!skip_text) {
-		text = gf_dom_add_text_node((GF_Node *)elt, strdup(text_content));
+		text = gf_dom_add_text_node((GF_Node *)elt, gf_strdup(text_content));
 		text->type = is_cdata ? GF_DOM_TEXT_CDATA : GF_DOM_TEXT_REGULAR;
 		gf_node_changed((GF_Node *)text, NULL);
 	}
@@ -1765,7 +1765,7 @@ static void gf_sm_svg_flush_state(GF_SVG_Parser *parser)
 	while (gf_list_count(parser->node_stack)) {
 		SVG_NodeStack *st = (SVG_NodeStack *)gf_list_last(parser->node_stack);
 		gf_list_rem_last(parser->node_stack);
-		free(st);
+		gf_free(st);
 	}
 	/*FIXME - if there still are som defered listeners, we should pass them to the scene graph
 	and wait for the parent to be defined*/
@@ -1877,11 +1877,11 @@ GF_Err gf_sm_load_done_svg(GF_SceneLoader *load)
 	st = parser->streams;
 	while (st) {
 		SVG_SAFExternalStream *next = st->next;
-		free(st->stream_name);
-		free(st);
+		gf_free(st->stream_name);
+		gf_free(st);
 		st = next;
 	}
-	free(parser);
+	gf_free(parser);
 	load->loader_priv = NULL;
 	return GF_OK;
 }
@@ -1902,6 +1902,12 @@ GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *in_scene, char *node_str)
 	if (node) node->sgprivate->num_instances--;
 	gf_sm_load_done_svg(&ctx);
 	return node;
+}
+
+void gf_sm_load_suspend_svg(GF_SceneLoader *load, Bool suspend)
+{
+	GF_SVG_Parser *parser = (GF_SVG_Parser *)load->loader_priv;
+	if (parser) gf_xml_sax_suspend(parser->sax_parser, suspend);
 }
 
 #endif

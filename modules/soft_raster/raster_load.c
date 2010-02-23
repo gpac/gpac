@@ -68,7 +68,7 @@ GF_Raster2D *EVG_LoadRenderer()
 
 void EVG_ShutdownRenderer(GF_Raster2D *dr)
 {
-	free(dr);
+	gf_free(dr);
 }
 
 #ifndef GPAC_STANDALONE_RENDER_2D

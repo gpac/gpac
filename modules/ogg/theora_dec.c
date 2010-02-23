@@ -69,14 +69,14 @@ static GF_Err THEO_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
 		oggpacket.bytes = gf_bs_read_u16(bs);
-		oggpacket.packet = malloc(sizeof(char) * oggpacket.bytes);
+		oggpacket.packet = gf_malloc(sizeof(char) * oggpacket.bytes);
 		gf_bs_read_data(bs, oggpacket.packet, oggpacket.bytes);
 		if (theora_decode_header(&ctx->ti, &ctx->tc, &oggpacket) < 0 ) {
-			free(oggpacket.packet);
+			gf_free(oggpacket.packet);
 			gf_bs_del(bs);
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
-		free(oggpacket.packet);
+		gf_free(oggpacket.packet);
 	}
     theora_decode_init(&ctx->td, &ctx->ti);
 	gf_bs_del(bs);
@@ -227,7 +227,7 @@ u32 NewTheoraDecoder(GF_BaseDecoder *ifcd)
 void DeleteTheoraDecoder(GF_BaseDecoder *ifcg)
 {
 	THEORACTX();
-	free(ctx);
+	gf_free(ctx);
 }
 
 #endif

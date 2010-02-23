@@ -579,7 +579,7 @@ static void DestroyBooleanSequencer(GF_Node *n, void *eff, Bool is_destroy)
 {
 	if (is_destroy) {
 		s32 *st = (s32 *) gf_node_get_private(n);
-		free(st);
+		gf_free(st);
 	}
 }
 void InitBooleanSequencer(GF_Node *n)
@@ -588,7 +588,7 @@ void InitBooleanSequencer(GF_Node *n)
 	bs->on_next = BooleanSequencer_setNext;
 	bs->on_previous = BooleanSequencer_setPrevious;
 	bs->on_set_fraction = BooleanSequencer_setFraction;
-	n->sgprivate->UserPrivate = malloc(sizeof(s32));
+	n->sgprivate->UserPrivate = gf_malloc(sizeof(s32));
 	*(s32 *)n->sgprivate->UserPrivate = 0;
 	n->sgprivate->UserCallback = DestroyBooleanSequencer;
 }
@@ -672,7 +672,7 @@ static void DestroyIntegerSequencer(GF_Node *n, void *eff, Bool is_destroy)
 {
 	if (is_destroy) {
 		s32 *st = (s32 *)gf_node_get_private(n);
-		free(st);
+		gf_free(st);
 	}
 }
 void InitIntegerSequencer(GF_Node *n)
@@ -681,7 +681,7 @@ void InitIntegerSequencer(GF_Node *n)
 	bs->on_next = IntegerSequencer_setNext;
 	bs->on_previous = IntegerSequencer_setPrevious;
 	bs->on_set_fraction = IntegerSequencer_setFraction;
-	n->sgprivate->UserPrivate = malloc(sizeof(s32));
+	n->sgprivate->UserPrivate = gf_malloc(sizeof(s32));
 	*(s32 *)n->sgprivate->UserPrivate = 0;
 	n->sgprivate->UserCallback = DestroyIntegerSequencer;
 }

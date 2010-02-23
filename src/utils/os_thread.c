@@ -97,17 +97,17 @@ static const char *log_th_name(u32 id)
 
 GF_Thread *gf_th_new(const char *name)
 {
-	GF_Thread *tmp = malloc(sizeof(GF_Thread));
+	GF_Thread *tmp = gf_malloc(sizeof(GF_Thread));
 	memset(tmp, 0, sizeof(GF_Thread));
 	tmp->status = GF_THREAD_STATUS_STOP;
 
 #ifndef GPAC_DISABLE_LOG
 	if (name) {
-		tmp->log_name = strdup(name);
+		tmp->log_name = gf_strdup(name);
 	} else {
 		char szN[20];
 		sprintf(szN, "0x%08x", (u32) tmp);
-		tmp->log_name = strdup(szN);
+		tmp->log_name = gf_strdup(szN);
 	}
 	log_add_thread(tmp);
 #endif
@@ -229,10 +229,10 @@ void gf_th_del(GF_Thread *t)
 #endif
 
 #ifndef GPAC_DISABLE_LOG
-	free(t->log_name);
+	gf_free(t->log_name);
 	log_del_thread(t);
 #endif
-	free(t);
+	gf_free(t);
 }
 
 
@@ -302,7 +302,7 @@ GF_Mutex *gf_mx_new(const char *name)
 #ifndef WIN32
 	pthread_mutexattr_t attr;
 #endif
-	GF_Mutex *tmp = malloc(sizeof(GF_Mutex));
+	GF_Mutex *tmp = gf_malloc(sizeof(GF_Mutex));
 	if (!tmp) return NULL;
 	memset(tmp, 0, sizeof(GF_Mutex));
 	
@@ -313,17 +313,17 @@ GF_Mutex *gf_mx_new(const char *name)
 	pthread_mutexattr_init(&attr);
 	if ( pthread_mutex_init(&tmp->hMutex, &attr) != 0 ) {
 #endif
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 
 #ifndef GPAC_DISABLE_LOG
 	if (name) {
-		tmp->log_name = strdup(name);
+		tmp->log_name = gf_strdup(name);
 	} else {
 		char szN[20];
 		sprintf(szN, "0x%08x", (u32) tmp);
-		tmp->log_name = strdup(szN);
+		tmp->log_name = gf_strdup(szN);
 	}
 #endif
 
@@ -338,9 +338,9 @@ void gf_mx_del(GF_Mutex *mx)
 	pthread_mutex_destroy(&mx->hMutex);
 #endif
 #ifndef GPAC_DISABLE_LOG
-	free(mx->log_name);
+	gf_free(mx->log_name);
 #endif
-	free(mx);
+	gf_free(mx);
 }
 
 void gf_mx_v(GF_Mutex *mx)
@@ -456,7 +456,7 @@ struct __tag_semaphore
 
 GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 {
-	GF_Semaphore *tmp = malloc(sizeof(GF_Semaphore));
+	GF_Semaphore *tmp = gf_malloc(sizeof(GF_Semaphore));
 
 	if (!tmp) return NULL;
 #if defined(WIN32)
@@ -470,19 +470,19 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 	{
 		char semaName[40];
 		sprintf(semaName,"GPAC_SEM%d", (u32) tmp);
-		tmp->SemName = strdup(semaName);
+		tmp->SemName = gf_strdup(semaName);
 	}
 	tmp->hSemaphore = sem_open(tmp->SemName, O_CREAT, S_IRUSR|S_IWUSR, InitCount);
 #else
 	if (sem_init(&tmp->SemaData, 0, InitCount) < 0 ) {
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	tmp->hSemaphore = &tmp->SemaData;
 #endif
 
 	if (!tmp->hSemaphore) {
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	return tmp;
@@ -495,11 +495,11 @@ void gf_sema_del(GF_Semaphore *sm)
 #elif defined(__DARWIN__) || defined(__APPLE__)
 	sem_t *sema = sem_open(sm->SemName, 0);
 	sem_destroy(sema);
-	free(sm->SemName);
+	gf_free(sm->SemName);
 #else
 	sem_destroy(sm->hSemaphore);
 #endif
-	free(sm);
+	gf_free(sm);
 }
 
 u32 gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)

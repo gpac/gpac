@@ -522,8 +522,8 @@ void gf_sc_del(GF_Compositor *compositor)
 	gf_node_unregister(compositor->focus_highlight->node, NULL);
 	drawable_del_ex(compositor->focus_highlight, compositor);
 
-	if (compositor->selected_text) free(compositor->selected_text);
-	if (compositor->sel_buffer) free(compositor->sel_buffer);
+	if (compositor->selected_text) gf_free(compositor->selected_text);
+	if (compositor->sel_buffer) gf_free(compositor->sel_buffer);
 
 	visual_del(compositor->visual);
 	gf_list_del(compositor->sensors);
@@ -539,7 +539,7 @@ void gf_sc_del(GF_Compositor *compositor)
 
 	gf_list_del(compositor->traverse_state->vrml_sensors);
 	gf_list_del(compositor->traverse_state->use_stack);
-	free(compositor->traverse_state);
+	gf_free(compositor->traverse_state);
 
 #ifndef GPAC_DISABLE_3D
 	if (compositor->unit_bbox) mesh_free(compositor->unit_bbox);
@@ -554,7 +554,7 @@ void gf_sc_del(GF_Compositor *compositor)
 	while (gf_list_count(compositor->events)) {
 		GF_Event *ev = (GF_Event *)gf_list_get(compositor->events, 0);
 		gf_list_rem(compositor->events, 0);
-		free(ev);
+		gf_free(ev);
 	}
 	gf_mx_v(compositor->ev_mx);
 	gf_mx_del(compositor->ev_mx);
@@ -573,7 +573,7 @@ void gf_sc_del(GF_Compositor *compositor)
 	gf_list_del(compositor->extra_scenes);
 	gf_sc_lock(compositor, 0);
 	gf_mx_del(compositor->mx);
-	free(compositor);
+	gf_free(compositor);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Destroyed\n"));
 }
 
@@ -706,7 +706,7 @@ static void gf_sc_reset(GF_Compositor *compositor)
 		while (visual->prev_nodes) {
 			struct _drawable_store *cur = visual->prev_nodes;
 			visual->prev_nodes = cur->next;
-			free(cur);
+			gf_free(cur);
 		}
 		visual->last_prev_entry = NULL;
 		visual->to_redraw.count = 0;
@@ -781,7 +781,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	while (gf_list_count(compositor->events)) {
 		GF_Event *ev = (GF_Event*)gf_list_get(compositor->events, 0);
 		gf_list_rem(compositor->events, 0);
-		free(ev);
+		gf_free(ev);
 	}
 #endif
 	
@@ -1792,7 +1792,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		if (!gf_sc_exec_event(compositor, ev)) {
 			gf_sc_forward_event(compositor, ev);
 		}
-		free(ev);
+		gf_free(ev);
 	}
 	gf_mx_v(compositor->ev_mx);
 #ifndef GPAC_DISABLE_LOG
@@ -2285,7 +2285,7 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 		gf_mx_v(compositor->ev_mx);
 	}
 	default:
-		ev = (GF_Event *)malloc(sizeof(GF_Event));
+		ev = (GF_Event *)gf_malloc(sizeof(GF_Event));
 		ev->type = event->type;
 		if (event->type<=GF_EVENT_MOUSEWHEEL) {
 			ev->mouse = event->mouse;
@@ -2514,7 +2514,7 @@ Bool gf_sc_script_action(GF_Compositor *compositor, u32 type, GF_Node *n, GF_JSA
 			tr_state.abort_bounds_traverse=1;
 			gf_node_traverse(n, &tr_state);
 			gf_svg_properties_reset_pointers(tr_state.svg_props);
-			free(tr_state.svg_props);
+			gf_free(tr_state.svg_props);
 #endif
 		} else {
 			gf_node_traverse(gf_sg_get_root_node(compositor->scene), &tr_state);
@@ -2643,7 +2643,7 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 
 	compositor->traverse_state->traversing_mode = TRAVERSE_GET_TEXT;
 	if (compositor->sel_buffer) {
-		free(compositor->sel_buffer);
+		gf_free(compositor->sel_buffer);
 		compositor->sel_buffer = NULL;
 	}
 	compositor->sel_buffer_len = 0;
@@ -2652,8 +2652,8 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 	compositor->traverse_state->traversing_mode = 0;
 	compositor->sel_buffer[compositor->sel_buffer_len]=0;
 	srcp = compositor->sel_buffer;
-	if (compositor->selected_text) free(compositor->selected_text);
-	compositor->selected_text = malloc(sizeof(char)*2*compositor->sel_buffer_len);
+	if (compositor->selected_text) gf_free(compositor->selected_text);
+	compositor->selected_text = gf_malloc(sizeof(char)*2*compositor->sel_buffer_len);
 	len = gf_utf8_wcstombs(compositor->selected_text, 2*compositor->sel_buffer_len, &srcp);
 	if ((s32)len<0) len = 0;
 	compositor->selected_text[len] = 0;

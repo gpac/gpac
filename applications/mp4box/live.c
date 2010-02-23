@@ -8,7 +8,7 @@
  *
  *  This file is part of GPAC / mp4box application
  *
- *  GPAC is free software; you can redistribute it and/or modify
+ *  GPAC is gf_free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
@@ -86,7 +86,7 @@ int stream_file_rtp(int argc, char **argv)
 		return 1;
 	}
 
-	gf_sys_init();
+	gf_sys_init(0);
 
 	gf_log_set_tools(GF_LOG_RTP);
 	gf_log_set_level(GF_LOG_WARNING);	//set to debug to have packet list
@@ -178,7 +178,7 @@ static void live_session_setup(GF_SceneEngine *seng, GF_List *streams, char *ip,
 	u32 i;
 	char *iod64 = gf_seng_get_base64_iod(seng);
 	char *sdp = gf_rtp_streamer_format_sdp_header("GPACSceneStreamer", ip, NULL, iod64);
-	if (iod64) free(iod64);
+	if (iod64) gf_free(iod64);
 
 	for (i=0; i<count; i++) {
 		u16 ESID;
@@ -198,7 +198,7 @@ static void live_session_setup(GF_SceneEngine *seng, GF_List *streams, char *ip,
 		FILE *out = fopen(sdp_name, "wt");
         fprintf(out, sdp);
 		fclose(out);
-	    free(sdp);
+	    gf_free(sdp);
     }
 }
 
@@ -208,7 +208,7 @@ void live_session_shutdown(GF_List *list)
 		RTPChannel *rtpch = gf_list_get(list, 0);
 		gf_list_rem(list, 0);
 		gf_rtp_streamer_del(rtpch->rtp);
-		free(rtpch);
+		gf_free(rtpch);
 	}
 }
 
@@ -234,7 +234,7 @@ int live_session(int argc, char **argv)
 	GF_List *streams = NULL;
 	GF_SceneEngine *seng = NULL;
 
-	gf_sys_init();
+	gf_sys_init(0);
 
 	gf_log_set_level(GF_LOG_INFO);
 	gf_log_set_tools(0xFFFFFFFF);

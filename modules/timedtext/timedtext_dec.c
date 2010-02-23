@@ -536,16 +536,16 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 	gf_node_register(n2, txt_model);
 	text = (M_Text *) n2;
 	fs = (M_FontStyle *) ttd_create_node(priv, TAG_MPEG4_FontStyle, NULL);
-	free(fs->family.vals[0]);
+	gf_free(fs->family.vals[0]);
 	
 	/*translate default fonts to MPEG-4/VRML names*/
-	if (!stricmp(fontName, "Serif")) fs->family.vals[0] = strdup("SERIF");
-	else if (!stricmp(fontName, "Sans-Serif")) fs->family.vals[0] = strdup("SANS");
-	else if (!stricmp(fontName, "Monospace")) fs->family.vals[0] = strdup("TYPEWRITER");
-	else fs->family.vals[0] = strdup(fontName);
+	if (!stricmp(fontName, "Serif")) fs->family.vals[0] = gf_strdup("SERIF");
+	else if (!stricmp(fontName, "Sans-Serif")) fs->family.vals[0] = gf_strdup("SANS");
+	else if (!stricmp(fontName, "Monospace")) fs->family.vals[0] = gf_strdup("TYPEWRITER");
+	else fs->family.vals[0] = gf_strdup(fontName);
 
 	fs->size = INT2FIX(fontSize);
-	free(fs->style.buffer);
+	gf_free(fs->style.buffer);
 	strcpy(szStyle, "");
 	if (styleFlags & GF_TXT_STYLE_BOLD) {
 		if (styleFlags & GF_TXT_STYLE_ITALIC) strcpy(szStyle, "BOLDITALIC");
@@ -569,7 +569,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 	& bitmap could slow down rendering*/
 	if (priv->use_texture) strcat(szStyle, " TEXTURED");
 
-	fs->style.buffer = strdup(szStyle);
+	fs->style.buffer = gf_strdup(szStyle);
 	fs->horizontal = (tsd->displayFlags & GF_TXT_VERTICAL) ? 0 : 1;
 	text->fontStyle = (GF_Node *) fs;
 	gf_node_register((GF_Node *)fs, (GF_Node *)text);
@@ -580,8 +580,8 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 		M_Anchor *anc = (M_Anchor *) ttd_create_node(priv, TAG_MPEG4_Anchor, NULL);
 		gf_sg_vrml_mf_append(&anc->url, GF_SG_VRML_MFURL, (void **) &s);
 		s->OD_ID = 0; 
-		s->url = strdup(tc->hlink->URL);
-		if (tc->hlink->URL_hint) anc->description.buffer = strdup(tc->hlink->URL_hint);
+		s->url = gf_strdup(tc->hlink->URL);
+		if (tc->hlink->URL_hint) anc->description.buffer = gf_strdup(tc->hlink->URL_hint);
 		gf_node_list_add_child(& anc->children, txt_model);
 		gf_node_register(txt_model, (GF_Node *)anc);
 		txt_model = (GF_Node *)anc;
@@ -631,7 +631,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 				szLine[len] = 0;
 
 				gf_sg_vrml_mf_append(&text->string, GF_SG_VRML_MFSTRING, (void **) &st);
-				st->buffer = strdup(szLine);
+				st->buffer = gf_strdup(szLine);
 			}
 			start_char = i+1;
 			if (new_line) {
@@ -672,7 +672,7 @@ void TTD_SplitChunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, GF_Box *
 		/*need to split chunk at begin*/
 		if (tc->start_char<start_char) {
 			TTDTextChunk *tc2;
-			tc2 = (TTDTextChunk *) malloc(sizeof(TTDTextChunk));
+			tc2 = (TTDTextChunk *) gf_malloc(sizeof(TTDTextChunk));
 			memcpy(tc2, tc, sizeof(TTDTextChunk));
 			tc2->start_char = start_char;
 			tc2->end_char = tc->end_char;
@@ -684,7 +684,7 @@ void TTD_SplitChunks(GF_TextSample *txt, u32 nb_chars, GF_List *chunks, GF_Box *
 		/*need to split chunks at end*/
 		if (tc->end_char>end_char) {
 			TTDTextChunk *tc2;
-			tc2 = (TTDTextChunk *) malloc(sizeof(TTDTextChunk));
+			tc2 = (TTDTextChunk *) gf_malloc(sizeof(TTDTextChunk));
 			memcpy(tc2, tc, sizeof(TTDTextChunk));
 			tc2->start_char = tc->start_char;
 			tc2->end_char = end_char;
@@ -933,7 +933,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		tc = (TTDTextChunk*)gf_list_get(chunks, 0);
 		gf_list_rem(chunks, 0);
 		TTD_NewTextChunk(priv, td, form, utf16_text, tc);
-		free(tc);
+		gf_free(tc);
 	}
 	gf_list_del(chunks);
 
@@ -960,7 +960,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 				gf_sg_vrml_mf_append(&form->groups, GF_SG_VRML_MFINT32, (void **) &id); (*id) = -1;
 			} else {
 				/*spread horizontal 0 pixels (eg align) all items in line*/
-				gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s); s->buffer = strdup(vertical ? "SV 0" : "SH 0");
+				gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s); s->buffer = gf_strdup(vertical ? "SV 0" : "SH 0");
 				for (j=start_idx; j<i; j++) {
 					gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = idx.vals[j];
 					/*also add a group for the line, for final justif*/
@@ -974,7 +974,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 			nb_lines ++;
 		}
 	}
-	free(idx.vals);
+	gf_free(idx.vals);
 
 	/*finally add constraints on lines*/
 	start_idx = gf_node_list_get_count(form->children) + 1;
@@ -982,15 +982,15 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s);
 	if (vertical) {
 		switch (td->vert_justif) {
-		case 1: s->buffer = strdup("AV"); break;/*center*/
-		case -1: s->buffer = strdup("AB"); break;/*bottom*/
-		default: s->buffer = strdup("AT"); break;/*top*/
+		case 1: s->buffer = gf_strdup("AV"); break;/*center*/
+		case -1: s->buffer = gf_strdup("AB"); break;/*bottom*/
+		default: s->buffer = gf_strdup("AT"); break;/*top*/
 		}
 	} else {
 		switch (td->horiz_justif) {
-		case 1: s->buffer = strdup("AH"); break;/*center*/
-		case -1: s->buffer = strdup("AR"); break;/*right*/
-		default: s->buffer = strdup("AL"); break;/*left*/
+		case 1: s->buffer = gf_strdup("AH"); break;/*center*/
+		case -1: s->buffer = gf_strdup("AR"); break;/*right*/
+		default: s->buffer = gf_strdup("AL"); break;/*left*/
 		}
 	}
 	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = 0;
@@ -1001,7 +1001,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 
 
 	/*vertical alignment: first align all items vertically, 0 pixel */
-	gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s); s->buffer = strdup(vertical ? "SH 0" : "SV 0"); 
+	gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s); s->buffer = gf_strdup(vertical ? "SH 0" : "SV 0"); 
 	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = 0;
 	for (i=0; i<nb_lines; i++) {
 		gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = i+start_idx;
@@ -1018,15 +1018,15 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s);
 	if (vertical) {
 		switch (td->horiz_justif) {
-		case 1: s->buffer = strdup("AH"); break;/*center*/
-		case -1: s->buffer = strdup("AR"); break;/*right*/
-		default: s->buffer = strdup("AL"); break;/*left*/
+		case 1: s->buffer = gf_strdup("AH"); break;/*center*/
+		case -1: s->buffer = gf_strdup("AR"); break;/*right*/
+		default: s->buffer = gf_strdup("AL"); break;/*left*/
 		}
 	} else {
 		switch (td->vert_justif) {
-		case 1: s->buffer = strdup("AV"); break;/*center*/
-		case -1: s->buffer = strdup("AB"); break;/*bottom*/
-		default: s->buffer = strdup("AT"); break;/*top*/
+		case 1: s->buffer = gf_strdup("AV"); break;/*center*/
+		case -1: s->buffer = gf_strdup("AB"); break;/*bottom*/
+		default: s->buffer = gf_strdup("AT"); break;/*top*/
 		}
 	}
 	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = 0;
@@ -1106,8 +1106,8 @@ void DeleteTimedTextDec(GF_BaseDecoder *plug)
 	TTDPriv *priv = (TTDPriv *)plug->privateStack;
 	/*in case something went wrong*/
 	if (priv->cfg) gf_odf_desc_del((GF_Descriptor *) priv->cfg);
-	free(priv);
-	free(plug);
+	gf_free(priv);
+	gf_free(plug);
 }
 
 GF_BaseDecoder *NewTimedTextDec()

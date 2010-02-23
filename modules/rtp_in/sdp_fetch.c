@@ -65,12 +65,12 @@ void RP_SDPFromFile(RTPClient *rtp, char *file_name, RTPStream *stream)
 	fseek(_sdp, 0, SEEK_END);
 	sdp_size = ftell(_sdp);
 	fseek(_sdp, 0, SEEK_SET);
-	sdp_buf = (char*)malloc(sdp_size);
+	sdp_buf = (char*)gf_malloc(sdp_size);
 	fread(sdp_buf, sdp_size, 1, _sdp);
 	RP_LoadSDP(rtp, sdp_buf, sdp_size, stream);
 
 	fclose(_sdp);
-	free(sdp_buf);
+	gf_free(sdp_buf);
 }
 
 void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
@@ -111,9 +111,9 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			} else {
 				e = GF_OK;
 				RP_SDPFromFile(rtp, (char *) szFile, sdp->chan);
-				free(sdp->remote_url);
-				if (sdp->original_url) free(sdp->original_url);
-				free(sdp);
+				gf_free(sdp->remote_url);
+				if (sdp->original_url) gf_free(sdp->original_url);
+				gf_free(sdp);
 				rtp->sdp_temp = NULL;
 				return;
 			}
@@ -124,12 +124,12 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 	if (sdp->original_url) {
 		char *url = sdp->original_url;
-		free(sdp->remote_url);
-		free(sdp);
+		gf_free(sdp->remote_url);
+		gf_free(sdp);
 		rtp->sdp_temp = NULL;
 		gf_term_on_message(rtp->service, e, "Error fetching session state - restarting");
 		RP_ConnectServiceEx(gf_term_get_service_interface(rtp->service), rtp->service, url, 1);
-		free(url);
+		gf_free(url);
 		return;	 
 	}
 
@@ -140,9 +140,9 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		gf_term_on_connect(rtp->service, NULL, e);
 		rtp->sdp_temp = NULL;
 	}
-	free(sdp->remote_url);
-	if (sdp->original_url) free(sdp->original_url);
-	free(sdp);
+	gf_free(sdp->remote_url);
+	if (sdp->original_url) gf_free(sdp->original_url);
+	gf_free(sdp);
 	rtp->sdp_temp = NULL;
 }
 
@@ -160,13 +160,13 @@ void RP_FetchSDP(RTPClient *rtp, char *url, RTPStream *stream, char *original_ur
 		return;
 	}
 	
-	sdp = (SDPFetch*)malloc(sizeof(SDPFetch));
+	sdp = (SDPFetch*)gf_malloc(sizeof(SDPFetch));
 	memset(sdp, 0, sizeof(SDPFetch));
 	sdp->client = rtp;
-	sdp->remote_url = strdup(url);
+	sdp->remote_url = gf_strdup(url);
 	sdp->chan = stream;
 	if (original_url) {
-		sdp->original_url = strdup(original_url);
+		sdp->original_url = gf_strdup(original_url);
 	}
 
 	/*otherwise setup download*/

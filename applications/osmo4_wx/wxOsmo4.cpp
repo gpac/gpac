@@ -6,7 +6,7 @@
  *
  *  This file is part of GPAC / Osmo4 wxWidgets GUI
  *
- *  GPAC is free software; you can redistribute it and/or modify
+ *  GPAC is gf_free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
@@ -214,11 +214,13 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			}
 		}
 
+#if 0
 		/*log*/
 		if (evt->message.error)
 			::wxLogMessage(wxString(evt->message.message, wxConvUTF8) + wxT(" (") + wxString(servName, wxConvUTF8) + wxT(") ") + wxString(gf_error_to_string(evt->message.error), wxConvUTF8) );
 		else
 			::wxLogMessage(wxString(evt->message.message, wxConvUTF8) + wxT(" (") + wxString(servName, wxConvUTF8) + wxT(")"));
+#endif
 	}
 		break;
 	case GF_EVENT_PROGRESS:
@@ -1068,7 +1070,7 @@ wxOsmo4Frame::~wxOsmo4Frame()
 	gf_sys_close();
 	if (m_user.config) gf_cfg_del(m_user.config);
 
-	if (m_chapters_start) free(m_chapters_start);
+	if (m_chapters_start) gf_free(m_chapters_start);
 	if (m_pView) delete m_pView;
 
 	//m_pToolBar->RemoveTool(FILE_PREV);
@@ -1571,7 +1573,7 @@ AboutDlg::AboutDlg(wxWindow *parent)
 		wxT("Osmo4 Player\n")
 		wxT("GPAC Multimedia Framework\n")
 		wxT("\n")
-		wxT("This program is free software and may\n")
+		wxT("This program is gf_free software and may\n")
 		wxT("be distributed according to the terms\n")
 		wxT("of the GNU Lesser General Public License\n")
 		wxT("\n")
@@ -1616,7 +1618,7 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 				m_pPlayList->Truncate();
 				m_pPlayList->QueueURL(wxString(str, wxConvUTF8));
 				m_pPlayList->RefreshList();
-				free(str);
+				gf_free(str);
 				m_pPlayList->PlayNext();
 			}
 			return;
@@ -2392,7 +2394,7 @@ void wxOsmo4Frame::BuildChapterList(Bool reset_only)
 		wxMenuItem* it = chap_menu->FindItemByPosition(0);
 		chap_menu->Delete(it);
 	}
-	if (m_chapters_start) free(m_chapters_start);
+	if (m_chapters_start) gf_free(m_chapters_start);
 	m_chapters_start = NULL;
 	m_num_chapters = 0;
 	if (reset_only) return;
@@ -2415,7 +2417,7 @@ void wxOsmo4Frame::BuildChapterList(Bool reset_only)
 		}
 		chap_menu->AppendCheckItem(ID_SETCHAP_FIRST + m_num_chapters, wxString(szLabel, wxConvUTF8));
 
-		m_chapters_start = (Double *) realloc(m_chapters_start, sizeof(Double)*(m_num_chapters+1));
+		m_chapters_start = (Double *) gf_realloc(m_chapters_start, sizeof(Double)*(m_num_chapters+1));
 		m_chapters_start[m_num_chapters] = seg->startTime;
 		m_num_chapters++;
 	}

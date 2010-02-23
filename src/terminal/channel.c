@@ -79,7 +79,7 @@ static void Channel_Reset(GF_Channel *ch, Bool for_start)
 
 	ch_buffer_off(ch);
 
-	if (ch->buffer) free(ch->buffer);
+	if (ch->buffer) gf_free(ch->buffer);
 	ch->buffer = NULL;
 	ch->len = ch->allocSize = 0;
 
@@ -184,7 +184,7 @@ void gf_es_del(GF_Channel *ch)
 		gf_modules_close_interface((GF_BaseInterface *) ch->ipmp_tool);
 
 	if (ch->mx) gf_mx_del(ch->mx);
-	free(ch);
+	gf_free(ch);
 }
 
 Bool gf_es_owns_clock(GF_Channel *ch)
@@ -265,7 +265,7 @@ void Channel_WaitRAP(GF_Channel *ch)
 	/*if using RAP signal and codec not resilient, wait for rap. If RAP isn't signaled DON'T wait for it :)*/
 	if (!ch->codec_resilient) 
 		ch->stream_state = 2;
-	if (ch->buffer) free(ch->buffer);
+	if (ch->buffer) gf_free(ch->buffer);
 	ch->buffer = NULL;
 	ch->AULength = 0;
 	ch->au_sn = 0;
@@ -274,7 +274,7 @@ void Channel_WaitRAP(GF_Channel *ch)
 void gf_es_map_time(GF_Channel *ch, Bool reset)
 {
 	gf_mx_p(ch->mx);
-	if (ch->buffer) free(ch->buffer);
+	if (ch->buffer) gf_free(ch->buffer);
 	ch->buffer = NULL;
 	ch->len = ch->allocSize = 0;
 
@@ -407,7 +407,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 
 	if (!ch->buffer || !ch->len) {
 		if (ch->buffer) {
-			free(ch->buffer);
+			gf_free(ch->buffer);
 			ch->buffer = NULL;
 		}
 		return;
@@ -415,7 +415,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 
 	au = gf_db_unit_new();
 	if (!au) {
-		free(ch->buffer);
+		gf_free(ch->buffer);
 		ch->buffer = NULL;
 		ch->len = 0;
 		return;
@@ -434,7 +434,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	ch->buffer = NULL;
 
 	if (ch->len + ch->media_padding_bytes != ch->allocSize) {
-		au->data = (char*)realloc(au->data, sizeof(char) * (au->dataLength + ch->media_padding_bytes));
+		au->data = (char*)gf_realloc(au->data, sizeof(char) * (au->dataLength + ch->media_padding_bytes));
 	}
 	if (ch->media_padding_bytes) memset(au->data + au->dataLength, 0, sizeof(char)*ch->media_padding_bytes);
 	
@@ -501,8 +501,8 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 				}
 				assert(au_prev);
 				if (au_prev->next->DTS==au->DTS) {
-					free(au->data);
-					free(au);
+					gf_free(au->data);
+					gf_free(au);
 				} else {
 					au->next = au_prev->next;
 					au_prev->next = au;
@@ -588,7 +588,7 @@ void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamB
 	au = gf_db_unit_new();
 	au->RAP = 1;
 	au->DTS = gf_clock_time(ch->clock);
-	au->data = (char*)malloc(sizeof(char) * (ch->media_padding_bytes + StreamLength));
+	au->data = (char*)gf_malloc(sizeof(char) * (ch->media_padding_bytes + StreamLength));
 	memcpy(au->data, StreamBuf, sizeof(char) * StreamLength);
 	if (ch->media_padding_bytes) memset(au->data + StreamLength, 0, sizeof(char)*ch->media_padding_bytes);
 	au->dataLength = StreamLength;
@@ -801,7 +801,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			if (ch->codec_resilient) {
 				Channel_DispatchAU(ch, 0);
 			} else {
-				free(ch->buffer);
+				gf_free(ch->buffer);
 				ch->buffer = NULL;
 				ch->AULength = 0;
 				ch->len = ch->allocSize = 0;
@@ -963,7 +963,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		assert(!ch->buffer);
 		/*ignore length fields*/
 		size = payload_size + ch->media_padding_bytes;
-		ch->buffer = (char*)malloc(sizeof(char) * size);
+		ch->buffer = (char*)gf_malloc(sizeof(char) * size);
 		if (!ch->buffer) {
 			assert(0);
 			return;
@@ -1015,7 +1015,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			ch->len += payload_size;
 		} else {
 			size = payload_size + ch->len + ch->media_padding_bytes;
-			ch->buffer = (char*)realloc(ch->buffer, sizeof(char) * size);
+			ch->buffer = (char*)gf_realloc(ch->buffer, sizeof(char) * size);
 			memcpy(ch->buffer+ch->len, payload, payload_size);
 			ch->allocSize = size;
 			ch->len += payload_size;

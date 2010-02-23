@@ -457,12 +457,12 @@ static void gf_rtp_ttxt_flush(GF_RTPDepacketizer *rtp, u32 ts)
 	gf_bs_del(bs);
 
 	rtp->on_sl_packet(rtp->udta, data, data_size, &rtp->sl_hdr, GF_OK);
-	free(data);
+	gf_free(data);
 	rtp->sl_hdr.accessUnitStartFlag = 0;
 	rtp->sl_hdr.accessUnitEndFlag = 1;
 	gf_bs_get_content(rtp->inter_bs, &data, &data_size);
 	rtp->on_sl_packet(rtp->udta, data, data_size, &rtp->sl_hdr, GF_OK);
-	free(data);
+	gf_free(data);
 
 	gf_bs_del(rtp->inter_bs);
 	rtp->inter_bs = NULL;
@@ -598,7 +598,7 @@ static void gf_rtp_h264_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool m
 	rtp->on_sl_packet(rtp->udta, data, data_size, &rtp->sl_hdr, GF_OK);
 	rtp->sl_hdr.accessUnitStartFlag = 0;
 	rtp->sl_hdr.randomAccessPointFlag = 0;
-	free(data);
+	gf_free(data);
 }
 
 void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
@@ -803,7 +803,7 @@ static void gf_rtp_parse_3gpp_dims(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, c
 
 			rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
 			rtp->on_sl_packet(rtp->udta, data, dsize, &rtp->sl_hdr, GF_OK);
-			free(data);
+			gf_free(data);
 			return;
 		}
 	}
@@ -864,8 +864,8 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "enc-mpeg4-generic")) return GF_RTP_PAYT_MPEG4;
 	/*optibase mm400 card hack*/
 	else if (!stricmp(map->payload_name, "enc-generic-mp4") ) {
-		free(map->payload_name);
-		map->payload_name = strdup("enc-mpeg4-generic");
+		gf_free(map->payload_name);
+		map->payload_name = gf_strdup("enc-mpeg4-generic");
 		return GF_RTP_PAYT_MPEG4;
 	}
 
@@ -927,7 +927,7 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 			sscanf(valS, "%x", &val);
 			gf_bs_write_u8(bs, val);
 		}
-		if (rtp->sl_map.config) free(rtp->sl_map.config);
+		if (rtp->sl_map.config) gf_free(rtp->sl_map.config);
 		rtp->sl_map.config = NULL;
 		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
 		gf_bs_del(bs);
@@ -1003,7 +1003,7 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 			rtp->flags &= ~GF_RTP_ISMA_HAS_KEY_IDX;
 	}
 	else if (!stricmp(param_name, "ISMACrypKey")) 
-		rtp->key = strdup(param_val);
+		rtp->key = gf_strdup(param_val);
 	
 	return GF_OK;
 }
@@ -1068,7 +1068,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			cfg.sbr_object_type = gf_bs_read_int(bs, 5);
 		}
 		gf_bs_del(bs);
-		free(rtp->sl_map.config);
+		gf_free(rtp->sl_map.config);
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		/*write as regular AAC*/
 		gf_bs_write_int(bs, cfg.base_object_type, 5);
@@ -1330,15 +1330,15 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 					if (sep) sep[0] = 0;
 
 					b64size = strlen(nal_ptr);
-					b64_d = (char*)malloc(sizeof(char)*b64size);
+					b64_d = (char*)gf_malloc(sizeof(char)*b64size);
 					ret = gf_base64_decode(nal_ptr, b64size, b64_d, b64size); 
 					b64_d[ret] = 0;
 
 					nalt = b64_d[0] & 0x1F;
 					if (/*SPS*/(nalt==0x07) || /*PPS*/(nalt==0x08)) {
-						GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)malloc(sizeof(GF_AVCConfigSlot));
+						GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_malloc(sizeof(GF_AVCConfigSlot));
 						sl->size = ret;
-						sl->data = (char*)malloc(sizeof(char)*sl->size);
+						sl->data = (char*)gf_malloc(sizeof(char)*sl->size);
 						memcpy(sl->data, b64_d, sizeof(char)*sl->size);
 						if (nalt==0x07) {
 							gf_list_add(avcc->sequenceParameterSets, sl);
@@ -1346,7 +1346,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 							gf_list_add(avcc->pictureParameterSets, sl);
 						}
 					} 
-					free(b64_d);
+					gf_free(b64_d);
 
 					if (sep) {
 						sep[0] = ',';
@@ -1414,7 +1414,7 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet
 
 	e = gf_rtp_payt_setup(tmp, map, media);
 	if (e) {
-		free(tmp);
+		gf_free(tmp);
 		return NULL;
 	}
 	assert(tmp->depacketize);
@@ -1444,9 +1444,9 @@ void gf_rtp_depacketizer_del(GF_RTPDepacketizer *rtp)
 {
 	if (rtp) {
 		gf_rtp_depacketizer_reset(rtp, 0);
-		if (rtp->sl_map.config) free(rtp->sl_map.config);
-		if (rtp->key) free(rtp->key);
-		free(rtp);
+		if (rtp->sl_map.config) gf_free(rtp->sl_map.config);
+		if (rtp->key) gf_free(rtp->key);
+		gf_free(rtp);
 	}
 }
 

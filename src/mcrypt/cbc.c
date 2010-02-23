@@ -38,8 +38,8 @@ static GF_Err _init_mcrypt( CBC_BUFFER* buf,void *key, int lenofkey, void *IV, i
 
 	buf->blocksize = size;
 		
-	buf->previous_ciphertext = malloc( size);
-	buf->previous_cipher = malloc( size);
+	buf->previous_ciphertext = gf_malloc( size);
+	buf->previous_cipher = gf_malloc( size);
 	
 	if (buf->previous_ciphertext==NULL ||
 		buf->previous_cipher==NULL) goto freeall;
@@ -53,8 +53,8 @@ static GF_Err _init_mcrypt( CBC_BUFFER* buf,void *key, int lenofkey, void *IV, i
 	return GF_OK;
 
 	freeall:
-		if (buf->previous_ciphertext) free(buf->previous_ciphertext);
-		if (buf->previous_cipher) free(buf->previous_cipher);
+		if (buf->previous_ciphertext) gf_free(buf->previous_ciphertext);
+		if (buf->previous_cipher) gf_free(buf->previous_cipher);
 		return GF_OUT_OF_MEM;
 }
 
@@ -83,8 +83,8 @@ static GF_Err _mcrypt_get_state( CBC_BUFFER* buf, void *IV, int *size)
 
 
 static void _end_mcrypt( CBC_BUFFER* buf) {
-	free(buf->previous_ciphertext);
-	free(buf->previous_cipher);
+	gf_free(buf->previous_ciphertext);
+	gf_free(buf->previous_cipher);
 }
 
 static GF_Err _mcrypt( CBC_BUFFER* buf, void *plaintext, int len, int blocksize, void* akey, void (*func)(void*,void*), void (*func2)(void*,void*))

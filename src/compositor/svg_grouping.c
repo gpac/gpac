@@ -287,11 +287,11 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		if (stack->svg_props) {
 			gf_svg_properties_reset_pointers(stack->svg_props);
-			free(stack->svg_props);
+			gf_free(stack->svg_props);
 		}
 		gf_sc_check_focus_upon_destroy(node);
 		if (stack->vp_fill) drawable_del(stack->vp_fill);
-		free(stack);
+		gf_free(stack);
 		return;
 	}
 
@@ -516,7 +516,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 #else
 		if (group->cache) group_cache_del(group->cache);
 #endif
-		free(group);
+		gf_free(group);
 		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
@@ -686,7 +686,7 @@ static void svg_traverse_switch(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
 	if (is_destroy) {
-		free(selected_idx);
+		gf_free(selected_idx);
 		gf_sc_check_focus_upon_destroy(node);
 		return;
 	}
@@ -871,16 +871,16 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 				} else {
 					gf_term_send_event(compositor->term, &evt);
 				}
-				free((char *)evt.navigate.to_url);
+				gf_free((char *)evt.navigate.to_url);
 				return;
 			}
 			all_atts.xlink_href->target = gf_sg_find_node_by_name(gf_node_get_graph(handler), (char *) evt.navigate.to_url+1);
 			if (all_atts.xlink_href->target) {
 				all_atts.xlink_href->type = XMLRI_ELEMENTID;
-				free((char *)evt.navigate.to_url);
+				gf_free((char *)evt.navigate.to_url);
 			} else {
 				svg_a_set_view(handler, compositor, evt.navigate.to_url + 1);
-				free((char *)evt.navigate.to_url);
+				gf_free((char *)evt.navigate.to_url);
 				return;
 			}
 		}
@@ -951,7 +951,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 
 	if (is_destroy) {
 		if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
-		free(stack);
+		gf_free(stack);
 		return;
 	}
 
@@ -1183,7 +1183,7 @@ static void svg_traverse_animation(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (is_destroy) {
 		if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
-		free(stack);
+		gf_free(stack);
 		return;
 	}
 	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);

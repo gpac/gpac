@@ -371,7 +371,7 @@ static mpeg2ps_stream_t *mpeg2ps_stream_create (u8 stream_id,
   ptr->m_stream_id = stream_id;
   ptr->m_substream_id = substream;
   ptr->is_video = stream_id >= 0xe0;
-  ptr->pes_buffer = (u8 *)malloc(4*4096);
+  ptr->pes_buffer = (u8 *)gf_malloc(4*4096);
   ptr->pes_buffer_size_max = 4 * 4096;
   return ptr;
 }
@@ -382,14 +382,14 @@ static void mpeg2ps_stream_destroy (mpeg2ps_stream_t *sptr)
   while (sptr->record_first != NULL) {
     p = sptr->record_first;
     sptr->record_first = p->next_rec;
-    free(p);
+    gf_free(p);
   }
   if (sptr->m_fd != FDNULL) {
     file_close(sptr->m_fd);
     sptr->m_fd = FDNULL;
   }
-  if (sptr->pes_buffer) free(sptr->pes_buffer);
-  free(sptr);
+  if (sptr->pes_buffer) gf_free(sptr->pes_buffer);
+  gf_free(sptr);
 }
 
 
@@ -499,7 +499,7 @@ static void copy_bytes_to_pes_buffer (mpeg2ps_stream_t *sptr,
     sptr->pes_buffer_on = 0;
     //printf("moving %d bytes\n", to_move);
     if (to_move + pes_len > sptr->pes_buffer_size_max) {
-      sptr->pes_buffer = (u8 *)realloc(sptr->pes_buffer, 
+      sptr->pes_buffer = (u8 *)gf_realloc(sptr->pes_buffer, 
 					    to_move + pes_len + 2048);
       sptr->pes_buffer_size_max = to_move + pes_len + 2048;
     }
@@ -1611,11 +1611,11 @@ mpeg2ps_t *mpeg2ps_init (const char *filename)
   memset(ps, 0, sizeof(*ps));
   ps->fd = file_open(filename);
   if (file_okay(ps->fd) == 0) {
-    free(ps);
+    gf_free(ps);
     return NULL;
   }
   
-  ps->filename = strdup(filename);
+  ps->filename = gf_strdup(filename);
   mpeg2ps_scan_file(ps);
   if (ps->video_cnt == 0 && ps->audio_cnt == 0) {
     mpeg2ps_close(ps);
@@ -1637,9 +1637,9 @@ void mpeg2ps_close (mpeg2ps_t *ps)
     ps->audio_streams[ix] = NULL;
   }
 
-  if (ps->filename) free(ps->filename);
+  if (ps->filename) gf_free(ps->filename);
   if (ps->fd) file_close(ps->fd);
-  free(ps);
+  gf_free(ps);
 }
 
 /*

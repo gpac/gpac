@@ -66,11 +66,11 @@ void Script_PreDestroy(GF_Node *node, void *eff, Bool is_destroy)
 				break;
 			}
 		}
-		if (field->name) free(field->name);
-		free(field);
+		if (field->name) gf_free(field->name);
+		gf_free(field);
 	}
 	gf_list_del(priv->fields);
-	free(priv);
+	gf_free(priv);
 }
 
 u32 gf_sg_script_get_num_fields(GF_Node *node, u8 IndexMode)
@@ -202,7 +202,7 @@ GF_ScriptField *gf_sg_script_field_new(GF_Node *node, u32 eventType, u32 fieldTy
 
 	GF_SAFEALLOC(field, GF_ScriptField)
 	field->fieldType = fieldType;
-	field->name = strdup(name);
+	field->name = gf_strdup(name);
 
 	field->DEF_index = field->IN_index = field->OUT_index = -1;
 	switch (eventType) {

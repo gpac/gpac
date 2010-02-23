@@ -90,7 +90,7 @@ void RP_Setup(RTPStream *ch)
 	GF_RTSPTransport *trans;
 
 	com = gf_rtsp_command_new();	
-	com->method = strdup(GF_RTSP_SETUP);
+	com->method = gf_strdup(GF_RTSP_SETUP);
 
 	def_first_port = 0;
 	opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceFirstPort");
@@ -116,11 +116,11 @@ void RP_Setup(RTPStream *ch)
 	opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceMulticastIP");
 	if (opt) {
 		trans->IsUnicast = 0;
-		trans->destination = strdup(opt);
+		trans->destination = gf_strdup(opt);
 		opt = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Streaming", "ForceMulticastTTL");
 		trans->TTL = opt ? atoi(opt) : 127;
-		if (trans->Profile) free(trans->Profile);
-		trans->Profile = strdup(GF_RTSP_PROFILE_RTP_AVP);
+		if (trans->Profile) gf_free(trans->Profile);
+		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP);
 		if (!(ch->rtsp->flags & RTSP_DSS_SERVER) ) {
 			trans->port_first = trans->client_port_first;
 			trans->port_last = trans->client_port_last;
@@ -132,13 +132,13 @@ void RP_Setup(RTPStream *ch)
 	}
 		/*2: RTP over RTSP forced*/
 	else if (ch->rtsp->flags & RTSP_FORCE_INTER) {
-		if (trans->Profile) free(trans->Profile);
-		trans->Profile = strdup(GF_RTSP_PROFILE_RTP_AVP_TCP);
+		if (trans->Profile) gf_free(trans->Profile);
+		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP_TCP);
 		gf_rtp_setup_transport(ch->rtp_ch, trans, NULL);
 	}
 
 	if (trans->source) {
-		free(trans->source);
+		gf_free(trans->source);
 		trans->source = NULL;
 	}
 
@@ -146,7 +146,7 @@ void RP_Setup(RTPStream *ch)
 	through RTP/AVP/TCP profile so it's OK)*/
 	trans->IsInterleaved = 0;
 	gf_list_add(com->Transports, trans);
-	if (strlen(ch->control)) com->ControlString = strdup(ch->control);
+	if (strlen(ch->control)) com->ControlString = gf_strdup(ch->control);
 
 	com->user_data = ch;
 	ch->status = RTP_WaitingForAck;
@@ -213,7 +213,7 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 		e = GF_SERVICE_ERROR;
 		goto exit;
 	}
-	if (!sess->session_id) sess->session_id = strdup(sess->rtsp_rsp->Session);
+	if (!sess->session_id) sess->session_id = gf_strdup(sess->rtsp_rsp->Session);
 	assert(!ch->session_id);
 
 	/*transport setup: break at the first correct transport */
@@ -272,8 +272,8 @@ Bool RP_PreprocessDescribe(RTSPSession *sess, GF_RTSPCommand *com)
 	/*channel has been described already, skip describe and send setup directly*/
 	RP_SetupChannel(ch, ch_desc);
 	
-	if (ch_desc->esd_url) free(ch_desc->esd_url);
-	free(ch_desc);
+	if (ch_desc->esd_url) gf_free(ch_desc->esd_url);
+	gf_free(ch_desc);
 	return 0;
 }
 
@@ -332,7 +332,7 @@ exit:
 			gf_term_on_connect(sess->owner->service, ch_desc->channel, e);
 		}
 	}
-	if (ch_desc) free(ch_desc);
+	if (ch_desc) gf_free(ch_desc);
 	return GF_OK;
 }
 
@@ -358,13 +358,13 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 			default:
 				break;
 			}
-			ch_desc = (ChannelDescribe *)malloc(sizeof(ChannelDescribe));
-			ch_desc->esd_url = esd_url ? strdup(esd_url) : NULL;
+			ch_desc = (ChannelDescribe *)gf_malloc(sizeof(ChannelDescribe));
+			ch_desc->esd_url = esd_url ? gf_strdup(esd_url) : NULL;
 			ch_desc->channel = channel;
 			RP_SetupChannel(ch, ch_desc);
 			
-			if (esd_url) free(ch_desc->esd_url);
-			free(ch_desc);
+			if (esd_url) gf_free(ch_desc->esd_url);
+			gf_free(ch_desc);
 			return;
 		}
 		/*channel not found, send describe on service*/
@@ -372,21 +372,21 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 
 	/*send describe*/
 	com = gf_rtsp_command_new();
-	com->method = strdup(GF_RTSP_DESCRIBE);
+	com->method = gf_strdup(GF_RTSP_DESCRIBE);
 
 	if (channel || esd_url) {
-		com->Accept = strdup("application/sdp");
-		com->ControlString = esd_url ? strdup(esd_url) : NULL;
+		com->Accept = gf_strdup("application/sdp");
+		com->ControlString = esd_url ? gf_strdup(esd_url) : NULL;
 
-		ch_desc = (ChannelDescribe *)malloc(sizeof(ChannelDescribe));
-		ch_desc->esd_url = esd_url ? strdup(esd_url) : NULL;
+		ch_desc = (ChannelDescribe *)gf_malloc(sizeof(ChannelDescribe));
+		ch_desc->esd_url = esd_url ? gf_strdup(esd_url) : NULL;
 		ch_desc->channel = channel;
 		
 		com->user_data = ch_desc;
 	} else {
 		//always accept both SDP and IOD
-		com->Accept = strdup("application/sdp, application/mpeg4-iod");
-//		com->Accept = strdup("application/sdp");
+		com->Accept = gf_strdup("application/sdp, application/mpeg4-iod");
+//		com->Accept = gf_strdup("application/sdp");
 	}
 
 	/*need better tuning ...*/
@@ -428,7 +428,7 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 	ch = ch_ctrl->ch;
 	
 	if (!ch->channel || !channel_is_valid(sess->owner, ch)) {
-		free(ch_ctrl);
+		gf_free(ch_ctrl);
 		com->user_data = NULL;
 		return 0;
 	}
@@ -453,7 +453,7 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 	if (skip_it || ( (sess->flags & RTSP_AGG_CONTROL) && (ch->flags & RTP_SKIP_NEXT_COM) )) {
 		ch->flags &= ~RTP_SKIP_NEXT_COM;
 		gf_term_on_command(sess->owner->service, &ch_ctrl->com, GF_OK);
-		free(ch_ctrl);
+		gf_free(ch_ctrl);
 		com->user_data = NULL;
 		return 0;
 	}
@@ -464,7 +464,7 @@ err_exit:
 	ch->status = RTP_Disconnected;
 	ch->check_rtp_time = 0;
 	gf_term_on_command(sess->owner->service, &ch_ctrl->com, e);
-	free(ch_ctrl);
+	gf_free(ch_ctrl);
 	com->user_data = NULL;
 	return 0;
 }
@@ -481,7 +481,7 @@ void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	ch = ch_ctrl->ch;
 	if (ch) {
 		if (!ch->channel || !channel_is_valid(sess->owner, ch)) {
-			free(ch_ctrl);
+			gf_free(ch_ctrl);
 			com->user_data = NULL;
 			return;
 		}
@@ -592,7 +592,7 @@ process_reply:
 		}
 	} else if (ch_ctrl->com.command_type == GF_NET_CHAN_STOP) {
 	}
-	free(ch_ctrl);
+	gf_free(ch_ctrl);
 	com->user_data = NULL;
 	return;
 
@@ -604,7 +604,7 @@ err_exit:
 		gf_rtsp_reset_aggregation(ch->rtsp->session);
 		ch->check_rtp_time = 0;
 	}
-	free(ch_ctrl);
+	gf_free(ch_ctrl);
 	com->user_data = NULL;
 }
 
@@ -632,7 +632,7 @@ static void RP_FlushAndTearDown(RTSPSession *sess)
 
 	/*no private stack on teardown - shutdown now*/
 	com	= gf_rtsp_command_new();
-	com->method = strdup(GF_RTSP_TEARDOWN);
+	com->method = gf_strdup(GF_RTSP_TEARDOWN);
 	RP_QueueCommand(sess, NULL, com, 1);
 }
 #endif
@@ -686,7 +686,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		range->start = ch->range_start;
 		range->end = ch->range_end;
 		
-		com->method = strdup(GF_RTSP_PLAY);
+		com->method = gf_strdup(GF_RTSP_PLAY);
 		
 		/*specify pause range on resume - this is not mandatory but most servers need it*/
 		if (command->command_type==GF_NET_CHAN_RESUME) {
@@ -728,19 +728,19 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		if (sess->flags & RTSP_AGG_CONTROL) 
 			SkipCommandOnSession(ch);
 		else if (strlen(ch->control)) 
-			com->ControlString = strdup(ch->control);
+			com->ControlString = gf_strdup(ch->control);
 
 		if (RP_SessionActive(ch)) {
-			if (!com->ControlString && ch->control) com->ControlString = strdup(ch->control);
+			if (!com->ControlString && ch->control) com->ControlString = gf_strdup(ch->control);
 		} else {
 			if (com->ControlString) {
-				free(com->ControlString);
+				gf_free(com->ControlString);
 				com->ControlString=NULL;
 			}
 		}
 
 	} else if (command->command_type==GF_NET_CHAN_PAUSE) {
-		com->method = strdup(GF_RTSP_PAUSE);
+		com->method = gf_strdup(GF_RTSP_PAUSE);
 		if (ch) {
 			range = gf_rtsp_range_new();
 			/*update current time*/
@@ -772,10 +772,10 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 			range = gf_rtsp_range_new();
 			range->start = 0;
 			range->end = -1;
-			com->method = strdup(GF_RTSP_PAUSE);
+			com->method = gf_strdup(GF_RTSP_PAUSE);
 			com->Range = range;
 			/*only pause the specified stream*/
-			if (ch->control) com->ControlString = strdup(ch->control);
+			if (ch->control) com->ControlString = gf_strdup(ch->control);
 		}
 	} else {
 		gf_term_on_command(sess->owner->service, command, GF_NOT_SUPPORTED);
@@ -783,7 +783,7 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		return;
 	}
 
-	ch_ctrl = (ChannelControl *)malloc(sizeof(ChannelControl));
+	ch_ctrl = (ChannelControl *)gf_malloc(sizeof(ChannelControl));
 	ch_ctrl->ch = ch;
 	memcpy(&ch_ctrl->com, command, sizeof(GF_NetworkCommand));
 	com->user_data = ch_ctrl;
@@ -800,10 +800,10 @@ void RP_ProcessTeardown(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 {
 	RTPStream *ch = (RTPStream *)com->user_data;
 	if (ch) {
-		if (ch->session_id) free(ch->session_id);
+		if (ch->session_id) gf_free(ch->session_id);
 		ch->session_id = NULL;
 	} else {
-		if (sess->session_id) free(sess->session_id);
+		if (sess->session_id) gf_free(sess->session_id);
 		sess->session_id = NULL;
 	}
 }
@@ -818,10 +818,10 @@ void RP_Teardown(RTSPSession *sess, RTPStream *ch)
 	if ((sess->flags & RTSP_AGG_CONTROL) && ch) return;
 
 	com = gf_rtsp_command_new();
-	com->method = strdup(GF_RTSP_TEARDOWN);
+	com->method = gf_strdup(GF_RTSP_TEARDOWN);
 	/*this only works in RTSP2*/
 	if (ch && ch->control) {
-		com->ControlString = strdup(ch->control);
+		com->ControlString = gf_strdup(ch->control);
 		com->user_data = ch;
 	}
 

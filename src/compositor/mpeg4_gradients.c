@@ -77,8 +77,8 @@ static void DestroyGradient(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		GradientStack *st = (GradientStack *) gf_node_get_private(node);
 		gf_sc_texture_destroy(&st->txh);
-		if (st->tx_data) free(st->tx_data);
-		free(st);
+		if (st->tx_data) gf_free(st->tx_data);
+		gf_free(st);
 	}
 }
 
@@ -113,14 +113,14 @@ static void UpdateLinearGradient(GF_TextureHandler *txh)
 
 	st->txh.transparent = 0;
 	const_a = (lg->opacity.count == 1) ? 1 : 0;
-	cols = (u32*)malloc(sizeof(u32) * lg->key.count);
+	cols = (u32*)gf_malloc(sizeof(u32) * lg->key.count);
 	for (i=0; i<lg->key.count; i++) {
 		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, lg->keyValue.vals[i].red, lg->keyValue.vals[i].green, lg->keyValue.vals[i].blue);
 		if (a != FIX_ONE) txh->transparent = 1;
 	}
 	txh->compositor->rasterizer->stencil_set_gradient_interpolation(stencil, lg->key.vals, cols, lg->key.count);
-	free(cols);
+	gf_free(cols);
 	txh->compositor->rasterizer->stencil_set_gradient_mode(stencil, (GF_GradientMode) lg->spreadMethod);
 }
 
@@ -177,7 +177,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 	}
 
 	if (st->tx_data) {
-		free(st->tx_data);
+		gf_free(st->tx_data);
 		st->tx_data = NULL;
 	}
 
@@ -200,20 +200,20 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 
 	if (st->txh.flags & GF_SR_TEXTURE_GRAD_NO_RGB) transparent = 1;
 	if (st->tx_data && (st->txh.transparent != transparent)) {
-		free(st->tx_data);
+		gf_free(st->tx_data);
 		st->tx_data = NULL;
 	}
 	
 	if (transparent) {
 		if (!st->tx_data) {
-			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 		} else {
 			memset(st->tx_data, 0, sizeof(char)*txh->stride*txh->height);
 		}
 		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
 	} else {
 		if (!st->tx_data) {
-			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
+			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
 		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB_24, GF_PIXEL_RGB_24, 1);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
@@ -221,15 +221,15 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 			/*remember for later use*/
 			st->txh.flags |= GF_SR_TEXTURE_GRAD_NO_RGB;
 			transparent = 1;
-			free(st->tx_data);
-			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			gf_free(st->tx_data);
+			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 			e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
 		}
 	}
 	st->txh.transparent = transparent;
 
 	if (e) {
-		free(st->tx_data);
+		gf_free(st->tx_data);
 		raster->stencil_delete(texture2D);
 		raster->surface_delete(surface);
 		return;
@@ -255,13 +255,13 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 	end.y *= GRAD_TEXTURE_SIZE;
 	raster->stencil_set_linear_gradient(stenc, start.x, start.y, end.x, end.y);
 	const_a = (lg->opacity.count == 1) ? 1 : 0;
-	cols = (u32*)malloc(sizeof(u32) * lg->key.count);
+	cols = (u32*)gf_malloc(sizeof(u32) * lg->key.count);
 	for (i=0; i<lg->key.count; i++) {
 		a = (const_a ? lg->opacity.vals[0] : lg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, lg->keyValue.vals[i].red, lg->keyValue.vals[i].green, lg->keyValue.vals[i].blue);
 	}
 	raster->stencil_set_gradient_interpolation(stenc, lg->key.vals, cols, lg->key.count);
-	free(cols);
+	gf_free(cols);
 	raster->stencil_set_gradient_mode(stenc, (GF_GradientMode)lg->spreadMethod);
 
 	/*fill surface*/
@@ -366,7 +366,7 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 	}
 
 	if (st->tx_data) {
-		free(st->tx_data);
+		gf_free(st->tx_data);
 		st->tx_data = NULL;
 	}
 
@@ -386,20 +386,20 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 
 	if (st->txh.flags & GF_SR_TEXTURE_GRAD_NO_RGB) transparent = 1;
 	if (st->tx_data && (st->txh.transparent != transparent)) {
-		free(st->tx_data);
+		gf_free(st->tx_data);
 		st->tx_data = NULL;
 	}
 	
 	if (transparent) {
 		if (!st->tx_data) {
-			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 		} else {
 			memset(st->tx_data, 0, sizeof(char)*txh->stride*txh->height);
 		}
 		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
 	} else {
 		if (!st->tx_data) {
-			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
+			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*3);
 		}
 		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 3*GRAD_TEXTURE_SIZE, GF_PIXEL_RGB_24, GF_PIXEL_RGB_24, 1);
 		/*try with ARGB (it actually is needed for GDIplus module since GDIplus cannot handle native RGB texture (it works in BGR)*/
@@ -407,15 +407,15 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 			/*remember for later use*/
 			st->txh.flags |= GF_SR_TEXTURE_GRAD_NO_RGB;
 			transparent = 1;
-			free(st->tx_data);
-			st->tx_data = (char *) malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
+			gf_free(st->tx_data);
+			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 			e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, GF_PIXEL_ARGB, GF_PIXEL_ARGB, 1);
 		}
 	}
 	st->txh.transparent = transparent;
 
 	if (e) {
-		free(st->tx_data);
+		gf_free(st->tx_data);
 		raster->stencil_delete(texture2D);
 		raster->surface_delete(surface);
 		return;
@@ -448,13 +448,13 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 	raster->stencil_set_radial_gradient(stenc, center.x, center.y, focal.x, focal.y, radius, radius);
 
 	const_a = (rg->opacity.count == 1) ? 1 : 0;
-	cols = (u32*) malloc(sizeof(u32) * rg->key.count);
+	cols = (u32*) gf_malloc(sizeof(u32) * rg->key.count);
 	for (i=0; i<rg->key.count; i++) {
 		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, rg->keyValue.vals[i].red, rg->keyValue.vals[i].green, rg->keyValue.vals[i].blue);
 	}
 	raster->stencil_set_gradient_interpolation(stenc, rg->key.vals, cols, rg->key.count);
-	free(cols);
+	gf_free(cols);
 	raster->stencil_set_gradient_mode(stenc, (GF_GradientMode)rg->spreadMethod);
 
 	/*fill surface*/
@@ -548,13 +548,13 @@ static void UpdateRadialGradient(GF_TextureHandler *txh)
 	}
 
 	const_a = (rg->opacity.count == 1) ? 1 : 0;
-	cols = (u32*)malloc(sizeof(u32) * rg->key.count);
+	cols = (u32*)gf_malloc(sizeof(u32) * rg->key.count);
 	for (i=0; i<rg->key.count; i++) {
 		a = (const_a ? rg->opacity.vals[0] : rg->opacity.vals[i]);
 		cols[i] = GF_COL_ARGB_FIXED(a, rg->keyValue.vals[i].red, rg->keyValue.vals[i].green, rg->keyValue.vals[i].blue);
 	}
 	txh->compositor->rasterizer->stencil_set_gradient_interpolation(stencil, rg->key.vals, cols, rg->key.count);
-	free(cols);
+	gf_free(cols);
 
 	txh->compositor->rasterizer->stencil_set_gradient_mode(stencil, (GF_GradientMode) rg->spreadMethod);
 

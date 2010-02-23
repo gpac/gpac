@@ -148,7 +148,7 @@ static void close_waveform(GF_AudioOutput *dr)
 	SetEvent(ctx->event);
 	waveOutReset(ctx->hwo);
 	waveOutClose(ctx->hwo);
-	if (ctx->wav_buf) free(ctx->wav_buf);
+	if (ctx->wav_buf) gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
     CloseHandle(ctx->event);
 	ctx->event = NULL;
@@ -179,7 +179,7 @@ static void close_waveform(GF_AudioOutput *dr)
 		}
 		ctx->hwo = NULL;
 	}
-	if (ctx->wav_buf) free(ctx->wav_buf);
+	if (ctx->wav_buf) gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
     CloseHandle(ctx->event);
 	ctx->event = NULL;
@@ -274,7 +274,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	/*make sure we're aligned*/
 	while (ctx->buffer_size % ctx->fmt.nBlockAlign) ctx->buffer_size++;
 
-	ctx->wav_buf = malloc(ctx->buffer_size*ctx->num_buffers*sizeof(char));
+	ctx->wav_buf = gf_malloc(ctx->buffer_size*ctx->num_buffers*sizeof(char));
 	memset(ctx->wav_buf, 0, ctx->buffer_size*ctx->num_buffers*sizeof(char));
 
 	/*setup wave headers*/
@@ -430,12 +430,12 @@ void *NewWAVRender()
 {
 	WAVContext *ctx;
 	GF_AudioOutput *driv;
-	ctx = malloc(sizeof(WAVContext));
+	ctx = gf_malloc(sizeof(WAVContext));
 	memset(ctx, 0, sizeof(WAVContext));
 	ctx->num_buffers = 10;
 	ctx->pan = 50;
 	ctx->vol = 100;
-	driv = malloc(sizeof(GF_AudioOutput));
+	driv = gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "Windows MME Output", "gpac distribution")
 
@@ -460,8 +460,8 @@ void DeleteWAVRender(void *ifce)
 {
 	GF_AudioOutput *dr = (GF_AudioOutput *) ifce;
 	WAVContext *ctx = (WAVContext *)dr->opaque;
-	free(ctx);
-	free(dr);
+	gf_free(ctx);
+	gf_free(dr);
 }
 
 const u32 *QueryInterfaces() 

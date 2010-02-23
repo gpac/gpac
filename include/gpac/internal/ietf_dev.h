@@ -182,7 +182,7 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 	if (str) { \
 		if (strlen((const char *) str)+pos >= buf_size) {	\
 			buf_size += RTSP_WRITE_STEPALLOC;	\
-			buf = (char *) realloc(buf, buf_size);		\
+			buf = (char *) gf_realloc(buf, buf_size);		\
 		}	\
 		strcpy(buf+pos, (const char *) str);		\
 		pos += strlen((const char *) str);		\

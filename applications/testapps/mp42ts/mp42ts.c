@@ -74,7 +74,7 @@ GF_List *CreateTSPacketsFromSLPacket(M2TS_mux_stream *stream, char *SLPacket, u3
 	B = EncodeSections(sections);
 	ts_packet = CreateTSPacketsFromSections(B, stream->mpeg2_es_pid, &stream->continuity_counter);	
 
-	free(B);
+	gf_free(B);
 	stream->SL_section_version_number ++;
 	if (stream->SL_section_version_number > 32) stream->SL_section_version_number = 0;
 
@@ -96,7 +96,7 @@ MP42TS_Buffer *get_iod(GF_BitStream *bs)
 	e = gf_odf_write_iod(bs_out, iod);
 
 	GF_SAFEALLOC(B, MP42TS_Buffer);
-	B->data = malloc(DescSize);
+	B->data = gf_malloc(DescSize);
 	gf_bs_get_content(bs_out, &B->data, &B->length); 
 	gf_bs_del(bs);
 	
@@ -219,7 +219,7 @@ MP42TS_Buffer *encodeSDT(GF_List *prog_list, char *provider_name, u32 provider_n
 	u32 nb_program = gf_list_count(prog_list);
 	GF_SAFEALLOC(B, MP42TS_Buffer);
 	B->length = nb_program * (10 + service_name_lenth + provider_name_lenth) + 7; // un seul descripteur: service desc 0x48
-	B->data = malloc(B->length);
+	B->data = gf_malloc(B->length);
 
 	B->data[0] = 0; // original_network_id (2 byte)
 	B->data[1] = 0x1; 
@@ -663,7 +663,7 @@ void M2TS_OnEvent_muxer(M2TS_muxer *muxer, u32 evt_type, void *par)
 					stream->sl_packet_len = 0;
 					stream->nb_bytes_written = 0;
 					stream->sample->dataLength = 0;
-					free(stream->sample->data);
+					gf_free(stream->sample->data);
 					update_muxer(muxer, muxer->mp4_in, stream);
 				}
 
@@ -691,7 +691,7 @@ void M2TS_OnEvent_muxer(M2TS_muxer *muxer, u32 evt_type, void *par)
 					u32 i = 0;
 					unsigned char *data;
 					u32 data_size = 188;
-					data = malloc(data_size);
+					data = gf_malloc(data_size);
 					// read one ts packet
 					gf_bs_read_data(mp2_bs, data, data_size);
 					has_data = gf_bs_available(mp2_bs);

@@ -35,7 +35,7 @@
 	single step memory array
 	#define GF_LIST_ARRAY
 
-	multi-step memory array withou realloc on remove, using the GF_LIST_REALLOC macro
+	multi-step memory array withou gf_realloc on remove, using the GF_LIST_REALLOC macro
 	GF_LIST_ARRAY_GROW
 */
 
@@ -46,8 +46,8 @@
 #define GF_LIST_ARRAY_GROW
 #endif
 
-//#define GF_LIST_REALLOC(a) (a ? (3*a/2) : 10)
-#define GF_LIST_REALLOC(a) (a++)
+#define GF_LIST_REALLOC(a) (a = a ? (3*a/2) : 10)
+//#define GF_LIST_REALLOC(a) (a++)
 
 
 #if defined(GF_LIST_LINKED)
@@ -71,7 +71,7 @@ struct _tag_array
 GF_EXPORT
 GF_List * gf_list_new()
 {
-	GF_List *nlist = (GF_List *) malloc(sizeof(GF_List));
+	GF_List *nlist = (GF_List *) gf_malloc(sizeof(GF_List));
 	if (! nlist) return NULL;
 	nlist->head = nlist->foundEntry = NULL;
 	nlist->tail = NULL;
@@ -85,7 +85,7 @@ void gf_list_del(GF_List *ptr)
 {
 	if (!ptr) return;
 	while (ptr->entryCount) gf_list_rem(ptr, 0);
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_EXPORT
@@ -99,7 +99,7 @@ GF_Err gf_list_add(GF_List *ptr, void* item)
 {
 	ItemSlot *entry;
     if (! ptr) return GF_BAD_PARAM;
-	entry = (ItemSlot *) malloc(sizeof(ItemSlot));
+	entry = (ItemSlot *) gf_malloc(sizeof(ItemSlot));
 	if (!entry) return GF_OUT_OF_MEM;
 	entry->data = item;
 	entry->next = NULL;
@@ -171,7 +171,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 		ptr->entryCount --;
 		ptr->foundEntry = ptr->head;
 		ptr->foundEntryNumber = 0;
-		free(tmp);
+		gf_free(tmp);
 		/*that was the last entry, reset the tail*/
 		if (!ptr->entryCount) {
 			ptr->tail = ptr->head = ptr->foundEntry = NULL;
@@ -194,7 +194,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 		tmp->next = NULL;
 	}
 
-	free(tmp2);
+	gf_free(tmp2);
 	ptr->entryCount --;
 	ptr->foundEntry = ptr->head;
 	ptr->foundEntryNumber = 0;
@@ -218,7 +218,7 @@ GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position)
 	/*if last entry or first of an empty array...*/
 	if (position >= ptr->entryCount) return gf_list_add(ptr, item);
 
-	tmp2 = (ItemSlot *) malloc(sizeof(ItemSlot));
+	tmp2 = (ItemSlot *) gf_malloc(sizeof(ItemSlot));
 	tmp2->data = item;
 	tmp2->next = NULL;
 	/*special case for the head*/
@@ -267,7 +267,7 @@ struct _tag_array
 GF_EXPORT
 GF_List * gf_list_new()
 {
-	GF_List *nlist = (GF_List *) malloc(sizeof(GF_List));
+	GF_List *nlist = (GF_List *) gf_malloc(sizeof(GF_List));
 	if (! nlist) return NULL;
 	nlist->head = nlist->foundEntry = NULL;
 	nlist->tail = NULL;
@@ -283,7 +283,7 @@ void gf_list_del(GF_List *ptr)
 	while (ptr->entryCount) {
 		gf_list_rem(ptr, 0);
 	}
-	free(ptr);
+	gf_free(ptr);
 }
 
 GF_EXPORT
@@ -297,7 +297,7 @@ GF_Err gf_list_add(GF_List *ptr, void* item)
 {
 	ItemSlot *entry;
     if (! ptr) return GF_BAD_PARAM;
-	entry = (ItemSlot *) malloc(sizeof(ItemSlot));
+	entry = (ItemSlot *) gf_malloc(sizeof(ItemSlot));
 	if (!entry) return GF_OUT_OF_MEM;
 	entry->data = item;
 	entry->next = entry->prev = NULL;
@@ -378,7 +378,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 		ptr->entryCount --;
 		ptr->foundEntry = ptr->head;
 		ptr->foundEntryNumber = 0;
-		free(tmp);
+		gf_free(tmp);
 
 		/*that was the last entry, reset the tail*/
 		if (!ptr->entryCount) {
@@ -398,7 +398,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 			ptr->foundEntry = ptr->tail;
 			ptr->foundEntryNumber = ptr->entryCount-1;
 		}
-		free(tmp);
+		gf_free(tmp);
 		return GF_OK;
 	}
 
@@ -415,7 +415,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 	tmp->prev->next = tmp->next;
 	tmp->next->prev = tmp->prev;
 	if (tmp==ptr->foundEntry) ptr->foundEntry = tmp->next;
-	free(tmp);
+	gf_free(tmp);
 	ptr->entryCount--;
 	return GF_OK;
 }
@@ -435,7 +435,7 @@ GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position)
 	if (!ptr || !item) return GF_BAD_PARAM;
 	/*if last entry or first of an empty array...*/
 	if (position >= ptr->entryCount) return gf_list_add(ptr, item);
-	tmp2 = (ItemSlot *) malloc(sizeof(ItemSlot));
+	tmp2 = (ItemSlot *) gf_malloc(sizeof(ItemSlot));
 	tmp2->data = item;
 	tmp2->next = tmp2->prev = NULL;
 	/*special case for the head*/
@@ -482,7 +482,7 @@ struct _tag_array
 GF_EXPORT
 GF_List * gf_list_new()
 {
-	GF_List *nlist = (GF_List *) malloc(sizeof(GF_List));
+	GF_List *nlist = (GF_List *) gf_malloc(sizeof(GF_List));
 	if (! nlist) return NULL;
 	nlist->slots = NULL;
 	nlist->entryCount = 0;
@@ -493,8 +493,8 @@ GF_EXPORT
 void gf_list_del(GF_List *ptr)
 {
 	if (!ptr) return;
-	free(ptr->slots);
-	free(ptr);
+	gf_free(ptr->slots);
+	gf_free(ptr);
 }
 
 GF_EXPORT
@@ -503,7 +503,7 @@ GF_Err gf_list_add(GF_List *ptr, void* item)
     if (! ptr) return GF_BAD_PARAM;
 
 	ptr->entryCount ++;
-	ptr->slots = (void **) realloc(ptr->slots, ptr->entryCount*sizeof(void*));
+	ptr->slots = (void **) gf_realloc(ptr->slots, ptr->entryCount*sizeof(void*));
 	if (!ptr->slots) {
 		ptr->entryCount = 0;
 		return GF_OUT_OF_MEM;
@@ -543,7 +543,7 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 	if (i) memmove(&ptr->slots[itemNumber], & ptr->slots[itemNumber +1], sizeof(void *)*i);
 	ptr->slots[ptr->entryCount-1] = NULL;
 	ptr->entryCount -= 1;
-	ptr->slots = (void **) realloc(ptr->slots, sizeof(void*)*ptr->entryCount);
+	ptr->slots = (void **) gf_realloc(ptr->slots, sizeof(void*)*ptr->entryCount);
 	return GF_OK;
 }
 
@@ -552,7 +552,7 @@ GF_Err gf_list_rem_last(GF_List *ptr)
 {
 	if ( !ptr || !ptr->slots || !ptr->entryCount) return GF_BAD_PARAM;
 	ptr->entryCount -= 1;
-	ptr->slots = (void **) realloc(ptr->slots, sizeof(void*)*ptr->entryCount);
+	ptr->slots = (void **) gf_realloc(ptr->slots, sizeof(void*)*ptr->entryCount);
 	return GF_OK;
 }
 
@@ -565,7 +565,7 @@ GF_Err gf_list_insert(GF_List *ptr, void *item, u32 position)
 	if (!ptr || !item) return GF_BAD_PARAM;
 	/*if last entry or first of an empty array...*/
 	if (position >= ptr->entryCount) return gf_list_add(ptr, item);
-	ptr->slots = (void **) realloc(ptr->slots, (ptr->entryCount+1)*sizeof(void*));
+	ptr->slots = (void **) gf_realloc(ptr->slots, (ptr->entryCount+1)*sizeof(void*));
 	i = ptr->entryCount - position;
 	memmove(&ptr->slots[position + 1], &ptr->slots[position], sizeof(void *)*i);
 	ptr->entryCount++;
@@ -578,7 +578,7 @@ void gf_list_reset(GF_List *ptr)
 {
 	if (ptr) {
 		ptr->entryCount = 0;
-		free(ptr->slots);
+		gf_free(ptr->slots);
 		ptr->slots = NULL;
 	}
 }
@@ -598,7 +598,7 @@ GF_List * gf_list_new()
 {
 	GF_List *nlist;
 
-	nlist = (GF_List *) malloc(sizeof(GF_List));
+	nlist = (GF_List *) gf_malloc(sizeof(GF_List));
 	if (! nlist) return NULL;
 	
 	nlist->slots = NULL;
@@ -611,14 +611,14 @@ GF_EXPORT
 void gf_list_del(GF_List *ptr)
 {
 	if (!ptr) return;
-	free(ptr->slots);
-	free(ptr);
+	gf_free(ptr->slots);
+	gf_free(ptr);
 }
 
 static void realloc_chain(GF_List *ptr)
 {
 	GF_LIST_REALLOC(ptr->allocSize);
-	ptr->slots = realloc(ptr->slots, ptr->allocSize*sizeof(void*));
+	ptr->slots = gf_realloc(ptr->slots, ptr->allocSize*sizeof(void*));
 }
 
 GF_EXPORT

@@ -51,7 +51,7 @@ static void animationstream_destroy(GF_Node *node, void *rs, Bool is_destroy)
 			gf_mo_stop(st->stream);
 		}
 		gf_sg_vrml_mf_reset(&st->current_url, GF_SG_VRML_MFURL);
-		free(st);
+		gf_free(st);
 	}
 }
 

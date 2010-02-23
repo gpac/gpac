@@ -372,7 +372,7 @@ void CFileProps::OnViewsg()
 	} else {
 		ShellExecute(NULL, "open", pFilename, NULL, NULL, SW_SHOWNORMAL);
 	}
-	if (pFilename) free(pFilename);
+	if (pFilename) gf_free(pFilename);
 }
 
 void CFileProps::SetDecoderInfo()

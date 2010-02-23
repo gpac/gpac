@@ -46,7 +46,7 @@ static void movietexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 		MovieTextureStack *st = (MovieTextureStack *) gf_node_get_private(node);
 		gf_sc_texture_destroy(&st->txh);
 		if (st->time_handle.is_registered) gf_sc_unregister_time_node(st->txh.compositor, &st->time_handle);
-		free(st);
+		gf_free(st);
 	}
 }
 static Fixed movietexture_get_speed(MovieTextureStack *stack, M_MovieTexture *mt)
@@ -236,7 +236,7 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 			}
 		}
 		gf_sc_texture_destroy(txh);
-		free(txh);
+		gf_free(txh);
 	}
 }
 
@@ -377,9 +377,9 @@ static void pixeltexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
 		PixelTextureStack *st = (PixelTextureStack *) gf_node_get_private(node);
-		if (st->pixels) free(st->pixels);
+		if (st->pixels) gf_free(st->pixels);
 		gf_sc_texture_destroy(&st->txh);
-		free(st);
+		gf_free(st);
 	}
 }
 static void pixeltexture_update(GF_TextureHandler *txh)
@@ -425,8 +425,8 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 		if (!txh->tx_io) return;
 	}
 
-	if (st->pixels) free(st->pixels);
-	st->pixels = (char*)malloc(sizeof(char) * stride * pt->image.height);
+	if (st->pixels) gf_free(st->pixels);
+	st->pixels = (char*)gf_malloc(sizeof(char) * stride * pt->image.height);
 	/*FIXME FOR OPENGL !!*/
 	if (0) {
 		for (i=0; i<pt->image.height; i++) {

@@ -284,7 +284,7 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		svgin->file_size = gf_bs_read_u32(bs);
 		svgin->file_pos = 0;
 		gf_bs_del(bs);
-		svgin->file_name =  (char *) malloc(sizeof(char)*(1 + esd->decoderConfig->decoderSpecificInfo->dataLength - sizeof(u32)) );
+		svgin->file_name =  (char *) gf_malloc(sizeof(char)*(1 + esd->decoderConfig->decoderSpecificInfo->dataLength - sizeof(u32)) );
 		memcpy(svgin->file_name, esd->decoderConfig->decoderSpecificInfo->data + sizeof(u32), esd->decoderConfig->decoderSpecificInfo->dataLength - sizeof(u32) );
 		svgin->file_name[esd->decoderConfig->decoderSpecificInfo->dataLength - sizeof(u32) ] = 0;
 		break;
@@ -312,7 +312,7 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 static GF_Err SVG_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 {
 	SVGIn *svgin = (SVGIn *)plug->privateStack;
-	if (svgin->file_name) free(svgin->file_name);
+	if (svgin->file_name) gf_free(svgin->file_name);
 	svgin->file_name = NULL;
 	gf_sm_load_done(&svgin->loader);
 	return GF_OK;
@@ -353,8 +353,12 @@ static GF_Err SVG_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *cap)
 	return GF_NOT_SUPPORTED;
 }
 
-static GF_Err SVG_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability capability)
+static GF_Err SVG_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap)
 {
+	if (cap.CapCode==GF_CODEC_ABORT) {
+		SVGIn *svgin = (SVGIn *)plug->privateStack;
+		gf_sm_load_suspend(&svgin->loader, 1);
+	}
 	return GF_OK;
 }
 
@@ -393,8 +397,8 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	SVGIn *svgin = (SVGIn *) sdec->privateStack;
 	if (sdec->InterfaceType != GF_SCENE_DECODER_INTERFACE) return;
 
-	free(svgin);
-	free(sdec);
+	gf_free(svgin);
+	gf_free(sdec);
 }
 
 #else

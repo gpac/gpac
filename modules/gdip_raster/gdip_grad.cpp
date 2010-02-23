@@ -57,12 +57,12 @@ void gdip_delete_stencil(GF_STENCIL _this)
 	if (_sten->pMat) GdipDeleteMatrix(_sten->pMat);
 	if (_sten->pLinearMat) GdipDeleteMatrix(_sten->pLinearMat);
 	if (_sten->pBitmap) GdipDisposeImage(_sten->pBitmap);
-	if (_sten->conv_buf) free(_sten->conv_buf);
+	if (_sten->conv_buf) gf_free(_sten->conv_buf);
 
 	if (_sten->cols) delete [] _sten->cols;
 	if (_sten->pos) delete [] _sten->pos;
 
-	free(_sten);
+	gf_free(_sten);
 }
 static
 GF_Err gdip_stencil_set_matrix(GF_STENCIL _this, GF_Matrix2D *mat)

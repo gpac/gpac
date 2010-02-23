@@ -8,7 +8,7 @@
    subject to change. Applications should only use zlib.h.
  */
 
-/* @(#) $Id: zutil.h,v 1.1 2006-12-13 15:51:06 jeanlf Exp $ */
+/* @(#) $Id: zutil.h,v 1.2 2010-02-23 16:24:20 jeanlf Exp $ */
 
 #ifndef ZUTIL_H
 #define ZUTIL_H
@@ -95,13 +95,13 @@ extern const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #  if defined(__TURBOC__) || defined(__BORLANDC__)
 #    if(__STDC__ == 1) && (defined(__LARGE__) || defined(__COMPACT__))
        /* Allow compilation with ANSI keywords only enabled */
-       void _Cdecl farfree( void *block );
+       void _Cdecl fargf_free( void *block );
        void *_Cdecl farmalloc( unsigned long nbytes );
 #    else
 #      include <alloc.h>
 #    endif
 #  else /* MSC or DJGPP */
-#    include <malloc.h>
+#    include <gf_malloc.h>
 #  endif
 #endif
 
@@ -122,7 +122,7 @@ extern const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
 #ifdef OS2
 #  define OS_CODE  0x06
 #  ifdef M_I86
-     #include <malloc.h>
+     #include <gf_malloc.h>
 #  endif
 #endif
 

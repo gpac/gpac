@@ -91,7 +91,7 @@ static void OSS_Shutdown(GF_AudioOutput*dr)
 	OSSCTX();
 	ioctl(ctx->audio_dev,SNDCTL_DSP_RESET);
 	close(ctx->audio_dev);
-	if (ctx->wav_buf) free(ctx->wav_buf);
+	if (ctx->wav_buf) gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
 }
 
@@ -106,7 +106,7 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 	/* reset and reopen audio-device */
 	ioctl(ctx->audio_dev,SNDCTL_DSP_RESET);
 	close(ctx->audio_dev);
-	if (ctx->wav_buf) free(ctx->wav_buf);
+	if (ctx->wav_buf) gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
 	ctx->audio_dev=open(OSS_AUDIO_DEVICE,O_WRONLY|O_NONBLOCK);
 	if (!ctx->audio_dev) return GF_IO_ERR;
@@ -146,7 +146,7 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 	if ( ioctl(ctx->audio_dev, SNDCTL_DSP_SETFRAGMENT, &frag_spec) < 0 ) return GF_IO_ERR;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[OSS] setup %d buffers %d bytes each (%d ms buffer delay)", nb_bufs, ctx->buf_size, ctx->delay));
-	ctx->wav_buf = realloc(ctx->wav_buf, ctx->buf_size*sizeof(char));
+	ctx->wav_buf = gf_realloc(ctx->wav_buf, ctx->buf_size*sizeof(char));
 	if(!ctx->wav_buf) return GF_OUT_OF_MEM;
 	memset(ctx->wav_buf, 0, ctx->buf_size*sizeof(char));
 	return GF_OK;
@@ -211,14 +211,14 @@ void *NewOSSRender()
 {
 	OSSContext *ctx;
 	GF_AudioOutput*driv;
-	ctx = malloc(sizeof(OSSContext));
+	ctx = gf_malloc(sizeof(OSSContext));
 	if(!ctx)
 		return NULL;
 	memset(ctx, 0, sizeof(OSSContext));
-	driv = malloc(sizeof(GF_AudioOutput));
+	driv = gf_malloc(sizeof(GF_AudioOutput));
 	if(!driv)
 	{
-		free(ctx);
+		gf_free(ctx);
 		ctx=NULL;
 		return NULL;
 	}
@@ -243,8 +243,8 @@ void DeleteOSSRender(void *ifce)
 {
 	GF_AudioOutput*dr = (GF_AudioOutput*) ifce;
 	OSSContext *ctx = (OSSContext *)dr->opaque;
-	free(ctx);
-	free(dr);
+	gf_free(ctx);
+	gf_free(dr);
 }
 
 

@@ -77,9 +77,9 @@ GF_Err gf_afc_setup(GF_AudioFilterChain *afc, u32 bps, u32 sr, u32 chan, u32 ch_
 	u32 och, ocfg, in_ch;
 	Bool not_in_place;
 
-	if (afc->tmp_block1) free(afc->tmp_block1);
+	if (afc->tmp_block1) gf_free(afc->tmp_block1);
 	afc->tmp_block1 = NULL;
-	if (afc->tmp_block2) free(afc->tmp_block2);
+	if (afc->tmp_block2) gf_free(afc->tmp_block2);
 	afc->tmp_block2 = NULL;
 
 	in_ch = chan;
@@ -92,7 +92,7 @@ GF_Err gf_afc_setup(GF_AudioFilterChain *afc, u32 bps, u32 sr, u32 chan, u32 ch_
 	entry = afc->filters;
 	while (entry) {
 		if (entry->in_block) {
-			free(entry->in_block);
+			gf_free(entry->in_block);
 			entry->in_block = NULL;
 		}
 
@@ -120,10 +120,10 @@ GF_Err gf_afc_setup(GF_AudioFilterChain *afc, u32 bps, u32 sr, u32 chan, u32 ch_
 
 	if (!afc->max_block_size) afc->max_block_size = 1000;
 	if (!afc->min_block_size) afc->min_block_size = afc->max_block_size * in_ch / chan;
-	afc->tmp_block1 = malloc(sizeof(char) * afc->max_block_size * 2);
+	afc->tmp_block1 = gf_malloc(sizeof(char) * afc->max_block_size * 2);
 	if (!afc->tmp_block1) return GF_OUT_OF_MEM;
 	if (not_in_place) {
-		afc->tmp_block2 = malloc(sizeof(char) * afc->max_block_size * 2);
+		afc->tmp_block2 = gf_malloc(sizeof(char) * afc->max_block_size * 2);
 		if (!afc->tmp_block2) return GF_OUT_OF_MEM;
 	}
 
@@ -131,7 +131,7 @@ GF_Err gf_afc_setup(GF_AudioFilterChain *afc, u32 bps, u32 sr, u32 chan, u32 ch_
 	entry = afc->filters;
 	while (entry) {
 		if (entry->enable && entry->in_block_size) {
-			entry->in_block = malloc(sizeof(char) * (entry->in_block_size + afc->max_block_size) );
+			entry->in_block = gf_malloc(sizeof(char) * (entry->in_block_size + afc->max_block_size) );
 			if (!entry->in_block) return GF_OUT_OF_MEM;
 		}
 		entry = entry->next;
@@ -199,11 +199,11 @@ void gf_afc_unload(GF_AudioFilterChain *afc)
 		struct _audiofilterentry *tmp = afc->filters;
 		afc->filters = tmp->next;
 		gf_modules_close_interface((GF_BaseInterface *)tmp->filter);
-		if (tmp->in_block) free(tmp->in_block);
-		free(tmp);
+		if (tmp->in_block) gf_free(tmp->in_block);
+		gf_free(tmp);
 	}
-	if (afc->tmp_block1) free(afc->tmp_block1);
-	if (afc->tmp_block2) free(afc->tmp_block2);
+	if (afc->tmp_block1) gf_free(afc->tmp_block1);
+	if (afc->tmp_block2) gf_free(afc->tmp_block2);
 	memset(afc, 0, sizeof(GF_AudioFilterChain));
 }
 
@@ -369,7 +369,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 	u32 num_buffers, total_duration;
 	GF_Err e;
 	GF_AudioRenderer *ar;
-	ar = (GF_AudioRenderer *) malloc(sizeof(GF_AudioRenderer));
+	ar = (GF_AudioRenderer *) gf_malloc(sizeof(GF_AudioRenderer));
 	memset(ar, 0, sizeof(GF_AudioRenderer));
 
 	num_buffers = total_duration = 0;
@@ -490,7 +490,7 @@ void gf_sc_ar_del(GF_AudioRenderer *ar)
 	gf_mixer_del(ar->mixer);
 
 	gf_afc_unload(&ar->filter_chain);
-	free(ar);
+	gf_free(ar);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] Renderer destroyed\n"));
 }
 

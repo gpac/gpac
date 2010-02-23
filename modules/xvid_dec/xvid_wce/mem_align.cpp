@@ -19,7 +19,7 @@
  *  along with this program ; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307 USA
  *
- * $Id: mem_align.cpp,v 1.2 2008-08-20 13:57:54 jeanlf Exp $
+ * $Id: mem_align.cpp,v 1.3 2010-02-23 16:23:32 jeanlf Exp $
  *
  ****************************************************************************/
 
@@ -57,7 +57,7 @@ void *xvid_malloc(long size, dword alignment){
 	if (!alignment) {
 
 		/* We have not to satisfy any alignment */
-      //mem_ptr = (byte*)malloc(size + 1);
+      //mem_ptr = (byte*)gf_malloc(size + 1);
       //mem_ptr = new(ELeave) byte[size+1];
       mem_ptr = new byte[size+1];
 		if(mem_ptr) {
@@ -73,7 +73,7 @@ void *xvid_malloc(long size, dword alignment){
 
 		/* Allocate the required size memory + alignment so we
 		 * can realign the data if necessary */
-      //tmp = (byte *) malloc(size + alignment);
+      //tmp = (byte *) gf_malloc(size + alignment);
       //tmp = new(ELeave) byte[size + alignment];
       tmp = new byte[size + alignment];
 		if(tmp) {
@@ -82,7 +82,7 @@ void *xvid_malloc(long size, dword alignment){
 			mem_ptr =
 				(byte *) ((dword)(tmp + alignment - 1) & (~(dword)(alignment - 1)));
 
-			/* Special case where malloc have already satisfied the alignment
+			/* Special case where gf_malloc have already satisfied the alignment
 			 * We must add alignment to mem_ptr because we must store
 			 * (mem_ptr - tmp) in *(mem_ptr-1)
 			 * If we do not add alignment to mem_ptr then *(mem_ptr-1) points
@@ -91,7 +91,7 @@ void *xvid_malloc(long size, dword alignment){
 				mem_ptr += alignment;
 
 			/* (mem_ptr - tmp) is stored in *(mem_ptr-1) so we are able to retrieve
-			 * the real malloc block allocated and free it in xvid_free */
+			 * the real gf_malloc block allocated and free it in xvid_free */
 			*(mem_ptr - 1) = (byte) (mem_ptr - tmp);
 
 			/* Return the aligned pointer */

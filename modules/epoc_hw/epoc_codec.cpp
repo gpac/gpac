@@ -415,8 +415,8 @@ void EPOC_codec_del(GF_BaseDecoder *ifcg)
 {
 	EPOCCodec *ctx = (EPOCCodec *)ifcg->privateStack;
 
-	free(ctx);
-	free(ifcg);
+	gf_free(ctx);
+	gf_free(ifcg);
 }
 
 

@@ -89,7 +89,7 @@ void gf_term_stop_scheduler(GF_Terminal *term)
 		for (i=0; i<count; i++) {
 			CodecEntry *ce = gf_list_get(term->codecs, i);
 			if (ce->flags & GF_MM_CE_DISCRADED) {
-				free(ce);
+				gf_free(ce);
 				gf_list_rem(term->codecs, i);
 				count--;
 				i--;
@@ -234,7 +234,7 @@ void gf_term_remove_codec(GF_Terminal *term, GF_Codec *codec)
 			gf_mx_del(ce->mx);
 		}
 		if (locked) {
-			free(ce);
+			gf_free(ce);
 			gf_list_rem(term->codecs, i-1);
 		} else {
 			ce->flags |= GF_MM_CE_DISCRADED;
@@ -308,7 +308,7 @@ static u32 MM_SimulationStep(GF_Terminal *term)
 		time_taken = gf_sys_clock() - time_taken;
 
 		if (ce->flags & GF_MM_CE_DISCRADED) {
-			free(ce);
+			gf_free(ce);
 			gf_list_rem(term->codecs, term->last_codec);
 			count--;
 		} else {
@@ -445,6 +445,7 @@ void gf_term_start_codec(GF_Codec *codec)
 
 void gf_term_stop_codec(GF_Codec *codec)
 {
+	GF_CodecCapability cap;
 	Bool locked = 0;
 	CodecEntry *ce;
 	GF_Terminal *term = codec->odm->term;
@@ -463,9 +464,12 @@ void gf_term_stop_codec(GF_Codec *codec)
 	} else {
 		locked = gf_mx_try_lock(term->mm_mx);
 	}
+
+	cap.CapCode = GF_CODEC_ABORT;
+	cap.cap.valueInt = 0;
+	gf_codec_set_capability(codec, cap);
 	
 	if (codec->decio && codec->odm->mo && (codec->odm->mo->flags & GF_MO_DISPLAY_REMOVE) ) {
-		GF_CodecCapability cap;
 		cap.CapCode = GF_CODEC_SHOW_SCENE;
 		cap.cap.valueInt = 0;
 		gf_codec_set_capability(codec, cap);

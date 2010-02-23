@@ -308,10 +308,10 @@ GF_Err gf_isom_set_meta_type(GF_ISOFile *file, Bool root_meta, u32 track_num, u3
 	if (!meta->handler) 
 		meta->handler = (GF_HandlerBox *)hdlr_New();
 
-	if (meta->handler->nameUTF8) free(meta->handler->nameUTF8);
+	if (meta->handler->nameUTF8) gf_free(meta->handler->nameUTF8);
 	meta->handler->handlerType = metaType;
 	sprintf(szName, "GPAC %s Handler", gf_4cc_to_str(metaType));
-	meta->handler->nameUTF8 = strdup(szName);
+	meta->handler->nameUTF8 = gf_strdup(szName);
 	return GF_OK;
 }
 
@@ -362,10 +362,10 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	fseek(xmlfile, 0, SEEK_END);
 	xml->xml_length = ftell(xmlfile);
 	fseek(xmlfile, 0, SEEK_SET);
-	xml->xml = (char*)malloc(sizeof(unsigned char)*xml->xml_length);
+	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*xml->xml_length);
 	xml->xml_length = fread(xml->xml, 1, sizeof(unsigned char)*xml->xml_length, xmlfile);
 	if (ferror(xmlfile)) {
-		free(xml->xml);
+		gf_free(xml->xml);
 		xml->xml = NULL;
 		return GF_BAD_PARAM;
 	}
@@ -412,24 +412,24 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 
 	/*get relative name*/
 	if (item_name) {
-		infe->item_name = strdup(item_name);
+		infe->item_name = gf_strdup(item_name);
 	} else if (resource_path) {
 		if (strrchr(resource_path, GF_PATH_SEPARATOR)) {
-			infe->item_name = strdup(strrchr(resource_path, GF_PATH_SEPARATOR) + 1);
+			infe->item_name = gf_strdup(strrchr(resource_path, GF_PATH_SEPARATOR) + 1);
 		} else {
-			infe->item_name = strdup(resource_path);
+			infe->item_name = gf_strdup(resource_path);
 		}
 	}
 
 	if (mime_type) {
-		infe->content_type = strdup(mime_type);
+		infe->content_type = gf_strdup(mime_type);
 	} else {
-		infe->content_type = strdup("application/octet-stream");
+		infe->content_type = gf_strdup("application/octet-stream");
 	}
-	if (content_encoding) infe->content_encoding = strdup(content_encoding);
+	if (content_encoding) infe->content_encoding = gf_strdup(content_encoding);
 
 	/*Creation of the ItemLocation */
-	location_entry = (GF_ItemLocationEntry*)malloc(sizeof(GF_ItemLocationEntry));
+	location_entry = (GF_ItemLocationEntry*)gf_malloc(sizeof(GF_ItemLocationEntry));
 	if (!location_entry) {
 		gf_isom_box_del((GF_Box *)infe);
 		return GF_OUT_OF_MEM;
@@ -458,7 +458,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 		GF_ItemExtentEntry *entry;
 		GF_SAFEALLOC(entry, GF_ItemExtentEntry);
 		gf_list_add(location_entry->extent_entries, entry);
-		if (!infe->item_name) infe->item_name = strdup("");
+		if (!infe->item_name) infe->item_name = gf_strdup("");
 		return GF_OK;
 	}
 
@@ -516,7 +516,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 	}
 	/*store full path for info*/
 	else if (!location_entry->data_reference_index) {
-		infe->full_path = strdup(resource_path);
+		infe->full_path = gf_strdup(resource_path);
 	}
 	return GF_OK;
 }
