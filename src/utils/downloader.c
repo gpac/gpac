@@ -201,7 +201,7 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
 	SSL_CTX_set_mode(dm->ssl_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE);
 	return 1;
 error:
-	if (dm->ssl_ctx) SSL_CTX_gf_free(dm->ssl_ctx);
+	if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
 	dm->ssl_ctx = NULL;
 	return 0;
 }
@@ -295,7 +295,7 @@ static void gf_dm_disconnect(GF_DownloadSession *sess)
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
 		SSL_shutdown(sess->ssl);
-		SSL_gf_free(sess->ssl);
+		SSL_free(sess->ssl);
 		sess->ssl = NULL;
 	}
 #endif
@@ -676,7 +676,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 				X509_NAME_get_text_by_NID(X509_get_subject_name(cert), NID_commonName, common_name, sizeof (common_name));
 				if (!pattern_match(common_name, sess->server_name)) success = 0;
 			}
-			X509_gf_free(cert);
+			X509_free(cert);
 
 			if (!success) {
 				gf_dm_disconnect(sess);
@@ -797,7 +797,7 @@ void gf_dm_del(GF_DownloadManager *dm)
 	gf_free(dm->cache_directory);
 
 #ifdef GPAC_HAS_SSL
-	if (dm->ssl_ctx) SSL_CTX_gf_free(dm->ssl_ctx);
+	if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
 #endif
 
 	gf_free(dm);

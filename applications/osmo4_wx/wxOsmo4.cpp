@@ -637,7 +637,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 		gf_log_set_tools(m_log_tools);
 	}
 
-	gf_sys_init();
+	gf_sys_init(0);
 
 	::wxLogMessage(wxT("GPAC configuration file opened - looking for modules"));
 	str = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
