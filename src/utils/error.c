@@ -54,7 +54,7 @@ size_t gpac_nb_alloc_blocs = 0;
 static void register_address(void *ptr, size_t size, char *filename, int line);
 static int unregister_address(void *ptr, char *filename, int line);
 
-void gf_memory_log(unsigned int level, const char *fmt, ...);
+static void gf_memory_log(unsigned int level, const char *fmt, ...);
 enum
 {
 	/*! Log message describes an error*/

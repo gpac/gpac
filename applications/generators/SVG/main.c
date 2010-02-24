@@ -35,7 +35,7 @@ void deleteSVGGenAttribute(SVGGenAttribute **p)
 {
 	xmlFree((*p)->svg_name);
 	xmlFree((*p)->svg_type);
-	free(*p);
+	gf_free(*p);
 	*p = NULL;
 }
 
@@ -68,7 +68,7 @@ void deleteSVGGenElement(SVGGenElement **p)
 		deleteSVGGenAttribute(&a);
 	}
 	gf_list_del((*p)->attributes);
-	free(*p);
+	gf_free(*p);
 	*p = NULL;
 }
 
@@ -631,7 +631,7 @@ SVGGenAttrGrp *getOneGlobalAttrGrp(xmlDocPtr doc, xmlXPathContextPtr xpathCtx, x
 		return NULL;
 	}
 	attgrp = NewSVGGenAttrGrp();				
-	attgrp->name = strdup(name);
+	attgrp->name = gf_strdup(name);
 	svgNameToImplementationName(attgrp->name, attgrp->imp_name);
 	gf_list_add(globalAttrGrp, attgrp);
 
