@@ -270,8 +270,8 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 		if (diff > send_ahead_delay) {
 			gf_sleep(1);
 		} else {
-			if (diff<0) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("WARNING: RTP session %s stream %d - sending packet %d ms too late\n", gf_isom_get_filename(streamer->isom), to_send->track_num, -diff));
+			if (diff<10) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("WARNING: RTP session %s stream %d - sending packet %d ms too late\n", gf_isom_get_filename(streamer->isom), to_send->track_num, -diff));
 			}
 			break;
 		}

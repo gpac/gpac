@@ -604,14 +604,19 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	}
 		
 	/*for objects inserted by user (subs & co), auto select*/
-	if (odm->term->root_scene->is_dynamic_scene && (odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID) && (odm->flags & GF_ODM_REMOTE_OD)) {
+	if (odm->parentscene && odm->parentscene->is_dynamic_scene 
+		&& (odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID) 
+		&& (odm->flags & GF_ODM_REMOTE_OD)
+	) {
 		GF_Event evt;
 		if (odm->OD_PL) {
-			gf_scene_select_object(odm->term->root_scene, odm);
+			gf_scene_select_object(odm->parentscene, odm);
 			odm->OD_PL = 0;
 		}
-		evt.type = GF_EVENT_STREAMLIST;
-		gf_term_send_event(odm->term,&evt);
+		if (odm->parentscene==odm->term->root_scene) {
+			evt.type = GF_EVENT_STREAMLIST;
+			gf_term_send_event(odm->term,&evt);
+		}
 	}
 }
 

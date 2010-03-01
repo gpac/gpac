@@ -251,6 +251,9 @@ static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_sc
 	/*Warning: svgin->loader.type may be overriden in attach stream */
 	svgin->loader.type = GF_SM_LOAD_SVG;
 	svgin->loader.flags = GF_SM_LOAD_FOR_PLAYBACK;
+
+	if (svgin->oti!= GPAC_OTI_PRIVATE_SCENE_SVG)
+		gf_sm_load_init(&svgin->loader);
 	return GF_OK;
 }
 
