@@ -26,6 +26,7 @@
 
 #if defined(_WIN32_WCE)
 
+#include <winbase.h>
 #include <winsock.h>
 #include <tlhelp32.h>
 
@@ -863,6 +864,9 @@ void gf_mem_enable_tracker();
 void gf_sys_init(Bool enable_memory_tracker)
 {
 	if (!sys_init) {
+#if defined(_WIN32_WCE)
+		MEMORYSTATUS ms;
+#endif
 
 		if (enable_memory_tracker) {
 #ifdef GPAC_MEMORY_TRACKING
@@ -871,15 +875,11 @@ void gf_sys_init(Bool enable_memory_tracker)
 		}
 
 #if defined(__sh__)
-	/* Round all denormalized floatting point number to 0.0 */
-    sh4_change_fpscr(0,SH4_FPSCR_DN) ;
+		/* Round all denormalized floatting point number to 0.0 */
+		sh4_change_fpscr(0,SH4_FPSCR_DN) ;
 #endif
 
 #if defined(WIN32)
-
-#if defined(_WIN32_WCE)
-		MEMORYSTATUS ms;
-#endif
 		frequency.QuadPart = 0;
 		/*clock setup*/
 		if (QueryPerformanceFrequency(&frequency)) {

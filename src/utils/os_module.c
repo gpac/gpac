@@ -49,6 +49,7 @@ void gf_modules_free_module(ModuleInstance *inst)
 	if (inst->lib_handle) dlclose(inst->lib_handle);
 #endif
 	gf_list_del(inst->interfaces);
+	gf_free(inst->name);
 	gf_free(inst);
 }
 
@@ -71,13 +72,13 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 #endif
 	
 	if (inst->lib_handle) return 1;
-	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s\n", inst->szName));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s\n", inst->name));
 
 #ifdef _WIN32_WCE
-	sprintf(s_path, "%s%c%s", inst->plugman->dir, GF_PATH_SEPARATOR, inst->szName);
+	sprintf(s_path, "%s%c%s", inst->plugman->dir, GF_PATH_SEPARATOR, inst->name);
 	CE_CharToWide(s_path, path);
 #else
-	sprintf(path, "%s%c%s", inst->plugman->dir, GF_PATH_SEPARATOR, inst->szName);
+	sprintf(path, "%s%c%s", inst->plugman->dir, GF_PATH_SEPARATOR, inst->name);
 #endif
 	
 #ifdef WIN32
@@ -201,7 +202,7 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 	GF_SAFEALLOC(inst, ModuleInstance);
 	inst->interfaces = gf_list_new();
 	inst->plugman = pm;
-	strcpy(inst->szName, item_name);
+	inst->name = gf_strdup(item_name);
 	gf_list_add(pm->plug_list, inst);
 	return 0;
 }

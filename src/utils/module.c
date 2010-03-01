@@ -68,7 +68,7 @@ Bool gf_module_is_loaded(GF_ModuleManager *pm, char *filename)
 	u32 i = 0;
 	ModuleInstance *inst;
 	while ( (inst = (ModuleInstance *) gf_list_enum(pm->plug_list, &i) ) ) {
-		if (!strcmp(inst->szName, filename)) return 1;
+		if (!strcmp(inst->name, filename)) return 1;
 	}
 	return 0;
 }
@@ -95,7 +95,7 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	if (!inst) return NULL;
 
 	/*look in cache*/
-	opt = gf_cfg_get_key(pm->cfg, "PluginsCache", inst->szName);
+	opt = gf_cfg_get_key(pm->cfg, "PluginsCache", inst->name);
 	if (opt) {
 		sprintf(szKey, "%s:yes", gf_4cc_to_str(InterfaceFamily));
 		if (!strstr(opt, szKey)) return NULL;
@@ -106,7 +106,7 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	else if (!inst->query_func) fail = 2;
 
 	if (fail) {
-		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->szName, "Invalid Plugin");
+		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, "Invalid Plugin");
 		goto err_exit;
 	}
 
@@ -132,7 +132,7 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 			if (InterfaceFamily==si[i]) found = 1;
 			i++;
 		}
-		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->szName, key);
+		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, key);
 		gf_free(key);
 		if (!found) {
 			fail = 2;
@@ -179,7 +179,7 @@ GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const 
 	if (file_name) {
 		for (i=0; i<count; i++) {
 			ModuleInstance *inst = (ModuleInstance *) gf_list_get(pm->plug_list, i);
-			if (!strcmp(inst->szName,  file_name)) {
+			if (!strcmp(inst->name,  file_name)) {
 				ifce = gf_modules_load_interface(pm, i, InterfaceFamily);
 				if (ifce) return ifce;
 			}
@@ -191,7 +191,7 @@ GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const 
 		if (!ifce) continue;
 		if (ifce->module_name && !stricmp(ifce->module_name, plug_name)) {
 			/*update cache entry*/
-			gf_cfg_set_key(pm->cfg, "PluginsCache", plug_name, ((ModuleInstance*)ifce->HPLUG)->szName);
+			gf_cfg_set_key(pm->cfg, "PluginsCache", plug_name, ((ModuleInstance*)ifce->HPLUG)->name);
 			return ifce;
 		}
 		gf_modules_close_interface(ifce);
@@ -253,7 +253,7 @@ const char *gf_modules_get_file_name(GF_ModuleManager *pm, u32 i)
 {
 	ModuleInstance *inst = (ModuleInstance *) gf_list_get(pm->plug_list, i);
 	if (!inst) return NULL;
-	return inst->szName;
+	return inst->name;
 }
 
 GF_EXPORT
@@ -261,6 +261,6 @@ const char *gf_module_get_file_name(GF_BaseInterface *ifce)
 {
 	ModuleInstance *inst = (ModuleInstance *) ifce->HPLUG;
 	if (!inst) return NULL;
-	return inst->szName;
+	return inst->name;
 }
 

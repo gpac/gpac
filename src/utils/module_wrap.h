@@ -37,7 +37,7 @@ typedef void (*ShutdownInterface) (void *interface_obj);
 typedef struct
 {
 	struct __tag_mod_man *plugman;
-	char szName[GF_MAX_PATH];
+	char *name;
 	GF_List *interfaces;
 	
 	/*library is loaded only when an interface is attached*/
