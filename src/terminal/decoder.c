@@ -316,12 +316,12 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	GF_DBUnit *AU;
 	GF_Channel *ch;
 	u32 now, obj_time, mm_level, au_time;
-	Bool scene_locked;
+	GF_Scene *scene_locked;
 	Bool check_next_unit;
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)codec->decio;
 	GF_Err e = GF_OK;
 
-	scene_locked = 0;
+	scene_locked = NULL;
 
 	/*for resync, if needed - the logic behind this is that there is no composition memory on sytems codecs so
 	"frame dropping" is done by preventing the compositor from redrawing after an update and decoding following AU
@@ -395,10 +395,9 @@ check_unit:
 	au_time = obj_time;
 
 	/*lock scene*/
-	if (!scene_locked) {
-		if (!gf_mx_try_lock(codec->odm->term->compositor->mx)) return GF_OK;
-		//gf_term_lock_compositor(codec->odm->term, 1);
-		scene_locked = 1;
+	if (!scene_locked && (codec->type==GF_STREAM_SCENE)) {
+		scene_locked = codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene;
+		if (!gf_mx_try_lock(scene_locked->mx)) return GF_OK;
 		/*if terminal is paused, force step-mode: it won't hurt in regular pause/play and ensures proper frame dumping*/
 		if (codec->odm->term->play_state) codec->odm->term->compositor->step_mode=1;
 	}
@@ -446,7 +445,7 @@ check_unit:
 	if (check_next_unit) goto check_unit;
 
 exit:
-	if (scene_locked) gf_term_lock_compositor(codec->odm->term, 0);
+	if (scene_locked) gf_mx_v(scene_locked->mx);
 	return e;
 }
 
@@ -458,6 +457,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	Bool resume_clock;
 	u32 now;
 	GF_Channel *ch;
+	GF_Scene *scene_locked;
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)codec->decio;
 	GF_Err e = GF_OK;
 
@@ -470,6 +470,8 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 		return GF_OK;
 	}
 
+	scene_locked = codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene;
+
 	ch = (GF_Channel*)gf_list_get(codec->inChannels, 0);
 	if (!ch) return GF_OK;
 	resume_clock = 0;
@@ -477,12 +479,11 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (!ch->IsClockInit) {
 		Bool started;
 		/*signal seek*/
-		if (!gf_mx_try_lock(codec->odm->term->compositor->mx)) return GF_OK;
-		//gf_term_lock_compositor(codec->odm->term, 1);
+		if (!gf_mx_try_lock(scene_locked->mx)) return GF_OK;
 		gf_es_init_dummy(ch);
 
 		sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, -1, GF_CODEC_LEVEL_NORMAL);
-		gf_term_lock_compositor(codec->odm->term, 0);
+		gf_mx_v(scene_locked->mx);
 		started = gf_clock_is_started(ch->clock);
 		/*let's be nice to the scene loader (that usually involves quite some parsing), pause clock while
 		parsing*/
@@ -496,8 +497,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 	/*lock scene*/
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[PrivateDec] Codec %s Processing at %d\n", sdec->module_name , codec->odm->current_time));
 
-	//gf_term_lock_compositor(codec->odm->term, 1);
-	if (!gf_mx_try_lock(codec->odm->term->compositor->mx)) return GF_OK;
+	if (!gf_mx_try_lock(scene_locked->mx)) return GF_OK;
 	now = gf_term_get_time(codec->odm->term);
 	e = sdec->ProcessData(sdec, NULL, 0, ch->esd->ESID, codec->odm->current_time, GF_CODEC_LEVEL_NORMAL);
 	now = gf_term_get_time(codec->odm->term) - now;
@@ -514,7 +514,7 @@ static GF_Err PrivateScene_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	codec_update_stats(codec, 0, now);
 
-	gf_term_lock_compositor(codec->odm->term, 0);
+	gf_mx_v(scene_locked->mx);
 
 	if (e==GF_EOS) {
 		/*first end of stream, evaluate duration*/

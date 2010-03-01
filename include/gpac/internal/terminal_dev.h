@@ -116,6 +116,9 @@ struct _scene
 	/*OD codec - specific to MPEG-4*/
 	struct _generic_codec *od_codec;
 
+	/*mutex for scene access*/
+	GF_Mutex *mx;
+
 	/*all sub resources of this scene (eg, list of GF_ObjectManager), namespace of this scene. This includes
 	both external resources (urls) and ODs sent in MPEG-4 systems*/
 	GF_List *resources;

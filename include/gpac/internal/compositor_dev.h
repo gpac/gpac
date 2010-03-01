@@ -1117,6 +1117,7 @@ void gf_sc_key_navigator_del(GF_Compositor *sr, GF_Node *n);
 void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n);
 GF_Node *gf_scene_get_keynav(GF_SceneGraph *sg, GF_Node *sensor);
 const char *gf_scene_get_service_url(GF_SceneGraph *sg);
+void gf_scene_lock(GF_SceneGraph *sg, Bool do_lock);
 
 #ifndef GPAC_DISABLE_SVG
 
