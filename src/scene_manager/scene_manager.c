@@ -322,137 +322,46 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 
 #ifndef GPAC_DISABLE_LOADER_BT
 GF_Err gf_sm_load_init_bt(GF_SceneLoader *load);
-void gf_sm_load_done_bt(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_bt(GF_SceneLoader *load);
-GF_Err gf_sm_load_init_bt_string(GF_SceneLoader *load, char *str);
-GF_Err gf_sm_load_done_bt_string(GF_SceneLoader *load);
 #endif 
 
 #ifndef GPAC_DISABLE_LOADER_XMT
 GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load);
-void gf_sm_load_done_xmt(GF_SceneLoader *load);
-void gf_sm_load_suspend_xmt(GF_SceneLoader *load, Bool suspend);
-GF_Err gf_sm_load_run_xmt(GF_SceneLoader *load);
-GF_Err gf_sm_load_init_xmt_string(GF_SceneLoader *load, char *str);
 #endif
 
-
+#ifndef GPAC_DISABLE_LOADER_ISOM
 GF_Err gf_sm_load_init_isom(GF_SceneLoader *load);
-void gf_sm_load_done_isom(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_isom(GF_SceneLoader *load);
+#endif
 
 #ifndef GPAC_DISABLE_SVG
 
 GF_Err gf_sm_load_init_svg(GF_SceneLoader *load);
-GF_Err gf_sm_load_done_svg(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_svg(GF_SceneLoader *load);
-GF_Err gf_sm_load_init_svg_string(GF_SceneLoader *load, char *str);
-GF_Err gf_sm_load_suspend_svg(GF_SceneLoader *load, Bool suspend);
 
 GF_Err gf_sm_load_init_xbl(GF_SceneLoader *load);
-GF_Err gf_sm_load_done_xbl(GF_SceneLoader *load);
 GF_Err gf_sm_load_run_xbl(GF_SceneLoader *load);
+void gf_sm_load_done_xbl(GF_SceneLoader *load);
 #endif
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
-
 GF_Err gf_sm_load_init_swf(GF_SceneLoader *load);
-void gf_sm_load_done_swf(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_swf(GF_SceneLoader *load);
-
 #endif
 
 
 #ifndef GPAC_DISABLE_QTVR
 
 GF_Err gf_sm_load_init_qt(GF_SceneLoader *load);
-void gf_sm_load_done_qt(GF_SceneLoader *load);
-GF_Err gf_sm_load_run_qt(GF_SceneLoader *load);
 #endif
 
 
-static GF_Err gf_sm_load_init_from_string(GF_SceneLoader *load, char *str)
-{
-
-	/*we need at least a scene graph*/
-	if (!load || (!load->ctx && !load->scene_graph)) return GF_BAD_PARAM;
-
-	if (!load->type) return GF_NOT_SUPPORTED;
-
-	if (!load->scene_graph) load->scene_graph = load->ctx->scene_graph;
-
-	switch (load->type) {
-#ifndef GPAC_DISABLE_LOADER_BT
-	case GF_SM_LOAD_BT: 
-	case GF_SM_LOAD_VRML:
-	case GF_SM_LOAD_X3DV:
-		return gf_sm_load_init_bt_string(load, str);
-#endif
-
-#ifndef GPAC_DISABLE_LOADER_XMT
-	case GF_SM_LOAD_XMTA:
-	case GF_SM_LOAD_X3D:
-		return gf_sm_load_init_xmt_string(load, str);
-#endif
-
-#ifndef GPAC_DISABLE_SVG
-	case GF_SM_LOAD_SVG_DA: 
-	case GF_SM_LOAD_XSR: 
-	case GF_SM_LOAD_DIMS: 
-		return gf_sm_load_init_svg_string(load, str);
-#endif
-
-	case GF_SM_LOAD_SWF: 
-		return GF_NOT_SUPPORTED;
-
-#ifndef GPAC_DISABLE_LOADER_ISOM
-	case GF_SM_LOAD_MP4:
-		return GF_NOT_SUPPORTED;
-#endif
-	}
-	return GF_NOT_SUPPORTED;
-}
-
-static void gf_sm_load_done_string(GF_SceneLoader *load, Bool do_clean)
-{
-	switch (load->type) {
-#ifndef GPAC_DISABLE_LOADER_BT
-	case GF_SM_LOAD_BT:
-	case GF_SM_LOAD_VRML:
-	case GF_SM_LOAD_X3DV:
-		gf_sm_load_done_bt_string(load); 
-		break;
-#endif
-
-#ifndef GPAC_DISABLE_LOADER_XMT
-	case GF_SM_LOAD_XMTA:
-	case GF_SM_LOAD_X3D:
-		/*we do not reset it here to enable SAX parsing*/
-		if (do_clean) gf_sm_load_done_xmt(load); 
-		break;
-
-#endif
-
-#ifndef GPAC_DISABLE_SVG
-	/*we do not reset it here to enable SAX parsing*/
-	case GF_SM_LOAD_SVG_DA:
-	case GF_SM_LOAD_XSR:
-	case GF_SM_LOAD_DIMS:
-		break;
-#endif
-	default: 
-		break;
-	}
-}
 
 GF_EXPORT
 GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str, Bool do_clean)
 {
-	GF_Err e = gf_sm_load_init_from_string(load, str);
-	if (e) return e;
-	e = gf_sm_load_run(load);
-	gf_sm_load_done_string(load, do_clean);
-	return (e<0) ? e : GF_OK;
+	GF_Err e;
+	if (!load->type) e = GF_BAD_PARAM;
+	else if (load->parse_string) e = load->parse_string(load, str);
+	else e = GF_NOT_SUPPORTED;
+
+	return e;
 }
 
 
@@ -496,7 +405,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 #endif
 			else if (strstr(szExt, "swf")) load->type = GF_SM_LOAD_SWF;
 			else if (strstr(szExt, "mov")) load->type = GF_SM_LOAD_QT;
-			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG_DA;
+			else if (strstr(szExt, "svg")) load->type = GF_SM_LOAD_SVG;
 			else if (strstr(szExt, "xsr")) load->type = GF_SM_LOAD_XSR;
 			else if (strstr(szExt, "xbl")) load->type = GF_SM_LOAD_XBL;
 			else if (strstr(szExt, "xml")) {
@@ -523,6 +432,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_X3DV:
 		return gf_sm_load_init_bt(load);
 #endif
+
 #ifndef GPAC_DISABLE_LOADER_XMT
 	case GF_SM_LOAD_XMTA:
 	case GF_SM_LOAD_X3D:
@@ -530,13 +440,17 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 #endif
 
 #ifndef GPAC_DISABLE_SVG
-	case GF_SM_LOAD_SVG_DA:
+	case GF_SM_LOAD_SVG:
 	case GF_SM_LOAD_XSR:
 	case GF_SM_LOAD_DIMS:
 		return gf_sm_load_init_svg(load);
 
 	case GF_SM_LOAD_XBL: 
-		return gf_sm_load_init_xbl(load);
+		e = gf_sm_load_init_xbl(load);
+
+		load->process = gf_sm_load_run_xbl;;
+		load->done = gf_sm_load_done_xbl;
+		return e;
 #endif
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
@@ -561,151 +475,19 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 GF_EXPORT
 void gf_sm_load_done(GF_SceneLoader *load)
 {
-	switch (load->type) {
-#ifndef GPAC_DISABLE_LOADER_BT
-	case GF_SM_LOAD_BT:
-	case GF_SM_LOAD_VRML:
-	case GF_SM_LOAD_X3DV:
-		gf_sm_load_done_bt(load); 
-		break;
-#endif
-
-#ifndef GPAC_DISABLE_LOADER_XMT
-	case GF_SM_LOAD_XMTA:
-	case GF_SM_LOAD_X3D:
-		gf_sm_load_done_xmt(load); 
-		break;
-#endif
-
-#ifndef GPAC_DISABLE_SVG
-	case GF_SM_LOAD_SVG_DA:
-	case GF_SM_LOAD_XSR:
-	case GF_SM_LOAD_DIMS:
-		gf_sm_load_done_svg(load);
-		break;
-
-	case GF_SM_LOAD_XBL:
-		gf_sm_load_done_xbl(load);
-		break;
-#endif
-
-#ifndef GPAC_DISABLE_SWF_IMPORT
-	case GF_SM_LOAD_SWF: 
-		gf_sm_load_done_swf(load); 
-		break;
-#endif
-
-#ifndef GPAC_DISABLE_LOADER_ISOM
-	case GF_SM_LOAD_MP4: 
-		gf_sm_load_done_isom(load); 
-		break;
-#endif
-
-#ifndef GPAC_DISABLE_QTVR
-	case GF_SM_LOAD_QT: 
-		gf_sm_load_done_qt(load); 
-		break;
-#endif
-
-	}
+	if (load->done) load->done(load);
 }
 
 GF_EXPORT
 GF_Err gf_sm_load_run(GF_SceneLoader *load)
 {
-	switch (load->type) {
-#ifndef GPAC_DISABLE_LOADER_BT
-	case GF_SM_LOAD_BT:
-	case GF_SM_LOAD_VRML:
-	case GF_SM_LOAD_X3DV:
-		return gf_sm_load_run_bt(load);
-#endif
-#ifndef GPAC_DISABLE_LOADER_XMT
-	case GF_SM_LOAD_XMTA:
-	case GF_SM_LOAD_X3D:
-		return gf_sm_load_run_xmt(load);
-#endif
-
-#ifndef GPAC_DISABLE_SVG
-	case GF_SM_LOAD_SVG_DA:
-	case GF_SM_LOAD_XSR:
-	case GF_SM_LOAD_DIMS:
-		return gf_sm_load_run_svg(load);
-#endif
-
-#ifndef GPAC_DISABLE_SVG
-	case GF_SM_LOAD_XBL:
-		return gf_sm_load_run_xbl(load);
-#endif
-
-#ifndef GPAC_DISABLE_SWF_IMPORT
-	case GF_SM_LOAD_SWF:
-		return gf_sm_load_run_swf(load);
-#endif
-
-#ifndef GPAC_DISABLE_LOADER_ISOM
-	case GF_SM_LOAD_MP4: 
-		return gf_sm_load_run_isom(load);
-#endif
-
-#ifndef GPAC_DISABLE_QTVR
-	case GF_SM_LOAD_QT: 
-		return gf_sm_load_run_qt(load);
-#endif
-
-	default:
-		return GF_BAD_PARAM;
-	}
+	if (load->process) return load->process(load);
+	return GF_OK;
 }
 
-
 GF_EXPORT
-void gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend)
+GF_Err gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend)
 {
-	switch (load->type) {
-#ifndef GPAC_DISABLE_LOADER_BT
-	case GF_SM_LOAD_BT:
-	case GF_SM_LOAD_VRML:
-	case GF_SM_LOAD_X3DV:
-		//gf_sm_load_suspend_bt(load, suspend); 
-		break;
-#endif
-
-#ifndef GPAC_DISABLE_LOADER_XMT
-	case GF_SM_LOAD_XMTA:
-	case GF_SM_LOAD_X3D:
-		gf_sm_load_suspend_xmt(load, suspend); 
-		break;
-#endif
-
-#ifndef GPAC_DISABLE_SVG
-	case GF_SM_LOAD_SVG_DA:
-	case GF_SM_LOAD_XSR:
-	case GF_SM_LOAD_DIMS:
-		gf_sm_load_suspend_svg(load, suspend);
-		break;
-
-	case GF_SM_LOAD_XBL:
-		break;
-#endif
-
-#ifndef GPAC_DISABLE_SWF_IMPORT
-	case GF_SM_LOAD_SWF: 
-		//gf_sm_load_suspend_swf(load, suspend); 
-		break;
-#endif
-
-#ifndef GPAC_DISABLE_LOADER_ISOM
-	case GF_SM_LOAD_MP4: 
-		//gf_sm_load_suspend_isom(load, suspend); 
-		break;
-#endif
-
-#ifndef GPAC_DISABLE_QTVR
-	case GF_SM_LOAD_QT: 
-		gf_sm_load_done_qt(load); 
-		break;
-#endif
-
-	}
+	if (load->suspend) return load->suspend(load, suspend);
+	return GF_OK;
 }

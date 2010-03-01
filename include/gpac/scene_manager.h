@@ -197,7 +197,7 @@ enum
 	GF_SM_LOAD_X3DV, /*X3D VRML loader*/
 	GF_SM_LOAD_XMTA, /*XMT-A loader*/
 	GF_SM_LOAD_X3D, /*X3D XML loader*/
-	GF_SM_LOAD_SVG_DA, /*SVG loader with dynamic allocation of attributes */
+	GF_SM_LOAD_SVG, /*SVG loader*/
 	GF_SM_LOAD_XSR, /*LASeR+XML loader*/
 	GF_SM_LOAD_DIMS, /*DIMS LASeR+XML loader*/
 	GF_SM_LOAD_SWF, /*SWF->MPEG-4 converter*/
@@ -206,8 +206,13 @@ enum
 	GF_SM_LOAD_XBL
 };
 
-typedef struct
+typedef struct __scene_loader GF_SceneLoader;
+
+struct __scene_loader 
 {
+	/*loader type, one of the above value. If not set, detected based on file extension*/
+	u32 type;
+
 	/*scene graph worked on - may be NULL if ctx is present*/
 	GF_SceneGraph *scene_graph;
 
@@ -236,9 +241,11 @@ typedef struct
 
 	/*private to loader*/
 	void *loader_priv;
-	/*loader type, one of the above value. If not set, detected based on file extension*/
-	u32 type;
-} GF_SceneLoader;
+	GF_Err (*process)(GF_SceneLoader *loader);
+	void (*done)(GF_SceneLoader *loader);
+	GF_Err (*parse_string)(GF_SceneLoader *loader, char *str);
+	GF_Err (*suspend)(GF_SceneLoader *loader, Bool suspend);
+};
 
 /*initializes the context loader - this will load any IOD and the first frame of the main scene*/
 GF_Err gf_sm_load_init(GF_SceneLoader *load);
@@ -247,7 +254,7 @@ GF_Err gf_sm_load_run(GF_SceneLoader *load);
 /*terminates the context loader*/
 void gf_sm_load_done(GF_SceneLoader *load);
 /*suspends/resume context loading*/
-void gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend);
+GF_Err gf_sm_load_suspend(GF_SceneLoader *load, Bool suspend);
 
 /*parses memory scene (any textural format) into the context
 !! THE LOADER TYPE MUST BE ASSIGNED (BT/WRL/XMT/X3D/SVG only) !!

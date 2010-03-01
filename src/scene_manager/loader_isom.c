@@ -132,7 +132,7 @@ static void mp4_report(GF_SceneLoader *load, GF_Err e, char *format, ...)
 #endif
 }
 
-GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
+static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 {
 	GF_Err e;
 	FILE *logs;
@@ -297,6 +297,17 @@ exit:
 	return e;
 }
 
+static GF_Err gf_sm_load_done_isom(GF_SceneLoader *load)
+{
+	/*nothing to do the file is not ours*/
+	return GF_OK;
+}
+
+static GF_Err gf_sm_isom_suspend(GF_SceneLoader *loader, Bool suspend)
+{
+	return GF_OK;
+}
+
 GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 {
 	u32 i, track;
@@ -368,13 +379,10 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 	gf_odf_desc_del((GF_Descriptor *) esd);
 	esd = NULL;
 
+	load->process = gf_sm_load_run_isom;
+	load->done = gf_sm_load_done_isom;
+	load->suspend = gf_sm_isom_suspend;
 	return GF_OK;
-}
-
-void gf_sm_load_done_isom(GF_SceneLoader *load)
-{
-	/*nothing to do the file is not ours*/
-
 }
 
 #endif /*GPAC_DISABLE_LOADER_ISOM*/

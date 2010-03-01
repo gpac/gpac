@@ -40,7 +40,7 @@
 #include <zlib.h>
 
 
-void gf_sm_load_done_bt(GF_SceneLoader *load);
+void load_bt_done(GF_SceneLoader *load);
 
 #define BT_LINE_SIZE	4000
 
@@ -53,6 +53,7 @@ typedef struct
 typedef struct
 {
 	GF_SceneLoader *load;
+	Bool initialized;
 	gzFile gz_in;
 	u32 file_size, file_pos;
 
@@ -3400,81 +3401,68 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 	return parser->last_error;
 }
 
-GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
+static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, char *str)
 {
 	u32 size;
 	gzFile gzInput;
 	GF_Err e;
-	GF_BTParser *parser;
-	GF_Command *com;
-	FILE *test;
 	unsigned char BOM[5];
+	GF_BTParser *parser = load->loader_priv;
 
-	if (!load->ctx || !load->fileName) return GF_BAD_PARAM;
+	if (load->fileName) {
+		FILE *test = fopen(load->fileName, "rb");
+		if (!test) return GF_URL_ERROR;
+		fseek(test, 0, SEEK_END);
+		size = ftell(test);
+		fclose(test);
 
-	test = fopen(load->fileName, "rb");
-	if (!test) return GF_URL_ERROR;
-	fseek(test, 0, SEEK_END);
-	size = ftell(test);
-	fclose(test);
+		gzInput = gzopen(load->fileName, "rb");
+		if (!gzInput) return GF_IO_ERR;
 
-	gzInput = gzopen(load->fileName, "rb");
-	if (!gzInput) return GF_IO_ERR;
+		parser->line_buffer = (char *) gf_malloc(sizeof(char)*BT_LINE_SIZE);
+		memset(parser->line_buffer, 0, sizeof(char)*BT_LINE_SIZE);
+		parser->file_size = size;
 
-	GF_SAFEALLOC(parser, GF_BTParser);
-	parser->load = load;
-	parser->line_buffer = (char *) gf_malloc(sizeof(char)*BT_LINE_SIZE);
-	memset(parser->line_buffer, 0, sizeof(char)*BT_LINE_SIZE);
-	parser->file_size = size;
+		gzgets(gzInput, (char*) BOM, 5);
+		gzseek(gzInput, 0, SEEK_SET);
+		parser->gz_in = gzInput;
 
-	gzgets(gzInput, (char*) BOM, 5);
-	gzseek(gzInput, 0, SEEK_SET);
+	} else {
+		if (!str || (strlen(str)<5) ) return GF_BAD_PARAM;
+		strncpy(BOM, str, 5); 
+	}
 
 	/*0: no unicode, 1: UTF-16BE, 2: UTF-16LE*/
 	if ((BOM[0]==0xFF) && (BOM[1]==0xFE)) {
 		if (!BOM[2] && !BOM[3]) {
 			gf_bt_report(parser, GF_NOT_SUPPORTED, "UTF-32 Text Files not supported");
-			gzclose(gzInput);
-			gf_free(parser);
 			return GF_NOT_SUPPORTED;
 		} else {
 			parser->unicode_type = 2;
-			gzseek(gzInput, 2, SEEK_CUR);
+			if (parser->gz_in) gzseek(parser->gz_in, 2, SEEK_CUR);
 		}
 	} else if ((BOM[0]==0xFE) && (BOM[1]==0xFF)) {
 		if (!BOM[2] && !BOM[3]) {
 			gf_bt_report(parser, GF_NOT_SUPPORTED, "UTF-32 Text Files not supported");
-			gzclose(gzInput);
-			gf_free(parser);
 			return GF_NOT_SUPPORTED;
 		} else {
 			parser->unicode_type = 1;
-			gzseek(gzInput, 2, SEEK_CUR);
+			if (parser->gz_in) gzseek(parser->gz_in, 2, SEEK_CUR);
 		}
 	} else if ((BOM[0]==0xEF) && (BOM[1]==0xBB) && (BOM[2]==0xBF)) {
 		/*we handle UTF8 as asci*/
 		parser->unicode_type = 0;
-		gzseek(gzInput, 3, SEEK_CUR);
+		if (parser->gz_in) gzseek(parser->gz_in, 3, SEEK_CUR);
 	}
-	parser->gz_in = gzInput;
-	load->loader_priv = parser;
-	parser->def_symbols = gf_list_new();
+	parser->initialized = 1;
 
-	parser->unresolved_routes = gf_list_new();
-	parser->inserted_routes = gf_list_new();
-	parser->undef_nodes = gf_list_new();
-	parser->def_nodes = gf_list_new();
-	parser->peeked_nodes = gf_list_new();
-	parser->scripts = gf_list_new();
+	/*initalize default streams in the ocntext*/
 
 	/*chunk parsing*/
 	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
 		u32 i;
 		GF_StreamContext *sc;
-		if (!load->ctx) {
-			gf_sm_load_done_bt(load);
-			return GF_BAD_PARAM;
-		}
+		if (!load->ctx) return GF_BAD_PARAM;
 
 		/*restore context - note that base layer are ALWAYS declared BEFORE enhancement layers with gpac parsers*/
 		i=0;
@@ -3487,44 +3475,49 @@ GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
 		}
 		/*need at least one scene stream*/
 		if (!parser->bifs_es) {
-			gf_sm_load_done_bt(load);
-			return GF_BAD_PARAM;
+			parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
+			parser->load->ctx->scene_width = 0;
+			parser->load->ctx->scene_height = 0;
+			parser->load->ctx->is_pixel_metrics = 1;
 		}
-		parser->base_bifs_id = parser->bifs_es->ESID;
+		else parser->base_bifs_id = parser->bifs_es->ESID;
 		if (parser->od_es) parser->base_od_id = parser->od_es->ESID;
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("BT: MPEG-4 (BT) Scene Chunk Parsing"));
-
-		/*that's it, nothing else to do*/
-		return GF_OK;
 	}
+	/*context is not initialized - check for VRML*/
+	else {
+		GF_Command *com;
 
-	parser->load = NULL;
-	gf_bt_check_line(parser);
-	parser->load = load;
 
-	/*create at least one empty BIFS stream*/
-	if (!parser->is_wrl) {
-		parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
-		parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
-		parser->load->ctx->is_pixel_metrics = 1;
+		parser->load = NULL;
+		gf_bt_check_line(parser);
+		parser->load = load;
+
+		/*create at least one empty BIFS stream*/
+		if (!parser->is_wrl) {
+			parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
+			parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
+			parser->load->ctx->is_pixel_metrics = 1;
+		}
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ( ((parser->is_wrl==2) ? "BT: X3D (WRL) Scene Parsing\n" : (parser->is_wrl ? "BT: VRML Scene Parsing\n" : "BT: MPEG-4 Scene Parsing\n")) ));
+
+		/*default scene replace - we create it no matter what since it is used to store BIFS config when parsing IOD.*/
+		com = NULL;
+		if (!parser->is_wrl) {
+			com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
+			gf_list_add(parser->bifs_au->commands, com);
+		}
+
+		/*and perform initial load*/
+		e = gf_bt_loader_run_intern(parser, com, 1);
+		if (e) return e;
 	}
-
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ( ((parser->is_wrl==2) ? "BT: X3D (WRL) Scene Parsing\n" : (parser->is_wrl ? "BT: VRML Scene Parsing\n" : "BT: MPEG-4 Scene Parsing\n")) ));
-
-	/*default scene replace - we create it no matter what since it is used to store BIFS config
-	when parsing IOD.*/
-	com = NULL;
-	if (!parser->is_wrl) {
-		com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
-		gf_list_add(parser->bifs_au->commands, com);
-	}
-	e = gf_bt_loader_run_intern(parser, com, 1);
-	if (e) gf_sm_load_done_bt(load);
-	return e;
+	return GF_OK;
 }
 
-void gf_sm_load_done_bt(GF_SceneLoader *load)
+void load_bt_done(GF_SceneLoader *load)
 {
 	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
 	if (!parser) return;
@@ -3543,19 +3536,79 @@ void gf_sm_load_done_bt(GF_SceneLoader *load)
 	gf_list_del(parser->def_symbols);
 	gf_list_del(parser->scripts);
 
-	gzclose(parser->gz_in);
-	gf_free(parser->line_buffer);
+	if (parser->gz_in) gzclose(parser->gz_in);
+	if (parser->line_buffer) gf_free(parser->line_buffer);
 	gf_free(parser);
 	load->loader_priv = NULL;
-	return;
 }
 
-GF_Err gf_sm_load_run_bt(GF_SceneLoader *load)
+GF_Err load_bt_run(GF_SceneLoader *load)
 {
 	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
 	if (!parser) return GF_BAD_PARAM;
 	return gf_bt_loader_run_intern(parser, NULL, 0);
 }
+
+
+GF_Err load_bt_parse_string(GF_SceneLoader *load, char *str)
+{
+	GF_Err e;
+	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
+	if (!parser) return GF_BAD_PARAM;
+
+	parser->line_buffer = str;
+	parser->line_size = (s32)strlen(str);
+
+	if (!parser->initialized) {
+		e = gf_sm_load_bt_initialize(load, str);
+		if (e) {
+			load_bt_done(load);
+			return e;
+		}
+	}
+	e = gf_bt_loader_run_intern(parser, NULL, 0);
+	parser->line_buffer = NULL;
+	parser->line_size = 0;
+	return e;
+}
+
+GF_Err load_bt_suspend(GF_SceneLoader *load, Bool suspend)
+{
+	return GF_OK;
+}
+
+GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
+{
+	GF_Err e;
+	GF_BTParser *parser;
+
+	if (!load || (!load->ctx && !load->scene_graph) ) return GF_BAD_PARAM;
+	if (!load->scene_graph) load->scene_graph = load->ctx->scene_graph;
+
+	GF_SAFEALLOC(parser, GF_BTParser);
+	parser->load = load;
+	load->loader_priv = parser;
+	parser->def_symbols = gf_list_new();
+	parser->unresolved_routes = gf_list_new();
+	parser->inserted_routes = gf_list_new();
+	parser->undef_nodes = gf_list_new();
+	parser->def_nodes = gf_list_new();
+	parser->peeked_nodes = gf_list_new();
+	parser->scripts = gf_list_new();
+
+	load->process = load_bt_run;
+	load->done = load_bt_done;
+	load->suspend = load_bt_suspend;
+	load->parse_string = load_bt_parse_string;
+
+	e = gf_sm_load_bt_initialize(load, NULL);
+	if (e) {
+		load_bt_done(load);
+		return e;
+	}
+	return GF_OK;
+}
+
 
 
 GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str)
@@ -3589,101 +3642,5 @@ GF_List *gf_sm_load_bt_from_string(GF_SceneGraph *in_scene, char *node_str)
 
 	return parser.top_nodes;
 }
-
-
-
-GF_Err gf_sm_load_done_bt_string(GF_SceneLoader *load)
-{
-	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
-	if (!parser) return GF_OK;
-	gf_list_del(parser->unresolved_routes);
-	gf_list_del(parser->inserted_routes);
-	gf_list_del(parser->undef_nodes);
-	gf_list_del(parser->def_nodes);
-	gf_list_del(parser->scripts);
-	gf_free(parser);
-	load->loader_priv = NULL;
-	return GF_OK;
-}
-
-GF_Err gf_sm_load_init_bt_string(GF_SceneLoader *load, char *str)
-{
-	GF_Err e;
-	GF_BTParser *parser;
-	GF_Command *com;
-
-	if (!load || (!load->ctx && !load->scene_graph) || !str) return GF_BAD_PARAM;
-	if (!load->scene_graph) load->scene_graph = load->ctx->scene_graph;
-
-	parser = (GF_BTParser *)gf_malloc(sizeof(GF_BTParser));
-	if (parser) memset(parser, 0, sizeof(GF_BTParser));
-	else
-		return GF_OUT_OF_MEM;
-
-	parser->is_wrl = 0;
-	parser->load = load;
-	/*we suppose an ascii string*/
-	parser->unicode_type = 0;
-
-	parser->line_buffer = str;
-	parser->line_size = (s32)strlen(str);
-	parser->gz_in = NULL;
-
-	load->loader_priv = parser;
-
-	parser->unresolved_routes = gf_list_new();
-	parser->inserted_routes = gf_list_new();
-	parser->undef_nodes = gf_list_new();
-	parser->def_nodes = gf_list_new();
-	parser->scripts = gf_list_new();
-
-	/*chunk parsing*/
-	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
-		u32 i;
-		GF_StreamContext *sc;
-		if (!load->ctx) {
-			gf_sm_load_done_bt(load);
-			return GF_BAD_PARAM;
-		}
-
-		/*restore context - note that base layer are ALWAYS declared BEFORE enhancement layers with gpac parsers*/
-		i=0;
-		while ((sc = (GF_StreamContext*)gf_list_enum(load->ctx->streams, &i))){
-			switch (sc->streamType) {
-			case GF_STREAM_SCENE:
-			case GF_STREAM_PRIVATE_SCENE:
-				if (!parser->bifs_es) parser->bifs_es = sc; break;
-			case GF_STREAM_OD: if (!parser->od_es) parser->od_es = sc; break;
-			default: break;
-			}
-		}
-		/*scene creation - pick up a size*/
-		if (!parser->bifs_es) {
-			parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
-
-			parser->load->ctx->scene_width = 0;
-			parser->load->ctx->scene_height = 0;
-			parser->load->ctx->is_pixel_metrics = 1;
-
-		}
-		else parser->base_bifs_id = parser->bifs_es->ESID;
-		if (parser->od_es) parser->base_od_id = parser->od_es->ESID;
-		/*that's it, nothing else to do*/
-		return GF_OK;
-	}
-
-	/*create at least one empty BIFS stream*/
-	parser->bifs_es = gf_sm_stream_new(load->ctx, 0, GF_STREAM_SCENE, GPAC_OTI_SCENE_BIFS);
-	parser->bifs_au = gf_sm_stream_au_new(parser->bifs_es, 0, 0, 1);
-
-	/*default scene replace - we create it no matter what since it is used to store BIFS config
-	when parsing IOD.*/
-	com = gf_sg_command_new(parser->load->scene_graph, GF_SG_SCENE_REPLACE);
-	gf_list_add(parser->bifs_au->commands, com);
-	e = gf_bt_loader_run_intern(parser, com, 1);
-	if (e) gf_sm_load_done_bt_string(load);
-	return e;
-}
-
 
 #endif /*GPAC_DISABLE_LOADER_BT*/

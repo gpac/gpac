@@ -2907,33 +2907,13 @@ static GF_Err xmt_restore_context(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load)
+
+static GF_Err load_xmt_initialize(GF_SceneLoader *load, char *str_data)
 {
 	GF_Err e;
 	GF_XMTParser *parser;
 
-	if (!load->fileName) return GF_BAD_PARAM;
-	parser = xmt_new_parser(load);
-	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("XMT: MPEG-4 (XMT) Scene Parsing\n"));
-
-
-	/*chunk parsing*/
-	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
-		e = xmt_restore_context(load);
-		if (e) return e;
-	}
-
-	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);
-	if (e<0) xmt_report(parser, e, "Invalid XML document\n", gf_xml_sax_get_error(parser->sax_parser));
-	return parser->last_error;
-}
-
-GF_Err gf_sm_load_init_xmt_string(GF_SceneLoader *load, char *str_data)
-{
-	GF_Err e;
-	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
-
-	if (!parser) {
+	if (str_data) {
 		char BOM[5];
 		if (strlen(str_data)<4) return GF_BAD_PARAM;
 		BOM[0] = str_data[0];
@@ -2948,24 +2928,58 @@ GF_Err gf_sm_load_init_xmt_string(GF_SceneLoader *load, char *str_data)
 			return e;
 		}
 		str_data += 4;
-
-		if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
-			e = xmt_restore_context(load);
-			if (e) return e;
-		}
+	} else if (load->fileName) {
+		parser = xmt_new_parser(load);
+	} else {
+		return GF_BAD_PARAM;
 	}
-	e = gf_xml_sax_parse(parser->sax_parser, str_data);
+
+	/*chunk parsing*/
+	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("XMT: MPEG-4 (XMT) Chunk Parsing\n"));
+
+		e = xmt_restore_context(load);
+		if (e) return e;
+
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("XMT: MPEG-4 (XMT) Scene Parsing\n"));
+	}
+
+	if (str_data) {
+		return gf_xml_sax_parse(parser->sax_parser, str_data);
+	}
+	else {
+		e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);
+		if (e<0) return xmt_report(parser, e, "Invalid XML document: %s", gf_xml_sax_get_error(parser->sax_parser));
+	}
+	return GF_OK;
+}
+
+
+static GF_Err load_xmt_run(GF_SceneLoader *load)
+{
+	GF_Err e;
+	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
+	if (!parser) {
+		e = load_xmt_initialize(load, NULL);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
+static GF_Err load_xmt_parse_string(GF_SceneLoader *load, char *str)
+{
+	GF_Err e;
+	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
+	if (!parser) {
+		return load_xmt_initialize(load, str);
+	}
+	e = gf_xml_sax_parse(parser->sax_parser, str);
 	if (e<0) return xmt_report(parser, e, "Invalid XML document: %s", gf_xml_sax_get_error(parser->sax_parser));
 	return GF_OK;
 }
 
-
-GF_Err gf_sm_load_run_xmt(GF_SceneLoader *load)
-{
-	return GF_OK;
-}
-
-GF_Err gf_sm_load_done_xmt(GF_SceneLoader *load)
+static GF_Err load_xmt_done(GF_SceneLoader *load)
 {
 	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
 	if (!parser) return GF_OK;
@@ -2998,10 +3012,22 @@ GF_Err gf_sm_load_done_xmt(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-void gf_sm_load_suspend_xmt(GF_SceneLoader *load, Bool suspend)
+static GF_Err load_xmt_suspend(GF_SceneLoader *load, Bool suspend)
 {
 	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
-	gf_xml_sax_suspend(parser->sax_parser, suspend);
+	if (parser) gf_xml_sax_suspend(parser->sax_parser, suspend);
+	return GF_OK;
+}
+
+
+GF_Err gf_sm_load_init_xmt(GF_SceneLoader *load)
+{
+	load->process = load_xmt_run;
+	load->done = load_xmt_done;
+	load->parse_string = load_xmt_parse_string;
+	load->suspend = load_xmt_suspend;
+	if (load->fileName) return load_xmt_initialize(load, NULL);
+	return GF_OK;
 }
 
 
