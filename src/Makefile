@@ -132,7 +132,7 @@ LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/gltx_malloc.o
 LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/bmp.o
 endif
 
-## OpenGL not available
+## OpenGL available
 ifeq ($(HAS_OPENGL),yes)
 EXTRALIBS+= $(OGL_LIBS)
 COMPOSITOR_CFLAGS+=$(OGL_INCLS)
@@ -153,7 +153,10 @@ endif
 
 ifeq ($(GPAC_USE_TINYGL), yes)
 COMPOSITOR_CFLAGS+=-I$(SRC_PATH)/../TinyGL/include
+else
+COMPOSITOR_CFLAGS+=-DGPAC_HAS_GLU
 endif
+
 ifeq ($(ENABLE_JOYSTICK), yes)
 COMPOSITOR_CFLAGS+=-DENABLE_JOYSTICK
 endif
