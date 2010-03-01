@@ -1280,6 +1280,9 @@ force_input:
 		case 'q':
 			Run = 0;
 			break;
+		case 'X':
+			exit(0);
+			break;
 		case 'Q':
 			str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");
 			if (!str || !strcmp(str, "no"))
