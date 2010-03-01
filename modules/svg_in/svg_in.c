@@ -133,6 +133,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 				svgin->src = gzopen(svgin->file_name, "rb");
 				if (!svgin->src) return GF_URL_ERROR;
 				svgin->loader.fileName = svgin->file_name;
+				gf_sm_load_init(&svgin->loader);
 			}
 			e = GF_OK;
 			entry_time = gf_sys_clock();
@@ -144,11 +145,11 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 				/*we may have read nothing but we still need to call parse in case the parser got suspended*/
 				if (nb_read<=0) {
 					nb_read = 0;
-					e = gf_sm_load_run(&svgin->loader);
 					if ((e==GF_EOS) && gzeof(svgin->src)) {
 						gf_set_progress("SVG Parsing", svgin->file_pos, svgin->file_size);
 						gzclose(svgin->src);
 						svgin->src = NULL;
+						gf_sm_load_done(&svgin->loader);
 					}
 					goto exit;
 				}
@@ -164,9 +165,11 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 				if (svgin->file_pos > svgin->file_size) svgin->file_size = svgin->file_pos + 1;
 				if (e) break;
 
-				diff = gf_sys_clock() - entry_time;
 				gf_set_progress("SVG Parsing", svgin->file_pos, svgin->file_size);
-				if (diff > svgin->sax_max_duration) break;
+				diff = gf_sys_clock() - entry_time;
+				if (diff > svgin->sax_max_duration) { 
+					break;
+				}
 			}
 		}
 		break;
@@ -246,7 +249,7 @@ static GF_Err SVG_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_sc
 	svgin->loader.scene_graph = scene->graph;
 	svgin->loader.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
 	/*Warning: svgin->loader.type may be overriden in attach stream */
-	svgin->loader.type = GF_SM_LOAD_SVG_DA;
+	svgin->loader.type = GF_SM_LOAD_SVG;
 	svgin->loader.flags = GF_SM_LOAD_FOR_PLAYBACK;
 	return GF_OK;
 }
@@ -263,7 +266,7 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	SVGIn *svgin = (SVGIn *)plug->privateStack;
 	if (esd->decoderConfig->upstream) return GF_NOT_SUPPORTED;
 
-	svgin->loader.type = GF_SM_LOAD_SVG_DA;
+	svgin->loader.type = GF_SM_LOAD_SVG;
 	/* decSpecInfo is not null only when reading from an SVG file (local or distant, cached or not) */
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_SCENE_SVG:

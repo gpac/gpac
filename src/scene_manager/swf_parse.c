@@ -2494,6 +2494,9 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 	}
 	if (e==GF_EOS) e = GF_OK;
 
+	load->done = gf_sm_load_done_swf;
+	load->process = gf_sm_load_run_swf;
+
 exit:
 	if (e) gf_sm_load_done_swf(load);
 	return e;

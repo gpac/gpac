@@ -212,10 +212,10 @@ GF_Err gf_sm_load_run_xbl(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-GF_Err gf_sm_load_done_xbl(GF_SceneLoader *load)
+void gf_sm_load_done_xbl(GF_SceneLoader *load)
 {
 	GF_XBL_Parser *parser = (GF_XBL_Parser *)load->loader_priv;
-	if (!parser) return GF_OK;
+	if (!parser) return;
 	while (gf_list_count(parser->node_stack)) {
 		XBL_NodeStack *st = (XBL_NodeStack *)gf_list_last(parser->node_stack);
 		gf_list_rem_last(parser->node_stack);
@@ -225,7 +225,7 @@ GF_Err gf_sm_load_done_xbl(GF_SceneLoader *load)
 	if (parser->sax_parser) gf_xml_sax_del(parser->sax_parser);
 	gf_free(parser);
 	load->loader_priv = NULL;
-	return GF_OK;
+	return;
 }
 
 void apply(GF_Node *bound_doc, GF_Node *binding_doc)

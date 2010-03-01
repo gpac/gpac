@@ -180,12 +180,4 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-void gf_sm_load_done_qt(GF_SceneLoader *load)
-{
-}
-GF_Err gf_sm_load_run_qt(GF_SceneLoader *load)
-{
-	return GF_OK;
-}
-
 #endif	/*GPAC_DISABLE_QTVR*/

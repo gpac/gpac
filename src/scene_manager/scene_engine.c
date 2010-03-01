@@ -857,7 +857,7 @@ GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputConte
     /* assign a loader type only if it was not requested (e.g. DIMS should not be overriden by SVG) */
     if (!seng->load.type) {
         if (inputContext[0] == '<') {
-		    if (strstr(inputContext, "<svg ")) seng->load.type = GF_SM_LOAD_SVG_DA;
+		    if (strstr(inputContext, "<svg ")) seng->load.type = GF_SM_LOAD_SVG;
 		    else if (strstr(inputContext, "<saf ")) seng->load.type = GF_SM_LOAD_XSR;
 		    else if (strstr(inputContext, "XMT-A") || strstr(inputContext, "X3D")) seng->load.type = GF_SM_LOAD_XMTA;
 	    } else {
