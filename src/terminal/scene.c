@@ -915,7 +915,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 				if (!odm->codec || ((odm->codec->type!=type) && (odm->codec->type!=GF_STREAM_ND_SUBPIC))) continue;
 			}
 			else if (type==GF_STREAM_SCENE) {
-				if (!odm->subscene || odm->subscene->scene_codec) continue;
+				if (!odm->subscene || !odm->subscene->scene_codec) continue;
 			}
 			else {
 				if (!odm->codec || (odm->codec->type!=type)) continue;

@@ -95,7 +95,7 @@ int stream_file_rtp(int argc, char **argv)
 	if (!file_streamer) {
 		fprintf(stdout, "Cannot create file streamer\n");
 	} else {
-		u32 check = 100;
+		u32 check = 50;
 		fprintf(stdout, "Starting streaming %s to %s:%d\n", inName, ip_dest, port);
 		gf_isom_streamer_write_sdp(file_streamer, sdp_file);
 
@@ -107,7 +107,7 @@ int stream_file_rtp(int argc, char **argv)
 					char c = (char) gf_prompt_get_char(); 
 					if (c=='q') break;
 				}
-				check = 100;
+				check = 50;
 			}
 		}
 		gf_isom_streamer_del(file_streamer);
