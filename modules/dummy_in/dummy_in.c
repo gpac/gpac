@@ -40,7 +40,7 @@ typedef struct
 {
 	/*the service we're responsible for*/
 	GF_ClientService *service;
-	char szURL[2048];
+	char *url;
 	u32 oti;
 	GF_List *channels;
 
@@ -180,21 +180,21 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 	if (read->dnload) gf_term_download_del(read->dnload);
 	read->dnload = NULL;
 
-	strcpy(read->szURL, url);
-	ext = strchr(read->szURL, '#');
+	read->url = gf_strdup(url);
+	ext = strchr(read->url, '#');
 	if (ext) {
 		char *anext;
 		ext[0] = 0;
-		anext = strrchr(read->szURL, '.');
+		anext = strrchr(read->url, '.');
 		ext[0] = '#';
 		ext = anext;
 	} else {
-		ext = strrchr(read->szURL, '.');
+		ext = strrchr(read->url, '.');
 	}
 	if (ext && !stricmp(ext, ".gz")) {
 		char *anext;
 		ext[0] = 0;
-		anext = strrchr(read->szURL, '.');
+		anext = strrchr(read->url, '.');
 		ext[0] = '.';
 		ext = anext;
 	}
@@ -251,11 +251,11 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		url += 7;
 	}
 	else if (strstr(url, "://")) {
-		DC_DownloadFile(plug, read->szURL);
+		DC_DownloadFile(plug, read->url);
 		return GF_OK;
 	}
 
-	test = fopen(read->szURL, "rt");
+	test = fopen(read->url, "rt");
 	if (!test) {
 		gf_term_on_connect(serv, NULL, GF_URL_ERROR);
 		return GF_OK;
@@ -303,11 +303,11 @@ static GF_Descriptor *DC_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 		uri = (char *) gf_dm_sess_get_cache_name(read->dnload);
 		gf_dm_sess_get_stats(read->dnload, NULL, NULL, &size, NULL, NULL, NULL);
 	} else {
-		FILE *f = fopen(read->szURL, "rt");
+		FILE *f = fopen(read->url, "rt");
 		fseek(f, 0, SEEK_END);
 		size = ftell(f);
 		fclose(f);
-		uri = read->szURL;
+		uri = read->url;
 	}
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u32(bs, size);
@@ -457,6 +457,7 @@ void ShutdownInterface(GF_BaseInterface *bi)
 		DCReader *read = (DCReader*)ifcn->priv;
 		assert(!gf_list_count(read->channels));
 		gf_list_del(read->channels);
+		if( read->url) gf_free(read->url);
 		gf_free(read);
 		gf_free(bi);
 	}
