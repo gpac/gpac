@@ -307,7 +307,7 @@ typedef u32 Bool;
 
 
 /*GPAC memory tracking*/
-#ifdef GPAC_MEMORY_TRACKING
+#if defined(GPAC_MEMORY_TRACKING)
 
 void *gf_mem_malloc(size_t size, char *filename, int line);
 void *gf_mem_calloc(size_t num, size_t size_of, char *filename, int line);
@@ -322,10 +322,25 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #define gf_strdup(s) gf_mem_strdup(s, __FILE__, __LINE__)
 #define gf_realloc(ptr1, ptr2) gf_mem_realloc(ptr1, ptr2, __FILE__, __LINE__)
 
-/*check we wont be called recursively*/
-#define GPAC_ALLOCATIONS_REDEFINED 1
+#elif defined(GPAC_STD_ALLOCATOR)
 
+#define gf_malloc malloc
+#define gf_calloc calloc
+#define gf_realloc realloc
+#define gf_free free
+#define gf_strdup strdup
 
+#else
+
+void *gf_malloc(size_t size);
+void *gf_calloc(size_t num, size_t size_of);
+void *gf_realloc(void *ptr, size_t size);
+void gf_free(void *ptr);
+char *gf_strdup(const char *str);
+
+#endif
+
+#ifndef GPAC_STD_ALLOCATOR
 /*make sure we always use gpac-enabled memory routines*/
 #undef free
 #define free	free_is_disabled_in_gpac_use_gf_free
@@ -337,17 +352,8 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #define realloc	realloc_is_disabled_in_gpac_use_gf_realloc
 #undef strdup
 #define strdup strdup_is_disabled_in_gpac_use_gf_strdup
-
-
-#else
-
-#define gf_free(ptr) free(ptr)
-#define gf_malloc(size) malloc(size)
-#define gf_calloc(num, size_of) calloc(num, size_of)
-#define gf_strdup(s) strdup(s)
-#define gf_realloc(ptr1, ptr2) realloc(ptr1, ptr2)
-
 #endif
+
 
 /*end GPAC memory tracking*/
 

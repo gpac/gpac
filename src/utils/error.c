@@ -22,12 +22,94 @@
  *
  */
 
-#include <stdlib.h>
 #include <string.h>
+
+#define STD_MALLOC	0
+#define GOOGLE_MALLOC	1
+#define INTEL_MALLOC	2
+#define DL_MALLOC		3
+
+#ifdef WIN32
+#define USE_MALLOC	DL_MALLOC
+#else
+#define USE_MALLOC	STD_MALLOC
+#endif
+
+
+#if defined(_WIN32_WCE) && !defined(strdup)
+#define strdup	_strdup
+#endif
+
+/*we must use c++ compiler for google malloc :( */
+#define CDECL	extern "C"
+
+#if (USE_MALLOC==GOOGLE_MALLOC)
+#include <config.h>
+#include <base/commandlineflags.h>
+#include <google/malloc_extension.h>
+
+#ifdef WIN32
+#pragma comment(lib, "libtcmalloc_minimal")
+#endif
+
+#define MALLOC	malloc
+#define CALLOC	calloc
+#define REALLOC	realloc
+#define FREE	free
+#define STRDUP(a) return strdup(a);
+
+#endif
+
+#if (USE_MALLOC==INTEL_MALLOC)
+CDECL void * scalable_malloc(size_t size);
+CDECL void * scalable_realloc(void* ptr, size_t size);
+CDECL void * scalable_calloc(size_t num, size_t size);
+CDECL void   scalable_free(void* ptr);
+
+#ifdef WIN32
+#pragma comment(lib, "tbbmalloc.lib")
+#endif
+
+#define MALLOC	scalable_malloc
+#define CALLOC	scalable_calloc
+#define REALLOC	scalable_realloc
+#define FREE	scalable_free
+#define STRDUP(_a) if (_a) { unsigned int len = strlen(_a)+1; char *ptr = (char *) scalable_malloc(len); strcpy(ptr, _a); return ptr; } else { return NULL; }
+
+#endif
+
+#if (USE_MALLOC==DL_MALLOC)
+
+CDECL void * dlmalloc(size_t size);
+CDECL void * dlrealloc(void* ptr, size_t size);
+CDECL void * dlcalloc(size_t num, size_t size);
+CDECL void   dlfree(void* ptr);
+
+#define MALLOC	dlmalloc
+#define CALLOC	dlcalloc
+#define REALLOC	dlrealloc
+#define FREE	dlfree
+#define STRDUP(_a) if (_a) { unsigned int len = strlen(_a)+1; char *ptr = (char *) dlmalloc(len); strcpy(ptr, _a); return ptr; } else { return NULL; }
+
+#endif
+
+#if (USE_MALLOC==STD_MALLOC)
+
+#include <malloc.h>
+
+#define MALLOC	malloc
+#define CALLOC	calloc
+#define REALLOC	realloc
+#define FREE	free
+#define STRDUP(a) return strdup(a);
+
+#endif
+
+
+
 #ifndef _WIN32_WCE
 #include <assert.h>
 #endif
-
 
 /*This is to handle cases where config.h is generated at the root of the gpac build tree (./configure)
 This is only needed when building libgpac and modules when libgpac is not installed*/
@@ -38,12 +120,38 @@ This is only needed when building libgpac and modules when libgpac is not instal
 #endif
 
 /*GPAC memory tracking*/
-#ifdef GPAC_MEMORY_TRACKING
+#ifndef GPAC_MEMORY_TRACKING
 
-#if GPAC_ALLOCATIONS_REDEFINED
-#error "GPAC_MEMORY_TRACKING will cause a stack overflow due to redefinitions of symbols. Abort"
-#endif
+CDECL
+void *gf_malloc(size_t size)
+{
+	return MALLOC(size);
+}
+CDECL
+void *gf_calloc(size_t num, size_t size_of)
+{
+	return CALLOC(num, size_of);
+}
+CDECL
+void *gf_realloc(void *ptr, size_t size)
+{
+	return REALLOC(ptr, size);
+}
+CDECL
+void gf_free(void *ptr)
+{
+	FREE(ptr);
+}
+CDECL
+char *gf_strdup(const char *str)
+{
+	STRDUP(str);
+}
 
+#else
+
+
+CDECL
 size_t gpac_allocated_memory = 0;
 size_t gpac_nb_alloc_blocs = 0;
 
@@ -67,31 +175,30 @@ enum
 	GF_MEMORY_DEBUG,
 };
 
-
 static void *gf_mem_malloc_basic(size_t size, char *filename, int line)
 {
-	return malloc(size);
+	return MALLOC(size);
 }
 static void *gf_mem_calloc_basic(size_t num, size_t size_of, char *filename, int line)
 {
-	return calloc(num, size_of);
+	return CALLOC(num, size_of);
 }
 static void *gf_mem_realloc_basic(void *ptr, size_t size, char *filename, int line)
 {
-	return realloc(ptr, size);
+	return REALLOC(ptr, size);
 }
 static void gf_mem_free_basic(void *ptr, char *filename, int line)
 {
-	free(ptr);
+	FREE(ptr);
 }
 static char *gf_mem_strdup_basic(const char *str, char *filename, int line)
 {
-	return strdup(str);
+	STRDUP(str);
 }
 
 void *gf_mem_malloc_tracker(size_t size, char *filename, int line)
 {
-	void *ptr = malloc(size);
+	void *ptr = MALLOC(size);
 	if (!ptr) {
 		gf_memory_log(GF_MEMORY_ERROR, "malloc() has returned a NULL pointer\n");
 		assert(0);
@@ -105,7 +212,7 @@ void *gf_mem_malloc_tracker(size_t size, char *filename, int line)
 void *gf_mem_calloc_tracker(size_t num, size_t size_of, char *filename, int line)
 {
 	size_t size = num*size_of;
-	void *ptr = calloc(num, size_of);
+	void *ptr = CALLOC(num, size_of);
 	if (!ptr) {
 		gf_memory_log(GF_MEMORY_ERROR, "calloc() has returned a NULL pointer\n");
 		assert(0);
@@ -126,7 +233,7 @@ void *gf_mem_realloc_tracker(void *ptr, size_t size, char *filename, int line)
 	}
 	size_prev = unregister_address(ptr, filename, line);
 	//gf_memory_log(GF_MEMORY_DEBUG, "realloc- 0x%08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
-	ptr_g = realloc(ptr, size);
+	ptr_g = REALLOC(ptr, size);
 	register_address(ptr_g, size, filename, line);
 	//gf_memory_log(GF_MEMORY_DEBUG, "realloc+ 0x%08X %8d %8d %8d\n", ptr_g, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
 	return ptr_g;
@@ -137,7 +244,7 @@ void gf_mem_free_tracker(void *ptr, char *filename, int line)
 	int size_prev;
 	if (ptr && (size_prev=unregister_address(ptr, filename, line))) {
 		//gf_memory_log(GF_MEMORY_DEBUG, "free     0x%08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
-		free(ptr);
+		FREE(ptr);
 	}
 }
 
@@ -154,34 +261,42 @@ static void *(*gf_mem_realloc_proto)(void *ptr, size_t size, char *filename, int
 static void (*gf_mem_free_proto)(void *ptr, char *filename, int line) = gf_mem_free_basic;
 static char *(*gf_mem_strdup_proto)(const char *str, char *filename, int line) = gf_mem_strdup_basic;
 
+CDECL
 void *gf_mem_malloc(size_t size, char *filename, int line)
 {
 	return gf_mem_malloc_proto(size, filename, line);
 }
+CDECL
 void *gf_mem_calloc(size_t num, size_t size_of, char *filename, int line)
 {
 	return gf_mem_calloc_proto(num, size_of, filename, line);
 }
+CDECL
 void *gf_mem_realloc(void *ptr, size_t size, char *filename, int line)
 {
 	return gf_mem_realloc_proto(ptr, size, filename, line);
 }
+CDECL
 void gf_mem_free(void *ptr, char *filename, int line)
 {
 	gf_mem_free_proto(ptr, filename, line);
 }
+CDECL
 char *gf_mem_strdup(const char *str, char *filename, int line)
 {
 	return gf_mem_strdup_proto(str, filename, line);
 }
 
+CDECL
 void gf_mem_enable_tracker()
 {
+/*
 	gf_mem_malloc_proto = gf_mem_malloc_tracker;
 	gf_mem_calloc_proto = gf_mem_calloc_tracker;
 	gf_mem_realloc_proto = gf_mem_realloc_tracker;
 	gf_mem_free_proto = gf_mem_free_tracker;
 	gf_mem_strdup_proto = gf_mem_strdup_tracker;
+*/
 }
 
 
@@ -227,7 +342,7 @@ typedef memory_element* memory_list;
 /*base functions (add, find, del_item, del) are implemented upon a stack model*/
 static void gf_memory_add_stack(memory_element **p, void *ptr, int size, char *filename, int line)
 {
-	memory_element *element = (memory_element*)malloc(sizeof(memory_element));
+	memory_element *element = (memory_element*)MALLOC(sizeof(memory_element));
 	element->ptr = ptr;
 	element->size = size;
 	element->filename = filename;
@@ -257,7 +372,7 @@ static int gf_memory_del_item_stack(memory_element **p, void *ptr)
 			if (prev_element) prev_element->next = curr_element->next;
 			else *p = curr_element->next;
 			size = curr_element->size;
-			free(curr_element);
+			FREE(curr_element);
 			return size;
 		}
 		prev_element = curr_element;
@@ -271,7 +386,7 @@ static void gf_memory_del_stack(memory_element **p)
 	memory_element *curr_element=*p, *next_element;
 	while (curr_element) {
 		next_element = curr_element->next;
-		free(curr_element);
+		FREE(curr_element);
 		curr_element = next_element;
 	}
 	*p = NULL;
@@ -283,7 +398,7 @@ static void gf_memory_del_stack(memory_element **p)
 /*this list is implemented as a stack to minimise the cost of freeing recent allocations*/
 static void gf_memory_add(memory_list *p, void *ptr, int size, char *filename, int line)
 {
-	if (!*p) *p = calloc(HASH_ENTRIES, sizeof(memory_element*));
+	if (!*p) *p = (memory_list) CALLOC(HASH_ENTRIES, sizeof(memory_element*));
 	assert(*p);
 
 	gf_memory_add_stack(&((*p)[gf_memory_hash(ptr)]), ptr, size, filename, line);
@@ -301,7 +416,7 @@ static int gf_memory_del_item(memory_list *p, void *ptr)
 {
 	int ret;
 	memory_element **sub_list;
-	if (!*p) *p = calloc(HASH_ENTRIES, sizeof(memory_element*));
+	if (!*p) *p = (memory_list) CALLOC(HASH_ENTRIES, sizeof(memory_element*));
 	assert(*p);
 	sub_list = &((*p)[gf_memory_hash(ptr)]);
 	if (!sub_list) return 0;
@@ -312,7 +427,7 @@ static int gf_memory_del_item(memory_list *p, void *ptr)
 		for (i=0; i<HASH_ENTRIES; i++)
 			if (&((*p)[i])) break;
 		if (i==HASH_ENTRIES) {
-			free(*p);
+			FREE(*p);
 			p = NULL;
 		}
 	}
@@ -324,7 +439,7 @@ static void gf_memory_del(memory_list *p)
 	int i;
 	for (i=0; i<HASH_ENTRIES; i++)
 		gf_memory_del_stack(&((*p)[i]));
-	free(*p);
+	FREE(*p);
 	p = NULL;
 }
 
