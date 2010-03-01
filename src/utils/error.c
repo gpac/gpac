@@ -40,9 +40,10 @@
 #define strdup	_strdup
 #endif
 
-/*we must use c++ compiler for google malloc :( */
-#define CDECL	extern "C"
-
+/*
+	WARNING - you must enable C++ style compilation of this file (error.c) to be able to compile
+	with google malloc. This is not set by default in the project settings.
+*/
 #if (USE_MALLOC==GOOGLE_MALLOC)
 #include <config.h>
 #include <base/commandlineflags.h>
@@ -58,6 +59,8 @@
 #define FREE	free
 #define STRDUP(a) return strdup(a);
 
+/*we must use c++ compiler for google malloc :( */
+#define CDECL	extern "C"
 #endif
 
 #if (USE_MALLOC==INTEL_MALLOC)
@@ -76,6 +79,10 @@ CDECL void   scalable_free(void* ptr);
 #define FREE	scalable_free
 #define STRDUP(_a) if (_a) { unsigned int len = strlen(_a)+1; char *ptr = (char *) scalable_malloc(len); strcpy(ptr, _a); return ptr; } else { return NULL; }
 
+#endif
+
+#ifndef CDECL	
+#define CDECL	
 #endif
 
 #if (USE_MALLOC==DL_MALLOC)

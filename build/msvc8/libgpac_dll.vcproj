@@ -62,6 +62,7 @@
 				WarningLevel="3"
 				SuppressStartupBanner="true"
 				DebugInformationFormat="4"
+				CompileAs="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -77,11 +78,12 @@
 			<Tool
 				Name="VCLinkerTool"
 				UseLibraryDependencyInputs="false"
-				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib opengl32.lib glu32.lib "
+				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib opengl32.lib glu32.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="&quot;../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)&quot;"
+				GenerateManifest="false"
 				IgnoreAllDefaultLibraries="false"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
@@ -250,10 +252,12 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				InlineFunctionExpansion="1"
+				InlineFunctionExpansion="0"
 				AdditionalIncludeDirectories="../../include"
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_WINDOWS;_USRDLL"
 				StringPooling="true"
+				MinimalRebuild="false"
+				BasicRuntimeChecks="0"
 				RuntimeLibrary="2"
 				EnableFunctionLevelLinking="true"
 				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
@@ -262,6 +266,7 @@
 				ProgramDataBaseFileName="$(IntDir)/$(ProjectName)"
 				WarningLevel="3"
 				SuppressStartupBanner="true"
+				CompileAs="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -276,9 +281,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib opengl32.lib glu32.lib "
+				AdditionalDependencies="js32.lib zlib.lib winmm.lib ws2_32.lib opengl32.lib glu32.lib libtcmalloc_minimal.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac.dll"
-				LinkIncremental="1"
+				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
 				GenerateManifest="false"
