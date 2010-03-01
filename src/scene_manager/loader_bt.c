@@ -3401,7 +3401,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 	return parser->last_error;
 }
 
-static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, char *str)
+static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, char *str, Bool input_only)
 {
 	u32 size;
 	gzFile gzInput;
@@ -3423,6 +3423,7 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, char *str)
 		memset(parser->line_buffer, 0, sizeof(char)*BT_LINE_SIZE);
 		parser->file_size = size;
 
+		parser->line_pos = parser->line_size = 0;
 		gzgets(gzInput, (char*) BOM, 5);
 		gzseek(gzInput, 0, SEEK_SET);
 		parser->gz_in = gzInput;
@@ -3456,7 +3457,9 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, char *str)
 	}
 	parser->initialized = 1;
 
-	/*initalize default streams in the ocntext*/
+	if (input_only) return GF_OK;
+
+	/*initalize default streams in the context*/
 
 	/*chunk parsing*/
 	if (load->flags & GF_SM_LOAD_CONTEXT_READY) {
@@ -3544,9 +3547,28 @@ void load_bt_done(GF_SceneLoader *load)
 
 GF_Err load_bt_run(GF_SceneLoader *load)
 {
+	GF_Err e;
 	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
 	if (!parser) return GF_BAD_PARAM;
-	return gf_bt_loader_run_intern(parser, NULL, 0);
+
+	if (!parser->initialized) {
+		e = gf_sm_load_bt_initialize(load, NULL, 1);
+		if (e) return e;
+	}
+
+	e = gf_bt_loader_run_intern(parser, NULL, 0);
+
+	if (e) return e;
+
+	if (parser->done) {
+		parser->done = 0;
+		parser->initialized = 0;
+		if (parser->gz_in) {
+			gzclose(parser->gz_in);
+			parser->gz_in = NULL;
+		}
+	}
+	return e;
 }
 
 
@@ -3560,11 +3582,8 @@ GF_Err load_bt_parse_string(GF_SceneLoader *load, char *str)
 	parser->line_size = (s32)strlen(str);
 
 	if (!parser->initialized) {
-		e = gf_sm_load_bt_initialize(load, str);
-		if (e) {
-			load_bt_done(load);
-			return e;
-		}
+		e = gf_sm_load_bt_initialize(load, str, 0);
+		if (e) return e;
 	}
 	e = gf_bt_loader_run_intern(parser, NULL, 0);
 	parser->line_buffer = NULL;
@@ -3601,7 +3620,7 @@ GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
 	load->suspend = load_bt_suspend;
 	load->parse_string = load_bt_parse_string;
 
-	e = gf_sm_load_bt_initialize(load, NULL);
+	e = gf_sm_load_bt_initialize(load, NULL, 0);
 	if (e) {
 		load_bt_done(load);
 		return e;

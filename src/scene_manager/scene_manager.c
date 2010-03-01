@@ -374,7 +374,7 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	/*we need at least a scene graph*/
 	if (!load || (!load->ctx && !load->scene_graph) 
 #ifndef GPAC_DISABLE_ISOM
-		|| (!load->fileName && !load->isom)
+		|| (!load->fileName && !load->isom && !(load->flags & GF_SM_LOAD_FOR_PLAYBACK) )
 #endif
 		) return GF_BAD_PARAM;
 

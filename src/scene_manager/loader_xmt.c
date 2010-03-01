@@ -2441,6 +2441,13 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 		if (desc) gf_list_add(parser->descriptors, desc);
 		return;
 	}
+	if (parser->state==XMT_STATE_END) {
+		if (!strcmp(name, "head")) {
+			 parser->state = XMT_STATE_HEAD;
+		} else {
+			parser->state = XMT_STATE_COMMANDS;
+		}
+	}
 
 	/*scene content*/	
 	if (parser->state==XMT_STATE_BODY) {
@@ -2459,7 +2466,6 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 		else if ((parser->doc_type == 3) && !strcmp(name, "body")) parser->state = XMT_STATE_COMMANDS;
 		return;
 	}
-
 	/*XMT-A command*/
 	if ((parser->doc_type == 1) && (parser->state == XMT_STATE_COMMANDS)) {
 		/*OD command*/
@@ -2948,10 +2954,6 @@ static GF_Err load_xmt_initialize(GF_SceneLoader *load, char *str_data)
 	if (str_data) {
 		return gf_xml_sax_parse(parser->sax_parser, str_data);
 	}
-	else {
-		e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);
-		if (e<0) return xmt_report(parser, e, "Invalid XML document: %s", gf_xml_sax_get_error(parser->sax_parser));
-	}
 	return GF_OK;
 }
 
@@ -2964,6 +2966,9 @@ static GF_Err load_xmt_run(GF_SceneLoader *load)
 		e = load_xmt_initialize(load, NULL);
 		if (e) return e;
 	}
+
+	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);
+	if (e<0) return xmt_report(parser, e, "Invalid XML document: %s", gf_xml_sax_get_error(parser->sax_parser));
 	return GF_OK;
 }
 

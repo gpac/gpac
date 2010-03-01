@@ -1198,11 +1198,11 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		parent = NULL;
 	}
 
-    /* If the loader was created with the DIMS type and this is the root element, 
-        we need to create the stream, mpeg-4 esd, ...
-        In playback mode, DIMS does not use the scene manager (ctx) in the loader 
-        because we don't use the command / stream representation we directly manipulate the graph */
-    if (!parent && !parser->laser_es && (parser->load->type == GF_SM_LOAD_DIMS) && parser->load->ctx) {
+    /* If the loader was created with the DIMS type and this is the root element, restore the stream and AU 
+	context - in DIMS? we only have one stream an dcommands are stacked in the last AU of the stream*/
+    if (!parent && (parser->load->type == GF_SM_LOAD_DIMS) && parser->load->ctx) {
+
+		/*if not created, do it now*/
 		if (!gf_list_count(parser->load->ctx->streams)) {
 			parser->laser_es = gf_sm_stream_new(parser->load->ctx, 1, GF_STREAM_SCENE, GPAC_OTI_SCENE_DIMS);
 			parser->laser_es->timeScale = 1000;
