@@ -1053,7 +1053,10 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 
 		drawable_check_focus_highlight(node, tr_state, NULL);
 		if (is_fragment) {
+			/*we must have exclusive access to the fragment*/
+			gf_scene_lock(stack->inline_sg, 1);
 			gf_node_traverse(used_node, tr_state);
+			gf_scene_lock(stack->inline_sg, 0);
 		} else {
 			gf_sc_traverse_subscene(tr_state->visual->compositor, node, stack->inline_sg, tr_state);
 		}
@@ -1328,7 +1331,7 @@ GF_Node *compositor_svg_get_xlink_resource_node(GF_Node *node, XMLRI *xlink)
 		return gf_sg_get_root_node(stack->inline_sg);
 	case TAG_SVG_use:
 		stack = gf_node_get_private(node);
-		if (stack->fragment_id)
+		if (stack && stack->fragment_id)
 			return gf_sg_find_node_by_name(stack->inline_sg, (char *) stack->fragment_id+1);
 		return xlink ? xlink->target : NULL;
 	}

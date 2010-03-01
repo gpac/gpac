@@ -2095,12 +2095,18 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	u32 h, w, tag;
 	GF_Matrix2D transf;
 	GF_SceneGraph *in_scene;
-	GF_Node *inline_root = gf_sg_get_root_node(subscene);
+	GF_Node *inline_root;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 
-	if (!inline_root) return;
 	/*we don't traverse subscenes until the root one is setup*/
 	if (!compositor->root_visual_setup) return;
+
+	gf_scene_lock(subscene, 1);
+	inline_root = gf_sg_get_root_node(subscene);
+	if (!inline_root) {
+		gf_scene_lock(subscene, 0);
+		return;
+	}
 
 	flip_coords = 0;
 	in_scene = gf_node_get_graph(inline_root);
@@ -2243,6 +2249,8 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	tr_state->min_hsize = min_hsize;
 	tr_state->vp_size = prev_vp;
 	tr_state->fliped_coords = prev_coord;
+
+	gf_scene_lock(subscene, 0);
 }
 
 

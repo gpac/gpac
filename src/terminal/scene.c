@@ -85,6 +85,7 @@ GF_Scene *gf_scene_new(GF_Scene *parentScene)
 	GF_SAFEALLOC(tmp, GF_Scene);
 	if (! tmp) return NULL;
 
+	tmp->mx = gf_mx_new("SceneMutex");
 	tmp->resources = gf_list_new();
 	tmp->scene_objects = gf_list_new();
 	tmp->extra_scenes = gf_list_new();
@@ -167,6 +168,7 @@ void gf_scene_del(GF_Scene *scene)
 	if (scene->dims_url.url) gf_free(scene->dims_url.url);
 	if (scene->fragment_uri) gf_free(scene->fragment_uri);
 	if (scene->redirect_xml_base) gf_free(scene->redirect_xml_base);
+	gf_mx_del(scene->mx);
 	gf_free(scene);
 }
 
@@ -1367,3 +1369,11 @@ const char *gf_scene_get_service_url(GF_SceneGraph *sg)
 	if (scene) return scene->root_od->net_service->url;
 	return NULL;
 }
+void gf_scene_lock(GF_SceneGraph *sg, Bool do_lock)
+{
+	GF_Scene *scene = gf_sg_get_private(sg);
+	if (!scene) return;
+	if (do_lock) gf_mx_p(scene->mx);
+	else gf_mx_v(scene->mx);
+}
+
