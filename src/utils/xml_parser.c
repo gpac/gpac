@@ -1139,6 +1139,16 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 		gzclose(parser->gz_in);
 		parser->gz_in = 0;
 #endif
+
+		parser->elt_start_pos = parser->elt_end_pos = 0;
+		parser->elt_name_start = parser->elt_name_end = 0;
+		parser->att_name_start = 0;
+		parser->current_pos = 0;
+		parser->line_size = 0;
+		parser->att_sep = 0;
+		parser->file_pos = 0;
+		parser->file_size = 0;
+		parser->line_size = 0;
 	}
 	return e;
 }

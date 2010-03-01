@@ -45,7 +45,7 @@ struct __tag_scene_engine
 {
 	GF_SceneGraph *sg;
 	GF_SceneManager	*ctx;
-	GF_SceneLoader load;
+	GF_SceneLoader loader;
 	void *calling_object;
 	Bool owns_context;	
 #ifndef GPAC_DISABLE_BIFS_ENC
@@ -569,20 +569,15 @@ GF_EXPORT
 GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, char *auString, gf_seng_callback callback)
 {
 	GF_StreamContext *sc;
-	u32 i, count, load_type;
+	u32 i, count;
 	GF_Err e;
-
-	load_type = seng->load.type;
-	memset(&(seng->load), 0, sizeof(GF_SceneLoader));
-	seng->load.ctx = seng->ctx;
 	
 	count = gf_list_count(seng->ctx->streams);
 	i = 0;
 	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
 		sc->current_au_count = gf_list_count(sc->AUs);
 	}
-	seng->load.flags = GF_SM_LOAD_MPEG4_STRICT | GF_SM_LOAD_CONTEXT_READY;
-	seng->load.type = load_type;
+	seng->loader.flags |= GF_SM_LOAD_CONTEXT_READY;
     
     /* We need to create an empty AU for the parser to correctly parse a LASeR Command without SceneUnit */
     sc = gf_list_get(seng->ctx->streams, 0);
@@ -590,7 +585,7 @@ GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, char *auString, gf_seng_
         gf_seng_create_new_dims_au(sc, 0);
     }
 
-	e = gf_sm_load_string(&seng->load, auString, 0);
+	e = gf_sm_load_string(&seng->loader, auString, 0);
 	if (e) goto exit;
 
 	e = gf_sm_live_encode_scene_au(seng, callback, 0); 
@@ -677,9 +672,8 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, char *auFile, gf_seng_call
 	u32 i, count;
 	Bool dims = 0;
 
-	memset(&(seng->load), 0, sizeof(GF_SceneLoader));
-	seng->load.fileName = auFile;
-	seng->load.ctx = seng->ctx;
+	seng->loader.fileName = auFile;
+	seng->loader.ctx = seng->ctx;
 
 	sc = NULL;
 	count = gf_list_count(seng->ctx->streams);
@@ -693,15 +687,15 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, char *auFile, gf_seng_call
 		dims = 1;
         gf_seng_create_new_dims_au(sc, 0);
     }
-	seng->load.flags = GF_SM_LOAD_CONTEXT_READY;
+	seng->loader.flags |= GF_SM_LOAD_CONTEXT_READY;
+
 	if (dims) {
-		seng->load.type = GF_SM_LOAD_DIMS;
+		seng->loader.type |= GF_SM_LOAD_DIMS;
 	} else {
-		seng->load.flags |= GF_SM_LOAD_MPEG4_STRICT;
+		seng->loader.flags |= GF_SM_LOAD_MPEG4_STRICT;
 	}
-	e = gf_sm_load_init(&seng->load);
-	if (!e) e = gf_sm_load_run(&seng->load);
-	gf_sm_load_done(&seng->load);
+	e = gf_sm_load_run(&seng->loader);
+
 	if (e<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot load AU File %s (error %s)\n", auFile, gf_error_to_string(e)));
 		goto exit;
@@ -733,6 +727,8 @@ void gf_seng_terminate(GF_SceneEngine *seng)
 #ifndef GPAC_DISABLE_BIFS_ENC
 	if (seng->lsrenc) gf_laser_encoder_del(seng->lsrenc);
 #endif
+
+	gf_sm_load_done(&seng->loader);
 
 	if (seng->owns_context) {
 		if (seng->ctx) gf_sm_del(seng->ctx);
@@ -774,16 +770,15 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load
     seng->dump_path = dump_path;
 	seng->ctx = gf_sm_new(seng->sg);
 	seng->owns_context = 1;
-	memset(&(seng->load), 0, sizeof(GF_SceneLoader));
-	seng->load.ctx = seng->ctx;
-    seng->load.type = load_type;
+	memset(&(seng->loader), 0, sizeof(GF_SceneLoader));
+	seng->loader.ctx = seng->ctx;
+    seng->loader.type = load_type;
 	/*since we're encoding in BIFS we must get MPEG-4 nodes only*/
-	seng->load.flags = GF_SM_LOAD_MPEG4_STRICT;
+	seng->loader.flags = GF_SM_LOAD_MPEG4_STRICT;
 
-	seng->load.fileName = inputContext;
-	e = gf_sm_load_init(&(seng->load));
-	if (!e) e = gf_sm_load_run(&(seng->load));
-	gf_sm_load_done(&(seng->load));
+	seng->loader.fileName = inputContext;
+	e = gf_sm_load_init(&(seng->loader));
+	if (!e) e = gf_sm_load_run(&(seng->loader));
 
 	if (e<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] Cannot load context from %s (error %s)\n", inputContext, gf_error_to_string(e)));
@@ -848,23 +843,23 @@ GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputConte
 	seng->sg = gf_sg_new();
 	seng->ctx = gf_sm_new(seng->sg);
 	seng->owns_context = 1;
-	memset(&(seng->load), 0, sizeof(GF_SceneLoader));
-	seng->load.ctx = seng->ctx;
-    seng->load.type = load_type;
+	memset(& seng->loader, 0, sizeof(GF_SceneLoader));
+	seng->loader.ctx = seng->ctx;
+    seng->loader.type = load_type;
 	/*since we're encoding in BIFS we must get MPEG-4 nodes only*/
-	seng->load.flags = GF_SM_LOAD_MPEG4_STRICT;
+	seng->loader.flags = GF_SM_LOAD_MPEG4_STRICT;
 
     /* assign a loader type only if it was not requested (e.g. DIMS should not be overriden by SVG) */
-    if (!seng->load.type) {
+    if (!seng->loader.type) {
         if (inputContext[0] == '<') {
-		    if (strstr(inputContext, "<svg ")) seng->load.type = GF_SM_LOAD_SVG;
-		    else if (strstr(inputContext, "<saf ")) seng->load.type = GF_SM_LOAD_XSR;
-		    else if (strstr(inputContext, "XMT-A") || strstr(inputContext, "X3D")) seng->load.type = GF_SM_LOAD_XMTA;
+		    if (strstr(inputContext, "<svg ")) seng->loader.type = GF_SM_LOAD_SVG;
+		    else if (strstr(inputContext, "<saf ")) seng->loader.type = GF_SM_LOAD_XSR;
+		    else if (strstr(inputContext, "XMT-A") || strstr(inputContext, "X3D")) seng->loader.type = GF_SM_LOAD_XMTA;
 	    } else {
-		    seng->load.type = GF_SM_LOAD_BT;
+		    seng->loader.type = GF_SM_LOAD_BT;
 	    }
     }
-	e = gf_sm_load_string(&seng->load, inputContext, 0);
+	e = gf_sm_load_string(&seng->loader, inputContext, 0);
 
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot load context from %s (error %s)\n", inputContext, gf_error_to_string(e)));
