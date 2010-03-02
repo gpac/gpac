@@ -924,7 +924,13 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 			media_url->OD_ID = odm->OD->objectDescriptorID;
 			if (media_url->OD_ID==GF_MEDIA_EXTERNAL_ID) media_url->url = gf_strdup(odm->net_service->url);
 
-			if (!scene->dyn_ck) scene->dyn_ck = odm->codec->ck;
+			if (!scene->dyn_ck) {
+				if (odm->subscene) {
+					scene->dyn_ck = odm->subscene->scene_codec->ck;
+				} else {
+					scene->dyn_ck = odm->codec->ck;
+				}
+			}
 
 			if (odm->mo && (type==GF_STREAM_VISUAL)) {
 				gf_scene_get_video_size(odm->mo, &w, &h);
