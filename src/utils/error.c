@@ -102,7 +102,7 @@ CDECL void   dlfree(void* ptr);
 
 #if (USE_MALLOC==STD_MALLOC)
 
-#include <malloc.h>
+#include <stdlib.h>
 
 #define MALLOC	malloc
 #define CALLOC	calloc
@@ -297,13 +297,11 @@ char *gf_mem_strdup(const char *str, char *filename, int line)
 CDECL
 void gf_mem_enable_tracker()
 {
-/*
 	gf_mem_malloc_proto = gf_mem_malloc_tracker;
 	gf_mem_calloc_proto = gf_mem_calloc_tracker;
 	gf_mem_realloc_proto = gf_mem_realloc_tracker;
 	gf_mem_free_proto = gf_mem_free_tracker;
 	gf_mem_strdup_proto = gf_mem_strdup_tracker;
-*/
 }
 
 
