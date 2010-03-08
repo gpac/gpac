@@ -132,7 +132,6 @@ static void l3d_CheckBindables(GF_Node *n, GF_TraverseState *tr_state, Bool forc
 
 u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *tr_state, Fixed width, Fixed height)
 {
-	GF_Err e;
 	GF_STENCIL stencil;
 	u32 new_pixel_format, w, h;
 	GF_Compositor *compositor = (GF_Compositor *)st->visual->compositor;
@@ -170,7 +169,8 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 
 #endif
 
-#ifdef GPAC_TRISCOPE_MODE
+	/*FIXME - we assume RGB+Depth+bitshape, we should check with the video out module*/
+#ifdef GF_SR_USE_DEPTH
 	new_pixel_format = GF_PIXEL_RGBDS;
 #endif
 	
@@ -216,16 +216,15 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 	if (new_pixel_format==GF_PIXEL_RGBA) {
 		st->txh.stride = w * 4;
 		st->txh.transparent = 1;
-	} else {
+	} 
+	else if (new_pixel_format==GF_PIXEL_RGBDS) {
+			st->txh.stride = w * 4;
+			st->txh.transparent = 1;
+	}
+	else {
 		st->txh.stride = w * 3;
 		st->txh.transparent = 0;
 	}
-#ifdef GPAC_TRISCOPE_MODE
-	if (new_pixel_format==GF_PIXEL_RGBDS) {
-			st->txh.stride = w * 4;
-			st->txh.transparent = 0;
-	}
-#endif
 
 	st->visual->width = w;
 	st->visual->height = h;
@@ -256,17 +255,11 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 #endif
 	st->txh.data = (char*)gf_malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
 	memset(st->txh.data, 0, sizeof(unsigned char) * st->txh.stride * st->txh.height);
-	e = compositor->rasterizer->stencil_set_texture(stencil, st->txh.data, st->txh.width, st->txh.height, st->txh.stride, st->txh.pixelformat, st->txh.pixelformat, 0);
-#ifdef GPAC_TRISCOPE_MODE
-			e = GF_OK;
-#endif
+	
+	/*set stencil texture - we don't check error as an image could not be supported by the rasterizer
+	but still supported by the blitter (case of RGBD/RGBDS)*/
+	compositor->rasterizer->stencil_set_texture(stencil, st->txh.data, st->txh.width, st->txh.height, st->txh.stride, st->txh.pixelformat, st->txh.pixelformat, 0);
 
-	if (e) {
-		compositor->rasterizer->stencil_delete(stencil);
-		gf_sc_texture_release(&st->txh);
-		gf_free(st->txh.data);
-		st->txh.data = NULL;
-	}
 #ifdef GPAC_USE_TINYGL
 	/*create TinyGL offscreen context*/
 	st->tgl_ctx = ostgl_create_context(st->txh.width, st->txh.height, st->txh.transparent ? 32 : 24, &st->txh.data, 1);
@@ -547,10 +540,8 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_USE_TINYGL
 			gf_sc_copy_to_stencil(&st->txh);
 #else
-/*with TinyGL, need to recover depth for triscope*/			
-#ifdef GPAC_TRISCOPE_MODE				
-			if (st->txh.pixelformat==GF_PIXEL_RGBDS) gf_get_tinygl_depth(&st->txh); 
-#endif				
+			if (st->txh.pixelformat==GF_PIXEL_RGBDS) 
+				gf_get_tinygl_depth(&st->txh); 
 #endif
 
 			if (tr_state->visual->compositor->rasterizer->stencil_texture_modified) 

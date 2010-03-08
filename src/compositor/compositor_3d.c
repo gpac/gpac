@@ -116,33 +116,36 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 		return GF_OK;
 	}
 
-#if defined(GPAC_USE_TINYGL) && !defined(GPAC_TRISCOPE_MODE)
+#if defined(GPAC_USE_TINYGL) 
 	{
 		u32 bpp;
 		GF_VideoSurface bb;
 		GF_Err e = compositor->video_out->LockBackBuffer(compositor->video_out, &bb, 1);
-		if (e) return e;
-		switch (bb.pixel_format) {
-		case GF_PIXEL_RGB_32:
-		case GF_PIXEL_ARGB:
-			bpp = 32;
-			break;
-		case GF_PIXEL_RGB_24:
-		case GF_PIXEL_BGR_24:
-			bpp = 24;
-			break;
-		case GF_PIXEL_RGB_565:
-		case GF_PIXEL_RGB_555:
-			bpp = 16;
-			break;
-		default:
-			e = GF_NOT_SUPPORTED;
-			bpp = 0;
-			break;
+		if (e==GF_OK) {
+			switch (bb.pixel_format) {
+			case GF_PIXEL_RGB_32:
+			case GF_PIXEL_ARGB:
+				bpp = 32;
+				break;
+			case GF_PIXEL_RGB_24:
+			case GF_PIXEL_BGR_24:
+				bpp = 24;
+				break;
+			case GF_PIXEL_RGB_565:
+			case GF_PIXEL_RGB_555:
+				bpp = 16;
+				break;
+			default:
+				e = GF_NOT_SUPPORTED;
+				bpp = 0;
+				break;
+			}
+			if (e==GF_OK) {
+				compositor->tgl_ctx = ostgl_create_context(bb.width, bb.height, bpp, &bb.video_buffer, 1);
+				if (compositor->tgl_ctx) ostgl_make_current(compositor->tgl_ctx, 0);
+			}
+			compositor->video_out->LockBackBuffer(compositor->video_out, &bb, 0);
 		}
-		compositor->tgl_ctx = ostgl_create_context(bb.width, bb.height, bpp, &bb.video_buffer, 1);
-		if (compositor->tgl_ctx) ostgl_make_current(compositor->tgl_ctx, 0);
-		compositor->video_out->LockBackBuffer(compositor->video_out, &bb, 0);
 	}
 #endif
 	

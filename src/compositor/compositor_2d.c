@@ -28,10 +28,6 @@
 #include "nodes_stacks.h"
 #include <gpac/options.h>
 
-#ifdef GPAC_TRISCOPE_MODE
-#include "../src/compositor/triscope_renoir/triscope_renoir.h"
-#endif
-
 #ifdef OPENGL_RASTER
 #include "gl_inc.h"
 
@@ -185,17 +181,10 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 	}
 	
 	/*TODO - collect hw accelerated blit routines if any*/
+	e = GF_NOT_SUPPORTED;
 
 	if (compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, 1)==GF_OK) {
 		compositor->hw_locked = 1;
-
-#ifdef GPAC_TRISCOPE_MODE 
-		if (!(((GF_RenoirHandler *) compositor->RenoirHandler)->flags & GF_TRISCOPE_OUTPUT_IS_SET)) {
-                        SetRenoirOutput(compositor);
-                        ((GF_RenoirHandler *)compositor->RenoirHandler)->flags |= GF_TRISCOPE_OUTPUT_IS_SET;
-                }
-		return GF_OK;
-#else
 
 		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hw_surface.video_buffer, 
 							compositor->hw_surface.width, 
@@ -210,9 +199,8 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface memory to raster: %s\n", gf_error_to_string(e) ));
 		compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, 0);
-
-#endif
-
+	} else {
+		e = GF_OK;
 	}
 	compositor->hw_locked = 0;
 	visual->is_attached = 0;
@@ -241,7 +229,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	GF_VideoSurface video_src;
 	Fixed w_scale, h_scale, tmp;
 	GF_Err e;
-	Bool use_soft_stretch, use_blit, flush_video;
+	Bool use_soft_stretch, use_blit, flush_video, is_attached;
 	u32 overlay_type;
 	GF_Window src_wnd, dst_wnd;
 	u32 output_width, output_height, hw_caps;
@@ -510,16 +498,23 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	}
 
 	/*most graphic cards can't perform bliting on locked surface - force unlock by releasing the hardware*/
-	visual_2d_release_raster(visual);
+	is_attached = visual->is_attached;
+	if (is_attached) visual_2d_release_raster(visual);
 
 	if (!use_soft_stretch) {
 		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 0);
 		/*HW pb, try soft*/
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during hardware blit - trying with soft one\n"));
 			use_soft_stretch = 1;
-			visual->compositor->video_memory = visual->compositor->video_memory ? 2 : 1;
-			visual->compositor->root_visual_setup = 0;
+			if (visual->compositor->video_memory) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during hardware blit - trying with soft one\n"));
+				visual->compositor->video_memory = 2;
+			}
+			/*force a reconfigure of video output*/
+			else {
+				visual->compositor->video_memory = 1;
+				visual->compositor->root_visual_setup = 0;
+			}
 		}
 	}
 	if (use_soft_stretch) {
@@ -538,7 +533,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 	}
 	visual->has_modif = 1;
-	visual_2d_init_raster(visual);
+	if (is_attached) visual_2d_init_raster(visual);
 	return 1;
 }
 
@@ -594,15 +589,15 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 
 	/*direct drawing, no clippers */
 	if (tr_state->direct_draw) {
-		
-#ifdef GPAC_TRISCOPE_MODE
-		return SetRenoirTexture(visual, ctx->aspect.fill_texture, ctx,
-                                &ctx->bi->clip, &ctx->bi->unclip, alpha, (u32 *) col_key, tr_state, 0);
-#else 		
-		return compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0);
-
+		if (visual->compositor->video_out->BlitTexture) {
+			return visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
+#ifdef GF_SR_USE_DEPTH
+				, ctx->depth_offset, ctx->depth_gain
 #endif
-
+				);
+		} else {
+			return compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0);
+		}
 	}
 	/*draw bitmap for all dirty rects*/
 	else {
@@ -616,8 +611,16 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i]);
 			if (clip.width && clip.height) {
-				if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0))
+				if (visual->compositor->video_out->BlitTexture) {
+					if (!visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
+#ifdef GF_SR_USE_DEPTH
+						, ctx->depth_offset, ctx->depth_gain
+#endif
+					))
 					return 0;
+				} else if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0)) {
+					return 0;
+				}
 			}
 		}
 	}

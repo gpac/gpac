@@ -221,9 +221,8 @@ static void composite_update(GF_TextureHandler *txh)
 
 #endif
 
-	/*in triscope all our images are RGB+Depth+bitshape*/
-
-#ifdef GPAC_TRISCOPE_MODE
+	/*FIXME - we assume RGB+Depth+bitshape, we should check with the video out module*/
+#ifdef GF_SR_USE_DEPTH
 	if (st->visual->type_3d) new_pixel_format = GF_PIXEL_RGBDS;
 #endif
 
@@ -299,11 +298,9 @@ static void composite_update(GF_TextureHandler *txh)
 		} else if (new_pixel_format==GF_PIXEL_RGB_565) {
 			txh->stride = txh->width * 2;
 			txh->transparent = 0;
-#ifdef GPAC_TRISCOPE_MODE
 		} else if (new_pixel_format==GF_PIXEL_RGBDS) {
 				txh->stride = txh->width * 4;
 				txh->transparent = 1;
-#endif
 		}
 		/*RGB24*/
 		else {
@@ -350,17 +347,11 @@ static void composite_update(GF_TextureHandler *txh)
 		if (needs_stencil) {
 			txh->data = (char*)gf_malloc(sizeof(unsigned char) * txh->stride * txh->height);
 			memset(txh->data, 0, sizeof(unsigned char) * txh->stride * txh->height);
-			e = raster->stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat, txh->pixelformat, 0);
-#ifdef GPAC_TRISCOPE_MODE
-			e = GF_OK;
-#endif
-			if (e) {
-				raster->stencil_delete(stencil);
-				gf_sc_texture_release(txh);
-				gf_free(txh->data);
-				txh->data = NULL;
-				return;
-			}
+			
+			/*set stencil texture - we don't check error as an image could not be supported by the rasterizer
+			but still supported by the blitter (case of RGBD/RGBDS)*/
+			raster->stencil_set_texture(stencil, txh->data, txh->width, txh->height, txh->stride, txh->pixelformat, txh->pixelformat, 0);
+
 #ifdef GPAC_USE_TINYGL
 			if (st->visual->type_3d && !compositor->visual->type_3d) {
 				st->tgl_ctx = ostgl_create_context(txh->width, txh->height, txh->transparent ? 32 : 24, &txh->data, 1);
@@ -437,9 +428,8 @@ static void composite_update(GF_TextureHandler *txh)
 				gf_sc_copy_to_stencil(&st->txh);
 
 #else
-#ifdef GPAC_TRISCOPE_MODE
-			if (txh->pixelformat==GF_PIXEL_RGBDS) gf_get_tinygl_depth(&st->txh);
-#endif
+
+				if (txh->pixelformat==GF_PIXEL_RGBDS) gf_get_tinygl_depth(&st->txh);
 #endif
 			}
 		} else

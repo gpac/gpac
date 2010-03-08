@@ -22,11 +22,6 @@ ifeq ($(ENABLE_JOYSTICK_NO_CURSOR), yes)
 CFLAGS+=-DENABLE_JOYSTICK_NO_CURSOR
 endif
 
-ifneq ($(TRISCOPE_MODE),no)
-CFLAGS+=-DGPAC_TRISCOPE_MODE
-endif
-
-
 #common obj
 OBJS= raw_video.o
 

@@ -696,29 +696,9 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 	if (tr_state->fliped_coords)
 		ctx->flags |= CTX_FLIPED_COORDS;
 
-#ifdef GPAC_TRISCOPE_MODE
+#ifdef GF_SR_USE_DEPTH
         ctx->depth_gain=tr_state->depth_gain;
         ctx->depth_offset=tr_state->depth_offset;
-
-	switch (tr_state->_3d_type){ 
-                case 0:
-                        ctx->flags |= CTX_IS_2D;
-                        break;
-                case 1:
-                        ctx->flags |= CTX_IS_3DFLAT;
-                        break;
-                case 2:
-                        ctx->flags |= CTX_IS_3DMAP;
-                        break;
-                case 3:
-                        ctx->flags |= CTX_IS_3DS;
-                        break;
-                //auto-set according to internal pixel format
-                case 4:
-                        break;
-                default:
-                        break;
-        }
 #endif
 
 	return ctx;

@@ -113,25 +113,6 @@ ifeq ($(DISABLE_SVG), yes)
 COMPOSITOR_CFLAGS+=-DGPAC_DISABLE_SVG
 endif
 
-#triscope project compilation options
-ifneq ($(TRISCOPE_MODE),no)
-
-COMPOSITOR_CFLAGS+=-DGPAC_TRISCOPE_MODE
-SCENEGRAPH_CFLAGS+=-DGPAC_TRISCOPE_MODE
-EXTRALIBS+= -Lcompositor/triscope_renoir
-ifeq ($(TRISCOPE_MODE),simulator)
-EXTRALIBS+= -lViRen_linux -lViRenDrivers_linux -lEmulRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath
-else
-#EXTRALIBS+= -lViRen_linux -lViRenDrivers_linux -lViRenTools
-EXTRALIBS+= -lViRen_linux -lViRenDrivers_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath
-endif
-LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/triscope_renoir.o
-#special malloc for renoir memory
-LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/gltx_malloc.o
-#for dump
-LIBGPAC_COMPOSITOR+=compositor/triscope_renoir/bmp.o
-endif
-
 ## OpenGL available
 ifeq ($(HAS_OPENGL),yes)
 EXTRALIBS+= $(OGL_LIBS)

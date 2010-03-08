@@ -152,7 +152,7 @@ typedef struct
 } RTPChannel;
 
 
-static GF_Err live_session_callback(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
+static void live_session_callback(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
 {
 	if (calling_object) {
 		RTPChannel *rtpch;
@@ -162,13 +162,12 @@ static GF_Err live_session_callback(void *calling_object, u16 ESID, char *data, 
 			if (rtpch->ESID == ESID) {
 				fprintf(stdout, "Received at time %I64d, buffer %d bytes long.\n", ts, size);
 				gf_rtp_streamer_send_au(rtpch->rtp, data, size, ts, ts, 1);
-				return GF_OK;
+				return;
 			}
 		}
 	} else {
 		fprintf(stdout, "Received at time %I64d, buffer %d bytes long.\n", ts, size);
 	}
-	return GF_OK;
 }
 
 static void live_session_setup(GF_SceneEngine *seng, GF_List *streams, char *ip, u16 port, u32 path_mtu, u32 ttl, char *ifce_addr, char *sdp_name)
@@ -183,16 +182,16 @@ static void live_session_setup(GF_SceneEngine *seng, GF_List *streams, char *ip,
 	for (i=0; i<count; i++) {
 		u16 ESID;
 		u32 st, oti, ts;
-		char *config;
+		const char *config;
 		u32 config_len;
 		gf_seng_get_stream_config(seng, i, &ESID, &config, &config_len, &st, &oti, &ts);
 		
 		GF_SAFEALLOC(rtpch, RTPChannel);
-		rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, GP_RTP_PCK_SIGNAL_RAP, config, config_len);
+		rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, GP_RTP_PCK_SIGNAL_RAP, (char *) config, config_len);
 		rtpch->ESID = ESID;
 		gf_list_add(streams, rtpch);
 
-		gf_rtp_streamer_append_sdp(rtpch->rtp, ESID, config, config_len, NULL, &sdp);
+		gf_rtp_streamer_append_sdp(rtpch->rtp, ESID, (char *) config, config_len, NULL, &sdp);
 	}
     if (sdp) {
 		FILE *out = fopen(sdp_name, "wt");

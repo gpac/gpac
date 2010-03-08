@@ -71,7 +71,12 @@ enum
 
 	/*HW supports locking a surface by device context (Win32 only)*/
 	GF_VIDEO_HW_HAS_HWND_HDC	= (1<<16),
+	/*HW only supports direct rendering mode*/
+	GF_VIDEO_HW_DIRECT_ONLY	= (1<<17),
 };
+
+
+typedef struct _gf_sc_texture_handler GF_TextureH;
 
 /*interface name and version for video output*/
 #define GF_VIDEO_OUTPUT_INTERFACE	GF_4CC('G','V','O','1') 
@@ -161,6 +166,17 @@ typedef struct _video_out
 	*/
 	GF_Err (*Blit)(struct _video_out *vout, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type);
 
+	/*optional
+	blits the texture as a bitmap with the specified transform cliped with the given cliper, with alpha and 
+	color keying (NULL if no keying)
+	*/
+	Bool (*BlitTexture)(struct _video_out *vout, GF_TextureH *texture, GF_Matrix2D *transform, GF_IRect *clip, u8 alpha, GF_ColorKey *col_key, Fixed depth_offset, Fixed depth_gain);
+	/*optional
+		releases any HW resource used by the texture object due to a call to BlitTexture. This is called when
+		the object is about to be destroyed or is no longer visible on screen
+	*/
+	void (*ReleaseTexture)(struct _video_out *vout, GF_TextureH *texture);
+
 	/*set of above HW flags*/
 	u32 hw_caps;
 	/*main pixel format of video board (informative only)*/
@@ -174,9 +190,12 @@ typedef struct _video_out
 
 	/*overlay color key used by the hardware bliter - if not set, only top-level overlay can be used*/
 	u32 overlay_color_key;
-#ifdef ENABLE_JOYSTICK
-	u32 centered_mode;
-#endif
+
+	/*for auto-stereoscopic output*/
+    /*maximum pixel disparity*/
+    u32 disparity;
+    /*nominal display viewing distance in pixels*/
+    Fixed view_distance;
 
 	/*driver private*/
 	void *opaque;
