@@ -146,6 +146,7 @@ void PrintUsage()
 		"                   possible h values: l(eft), m(iddle), r(ight)\n"
 		"                   default alignment is top-left\n"
 		"                   default alignment is top-left\n"
+		"\t-pause:         pauses at first frame\n"
 		"\n"
 		"Dumper Options:\n"
 		"\t-bmp [times]:   dumps given frames to bmp\n"
@@ -558,13 +559,16 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP); 
 			break;
 		case GF_KEY_P:
-			if (evt->key.flags & GF_KEY_MOD_CTRL)
-				gf_term_set_option(term, GF_OPT_PLAY_STATE, (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PLAYING) ? GF_STATE_PAUSED : GF_STATE_PLAYING);
+			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+				Bool is_pause = gf_term_get_option(term, GF_OPT_PLAY_STATE);
+				fprintf(stdout, "[Status: %s]\n", is_pause ? "Playing" : "Paused");
+				gf_term_set_option(term, GF_OPT_PLAY_STATE, (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) ? GF_STATE_PLAYING : GF_STATE_PAUSED);
+			}
 			break;
 		case GF_KEY_S:
-			if (evt->key.flags & GF_KEY_MOD_CTRL) {
+			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected) {
 				gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
-				fprintf(stdout, "\nStep time: ");
+				fprintf(stdout, "Step time: ");
 				PrintTime(gf_term_get_time_in_ms(term));
 				fprintf(stdout, "\n");
 			}
@@ -948,6 +952,7 @@ int main (int argc, char **argv)
 	Bool rgbds_dump = 0;
 	Bool rgbd_dump = 0;
 	Bool depth_dump = 0;
+	Bool pause_at_first = 0;
 	Bool enable_mem_tracker = 0;
 	Double fps = 25.0;
 	Bool ret, fill_ar, visible;
@@ -1075,6 +1080,7 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
+		else if (!strcmp(arg, "-pause")) pause_at_first = 1;
 		else if (!strcmp(arg, "-exit")) auto_exit = 1;
 		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = 1;
 		else if (!strcmp(arg, "-opt")) {
@@ -1226,7 +1232,8 @@ int main (int argc, char **argv)
 			}
 		} else {
 			fprintf(stdout, "Opening URL %s\n", the_url);
-			gf_term_connect(term, the_url);
+			if (pause_at_first) fprintf(stdout, "[Status: Paused]\n");
+			gf_term_connect_from_time(term, the_url, 0, pause_at_first);
 		}
 	} else {
 		fprintf(stdout, "Hit 'h' for help\n\n");
@@ -1823,7 +1830,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 			case GPAC_OTI_IMAGE_PNG: fprintf(stdout, "PNG\n"); break;
 			case GPAC_OTI_IMAGE_JPEG_2000: fprintf(stdout, "JPEG2000\n"); break;
 				
-			case 0x80:
+			case GPAC_OTI_MEDIA_GENERIC:
 				memcpy(code, esd->decoderConfig->decoderSpecificInfo->data, 4);
 				code[4] = 0;
 				fprintf(stdout, "GPAC Intern (%s)\n", code);
@@ -1843,10 +1850,10 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number)
 			case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP: fprintf(stdout, "MPEG-2 AAC Scalable Sampling Rate Profile\n"); break;
 			case GPAC_OTI_AUDIO_MPEG2_PART3: fprintf(stdout, "MPEG-2 Audio\n"); break;
 			case GPAC_OTI_AUDIO_MPEG1: fprintf(stdout, "MPEG-1 Audio\n"); break;
-			case 0xA0: fprintf(stdout, "EVRC Audio\n"); break;
-			case 0xA1: fprintf(stdout, "SMV Audio\n"); break;
-			case 0xE1: fprintf(stdout, "QCELP Audio\n"); break;
-			case 0x80:
+			case GPAC_OTI_AUDIO_EVRC_VOICE: fprintf(stdout, "EVRC Audio\n"); break;
+			case GPAC_OTI_AUDIO_SMV_VOICE: fprintf(stdout, "SMV Audio\n"); break;
+			case GPAC_OTI_AUDIO_13K_VOICE: fprintf(stdout, "QCELP Audio\n"); break;
+			case GPAC_OTI_MEDIA_GENERIC:
 				memcpy(code, esd->decoderConfig->decoderSpecificInfo->data, 4);
 				code[4] = 0;
 				fprintf(stdout, "GPAC Intern (%s)\n", code);
