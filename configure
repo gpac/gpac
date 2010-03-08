@@ -96,9 +96,6 @@ want_pic="no"
 has_joystick="no"
 has_xul="no"
 enable_joystick="no"
-enable_renoir="no"
-disable_renoir_memory="no"
-disable_renoir_buffer="no"
 static_mp4box="no"
 disable_3d="no"
 disable_svg="no"
@@ -132,6 +129,8 @@ disable_isoff_frag="no"
 disable_isoff_hint="no"
 disable_isoff_frag="no"
 disable_streaming="no"
+enable_depth_compositor="no"
+enable_renoir="no"
 
 win32="no"
 mingw32="no"
@@ -200,15 +199,14 @@ echo "  --enable-fixed-point     enable fixed-point math"
 echo "  --force-fixed-point      force fixed-point math without changing gpac math.h header"
 echo "  --enable-tinygl          enable TinyGL support"
 echo "  --enable-joystick        enable joystick support"
-echo "  --enable-renoir=OPT      enable renoir 3D support OPT=[hw, simulator, none]"
-echo "  --disable-renoir-memory  disable renoir memory space access, no memory map will be done" 
-echo "  --disable-renoir-buffer  disable renoir dedicated buffer allocation for renoir data" 
 echo "  --disable-ssl            disable OpenSSL support"
 echo "  --enable-amr-nb-fixed    enable AMR NB fixed-point decoder"
 echo "  --enable-amr-nb          enable AMR NB library"
 echo "  --enable-amr-wb          enable AMR WB library"
 echo "  --enable-amr             enable both AMR NB and WB libraries"
 echo "	--static-mp4box          configure for static linking of MP4Box."
+echo "  --enable-depth           enables depth handling in the compositor"
+
 echo ""
 echo "Configuration options for libgpac - all options can be enabled with --enable-optname"
 echo "  --disable-all            disables all features in libgpac"
@@ -1119,13 +1117,6 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_jack="yes"
 fi
 
-#look for renoir device driver presence
-if [ -e src/compositor/triscope_renoir/libViRenDrivers_linux.a ] ; then
-  has_renoir_drivers="local" 
-  else
-  has_renoir_drivers="unknown"
-fi
-
 for opt do
   case "$opt" in
   --sdl-cfg=*) sdl_path=`echo $opt | cut -d '=' -f 2`; sdl_local="yes"
@@ -1188,6 +1179,8 @@ for opt do
   ;;
   --disable-ssl) has_ssl="no"
   ;;
+  --enable-depth) enable_depth_compositor="yes"
+  ;;
   --static-mp4box) static_mp4box="yes"
   ;;
   --use-faad=*) has_faad=${opt#--use-faad=}
@@ -1231,12 +1224,6 @@ has_png=$tmp_has_png
   --use-openjpeg=*) has_openjpeg=${opt#--use-openjpeg=}
   ;;
   --enable-joystick) enable_joystick="yes"
-  ;;
-  --enable-renoir=*) enable_renoir=${opt#--enable-renoir=}
-  ;;
-  --disable-renoir-memory) disable_renoir_memory="yes"
-  ;;
-  --disable-renoir-buffer) disable_renoir_buffer="yes"
   ;;
   --enable-pulseaudio=*) has_pulseaudio="yes"
   ;;
@@ -1587,6 +1574,11 @@ has_jpeg="no"
 has_png="no"
 fi
 
+viren_dir="`ls $source_path/modules | grep viren_out`"
+if test "$viren_dir" = "viren_out"; then
+enable_depth_compositor="yes"
+enable_renoir="yes"
+fi
 
 #prepare for config.h writing
 TMPH="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.h"
@@ -1740,6 +1732,11 @@ echo "RTP/RTSP/SDP streaming disabled"
 echo "#define GPAC_DISABLE_STREAMING" >> $TMPH
 fi
 
+if test "$enable_depth_compositor" = "yes" ; then
+echo "Depth Compositor enabled"
+echo "#define GF_SR_USE_DEPTH" >> $TMPH
+fi
+
 echo ""
 
 echo "** Detected libraries **"
@@ -1763,10 +1760,6 @@ echo "TinyGL support: $has_tinygl"
 echo "OpenSSL support: $has_ssl"
 
 echo "Mozilla XUL/GECKO support: $has_xul"
-
-echo "Renoir enabled: $enable_renoir"
-echo "Renoir memory mapping disabled: $disable_renoir_memory"
-echo "Renoir memory buffering disabled: $disable_renoir_buffer"
 
 if test "$win32" = "yes" ; then
 echo "DirectX Support: $has_mingw_directx"
@@ -1806,8 +1799,11 @@ else
 echo "Xiph Vorbis: $has_vorbis"
 echo "Xiph Theora: $has_theora"
 fi
-echo "Renoir device drivers: $has_renoir_drivers"
 echo "A52 (AC3): $has_a52"
+
+if test "$enable_renoir" = "yes" ; then
+echo "Renoir enabled - make sure the driver libraries are present in modules/viren_out directory"
+fi
 
 echo ""
 if test "$has_amr_nb_fixed" = "yes" ; then
@@ -1989,19 +1985,6 @@ echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
 echo "CONFIG_OSS_AUDIO=$has_oss_audio" >> config.mak
 echo "CONFIG_ALSA=$has_alsa" >> config.mak
 echo "CONFIG_JACK=$has_jack" >> config.mak
-echo "CONFIG_RENOIR_DRIVERS=$has_renoir_drivers" >> config.mak
-if test "$disable_renoir_buffer" != "no" ; then
-echo "#define NO_RENOIR_BUFFER_ALLOCATION" >> $TMPH
-fi
-if test "$disable_renoir_memory" != "no" ; then
-echo "#define RENOIR_MEMORY_DISABLED" >> $TMPH
-fi
-if test "$enable_renoir" = "none" ; then
-echo "#define TRISCOPE_NONE" >> $TMPH
-fi
-if test "$enable_renoir" = "simulator" ; then
-echo "#define RENOIR_SIMULATOR" >> $TMPH
-fi
 echo "CONFIG_A52=$has_a52" >> config.mak
 
 echo "DISABLE_SVG=$disable_svg" >> config.mak
@@ -2018,7 +2001,6 @@ echo "OGL_INCLS=$INCL3D" >> config.mak
 echo "DISABLE_ISOFF=$disable_isoff" >> config.mak
 
 echo "HAS_OPENGL=$has_opengl" >> config.mak
-echo "TRISCOPE_MODE=$enable_renoir" >> config.mak
 
 if test "$has_opengl" = "yes" ; then
   echo "OGL_LIBS=$LINK3D" >> config.mak
@@ -2031,7 +2013,6 @@ echo "#define GPAC_USE_TINYGL" >> $TMPH
 fi
 
 echo "ENABLE_JOYSTICK=$has_joystick" >> config.mak
-echo "TRISCOPE_MODE=$enable_renoir" >> config.mak
 
 echo "HAS_OPENSSL=$has_ssl" >> config.mak
 if test "$has_ssl" = "yes" ; then
@@ -2110,6 +2091,8 @@ echo "X11_INC_PATH=$X11_PATH/include" >> config.mak
 
 echo "MP4BOX_STATIC=$static_mp4box" >> config.mak
 
+echo "RENOIR_ENABLE=$enable_renoir" >> config.mak
+
 GPAC_ENST_INC=no
 GPAC_ENST=no
 enst_dir="`ls $source_path/src/ | grep enst`"
@@ -2140,10 +2123,6 @@ if test "$source_path_used" = "yes" ; then
 
     echo "Creating compilation tree image"
     SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/terminal src/mcrypt src/media_tools src/scene_manager src/compositor src/laser" 
-
-    if test "$enable_renoir" != "no" ; then
-        SRC_DIRS+=" src/compositor/triscope_renoir"
-    fi
     
     APP_DIRS="applications/mp4box applications/mp4client applications/mp4box applications/osmozilla applications/osmo4_wx  applications/testapps/mp4_streamer applications/testapps/mp42ts"
 
@@ -2152,12 +2131,6 @@ if test "$source_path_used" = "yes" ; then
     done
     ln -sf $source_path/Makefile Makefile
     ln -sf $source_path/src/Makefile src/Makefile
-    ln -sf $source_path/src/libgpac.def src/libgpac.def
-
-    #if test "$enable_renoir" = "yes" ; then
-      #should be done according to target
-      #cp $source_path/src/compositor/triscope_renoir/*.a src/compositor/triscope_renoir
-    #fi
 
     mkdir -p applications
     ln -sf $source_path/applications/Makefile applications/Makefile
@@ -2168,19 +2141,18 @@ if test "$source_path_used" = "yes" ; then
          ln -sf $source_path/$dir/Makefile $dir/Makefile
     done
 
-    MOD_DIRS="modules modules/aac_in modules/ac3_in modules/alsa modules/amr_dec modules/amr_float_dec modules/bifs_dec modules/ctx_load modules/dummy_in modules/dx_hw modules/ffmpeg_in modules/ft_font modules/gpac_js modules/img_in modules/ismacryp modules/isom_in modules/jack modules/laser_dec modules/mp3_in modules/mpegts_in modules/odf_dec modules/ogg modules/oss_audio modules/pulseaudio modules/raw_out modules/rtp_in modules/saf_in modules/sdl_out modules/soft_raster modules/svg_in modules/timedtext modules/wav_out modules/x11_out modules/xvid_dec modules/shix_out"
+
     cur_dir="`pwd`"
+    cd $source_path/
+    MOD_DIRS="`ls -d modules/*/`"
+    cd $cur_dir
+    
+    mkdir -p modules
     for dir in $MOD_DIRS ; do
+        if ls $source_path/$dir/Makefile > /dev/null 2>&1; then
             mkdir -p $dir
             ln -sf $source_path/$dir/Makefile $dir/Makefile
-            cd $source_path/$dir
-            if ls *.def > /dev/null 2>&1; then
-             def_file="`ls *.def`"
-             cd $cur_dir
-             ln -sf $source_path/$dir/$def_file $dir/$def_file
-            else
-             cd $cur_dir
-            fi
+        fi
     done
     if test "$has_mingw_directx" = "yes"; then
       ln -sf $source_path/modules/dx_hw/hand.cur modules/dx_hw/hand.cur

@@ -28,18 +28,10 @@
 #include <gpac/options.h>
 #include <gpac/utf.h>
 
-#ifdef GPAC_TRISCOPE_MODE
-#include "../src/compositor/triscope_renoir/triscope_renoir.h"
-#endif
-
 #include "nodes_stacks.h"
 
 #include "visual_manager.h"
 #include "texturing.h"
-
-#ifdef TRISCOPE_TEST_FRAMERATE
-#include "chrono.h"
-#endif
 
 #define SC_DEF_WIDTH	320
 #define SC_DEF_HEIGHT	240
@@ -230,13 +222,6 @@ static Bool gf_sc_set_check_raster2d(GF_Compositor *compositor, GF_Raster2D *ifc
 	return 0;
 }
 
-#ifdef GPAC_TRISCOPE_MODE
-static Bool visual_clear_surface_stub(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, GF_ColorKey *col_key)
-{
-	return 0;
-}
-#endif
-
 static GF_Err gf_sc_load(GF_Compositor *compositor)
 {
 	compositor->strike_bank = gf_list_new();
@@ -261,14 +246,9 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 
 	compositor->visual->DrawBitmap = compositor_2d_draw_bitmap;
 
-#ifdef GPAC_TRISCOPE_MODE
-
-    // The framebuffer is handled by Renoir, no need to clear main visual
-	compositor->visual->ClearSurface = visual_clear_surface_stub;
-
     // default value for depth gain is not zero
-	compositor->traverse_state->depth_gain = 1.0;
-
+#ifdef GF_SR_USE_DEPTH
+	compositor->traverse_state->depth_gain = FIX_ONE;
 #endif
 
 	gf_list_add(compositor->visuals, compositor->visual);
@@ -402,11 +382,6 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 	
 	compositor->extra_scenes = gf_list_new();
 	compositor->interaction_level = GF_INTERACT_NORMAL | GF_INTERACT_INPUT_SENSOR | GF_INTERACT_NAVIGATION;
-
-#ifdef GPAC_TRISCOPE_MODE	
-	/* scene creation*/	
-	compositor->RenoirHandler = CreateRenoirScene();
-#endif	
 
 	return GF_OK;
 }
@@ -729,9 +704,11 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	gf_mx2d_init(compositor->traverse_state->transform);
 	gf_cmx_init(&compositor->traverse_state->color_mat);
 	compositor->traverse_state->direct_draw = direct_draw;
-    #ifdef GPAC_TRISCOPE_MODE
-	compositor->traverse_state->depth_gain = 1.0;
-    #endif
+
+#ifdef GF_SR_USE_DEPTH
+	compositor->traverse_state->depth_gain = FIX_ONE;
+	compositor->traverse_state->depth_offset = 0;
+#endif
 
 	assert(!compositor->visual->overlays);
 
@@ -970,9 +947,6 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 void gf_sc_reload_config(GF_Compositor *compositor)
 {
 	const char *sOpt;
-#ifdef GPAC_TRISCOPE_MODE
-        Fixed display_width;
-#endif
 
 	/*changing drivers needs exclusive access*/
 	gf_sc_lock(compositor, 1);
@@ -1007,11 +981,12 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	if (!compositor->text_sel_color) compositor->text_sel_color = 0xFFAAAAFF;
 
 	/*load options*/
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DirectDraw");
-	if (sOpt && ! stricmp(sOpt, "yes")) 
+	if (compositor->video_out->hw_caps & GF_VIDEO_HW_DIRECT_ONLY) {
 		compositor->traverse_state->direct_draw = 1;
-	else
-		compositor->traverse_state->direct_draw = 0;
+	} else {
+		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DirectDraw");
+		compositor->traverse_state->direct_draw = (sOpt && ! stricmp(sOpt, "yes")) ? 1 : 0;
+	}
 	
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ScalableZoom");
 	compositor->scalable_zoom = (!sOpt || !stricmp(sOpt, "yes") ) ? 1 : 0;
@@ -1122,18 +1097,9 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 #endif
 	
-#ifdef GPAC_TRISCOPE_MODE
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3D_disparity");
-	if (sOpt) sscanf(sOpt, "%f", &compositor->disparity); else compositor->disparity = 12;
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3D_res");
-	if (sOpt) sscanf(sOpt, "%f", &compositor->_3d_display_width); else compositor->_3d_display_width = 400;
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3D_view_distance");
-	if (sOpt) sscanf(sOpt, "%f", &compositor->view_distance); else compositor->view_distance = 50;
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "3D_display_width");
-	if (sOpt) sscanf(sOpt, "%f", &display_width); else display_width = 9;
-    //transform from cm to pixel
-    compositor->view_distance*= compositor->_3d_display_width/display_width;
-    compositor->e= 3.4 * compositor->_3d_display_width/display_width;
+#ifdef GF_SR_USE_DEPTH
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "AutoStereoCalibration");
+	compositor->auto_calibration = (!sOpt || !strcmp(sOpt, "yes")) ? 1 : 0;
 #endif
 
 	/*RECT texture support - we must reload HW*/
@@ -1224,9 +1190,11 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_DIRECT_DRAW:
-		compositor->traverse_state->direct_draw = value ? 1 : 0;
-		/*force redraw*/
-		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+		if (!(compositor->video_out->hw_caps & GF_VIDEO_HW_DIRECT_ONLY)) {
+			compositor->traverse_state->direct_draw = value ? 1 : 0;
+			/*force redraw*/
+			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+		}
 		break;
 	case GF_OPT_SCALABLE_ZOOM:
 		compositor->scalable_zoom = value;
@@ -1715,10 +1683,6 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
 
 
-#ifdef GPAC_TRISCOPE_MODE
-	/*here comes renoir rendering*/
-	RenderRenoirScene (compositor->RenoirHandler);	
-#endif
 	compositor->traverse_state->direct_draw = flags;
 #ifdef GF_SR_USE_VIDEO_CACHE
 	gf_list_reset(compositor->cached_groups_queue);
@@ -1746,10 +1710,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	s32 event_time, route_time, smil_timing_time, time_node_time, texture_time, traverse_time, flush_time;
 #endif
-#ifdef TRISCOPE_TEST_FRAMERATE
-    double drawing_time;
-    static u32 timer_count=0;
-#endif
+
 	/*lock compositor for the whole cycle*/
 	gf_sc_lock(compositor, 1);
 
@@ -1774,9 +1735,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 
 	in_time = gf_sys_clock();
-#ifdef TRISCOPE_TEST_FRAMERATE
-     TIMER_START;
-#endif
+
 	if (compositor->reset_graphics)
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 
@@ -1997,17 +1956,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	end_time = gf_sys_clock() - in_time;
 
-#ifdef TRISCOPE_TEST_FRAMERATE
-TIMER_STOP;
-drawing_time=TIMER_ELAPSED;
-printf("frame: %d ", timer_count) ;
-printf(" %f sec\n", drawing_time/1000000.0) ;
-timer_count++;
-#endif
-#ifdef DUMP_RENOIR_RAM
-dump_renoir_ram(compositor);
-#endif
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
 		compositor->networks_time, 
 		compositor->decoders_time, 
@@ -2049,14 +1997,10 @@ dump_renoir_ram(compositor);
 
 	/*not threaded, let the owner decide*/
 	if ((compositor->user->init_flags & GF_TERM_NO_VISUAL_THREAD) || !compositor->frame_duration) return;
+
+	/*TO CHECK - THERE WAS A BUG HERE WITH TRISCOPE@SHIX*/
 	if (end_time > compositor->frame_duration) {
-	    /*compute sleep time till next frame*/
-#ifdef GPAC_TRISCOPE_MODE
-	    end_time %= compositor->frame_duration;
-	    gf_sleep(compositor->frame_duration - end_time);
-#else
 		gf_sleep(0);
-#endif
 		return;
 	}
 

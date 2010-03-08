@@ -83,18 +83,10 @@ static GF_Err RAW_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool d
 		if (!vi) return GF_BAD_PARAM;
 		vi->height = rc->height;
 		vi->width = rc->width;
-#if defined(GPAC_TRISCOPE_MODE) && !defined(RENOIR_SIMULATOR)
-        //on target, unaligned accesses happen otherwise
-		vi->video_buffer = NULL;
-		vi->pixel_format = GF_PIXEL_RGB_565;
-		vi->pitch_y = 2*vi->width;
-		vi->pitch_x = 2;
-#else
 		vi->video_buffer = rc->pixels;
 		vi->pitch_x = NBPP;
 		vi->pitch_y = NBPP * vi->width;
 		vi->pixel_format = RAW_OUT_PIXEL_FORMAT;
-#endif
 	}
 	return GF_OK;
 }

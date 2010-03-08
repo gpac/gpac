@@ -28,10 +28,6 @@
 #include "nodes_stacks.h"
 #include "gl_inc.h"
 
-#ifdef GPAC_TRISCOPE_MODE
-#include "triscope_renoir/triscope_renoir.h"
-#endif
-
 #ifdef GPAC_USE_TINYGL
 # define GLTEXENV	glTexEnvi
 # define GLTEXPARAM	glTexParameteri
@@ -87,7 +83,7 @@ struct __texture_wrapper
 	/*gl textures vars (gl_type: 2D texture or rectangle (NV ext) )*/
 	u32 nb_comp, gl_format, gl_type, gl_dtype;
 #endif
-#ifdef GPAC_TRISCOPE_MODE
+#ifdef GF_SR_USE_DEPTH
 	char *depth_data;
 #endif
 	
@@ -115,9 +111,15 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 	if (txh->tx_io->conv_data) gf_free(txh->tx_io->conv_data);
 #endif
 
-#ifdef GPAC_TRISCOPE_MODE
+#ifdef GF_SR_USE_DEPTH
 	if (txh->tx_io->depth_data) gf_free(txh->tx_io->depth_data);
 #endif
+
+	if (txh->vout_udta && txh->compositor->video_out->ReleaseTexture) {
+		txh->compositor->video_out->ReleaseTexture(txh->compositor->video_out, txh->vout_udta);
+		txh->vout_udta = NULL;
+	}
+
 	gf_free(txh->tx_io);
 	txh->tx_io = NULL;
 }
@@ -139,19 +141,18 @@ void gf_sc_texture_reset(GF_TextureHandler *txh)
 	}
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 #endif
-#ifdef GPAC_TRISCOPE_MODE
-	/* remove renoir texture from the display list */
-	if (txh->RenoirObject) {
-		DestroyRenoirObject(txh);
-		if (txh->tx_io->depth_data) {
-			gf_free(txh->tx_io->depth_data);
-			txh->tx_io->depth_data = NULL;
-		}
-	    txh->RenoirObject = NULL;
+
+#ifdef GF_SR_USE_DEPTH
+	if (txh->tx_io->depth_data) {
+		gf_free(txh->tx_io->depth_data);
+		txh->tx_io->depth_data = NULL;
 	}
-	
 #endif
-	
+
+	if (txh->vout_udta && txh->compositor->video_out->ReleaseTexture) {
+		txh->compositor->video_out->ReleaseTexture(txh->compositor->video_out, txh->vout_udta);
+		txh->vout_udta = NULL;
+	}
 }
 
 #ifndef GPAC_DISABLE_3D
@@ -647,10 +648,6 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 {
 	u32 i, hy;
 	char *tmp=NULL;
-#ifdef GPAC_TRISCOPE_MODE
-	const char *sOpt;
-	float OGL_depthGain;
-#endif
 
 	/*in case the ID has been lost, resetup*/
 	if (!txh->data || !txh->tx_io->tx_raster) return;
@@ -661,9 +658,9 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGBA, GL_UNSIGNED_BYTE, txh->data);
 	} else if (txh->pixelformat==GF_PIXEL_RGB_24) {
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGB, GL_UNSIGNED_BYTE, txh->data);
-
-#ifdef GPAC_TRISCOPE_MODE
-	} else if (txh->pixelformat==GF_PIXEL_RGBDS) {
+	} 
+#ifdef GF_SR_USE_DEPTH
+	else if (txh->pixelformat==GF_PIXEL_RGBDS) {
 		/*we'll work with one alpha bit (=shape). we'll take the heaviest weighted as this threshold*/
 		glReadPixels(0, 0, txh->width, txh->height, GL_RGBA, GL_UNSIGNED_BYTE, txh->data);
 	
@@ -692,34 +689,16 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 			u8 ds = (char) (255 - (int)txh->tx_io->depth_data[i]); 
 			/*get alpha*/
 			alpha = (txh->data[i*4 + 3]);
-#ifdef DUMP_RENOIR_TEXTURE
-			txh->tx_io->depth_data[i] = (char) (255 - (int)txh->tx_io->depth_data[i]); 
 
-#endif
 			/* if heaviest-weighted alpha bit is set (>128) , turn on shape bit*/
 			//if (ds & 0x80) depth |= 0x01;
 			if (alpha & 0x80) ds = (ds >> 1) | 0x80;
             else ds = 0x0;
 			txh->data[i*4+3] = ds; /*insert depth onto alpha*/ 
 		}
-
-#ifdef DUMP_RENOIR_TEXTURE
-                // dump grayscale bmp of depth
-                {
-                        GF_VideoSurface fb;
-                        char *str="dump";
-                        memset(&fb, 0, sizeof(GF_VideoSurface));
-                        fb.video_buffer = txh->tx_io->depth_data;
-                        fb.height= txh->height;
-                        fb.pixel_format = GF_PIXEL_GREYSCALE;
-                        fb.pitch = txh->width;
-                        fb.width = txh->width;
-                        write_bmp(&fb, str, 1);
-		        //DumpRenoirTexture(txh);
-                }
-#endif
-#endif
 	}
+#endif /*GF_SR_USE_DEPTH*/
+
 	/*flip image because of openGL*/
 	tmp = (char*)gf_malloc(sizeof(char)*txh->stride);
 	hy = txh->height/2;
@@ -734,58 +713,9 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 }
 #else
 
-void gf_get_tinygl_depth(GF_TextureHandler *txh) {
-	
-#ifdef DUMP_RENOIR_TEXTURE
-                //dump RGB bmp
-                {
-                        GF_VideoSurface fb;
-                        char *str="dump";
-                        memset(&fb, 0, sizeof(GF_VideoSurface));
-	                glReadPixels(0, 0, txh->width, txh->height, GL_RGBA, GL_UNSIGNED_BYTE, txh->data);
-                        fb.video_buffer = txh->data;
-                        fb.height= txh->height;
-                        fb.pixel_format = GF_PIXEL_RGBA;
-                        fb.pitch = txh->width*4;
-                        fb.width = txh->width;
-                        write_bmp(&fb, str, 1);
-                }
-#endif
+void gf_get_tinygl_depth(GF_TextureHandler *txh)
+{
 	glReadPixels(0, 0, txh->width, txh->height, GL_RGBDS, GL_UNSIGNED_BYTE, txh->data);
-#ifdef DUMP_RENOIR_TEXTURE
-                {  
-                u8 *depth=NULL;
-                u8 *tmp=NULL;
-                int i;
-		tmp = (char*)gf_malloc(sizeof(char)*txh->width*2*txh->height);
-		depth = (char*)gf_malloc(sizeof(char)*txh->width*txh->height);
-
-#if 0
-                //get 16-bit tinygl depth buffer
-		glReadPixels(0, 0, txh->width*2, txh->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, tmp);
-                for (i=0; i<txh->width*txh->height; i++) {
-			depth[i] = tmp[2*i+1] ;
-                }
-#else
-		glReadPixels(0, 0, txh->width, txh->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, depth);
-#endif
-                        gf_free(tmp);
-                        GF_VideoSurface fb;
-                        char *str="dump";
-                        memset(&fb, 0, sizeof(GF_VideoSurface));
-                        fb.video_buffer = depth;
-                        fb.height= txh->height;
-                        fb.pixel_format = GF_PIXEL_GREYSCALE;
-                        fb.pitch = txh->width;
-                        fb.width = txh->width;
-                        //write grayscale depth .bmp
-                        write_bmp(&fb, str, 1);
-                        //dump raw depth and raw rgbds
-		        DumpRenoirTexture(txh);
-                        gf_free(depth);
-                }
-#endif
-
 }
 #endif
 

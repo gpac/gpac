@@ -56,7 +56,7 @@ void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackCol
 #ifdef SKIP_DRAW
 	return;
 #endif
-	if (!visual->raster_surface) return;
+	if (!visual->is_attached) return;
 	
 	if (!BackColor && !visual->offscreen) BackColor = visual->compositor->back_color;
 

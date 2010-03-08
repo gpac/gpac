@@ -51,8 +51,6 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 	if (! ((M_Appearance *)tr_state->appear)->texture) return;
 	txh = gf_sc_texture_get_handler( ((M_Appearance *)tr_state->appear)->texture );
 	/*bitmap not ready*/
-    /*triscope TODO: background bitmap twice not ready, never drawn -> bounds not stored,
-     * direct draw undone*/
 	if (!txh || !txh->tx_io || !txh->width || !txh->height) {
 		if (notify_changes) gf_node_dirty_set(node, 0, 1);
 		return;

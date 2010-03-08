@@ -68,10 +68,9 @@ else
 PLUGDIRS+=gpac_js
 endif
 
-ifeq ($(TRISCOPE_MODE),hw)
-PLUGDIRS+=shix_out
-else
-PLUGDIRS+=raw_out
+
+ifeq ($(RENOIR_ENABLE),yes)
+PLUGDIRS+=viren_out
 endif
 
 #w32 plugins

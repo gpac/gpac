@@ -46,12 +46,8 @@ else
 ifneq ($(CONFIG_PNG), no)
 LINKLIBS+= -L$(prefix)/lib
 else
-ifneq ($(TRISCOPE_MODE),no)
-LINKLIBS+= -L$(prefix)/lib
-else
 ifeq ($(CONFIG_JS),prefix)
 LINKLIBS+= -L$(prefix)/lib
-endif
 endif
 endif
 endif
@@ -71,34 +67,12 @@ else
 LINKLIBS+= -lpng
 endif
 
-ifneq ($(TRISCOPE_MODE),no)
-CFLAGS+=-DGPAC_TRISCOPE_MODE
-#if not local, they are supposed to be dynamic in system - need to link them
-ifeq ($(CONFIG_RENOIR_DRIVERS), unknown)
-LINKLIBS+= -lViRenDrivers_linux
-endif    
-endif    
-
-
-
 
 SRCS := $(OBJS:.o=.c) 
 
 all: $(PROG)
 
 MP4Client$(EXE): $(OBJS)
-#	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(LINKLIBS) -lz  
-#ifeq ($(STATICBUILD),yes)
-#ifeq ($(TRISCOPE_MODE),simulator)
-#	$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -L../../src/compositor/triscope_renoir -lgpac_static -lz $(LINKLIBS) -lViRenDrivers_linux -lEmulRen_linux -lViRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath -lpthread -ldl
-#else
-#ifneq ($(TRISCOPE_MODE),no)
-#	$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -L../../src/compositor/triscope_renoir -lgpac_static -lz $(LINKLIBS) -lViRenDrivers_linux -lViRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath -lpthread -ldl
-#else
-	#$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -lgpac_static -lz $(LINKLIBS) -lpthread -ldl
-##endif
-##endif
-##endif
 	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -L../../extra_lib/lib/gcc -lgpac -lz $(LINKLIBS)
 
 %.o: %.c
@@ -106,18 +80,6 @@ MP4Client$(EXE): $(OBJS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
-       
-#this creates an executable with libgpac_static.a (statically linked)
-static-bin:
-ifeq ($(TRISCOPE_MODE),simulator)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -L../../src/compositor/triscope_renoir -lgpac_static -lz $(LINKLIBS) -lViRenDrivers_linux -lEmulRen_linux -lViRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath -lpthread -ldl
-else
-ifneq ($(TRISCOPE_MODE),no)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -L../../src/compositor/triscope_renoir -lgpac_static -lz $(LINKLIBS) -lViRenDrivers_linux -lViRen_linux -lToolTraceManager -lToolMemoryManager -lOsalRealtime -lOsalFile -lOsalUriHandler -lOsalCharStar -lOsalMath -lpthread -ldl
-else
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/MP4Client_static $(OBJS) -L../../bin/gcc -lgpac_static -lz $(LINKLIBS) -lpthread -ldl
-endif
-endif
 
 install: clean
 	$(MAKE) -override BUILD_INSTALL=yes all

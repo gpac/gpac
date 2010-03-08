@@ -27,10 +27,6 @@
 #include <gpac/options.h>
 
 #include "nodes_stacks.h"
-#ifdef GPAC_TRISCOPE_MODE
-#include "../src/compositor/triscope_renoir/triscope_renoir.h"
-#endif
-
 
 static void update_texture_void(GF_TextureHandler *txh)
 {
@@ -57,10 +53,6 @@ void gf_sc_texture_destroy(GF_TextureHandler *txh)
 
 	if (txh->tx_io) gf_sc_texture_release(txh);
 	if (txh->is_open) gf_sc_texture_stop(txh);
-#ifdef GPAC_TRISCOPE_MODE
-	/*Destroy the renoir object associated to this texture*/
-	if (txh->RenoirObject) DestroyRenoirObject (txh);
-#endif
 	gf_list_del_item(txh->compositor->textures, txh);
 
 	gf_mx_v(compositor->mx);
@@ -189,9 +181,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		case GF_PIXEL_ARGB:
 		case GF_PIXEL_RGBA:
 		case GF_PIXEL_YUVA:
-#ifdef GPAC_TRISCOPE_MODE
 		case GF_PIXEL_RGBDS:
-#endif
 			txh->transparent = 1;
 			break;
 		}

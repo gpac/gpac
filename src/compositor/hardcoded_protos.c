@@ -560,9 +560,6 @@ typedef struct
 	BASE_NODE
 	CHILDREN
 
-    //forces type of renoir object: 0 2d, 1 3dflat, 2 3dmap, 3 3ds, 4 auto-detect
-	u32 _3d_type;
-
     Fixed depth_gain, depth_offset;
 
 } DepthGroup;
@@ -585,7 +582,6 @@ static Bool DepthGroup_GetNode(GF_Node *node, DepthGroup *dg)
 
 	if (gf_node_get_field(node, 1, &field) != GF_OK) return 0;
 	if (field.fieldType != GF_SG_VRML_SFINT32) return 0;
-	dg->_3d_type = * (SFInt32 *) field.far_ptr;
 
 	if (gf_node_get_field(node, 2, &field) != GF_OK) return 0;
 	if (field.fieldType != GF_SG_VRML_SFFLOAT) return 0;
@@ -643,11 +639,9 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 	} else 
 #endif
 	{
-        u32 _3d_type = tr_state->_3d_type;
+#ifdef GF_SR_USE_DEPTH
 		Fixed depth_gain = tr_state->depth_gain;
 		Fixed depth_offset = tr_state->depth_offset;
-
-        tr_state->_3d_type=stack->dg._3d_type;
 
         // new offset is multiplied by previous gain and added to previous offset
 		tr_state->depth_offset = (stack->dg.depth_offset * tr_state->depth_gain) + tr_state->depth_offset;
@@ -657,9 +651,11 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 
 		group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
 
-		tr_state->_3d_type = _3d_type;
 		tr_state->depth_gain = depth_gain;
 		tr_state->depth_offset = depth_offset;
+#else
+		group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
+#endif
 	}
 }
 

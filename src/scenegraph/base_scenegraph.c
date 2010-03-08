@@ -547,14 +547,6 @@ Bool gf_sg_get_scene_size_info(GF_SceneGraph *sg, u32 *width, u32 *height)
 	if (!sg) return 0;
 	*width = sg->width;
 	*height = sg->height;
-#ifdef GPAC_TRISCOPE_MODE
-    //due to interlacing 3d scenes double
-    //need to be done here, otherwise
-    //it would not work for pc simulation under x11
-    //(need to double x window, textures double)
-	*width = sg->width*2;
-	*height = sg->height*2;
-#endif
 	return (sg->width && sg->height) ? 1 : 0;
 }
 
