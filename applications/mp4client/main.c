@@ -1174,7 +1174,7 @@ int main (int argc, char **argv)
 		if (!strcmp(str, "Raw Video Output")) fprintf(stdout, "WARNING: using raw output video (memory only) - no display used\n");
 		/*check audio output*/
 		str = gf_cfg_get_key(cfg_file, "Audio", "DriverName");
-		if (!strcmp(str, "No Audio Output Available")) fprintf(stdout, "WARNING: no audio output availble - make sure no other program is locking the sound card\n");
+		if (!str || !strcmp(str, "No Audio Output Available")) fprintf(stdout, "WARNING: no audio output availble - make sure no other program is locking the sound card\n");
 
 		str = gf_cfg_get_key(cfg_file, "General", "NoMIMETypeFetch");
 		no_mime_check = (str && !stricmp(str, "yes")) ? 1 : 0;
