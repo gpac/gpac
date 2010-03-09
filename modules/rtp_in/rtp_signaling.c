@@ -462,7 +462,7 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 err_exit:
 	gf_rtsp_reset_aggregation(ch->rtsp->session);
 	ch->status = RTP_Disconnected;
-	ch->check_rtp_time = 0;
+	ch->check_rtp_time = RTP_SET_TIME_NONE;
 	gf_term_on_command(sess->owner->service, &ch_ctrl->com, e);
 	gf_free(ch_ctrl);
 	com->user_data = NULL;
@@ -543,17 +543,17 @@ process_reply:
 			/*channel is already playing*/
 			if (agg_ch->status == RTP_Running) {
 	//			gf_rtp_set_info_rtp(agg_ch->rtp_ch, info->seq, info->rtp_time, info->ssrc);
-	//			agg_ch->check_rtp_time = 1;
+	//			agg_ch->check_rtp_time = RTP_SET_TIME_RTP;
 				continue;
 			}
 			
 			/*if play/seeking we must send update RTP/NPT link*/
 			if (ch_ctrl->com.command_type != GF_NET_CHAN_RESUME) {
-				agg_ch->check_rtp_time = 1;
+				agg_ch->check_rtp_time = RTP_SET_TIME_RTP;
 			}
 			/*this is used to discard RTP packets re-sent on resume*/
 			else {
-				agg_ch->check_rtp_time = 2;
+				agg_ch->check_rtp_time = RTP_SET_TIME_RTP_SEEK;
 			}
 			/* reset the buffers */
 			RP_InitStream(agg_ch, 1);
@@ -575,7 +575,7 @@ process_reply:
 		/*no rtp info (just in case), no time mapped - set to 0 and specify we're not interactive*/
 		if (!i) {
 			ch->current_start = 0.0;
-			ch->check_rtp_time = 1;
+			ch->check_rtp_time = RTP_SET_TIME_RTP;
 			RP_InitStream(ch, 1);
 			ch->status = RTP_Running;
 			if (gf_rtp_is_interleaved(ch->rtp_ch)) {
@@ -602,7 +602,7 @@ err_exit:
 	if (ch) {
 		ch->status = RTP_Disconnected;
 		gf_rtsp_reset_aggregation(ch->rtsp->session);
-		ch->check_rtp_time = 0;
+		ch->check_rtp_time = RTP_SET_TIME_NONE;
 	}
 	gf_free(ch_ctrl);
 	com->user_data = NULL;

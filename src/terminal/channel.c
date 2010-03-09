@@ -224,7 +224,7 @@ GF_Err gf_es_start(GF_Channel *ch)
 	buffering size is setup by the network service - except InputSensor*/
 	if ((ch->esd->decoderConfig->streamType != GF_STREAM_INTERACT) || ch->esd->URLString) {
 		/*don't trigger rebuffer*/
-		if (ch->MinBuffer || (ch->clock->clock_init && ch->clock->Paused))
+		//if (ch->MinBuffer || (ch->clock->clock_init && ch->clock->Paused))
 			ch_buffer_on(ch);
 	}
 	ch->last_au_time = gf_term_get_time(ch->odm->term);
@@ -304,9 +304,6 @@ static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 		}
 		return 0;
 	}
-	/*we're in a broadcast scenario and one of the stream running on this clock has completed its buffering: 
-	abort all buffering*/
-	if (ch->clock->no_time_ctrl == 2) return 0;
 
 	/*nothing received, buffer needed*/
 	if (!ch->first_au_fetched && !ch->AU_buffer_first) {
@@ -356,7 +353,6 @@ static void Channel_UpdateBuffering(GF_Channel *ch, Bool update_info)
 	if (!Channel_NeedsBuffering(ch, 0)) {
 		ch_buffer_off(ch);
 		if (ch->MaxBuffer && update_info) gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
-		if (ch->clock->no_time_ctrl) ch->clock->no_time_ctrl = 2;
 
 		gf_term_service_media_event(ch->odm, GF_EVENT_MEDIA_PLAYABLE);
 	}
@@ -648,7 +644,7 @@ static void gf_es_check_timing(GF_Channel *ch)
 		}
 	}
 	/*if channel is not the OCR, shift all time stamps to match the current time at clock init*/
-	else if (!ch->DTS) {
+	else if (!ch->IsClockInit ) {
 //		ch->ts_offset += gf_clock_real_time(ch->clock);
 		if (ch->clock->clock_init) ch->IsClockInit = 1;
 	}

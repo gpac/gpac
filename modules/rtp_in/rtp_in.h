@@ -89,6 +89,8 @@ typedef struct
 	char *tmp_buf;
 	/*if set ANNOUNCE (sent by server) will be handled*/
 //	Bool handle_announce;
+
+	Double last_ntp;
 } RTPClient;
 
 enum
@@ -183,6 +185,14 @@ enum
 	RTP_EOS = (1<<6),
 };
 
+enum
+{
+	RTP_SET_TIME_NONE = 0,
+	RTP_SET_TIME_RTCP,
+	RTP_SET_TIME_RTP,
+	RTP_SET_TIME_RTP_SEEK,
+ };
+
 /*rtp channel*/
 typedef struct
 {
@@ -212,7 +222,8 @@ typedef struct
 
 	/*rtp receive buffer*/
 	char buffer[RTP_BUFFER_SIZE];
-	/*set at seek stages to resync app NPT to RTP time*/
+	/*set at play/seek stages to sync app NPT to RTP time (RTSP) or NTP to RTP (RTCP)
+	*/
 	u32 check_rtp_time;
 
 	/*can we control the stream ?*/
