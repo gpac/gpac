@@ -64,6 +64,7 @@
 #endif
 
 #if (USE_MALLOC==INTEL_MALLOC)
+#define CDECL	
 CDECL void * scalable_malloc(size_t size);
 CDECL void * scalable_realloc(void* ptr, size_t size);
 CDECL void * scalable_calloc(size_t num, size_t size);
@@ -322,9 +323,9 @@ typedef struct s_memory_element
 /*pointer to the first element of the list*/
 typedef memory_element** memory_list;
 
-static int gf_memory_hash(void *ptr)
+static unsigned int gf_memory_hash(void *ptr)
 {
-	return (((int)ptr>>4)+(int)ptr)%HASH_ENTRIES;
+	return (((unsigned int)ptr>>4)+(unsigned int)ptr)%HASH_ENTRIES;
 }
 
 #else
@@ -403,30 +404,36 @@ static void gf_memory_del_stack(memory_element **p)
 /*this list is implemented as a stack to minimise the cost of freeing recent allocations*/
 static void gf_memory_add(memory_list *p, void *ptr, int size, char *filename, int line)
 {
+	unsigned int pos;
 	if (!*p) *p = (memory_list) CALLOC(HASH_ENTRIES, sizeof(memory_element*));
 	assert(*p);
 
-	gf_memory_add_stack(&((*p)[gf_memory_hash(ptr)]), ptr, size, filename, line);
+	pos = gf_memory_hash(ptr);
+	gf_memory_add_stack(&((*p)[pos]), ptr, size, filename, line);
 }
 
 
 static int gf_memory_find(memory_list p, void *ptr)
 {
+	unsigned int pos;
 	assert(p);
 	if (!p) return 0;
-	return gf_memory_find_stack(p[gf_memory_hash(ptr)], ptr);
+	pos = gf_memory_hash(ptr);
+	return gf_memory_find_stack(p[pos], ptr);
 }
 
 static int gf_memory_del_item(memory_list *p, void *ptr)
 {
+	unsigned int pos;
 	int ret;
 	memory_element **sub_list;
 	if (!*p) *p = (memory_list) CALLOC(HASH_ENTRIES, sizeof(memory_element*));
 	assert(*p);
-	sub_list = &((*p)[gf_memory_hash(ptr)]);
+	pos = gf_memory_hash(ptr);
+	sub_list = &((*p)[pos]);
 	if (!sub_list) return 0;
 	ret = gf_memory_del_item_stack(sub_list, ptr);
-	if (ret && !((*p)[gf_memory_hash(ptr)])) {
+	if (ret && !((*p)[pos])) {
 		/*check for deletion*/
 		int i;
 		for (i=0; i<HASH_ENTRIES; i++)
