@@ -221,8 +221,9 @@ static void composite_update(GF_TextureHandler *txh)
 
 #endif
 
+
 	/*FIXME - we assume RGB+Depth+bitshape, we should check with the video out module*/
-#ifdef GF_SR_USE_DEPTH
+#if defined(GF_SR_USE_DEPTH) && !defined(GPAC_DISABLE_3D)
 	if (st->visual->type_3d) new_pixel_format = GF_PIXEL_RGBDS;
 #endif
 
