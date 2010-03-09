@@ -593,6 +593,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 			return visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
 #ifdef GF_SR_USE_DEPTH
 				, ctx->depth_offset, ctx->depth_gain
+#else
+				, 0, 0
 #endif
 				);
 		} else {
@@ -615,6 +617,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 					if (!visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
 #ifdef GF_SR_USE_DEPTH
 						, ctx->depth_offset, ctx->depth_gain
+#else
+						, 0, 0
 #endif
 					))
 					return 0;

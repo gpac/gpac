@@ -55,7 +55,7 @@
 
 
 /*depth-enabled version for autostereoscopic displays */
-#define GF_SR_USE_DEPTH
+//#define GF_SR_USE_DEPTH
 
 /*FPS computed on this number of frame*/
 #define GF_SR_FPS_COMPUTE_SIZE	30
