@@ -111,10 +111,6 @@ static char collide_data[] =
 
 #define SDLVID()	SDLVidCtx *ctx = (SDLVidCtx *)dr->opaque
 
-#ifdef GPAC_HAS_X11
-#include <X11/Xlib.h>
-#endif
-
 static u32 video_modes[] = 
 {
 	320, 200,
@@ -468,6 +464,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 {
 	u32 flags;
+	const SDL_VideoInfo *vinf;
 
 	flags = SDL_WasInit(SDL_INIT_VIDEO);
 	if (!(flags & SDL_INIT_VIDEO)) {
@@ -485,27 +482,16 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	ctx->last_mouse_move = SDL_GetTicks();
 	ctx->cursor_on = 1;
 
-	/*save display resolution (SDL doesn't give acees to that)*/
-	dr->max_screen_width = dr->max_screen_height = 0;
-#ifdef GPAC_HAS_X11
-    {
-    Display *dpy = XOpenDisplay(NULL);
-    if (dpy) {
-        dr->max_screen_width = DisplayWidth(dpy, DefaultScreen(dpy));
-        dr->max_screen_height = DisplayHeight(dpy, DefaultScreen(dpy));
-		XCloseDisplay(dpy);
-    }
-    }
-#endif
-#ifdef WIN32
-    dr->max_screen_width = GetSystemMetrics(SM_CXSCREEN);
-    dr->max_screen_height = GetSystemMetrics(SM_CYSCREEN);
-#endif
-    
+	/*save display resolution - SDL seems to get the screen resolution if asked for video info before
+	changing the video mode - to check on other platforms*/
+	vinf = SDL_GetVideoInfo();
+	dr->max_screen_width = vinf->current_w;
+	dr->max_screen_height = vinf->current_h;
 
 	SDLVid_ResizeWindow(dr, 100, 100);
 	if (!ctx->os_handle) SDLVid_SetCaption();
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Video output initialized - screen resolution %d %d\n", dr->max_screen_width, dr->max_screen_height)); 
 	return 1;
 }
 
@@ -660,7 +646,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	ctx->os_handle = os_handle;
 	ctx->is_init = 0;
 	ctx->output_3d_type = 0;
-	ctx->systems_memory = (init_flags & (GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION) ) ? 2 : 0;
+
 	if (!SDLOUT_InitSDL()) return GF_IO_ERR;
 
 #ifdef	SDL_WINDOW_THREAD
@@ -767,7 +753,7 @@ GF_Err SDLVid_SetFullScreen(GF_VideoOutput *dr, u32 bFullScreenOn, u32 *screen_w
 	return GF_OK;
 }
 
-GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight)
+GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight, Bool system_mem)
 {
 	u32 col;
 	const char *opt;
@@ -775,10 +761,12 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight)
 	
 	if (ctx->output_3d_type==1) return GF_BAD_PARAM;
 
-	if (ctx->systems_memory<2) {
+	if (system_mem) {
 		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
-		ctx->systems_memory = (opt && !strcmp(opt, "yes")) ? 0 : 1;
+		if (opt && !strcmp(opt, "yes")) system_mem = 0;
 	}
+	ctx->use_systems_memory = system_mem;
+
 
 	/*clear screen*/
 	col = SDL_MapRGB(ctx->screen->format, 0, 0, 0);
@@ -789,7 +777,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight)
 		return GF_OK;
 	}
 	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
-	ctx->back_buffer = SDL_CreateRGBSurface(ctx->systems_memory ? SDL_SWSURFACE : SDL_HWSURFACE, newWidth, newHeight, ctx->screen->format->BitsPerPixel, ctx->screen->format->Rmask, ctx->screen->format->Gmask, ctx->screen->format->Bmask, 0);
+	ctx->back_buffer = SDL_CreateRGBSurface(ctx->use_systems_memory ? SDL_SWSURFACE : SDL_HWSURFACE, newWidth, newHeight, ctx->screen->format->BitsPerPixel, ctx->screen->format->Rmask, ctx->screen->format->Gmask, ctx->screen->format->Bmask, 0);
 	ctx->width = newWidth;
 	ctx->height = newHeight;
 	if (!ctx->back_buffer) return GF_IO_ERR;
@@ -832,7 +820,7 @@ static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_i
 		video_info->pitch_y = ctx->back_buffer->pitch;
 		video_info->video_buffer = ctx->back_buffer->pixels;
 		video_info->pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format);
-		video_info->is_hardware_memory = !ctx->systems_memory;
+		video_info->is_hardware_memory = !ctx->use_systems_memory;
 	} else {
 		SDL_UnlockSurface(ctx->back_buffer);
 	}
@@ -933,7 +921,7 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		switch (evt->setup.opengl_mode) {
 		case 0:
 			ctx->output_3d_type = 0;
-			return SDLVid_SetBackbufferSize(dr, evt->setup.width, evt->setup.height);
+			return SDLVid_SetBackbufferSize(dr, evt->setup.width, evt->setup.height, evt->setup.system_memory);
 		case 1:
 			ctx->output_3d_type = 1;
 			return SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);

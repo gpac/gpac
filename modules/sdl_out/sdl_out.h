@@ -52,7 +52,7 @@ typedef struct
 	u32 store_width, store_height;
 	/*cursors*/
 	SDL_Cursor *curs_def, *curs_hand, *curs_collide;
-	Bool systems_memory;
+	Bool use_systems_memory;
 
 	SDL_Surface *screen;
 	SDL_Surface *back_buffer;
