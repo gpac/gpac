@@ -282,7 +282,7 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 {
 	GF_AudioRenderer *ar = (GF_AudioRenderer *) ptr;
 	if (!ar->need_reconfig) {
-		u32 delay_ms = ar->disable_resync ?	ar->audio_delay : 0;
+		u32 delay_ms = ar->disable_resync ?	0 : ar->audio_delay;
 
 		if (ar->filter_chain.enable_filters) {
 			char *ptr = buffer;
