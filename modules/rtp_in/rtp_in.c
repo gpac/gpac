@@ -519,7 +519,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		} else {
 			ch->status = RTP_Running;
 			if (ch->rtp_ch) {
-				ch->check_rtp_time = 1;
+				ch->check_rtp_time = RTP_SET_TIME_RTCP;
 				gf_mx_p(priv->mx);
 				RP_InitStream(ch, (ch->flags & RTP_CONNECTED) ? 1 : 0);
 				gf_mx_v(priv->mx);
@@ -542,6 +542,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			}
 		} else {
 			ch->status = RTP_Connected;
+			ch->owner->last_ntp = 0;
 		}
 		return GF_OK;
 	case GF_NET_CHAN_SET_SPEED:

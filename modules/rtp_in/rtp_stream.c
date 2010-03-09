@@ -255,7 +255,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 
 	if (s_port_first) {
 		tmp->current_start = (Double) CurrentTime;
-		tmp->check_rtp_time = 1;
+		tmp->check_rtp_time = RTP_SET_TIME_RTP;
 		gf_rtp_set_info_rtp(tmp->rtp_ch, rtp_seq, rtp_time, ssrc);
 		tmp->status = RTP_SessionResume;
 	}
@@ -285,6 +285,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 	/*if we must notify some timing, do it now. If the channel has no range, this should NEVER be called*/
 	if (ch->check_rtp_time /*&& gf_rtp_is_active(ch->rtp_ch)*/) {
 		Double ch_time;
+		if (ch->check_rtp_time==RTP_SET_TIME_RTCP) return;
 
 		/*it may happen that we still receive packets from a previous "play" request. If this is the case,
 		filter until we reach the indicated rtptime*/
@@ -300,7 +301,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 		ch_time = gf_rtp_get_current_time(ch->rtp_ch);
 
 		/*this is the first packet on the channel (no PAUSE)*/
-		if (ch->check_rtp_time == 1) {
+		if (ch->check_rtp_time == RTP_SET_TIME_RTP) {
 			/*Note: in a SEEK with RTSP, the rtp-info time given by the server is 
 			the rtp time of the desired range. But the server may (and should) send from
 			the previous I frame on video, so the time of the first rtp packet after
@@ -329,7 +330,7 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 		else if (ch_time <= 0.021) {
 			return;
 		}
-		ch->check_rtp_time = 0;
+		ch->check_rtp_time = RTP_SET_TIME_NONE;
 	}
 	
 	gf_rtp_depacketizer_process(ch->depacketizer, &hdr, pck + PayloadStart, size - PayloadStart);
@@ -356,7 +357,39 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 	ch->rtcp_bytes += size;
 
 	e = gf_rtp_decode_rtcp(ch->rtp_ch, pck, size);
-	
+
+	/*if error in RTCP and waiting for RTCP SR to compute sync, we just cannot
+	rely in RTCP for sync :( - use RTP time stamp of next packet*/
+	if ((e<0) && ch->check_rtp_time) {
+		ch->check_rtp_time = RTP_SET_TIME_RTP;
+		/*reset RTP time (act as if no packets were received)*/
+		ch->rtp_ch->rtp_time = 0;
+		return;
+	}
+
+	if ((ch->check_rtp_time == RTP_SET_TIME_RTCP) && (ch->rtp_ch->last_SR_NTP_sec ) ) {
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(com));
+		com.command_type = GF_NET_CHAN_MAP_TIME;
+		com.base.on_channel = ch->channel;
+		com.map_time.media_time = ch->rtp_ch->last_SR_NTP_sec;
+		com.map_time.media_time += ((Double)ch->rtp_ch->last_SR_NTP_frac)/0xFFFFFFFF;
+
+		if (!ch->owner->last_ntp) {
+			ch->owner->last_ntp = com.map_time.media_time;
+		}
+		if (com.map_time.media_time >= ch->owner->last_ntp) {
+			com.map_time.media_time -= ch->owner->last_ntp;
+		} else {
+			com.map_time.media_time = 0;
+		}
+		com.map_time.timestamp = ch->rtp_ch->last_SR_rtp_time;
+		com.map_time.reset_buffers = 0;
+		if (!e)
+		gf_term_on_command(ch->owner->service, &com, GF_OK);
+		ch->check_rtp_time = RTP_SET_TIME_NONE;
+	}
+
 	if (e == GF_EOS) {
 		ch->flags |= RTP_EOS;
 		ch->stat_stop_time = gf_sys_clock();
