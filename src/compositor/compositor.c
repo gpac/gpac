@@ -494,28 +494,29 @@ void gf_sc_del(GF_Compositor *compositor)
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Closing visual compositor\n"));
 
-	gf_node_unregister(compositor->focus_highlight->node, NULL);
-	drawable_del_ex(compositor->focus_highlight, compositor);
-
+	if (compositor->focus_highlight) {
+		gf_node_unregister(compositor->focus_highlight->node, NULL);
+		drawable_del_ex(compositor->focus_highlight, compositor);
+	}
 	if (compositor->selected_text) gf_free(compositor->selected_text);
 	if (compositor->sel_buffer) gf_free(compositor->sel_buffer);
 
-	visual_del(compositor->visual);
-	gf_list_del(compositor->sensors);
-	gf_list_del(compositor->previous_sensors);
-	gf_list_del(compositor->visuals);
-	gf_list_del(compositor->strike_bank);
-	gf_list_del(compositor->hit_use_stack);
-	gf_list_del(compositor->prev_hit_use_stack);
-	gf_list_del(compositor->focus_ancestors);
-	gf_list_del(compositor->focus_use_stack);
-	gf_list_del(compositor->env_tests);
+	if (compositor->visual) visual_del(compositor->visual);
+	if (compositor->sensors) gf_list_del(compositor->sensors);
+	if (compositor->previous_sensors) gf_list_del(compositor->previous_sensors);
+	if (compositor->visuals) gf_list_del(compositor->visuals);
+	if (compositor->strike_bank) gf_list_del(compositor->strike_bank);
+	if (compositor->hit_use_stack) gf_list_del(compositor->hit_use_stack);
+	if (compositor->prev_hit_use_stack) gf_list_del(compositor->prev_hit_use_stack);
+	if (compositor->focus_ancestors) gf_list_del(compositor->focus_ancestors);
+	if (compositor->focus_use_stack) gf_list_del(compositor->focus_use_stack);
+	if (compositor->env_tests) gf_list_del(compositor->env_tests);
 
-
-	gf_list_del(compositor->traverse_state->vrml_sensors);
-	gf_list_del(compositor->traverse_state->use_stack);
-	gf_free(compositor->traverse_state);
-
+	if (compositor->traverse_state) {
+		gf_list_del(compositor->traverse_state->vrml_sensors);
+		gf_list_del(compositor->traverse_state->use_stack);
+		gf_free(compositor->traverse_state);
+	}
 #ifndef GPAC_DISABLE_3D
 	if (compositor->unit_bbox) mesh_free(compositor->unit_bbox);
 #endif
@@ -543,9 +544,9 @@ void gf_sc_del(GF_Compositor *compositor)
 	gf_list_del(compositor->cached_groups_queue);
 #endif
 
-	gf_list_del(compositor->textures);
-	gf_list_del(compositor->time_nodes);
-	gf_list_del(compositor->extra_scenes);
+	if (compositor->textures) gf_list_del(compositor->textures);
+	if (compositor->time_nodes) gf_list_del(compositor->time_nodes);
+	if (compositor->extra_scenes) gf_list_del(compositor->extra_scenes);
 	gf_sc_lock(compositor, 0);
 	gf_mx_del(compositor->mx);
 	gf_free(compositor);
