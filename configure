@@ -602,6 +602,7 @@ has_js="prefix"
 
 if test "$has_js" != "no" ; then
 if test "$linux" = "yes" ; then
+if test "$cpu" != "sh4"; then
 
 #WARNING: there is a bug in MOZJS packages, the MOZILLA_1_8_BRANCH macro is not signaled, there is no way of knowing
 #if the lib has been compiled with or without the macro. We currently just decide that if the macro is present
@@ -612,6 +613,7 @@ echo "WARNING: Turning on MOZILLA_1_8_BRANCH SpiderMonkey macro"
 echo "If you have troubles with scripts in GPAC, disable this macro and recompile"
 fi
 
+fi
 fi
 fi
 
