@@ -99,6 +99,11 @@ GF_Err gf_sc_texture_allocate(GF_TextureHandler *txh)
 
 void gf_sc_texture_release(GF_TextureHandler *txh)
 {
+	if (txh->vout_udta && txh->compositor->video_out->ReleaseTexture) {
+		txh->compositor->video_out->ReleaseTexture(txh->compositor->video_out, txh);
+		txh->vout_udta = NULL;
+	}
+
 	if (!txh->tx_io) return;
 	if (txh->tx_io->tx_raster) {
 		txh->compositor->rasterizer->stencil_delete(txh->tx_io->tx_raster);
@@ -114,11 +119,6 @@ void gf_sc_texture_release(GF_TextureHandler *txh)
 #ifdef GF_SR_USE_DEPTH
 	if (txh->tx_io->depth_data) gf_free(txh->tx_io->depth_data);
 #endif
-
-	if (txh->vout_udta && txh->compositor->video_out->ReleaseTexture) {
-		txh->compositor->video_out->ReleaseTexture(txh->compositor->video_out, txh->vout_udta);
-		txh->vout_udta = NULL;
-	}
 
 	gf_free(txh->tx_io);
 	txh->tx_io = NULL;

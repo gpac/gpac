@@ -643,11 +643,11 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 		Fixed depth_gain = tr_state->depth_gain;
 		Fixed depth_offset = tr_state->depth_offset;
 
-        // new offset is multiplied by previous gain and added to previous offset
-		tr_state->depth_offset = (stack->dg.depth_offset * tr_state->depth_gain) + tr_state->depth_offset;
+        // new offset is multiplied by parent gain and added to parent offset
+		tr_state->depth_offset = gf_mulfix(stack->dg.depth_offset, tr_state->depth_gain) + tr_state->depth_offset;
 
-        // gain is multiplied by previous gain
-		tr_state->depth_gain *= stack->dg.depth_gain;
+        // gain is multiplied by parent gain
+		tr_state->depth_gain = gf_mulfix(tr_state->depth_gain, stack->dg.depth_gain);
 
 		group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
 
