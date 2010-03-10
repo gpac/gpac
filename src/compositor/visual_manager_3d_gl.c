@@ -1558,31 +1558,18 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurfac
 		fb->pitch_x = 0;
 		fb->pitch_y = compositor->vp_width; /* multiply by 4 if float depthbuffer */
 
-#ifndef GPAC_USE_TINYGL
 		fb->video_buffer = (char*)gf_malloc(sizeof(char)* fb->pitch_y * fb->height);
-#else
-		fb->video_buffer = (char*)gf_malloc(sizeof(char)* 2 * fb->pitch_y * fb->height);
-#endif
-
 		fb->pixel_format = GF_PIXEL_GREYSCALE;
+
 #ifndef GPAC_USE_TINYGL
 		//glPixelTransferf(GL_DEPTH_SCALE, FIX2FLT(compositor->OGLDepthGain) ); 
 		//glPixelTransferf(GL_DEPTH_BIAS, FIX2FLT(compositor->OGLDepthOffset) ); 
 #endif
 
-#ifndef GPAC_USE_TINYGL
-		/* GL_FLOAT for float depthbuffer */
 		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, fb->video_buffer); 
-                //inversion
+                //inversion - to check
 		for (i=0; i<fb->height*fb->width; i++) 
 			fb->video_buffer[i] = (char)(255 - (int) fb->video_buffer[i]) ;
-#else
-		glReadPixels(compositor->vp_x, compositor->vp_y, fb->width, fb->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, tmp); 
-                //inversion is already done in tinygl
-		for (i=0; i<fb->height*fb->width; i++) 
-			fb->video_buffer[i] = tmp[2*i+1] ;
-                free (tmp);
-#endif //gpac_use_tinygl
 
 #endif	/*GPAC_USE_OGL_ES*/
 	}	
