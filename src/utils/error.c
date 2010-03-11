@@ -604,12 +604,10 @@ void gf_memory_print()
 			while (curr_element) {
 				next_element = curr_element->next;
 				gf_memory_log(GF_MEMORY_INFO, "Memory Block 0x%08X allocated line%5d from %s\n", curr_element->ptr, curr_element->line, curr_element->filename);
-				printf("Memory Block 0x%08X allocated line%5d from %s\n", curr_element->ptr, curr_element->line, curr_element->filename);
 				curr_element = next_element;
 			}
 		}
 		gf_memory_log(GF_MEMORY_INFO, "Total: %d bytes allocated on %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
-		printf("Total: %d bytes allocated on %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
 
 		/*unlock*/
 		gf_mx_v(gpac_allocations_lock);
