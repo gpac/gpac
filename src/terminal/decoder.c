@@ -58,7 +58,6 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	tmp->type = base_layer->decoderConfig->streamType;
 	tmp->inChannels = gf_list_new();
 	tmp->Status = GF_ESM_CODEC_STOP;
-
 	return tmp;
 }
 
@@ -395,9 +394,15 @@ check_unit:
 	au_time = obj_time;
 
 	/*lock scene*/
-	if (!scene_locked && (codec->type==GF_STREAM_SCENE)) {
+	if (!scene_locked) {
 		scene_locked = codec->odm->subscene ? codec->odm->subscene : codec->odm->parentscene;
 		if (!gf_mx_try_lock(scene_locked->mx)) return GF_OK;
+		if (scene_locked==scene_locked->root_od->term->root_scene) {
+			if (!gf_mx_try_lock(scene_locked->root_od->term->compositor->mx)) {
+				gf_mx_v(scene_locked->mx);
+				return GF_OK;
+			}
+		}
 		/*if terminal is paused, force step-mode: it won't hurt in regular pause/play and ensures proper frame dumping*/
 		if (codec->odm->term->play_state) codec->odm->term->compositor->step_mode=1;
 	}
@@ -445,7 +450,12 @@ check_unit:
 	if (check_next_unit) goto check_unit;
 
 exit:
-	if (scene_locked) gf_mx_v(scene_locked->mx);
+	if (scene_locked) {
+		gf_mx_v(scene_locked->mx);
+		if (scene_locked==scene_locked->root_od->term->root_scene) {
+			gf_mx_v(scene_locked->root_od->term->compositor->mx);
+		}
+	}
 	return e;
 }
 
