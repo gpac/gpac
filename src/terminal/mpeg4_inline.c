@@ -249,6 +249,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		if (scene->root_od->media_ctrl) current_seg = scene->root_od->media_ctrl->current_seg;
 		scene->needs_restart = 0;
 
+		gf_mx_p(scene->mx);
 		if (scene->is_dynamic_scene) {
 			if (scene->root_od->media_ctrl) scene->root_od->media_ctrl->current_seg = current_seg;
 			gf_scene_restart_dynamic(scene, 0);
@@ -266,6 +267,8 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 			/*3- restart the scene*/
 			gf_odm_start(scene->root_od, 0);
 		}
+		gf_mx_v(scene->mx);
+
 		gf_node_dirty_set(n, 0, 1);
 		return;
 	} 

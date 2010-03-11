@@ -60,6 +60,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 #ifndef GPAC_DISABLE_VRML
 	u32 i;
 	MediaSensorStack *media_sens;
+	MediaControlStack *media_ctrl;
 #endif
 
 	/*make sure we are not in the media queue*/
@@ -77,6 +78,11 @@ void gf_odm_del(GF_ObjectManager *odm)
 		media_sens->is_init = 0;
 	}
 	gf_list_del(odm->ms_stack);
+	
+	i=0;
+	while ((media_ctrl = (MediaControlStack *)gf_list_enum(odm->mc_stack, &i))) {
+		media_ctrl->stream = NULL;
+	}
 	gf_list_del(odm->mc_stack);
 #endif
 	if (odm->mo) odm->mo->odm = NULL;
@@ -556,6 +562,8 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		/*avoid channels PLAY request when confirming connection (sync network service)*/
 		odm->state = GF_ODM_STATE_IN_SETUP;
 
+
+		gf_odm_lock(odm, 1);
 		i=0;
 		while ((esd = (GF_ESD *)gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
 			e = gf_odm_setup_es(odm, esd, serv, syncRef);
@@ -567,6 +575,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			}
 		}
 		odm->state = GF_ODM_STATE_STOP;
+		gf_odm_lock(odm, 0);
 	}
 	
 	/*setup mediaobject info except for top-level OD*/
@@ -1055,8 +1064,6 @@ void ODM_DeleteChannel(GF_ObjectManager *odm, GF_Channel *ch)
 		if (odm->subscene->scene_codec) count = gf_codec_remove_channel(odm->subscene->scene_codec, ch);
 		if (!count) count = gf_codec_remove_channel(odm->subscene->od_codec, ch);
 	}
-	assert(count);
-	
 	if (ch->service) {
 		ch->service->ifce->DisconnectChannel(ch->service->ifce, ch); 
 		if (ch->esd->URLString) {
