@@ -150,7 +150,7 @@ void gf_sc_texture_reset(GF_TextureHandler *txh)
 #endif
 
 	if (txh->vout_udta && txh->compositor->video_out->ReleaseTexture) {
-		txh->compositor->video_out->ReleaseTexture(txh->compositor->video_out, txh->vout_udta);
+		txh->compositor->video_out->ReleaseTexture(txh->compositor->video_out, txh);
 		txh->vout_udta = NULL;
 	}
 }
