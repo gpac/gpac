@@ -1576,10 +1576,12 @@ has_jpeg="no"
 has_png="no"
 fi
 
+if test "$cpu" == "sh4"; then
 viren_dir="`ls $source_path/modules | grep viren_out`"
 if test "$viren_dir" = "viren_out"; then
 enable_depth_compositor="yes"
 enable_renoir="yes"
+fi
 fi
 
 #prepare for config.h writing
@@ -2150,6 +2152,8 @@ if test "$source_path_used" = "yes" ; then
     cd $cur_dir
     
     mkdir -p modules
+    ln -sf $source_path/modules/Makefile modules/Makefile
+    
     for dir in $MOD_DIRS ; do
         if ls $source_path/$dir/Makefile > /dev/null 2>&1; then
             mkdir -p $dir
