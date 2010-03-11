@@ -234,16 +234,18 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 
 		view_distance = INT2FIX(tr_state->visual->compositor->video_out->view_distance);
 		disparity = INT2FIX(tr_state->visual->compositor->video_out->disparity);
-		/*3,4 cm = 1,3386 inch -> pixels*/
-		half_interocular_dist_pixel = FLT2FIX(1.3386) * tr_state->visual->compositor->video_out->dpi_x;
+		if (view_distance && disparity) {
+			/*3,4 cm = 1,3386 inch -> pixels*/
+			half_interocular_dist_pixel = FLT2FIX(1.3386) * tr_state->visual->compositor->video_out->dpi_x;
 
-		//frustum placed to match user's real viewpoint
-		position.z = view_distance;
+			//frustum placed to match user's real viewpoint
+			position.z = view_distance;
 
-		//near plane will match front side of the display's stereoscopic box
-		//-> n=D- (dD)/(e+d) 
-		tr_state->camera->z_near = view_distance - 
-			gf_divfix( gf_mulfix(disparity,view_distance), (half_interocular_dist_pixel + disparity)); 
+			//near plane will match front side of the display's stereoscopic box
+			//-> n=D- (dD)/(e+d) 
+			tr_state->camera->z_near = view_distance - 
+				gf_divfix( gf_mulfix(disparity,view_distance), (half_interocular_dist_pixel + disparity)); 
+		}
 	}
 #endif
 		
@@ -292,7 +294,7 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 			Fixed fov = GF_PI/4;
 #ifdef GF_SR_USE_DEPTH
             /* 3D world calibration for stereoscopic screen */
-			if (tr_state->visual->compositor->auto_calibration) {
+			if (tr_state->visual->compositor->auto_calibration && tr_state->visual->compositor->video_out->view_distance) {
 				fov = 2*gf_atan2( INT2FIX(tr_state->visual->compositor->video_out->max_screen_width)/2, 
 					INT2FIX(tr_state->visual->compositor->video_out->view_distance));
 			}

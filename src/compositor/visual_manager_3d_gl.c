@@ -1542,8 +1542,11 @@ void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color
 GF_Err compositor_3d_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb, u32 depth_dump_mode)
 {
 	/*FIXME*/
-	u32 i, hy;
-	char *tmp;
+	u32 i;
+#ifndef GPAC_USE_TINYGL
+	char*tmp;
+	u32 hy;
+#endif //GPAC_USE_TINYGL
 
 	fb->width = compositor->vp_width;
 	fb->height = compositor->vp_height;

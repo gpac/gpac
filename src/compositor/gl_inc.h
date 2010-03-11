@@ -30,6 +30,7 @@
 #endif
 
 #ifndef GPAC_DISABLE_3D
+#include <gpac/internal/compositor_dev.h>
 
 #ifdef GPAC_USE_OGL_ES
 
@@ -88,6 +89,10 @@
 #define UNSIGNED_SHORT_8_8_REV_MESA  0x85BB /* same as Apple's */
 #endif
 
+/* for triscope - not conformant*/
+#ifndef GL_RGBDS
+#define GL_RGBDS 0x1910
+#endif
 
 #ifndef GL_TEXTURE0_ARB
 

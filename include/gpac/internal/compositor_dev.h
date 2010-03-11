@@ -53,12 +53,15 @@
 /*use 2D caching for groups*/
 //#define GF_SR_USE_VIDEO_CACHE
 
+//#define GPAC_USE_TINYGL
 
 /*depth-enabled version for autostereoscopic displays */
 //#define GF_SR_USE_DEPTH
 
 /*FPS computed on this number of frame*/
 #define GF_SR_FPS_COMPUTE_SIZE	30
+
+
 
 enum
 {
@@ -106,7 +109,7 @@ typedef struct
 
 #endif
 
-#ifndef GPAC_DISABLE_3D
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL)
 #define OPENGL_RASTER
 #endif
 
@@ -1237,6 +1240,11 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev);
 Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev);
 
 void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state);
+
+
+#ifdef GPAC_USE_TINYGL
+void gf_get_tinygl_depth(GF_TextureHandler *txh);
+#endif
 
 #endif	/*_COMPOSITOR_DEV_H_*/
 
