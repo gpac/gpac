@@ -30,7 +30,7 @@ typedef struct
 {
 	u16 ES_ID;
 	u32 BPP, width, height, out_size, pixel_format;
-	Bool is_depth;
+	u32 aux_type;
 } PNGDec;
 	
 #define PNGCTX()	PNGDec *ctx = (PNGDec *) ((IMGDec *)ifcg->privateStack)->opaque
@@ -46,7 +46,7 @@ static GF_Err PNG_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 	while ((d = gf_list_enum(esd->extensionDescriptors, &i))) {
 		if (d->tag == GF_ODF_AUX_VIDEO_DATA) {
-			ctx->is_depth = 1;
+			ctx->aux_type = ((GF_AuxVideoDescriptor*)d)->aux_video_type;
 			break;
 		}
 	}
@@ -123,7 +123,8 @@ static GF_Err PNG_ProcessData(GF_MediaDecoder *ifcg,
 	case GF_PIXEL_RGBA:
 	case GF_PIXEL_RGBD:
 		ctx->BPP = 4; 
-		if (ctx->is_depth) ctx->pixel_format = GF_PIXEL_RGBD;
+		if (ctx->aux_type==1) ctx->pixel_format = GF_PIXEL_RGBD;
+		else if (ctx->aux_type==2) ctx->pixel_format = GF_PIXEL_RGBDS;
 		break;
 	}
 	ctx->out_size = *outBufferLength;
