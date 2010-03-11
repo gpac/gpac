@@ -173,7 +173,6 @@ static void composite_update(GF_TextureHandler *txh)
 {
 	s32 w, h;
 	GF_STENCIL stencil;
-	GF_Err e;
 	M_Background2D *back;
 	GF_TraverseState *tr_state;
 	Bool invalidate_all;
@@ -322,6 +321,7 @@ static void composite_update(GF_TextureHandler *txh)
 				/*create an offscreen window for OpenGL rendering*/
 				if ((compositor->offscreen_width < st->txh.width) || (compositor->offscreen_height < st->txh.height)) {
 #ifndef GPAC_USE_TINYGL
+					GF_Err e;
 					GF_Event evt;
 					compositor->offscreen_width = MAX(compositor->offscreen_width, st->txh.width);
 					compositor->offscreen_height = MAX(compositor->offscreen_height, st->txh.height);
