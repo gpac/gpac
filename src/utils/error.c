@@ -30,7 +30,7 @@
 #define DL_MALLOC		3
 
 #ifdef WIN32
-#define USE_MALLOC	DL_MALLOC
+#define USE_MALLOC	STD_MALLOC
 #else
 #define USE_MALLOC	STD_MALLOC
 #endif
