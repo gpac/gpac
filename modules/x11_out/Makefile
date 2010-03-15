@@ -41,9 +41,8 @@ endif
 ifeq ($(HAS_OPENGL), yes)
 ifeq ($(GPAC_USE_TINYGL), yes)
 else
-#CFLAGS +=-DGPAC_HAS_OPENGL
-LDFLAGS+=-lGL
-#LDFLAGS+=-lTinyGL -L$(SRC_PATH)../../TinyGL/lib/ 
+CFLAGS+=$(OGL_INCLS)
+LDFLAGS+=$(OGL_LIBS)
 endif
 endif
 
