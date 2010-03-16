@@ -1027,7 +1027,6 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 								e = gf_sm_import_stream(ctx, mp4, imp_esd, au->timing_sec, mediaSource);
 								if (e) {
 									GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISO File Encode] cannot import stream %d (error %s)\n", imp_esd->ESID, gf_error_to_string(e)));
-									gf_odf_com_del(&com);
 									goto err_exit;
 								}
 								gf_sm_finalize_mux(mp4, imp_esd, 0);
