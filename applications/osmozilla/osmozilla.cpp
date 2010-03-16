@@ -287,7 +287,9 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\GPAC", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
 		RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\GPAC", 0, KEY_READ, &hKey);
 	dwSize = GF_MAX_PATH;
+#ifdef _DEBUG
 	if (RegQueryValueEx(hKey, "DebugDir", NULL, NULL,(unsigned char*) config_path, &dwSize) != ERROR_SUCCESS)
+#endif
 		RegQueryValueEx(hKey, "InstallDir", NULL, NULL,(unsigned char*) config_path, &dwSize);
 	RegCloseKey(hKey);
 
