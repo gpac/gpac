@@ -293,13 +293,17 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\GPAC", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
 		RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\GPAC", 0, KEY_READ, &hKey);
 	dwSize = GF_MAX_PATH;
+#ifdef _DEBUG
 	if (RegQueryValueEx(hKey, "DebugDir", NULL, NULL,(unsigned char*) config_path, &dwSize) != ERROR_SUCCESS)
+#endif
 		RegQueryValueEx(hKey, "InstallDir", NULL, NULL,(unsigned char*) config_path, &dwSize);
 	RegCloseKey(hKey);
 
 	/*do we have write access?*/
 	strcpy(config_test_file, config_path);
 	assert(strlen(config_path)+strlen(gpac_cfg)+1<GF_MAX_PATH);
+	if (config_path[strlen(config_path)-1] != '\\')
+		strcat(config_test_file, "\\");
 	strcat(config_test_file, "test");
 	FILE *ft = fopen(config_test_file, "wb");
 	if (ft) {
