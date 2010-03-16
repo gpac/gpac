@@ -275,9 +275,6 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	
 	gpac_cfg = "GPAC.cfg";
 
-#if defined(_DEBUG) && !defined(_WIN32_WCE)
-	strcpy((char *) config_path, "D:\\cvs\\gpac\\bin\\win32\\debug\\");
-#else
 	//Here we retrieve GPAC config file in the install diractory, which is indicated in the 
 	//Registry
     HKEY hKey = NULL;
@@ -287,7 +284,8 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	RegOpenKeyEx(GPAC_REG_KEY, TEXT("Software\\GPAC"), 0, KEY_READ, &hKey);
 	DWORD dwType = REG_SZ;
     dwSize = GF_MAX_PATH;
-    RegQueryValueEx(hKey, TEXT("InstallDir"), 0, &dwType, (LPBYTE) w_path, &dwSize);
+    if (RegQueryValueEx(hKey, TEXT("DebugDir"), 0, &dwType, (LPBYTE) w_path, &dwSize) != ERROR_SUCCESS)
+	    RegQueryValueEx(hKey, TEXT("InstallDir"), 0, &dwType, (LPBYTE) w_path, &dwSize);
 	CE_WideToChar(w_path, (char *)config_path);
     RegCloseKey(hKey);
 #else
@@ -295,15 +293,19 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\GPAC", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
 		RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\GPAC", 0, KEY_READ, &hKey);
 	dwSize = GF_MAX_PATH;
-	RegQueryValueEx(hKey, "InstallDir", NULL, NULL,(unsigned char*) config_path, &dwSize);
+	if (RegQueryValueEx(hKey, "DebugDir", NULL, NULL,(unsigned char*) config_path, &dwSize) != ERROR_SUCCESS)
+		RegQueryValueEx(hKey, "InstallDir", NULL, NULL,(unsigned char*) config_path, &dwSize);
 	RegCloseKey(hKey);
 
 	/*do we have write access?*/
 	strcpy(config_test_file, config_path);
 	assert(strlen(config_path)+strlen(gpac_cfg)+1<GF_MAX_PATH);
-	strcat(config_test_file, gpac_cfg);
+	strcat(config_test_file, "test");
 	FILE *ft = fopen(config_test_file, "wb");
-	if (ft) fclose(ft);
+	if (ft) {
+		fclose(ft);
+		gf_delete_file(config_test_file);
+	}
 	else {
 		/*we don't*/
 		SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, config_path);
@@ -312,7 +314,6 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 		/*create GPAC dir*/
 		_mkdir(config_path);
 	}
-#endif
 #endif
 
 	//Create a structure m_user for initialize the terminal. the parameters to set:
