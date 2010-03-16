@@ -287,15 +287,23 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\GPAC", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
 		RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\GPAC", 0, KEY_READ, &hKey);
 	dwSize = GF_MAX_PATH;
-	RegQueryValueEx(hKey, "InstallDir", NULL, NULL,(unsigned char*) config_path, &dwSize);
+	if (RegQueryValueEx(hKey, "DebugDir", NULL, NULL,(unsigned char*) config_path, &dwSize) != ERROR_SUCCESS)
+		RegQueryValueEx(hKey, "InstallDir", NULL, NULL,(unsigned char*) config_path, &dwSize);
 	RegCloseKey(hKey);
 
 	/*do we have write access?*/
 	strcpy(config_test_file, config_path);
+	if (config_path[strlen(config_path)-1] != '\\')
+		strcat(config_test_file, "\\");
+
 	assert(strlen(config_path)+strlen(gpac_cfg)+1<GF_MAX_PATH);
-	strcat(config_test_file, gpac_cfg);
+	strcat(config_test_file, "test");
+
 	ft = fopen(config_test_file, "wb");
-	if (ft) fclose(ft);
+	if (ft) {
+		fclose(ft);
+		gf_delete_file(config_test_file);
+	}
 	else {
 		/*we don't*/
 		SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, config_path);
