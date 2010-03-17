@@ -931,6 +931,7 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 
 int main (int argc, char **argv)
 {
+	char c;
 	const char *str;
 	u32 i, times[100], nb_times, dump_mode;
 	u32 simulation_time = 0;
@@ -1116,7 +1117,7 @@ int main (int argc, char **argv)
 
 	/*setup dumping options*/
 	if (dump_mode) {
-		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
+		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
 		if (visible || dump_mode==8) user.init_flags |= GF_TERM_INIT_HIDE;
 	} else {
 		init_w = forced_width;
@@ -1142,7 +1143,7 @@ int main (int argc, char **argv)
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = user.modules;
-	if (not_threaded) user.init_flags |= GF_TERM_NO_VISUAL_THREAD;
+	if (not_threaded) user.init_flags |= GF_TERM_NO_THREAD;
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 
@@ -1240,9 +1241,7 @@ int main (int argc, char **argv)
 
 	if (start_fs) gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
 
-	while (Run) {
-		char c;
-		
+	while (Run) {		
 		/*we don't want getchar to block*/
 		if (!gf_prompt_has_input()) {
 			if (restart) {
@@ -1594,6 +1593,17 @@ force_input:
 	fprintf(stdout, "GPAC cleanup ...\n");
 	gf_modules_del(user.modules);
 	gf_cfg_del(cfg_file);
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (enable_mem_tracker) {
+		gf_memory_print();
+		fprintf(stdout, "print any key\n");
+		while (!gf_prompt_has_input()) {
+			gf_sleep(100);
+		}
+	}
+#endif
+
 	gf_sys_close();
 	if (rti_logs) fclose(rti_logs);
 	if (logfile) fclose(logfile);

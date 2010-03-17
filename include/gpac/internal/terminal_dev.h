@@ -285,8 +285,7 @@ enum
 	GF_TERM_SINGLE_THREAD = 1<<2,
 	GF_TERM_MULTI_THREAD = 1<<3,
 	GF_TERM_SYSDEC_RESYNC = 1<<4,
-	GF_TERM_SINGLE_CLOCK = 1<<5,
-	GF_TERM_DRAW_FRAME = 1<<6
+	GF_TERM_SINGLE_CLOCK = 1<<5
 };
 
 /*URI relocators are used for containers like zip or ISO FF with file items. The relocator

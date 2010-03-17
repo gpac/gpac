@@ -42,6 +42,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor);
 
 void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 {
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Forcing frame redraw state: %d\n", state));
 	compositor->frame_draw_type = state;
 }
 
@@ -1997,7 +1998,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 
 	/*not threaded, let the owner decide*/
-	if ((compositor->user->init_flags & GF_TERM_NO_VISUAL_THREAD) || !compositor->frame_duration) return;
+	if ((compositor->user->init_flags & GF_TERM_NO_THREAD) || !compositor->frame_duration) return;
 
 	/*TO CHECK - THERE WAS A BUG HERE WITH TRISCOPE@SHIX*/
 	if (end_time > compositor->frame_duration) {

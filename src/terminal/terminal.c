@@ -237,7 +237,7 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 		gf_sc_set_fps(term->compositor, fps);
 	}
 
-	if (term->user->init_flags & GF_TERM_NO_VISUAL_THREAD){
+	if (term->user->init_flags & GF_TERM_NO_THREAD){
 		//gf_term_set_threading(term->mediaman, 1);
 	} else {
 		prio = GF_THREAD_PRIORITY_NORMAL;
@@ -442,8 +442,10 @@ GF_Terminal *gf_term_new(GF_User *user)
 	tmp->user = user;
 
 	/*this is not changeable at runtime*/
-	if (user->init_flags & GF_TERM_NO_VISUAL_THREAD) {
+	if (user->init_flags & GF_TERM_NO_THREAD) {
 		tmp->flags |= GF_TERM_DRAW_FRAME;
+	} else if (user->init_flags & GF_TERM_DRAW_FRAME) {
+			tmp->flags |= GF_TERM_DRAW_FRAME;
 	} else {
 		cf = gf_cfg_get_key(user->config, "Systems", "NoVisualThread");
 		if (!cf || !stricmp(cf, "no")) {

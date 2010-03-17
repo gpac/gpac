@@ -67,7 +67,7 @@ GF_Err gf_term_init_scheduler(GF_Terminal *term, u32 threading_mode)
 		break;
 	}
 
-	if (term->user->init_flags & GF_TERM_NO_VISUAL_THREAD) return GF_OK;
+	if (term->user->init_flags & GF_TERM_NO_THREAD) return GF_OK;
 
 	term->mm_thread = gf_th_new("MediaManager");
 	term->flags |= GF_TERM_RUNNING;
