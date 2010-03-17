@@ -539,6 +539,7 @@ static void gf_m2ts_reset_sections(GF_List *sections)
 {
 	u32 count;
 	GF_M2TS_Section *section;
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Deleting sections\n"));
 
 	count = gf_list_count(sections);
 	while (count) {
@@ -598,7 +599,10 @@ static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 
 static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses)
 {
-	if (sec->had_error) return;
+	if (sec->had_error) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Section had error\n"));
+		goto exit;
+	}
 
 	if (!sec->process_section) {
 		if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
@@ -657,6 +661,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		/*create table*/
 		if (!t) {
 			GF_SAFEALLOC(t, GF_M2TS_Table);
+			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Creating table %d %d\n", table_id, extended_table_id));
 			t->table_id = table_id;
 			t->ex_table_id = extended_table_id;
 			t->sections = gf_list_new();
@@ -705,6 +710,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			GF_M2TS_Section *section;
 
 			GF_SAFEALLOC(section, GF_M2TS_Section);
+			//GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Creating section\n"));
 			section->data_size = sec->length - section_start;
 			section->data = (unsigned char*)gf_malloc(sizeof(unsigned char)*section->data_size);
 			memcpy(section->data, sec->section + section_start, sizeof(unsigned char)*section->data_size);
@@ -755,7 +761,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			t->section_number = 0;
 		}
 	}
-
+exit:
 	/*clean-up (including broken sections)*/
 	if (sec->section) gf_free(sec->section);
 	sec->section = NULL;
@@ -1483,8 +1489,12 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	}
 
 	/*reassemble*/
-	if (pes->data) pes->data = (char*)gf_realloc(pes->data, pes->data_len+data_size);
-	else pes->data = (char*)gf_malloc(data_size);
+	if (pes->data){
+		pes->data = (char*)gf_realloc(pes->data, pes->data_len+data_size);
+		//printf("[MPEG-2 TS] REALLOC \n");
+	}else{
+		pes->data = (char*)gf_malloc(data_size);
+	}
 	memcpy(pes->data+pes->data_len, data, data_size);
 	pes->data_len += data_size;
 
@@ -1609,10 +1619,13 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			}
 		} else if (es->flags & GF_M2TS_ES_IS_SECTION) { 	/* The stream uses sections to carry its payload */
 			GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
+			//fprintf(stderr, "000000000000000000000000000000000000000000000\n\n\n\n\n\n\n\n");
 			if (ses->sec) gf_m2ts_gather_section(ts, ses->sec, ses, &hdr, data, payload_size);
+			//fprintf(stderr, "callback: %x %x\n", ses->sec->process_section, gf_m2ts_process_pmt);
 		} else {
 			/* regular stream using PES packets */
 			/* let the pes reassembler decide if packets with error shall be discarded*/
+			//fprintf(stderr, "000000000000000000000000000000000000000000000\n\n\n\n\n\n\n\n");
 			gf_m2ts_process_pes(ts, (GF_M2TS_PES *)es, &hdr, data, payload_size, paf);
 		}
 	}
