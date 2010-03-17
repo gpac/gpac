@@ -52,13 +52,15 @@ enum
 		* rendering is done after media decoding
 		* the user is responsible for updating the terminal
 	*/
-	GF_TERM_NO_VISUAL_THREAD = 1<<2,
+	GF_TERM_NO_THREAD = 1<<2,
 	/*disables frame-rate regulation (used when dumping content)*/
 	GF_TERM_NO_REGULATION = 1<<3,
 	/*lets the main user handle window events (neede for browser plugins)*/
 	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<4,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<5
+	GF_TERM_WINDOWLESS = 1<<5,
+	/*works with no visual thread fr the composition - compositor is driven by the media manager*/
+	GF_TERM_DRAW_FRAME = 1<<6
 };
 
 /*user object for all callbacks*/
