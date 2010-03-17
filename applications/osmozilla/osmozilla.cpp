@@ -515,10 +515,10 @@ Bool nsOsmozillaInstance::EventProc(GF_Event *evt)
 			case GF_KEY_HOME:
 				gf_term_set_option(m_term, GF_OPT_NAVIGATION_TYPE, 1);
 				break;
-			case GF_KEY_ESCAPE:
+/*			case GF_KEY_ESCAPE:
 				gf_term_set_option(m_term, GF_OPT_FULLSCREEN, !gf_term_get_option(m_term, GF_OPT_FULLSCREEN));
 				break;
-			}
+*/			}
 		}
 	    break;
 	case GF_EVENT_NAVIGATE_INFO:
@@ -585,6 +585,7 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 	m_user.os_window_handler = aWindow->window;
 #endif
 
+//	m_user.init_flags = GF_TERM_DRAW_FRAME;
  	m_prev_time = 0;
 	m_url_changed = 0;
  

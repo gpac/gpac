@@ -205,4 +205,6 @@ void DeleteAudioOutput(void *);
 
 #define SAFE_DS_RELEASE(p) { if(p) { IDirectSound_Release(p); (p)=NULL; } }
 
+LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam);
+
 #endif

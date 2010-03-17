@@ -317,32 +317,37 @@ void release_mouse(DDContext *ctx, HWND hWnd, GF_VideoOutput *vout)
 
 LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 {
-	Bool ret = 0;
+	Bool ret = 1;
 	GF_Event evt;
 	DDContext *ctx;
 	GF_VideoOutput *vout = (GF_VideoOutput *) GetWindowLong(hWnd, GWL_USERDATA);
 
-	if (!vout) return DefWindowProc (hWnd, msg, wParam, lParam);
+	if (!vout) return DefWindowProc(hWnd, msg, wParam, lParam);
 	ctx = (DDContext *)vout->opaque;
 
+	{
+		char msgstr[1024];
+		sprintf(msgstr, "Msg: %08x\n", msg);
+		OutputDebugString(msgstr);
+	}
 	switch (msg) {
 	case WM_SIZE:
 		/*always notify GPAC since we're not sure the owner of the window is listening to these events*/
 		evt.type = GF_EVENT_SIZE;
 		evt.size.width = LOWORD(lParam);
 		evt.size.height = HIWORD(lParam);
-		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
+		vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	case WM_MOVE:
 		evt.type = GF_EVENT_MOVE;
 		evt.move.x = LOWORD(lParam);
 		evt.move.y = HIWORD(lParam);
-		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
+		vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 	case WM_CLOSE:
 		if (hWnd==ctx->os_hwnd) {
 			evt.type = GF_EVENT_QUIT;
-			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
+			vout->on_event(vout->evt_cbk_hdl, &evt);
 		}
 		break;
 	case WM_DESTROY:
@@ -362,27 +367,41 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 #endif
 			) {
 			evt.type = GF_EVENT_SHOWHIDE;
-			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
-		}
-		break;
-	case WM_SETCURSOR:
-		if (ctx->cur_hwnd==hWnd) DD_SetCursor(vout, ctx->cursor_type);
-		return 1;
-	case WM_ERASEBKGND:
-		//InvalidateRect(ctx->cur_hwnd, NULL, TRUE);
-		//break;
-	case WM_PAINT:
-		if (ctx->cur_hwnd==hWnd) {
-			evt.type = GF_EVENT_REFRESH;
 			vout->on_event(vout->evt_cbk_hdl, &evt);
+		}
+		/*fallthrough*/
+	case WM_ACTIVATEAPP:
+		if (hWnd==ctx->os_hwnd) {
+			ctx->has_focus = 1;
+			SetFocus(hWnd);
 		}
 		break;
 	case WM_KILLFOCUS:
 		if (hWnd==ctx->os_hwnd) ctx->has_focus = 0;
 		break;
+	case WM_SETFOCUS:
+		if (hWnd==ctx->os_hwnd) ctx->has_focus = 1;
+		break;
+	case WM_IME_SETCONTEXT:
+		if ((hWnd==ctx->os_hwnd) && (wParam!=0) && !ctx->fullscreen) SetFocus(hWnd);
+		break;
+
+	case WM_ERASEBKGND:
+	case WM_PAINT:
+		if (ctx->cur_hwnd==hWnd) {
+			evt.type = GF_EVENT_REFRESH;
+			vout->on_event(vout->evt_cbk_hdl, &evt);
+		}
+		/*this avoids 100% cpu usage in Firefox*/
+		return DefWindowProc (hWnd, msg, wParam, lParam);
+
+	case WM_SETCURSOR:
+		if (ctx->cur_hwnd==hWnd) DD_SetCursor(vout, ctx->cursor_type);
+		break;
 
 	case WM_MOUSEMOVE:
 		if (ctx->cur_hwnd!=hWnd) break;
+
 		if (ctx->last_mouse_pos != lParam) {
 			ctx->last_mouse_pos = lParam;
 			DD_SetCursor(vout, (ctx->cursor_type==GF_CURSOR_HIDE) ? ctx->cursor_type_backup : ctx->cursor_type);
@@ -490,16 +509,19 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		evt.character.unicode_char = wParam;
 		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
-	}
-
-	if (ret) return 1;
-
 /*
-	if (ctx->parent_wnd && (hWnd==ctx->os_hwnd) ) {
-		return SendMessage(ctx->parent_wnd, msg, wParam, lParam);
-	}
+	case WM_CANCELMODE:
+	case WM_CAPTURECHANGED:
+	case WM_NCHITTEST:
+		return 0;
 */
-	return DefWindowProc (hWnd, msg, wParam, lParam);
+	default:
+		return DefWindowProc (hWnd, msg, wParam, lParam);
+	}
+
+	if (!ret &&(ctx->os_hwnd==hWnd) && ctx->orig_wnd_proc) 
+		return CallWindowProc((WNDPROC) ctx->orig_wnd_proc, hWnd, msg, wParam, lParam);
+	return 0;
 }
 
 #ifndef WS_EX_LAYERED
@@ -728,6 +750,12 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
 		ctx->orig_wnd_proc = 0L;
 	}
+	/*special care for Firefox: the windows created by our NP plugin may still be called
+	after the shutdown of the plugin !!*/
+	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) NULL);
+	SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) NULL);
+	SetWindowLong(ctx->fs_hwnd, GWL_WNDPROC, (DWORD) DefWindowProc);
+
 	dd_closewindow(ctx->fs_hwnd);
 #ifndef GPAC_DISABLE_3D
 	if (ctx->gl_hwnd) dd_closewindow(ctx->gl_hwnd);
