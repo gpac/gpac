@@ -1574,8 +1574,6 @@ u32 gf_sc_focus_switch_ring_ex(GF_Compositor *compositor, Bool move_prev, GF_Nod
 	if ((prev != compositor->focus_node) || (prev_use != compositor->focus_used)) {
 		GF_DOM_Event evt;
 		GF_Event ev;
-		/*the event is already handled, even though no listeners may be present*/
-		ret = 1;
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		memset(&ev, 0, sizeof(GF_Event));
 		ev.type = GF_EVENT_KEYDOWN;
@@ -1594,6 +1592,8 @@ u32 gf_sc_focus_switch_ring_ex(GF_Compositor *compositor, Bool move_prev, GF_Nod
 #endif
 		}
 		if (compositor->focus_node) {
+			/*the event is already handled, even though no listeners may be present*/
+			ret = 1;
 			if (compositor->focus_uses_dom_events) {
 				evt.bubbles = 1;
 				evt.type = GF_EVENT_FOCUSIN;

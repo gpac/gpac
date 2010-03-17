@@ -379,6 +379,12 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 	}
 #endif
 
+	/*special care for Firefox: XUL and OpenGL do not go well together, there is a stack overflow in WM_PAINT
+	for our plugin window - avoid this by overriding the WindowProc once OpenGL is setup!!*/
+	if ((dd->bound_hwnd==dd->os_hwnd) && dd->orig_wnd_proc)
+		SetWindowLong(dd->os_hwnd, GWL_WNDPROC, (DWORD) DD_WindowProc);
+
+
 	if (dd->output_3d_type==1) {
 		evt.type = GF_EVENT_VIDEO_SETUP;
 		evt.setup.opengl_mode = 1;
@@ -397,7 +403,6 @@ GF_Err DD_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_
 	DDCONTEXT
 	dd->os_hwnd = (HWND) os_handle;
 	
-	//if (init_flags & (GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION) ) dd->systems_memory = 2;
 	DD_SetupWindow(dr, init_flags);
 	/*fatal error*/
 	if (!dd->os_hwnd) return GF_IO_ERR;
@@ -526,6 +531,8 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	DDCONTEXT;
 
 	if (!dd) return GF_BAD_PARAM;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX] FLushing video output\n"));
 
 #ifndef GPAC_DISABLE_3D
 
