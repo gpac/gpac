@@ -325,11 +325,6 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	if (!vout) return DefWindowProc(hWnd, msg, wParam, lParam);
 	ctx = (DDContext *)vout->opaque;
 
-	{
-		char msgstr[1024];
-		sprintf(msgstr, "Msg: %08x\n", msg);
-		OutputDebugString(msgstr);
-	}
 	switch (msg) {
 	case WM_SIZE:
 		/*always notify GPAC since we're not sure the owner of the window is listening to these events*/
