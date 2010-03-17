@@ -258,6 +258,35 @@ void CGPAXPlugin::LoadDATAUrl()
 
 }
 
+// trap keys and forward on to the control
+BOOL CGPAXPlugin::PreTranslateMessage(MSG* pMsg)
+{
+  switch (pMsg->message)
+  {
+     case WM_KEYDOWN:
+     case WM_KEYUP:
+        switch (pMsg->wParam)
+        {
+           case VK_UP:
+           case VK_DOWN:
+           case VK_LEFT:
+           case VK_RIGHT:
+           case VK_HOME:
+           case VK_END:
+              SendMessage (pMsg->message, pMsg->wParam, pMsg->lParam);
+              // Windowless controls won't be able to call SendMessage.
+              // Instead, just respond to the message here.
+              return TRUE;
+        }
+        break;
+  }
+  return FALSE;
+//  return COleControl::PreTranslateMessage(pMsg);
+}
+
+
+
+
 #define GPAC_REG_KEY	HKEY_CURRENT_USER
 
 //Create window message fuction. when the window is created, also initialize a instance of
@@ -284,8 +313,10 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	RegOpenKeyEx(GPAC_REG_KEY, TEXT("Software\\GPAC"), 0, KEY_READ, &hKey);
 	DWORD dwType = REG_SZ;
     dwSize = GF_MAX_PATH;
+#ifdef _DEBUG
     if (RegQueryValueEx(hKey, TEXT("DebugDir"), 0, &dwType, (LPBYTE) w_path, &dwSize) != ERROR_SUCCESS)
-	    RegQueryValueEx(hKey, TEXT("InstallDir"), 0, &dwType, (LPBYTE) w_path, &dwSize);
+#endif
+		RegQueryValueEx(hKey, TEXT("InstallDir"), 0, &dwType, (LPBYTE) w_path, &dwSize);
 	CE_WideToChar(w_path, (char *)config_path);
     RegCloseKey(hKey);
 #else
