@@ -213,7 +213,7 @@ void *gf_mem_malloc_tracker(size_t size, char *filename, int line)
 	} else {
 		register_address(ptr, size, filename, line);
 	}
-	//gf_memory_log(GF_MEMORY_DEBUG, "malloc   0x%08X %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
+	gf_memory_log(GF_MEMORY_DEBUG, "malloc   0x%08X %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
 	return ptr;
 }
 
@@ -227,8 +227,17 @@ void *gf_mem_calloc_tracker(size_t num, size_t size_of, char *filename, int line
 	} else {
 		register_address(ptr, size, filename, line);
 	}
-	//gf_memory_log(GF_MEMORY_DEBUG, "calloc   0x%08X %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
+	gf_memory_log(GF_MEMORY_DEBUG, "calloc   0x%08X %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
 	return ptr;
+}
+
+void gf_mem_free_tracker(void *ptr, char *filename, int line)
+{
+	int size_prev;
+	if (ptr && (size_prev=unregister_address(ptr, filename, line))) {
+		gf_memory_log(GF_MEMORY_DEBUG, "free     0x%08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
+		FREE(ptr);
+	}
 }
 
 void *gf_mem_realloc_tracker(void *ptr, size_t size, char *filename, int line)
@@ -236,24 +245,27 @@ void *gf_mem_realloc_tracker(void *ptr, size_t size, char *filename, int line)
 	void *ptr_g;
 	int size_prev;
 	if (!ptr) {
-		//gf_memory_log(GF_MEMORY_DEBUG, "realloc() from a null pointer: calling malloc() instead\n");
+		gf_memory_log(GF_MEMORY_DEBUG, "realloc() from a null pointer: calling malloc() instead\n");
 		return gf_mem_malloc_tracker(size, filename, line);
 	}
-	size_prev = unregister_address(ptr, filename, line);
-	//gf_memory_log(GF_MEMORY_DEBUG, "realloc- 0x%08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
-	ptr_g = REALLOC(ptr, size);
-	register_address(ptr_g, size, filename, line);
-	//gf_memory_log(GF_MEMORY_DEBUG, "realloc+ 0x%08X %8d %8d %8d\n", ptr_g, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
-	return ptr_g;
-}
-
-void gf_mem_free_tracker(void *ptr, char *filename, int line)
-{
-	int size_prev;
-	if (ptr && (size_prev=unregister_address(ptr, filename, line))) {
-		//gf_memory_log(GF_MEMORY_DEBUG, "free     0x%08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
-		FREE(ptr);
+	/*a) The return value is NULL if the size is zero and the buffer argument is not NULL. In this case, the original block is freed.*/
+	if (!size) {
+		gf_memory_log(GF_MEMORY_DEBUG, "realloc() with a null size: calling free() instead\n");
+		gf_mem_free_tracker(ptr, filename, line);
+		return NULL;
 	}
+	ptr_g = REALLOC(ptr, size);
+	if (!ptr_g) {
+		/*b) The return value is NULL if there is not enough available memory to expand the block to the given size. In this case, the original block is unchanged.*/
+		gf_memory_log(GF_MEMORY_ERROR, "realloc() has returned a NULL pointer\n");
+		assert(0);
+	} else {
+		size_prev = unregister_address(ptr, filename, line);
+		gf_memory_log(GF_MEMORY_DEBUG, "realloc- 0x%08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
+		register_address(ptr_g, size, filename, line);
+		gf_memory_log(GF_MEMORY_DEBUG, "realloc+ 0x%08X %8d %8d %8d\n", ptr_g, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
+	}
+	return ptr_g;
 }
 
 char *gf_mem_strdup_tracker(const char *str, char *filename, int line)
