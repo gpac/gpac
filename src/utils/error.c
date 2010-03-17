@@ -213,7 +213,7 @@ void *gf_mem_malloc_tracker(size_t size, char *filename, int line)
 	} else {
 		register_address(ptr, size, filename, line);
 	}
-	gf_memory_log(GF_MEMORY_DEBUG, "malloc   0x%08X %8d\n", ptr, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
+	gf_memory_log(GF_MEMORY_DEBUG, "malloc   %8d bytes at address 0x%08X in file %s at line %d\n", size, ptr, filename, line);
 	return ptr;
 }
 
@@ -263,6 +263,7 @@ void *gf_mem_realloc_tracker(void *ptr, size_t size, char *filename, int line)
 		size_prev = unregister_address(ptr, filename, line);
 		gf_memory_log(GF_MEMORY_DEBUG, "realloc- 0x%08X %8d %8d %8d\n", ptr, size_prev, gpac_nb_alloc_blocs, gpac_allocated_memory);
 		register_address(ptr_g, size, filename, line);
+		gf_memory_log(GF_MEMORY_DEBUG, "realloc in file %s at line %d\n", filename, line);
 		gf_memory_log(GF_MEMORY_DEBUG, "realloc+ 0x%08X %8d %8d %8d\n", ptr_g, size, gpac_nb_alloc_blocs, gpac_allocated_memory);
 	}
 	return ptr_g;
@@ -516,7 +517,7 @@ static void register_address(void *ptr, size_t size, char *filename, int line)
 	gpac_allocated_memory += size;
 	gpac_nb_alloc_blocs++;
 	
-	gf_memory_log(GF_MEMORY_DEBUG, "register   %6d bytes at 0x%08X (%8d Bytes in %4d Blocks allocated)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
+	//gf_memory_log(GF_MEMORY_DEBUG, "register   %6d bytes at 0x%08X (%8d Bytes in %4d Blocks allocated)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
 
 	/*unlock*/
 	gf_mx_v(gpac_allocations_lock);
@@ -555,7 +556,7 @@ static int unregister_address(void *ptr, char *filename, int line)
 			gpac_allocated_memory -= size;
 			gpac_nb_alloc_blocs--;
 
-			gf_memory_log(GF_MEMORY_DEBUG, "unregister %6d bytes at 0x%08X (%8d bytes in %4d blocks remaining)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
+			//gf_memory_log(GF_MEMORY_DEBUG, "unregister %6d bytes at 0x%08X (%8d bytes in %4d blocks remaining)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
 
 			/*the allocation list is empty: free the lists to avoid a leak (we should be exiting)*/
 			if (!memory_add) {
@@ -625,7 +626,10 @@ void gf_memory_print()
 		gf_mx_v(gpac_allocations_lock);
 	}
 }
-
+void gf_memory_size()
+{
+	gf_memory_log(GF_MEMORY_INFO, "Total: %d bytes allocated on %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
+}
 #endif
 
 
