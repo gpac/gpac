@@ -97,6 +97,7 @@ public:
 
 	Bool EventProc(GF_Event *evt);
 
+	BOOL PreTranslateMessage(MSG* pMsg);
 
     DECLARE_REGISTRY_RESOURCEID(IDR_GPAXPLUGIN)
     DECLARE_PROTECT_FINAL_CONSTRUCT()
