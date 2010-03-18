@@ -676,7 +676,6 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	return 1;
 }
 
-#ifdef USE_WINDOW_THREAD
 u32 DD_WindowThread(void *par)
 {
 	MSG msg;
@@ -696,7 +695,6 @@ u32 DD_WindowThread(void *par)
 	ctx->th_state = 2;
 	return 0;
 }
-#endif /*USE_WINDOW_THREAD*/
 
 
 void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
@@ -713,19 +711,14 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 	}
 	ctx->switch_res = flags;
 
-#ifdef USE_WINDOW_THREAD
-	/*create event thread*/
-	ctx->th = gf_th_new("DirectX Video");
-	gf_th_run(ctx->th, DD_WindowThread, dr);
-	while (!ctx->th_state) gf_sleep(2);
-#else
-	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) dr);
-	/*load cursors*/
-	ctx->curs_normal = LoadCursor(NULL, IDC_ARROW);
-	ctx->curs_hand = ctx->curs_collide = ctx->curs_normal;
-	ctx->cursor_type = GF_CURSOR_NORMAL;
-	DD_InitWindows(dr, ctx);
-#endif
+	if (flags & GF_TERM_NO_THREAD) {
+		DD_InitWindows(dr, ctx);
+	} else {
+		/*create event thread*/
+		ctx->th = gf_th_new("DirectX Video");
+		gf_th_run(ctx->th, DD_WindowThread, dr);
+		while (!ctx->th_state) gf_sleep(2);
+	}
 	if (!the_video_output) the_video_output = dr;
 }
 
@@ -745,18 +738,12 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 		SetWindowLong(ctx->os_hwnd, GWL_WNDPROC, ctx->orig_wnd_proc);
 		ctx->orig_wnd_proc = 0L;
 	}
-	/*special care for Firefox: the windows created by our NP plugin may still be called
-	after the shutdown of the plugin !!*/
-	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) NULL);
-	SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) NULL);
-	SetWindowLong(ctx->fs_hwnd, GWL_WNDPROC, (DWORD) DefWindowProc);
 
 	dd_closewindow(ctx->fs_hwnd);
 #ifndef GPAC_DISABLE_3D
 	if (ctx->gl_hwnd) dd_closewindow(ctx->gl_hwnd);
 #endif
 
-#ifdef USE_WINDOW_THREAD
 	if (ctx->th) {
 		while (ctx->th_state!=2) 
 			gf_sleep(10);
@@ -764,8 +751,12 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 		gf_th_del(ctx->th);
 		ctx->th = NULL;
 	}
-#endif
 
+	/*special care for Firefox: the windows created by our NP plugin may still be called
+	after the shutdown of the plugin !!*/
+	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) NULL);
+	SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) NULL);
+	SetWindowLong(ctx->fs_hwnd, GWL_WNDPROC, (DWORD) DefWindowProc);
 
 #ifdef _WIN32_WCE
 	UnregisterClass(_T("GPAC DirectDraw Output"), GetModuleHandle(_T("gm_dx_hw.dll")) );
@@ -824,13 +815,13 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 	DDContext *ctx = (DDContext *)dr->opaque;
 
 	if (!evt) {
-#ifndef USE_WINDOW_THREAD
-		MSG msg;
-		while (PeekMessage (&(msg), NULL, 0, 0, PM_REMOVE)) {
-			TranslateMessage (&(msg));
-			DispatchMessage (&(msg));
+		if (!ctx->th) {
+			MSG msg;
+			while (PeekMessage (&(msg), NULL, 0, 0, PM_REMOVE)) {
+				TranslateMessage (&(msg));
+				DispatchMessage (&(msg));
+			}
 		}
-#endif
 		return GF_OK;
 	}
 
