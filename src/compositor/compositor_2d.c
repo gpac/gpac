@@ -519,6 +519,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			else {
 				visual->compositor->video_memory = 1;
 				visual->compositor->root_visual_setup = 0;
+				gf_sc_next_frame_state(visual->compositor, GF_SC_DRAW_FRAME);
 			}
 		}
 	}
@@ -535,6 +536,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Reconfiguring video output to use video memory\n"));
 			visual->compositor->video_memory = 1;
 			visual->compositor->root_visual_setup = 0;
+			gf_sc_next_frame_state(visual->compositor, GF_SC_DRAW_FRAME);
 		}
 	}
 	visual->has_modif = 1;
