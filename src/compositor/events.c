@@ -565,6 +565,12 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 		) {
 		Fixed X = compositor->hit_world_point.x;
 		Fixed Y = compositor->hit_world_point.y;
+		/*flip back to origin at top-left*/
+		if (compositor->visual->center_coords) {
+			X += INT2FIX(compositor->visual->width)/2;
+			Y = INT2FIX(compositor->visual->height)/2 - Y;
+		}
+
 		if (compositor->hit_node) {
 			GF_Node *focus;
 			Bool hit_changed = 0;
