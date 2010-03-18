@@ -271,7 +271,6 @@ static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 	case SDLK_UNDERSCORE: evt->key_code = GF_KEY_UNDERSCORE; break;
 	case SDLK_BACKQUOTE: evt->key_code = GF_KEY_GRAVEACCENT; break;
 	case SDLK_DELETE: evt->key_code = GF_KEY_DEL; break;
-	case SDLK_EURO: evt->key_code = GF_KEY_EURO; break;
 	case SDLK_UNDO: evt->key_code = GF_KEY_UNDO; break;
 
 	case SDLK_UP: evt->key_code = GF_KEY_UP; break;
