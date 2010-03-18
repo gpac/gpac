@@ -1366,18 +1366,28 @@ done
 
 LINK3D=""
 INCL3D=""
+DarwinGL="no"
 
+if test "$darwin" = "yes" ; then
+cat > $TMPC << EOF
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+int main( void ) { glEnable(GL_NORMALIZE); return 0; }
+EOF
+else
 cat > $TMPC << EOF
 #include <GL/gl.h>
 #include <GL/glu.h>
 int main( void ) { glEnable(GL_NORMALIZE); return 0; }
 EOF
+fi
 
 if test "$disable_3d" = "no" ; then
   if test "$win32" = "yes" ; then
     LINK3D="-lopengl32 -lglu32"
   elif test "$darwin" = "yes" ; then
-    LINK3D="-lgl -lglu"
+    LINK3D="-framework OpenGL -framework GLUT"
+    DarwinGL="yes"
   else
    LINK3D="-lGL -lglut"
   fi
@@ -1939,6 +1949,9 @@ elif test "$darwin" = "yes" ; then
   echo "CONFIG_DARWIN=yes" >> config.mak
   echo "CONFIG_OS=CONFIG_DARWIN" >> config.mak
   echo "#define GPAC_CONFIG_DARWIN" >> $TMPH
+  if test "$DarwinGL" = "yes" ; then
+   echo "#define CONFIG_DARWIN_GL" >> $TMPH
+  fi
   echo "mac_apps=$Mac_Applications" >> config.mak
 else
   echo "CONFIG_OS=CONFIG_GEN" >> config.mak
