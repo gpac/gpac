@@ -40,7 +40,7 @@
 #include "GLES/egl.h"
 
 
-#elif defined (CONFIG_DARWIN_XCODE)
+#elif defined (CONFIG_DARWIN_GL)
 
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
