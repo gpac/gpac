@@ -158,7 +158,6 @@ void gf_cfg_del_section(GF_Config *cfgFile, const char *secName);
  *\param secName the target section
  *\param keyName the name of the target key
  *\param sub_index the 0-based index position of the sub key*/
-
 const char *gf_cfg_get_sub_key(GF_Config *iniFile, const char *secName, const char *keyName,u32 sub_index);
 
 
