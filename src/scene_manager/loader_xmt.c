@@ -2969,6 +2969,10 @@ static GF_Err load_xmt_run(GF_SceneLoader *load)
 
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);
 	if (e<0) return xmt_report(parser, e, "Invalid XML document: %s", gf_xml_sax_get_error(parser->sax_parser));
+
+	xmt_resolve_routes(parser);
+	xmt_resolve_od_links(parser);
+
 	return GF_OK;
 }
 
@@ -2981,6 +2985,10 @@ static GF_Err load_xmt_parse_string(GF_SceneLoader *load, char *str)
 	}
 	e = gf_xml_sax_parse(parser->sax_parser, str);
 	if (e<0) return xmt_report(parser, e, "Invalid XML document: %s", gf_xml_sax_get_error(parser->sax_parser));
+
+	xmt_resolve_routes(parser);
+	xmt_resolve_od_links(parser);
+
 	return GF_OK;
 }
 
@@ -2988,9 +2996,6 @@ static GF_Err load_xmt_done(GF_SceneLoader *load)
 {
 	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
 	if (!parser) return GF_OK;
-
-	xmt_resolve_routes(parser);
-	xmt_resolve_od_links(parser);
 
 	while (1) {
 		XMTNodeStack *st = (XMTNodeStack *)gf_list_last(parser->nodes);
