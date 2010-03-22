@@ -673,6 +673,11 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 			}
 		}
 #endif
+			
+		if (pSG->use_stack && (gf_list_del_item(pSG->use_stack, pNode)>=0)) {
+			pSG->abort_bubbling = 1;
+		}
+
 	}
 	/*delete the node*/
 	if (pNode->sgprivate->scenegraph && (pNode->sgprivate->scenegraph->RootNode==pNode)) {
