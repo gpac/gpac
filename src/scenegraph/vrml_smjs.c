@@ -674,6 +674,7 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 		r->ToField.on_event_in = on_route_to_object;
 		r->ToField.eventType = GF_SG_EVENT_IN;
 		r->ToField.far_ptr = NULL;
+		/*FIXME - add GC ROOT*/
 		r->ToField.fieldIndex = (u32) JSVAL_TO_OBJECT( argv[2] ) ;
 		r->ToField.NDTtype = argv[3];
 		r->ToField.name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
@@ -4131,6 +4132,25 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 	}
 
 	if (!info) {
+		/*handle DOM case*/
+		if ((node->sgprivate->tag>=GF_NODE_FIRST_PARENT_NODE_TAG) 
+			&& node->sgprivate->interact 
+			&& node->sgprivate->interact->js_binding 
+			&& node->sgprivate->interact->js_binding->node)
+		{
+
+			if (gf_list_del_item(sg->objects, node->sgprivate->interact->js_binding->node)>=0) {
+				JSBool ret = JS_RemoveRoot(sg->svg_js->js_ctx, &(node->sgprivate->interact->js_binding->node));
+				if (sg->svg_js->in_script) 
+					sg->svg_js->force_gc = 1;
+				else {
+					JS_GC(sg->svg_js->js_ctx);
+					JS_ClearNewbornRoots(sg->svg_js->js_ctx);
+				}
+			}
+			return;
+		}
+
 		/*this is unregister signaling*/
 		if (node->sgprivate->parents) {
 			switch (node->sgprivate->parents->node->sgprivate->tag) {
