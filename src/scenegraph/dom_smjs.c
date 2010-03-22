@@ -268,6 +268,15 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 	n->sgprivate->interact->js_binding->node = new_obj;
 
 	/*don't root the node until inserted in the tree*/
+	if (n->sgprivate->parents) {
+		const char *name = gf_node_get_name(n);
+		if (name) {
+			JS_AddNamedRoot(c, &n->sgprivate->interact->js_binding->node, name);
+		} else {
+			JS_AddRoot(c, &n->sgprivate->interact->js_binding->node);
+		}
+		gf_list_add(sg->objects, n->sgprivate->interact->js_binding->node);
+	}
 	return OBJECT_TO_JSVAL(new_obj);
 }
 static jsval dom_node_construct(JSContext *c, GF_Node *n)
@@ -737,6 +746,11 @@ static void dom_node_finalize(JSContext *c, JSObject *obj)
 	if (!n) return;
 	if (!n->sgprivate) return;
 
+	{
+		char *name = gf_node_get_name(n);
+		if (name)
+			name=name;
+	}
 	JS_SetPrivate(c, obj, NULL);
 	gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
 

@@ -2396,7 +2396,7 @@ void JSScript_LoadSVG(GF_Node *node)
 
 
 #ifdef _DEBUG
-#define DUMP_DEF_AND_ROOT
+//#define DUMP_DEF_AND_ROOT
 #endif
 
 #ifdef DUMP_DEF_AND_ROOT
