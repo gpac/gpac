@@ -2165,6 +2165,12 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 			sep[0] = '(';
 		}
 	}
+
+	if (sg->svg_js->force_gc) {
+		JS_GC(sg->svg_js->js_ctx);
+		sg->svg_js->force_gc = 0;
+	}
+
 	gf_sg_js_lock_runtime(0);
 
 	return (ret==JS_FALSE) ? 0 : 1;
@@ -2294,6 +2300,12 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 
 	gf_sg_js_lock_runtime(1);
 	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, jsscript, sizeof(char)*fsize, 0, 0, &rval);
+
+
+	if (svg_js->force_gc) {
+		JS_GC(svg_js->js_ctx);
+		svg_js->force_gc = 0;
+	}
 	gf_sg_js_lock_runtime(0);
 
 	if (ret==JS_FALSE) success = 0;
@@ -2382,6 +2394,18 @@ void JSScript_LoadSVG(GF_Node *node)
 	}
 }
 
+
+#ifdef _DEBUG
+#define DUMP_DEF_AND_ROOT
+#endif
+
+#ifdef DUMP_DEF_AND_ROOT
+void dump_root(const char *name, void *rp, void *data)
+{
+	if (name[0]=='_') fprintf(stdout, "\t%s\n", name);
+}
+#endif
+
 static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_Node *observer)
 {
 	GF_DOMText *txt = NULL;
@@ -2411,6 +2435,8 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		return 0;
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
+
+	svg_js->in_script = 1;
 
 	/*if an observer is being specified, use it*/
 	if (hdl->evt_listen_obj) __this = hdl->evt_listen_obj;
@@ -2447,6 +2473,28 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);
 	if (txt ) hdl->js_fun=0;
+
+	while (svg_js->force_gc) {
+		svg_js->force_gc = 0;
+		JS_GC(svg_js->js_ctx);
+	}
+	svg_js->in_script = 0;
+
+
+#ifdef DUMP_DEF_AND_ROOT
+	if ((event->type==GF_EVENT_CLICK) || (event->type==GF_EVENT_MOUSEOVER)) {
+		NodeIDedItem *reg_node;
+		fprintf(stdout, "Node registry\n");
+		reg_node = hdl->sgprivate->scenegraph->id_node;
+		while (reg_node) {
+			fprintf(stdout, "\t%s\n", reg_node->NodeName);
+			reg_node = reg_node->next;
+		}
+
+		fprintf(stdout, "\n\nNamed roots:\n");
+		JS_DumpNamedRoots(JS_GetRuntime(svg_js->js_ctx), dump_root, NULL);
+	}
+#endif
 
 	gf_sg_js_lock_runtime(0);
 

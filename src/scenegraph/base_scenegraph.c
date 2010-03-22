@@ -607,6 +607,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	u32 j;
 	GF_Route *r;
 #endif
+	Bool detach=0;
 	GF_SceneGraph *pSG;
 
 	if (!pNode) return GF_OK;
@@ -625,6 +626,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 				if (prev) prev->next = nlist->next;
 				else pNode->sgprivate->parents = nlist->next;
 				gf_free(nlist);
+				if (pNode->sgprivate->parents==NULL) detach=1;
 				break;
 			}
 		}
@@ -645,7 +647,8 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	/*this is just an instance removed*/
 	if (pNode->sgprivate->num_instances) {
 #ifdef GPAC_HAS_SPIDERMONKEY
-		if (pNode->sgprivate->scenegraph->on_node_modified && (pNode->sgprivate->num_instances==1) && pNode->sgprivate->interact && pNode->sgprivate->interact->js_binding) {
+		if (pNode->sgprivate->num_instances==1) detach=1;
+		if (pNode->sgprivate->scenegraph->on_node_modified && detach && pNode->sgprivate->interact && pNode->sgprivate->interact->js_binding) {
 			pNode->sgprivate->scenegraph->on_node_modified(pNode->sgprivate->scenegraph, pNode, NULL, NULL);
 		}
 #endif

@@ -975,6 +975,9 @@ typedef struct __tag_svg_script_ctx
 	struct JSObject *global;
 	/*global event object - used to update the associated DOMEvent (JS private stack) when dispatching events*/
 	struct JSObject *event;
+
+	Bool in_script;
+	Bool force_gc;
 } GF_SVGJS;
 
 #endif	/*GPAC_DISABLE_SVG*/

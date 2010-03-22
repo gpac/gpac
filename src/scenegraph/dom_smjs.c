@@ -234,7 +234,6 @@ static jsval dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 
 static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 {
-	Bool force_tracking = 0;
 	GF_SceneGraph *sg;
 	JSObject *new_obj;
 	if (!n || !n->sgprivate->scenegraph) return JSVAL_VOID;
@@ -242,24 +241,19 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 
 	sg = n->sgprivate->scenegraph;
 
-	if (n->sgprivate->tag==TAG_SVG_handler) 
-		force_tracking = 1;
-	else if (n->sgprivate->tag==TAG_SVG_script) 
-		force_tracking = 1;
-
-	if (force_tracking) {
-		u32 i, count;
-		count = gf_list_count(sg->objects);
-		for (i=0; i<count; i++) {
-			JSObject *obj = gf_list_get(sg->objects, i);
-			GF_Node *a_node = JS_GetPrivate(c, obj);
-			if (n==a_node) return OBJECT_TO_JSVAL(obj);
+	if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
+		if (gf_list_find(sg->objects, n->sgprivate->interact->js_binding->node)<0) {
+			const char *name = gf_node_get_name(n);
+			if (name) {
+				JS_AddNamedRoot(c, &n->sgprivate->interact->js_binding->node, name);
+			} else {
+				JS_AddRoot(c, &n->sgprivate->interact->js_binding->node);
+			}
+			gf_list_add(sg->objects, n->sgprivate->interact->js_binding->node);
 		}
-	} else {
-		if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
-			return OBJECT_TO_JSVAL(n->sgprivate->interact->js_binding->node);
-		}
+		return OBJECT_TO_JSVAL(n->sgprivate->interact->js_binding->node);
 	}
+
 	if (n->sgprivate->scenegraph->reference_count)
 		n->sgprivate->scenegraph->reference_count ++;
 
@@ -273,10 +267,7 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 	}
 	n->sgprivate->interact->js_binding->node = new_obj;
 
-	if (force_tracking) {
-		gf_list_add(sg->objects, new_obj);
-		JS_AddRoot(c, &n->sgprivate->interact->js_binding->node);
-	}
+	/*don't root the node until inserted in the tree*/
 	return OBJECT_TO_JSVAL(new_obj);
 }
 static jsval dom_node_construct(JSContext *c, GF_Node *n)
@@ -489,7 +480,7 @@ static void dom_handler_remove(GF_Node *node, void *rs, Bool is_destroy)
 		SVG_handlerElement *handler = (SVG_handlerElement *)node;
 		if (handler->js_context && handler->js_fun_val) {
 			/*unprotect the function*/
-			JS_RemoveRoot(handler->js_context, &handler->js_fun_val);
+			JS_RemoveRoot(handler->js_context, &(handler->js_fun_val));
 			handler->js_fun_val=0;
 			gf_list_del_item(dom_rt->handlers, handler);
 		}
@@ -745,6 +736,7 @@ static void dom_node_finalize(JSContext *c, JSObject *obj)
 	/*the JS proto of the svgClass or a destroyed object*/
 	if (!n) return;
 	if (!n->sgprivate) return;
+
 	JS_SetPrivate(c, obj, NULL);
 	gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
 
@@ -771,34 +763,45 @@ static Bool check_dom_parents(JSContext *c, GF_Node *n, GF_Node *parent)
 	return 1;
 }
 
-static void dom_node_inserted(JSContext *c, GF_Node *par, GF_Node *n, s32 pos)
+static void dom_node_inserted(JSContext *c, GF_Node *n, GF_Node *parent, s32 pos)
 {
-	GF_ParentNode *old_par;
+	GF_ParentNode *old_parent;
 	Bool do_init = 0;
 
 	/*if node is already in graph, remove it from its parent*/
-	old_par = (GF_ParentNode*)gf_node_get_parent(n, 0);
-	if (old_par) {
+	old_parent = (GF_ParentNode*)gf_node_get_parent(n, 0);
+	if (old_parent) {
 		/*prevent destruction when removing node*/
 		n->sgprivate->num_instances++;
-		gf_node_list_del_child(&old_par->children, n);
-		gf_node_unregister(n, (GF_Node*)old_par);
+		gf_node_list_del_child(&old_parent->children, n);
+		gf_node_unregister(n, (GF_Node*)old_parent);
 		n->sgprivate->num_instances--;
-
-		/*whenever we remove a node from the tree, call GC to cleanup the JS binding if any. Not doing so may screw up node IDs*/
-		JS_GC(c);
 	} else {
 		do_init = (n->sgprivate->UserCallback || n->sgprivate->UserPrivate) ? 0 : 1;
+
+	}
+	/*node is being inserted - if node has a valid binding, re-root it if needed*/
+	if (n->sgprivate->interact && n->sgprivate->interact->js_binding) {
+		JSObject *nobj = n->sgprivate->interact->js_binding->node;
+		if (nobj && (gf_list_find(n->sgprivate->scenegraph->objects, nobj)<0) ) {
+			const char *name = gf_node_get_name(n);
+			if (name) {
+				JS_AddNamedRoot(c, &n->sgprivate->interact->js_binding->node, name);
+			} else {
+				JS_AddRoot(c, &n->sgprivate->interact->js_binding->node);
+			}
+			gf_list_add(n->sgprivate->scenegraph->objects, nobj);
+		}
 	}
 
-	if (pos<0) gf_node_list_add_child( & ((GF_ParentNode *)par)->children, n);
-	else gf_node_list_insert_child( & ((GF_ParentNode *)par)->children, n, (u32) pos);
-	gf_node_register(n, par);
+	if (pos<0) gf_node_list_add_child( & ((GF_ParentNode *)parent)->children, n);
+	else gf_node_list_insert_child( & ((GF_ParentNode *)parent)->children, n, (u32) pos);
+	gf_node_register(n, parent);
 
 	if (do_init) {
 		/*node is a handler, create listener*/
-		if (par && (n->sgprivate->tag==TAG_SVG_handler)) {
-			gf_dom_listener_build_ex(par, 0, 0, n, NULL);
+		if (parent && (n->sgprivate->tag==TAG_SVG_handler)) {
+			gf_dom_listener_build_ex(parent, 0, 0, n, NULL);
 		}
 		gf_node_init(n);
 
@@ -812,9 +815,9 @@ static void dom_node_inserted(JSContext *c, GF_Node *par, GF_Node *n, s32 pos)
 #endif
 	}
 	/*node is being re-inserted, activate it in case*/
-	if (!old_par) gf_node_activate(n);
+	if (!old_parent) gf_node_activate(n);
 
-	dom_node_changed(par, 1, NULL);
+	dom_node_changed(parent, 1, NULL);
 }
 
 static JSBool xml_node_insert_before(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -853,7 +856,7 @@ static JSBool xml_node_insert_before(JSContext *c, JSObject *obj, uintN argc, js
 			return dom_throw_exception(c, GF_DOM_EXC_NOT_FOUND_ERR);
 		}
 	}
-	dom_node_inserted(c, n, new_node, idx);
+	dom_node_inserted(c, new_node, n, idx);
 	*rval = argv[0];
 	return JS_TRUE;
 }
@@ -876,7 +879,7 @@ static JSBool xml_node_append_child(JSContext *c, JSObject *obj, uintN argc, jsv
 	if (!check_dom_parents(c, n, new_node))
 		return JS_FALSE;
 
-	dom_node_inserted(c, n, new_node, -1);
+	dom_node_inserted(c, new_node, n, -1);
 
 	*rval = argv[0];
 	return JS_TRUE;
@@ -905,10 +908,10 @@ static JSBool xml_node_replace_child(JSContext *c, JSObject *obj, uintN argc, js
 	gf_node_list_del_child(&par->children, old_node);
 	gf_node_unregister(old_node, n);
 
-	dom_node_inserted(c, n, new_node, -1);
+	dom_node_inserted(c, new_node, n, -1);
 
 	/*whenever we remove a node from the tree, call GC to cleanup the JS binding if any. Not doing so may screw up node IDs*/
-	JS_GC(c);
+	n->sgprivate->scenegraph->svg_js->force_gc = 1;
 
 	*rval = argv[0];
 	return JS_TRUE;
@@ -920,6 +923,7 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 	GF_Node *n, *old_node;
 	GF_ParentNode *par;
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
+
 	n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 
@@ -928,7 +932,7 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 	tag = gf_node_get_tag(n);
 	if (tag==TAG_DOMText) return JS_TRUE;
 	par = (GF_ParentNode*)n;
-
+	
 	/*if node is present in parent, unregister*/
 	if (gf_node_list_del_child(&par->children, old_node)) {
 		gf_node_unregister(old_node, n);
@@ -938,7 +942,7 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 	*rval = argv[0];
 	dom_node_changed(n, 1, NULL);
 	/*whenever we remove a node from the tree, call GC to cleanup the JS binding if any. Not doing so may screw up node IDs*/
-	JS_GC(c);
+	n->sgprivate->scenegraph->svg_js->force_gc = 1;
 	return JS_TRUE;
 }
 
@@ -1856,7 +1860,8 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 			gf_svg_parse_attribute(n, &info, val, anim_value_type);
 
 			if (info.fieldType==SVG_ID_datatype) {
-				gf_svg_parse_element_id(n, *(SVG_String*)info.far_ptr, 0);
+				char *idname = *(SVG_String*)info.far_ptr;
+				gf_svg_parse_element_id(n, idname, 0);
 			}
 			if (info.fieldType==XMLRI_datatype) {
 				gf_node_dirty_set(n, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
@@ -2346,7 +2351,7 @@ static void xml_http_finalize(JSContext *c, JSObject *obj)
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (ctx) {
 		xml_http_reset(ctx);
-		if (ctx->onreadystatechange) JS_RemoveRoot(c, &ctx->onreadystatechange);
+		if (ctx->onreadystatechange) JS_RemoveRoot(c, &(ctx->onreadystatechange));
 		gf_free(ctx);
 	}
 }
@@ -2911,7 +2916,7 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		default:
 			return JS_TRUE;
 		}
-		if (ctx->onreadystatechange) JS_RemoveRoot(c, &ctx->onreadystatechange);
+		if (ctx->onreadystatechange) JS_RemoveRoot(c, &(ctx->onreadystatechange));
 
 		if (JSVAL_IS_VOID(*vp)) {
 			ctx->onreadystatechange = NULL;
@@ -3528,20 +3533,11 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 
 	if (n) {
 		if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
-			JSObject *obj;
-			switch (n->sgprivate->tag) {
-			case TAG_SVG_handler:
-			case TAG_SVG_script:
-				obj = n->sgprivate->interact->js_binding->node;
-				JS_SetPrivate(c, obj, NULL);
-				gf_list_del_item(sg->objects, obj);
-
-				JS_RemoveRoot(c, &n->sgprivate->interact->js_binding->node);
-				n->sgprivate->interact->js_binding->node=NULL;
-				break;
-			default:
-				n->sgprivate->interact->js_binding->node=NULL;
-				break;
+			JSObject *obj = n->sgprivate->interact->js_binding->node;
+			JS_SetPrivate(c, obj, NULL);
+			n->sgprivate->interact->js_binding->node=NULL;
+			if (gf_list_del_item(sg->objects, obj)>=0) {
+				JS_RemoveRoot(c, &(n->sgprivate->interact->js_binding->node));
 			}
 		}
 		return;
@@ -3561,7 +3557,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 		SVG_handlerElement *handler = (SVG_handlerElement *)gf_list_get(dom_rt->handlers, i);
 		if (handler->js_context==c) {
 			/*unprotect the function*/
-			JS_RemoveRoot(handler->js_context, &handler->js_fun_val);
+			JS_RemoveRoot(handler->js_context, &(handler->js_fun_val));
 			handler->js_fun_val=0;
 			handler->js_context=0;
 			gf_list_rem(dom_rt->handlers, i);
