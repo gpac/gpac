@@ -387,7 +387,8 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 {
 	GF_Node *parent;
 
-	if (!node) return;
+	if (!node || node->sgprivate->scenegraph->abort_bubbling) return;
+	
 
 	/*get the node's parent*/
 	parent = gf_node_get_parent(node, 0);
@@ -405,11 +406,9 @@ static void gf_sg_dom_event_bubble(GF_Node *node, GF_DOM_Event *event, GF_List *
 			parent = gf_list_get(use_stack, cur_par_idx);
 			if (cur_par_idx>1) cur_par_idx-=2;
 			else cur_par_idx = 0;
-			node->sgprivate->scenegraph->use_stack = use_stack;
 			/*if no events attached,bubble by default*/
 			if (parent->sgprivate->interact && !sg_fire_dom_event(parent->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, parent)) return;
 			gf_sg_dom_event_bubble(parent, event, use_stack, cur_par_idx);
-			node->sgprivate->scenegraph->use_stack = use_stack;
 			return;
 		}
 	}
@@ -429,6 +428,8 @@ void gf_sg_dom_stack_parents(GF_Node *node, GF_List *stack)
 GF_EXPORT
 Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack)
 {
+	GF_List *prev_use_stack;
+	Bool prev_bub;
 	GF_DOMEventTarget cur_target;
 	u32 cur_par_idx;
 	if (!node || !event) return 0;
@@ -482,12 +483,20 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 		cur_par_idx = gf_list_count(use_stack);
 		if (cur_par_idx) cur_par_idx--;
 	}
+
+	prev_use_stack = node->sgprivate->scenegraph->use_stack ;
+	prev_bub = node->sgprivate->scenegraph->abort_bubbling;
+	node->sgprivate->scenegraph->use_stack = use_stack;
+	node->sgprivate->scenegraph->abort_bubbling = 0;
+
 	if ( (!node->sgprivate->interact || sg_fire_dom_event(node->sgprivate->interact->dom_evt, event, node->sgprivate->scenegraph, node)) 
 		&& event->bubbles) {
 		/*bubbling phase*/
 		event->event_phase = GF_DOM_EVENT_PHASE_BUBBLE;
 		gf_sg_dom_event_bubble(node, event, use_stack, cur_par_idx);
 	}
+	node->sgprivate->scenegraph->use_stack = prev_use_stack;
+	node->sgprivate->scenegraph->abort_bubbling = prev_bub;
 
 	return event->consumed ? 1 : 0;
 }

@@ -583,7 +583,7 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 		if (!callback) {
 			handler->js_fun = fun;
 			handler->js_fun_val = funval;
-			if (0 && handler->js_fun_val) {
+			if (handler->js_fun_val) {
 				handler->js_context = c;
 				/*protect the function - we don't know how it was passed to us, so prevent it from being GCed*/
 				JS_AddRoot(handler->js_context, &handler->js_fun_val);
