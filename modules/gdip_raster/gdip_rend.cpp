@@ -416,7 +416,11 @@ GF_Err gdip_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 				GdipCreateMatrix(&newmat);
 			}
 			/*gdip flip*/
-			if (_graph->center_coords) GdipScaleMatrix(newmat, 1, -1, MatrixOrderPrepend);	
+			if (_graph->center_coords && !(_sten->tiling&GF_TEXTURE_FLIP) ) 
+				GdipScaleMatrix(newmat, 1, -1, MatrixOrderPrepend);	
+			else if (!_graph->center_coords && (_sten->tiling&GF_TEXTURE_FLIP) ) 
+				GdipScaleMatrix(newmat, 1, -1, MatrixOrderPrepend);	
+
 			GdipSetTextureTransform((GpTexture*)_sten->pTexture, newmat);
 			GdipDeleteMatrix(newmat);
 
