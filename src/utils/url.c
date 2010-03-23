@@ -273,6 +273,7 @@ char *gf_url_percent_encode(const char *path)
 		if (!sep) break;
         sep ++;
 		count ++;
+		sep++;
 	}
 	outpath = gf_malloc(sizeof(char) * (strlen(path) + 2*count + 1));
 	strcpy(outpath, path);
