@@ -234,15 +234,18 @@ static jsval dom_document_construct(JSContext *c, GF_SceneGraph *sg)
 
 static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 {
+	Bool set_rooted;
 	GF_SceneGraph *sg;
 	JSObject *new_obj;
 	if (!n || !n->sgprivate->scenegraph) return JSVAL_VOID;
 	if (n->sgprivate->tag<TAG_DOMText) return JSVAL_VOID;
 
 	sg = n->sgprivate->scenegraph;
+	/*if parent doc is not a scene (eg it is a doc being parsed/constructed from script, don't root objects*/
+	set_rooted = sg->reference_count ? 0 : 1;
 
 	if (n->sgprivate->interact && n->sgprivate->interact->js_binding && n->sgprivate->interact->js_binding->node) {
-		if (gf_list_find(sg->objects, n->sgprivate->interact->js_binding->node)<0) {
+		if (set_rooted && (gf_list_find(sg->objects, n->sgprivate->interact->js_binding->node)<0)) {
 			const char *name = gf_node_get_name(n);
 			if (name) {
 				JS_AddNamedRoot(c, &n->sgprivate->interact->js_binding->node, name);
@@ -268,7 +271,7 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 	n->sgprivate->interact->js_binding->node = new_obj;
 
 	/*don't root the node until inserted in the tree*/
-	if (n->sgprivate->parents) {
+	if (n->sgprivate->parents && set_rooted) {
 		const char *name = gf_node_get_name(n);
 		if (name) {
 			JS_AddNamedRoot(c, &n->sgprivate->interact->js_binding->node, name);
@@ -746,11 +749,6 @@ static void dom_node_finalize(JSContext *c, JSObject *obj)
 	if (!n) return;
 	if (!n->sgprivate) return;
 
-	{
-		char *name = gf_node_get_name(n);
-		if (name)
-			name=name;
-	}
 	JS_SetPrivate(c, obj, NULL);
 	gf_list_del_item(n->sgprivate->scenegraph->objects, obj);
 
@@ -3563,7 +3561,12 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 		GF_Node *n;
 		JSObject *obj = gf_list_get(sg->objects, 0);
 		n = dom_get_node(c, obj);
-		if (n) dom_js_pre_destroy(c, sg, n);
+		if (n) {
+			JS_SetPrivate(c, obj, NULL);
+			n->sgprivate->interact->js_binding->node=NULL;
+			JS_RemoveRoot(c, &(n->sgprivate->interact->js_binding->node));
+		}
+		gf_list_rem(sg->objects, 0);
 	}
 
 	count = gf_list_count(dom_rt->handlers);
