@@ -89,8 +89,8 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 	case GF_PIXEL_RGBA:
 		pFormat = PixelFormat32bppARGB;
 		BPP = 4;
-//		copy = 1;
-//		_sten->orig_buf = (unsigned char *) pixels;
+		copy = 1;
+		_sten->orig_buf = (unsigned char *) pixels;
 		break;
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
