@@ -601,7 +601,7 @@ u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size);
 GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeader *rtp_hdr, u32 *PayloadStart);
 
 /*decodes an RTCP packet and update timing info, send RR too*/
-GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size);
+GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_sr);
 
 /*computes and send Receiver report. If the channel is a TCP channel, you must specify
 the callback function. NOTE: many RTP implementation do NOT process RTCP info received on TCP...

@@ -519,7 +519,10 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		} else {
 			ch->status = RTP_Running;
 			if (ch->rtp_ch) {
-				ch->check_rtp_time = RTP_SET_TIME_RTCP;
+				/*technically we shouldn't attempt to synchronize streams based on RTP, we should use RTCP/ However it
+				may happen that the RTCP traffic is absent ...*/
+				ch->check_rtp_time = RTP_SET_TIME_RTP;
+				ch->rtcp_init = 0;
 				gf_mx_p(priv->mx);
 				RP_InitStream(ch, (ch->flags & RTP_CONNECTED) ? 1 : 0);
 				gf_mx_v(priv->mx);
@@ -544,6 +547,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			ch->status = RTP_Connected;
 			ch->owner->last_ntp = 0;
 		}
+		ch->rtcp_init = 0;
 		return GF_OK;
 	case GF_NET_CHAN_SET_SPEED:
 	case GF_NET_CHAN_PAUSE:

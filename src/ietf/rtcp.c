@@ -48,13 +48,15 @@ u32 gf_rtp_read_rtcp(GF_RTPChannel *ch, char *buffer, u32 buffer_size)
 }
 
 GF_EXPORT
-GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size)
+GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_sr)
 {
 	GF_RTCPHeader rtcp_hdr;
 	GF_BitStream *bs;
 	char sdes_buffer[300];
 	u32 i, sender_ssrc, cur_ssrc, val, sdes_type, sdes_len, res, first, nb_bytes, nb_pck;
 	GF_Err e = GF_OK;
+
+	if (has_sr) *has_sr=0;
 	
 	//bad RTCP packet
 	if (pck_size < 4 ) return GF_NON_COMPLIANT_BITSTREAM;
@@ -117,6 +119,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size)
 			nb_bytes = gf_bs_read_u32(bs);
 
 			rtcp_hdr.Length -= 5;
+			if (has_sr) *has_sr=1;
 
 #ifndef GPAC_DISABLE_LOG
 			if ((gf_log_get_level() >= (GF_LOG_DEBUG)) && (gf_log_get_tools() & (GF_LOG_RTP)))  {
