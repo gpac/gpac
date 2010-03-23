@@ -3564,6 +3564,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 		if (n) {
 			JS_SetPrivate(c, obj, NULL);
 			n->sgprivate->interact->js_binding->node=NULL;
+			gf_node_unregister(n, NULL);
 			JS_RemoveRoot(c, &(n->sgprivate->interact->js_binding->node));
 		}
 		gf_list_rem(sg->objects, 0);
