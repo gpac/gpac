@@ -246,6 +246,7 @@ struct __tag_scene_graph
 #ifndef GPAC_DISABLE_SVG
 	/*use stack as used in the dom_fire_event - this is only valid during an event fire, and may be NULL*/
 	GF_List *use_stack;
+	Bool abort_bubbling;
 
 
 	GF_DOMEventTarget dom_evt;
