@@ -8,7 +8,6 @@
 		<Project filename="amr_dec.cbp" />
 		<Project filename="amr_float_dec.cbp" />
 		<Project filename="bifs_dec.cbp" />
-		<Project filename="..\..\applications\testapps\broadcaster\broadcaster.cbp" />
 		<Project filename="ctx_load.cbp" />
 		<Project filename="dummy_in.cbp" />
 		<Project filename="dx_hw.cbp" />
@@ -22,10 +21,8 @@
 		<Project filename="laser_dec.cbp" />
 		<Project filename="libgpac.cbp" />
 		<Project filename="mp3_in.cbp" />
-		<Project filename="..\..\applications\testapps\mp42ts\mp42ts.cbp" />
-		<Project filename="..\..\applications\testapps\mp4_streamer\mp4_streamer.cbp" />
 		<Project filename="mp4box.cbp" />
-		<Project filename="mp4client.cbp" active="1" />
+		<Project filename="mp4client.cbp" />
 		<Project filename="mpegts_in.cbp" />
 		<Project filename="odf_dec.cbp" />
 		<Project filename="ogg.cbp" />
@@ -34,7 +31,6 @@
 		<Project filename="rtp_in.cbp" />
 		<Project filename="saf_in.cbp" />
 		<Project filename="soft_raster.cbp" />
-		<Project filename="..\..\applications\testapps\svg2bifs\svg2bifs.cbp" />
 		<Project filename="svg_in.cbp" />
 		<Project filename="timedtext.cbp" />
 		<Project filename="wav_out.cbp" />
@@ -43,6 +39,9 @@
 		<Project filename="wiiis.cbp" />
 		<Project filename="demo_is.cbp" />
 		<Project filename="ui_rec.cbp">
+			<Depends filename="libgpac.cbp" />
+		</Project>
+		<Project filename="../../applications/epg_server/epg_server.cbp" active="1">
 			<Depends filename="libgpac.cbp" />
 		</Project>
 	</Workspace>
