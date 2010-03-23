@@ -385,7 +385,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	/*move to final coordinate system (except background which is built directly in final coord system)*/	
 	if (!(ctx->flags & CTX_IS_BACKGROUND) ) gf_mx2d_add_matrix(&mx_texture, &ctx->transform);
 
-	/*set path transform, except for background2D node which is directly build in the final coord system*/
+	/*set path transform*/
 	raster->stencil_set_matrix(tx_raster, &mx_texture);
 
 
