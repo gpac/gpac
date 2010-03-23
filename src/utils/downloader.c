@@ -332,7 +332,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 
 	if (sess->cache_name) {
 		opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "CleanCache");
-		if (opt && !stricmp(opt, "yes")) gf_delete_file(sess->cache_name);
+		if (!opt || !stricmp(opt, "yes")) gf_delete_file(sess->cache_name);
 		gf_free(sess->cache_name);
 	}
 
@@ -1573,7 +1573,7 @@ exit:
 	while (1) {
 		u32 size;
 
-		if (sess->status==GF_NETIO_DISCONNECTED) 
+		if (sess->status>=GF_NETIO_DISCONNECTED) 
 			return;
 
 #if 1
