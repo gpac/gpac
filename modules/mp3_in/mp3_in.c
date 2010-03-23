@@ -114,6 +114,7 @@ static Bool MP3_ConfigureFromFile(MP3Reader *read)
 	if (!read->stream) return 0;
 
 	hdr = gf_mp3_get_next_header(read->stream);
+	hdr = gf_mp3_get_next_header(read->stream);
 	if (!hdr) return 0;
 	read->sample_rate = gf_mp3_sampling_rate(hdr);
 	read->oti = gf_mp3_object_type_indication(hdr);
@@ -125,10 +126,8 @@ static Bool MP3_ConfigureFromFile(MP3Reader *read)
 
 //	return 1;
 
-	read->duration = gf_mp3_window_size(hdr);
-	size = gf_mp3_frame_size(hdr);
-	pos = ftell(read->stream);
-	fseek(read->stream, pos + size - 4, SEEK_SET);
+	fseek(read->stream, 0, SEEK_SET);
+	read->duration = 0;
 	while (1) {
 		hdr = gf_mp3_get_next_header(read->stream);
 		if (!hdr) break;
@@ -160,8 +159,12 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 	u32 hdr, size, pos;
 
 	if (read->needs_connection) {
+		u32 pos2;
 		hdr = gf_mp3_get_next_header_mem(data, data_size, &pos);
 		if (!hdr) return;
+		hdr = gf_mp3_get_next_header_mem(data+pos, data_size-pos, &pos2);
+		if (!hdr) return;
+
 		read->sample_rate = gf_mp3_sampling_rate(hdr);
 		read->oti = gf_mp3_object_type_indication(hdr);
 		read->is_live = 1;
@@ -292,7 +295,7 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				if (!MP3_ConfigureFromFile(read)) {
 					gf_dm_sess_get_stats(read->dnload, NULL, NULL, NULL, &bytes_done, NULL, NULL);
 					/*bad data - there's likely some ID3 around...*/
-					if (bytes_done>10*1024) {
+					if (bytes_done>100*1024) {
 						e = GF_CORRUPTED_DATA;
 					} else {
 						fclose(read->stream);
