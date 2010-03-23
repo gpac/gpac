@@ -2047,7 +2047,9 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	/*we don't traverse subscenes until the root one is setup*/
 	if (!compositor->root_visual_setup) return;
 
-	gf_scene_lock(subscene, 1);
+	if (!gf_scene_lock(subscene, 1))
+		return;
+
 	inline_root = gf_sg_get_root_node(subscene);
 	if (!inline_root) {
 		gf_scene_lock(subscene, 0);

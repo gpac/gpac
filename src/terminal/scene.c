@@ -1375,11 +1375,12 @@ const char *gf_scene_get_service_url(GF_SceneGraph *sg)
 	if (scene) return scene->root_od->net_service->url;
 	return NULL;
 }
-void gf_scene_lock(GF_SceneGraph *sg, Bool do_lock)
+Bool gf_scene_lock(GF_SceneGraph *sg, Bool do_lock)
 {
 	GF_Scene *scene = gf_sg_get_private(sg);
-	if (!scene) return;
-	if (do_lock) gf_mx_p(scene->mx);
+	if (!scene) return 0;
+	if (do_lock) return gf_mx_try_lock(scene->mx);
 	else gf_mx_v(scene->mx);
+	return 1;
 }
 
