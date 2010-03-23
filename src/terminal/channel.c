@@ -271,25 +271,23 @@ void Channel_WaitRAP(GF_Channel *ch)
 	ch->au_sn = 0;
 }
 
-void gf_es_map_time(GF_Channel *ch, Bool reset)
+void gf_es_reset_buffers(GF_Channel *ch)
 {
 	gf_mx_p(ch->mx);
+
 	if (ch->buffer) gf_free(ch->buffer);
 	ch->buffer = NULL;
 	ch->len = ch->allocSize = 0;
 
-	if (reset) {
-		gf_db_unit_del(ch->AU_buffer_first);
-		ch->AU_buffer_first = ch->AU_buffer_last = NULL;
-		ch->AU_Count = 0;
-	} else {
-		GF_DBUnit *au = ch->AU_buffer_first;
-		while (au) {
-			au->DTS = au->CTS = ch->ts_offset;
-			au = au->next;
-		}
-	}
+	gf_db_unit_del(ch->AU_buffer_first);
+	ch->AU_buffer_first = ch->AU_buffer_last = NULL;
+	ch->AU_Count = 0;
+
+	if (ch->odm->codec && ch->odm->codec->CB) 
+		gf_cm_reset(ch->odm->codec->CB);
+
 	ch->BufferTime = 0;
+
 	gf_mx_v(ch->mx);
 }
 
