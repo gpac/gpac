@@ -303,6 +303,7 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 	if (!in) return gf_import_message(import, GF_URL_ERROR, "Opening file %s failed", import->in_name);
 
 	hdr = gf_mp3_get_next_header(in);
+	hdr = gf_mp3_get_next_header(in);
 	if (!hdr) {
 		fclose(in);
 		return gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Audio isn't MPEG-1/2 audio");
