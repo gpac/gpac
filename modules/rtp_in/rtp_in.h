@@ -188,7 +188,6 @@ enum
 enum
 {
 	RTP_SET_TIME_NONE = 0,
-	RTP_SET_TIME_RTCP,
 	RTP_SET_TIME_RTP,
 	RTP_SET_TIME_RTP_SEEK,
  };
@@ -231,6 +230,7 @@ typedef struct
 	/*current start time in npt (for pause/resume)*/
 	Double current_start;
 
+	Bool rtcp_init;
 	/*UDP time-out detection*/
 	u32 last_udp_time;
 	/*RTP stats*/

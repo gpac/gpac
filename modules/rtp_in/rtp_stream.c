@@ -285,7 +285,6 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 	/*if we must notify some timing, do it now. If the channel has no range, this should NEVER be called*/
 	if (ch->check_rtp_time /*&& gf_rtp_is_active(ch->rtp_ch)*/) {
 		Double ch_time;
-		if (ch->check_rtp_time==RTP_SET_TIME_RTCP) return;
 
 		/*it may happen that we still receive packets from a previous "play" request. If this is the case,
 		filter until we reach the indicated rtptime*/
@@ -312,9 +311,14 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 			memset(&com, 0, sizeof(com));
 			com.command_type = GF_NET_CHAN_MAP_TIME;
 			com.base.on_channel = ch->channel;
-			com.map_time.media_time = ch->current_start + ch_time;
+			if (ch->rtsp) {
+				com.map_time.media_time = ch->current_start + ch_time;
+			} else {
+				com.map_time.media_time = 0;
+			}
+
 			com.map_time.timestamp = hdr.TimeStamp;
-			com.map_time.reset_buffers = 1;
+			com.map_time.reset_buffers = 0;
 			gf_term_on_command(ch->owner->service, &com, GF_OK);
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Mapping RTP Time seq %d TS %d - rtp info seq %d TS %d\n",
@@ -350,24 +354,18 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 
 void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 {
+	Bool has_sr;
 	GF_Err e;
 
 	if (ch->status == RTP_Connected) return;
 
 	ch->rtcp_bytes += size;
 
-	e = gf_rtp_decode_rtcp(ch->rtp_ch, pck, size);
+	e = gf_rtp_decode_rtcp(ch->rtp_ch, pck, size, &has_sr);
+	if (e<0) return;
 
-	/*if error in RTCP and waiting for RTCP SR to compute sync, we just cannot
-	rely in RTCP for sync :( - use RTP time stamp of next packet*/
-	if ((e<0) && ch->check_rtp_time) {
-		ch->check_rtp_time = RTP_SET_TIME_RTP;
-		/*reset RTP time (act as if no packets were received)*/
-		ch->rtp_ch->rtp_time = 0;
-		return;
-	}
-
-	if ((ch->check_rtp_time == RTP_SET_TIME_RTCP) && (ch->rtp_ch->last_SR_NTP_sec ) ) {
+	/*update sync if on pure RTP*/
+	if (!ch->rtcp_init && has_sr) {
 		GF_NetworkCommand com;
 		memset(&com, 0, sizeof(com));
 		com.command_type = GF_NET_CHAN_MAP_TIME;
@@ -385,9 +383,9 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 		}
 		com.map_time.timestamp = ch->rtp_ch->last_SR_rtp_time;
 		com.map_time.reset_buffers = 0;
-		if (!e)
-		gf_term_on_command(ch->owner->service, &com, GF_OK);
+		ch->rtcp_init = 1;
 		ch->check_rtp_time = RTP_SET_TIME_NONE;
+		gf_term_on_command(ch->owner->service, &com, GF_OK);
 	}
 
 	if (e == GF_EOS) {
