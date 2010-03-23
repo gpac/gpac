@@ -440,7 +440,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 	case GF_NET_CHAN_MAP_TIME:
 		ch->seed_ts = com->map_time.timestamp;
 		ch->ts_offset = (u32) (com->map_time.media_time*1000);
-		gf_es_map_time(ch, com->map_time.reset_buffers);
+		if (com->map_time.reset_buffers) gf_es_reset_buffers(ch);
 		break;
 	/*duration changed*/
 	case GF_NET_CHAN_DURATION:

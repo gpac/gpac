@@ -655,7 +655,7 @@ void gf_es_on_connect(GF_Channel *ch);
 void gf_es_reconfig_sl(GF_Channel *ch, GF_SLConfig *slc, Bool use_m2ts_sections);
 /*hack for streaming: whenever a time map (media time <-> TS time) event is received on the channel reset decoding buffer
 this is needed because all server tested resend packets on already running channel*/
-void gf_es_map_time(GF_Channel *ch, Bool reset);
+void gf_es_reset_buffers(GF_Channel *ch);
 /*dummy channels are used by scene decoders which don't use ESM but load directly the scene graph themselves
 these channels are ALWAYS pulling ones, and this function will init the channel clock if needed*/
 void gf_es_init_dummy(GF_Channel *ch);
