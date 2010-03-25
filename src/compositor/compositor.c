@@ -483,8 +483,11 @@ void gf_sc_del(GF_Compositor *compositor)
 	if (compositor->VisualThread) {
 		if (compositor->video_th_state == GF_COMPOSITOR_THREAD_RUN) {
 			compositor->video_th_state = GF_COMPOSITOR_THREAD_ABORTING;
-			while (compositor->video_th_state != GF_COMPOSITOR_THREAD_DONE) 
-				gf_sleep(10);
+			while (compositor->video_th_state != GF_COMPOSITOR_THREAD_DONE) {
+				gf_sc_lock(compositor, 0);
+				gf_sleep(1);
+				gf_sc_lock(compositor, 1);
+			}
 		}
 		gf_th_del(compositor->VisualThread);
 	}
@@ -1762,12 +1765,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #else
 	event_time = 0;
 #endif
-
-	/*since 0.4.6, some threaded modules outside the compositor may access the scripting module. 
-	This access is exclusive (mutex at the JS runtime level). In order to avoid deadlocks on the compositor, 
-	we release it during routes / smil anim
-	*/
-	gf_sc_lock(compositor, 0);
 	
 	sim_time = gf_term_sample_clocks(compositor->term);
 
@@ -1842,9 +1839,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 #endif
 	
-	/*cf note above - relock the compositor for tree traversal*/
-	gf_sc_lock(compositor, 1);
-
 
 #ifndef GPAC_DISABLE_LOG
 	time_node_time = gf_sys_clock();
@@ -2257,17 +2251,20 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 	}
 	return 0;
 #else
+
 	retry = 100;
 	while (retry) {
 		if (gf_mx_try_lock(compositor->mx)) 
 			break;
 		retry--;
 		gf_sleep(1);
-		if (!retry) 
+		if (!retry) {
 			return 0;
+		}
 	}
 	ret = gf_sc_exec_event(compositor, event);
 	gf_sc_lock(compositor, 0);
+
 	if (!ret && !from_user) {
 		gf_sc_forward_event(compositor, event);
 	}

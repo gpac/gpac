@@ -1204,7 +1204,6 @@
 
 
 #ifdef GPAC_HAS_SPIDERMONKEY
-#pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_lock_runtime) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_get_node) )
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_add_listener) )
@@ -1341,6 +1340,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_unregister) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_scenegraph) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_send_event) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_lock_compositor) )
 
 
 /*compositor.h exports*/
