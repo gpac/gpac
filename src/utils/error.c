@@ -271,7 +271,9 @@ void *gf_mem_realloc_tracker(void *ptr, size_t size, char *filename, int line)
 
 char *gf_mem_strdup_tracker(const char *str, char *filename, int line)
 {
-	char *ptr = (char*)gf_mem_malloc_tracker(strlen(str)+1, filename, line);
+	char *ptr;
+	if (!str) return str;
+	ptr = (char*)gf_mem_malloc_tracker(strlen(str)+1, filename, line);
 	strcpy(ptr, str);
 	return ptr;
 }
