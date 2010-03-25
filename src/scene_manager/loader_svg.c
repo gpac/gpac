@@ -1929,6 +1929,7 @@ GF_Err gf_sm_load_init_svg(GF_SceneLoader *load)
 
 GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *in_scene, char *node_str)
 {
+	GF_Err e;
 	GF_SVG_Parser *parser;
 	GF_Node *node;
 	GF_SceneLoader ctx;
@@ -1936,10 +1937,18 @@ GF_Node *gf_sm_load_svg_from_string(GF_SceneGraph *in_scene, char *node_str)
 	ctx.scene_graph = in_scene;
 	ctx.type = GF_SM_LOAD_SVG;
 
-	if (gf_sm_load_initialize_svg(&ctx, node_str, 1) != GF_OK) return NULL;
-
+	e = gf_sm_load_initialize_svg(&ctx, node_str, 1);
+	
 	parser = (GF_SVG_Parser *)ctx.loader_priv;
 	node = parser->fragment_root;
+
+	if (e != GF_OK) {
+		if (parser->fragment_root) gf_node_unregister(parser->fragment_root, NULL);
+		parser->fragment_root=NULL;
+		load_svg_done(&ctx);
+		return NULL;
+	} 
+
 	/*don't register*/
 	if (node) node->sgprivate->num_instances--;
 	load_svg_done(&ctx);
