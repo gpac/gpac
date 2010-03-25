@@ -67,7 +67,7 @@ static void mpeg4_sensor_created(GF_Compositor *compositor, GF_Node *node)
 
 typedef struct
 {
-	GROUPING_NODE_STACK_2D
+	GROUPING_MPEG4_STACK_2D
 
 	Bool enabled, active, over;
 	GF_SensorHandler hdl;

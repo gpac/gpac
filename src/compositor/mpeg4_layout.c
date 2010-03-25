@@ -30,7 +30,7 @@
 
 typedef struct
 {
-	PARENT_NODE_STACK_2D
+	PARENT_MPEG4_STACK_2D
 	
 	Bool is_scrolling;
 	u32 start_scroll_type;

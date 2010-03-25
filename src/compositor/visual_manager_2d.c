@@ -251,6 +251,8 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	visual->has_overlays = 0;
 
 	visual_2d_setup_projection(visual, tr_state);
+	if (!visual->top_clipper.width || !visual->top_clipper.height) 
+		return GF_OK;
 
 	tr_state->traversing_mode = TRAVERSE_SORT;
 	visual->num_nodes_current_frame = 0;
