@@ -332,7 +332,8 @@ GF_Err RP_AddStream(RTPClient *rtp, RTPStream *stream, char *session_control)
 	}
 
 	if (in_session) {
-		in_session->flags |= RTSP_AGG_CONTROL;
+		if (has_aggregated_control)
+			in_session->flags |= RTSP_AGG_CONTROL;
 	} else if (stream->control) {
 		gf_free(stream->control);
 		stream->control = NULL;
