@@ -928,7 +928,6 @@ struct _scriptfield
 
 struct JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg);
 void gf_sg_ecmascript_del(struct JSContext *);
-void gf_sg_js_lock_runtime(Bool lock);
 
 GF_Node *gf_sg_js_get_node(struct JSContext *c, struct JSObject *obj);
 

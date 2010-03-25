@@ -157,15 +157,14 @@ static JSBool svg_parse_xml(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 		dom_throw_exception(c, GF_DOM_EXC_WRONG_DOCUMENT_ERR);
 		return JS_FALSE;
 	}
+
 	str = js_get_utf8(argv[0]);
 	if (!str) return JS_TRUE;
-
 	sg = dom_get_doc(c, doc_obj);
 
 	node = gf_sm_load_svg_from_string(sg, str);
 	gf_free(str);
 	*rval = dom_element_construct(c, node);
-
 	return JS_TRUE;
 }
 
@@ -2151,7 +2150,6 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 		strcat(szFuncName, "(evt)");
 		utf8_script = szFuncName;
 	}
-	gf_sg_js_lock_runtime(1);
 	prev_event = JS_GetPrivate(sg->svg_js->js_ctx, sg->svg_js->event);
 	JS_SetPrivate(sg->svg_js->js_ctx, sg->svg_js->event, event);
 	ret = JS_EvaluateScript(sg->svg_js->js_ctx, sg->svg_js->global, utf8_script, strlen(utf8_script), 0, 0, &rval);
@@ -2170,8 +2168,6 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 		JS_GC(sg->svg_js->js_ctx);
 		sg->svg_js->force_gc = 0;
 	}
-
-	gf_sg_js_lock_runtime(0);
 
 	return (ret==JS_FALSE) ? 0 : 1;
 }
@@ -2298,7 +2294,6 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 		return 1;
 	}
 
-	gf_sg_js_lock_runtime(1);
 	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, jsscript, sizeof(char)*fsize, 0, 0, &rval);
 
 
@@ -2306,7 +2301,6 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 		JS_GC(svg_js->js_ctx);
 		svg_js->force_gc = 0;
 	}
-	gf_sg_js_lock_runtime(0);
 
 	if (ret==JS_FALSE) success = 0;
 	gf_dom_listener_process_add(script->sgprivate->scenegraph);
@@ -2396,7 +2390,7 @@ void JSScript_LoadSVG(GF_Node *node)
 
 
 #ifdef _DEBUG
-//#define DUMP_DEF_AND_ROOT
+#define DUMP_DEF_AND_ROOT
 #endif
 
 #ifdef DUMP_DEF_AND_ROOT
@@ -2444,11 +2438,9 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	}
 #endif
 
-	gf_sg_js_lock_runtime(1);
 	prev_event = JS_GetPrivate(svg_js->js_ctx, svg_js->event);
 	/*break loops*/
 	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target)) {
-		gf_sg_js_lock_runtime(0);
 		return 0;
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
@@ -2512,8 +2504,6 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 		JS_DumpNamedRoots(JS_GetRuntime(svg_js->js_ctx), dump_root, NULL);
 	}
 #endif
-
-	gf_sg_js_lock_runtime(0);
 
 	if (ret==JS_FALSE) {
 		_ScriptMessage(node->sgprivate->scenegraph, GF_SCRIPT_ERROR, "SVG: Invalid handler textContent");

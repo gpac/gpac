@@ -71,8 +71,6 @@ typedef struct
 {
 	JSRuntime *js_runtime;
 	u32 nb_inst;
-	GF_Mutex *lock;
-	u32 owner;
 
 	JSClass SFNodeClass;
 
@@ -191,8 +189,6 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 		}
 		GF_SAFEALLOC(js_rt, GF_JSRuntime);
 		js_rt->js_runtime = js_runtime;
-		js_rt->lock = gf_mx_new("ECMAScript");
-		js_rt->owner = gf_th_id();
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated 0x%08x\n", js_runtime));
 		gf_sg_load_script_modules(sg);
 	}
@@ -202,29 +198,17 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 
 void gf_sg_ecmascript_del(JSContext *ctx)
 {
-	gf_mx_p(js_rt->lock);
 	JS_SetGlobalObject(ctx, NULL);
 	JS_DestroyContext(ctx);
-	gf_mx_v(js_rt->lock);
 	if (js_rt) {
 		js_rt->nb_inst --;
 		if (js_rt->nb_inst == 0) {
 			JS_DestroyRuntime(js_rt->js_runtime);
 			JS_ShutDown();
 			gf_sg_unload_script_modules();
-			gf_mx_del(js_rt->lock);
 			gf_free(js_rt);
 			js_rt = NULL;
 		}
-	}
-}
-
-void gf_sg_js_lock_runtime(Bool lock)
-{
-	if (lock) {
-		gf_mx_p(js_rt->lock);
-	} else {
-		gf_mx_v(js_rt->lock);
 	}
 }
 
@@ -264,7 +248,7 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain);
 
 #ifdef FORCE_GC
 void MyJSGC(JSContext *c) {
-	if (gf_th_id() == js_rt->owner) JS_GC(c);
+	JS_GC(c);
 }
 #endif
 
@@ -564,6 +548,13 @@ static void on_route_to_object(GF_Node *node, GF_Route *r)
 	priv = gf_node_get_private(node);
 	if (!priv) return;
 
+	if (!r->FromNode) {
+		if (r->ToField.fieldIndex) {
+			JS_RemoveRoot(priv->js_ctx, & r->ToField.fieldIndex);
+			r->ToField.fieldIndex=0;
+		}
+	}
+
 	obj = (JSObject *) r->ToField.fieldIndex;
 	if (!obj) obj = priv->js_obj;
 
@@ -573,8 +564,6 @@ static void on_route_to_object(GF_Node *node, GF_Route *r)
 	t_info.fieldType = GF_SG_VRML_SFTIME;
 	t_info.fieldIndex = -1;
 	t_info.name = "timestamp";
-
-	gf_sg_js_lock_runtime(1);
 
 	argv[1] = gf_sg_script_to_smjs_field(priv, &t_info, node, 1);
 
@@ -593,7 +582,6 @@ static void on_route_to_object(GF_Node *node, GF_Route *r)
 #ifdef FORCE_GC
 	MyJSGC(priv->js_ctx);
 #endif
-	gf_sg_js_lock_runtime(0);
 }
 
 static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *rv)
@@ -676,6 +664,7 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 		r->ToField.far_ptr = NULL;
 		/*FIXME - add GC ROOT*/
 		r->ToField.fieldIndex = (u32) JSVAL_TO_OBJECT( argv[2] ) ;
+		JS_AddRoot(c, & r->ToField.fieldIndex);
 		r->ToField.NDTtype = argv[3];
 		r->ToField.name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
 
@@ -3859,11 +3848,8 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	*/
 	sf->last_route_time = time;
 
-	gf_sg_js_lock_runtime(1);
-
 	//locate function
 	if (! JS_LookupProperty(priv->js_ctx, priv->js_obj, sf->name, &fval) || JSVAL_IS_VOID(fval)) {
-		gf_sg_js_lock_runtime(0);
 		return;
 	}
 
@@ -3890,10 +3876,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	MyJSGC(priv->js_ctx);
 #endif
 
-	gf_sg_js_lock_runtime(0);
-
 	flush_event_out(node, priv);
-
 }
 
 
@@ -3918,8 +3901,6 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	fclose(jsf);
 	jsscript[fsize] = 0;
 
-	gf_sg_js_lock_runtime(1);
-
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, sizeof(char)*fsize, 0, 0, &rval);
 	if (ret==JS_FALSE) success = 0;
 
@@ -3929,8 +3910,6 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 			flush_event_out((GF_Node *)script, priv);
 		}
 	}
-	gf_sg_js_lock_runtime(0);
-
 	gf_free(jsscript);
 	return success;
 }
@@ -4064,12 +4043,10 @@ static void JSScript_LoadVRML(GF_Node *node)
 		return;
 	}
 
-	gf_sg_js_lock_runtime(1);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Evaluating script %s\n", str));
 
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, str, strlen(str), 0, 0, &rval);
 	if (ret==JS_FALSE) {
-		gf_sg_js_lock_runtime(0);
 		return;
 	}
 
@@ -4083,7 +4060,6 @@ static void JSScript_LoadVRML(GF_Node *node)
 	MyJSGC(priv->js_ctx);
 #endif
 
-	gf_sg_js_lock_runtime(0);
 }
 
 static void JSScript_Load(GF_Node *node)
@@ -4243,9 +4219,6 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	event->is_vrml = 1;
 	JS_SetPrivate(priv->js_ctx, priv->event, event);
 
-
-	gf_sg_js_lock_runtime(1);
-
 	evt = gf_dom_new_event(priv->js_ctx);
 	JS_SetPrivate(priv->js_ctx, evt, event);
 	argv[0] = OBJECT_TO_JSVAL(evt);
@@ -4256,7 +4229,6 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	} else {
 		ret = JS_CallFunctionName(priv->js_ctx, hdl->evt_listen_obj, "handleEvent", 1, argv, &rval);
 	}
-	gf_sg_js_lock_runtime(0);
 
 	event->is_vrml = prev_type;
 	JS_SetPrivate(priv->js_ctx, priv->event, prev_event);
