@@ -167,6 +167,18 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 		//destination MUST be specified for unicast
 		if (IsSource && ch->net_info.IsUnicast && !ch->net_info.destination) return GF_BAD_PARAM;
 
+        /* forcing unicast when the address is not a multicast */
+        if (!ch->net_info.IsUnicast) {
+            if (IsSource){
+                if (ch->net_info.destination && !gf_sk_is_multicast_address(ch->net_info.destination)) {
+                    ch->net_info.IsUnicast = 1;
+                }
+            } else {
+                if (ch->net_info.source && !gf_sk_is_multicast_address(ch->net_info.source)) {
+                    ch->net_info.IsUnicast = 1;
+                }
+            } 
+        }
 		//
 		//	RTP
 		//
