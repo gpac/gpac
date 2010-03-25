@@ -461,7 +461,7 @@ typedef struct
 
 typedef struct
 {
-	GROUPING_NODE_STACK_2D
+	GROUPING_MPEG4_STACK_2D
 
 #ifndef GF_SR_USE_VIDEO_CACHE
 	struct _group_cache *cache;
@@ -566,7 +566,7 @@ typedef struct
 
 typedef struct
 {
-	GROUPING_NODE_STACK_2D
+	GROUPING_MPEG4_STACK_2D
 	DepthGroup dg;
 } DepthGroupStack;
 
@@ -778,7 +778,7 @@ typedef struct
 
 typedef struct
 {
-	GROUPING_NODE_STACK_2D
+	GROUPING_MPEG4_STACK_2D
 	Untransform untr;
 } UntransformStack;
 

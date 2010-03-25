@@ -74,9 +74,13 @@ typedef struct
 
 #endif
 
+#define GROUPING_MPEG4_STACK_2D		\
+	GROUPING_NODE_STACK_2D			\
+	GF_List *sensors;				\
+
 typedef struct _mpeg4_group2d
 {
-	GROUPING_NODE_STACK_2D
+	GROUPING_MPEG4_STACK_2D
 } GroupingNode2D;
 
 /*traverse all children of the node */
@@ -94,6 +98,9 @@ void group_2d_cache_evaluate(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 #endif
 
 void group_2d_destroy(GF_Node *node, GroupingNode2D *group);
+
+/*for SVG <g> only when using offscreen group caches*/
+void group_2d_destroy_svg(GF_Node *node, GroupingNode2D *group);
 
 #ifndef GPAC_DISABLE_3D
 
@@ -149,15 +156,15 @@ typedef struct
 
 
 
-#define PARENT_NODE_STACK_2D	\
-			GROUPING_NODE_STACK_2D	\
+#define PARENT_MPEG4_STACK_2D	\
+			GROUPING_MPEG4_STACK_2D	\
 			/*list of ChildGroup drawn (can be fully transparents) - used for post placement*/	\
 			GF_List *groups;	
 
 
 typedef struct _parent_node_2d
 {
-	PARENT_NODE_STACK_2D
+	PARENT_MPEG4_STACK_2D
 } ParentNode2D;
 
 /*performs stack init (allocate all base stuff of stack)*/

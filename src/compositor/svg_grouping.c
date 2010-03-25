@@ -512,7 +512,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		SVGgStack *group = gf_node_get_private(node);
 #ifdef GF_SR_USE_VIDEO_CACHE
-		group_2d_destroy(node, group);
+		group_2d_destroy_svg(node, group);
 #else
 		if (group->cache) group_cache_del(group->cache);
 #endif

@@ -41,8 +41,11 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 
 	backup = gf_node_dirty_get(node);
 	if (backup & GF_SG_CHILD_DIRTY) {
+		GF_SensorHandler *hsens;
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
+		if (group->sensors) gf_list_reset(group->sensors);
+
 		drawable_reset_group_highlight(tr_state, node);
 
 		/*never performs bounds recompute on the fly in 2D since we don't cull 2D groups
@@ -54,13 +57,22 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 			|| (ntag==TAG_X3D_Anchor)
 #endif
 		) {
-			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
+			GF_SensorHandler *gf_sc_anchor_get_handler(GF_Node *n);
+
+			hsens = gf_sc_anchor_get_handler(node);
+			if (hsens) {
+				if (!group->sensors) group->sensors = gf_list_new();
+				gf_list_add(group->sensors, hsens);
+				group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
+			}
 		} else {
 			child = ((GF_ParentNode *)node)->children;
 			while (child) {
-				if (compositor_mpeg4_is_sensor_node(child->node)) {
+				hsens = compositor_mpeg4_get_sensor_handler(child->node);
+				if (hsens) {
+					if (!group->sensors) group->sensors = gf_list_new();
+					gf_list_add(group->sensors, hsens);
 					group->flags |= GROUP_HAS_SENSORS;
-					break;
 				}
 				child = child->next;
 			}
@@ -93,25 +105,10 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	/*picking: collect sensors*/
 	sensor_backup = NULL;
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
-		GF_SensorHandler *hsens;
 		/*reset sensor stack if any sensors at this level*/
 		sensor_backup = tr_state->vrml_sensors;
-		tr_state->vrml_sensors = gf_list_new();
-
-		if (group->flags & GROUP_IS_ANCHOR) {
-			GF_SensorHandler *gf_sc_anchor_get_handler(GF_Node *n);
-
-			hsens = gf_sc_anchor_get_handler(node);
-			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
-		} else {
-			/*add sensor(s) to traversing state*/
-			child = ((GF_ParentNode *)node)->children;
-			while (child) {
-				hsens = compositor_mpeg4_get_sensor_handler(child->node);
-				if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
-				child = child->next;
-			}
-		}
+		assert(group->sensors);
+		tr_state->vrml_sensors = group->sensors;
 	}
 
 
@@ -202,11 +199,9 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	}
 
 	if (sensor_backup) {
-		/*destroy current traversing state sensors and restore previous*/
-		gf_list_del(tr_state->vrml_sensors);
+		/*restore previous traversing state sensors */
 		tr_state->vrml_sensors = sensor_backup;
 	}
-
 }
 
 /*This is the routine for OrderedGroup child traversing*/
@@ -223,6 +218,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 
 	backup = gf_node_dirty_get(node);
 	if (backup & GF_SG_CHILD_DIRTY) {
+		GF_SensorHandler *hsens;
 		/*never trigger bounds recompute in 2D since we don't cull 2D groups*/
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
@@ -233,16 +229,24 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 			|| (ntag==TAG_X3D_Anchor)
 #endif
 		) {
-			group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
+			GF_SensorHandler *gf_sc_anchor_get_handler(GF_Node *n);
+
+			hsens = gf_sc_anchor_get_handler(node);
+			if (hsens) {
+				if (!group->sensors) group->sensors = gf_list_new();
+				gf_list_add(group->sensors, hsens);
+				group->flags |= GROUP_HAS_SENSORS | GROUP_IS_ANCHOR;
+			}
 		} else {
 			list = ((GF_ParentNode *)node)->children;
-			count = gf_node_list_get_count(list);
-			for (i=0; i<count; i++) {
-				child = gf_node_list_get_child(list, positions[i]);
-				if (compositor_mpeg4_is_sensor_node(child)) {
+			while (list) {
+				hsens = compositor_mpeg4_get_sensor_handler(list->node);
+				if (hsens) {
+					if (!group->sensors) group->sensors = gf_list_new();
+					gf_list_add(group->sensors, hsens);
 					group->flags |= GROUP_HAS_SENSORS;
-					break;
 				}
+				list = list->next;
 			}
 		}
 	}
@@ -270,20 +274,9 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 	/*picking: collect sensors*/
 	sensor_backup = NULL;
 	if ((tr_state->traversing_mode==TRAVERSE_PICK) && (group->flags & GROUP_HAS_SENSORS) ) {
-		GF_SensorHandler *hsens;
 		/*reset sensor stack if any sensors at this level*/
 		sensor_backup = tr_state->vrml_sensors;
-		tr_state->vrml_sensors = gf_list_new();
-
-
-		/*add sensor(s) to traversing state*/
-		list = ((GF_ParentNode *)node)->children;
-		count = gf_node_list_get_count(list);
-		for (i=0; i<count; i++) {
-			child = gf_node_list_get_child(list, positions[i]);
-			hsens = compositor_mpeg4_get_sensor_handler(child);
-			if (hsens) gf_list_add(tr_state->vrml_sensors, hsens);
-		}
+		tr_state->vrml_sensors = group->sensors;
 	}
 
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
@@ -372,8 +365,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 	}
 
 	if (sensor_backup) {
-		/*destroy current traversing state sensors and restore previous*/
-		gf_list_del(tr_state->vrml_sensors);
+		/*restore previous traversing state sensors*/
 		tr_state->vrml_sensors = sensor_backup;
 	}
 }

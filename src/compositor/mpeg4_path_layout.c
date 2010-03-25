@@ -30,7 +30,7 @@
 
 typedef struct
 {
-	PARENT_NODE_STACK_2D
+	PARENT_MPEG4_STACK_2D
 	
 	GF_Node *last_geom;
 	GF_PathIterator *iter;

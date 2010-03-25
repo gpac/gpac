@@ -33,7 +33,7 @@
 
 typedef struct
 {
-	GROUPING_NODE_STACK_2D
+	GROUPING_MPEG4_STACK_2D
 	GF_List *backs;
 	GF_List *views;
 	Bool first;
@@ -242,9 +242,9 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 
 			tr_state->visual->top_clipper = gf_rect_pixelize(&rc);
 			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
+			tr_state->traversing_mode = TRAVERSE_SORT;
 
 			if (tr_state->visual->top_clipper.width && tr_state->visual->top_clipper.height) {
-				tr_state->traversing_mode = TRAVERSE_SORT;
 				if (back && Bindable_GetIsBound(back) ) {
 					DrawableContext *ctx;
 

@@ -114,7 +114,7 @@ void compositor_init_switch(GF_Compositor *compositor, GF_Node *node)
 /*transform2D*/
 typedef struct
 {
-	GROUPING_NODE_STACK_2D
+	GROUPING_MPEG4_STACK_2D
 	GF_Matrix2D mat;
 	u8 is_identity;
 	u8 is_null;
@@ -267,7 +267,7 @@ void compositor_init_transformmatrix2d(GF_Compositor *compositor, GF_Node *node)
 
 typedef struct
 {
-	GROUPING_NODE_STACK_2D
+	GROUPING_MPEG4_STACK_2D
 	GF_ColorMatrix cmat;
 } ColorTransformStack;
 
@@ -344,7 +344,7 @@ struct og_pos
 };
 typedef struct
 {
-	GROUPING_NODE_STACK_2D
+	GROUPING_MPEG4_STACK_2D
 	u32 *positions;
 } OrderedGroupStack;
 

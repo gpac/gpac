@@ -814,7 +814,7 @@ void compositor_set_cache_memory(GF_Compositor *compositor, u32 memory)
 
 #endif /*GF_SR_USE_VIDEO_CACHE*/
 
-void group_2d_destroy(GF_Node *node, GroupingNode2D *group)
+void group_2d_destroy_svg(GF_Node *node, GroupingNode2D *group)
 {
 #ifdef GF_SR_USE_VIDEO_CACHE
 	GF_Compositor *compositor = gf_sc_get_compositor(node);
@@ -826,3 +826,10 @@ void group_2d_destroy(GF_Node *node, GroupingNode2D *group)
 	if (group->cache) group_cache_del(group->cache);
 #endif
 }
+
+void group_2d_destroy(GF_Node *node, GroupingNode2D *group)
+{
+	group_2d_destroy_svg(node, group);
+	if (group->sensors) gf_list_del(group->sensors);
+}
+
