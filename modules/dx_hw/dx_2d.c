@@ -454,6 +454,7 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 	HRESULT hr;
 	DDCONTEXT;
 
+	if (!dd->pDD) return NULL;
 	/*yuv format*/
 	if (pixelformat_yuv(pixel_format)) {
 		if (dr->yuv_pixel_format) {
