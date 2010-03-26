@@ -30,6 +30,7 @@
 
 #ifdef OPENGL_RASTER
 #include "gl_inc.h"
+#include "texturing.h"
 
 static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
 {
@@ -59,8 +60,6 @@ static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Colo
 
 static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u32 alpha)
 {
-
-
 #if defined(GPAC_USE_OGL_ES)
 	GLfloat line[4];
 
@@ -89,6 +88,43 @@ static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color c
 #endif
 }
 
+
+Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
+{
+	u8 alpha = GF_COL_A(ctx->aspect.fill_color);
+	
+	if (ctx->transform.m[1] || ctx->transform.m[3]) return 0;
+
+	visual_3d_set_state(visual, V3D_STATE_LIGHT, 0);
+	visual_3d_enable_antialias(visual, 0);
+	if (alpha && (alpha != 0xFF)) {
+		visual_3d_set_material_2d_argb(visual, ctx->aspect.fill_color);
+		gf_sc_texture_set_blend_mode(ctx->aspect.fill_texture, TX_MODULATE);
+	} else if (gf_sc_texture_is_transparent(ctx->aspect.fill_texture)) {
+		gf_sc_texture_set_blend_mode(ctx->aspect.fill_texture, TX_REPLACE);
+	} else {
+		visual_3d_set_state(visual, V3D_STATE_BLEND, 0);
+	}
+	/*ignore texture transform for bitmap*/
+	tr_state->mesh_num_textures = gf_sc_texture_enable(ctx->aspect.fill_texture, tr_state->appear ? ((M_Appearance *)tr_state->appear)->textureTransform : NULL);
+	if (tr_state->mesh_num_textures) {
+		SFVec2f size, orig;
+		GF_Mesh *mesh;
+		size.x = ctx->bi->unclip.width;
+		size.y = ctx->bi->unclip.height;
+		orig.x = ctx->bi->unclip.x + INT2FIX(visual->compositor->vp_width)/2;
+		orig.y = INT2FIX(visual->compositor->vp_height)/2 - ctx->bi->unclip.y + ctx->bi->unclip.height;
+
+		mesh = new_mesh();
+		mesh_new_rectangle(mesh, size, &orig, 1);
+		visual_3d_mesh_paint(tr_state, mesh);
+		mesh_free(mesh);
+		gf_sc_texture_disable(ctx->aspect.fill_texture);
+		tr_state->mesh_num_textures = 0;
+		return 1;
+	}
+	return 0;
+}
 #endif
 
 GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
@@ -106,6 +142,8 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		callbacks.cbk = visual;
 		callbacks.fill_run_alpha = c2d_gl_fill_alpha;
 		callbacks.fill_run_no_alpha = c2d_gl_fill_no_alpha;
+
+		visual->DrawBitmap = c2d_gl_draw_bitmap;
 
 		e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &callbacks, compositor->vp_width, compositor->vp_height);
 		if (e==GF_OK) {

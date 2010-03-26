@@ -179,7 +179,7 @@ void mesh_generate_tex_coords(GF_Mesh *mesh, GF_Node *__texCoords);
 void mesh_new_unit_bbox(GF_Mesh *mesh);
 
 /*insert base primitives - low res indicates less subdivision steps for circles (cone, cylinder, ellipse, sphere)*/
-void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size);
+void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, Bool flip);
 void mesh_new_ellipse(GF_Mesh *mesh, Fixed a_dia, Fixed b_dia, Bool low_res);
 void mesh_new_box(GF_Mesh *mesh, SFVec3f size);
 void mesh_new_cylinder(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool side, Bool top, Bool low_res);

@@ -215,7 +215,7 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 					size.y = height;
 
 					stack->mesh = new_mesh();
-					mesh_new_rectangle(stack->mesh, size);
+					mesh_new_rectangle(stack->mesh, size, NULL, 0);
 				}
 			} 
 			if (stack->mesh) {
