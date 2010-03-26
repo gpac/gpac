@@ -328,7 +328,7 @@ static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 	case TRAVERSE_DRAW_3D:
 		if (!stack->mesh) {
 			stack->mesh = new_mesh();
-			mesh_new_rectangle(stack->mesh, ((M_Rectangle *) node)->size);
+			mesh_new_rectangle(stack->mesh, ((M_Rectangle *) node)->size, NULL, 0);
 		}
 		visual_3d_draw_2d(stack, tr_state);
 		return;

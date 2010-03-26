@@ -626,22 +626,31 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 }
 
 
-void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size)
+void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, Bool flip)
 {
-	Fixed hx = size.x / 2;
-	Fixed hy = size.y / 2;
+	Fixed tmin, tmax;
+	Fixed x = - size.x / 2;
+	Fixed y = size.y / 2;
+	if (orig) {
+		x = orig->x;
+		y = orig->y;
+	}
 	mesh_reset(mesh);
 
-	mesh_set_vertex(mesh, -hx, -hy,  0,  0,  0,  FIX_ONE, 0, 0);
-	mesh_set_vertex(mesh,  hx, -hy,  0,  0,  0,  FIX_ONE, FIX_ONE, 0);
-	mesh_set_vertex(mesh,  hx,  hy,  0,  0,  0,  FIX_ONE, FIX_ONE, FIX_ONE);
-	mesh_set_vertex(mesh, -hx,  hy,  0,  0,  0,  FIX_ONE, 0, FIX_ONE);
+	tmin = flip ? FIX_ONE : 0;
+	tmax = flip ? 0 : FIX_ONE;
+
+	mesh_set_vertex(mesh, x, y-size.y,  0,  0,  0,  FIX_ONE, 0, tmin);
+	mesh_set_vertex(mesh, x+size.x, y-size.y,  0,  0,  0,  FIX_ONE, FIX_ONE, tmin);
+	mesh_set_vertex(mesh, x+size.x, y,  0,  0,  0,  FIX_ONE, FIX_ONE, tmax);
+	mesh_set_vertex(mesh, x,  y,  0,  0,  0,  FIX_ONE, 0, tmax);
+
 	mesh_set_triangle(mesh, 0, 1, 2); mesh_set_triangle(mesh, 0, 2, 3);
 	
 	mesh->flags |= MESH_IS_2D;
 
-	mesh->bounds.min_edge.x = -hx; mesh->bounds.min_edge.y = -hy; mesh->bounds.min_edge.z = 0;
-	mesh->bounds.max_edge.x = hx; mesh->bounds.max_edge.y = hy; mesh->bounds.max_edge.z = 0;
+	mesh->bounds.min_edge.x = x; mesh->bounds.min_edge.y = y-size.y; mesh->bounds.min_edge.z = 0;
+	mesh->bounds.max_edge.x = x+size.x; mesh->bounds.max_edge.y = y; mesh->bounds.max_edge.z = 0;
 	gf_bbox_refresh(&mesh->bounds);
 }
 
