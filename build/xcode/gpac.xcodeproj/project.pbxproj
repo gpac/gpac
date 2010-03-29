@@ -1,0 +1,517 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 45;
+	objects = {
+
+/* Begin PBXAggregateTarget section */
+		717BB3A71152558600A39D3D /* modules */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = 717BB3B0115255B900A39D3D /* Build configuration list for PBXAggregateTarget "modules" */;
+			buildPhases = (
+			);
+			dependencies = (
+			);
+			name = modules;
+			productName = modules;
+		};
+		717BB66C11525AA200A39D3D /* all */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = 717BB67511525AD100A39D3D /* Build configuration list for PBXAggregateTarget "all" */;
+			buildPhases = (
+			);
+			dependencies = (
+				71D7E31411577931003DF497 /* PBXTargetDependency */,
+				71D7E30811525E2E003DF497 /* PBXTargetDependency */,
+				717BB67011525AAA00A39D3D /* PBXTargetDependency */,
+				717BB67411525AB200A39D3D /* PBXTargetDependency */,
+			);
+			name = all;
+			productName = all;
+		};
+		71D7E310115778E1003DF497 /* configure */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = 71D7E312115778FF003DF497 /* Build configuration list for PBXAggregateTarget "configure" */;
+			buildPhases = (
+			);
+			dependencies = (
+			);
+			name = configure;
+			productName = configure;
+		};
+/* End PBXAggregateTarget section */
+
+/* Begin PBXContainerItemProxy section */
+		717BB66F11525AAA00A39D3D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 717BAE39115238D100A39D3D;
+			remoteInfo = libgpac;
+		};
+		717BB67311525AB200A39D3D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 717BB3A71152558600A39D3D;
+			remoteInfo = modules;
+		};
+		71D7E30711525E2E003DF497 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 71D7E30411525E11003DF497;
+			remoteInfo = applications;
+		};
+		71D7E31311577931003DF497 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 08FB7793FE84155DC02AAC07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 71D7E310115778E1003DF497;
+			remoteInfo = configure;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		717BB27B1152533800A39D3D /* bifs */ = {isa = PBXFileReference; lastKnownFileType = folder; name = bifs; path = ../../src/bifs; sourceTree = SOURCE_ROOT; };
+		717BB27C1152533800A39D3D /* compositor */ = {isa = PBXFileReference; lastKnownFileType = folder; name = compositor; path = ../../src/compositor; sourceTree = SOURCE_ROOT; };
+		717BB2831152533800A39D3D /* dir_info */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = dir_info; path = ../../src/dir_info; sourceTree = SOURCE_ROOT; };
+		717BB2841152533800A39D3D /* export.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = export.cpp; path = ../../src/export.cpp; sourceTree = SOURCE_ROOT; };
+		717BB2851152533800A39D3D /* ietf */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ietf; path = ../../src/ietf; sourceTree = SOURCE_ROOT; };
+		717BB2861152533800A39D3D /* isomedia */ = {isa = PBXFileReference; lastKnownFileType = folder; name = isomedia; path = ../../src/isomedia; sourceTree = SOURCE_ROOT; };
+		717BB2871152533800A39D3D /* laser */ = {isa = PBXFileReference; lastKnownFileType = folder; name = laser; path = ../../src/laser; sourceTree = SOURCE_ROOT; };
+		717BB2881152533800A39D3D /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../src/Makefile; sourceTree = SOURCE_ROOT; };
+		717BB2891152533800A39D3D /* mcrypt */ = {isa = PBXFileReference; lastKnownFileType = folder; name = mcrypt; path = ../../src/mcrypt; sourceTree = SOURCE_ROOT; };
+		717BB28A1152533800A39D3D /* media_tools */ = {isa = PBXFileReference; lastKnownFileType = folder; name = media_tools; path = ../../src/media_tools; sourceTree = SOURCE_ROOT; };
+		717BB28B1152533800A39D3D /* odf */ = {isa = PBXFileReference; lastKnownFileType = folder; name = odf; path = ../../src/odf; sourceTree = SOURCE_ROOT; };
+		717BB28C1152533800A39D3D /* scene_manager */ = {isa = PBXFileReference; lastKnownFileType = folder; name = scene_manager; path = ../../src/scene_manager; sourceTree = SOURCE_ROOT; };
+		717BB28D1152533800A39D3D /* scenegraph */ = {isa = PBXFileReference; lastKnownFileType = folder; name = scenegraph; path = ../../src/scenegraph; sourceTree = SOURCE_ROOT; };
+		717BB28E1152533800A39D3D /* terminal */ = {isa = PBXFileReference; lastKnownFileType = folder; name = terminal; path = ../../src/terminal; sourceTree = SOURCE_ROOT; };
+		717BB28F1152533800A39D3D /* utils */ = {isa = PBXFileReference; lastKnownFileType = folder; name = utils; path = ../../src/utils; sourceTree = SOURCE_ROOT; };
+		717BB3B3115256CD00A39D3D /* aac_in */ = {isa = PBXFileReference; lastKnownFileType = folder; name = aac_in; path = ../../modules/aac_in; sourceTree = SOURCE_ROOT; };
+		717BB3B8115256CD00A39D3D /* ac3_in */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ac3_in; path = ../../modules/ac3_in; sourceTree = SOURCE_ROOT; };
+		717BB3BD115256CD00A39D3D /* alsa */ = {isa = PBXFileReference; lastKnownFileType = folder; name = alsa; path = ../../modules/alsa; sourceTree = SOURCE_ROOT; };
+		717BB3C1115256CD00A39D3D /* amr_dec */ = {isa = PBXFileReference; lastKnownFileType = folder; name = amr_dec; path = ../../modules/amr_dec; sourceTree = SOURCE_ROOT; };
+		717BB3C9115256CD00A39D3D /* amr_float_dec */ = {isa = PBXFileReference; lastKnownFileType = folder; name = amr_float_dec; path = ../../modules/amr_float_dec; sourceTree = SOURCE_ROOT; };
+		717BB3D3115256CD00A39D3D /* audio_filter */ = {isa = PBXFileReference; lastKnownFileType = folder; name = audio_filter; path = ../../modules/audio_filter; sourceTree = SOURCE_ROOT; };
+		717BB3D7115256CD00A39D3D /* bifs_dec */ = {isa = PBXFileReference; lastKnownFileType = folder; name = bifs_dec; path = ../../modules/bifs_dec; sourceTree = SOURCE_ROOT; };
+		717BB3DB115256CD00A39D3D /* ctx_load */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ctx_load; path = ../../modules/ctx_load; sourceTree = SOURCE_ROOT; };
+		717BB3E5115256CD00A39D3D /* demo_is */ = {isa = PBXFileReference; lastKnownFileType = folder; name = demo_is; path = ../../modules/demo_is; sourceTree = SOURCE_ROOT; };
+		717BB3EA115256CD00A39D3D /* dummy_in */ = {isa = PBXFileReference; lastKnownFileType = folder; name = dummy_in; path = ../../modules/dummy_in; sourceTree = SOURCE_ROOT; };
+		717BB3EE115256CD00A39D3D /* dx_hw */ = {isa = PBXFileReference; lastKnownFileType = folder; name = dx_hw; path = ../../modules/dx_hw; sourceTree = SOURCE_ROOT; };
+		717BB3FB115256CD00A39D3D /* epoc_hw */ = {isa = PBXFileReference; lastKnownFileType = folder; name = epoc_hw; path = ../../modules/epoc_hw; sourceTree = SOURCE_ROOT; };
+		717BB400115256CD00A39D3D /* ffmpeg_in */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ffmpeg_in; path = ../../modules/ffmpeg_in; sourceTree = SOURCE_ROOT; };
+		717BB407115256CD00A39D3D /* ft_font */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ft_font; path = ../../modules/ft_font; sourceTree = SOURCE_ROOT; };
+		717BB40C115256CD00A39D3D /* gapi */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gapi; path = ../../modules/gapi; sourceTree = SOURCE_ROOT; };
+		717BB410115256CD00A39D3D /* gdip_raster */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gdip_raster; path = ../../modules/gdip_raster; sourceTree = SOURCE_ROOT; };
+		717BB417115256CD00A39D3D /* gpac_js */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gpac_js; path = ../../modules/gpac_js; sourceTree = SOURCE_ROOT; };
+		717BB41B115256CD00A39D3D /* img_in */ = {isa = PBXFileReference; lastKnownFileType = folder; name = img_in; path = ../../modules/img_in; sourceTree = SOURCE_ROOT; };
+		717BB425115256CD00A39D3D /* ismacryp */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ismacryp; path = ../../modules/ismacryp; sourceTree = SOURCE_ROOT; };
+		717BB429115256CD00A39D3D /* isom_in */ = {isa = PBXFileReference; lastKnownFileType = folder; name = isom_in; path = ../../modules/isom_in; sourceTree = SOURCE_ROOT; };
+		717BB431115256CD00A39D3D /* jack */ = {isa = PBXFileReference; lastKnownFileType = folder; name = jack; path = ../../modules/jack; sourceTree = SOURCE_ROOT; };
+		717BB435115256CD00A39D3D /* laser_dec */ = {isa = PBXFileReference; lastKnownFileType = folder; name = laser_dec; path = ../../modules/laser_dec; sourceTree = SOURCE_ROOT; };
+		717BB439115256CD00A39D3D /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../modules/Makefile; sourceTree = SOURCE_ROOT; };
+		717BB43A115256CD00A39D3D /* modules_export.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = modules_export.cpp; path = ../../modules/modules_export.cpp; sourceTree = SOURCE_ROOT; };
+		717BB43B115256CD00A39D3D /* mp3_in */ = {isa = PBXFileReference; lastKnownFileType = folder; name = mp3_in; path = ../../modules/mp3_in; sourceTree = SOURCE_ROOT; };
+		717BB440115256CD00A39D3D /* mpegts_in */ = {isa = PBXFileReference; lastKnownFileType = folder; name = mpegts_in; path = ../../modules/mpegts_in; sourceTree = SOURCE_ROOT; };
+		717BB444115256CD00A39D3D /* odf_dec */ = {isa = PBXFileReference; lastKnownFileType = folder; name = odf_dec; path = ../../modules/odf_dec; sourceTree = SOURCE_ROOT; };
+		717BB448115256CD00A39D3D /* ogg */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ogg; path = ../../modules/ogg; sourceTree = SOURCE_ROOT; };
+		717BB450115256CD00A39D3D /* opencv_is */ = {isa = PBXFileReference; lastKnownFileType = folder; name = opencv_is; path = ../../modules/opencv_is; sourceTree = SOURCE_ROOT; };
+		717BB456115256CD00A39D3D /* oss_audio */ = {isa = PBXFileReference; lastKnownFileType = folder; name = oss_audio; path = ../../modules/oss_audio; sourceTree = SOURCE_ROOT; };
+		717BB45A115256CD00A39D3D /* pulseaudio */ = {isa = PBXFileReference; lastKnownFileType = folder; name = pulseaudio; path = ../../modules/pulseaudio; sourceTree = SOURCE_ROOT; };
+		717BB45E115256CD00A39D3D /* raw_out */ = {isa = PBXFileReference; lastKnownFileType = folder; name = raw_out; path = ../../modules/raw_out; sourceTree = SOURCE_ROOT; };
+		717BB462115256CD00A39D3D /* rtp_in */ = {isa = PBXFileReference; lastKnownFileType = folder; name = rtp_in; path = ../../modules/rtp_in; sourceTree = SOURCE_ROOT; };
+		717BB46C115256CD00A39D3D /* saf_in */ = {isa = PBXFileReference; lastKnownFileType = folder; name = saf_in; path = ../../modules/saf_in; sourceTree = SOURCE_ROOT; };
+		717BB470115256CD00A39D3D /* sdl_out */ = {isa = PBXFileReference; lastKnownFileType = folder; name = sdl_out; path = ../../modules/sdl_out; sourceTree = SOURCE_ROOT; };
+		717BB479115256CD00A39D3D /* soft_raster */ = {isa = PBXFileReference; lastKnownFileType = folder; name = soft_raster; path = ../../modules/soft_raster; sourceTree = SOURCE_ROOT; };
+		717BB484115256CD00A39D3D /* svg_in */ = {isa = PBXFileReference; lastKnownFileType = folder; name = svg_in; path = ../../modules/svg_in; sourceTree = SOURCE_ROOT; };
+		717BB488115256CD00A39D3D /* timedtext */ = {isa = PBXFileReference; lastKnownFileType = folder; name = timedtext; path = ../../modules/timedtext; sourceTree = SOURCE_ROOT; };
+		717BB48D115256CD00A39D3D /* ui_rec */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ui_rec; path = ../../modules/ui_rec; sourceTree = SOURCE_ROOT; };
+		717BB492115256CD00A39D3D /* wav_out */ = {isa = PBXFileReference; lastKnownFileType = folder; name = wav_out; path = ../../modules/wav_out; sourceTree = SOURCE_ROOT; };
+		717BB496115256CD00A39D3D /* wiiis */ = {isa = PBXFileReference; lastKnownFileType = folder; name = wiiis; path = ../../modules/wiiis; sourceTree = SOURCE_ROOT; };
+		717BB49B115256CD00A39D3D /* x11_out */ = {isa = PBXFileReference; lastKnownFileType = folder; name = x11_out; path = ../../modules/x11_out; sourceTree = SOURCE_ROOT; };
+		717BB4A0115256CD00A39D3D /* xvid_dec */ = {isa = PBXFileReference; lastKnownFileType = folder; name = xvid_dec; path = ../../modules/xvid_dec; sourceTree = SOURCE_ROOT; };
+		717BB4DA115259C000A39D3D /* generators */ = {isa = PBXFileReference; lastKnownFileType = folder; name = generators; path = ../../applications/generators; sourceTree = SOURCE_ROOT; };
+		717BB527115259C000A39D3D /* GPAX */ = {isa = PBXFileReference; lastKnownFileType = folder; name = GPAX; path = ../../applications/GPAX; sourceTree = SOURCE_ROOT; };
+		717BB53B115259C000A39D3D /* Makefile */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.make; name = Makefile; path = ../../applications/Makefile; sourceTree = SOURCE_ROOT; };
+		717BB53C115259C000A39D3D /* mp4box */ = {isa = PBXFileReference; lastKnownFileType = folder; name = mp4box; path = ../../applications/mp4box; sourceTree = SOURCE_ROOT; };
+		717BB543115259C000A39D3D /* mp4client */ = {isa = PBXFileReference; lastKnownFileType = folder; name = mp4client; path = ../../applications/mp4client; sourceTree = SOURCE_ROOT; };
+		717BB548115259C000A39D3D /* mp42avi */ = {isa = PBXFileReference; lastKnownFileType = folder; name = mp42avi; path = ../../applications/mp42avi; sourceTree = SOURCE_ROOT; };
+		717BB54C115259C000A39D3D /* osmo4_sym */ = {isa = PBXFileReference; lastKnownFileType = folder; name = osmo4_sym; path = ../../applications/osmo4_sym; sourceTree = SOURCE_ROOT; };
+		717BB564115259C000A39D3D /* osmo4_w32 */ = {isa = PBXFileReference; lastKnownFileType = folder; name = osmo4_w32; path = ../../applications/osmo4_w32; sourceTree = SOURCE_ROOT; };
+		717BB585115259C000A39D3D /* osmo4_wce */ = {isa = PBXFileReference; lastKnownFileType = folder; name = osmo4_wce; path = ../../applications/osmo4_wce; sourceTree = SOURCE_ROOT; };
+		717BB59B115259C000A39D3D /* osmo4_wx */ = {isa = PBXFileReference; lastKnownFileType = folder; name = osmo4_wx; path = ../../applications/osmo4_wx; sourceTree = SOURCE_ROOT; };
+		717BB5B1115259C000A39D3D /* osmophone */ = {isa = PBXFileReference; lastKnownFileType = folder; name = osmophone; path = ../../applications/osmophone; sourceTree = SOURCE_ROOT; };
+		717BB5B9115259C000A39D3D /* osmozilla */ = {isa = PBXFileReference; lastKnownFileType = folder; name = osmozilla; path = ../../applications/osmozilla; sourceTree = SOURCE_ROOT; };
+		717BB5CB115259C000A39D3D /* testapps */ = {isa = PBXFileReference; lastKnownFileType = folder; name = testapps; path = ../../applications/testapps; sourceTree = SOURCE_ROOT; };
+		717BB60F115259C000A39D3D /* v4studio */ = {isa = PBXFileReference; lastKnownFileType = folder; name = v4studio; path = ../../applications/v4studio; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		08FB7794FE84155DC02AAC07 /* gpac */ = {
+			isa = PBXGroup;
+			children = (
+				717BB4D9115259A000A39D3D /* applications */,
+				717BB3B2115256A600A39D3D /* modules */,
+				717BB27A1152530E00A39D3D /* libgpac */,
+			);
+			name = gpac;
+			sourceTree = "<group>";
+		};
+		717BB27A1152530E00A39D3D /* libgpac */ = {
+			isa = PBXGroup;
+			children = (
+				717BB27B1152533800A39D3D /* bifs */,
+				717BB27C1152533800A39D3D /* compositor */,
+				717BB2831152533800A39D3D /* dir_info */,
+				717BB2841152533800A39D3D /* export.cpp */,
+				717BB2851152533800A39D3D /* ietf */,
+				717BB2861152533800A39D3D /* isomedia */,
+				717BB2871152533800A39D3D /* laser */,
+				717BB2881152533800A39D3D /* Makefile */,
+				717BB2891152533800A39D3D /* mcrypt */,
+				717BB28A1152533800A39D3D /* media_tools */,
+				717BB28B1152533800A39D3D /* odf */,
+				717BB28C1152533800A39D3D /* scene_manager */,
+				717BB28D1152533800A39D3D /* scenegraph */,
+				717BB28E1152533800A39D3D /* terminal */,
+				717BB28F1152533800A39D3D /* utils */,
+			);
+			name = libgpac;
+			sourceTree = "<group>";
+		};
+		717BB3B2115256A600A39D3D /* modules */ = {
+			isa = PBXGroup;
+			children = (
+				717BB3B3115256CD00A39D3D /* aac_in */,
+				717BB3B8115256CD00A39D3D /* ac3_in */,
+				717BB3BD115256CD00A39D3D /* alsa */,
+				717BB3C1115256CD00A39D3D /* amr_dec */,
+				717BB3C9115256CD00A39D3D /* amr_float_dec */,
+				717BB3D3115256CD00A39D3D /* audio_filter */,
+				717BB3D7115256CD00A39D3D /* bifs_dec */,
+				717BB3DB115256CD00A39D3D /* ctx_load */,
+				717BB3E5115256CD00A39D3D /* demo_is */,
+				717BB3EA115256CD00A39D3D /* dummy_in */,
+				717BB3EE115256CD00A39D3D /* dx_hw */,
+				717BB3FB115256CD00A39D3D /* epoc_hw */,
+				717BB400115256CD00A39D3D /* ffmpeg_in */,
+				717BB407115256CD00A39D3D /* ft_font */,
+				717BB40C115256CD00A39D3D /* gapi */,
+				717BB410115256CD00A39D3D /* gdip_raster */,
+				717BB417115256CD00A39D3D /* gpac_js */,
+				717BB41B115256CD00A39D3D /* img_in */,
+				717BB425115256CD00A39D3D /* ismacryp */,
+				717BB429115256CD00A39D3D /* isom_in */,
+				717BB431115256CD00A39D3D /* jack */,
+				717BB435115256CD00A39D3D /* laser_dec */,
+				717BB439115256CD00A39D3D /* Makefile */,
+				717BB43A115256CD00A39D3D /* modules_export.cpp */,
+				717BB43B115256CD00A39D3D /* mp3_in */,
+				717BB440115256CD00A39D3D /* mpegts_in */,
+				717BB444115256CD00A39D3D /* odf_dec */,
+				717BB448115256CD00A39D3D /* ogg */,
+				717BB450115256CD00A39D3D /* opencv_is */,
+				717BB456115256CD00A39D3D /* oss_audio */,
+				717BB45A115256CD00A39D3D /* pulseaudio */,
+				717BB45E115256CD00A39D3D /* raw_out */,
+				717BB462115256CD00A39D3D /* rtp_in */,
+				717BB46C115256CD00A39D3D /* saf_in */,
+				717BB470115256CD00A39D3D /* sdl_out */,
+				717BB479115256CD00A39D3D /* soft_raster */,
+				717BB484115256CD00A39D3D /* svg_in */,
+				717BB488115256CD00A39D3D /* timedtext */,
+				717BB48D115256CD00A39D3D /* ui_rec */,
+				717BB492115256CD00A39D3D /* wav_out */,
+				717BB496115256CD00A39D3D /* wiiis */,
+				717BB49B115256CD00A39D3D /* x11_out */,
+				717BB4A0115256CD00A39D3D /* xvid_dec */,
+			);
+			name = modules;
+			sourceTree = "<group>";
+		};
+		717BB4D9115259A000A39D3D /* applications */ = {
+			isa = PBXGroup;
+			children = (
+				717BB4DA115259C000A39D3D /* generators */,
+				717BB527115259C000A39D3D /* GPAX */,
+				717BB53B115259C000A39D3D /* Makefile */,
+				717BB53C115259C000A39D3D /* mp4box */,
+				717BB543115259C000A39D3D /* mp4client */,
+				717BB548115259C000A39D3D /* mp42avi */,
+				717BB54C115259C000A39D3D /* osmo4_sym */,
+				717BB564115259C000A39D3D /* osmo4_w32 */,
+				717BB585115259C000A39D3D /* osmo4_wce */,
+				717BB59B115259C000A39D3D /* osmo4_wx */,
+				717BB5B1115259C000A39D3D /* osmophone */,
+				717BB5B9115259C000A39D3D /* osmozilla */,
+				717BB5CB115259C000A39D3D /* testapps */,
+				717BB60F115259C000A39D3D /* v4studio */,
+			);
+			name = applications;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		717BAE39115238D100A39D3D /* libgpac */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION)";
+			buildConfigurationList = 717BAE3E115238D800A39D3D /* Build configuration list for PBXLegacyTarget "libgpac" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = $SOURCE_ROOT/../../src;
+			dependencies = (
+			);
+			name = libgpac;
+			passBuildSettingsInEnvironment = 1;
+			productName = libgpac;
+		};
+		717BB4D11152588A00A39D3D /* MP4Client */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION)";
+			buildConfigurationList = 717BB4D6115258CE00A39D3D /* Build configuration list for PBXLegacyTarget "MP4Client" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = $SOURCE_ROOT/../../applications/mp4client;
+			dependencies = (
+			);
+			name = MP4Client;
+			passBuildSettingsInEnvironment = 1;
+			productName = MP4Client;
+		};
+		717BB66611525A4D00A39D3D /* MP4Box */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION)";
+			buildConfigurationList = 717BB66B11525A8700A39D3D /* Build configuration list for PBXLegacyTarget "MP4Box" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = $SOURCE_ROOT/../../applications/mp4box;
+			dependencies = (
+			);
+			name = MP4Box;
+			passBuildSettingsInEnvironment = 1;
+			productName = MP4Box;
+		};
+		71D7E30411525E11003DF497 /* applications */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = configure;
+			buildConfigurationList = 71D7E30911525E4C003DF497 /* Build configuration list for PBXLegacyTarget "applications" */;
+			buildPhases = (
+			);
+			buildToolPath = /bin/bash;
+			buildWorkingDirectory = $SOURCE_ROOT/../../;
+			dependencies = (
+			);
+			name = applications;
+			passBuildSettingsInEnvironment = 1;
+			productName = applications;
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		08FB7793FE84155DC02AAC07 /* Project object */ = {
+			isa = PBXProject;
+			buildConfigurationList = 1DEB928908733DD80010E9CD /* Build configuration list for PBXProject "gpac" */;
+			compatibilityVersion = "Xcode 3.1";
+			hasScannedForEncodings = 1;
+			mainGroup = 08FB7794FE84155DC02AAC07 /* gpac */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				717BB66C11525AA200A39D3D /* all */,
+				71D7E310115778E1003DF497 /* configure */,
+				71D7E30411525E11003DF497 /* applications */,
+				717BAE39115238D100A39D3D /* libgpac */,
+				717BB3A71152558600A39D3D /* modules */,
+				717BB4D11152588A00A39D3D /* MP4Client */,
+				717BB66611525A4D00A39D3D /* MP4Box */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXTargetDependency section */
+		717BB67011525AAA00A39D3D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 717BAE39115238D100A39D3D /* libgpac */;
+			targetProxy = 717BB66F11525AAA00A39D3D /* PBXContainerItemProxy */;
+		};
+		717BB67411525AB200A39D3D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 717BB3A71152558600A39D3D /* modules */;
+			targetProxy = 717BB67311525AB200A39D3D /* PBXContainerItemProxy */;
+		};
+		71D7E30811525E2E003DF497 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 71D7E30411525E11003DF497 /* applications */;
+			targetProxy = 71D7E30711525E2E003DF497 /* PBXContainerItemProxy */;
+		};
+		71D7E31411577931003DF497 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 71D7E310115778E1003DF497 /* configure */;
+			targetProxy = 71D7E31311577931003DF497 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1DEB928B08733DD80010E9CD /* Makefile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
+				GCC_C_LANGUAGE_STANDARD = c99;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				PREBINDING = NO;
+				SDKROOT = macosx10.5;
+			};
+			name = Makefile;
+		};
+		717BAE3B115238D100A39D3D /* Makefile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				PRODUCT_NAME = libgpac;
+				ZERO_LINK = NO;
+			};
+			name = Makefile;
+		};
+		717BB3A91152558600A39D3D /* Makefile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				PRODUCT_NAME = modules;
+				ZERO_LINK = NO;
+			};
+			name = Makefile;
+		};
+		717BB4D31152588A00A39D3D /* Makefile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				PRODUCT_NAME = MP4Client;
+				ZERO_LINK = NO;
+			};
+			name = Makefile;
+		};
+		717BB66811525A4D00A39D3D /* Makefile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				PRODUCT_NAME = MP4Box;
+				ZERO_LINK = NO;
+			};
+			name = Makefile;
+		};
+		717BB66E11525AA200A39D3D /* Makefile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				PRODUCT_NAME = all;
+				ZERO_LINK = NO;
+			};
+			name = Makefile;
+		};
+		71D7E30611525E12003DF497 /* Makefile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_ENABLE_FIX_AND_CONTINUE = NO;
+				PRODUCT_NAME = applications;
+				ZERO_LINK = NO;
+			};
+			name = Makefile;
+		};
+		71D7E311115778E1003DF497 /* Makefile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = configure;
+			};
+			name = Makefile;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1DEB928908733DD80010E9CD /* Build configuration list for PBXProject "gpac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEB928B08733DD80010E9CD /* Makefile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Makefile;
+		};
+		717BAE3E115238D800A39D3D /* Build configuration list for PBXLegacyTarget "libgpac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				717BAE3B115238D100A39D3D /* Makefile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Makefile;
+		};
+		717BB3B0115255B900A39D3D /* Build configuration list for PBXAggregateTarget "modules" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				717BB3A91152558600A39D3D /* Makefile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Makefile;
+		};
+		717BB4D6115258CE00A39D3D /* Build configuration list for PBXLegacyTarget "MP4Client" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				717BB4D31152588A00A39D3D /* Makefile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Makefile;
+		};
+		717BB66B11525A8700A39D3D /* Build configuration list for PBXLegacyTarget "MP4Box" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				717BB66811525A4D00A39D3D /* Makefile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Makefile;
+		};
+		717BB67511525AD100A39D3D /* Build configuration list for PBXAggregateTarget "all" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				717BB66E11525AA200A39D3D /* Makefile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Makefile;
+		};
+		71D7E30911525E4C003DF497 /* Build configuration list for PBXLegacyTarget "applications" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				71D7E30611525E12003DF497 /* Makefile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Makefile;
+		};
+		71D7E312115778FF003DF497 /* Build configuration list for PBXAggregateTarget "configure" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				71D7E311115778E1003DF497 /* Makefile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Makefile;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 08FB7793FE84155DC02AAC07 /* Project object */;
+}
