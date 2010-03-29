@@ -455,8 +455,13 @@ static DDSurface *DD_GetSurface(GF_VideoOutput *dr, u32 width, u32 height, u32 p
 	DDCONTEXT;
 
 	if (!dd->pDD) return NULL;
+
 	/*yuv format*/
 	if (pixelformat_yuv(pixel_format)) {
+		/*some drivers give broken result if YUV surface dimensions are not even*/
+		while (width%2) width++;
+		while (height%2) height++;
+
 		if (dr->yuv_pixel_format) {
 			DDSurface *yuvp = &dd->yuv_pool;		
 
@@ -544,6 +549,8 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 		h = video_src->height;
 	}
 	/*get RGB or YUV pool surface*/
+	//if (video_src->pixel_format==GF_PIXEL_YUVD) return GF_NOT_SUPPORTED;
+	if (video_src->pixel_format==GF_PIXEL_YUVD) video_src->pixel_format=GF_PIXEL_YV12;
 	pool = DD_GetSurface(dr, w, h, video_src->pixel_format);
 	if (!pool) return GF_IO_ERR;
 
