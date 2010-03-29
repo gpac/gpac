@@ -404,6 +404,12 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 {
 	if (ctx->back_buffer) SDL_FreeSurface(ctx->back_buffer);
 	ctx->back_buffer = NULL;
+	if (ctx->pool_rgb) SDL_FreeSurface(ctx->pool_rgb);
+	ctx->pool_rgb = NULL;
+	if (ctx->pool_rgba) SDL_FreeSurface(ctx->pool_rgba);
+	ctx->pool_rgba = NULL;
+	SDL_FreeYUVOverlay(ctx->yuv_overlay);
+	ctx->yuv_overlay=NULL;
 }
 
 
@@ -936,10 +942,151 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 }
 
 
+static void copy_yuv(u8 *pYD, u8 *pVD, u8 *pUD, u32 pixel_format , u32 pitch_y, unsigned char *src, u32 src_stride, u32 src_pf,
+								 u32 src_width, u32 src_height, const GF_Window *src_wnd)
+{
+	unsigned char *pY, *pU, *pV;
+	pY = src;
+	pU = src + src_stride * src_height;
+	pV = src + 5*src_stride * src_height/4;
+
+
+	pY = pY + src_stride * src_wnd->y + src_wnd->x;
+	/*because of U and V downsampling by 2x2, working with odd Y offset will lead to a half-line shift between Y and UV components. We
+	therefore force an even Y offset for U and V planes.*/
+	pU = pU + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
+	pV = pV + (src_stride * (src_wnd->y / 2) + src_wnd->x) / 2;
+
+
+	/*complete source copy*/
+	if ( (pitch_y == (s32) src_stride) && (src_wnd->w == src_width) && (src_wnd->h == src_height)) {
+		assert(!src_wnd->x);
+		assert(!src_wnd->y);
+		memcpy(pYD, pY, sizeof(unsigned char)*src_width*src_height);
+		memcpy(pVD, pV, sizeof(unsigned char)*src_width*src_height/4);
+		memcpy(pUD, pU, sizeof(unsigned char)*src_width*src_height/4);
+	} else {
+		u32 i;
+		unsigned char *dst, *src, *dst2, *src2, *dst3, *src3;
+
+		src = pY;
+		dst = pYD;
+		
+		src2 = (pixel_format != GF_PIXEL_YV12) ? pU : pV;
+		dst2 = pVD;
+		src3 = (pixel_format  != GF_PIXEL_YV12) ? pV : pU;
+		dst3 = pUD;
+		for (i=0; i<src_wnd->h; i++) {
+			memcpy(dst, src, src_wnd->w);
+			src += src_stride;
+			dst += pitch_y;
+			if (i<src_wnd->h/2) {
+				memcpy(dst2, src2, src_wnd->w/2);
+				src2 += src_stride/2;
+				dst2 += pitch_y/2;
+				memcpy(dst3, src3, src_wnd->w/2);
+				src3 += src_stride/2;
+				dst3 += pitch_y/2;
+			}
+		}
+	}
+}
+
+static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
+{
+	SDLVID();
+	u32 amask = 0;
+	u32 bpp, i, j;
+	u8 *dst, *src;
+	SDL_Rect srcrc, dstrc;
+	SDL_Surface **pool;
+
+	if (overlay_type) {
+		if (!video_src) {
+			if (ctx->yuv_overlay) {
+				SDL_FreeYUVOverlay(ctx->yuv_overlay);
+				ctx->yuv_overlay=NULL;
+			}
+			return GF_OK;
+		}
+		if (!ctx->yuv_overlay || (ctx->yuv_overlay->w != src_wnd->w) || (ctx->yuv_overlay->h != src_wnd->h) ) {
+			if (ctx->yuv_overlay) SDL_FreeYUVOverlay(ctx->yuv_overlay);
+
+			ctx->yuv_overlay = SDL_CreateYUVOverlay(src_wnd->w, src_wnd->h, SDL_YV12_OVERLAY, ctx->screen);
+			if (!ctx->yuv_overlay) return GF_NOT_SUPPORTED;
+		}
+		/*copy pixels*/
+		SDL_LockYUVOverlay(ctx->yuv_overlay);
+
+		copy_yuv(ctx->yuv_overlay->pixels[0], ctx->yuv_overlay->pixels[1], ctx->yuv_overlay->pixels[2], GF_PIXEL_YV12, ctx->yuv_overlay->pitches[0], 
+			video_src->video_buffer, video_src->pitch_y, video_src->pixel_format,
+			video_src->width, video_src->height, src_wnd);
+
+		SDL_UnlockYUVOverlay(ctx->yuv_overlay);
+
+		dstrc.w = dst_wnd->w;
+		dstrc.h = dst_wnd->h;
+		dstrc.x = dst_wnd->x;
+		dstrc.y = dst_wnd->y;
+		SDL_DisplayYUVOverlay(ctx->yuv_overlay, &dstrc);
+		return GF_OK;
+	}
+
+	/*SDL doesn't support stretching ...*/
+	if ((src_wnd->w != dst_wnd->w) || (src_wnd->h!=dst_wnd->h)) return GF_NOT_SUPPORTED;
+
+	switch (video_src->pixel_format) {
+	case GF_PIXEL_RGB_24:
+		pool = &ctx->pool_rgb;
+		bpp = 3;
+		break;
+	case GF_PIXEL_RGBA:
+		pool = &ctx->pool_rgba;
+		amask = 0xFF000000;
+		bpp = 4;
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
+	}
+
+	if (! *pool || ((*pool)->w < src_wnd->w) || ((*pool)->h < src_wnd->h) ) {
+		if ((*pool)) SDL_FreeSurface((*pool));
+		(*pool) = SDL_CreateRGBSurface(ctx->use_systems_memory ? SDL_SWSURFACE : SDL_HWSURFACE, 
+						src_wnd->w, src_wnd->h, 8*bpp, 
+						0x000000FF, 0x0000FF00, 0x00FF0000, amask);
+		if (! (*pool) ) return GF_IO_ERR;
+	}
+
+	SDL_LockSurface(*pool);
+
+	dst = (u8 *) ( (*pool)->pixels);
+	src = video_src->video_buffer + video_src->pitch_y*src_wnd->y + src_wnd->x*bpp;
+	for (i=0; i<src_wnd->h; i++) {
+		memcpy(dst, src, bpp * src_wnd->w);
+		src += video_src->pitch_y;
+		dst += (*pool)->pitch;
+	}
+	SDL_UnlockSurface(*pool);
+
+	srcrc.w = src_wnd->w;
+	srcrc.h = src_wnd->h;
+	srcrc.x = 0;
+	srcrc.y = 0;
+
+	dstrc.w = dst_wnd->w;
+	dstrc.h = dst_wnd->h;
+	dstrc.x = dst_wnd->x;
+	dstrc.y = dst_wnd->y;
+
+	SDL_BlitSurface(*pool, &srcrc, ctx->back_buffer, &dstrc);
+	return GF_OK;
+}
+
 
 
 void *SDL_NewVideo()
 {
+	const char *opt;
 	SDLVidCtx *ctx;
 	GF_VideoOutput *driv;
 	
@@ -964,11 +1111,26 @@ void *SDL_NewVideo()
 	driv->hw_caps |= GF_VIDEO_HW_OPENGL;
 
 	/*no YUV hardware blitting in SDL (only overlays)*/
-
-	/*NO BLIT in SDL (we rely on GPAC to do it by soft)*/
-	driv->Blit = NULL;
+	driv->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY | GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA;
+	driv->Blit = SDL_Blit;
 	driv->LockBackBuffer = SDLVid_LockBackBuffer;
 	driv->LockOSContext = NULL;
+
+	/*color keying with overlays are not supported in SDL ...*/
+#if 0
+	/*get YUV overlay key*/
+	opt = gf_modules_get_option((GF_BaseInterface *)driv, "Video", "OverlayColorKey");
+	/*no set is the default*/
+	if (!opt) {
+		opt = "0101FE";
+		gf_modules_set_option((GF_BaseInterface *)driv, "Video", "OverlayColorKey", "0101FE");
+	}
+	sscanf(opt, "%06x", &driv->overlay_color_key);
+	if (driv->overlay_color_key) driv->overlay_color_key |= 0xFF000000;
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL Out] YUV Overlays enabled - ColorKey enabled: %s (key %x)\n", 
+									driv->overlay_color_key ? "Yes" : "No", driv->overlay_color_key
+							));
+#endif
 	return driv;
 }
 

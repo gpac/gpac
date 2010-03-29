@@ -57,6 +57,9 @@ typedef struct
 	SDL_Surface *screen;
 	SDL_Surface *back_buffer;
 
+	SDL_Surface *pool_rgb, *pool_rgba;
+	SDL_Overlay *yuv_overlay;
+
 	u32 width, height;
 
 	SDL_Surface *offscreen_gl;
