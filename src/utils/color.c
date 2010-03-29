@@ -688,8 +688,8 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		yuv_type = 1;
 		break;
 	case GF_PIXEL_YUVA:
-	case GF_PIXEL_YUVD:
 		has_alpha = 1;
+	case GF_PIXEL_YUVD:
 		yuv_type = 2;
 		break;
 	default:
