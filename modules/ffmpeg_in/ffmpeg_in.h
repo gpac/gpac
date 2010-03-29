@@ -78,27 +78,38 @@ void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl);
 /*FFMPEG decoder module */
 typedef struct 
 {
-	u32 ES_ID;
+	char szCodec[100];
 	u32 out_size;
 	u32 oti, st;
 	u32 previous_par;
 	Bool no_par_update;
 
 	Bool check_short_header;
-	AVCodecContext *ctx;
-    AVCodec *codec;
-	AVFrame *frame;
 	u32 pix_fmt;
 	u32 out_pix_fmt;
-
-#ifdef FFMPEG_SWSCALE
-	struct SwsContext *sws_ctx;
-#endif
 
 	/*for audio packed frames*/
 	u32 frame_start;
 	char audio_buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
 	Bool check_h264_isma;
+
+	u32 base_ES_ID;
+	AVCodecContext *base_ctx;
+	AVCodec *base_codec;
+	AVFrame *base_frame;
+#ifdef FFMPEG_SWSCALE
+	struct SwsContext *base_sws;
+#endif
+
+	u32 depth_ES_ID;
+	u32 yuv_size;
+	AVCodecContext *depth_ctx;
+	AVCodec *depth_codec;
+	AVFrame *depth_frame;
+#ifdef FFMPEG_SWSCALE
+	struct SwsContext *depth_sws;
+#endif
+
 } FFDec;
 
 void *FFDEC_Load();
