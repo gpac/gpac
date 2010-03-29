@@ -497,7 +497,7 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 	FFDec *ffd = plug->privateStack;
 
 
-	if (ffd->base_ES_ID==ES_ID) {
+	if (!ES_ID || (ffd->base_ES_ID==ES_ID)) {
 		ctx = ffd->base_ctx;
 		codec = &ffd->base_codec;
 		frame = ffd->base_frame;
