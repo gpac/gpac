@@ -629,6 +629,9 @@ GF_Err gf_isom_get_audio_info(GF_ISOFile *the_file, u32 trackNumber, u32 StreamD
 /*returns track visual info - all coord values are expressed as 16.16 fixed point floats*/
 GF_Err gf_isom_get_track_layout_info(GF_ISOFile *the_file, u32 trackNumber, u32 *width, u32 *height, s32 *translation_x, s32 *translation_y, s16 *layer);
 
+/*returns track matrix info - all coord values are expressed as 16.16 fixed point floats*/
+GF_Err gf_isom_get_track_matrix(GF_ISOFile *the_file, u32 trackNumber, u32 matrix[9]);
+
 /*returns width and height of the given visual sample desc - error if not a visual track*/
 GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 *hSpacing, u32 *vSpacing);
 
@@ -927,6 +930,9 @@ GF_Err gf_isom_set_visual_info(GF_ISOFile *the_file, u32 trackNumber, u32 Stream
 /*mainly used for 3GPP text since most ISO-based formats ignore these (except MJ2K) 
 all coord values are expressed as 16.16 fixed point floats*/
 GF_Err gf_isom_set_track_layout_info(GF_ISOFile *the_file, u32 trackNumber, u32 width, u32 height, s32 translation_x, s32 translation_y, s16 layer);
+
+/*sets track matrix - all coordinates are expressed as 16.16 floating points*/
+GF_Err gf_isom_set_track_matrix(GF_ISOFile *the_file, u32 trackNumber, u32 matrix[9]);
 
 GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, u32 hSpacing, u32 vSpacing);
 

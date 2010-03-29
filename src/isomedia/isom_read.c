@@ -1998,6 +1998,14 @@ u8 gf_isom_get_pl_indication(GF_ISOFile *movie, u8 PL_Code)
 	}
 }
 
+GF_EXPORT
+GF_Err gf_isom_get_track_matrix(GF_ISOFile *the_file, u32 trackNumber, u32 matrix[9])
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak || !trak->Header) return GF_BAD_PARAM;
+	memcpy(matrix, trak->Header->matrix, sizeof(trak->Header->matrix));
+	return GF_OK;
+}
 
 GF_EXPORT
 GF_Err gf_isom_get_track_layout_info(GF_ISOFile *movie, u32 trackNumber, u32 *width, u32 *height, s32 *translation_x, s32 *translation_y, s16 *layer)
