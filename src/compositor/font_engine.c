@@ -785,7 +785,7 @@ static void span_strike_3d(GF_TextSpan *span, GF_TraverseState *tr_state, DrawAs
 	if (!span->ext->outline) {
 		GF_Path *path = gf_font_span_create_path(span);
 		span->ext->outline = new_mesh();
-#ifndef GPAC_USE_OGL_ES
+#ifdef GPAC_HAS_GLU
 		if (vect_outline) {
 			GF_Path *outline = gf_path_get_outline(path, asp->pen_props);
 			gf_mesh_tesselate_path(span->ext->outline, outline, asp->line_texture ? 2 : 1);
@@ -794,7 +794,6 @@ static void span_strike_3d(GF_TextSpan *span, GF_TraverseState *tr_state, DrawAs
 			mesh_get_outline(span->ext->outline, path);
 		}
 #else
-		/*VECTORIAL TEXT OUTLINE NOT SUPPORTED ON OGL-ES AT CURRENT TIME*/
 		vect_outline = 0;
 		mesh_get_outline(span->ext->outline, path);
 #endif
