@@ -39,6 +39,10 @@
 #endif
 #include "GLES/egl.h"
 
+#ifdef GPAC_HAS_GLU
+/*WARNING - this is NOT a standard include, GLU is not supported by GLES*/
+#include <GLES/glu.h>
+#endif
 
 #elif defined (CONFIG_DARWIN_GL)
 
@@ -55,6 +59,7 @@
 #endif
 
 #endif
+
 
 /*redefine all ext needed*/
 

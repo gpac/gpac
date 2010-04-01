@@ -46,8 +46,12 @@
 
 # else
 #  pragma comment(lib, "opengl32")
-#  pragma comment(lib, "glu32")
 # endif
+
+#ifdef GPAC_HAS_GLU
+#  pragma comment(lib, "glu32")
+#endif
+
 #endif
 
 /*!! HORRIBLE HACK, but on my test devices, it seems that glClipPlanex is missing on the device but not in the SDK lib !!*/

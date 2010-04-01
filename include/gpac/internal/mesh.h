@@ -264,7 +264,7 @@ indices are ignored.
 partially implemented on ogl-ES*/
 void TesselateFaceMesh(GF_Mesh *mesh, GF_Mesh *face);
 
-#ifndef GPAC_USE_OGL_ES
+#ifdef GPAC_HAS_GLU
 /*converts 2D path into a polygon - these are only partially implemented when using oglES
 for_outline:
 	 0, regular odd/even windining rule with texCoords
