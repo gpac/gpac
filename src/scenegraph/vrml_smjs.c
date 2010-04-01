@@ -664,7 +664,7 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 		r->ToField.far_ptr = NULL;
 		/*FIXME - add GC ROOT*/
 		r->ToField.fieldIndex = (u32) JSVAL_TO_OBJECT( argv[2] ) ;
-		JS_AddRoot(c, & r->ToField.fieldIndex);
+//		JS_AddRoot(c, & r->ToField.fieldIndex);
 		r->ToField.NDTtype = argv[3];
 		r->ToField.name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
 
