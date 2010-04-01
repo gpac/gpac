@@ -1334,7 +1334,7 @@ void visual_3d_draw_2d_with_aspect(Drawable *st, GF_TraverseState *tr_state, Dra
 	if (!si->mesh_outline) {
 		si->is_vectorial = !tr_state->visual->compositor->raster_outlines;
 		si->mesh_outline = new_mesh();
-#ifndef GPAC_USE_OGL_ES
+#ifdef GPAC_HAS_GLU
 		if (si->is_vectorial) {
 			gf_mesh_tesselate_path(si->mesh_outline, si->outline, asp->line_texture ? 2 : 1);
 		} else 

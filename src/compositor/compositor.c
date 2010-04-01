@@ -1055,13 +1055,14 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #endif
 
 
+#ifdef GPAC_HAS_GLU
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "RasterOutlines");
+	compositor->raster_outlines = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
+#endif
 	/*currently:
-	- no tesselator for GL-ES, so use raster outlines.
 	- no support for npow2 textures, and no support for DrawPixels
 	*/
 #ifndef GPAC_USE_OGL_ES
-	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "RasterOutlines");
-	compositor->raster_outlines = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "EmulatePOW2");
 	compositor->emul_pow2 = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "BitmapCopyPixels");
@@ -1292,7 +1293,7 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 	case GF_OPT_BACK_CULL: compositor->backcull = value; break;
 	case GF_OPT_WIREFRAME: compositor->wiremode = value; break;
 	case GF_OPT_NORMALS: compositor->draw_normals = value; break;
-#ifndef GPAC_USE_OGL_ES
+#ifdef GPAC_HAS_GLU
 	case GF_OPT_RASTER_OUTLINES: compositor->raster_outlines = value; break;
 #endif
 

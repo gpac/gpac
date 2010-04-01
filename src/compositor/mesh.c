@@ -741,7 +741,7 @@ void mesh_from_path_intern(GF_Mesh *mesh, GF_Path *path, Bool make_ccw)
 		}
 	}
 	/*we need to tesselate the path*/
-#ifndef GPAC_USE_OGL_ES
+#ifdef GPAC_HAS_GLU
 	gf_mesh_tesselate_path(mesh, path, 0);
 #endif
 }
