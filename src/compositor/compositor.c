@@ -244,6 +244,8 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->visual = visual_new(compositor);
 	compositor->visual->GetSurfaceAccess = compositor_2d_get_video_access;
 	compositor->visual->ReleaseSurfaceAccess = compositor_2d_release_video_access;
+	if (compositor->video_out->FlushRectangles)
+		compositor->visual->direct_flush = 1;
 
 	compositor->visual->DrawBitmap = compositor_2d_draw_bitmap;
 
