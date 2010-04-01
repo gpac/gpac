@@ -75,6 +75,11 @@ enum
 	GF_VIDEO_HW_DIRECT_ONLY	= (1<<17),
 };
 
+typedef struct
+{	
+	GF_IRect *list;
+	u32 count;
+} GF_DirtyRectangles;
 
 typedef struct _gf_sc_texture_handler GF_TextureH;
 
@@ -177,6 +182,11 @@ typedef struct _video_out
 	*/
 	void (*ReleaseTexture)(struct _video_out *vout, GF_TextureH *texture);
 
+	/*optional
+		flushes only the listed rectangles
+	*/
+	void (*FlushRectangles)(struct _video_out *vout, GF_DirtyRectangles *rectangles);
+	
 	/*set of above HW flags*/
 	u32 hw_caps;
 	/*main pixel format of video board (informative only)*/

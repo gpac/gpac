@@ -36,6 +36,7 @@
 struct _visual_manager
 {
 	GF_Compositor *compositor;
+	Bool direct_flush;
 
 #ifndef GPAC_DISABLE_3D
 	/*3D type for the visual:

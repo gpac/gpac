@@ -756,6 +756,14 @@ skip_background:
 	visual_2d_flush_overlay_areas(visual, tr_state);
 	if (bck_ctx) bck_ctx->next = NULL;
 
+	if (visual->direct_flush) {
+		GF_DirtyRectangles dr;
+		dr.count = visual->to_redraw.count;
+		dr.list = visual->to_redraw.list;
+		visual->compositor->video_out->FlushRectangles(visual->compositor->video_out, &dr);
+		visual->compositor->skip_flush=1;
+	}
+
 exit:
 	/*clear dirty rects*/
 	ra_clear(&visual->to_redraw);

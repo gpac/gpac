@@ -609,7 +609,6 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
 	if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
 	
-	ctx->aspect.fill_texture->flags |= GF_SR_TEXTURE_USED;
 	if (!alpha) return 1;
 
 	switch (ctx->aspect.fill_texture->pixelformat) {
@@ -635,15 +634,17 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	/*direct drawing, no clippers */
 	if (tr_state->direct_draw) {
 		if (visual->compositor->video_out->BlitTexture) {
-			return visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
+			if (! visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
 #ifdef GF_SR_USE_DEPTH
 				, ctx->depth_offset, ctx->depth_gain
 #else
 				, 0, 0
 #endif
-				);
+				))
+				return 0;
 		} else {
-			return compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0);
+			if (!compositor_2d_draw_bitmap_ex(visual, ctx->aspect.fill_texture, ctx, &ctx->bi->clip, &ctx->bi->unclip, alpha, col_key, tr_state, 0))
+				return 0;
 		}
 	}
 	/*draw bitmap for all dirty rects*/
@@ -673,6 +674,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 			}
 		}
 	}
+	ctx->aspect.fill_texture->flags |= GF_SR_TEXTURE_USED;
 	return 1;
 }
 
