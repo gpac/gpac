@@ -5441,10 +5441,13 @@ GF_Err gf_svg_attributes_muladd(Fixed alpha, GF_FieldInfo *a,
 		} else {
 			/* a and c are matrices but b is not */
 			GF_Matrix2D tmp;
+			/*TOCHECK what is this test*/
+/*
 			if (alpha != FIX_ONE) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] matrix operations not supported\n"));
 				return GF_NOT_SUPPORTED;
 			}
+*/
 			gf_mx2d_init(tmp);
 			switch (b->fieldType) {
 			case SVG_Transform_Translate_datatype:
