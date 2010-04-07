@@ -1112,8 +1112,9 @@ static void svg_animation_smil_update(GF_Node *node, SVGlinkStack *stack, Fixed 
 		if (stack->needs_play) {
 			gf_mo_play(stack->resource, clipBegin, clipEnd, 0);
 			stack->needs_play = 0;
-		} else {
-			new_res = gf_mo_load_xlink_resource(node, 1, clipBegin, clipEnd);
+		} else {            
+            Bool primary = all_atts.gpac_useAsPrimary ? *all_atts.gpac_useAsPrimary : 1;
+            new_res = gf_mo_load_xlink_resource(node, primary, clipBegin, clipEnd);
 			if (new_res != stack->resource) {
 				if (stack->resource) gf_mo_unload_xlink_resource(node, stack->resource);
 				if (all_atts.xlink_href) all_atts.xlink_href->target = NULL;

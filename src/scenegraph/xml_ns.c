@@ -289,6 +289,10 @@ static const struct xml_att_def { const char *name; u32 tag; u32 type; u32 opts;
 	{ "command", TAG_XBL_ATT_command, DOM_String_datatype, 0, GF_XMLNS_XBL },
 	{ "preventdefault", TAG_XBL_ATT_preventdefault, DOM_String_datatype, 0, GF_XMLNS_XBL },
 	{ "src", TAG_XBL_ATT_src, DOM_String_datatype, 0, GF_XMLNS_XBL },
+
+	/*GPAC SVG Extensions*/
+	{ "use-as-primary", TAG_GSVG_ATT_useAsPrimary, SVG_Boolean_datatype, 0, GF_XMLNS_SVG_GPAC_EXTENSION},
+
 };
 
 void gf_xml_push_namespaces(GF_DOMNode *elt)

@@ -91,7 +91,7 @@ enum {
 	TAG_SVG_UndefinedElement
 };
 
-/* Definition of SVG 3 attribute internal tags - 200 defined */
+/* Definition of SVG attribute internal tags - 200 defined */
 /* TAG names are made of "TAG_SVG_ATT_" + SVG attribute name (with - replaced by _) */
 enum {
 	TAG_SVG_ATT_id = TAG_SVG_ATT_RANGE_FIRST,
@@ -480,6 +480,8 @@ struct _all_atts {
 	SVG_Overlay *overlay;
 	SVG_Boolean *fullscreen;
 	SVG_Motion *motionTransform;
+
+    SVG_Boolean *gpac_useAsPrimary;
 };
 #ifdef __cplusplus
 }

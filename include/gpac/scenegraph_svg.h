@@ -114,6 +114,8 @@ enum
 	TAG_XBL_ATT_command,
 	TAG_XBL_ATT_preventdefault,
 	TAG_XBL_ATT_src,
+
+    TAG_GSVG_ATT_useAsPrimary,
 };
 
 
@@ -166,6 +168,8 @@ enum
 	GF_XMLNS_LASER,
 	GF_XMLNS_SVG,
 	GF_XMLNS_XBL,
+
+    GF_XMLNS_SVG_GPAC_EXTENSION,
 
 	/*any other namespace uses the CRC32 of the namespace as an identifier*/
 };
