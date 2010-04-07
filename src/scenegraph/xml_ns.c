@@ -342,6 +342,22 @@ static u32 gf_xml_get_namespace(GF_DOMNode *elt, const char *attribute_name)
 	return gf_xml_get_namespace((GF_DOMNode*)elt->sgprivate->parents->node, attribute_name);
 }
 
+static char *gf_xml_get_namespace_qname(GF_DOMNode *elt, u32 ns)
+{
+	GF_DOMAttribute *att = elt->attributes;
+	while (att) {
+		if (att->tag==TAG_DOM_ATT_any) {
+			GF_DOMFullAttribute *datt = (GF_DOMFullAttribute*)att;
+			if (datt->name && !strncmp(datt->name, "xmlns", 5) && (gf_xml_get_namespace_id(*(DOM_String *)  datt->data)==ns)) {
+				if (datt->name[5]) return datt->name+6;
+				return NULL;
+			}
+		}
+		att = att->next;
+	}
+	if (!elt->sgprivate->parents) return NULL;
+	return gf_xml_get_namespace_qname((GF_DOMNode*)elt->sgprivate->parents->node, ns);
+}
 
 u32 gf_xml_get_attribute_tag(GF_Node *elt, char *attribute_name, u32 ns)
 {
@@ -426,7 +442,7 @@ const char*gf_svg_get_attribute_name(GF_Node *node, u32 tag)
 			if (ns == xml_attributes[i].xmlns)
 				return xml_attributes[i].name;
 
-			xmlns = (char *) gf_sg_get_namespace_qname(node->sgprivate->scenegraph, xml_attributes[i].xmlns);
+			xmlns = (char *) gf_xml_get_namespace_qname((GF_DOMNode*)node, xml_attributes[i].xmlns);
 			if (xmlns) {
 				sprintf(node->sgprivate->scenegraph->szNameBuffer, "%s:%s", xmlns, xml_attributes[i].name);
 				return node->sgprivate->scenegraph->szNameBuffer;
