@@ -58,6 +58,8 @@ struct __tag_scene_engine
 	u32 start_time;
 
     char *dump_path;
+
+	Bool embed_resources;
 };
 
 #ifndef GPAC_DISABLE_BIFS_ENC
@@ -353,7 +355,7 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
     
     if (commands && gf_list_count(commands)) sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, dump_name, "_update");
 	else sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, "rap_", dump_name);
-	dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, ' ', GF_SM_DUMP_DIMS);
+	dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, ' ', seng->embed_resources ? GF_SM_DUMP_DIMS : GF_SM_DUMP_SVG);
 	if (!dumper) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name)); 
 		e = GF_IO_ERR;
@@ -753,7 +755,7 @@ GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, const
 
 
 GF_EXPORT
-GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load_type, char *dump_path)
+GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load_type, char *dump_path, Bool embed_resources)
 {
 	GF_SceneEngine *seng;
 	GF_Err e = GF_OK;
@@ -775,6 +777,7 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load
     seng->loader.type = load_type;
 	/*since we're encoding in BIFS we must get MPEG-4 nodes only*/
 	seng->loader.flags = GF_SM_LOAD_MPEG4_STRICT;
+	seng->embed_resources = embed_resources;
 
 	seng->loader.fileName = inputContext;
 	e = gf_sm_load_init(&(seng->loader));

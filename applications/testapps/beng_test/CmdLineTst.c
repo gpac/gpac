@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 
 	if (dst_port && dst) streams = gf_list_new();
 
-	seng = gf_seng_init(streams, filename, load_type, NULL);
+	seng = gf_seng_init(streams, filename, load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? 1 : 0);
     if (!seng) {
 		fprintf(stdout, "Cannot create scene engine\n");
 		exit(0);

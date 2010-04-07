@@ -45,10 +45,11 @@ typedef void (*gf_seng_callback)(void *udta, u16 ESID, char *data, u32 size, u64
  * @inputContext is the name of a scene file (bt, xmt or mp4) to initialize the coding context
  * @load_type is the prefered loader type for the content (e.g. SVG vs DIMS)
  * @dump_path is the path where scenes are dumped 
+ * @embed_resources indicates if images and scripts should be encoded inlined with the content
  *
  * must be called only one time (by process calling the DLL) before other calls
  */
-GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, u32 load_type, char *dump_path);
+GF_SceneEngine *gf_seng_init(void *calling_object, char *inputContext, u32 load_type, char *dump_path, Bool embed_resources);
 
 /**
  * @calling_object is the calling object on which call back will be called
