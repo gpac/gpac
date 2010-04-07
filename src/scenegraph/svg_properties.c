@@ -961,6 +961,8 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_overlay: all_atts->overlay = (SVG_Overlay *)att->data; break;
 		case TAG_SVG_ATT_fullscreen: all_atts->fullscreen = (SVG_Boolean *)att->data; break;
 		case TAG_SVG_ATT_motionTransform: all_atts->motionTransform = (SVG_Motion *)att->data; break;
+
+        case TAG_GSVG_ATT_useAsPrimary: all_atts->gpac_useAsPrimary = (SVG_Boolean *)att->data; break;
 		}
 		
 		att = att->next;
