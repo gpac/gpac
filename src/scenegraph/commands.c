@@ -792,6 +792,9 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 					} else {
 						gf_svg_attributes_add(&a, &b, &a, 0);
 					}
+					if (a.fieldType==XMLRI_datatype) {
+						gf_node_dirty_set(com->node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+					}
 					/*signal node modif*/
 					gf_node_changed(com->node, &a);
 				}

@@ -30,6 +30,7 @@
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/internal/laser_dev.h>
 #include <gpac/nodes_svg.h>
+#include <gpac/base_coding.h>
 
 #include <gpac/internal/terminal_dev.h>
 
@@ -206,14 +207,65 @@ static void svg_lsr_set_v2(GF_SVG_Parser *parser)
 }
 
 
-static void svg_process_media_href(GF_SVG_Parser *parser, XMLRI *iri)
+static void svg_process_media_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *iri)
 {
-	SVG_SAFExternalStream *st = svg_saf_get_stream(parser, 0, iri->string+1);
-	if (st) {
-		gf_free(iri->string);
-		iri->string = NULL;
-		iri->lsr_stream_id = st->id;
-		iri->type = XMLRI_STREAMID;
+	u32 tag = gf_node_get_tag(elt);
+	
+	if ((tag==TAG_SVG_image) || (tag==TAG_SVG_video) || (tag==TAG_SVG_audio)) {
+		SVG_SAFExternalStream *st = svg_saf_get_stream(parser, 0, iri->string+1);
+		if (st) {
+			gf_free(iri->string);
+			iri->string = NULL;
+			iri->lsr_stream_id = st->id;
+			iri->type = XMLRI_STREAMID;
+			return;
+		}
+	}
+	if ((parser->load->flags & GF_SM_LOAD_EMBEDS_RES) && (iri->type==XMLRI_STRING) ) {
+		u32 size;
+		char *buffer;
+		FILE *f;
+		f = fopen(iri->string, "rb");
+		if (!f) {
+			return;
+		}
+		fseek(f, 0, SEEK_END);
+		size = ftell(f);
+		fseek(f, 0, SEEK_SET);
+
+		buffer = gf_malloc(sizeof(char) * (size+1));
+		fread(buffer, 1, size, f);
+		fclose(f);
+
+
+		if (tag==TAG_SVG_script) {
+			GF_DOMText *dtext;
+			buffer[size]=0;
+			dtext = gf_dom_add_text_node(elt, buffer);
+			dtext->type = GF_DOM_TEXT_CDATA;
+
+			gf_free(iri->string);
+			iri->string=NULL;
+		} else {
+			char *mtype;
+			char *buf64;
+			u32 size64;
+			char *ext;
+			buf64 = gf_malloc(size*2);
+			size64 = gf_base64_encode(buffer, size, buf64, size*2);
+			buf64[size64] = 0;
+			mtype = "application/data";
+			ext = strchr(iri->string, '.');
+			if (ext) {
+				if (!stricmp(ext, ".png")) mtype = "image/png";
+				if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) mtype = "image/jpg";
+			}
+			gf_free(iri->string);
+			iri->string = gf_malloc(sizeof(char)*(40+size64));
+			sprintf(iri->string, "data:%s;base64,%s", mtype, buf64);
+			gf_free(buf64);
+			gf_free(buffer);
+		}
 	}
 }
 
@@ -724,9 +776,9 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 				if (gf_node_get_attribute_by_tag((GF_Node *)elt, TAG_XLINK_ATT_href, 1, 0, &info)==GF_OK) {
 					gf_svg_parse_attribute((GF_Node *)elt, &info, att->value, 0);
 					iri = info.far_ptr;
-					if ((tag==TAG_SVG_image) || (tag==TAG_SVG_video) || (tag==TAG_SVG_audio)) {
-						svg_process_media_href(parser, iri);
-					}
+
+					svg_process_media_href(parser, (GF_Node *)elt, iri);
+					
 					svg_post_process_href(parser, iri);
 					continue;
 				} 
@@ -1036,13 +1088,15 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 			}
 		} else {
 			/*FIXME - handle namespace properly here !!*/
-			info.fieldIndex = gf_xml_get_attribute_tag(parser->command->node, atAtt, parser->current_ns);
+			info.fieldIndex = gf_xml_get_attribute_tag(parser->command->node, atAtt, (strchr(atAtt, ':')==NULL) ? parser->current_ns : 0);
 			info.fieldType = gf_xml_get_attribute_type(info.fieldIndex);
 
 #ifndef GPAC_DISABLE_LASER
+/*
 			if (gf_lsr_anim_type_from_attribute(info.fieldIndex)<0) {
 				return svg_report(parser, GF_BAD_PARAM, "Attribute %s of element %s is not updatable\n", atAtt, gf_node_get_class_name(parser->command->node));
 			}
+*/
 #endif /*GPAC_DISABLE_LASER*/
 		}
 
@@ -1060,7 +1114,11 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 			GF_FieldInfo nf;
 			nf.fieldType = info.fieldType;
 			field->field_ptr = nf.far_ptr = gf_svg_create_attribute_value(info.fieldType);
-			if (field->field_ptr) gf_svg_parse_attribute(parser->command->node, &nf, atValue, (u8) info.fieldType);
+			if (field->field_ptr) {
+				gf_svg_parse_attribute(parser->command->node, &nf, atValue, (u8) info.fieldType);
+				if (info.fieldType==XMLRI_datatype)
+					svg_process_media_href(parser, parser->command->node, (XMLRI*)field->field_ptr);
+			}
 		} else if (opNode) {
 			parser->command->fromNodeID = gf_node_get_id(opNode);
 			/*FIXME - handle namespace properly here !!*/
