@@ -187,6 +187,8 @@ enum
 
 	/* in this mode, each root svg tag will be interpreted as a REPLACE SCENE */
 	GF_SM_LOAD_CONTEXT_STREAMING = 1<<3,
+	/*indicates that external resources in the content should be embedded as if possible*/
+	GF_SM_LOAD_EMBEDS_RES = 1<<4,
 };
 
 /*loader type, usually detected based on file ext*/
@@ -328,8 +330,6 @@ enum
 	GF_SM_DUMP_LASER,
 	/*SVG dump (only dumps svg root of the first LASeR unit*/
 	GF_SM_DUMP_SVG,
-	/*same as GF_SM_DUMP_SVG but embbeds all resources in the dump (script and bas64 images/video/...)*/
-	GF_SM_DUMP_DIMS,
 	/*blind XML dump*/
 	GF_SM_DUMP_XML,
 	/*automatic selection of MPEG4 vs X3D, text mode*/
