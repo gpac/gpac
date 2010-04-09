@@ -6091,6 +6091,8 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_GHNT:
 		case GF_ISOM_BOX_TYPE_RTP_STSD:
 		case GF_ISOM_BOX_TYPE_AVC1:
+		case GF_ISOM_BOX_TYPE_METX:
+		case GF_ISOM_BOX_TYPE_METT:
 		case GF_ISOM_BOX_TYPE_AVC2:
 		case GF_ISOM_BOX_TYPE_SVC1:
 		case GF_ISOM_BOX_TYPE_TX3G:
@@ -7217,10 +7219,16 @@ GF_Err metx_Read(GF_Box *s, GF_BitStream *bs)
 	u32 size, i;
 	char *str;
 	GF_MetaDataSampleEntryBox *ptr = (GF_MetaDataSampleEntryBox*)s;
-	size = (u32) ptr->size;
+
+	gf_bs_read_data(bs, ptr->reserved, 6);
+	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
+
+	size = (u32) ptr->size - 8;
 	str = gf_malloc(sizeof(char)*size);
+
 	i=0;
-	while (i<size) {
+
+	while (size) {
 		str[i] = gf_bs_read_u8(bs);
 		size--;
 		if (!str[i])
@@ -7230,7 +7238,7 @@ GF_Err metx_Read(GF_Box *s, GF_BitStream *bs)
 	if (i) ptr->content_encoding = gf_strdup(str);
 
 	i=0;
-	while (i<size) {
+	while (size) {
 		str[i] = gf_bs_read_u8(bs);
 		size--;
 		if (!str[i])
@@ -7241,7 +7249,7 @@ GF_Err metx_Read(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->type==GF_ISOM_BOX_TYPE_METX) {
 		i=0;
-		while (i<size) {
+		while (size) {
 			str[i] = gf_bs_read_u8(bs);
 			size--;
 			if (!str[i])
@@ -7251,6 +7259,7 @@ GF_Err metx_Read(GF_Box *s, GF_BitStream *bs)
 		if (i) ptr->xml_schema_loc = gf_strdup(str);
 	}
 	ptr->size = size;
+	gf_free(str);
 	return gf_isom_read_box_list(s, bs, metx_AddBox);
 }
 

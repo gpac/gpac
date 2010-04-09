@@ -1398,6 +1398,16 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		s32 tx, ty;
 		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, &l);
 		fprintf(stdout, "3GPP/MPEG-4 Timed Text - Size %d x %d - Translation X=%d Y=%d - Layer %d\n", w, h, tx, ty, l);
+	} else if (mtype == GF_ISOM_MEDIA_META) {
+		Bool is_xml = 0;
+		const char *mime_or_namespace = NULL;
+		const char *content_encoding = NULL;
+		const char *schema_loc = NULL;
+		gf_isom_get_timed_meta_data_info(file, trackNum, 1, &is_xml, &mime_or_namespace, &content_encoding, &schema_loc);
+		fprintf(stdout, "%s Metadata stream\n\t%s %s\n\tencoding %s", is_xml ? "Xml" : "Text", is_xml ? "namespace" : "mime-type", mime_or_namespace, content_encoding);
+		if (is_xml && schema_loc != NULL)
+			fprintf(stdout, "\n\tschema %s\n", schema_loc);
+		fprintf(stdout, "\n");
 	} else {
 		GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(file, trackNum, 1);
 		if (udesc) {
