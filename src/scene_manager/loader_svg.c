@@ -240,12 +240,29 @@ static void svg_process_media_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *i
 
 		if (tag==TAG_SVG_script) {
 			GF_DOMText *dtext;
+			GF_DOMAttribute *att, *prev;
 			buffer[size]=0;
 			dtext = gf_dom_add_text_node(elt, buffer);
 			dtext->type = GF_DOM_TEXT_CDATA;
 
 			gf_free(iri->string);
 			iri->string=NULL;
+
+			/*delete attribute*/
+			att = ((GF_DOMNode*)elt)->attributes;
+			prev = NULL;
+			while(att) {
+				if (att->tag!=TAG_XLINK_ATT_href) {
+					prev = att;
+					att = att->next;
+					continue;
+				}
+				gf_svg_delete_attribute_value(att->data_type, att->data, elt->sgprivate->scenegraph);
+				if (prev) prev->next = att->next;
+				else ((GF_DOMNode*)elt)->attributes = att->next;
+				gf_free(att);
+				break;
+			}
 		} else {
 			char *mtype;
 			char *buf64;
