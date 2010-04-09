@@ -181,6 +181,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
 		else if (!strnicmp(ext+1, "fps=", 4)) {
 			if (!strcmp(ext+5, "auto")) force_fps = 10000.0;
+			else if (strchr(ext+5, '-')) {
+				u32 ticks, dts_inc;
+				sscanf(ext+5, "%d-%d", &ticks, &dts_inc);
+				if (!dts_inc) dts_inc=1;
+				force_fps = ticks;
+				force_fps /= dts_inc;
+			}
 			else force_fps = atof(ext+5);
 		}
 		else if (!stricmp(ext+1, "chap")) is_chap = 1;

@@ -58,6 +58,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 #endif
 
 GF_Err dump_cover_art(GF_ISOFile *file, char *inName);
+GF_Err dump_chapters(GF_ISOFile *file, char *inName);
 u32 id3_get_genre_tag(const char *name);
 
 /*in filedump.c*/
@@ -321,6 +322,7 @@ void PrintImportUsage()
 			" -sbrx                  non-backward compatible signaling of AAC-SBR\n"
 			"                         * Note: SBR AAC cannot be detected at import time\n"
 			" -fps FPS               forces frame rate for video and SUB subtitles import\n"
+			"                         FPS is either a number or expressed as timescale-increment\n"
 			"                         * For raw H263 import, default FPS is 15\n"
 			"                         * For all other imports, default FPS is 25\n"
 			"                         !! THIS IS IGNORED FOR IsoMedia IMPORT !!\n"
@@ -466,6 +468,8 @@ void PrintDumpUsage()
 			" -dts                 prints sample timing to text output\n"
 			" -sdp                 dumps SDP description of hinted file\n"
 			" -dcr                 ISMACryp samples structure to XML output\n"
+			" -dump-cover          Extracts cover art\n"
+			" -dump-chap           Extracts chapter file\n"
 			"\n"
 #ifndef GPAC_DISABLE_ISOM_WRITE
 			" -ttxt                Converts input subtitle to GPAC TTXT format\n"
@@ -1153,7 +1157,7 @@ int main(int argc, char **argv)
 	u64 movie_time;
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts;
-	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle;
+	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat;
 	GF_ISOFile *file;
@@ -1178,7 +1182,7 @@ int main(int argc, char **argv)
 	MTUSize = 1450;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
-	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
+	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
@@ -1323,6 +1327,7 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-statx")) stat_level = 3;
 		else if (!stricmp(arg, "-diso")) dump_isom = 1;
 		else if (!stricmp(arg, "-dump-cover")) dump_cart = 1;
+		else if (!stricmp(arg, "-dump-chap")) dump_chap = 1;
 		else if (!stricmp(arg, "-hash")) do_hash = 1;
 
 		else if (!stricmp(arg, "-dmp4")) {
@@ -1663,7 +1668,13 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-fps")) { 
 			CHECK_NEXT_ARG 
 			if (!strcmp(argv[i+1], "auto")) import_fps = 10000.0;
-			else import_fps = atof(argv[i+1]);
+			else if (strchr(argv[i+1], '-')) {
+				u32 ticks, dts_inc;
+				sscanf(argv[i+1], "%d-%d", &ticks, &dts_inc);
+				if (!dts_inc) dts_inc=1;
+				import_fps = ticks;
+				import_fps /= dts_inc;
+			} else import_fps = atof(argv[i+1]);
 			i++; 
 		}
 		else if (!stricmp(arg, "-agg")) { CHECK_NEXT_ARG agg_samples = atoi(argv[i+1]); i++; }
@@ -2361,6 +2372,7 @@ int main(int argc, char **argv)
 		fprintf(stdout, "\n");
 	}
 	if (dump_cart) dump_cover_art(file, outfile);
+	if (dump_chap) dump_chapters(file, outfile);
 
 	if (dump_iod) {
 		GF_InitialObjectDescriptor *iod = (GF_InitialObjectDescriptor *)gf_isom_get_root_od(file);
