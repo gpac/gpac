@@ -5951,6 +5951,7 @@ void traf_del(GF_Box *s)
 	GF_TrackFragmentBox *ptr = (GF_TrackFragmentBox *)s;
 	if (ptr == NULL) return;
 	if (ptr->tfhd) gf_isom_box_del((GF_Box *) ptr->tfhd);
+	if (ptr->sdtp) gf_isom_box_del((GF_Box *) ptr->sdtp);
 	gf_isom_box_array_del(ptr->TrackRuns);
 	gf_free(ptr);
 }
@@ -5966,7 +5967,10 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_TRUN:
 		return gf_list_add(ptr->TrackRuns, a);
-
+	case GF_ISOM_BOX_TYPE_SDTP:
+		if (ptr->sdtp) return GF_ISOM_INVALID_FILE;
+		ptr->sdtp = (GF_SampleDependencyTypeBox *)a;
+		return GF_OK;
 	default:
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -5975,7 +5979,8 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err traf_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, traf_AddBox);
+	GF_Err e = gf_isom_read_box_list(s, bs, traf_AddBox);
+	return e;
 }
 
 GF_Box *traf_New()
@@ -6007,7 +6012,12 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->tfhd, bs);
 		if (e) return e;
 	}
-	return gf_isom_box_array_write(s, ptr->TrackRuns, bs);
+	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
+	if (e) return e;
+	if (ptr->sdtp) {
+		e = gf_isom_box_write((GF_Box *) ptr->sdtp, bs);
+	}
+	return e;
 }
 
 GF_Err traf_Size(GF_Box *s)
@@ -6021,6 +6031,11 @@ GF_Err traf_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->tfhd);
 		if (e) return e;
 		ptr->size += ptr->tfhd->size;
+	}
+	if (ptr->sdtp) {
+		e = gf_isom_box_size((GF_Box *) ptr->sdtp);
+		if (e) return e;
+		ptr->size += ptr->sdtp->size;
 	}
 	return gf_isom_box_array_size(s, ptr->TrackRuns);
 }

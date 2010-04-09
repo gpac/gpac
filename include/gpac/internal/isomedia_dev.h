@@ -1446,6 +1446,7 @@ typedef struct
 	GF_List *TrackRuns;
 	/*keep a pointer to default flags*/
 	GF_TrackExtendsBox *trex;
+	GF_SampleDependencyTypeBox *sdtp;
 	/*when data caching is on*/
 	u32 DataCache;
 } GF_TrackFragmentBox;
