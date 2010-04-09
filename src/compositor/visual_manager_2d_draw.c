@@ -594,3 +594,62 @@ void visual_2d_fill_rect(GF_VisualManager *visual, DrawableContext *ctx, GF_Rect
 
 	gf_path_del(path);
 }
+
+void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 strike)
+{
+	GF_Path *path;
+	GF_Path *outline;
+	GF_PenSettings pen;
+	GF_Raster2D *raster = visual->compositor->rasterizer;
+#ifdef SKIP_DRAW
+	return;
+#endif
+
+	if (!rc) return;
+	if (!visual->raster_surface) return;
+	if (!fill && !strike ) return;
+
+	/*no aa*/
+	visual_2d_set_options(visual->compositor, visual->raster_surface, 0, 1);
+	raster->surface_set_matrix(visual->raster_surface, NULL);
+
+	raster->surface_set_raster_level(visual->raster_surface, GF_RASTER_HIGH_SPEED);
+	raster->surface_set_matrix(visual->raster_surface, NULL);
+
+	path = gf_path_new();
+	gf_path_add_move_to(path, INT2FIX(rc->x-1), INT2FIX(rc->y+2-rc->height));
+	gf_path_add_line_to(path, INT2FIX(rc->x+rc->width-2), INT2FIX(rc->y+2-rc->height));
+	gf_path_add_line_to(path, INT2FIX(rc->x+rc->width), INT2FIX(rc->y));
+	gf_path_add_line_to(path, INT2FIX(rc->x), INT2FIX(rc->y));
+	gf_path_close(path);
+
+	if (fill) {
+		raster->surface_set_path(visual->raster_surface, path);
+		raster->stencil_set_brush_color(visual->raster_brush, fill);
+
+		raster->surface_set_clipper(visual->raster_surface, rc);
+		raster->surface_fill(visual->raster_surface, visual->raster_brush);
+
+		raster->surface_set_path(visual->raster_surface, NULL);
+	}
+
+	if (strike) {
+		memset(&pen, 0, sizeof(GF_PenSettings));
+		pen.width = 2;
+		pen.align = GF_PATH_LINE_INSIDE;
+		pen.join = GF_LINE_JOIN_BEVEL;
+		outline = gf_path_get_outline(path, pen);	
+		outline->flags &= ~GF_PATH_FILL_ZERO_NONZERO;
+
+		raster->surface_set_path(visual->raster_surface, outline);
+		raster->stencil_set_brush_color(visual->raster_brush, strike);
+
+		raster->surface_set_clipper(visual->raster_surface, rc);
+		raster->surface_fill(visual->raster_surface, visual->raster_brush);
+
+		raster->surface_set_path(visual->raster_surface, NULL);
+		gf_path_del(outline);
+	}
+
+	gf_path_del(path);
+}
