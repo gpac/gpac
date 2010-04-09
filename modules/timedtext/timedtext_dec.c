@@ -88,7 +88,7 @@ typedef struct
 	GF_List *blink_nodes;
 	u32 scroll_type, scroll_mode;
 	Fixed scroll_time, scroll_delay;
-	Bool is_active, use_texture;
+	Bool is_active, use_texture, outline;
 } TTDPriv;
 
 
@@ -340,6 +340,8 @@ static GF_Err TTD_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	/*option setup*/
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "StreamingText", "UseTexturing");
 	priv->use_texture = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "StreamingText", "OutlineText");
+	priv->outline = (opt && !strcmp(opt, "yes")) ? 1 : 0;
 	return e;
 }
 
@@ -568,6 +570,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 	on text box size (in MP4Box, it actually defaults to the entire video area) and drawing a too large texture
 	& bitmap could slow down rendering*/
 	if (priv->use_texture) strcat(szStyle, " TEXTURED");
+	if (priv->outline) strcat(szStyle, " OUTLINED");
 
 	fs->style.buffer = gf_strdup(szStyle);
 	fs->horizontal = (tsd->displayFlags & GF_TXT_VERTICAL) ? 0 : 1;

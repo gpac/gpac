@@ -473,7 +473,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 	}
 }
 
-static void text_get_draw_opt(GF_Node *node, TextStack *st, Bool *force_texture, u32 *hl_color)
+static void text_get_draw_opt(GF_Node *node, TextStack *st, Bool *force_texture, u32 *hl_color, DrawAspect2D *asp)
 {
 	const char *fs_style;
 	char *hlight;
@@ -495,6 +495,14 @@ static void text_get_draw_opt(GF_Node *node, TextStack *st, Bool *force_texture,
 	}
 	*force_texture = st->texture_text_flag;
 	if (strstr(fs_style, "TEXTURED")) *force_texture  = 1;
+	if (strstr(fs_style, "OUTLINED")) {
+		if (!asp->pen_props.width) {
+			asp->pen_props.width = FIX_ONE/2;
+			asp->pen_props.align = GF_PATH_LINE_OUTSIDE;
+			asp->line_scale=FIX_ONE;
+			asp->line_color = 0xFF000000;
+		}
+	}
 }
 
 
@@ -524,7 +532,7 @@ static void text_draw_3d(GF_TraverseState *tr_state, GF_Node *node, TextStack *s
 		asp = &the_asp;
 		drawable_get_aspect_2d_mpeg4(node, asp, tr_state);
 	}
-	text_get_draw_opt(node, st, &force_texture, &hl_color);
+	text_get_draw_opt(node, st, &force_texture, &hl_color, asp);
 	gf_font_spans_draw_3d(st->spans, tr_state, asp, hl_color, force_texture);
 }
 
@@ -541,7 +549,7 @@ void text_draw_2d(GF_Node *node, GF_TraverseState *tr_state)
 
 	if (!GF_COL_A(tr_state->ctx->aspect.fill_color) && !tr_state->ctx->aspect.pen_props.width) return;
 
-	text_get_draw_opt(node, st, &force_texture, &hl_color);
+	text_get_draw_opt(node, st, &force_texture, &hl_color, &tr_state->ctx->aspect);
 
 	tr_state->text_parent = node;
 	gf_font_spans_draw_2d(st->spans, tr_state, hl_color, force_texture, &st->bounds);
