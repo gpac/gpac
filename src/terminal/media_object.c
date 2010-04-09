@@ -689,7 +689,6 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 	u32 i;
 	char szURL1[GF_MAX_PATH], szURL2[GF_MAX_PATH], *ext;
 
-	if (keep_fragment) *keep_fragment = 0;
 	if (obj->OD_ID==GF_MEDIA_EXTERNAL_ID) {
 		if (!obj->URLs.count) {
 			if (!obj->odm) return 0;
@@ -703,11 +702,10 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 	}
 
 	/*don't analyse audio/video to locate segments or viewports*/
-	if (obj->type==GF_MEDIA_OBJECT_AUDIO) 
+	if ((obj->type==GF_MEDIA_OBJECT_AUDIO) || (obj->type==GF_MEDIA_OBJECT_VIDEO)) {
+		if (keep_fragment) *keep_fragment = 0;
 		include_sub_url = 1;
-	else if (obj->type==GF_MEDIA_OBJECT_VIDEO) 
-		include_sub_url = 1;
-	else if ((obj->type==GF_MEDIA_OBJECT_SCENE) && keep_fragment && obj->odm) {
+	} else if ((obj->type==GF_MEDIA_OBJECT_SCENE) && keep_fragment && obj->odm) {
 		GF_ClientService *ns;
 		u32 j;
 		/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
@@ -726,15 +724,11 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 
 				/*if we're talking about the same resource, check if the fragment can be matched*/
 				if (same_res) {
-					/*if the expected type is a segment (undefined media type) 
-					and the fragment is a media segment, same URL
-					*/
+					/*if the fragment is a node which can be found, this is the same resource*/
 					if (obj->odm->subscene && (gf_sg_find_node_by_name(obj->odm->subscene->graph, frag+1)!=NULL) )
 						return 1;
 				
-					/*if the expected type is a segment (undefined media type) 
-					and the fragment is a media segment, same URL
-					*/
+					/*if the expected type is an existing segment (undefined media type), this is the same resource*/
 					if (!obj_hint_type && gf_odm_find_segment(obj->odm, frag+1))
 						return 1;
 				}

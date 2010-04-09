@@ -4371,6 +4371,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 		for (i=0; i<count; i++) {
 			char szBuf[1000];
 			SMIL_Time *t = (SMIL_Time *)gf_list_get(l, i);
+			szBuf[0] = 0;
 			if (t->type == GF_SMIL_TIME_CLOCK) {
 				sprintf(szBuf, "%gs", t->clock);
 			} else if (t->type==GF_SMIL_TIME_INDEFINITE) {
@@ -4407,9 +4408,11 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 					strcat(szBuf, szCk);
 				}
 			}
-			attVal = gf_realloc(attVal, sizeof(char)*(strlen(attVal)+strlen(szBuf)+ (i ? 2 : 1) ));
-			if (i) strcat(attVal, ";");
-			strcat(attVal, szBuf);
+			if (szBuf[0]) {
+				attVal = gf_realloc(attVal, sizeof(char)*(strlen(attVal)+strlen(szBuf)+ (i ? 2 : 1) ));
+				if ( strlen(attVal) ) strcat(attVal, ";");
+				strcat(attVal, szBuf);
+			}
 		}
 		return attVal;
 	}
