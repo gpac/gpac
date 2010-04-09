@@ -118,6 +118,7 @@ GF_Err dump_cover_art(GF_ISOFile *file, char *inName)
 	fclose(t);
 	return GF_OK;
 }
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err set_cover_art(GF_ISOFile *file, char *inName)
@@ -998,6 +999,33 @@ static char *format_date(u64 time, char *szTime)
 	}
 	return szTime;
 }
+
+
+
+
+GF_Err dump_chapters(GF_ISOFile *file, char *inName)
+{
+	char szName[1024];
+	FILE *t;
+	u32 i, count;
+	count = gf_isom_get_chapter_count(file, 0);
+	sprintf(szName, "%s.chap", inName);
+	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Extracting chapters to %s\n", szName));
+
+	t = fopen(szName, "wt");
+	if (!t) return GF_IO_ERR;
+	
+	for (i=0; i<count;i++) {
+		u64 chapter_time;
+		const char *name;
+		gf_isom_get_chapter(file, 0, i+1, &chapter_time, &name);
+		chapter_time /= 1000;
+		fprintf(t, "AddChapterBySecond("LLD",%s)\n", chapter_time, name);
+	}
+	fclose(t);
+	return GF_OK;
+}
+
 
 static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *name)
 {

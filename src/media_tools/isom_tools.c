@@ -807,7 +807,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 	u32 state, unicode_type, offset;
 	u32 cur_chap;
 	u64 ts;
-	u32 h, m, s, ms, fr, fps;
+	u32 i, h, m, s, ms, fr, fps;
 	char line[1024];
 	char szTitle[1024];
 	FILE *f = fopen(chap_file, "rt");
@@ -835,6 +835,24 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 
 	e = gf_isom_remove_chapter(file, 0, 0);
 	if (e) goto err_exit;
+
+	/*try to figure out the frame rate*/
+	for (i=0; i<gf_isom_get_track_count(file); i++) {
+		GF_ISOSample *samp;
+		u32 ts, inc;
+		if (gf_isom_get_media_type(file, i+1) != GF_ISOM_MEDIA_VISUAL) continue;
+		if (gf_isom_get_sample_count(file, i+1) < 20) continue;
+		samp = gf_isom_get_sample_info(file, 1, 2, NULL, NULL);
+		inc = (u32) samp->DTS;
+		if (!inc) inc=1;
+		ts = gf_isom_get_media_timescale(file, i+1);
+		import_fps = ts;
+		import_fps /= inc;
+		gf_isom_sample_del(&samp);
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Chapter import] Guessed video frame rate %g (%d:%d)\n", import_fps, ts, inc));
+		break;
+	}
+
 
 	cur_chap = 0;
 	ts = 0;
