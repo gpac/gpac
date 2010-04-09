@@ -6100,7 +6100,7 @@ GF_Err gf_import_ac3(GF_MediaImporter *import)
 
 	samp = NULL;
 	nb_chan = hdr.channels;
-	gf_import_message(import, GF_OK, "AC3 import - sample rate %d - %d%s channel%s", sr, nb_chan, hdr.lfon?".1":"", (nb_chan>1) ? "s" : "");
+	gf_import_message(import, GF_OK, "AC3 import - sample rate %d - %d%s channel%s", sr, hdr.lfon ? (nb_chan-1) : nb_chan, hdr.lfon?".1":"", (nb_chan>1) ? "s" : "");
 
 	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, sr);
 	if (!track) {
