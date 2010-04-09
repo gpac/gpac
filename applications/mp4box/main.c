@@ -1150,8 +1150,6 @@ int main(int argc, char **argv)
 	Double InterleavingTime, split_duration, split_start, import_fps;
 	SDPLine sdp_lines[MAX_CUMUL_OPS];
 	MetaAction metas[MAX_CUMUL_OPS];
-	char *szFilesToCat[MAX_CUMUL_OPS];
-	char *szTracksToAdd[MAX_CUMUL_OPS];
 	TrackAction tracks[MAX_CUMUL_OPS];
 	TSELAction tsel_acts[MAX_CUMUL_OPS];
 	u64 movie_time;
@@ -1486,21 +1484,11 @@ int main(int argc, char **argv)
 			CHECK_NEXT_ARG
 			if (!stricmp(arg, "-import")) fprintf(stdout, "\tWARNING: \"-import\" is deprecated - use \"-add\"\n");
 			else if (!stricmp(arg, "-convert")) fprintf(stdout, "\tWARNING: \"-convert\" is deprecated - use \"-add\"\n");
-			if (nb_add>=MAX_CUMUL_OPS) {
-				fprintf(stdout, "Sorry - no more than %d add operations allowed\n", MAX_CUMUL_OPS);
-				return 1;
-			}
-			szTracksToAdd[nb_add] = argv[i+1];
 			nb_add++;
 			i++;
 		}
 		else if (!stricmp(arg, "-cat")) {
 			CHECK_NEXT_ARG
-			if (nb_cat>=MAX_CUMUL_OPS) {
-				fprintf(stdout, "Sorry - no more than %d cat operations allowed\n", MAX_CUMUL_OPS);
-				return 1;
-			}
-			szFilesToCat[nb_cat] = argv[i+1];
 			nb_cat++;
 			i++;
 		}
@@ -2087,14 +2075,18 @@ int main(int argc, char **argv)
 			fprintf(stdout, "Cannot open destination file %s: %s\n", inName, gf_error_to_string(gf_isom_last_error(NULL)) );
 			return 1;
 		}
-		for (i=0; i<nb_add; i++) {
-			e = import_file(file, szTracksToAdd[i], import_flags, import_fps, agg_samples);
-			if (e) {
-				fprintf(stdout, "Error importing %s: %s\n", szTracksToAdd[i], gf_error_to_string(e));
-				gf_isom_delete(file);
-				return 1;
+		for (i=0; i<(u32) argc; i++) {
+			if (!strcmp(argv[i], "-add")) {
+				e = import_file(file, argv[i+1], import_flags, import_fps, agg_samples);
+				if (e) {
+					fprintf(stdout, "Error importing %s: %s\n", argv[i+1], gf_error_to_string(e));
+					gf_isom_delete(file);
+					return 1;
+				}
+				i++;
 			}
 		}
+
 		/*unless explicitly asked, remove all systems tracks*/
 		if (!keep_sys_tracks) remove_systems_tracks(file);
 		needSave = 1;
@@ -2122,12 +2114,15 @@ int main(int argc, char **argv)
 				return 1;
 			}
 		}
-		for (i=0; i<nb_cat; i++) {
-			e = cat_isomedia_file(file, szFilesToCat[i], import_flags, import_fps, agg_samples, tmpdir, force_cat);
-			if (e) {
-				fprintf(stdout, "Error appending %s: %s\n", szFilesToCat[i], gf_error_to_string(e));
-				gf_isom_delete(file);
-				return 1;
+		for (i=0; i<(u32)argc; i++) {
+			if (!strcmp(argv[i], "-cat")) {
+				e = cat_isomedia_file(file, argv[i+1], import_flags, import_fps, agg_samples, tmpdir, force_cat);
+				if (e) {
+					fprintf(stdout, "Error appending %s: %s\n", argv[i+1], gf_error_to_string(e));
+					gf_isom_delete(file);
+					return 1;
+				}
+				i++;
 			}
 		}
 		/*unless explicitly asked, remove all systems tracks*/
@@ -2624,7 +2619,7 @@ int main(int argc, char **argv)
 							s32 count = gf_isom_get_reference_count(file, j+1, GF_4CC('c','h','a','p'));
 							if (count>0) {
 								u32 tk, k;
-								for (k=0; k<count; k++) {
+								for (k=0; k<(u32) count; k++) {
 									gf_isom_get_reference(file, j+1, GF_4CC('c','h','a','p'), k+1, &tk);
 									if (tk==i+1) {
 										is_chap = 1;
