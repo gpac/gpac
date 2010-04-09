@@ -2080,6 +2080,7 @@ GF_Err traf_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	if (p->tfhd) gf_box_dump(p->tfhd, trace);
 	gf_box_array_dump(p->TrackRuns, trace);
+	if (p->sdtp) gf_box_dump(p->sdtp, trace);
 	fprintf(trace, "</TrackFragmentBox>\n");
 	return GF_OK;
 }
