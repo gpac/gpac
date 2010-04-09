@@ -114,7 +114,6 @@ static Bool MP3_ConfigureFromFile(MP3Reader *read)
 	if (!read->stream) return 0;
 
 	hdr = gf_mp3_get_next_header(read->stream);
-	hdr = gf_mp3_get_next_header(read->stream);
 	if (!hdr) return 0;
 	read->sample_rate = gf_mp3_sampling_rate(hdr);
 	read->oti = gf_mp3_object_type_indication(hdr);
@@ -159,10 +158,7 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 	u32 hdr, size, pos;
 
 	if (read->needs_connection) {
-		u32 pos2;
 		hdr = gf_mp3_get_next_header_mem(data, data_size, &pos);
-		if (!hdr) return;
-		hdr = gf_mp3_get_next_header_mem(data+pos, data_size-pos, &pos2);
 		if (!hdr) return;
 
 		read->sample_rate = gf_mp3_sampling_rate(hdr);
