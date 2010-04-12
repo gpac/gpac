@@ -146,17 +146,33 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 	return 0;
 }
 
+
+static Bool term_find_res(GF_TermLocales *loc, char *parent, char *path, char *relocated_path, char *localized_rel_path)
+{
+	FILE *f;
+
+	if (loc->szAbsRelocatedPath) gf_free(loc->szAbsRelocatedPath);
+	loc->szAbsRelocatedPath = gf_url_concatenate(parent, path);
+	if (!loc->szAbsRelocatedPath) loc->szAbsRelocatedPath = gf_strdup(path);
+
+	f = fopen(loc->szAbsRelocatedPath, "rb");
+	if (f) {
+		fclose(f);
+		strcpy(localized_rel_path, path);
+		strcpy(relocated_path, loc->szAbsRelocatedPath);
+		return 1;
+	}
+	return 0;
+}
+
 /* Checks if, for a given relative path, there exists a localized version in an given folder
    if this is the case, it returns the absolute localized path, otherwise it returns null.
    if the resource was localized, the last parameter is set to the localized relative path.
 */
 static Bool term_check_locales(void *__self, const char *locales_parent_path, const char *rel_path, char *relocated_path, char *localized_rel_path)
 {
-	FILE *f;
-	char *str;
+	char path[GF_MAX_PATH];
 	const char *opt;
-	u32 len;
-	Bool try_locale = 1;
 
 	GF_TermLocales *loc = (GF_TermLocales*)__self;
 
@@ -171,35 +187,52 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 		return 0;
 	}
 	opt = gf_cfg_get_key(loc->term->user->config, "Systems", "Language2CC");
-	if (!opt) {
-		gf_cfg_set_key(loc->term->user->config, "Systems", "Language2CC", "und");
-		opt = "und";
+	if (opt) {
+		if (!strcmp(opt, "*") || !strcmp(opt, "un") )
+			opt = NULL;
 	}
 
+	while (opt) {
+		char lan[100];
+		char *sep;
+		char *sep_lang = strchr(opt, ';');
+		if (sep_lang) sep_lang[0] = 0;
 
-	len = strlen(rel_path);
-	str = gf_malloc(sizeof(char) * (len+20));
-	sprintf(str, "locales/%s/%s", opt, rel_path);
+		while (strchr(" \t", opt[0]))
+			opt++;
 
-restart:
-	if (loc->szAbsRelocatedPath) gf_free(loc->szAbsRelocatedPath);	
-	loc->szAbsRelocatedPath = gf_url_concatenate(locales_parent_path, str);
-	if (!loc->szAbsRelocatedPath) loc->szAbsRelocatedPath = gf_strdup(str);
-	
-	f = fopen(loc->szAbsRelocatedPath, "rb");
-	if (f) {
-		fclose(f);
-		strcpy(localized_rel_path, str);
-		strcpy(relocated_path, loc->szAbsRelocatedPath);
+		strcpy(lan, opt);
+
+		if (sep_lang) {
+			sep_lang[0] = ';';
+			opt = sep_lang+1;
+		} else { 
+			opt = NULL;
+		}
+
+		while (1) {
+			sep = strstr(lan, "-*");
+			if (!sep) break;
+			strncpy(sep, sep+2, strlen(sep)-2);
+		}
+
+		sprintf(path, "locales/%s/%s", lan, rel_path);
+		if (term_find_res(loc, (char *) locales_parent_path, (char *) path, relocated_path, localized_rel_path)) 
+			return 1;
+
+		/*recursively remove region (sub)tags*/
+		while (1) {
+			sep = strrchr(lan, '-');
+			if (!sep) break;
+			sep[0] = 0;
+			sprintf(path, "locales/%s/%s", lan, rel_path);
+			if (term_find_res(loc, (char *) locales_parent_path, (char *) path, relocated_path, localized_rel_path)) 
+				return 1;
+		}
+	}
+
+	if (term_find_res(loc, (char *) locales_parent_path, (char *) rel_path, relocated_path, localized_rel_path)) 
 		return 1;
-	}
-	if (try_locale) {
-		try_locale = 0;
-		gf_free(str);
-		str = (char *)rel_path;
-		goto restart;
-	}
-
 	/* if we did not find the localized file, both the relocated and localized strings are NULL */
 	strcpy(localized_rel_path, "");
 	strcpy(relocated_path, "");
