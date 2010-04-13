@@ -754,7 +754,9 @@ skip_background:
 	}
 	/*flush pending contexts due to overlays*/
 	visual_2d_flush_overlay_areas(visual, tr_state);
+#ifndef GPAC_DISABLE_VRML
 	if (bck_ctx) bck_ctx->next = NULL;
+#endif
 
 	if (visual->direct_flush) {
 		GF_DirtyRectangles dr;

@@ -28,6 +28,8 @@
 #include "visual_manager.h"
 #include "texturing.h"
 
+#ifndef GPAC_DISABLE_VRML
+
 typedef struct _bitmap_stack
 {
 	Drawable *graph;
@@ -267,3 +269,4 @@ void compositor_init_bitmap(GF_Compositor  *compositor, GF_Node *node)
 	gf_node_set_callback_function(node, TraverseBitmap);
 }
 
+#endif
