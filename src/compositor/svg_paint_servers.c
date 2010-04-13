@@ -244,7 +244,7 @@ static void svg_gradient_traverse(GF_Node *node, GF_TraverseState *tr_state, Boo
 
 static void svg_update_gradient(SVG_GradientStack *st, GF_ChildNodeItem *children, Bool linear)
 {
-	SVGPropertiesPointers *svgp;
+	SVGPropertiesPointers *svgp, *backup;
 	GF_Node *node = st->txh.owner;
 	GF_TraverseState *tr_state = st->txh.compositor->traverse_state;
 
