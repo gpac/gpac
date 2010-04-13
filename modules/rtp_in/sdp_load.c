@@ -329,41 +329,19 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 	}
 
 	if (sdp) {
-		char *cache = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), 
-			"Streaming", "SessionMigrationFile");
+		char *opt;
+		opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), 
+			"Streaming", "SessionMigration");
 
-		if (cache && cache[0]) {
-			char *out = NULL;
-
-			if (!strncmp(cache, "http://", 7)) {
-				char temp[20];
-				char *cdir = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), 
-					"General", "CacheDirectory");
-
-				rtp->session_state = gf_malloc(sizeof(char)*4096);
-				strcpy(rtp->session_state, cdir);
-				strcat(rtp->session_state, "/");
-				sprintf(temp, "mig%08x.sdp", (u32) rtp);
-				strcat(rtp->session_state, temp);
-
-				rtp->remote_session_state = gf_strdup(cache);
-			} else {
-				rtp->session_state = gf_strdup(cache);
-			}
-
-			gf_sdp_info_write(sdp, &out);
-			if (out) {
-				FILE *f = fopen(rtp->session_state, "wb");
-				if (f) {
-					fprintf(f, "%s", out);
-					fclose(f);
-				} else {
-					gf_free(rtp->session_state);
-					rtp->session_state = NULL;
-				}
-				gf_free(out);
-			}
+		if (opt && !strcmp(opt, "yes")) {
+			char *buf;
+			gf_sdp_info_write(sdp, &buf);
+			rtp->session_state_data = gf_malloc(sizeof(char) * (strlen("data:application/sdp,") + strlen(buf) + 1) );
+			strcpy(rtp->session_state_data, "data:application/sdp,");
+			strcat(rtp->session_state_data, buf);
+			gf_free(buf);
 		}
+
 		gf_sdp_info_del(sdp);
 	}
 }
@@ -378,28 +356,17 @@ void MigrateSDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	case GF_NETIO_GET_METHOD:
 		param->name = "POST";
 		return;
-	case GF_NETIO_GET_CONTENT:
-		if (rtp->session_state) {
-			char szBody[4096], *opt;
-			u32 len1, len2;
-			FILE *f;
-			opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Network", "MobileIP");
-			sprintf(szBody, "ipadd\n%s\n\nurl\n%s\n\ndata\n", opt, gf_term_get_service_url(rtp->service) );
-			len1 = strlen(szBody);
-			f = fopen(rtp->session_state, "r+t");
-			fseek(f, 0, SEEK_END);
-			len2 = ftell(f);
-			fseek(f, 0, SEEK_SET);
-			len2 = fread(szBody+len1, 1, len2, f);
-			fclose(f);
-			szBody[len1+len2] = 0;
-
-			rtp->tmp_buf = gf_strdup(szBody);
-			param->data = rtp->tmp_buf;
-			param->size = strlen(szBody);
-	}
+	case GF_NETIO_GET_HEADER:
+		if (!strcmp(param->name, "POST")) {
+			param->name = "Content-Type";
+			param->value = "application/sdp";
+		}
 		return;
 
+	case GF_NETIO_GET_CONTENT:
+		param->data = rtp->session_state_data + strlen("data:application/sdp,");
+		param->size = strlen(param->data);
+		return;
 	}
 }
 
@@ -407,35 +374,18 @@ void MigrateSDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 void RP_SaveSessionState(RTPClient *rtp)
 {
 	GF_Err e;
-	FILE *f;
 	char *sdp_buf;
+	const char *opt;
 	GF_X_Attribute*att;
 	u32 i, j;
-	u32 sdp_size;
 	GF_SDPInfo *sdp;
 	RTSPSession *sess = NULL;
 
-	if (!rtp->session_state) return;
+	if (!rtp->session_state_data) return;
 
-	sdp_buf = NULL;
-	f = fopen(rtp->session_state, "rt");
-	if (!f) {
-		if (strncmp(rtp->session_state, "http://", 7)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Cannot load session state %s\n", rtp->session_state));
-			return;
-		}
-	}
-	fseek(f, 0, SEEK_END);
-	sdp_size = ftell(f);
-	fseek(f, 0, SEEK_SET);
-	sdp_buf = (char*)gf_malloc(sdp_size);
-	fread(sdp_buf, sdp_size, 1, f);
-	fclose(f);
-
-
+	sdp_buf = rtp->session_state_data + strlen("data:application/sdp,");
 	sdp = gf_sdp_info_new();
-	e = gf_sdp_info_parse(sdp, sdp_buf, sdp_size);
-	gf_free(sdp_buf);
+	e = gf_sdp_info_parse(sdp, sdp_buf, strlen(sdp_buf) );
 
 	for (i=0; i<gf_list_count(rtp->channels); i++) {
 		GF_SDPMedia *media = NULL;
@@ -521,33 +471,45 @@ void RP_SaveSessionState(RTPClient *rtp)
 	}
 
 
-	f = fopen(rtp->session_state, "wb");
-	if (f) {
-		char *out = NULL;
-		gf_sdp_info_write(sdp, &out);
-		if (out) {
-			fprintf(f, "%s", out);
-			gf_free(out);
-		}
-		fclose(f);
+	gf_free(rtp->session_state_data);
+	sdp_buf = NULL;
+	gf_sdp_info_write(sdp, &sdp_buf);
+	if (sdp_buf) {
+		rtp->session_state_data = gf_malloc(sizeof(char) * (strlen("data:application/sdp,") + strlen(sdp_buf) + 1) );
+		strcpy(rtp->session_state_data, "data:application/sdp,");
+		strcat(rtp->session_state_data, sdp_buf);
+		gf_free(sdp_buf);
 	}
+
 
 	gf_sdp_info_del(sdp);
 
-	if (rtp->remote_session_state && rtp->session_state) {
+
+	opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), "Streaming", "SessionMigrationServer");
+	if (opt) {
 		if (rtp->dnload) gf_term_download_del(rtp->dnload);
 		rtp->dnload = NULL;
 
-		rtp->dnload = gf_term_download_new(rtp->service, rtp->remote_session_state, GF_NETIO_SESSION_NOT_THREADED, MigrateSDP_NetIO, rtp);
-		while (1) {
-			char buffer[100];
-			u32 read;
-			e = gf_dm_sess_fetch_data(rtp->dnload, buffer, 100, &read);
-			if (e && (e!=GF_IP_NETWORK_EMPTY)) break;
+		if (strnicmp(opt, "http://", 7)) {
+			rtp->dnload = gf_term_download_new(rtp->service, opt, GF_NETIO_SESSION_NOT_THREADED, MigrateSDP_NetIO, rtp);
+			while (1) {
+				char buffer[100];
+				u32 read;
+				e = gf_dm_sess_fetch_data(rtp->dnload, buffer, 100, &read);
+				if (e && (e!=GF_IP_NETWORK_EMPTY)) break;
+			}
+			gf_term_download_del(rtp->dnload);
+			rtp->dnload = NULL;
+		} else {
+			FILE *f = fopen(opt, "wt");
+			if (f) {
+				sdp_buf = rtp->session_state_data + strlen("data:application/sdp,");
+				fwrite(sdp_buf, 1, strlen(sdp_buf), f);
+				fclose(f);
+			} else {
+				e = GF_IO_ERR;
+			}
 		}
-		if (rtp->tmp_buf) gf_free(rtp->tmp_buf);
-		gf_term_download_del(rtp->dnload);
-		rtp->dnload = NULL;
 		if (e<0) {
 			gf_term_on_message(sess->owner->service, e, "Error saving session state");
 		}

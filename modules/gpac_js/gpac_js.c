@@ -447,6 +447,35 @@ static JSBool gpac_get_scene_time(JSContext *c, JSObject *obj, uintN argc, jsval
 }
 
 
+static JSBool gpac_migrate_url(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char *url;
+	u32 i, count;
+	GF_NetworkCommand com;
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
+	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
+	
+	url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	if (!url) return JS_FALSE;
+	
+	count = gf_list_count(term->root_scene->resources);
+	for (i=0; i<count; i++) {
+		GF_ObjectManager *odm = gf_list_get(term->root_scene->resources, i);
+		if (!odm->net_service) continue;
+		if (!strstr(url, odm->net_service->url)) continue;
+
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_MIGRATION_INFO;
+		odm->net_service->ifce->ServiceCommand(odm->net_service->ifce, &com);
+		if (com.migrate.data) {
+			*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(c, com.migrate.data));
+		} else {
+			*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odm->net_service->url));
+		}
+		break;		
+	}
+	return JS_TRUE;
+}
 
 static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
 {
@@ -468,7 +497,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		{"get_screen_height",	gpac_get_screen_height, 0, 0, 0},
 		{"exit",				gpac_exit, 0, 0, 0},
 		{"set_3d",				gpac_set_3d, 1, 0, 0},
-		{"get_scene_time",				gpac_get_scene_time, 1, 0, 0},
+		{"get_scene_time",		gpac_get_scene_time, 1, 0, 0},
+		{"migrate_url",			gpac_migrate_url, 1, 0, 0},
 		{0, 0, 0, 0, 0}
 	};
 
