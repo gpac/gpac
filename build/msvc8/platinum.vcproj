@@ -455,6 +455,10 @@
 			RelativePath="..\..\modules\platinum\GPACPlatinum.h"
 			>
 		</File>
+		<File
+			RelativePath="..\..\modules\modules_export.cpp"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>
