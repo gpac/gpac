@@ -109,10 +109,13 @@ typedef struct
 	JSClass xmlHTTPRequestClass;
 	JSClass DCCIClass;
 
-	JSObject *dom_node_proto;
+	JSClass storageClass;
+
+    JSObject *dom_node_proto;
 	JSObject *dom_document_proto;
 	JSObject *dom_element_proto;
 	JSObject *dom_event_proto;
+	JSObject *storage_proto;
 
 	void *(*get_element_class)(GF_Node *n);
 	void *(*get_document_class)(GF_SceneGraph *n);
@@ -3198,6 +3201,33 @@ static JSBool dcci_search_property(JSContext *c, JSObject *obj, uintN argc, jsva
 	return JS_TRUE;
 }
 
+static JSBool storage_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+{
+	if (!JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
+	return JS_TRUE;
+}
+
+static JSBool storage_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+{
+	if (!JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
+	return JS_TRUE;
+}
+
+static JSBool storage_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	if (!JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
+	return JS_TRUE;
+}
+
+static void storage_finalize(JSContext *c, JSObject *obj)
+{
+}
+
+void dom_js_define_storage(JSContext *c, JSObject *parent_obj, const char *name)
+{
+    JS_DefineObject(c, parent_obj, name, &dom_rt->storageClass, 0, 0 );
+}
+
 void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 {
 	if (!dom_rt) {
@@ -3215,6 +3245,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 
 		JS_SETUP_CLASS(dom_rt->domNodeListClass, "NodeList", JSCLASS_HAS_PRIVATE, dom_nodelist_getProperty, dom_nodelist_setProperty, dom_nodelist_finalize);
 		JS_SETUP_CLASS(dom_rt->xmlHTTPRequestClass, "XMLHttpRequest", JSCLASS_HAS_PRIVATE, xml_http_getProperty, xml_http_setProperty, xml_http_finalize);
+		JS_SETUP_CLASS(dom_rt->storageClass, "Storage", JSCLASS_HAS_PRIVATE, storage_getProperty, storage_setProperty, storage_finalize);
 
 		JS_SETUP_CLASS(dom_rt->DCCIClass, "DCCI", JSCLASS_HAS_PRIVATE, dcci_getProperty, dcci_setProperty, dom_node_finalize);
 
@@ -3498,6 +3529,16 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] XMLHttpRequest class initialized\n"));
 	}
 
+	{
+		JSPropertySpec storageClassProps[] = {
+			{0, 0, 0, 0, 0}
+		};
+		JSFunctionSpec storageClassFuncs[] = {
+			{0, 0, 0, 0, 0}
+		};
+		dom_rt->storage_proto = JS_InitClass(c, global, 0, &dom_rt->storageClass, storage_constructor, 0, storageClassProps, storageClassFuncs, 0, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] Storage class initialized\n"));
+	}
 
 	{
 		GF_SceneGraph *dcci;
