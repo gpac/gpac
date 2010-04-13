@@ -421,9 +421,12 @@ static void svg_traverse_dom_text_area(GF_Node *node, SVGAllAttributes *atts, GF
 					break;
 				}
 				word_size += glyph_size;
+			} else {
+				// no glyph;
+				word_size += font->max_advance_h * span->font_scale;
 			}
 			i++;
-		}
+		} 
 
 		/* word doesn't fit on line, escape*/
 		if (!word_size && !last_char_size) break;
