@@ -83,6 +83,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mem_free) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mem_strdup) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_memory_print) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_memory_size) )
 #else
 #pragma comment (linker, EXPORT_SYMBOL(gf_malloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_calloc) )
@@ -1081,6 +1082,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_next_rap_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_update_rap_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_terminate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_stream_info) )
 #endif
 
 /*bifs.h exports*/
