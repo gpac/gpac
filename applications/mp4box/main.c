@@ -1865,7 +1865,7 @@ int main(int argc, char **argv)
 			pack_file  = argv[i+1];
 			i++;
 		}
-		else if (!stricmp(arg, "-wgt")) {
+		else if (!stricmp(arg, "-mgt")) {
 			CHECK_NEXT_ARG 
 			pack_file  = argv[i+1];
 			pack_wgt = 1;
