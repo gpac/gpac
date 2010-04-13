@@ -207,6 +207,23 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 	Bool has_changes = 0;
 
 	e = GF_OK;
+
+#if DEBUG_RAP
+    com_count = 0;
+	stream_count = gf_list_count(ctx->streams);
+    for (i=0; i<stream_count; i++) {
+		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
+		if (sc->streamType == GF_STREAM_SCENE) {
+	        au_count = gf_list_count(sc->AUs);
+            for (j=0; j<au_count; j++) {
+				au = (GF_AUContext *)gf_list_get(sc->AUs, j);
+                com_count += gf_list_count(au->commands);
+            }
+        }
+    }
+    GF_LOG(GF_LOG_INFO, GF_LOG_SCENE, ("[SceneManager] Making RAP with %d commands\n", com_count));
+#endif
+
 	stream_count = gf_list_count(ctx->streams);
 	for (i=0; i<stream_count; i++) {
 		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
