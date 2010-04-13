@@ -38,6 +38,8 @@
 #include <gpac/constants.h>
 #include <gpac/base_coding.h>
 
+#include <time.h>
+
 /* for DIMS GZ encoding */
 #include <zlib.h>
 
@@ -326,6 +328,10 @@ static GF_Err compress_dims_payload(char **data, u32 data_len, u32 *max_size, u3
     deflateEnd(&stream);
     return GF_OK;
 }
+
+/* Set to 1 if you want every dump with a timed file name */
+#define DUMP_DIMS_LOG_WITH_TIME 0
+
 static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *commands, char **data, u32 *size)
 {
 	GF_Err e;
@@ -339,6 +345,7 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	u32 offset;
 	u8 dims_header;
     Bool compress_dims;
+    u32 do_dump_with_time = DUMP_DIMS_LOG_WITH_TIME;
 
 	u32 buffer_len;
     char *cache_dir, *dump_name;
@@ -352,9 +359,23 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 
     dump_name = "gpac_scene_engine_dump";
 	compress_dims = 1;
-    
-    if (commands && gf_list_count(commands)) sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, dump_name, "_update");
-	else sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, "rap_", dump_name);
+start:    
+    if (commands && gf_list_count(commands)) {
+        sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, dump_name, "_update");
+	} else {
+        if (!do_dump_with_time) {
+            sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, "rap_", dump_name);
+        } else {
+            char date_str[100], time_str[100];
+            time_t now;
+            struct tm *tm_tot;
+            now = time(NULL);        
+            tm_tot = localtime(&now);
+            strftime(date_str, 100, "%Yy%mm%dd", tm_tot);
+			strftime(time_str, 100, "%Hh%Mm%Ss", tm_tot);            
+            sprintf(rad_name, "%s%c%s-%s-%s%s", cache_dir, GF_PATH_SEPARATOR, date_str, time_str, "rap_", dump_name);
+        }
+    }
 	dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, ' ', GF_SM_DUMP_SVG);
 	if (!dumper) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name)); 
@@ -372,6 +393,10 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot dump DIMS Commands\n")); 
 		goto exit;
 	}
+    if (do_dump_with_time) {
+        do_dump_with_time = 0;
+        goto start;        
+    }
 	
 	sprintf(file_name, "%s.svg", rad_name);
 	file = fopen(file_name, "rb");
@@ -406,14 +431,14 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 
 	/* Then, if compression is asked, we do it */
 	buffer_len = fsize;
-	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len)); 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len)); 
 	if (compress_dims) {
 		dims_header |= GF_DIMS_UNIT_C;
 		e = compress_dims_payload(&buffer, buffer_len, &buffer_len, 0);
-		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("/ compressed (%d)", buffer_len)); 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("/ compressed (%d)", buffer_len)); 
 		if (e) goto exit;
 	}
-    GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("\n")); 
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("\n")); 
 
 	/* Then,  prepare the DIMS data using a bitstream instead of direct manipulation for endianness
            The new bitstream size should be:
@@ -558,7 +583,7 @@ static GF_AUContext *gf_seng_create_new_dims_au(GF_StreamContext *sc, u32 time)
     GF_AUContext *new_au, *last_au;
     last_au = gf_list_last(sc->AUs);
     if (last_au && last_au->timing == time) {
-        GF_LOG(GF_LOG_INFO, GF_LOG_SCENE, ("Forcing new DIMS AU\n"));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneEngine] Forcing new DIMS AU\n"));
         time++;
     }
 
@@ -699,7 +724,7 @@ GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, char *auFile, gf_seng_call
 	e = gf_sm_load_run(&seng->loader);
 
 	if (e<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot load AU File %s (error %s)\n", auFile, gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] cannot load AU File %s (error %s)\n", auFile, gf_error_to_string(e)));
 		goto exit;
 	}
 
@@ -713,7 +738,7 @@ GF_EXPORT
 GF_Err gf_seng_encode_context(GF_SceneEngine *seng, gf_seng_callback callback)
 {
 	if (!seng) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] Cannot encode context. No seng provided\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Cannot encode context. No seng provided\n"));
 		return GF_BAD_PARAM;
 	}
 	return gf_sm_live_encode_scene_au(seng, callback, 1);
@@ -784,12 +809,12 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load
 	if (!e) e = gf_sm_load_run(&(seng->loader));
 
 	if (e<0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] Cannot load context from %s (error %s)\n", inputContext, gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] Cannot load context from %s (error %s)\n", inputContext, gf_error_to_string(e)));
 		goto exit;
 	}
 	e = gf_sm_live_setup(seng);
 	if (e!=GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot init scene encoder for context (error %s)\n", gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] cannot init scene encoder for context (error %s)\n", gf_error_to_string(e)));
 		goto exit;
 	}
 	return seng;
@@ -819,7 +844,7 @@ GF_SceneEngine *gf_seng_init_from_context(void *calling_object, GF_SceneManager 
 
 	e = gf_sm_live_setup(seng);
 	if (e!=GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot init scene encoder for context (error %s)\n", gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] cannot init scene encoder for context (error %s)\n", gf_error_to_string(e)));
 		goto exit;
 	}
 	return seng;
@@ -865,7 +890,7 @@ GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputConte
 	e = gf_sm_load_string(&seng->loader, inputContext, 0);
 
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot load context from %s (error %s)\n", inputContext, gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] cannot load context from %s (error %s)\n", inputContext, gf_error_to_string(e)));
 		goto exit;
 	}
 	if (!seng->ctx->root_od) {
@@ -876,7 +901,7 @@ GF_SceneEngine *gf_seng_init_from_string(void *calling_object, char * inputConte
 
 	e = gf_sm_live_setup(seng);
 	if (e!=GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[BENG] cannot init scene encoder for context (error %s)\n", gf_error_to_string(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneEngine] cannot init scene encoder for context (error %s)\n", gf_error_to_string(e)));
 		goto exit;
 	}
 	return seng;
