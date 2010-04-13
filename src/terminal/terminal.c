@@ -346,8 +346,8 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	/*only play/pause if connected*/
 	if (!term || !term->root_scene) return;
 	/*and if not already paused/playing*/
-	if (!term->play_state && !PlayState) return;
-	if (term->play_state && (PlayState==GF_STATE_PAUSED)) return;
+	if ((term->play_state == GF_STATE_PLAYING) && (PlayState == GF_STATE_PLAYING)) return;
+	if ((term->play_state != GF_STATE_PLAYING) && (PlayState == GF_STATE_PAUSED)) return;
 
 	/*pause compositor*/
 	if ((PlayState==GF_STATE_PLAYING) && reset_audio)
@@ -355,15 +355,17 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	else
 		gf_sc_set_option(term->compositor, GF_OPT_PLAY_STATE, PlayState);
 
+	/* if the current play state in the terminal is the same as the requested play state, we don't touch the clocks 
+	   in particular, if the request is a step, if the clocks are paused, we leave them paused */
 	if (PlayState==GF_STATE_STEP_PAUSE) {
 		//PlayState = term->play_state ? GF_STATE_PLAYING : GF_STATE_PAUSED;
 		return;
 	}
+
 	if (term->play_state == PlayState) return;
 	term->play_state = PlayState;
 
 	if (!pause_clocks) return;
-
 	gf_term_pause_all_clocks(term, PlayState ? 1 : 0);
 }
 
@@ -689,7 +691,7 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 	GF_ClientService *ns;
 	/*only play/pause if connected*/
 	if (!term || !term->root_scene || !term->root_scene->root_od) return GF_BAD_PARAM;
-	if (!term->play_state) return GF_BAD_PARAM;
+	if (term->play_state == GF_STATE_PLAYING) return GF_BAD_PARAM;
 
 	gf_sc_lock(term->compositor, 1);
 	i=0;
@@ -729,7 +731,7 @@ void gf_term_disconnect(GF_Terminal *term)
 {
 	if (!term->root_scene) return;
 	/*resume*/
-	if (term->play_state) gf_term_set_play_state(term, GF_STATE_PLAYING, 1, 1);
+	if (term->play_state != GF_STATE_PLAYING) gf_term_set_play_state(term, GF_STATE_PLAYING, 1, 1);
 
 	if (term->root_scene->root_od) {
 		gf_odm_disconnect(term->root_scene->root_od, 1);
@@ -846,7 +848,7 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 			if (ck->Buffering)
 				return GF_STATE_STEP_PAUSE;
 		}
-		if (term->play_state) return GF_STATE_PAUSED;
+		if (term->play_state != GF_STATE_PLAYING) return GF_STATE_PAUSED;
 		return GF_STATE_PLAYING;
 	case GF_OPT_MEDIA_CACHE: 
 		if (!term->enable_cache) return GF_MEDIA_CACHE_DISABLED;
@@ -1117,7 +1119,7 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 
 
 /* Browses all registered relocators (ZIP-based, ISOFF-based or file-system-based to relocate a URI based on the locale */
-Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url, char *relocated_url, char *localized_url) 
+Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url) 
 {
 	u32 i, count;
 
@@ -1126,7 +1128,7 @@ Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char
 	for (i=0; i<count; i++) {
 		Bool result;
 		GF_URIRelocator *uri_relocator = gf_list_get(term->uri_relocators, i);
-		result = uri_relocator->relocate_uri(uri_relocator, parent_url, service_url, relocated_url, localized_url);
+		result = uri_relocator->relocate_uri(uri_relocator, parent_url, service_url, out_relocated_url, out_localized_url);
 		if (result) return 1;
 	}
 	return 0;
