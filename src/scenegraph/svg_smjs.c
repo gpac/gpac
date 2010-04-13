@@ -1966,8 +1966,7 @@ static void svg_init_js_api(GF_SceneGraph *scene)
 	{
 
 		JSPropertySpec svgDocumentProps[] = {
-			{"global",				0,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			/*in our implementation, defaultView is just an alias to the global object*/
+			/*in our implementation, defaultView is just an alias to the global Window object*/
 			{"defaultView",			0,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 
 			{0, 0, 0, 0, 0}
@@ -2218,7 +2217,7 @@ static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 		GF_SAFEALLOC(svg_rt, GF_SVGuDOM);
 		JS_SETUP_CLASS(svg_rt->svgElement, "SVGElement", JSCLASS_HAS_PRIVATE, svg_element_getProperty, svg_element_setProperty, dom_element_finalize);
 		JS_SETUP_CLASS(svg_rt->svgDocument, "SVGDocument", JSCLASS_HAS_PRIVATE, svg_doc_getProperty, JS_PropertyStub, dom_document_finalize);
-		JS_SETUP_CLASS(svg_rt->globalClass, "global", JSCLASS_HAS_PRIVATE, global_getProperty, JS_PropertyStub, JS_FinalizeStub);
+		JS_SETUP_CLASS(svg_rt->globalClass, "Window", JSCLASS_HAS_PRIVATE, global_getProperty, JS_PropertyStub, JS_FinalizeStub);
 		JS_SETUP_CLASS(svg_rt->rgbClass, "SVGRGBColor", JSCLASS_HAS_PRIVATE, rgb_getProperty, rgb_setProperty, baseCI_finalize);
 		JS_SETUP_CLASS(svg_rt->rectClass, "SVGRect", JSCLASS_HAS_PRIVATE, rect_getProperty, rect_setProperty, baseCI_finalize);
 		JS_SETUP_CLASS(svg_rt->pointClass, "SVGPoint", JSCLASS_HAS_PRIVATE, point_getProperty, point_setProperty, baseCI_finalize);
