@@ -83,10 +83,9 @@ typedef struct
 	/*for single-object control*/
 	u32 media_type;
 
-	/*location of the session state (SDP file)*/
-	char *session_state;
-	char *remote_session_state;
-	char *tmp_buf;
+	/*session state data, formatyed as "data:application/sdp;SDPDATA"*/
+	char *session_state_data;
+
 	/*if set ANNOUNCE (sent by server) will be handled*/
 //	Bool handle_announce;
 

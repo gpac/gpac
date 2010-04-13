@@ -310,8 +310,9 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 		RP_SaveSessionState(rtp);
 	} else {
 		/*remove session state file*/
-		if (rtp->session_state) {
-			gf_delete_file(rtp->session_state);
+		if (rtp->session_state_data) {
+			gf_free(rtp->session_state_data);
+			rtp->session_state_data = NULL;
 		}
 		/*send teardown on all sessions*/
 		i=0;
@@ -446,6 +447,15 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			ch = gf_list_get(priv->channels, i);
 			if (ch->depacketizer->sl_map.StreamType==GF_STREAM_AUDIO)
 				return GF_OK;
+		}
+		return GF_NOT_SUPPORTED;
+	}
+	if (com->command_type==GF_NET_SERVICE_MIGRATION_INFO) {
+		RP_SaveSessionState(priv);
+		if (priv->session_state_data) {
+			com->migrate.data = priv->session_state_data;
+			com->migrate.data_len = strlen(priv->session_state_data);
+			return GF_OK;
 		}
 		return GF_NOT_SUPPORTED;
 	}
@@ -736,9 +746,7 @@ void RTP_Delete(GF_BaseInterface *bi)
 	}
 	assert(retry);
 
-	if (rtp->session_state) gf_free(rtp->session_state);
-	if (rtp->remote_session_state) gf_free(rtp->remote_session_state);
-
+	if (rtp->session_state_data) gf_free(rtp->session_state_data);
 
 	RP_cleanup(rtp);
 	gf_th_del(rtp->th);

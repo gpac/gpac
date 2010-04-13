@@ -91,6 +91,8 @@ enum
 	GF_NET_SERVICE_INFO,
 	/*checks if there is an audio stream in the service - term->net only*/
 	GF_NET_SERVICE_HAS_AUDIO,
+	/*instructs the service to get the migration info - term->net only*/
+	GF_NET_SERVICE_MIGRATION_INFO,
 };
 
 /*channel command for all commands that don't need params:
@@ -281,6 +283,17 @@ typedef struct
 	char *base_url;
 } GF_NetComHasAudio;
 
+/*GF_NET_SERVICE_MIGRATION_INFO*/
+typedef struct
+{
+	u32 command_type;
+
+	/*out: migration data, allocated and freed by the plugin*/
+	char *data;
+	u32 data_len;
+} GF_NetComMigration;
+
+
 typedef union __netcommand
 {
 	u32 command_type;
@@ -298,6 +311,7 @@ typedef union __netcommand
 	GF_NetComInfo info;
 	GF_NetComPixelAR par;
 	GF_NetComHasAudio audio;
+	GF_NetComMigration migrate;
 } GF_NetworkCommand;
 
 /*
