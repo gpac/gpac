@@ -1109,10 +1109,9 @@ void http_do_requests(GF_DownloadSession *sess)
 		has_agent = has_accept = has_connection = has_range = has_language = 0;
 		while (1) {
 			par.msg_type = GF_NETIO_GET_HEADER;
-			par.name = NULL;
 			par.value = NULL;
 			gf_dm_sess_user_io(sess, &par);
-			if (!par.name) break;
+			if (!par.value) break;
 			strcat(sHTTP, par.name);
 			strcat(sHTTP, ": ");
 			strcat(sHTTP, par.value);
