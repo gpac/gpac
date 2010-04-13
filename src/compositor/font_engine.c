@@ -358,7 +358,7 @@ GF_TextSpan *gf_font_manager_create_span(GF_FontManager *fm, GF_Font *font, char
 	u32 len, i;
 	GF_TextSpan *span;
 
-	if (!user || !strlen(text)) return NULL;
+	if (!strlen(text)) return NULL;
 
 	len = fm->id_buffer_size;
 	if (font->get_glyphs)
