@@ -1325,6 +1325,20 @@ static JSBool node_toString(JSContext *c, JSObject *obj, uintN i, jsval *v, jsva
 	return JS_TRUE;
 }
 
+static JSBool node_getTime(JSContext *c, JSObject *obj, uintN i, jsval *v, jsval *rval)
+{
+	GF_Node *n;
+	GF_JSField *f;
+	if (! JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
+	f = (GF_JSField *) JS_GetPrivate(c, obj);
+	if (!f) return JS_FALSE;
+
+	n = * ((GF_Node **)f->field.far_ptr);
+	if (!n) return JS_FALSE;
+	*rval = DOUBLE_TO_JSVAL(JS_NewDouble(c, gf_node_get_scene_time(n) ));
+	return JS_TRUE;
+}
+
 /* Generic field destructor */
 static void field_finalize(JSContext *c, JSObject *obj)
 {
@@ -1485,6 +1499,7 @@ static JSBool SFVec2fConstructor(JSContext *c, JSObject *obj, uintN argc, jsval 
 static JSBool vec2f_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	GF_JSField *val = (GF_JSField *) JS_GetPrivate(c, obj);
+
 	if (JSVAL_IS_INT(id)) {
 		switch (JSVAL_TO_INT(id)) {
 		case 0: *vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, FIX2FLT( ((SFVec2f*)val->field.far_ptr)->x) )); break;
@@ -2476,10 +2491,17 @@ JSBool array_setLength(JSContext *c, JSObject *obj, jsval v, jsval *val)
 	case GF_SG_VRML_MFCOLOR: the_sf_class = &js_rt->SFColorClass; break;
 	case GF_SG_VRML_MFROTATION: the_sf_class = &js_rt->SFRotationClass; break;
 	case GF_SG_VRML_MFNODE:
-		fprintf(stdout, "NOT SUPPORTED!!!\n");
+	{
+		u32 c = gf_node_list_get_count(*(GF_ChildNodeItem**)ptr->field.far_ptr);
+		while (len < c) {
+			GF_Node *n = gf_node_list_del_child_idx((GF_ChildNodeItem**)ptr->field.far_ptr, c-1);
+			if (n) gf_node_unregister(n, ptr->owner);
+			c--;
+		}
+		if (len>c)
+			fprintf(stdout, "NOT SUPPORTED!!!\n");
+	}
 		return JS_TRUE;
-		//the_sf_class = &js_rt->SFNodeClass;
-		break;
 	}
 	sftype = gf_sg_vrml_get_sf_type(ptr->field.fieldType);
 	for (i=0; i<len; i++) {
@@ -2764,6 +2786,7 @@ void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script)
 	{
 		JSFunctionSpec SFNodeMethods[] = {
 			{"toString", node_toString, 0, 0, 0},
+			{"getTime", node_getTime, 0, 0, 0},
 #ifndef GPAC_DISABLE_SVG
 			{"addEventListenerNS", vrml_event_add_listener, 4, 0, 0},
 			{"removeEventListenerNS", vrml_event_remove_listener, 4, 0, 0},
