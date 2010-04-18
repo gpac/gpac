@@ -68,13 +68,12 @@ void gf_sg_route_del(GF_Route *r)
 		}
 	}
 	/*special case for script events: notify desdctruction*/
-#if 0
 	if (r->ToNode && (r->ToField.fieldType==GF_SG_VRML_SCRIPT_FUNCTION) && r->ToField.on_event_in) {
 		r->is_setup = 0;
 		r->FromNode = NULL;
 		r->ToField.on_event_in(r->ToNode, r);
 	}
-#endif
+
 	r->is_setup = 0;
 	sg = r->graph;
 	while (sg->parent_scene) sg = sg->parent_scene;
