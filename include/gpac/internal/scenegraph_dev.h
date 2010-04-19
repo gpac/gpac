@@ -331,15 +331,15 @@ struct _route
 	u32 ID;
 	char *name;
 
+	/*scope of this route*/
+	GF_SceneGraph *graph;
+	u32 lastActivateTime;
+
 	GF_Node *FromNode;
 	GF_FieldInfo FromField;
 
 	GF_Node *ToNode;
 	GF_FieldInfo ToField;
-
-	/*scope of this route*/
-	GF_SceneGraph *graph;
-	u32 lastActivateTime;
 };
 
 void gf_sg_route_unqueue(GF_SceneGraph *sg, GF_Route *r);
