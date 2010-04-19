@@ -264,11 +264,13 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 		term->flags &= ~GF_TERM_SINGLE_CLOCK;
 
 	sOpt = gf_cfg_get_key(term->user->config, "Compositor", "FrameRate");
-	if (sOpt) {
-		fps = atof(sOpt);
-		term->frame_duration = (u32) (1000/fps);
-		gf_sc_set_fps(term->compositor, fps);
+	if (!sOpt) {
+		sOpt = "30.0";
+		gf_cfg_set_key(term->user->config, "Compositor", "FrameRate", "30.0");
 	}
+	fps = atof(sOpt);
+	term->frame_duration = (u32) (1000/fps);
+	gf_sc_set_fps(term->compositor, fps);
 
 	if (term->user->init_flags & GF_TERM_NO_THREAD){
 		//gf_term_set_threading(term->mediaman, 1);
@@ -1689,11 +1691,9 @@ void gf_term_set_speed(GF_Terminal *term, Fixed speed)
 	}
 
 	opt = gf_cfg_get_key(term->user->config, "Compositor", "FrameRate");
-	if (opt) {
-		fps = atof(opt);
-	} else {
-		fps = 30.0;
-	}
+	if (!opt) opt="30.0";
+	
+	fps = atof(opt);
 	fps *= FIX2FLT(speed);
 	if (fps>100) fps = 1000;
 	term->frame_duration = (u32) (1000/fps);
