@@ -580,7 +580,7 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 		}
 		if (r->fun) {
 			JS_RemoveRoot(priv->js_ctx, &r->fun);
-			r->fun=NULL;
+			r->fun=0;
 		}
 		return;
 	}
