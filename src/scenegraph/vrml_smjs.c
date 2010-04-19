@@ -46,6 +46,30 @@
 //#define FORCE_GC
 
 
+typedef struct
+{
+	u8 is_setup;
+	/*set to true for proto IS fields*/
+	u8 IS_route;
+
+	u32 ID;
+	char *name;
+
+	/*scope of this route*/
+	GF_SceneGraph *graph;
+	u32 lastActivateTime;
+
+	GF_Node *FromNode;
+	GF_FieldInfo FromField;
+
+	GF_Node *ToNode;
+	GF_FieldInfo ToField;
+
+	JSObject *obj;
+	jsval fun;
+} GF_RouteToFunction;
+
+
 #define _ScriptMessage(_c, _e, _msg) {	\
 		GF_Node *_n = (GF_Node *) JS_GetContextPrivate(_c);	\
 		if (_n->sgprivate->scenegraph->script_action) {\
@@ -537,25 +561,31 @@ static JSBool replaceWorld(JSContext*c, JSObject*o, uintN n, jsval *v, jsval *rv
 	return JS_TRUE;
 }
 
-static void on_route_to_object(GF_Node *node, GF_Route *r)
+static void on_route_to_object(GF_Node *node, GF_Route *_r)
 {
 	jsval argv[2], rval;
 	Double time;
 	GF_FieldInfo t_info;
 	GF_ScriptPriv *priv;
 	JSObject *obj;
+	GF_RouteToFunction *r = (GF_RouteToFunction *)_r;
 	if (!node) return;
 	priv = gf_node_get_private(node);
 	if (!priv) return;
 
 	if (!r->FromNode) {
-		if (r->ToField.fieldIndex) {
-			JS_RemoveRoot(priv->js_ctx, & r->ToField.fieldIndex);
-			r->ToField.fieldIndex=0;
+		if (r->obj) {
+			JS_RemoveRoot(priv->js_ctx, &r->obj);
+			r->obj=NULL;
 		}
+		if (r->fun) {
+			JS_RemoveRoot(priv->js_ctx, &r->fun);
+			r->fun=NULL;
+		}
+		return;
 	}
 
-	obj = (JSObject *) r->ToField.fieldIndex;
+	obj = (JSObject *) r->obj;
 	if (!obj) obj = priv->js_obj;
 
 	memset(&t_info, 0, sizeof(GF_FieldInfo));
@@ -566,14 +596,13 @@ static void on_route_to_object(GF_Node *node, GF_Route *r)
 	t_info.name = "timestamp";
 
 	argv[1] = gf_sg_script_to_smjs_field(priv, &t_info, node, 1);
-
 	argv[0] = gf_sg_script_to_smjs_field(priv, &r->FromField, r->FromNode, 1);
 
 	/*protect args*/
 	if (JSVAL_IS_GCTHING(argv[0])) JS_AddRoot(priv->js_ctx, &argv[0]);
 	if (JSVAL_IS_GCTHING(argv[1])) JS_AddRoot(priv->js_ctx, &argv[1]);
 
-	JS_CallFunctionValue(priv->js_ctx, obj, (jsval) r->ToField.NDTtype, 2, argv, &rval);
+	JS_CallFunctionValue(priv->js_ctx, obj, (jsval) r->fun, 2, argv, &rval);
 
 	/*release args*/
 	if (JSVAL_IS_GCTHING(argv[0])) JS_RemoveRoot(priv->js_ctx, &argv[0]);
@@ -590,7 +619,6 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 	GF_Node *n1, *n2;
 	char *f1, *f2;
 	GF_FieldInfo info;
-	GF_Route *r;
 	u32 f_id1, f_id2;
 	if (argc!=4) return JS_FALSE;
 
@@ -618,6 +646,7 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 
 	/*regular route*/
 	if (JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[2]), &js_rt->SFNodeClass, NULL) && JSVAL_IS_STRING(argv[3]) ) {
+		GF_Route *r;
 		ptr = (GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[2]));
 		assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
 		n2 = * ((GF_Node **)ptr->field.far_ptr);
@@ -649,9 +678,10 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 	}
 	/*route to object*/
 	else {
+		GF_RouteToFunction *r;
 		if (!JSVAL_IS_OBJECT(argv[3]) || !JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[3])) ) return JS_FALSE;
 
-		GF_SAFEALLOC(r, GF_Route)
+		GF_SAFEALLOC(r, GF_RouteToFunction)
 		if (!r) return JS_FALSE;
 		r->FromNode = n1;
 		r->FromField.fieldIndex = f_id1;
@@ -662,10 +692,13 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 		r->ToField.on_event_in = on_route_to_object;
 		r->ToField.eventType = GF_SG_EVENT_IN;
 		r->ToField.far_ptr = NULL;
-		r->ToField.fieldIndex = (u32) JSVAL_TO_OBJECT( argv[2] ) ;
-		JS_AddRoot(c, & r->ToField.fieldIndex);
-		r->ToField.NDTtype = argv[3];
 		r->ToField.name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
+
+		r->obj = JSVAL_TO_OBJECT( argv[2] ) ;
+		JS_AddRoot(c, & r->obj);
+
+		r->fun = argv[3];
+		JS_AddRoot(c, &r->fun);
 
 		r->is_setup = 1;
 		r->graph = n1->sgprivate->scenegraph;
