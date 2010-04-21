@@ -234,7 +234,7 @@ void gf_scene_sample_time(GF_Scene *scene);
 
 Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene);
 
-void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n);
+void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt);
 
 
 GF_Node *gf_scene_get_subscene_root(GF_Node *inline_node);

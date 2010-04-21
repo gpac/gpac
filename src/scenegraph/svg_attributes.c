@@ -134,7 +134,7 @@ static const struct dom_event_def {u32 event;  const char *name; u32 category; }
 
 	/*GPAC internals*/
 	{ GF_EVENT_SCENE_ATTACHED, "gpac_scene_attached", GF_DOM_EVENT_DOM },
-	
+	{ GF_EVENT_VP_RESIZE, "gpac_vp_changed", GF_DOM_EVENT_DOM },	
 };
 
 u32 gf_dom_event_type_by_name(const char *name)
