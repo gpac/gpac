@@ -30,6 +30,7 @@
 #include "offscreen_cache.h"
 
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/scenegraph_dev.h>
 #include <gpac/mediaobject.h>
 
 #include <gpac/nodes_svg.h>
@@ -50,6 +51,7 @@ typedef struct
 	SFVec2f parent_vp;
 	/*current VP size used by all children*/
 	SFVec2f vp;
+	Fixed dx, dy, vpw, vph;
 } SVGsvgStack;
 
 
@@ -244,6 +246,10 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 			break;
 		}
 		gf_mx2d_add_translation(&stack->viewbox_mx, dx, dy);
+		stack->dx = dx;
+		stack->dy = dy;
+		stack->vpw = vp_w;
+		stack->vph = vp_h;
 
 		/*we need a clipper*/
 		if (stack->root_svg && !tr_state->parent_anim_atts && (par.meetOrSlice==SVG_MEETORSLICE_SLICE)) {
@@ -432,7 +438,24 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 		evt.type = GF_EVENT_RESIZE;
 		gf_dom_event_fire(node, &evt);
 	}
-	
+	if ((stack->vp.x != prev_vp.x) || (stack->vp.y != prev_vp.y)) {
+		GF_Scene *scene = node->sgprivate->scenegraph->userpriv;
+		
+		if (scene) { 
+			GF_DOM_Event evt;
+			memset(&evt, 0, sizeof(GF_DOM_Event));
+			evt.bubbles = 0;
+			evt.screen_rect.width = stack->vpw;
+			evt.screen_rect.height = stack->vph;
+			evt.screen_rect.x = stack->dx;
+			evt.screen_rect.y = stack->dy;
+			evt.prev_translate.x = stack->vp.x;
+			evt.prev_translate.y = stack->vp.y;
+			evt.type = GF_EVENT_VP_RESIZE;
+			gf_scene_notify_event(scene, 0, NULL, &evt);
+		}
+	}
+
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state, NULL);
 	} else {

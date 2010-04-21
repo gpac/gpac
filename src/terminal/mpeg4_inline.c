@@ -94,7 +94,7 @@ void gf_inline_on_modified(GF_Node *node)
 			if (mo->num_open) {
 				if (!changed) return;
 
-				gf_scene_notify_event(scene, GF_EVENT_UNLOAD, node);
+				gf_scene_notify_event(scene, GF_EVENT_UNLOAD, node, NULL);
 				gf_node_dirty_parents(node);
 				gf_list_del_item(mo->nodes, node);
 
@@ -189,7 +189,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		if (!scene) return;
 		mo = scene->root_od ? scene->root_od->mo : NULL;
 
-		gf_scene_notify_event(scene, GF_EVENT_UNLOAD, n);
+		gf_scene_notify_event(scene, GF_EVENT_UNLOAD, n, NULL);
 		if (!mo) return;
 		gf_list_del_item(mo->nodes, n);
 

@@ -503,43 +503,50 @@ void gf_scene_buffering_info(GF_Scene *scene)
 
 
 
-void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n)
+void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_event)
 {
 	/*fire resize event*/
 #ifndef GPAC_DISABLE_SVG
 	GF_Node *root;
 	u32 i, count;
 	u32 w, h;
-	GF_DOM_Event evt;
-	memset(&evt, 0, sizeof(GF_DOM_Event));
-	w = h = 0;
+	GF_DOM_Event evt, *event;
+	event = (GF_DOM_Event *)_event;
+
+	if (!scene) return;
 	root = gf_sg_get_root_node(scene->graph);
 	if (!root) return;
-	gf_sg_get_scene_size_info(scene->graph, &w, &h);
-	evt.type = event_type;
-	evt.screen_rect.width = INT2FIX(w);
-	evt.screen_rect.height = INT2FIX(h);
-	if (root) {
+
+	if (!event) {
+		memset(&evt, 0, sizeof(GF_DOM_Event));
+		event = &evt;
+		w = h = 0;
+		gf_sg_get_scene_size_info(scene->graph, &w, &h);
+		evt.type = event_type;
+		evt.screen_rect.width = INT2FIX(w);
+		evt.screen_rect.height = INT2FIX(h);
+		if (root) {
 #ifndef GPAC_DISABLE_VRML
-		switch (gf_node_get_tag(root)) {
-		case TAG_MPEG4_Group:
-		case TAG_MPEG4_Layer3D:
-			evt.detail = 1;
-			break;
-		case TAG_X3D_Group:
-			evt.detail = 2;
-			break;
-		}
+			switch (gf_node_get_tag(root)) {
+			case TAG_MPEG4_Group:
+			case TAG_MPEG4_Layer3D:
+				evt.detail = 1;
+				break;
+			case TAG_X3D_Group:
+				evt.detail = 2;
+				break;
+			}
 #endif
+		}
 	}
 	if (n) {
-		gf_dom_event_fire(n, &evt);
+		gf_dom_event_fire(n, event);
 	} else {
-		gf_dom_event_fire(root, &evt);
+		gf_dom_event_fire(root, event);
 	
 		count=scene->root_od->mo ? gf_list_count(scene->root_od->mo->nodes) : 0;
 		for (i=0;i<count; i++) {
-			gf_dom_event_fire( gf_list_get(scene->root_od->mo->nodes, i), &evt );
+			gf_dom_event_fire( gf_list_get(scene->root_od->mo->nodes, i), event);
 		}
 	}
 #endif
@@ -586,7 +593,7 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 			gf_sc_set_size(scene->root_od->term->compositor, w, h);
 		}
 		/*trigger a scene attach event*/
-		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL);
+		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL);
 	}
 }
 
@@ -1072,7 +1079,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		IS_UpdateVideoPos(scene);
 	} else {
 		scene->graph_attached = 1;
-		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL);
+		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL);
 		gf_term_invalidate_compositor(scene->root_od->term);
 	}
 }
@@ -1239,7 +1246,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	if (scene->root_od->term->root_scene == scene) 
 		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 
-	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL);
+	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL);
 
 #ifndef GPAC_DISABLE_VRML
 	IS_UpdateVideoPos(scene);

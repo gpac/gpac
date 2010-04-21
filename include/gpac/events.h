@@ -150,6 +150,10 @@ enum {
 	attached to the window or parent object (animation, inline, ...)*/
 	GF_EVENT_SCENE_ATTACHED,
 	
+	/*VP resize attached event, dispatched when viewport of a scene is being modified
+	attached to the window or parent object (animation, inline, ...)*/
+	GF_EVENT_VP_RESIZE,
+	
 	/*window events*/
 	/*size has changed - indicate new w & h in .x end .y fields of event. 
 	When sent from gpac to a video plugin, indicates the output size should be changed. This is only sent when the plugin

@@ -2147,16 +2147,26 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 		case 61:/*height*/
 			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->screen_rect.height)) );
 			return JS_TRUE;
-		case 62:/*h_translation*/
+		case 62:/*offset_x*/
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->screen_rect.x) ) );
+			return JS_TRUE;
+		case 63:/*offset_x*/
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->screen_rect.y)) );
+			return JS_TRUE;
+		case 64:/*vp_width*/
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->prev_translate.x)) );
+			return JS_TRUE;
+		case 65:/*vp_height*/
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->prev_translate.y)) );
+			return JS_TRUE;
+		case 66:/*translation_x*/
 			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->new_translate.x)) );
 			return JS_TRUE;
-		case 63:/*v_translation*/
+		case 67:/*translation_y*/
 			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->new_translate.y)) );
 			return JS_TRUE;
-		case 64:/*type3d*/
+		case 68:/*type3d*/
 			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
-
-
 
 		default: return JS_TRUE;
 		}
@@ -3471,9 +3481,13 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			/*used by vrml*/
 			{"width",			60,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 			{"height",			61,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"translation_x",	62,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"translation_y",	63,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"type3d",			64,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"offset_x",		62,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"offset_y",		63,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"vp_width",		64,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"vp_height",		65,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"translation_x",	66,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"translation_y",	67,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"type3d",			68,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 
 
 			{0, 0, 0, 0, 0},
