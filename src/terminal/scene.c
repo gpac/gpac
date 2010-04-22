@@ -285,7 +285,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	}
 }
 
-static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref, Bool keep_fragment)
+static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref, Bool keep_fragment, GF_Scene *original_parent_scene)
 {
 	GF_ObjectManager *root_od;
 	GF_ObjectManager *odm;
@@ -350,7 +350,11 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	if (sync_ref) odm->ocr_codec = (struct _generic_codec *)sync_ref;
 
 	gf_list_add(scene->resources, odm);
-	gf_odm_setup_object(odm, root_od->net_service);
+	if (original_parent_scene) {
+		gf_odm_setup_object(odm, original_parent_scene->root_od->net_service);
+	} else {
+		gf_odm_setup_object(odm, root_od->net_service);
+	}
 }
 
 static void gf_scene_reinsert_object(GF_Scene *scene, GF_MediaObject *mo)
@@ -362,7 +366,7 @@ static void gf_scene_reinsert_object(GF_Scene *scene, GF_MediaObject *mo)
 	mo->URLs.vals[mo->URLs.count-1].url = NULL;
 	mo->URLs.count-=1;
 	/*FIXME - we should re-ananlyse whether the fragment is important or not ...*/
-	gf_scene_insert_object(scene, mo, 0, NULL, 0);
+	gf_scene_insert_object(scene, mo, 0, NULL, 0, NULL);
 }
 
 
@@ -621,6 +625,7 @@ static GFINLINE Bool is_match_obj_type(u32 type, u32 hint_type)
 GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 obj_type_hint, Bool lock_timelines, GF_MediaObject *sync_ref, Bool force_new_if_not_attached, GF_Node *node)
 {
 	GF_MediaObject *obj;
+	GF_Scene *original_parent_scene = NULL;
 	Bool keep_fragment = 1;
 	Bool first_pass = force_new_if_not_attached ? 0 : 1;
 	u32 i, OD_ID;
@@ -673,8 +678,11 @@ restart:
 	obj->type = obj_type_hint;
 
 	/*register node with object*/
-	if (node)
+	if (node) {
 		gf_list_add(obj->nodes, node);
+
+		original_parent_scene = (GF_Scene*) gf_sg_get_private(gf_node_get_graph(node));
+	}
 	
 	/*if animation stream object, remember originating node
 		!! FIXME - this should be cleaned up !! 
@@ -685,7 +693,7 @@ restart:
 	gf_list_add(scene->scene_objects, obj);
 	if (OD_ID == GF_MEDIA_EXTERNAL_ID) {
 		gf_sg_vrml_copy_mfurl(&obj->URLs, url);
-		gf_scene_insert_object(scene, obj, lock_timelines, sync_ref, keep_fragment);
+		gf_scene_insert_object(scene, obj, lock_timelines, sync_ref, keep_fragment, original_parent_scene);
 		/*safety check!!!*/
 		if (gf_list_find(scene->scene_objects, obj)<0) 
 			return NULL;
