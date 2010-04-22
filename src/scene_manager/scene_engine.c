@@ -330,7 +330,7 @@ static GF_Err compress_dims_payload(char **data, u32 data_len, u32 *max_size, u3
 }
 
 /* Set to 1 if you want every dump with a timed file name */
-#define DUMP_DIMS_LOG_WITH_TIME 0
+//#define DUMP_DIMS_LOG_WITH_TIME
 
 static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *commands, char **data, u32 *size)
 {
@@ -345,8 +345,9 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	u32 offset;
 	u8 dims_header;
     Bool compress_dims;
-    u32 do_dump_with_time = DUMP_DIMS_LOG_WITH_TIME;
-
+#ifdef DUMP_DIMS_LOG_WITH_TIME
+    u32 do_dump_with_time = 1;
+#endif
 	u32 buffer_len;
     char *cache_dir, *dump_name;
 
@@ -359,23 +360,27 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 
     dump_name = "gpac_scene_engine_dump";
 	compress_dims = 1;
+
+#ifdef DUMP_DIMS_LOG_WITH_TIME
 start:    
-    if (commands && gf_list_count(commands)) {
+#endif
+	
+	if (commands && gf_list_count(commands)) {
         sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, dump_name, "_update");
 	} else {
-        if (!do_dump_with_time) {
-            sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, "rap_", dump_name);
-        } else {
-            char date_str[100], time_str[100];
-            time_t now;
-            struct tm *tm_tot;
-            now = time(NULL);        
-            tm_tot = localtime(&now);
-            strftime(date_str, 100, "%Yy%mm%dd", tm_tot);
-			strftime(time_str, 100, "%Hh%Mm%Ss", tm_tot);            
-            sprintf(rad_name, "%s%c%s-%s-%s%s", cache_dir, GF_PATH_SEPARATOR, date_str, time_str, "rap_", dump_name);
-        }
-    }
+#ifndef DUMP_DIMS_LOG_WITH_TIME
+		sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, "rap_", dump_name);
+#else
+        char date_str[100], time_str[100];
+        time_t now;
+        struct tm *tm_tot;
+        now = time(NULL);        
+        tm_tot = localtime(&now);
+        strftime(date_str, 100, "%Yy%mm%dd", tm_tot);
+		strftime(time_str, 100, "%Hh%Mm%Ss", tm_tot);            
+        sprintf(rad_name, "%s%c%s-%s-%s%s", cache_dir, GF_PATH_SEPARATOR, date_str, time_str, "rap_", dump_name);
+#endif
+	}
 	dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, ' ', GF_SM_DUMP_SVG);
 	if (!dumper) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name)); 
@@ -393,10 +398,12 @@ start:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot dump DIMS Commands\n")); 
 		goto exit;
 	}
+#ifdef DUMP_DIMS_LOG_WITH_TIME
     if (do_dump_with_time) {
         do_dump_with_time = 0;
         goto start;        
     }
+#endif
 	
 	sprintf(file_name, "%s.svg", rad_name);
 	file = fopen(file_name, "rb");
