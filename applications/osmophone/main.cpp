@@ -1364,8 +1364,16 @@ Bool initial_setup(const char *szExePath)
 	/*FIXME - is this true on all WinCE systems??*/
 	gf_cfg_set_key(user.config, "FontEngine", "FontDirectory", "\\Windows");
 
-	sprintf((char *) szPath, "%sgpac.mp4", szExePath);
-	gf_cfg_set_key(user.config, "General", "StartupFile", (const char *) szPath);
+	sprintf((char *) szPath, "%sgui.bt", szExePath);
+	FILE *t = fopen(szPath, "rt");
+	if (!t) {
+		sprintf((char *) szPath, "%sgpac.mp4", szExePath);
+		t = fopen(szPath, "rt");
+	}
+	if (t) {
+		gf_cfg_set_key(user.config, "General", "StartupFile", (const char *) szPath);
+		fclose(t);
+	}
 
 	/*FFMPEG registration - FFMPEG DLLs compiled with CEGCC cannot be loaded directly under WM 6.1
 	cf http://cegcc.sourceforge.net/docs/faq.html#DllDoesNotWorkWithWindowsMobile6.1

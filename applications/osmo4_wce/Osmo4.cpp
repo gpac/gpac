@@ -254,6 +254,7 @@ BOOL COsmo4::InitInstance()
 	if (!m_user.modules) {
 		unsigned char str_path[MAX_PATH];
 		const char *sOpt;
+		FILE *t;
 		/*inital launch*/
 		m_user.modules = gf_modules_new(config_path, m_user.config);
 		if (m_user.modules) {
@@ -296,8 +297,16 @@ BOOL COsmo4::InitInstance()
 		/*by default use GDIplus, much faster than freetype on font loading*/
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "ft_font");
 
-		sprintf((char *) str_path, "%sgpac.mp4", config_path);
-		gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
+		sprintf((char *) str_path, "%sgui/gui.bt", config_path);
+		t = fopen(str_path, "rt");
+		if (!t) {
+			sprintf((char *) str_path, "%sgpac.mp4", config_path);
+			t = fopen(str_path, "rt");
+		}
+		if (t) {
+			gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
+			fclose(t);
+		}
 
 		::MessageBox(NULL, _T("Osmo4/GPAC Setup complete"), _T("Initial launch"), MB_OK);
 	}	
