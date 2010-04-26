@@ -512,6 +512,7 @@ BOOL Osmo4::InitInstance()
 		/*inital launch*/
 		m_user.modules = gf_modules_new(szApplicationPath, m_user.config);
 		if (m_user.modules) {
+			FILE *t;
 			unsigned char str_path[MAX_PATH];
 			gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", (const char *) szApplicationPath);
 
@@ -539,8 +540,16 @@ BOOL Osmo4::InitInstance()
 				}
 			}
 
-			sprintf((char *) str_path, "%sgpac.mp4", szApplicationPath);
-			gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
+			sprintf((char *) str_path, "%sgui/gui.bt", szApplicationPath);
+			t = fopen((char *) str_path, "rt");
+			if (!t) {
+				sprintf((char *) str_path, "%sgpac.mp4", szApplicationPath);
+				t = fopen((char *) str_path, "rt");
+			}
+			if (t) {
+				gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
+				fclose(t);
+			}
 		}
 
 		/*check audio config on windows, force config*/

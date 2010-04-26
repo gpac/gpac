@@ -347,13 +347,24 @@ void COsmo4AppView::ConstructL( const TRect& aRect )
 	if (!opt) first_launch = 2;
 	
 	if (first_launch) {
+		FILE *t;
 		/*hardcode module directory*/
 		gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", GPAC_MODULES_DIR);
 		/*hardcode cache directory*/
 		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", GPAC_CFG_DIR"cache");
 		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
 		/*startup file*/
-		gf_cfg_set_key(m_user.config, "General", "StartupFile", GPAC_CFG_DIR"gpac.mp4");
+		t = fopen(GPAC_CFG_DIR"gui/gui.bt", "rt");
+		if (t) {
+			fclose(t);
+			gf_cfg_set_key(m_user.config, "General", "StartupFile", GPAC_CFG_DIR"gui/gui.bt");
+		} else {
+			t = fopen(GPAC_CFG_DIR"gpac.mp4", "rt");
+			if (t) {
+				fclose(t);
+				gf_cfg_set_key(m_user.config, "General", "StartupFile", GPAC_CFG_DIR"gpac.mp4");
+			}
+		}
 		/*setup UDP traffic autodetect*/
 		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
 		gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");

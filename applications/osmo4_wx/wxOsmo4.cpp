@@ -697,8 +697,8 @@ Bool wxOsmo4Frame::LoadTerminal()
 			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
 		}
 
-#ifdef WIN32
 		unsigned char str_path[MAX_PATH];
+#ifdef WIN32
 		sOpt = gf_cfg_get_key(m_user.config, "Compositor", "Raster2D");
 		if (!sOpt) gf_cfg_set_key(m_user.config, "Compositor", "Raster2D", "gdip_rend");
 		sOpt = gf_cfg_get_key(m_user.config, "General", "CacheDirectory");
@@ -712,8 +712,17 @@ Bool wxOsmo4Frame::LoadTerminal()
 
 		sOpt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
 		if (!sOpt) {
-			sprintf((char *) str_path, "%sgpac.mp4", abs_gpac_path.mb_str(wxConvUTF8));
-			gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
+			FILE *t;
+			sprintf((char *) str_path, "%sgui/gui.bt", abs_gpac_path.mb_str(wxConvUTF8));
+			t = fopen(str_path, "rt");
+			if (!t) {
+				sprintf((char *) str_path, "%sgpac.mp4", config_path);
+				t = fopen(str_path, "rt");
+			}
+			if (t) {
+				gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
+				fclose(t);
+			}
 		}
 #else
 
@@ -747,17 +756,24 @@ Bool wxOsmo4Frame::LoadTerminal()
 		sOpt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
 		if (!sOpt) {
 			FILE *test;
-			test = fopen("/usr/local/share/gpac/gpac.mp4", "rb");
-			if (test) {
-				gf_cfg_set_key(m_user.config, "General", "StartupFile", "/usr/local/share/gpac/gpac.mp4");
-				fclose(test);
-			} else {
-				test = fopen("/usr/share/gpac/gpac.mp4", "rb");
-				if (test) {
-					gf_cfg_set_key(m_user.config, "General", "StartupFile", "/usr/share/gpac/gpac.mp4");
-					fclose(test);
-				}
+			strcpy(str_path, "/usr/local/share/gpac/gui/gui.bt");
+			test = fopen(str_path, "rb");
+			if (!test) {
+				strcpy(str_path, "/usr/local/share/gpac/gpac.mp4");
+				test = fopen(str_path, "rb");
 			}
+			if (!test) {
+				strcpy(str_path, "/usr/share/gpac/gui/gui.bt");
+				test = fopen(str_path, "rb");
+			}
+			if (!test) {
+				strcpy(str_path, "/usr/share/gpac/gpac.mp4");
+				test = fopen(str_path, "rb");
+			}
+			if (test) {
+				gf_cfg_set_key(m_user.config, "General", "StartupFile", str_path);
+				fclose(test);
+			} 
 		}
 
 #endif
