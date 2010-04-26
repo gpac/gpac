@@ -322,7 +322,7 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #define gf_strdup(s) gf_mem_strdup(s, __FILE__, __LINE__)
 #define gf_realloc(ptr1, ptr2) gf_mem_realloc(ptr1, ptr2, __FILE__, __LINE__)
 
-#elif defined(GPAC_STD_ALLOCATOR)
+#else
 
 #define gf_malloc malloc
 #define gf_calloc calloc
@@ -330,28 +330,6 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #define gf_free free
 #define gf_strdup strdup
 
-#else
-
-void *gf_malloc(size_t size);
-void *gf_calloc(size_t num, size_t size_of);
-void *gf_realloc(void *ptr, size_t size);
-void gf_free(void *ptr);
-char *gf_strdup(const char *str);
-
-#endif
-
-#ifndef GPAC_STD_ALLOCATOR
-/*make sure we always use gpac-enabled memory routines*/
-#undef free
-#define free	free_is_disabled_in_gpac_use_gf_free
-#undef malloc
-#define malloc	malloc_is_disabled_in_gpac_use_gf_malloc
-#undef calloc
-#define calloc	calloc_is_disabled_in_gpac_use_gf_calloc
-#undef realloc
-#define realloc	realloc_is_disabled_in_gpac_use_gf_realloc
-#undef strdup
-#define strdup strdup_is_disabled_in_gpac_use_gf_strdup
 #endif
 
 
