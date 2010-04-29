@@ -152,7 +152,7 @@ GPAC_MediaRenderer::SetupServices(PLT_DeviceData& data)
         service->SetStateVariable("CurrentConnectionIDs", "0");
 
         // put all supported mime types here instead
-        service->SetStateVariable("SinkProtocolInfo", "http-get:*:*:*");
+        service->SetStateVariable("SinkProtocolInfo", "http-get:*:*:*, rtsp-rtp-udp:*:*:*");
         service->SetStateVariable("SourceProtocolInfo", "");
     }
 
@@ -171,6 +171,64 @@ GPAC_MediaRenderer::SetupServices(PLT_DeviceData& data)
 
         service->SetStateVariable("Mute", "0");
         service->SetStateVariable("Volume", "100");
+    }
+
+    {
+static NPT_UInt8 MIGRATION_SCPDXML[] = "<scpd xmlns=\"urn:schemas-upnp-org:service-1-0\">\
+    <serviceStateTable>\
+        <stateVariable>\
+            <name>MigrationStatus</name>\
+            <sendEventsAttribute>no</sendEventsAttribute>\
+            <dataType>string</dataType>\
+            <allowedValueList>\
+                <allowedValue>OK</allowedValue>\
+                <allowedValue>ERROR_OCCURRED</allowedValue>\
+            </allowedValueList>\
+        </stateVariable>\
+        <stateVariable>\
+            <name>MigrationMetaData</name>\
+            <sendEventsAttribute>no</sendEventsAttribute>\
+            <dataType>string</dataType>\
+        </stateVariable>\
+        <stateVariable>\
+            <name>A_ARG_TYPE_InstanceID</name>\
+            <sendEventsAttribute>no</sendEventsAttribute>\
+            <dataType>ui4</dataType>\
+        </stateVariable>\
+    </serviceStateTable>\
+    <actionList>\
+        <action>\
+            <name>StopForMigration</name>\
+            <argumentList>\
+                <argument>\
+                    <name>InstanceID</name>\
+                    <direction>in</direction>\
+                    <relatedStateVariable>A_ARG_TYPE_InstanceID</relatedStateVariable>\
+                </argument>\
+                <argument>\
+                    <name>MigrationStatus</name>\
+                    <direction>out</direction>\
+                    <relatedStateVariable>MigrationStatus</relatedStateVariable>\
+                </argument>\
+                <argument>\
+                    <name>MigrationMetaData</name>\
+                    <direction>out</direction>\
+                    <relatedStateVariable>MigrationMetaData</relatedStateVariable>\
+                </argument>\
+            </argumentList>\
+        </action>\
+    </actionList>\
+</scpd>";
+
+        /* MigrationService */
+        m_pMigrationService = new PLT_Service(&data, "urn:intermedia:service:migration:1", "urn:intermedia:service:migration.001");
+		
+		NPT_CHECK_FATAL(m_pMigrationService->SetSCPDXML((const char*) MIGRATION_SCPDXML));
+        NPT_CHECK_FATAL(m_pMigrationService->InitURLs("SessionMigration", data.GetUUID()));
+        NPT_CHECK_FATAL(data.AddService(m_pMigrationService));
+
+        m_pMigrationService->SetStateVariable("MigrationStatus", "OK");
+        m_pMigrationService->SetStateVariable("MigrationMetaData", "");
     }
 
     return NPT_SUCCESS;
@@ -202,6 +260,16 @@ GPAC_MediaRenderer::OnAction(PLT_ActionReference&          action,
     }    
     if (name.Compare("GetCurrentConnectionInfo", true) == 0) {
         return OnGetCurrentConnectionInfo(action);
+    }  
+    if (name.Compare("StopForMigration", true) == 0) {
+		NPT_String res = m_pUPnP->OnMigrate();
+        m_pMigrationService->SetStateVariable("MigrationStatus", "OK");
+        m_pMigrationService->SetStateVariable("MigrationMetaData", res);
+
+		if (NPT_FAILED(action->SetArgumentsOutFromStateVariable())) {
+            return NPT_FAILURE;
+        }
+        return NPT_SUCCESS;
     }  
 
     /* Is it a AVTransport Service Action ? */
@@ -365,19 +433,11 @@ NPT_Result GPAC_MediaRenderer::OnSetAVTransportURI(PLT_ActionReference& action)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Request: change media\n"));
 
-	const char *ext = strstr(MediaUri, "intermedia=");
-	if (ext && !stricmp(ext, "intermedia=migrate")) {
-		if (m_connected ) {
-			m_pUPnP->OnStop(1, m_ip_src);
-			m_connected = 0;
-		}
-		return NPT_SUCCESS;
-	}
 	if (m_connected) {
 		m_connected = 0;
-		m_pUPnP->OnStop(0, m_ip_src);
+		m_pUPnP->OnStop(m_ip_src);
 	}
-	ext = strrchr(MediaUri, '.');
+	const char *ext = strrchr(MediaUri, '.');
 	if (ext && !stricmp(ext, ".m3u")) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] M3U playlists not supported yet\n"));
 		return NPT_SUCCESS;
@@ -438,7 +498,7 @@ NPT_Result GPAC_MediaRenderer::OnStop(PLT_ActionReference& action)
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Request: change state : STOP\n"));
 	if (m_pUPnP->m_pTerm->root_scene) {
 	    m_pAVService->SetStateVariable("TransportState", "STOPPED");
-		m_pUPnP->OnStop(0, m_ip_src);
+		m_pUPnP->OnStop(m_ip_src);
 	}
 	return NPT_SUCCESS;
 }

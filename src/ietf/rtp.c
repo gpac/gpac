@@ -410,6 +410,11 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 		ch->rtp_first_SN = rtp_hdr->SequenceNumber;
 		ch->num_sn_loops = 0;
 	}
+	if (ch->first_SR && !ch->SenderSSRC) {
+		ch->SenderSSRC = rtp_hdr->SSRC;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Assigning SSRC %d because none has been signaled\n", ch->SenderSSRC));
+	}
+
 
 	if (!ch->ntp_init && ch->SenderSSRC && (ch->SenderSSRC != rtp_hdr->SSRC) ) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] SSRC mismatch: %d vs %d\n", rtp_hdr->SSRC, ch->SenderSSRC));

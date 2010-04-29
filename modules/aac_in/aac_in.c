@@ -73,6 +73,7 @@ static Bool AAC_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	sExt = strrchr(url, '.');
+	if (!strnicmp(url, "rtsp://", 7)) return 0; 
 	if (!sExt) return 0;
 	if (gf_term_check_extension(plug, "audio/x-m4a", "aac", "MPEG-4 AAC Music", sExt)) return 1;
 	if (gf_term_check_extension(plug, "audio/aac", "aac", "MPEG-4 AAC Music", sExt)) return 1;

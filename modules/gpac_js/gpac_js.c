@@ -143,6 +143,13 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		*vp = INT_TO_JSVAL( level );
 		return JS_TRUE;
 	}
+	if (!strcmp(prop_name, "hostname")) {
+		char hostname[100];
+		gf_sk_get_host_name((char*)hostname);
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, hostname)); 
+		return JS_TRUE;
+	}
+
 	return JS_TRUE;
 }
 static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
@@ -196,21 +203,21 @@ static JSBool gpac_getOption(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 
 static JSBool gpac_setOption(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	JSString *js_sec_name, *js_key_name, *js_key_val;
+	char *js_sec_name, *js_key_name, *js_key_val;
 	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (!term) return JS_FALSE;
 	if (argc < 3) return JSVAL_FALSE;
 	
 	if (!JSVAL_IS_STRING(argv[0])) return JSVAL_FALSE;
-	js_sec_name = JSVAL_TO_STRING(argv[0]);
+	js_sec_name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 
 	if (!JSVAL_IS_STRING(argv[1])) return JSVAL_FALSE;
-	js_key_name = JSVAL_TO_STRING(argv[1]);
+	js_key_name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 
 	if (!JSVAL_IS_STRING(argv[2])) return JSVAL_FALSE;
-	js_key_val = JSVAL_TO_STRING(argv[2]);
+	js_key_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[2]));
 
-	gf_cfg_set_key(term->user->config, JS_GetStringBytes(js_sec_name), JS_GetStringBytes(js_key_name), JS_GetStringBytes(js_key_val));
+	gf_cfg_set_key(term->user->config, js_sec_name, js_key_name, js_key_val);
 
 	return JSVAL_TRUE;
 }

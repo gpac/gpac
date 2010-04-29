@@ -327,21 +327,16 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 			RP_SetupChannel(stream, NULL);
 		}
 	}
-
+	/*store SDP for later session migration*/
 	if (sdp) {
-		char *opt;
-		opt = (char *) gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(rtp->service), 
-			"Streaming", "SessionMigration");
-
-		if (opt && !strcmp(opt, "yes")) {
-			char *buf;
-			gf_sdp_info_write(sdp, &buf);
+		char *buf=NULL;
+		gf_sdp_info_write(sdp, &buf);
+		if (buf) {
 			rtp->session_state_data = gf_malloc(sizeof(char) * (strlen("data:application/sdp,") + strlen(buf) + 1) );
 			strcpy(rtp->session_state_data, "data:application/sdp,");
 			strcat(rtp->session_state_data, buf);
 			gf_free(buf);
 		}
-
 		gf_sdp_info_del(sdp);
 	}
 }
@@ -398,7 +393,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 
 			for (k=0; k<gf_list_count(med->Attributes); k++) {
 				att = (GF_X_Attribute*)gf_list_get(med->Attributes, k);
-				if (!stricmp(att->Name, "control") && !strcmp(att->Value, ch->control)) {
+				if (!stricmp(att->Name, "control") && (strstr(att->Value, ch->control)!=NULL) ) {
 					media = med;
 					break;
 				}
@@ -410,6 +405,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 
 		if (ch->rtp_ch->net_info.IsUnicast) {
 			char szPorts[4096];
+			u16 porta, portb;
 			media->PortNumber = ch->rtp_ch->net_info.client_port_first;
 
 			/*remove x-server-port extension*/
@@ -426,9 +422,12 @@ void RP_SaveSessionState(RTPClient *rtp)
 
 			GF_SAFEALLOC(att, GF_X_Attribute);
 			att->Name = gf_strdup("x-stream-state");
+			porta = ch->rtp_ch->net_info.port_first ? ch->rtp_ch->net_info.port_first : ch->rtp_ch->net_info.client_port_first;
+			portb = ch->rtp_ch->net_info.port_last ? ch->rtp_ch->net_info.port_last : ch->rtp_ch->net_info.client_port_last;
+
 			sprintf(szPorts, "server-port=%d-%d;ssrc=%X;npt=%g;seq=%d;rtptime=%d", 
-				ch->rtp_ch->net_info.port_first, 
-				ch->rtp_ch->net_info.port_last,
+				porta, 
+				portb,
 				ch->rtp_ch->SenderSSRC,
 				ch->current_start,
 				ch->rtp_ch->rtp_first_SN,
@@ -455,21 +454,22 @@ void RP_SaveSessionState(RTPClient *rtp)
 			gf_list_rem(sdp->Attributes, j);
 		}
 	}
-	if (sess && sess->session_id) {
-		GF_SAFEALLOC(att, GF_X_Attribute);
-		att->Name = gf_strdup("x-session-id");
-		att->Value = gf_strdup(sess->session_id);
-		gf_list_add(sdp->Attributes, att);
-	}
-	{
+	if (sess) {
 		char szURL[4096];
+
+		if (sess->session_id) {
+			GF_SAFEALLOC(att, GF_X_Attribute);
+			att->Name = gf_strdup("x-session-id");
+			att->Value = gf_strdup(sess->session_id);
+			gf_list_add(sdp->Attributes, att);
+		}
+
 		GF_SAFEALLOC(att, GF_X_Attribute);
 		att->Name = gf_strdup("x-session-name");
 		sprintf(szURL, "rtsp://%s:%d/%s", sess->session->Server, sess->session->Port, sess->session->Service);
 		att->Value = gf_strdup(szURL);
 		gf_list_add(sdp->Attributes, att);
 	}
-
 
 	gf_free(rtp->session_state_data);
 	sdp_buf = NULL;

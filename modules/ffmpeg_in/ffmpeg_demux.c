@@ -167,19 +167,20 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	char *ext, szName[1000], szExt[20];
 	const char *szExtList;
 
+	/*disable RTP/RTSP from ffmpeg*/
+	if (!strnicmp(url, "rtsp://", 7)) return 0;
+	if (!strnicmp(url, "rtspu://", 8)) return 0;
+	if (!strnicmp(url, "rtp://", 6)) return 0;
+	if (!strnicmp(url, "plato://", 8)) return 0;
+	if (!strnicmp(url, "udp://", 6)) return 0;
+	if (!strnicmp(url, "tcp://", 6)) return 0;
+	if (!strnicmp(url, "data:", 5)) return 0;
+
 	strcpy(szName, url);
 	ext = strrchr(szName, '#');
 	if (ext) ext[0] = 0;
 	ext = strrchr(szName, '?');
 	if (ext) ext[0] = 0;
-
-	/*disable RTP/RTSP from ffmpeg*/
-	if (!strnicmp(szName, "rtsp://", 7)) return 0;
-	if (!strnicmp(szName, "rtspu://", 8)) return 0;
-	if (!strnicmp(szName, "rtp://", 6)) return 0;
-	if (!strnicmp(szName, "plato://", 8)) return 0;
-	if (!strnicmp(szName, "udp://", 6)) return 0;
-	if (!strnicmp(szName, "tcp://", 6)) return 0;
 
 	ext = strrchr(szName, '.');
 	if (ext) {

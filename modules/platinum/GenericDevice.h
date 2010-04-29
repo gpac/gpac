@@ -189,12 +189,11 @@ public:
 	GPAC_Service(PLT_DeviceData* device, const char*     type = NULL,  const char*     id = NULL, const char*     last_change_namespace = NULL);
 	~GPAC_Service();
 
-	GPAC_GenericDevice *m_pDevice;
-
 #ifdef GPAC_HAS_SPIDERMONKEY
-	void SetupJS(JSContext *c, GPAC_GenericDevice *device);
+	void SetupJS(JSContext *c, GF_UPnP *upnp, JSObject *parent);
 	JSObject *m_pObj;
 	JSContext *m_pCtx;
+	jsval on_action;
 #endif
 
 };

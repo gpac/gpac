@@ -85,6 +85,7 @@ private:
 
 	/*pointer to the AV service for further StateVariable modifications*/
     PLT_Service *m_pAVService;
+    PLT_Service *m_pMigrationService;
 
 	GF_List *m_mediaHistoryList;
 	u32 m_track_pos;

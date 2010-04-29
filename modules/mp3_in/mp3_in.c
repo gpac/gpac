@@ -71,6 +71,7 @@ static Bool MP3_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	sExt = strrchr(url, '.');
+	if (!strnicmp(url, "rtsp://", 7)) return 0; 
 	if (!sExt) return 0;
 	if (gf_term_check_extension(plug, "audio/mpeg", "mp2 mp3 mpga mpega", "MP3 Music", sExt)) return 1;
 	if (gf_term_check_extension(plug, "audio/x-mpeg", "mp2 mp3 mpga mpega", "MP3 Music", sExt)) return 1;

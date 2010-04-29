@@ -86,7 +86,7 @@ void GF_UPnP::LockTerminal(Bool do_lock)
 	gf_term_lock_compositor(m_pTerm, do_lock);
 }
 
-void GF_UPnP::OnStop(Bool is_migrate, const char *src_url)
+void GF_UPnP::OnStop(const char *src_url)
 {
 	if (m_renderer_bound) {
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -102,14 +102,40 @@ void GF_UPnP::OnStop(Bool is_migrate, const char *src_url)
 		LockTerminal(0);
 #endif
 	} else {
-		if (is_migrate) {
-			GF_Event evt;
-			evt.type = GF_EVENT_MIGRATE;
-			gf_term_send_event(m_pTerm, &evt);
+		gf_term_disconnect(m_pTerm);
+	}
+}
+
+NPT_String GF_UPnP::OnMigrate()
+{
+	NPT_String res = "";
+	if (m_renderer_bound) {
+#ifdef GPAC_HAS_SPIDERMONKEY
+		jsval funval, rval;
+		if (!m_pJSCtx) return res;
+		LockTerminal(1);
+		JS_LookupProperty(m_pJSCtx, m_pObj, "onMigrate", &funval);
+		if (JSVAL_IS_OBJECT(funval)) {
+			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 0, NULL, &rval);
+			if (JSVAL_IS_STRING(rval)) {
+				res = JS_GetStringBytes(JSVAL_TO_STRING(rval));
+			}
+		}
+		LockTerminal(0);
+#endif
+	} else {
+		GF_NetworkCommand com;
+
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_MIGRATION_INFO;
+		m_pTerm->root_scene->root_od->net_service->ifce->ServiceCommand(m_pTerm->root_scene->root_od->net_service->ifce, &com);
+		if (com.migrate.data) {
+			res = com.migrate.data;
 		} else {
-			gf_term_disconnect(m_pTerm);
+			res = m_pTerm->root_scene->root_od->net_service->url;
 		}
 	}
+	return res;
 }
 
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -1038,6 +1064,7 @@ static JSBool upnp_share_virtual_resource(JSContext *c, JSObject *obj, uintN arg
 
 static NPT_UInt8 GENERIC_SCPDXML[] = "<scpd xmlns=\"urn:schemas-upnp-org:service-1-0\"><specVersion>  <major>1</major>   <minor>0</minor> </specVersion> <actionList>  <action>  <name>GetStatus</name>    <argumentList>    <argument>     <name>ResultStatus</name>     <direction>out</direction>      <relatedStateVariable>Status</relatedStateVariable>     </argument>   </argumentList>  </action> </actionList>  <serviceStateTable>  <stateVariable sendEvents=\"yes\">   <name>Status</name>    <dataType>boolean</dataType>   </stateVariable></serviceStateTable> </scpd>";
 
+
 static JSBool upnp_device_setup_service(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char *name, *type, *id, *scpd_xml;
@@ -1073,10 +1100,12 @@ static JSBool upnp_device_setup_service(JSContext *c, JSObject *obj, uintN argc,
 	}
 	gf_list_add(device->m_pServices, service);
 
-	service->SetupJS(c, device);
+	service->SetupJS(c, device->m_pUPnP, device->obj);
 	*rval = OBJECT_TO_JSVAL(service->m_pObj);
 	return JS_TRUE;
 }
+
+
 
 static JSBool upnp_device_start(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -1159,6 +1188,28 @@ static JSBool upnp_device_stop(JSContext *c, JSObject *obj, uintN argc, jsval *a
 }
 
 
+static GPAC_GenericDevice *upnp_create_generic_device(GF_UPnP *upnp, JSObject*global, const char *id, const char *name)
+{
+	GPAC_GenericDevice *device;
+	device = new GPAC_GenericDevice(name, id);
+	device->m_pUPnP = upnp;
+	device->js_source = "";
+
+	device->obj = JS_NewObject(upnp->m_pJSCtx, &upnp->upnpDeviceClass, 0, global);
+	JS_AddRoot(upnp->m_pJSCtx, &device->obj);
+
+	JS_DefineProperty(upnp->m_pJSCtx, device->obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(upnp->m_pJSCtx, device->obj, "ID", STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, id) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(upnp->m_pJSCtx, device->obj, "UUID", STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, device->GetUUID()) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineFunction(upnp->m_pJSCtx, device->obj, "SetupService", upnp_device_setup_service, 0, 0);
+	JS_DefineFunction(upnp->m_pJSCtx, device->obj, "Start", upnp_device_start, 0, 0);
+//	JS_DefineFunction(upnp->m_pJSCtx, device->obj, "Stop", upnp_device_stop, 0, 0);
+	JS_SetPrivate(upnp->m_pJSCtx, device->obj, device);
+	if (!upnp->m_Devices) upnp->m_Devices = gf_list_new();
+	gf_list_add(upnp->m_Devices, device);
+
+	return device;
+}
 
 static JSBool upnp_create_device(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -1173,24 +1224,9 @@ static JSBool upnp_create_device(JSContext *c, JSObject *obj, uintN argc, jsval 
 	if (JSVAL_IS_STRING(argv[1])) name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 	if (!id || !name) return JS_FALSE;
 
-	device = new GPAC_GenericDevice(name, id);
-	device->m_pUPnP = upnp;
-	device->js_source = "";
-
-	device->obj = JS_NewObject(upnp->m_pJSCtx, &upnp->upnpDeviceClass, 0, 0);
-	JS_AddRoot(upnp->m_pJSCtx, &device->obj);
-
-	JS_DefineProperty(upnp->m_pJSCtx, device->obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	JS_DefineProperty(upnp->m_pJSCtx, device->obj, "ID", STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, id) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	JS_DefineProperty(upnp->m_pJSCtx, device->obj, "UUID", STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, device->GetUUID()) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	JS_DefineFunction(upnp->m_pJSCtx, device->obj, "SetupService", upnp_device_setup_service, 0, 0);
-	JS_DefineFunction(upnp->m_pJSCtx, device->obj, "Start", upnp_device_start, 0, 0);
-	JS_SetPrivate(upnp->m_pJSCtx, device->obj, device);
-
-	*rval = OBJECT_TO_JSVAL(device->obj);
-
-	if (!upnp->m_Devices) upnp->m_Devices = gf_list_new();
-	gf_list_add(upnp->m_Devices, device);
+	device = upnp_create_generic_device(upnp, NULL, id, name);
+	if (device)
+		*rval = OBJECT_TO_JSVAL(device->obj);
 
 	return JS_TRUE;
 }
@@ -1320,20 +1356,8 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		if (!f) continue;
 
 
-		GPAC_GenericDevice *device = new GPAC_GenericDevice(szFriendlyName, device_id);
-		device->m_pUPnP = this;
+		GPAC_GenericDevice *device = upnp_create_generic_device(this, (JSObject*)param->global, device_id, szFriendlyName);
 		device->js_source = szFile;
-		/*create the JS object in the script global object scope*/
-		device->obj = JS_NewObject(m_pJSCtx, &upnpDeviceClass, 0, (JSObject*)param->global);
-		JS_AddRoot(m_pJSCtx, &device->obj);
-
-		JS_DefineProperty(m_pJSCtx, device->obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(m_pJSCtx, szFriendlyName) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(m_pJSCtx, device->obj, "ID", STRING_TO_JSVAL( JS_NewStringCopyZ(m_pJSCtx, device_id) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(m_pJSCtx, device->obj, "UUID", STRING_TO_JSVAL( JS_NewStringCopyZ(m_pJSCtx, device->GetUUID()) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineFunction(m_pJSCtx, device->obj, "SetupService", upnp_device_setup_service, 0, 0);
-		JS_DefineFunction(m_pJSCtx, device->obj, "Start", upnp_device_start, 0, 0);
-		JS_DefineFunction(m_pJSCtx, device->obj, "Stop", upnp_device_stop, 0, 0);
-		JS_SetPrivate(m_pJSCtx, device->obj, device);
 
 		jsval aval;
 		fseek(f, 0, SEEK_END);
@@ -1345,10 +1369,9 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		/*evaluate the script on the object only*/
 		if (JS_EvaluateScript(m_pJSCtx, device->obj, buf, size, 0, 0, &aval) != JS_TRUE) {
 			JS_RemoveRoot(m_pJSCtx, &device->obj);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] Unable to load device %s: script error in %s\n", szFriendlyName, szFile));
+			gf_list_del_item(m_Devices, device);
 			delete device;
-		} else {
-			if (!m_Devices) m_Devices = gf_list_new();
-			gf_list_add(m_Devices, device);
 		}
 		fclose(f);
 		gf_free(buf);

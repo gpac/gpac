@@ -95,10 +95,11 @@ public:
 	/*callback from GPAC MediaRenderer*/
 	void OnConnect(const char *url, const char *src_url);
 	void OnPause(Bool do_resume, const char *src_url);
-	void OnStop(Bool is_migrate, const char *src_url);
+	void OnStop(const char *src_url);
 	void OnSeek(Double time, const char *src_url);
 	void OnSetPlayMode(const char *src_url);
 	void ContainerChanged(PLT_DeviceDataReference& device, const char *item_id, const char *update_id);
+	NPT_String OnMigrate();
 
 	GPAC_GenericController *m_pGenericController;
 

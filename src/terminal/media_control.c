@@ -329,7 +329,8 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			}
 			/*MediaControl has been detached*/
 			else {
-				gf_odm_remove_mediacontrol(prev->odm, stack);
+				if (prev) 
+					gf_odm_remove_mediacontrol(prev->odm, stack);
 				return;
 			}
 		}
@@ -346,6 +347,9 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		while (gf_list_count(stack->seg)) gf_list_rem(stack->seg, 0);
 		gf_odm_init_segments((GF_ObjectManager *) stack->stream->odm, stack->seg, &stack->control->url);
 		stack->current_seg = 0;
+
+		/*we shouldn't have to restart unless start/stop times have been changed, which is tested below*/
+		need_restart = 0;
 	}
 
 	if (!stack->changed || !stack->control->enabled) return;

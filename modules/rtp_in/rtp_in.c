@@ -293,8 +293,7 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 
 	RP_FlushCommands(rtp);
 
-	opt = gf_modules_get_option((GF_BaseInterface *) plug, "Network", "SessionMigration");
-	if (opt && !strcmp(opt, "yes") ) {
+	if (rtp->session_migration) {
 		opt = gf_modules_get_option((GF_BaseInterface *) plug, "Streaming", "SessionMigrationPause");
 		if (opt && !strcmp(opt, "yes")) {
 			GF_NetworkCommand com;
@@ -306,14 +305,14 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 				RP_UserCommand(sess, NULL, &com);
 			}
 		}
-
 		RP_SaveSessionState(rtp);
 	} else {
 		/*remove session state file*/
 		if (rtp->session_state_data) {
 			gf_free(rtp->session_state_data);
 			rtp->session_state_data = NULL;
-		}
+		} 
+
 		/*send teardown on all sessions*/
 		i=0;
 		while ((sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i))) {
@@ -452,6 +451,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	}
 	if (com->command_type==GF_NET_SERVICE_MIGRATION_INFO) {
 		RP_SaveSessionState(priv);
+		priv->session_migration=1;
 		if (priv->session_state_data) {
 			com->migrate.data = priv->session_state_data;
 			com->migrate.data_len = strlen(priv->session_state_data);
@@ -548,9 +548,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_STOP:
 		/*is this RTSP or direct RTP?*/
 		if (ch->rtsp) {
-			const char *opt = gf_modules_get_option((GF_BaseInterface *) plug, "Network", "SessionMigration");
-			if (opt && !strcmp(opt, "yes")) {
-			} else {
+			if (! ch->owner->session_migration) {
 				RP_UserCommand(ch->rtsp, ch, com);
 			}
 		} else {

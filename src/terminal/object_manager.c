@@ -82,6 +82,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 	i=0;
 	while ((media_ctrl = (MediaControlStack *)gf_list_enum(odm->mc_stack, &i))) {
 		media_ctrl->stream = NULL;
+		media_ctrl->ck = NULL;
 	}
 	gf_list_del(odm->mc_stack);
 #endif
