@@ -747,7 +747,8 @@ GF_Err gf_sdp_info_check(GF_SDPInfo *sdp)
 	if (!sdp->o_add_type || !sdp->o_address || !sdp->o_username || !sdp->o_session_id || !sdp->o_version) 
 		return GF_REMOTE_SERVICE_ERROR;
 	//s=
-	if (!sdp->s_session_name) return GF_REMOTE_SERVICE_ERROR;
+	//commented for intermedia demos
+//	if (!sdp->s_session_name) return GF_REMOTE_SERVICE_ERROR;
 	//t=
 //	if () return GF_REMOTE_SERVICE_ERROR;
 	//c=

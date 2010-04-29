@@ -722,11 +722,10 @@ static JSBool upnp_service_set_state_variable(JSContext *c, JSObject *obj, uintN
 	return JS_TRUE;
 }
 
-void GPAC_Service::SetupJS(JSContext *c, GPAC_GenericDevice *device)
+void GPAC_Service::SetupJS(JSContext *c, GF_UPnP *upnp, JSObject *parent)
 {
 	m_pCtx = c;
-	m_pObj = JS_NewObject(c, &device->m_pUPnP->upnpDeviceClass, 0, device->obj);
-	m_pDevice = device;
+	m_pObj = JS_NewObject(c, &upnp->upnpDeviceClass, 0, parent);
 	JS_AddRoot(m_pCtx, &m_pObj);
 	JS_SetPrivate(c, m_pObj, this);
 	JS_DefineFunction(c, m_pObj, "SetStateVariable", upnp_service_set_state_variable, 2, 0);

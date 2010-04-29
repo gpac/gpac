@@ -90,6 +90,8 @@ typedef struct
 //	Bool handle_announce;
 
 	Double last_ntp;
+	
+	Bool session_migration;
 } RTPClient;
 
 enum
@@ -182,6 +184,10 @@ enum
 	RTP_CONNECTED = (1<<5),
 	/*EOS signaled (RTCP or range-based)*/
 	RTP_EOS = (1<<6),
+
+	/*RTP stream is using mobileIP - this will disable RTP over RTSP*/
+	RTP_MOBILEIP = (1<<7),
+
 };
 
 enum

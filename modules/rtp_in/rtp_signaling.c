@@ -811,7 +811,7 @@ void RP_ProcessTeardown(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 void RP_Teardown(RTSPSession *sess, RTPStream *ch)
 {
 	GF_RTSPCommand *com;
-
+	if (sess->owner->session_migration) return;
 	/*we need a session id*/
 	if (!sess->session_id) return;
 	/*ignore teardown on channels*/

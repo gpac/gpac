@@ -236,7 +236,7 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		break;
 
 	case GF_EVENT_CONNECT:
-		if (pFrame->m_bStartupFile) return 0;
+//		if (pFrame->m_bStartupFile) return 0;
 
 		pFrame->BuildStreamList(1);
 		if (evt->connect.is_connected) {
@@ -261,12 +261,6 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		break;
 	case GF_EVENT_MIGRATE:
 	{
-		const char *str = gf_cfg_get_key(gpac->m_user.config, "Network", "SessionMigration");
-		if (!str || !strcmp(str, "no"))
-			gf_cfg_set_key(gpac->m_user.config, "Network", "SessionMigration", "yes");
-
-		gpac->m_navigate_url = "";
-		pFrame->PostMessage(WM_NAVIGATE, NULL, NULL);
 	}
 		break;
 	case GF_EVENT_KEYDOWN:
@@ -590,11 +584,6 @@ BOOL Osmo4::InitInstance()
 	if (!str || !stricmp(str, "raw_out")) {
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "DirectX Video Output");
 	}
-
-	/*reset session migration*/
-	str = gf_cfg_get_key(m_user.config, "Network", "SessionMigration");
-	if (str && !strcmp(str, "yes"))
-		gf_cfg_set_key(m_user.config, "Network", "SessionMigration", "no");
 
 	/*check log file*/
 	str = gf_cfg_get_key(m_user.config, "General", "LogFile");
@@ -1000,12 +989,6 @@ void Osmo4::OnFileReload()
 
 void Osmo4::OnFileMigrate() 
 {
-	const char *str = gf_cfg_get_key(m_user.config, "Network", "SessionMigration");
-	if (!str || !strcmp(str, "no"))
-		gf_cfg_set_key(m_user.config, "Network", "SessionMigration", "yes");
-
-	m_navigate_url = "";
-	m_pMainWnd->PostMessage(WM_NAVIGATE, NULL, NULL);
 }
 
 void Osmo4::OnConfigReload() 

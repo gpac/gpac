@@ -77,8 +77,11 @@ GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 			ip_ifce = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Network", "DefaultMCastInterface");
 			if (!ip_ifce) {
 				const char *mob_on = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Network", "MobileIPEnabled");
-				if (mob_on && !strcmp(mob_on, "yes"))
+				if (mob_on && !strcmp(mob_on, "yes")) {
 					ip_ifce = gf_modules_get_option((GF_BaseInterface *) gf_term_get_service_interface(ch->owner->service), "Network", "MobileIP");
+					ch->flags |= RTP_MOBILEIP;
+				}
+
 			}
 		}
 		return gf_rtp_initialize(ch->rtp_ch, RTP_BUFFER_SIZE, 0, 0, reorder_size, 200, (char *)ip_ifce);
@@ -91,7 +94,7 @@ GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 void RP_DeleteStream(RTPStream *ch)
 {
 	if (ch->rtsp) {
-		if ((ch->status == RTP_Running)) {
+		if (ch->status == RTP_Running) {
 			RP_Teardown(ch->rtsp, ch);
 			ch->status = RTP_Disconnected;
 		}
@@ -131,6 +134,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	Float CurrentTime;
 	u32 s_port_first, s_port_last;
 	GF_X_Attribute *att;
+	Bool is_migration = 0;
 	char *ctrl;
 	GF_SDPConnection *conn;
 	GF_RTSPTransport trans;
@@ -155,6 +159,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		else if (!stricmp(att->Name, "x-stream-state") ) {
 			sscanf(att->Value, "server-port=%d-%d;ssrc=%X;npt=%g;seq=%d;rtptime=%d", 
 				&s_port_first, &s_port_last, &ssrc, &CurrentTime, &rtp_seq, &rtp_time);
+			is_migration = 1;
 		}
 		else if (!stricmp(att->Name, "x-server-port") ) {
 			sscanf(att->Value, "%d-%d", &s_port_first, &s_port_last);
@@ -169,6 +174,8 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 
 	/*check connection*/
 	conn = sdp->c_connection;
+	if (conn && (!conn->host || !strcmp(conn->host, "0.0.0.0"))) conn = NULL;
+
 	if (!conn) conn = (GF_SDPConnection*)gf_list_get(media->Connections, 0);
 
 	if (!conn) {
@@ -221,8 +228,8 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 	} else {
 		trans.client_port_first = media->PortNumber;
 		trans.client_port_last = media->PortNumber + 1;
-		trans.port_first = s_port_first;
-		trans.port_last = s_port_last;
+		trans.port_first = s_port_first ? s_port_first : trans.client_port_first;
+		trans.port_last = s_port_last ? s_port_last : trans.client_port_last;
 	}
 
 	if (gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL) != GF_OK) {
@@ -253,7 +260,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 
 	if (force_bcast) tmp->flags |= RTP_FORCE_BROADCAST;
 
-	if (s_port_first) {
+	if (is_migration) {
 		tmp->current_start = (Double) CurrentTime;
 		tmp->check_rtp_time = RTP_SET_TIME_RTP;
 		gf_rtp_set_info_rtp(tmp->rtp_ch, rtp_seq, rtp_time, ssrc);
@@ -452,7 +459,7 @@ void RP_ReadStream(RTPStream *ch)
 	if (ch->owner->udp_time_out) {
 		if (!ch->last_udp_time) {
 			ch->last_udp_time = gf_sys_clock();
-		} else if (ch->rtp_ch->net_info.IsUnicast){
+		} else if (ch->rtp_ch->net_info.IsUnicast && !(ch->flags & RTP_MOBILEIP) ){
 			u32 diff = gf_sys_clock() - ch->last_udp_time;
 			if (diff >= ch->owner->udp_time_out) {
 				char szMessage[1024];

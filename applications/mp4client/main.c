@@ -443,6 +443,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		const char *servName;
 		if (!evt->message.service || !strcmp(evt->message.service, the_url)) {
 			servName = "main service";
+		} else if (!strnicmp(evt->message.service, "data:", 5)) {
+			servName = "";
 		} else {
 			servName = evt->message.service;
 		}
@@ -622,12 +624,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_MIGRATE:
 	{
-		const char *str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");
-		if (!str || !strcmp(str, "no"))
-			gf_cfg_set_key(cfg_file, "Network", "SessionMigration", "yes");
-
-		fprintf(stdout, "Migrating session %s\n", the_url);
-		gf_term_disconnect(term);
 	}
 		break;
 	case GF_EVENT_NAVIGATE_INFO:
@@ -1234,11 +1230,6 @@ int main (int argc, char **argv)
 			startup_file = 1;
 		}
 	}
-	/*reset session migration*/
-	str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");
-	if (str && !strcmp(str, "yes"))
-		gf_cfg_set_key(cfg_file, "Network", "SessionMigration", "no");
-
 	if (start_fs) gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
 
 	while (Run) {		
@@ -1279,11 +1270,6 @@ force_input:
 			exit(0);
 			break;
 		case 'Q':
-			str = gf_cfg_get_key(cfg_file, "Network", "SessionMigration");
-			if (!str || !strcmp(str, "no"))
-				gf_cfg_set_key(cfg_file, "Network", "SessionMigration", "yes");
-			fprintf(stdout, "Migrating session %s\n", the_url);
-			gf_term_disconnect(term);
 			break;
 		case 'o':
 			startup_file = 0;
