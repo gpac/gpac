@@ -31,18 +31,13 @@ SRCS := $(OBJS:.o=.c)
 
 LIB=gm_oss_audio.$(DYN_LIB_SUFFIX)
 
-ifeq ($(WANT_PIC),yes)
-OBJSPIC=$(OBJS:.o=.opic)
-else
-OBJSPIC=$(OBJS)
-endif
 
 all: $(LIB)
 
-$(LIB): $(OBJSPIC)
-	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac $(OSS_LDFLAGS)
+$(LIB): $(OBJS)
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac $(OSS_LDFLAGS)
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_oss_audio-static.so $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac_static $(OSS_LDFLAGS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_oss_audio-static.so $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static $(OSS_LDFLAGS)
 endif
 
 

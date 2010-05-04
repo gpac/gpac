@@ -91,7 +91,6 @@ has_openjpeg="no"
 has_libxml2="no"
 gprof_build="no"
 static_build="no"
-PIC_CFLAGS=""
 want_pic="no"
 has_joystick="no"
 has_xul="no"
@@ -295,9 +294,7 @@ case "$cpu" in
     if [ x"$canon_arch" = x"x86_64" -o x"$canon_arch" = x"amd64" ]; then
       if [ -z "`echo $CFLAGS | grep -- -m32`"  ]; then
         cpu="x86_64"
-	libdir="lib64"
-        #that's a bit crude...
-        PIC_CFLAGS="-fPIC -DPIC"
+        libdir="lib64"
         want_pic="yes"
       fi
     fi
@@ -1155,7 +1152,7 @@ for opt do
   ;;
   --enable-static-bin) static_build="yes";
   ;;
-  --enable-pic) PIC_CFLAGS="-fPIC -DPIC"; want_pic="yes";
+  --enable-pic) want_pic="yes";
   ;;
   --disable-opt) no_gcc_opt="yes"
   ;;
@@ -1864,6 +1861,12 @@ extralibs="$extralibs -lgmon"
 fi
 fi
 
+
+if test "$want_pic"  = "yes" ; then
+CFLAGS="$CFLAGS -fPIC -DPIC"
+CPPFLAGS="$CPPFLAGS -fPIC -DPIC"
+fi
+
 ldir=`pwd`
 CFLAGS="$CFLAGS -DGPAC_HAVE_CONFIG_H -I$ldir"
 CPPFLAGS="$CPPFLAGS -DGPAC_HAVE_CONFIG_H -I$ldir"
@@ -1887,8 +1890,6 @@ echo "RANLIB=$ranlib" >> config.mak
 echo "STRIP=$strip" >> config.mak
 echo "OPTFLAGS=$CFLAGS" >> config.mak
 echo "CPPFLAGS=$CPPFLAGS" >> config.mak
-echo "PIC_CFLAGS=$PIC_CFLAGS" >> config.mak
-echo "WANT_PIC=$want_pic" >> config.mak
 echo "LDFLAGS=$LDFLAGS" >> config.mak
 echo "SHFLAGS=$SHFLAGS" >> config.mak
 echo "libdir=$libdir" >> config.mak

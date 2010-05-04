@@ -20,19 +20,12 @@ OBJS= jack.o
 SRCS := $(OBJS:.o=.c) 
 
 
-ifeq ($(WANT_PIC),yes)
-OBJSPIC=$(OBJS:.o=.opic)
-else
-OBJSPIC=$(OBJS)
-endif
-
-
 LIB=gm_jack.$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 
-$(LIB): $(OBJSPIC)
-	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac -L/usr/lib  -ljack
+$(LIB): $(OBJS)
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac -L/usr/lib  -ljack
 
 
 %.o: %.c

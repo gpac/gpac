@@ -50,17 +50,12 @@ ifeq ($(CROSS_COMPILING),yes)
 EXTRALIBS+=-L$(prefix)/lib
 endif
 
-ifeq ($(WANT_PIC),yes)
-OBJSPIC=$(OBJS:.o=.opic)
-else
-OBJSPIC=$(OBJS)
-endif
 
 all: $(LIB)
 
 
-$(LIB): $(OBJSPIC)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) -L../../bin/gcc $(LOCAL_LIB) $(LINKLIBS) $(EXTRALIBS)
+$(LIB): $(OBJS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LOCAL_LIB) $(LINKLIBS) $(EXTRALIBS)
 
 
 %.o: %.c

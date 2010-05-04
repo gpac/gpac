@@ -30,20 +30,14 @@ ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols rast_soft.def 
 endif
 
-ifeq ($(WANT_PIC),yes)
-OBJSPIC=$(OBJS:.o=.opic)
-else
-OBJSPIC=$(OBJS)
-endif
-
 
 all: $(LIB)
 
 
-$(LIB): $(OBJSPIC)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac
+$(LIB): $(OBJS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_soft_raster-static.so $(OBJSPIC) $(EXTRALIBS) -L../../bin/gcc -lgpac_static
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_soft_raster-static.so $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static
 endif
 
 
