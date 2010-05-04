@@ -123,7 +123,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		length = gf_bs_read_int(bs, size);
 		if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 
-		if ((node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
+		if (node && (node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
 			char *name;
 			FILE *f;
 			M_CacheTexture *ct = (M_CacheTexture *) node;

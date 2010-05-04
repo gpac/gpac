@@ -90,7 +90,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		break;
 
 	case GF_SG_VRML_SFSTRING:
-		if ((node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
+		if (node && (node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
 			u32 size, val;
 			char buf[4096];
 			FILE *f = fopen(((SFString*)field->far_ptr)->buffer, "rb");
