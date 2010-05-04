@@ -41,17 +41,12 @@ ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols gpac_js.def 
 endif
 
-ifeq ($(WANT_PIC),yes)
-OBJSPIC=$(OBJS:.o=.opic)
-else
-OBJSPIC=$(OBJS)
-endif
 
 all: $(LIB)
 
 
-$(LIB): $(OBJSPIC)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
+$(LIB): $(OBJS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
 
 
 %.o: %.c

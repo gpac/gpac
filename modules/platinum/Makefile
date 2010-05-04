@@ -37,17 +37,12 @@ ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols platinum.def 
 endif
 
-ifeq ($(WANT_PIC),yes)
-OBJSPIC=$(OBJS:.o=.opic)
-else
-OBJSPIC=$(OBJS)
-endif
 
 all: $(LIB)
 
 
-$(LIB): $(OBJSPIC)
-	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
+$(LIB): $(OBJS)
+	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
 
 
 %.o: %.cpp

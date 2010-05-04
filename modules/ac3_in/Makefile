@@ -37,18 +37,12 @@ ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols ac3_in.def 
 endif
 
-ifeq ($(WANT_PIC),yes)
-OBJSPIC=$(OBJS:.o=.opic)
-else
-OBJSPIC=$(OBJS)
-endif
-
 
 all: $(LIB)
 
 
-$(LIB): $(OBJSPIC)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) -L../../bin/gcc -lgpac $(EXTRALIBS)
+$(LIB): $(OBJS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(EXTRALIBS)
 
 
 %.o: %.c

@@ -26,17 +26,12 @@ ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols sdl_out.def 
 endif
 
-ifeq ($(WANT_PIC),yes)
-OBJSPIC=$(OBJS:.o=.opic)
-else
-OBJSPIC=$(OBJS)
-endif
 
 all: $(LIB)
 
 
-$(LIB): $(OBJSPIC)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJSPIC) $(LINKFLAGS) -L../../bin/gcc -lgpac
+$(LIB): $(OBJS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS) -L../../bin/gcc -lgpac
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 

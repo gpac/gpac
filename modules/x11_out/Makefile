@@ -56,23 +56,18 @@ ifeq ($(CONFIG_WIN32),yes)
 #LDFLAGS+=-export-symbols  
 endif
 
-ifeq ($(WANT_PIC),yes)
-OBJSPIC=$(OBJS:.o=.opic)
-else
-OBJSPIC=$(OBJS)
-endif
 
 all: $(LIB)
 
 
-$(LIB): $(OBJSPIC)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -lX11 -L../../bin/gcc -lgpac -o ../../bin/gcc/$@ $(OBJSPIC)
+$(LIB): $(OBJS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -lX11 -L../../bin/gcc -lgpac -o ../../bin/gcc/$@ $(OBJS)
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_x11_out-static.so $(OBJSPIC) -lX11 -L../../bin/gcc -lgpac_static
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_x11_out-static.so $(OBJS) -lX11 -L../../bin/gcc -lgpac_static
 endif
 
 #static-bin:
-#	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_x11_out-static.so $(OBJSPIC) -lX11 -L../../bin/gcc -lgpac_static
+#	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_x11_out-static.so $(OBJS) -lX11 -L../../bin/gcc -lgpac_static
                                                                                                
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $< 
