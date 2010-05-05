@@ -50,7 +50,7 @@ tar:
 install:
 	install -d "$(DESTDIR)$(prefix)"
 	install -d "$(DESTDIR)$(prefix)/bin"
-	#install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
+	install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
 	$(MAKE) -C applications install
 	install -d "$(DESTDIR)$(moddir)"
 	install bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
@@ -64,15 +64,16 @@ install:
 	install -m 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ ; \
 	install -m 644 doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/ ; \
 	install -d "$(DESTDIR)$(prefix)/share/gpac" ; \
-	install -m 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ; \
-	install -d "$(DESTDIR)$(prefix)/share/gpac/gui" ; \
-	install -d doc/gui/gui.bt $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
-	install -d doc/gui/gui.js $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
-	install -d doc/gui/mpegu-core.js $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
-	install -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons ; \
-	install -m 644 doc/gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons ;"
-	install -m 644 doc/gui/icons/*.png "$(DESTDIR)$(prefix)/share/gpac/gui/icons ;"
+	install -m 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ;  \
 	fi
+
+#	install -d "$(DESTDIR)$(prefix)/share/gpac/gui" ; \
+#	install -d doc/gui/gui.bt $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
+#	install -d doc/gui/gui.js $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
+#	install -d doc/gui/mpegu-core.js $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
+#	install -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
+#	install -m 644 doc/gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
+#	install -m 644 doc/gui/icons/*.png "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ;  \
 
 uninstall:
 	$(MAKE) -C applications uninstall
