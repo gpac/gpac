@@ -697,7 +697,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 			gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
 		}
 
-		unsigned char str_path[MAX_PATH];
+		char str_path[GF_MAX_PATH];
 #ifdef WIN32
 		sOpt = gf_cfg_get_key(m_user.config, "Compositor", "Raster2D");
 		if (!sOpt) gf_cfg_set_key(m_user.config, "Compositor", "Raster2D", "gdip_rend");
