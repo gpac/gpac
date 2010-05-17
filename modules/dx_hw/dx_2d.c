@@ -772,7 +772,7 @@ rem_fmt:
 		min_planar = min_packed;
 		dr->yuv_pixel_format = best_packed;
 	} 
-	dr->yuv_pixel_format = GF_PIXEL_YV12;
+	//dr->yuv_pixel_format = GF_PIXEL_YV12;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Picked YUV format %s - drawn in %d ms\n", gf_4cc_to_str(dr->yuv_pixel_format), min_planar));
 	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
