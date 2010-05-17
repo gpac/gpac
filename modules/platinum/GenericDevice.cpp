@@ -516,7 +516,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 	/*this is NOT an actionResponse to an action triggered on a generic device*/
 	if (act_udta && act_udta->m_Reserved) act_udta = NULL;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Receive %s Response - error code %d\n", action->GetActionDesc().GetName(), res));
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Receive %s Response - error code %d\n", (char *) action->GetActionDesc().GetName(), res));
 
 	gf_mx_p(m_ControlPointLock);
        
@@ -533,7 +533,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 	gf_mx_v(m_ControlPointLock);
 
 	if (!item) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] Receive %s Response on unknown device (uuid %s)\n", action->GetActionDesc().GetName(), uuid));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] Receive %s Response on unknown device (uuid %s)\n", (char *) action->GetActionDesc().GetName(), (char *) uuid));
 		goto exit;
 	}
 	/*get our service*/
@@ -543,7 +543,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 		if (serv->m_service == service) break;
 	}
 	if (!serv) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] Receive %s Response on unknown service %s\n", action->GetActionDesc().GetName(), service->GetServiceType()));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] Receive %s Response on unknown service %s\n", (char *) action->GetActionDesc().GetName(), (char *) service->GetServiceType()));
 		goto exit;
 	}
 
@@ -552,7 +552,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 	i=0;
 	while ((argl = (GPAC_ActionArgListener *)gf_list_enum(serv->m_ArgListeners, &i))) {
 		NPT_String value;
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] checking argument %s\n", argl->action->GetName() ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] checking argument %s\n", (char *) argl->action->GetName() ));
 		if (argl->action->GetName() != action->GetActionDesc().GetName() ) continue;
 
 		/*global action listener*/
@@ -562,20 +562,20 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 		} 
 		/*if error don't trigger listeners*/
 		if (res != NPT_SUCCESS) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[UPnP] Receive %s Response: error on remote device %d\n", action->GetActionDesc().GetName(), res));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[UPnP] Receive %s Response: error on remote device %d\n", (char *) action->GetActionDesc().GetName(), res));
 			continue;
 		}
 		/*action arg listener*/
 		if (action->GetArgumentValue(argl->arg->GetName(), value) == NPT_SUCCESS) {
 			jsval argv[1], rval;
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling handler for response %s argument %s\n", action->GetActionDesc().GetName(), argl->arg->GetName() ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling handler for response %s argument %s\n", (char *) action->GetActionDesc().GetName(), (char *) argl->arg->GetName() ));
 			m_pUPnP->LockTerminal(1);
 			argv[0] = STRING_TO_JSVAL( JS_NewStringCopyZ(serv->js_ctx, value) );
 			JS_CallFunctionValue(serv->js_ctx, serv->obj, argl->on_event, 1, argv, &rval);
 			m_pUPnP->LockTerminal(0);
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] %s Response: couldn't get argument %s value\n", action->GetActionDesc().GetName(), argl->arg->GetName() ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] %s Response: couldn't get argument %s value\n", (char *) action->GetActionDesc().GetName(), (char *) argl->arg->GetName() ));
 		}
 	}
 
@@ -586,7 +586,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 			JSObject *act_obj;
 			jsval argv[2];
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling handler for response %s\n", action->GetActionDesc().GetName()));
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling handler for response %s\n", (char *) action->GetActionDesc().GetName()));
 
 			act_obj = JS_NewObject(serv->js_ctx, &item->m_pUPnP->upnpDeviceClass, 0, item->obj);
 			JS_SetPrivate(serv->js_ctx, act_obj, (void *)action.AsPointer() );
@@ -606,15 +606,15 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 		}
 		/*if error don't trigger listeners*/
 		else if (res == NPT_SUCCESS) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling handler for response %s\n", action->GetActionDesc().GetName()));
+			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling handler for response %s\n", (char *) action->GetActionDesc().GetName()));
 			JS_CallFunctionValue(serv->js_ctx, serv->obj, act_l->on_event, 0, 0, &rval);
 		}
 		else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] response %s has error %d\n", action->GetActionDesc().GetName(), res ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] response %s has error %d\n", (char *) action->GetActionDesc().GetName(), res ));
 		}
 		m_pUPnP->LockTerminal(0);
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Done processing response %s\n", action->GetActionDesc().GetName()));
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Done processing response %s\n", (char *) action->GetActionDesc().GetName()));
 
 exit:
 	if (act_udta) {
@@ -824,7 +824,7 @@ static JSBool upnp_action_send_reply(JSContext *c, JSObject *obj, uintN argc, js
 		u32 i, count;
 		JS_GetArrayLength(c, list, (jsuint*) &count);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling response %s(", device->act_ref->GetActionDesc().GetName()));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling response %s(", (char *) device->act_ref->GetActionDesc().GetName()));
 		i=0;
 		while (i+2<=count) {
 			jsval an_arg;
@@ -880,9 +880,9 @@ GPAC_GenericDevice::OnAction(PLT_ActionReference&          action,
 
 	gf_mx_p(m_pMutex);
 	PLT_ActionDesc &act_desc = action->GetActionDesc();
-    NPT_String name = act_desc.GetName();
+        NPT_String name = act_desc.GetName();
 	assert(!m_pSema);
-	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Action %s called (thread %d)\n", name, gf_th_id() ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Action %s called (thread %d)\n", (char *) name, gf_th_id() ));
 	
 #ifdef GPAC_HAS_SPIDERMONKEY
 	if (!act_proc) {
@@ -919,7 +919,7 @@ GPAC_GenericDevice::OnAction(PLT_ActionReference&          action,
 	}
 	/*wait on the semaphore*/
 	if (!gf_sema_wait_for(m_pSema, 10000)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[UPnP] Reply processing to action %s timeout - sending incomplete reply)\n", name));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[UPnP] Reply processing to action %s timeout - sending incomplete reply)\n", (char *) name));
 	}
 	gf_sema_del(m_pSema);
 	m_pSema = NULL;
