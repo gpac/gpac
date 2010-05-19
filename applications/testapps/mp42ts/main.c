@@ -1435,7 +1435,7 @@ static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		while (1) {
 			size = gf_rtp_read_rtcp(rtp->rtp_ch, buffer, 8000);
 			if (!size) break;
-			e = gf_rtp_decode_rtcp(rtp->rtp_ch, buffer, size);
+			e = gf_rtp_decode_rtcp(rtp->rtp_ch, buffer, size, NULL);
 			if (e == GF_EOS) ifce->caps |= GF_ESI_STREAM_IS_OVER;
 		}
 		return GF_OK;
@@ -1723,7 +1723,7 @@ FILE *ts_file;
 	gf_log_set_tools(GF_LOG_RTP);
 //	gf_log_set_tools(GF_LOG_CONTAINER);
 
-	gf_sys_init();
+	gf_sys_init(0);
 
 	muxer = m2ts_mux_new(mux_rate, real_time);
 	muxer->mpeg4_signaling = mpeg4_signaling;
