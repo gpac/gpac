@@ -1295,6 +1295,9 @@ typedef struct
 	GF_ISOSample *sample;
 	/*refresh rate for images*/
 	u32 refresh_rate_ms, nb_repeat_last;
+	void *dsi;
+	u32 dsi_size;
+	void *dsi_and_rap;
 } GF_ESIMP4;
 
 static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
@@ -1326,10 +1329,23 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 			pck->cts += priv->sample->CTS_Offset;
 			pck->flags |= GF_ESI_DATA_HAS_DTS;
 		}
-		if (priv->sample->IsRAP) pck->flags |= GF_ESI_DATA_AU_RAP;
+		if (priv->sample->IsRAP) {
+			pck->flags |= GF_ESI_DATA_AU_RAP;
+			if (priv->dsi) {
+				pck->data_len = priv->dsi_size+priv->sample->dataLength;
+				priv->dsi_and_rap = gf_malloc(sizeof(char)*pck->data_len);
+				memcpy(priv->dsi_and_rap, priv->dsi, priv->dsi_size);
+				memcpy((char *)priv->dsi_and_rap + priv->dsi_size, priv->sample->data, priv->sample->dataLength);
+				pck->data = priv->dsi_and_rap;
+			}
+		}
 	}
 		return GF_OK;
 	case GF_ESI_INPUT_DATA_RELEASE:
+		if (priv->dsi_and_rap) {
+			gf_free(priv->dsi_and_rap);
+			priv->dsi_and_rap = NULL;
+		}
 		if (priv->sample) {
 			gf_isom_sample_del(&priv->sample);
 			priv->sample_number++;
@@ -1344,6 +1360,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		}
 		return GF_OK;
 	case GF_ESI_INPUT_DESTROY:
+		if (priv->dsi) gf_free(priv->dsi);
 		gf_free(priv);
 		ifce->input_udta = NULL;
 		return GF_OK;
@@ -1371,6 +1388,15 @@ static void fill_isom_es_ifce(GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_n
 	dcd = gf_isom_get_decoder_config(mp4, track_num, 1);
 	ifce->stream_type = dcd->streamType;
 	ifce->object_type_indication = dcd->objectTypeIndication;
+	if (dcd->decoderSpecificInfo && dcd->decoderSpecificInfo->dataLength) {
+		switch (dcd->objectTypeIndication) {
+		case GPAC_OTI_VIDEO_MPEG4_PART2:
+			priv->dsi = gf_malloc(sizeof(char)*dcd->decoderSpecificInfo->dataLength);
+			priv->dsi_size = dcd->decoderSpecificInfo->dataLength;
+			memcpy(priv->dsi, dcd->decoderSpecificInfo->data, dcd->decoderSpecificInfo->dataLength);
+			break;
+		}
+	}
 	gf_odf_desc_del((GF_Descriptor *)dcd);
 	gf_isom_get_media_language(mp4, track_num, _lan);
 	ifce->lang = GF_4CC(_lan[0],_lan[1],_lan[2],' ');
