@@ -1435,6 +1435,9 @@ typedef struct
 	GF_ESIPacket pck;
 
 	GF_ESInterface *ifce;
+
+	Bool cat_dsi;
+	void *dsi_and_rap;
 } GF_ESIRTP;
 
 static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
@@ -1467,6 +1470,7 @@ static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		return GF_OK;
 	case GF_ESI_INPUT_DESTROY:
 		gf_rtp_depacketizer_del(rtp->depacketizer);
+		if (rtp->dsi_and_rap) gf_free(rtp->dsi_and_rap);
 		gf_rtp_del(rtp->rtp_ch);
 		gf_free(rtp);
 		ifce->input_udta = NULL;
@@ -1488,6 +1492,16 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	if (hdr->randomAccessPointFlag) rtp->pck.flags |= GF_ESI_DATA_AU_RAP;
 	if (hdr->accessUnitStartFlag) rtp->pck.flags |= GF_ESI_DATA_AU_START;
 	if (hdr->accessUnitEndFlag) rtp->pck.flags |= GF_ESI_DATA_AU_END;
+
+	if (rtp->cat_dsi && hdr->randomAccessPointFlag && hdr->accessUnitStartFlag) {
+		if (rtp->dsi_and_rap) free(rtp->dsi_and_rap);
+		rtp->pck.data_len = size + rtp->depacketizer->sl_map.configSize;
+		rtp->dsi_and_rap = gf_malloc(sizeof(char)*(rtp->pck.data_len));
+		memcpy(rtp->dsi_and_rap, rtp->depacketizer->sl_map.config, rtp->depacketizer->sl_map.configSize);
+		memcpy((char *) rtp->dsi_and_rap + rtp->depacketizer->sl_map.configSize, payload, size);
+	}
+
+
 	rtp->ifce->output_ctrl(rtp->ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &rtp->pck);
 }
 
@@ -1550,6 +1564,13 @@ void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInfo *sdp)
 	ifce->object_type_indication = rtp->depacketizer->sl_map.ObjectTypeIndication;
 	ifce->stream_type = rtp->depacketizer->sl_map.StreamType;
 	ifce->timescale = gf_rtp_get_clockrate(rtp->rtp_ch);
+	if (rtp->depacketizer->sl_map.config) {
+		switch (ifce->object_type_indication) {
+		case GPAC_OTI_VIDEO_MPEG4_PART2:
+			rtp->cat_dsi = 1;
+			break;
+		}
+	}
 
 	/*DTS signaling is only supported for MPEG-4 visual*/
 	if (rtp->depacketizer->sl_map.DTSDeltaLength) ifce->caps |= GF_ESI_SIGNAL_DTS;
@@ -1714,21 +1735,16 @@ FILE *ts_file;
 		else {
 			if (!strnicmp(arg, "rtp://", 6) || !strnicmp(arg, "udp://", 6)) {
 				char *sep = strchr(arg+6, ':');
-				output_type = (arg[0]=='r') ? 1 : 2;
+				output_type = (arg[0]=='r') ? 2 : 1;
 				real_time=1;
 				if (sep) {
 					port = atoi(sep+1);
 					sep[0]=0;
-					ts_out = gf_strdup(arg);
+					ts_out = gf_strdup(arg+6);
 					sep[0]=':';
 				} else {
 					ts_out = gf_strdup(arg+6);
 				}
-			} 
-			else if (!strnicmp(arg, "udp://", 6)) {
-				output_type = 1;
-				ts_out = arg;
-				real_time=1;
 			} else {
 				output_type = 0;
 				ts_out = gf_strdup(arg);
