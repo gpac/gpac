@@ -15,7 +15,12 @@ LDFLAGS+=-pg
 endif
 
 LOCAL_LIB=
-LINKLIBS=-lgpac -lavcodec -lavformat -lz
+LINKLIBS=-lgpac -lavcodec -lavformat -lavutil -lz
+
+#darwin needs bz2
+ifeq ($(CONFIG_DARWIN),yes)
+LINKLIBS+=-lbz2
+endif
 
 #old ffmpeg lib
 ifeq ($(CONFIG_FFMPEG_OLD), yes)
