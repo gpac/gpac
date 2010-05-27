@@ -211,6 +211,8 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		if (gf_term_check_extension(plug, "audio/vnd.wave", "wav", "WAV Audio", ext)) return 1;
 		if (gf_term_check_extension(plug, "video/x-ms-asf", "asf wma wmv asx asr", "WindowsMedia Movies", ext)) return 1;
 		if (gf_term_check_extension(plug, "video/x-ms-wmv", "asf wma wmv asx asr", "WindowsMedia Movies", ext)) return 1;
+		if (gf_term_check_extension(plug, "video/x-msvideo", "avi", "AVI Movies", ext)) return 1;
+		if (gf_term_check_extension(plug, "video/x-ms-video", "avi", "AVI Movies", ext)) return 1;
 		if (gf_term_check_extension(plug, "video/avi", "avi", "AVI Movies", ext)) return 1;
 		if (gf_term_check_extension(plug, "video/vnd.avi", "avi", "AVI Movies", ext)) return 1;
 
