@@ -30,6 +30,7 @@
 
 #include <gpac/download.h>
 #include <gpac/network.h>
+#include <gpac/options.h>
 #include <gpac/xml.h>
 
 
@@ -149,6 +150,10 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, hostname)); 
 		return JS_TRUE;
 	}
+	if (!strcmp(prop_name, "fullscreen")) {
+		*vp = BOOLEAN_TO_JSVAL( term->compositor->fullscreen ? JS_TRUE : JS_FALSE); 
+		return JS_TRUE;
+	}
 
 	return JS_TRUE;
 }
@@ -173,6 +178,13 @@ static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		evt.type = GF_EVENT_SET_CAPTION;
 		evt.caption.caption = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
 		gf_term_user_event(term, &evt);
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "fullscreen")) {
+		Bool res = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
+		if (term->compositor->fullscreen != res) {
+			gf_term_set_option(term, GF_OPT_FULLSCREEN, res);
+		}
 		return JS_TRUE;
 	}
 
@@ -452,7 +464,6 @@ static JSBool gpac_get_scene_time(JSContext *c, JSObject *obj, uintN argc, jsval
 
 	return JS_TRUE;
 }
-
 
 static JSBool gpac_migrate_url(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
