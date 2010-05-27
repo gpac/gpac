@@ -135,7 +135,7 @@ static void VR_write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *src, u32 s
 				}
 			}
 		}
-	} else if (vs->pixel_format==GF_PIXEL_UYVY) {
+	} else if (get_yuv_base(vs->pixel_format)==GF_PIXEL_UYVY) {
 		u32 i, j;
 		unsigned char *dst, *y, *u, *v;
 		for (i=0; i<src_wnd->h; i++) {
@@ -159,7 +159,7 @@ static void VR_write_yv12_to_yuv(GF_VideoSurface *vs,  unsigned char *src, u32 s
 				y++;
 			}
 		}
-	} else if (vs->pixel_format==GF_PIXEL_YUY2) {
+	} else if (get_yuv_base(vs->pixel_format)==GF_PIXEL_YUY2) {
 		u32 i, j;
 		unsigned char *dst, *y, *u, *v;
 		for (i=0; i<src_wnd->h; i++) {

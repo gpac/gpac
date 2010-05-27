@@ -661,6 +661,7 @@ static GFINLINE Bool is_yuv_planar(u32 format)
 void DD_InitYUV(GF_VideoOutput *dr)
 {
 	u32 w, h, j, i, num_yuv;
+	Bool force_yv12=0;
 	DWORD numCodes;
 	DWORD formats[30];
 	DWORD *codes;
@@ -723,6 +724,8 @@ void DD_InitYUV(GF_VideoOutput *dr)
 				goto rem_fmt;
 		}
 		now = gf_sys_clock() - now;
+		if (formats[i]== GF_PIXEL_YV12) 
+			force_yv12=1;
 
 		if (!checkPacked) {
 			if (now<min_planar) {
@@ -766,13 +769,14 @@ rem_fmt:
 		return;
 	}
 
-	if (best_planar && (min_planar < min_packed )) {
+	if (best_planar && (min_planar <= min_packed )) {
 		dr->yuv_pixel_format = best_planar;
 	} else {
 		min_planar = min_packed;
 		dr->yuv_pixel_format = best_packed;
 	} 
-	//dr->yuv_pixel_format = GF_PIXEL_YV12;
+	if (force_yv12)
+		dr->yuv_pixel_format = GF_PIXEL_YV12;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Picked YUV format %s - drawn in %d ms\n", gf_4cc_to_str(dr->yuv_pixel_format), min_planar));
 	dr->hw_caps |= GF_VIDEO_HW_HAS_YUV_OVERLAY;
