@@ -410,7 +410,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 		ch->rtp_first_SN = rtp_hdr->SequenceNumber;
 		ch->num_sn_loops = 0;
 	}
-	if (ch->first_SR && !ch->SenderSSRC) {
+	if (ch->first_SR && !ch->SenderSSRC && rtp_hdr->SSRC) {
 		ch->SenderSSRC = rtp_hdr->SSRC;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Assigning SSRC %d because none has been signaled\n", ch->SenderSSRC));
 	}
@@ -545,7 +545,7 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u
 	gf_bs_write_int(bs, rtp_hdr->PayloadType, 7);
 	gf_bs_write_u16(bs, rtp_hdr->SequenceNumber);
 	gf_bs_write_u32(bs, rtp_hdr->TimeStamp);
-	gf_bs_write_u32(bs, rtp_hdr->SSRC);
+	gf_bs_write_u32(bs, ch->SSRC);
 
 	for (i=0; i<rtp_hdr->CSRCCount; i++) {
 		gf_bs_write_u32(bs, rtp_hdr->CSRC[i]);
