@@ -26,6 +26,7 @@
 
 
 #include <gpac/filestreamer.h>
+#include <gpac/constants.h>
 #include <gpac/isomedia.h>
 #include <gpac/scene_engine.h>
 #include <gpac/rtp_streamer.h>
@@ -151,17 +152,24 @@ typedef struct
 	u16 ESID;
 } RTPChannel;
 
+typedef struct 
+{
+	GF_List *streams;
+	Bool is_rap;
+} LiveSession;
+
 
 static void live_session_callback(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
 {
 	if (calling_object) {
+		LiveSession *livesess = (LiveSession *) calling_object;
 		RTPChannel *rtpch;
 		u32 i=0;
-		GF_List *list = (GF_List *) calling_object;
-		while ( (rtpch = gf_list_enum(list, &i))) {
+
+		while ( (rtpch = gf_list_enum(livesess->streams, &i))) {
 			if (rtpch->ESID == ESID) {
 				fprintf(stdout, "Received at time %I64d, buffer %d bytes long.\n", ts, size);
-				gf_rtp_streamer_send_au(rtpch->rtp, data, size, ts, ts, 1);
+				gf_rtp_streamer_send_au(rtpch->rtp, data, size, ts, ts, livesess->is_rap);
 				return;
 			}
 		}
@@ -187,7 +195,17 @@ static void live_session_setup(GF_SceneEngine *seng, GF_List *streams, char *ip,
 		gf_seng_get_stream_config(seng, i, &ESID, &config, &config_len, &st, &oti, &ts);
 		
 		GF_SAFEALLOC(rtpch, RTPChannel);
-		rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, GP_RTP_PCK_SIGNAL_RAP, (char *) config, config_len);
+		switch (st) {
+		case GF_STREAM_OD:
+		case GF_STREAM_SCENE:
+			rtpch->rtp = gf_rtp_streamer_new_extended(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, 
+								 GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_AU_IDX, (char *) config, config_len,
+								 96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4);
+			break;
+		default:
+			rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, GP_RTP_PCK_SIGNAL_RAP, (char *) config, config_len);
+			break;
+		}
 		rtpch->ESID = ESID;
 		gf_list_add(streams, rtpch);
 
@@ -230,10 +248,13 @@ int live_session(int argc, char **argv)
 	char *src_name = NULL;
 	Bool run, has_carousel;
 
-	GF_List *streams = NULL;
+	LiveSession livesess;
 	GF_SceneEngine *seng = NULL;
 
 	gf_sys_init(0);
+
+	livesess.is_rap = 0;
+	livesess.streams = NULL;
 
 	gf_log_set_level(GF_LOG_INFO);
 	gf_log_set_tools(0xFFFFFFFF);
@@ -257,17 +278,17 @@ int live_session(int argc, char **argv)
 		return 1;
 	}
 
-	if (dst_port && dst) streams = gf_list_new();
+	if (dst_port && dst) livesess.streams = gf_list_new();
 
-	seng = gf_seng_init(streams, filename, load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? 1 : 0);
+	seng = gf_seng_init(&livesess, filename, load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? 1 : 0);
     if (!seng) {
 		fprintf(stdout, "Cannot create scene engine\n");
 		return 1;
     }
-	if (streams) live_session_setup(seng, streams, dst, dst_port, path_mtu, ttl, ifce_addr, sdp_name);
+	if (livesess.streams) live_session_setup(seng, livesess.streams, dst, dst_port, path_mtu, ttl, ifce_addr, sdp_name);
 
 	has_carousel = 0;
-	last_src_modif = 0;
+	last_src_modif = src_name ? gf_file_modification_time(src_name) : 0;
 
 	for (i=0; i<argc; i++) {
 		char *arg = argv[i];
@@ -293,7 +314,9 @@ int live_session(int argc, char **argv)
 		}
 	}
 
+	livesess.is_rap = 1;
 	gf_seng_encode_context(seng, live_session_callback);
+	livesess.is_rap = 0;
 
 	check = 100;
 	run = 1;
@@ -366,12 +389,14 @@ int live_session(int argc, char **argv)
 		}
 		gf_sleep(next_time);
 		gf_seng_aggregate_context(seng);
+		livesess.is_rap = 1;
 		gf_seng_encode_context(seng, live_session_callback);
+		livesess.is_rap = 0;
 		gf_seng_update_rap_time(seng, ESID);
 	}
 
 exit:
-	if (streams) live_session_shutdown(streams);
+	if (livesess.streams) live_session_shutdown(livesess.streams);
 	gf_seng_terminate(seng);
 	gf_sys_close();
 	return e ? 1 : 0;
