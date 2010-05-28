@@ -612,8 +612,21 @@ Bool m2ts_stream_process_pmt(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 	return 1;
 }
 
+static u32 m2ts_stream_get_pes_header_length(M2TS_Mux_Stream *stream)
+{
+	u32 hdr_len;
+	/*not the AU start*/
+	if (stream->pck_offset || !(stream->pck.flags & GF_ESI_DATA_AU_START) ) return 0;
+	hdr_len = 9;
+	if (stream->pck.flags & GF_ESI_DATA_HAS_CTS) hdr_len += 5;
+	if (stream->pck.flags & GF_ESI_DATA_HAS_DTS) hdr_len += 5;
+	return hdr_len;
+}
+
+
 Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 {
+	u32 next_time;
 	if (stream->mpeg2_stream_type==GF_M2TS_SYSTEMS_MPEG4_SECTIONS) {
 		/*section not completely sent yet*/
 		if (stream->current_section) return 1;
@@ -726,18 +739,51 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 	/*initializing the PCR*/
 	if (!stream->program->pcr_init) {
 		if (stream==stream->program->pcr) {
-			stream->program->pcr_init_ts_time = muxer->time;
+			stream->program->ts_time_at_pcr_init = muxer->time;
 			stream->program->pcr_init_time = stream->pck.dts;
+			stream->program->pcr_init_time = gf_rand();
+			stream->program->pcr_init_time <<= 32;
+			stream->program->pcr_init_time |= gf_rand();
+			stream->program->num_pck_at_pcr_init = muxer->tot_pck_sent;
+
 			stream->program->pcr_init = 1;
 		} else {
 			/*don't send until PCR is initialized*/
 			return 0;
 		}
 	}
+	if (!stream->initial_ts) {
+		u32 nb_bits = (u32) (muxer->tot_pck_sent - stream->program->num_pck_at_pcr_init) * 1504;
+		u32 nb_ticks = 90000*nb_bits / muxer->bit_rate;
+		stream->initial_ts = stream->pck.dts;
+		if (stream->initial_ts > nb_ticks)
+			stream->initial_ts -= nb_ticks;
+		else
+			stream->initial_ts = 0;
+	}
 
-	/*move to current time in TS unit*/
-	stream->time = stream->program->pcr_init_ts_time;
-	m2ts_time_inc(&stream->time, (u32) (stream->pck.dts - stream->program->pcr_init_time), 90000);
+	/*compute next interesting time in TS unit: this will be DTS of next packet*/
+	next_time = (u32) (stream->pck.dts - stream->initial_ts);
+	/*we need to take into account transmission time, eg nb packets to send the data*/
+	if (next_time) {
+		u32 nb_pck, bytes, nb_bits, nb_ticks;
+		bytes = 184 - ADAPTATION_LENGTH_LENGTH - ADAPTATION_FLAGS_LENGTH - PCR_LENGTH;
+		bytes -= m2ts_stream_get_pes_header_length(stream);
+		nb_pck=1;
+		while (bytes<stream->pck.data_len) {
+			bytes+=184;
+			nb_pck++;
+		}
+		nb_bits = nb_pck * 1504;
+		nb_ticks = 90000*nb_bits / muxer->bit_rate;
+		if (next_time>nb_ticks)
+			next_time -= nb_ticks;
+		else 
+			next_time = 0;
+	}
+
+	stream->time = stream->program->ts_time_at_pcr_init;
+	m2ts_time_inc(&stream->time, next_time, 90000);
 
 	/*compute bitrate if needed*/
 	if (!stream->bit_rate) {
@@ -756,17 +802,6 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 		}
 	}
 	return 1;
-}
-
-static u32 m2ts_stream_get_pes_header_length(M2TS_Mux_Stream *stream)
-{
-	u32 hdr_len;
-	/*not the AU start*/
-	if (stream->pck_offset || !(stream->pck.flags & GF_ESI_DATA_AU_START) ) return 0;
-	hdr_len = 9;
-	if (stream->pck.flags & GF_ESI_DATA_HAS_CTS) hdr_len += 5;
-	if (stream->pck.flags & GF_ESI_DATA_HAS_DTS) hdr_len += 5;
-	return hdr_len;
 }
 
 u32 m2ts_stream_add_pes_header(GF_BitStream *bs, M2TS_Mux_Stream *stream)
@@ -875,8 +910,14 @@ void m2ts_mux_pes_get_next_packet(M2TS_Mux_Stream *stream, u8 *packet)
 	is_rap = (hdr_len && (stream->pck.flags & GF_ESI_DATA_AU_RAP) ) ? 1 : 0;
 
 	if (adaptation_field_control != M2TS_ADAPTATION_NONE) {
-		/*FIXME - WE NEED A REAL PCR, NOT THE DTS*/
-		m2ts_add_adaptation(bs, needs_pcr, stream->pck.dts, is_rap, padding_length);
+		/*compute PCR*/
+		u32 nb_pck = (u32) (stream->program->mux->tot_pck_sent - stream->program->num_pck_at_pcr_init);
+		u64 pcr = 90000;
+		pcr *= nb_pck*1504;
+		pcr /= stream->program->mux->bit_rate;
+		pcr += stream->program->pcr_init_time;
+
+		m2ts_add_adaptation(bs, needs_pcr, pcr, is_rap, padding_length);
 	}
 
 	/*FIXME - we need proper packetization here in case we're not fed with full AUs*/
@@ -909,14 +950,22 @@ GF_Err m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 	M2TS_Mux_Stream *stream = (M2TS_Mux_Stream *)_self->output_udta;
 	switch (ctrl_type) {
 	case GF_ESI_OUTPUT_DATA_DISPATCH:
-		GF_SAFEALLOC(pck, M2TS_Packet);
 		esi_pck = (GF_ESIPacket *)param;
-		pck->data_len = esi_pck->data_len;
-		pck->data = gf_malloc(sizeof(char)*pck->data_len);
-		memcpy(pck->data, esi_pck->data, pck->data_len);
-		pck->flags = esi_pck->flags;
-		pck->cts = esi_pck->cts;
-		pck->dts = esi_pck->dts;
+		if (stream->force_new || (esi_pck->flags & GF_ESI_DATA_AU_START)) {
+			GF_SAFEALLOC(pck, M2TS_Packet);
+			pck->cts = esi_pck->cts;
+			pck->dts = esi_pck->dts;
+		} else {
+			pck = stream->pck_last;
+			if (!pck) return GF_OK;
+		}
+		stream->force_new = esi_pck->flags & GF_ESI_DATA_AU_END ? 1 : 0;
+
+		pck->data = gf_realloc(pck->data , sizeof(char)*(pck->data_len+esi_pck->data_len) );
+		memcpy(pck->data + pck->data_len, esi_pck->data, esi_pck->data_len);
+		pck->data_len += esi_pck->data_len;
+
+		pck->flags |= esi_pck->flags;
 		gf_mx_p(stream->mx);
 		if (!stream->pck_first) {
 			stream->pck_first = stream->pck_last = pck;
@@ -1068,6 +1117,7 @@ M2TS_Mux *m2ts_mux_new(u32 mux_rate, Bool real_time)
 	gf_bs_write_int(bs,	1, 2);
 	gf_bs_write_int(bs,	0, 4);
 	gf_bs_del(bs);
+	gf_rand_init(0);
 	return muxer;
 }
 
@@ -1276,12 +1326,12 @@ send_pck:
 		m2ts_time_inc(&muxer->time, 1504/*188*8*/, muxer->bit_rate);
 
 		if (muxer->real_time) {
-			muxer->pck_sent++;
+			muxer->pck_sent_over_br_window++;
 			if (now - muxer->last_br_time > 500) {
-				u64 size = 8*188*muxer->pck_sent*1000;
+				u64 size = 8*188*muxer->pck_sent_over_br_window*1000;
 				muxer->avg_br = (u32) (size/(now - muxer->last_br_time));
 				muxer->last_br_time = now;
-				muxer->pck_sent=0;
+				muxer->pck_sent_over_br_window=0;
 			}
 		}
 	}
@@ -1499,6 +1549,7 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 		rtp->dsi_and_rap = gf_malloc(sizeof(char)*(rtp->pck.data_len));
 		memcpy(rtp->dsi_and_rap, rtp->depacketizer->sl_map.config, rtp->depacketizer->sl_map.configSize);
 		memcpy((char *) rtp->dsi_and_rap + rtp->depacketizer->sl_map.configSize, payload, size);
+		rtp->pck.data = rtp->dsi_and_rap;
 	}
 
 

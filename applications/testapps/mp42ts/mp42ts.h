@@ -103,9 +103,11 @@ typedef struct __m2ts_mux_stream {
 
 	GF_ESIPacket pck;
 	u32 pck_offset;
+	Bool force_new;
 
 	struct __elementary_stream_ifce *ifce;
 	Double ts_scale;
+	u64 initial_ts;
 
 	/*packet fifo*/
 	M2TS_Packet *pck_first, *pck_last;
@@ -135,8 +137,8 @@ struct __m2ts_mux_program {
 
 	Bool pcr_init;
 	/*TS time at pcr init*/
-	M2TS_Time pcr_init_ts_time;
-	u64 pcr_init_time;
+	M2TS_Time ts_time_at_pcr_init;
+	u64 pcr_init_time, num_pck_at_pcr_init;
 
 	GF_Descriptor *iod;
 };
@@ -162,7 +164,7 @@ struct __m2ts_mux {
 	u32 init_sys_time;
 
 	Bool eos_found;
-	u32 pck_sent, last_br_time, avg_br;
+	u32 pck_sent_over_br_window, last_br_time, avg_br;
 	u64 tot_pck_sent, tot_pad_sent;
 
 	Bool mpeg4_signaling;
