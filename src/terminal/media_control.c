@@ -338,9 +338,16 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		stack->stream = gf_scene_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
 		if (!stack->stream || !stack->stream->odm) {
 			if (stack->control->url.count) gf_term_invalidate_compositor(stack->parent->root_od->term);
+			stack->stream = NULL;
 			return;
 		}
 		stack->ck = gf_odm_get_media_clock(stack->stream->odm);
+		/*OD not ready yet*/
+		if (!stack->ck) {
+			stack->stream = NULL;
+			if (stack->control->url.count) gf_term_invalidate_compositor(stack->parent->root_od->term);
+			return;
+		}
 		gf_sg_vrml_field_copy(&stack->url, &stack->control->url, GF_SG_VRML_MFURL);
 		gf_odm_set_mediacontrol((GF_ObjectManager *) stack->stream->odm, stack);
 
