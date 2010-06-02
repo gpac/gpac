@@ -132,6 +132,11 @@ typedef struct __elementary_stream_ifce
 	Double duration;
 	/*average bit rate in bit/sec - 0 if unknown*/
 	u32 bit_rate;
+	/*repeat rate in ms for carrouseling - 0 if no repeat*/
+	u32 repeat_rate;
+	
+	char *decoder_config;
+	u32 decoder_config_size;
 
 	struct __esi_video_info info_video;
 	struct __esi_audio_info info_audio;

@@ -989,12 +989,9 @@ GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg)
 	return GF_OK;
 }
 
-
 GF_EXPORT
-GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size)
+GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 {
-	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-
 	if (!cfg->base_sr_index) {
 		if (!cfg->base_sr) return GF_BAD_PARAM;
 		while (GF_M4ASampleRates[cfg->base_sr_index]) {
@@ -1079,6 +1076,14 @@ GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size)
 			}
 		}
 	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size)
+{
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_m4a_write_config_bs(bs, cfg);
 	gf_bs_get_content(bs, dsi, dsi_size);
 	gf_bs_del(bs);
 	return GF_OK;

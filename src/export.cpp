@@ -57,6 +57,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_level) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_tools) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_set_callback) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_parse_level) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_parse_tools) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_lt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_set_progress) )
@@ -988,6 +990,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mp3_get_next_header_mem) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_get_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4a_write_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m4a_write_config_bs) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_parser_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ac3_get_channels) )

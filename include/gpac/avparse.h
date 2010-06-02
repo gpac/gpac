@@ -190,6 +190,7 @@ GF_Err gf_m4a_get_config(char *dsi, u32 dsi_size, GF_M4ADecSpecInfo *cfg);
 u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg);
 
 GF_Err gf_m4a_write_config(GF_M4ADecSpecInfo *cfg, char **dsi, u32 *dsi_size);
+GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg);
 GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_known);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
