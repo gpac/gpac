@@ -740,6 +740,53 @@ void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
 u32 global_log_level = 0;
 u32 global_log_tools = 0;
 
+u32 gf_log_parse_level(const char *val)
+{
+#ifndef GPAC_DISABLE_LOG
+	if (!stricmp(val, "error")) return GF_LOG_ERROR;
+	if (!stricmp(val, "warning")) return GF_LOG_WARNING;
+	if (!stricmp(val, "info")) return GF_LOG_INFO;
+	if (!stricmp(val, "debug")) return GF_LOG_DEBUG;
+#endif
+	return 0;
+}
+
+u32 gf_log_parse_tools(const char *val)
+{
+	u32 flags = 0;
+#ifndef GPAC_DISABLE_LOG
+	char *sep;
+	while (val) {
+		sep = strchr(val, ':');
+		if (sep) sep[0] = 0;
+		if (!stricmp(val, "core")) flags |= GF_LOG_CORE;
+		else if (!stricmp(val, "coding")) flags |= GF_LOG_CODING;
+		else if (!stricmp(val, "container")) flags |= GF_LOG_CONTAINER;
+		else if (!stricmp(val, "network")) flags |= GF_LOG_NETWORK;
+		else if (!stricmp(val, "rtp")) flags |= GF_LOG_RTP;
+		else if (!stricmp(val, "author")) flags |= GF_LOG_AUTHOR;
+		else if (!stricmp(val, "sync")) flags |= GF_LOG_SYNC;
+		else if (!stricmp(val, "codec")) flags |= GF_LOG_CODEC;
+		else if (!stricmp(val, "parser")) flags |= GF_LOG_PARSER;
+		else if (!stricmp(val, "media")) flags |= GF_LOG_MEDIA;
+		else if (!stricmp(val, "scene")) flags |= GF_LOG_SCENE;
+		else if (!stricmp(val, "script")) flags |= GF_LOG_SCRIPT;
+		else if (!stricmp(val, "interact")) flags |= GF_LOG_INTERACT;
+		else if (!stricmp(val, "smil")) flags |= GF_LOG_SMIL;
+		else if (!stricmp(val, "compose")) flags |= GF_LOG_COMPOSE;
+		else if (!stricmp(val, "mmio")) flags |= GF_LOG_MMIO;
+		else if (!stricmp(val, "none")) flags = 0;
+		else if (!stricmp(val, "all")) flags = 0xFFFFFFFF;
+		else if (!stricmp(val, "rti")) flags |= GF_LOG_RTI;
+		else if (!stricmp(val, "cache")) flags |= GF_LOG_CACHE;
+		else if (!stricmp(val, "mem")) flags |= GF_LOG_MEMORY;
+		if (!sep) break;
+		sep[0] = ':';
+		val = sep+1;
+	}
+#endif
+	return flags;
+}
 
 #ifndef GPAC_DISABLE_LOG
 u32 call_lev = 0;

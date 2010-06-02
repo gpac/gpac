@@ -387,6 +387,9 @@ void gf_log_lt(u32 ll, u32 lt);
 u32 gf_log_get_level();
 u32 gf_log_get_tools();
 
+u32 gf_log_parse_level(const char *val);
+u32 gf_log_parse_tools(const char *val);
+
 #ifdef GPAC_DISABLE_LOG
 #define GF_LOG(_ll, _lm, __args) 
 #else

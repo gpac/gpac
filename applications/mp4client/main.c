@@ -803,48 +803,6 @@ void set_navigation()
 	if (e) fprintf(stdout, "Error setting mode: %s\n", gf_error_to_string(e));
 }
 
-static u32 parse_log_tools(char *val)
-{
-	char *sep;
-	u32 flags = 0;
-	while (val) {
-		sep = strchr(val, ':');
-		if (sep) sep[0] = 0;
-		if (!stricmp(val, "core")) flags |= GF_LOG_CORE;
-		else if (!stricmp(val, "coding")) flags |= GF_LOG_CODING;
-		else if (!stricmp(val, "container")) flags |= GF_LOG_CONTAINER;
-		else if (!stricmp(val, "network")) flags |= GF_LOG_NETWORK;
-		else if (!stricmp(val, "rtp")) flags |= GF_LOG_RTP;
-		else if (!stricmp(val, "author")) flags |= GF_LOG_AUTHOR;
-		else if (!stricmp(val, "sync")) flags |= GF_LOG_SYNC;
-		else if (!stricmp(val, "codec")) flags |= GF_LOG_CODEC;
-		else if (!stricmp(val, "parser")) flags |= GF_LOG_PARSER;
-		else if (!stricmp(val, "media")) flags |= GF_LOG_MEDIA;
-		else if (!stricmp(val, "scene")) flags |= GF_LOG_SCENE;
-		else if (!stricmp(val, "script")) flags |= GF_LOG_SCRIPT;
-		else if (!stricmp(val, "interact")) flags |= GF_LOG_INTERACT;
-		else if (!stricmp(val, "smil")) flags |= GF_LOG_SMIL;
-		else if (!stricmp(val, "compose")) flags |= GF_LOG_COMPOSE;
-		else if (!stricmp(val, "mmio")) flags |= GF_LOG_MMIO;
-		else if (!stricmp(val, "none")) flags = 0;
-		else if (!stricmp(val, "all")) flags = 0xFFFFFFFF;
-		else if (!stricmp(val, "rti")) flags |= GF_LOG_RTI;
-		else if (!stricmp(val, "cache")) flags |= GF_LOG_CACHE;
-		else if (!stricmp(val, "mem")) flags |= GF_LOG_MEMORY;
-		if (!sep) break;
-		sep[0] = ':';
-		val = sep+1;
-	}
-	return flags;
-}
-static u32 parse_log_level(char *val)
-{
-	if (!stricmp(val, "error")) return GF_LOG_ERROR;
-	if (!stricmp(val, "warning")) return GF_LOG_WARNING;
-	if (!stricmp(val, "info")) return GF_LOG_INFO;
-	if (!stricmp(val, "debug")) return GF_LOG_DEBUG;
-	return 0;
-}
 
 static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 {
@@ -1044,11 +1002,11 @@ int main (int argc, char **argv)
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
 		} else if (!strcmp(arg, "-log-level") || !strcmp(arg, "-ll")) {
-			gf_log_set_level(parse_log_level(argv[i+1]));
+			gf_log_set_level(gf_log_parse_level(argv[i+1]));
 			logs_set = 1;
 			i++;
 		} else if (!strcmp(arg, "-log-tools") || !strcmp(arg, "-lt")) {
-			gf_log_set_tools(parse_log_tools(argv[i+1]));
+			gf_log_set_tools(gf_log_parse_tools(argv[i+1]));
 			logs_set = 1;
 			i++;
 		} else if (!strcmp(arg, "-log-clock") || !strcmp(arg, "-lc")) {
@@ -1525,7 +1483,7 @@ force_input:
 			char szLog[1024];
 			fprintf(stdout, "Enter new log level:\n");
 			scanf("%s", szLog);
-			gf_log_set_level(parse_log_level(szLog));
+			gf_log_set_level(gf_log_parse_level(szLog));
 		}
 			break;
 		case 'T':
@@ -1533,7 +1491,7 @@ force_input:
 			char szLog[1024];
 			fprintf(stdout, "Enter new log tools:\n");
 			scanf("%s", szLog);
-			gf_log_set_tools(parse_log_tools(szLog));
+			gf_log_set_tools(gf_log_parse_tools(szLog));
 		}
 			break;
 		case 'g':
