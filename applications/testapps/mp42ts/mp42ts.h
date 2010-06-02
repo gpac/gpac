@@ -110,7 +110,7 @@ typedef struct __m2ts_mux_stream {
 	u64 initial_ts;
 
 	/*packet fifo*/
-	M2TS_Packet *pck_first, *pck_last;
+	M2TS_Packet *pck_first, *pck_last, *cur_pck;
 	GF_Mutex *mx;
 	/*avg bitrate compute*/
 	u64 last_br_time;
@@ -120,6 +120,8 @@ typedef struct __m2ts_mux_stream {
 	u8 table_id;
 	GF_SLHeader sl_header;
 	//GF_SLConfig sl_config;
+
+	u32 last_aac_time;
 } M2TS_Mux_Stream;
 
 
@@ -135,10 +137,11 @@ struct __m2ts_mux_program {
 	/*pointer to PCR stream*/
 	M2TS_Mux_Stream *pcr;
 
-	Bool pcr_init;
 	/*TS time at pcr init*/
 	M2TS_Time ts_time_at_pcr_init;
 	u64 pcr_init_time, num_pck_at_pcr_init;
+	u64 last_pcr;
+	u32 last_sys_clock;
 
 	GF_Descriptor *iod;
 };

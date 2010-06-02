@@ -368,6 +368,9 @@ static void gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 				if (gf_bs_read_int(bs, 1)) {
 //					u32 k = 0;
 				}
+				/*CRCcheck present*/
+				if (gf_bs_read_int(bs, 1)) {
+				}
 			}
 
 
@@ -1632,7 +1635,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	if (paf && paf->PCR_flag) {
 		GF_M2TS_PES_PCK pck;
 		memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
-		pck.PTS = paf->PCR_base * 300 + paf->PCR_ext; // ???
+		pck.PTS = paf->PCR_base * 300 + paf->PCR_ext;
 		pck.stream = (GF_M2TS_PES *)es;
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
 	}
