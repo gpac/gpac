@@ -1011,7 +1011,8 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	sep = (char *)iri->string + 5;
 	if (!strncmp(sep, "image/jpg", 9) || !strncmp(sep, "image/jpeg", 10)) ext = ".jpg";
 	else if (!strncmp(sep, "image/png", 9)) ext = ".png";
-	else return GF_OK;
+	else if (!strncmp(sep, "image/svg+xml", 13)) ext = ".svg";
+	else return GF_BAD_PARAM;
 
 
 	data = NULL;
