@@ -32,6 +32,8 @@ GF_Err PNC_InitRTP(GF_RTPChannel **chan, char *dest, int port, unsigned short mt
 		tr.client_port_last = port+1;
 	} else {
 		tr.source = dest;
+		tr.client_port_first = 0;
+		tr.client_port_last  = 0;
 	}
 
 	res = gf_rtp_setup_transport(*chan, &tr, dest);
