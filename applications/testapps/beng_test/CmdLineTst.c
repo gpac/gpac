@@ -44,6 +44,10 @@ static setup_rtp_streams(GF_SceneEngine *seng, GF_List *streams, char *ip, u16 p
 		
 		GF_SAFEALLOC(rtpst, BRTP);
 		rtpst->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, 1400, 1, NULL, GP_RTP_PCK_SIGNAL_RAP, config, config_len);
+        if (!rtpst->rtp) {
+            gf_free(rtpst);
+            continue;
+        }
 		rtpst->ESID = ESID;
 		gf_list_add(streams, rtpst);
 
@@ -92,6 +96,70 @@ void Usage()
 		"");
 }
 
+#define BUFFER_SIZE 2048
+
+enum {
+    SCENE_UPDATE_NONE = 0,
+    SCENE_UPDATE_NORMAL = 1,
+    SCENE_UPDATE_CRITICAL = 2,
+    SCENE_UPDATE_RAP = 3,
+    SCENE_UPDATE_RAP_CRITICAL = 4,
+};
+
+u32 seng_receive_update(GF_Socket *update_socket, u8 **update_buffer)
+{
+    GF_Err e;
+    u32 bytes_read;
+    char buffer[BUFFER_SIZE];
+    Bool keep_receive;
+    u32 update_length;
+    u32 update_type;
+    u32 bytes_received;
+    u16 esid;
+
+    update_type = SCENE_UPDATE_NONE;
+    keep_receive = 1;
+    bytes_received = 0;
+    while (keep_receive) {
+        memset(buffer, 0, BUFFER_SIZE);
+        e = gf_sk_receive(update_socket, buffer, BUFFER_SIZE, 0, &bytes_read);
+        switch (e) {
+            case GF_IP_NETWORK_EMPTY:
+                keep_receive = 0;
+                break;
+            case GF_OK:
+                /* Process data updates */
+                if (!bytes_received) {
+                    GF_BitStream *bs = gf_bs_new(buffer, bytes_read, GF_BITSTREAM_READ);
+                    esid = gf_bs_read_u16(bs);
+                    update_type = gf_bs_read_u8(bs);
+                    update_length = gf_bs_read_u32(bs);
+                    *update_buffer = malloc(update_length+1);
+                    if (bytes_read - 7 <= update_length) {
+                        bytes_received = bytes_read - 7;
+                        memcpy(*update_buffer, buffer+7, bytes_received);
+                    }
+                    gf_bs_del(bs);
+                } else {
+                    if (bytes_received+bytes_read <= update_length) {
+                        memcpy(*update_buffer+bytes_received, buffer, bytes_read);
+                        bytes_received+=bytes_read;
+                    }
+                }
+                if (bytes_received >= update_length) {
+                    (*update_buffer)[update_length] = 0;
+                    keep_receive = 0;                                                        
+                } 
+                break;
+            default:
+                keep_receive = 0;
+                fprintf(stderr, "Error with UDP socket : %s\n", gf_error_to_string(e));
+                break;
+        }
+    }
+    return update_type;
+}
+
 int main(int argc, char **argv)
 {
 	GF_Err e;
@@ -105,7 +173,11 @@ int main(int argc, char **argv)
 	s32 next_time;
 	u64 last_src_modif, mod_time;
 	char *src_name = NULL;
-	Bool run, has_carousel;
+    u16 sk_port = 0;
+    Bool udp = 0;
+    GF_Socket *sk = NULL;
+
+	Bool run, has_carousel, first_run;
 
 	GF_List *streams = NULL;
 	GF_SceneEngine *seng = NULL;
@@ -123,12 +195,26 @@ int main(int argc, char **argv)
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_name = arg+5;
 		else if (!strnicmp(arg, "-dims", 5)) load_type = GF_SM_LOAD_DIMS;
 		else if (!strnicmp(arg, "-src=", 5)) src_name = arg+5;
+        else if (!strnicmp(arg, "-udp=", 5)) { sk_port = atoi(arg+5); udp = 1; }
+        else if (!strnicmp(arg, "-tcp=", 5)) { sk_port = atoi(arg+5); udp = 0; }
 	}
 	if (!filename) {
 		fprintf(stdout, "Missing filename\n");
 		Usage();
 		exit(0);
 	}
+
+    if (sk_port) {
+        sk = gf_sk_new(udp ? GF_SOCK_TYPE_UDP : GF_SOCK_TYPE_TCP);
+        if (udp) {
+            e = gf_sk_bind(sk, NULL, sk_port, NULL, 0, 0);
+            if (e != GF_OK) {
+                if (sk) gf_sk_del(sk);
+                sk = NULL;
+            }
+        } else {
+        }
+    }
 
 	if (dst_port && dst) streams = gf_list_new();
 
@@ -169,6 +255,7 @@ int main(int argc, char **argv)
 	gf_seng_encode_context(seng, SampleCallBack);
 
 	run = 1;
+    first_run = 1;
 	while (run) {
 		if (gf_prompt_has_input()) {
 			char c = gf_prompt_get_char();
@@ -219,6 +306,32 @@ int main(int argc, char **argv)
 			}
 
 		}
+        if (sk && !first_run) {
+            u32 update_type;
+            u8 *update_buffer = NULL;
+        
+            update_type = seng_receive_update(sk, &update_buffer);
+            switch (update_type) {
+                case SCENE_UPDATE_NORMAL:
+                case SCENE_UPDATE_CRITICAL:
+                    /* TODO: add AUSN if SCENE_UPDATE_CRITICAL */
+				    e = gf_seng_encode_from_string(seng, update_buffer, SampleCallBack);
+                    break;
+                case SCENE_UPDATE_RAP:
+                case SCENE_UPDATE_RAP_CRITICAL:
+                    /* TODO: add AUSN if SCENE_UPDATE_RAP_CRITICAL */
+			        e = gf_seng_aggregate_context(seng);
+			        e = gf_seng_encode_context(seng, SampleCallBack);
+                    break;
+                case SCENE_UPDATE_NONE:
+                default:
+                    break;
+            }
+            if (update_buffer) {
+                free(update_buffer);
+                update_buffer = NULL;
+            }
+        }
 		if (!has_carousel) {
 			gf_sleep(10);
 			continue;
@@ -236,6 +349,7 @@ int main(int argc, char **argv)
 		gf_seng_aggregate_context(seng);
 		gf_seng_encode_context(seng, SampleCallBack);
 		gf_seng_update_rap_time(seng, ESID);
+        first_run = 0;
 	}
 
 exit:
