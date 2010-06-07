@@ -95,7 +95,7 @@ void print_usage(void)
 	fprintf(stdout, "\tIndicate the location of the configuration file either with a TCP port number or a file name\n");
 	fprintf(stdout, "\tmtu_size : the MTU size (default = 1492)\n");
 	fprintf(stdout, "\t-s or --socket-type-for-updates : connection type for updates (UDP by default)\n");
-	fprintf(stdout, "\tdebug: OR debug mask (broadcaster = 1, RTP_serv_generator=2, RTP_serv_packetizer=4, RTP_serv_sender=8, sdp_generator=16, ALL=31)\n");
+	fprintf(stdout, "\tdebug: OR debug mask (broadcaster = 1, scene_generator=2, sdp_generator=4, ALL=31)\n");
 }
 
 u32 RAP_send(void *par)
