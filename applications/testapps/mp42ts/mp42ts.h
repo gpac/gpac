@@ -153,8 +153,13 @@ struct __m2ts_mux {
 	u16 ts_id;
 
 	Bool needs_reconfig;
+
+    /* used to indicate that the input data is pushed to the muxer (i.e. not read from a file)
+    or that the output data is sent on sockets (not written to a file) */
 	Bool real_time;
-	/*if set bit-rate won't be re-estimated*/
+
+	/* indicates if the multiplexer shall target a fix bit rate (monitoring timing and produce padding packets)
+       or if the output stream will contain only input data*/
 	Bool fixed_rate;
 
 	/*output bit-rate in bit/sec*/
@@ -162,9 +167,15 @@ struct __m2ts_mux {
 
 	char dst_pck[188], null_pck[188];
 
-	/*multiplexer time in micro-sec*/
-	M2TS_Time time, init_ts_time;
-	u32 init_sys_time;
+	/*multiplexer time, incremented each time a packet is sent
+      used to monitor the sending of muxer related data (PAT, ...) */
+	M2TS_Time time; 
+    
+    /* Time of the muxer when the first call to process is made (first packet sent?) */
+    M2TS_Time init_ts_time;
+	
+    /* System time when the muxer is started */
+    u32 init_sys_time;
 
 	Bool eos_found;
 	u32 pck_sent_over_br_window, last_br_time, avg_br;
