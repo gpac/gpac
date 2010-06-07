@@ -885,7 +885,10 @@ exit:
 #endif
 	xml_sax_swap(parser);
 
-	return (parser->sax_state==SAX_STATE_SYNTAX_ERROR) ? GF_CORRUPTED_DATA : GF_OK;
+    if (parser->sax_state==SAX_STATE_SYNTAX_ERROR)
+	    return GF_CORRUPTED_DATA;
+    else 
+        return GF_OK;
 }
 
 static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
