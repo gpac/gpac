@@ -177,7 +177,7 @@ int main(int argc, char **argv)
     Bool udp = 0;
     GF_Socket *sk = NULL;
 
-	Bool run, has_carousel, first_run;
+	Bool run, has_carousel;
 
 	GF_List *streams = NULL;
 	GF_SceneEngine *seng = NULL;
@@ -255,7 +255,6 @@ int main(int argc, char **argv)
 	gf_seng_encode_context(seng, SampleCallBack);
 
 	run = 1;
-    first_run = 1;
 	while (run) {
 		if (gf_prompt_has_input()) {
 			char c = gf_prompt_get_char();
@@ -306,7 +305,7 @@ int main(int argc, char **argv)
 			}
 
 		}
-        if (sk && !first_run) {
+        if (sk) {
             u32 update_type;
             u8 *update_buffer = NULL;
         
@@ -327,6 +326,7 @@ int main(int argc, char **argv)
                 default:
                     break;
             }
+			if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
             if (update_buffer) {
                 free(update_buffer);
                 update_buffer = NULL;
@@ -349,7 +349,6 @@ int main(int argc, char **argv)
 		gf_seng_aggregate_context(seng);
 		gf_seng_encode_context(seng, SampleCallBack);
 		gf_seng_update_rap_time(seng, ESID);
-        first_run = 0;
 	}
 
 exit:
