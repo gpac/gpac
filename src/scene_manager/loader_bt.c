@@ -3567,6 +3567,14 @@ GF_Err load_bt_run(GF_SceneLoader *load)
 			gzclose(parser->gz_in);
 			parser->gz_in = NULL;
 		}
+
+		if (parser->line_buffer) {
+			gf_free(parser->line_buffer);
+			parser->line_buffer = NULL;
+		}
+		parser->file_size = 0;
+		parser->line_pos = parser->line_size = 0;
+		load->fileName = NULL;
 	}
 	return e;
 }
