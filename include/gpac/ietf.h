@@ -1001,7 +1001,7 @@ enum
 	/*MPEG-4 generic transport option*/
 	/*if flag set, RAP flag is signaled in RTP payload*/
 	GP_RTP_PCK_SIGNAL_RAP	=	(1<<4),
-	/*if flag set, AU indexes are signaled in RTP payload*/
+	/*if flag set, AU indexes are signaled in RTP payload - only usable for AU interleaving (eg audio)*/
 	GP_RTP_PCK_SIGNAL_AU_IDX	=	(1<<5),
 	/*if flag set, AU size is signaled in RTP payload*/
 	GP_RTP_PCK_SIGNAL_SIZE	=	(1<<6),
@@ -1009,7 +1009,7 @@ enum
 	GP_RTP_PCK_SIGNAL_TS	=	(1<<7),
 
 	/*setup payload for carouseling of systems streams*/
-	GP_RTP_PCK_AUTO_CAROUSEL = (1<<8),
+	GP_RTP_PCK_SYSTEMS_CAROUSEL = (1<<8),
 
 	/*use LATM payload for AAC-LC*/
 	GP_RTP_PCK_USE_LATM_AAC	=	(1<<9),

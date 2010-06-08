@@ -298,7 +298,12 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		} else {
 			builder->slMap.RandomAccessIndication = 0;
 		}
-		/*TODO: stream state*/
+
+		/*stream state*/
+		if (builder->flags & GP_RTP_PCK_SYSTEMS_CAROUSEL) {
+			if (!builder->sl_config.AUSeqNumLength) builder->sl_config.AUSeqNumLength = 4;
+			builder->slMap.StreamStateIndication = builder->sl_config.AUSeqNumLength;
+		}
 		goto check_header;
 	}
 
@@ -342,6 +347,10 @@ void gf_rtp_builder_init(GP_RTPPacketizer *builder, u8 PayloadType, u32 PathMTU,
 		builder->slMap.IndexLength = builder->sl_config.AUSeqNumLength;
 		/*and k-1 AUs in Delta*/
 		builder->slMap.IndexDeltaLength = (builder->flags & GP_RTP_PCK_USE_INTERLEAVING) ? gf_get_bit_size(k-1) : 0;
+	}
+	else if (builder->flags & GP_RTP_PCK_SYSTEMS_CAROUSEL) {
+		if (!builder->sl_config.AUSeqNumLength) builder->sl_config.AUSeqNumLength = 4;
+		builder->slMap.StreamStateIndication = builder->sl_config.AUSeqNumLength;
 	}
 
 	/*RAP*/

@@ -412,7 +412,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 				}
 				/*systems streams*/
 				else if (gf_isom_has_sync_shadows(file, TrackNum) || gf_isom_has_sample_dependency(file, TrackNum)) {
-					flags |= GP_RTP_PCK_AUTO_CAROUSEL;
+					flags |= GP_RTP_PCK_SYSTEMS_CAROUSEL;
 				}
 				gf_odf_desc_del((GF_Descriptor*)esd);
 			}
@@ -518,8 +518,8 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	gf_media_get_sample_average_infos(file, TrackNum, &MinSize, &MaxSize, &avgTS, &maxDTSDelta, &const_dur, &bandwidth);
 
 	/*systems carousel: we need at least IDX and RAP signaling*/
-	if (flags & GP_RTP_PCK_AUTO_CAROUSEL) {
-		flags |= GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_AU_IDX;
+	if (flags & GP_RTP_PCK_SYSTEMS_CAROUSEL) {
+		flags |= GP_RTP_PCK_SIGNAL_RAP;
 	}
 
 	/*update flags in MultiSL*/
