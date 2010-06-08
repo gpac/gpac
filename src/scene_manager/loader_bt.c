@@ -3408,7 +3408,9 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, char *str, Bool inp
 	GF_Err e;
 	unsigned char BOM[5];
 	GF_BTParser *parser = load->loader_priv;
-
+	
+	parser->last_error = GF_OK;
+	
 	if (load->fileName) {
 		FILE *test = fopen(load->fileName, "rb");
 		if (!test) return GF_URL_ERROR;
@@ -3586,6 +3588,12 @@ GF_Err load_bt_parse_string(GF_SceneLoader *load, char *str)
 	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
 	if (!parser) return GF_BAD_PARAM;
 
+	if (parser->done) {
+		parser->done = 0;
+		parser->initialized = 0;
+		parser->file_size = 0;
+		parser->line_pos = 0;
+	}
 	parser->line_buffer = str;
 	parser->line_size = (s32)strlen(str);
 

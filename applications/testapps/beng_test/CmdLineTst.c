@@ -1,4 +1,5 @@
 #include <gpac/scene_engine.h>
+#include <gpac/constants.h>
 #include <gpac/rtp_streamer.h>
 
 typedef struct 
@@ -6,6 +7,11 @@ typedef struct
 	GF_RTPStreamer *rtp;
 	u16 ESID;
 } BRTP;
+
+/*rap set to 1 initially because of tune in*/
+static Bool rap_type = 1;
+/*critical AU flag*/
+static Bool critical = 0;
 
 GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
 {
@@ -16,7 +22,7 @@ GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 
 		while ( (rtpst = gf_list_enum(list, &i))) {
 			if (rtpst->ESID == ESID) {
 				fprintf(stdout, "Received at time %I64d, buffer %d bytes long.\n", ts, size);
-				gf_rtp_streamer_send_au(rtpst->rtp, data, size, ts, ts, 1);
+				gf_rtp_streamer_send_au_with_sn(rtpst->rtp, data, size, ts, ts, rap_type, critical);
 				return GF_OK;
 			}
 		}
@@ -43,7 +49,19 @@ static setup_rtp_streams(GF_SceneEngine *seng, GF_List *streams, char *ip, u16 p
 		gf_seng_get_stream_config(seng, i, &ESID, &config, &config_len, &st, &oti, &ts);
 		
 		GF_SAFEALLOC(rtpst, BRTP);
-		rtpst->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, 1400, 1, NULL, GP_RTP_PCK_SIGNAL_RAP, config, config_len);
+
+
+		switch (st) {
+		case GF_STREAM_OD:
+		case GF_STREAM_SCENE:
+			rtpst->rtp = gf_rtp_streamer_new_extended(st, oti, ts, ip, port, 1400, 1, NULL, 
+								 GP_RTP_PCK_SYSTEMS_CAROUSEL, (char *) config, config_len,
+								 96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4);
+			break;
+		default:
+			rtpst->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, 1400, 1, NULL, GP_RTP_PCK_SIGNAL_RAP, config, config_len);
+			break;
+		}
         if (!rtpst->rtp) {
             gf_free(rtpst);
             continue;
@@ -311,21 +329,26 @@ int main(int argc, char **argv)
         
             update_type = seng_receive_update(sk, &update_buffer);
             switch (update_type) {
-                case SCENE_UPDATE_NORMAL:
                 case SCENE_UPDATE_CRITICAL:
+					critical=1;
+                case SCENE_UPDATE_NORMAL:
                     /* TODO: add AUSN if SCENE_UPDATE_CRITICAL */
 				    e = gf_seng_encode_from_string(seng, update_buffer, SampleCallBack);
                     break;
-                case SCENE_UPDATE_RAP:
                 case SCENE_UPDATE_RAP_CRITICAL:
+					critical=1;
+                case SCENE_UPDATE_RAP:
                     /* TODO: add AUSN if SCENE_UPDATE_RAP_CRITICAL */
 			        e = gf_seng_aggregate_context(seng);
+					rap_type = 1;
 			        e = gf_seng_encode_context(seng, SampleCallBack);
+					rap_type = 0;
                     break;
                 case SCENE_UPDATE_NONE:
                 default:
                     break;
             }
+			critical=0;
 			if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
             if (update_buffer) {
                 free(update_buffer);
@@ -347,7 +370,9 @@ int main(int argc, char **argv)
 		}
 		gf_sleep(next_time);
 		gf_seng_aggregate_context(seng);
+		rap_type = 1;
 		gf_seng_encode_context(seng, SampleCallBack);
+		rap_type = 0;
 		gf_seng_update_rap_time(seng, ESID);
 	}
 

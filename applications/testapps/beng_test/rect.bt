@@ -27,6 +27,8 @@ DEF OG OrderedGroup {
   Background2D {
    backColor 1 1 1
   }
+  DEF TR Transform2D {
+   children [
   Shape {
    appearance Appearance {
     material DEF M Material2D {
@@ -38,5 +40,9 @@ DEF OG OrderedGroup {
     size 50 100
    }
   }
+   DEF PS PlaneSensor2D { maxPosition -1 -1 }
+ ]
+  }
  ]
 }
+ROUTE PS.translation_changed TO TR.translation

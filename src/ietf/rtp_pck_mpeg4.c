@@ -191,6 +191,12 @@ u32 gf_rtp_build_au_hdr_write(GP_RTPPacketizer *builder, u32 PayloadSize, u32 RT
 		gf_bs_write_int(builder->pck_hdr, builder->sl_header.randomAccessPointFlag, 1);
 		nbBits ++;
 	}
+	/*stream state - write AUSeqNum*/
+	if (builder->slMap.StreamStateIndication) {
+		gf_bs_write_int(builder->pck_hdr, builder->sl_header.AU_sequenceNumber, builder->slMap.StreamStateIndication);
+		nbBits += builder->slMap.StreamStateIndication;
+	}
+
 	return nbBits;
 }
 

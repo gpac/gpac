@@ -735,7 +735,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 		flags = gf_hinter_track_get_flags(hinter);
 		gf_hinter_track_get_payload_name(hinter, szPayload);
 		fprintf(stdout, "Hinting track ID %d - Type \"%s:%s\" (%s) - BW %d kbps\n", gf_isom_get_track_id(file, i+1), gf_4cc_to_str(mtype), gf_4cc_to_str(mtype), szPayload, bw);
-		if (flags & GP_RTP_PCK_AUTO_CAROUSEL) fprintf(stdout, "\tMPEG-4 Systems stream carousel enabled\n");
+		if (flags & GP_RTP_PCK_SYSTEMS_CAROUSEL) fprintf(stdout, "\tMPEG-4 Systems stream carousel enabled\n");
 /*
 		if (flags & GP_RTP_PCK_FORCE_MPEG4) fprintf(stdout, "\tMPEG4 transport forced\n");
 		if (flags & GP_RTP_PCK_USE_MULTI) fprintf(stdout, "\tRTP aggregation enabled\n");

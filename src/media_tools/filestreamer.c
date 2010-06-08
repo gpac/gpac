@@ -443,7 +443,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 				/*systems streams*/
 				else if (streamType==GF_STREAM_SCENE) {
 					if (gf_isom_has_sync_shadows(streamer->isom, track->track_num) || gf_isom_has_sample_dependency(streamer->isom, track->track_num))
-						flags |= GP_RTP_PCK_AUTO_CAROUSEL;
+						flags |= GP_RTP_PCK_SYSTEMS_CAROUSEL;
 				}
 				
 				if (esd->decoderConfig->decoderSpecificInfo) {

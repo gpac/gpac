@@ -169,7 +169,7 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 		while ( (rtpch = gf_list_enum(livesess->streams, &i))) {
 			if (rtpch->ESID == ESID) {
 				fprintf(stdout, "Received at time %I64d, buffer %d bytes long.\n", ts, size);
-				gf_rtp_streamer_send_au(rtpch->rtp, data, size, ts, ts, livesess->is_rap);
+				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, livesess->is_rap, 0);
 				return;
 			}
 		}

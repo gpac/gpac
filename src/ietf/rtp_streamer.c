@@ -384,8 +384,8 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	}
 
 	/*systems carousel: we need at least IDX and RAP signaling*/
-	if (flags & GP_RTP_PCK_AUTO_CAROUSEL) {
-		flags |= GP_RTP_PCK_SIGNAL_RAP | GP_RTP_PCK_SIGNAL_AU_IDX;
+	if (flags & GP_RTP_PCK_SYSTEMS_CAROUSEL) {
+		flags |= GP_RTP_PCK_SIGNAL_RAP;
 	}
 
 	/*update flags in MultiSL*/
@@ -711,6 +711,11 @@ GF_Err gf_rtp_streamer_send_au(GF_RTPStreamer *rtp, char *data, u32 size, u64 ct
 	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, 1, 1, 0, 0, 0);
 }
 
+GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, char *data, u32 size, u64 cts, u64 dts, Bool is_rap, Bool inc_au_sn)
+{
+	if (inc_au_sn) rtp->packetizer->sl_header.AU_sequenceNumber++;
+	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, 1, 1, rtp->packetizer->sl_header.AU_sequenceNumber, 0, 0);
+}
 
 
 #endif /*GPAC_DISABLE_STREAMING*/
