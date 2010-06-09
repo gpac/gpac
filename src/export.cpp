@@ -1082,6 +1082,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_enable_aggregation) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_aggregate_context) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_base64_iod) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_iod) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_set_carousel_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_next_rap_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_update_rap_time) )
