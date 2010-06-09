@@ -1433,6 +1433,17 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_set_pes_framing) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_stream_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_crc32_check) )
+
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_program_add) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_program_stream_add) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_update_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_process) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_sys_clock) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_ts_clock) )
+
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
 /*laser.h exports*/

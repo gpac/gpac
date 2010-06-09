@@ -32,6 +32,8 @@
 
 #include <gpac/internal/odf_dev.h>
 #include <gpac/network.h>
+#include <gpac/esi.h>
+#include <gpac/thread.h>
 #include <time.h>
 
 typedef struct tag_m2ts_demux GF_M2TS_Demuxer;
@@ -668,12 +670,6 @@ enum {
 	/* 0xff reserved */
 };
 
-enum {
-	M2TS_ADAPTATION_RESERVED	= 0,
-	M2TS_ADAPTATION_NONE		= 1,
-	M2TS_ADAPTATION_ONLY		= 2,
-	M2TS_ADAPTATION_AND_PAYLOAD 	= 3,
-};
 
 
 #define SECTION_HEADER_LENGTH 3 /* header till the last bit of the section_length field */
@@ -725,6 +721,190 @@ typedef struct
 
 
 void gf_m2ts_print_info(GF_M2TS_Demuxer *ts);
+
+
+/*
+	MPEG-2 TS Multiplexer
+*/
+
+enum {
+	GF_M2TS_ADAPTATION_RESERVED	= 0,
+	GF_M2TS_ADAPTATION_NONE		= 1,
+	GF_M2TS_ADAPTATION_ONLY		= 2,
+	GF_M2TS_ADAPTATION_AND_PAYLOAD 	= 3,
+};
+
+
+
+typedef struct __m2ts_mux_program GF_M2TS_Mux_Program;
+typedef struct __m2ts_mux GF_M2TS_Mux;
+
+typedef struct __m2ts_section {
+	struct __m2ts_section *next;
+	u8 *data;
+	u32 length;
+} GF_M2TS_Mux_Section;
+
+typedef struct __m2ts_table {
+	struct __m2ts_table *next;
+	u8 table_id;
+	u8 version_number;
+	struct __m2ts_section *section;
+} GF_M2TS_Mux_Table;
+
+typedef struct
+{
+	u32 sec;
+	u32 nanosec;
+} GF_M2TS_Time;
+
+
+typedef struct __m2ts_mux_pck
+{
+	struct __m2ts_mux_pck *next;
+	char *data;
+	u32 data_len;
+	u32 flags;
+	u64 cts, dts;
+} GF_M2TS_Packet;
+
+
+typedef struct __m2ts_mux_stream {
+	struct __m2ts_mux_stream *next;
+
+	u32 pid;
+	u8 continuity_counter;
+	struct __m2ts_mux_program *program;
+
+	/*average stream bit-rate in bit/sec*/
+	u32 bit_rate;
+	
+	/*multiplexer time - NOT THE PCR*/
+	GF_M2TS_Time time;
+
+	/*table tools*/
+	GF_M2TS_Mux_Table *tables;
+	/*total table sizes for bitrate estimation (PMT/PAT/...)*/
+	u32 total_table_size;
+	/* used for on-the-fly packetization of sections */
+	GF_M2TS_Mux_Table *current_table;
+	GF_M2TS_Mux_Section *current_section;
+	u32 current_section_offset;
+	u32 refresh_rate_ms;
+	Bool table_needs_update;
+
+	Bool (*process)(struct __m2ts_mux *muxer, struct __m2ts_mux_stream *stream);
+
+	/*PES tools*/
+	void *pes_packetizer;
+	u32 mpeg2_stream_type;
+	u32 mpeg2_stream_id;
+
+	GF_ESIPacket pck;
+	u32 pck_offset;
+	Bool force_new;
+
+	struct __elementary_stream_ifce *ifce;
+	Double ts_scale;
+	u64 initial_ts;
+
+	/*packet fifo*/
+	GF_M2TS_Packet *pck_first, *pck_last;
+	/*packet reassembler (PES packets are most of the time full frames)*/
+	GF_M2TS_Packet *pck_reassembler;
+	GF_Mutex *mx;
+	/*avg bitrate compute*/
+	u64 last_br_time;
+	u32 bytes_since_last_time;
+
+	/*MPEG-4 over MPEG-2*/
+	u8 table_id;
+	GF_SLHeader sl_header;
+	/* MPEG-4 SL Config */
+	GF_SLConfig sl_config;
+
+	u32 last_aac_time;
+} GF_M2TS_Mux_Stream;
+
+
+struct __m2ts_mux_program {
+	struct __m2ts_mux_program *next;
+
+	struct __m2ts_mux *mux;
+	u16 number;
+	/*all streams but PMT*/
+	GF_M2TS_Mux_Stream *streams;
+	/*PMT*/
+	GF_M2TS_Mux_Stream *pmt;
+	/*pointer to PCR stream*/
+	GF_M2TS_Mux_Stream *pcr;
+
+	/*TS time at pcr init*/
+	GF_M2TS_Time ts_time_at_pcr_init;
+	u64 pcr_init_time, num_pck_at_pcr_init;
+	u64 last_pcr;
+	u32 last_sys_clock;
+
+	GF_Descriptor *iod;
+};
+
+struct __m2ts_mux {
+	GF_M2TS_Mux_Program *programs;
+	GF_M2TS_Mux_Stream *pat;
+
+	u16 ts_id;
+
+	Bool needs_reconfig;
+
+    /* used to indicate that the input data is pushed to the muxer (i.e. not read from a file)
+    or that the output data is sent on sockets (not written to a file) */
+	Bool real_time;
+
+	/* indicates if the multiplexer shall target a fix bit rate (monitoring timing and produce padding packets)
+       or if the output stream will contain only input data*/
+	Bool fixed_rate;
+
+	/*output bit-rate in bit/sec*/
+	u32 bit_rate;
+
+	char dst_pck[188], null_pck[188];
+
+	/*multiplexer time, incremented each time a packet is sent
+      used to monitor the sending of muxer related data (PAT, ...) */
+	GF_M2TS_Time time; 
+    
+    /* Time of the muxer when the first call to process is made (first packet sent?) */
+    GF_M2TS_Time init_ts_time;
+	
+    /* System time when the muxer is started */
+    u32 init_sys_time;
+
+	Bool eos_found;
+	u32 pck_sent_over_br_window, last_br_time, avg_br;
+	u64 tot_pck_sent, tot_pad_sent;
+
+	Bool mpeg4_signaling;
+};
+
+
+enum
+{
+	GF_M2TS_STATE_IDLE,
+	GF_M2TS_STATE_DATA,
+	GF_M2TS_STATE_PADDING,
+	GF_M2TS_STATE_EOS,
+};
+
+GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, Bool real_time);
+void gf_m2ts_mux_del(GF_M2TS_Mux *mux);
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid);
+GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr);
+void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);
+const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status);
+u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);
+u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
+
+
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
