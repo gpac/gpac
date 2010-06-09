@@ -83,6 +83,10 @@ typedef struct __m2ts_mux_stream {
 	/*multiplexer time - NOT THE PCR*/
 	M2TS_Time time;
 
+
+	/* MPEG-4 SL Config */
+	GF_SLConfig sl_config;
+
 	/*table tools*/
 	M2TS_Mux_Table *tables;
 	/*total table sizes for bitrate estimation (PMT/PAT/...)*/
@@ -110,7 +114,9 @@ typedef struct __m2ts_mux_stream {
 	u64 initial_ts;
 
 	/*packet fifo*/
-	M2TS_Packet *pck_first, *pck_last, *cur_pck;
+	M2TS_Packet *pck_first, *pck_last;
+	/*packet reassembler (PES packets are most of the time full frames)*/
+	M2TS_Packet *pck_reassembler;
 	GF_Mutex *mx;
 	/*avg bitrate compute*/
 	u64 last_br_time;

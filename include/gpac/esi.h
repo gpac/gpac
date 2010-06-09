@@ -71,7 +71,9 @@ enum
 	GF_ESI_DATA_AU_RAP		=	1<<2,
 	GF_ESI_DATA_HAS_CTS		=	1<<3,
 	GF_ESI_DATA_HAS_DTS		=	1<<4,
-	GF_ESI_DATA_ENCRYPTED	=	1<<5,
+	GF_ESI_DATA_REPEAT		=	1<<5,
+	GF_ESI_DATA_CRITICAL	=	1<<6,
+	GF_ESI_DATA_ENCRYPTED	=	1<<7,
 };
 
 typedef struct __data_packet_ifce
@@ -120,8 +122,6 @@ typedef struct __elementary_stream_ifce
 	/*MPEG-4 ST/OTIs*/
 	u8 stream_type;
 	u8 object_type_indication;
-	/* MPEG-4 SL Config */
-	GF_SLConfig sl_config;
 	/*stream 4CC for non-mpeg codecs, 0 otherwise (stream is identified through StreamType/ObjectType)*/
 	u32 fourcc;
 	/*packed 3-char language code (4CC with last byte ' ')*/
