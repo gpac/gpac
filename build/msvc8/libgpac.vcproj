@@ -4548,6 +4548,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\src\media_tools\m2ts_mux.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\internal\media_dev.h"
 				>
 			</File>
