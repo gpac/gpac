@@ -253,7 +253,7 @@ void m2ts_mux_table_update_bitrate(M2TS_Mux *mux, M2TS_Mux_Stream *stream)
 void m2ts_mux_table_update_mpeg4(M2TS_Mux_Stream *stream, u8 table_id, u16 table_id_extension,
 						   u8 *table_payload, u32 table_payload_length, 
 						   Bool use_syntax_indicator, Bool private_indicator,
-						   Bool use_checksum) 
+						   Bool increment_version_number, Bool use_checksum) 
 {
 	GF_SLHeader hdr;
 	u32 overhead_size;
@@ -278,7 +278,8 @@ void m2ts_mux_table_update_mpeg4(M2TS_Mux_Stream *stream, u8 table_id, u16 table
 				gf_free(sec);
 				sec = sec2;
 			}
-			table->version_number = (table->version_number + 1)%0x1F;
+			if (increment_version_number)
+				table->version_number = (table->version_number + 1)%0x1F;
 			break;
 		}
 		prev_table = table;
@@ -301,14 +302,14 @@ void m2ts_mux_table_update_mpeg4(M2TS_Mux_Stream *stream, u8 table_id, u16 table
 	section_number = 0;
 	nb_sections = 1;
 	hdr = stream->sl_header;
-	sl_size = gf_sl_get_header_size(&stream->ifce->sl_config, &hdr);
+	sl_size = gf_sl_get_header_size(&stream->sl_config, &hdr);
 	/*SL-packetized data doesn't fit in one section, we must repacketize*/
 	if (sl_size + table_payload_length > maxSectionLength - overhead_size) {
 		nb_sections = 0;
 		offset = 0;
 		hdr.accessUnitEndFlag = 0;
 		while (offset<table_payload_length) {
-			sl_size = gf_sl_get_header_size(&stream->ifce->sl_config, &hdr);
+			sl_size = gf_sl_get_header_size(&stream->sl_config, &hdr);
 			/*remove start flag*/
 			hdr.accessUnitStartFlag = 0;
 			/*fill each section but beware of last packet*/
@@ -326,7 +327,7 @@ void m2ts_mux_table_update_mpeg4(M2TS_Mux_Stream *stream, u8 table_id, u16 table
 		GF_SAFEALLOC(section, M2TS_Mux_Section);
 
 		hdr.accessUnitEndFlag = (section_number+1==nb_sections) ? stream->sl_header.accessUnitEndFlag : 0;
-		gf_sl_packetize(&stream->ifce->sl_config, &hdr, NULL, 0, &slhdr, &slhdr_size);
+		gf_sl_packetize(&stream->sl_config, &hdr, NULL, 0, &slhdr, &slhdr_size);
 		hdr.accessUnitStartFlag = 0;
 
 		remain = table_payload_length - offset;
@@ -390,6 +391,18 @@ void m2ts_mux_table_update_mpeg4(M2TS_Mux_Stream *stream, u8 table_id, u16 table
 	stream->current_section_offset = 0;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Generating %d sections for MPEG-4 SL packet - version number %d - extension ID %d\n", stream->pid, nb_sections, table->version_number, table_id_extension));
+
+	{
+		/*discard first packet*/
+		M2TS_Packet *pck;
+		gf_mx_p(stream->mx);
+		assert(stream->pck_first);		
+		pck = stream->pck_first;
+		stream->pck_first = pck->next;
+		gf_mx_v(stream->mx);
+		gf_free(pck->data);
+		gf_free(pck);
+	}
 
 	if (stream->ifce->repeat_rate) {
 		stream->refresh_rate_ms = stream->ifce->repeat_rate;
@@ -573,10 +586,23 @@ Bool m2ts_stream_process_pmt(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 		if (!stream->program->iod) {
 			gf_bs_write_int(bs,	0, 12); // program info length =0
 		} else {
-			u32 len;
+			u32 len, i;
+			GF_ESD *esd;
 			GF_BitStream *bs_iod;
 			char *iod_data;
 			u32 iod_data_len;
+
+			/*rewrite SL config in IOD streams*/
+			i=0;
+			while (esd = gf_list_enum(((GF_ObjectDescriptor*)stream->program->iod)->ESDescriptors, &i)) {
+				M2TS_Mux_Stream *es_stream = stream->program->streams;
+				while (es_stream) {
+					if (es_stream->ifce && (es_stream->ifce->stream_id==esd->ESID)) {
+						memcpy(esd->slConfig, &es_stream->sl_config, sizeof(GF_SLConfig));
+						break;
+					}
+				}
+			}
 
 			bs_iod = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
 			gf_odf_write_descriptor(bs_iod, stream->program->iod);
@@ -647,10 +673,14 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 {
 	u64 pcr_offset;
 	u32 next_time;
+	Bool ret = 0;
+
 	if (stream->mpeg2_stream_type==GF_M2TS_SYSTEMS_MPEG4_SECTIONS) {
 		/*section not completely sent yet*/
-		if (stream->current_section) return 1;
-	} 
+		if (stream->current_section && stream->current_section_offset) 
+			return 1;
+		if (stream->ifce->repeat_rate && stream->tables) ret = 1;
+	}
 	else if (stream->pck_offset < stream->pck.data_len) {
 		/*PES packet not completely sent yet*/
 		return 1;
@@ -675,14 +705,7 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 		/*flush input pipe*/
 		stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_FLUSH, NULL);
 		gf_mx_p(stream->mx);
-		/*discard first packet*/
-		if (stream->pck_offset) {
-			assert(stream->pck_first);
-			pck = stream->pck_first;
-			stream->pck_first = pck->next;
-			gf_free(pck->data);
-			gf_free(pck);
-		}
+
 		stream->pck_offset = 0;
 		stream->pck.data_len = 0;
 
@@ -690,7 +713,7 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 		pck = stream->pck_first;
 		if (!pck) {
 			gf_mx_v(stream->mx);
-			return 0;
+			return ret;
 		}
 		stream->pck.cts = pck->cts;
 		stream->pck.data = pck->data;
@@ -748,7 +771,7 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 		stream->sl_header.decodingTimeStampFlag = (stream->pck.flags & GF_ESI_DATA_HAS_DTS) ? 1: 0;
 		stream->sl_header.decodingTimeStamp = stream->pck.dts;
 
-		m2ts_mux_table_update_mpeg4(stream, stream->table_id, muxer->ts_id, stream->pck.data, stream->pck.data_len, 1, 0, 0);
+		m2ts_mux_table_update_mpeg4(stream, stream->table_id, muxer->ts_id, stream->pck.data, stream->pck.data_len, 1, 0, (stream->pck.flags & GF_ESI_DATA_REPEAT) ? 0 : 1, 0);
 		break;
 	case GF_M2TS_SYSTEMS_MPEG4_PES:
 	{
@@ -770,7 +793,7 @@ Bool m2ts_stream_process_stream(M2TS_Mux *muxer, M2TS_Mux_Stream *stream)
 		stream->pck.data_len = 0;
 		stream->pck.data = NULL;
 
-		gf_sl_packetize(&stream->ifce->sl_config, &stream->sl_header, src_data, src_data_len, &stream->pck.data, &stream->pck.data_len);
+		gf_sl_packetize(&stream->sl_config, &stream->sl_header, src_data, src_data_len, &stream->pck.data, &stream->pck.data_len);
 
 		/*discard src data*/
 		if (!(stream->ifce->caps & GF_ESI_AU_PULL_CAP)) {
@@ -1037,6 +1060,16 @@ void m2ts_mux_pes_get_next_packet(M2TS_Mux_Stream *stream, u8 *packet)
 	stream->pck_offset += payload_length;
 	
 	if (stream->pck_offset == stream->pck.data_len) {
+		M2TS_Packet *pck;
+		/*discard first packet*/
+		gf_mx_p(stream->mx);
+		assert(stream->pck_first);		
+		pck = stream->pck_first;
+		stream->pck_first = pck->next;
+		gf_mx_v(stream->mx);
+		gf_free(pck->data);
+		gf_free(pck);
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Done sending PES (%d bytes) from PID %d at stream time %d:%d (DTS %d - PCR %d)\n", stream->pck.data_len, stream->pid, stream->time.sec, stream->time.nanosec, stream->pck.dts, m2ts_get_pcr(stream->program)/300));
 	}
 }
@@ -1062,38 +1095,45 @@ GF_Err m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 		esi_pck = (GF_ESIPacket *)param;
 
 		if (stream->force_new || (esi_pck->flags & GF_ESI_DATA_AU_START)) {
-			if (stream->cur_pck) {
+			if (stream->pck_reassembler) {
 				gf_mx_p(stream->mx);
 				if (!stream->pck_first) {
-					stream->pck_first = stream->pck_last = stream->cur_pck;
+					stream->pck_first = stream->pck_last = stream->pck_reassembler;
 				} else {
-					stream->pck_last->next = stream->cur_pck;
-					stream->pck_last = stream->cur_pck;
+					stream->pck_last->next = stream->pck_reassembler;
+					stream->pck_last = stream->pck_reassembler;
 				}
 				gf_mx_v(stream->mx);
-				stream->cur_pck = NULL;
+				stream->pck_reassembler = NULL;
 			}
 		}
-		if (!stream->cur_pck) {
-			GF_SAFEALLOC(stream->cur_pck, M2TS_Packet);
-			stream->cur_pck->cts = esi_pck->cts;
-			stream->cur_pck->dts = esi_pck->dts;
+		if (!stream->pck_reassembler) {
+			GF_SAFEALLOC(stream->pck_reassembler, M2TS_Packet);
+			stream->pck_reassembler->cts = esi_pck->cts;
+			stream->pck_reassembler->dts = esi_pck->dts;
 		}
 
 		stream->force_new = esi_pck->flags & GF_ESI_DATA_AU_END ? 1 : 0;
 
-		stream->cur_pck->data = gf_realloc(stream->cur_pck->data , sizeof(char)*(stream->cur_pck->data_len+esi_pck->data_len) );
-		memcpy(stream->cur_pck->data + stream->cur_pck->data_len, esi_pck->data, esi_pck->data_len);
-		stream->cur_pck->data_len += esi_pck->data_len;
+		stream->pck_reassembler->data = gf_realloc(stream->pck_reassembler->data , sizeof(char)*(stream->pck_reassembler->data_len+esi_pck->data_len) );
+		memcpy(stream->pck_reassembler->data + stream->pck_reassembler->data_len, esi_pck->data, esi_pck->data_len);
+		stream->pck_reassembler->data_len += esi_pck->data_len;
 
-		stream->cur_pck->flags |= esi_pck->flags;
+		stream->pck_reassembler->flags |= esi_pck->flags;
 
 		break;
 	}
 	return GF_OK;
 }
 
-
+static void m2ts_stream_setup_slconfig(M2TS_Mux_Stream *stream)
+{
+	stream->sl_config.tag = GF_ODF_SLC_TAG;
+	stream->sl_config.useAccessUnitStartFlag = 1;
+	stream->sl_config.useAccessUnitEndFlag = 1;
+	stream->sl_config.useRandomAccessPointFlag = 1;
+	stream->sl_config.useTimestampsFlag = 1;
+}
 
 M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __elementary_stream_ifce *ifce, u32 pid, Bool is_pcr)
 {
@@ -1141,6 +1181,7 @@ M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __ele
 		case GPAC_OTI_IMAGE_PNG:
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_PES;
 			stream->mpeg2_stream_id = 0xFA;
+			m2ts_stream_setup_slconfig(stream);
 			break;
 		default:
 			break;
@@ -1167,6 +1208,7 @@ M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __ele
 		stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_SECTIONS;
 		stream->mpeg2_stream_id = 0xFA;
 		stream->table_id = (ifce->stream_type==GF_STREAM_OD) ? GF_M2TS_TABLE_ID_MPEG4_OD : GF_M2TS_TABLE_ID_MPEG4_BIFS;
+		m2ts_stream_setup_slconfig(stream);
 		break;
 	}
 
@@ -1175,6 +1217,7 @@ M2TS_Mux_Stream *m2ts_program_stream_add(M2TS_Mux_Program *program, struct __ele
 		if (stream->mpeg2_stream_type != GF_M2TS_SYSTEMS_MPEG4_SECTIONS) {
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_PES;
 			stream->mpeg2_stream_id = 0xFA;/*ISO/IEC14496-1_SL-packetized_stream*/
+			m2ts_stream_setup_slconfig(stream);
 		}
 	}
 
@@ -1670,6 +1713,9 @@ typedef struct
 
 	Bool cat_dsi;
 	void *dsi_and_rap;
+
+	Bool use_carousel;
+	u32 au_sn;
 } GF_ESIRTP;
 
 static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
@@ -1724,6 +1770,11 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	if (hdr->randomAccessPointFlag) rtp->pck.flags |= GF_ESI_DATA_AU_RAP;
 	if (hdr->accessUnitStartFlag) rtp->pck.flags |= GF_ESI_DATA_AU_START;
 	if (hdr->accessUnitEndFlag) rtp->pck.flags |= GF_ESI_DATA_AU_END;
+
+	if (rtp->use_carousel) {
+		if ((hdr->AU_sequenceNumber==rtp->au_sn) && hdr->randomAccessPointFlag) rtp->pck.flags |= GF_ESI_DATA_REPEAT;
+		rtp->au_sn = hdr->AU_sequenceNumber;
+	}
 
 	if (rtp->cat_dsi && hdr->randomAccessPointFlag && hdr->accessUnitStartFlag) {
 		if (rtp->dsi_and_rap) gf_free(rtp->dsi_and_rap);
@@ -1804,6 +1855,10 @@ void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInfo *sdp)
 			break;
 		}
 	}
+	if (rtp->depacketizer->sl_map.StreamStateIndication) {
+		rtp->use_carousel = 1;
+		rtp->au_sn=0;
+	}
 
 	/*DTS signaling is only supported for MPEG-4 visual*/
 	if (rtp->depacketizer->sl_map.DTSDeltaLength) ifce->caps |= GF_ESI_SIGNAL_DTS;
@@ -1874,14 +1929,6 @@ Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, Bool *f
 			if (!first_audio && (gf_isom_get_media_type(prog->mp4, i+1) == GF_ISOM_MEDIA_AUDIO) ) {
 				first_audio = i+1;
 			}
-			prog->streams[i].sl_config.timestampResolution = 90000; //prog->streams[i].timescale;
-			prog->streams[i].sl_config.useRandomAccessPointFlag = 1;
-			prog->streams[i].sl_config.useAccessUnitStartFlag = 1;
-			prog->streams[i].sl_config.useAccessUnitEndFlag = 1;
-			prog->streams[i].sl_config.useTimestampsFlag = 1;
-			prog->streams[i].sl_config.timestampLength = 33;
-			prog->streams[i].sl_config.tag = GF_ODF_SLC_TAG;
-			gf_isom_set_extraction_slc(prog->mp4, i+1, 1, &prog->streams[i].sl_config);
 		}
 		/*if no visual PCR found, use first audio*/
 		if (!prog->pcr_idx) prog->pcr_idx = first_audio;
@@ -1891,11 +1938,7 @@ Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, Bool *f
 			priv = prog->streams[prog->pcr_idx].input_udta;
 			gf_isom_set_default_sync_track(prog->mp4, priv->track);
 		}
-
-		/* WARNING: the returned IOD may be different from the one actually in the file
-		 because it rewrites the SL config according to SL extraction settings. */
 		prog->iod = gf_isom_get_root_od(prog->mp4);
-
 		return 1;
 	}
 
@@ -1958,7 +2001,6 @@ Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, Bool *f
 				prog->streams[i].repeat_rate = carousel_rate;
 				break;
 			}
-
 			if (!prog->pcr_idx && (prog->streams[i].stream_type == GF_STREAM_VISUAL)) {
 				prog->pcr_idx = i+1;
 			}

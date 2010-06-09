@@ -50,7 +50,6 @@ static setup_rtp_streams(GF_SceneEngine *seng, GF_List *streams, char *ip, u16 p
 		
 		GF_SAFEALLOC(rtpst, BRTP);
 
-
 		switch (st) {
 		case GF_STREAM_OD:
 		case GF_STREAM_SCENE:
