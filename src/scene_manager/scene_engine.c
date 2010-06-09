@@ -958,6 +958,23 @@ char *gf_seng_get_base64_iod(GF_SceneEngine *seng)
 }
 
 GF_EXPORT
+GF_Descriptor *gf_seng_get_iod(GF_SceneEngine *seng)
+{
+	u32 i=0;
+	GF_Descriptor *out_iod = NULL;
+	GF_StreamContext*sc = NULL;
+
+	if (!seng->ctx->root_od) return NULL;
+	while ((sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
+		if ((sc->streamType == GF_STREAM_SCENE) && (sc->objectType != GPAC_OTI_SCENE_DIMS))
+			break;
+	}
+	if (!sc) return NULL;
+	gf_odf_desc_copy((GF_Descriptor *)seng->ctx->root_od, &out_iod);
+	return out_iod;
+}
+
+GF_EXPORT
 GF_Err gf_seng_set_carousel_time(GF_SceneEngine *seng, u16 ESID, u32 period)
 {
 	GF_StreamContext *sc;

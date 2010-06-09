@@ -182,6 +182,8 @@ void gf_seng_terminate(GF_SceneEngine *seng);
  */
 char *gf_seng_get_base64_iod(GF_SceneEngine *seng);
 
+GF_Descriptor *gf_seng_get_iod(GF_SceneEngine *seng);
+
 GF_Err gf_seng_set_carousel_time(GF_SceneEngine *seng, u16 ESID, u32 period);
 s32 gf_seng_next_rap_time(GF_SceneEngine *seng, u16 *ESID);
 GF_Err gf_seng_update_rap_time(GF_SceneEngine *seng, u16 ESID);
