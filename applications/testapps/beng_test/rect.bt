@@ -19,6 +19,18 @@ InitialObjectDescriptor {
     }
    }
   }
+  ES_Descriptor {
+   ES_ID 2
+   dependsOnESID 1
+   decConfigDescr DecoderConfigDescriptor {
+    streamType 3
+    decSpecificInfo BIFSConfig {
+     nodeIdBits 10
+     isCommandStream true
+     pixelMetric true
+    }
+   }
+  }
  ]
 }
 
@@ -45,4 +57,4 @@ DEF OG OrderedGroup {
   }
  ]
 }
-ROUTE PS.translation_changed TO TR.translation
+#ROUTE PS.translation_changed TO TR.translation

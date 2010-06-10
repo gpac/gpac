@@ -43,6 +43,18 @@ extern "C" {
 always belong to the desired NDT*/
 Bool gf_node_in_table(GF_Node *node, u32 NDTType);
 
+enum
+{
+	/*AU is RAP - random access indication - may be overriden by encoder*/
+	GF_SM_AU_RAP = 1,
+	/*AU will not be aggregated (only used by scene engine)*/
+	GF_SM_AU_NOT_AGGREGATED = 1<<1,
+	/*AU has been modified (only used by scene engine)*/
+	GF_SM_AU_MODIFIED = 1<<2,
+	/*AU is a carousel (only used by scene engine)*/
+	GF_SM_AU_CAROUSEL = 1<<3
+};
+
 /*generic systems access unit context*/
 typedef struct
 {	
@@ -50,10 +62,10 @@ typedef struct
 	u64 timing;
 	/*timing in sec - used if timing isn't set*/
 	Double timing_sec;
-	/*random access indication - may be overriden by encoder*/
-	Bool is_rap;
 	/*opaque command list per stream type*/
 	GF_List *commands;
+
+	u32 flags;
 
 	/*pointer to owner stream*/
 	struct _stream_context *owner;
@@ -83,9 +95,7 @@ typedef struct _stream_context
 	char *dec_cfg;
 	u32 dec_cfg_len;
 
-	u32 carousel_period;
-	u32 last_rap_time;
-	Bool aggregation_enabled;
+	Bool aggregation_enabled, disable_aggregation;
 } GF_StreamContext;
 
 /*generic presentation context*/
@@ -132,9 +142,10 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 */
 void gf_sm_reset(GF_SceneManager *ctx);
 
-/*applies all commands in all streams (only BIFS for now): the context manager will only have one command per
-stream, this command being a random access*/
-GF_Err gf_sm_make_random_access(GF_SceneManager *ctx);
+/*applies all commands in all streams (only BIFS for now): the context manager will only have maximum one AU per
+stream, this AU being a random access for the stream
+if @ESID is set, aggregation is only performed on the given stream*/
+GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID);
 
 /*translates SRT/SUB (TTXT not supported) source into BIFS command stream source
 	@src: GF_ESD of new stream (MUST be created before to store TS resolution)
@@ -240,6 +251,8 @@ struct __scene_loader
 
 	/*loader flags*/
 	u32 flags;
+
+	u16 force_es_id;
 
 	/*private to loader*/
 	void *loader_priv;

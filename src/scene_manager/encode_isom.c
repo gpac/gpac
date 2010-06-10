@@ -731,7 +731,7 @@ force_scene_rap:
 				e = GF_BAD_PARAM;
 				goto exit;
 			}
-			samp->IsRAP = au->is_rap;
+			samp->IsRAP = au->flags & GF_SM_AU_RAP;
 			if (samp->IsRAP) last_rap = au->timing;
 
 			/*inband RAP insertion*/
@@ -1091,7 +1091,7 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 
 			samp = gf_isom_sample_new();
 			samp->DTS = au->timing - init_offset;
-			samp->IsRAP = au->is_rap;
+			samp->IsRAP = au->flags & GF_SM_AU_RAP;
 
 			if ((j>1) && (samp->DTS == prev_dts)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[OD-SL] Same sample time %d for Access Unit %d and %d\n", au->timing, j, j-1));

@@ -1040,7 +1040,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_stream_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_stream_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_stream_au_new) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sm_make_random_access) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sm_aggregate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sm_load_done) )
@@ -1083,9 +1083,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_aggregate_context) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_base64_iod) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_iod) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_seng_set_carousel_time) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_seng_next_rap_time) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_seng_update_rap_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_terminate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_stream_info) )
 #endif

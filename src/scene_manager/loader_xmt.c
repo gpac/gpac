@@ -1972,6 +1972,8 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 		return;
 	}
 
+	parser->stream_id = parser->load->force_es_id;
+
 	if (!strcmp(name, "par")) {
 		for (i=0; i<nb_attributes; i++) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *) &attributes[i];

@@ -127,7 +127,7 @@ static GF_Err processSend(PNC_CallbackData * data, char * bsBuffer)
 	assert( data->codec );
 	dprintf(DEBUG_RTP_serv_generator, "RTP STREAM SEND\n");
 	gf_mx_p(data->carrousel_mutex);
-	error = gf_seng_encode_from_string(data->codec, bsBuffer, MySampleCallBack);
+	error = gf_seng_encode_from_string(data->codec, 0, 0, bsBuffer, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
 	gf_free( bsBuffer );
 	return error;
@@ -141,7 +141,7 @@ static GF_Err processRapReset(PNC_CallbackData * data, char * bsBuffer)
 	data->RAP = 1; 
 	data->RAPsent++;
 	data->SAUN_inc = 1;
-	error = gf_seng_aggregate_context(data->codec);
+	error = gf_seng_aggregate_context(data->codec, 0);
 	if (error == GF_OK)
 		error = gf_seng_encode_context(data->codec, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
@@ -157,7 +157,7 @@ static GF_Err processRap(PNC_CallbackData * data, char * bsBuffer)
 	data->SAUN_inc = 1;
 	data->RAP = 1;
 	data->RAPsent++;
-	error = gf_seng_aggregate_context(data->codec);
+	error = gf_seng_aggregate_context(data->codec, 0);
 	if (GF_OK == error)
 		error = gf_seng_encode_context(data->codec, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
@@ -171,7 +171,7 @@ static GF_Err processSendCritical(PNC_CallbackData * data, char * bsBuffer)
 	dprintf(DEBUG_RTP_serv_generator, "RTP STREAM SEND CRITICAL\n");
 	gf_mx_p(data->carrousel_mutex);
 	data->SAUN_inc = 1;
-	error = gf_seng_encode_from_string(data->codec, bsBuffer, MySampleCallBack);
+	error = gf_seng_encode_from_string(data->codec, 0, 0, bsBuffer, MySampleCallBack);
 	gf_mx_v(data->carrousel_mutex);
 	gf_free( bsBuffer );
 	return error;
