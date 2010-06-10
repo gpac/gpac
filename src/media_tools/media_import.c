@@ -6184,8 +6184,12 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 
 	if (importer->orig) return gf_import_isomedia(importer);
 
-	ext = strrchr(importer->in_name, '.');
-	if (!ext) ext = "";
+	if (importer->force_ext) {
+		ext = importer->force_ext;
+	} else {
+		ext = strrchr(importer->in_name, '.');
+		if (!ext) ext = "";
+	}
 
 	if (importer->streamFormat) fmt = importer->streamFormat;
 

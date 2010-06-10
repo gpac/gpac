@@ -166,6 +166,8 @@ typedef struct __track_import
 	u32 frames_per_sample;
 	/*track ID of imported media in destination file*/
 	u32 final_trackID;
+	/*optional format indication for media source (used in IM1)*/
+	char *force_ext;
 	
 	/*for MP4 import only*/
 	GF_ISOFile *orig;
