@@ -112,7 +112,7 @@ u32 RAP_send(void *par)
 		data->RAPsent++;
 		dprintf(DEBUG_broadcaster, "Sending RAP, will sleep for %d seconds\n", *timer);
 		data->RAP = 1; 
-		gf_seng_aggregate_context(data->codec);
+		gf_seng_aggregate_context(data->codec, 0);
 		gf_seng_encode_context(data->codec, SampleCallBack);
 
 		gf_mx_v(input->carrousel_mutex);

@@ -474,7 +474,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 
 				if (au_time > stream_time) 
 					break;
-				if (au->is_rap) last_rap = j-1;
+				if (au->flags & GF_SM_AU_RAP) last_rap = j-1;
 			}
 			j = last_rap;
 		}

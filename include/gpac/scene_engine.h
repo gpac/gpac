@@ -114,19 +114,21 @@ GF_Err gf_seng_encode_context(GF_SceneEngine *seng, gf_seng_callback callback);
 
 /**
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
+ * @ESID, target streams when no indication is present in the file (eg, no atES_ID )
  * @auFile, name of a file containing a description for an access unit (BT or XMT)
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
  */
-GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, char *auFile, gf_seng_callback callback);
+GF_Err gf_seng_encode_from_file(GF_SceneEngine *seng, u16 ESID, Bool disable_aggregation, char *auFile, gf_seng_callback callback);
 
 /**
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
+ * @ESID, target streams when no indication is present in the file (eg, no atES_ID )
  * @auString, a char string to encode (must one or several complete nodes in BT
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
  */
-GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, char *auString, gf_seng_callback callback);
+GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, u16 ESID, Bool disable_aggregation, char *auString, gf_seng_callback callback);
 
 /**
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
@@ -135,7 +137,7 @@ GF_Err gf_seng_encode_from_string(GF_SceneEngine *seng, char *auString, gf_seng_
  * @AUCallback, pointer on a callback function to get the result of the coding the AU using the current context
  *
  */
-GF_Err gf_seng_encode_from_commands(GF_SceneEngine *codec, u16 ESID, u32 time, GF_List *commands, gf_seng_callback callback);
+GF_Err gf_seng_encode_from_commands(GF_SceneEngine *codec, u16 ESID, Bool disable_aggregation, u32 time, GF_List *commands, gf_seng_callback callback);
 
 /**
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
@@ -160,9 +162,9 @@ GF_Err gf_seng_enable_aggregation(GF_SceneEngine *codec, u16 ESID, Bool enable);
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
  *
  * aggregates the current context of the seng, creates a scene replace
- *
+ * if @ESID is specified, only aggregate commands for this stream
  */
-GF_Err gf_seng_aggregate_context(GF_SceneEngine *seng);
+GF_Err gf_seng_aggregate_context(GF_SceneEngine *seng, u16 ESID);
 
 /**
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
@@ -183,10 +185,6 @@ void gf_seng_terminate(GF_SceneEngine *seng);
 char *gf_seng_get_base64_iod(GF_SceneEngine *seng);
 
 GF_Descriptor *gf_seng_get_iod(GF_SceneEngine *seng);
-
-GF_Err gf_seng_set_carousel_time(GF_SceneEngine *seng, u16 ESID, u32 period);
-s32 gf_seng_next_rap_time(GF_SceneEngine *seng, u16 *ESID);
-GF_Err gf_seng_update_rap_time(GF_SceneEngine *seng, u16 ESID);
 
 #endif /*GPAC_DISABLE_SENG*/
 

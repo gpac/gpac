@@ -1517,7 +1517,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			switch (com_type) {
 			case GF_SG_LSR_NEW_SCENE:
 			case GF_SG_LSR_REFRESH_SCENE:
-				parser->laser_au->is_rap = 1;
+				parser->laser_au->flags |= GF_SM_AU_RAP;
 				break;
 			}
 

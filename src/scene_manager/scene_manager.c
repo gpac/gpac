@@ -65,7 +65,7 @@ GF_StreamContext *gf_sm_stream_new(GF_SceneManager *ctx, u16 ES_ID, u8 streamTyp
 	tmp->AUs = gf_list_new();
 	tmp->ESID = ES_ID;
 	tmp->streamType = streamType;
-	tmp->objectType = objectType;
+	tmp->objectType = objectType ? objectType : 1;
 	tmp->timeScale = 1000;
 	gf_list_add(ctx->streams, tmp);
 	return tmp;
@@ -83,26 +83,31 @@ GF_StreamContext *gf_sm_stream_find(GF_SceneManager *ctx, u16 ES_ID)
 	return NULL;
 }
 
+static void gf_sm_au_del(GF_StreamContext *sc, GF_AUContext *au)
+{
+	while (gf_list_count(au->commands)) {
+		void *comptr = gf_list_last(au->commands);
+		gf_list_rem_last(au->commands);
+		switch (sc->streamType) {
+		case GF_STREAM_OD:
+			gf_odf_com_del((GF_ODCom**) & comptr);
+			break;
+		case GF_STREAM_SCENE:
+			gf_sg_command_del((GF_Command *)comptr);
+			break;
+		}
+	}
+	gf_list_del(au->commands);
+	gf_free(au);
+}
+
 static void gf_sm_reset_stream(GF_StreamContext *sc)
 {
 	while (gf_list_count(sc->AUs)) {
 		GF_AUContext *au = (GF_AUContext *)gf_list_last(sc->AUs);
 		gf_list_rem_last(sc->AUs);
+		gf_sm_au_del(sc, au);
 
-		while (gf_list_count(au->commands)) {
-			void *comptr = gf_list_last(au->commands);
-			gf_list_rem_last(au->commands);
-			switch (sc->streamType) {
-			case GF_STREAM_OD:
-				gf_odf_com_del((GF_ODCom**) & comptr);
-				break;
-			case GF_STREAM_SCENE:
-				gf_sg_command_del((GF_Command *)comptr);
-				break;
-			}
-		}
-		gf_list_del(au->commands);
-		gf_free(au);
 	}
 }
 
@@ -163,9 +168,9 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 		else if (!time_sec && !timing && !tmp->timing && !tmp->timing_sec) return tmp;
 		/*insert AU*/
 		else if ((time_sec && time_sec<tmp->timing_sec) || (timing && timing<tmp->timing)) {
-			tmp = (GF_AUContext *)gf_malloc(sizeof(GF_AUContext));
+			GF_SAFEALLOC(tmp, GF_AUContext);
 			tmp->commands = gf_list_new();
-			tmp->is_rap = isRap;
+			if (isRap) tmp->flags = GF_SM_AU_RAP;
 			tmp->timing = timing;
 			tmp->timing_sec = time_sec;
 			tmp->owner = stream;
@@ -173,38 +178,29 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 			return tmp;
 		}
 	}
-	tmp = (GF_AUContext *)gf_malloc(sizeof(GF_AUContext));
+	GF_SAFEALLOC(tmp, GF_AUContext);
 	tmp->commands = gf_list_new();
-	tmp->is_rap = isRap;
+	if (isRap) tmp->flags = GF_SM_AU_RAP;
 	tmp->timing = timing;
 	tmp->timing_sec = time_sec;
 	tmp->owner = stream;
+	if (stream->disable_aggregation) tmp->flags |= GF_SM_AU_NOT_AGGREGATED;
 	gf_list_add(stream->AUs, tmp);
 	return tmp;
 }
 
-static Bool au_triggers_changes(GF_AUContext *au, Bool mark_for_aggregation)
-{
-	u32 i= 0;
-	GF_Command *com;
-	while ((com = gf_list_enum(au->commands, &i))) {
-		if ((i==1) && mark_for_aggregation) com->never_apply = 1;
-		if (!com->never_apply) return 1;
-	}
-	return 0;
-}
 
 GF_EXPORT
-GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
+GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 {
 	GF_Err e;
 	u32 i, stream_count;
+	GF_List *commands;
 #ifndef GPAC_DISABLE_VRML
-	u32 j, au_count, com_count;
-	GF_AUContext *au, *first_au;
+	u32 j;
+	GF_AUContext *au;
 	GF_Command *com;
 #endif
-	Bool has_changes = 0;
 
 	e = GF_OK;
 
@@ -227,81 +223,106 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 	stream_count = gf_list_count(ctx->streams);
 	for (i=0; i<stream_count; i++) {
 		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
+		if (ESID && (sc->ESID!=ESID)) continue;
 
-		/*FIXME - do this as well for ODs*/
+		/*TODO - do this as well for ODs*/
 #ifndef GPAC_DISABLE_VRML
 		if (sc->streamType == GF_STREAM_SCENE) {
-			/*we check for each stream if a RAP is carried (several streams may carry RAPs if inline nodes are used)*/
-			Bool stream_rap_found = 0;
+			Bool first_au=1;
+			/*we check for each stream if it is a base stream (SceneReplace ...) - several streams may carry RAPs if inline nodes are used*/
+			Bool base_stream_found = 0;
+			u32 first_au_com_count = 0;
 
 			/*in DIMS we use an empty initial AU with no commands to signal the RAP*/
-            if (sc->objectType == GPAC_OTI_SCENE_DIMS) stream_rap_found = 1;
+            if (sc->objectType == GPAC_OTI_SCENE_DIMS) base_stream_found = 1;
+
+			commands = gf_list_new();
 
 			/*apply all commands - this will also apply the SceneReplace*/
-			j=0;
-			while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
-				if (!stream_rap_found) {
-					u32 k=0;
-					while ((com = gf_list_enum(au->commands, &k))) {
-						switch (sc->objectType) {
-						case GPAC_OTI_SCENE_BIFS:
-						case GPAC_OTI_SCENE_BIFS_V2:
-							if (com->tag==GF_SG_SCENE_REPLACE)
-								stream_rap_found = 1;
-							break;
-						case GPAC_OTI_SCENE_LASER:
-							if (com->tag==GF_SG_LSR_NEW_SCENE)
-								stream_rap_found = 1;
+			while (gf_list_count(sc->AUs)) {
+				Bool first_com=1;
+				u32 count;
+				au = (GF_AUContext *) gf_list_get(sc->AUs, 0);
+				gf_list_rem(sc->AUs, 0);
+
+				/*AU not aggregated*/
+				if (au->flags & GF_SM_AU_NOT_AGGREGATED) {
+					gf_sm_au_del(sc, au);
+					first_au=0;
+					continue;
+				}
+
+				count = gf_list_count(au->commands);
+				if (first_au && (au->flags & GF_SM_AU_CAROUSEL) ) first_au_com_count = count;
+
+				for (j=0; j<count; j++) {
+					Bool store=0;
+					com = gf_list_get(au->commands, j);
+					if (!base_stream_found) {
+						switch (com->tag) {
+						case GF_SG_SCENE_REPLACE:
+						case GF_SG_LSR_NEW_SCENE:
+						case GF_SG_LSR_REFRESH_SCENE:
+							base_stream_found = 1;
 							break;
 						}
-						if (stream_rap_found) break;
 					}
-				}
 
-				/*FIXME - this doesn't work for route insert/replace/append, they are applied to the graph, not to a subtree
-				and will therefore end up in the base layer RAP (eg, SCENE REPLACE)*/
+					/*aggregate the command*/
 
-				/*skip first command of first AU if aggregation is enabled (this first command is the pseudo-rap of this stream)*/
-				if (au_triggers_changes(au, (sc->aggregation_enabled && (j==1)) ? 1 : 0)) {
-					e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
-					has_changes = 1;
-				}
-				if (e) return e;
-			}
-
-			/* Delete all the commands in the stream, except those marked as 'never_apply'*/
-			au_count = gf_list_count(sc->AUs);
-
-			while (au_count) {
-				au = (GF_AUContext *)gf_list_get(sc->AUs, au_count-1);
-
-				/*if aggregating */
-				first_au = NULL;
-				if (sc->aggregation_enabled && (au_count>1)) first_au = gf_list_get(sc->AUs, 0);
-
-				com_count = gf_list_count(au->commands);
-				while (com_count) {
-					com = (GF_Command*)gf_list_get(au->commands, com_count - 1);
-					if (!com->never_apply) {
-						gf_list_rem(au->commands, com_count - 1);
-						gf_sg_command_del(com);
-					}
+					/*if stream doesn't carry a carousel or carries the base carousel (scene replace), always apply the command*/
+					if (base_stream_found || !sc->aggregation_enabled) {
+						store = 0;
+					} 
+					/*otherwise, check wether the command should be kept in this stream as is, or can be aggregated on this stream*/
 					else {
-						/*reset never_apply flag*/
-						if (sc->aggregation_enabled) com->never_apply=0;
-						assert(!stream_rap_found);
+						switch (com->tag) {
+						/*the following commands do not impact a sub-tree (eg do not deal with nodes), we cannot
+						aggrgate them... */
+						case GF_SG_ROUTE_REPLACE:
+						case GF_SG_ROUTE_DELETE:
+						case GF_SG_ROUTE_INSERT:
+						case GF_SG_PROTO_INSERT:
+						case GF_SG_PROTO_DELETE:
+						case GF_SG_PROTO_DELETE_ALL:
+						case GF_SG_GLOBAL_QUANTIZER:
+						case GF_SG_LSR_RESTORE:
+						case GF_SG_LSR_SAVE:
+						case GF_SG_LSR_SEND_EVENT:
+						case GF_SG_LSR_CLEAN:
+						/*todo check in which category to put these commands*/
+//						case GF_SG_LSR_ACTIVATE:
+//						case GF_SG_LSR_DEACTIVATE:
+							store = 1;
+							break;
+						/*other commands: 
+							FIXME: we need to know if the target node of the command has been inserted in this stream !!
+						*/
+						default:
+							break;
+						}
+						/*if the stream is aggregating, make sure the very first command is not stored - this shouldn't be needed
+						once the above issue is fixed*/
+						if (first_au && first_com) store = 1;
 					}
-					com_count--;
+
+					if (store) {
+						gf_list_insert(commands, com, 0);
+						gf_list_rem(au->commands, j);
+						j--;
+						count--;
+					} else {
+						/*apply command*/
+						e = gf_sg_command_apply(ctx->scene_graph, com, 0);
+					}
+					first_com=0;
 				}
-				if (!gf_list_count(au->commands)) {
-					gf_list_rem(sc->AUs, au_count-1);
-					gf_list_del(au->commands);
-					gf_free(au);
-				}
-				au_count--;
+				gf_sm_au_del(sc, au);
+				first_au=0;
 			}
+
 			/*and recreate scene replace*/
-			if (stream_rap_found) {
+			if (base_stream_found) {
 				au = gf_sm_stream_au_new(sc, 0, 0, 1);
 
 				switch (sc->objectType) {
@@ -330,6 +351,20 @@ GF_Err gf_sm_make_random_access(GF_SceneManager *ctx)
 					com->aggregated = 1;
 					gf_list_add(au->commands, com);
 				}
+
+				assert(gf_list_count(commands)==0);
+				gf_list_del(commands);
+			}
+			/*create an empty AU with stored commands*/ 
+			else {
+				au = gf_sm_stream_au_new(sc, 0, 0, 1);
+				gf_list_del(au->commands);
+				au->commands = commands;
+				au->flags |= GF_SM_AU_RAP | GF_SM_AU_CAROUSEL;
+				if (gf_list_count(au->commands) != first_au_com_count) {
+					au->flags |= GF_SM_AU_MODIFIED;
+				}
+
 			}
 		}
 #endif

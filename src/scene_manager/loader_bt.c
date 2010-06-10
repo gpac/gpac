@@ -3192,6 +3192,8 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 		}
 	}
 
+	parser->stream_id = parser->load->force_es_id;
+
 	/*parse all top-level items*/
 	while (!parser->last_error) {
 		str = gf_bt_get_next(parser, 0);
