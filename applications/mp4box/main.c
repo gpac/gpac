@@ -280,6 +280,7 @@ void PrintImportUsage()
 			" \":delay=delay_ms\"    sets imported media initial delay in ms\n"
 			" \":par=PAR\"           sets visual pixel aspect ratio (PAR=Num:Den)\n"
 			" \":name=NAME\"         sets track handler name\n"
+			" \":ext=EXT\"           overrides file extension when importing\n"
 			" \":hdlr=code\"         sets track handler type to the given code point (4CC)\n"
 			" \":disable\"           imported track(s) will be disabled\n"
 			" \":group=G\"           adds the track as part of the G alternate group.\n"

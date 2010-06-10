@@ -141,7 +141,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
-	char *ext, szName[1000], *handler_name;
+	char *ext, szName[1000], *fmt, *handler_name;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
@@ -170,6 +170,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
 
 	handler_name = NULL;
+	fmt = NULL;
 	while (ext) {
 		char *ext2 = strchr(ext+1, ':');
 		if (ext2 && !strncmp(ext2, "://", 3)) ext2 = strchr(ext2+1, ':');
@@ -215,6 +216,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!strnicmp(ext+1, "font=", 5)) import.fontName = gf_strdup(ext+6);
 		else if (!strnicmp(ext+1, "size=", 5)) import.fontSize = atoi(ext+6);
 		else if (!strnicmp(ext+1, "fmt=", 4)) import.streamFormat = gf_strdup(ext+5);
+		else if (!strnicmp(ext+1, "ext=", 4)) import.force_ext = gf_strdup(ext+5);
 		else if (!strnicmp(ext+1, "disable", 7)) disable = 1;
 		else if (!strnicmp(ext+1, "group=", 6)) {
 			group = atoi(ext+7);
@@ -468,6 +470,7 @@ exit:
 	if (handler_name) gf_free(handler_name);
 	if (import.fontName) gf_free(import.fontName);
 	if (import.streamFormat) gf_free(import.streamFormat);
+	if (import.force_ext) gf_free(import.force_ext);
 	return e;
 }
 
@@ -1729,7 +1732,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 	}
 
 	/* Step 2: make sure we have only ONE RAP for each stream*/
-	e = gf_sm_make_random_access(ctx);
+	e = gf_sm_aggregate(ctx, 0);
 	if (e) goto exit;
 	
 	/*Step 3: loading the chunk into the context*/
@@ -1759,7 +1762,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 		char szF[GF_MAX_PATH], *ext;
 
 		/*make random access for storage*/
-		e = gf_sm_make_random_access(ctx);
+		e = gf_sm_aggregate(ctx, 0);
 		if (e) goto exit;
 		
 		/*check if we dump to BT, XMT or encode to MP4*/
