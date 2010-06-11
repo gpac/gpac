@@ -189,6 +189,73 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 	return tmp;
 }
 
+static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *commands, Bool *has_modif)
+{
+	u32 i, count, j, nb_fields;
+	GF_CommandField *field, *check_field;
+
+	count = gf_list_count(commands);
+	for (i=0; i<count; i++) {
+		GF_Command *check = gf_list_get(commands, i);
+
+		if (sc->streamType == GF_STREAM_SCENE) {
+			switch (com->tag) {
+			case GF_SG_FIELD_REPLACE:
+			case GF_SG_MULTIPLE_REPLACE:
+			case GF_SG_INDEXED_REPLACE:
+			case GF_SG_MULTIPLE_INDEXED_REPLACE:
+				if (check->tag != com->tag) goto check_next;
+				if (check->node != com->node) goto check_next;
+				nb_fields = gf_list_count(com->command_fields);
+				if (gf_list_count(check->command_fields) != nb_fields) goto check_next;
+				for (j=0; j<nb_fields; j++) {
+					field = gf_list_get(com->command_fields, j);
+					check_field = gf_list_get(check->command_fields, j);
+					if (field->pos != check_field->pos) goto check_next;
+					if (field->fieldIndex != check_field->fieldIndex) goto check_next;
+				}
+				/*same target node+fields, destroy first command and store new one*/
+				gf_sg_command_del((GF_Command *)check);
+				gf_list_rem(commands, i);
+				if (has_modif) *has_modif = 1;
+				return 1;
+
+			case GF_SG_NODE_REPLACE:
+				if (check->tag != GF_SG_NODE_REPLACE) goto check_next;
+				/*TODO - THIS IS NOT SUPPORTED IN GPAC SINCE WE NEVER ALLOW FOR DUPLICATE NODE IDs IN THE SCENE !!!*/
+				if (gf_node_get_id(check->node) != gf_node_get_id(com->node) ) goto check_next;
+				/*same node ID, destroy first command and store new one*/
+				gf_sg_command_del((GF_Command *)check);
+				gf_list_rem(commands, i);
+				if (has_modif) *has_modif = 1;
+				return 1;
+
+			case GF_SG_INDEXED_DELETE:
+				/*look for an indexed insert before the indexed delete with same target pos and node. If found, discard both commands!*/
+				if (check->tag != GF_SG_INDEXED_INSERT) goto check_next;
+				if (com->node != check->node) goto check_next;
+				field = gf_list_get(com->command_fields, 0);
+				check_field = gf_list_get(check->command_fields, 0);
+				if (!field || !check_field) goto check_next;
+				if (field->pos != check_field->pos) goto check_next;
+				if (field->fieldIndex != check_field->fieldIndex) goto check_next;
+
+				gf_sg_command_del((GF_Command *)check);
+				gf_list_rem(commands, i);
+				if (has_modif) *has_modif = 1;
+				return 2;
+
+			default:
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] Stream Aggregation not implemented for command - aggregating on main scene\n"));
+				break;
+			}
+check_next:
+			;
+		}
+	}
+	return 0;
+}
+
 
 GF_EXPORT
 GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
@@ -228,6 +295,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 		/*TODO - do this as well for ODs*/
 #ifndef GPAC_DISABLE_VRML
 		if (sc->streamType == GF_STREAM_SCENE) {
+			Bool has_modif = 0;
 			Bool first_au=1;
 			/*we check for each stream if it is a base stream (SceneReplace ...) - several streams may carry RAPs if inline nodes are used*/
 			Bool base_stream_found = 0;
@@ -256,7 +324,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 				if (first_au && (au->flags & GF_SM_AU_CAROUSEL) ) first_au_com_count = count;
 
 				for (j=0; j<count; j++) {
-					Bool store=0;
+					u32 store=0;
 					com = gf_list_get(au->commands, j);
 					if (!base_stream_found) {
 						switch (com->tag) {
@@ -278,7 +346,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 					else {
 						switch (com->tag) {
 						/*the following commands do not impact a sub-tree (eg do not deal with nodes), we cannot
-						aggrgate them... */
+						aggregate them... */
 						case GF_SG_ROUTE_REPLACE:
 						case GF_SG_ROUTE_DELETE:
 						case GF_SG_ROUTE_INSERT:
@@ -296,24 +364,37 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 							store = 1;
 							break;
 						/*other commands: 
-							FIXME: we need to know if the target node of the command has been inserted in this stream !!
+							!!! we need to know if the target node of the command has been inserted in this stream !!!
+						
+						This is a tedious task, for now we will consider the following cases:
+							- locate a similar command in the stored list: remove the similar one and aggregate on stream
+							- by default all AUs are stored if the stream is in aggregate mode - we should fix that by checking insertion points:
+							 if a command apllies on a node that has been inserted in this stream, we can aggregate, otherwise store
 						*/
 						default:
+							store = store_or_aggregate(sc, com, commands, &has_modif);
+							if (!store && sc->aggregation_enabled) store = 1;
 							break;
 						}
-						/*if the stream is aggregating, make sure the very first command is not stored - this shouldn't be needed
-						once the above issue is fixed*/
-						if (first_au && first_com) store = 1;
 					}
 
-					if (store) {
+					switch (store) {
+					case 2:
+						gf_list_rem(au->commands, j);
+						j--;
+						count--;
+						gf_sg_command_del((GF_Command *)com);
+						break;
+					case 1:
 						gf_list_insert(commands, com, 0);
 						gf_list_rem(au->commands, j);
 						j--;
 						count--;
-					} else {
+						break;
+					default:
 						/*apply command*/
 						e = gf_sg_command_apply(ctx->scene_graph, com, 0);
+						break;
 					}
 					first_com=0;
 				}
@@ -361,7 +442,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 				gf_list_del(au->commands);
 				au->commands = commands;
 				au->flags |= GF_SM_AU_RAP | GF_SM_AU_CAROUSEL;
-				if (gf_list_count(au->commands) != first_au_com_count) {
+				if (has_modif || (gf_list_count(au->commands) != first_au_com_count)) {
 					au->flags |= GF_SM_AU_MODIFIED;
 				}
 
