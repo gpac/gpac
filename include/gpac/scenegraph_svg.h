@@ -252,6 +252,7 @@ enum
 	GF_DOM_EVENT_PHASE_AT_TARGET = 2,
 	GF_DOM_EVENT_PHASE_BUBBLE = 3,
 
+	GF_DOM_EVENT_CANCEL_MASK = 0xE0,
 	/*special phase indicating the event has been canceled*/
 	GF_DOM_EVENT_PHASE_CANCEL = 1<<5,
 	/*special phase indicating the event has been canceled immediately*/
