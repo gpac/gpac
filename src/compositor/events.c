@@ -362,6 +362,8 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 		load_text_node(compositor, 0);
 		return;
 	} else if (event->type==GF_EVENT_TEXTINPUT) {
+		GF_DOM_Event evt;
+		GF_Node *target;
 		switch (event->character.unicode_char) {
 		case '\r':
 		case '\n':
@@ -369,6 +371,19 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 		case '\b':
 			return;
 		default:
+			/*send text input event*/
+			memset(&evt, 0, sizeof(GF_DOM_Event));
+			evt.key_flags = event->key.flags;
+			evt.bubbles = 1;
+			evt.cancelable = 1;
+			evt.type = event->type;
+			evt.detail = event->character.unicode_char;
+			target = compositor->focus_node;
+			if (!target) target = gf_sg_get_root_node(compositor->scene);
+			gf_dom_event_fire(target, &evt);
+			/*event has been cancelled*/
+			if (evt.event_phase & GF_DOM_EVENT_CANCEL_MASK) return;
+
 			if (compositor->sel_buffer_len + 1 == compositor->sel_buffer_alloc) {
 				compositor->sel_buffer_alloc += 10;
 				compositor->sel_buffer = gf_realloc(compositor->sel_buffer, sizeof(u16)*compositor->sel_buffer_alloc);
@@ -1637,7 +1652,8 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 		/*send text edit*/
 		if (compositor->edited_text) {
 			exec_text_input(compositor, ev);
-			return 1;
+			if (compositor->edited_text) return 1;
+			/*if text is no longer edited, this is focus change so process as usual*/
 		}
 		/*FIXME - this is not working for mixed docs*/
 		if (compositor->focus_uses_dom_events) 
