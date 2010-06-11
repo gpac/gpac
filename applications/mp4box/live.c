@@ -227,13 +227,13 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 				rtpch->carousel_size = size;
 				rtpch->carousel_ts = ts;
 				rtpch->time_at_carousel_store = gf_sys_clock();
-				fprintf(stdout, "Stream %d: Storing new carousel TS %I64d, %d bytes\n", ESID, ts, size);
+				fprintf(stdout, "\nStream %d: Storing new carousel TS %I64d, %d bytes\n", ESID, ts, size);
 			}
 			/*send data*/
 			else {
 				ts += rtpch->timescale*(gf_sys_clock()-rtpch->init_time + rtpch->ts_delta)/1000;
-				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rtpch->rap ? 1 : 0, rtpch->critical);
-				fprintf(stdout, "Stream %d: Sending update at TS %I64d, %d bytes - RAP %d - critical %d\n", ESID, ts, size, rtpch->rap, rtpch->critical);
+				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rtpch->rap ? 1 : 0, (livesess->critical || rtpch->critical) ? 1 : 0 );
+				fprintf(stdout, "Stream %d: Sending update at TS %I64d, %d bytes - RAP %d - critical %d\n", ESID, ts, size, rtpch->rap, (livesess->critical || rtpch->critical) ? 1 : 0);
 				rtpch->rap = rtpch->critical = 0;
 			}
 			return;
@@ -625,16 +625,18 @@ int live_session(int argc, char **argv)
 
 		/*process updates from socket source*/
 		if (sk) {
-		    char buffer[2048];
+		    char buffer[2049];
 		    u32 bytes_read;
 		    Bool keep_receive;
 		    u32 update_length;
 		    u32 bytes_received;
 
 
-			e = gf_sk_receive(sk, buffer, 12, 0, &bytes_read);
+			e = gf_sk_receive(sk, buffer, 2048, 0, &bytes_read);
 			if (e == GF_OK) {
+				u32 hdr_length = 0;
 				u8 cmd_type = buffer[0];
+				bytes_received = 0;
 				switch (cmd_type) {
 				case 0:
 				{
@@ -653,6 +655,7 @@ int live_session(int argc, char **argv)
 					if (period==0xFFFF) period = -1;
 					ts_delta = gf_bs_read_u16(bs);
 					update_length = gf_bs_read_u32(bs);
+					hdr_length = 12;
 					gf_bs_del(bs);
 				}
 
@@ -663,13 +666,15 @@ int live_session(int argc, char **argv)
 					break;
 				}
 
-				if (update_buffer_size < update_length) {
-					update_buffer = gf_realloc(update_buffer, update_length);
-					update_buffer_size = update_length;
+				if (update_buffer_size <= update_length) {
+					update_buffer = gf_realloc(update_buffer, update_length+1);
+					update_buffer_size = update_length+1;
 				}
-				keep_receive = update_length ? 1 : 0;
-				bytes_received = 0;
-				while (keep_receive) {
+				if (update_length && (bytes_read>hdr_length) ) {
+					memcpy(update_buffer, buffer+hdr_length, bytes_read-hdr_length);
+					bytes_received = bytes_read-hdr_length;
+				}
+				while (bytes_received<update_length) {
 					e = gf_sk_receive(sk, buffer, 2048, 0, &bytes_read);
 					switch (e) {
 					case GF_IP_NETWORK_EMPTY:
@@ -678,10 +683,6 @@ int live_session(int argc, char **argv)
 					case GF_OK:
 						memcpy(update_buffer+bytes_received, buffer, bytes_read);
 						bytes_received += bytes_read;
-						if (bytes_received >= update_length) {
-							update_buffer[update_length] = 0;
-							keep_receive = 0;                                                        
-						} 
 						break;
 					default:
 						keep_receive = 0;
@@ -689,6 +690,8 @@ int live_session(int argc, char **argv)
 						break;
 					}
 				}
+				update_buffer[update_length] = 0;
+
 				if (update_length) {
 					e = gf_seng_encode_from_string(livesess.seng, es_id, aggregate_au ? 0 : 1, update_buffer, live_session_callback);
 					if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
