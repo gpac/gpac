@@ -402,12 +402,16 @@ void evg_bgr32_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u32 col = surf->fill_col;
 	u32 fin, col_no_a, col2, spana;
 	u8 *dst = surf->pixels + y * surf->pitch_y;
+	u8 r, g, b;
 	s32 i, x;
 	u32 len;
 	u8 aa_lev = surf->AALevel;
 
 	col_no_a = col & 0x00FFFFFF;
-	col2 = (0xFF<<24) | col_no_a;
+	r = GF_COL_R(col);
+	g = GF_COL_G(col);
+	b = GF_COL_B(col);
+	col2 = GF_COL_ARGB(0xFF, b, g, r);
 	for (i=0; i<count; i++) {
 		spana = spans[i].coverage;
 		if (spana<aa_lev) continue;
