@@ -318,6 +318,11 @@ void evg_rgb32_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_rgb32_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_rgb32_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 
+void evg_bgr32_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_bgr32_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_bgr32_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+GF_Err evg_surface_clear_bgr32(GF_SURFACE surf, GF_IRect rc, GF_Color col);
+
 void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_rgb_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_rgb_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
