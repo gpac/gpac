@@ -162,11 +162,13 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			codec->CB->odm = codec->odm;
 		}
 
-		/*check re-ordering - set by default on all codecs*/
-		codec->is_reordering = 1;
-		cap.CapCode = GF_CODEC_REORDER;
-		if (gf_codec_get_capability(codec, &cap) == GF_OK)
-			codec->is_reordering = cap.cap.valueInt;
+		if (codec->CB) {
+			/*check re-ordering - set by default on all codecs*/
+			codec->is_reordering = 1;
+			cap.CapCode = GF_CODEC_REORDER;
+			if (gf_codec_get_capability(codec, &cap) == GF_OK)
+				codec->is_reordering = cap.cap.valueInt;
+		}
 
 		/*setup net channel config*/
 		if (ch->service) {
@@ -305,7 +307,7 @@ static void Decoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, GF_DB
 	}
 
 	/*FIXME - we're breaking sync (couple of frames delay)*/
-	if (*nextAU && codec->is_reordering)
+	if (codec->is_reordering && *nextAU)
 		(*nextAU)->CTS = (*nextAU)->DTS;
 }
 
@@ -314,7 +316,7 @@ static GF_Err SystemCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 {
 	GF_DBUnit *AU;
 	GF_Channel *ch;
-	u32 now, obj_time, mm_level, au_time;
+	u32 now, obj_time, mm_level, au_time, cts;
 	GF_Scene *scene_locked;
 	Bool check_next_unit;
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)codec->decio;
@@ -372,9 +374,20 @@ check_unit:
 	/*check timing based on the input channel and main FPS*/
 	if (AU->DTS > obj_time /*+ codec->odm->term->half_frame_duration*/) goto exit;
 
+	cts = AU->CTS;
+	/*in cases where no CTS was set for the BIFS (which may be interpreted as "now", although not compliant), use the object clock*/
+	if (AU->flags & GF_DB_AU_NO_TIMESTAMPS) au_time = obj_time;
+	/*case where CTS is in the past (carousels) */
+	else if (AU->flags & GF_DB_AU_CTS_IN_PAST) {
+		au_time = - (s32) AU->CTS;
+		cts = AU->DTS;
+	}
+	/*regular case, SFTime will be from CTS (since DTS == CTS)*/
+	else au_time = AU->DTS;
+
 	/*check seeking and update timing - do NOT use the base layer, since BIFS streams may depend on other
 	streams not on the same clock*/
-	if (codec->last_unit_cts == AU->CTS) {
+	if (codec->last_unit_cts == cts) {
 		/*seeking for systems is done by not releasing the graph until seek is done*/
 		check_next_unit = 1;
 		mm_level = GF_CODEC_LEVEL_SEEK;
@@ -387,11 +400,6 @@ check_unit:
 		if (scene_locked) codec->nb_droped ++;
 		mm_level = GF_CODEC_LEVEL_NORMAL;
 	}
-	/*this is what the spec says (since DTS == CTS)*/
-	//au_time = AU->DTS;
-	/*however in order to handle the cases where no CTS was set for the BIFS, which may be interpreted as "now" (although not compliant),
-	we use the object clock*/
-	au_time = obj_time;
 
 	/*lock scene*/
 	if (!scene_locked) {
