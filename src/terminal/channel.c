@@ -417,7 +417,16 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 
 	au->CTS = ch->CTS;
 	au->DTS = ch->DTS;
-	au->RAP = ch->IsRap;
+	if (ch->IsRap) au->flags |= GF_DB_AU_RAP;
+	if (ch->CTS_past_offset) {
+		au->CTS = ch->CTS_past_offset;
+		au->flags |= GF_DB_AU_CTS_IN_PAST;
+		ch->CTS_past_offset = 0;
+	}
+	if (ch->no_timestamps) {
+		au->flags |= GF_DB_AU_NO_TIMESTAMPS;
+		ch->no_timestamps=0;
+	}
 	au->data = ch->buffer;
 	au->dataLength = ch->len;
 	au->PaddingBits = ch->padingBits;
@@ -443,7 +452,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		slh.compositionTimeStampFlag = slh.decodingTimeStampFlag = 1;
 		slh.decodingTimeStamp = ch->net_dts;
 		slh.compositionTimeStamp = ch->net_cts;
-		slh.randomAccessPointFlag = au->RAP;
+		slh.randomAccessPointFlag = (au->flags & GF_DB_AU_RAP) ? 1 : 0;
 		ch->service->cache->Write(ch->service->cache, ch, au->data, au->dataLength, &slh);
 	}
 
@@ -463,12 +472,13 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 			GF_DBUnit *au_prev, *ins_au;
 			u32 DTS;
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Media deinterleaving OD %d ch %d\n", ch->esd->ESID, ch->odm->OD->objectDescriptorID));
-
+			au->DTS = 0;
 			/*append AU*/
 			ch->AU_buffer_last->next = au;
 			ch->AU_buffer_last = ch->AU_buffer_last->next;
 
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Media deinterleaving OD %d ch %d\n", ch->esd->ESID, ch->odm->OD->objectDescriptorID));
+#if 0
 			DTS = au->DTS;
 			au_prev = ch->AU_buffer_first;
 			/*locate first AU in buffer with DTS greater than new unit CTS*/
@@ -482,6 +492,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 			}
 			/*and apply*/
 			ins_au->DTS = DTS;
+#endif
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Audio deinterleaving OD %d ch %d\n", ch->esd->ESID, ch->odm->OD->objectDescriptorID));
 			/*de-interleaving of AUs*/
@@ -580,7 +591,7 @@ void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamB
 
 	gf_es_lock(ch, 1);
 	au = gf_db_unit_new();
-	au->RAP = 1;
+	au->flags = GF_DB_AU_RAP;
 	au->DTS = gf_clock_time(ch->clock);
 	au->data = (char*)gf_malloc(sizeof(char) * (ch->media_padding_bytes + StreamLength));
 	memcpy(au->data, StreamBuf, sizeof(char) * StreamLength);
@@ -809,15 +820,31 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				/*get DTS */
 				if (hdr.decodingTimeStampFlag) ch->net_dts = hdr.decodingTimeStamp;
 
+#if 0
 				/*until clock is not init check seed ts*/
 				if (!ch->IsClockInit && (ch->net_dts < ch->seed_ts)) 
 					ch->seed_ts = ch->net_dts;
+#endif
 
-				ch->net_dts -= ch->seed_ts;
-				ch->net_cts -= ch->seed_ts;
-				/*TS Wraping not tested*/
-				ch->CTS = (u32) (ch->ts_offset + (s64) (ch->net_cts) * 1000 / ch->ts_res);
-				ch->DTS = (u32) (ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res);
+				if (ch->net_cts<ch->seed_ts) {
+					u64 diff = ch->seed_ts - ch->net_cts;
+					ch->CTS_past_offset = (u32) (diff * 1000 / ch->ts_res) + ch->ts_offset;
+
+					ch->net_dts = ch->net_cts = 0;
+					ch->CTS = ch->DTS = gf_clock_time(ch->clock);
+				} else {
+					ch->net_dts -= ch->seed_ts;
+					ch->net_cts -= ch->seed_ts;
+					ch->CTS_past_offset = 0;
+
+					/*TS Wraping not tested*/
+					ch->CTS = (u32) (ch->ts_offset + (s64) (ch->net_cts) * 1000 / ch->ts_res);
+					ch->DTS = (u32) (ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res);
+				}
+
+				ch->no_timestamps = 0;
+			} else {
+				ch->no_timestamps = 1;
 			}
 		} else {
 			/*use CU duration*/
@@ -862,11 +889,11 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: tuning in\n", ch->esd->ESID));
 					} else {
 						ch->skip_carousel_au = 1;
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: repeated AU - skipping\n", ch->esd->ESID));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: repeated AU (TS %d) - skipping\n", ch->esd->ESID, ch->CTS));
 						return;
 					}
 				} else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: updated AU\n", ch->esd->ESID));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: updated AU (TS %d)\n", ch->esd->ESID, ch->CTS));
 					ch->stream_state=0;
 					ch->au_sn = AUSeqNum;
 				}
@@ -874,7 +901,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				if (hdr.randomAccessPointFlag) {
 					/*initial tune-in*/
 					if (ch->stream_state==1) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found - tuning in\n", ch->esd->ESID));
+						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - tuning in\n", ch->esd->ESID, ch->CTS));
 						ch->au_sn = AUSeqNum;
 						ch->stream_state = 0;
 					}
@@ -882,12 +909,12 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					else if (AUSeqNum == ch->au_sn) {
 						/*error recovery*/
 						if (ch->stream_state==2) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found - recovering\n", ch->esd->ESID));
+							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - recovering\n", ch->esd->ESID, ch->CTS));
 							ch->stream_state = 0;
 						} 
 						else {
 							ch->skip_carousel_au = 1;
-							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found - skipping\n", ch->esd->ESID));
+							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - skipping\n", ch->esd->ESID, ch->CTS));
 							return;
 						}
 					}
@@ -904,7 +931,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					return;
 				} else {
 					ch->au_sn = AUSeqNum;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: NON-RAP AU received\n", ch->esd->ESID));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: NON-RAP AU received (TS %d)\n", ch->esd->ESID, ch->DTS));
 				}
 			}
 		}
@@ -1108,7 +1135,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	ch->AU_buffer_pull->CTS = (u32) ch->CTS;
 	ch->AU_buffer_pull->DTS = (u32) ch->DTS;
 	ch->AU_buffer_pull->PaddingBits = ch->padingBits;
-	ch->AU_buffer_pull->RAP = ch->IsRap;
+	if (ch->IsRap) ch->AU_buffer_pull->flags |= GF_DB_AU_RAP;
 	return ch->AU_buffer_pull;
 }
 

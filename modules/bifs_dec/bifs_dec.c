@@ -96,10 +96,14 @@ static GF_Err BIFS_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
+	Double ts_offset;
+	s32 time;
 	GF_Err e = GF_OK;
 	BIFSPriv *priv = (BIFSPriv *)plug->privateStack;
 
-	e = gf_bifs_decode_au(priv->codec, ES_ID, inBuffer, inBufferLength, ((Double)AU_time)/1000.0);
+	time = (s32) AU_time;
+	ts_offset = ((Double)time)/1000.0;
+	e = gf_bifs_decode_au(priv->codec, ES_ID, inBuffer, inBufferLength, ts_offset);
 
 	/*if scene not attached do it*/
 	gf_scene_attach_to_compositor(priv->pScene);

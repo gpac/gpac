@@ -32,6 +32,17 @@ extern "C" {
 
 #include <gpac/thread.h>
 
+enum
+{
+	/*AU is RAP*/
+	GF_DB_AU_RAP = 1,
+	/*special flag for systems streams: we may receive a CTS in a carousel, to indicate the 
+	SFTime init time*/
+	GF_DB_AU_CTS_IN_PAST = 1<<1,
+	/*hack for some DMB streams not signaling TS for BIFS*/
+	GF_DB_AU_NO_TIMESTAMPS = 1<<2
+};
+
 /*compressed media unit*/
 typedef struct _decoding_buffer 
 {
@@ -41,8 +52,8 @@ typedef struct _decoding_buffer
 	u32 DTS;
 	/*composition time stamp in ms*/
 	u32 CTS;
-	/*random access point flag*/
-	Bool RAP;
+	/*AU flags*/
+	u8 flags;
 	/*amount of padding bits*/
 	u8 PaddingBits;
 

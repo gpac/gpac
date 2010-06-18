@@ -570,6 +570,8 @@ struct _es_channel
 	/*	SL reassembler	*/
 	/*current AU TSs*/
 	u32 DTS, CTS;
+	/*special case for carousels in the past*/
+	u32 CTS_past_offset;
 	/*AU and Packet seq num info*/
 	u32 au_sn, pck_sn;
 	u32 max_au_sn, max_pck_sn;
@@ -629,6 +631,8 @@ struct _es_channel
 
 	/*TSs as received from network - these are used for cache storage*/
 	u64 net_dts, net_cts;
+
+	Bool no_timestamps;
 };
 
 /*creates a new channel for this stream*/
