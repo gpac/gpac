@@ -578,6 +578,8 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u
 	//store timing
 	ch->last_pck_ts = rtp_hdr->TimeStamp;
 	gf_net_get_ntp(&ch->last_pck_ntp_sec, &ch->last_pck_ntp_frac);
+
+	if (!ch->no_auto_rtcp) gf_rtp_send_rtcp_report(ch, NULL, NULL);
 	return GF_OK;
 }
 

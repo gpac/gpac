@@ -780,6 +780,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_au_with_sn) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_format_sdp_header) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_disable_auto_rtcp) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_rtp_streamer_send_rtcp) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_streamer_new) )
@@ -1084,7 +1086,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_base64_iod) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_iod) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_terminate) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_stream_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_stream_carousel_info) )
 #endif
 
 /*bifs.h exports*/
@@ -1130,6 +1132,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_traverse_children) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_get_parent_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_get_parent) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_node_parent_of) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_get_class_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_dirty_set) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_dirty_clear) )

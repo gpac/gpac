@@ -133,6 +133,7 @@ struct __tag_rtp_channel
 	u32 last_pck_ntp_sec, last_pck_ntp_frac;
 	u32 num_pck_sent, num_payload_bytes;
 
+	Bool no_auto_rtcp;
 	/*RTCP info*/
 	char *s_name, *s_email, *s_location, *s_phone, *s_tool, *s_note, *s_priv;
 //	s8 first_rtp_pck;
