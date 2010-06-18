@@ -342,7 +342,6 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 			return;
 		}
 		ch->check_rtp_time = RTP_SET_TIME_NONE;
-		ch->rtcp_init=1;
 	}
 	
 	gf_rtp_depacketizer_process(ch->depacketizer, &hdr, pck + PayloadStart, size - PayloadStart);

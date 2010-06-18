@@ -29,6 +29,7 @@
 #ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/avparse.h>
 #endif
+#include <gpac/internal/ietf_dev.h>
 
 #ifndef GPAC_DISABLE_STREAMING
 
@@ -717,6 +718,16 @@ GF_Err gf_rtp_streamer_send_au_with_sn(GF_RTPStreamer *rtp, char *data, u32 size
 	return gf_rtp_streamer_send_data(rtp, data, size, size, cts, dts, is_rap, 1, 1, rtp->packetizer->sl_header.AU_sequenceNumber, 0, 0);
 }
 
+void gf_rtp_streamer_disable_auto_rtcp(GF_RTPStreamer *streamer)
+{
+	streamer->channel->no_auto_rtcp = 1;
+}
+
+GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rtp_ts)
+{
+	if (force_ts) streamer->channel->last_pck_ts = rtp_ts;
+	return gf_rtp_send_rtcp_report(streamer->channel, NULL, NULL);
+}
 
 #endif /*GPAC_DISABLE_STREAMING*/
 

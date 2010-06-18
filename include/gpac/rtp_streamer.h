@@ -96,6 +96,10 @@ GF_Err gf_rtp_streamer_send_data(GF_RTPStreamer *rtp, char *data, u32 size, u32 
 
 char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *session_name, char *iod64);
 
+void gf_rtp_streamer_disable_auto_rtcp(GF_RTPStreamer *streamer);
+
+GF_Err gf_rtp_streamer_send_rtcp(GF_RTPStreamer *streamer, Bool force_ts, u32 rtp_ts);
+
 /*! @} */
 
 #ifdef __cplusplus
