@@ -363,6 +363,7 @@ static u32 overmask_bgr32(u32 src, u32 dst, u32 alpha)
 	s32 srcr = (src >> 16) & 0xff;
 	s32 srcg = (src >> 8) & 0xff;
 	s32 srcb = (src >> 0) & 0xff;
+	
 	s32 dstb = (dst >> 16) & 0xff;
 	s32 dstg = (dst >> 8) & 0xff;
 	s32 dstr = (dst) & 0xff;
@@ -498,10 +499,10 @@ GF_Err evg_surface_clear_bgr32(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 	b = GF_COL_B(col);
 	col = GF_COL_ARGB(0xFF, b, g, r);
 	for (y = 0; y < h; y++) {
-		u32 *data = (u32 *) (_this ->pixels + (y + sy) * st + _this->pitch_x*sx);
+		u32 *data = (u32 *) (_this ->pixels + (y + sy) * _this->pitch_y + st*sx);
 		for (x = 0; x < w; x++) {
 			*data = col;
-			data = (u32*) (((u8*)data)+_this->pitch_x);
+			data = (u32*) (((u8*)data)+st);
 		}
 	}
 	return GF_OK;
