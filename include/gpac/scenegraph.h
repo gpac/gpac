@@ -225,6 +225,8 @@ u32 gf_node_get_parent_count(GF_Node *node);
 idx is 0-based parent index*/
 GF_Node *gf_node_get_parent(GF_Node *node, u32 idx);
 
+/*returns 1 if target node is in the subtree below the node, 0 otherwise*/
+Bool gf_node_parent_of(GF_Node *node, GF_Node *target);
 
 enum
 {

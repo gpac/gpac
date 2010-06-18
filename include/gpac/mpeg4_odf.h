@@ -497,6 +497,10 @@ typedef struct {
 
 	/*indicates input file shall be destryed - used during SWF import*/
 	Bool delete_file;
+
+	/*carousel configuration*/
+	u32 carousel_period_plus_one;
+	u16 aggregate_on_esid;
 } GF_MuxInfo;
 
 typedef struct

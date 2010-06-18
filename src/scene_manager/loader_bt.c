@@ -2990,16 +2990,26 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 	else if (desc->tag==GF_ODF_ESD_TAG) {
 		GF_ESD *esd  =(GF_ESD*)desc;
 		if (esd->decoderConfig) {
+			GF_StreamContext *sc=NULL;
+			GF_MuxInfo *mux;
 			/*watchout for default BIFS stream*/
 			if (parser->bifs_es && !parser->base_bifs_id && (esd->decoderConfig->streamType==GF_STREAM_SCENE)) {
 				parser->bifs_es->ESID = parser->base_bifs_id = esd->ESID;
 				parser->bifs_es->timeScale = esd->slConfig ? esd->slConfig->timestampResolution : 1000;
+				sc = parser->bifs_es;
 			} else {
-				GF_StreamContext *sc = gf_sm_stream_new(parser->load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+				sc = gf_sm_stream_new(parser->load->ctx, esd->ESID, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 				/*set default timescale for systems tracks (ignored for other)*/
 				if (sc) sc->timeScale = esd->slConfig ? esd->slConfig->timestampResolution : 1000;
 				/*assign base OD*/
 				if (!parser->base_od_id && (esd->decoderConfig->streamType==GF_STREAM_OD)) parser->base_od_id = esd->ESID;
+			}
+			/*assign broadcast parameter tools*/
+			mux = gf_sm_get_mux_info(esd);
+			if (sc && mux) {
+				sc->aggregate_on_esid = mux->aggregate_on_esid;
+				if (!mux->carousel_period_plus_one) sc->carousel_period  = (u32) -1;
+				else sc->carousel_period = mux->carousel_period_plus_one - 1;
 			}
 		}
 	}

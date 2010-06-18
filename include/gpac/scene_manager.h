@@ -95,7 +95,9 @@ typedef struct _stream_context
 	char *dec_cfg;
 	u32 dec_cfg_len;
 
-	Bool aggregation_enabled, disable_aggregation;
+	u16 aggregate_on_esid;
+	u32 carousel_period;
+	Bool disable_aggregation;
 } GF_StreamContext;
 
 /*generic presentation context*/
@@ -135,6 +137,8 @@ void gf_sm_stream_del(GF_SceneManager *ctx, GF_StreamContext *sc);
 GF_StreamContext *gf_sm_stream_find(GF_SceneManager *ctx, u16 ES_ID);
 /*create a new AU context in the given stream context*/
 GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double time_ms, Bool isRap);
+
+GF_MuxInfo *gf_sm_get_mux_info(GF_ESD *src);
 
 /*reset the context: 
 - purge all access units on all streams 

@@ -2242,3 +2242,37 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 po
 	return GF_OK;
 }
 
+
+GF_EXPORT
+Bool gf_node_parent_of(GF_Node *node, GF_Node *target)
+{
+	Bool ret;
+	u32 i, count;
+	GF_FieldInfo info;
+	if (!node) return 0;
+	if (node==target) return 1;
+	
+	if (node->sgprivate->tag>=GF_NODE_RANGE_LAST_VRML) {
+		GF_ChildNodeItem *child = ((GF_ParentNode*)node)->children;
+		while (child) {
+			if (gf_node_parent_of(child->node, target)) return 1;
+			child = child->next;
+		}
+	} else {
+		count = gf_node_get_field_count(node);
+		for (i=0; i<count; i++) {
+			gf_node_get_field(node, i, &info);
+			if (info.fieldType==GF_SG_VRML_SFNODE) {
+				if (gf_node_parent_of(*(GF_Node **)info.far_ptr, target)) return 1;
+			}
+			else if (info.fieldType==GF_SG_VRML_MFNODE) {
+				GF_ChildNodeItem *list = *(GF_ChildNodeItem **) info.far_ptr;
+				while (list) {
+					if (gf_node_parent_of(list->node, target)) return 1;
+					list = list->next;
+				}
+			}
+		}
+	}
+	return 0;
+}

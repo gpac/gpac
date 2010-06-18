@@ -83,6 +83,19 @@ GF_StreamContext *gf_sm_stream_find(GF_SceneManager *ctx, u16 ES_ID)
 	return NULL;
 }
 
+GF_EXPORT
+GF_MuxInfo *gf_sm_get_mux_info(GF_ESD *src)
+{
+	u32 i;
+	GF_MuxInfo *mux;
+	i=0;
+	while ((mux = (GF_MuxInfo *)gf_list_enum(src->extensionDescriptors, &i))) {
+		if (mux->tag == GF_ODF_MUXINFO_TAG) return mux;
+	}
+	return NULL;
+}
+
+
 static void gf_sm_au_del(GF_StreamContext *sc, GF_AUContext *au)
 {
 	while (gf_list_count(au->commands)) {
@@ -189,41 +202,106 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 	return tmp;
 }
 
+static Bool node_in_commands_subtree(GF_Node *node, GF_List *commands)
+{
+	u32 i, j, count, nb_fields;
+	count = gf_list_count(commands);
+	for (i=0; i<count; i++) {
+		GF_Command *com = gf_list_get(commands, i);
+		if (com->tag>=GF_SG_LAST_BIFS_COMMAND) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] Command check for LASeR/DIMS not supported\n"));
+			return 0;
+		}
+		nb_fields = gf_list_count(com->command_fields);
+		for (j=0; j<nb_fields; j++) {
+			GF_CommandField *field = gf_list_get(com->command_fields, j);
+			switch (field->fieldType) {
+			case GF_SG_VRML_SFNODE:
+				if (field->new_node) {
+					if (gf_node_parent_of(field->new_node, node)) return 1;
+				}
+				break;
+			case GF_SG_VRML_MFNODE:
+				if (field->field_ptr) {
+					GF_ChildNodeItem *child;
+					child = field->node_list;
+					while (child) {
+						if (gf_node_parent_of(child->node, node)) return 1;
+						child = child->next;
+					}
+				}
+				break;
+			}
+		}
+	}
+	return 0;
+}
+
 static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *commands, Bool *has_modif)
 {
 	u32 i, count, j, nb_fields;
 	GF_CommandField *field, *check_field;
 
+	/*if our command deals with a node inserted in the commands list, apply command list*/
+	if (node_in_commands_subtree(com->node, commands)) return 0;
+
+	/*otherwise, check if we can substitute a previous command with this one*/
 	count = gf_list_count(commands);
 	for (i=0; i<count; i++) {
 		GF_Command *check = gf_list_get(commands, i);
 
 		if (sc->streamType == GF_STREAM_SCENE) {
+			Bool check_index=0;
+			Bool original_is_index = 0;
+			Bool apply;
 			switch (com->tag) {
+			case GF_SG_INDEXED_REPLACE:
+				check_index=1;
+			case GF_SG_MULTIPLE_INDEXED_REPLACE:
 			case GF_SG_FIELD_REPLACE:
 			case GF_SG_MULTIPLE_REPLACE:
-			case GF_SG_INDEXED_REPLACE:
-			case GF_SG_MULTIPLE_INDEXED_REPLACE:
-				if (check->tag != com->tag) goto check_next;
-				if (check->node != com->node) goto check_next;
+				if (check->node != com->node) break;
+				/*we may aggregate an indexed insertion and a replace one*/
+				if (check_index) {
+					if (check->tag == GF_SG_INDEXED_REPLACE) {}
+					else if (check->tag == GF_SG_INDEXED_INSERT) { original_is_index = 1; }
+					else {
+						break;
+					}
+				} else {
+					if (check->tag != com->tag) break;
+				}
 				nb_fields = gf_list_count(com->command_fields);
-				if (gf_list_count(check->command_fields) != nb_fields) goto check_next;
+				if (gf_list_count(check->command_fields) != nb_fields) break;
+				apply=1;
 				for (j=0; j<nb_fields; j++) {
 					field = gf_list_get(com->command_fields, j);
 					check_field = gf_list_get(check->command_fields, j);
-					if (field->pos != check_field->pos) goto check_next;
-					if (field->fieldIndex != check_field->fieldIndex) goto check_next;
+					if ((field->pos != check_field->pos) || (field->fieldIndex != check_field->fieldIndex)) {
+						apply=0;
+						break;
+					}
 				}
 				/*same target node+fields, destroy first command and store new one*/
-				gf_sg_command_del((GF_Command *)check);
-				gf_list_rem(commands, i);
-				if (has_modif) *has_modif = 1;
-				return 1;
+				if (apply) {
+					/*if indexed, change command tag*/
+					if (original_is_index) com->tag = GF_SG_INDEXED_INSERT;
+
+					gf_sg_command_del((GF_Command *)check);
+					gf_list_rem(commands, i);
+					if (has_modif) *has_modif = 1;
+					return 1;
+				}
+				break;
 
 			case GF_SG_NODE_REPLACE:
-				if (check->tag != GF_SG_NODE_REPLACE) goto check_next;
+				if (check->tag != GF_SG_NODE_REPLACE) {
+					break;
+				}
 				/*TODO - THIS IS NOT SUPPORTED IN GPAC SINCE WE NEVER ALLOW FOR DUPLICATE NODE IDs IN THE SCENE !!!*/
-				if (gf_node_get_id(check->node) != gf_node_get_id(com->node) ) goto check_next;
+				if (gf_node_get_id(check->node) != gf_node_get_id(com->node) ) {
+					break;
+				}
 				/*same node ID, destroy first command and store new one*/
 				gf_sg_command_del((GF_Command *)check);
 				gf_list_rem(commands, i);
@@ -232,13 +310,13 @@ static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *co
 
 			case GF_SG_INDEXED_DELETE:
 				/*look for an indexed insert before the indexed delete with same target pos and node. If found, discard both commands!*/
-				if (check->tag != GF_SG_INDEXED_INSERT) goto check_next;
-				if (com->node != check->node) goto check_next;
+				if (check->tag != GF_SG_INDEXED_INSERT) break;
+				if (com->node != check->node) break;
 				field = gf_list_get(com->command_fields, 0);
 				check_field = gf_list_get(check->command_fields, 0);
-				if (!field || !check_field) goto check_next;
-				if (field->pos != check_field->pos) goto check_next;
-				if (field->fieldIndex != check_field->fieldIndex) goto check_next;
+				if (!field || !check_field) break;
+				if (field->pos != check_field->pos) break;
+				if (field->fieldIndex != check_field->fieldIndex) break;
 
 				gf_sg_command_del((GF_Command *)check);
 				gf_list_rem(commands, i);
@@ -249,20 +327,29 @@ static u32 store_or_aggregate(GF_StreamContext *sc, GF_Command *com, GF_List *co
 				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] Stream Aggregation not implemented for command - aggregating on main scene\n"));
 				break;
 			}
-check_next:
-			;
 		}
 	}
-	return 0;
+	/*the command modifies another stream than associated current carousel stream, we have to store it.*/
+	if (has_modif) *has_modif=1;
+	return 1;
 }
 
+static GF_StreamContext *gf_sm_get_stream(GF_SceneManager *ctx, u16 ESID)
+{
+	u32 i, count;
+	count = gf_list_count(ctx->streams);
+	for (i=0;i<count;i++) {
+		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
+		if (sc->ESID==ESID) return sc;
+	}
+	return NULL;
+}
 
 GF_EXPORT
 GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 {
 	GF_Err e;
 	u32 i, stream_count;
-	GF_List *commands;
 #ifndef GPAC_DISABLE_VRML
 	u32 j;
 	GF_AUContext *au;
@@ -289,9 +376,31 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 
 	stream_count = gf_list_count(ctx->streams);
 	for (i=0; i<stream_count; i++) {
+		GF_AUContext *carousel_au;
+		GF_List *carousel_commands;
+		Bool self_carousel;
+		GF_StreamContext *aggregate_on_stream;
 		GF_StreamContext *sc = (GF_StreamContext *)gf_list_get(ctx->streams, i);
 		if (ESID && (sc->ESID!=ESID)) continue;
 
+		/*locate the AU in which our commands will be aggregated*/
+		carousel_au = NULL;
+		carousel_commands = NULL;
+		self_carousel = 0;
+		aggregate_on_stream = sc->aggregate_on_esid ? gf_sm_get_stream(ctx, sc->aggregate_on_esid) : NULL;
+		if (aggregate_on_stream==sc) {
+			carousel_commands = gf_list_new();
+			self_carousel = 1;
+		} else if (aggregate_on_stream) {
+			if (!gf_list_count(aggregate_on_stream->AUs)) {
+				carousel_au = gf_sm_stream_au_new(aggregate_on_stream, 0, 0, 1);
+			} else {
+				/* assert we already performed aggregation */
+				assert(gf_list_count(aggregate_on_stream->AUs)==1);
+				carousel_au = gf_list_get(aggregate_on_stream->AUs, 0);
+			}
+			carousel_commands = carousel_au->commands;
+		}
 		/*TODO - do this as well for ODs*/
 #ifndef GPAC_DISABLE_VRML
 		if (sc->streamType == GF_STREAM_SCENE) {
@@ -303,8 +412,6 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 
 			/*in DIMS we use an empty initial AU with no commands to signal the RAP*/
             if (sc->objectType == GPAC_OTI_SCENE_DIMS) base_stream_found = 1;
-
-			commands = gf_list_new();
 
 			/*apply all commands - this will also apply the SceneReplace*/
 			while (gf_list_count(sc->AUs)) {
@@ -339,7 +446,7 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 					/*aggregate the command*/
 
 					/*if stream doesn't carry a carousel or carries the base carousel (scene replace), always apply the command*/
-					if (base_stream_found || !sc->aggregation_enabled) {
+					if (base_stream_found || !sc->aggregate_on_esid) {
 						store = 0;
 					} 
 					/*otherwise, check wether the command should be kept in this stream as is, or can be aggregated on this stream*/
@@ -372,27 +479,30 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 							 if a command apllies on a node that has been inserted in this stream, we can aggregate, otherwise store
 						*/
 						default:
-							store = store_or_aggregate(sc, com, commands, &has_modif);
-							if (!store && sc->aggregation_enabled) store = 1;
+							/*check if we can directly store the command*/
+							assert(carousel_commands);
+							store = store_or_aggregate(sc, com, carousel_commands, &has_modif);
 							break;
 						}
 					}
 
 					switch (store) {
+					/*command has been merged with a previous command in carousel and needs to be destroyed*/
 					case 2:
 						gf_list_rem(au->commands, j);
 						j--;
 						count--;
 						gf_sg_command_del((GF_Command *)com);
 						break;
+					/*command shall be moved to carousel without being applied*/
 					case 1:
-						gf_list_insert(commands, com, 0);
+						gf_list_insert(carousel_commands, com, 0);
 						gf_list_rem(au->commands, j);
 						j--;
 						count--;
 						break;
+					/*command can be applied*/
 					default:
-						/*apply command*/
 						e = gf_sg_command_apply(ctx->scene_graph, com, 0);
 						break;
 					}
@@ -432,20 +542,17 @@ GF_Err gf_sm_aggregate(GF_SceneManager *ctx, u16 ESID)
 					com->aggregated = 1;
 					gf_list_add(au->commands, com);
 				}
-
-				assert(gf_list_count(commands)==0);
-				gf_list_del(commands);
 			}
-			/*create an empty AU with stored commands*/ 
-			else {
-				au = gf_sm_stream_au_new(sc, 0, 0, 1);
-				gf_list_del(au->commands);
-				au->commands = commands;
-				au->flags |= GF_SM_AU_RAP | GF_SM_AU_CAROUSEL;
-				if (has_modif || (gf_list_count(au->commands) != first_au_com_count)) {
-					au->flags |= GF_SM_AU_MODIFIED;
+			/*update carousel flags of the AU*/
+			else if (carousel_commands) {
+				/*if current stream caries its own carousel*/
+				if (!carousel_au) {
+					carousel_au = gf_sm_stream_au_new(sc, 0, 0, 1);
+					gf_list_del(carousel_au->commands);
+					carousel_au->commands = carousel_commands;
 				}
-
+				carousel_au->flags |= GF_SM_AU_RAP | GF_SM_AU_CAROUSEL;
+				if (has_modif) carousel_au->flags |= GF_SM_AU_MODIFIED;
 			}
 		}
 #endif
