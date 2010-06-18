@@ -35,17 +35,6 @@
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 
-static GF_MuxInfo *gf_sm_get_mux_info(GF_ESD *src)
-{
-	u32 i;
-	GF_MuxInfo *mux;
-	i=0;
-	while ((mux = (GF_MuxInfo *)gf_list_enum(src->extensionDescriptors, &i))) {
-		if (mux->tag == GF_ODF_MUXINFO_TAG) return mux;
-	}
-	return NULL;
-}
-
 static void gf_sm_remove_mux_info(GF_ESD *src)
 {
 	u32 i;
@@ -59,6 +48,7 @@ static void gf_sm_remove_mux_info(GF_ESD *src)
 		}
 	}
 }
+
 
 static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
 {

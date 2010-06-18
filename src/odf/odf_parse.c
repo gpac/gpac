@@ -401,6 +401,11 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "GroupID")) ret += sscanf(val, "%d", &mi->GroupID);
 		else if (!stricmp(fieldName, "startTime")) ret += sscanf(val, "%d", &mi->startTime);
 		else if (!stricmp(fieldName, "duration")) ret += sscanf(val, "%d", &mi->duration);
+		else if (!stricmp(fieldName, "carouselPeriod")) {
+			ret += sscanf(val, "%d", &mi->carousel_period_plus_one);
+			mi->carousel_period_plus_one += 1;
+		}
+		else if (!stricmp(fieldName, "aggregateOnESID")) ret += sscanf(val, "%d", &mi->aggregate_on_esid);
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 		else if (!stricmp(fieldName, "compactSize"))

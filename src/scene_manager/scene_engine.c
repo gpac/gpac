@@ -266,7 +266,7 @@ static GF_Err gf_sm_live_setup(GF_SceneEngine *seng)
 
 
 GF_EXPORT
-GF_Err gf_seng_enable_aggregation(GF_SceneEngine *seng, u16 ESID, Bool enable)
+GF_Err gf_seng_enable_aggregation(GF_SceneEngine *seng, u16 ESID, u16 onESID)
 {
 	GF_Err e = GF_STREAM_NOT_FOUND;
 	GF_StreamContext *sc;
@@ -281,7 +281,7 @@ GF_Err gf_seng_enable_aggregation(GF_SceneEngine *seng, u16 ESID, Bool enable)
 	}
 	if (!sc) return GF_STREAM_NOT_FOUND;
 
-	sc->aggregation_enabled = enable;
+	sc->aggregate_on_esid = onESID;
 	return GF_OK;
 }
 
@@ -485,14 +485,46 @@ static Bool gf_sm_check_for_modif(GF_AUContext *au)
 	GF_Command *com;
 	Bool modified=0;
 	u32 i=0;
+	/*au is marked as modified - this happens when commands are concatenated into the au*/
 	if (au->flags & GF_SM_AU_MODIFIED) {
 		au->flags &= ~GF_SM_AU_MODIFIED;
 		modified=1;
 	}
+	/*check each command*/
 	while (com = gf_list_enum(au->commands, &i)) {
-		if (com->node && gf_node_dirty_get(com->node)) {
+		u32 j=0;
+		GF_CommandField *field;
+		if (!com->node) continue;
+		/*check root node (for SCENE_REPLACE) */
+		if (gf_node_dirty_get(com->node)) {
 			modified=1;
 			gf_node_dirty_reset(com->node);
+		}
+		/*check all command fields of type SFNODE or MFNODE*/
+		while (field = gf_list_enum(com->command_fields, &j)) {
+			switch (field->fieldType) {
+			case GF_SG_VRML_SFNODE:
+				if (field->new_node) {
+					if (gf_node_dirty_get(field->new_node)) {
+						modified=1;
+						gf_node_dirty_reset(field->new_node);
+					}
+				}
+				break;
+			case GF_SG_VRML_MFNODE:
+				if (field->field_ptr) {
+					GF_ChildNodeItem *child;
+					child = field->node_list;
+					while (child) {
+						if (gf_node_dirty_get(child->node)) {
+							modified=1;
+							gf_node_dirty_reset(child->node);
+						}
+						child = child->next;
+					}
+				}
+				break;
+			}
 		}
 	}
 	return modified;
@@ -962,11 +994,22 @@ u32 gf_seng_get_stream_count(GF_SceneEngine *seng)
 }
 
 GF_EXPORT
-u32 gf_seng_get_stream_info(GF_SceneEngine *seng, u32 i)
+GF_Err gf_seng_get_stream_carousel_info(GF_SceneEngine *seng, u16 ESID, u32 *carousel_period, u16 *aggregate_on_es_id)
 {
+	u32 i=0;
     GF_StreamContext *sc;
-    sc = gf_list_get(seng->ctx->streams, i);
-    return sc->streamType;
+
+	if (carousel_period) *carousel_period = (u32) -1;
+	if (aggregate_on_es_id) *aggregate_on_es_id = 0;
+
+	while (sc = gf_list_enum(seng->ctx->streams, &i)) {
+		if (sc->ESID==ESID) {
+			if (carousel_period) *carousel_period = sc->carousel_period;
+			if (aggregate_on_es_id) *aggregate_on_es_id = sc->aggregate_on_esid;
+			return GF_OK;
+		}
+	}
+    return GF_OK;
 }
 
 GF_EXPORT

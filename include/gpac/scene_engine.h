@@ -82,11 +82,13 @@ u32 gf_seng_get_stream_count(GF_SceneEngine *seng);
 
 /**
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
+ * @ESID, ID of the stream
+ * @carousel_period: pointer to store the carousel_period 
+ * @aggregate_on_es_id: pointer to store the target carousel stream ID
  *
- * returns the stream type of the i-th stream 
  * must be called after gf_seng_init()
  */
-u32 gf_seng_get_stream_info(GF_SceneEngine *seng, u32 i);
+GF_Err gf_seng_get_stream_carousel_info(GF_SceneEngine *seng, u16 ESID, u32 *carousel_period, u16 *aggregate_on_es_id);
 
 /**
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
@@ -152,11 +154,11 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName);
 /**
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
  * @ESID, stream ID
- * @enable turns stream aggragation on or off
+ * @onESID: set stream aggragation on to the specified stream, or off if onESID is 0
  *
  * marks the stream as carrying its own "rap" in the first AU of the stream 
  */
-GF_Err gf_seng_enable_aggregation(GF_SceneEngine *codec, u16 ESID, Bool enable);
+GF_Err gf_seng_enable_aggregation(GF_SceneEngine *codec, u16 ESID, u16 onESID);
 
 /**
  * @seng, pointer to the GF_SceneEngine returned by gf_seng_init()
