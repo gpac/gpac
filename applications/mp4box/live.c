@@ -117,6 +117,7 @@ int stream_file_rtp(int argc, char **argv)
 	return 0;
 }
 
+
 void PrintLiveUsage()
 {
 	fprintf(stdout, 
@@ -151,6 +152,7 @@ void PrintLiveUsage()
 typedef struct 
 {
 	GF_RTPStreamer *rtp;
+	Bool manual_rtcp;
 	u16 ESID;
 
 	char *carousel_data;
@@ -160,7 +162,8 @@ typedef struct
 
 	u32 timescale, init_time;
 	u32 carousel_period, ts_delta;
-	Bool self_carousel, adjust_carousel_time, discard, aggregate, rap, critical, m2ts_vers_inc;
+	u16 aggregate_on_stream;
+	Bool adjust_carousel_time, discard, aggregate, rap, critical, m2ts_vers_inc;
 } RTPChannel;
 
 typedef struct 
@@ -235,6 +238,8 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rtpch->rap ? 1 : 0, (livesess->critical || rtpch->critical) ? 1 : 0 );
 				fprintf(stdout, "Stream %d: Sending update at TS %I64d, %d bytes - RAP %d - critical %d\n", ESID, ts, size, rtpch->rap, (livesess->critical || rtpch->critical) ? 1 : 0);
 				rtpch->rap = rtpch->critical = 0;
+
+				if (rtpch->manual_rtcp) gf_rtp_streamer_send_rtcp(rtpch->rtp, 0, 0);
 			}
 			return;
 		}
@@ -252,6 +257,11 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 			gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, 1, 0);
 			ch->last_carousel_time = now - livesess->start_time;
 			fprintf(stdout, "Stream %d: Sending carousel at TS %I64d, %d bytes\n", ch->ESID, ts, ch->carousel_size);
+
+			if (ch->manual_rtcp) {
+				ts = ch->carousel_ts + ch->timescale * ( gf_sys_clock() - ch->init_time + ch->ts_delta)/1000;
+				gf_rtp_streamer_send_rtcp(ch->rtp, 1, (u32) ts);
+			}
 		}
 	} else {
 		u32 i=0;
@@ -265,6 +275,11 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 				gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, 1, 0);
 				ch->last_carousel_time = now - livesess->start_time;
 				fprintf(stdout, "Stream %d: Sending carousel at TS %I64d, %d bytes\n", ch->ESID, ts, ch->carousel_size);
+
+				if (ch->manual_rtcp) {
+					ts = ch->carousel_ts + ch->timescale*(gf_sys_clock()-ch->init_time + ch->ts_delta)/1000;
+					gf_rtp_streamer_send_rtcp(ch->rtp, 1, (u32) ts);
+				}
 			}
 		}
 	}
@@ -296,6 +311,11 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 			rtpch->rtp = gf_rtp_streamer_new_extended(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, 
 								 GP_RTP_PCK_SYSTEMS_CAROUSEL, (char *) config, config_len,
 								 96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4);
+
+			if (rtpch->rtp) {
+				gf_rtp_streamer_disable_auto_rtcp(rtpch->rtp);
+				rtpch->manual_rtcp = 1;
+			}
 			break;
 		default:
 			rtpch->rtp = gf_rtp_streamer_new(st, oti, ts, ip, port, path_mtu, ttl, ifce_addr, GP_RTP_PCK_SIGNAL_RAP, (char *) config, config_len);
@@ -306,6 +326,9 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 		gf_list_add(livesess->streams, rtpch);
 
 		gf_rtp_streamer_append_sdp(rtpch->rtp, ESID, (char *) config, config_len, NULL, &sdp);
+
+		/*fetch initial config of the broadcast*/
+		gf_seng_get_stream_carousel_info(livesess->seng, ESID, &rtpch->carousel_period, &rtpch->aggregate_on_stream);
 
 		port += 2;
 	}
@@ -334,7 +357,7 @@ void live_session_shutdown(LiveSession *livesess)
 }
 
 
-static RTPChannel *set_broadcast_params(LiveSession *livesess, u16 esid, u32 period, u32 ts_delta, Bool self_carousel_stream, Bool adjust_carousel_time, Bool force_rap, Bool aggregate_au, Bool discard_pending, Bool signal_rap, Bool signal_critical, Bool version_inc)
+static RTPChannel *set_broadcast_params(LiveSession *livesess, u16 esid, u32 period, u32 ts_delta, u16 aggregate_on_stream, Bool adjust_carousel_time, Bool force_rap, Bool aggregate_au, Bool discard_pending, Bool signal_rap, Bool signal_critical, Bool version_inc)
 {
 	RTPChannel *rtpch = NULL;
 
@@ -363,9 +386,9 @@ static RTPChannel *set_broadcast_params(LiveSession *livesess, u16 esid, u32 per
 	rtpch->adjust_carousel_time = adjust_carousel_time;
 
 	/*change stream aggregation mode*/
-	if (rtpch->self_carousel != self_carousel_stream) {
-		gf_seng_enable_aggregation(livesess->seng, esid, self_carousel_stream);
-		rtpch->self_carousel = self_carousel_stream;
+	if ((aggregate_on_stream != (u16)-1) && (rtpch->aggregate_on_stream != aggregate_on_stream)) {
+		gf_seng_enable_aggregation(livesess->seng, esid, aggregate_on_stream);
+		rtpch->aggregate_on_stream = aggregate_on_stream;
 	}
 	/*change stream aggregation mode*/
 	if ((period!=(u32)-1) && (rtpch->carousel_period != period)) {
@@ -403,7 +426,8 @@ int live_session(int argc, char **argv)
 	RTPChannel *ch;
 	char *update_buffer = NULL;
 	u32 update_buffer_size = 0;
-	Bool self_carousel_stream, adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, signal_critical, version_inc;
+	u16 aggregate_on_stream;
+	Bool adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, signal_critical, version_inc;
 	Bool update_context;
 	u32 period, ts_delta;
 	u16 es_id;
@@ -487,6 +511,13 @@ int live_session(int argc, char **argv)
 		}
 	}
 
+	i=0;
+	while (ch = gf_list_enum(livesess.streams, &i)) {
+		if (ch->carousel_period) {
+			has_carousel = 1;
+			break;
+		}
+	}
 	update_context = 0;
 	livesess.carousel_generation = 1;
 	gf_seng_encode_context(livesess.seng, live_session_callback);
@@ -576,7 +607,8 @@ int live_session(int argc, char **argv)
 				fgets(flag_buf, 200, srcf);
 				fclose(srcf);
 
-				self_carousel_stream = adjust_carousel_time = force_rap = discard_pending = signal_rap = signal_critical = 0;
+				aggregate_on_stream = (u16) -1;
+				adjust_carousel_time = force_rap = discard_pending = signal_rap = signal_critical = 0;
 				aggregate_au = version_inc = 1;
 				period = -1;
 				ts_delta = 0;
@@ -595,7 +627,7 @@ int live_session(int argc, char **argv)
 						if (!strnicmp(flag, "esid=", 5)) es_id = atoi(flag+5);
 						else if (!strnicmp(flag, "period=", 7)) period = atoi(flag+7);
 						else if (!strnicmp(flag, "ts=", 3)) ts_delta = atoi(flag+3);
-						else if (!strnicmp(flag, "carousel=", 9)) self_carousel_stream = atoi(flag+9);
+						else if (!strnicmp(flag, "carousel=", 9)) aggregate_on_stream = atoi(flag+9);
 						else if (!strnicmp(flag, "restamp=", 8)) adjust_carousel_time = atoi(flag+8);
 
 						else if (!strnicmp(flag, "discard=", 8)) discard_pending = atoi(flag+8);
@@ -612,7 +644,7 @@ int live_session(int argc, char **argv)
 						}
 					}
 
-					set_broadcast_params(&livesess, es_id, period, ts_delta, self_carousel_stream, adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, signal_critical, version_inc);
+					set_broadcast_params(&livesess, es_id, period, ts_delta, aggregate_on_stream, adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, signal_critical, version_inc);
 				}
 
 				e = gf_seng_encode_from_file(livesess.seng, es_id, aggregate_au ? 0 : 1, src_name, live_session_callback);
@@ -643,7 +675,8 @@ int live_session(int argc, char **argv)
 					GF_BitStream *bs = gf_bs_new(buffer, bytes_read, GF_BITSTREAM_READ);
 					gf_bs_read_u8(bs);
 					es_id = gf_bs_read_u16(bs);
-					self_carousel_stream = gf_bs_read_int(bs, 1);
+					aggregate_on_stream = gf_bs_read_u16(bs);
+					if (aggregate_on_stream==0xFFFF) aggregate_on_stream = -1;
 					adjust_carousel_time = gf_bs_read_int(bs, 1);
 					force_rap = gf_bs_read_int(bs, 1);
 					aggregate_au = gf_bs_read_int(bs, 1);
@@ -651,6 +684,7 @@ int live_session(int argc, char **argv)
 					signal_rap = gf_bs_read_int(bs, 1);
 					signal_critical = gf_bs_read_int(bs, 1);
 					version_inc = gf_bs_read_int(bs, 1);
+					gf_bs_read_int(bs, 1);
 					period = gf_bs_read_u16(bs);
 					if (period==0xFFFF) period = -1;
 					ts_delta = gf_bs_read_u16(bs);
@@ -659,7 +693,7 @@ int live_session(int argc, char **argv)
 					gf_bs_del(bs);
 				}
 
-					set_broadcast_params(&livesess, es_id, period, ts_delta, self_carousel_stream, adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, signal_critical, version_inc);
+					set_broadcast_params(&livesess, es_id, period, ts_delta, aggregate_on_stream, adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, signal_critical, version_inc);
 					break;
 				default:
 					update_length = 0;
