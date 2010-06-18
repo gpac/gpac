@@ -197,11 +197,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gpac_js", "gpac_js.vcproj",
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "beng_test", "..\..\applications\testapps\beng_test\beng_test.vcproj", "{4EDB55E3-C9D6-4617-A32D-A301975AC378}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{901A4078-844E-4BC0-87BF-1D7E4FC655F5}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "audio_filter", "audio_filter.vcproj", "{C993119B-29B1-49C8-8EA3-A9ABF633164E}"
@@ -210,6 +205,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "audio_filter", "audio_filte
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "platinum", "platinum.vcproj", "{694C765F-DFD6-467E-A813-B3F887E822D4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "widgetman", "widgetman.vcproj", "{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
@@ -706,16 +706,6 @@ Global
 		{27F7FDF4-479B-47B5-BFEA-12E9EA41F663}.Release|Smartphone 2003 (ARMV4).Build.0 = Release|Smartphone 2003 (ARMV4)
 		{27F7FDF4-479B-47B5-BFEA-12E9EA41F663}.Release|Win32.ActiveCfg = Release|Win32
 		{27F7FDF4-479B-47B5-BFEA-12E9EA41F663}.Release|Win32.Build.0 = Release|Win32
-		{4EDB55E3-C9D6-4617-A32D-A301975AC378}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
-		{4EDB55E3-C9D6-4617-A32D-A301975AC378}.Debug|Mixed Platforms.Build.0 = Debug|Win32
-		{4EDB55E3-C9D6-4617-A32D-A301975AC378}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{4EDB55E3-C9D6-4617-A32D-A301975AC378}.Debug|Win32.ActiveCfg = Debug|Win32
-		{4EDB55E3-C9D6-4617-A32D-A301975AC378}.Debug|Win32.Build.0 = Debug|Win32
-		{4EDB55E3-C9D6-4617-A32D-A301975AC378}.Release|Mixed Platforms.ActiveCfg = Release|Win32
-		{4EDB55E3-C9D6-4617-A32D-A301975AC378}.Release|Mixed Platforms.Build.0 = Release|Win32
-		{4EDB55E3-C9D6-4617-A32D-A301975AC378}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Win32
-		{4EDB55E3-C9D6-4617-A32D-A301975AC378}.Release|Win32.ActiveCfg = Release|Win32
-		{4EDB55E3-C9D6-4617-A32D-A301975AC378}.Release|Win32.Build.0 = Release|Win32
 		{C993119B-29B1-49C8-8EA3-A9ABF633164E}.Debug|Mixed Platforms.ActiveCfg = Debug|Smartphone 2003 (ARMV4)
 		{C993119B-29B1-49C8-8EA3-A9ABF633164E}.Debug|Mixed Platforms.Build.0 = Debug|Smartphone 2003 (ARMV4)
 		{C993119B-29B1-49C8-8EA3-A9ABF633164E}.Debug|Mixed Platforms.Deploy.0 = Debug|Smartphone 2003 (ARMV4)
@@ -748,6 +738,22 @@ Global
 		{694C765F-DFD6-467E-A813-B3F887E822D4}.Release|Smartphone 2003 (ARMV4).Deploy.0 = Release|Smartphone 2003 (ARMV4)
 		{694C765F-DFD6-467E-A813-B3F887E822D4}.Release|Win32.ActiveCfg = Release|Win32
 		{694C765F-DFD6-467E-A813-B3F887E822D4}.Release|Win32.Build.0 = Release|Win32
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Debug|Mixed Platforms.ActiveCfg = Debug|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Debug|Mixed Platforms.Build.0 = Debug|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Debug|Mixed Platforms.Deploy.0 = Debug|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Debug|Smartphone 2003 (ARMV4).Build.0 = Debug|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Debug|Smartphone 2003 (ARMV4).Deploy.0 = Debug|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Debug|Win32.ActiveCfg = Debug|Win32
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Debug|Win32.Build.0 = Debug|Win32
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Release|Mixed Platforms.ActiveCfg = Release|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Release|Mixed Platforms.Build.0 = Release|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Release|Mixed Platforms.Deploy.0 = Release|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Release|Smartphone 2003 (ARMV4).Build.0 = Release|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Release|Smartphone 2003 (ARMV4).Deploy.0 = Release|Smartphone 2003 (ARMV4)
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Release|Win32.ActiveCfg = Release|Win32
+		{07D6FB42-0F4F-487A-BCBA-EC4BBF5CB160}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
