@@ -3572,9 +3572,7 @@ GF_Err load_bt_run(GF_SceneLoader *load)
 
 	e = gf_bt_loader_run_intern(parser, NULL, 0);
 
-	if (e) return e;
-
-	if (parser->done) {
+	if ((e<0) || parser->done) {
 		parser->done = 0;
 		parser->initialized = 0;
 		if (parser->gz_in) {
