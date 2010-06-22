@@ -567,7 +567,7 @@ int live_session(int argc, char **argv)
 					e = gf_seng_encode_from_string(livesess.seng, 0, 1, szCom, live_session_callback);
 					if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
 					livesess.critical = 0;				
-					gf_seng_aggregate_context(livesess.seng, 0);
+					e = gf_seng_aggregate_context(livesess.seng, 0);
 
 				}
 					break;
@@ -649,7 +649,7 @@ int live_session(int argc, char **argv)
 
 				e = gf_seng_encode_from_file(livesess.seng, es_id, aggregate_au ? 0 : 1, src_name, live_session_callback);
 				if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
-				else gf_seng_aggregate_context(livesess.seng, 0);
+				e = gf_seng_aggregate_context(livesess.seng, 0);
 
 				update_context = 1;
 			}
