@@ -444,6 +444,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	lost = 0;
 	LastSeq = ch->last_pck_sn;
 	CurrSeq = (u32) rtp_hdr->SequenceNumber;
+	ch->packet_loss = 0;
 	/*next sequential pck*/
 	if ( ( (LastSeq + 1) & 0xffff ) == CurrSeq ) {	
 		ch->last_num_pck_rcv += 1;
@@ -464,6 +465,7 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 		ch->last_num_pck_expected += lost;
 		ch->last_num_pck_rcv += 1;
 		ch->last_num_pck_loss += lost;
+		ch->packet_loss = 1;
 	}
 	ch->last_pck_sn = CurrSeq;
 
