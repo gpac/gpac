@@ -920,7 +920,10 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					}
 					/*regular RAP*/
 					else {
-						ch->au_sn = AUSeqNum;
+						if (ch->stream_state==2) {
+							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - recovering from previous errors\n", ch->esd->ESID, ch->CTS));
+						}
+ 						ch->au_sn = AUSeqNum;
 						ch->stream_state = 0;
 					}
 				} 
@@ -929,6 +932,18 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					ch->skip_carousel_au = 1;
 					GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Waiting for RAP Carousel - skipping\n", ch->esd->ESID));
 					return;
+				}
+				/*previous packet(s) loss: check for critical or non-critical AUs*/
+				else if (reception_status == GF_REMOTE_SERVICE_ERROR) { 
+					if (ch->au_sn == AUSeqNum) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Lost a non critical packet\n", ch->esd->ESID));
+					} 
+					/*Packet lost are critical*/
+					else {
+						ch->stream_state = 2;
+						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Lost a critical packet - skipping\n", ch->esd->ESID));
+						return;
+					}
 				} else {
 					ch->au_sn = AUSeqNum;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: NON-RAP AU received (TS %d)\n", ch->esd->ESID, ch->DTS));

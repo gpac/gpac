@@ -142,6 +142,8 @@ struct __tag_rtp_channel
 	u32 SenderSSRC;
 
 	u32 last_pck_sn;
+	/*indicates if a packet loss is detected between current and previous packet*/
+	Bool packet_loss;
 
 	char *CName;
 
