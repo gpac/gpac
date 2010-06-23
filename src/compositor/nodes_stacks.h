@@ -268,6 +268,8 @@ void compositor_init_envtest(GF_Compositor *compositor, GF_Node *node);
 void compositor_envtest_modified(GF_Node *node);
 void compositor_evaluate_envtests(GF_Compositor *compositor, u32 param_type);
 
+void compositor_init_hc_flashshape(GF_Compositor *compositor, GF_Node *node);
+
 #endif /*GPAC_DISABLE_VRML*/
 
 

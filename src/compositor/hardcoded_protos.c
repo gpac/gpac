@@ -904,7 +904,6 @@ void compositor_init_untransform(GF_Compositor *compositor, GF_Node *node)
 	}
 }
 
-
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
 void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 {
@@ -950,6 +949,10 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 		}
 		if (!strcmp(url, "urn:inet:gpac:builtin:Untransform")) {
 			compositor_init_untransform(compositor, node);
+			return;
+		}
+		if (!strcmp(url, "urn:inet:gpac:builtin:FlashShape")) {
+			compositor_init_hc_flashshape(compositor, node);
 			return;
 		}
 	}
