@@ -1936,7 +1936,7 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
 		if (pes->pid == dumper->trackID) {
 			stream = pes;
-			gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_RAW);
+			gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
 			break;
 		} else {
 			gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
