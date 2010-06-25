@@ -199,7 +199,7 @@ static GF_Err ALSA_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCh
 	return GF_OK;
 
 err_exit:
-	if (hw_params) snd_pcm_hw_params_gf_free(hw_params);
+	if (hw_params) snd_pcm_hw_params_free(hw_params);
 	snd_pcm_close(ctx->playback_handle);
 	ctx->playback_handle = NULL;
 	return GF_IO_ERR;
