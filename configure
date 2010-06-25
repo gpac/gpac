@@ -1386,7 +1386,7 @@ if test "$disable_3d" = "no" ; then
     LINK3D="-framework OpenGL -framework GLUT"
     DarwinGL="yes"
   else
-   LINK3D="-lGL -lglut"
+   LINK3D="-lGL -lGLU"
   fi
   if $cc -o $TMPO $TMPC $LINK3D 2> /dev/null  ; then
     has_opengl="yes"
