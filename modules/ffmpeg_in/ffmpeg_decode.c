@@ -26,7 +26,7 @@
 #include <gpac/avparse.h>
 
 #ifndef FFMPEG_OLD_HEADERS
-#if (LIBAVCODEC_VERSION_INT <= AV_VERSION_INT(52, 20, 0))
+#if (LIBAVCODEC_VERSION_MAJOR <= 52) && (LIBAVCODEC_VERSION_MINOR <= 20)
 #define USE_AVCODEC2	0
 #else
 #define USE_AVCODEC2	1
@@ -639,6 +639,7 @@ redecode:
 	av_init_packet(&pkt);
 	pkt.data = inBuffer;
 	pkt.size = inBufferLength;
+
 
 #if USE_AVCODEC2
 	if (avcodec_decode_video2(ctx, frame, &gotpic, &pkt) < 0) {
