@@ -6504,6 +6504,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\compositor\hc_flash_shape.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\compositor\mesh.c"
 				>
 			</File>
