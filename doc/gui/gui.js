@@ -1180,15 +1180,6 @@ function widget_launch(wid) {
    widget_ui_visible = 0;
    layout();
   }
-    //
-    if (log_level > l_inf) {
-        var i = 0;
-        alert(">>>>>>>>>>>>> "+wid.name+" interfaces:");
-        for (;i < wid.num_interfaces; i++) {
-            alert(""+wid.get_interface(i).type);
-        }
-    }
-    //
 }
 
 
@@ -1342,7 +1333,7 @@ function new_file_browse(init_directory, label, filter, show_scan, show_upnp)
     }    
   }
   
-  if (show_upnp) {
+  if (show_upnp && has_upnp) {
     filebrowse.upnp = icon_button('icons/applications-internet.svg', 'Network Servers', 0);
     filebrowse.upnp.filebrowse = filebrowse;
     filebrowse.children[filebrowse.children.length] = filebrowse.upnp;
@@ -1445,7 +1436,7 @@ function new_file_browse(init_directory, label, filter, show_scan, show_upnp)
    var w, h, i, y;
    this.children.length = this.nb_tools;
 
-   if (this.upnp) {
+   if (this.upnp != null) {
     if (UPnP.MediaServersCount) {
      this.upnp.show();
     } else {
