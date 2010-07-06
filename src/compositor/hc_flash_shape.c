@@ -58,7 +58,9 @@ static void clean_paths(FSStack *stack)
 		FSItem *it = gf_list_get(stack->items, 0);
 		gf_list_rem(stack->items, 0);
 		if (it->path) gf_path_del(it->path);
+#ifndef GPAC_DISABLE_3D
 		if (it->mesh) mesh_free(it->mesh);
+#endif
 		gf_free(it);
 	}
 }
