@@ -116,6 +116,8 @@ enum
 	TAG_XBL_ATT_src,
 
     TAG_GSVG_ATT_useAsPrimary,
+    TAG_GSVG_ATT_depthOffset,
+    TAG_GSVG_ATT_depthGain,
 };
 
 
