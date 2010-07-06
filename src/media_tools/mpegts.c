@@ -31,8 +31,10 @@
 #include <gpac/math.h>
 #include <string.h>
 
-#ifdef GPAC_ENST_PRIVATE
-#include <gpac/enst/dvb_mpe.h>
+#define DUMP_MPE_IP_DATAGRAMS
+
+#ifdef DUMP_MPE_IP_DATAGRAMS
+#include <gpac/dvb_mpe.h>
 #endif
 
 #define DEBUG_TS_PACKET 0
@@ -599,7 +601,7 @@ void gf_m2ts_es_del(GF_M2TS_ES *es)
 		GF_M2TS_SECTION_ES *ses = (GF_M2TS_SECTION_ES *)es;
 		if (ses->sec) gf_m2ts_section_filter_del(ses->sec);
 
-#ifdef GPAC_ENST_PRIVATE
+#ifdef DUMP_MPE_IP_DATAGRAMS
 		if (es->flags & GF_M2TS_ES_IS_MPE)
 			gf_dvb_mpe_section_del(es);
 #endif
@@ -1172,7 +1174,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 		case GF_M2TS_MPE_SECTIONS:
 			printf("stream type MPE found : pid = %d \n", pid);
-#ifdef GPAC_ENST_PRIVATE
+#ifdef DUMP_MPE_IP_DATAGRAMS
 			es = gf_dvb_mpe_section_new();
 			if (es->flags & GF_M2TS_ES_IS_SECTION) {
 				/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
@@ -1886,7 +1888,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->eit = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_eit*/, 1);
 	ts->tdt_tot_st = gf_m2ts_section_filter_new(NULL/*gf_m2ts_process_tdt_tot_st*/, 1);
 
-#ifdef GPAC_ENST_PRIVATE
+#ifdef DUMP_MPE_IP_DATAGRAMS
 	gf_dvb_mpe_init(ts);
 #endif
 
@@ -1923,7 +1925,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	gf_m2ts_reset_sdt(ts);
 	gf_list_del(ts->SDTs);
 
-#ifdef GPAC_ENST_PRIVATE
+#ifdef DUMP_MPE_IP_DATAGRAMS
 	gf_dvb_mpe_shutdown(ts);
 #endif
 
@@ -1932,7 +1934,7 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 
 void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 {
-#ifdef GPAC_ENST_PRIVATE
+#ifdef DUMP_MPE_IP_DATAGRAMS
 	gf_m2ts_print_mpe_info(ts);
 #endif
 }
