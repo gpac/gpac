@@ -154,6 +154,10 @@ typedef struct
 	/*clip planes in world coords*/
 	GF_Plane clip_planes[MAX_USER_CLIP_PLANES];
 	u32 num_clip_planes;
+
+#ifdef GF_SR_USE_DEPTH
+	Fixed depth_offset;
+#endif
 } Drawable3DContext;
 
 /*
