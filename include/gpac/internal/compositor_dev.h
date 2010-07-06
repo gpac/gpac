@@ -56,7 +56,7 @@
 //#define GPAC_USE_TINYGL
 
 /*depth-enabled version for autostereoscopic displays */
-//#define GF_SR_USE_DEPTH
+#define GF_SR_USE_DEPTH
 
 /*FPS computed on this number of frame*/
 #define GF_SR_FPS_COMPUTE_SIZE	30
@@ -470,6 +470,8 @@ struct __tag_compositor
 
 #ifdef GF_SR_USE_DEPTH
 	Bool auto_calibration;
+	/*display depth in pixels - if -1, it is the height of the display area*/
+	s32 display_depth;
 #endif
 	
 };

@@ -597,6 +597,10 @@ static Bool DepthGroup_GetNode(GF_Node *node, DepthGroup *dg)
 
 static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 {
+#ifdef GF_SR_USE_DEPTH
+	Fixed depth_gain, depth_offset;
+#endif
+
 	DepthGroupStack *stack = (DepthGroupStack *)gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
@@ -614,6 +618,18 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	}
 	DepthGroup_GetNode(node, &stack->dg);
+
+
+#ifdef GF_SR_USE_DEPTH
+	depth_gain = tr_state->depth_gain;
+	depth_offset = tr_state->depth_offset;
+
+    // new offset is multiplied by parent gain and added to parent offset
+	tr_state->depth_offset = gf_mulfix(stack->dg.depth_offset, tr_state->depth_gain) + tr_state->depth_offset;
+
+    // gain is multiplied by parent gain
+	tr_state->depth_gain = gf_mulfix(tr_state->depth_gain, stack->dg.depth_gain);
+#endif
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
@@ -639,24 +655,14 @@ static void TraverseDepthGroup(GF_Node *node, void *rs, Bool is_destroy)
 	} else 
 #endif
 	{
-#ifdef GF_SR_USE_DEPTH
-		Fixed depth_gain = tr_state->depth_gain;
-		Fixed depth_offset = tr_state->depth_offset;
-
-        // new offset is multiplied by parent gain and added to parent offset
-		tr_state->depth_offset = gf_mulfix(stack->dg.depth_offset, tr_state->depth_gain) + tr_state->depth_offset;
-
-        // gain is multiplied by parent gain
-		tr_state->depth_gain = gf_mulfix(tr_state->depth_gain, stack->dg.depth_gain);
 
 		group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
+	}
 
+#ifdef GF_SR_USE_DEPTH
 		tr_state->depth_gain = depth_gain;
 		tr_state->depth_offset = depth_offset;
-#else
-		group_2d_traverse((GF_Node *)&stack->dg, (GroupingNode2D*)stack, tr_state);
 #endif
-	}
 }
 
 void compositor_init_depth_group(GF_Compositor *compositor, GF_Node *node)
@@ -673,7 +679,42 @@ void compositor_init_depth_group(GF_Compositor *compositor, GF_Node *node)
         	
 }
 
+#ifdef GF_SR_USE_DEPTH
+static void TraverseDepthViewPoint(GF_Node *node, void *rs, Bool is_destroy)
+{
+	if (!is_destroy && gf_node_dirty_get(node)) {
+		GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+		GF_FieldInfo field;
+		gf_node_dirty_clear(node, 0);
 
+		tr_state->visual->depth_vp_position = 0;
+		tr_state->visual->depth_vp_range = 0;
+		if (!tr_state->camera) return;
+		tr_state->camera->flags |= CAM_IS_DIRTY;
+
+		if (gf_node_get_field(node, 0, &field) != GF_OK) return;
+		if (field.fieldType != GF_SG_VRML_SFBOOL) return;
+
+		if ( *(SFBool *) field.far_ptr) {
+			if (gf_node_get_field(node, 1, &field) != GF_OK) return;
+			if (field.fieldType != GF_SG_VRML_SFFLOAT) return;
+			tr_state->visual->depth_vp_position = *(SFFloat *) field.far_ptr;
+			if (gf_node_get_field(node, 2, &field) != GF_OK) return;
+			if (field.fieldType != GF_SG_VRML_SFFLOAT) return;
+			tr_state->visual->depth_vp_range = *(SFFloat *) field.far_ptr;
+		}
+		if (tr_state->layer3d) gf_node_dirty_set(tr_state->layer3d, GF_SG_NODE_DIRTY, 0);
+		gf_sc_invalidate(tr_state->visual->compositor, NULL);
+	}
+}
+#endif
+
+static void compositor_init_depth_viewpoint(GF_Compositor *compositor, GF_Node *node)
+{
+#ifdef GF_SR_USE_DEPTH
+	gf_node_set_callback_function(node, TraverseDepthViewPoint);
+#endif
+}
 
 /*IndexedCurve2D hardcoded proto*/
 
@@ -943,6 +984,10 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 			compositor_init_depth_group(compositor, node);
 			return;
 		}
+		if (!strcmp(url, "urn:inet:gpac:builtin:DepthViewPoint")) {
+			compositor_init_depth_viewpoint(compositor, node);
+			return;
+		}		
 		if (!strcmp(url, "urn:inet:gpac:builtin:IndexedCurve2D")) {
 			compositor_init_idx_curve2d(compositor, node);
 			return;

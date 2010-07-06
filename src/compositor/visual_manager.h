@@ -60,7 +60,6 @@ struct _visual_manager
 	/*size in pixels*/
 	u32 width, height;
 
-	
 	/*
 	 *	Visual Manager part for 2D drawing and dirty rect
 	 */
@@ -146,6 +145,10 @@ struct _visual_manager
 	/*cliping stuff*/
 	u32 num_clips;
 	u32 max_clips;
+#endif
+
+#ifdef GF_SR_USE_DEPTH
+	Fixed depth_vp_position, depth_vp_range;
 #endif
 
 };

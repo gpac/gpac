@@ -192,12 +192,19 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 	if (!txh || !txh->tx_io || !txh->width || !txh->height) return;
 
 	alpha = GF_COL_A(asp->fill_color);
+	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
+	if (!alpha) alpha = GF_COL_A(asp->line_color);
+
 	/*texture is available in hw, use it - if blending, force using texture*/
-	if (!gf_sc_texture_needs_reload(txh) || (alpha != 0xFF) || !compositor->bitmap_use_pixels) {
+	if (!gf_sc_texture_needs_reload(txh) || (alpha != 0xFF) || !compositor->bitmap_use_pixels 
+#ifdef GF_SR_USE_DEPTH
+		|| tr_state->depth_offset
+#endif
+		) {
 		visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, 0);
 		visual_3d_enable_antialias(tr_state->visual, 0);
 		if (alpha && (alpha != 0xFF)) {
-			visual_3d_set_material_2d_argb(tr_state->visual, asp->fill_color);
+			visual_3d_set_material_2d_argb(tr_state->visual, GF_COL_ARGB(alpha, 0xFF, 0xFF, 0xFF));
 			gf_sc_texture_set_blend_mode(txh, TX_MODULATE);
 		} else if (gf_sc_texture_is_transparent(txh)) {
 			gf_sc_texture_set_blend_mode(txh, TX_REPLACE);
@@ -219,7 +226,31 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 				}
 			} 
 			if (stack->mesh) {
-				visual_3d_mesh_paint(tr_state, stack->mesh);
+#ifdef GF_SR_USE_DEPTH
+				if (tr_state->depth_offset) {
+					GF_Matrix mx;
+					Fixed offset;
+					Fixed disp_depth = (compositor->display_depth<0) ? INT2FIX(tr_state->visual->height) : INT2FIX(compositor->display_depth);
+					if (disp_depth) {
+						if (!tr_state->pixel_metrics) disp_depth = gf_divfix(disp_depth, tr_state->min_hsize);
+						gf_mx_init(mx);
+						/*add recalibration by the scene*/
+						offset = tr_state->depth_offset;
+						if (tr_state->visual->depth_vp_range) {
+							offset = gf_divfix(offset, tr_state->visual->depth_vp_range/2);
+						}
+						gf_mx_add_translation(&mx, 0, 0, gf_mulfix(offset, disp_depth/2) );
+						
+						visual_3d_matrix_push(tr_state->visual);
+						visual_3d_matrix_add(tr_state->visual, mx.m);
+						visual_3d_mesh_paint(tr_state, stack->mesh);
+						visual_3d_matrix_pop(tr_state->visual);
+					} else {
+						visual_3d_mesh_paint(tr_state, stack->mesh);
+					}
+				} else 
+#endif
+					visual_3d_mesh_paint(tr_state, stack->mesh);
 			}
  			gf_sc_texture_disable(txh);
 			tr_state->mesh_num_textures = 0;

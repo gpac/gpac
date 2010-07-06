@@ -229,14 +229,20 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	}
 #ifdef GF_SR_USE_DEPTH
     /* 3D world calibration for stereoscopic screen */
-	if (tr_state->visual->compositor->auto_calibration) {
-		Fixed half_interocular_dist_pixel, view_distance, disparity;
+	if (tr_state->visual->compositor->auto_calibration && tr_state->visual->compositor->video_out->view_distance) {
+		Fixed view_distance, disparity;
 
 		view_distance = INT2FIX(tr_state->visual->compositor->video_out->view_distance);
 		disparity = INT2FIX(tr_state->visual->compositor->video_out->disparity);
-		if (view_distance && disparity) {
+
+		if (tr_state->visual->depth_vp_range) {
+			position.z = view_distance;
+			tr_state->camera->z_near = view_distance - tr_state->visual->depth_vp_position + tr_state->visual->depth_vp_range/2;
+			tr_state->camera->z_far = view_distance - tr_state->visual->depth_vp_position - tr_state->visual->depth_vp_range/2;
+		}
+		else if (disparity) {
 			/*3,4 cm = 1,3386 inch -> pixels*/
-			half_interocular_dist_pixel = FLT2FIX(1.3386) * tr_state->visual->compositor->video_out->dpi_x;
+			Fixed half_interocular_dist_pixel = FLT2FIX(1.3386) * tr_state->visual->compositor->video_out->dpi_x;
 
 			//frustum placed to match user's real viewpoint
 			position.z = view_distance;
@@ -245,6 +251,22 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 			//-> n=D- (dD)/(e+d) 
 			tr_state->camera->z_near = view_distance - 
 				gf_divfix( gf_mulfix(disparity,view_distance), (half_interocular_dist_pixel + disparity)); 
+		} 
+		else if (tr_state->visual->compositor->display_depth) {
+			Fixed dist = INT2FIX(tr_state->visual->compositor->display_depth);
+			if (dist<0) dist = INT2FIX(tr_state->visual->height);
+
+#if 1
+			view_distance = gf_divfix(tr_state->visual->height, 2*gf_tan(fieldOfView/2) );
+#else
+			view_distance = gf_muldiv(view_distance, tr_state->visual->height, tr_state->visual->compositor->video_out->max_screen_height);
+			fieldOfView = 2*gf_atan2(tr_state->visual->height/2, view_distance);
+#endif
+
+			//frustum placed to match user's real viewpoint
+			position.z = view_distance;
+			tr_state->camera->z_near = view_distance - 2*dist/3;
+			tr_state->camera->z_far = view_distance + dist/2;
 		}
 	}
 #endif
@@ -328,6 +350,10 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 	gf_mx_init(tr_state->model_matrix);
 
 	tr_state->traversing_mode = mode;
+#ifdef GF_SR_USE_DEPTH
+	tr_state->depth_offset = 0;
+	tr_state->depth_gain = FIX_ONE;
+#endif
 }
 
 void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
@@ -361,6 +387,11 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 			if (tr_state->camera->is_3D) {
 				/*X3D is by default examine, VRML/MPEG4 is WALK*/
 				tr_state->camera->navigate_mode = (tr_state->visual->type_3d==3) ? GF_NAVIGATE_EXAMINE : GF_NAVIGATE_WALK;
+
+#ifdef GF_SR_USE_DEPTH
+				if (tr_state->visual->compositor->display_depth)
+					tr_state->camera->navigate_mode = GF_NAVIGATE_NONE;
+#endif
 			} else {
 				tr_state->camera->navigate_mode = GF_NAVIGATE_NONE;
 			}
@@ -540,6 +571,9 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 	gf_mx_apply_bbox(&ctx->model_matrix, &tr_state->bbox);
 	gf_mx_apply_bbox(&tr_state->camera->modelview, &tr_state->bbox);
 	ctx->zmax = tr_state->bbox.max_edge.z;
+#ifdef GF_SR_USE_DEPTH
+	ctx->depth_offset=tr_state->depth_offset;
+#endif
 
 	/*we don't need an exact sorting, as long as we keep transparent nodes above  -note that for
 	speed purposes we store in reverse-z transparent nodes*/
@@ -601,6 +635,9 @@ void visual_3d_flush_contexts(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		tr_state->cull_flag = ctx->cull_flag;
 
 		tr_state->appear = ctx->appearance;
+#ifdef GF_SR_USE_DEPTH
+		tr_state->depth_offset = ctx->depth_offset;
+#endif
 		gf_node_traverse(ctx->geometry, tr_state);
 		tr_state->appear = NULL;
 		

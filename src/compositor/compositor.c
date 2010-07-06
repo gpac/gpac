@@ -955,6 +955,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 {
 	const char *sOpt;
 
+
 	/*changing drivers needs exclusive access*/
 	gf_sc_lock(compositor, 1);
 	
@@ -1108,6 +1109,16 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #ifdef GF_SR_USE_DEPTH
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "AutoStereoCalibration");
 	compositor->auto_calibration = (!sOpt || !strcmp(sOpt, "yes")) ? 1 : 0;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisplayDepth");
+	compositor->display_depth = sOpt ? (!strcmp(sOpt, "auto") ? -1 : atoi(sOpt)) : 0;
+
+	if (!compositor->video_out->view_distance) {
+		Float v;
+		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ViewDistance");
+		v = sOpt ? (Float) atof(sOpt) : 50.0f; 
+		compositor->video_out->view_distance = FLT2FIX(v * 0.3937f * compositor->video_out->dpi_x);
+	}
 #endif
 
 	/*RECT texture support - we must reload HW*/
@@ -1395,6 +1406,7 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	case GF_OPT_YUV_FORMAT: return compositor->enable_yuv_hw ? compositor->video_out->yuv_pixel_format : 0;
 	case GF_OPT_NAVIGATION_TYPE: 
 #ifndef GPAC_DISABLE_3D
+		if (compositor->navigation_disabled) return GF_NAVIGATE_TYPE_NONE;
 		if (compositor->visual->type_3d || compositor->active_layer) {
 			GF_Camera *cam = compositor_3d_get_camera(compositor);
 			if (!(cam->navigation_flags & NAV_ANY)) return GF_NAVIGATE_TYPE_NONE;
@@ -1402,7 +1414,7 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 		} else 
 #endif
 		{
-			return compositor->navigation_disabled ? GF_NAVIGATE_TYPE_NONE : GF_NAVIGATE_TYPE_2D;
+			return GF_NAVIGATE_TYPE_2D;
 		}
 	case GF_OPT_NAVIGATION: 
 #ifndef GPAC_DISABLE_3D
@@ -1562,8 +1574,17 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		case TAG_MPEG4_OrderedGroup:
 		case TAG_MPEG4_Layer2D:
 #ifndef GPAC_DISABLE_3D
-			compositor->visual->type_3d = 0;
-			compositor->visual->camera.is_3D = 0;
+			/*move to perspective 3D when simulating depth*/
+#ifdef GF_SR_USE_DEPTH
+			if (compositor->display_depth) {
+				compositor->visual->type_3d = 2;
+				compositor->visual->camera.is_3D = 1;
+			} else 
+#endif
+			{
+				compositor->visual->type_3d = 0;
+				compositor->visual->camera.is_3D = 0;
+			}
 #endif
 			compositor->traverse_state->pixel_metrics = gf_sg_use_pixel_metrics(scene);
 			break;

@@ -399,6 +399,8 @@ static void composite_update(GF_TextureHandler *txh)
 
 	txh->needs_refresh = visual_draw_frame(st->visual, st->txh.owner, tr_state, 0);
 	txh->transparent = (st->visual->last_had_back==2) ? 0 : 1;
+	/*remove any GL_FLIP flag*/
+	txh->flags &= ~GF_SR_TEXTURE_NO_GL_FLIP;
 
 	/*set active viewport in image coordinates top-left=(0, 0), not in BIFS*/
 	if (0 && gf_list_count(st->visual->view_stack)) {
@@ -480,7 +482,6 @@ void compositor_init_compositetexture2d(GF_Compositor *compositor, GF_Node *node
 
 	st->txh.update_texture_fcnt = composite_update;
 
-//	st->txh.flags = GF_SR_TEXTURE_NO_GL_FLIP;
 	if ((c2d->repeatSandT==1) || (c2d->repeatSandT==3) ) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (c2d->repeatSandT>1) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 
@@ -514,7 +515,6 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 
 	st->txh.update_texture_fcnt = composite_update;
 
-//	st->txh.flags = GF_SR_TEXTURE_NO_GL_FLIP;
 	if (c3d->repeatS) st->txh.flags |= GF_SR_TEXTURE_REPEAT_S;
 	if (c3d->repeatT) st->txh.flags |= GF_SR_TEXTURE_REPEAT_T;
 
