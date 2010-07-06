@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="8.00"
 	Name="libgpac"
 	ProjectGUID="{233014D5-F6E5-419D-8757-FA9CE7337088}"
 	RootNamespace="libgpac"
@@ -4380,6 +4380,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\media_tools\dvb_mpe.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\internal\dvb_mpe_dev.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\media_tools\filestreamer.c"
 				>
 			</File>
@@ -4721,6 +4729,14 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\internal\ogg.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\media_tools\reedsolomon.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\internal\reedsolomon.h"
 				>
 			</File>
 			<File
@@ -6905,6 +6921,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\download.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\dvb_mpe.h"
 				>
 			</File>
 			<File
