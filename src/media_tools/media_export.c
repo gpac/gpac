@@ -951,6 +951,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			remain = samp->dataLength;
 			while (remain) {
 				nal_size = 0;
+				assert(remain>avccfg->nal_unit_size);
 				for (j=0; j<avccfg->nal_unit_size; j++) {
 					nal_size |= ((u8) *ptr);
 					if (j+1<avccfg->nal_unit_size) nal_size<<=8;

@@ -82,11 +82,14 @@ static void gf_m2ts_reframe_default(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 D
 	pck.stream = pes;
 	ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 }
+
 static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
 {
 	Bool force_new_au=0;
 	Bool start_code_found = 0;
+	Bool esc_code_found = 0;
 	u32 nal_type, sc_pos = 0;
+
 	GF_M2TS_PES_PCK pck;
 
 	if (PTS) {
@@ -103,26 +106,41 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 	pck.flags = 0;
 
 	while (sc_pos<data_len) {
+		u32 sctype=0;
 		unsigned char *start = (unsigned char *)memchr(data+sc_pos, 0, data_len-sc_pos);
 		if (!start) break;
 		sc_pos = start - data;
 
-		if (start[1] || start[2] || (start[3]!=1)) {
+		/*0x000001 start code*/
+		if (!start[1] && !start[2] && (start[3]==1)) {
+		}
+		/*0x000000 escape code*/
+		else if (!start[1] && !start[2]) {
+			esc_code_found=1;
+			if (!start_code_found) {
+				sc_pos ++;
+				continue;
+			}
+		} else {
+			esc_code_found=0;
 			sc_pos ++;
 			continue;
 		}
 
 		if (!start_code_found) {
 			if (sc_pos) {
-				pck.data = data;
-				pck.data_len = sc_pos;
-				pck.flags = 0;
-				ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+				if (!esc_code_found) {
+					pck.data = data;
+					pck.data_len = sc_pos;
+					pck.flags = 0;
+					ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+				}
+
 				data += sc_pos;
 				data_len -= sc_pos;
-				sc_pos = 0;
 			}
 			start_code_found = 1;
+			sc_pos=1;
 		} else {
 			pck.data = data;
 			pck.data_len = sc_pos;
@@ -156,10 +174,16 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 			data += sc_pos;
 			data_len -= sc_pos;
 			sc_pos = 0;
+
+			if (esc_code_found) {
+				esc_code_found=0;
+				start_code_found=0;
+			} else {
+				sc_pos = 1;
+			}
 		}
-		sc_pos++;
 	}
-	if (data_len) {
+	if (data_len && start_code_found) {
 		pck.flags = 0;
 		if (start_code_found) {
 			pck.data = data;
@@ -1275,7 +1299,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			ts->ess[es->pid] = es;
 			gf_list_add(pmt->program->streams, es);
 
-			if (!(es->flags & GF_M2TS_ES_IS_SECTION) ) gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
+			if (!(es->flags & GF_M2TS_ES_IS_SECTION) ) gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 
 			nb_es++;
 		}
@@ -1479,9 +1503,11 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 				} else {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Bad SL Packet size: (%d indicated < %d header)\n", pes->pid, pes->data_len, len));
 				}
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: unknown stream ID %08X\n", pes->pid, stream_id));
 			}
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Bad PES Header, discarding packet (maybe stream is encrypted ?)\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: Bad PES Header, discarding packet (maybe stream is encrypted ?)\n", hdr->pid));
 		}
 		if (pes->data) {
 			gf_free(pes->data);
@@ -1492,7 +1518,11 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		pes->rap = 0;
 		if (!data_size) return;
 	}
-
+	/*we need to wait for first packet of PES*/
+	if (!pes->data_len && !hdr->payload_start) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Waiting for PES header, trashing data\n", hdr->pid));
+		return;
+	}
 	/*reassemble*/
 	if (pes->data){
 		pes->data = (char*)gf_realloc(pes->data, pes->data_len+data_size);
@@ -1504,7 +1534,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	pes->data_len += data_size;
 
 	if (paf && paf->random_access_indicator) pes->rap = 1;
-	if (!pes->pes_len && (pes->data_len>=6)) pes->pes_len = (pes->data[4]<<8) | pes->data[5];
+	if (hdr->payload_start && !pes->pes_len && (pes->data_len>=6)) pes->pes_len = (pes->data[4]<<8) | pes->data[5];
 
 }
 
@@ -1628,10 +1658,9 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			if (ses->sec) gf_m2ts_gather_section(ts, ses->sec, ses, &hdr, data, payload_size);
 			//fprintf(stderr, "callback: %x %x\n", ses->sec->process_section, gf_m2ts_process_pmt);
 		} else {
+			GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 			/* regular stream using PES packets */
-			/* let the pes reassembler decide if packets with error shall be discarded*/
-			//fprintf(stderr, "000000000000000000000000000000000000000000000\n\n\n\n\n\n\n\n");
-			gf_m2ts_process_pes(ts, (GF_M2TS_PES *)es, &hdr, data, payload_size, paf);
+			if (pes->reframe) gf_m2ts_process_pes(ts, pes, &hdr, data, payload_size, paf);
 		}
 	}
 	if (paf && paf->PCR_flag) {
