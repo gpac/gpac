@@ -469,16 +469,18 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 		HOWEVER, we must recompute a monotone increasing DTS in case the decoder does perform frame reordering
 		in which case the DTS is used for presentation time!!*/
 		else if (ch->esd->decoderConfig->streamType!=GF_STREAM_AUDIO) {
+#if 0
 			GF_DBUnit *au_prev, *ins_au;
 			u32 DTS;
-
+#endif
 			au->DTS = 0;
 			/*append AU*/
 			ch->AU_buffer_last->next = au;
 			ch->AU_buffer_last = ch->AU_buffer_last->next;
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Media deinterleaving OD %d ch %d\n", ch->esd->ESID, ch->odm->OD->objectDescriptorID));
 #if 0
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Media deinterleaving OD %d ch %d\n", ch->esd->ESID, ch->odm->OD->objectDescriptorID));
+
 			DTS = au->DTS;
 			au_prev = ch->AU_buffer_first;
 			/*locate first AU in buffer with DTS greater than new unit CTS*/
