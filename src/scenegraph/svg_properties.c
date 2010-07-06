@@ -801,6 +801,7 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_fill_opacity: all_atts->fill_opacity = (SVG_Number *)att->data; break;
 		case TAG_SVG_ATT_stroke_opacity: all_atts->stroke_opacity = (SVG_Number *)att->data; break;
 		case TAG_SVG_ATT_fill: all_atts->fill = (SVG_Paint *)att->data; break;
+		case TAG_SVG_ATT_filter: all_atts->filter = (SVG_Paint *)att->data; break;
 		case TAG_SVG_ATT_fill_rule: all_atts->fill_rule = (SVG_FillRule *)att->data; break;
 		case TAG_SVG_ATT_stroke: all_atts->stroke = (SVG_Paint *)att->data; break;
 		case TAG_SVG_ATT_stroke_dasharray: all_atts->stroke_dasharray = (SVG_StrokeDashArray *)att->data; break;
@@ -963,6 +964,8 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_motionTransform: all_atts->motionTransform = (SVG_Motion *)att->data; break;
 
         case TAG_GSVG_ATT_useAsPrimary: all_atts->gpac_useAsPrimary = (SVG_Boolean *)att->data; break;
+        case TAG_GSVG_ATT_depthOffset: all_atts->gpac_depthOffset = (SVG_Boolean *)att->data; break;
+        case TAG_GSVG_ATT_depthGain: all_atts->gpac_depthGain = (SVG_Boolean *)att->data; break;
 		}
 		
 		att = att->next;

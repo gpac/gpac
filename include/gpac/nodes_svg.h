@@ -116,6 +116,7 @@ enum {
 	TAG_SVG_ATT_stroke_opacity,
 	TAG_SVG_ATT_fill,
 	TAG_SVG_ATT_fill_rule,
+	TAG_SVG_ATT_filter,
 	TAG_SVG_ATT_stroke,
 	TAG_SVG_ATT_stroke_dasharray,
 	TAG_SVG_ATT_stroke_dashoffset,
@@ -320,6 +321,7 @@ struct _all_atts {
 	SVG_Number *stroke_opacity;
 	SVG_Paint *fill;
 	SVG_FillRule *fill_rule;
+	SVG_Paint *filter;
 	SVG_Paint *stroke;
 	SVG_StrokeDashArray *stroke_dasharray;
 	SVG_Length *stroke_dashoffset;
@@ -482,6 +484,8 @@ struct _all_atts {
 	SVG_Motion *motionTransform;
 
     SVG_Boolean *gpac_useAsPrimary;
+    SVG_Number *gpac_depthOffset;
+    SVG_Number *gpac_depthGain;
 };
 #ifdef __cplusplus
 }

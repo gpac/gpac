@@ -241,6 +241,8 @@ static const struct xml_att_def { const char *name; u32 tag; u32 type; u32 opts;
 	{ "fill", TAG_SVG_ATT_smil_fill, SMIL_Fill_datatype, GF_SVG_ATTOPT_SMIL, GF_XMLNS_SVG },
 	/*regular paint fill*/
 	{ "fill", TAG_SVG_ATT_fill, SVG_Paint_datatype, 0, GF_XMLNS_SVG },
+	/*filter*/
+	{ "filter", TAG_SVG_ATT_filter, SVG_Paint_datatype, 0, GF_XMLNS_SVG },
 	/*text rotate*/
 	{ "rotate", TAG_SVG_ATT_text_rotate, SVG_Numbers_datatype, GF_SVG_ATTOPT_TEXT, GF_XMLNS_SVG },
 	/*regular matrix rotate*/
@@ -292,6 +294,8 @@ static const struct xml_att_def { const char *name; u32 tag; u32 type; u32 opts;
 
 	/*GPAC SVG Extensions*/
 	{ "use-as-primary", TAG_GSVG_ATT_useAsPrimary, SVG_Boolean_datatype, 0, GF_XMLNS_SVG_GPAC_EXTENSION},
+	{ "depthOffset", TAG_GSVG_ATT_depthOffset, SVG_Number_datatype, 0, GF_XMLNS_SVG_GPAC_EXTENSION},
+	{ "depthGain", TAG_GSVG_ATT_depthGain, SVG_Number_datatype, 0, GF_XMLNS_SVG_GPAC_EXTENSION},
 
 };
 
