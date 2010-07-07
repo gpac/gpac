@@ -1155,7 +1155,7 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 		count = gf_cfg_get_section_count(term->user->config);
 		for (i=0; i<count; i++) {
 			u32 exp, sec, frac;
-			const char *opt;
+			const char *opt, *service_cache;
 			const char *name = gf_cfg_get_section_name(term->user->config, i);
 			if (strncmp(name, "@cache=", 7)) continue;
 			opt = gf_cfg_get_key(term->user->config, name, "serviceURL");
@@ -1163,7 +1163,7 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 			opt = gf_cfg_get_key(term->user->config, name, "cacheName");
 			if (!opt || stricmp(opt, serviceURL)) continue;
 
-			serviceURL = (char*)gf_cfg_get_key(term->user->config, name, "cacheFile");
+			service_cache = (char*)gf_cfg_get_key(term->user->config, name, "cacheFile");
 			opt = gf_cfg_get_key(term->user->config, name, "expireAfterNTP");
 			if (opt) {
 				sscanf(opt, "%u", &exp);
@@ -1174,9 +1174,10 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 					gf_cfg_del_section(term->user->config, name);
 					i--;
 					count--;
-					serviceURL = NULL;
+					service_cache = NULL;
 				}
 			}
+			if (service_cache) serviceURL = service_cache;
 			break;
 		}
 	}
@@ -1204,7 +1205,7 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 		}
 	}
 
-	odm->net_service = gf_term_service_new(term, odm, serviceURL, parent_url, &e);
+	odm->net_service = gf_term_service_new(term, odm, serviceURL, reloc_result ? NULL : parent_url, &e);
 	if (!odm->net_service) {
 		gf_term_lock_net(term, 0);
 		gf_term_message(term, serviceURL, "Cannot open service", e);
