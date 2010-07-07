@@ -689,8 +689,10 @@ static void TraverseDepthViewPoint(GF_Node *node, void *rs, Bool is_destroy)
 
 		tr_state->visual->depth_vp_position = 0;
 		tr_state->visual->depth_vp_range = 0;
+#ifndef GPAC_DISABLE_3D
 		if (!tr_state->camera) return;
 		tr_state->camera->flags |= CAM_IS_DIRTY;
+#endif
 
 		if (gf_node_get_field(node, 0, &field) != GF_OK) return;
 		if (field.fieldType != GF_SG_VRML_SFBOOL) return;
@@ -703,7 +705,9 @@ static void TraverseDepthViewPoint(GF_Node *node, void *rs, Bool is_destroy)
 			if (field.fieldType != GF_SG_VRML_SFFLOAT) return;
 			tr_state->visual->depth_vp_range = *(SFFloat *) field.far_ptr;
 		}
+#ifndef GPAC_DISABLE_3D
 		if (tr_state->layer3d) gf_node_dirty_set(tr_state->layer3d, GF_SG_NODE_DIRTY, 0);
+#endif
 		gf_sc_invalidate(tr_state->visual->compositor, NULL);
 	}
 }
