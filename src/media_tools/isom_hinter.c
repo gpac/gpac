@@ -882,7 +882,8 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 		/* audio-specific config */ 
 		dcd = gf_isom_get_decoder_config(tkHint->file, tkHint->TrackNum, 1); 
 		if (dcd) { 
-			gf_bs_write_data(bs, dcd->decoderSpecificInfo->data, dcd->decoderSpecificInfo->dataLength); 
+			/*PacketVideo patch: don't signal SBR and PS stuff, not allowed in LATM with audioMuxVersion=0*/
+			gf_bs_write_data(bs, dcd->decoderSpecificInfo->data, MIN(dcd->decoderSpecificInfo->dataLength, 2) ); 
 			gf_odf_desc_del((GF_Descriptor *)dcd); 
 		} 
  
