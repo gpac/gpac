@@ -1607,7 +1607,6 @@ u32 AVC_NextStartCode(GF_BitStream *bs)
 	return (u32) (end-start);
 }
 
-
 Bool AVC_SliceIsIDR(AVCState *avc) 
 {
   if (avc->sei.recovery_point.valid)
@@ -1635,7 +1634,7 @@ static const struct { u32 w, h; } avc_sar[14] =
     { 64, 33 }, { 160,99 },
 };
 
-s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, Bool is_subseq, u32 *vui_flag_pos)
+s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
 {
 	AVC_SPS *sps;
 	s32 mb_width, mb_height;
@@ -1646,10 +1645,13 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, Bool is_subseq, u32 *vui_fl
 	profile_idc = gf_bs_read_int(bs, 8);
 	pcomp = gf_bs_read_int(bs, 8);
 	level_idc = gf_bs_read_int(bs, 8);
-    sps_id = avc_get_ue(bs);
+    /*SubsetSps is used to be sure that AVC SPS are not going to be scratched
+	by subset SPS. According to the SVC standard, subset SPS can have the same sps_id 
+	than its base layer, but it does not refer to the same SPS. */
+	sps_id = avc_get_ue(bs) + 16 * subseq_sps;
 
 	sps = &avc->sps[sps_id];
-	sps->state |= is_subseq ? AVC_SUBSPS_PARSED : AVC_SPS_PARSED;
+	sps->state |= subseq_sps ? AVC_SUBSPS_PARSED : AVC_SPS_PARSED;
 
 	/*High Profile and SVC*/	
 	switch (profile_idc) {
@@ -1799,6 +1801,22 @@ s32 AVC_ReadPictParamSet(GF_BitStream *bs, AVCState *avc)
     return pps_id;
 }
 
+static s32 SVC_ReadNal_header_extension(GF_BitStream *bs, SVC_NALUHeader *NalHeader)
+{
+	gf_bs_read_int(bs, 1); //reserved_one_bits
+	NalHeader->idr_pic_flag = gf_bs_read_int(bs, 1); //idr_flag
+	gf_bs_read_int(bs, 6); //priority_id
+	gf_bs_read_int(bs, 1); //no_inter_layer_pred_flag
+	gf_bs_read_int(bs, 3); //DependencyId
+	gf_bs_read_int(bs, 4); //quality_id
+	NalHeader->temporal_id = gf_bs_read_int(bs, 3); //temporal_id
+	gf_bs_read_int(bs, 1); //use_ref_base_pic_flag
+	gf_bs_read_int(bs, 1); //discardable_flag
+	gf_bs_read_int(bs, 1); //output_flag
+	gf_bs_read_int(bs, 2); //reserved_three_2bits
+	return 1;
+}
+
 static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, AVCSliceInfo *si) 
 {
     s32 first_mb_in_slice, pps_id;
@@ -1843,6 +1861,53 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	return 0;
 }
 
+
+static s32 svc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si) 
+{
+    s32 first_mb_in_slice, pps_id;
+
+    /*s->current_picture.reference= h->nal_ref_idc != 0;*/
+    first_mb_in_slice = avc_get_ue(bs);
+    si->slice_type = avc_get_ue(bs);
+    if (si->slice_type > 9) return -1;
+
+    pps_id = avc_get_ue(bs);
+    if (pps_id>255)
+		return -1;
+    si->pps = &avc->pps[pps_id];
+    if (!si->pps->slice_group_count) 
+		return -2;
+    si->sps = &avc->sps[si->pps->sps_id + 16];
+    if (!si->sps->log2_max_frame_num) 
+		return -2;
+
+    si->frame_num = gf_bs_read_int(bs, si->sps->log2_max_frame_num);
+
+	si->field_pic_flag = 0;
+    if (si->sps->frame_mbs_only_flag) {
+        /*s->picture_structure= PICT_FRAME;*/
+    } else {
+		si->field_pic_flag = gf_bs_read_int(bs, 1);
+        if (si->field_pic_flag) si->bottom_field_flag = gf_bs_read_int(bs, 1);
+    }
+	if (si->nal_unit_type == GF_AVC_NALU_IDR_SLICE || si ->NalHeader.idr_pic_flag)
+		si->idr_pic_id = avc_get_ue(bs);
+   
+    if (si->sps->poc_type==0) {
+		si->poc_lsb = gf_bs_read_int(bs, si->sps->log2_max_poc_lsb);
+ 	if (si->pps->pic_order_present && !si->field_pic_flag) {
+			si->delta_poc_bottom = avc_get_se(bs);
+		}
+	} else if ((si->sps->poc_type==1) && !si->sps->delta_pic_order_always_zero_flag) {
+        si->delta_poc[0] = avc_get_se(bs);
+        if ((si->pps->pic_order_present==1) && !si->field_pic_flag)
+            si->delta_poc[1] = avc_get_se(bs);
+    }
+    if (si->pps->redundant_pic_cnt_present) {
+        si->redundant_pic_cnt = avc_get_ue(bs);
+    }
+	return 0;
+}
 
 
 static s32 avc_parse_recovery_point_sei(GF_BitStream *bs, AVCState *avc) 
@@ -1972,12 +2037,31 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 		break;
 
 	case GF_AVC_NALU_SVC_SLICE:
-		gf_bs_read_int(bs, 1);
-		idr_flag = gf_bs_read_int(bs, 1);
-		gf_bs_read_int(bs, 6);
-		gf_bs_read_u16(bs);
-		ret = 1;
-		break;
+		SVC_ReadNal_header_extension(bs, &n_state.NalHeader);
+		slice = 1;
+		// slice buffer - read the info and compare.
+		ret = svc_parse_slice(bs, avc, &n_state);
+		if (avc->s_info.nal_ref_idc) {
+			n_state.poc_lsb_prev = avc->s_info.poc_lsb;
+			n_state.poc_msb_prev = avc->s_info.poc_msb;
+		}
+		if (slice) 
+			avc_compute_poc(&n_state);
+
+		if (avc->s_info.poc != n_state.poc) {
+			memcpy(&avc -> s_info, &n_state, sizeof(AVCSliceInfo));
+			return 1;
+		}
+		memcpy(&avc -> s_info, &n_state, sizeof(AVCSliceInfo));
+		return 0;
+
+	case GF_AVC_NALU_SVC_PREFIX_NALU:
+		SVC_ReadNal_header_extension(bs, &n_state.NalHeader);
+		
+		if (avc->s_info.nal_unit_type == GF_AVC_NALU_SVC_SLICE) {
+			return 1;
+		}
+		return 0;
 
 	case GF_AVC_NALU_NON_IDR_SLICE:
 	case GF_AVC_NALU_DP_A_SLICE:
@@ -1989,8 +2073,10 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 		ret = avc_parse_slice(bs, avc, idr_flag, &n_state);
 		if (ret<0) return ret;
 		ret = 0;
-		if ((avc->s_info.nal_unit_type > GF_AVC_NALU_IDR_SLICE)
-			|| (avc->s_info.nal_unit_type < GF_AVC_NALU_NON_IDR_SLICE)) {
+		if (
+			((avc->s_info.nal_unit_type > GF_AVC_NALU_IDR_SLICE) || (avc->s_info.nal_unit_type < GF_AVC_NALU_NON_IDR_SLICE)) 
+			&& (avc->s_info.nal_unit_type != GF_AVC_NALU_SVC_SLICE)
+		) {
 			break;
 		}
 		if (avc->s_info.frame_num != n_state.frame_num) { ret = 1; break; }
@@ -2034,11 +2120,16 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 		break;
 	case GF_AVC_NALU_SEQ_PARAM:
 	case GF_AVC_NALU_PIC_PARAM:
-	case GF_AVC_NALU_PREFIX_NALU:
 		return 0;
 	default:
 		if (avc->s_info.nal_unit_type <= GF_AVC_NALU_IDR_SLICE) ret = 1;
-		else ret = 0;
+		//To detect change of AU when multiple sps and pps in stream
+		else if ((nal_hdr & 0x1F) == GF_AVC_NALU_SEI && avc -> s_info .nal_unit_type == GF_AVC_NALU_SVC_SLICE)
+			ret = 1;
+		else if ((nal_hdr & 0x1F) == GF_AVC_NALU_SEQ_PARAM && avc -> s_info .nal_unit_type == GF_AVC_NALU_SVC_SLICE)
+			ret = 1;
+		else 
+			ret = 0;
 		break;
 	} 
 

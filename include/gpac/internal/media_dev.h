@@ -47,6 +47,7 @@ u32 AVC_IsStartCode(GF_BitStream *bs);
 u32 AVC_NextStartCode(GF_BitStream *bs);
 /*returns NAL unit type - bitstream must be sync'ed!!*/
 u8 AVC_NALUType(GF_BitStream *bs);
+Bool SVC_NALUIsSlice(u8 type);
 
 
 enum
@@ -92,10 +93,16 @@ typedef struct
     s32 sps_id;
     s32 pic_order_present;      /* pic_order_present_flag*/
     s32 redundant_pic_cnt_present; /* redundant_pic_cnt_present_flag */
-    int slice_group_count;      /* num_slice_groups_minus1 + 1*/
+    u32 slice_group_count;      /* num_slice_groups_minus1 + 1*/
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
 	u32 status;
 } AVC_PPS;
+
+typedef struct 
+{
+	s32 temporal_id;
+	s32 idr_pic_flag;
+} SVC_NALUHeader;
 
 typedef struct
 {
@@ -111,6 +118,7 @@ typedef struct
 
 	AVC_SPS *sps;
 	AVC_PPS *pps;
+	SVC_NALUHeader NalHeader;
 } AVCSliceInfo;
 
 
@@ -138,10 +146,12 @@ typedef struct
 
 	AVCSliceInfo s_info;
 	AVCSei sei;
+
+	Bool is_svc;
 } AVCState;
 
 /*return sps ID or -1 if error*/
-s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, Bool is_subseq, u32 *vui_flag_pos);
+s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
 /*return pps ID or -1 if error*/
 s32 AVC_ReadPictParamSet(GF_BitStream *bs, AVCState *avc);
 /*is slice a RAP*/
@@ -158,6 +168,8 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc);
 #ifndef GPAC_DISABLE_ISOM
 GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
 #endif
+
+SVC_ReadNal_header_extension(GF_BitStream *bs, SVC_NALUHeader *NalHeader);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
