@@ -105,7 +105,7 @@
 
 #if defined(_WIN32_WCE)
 /*comment this line if you don't have a GLU32 version for Windows Mobile*/
-#define GPAC_HAS_GLU
+//#define GPAC_HAS_GLU
 #elif defined(WIN32)
 #define GPAC_HAS_GLU
 #endif
