@@ -43,6 +43,9 @@ ifeq ($(GPAC_USE_TINYGL), yes)
 else
 CFLAGS+=$(OGL_INCLS)
 LDFLAGS+=$(OGL_LIBS)
+ifeq ($(CONFIG_DARWIN),yes)
+LDFLAGS+=-lGL -lGLU
+endif
 endif
 endif
 
