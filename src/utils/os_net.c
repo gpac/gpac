@@ -849,7 +849,7 @@ u32 gf_sk_is_multicast_address(const char *multi_IPAdd)
 	if (sep) sep = strchr(multi_IPAdd, ':');
 	if (sep && !strnicmp(multi_IPAdd, "ff", 2)) return 1;
 	/*ipv4 multicast address*/
-	res = gf_sk_get_ipv6_addr(multi_IPAdd, 7000, AF_UNSPEC, AI_PASSIVE, SOCK_DGRAM);
+	res = gf_sk_get_ipv6_addr((char*)multi_IPAdd, 7000, AF_UNSPEC, AI_PASSIVE, SOCK_DGRAM);
 	if (!res) return 0;
 	val = 0;
 	if (res->ai_addr->sa_family == AF_INET) {
