@@ -1583,7 +1583,7 @@ has_jpeg="no"
 has_png="no"
 fi
 
-if test "$cpu" == "sh4"; then
+if test "$cpu" = "sh4"; then
 viren_dir="`ls $source_path/modules | grep viren_out`"
 if test "$viren_dir" = "viren_out"; then
 enable_depth_compositor="yes"
