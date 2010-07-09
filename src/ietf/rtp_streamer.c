@@ -631,8 +631,9 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 		gf_bs_write_int(bs, 0, 6); /* numSubFrames */ 
 		gf_bs_write_int(bs, 0, 4); /* numPrograms */ 
 		gf_bs_write_int(bs, 0, 3); /* numLayer */ 
-		/* audio-specific config */ 
-		if (dsi) gf_bs_write_data(bs, dsi, dsi_len); 
+
+		/* audio-specific config  - PacketVideo patch: don't signal SBR and PS stuff, not allowed in LATM with audioMuxVersion=0*/
+		if (dsi) gf_bs_write_data(bs, dsi, MIN(dsi_len, 2) ); 
 
 		/* other data */ 
 		gf_bs_write_int(bs, 0, 3); /* frameLengthType */ 
