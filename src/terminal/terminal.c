@@ -1177,7 +1177,7 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 					service_cache = NULL;
 				}
 			}
-			if (service_cache) serviceURL = service_cache;
+			if (service_cache) serviceURL = (char *)service_cache;
 			break;
 		}
 	}
