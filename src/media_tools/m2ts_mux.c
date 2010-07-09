@@ -390,6 +390,9 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 	if (stream->ifce->repeat_rate) {
 		stream->refresh_rate_ms = stream->ifce->repeat_rate;
 		gf_m2ts_mux_table_update_bitrate(stream->program->mux, stream);
+	} else {
+		gf_m2ts_mux_table_update_bitrate(stream->program->mux, stream);
+		stream->refresh_rate_ms=0;
 	}
 }
 
@@ -515,10 +518,13 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 		if (!stream->current_section) {
 			stream->current_table = stream->current_table->next;
 			/*carousel table*/
-			if (!stream->current_table && stream->refresh_rate_ms) {
-				stream->current_table = stream->tables;
-				/*update ES time*/
-				gf_m2ts_time_inc(&stream->time, stream->refresh_rate_ms, 1000);
+			if (!stream->current_table) {
+				if (stream->ifce) stream->refresh_rate_ms = stream->ifce->repeat_rate;
+				if (stream->refresh_rate_ms) {
+					stream->current_table = stream->tables;
+					/*update ES time*/
+					gf_m2ts_time_inc(&stream->time, stream->refresh_rate_ms, 1000);
+				}
 			}
 			if (stream->current_table) stream->current_section = stream->current_table->section;
 		}
@@ -584,7 +590,8 @@ Bool gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 						memcpy(esd->slConfig, &es_stream->sl_config, sizeof(GF_SLConfig));
 						break;
 					}
-				}
+					es_stream = es_stream->next;
+ 				}
 			}
 
 			bs_iod = gf_bs_new(NULL,0,GF_BITSTREAM_WRITE);
@@ -1103,7 +1110,17 @@ GF_Err gf_m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 		stream->pck_reassembler->data_len += esi_pck->data_len;
 
 		stream->pck_reassembler->flags |= esi_pck->flags;
-
+		if (stream->force_new) {
+			gf_mx_p(stream->mx);
+			if (!stream->pck_first) {
+				stream->pck_first = stream->pck_last = stream->pck_reassembler;
+			} else {
+				stream->pck_last->next = stream->pck_reassembler;
+				stream->pck_last = stream->pck_reassembler;
+			}
+			gf_mx_v(stream->mx);
+			stream->pck_reassembler = NULL;
+		}
 		break;
 	}
 	return GF_OK;
