@@ -33,7 +33,7 @@
 typedef struct
 {
 	GF_Path *path;
-	Float width;
+	Fixed width;
 	u32 fill_col, line_col;
 #ifndef GPAC_DISABLE_3D
 	GF_Mesh *mesh;
@@ -47,7 +47,7 @@ typedef struct
 	Drawable *drawable;
 	GF_Rect bounds;
 	GF_List *items;
-	Float max_width;
+	Fixed max_width;
 } FSStack;
 
 
@@ -65,7 +65,7 @@ static void clean_paths(FSStack *stack)
 	}
 }
 
-static FSItem *new_fs_item(FSStack *st, u32 line_col, u32 fill_col, Float width)
+static FSItem *new_fs_item(FSStack *st, u32 line_col, u32 fill_col, Fixed width)
 {
 	FSItem *item;
 	GF_SAFEALLOC(item, FSItem);
@@ -88,7 +88,7 @@ static void build_shape(FSStack *st, GF_Node *node)
 	MFColor *colors;
 	u32 wi, li, fi, ci, command, i, has_ci;
 	FSItem *fill_item, *line_item;
-	Float w;
+	Fixed w;
 	SFVec2f cur, pt, ct1, ct2, *pts;
 	GF_Rect rc;
 	u32 line_col, fill_col;
