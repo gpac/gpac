@@ -205,12 +205,17 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 static Bool node_in_commands_subtree(GF_Node *node, GF_List *commands)
 {
 	u32 i, j, count, nb_fields;
+
 	count = gf_list_count(commands);
 	for (i=0; i<count; i++) {
 		GF_Command *com = gf_list_get(commands, i);
 		if (com->tag>=GF_SG_LAST_BIFS_COMMAND) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] Command check for LASeR/DIMS not supported\n"));
 			return 0;
+		}
+		if (com->tag==GF_SG_SCENE_REPLACE) {
+			if (gf_node_parent_of(com->node, node)) return 1;
+			continue;
 		}
 		nb_fields = gf_list_count(com->command_fields);
 		for (j=0; j<nb_fields; j++) {
