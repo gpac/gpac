@@ -169,8 +169,6 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc);
 GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d);
 #endif
 
-SVC_ReadNal_header_extension(GF_BitStream *bs, SVC_NALUHeader *NalHeader);
-
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 typedef struct

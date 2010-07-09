@@ -3847,7 +3847,7 @@ restart_import:
 				}
 				
 				if (is_subseq) {
-					if (last_svc_sps<idx) {
+					if (last_svc_sps<(u32) idx) {
 						if (import->flags & GF_IMPORT_SVC_EXPLICIT) {
 							gf_import_message(import, GF_OK, "SVC-H264 import - frame size %d x %d at %02.3f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
 						} else {
