@@ -313,7 +313,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		if (track_layout) {
 			if (!tw) tw = w;
 			if (!th) th = h;
-			if (ty==-1) ty = (h>th) ? h-th : 0;
+			if (ty==-1) ty = (h>(u32)th) ? h-th : 0;
 			import.twidth = tw;
 			import.theight = th;
 		}
