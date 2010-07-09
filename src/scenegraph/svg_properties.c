@@ -964,8 +964,8 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_motionTransform: all_atts->motionTransform = (SVG_Motion *)att->data; break;
 
         case TAG_GSVG_ATT_useAsPrimary: all_atts->gpac_useAsPrimary = (SVG_Boolean *)att->data; break;
-        case TAG_GSVG_ATT_depthOffset: all_atts->gpac_depthOffset = (SVG_Boolean *)att->data; break;
-        case TAG_GSVG_ATT_depthGain: all_atts->gpac_depthGain = (SVG_Boolean *)att->data; break;
+        case TAG_GSVG_ATT_depthOffset: all_atts->gpac_depthOffset = (SVG_Number *)att->data; break;
+        case TAG_GSVG_ATT_depthGain: all_atts->gpac_depthGain = (SVG_Number *)att->data; break;
 		}
 		
 		att = att->next;

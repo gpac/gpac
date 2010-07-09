@@ -2246,7 +2246,6 @@ GF_Err gf_node_replace_child(GF_Node *node, GF_ChildNodeItem **container, s32 po
 GF_EXPORT
 Bool gf_node_parent_of(GF_Node *node, GF_Node *target)
 {
-	Bool ret;
 	u32 i, count;
 	GF_FieldInfo info;
 	if (!node) return 0;
