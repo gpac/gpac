@@ -676,6 +676,7 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
 		//glPixelTransferf(GL_DEPTH_SCALE, txh->compositor->OGLDepthGain); 
 		//glPixelTransferf(GL_DEPTH_BIAS, txh->compositor->OGLDepthOffset); 
 		
+#ifndef GPAC_USE_OGL_ES
 		/*obtain depthmap*/ 
 		if (!txh->tx_io->depth_data) txh->tx_io->depth_data = (char*)gf_malloc(sizeof(char)*txh->width*txh->height);
 		glReadPixels(0, 0, txh->width, txh->height, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, txh->tx_io->depth_data);
@@ -696,6 +697,8 @@ void gf_sc_copy_to_stencil(GF_TextureHandler *txh)
             else ds = 0x0;
 			txh->data[i*4+3] = ds; /*insert depth onto alpha*/ 
 		}
+#endif
+
 	}
 #endif /*GF_SR_USE_DEPTH*/
 
