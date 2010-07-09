@@ -3649,6 +3649,9 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff;
 	u32 b_frames, ref_frame, pred_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
+	Bool first_avc;
+	u32 last_svc_sps;
+	Bool prev_is_nalu_prefix;
 	Double FPS;
 	char *buffer;
 	u32 max_size = 4096;
@@ -3683,6 +3686,8 @@ restart_import:
 	svccfg->complete_representation = 1;
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 	sample_data = NULL;
+	first_avc = 1;
+	last_svc_sps = 0,
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	if (!AVC_IsStartCode(bs)) {
@@ -3732,6 +3737,7 @@ restart_import:
 	poc_diff = 0;
 	min_poc = 0;
 	poc_shift = 0;
+	prev_is_nalu_prefix = 0;
 
 	while (gf_bs_available(bs)) {
 		u8 nal_hdr, skip_nal, is_subseq, add_sps;
@@ -3750,6 +3756,11 @@ restart_import:
 		is_subseq = 0;
 		skip_nal = 0;
 		copy_size = flush_sample = 0;
+
+		if (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM || nal_type == GF_AVC_NALU_SVC_PREFIX_NALU || nal_type == GF_AVC_NALU_SVC_SLICE){
+			avc.is_svc = 1;
+		}
+
 		switch (AVC_ParseNALU(bs, nal_hdr, &avc)) {
 		case 1:
 			flush_sample = 1;
@@ -3764,9 +3775,11 @@ restart_import:
 		default:
 			break;
 		}
+		if (prev_is_nalu_prefix) flush_sample = 0;
+		prev_is_nalu_prefix=0;
 
 		switch (nal_type) {
-		case GF_AVC_NALU_SUBSEQ_PARAM:
+		case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 			if (import->flags & GF_IMPORT_SVC_NONE) break;
 			is_subseq = 1;
 		case GF_AVC_NALU_SEQ_PARAM:
@@ -3793,6 +3806,13 @@ restart_import:
 					add_sps = 1;
 				}
 			}
+			/*some streams are not really nice and reuse sps idx with differnet parameters (typically
+			when concatenated bitstreams). Since we cannot put two SPS with the same idx in the decoder config, we keep them in the
+			video bitstream*/
+			if (avc.sps[idx].state & AVC_SUBSPS_DECLARED) {
+				copy_size = nal_size;
+			}
+
 			if (add_sps) {
 				dstcfg->configurationVersion = 1;
 				dstcfg->profile_compatibility = avc.sps[idx].prof_compat;
@@ -3825,13 +3845,22 @@ restart_import:
 					gf_f64_seek(mdia, 0, SEEK_SET);
 					goto restart_import;
 				}
-				if (!idx) {
-					if (import->flags & GF_IMPORT_SVC_EXPLICIT) {
-						if (!is_subseq) gf_import_message(import, GF_OK, "SVC-H264 import - frame size %d x %d at %02.3f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
-					} else if (is_subseq) {
-						gf_import_message(import, GF_OK, "SVC Detected - frame size %d x %d", avc.sps[idx].width, avc.sps[idx].height);
-					} else {
-						gf_import_message(import, GF_OK, "AVC-H264 import - frame size %d x %d at %02.3f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
+				
+				if (is_subseq) {
+					if (last_svc_sps<idx) {
+						if (import->flags & GF_IMPORT_SVC_EXPLICIT) {
+							gf_import_message(import, GF_OK, "SVC-H264 import - frame size %d x %d at %02.3f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
+						} else {
+							gf_import_message(import, GF_OK, "SVC Detected - frame size %d x %d", avc.sps[idx].width, avc.sps[idx].height);
+						}
+						last_svc_sps = idx;
+					}
+				} else {
+					if (first_avc) {
+						first_avc = 0;
+						if (!(import->flags & GF_IMPORT_SVC_EXPLICIT)) {
+							gf_import_message(import, GF_OK, "AVC-H264 import - frame size %d x %d at %02.3f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
+						}
 					}
 				}
 				if ((max_w <= avc.sps[idx].width) && (max_h <= avc.sps[idx].height)) {
@@ -3846,6 +3875,13 @@ restart_import:
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
 				goto exit;
 			}
+			/*some streams are not really nice and reuse sps idx with differnet parameters (typically
+			when concatenated bitstreams). Since we cannot put two SPS with the same idx in the decoder config, we keep them in the
+			video bitstream*/
+			if (avc.pps[idx].status == 2) {
+				copy_size = nal_size;
+			}
+
 			if (avc.pps[idx].status==1) {
 				avc.pps[idx].status = 2;
 				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
@@ -3885,9 +3921,10 @@ restart_import:
 		case GF_AVC_NALU_END_OF_STREAM:
 			break;
 
-		case GF_AVC_NALU_PREFIX_NALU:
+		case GF_AVC_NALU_SVC_PREFIX_NALU:
 			if (import->flags & GF_IMPORT_SVC_NONE) break;
 			copy_size = nal_size;
+			prev_is_nalu_prefix = 1;
 			break;
 		case GF_AVC_NALU_SVC_SLICE:
 			if (import->flags & GF_IMPORT_SVC_NONE) break;
@@ -5407,11 +5444,11 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				u32 nal_type = pck->data[4] & 0x1F;
 
 				switch (nal_type) {
-				case GF_AVC_NALU_SUBSEQ_PARAM:
+				case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 					is_subseq = 1;
 				case GF_AVC_NALU_SEQ_PARAM:
 					bs = gf_bs_new(pck->data+5, pck->data_len-5, GF_BITSTREAM_READ);
-					idx = AVC_ReadSeqInfo(bs, &tsimp->avc, 0, NULL);
+					idx = AVC_ReadSeqInfo(bs, &tsimp->avc, is_subseq, NULL);
 					gf_bs_del(bs);
 
 					add_sps = 0;
