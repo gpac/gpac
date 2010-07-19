@@ -37,8 +37,9 @@
 #include <unistd.h>
 
 #else
-/*for GetModuleFileName*/
-#include <windows.h>
+#include <windows.h> /*for GetModuleFileName*/
+#include <direct.h>  /*for _mkdir*/
+#include <shlobj.h>  /*for getting user-dir*/
 
 #ifdef _MSC_VER 
 /*get rid of console*/
@@ -223,18 +224,51 @@ void PrintHelp()
 		);
 }
 
-
-
 GF_Config *create_default_config(char *file_path, char *file_name)
 {
 	GF_Config *cfg;
 	char szPath[GF_MAX_PATH];
+
+#ifdef WIN32
+	FILE *f;
+	Bool write_access = 0;
+
+	/*following code is highly inspired by Osmo4*/
+	/*do we have the write privileges on this dir ? if not, use user local data directory*/
+	strcpy(szPath, file_path);
+	strcat(szPath, "GPAC.cfg");
+	f = fopen(szPath, "wb");
+	if (f != NULL) {
+		fclose(f);
+		write_access = 1;
+	} else {
+		write_access = 0;
+	}
+	strcpy(szPath, file_path);
+	
+	/*get GPAC.cfg path*/
+	if (!write_access) {
+		char szPath2[GF_MAX_PATH];
+		SHGetFolderPath(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, SHGFP_TYPE_CURRENT, file_path);
+		if (file_path[strlen((char *) file_path)-1] != '\\') strcat(file_path, "\\");
+		strcat(file_path, "GPAC\\");
+		/*create GPAC dir*/
+		_mkdir(file_path);
+		strcpy(szPath2, file_path);
+		strcat(szPath2, "GPAC.cfg");
+		f = fopen(szPath2, "wb");
+		assert(f);
+		if (!f) return NULL;
+		fclose(f);
+	}
+#else
 	FILE *f;
 	sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, file_name);
 	f = fopen(szPath, "wt");
 	fprintf(stdout, "create %s: %s\n", szPath, (f==NULL) ? "Error" : "OK");
 	if (!f) return NULL;
 	fclose(f);
+#endif
 
 	cfg = gf_cfg_new(file_path, file_name);
 	if (!cfg) return NULL;
@@ -243,7 +277,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	fprintf(stdout, "Using module directory %s \n", GPAC_MODULES_PATH);
 	strcpy(szPath, GPAC_MODULES_PATH);
 #elif defined(WIN32)
-	strcpy(szPath, file_path);	
+	//szPath still contains the executable directory
 #else 
 	fprintf(stdout, "Please enter full path to GPAC modules directory:\n");
 	scanf("%s", szPath);
@@ -697,7 +731,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 
 GF_Config *loadconfigfile(char *filepath)
 {
-	GF_Config *cfg;
+	GF_Config *cfg = NULL;
 	char *cfg_dir;
 	char szPath[GF_MAX_PATH];
 
