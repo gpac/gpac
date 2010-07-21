@@ -3102,6 +3102,10 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SVG_Clock_datatype:
 		svg_parse_clock_value(attribute_content, (SVG_Clock*)info->far_ptr);
 		break;
+	case 0:
+		if (*(SVG_String *)info->far_ptr) gf_free(*(SVG_String *)info->far_ptr);
+		*(SVG_String *)info->far_ptr = gf_strdup(attribute_content);
+		break;
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] Cannot parse attribute %s\n", info->name, gf_svg_attribute_type_to_string(info->fieldType)));
 		break;
@@ -3436,8 +3440,17 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 		}
 		break;
 
+	case 0:
+		{
+			SVG_String *string;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Attributes] Unspecified attribute type - defaulting to string.\n"));
+			GF_SAFEALLOC(string, SVG_String);
+			return string;
+		}
+
+
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Attributes] Cannot create attribute value - Type %s not supported.\n", gf_svg_attribute_type_to_string(attribute_type)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Attributes] Cannot create attribute value: Type %s not supported.\n", gf_svg_attribute_type_to_string(attribute_type)));
 		break;
 	}
 	return NULL;

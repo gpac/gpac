@@ -819,6 +819,7 @@ static void dom_node_inserted(JSContext *c, GF_Node *n, GF_Node *parent, s32 pos
 			gf_dom_listener_build_ex(parent, 0, 0, n, NULL);
 		}
 		gf_node_init(n);
+		
 
 #ifndef GPAC_DISABLE_SVG
 		if (n->sgprivate->interact && n->sgprivate->interact->dom_evt) {
@@ -1852,6 +1853,27 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 			ns_code = gf_sg_get_namespace_code_from_name(n->sgprivate->scenegraph, ns);
 		} else {
 			ns_code = gf_xml_get_element_namespace(n);
+		}
+		if (!strcmp(name, "attributeName")) {
+			if (gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_attributeName, 0, 0, &info) == GF_OK) {
+				SMIL_AttributeName *attname = (SMIL_AttributeName *)info.far_ptr;
+
+				/*parse the attribute name even if the target is not found, because a namespace could be specified and 
+				only valid for the current node*/
+				if (!attname->type) {
+					char *sep;
+					char *name = attname->name;
+					sep = strchr(name, ':');
+					if (sep) {
+						sep[0] = 0;
+						attname->type = gf_sg_get_namespace_code(n->sgprivate->scenegraph, name);
+						sep[0] = ':';
+						name = gf_strdup(sep+1);
+						gf_free(attname->name);
+						attname->name = name;
+					}
+				}
+			}
 		}
 
 		if ((n->sgprivate->tag == TAG_SVG_animateTransform) && (strstr(name, "from") || strstr(name, "to")) ) {

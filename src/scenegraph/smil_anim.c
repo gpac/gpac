@@ -1414,6 +1414,66 @@ void gf_smil_anim_init_node(GF_Node *node)
 	xlinkp->href = all_atts.xlink_href;
 	xlinkp->type = all_atts.xlink_type;		
 
+	/*perform init of default values*/
+	if (!xlinkp->href) {
+		GF_FieldInfo info;
+		gf_node_get_attribute_by_tag((GF_Node *)node, TAG_XLINK_ATT_href, 1, 0, &info);
+		xlinkp->href = info.far_ptr;
+		xlinkp->href->type = XMLRI_ELEMENTID;
+		xlinkp->href->target = gf_node_get_parent(node, 0);
+	}
+	if (xlinkp->href->type == XMLRI_STRING) {
+		if (!xlinkp->href->string) { 
+			fprintf(stderr, "Error: IRI not initialized\n");
+			return;
+		} else {
+			GF_Node *n;
+			
+			n = (GF_Node*)gf_sg_find_node_by_name(gf_node_get_graph(node), xlinkp->href->string);
+			if (n) {
+				xlinkp->href->type = XMLRI_ELEMENTID;
+				xlinkp->href->target = n;
+				gf_node_register_iri(node->sgprivate->scenegraph, xlinkp->href);
+			} else {
+				return;
+			}
+		}
+	} 
+	if (!xlinkp->href->target) return;
+
+	if (!all_atts.attributeName) return;
+
+	if ( (all_atts.to && (all_atts.to->type==0))
+		|| (all_atts.from && (all_atts.from->type==0))
+		|| (all_atts.from && (all_atts.from->type==0))
+	) {
+		GF_FieldInfo info;
+		if (gf_node_get_attribute_by_name((GF_Node *)xlinkp->href->target, all_atts.attributeName->name, 0, 1, 1, &info)==GF_OK) {
+			u32 anim_value_type = info.fieldType;
+			u32 i;
+			for (i=0; i<3; i++) {
+				u32 tag = 0;
+				switch (i) {
+				case 0: tag=TAG_SVG_ATT_to; break;
+				case 1: tag=TAG_SVG_ATT_from; break;
+				case 2: tag=TAG_SVG_ATT_by; break;
+				}
+				if (gf_node_get_attribute_by_tag((GF_Node *)node, tag, 0, 0, &info)==GF_OK) {
+					SMIL_AnimateValue *attval = info.far_ptr;
+					if (attval->type==0) {
+						SVG_String *string = attval->value;
+						attval->value = NULL;
+						if (string) {
+							gf_svg_parse_attribute((GF_Node *)node, &info, * string, anim_value_type);
+							if (* string) gf_free(* string);
+							gf_free(string);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	e->animp = gf_malloc(sizeof(SMILAnimationAttributesPointers));
 	animp = e->animp;
 	animp->accumulate	 = all_atts.accumulate;
@@ -1441,24 +1501,6 @@ void gf_smil_anim_init_node(GF_Node *node)
 		e->animp->rotate = NULL;
 	}
 	
-	if (xlinkp->href->type == XMLRI_STRING) {
-		if (!xlinkp->href->string) { 
-			fprintf(stderr, "Error: IRI not initialized\n");
-			return;
-		} else {
-			GF_Node *n;
-			
-			n = (GF_Node*)gf_sg_find_node_by_name(gf_node_get_graph(node), xlinkp->href->string);
-			if (n) {
-				xlinkp->href->type = XMLRI_ELEMENTID;
-				xlinkp->href->target = n;
-				gf_node_register_iri(node->sgprivate->scenegraph, xlinkp->href);
-			} else {
-				return;
-			}
-		}
-	} 
-	if (!xlinkp->href->target) return;
 
 	gf_smil_timing_init_runtime_info(node);
 	gf_smil_anim_init_runtime_info(node);
