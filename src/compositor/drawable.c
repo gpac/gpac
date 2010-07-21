@@ -1425,6 +1425,13 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 	/*we are drawing on a centered coord surface, remember to flip the texture*/
 	if (tr_state->fliped_coords)
 		ctx->flags |= CTX_FLIPED_COORDS;
+
+
+#ifdef GF_SR_USE_DEPTH
+    ctx->depth_gain=tr_state->depth_gain;
+    ctx->depth_offset=tr_state->depth_offset;
+#endif
+
 	return ctx;
 }
 
