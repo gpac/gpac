@@ -96,6 +96,81 @@
 			/>
 		</Configuration>
 		<Configuration
+			Name="Release|Win32"
+			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
+			ConfigurationType="4"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="1"
+				InlineFunctionExpansion="1"
+				AdditionalIncludeDirectories="../../include,../../extra_lib/include/zlib,../../extra_lib/include/js,../../extra_lib/include/jpeg,../../extra_lib/include/png"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_LIB"
+				StringPooling="true"
+				RuntimeLibrary="2"
+				EnableFunctionLevelLinking="false"
+				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
+				AssemblerListingLocation="$(IntDir)\"
+				ObjectFile="$(IntDir)\"
+				ProgramDataBaseFileName="$(IntDir)\"
+				WarningLevel="3"
+				SuppressStartupBanner="true"
+				CompileAs="1"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG"
+				Culture="1036"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac_static.lib"
+				SuppressStartupBanner="true"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(IntDir)\$(ProjectName).bsc"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
 			Name="Debug|Smartphone 2003 (ARMV4)"
 			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\libgpac"
 			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\libgpac"
@@ -179,81 +254,6 @@
 				AdditionalFiles=""
 			/>
 			<DebuggerTool
-			/>
-		</Configuration>
-		<Configuration
-			Name="Release|Win32"
-			OutputDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
-			IntermediateDirectory=".\obj\$(PlatformName)\$(ConfigurationName)\$(ProjectName)"
-			ConfigurationType="4"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
-			CharacterSet="2"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="1"
-				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="../../include,../../extra_lib/include/zlib,../../extra_lib/include/js,../../extra_lib/include/jpeg,../../extra_lib/include/png"
-				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_LIB"
-				StringPooling="true"
-				RuntimeLibrary="2"
-				EnableFunctionLevelLinking="false"
-				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
-				AssemblerListingLocation="$(IntDir)\"
-				ObjectFile="$(IntDir)\"
-				ProgramDataBaseFileName="$(IntDir)\"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
-				CompileAs="1"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
-				Culture="1036"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-			/>
-			<Tool
-				Name="VCLibrarianTool"
-				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac_static.lib"
-				SuppressStartupBanner="true"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-				SuppressStartupBanner="true"
-				OutputFile="$(IntDir)\$(ProjectName).bsc"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 		<Configuration
@@ -363,7 +363,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -372,7 +372,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -403,7 +403,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -412,7 +412,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -443,7 +443,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -452,7 +452,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -483,7 +483,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -492,7 +492,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -527,7 +527,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -536,7 +536,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -568,7 +568,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -578,7 +578,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -611,7 +611,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -620,7 +620,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -651,7 +651,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -660,7 +660,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -691,7 +691,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -700,7 +700,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -735,7 +735,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -744,7 +744,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -775,7 +775,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -784,7 +784,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -815,7 +815,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -824,7 +824,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -855,7 +855,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -864,7 +864,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -895,7 +895,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -904,7 +904,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -935,7 +935,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -944,7 +944,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -975,7 +975,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -984,7 +984,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1019,7 +1019,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1028,7 +1028,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1059,7 +1059,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1068,7 +1068,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1099,7 +1099,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1108,7 +1108,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1143,7 +1143,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1152,7 +1152,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1183,7 +1183,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1192,7 +1192,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1223,7 +1223,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1232,7 +1232,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1263,7 +1263,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1272,7 +1272,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1303,7 +1303,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1312,7 +1312,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1343,7 +1343,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1352,7 +1352,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1383,7 +1383,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1392,7 +1392,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1423,7 +1423,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1432,7 +1432,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1463,7 +1463,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1472,7 +1472,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1507,7 +1507,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1516,7 +1516,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1547,7 +1547,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1556,7 +1556,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1587,7 +1587,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1596,7 +1596,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1627,7 +1627,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1636,7 +1636,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1671,7 +1671,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1680,7 +1680,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1711,7 +1711,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1720,7 +1720,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1755,7 +1755,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1764,7 +1764,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1799,7 +1799,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1808,7 +1808,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1839,7 +1839,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1848,7 +1848,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1879,7 +1879,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1888,7 +1888,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1919,7 +1919,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1928,7 +1928,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1959,7 +1959,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1968,7 +1968,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -1999,7 +1999,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2008,7 +2008,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2039,7 +2039,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2048,7 +2048,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2083,7 +2083,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2092,7 +2092,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2127,7 +2127,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2136,7 +2136,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2167,7 +2167,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2176,7 +2176,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2207,7 +2207,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2216,7 +2216,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2251,7 +2251,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2260,7 +2260,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2291,7 +2291,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2300,7 +2300,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2331,7 +2331,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2340,7 +2340,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2371,7 +2371,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2380,7 +2380,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2411,7 +2411,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2420,7 +2420,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2451,7 +2451,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2460,7 +2460,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2491,7 +2491,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2500,7 +2500,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2531,7 +2531,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2540,7 +2540,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2571,7 +2571,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2580,7 +2580,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2611,7 +2611,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2620,7 +2620,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2651,7 +2651,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2660,7 +2660,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2691,7 +2691,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2700,7 +2700,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2731,7 +2731,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2740,7 +2740,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2771,7 +2771,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2780,7 +2780,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2811,7 +2811,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2820,7 +2820,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2851,7 +2851,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2860,7 +2860,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2895,7 +2895,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2904,7 +2904,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2935,7 +2935,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2944,7 +2944,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2975,7 +2975,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2984,7 +2984,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3015,7 +3015,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3024,7 +3024,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3055,7 +3055,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3064,7 +3064,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3095,7 +3095,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3104,7 +3104,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3135,7 +3135,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3144,7 +3144,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3175,7 +3175,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3184,7 +3184,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3215,7 +3215,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3224,7 +3224,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3263,7 +3263,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3272,7 +3272,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3303,7 +3303,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3312,7 +3312,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3347,7 +3347,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3356,7 +3356,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3387,7 +3387,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3396,7 +3396,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3427,7 +3427,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3436,7 +3436,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3467,7 +3467,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3476,7 +3476,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3511,7 +3511,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3520,7 +3520,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3551,7 +3551,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3560,7 +3560,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3591,7 +3591,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3600,7 +3600,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3631,7 +3631,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3640,7 +3640,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3671,7 +3671,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3680,7 +3680,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3715,7 +3715,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3724,7 +3724,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3755,7 +3755,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3764,7 +3764,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3803,7 +3803,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3812,7 +3812,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3843,7 +3843,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3852,7 +3852,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3883,7 +3883,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3892,7 +3892,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3927,7 +3927,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3936,7 +3936,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3967,7 +3967,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -3976,7 +3976,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4023,7 +4023,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4032,7 +4032,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4063,7 +4063,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4072,7 +4072,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4103,7 +4103,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4112,7 +4112,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4143,7 +4143,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4152,7 +4152,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4183,7 +4183,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4192,7 +4192,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4223,7 +4223,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4232,7 +4232,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4263,7 +4263,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4272,7 +4272,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4315,7 +4315,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4324,7 +4324,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4355,7 +4355,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4364,7 +4364,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4411,7 +4411,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4420,7 +4420,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4455,7 +4455,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4464,7 +4464,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4495,7 +4495,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4504,7 +4504,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4535,7 +4535,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4544,7 +4544,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4583,7 +4583,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4592,7 +4592,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4623,7 +4623,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4632,7 +4632,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4663,7 +4663,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4672,7 +4672,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4707,7 +4707,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4716,7 +4716,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4759,7 +4759,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4768,7 +4768,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4799,7 +4799,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4808,7 +4808,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4839,7 +4839,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4848,7 +4848,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4887,7 +4887,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4896,7 +4896,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4927,7 +4927,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4936,7 +4936,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4967,7 +4967,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -4976,7 +4976,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5007,7 +5007,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5016,7 +5016,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5051,7 +5051,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5060,7 +5060,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5091,7 +5091,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5100,7 +5100,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5135,7 +5135,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5144,7 +5144,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5175,7 +5175,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5184,7 +5184,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5223,7 +5223,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5232,7 +5232,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5263,7 +5263,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5272,7 +5272,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5307,7 +5307,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5316,7 +5316,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5347,7 +5347,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5356,7 +5356,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5391,7 +5391,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5400,7 +5400,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5431,7 +5431,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5440,7 +5440,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5471,7 +5471,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5480,7 +5480,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5511,7 +5511,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5520,7 +5520,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5551,7 +5551,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5560,7 +5560,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5591,7 +5591,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5600,7 +5600,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5631,7 +5631,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5640,7 +5640,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5671,7 +5671,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5680,7 +5680,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5711,7 +5711,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5720,7 +5720,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5751,7 +5751,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5760,7 +5760,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5795,7 +5795,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5804,7 +5804,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5835,7 +5835,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5844,7 +5844,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5879,7 +5879,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5888,7 +5888,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5919,7 +5919,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5928,7 +5928,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5959,7 +5959,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5968,7 +5968,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -5999,7 +5999,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6008,7 +6008,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6043,7 +6043,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6052,7 +6052,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6087,7 +6087,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6096,7 +6096,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6127,7 +6127,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6136,7 +6136,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6171,7 +6171,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6180,7 +6180,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6211,7 +6211,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6220,7 +6220,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6255,7 +6255,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6264,7 +6264,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6295,7 +6295,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6304,7 +6304,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6335,7 +6335,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6344,7 +6344,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6383,7 +6383,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6392,7 +6392,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6423,7 +6423,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6432,7 +6432,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6767,7 +6767,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6776,7 +6776,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6807,7 +6807,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6816,7 +6816,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6847,7 +6847,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Debug|Smartphone 2003 (ARMV4)"
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -6856,7 +6856,7 @@
 					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Smartphone 2003 (ARMV4)"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -7039,10 +7039,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\gpac\renderer.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\include\gpac\rtp_streamer.h"
 				>
 			</File>
@@ -7120,10 +7116,6 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\xml.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\include\gpac\yuv.h"
 				>
 			</File>
 		</Filter>
