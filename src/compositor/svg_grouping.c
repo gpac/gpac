@@ -570,6 +570,9 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 		gf_sc_get_nodes_bounds(node, ((SVG_Element *)node)->children, tr_state, NULL);
 	} else if (tr_state->traversing_mode == TRAVERSE_SORT) {
+#ifdef GF_SR_USE_DEPTH
+		Fixed scale, offset, dscale, doffset;
+#endif
 		Fixed opacity = FIX_ONE;
 		Bool clear = 0;
 		SVGgStack *group = gf_node_get_private(node);
@@ -585,6 +588,19 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 			drawable_reset_group_highlight(tr_state, node);
 			clear=1;
 		}
+
+#ifdef GF_SR_USE_DEPTH
+		dscale = FIX_ONE;
+		doffset=0;
+		if (all_atts.gpac_depthGain && all_atts.gpac_depthGain->type==SVG_NUMBER_VALUE) dscale = all_atts.gpac_depthGain->value;
+		if (all_atts.gpac_depthOffset && all_atts.gpac_depthOffset->type==SVG_NUMBER_VALUE) doffset = all_atts.gpac_depthOffset->value;
+		scale = tr_state->depth_gain;
+		offset = tr_state->depth_offset;
+		// new offset is multiplied by parent gain and added to parent offset
+		tr_state->depth_offset = gf_mulfix(doffset, scale) + offset;
+		// gain is multiplied by parent gain
+		tr_state->depth_gain = gf_mulfix(scale, dscale);
+#endif
 
 		if (opacity < FIX_ONE) {
 			if (!group->cache) {
@@ -641,6 +657,11 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 		if (clear) gf_node_dirty_clear(node, 0);
 
 		drawable_check_focus_highlight(node, tr_state, NULL);
+
+#ifdef GF_SR_USE_DEPTH
+		tr_state->depth_gain = scale;
+		tr_state->depth_offset = offset;
+#endif
 	} else {
 			compositor_svg_traverse_children(((SVG_Element *)node)->children, tr_state);
 	}
