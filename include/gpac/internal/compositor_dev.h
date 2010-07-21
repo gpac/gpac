@@ -56,7 +56,7 @@
 //#define GPAC_USE_TINYGL
 
 /*depth-enabled version for autostereoscopic displays */
-//#define GF_SR_USE_DEPTH
+#define GF_SR_USE_DEPTH
 
 /*FPS computed on this number of frame*/
 #define GF_SR_FPS_COMPUTE_SIZE	30
@@ -205,6 +205,7 @@ struct __tag_compositor
 	/*!! paused will not stop display (this enables pausing a VRML world and still examining it)*/
 	Bool paused, step_mode;
 	u32 frame_draw_type;
+	u32 force_next_frame_redraw;
 	/*freeze_display prevents any screen updates - needed when output driver uses direct video memory access*/
 	Bool is_hidden, freeze_display;
 

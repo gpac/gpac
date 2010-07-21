@@ -1612,8 +1612,16 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 #ifndef GPAC_DISABLE_SVG
 		case TAG_SVG_svg:
 #ifndef GPAC_DISABLE_3D
-			compositor->visual->type_3d = 0;
-			compositor->visual->camera.is_3D = 0;
+#ifdef GF_SR_USE_DEPTH
+			if (compositor->display_depth) {
+				compositor->visual->type_3d = 2;
+				compositor->visual->camera.is_3D = 1;
+			} else 
+#endif
+			{
+				compositor->visual->type_3d = 0;
+				compositor->visual->camera.is_3D = 0;
+			}
 #endif
 			compositor->visual->center_coords = 0;
 			compositor->root_visual_setup = 2;
@@ -1903,8 +1911,13 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	texture_time = gf_sys_clock() - texture_time;
 #endif
 
+	if (compositor->force_next_frame_redraw) {
+		compositor->force_next_frame_redraw=0;
+		compositor->frame_draw_type=GF_SC_DRAW_FRAME;
+	}
 
-	frame_drawn = (compositor->frame_draw_type==1) ? 1 : 0;
+
+	frame_drawn = (compositor->frame_draw_type==GF_SC_DRAW_FRAME) ? 1 : 0;
 
 	/*if invalidated, draw*/
 	if (compositor->frame_draw_type) {
