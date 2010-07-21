@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="8,00"
 	Name="libgpac"
 	ProjectGUID="{233014D5-F6E5-419D-8757-FA9CE7337088}"
 	RootNamespace="libgpac"
@@ -7032,10 +7032,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\include\gpac\renderer.h"
-				>
-			</File>
-			<File
 				RelativePath="..\..\include\gpac\rtp_streamer.h"
 				>
 			</File>
@@ -7113,10 +7109,6 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\xml.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\include\gpac\yuv.h"
 				>
 			</File>
 		</Filter>
