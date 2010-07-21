@@ -596,7 +596,7 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 	}
 	/*draw next frame*/
 	if (!stop_anim) {
-		gf_sc_invalidate(tr_state->visual->compositor, NULL);
+		tr_state->visual->compositor->force_next_frame_redraw = 1;
 		return;
 	}
 
