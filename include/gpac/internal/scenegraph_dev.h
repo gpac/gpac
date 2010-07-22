@@ -907,9 +907,23 @@ struct _scriptfield
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
+#include <jsapi.h>
 
 #include <gpac/download.h>
 #include <gpac/network.h>
+
+/*fix for JS > 1.8.0rc1*/
+#ifdef JS_AddValueRoot
+#define JS_AddRoot JS_AddValueRoot
+#endif
+
+#ifdef JS_AddNamedValueRoot
+#define JS_AddNamedRoot JS_AddNamedValueRoot
+#endif
+
+#ifdef JS_RemoveValueRoot
+#define JS_RemoveRoot JS_RemoveValueRoot
+#endif
 
 
 #define JS_SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
