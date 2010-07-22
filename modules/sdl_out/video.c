@@ -996,7 +996,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 {
 	SDLVID();
 	u32 amask = 0;
-	u32 bpp, i, j;
+	u32 bpp, i;
 	u8 *dst, *src;
 	SDL_Rect srcrc, dstrc;
 	SDL_Surface **pool;
@@ -1086,7 +1086,6 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 
 void *SDL_NewVideo()
 {
-	const char *opt;
 	SDLVidCtx *ctx;
 	GF_VideoOutput *driv;
 	
