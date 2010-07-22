@@ -907,23 +907,9 @@ struct _scriptfield
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
-#include <jsapi.h>
 
 #include <gpac/download.h>
 #include <gpac/network.h>
-
-/*fix for JS > 1.8.0rc1*/
-#ifdef JS_AddValueRoot
-#define JS_AddRoot JS_AddValueRoot
-#endif
-
-#ifdef JS_AddNamedValueRoot
-#define JS_AddNamedRoot JS_AddNamedValueRoot
-#endif
-
-#ifdef JS_RemoveValueRoot
-#define JS_RemoveRoot JS_RemoveValueRoot
-#endif
 
 
 #define JS_SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
@@ -946,6 +932,10 @@ void gf_sg_ecmascript_del(struct JSContext *);
 GF_Node *gf_sg_js_get_node(struct JSContext *c, struct JSObject *obj);
 
 void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script);
+
+Bool gf_js_add_root(struct JSContext *cx, void *rp);
+Bool gf_js_add_named_root(struct JSContext *cx, void *rp, const char *name);
+Bool gf_js_remove_root(struct JSContext *cx, void *rp);
 
 typedef struct 
 {

@@ -206,7 +206,7 @@ static void widget_interface_js_bind(JSContext *c, GF_WidgetInterfaceInstance *i
 	if (!ifce->obj) {
 		ifce->obj = JS_NewObject(c, &ifce->wid->widget->wm->widgetAnyClass, 0, 0);
 		JS_SetPrivate(c, ifce->obj, ifce);
-		JS_AddRoot(c, &ifce->obj);
+		gf_js_add_root(c, &ifce->obj);
 		JS_DefineProperty(c, ifce->obj, "type", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ifce->ifce->type) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, ifce->obj, "bound", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ifce->hostname) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineFunction(c, ifce->obj, "invoke", widget_invoke_message, 1, 0);
@@ -374,7 +374,7 @@ void widget_load(GF_WidgetManager *wm, GF_SceneGraph *scene, JSContext *c, JSObj
 			GF_WidgetInterfaceInstance *ifce = gf_list_get(wi->bound_ifces, i);
 			if (ifce->obj) {
 				JS_SetPrivate(c, ifce->obj, NULL);
-				JS_RemoveRoot(c, &ifce->obj);
+				gf_js_remove_root(c, &ifce->obj);
 				ifce->obj = NULL;
 			}
 		}
