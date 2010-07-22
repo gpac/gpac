@@ -401,8 +401,7 @@ GF_Err evg_stencil_set_radial_gradient(GF_STENCIL st, Fixed cx, Fixed cy, Fixed 
 */
 
 #if 0
-static s32
-mul255(s32 a, s32 b)
+static GFINLINE s32 mul255(s32 a, s32 b)
 {
 	return ((a+1) * b) >> 8;
 }
@@ -411,6 +410,8 @@ static u32 EVG_LERP(u32 c0, u32 c1, u8 t)
 	s32 a0, r0, g0, b0;
 	s32 a1, r1, g1, b1;
 	s32 a2, r2, g2, b2;
+
+	if (!t) return c0;
 
 	a0 = GF_COL_A(c0);
 	r0 = GF_COL_R(c0);
@@ -431,8 +432,8 @@ static u32 EVG_LERP(u32 c0, u32 c1, u8 t)
 
 static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 count) 
 {
-	s32 cx;
-	u32 x0, y0, pix, replace_col;
+	s32 cx, x0, y0;
+	u32 pix, replace_col;
 	Bool has_alpha, has_replace_cmat, has_cmat, repeat_s, repeat_t;
 	Fixed x, y, _fd;
 	u32 *data = surf->stencil_pix_run;
@@ -444,8 +445,14 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);
 
 	/*ugly hack we may have a numerical stability issue*/
-	if (ABS(x) < FIX_ONE/10) x = 0;
-	if (ABS(y) < FIX_ONE/10) y = 0;
+	if (ABS(x)< FIX_ONE/10) {
+		if (x<0) x = INT2FIX(_this->width - 1);
+		else x = 0;
+	}
+	if (ABS(y)< FIX_ONE/10) {
+		if (y<0) y = INT2FIX(_this->height - 1);
+		else y = 0;
+	}
 	
 	_fd = INT2FIX(_this->width); 
 	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
@@ -490,22 +497,46 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 		/*bilinear filtering - disabled (too slow and not precise enough)*/
 #if 0
 		if (_this->filter==GF_TEXTURE_FILTER_HIGH_QUALITY) {
-			u32 p00, p01, p10, p11, x1, y1;
+			u32 p00, p01, p10, p11;
+			s32 x1, y1;
 			u8 tx, ty;
-
-			x1 = (x0+1) % _this->width;
-			y1 = (y0+1) % _this->height;
-			p00 = pix;
-			p01 = _this->tx_get_pixel(_this->pixels + _this->stride*y0 + _this->Bpp*x1);
-			p10 = _this->tx_get_pixel(_this->pixels + _this->stride*y1 + _this->Bpp*x0);
-			p11 = _this->tx_get_pixel(_this->pixels + _this->stride*y1 + _this->Bpp*x1);
 
 			tx = FIX2INT(gf_muldiv(x, 255, _this->width) );
 			ty = FIX2INT(gf_muldiv(y, 255, _this->height) );
 
-			p00 = EVG_LERP(p00, p01, tx);
-			p10 = EVG_LERP(p10, p11, tx);
-			pix = EVG_LERP(p00, p10, ty);
+			if (tx || ty) {
+				x1 = (x0+incx);
+				if (x1<0) {
+					while (x1<0) x1 += _this->width;
+				} else {
+					x1 = x1 % _this->width;
+				}
+				y1 = (y0+incy);
+				if (y1<0) {
+					while (y1<0) y1+=_this->height;
+				} else {
+					y1 = y1 % _this->height;
+				}
+				if (incx>0) {
+					if (x1<x0) tx = 255-tx;
+				} else {
+					if (x1>x0) tx = 255-tx;
+				}
+				if (incy>0) {
+					if (y1<y0) ty = 255-ty;
+				} else {
+					if (y1>y0) ty = 255-ty;
+				}
+
+				p00 = pix;
+				p01 = _this->tx_get_pixel(_this->pixels + _this->stride*y0 + _this->Bpp*x1);
+				p10 = _this->tx_get_pixel(_this->pixels + _this->stride*y1 + _this->Bpp*x0);
+				p11 = _this->tx_get_pixel(_this->pixels + _this->stride*y1 + _this->Bpp*x1);
+
+				p00 = EVG_LERP(p00, p01, tx);
+				p10 = EVG_LERP(p10, p11, tx);
+				pix = EVG_LERP(p00, p10, ty);
+			}
 		}
 #endif
 
@@ -544,8 +575,14 @@ static void bmp_fill_run_straight(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _
 	y = _this->smat.m[4]*_y + _this->smat.m[5];
 
 	/*ugly hack we may have a numerical stability issue*/
-	if (ABS(x)< FIX_ONE/10) x = 0;
-	if (ABS(y)< FIX_ONE/10) y = 0;
+	if (ABS(x)< FIX_ONE/10) {
+		if (x<0) x = INT2FIX(_this->width - 1);
+		else x = 0;
+	}
+	if (ABS(y)< FIX_ONE/10) {
+		if (y<0) y = INT2FIX(_this->height - 1);
+		else y = 0;
+	}
 
 	/* and move in absolute coords*/
 	_fdim = INT2FIX(_this->width);
