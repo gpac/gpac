@@ -6403,15 +6403,18 @@ GF_Err gf_media_change_par(GF_ISOFile *file, u32 track, s32 ar_num, s32 ar_den)
 		return GF_BAD_PARAM;
 	}
 
-/*  With the removal of the following code, files produced are compatible with Quicktime 7.3 */
-/*
+	e = gf_isom_set_pixel_aspect_ratio(file, track, 1, ar_num, ar_den);
+	if (e) return e;
+
 	if ((ar_den>=0) && (ar_num>=0)) {
 		if (ar_den) tk_w = tk_w * ar_num / ar_den;
 		else if (ar_num) tk_h = tk_h * ar_den / ar_num;
 	}
-*/
-	e = gf_isom_set_pixel_aspect_ratio(file, track, 1, ar_num, ar_den);
-	if (e) return e;
+	/*revert to full frame for track layout*/
+	else {
+		e = gf_isom_get_visual_info(file, track, 1, &tk_w, &tk_h);
+		if (e) return e;
+	}
 	return gf_isom_set_track_layout_info(file, track, tk_w<<16, tk_h<<16, 0, 0, 0);
 }
 
