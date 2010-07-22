@@ -605,6 +605,11 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 		case GF_NAVIGATE_EXAMINE:
 		{
 			Fixed sin = gf_mulfix(GF_PI, dy) / visual->height;
+			//truncate in [-1;1] for arcsin()
+			if (sin < -FIX_ONE)
+				sin = -FIX_ONE;
+			if (sin >  FIX_ONE)
+				sin =  FIX_ONE;
 			visual->compositor->rotation += gf_asin(sin);
 			nav_set_zoom_trans_2d(visual, zoom, 0, 0);
 		}
