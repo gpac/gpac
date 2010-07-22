@@ -1214,6 +1214,9 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_get_node) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_js_add_root) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_js_add_named_root) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_js_remove_root) )
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_add_listener) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_remove_listener) )

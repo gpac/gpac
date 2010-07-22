@@ -251,9 +251,9 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 		if (set_rooted && (gf_list_find(sg->objects, n->sgprivate->interact->js_binding->node)<0)) {
 			const char *name = gf_node_get_name(n);
 			if (name) {
-				JS_AddNamedRoot(c, &n->sgprivate->interact->js_binding->node, name);
+				gf_js_add_named_root(c, &n->sgprivate->interact->js_binding->node, name);
 			} else {
-				JS_AddRoot(c, &n->sgprivate->interact->js_binding->node);
+				gf_js_add_root(c, &n->sgprivate->interact->js_binding->node);
 			}
 			gf_list_add(sg->objects, n->sgprivate->interact->js_binding->node);
 		}
@@ -277,9 +277,9 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 	if (n->sgprivate->parents && set_rooted) {
 		const char *name = gf_node_get_name(n);
 		if (name) {
-			JS_AddNamedRoot(c, &n->sgprivate->interact->js_binding->node, name);
+			gf_js_add_named_root(c, &n->sgprivate->interact->js_binding->node, name);
 		} else {
-			JS_AddRoot(c, &n->sgprivate->interact->js_binding->node);
+			gf_js_add_root(c, &n->sgprivate->interact->js_binding->node);
 		}
 		gf_list_add(sg->objects, n->sgprivate->interact->js_binding->node);
 	}
@@ -495,7 +495,7 @@ static void dom_handler_remove(GF_Node *node, void *rs, Bool is_destroy)
 		SVG_handlerElement *handler = (SVG_handlerElement *)node;
 		if (handler->js_context && handler->js_fun_val) {
 			/*unprotect the function*/
-			JS_RemoveRoot(handler->js_context, &(handler->js_fun_val));
+			gf_js_remove_root(handler->js_context, &(handler->js_fun_val));
 			handler->js_fun_val=0;
 			gf_list_del_item(dom_rt->handlers, handler);
 		}
@@ -592,7 +592,7 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 			if (handler->js_fun_val) {
 				handler->js_context = c;
 				/*protect the function - we don't know how it was passed to us, so prevent it from being GCed*/
-				JS_AddRoot(handler->js_context, &handler->js_fun_val);
+				gf_js_add_root(handler->js_context, &handler->js_fun_val);
 				handler->sgprivate->UserCallback = dom_handler_remove;
 				gf_list_add(dom_rt->handlers, handler);
 			}
@@ -801,9 +801,9 @@ static void dom_node_inserted(JSContext *c, GF_Node *n, GF_Node *parent, s32 pos
 		if (nobj && (gf_list_find(n->sgprivate->scenegraph->objects, nobj)<0) ) {
 			const char *name = gf_node_get_name(n);
 			if (name) {
-				JS_AddNamedRoot(c, &n->sgprivate->interact->js_binding->node, name);
+				gf_js_add_named_root(c, &n->sgprivate->interact->js_binding->node, name);
 			} else {
-				JS_AddRoot(c, &n->sgprivate->interact->js_binding->node);
+				gf_js_add_root(c, &n->sgprivate->interact->js_binding->node);
 			}
 			gf_list_add(n->sgprivate->scenegraph->objects, nobj);
 		}
@@ -2398,7 +2398,7 @@ static void xml_http_finalize(JSContext *c, JSObject *obj)
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (ctx) {
 		xml_http_reset(ctx);
-		if (ctx->onreadystatechange) JS_RemoveRoot(c, &(ctx->onreadystatechange));
+		if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange));
 		gf_free(ctx);
 	}
 }
@@ -2963,7 +2963,7 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		default:
 			return JS_TRUE;
 		}
-		if (ctx->onreadystatechange) JS_RemoveRoot(c, &(ctx->onreadystatechange));
+		if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange));
 
 		if (JSVAL_IS_VOID(*vp)) {
 			ctx->onreadystatechange = NULL;
@@ -2977,7 +2977,7 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		} else if (JSVAL_IS_OBJECT(*vp)) {
 			ctx->onreadystatechange = JS_ValueToFunction(c, *vp);
 		}
-		if (ctx->onreadystatechange) JS_AddRoot(c, &ctx->onreadystatechange);
+		if (ctx->onreadystatechange) gf_js_add_root(c, &ctx->onreadystatechange);
 		return JS_TRUE;
 	}
 	return JS_TRUE;
@@ -3626,7 +3626,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 			JS_SetPrivate(c, obj, NULL);
 			n->sgprivate->interact->js_binding->node=NULL;
 			if (gf_list_del_item(sg->objects, obj)>=0) {
-				JS_RemoveRoot(c, &(n->sgprivate->interact->js_binding->node));
+				gf_js_remove_root(c, &(n->sgprivate->interact->js_binding->node));
 			}
 		}
 		return;
@@ -3642,7 +3642,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 			JS_SetPrivate(c, obj, NULL);
 			n->sgprivate->interact->js_binding->node=NULL;
 			gf_node_unregister(n, NULL);
-			JS_RemoveRoot(c, &(n->sgprivate->interact->js_binding->node));
+			gf_js_remove_root(c, &(n->sgprivate->interact->js_binding->node));
 		}
 		gf_list_rem(sg->objects, 0);
 	}
@@ -3652,7 +3652,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 		SVG_handlerElement *handler = (SVG_handlerElement *)gf_list_get(dom_rt->handlers, i);
 		if (handler->js_context==c) {
 			/*unprotect the function*/
-			JS_RemoveRoot(handler->js_context, &(handler->js_fun_val));
+			gf_js_remove_root(handler->js_context, &(handler->js_fun_val));
 			handler->js_fun_val=0;
 			handler->js_context=0;
 			gf_list_rem(dom_rt->handlers, i);

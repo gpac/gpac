@@ -60,24 +60,24 @@ GPAC_ServiceItem::~GPAC_ServiceItem()
 void GPAC_ServiceItem::DetachJS() 
 {
 	if (obj) {
-		JS_RemoveRoot(js_ctx, &obj);
+		gf_js_remove_root(js_ctx, &obj);
 		JS_SetPrivate(js_ctx, obj, NULL);
 		obj = NULL;
 	}
 	if (on_event) {
-		JS_RemoveRoot(js_ctx, &on_event);
+		gf_js_remove_root(js_ctx, &on_event);
 		on_event = NULL;
 	}
 	while (gf_list_count(m_StateListeners)) {
 		GPAC_StateVariableListener *svl = (GPAC_StateVariableListener *)gf_list_get(m_StateListeners, 0);
 		gf_list_rem(m_StateListeners, 0);
-		JS_RemoveRoot(js_ctx, &svl->on_event);
+		gf_js_remove_root(js_ctx, &svl->on_event);
 		delete svl;
 	}
 	while (gf_list_count(m_ArgListeners)) {
 		GPAC_ActionArgListener *argl = (GPAC_ActionArgListener *)gf_list_get(m_ArgListeners, 0);
 		gf_list_rem(m_ArgListeners, 0);
-		JS_RemoveRoot(js_ctx, &argl->on_event);
+		gf_js_remove_root(js_ctx, &argl->on_event);
 		delete argl;
 	}
 }
@@ -105,7 +105,7 @@ GPAC_DeviceItem::~GPAC_DeviceItem()
 #ifdef GPAC_HAS_SPIDERMONKEY
 void GPAC_DeviceItem::DetachJS() {
 	if (obj) {
-		JS_RemoveRoot(js_ctx, &obj);
+		gf_js_remove_root(js_ctx, &obj);
 		JS_SetPrivate(js_ctx, obj, NULL);
 		obj = NULL;
 	}
@@ -127,11 +127,11 @@ static JSBool upnp_service_set_listener(JSContext *c, JSObject *obj, uintN argc,
 	if (!service || !argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 
 	if (argc<1) {
-		if (service->on_event) JS_RemoveRoot(c, &service->on_event);
+		if (service->on_event) gf_js_remove_root(c, &service->on_event);
 		service->on_event = NULL;
 		if (!JSVAL_IS_NULL(argv[0])) {
 			service->on_event = argv[0];
-			JS_AddRoot(c, &service->on_event);
+			gf_js_add_root(c, &service->on_event);
 			if (!service->subscribed) {
 				service->m_device->m_pUPnP->m_pGenericController->m_CtrlPoint->Subscribe(service->m_service);
 				service->subscribed = 1;
@@ -154,13 +154,13 @@ static JSBool upnp_service_set_listener(JSContext *c, JSObject *obj, uintN argc,
 		svl->var = service->m_service->FindStateVariable(name);
 		gf_list_add(service->m_StateListeners, svl);
 	}
-	if (svl->on_event) JS_RemoveRoot(c, &svl->on_event);
+	if (svl->on_event) gf_js_remove_root(c, &svl->on_event);
 	if (JSVAL_IS_NULL(argv[0])) {
 		gf_list_del_item(service->m_StateListeners, svl);
 		delete svl;
 	}
 	svl->on_event = argv[0];
-	JS_AddRoot(c, &svl->on_event);
+	gf_js_add_root(c, &svl->on_event);
 	if (!service->subscribed) {
 		service->m_device->m_pUPnP->m_pGenericController->m_CtrlPoint->Subscribe(service->m_service);
 		service->subscribed = 1;
@@ -212,14 +212,14 @@ static JSBool upnp_service_set_action_listener(JSContext *c, JSObject *obj, uint
 		argl->action = action;
 		gf_list_add(service->m_ArgListeners, argl);
 	}
-	if (argl->on_event) JS_RemoveRoot(c, &argl->on_event);
+	if (argl->on_event) gf_js_remove_root(c, &argl->on_event);
 	if (JSVAL_IS_NULL(argv[1])) {
 		gf_list_del_item(service->m_ArgListeners, argl);
 		delete argl;
 	}
 	argl->on_event = argv[1];
 	argl->is_script = script_callback;
-	JS_AddRoot(c, &argl->on_event);
+	gf_js_add_root(c, &argl->on_event);
 	return JS_TRUE;
 }
 
@@ -348,7 +348,7 @@ static JSBool upnp_service_call_action(JSContext *c, JSObject *obj, uintN argc, 
 	if ((argc==3) && JSVAL_IS_OBJECT(argv[2])) {
 		act_udta = new 	GPAC_ActionUDTA();
 		act_udta->udta = argv[2];
-		JS_AddRoot(c, &act_udta->udta);
+		gf_js_add_root(c, &act_udta->udta);
 	}
 	service->m_device->m_pUPnP->m_pGenericController->m_CtrlPoint->InvokeAction(action, act_udta);
 	return JS_TRUE;
@@ -377,7 +377,7 @@ GPAC_ServiceItem *GPAC_DeviceItem::FindService(const char *type)
 #ifdef GPAC_HAS_SPIDERMONKEY
 	serv->js_ctx = js_ctx;
 	serv->obj = JS_NewObject(serv->js_ctx, &m_pUPnP->upnpServiceClass, 0, obj);
-	JS_AddRoot(serv->js_ctx, &serv->obj);
+	gf_js_add_root(serv->js_ctx, &serv->obj);
 	JS_SetPrivate(serv->js_ctx, serv->obj, serv);
 	JS_DefineProperty(serv->js_ctx, serv->obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(serv->js_ctx, service->GetServiceID()) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(serv->js_ctx, serv->obj, "Type", STRING_TO_JSVAL( JS_NewStringCopyZ(serv->js_ctx, service->GetServiceType()) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -594,7 +594,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 			JS_DefineFunction(serv->js_ctx, act_obj, "GetErrorCode", upnp_action_get_error_code, 1, 0);
 			JS_DefineFunction(serv->js_ctx, act_obj, "GetError", upnp_action_get_error, 1, 0);
 
-			JS_AddRoot(serv->js_ctx, &act_obj);
+			gf_js_add_root(serv->js_ctx, &act_obj);
 			argv[0] = OBJECT_TO_JSVAL(act_obj);
 			if (act_udta) {
 				argv[1] = act_udta->udta;
@@ -602,7 +602,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 			} else {
 				JS_CallFunctionValue(serv->js_ctx, serv->obj, act_l->on_event, 1, argv, &rval);
 			}
-			JS_RemoveRoot(serv->js_ctx, &act_obj);
+			gf_js_remove_root(serv->js_ctx, &act_obj);
 		}
 		/*if error don't trigger listeners*/
 		else if (res == NPT_SUCCESS) {
@@ -618,7 +618,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 
 exit:
 	if (act_udta) {
-		JS_RemoveRoot(serv->js_ctx, &act_udta->udta);
+		gf_js_remove_root(serv->js_ctx, &act_udta->udta);
 		delete act_udta;
 	}
 
@@ -697,7 +697,7 @@ GPAC_Service::GPAC_Service(PLT_DeviceData* device, const char *type,  const char
 GPAC_Service::~GPAC_Service()
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
-	if (m_pObj) JS_RemoveRoot(m_pCtx, &m_pObj);
+	if (m_pObj) gf_js_remove_root(m_pCtx, &m_pObj);
 #endif
 }
 
@@ -726,7 +726,7 @@ void GPAC_Service::SetupJS(JSContext *c, GF_UPnP *upnp, JSObject *parent)
 {
 	m_pCtx = c;
 	m_pObj = JS_NewObject(c, &upnp->upnpDeviceClass, 0, parent);
-	JS_AddRoot(m_pCtx, &m_pObj);
+	gf_js_add_root(m_pCtx, &m_pObj);
 	JS_SetPrivate(c, m_pObj, this);
 	JS_DefineFunction(c, m_pObj, "SetStateVariable", upnp_service_set_state_variable, 2, 0);
 
@@ -764,18 +764,18 @@ GPAC_GenericDevice::~GPAC_GenericDevice()
 void GPAC_GenericDevice::DetachJS(JSContext *c)
 {
 	u32 i, count;
-	if (obj) JS_RemoveRoot(c, &obj);
+	if (obj) gf_js_remove_root(c, &obj);
 	obj = NULL;
-	if (run_proc) JS_RemoveRoot(c, &run_proc);
+	if (run_proc) gf_js_remove_root(c, &run_proc);
 	run_proc = NULL;
-	if (act_proc) JS_RemoveRoot(c, &act_proc);
+	if (act_proc) gf_js_remove_root(c, &act_proc);
 	act_proc = NULL;
 
 	count = gf_list_count(m_pServices);
 	for (i=0; i<count; i++) {
 		GPAC_Service *service = (GPAC_Service*)gf_list_get(m_pServices, i);
 		if (service->m_pObj) {
-			JS_RemoveRoot(c, &service->m_pObj);
+			gf_js_remove_root(c, &service->m_pObj);
 			service->m_pObj = NULL;
 		}
 	}

@@ -33,6 +33,32 @@
 
 #include <jsapi.h>
 
+/*fixes for JS > 1.8.0rc1 where GC routines have changed*/
+Bool gf_js_add_root(JSContext *cx, void *rp)
+{
+#ifdef JS_AddValueRoot
+	return (JS_AddValueRoot(cx, rp)==JS_TRUE) ? 1 : 0;
+#else
+	return (JS_AddRoot(cx, rp)==JS_TRUE) ? 1 : 0;
+#endif
+}
+Bool gf_js_add_named_root(JSContext *cx, void *rp, const char *name)
+{
+#ifdef JS_AddNamedValueRoot
+	return (JS_AddNamedValueRoot(cx, rp, name)==JS_TRUE) ? 1 : 0;
+#else
+	return (JS_AddNamedRoot(cx, rp, name)==JS_TRUE) ? 1 : 0;
+#endif
+}
+Bool gf_js_remove_root(JSContext *cx, void *rp)
+{
+#ifdef JS_RemoveValueRoot
+	return (JS_RemoveValueRoot(cx, rp)==JS_TRUE) ? 1 : 0;
+#else
+	return (JS_RemoveRoot(cx, rp)==JS_TRUE) ? 1 : 0;
+#endif
+}
+
 
 #if !defined(__GNUC__)
 # if defined(_WIN32_WCE)
@@ -432,7 +458,7 @@ static JSObject *node_get_binding(GF_ScriptPriv *priv, GF_Node *node, Bool is_co
 	if (node->sgprivate->interact && node->sgprivate->interact->js_binding && node->sgprivate->interact->js_binding->node) {
 		field = node->sgprivate->interact->js_binding->node;
 		if (!field->is_rooted) {
-			JS_AddRoot(priv->js_ctx, &field->obj);
+			gf_js_add_root(priv->js_ctx, &field->obj);
 			field->is_rooted=1;
 		}
 		return field->obj;
@@ -461,7 +487,7 @@ static JSObject *node_get_binding(GF_ScriptPriv *priv, GF_Node *node, Bool is_co
 	node->sgprivate->interact->js_binding->node = field;
 	if (!is_constructor) {
 		field->is_rooted = 1;
-		JS_AddRoot(priv->js_ctx, &field->obj);
+		gf_js_add_root(priv->js_ctx, &field->obj);
 	}
 	return obj;
 }
@@ -575,11 +601,11 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 
 	if (!r->FromNode) {
 		if (r->obj) {
-			JS_RemoveRoot(priv->js_ctx, &r->obj);
+			gf_js_remove_root(priv->js_ctx, &r->obj);
 			r->obj=NULL;
 		}
 		if (r->fun) {
-			JS_RemoveRoot(priv->js_ctx, &r->fun);
+			gf_js_remove_root(priv->js_ctx, &r->fun);
 			r->fun=0;
 		}
 		return;
@@ -599,14 +625,14 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 	argv[0] = gf_sg_script_to_smjs_field(priv, &r->FromField, r->FromNode, 1);
 
 	/*protect args*/
-	if (JSVAL_IS_GCTHING(argv[0])) JS_AddRoot(priv->js_ctx, &argv[0]);
-	if (JSVAL_IS_GCTHING(argv[1])) JS_AddRoot(priv->js_ctx, &argv[1]);
+	if (JSVAL_IS_GCTHING(argv[0])) gf_js_add_root(priv->js_ctx, &argv[0]);
+	if (JSVAL_IS_GCTHING(argv[1])) gf_js_add_root(priv->js_ctx, &argv[1]);
 
 	JS_CallFunctionValue(priv->js_ctx, obj, (jsval) r->fun, 2, argv, &rval);
 
 	/*release args*/
-	if (JSVAL_IS_GCTHING(argv[0])) JS_RemoveRoot(priv->js_ctx, &argv[0]);
-	if (JSVAL_IS_GCTHING(argv[1])) JS_RemoveRoot(priv->js_ctx, &argv[1]);
+	if (JSVAL_IS_GCTHING(argv[0])) gf_js_remove_root(priv->js_ctx, &argv[0]);
+	if (JSVAL_IS_GCTHING(argv[1])) gf_js_remove_root(priv->js_ctx, &argv[1]);
 
 #ifdef FORCE_GC
 	MyJSGC(priv->js_ctx);
@@ -695,10 +721,10 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 		r->ToField.name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
 
 		r->obj = JSVAL_TO_OBJECT( argv[2] ) ;
-		JS_AddRoot(c, & r->obj);
+		gf_js_add_root(c, & r->obj);
 
 		r->fun = argv[3];
-		JS_AddRoot(c, &r->fun);
+		gf_js_add_root(c, &r->fun);
 
 		r->is_setup = 1;
 		r->graph = n1->sgprivate->scenegraph;
@@ -2209,7 +2235,7 @@ static void setup_js_array(JSContext *c, JSObject *obj, GF_JSField *ptr, uintN a
 	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	ptr->obj = obj;
 	ptr->js_list = JS_NewArrayObject(c, (jsint) argc, argv);
-	JS_AddRoot(c, &ptr->js_list);
+	gf_js_add_root(c, &ptr->js_list);
 	ptr->is_rooted = 1;
 	gf_list_add(priv->js_cache, obj);
 }
@@ -2265,7 +2291,7 @@ static void array_finalize_ex(JSContext *c, JSObject *obj, Bool is_js_call)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering MFField %s\n", ptr->field.name));
 
 	if (ptr->js_list && ptr->is_rooted) {
-		JS_RemoveRoot(c, &ptr->js_list);
+		gf_js_remove_root(c, &ptr->js_list);
 	}
 
 	/*MFNode*/
@@ -3770,9 +3796,9 @@ static void JS_ReleaseRootObjects(GF_ScriptPriv *priv)
 
 		if (jsf->is_rooted) {
 			if (jsf->js_list) {
-				JS_RemoveRoot(priv->js_ctx, &jsf->js_list);
+				gf_js_remove_root(priv->js_ctx, &jsf->js_list);
 			} else {
-				JS_RemoveRoot(priv->js_ctx, &jsf->obj);
+				gf_js_remove_root(priv->js_ctx, &jsf->obj);
 			}
 			jsf->is_rooted=0;
 		}
@@ -3918,14 +3944,14 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	argv[1] = gf_sg_script_to_smjs_field(priv, &t_info, node, 1);
 
 	/*protect args*/
-	if (JSVAL_IS_GCTHING(argv[0])) JS_AddRoot(priv->js_ctx, &argv[0]);
-	if (JSVAL_IS_GCTHING(argv[1])) JS_AddRoot(priv->js_ctx, &argv[1]);
+	if (JSVAL_IS_GCTHING(argv[0])) gf_js_add_root(priv->js_ctx, &argv[0]);
+	if (JSVAL_IS_GCTHING(argv[1])) gf_js_add_root(priv->js_ctx, &argv[1]);
 
 	JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 2, argv, &rval);
 
 	/*release args*/
-	if (JSVAL_IS_GCTHING(argv[0])) JS_RemoveRoot(priv->js_ctx, &argv[0]);
-	if (JSVAL_IS_GCTHING(argv[1])) JS_RemoveRoot(priv->js_ctx, &argv[1]);
+	if (JSVAL_IS_GCTHING(argv[0])) gf_js_remove_root(priv->js_ctx, &argv[0]);
+	if (JSVAL_IS_GCTHING(argv[1])) gf_js_remove_root(priv->js_ctx, &argv[1]);
 
 #ifdef FORCE_GC
 	MyJSGC(priv->js_ctx);
@@ -4171,7 +4197,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 		{
 
 			if (gf_list_del_item(sg->objects, node->sgprivate->interact->js_binding->node)>=0) {
-				JSBool ret = JS_RemoveRoot(sg->svg_js->js_ctx, &(node->sgprivate->interact->js_binding->node));
+				JSBool ret = gf_js_remove_root(sg->svg_js->js_ctx, &(node->sgprivate->interact->js_binding->node));
 				if (sg->svg_js->in_script) 
 					sg->svg_js->force_gc = 1;
 				else {
@@ -4193,7 +4219,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 				if (node->sgprivate->interact->js_binding->node) {
 					GF_JSField *field = node->sgprivate->interact->js_binding->node;
 					if (field->is_rooted) {
-						JS_RemoveRoot(field->js_ctx, &field->obj);
+						gf_js_remove_root(field->js_ctx, &field->obj);
 						field->is_rooted = 0;
 					}
 				}
@@ -4220,7 +4246,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 							afield->owner = NULL;
 						}
 					}
-					JS_RemoveRoot(jsf->js_ctx, &jsf->js_list);
+					gf_js_remove_root(jsf->js_ctx, &jsf->js_list);
 					jsf->js_list = NULL;
 				}
 			}

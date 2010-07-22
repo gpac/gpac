@@ -475,7 +475,7 @@ static void wm_delete_widget_content(GF_WidgetContent *content)
 		gf_list_del(ifce->messages);
 		wm_delete_message_param(ifce->bind_action);
 		wm_delete_message_param(ifce->unbind_action);
-		if (ifce->obj) JS_RemoveRoot(ifce->content->widget->wm->ctx, &ifce->obj);
+		if (ifce->obj) gf_js_remove_root(ifce->content->widget->wm->ctx, &ifce->obj);
 
 		if (ifce->connectTo) gf_free(ifce->connectTo);
 		gf_free(ifce->type);
@@ -578,7 +578,7 @@ static void wm_delete_interface_instance(GF_WidgetManager *wm, GF_WidgetInterfac
 	if (bifce->hostname) gf_free(bifce->hostname);
 	if (bifce->obj) {
 		JS_SetPrivate(wm->ctx, bifce->obj, NULL);
-		JS_RemoveRoot(wm->ctx, &bifce->obj);
+		gf_js_remove_root(wm->ctx, &bifce->obj);
 	}
 	gf_free(bifce);
 }
@@ -605,7 +605,7 @@ static void wm_delete_widget_instance(GF_WidgetManager *wm, GF_WidgetInstance *w
 
 	if (widg->obj) {
 		JS_SetPrivate(wm->ctx, widg->obj, NULL);
-		JS_RemoveRoot(wm->ctx, &widg->obj);
+		gf_js_remove_root(wm->ctx, &widg->obj);
 	}
 	gf_list_del_item(wm->widget_instances, widg);
 	widg->widget->nb_instances--;
@@ -892,7 +892,7 @@ static void wm_handler_destroy(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		SVG_handlerElement *handler = (SVG_handlerElement *)node;
 		if (handler->js_fun_val) {
-			JS_RemoveRoot(handler->js_context, &handler->js_fun_val);
+			gf_js_remove_root(handler->js_context, &handler->js_fun_val);
 			handler->js_fun_val=0;
 		}
 	}
@@ -1435,7 +1435,7 @@ static JSBool wm_widget_get_interface(JSContext *c, JSObject *obj, uintN argc, j
 			JS_DefineProperty(c, ifce->obj, "serviceProvider", BOOLEAN_TO_JSVAL( ifce->provider ? JS_TRUE : JS_FALSE ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 			JS_DefineProperty(c, ifce->obj, "multipleBinding", BOOLEAN_TO_JSVAL( ifce->multiple_binding ? JS_TRUE : JS_FALSE ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 			JS_DefineFunction(c, ifce->obj, "get_message", wm_widget_get_message, 1, 0);
-			JS_AddRoot(c, &ifce->obj);
+			gf_js_add_root(c, &ifce->obj);
 		}
 		*rval = OBJECT_TO_JSVAL(ifce->obj);
 	}
@@ -1466,7 +1466,7 @@ static JSBool wm_widget_bind_output_trigger(JSContext *c, JSObject *obj, uintN a
 	handler = wm_create_scene_listener(wid, param);
 	if (!handler) return JS_FALSE;
 	handler->js_fun_val = argv[1];
-	JS_AddRoot(c, &handler->js_fun_val);
+	gf_js_add_root(c, &handler->js_fun_val);
 	handler->evt_listen_obj = wid;
 	handler->js_fun = param;
 	handler->js_context = c;
@@ -2011,7 +2011,7 @@ static void wm_widget_jsbind(GF_WidgetManager *wm, GF_WidgetInstance *wid)
 	wid->obj = JS_NewObject(wm->ctx, &wm->wmWidgetClass, 0, 0);
 	JS_SetPrivate(wm->ctx, wid->obj, wid);
 	/*protect from GC*/
-	JS_AddRoot(wm->ctx, &wid->obj);
+	gf_js_add_root(wm->ctx, &wid->obj);
 }
 
 void wm_activate_component(JSContext *c, GF_WidgetInstance *wid, GF_WidgetComponent *comp, Bool unload, GF_WidgetComponentInstance *comp_inst)
@@ -3346,7 +3346,7 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 	/*unload widgets*/
 	if (unload) {
 		if (wm->obj) {
-			JS_RemoveRoot(wm->ctx, &wm->obj);
+			gf_js_remove_root(wm->ctx, &wm->obj);
 			wm->obj = NULL;
 		}
 
@@ -3367,7 +3367,7 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 	JS_InitClass(c, global, 0, &wm->widmanClass, 0, 0, wmClassProps, wmClassFuncs, 0, 0);
 	wm->obj = JS_DefineObject(c, global, "WidgetManager", &wm->widmanClass, 0, 0);
 	JS_SetPrivate(c, wm->obj, wm);
-	JS_AddRoot(c, &wm->obj);
+	gf_js_add_root(c, &wm->obj);
 
 
 	{

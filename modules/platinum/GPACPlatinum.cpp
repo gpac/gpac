@@ -561,7 +561,7 @@ void GF_UPnP::OnDeviceAdd(GPAC_DeviceItem *item, int added)
 		item->js_ctx = m_pJSCtx;
 		item->obj = JS_NewObject(m_pJSCtx, &upnpGenericDeviceClass, 0, 0);
 		item->m_pUPnP = this;
-		JS_AddRoot(m_pJSCtx, &item->obj);
+		gf_js_add_root(m_pJSCtx, &item->obj);
 		JS_SetPrivate(item->js_ctx, item->obj, item);
 	}
 
@@ -630,7 +630,7 @@ static JSBool upnp_get_device(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 		device->js_ctx = upnp->m_pJSCtx;
 		device->obj = JS_NewObject(upnp->m_pJSCtx, &upnp->upnpGenericDeviceClass, 0, 0);
 		device->m_pUPnP = upnp;
-		JS_AddRoot(upnp->m_pJSCtx, &device->obj);
+		gf_js_add_root(upnp->m_pJSCtx, &device->obj);
 		JS_SetPrivate(device->js_ctx, device->obj, device);
 	}
 	*rval = OBJECT_TO_JSVAL(device->obj);
@@ -1163,12 +1163,12 @@ static JSBool upnp_device_start(JSContext *c, JSObject *obj, uintN argc, jsval *
 	if (JS_LookupProperty(device->m_pUPnP->m_pJSCtx, obj, "Run", &sval) && JSVAL_IS_OBJECT(sval)) {
 		device->obj = obj;
 		device->run_proc = sval;
-		JS_AddRoot(device->m_pUPnP->m_pJSCtx, &device->run_proc);
+		gf_js_add_root(device->m_pUPnP->m_pJSCtx, &device->run_proc);
 	}
 	if (JS_LookupProperty(device->m_pUPnP->m_pJSCtx, obj, "OnAction", &sval) && JSVAL_IS_OBJECT(sval)) {
 		device->obj = obj;
 		device->act_proc = sval;
-		JS_AddRoot(device->m_pUPnP->m_pJSCtx, &device->act_proc);
+		gf_js_add_root(device->m_pUPnP->m_pJSCtx, &device->act_proc);
 	}
 	PLT_DeviceHostReference devRef(device);
 	device->m_pUPnP->m_pPlatinum->AddDevice(devRef);
@@ -1196,7 +1196,7 @@ static GPAC_GenericDevice *upnp_create_generic_device(GF_UPnP *upnp, JSObject*gl
 	device->js_source = "";
 
 	device->obj = JS_NewObject(upnp->m_pJSCtx, &upnp->upnpDeviceClass, 0, global);
-	JS_AddRoot(upnp->m_pJSCtx, &device->obj);
+	gf_js_add_root(upnp->m_pJSCtx, &device->obj);
 
 	JS_DefineProperty(upnp->m_pJSCtx, device->obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(upnp->m_pJSCtx, device->obj, "ID", STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, id) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1368,7 +1368,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		buf[size]=0;
 		/*evaluate the script on the object only*/
 		if (JS_EvaluateScript(m_pJSCtx, device->obj, buf, size, 0, 0, &aval) != JS_TRUE) {
-			JS_RemoveRoot(m_pJSCtx, &device->obj);
+			gf_js_remove_root(m_pJSCtx, &device->obj);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] Unable to load device %s: script error in %s\n", szFriendlyName, szFile));
 			gf_list_del_item(m_Devices, device);
 			delete device;
