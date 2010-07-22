@@ -400,7 +400,9 @@ GF_Err evg_stencil_set_radial_gradient(GF_STENCIL st, Fixed cx, Fixed cy, Fixed 
 	Texture stencil - this is just a crude texture mapper, it lacks precision and filtering ...
 */
 
-#if 0
+#define USE_BILINEAR	0
+
+#if USE_BILINEAR
 static GFINLINE s32 mul255(s32 a, s32 b)
 {
 	return ((a+1) * b) >> 8;
@@ -430,30 +432,92 @@ static u32 EVG_LERP(u32 c0, u32 c1, u8 t)
 }
 #endif
 
-static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 count) 
+static void bmp_untransform_coord(EVG_Texture *_this, s32 _x, s32 _y, Fixed *outx, Fixed *outy)
 {
-	s32 cx, x0, y0;
-	u32 pix, replace_col;
-	Bool has_alpha, has_replace_cmat, has_cmat, repeat_s, repeat_t;
-	Fixed x, y, _fd;
-	u32 *data = surf->stencil_pix_run;
-	EVG_Texture *_this = (EVG_Texture *) p;
+	u32 checkx, checky;
+	Fixed x, y, dim;
 
 	/* reverse to texture coords*/
 	x = INT2FIX(_x);
 	y = INT2FIX(_y);
 	gf_mx2d_apply_coords(&_this->smat, &x, &y);
 
-	/*ugly hack we may have a numerical stability issue*/
-	if (ABS(x)< FIX_ONE/10) {
-		if (x<0) x = INT2FIX(_this->width - 1);
-		else x = 0;
+	checkx = checky = 0;
+	if (ABS(x)< FIX_ONE/20) checkx = 1;
+	if (ABS(y)< FIX_ONE/20) checky = 1;
+
+	/*we may have a numerical stability issues, try to figure out whether we are close from 0 or width/height*/
+	if ( checkx || checky) {
+		Fixed tx, ty;
+		tx = INT2FIX(_x+1);
+		ty = INT2FIX(_y+1);
+		gf_mx2d_apply_coords(&_this->smat, &tx, &ty);
+
+		if (checkx) {
+			if (tx<0) x = INT2FIX(_this->width - 1);
+			else x = 0;
+		}
+		if (checky) {
+			if (ty<0) y = INT2FIX(_this->height - 1);
+			else y = 0;
+		}
 	}
-	if (ABS(y)< FIX_ONE/10) {
-		if (y<0) y = INT2FIX(_this->height - 1);
-		else y = 0;
+
+	dim = INT2FIX(_this->width);
+	if (_this->mod & GF_TEXTURE_REPEAT_S) {
+		if (x<0) {
+			while (x<0) x += dim;
+		} else {
+			while (x>dim) x -= dim;
+		}
+	} else {
+		if (x<-dim) {
+			x = 0;
+		} else if (x>dim) {
+			x = dim;
+		}
+		while (x<0) x+=dim;
 	}
-	
+
+	dim = INT2FIX(_this->height);
+	if (_this->mod & GF_TEXTURE_REPEAT_T) {
+		if (y<0) {
+			while (y<0) y += dim;
+		} else {
+			while (y>dim) y -= dim;
+		}
+	} else {
+		if (y<-dim) {
+			y = 0;
+		} else if (y>dim) {
+			y = dim;
+		}
+		while (y<0) y+=dim;
+	}
+
+	*outx=x;
+	*outy=y;
+}
+
+static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 count) 
+{
+	s32 cx, x0, y0;
+	u32 pix, replace_col;
+	Bool has_alpha, has_replace_cmat, has_cmat, repeat_s, repeat_t;
+	Fixed x, y, _fd;
+#if USE_BILINEAR
+	s32 incx, incy;
+#endif
+	u32 *data = surf->stencil_pix_run;
+	EVG_Texture *_this = (EVG_Texture *) p;
+
+	bmp_untransform_coord(_this, _x, _y, &x, &y);
+
+#if USE_BILINEAR
+	incx = (_this->inc_x>0) ? 1 : -1;
+	incy = (_this->inc_y>0) ? 1 : -1;
+#endif
+
 	_fd = INT2FIX(_this->width); 
 	repeat_s = _this->mod & GF_TEXTURE_REPEAT_S;
 	if (!repeat_s && (x < - _fd)) x = 0;
@@ -462,7 +526,7 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	_fd = INT2FIX(_this->height); 
 	repeat_t = _this->mod & GF_TEXTURE_REPEAT_T;
 	if (!repeat_t && (y < - _fd)) y = 0;
-	while (y<0) y += _fd;	
+	while (y<0) y += _fd;
 
 	y0 = (s32) FIX2INT(y);
 	has_alpha = (_this->alpha != 255) ? 1 : 0;
@@ -473,29 +537,30 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	while (count) {
 		x0 = FIX2INT(x);
 		assert((s32)x0 >=0);
-
 		if (repeat_s) {
 			x0 = (x0) % _this->width;
 		} else {
-			x0 = MIN(x0, _this->width-1);
+			x0 = MIN(x0, (s32) _this->width - 1);
 		}
-		x += _this->inc_x;
-		if (x<0) x+=INT2FIX(_this->width);
 		
 		y0 = FIX2INT(y);
 		assert((s32)y0 >=0);
 		if (repeat_t) {
 			y0 = (y0) % _this->height;
-		} else if (y0 >= _this->height) 
+		} else if (y0 >= (s32) _this->height) {
 			y0 = _this->height-1;
-		y += _this->inc_y;
-		if (y<0) y+=INT2FIX(_this->height);
+		}
 
 		pix = _this->tx_get_pixel(_this->pixels + _this->stride*y0 + _this->Bpp*x0);
 
-	
+		_x++;
+		bmp_untransform_coord(_this, _x, _y, &x, &y);
+
+		if (x<0) x+=INT2FIX(_this->width);
+		if (y<0) y+=INT2FIX(_this->height);
+
 		/*bilinear filtering - disabled (too slow and not precise enough)*/
-#if 0
+#if USE_BILINEAR
 		if (_this->filter==GF_TEXTURE_FILTER_HIGH_QUALITY) {
 			u32 p00, p01, p10, p11;
 			s32 x1, y1;
@@ -504,7 +569,7 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 			tx = FIX2INT(gf_muldiv(x, 255, _this->width) );
 			ty = FIX2INT(gf_muldiv(y, 255, _this->height) );
 
-			if (tx || ty) {
+			if (tx>120 || ty>120) {
 				x1 = (x0+incx);
 				if (x1<0) {
 					while (x1<0) x1 += _this->width;
@@ -574,13 +639,15 @@ static void bmp_fill_run_straight(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _
 	x = _this->smat.m[0]*_x + _this->smat.m[2];
 	y = _this->smat.m[4]*_y + _this->smat.m[5];
 
-	/*ugly hack we may have a numerical stability issue*/
+	/*we may have a numerical stability issues, try to figure out whether we are close from 0 or width/height*/
 	if (ABS(x)< FIX_ONE/10) {
-		if (x<0) x = INT2FIX(_this->width - 1);
+		Fixed test = _this->smat.m[0]*(_x+1) + _this->smat.m[2];
+		if (test<0) x = INT2FIX(_this->width - 1);
 		else x = 0;
 	}
 	if (ABS(y)< FIX_ONE/10) {
-		if (y<0) y = INT2FIX(_this->height - 1);
+		Fixed test = _this->smat.m[4]*(_y+1) + _this->smat.m[5];
+		if (test<0) y = INT2FIX(_this->height - 1);
 		else y = 0;
 	}
 
