@@ -60,7 +60,7 @@ extern "C" {
 /*KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)!!!, and NO SPACE in GPAC_VERSION for proper install*/
 #define GPAC_VERSION       "0.4.6-DEV"
 
-#define GPAC_INTERNAL_REV	"5"
+#define GPAC_INTERNAL_REV	"6"
 #define GPAC_FULL_VERSION       GPAC_VERSION" (internal rev. "GPAC_INTERNAL_REV")"
 
 /*!
