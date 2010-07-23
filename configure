@@ -37,6 +37,8 @@ dxsdk_path=""
 moz_path="local"
 cc_orig="gcc"
 cc="${cc_orig}"
+cpp_orig="g++"
+cpp="${cpp_orig}"
 ar="ar"
 ranlib="ranlib"
 make="make"
@@ -169,7 +171,8 @@ echo "  --mandir=DIR             man documentation in DIR [PREFIX/man]"
 echo ""
 echo "  --source-path=PATH       path of source code [$source_path]"
 echo "  --cross_prefix=PREFIX    use PREFIX for compile tools [$cross_prefix]"
-echo "  --cc=CC                  use C compiler CC [$cc]"
+echo "  --cc =CC                 use C   compiler CC  [$cc]"
+echo "  --cpp=CPP                use C++ compiler CPP [$cpp]"
 echo "  --make=MAKE              use specified make [$make]"
 echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS [$CFLAGS]"
 echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS [$LDFLAGS]"
@@ -533,68 +536,124 @@ fi
 
 #look for spidermonkey JS support
 
+#deprecated since this breaks most cross-compile from linux platforms
+#if test "$linux" = "yes" ; then
+#if pkg-config --exists mozilla-js 2> /dev/null  ; then
+#  js_flags=`pkg-config --cflags mozilla-js`
+#  js_lib=`pkg-config --libs mozilla-js`
+#  has_js="system"
+#fi
+#fi
 
-if test "$linux" = "yes" ; then
-
-if pkg-config --exists mozilla-js 2> /dev/null  ; then
-  js_flags=`pkg-config --cflags mozilla-js`
-  js_lib=`pkg-config --libs mozilla-js`
-  has_js="system"
-fi
-
-fi
-
-
+#spidermonkey test for new API
 if test "$has_js" = "no" ; then
 
-cat > $TMPC << EOF
-#include <jsapi.h>
-int main( void ) { return 0; }
+ cat > $TMPCPP << EOF
+ #include <jsapi.h>
+ int main( void ) { JSContext *cx; jsval *rp; return JS_AddValueRoot(cx, rp); }
 EOF
 
-#regular spidermonkey
-if $cc -o $TMPO $TMPC $js_flags -ljs 2> /dev/null  ; then
- js_inc="/usr/include"
- has_js="system"
-elif cc -o $TMPO $TMPC -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib -ljs 2> /dev/null ; then
- has_js="system"
- js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
- js_lib="-L$alt_macosx_dir/lib -ljs"
- js_inc="$alt_macosx_dir/include/js"
-else
- #debian spidermonkey (smjs)
- js_flags="-DXP_UNIX -I/usr/include/smjs"
- js_inc="/usr/include/smjs"
- if $cc -o $TMPO $TMPC $js_flags -lsmjs 2> /dev/null  ; then
-  has_js="system"
-  js_lib="-lsmjs"
+ #try local
+ js_inc="$local_inc/js"
+ js_flags="-DXP_UNIX -I$local_inc/js"
+ if $cpp -o $TMPO $TMPCPP $js_flags -L$local_lib -ljs -lpthread 2> /dev/null  ; then
+  has_js="local"
+  #dc added
  else
-  #debian spidermonkey (mozjs)
-  js_flags="-DXP_UNIX -I/usr/include/mozjs"
-  js_inc="/usr/include/mozjs"
-  if $cc -o $TMPO $TMPC $js_flags -lmozjs 2> /dev/null  ; then
-   has_js="system"
-   js_lib="-lmozjs"
+  #try prefix (DC)
+  js_inc="$prefix/include/js"
+  js_flags="-DXP_UNIX -I$prefix/include/js"
+  if $cpp -o $TMPO $TMPCPP $js_flags -L$prefix/lib -ljs -lpthread 2> /dev/null  ; then
+   has_js="prefix"
+   #dc added end
   else
-   #try local
-   js_inc="$local_inc/js"
-   js_flags="-DXP_UNIX -I$local_inc/js"
-   if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs 2> /dev/null  ; then
-    has_js="local"
-    #dc added
-else
-#try prefix (DC)
-js_inc="$prefix/include/js"
-js_flags="-DXP_UNIX -I$prefix/include/js"
-if $cc -o $TMPO $TMPC $js_flags -L$prefix/lib -ljs 2> /dev/null  ; then
-has_js="prefix"
-#dc added end
+   if $cpp -o $TMPO $TMPCPP $js_flags -ljs -lpthread 2> /dev/null  ; then
+    js_inc="/usr/include"
+    has_js="system"
+   elif $cpp -o $TMPO $TMPCPP -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib -ljs -lpthread 2> /dev/null ; then
+    has_js="system"
+    js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
+    js_lib="-L$alt_macosx_dir/lib -ljs"
+    js_inc="$alt_macosx_dir/include/js"
+   else
+    #debian spidermonkey (smjs)
+    js_flags="-DXP_UNIX -I/usr/include/smjs"
+    js_inc="/usr/include/smjs"
+    if $cpp -o $TMPO $TMPCPP $js_flags -lsmjs -lpthread 2> /dev/null  ; then
+     has_js="system"
+     js_lib="-lsmjs"
+    else
+     #debian spidermonkey (mozjs)
+     js_flags="-DXP_UNIX -I/usr/include/mozjs"
+     js_inc="/usr/include/mozjs"
+     if $cpp -o $TMPO $TMPCPP $js_flags -lmozjs -lpthread 2> /dev/null  ; then
+      has_js="system"
+      js_lib="-lmozjs"
+     fi
+    fi
    fi
   fi
  fi
+
+fi
+
+if test "$has_js" != "no" ; then
+js_flags="-DSPIDERMONKEY_NEW_API $js_flags"
+echo "SpiderMonkey new API detected" # (version > 1.8.0rc1)
+fi
+
+#spidermonkey test for regular API
+if test "$has_js" = "no" ; then
+
+ cat > $TMPC << EOF
+ #include <jsapi.h>
+ int main( void ) { return 0; }
+EOF
+
+ #try local
+ js_inc="$local_inc/js"
+ js_flags="-DXP_UNIX -I$local_inc/js"
+ if $cc -o $TMPO $TMPC $js_flags -L$local_lib -ljs 2> /dev/null  ; then
+  has_js="local"
+  #dc added
+ else
+  #try prefix (DC)
+  js_inc="$prefix/include/js"
+  js_flags="-DXP_UNIX -I$prefix/include/js"
+  if $cc -o $TMPO $TMPC $js_flags -L$prefix/lib -ljs 2> /dev/null  ; then
+   has_js="prefix"
+   #dc added end
+  else
+   if $cc -o $TMPO $TMPC $js_flags -ljs 2> /dev/null  ; then
+    js_inc="/usr/include"
+    has_js="system"
+   elif $cc -o $TMPO $TMPC -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib -ljs 2> /dev/null ; then
+    has_js="system"
+    js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
+    js_lib="-L$alt_macosx_dir/lib -ljs"
+    js_inc="$alt_macosx_dir/include/js"
+   else
+    #debian spidermonkey (smjs)
+    js_flags="-DXP_UNIX -I/usr/include/smjs"
+    js_inc="/usr/include/smjs"
+    if $cc -o $TMPO $TMPC $js_flags -lsmjs 2> /dev/null  ; then
+     has_js="system"
+     js_lib="-lsmjs"
+    else
+     #debian spidermonkey (mozjs)
+     js_flags="-DXP_UNIX -I/usr/include/mozjs"
+     js_inc="/usr/include/mozjs"
+     if $cc -o $TMPO $TMPC $js_flags -lmozjs 2> /dev/null  ; then
+      has_js="system"
+      js_lib="-lmozjs"
+     fi
+    fi
    fi
   fi
  fi
+
+fi
+
 
 
 if test "$has_js" != "no" ; then
@@ -1604,7 +1663,8 @@ echo ""
 echo "** System Configuration"
 echo "Install prefix: $prefix"
 echo "Source path: $source_path"
-echo "C compiler: $cc"
+echo "C   compiler: $cc"
+echo "C++ compiler: $cpp"
 echo "make: $make"
 echo "CPU: $cpu"
 echo "Big Endian: $bigendian"

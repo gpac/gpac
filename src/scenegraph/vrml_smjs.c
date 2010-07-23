@@ -36,7 +36,7 @@
 /*fixes for JS > 1.8.0rc1 where GC routines have changed*/
 Bool gf_js_add_root(JSContext *cx, void *rp)
 {
-#ifdef JS_AddValueRoot
+#ifdef SPIDERMONKEY_NEW_API
 	return (JS_AddValueRoot(cx, rp)==JS_TRUE) ? 1 : 0;
 #else
 	return (JS_AddRoot(cx, rp)==JS_TRUE) ? 1 : 0;
@@ -44,7 +44,7 @@ Bool gf_js_add_root(JSContext *cx, void *rp)
 }
 Bool gf_js_add_named_root(JSContext *cx, void *rp, const char *name)
 {
-#ifdef JS_AddNamedValueRoot
+#ifdef SPIDERMONKEY_NEW_API
 	return (JS_AddNamedValueRoot(cx, rp, name)==JS_TRUE) ? 1 : 0;
 #else
 	return (JS_AddNamedRoot(cx, rp, name)==JS_TRUE) ? 1 : 0;
@@ -52,7 +52,7 @@ Bool gf_js_add_named_root(JSContext *cx, void *rp, const char *name)
 }
 Bool gf_js_remove_root(JSContext *cx, void *rp)
 {
-#ifdef JS_RemoveValueRoot
+#ifdef SPIDERMONKEY_NEW_API
 	return (JS_RemoveValueRoot(cx, rp)==JS_TRUE) ? 1 : 0;
 #else
 	return (JS_RemoveRoot(cx, rp)==JS_TRUE) ? 1 : 0;
