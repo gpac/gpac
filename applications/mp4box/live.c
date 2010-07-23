@@ -230,13 +230,13 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 				rtpch->carousel_size = size;
 				rtpch->carousel_ts = ts;
 				rtpch->time_at_carousel_store = gf_sys_clock();
-				fprintf(stdout, "\nStream %d: Storing new carousel TS %I64d, %d bytes\n", ESID, ts, size);
+				fprintf(stdout, "\nStream %d: Storing new carousel TS "LLD", %d bytes\n", ESID, ts, size);
 			}
 			/*send data*/
 			else {
 				ts += rtpch->timescale*(gf_sys_clock()-rtpch->init_time + rtpch->ts_delta)/1000;
 				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rtpch->rap ? 1 : 0, (livesess->critical || rtpch->critical) ? 1 : 0 );
-				fprintf(stdout, "Stream %d: Sending update at TS %I64d, %d bytes - RAP %d - critical %d\n", ESID, ts, size, rtpch->rap, (livesess->critical || rtpch->critical) ? 1 : 0);
+				fprintf(stdout, "Stream %d: Sending update at TS "LLD", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rtpch->rap, (livesess->critical || rtpch->critical) ? 1 : 0);
 				rtpch->rap = rtpch->critical = 0;
 
 				if (rtpch->manual_rtcp) gf_rtp_streamer_send_rtcp(rtpch->rtp, 0, 0);
@@ -256,7 +256,7 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 
 			gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, 1, 0);
 			ch->last_carousel_time = now - livesess->start_time;
-			fprintf(stdout, "Stream %d: Sending carousel at TS %I64d, %d bytes\n", ch->ESID, ts, ch->carousel_size);
+			fprintf(stdout, "Stream %d: Sending carousel at TS "LLD", %d bytes\n", ch->ESID, ts, ch->carousel_size);
 
 			if (ch->manual_rtcp) {
 				ts = ch->carousel_ts + ch->timescale * ( gf_sys_clock() - ch->init_time + ch->ts_delta)/1000;
@@ -274,7 +274,7 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 				}
 				gf_rtp_streamer_send_au_with_sn(ch->rtp, ch->carousel_data, ch->carousel_size, ts, ts, 1, 0);
 				ch->last_carousel_time = now - livesess->start_time;
-				fprintf(stdout, "Stream %d: Sending carousel at TS %I64d, %d bytes\n", ch->ESID, ts, ch->carousel_size);
+				fprintf(stdout, "Stream %d: Sending carousel at TS "LLD"	, %d bytes\n", ch->ESID, ts, ch->carousel_size);
 
 				if (ch->manual_rtcp) {
 					ts = ch->carousel_ts + ch->timescale*(gf_sys_clock()-ch->init_time + ch->ts_delta)/1000;
