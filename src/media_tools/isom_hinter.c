@@ -799,7 +799,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 	}
 	/*AMR*/
 	else if ((tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_AMR) || (tkHint->rtp_p->rtp_payt == GF_RTP_PAYT_AMR_WB)) {
-		sprintf(sdpLine, "a=fmtp:%d octet-align", tkHint->rtp_p->PayloadType);
+		sprintf(sdpLine, "a=fmtp:%d octet-align=1", tkHint->rtp_p->PayloadType);
 		gf_isom_sdp_add_track_line(tkHint->file, tkHint->HintTrack, sdpLine);
 	}
 	/*Text*/

@@ -552,7 +552,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 
 	/*AMR*/
 	if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_AMR) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_AMR_WB)) {
-		sprintf(sdpLine, "a=fmtp:%d octet-align\n", rtp->packetizer->PayloadType);
+		sprintf(sdpLine, "a=fmtp:%d octet-align=1\n", rtp->packetizer->PayloadType);
 	}
 	/*Text*/
 	else if (rtp->packetizer->rtp_payt == GF_RTP_PAYT_3GPP_TEXT) {
