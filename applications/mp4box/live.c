@@ -544,9 +544,10 @@ int live_session(int argc, char **argv)
 					GF_Err e;
 					char szCom[8192];
 					fprintf(stdout, "Enter command to send:\n");
-					fflush(stdin);
 					szCom[0] = 0;
 					scanf("%[^\t\n]", szCom);
+					/*stdin flush bug*/
+					while (getchar()!='\n') {}
 					e = gf_seng_encode_from_string(livesess.seng, 0, 0, szCom, live_session_callback);
 					if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
 					e = gf_seng_aggregate_context(livesess.seng, 0);
@@ -561,9 +562,10 @@ int live_session(int argc, char **argv)
 					GF_Err e;
 					char szCom[8192];
 					fprintf(stdout, "Enter command to send:\n");
-					fflush(stdin);
 					szCom[0] = 0;
 					scanf("%[^\t\n]", szCom);
+					/*stdin flush bug*/
+					while (getchar()!='\n') {}
 					e = gf_seng_encode_from_string(livesess.seng, 0, 1, szCom, live_session_callback);
 					if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
 					livesess.critical = 0;				
@@ -740,6 +742,7 @@ int live_session(int argc, char **argv)
 			livesess.carousel_generation=1;
 			e = gf_seng_encode_context(livesess.seng, live_session_callback	);
 			livesess.carousel_generation=0;
+			update_context = 0
 		}
 
 		if (livesess.force_carousel) {
