@@ -293,6 +293,9 @@ void PrintImportUsage()
 			" \":packed\"            same as -packed option\n"
 			" \":sbr\"               same as -sbr option\n"
 			" \":sbrx\"              same as -sbrx option\n"
+			" \":ps\":               same as -ps option\n"
+			" \":psx\":              same as -psx option\n"
+			" \":ovsbr\":            same as -ovsbr option\n" 
 			" \":mpeg4\"             same as -mpeg4 option\n"
 			" \":font=name\"         specifies font name for text import (default \"Serif\")\n"
 			" \":size=s\"            specifies font size for text import (default 18)\n"
@@ -321,7 +324,10 @@ void PrintImportUsage()
 			" -packed                forces packed bitstream when importing raw ASP\n"
 			" -sbr                   backward compatible signaling of AAC-SBR\n"
 			" -sbrx                  non-backward compatible signaling of AAC-SBR\n"
-			"                         * Note: SBR AAC cannot be detected at import time\n"
+			" -ps:                   backward compatible signaling of AAC-PS\n"
+			" -psx:                  non-backward compatible signaling of AAC-PS\n"
+			" -ovsbr:                oversample SBR\n"
+			"                         * Note: SBR AAC, PS AAC and oversampled SBR cannot be detected at import time\n"
 			" -fps FPS               forces frame rate for video and SUB subtitles import\n"
 			"                         FPS is either a number or expressed as timescale-increment\n"
 			"                         * For raw H263 import, default FPS is 15\n"
@@ -1654,6 +1660,9 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
 		else if (!stricmp(arg, "-sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
 		else if (!stricmp(arg, "-sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
+		else if (!stricmp(arg, "-ps")) import_flags |= GF_IMPORT_PS_IMPLICIT;
+		else if (!stricmp(arg, "-psx")) import_flags |= GF_IMPORT_PS_EXPLICIT;
+		else if (!stricmp(arg, "-ovsbr")) import_flags |= GF_IMPORT_OVSBR;
 		else if (!stricmp(arg, "-fps")) { 
 			CHECK_NEXT_ARG 
 			if (!strcmp(argv[i+1], "auto")) import_fps = 10000.0;

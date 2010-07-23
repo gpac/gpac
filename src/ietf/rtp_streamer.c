@@ -202,6 +202,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 						break;
 					}
 				case GF_M4A_AAC_SBR:
+				case GF_M4A_AAC_PS:
 				case GF_M4A_AAC_LTP:
 				case GF_M4A_AAC_SCALABLE:
 				case GF_M4A_ER_AAC_LC:

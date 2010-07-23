@@ -120,6 +120,7 @@ void convert_file_info(char *inName, u32 trackID)
 		if (import.tk_info[i].flags & GF_IMPORT_FORCE_PACKED) fprintf(stdout, "\tCan force packed bitstream import\n");
 		if (import.tk_info[i].flags & GF_IMPORT_OVERRIDE_FPS) fprintf(stdout, "\tCan override source frame rate\n");
 		if (import.tk_info[i].flags & (GF_IMPORT_SBR_IMPLICIT|GF_IMPORT_SBR_EXPLICIT)) fprintf(stdout, "\tCan use AAC-SBR signaling\n");
+		if (import.tk_info[i].flags & (GF_IMPORT_PS_IMPLICIT|GF_IMPORT_PS_EXPLICIT)) fprintf(stdout, "\tCan use AAC-PS signaling\n");
 		if (import.tk_info[i].flags & GF_IMPORT_FORCE_MPEG4) fprintf(stdout, "\tCan force MPEG-4 Systems signaling\n");
 		if (import.tk_info[i].flags & GF_IMPORT_3GPP_AGGREGATION) fprintf(stdout, "\tCan use 3GPP frame aggregation\n");
 		if (import.tk_info[i].flags & GF_IMPORT_NO_DURATION) fprintf(stdout, "\tCannot use duration-based import\n");
@@ -197,8 +198,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
 		else if (!stricmp(ext+1, "sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
 		else if (!stricmp(ext+1, "sbrx")) import_flags |= GF_IMPORT_SBR_EXPLICIT;
+		else if (!stricmp(ext+1, "ovsbr")) import_flags |= GF_IMPORT_OVSBR;
 		else if (!stricmp(ext+1, "svc")) import_flags |= GF_IMPORT_SVC_EXPLICIT;
 		else if (!stricmp(ext+1, "nosvc")) import_flags |= GF_IMPORT_SVC_NONE;
+		else if (!stricmp(ext+1, "ps")) import_flags |= GF_IMPORT_PS_IMPLICIT;
+		else if (!stricmp(ext+1, "psx")) import_flags |= GF_IMPORT_PS_EXPLICIT;
 		else if (!stricmp(ext+1, "mpeg4")) import_flags |= GF_IMPORT_FORCE_MPEG4;
 		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
 		else if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);

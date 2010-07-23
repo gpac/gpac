@@ -84,6 +84,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		case GF_M4A_AAC_SSR:
 		case GF_M4A_AAC_LTP:
 		case GF_M4A_AAC_SBR:
+		case GF_M4A_AAC_PS:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing stream %d\n", esd->ESID));
 			return GF_NOT_SUPPORTED;
 		default:

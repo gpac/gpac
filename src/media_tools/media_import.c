@@ -487,6 +487,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	GF_Err e;
 	Bool sync_frame;
 	u16 sr, sbr_sr, sbr_sr_idx, dts_inc;
+	u32 timescale;
 	GF_BitStream *bs, *dsi;
 	ADTSHeader hdr;
 	GF_M4ADecSpecInfo acfg;
@@ -510,12 +511,12 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 
 	/*keep MPEG-2 AAC OTI even for HE-SBR (that's correct according to latest MPEG-4 audio spec)*/
 	oti = hdr.is_mp2 ? hdr.profile+GPAC_OTI_AUDIO_AAC_MPEG2_MP-1 : GPAC_OTI_AUDIO_AAC_MPEG4;
-	sr = GF_M4ASampleRates[hdr.sr_idx];
+	timescale = sr = GF_M4ASampleRates[hdr.sr_idx];
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		import->tk_info[0].track_num = 1;
 		import->tk_info[0].type = GF_ISOM_MEDIA_AUDIO;
-		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_SBR_IMPLICIT | GF_IMPORT_SBR_EXPLICIT | GF_IMPORT_FORCE_MPEG4;
+		import->tk_info[0].flags = GF_IMPORT_USE_DATAREF | GF_IMPORT_SBR_IMPLICIT | GF_IMPORT_SBR_EXPLICIT | GF_IMPORT_PS_IMPLICIT | GF_IMPORT_PS_EXPLICIT | GF_IMPORT_FORCE_MPEG4;
 		import->nb_tracks = 1;
 		import->tk_info[0].audio_info.sample_rate = sr;
 		import->tk_info[0].audio_info.nb_channels = hdr.nb_ch;
@@ -528,18 +529,34 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 
 	sbr_sr = sr;
 	sbr_sr_idx = hdr.sr_idx;
-	for (i=0; i<16; i++) {
-		if (GF_M4ASampleRates[i] == (u32) 2*sr) {
-			sbr_sr_idx = i;
-			sbr_sr = 2*sr;
-			break;
+	if ((import->flags & GF_IMPORT_OVSBR) == 0) {
+		for (i=0; i<16; i++) {
+			if (GF_M4ASampleRates[i] == (u32) 2*sr) {
+				sbr_sr_idx = i;
+				sbr_sr = 2*sr;
+				break;
+			}
 		}
 	}
+
+	if (import->flags & GF_IMPORT_OVSBR) 
+		timescale = 2*sr;
+
+	if (import->flags & GF_IMPORT_PS_EXPLICIT) {
+		import->flags &= ~GF_IMPORT_PS_IMPLICIT;
+		import->flags |= GF_IMPORT_SBR_EXPLICIT;
+		import->flags &= ~GF_IMPORT_SBR_IMPLICIT;
+	}
+
 	/*no provision for explicit indication of MPEG-2 AAC through MPEG-4 PLs, so force implicit*/
 	if (hdr.is_mp2) {
 		if (import->flags & GF_IMPORT_SBR_EXPLICIT) {
 			import->flags &= ~GF_IMPORT_SBR_EXPLICIT;
 			import->flags |= GF_IMPORT_SBR_IMPLICIT;
+		}
+		if (import->flags & GF_IMPORT_PS_EXPLICIT) {
+			import->flags &= ~GF_IMPORT_PS_EXPLICIT;
+			import->flags |= GF_IMPORT_PS_IMPLICIT;
 		}
 	}
 
@@ -561,9 +578,24 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	} else if (import->flags & GF_IMPORT_SBR_IMPLICIT) {
 		acfg.has_sbr = 1;
 	}
+	if (import->flags & GF_IMPORT_PS_EXPLICIT) {
+		acfg.has_ps = 1;
+		acfg.base_object_type = 29;
+	} else if (import->flags & GF_IMPORT_PS_IMPLICIT) {
+		acfg.has_ps = 1;
+	}
+
 	acfg.audioPL = gf_m4a_get_profile(&acfg);
+	/*explicit SBR or PS signal (non backward-compatible)*/
+	if (import->flags & GF_IMPORT_PS_EXPLICIT) {
+		gf_bs_write_int(dsi, 29, 5);
+		gf_bs_write_int(dsi, hdr.sr_idx, 4);
+		gf_bs_write_int(dsi, hdr.nb_ch, 4);
+		gf_bs_write_int(dsi, sbr_sr ? sbr_sr_idx : hdr.sr_idx, 4);
+		gf_bs_write_int(dsi, hdr.profile, 5);
+	} 
 	/*explicit SBR signal (non backward-compatible)*/
-	if (import->flags & GF_IMPORT_SBR_EXPLICIT) {
+	else if (import->flags & GF_IMPORT_SBR_EXPLICIT) {
 		gf_bs_write_int(dsi, 5, 5);
 		gf_bs_write_int(dsi, hdr.sr_idx, 4);
 		gf_bs_write_int(dsi, hdr.nb_ch, 4);
@@ -581,6 +613,10 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 			gf_bs_write_int(dsi, 5, 5);	/*SBR objectType*/
 			gf_bs_write_int(dsi, 1, 1);	/*SBR present flag*/
 			gf_bs_write_int(dsi, sbr_sr_idx, 4);
+		}
+		if (import->flags & GF_IMPORT_PS_IMPLICIT) {
+			gf_bs_write_int(dsi, 0x548, 11); /*sync extension type*/
+			gf_bs_write_int(dsi, 1, 1);	/* PS present flag */
 		}
 	}
 	/*not MPEG4 tool*/
@@ -600,16 +636,23 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	import->esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 	import->esd->decoderConfig->objectTypeIndication = oti;
 	import->esd->decoderConfig->bufferSizeDB = 20;
-	import->esd->slConfig->timestampResolution = sr;
+	import->esd->slConfig->timestampResolution = timescale;
 	if (!import->esd->decoderConfig->decoderSpecificInfo) import->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
 	if (import->esd->decoderConfig->decoderSpecificInfo->data) gf_free(import->esd->decoderConfig->decoderSpecificInfo->data);
 	gf_bs_get_content(dsi, &import->esd->decoderConfig->decoderSpecificInfo->data, &import->esd->decoderConfig->decoderSpecificInfo->dataLength);
 	gf_bs_del(dsi);
 
 	samp = NULL;
-	gf_import_message(import, GF_OK, "AAC import %s- sample rate %d - %s audio - %d channel%s", (import->flags & GF_IMPORT_SBR_IMPLICIT) ? "SBR (implicit) " : ((import->flags & GF_IMPORT_SBR_EXPLICIT) ? "SBR (explicit) " : ""), sr, (oti==GPAC_OTI_AUDIO_AAC_MPEG4) ? "MPEG-4" : "MPEG-2", hdr.nb_ch, (hdr.nb_ch>1) ? "s" : "");
+	gf_import_message(import, GF_OK, "AAC import %s%s%s- sample rate %d - %s audio - %d channel%s",
+		(import->flags & (GF_IMPORT_SBR_IMPLICIT|GF_IMPORT_SBR_EXPLICIT)) ? "SBR" : "",
+		(import->flags & (GF_IMPORT_PS_IMPLICIT|GF_IMPORT_PS_EXPLICIT)) ? "+PS" : "",
+		((import->flags & (GF_IMPORT_SBR_EXPLICIT|GF_IMPORT_PS_EXPLICIT)) ? " (explicit) " : " "),
+		sr,
+		(oti==0x40) ? "MPEG-4" : "MPEG-2",
+		hdr.nb_ch,
+		(hdr.nb_ch>1) ? "s" : "");
 
-	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, sr);
+	track = gf_isom_new_track(import->dest, import->esd->ESID, GF_ISOM_MEDIA_AUDIO, timescale);
 	if (!track) {
 		e = gf_isom_last_error(import->dest);
 		goto exit;
@@ -618,7 +661,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 	if (!import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 	import->final_trackID = import->esd->ESID;
 	gf_isom_new_mpeg4_description(import->dest, track, import->esd, (import->flags & GF_IMPORT_USE_DATAREF) ? import->in_name : NULL, NULL, &di);
-	gf_isom_set_audio_info(import->dest, track, di, sr, (hdr.nb_ch>2) ? 2 : hdr.nb_ch, 16);
+	gf_isom_set_audio_info(import->dest, track, di, timescale, (hdr.nb_ch>2) ? 2 : hdr.nb_ch, 16);
 
 	e = GF_OK;
 	/*add first sample*/
@@ -1482,7 +1525,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	u8 bps;
 	char lang[4];
 	const char *url, *urn;
-	Bool sbr, is_clone;
+	Bool sbr, ps, is_clone;
 	GF_ISOSample *samp;
 	GF_ESD *origin_esd;
 	GF_InitialObjectDescriptor *iod;
@@ -1520,6 +1563,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		origin_esd->OCRESID = import->esd->OCRESID;
 		/*there may be other things to import...*/
 	}
+	ps = 0;
 	sbr = 0;
 	sbr_sr = 0;
 	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(import->orig);
@@ -1549,6 +1593,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 		bps = 16;
 		sr = ch = sbr_sr = 0;
 		sbr = 0;
+		ps = 0;
 		gf_isom_get_audio_info(import->orig, track_in, 1, &sr, &ch, &bps);
 #ifndef GPAC_DISABLE_AV_PARSERS
 		if (origin_esd && (origin_esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AAC_MPEG4)) {
@@ -1558,7 +1603,8 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			if (dsi.has_sbr) sbr_sr = dsi.sbr_sr;
 			ch = dsi.nb_chan;
 			PL = dsi.audioPL;
-			sbr = dsi.has_sbr ? ((dsi.base_object_type==GF_M4A_AAC_SBR) ? 2 : 1) : 0;
+			sbr = dsi.has_sbr ? ((dsi.base_object_type==GF_M4A_AAC_SBR || dsi.base_object_type==GF_M4A_AAC_PS) ? 2 : 1) : 0;
+			ps = dsi.has_ps;
 		}
 #endif
 		gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_AUDIO, PL);
@@ -1653,7 +1699,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	case GF_ISOM_MEDIA_AUDIO:
 	{
 		if (!is_clone) gf_isom_set_audio_info(import->dest, track, di, (sbr==2) ? sbr_sr : sr, (ch>1) ? 2 : 1, bps);
-		if (sbr) {
+		if (ps) {
+			gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - HE-AACv2 (SR %d - SBR-SR %d - %d channels)", trackID, sr, sbr_sr, ch);
+		} else if (sbr) {
 			gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - HE-AAC (SR %d - SBR-SR %d - %d channels)", trackID, sr, sbr_sr, ch);
 		} else {
 			gf_import_message(import, GF_OK, "IsoMedia import - track ID %d - Audio (SR %d - %d channels)", trackID, sr, ch);

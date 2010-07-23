@@ -1058,7 +1058,11 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 			cfg.base_sr = GF_M4ASampleRates[cfg.base_sr_index];
 		}
 		cfg.nb_chan = gf_bs_read_int(bs, 4);
-		if (cfg.base_object_type==5) {
+		if (cfg.base_object_type==5 || cfg.base_object_type==29) {
+			if (cfg.base_object_type==29) {
+				cfg.has_ps = 1;
+				cfg.nb_chan = 1;
+			}
 			cfg.has_sbr = 1;
 			cfg.sbr_sr_index = gf_bs_read_int(bs, 4);
 			if (cfg.sbr_sr_index == 0x0F) {
