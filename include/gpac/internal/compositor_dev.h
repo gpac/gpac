@@ -110,9 +110,12 @@ typedef struct
 #endif
 
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL)
-#define OPENGL_RASTER
+# define OPENGL_RASTER
+#else
+# ifdef OPENGL_RASTER
+# undef OPENGL_RASTER
+# endif
 #endif
-
 
 #define DOUBLECLICK_TIME_MS		250
 
