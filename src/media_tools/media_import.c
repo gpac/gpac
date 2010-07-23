@@ -4209,7 +4209,9 @@ restart_import:
 
 	if (gf_list_count(avccfg->sequenceParameterSets)) {
 		gf_isom_avc_config_update(import->dest, track, 1, avccfg);
-		gf_isom_svc_config_update(import->dest, track, 1, svccfg, 1);
+		if (gf_list_count(svccfg->sequenceParameterSets)) {
+			gf_isom_svc_config_update(import->dest, track, 1, svccfg, 1);
+		}
 	} else {
 		gf_isom_svc_config_update(import->dest, track, 1, svccfg, 0);
 	}
