@@ -60,20 +60,19 @@ install:
 	install -d "$(DESTDIR)$(mandir)"
 	install -d "$(DESTDIR)$(mandir)/man1"
 	if [ -d  doc ] ; then \
-	install -m 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ ; \
-	install -m 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ ; \
-	install -m 644 doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/ ; \
+	install -pm 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ ; \
+	install -pm 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ ; \
+	install -pm 644 doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/ ; \
 	install -d "$(DESTDIR)$(prefix)/share/gpac" ; \
-	install -m 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ;  \
+	install -pm 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ;  \
+	install -d "$(DESTDIR)$(prefix)/share/gpac/gui" ; \
+	install -d doc/gui/gui.bt $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
+	install -d doc/gui/gui.js $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
+	install -d doc/gui/mpegu-core.js $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
+	install -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
+	install -pm 644 doc/gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
+	install -pm 644 doc/gui/icons/*.png "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ;  \
 	fi
-
-#	install -d "$(DESTDIR)$(prefix)/share/gpac/gui" ; \
-#	install -d doc/gui/gui.bt $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
-#	install -d doc/gui/gui.js $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
-#	install -d doc/gui/mpegu-core.js $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
-#	install -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
-#	install -m 644 doc/gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
-#	install -m 644 doc/gui/icons/*.png "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ;  \
 
 uninstall:
 	$(MAKE) -C applications uninstall
@@ -94,26 +93,28 @@ ifeq ($(DEBUGBUILD),no)
 	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
-	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
+	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION).$(DYN_LIB_SUFFIX)
+	ln -sf libgpac.$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
 else
-	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac-$(VERSION).$(DYN_LIB_SUFFIX)
-	ln -sf libgpac-$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
+	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION)
+	ln -sf libgpac.$(DYN_LIB_SUFFIX).$(VERSION) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
+ifeq ($(DESTDIR)$(prefix),$(prefix))
 	ldconfig || true
+endif
 endif
 endif
 
 install-lib:
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac"
-	install -m 644 $(SRC_PATH)/include/gpac/*.h "$(DESTDIR)$(prefix)/include/gpac"
+	install -pm 644 $(SRC_PATH)/include/gpac/*.h "$(DESTDIR)$(prefix)/include/gpac"
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/internal"
-	install -m 644 $(SRC_PATH)/include/gpac/internal/*.h "$(DESTDIR)$(prefix)/include/gpac/internal"
+	install -pm 644 $(SRC_PATH)/include/gpac/internal/*.h "$(DESTDIR)$(prefix)/include/gpac/internal"
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/modules"
-	install -m 644 $(SRC_PATH)/include/gpac/modules/*.h "$(DESTDIR)$(prefix)/include/gpac/modules"
-	install -m 644 $(SRC_PATH)/config.h "$(DESTDIR)$(prefix)/include/gpac/configuration.h"
+	install -pm 644 $(SRC_PATH)/include/gpac/modules/*.h "$(DESTDIR)$(prefix)/include/gpac/modules"
+	install -pm 644 $(SRC_PATH)/config.h "$(DESTDIR)$(prefix)/include/gpac/configuration.h"
 ifeq ($(GPAC_ENST), yes)
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/enst"
-	install -m 644 $(SRC_PATH)/include/gpac/enst/*.h "$(DESTDIR)$(prefix)/include/gpac/enst"
+	install -pm 644 $(SRC_PATH)/include/gpac/enst/*.h "$(DESTDIR)$(prefix)/include/gpac/enst"
 endif
 	mkdir -p "$(DESTDIR)$(prefix)/$(libdir)"
 	install -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/$(libdir)"
