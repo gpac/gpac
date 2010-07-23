@@ -845,7 +845,8 @@ u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg)
 	case 2: /*AAC LC*/
 		if (cfg->nb_chan<=2) return (cfg->base_sr<=24000) ? 0x28 : 0x29; /*LC@L1 or LC@L2*/
 		return (cfg->base_sr<=48000) ? 0x2A : 0x2B; /*LC@L4 or LC@L5*/
-	case 5: /*HE-AAC*/
+	case 5: /*HE-AAC - SBR*/
+	case 29: /*HE-AAC - SBR+PS*/
 		if (cfg->nb_chan<=2) return (cfg->base_sr<=24000) ? 0x2C : 0x2D; /*HE@L2 or HE@L3*/
 		return (cfg->base_sr<=48000) ? 0x2E : 0x2F; /*HE@L4 or HE@L5*/
 	/*default to HQ*/
@@ -876,7 +877,11 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 	/*this is 7+1 channels*/
 	if (cfg->nb_chan==7) cfg->nb_chan=8;
 
-	if (cfg->base_object_type==5) {
+	if (cfg->base_object_type==5 || cfg->base_object_type==29) {
+		if (cfg->base_object_type==29) {
+			cfg->has_ps = 1;
+			cfg->nb_chan = 1;
+		}
 		cfg->has_sbr = 1;
 		cfg->sbr_sr_index = gf_bs_read_int(bs, 4);
 		if (cfg->sbr_sr_index == 0x0F) {
@@ -958,19 +963,28 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 		break;
 	}
 
-	if (size_known && (cfg->base_object_type != 5) && gf_bs_available(bs)>=2) {
-		u32 sync = gf_bs_peek_bits(bs, 11, 0);
-		if (sync==0x2b7) {
-			gf_bs_read_int(bs, 11);
-			cfg->sbr_object_type = gf_bs_read_int(bs, 5);
-			cfg->has_sbr = gf_bs_read_int(bs, 1);
-			if (cfg->has_sbr) {
-				cfg->sbr_sr_index = gf_bs_read_int(bs, 4);
-				if (cfg->sbr_sr_index == 0x0F) {
-					cfg->sbr_sr = gf_bs_read_int(bs, 24);
-				} else {
-					cfg->sbr_sr = GF_M4ASampleRates[cfg->sbr_sr_index];
+	if (size_known && (cfg->base_object_type != 5) && (cfg->base_object_type != 29) ) {
+		while (gf_bs_available(bs)>=2) {
+			u32 sync = gf_bs_peek_bits(bs, 11, 0);
+			if (sync==0x2b7) {
+				gf_bs_read_int(bs, 11);
+				cfg->sbr_object_type = gf_bs_read_int(bs, 5);
+				cfg->has_sbr = gf_bs_read_int(bs, 1);
+				if (cfg->has_sbr) {
+					cfg->sbr_sr_index = gf_bs_read_int(bs, 4);
+					if (cfg->sbr_sr_index == 0x0F) {
+						cfg->sbr_sr = gf_bs_read_int(bs, 24);
+					} else {
+						cfg->sbr_sr = GF_M4ASampleRates[cfg->sbr_sr_index];
+					}
 				}
+			} else if (sync == 0x548) {
+				gf_bs_read_int(bs, 11);
+				cfg->has_ps = gf_bs_read_int(bs, 1);
+				if (cfg->has_ps)
+					cfg->nb_chan = 1;
+			} else {
+				break;
 			}
 		}
 	}
@@ -1024,7 +1038,11 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 		gf_bs_write_int(bs, cfg->nb_chan, 4);
 	}
 
-	if (cfg->base_object_type==5) {
+	if (cfg->base_object_type==5 || cfg->base_object_type==29) {
+		if (cfg->base_object_type == 29) {
+			cfg->has_ps = 1;
+			cfg->nb_chan = 1;
+		}
 		cfg->has_sbr = 1;
 		gf_bs_write_int(bs, cfg->sbr_sr_index, 4);
 		if (cfg->sbr_sr_index == 0x0F) {
@@ -1063,7 +1081,7 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 	/*ER cfg - not supported*/
 
 	/*implicit sbr - not used yet*/
-	if (0 && (cfg->base_object_type != 5) ) {
+	if (0 && (cfg->base_object_type != 5) && (cfg->base_object_type != 29) ) {
 		gf_bs_write_int(bs, 0x2b7, 11);
 		cfg->sbr_object_type = gf_bs_read_int(bs, 5);
 		cfg->has_sbr = gf_bs_read_int(bs, 1);

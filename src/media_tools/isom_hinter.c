@@ -333,6 +333,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 							break;
 						}
 					case GF_M4A_AAC_SBR:
+					case GF_M4A_AAC_PS:
 					case GF_M4A_AAC_LTP:
 					case GF_M4A_AAC_SCALABLE:
 					case GF_M4A_ER_AAC_LC:

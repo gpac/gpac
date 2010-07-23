@@ -157,7 +157,7 @@ enum
     GF_M4A_ER_HILN = 26,
     GF_M4A_ER_PARAMETRIC = 27,
     GF_M4A_SSC = 28,
-    //GF_M4A_PS = 29,
+    GF_M4A_AAC_PS = 29,
     GF_M4A_LAYER1 = 32,
     GF_M4A_LAYER2 = 33,
     GF_M4A_LAYER3 = 34,
@@ -181,6 +181,8 @@ typedef struct
 	/*SBR*/
 	Bool has_sbr;
 	u32 sbr_object_type, sbr_sr, sbr_sr_index;
+	/*PS*/
+	Bool has_ps;
 	/*PL indication*/
 	u8 audioPL;
 } GF_M4ADecSpecInfo;

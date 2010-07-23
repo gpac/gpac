@@ -81,7 +81,16 @@ enum
 	GF_IMPORT_SVC_EXPLICIT = 1<<10,
 	/*for SVC video: removes all SVC extensions*/
 	GF_IMPORT_SVC_NONE = 1<<11,
+
+	/*for AAC audio: forces PS mode with implicit signaling (backward compatible)*/
+	GF_IMPORT_PS_IMPLICIT = 1<<12,
+	/*for AAC audio: forces PS mode with explicit signaling (non-backward compatible). 
+	Will override GF_IMPORT_PS_IMPLICIT flag when set*/
+	GF_IMPORT_PS_EXPLICIT = 1<<13,
 	
+	/* oversampled SBR */
+	GF_IMPORT_OVSBR = 1<<14,
+
 	/*when set, only updates tracks info and return*/
 	GF_IMPORT_PROBE_ONLY	= 1<<20,
 	/*only set when probing, signals several frames per sample possible*/
