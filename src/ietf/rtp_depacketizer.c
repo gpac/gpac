@@ -975,9 +975,10 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 	else if (!stricmp(param_name, "packetization-mode")) 
 		rtp->h264_pck_mode = 1;
 	/*AMR config*/
-	else if (!stricmp(param_name, "octet-align")) 
-		rtp->flags |= GF_RTP_AMR_ALIGN;
-	/*ISMACryp config*/
+	else if (!stricmp(param_name, "octet-align")) {
+		if (!stricmp(param_val, "1")) 
+			rtp->flags |= GF_RTP_AMR_ALIGN;
+	} /*ISMACryp config*/
 	else if (!stricmp(param_name, "ISMACrypCryptoSuite")) {
 		if (!stricmp(param_val, "AES_CTR_128")) 
 			rtp->isma_scheme = GF_4CC('i','A','E','C');
