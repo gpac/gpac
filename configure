@@ -536,15 +536,6 @@ fi
 
 #look for spidermonkey JS support
 
-#deprecated since this breaks most cross-compile from linux platforms
-#if test "$linux" = "yes" ; then
-#if pkg-config --exists mozilla-js 2> /dev/null  ; then
-#  js_flags=`pkg-config --cflags mozilla-js`
-#  js_lib=`pkg-config --libs mozilla-js`
-#  has_js="system"
-#fi
-#fi
-
 #spidermonkey test for new API
 if test "$has_js" = "no" ; then
 
@@ -560,6 +551,16 @@ EOF
   has_js="local"
   #dc added
  else
+
+if pkg-config --exists mozilla-js 2> /dev/null  ; then
+  js_flags=`pkg-config --cflags mozilla-js`
+  js_lib=`pkg-config --libs mozilla-js`
+ if $cpp -o $TMPO $TMPCPP $js_flags $js_lib -lpthread 2> /dev/null  ; then
+   has_js="system"
+  fi
+fi
+
+if test "$has_js" = "no" ; then
   #try prefix (DC)
   js_inc="$prefix/include/js"
   js_flags="-DXP_UNIX -I$prefix/include/js"
@@ -594,7 +595,7 @@ EOF
    fi
   fi
  fi
-
+fi
 fi
 
 if test "$has_js" != "no" ; then
@@ -624,6 +625,17 @@ EOF
    has_js="prefix"
    #dc added end
   else
+
+
+if pkg-config --exists mozilla-js 2> /dev/null  ; then
+  js_flags=`pkg-config --cflags mozilla-js`
+  js_lib=`pkg-config --libs mozilla-js`
+  if $cc -o $TMPO $TMPC $js_flags $js_lib -lpthread 2> /dev/null  ; then
+   has_js="system"
+  fi
+fi
+
+if test "$has_js" = "no" ; then
    if $cc -o $TMPO $TMPC $js_flags -ljs 2> /dev/null  ; then
     js_inc="/usr/include"
     has_js="system"
@@ -651,6 +663,7 @@ EOF
    fi
   fi
  fi
+fi
 
 fi
 
@@ -1445,7 +1458,7 @@ if test "$disable_3d" = "no" ; then
     LINK3D="-framework OpenGL -framework GLUT"
     DarwinGL="yes"
   else
-   LINK3D="-lGL -lGLU"
+   LINK3D="-lGL -lGLU -lX11"
   fi
   if $cc -o $TMPO $TMPC $LINK3D 2> /dev/null  ; then
     has_opengl="yes"
