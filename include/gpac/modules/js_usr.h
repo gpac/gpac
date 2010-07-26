@@ -38,6 +38,9 @@ extern "C" {
 
 typedef struct _js_usr_ext GF_JSUserExtension;
 
+typedef struct JSContext GF_JSContext;
+typedef struct JSObject GF_JSObject;
+
 struct _js_usr_ext
 {
 	/* interface declaration*/
@@ -51,7 +54,7 @@ struct _js_usr_ext
 	 global: JavaScript global object for the context
 	 unload: if true, the extension should be unloaded from the JavaScript context (called upon destroy). Otherwise it should be loaded
 	*/
-	void (*load)(GF_JSUserExtension *jsext, GF_SceneGraph *doc, struct JSContext *jsctx, struct JSObject *global, Bool unload);
+	void (*load)(GF_JSUserExtension *jsext, GF_SceneGraph *doc, GF_JSContext *jsctx, GF_JSObject *global, Bool unload);
 	/*module private*/
 	void *udta;
 };
