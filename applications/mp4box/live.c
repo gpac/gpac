@@ -742,7 +742,7 @@ int live_session(int argc, char **argv)
 			livesess.carousel_generation=1;
 			e = gf_seng_encode_context(livesess.seng, live_session_callback	);
 			livesess.carousel_generation=0;
-			update_context = 0
+			update_context = 0;
 		}
 
 		if (livesess.force_carousel) {
