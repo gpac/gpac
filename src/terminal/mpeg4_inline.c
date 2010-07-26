@@ -463,7 +463,7 @@ static void storage_parse_sf(void *ptr, u32 fieldType, char *opt)
 		sscanf(opt, "%d",  ((SFInt32 *)ptr) );
 		break;
 	case GF_SG_VRML_SFTIME:
-		sscanf(opt, "%g", ((SFTime *)ptr) );
+		sscanf(opt, "%lf", ((SFTime *)ptr) );
 		break;
 	case GF_SG_VRML_SFFLOAT:
 		sscanf(opt, "%g", &v1);
@@ -657,11 +657,11 @@ static void gf_storage_traverse(GF_Node *n, void *rs, Bool is_destroy)
 	}
 }
 
-static void on_force_restore(GF_Node *n, void *_route)
+static void on_force_restore(GF_Node *n, struct _route *_route)
 {
 	gf_storage_load((M_Storage *)n);
 }
-static void on_force_save(GF_Node *n, void *_route)
+static void on_force_save(GF_Node *n, struct _route *_route)
 {
 	gf_storage_save((M_Storage *)n);
 }
