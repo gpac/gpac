@@ -145,7 +145,6 @@ extralibs="-lm"
 bigendian="no"
 SHFLAGS=-shared
 need_inet_aton="no"
-LDFLAGS="$LDFLAGS -Wl,--warn-common"
 CFLAGS=""
 CPPFLAGS=""
 GPAC_SH_FLAGS=-lpthread
@@ -456,6 +455,7 @@ win32="yes"
 
 Linux)
 js_flags="-DXP_UNIX -I/usr/include/js"
+LDFLAGS="$LDFLAGS -Wl,--warn-common"
 #OSS_LDFLAGS="-laoss"
 linux="yes"
 case "$cpu" in
