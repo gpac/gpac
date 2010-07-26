@@ -886,7 +886,7 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 			l=0;
 						
 			ip_adress = ip_targets->address;
-			printf("%d.%d.%d.%d%/%d ",ip_adress[0],ip_adress[1],ip_adress[2],ip_adress[3],ip_targets->slash_mask);
+			printf("%d.%d.%d.%d/%d ",ip_adress[0],ip_adress[1],ip_adress[2],ip_adress[3],ip_targets->slash_mask);
 			printf("RX port :");
 			while(ip_targets->rx_port[l] != 0)
 			{
