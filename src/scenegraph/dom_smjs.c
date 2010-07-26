@@ -2900,7 +2900,7 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		/*onreadystatechange*/
 		case 0:
 			if (ctx->onreadystatechange) {
-				*vp = OBJECT_TO_JSVAL(ctx->onreadystatechange);
+				*vp = OBJECT_TO_JSVAL((JSObject*)ctx->onreadystatechange);
 			} else {
 				*vp = JSVAL_VOID;
 			}
