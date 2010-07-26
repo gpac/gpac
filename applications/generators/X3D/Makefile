@@ -21,7 +21,6 @@ ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=X3DGen$(EXE)
 else
-OBJS+=../../../src/utils/os_divers.o
 EXT=
 PROG=X3DGen
 endif
