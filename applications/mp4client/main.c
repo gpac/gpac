@@ -1632,7 +1632,7 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 	for (i=0;i<indent;i++) szIndent[i]=' ';
 	szIndent[indent]=0;
 	
-	fprintf(stdout, szIndent);
+	fprintf(stdout, "%s", szIndent);
 	fprintf(stdout, "#%d %s - ", num, root_name);
 	if (odi.media_url) {
 		fprintf(stdout, "%s\n", odi.media_url);
@@ -1661,7 +1661,7 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 				PrintODList(term, odm, num, indent, "EXTERNPROTO Library");
 				break;
 			default:
-				fprintf(stdout, szIndent);
+				fprintf(stdout, "%s", szIndent);
 				fprintf(stdout, "#%d - ", num);
 				if (odi.media_url) {
 					fprintf(stdout, "%s", odi.media_url);
