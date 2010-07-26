@@ -1954,11 +1954,11 @@ GF_Err load_svg_parse_string(GF_SceneLoader *load, char *str)
 }
 
 
-GF_Err load_svg_done(GF_SceneLoader *load)
+static void load_svg_done(GF_SceneLoader *load)
 {
 	SVG_SAFExternalStream *st;
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)load->loader_priv;
-	if (!parser) return GF_OK;
+	if (!parser) return;
 	
 	gf_sm_svg_flush_state(parser);
 
@@ -1980,7 +1980,6 @@ GF_Err load_svg_done(GF_SceneLoader *load)
 	}
 	gf_free(parser);
 	load->loader_priv = NULL;
-	return GF_OK;
 }
 
 

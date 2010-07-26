@@ -297,10 +297,9 @@ exit:
 	return e;
 }
 
-static GF_Err gf_sm_load_done_isom(GF_SceneLoader *load)
+static void gf_sm_load_done_isom(GF_SceneLoader *load)
 {
 	/*nothing to do the file is not ours*/
-	return GF_OK;
 }
 
 static GF_Err gf_sm_isom_suspend(GF_SceneLoader *loader, Bool suspend)
