@@ -122,7 +122,7 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 			u32 ID;
 			const char *url, *urn, *enc;
 			Bool self_ref;
-			char *item_name;
+			const char *item_name;
 
 			gf_isom_get_meta_item_info(isom, 1, 0, i+1, &ID, NULL, &self_ref, &item_name, NULL, &enc, &url, &urn);
 			if (strcmp(res->inner_path, item_name)) continue;
@@ -282,7 +282,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 		const char *url, *urn, *enc;
 		Bool self_ref;
 		char *sep;
-		char *item_name;
+		const char *item_name;
 
 		gf_isom_get_meta_item_info(isom, 1, 0, i+1, &ID, NULL, &self_ref, &item_name, NULL, &enc, &url, &urn);
 
@@ -290,7 +290,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 		if (!sep) sep = strrchr(item_name, '\\');
 		if (sep) {
 			sep[0] = 0;
-			sprintf(szPath, "%s_%08X_%s", wzip->root_extracted_path, gf_crc_32(item_name, strlen(item_name)), sep+1);
+			sprintf(szPath, "%s_%08X_%s", wzip->root_extracted_path, gf_crc_32((char*)item_name, strlen(item_name)), sep+1);
 			sep[0] = '/';
 		} else {
 			strcpy(szPath, wzip->root_extracted_path);
@@ -2253,7 +2253,7 @@ static Bool wm_check_language(const char *xml_lang_value, const char *user_local
 {
 	Bool ret = 0;
 	char *sep, *val;
-	val = xml_lang_value;
+	val = (char*)xml_lang_value;
 	while (!ret) {
 		sep = strchr(val, ';');
 		if (sep) sep[0] = 0;
