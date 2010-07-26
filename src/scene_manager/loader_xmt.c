@@ -2997,10 +2997,10 @@ static GF_Err load_xmt_parse_string(GF_SceneLoader *load, char *str)
 	return GF_OK;
 }
 
-static GF_Err load_xmt_done(GF_SceneLoader *load)
+static void load_xmt_done(GF_SceneLoader *load)
 {
 	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;
-	if (!parser) return GF_OK;
+	if (!parser) return;
 
 	while (1) {
 		XMTNodeStack *st = (XMTNodeStack *)gf_list_last(parser->nodes);
@@ -3024,7 +3024,6 @@ static GF_Err load_xmt_done(GF_SceneLoader *load)
 	if (parser->script_to_load) gf_list_del(parser->script_to_load);
 	gf_free(parser);
 	load->loader_priv = NULL;
-	return GF_OK;
 }
 
 static GF_Err load_xmt_suspend(GF_SceneLoader *load, Bool suspend)
