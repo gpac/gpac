@@ -1318,7 +1318,7 @@ int gf_unzip_archive(const char *zipfilename, const char *dirname)
     uf = unzOpen2(zipfilename, NULL);
     if (uf==NULL)
     {
-        printf("Cannot open %s or %s.zip\n", zipfilename);
+        printf("Cannot open %s\n", zipfilename);
         return 1;
     }
 #ifndef _WIN32_WCE
