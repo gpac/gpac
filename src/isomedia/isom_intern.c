@@ -192,13 +192,25 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+		case GF_ISOM_BOX_TYPE_STYP:
+			/*ONE AND ONLY ONE STYP*/
+			if (mov->styp) {
+				gf_isom_box_del(a);
+				return GF_ISOM_INVALID_FILE;
+			}
+			mov->styp = (GF_SegmentTypeBox *)a;
+			totSize += a->size;
+			e = gf_list_add(mov->TopBoxes, a);
+			break;
+
 		case GF_ISOM_BOX_TYPE_MOOF:
 			((GF_MovieFragmentBox *)a)->mov = mov;
 
 			totSize += a->size;
 			/*read & debug: store at root level*/
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
-				gf_list_add(mov->TopBoxes, a);
+                mov->moof = (GF_MovieFragmentBox *) a;
+                gf_list_add(mov->TopBoxes, a);
 			} else {
 				/*merge all info*/
 				e = MergeFragment((GF_MovieFragmentBox *)a, mov);
@@ -226,7 +238,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 	}
 
 	/*we need at least moov or meta*/
-	if (!mov->moov && !mov->meta) return GF_ISOM_INVALID_FILE;
+	if (!mov->moov && !mov->meta && !mov->moof) return GF_ISOM_INVALID_FILE;
 	/*we MUST have movie header*/
 	if (mov->moov && !mov->moov->mvhd) return GF_ISOM_INVALID_FILE;
 	/*we MUST have meta handler*/

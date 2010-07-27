@@ -888,7 +888,7 @@ u32 get_file_type_by_ext(char *inName)
 		sep = strchr(ext, '.');
 		if (sep) sep[0] = 0;
 
-		if (!stricmp(ext, "mp4") || !stricmp(ext, "3gp") || !stricmp(ext, "mov") || !stricmp(ext, "3g2")) type = 1;
+		if (!stricmp(ext, "mp4") || !stricmp(ext, "3gp") || !stricmp(ext, "mov") || !stricmp(ext, "3g2") || !stricmp(ext, "3gs")) type = 1;
 		else if (!stricmp(ext, "bt") || !stricmp(ext, "wrl") || !stricmp(ext, "x3dv")) type = 2;
 		else if (!stricmp(ext, "xmt") || !stricmp(ext, "x3d")) type = 3;
 		else if (!stricmp(ext, "lsr") || !stricmp(ext, "saf")) type = 6;

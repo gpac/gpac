@@ -176,6 +176,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_TRAF: return traf_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_TRUN: return trun_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STYP: return styp_dump(a, trace);
 #endif
 
 	case GF_ISOM_BOX_TYPE_VOID: return void_dump(a, trace);
@@ -333,6 +334,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 		case GF_ISOM_BOX_TYPE_SKIP:
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_MOOF:
+		case GF_ISOM_BOX_TYPE_STYP:
 #endif
 			break;
 
@@ -2155,6 +2157,22 @@ GF_Err trun_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<!-- all default values used -->\n");
 	}
 	fprintf(trace, "</TrackRunBox>\n");
+	return GF_OK;
+}
+
+GF_Err styp_dump(GF_Box *a, FILE * trace)
+{
+	GF_SegmentTypeBox *p;
+	u32 i;
+
+	p = (GF_SegmentTypeBox *)a;
+	fprintf(trace, "<SegmentTypeBox MajorBrand=\"%s\" MinorVersion=\"%d\">\n", gf_4cc_to_str(p->majorBrand), p->minorVersion);
+	DumpBox(a, trace);
+
+	for (i=0; i<p->altCount; i++) {
+		fprintf(trace, "<BrandEntry AlternateBrand=\"%s\"/>\n", gf_4cc_to_str(p->altBrand[i]));
+	}
+	fprintf(trace, "</SegmentTypeBox>\n");
 	return GF_OK;
 }
 

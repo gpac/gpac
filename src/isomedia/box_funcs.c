@@ -434,6 +434,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_TRAF: return traf_New();
 	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_New();
 	case GF_ISOM_BOX_TYPE_TRUN: return trun_New();
+	case GF_ISOM_BOX_TYPE_STYP: return styp_New();
 #endif 
 
 	/*3GPP boxes*/
@@ -677,6 +678,7 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TRAF: traf_del(a); return;
 	case GF_ISOM_BOX_TYPE_TFHD: tfhd_del(a); return;
 	case GF_ISOM_BOX_TYPE_TRUN: trun_del(a); return;
+	case GF_ISOM_BOX_TYPE_STYP: styp_del(a); return;
 #endif
 
 	case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -909,6 +911,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_TRAF: return traf_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TRUN: return trun_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STYP: return styp_Read(a, bs);
 #endif
 	
 
@@ -1134,6 +1137,7 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_TRAF: return traf_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TRUN: return trun_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_STYP: return styp_Write(a, bs);
 #endif 
 
 	/*3GPP boxes*/
@@ -1358,6 +1362,7 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TRAF: return traf_Size(a);
 	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_Size(a);
 	case GF_ISOM_BOX_TYPE_TRUN: return trun_Size(a);
+	case GF_ISOM_BOX_TYPE_STYP: return styp_Size(a);
 #endif
 	
 	/*3GPP boxes*/
