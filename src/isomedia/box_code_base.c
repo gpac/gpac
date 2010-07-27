@@ -5673,6 +5673,78 @@ GF_Err stts_Size(GF_Box *s)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
+void styp_del(GF_Box *s)
+{
+	GF_SegmentTypeBox *ptr = (GF_SegmentTypeBox *) s;
+	if (ptr->altBrand) gf_free(ptr->altBrand);
+	gf_free(ptr);
+}
+
+GF_Box *styp_New()
+{
+	GF_SegmentTypeBox *tmp;
+	
+	tmp = (GF_SegmentTypeBox *) gf_malloc(sizeof(GF_SegmentTypeBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_SegmentTypeBox));
+
+	tmp->type = GF_ISOM_BOX_TYPE_STYP;
+	return (GF_Box *)tmp;
+}
+
+GF_Err styp_Read(GF_Box *s,GF_BitStream *bs)
+{
+	u32 i;
+	GF_SegmentTypeBox *ptr = (GF_SegmentTypeBox *)s;
+
+	ptr->majorBrand = gf_bs_read_u32(bs);
+	ptr->minorVersion = gf_bs_read_u32(bs);
+	ptr->size -= 8;
+
+	ptr->altCount = ( (u32) (ptr->size)) / 4;
+	if (!ptr->altCount) return GF_OK;
+	if (ptr->altCount * 4 != (u32) (ptr->size)) return GF_ISOM_INVALID_FILE;
+
+	ptr->altBrand = (u32*)gf_malloc(sizeof(u32)*ptr->altCount);
+	for (i = 0; i<ptr->altCount; i++) {
+		ptr->altBrand[i] = gf_bs_read_u32(bs);
+	}
+	return GF_OK;
+}
+
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err styp_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_SegmentTypeBox *ptr = (GF_SegmentTypeBox *) s;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, ptr->majorBrand);
+	gf_bs_write_u32(bs, ptr->minorVersion);
+	for (i=0; i<ptr->altCount; i++) {
+		gf_bs_write_u32(bs, ptr->altBrand[i]);
+	}
+	return GF_OK;
+}
+
+GF_Err styp_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_SegmentTypeBox *ptr = (GF_SegmentTypeBox *)s;
+	
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	ptr->size += 8 + ptr->altCount * 4;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 void tfhd_del(GF_Box *s)
 {
 	GF_TrackFragmentHeaderBox *ptr = (GF_TrackFragmentHeaderBox *)s;
@@ -5970,6 +6042,10 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SDTP:
 		if (ptr->sdtp) return GF_ISOM_INVALID_FILE;
 		ptr->sdtp = (GF_SampleDependencyTypeBox *)a;
+		return GF_OK;
+    case GF_ISOM_BOX_TYPE_TFAD:
+        if (ptr->tfad) return GF_ISOM_INVALID_FILE;
+        ptr->tfad = a;
 		return GF_OK;
 	default:
 		return GF_ISOM_INVALID_FILE;

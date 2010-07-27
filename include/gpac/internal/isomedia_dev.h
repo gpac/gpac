@@ -181,6 +181,12 @@ enum
 	GF_ISOM_BOX_TYPE_DSMV	= GF_4CC( 'd', 's', 'm', 'v' ),
 	GF_ISOM_BOX_TYPE_TSEL	= GF_4CC( 't', 's', 'e', 'l' ),
 
+    /* 3GPP Adaptive Streaming extensions */
+	GF_ISOM_BOX_TYPE_STYP	= GF_4CC( 's', 't', 'y', 'p' ),
+	GF_ISOM_BOX_TYPE_TFAD	= GF_4CC( 't', 'f', 'a', 'd' ),
+	GF_ISOM_BOX_TYPE_TFMA	= GF_4CC( 't', 'f', 'm', 'a' ),
+	GF_ISOM_BOX_TYPE_SIDX	= GF_4CC( 's', 'i', 'd', 'x' ),
+
 	/*3GPP text / MPEG-4 StreamingText*/
 	GF_ISOM_BOX_TYPE_FTAB	= GF_4CC( 'f', 't', 'a', 'b' ),
 	GF_ISOM_BOX_TYPE_TX3G	= GF_4CC( 't', 'x', '3', 'g' ),
@@ -1449,6 +1455,7 @@ typedef struct
 	GF_SampleDependencyTypeBox *sdtp;
 	/*when data caching is on*/
 	u32 DataCache;
+    GF_Box *tfad;
 } GF_TrackFragmentBox;
 
 /*FLAGS for TRUN : specify what is written in the SampleTable of TRUN*/
@@ -1483,6 +1490,15 @@ typedef struct
 	u32 flags;
 	u32 CTS_Offset;
 } GF_TrunEntry;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	u32 majorBrand;
+	u32 minorVersion;
+	u32 altCount;
+	u32 *altBrand;
+} GF_SegmentTypeBox;
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
 
@@ -1917,6 +1933,8 @@ struct __tag_isom {
 	/*in WRITE mode, this is the current MDAT where data is written*/
 	/*in READ mode this is the last valid file position before a gf_isom_box_read failed*/
 	u64 current_top_box_start;
+	/*segment type */
+	GF_SegmentTypeBox *styp;
 #endif
 
 	/*this contains ALL the root boxes excepts fragments*/
@@ -2697,6 +2715,7 @@ GF_Box *mfhd_New();
 GF_Box *traf_New();
 GF_Box *tfhd_New();
 GF_Box *trun_New();
+GF_Box *styp_New();
 
 void mvex_del(GF_Box *s);
 void trex_del(GF_Box *s);
@@ -2705,6 +2724,7 @@ void mfhd_del(GF_Box *s);
 void traf_del(GF_Box *s);
 void tfhd_del(GF_Box *s);
 void trun_del(GF_Box *s);
+void styp_del(GF_Box *s);
 
 GF_Err mvex_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err trex_Read(GF_Box *s, GF_BitStream *bs);
@@ -2713,6 +2733,7 @@ GF_Err mfhd_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err traf_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err tfhd_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err trun_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err styp_Read(GF_Box *s, GF_BitStream *bs);
 
 GF_Err mvex_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err trex_Write(GF_Box *s, GF_BitStream *bs);
@@ -2721,6 +2742,7 @@ GF_Err mfhd_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err traf_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err tfhd_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err trun_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err styp_Write(GF_Box *s, GF_BitStream *bs);
 
 GF_Err mvex_Size(GF_Box *s);
 GF_Err trex_Size(GF_Box *s);
@@ -2729,6 +2751,7 @@ GF_Err mfhd_Size(GF_Box *s);
 GF_Err traf_Size(GF_Box *s);
 GF_Err tfhd_Size(GF_Box *s);
 GF_Err trun_Size(GF_Box *s);
+GF_Err styp_Size(GF_Box *s);
 
 
 GF_Box *mehd_New();
@@ -3028,6 +3051,7 @@ GF_Err mfhd_dump(GF_Box *a, FILE * trace);
 GF_Err traf_dump(GF_Box *a, FILE * trace);
 GF_Err tfhd_dump(GF_Box *a, FILE * trace);
 GF_Err trun_dump(GF_Box *a, FILE * trace);
+GF_Err styp_dump(GF_Box *a, FILE * trace);
 #endif
 
 GF_Err avcc_dump(GF_Box *a, FILE * trace);
