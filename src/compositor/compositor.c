@@ -247,7 +247,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	if (compositor->video_out->FlushRectangles)
 		compositor->visual->direct_flush = 1;
 
-	compositor->visual->DrawBitmap = compositor_2d_draw_bitmap;
+	compositor_2d_init_callbacks(compositor);
 
     // default value for depth gain is not zero
 #ifdef GF_SR_USE_DEPTH

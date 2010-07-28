@@ -317,6 +317,7 @@ struct __tag_compositor
 	Bool video_memory;
 	/*indicate if overlays were prezsent in the previous frame*/
 	Bool last_had_overlays;
+	GF_RasterCallback raster_callbacks;
 
 	/*options*/
 	Bool scalable_zoom;
@@ -1063,7 +1064,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *sr);
 void compositor_2d_set_user_transform(GF_Compositor *sr, Fixed zoom, Fixed tx, Fixed ty, Bool is_resize) ;
 GF_Err compositor_2d_get_video_access(GF_VisualManager *surf);
 void compositor_2d_release_video_access(GF_VisualManager *surf);
-Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, struct _drawable_context *ctx, GF_ColorKey *col_key);
+void compositor_2d_init_callbacks(GF_Compositor *compositor);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
 
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res);

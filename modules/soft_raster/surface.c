@@ -79,7 +79,7 @@ GF_Err evg_surface_attach_to_callbacks(GF_SURFACE _this, GF_RasterCallback *call
 {
 	EVGSurface *surf = (EVGSurface *)_this;
 	if (!surf || !width || !height || !callbacks) return GF_BAD_PARAM;
-	if (!callbacks->cbk || !callbacks->fill_run_alpha || !callbacks->fill_run_no_alpha) return GF_BAD_PARAM;
+	if (!callbacks->cbk || !callbacks->fill_run_alpha || !callbacks->fill_run_no_alpha || !callbacks->fill_rect) return GF_BAD_PARAM;
 
 	surf->width = width;
 	surf->height = height;
@@ -89,6 +89,7 @@ GF_Err evg_surface_attach_to_callbacks(GF_SURFACE _this, GF_RasterCallback *call
 	surf->raster_cbk = callbacks->cbk;
 	surf->raster_fill_run_alpha = callbacks->fill_run_alpha;
 	surf->raster_fill_run_no_alpha = callbacks->fill_run_no_alpha;
+	surf->raster_fill_rectangle = callbacks->fill_rect;
 	evg_surface_set_matrix(surf, NULL);
 	return GF_OK;
 }
@@ -242,7 +243,8 @@ GF_Err evg_surface_clear(GF_SURFACE _this, GF_IRect *rc, u32 color)
 	}
 	
 	if (surf->raster_cbk) {
-		return evg_surface_clear_user(surf, clear, color);
+		surf->raster_fill_rectangle(surf->raster_cbk, clear.x, clear.y, clear.width, clear.height, color);
+		return GF_OK;
 	}
 
 	switch (surf->pixelFormat) {

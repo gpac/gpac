@@ -420,25 +420,3 @@ void evg_user_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	}
 }
 
-GF_Err evg_surface_clear_user(GF_SURFACE surf, GF_IRect rc, GF_Color col)
-{
-	u32 y, w, h, sx, sy, a;
-	EVGSurface *_this = (EVGSurface *)surf;
-
-	h = rc.height;
-	w = rc.width;
-	sx = rc.x;
-	sy = rc.y;
-	a = GF_COL_A(col);
-	if (a==0xFF) {
-		for (y = 0; y < h; y++) {
-			_this->raster_fill_run_no_alpha(_this->raster_cbk, sx, y+sy, w, col);
-		}
-	} else {
-		col |= 0xFF000000;
-		for (y = 0; y < h; y++) {
-			_this->raster_fill_run_alpha(_this->raster_cbk, sx, y+sy, w, col, a);
-		}
-	}
-	return GF_OK;
-}

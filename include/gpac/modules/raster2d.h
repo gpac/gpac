@@ -111,8 +111,10 @@ typedef struct
 	void *cbk;
 	/*fills line pixels without any blending operation*/
 	void (*fill_run_no_alpha)(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color);
-	/*fills line pixels without blending operation - alpha combines both fill color and anti-aliasing blending*/
-	void (*fill_run_alpha)(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u32 alpha);
+	/*fills line pixels with blending operation - alpha combines both fill color and anti-aliasing blending*/
+	void (*fill_run_alpha)(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u8 alpha);
+	/*fills rectangle*/
+	void (*fill_rect)(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_Color color);
 } GF_RasterCallback;
 
 

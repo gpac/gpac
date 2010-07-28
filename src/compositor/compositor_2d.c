@@ -58,7 +58,7 @@ static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Colo
 #endif
 }
 
-static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u32 alpha)
+static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u8 alpha)
 {
 #if defined(GPAC_USE_OGL_ES)
 	GLfloat line[4];
@@ -83,6 +83,46 @@ static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color c
 	glBegin(GL_LINES);
 	glVertex2i(x,y);
 	glVertex2i(x+run_h_len,y);
+	glEnd();
+	glDisable(GL_BLEND);
+#endif
+}
+
+static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_Color color)
+{
+#if defined(GPAC_USE_OGL_ES)
+	GLfloat line[8];
+
+	line[0] = FIX2FLT(x);
+	line[1] = FIX2FLT(y);
+	line[2] = FIX2FLT(x+width);
+	line[3] = FIX2FLT(y);
+	line[4] = FIX2FLT(x+width);
+	line[5] = FIX2FLT(y+height);
+	line[6] = FIX2FLT(x);
+	line[7] = FIX2FLT(y+height);
+	
+	glEnable(GL_BLEND);
+	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), GF_COL_A(color));
+
+	glVertexPointer(4, GL_FLOAT, 0, line);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, 2);
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+	glDisable(GL_BLEND);
+#else
+	glEnable(GL_BLEND);
+	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), GF_COL_A(color));
+	glBegin(GL_TRIANGLES);
+	glVertex2i(x,y);
+	glVertex2i(x+width,y);
+	glVertex2i(x+width,y+height);
+	glEnd();
+	glBegin(GL_TRIANGLES);
+	glVertex2i(x,y);
+	glVertex2i(x+width,y+height);
+	glVertex2i(x,y+height);
 	glEnd();
 	glDisable(GL_BLEND);
 #endif
@@ -142,6 +182,7 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		callbacks.cbk = visual;
 		callbacks.fill_run_alpha = c2d_gl_fill_alpha;
 		callbacks.fill_run_no_alpha = c2d_gl_fill_no_alpha;
+		callbacks.fill_rect = c2d_gl_fill_rect;
 
 		visual->DrawBitmap = c2d_gl_draw_bitmap;
 
@@ -217,8 +258,17 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface handle to raster: %s\n", gf_error_to_string(e) ));
 		}
 	}
+
+	if (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_LINE_BLIT) {
+		e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &compositor->raster_callbacks, compositor->vp_width, compositor->vp_height);
+		if (!e) {
+			visual->is_attached = 1;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Video surface callbacks attached to raster\n"));
+			return GF_OK;
+		}
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Failed to attach video surface callbacks to raster\n"));
+	}
 	
-	/*TODO - collect hw accelerated blit routines if any*/
 	e = GF_NOT_SUPPORTED;
 
 	if (compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, 1)==GF_OK) {
@@ -1104,3 +1154,14 @@ void visual_2d_draw_overlays(GF_VisualManager *visual)
 	}
 }
 
+
+void compositor_2d_init_callbacks(GF_Compositor *compositor)
+{
+	compositor->visual->DrawBitmap = compositor_2d_draw_bitmap;
+	if (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_LINE_BLIT) {
+		compositor->raster_callbacks.cbk = compositor->video_out;
+		compositor->raster_callbacks.fill_run_alpha = compositor->video_out->DrawHLineAlpha;
+		compositor->raster_callbacks.fill_run_no_alpha = compositor->video_out->DrawHLine;
+		compositor->raster_callbacks.fill_rect = compositor->video_out->DrawRectangle;
+	}
+}
