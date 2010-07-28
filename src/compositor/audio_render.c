@@ -44,6 +44,7 @@ GF_Err gf_afc_load(GF_AudioFilterChain *afc, GF_User *user, char *filterstring)
 					&& filter->Process
 					&& filter->Reset
 					&& filter->SetOption 
+					&& filter->GetOption 
 					&& filter->SetFilter(filter, filterstring)
 				)
 					break;
@@ -596,10 +597,8 @@ void gf_sc_ar_reconfig(GF_AudioRenderer *ar)
 	gf_mixer_lock(ar->mixer, 1);
 
 	gf_ar_freeze_intern(ar, 1, 1, 0);
-
-	ar->need_reconfig = 0;
+	ar->need_reconfig = 0;		
 	gf_ar_setup_output_format(ar);
-
 	gf_ar_freeze_intern(ar, 0, 1, 0);
 	
 	/*unlock mixer*/
@@ -616,4 +615,21 @@ u32 gf_sc_ar_get_clock(GF_AudioRenderer *ar)
 {
 	if (ar->Frozen) return ar->FreezeTime - ar->startTime;
 	return gf_sys_clock() - ar->startTime;
+}
+void gf_sc_reload_audio_filters(GF_Compositor *compositor)
+{
+	GF_AudioRenderer *ar = compositor->audio_renderer;
+	if (!ar) return;
+
+	gf_mixer_lock(ar->mixer, 1);
+
+	gf_afc_unload(&ar->filter_chain);
+	gf_afc_load(&ar->filter_chain, ar->user, (char*)gf_cfg_get_key(ar->user->config, "Audio", "Filter"));
+
+	gf_ar_freeze_intern(ar, 1, 1, 0);
+	ar->need_reconfig = 0;		
+	gf_ar_setup_output_format(ar);
+	gf_ar_freeze_intern(ar, 0, 1, 0);
+
+	gf_mixer_lock(ar->mixer, 0);
 }

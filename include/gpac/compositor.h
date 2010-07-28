@@ -155,6 +155,7 @@ GF_Compositor *gf_sc_get_compositor(GF_Node *node);
 
 Bool gf_sc_script_action(GF_Compositor *sr, u32 type, GF_Node *n, GF_JSAPIParam *param);
 
+void gf_sc_reload_audio_filters(GF_Compositor *compositor);
 
 #ifdef __cplusplus
 }
