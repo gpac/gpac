@@ -69,6 +69,8 @@ enum
 	and cannot be changed at runtime*/
 	GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA = (1<<7),
 
+	/*HW supports line blitting*/
+	GF_VIDEO_HW_HAS_LINE_BLIT = (1<<15),
 	/*HW supports locking a surface by device context (Win32 only)*/
 	GF_VIDEO_HW_HAS_HWND_HDC	= (1<<16),
 	/*HW only supports direct rendering mode*/
@@ -187,6 +189,13 @@ typedef struct _video_out
 	*/
 	void (*FlushRectangles)(struct _video_out *vout, GF_DirtyRectangles *rectangles);
 	
+	/*ignored if GF_VIDEO_HW_HAS_LINE_BLIT is not set*/
+	void (*DrawHLine)(struct _video_out *vout, u32 x, u32 y, u32 length, GF_Color color);
+	void (*DrawHLineAlpha)(struct _video_out *vout, u32 x, u32 y, u32 length, GF_Color color, u8 alpha);
+	void (*DrawRectangle)(struct _video_out *vout, u32 x, u32 y, u32 width, u32 height, GF_Color color);
+
+
+
 	/*set of above HW flags*/
 	u32 hw_caps;
 	/*main pixel format of video board (informative only)*/
