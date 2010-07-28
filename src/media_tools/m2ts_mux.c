@@ -607,7 +607,7 @@ Bool gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 			gf_bs_write_int(bs,	len, 8);
 			
 			/* Scope_of_IOD_label : 
-				0x10 iod unique a l'intérieur de programme
+				0x10 iod unique a l'intï¿½rieur de programme
 				0x11 iod unoque dans le flux ts */
 			gf_bs_write_int(bs,	2, 8);  
 
