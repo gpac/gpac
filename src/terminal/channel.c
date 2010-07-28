@@ -1107,8 +1107,12 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	case GF_OK:
 		break;
 	default:
-		gf_term_message(ch->odm->term, ch->service->url , "Data reception failure", state);
-		return NULL;
+        {
+            char m[100];
+            sprintf(m, "Data reception failure on channel %d", ch->esd->ESID);
+		    gf_term_message(ch->odm->term, ch->service->url , m, state);
+		    return NULL;
+        }
 	}
 	assert(!comp);
 	/*update timing if new stream data but send no data*/
