@@ -193,12 +193,6 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_STYP:
-			/*ONE AND ONLY ONE STYP*/
-			if (mov->styp) {
-				gf_isom_box_del(a);
-				return GF_ISOM_INVALID_FILE;
-			}
-			mov->styp = (GF_SegmentTypeBox *)a;
 			totSize += a->size;
 			e = gf_list_add(mov->TopBoxes, a);
 			break;

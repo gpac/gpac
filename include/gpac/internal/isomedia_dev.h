@@ -1933,8 +1933,6 @@ struct __tag_isom {
 	/*in WRITE mode, this is the current MDAT where data is written*/
 	/*in READ mode this is the last valid file position before a gf_isom_box_read failed*/
 	u64 current_top_box_start;
-	/*segment type */
-	GF_SegmentTypeBox *styp;
 #endif
 
 	/*this contains ALL the root boxes excepts fragments*/
