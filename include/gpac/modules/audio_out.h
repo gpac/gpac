@@ -168,6 +168,8 @@ struct _tag_audio_filter
 	*/
 	GF_Err (*Process)(GF_AudioFilter *af, void *in_data, u32 in_data_size, void *out_data, u32 *out_data_size);
 	
+	/*gets an option from the filter - currently not implemented */
+	const char *(*GetOption)(GF_AudioFilter *af, char *option);
 	/*sets an option to the filter - currently not implemented */
 	Bool (*SetOption)(GF_AudioFilter *af, char *option, char *value);
 	
