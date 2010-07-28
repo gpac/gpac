@@ -40,6 +40,9 @@
 #include <windows.h> /*for GetModuleFileName*/
 #include <direct.h>  /*for _mkdir*/
 #include <shlobj.h>  /*for getting user-dir*/
+#ifndef SHGFP_TYPE_CURRENT
+#define SHGFP_TYPE_CURRENT 0 /*needed for MinGW*/
+#endif
 
 #ifdef _MSC_VER 
 /*get rid of console*/
