@@ -1380,6 +1380,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_set_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_register_extra_graph) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_compositor) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_reload_audio_filters) )
+
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_svg_convert_length_to_display) )

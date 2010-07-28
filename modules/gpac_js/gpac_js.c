@@ -154,7 +154,13 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		*vp = BOOLEAN_TO_JSVAL( term->compositor->fullscreen ? JS_TRUE : JS_FALSE); 
 		return JS_TRUE;
 	}
-
+	if (!strcmp(prop_name, "current_path")) {
+		char *url = gf_url_concatenate(term->root_scene->root_od->net_service->url, "");
+		if (!url) url = strdup("");
+		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, url)); 
+		free(url);
+		return JS_TRUE;
+	}
 	return JS_TRUE;
 }
 static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
@@ -193,7 +199,7 @@ static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 
 static JSBool gpac_getOption(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	const char *opt;
+	const char *opt, *sec_name;
 	JSString *js_sec_name, *js_key_name, *s;
 	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (!term) return JS_FALSE;
@@ -206,7 +212,14 @@ static JSBool gpac_getOption(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	if (!JSVAL_IS_STRING(argv[1])) return JSVAL_FALSE;
 	js_key_name = JSVAL_TO_STRING(argv[1]);
 
-	opt = gf_cfg_get_key(term->user->config, JS_GetStringBytes(js_sec_name), JS_GetStringBytes(js_key_name));
+	sec_name = JS_GetStringBytes(js_sec_name);
+	if (!stricmp(sec_name, "audiofilters")) {
+		if (!term->compositor->audio_renderer->filter_chain.enable_filters) return JS_TRUE;
+		if (!term->compositor->audio_renderer->filter_chain.filters->filter->GetOption) return JS_TRUE;
+		opt = term->compositor->audio_renderer->filter_chain.filters->filter->GetOption(term->compositor->audio_renderer->filter_chain.filters->filter, JS_GetStringBytes(js_key_name));
+	} else {
+		opt = gf_cfg_get_key(term->user->config, sec_name, JS_GetStringBytes(js_key_name));
+	}
 	s = JS_NewStringCopyZ(c, opt ? opt : "");
 	if (!s) return JS_FALSE;
 	*rval = STRING_TO_JSVAL(s); 
@@ -223,14 +236,24 @@ static JSBool gpac_setOption(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	if (!JSVAL_IS_STRING(argv[0])) return JSVAL_FALSE;
 	js_sec_name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 
+
 	if (!JSVAL_IS_STRING(argv[1])) return JSVAL_FALSE;
 	js_key_name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+
 
 	if (!JSVAL_IS_STRING(argv[2])) return JSVAL_FALSE;
 	js_key_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[2]));
 
-	gf_cfg_set_key(term->user->config, js_sec_name, js_key_name, js_key_val);
-
+	if (!stricmp(js_sec_name, "audiofilters")) {
+		if (!term->compositor->audio_renderer->filter_chain.enable_filters) return JS_TRUE;
+		if (!term->compositor->audio_renderer->filter_chain.filters->filter->SetOption) return JS_TRUE;
+		term->compositor->audio_renderer->filter_chain.filters->filter->SetOption(term->compositor->audio_renderer->filter_chain.filters->filter, js_key_name, js_key_val);
+	} else {
+		gf_cfg_set_key(term->user->config, js_sec_name, js_key_name, js_key_val);
+		if (!strcmp(js_sec_name, "Audio") && !strcmp(js_key_name, "Filter")) {
+			gf_sc_reload_audio_filters(term->compositor);
+		}
+	}
 	return JSVAL_TRUE;
 }
 
