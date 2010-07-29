@@ -1582,7 +1582,12 @@ void DumpMovieInfo(GF_ISOFile *file)
 	
 	DumpMetaItem(file, 1, 0, "Root Meta");
 	if (!gf_isom_has_movie(file)) {
-		fprintf(stdout, "File has no movie (moov) - static data container\n");
+        if (gf_isom_has_segment(file, &brand, &min)) {
+            fprintf(stdout, "File is a segment: \n");
+            fprintf(stdout, "\tSegment Brand %s - version %d\n", gf_4cc_to_str(brand), min);
+        } else {
+		    fprintf(stdout, "File has no movie (moov) - static data container\n");
+        }
 		return;
 	}
 
