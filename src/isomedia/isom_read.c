@@ -387,6 +387,23 @@ Bool gf_isom_has_movie(GF_ISOFile *file)
 	return 0;
 }
 
+GF_EXPORT
+Bool gf_isom_has_segment(GF_ISOFile *file, u32 *brand, u32 *version)
+{
+    u32 i;
+    GF_Box *a;
+    i = 0;
+    while (a = gf_list_enum(file->TopBoxes, &i)) {
+        if (a->type == GF_ISOM_BOX_TYPE_STYP) {
+            GF_SegmentTypeBox *styp = (GF_SegmentTypeBox *)a;
+    		*brand = styp->majorBrand;
+            *version = styp->minorVersion;
+            return 1;
+        }
+    }
+	return 0;
+}
+
 //return the timescale of the movie, 0 if error
 GF_EXPORT
 u32 gf_isom_get_timescale(GF_ISOFile *movie)

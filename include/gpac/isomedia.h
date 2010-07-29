@@ -362,6 +362,9 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *the_file, u64 *MissingBytes);
 the base IsoMedia structure without "moov" container*/
 Bool gf_isom_has_movie(GF_ISOFile *file);
 
+/* check if the file has a top styp box and returns the brand and version of the first styp found */
+Bool gf_isom_has_segment(GF_ISOFile *file, u32 *brand, u32 *version);
+
 /********************************************************************
 				READING API FUNCTIONS
 ********************************************************************/

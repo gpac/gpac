@@ -201,9 +201,9 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 			((GF_MovieFragmentBox *)a)->mov = mov;
 
 			totSize += a->size;
+            mov->moof = (GF_MovieFragmentBox *) a;
 			/*read & debug: store at root level*/
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
-                mov->moof = (GF_MovieFragmentBox *) a;
                 gf_list_add(mov->TopBoxes, a);
 			} else {
 				/*merge all info*/
