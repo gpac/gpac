@@ -91,6 +91,7 @@ thread accessing the HW ressources
 static void gf_sc_reconfig_task(GF_Compositor *compositor)
 {
 	GF_Event evt;
+	Bool notif_size=0;
 	u32 width,height;
 	
 	/*reconfig audio if needed (non-threaded compositors)*/
@@ -151,6 +152,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 			}
 			compositor->reset_graphics = 1;
+			notif_size=1;
 			
 		}
 		/*aspect ratio modif*/
@@ -163,8 +165,16 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			compositor->msg_type &= ~GF_SR_CFG_FULLSCREEN;
 			gf_sc_set_fullscreen(compositor);
 			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+			notif_size=1;
 		}
 		compositor->msg_type &= ~GF_SR_IN_RECONFIG;
+	}
+	if (notif_size && compositor->video_listeners) {
+		u32 k=0;
+		GF_VideoListener *l;
+		while ((l = gf_list_enum(compositor->video_listeners, &k))) {
+			l->on_video_reconfig(l->udta, compositor->display_width, compositor->display_height);
+		}
 	}
 
 	/*3D driver changed message, recheck extensions*/
@@ -553,6 +563,8 @@ void gf_sc_del(GF_Compositor *compositor)
 	if (compositor->textures) gf_list_del(compositor->textures);
 	if (compositor->time_nodes) gf_list_del(compositor->time_nodes);
 	if (compositor->extra_scenes) gf_list_del(compositor->extra_scenes);
+	if (compositor->video_listeners) gf_list_del(compositor->video_listeners);
+	
 	gf_sc_lock(compositor, 0);
 	gf_mx_del(compositor->mx);
 	gf_free(compositor);
@@ -1937,6 +1949,15 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 			traverse_time = gf_sys_clock() - traverse_time;
 #endif
+
+			if (compositor->video_listeners && !compositor->skip_flush) {
+				u32 k=0;
+				GF_VideoListener *l;
+				while ((l = gf_list_enum(compositor->video_listeners, &k))) {
+					l->on_video_frame(l->udta, gf_sc_ar_get_clock(compositor->audio_renderer) );
+				}
+			}
+
 		}
 		/*and flush*/
 #ifndef GPAC_DISABLE_LOG
@@ -2343,11 +2364,13 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			/*EXTRA CARE HERE: the caller (video output) is likely a different thread than the compositor one, and the
 			compositor may be locked on the video output (flush or whatever)!!
 			*/
-			Bool lock_ok = gf_mx_try_lock(compositor->mx);
-			compositor->new_width = event->size.width;
-			compositor->new_height = event->size.height;
-			compositor->msg_type |= GF_SR_CFG_SET_SIZE;
-			if (lock_ok) gf_sc_lock(compositor, 0);
+			if ((compositor->display_width!=event->size.width) || (compositor->display_height!=event->size.height)) {
+				Bool lock_ok = gf_mx_try_lock(compositor->mx);
+				compositor->new_width = event->size.width;
+				compositor->new_height = event->size.height;
+				compositor->msg_type |= GF_SR_CFG_SET_SIZE;
+				if (lock_ok) gf_sc_lock(compositor, 0);
+			}
 		}
 		/*otherwise let the user decide*/
 		else {
@@ -2667,4 +2690,29 @@ void gf_sc_check_focus_upon_destroy(GF_Node *n)
 	}
 	if (compositor->hit_node==n) compositor->hit_node = NULL;
 	if (compositor->hit_text==n) compositor->hit_text = NULL;
+}
+
+GF_Err gf_sc_add_video_listener(GF_Compositor *sc, GF_VideoListener *vl)
+{
+	if (!sc|| !vl || !vl->on_video_frame || !vl->on_video_reconfig) return GF_BAD_PARAM;
+
+	gf_sc_lock(sc, 1);
+	if (!sc->video_listeners) sc->video_listeners = gf_list_new();
+	gf_list_add(sc->video_listeners, vl);
+	gf_sc_lock(sc, 0);
+	return GF_OK;
+}
+
+GF_Err gf_sc_remove_video_listener(GF_Compositor *sc, GF_VideoListener *vl)
+{
+	if (!sc|| !vl) return GF_BAD_PARAM;
+
+	gf_sc_lock(sc, 1);
+	gf_list_del_item(sc->video_listeners, vl);
+	if (!gf_list_count(sc->video_listeners)) {
+		gf_list_del(sc->video_listeners);
+		sc->video_listeners = NULL;
+	}
+	gf_sc_lock(sc, 0);
+	return GF_OK;
 }

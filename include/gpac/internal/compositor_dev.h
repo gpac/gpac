@@ -153,6 +153,9 @@ struct __tag_compositor
 	/*2D rasterizer*/
 	GF_Raster2D *rasterizer;
 
+	/*all textures (texture handlers)*/
+	GF_List *video_listeners;
+
 	/*visual rendering thread if used*/
 	GF_Thread *VisualThread;
 	/*0: not init, 1: running, 2: exit requested, 3: done*/
@@ -951,6 +954,7 @@ typedef struct _audio_render
 	/*client*/
 	GF_User *user;
 
+	GF_List *audio_listeners;
 	/*audio thread if output not self-threaded*/
 	GF_Thread *th;
 	/*thread state: 0: not init, 1: running, 2: waiting for stop, 3: done*/
@@ -1253,6 +1257,37 @@ void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state);
 #ifdef GPAC_USE_TINYGL
 void gf_get_tinygl_depth(GF_TextureHandler *txh);
 #endif
+
+
+
+typedef struct
+{
+	void *udta;
+	/*called when new video frame is ready to be flushed on screen. time is the terminal global clock in ms*/
+	void (*on_video_frame)(void *udta, u32 time);
+	/*called when video output has been resized*/
+	void (*on_video_reconfig)(void *udta, u32 width, u32 height);
+} GF_VideoListener;
+
+GF_Err gf_sc_add_video_listener(GF_Compositor *compositor, GF_VideoListener *vl);
+GF_Err gf_sc_remove_video_listener(GF_Compositor *compositor, GF_VideoListener *vl);
+
+typedef struct
+{
+	void *udta;
+	/*called when audio frame is ready to be sent to the sound card. 
+		@buffer, @buffer_size: audio buffer
+		@time: the terminal global clock in ms
+		@delay: Due to sound card latencies, audio is sent to the sound card delay milliseconds earlier than 
+		its associated video.
+	*/
+	void (*on_audio_frame)(void *udta, char *buffer, u32 buffer_size, u32 time, u32 delay);
+	/*called when audio output has been reconfigured*/
+	void (*on_audio_reconfig)(void *udta, u32 samplerate, u32 bits_per_sample, u32 nb_channel, u32 channel_cfg);
+} GF_AudioListener;
+
+GF_Err gf_sc_add_audio_listener(GF_Compositor *compositor, GF_AudioListener *al);
+GF_Err gf_sc_remove_audio_listener(GF_Compositor *compositor, GF_AudioListener *al);
 
 #endif	/*_COMPOSITOR_DEV_H_*/
 

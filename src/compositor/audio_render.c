@@ -273,6 +273,14 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 
 	ar->audio_out->SetVolume(ar->audio_out, ar->volume);
 	ar->audio_out->SetPan(ar->audio_out, ar->pan);
+
+	if (ar->audio_listeners) {
+		u32 k=0;
+		GF_AudioListener *l;
+		while ((l = gf_list_enum(ar->audio_listeners, &k))) {
+			l->on_audio_reconfig(l->udta, in_freq, in_bps, in_ch, in_cfg);
+		}
+	}
 	
 	return GF_OK;
 }
@@ -281,14 +289,15 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 
 static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 {
+	u32 written;
 	GF_AudioRenderer *ar = (GF_AudioRenderer *) ptr;
 	if (!ar->need_reconfig) {
 		u32 delay_ms = ar->disable_resync ?	0 : ar->audio_delay;
 
 		if (ar->filter_chain.enable_filters) {
 			char *ptr = buffer;
-			u32 written = 0;
 			u32 res = buffer_size;
+			written = 0;
 			delay_ms += ar->filter_chain.delay_ms;
 
 			while (buffer_size) {
@@ -317,10 +326,17 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 				if (ar->nb_used==ar->nb_filled) ar->nb_used = 0;
 			}
 			assert(res==written);
-			return written;
 		} else {
-			return gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
+			written = gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
 		}
+		if (ar->audio_listeners) {
+			u32 k=0;
+			GF_AudioListener *l;
+			while ((l = gf_list_enum(ar->audio_listeners, &k))) {
+				l->on_audio_frame(l->udta, buffer, written, gf_sc_ar_get_clock(ar), delay_ms);
+			}
+		}
+		return written;
 	}
 	return 0;
 }
@@ -490,6 +506,7 @@ void gf_sc_ar_del(GF_AudioRenderer *ar)
 	}
 	gf_mixer_del(ar->mixer);
 
+	if (ar->audio_listeners) gf_list_del(ar->audio_listeners);
 	gf_afc_unload(&ar->filter_chain);
 	gf_free(ar);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] Renderer destroyed\n"));
@@ -632,4 +649,32 @@ void gf_sc_reload_audio_filters(GF_Compositor *compositor)
 	gf_ar_freeze_intern(ar, 0, 1, 0);
 
 	gf_mixer_lock(ar->mixer, 0);
+}
+
+
+GF_Err gf_sc_add_audio_listener(GF_Compositor *compositor, GF_AudioListener *al)
+{
+	if (!compositor || !al || !al->on_audio_frame || !al->on_audio_reconfig) return GF_BAD_PARAM;
+	if (!compositor->audio_renderer) return GF_NOT_SUPPORTED;
+
+	gf_mixer_lock(compositor->audio_renderer->mixer, 1);
+	if (!compositor->audio_renderer->audio_listeners) compositor->audio_renderer->audio_listeners = gf_list_new();
+	gf_list_add(compositor->audio_renderer->audio_listeners, al);
+	gf_mixer_lock(compositor->audio_renderer->mixer, 0);
+	return GF_OK;
+}
+
+GF_Err gf_sc_remove_audio_listener(GF_Compositor *compositor, GF_AudioListener *al)
+{
+	if (!compositor || !al) return GF_BAD_PARAM;
+	if (!compositor->audio_renderer) return GF_NOT_SUPPORTED;
+
+	gf_mixer_lock(compositor->audio_renderer->mixer, 1);
+	gf_list_del_item(compositor->audio_renderer->audio_listeners, al);
+	if (!gf_list_count(compositor->audio_renderer->audio_listeners)) {
+		gf_list_del(compositor->audio_renderer->audio_listeners);
+		compositor->audio_renderer->audio_listeners = NULL;
+	}
+	gf_mixer_lock(compositor->audio_renderer->mixer, 0);
+	return GF_OK;
 }
