@@ -360,8 +360,8 @@
 				Name="VCCLCompilerTool"
 				Optimization="4"
 				AdditionalIncludeDirectories="../../include"
-				PreprocessorDefinitions="_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;NDEBUG"
-				RuntimeLibrary="0"
+				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_CONSOLE;$(NOINHERIT)"
+				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderFile="$(IntDir)\$(ProjectName).pch"
 				AssemblerListingLocation="$(IntDir)\"
@@ -384,20 +384,17 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalOptions="/ALIGN:4096 /subsystem:$(CESubsystem) /MACHINE:ARM "
-				AdditionalDependencies="aygshell.lib commctrl.lib gx.lib secchk.lib ccrtrtti.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/$(ProjectName).exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
-				IgnoreDefaultLibraryNames="$(CENoDefaultLib)"
-				ProgramDatabaseFile="$(PlatformName)\$(ConfigurationName)/osmophone.pdb"
-				SubSystem="9"
+				IgnoreDefaultLibraryNames="$(NOINHERIT)"
+				ProgramDatabaseFile=".\obj\$(PlatformName)\$(ConfigurationName)\osmophone/osmophone.pdb"
+				SubSystem="2"
 				StackReserveSize="65536"
 				StackCommitSize="4096"
 				EntryPointSymbol="WinMainCRTStartup"
-				BaseAddress="0x00010000"
-				TargetMachine="3"
+				TargetMachine="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -550,10 +547,13 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
+					ExcludedFromBuild="true"
 					>
 					<Tool
 						Name="VCResourceCompilerTool"
-						AdditionalIncludeDirectories="\code_cyril\gpac\applications\osmophone"
+						PreprocessorDefinitions="DEBUG;_AFXDLL;$(NOINHERIT)"
+						Culture="2057"
+						AdditionalIncludeDirectories="../../doc"
 					/>
 				</FileConfiguration>
 			</File>
