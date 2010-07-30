@@ -568,7 +568,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_meta_xml) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_movie) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_segment) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_single_av) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_guess_specification) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_sync_shadows) )
