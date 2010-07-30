@@ -3911,9 +3911,11 @@ restart_import:
 						}
 					}
 				}
-				if ((max_w <= avc.sps[idx].width) && (max_h <= avc.sps[idx].height)) {
-					max_w = avc.sps[idx].width;
-					max_h = avc.sps[idx].height;
+				if (!is_subseq || (import->flags & GF_IMPORT_SVC_EXPLICIT)) {
+					if ((max_w <= avc.sps[idx].width) && (max_h <= avc.sps[idx].height)) {
+						max_w = avc.sps[idx].width;
+						max_h = avc.sps[idx].height;
+					}
 				}
 			}
 			break;
