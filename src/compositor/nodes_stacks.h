@@ -309,6 +309,7 @@ void compositor_init_svg_glyph(GF_Compositor *compositor, GF_Node *node);
 void compositor_init_svg_font_face_uri(GF_Compositor *compositor, GF_Node *node);
 
 void compositor_init_svg_filter(GF_Compositor *compositor, GF_Node *node);
+void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state);
 
 GF_TextureHandler *compositor_svg_get_gradient_texture(GF_Node *node);
 GF_TextureHandler *compositor_svg_get_image_texture(GF_Node *node);

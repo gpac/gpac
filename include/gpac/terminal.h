@@ -184,6 +184,7 @@ GF_Err gf_term_release_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebu
 /*ObjectManager used by both terminal and object browser (term_info.h)*/
 typedef struct _od_manager GF_ObjectManager;
 
+
 #ifdef __cplusplus
 }
 #endif

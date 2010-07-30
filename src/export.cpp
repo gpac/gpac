@@ -823,7 +823,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_register_event_filter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_unregister_event_filter) )
 
-
 /*ietf.h exports*/
 #ifndef GPAC_DISABLE_STREAMING
 #pragma comment (linker, EXPORT_SYMBOL(gf_rtsp_nc_to_string) )
@@ -923,10 +922,13 @@
 
 #ifndef GPAC_DISABLE_AVILIB
 /*avilib exports*/
-#pragma comment (linker, EXPORT_SYMBOL(AVI_write_frame) )
-#pragma comment (linker, EXPORT_SYMBOL(AVI_close) )
 #pragma comment (linker, EXPORT_SYMBOL(AVI_open_output_file) )
+#pragma comment (linker, EXPORT_SYMBOL(AVI_close) )
 #pragma comment (linker, EXPORT_SYMBOL(AVI_set_video) )
+#pragma comment (linker, EXPORT_SYMBOL(AVI_write_frame) )
+#pragma comment (linker, EXPORT_SYMBOL(AVI_set_audio) )
+#pragma comment (linker, EXPORT_SYMBOL(AVI_write_audio) )
+
 #endif /*GPAC_DISABLE_AVILIB*/
 
 /*media.h exports*/
@@ -1382,6 +1384,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_register_extra_graph) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_get_compositor) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_reload_audio_filters) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_add_video_listener) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_remove_video_listener) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_add_audio_listener) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_remove_audio_listener) )
 
 
 #ifndef GPAC_DISABLE_SVG
