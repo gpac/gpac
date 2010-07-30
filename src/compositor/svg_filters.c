@@ -1,8 +1,8 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Cyril Concolato - Jean le Feuvre
- *				Copyright (c) 2005-200X ENST
+ *			Authors: Jean le Feuvre
+ *				Copyright (c) 2010-200X ENST
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -377,6 +377,7 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 	} 
 #endif
 
+	/*we computed the texture in final screen coordinate, so use the identity matrix for the context*/
 	gf_mx2d_init(tr_state->transform);
 	drawable_finalize_sort(ctx, tr_state, NULL);
 	gf_mx2d_copy(tr_state->transform, backup);
