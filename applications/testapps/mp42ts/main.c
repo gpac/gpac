@@ -25,6 +25,7 @@
 #include <gpac/constants.h>
 #include <gpac/base_coding.h>
 #include <gpac/ietf.h>
+#include <gpac/scene_engine.h>
 #include <gpac/mpegts.h>
 
 void usage() 
@@ -43,6 +44,22 @@ void usage()
 }
 
 
+
+
+#define MAX_MUX_SRC_PROG	100
+typedef struct
+{
+	GF_ISOFile *mp4;
+	u32 nb_streams, pcr_idx;
+	GF_ESInterface streams[40];
+	GF_Descriptor *iod;
+	GF_SceneEngine *seng;
+	GF_Thread *th;
+	char *src_name;
+	u32 rate;
+	Bool repeat;
+} M2TSProgram;
+
 typedef struct
 {
 	GF_ISOFile *mp4;
@@ -57,6 +74,17 @@ typedef struct
 	Bool loop;
 	u64 ts_offset;
 } GF_ESIMP4;
+
+typedef struct
+{
+	u32 carousel_period, ts_delta;
+	u16 aggregate_on_stream;
+	Bool adjust_carousel_time;
+	Bool discard;
+	Bool rap;
+	Bool critical;
+	Bool vers_inc;
+} GF_ESIStream;
 
 static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
@@ -246,6 +274,18 @@ static void fill_isom_es_ifce(GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_n
 	ifce->input_udta = priv;
 }
 
+
+static GF_Err seng_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
+{
+	if (act_type==GF_ESI_INPUT_DESTROY) {
+		//free my data
+		ifce->input_udta = NULL;
+		return GF_OK;
+	}
+
+	return GF_OK;
+}
+
 typedef struct
 {
 	/*RTP channel*/
@@ -303,6 +343,227 @@ static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	}
 	return GF_OK;
 }
+
+GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
+{		
+	u32 i=0;
+
+	if (calling_object) {
+		M2TSProgram *prog = (M2TSProgram *)calling_object;
+			while (i<prog->nb_streams){
+				if (prog->streams[i].output_ctrl==NULL) {
+					fprintf(stdout, "MULTIPLEX NOT YET CREATED\n");				
+					return GF_OK;
+				}
+				if (prog->streams[i].stream_id == ESID) {
+					GF_ESIStream *priv = (GF_ESIStream *)prog->streams[i].input_udta;
+					GF_ESIPacket pck;
+					memset(&pck, 0, sizeof(GF_ESIPacket));
+					pck.data = data;
+					pck.data_len = size;
+					pck.flags |= GF_ESI_DATA_HAS_CTS;
+					pck.flags |= GF_ESI_DATA_AU_START;
+					pck.flags |= GF_ESI_DATA_AU_END;
+					if (priv->rap)
+						pck.flags |= GF_ESI_DATA_AU_RAP;
+					if (prog->repeat || !priv->vers_inc) {
+						pck.flags |= GF_ESI_DATA_REPEAT;
+						fprintf(stdout, "RAP carousel from scene engine sent\n"); 
+					} else {
+						fprintf(stdout, "Update from scene engine sent\n"); 
+					}
+					prog->streams[i].output_ctrl(&prog->streams[i], GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
+					return GF_OK;
+				}
+			i++;
+			}
+	} 
+	return GF_OK;
+}
+
+static Bool run = 1;
+
+static void set_broadcast_params(M2TSProgram *prog, u16 esid, u32 period, u32 ts_delta, u16 aggregate_on_stream, Bool adjust_carousel_time, Bool force_rap, Bool aggregate_au, Bool discard_pending, Bool signal_rap, Bool signal_critical, Bool version_inc)
+{
+	u32 i=0;
+	GF_ESIStream *priv=NULL;
+	GF_ESInterface *esi=NULL;
+
+	/*locate our stream*/
+	if (esid) {
+		while (i<prog->nb_streams) {
+			if (prog->streams[i].stream_id == esid){
+				priv = (GF_ESIStream *)prog->streams[i].input_udta; 
+				esi = &prog->streams[i]; 
+				break;
+			}
+			else{
+				i++;
+			}
+		}
+	}
+
+	/*TODO - set/reset the ESID for the parsers*/
+	if (!priv) return NULL;
+
+	/*TODO - if discard is set, abort current carousel*/
+	if (discard_pending) {
+	}
+
+	/*remember RAP flag*/
+	priv->rap = signal_rap; 
+	priv->critical = signal_critical;
+	priv->vers_inc = version_inc;
+
+	priv->ts_delta = ts_delta;
+	priv->adjust_carousel_time = adjust_carousel_time;
+
+	/*change stream aggregation mode*/
+	if ((aggregate_on_stream != (u16)-1) && (priv->aggregate_on_stream != aggregate_on_stream)) {
+		gf_seng_enable_aggregation(prog->seng, esid, aggregate_on_stream);
+		priv->aggregate_on_stream = aggregate_on_stream;
+	}
+	/*change stream aggregation mode*/
+	if (priv->aggregate_on_stream==esi->stream_id) {
+		if (priv->aggregate_on_stream && (period!=(u32)-1) && (esi->repeat_rate != period)) {
+			esi->repeat_rate = period;
+		}
+	} else {
+		esi->repeat_rate = 0;
+	}
+
+	return priv;
+}
+
+u32 seng_output(void *param)
+{
+	GF_Err e;
+	u64 last_src_modif, mod_time;
+	Bool has_carousel=0;
+	M2TSProgram *prog = (M2TSProgram *)param;
+	GF_SceneEngine *seng = prog->seng;
+	Bool update_context=0;
+	u32 i=0;
+	Bool force_rap, adjust_carousel_time, discard_pending, signal_rap, signal_critical, version_inc, aggregate_au;
+	u32 period, ts_delta;
+	u16 es_id, aggregate_on_stream;
+
+	if (prog->rate){
+		has_carousel = 1;
+	}
+	gf_sleep(2000);
+	gf_seng_encode_context(seng, SampleCallBack);
+	
+	last_src_modif = prog->src_name ? gf_file_modification_time(prog->src_name) : 0;
+
+	while (run) {
+		if (gf_prompt_has_input()) {
+			char c = gf_prompt_get_char();
+			switch (c) {
+			case 'u':
+			{
+				GF_Err e;
+				char szCom[8192];
+				fprintf(stdout, "Enter command to send:\n");
+				fflush(stdin);
+				szCom[0] = 0;
+				scanf("%[^\t\n]", szCom);
+				prog->repeat = 0;
+				e = gf_seng_encode_from_string(seng, 0, 0, szCom, SampleCallBack);
+				prog->repeat = 1;
+				if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
+				update_context=1;
+			}
+				break;
+			case 'p':
+			{
+				char rad[GF_MAX_PATH];
+				fprintf(stdout, "Enter output file name - \"std\" for stdout: ");
+				scanf("%s", rad);
+				e = gf_seng_save_context(seng, !strcmp(rad, "std") ? NULL : rad);
+				fprintf(stdout, "Dump done (%s)\n", gf_error_to_string(e));
+			}
+				break;
+			}
+			e = GF_OK;
+		}
+		if (prog->src_name) {
+			mod_time = gf_file_modification_time(prog->src_name);
+			if (mod_time != last_src_modif) {
+				FILE *srcf;
+				char flag_buf[201], *flag;
+				fprintf(stdout, "Update file modified - processing\n");
+				last_src_modif = mod_time;
+
+				srcf = fopen(prog->src_name, "rt");
+				if (!srcf) continue;
+
+				/*checks if we have a broadcast config*/
+				fgets(flag_buf, 200, srcf);
+				fclose(srcf);
+
+				aggregate_au = force_rap = adjust_carousel_time = discard_pending = signal_rap = signal_critical = 0;
+				version_inc = 1;
+				period = -1;
+				aggregate_on_stream = -1;
+				ts_delta = 0;
+				es_id = 0;
+
+				/*find our keyword*/
+				flag = strstr(flag_buf, "gpac_broadcast_config ");
+				if (flag) {
+					flag += strlen("gpac_broadcast_config ");
+					/*move to next word*/
+					while (flag && (flag[0]==' ')) flag++;
+
+					while (1) {
+						char *sep = strchr(flag, ' ');
+						if (sep) sep[0] = 0;
+						if (!strnicmp(flag, "esid=", 5)) es_id = atoi(flag+5);
+						else if (!strnicmp(flag, "period=", 7)) period = atoi(flag+7);
+						else if (!strnicmp(flag, "ts=", 3)) ts_delta = atoi(flag+3);
+						else if (!strnicmp(flag, "carousel=", 9)) aggregate_on_stream = atoi(flag+9);
+						else if (!strnicmp(flag, "restamp=", 8)) adjust_carousel_time = atoi(flag+8);
+						else if (!strnicmp(flag, "discard=", 8)) discard_pending = atoi(flag+8);
+						else if (!strnicmp(flag, "aggregate=", 10)) aggregate_au = atoi(flag+10);
+						else if (!strnicmp(flag, "force_rap=", 10)) force_rap = atoi(flag+10);
+						else if (!strnicmp(flag, "rap=", 4)) signal_rap = atoi(flag+4);
+						else if (!strnicmp(flag, "critical=", 9)) signal_critical = atoi(flag+9);
+						else if (!strnicmp(flag, "vers_inc=", 9)) version_inc = atoi(flag+9);
+						if (sep) {
+							sep[0] = ' ';
+							flag = sep+1;
+						} else {
+							break;
+						}
+					}
+
+					set_broadcast_params(prog, es_id, period, ts_delta, aggregate_on_stream, adjust_carousel_time, force_rap, aggregate_au, discard_pending, signal_rap, signal_critical, version_inc);
+				}
+
+
+				e = gf_seng_encode_from_file(seng, es_id, aggregate_au ? 0 : 1, prog->src_name, SampleCallBack);
+				if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
+				else gf_seng_aggregate_context(seng, 0);
+				update_context=1;
+
+				
+
+			}
+		}
+		if (update_context) {
+			prog->repeat = 1;
+			e = gf_seng_encode_context(seng, SampleCallBack	);
+			prog->repeat = 0;
+		}		
+
+		gf_sleep(10);
+	}
+	
+	
+	return e ? 1 : 0;
+}
+
 
 static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *hdr, GF_Err e)
 {
@@ -420,21 +681,36 @@ void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInfo *sdp)
 	fprintf(stdout, "RTP interface initialized\n");
 }
 
-#define MAX_MUX_SRC_PROG	100
-typedef struct
+void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 period)
 {
-	GF_ISOFile *mp4;
-	u32 nb_streams, pcr_idx;
-	GF_ESInterface streams[40];
-	GF_Descriptor *iod;
-} M2TSProgram;
+	GF_Err e=GF_OK;
+	char *config_buffer;
+	u32 len;
+	GF_ESIStream *stream;
+						
+	memset(ifce, 0, sizeof(GF_ESInterface));
+	gf_seng_get_stream_config(seng, i, &ifce->stream_id, &config_buffer, &len, &ifce->stream_type, &ifce->object_type_indication, &ifce->timescale); 
 
-Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, Bool *force_mpeg4)
+	ifce->repeat_rate = period;
+	GF_SAFEALLOC(stream, GF_ESIStream);
+	stream->rap = 1;
+	ifce->input_udta = stream;
+	
+//	e = gf_seng_set_carousel_time(seng, ifce->stream_id, period);
+	fprintf(stdout, "Caroussel %d", &period);
+	if (e) {
+		fprintf(stdout, "Cannot set carousel time on stream %d to %d: %s\n", ifce->stream_id, period, gf_error_to_string(e));
+	}
+	ifce->input_ctrl = seng_input_ctrl;
+
+}
+
+Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, Bool *force_mpeg4, const char *update)
 {
 	GF_SDPInfo *sdp;
 	u32 i;
 	GF_Err e;
-
+	
 	memset(prog, 0, sizeof(M2TSProgram));
 
 	/* Open ISO file  */
@@ -556,6 +832,38 @@ Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, Bool *f
 		if (prog->pcr_idx) prog->pcr_idx-=1;
 		gf_sdp_info_del(sdp);
 		return 2;
+	//open .bt file
+	} else if (strstr(src, ".bt")) {
+		u32 load_type=0;
+		prog->seng = gf_seng_init(prog, src, load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? 1 : 0);
+		
+	    if (!prog->seng) {
+			fprintf(stdout, "Cannot create scene engine\n");
+			exit(0);
+		}
+		else{
+			fprintf(stdout, "Scene engine created.\n");
+		}
+
+		prog->iod = gf_seng_get_iod(prog->seng);
+
+		prog->nb_streams = gf_seng_get_stream_count(prog->seng);
+		prog->rate = carousel_rate;
+		*force_mpeg4 = 1;
+
+		for (i=0; i<prog->nb_streams; i++) {
+			fill_seng_es_ifce(&prog->streams[i], i, prog->seng, prog->rate);
+			fprintf(stdout, "Fill interface/n");
+			if (!prog->pcr_idx && (prog->streams[i].stream_type == GF_STREAM_VISUAL)) {
+				prog->pcr_idx = i+1;
+			}
+		}
+		if (!prog->pcr_idx) prog->pcr_idx=1;
+		prog->pcr_idx-=1;
+		prog->th = gf_th_new("Carousel");
+		prog->src_name = update;
+		gf_th_run(prog->th, seng_output, prog);
+		return 1;
 	} else {
 		fprintf(stderr, "Error opening %s - not a supported input media, skipping.\n", src);
 		return 0;
@@ -579,6 +887,7 @@ int main(int argc, char **argv)
 	u16 port = 1234;
 	u32 output_type;
 	u32 check_count;
+	char *src_name = NULL;
 	M2TSProgram progs[MAX_MUX_SRC_PROG];
 
 	real_time=0;	
@@ -594,9 +903,8 @@ int main(int argc, char **argv)
 	carrousel_rate = 500;
 	
 	gf_sys_init(0);
-	gf_log_set_level(GF_LOG_INFO);
-	gf_log_set_tools(GF_LOG_RTP);
-	gf_log_set_tools(GF_LOG_CONTAINER);
+	gf_log_set_level(GF_LOG_ERROR);
+	gf_log_set_tools(0xFFFFFFFF);
 	
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
@@ -611,7 +919,7 @@ int main(int argc, char **argv)
 				gf_log_set_tools(gf_log_parse_tools(argv[i]+4));
 			} else if (!strnicmp(arg, "-prog=", 6)) {
 				memset(&progs[nb_progs], 0, sizeof(M2TSProgram));
-				res = open_program(&progs[nb_progs], arg+6, carrousel_rate, &mpeg4_signaling);
+				res = open_program(&progs[nb_progs], arg+6, carrousel_rate, &mpeg4_signaling, src_name);
 				if (res) {
 					nb_progs++;
 					if (res==2) real_time=1;
@@ -621,6 +929,9 @@ int main(int argc, char **argv)
 			} else if (!strnicmp(arg, "-time=", 6)) {
 				run_time = atoi(arg+6);
 			} 
+			else if (!strnicmp(arg, "-src=", 5)){
+				src_name = arg+5;
+			}
 		} 
 		/*output*/
 		else {
@@ -769,7 +1080,7 @@ int main(int argc, char **argv)
 					char c = gf_prompt_get_char();
 					if (c == 'q') break;
 				}
-				fprintf(stdout, "M2TS: time %d - TS time %d - avg bitrate %d\r", gf_m2ts_get_sys_clock(muxer), gf_m2ts_get_ts_clock(muxer), muxer->avg_br);
+				//fprintf(stdout, "M2TS: time %d - TS time %d - avg bitrate %d\r", gf_m2ts_get_sys_clock(muxer), gf_m2ts_get_ts_clock(muxer), muxer->avg_br);
 			}
 		} else if (run_time) {
 			if (gf_m2ts_get_ts_clock(muxer) > run_time) {
@@ -783,6 +1094,7 @@ int main(int argc, char **argv)
 
 
 exit:
+	run = 0;
 	if (ts_file) fclose(ts_file);
 	if (ts_udp) gf_sk_del(ts_udp);
 	if (ts_rtp) gf_rtp_del(ts_rtp);
