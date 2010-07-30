@@ -502,7 +502,7 @@ void gf_font_manager_refresh_span_bounds(GF_TextSpan *span)
 		/*compute glyph size*/
 		if (!span->glyphs[i]) g_width = span->font->max_advance_h * span->font_scale;
 		/*if last glyph of the span, increase by width only*/
-		else if (i+1==span->nb_glyphs) g_width = span->glyphs[i]->width * span->font_scale;
+//		else if (i+1==span->nb_glyphs) g_width = span->glyphs[i]->width * span->font_scale;
 		/*otherwise increase by the horizontal advance*/
 		else g_width = span->glyphs[i]->horiz_advance * span->font_scale;
 

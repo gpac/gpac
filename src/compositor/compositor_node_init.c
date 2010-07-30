@@ -245,6 +245,8 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 	case TAG_SVG_use:				compositor_init_svg_use(compositor, node); break;
 	case TAG_SVG_animation:			compositor_init_svg_animation(compositor, node); break;
 	case TAG_SVG_foreignObject:		compositor_init_svg_foreign_object(compositor, node); break;
+
+	case TAG_SVG_filter:			compositor_init_svg_filter(compositor, node); break;
 #endif
 
 	default:

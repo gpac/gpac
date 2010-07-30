@@ -929,6 +929,7 @@ void gf_svg_flatten_attributes(SVG_Element *e, SVGAllAttributes *all_atts)
 		case TAG_SVG_ATT_x2: all_atts->x2 = (SVG_Coordinate *)att->data; break;
 		case TAG_SVG_ATT_y2: all_atts->y2 = (SVG_Coordinate *)att->data; break;
 		case TAG_SVG_ATT_gradientUnits: all_atts->gradientUnits = (SVG_GradientUnit *)att->data; break;
+		case TAG_SVG_ATT_filterUnits: all_atts->focusable = (SVG_GradientUnit *)att->data; break;
 		case TAG_SVG_ATT_spreadMethod: all_atts->spreadMethod = (SVG_SpreadMethod *)att->data; break;
 		case TAG_SVG_ATT_gradientTransform: all_atts->gradientTransform = (SVG_Transform *)att->data; break;
 		case TAG_SVG_ATT_pathLength: all_atts->pathLength = (SVG_Number *)att->data; break;

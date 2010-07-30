@@ -86,6 +86,7 @@ enum {
 	SVG_SpreadMethod_datatype,
 	SVG_TextAlign_datatype,
 	SVG_Focusable_datatype,
+	SVG_Filter_TransferType_datatype,
 	SMIL_SyncBehavior_datatype,
 	SMIL_SyncTolerance_datatype,
 	SMIL_AttributeType_datatype,
@@ -853,6 +854,15 @@ enum {
 };
 typedef u8 SVG_Focusable;
 
+enum
+{
+	SVG_FILTER_TRANSFER_IDENTITY,
+	SVG_FILTER_TRANSFER_TABLE,
+	SVG_FILTER_TRANSFER_DISCRETE,
+	SVG_FILTER_TRANSFER_LINEAR,
+	SVG_FILTER_TRANSFER_GAMMA
+};
+typedef u8 SVG_Filter_TransferType;
 
 enum {
 	SVG_SPREAD_PAD = 0,

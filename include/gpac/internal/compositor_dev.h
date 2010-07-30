@@ -789,6 +789,7 @@ struct _traversing_state
 	/*set when traversing a cached group during offscreen bitmap construction.*/
 	Bool in_group_cache;
 
+	Bool in_svg_filter;
 
 #ifndef GPAC_DISABLE_3D
 	/*the current camera*/

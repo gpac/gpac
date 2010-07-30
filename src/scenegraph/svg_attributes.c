@@ -2932,6 +2932,14 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		else if (!strcmp(attribute_content, "repeat")) *(u8*)info->far_ptr = SVG_SPREAD_REPEAT;
 		else *(u8*)info->far_ptr = SVG_SPREAD_PAD;
 		break;
+	case SVG_Filter_TransferType_datatype:
+		if (!strcmp(attribute_content, "table")) *(u8*)info->far_ptr = SVG_FILTER_TRANSFER_TABLE;
+		else if (!strcmp(attribute_content, "discrete")) *(u8*)info->far_ptr = SVG_FILTER_TRANSFER_DISCRETE;
+		else if (!strcmp(attribute_content, "linear")) *(u8*)info->far_ptr = SVG_FILTER_TRANSFER_LINEAR;
+		else if (!strcmp(attribute_content, "gamma")) *(u8*)info->far_ptr = SVG_FILTER_TRANSFER_GAMMA;
+		else *(u8*)info->far_ptr = SVG_FILTER_TRANSFER_IDENTITY;
+		break;
+
 /* end of keyword type parsing */
 
 	/* keyword | floats */
@@ -3224,6 +3232,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 	case SVG_TransformBehavior_datatype:
 	case SVG_SpreadMethod_datatype:
 	case SVG_Focusable_datatype:
+	case SVG_Filter_TransferType_datatype:
 		{
 			u8 *keyword;
 			GF_SAFEALLOC(keyword, u8)
@@ -4047,6 +4056,14 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 		if (intVal==SVG_SPREAD_REFLECT) return gf_strdup("reflect");
 		else if (intVal==SVG_SPREAD_REFLECT) return gf_strdup("repeat");
 		else return gf_strdup("pad");
+		break;
+
+	case SVG_Filter_TransferType_datatype:
+		if (intVal==SVG_FILTER_TRANSFER_TABLE) return gf_strdup("table");
+		else if (intVal==SVG_FILTER_TRANSFER_DISCRETE) return gf_strdup("discrete");
+		else if (intVal==SVG_FILTER_TRANSFER_LINEAR) return gf_strdup("linear");
+		else if (intVal==SVG_FILTER_TRANSFER_GAMMA) return gf_strdup("gamma");
+		else return gf_strdup("identity");
 		break;
 
 	case LASeR_Choice_datatype:

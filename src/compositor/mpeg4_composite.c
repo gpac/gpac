@@ -449,7 +449,7 @@ static void composite_update(GF_TextureHandler *txh)
 }
 
 
-static GF_Err composite_get_video_access(GF_VisualManager *visual)
+GF_Err composite_get_video_access(GF_VisualManager *visual)
 {
 	GF_STENCIL stencil;
 	GF_Err e;
@@ -463,7 +463,7 @@ static GF_Err composite_get_video_access(GF_VisualManager *visual)
 	return e;
 }
 
-static void composite_release_video_access(GF_VisualManager *visual)
+void composite_release_video_access(GF_VisualManager *visual)
 {
 	visual->compositor->rasterizer->surface_detach(visual->raster_surface);
 }
