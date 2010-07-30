@@ -575,7 +575,13 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 		Fixed opacity = FIX_ONE;
 		Bool clear = 0;
-		SVGgStack *group = gf_node_get_private(node);
+		SVGgStack *group;
+		
+		if (!tr_state->in_svg_filter && all_atts.filter && all_atts.filter->iri.target) {
+			svg_draw_filter(all_atts.filter->iri.target, node, tr_state);
+			return;
+		}
+		group = gf_node_get_private(node);
 
 		if (tr_state->parent_use_opacity) {
 			opacity = tr_state->parent_use_opacity->value;

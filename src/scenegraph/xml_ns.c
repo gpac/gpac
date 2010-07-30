@@ -41,6 +41,8 @@ enum
 	GF_SVG_ATTOPT_CURSOR = 3,
 	/*attribute only valid for listener*/
 	GF_SVG_ATTOPT_LISTENER = 4,
+	/*attribute only valid for filters*/
+	GF_SVG_ATTOPT_FILTER = 5,
 } GF_SVGAttOption;
 
 static const struct xml_att_def { const char *name; u32 tag; u32 type; u32 opts; u32 xmlns; } xml_attributes [] = 
@@ -208,6 +210,7 @@ static const struct xml_att_def { const char *name; u32 tag; u32 type; u32 opts;
 	{ "x2", TAG_SVG_ATT_x2, SVG_Coordinate_datatype, 0, GF_XMLNS_SVG },
 	{ "y2", TAG_SVG_ATT_y2, SVG_Coordinate_datatype, 0, GF_XMLNS_SVG },
 	{ "gradientUnits", TAG_SVG_ATT_gradientUnits, SVG_GradientUnit_datatype, 0, GF_XMLNS_SVG },
+	{ "filterUnits", TAG_SVG_ATT_filterUnits, SVG_GradientUnit_datatype, 0, GF_XMLNS_SVG },
 	{ "spreadMethod", TAG_SVG_ATT_spreadMethod, SVG_SpreadMethod_datatype, 0, GF_XMLNS_SVG },
 	{ "gradientTransform", TAG_SVG_ATT_gradientTransform, SVG_Transform_datatype, 0, GF_XMLNS_SVG },
 	{ "pathLength", TAG_SVG_ATT_pathLength, SVG_Number_datatype, 0, GF_XMLNS_SVG },
@@ -249,6 +252,8 @@ static const struct xml_att_def { const char *name; u32 tag; u32 type; u32 opts;
 	{ "rotate", TAG_SVG_ATT_rotate, SVG_Rotate_datatype, 0, GF_XMLNS_SVG },
 	/*SMIL anim type*/
 	{ "type", TAG_SVG_ATT_transform_type, SVG_TransformType_datatype, GF_SVG_ATTOPT_SMIL, GF_XMLNS_SVG },
+	/*Filter componentTransfer type*/
+	{ "type", TAG_SVG_ATT_filter_transfer_type, SVG_Filter_TransferType_datatype, GF_SVG_ATTOPT_FILTER, GF_XMLNS_SVG },
 	/*regular content type*/
 	{ "type", TAG_SVG_ATT_type, SVG_ContentType_datatype, 0, GF_XMLNS_SVG },
 	/*text x*/
@@ -259,6 +264,12 @@ static const struct xml_att_def { const char *name; u32 tag; u32 type; u32 opts;
 	{ "y", TAG_SVG_ATT_text_y, SVG_Coordinates_datatype, GF_SVG_ATTOPT_TEXT, GF_XMLNS_SVG },
 	/*regular y position*/
 	{ "y", TAG_SVG_ATT_y, SVG_Coordinate_datatype, 0, GF_XMLNS_SVG },
+	
+	/*filters*/
+	{ "tableValues", TAG_SVG_ATT_filter_table_values, SVG_Numbers_datatype, 0, GF_XMLNS_SVG },
+	{ "intercept", TAG_SVG_ATT_filter_intercept, SVG_Number_datatype, 0, GF_XMLNS_SVG },
+	{ "amplitude", TAG_SVG_ATT_filter_amplitude, SVG_Number_datatype, 0, GF_XMLNS_SVG },
+	{ "exponent", TAG_SVG_ATT_filter_exponent, SVG_Number_datatype, 0, GF_XMLNS_SVG },
 
 	/*LASeR*/
 	{ "enabled", TAG_LSR_ATT_enabled, SVG_Boolean_datatype, 0, GF_XMLNS_LASER },
@@ -416,6 +427,37 @@ u32 gf_xml_get_attribute_tag(GF_Node *elt, char *attribute_name, u32 ns)
 			if (elt->sgprivate->tag == TAG_SVG_listener)
 				return xml_attributes[i].tag;
 			break;
+		case GF_SVG_ATTOPT_FILTER:
+			switch (elt->sgprivate->tag) {
+			case TAG_SVG_filter:
+			case TAG_SVG_feDistantLight:
+			case TAG_SVG_fePointLight:
+			case TAG_SVG_feSpotLight:
+			case TAG_SVG_feBlend:
+			case TAG_SVG_feColorMatrix:
+			case TAG_SVG_feComponentTransfer:
+			case TAG_SVG_feFuncR:
+			case TAG_SVG_feFuncG:
+			case TAG_SVG_feFuncB:
+			case TAG_SVG_feFuncA:
+			case TAG_SVG_feComposite:
+			case TAG_SVG_feConvolveMatrix:
+			case TAG_SVG_feDiffuseLighting:
+			case TAG_SVG_feDisplacementMap:
+			case TAG_SVG_feFlood:
+			case TAG_SVG_feGaussianBlur:
+			case TAG_SVG_feImage:
+			case TAG_SVG_feMerge:
+			case TAG_SVG_feMorphology:
+			case TAG_SVG_feOffset:
+			case TAG_SVG_feSpecularLighting:
+			case TAG_SVG_feTile:
+			case TAG_SVG_feTurbulence:
+				return xml_attributes[i].tag;
+			default:
+				break;
+			}
+			break;
 		default:
 			return xml_attributes[i].tag;
 		}
@@ -512,6 +554,30 @@ static const struct xml_elt_def { const char *name; u32 tag; u32 xmlns; } xml_el
 	{ "tspan", TAG_SVG_tspan, GF_XMLNS_SVG },
 	{ "use", TAG_SVG_use, GF_XMLNS_SVG },
 	{ "video", TAG_SVG_video, GF_XMLNS_SVG },
+	{ "filter", TAG_SVG_filter, GF_XMLNS_SVG },
+	{ "feDistantLight", TAG_SVG_feDistantLight, GF_XMLNS_SVG },
+	{ "fePointLight", TAG_SVG_fePointLight, GF_XMLNS_SVG },
+	{ "feSpotLight", TAG_SVG_feSpotLight, GF_XMLNS_SVG },
+	{ "feBlend", TAG_SVG_feBlend, GF_XMLNS_SVG },
+	{ "feColorMatrix", TAG_SVG_feColorMatrix, GF_XMLNS_SVG },
+	{ "feComponentTransfer", TAG_SVG_feComponentTransfer, GF_XMLNS_SVG },
+	{ "feFuncR", TAG_SVG_feFuncR, GF_XMLNS_SVG },
+	{ "feFuncG", TAG_SVG_feFuncG, GF_XMLNS_SVG },
+	{ "feFuncB", TAG_SVG_feFuncB, GF_XMLNS_SVG },
+	{ "feFuncA", TAG_SVG_feFuncA, GF_XMLNS_SVG },
+	{ "feComposite", TAG_SVG_feComposite, GF_XMLNS_SVG },
+	{ "feConvolveMatrix", TAG_SVG_feConvolveMatrix, GF_XMLNS_SVG },
+	{ "feDiffuseLighting", TAG_SVG_feDiffuseLighting, GF_XMLNS_SVG },
+	{ "feDisplacementMap", TAG_SVG_feDisplacementMap, GF_XMLNS_SVG },
+	{ "feFlood", TAG_SVG_feFlood, GF_XMLNS_SVG },
+	{ "feGaussianBlur", TAG_SVG_feGaussianBlur, GF_XMLNS_SVG },
+	{ "feImage", TAG_SVG_feImage, GF_XMLNS_SVG },
+	{ "feMerge", TAG_SVG_feMerge, GF_XMLNS_SVG },
+	{ "feMorphology", TAG_SVG_feMorphology, GF_XMLNS_SVG },
+	{ "feOffset", TAG_SVG_feOffset, GF_XMLNS_SVG },
+	{ "feSpecularLighting", TAG_SVG_feSpecularLighting, GF_XMLNS_SVG },
+	{ "feTile", TAG_SVG_feTile, GF_XMLNS_SVG },
+	{ "feTurbulence", TAG_SVG_feTurbulence, GF_XMLNS_SVG },
 
 	/*LASeR*/
 	{ "conditional", TAG_LSR_conditional, GF_XMLNS_LASER },

@@ -80,6 +80,30 @@ enum {
 	TAG_SVG_use,
 	TAG_SVG_video,
 
+	TAG_SVG_filter,
+	TAG_SVG_feDistantLight,
+	TAG_SVG_fePointLight,
+	TAG_SVG_feSpotLight,
+	TAG_SVG_feBlend,
+	TAG_SVG_feColorMatrix,
+	TAG_SVG_feComponentTransfer,
+	TAG_SVG_feFuncR,
+	TAG_SVG_feFuncG,
+	TAG_SVG_feFuncB,
+	TAG_SVG_feFuncA,
+	TAG_SVG_feComposite,
+	TAG_SVG_feConvolveMatrix,
+	TAG_SVG_feDiffuseLighting,
+	TAG_SVG_feDisplacementMap,
+	TAG_SVG_feFlood,
+	TAG_SVG_feGaussianBlur,
+	TAG_SVG_feImage,
+	TAG_SVG_feMerge,
+	TAG_SVG_feMorphology,
+	TAG_SVG_feOffset,
+	TAG_SVG_feSpecularLighting,
+	TAG_SVG_feTile,
+	TAG_SVG_feTurbulence,
 	
 	TAG_LSR_conditional,
 	TAG_LSR_cursorManager,
@@ -242,6 +266,7 @@ enum {
 	TAG_SVG_ATT_y1,
 	TAG_SVG_ATT_x2,
 	TAG_SVG_ATT_y2,
+	TAG_SVG_ATT_filterUnits,
 	TAG_SVG_ATT_gradientUnits,
 	TAG_SVG_ATT_spreadMethod,
 	TAG_SVG_ATT_gradientTransform,
@@ -276,7 +301,15 @@ enum {
 	TAG_SVG_ATT_overlay,
 	TAG_SVG_ATT_fullscreen,
 	TAG_SVG_ATT_motionTransform,
+
+	TAG_SVG_ATT_filter_transfer_type,
+	TAG_SVG_ATT_filter_table_values,
+	TAG_SVG_ATT_filter_intercept,
+	TAG_SVG_ATT_filter_amplitude,
+	TAG_SVG_ATT_filter_exponent
+
 };
+
 
 struct _all_atts {
 	XML_Space *xml_space;
@@ -449,6 +482,7 @@ struct _all_atts {
 	SVG_Coordinate *x2;
 	SVG_Coordinate *y2;
 	SVG_GradientUnit *gradientUnits;
+	SVG_GradientUnit *filterUnits;
 	SVG_SpreadMethod *spreadMethod;
 	SVG_Transform *gradientTransform;
 	SVG_Number *pathLength;
