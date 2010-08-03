@@ -1,0 +1,56 @@
+include ../../config.mak
+
+vpath %.c $(SRC_PATH)/modules/directfb_out
+
+CFLAGS= $(OPTFLAGS)
+
+ifeq ($(DEBUGBUILD), yes)
+CFLAGS+=-g
+LDFLAGS+=-g
+endif
+
+ifeq ($(GPROFBUILD), yes)
+CFLAGS+=-pg
+LDFLAGS+=-pg
+endif
+
+CFLAGS+=-I$(SRC_PATH)/include -I/opt/STM/STLinux-2.3/devkit/sh4/target/usr/include/directfb-1.4.3/
+LDFLAGS+=-L/opt/STM/STLinux-2.3/devkit/sh4/target/usr/lib -ldirectfb-1.4 -lfusion-1.4 -ldirect-1.4
+
+#common obj
+OBJS=directfb_out.o
+
+SRCS := $(OBJS:.o=.c) 
+
+LIB=gm_directfb_out.$(DYN_LIB_SUFFIX)
+
+
+all: $(LIB)
+
+
+$(LIB): $(OBJS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -L../../bin/gcc -lgpac -o ../../bin/gcc/$@ $(OBJS)
+                                                                                               
+%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ $< 
+
+
+clean: 
+	rm -f $(OBJS) ../../bin/gcc/$(LIB)
+
+dep: depend
+
+depend:
+	rm -f .depend	
+	$(CC) -MM $(CFLAGS) $(SRCS) 1>.depend
+
+distclean: clean
+	rm -f Makefile.bak .depend
+
+
+
+# include dependency files if they exist
+#
+ifneq ($(wildcard .depend),)
+include .depend
+endif
