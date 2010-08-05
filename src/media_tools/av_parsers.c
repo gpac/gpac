@@ -1652,6 +1652,27 @@ static const struct { u32 w, h; } avc_sar[14] =
     { 64, 33 }, { 160,99 },
 };
 
+/*ISO 14496-10 (N11084) E.1.2*/
+static avc_skip_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
+{
+	int i, cpb_cnt_minus1;
+
+	cpb_cnt_minus1 = avc_get_ue(bs);	/*cpb_cnt_minus1*/
+	gf_bs_read_int(bs, 4);				/*bit_rate_scale*/
+	gf_bs_read_int(bs, 4);				/*cpb_size_scale*/
+
+	/*for( SchedSelIdx = 0; SchedSelIdx <= cpb_cnt_minus1; SchedSelIdx++ ) {*/
+	for (i=0; i<cpb_cnt_minus1; i++) {
+		avc_get_ue(bs);					/*bit_rate_value_minus1[ SchedSelIdx ]*/
+		avc_get_ue(bs);					/*cpb_size_value_minus1[ SchedSelIdx ]*/
+		gf_bs_read_int(bs, 1);			/*cbr_flag[ SchedSelIdx ]*/
+	}
+	gf_bs_read_int(bs, 5);											/*initial_cpb_removal_delay_length_minus1*/
+	hrd->cpb_removal_delay_length_minus1 = gf_bs_read_int(bs, 5);	/*cpb_removal_delay_length_minus1*/
+	hrd->dpb_output_delay_length_minus1  = gf_bs_read_int(bs, 5);	/*dpb_output_delay_length_minus1*/
+	gf_bs_read_int(bs, 5);											/*time_offset_length*/
+}
+
 s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
 {
 	AVC_SPS *sps;
@@ -1756,38 +1777,52 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_fl
 		if (gf_bs_read_int(bs, 1)) {
 			s32 aspect_ratio_idc = gf_bs_read_int(bs, 8);
 			if (aspect_ratio_idc == 255) {
-				sps->par_num = gf_bs_read_int(bs, 16); /*AR num*/
-				sps->par_den = gf_bs_read_int(bs, 16); /*AR den*/
+				sps->vui.par_num = gf_bs_read_int(bs, 16); /*AR num*/
+				sps->vui.par_den = gf_bs_read_int(bs, 16); /*AR den*/
 			} else if (aspect_ratio_idc<14) {
-				sps->par_num = avc_sar[aspect_ratio_idc].w;
-				sps->par_den = avc_sar[aspect_ratio_idc].h;
+				sps->vui.par_num = avc_sar[aspect_ratio_idc].w;
+				sps->vui.par_den = avc_sar[aspect_ratio_idc].h;
 			}
 		}
 		if(gf_bs_read_int(bs, 1))       /* overscan_info_present_flag */
 			gf_bs_read_int(bs, 1);      /* overscan_appropriate_flag */
 
-		if (gf_bs_read_int(bs, 1)){      /* video_signal_type_present_flag */
-			gf_bs_read_int(bs, 3);    /* video_format */
+		if (gf_bs_read_int(bs, 1)){     /* video_signal_type_present_flag */
+			gf_bs_read_int(bs, 3);      /* video_format */
 			gf_bs_read_int(bs, 1);      /* video_full_range_flag */
-			if (gf_bs_read_int(bs, 1)){  /* colour_description_present_flag */
-				gf_bs_read_int(bs, 8); /* colour_primaries */
-				gf_bs_read_int(bs, 8); /* transfer_characteristics */
-				gf_bs_read_int(bs, 8); /* matrix_coefficients */
+			if (gf_bs_read_int(bs, 1)){ /* colour_description_present_flag */
+				gf_bs_read_int(bs, 8);  /* colour_primaries */
+				gf_bs_read_int(bs, 8);  /* transfer_characteristics */
+				gf_bs_read_int(bs, 8);  /* matrix_coefficients */
 			}
 		}
 
-		if (gf_bs_read_int(bs, 1)) {      /* chroma_location_info_present_flag */
-			avc_get_ue(bs);  /* chroma_sample_location_type_top_field */
-			avc_get_ue(bs);  /* chroma_sample_location_type_bottom_field */
+		if (gf_bs_read_int(bs, 1)) {    /* chroma_location_info_present_flag */
+			avc_get_ue(bs);             /* chroma_sample_location_type_top_field */
+			avc_get_ue(bs);             /* chroma_sample_location_type_bottom_field */
 		}
 
-		sps->timing_info_present_flag = gf_bs_read_int(bs, 1);
-		if (sps->timing_info_present_flag) {
-			sps->num_units_in_tick = gf_bs_read_int(bs, 32);
-			sps->time_scale = gf_bs_read_int(bs, 32);
-			sps->fixed_frame_rate_flag = gf_bs_read_int(bs, 1);
+		sps->vui.timing_info_present_flag = gf_bs_read_int(bs, 1);
+		if (sps->vui.timing_info_present_flag) {
+			sps->vui.num_units_in_tick = gf_bs_read_int(bs, 32);
+			sps->vui.time_scale = gf_bs_read_int(bs, 32);
+			sps->vui.fixed_frame_rate_flag = gf_bs_read_int(bs, 1);
 		}
+
+		sps->vui.nal_hrd_parameters_present_flag = gf_bs_read_int(bs, 1);
+		if (sps->vui.nal_hrd_parameters_present_flag)
+			avc_skip_hrd_parameters(bs, &sps->vui.hrd);
+
+		sps->vui.vcl_hrd_parameters_present_flag = gf_bs_read_int(bs, 1);
+		if (sps->vui.vcl_hrd_parameters_present_flag)
+			avc_skip_hrd_parameters(bs, &sps->vui.hrd);
+
+		if (sps->vui.nal_hrd_parameters_present_flag || sps->vui.vcl_hrd_parameters_present_flag)
+			gf_bs_read_int(bs, 1); /*low_delay_hrd_flag*/
+
+		sps->vui.pic_struct_present_flag = gf_bs_read_int(bs, 1);
 	}
+
     return sps_id;
 }
 
@@ -1797,7 +1832,8 @@ s32 AVC_ReadPictParamSet(GF_BitStream *bs, AVCState *avc)
     AVC_PPS *pps= &avc->pps[pps_id];
    
 	if (!pps->status) pps->status = 1;
-    pps->sps_id= avc_get_ue(bs);
+    pps->sps_id = avc_get_ue(bs);
+	avc->sps_active_idx = pps->sps_id; /*set active sps*/
     /*pps->cabac = */gf_bs_read_int(bs, 1);
     /*pps->pic_order_present= */gf_bs_read_int(bs, 1);
     pps->slice_group_count= avc_get_ue(bs) + 1;
@@ -1937,6 +1973,16 @@ static s32 avc_parse_recovery_point_sei(GF_BitStream *bs, AVCState *avc)
 	rp->broken_link_flag = gf_bs_read_int(bs, 1);
 	rp->changing_slice_group_idc = gf_bs_read_int(bs, 2);
 	rp->valid = 1;
+
+	return 0;
+}
+
+static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc) 
+{
+	AVCSeiPicTiming *pt = &avc->sei.pic_timing;
+
+	/*for interpretation see ISO 14496-10 N.11084, table D-1*/
+	pt->pic_struct = gf_bs_read_int(bs, 4);
 
 	return 0;
 }
@@ -2224,11 +2270,26 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 			}
 			break;
 
-		case 0: /*buffering period*/
 		case 1: /*pic_timing*/
+			{
+				int sps_id = avc->sps_active_idx;
+				GF_BitStream *pt_bs = gf_bs_new(buffer + start, psize, GF_BITSTREAM_READ);
+				/*ISO 14496-10 (2003), D.8.2: we need to get pic_struct in order to know if we display top field first or bottom field first*/
+				if (avc->sps[sps_id].vui.pic_struct_present_flag) {
+					if (avc->sps[sps_id].vui.nal_hrd_parameters_present_flag || avc->sps[sps_id].vui.vcl_hrd_parameters_present_flag) { /*CpbDpbDelaysPresentFlag, see 14496-10(2003) E.11*/
+						gf_bs_read_int(pt_bs, avc->sps[sps_id].vui.hrd.cpb_removal_delay_length_minus1); /*cpb_removal_delay*/
+						gf_bs_read_int(pt_bs, avc->sps[sps_id].vui.hrd.dpb_output_delay_length_minus1);  /*dpb_output_delay*/
+					}
+				
+					avc_parse_pic_timing_sei(pt_bs, avc);
+				}
+				gf_bs_del(pt_bs);
+			}
+			break;
+
+		case 0: /*buffering period*/
 		case 2: /*pan scan rect*/
 		case 4: /*user registered ITU t35*/
-
 		case 7: /*def_rec_pic_marking_repetition*/
 		case 8: /*spare_pic*/
 		case 9: /*scene info*/
@@ -2238,7 +2299,7 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 		case 16: /*progressive refinement segment start*/
 		case 17: /*progressive refinement segment end*/
 		case 18: /*motion constrained slice group*/
-		default:/*reserved*/
+		default: /*reserved*/
 			break;
 		}
 
@@ -2382,8 +2443,8 @@ GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *width, u32 *height
 
 	if (width) *width = avc.sps[idx].width;
 	if (height) *height = avc.sps[idx].height;
-	if (par_n) *par_n = avc.sps[idx].par_num ? avc.sps[idx].par_num : (u32) -1;
-	if (par_d) *par_d = avc.sps[idx].par_den ? avc.sps[idx].par_den : (u32) -1;
+	if (par_n) *par_n = avc.sps[idx].vui.par_num ? avc.sps[idx].vui.par_num : (u32) -1;
+	if (par_d) *par_d = avc.sps[idx].vui.par_den ? avc.sps[idx].vui.par_den : (u32) -1;
 	return GF_OK;
 }
 

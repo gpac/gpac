@@ -3909,12 +3909,12 @@ restart_import:
 				memcpy(slc->data, buffer, sizeof(char)*slc->size);
 				gf_list_add(dstcfg->sequenceParameterSets, slc);
 				/*disable frame rate scan, most bitstreams have wrong values there*/
-				if (detect_fps && avc.sps[idx].timing_info_present_flag && avc.sps[idx].fixed_frame_rate_flag
+				if (detect_fps && avc.sps[idx].vui.timing_info_present_flag && avc.sps[idx].vui.fixed_frame_rate_flag
 					/*if detected FPS is greater than 50, assume wrong timing info*/
-					&& (avc.sps[idx].time_scale <= 50*avc.sps[idx].num_units_in_tick)
+					&& (avc.sps[idx].vui.time_scale <= 50*avc.sps[idx].vui.num_units_in_tick)
 					) {
-					timescale = avc.sps[idx].time_scale;
-					dts_inc = avc.sps[idx].num_units_in_tick;
+					timescale = avc.sps[idx].vui.time_scale;
+					dts_inc = avc.sps[idx].vui.num_units_in_tick;
 					FPS = (Double)timescale / dts_inc;
 					detect_fps = 0;
 					gf_isom_remove_track(import->dest, track);
