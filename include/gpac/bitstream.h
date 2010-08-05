@@ -267,7 +267,7 @@ void gf_bs_write_double(GF_BitStream *bs, Double value);
  *	\param data the data to write
  *	\param nbBytes number of data bytes to write
  */
-u32 gf_bs_write_data(GF_BitStream *bs, char *data, u32 nbBytes);
+u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes);
 
 /*!
  *	\brief align char writing
