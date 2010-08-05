@@ -2168,7 +2168,7 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 
 u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 {
-	u32 ptype, psize, hdr, written, start, var, num_zero, size_fix, i;
+	u32 ptype, psize, hdr, written, start, var;
 	char *new_buffer;
 	GF_BitStream *bs;
 	hdr = buffer[0];
@@ -2242,23 +2242,6 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 			break;
 		}
 
-		/*fix payload size due to emulation prevention bytes*/
-		size_fix = 0;
-		num_zero = 0;
-		if (psize%255 == 0) num_zero = 1;
-
-		for (i = 0; i < psize + size_fix; i++)
-		{
-			if (!buffer[start + i])
-				num_zero++;
-			else
-			{
-				if ((num_zero == 2) && (buffer[start + i] == 3))
-					size_fix++;
-				num_zero = 0;
-			}
-		}
-
 		if (do_copy) {
 			var = ptype;
 			while (var>=255) { new_buffer[written] = (char) 0xff; written++; var-=255;}
@@ -2266,11 +2249,11 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 			var = psize;
 			while (var>=255) { new_buffer[written] = (char) 0xff; written++; var-=255;}
 			new_buffer[written] = (char) var; written++;
-			memcpy(new_buffer+written, buffer+start, sizeof(char)* (psize + size_fix));
-			written += psize + size_fix;
+			memcpy(new_buffer+written, buffer+start, sizeof(char) * psize);
+			written += psize;
 		}
 
-		gf_bs_skip_bytes(bs, (u64) (psize + size_fix));
+		gf_bs_skip_bytes(bs, (u64) psize);
 		gf_bs_align(bs);
 		if (gf_bs_available(bs)<=2) {
 			if (gf_bs_peek_bits(bs, 8, 0)==0x80) {
@@ -2282,7 +2265,8 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 	}
 	gf_bs_del(bs);
 	assert(written<=nal_size);
-	if (written) memcpy(buffer, new_buffer, sizeof(char)*written);
+	if (written)
+		memcpy(buffer, new_buffer, sizeof(char)*written);
 	gf_free(new_buffer);
 	/*if only hdr written ignore*/
 	return (written>1) ? written : 0;

@@ -163,6 +163,7 @@ Bool AVC_SliceIsIDR(AVCState *avc);
 */
 s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc);
 /*remove SEI messages not allowed in MP4*/
+/*nota: 'buffer' remains unmodified but cannot be set const*/
 u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc);
 
 #ifndef GPAC_DISABLE_ISOM
