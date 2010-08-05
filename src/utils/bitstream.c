@@ -490,7 +490,7 @@ void gf_bs_write_double (GF_BitStream *bs, Double value)
 
 
 GF_EXPORT
-u32 gf_bs_write_data(GF_BitStream *bs, char *data, u32 nbBytes)
+u32 gf_bs_write_data(GF_BitStream *bs, const char *data, u32 nbBytes)
 {
 	/*we need some feedback for this guy...*/
 	u64 begin = bs->position;
