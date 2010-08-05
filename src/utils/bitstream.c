@@ -43,11 +43,11 @@ struct __tag_bitstream
 
 	/*original data*/
 	char *original;
-	/*the size of our buffer*/
+	/*the size of our buffer in bytes*/
 	u64 size;
 	/*current position in BYTES*/
 	u64 position;
-	/*the byte readen/written */
+	/*the byte readen/written*/
 	u32 current;
 	/*the number of bits in the current byte*/
 	u32 nbBits;
