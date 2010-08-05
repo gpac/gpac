@@ -62,6 +62,30 @@ enum
 	AVC_SUBSPS_DECLARED = 1<<3,
 };
 
+typedef struct 
+{
+    u8 cpb_removal_delay_length_minus1;
+    u8 dpb_output_delay_length_minus1;
+	/*to be eventually completed by other hrd members*/
+} AVC_HRD;
+
+typedef struct 
+{
+    s32 timing_info_present_flag;
+    u32 num_units_in_tick;
+    u32 time_scale;
+    s32 fixed_frame_rate_flag;
+
+	u32 par_num, par_den;
+
+	Bool nal_hrd_parameters_present_flag;
+	Bool vcl_hrd_parameters_present_flag;
+	AVC_HRD hrd;
+
+	Bool pic_struct_present_flag;
+	/*to be eventually completed by other vui members*/
+} AVC_VUI;
+
 typedef struct
 {
     s32 profile_idc;
@@ -76,13 +100,9 @@ typedef struct
 
     s16 offset_for_ref_frame[256];
 
-    s32 timing_info_present_flag;
-    u32 num_units_in_tick;
-    u32 time_scale;
-    s32 fixed_frame_rate_flag;
-
 	u32 width, height;
-	u32 par_num, par_den;
+
+	AVC_VUI vui;
 	
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
 	u32 state;
@@ -131,17 +151,24 @@ typedef struct
 	u8 valid;
 } AVCSeiRecoveryPoint;
 
+typedef struct 
+{
+	u8 pic_struct;
+	/*to be eventually completed by other pic_timing members*/
+} AVCSeiPicTiming;
 
 typedef struct 
 {
 	AVCSeiRecoveryPoint recovery_point;
+	AVCSeiPicTiming pic_timing;
 	/*to be eventually completed by other sei*/
-
 } AVCSei;
 
 typedef struct
 {
 	AVC_SPS sps[32];
+	u8 sps_active_idx;	/*currently active sps*/
+
 	AVC_PPS pps[255];
 
 	AVCSliceInfo s_info;
