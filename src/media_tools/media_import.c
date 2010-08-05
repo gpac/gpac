@@ -3681,6 +3681,40 @@ static void avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
+/*nal_size is updated to allow better error detection*/
+static void avc_remove_prevention_byte(unsigned char *buffer, u32 *nal_size)
+{
+	u32 i = 0;
+	u8 num_zero = 0;
+
+	while (i < *nal_size)
+	{
+		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
+		  other than the following sequences shall not occur at any byte-aligned position:
+		  – 0x00000300
+		  – 0x00000301
+		  – 0x00000302
+		  – 0x00000303"
+		*/
+		if (num_zero == 2
+			&& buffer[i] == 0x03
+			&& i+1 < *nal_size /*next byte is readable*/
+			&& buffer[i+1] < 0x04)
+		{
+			/*emulation code found*/
+			memmove(buffer+i, buffer+i+1, (*nal_size)-i-1); /*we can't use memcpy because src and dst overlap*/
+			(*nal_size)--;
+		}
+
+		if (!buffer[i])
+			num_zero++;
+		else
+			num_zero = 0;
+
+		i++;
+	}
+}
+
 GF_Err gf_import_h264(GF_MediaImporter *import)
 {
 	u64 nal_start, nal_end, total_size;
@@ -3692,7 +3726,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	AVCState avc;
 	GF_AVCConfigSlot *slc;
 	GF_AVCConfig *avccfg, *svccfg, *dstcfg;
-	GF_BitStream *bs;
+	GF_BitStream *bs, *bs_without_emulation_byte;
 	GF_BitStream *sample_data;
 	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff;
 	u32 b_frames, ref_frame, pred_frame, timescale, copy_size, size_length, dts_inc;
@@ -3795,10 +3829,13 @@ restart_import:
 			buffer = (char*)gf_realloc(buffer, sizeof(char)*nal_size);
 			max_size = nal_size;
 		}
-		gf_bs_read_data(bs, buffer, nal_size);
-		gf_bs_seek(bs, nal_start);
 
-		nal_hdr = gf_bs_read_u8(bs);
+		/*read the file, and work on a memory buffer*/
+		gf_bs_read_data(bs, buffer, nal_size);
+		avc_remove_prevention_byte(buffer, &nal_size); /*remove emulation byte code within this nal unit*/
+		bs_without_emulation_byte = gf_bs_new(buffer, nal_size, GF_BITSTREAM_READ);
+
+		nal_hdr = gf_bs_read_u8(bs_without_emulation_byte);
 		nal_type = nal_hdr & 0x1F;
 
 		is_subseq = 0;
@@ -3809,7 +3846,7 @@ restart_import:
 			avc.is_svc = 1;
 		}
 
-		switch (AVC_ParseNALU(bs, nal_hdr, &avc)) {
+		switch (AVC_ParseNALU(bs_without_emulation_byte, nal_hdr, &avc)) {
 		case 1:
 			flush_sample = 1;
 			break;
@@ -3831,7 +3868,7 @@ restart_import:
 			if (import->flags & GF_IMPORT_SVC_NONE) break;
 			is_subseq = 1;
 		case GF_AVC_NALU_SEQ_PARAM:
-			idx = AVC_ReadSeqInfo(bs, &avc, is_subseq, NULL);
+			idx = AVC_ReadSeqInfo(bs_without_emulation_byte, &avc, is_subseq, NULL);
 			if (idx<0) {
 				if (avc.sps[0].profile_idc) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Error parsing SeqInfo"));
@@ -3890,6 +3927,8 @@ restart_import:
 					buffer = NULL;
 					gf_bs_del(bs);
 					bs = NULL;
+					gf_bs_del(bs_without_emulation_byte);
+					bs_without_emulation_byte = NULL;
 					gf_f64_seek(mdia, 0, SEEK_SET);
 					goto restart_import;
 				}
@@ -3920,7 +3959,7 @@ restart_import:
 			}
 			break;
 		case GF_AVC_NALU_PIC_PARAM:
-			idx = AVC_ReadPictParamSet(bs, &avc);
+			idx = AVC_ReadPictParamSet(bs_without_emulation_byte, &avc);
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
 				goto exit;
@@ -3944,7 +3983,10 @@ restart_import:
 			break;
 		case GF_AVC_NALU_SEI:
 			copy_size = AVC_ReformatSEI_NALU(buffer, nal_size, &avc);
-			if (copy_size) nb_sei++;
+			if (copy_size) {
+				nal_size = copy_size; /*nal_size has been modified in memory*/
+				nb_sei++;
+			}
 			break;
 
 		case GF_AVC_NALU_NON_IDR_SLICE:
@@ -4150,9 +4192,10 @@ restart_import:
 			}
 		}
 
-		gf_bs_align(bs);
-		nal_end = gf_bs_get_position(bs);
-		if (nal_end != nal_start + nal_size) gf_bs_seek(bs, nal_start + nal_size);
+		gf_bs_align(bs_without_emulation_byte);
+		nal_end = gf_bs_get_position(bs_without_emulation_byte);
+		assert(nal_end <= nal_size);
+		gf_bs_del(bs_without_emulation_byte);
 
 		if (!gf_bs_available(bs)) break;
 		if (duration && (dts_inc*cur_samp > duration)) break;
