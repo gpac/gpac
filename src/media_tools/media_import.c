@@ -3703,6 +3703,7 @@ static void avc_remove_prevention_byte(unsigned char *buffer, u32 *nal_size)
 		{
 			/*emulation code found*/
 			memmove(buffer+i, buffer+i+1, (*nal_size)-i-1); /*we can't use memcpy because src and dst overlap*/
+			num_zero = 0;
 			(*nal_size)--;
 		}
 
