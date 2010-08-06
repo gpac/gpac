@@ -554,9 +554,10 @@ EOF
 
 if pkg-config --exists mozilla-js 2> /dev/null  ; then
   js_flags=`pkg-config --cflags mozilla-js`
-  js_lib=`pkg-config --libs mozilla-js`
- if $cpp -o $TMPO $TMPCPP $js_flags $js_lib -lpthread 2> /dev/null  ; then
+  js_lib_pkg=`pkg-config --libs mozilla-js`
+ if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg -lpthread 2> /dev/null  ; then
    has_js="system"
+   js_lib=`pkg-config --libs mozilla-js`
   fi
 fi
 
@@ -625,45 +626,43 @@ EOF
    has_js="prefix"
    #dc added end
   else
-
-
-if pkg-config --exists mozilla-js 2> /dev/null  ; then
-  js_flags=`pkg-config --cflags mozilla-js`
-  js_lib=`pkg-config --libs mozilla-js`
-  if $cc -o $TMPO $TMPC $js_flags $js_lib -lpthread 2> /dev/null  ; then
-   has_js="system"
-  fi
-fi
-
-if test "$has_js" = "no" ; then
-   if $cc -o $TMPO $TMPC $js_flags -ljs 2> /dev/null  ; then
-    js_inc="/usr/include"
-    has_js="system"
-   elif $cc -o $TMPO $TMPC -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib -ljs 2> /dev/null ; then
-    has_js="system"
-    js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
-    js_lib="-L$alt_macosx_dir/lib -ljs"
-    js_inc="$alt_macosx_dir/include/js"
-   else
-    #debian spidermonkey (smjs)
-    js_flags="-DXP_UNIX -I/usr/include/smjs"
-    js_inc="/usr/include/smjs"
-    if $cc -o $TMPO $TMPC $js_flags -lsmjs 2> /dev/null  ; then
+   if pkg-config --exists mozilla-js 2> /dev/null  ; then
+    js_flags=`pkg-config --cflags mozilla-js`
+    js_lib_pkg=`pkg-config --libs mozilla-js`
+    if $cc -o $TMPO $TMPC $js_flags $js_lib_pkg -lpthread 2> /dev/null  ; then
      has_js="system"
-     js_lib="-lsmjs"
+     js_lib=`pkg-config --libs mozilla-js`
+    fi
+   fi
+   if test "$has_js" = "no" ; then
+    if $cc -o $TMPO $TMPC $js_flags -ljs 2> /dev/null  ; then
+     js_inc="/usr/include"
+     has_js="system"
+    elif $cc -o $TMPO $TMPC -DXP_UNIX -I$alt_macosx_dir/include/js -L$alt_macosx_dir/lib -ljs 2> /dev/null ; then
+     has_js="system"
+     js_flags="-DXP_UNIX -I$alt_macosx_dir/include/js"
+     js_lib="-L$alt_macosx_dir/lib -ljs"
+     js_inc="$alt_macosx_dir/include/js"
     else
-     #debian spidermonkey (mozjs)
-     js_flags="-DXP_UNIX -I/usr/include/mozjs"
-     js_inc="/usr/include/mozjs"
-     if $cc -o $TMPO $TMPC $js_flags -lmozjs 2> /dev/null  ; then
+     #debian spidermonkey (smjs)
+     js_flags="-DXP_UNIX -I/usr/include/smjs"
+     js_inc="/usr/include/smjs"
+     if $cc -o $TMPO $TMPC $js_flags -lsmjs 2> /dev/null  ; then
       has_js="system"
-      js_lib="-lmozjs"
+      js_lib="-lsmjs"
+     else
+      #debian spidermonkey (mozjs)
+      js_flags="-DXP_UNIX -I/usr/include/mozjs"
+      js_inc="/usr/include/mozjs"
+      if $cc -o $TMPO $TMPC $js_flags -lmozjs 2> /dev/null  ; then
+       has_js="system"
+       js_lib="-lmozjs"
+      fi
      fi
     fi
    fi
   fi
  fi
-fi
 
 fi
 
