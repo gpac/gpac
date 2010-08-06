@@ -66,12 +66,8 @@ install:
 	install -d "$(DESTDIR)$(prefix)/share/gpac" ; \
 	install -pm 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ;  \
 	install -d "$(DESTDIR)$(prefix)/share/gpac/gui" ; \
-	install -d doc/gui/gui.bt $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
-	install -d doc/gui/gui.js $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
-	install -d doc/gui/mpegu-core.js $(DESTDIR)$(prefix)/share/gpac/gui/ ; \
 	install -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
 	install -pm 644 doc/gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
-	install -pm 644 doc/gui/icons/*.png "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ;  \
 	fi
 
 uninstall:
