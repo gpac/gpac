@@ -2272,7 +2272,7 @@ else
         echo "config.h is unchanged"
 fi
 
-rm -f $TMPO $TMPC $TMPS $TMPCPP $TMPH
+rm -f $TMPO $TMPC $TMPE $TMPS $TMPCPP $TMPH
 
 if [ ! -d "./bin" ]; then
 	mkdir ./bin
