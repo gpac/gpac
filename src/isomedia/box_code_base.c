@@ -3772,10 +3772,6 @@ GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
 			e = gf_isom_box_write((GF_Box *) ptr->avc_config, bs);
 			if (e) return e;
 		}
-		if (ptr->svc_config && ptr->svc_config->config) {
-			e = gf_isom_box_write((GF_Box *) ptr->svc_config, bs);
-			if (e) return e;
-		}
 		if (ptr->ipod_ext)	{
 			e = gf_isom_box_write((GF_Box *) ptr->ipod_ext, bs);
 			if (e) return e;
@@ -3786,6 +3782,10 @@ GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
 		}
 		if (ptr->descr)	{
 			e = gf_isom_box_write((GF_Box *) ptr->descr, bs);
+			if (e) return e;
+		}
+		if (ptr->svc_config && ptr->svc_config->config) {
+			e = gf_isom_box_write((GF_Box *) ptr->svc_config, bs);
 			if (e) return e;
 		}
 	}
