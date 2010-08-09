@@ -927,7 +927,7 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if $cc $TMPO -c $TMPC 2> /dev/null  ; then
+if $cc -o $TMPO $TMPC 2> /dev/null  ; then
 old_ffmpeg_inc="no"
 else
 
