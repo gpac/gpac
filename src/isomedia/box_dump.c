@@ -758,10 +758,10 @@ GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 		gf_box_dump(p->esd, trace);
 	} else {
 		if (p->avc_config) gf_box_dump(p->avc_config, trace);
-		if (p->svc_config) gf_box_dump(p->svc_config, trace);
 		if (p->ipod_ext) gf_box_dump(p->ipod_ext, trace);
 		if (p->descr) gf_box_dump(p->descr, trace);
 		if (p->bitrate) gf_box_dump(p->bitrate, trace);
+		if (p->svc_config) gf_box_dump(p->svc_config, trace);
 	}
 	if (a->type == GF_ISOM_BOX_TYPE_ENCV) {
 		gf_box_dump(p->protection_info, trace);
@@ -1409,14 +1409,14 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 	count = gf_list_count(p->config->sequenceParameterSets);
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(p->config->sequenceParameterSets, i);
-		fprintf(trace, "<sequenceParameterSets size=\"%d\" content=\"", c->size);
+		fprintf(trace, "<sequenceParameterSet size=\"%d\" content=\"", c->size);
 		DumpData(trace, c->data, c->size);
 		fprintf(trace, "\"/>\n");
 	}
 	count = gf_list_count(p->config->pictureParameterSets);
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *c = (GF_AVCConfigSlot *)gf_list_get(p->config->pictureParameterSets, i);
-		fprintf(trace, "<pictureParameterSets size=\"%d\" content=\"", c->size);
+		fprintf(trace, "<pictureParameterSet size=\"%d\" content=\"", c->size);
 		DumpData(trace, c->data, c->size);
 		fprintf(trace, "\"/>\n");
 	}
