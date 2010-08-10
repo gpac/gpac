@@ -330,8 +330,8 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 		}
 	} else {
 		//assert the timeScales are non-NULL
-		if (!trak->moov->mvhd->timeScale && !trak->Media->mediaHeader->timeScale) return GF_ISOM_INVALID_FILE;
-		trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale) / trak->Media->mediaHeader->timeScale;
+		if (!trak->moov->mvhd->timeScale || !trak->Media->mediaHeader->timeScale) return GF_ISOM_INVALID_FILE;
+		trackDuration = (trak->Media->mediaHeader->duration * trak->moov->mvhd->timeScale/*Romain: vaut 600 au lieu de 1000*/) / trak->Media->mediaHeader->timeScale;
 	}
 	trak->Header->duration = trackDuration;
 	trak->Header->modificationTime = gf_isom_get_mp4time();
