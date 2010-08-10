@@ -1977,12 +1977,33 @@ static s32 avc_parse_recovery_point_sei(GF_BitStream *bs, AVCState *avc)
 	return 0;
 }
 
+/*for interpretation see ISO 14496-10 N.11084, table D-1*/
 static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc) 
 {
+	int i;
+	int sps_id = avc->sps_active_idx;
+	const char NumClockTS[] = {1, 1, 1, 2, 2, 3, 3, 2, 3};
 	AVCSeiPicTiming *pt = &avc->sei.pic_timing;
 
-	/*for interpretation see ISO 14496-10 N.11084, table D-1*/
-	pt->pic_struct = gf_bs_read_int(bs, 4);
+	if (avc->sps[sps_id].vui.nal_hrd_parameters_present_flag || avc->sps[sps_id].vui.vcl_hrd_parameters_present_flag) { /*CpbDpbDelaysPresentFlag, see 14496-10(2003) E.11*/
+		gf_bs_read_int(bs, avc->sps[sps_id].vui.hrd.cpb_removal_delay_length_minus1); /*cpb_removal_delay*/
+		gf_bs_read_int(bs, avc->sps[sps_id].vui.hrd.dpb_output_delay_length_minus1);  /*dpb_output_delay*/
+	}
+
+	/*ISO 14496-10 (2003), D.8.2: we need to get pic_struct in order to know if we display top field first or bottom field first*/
+	if (avc->sps[sps_id].vui.pic_struct_present_flag) {
+		pt->pic_struct = gf_bs_read_int(bs, 4);
+		if (pt->pic_struct > 8) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid pic_struct value %d", pt->pic_struct));
+			return 1;
+		}
+
+		for (i=0; i<NumClockTS[pt->pic_struct]; i++) {
+			if (gf_bs_read_int(bs, 1)) {/*clock_timestamp_flag[i]*/
+				/*not implemented*/
+			}
+		}
+	}
 
 	return 0;
 }
@@ -2028,7 +2049,8 @@ static void avc_compute_poc(AVCSliceInfo *si)
 			si->poc_msb = si->poc_msb_prev;
 
 		field_poc[0] = field_poc[1] = si->poc_msb + si->poc_lsb;
-		if (pic_type == AVC_PIC_FRAME) field_poc[1] += si->delta_poc_bottom;
+		if (pic_type == AVC_PIC_FRAME)
+			field_poc[1] += si->delta_poc_bottom;
 	} else if (si->sps->poc_type==1) {
 		u32 i;
 		s32 abs_frame_num, expected_delta_per_poc_cycle, expected_poc;
@@ -2272,17 +2294,8 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 
 		case 1: /*pic_timing*/
 			{
-				int sps_id = avc->sps_active_idx;
 				GF_BitStream *pt_bs = gf_bs_new(buffer + start, psize, GF_BITSTREAM_READ);
-				/*ISO 14496-10 (2003), D.8.2: we need to get pic_struct in order to know if we display top field first or bottom field first*/
-				if (avc->sps[sps_id].vui.pic_struct_present_flag) {
-					if (avc->sps[sps_id].vui.nal_hrd_parameters_present_flag || avc->sps[sps_id].vui.vcl_hrd_parameters_present_flag) { /*CpbDpbDelaysPresentFlag, see 14496-10(2003) E.11*/
-						gf_bs_read_int(pt_bs, avc->sps[sps_id].vui.hrd.cpb_removal_delay_length_minus1); /*cpb_removal_delay*/
-						gf_bs_read_int(pt_bs, avc->sps[sps_id].vui.hrd.dpb_output_delay_length_minus1);  /*dpb_output_delay*/
-					}
-				
-					avc_parse_pic_timing_sei(pt_bs, avc);
-				}
+				avc_parse_pic_timing_sei(pt_bs, avc);
 				gf_bs_del(pt_bs);
 			}
 			break;
