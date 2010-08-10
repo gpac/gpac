@@ -4185,8 +4185,9 @@ restart_import:
 							b_frames = 0;
 						}
 						/*if same poc than last max, this is a B-slice*/
+						else
+							max_last_b_poc = last_poc;
 
-						max_last_b_poc = last_poc;
 						break;
 					}
 				}
