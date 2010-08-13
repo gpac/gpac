@@ -2036,9 +2036,12 @@ static void avc_compute_poc(AVCSliceInfo *si)
 			si->frame_num_offset = si->frame_num_offset_prev;
 	}
 	
-	if (si->sps->poc_type==0) {
+	/*ISO 14496-10 N.11084 8.2.1.1*/
+	if (si->sps->poc_type==0)
+	{
 		const u32 max_poc_lsb = 1 << (si->sps->log2_max_poc_lsb);
 		
+		/*ISO 14496-10 N.11084 eq (8-3)*/
 		if ((si->poc_lsb < si->poc_lsb_prev) &&
 		(si->poc_lsb_prev - si->poc_lsb >= max_poc_lsb / 2) )
 			si->poc_msb = si->poc_msb_prev + max_poc_lsb;
@@ -2048,10 +2051,21 @@ static void avc_compute_poc(AVCSliceInfo *si)
 		else
 			si->poc_msb = si->poc_msb_prev;
 
-		field_poc[0] = field_poc[1] = si->poc_msb + si->poc_lsb;
-		if (pic_type == AVC_PIC_FRAME)
-			field_poc[1] += si->delta_poc_bottom;
-	} else if (si->sps->poc_type==1) {
+		/*ISO 14496-10 N.11084 eq (8-4)*/
+		if (pic_type != AVC_PIC_FIELD_BOTTOM)
+			field_poc[0] = si->poc_msb + si->poc_lsb;
+
+		/*ISO 14496-10 N.11084 eq (8-5)*/
+		if (pic_type != AVC_PIC_FIELD_TOP) {
+			if (si->field_pic_flag)
+				field_poc[1] = field_poc[0] + si->delta_poc_bottom;
+			else
+				field_poc[1] = si->poc_msb + si->poc_lsb;
+		}
+	} 
+	/*ISO 14496-10 N.11084 8.2.1.2*/
+	else if (si->sps->poc_type==1)
+	{
 		u32 i;
 		s32 abs_frame_num, expected_delta_per_poc_cycle, expected_poc;
 
@@ -2082,7 +2096,10 @@ static void avc_compute_poc(AVCSliceInfo *si)
 		field_poc[0] = expected_poc + si->delta_poc[0];
 		field_poc[1] = field_poc[0] + si->sps->offset_for_top_to_bottom_field;
 		if (pic_type == AVC_PIC_FRAME) field_poc[1] += si->delta_poc[1];
-	} else if (si->sps->poc_type== 2) {
+	} 
+	/*ISO 14496-10 N.11084 8.2.1.3*/
+	else if (si->sps->poc_type== 2)
+	{
 		int poc;
 		if (si->nal_unit_type == GF_AVC_NALU_IDR_SLICE) {
 			poc = 0;
@@ -2094,6 +2111,8 @@ static void avc_compute_poc(AVCSliceInfo *si)
 		field_poc[0] = poc;
 		field_poc[1] = poc;
 	}
+
+	/*ISO 14496-10 N.11084 eq (8-1)*/
 	if (pic_type == AVC_PIC_FRAME)
 		si->poc = MIN(field_poc[0], field_poc[1] );
 	else if (pic_type == AVC_PIC_FIELD_TOP)
