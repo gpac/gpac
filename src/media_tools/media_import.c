@@ -4050,8 +4050,8 @@ restart_import:
 			gf_bs_del(sample_data);
 			sample_data = NULL;
 			/*CTS recomuting is much trickier than with MPEG-4 ASP due to b-slice used as references - we therefore
-			store the poc as the CTS offset and update the whole table at the end*/
-			samp->CTS_Offset = last_poc - poc_shift;
+			store the frame order (based on the POC) as the CTS offset and update the whole table at the end*/
+			samp->CTS_Offset = (last_poc - poc_shift) / 2;
 			assert(last_poc >= poc_shift);
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 			if (e) goto exit;
@@ -4214,7 +4214,8 @@ restart_import:
 		GF_ISOSample *samp = gf_isom_sample_new();
 		samp->DTS = dts_inc*cur_samp;
 		samp->IsRAP = sample_is_rap;
-		samp->CTS_Offset = last_poc - poc_shift;
+		/*we store the frame order (based on the POC) as the CTS offset and update the whole table at the end*/
+		samp->CTS_Offset = (last_poc - poc_shift) / 2;
 		gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
 		gf_bs_del(sample_data);
 		sample_data = NULL;
