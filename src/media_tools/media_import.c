@@ -3933,7 +3933,7 @@ restart_import:
 					gf_f64_seek(mdia, 0, SEEK_SET);
 					goto restart_import;
 				}
-				
+
 				if (is_subseq) {
 					if (last_svc_sps<(u32) idx) {
 						if (import->flags & GF_IMPORT_SVC_EXPLICIT) {
@@ -4050,8 +4050,8 @@ restart_import:
 			gf_bs_del(sample_data);
 			sample_data = NULL;
 			/*CTS recomuting is much trickier than with MPEG-4 ASP due to b-slice used as references - we therefore
-			store the frame order (based on the POC) as the CTS offset and update the whole table at the end*/
-			samp->CTS_Offset = (last_poc - poc_shift) / 2;
+			store the POC as the CTS offset and update the whole table at the end*/
+			samp->CTS_Offset = last_poc - poc_shift;
 			assert(last_poc >= poc_shift);
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 			if (e) goto exit;
@@ -4142,8 +4142,8 @@ restart_import:
 
 				/*if #pics, compute smallest POC increase*/
 				if (avc.s_info.poc != last_poc) {
-					if (!poc_diff || (poc_diff > abs(avc.s_info.poc-last_poc)))
-						poc_diff = abs(avc.s_info.poc-last_poc);
+					//if (!poc_diff || (poc_diff > abs(avc.s_info.poc-last_poc)))
+					//	poc_diff = abs(avc.s_info.poc-last_poc);
 					last_poc = avc.s_info.poc;
 				}
 				/*ref slice, reset poc*/
@@ -4215,7 +4215,7 @@ restart_import:
 		samp->DTS = dts_inc*cur_samp;
 		samp->IsRAP = sample_is_rap;
 		/*we store the frame order (based on the POC) as the CTS offset and update the whole table at the end*/
-		samp->CTS_Offset = (last_poc - poc_shift) / 2;
+		samp->CTS_Offset = last_poc - poc_shift;
 		gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
 		gf_bs_del(sample_data);
 		sample_data = NULL;
@@ -4225,6 +4225,8 @@ restart_import:
 		gf_set_progress("Importing AVC-H264", (u32) cur_samp, cur_samp+1);
 		cur_samp++;
 	}
+
+	poc_diff = (!avc.s_info.field_pic_flag && (avc.sps->vui.pic_struct_present_flag && avc.sei.pic_timing.pic_struct)) ? 2 : 1;
 
 	/*recompute all CTS offsets*/
 	if (has_cts_offset) {

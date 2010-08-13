@@ -2123,18 +2123,18 @@ static void avc_compute_poc(AVCSliceInfo *si)
 
 s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 {
-	u8 temp, idr_flag;
+	u8 idr_flag;
 	s32 slice, ret;
 	AVCSliceInfo n_state;
 
 	slice = 0;
 	memcpy(&n_state, &avc->s_info, sizeof(AVCSliceInfo));
-	temp = n_state.nal_unit_type = nal_hdr & 0x1F;
+	n_state.nal_unit_type = nal_hdr & 0x1F;
 	n_state.nal_ref_idc = (nal_hdr>>5) & 0x3;
 	
 	idr_flag = 0;
 	ret = 0;
-	switch (temp) {
+	switch (n_state.nal_unit_type) {
 	case GF_AVC_NALU_ACCESS_UNIT:
 	case GF_AVC_NALU_END_OF_SEQ:
 	case GF_AVC_NALU_END_OF_STREAM:
