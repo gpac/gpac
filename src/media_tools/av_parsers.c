@@ -1835,7 +1835,7 @@ s32 AVC_ReadPictParamSet(GF_BitStream *bs, AVCState *avc)
     pps->sps_id = avc_get_ue(bs);
 	avc->sps_active_idx = pps->sps_id; /*set active sps*/
     /*pps->cabac = */gf_bs_read_int(bs, 1);
-    /*pps->pic_order_present= */gf_bs_read_int(bs, 1);
+    pps->pic_order_present= gf_bs_read_int(bs, 1);
     pps->slice_group_count= avc_get_ue(bs) + 1;
     if (pps->slice_group_count > 1 ) /*pps->mb_slice_group_map_type = */avc_get_ue(bs);
     /*pps->ref_count[0]= */avc_get_ue(bs) /*+ 1*/;
@@ -2057,7 +2057,7 @@ static void avc_compute_poc(AVCSliceInfo *si)
 
 		/*ISO 14496-10 N.11084 eq (8-5)*/
 		if (pic_type != AVC_PIC_FIELD_TOP) {
-			if (si->field_pic_flag)
+			if (!si->field_pic_flag)
 				field_poc[1] = field_poc[0] + si->delta_poc_bottom;
 			else
 				field_poc[1] = si->poc_msb + si->poc_lsb;
