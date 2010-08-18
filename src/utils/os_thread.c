@@ -448,7 +448,7 @@ struct __tag_semaphore
 	sem_t *hSemaphore;
 	sem_t SemaData;
 #if defined(__DARWIN__) || defined(__APPLE__)
-	const char *SemName;
+	char *SemName;
 #endif
 #endif
 };
