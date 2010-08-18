@@ -706,7 +706,8 @@ char gf_prompt_get_char()
 		close_keyboard(1);
 		return ch;
 	}
-	read(0,&ch,1);
+	if (0==read(0,&ch,1))
+		ch = 0;
 	close_keyboard(1);
 	return ch;
 }
@@ -1316,10 +1317,10 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
   if (f) {
     while (fgets(line, 1024, f) != NULL) {
       if (!strnicmp(line, "MemTotal:", 9)) {
-	sscanf(line, "MemTotal: %lld kB",  &the_rti.physical_memory);
+	sscanf(line, "MemTotal: %llx kB",  &the_rti.physical_memory);
 	the_rti.physical_memory *= 1024;
       }else if (!strnicmp(line, "MemFree:", 8)) {
-	sscanf(line, "MemFree: %lld kB",  &the_rti.physical_memory_avail);
+	sscanf(line, "MemFree: %llx kB",  &the_rti.physical_memory_avail);
 	the_rti.physical_memory_avail *= 1024;
 	break;
       }

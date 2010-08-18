@@ -31,6 +31,7 @@
 #include <gpac/list.h>
 #include <gpac/base_coding.h>
 #include <gpac/crypt.h>
+#include <gpac/tools.h>
 
 
 #ifdef GPAC_HAS_SSL
@@ -1197,8 +1198,19 @@ void http_do_requests(GF_DownloadSession *sess)
 				user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfile");
 				assert (user_profile);
 				profile = fopen(user_profile, "rt");
-				fread(tmp_buf+len, 1, par.size, profile);
-				fclose(profile);
+				if (profile){
+					u32 readen = fread(tmp_buf+len, 1, par.size, profile);
+					if (readen<size){
+						GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
+							("Error while loading Downloader/UserProfile, size=%d, should be %d.", readen, par.size));
+						for (; readen < size; readen++){
+							tmp_buf[len + readen] = 0;
+						}				
+					}
+					fclose(profile);
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Error while loading Profile file %s.", user_profile));
+				}
 			}
 
 #ifdef GPAC_HAS_SSL
