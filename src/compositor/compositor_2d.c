@@ -1160,8 +1160,8 @@ void compositor_2d_init_callbacks(GF_Compositor *compositor)
 	compositor->visual->DrawBitmap = compositor_2d_draw_bitmap;
 	if (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_LINE_BLIT) {
 		compositor->raster_callbacks.cbk = compositor->video_out;
-		compositor->raster_callbacks.fill_run_alpha = compositor->video_out->DrawHLineAlpha;
-		compositor->raster_callbacks.fill_run_no_alpha = compositor->video_out->DrawHLine;
-		compositor->raster_callbacks.fill_rect = compositor->video_out->DrawRectangle;
+		compositor->raster_callbacks.fill_run_alpha = (raster_cbk_fill_run_alpha) compositor->video_out->DrawHLineAlpha;
+		compositor->raster_callbacks.fill_run_no_alpha = (raster_cbk_fill_run_no_alpha) compositor->video_out->DrawHLine;
+		compositor->raster_callbacks.fill_rect = (raster_cbk_fill_rect) compositor->video_out->DrawRectangle;
 	}
 }

@@ -106,15 +106,20 @@ typedef enum
 		alpha is computed by the lib
 	@alpha: blending amount (0->0xFF) for the pixels
 */
+
+typedef void (*raster_cbk_fill_run_alpha) (void *, u32, u32, u32, GF_Color, u8);
+typedef void (*raster_cbk_fill_run_no_alpha) (void *, u32, u32, u32, GF_Color);
+typedef void (*raster_cbk_fill_rect)(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_Color color);
+
 typedef struct
 {
 	void *cbk;
 	/*fills line pixels without any blending operation*/
-	void (*fill_run_no_alpha)(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color);
-	/*fills line pixels with blending operation - alpha combines both fill color and anti-aliasing blending*/
-	void (*fill_run_alpha)(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u8 alpha);
+	raster_cbk_fill_run_no_alpha fill_run_no_alpha;
+	/* fills line pixels with blending operation - alpha combines both fill color and anti-aliasing blending */
+	raster_cbk_fill_run_alpha fill_run_alpha;
 	/*fills rectangle*/
-	void (*fill_rect)(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_Color color);
+	raster_cbk_fill_rect fill_rect;
 } GF_RasterCallback;
 
 
