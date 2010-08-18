@@ -2267,18 +2267,18 @@ void wxOsmo4Frame::BuildStreamList(Bool reset_only)
 		switch (info.od_type) {
 		case GF_STREAM_AUDIO:
 			pMenu = sel_menu->FindItemByPosition(0)->GetSubMenu();
-			if (!info.owns_service) sprintf(szLabel, "Audio #%d", pMenu->GetMenuItemCount() + 1);
+			if (!info.owns_service) sprintf(szLabel, "Audio #%ld", pMenu->GetMenuItemCount() + 1);
 			pMenu->AppendCheckItem(ID_SELSTREAM_0 +i, wxString(szLabel, wxConvUTF8));
 			break;
 		case GF_STREAM_VISUAL:
 			pMenu = sel_menu->FindItemByPosition(1)->GetSubMenu();
-			if (!info.owns_service) sprintf(szLabel, "Video #%d", pMenu->GetMenuItemCount() + 1);
+			if (!info.owns_service) sprintf(szLabel, "Video #%ld", pMenu->GetMenuItemCount() + 1);
 			pMenu->AppendCheckItem(ID_SELSTREAM_0 +i, wxString(szLabel, wxConvUTF8));
 			break;
 		case GF_STREAM_TEXT:
 			nb_subs ++;
 			pMenu = sel_menu->FindItemByPosition(2)->GetSubMenu();
-			if (!info.owns_service) sprintf(szLabel, "Subtitle #%d", pMenu->GetMenuItemCount() + 1);
+			if (!info.owns_service) sprintf(szLabel, "Subtitle #%ld", pMenu->GetMenuItemCount() + 1);
 			pMenu->AppendCheckItem(ID_SELSTREAM_0 +i, wxString(szLabel, wxConvUTF8));
 			break;
 		}

@@ -75,6 +75,7 @@ static int wsa_init = 0;
 
 #include <gpac/network.h>
 
+
 /*end-win32*/
 
 #else
@@ -141,6 +142,13 @@ typedef s32 SOCKET;
 #ifdef GPAC_HAS_IPV6
 static u32 ipv6_check_state = 0;
 #endif
+
+#ifdef __x86_64__
+#define NULL_SOCKET 0
+#else
+#define NULL_SOCKET (SOCKET)NULL
+#endif
+
 
 /*internal flags*/
 enum
@@ -490,7 +498,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *loca
 		if (type != (u32) aip->ai_socktype) continue;
 		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 		if (sock->socket == INVALID_SOCKET) {
-			sock->socket = (SOCKET)NULL;
+			sock->socket = NULL_SOCKET;
 			continue;
 		}
 		if (sock->flags & GF_SOCK_NON_BLOCKING) gf_sk_set_block_mode(sock, 1);
@@ -501,7 +509,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *loca
 			ret = bind(sock->socket, lip->ai_addr, lip->ai_addrlen);
 			if (ret == SOCKET_ERROR) {
 				closesocket(sock->socket);
-				sock->socket = (SOCKET)NULL;
+				sock->socket = NULL_SOCKET;
 				continue;
 			}
 		}
@@ -509,7 +517,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *loca
 		ret = connect(sock->socket, aip->ai_addr, aip->ai_addrlen);
 		if (ret == SOCKET_ERROR) {
 			closesocket(sock->socket);
-			sock->socket = (SOCKET)NULL;
+			sock->socket = NULL_SOCKET;
 			continue;
 		}
 
@@ -650,7 +658,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 
 		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 		if (sock->socket == INVALID_SOCKET) {
-			sock->socket = (SOCKET)NULL;
+			sock->socket = NULL_SOCKET;
 			continue;
 		}
 		if (options & GF_SOCK_REUSE_PORT) {
@@ -671,7 +679,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 		ret = bind(sock->socket, aip->ai_addr, aip->ai_addrlen);
 		if (ret == SOCKET_ERROR) {
 			closesocket(sock->socket);
-			sock->socket = (SOCKET)NULL;
+			sock->socket = NULL_SOCKET;
 			continue;
 		}
 
@@ -912,7 +920,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 		if (type != (u32) aip->ai_socktype) continue;
 		sock->socket = socket(aip->ai_family, aip->ai_socktype, aip->ai_protocol);
 		if (sock->socket == INVALID_SOCKET) {
-			sock->socket = (SOCKET)NULL;
+			sock->socket = NULL_SOCKET;
 			continue;
 		}
 
@@ -936,7 +944,7 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 			ret = bind(sock->socket, aip->ai_addr, aip->ai_addrlen);
 			if (ret == SOCKET_ERROR) {
 				closesocket(sock->socket);
-				sock->socket = (SOCKET)NULL;
+				sock->socket = NULL_SOCKET;
 				continue;
 			}
 		}
