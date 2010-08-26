@@ -2282,7 +2282,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 	fsize = ftell(jsf);
 	fseek(jsf, 0, SEEK_SET);
 	jsscript = gf_malloc(sizeof(char)*(fsize+1));
-	fread(jsscript, sizeof(char)*fsize, 1, jsf);
+	fsize = fread(jsscript, sizeof(char), fsize, jsf);
 	fclose(jsf);
 	jsscript[fsize] = 0;
 

@@ -234,7 +234,7 @@ static void svg_process_media_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *i
 		fseek(f, 0, SEEK_SET);
 
 		buffer = gf_malloc(sizeof(char) * (size+1));
-		fread(buffer, 1, size, f);
+		size = fread(buffer, sizeof(char), size, f);
 		fclose(f);
 
 

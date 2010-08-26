@@ -161,7 +161,7 @@ void OD_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 void OD_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 {
 	FILE *f;
-	u32 size;
+	u32 size, readen;
 	if (*out_data) gf_free(*out_data);
 	*out_data = NULL;
 	*out_data_size = 0;
@@ -175,7 +175,10 @@ void OD_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 	fseek(f, 0, SEEK_SET);
 	*out_data_size = size;
 	*out_data = (char*)gf_malloc(sizeof(char) * size);
-	fread(*out_data, sizeof(char) * size, 1, f);
+	readen = fread(*out_data, sizeof(char), size, f);
+	if (readen != size){
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ODF Parse] readen size=%d does not match size=%d in %s\n", readen, size, fileName));
+	}
 	fclose(f);
 }
 
