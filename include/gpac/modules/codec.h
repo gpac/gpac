@@ -120,7 +120,7 @@ enum
 	GF_CODEC_MEDIA_NOT_OVER,
 
 	/*special cap indicating the codec should abort processing as soon as possible because it is about to be destroyed*/
-	GF_CODEC_ABORT,
+	GF_CODEC_ABORT
 };
 
 

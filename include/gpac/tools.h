@@ -234,7 +234,7 @@ typedef enum
 	/*! Authentication with the remote host has failed*/
 	GF_AUTHENTICATION_FAILURE				= -50,
 	/*! Script not ready for playback */
-	GF_SCRIPT_NOT_READY						= -51,
+	GF_SCRIPT_NOT_READY						= -51
 } GF_Err;
 
 /*!
@@ -268,7 +268,7 @@ enum
 	/*! Log message is informational (state, etc..)*/
 	GF_LOG_INFO,
 	/*! Log message is a debug info*/
-	GF_LOG_DEBUG,
+	GF_LOG_DEBUG
 };
 
 /*!
@@ -328,7 +328,7 @@ enum
 	/*! Log for memory tracker*/
 	GF_LOG_MEMORY = 1<<18,
 	/*! generic Log for modules*/
-	GF_LOG_MODULE = 1<<19,
+	GF_LOG_MODULE = 1<<19
 
 };
 
@@ -657,7 +657,7 @@ enum
 	Fetching the entire ocess  allocated memory can have a large impact on performances*/
 	GF_RTI_PROCESS_MEMORY = 1<<1,
 	/*!Indicates that only system memory should be fetched. When set, all refreshing info is ignored*/
-	GF_RTI_SYSTEM_MEMORY_ONLY = 1<<2,
+	GF_RTI_SYSTEM_MEMORY_ONLY = 1<<2
 };
 
 /*!
