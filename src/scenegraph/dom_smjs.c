@@ -2780,7 +2780,7 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 		fseek(xmlf, 0, SEEK_SET);
 		
 		ctx->data = gf_malloc(sizeof(char)*(fsize+1));
-		fread(ctx->data, sizeof(char)*fsize, 1, xmlf);
+		fsize = fread(ctx->data, sizeof(char), fsize, xmlf);
 		fclose(xmlf);
 		ctx->data[fsize] = 0;
 

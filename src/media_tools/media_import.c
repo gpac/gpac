@@ -186,7 +186,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	size = ftell(src);
 	fseek(src, 0, SEEK_SET);
 	data = (char*)gf_malloc(sizeof(char)*size);
-	fread(data, sizeof(char)*size, 1, src);
+	size = fread(data, sizeof(char), size, src);
 	fclose(src);
 
 	/*get image size*/
@@ -2108,7 +2108,10 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 		import->esd->decoderConfig->decoderSpecificInfo->dataLength = (u32) ftell(info);
 		import->esd->decoderConfig->decoderSpecificInfo->data = (char*)gf_malloc(sizeof(char) * import->esd->decoderConfig->decoderSpecificInfo->dataLength);
 		fseek(info, 0, SEEK_SET);
-		fread(import->esd->decoderConfig->decoderSpecificInfo->data, import->esd->decoderConfig->decoderSpecificInfo->dataLength, 1, info);
+		if (0==fread(import->esd->decoderConfig->decoderSpecificInfo->data, import->esd->decoderConfig->decoderSpecificInfo->dataLength, 1, info)){
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER,
+				("[NHML import] Failed to read dataLength\n"));
+		}
 		fclose(info);
 	}
 	/*keep parsed dsi (if any) if no .info file exists*/
@@ -2252,7 +2255,9 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 				max_size = samp->dataLength;
 			}
 			gf_f64_seek(mdia, offset, SEEK_SET);
-			fread( samp->data, samp->dataLength, 1, mdia);
+			if (0==fread( samp->data, samp->dataLength, 1, mdia)){
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Failed to read samp->dataLength\n"));
+			}
 			if (is_start) {
 				e = gf_isom_add_sample(import->dest, track, di, samp);
 			} else {
@@ -2408,7 +2413,9 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 		samp->data = (char*)gf_realloc(samp->data, sizeof(char)*samp->dataLength);
 	}
 	fseek(xml, breaker.from_pos, SEEK_SET);
-	fread(samp->data, 1, samp->dataLength, xml);
+	if (0==fread(samp->data, samp->dataLength, 1, xml)){
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Failed to read samp->dataLength\n"));
+	}
 
 exit:
 	if (xml) fclose(xml);
@@ -2592,7 +2599,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				d_size = ftell(d);
 				dictionary = (char*)gf_malloc(sizeof(char)*(d_size+1));
 				fseek(d, 0, SEEK_SET);
-				fread(dictionary, 1, d_size, d);
+				d_size = fread(dictionary, sizeof(char), d_size, d);
 				dictionary[d_size]=0;
 			}
 			use_dict = 1;
@@ -2657,7 +2664,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		specInfoSize = (u32) ftell(info);
 		specInfo = (char*)gf_malloc(sizeof(char) * specInfoSize);
 		fseek(info, 0, SEEK_SET);
-		fread(specInfo, specInfoSize, 1, info);
+		specInfoSize = fread(specInfo, sizeof(char), specInfoSize, info);
 		fclose(info);
 	}
 	/*compressing samples, remove data ref*/
@@ -2904,7 +2911,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				bs = gf_bs_new(samp->data, samp->dataLength+3, GF_BITSTREAM_WRITE);
 				gf_bs_write_u16(bs, samp->dataLength+1);
 				gf_bs_write_u8(bs, (u8) dims_flags);
-				fread( samp->data+3, samp->dataLength, 1, f);
+				if (samp->dataLength != fread( samp->data+3, sizeof(char), samp->dataLength, f)){
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import dims] Failed to fully read samp->dataLength\n"));
+				}
 				gf_bs_del(bs);
 				samp->dataLength+=3;
 
@@ -2916,7 +2925,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 					samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
 					max_size = samp->dataLength;
 				}
-				fread( samp->data, samp->dataLength, 1, f);
+				if (samp->dataLength != fread( samp->data, sizeof(char), samp->dataLength, f)){
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import dims] Failed to fully read samp->dataLength\n"));
+				}
 			}
 			if (close) fclose(f);
 		}
@@ -2985,7 +2996,7 @@ exit:
 GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, trackID, di, max_size, duration, sample_rate, block_size, i;
+	u32 track, trackID, di, max_size, duration, sample_rate, block_size, i, readen;
 	GF_ISOSample *samp;
 	char magic[20], *msg;
 	Bool delete_esd, update_gpp_cfg;
@@ -3009,7 +3020,11 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 	oti = mtype = 0;
 	sample_rate = 8000;
 	block_size = 160;
-	fread(magic, 1, 20, mdia);
+	if (6 > fread(magic, sizeof(char), 20, mdia)){
+		fclose(mdia);
+		return gf_import_message(import, GF_URL_ERROR, "Cannot guess type for file %s, size lower than 6", import->in_name);
+		
+	}
 	if (!strnicmp(magic, "#!AMR\n", 6)) {
 		gf_import_message(import, GF_OK, "Importing AMR Audio");
 		fseek(mdia, 6, SEEK_SET);
@@ -3152,9 +3167,10 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 			break;
 		}
 
-		if (samp->dataLength)
-			fread( samp->data + 1, samp->dataLength, 1, mdia);
-
+		if (samp->dataLength){
+			readen = fread( samp->data + 1, sizeof(char), samp->dataLength, mdia);
+			assert(readen == samp->dataLength);
+		}
 		samp->dataLength += 1;
 		/*if last frame is "no data", abort - this happens in many files with constant mode (ie constant files), where
 		adding this last frame will result in a non-compact version of the stsz table, hence a bigger file*/
@@ -4365,7 +4381,7 @@ Bool OGG_ReadPage(FILE *f_in, ogg_sync_state *oy, ogg_page *oggpage)
 	if (feof(f_in)) return 0;
 	while (ogg_sync_pageout(oy, oggpage ) != 1 ) {
 		char *buffer = ogg_sync_buffer(oy, OGG_BUFFER_SIZE);
-		u32 bytes = fread(buffer, 1, OGG_BUFFER_SIZE, f_in);
+		u32 bytes = fread(buffer, sizeof(char), OGG_BUFFER_SIZE, f_in);
 		ogg_sync_wrote(oy, bytes);
 		if (feof(f_in)) return 1;
 	}
@@ -4854,7 +4870,7 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 {
 	GF_Err e;
 	GF_ISOSample *samp;
-	u32 mtype, track, di, timescale;
+	u32 mtype, track, di, timescale, readen;
 	FILE *src;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
@@ -4905,7 +4921,8 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 	fseek(src, 0, SEEK_SET);
 	samp->IsRAP = 1;
 	samp->data = (char *)gf_malloc(sizeof(char)*samp->dataLength);
-	fread(samp->data, samp->dataLength, 1, src);
+	readen = fread(samp->data, sizeof(char), samp->dataLength, src);
+	assert( readen == samp->dataLength );
 	e = gf_isom_add_sample(import->dest, track, di, samp);
 	gf_isom_sample_del(&samp);
 	MP4T_RecomputeBitRate(import->dest, track);
@@ -5864,7 +5881,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	gf_import_message(import, GF_OK, progress);
 
 	while (!feof(mts)) {
-		size = fread(data, 1, 188, mts);
+		size = fread(data, sizeof(char), 188, mts);
 		if (size<188) break;
 
 		gf_m2ts_process_data(ts, data, size);
@@ -6091,7 +6108,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 			goto error;
 		}
 
-		if (fread(buf, 1, sizeof(buf), file) != sizeof(buf)) {
+		if (!fread(buf, sizeof(buf), 1, file)) {
 			err = gf_import_message(import, GF_IO_ERR, "Could not read from file");
 			goto error;
 		}

@@ -53,8 +53,11 @@ enum
 
 static s32 gf_text_get_utf_type(FILE *in_src)
 {
+	u32 readen;
 	unsigned char BOM[5];
-	fread(BOM, 5, 1, in_src);
+	readen = fread(BOM, sizeof(char), 5, in_src);
+	if (readen < 1)
+		return -1;
 
 	if ((BOM[0]==0xFF) && (BOM[1]==0xFE)) {
 		/*UTF32 not supported*/

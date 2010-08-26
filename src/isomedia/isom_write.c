@@ -3363,7 +3363,10 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 		fseek(f, 0, SEEK_END);
 		size = ftell(f);
 		fseek(f, 0, SEEK_SET);
-		fread(BOM, 1, 3, f);
+		if (3!=fread(BOM, sizeof(char), 3, f)){
+			fclose(f);
+			return GF_CORRUPTED_DATA;
+		}
 		/*skip BOM if any*/
 		if ((BOM[0]==0xEF) && (BOM[1]==0xBB) && (BOM[2]==0xBF)) size -= 3;
 		else if ((BOM[0]==0xEF) || (BOM[0]==0xFF)) {
@@ -3372,7 +3375,7 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 		}
 		else fseek(f, 0, SEEK_SET);
 		trak->Media->handler->nameUTF8 = (char*)gf_malloc(sizeof(char)*(size+1));
-		fread(trak->Media->handler->nameUTF8, 1, size, f);
+		size = fread(trak->Media->handler->nameUTF8, sizeof(char), size, f);
 		trak->Media->handler->nameUTF8[size] = 0;
 		fclose(f);
 	} else {
