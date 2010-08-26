@@ -371,7 +371,8 @@ u32 NDT_V2_GetNumBits(u32 NDT_Tag)
 	case NDT_SFPerceptualParameterNode:
 		return SFPerceptualParameterNode_V2_NUMBITS;
 	default:
-		return 1;
+		// FIX by VizionR : was 1 but should be 0
+		return 0;
 	}
 }
 
