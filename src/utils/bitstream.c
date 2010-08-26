@@ -324,6 +324,7 @@ Double gf_bs_read_double(GF_BitStream *bs)
 GF_EXPORT
 u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 {
+	int readen;
 	u64 orig = bs->position;
 
 	if (bs->position+nbBytes > bs->size) return 0;
@@ -336,7 +337,8 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 			return nbBytes;
 		case GF_BITSTREAM_FILE_READ:
 		case GF_BITSTREAM_FILE_WRITE:
-			fread(data, nbBytes, 1, bs->stream);
+			readen = fread(data, nbBytes, 1, bs->stream);
+			assert( nbBytes == readen );
 			bs->position += nbBytes;
 			return nbBytes;
 		default:
