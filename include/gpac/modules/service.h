@@ -92,7 +92,7 @@ enum
 	/*checks if there is an audio stream in the service - term->net only*/
 	GF_NET_SERVICE_HAS_AUDIO,
 	/*instructs the service to get the migration info - term->net only*/
-	GF_NET_SERVICE_MIGRATION_INFO,
+	GF_NET_SERVICE_MIGRATION_INFO
 };
 
 /*channel command for all commands that don't need params:

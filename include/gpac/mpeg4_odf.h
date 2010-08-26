@@ -112,7 +112,7 @@ enum
 
 
 	/*descriptor for aucilary video data*/
-	GF_ODF_AUX_VIDEO_DATA	= GF_ODF_EXT_BEGIN_TAG + 1,
+	GF_ODF_AUX_VIDEO_DATA	= GF_ODF_EXT_BEGIN_TAG + 1
 };
 
 
@@ -293,7 +293,7 @@ enum
 	/*control point between CB and render*/
 	IPMP_CP_CM = 3,
 	/*control point in BIFS tree (???)*/
-	IPMP_CP_BIFS = 4,
+	IPMP_CP_BIFS = 4
 	/*the rest is reserved or forbidden(0xFF)*/
 };
 
@@ -345,8 +345,8 @@ typedef struct
 /* Elementary Mask of Bifs Config - parsing only */
 typedef struct {
 	BASE_DESCRIPTOR
-	u32 node_id;			// referenced nodeID
-	char *node_name;		// referenced node name
+	u32 node_id;			/* referenced nodeID */
+	char *node_name;		/* referenced node name */
 } GF_ElementaryMask;
 
 /*BIFSConfig - parsing only, STORED IN ESD:DCD:DSI*/
@@ -415,7 +415,7 @@ enum
 	GF_TXT_SCROLL_DIRECTION = 0x00000180,
 	GF_TXT_KARAOKE	= 0x00000800,
 	GF_TXT_VERTICAL = 0x00020000,
-	GF_TXT_FILL_REGION = 0x00040000,
+	GF_TXT_FILL_REGION = 0x00040000
 };
 
 typedef struct
@@ -1169,7 +1169,7 @@ enum
 	/*IPMP ByteArray type*/
 	GF_ODF_FT_IPMPX_BA = 5,
 	/*IPMP ByteArray list type*/
-	GF_ODF_FT_IPMPX_BA_LIST = 6,
+	GF_ODF_FT_IPMPX_BA_LIST = 6
 };
 u32 gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName);
 
@@ -1203,7 +1203,7 @@ enum
 {
 	GF_IPMPX_AUTH_Forbidden_Tag = 0x00,
 	GF_IPMPX_AUTH_AlgorithmDescr_Tag = 0x01,
-	GF_IPMPX_AUTH_KeyDescr_Tag = 0x02,
+	GF_IPMPX_AUTH_KeyDescr_Tag = 0x02
 };
 
 typedef struct
@@ -1267,7 +1267,7 @@ enum
 	GF_IPMPX_KEY_DESCRIPTOR_TAG = 0xA4,
 	GF_IPMPX_PARAM_DESCRIPTOR_ITEM_TAG = 0xA5,
 	GF_IPMPX_SEL_ENC_BUFFER_TAG = 0xA6,
-	GF_IPMPX_SEL_ENC_FIELD_TAG = 0xA7,
+	GF_IPMPX_SEL_ENC_FIELD_TAG = 0xA7
 };
 
 typedef char GF_IPMPX_Date[5];
@@ -1420,7 +1420,7 @@ enum
 	GF_IPMPX_LISTEN_CONNECTIONFAILED = 0x01,
 	GF_IPMPX_LISTEN_DISCONNECTED = 0x02,
 	GF_IPMPX_LISTEN_DISCONNECTIONFAILED = 0x03,
-	GF_IPMPX_LISTEN_WATERMARKDETECTED = 0x04,
+	GF_IPMPX_LISTEN_WATERMARKDETECTED = 0x04
 };
 
 typedef struct
@@ -1532,7 +1532,7 @@ enum
 	GF_IPMPX_SE_COMP_VIDEO_GOB = 0x04,
 	/*0x05-2F	ISO Reserved for video*/
 	GF_IPMPX_SE_COMP_AAC_DF = 0x30,
-	GF_IPMPX_SE_COMP_AAC_NONE = 0x31,
+	GF_IPMPX_SE_COMP_AAC_NONE = 0x31
 	/*
 	0x32 -  0x5F	ISO Reserved for audio
 	0x60 - 0xCF	ISO Reserved
@@ -1548,7 +1548,7 @@ enum
 	GF_IPMPX_SE_SYNC_VIDEO_VOP = 0x01,
 	GF_IPMPX_SE_SYNC_VIDEO_GOV = 0x02,
 	/*0x03-2F	ISO Reserved for video,*/
-	GF_IPMPX_SE_SYNC_AAC_DF = 0x30,
+	GF_IPMPX_SE_SYNC_AAC_DF = 0x30
 	/*0x31 -  0x5F	ISO Reserved for audio
 	0x60 - 0xCF	ISO Reserved
 	0xD0 - 0xFE	User Defined
@@ -1568,7 +1568,7 @@ enum
 	/*0x06-2F	ISO Reserved for video*/
 	GF_IPMPX_SE_FID_AAC_SIGN = 0x30,
 	GF_IPMPX_SE_FID_AAC_CODEWORDS = 0x31,
-	GF_IPMPX_SE_FID_AAC_SCALE = 0x32,
+	GF_IPMPX_SE_FID_AAC_SCALE = 0x32
 	/*0x32 -  0x5F	ISO Reserved for audio
 	0x60 - 0xCF	ISO Reserved
 	0xD0 - 0xFE	User Defined
@@ -1599,7 +1599,7 @@ enum
 	GF_IPMPX_WM_INSERT = 0,
 	GF_IPMPX_WM_EXTRACT = 1,
 	GF_IPMPX_WM_REMARK = 2,
-	GF_IPMPX_WM_DETECT_COMPRESSION = 3,
+	GF_IPMPX_WM_DETECT_COMPRESSION = 3
 };
 
 /*used for both audio and video WM init*/
@@ -1648,7 +1648,7 @@ enum
 {
 	GF_IPMPX_WM_COMPRESSION = 0,
 	GF_IPMPX_WM_NO_COMPRESSION = 1,
-	GF_IPMPX_WM_COMPRESSION_UNKNOWN = 2,
+	GF_IPMPX_WM_COMPRESSION_UNKNOWN = 2
 };
 
 typedef struct

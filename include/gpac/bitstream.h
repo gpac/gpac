@@ -50,7 +50,7 @@ extern "C" {
 enum
 {
 	GF_BITSTREAM_READ = 0,
-	GF_BITSTREAM_WRITE,
+	GF_BITSTREAM_WRITE
 };
 
 typedef struct __tag_bitstream GF_BitStream;

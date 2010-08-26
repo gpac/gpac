@@ -24,6 +24,7 @@
 
 #include "module_wrap.h"
 #include <gpac/config_file.h>
+#include <gpac/tools.h>
 
 GF_EXPORT
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
@@ -106,6 +107,7 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	else if (!inst->query_func) fail = 2;
 
 	if (fail) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Fail error=%r for %s\n", fail, inst->name));
 		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, "Invalid Plugin");
 		goto err_exit;
 	}

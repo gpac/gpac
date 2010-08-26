@@ -115,8 +115,9 @@ typedef unsigned int size_t;
 #define strupr _strupr
 #define strlwr _strlwr
 
-//#define GPAC_DISABLE_LOG
-
+/*
+#define GPAC_DISABLE_LOG
+*/
 #else	/*END WINCE*/
 
 /*WIN32 not-WinCE*/
@@ -156,8 +157,10 @@ typedef __int64 s64;
 #else
 
 /*FIXME - we don't have 64bit support here we should get rid of all 64bits divisions*/
-//typedef unsigned long long u64;
-//typedef long long s64;
+/*
+typedef unsigned long long u64;
+typedef long long s64;
+*/
 
 typedef unsigned int u64;
 typedef signed int s64;

@@ -104,7 +104,7 @@ enum
 	GF_STREAM_PRIVATE_SCENE	= 0x20,
 
 	/*used internally to signal the the OTI carries a 4CC code, typically media subtype (stsd entry in file format)*/
-	GF_STREAM_4CC		= 0xF0,
+	GF_STREAM_4CC		= 0xF0
 };
 
 
@@ -130,7 +130,7 @@ enum
 	/*!service descriptor expected is of TEXT type (3GPP/MPEG4)*/
 	GF_MEDIA_OBJECT_TEXT,
 	/*!service descriptor expected is of UserInteraction type (MPEG-4 InputSensor)*/
-	GF_MEDIA_OBJECT_INTERACT,
+	GF_MEDIA_OBJECT_INTERACT
 };
 
 /*! All Media Objects inserted through URLs and not MPEG-4 OD Framework use this ODID*/
@@ -206,7 +206,7 @@ typedef enum
 	GF_PIXEL_YUVA		=	GF_4CC('Y', 'U', 'V', 'A'),
 
 	/*!YV12 + Depth plane*/
-	GF_PIXEL_YUVD		=	GF_4CC('Y', 'U', 'V', 'D'),
+	GF_PIXEL_YUVD		=	GF_4CC('Y', 'U', 'V', 'D')
 
 } GF_PixelFormat;
 
@@ -385,7 +385,7 @@ enum
     GPAC_OTI_MEDIA_SUBPIC = 0xE0,
 
     /*!OTI for 13K Voice / QCELP audio streams*/
-    GPAC_OTI_AUDIO_13K_VOICE = 0xE1,
+    GPAC_OTI_AUDIO_13K_VOICE = 0xE1
 
 };
 
@@ -470,9 +470,9 @@ enum
 
 #define GF_AVC_NALU_SVC_SLICE 0x14
 
-//#define GF_SVC_NALU_SLICE 0x14
-//#define GF_SVC_NALU_NAL_EXT_PARAM 14
-//#define GF_SVC_NALU_SEQ_EXT_PARAM 15
+/*#define GF_SVC_NALU_SLICE 0x14
+#define GF_SVC_NALU_NAL_EXT_PARAM 14
+#define GF_SVC_NALU_SEQ_EXT_PARAM 15*/
 
 #define GF_AVC_TYPE_P 0
 #define GF_AVC_TYPE_B 1

@@ -162,7 +162,7 @@ enum
     GF_M4A_LAYER2 = 33,
     GF_M4A_LAYER3 = 34,
     GF_M4A_DST = 35,
-    GF_M4A_ALS = 36,
+    GF_M4A_ALS = 36
 };
 
 #ifndef GPAC_DISABLE_AV_PARSERS
