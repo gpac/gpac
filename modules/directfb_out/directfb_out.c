@@ -39,16 +39,21 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
   DFBResult err;
   DFBSurfaceDescription dsc;
   DFBSurfacePixelFormat dfbpf;
+  DFBAccelerationMask mask;
   
   DirectFBVID();
   ctx->is_init = 0;
   argc=0;
   DFBCHECK(DirectFBInit(&argc, & (argv) )); 
   
+  DirectFBSetOption ("bg-none", NULL);
+  DirectFBSetOption ("no-init-layer", NULL);
+ 
   /* create the super interface */
   DFBCHECK(DirectFBCreate( &(ctx->dfb) ));
   
   GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Initialization\n"));
+
   /* create an input buffer for key events */
 //  DFBCHECK(ctx->dfb->CreateInputEventBuffer( ctx->dfb, DICAPS_KEYS, DFB_FALSE, &key_events ));
   
@@ -71,6 +76,15 @@ GF_Err DirectFBVid_Setup(GF_VideoOutput *driv, void *os_handle, void *os_display
   ctx->primary->GetSize( ctx->primary, &(ctx->width), &(ctx->height) );
   ctx->primary->Clear( ctx->primary, 0, 0, 0, 0xFF);
   
+  ctx->primary->GetAccelerationMask( ctx->primary, NULL, &mask );
+  if (mask & DFXL_DRAWLINE ) // DrawLine() is accelerated.
+	accel_drawline = 1;
+  if (mask & DFXL_FILLRECTANGLE) // FillRectangle() is accelerated.
+	accel_fillrect = 1;
+
+  printf("accel_drawline=%d\n",accel_drawline);
+  printf("accel_fillrect=%d\n",accel_fillrect);
+
   ctx->is_init = 1;
   GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Initialization success\n"));
   return GF_OK;  
@@ -90,7 +104,7 @@ static GF_Err DirectFBVid_Flush(GF_VideoOutput *driv, GF_Window *dest)
 {
   
   DirectFBVID();
-  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Fliping backbuffer\n"));
+  GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DirectFB] Flipping backbuffer\n"));
   ctx->primary->Flip( ctx->primary, NULL, DSFLIP_ONSYNC );
 }
 
@@ -102,6 +116,7 @@ GF_Err DirectFBVid_SetFullScreen(GF_VideoOutput *driv, u32 bFullScreenOn, u32 *s
   
   *screen_width = ctx->width;
   *screen_height = ctx->height;
+
   return GF_OK;
 }
 
@@ -203,7 +218,60 @@ static GF_Err DirectFBVid_LockBackBuffer(GF_VideoOutput *driv, GF_VideoSurface *
 static GF_Err DirectFBVid_Blit(GF_VideoOutput *driv, GF_VideoSurface *video_src, GF_Window *src_wnd, GF_Window *dst_wnd, u32 overlay_type)
 {
   DirectFBVID();
-  return GF_NOT_SUPPORTED;  
+  if (overlay_type == 0) return GF_OK;
+  else return GF_NOT_SUPPORTED;  
+  //return GF_OK;
+}
+
+static void DirectFBVid_DrawHLine(GF_VideoOutput *driv, u32 x, u32 y, u32 length, GF_Color color)
+{
+	DirectFBVID();
+	u8 r, g, b;
+			
+	SET_DRAWING_FLAGS( DSDRAW_NOFX );
+
+	r = GF_COL_R(color);
+	g = GF_COL_G(color);
+	b = GF_COL_B(color);
+			
+	ctx->primary->SetColor(ctx->primary, r, g, b, 0xFF); // no alpha
+	ctx->primary->DrawLine(ctx->primary, x, y, x+length, y);	
+
+}
+
+static void DirectFBVid_DrawHLineAlpha(GF_VideoOutput *driv, u32 x, u32 y, u32 length, GF_Color color, u8 alpha)
+{
+	DirectFBVID();
+	u8 r, g, b;
+
+
+	SET_DRAWING_FLAGS( DSDRAW_BLEND ); // use alpha 
+
+	r = GF_COL_R(color);
+	g = GF_COL_G(color);
+	b = GF_COL_B(color);	
+		
+	ctx->primary->SetColor(ctx->primary, r, g, b, alpha);
+	ctx->primary->DrawLine(ctx->primary, x, y, x+length, y);
+
+}
+
+static void DirectFBVid_DrawRectangle(GF_VideoOutput *driv, u32 x, u32 y, u32 width, u32 height, GF_Color color)
+{
+	DirectFBVID();
+
+	u8 r, g, b, a;
+
+	r = GF_COL_R(color);
+	g = GF_COL_G(color);
+	b = GF_COL_B(color);
+	a = GF_COL_A(color);
+	
+	SET_DRAWING_FLAGS( DSDRAW_NOFX );	
+
+	ctx->primary->SetColor(ctx->primary, r, g, b, a);
+	ctx->primary->FillRectangle(ctx->primary, x, y, width, height);
+	//ctx->primary->Blit( ctx->primary, ctx->primary, NULL, x, y );
 }
 
 void *DirectFBNewVideo()
@@ -228,7 +296,15 @@ void *DirectFBNewVideo()
   driv->LockBackBuffer = DirectFBVid_LockBackBuffer;
   driv->LockOSContext = NULL;
   driv->Blit = DirectFBVid_Blit;
-  driv->hw_caps |= GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_YUV;
+  driv->hw_caps |= GF_VIDEO_HW_HAS_RGB | GF_VIDEO_HW_HAS_RGBA | GF_VIDEO_HW_HAS_YUV | GF_VIDEO_HW_HAS_LINE_BLIT;
+  
+  if (driv->hw_caps & GF_VIDEO_HW_HAS_LINE_BLIT)
+	{
+		driv->DrawHLine = DirectFBVid_DrawHLine;
+		driv->DrawHLineAlpha = DirectFBVid_DrawHLineAlpha;
+		driv->DrawRectangle = DirectFBVid_DrawRectangle;	
+	}
+	
   return driv;  
 }
 

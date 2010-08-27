@@ -3,6 +3,8 @@ include ../../config.mak
 vpath %.c $(SRC_PATH)/modules/directfb_out
 
 CFLAGS= $(OPTFLAGS)
+CFLAGS+=-I$(SRC_PATH)/include -I$(DIRECTFB_INC_PATH)
+LDFLAGS+=-ldirectfb-1.4 -lfusion-1.4 -ldirect-1.4
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -14,8 +16,8 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-CFLAGS+=-I$(SRC_PATH)/include -I/opt/STM/STLinux-2.3/devkit/sh4/target/usr/include/directfb-1.4.3/
-LDFLAGS+=-L/opt/STM/STLinux-2.3/devkit/sh4/target/usr/lib -ldirectfb-1.4 -lfusion-1.4 -ldirect-1.4
+
+
 
 #common obj
 OBJS=directfb_out.o
