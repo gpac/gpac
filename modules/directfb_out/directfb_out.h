@@ -11,6 +11,9 @@
 #include <directfb_util.h>
 #include <direct/util.h>
 
+static int do_xor       = 0;
+static int accel_drawline   = 0;
+static int accel_fillrect = 0;
 
 /* macro for a safe call to DirectFB functions */
 #define DFBCHECK(x...)                                                     \
@@ -21,6 +24,10 @@
                     DirectFBErrorFatal( #x, err );                         \
                }                                                           \
           } while (0)
+          
+#define SET_DRAWING_FLAGS( flags ) \
+          ctx->primary->SetDrawingFlags( ctx->primary, (flags) | (do_xor ? DSDRAW_XOR : 0) )
+          
 
 typedef struct
 {
@@ -42,9 +49,3 @@ void *DirectFBNewVideo();
 void DirectFBDeleteVideo(void *ifce);
 
 #endif
-
-
-
-
-
- 
