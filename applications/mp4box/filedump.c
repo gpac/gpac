@@ -132,7 +132,7 @@ GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 	tag_len = ftell(t);
 	fseek(t, 0, SEEK_SET);
 	tag = gf_malloc(sizeof(char) * tag_len);
-	fread(tag, tag_len, 1, t);
+	tag_len = fread(tag, sizeof(char), tag_len, t);
 	fclose(t);
 	
 	ext = strrchr(inName, '.');

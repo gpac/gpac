@@ -1301,7 +1301,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
   if (f) {
     while (fgets(line, 1024, f) != NULL) {
       if (!strnicmp(line, "VmSize:", 7)) {
-	sscanf(line, "VmSize: %lld kB",  &the_rti.process_memory);
+	sscanf(line, "VmSize: %"LLD" kB",  &the_rti.process_memory);
 	the_rti.process_memory *= 1024;
       }
     }
@@ -1317,10 +1317,10 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
   if (f) {
     while (fgets(line, 1024, f) != NULL) {
       if (!strnicmp(line, "MemTotal:", 9)) {
-	sscanf(line, "MemTotal: %llx kB",  &the_rti.physical_memory);
+	sscanf(line, "MemTotal: %"LLD" kB",  &the_rti.physical_memory);
 	the_rti.physical_memory *= 1024;
       }else if (!strnicmp(line, "MemFree:", 8)) {
-	sscanf(line, "MemFree: %llx kB",  &the_rti.physical_memory_avail);
+	sscanf(line, "MemFree: %"LLD" kB",  &the_rti.physical_memory_avail);
 	the_rti.physical_memory_avail *= 1024;
 	break;
       }

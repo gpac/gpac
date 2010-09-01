@@ -190,9 +190,9 @@ void GF_IPMPX_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 	fseek(f, 0, SEEK_END);
 	size = ftell(f);
 	fseek(f, 0, SEEK_SET);
-	*out_data_size = size;
 	*out_data = (char*)gf_malloc(sizeof(char) * size);
-	fread(*out_data, sizeof(char) * size, 1, f);
+	size = fread(*out_data, sizeof(char), size, f);
+	*out_data_size = size;
 	fclose(f);
 }
 

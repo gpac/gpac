@@ -158,7 +158,12 @@ static void OSS_WriteAudio(GF_AudioOutput*dr)
 	OSSCTX();
 	written = dr->FillBuffer(dr->audio_renderer, ctx->wav_buf, ctx->buf_size);
 	/*this will also perform sleep*/
-	if (written) write(ctx->audio_dev, ctx->wav_buf, written);
+	if (written){
+		u32 reallyWritten = write(ctx->audio_dev, ctx->wav_buf, written);
+		if (reallyWritten != written){
+			 GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[OSS] Failed to write all audio to device, has written %u, should have %u", reallyWritten, written));
+		}
+	}
 }
 
 static void OSS_SetVolume(GF_AudioOutput*dr, u32 Volume) {}

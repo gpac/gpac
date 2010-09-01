@@ -2812,7 +2812,7 @@ int main(int argc, char **argv)
 				tlen = ftell(t);
 				fseek(t, 0, SEEK_SET);
 				d = gf_malloc(sizeof(char) * tlen);
-				fread(d, tlen, 1, t);
+				tlen = fread(d, sizeof(char), tlen, t);
 				fclose(t);
 				
 				ext = strrchr(val, '.');

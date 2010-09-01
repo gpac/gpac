@@ -106,7 +106,7 @@ GF_Thread *gf_th_new(const char *name)
 		tmp->log_name = gf_strdup(name);
 	} else {
 		char szN[20];
-		sprintf(szN, "0x%08x", (u32) tmp);
+		sprintf(szN, "0x%p", tmp);
 		tmp->log_name = gf_strdup(szN);
 	}
 	log_add_thread(tmp);
@@ -119,9 +119,9 @@ DWORD WINAPI RunThread(void *ptr)
 {
 	DWORD ret = 0;
 #else
-void *RunThread(void *ptr)
+void * RunThread(void *ptr)
 {
-	u32 ret = 0;
+	long int ret = 0;
 #endif
 	GF_Thread *t = (GF_Thread *)ptr;
 
@@ -322,7 +322,7 @@ GF_Mutex *gf_mx_new(const char *name)
 		tmp->log_name = gf_strdup(name);
 	} else {
 		char szN[20];
-		sprintf(szN, "0x%08x", (u32) tmp);
+		sprintf(szN, "0x%p", tmp);
 		tmp->log_name = gf_strdup(szN);
 	}
 #endif

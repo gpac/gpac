@@ -420,7 +420,7 @@ GF_Err vobsub_read_idx(FILE *file, vobsub_file *vobsub, s32 *version)
 #if defined (WIN32) && !defined(__GNUC__)
 			if (sscanf(pos + strlen(buf), "%I64x", &vspos->filepos) != 1)
 #else
-			if (sscanf(pos + strlen(buf), "%llx", &vspos->filepos) != 1)
+			if (sscanf(pos + strlen(buf), LLD, &vspos->filepos) != 1)
 #endif
 			{
 				gf_free(vspos);

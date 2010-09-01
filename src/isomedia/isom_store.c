@@ -432,7 +432,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 					u64 remain = entry->extent_length;
 					while (remain) {
 						u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
-						fread(cache_data, 1, size_cache, src);
+						size_cache = fread(cache_data, sizeof(char), size_cache, src);
 						gf_bs_write_data(bs, cache_data, size_cache);
 						remain -= size_cache;
 					}
