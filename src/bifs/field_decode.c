@@ -139,7 +139,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 				case GPAC_OTI_IMAGE_JPEG_2000: ext = "jp2"; break;
 				default: ext = "img";
 				}
-				sprintf(szImg, "%04x%04x.%s", (u32) codec, (u32) ct, ext);
+				sprintf(szImg, "%p%p.%s", codec, ct, ext);
 				name = gf_strdup(szImg);
 			}
 

@@ -959,7 +959,7 @@ GF_Err elst_dump(GF_Box *a, FILE * trace)
 
 	i=0;
 	while ((t = (GF_EdtsEntry *)gf_list_enum(p->entryList, &i))) {
-		fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%d\"/>\n", LLD_CAST t->segmentDuration, LLD_CAST t->mediaTime, t->mediaRate);
+		fprintf(trace, "<EditListEntry Duration=\""LLD"\" MediaTime=\""LLD"\" MediaRate=\"%u\"/>\n", LLD_CAST t->segmentDuration, LLD_CAST t->mediaTime, t->mediaRate);
 	}
 	fprintf(trace, "</EditListBox>\n");
 	return GF_OK;
@@ -1181,7 +1181,7 @@ GF_Err tkhd_dump(GF_Box *a, FILE * trace)
 	p = (GF_TrackHeaderBox *)a;
 	fprintf(trace, "<TrackHeaderBox ");
 
-	fprintf(trace, "CreationTime=\""LLD"\" ModificationTime=\""LLD"\" TrackID=\"%d\" Duration=\""LLD"\"",
+	fprintf(trace, "CreationTime=\""LLD"\" ModificationTime=\""LLD"\" TrackID=\"%u\" Duration=\""LLD"\"",
 		LLD_CAST p->creationTime, LLD_CAST p->modificationTime, p->trackID, LLD_CAST p->duration);
 
 	if (p->alternate_group) fprintf(trace, " AlternateGroupID=\"%d\"", p->alternate_group);
@@ -2259,7 +2259,7 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 
 	count = gf_list_count(s->packetTable);
 
-	fprintf(trace, "<RTPHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%d\">\n", SampleNum, LLD_CAST tmp->DTS, tmp->IsRAP, count);
+	fprintf(trace, "<RTPHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%u\">\n", SampleNum, LLD_CAST tmp->DTS, tmp->IsRAP, count);
 
 	for (i=0; i<count; i++) {
 		pck = (GF_RTPPacket *)gf_list_get(s->packetTable, i);

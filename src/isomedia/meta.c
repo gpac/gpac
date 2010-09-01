@@ -503,7 +503,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 			remain = entry->extent_length;
 			while (remain) {
 				u32 size_cache = (remain>4096) ? 4096 : (u32) remain;
-				fread(cache_data, 1, size_cache, src);
+				size_cache = fread(cache_data, 1, size_cache, src);
 				gf_bs_write_data(file->editFileMap->bs, cache_data, size_cache);
 				remain -= size_cache;
 			}

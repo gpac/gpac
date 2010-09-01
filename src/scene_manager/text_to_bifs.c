@@ -71,7 +71,10 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 		if (!strnicmp(ext, ".ttxt", 5)) *fmt = GF_TEXT_IMPORT_TTXT;
 		ext = strstr(szLine, "?>");
 		if (ext) ext += 2;
-		if (!ext[0]) fgets(szLine, 2048, test);
+		if (!ext[0]){
+			if (!fgets(szLine, 2048, test))
+				szLine[0] = '\0';
+		}
 		if (strstr(szLine, "x-quicktime-tx3g")) *fmt = GF_TEXT_IMPORT_TEXML;
 	}
 	fclose(test);

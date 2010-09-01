@@ -684,7 +684,7 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 	size = ftell(tmp);
 	fseek(tmp, 0, SEEK_SET);
 	sdp = gf_malloc(sizeof(char) * (size+1));
-	fread(sdp, 1, size, tmp);
+	size = fread(sdp, 1, size, tmp);
 	sdp[size] = 0;
 	fclose(tmp);
 	return sdp;

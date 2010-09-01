@@ -424,7 +424,7 @@ start:
 	/* First, read the dump in a buffer */
 	buffer = gf_malloc(fsize * sizeof(char));
 	fseek(file, 0, SEEK_SET);
-	fread(buffer, 1, fsize, file);
+	fsize = fread(buffer, sizeof(char), fsize, file);
 	fclose(file);
     file = NULL;
 

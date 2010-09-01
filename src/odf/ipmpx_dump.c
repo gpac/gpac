@@ -126,7 +126,7 @@ static void DumpLargeInt(FILE *trace, char *attName, u64  val, u32 indent, Bool 
 {
 	if (!val) return;
 	StartAttribute(trace, attName, indent, XMTDump);
-	fprintf(trace, LLD, val);
+	fprintf(trace, LLU, val);
 	EndAttribute(trace, indent, XMTDump);
 }
 

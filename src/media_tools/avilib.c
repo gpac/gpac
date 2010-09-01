@@ -433,7 +433,7 @@ static int avi_add_odml_index_entry(avi_t *AVI, unsigned char *tag, long flags, 
     }
     towrite += len + (len&1) + 8;
 
-    //GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] ODML: towrite = 0x%llX = %lld\n", towrite, towrite));
+    //GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] ODML: towrite = 0x%llX = %"LLD"\n", towrite, towrite));
 
     if (AVI->video_superindex &&
 	    (s64)(AVI->pos+towrite) > (s64)((s64)NEW_RIFF_THRES*AVI->video_superindex->nEntriesInUse)) {
@@ -447,7 +447,7 @@ static int avi_add_odml_index_entry(avi_t *AVI, unsigned char *tag, long flags, 
 	if (AVI->video_superindex->nEntriesInUse > NR_IXNN_CHUNKS) {
 	    GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] Internal error in avilib - redefine NR_IXNN_CHUNKS\n"));
 	    GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] cur_std_idx=%d NR_IXNN_CHUNKS=%d"
-		    "POS=%lld towrite=%lld\n",
+		    "POS=%"LLD" towrite=%"LLD"\n",
 		    cur_std_idx,NR_IXNN_CHUNKS, AVI->pos, towrite));
 	    return -1;
 	}
@@ -2532,7 +2532,7 @@ multiple_riff:
 	     AVI->video_index[nvi].len = (u32) n;
 
 	     /*
-	     GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] Frame %ld pos %lld len %lld key %ld\n",
+	     GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] Frame %ld pos %"LLD" len %"LLD" key %ld\n",
 		     nvi, AVI->video_index[nvi].pos,  AVI->video_index[nvi].len, (long)AVI->video_index[nvi].key));
 		     */
 	     nvi++;
@@ -2884,7 +2884,7 @@ long AVI_read_audio(avi_t *AVI, char *audbuf, long bytes, int *continuous)
       gf_f64_seek(AVI->fdes, pos, SEEK_SET);
       if ( (ret = avi_read(AVI->fdes,audbuf+nr,todo)) != todo)
       {
-	 GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] XXX pos = %lld, ret = %lld, todo = %ld\n", pos, ret, todo));
+	 GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[avilib] XXX pos = %"LLD", ret = %"LLD", todo = %ld\n", pos, ret, todo));
          AVI_errno = AVI_ERR_READ;
          return -1;
       }
