@@ -4158,8 +4158,8 @@ restart_import:
 
 				/*if #pics, compute smallest POC increase*/
 				if (avc.s_info.poc != last_poc) {
-					//if (!poc_diff || (poc_diff > abs(avc.s_info.poc-last_poc)))
-					//	poc_diff = abs(avc.s_info.poc-last_poc);
+					if (!poc_diff || (poc_diff > abs(avc.s_info.poc-last_poc)))
+						poc_diff = abs(avc.s_info.poc-last_poc);
 					last_poc = avc.s_info.poc;
 				}
 				/*ref slice, reset poc*/
@@ -4242,8 +4242,6 @@ restart_import:
 		cur_samp++;
 	}
 
-	poc_diff = (!avc.s_info.field_pic_flag && (avc.sps->vui.pic_struct_present_flag && avc.sei.pic_timing.pic_struct)) ? 2 : 1;
-
 	/*recompute all CTS offsets*/
 	if (has_cts_offset) {
 		u32 i, last_cts_samp;
@@ -4265,10 +4263,11 @@ restart_import:
 			/*not using descIdx and data_offset will only fecth DTS, CTS and RAP which is all we need*/
 			GF_ISOSample *samp = gf_isom_get_sample_info(import->dest, track, i+1, NULL, NULL);
 			/*poc re-init (RAP and POC to 0, otherwise that's SEI recovery), update base DTS*/
-			if (samp->IsRAP /*&& !samp->CTS_Offset*/) last_dts = samp->DTS;
+			if (samp->IsRAP /*&& !samp->CTS_Offset*/)
+				last_dts = samp->DTS * (1+is_paff);
 
 			/*CTS offset is frame POC (refers to last IDR)*/
-			cts = (min_poc + (s32) samp->CTS_Offset) * dts_inc/poc_diff + (u32) (last_dts + max_total_delay*dts_inc);
+			cts = (min_poc + (s32) samp->CTS_Offset) * dts_inc/poc_diff + (u32) last_dts;
 
 			/*if PAFF, 2 pictures (eg poc) <=> 1 aggregated frame (eg sample), divide by 2*/
 			if (is_paff) {
@@ -4278,6 +4277,10 @@ restart_import:
 					cts = ((cts/dts_inc)+1)*dts_inc;
 				}
 			}
+
+			/*B-frames offset*/
+			cts += (u32) (max_total_delay*dts_inc);
+
 			samp->CTS_Offset = (u32) (cts - samp->DTS);
 
 			if (max_cts < samp->DTS + samp->CTS_Offset) {
