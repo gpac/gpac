@@ -1441,7 +1441,8 @@ void gf_smil_anim_init_node(GF_Node *node)
 	} 
 	if (!xlinkp->href->target) return;
 
-	if (!all_atts.attributeName) return;
+	// We may not have an attribute name, when using an animateMotion element
+    if (node->sgprivate->tag != TAG_SVG_animateMotion && !all_atts.attributeName) return;
 
 	if ( (all_atts.to && (all_atts.to->type==0))
 		|| (all_atts.from && (all_atts.from->type==0))
