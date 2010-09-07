@@ -611,12 +611,13 @@ enum {
 
 typedef struct {
 	u32 count;
+    u8 *units;
 	Fixed* vals;
-} Array;
+} UnitArray;
 
 typedef struct {
 	u8 type;
-	Array array;
+	UnitArray array;
 } SVG_StrokeDashArray;
 
 enum {

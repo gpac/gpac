@@ -2780,15 +2780,15 @@ static void svg_parse_strokedasharray(SVG_StrokeDashArray *value, char *value_st
 	} else if (!strcmp(value_string, "inherit")) {
 		value->type = SVG_STROKEDASHARRAY_INHERIT;
 	} else {
-		Array *vals = &(value->array);
+		UnitArray *vals = &(value->array);
 		GF_List *values = gf_list_new();
 		u32 i = 0;
 		u32 len = strlen(value_string);
 		char *str = value_string;
 		while (i < len) {
-			Fixed *f;
-			GF_SAFEALLOC(f, Fixed)
-			read_chars = svg_parse_number(&(str[i]), f, 0);
+			SVG_Length *f;
+			GF_SAFEALLOC(f, SVG_Length)
+			read_chars = svg_parse_length(f, &(str[i]), 0);
             if (!read_chars) {
                 free(f);
                 return;
@@ -2797,10 +2797,12 @@ static void svg_parse_strokedasharray(SVG_StrokeDashArray *value, char *value_st
 			gf_list_add(values, f);
 		}
 		vals->count = gf_list_count(values);
+		vals->units = (u8 *) gf_malloc(sizeof(u8)*vals->count);
 		vals->vals = (Fixed *) gf_malloc(sizeof(Fixed)*vals->count);
 		for (i = 0; i < vals->count; i++) {
-			Fixed *f = (Fixed *)gf_list_get(values, i);
-			vals->vals[i] = *f;
+			SVG_Length *f = (SVG_Length *)gf_list_get(values, i);
+			vals->vals[i] = f->value;
+            vals->units[i] = f->type;
 			gf_free(f);
 		}
 		gf_list_del(values);
@@ -4451,8 +4453,11 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 			char *attVal = gf_malloc(sizeof(char));
 			attVal[0] = 0;
 			for (i=0; i<p->array.count; i++) {
-				char szT[100];
-				sprintf(szT, "%g", FIX2FLT(p->array.vals[i]));
+				char *szT;
+                SVG_Length l;
+                l.type = p->array.units[i];
+                l.value = p->array.vals[i];
+				szT = svg_dump_number(&l);
 				attVal = gf_realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
 				if (i) strcat(attVal, " ");
 				strcat(attVal, szT);
@@ -4830,6 +4835,7 @@ char *gf_svg_dump_attribute_indexed(GF_Node *elt, GF_FieldInfo *info)
 		break;
 	case SVG_StrokeDashArray_datatype:
 	{
+        /*TODO: fix this: should be an SVG_Length*/
 		Fixed *p = (Fixed *)info->far_ptr;
 		sprintf(tmp, "%g", FIX2FLT(*p));
 		return gf_strdup(tmp);
@@ -5120,6 +5126,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 			u32 i = 0;
 			if (p1->array.count != p2->array.count) return 0;
 			for (i=0; i<p1->array.count; i++) {
+				if (p1->array.units[i] != p2->array.units[i]) return 0;
 				if (p1->array.vals[i] != p2->array.vals[i]) return 0;
 			}
 		}
@@ -5590,6 +5597,8 @@ static GF_Err svg_dasharray_muladd(Fixed alpha, SVG_StrokeDashArray *a, Fixed be
 	c->array.count = a->array.count;
 	c->array.vals = (Fixed *) gf_malloc(sizeof(Fixed)*c->array.count);
 	for (i = 0; i < c->array.count; i++) {
+		/* TODO: convert units if needed */
+        c->array.units[i] = a->array.units[i];
 		c->array.vals[i] = gf_mulfix(alpha, a->array.vals[i]) + gf_mulfix(beta, b->array.vals[i]);
 	}
 	return GF_OK;
@@ -5599,6 +5608,8 @@ static GF_Err svg_dasharray_copy(SVG_StrokeDashArray *a, SVG_StrokeDashArray *b)
 {
 	a->type = b->type;
 	a->array.count = b->array.count;
+	a->array.units = (u8*)gf_malloc(sizeof(u8)*a->array.count);
+	memcpy(a->array.units, b->array.units, sizeof(u8)*a->array.count);
 	a->array.vals = (Fixed*)gf_malloc(sizeof(Fixed)*a->array.count);
 	memcpy(a->array.vals, b->array.vals, sizeof(Fixed)*a->array.count);
 	return GF_OK;
