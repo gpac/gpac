@@ -1139,8 +1139,12 @@ static Bool is_focus_target(GF_Node *elt)
 #define CALL_SET_FOCUS(__child)	{	\
 	gf_list_add(compositor->focus_ancestors, elt);	\
 	n = set_focus(compositor, __child, current_focus, prev_focus);	\
-	if (n) return n;	\
+	if (n) {	\
+		gf_node_set_cyclic_traverse_flag(elt, 0);	\
+		return n;	\
+	}	\
 	gf_list_rem_last(compositor->focus_ancestors);	\
+	gf_node_set_cyclic_traverse_flag(elt, 0);\
 	return NULL;	\
 	}	\
 
@@ -1165,6 +1169,10 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 	GF_Node *n;
 
 	if (!elt) return NULL;
+	
+	/*all return in this function shall be preceeded with gf_node_set_cyclic_traverse_flag(elt, 0)
+	this ensures that we don't go into cyclic references when moving focus, hence stack overflow*/
+	if (! gf_node_set_cyclic_traverse_flag(elt, 1)) return NULL;	
 
 	tag = gf_node_get_tag(elt);
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) {
@@ -1196,8 +1204,10 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			if (!current_focus) {
 				/*get the base grouping stack (*/
 				BaseGroupingStack *grp = (BaseGroupingStack*)gf_node_get_private(elt);
-				if (grp && (grp->flags & (GROUP_HAS_SENSORS | GROUP_IS_ANCHOR) )) 
+				if (grp && (grp->flags & (GROUP_HAS_SENSORS | GROUP_IS_ANCHOR) )) {
+					gf_node_set_cyclic_traverse_flag(elt, 0);
 					return elt;
+				}
 			}
 			break;
 		case TAG_MPEG4_Switch: 
@@ -1217,12 +1227,16 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 				child = ((M_Switch*)elt)->choice;
 				wc = ((M_Switch*)elt)->whichChoice;
 			}
-			if (wc==-1) return NULL;
+			if (wc==-1) {
+				gf_node_set_cyclic_traverse_flag(elt, 0);
+				return NULL;
+			}
 			i=0;
 			while (child) {
 				if (i==wc) CALL_SET_FOCUS(child->node);
 				child = child->next;
 			}
+			gf_node_set_cyclic_traverse_flag(elt, 0);
 			return NULL;
 		}
 
@@ -1230,8 +1244,11 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 #ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_Text:
 #endif
+			gf_node_set_cyclic_traverse_flag(elt, 0);
+
 			if (!current_focus) {
 				M_FontStyle *fs = (M_FontStyle *) ((M_Text *)elt)->fontStyle;
+	
 				if (!fs || !fs->style.buffer) return NULL;
 				if (!strstr(fs->style.buffer, "editable") && !strstr(fs->style.buffer, "EDITABLE")) return NULL;
 				compositor->focus_text_type = 3;
@@ -1239,8 +1256,10 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			}
 			return NULL;
 		case TAG_MPEG4_Layout:
-			if (!current_focus && (compositor_mpeg4_layout_get_sensor_handler(elt)!=NULL)) 
+			if (!current_focus && (compositor_mpeg4_layout_get_sensor_handler(elt)!=NULL)) {
+				gf_node_set_cyclic_traverse_flag(elt, 0);
 				return elt;
+			}
 			break;
 
 		case TAG_ProtoNode:
@@ -1251,10 +1270,13 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 					/*get the base grouping stack (*/
 					BaseGroupingStack *grp = (BaseGroupingStack*)gf_node_get_private(elt);
 					if (grp && (grp->flags & (GROUP_HAS_SENSORS | GROUP_IS_ANCHOR) )) 
+						gf_node_set_cyclic_traverse_flag(elt, 0);
 						return elt;
 				}
-				if (gf_node_get_field_by_name(elt, "children", &info) != GF_OK) return NULL;
-				if (info.fieldType != GF_SG_VRML_MFNODE) return NULL;
+				if ( (gf_node_get_field_by_name(elt, "children", &info) != GF_OK) || (info.fieldType != GF_SG_VRML_MFNODE)) {
+					gf_node_set_cyclic_traverse_flag(elt, 0);
+					return NULL;
+				}
 				child = *(GF_ChildNodeItem **) info.far_ptr;
 			} else {
 				CALL_SET_FOCUS(gf_node_get_proto_root(elt));
@@ -1271,12 +1293,16 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 #ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_Shape:
 #endif
+
 			gf_list_add(compositor->focus_ancestors, elt);
 			n = set_focus(compositor, ((M_Shape*)elt)->geometry, current_focus, prev_focus);
-			if (n) return n;
-			n = set_focus(compositor, ((M_Shape*)elt)->appearance, current_focus, prev_focus);
-			if (n) return n;
+			if (!n) n = set_focus(compositor, ((M_Shape*)elt)->appearance, current_focus, prev_focus);
+			if (n) {
+				gf_node_set_cyclic_traverse_flag(elt, 0);
+				return n;
+			}
 			gf_list_rem_last(compositor->focus_ancestors);
+			gf_node_set_cyclic_traverse_flag(elt, 0);
 			return NULL;
 
 		case TAG_MPEG4_Appearance: 
@@ -1290,8 +1316,10 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			/*CompositeTextures are not grouping nodes per say*/
 			child = ((GF_ParentNode*)elt)->children;
 			while (child) {
-				if (compositor_mpeg4_get_sensor_handler(child->node) != NULL)
+				if (compositor_mpeg4_get_sensor_handler(child->node) != NULL) {
+					gf_node_set_cyclic_traverse_flag(elt, 0);
 					return elt;
+				}
 				child = child->next;
 			}
 			break;
@@ -1299,6 +1327,7 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 #endif /*GPAC_DISABLE_VRML*/
 
 		default:
+			gf_node_set_cyclic_traverse_flag(elt, 0);
 			return NULL;
 		}
 		if (!child)
@@ -1307,28 +1336,40 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 #ifndef GPAC_DISABLE_SVG
 		SVGAllAttributes atts;
 
-		if (tag==TAG_SVG_defs) return NULL;
-
+		if (tag==TAG_SVG_defs) {
+			gf_node_set_cyclic_traverse_flag(elt, 0);
+			return NULL;
+		}
 		gf_svg_flatten_attributes((SVG_Element *)elt, &atts);
 
-		if (atts.display && (*atts.display==SVG_DISPLAY_NONE)) return NULL;
-
+		if (atts.display && (*atts.display==SVG_DISPLAY_NONE)) {
+			gf_node_set_cyclic_traverse_flag(elt, 0);
+			return NULL;
+		}
 		if (!current_focus) {
 			Bool is_auto = 1;
 			if (atts.focusable) {
-				if (*atts.focusable==SVG_FOCUSABLE_TRUE) return elt;
+				if (*atts.focusable==SVG_FOCUSABLE_TRUE) {
+					gf_node_set_cyclic_traverse_flag(elt, 0);
+					return elt;
+				}
 				if (*atts.focusable==SVG_FOCUSABLE_FALSE) is_auto = 0;
 			}
-			if (is_auto && is_focus_target(elt)) return elt;
+			if (is_auto && is_focus_target(elt)) {
+				gf_node_set_cyclic_traverse_flag(elt, 0);
+				return elt;
+			}
 
 			if (atts.editable && *atts.editable) {
 				switch (tag) {
 				case TAG_SVG_text:
 				case TAG_SVG_textArea:
 					compositor->focus_text_type = 1;
+					gf_node_set_cyclic_traverse_flag(elt, 0);
 					return elt;
 				case TAG_SVG_tspan:
 					compositor->focus_text_type = 2;
+					gf_node_set_cyclic_traverse_flag(elt, 0);
 					return elt;
 				default:
 					break;
@@ -1341,14 +1382,19 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 				switch (atts.nav_prev->type) {
 				case SVG_FOCUS_SELF:
 					/*focus locked on element*/
+					gf_node_set_cyclic_traverse_flag(elt, 0);
 					return elt;
 				case SVG_FOCUS_IRI:
 					if (!atts.nav_prev->target.target) {
-						if (!atts.nav_prev->target.string) return NULL;
+						if (!atts.nav_prev->target.string) {
+							gf_node_set_cyclic_traverse_flag(elt, 0);
+							return NULL;
+						}
 						atts.nav_prev->target.target = gf_sg_find_node_by_name(compositor->scene, atts.nav_prev->target.string+1);
 					}
 					if (atts.nav_prev->target.target) {
 						rebuild_focus_ancestor(compositor, atts.nav_prev->target.target);
+						gf_node_set_cyclic_traverse_flag(elt, 0);
 						return atts.nav_prev->target.target;
 					}
 				default:
@@ -1361,14 +1407,19 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 				switch (atts.nav_next->type) {
 				case SVG_FOCUS_SELF:
 					/*focus locked on element*/
+					gf_node_set_cyclic_traverse_flag(elt, 0);
 					return elt;
 				case SVG_FOCUS_IRI:
 					if (!atts.nav_next->target.target) {
-						if (!atts.nav_next->target.string) return NULL;
+						if (!atts.nav_next->target.string) {
+							gf_node_set_cyclic_traverse_flag(elt, 0);
+							return NULL;
+						}
 						atts.nav_next->target.target = gf_sg_find_node_by_name(compositor->scene, atts.nav_next->target.string+1);
 					}
 					if (atts.nav_next->target.target) {
 						rebuild_focus_ancestor(compositor, atts.nav_next->target.target);
+						gf_node_set_cyclic_traverse_flag(elt, 0);
 						return atts.nav_next->target.target;
 					}
 				default:
@@ -1393,14 +1444,20 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 	if (prev_focus) {
 		u32 count, i;
 		/*check all children except if current focus*/
-		if (current_focus) return NULL;
+		if (current_focus) {
+			gf_node_set_cyclic_traverse_flag(elt, 0);
+			return NULL;
+		}
 		gf_list_add(compositor->focus_ancestors, elt);
 		count = gf_node_list_get_count(child);
 		for (i=count; i>0; i--) {
 			/*get in the subtree*/
 			n = gf_node_list_get_child( ((GF_ParentNode *)elt)->children, i-1);
 			n = set_focus(compositor, n, 0, 1);
-			if (n) return n;
+			if (n) {
+				gf_node_set_cyclic_traverse_flag(elt, 0);
+				return n;
+			}
 		}
 	} else {
 		/*check all children */
@@ -1408,7 +1465,10 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		while (child) {
 			/*get in the subtree*/
 			n = set_focus(compositor, child->node, 0, 0);
-			if (n) return n;
+			if (n) {
+				gf_node_set_cyclic_traverse_flag(elt, 0);
+				return n;
+			}
 			child = child->next;
 		}
 	}
@@ -1418,17 +1478,21 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		n = set_focus(compositor, use_node, 0, 0);
 		if (n) {
 			compositor->focus_used = elt;
+			gf_node_set_cyclic_traverse_flag(elt, 0);
 			return n;
 		}
 		gf_list_rem_last(compositor->focus_use_stack);
 		gf_list_rem_last(compositor->focus_use_stack);
 	} else if (anim_node) {
 		n = set_focus(compositor, anim_node, 0, 0);
-		if (n) return n;
+		if (n) {
+			gf_node_set_cyclic_traverse_flag(elt, 0);
+			return n;
+		}
 	}
 
 	gf_list_rem_last(compositor->focus_ancestors);
-
+	gf_node_set_cyclic_traverse_flag(elt, 0);
 	return NULL;
 }
 
