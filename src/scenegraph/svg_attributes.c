@@ -1996,6 +1996,7 @@ static u32 svg_parse_length(SVG_Number *number, char *value_string, Bool clamp0t
     char *unit = NULL;
 	u32 len = 0;
     u32 unit_pos;
+    u32 unit_len = 0;
     u32 read_chars;
 
 	if (!strcmp(value_string, "inherit")) {
@@ -2009,6 +2010,7 @@ static u32 svg_parse_length(SVG_Number *number, char *value_string, Bool clamp0t
 		return 12;
 	} else if ((unit = strstr(value_string, "%")) ) {
 		number->type = SVG_NUMBER_PERCENTAGE;
+        unit_len = 1;
 	} else if ((unit = strstr(value_string, "em"))) {
 		number->type = SVG_NUMBER_EMS;
 	} else if ((unit = strstr(value_string, "ex"))) {
@@ -2029,7 +2031,7 @@ static u32 svg_parse_length(SVG_Number *number, char *value_string, Bool clamp0t
 		number->type = SVG_NUMBER_VALUE;
 	}
     if (unit) {
-        len = strlen(unit);
+        if (!unit_len) unit_len = 2;
         unit_pos = unit - value_string;
         /* setting the first unit character to 0 for the svg_parse_number method to finish */
         c = value_string[unit_pos];
@@ -2043,7 +2045,7 @@ static u32 svg_parse_length(SVG_Number *number, char *value_string, Bool clamp0t
         GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error in parsing: %s\n", value_string));
         len = 0;
     } else {
-        len += read_chars;
+        len = unit_len + read_chars;
     }
 
 	if (clamp0to1) number->value = MAX(0, MIN(1, number->value));
