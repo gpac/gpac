@@ -749,50 +749,74 @@ static void svg_parse_color(SVG_Color *col, char *attribute_content)
 }
 
 /*
-	Reads a float in scientific notation
-		trims any space, comma, semi-column before or after
+	Reads a number (i.e. without unit) according to the CSS syntax (same as SVG paths and transforms)
+		trims any space, comma, semi-column before or after (TODO: fix this)
 		reads an optional + or -
 		then reads a digit between 0 and 9
 		optionally followed by an '.' and digits between 0 and 9
 		optionally followed by e or E and digits between 0 and 9
-	Returns the number of char read in d
+	Returns the number of chars read in d
 */
-static u32 svg_parse_float(char *d, Fixed *f, Bool is_angle)
+static u32 svg_parse_number(char *d, Fixed *f, Bool is_angle)
 {
+    u32 nb_digit_before = 0;
+	u32 nb_digit_after = 0;
+    Bool has_fractional = 0;
 	Bool is_negative = 0;
 	Float _val = 0;
 	u32 i = 0;
+
+    /* warning the comma and semicolumn should not be there when parsing a number in a path */
 	while ((d[i] != 0) && strchr(" ,;\r\n\t", d[i])) i++;
-	if (!d[i]) goto end;
-	if (d[i] == '+') i++;
-	if (d[i] == '-') {
+    
+    if (!d[i]) {
+        GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] Parsing number with empty string or only spaces: %s\n", d));            
+        return 0;
+    }
+    if (d[i] == '+') {
+        i++;
+    } else if (d[i] == '-') {
 		is_negative = 1;
 		i++;
 	}
-	if ((d[i]=='N') && (d[i+1]=='a') && (d[i+2]=='N')) {
+    /* Warning: this is not normal, should be detected somehow by checking the BNF */
+	/* if ((d[i]=='N') && (d[i+1]=='a') && (d[i+2]=='N')) {
 		i+= 3;
 		_val = 0;
 		goto end;
-	}
+	}*/
+    /* read the digit-sequence token of the BNF */
 	while (d[i] >= '0' && d[i] <= '9' && d[i] != 0) {
 		_val = _val*10 + (d[i]-'0');
+        nb_digit_before++;
 		i++;
 	}
-	if (!d[i]) goto end;
 	if (d[i] == '.') {
-		u32 nb_digit_after = 0;
+        has_fractional = 1;
 		i++;
 		while (d[i] >= '0' && d[i] <= '9' && d[i] != 0) {
 			_val = _val*10 + (d[i]-'0');
 			nb_digit_after++;
 			i++;
 		}
-		_val /= (Float)pow(10,nb_digit_after);
-		if (!d[i]) goto end;
+        if (nb_digit_after) {
+            _val /= (Float)pow(10,nb_digit_after);
+        } else if (nb_digit_before == 0) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error in parsing number (expecting digits before or after a '.': %s\n", d));
+            return 0;
+        } else {
+            /* dangling '.' without digits after. This is allowed by the BNF */
+        }
 	}
+    if ((nb_digit_before == 0) && (has_fractional == 0)) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error in parsing number (expecting digits):%s\n", d));
+        return 0;
+    }
+    /* reading the exponent */
 	if (d[i] == 'e' || d[i] == 'E') {
 		Bool neg_exp = 0;
-		s32 exp = 0;
+		u32 nb_exp_digits = 0;
+        s32 exp = 0;
 		i++;
 		if (d[i] == '+') i++;
 		else if (d[i] == '-') {
@@ -801,19 +825,26 @@ static u32 svg_parse_float(char *d, Fixed *f, Bool is_angle)
 		}
 		while (d[i] >= '0' && d[i] <= '9' && d[i] != 0) {
 			exp = exp*10 + (d[i]-'0');
+            nb_exp_digits++;
 			i++;
 		}
-		_val *= (Float)pow(10, neg_exp ? -exp : exp);
+        if (nb_exp_digits) {
+            _val *= (Float)pow(10, neg_exp ? -exp : exp);
+        } else {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error in parsing exponent, 'e' or 'E' should be followed by digits: %s\n", d));
+            return 0;
+        }
 	}
-end:
+    /* We can now produce the final number */
 	if (is_negative) _val *= -1;
-	//_val = atof(d);
 	if (is_angle) {
 		_val/=180;
 		(*f) = gf_mulfix(FLT2FIX(_val), GF_PI);
 	} else {
 		(*f) = FLT2FIX(_val);
 	}
+
+    /* warning the comma and semicolumn should not be there when parsing a path number */
 	while (d[i] != 0 && (d[i] == ' ' || d[i] == ',' || d[i] == ';')) i++;
 	return i;
 }
@@ -1022,11 +1053,12 @@ static GF_Err smil_parse_time(GF_Node *elt, SMIL_Time *v, char *d)
 }
 
 /* Parses a list of SVG transformations and collapses them in the given matrix */
-void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
+Bool gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 {
 	GF_Matrix2D tmp;
 
 	char *str;
+    u32 read_chars;
 	u32 i;
 
 	gf_mx2d_init(*mat);
@@ -1043,11 +1075,22 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 			if (str[i] == '(') {
 				Fixed sx, sy;
 				i++;
-				i+=svg_parse_float(&(str[i]), &sx, 0);
+				read_chars = svg_parse_number(&(str[i]), &sx, 0);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading sx component in scale: %s\n", attribute_content));
+                    return 0;
+                }
+                i += read_chars;
+
 				if (str[i] == ')') {
 					sy = sx;
 				} else {
-					i+=svg_parse_float(&(str[i]), &sy, 0);
+					read_chars = svg_parse_number(&(str[i]), &sy, 0);
+                    if (!read_chars) {
+                        GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading sy component in scale: %s\n", attribute_content));
+                        return 0;
+                    }
+                    i += read_chars;
 				}							
 				gf_mx2d_init(tmp);
 				gf_mx2d_add_scale(&tmp, sx, sy);
@@ -1057,10 +1100,12 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 				while(str[i] == ' ') i++;
 				if (str[i] == ')') i++;
 				else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing closing parenthesis in transform attribute: %s\n", attribute_content));
+                    return 0;
 				}
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing opening parenthesis in transform attribute: %s\n", attribute_content));
+                return 0;
 			}
 		} else if (strstr(str+i, "translate")==str+i) {
 			i += 9;
@@ -1068,11 +1113,21 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 			if (str[i] == '(') {
 				Fixed tx, ty;
 				i++;
-				i+=svg_parse_float(&(str[i]), &tx, 0);
+				read_chars = svg_parse_number(&(str[i]), &tx, 0);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading tx component in translate: %s\n", attribute_content));
+                    return 0;
+                }
+                i += read_chars;
 				if (str[i] == ')') {
 					ty = 0;
 				} else {
-					i+=svg_parse_float(&(str[i]), &ty, 0);
+					read_chars = svg_parse_number(&(str[i]), &ty, 0);
+                    if (!read_chars) {
+                        GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading ty component in translate: %s\n", attribute_content));
+                        return 0;
+                    }
+                    i += read_chars;
 				}
 				gf_mx2d_init(tmp);
 				gf_mx2d_add_translation(&tmp, tx, ty);
@@ -1081,10 +1136,12 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 				while(str[i] == ' ') i++;
 				if (str[i] == ')') i++;
 				else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing closing parenthesis in transform attribute: %s\n", attribute_content));
+                    return 0;
 				}
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing opening parenthesis in transform attribute: %s\n", attribute_content));
+                return 0;
 			}
 		} else if (strstr(str+i, "rotate")==str+i) {
 			i += 6;
@@ -1092,12 +1149,27 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 			if (str[i] == '(') {
 				Fixed angle, cx, cy;
 				i++;
-				i+=svg_parse_float(&(str[i]), &angle, 1);
+				read_chars = svg_parse_number(&(str[i]), &angle, 1);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading angle component in rotate: %s\n", attribute_content));
+                    return 0;
+                }
+                i += read_chars;
 				if (str[i] == ')') {
 					cx = cy = 0;
 				} else {
-					i+=svg_parse_float(&(str[i]), &cx, 0);
-					i+=svg_parse_float(&(str[i]), &cy, 0);
+					read_chars = svg_parse_number(&(str[i]), &cx, 0);
+                    if (!read_chars) {
+                        GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading cx component in rotate: %s\n", attribute_content));
+                        return 0;
+                    }
+                    i += read_chars;
+					read_chars = svg_parse_number(&(str[i]), &cy, 0);
+                    if (!read_chars) {
+                        GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading cy component in rotate: %s\n", attribute_content));
+                        return 0;
+                    }
+                    i += read_chars;
 				}
 				gf_mx2d_init(tmp);
 				gf_mx2d_add_rotation(&tmp, cx, cy, angle);
@@ -1106,10 +1178,12 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 				while(str[i] == ' ') i++;
 				if (str[i] == ')') i++;
 				else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing closing parenthesis in transform attribute: %s\n", attribute_content));
+                    return 0;
 				}
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing opening parenthesis in transform attribute: %s\n", attribute_content));
+                return 0;
 			}
 		} else if (strstr(str+i, "skewX")==str+i) {
 			i += 5;
@@ -1117,7 +1191,12 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 			if (str[i] == '(') {
 				Fixed angle;
 				i++;
-				i+=svg_parse_float(&(str[i]), &angle, 1);
+				read_chars = svg_parse_number(&(str[i]), &angle, 1);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading angle in skewX: %s\n", attribute_content));
+                    return 0;
+                }
+                i += read_chars;
 				gf_mx2d_init(tmp);
 				gf_mx2d_add_skew_x(&tmp, angle);
 				gf_mx2d_add_matrix(&tmp, mat);
@@ -1125,10 +1204,12 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 				while(str[i] == ' ') i++;
 				if (str[i] == ')') i++;
 				else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing closing parenthesis in transform attribute: %s\n", attribute_content));
+                    return 0;
 				}
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing opening parenthesis in transform attribute: %s\n", attribute_content));
+                return 0;
 			}
 		} else if (strstr(str+i, "skewY")==str+i) {
 			i += 5;
@@ -1136,7 +1217,12 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 			if (str[i] == '(') {
 				Fixed angle;
 				i++;
-				i+=svg_parse_float(&(str[i]), &angle, 1);
+				read_chars = svg_parse_number(&(str[i]), &angle, 1);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading angle component in skewY: %s\n", attribute_content));
+                    return 0;
+                }
+                i += read_chars;
 				gf_mx2d_init(tmp);
 				gf_mx2d_add_skew_y(&tmp, angle);
 				gf_mx2d_add_matrix(&tmp, mat);
@@ -1144,36 +1230,71 @@ void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
 				while(str[i] == ' ') i++;
 				if (str[i] == ')') i++;
 				else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing closing parenthesis in transform attribute: %s\n", attribute_content));
+                    return 0;
 				}
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing opening parenthesis in transform attribute: %s\n", attribute_content));
+                return 0;
 			}
 		} else if (strstr(str+i, "matrix")==str+i) {
 			i+=6;
 			while(str[i] == ' ') i++;
 			if (str[i] == '(') {
 				i++;
-				i+=svg_parse_float(&(str[i]), &(tmp.m[0]), 0);
-				i+=svg_parse_float(&(str[i]), &(tmp.m[3]), 0);
-				i+=svg_parse_float(&(str[i]), &(tmp.m[1]), 0);
-				i+=svg_parse_float(&(str[i]), &(tmp.m[4]), 0);
-				i+=svg_parse_float(&(str[i]), &(tmp.m[2]), 0);
-				i+=svg_parse_float(&(str[i]), &(tmp.m[5]), 0);
+				read_chars = svg_parse_number(&(str[i]), &(tmp.m[0]), 0);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading coefficient a in matrix: %s\n", attribute_content));
+                    return 0;
+                }
+                i += read_chars;
+				read_chars = svg_parse_number(&(str[i]), &(tmp.m[3]), 0);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading coefficient b in matrix: %s\n", attribute_content));
+                    return 0;
+                }
+                i += read_chars;
+				read_chars = svg_parse_number(&(str[i]), &(tmp.m[1]), 0);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading coefficient c in matrix: %s\n", attribute_content));
+                    return 0;
+                }
+                i += read_chars;
+				read_chars = svg_parse_number(&(str[i]), &(tmp.m[4]), 0);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading coefficient d in matrix: %s\n", attribute_content));
+                    return 0;
+                }
+                i += read_chars;
+				read_chars = svg_parse_number(&(str[i]), &(tmp.m[2]), 0);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading coefficient e in matrix: %s\n", attribute_content));
+                    return 0;
+                }
+                i += read_chars;
+				read_chars = svg_parse_number(&(str[i]), &(tmp.m[5]), 0);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading coefficient f in matrix: %s\n", attribute_content));
+                    return 0;
+                }
+                i += read_chars;
 				gf_mx2d_add_matrix(&tmp, mat);
 				gf_mx2d_copy(*mat, tmp);
 				while(str[i] == ' ') i++;
 				if (str[i] == ')') i++;
 				else {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing closing parenthesis in transform attribute: %s\n", attribute_content));
+                    return 0;
 				}
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in transform attribute"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing opening parenthesis in transform attribute: %s\n", attribute_content));
+                return 0;
 			}
 		}
 		/*for svgView parsing*/
 		if (str[i] == ')') i++;
 	}
+    return 1;
 }
 
 /* Parses an SVG transform attribute and collapses all in the given matrix */
@@ -1181,6 +1302,7 @@ static Bool svg_parse_transform(SVG_Transform *t, char *attribute_content)
 {
 	char *str;
 	u32 i;
+    u32 read_chars;
 	str = attribute_content;
 	i = 0;
 
@@ -1195,28 +1317,43 @@ static Bool svg_parse_transform(SVG_Transform *t, char *attribute_content)
 			if (str[i] == 's' && str[i+1] == 'v' && str[i+2] == 'g') {
 				i+=3;
 				while (str[i] == ' ') i++;
-				if (str[i] == ',') i++;
-				else if (str[i] == ')') {
+                if (str[i] == ',') {
+                    i++;
+                } else if (str[i] == ')') {
 					i++;
 					return GF_OK;
 				}
-				i+=svg_parse_float(&(str[i]), &(t->mat.m[2]), 0);
-				i+=svg_parse_float(&(str[i]), &(t->mat.m[5]), 0);
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Unsupported syntax for ref transform attribute"));
-			}
+				read_chars = svg_parse_number(&(str[i]), &(t->mat.m[2]), 0);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading coefficient tx in ref transform: %s\n", attribute_content));
+                    return GF_BAD_PARAM;
+                }
+                i += read_chars;
+				read_chars = svg_parse_number(&(str[i]), &(t->mat.m[5]), 0);
+                if (!read_chars) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading coefficient ty in ref transform: %s\n", attribute_content));
+                    return GF_BAD_PARAM;
+                }
+                i += read_chars;			
+            } else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Unsupported syntax for ref transform attribute"));
+            }
 			while (str[i] == ' ') i++;
 			if (str[i] == ')') i++;
 			else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing closing parenthesis in transform attribute"));
+                GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing closing parenthesis in transform attribute: %s\n", attribute_content));
 			}
 			return GF_OK;
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Missing opening parenthesis in ref transform attribute"));
+            GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Missing opening parenthesis in ref transform attribute: %s\n", attribute_content));
 			return GF_BAD_PARAM;
 		}
 	} else {
-		gf_svg_parse_transformlist(&t->mat, attribute_content);
+		read_chars = gf_svg_parse_transformlist(&t->mat, attribute_content);
+        if (!read_chars) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error parsing transform list: %s\n", attribute_content));
+            return GF_BAD_PARAM;
+        }
 	}
 	return GF_OK;
 }
@@ -1230,6 +1367,11 @@ static Bool svg_parse_transform(SVG_Transform *t, char *attribute_content)
 static void svg_parse_path(SVG_PathData *path, char *attribute_content)
 {
 	char *d = attribute_content;
+
+    /* used to detect end of BNF production:
+    "The processing of the BNF must consume as much of a given BNF production as possible, 
+    stopping at the point when a character is encountered which no longer satisfies the production." */
+    u32 read_chars = 0;
 
 	/* Point used to start a new subpath when the previous subpath is closed */
 	SVG_Point prev_m_pt;
@@ -1257,8 +1399,12 @@ next_command:
 		case 'm':
 		case 'M':
 			i++;
-			i += svg_parse_float(&(d[i]), &(orig.x), 0);
-			i += svg_parse_float(&(d[i]), &(orig.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(orig.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(orig.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 'm') {
 				orig.x += rel_ref_pt.x;
 				orig.y += rel_ref_pt.y;
@@ -1278,8 +1424,12 @@ next_command:
 		case 'L':
 		case 'l':
 			i++;
-			i += svg_parse_float(&(d[i]), &(orig.x), 0);
-			i += svg_parse_float(&(d[i]), &(orig.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(orig.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(orig.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 'l') {
 				orig.x += rel_ref_pt.x;
 				orig.y += rel_ref_pt.y;
@@ -1296,7 +1446,9 @@ next_command:
 		case 'H':
 		case 'h':
 			i++;
-			i += svg_parse_float(&(d[i]), &(orig.x), 0);
+			read_chars = svg_parse_number(&(d[i]), &(orig.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 'h') {
 				orig.x += rel_ref_pt.x;
 			}
@@ -1313,7 +1465,9 @@ next_command:
 		case 'V':
 		case 'v':
 			i++;
-			i += svg_parse_float(&(d[i]), &(orig.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(orig.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 'v') {
 				orig.y += rel_ref_pt.y;
 			}
@@ -1330,20 +1484,32 @@ next_command:
 		case 'C':
 		case 'c':
 			i++;
-			i += svg_parse_float(&(d[i]), &(ct_orig.x), 0);
-			i += svg_parse_float(&(d[i]), &(ct_orig.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(ct_orig.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(ct_orig.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 'c') {
 				ct_orig.x += rel_ref_pt.x;
 				ct_orig.y += rel_ref_pt.y;
 			}
-			i += svg_parse_float(&(d[i]), &(ct_end.x), 0);
-			i += svg_parse_float(&(d[i]), &(ct_end.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(ct_end.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(ct_end.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 'c') {
 				ct_end.x += rel_ref_pt.x;
 				ct_end.y += rel_ref_pt.y;
 			}
-			i += svg_parse_float(&(d[i]), &(end.x), 0);
-			i += svg_parse_float(&(d[i]), &(end.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(end.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(end.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 'c') {
 				end.x += rel_ref_pt.x;
 				end.y += rel_ref_pt.y;
@@ -1361,14 +1527,22 @@ next_command:
 			i++;
 			ct_orig.x = 2*orig.x - ct_orig.x;
 			ct_orig.y = 2*orig.y - ct_orig.y;
-			i += svg_parse_float(&(d[i]), &(ct_end.x), 0);
-			i += svg_parse_float(&(d[i]), &(ct_end.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(ct_end.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(ct_end.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 's') {
 				ct_end.x += rel_ref_pt.x;
 				ct_end.y += rel_ref_pt.y;
 			}
-			i += svg_parse_float(&(d[i]), &(end.x), 0);
-			i += svg_parse_float(&(d[i]), &(end.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(end.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(end.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 's') {
 				end.x += rel_ref_pt.x;
 				end.y += rel_ref_pt.y;
@@ -1384,14 +1558,22 @@ next_command:
 		case 'Q':
 		case 'q':
 			i++;
-			i += svg_parse_float(&(d[i]), &(ct_orig.x), 0);
-			i += svg_parse_float(&(d[i]), &(ct_orig.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(ct_orig.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(ct_orig.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 'q') {
 				ct_orig.x += rel_ref_pt.x;
 				ct_orig.y += rel_ref_pt.y;
 			}
-			i += svg_parse_float(&(d[i]), &(end.x), 0);
-			i += svg_parse_float(&(d[i]), &(end.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(end.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(end.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 'q') {
 				end.x += rel_ref_pt.x;
 				end.y += rel_ref_pt.y;
@@ -1408,8 +1590,12 @@ next_command:
 			i++;
 			ct_orig.x = 2*orig.x - ct_orig.x;
 			ct_orig.y = 2*orig.y - ct_orig.y;
-			i += svg_parse_float(&(d[i]), &(end.x), 0);
-			i += svg_parse_float(&(d[i]), &(end.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(end.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(end.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 't') {
 				end.x += rel_ref_pt.x;
 				end.y += rel_ref_pt.y;
@@ -1425,20 +1611,36 @@ next_command:
 		case 'a':
 			i++;
 
-			i += svg_parse_float(&(d[i]), &(orig.x), 0);
-			i += svg_parse_float(&(d[i]), &(orig.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(orig.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(orig.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 
-			i += svg_parse_float(&(d[i]), &(x_axis_rotation), 0);
-			i += svg_parse_float(&(d[i]), &(large_arc_flag), 0);
-			i += svg_parse_float(&(d[i]), &(sweep_flag), 0);
+			read_chars = svg_parse_number(&(d[i]), &(x_axis_rotation), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(large_arc_flag), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(sweep_flag), 0);
+            if (!read_chars) return;
+            i += read_chars;
 
-			i += svg_parse_float(&(d[i]), &(end.x), 0);
-			i += svg_parse_float(&(d[i]), &(end.y), 0);
+			read_chars = svg_parse_number(&(d[i]), &(end.x), 0);
+            if (!read_chars) return;
+            i += read_chars;
+			read_chars = svg_parse_number(&(d[i]), &(end.y), 0);
+            if (!read_chars) return;
+            i += read_chars;
 			if (c == 'a') {
 				end.x += rel_ref_pt.x;
 				end.y += rel_ref_pt.y;
 			}
+#ifndef PARSE_PATH_ONLY
 			gf_path_add_svg_arc_to(path, end.x, end.y, orig.x, orig.y, x_axis_rotation , (large_arc_flag == FIX_ONE ? 1 : 0), (sweep_flag == FIX_ONE ? 1 : 0));
+#endif
 			rel_ref_pt = end;
 			ct_orig = end;
 			prev_c = c;
@@ -1504,8 +1706,8 @@ next_command:
 				GF_SAFEALLOC(pt, SVG_Point)
 				gf_list_add(d_points, pt);
 #endif
-				i += svg_parse_float(&(d[i]), &(pt->x), 0);
-				i += svg_parse_float(&(d[i]), &(pt->y), 0);
+				i += svg_parse_number(&(d[i]), &(pt->x), 0);
+				i += svg_parse_number(&(d[i]), &(pt->y), 0);
 				if (c == 'm') {
 					pt->x += cur_pt.x;
 					pt->y += cur_pt.y;
@@ -1526,8 +1728,8 @@ next_command:
 				GF_SAFEALLOC(pt, SVG_Point)
 				gf_list_add(d_points, pt);
 #endif
-				i += svg_parse_float(&(d[i]), &(pt->x), 0);
-				i += svg_parse_float(&(d[i]), &(pt->y), 0);
+				i += svg_parse_number(&(d[i]), &(pt->x), 0);
+				i += svg_parse_number(&(d[i]), &(pt->y), 0);
 				if (c == 'l') {
 					pt->x += cur_pt.x;
 					pt->y += cur_pt.y;
@@ -1547,7 +1749,7 @@ next_command:
 				GF_SAFEALLOC(pt, SVG_Point)
 				gf_list_add(d_points, pt);
 #endif
-				i += svg_parse_float(&(d[i]), &(pt->x), 0);
+				i += svg_parse_number(&(d[i]), &(pt->x), 0);
 				if (c == 'h') {
 					pt->x += cur_pt.x;
 				}
@@ -1566,7 +1768,7 @@ next_command:
 				GF_SAFEALLOC(pt, SVG_Point)
 				gf_list_add(d_points, pt);
 #endif
-				i += svg_parse_float(&(d[i]), &(pt->y), 0);
+				i += svg_parse_number(&(d[i]), &(pt->y), 0);
 				if (c == 'v') {
 					pt->y += cur_pt.y;
 				}
@@ -1588,8 +1790,8 @@ next_command:
 					GF_SAFEALLOC(pt, SVG_Point)
 					gf_list_add(d_points, pt);
 #endif
-					i += svg_parse_float(&(d[i]), &(pt->x), 0);
-					i += svg_parse_float(&(d[i]), &(pt->y), 0);
+					i += svg_parse_number(&(d[i]), &(pt->x), 0);
+					i += svg_parse_number(&(d[i]), &(pt->y), 0);
 					if (c == 'c') {
 						pt->x += cur_pt.x;
 						pt->y += cur_pt.y;
@@ -1613,8 +1815,8 @@ next_command:
 					GF_SAFEALLOC(pt, SVG_Point)
 					gf_list_add(d_points, pt);
 #endif
-					i += svg_parse_float(&(d[i]), &(pt->x), 0);
-					i += svg_parse_float(&(d[i]), &(pt->y), 0);
+					i += svg_parse_number(&(d[i]), &(pt->x), 0);
+					i += svg_parse_number(&(d[i]), &(pt->y), 0);
 					if (c == 's') {
 						pt->x += cur_pt.x;
 						pt->y += cur_pt.y;
@@ -1638,8 +1840,8 @@ next_command:
 					GF_SAFEALLOC(pt, SVG_Point)
 					gf_list_add(d_points, pt);
 #endif
-					i += svg_parse_float(&(d[i]), &(pt->x), 0);
-					i += svg_parse_float(&(d[i]), &(pt->y), 0);
+					i += svg_parse_number(&(d[i]), &(pt->x), 0);
+					i += svg_parse_number(&(d[i]), &(pt->y), 0);
 					if (c == 'q') {
 						pt->x += cur_pt.x;
 						pt->y += cur_pt.y;
@@ -1660,8 +1862,8 @@ next_command:
 				GF_SAFEALLOC(pt, SVG_Point)
 				gf_list_add(d_points, pt);
 #endif
-				i += svg_parse_float(&(d[i]), &(pt->x), 0);
-				i += svg_parse_float(&(d[i]), &(pt->y), 0);
+				i += svg_parse_number(&(d[i]), &(pt->x), 0);
+				i += svg_parse_number(&(d[i]), &(pt->y), 0);
 				if (c == 't') {
 					pt->x += cur_pt.x;
 					pt->y += cur_pt.y;
@@ -1683,19 +1885,19 @@ next_command:
 					GF_SAFEALLOC(pt, SVG_Point)
 					gf_list_add(d_points, pt);
 #endif
-					i += svg_parse_float(&(d[i]), &(pt->x), 0);
-					i += svg_parse_float(&(d[i]), &(pt->y), 0);
+					i += svg_parse_number(&(d[i]), &(pt->x), 0);
+					i += svg_parse_number(&(d[i]), &(pt->y), 0);
 
-					i += svg_parse_float(&(d[i]), &(tmp), 0);
-					i += svg_parse_float(&(d[i]), &(tmp), 0);
-					i += svg_parse_float(&(d[i]), &(tmp), 0);
+					i += svg_parse_number(&(d[i]), &(tmp), 0);
+					i += svg_parse_number(&(d[i]), &(tmp), 0);
+					i += svg_parse_number(&(d[i]), &(tmp), 0);
 
 #ifndef REMOVE_ALLOC
 					GF_SAFEALLOC(pt, SVG_Point)
 					gf_list_add(d_points, pt);
 #endif
-					i += svg_parse_float(&(d[i]), &(pt->x), 0);
-					i += svg_parse_float(&(d[i]), &(pt->y), 0);
+					i += svg_parse_number(&(d[i]), &(pt->x), 0);
+					i += svg_parse_number(&(d[i]), &(pt->y), 0);
 					if (c == 'a') {
 						pt->x += cur_pt.x;
 						pt->y += cur_pt.y;
@@ -1787,11 +1989,15 @@ static void svg_parse_paint(GF_Node *n, SVG_Paint *paint, char *attribute_conten
 	}
 }
 
-
-static u32 svg_parse_number(SVG_Number *number, char *value_string, Bool clamp0to1)
+/* Parses a length which is a number with a unit */
+static u32 svg_parse_length(SVG_Number *number, char *value_string, Bool clamp0to1)
 {
-	char *unit = NULL;
+	char c;
+    char *unit = NULL;
 	u32 len = 0;
+    u32 unit_pos;
+    u32 read_chars;
+
 	if (!strcmp(value_string, "inherit")) {
 		number->type = SVG_NUMBER_INHERIT;
 		return 7;
@@ -1822,8 +2028,23 @@ static u32 svg_parse_number(SVG_Number *number, char *value_string, Bool clamp0t
 	} else {
 		number->type = SVG_NUMBER_VALUE;
 	}
-	if (unit) len = strlen(unit);
-	len+=svg_parse_float(value_string, &(number->value), 0);
+    if (unit) {
+        len = strlen(unit);
+        unit_pos = unit - value_string;
+        /* setting the first unit character to 0 for the svg_parse_number method to finish */
+        c = value_string[unit_pos];
+        value_string[unit_pos] = 0;
+    }
+	read_chars = svg_parse_number(value_string, &(number->value), 0);
+    if (unit) {
+        value_string[unit_pos] = c;
+    }
+    if (!read_chars) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error in parsing: %s\n", value_string));
+        len = 0;
+    } else {
+        len += read_chars;
+    }
 
 	if (clamp0to1) number->value = MAX(0, MIN(1, number->value));
 	return len;
@@ -2386,19 +2607,29 @@ static void smil_parse_syncToleranceOrDefault(SMIL_SyncTolerance *value, char *v
 
 static void svg_parse_viewbox(SVG_ViewBox *value, char *value_string)
 {
+    u32 read_chars;
 	char *str = value_string;
 	if (!strcmp(str, "none")) {
 		value->is_set = 0;
 	} else {
 		u32 i = 0;
 		value->is_set = 1;
-		i+=svg_parse_float(&(str[i]), &(value->x), 0);
-		i+=svg_parse_float(&(str[i]), &(value->y), 0);
-		i+=svg_parse_float(&(str[i]), &(value->width), 0);
-		i+=svg_parse_float(&(str[i]), &(value->height), 0);
+		read_chars = svg_parse_number(&(str[i]), &(value->x), 0);
+        if (!read_chars) return;
+        i += read_chars;
+		read_chars = svg_parse_number(&(str[i]), &(value->y), 0);
+        if (!read_chars) return;
+        i += read_chars;
+		read_chars = svg_parse_number(&(str[i]), &(value->width), 0);
+        if (!read_chars) return;
+        i += read_chars;
+		read_chars = svg_parse_number(&(str[i]), &(value->height), 0);
+        if (!read_chars) return;
+        i += read_chars;
 	}
 }
 
+/* Parses a list of coordinates or a list of lengths (in SVG, length and coordinate is the same type )*/
 static void svg_parse_coordinates(GF_List *values, char *value_string)
 {
 	SVG_Coordinate *c;
@@ -2414,7 +2645,7 @@ static void svg_parse_coordinates(GF_List *values, char *value_string)
 	while (i < len) {
 		u32 sub;
 		GF_SAFEALLOC(c, SVG_Coordinate)
-		sub = svg_parse_number(c, &(str[i]), 0);
+		sub = svg_parse_length(c, &(str[i]), 0);
 		if (!sub) {
 			gf_free(c);
 			return;
@@ -2424,11 +2655,13 @@ static void svg_parse_coordinates(GF_List *values, char *value_string)
 	}
 }
 
+/* Parse a point as a pair of number without units */
 u32 svg_parse_point(SVG_Point *p, char *value_string)
 {
 	u32 i = 0, j = 0;
-	i = svg_parse_float(&(value_string[i]), &(p->x), 0);
-	j = svg_parse_float(&(value_string[i]), &(p->y), 0);
+	i = svg_parse_number(&(value_string[i]), &(p->x), 0);
+    /* TODO: handle cases where a point has an invalid syntax */
+	j = svg_parse_number(&(value_string[i]), &(p->y), 0);
 	/* we need to detect an odd number of coordinates in polygon points list
 	   cf. http://www.w3.org/TR/SVGMobile12/shapes.html#PolygonElement
 	   see svg_parse_points */
@@ -2438,13 +2671,16 @@ u32 svg_parse_point(SVG_Point *p, char *value_string)
 
 static u32 svg_parse_point_into_matrix(GF_Matrix2D *p, char *value_string)
 {
-	u32 i = 0;
+	u32 i = 0, j = 0;
 	gf_mx2d_init(*p);
-	i+=svg_parse_float(&(value_string[i]), &(p->m[2]), 0);
-	i+=svg_parse_float(&(value_string[i]), &(p->m[5]), 0);
-	return i;
+	i = svg_parse_number(&(value_string[i]), &(p->m[2]), 0);
+    if (i == 0) return 0;
+	j = svg_parse_number(&(value_string[i]), &(p->m[5]), 0);
+    if (j == 0) return 0;
+	return i+j;
 }
 
+/* Parses the points attribute of a polygon or polyline element */
 static void svg_parse_points(GF_List *values, char *value_string)
 {
 	u32 i = 0, j;
@@ -2470,19 +2706,22 @@ static void svg_parse_points(GF_List *values, char *value_string)
 	}
 }
 
-static void svg_parse_floats(GF_List *values, char *value_string, Bool is_angle)
+/* Parses a list of numbers */
+static void svg_parse_numbers(GF_List *values, char *value_string, Bool is_angle)
 {
+    u32 read_chars;
 	u32 i = 0;
 	char *str = value_string;
 	u32 len = strlen(str);
 	while (i < len) {
 		Fixed *f;
 		GF_SAFEALLOC(f, Fixed)
-		i+=svg_parse_float(&(str[i]), f, is_angle);
-		if (!i) {
+		read_chars = svg_parse_number(&(str[i]), f, is_angle);
+		if (!read_chars) {
 			gf_free(f);
 			return;
 		}
+        i += read_chars;
 		gf_list_add(values, f);
 	}
 }
@@ -2535,6 +2774,7 @@ static void svg_parse_strings(GF_List *values, char *value_string, u32 string_ty
 
 static void svg_parse_strokedasharray(SVG_StrokeDashArray *value, char *value_string)
 {
+    u32 read_chars;
 	if (!strcmp(value_string, "none")) {
 		value->type = SVG_STROKEDASHARRAY_NONE;
 	} else if (!strcmp(value_string, "inherit")) {
@@ -2548,7 +2788,12 @@ static void svg_parse_strokedasharray(SVG_StrokeDashArray *value, char *value_st
 		while (i < len) {
 			Fixed *f;
 			GF_SAFEALLOC(f, Fixed)
-			i+=svg_parse_float(&(str[i]), f, 0);
+			read_chars = svg_parse_number(&(str[i]), f, 0);
+            if (!read_chars) {
+                free(f);
+                return;
+            }
+            i += read_chars;
 			gf_list_add(values, f);
 		}
 		vals->count = gf_list_count(values);
@@ -2769,8 +3014,8 @@ GF_Err laser_parse_size(LASeR_Size *size, char *attribute_content)
 {
 	char *str = attribute_content;
 	u32 i = 0;
-	i+=svg_parse_float(&(str[i]), &(size->width), 0);
-	i+=svg_parse_float(&(str[i]), &(size->height), 0);
+	i+=svg_parse_number(&(str[i]), &(size->width), 0);
+	i+=svg_parse_number(&(str[i]), &(size->height), 0);
 	return GF_OK;
 }
 
@@ -2785,6 +3030,7 @@ GF_Err gf_svg_parse_element_id(GF_Node *n, const char *nodename, Bool warning_if
 /* Parse an SVG attribute */
 GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_content, u8 anim_value_type)
 {
+    /* for all attributes, except strings, apply some sort of white space normalization*/
 	if (info->fieldType != DOM_String_datatype && strlen(attribute_content)) {
 		u32 i, len;
 		/*remove spaces at the begining*/
@@ -2942,13 +3188,16 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 
 /* end of keyword type parsing */
 
-	/* keyword | floats */
+	/* keyword | numbers (with possibly units) */
 	case SVG_Length_datatype:
 	case SVG_Coordinate_datatype:
 	case SVG_FontSize_datatype:
 	case SVG_Rotate_datatype:
-	case SVG_Number_datatype:
-		svg_parse_number((SVG_Number*)info->far_ptr, attribute_content, 0);
+		svg_parse_length((SVG_Number*)info->far_ptr, attribute_content, 0);
+		break;
+
+    case SVG_Number_datatype:
+		svg_parse_number(attribute_content, &((SVG_Number*)info->far_ptr)->value, 0);
 		break;
 
 	case SMIL_AnimateValue_datatype:
@@ -2985,9 +3234,9 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SMIL_KeyTimes_datatype:
 	case SMIL_KeyPoints_datatype:
 	case SMIL_KeySplines_datatype:
-		svg_parse_floats(*(GF_List **)(info->far_ptr), attribute_content, 0);
-		break;
 	case SVG_Numbers_datatype:
+		svg_parse_numbers(*(GF_List **)(info->far_ptr), attribute_content, 0);
+		break;
 	case SVG_Coordinates_datatype:
 		svg_parse_coordinates(*(GF_List **)(info->far_ptr), attribute_content);
 		break;
@@ -3010,11 +3259,11 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		{
 			u32 i = 0;
 			SVG_Point *p = (SVG_Point *)info->far_ptr;;
-			i+=svg_parse_float(&(attribute_content[i]), &(p->x), 0);
+			i+=svg_parse_number(&(attribute_content[i]), &(p->x), 0);
 			if (attribute_content[i] == 0) {
 				p->y = 0;
 			} else {
-				i+=svg_parse_float(&(attribute_content[i]), &(p->y), 0);
+				i+=svg_parse_number(&(attribute_content[i]), &(p->y), 0);
 			}
 		}
 		break;
@@ -3022,11 +3271,11 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		{
 			u32 i = 0;
 			SVG_Point *p = (SVG_Point *)info->far_ptr;;
-			i+=svg_parse_float(&(attribute_content[i]), &(p->x), 0);
+			i+=svg_parse_number(&(attribute_content[i]), &(p->x), 0);
 			if (attribute_content[i] == 0) {
 				p->y = p->x;
 			} else {
-				i+=svg_parse_float(&(attribute_content[i]), &(p->y), 0);
+				i+=svg_parse_number(&(attribute_content[i]), &(p->y), 0);
 			}
 		}
 		break;
@@ -3034,19 +3283,19 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SVG_Transform_SkewY_datatype:
 		{
 			Fixed *p = (Fixed *)info->far_ptr;
-			svg_parse_float(attribute_content, p, 1);
+			svg_parse_number(attribute_content, p, 1);
 		}
 		break;
 	case SVG_Transform_Rotate_datatype:
 		{
 			u32 i = 0;
 			SVG_Point_Angle *p = (SVG_Point_Angle *)info->far_ptr;;
-			i+=svg_parse_float(&(attribute_content[i]), &(p->angle), 1);
+			i+=svg_parse_number(&(attribute_content[i]), &(p->angle), 1);
 			if (attribute_content[i] == 0) {
 				p->y = p->x = 0;
 			} else {
-				i+=svg_parse_float(&(attribute_content[i]), &(p->x), 0);
-				i+=svg_parse_float(&(attribute_content[i]), &(p->y), 0);
+				i+=svg_parse_number(&(attribute_content[i]), &(p->x), 0);
+				i+=svg_parse_number(&(attribute_content[i]), &(p->y), 0);
 			}
 		}
 		break;
@@ -3110,7 +3359,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SVG_Clock_datatype:
 		svg_parse_clock_value(attribute_content, (SVG_Clock*)info->far_ptr);
 		break;
-	case 0:
+	case SVG_Unknown_datatype:
 		if (*(SVG_String *)info->far_ptr) gf_free(*(SVG_String *)info->far_ptr);
 		*(SVG_String *)info->far_ptr = gf_strdup(attribute_content);
 		break;

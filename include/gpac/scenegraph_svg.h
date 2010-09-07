@@ -575,7 +575,7 @@ u32 gf_svg_get_system_paint_server_type(const char *name);
 Bool gf_smil_notify_timed_elements(GF_SceneGraph *sg);
 void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock);
 
-void gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content);
+Bool gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content);
 
 typedef struct _smil_timing_rti SMIL_Timing_RTI;
 
