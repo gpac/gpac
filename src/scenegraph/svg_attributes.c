@@ -3197,11 +3197,8 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 	case SVG_Coordinate_datatype:
 	case SVG_FontSize_datatype:
 	case SVG_Rotate_datatype:
-		svg_parse_length((SVG_Number*)info->far_ptr, attribute_content, 0);
-		break;
-
     case SVG_Number_datatype:
-		svg_parse_number(attribute_content, &((SVG_Number*)info->far_ptr)->value, 0);
+		svg_parse_length((SVG_Number*)info->far_ptr, attribute_content, 0);
 		break;
 
 	case SMIL_AnimateValue_datatype:
