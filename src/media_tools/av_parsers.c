@@ -1929,6 +1929,7 @@ static s32 svc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si)
     if (pps_id>255)
 		return -1;
     si->pps = &avc->pps[pps_id];
+    si->pps->id = pps_id;
     if (!si->pps->slice_group_count) 
 		return -2;
     si->sps = &avc->sps[si->pps->sps_id + 16];
