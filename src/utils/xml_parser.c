@@ -743,6 +743,11 @@ restart:
 			cdata_sep = 0;
 			while (1) {
 				char c = parser->buffer[parser->current_pos+1+i];
+    			if (!strncmp(parser->buffer+parser->current_pos+1+i, "!--", 3)) { 
+				    parser->sax_state = SAX_STATE_COMMENT;
+                    i += 3;
+                    break;
+		        }
 				if (!c) {
 					i = 0;
 					goto exit;
@@ -769,8 +774,10 @@ restart:
 					is_end = !i ? 1 : 2;
 					i++;
 				} else if (c=='<') {
-					parser->sax_state = SAX_STATE_SYNTAX_ERROR;
-					return GF_CORRUPTED_DATA;
+                    if (parser->sax_state != SAX_STATE_COMMENT) {
+                        parser->sax_state = SAX_STATE_SYNTAX_ERROR;
+					    return GF_CORRUPTED_DATA;
+                    }
 				} else {
 					i++;
 				}
