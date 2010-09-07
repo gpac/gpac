@@ -1075,6 +1075,24 @@ void gf_node_allow_cyclic_traverse(GF_Node *node)
 #endif
 }
 
+
+GF_EXPORT
+Bool gf_node_set_cyclic_traverse_flag(GF_Node *node, Bool on)
+{
+	Bool ret = 1;
+#ifdef GF_CYCLIC_TRAVERSE_ON
+	if (node) {
+		ret = (node->sgprivate->flags & GF_NODE_IN_TRAVERSE) ? 0 : 1;
+		if (on) {
+			node->sgprivate->flags |= GF_NODE_IN_TRAVERSE;
+		} else {
+			node->sgprivate->flags &= ~GF_NODE_IN_TRAVERSE;
+		}
+	}
+#endif
+	return ret;
+}
+
 /*blindly calls RenderNode on all nodes in the "children" list*/
 GF_EXPORT
 void gf_node_traverse_children(GF_Node *node, void *renderStack)

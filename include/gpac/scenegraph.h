@@ -213,9 +213,12 @@ u32 gf_node_get_num_instances(GF_Node *node);
 
 /*calls node traverse callback routine on this node*/
 void gf_node_traverse(GF_Node *node, void *udta);
-/*allows a node to be re-rendered - by default a node in its render phase will never be rendered a second time. 
-Use this function to enable a second render for this node - this must be called while node is being rendered*/
+/*allows a node to be re-rendered - by default a node in its render phase will never be retraversed a second time. 
+Use this function to enable a second traverse for this node while traversing the node*/
 void gf_node_allow_cyclic_traverse(GF_Node *node);
+
+/*sets the cyclic travers flag - returns 0 if flag was already set*/
+Bool gf_node_set_cyclic_traverse_flag(GF_Node *node, Bool on);
 
 /*blindly calls traverse callback on all children nodes */
 void gf_node_traverse_children(GF_Node *node, void *renderStack);
