@@ -110,6 +110,7 @@ typedef struct
 
 typedef struct 
 {
+    s32 id; /* used to compare pps when storing SVC PSS */
     s32 sps_id;
     s32 pic_order_present;      /* pic_order_present_flag*/
     s32 redundant_pic_cnt_present; /* redundant_pic_cnt_present_flag */
@@ -166,7 +167,7 @@ typedef struct
 
 typedef struct
 {
-	AVC_SPS sps[32];
+	AVC_SPS sps[32]; /* range allowed in the spec is 0..31 */
 	u8 sps_active_idx;	/*currently active sps*/
 
 	AVC_PPS pps[255];

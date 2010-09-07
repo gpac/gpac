@@ -3922,6 +3922,7 @@ restart_import:
 				dstcfg->AVCLevelIndication = avc.sps[idx].level_idc;
 				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 				slc->size = nal_size;
+                slc->id = idx;
 				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
 				memcpy(slc->data, buffer, sizeof(char)*slc->size);
 				gf_list_add(dstcfg->sequenceParameterSets, slc);
@@ -3992,9 +3993,15 @@ restart_import:
 				avc.pps[idx].status = 2;
 				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 				slc->size = nal_size;
+                slc->id = idx;
 				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
 				memcpy(slc->data, buffer, sizeof(char)*slc->size);
 				dstcfg = (import->flags & GF_IMPORT_SVC_EXPLICIT) ? svccfg : avccfg;
+
+                /* by default, we put all PPS in the base AVC layer, 
+                  they will be moved to the SVC layer upon analysis of SVC slice. */
+                dstcfg = avccfg;
+
 				gf_list_add(dstcfg->pictureParameterSets, slc);
 			}
 			break;
@@ -4036,6 +4043,18 @@ restart_import:
 			prev_is_nalu_prefix = 1;
 			break;
 		case GF_AVC_NALU_SVC_SLICE:
+            {
+                u32 i;
+                for (i = 0; i < gf_list_count(avccfg->pictureParameterSets); i ++) {
+                    slc = gf_list_get(avccfg->pictureParameterSets, i);
+                    if (avc.s_info.pps->id == slc->id) {
+                        /* This PPS is used by an SVC NAL unit, it should be moved to the SVC Config Record) */
+                        gf_list_rem(avccfg->pictureParameterSets, i);
+                        i--;
+                        gf_list_add(svccfg->pictureParameterSets, slc);
+                    }
+                }                
+            }
 			if (import->flags & GF_IMPORT_SVC_NONE) break;
 			if (! skip_nal) {
 				copy_size = nal_size;
