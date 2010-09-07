@@ -106,7 +106,10 @@ static void svg_recompute_viewport_transformation(GF_Node *node, SVGsvgStack *st
 					vb = &ext_vb;
 				}
 				else if (!strncmp(frag_uri, "svgView(transform(", 18)) {
-					gf_svg_parse_transformlist(&mx, (char *) frag_uri+18);
+					Bool ret = gf_svg_parse_transformlist(&mx, (char *) frag_uri+18);
+                    if (!ret) {
+                        GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error parsing SVG View transform component: %s\n", frag_uri+18));
+                    }
 				}
 			}
 			/*fragID*/
