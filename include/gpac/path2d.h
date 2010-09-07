@@ -558,6 +558,8 @@ typedef struct
 {
 	/*! Number of dashes in the pattern*/
 	u32 num_dash;
+    /*! SVG/CSS unit for the dashes */
+    u8 *dash_units;
 	/*! Value of the pattern dashes. Unit depends on the dash type*/
 	Fixed *dashes;
 } GF_DashSettings;
