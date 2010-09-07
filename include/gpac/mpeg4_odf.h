@@ -804,6 +804,8 @@ typedef struct
 {
 	u16 size;
 	char *data;
+    /* used of AVC/SVC detection */
+    s32 id;
 } GF_AVCConfigSlot;
 
 typedef struct 
