@@ -212,11 +212,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "widgetman", "widgetman.vcpr
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mobile_ip", "..\..\modules\mobile_ip\mobile_ip.vcproj", "{D08849E2-C077-4360-A70C-7B858A486EA4}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "redirect_av", "redirect_av.vcproj", "{073E2281-4FDE-4C4D-A217-C489DB17C48C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
