@@ -6677,6 +6677,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\compositor\svg_filters.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\compositor\svg_font.c"
 				>
 			</File>
