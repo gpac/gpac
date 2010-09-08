@@ -64,17 +64,17 @@ enum
 
 typedef struct 
 {
-    u8 cpb_removal_delay_length_minus1;
-    u8 dpb_output_delay_length_minus1;
+	u8 cpb_removal_delay_length_minus1;
+	u8 dpb_output_delay_length_minus1;
 	/*to be eventually completed by other hrd members*/
 } AVC_HRD;
 
 typedef struct 
 {
-    s32 timing_info_present_flag;
-    u32 num_units_in_tick;
-    u32 time_scale;
-    s32 fixed_frame_rate_flag;
+	s32 timing_info_present_flag;
+	u32 num_units_in_tick;
+	u32 time_scale;
+	s32 fixed_frame_rate_flag;
 
 	u32 par_num, par_den;
 
@@ -88,17 +88,17 @@ typedef struct
 
 typedef struct
 {
-    s32 profile_idc;
-    s32 level_idc;
-    s32 prof_compat;
-    s32 log2_max_frame_num;
-    u32 poc_type, poc_cycle_length;
-    s32 log2_max_poc_lsb;
-    s32 delta_pic_order_always_zero_flag;
+	s32 profile_idc;
+	s32 level_idc;
+	s32 prof_compat;
+	s32 log2_max_frame_num;
+	u32 poc_type, poc_cycle_length;
+	s32 log2_max_poc_lsb;
+	s32 delta_pic_order_always_zero_flag;
 	s32 offset_for_non_ref_pic, offset_for_top_to_bottom_field;
 	Bool frame_mbs_only_flag;
 
-    s16 offset_for_ref_frame[256];
+	s16 offset_for_ref_frame[256];
 
 	u32 width, height;
 
@@ -110,11 +110,11 @@ typedef struct
 
 typedef struct 
 {
-    s32 id; /* used to compare pps when storing SVC PSS */
-    s32 sps_id;
-    s32 pic_order_present;      /* pic_order_present_flag*/
-    s32 redundant_pic_cnt_present; /* redundant_pic_cnt_present_flag */
-    u32 slice_group_count;      /* num_slice_groups_minus1 + 1*/
+	s32 id; /* used to compare pps when storing SVC PSS */
+	s32 sps_id;
+	s32 pic_order_present;			/* pic_order_present_flag*/
+	s32 redundant_pic_cnt_present;	/* redundant_pic_cnt_present_flag */
+	u32 slice_group_count;			/* num_slice_groups_minus1 + 1*/
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
 	u32 status;
 } AVC_PPS;
