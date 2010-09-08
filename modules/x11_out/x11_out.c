@@ -25,6 +25,7 @@
 
 #include "x11_out.h"
 #include <gpac/constants.h>
+#include <sys/time.h>
 
 
 void X11_SetupWindow (GF_VideoOutput * vout);
