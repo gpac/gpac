@@ -2128,7 +2128,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 
 		osize = w*h*4;
 		buf = gf_realloc(buf, sizeof(char)*osize);
-		gf_img_png_enc(raw, w, h, GF_PIXEL_RGBA, buf, &osize);
+		gf_img_png_enc(raw, w, h, h*4, GF_PIXEL_RGBA, buf, &osize);
 		
 		file = fopen(szName, "wb");
 		fwrite(buf, 1, osize, file);

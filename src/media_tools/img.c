@@ -504,11 +504,11 @@ void my_png_flush(png_structp png)
 }
 
 /* write a png file */
-GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char *dst, u32 *dst_size)
+GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size)
 {
 	GFpng udta;
 	png_color_8 sig_bit;
-	png_uint_32 k;
+	png_int_32 k;
 	png_bytep *row_pointers;
 	png_structp png_ptr;
 	png_infop info_ptr;
@@ -609,15 +609,21 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char 
 	if (pixel_format==GF_PIXEL_ARGB)
 		png_set_swap_alpha(png_ptr);
 
-	if ((pixel_format==GF_PIXEL_RGB_32) || (pixel_format==GF_PIXEL_BGR_32))
-	   png_set_filler(png_ptr, 0, PNG_FILLER_BEFORE);
-
-	if ((pixel_format==GF_PIXEL_BGR_24) || (pixel_format==GF_PIXEL_BGR_32))
+	switch (pixel_format) {
+	case GF_PIXEL_RGB_32:
+		png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
 		png_set_bgr(png_ptr);
-
+		break;
+	case GF_PIXEL_BGR_32:
+	   png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
+		break;
+	case GF_PIXEL_BGR_24:
+		png_set_bgr(png_ptr);
+		break;
+	}
 	row_pointers = gf_malloc(sizeof(png_bytep)*height);
 	for (k = 0; k < height; k++)
-		row_pointers[k] = data + k*width*nb_comp;
+		row_pointers[k] = data + k*stride;
 
 	png_write_image(png_ptr, row_pointers);
 	png_write_end(png_ptr, info_ptr);
@@ -636,7 +642,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	return GF_NOT_SUPPORTED;
 }
 GF_EXPORT
-GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char *dst, u32 *dst_size)
+GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size)
 {
 	return GF_NOT_SUPPORTED;
 }

@@ -28,6 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/options.h>
 #include <gpac/modules/service.h>
+#include <gpac/avparse.h>
 
 /*ISO 639 languages*/
 #include <gpac/iso639.h>
@@ -1553,6 +1554,37 @@ force_input:
 
 		case 'B':
 			switch_bench();
+			break;
+
+		/*extract to PNG*/
+		case 'Z':
+		{
+			GF_VideoSurface fb;
+			GF_Err e;
+			e = gf_term_get_screen_buffer(term, &fb);
+			if (e) {
+				fprintf(stdout, "Error dumping screen buffer %s\n", gf_error_to_string(e) );
+			} else {
+				u32 dst_size = fb.width*fb.height*3;
+				char *dst=malloc(sizeof(char)*dst_size);
+
+				e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
+				if (e) {
+					fprintf(stdout, "Error encoding PNG %s\n", gf_error_to_string(e) );
+				} else {
+					FILE *png = fopen("dump.png", "wb");
+					if (!png) {
+						fprintf(stdout, "Error writing file dump.png\n");
+					} else {
+						fwrite(dst, dst_size, 1, png);
+						fclose(png);
+						fprintf(stdout, "Writing file dump.png\n");
+					}
+				}
+				if (dst) free(dst);
+				gf_term_release_screen_buffer(term, &fb);
+			}
+		}
 			break;
 
 		case 'h':
