@@ -3700,7 +3700,7 @@ static void avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 
 GF_Err gf_import_h264(GF_MediaImporter *import)
 {
 	u64 nal_start, nal_end, total_size;
-	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, duration, max_delay, max_total_delay, nb_ei, nb_ep, nb_eb;
+	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, duration, max_total_delay, nb_ei, nb_ep, nb_eb;
 	s32 idx;
 	u8 nal_type;
 	GF_Err e;
@@ -3711,7 +3711,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
 	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff;
-	u32 b_frames, ref_frame, pred_frame, timescale, copy_size, size_length, dts_inc;
+	u32 ref_frame, pred_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
 	u32 last_svc_sps;
@@ -3792,9 +3792,9 @@ restart_import:
 	nb_i = nb_idr = nb_p = nb_b = nb_sp = nb_si = nb_sei = nb_ei = nb_ep = nb_eb = 0;
 	max_w = max_h = 0;
 	first_nal = 1;
-	b_frames = ref_frame = pred_frame = 0;
+	ref_frame = pred_frame = 0;
 	last_poc = max_last_poc = max_last_b_poc = prev_last_poc = 0;
-	max_total_delay = max_delay = 0;
+	max_total_delay = 0;
 
 	gf_isom_set_cts_packing(import->dest, track, 1);
 	has_cts_offset = 0;
@@ -4140,7 +4140,7 @@ restart_import:
 				/*if #pics, compute smallest POC increase*/
 				if (avc.s_info.poc != last_poc) {
 					if (!poc_diff || (poc_diff > abs(avc.s_info.poc-last_poc)))
-						poc_diff = abs(avc.s_info.poc-last_poc);
+						poc_diff = abs(avc.s_info.poc-last_poc); /*ideally we would need to start the parsing again as poc_diff helps computing max_total_delay*/
 					last_poc = avc.s_info.poc;
 				}
 				/*ref slice, reset poc*/
@@ -4148,18 +4148,13 @@ restart_import:
 					ref_frame = cur_samp+1;
 					max_last_poc = last_poc = max_last_b_poc = 0;
 					pred_frame = 0;
-					b_frames = 0;
-					max_delay = 0;
 					poc_shift = 0;
 				}
 				/*strictly less - this is a new P slice*/
 				else if (max_last_poc<last_poc) {
-					max_delay = 0;
 					max_last_b_poc = 0;
 					prev_last_poc = max_last_poc;
 					max_last_poc = last_poc;
-					b_frames = 0;
-					max_delay = 0;
 				}
 				/*stricly greater*/
 				else if (max_last_poc>last_poc) {
@@ -4169,24 +4164,21 @@ restart_import:
 					case GF_AVC_TYPE_B:
 					case GF_AVC_TYPE2_B:
 						if (!max_last_b_poc) {
-							b_frames ++;
 							max_last_b_poc = last_poc;
-						}
-						/*we had a B-slice reference*/
-						else if (last_poc<max_last_b_poc) {
-							b_frames ++;
-							if (max_delay<b_frames) {
-								max_delay = b_frames;
-								if (max_total_delay<max_delay) max_total_delay = max_delay;
-							}
-							b_frames = 0;
 						}
 						/*if same poc than last max, this is a B-slice*/
-						else
+						else if (last_poc>max_last_b_poc) {
 							max_last_b_poc = last_poc;
+						}
+						/*otherwise we had a B-slice reference: do nothing*/
 
 						break;
 					}
+				}
+
+				/*compute max delay (applicable when B slice are present)*/
+				if (poc_diff && (s32)(cur_samp-(ref_frame-1)-last_poc/poc_diff)>(s32)max_total_delay) {
+					max_total_delay = cur_samp - (ref_frame-1) - last_poc/poc_diff;
 				}
 			}
 		}
