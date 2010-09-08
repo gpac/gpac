@@ -89,7 +89,7 @@ static GF_Err OSS_Setup(GF_AudioOutput*dr, void *os_handle, u32 num_buffers, u32
 static void OSS_Shutdown(GF_AudioOutput*dr)
 {
 	OSSCTX();
-	ioctl(ctx->audio_dev,SNDCTL_DSP_RESET);
+	ioctl(ctx->audio_dev,SNDCTL_DSP_RESET,NULL);
 	close(ctx->audio_dev);
 	if (ctx->wav_buf) gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
@@ -104,7 +104,7 @@ static GF_Err OSS_ConfigureOutput(GF_AudioOutput*dr, u32 *SampleRate, u32 *NbCha
 
 	if (!ctx) return GF_BAD_PARAM;
 	/* reset and reopen audio-device */
-	ioctl(ctx->audio_dev,SNDCTL_DSP_RESET);
+	ioctl(ctx->audio_dev,SNDCTL_DSP_RESET,NULL);
 	close(ctx->audio_dev);
 	if (ctx->wav_buf) gf_free(ctx->wav_buf);
 	ctx->wav_buf = NULL;
