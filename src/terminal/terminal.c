@@ -1582,8 +1582,7 @@ GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only)
 	return gf_sc_paste_text(term->compositor, txt);
 }
 
-GF_EXPORT
-Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
+Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed)
 {
 	if (!term) return 0;
 	
@@ -1599,10 +1598,17 @@ Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
 		}
 		gf_mx_v(term->evt_mx);
 	}
-	if (term->user->EventProc) 
+
+	if (!consumed && term->user->EventProc) 
 		return term->user->EventProc(term->user->opaque, evt);
 
 	return 0;
+}
+
+GF_EXPORT
+Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
+{
+	return gf_term_forward_event(term, evt, 0);
 }
 
 void gf_term_register_event_filter(GF_Terminal *term, GF_TermExt *filter)

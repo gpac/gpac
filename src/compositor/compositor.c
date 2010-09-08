@@ -1544,9 +1544,10 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 	return NULL;
 }
 
-static void gf_sc_forward_event(GF_Compositor *compositor, GF_Event *ev)
+static void gf_sc_forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed)
 {
-	gf_term_send_event(compositor->term, ev);
+	gf_term_forward_event(compositor->term, ev, consumed);
+	if (consumed) return;
 
 	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		u32 now;
@@ -1795,11 +1796,11 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 	gf_mx_p(compositor->ev_mx);
 	while (gf_list_count(compositor->events)) {
+		Bool ret;
 		GF_Event *ev = (GF_Event*)gf_list_get(compositor->events, 0);
 		gf_list_rem(compositor->events, 0);
-		if (!gf_sc_exec_event(compositor, ev)) {
-			gf_sc_forward_event(compositor, ev);
-		}
+		ret = gf_sc_exec_event(compositor, ev);
+		gf_sc_forward_event(compositor, ev, ret);
 		gf_free(ev);
 	}
 	gf_mx_v(compositor->ev_mx);
@@ -2323,8 +2324,8 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 	ret = gf_sc_exec_event(compositor, event);
 	gf_sc_lock(compositor, 0);
 
-	if (!ret && !from_user) {
-		gf_sc_forward_event(compositor, event);
+	if (!from_user) {
+		gf_sc_forward_event(compositor, event, ret);
 	}
 	return ret;
 #endif

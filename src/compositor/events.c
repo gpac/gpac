@@ -1006,6 +1006,8 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 	
 	tr_state->pick_x = ev->mouse.x;
 	tr_state->pick_y = ev->mouse.y;
+
+
 #ifndef GPAC_DISABLE_3D
 	if (visual->type_3d)
 		visual_3d_pick_node(visual, tr_state, ev, children);
@@ -1771,25 +1773,37 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 
 Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 {
+	Bool switch_coords=0;
+	Bool ret=0;
 	if (evt->type<=GF_EVENT_MOUSEWHEEL) {
 		if (compositor->visual->center_coords) {
 			evt->mouse.x = evt->mouse.x - compositor->display_width/2;
 			evt->mouse.y = compositor->display_height/2 - evt->mouse.y;
+			switch_coords=1;
 		}
 	}
 
 	/*process regular events except if navigation is grabbed*/
 	if ( (compositor->navigation_state<2) && (compositor->interaction_level & GF_INTERACT_NORMAL) && gf_sc_execute_event(compositor, compositor->traverse_state, evt, NULL)) {
 		compositor->navigation_state = 0;
-		return 1;
+		ret = 1;
 	}
+
+	if (!ret) {
 #ifndef GPAC_DISABLE_3D
-	/*remember active layer on mouse click - may be NULL*/
-	if ((evt->type==GF_EVENT_MOUSEDOWN) && (evt->mouse.button==GF_MOUSE_LEFT)) compositor->active_layer = compositor->traverse_state->layer3d;
+		/*remember active layer on mouse click - may be NULL*/
+		if ((evt->type==GF_EVENT_MOUSEDOWN) && (evt->mouse.button==GF_MOUSE_LEFT)) compositor->active_layer = compositor->traverse_state->layer3d;
 #endif
-	/*process navigation events*/
-	if (compositor->interaction_level & GF_INTERACT_NAVIGATION) return compositor_handle_navigation(compositor, evt);
-	return 0;
+		/*process navigation events*/
+		if (compositor->interaction_level & GF_INTERACT_NAVIGATION) 
+			ret = compositor_handle_navigation(compositor, evt);
+	}
+
+	if (switch_coords) {
+		evt->mouse.x += compositor->display_width/2;
+		evt->mouse.y = compositor->display_height/2 - evt->mouse.y;
+	}
+	return ret;
 }
 
 void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n)

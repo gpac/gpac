@@ -412,6 +412,8 @@ void gf_term_set_priority(GF_Terminal *term, s32 Priority);
 void gf_term_register_event_filter(GF_Terminal *term, GF_TermExt *filter);
 void gf_term_unregister_event_filter(GF_Terminal *term, GF_TermExt *filter);
 
+Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed);
+
 /*error report function*/
 void gf_term_message(GF_Terminal *app, const char *service, const char *message, GF_Err error);
 /*creates service for given OD / URL*/
