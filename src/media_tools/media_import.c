@@ -2434,19 +2434,19 @@ exit:
 
 static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dict, u32 offset)
 {
-    z_stream stream;
-    int err;
+	z_stream stream;
+	int err;
 	char *dest = (char *)gf_malloc(sizeof(char)*samp->dataLength*ZLIB_COMPRESS_SAFE);
-    stream.next_in = (Bytef*)samp->data + offset;
-    stream.avail_in = (uInt)samp->dataLength - offset;
-    stream.next_out = ( Bytef*)dest;
-    stream.avail_out = (uInt)samp->dataLength*ZLIB_COMPRESS_SAFE;
-    stream.zalloc = (alloc_func)NULL;
-    stream.zfree = (free_func)NULL;
-    stream.opaque = (voidpf)NULL;
+	stream.next_in = (Bytef*)samp->data + offset;
+	stream.avail_in = (uInt)samp->dataLength - offset;
+	stream.next_out = ( Bytef*)dest;
+	stream.avail_out = (uInt)samp->dataLength*ZLIB_COMPRESS_SAFE;
+	stream.zalloc = (alloc_func)NULL;
+	stream.zfree = (free_func)NULL;
+	stream.opaque = (voidpf)NULL;
 
-    err = deflateInit(&stream, 9);
-    if (err != Z_OK) {
+	err = deflateInit(&stream, 9);
+	if (err != Z_OK) {
 		gf_free(dest);
 		return GF_IO_ERR;
 	}
@@ -2459,13 +2459,13 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 			return GF_IO_ERR;
 		}
 	}
-    err = deflate(&stream, Z_FINISH);
-    if (err != Z_STREAM_END) {
-        deflateEnd(&stream);
+	err = deflate(&stream, Z_FINISH);
+	if (err != Z_STREAM_END) {
+		deflateEnd(&stream);
 		gf_free(dest);
-        return GF_IO_ERR;
-    }
-    if (samp->dataLength - offset<stream.total_out) {
+		return GF_IO_ERR;
+	}
+	if (samp->dataLength - offset<stream.total_out) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import] compressed data (%d) bigger than input data (%d)\n", (u32) stream.total_out, (u32) samp->dataLength - offset));
 	}
 	if (dict) {
@@ -2482,8 +2482,8 @@ static GF_Err compress_sample_data(GF_ISOSample *samp, u32 *max_size, char **dic
 	samp->dataLength = offset + stream.total_out;
 	gf_free(dest);
 
-    deflateEnd(&stream);
-    return GF_OK;
+	deflateEnd(&stream);
+	return GF_OK;
 }
 
 static void nhml_on_progress(void *cbk, u32 done, u32 tot)
@@ -3514,7 +3514,7 @@ u32 H263_NextStartCode(GF_BitStream *bs)
 		}
 		v = (v<<8) | h263_cache[bpos];
 		bpos++;
-        if ((v >> (32-22)) == 0x20) end = cache_start+bpos-4;
+		if ((v >> (32-22)) == 0x20) end = cache_start+bpos-4;
 	}
 	gf_bs_seek(bs, start);
 	if (!end) end = gf_bs_get_size(bs);
@@ -3524,12 +3524,12 @@ static void h263_get_pic_size(GF_BitStream *bs, u32 fmt, u32 *w, u32 *h)
 {
 	switch (fmt) {
 	case 1: *w = 128; *h = 96; break;
-    case 2: *w = 176; *h = 144; break;
-    case 3: *w = 352; *h = 288; break;
-    case 4: *w = 704; *h = 576; break;
-    case 5: *w = 1409; *h = 1152 ; break;
-    default: *w = *h = 0; break;
-    }
+	case 2: *w = 176; *h = 144; break;
+	case 3: *w = 352; *h = 288; break;
+	case 4: *w = 704; *h = 576; break;
+	case 5: *w = 1409; *h = 1152 ; break;
+	default: *w = *h = 0; break;
+	}
 }
 
 GF_Err gf_import_h263(GF_MediaImporter *import)
@@ -3697,41 +3697,6 @@ static void avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-/*nal_size is updated to allow better error detection*/
-static void avc_remove_prevention_byte(unsigned char *buffer, u32 *nal_size)
-{
-	u32 i = 0;
-	u8 num_zero = 0;
-
-	while (i < *nal_size)
-	{
-		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
-		  other than the following sequences shall not occur at any byte-aligned position:
-		  – 0x00000300
-		  – 0x00000301
-		  – 0x00000302
-		  – 0x00000303"
-		*/
-		if (num_zero == 2
-			&& buffer[i] == 0x03
-			&& i+1 < *nal_size /*next byte is readable*/
-			&& buffer[i+1] < 0x04)
-		{
-			/*emulation code found*/
-			memmove(buffer+i, buffer+i+1, (*nal_size)-i-1); /*we can't use memcpy because src and dst overlap*/
-			num_zero = 0;
-			(*nal_size)--;
-		}
-
-		if (!buffer[i])
-			num_zero++;
-		else
-			num_zero = 0;
-
-		i++;
-	}
-}
-
 GF_Err gf_import_h264(GF_MediaImporter *import)
 {
 	u64 nal_start, nal_end, total_size;
@@ -3743,7 +3708,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	AVCState avc;
 	GF_AVCConfigSlot *slc;
 	GF_AVCConfig *avccfg, *svccfg, *dstcfg;
-	GF_BitStream *bs, *bs_without_emulation_byte;
+	GF_BitStream *bs;
 	GF_BitStream *sample_data;
 	Bool flush_sample, sample_is_rap, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff;
 	u32 b_frames, ref_frame, pred_frame, timescale, copy_size, size_length, dts_inc;
@@ -3849,10 +3814,9 @@ restart_import:
 
 		/*read the file, and work on a memory buffer*/
 		gf_bs_read_data(bs, buffer, nal_size);
-		avc_remove_prevention_byte(buffer, &nal_size); /*remove emulation byte code within this nal unit*/
-		bs_without_emulation_byte = gf_bs_new(buffer, nal_size, GF_BITSTREAM_READ);
 
-		nal_hdr = gf_bs_read_u8(bs_without_emulation_byte);
+		gf_bs_seek(bs, nal_start);
+		nal_hdr = gf_bs_read_u8(bs);
 		nal_type = nal_hdr & 0x1F;
 
 		is_subseq = 0;
@@ -3863,7 +3827,7 @@ restart_import:
 			avc.is_svc = 1;
 		}
 
-		switch (AVC_ParseNALU(bs_without_emulation_byte, nal_hdr, &avc)) {
+		switch (AVC_ParseNALU(bs, nal_hdr, &avc)) {
 		case 1:
 			flush_sample = 1;
 			break;
@@ -3885,7 +3849,7 @@ restart_import:
 			if (import->flags & GF_IMPORT_SVC_NONE) break;
 			is_subseq = 1;
 		case GF_AVC_NALU_SEQ_PARAM:
-			idx = AVC_ReadSeqInfo(bs_without_emulation_byte, &avc, is_subseq, NULL);
+			idx = AVC_ReadSeqInfo(bs, &avc, is_subseq, NULL);
 			if (idx<0) {
 				if (avc.sps[0].profile_idc) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Error parsing SeqInfo"));
@@ -3922,7 +3886,7 @@ restart_import:
 				dstcfg->AVCLevelIndication = avc.sps[idx].level_idc;
 				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 				slc->size = nal_size;
-                slc->id = idx;
+				slc->id = idx;
 				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
 				memcpy(slc->data, buffer, sizeof(char)*slc->size);
 				gf_list_add(dstcfg->sequenceParameterSets, slc);
@@ -3945,8 +3909,6 @@ restart_import:
 					buffer = NULL;
 					gf_bs_del(bs);
 					bs = NULL;
-					gf_bs_del(bs_without_emulation_byte);
-					bs_without_emulation_byte = NULL;
 					gf_f64_seek(mdia, 0, SEEK_SET);
 					goto restart_import;
 				}
@@ -3977,7 +3939,7 @@ restart_import:
 			}
 			break;
 		case GF_AVC_NALU_PIC_PARAM:
-			idx = AVC_ReadPictParamSet(bs_without_emulation_byte, &avc);
+			idx = AVC_ReadPictParamSet(bs, &avc);
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
 				goto exit;
@@ -3993,14 +3955,14 @@ restart_import:
 				avc.pps[idx].status = 2;
 				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 				slc->size = nal_size;
-                slc->id = idx;
+				slc->id = idx;
 				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
 				memcpy(slc->data, buffer, sizeof(char)*slc->size);
 				dstcfg = (import->flags & GF_IMPORT_SVC_EXPLICIT) ? svccfg : avccfg;
 
-                /* by default, we put all PPS in the base AVC layer, 
-                  they will be moved to the SVC layer upon analysis of SVC slice. */
-                dstcfg = avccfg;
+				/* by default, we put all PPS in the base AVC layer, 
+				  they will be moved to the SVC layer upon analysis of SVC slice. */
+				dstcfg = avccfg;
 
 				gf_list_add(dstcfg->pictureParameterSets, slc);
 			}
@@ -4043,18 +4005,18 @@ restart_import:
 			prev_is_nalu_prefix = 1;
 			break;
 		case GF_AVC_NALU_SVC_SLICE:
-            {
-                u32 i;
-                for (i = 0; i < gf_list_count(avccfg->pictureParameterSets); i ++) {
-                    slc = gf_list_get(avccfg->pictureParameterSets, i);
-                    if (avc.s_info.pps->id == slc->id) {
-                        /* This PPS is used by an SVC NAL unit, it should be moved to the SVC Config Record) */
-                        gf_list_rem(avccfg->pictureParameterSets, i);
-                        i--;
-                        gf_list_add(svccfg->pictureParameterSets, slc);
-                    }
-                }                
-            }
+			{
+				u32 i;
+				for (i = 0; i < gf_list_count(avccfg->pictureParameterSets); i ++) {
+					slc = gf_list_get(avccfg->pictureParameterSets, i);
+					if (avc.s_info.pps->id == slc->id) {
+						/* This PPS is used by an SVC NAL unit, it should be moved to the SVC Config Record) */
+						gf_list_rem(avccfg->pictureParameterSets, i);
+						i--;
+						gf_list_add(svccfg->pictureParameterSets, slc);
+					}
+				}				
+			}
 			if (import->flags & GF_IMPORT_SVC_NONE) break;
 			if (! skip_nal) {
 				copy_size = nal_size;
@@ -4229,10 +4191,12 @@ restart_import:
 			}
 		}
 
-		gf_bs_align(bs_without_emulation_byte);
-		nal_end = gf_bs_get_position(bs_without_emulation_byte);
-		assert(nal_end <= nal_size);
-		gf_bs_del(bs_without_emulation_byte);
+		gf_bs_align(bs);
+		nal_end = gf_bs_get_position(bs);
+		assert(nal_start <= nal_end);
+		assert(nal_end <= nal_start + nal_size);
+		if (nal_end != nal_start + nal_size)
+			gf_bs_seek(bs, nal_start + nal_size);
 
 		if (!gf_bs_available(bs)) break;
 		if (duration && (dts_inc*cur_samp > duration)) break;
@@ -4412,7 +4376,7 @@ Bool OGG_ReadPage(FILE *f_in, ogg_sync_state *oy, ogg_page *oggpage)
 
 static u32 get_ogg_serial_no_for_stream(char *fileName, u32 stream_num, Bool is_video)
 {
-    ogg_sync_state oy;
+	ogg_sync_state oy;
 	u32 track, serial_no;
 	ogg_page oggpage;
 	ogg_packet oggpacket;
@@ -4458,7 +4422,7 @@ static u32 get_ogg_serial_no_for_stream(char *fileName, u32 stream_num, Bool is_
 GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 {
 	GF_Err e;
-    ogg_sync_state oy;
+	ogg_sync_state oy;
 	u32 di, track, duration;
 	u64 tot_size, done;
 	u32 w, h, fps_num, fps_den, keyframe_freq_force, theora_kgs, flag, dts_inc, timescale;
@@ -4482,7 +4446,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 
 		import->nb_tracks = 0;
 		go = 1;
-	    ogg_sync_init(&oy);
+		ogg_sync_init(&oy);
 		while (go) {
 			if (!OGG_ReadPage(f_in, &oy, &oggpage)) break;
 
@@ -4518,7 +4482,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 			ogg_stream_clear(&os);
 			import->nb_tracks++;
 		}
-	    ogg_sync_clear(&oy);
+		ogg_sync_clear(&oy);
 		fclose(f_in);
 		return GF_OK;
 	}
@@ -4547,7 +4511,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 	FPS = 0;
 	num_headers = w = h = track = 0;
 
-    ogg_sync_init(&oy);
+	ogg_sync_init(&oy);
 
 	bs = NULL;
 	serial_no = 0;
@@ -4592,7 +4556,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 			}
 			gf_bs_del(bs);
 
-		    FPS = ((Double)fps_num) / fps_den;
+			FPS = ((Double)fps_num) / fps_den;
 
 			/*note that we don't rewrite theora headers (just like in MPEG-4 video, systems timing overrides stream one)*/
 			if (import->video_fps) FPS = import->video_fps;
@@ -4605,7 +4569,7 @@ GF_Err gf_import_ogg_video(GF_MediaImporter *import)
 		/*FIXME - check end of stream for concatenated files?*/
 
 		/*not our stream*/
-        if (ogg_stream_pagein(&os, &oggpage) != 0) continue;
+		if (ogg_stream_pagein(&os, &oggpage) != 0) continue;
 
 
 
@@ -4693,7 +4657,7 @@ exit:
 	if (bs) gf_bs_del(bs);
 	samp->data = NULL;
 	gf_isom_sample_del(&samp);
-    ogg_sync_clear(&oy);
+	ogg_sync_clear(&oy);
 	if (serial_no) ogg_stream_clear(&os);
 	if (import->esd && destroy_esd) {
 		gf_odf_desc_del((GF_Descriptor *) import->esd);
@@ -4710,7 +4674,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 #else
 
 	GF_Err e;
-    ogg_sync_state oy;
+	ogg_sync_state oy;
 	u32 di, track, duration;
 	u64 done, tot_size;
 	s32 block_size;
@@ -4747,7 +4711,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 	/*avoids gcc warnings*/
 	track = num_headers = duration = 0;
 
-    ogg_sync_init(&oy);
+	ogg_sync_init(&oy);
 
 	vbs = NULL;
 	serial_no = 0;
@@ -4780,7 +4744,7 @@ GF_Err gf_import_ogg_audio(GF_MediaImporter *import)
 		/*FIXME - check end of stream for concatenated files?*/
 
 		/*not our stream*/
-        if (ogg_stream_pagein(&os, &oggpage) != 0) continue;
+		if (ogg_stream_pagein(&os, &oggpage) != 0) continue;
 
 
 
@@ -4875,7 +4839,7 @@ exit:
 	gf_isom_sample_del(&samp);
 	if (vbs) gf_bs_del(vbs);
 	if (serial_no) ogg_stream_clear(&os);
-    ogg_sync_clear(&oy);
+	ogg_sync_clear(&oy);
 	if (import->esd && destroy_esd) {
 		gf_odf_desc_del((GF_Descriptor *) import->esd);
 		import->esd = NULL;
@@ -6024,8 +5988,8 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		for (c = 0; c < 32; c++) {
 			if (vobsub->langs[c].id != 0) {
 				import->tk_info[import->nb_tracks].track_num = c + 1;
-				import->tk_info[import->nb_tracks].type	     = GF_ISOM_MEDIA_SUBPIC;
-				import->tk_info[import->nb_tracks].flags     = 0;
+				import->tk_info[import->nb_tracks].type		 = GF_ISOM_MEDIA_SUBPIC;
+				import->tk_info[import->nb_tracks].flags	 = 0;
 				import->nb_tracks++;
 			}
 		}
@@ -6081,7 +6045,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 	import->esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_SUBPIC;
 
 	import->esd->decoderConfig->decoderSpecificInfo->dataLength = sizeof(vobsub->palette);
-	import->esd->decoderConfig->decoderSpecificInfo->data	    = (char*)&vobsub->palette[0][0];
+	import->esd->decoderConfig->decoderSpecificInfo->data		= (char*)&vobsub->palette[0][0];
 
 	gf_import_message(import, GF_OK, "VobSub import - subpicture stream '%s'", vobsub->langs[trackID].name);
 
@@ -6116,7 +6080,7 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 
 	for (c = 0; c < total; c++)
 	{
-		u32	    i, left, size, psize, dsize, hsize, duration;
+		u32		i, left, size, psize, dsize, hsize, duration;
 		char *packet;
 		vobsub_pos *pos = (vobsub_pos*)gf_list_get(subpic, c);
 
@@ -6136,10 +6100,10 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		}
 
 		if (*(u32*)&buf[0x00] != 0xba010000		   ||
-		    *(u32*)&buf[0x0e] != 0xbd010000		   ||
-		    !(buf[0x15] & 0x80)				   ||
-		    (buf[0x17] & 0xf0) != 0x20			   ||
-		    (buf[buf[0x16] + 0x17] & 0xe0) != 0x20)
+			*(u32*)&buf[0x0e] != 0xbd010000		   ||
+			!(buf[0x15] & 0x80)				   ||
+			(buf[0x17] & 0xf0) != 0x20			   ||
+			(buf[buf[0x16] + 0x17] & 0xe0) != 0x20)
 		{
 			gf_import_message(import, GF_CORRUPTED_DATA, "Corrupted data found in file %s", filename);
 			continue;
@@ -6474,7 +6438,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		|| !stricmp(fmt, "SRT") || !stricmp(fmt, "SUB") || !stricmp(fmt, "TEXT") )
 		return gf_import_timed_text(importer);
 	/*VobSub*/
-    if (!strnicmp(ext, ".idx", 4) || !stricmp(fmt, "VOBSUB"))
+	if (!strnicmp(ext, ".idx", 4) || !stricmp(fmt, "VOBSUB"))
 		return gf_import_vobsub(importer);
 	/*raw importer*/
 	if (!stricmp(fmt, "RAW")) {

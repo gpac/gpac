@@ -1402,7 +1402,7 @@ typedef struct
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
-    u8 scope;
+	u8 scope;
 	u16 IPMP_DescriptorIDEx;
 } GF_IPMPX_GetToolContext;
 
@@ -1410,9 +1410,9 @@ typedef struct
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
-    u16 OD_ID;
+	u16 OD_ID;
 	u16 ESD_ID;
-    u32 IPMP_ToolContextID;
+	u32 IPMP_ToolContextID;
 } GF_IPMPX_GetToolContextResponse;
 
 /*GF_IPMPX_LISTEN_Types*/
