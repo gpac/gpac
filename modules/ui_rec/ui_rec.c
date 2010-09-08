@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *
+ *   
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *
+ *   
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  */
 
@@ -29,31 +29,44 @@
 #include <gpac/internal/compositor_dev.h>
 
 
-typedef struct
+typedef struct __ui_rec
 {
 	FILE *uif;
 	GF_BitStream *bs;
 	GF_Terminal *term;
 	GF_Clock *ck;
 
-	void (*sc_on_event)(void *cbck, GF_Event *event);
-	void *sc_cbck;
 	GF_Event next_event;
 	u32 next_time;
 	Bool evt_loaded;
 
-	Bool (*OriginalEventProc)(void *opaque, GF_Event *event);
-	void *udta;
+	Bool (*on_event)(struct __ui_rec *uir , GF_Event *event);
 } GF_UIRecord;
 
-void uir_on_event(void *cbck, GF_Event *event)
+Bool uir_on_event_play(GF_UIRecord *uir , GF_Event *event)
 {
-	GF_UIRecord *uir = cbck;
 	switch (event->type) {
-	case GF_EVENT_CLICK:
+	case GF_EVENT_CONNECT:
+		if (event->connect.is_connected) {
+			uir->ck = uir->term->root_scene->scene_codec ? uir->term->root_scene->scene_codec->ck : uir->term->root_scene->dyn_ck;
+		}
+		break;
+	}
+	return 0;
+}
+
+Bool uir_on_event_record(GF_UIRecord *uir , GF_Event *event)
+{
+	switch (event->type) {
+	case GF_EVENT_CONNECT:
+		if (event->connect.is_connected) {
+			uir->ck = uir->term->root_scene->scene_codec ? uir->term->root_scene->scene_codec->ck : uir->term->root_scene->dyn_ck;
+		}
+		break;
+	case GF_EVENT_CLICK: 
 	case GF_EVENT_MOUSEUP:
-	case GF_EVENT_MOUSEDOWN:
-	case GF_EVENT_MOUSEOVER:
+	case GF_EVENT_MOUSEDOWN: 
+	case GF_EVENT_MOUSEOVER: 
 	case GF_EVENT_MOUSEOUT:
 	/*!! ALL MOUSE EVENTS SHALL BE DECLARED BEFORE MOUSEMOVE !! */
 	case GF_EVENT_MOUSEMOVE:
@@ -84,7 +97,7 @@ void uir_on_event(void *cbck, GF_Event *event)
 		gf_bs_write_u32(uir->bs, event->character.unicode_char);
 		break;
 	}
-	uir->sc_on_event(uir->sc_cbck, event);
+	return 0;
 }
 
 void uir_load_event(GF_UIRecord *uir)
@@ -97,10 +110,10 @@ void uir_load_event(GF_UIRecord *uir)
 	uir->next_time = gf_bs_read_u32(uir->bs);
 	uir->next_event.type = gf_bs_read_u8(uir->bs);
 	switch (uir->next_event.type) {
-	case GF_EVENT_CLICK:
+	case GF_EVENT_CLICK: 
 	case GF_EVENT_MOUSEUP:
-	case GF_EVENT_MOUSEDOWN:
-	case GF_EVENT_MOUSEOVER:
+	case GF_EVENT_MOUSEDOWN: 
+	case GF_EVENT_MOUSEOVER: 
 	case GF_EVENT_MOUSEOUT:
 	/*!! ALL MOUSE EVENTS SHALL BE DECLARED BEFORE MOUSEMOVE !! */
 	case GF_EVENT_MOUSEMOVE:
@@ -128,27 +141,14 @@ void uir_load_event(GF_UIRecord *uir)
 	uir->evt_loaded = 1;
 }
 
-Bool uir_event_proc(void *opaque, GF_Event *event)
-{
-	GF_UIRecord *uir = opaque;
-	switch (event->type) {
-	case GF_EVENT_CONNECT:
-		if (event->connect.is_connected) {
-			uir->ck = uir->term->root_scene->scene_codec ? uir->term->root_scene->scene_codec->ck : uir->term->root_scene->dyn_ck;
-		}
-		break;
-	}
-	return uir->OriginalEventProc(uir->udta, event);
-}
-
-static Bool uir_process(GF_TermExt *termext, GF_Terminal *term, u32 action)
+static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 {
 	const char *opt, *uifile;
 	GF_UIRecord *uir = termext->udta;
 
 	switch (action) {
 	case GF_TERM_EXT_START:
-		uir->term = term;
+		uir->term = (GF_Terminal *) param;
 		opt = gf_modules_get_option((GF_BaseInterface*)termext, "UIRecord", "Mode");
 		if (!opt) return 0;
 		uifile = gf_modules_get_option((GF_BaseInterface*)termext, "UIRecord", "File");
@@ -160,33 +160,23 @@ static Bool uir_process(GF_TermExt *termext, GF_Terminal *term, u32 action)
 			uir->bs = gf_bs_from_file(uir->uif, GF_BITSTREAM_READ);
 			termext->caps |= GF_TERM_EXTENSION_NOT_THREADED;
 
+			uir->on_event = uir_on_event_play;
+			termext->caps |= GF_TERM_EXTENSION_FILTER_EVENT;
+
 			uir_load_event(uir);
 		} else if (!strcmp(opt, "Record")) {
 			uir->uif = fopen(uifile, "wb");
 			if (!uir->uif) return 0;
 			uir->bs = gf_bs_from_file(uir->uif, GF_BITSTREAM_WRITE);
 
-			uir->sc_on_event = term->compositor->video_out->on_event;
-			uir->sc_cbck = term->compositor->video_out->evt_cbk_hdl;
-			term->compositor->video_out->on_event = uir_on_event;
-			term->compositor->video_out->evt_cbk_hdl = uir;
+			uir->on_event = uir_on_event_record;
+			termext->caps |= GF_TERM_EXTENSION_FILTER_EVENT;
 		} else {
 			return 0;
 		}
-		/*OK let's hack in the user event proc !*/
-		uir->OriginalEventProc = term->user->EventProc;
-		uir->udta = term->user->opaque;
-		term->user->EventProc = uir_event_proc;
-		term->user->opaque = uir;
 		return 1;
 
 	case GF_TERM_EXT_STOP:
-		term->user->EventProc = uir->OriginalEventProc;
-		term->user->opaque = uir->udta;
-		if (uir->sc_on_event) {
-			term->compositor->video_out->on_event = uir->sc_on_event;
-			term->compositor->video_out->evt_cbk_hdl = uir->sc_cbck;
-		}
 		if (uir->uif) fclose(uir->uif);
 		if (uir->bs) gf_bs_del(uir->bs);
 		uir->term = NULL;
@@ -196,10 +186,12 @@ static Bool uir_process(GF_TermExt *termext, GF_Terminal *term, u32 action)
 
 	case GF_TERM_EXT_PROCESS:
 		if (uir->evt_loaded && uir->ck && (uir->next_time <= gf_clock_time(uir->ck) )) {
-			term->compositor->video_out->on_event(term->compositor->video_out->evt_cbk_hdl, &uir->next_event);
+			uir->term->compositor->video_out->on_event(uir->term->compositor->video_out->evt_cbk_hdl, &uir->next_event);
 			uir_load_event(uir);
 		}
 		break;
+	case GF_TERM_EXT_EVENT:
+		return uir->on_event(uir, (GF_Event*)param);
 	}
 	return 0;
 }
@@ -209,7 +201,7 @@ GF_TermExt *uir_new()
 {
 	GF_TermExt *dr;
 	GF_UIRecord *uir;
-	dr = gf_malloc(sizeof(GF_TermExt));
+	dr = malloc(sizeof(GF_TermExt));
 	memset(dr, 0, sizeof(GF_TermExt));
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_TERM_EXT_INTERFACE, "GPAC UI Recorder", "gpac distribution");
 
@@ -224,8 +216,8 @@ void uir_delete(GF_BaseInterface *ifce)
 {
 	GF_TermExt *dr = (GF_TermExt *) ifce;
 	GF_UIRecord *uir = dr->udta;
-	gf_free(uir);
-	gf_free(dr);
+	free(uir);
+	free(dr);
 }
 
 GF_EXPORT
@@ -235,11 +227,11 @@ const u32 *QueryInterfaces()
 		GF_TERM_EXT_INTERFACE,
 		0
 	};
-	return si;
+	return si; 
 }
 
 GF_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType)
+GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 	if (InterfaceType == GF_TERM_EXT_INTERFACE) return (GF_BaseInterface *)uir_new();
 	return NULL;
