@@ -37,7 +37,7 @@ Group {
 		    Shape {
 		    	appearance Appearance {
 		    		material DEF MAT Material { diffuseColor 1 0 0 }
-		    		texture DEF TX ImageTexture {url "auxiliary_files/logo.jpg"} 
+		    		texture DEF TX ImageTexture {url "../auxiliary_files/logo.jpg"} 
 		    	}
 		      geometry ElevationGrid {
 				  	creaseAngle 2
@@ -63,7 +63,7 @@ Group {
     DEF TS TouchSensor {}
 		DEF C1 Conditional { buffer { REPLACE MAT.diffuseColor BY 0 0 1} }
 		DEF RC1 Conditional { buffer { REPLACE MAT.diffuseColor BY 1 0 0} }
-		DEF C2 Conditional { buffer { REPLACE TX.url BY "./auxiliary_files/logo.png"} }
+		DEF C2 Conditional { buffer { REPLACE TX.url BY "./../auxiliary_files/logo.png"} }
 		DEF RC2 Conditional { buffer { REPLACE TX.url BY ""} }
   ]
 }

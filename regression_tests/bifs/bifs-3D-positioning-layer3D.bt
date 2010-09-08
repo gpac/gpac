@@ -25,7 +25,7 @@ InitialObjectDescriptor {
 OrderedGroup { 
  children [
 
-  Background2D {url "./auxiliary_files/sky.jpg" }
+  Background2D {url "./../auxiliary_files/sky.jpg" }
 
   WorldInfo {
    title "Layer3D test"
@@ -39,8 +39,8 @@ OrderedGroup {
 			size 400 200
 			navigationInfo DEF NAV NavigationInfo {type ["Walk","ANY"] }
 			children [
-				DEF BACK Background {frontUrl "./auxiliary_files/logo.png" }
-				Inline {url "./auxiliary_files/nefertiti.wrl"}
+				DEF BACK Background {frontUrl "./../auxiliary_files/logo.png" }
+				Inline {url "./../auxiliary_files/nefertiti.wrl"}
 		  ]
 		 }
 		]
@@ -100,7 +100,7 @@ OrderedGroup {
 									Shape {
 										appearance Appearance { 
 #										 material Material { emissiveColor 0 1 0}
-                     texture ImageTexture { url './auxiliary_files/logo.jpg"}
+                     texture ImageTexture { url './../auxiliary_files/logo.jpg"}
                     }
 										geometry Box { size 20 20 20}
 									}

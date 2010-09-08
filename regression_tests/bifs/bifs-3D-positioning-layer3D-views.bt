@@ -62,7 +62,7 @@ OrderedGroup {
 				children [
 						DEF TR Transform {
 	  					children [
-								DEF NEF Inline { url "auxiliary_files/nefertiti.wrl" }
+								DEF NEF Inline { url "../auxiliary_files/nefertiti.wrl" }
 							]
 						}
 				]
@@ -139,7 +139,7 @@ AT 0 {
 		      ES_ID 10
 		      OCR_ES_ID 10
 		      muxInfo MuxInfo {
-		       fileName "auxiliary_files/enst_video.h264"
+		       fileName "../auxiliary_files/enst_video.h264"
 		      }
 		    }
 		  ]
@@ -150,7 +150,7 @@ AT 0 {
 		    ES_Descriptor {
 		      ES_ID 20
 		      muxInfo MuxInfo {
-		       fileName "auxiliary_files/logo.png"
+		       fileName "../auxiliary_files/logo.png"
 		      }
 		    }
 		  ]

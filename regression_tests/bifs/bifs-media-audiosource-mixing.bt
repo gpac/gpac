@@ -160,7 +160,7 @@ AT 0 {
       ES_ID 10
       OCR_ES_ID 10
       muxInfo MuxInfo {
-       fileName "auxiliary_files/count_english.mp3"
+       fileName "../auxiliary_files/count_english.mp3"
       }
      }
     ]
@@ -172,7 +172,7 @@ AT 0 {
       ES_ID 11
       OCR_ES_ID 11
       muxInfo MuxInfo {
-       fileName "auxiliary_files/count_english.mp3"
+       fileName "../auxiliary_files/count_english.mp3"
       }
      }
     ]
@@ -184,7 +184,7 @@ AT 0 {
       ES_ID 12
       OCR_ES_ID 11
       muxInfo MuxInfo {
-       fileName "auxiliary_files/count_english.mp3"
+       fileName "../auxiliary_files/count_english.mp3"
       }
      }
     ]

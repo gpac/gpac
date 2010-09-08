@@ -53,7 +53,7 @@ Group {
 		  	children [
 		  		DEF B Shape {
 		  			appearance Appearance {
-			     		texture ImageTexture { url "./auxiliary_files/logo.jpg"}
+			     		texture ImageTexture { url "./../auxiliary_files/logo.jpg"}
 		  			}
 		  			geometry Box { size 2 2 2 }
 		  		}

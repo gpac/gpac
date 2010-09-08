@@ -125,7 +125,7 @@ RAP AT 0 {
      ES_Descriptor {
       ES_ID 5
       OCR_ES_ID 5
-      muxInfo MuxInfo { fileName "auxiliary_files/subtitle.srt" }
+      muxInfo MuxInfo { fileName "../auxiliary_files/subtitle.srt" }
      }
     ]
    }
@@ -135,7 +135,7 @@ RAP AT 0 {
      ES_Descriptor {
       ES_ID 6
       OCR_ES_ID 6
-      muxInfo MuxInfo { fileName "auxiliary_files/subtitle_fr.srt" }
+      muxInfo MuxInfo { fileName "../auxiliary_files/subtitle_fr.srt" }
      }
     ]
    }

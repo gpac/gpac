@@ -54,7 +54,7 @@ AT 0 {
       ES_ID 4
       OCR_ES_ID 1
       muxInfo MuxInfo {
-       fileName "auxiliary_files/subtitle.srt"
+       fileName "../auxiliary_files/subtitle.srt"
       }
      }
     ]

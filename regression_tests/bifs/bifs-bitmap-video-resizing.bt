@@ -131,7 +131,7 @@ AT 0 {
       ES_ID 20
       OCR_ES_ID 20
       muxInfo MuxInfo {
-       fileName "auxiliary_files/enst_video.h264"
+       fileName "../auxiliary_files/enst_video.h264"
       }
      }
     ]
@@ -142,7 +142,7 @@ AT 0 {
      ES_Descriptor {
       ES_ID 21
       muxInfo MuxInfo {
-       fileName "auxiliary_files/logo.jpg"
+       fileName "../auxiliary_files/logo.jpg"
       }
      }
     ]

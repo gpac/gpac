@@ -45,7 +45,7 @@ Group {
     }
     DEF PC PlaneClipper {
     	children [
-    		Inline { url "./auxiliary_files/nefertiti.wrl" }
+    		Inline { url "./../auxiliary_files/nefertiti.wrl" }
     	]
     }
     DEF TS TimeSensor { cycleInterval 4.0 loop TRUE}

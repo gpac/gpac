@@ -123,7 +123,7 @@ AT 0 {
       ES_ID 20
       OCR_ES_ID 20
       muxInfo MuxInfo {
-       fileName "auxiliary_files/count_german.mp3"
+       fileName "../auxiliary_files/count_german.mp3"
       }
      }
     ]
@@ -135,7 +135,7 @@ AT 0 {
       ES_ID 21
       OCR_ES_ID 21
       muxInfo MuxInfo {
-       fileName "auxiliary_files/count_arabic.mp3"
+       fileName "../auxiliary_files/count_arabic.mp3"
       }
      }
     ]

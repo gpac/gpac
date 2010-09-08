@@ -71,7 +71,7 @@ AT 0 {
 		    ES_Descriptor {
 		      ES_ID 10
 		      muxInfo MuxInfo {
-						fileName "auxiliary_files/logo.jpg"
+						fileName "../auxiliary_files/logo.jpg"
 		      }
 		    }
 		  ]

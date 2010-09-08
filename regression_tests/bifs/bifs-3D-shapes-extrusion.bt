@@ -87,7 +87,7 @@ Group {
   	key [0 0.5 1]
   	keyValue [1 1 1 0, 1 1 1 3.14, 1 1 1 6.26]
  	}
-		DEF C Conditional { buffer { REPLACE TX.url BY "./auxiliary_files/logo.png"} }
+		DEF C Conditional { buffer { REPLACE TX.url BY "./../auxiliary_files/logo.png"} }
 		DEF RC Conditional { buffer { REPLACE TX.url BY ""} }
 	]
 }

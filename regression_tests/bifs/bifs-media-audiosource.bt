@@ -123,7 +123,7 @@ AT 0 {
       ES_ID 20
       OCR_ES_ID 20
       muxInfo MuxInfo {
-       fileName "auxiliary_files/count_italian.mp3"
+       fileName "../auxiliary_files/count_italian.mp3"
       }
      }
     ]
