@@ -2216,13 +2216,25 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 				}
 			}
 		}
-		if ((avc->s_info.nal_unit_type == GF_AVC_NALU_IDR_SLICE) 
-		&& (n_state.nal_unit_type == GF_AVC_NALU_IDR_SLICE)) {
+
+		/*patch received but not fully tested yet*/
+#if 0
+		if ((avc->s_info.nal_unit_type == GF_AVC_NALU_IDR_SLICE) && (n_state.nal_unit_type == GF_AVC_NALU_IDR_SLICE)) {
 			if (avc->s_info.idr_pic_id != n_state.idr_pic_id) {
 				ret = 1;
 				break;
 			}
 		}
+#else
+		if (avc->s_info.nal_unit_type != GF_AVC_NALU_IDR_SLICE) { /* IdrPicFlag differs in value. */
+			ret = 1;
+			break;
+		}
+		else if (avc->s_info.idr_pic_id != n_state.idr_pic_id) {
+			ret = 1;
+			break;
+		}
+#endif
 		break;
 	case GF_AVC_NALU_SEQ_PARAM:
 	case GF_AVC_NALU_PIC_PARAM:
