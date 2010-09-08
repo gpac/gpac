@@ -45,7 +45,7 @@ Group {
    title "PathExtrusion HardcodedProto"
   }
   NavigationInfo { type ["EXAMINE", "ANY"] headlight FALSE}
-  	Background2D {backColor 0 0 0 url "./auxiliary_files/logo.jpg"}
+  	Background2D {backColor 0 0 0 url "./../auxiliary_files/logo.jpg"}
     DEF VIEWPOINT Viewpoint {
         description "one"
         position 0 0 10
@@ -62,7 +62,7 @@ Shape {
 #			specularColor 1 1 1
 #			shininess 0.3
 		}
-#		texture ImageTexture { url "../../auxiliary_files/logo.jpg"}
+#		texture ImageTexture { url "../../../auxiliary_files/logo.jpg"}
 	}
 	
 	geometry PathExtrusion {

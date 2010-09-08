@@ -63,7 +63,7 @@ AT 0 {
      ES_Descriptor {
       ES_ID 3
       muxInfo MuxInfo {
-       fileName "auxiliary_files/logo.jpg"
+       fileName "../auxiliary_files/logo.jpg"
       }
      }
     ]
@@ -79,7 +79,7 @@ AT 2000 {
      ES_Descriptor {
       ES_ID 4
       muxInfo MuxInfo {
-       fileName "auxiliary_files/sky.jpg"
+       fileName "../auxiliary_files/sky.jpg"
       }
      }
     ]

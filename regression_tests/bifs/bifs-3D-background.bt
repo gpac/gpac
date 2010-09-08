@@ -42,7 +42,7 @@ Group {
       material Material {
        diffuseColor 1 1 1
       }
-      texture ImageTexture { url ["./auxiliary_files/logo.jpg"] }
+      texture ImageTexture { url ["./../auxiliary_files/logo.jpg"] }
      }
      geometry Box {
       size 3 2 5

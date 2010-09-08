@@ -132,7 +132,7 @@ RAP AT 0 {
      ES_Descriptor {
       ES_ID 20
       muxInfo MuxInfo {
-       fileName "auxiliary_files/sky.jpg"
+       fileName "../auxiliary_files/sky.jpg"
       }
      }
     ]
@@ -143,7 +143,7 @@ RAP AT 0 {
      ES_Descriptor {
       ES_ID 21
       muxInfo MuxInfo {
-       fileName "auxiliary_files/logo.jpg"
+       fileName "../auxiliary_files/logo.jpg"
       }
      }
     ]

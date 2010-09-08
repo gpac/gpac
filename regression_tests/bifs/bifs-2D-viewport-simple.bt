@@ -78,7 +78,7 @@ AT 0 {
      ES_Descriptor {
       ES_ID 22
       muxInfo MuxInfo {
-       fileName "auxiliary_files/sky.jpg"
+       fileName "../auxiliary_files/sky.jpg"
       }
      }
     ]

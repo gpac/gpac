@@ -244,7 +244,7 @@ AT 0 {
       ES_ID 21
       OCR_ES_ID 21
       muxInfo MuxInfo {
-       fileName "auxiliary_files/enst_video.h264"
+       fileName "../auxiliary_files/enst_video.h264"
       }
      }
     ]
@@ -256,7 +256,7 @@ AT 0 {
       ES_ID 20
       OCR_ES_ID 21
       muxInfo MuxInfo {
-       fileName "auxiliary_files/enst_audio.aac"
+       fileName "../auxiliary_files/enst_audio.aac"
       }
      }
     ]

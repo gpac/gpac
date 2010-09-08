@@ -31,7 +31,7 @@ Group {
 	DEF AFOG Fog {color 0.2 0.2 0.2 visibilityRange 4}
   Transform {
    children [
-   	Inline { url "./auxiliary_files/nefertiti.wrl"}
+   	Inline { url "./../auxiliary_files/nefertiti.wrl"}
    	DirectionalLight { color 1 0 0 direction 1 1 -1 }
     DEF TOUCH TouchSensor{}
    ]

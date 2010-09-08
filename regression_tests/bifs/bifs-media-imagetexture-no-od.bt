@@ -46,7 +46,7 @@ OrderedGroup {
     Shape {
      appearance Appearance {
       texture DEF TXT ImageTexture {
-       url ["auxiliary_files/logo.jpg"]
+       url ["../auxiliary_files/logo.jpg"]
       }
      }
      geometry Bitmap {}

@@ -58,7 +58,7 @@ Shape {
 		material Material {
 			diffuseColor 1.0 0.8 0.0
 		}
-#		texture ImageTexture { url "../../auxiliary_files/logo.jpg"}
+#		texture ImageTexture { url "../../../auxiliary_files/logo.jpg"}
 	}
 	
 	geometry PlanarExtrusion {
