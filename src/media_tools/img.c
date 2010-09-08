@@ -551,7 +551,7 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, u32 pixel_format, char 
 	/* Allocate/initialize the image information data.  REQUIRED */
 	info_ptr = png_create_info_struct(png_ptr);
 	if (info_ptr == NULL) {
-		png_destroy_write_struct(&png_ptr,  png_infopp_NULL);
+		png_destroy_write_struct(&png_ptr, NULL);
 		return GF_IO_ERR;
 	}
 
