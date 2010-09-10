@@ -622,7 +622,7 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 		break;
 	}
 	row_pointers = gf_malloc(sizeof(png_bytep)*height);
-	for (k = 0; k < height; k++)
+	for (k = 0; k < (s32)height; k++)
 		row_pointers[k] = data + k*stride;
 
 	png_write_image(png_ptr, row_pointers);
