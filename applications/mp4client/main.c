@@ -569,7 +569,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			if (evt->key.flags & GF_KEY_MOD_CTRL) fprintf(stdout, "Scene Time: %f \n", gf_term_get_time_in_ms(term)/1000.0);
 			break;
 		case GF_KEY_D:
-			if (evt->key.flags & GF_KEY_MOD_CTRL) gf_term_set_option(term, GF_OPT_DIRECT_DRAW, !gf_term_get_option(term, GF_OPT_DIRECT_DRAW) );
+			if (evt->key.flags & GF_KEY_MOD_CTRL) gf_term_set_option(term, GF_OPT_DRAW_MODE, (gf_term_get_option(term, GF_OPT_DRAW_MODE)==GF_DRAW_MODE_DEFER) ? GF_DRAW_MODE_IMMEDIATE : GF_DRAW_MODE_DEFER );
 			break;
 		case GF_KEY_4: 
 			if (evt->key.flags & GF_KEY_MOD_CTRL)

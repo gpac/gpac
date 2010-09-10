@@ -500,7 +500,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 				overlay_type = 0;
 			}
 			/*direct draw or not last context: we must queue the overlay*/
-			else if (tr_state->direct_draw || (ctx->next && ctx->next->drawable)) {
+			else if (tr_state->immediate_draw || (ctx->next && ctx->next->drawable)) {
 				overlay_type = 2;
 			}
 			/*OK we can overlay this video - if full display, don't flush*/
@@ -562,7 +562,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 			/*prevents this context from being removed in direct draw mode by requesting a new one
 			but not allocating it*/
-			if (tr_state->direct_draw) 
+			if (tr_state->immediate_draw) 
 				visual_2d_get_drawable_context(visual);
 			return 1;
 		}
@@ -682,7 +682,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	}
 
 	/*direct drawing, no clippers */
-	if (tr_state->direct_draw) {
+	if (tr_state->immediate_draw) {
 		if (visual->compositor->video_out->BlitTexture) {
 			if (! visual->compositor->video_out->BlitTexture(visual->compositor->video_out, ctx->aspect.fill_texture, &ctx->transform, &ctx->bi->clip, alpha, col_key
 #ifdef GF_SR_USE_DEPTH

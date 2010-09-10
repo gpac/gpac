@@ -253,7 +253,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 					ctx->bi->clip = tr_state->visual->top_clipper;
 					ctx->bi->unclip = rc;
 
-					if (tr_state->direct_draw) {
+					if (tr_state->immediate_draw) {
 						tr_state->ctx = ctx;
 						tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 						gf_node_traverse(back, tr_state);

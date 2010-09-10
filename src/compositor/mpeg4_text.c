@@ -640,7 +640,7 @@ static void Text_Traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 	/*if text selection mode, we must force redraw of the entire text span because we don't
 	if glyphs have been (un)selected*/
-	if (!tr_state->direct_draw && 
+	if (!tr_state->immediate_draw && 
 		/*text selection on*/
 		(tr_state->visual->compositor->text_selection 
 		/*text sel release*/

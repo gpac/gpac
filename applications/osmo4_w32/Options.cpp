@@ -625,8 +625,8 @@ BOOL COptRender2D::OnInitDialog()
 	Osmo4 *gpac = GetApp();
 	const char *sOpt;
 
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "DirectDraw");
-	if (sOpt && !stricmp(sOpt, "yes")) {
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Compositor", "DrawMode");
+	if (sOpt && !stricmp(sOpt, "immediate")) {
 		m_DirectRender.SetCheck(1);
 	} else {
 		m_DirectRender.SetCheck(0);
@@ -667,7 +667,7 @@ void COptRender2D::SetYUV()
 void COptRender2D::SaveOptions()
 {
 	Osmo4 *gpac = GetApp();
-	gf_cfg_set_key(gpac->m_user.config, "Compositor", "DirectDraw", m_DirectRender.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Compositor", "DrawMode", m_DirectRender.GetCheck() ? "immediate" : "defer");
 	gf_cfg_set_key(gpac->m_user.config, "Compositor", "ScalableZoom", m_Scalable.GetCheck() ? "yes" : "no");
 
 	gf_cfg_set_key(gpac->m_user.config, "Compositor", "DisableYUV", m_NoYUV.GetCheck() ? "yes" : "no");

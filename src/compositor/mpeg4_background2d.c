@@ -125,7 +125,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 	} else {
 		
 		/*direct drawing, draw without clippers */
-		if (tr_state->direct_draw) {
+		if (tr_state->immediate_draw) {
 			/*directly clear with specified color*/
 			tr_state->visual->ClearSurface(tr_state->visual, &ctx->bi->clip, ctx->aspect.fill_color);
 		} else {

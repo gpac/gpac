@@ -214,6 +214,7 @@ struct __tag_compositor
 	u32 force_next_frame_redraw;
 	/*freeze_display prevents any screen updates - needed when output driver uses direct video memory access*/
 	Bool is_hidden, freeze_display;
+	Bool debug_defer;
 
 	/*current frame number*/
 	u32 frame_number;
@@ -661,6 +662,7 @@ typedef struct _group_cache_candidate GF_CacheCandidate;
 
 #define MAX_USER_CLIP_PLANES		4
 
+
 /*the traversing context: set_up at top-level and passed through SFNode_Render. Each node is responsible for 
 restoring the context state before returning*/
 struct _traversing_state
@@ -676,7 +678,7 @@ struct _traversing_state
 	/*current traversing mode*/
 	u32 traversing_mode;
 	/*for 2D drawing, indicates objects are to be drawn as soon as traversed, at each frame*/
-	Bool direct_draw;
+	Bool immediate_draw;
 	/*current subtree is part of a switched-off subtree (needed for audio)*/
 	Bool switched_off;
 	/*set by the traversed subtree to indicate no cull shall be performed*/

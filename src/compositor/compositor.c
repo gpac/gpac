@@ -689,7 +689,7 @@ void compositor_set_ar_scale(GF_Compositor *compositor, Fixed scaleX, Fixed scal
 
 static void gf_sc_reset(GF_Compositor *compositor)
 {
-	Bool direct_draw;
+	Bool draw_mode;
 	
 	GF_VisualManager *visual;
 	u32 i=0;
@@ -714,7 +714,7 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	gf_list_reset(compositor->previous_sensors);
 
 	/*reset traverse state*/
-	direct_draw = compositor->traverse_state->direct_draw;
+	draw_mode = compositor->traverse_state->immediate_draw;
 	gf_list_del(compositor->traverse_state->vrml_sensors);
 	gf_list_del(compositor->traverse_state->use_stack);
 	memset(compositor->traverse_state, 0, sizeof(GF_TraverseState));
@@ -722,7 +722,7 @@ static void gf_sc_reset(GF_Compositor *compositor)
 	compositor->traverse_state->use_stack = gf_list_new();
 	gf_mx2d_init(compositor->traverse_state->transform);
 	gf_cmx_init(&compositor->traverse_state->color_mat);
-	compositor->traverse_state->direct_draw = direct_draw;
+	compositor->traverse_state->immediate_draw = draw_mode;
 
 #ifdef GF_SR_USE_DEPTH
 	compositor->traverse_state->depth_gain = FIX_ONE;
@@ -1002,10 +1002,17 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 	/*load options*/
 	if (compositor->video_out->hw_caps & GF_VIDEO_HW_DIRECT_ONLY) {
-		compositor->traverse_state->direct_draw = 1;
+		compositor->traverse_state->immediate_draw = 1;
 	} else {
-		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DirectDraw");
-		compositor->traverse_state->direct_draw = (sOpt && ! stricmp(sOpt, "yes")) ? 1 : 0;
+		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DrawMode");
+		if (!sOpt) { sOpt = "defer"; gf_cfg_set_key(compositor->user->config, "Compositor", "DrawMode", sOpt); }
+
+		if (!strcmp(sOpt, "immediate")) compositor->traverse_state->immediate_draw = 1;
+		else if (!strcmp(sOpt, "defer-debug")) {
+			compositor->traverse_state->immediate_draw = 0;
+			compositor->debug_defer = 1;
+		}
+		else compositor->traverse_state->immediate_draw = 0;
 	}
 	
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ScalableZoom");
@@ -1220,9 +1227,10 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		gf_sc_reload_config(compositor);
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
-	case GF_OPT_DIRECT_DRAW:
+	case GF_OPT_DRAW_MODE:
 		if (!(compositor->video_out->hw_caps & GF_VIDEO_HW_DIRECT_ONLY)) {
-			compositor->traverse_state->direct_draw = value ? 1 : 0;
+			compositor->traverse_state->immediate_draw = (value==GF_DRAW_MODE_IMMEDIATE) ? 1 : 0;
+			compositor->debug_defer = (value==GF_DRAW_MODE_DEFER_DEBUG) ? 1 : 0;
 			/*force redraw*/
 			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		}
@@ -1412,7 +1420,10 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	case GF_OPT_TEXTURE_TEXT: return compositor->texture_text_mode;
 	case GF_OPT_USE_OPENGL: return compositor->force_opengl_2d;
 
-	case GF_OPT_DIRECT_DRAW: return compositor->traverse_state->direct_draw ? 1 : 0;
+	case GF_OPT_DRAW_MODE:
+		if (compositor->traverse_state->immediate_draw) return GF_DRAW_MODE_IMMEDIATE;
+		if (compositor->debug_defer) return GF_DRAW_MODE_DEFER_DEBUG;
+		return GF_DRAW_MODE_DEFER;
 	case GF_OPT_SCALABLE_ZOOM: return compositor->scalable_zoom;
 	case GF_OPT_YUV_HARDWARE: return compositor->enable_yuv_hw;
 	case GF_OPT_YUV_FORMAT: return compositor->enable_yuv_hw ? compositor->video_out->yuv_pixel_format : 0;
@@ -1728,12 +1739,12 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		compositor->traverse_state->in_group_cache = 1;
 #endif
 
-	flags = compositor->traverse_state->direct_draw;
+	flags = compositor->traverse_state->immediate_draw;
 
 	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
 
 
-	compositor->traverse_state->direct_draw = flags;
+	compositor->traverse_state->immediate_draw = flags;
 #ifdef GF_SR_USE_VIDEO_CACHE
 	gf_list_reset(compositor->cached_groups_queue);
 #endif
@@ -2015,7 +2026,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		compositor->networks_time, 
 		compositor->decoders_time, 
 		compositor->frame_number, 
-		compositor->traverse_state->direct_draw,
+		compositor->traverse_state->immediate_draw,
 		compositor->visual_config_time,
 		event_time, 
 		route_time, 

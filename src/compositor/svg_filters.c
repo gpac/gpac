@@ -256,8 +256,8 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 									st->txh.stride, 
 									st->txh.pixelformat);
 
-	prev_flags = tr_state->direct_draw;
-	tr_state->direct_draw = 1;
+	prev_flags = tr_state->immediate_draw;
+	tr_state->immediate_draw = 1;
 	tr_state->traversing_mode = TRAVERSE_SORT;
 	tr_state->in_svg_filter = 1;
 
@@ -314,7 +314,7 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 
 	/*restore state and destroy whatever needs to be cleaned*/
 	tr_state->in_svg_filter = 0;
-	tr_state->direct_draw = prev_flags;
+	tr_state->immediate_draw = prev_flags;
 	tr_state->visual->compositor->rasterizer->surface_delete(offscreen_surface);
 	tr_state->visual->raster_surface = old_surf;
 	tr_state->traversing_mode = TRAVERSE_SORT;

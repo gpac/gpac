@@ -708,7 +708,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseState *tr_state)
 {
 	/*if direct draw we can remove the context*/
-	Bool res = tr_state->direct_draw;
+	Bool res = tr_state->immediate_draw ? 1 : 0;
 	/*copy final transform, once all parent layout is done*/
 	gf_mx2d_copy(ctx->transform, tr_state->transform);
 
