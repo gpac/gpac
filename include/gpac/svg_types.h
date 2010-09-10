@@ -611,8 +611,8 @@ enum {
 
 typedef struct {
 	u32 count;
-    u8 *units;
 	Fixed* vals;
+    u8 *units;
 } UnitArray;
 
 typedef struct {
