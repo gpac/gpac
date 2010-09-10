@@ -517,7 +517,7 @@ GF_EXPORT
 GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u32 pck_size, Bool fast_send)
 {
 	GF_Err e;
-	u32 Start, i;
+	u32 i, Start;
 	char *hdr = NULL;
 
 	GF_BitStream *bs;

@@ -235,7 +235,7 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt)
 	strcpy(szPath, getenv("HOME"));
 	strcat(szPath , "/.kms_data"); 
 	got_it = 0;
-	kms = fopen(szPath, "r");
+	kms = gf_f64_open(szPath, "r");
 	while (kms && !feof(kms)) {
 		if (!fgets(szPath, 1024, kms)) break;
 		szPath[strlen(szPath) - 1] = 0;
@@ -284,7 +284,7 @@ static GFINLINE void resync_IV(GF_Crypt *mc, u64 BSO, char *salt)
 }
 
 GF_EXPORT
-GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u32 done, u32 total), void *cbk)
+GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk)
 {
 	GF_Err e;
 	Bool use_sel_enc;
@@ -516,7 +516,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			}
 		} else if (!drm_file) {
 			FILE *test = NULL;
-			if (!stricmp(scheme_URI, "urn:gpac:isma:encryption_scheme")) test = fopen(KMS_URI, "rt");
+			if (!stricmp(scheme_URI, "urn:gpac:isma:encryption_scheme")) test = gf_f64_open(KMS_URI, "rt");
 
 			if (!test) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[ISMA E&A] TrackID %d does not contain decryption keys - skipping\n", trackID));
@@ -549,7 +549,7 @@ GF_Err gf_ismacryp_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 }
 
 GF_EXPORT
-GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u32 done, u32 total), void *cbk)
+GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk)
 {
 	char IV[16];
 	GF_ISOSample *samp;
@@ -904,7 +904,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 	Bool is_isom = gf_isom_probe_file(file);
 #endif
 
-	in = fopen(file, "rb");
+	in = gf_f64_open(file, "rb");
 	gf_f64_seek(in, 0, SEEK_END);
 	size = gf_f64_tell(in);
 	gf_f64_seek(in, 0, SEEK_SET);

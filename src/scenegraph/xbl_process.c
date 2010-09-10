@@ -69,7 +69,7 @@ static GF_Err xbl_parse_report(GF_XBL_Parser *parser, GF_Err e, char *format, ..
 	return e;
 }
 
-static void xbl_parse_progress(void *cbk, u32 done, u32 total)
+static void xbl_parse_progress(void *cbk, u64 done, u64 total)
 {
 	gf_set_progress("XBL Parsing", done, total);
 }

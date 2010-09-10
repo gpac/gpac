@@ -62,20 +62,20 @@ static s32 gf_text_get_utf_type(FILE *in_src)
 	if ((BOM[0]==0xFF) && (BOM[1]==0xFE)) {
 		/*UTF32 not supported*/
 		if (!BOM[2] && !BOM[3]) return -1;
-		fseek(in_src, 2, SEEK_SET);
+		gf_f64_seek(in_src, 2, SEEK_SET);
 		return 3;
 	} 
 	if ((BOM[0]==0xFE) && (BOM[1]==0xFF)) {
 		/*UTF32 not supported*/
 		if (!BOM[2] && !BOM[3]) return -1;
-		fseek(in_src, 2, SEEK_SET);
+		gf_f64_seek(in_src, 2, SEEK_SET);
 		return 2;
 	} else if ((BOM[0]==0xEF) && (BOM[1]==0xBB) && (BOM[2]==0xBF)) {
-		fseek(in_src, 3, SEEK_SET);
+		gf_f64_seek(in_src, 3, SEEK_SET);
 		return 1;
 	}
 	if (BOM[0]<0x80) {
-		fseek(in_src, 0, SEEK_SET);
+		gf_f64_seek(in_src, 0, SEEK_SET);
 		return 0;
 	}
 	return -1;
@@ -86,7 +86,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 	char szLine[2048];
 	u32 val;
 	s32 uni_type;
-	FILE *test = fopen(filename, "rb");
+	FILE *test = gf_f64_open(filename, "rb");
 	if (!test) return GF_URL_ERROR;
 	uni_type = gf_text_get_utf_type(test);
 
@@ -246,18 +246,18 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 	GF_StyleRecord rec;
 	GF_TextSample * samp;
 	GF_ISOSample *s;
-	u32 sh, sm, ss, sms, eh, em, es, ems, txt_line, char_len, char_line, nb_samp, j, duration, file_size, rem_styles;
+	u32 sh, sm, ss, sms, eh, em, es, ems, txt_line, char_len, char_line, nb_samp, j, duration, rem_styles;
 	Bool set_start_char, set_end_char, first_samp;
-	u64 start, end, prev_end;
+	u64 start, end, prev_end, file_size;
 	u32 state, curLine, line, len, ID, OCR_ES_ID;
 	s32 unicode_type;
 	char szLine[2048], szText[2048], *ptr;
 	unsigned short uniLine[5000], uniText[5000], *sptr;
 
-	srt_in = fopen(import->in_name, "rt");
-	fseek(srt_in, 0, SEEK_END);
-	file_size = ftell(srt_in);
-	fseek(srt_in, 0, SEEK_SET);
+	srt_in = gf_f64_open(import->in_name, "rt");
+	gf_f64_seek(srt_in, 0, SEEK_END);
+	file_size = gf_f64_tell(srt_in);
+	gf_f64_seek(srt_in, 0, SEEK_SET);
 
 	unicode_type = gf_text_get_utf_type(srt_in);
 	if (unicode_type<0) {
@@ -413,7 +413,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 				gf_isom_text_reset(samp);
 
 				//gf_import_progress(import, nb_samp, nb_samp+1);
-				gf_set_progress("Importing SRT", ftell(srt_in), file_size);
+				gf_set_progress("Importing SRT", gf_f64_tell(srt_in), file_size);
 				if (duration && (end >= duration)) break;
 			}
 			if (!sOK) break;
@@ -593,7 +593,8 @@ exit:
 static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 {
 	FILE *sub_in;
-	u32 track, ID, timescale, i, j, desc_idx, start, end, prev_end, nb_samp, duration, file_size, len, line;
+	u32 track, ID, timescale, i, j, desc_idx, start, end, prev_end, nb_samp, duration, len, line;
+	u64 file_size;
 	GF_TextConfig*cfg;
 	GF_Err e;
 	Double FPS;
@@ -603,10 +604,10 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	char szLine[2048], szTime[20], szText[2048];
 	GF_ISOSample *s;
 
-	sub_in = fopen(import->in_name, "rt");
-	fseek(sub_in, 0, SEEK_END);
-	file_size = ftell(sub_in);
-	fseek(sub_in, 0, SEEK_SET);
+	sub_in = gf_f64_open(import->in_name, "rt");
+	gf_f64_seek(sub_in, 0, SEEK_END);
+	file_size = gf_f64_tell(sub_in);
+	gf_f64_seek(sub_in, 0, SEEK_SET);
 	
 	unicode_type = gf_text_get_utf_type(sub_in);
 	if (unicode_type<0) {
@@ -801,7 +802,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		nb_samp++;
 		gf_isom_text_reset(samp);
 		prev_end = end;
-		gf_set_progress("Importing SUB", ftell(sub_in), file_size);
+		gf_set_progress("Importing SUB", gf_f64_tell(sub_in), file_size);
 		if (duration && (end >= duration)) break;
 	}
 	/*final flush*/
@@ -930,7 +931,7 @@ char *ttxt_parse_string(GF_MediaImporter *import, char *str, Bool strip_lines)
 	return str;
 }
 
-static void ttxt_import_progress(void *cbk, u32 cur_samp, u32 count)
+static void ttxt_import_progress(void *cbk, u64 cur_samp, u64 count)
 {
 	gf_set_progress("TTXT Loading", cur_samp, count);
 }
@@ -1319,7 +1320,7 @@ typedef struct
 	}	
 
 
-static void texml_import_progress(void *cbk, u32 cur_samp, u32 count)
+static void texml_import_progress(void *cbk, u64 cur_samp, u64 count)
 {
 	gf_set_progress("TeXML Loading", cur_samp, count);
 }

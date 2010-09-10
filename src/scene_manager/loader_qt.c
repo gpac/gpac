@@ -171,7 +171,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 		gf_list_add(odU->objectDescriptors, od);
 
 		samp = gf_isom_get_sample(src, tk, i+1, &di);
-		img = fopen(mi->file_name, "wb");
+		img = gf_f64_open(mi->file_name, "wb");
 		fwrite(samp->data, samp->dataLength, 1, img);
 		fclose(img);
 		gf_isom_sample_del(&samp);

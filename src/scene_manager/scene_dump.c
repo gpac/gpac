@@ -98,7 +98,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 			tmp->filename = gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name ? _rad_name : "");
 			strcat(tmp->filename, ext_name);
-			tmp->trace = fopen(tmp->filename, "wt");
+			tmp->trace = gf_f64_open(tmp->filename, "wt");
 			if (!tmp->trace) {
 				gf_free(tmp);
 				return NULL;
@@ -137,7 +137,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 			tmp->filename = gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name ? _rad_name : "");
 			strcat(tmp->filename, ext_name);
-			tmp->trace = fopen(tmp->filename, "wt");
+			tmp->trace = gf_f64_open(tmp->filename, "wt");
 			if (!tmp->trace) {
 				gf_free(tmp);
 				return NULL;

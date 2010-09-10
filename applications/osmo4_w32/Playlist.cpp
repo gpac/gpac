@@ -576,7 +576,7 @@ void Playlist::OnPlSave()
 
 void Playlist::Save(char *szPath, Bool save_m3u) 
 {
-	FILE *out = fopen(szPath, "wt");
+	FILE *out = gf_f64_open(szPath, "wt");
 	if (!save_m3u) 
 		fprintf(out, "[playlist]\nNumberOfEntries=%d\n", gf_list_count(m_entries));
 
@@ -621,7 +621,7 @@ void Playlist::OpenPlayList(CString fileName)
 	if (sep) sep[1] = 0;
 	else szPath[0] = 0;
 
-	pl = fopen(fileName, "rt");
+	pl = gf_f64_open(fileName, "rt");
 	if (!pl) return;
 	ple = NULL;
 	load_m3u = 1;

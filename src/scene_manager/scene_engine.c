@@ -340,7 +340,7 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 	char rad_name[4096];
 	char file_name[4096];
 	FILE *file = NULL;
-	u32 fsize;
+	u64 fsize;
 	char *buffer = NULL;
 	GF_BitStream *bs = NULL;
 	u32 offset;
@@ -407,14 +407,14 @@ start:
 #endif
 	
 	sprintf(file_name, "%s.svg", rad_name);
-	file = fopen(file_name, "rb");
+	file = gf_f64_open(file_name, "rb");
 	if (!file) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot open SVG dump file %s\n", file_name)); 
 		e = GF_IO_ERR;
 		goto exit;
 	}
-	fseek(file, 0, SEEK_END);
-	fsize = ftell(file);
+	gf_f64_seek(file, 0, SEEK_END);
+	fsize = gf_f64_tell(file);
 	
 	if (fsize == 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] SVG dump %s is empty\n", file_name)); 
@@ -422,9 +422,9 @@ start:
 	}
 
 	/* First, read the dump in a buffer */
-	buffer = gf_malloc(fsize * sizeof(char));
-	fseek(file, 0, SEEK_SET);
-	fsize = fread(buffer, sizeof(char), fsize, file);
+	buffer = gf_malloc((size_t)fsize * sizeof(char));
+	gf_f64_seek(file, 0, SEEK_SET);
+	fsize = fread(buffer, sizeof(char), (size_t)fsize, file);
 	fclose(file);
     file = NULL;
 
@@ -438,7 +438,8 @@ start:
 	}
 
 	/* Then, if compression is asked, we do it */
-	buffer_len = fsize;
+	buffer_len = (u32)fsize;
+	assert(fsize < 1<<31);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len)); 
 	if (compress_dims) {
 		dims_header |= GF_DIMS_UNIT_C;

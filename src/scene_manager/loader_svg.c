@@ -145,7 +145,7 @@ static GF_Err svg_report(GF_SVG_Parser *parser, GF_Err e, char *format, ...)
 	return e;
 }
 
-static void svg_progress(void *cbk, u32 done, u32 total)
+static void svg_progress(void *cbk, u64 done, u64 total)
 {
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)cbk;
 
@@ -222,19 +222,19 @@ static void svg_process_media_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *i
 		}
 	}
 	if ((parser->load->flags & GF_SM_LOAD_EMBEDS_RES) && (iri->type==XMLRI_STRING) ) {
-		u32 size;
+		u64 size;
 		char *buffer;
 		FILE *f;
-		f = fopen(iri->string, "rb");
+		f = gf_f64_open(iri->string, "rb");
 		if (!f) {
 			return;
 		}
-		fseek(f, 0, SEEK_END);
-		size = ftell(f);
-		fseek(f, 0, SEEK_SET);
+		gf_f64_seek(f, 0, SEEK_END);
+		size = gf_f64_tell(f);
+		gf_f64_seek(f, 0, SEEK_SET);
 
-		buffer = gf_malloc(sizeof(char) * (size+1));
-		size = fread(buffer, sizeof(char), size, f);
+		buffer = gf_malloc(sizeof(char) * (size_t)(size+1));
+		size = fread(buffer, sizeof(char), (size_t)size, f);
 		fclose(f);
 
 
@@ -266,10 +266,10 @@ static void svg_process_media_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *i
 		} else {
 			char *mtype;
 			char *buf64;
-			u32 size64;
+			u64 size64;
 			char *ext;
-			buf64 = gf_malloc(size*2);
-			size64 = gf_base64_encode(buffer, size, buf64, size*2);
+			buf64 = gf_malloc((size_t)size*2);
+			size64 = gf_base64_encode(buffer, (u32)size, buf64, (u32)size*2);
 			buf64[size64] = 0;
 			mtype = "application/data";
 			ext = strchr(iri->string, '.');
@@ -278,7 +278,7 @@ static void svg_process_media_href(GF_SVG_Parser *parser, GF_Node *elt, XMLRI *i
 				if (!stricmp(ext, ".jpg") || !stricmp(ext, ".jpeg")) mtype = "image/jpg";
 			}
 			gf_free(iri->string);
-			iri->string = gf_malloc(sizeof(char)*(40+size64));
+			iri->string = gf_malloc(sizeof(char)*(40+(size_t)size64));
 			sprintf(iri->string, "data:%s;base64,%s", mtype, buf64);
 			gf_free(buf64);
 			gf_free(buffer);
@@ -1406,7 +1406,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 					strcat(szName, "_temp.nhml");
 					mux->file_name = gf_strdup(szName);
 					st->nhml_info = mux->file_name;
-					nhml = fopen(st->nhml_info, "wt");
+					nhml = gf_f64_open(st->nhml_info, "wt");
 					fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 					fprintf(nhml, "<NHNTStream version=\"1.0\" timeScale=\"%d\" streamType=\"%d\" objectTypeIndication=\"%d\" inRootOD=\"no\" trackID=\"%d\">\n", ts_res, ST, OTI, st->id);
 					fclose(nhml);
@@ -1435,7 +1435,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			if (!st || !st->nhml_info) {
 				return;
 			}
-			nhml = fopen(st->nhml_info, "a+t");
+			nhml = gf_f64_open(st->nhml_info, "a+t");
 			fprintf(nhml, "<NHNTSample ");
 			if (time) fprintf(nhml, "DTS=\"%d\" ", time);
 			if (length) fprintf(nhml, "dataLength=\"%d\" ", length);
@@ -1459,7 +1459,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			if (!st || !st->nhml_info) {
 				return;
 			}
-			nhml = fopen(st->nhml_info, "a+t");
+			nhml = gf_f64_open(st->nhml_info, "a+t");
 			fprintf(nhml, "</NHNTStream>\n");
 			fclose(nhml);
 			return;

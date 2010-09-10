@@ -333,7 +333,7 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 		port += 2;
 	}
     if (sdp) {
-		FILE *out = fopen(sdp_name, "wt");
+		FILE *out = gf_f64_open(sdp_name, "wt");
         fprintf(out, sdp);
 		fclose(out);
 	    gf_free(sdp);
@@ -602,7 +602,7 @@ int live_session(int argc, char **argv)
 				fprintf(stdout, "Update file modified - processing\n");
 				last_src_modif = mod_time;
 
-				srcf = fopen(src_name, "rt");
+				srcf = gf_f64_open(src_name, "rt");
 				if (!srcf) continue;
 
 				/*checks if we have a broadcast config*/

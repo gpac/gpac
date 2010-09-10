@@ -666,11 +666,11 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 		u8 sample_index;
 		GF_TextSampleDescriptor *txdesc;
 		GF_TextSampleEntryBox *a;
-		s32 avail;
+		s64 avail;
 		u32 nb_desc = gf_bs_read_int(bs, 8);
 
 		/*parse TTU[5]s*/
-		avail = (s32) gf_bs_available(bs);
+		avail = (s64) gf_bs_available(bs);
 		for (i=0; i<nb_desc; i++) {
 			sample_index = gf_bs_read_int(bs, 8);
 			avail -= 1;

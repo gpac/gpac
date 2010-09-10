@@ -164,7 +164,7 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	if (fb->pixel_format==GF_PIXEL_GREYSCALE) sprintf(str, "%s_%d_depth.bmp", rad_name, img_num);
 	else sprintf(str, "%s_%d.bmp", rad_name, img_num);
 
-	fout = fopen(str, "wb");
+	fout = gf_f64_open(str, "wb");
 	if (!fout) return;
 
 	memset(&fh, 0, sizeof(fh));
@@ -224,7 +224,7 @@ void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 
 	depth = (unsigned char *) fb->video_buffer;
 	
-	fout = fopen("dump_depth", "wb");
+	fout = gf_f64_open("dump_depth", "wb");
 	if (!fout) return;
 	for (j=0; j<fb->height;  j++) {
 		for (i=0;i<fb->width; i++) {
@@ -250,8 +250,8 @@ void write_texture_file(GF_VideoSurface *fb, char *rad_name, u32 img_num, u32 du
 
 	buf = (unsigned char *) fb->video_buffer;
 	
-	if (dump_mode==6) fout = fopen("dump_rgbds", "wb");
-	else if (dump_mode==9) fout = fopen("dump_rgbd", "wb");
+	if (dump_mode==6) fout = gf_f64_open("dump_rgbds", "wb");
+	else if (dump_mode==9) fout = gf_f64_open("dump_rgbd", "wb");
 	else return;
 	
 	if (!fout) return;
@@ -280,7 +280,7 @@ void write_raw(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 		sprintf(str, "%s_%d.raw", rad_name, img_num);
 	}
 
-	fout = fopen(str, "wb");
+	fout = gf_f64_open(str, "wb");
 	if (!fout) return;
 
 	

@@ -3424,10 +3424,10 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, char *str, Bool inp
 	parser->last_error = GF_OK;
 	
 	if (load->fileName) {
-		FILE *test = fopen(load->fileName, "rb");
+		FILE *test = gf_f64_open(load->fileName, "rb");
 		if (!test) return GF_URL_ERROR;
-		fseek(test, 0, SEEK_END);
-		size = ftell(test);
+		gf_f64_seek(test, 0, SEEK_END);
+		size = (u32) gf_f64_tell(test);
 		fclose(test);
 
 		gzInput = gzopen(load->fileName, "rb");

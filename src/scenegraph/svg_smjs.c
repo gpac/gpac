@@ -2262,7 +2262,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 	GF_SVGJS *svg_js;
 
 	svg_js = script->sgprivate->scenegraph->svg_js;
-	jsf = fopen(file, "rb");
+	jsf = gf_f64_open(file, "rb");
 	if (!jsf) {
 		GF_JSAPIParam par;
 		GF_SceneGraph *scene = script->sgprivate->scenegraph;
@@ -2272,17 +2272,17 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 			abs_url = (char *) par.uri.url;
 
 		if (abs_url) {
-			jsf = fopen(abs_url, "rb");
+			jsf = gf_f64_open(abs_url, "rb");
 			gf_free(abs_url);
 		}
 	}
 	if (!jsf) return 0;
 
-	fseek(jsf, 0, SEEK_END);
-	fsize = ftell(jsf);
-	fseek(jsf, 0, SEEK_SET);
-	jsscript = gf_malloc(sizeof(char)*(fsize+1));
-	fsize = fread(jsscript, sizeof(char), fsize, jsf);
+	gf_f64_seek(jsf, 0, SEEK_END);
+	fsize = (u32) gf_f64_tell(jsf);
+	gf_f64_seek(jsf, 0, SEEK_SET);
+	jsscript = gf_malloc(sizeof(char)*(size_t)(fsize+1));
+	fsize = fread(jsscript, sizeof(char), (size_t)fsize, jsf);
 	fclose(jsf);
 	jsscript[fsize] = 0;
 

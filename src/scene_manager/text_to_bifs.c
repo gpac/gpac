@@ -52,7 +52,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 {
 	char szLine[2048], szTest[10];
 	u32 val;
-	FILE *test = fopen(filename, "rt");
+	FILE *test = gf_f64_open(filename, "rt");
 	if (!test) return GF_URL_ERROR;
 
 	while (fgets(szLine, 2048, test) != NULL) {
@@ -141,7 +141,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		}
 	}
 
-	srt_in = fopen(mux->file_name, "rt");
+	srt_in = gf_f64_open(mux->file_name, "rt");
 	if (!srt_in) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] cannot open input file %s\n", mux->file_name));
 		return GF_URL_ERROR;
@@ -395,7 +395,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		}
 	}
 
-	sub_in = fopen(mux->file_name, "rt");
+	sub_in = gf_f64_open(mux->file_name, "rt");
 	if (!sub_in) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[sub->bifs] cannot open input file %s\n", mux->file_name));
 		return GF_URL_ERROR;

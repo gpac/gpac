@@ -213,7 +213,7 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 	if (!skip_migration) {
 		session_cache = (char *) gf_modules_get_option((GF_BaseInterface *) plug, "Streaming", "SessionMigrationFile");
 		if (session_cache && session_cache[0]) {
-			FILE *f = fopen(session_cache, "rb");
+			FILE *f = gf_f64_open(session_cache, "rb");
 			if (f) {
 				fclose(f);
 				GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Restarting RTSP session from %s\n", session_cache));

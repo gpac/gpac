@@ -171,12 +171,12 @@ struct __tag_m4v_parser
 	GF_BitStream *bs;
 	Bool mpeg12;
 	u32 current_object_type;
-	u32 current_object_start;
+	u64 current_object_start;
 	u32 tc_dec, prev_tc_dec, tc_disp, prev_tc_disp;
 };
 
 GF_EXPORT
-GF_M4VParser *gf_m4v_parser_new(char *data, u32 data_size, Bool mpeg12video)
+GF_M4VParser *gf_m4v_parser_new(char *data, u64 data_size, Bool mpeg12video)
 {
 	GF_M4VParser *tmp;
 	if (!data || !data_size) return NULL;
@@ -235,7 +235,7 @@ s32 M4V_LoadObject(GF_M4VParser *m4v)
 		}
 	}
 	if (!found) return -1;
-	m4v->current_object_start = (u32) end;
+	m4v->current_object_start = end;
 	gf_bs_seek(m4v->bs, end+3);
 	m4v->current_object_type = gf_bs_read_u8(m4v->bs);
 	return (s32) m4v->current_object_type;
@@ -268,10 +268,11 @@ void gf_m4v_rewrite_pl(char **o_data, u32 *o_dataLen, u8 PL)
 	(*o_dataLen) = dataLen + 5;
 }
 
-static GF_Err M4V_Reset(GF_M4VParser *m4v, u32 start)
+static GF_Err M4V_Reset(GF_M4VParser *m4v, u64 start)
 {
 	gf_bs_seek(m4v->bs, start);
-	m4v->current_object_start = start;
+	assert(start < 1<<31);
+	m4v->current_object_start = (u32) start;
 	m4v->current_object_type = 0;
 	return GF_OK;
 }
@@ -341,7 +342,7 @@ static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *d
 		/*EOS*/
 		case -1:
 			go = 0;
-			m4v->current_object_start = (u32) gf_bs_get_position(m4v->bs);
+			m4v->current_object_start = gf_bs_get_position(m4v->bs);
 			break;
 		}
 	}
@@ -443,7 +444,7 @@ static GF_Err gf_m4v_parse_config_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *ds
 		/*EOS*/
 		case -1:
 			go = 0;
-			m4v->current_object_start = (u32) gf_bs_get_position(m4v->bs);
+			m4v->current_object_start = gf_bs_get_position(m4v->bs);
 			break;
 		/*don't interest us*/
 		case M4V_UDTA_START_CODE:
@@ -464,7 +465,7 @@ GF_Err gf_m4v_parse_config(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 	}
 }
 
-static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u32 *size, u32 *start, Bool *is_coded)
+static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded)
 {
 	u8 go, hasVOP, firstObj, val;
 	s32 o_type;
@@ -526,7 +527,7 @@ static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi
 			break;
 
 		case -1:
-			*size = (u32) gf_bs_get_position(m4v->bs) - *start;
+			*size = gf_bs_get_position(m4v->bs) - *start;
 			return GF_EOS;
 		}
 	}
@@ -534,7 +535,7 @@ static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi
 	return GF_OK;
 }
 
-static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u32 *size, u32 *start, Bool *is_coded)
+static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded)
 {
 	u8 go, hasVOP, firstObj, secs;
 	s32 o_type;
@@ -616,7 +617,7 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 			break;
 
 		case -1:
-			*size = (u32) gf_bs_get_position(m4v->bs) - *start;
+			*size = gf_bs_get_position(m4v->bs) - *start;
 			return GF_EOS;
 		}
 	}
@@ -625,7 +626,7 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 }
 
 GF_EXPORT
-GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u32 *size, u32 *start, Bool *is_coded)
+GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded)
 {
 	if (m4v->mpeg12) {
 		return gf_m4v_parse_frame_mpeg12(m4v, dsi, frame_type, time_inc, size, start, is_coded);
@@ -636,7 +637,7 @@ GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_ty
 
 GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 {
-	u32 start, end, size;
+	u64 start, end, size;
 	GF_BitStream *mod;
 	GF_M4VParser *m4v;
 	Bool go = 1;
@@ -648,11 +649,12 @@ GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 	while (go) {
 		u32 type = M4V_LoadObject(m4v);
 
-		end = (u32) gf_bs_get_position(m4v->bs) - 4;
+		end = gf_bs_get_position(m4v->bs) - 4;
 		size = end - start;
 		/*store previous object*/
 		if (size) {
-			if (size) gf_bs_write_data(mod, *o_data + start, size);
+			assert (size < 1<<31);
+			if (size) gf_bs_write_data(mod, *o_data + start, (u32) size);
 			start = end;
 		}
 
@@ -665,7 +667,7 @@ GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 			gf_bs_write_int(mod, gf_bs_read_int(m4v->bs, 1), 1);
 			gf_bs_write_int(mod, gf_bs_read_int(m4v->bs, 8), 8);
 			start = gf_bs_read_int(m4v->bs, 1);
-			gf_bs_write_int(mod, start, 1);
+			gf_bs_write_int(mod, (u32) start, 1);
 			if (start) {
 				gf_bs_write_int(mod, gf_bs_read_int(m4v->bs, 7), 7);
 			}
@@ -704,7 +706,7 @@ GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 }
 
 GF_EXPORT
-u32 gf_m4v_get_object_start(GF_M4VParser *m4v)
+u64 gf_m4v_get_object_start(GF_M4VParser *m4v)
 {
 	return m4v->current_object_start;
 }
@@ -2305,7 +2307,8 @@ static u32 avc_emulation_bytes_count(unsigned char *buffer, u32 nal_size)
 
 u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 {
-	u32 ptype, psize, hdr, written, start, var, emulation_bytes_count;
+	u32 ptype, psize, hdr, written, var, emulation_bytes_count;
+	u64 start;
 	char *new_buffer;
 	GF_BitStream *bs;
 	hdr = buffer[0];
@@ -2334,7 +2337,7 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 		}
 		psize += gf_bs_read_int(bs, 8);
 
-		start = (u32) gf_bs_get_position(bs);
+		start = gf_bs_get_position(bs);
 		do_copy = 1;
 		switch (ptype) {
 		/*remove SEI messages forbidden in MP4*/
@@ -2564,8 +2567,8 @@ static u32 AC3_FindSyncCode(u8 *buf, u32 buflen)
 static Bool AC3_FindSyncCodeBS(GF_BitStream *bs)
 {
 	u8 b1;
-	u32 pos = (u32) gf_bs_get_position(bs);
-	u32 end = (u32) gf_bs_get_size(bs) - 6;
+	u64 pos = gf_bs_get_position(bs);
+	u64 end = gf_bs_get_size(bs) - 6;
 
 	pos += 1;
 	b1 = gf_bs_read_u8(bs);
@@ -2671,11 +2674,12 @@ Bool gf_ac3_parser(u8 *buf, u32 buflen, u32 *pos, GF_AC3Header *hdr, Bool full_p
 
 Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 {
-	u32 fscod, frmsizecod, bsid, ac3_mod, freq, framesize, pos, bsmod;
+	u32 fscod, frmsizecod, bsid, ac3_mod, freq, framesize, bsmod;
+	u64 pos;
 	if (!hdr || (gf_bs_available(bs) < 6)) return 0;
 	if (!AC3_FindSyncCodeBS(bs)) return 0;
 
-	pos = (u32) gf_bs_get_position(bs);
+	pos = gf_bs_get_position(bs);
 	gf_bs_read_u32(bs);
 	fscod = gf_bs_read_int(bs, 2);
 	frmsizecod = gf_bs_read_int(bs, 6);

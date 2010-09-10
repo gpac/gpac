@@ -55,16 +55,16 @@ typedef struct __tag_m4v_parser GF_M4VParser;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-GF_M4VParser *gf_m4v_parser_new(char *data, u32 data_size, Bool mpeg12video);
+GF_M4VParser *gf_m4v_parser_new(char *data, u64 data_size, Bool mpeg12video);
 GF_M4VParser *gf_m4v_parser_bs_new(GF_BitStream *bs, Bool mpeg12video);
 void gf_m4v_parser_del(GF_M4VParser *m4v);
 GF_Err gf_m4v_parse_config(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi);
 
 /*get a frame (can contain GOP). The parser ALWAYS resync on the next object in the bitstream
 thus you can seek the bitstream to copy the payload without re-seeking it */
-GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u32 *size, u32 *start, Bool *is_coded);
+GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_type, u32 *time_inc, u64 *size, u64 *start, Bool *is_coded);
 /*returns current object start in bitstream*/
-u32 gf_m4v_get_object_start(GF_M4VParser *m4v);
+u64 gf_m4v_get_object_start(GF_M4VParser *m4v);
 /*returns 1 if current object is a valid MPEG-4 Visual object*/
 Bool gf_m4v_is_valid_object_type(GF_M4VParser *m4v);
 /*decodes DSI*/

@@ -112,7 +112,7 @@ GF_Err dump_cover_art(GF_ISOFile *file, char *inName)
 	}
 
 	sprintf(szName, "%s.%s", inName, (tag_len>>31) ? "png" : "jpg");
-	t = fopen(szName, "wb");
+	t = gf_f64_open(szName, "wb");
 	fwrite(tag, tag_len & 0x7FFFFFFF, 1, t);
 	
 	fclose(t);
@@ -127,10 +127,10 @@ GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 	char *tag, *ext;
 	FILE *t;
 	u32 tag_len;
-	t = fopen(inName, "rb");
-	fseek(t, 0, SEEK_END);
-	tag_len = ftell(t);
-	fseek(t, 0, SEEK_SET);
+	t = gf_f64_open(inName, "rb");
+	gf_f64_seek(t, 0, SEEK_END);
+	tag_len = gf_f64_tell(t);
+	gf_f64_seek(t, 0, SEEK_SET);
 	tag = gf_malloc(sizeof(char) * tag_len);
 	tag_len = fread(tag, sizeof(char), tag_len, t);
 	fclose(t);
@@ -196,7 +196,7 @@ GF_Err dump_file_text(char *file, char *inName, u32 dump_mode, Bool do_log)
 	if (do_log) {
 		char szLog[GF_MAX_PATH];
 		sprintf(szLog, "%s_dec.logs", inName);
-		logs = fopen(szLog, "wt");
+		logs = gf_f64_open(szLog, "wt");
 
 		gf_log_set_tools(GF_LOG_CODING);
 		gf_log_set_level(GF_LOG_DEBUG);
@@ -396,7 +396,7 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 	if (inName) {
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_stat.xml");
-		dump = fopen(szBuf, "wt");
+		dump = gf_f64_open(szBuf, "wt");
 		close = 1;
 	} else {
 		dump = stdout;
@@ -744,7 +744,7 @@ void dump_isom_xml(GF_ISOFile *file, char *inName)
 	if (inName) {
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_info.xml");
-		dump = fopen(szBuf, "wt");
+		dump = gf_f64_open(szBuf, "wt");
 		gf_isom_dump(file, dump);
 		fclose(dump);
 	} else {
@@ -765,7 +765,7 @@ void dump_file_rtp(GF_ISOFile *file, char *inName)
 	if (inName) {
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_rtp.xml");
-		dump = fopen(szBuf, "wt");
+		dump = gf_f64_open(szBuf, "wt");
 	} else {
 		dump = stdout;
 	}
@@ -798,7 +798,7 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 	if (inName) {
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_ts.txt");
-		dump = fopen(szBuf, "wt");
+		dump = gf_f64_open(szBuf, "wt");
 	} else {
 		dump = stdout;
 	}
@@ -855,7 +855,7 @@ void dump_file_ismacryp(GF_ISOFile *file, char *inName)
 	if (inName) {
 		strcpy(szBuf, inName);
 		strcat(szBuf, "_ismacryp.xml");
-		dump = fopen(szBuf, "wt");
+		dump = gf_f64_open(szBuf, "wt");
 	} else {
 		dump = stdout;
 	}
@@ -908,7 +908,7 @@ void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_
 			sprintf(szBuf, "%s.%s", inName, (dump_type==2) ? "svg" : ((dump_type==1) ? "srt" : "ttxt") ) ;
 		else
 			sprintf(szBuf, "%s_%d_text.%s", inName, trackID, (dump_type==2) ? "svg" : ((dump_type==1) ? "srt" : "ttxt") );
-		dump = fopen(szBuf, "wt");
+		dump = gf_f64_open(szBuf, "wt");
 	} else {
 		dump = stdout;
 	}
@@ -936,7 +936,7 @@ void DumpSDP(GF_ISOFile *file, char *inName)
 		ext = strchr(szBuf, '.');
 		if (ext) ext[0] = 0;
 		strcat(szBuf, "_sdp.txt");
-		dump = fopen(szBuf, "wt");
+		dump = gf_f64_open(szBuf, "wt");
 	} else {
 		dump = stdout;
 		fprintf(dump, "* File SDP content *\n\n");
@@ -1012,7 +1012,7 @@ GF_Err dump_chapters(GF_ISOFile *file, char *inName)
 	sprintf(szName, "%s.chap", inName);
 	GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Extracting chapters to %s\n", szName));
 
-	t = fopen(szName, "wt");
+	t = gf_f64_open(szName, "wt");
 	if (!t) return GF_IO_ERR;
 	
 	for (i=0; i<count;i++) {
@@ -1817,16 +1817,16 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 	u32 size, fsize, fdone;
 	GF_M2TS_Demuxer *ts;
 
-	FILE *src = fopen(mpeg2ts_file, "rb");
+	FILE *src = gf_f64_open(mpeg2ts_file, "rb");
 
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_dump_event;
 	memset(&dumper, 0, sizeof(GF_M2TS_Dump));
 	ts->user = &dumper;
 	
-	fseek(src, 0, SEEK_END);
-	fsize = ftell(src);
-	fseek(src, 0, SEEK_SET);
+	gf_f64_seek(src, 0, SEEK_END);
+	fsize = gf_f64_tell(src);
+	gf_f64_seek(src, 0, SEEK_SET);
 	fdone = 0;
 
 	if (pes_out_name) {
@@ -1835,11 +1835,11 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 			dumper.dump_pid = atoi(pid+1);
 			pid[0] = 0;
 			sprintf(dumper.dump, "%s_%d.media", pes_out_name, dumper.dump_pid);
-			dumper.pes_out = fopen(dumper.dump, "wb");
+			dumper.pes_out = gf_f64_open(dumper.dump, "wb");
 			sprintf(dumper.nhml, "%s_%d.nhml", pes_out_name, dumper.dump_pid);
-			dumper.pes_out_nhml = fopen(dumper.nhml, "wt");
+			dumper.pes_out_nhml = gf_f64_open(dumper.nhml, "wt");
 			sprintf(dumper.info, "%s_%d.info", pes_out_name, dumper.dump_pid);
-			dumper.pes_out_info = fopen(dumper.info, "wb");
+			dumper.pes_out_info = gf_f64_open(dumper.info, "wb");
 			pid[0] = '#';
 		}
 	}

@@ -3357,12 +3357,12 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 
 	if (!strnicmp(nameUTF8, "file://", 7)) {
 		u8 BOM[4];
-		FILE *f = fopen(nameUTF8+7, "rb");
-		u32 size;
+		FILE *f = gf_f64_open(nameUTF8+7, "rb");
+		u64 size;
 		if (!f) return GF_URL_ERROR;
-		fseek(f, 0, SEEK_END);
-		size = ftell(f);
-		fseek(f, 0, SEEK_SET);
+		gf_f64_seek(f, 0, SEEK_END);
+		size = gf_f64_tell(f);
+		gf_f64_seek(f, 0, SEEK_SET);
 		if (3!=fread(BOM, sizeof(char), 3, f)){
 			fclose(f);
 			return GF_CORRUPTED_DATA;
@@ -3373,9 +3373,9 @@ GF_Err gf_isom_set_handler_name(GF_ISOFile *the_file, u32 trackNumber, const cha
 			fclose(f);
 			return GF_BAD_PARAM;
 		}
-		else fseek(f, 0, SEEK_SET);
-		trak->Media->handler->nameUTF8 = (char*)gf_malloc(sizeof(char)*(size+1));
-		size = fread(trak->Media->handler->nameUTF8, sizeof(char), size, f);
+		else gf_f64_seek(f, 0, SEEK_SET);
+		trak->Media->handler->nameUTF8 = (char*)gf_malloc(sizeof(char)*(size_t)(size+1));
+		size = fread(trak->Media->handler->nameUTF8, sizeof(char), (size_t)size, f);
 		trak->Media->handler->nameUTF8[size] = 0;
 		fclose(f);
 	} else {

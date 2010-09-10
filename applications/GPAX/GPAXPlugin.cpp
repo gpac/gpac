@@ -336,7 +336,7 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	if (config_path[strlen(config_path)-1] != '\\')
 		strcat(config_test_file, "\\");
 	strcat(config_test_file, "test");
-	FILE *ft = fopen(config_test_file, "wb");
+	FILE *ft = gf_f64_open(config_test_file, "wb");
 	if (ft) {
 		fclose(ft);
 		gf_delete_file(config_test_file);
@@ -363,7 +363,7 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 		char cfg_file[MAX_PATH];
 		/*create a blank config*/
 		sprintf(cfg_file, "%s\\%s", config_path, gpac_cfg);
-		FILE *test = fopen(cfg_file, "wt");
+		FILE *test = gf_f64_open(cfg_file, "wt");
 		if (test) fclose(test);
 		m_user.config = gf_cfg_new((const char *) config_path, gpac_cfg);
 	    if(!m_user.config) {

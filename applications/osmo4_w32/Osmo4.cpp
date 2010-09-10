@@ -139,7 +139,7 @@ u32 get_sys_col(int idx)
 	return res;
 }
 
-static void Osmo4_progress_cbk(void *usr, char *title, u32 done, u32 total)
+static void Osmo4_progress_cbk(void *usr, char *title, u64 done, u64 total)
 {
 	if (!total) return;
 	CMainFrame *pFrame = (CMainFrame *) ((Osmo4 *) usr)->m_pMainWnd;
@@ -383,7 +383,7 @@ BOOL Osmo4::InitInstance()
 	/*do we have the write privileges on this dir ? if no, use Documents and Settings*/
 	strcpy(config_file, szApplicationPath);
 	strcat(config_file, "test.txt");
-	ft = fopen(config_file, "wb");
+	ft = gf_f64_open(config_file, "wb");
 	if (ft != NULL) {
 		fclose(ft);
 		gf_delete_file(config_file);
@@ -423,7 +423,7 @@ BOOL Osmo4::InitInstance()
 
 		strcpy((char *) config_file, (const char *) szUserPath);
 		strcat((char *) config_file, "GPAC.cfg");
-		ft = fopen((const char *) config_file, "wt");
+		ft = gf_f64_open((const char *) config_file, "wt");
 		fclose(ft);
 		m_user.config = gf_cfg_new((const char *) szUserPath, "GPAC.cfg");
 		if (!m_user.config) {
@@ -535,10 +535,10 @@ BOOL Osmo4::InitInstance()
 			}
 
 			sprintf((char *) str_path, "%sgui/gui.bt", szApplicationPath);
-			t = fopen((char *) str_path, "rt");
+			t = gf_f64_open((char *) str_path, "rt");
 			if (!t) {
 				sprintf((char *) str_path, "%sgpac.mp4", szApplicationPath);
-				t = fopen((char *) str_path, "rt");
+				t = gf_f64_open((char *) str_path, "rt");
 			}
 			if (t) {
 				gf_cfg_set_key(m_user.config, "General", "StartupFile", (const char *) str_path);
@@ -588,7 +588,7 @@ BOOL Osmo4::InitInstance()
 	/*check log file*/
 	str = gf_cfg_get_key(m_user.config, "General", "LogFile");
 	if (str) {
-		m_logs = fopen(str, "wt");
+		m_logs = gf_f64_open(str, "wt");
 		gf_log_set_callback(m_logs, osmo4_do_log);
 	}
 	else m_logs = NULL;

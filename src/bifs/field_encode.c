@@ -93,14 +93,14 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 		if (node && (node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
 			u32 size, val;
 			char buf[4096];
-			FILE *f = fopen(((SFString*)field->far_ptr)->buffer, "rb");
+			FILE *f = gf_f64_open(((SFString*)field->far_ptr)->buffer, "rb");
 			if (!f) return GF_URL_ERROR;
-			fseek(f, 0, SEEK_END);
-			size = ftell(f);
+			gf_f64_seek(f, 0, SEEK_END);
+			size = (u32) gf_f64_tell(f);
 			val = gf_get_bit_size(size);
 			GF_BIFS_WRITE_INT(codec, bs, val, 5, "nbBits", NULL);
 			GF_BIFS_WRITE_INT(codec, bs, size, val, "length", NULL);
-			fseek(f, 0, SEEK_SET);
+			gf_f64_seek(f, 0, SEEK_SET);
 			while (size) {
 				u32 read = fread(buf, 1, 4096, f);
 				gf_bs_write_data(bs, buf, read);

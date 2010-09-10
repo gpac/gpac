@@ -161,21 +161,23 @@ void OD_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 void OD_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 {
 	FILE *f;
-	u32 size, readen;
+	u32 size;
+	size_t readen;
 	if (*out_data) gf_free(*out_data);
 	*out_data = NULL;
 	*out_data_size = 0;
-	f = fopen(fileName, "rb");
+	f = gf_f64_open(fileName, "rb");
 	if (!f) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ODF Parse] cannot open data file %s - skipping\n", fileName));
 		return;
 	}
-	fseek(f, 0, SEEK_END);
-	size = ftell(f);
-	fseek(f, 0, SEEK_SET);
+	gf_f64_seek(f, 0, SEEK_END);
+	assert(gf_f64_tell(f) < 1<<31);
+	size = (u32) gf_f64_tell(f);
+	gf_f64_seek(f, 0, SEEK_SET);
 	*out_data_size = size;
-	*out_data = (char*)gf_malloc(sizeof(char) * size);
-	readen = fread(*out_data, sizeof(char), size, f);
+	*out_data = (char*)gf_malloc(sizeof(char) * (size_t)size);
+	readen = fread(*out_data, sizeof(char), (size_t)size, f);
 	if (readen != size){
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[ODF Parse] readen size=%d does not match size=%d in %s\n", readen, size, fileName));
 	}
@@ -637,7 +639,7 @@ Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 	GF_BitStream *bs;
 	if (!strnicmp(val, "HTK:", 4)) {
 		char szItem[100];
-		s32 pos, bs_start, bs_cur;
+		s64 pos, bs_start, bs_cur;
 		Bool has_word;
 		u32 nb_phonems, nbWords = 0;
 		bs_start = 0;
@@ -655,7 +657,7 @@ Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 				has_word = 1;
 				nbWords++;
 				nb_phonems = 0;
-				bs_start = (u32) gf_bs_get_position(bs);
+				bs_start = gf_bs_get_position(bs);
 				/*nb phonems*/
 				gf_bs_write_int(bs, 0, 8);
 				gf_bs_write_data(bs, szItem, strlen(szItem));
@@ -678,7 +680,7 @@ Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 			if ((pos<0) || !val[0] || val[0]==';') {
 				if (has_word) {
 					has_word = 0;
-					bs_cur = (u32) gf_bs_get_position(bs);
+					bs_cur = gf_bs_get_position(bs);
 					gf_bs_seek(bs, bs_start);
 					gf_bs_write_int(bs, nb_phonems, 8);
 					gf_bs_seek(bs, bs_cur);
@@ -689,7 +691,7 @@ Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size)
 			}
 		}
 		if (nbWords) {
-			bs_cur = (u32) gf_bs_get_position(bs);
+			bs_cur = gf_bs_get_position(bs);
 			gf_bs_seek(bs, 0);
 			gf_bs_write_int(bs, nbWords, 8);
 			gf_bs_seek(bs, bs_cur);

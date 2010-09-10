@@ -1174,16 +1174,17 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	unsigned char szLine[6];
 
 	/*check file exists and gets its size (zlib doesn't support SEEK_END)*/
-	test = fopen(fileName, "rb");
+	test = gf_f64_open(fileName, "rb");
 	if (!test) return GF_URL_ERROR;
-	fseek(test, 0, SEEK_END);
-	parser->file_size = ftell(test);
+	gf_f64_seek(test, 0, SEEK_END);
+	assert(gf_f64_tell(test) < 1<<31);
+	parser->file_size = (u32) gf_f64_tell(test);
 	fclose(test);
 
 	parser->on_progress = OnProgress;
 
 #ifdef NO_GZIP
-	parser->f_in = fopen(fileName, "rt");
+	parser->f_in = gf_f64_open(fileName, "rt");
 	fread(szLine, 1, 4, parser->f_in);
 #else
 	gzInput = gzopen(fileName, "rb");
@@ -1311,7 +1312,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 	pos=0;
 	if (!from_buffer) {
 #ifdef NO_GZIP
-		pos = ftell(parser->f_in);
+		pos = gf_f64_tell(parser->f_in);
 #else
 		pos = gztell(parser->gz_in);
 #endif
@@ -1446,7 +1447,7 @@ exit:
 
 	if (!from_buffer) {
 #ifdef NO_GZIP
-		fseek(parser->f_in, pos, SEEK_SET);
+		gf_f64_seek(parser->f_in, pos, SEEK_SET);
 #else
 		gzrewind(parser->gz_in);
 		gzseek(parser->gz_in, pos, SEEK_SET);
@@ -1508,7 +1509,7 @@ struct _tag_dom_parser
 	GF_XMLNode *root;
 	u32 depth;
 
-	void (*OnProgress)(void *cbck, u32 done, u32 tot);
+	void (*OnProgress)(void *cbck, u64 done, u64 tot);
 	void *cbk;
 };
 
@@ -1646,7 +1647,7 @@ GF_XMLNode *gf_xml_dom_detach_root(GF_DOMParser *parser)
 	return root;
 }
 
-static void dom_on_progress(void *cbck, u32 done, u32 tot)
+static void dom_on_progress(void *cbck, u64 done, u64 tot)
 {
 	GF_DOMParser *dom = (GF_DOMParser *)cbck;
 	dom->OnProgress(dom->cbk, done, tot);

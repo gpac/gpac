@@ -92,10 +92,10 @@ typedef struct
 #if !defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)
 
 /*encrypts track - logs, progress: info callbacks, NULL for stdout*/
-GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u32 done, u32 total), void *cbk);
+GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 
 /*decrypts track - logs, progress: info callbacks, NULL for stdout*/
-GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u32 done, u32 total), void *cbk);
+GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 
 /*decrypt a file 
 @drm_file: location of DRM data (cf MP4Box doc).

@@ -149,9 +149,9 @@ static Bool CTXLoad_CheckDownload(CTXLoadPriv *priv)
 
 	if (!priv->file_size && (now - priv->last_check_time < 1000) ) return 0;
 
-	f = fopen(priv->file_name, "rt");
-	fseek(f, 0, SEEK_END);
-	size = ftell(f);
+	f = gf_f64_open(priv->file_name, "rt");
+	gf_f64_seek(f, 0, SEEK_END);
+	size = gf_f64_tell(f);
 	fclose(f);
 
 	/*we MUST have a complete file for now ...*/
@@ -368,14 +368,14 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 			u32 entry_time;
 			char file_buf[4096+1];
 			if (!priv->src) {
-				priv->src = fopen(priv->file_name, "rb");
+				priv->src = gf_f64_open(priv->file_name, "rb");
 				if (!priv->src) return GF_URL_ERROR;
 				priv->file_pos = 0;
 			}
 			priv->load.type = GF_SM_LOAD_XMTA;
 			e = GF_OK;
 			entry_time = gf_sys_clock();
-			fseek(priv->src, priv->file_pos, SEEK_SET);
+			gf_f64_seek(priv->src, priv->file_pos, SEEK_SET);
 			while (1) {
 				u32 diff, nb_read;
 				nb_read = fread(file_buf, 1, 4096, priv->src);
@@ -600,7 +600,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 
 							/*soundstreams are a bit of a pain, they may be declared before any data gets written*/
 							if (mux->delete_file) {
-								FILE *t = fopen(mux->file_name, "rb");
+								FILE *t = gf_f64_open(mux->file_name, "rb");
 								if (!t) {
 									keep_com = 1;
 									gf_list_insert(odU->objectDescriptors, od, 0);

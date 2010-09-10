@@ -231,7 +231,7 @@ void nsOsmozillaInstance::SetOptions()
 		Bool absolute_url = 0;
 		if (strstr(m_szURL, "://")) absolute_url = 1;
 		else if (m_szURL[0] == '/') {
-			FILE *test = fopen(m_szURL, "rb");
+			FILE *test = gf_f64_open(m_szURL, "rb");
 			if (test) {	
 				absolute_url = 1;
 				fclose(test);
@@ -301,7 +301,7 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	assert(strlen(config_path)+strlen(gpac_cfg)+1<GF_MAX_PATH);
 	strcat(config_test_file, "test");
 
-	ft = fopen(config_test_file, "wb");
+	ft = gf_f64_open(config_test_file, "wb");
 	if (ft) {
 		fclose(ft);
 		gf_delete_file(config_test_file);
@@ -341,7 +341,7 @@ NPBool nsOsmozillaInstance::init(NPWindow* aWindow)
 	/*check log file*/
 	str = gf_cfg_get_key(m_user.config, "General", "LogFile");
 	if (str) {
-		m_logs = fopen(str, "wt");
+		m_logs = gf_f64_open(str, "wt");
 		gf_log_set_callback(m_logs, osmozilla_do_log);
 	}
 	else m_logs = NULL;

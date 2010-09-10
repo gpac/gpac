@@ -129,7 +129,7 @@ void MP4T_DumpSDP(GF_ISOFile *file, const char *name)
 	u32 size, i;
 	FILE *f;
 
-	f = fopen(name, "wt");
+	f = gf_f64_open(name, "wt");
 	//get the movie SDP
 	gf_isom_sdp_get(file, &sdp, &size);
 	fwrite(sdp, size, 1, f);

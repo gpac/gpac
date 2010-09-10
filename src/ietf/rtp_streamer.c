@@ -666,7 +666,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 
 char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *session_name, char *iod64)
 {
-	u32 size;
+	u64 size;
 	char *sdp;
 	FILE *tmp = gf_temp_file_new();
 	if (!tmp) return NULL;
@@ -680,11 +680,11 @@ char *gf_rtp_streamer_format_sdp_header(char *app_name, char *ip_dest, char *ses
 	
     if (iod64) fprintf(tmp, "a=mpeg4-iod:\"data:application/mpeg4-iod;base64,%s\"\n", iod64);
 
-	fseek(tmp, 0, SEEK_END);
-	size = ftell(tmp);
-	fseek(tmp, 0, SEEK_SET);
-	sdp = gf_malloc(sizeof(char) * (size+1));
-	size = fread(sdp, 1, size, tmp);
+	gf_f64_seek(tmp, 0, SEEK_END);
+	size = gf_f64_tell(tmp);
+	gf_f64_seek(tmp, 0, SEEK_SET);
+	sdp = gf_malloc(sizeof(char) * (size_t)(size+1));
+	size = fread(sdp, 1, (size_t)size, tmp);
 	sdp[size] = 0;
 	fclose(tmp);
 	return sdp;

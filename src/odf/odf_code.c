@@ -2387,7 +2387,8 @@ GF_Err gf_odf_del_ipmp(GF_IPMP_Descriptor *ipmp)
 
 GF_Err gf_odf_read_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp, u32 DescSize)
 {
-	u32 size, nbBytes = 0;
+	u32 size;
+	u64 nbBytes = 0;
 	if (!ipmp) return GF_BAD_PARAM;
 
 	ipmp->IPMP_DescriptorID = gf_bs_read_int(bs, 8);
@@ -2406,14 +2407,14 @@ GF_Err gf_odf_read_ipmp(GF_BitStream *bs, GF_IPMP_Descriptor *ipmp, u32 DescSize
 			nbBytes += 1;
 		}
 		while (nbBytes<DescSize) {
-			u32 pos;
+			u64 pos;
 			GF_Err e;
 			GF_IPMPX_Data *p;
-			pos = (u32) gf_bs_get_position(bs);
+			pos = gf_bs_get_position(bs);
 			e = gf_ipmpx_data_parse(bs, &p);
 			if (e) return e;
 			gf_list_add(ipmp->ipmpx_data, p);
-			nbBytes += (u32) gf_bs_get_position(bs) - pos;
+			nbBytes += gf_bs_get_position(bs) - pos;
 		}
 	}
 	/*URL*/

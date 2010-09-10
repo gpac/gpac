@@ -149,7 +149,7 @@ static GF_Err xmt_report(GF_XMTParser *parser, GF_Err e, char *format, ...)
 	if (e) parser->last_error = e;
 	return e;
 }
-static void xmt_progress(void *cbk, u32 done, u32 total)
+static void xmt_progress(void *cbk, u64 done, u64 total)
 {
 	gf_set_progress("XMT Parsing", done, total);
 }

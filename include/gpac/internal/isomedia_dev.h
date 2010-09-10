@@ -1835,9 +1835,9 @@ typedef struct
 {
 	GF_ISOM_BASE_DATA_HANDLER
 	char *name;
-	u32 file_size;
+	u64 file_size;
 	char *byte_map;
-	u32 byte_pos;
+	u64 byte_pos;
 } GF_FileMappingDataMap;
 
 GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode, GF_DataMap **outDataMap);

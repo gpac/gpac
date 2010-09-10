@@ -69,7 +69,7 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 	} else {
 		strcpy(fileName,file_name);
 	}
-	file = fopen(fileName, "rt");
+	file = gf_f64_open(fileName, "rt");
 	if (!file) return NULL;
 
 	tmp = (GF_Config *)gf_malloc(sizeof(GF_Config));
@@ -177,7 +177,7 @@ GF_Err gf_cfg_save(GF_Config *iniFile)
 
 	if (!iniFile->hasChanged) return GF_OK;
 
-	file = fopen(iniFile->fileName, "wt");
+	file = gf_f64_open(iniFile->fileName, "wt");
 	if (!file) return GF_IO_ERR;
 
 	i=0;

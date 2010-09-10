@@ -2753,7 +2753,7 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 			}
 		}
 	} else {
-		u32 fsize;
+		u64 fsize;
 		FILE * xmlf;
 		
 		if (ctx->data) gf_free(ctx->data);
@@ -2766,7 +2766,7 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 			ctx->statusText = NULL;
 		}
 
-		xmlf = fopen(ctx->url, "rt");
+		xmlf = gf_f64_open(ctx->url, "rt");
 		if (!xmlf) {
 			ctx->html_status = 404;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] cannot parse %s\n", ctx->url));
@@ -2775,12 +2775,12 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 		ctx->readyState = 2;
 		xml_http_state_change(ctx);
 		
-		fseek(xmlf, 0, SEEK_END);
-		fsize = ftell(xmlf);
-		fseek(xmlf, 0, SEEK_SET);
+		gf_f64_seek(xmlf, 0, SEEK_END);
+		fsize = gf_f64_tell(xmlf);
+		gf_f64_seek(xmlf, 0, SEEK_SET);
 		
-		ctx->data = gf_malloc(sizeof(char)*(fsize+1));
-		fsize = fread(ctx->data, sizeof(char), fsize, xmlf);
+		ctx->data = gf_malloc(sizeof(char)*(size_t)(fsize+1));
+		fsize = fread(ctx->data, sizeof(char), (size_t)fsize, xmlf);
 		fclose(xmlf);
 		ctx->data[fsize] = 0;
 

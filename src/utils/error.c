@@ -682,14 +682,14 @@ static const char *szProg[] =
 	"====================",
 };
 
-static u32 prev_pos = 0;
-static u32 prev_pc = 0;
-static void gf_on_progress_stdout(char *_title, u32 done, u32 total)
+static u64 prev_pos = 0;
+static u64 prev_pc = 0;
+static void gf_on_progress_stdout(char *_title, u64 done, u64 total)
 {
 	Double prog;
 	u32 pos;
 	char *szT = _title ? (char *)_title : (char *) "";
-	prog = done;
+	prog = (double) done;
 	prog /= total;
 	pos = MIN((u32) (20 * prog), 20);
 
@@ -717,7 +717,7 @@ static gf_on_progress_cbk prog_cbk = NULL;
 static void *user_cbk;
 
 GF_EXPORT
-void gf_set_progress(char *title, u32 done, u32 total)
+void gf_set_progress(char *title, u64 done, u64 total)
 {
 	if (prog_cbk) {
 		prog_cbk(user_cbk, title, done, total);

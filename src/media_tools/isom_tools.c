@@ -811,7 +811,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 	u32 i, h, m, s, ms, fr, fps;
 	char line[1024];
 	char szTitle[1024];
-	FILE *f = fopen(chap_file, "rt");
+	FILE *f = gf_f64_open(chap_file, "rt");
 	if (!f) return GF_URL_ERROR;
 
 	readen = fread(line, 1, 4, f);
@@ -842,7 +842,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 		unicode_type = 0;
 		offset = 0;
 	}
-	fseek(f, offset, SEEK_SET);
+	gf_f64_seek(f, offset, SEEK_SET);
 
 	e = gf_isom_remove_chapter(file, 0, 0);
 	if (e) goto err_exit;

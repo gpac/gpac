@@ -395,7 +395,7 @@ NPT_String GPAC_FileMediaServer::GetResourceURI(const char *url, const char *for
 		GPAC_MediaDirectory *dir;
 		m_Directories.Get(i, dir);
 		abs_url = gf_url_concatenate(dir->m_Path, url);
-		FILE *f = fopen(abs_url, "rt");
+		FILE *f = gf_f64_open(abs_url, "rt");
 		if (f) {
 			fclose(f);
 			break;

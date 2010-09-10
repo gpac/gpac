@@ -357,11 +357,12 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 
 
 	/*assume 32bit max size = 4Go should be sufficient for a DID!!*/
-	xmlfile = fopen(XMLFileName, "rb");
+	xmlfile = gf_f64_open(XMLFileName, "rb");
 	if (!xmlfile) return GF_URL_ERROR;
-	fseek(xmlfile, 0, SEEK_END);
-	xml->xml_length = ftell(xmlfile);
-	fseek(xmlfile, 0, SEEK_SET);
+	gf_f64_seek(xmlfile, 0, SEEK_END);
+	assert(gf_f64_tell(xmlfile) < 1<<31);
+	xml->xml_length = (u32) gf_f64_tell(xmlfile);
+	gf_f64_seek(xmlfile, 0, SEEK_SET);
 	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*xml->xml_length);
 	xml->xml_length = fread(xml->xml, 1, sizeof(unsigned char)*xml->xml_length, xmlfile);
 	if (ferror(xmlfile)) {
@@ -393,7 +394,7 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 
 	/*check file exists */
 	if (!URN && !URL && !self_reference) {
-		FILE *src = fopen(resource_path, "rb");
+		FILE *src = gf_f64_open(resource_path, "rb");
 		if (!src) return GF_URL_ERROR;
 		fclose(src);
 	}
