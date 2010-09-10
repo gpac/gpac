@@ -74,7 +74,7 @@ static void svg_finalize_sort(DrawableContext *ctx, SVG_TextStack *st, GF_Traver
 #endif
 	/*if text selection mode, we must force redraw of the entire text span because we don't
 	if glyphs have been (un)selected*/
-	if (!tr_state->direct_draw && 
+	if (!tr_state->immediate_draw && 
 		/*text selection on*/
 		(tr_state->visual->compositor->text_selection 
 		/*text sel release*/

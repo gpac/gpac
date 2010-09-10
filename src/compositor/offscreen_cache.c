@@ -135,7 +135,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Recomputing cache for subtree %s\n", gf_node_get_log_name(node)));
 		/*step 1 : store current state and indicate children should not be cached*/
 		tr_state->in_group_cache = 1;
-		prev_flags = tr_state->direct_draw;
+		prev_flags = tr_state->immediate_draw;
 		/*store the current transform matrix, create a new one for group_cache*/
 		gf_mx2d_copy(backup, tr_state->transform);
 		gf_mx2d_init(tr_state->transform);
@@ -161,7 +161,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 		if (!cache_bounds.width || !cache_bounds.height) {
 			tr_state->in_group_cache = 0;
-			tr_state->direct_draw = prev_flags;
+			tr_state->immediate_draw = prev_flags;
 			gf_mx2d_copy(tr_state->transform, backup);
 #ifndef GPAC_DISABLE_3D
 			tr_state->visual->type_3d = type_3d;
@@ -261,7 +261,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 
 		/*step 5: traverse subtree in direct draw mode*/
-		tr_state->direct_draw = 1;
+		tr_state->immediate_draw = 1;
 		group_ctx->flags &= ~CTX_NO_ANTIALIAS;
 
 		l = ((GF_ParentNode*)node)->children;
@@ -283,7 +283,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		/*restore state and destroy whatever needs to be cleaned*/
 		gf_mx2d_copy(tr_state->transform, backup);
 		tr_state->in_group_cache = 0;
-		tr_state->direct_draw = prev_flags;
+		tr_state->immediate_draw = prev_flags;
 		r2d->surface_delete(offscreen_surface);
 		tr_state->visual->raster_surface = old_surf;
 		tr_state->traversing_mode = TRAVERSE_SORT;

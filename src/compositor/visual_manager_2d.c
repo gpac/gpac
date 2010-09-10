@@ -263,10 +263,10 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 		return e;
 
 	draw_mode = 0;
-	if (tr_state->direct_draw) draw_mode = 1;
+	if (tr_state->immediate_draw) draw_mode = 1;
 	/*if we're requested to invalidate everything, switch to direct drawing but don't reset bounds*/
 	else if (tr_state->invalidate_all) {
-		tr_state->direct_draw = 1;
+		tr_state->immediate_draw = 1;
 		draw_mode = 2;
 	}
 	tr_state->invalidate_all = 0;
@@ -563,7 +563,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	Bool has_changed = 0;
 
 	/*in direct mode the visual is always redrawn*/
-	if (tr_state->direct_draw) {
+	if (tr_state->immediate_draw) {
 		/*flush pending contexts due to overlays*/
 		visual_2d_flush_overlay_areas(visual, tr_state);
 
@@ -663,6 +663,10 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 #endif
 	} else {
 		ra_refresh(&visual->to_redraw);
+
+		if (visual->compositor->debug_defer) {
+			visual->ClearSurface(visual, &visual->top_clipper, 0);
+		}
 	}
 #ifdef TRACK_OPAQUE_REGIONS
 	assert(!visual->to_redraw.count || (visual->to_redraw.opaque_node_index != NULL));
@@ -824,7 +828,7 @@ Bool visual_2d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 	e = visual_2d_terminate_draw(visual, tr_state);
 	
 #ifndef GPAC_DISABLE_LOG
-	if (!tr_state->direct_draw) {
+	if (!tr_state->immediate_draw) {
 		visual->compositor->indirect_draw_time = gf_sys_clock() - time;
 	}
 #endif

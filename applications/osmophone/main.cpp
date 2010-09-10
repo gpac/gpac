@@ -977,9 +977,9 @@ BOOL HandleCommand(HWND hwnd, WPARAM wParam, LPARAM lParam)
 		break;
 	case ID_VIDEO_DIRECTDRAW:
 	{
-		Bool drend = gf_term_get_option(term, GF_OPT_DIRECT_DRAW) ? 0 : 1;
-		gf_term_set_option(term, GF_OPT_DIRECT_DRAW, drend);
-		gf_cfg_set_key(user.config, "Compositor", "DirectDraw", drend ? "yes" : "no");
+		u32 drend = (gf_term_get_option(term, GF_OPT_DRAW_MODE)==GF_DRAW_MODE_IMMEDIATE) ? GF_DRAW_MODE_DEFER : GF_DRAW_MODE_IMMEDIATE;
+		gf_term_set_option(term, GF_OPT_DRAW_MODE, drend);
+		gf_cfg_set_key(user.config, "Compositor", "DrawMode", drend ? "immediate" : "defer");
 	}
 		break;
 
@@ -1085,7 +1085,7 @@ static BOOL OnMenuPopup(const HWND hWnd, const WPARAM wParam)
 	CheckMenuItem((HMENU)wParam, IDM_VIEW_LOW_RATE, MF_BYCOMMAND| (use_low_fps ? MF_CHECKED : MF_UNCHECKED) );
 
 	EnableMenuItem((HMENU)wParam, ID_VIDEO_DIRECTDRAW, MF_BYCOMMAND| (!force_2d_gl ? MF_ENABLED : MF_GRAYED) );
-	CheckMenuItem((HMENU)wParam, ID_VIDEO_DIRECTDRAW, MF_BYCOMMAND| (!force_2d_gl && gf_term_get_option(term, GF_OPT_DIRECT_DRAW) ? MF_CHECKED : MF_UNCHECKED) );
+	CheckMenuItem((HMENU)wParam, ID_VIDEO_DIRECTDRAW, MF_BYCOMMAND| (!force_2d_gl && gf_term_get_option(term, GF_OPT_DRAW_MODE) ? MF_CHECKED : MF_UNCHECKED) );
 
 	CheckMenuItem((HMENU)wParam, IDM_VIEW_SVG_LOAD, MF_BYCOMMAND| (use_svg_prog ? MF_CHECKED : MF_UNCHECKED) );
 

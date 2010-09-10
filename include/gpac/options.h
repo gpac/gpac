@@ -176,6 +176,13 @@ enum
 	GF_BACK_CULL_ALPHA, /*backface culling enabled alos for transparent meshes*/
 };
 
+enum
+{
+	GF_DRAW_MODE_DEFER=0,
+	GF_DRAW_MODE_DEFER_DEBUG,
+	GF_DRAW_MODE_IMMEDIATE,
+};
+
 /*high-level options*/
 enum
 {
@@ -241,10 +248,13 @@ enum
 	/*get/set OpenGL force mode - returns error if OpenGL is not supported*/
 	GF_OPT_USE_OPENGL,
 
-	/*set/get direct draw flag. In direct draw, the screen is entirely redrawn at each frame
-	value: boolean
+	/*set/get draw mode. 
+		In immediate mode, the screen is entirely redrawn at each frame
+		In defer mode, only the changed ares are redrawn
+		In defer-debug mode, unchanged areas are erased and changed ares are redrawn
+	value: enum
 	*/
-	GF_OPT_DIRECT_DRAW,
+	GF_OPT_DRAW_MODE,
 	/*set/get scalable zoom (value: boolean)*/
 	GF_OPT_SCALABLE_ZOOM,
 	/*set/get YUV acceleration (value: boolean) */

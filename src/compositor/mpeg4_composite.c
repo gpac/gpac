@@ -378,9 +378,7 @@ static void composite_update(GF_TextureHandler *txh)
 	tr_state->visual = st->visual;
 	tr_state->invalidate_all = invalidate_all;
 
-	if (st->visual->compositor->traverse_state->direct_draw) {
-		tr_state->direct_draw = 1;
-	}
+	tr_state->immediate_draw = st->visual->compositor->traverse_state->immediate_draw;
 
 	gf_mx2d_init(tr_state->transform);
 	gf_cmx_init(&tr_state->color_mat);
