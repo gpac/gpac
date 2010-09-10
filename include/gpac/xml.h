@@ -90,7 +90,7 @@ typedef	void (*gf_xml_sax_node_start)(void *sax_cbck, const char *node_name, con
 typedef	void (*gf_xml_sax_node_end)(void *sax_cbck, const char *node_name, const char *name_space);
 typedef	void (*gf_xml_sax_text_content)(void *sax_cbck, const char *content, Bool is_cdata);
 
-typedef	void (*gf_xml_sax_progress)(void *cbck, u32 done, u32 tot);
+typedef	void (*gf_xml_sax_progress)(void *cbck, u64 done, u64 tot);
 
 /*creates new sax parser - all callbacks are optionals*/
 GF_SAXParser *gf_xml_sax_new(gf_xml_sax_node_start on_node_start, 

@@ -96,7 +96,7 @@ voidpf ZCALLBACK fopen_file_func (opaque, filename, mode)
         mode_fopen = "wb";
 
     if ((filename!=NULL) && (mode_fopen != NULL))
-        file = fopen(filename, mode_fopen);
+        file = gf_f64_open(filename, mode_fopen);
     return file;
 }
 
@@ -129,7 +129,7 @@ long ZCALLBACK ftell_file_func (opaque, stream)
    voidpf stream;
 {
     long ret;
-    ret = ftell((FILE *)stream);
+    ret = gf_f64_tell((FILE *)stream);
     return ret;
 }
 
@@ -155,7 +155,7 @@ long ZCALLBACK fseek_file_func (opaque, stream, offset, origin)
     default: return -1;
     }
     ret = 0;
-    fseek((FILE *)stream, offset, fseek_origin);
+    gf_f64_seek((FILE *)stream, offset, fseek_origin);
     return ret;
 }
 
@@ -1246,7 +1246,7 @@ int do_extract_currentfile(uf)
 
         if ((skip==0) && (err==UNZ_OK))
         {
-            fout=fopen(write_filename,"wb");
+            fout=gf_f64_open(write_filename,"wb");
 
             /* some zipfile don't contain directory alone before file */
             if ((fout==NULL) && (filename_withoutpath!=(char*)filename_inzip))
@@ -1255,7 +1255,7 @@ int do_extract_currentfile(uf)
                 *(filename_withoutpath-1)='\0';
                 makedir(write_filename);
                 *(filename_withoutpath-1)=c;
-                fout=fopen(write_filename,"wb");
+                fout=gf_f64_open(write_filename,"wb");
             }
 
             if (fout==NULL)
@@ -1356,7 +1356,7 @@ int gf_unzip_archive(const char *zipfilename, const char *dirname)
 int gf_unzip_probe(const char *zipfilename)
 {
 	int ret = 0;
-	FILE *f = fopen(zipfilename, "r");
+	FILE *f = gf_f64_open(zipfilename, "r");
 	if (!f) return 0;
 	if (fgetc(f)=='P')
 		if (fgetc(f)=='K')

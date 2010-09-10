@@ -273,10 +273,10 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	/*first try, check cached file*/
 	if (!sess->cache_start_size && !(sess->flags&GF_NETIO_SESSION_FORCE_RESTART) ) {
 		/*if file present figure out how much of the file is downloaded - we assume 2^31 byte file max*/
-		FILE *the_cache = fopen(sess->cache_name, "rb");
+		FILE *the_cache = gf_f64_open(sess->cache_name, "rb");
 		if (the_cache) {
-			fseek(the_cache, 0, SEEK_END);
-			sess->cache_start_size = ftell(the_cache);
+			gf_f64_seek(the_cache, 0, SEEK_END);
+			sess->cache_start_size = (u32) gf_f64_tell(the_cache);
 			fclose(the_cache);
 		}
 	}
@@ -1164,10 +1164,10 @@ void http_do_requests(GF_DownloadSession *sess)
 		} else {
 			user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfile");
 			if (user_profile) {
-				FILE *profile = fopen(user_profile, "rt");
+				FILE *profile = gf_f64_open(user_profile, "rt");
 				if (profile) {
-					fseek(profile, 0, SEEK_END);
-					par.size = ftell(profile);
+					gf_f64_seek(profile, 0, SEEK_END);
+					par.size = (u32) gf_f64_tell(profile);
 					fclose(profile);
 					sprintf(range_buf, "Content-Length: %d\r\n", par.size);
 					strcat(sHTTP, range_buf);
@@ -1197,7 +1197,7 @@ void http_do_requests(GF_DownloadSession *sess)
 				FILE *profile;
 				user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfile");
 				assert (user_profile);
-				profile = fopen(user_profile, "rt");
+				profile = gf_f64_open(user_profile, "rt");
 				if (profile){
 					u32 readen = fread(tmp_buf+len, 1, par.size, profile);
 					if (readen<size){
@@ -1533,7 +1533,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			sess->cache_start_size = sess->bytes_done = 0;
 			sess->total_size = ContentLength;
 			if (! (sess->flags & GF_NETIO_SESSION_NOT_CACHED) ) {
-				sess->cache = fopen(sess->cache_name, "wb");
+				sess->cache = gf_f64_open(sess->cache_name, "wb");
 				if (!sess->cache) {
 					e = GF_IO_ERR;
 					goto exit;
@@ -1545,7 +1545,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		else {
 			sess->total_size = ContentLength + sess->cache_start_size;
 			if (! (sess->flags & GF_NETIO_SESSION_NOT_CACHED) ) {
-				sess->cache = fopen(sess->cache_name, "ab");
+				sess->cache = gf_f64_open(sess->cache_name, "ab");
 				if (!sess->cache) {
 					e = GF_IO_ERR;
 					goto exit;

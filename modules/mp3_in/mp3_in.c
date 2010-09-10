@@ -118,7 +118,7 @@ static Bool MP3_ConfigureFromFile(MP3Reader *read)
 	if (!hdr) return 0;
 	read->sample_rate = gf_mp3_sampling_rate(hdr);
 	read->oti = gf_mp3_object_type_indication(hdr);
-	fseek(read->stream, 0, SEEK_SET);
+	gf_f64_seek(read->stream, 0, SEEK_SET);
 	if (!read->oti) return 0;
 
 	/*we don't have the full file...*/
@@ -126,17 +126,17 @@ static Bool MP3_ConfigureFromFile(MP3Reader *read)
 
 //	return 1;
 
-	fseek(read->stream, 0, SEEK_SET);
+	gf_f64_seek(read->stream, 0, SEEK_SET);
 	read->duration = 0;
 	while (1) {
 		hdr = gf_mp3_get_next_header(read->stream);
 		if (!hdr) break;
 		read->duration += gf_mp3_window_size(hdr);
 		size = gf_mp3_frame_size(hdr);
-		pos = ftell(read->stream);
-		fseek(read->stream, pos + size - 4, SEEK_SET);
+		pos = gf_f64_tell(read->stream);
+		gf_f64_seek(read->stream, pos + size - 4, SEEK_SET);
 	}
-	fseek(read->stream, 0, SEEK_SET);
+	gf_f64_seek(read->stream, 0, SEEK_SET);
 	return 1;
 }
 
@@ -282,7 +282,7 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
-			read->stream = fopen((char *) szCache, "rb");
+			read->stream = gf_f64_open((char *) szCache, "rb");
 			if (!read->stream) e = GF_SERVICE_ERROR;
 			else {
 				/*if full file at once (in cache) parse duration*/
@@ -350,7 +350,7 @@ static GF_Err MP3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 
 	reply = GF_OK;
-	read->stream = fopen(szURL, "rb");
+	read->stream = gf_f64_open(szURL, "rb");
 	if (!read->stream) {
 		reply = GF_URL_ERROR;
 	} else if (!MP3_ConfigureFromFile(read)) {
@@ -476,7 +476,7 @@ static GF_Err MP3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		read->start_range = com->play.start_range;
 		read->end_range = com->play.end_range;
 		read->current_time = 0;
-		if (read->stream) fseek(read->stream, 0, SEEK_SET);
+		if (read->stream) gf_f64_seek(read->stream, 0, SEEK_SET);
 
 		if (read->ch == com->base.on_channel) { 
 			read->done = 0; 
@@ -531,14 +531,14 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 		}
 		*is_new_data = 1;
 
-		pos = ftell(read->stream);
+		pos = gf_f64_tell(read->stream);
 		hdr = gf_mp3_get_next_header(read->stream);
 		if (!hdr) {
 			if (!read->dnload) {
 				*out_reception_status = GF_EOS;
 				read->done = 1;
 			} else {
-				fseek(read->stream, pos, SEEK_SET);
+				gf_f64_seek(read->stream, pos, SEEK_SET);
 				*out_reception_status = GF_OK;
 			}
 			return GF_OK;
@@ -555,7 +555,7 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 		if (read->start_range && read->duration) {
 			read->current_time = 0;
 			start_from = (u32) (read->start_range * read->sample_rate);
-			fseek(read->stream, 0, SEEK_SET);
+			gf_f64_seek(read->stream, 0, SEEK_SET);
 			while (read->current_time<start_from) {
 				hdr = gf_mp3_get_next_header(read->stream);
 				if (!hdr) {
@@ -565,14 +565,14 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 				}
 				read->current_time += gf_mp3_window_size(hdr);
 				read->data_size = gf_mp3_frame_size(hdr);
-				fseek(read->stream, read->data_size-4, SEEK_CUR);
+				gf_f64_seek(read->stream, read->data_size-4, SEEK_CUR);
 			}
 			read->start_range = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[MP3Demux] Seeking to frame size %d - TS %d - file pos %d\n", read->data_size, read->current_time, ftell(read->stream)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[MP3Demux] Seeking to frame size %d - TS %d - file pos %d\n", read->data_size, read->current_time, gf_f64_tell(read->stream)));
 		}
 
 		read->sl_hdr.compositionTimeStamp = read->current_time;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[MP3Demux] Found new frame size %d - TS %d - file pos %d\n", read->data_size, read->current_time, ftell(read->stream)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[MP3Demux] Found new frame size %d - TS %d - file pos %d\n", read->data_size, read->current_time, gf_f64_tell(read->stream)));
 
 		read->current_time += gf_mp3_window_size(hdr);
 
@@ -586,7 +586,7 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			gf_free(read->data);
 			read->data = NULL;
 			if (read->is_remote) {
-				fseek(read->stream, pos, SEEK_SET);
+				gf_f64_seek(read->stream, pos, SEEK_SET);
 				*out_reception_status = GF_OK;
 			} else {
 				*out_reception_status = GF_EOS;

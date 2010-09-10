@@ -169,7 +169,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			}
 
 			((SFString *)field->far_ptr)->buffer = name;
-			f = fopen(name, "wb");
+			f = gf_f64_open(name, "wb");
 			fwrite(buf, 1, length, f);
 			fclose(f);
 		} else {

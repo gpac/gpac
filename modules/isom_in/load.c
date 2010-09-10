@@ -129,7 +129,7 @@ void isor_declare_objects(ISOMReader *read)
 			} else {
 				sprintf(szName, "%s%s_cover.%s", cdir, sep, (tlen & 0x80000000) ? "png" : "jpg");
 			}
-			t = fopen(szName, "wb");
+			t = gf_f64_open(szName, "wb");
 			if (t) {
 				fwrite(tag, tlen & 0x7FFFFFFF, 1, t);
 				fclose(t);

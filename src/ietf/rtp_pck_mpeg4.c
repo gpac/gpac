@@ -205,7 +205,8 @@ GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_s
 {
 	char *sl_buffer, *payl_buffer;
 	u32 sl_buffer_size, payl_buffer_size; 
-	u32 auh_size_tmp, rslh_tmp, bytesLeftInPacket, infoSize, pckSize, pos;
+	u32 auh_size_tmp, rslh_tmp, bytesLeftInPacket, infoSize, pckSize;
+	u64 pos;
 	u8 flush_pck, no_split;
 
 	flush_pck = 0;
@@ -358,7 +359,7 @@ flush_packet:
 		}				
 		/*rewrite the size header*/
 		if (builder->has_AU_header) {
-			pos = (u32) gf_bs_get_position(builder->pck_hdr);		
+			pos = gf_bs_get_position(builder->pck_hdr);		
 			gf_bs_seek(builder->pck_hdr, 0);
 			builder->auh_size -= 16;
 			gf_bs_write_int(builder->pck_hdr, builder->auh_size, 16);

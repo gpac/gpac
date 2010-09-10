@@ -1840,7 +1840,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
   long i, rate, scale, idx_type;
   s64 n;
   unsigned char *hdrl_data;
-  long header_offset=0, hdrl_len=0;
+  u64 header_offset=0;
+  long hdrl_len=0;
   long nvi, nai[AVI_MAX_TRACKS], ioff;
   u64 tot[AVI_MAX_TRACKS];
   u32 j;
@@ -1891,9 +1892,9 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
             hdrl_data = (unsigned char *) gf_malloc((u32)n);
             if(hdrl_data==0) ERR_EXIT(AVI_ERR_NO_MEM);
 
-	    // offset of header
+            // offset of header
 
-	    header_offset = (u32) gf_f64_tell(AVI->fdes);
+            header_offset = gf_f64_tell(AVI->fdes);
 
             if( avi_read(AVI->fdes,(char *)hdrl_data, (u32) n) != n ) ERR_EXIT(AVI_ERR_READ)
          }

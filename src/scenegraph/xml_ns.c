@@ -1018,20 +1018,20 @@ GF_Node *gf_xml_node_clone(GF_SceneGraph *inScene, GF_Node *orig, GF_Node *clone
 static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_size, u32 idx)
 {
 	char szFile[GF_MAX_PATH];
-	u32 fsize;
+	u64 fsize;
 	FILE *f;
 	
 	sprintf(szFile, "%s%04X%s", base_file, idx, ext);
 	
-	f = fopen(szFile, "rb");
+	f = gf_f64_open(szFile, "rb");
 	if (!f) return 0;
 
-	fseek(f, 0, SEEK_END);
-	fsize = ftell(f);
+	gf_f64_seek(f, 0, SEEK_END);
+	fsize = gf_f64_tell(f);
 	if (fsize==data_size) {
 		u32 offset=0;
 		char cache[1024];
-		fseek(f, 0, SEEK_SET);
+		gf_f64_seek(f, 0, SEEK_SET);
 		while (fsize) {
 			u32 read = fread(cache, 1, 1024, f);
 			fsize -= read;
@@ -1121,7 +1121,7 @@ GF_Err gf_node_store_embedded_data(XMLRI *iri, const char *cache_dir, const char
 	strcat(szFile, ext);
 
 	if (!existing) {
-		f = fopen(szFile, "wb");
+		f = gf_f64_open(szFile, "wb");
 		if (!f) {
 			gf_free(data);
 			gf_free(iri->string);

@@ -920,7 +920,7 @@ static Bool can_convert_to_isma(GF_ISOFile *file)
 }
 #endif
 
-static void progress_quiet(void *cbck, char *title, u32 done, u32 total) { }
+static void progress_quiet(void *cbck, char *title, u64 done, u64 total) { }
 
 
 typedef struct
@@ -2071,7 +2071,7 @@ int main(int argc, char **argv)
 		if (force_new) {
 			open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 		} else {
-			FILE *test = fopen(inName, "rb");
+			FILE *test = gf_f64_open(inName, "rb");
 			if (!test) {
 				open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 				if (!outName) outName = inName;
@@ -2109,7 +2109,7 @@ int main(int argc, char **argv)
 			if (force_new) {
 				open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 			} else {
-				FILE *test = fopen(inName, "rb");
+				FILE *test = gf_f64_open(inName, "rb");
 				if (!test) {
 					open_mode = (do_flat) ? GF_ISOM_OPEN_WRITE : GF_ISOM_WRITE_EDIT;
 					if (!outName) outName = inName;
@@ -2165,7 +2165,7 @@ int main(int argc, char **argv)
 				logfile[strlen(logfile)-1] = 0;
 			}
 			strcat(logfile, "_enc.logs");
-			logs = fopen(logfile, "wt");
+			logs = gf_f64_open(logfile, "wt");
 		}
 		strcpy(outfile, outName ? outName : inName);
 		if (strchr(outfile, '.')) {
@@ -2207,7 +2207,7 @@ int main(int argc, char **argv)
 		&& !(track_dump_type & GF_EXPORT_AVI_NATIVE)
 #endif
 		) {
-		FILE *st = fopen(inName, "rb");
+		FILE *st = gf_f64_open(inName, "rb");
 		Bool file_exists = 0;
 		if (st) {
 			file_exists = 1;
@@ -2389,7 +2389,7 @@ int main(int argc, char **argv)
 			GF_BitStream *bs;
 
 			sprintf(szName, "%s.iod", outfile);
-			iodf = fopen(szName, "wb");
+			iodf = gf_f64_open(szName, "wb");
 			if (!iodf) {
 				fprintf(stdout, "Cannot open destination %s\n", szName);
 			} else {
@@ -2807,10 +2807,10 @@ int main(int argc, char **argv)
 			case GF_ISOM_ITUNE_COVER_ART:
 			{
 				char *d, *ext;
-				FILE *t = fopen(val, "rb");
-				fseek(t, 0, SEEK_END);
-				tlen = ftell(t);
-				fseek(t, 0, SEEK_SET);
+				FILE *t = gf_f64_open(val, "rb");
+				gf_f64_seek(t, 0, SEEK_END);
+				tlen = gf_f64_tell(t);
+				gf_f64_seek(t, 0, SEEK_SET);
 				d = gf_malloc(sizeof(char) * tlen);
 				tlen = fread(d, sizeof(char), tlen, t);
 				fclose(t);

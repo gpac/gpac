@@ -1687,7 +1687,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 			e = gf_bifs_encode_au(bifsenc, sc->ESID, au->commands, &data, &data_len);
 			if (data) {
 				sprintf(szName, "%s%02d.bifs", szRad, j);
-				f = fopen(szName, "wb");
+				f = gf_f64_open(szName, "wb");
 				fwrite(data, data_len, 1, f);
 				fclose(f);
 				gf_free(data);
@@ -1927,7 +1927,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		for (i=0; i<count; i++) {
 			char *item = gf_list_get(imports, i);
 
-			FILE *test = fopen(item, "rb");
+			FILE *test = gf_f64_open(item, "rb");
 			if (!test) {
 				gf_list_rem(imports, i);
 				i--;

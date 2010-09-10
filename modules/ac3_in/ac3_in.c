@@ -132,7 +132,7 @@ static Bool AC3_ConfigureFromFile(AC3Reader *read)
 		}
 	}
 	gf_bs_del(bs);
-	fseek(read->stream, 0, SEEK_SET);
+	gf_f64_seek(read->stream, 0, SEEK_SET);
 	return 1;
 }
 
@@ -152,7 +152,7 @@ static void AC3_RegulateDataRate(AC3Reader *read)
 
 static void AC3_OnLiveData(AC3Reader *read, char *data, u32 data_size)
 {
-	u32 pos;
+	u64 pos;
 	Bool sync;
 	GF_BitStream *bs;
 	GF_AC3Header hdr;
@@ -182,7 +182,7 @@ static void AC3_OnLiveData(AC3Reader *read, char *data, u32 data_size)
 	bs = gf_bs_new(read->data, read->data_size, GF_BITSTREAM_READ);
 	hdr.framesize = pos = 0;
 	while (gf_ac3_parser_bs(bs, &hdr, 0)) {
-		pos = (u32) gf_bs_get_position(bs);
+		pos = gf_bs_get_position(bs);
 		read->sl_hdr.accessUnitStartFlag = 1;
 		read->sl_hdr.accessUnitEndFlag = 1;
 		read->sl_hdr.AU_sequenceNumber++;
@@ -192,7 +192,7 @@ static void AC3_OnLiveData(AC3Reader *read, char *data, u32 data_size)
 		gf_bs_skip_bytes(bs, hdr.framesize);
 	}
 
-	pos = (u32) gf_bs_get_position(bs);
+	pos = gf_bs_get_position(bs);
 	gf_bs_del(bs);
 
 	if (pos) {
@@ -275,7 +275,7 @@ void AC3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
-			read->stream = fopen((char *) szCache, "rb");
+			read->stream = gf_f64_open((char *) szCache, "rb");
 			if (!read->stream) e = GF_SERVICE_ERROR;
 			else {
 				/*if full file at once (in cache) parse duration*/
@@ -342,7 +342,7 @@ static GF_Err AC3_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 
 	reply = GF_OK;
-	read->stream = fopen(szURL, "rb");
+	read->stream = gf_f64_open(szURL, "rb");
 	if (!read->stream) {
 		reply = GF_URL_ERROR;
 	} else if (!AC3_ConfigureFromFile(read)) {
@@ -473,7 +473,7 @@ static GF_Err AC3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		read->start_range = com->play.start_range;
 		read->end_range = com->play.end_range;
 		read->current_time = 0;
-		if (read->stream) fseek(read->stream, 0, SEEK_SET);
+		if (read->stream) gf_f64_seek(read->stream, 0, SEEK_SET);
 
 		if (read->ch == com->base.on_channel) { 
 			read->done = 0; 
@@ -501,7 +501,7 @@ static GF_Err AC3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 static GF_Err AC3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
-	u32 pos, start_from;
+	u64 pos, start_from;
 	Bool sync;
 	GF_BitStream *bs;
 	GF_AC3Header hdr;
@@ -533,7 +533,7 @@ static GF_Err AC3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 		*is_new_data = 1;
 
 fetch_next:
-		pos = ftell(read->stream);
+		pos = gf_f64_tell(read->stream);
 		sync = gf_ac3_parser_bs(bs, &hdr, 0);
 		if (!sync) {
 			gf_bs_del(bs);
@@ -541,7 +541,7 @@ fetch_next:
 				*out_reception_status = GF_EOS;
 				read->done = 1;
 			} else {
-				fseek(read->stream, pos, SEEK_SET);
+				gf_f64_seek(read->stream, pos, SEEK_SET);
 				*out_reception_status = GF_OK;
 			}
 			return GF_OK;

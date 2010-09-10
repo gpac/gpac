@@ -170,9 +170,9 @@ static void file_skip_bytes (FILE *fd, s32 len)
 #define file_location(__f) gf_f64_tell(__f)
 #define file_seek_to(__f, __off) gf_f64_seek(__f, __off, SEEK_SET)
 
-static s64 file_size(FILE *fd)
+static u64 file_size(FILE *fd)
 {
-	s64 ret;
+  u64 ret;
   gf_f64_seek(fd, 0, SEEK_END);
   ret = gf_f64_tell(fd);
   gf_f64_seek(fd, 0, SEEK_SET);
@@ -1755,7 +1755,7 @@ Bool mpeg2ps_get_audio_frame(mpeg2ps_t *ps, u32 streamno,
   return 1;
 }
 
-s64 mpeg2ps_get_ps_size(mpeg2ps_t *ps)
+u64 mpeg2ps_get_ps_size(mpeg2ps_t *ps)
 {
 	return file_size(ps->fd);
 }

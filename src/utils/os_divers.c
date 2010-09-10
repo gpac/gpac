@@ -289,7 +289,7 @@ FILE *gf_temp_file_new()
 	if (!GetEnvironmentVariable("TEMP",tmp,MAX_PATH)) return NULL;
 	sprintf(t_file, "\\gpac_%08x.tmp", (u32) tmp);
 	strcat(tmp, t_file);
-	return fopen(tmp, "w+b");
+	return gf_f64_open(tmp, "w+b");
 #else
 	return tmpfile(); 
 #endif
@@ -1242,7 +1242,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
   }
 
   u_k_time = idle_time = 0;
-  f = fopen("/proc/stat", "r");
+  f = gf_f64_open("/proc/stat", "r");
   if (f) {
     u32 k_time, nice_time, u_time;
     if (fgets(line, 128, f) != NULL) {
@@ -1260,7 +1260,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
    the complete CPU usage of all therads of the process...*/
 #if 0
   sprintf(szProc, "/proc/%d/stat", the_rti.pid);
-  f = fopen(szProc, "r");
+  f = gf_f64_open(szProc, "r");
   if (f) {
     fflush(f);
     if (fgets(line, 2048, f) != NULL) {
@@ -1297,7 +1297,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] cannot open %s\n", szProc));
   }
   sprintf(szProc, "/proc/%d/status", the_rti.pid);
-  f = fopen(szProc, "r");
+  f = gf_f64_open(szProc, "r");
   if (f) {
     while (fgets(line, 1024, f) != NULL) {
       if (!strnicmp(line, "VmSize:", 7)) {
@@ -1313,7 +1313,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 
   the_rti.physical_memory = the_rti.physical_memory_avail = 0;
-  f = fopen("/proc/meminfo", "r");
+  f = gf_f64_open("/proc/meminfo", "r");
   if (f) {
     while (fgets(line, 1024, f) != NULL) {
       if (!strnicmp(line, "MemTotal:", 9)) {

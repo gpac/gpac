@@ -66,7 +66,7 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, AVCodec *codec, AVCodecC
 	u32 dsi_size;
 	if (!codec) return;
 
-	dsi_size = (u32) gf_bs_available(bs);
+	dsi_size = gf_bs_available(bs);
 	if (!dsi_size) return;
 
 	/*demuxer is ffmpeg, extra data can be copied directly*/

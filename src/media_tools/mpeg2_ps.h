@@ -184,7 +184,7 @@ extern "C" {
   /*
    * returns file size
    */
-  s64 mpeg2ps_get_ps_size(mpeg2ps_t *ps);
+  u64 mpeg2ps_get_ps_size(mpeg2ps_t *ps);
   /*
    * returns position in file
    *  ps - handle from above

@@ -350,14 +350,8 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #define LLU_CAST (s32)
 #else
 
-#include <inttypes.h>
-#ifdef PRIu64
-#define LLD "%"PRId64
-#define LLU "%"PRIu64
-#else
 #define LLD "%lld"
 #define LLU "%llu"
-#endif
 
 #define LLD_CAST
 #define LLU_CAST

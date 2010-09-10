@@ -200,7 +200,7 @@ typedef struct
     char  *read_buffer;         /* internal buffer for compressed data */
     z_stream stream;            /* zLib stream structure for inflate */
 
-    uLong pos_in_zipfile;       /* position in byte on the zipfile, for fseek*/
+    uLong pos_in_zipfile;       /* position in byte on the zipfile, for gf_f64_seek*/
     uLong stream_initialised;   /* flag set if stream structure is initialised*/
 
     uLong offset_local_extrafield;/* offset of the local extra field */

@@ -182,14 +182,15 @@ void GF_IPMPX_ParseFileData(char *fileName, char **out_data, u32 *out_data_size)
 	if (*out_data) gf_free(*out_data);
 	*out_data = NULL;
 	*out_data_size = 0;
-	f = fopen(fileName, "rb");
+	f = gf_f64_open(fileName, "rb");
 	if (!f) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[IPMPX Parse] cannot open data file %s - skipping\n", fileName));
 		return;
 	}
-	fseek(f, 0, SEEK_END);
-	size = ftell(f);
-	fseek(f, 0, SEEK_SET);
+	gf_f64_seek(f, 0, SEEK_END);
+	assert(gf_f64_tell(f) < 1<<31);
+	size = (u32) gf_f64_tell(f);
+	gf_f64_seek(f, 0, SEEK_SET);
 	*out_data = (char*)gf_malloc(sizeof(char) * size);
 	size = fread(*out_data, sizeof(char), size, f);
 	*out_data_size = size;

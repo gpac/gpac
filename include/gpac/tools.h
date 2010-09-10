@@ -106,8 +106,8 @@ const char *gf_4cc_to_str(u32 type);
  *	\brief large file opening
  *
  *	Opens a large file (>4GB)
- *	\param file_name Same semantics as fopen
- *	\param mode Same semantics as fopen
+ *	\param file_name Same semantics as gf_f64_open
+ *	\param mode Same semantics as gf_f64_open
  *	\return stream handle of the file object
  *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 */
@@ -125,9 +125,9 @@ u64 gf_f64_tell(FILE *f);
  *	\brief large file seeking
  *
  *	Seeks the current read/write position in a large file
- *	\param f Same semantics as fseek
- *	\param pos Same semantics as fseek
- *	\param whence Same semantics as fseek
+ *	\param f Same semantics as gf_f64_seek
+ *	\param pos Same semantics as gf_f64_seek
+ *	\param whence Same semantics as gf_f64_seek
  *	\return new position in the file
  *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 */
@@ -501,7 +501,7 @@ u64 gf_file_modification_time(const char *filename);
  *	\param done Current amount performed of the action.
  *	\param total Total amount of the action.
  */
-void gf_set_progress(char *title, u32 done, u32 total);
+void gf_set_progress(char *title, u64 done, u64 total);
 
 /*!
  *	\brief Progress Callback
@@ -513,7 +513,7 @@ void gf_set_progress(char *title, u32 done, u32 total);
  *	\param total Total amount of the action.
  *
  */
-typedef void (*gf_on_progress_cbk)(void *cbck, char *title, u32 done, u32 total);
+typedef void (*gf_on_progress_cbk)(void *cbck, char *title, u64 done, u64 total);
 
 /*!
  *	\brief Progress overwriting

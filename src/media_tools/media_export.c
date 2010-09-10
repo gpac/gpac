@@ -203,7 +203,7 @@ GF_Err gf_export_hint(GF_MediaExporter *dumper)
 		}
 		if (e) return gf_export_message(dumper, e, "Error fetching hint packet %d", i);
 		sprintf(szName, "%s_pck_%04d.%s", dumper->out_name, i, gf_4cc_to_str(m_stype));
-		out = fopen(szName, "wb");
+		out = gf_f64_open(szName, "wb");
 		fwrite(pck, size, 1, out);
 		fclose(out);
 		gf_free(pck);
@@ -391,7 +391,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, dumper->sample_num, &di);
 		if (!samp) return GF_BAD_PARAM;
 		sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, szEXT);
-		out = fopen(szName, "wb");
+		out = gf_f64_open(szName, "wb");
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 		if (is_mj2k) 
 			write_jp2_file(bs, samp->data, samp->dataLength, dsi, dsi_size);
@@ -414,7 +414,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		} else {
 			sprintf(szName, "%s_%03d%s", dumper->out_name, i+1, szEXT);
 		}
-		out = fopen(szName, "wb");
+		out = gf_f64_open(szName, "wb");
 		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
 		if (dsi) gf_bs_write_data(bs, dsi, dsi_size);
 		if (is_mj2k) 
@@ -801,7 +801,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		out = gf_f64_open(dumper->out_name, "a+b");
 		if (out) gf_f64_seek(out, 0, SEEK_END);
 	} else {
-		out = fopen(szName, "wb");
+		out = gf_f64_open(szName, "wb");
 	}
 	if (!out) {
 		if (dsi) gf_free(dsi);
@@ -1041,7 +1041,7 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 		}
 		gf_export_message(dumper, GF_OK, "Extracting AVI video (format %s) to %s", comp, szOutFile);
 
-		fout = fopen(szOutFile, "wb");
+		fout = gf_f64_open(szOutFile, "wb");
 
 		max_size = 0;
 		frame = NULL;
@@ -1096,7 +1096,7 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 	}
 	sprintf(szOutFile, "%s.%s", dumper->out_name, comp);
 	gf_export_message(dumper, GF_OK, "Extracting AVI %s audio", comp);
-	fout = fopen(szOutFile, "wb");
+	fout = gf_f64_open(szOutFile, "wb");
 	num_samples = 0;
 	while (1) {
 		Bool continuous;
@@ -1142,7 +1142,7 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 	}
 
 	sprintf(szName, "%s.nhnt", dumper->out_name);
-	out_nhnt = fopen(szName, "wb");
+	out_nhnt = gf_f64_open(szName, "wb");
 	if (!out_nhnt) {
 		fclose(out_med);
 		gf_odf_desc_del((GF_Descriptor *) esd);
@@ -1154,7 +1154,7 @@ GF_Err gf_media_export_nhnt(GF_MediaExporter *dumper)
 
 	if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
 		sprintf(szName, "%s.info", dumper->out_name);
-		out_inf = fopen(szName, "wb");
+		out_inf = gf_f64_open(szName, "wb");
 		if (out_inf) fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, out_inf);
 		fclose(out_inf);
 	}
@@ -1402,7 +1402,7 @@ GF_Err gf_media_export_isom(GF_MediaExporter *dumper)
 	add_to_iod = 1;
 	mode = GF_ISOM_WRITE_EDIT;
 	if (dumper->flags & GF_EXPORT_MERGE) {
-		FILE *t = fopen(szName, "rb");
+		FILE *t = gf_f64_open(szName, "rb");
 		if (t) {
 			add_to_iod = 0;
 			mode = GF_ISOM_OPEN_EDIT;
@@ -1587,7 +1587,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		szRootName = "NHNTStream";
 		szSampleName = "NHNTSample";
 	}
-	nhml = fopen(szName, "wt");
+	nhml = gf_f64_open(szName, "wt");
 	if (!nhml) {
 		fclose(med);
 		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
@@ -1603,7 +1603,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		fprintf(nhml, "streamType=\"%d\" objectTypeIndication=\"%d\" ", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 		if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
 			sprintf(szName, "%s.info", dumper->out_name);
-			inf = fopen(szName, "wb");
+			inf = gf_f64_open(szName, "wb");
 			if (inf) fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, inf);
 			fclose(inf);
 			fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
@@ -1636,7 +1636,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 			}
 			if (sdesc->extension_buf) {
 				sprintf(szName, "%s.info", dumper->out_name);
-				inf = fopen(szName, "wb");
+				inf = gf_f64_open(szName, "wb");
 				if (inf) fwrite(sdesc->extension_buf, sdesc->extension_buf_size, 1, inf);
 				fclose(inf);
 				fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
@@ -1689,7 +1689,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 			GF_BitStream *bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
 
 			while (gf_bs_available(bs)) {
-				u32 pos = (u32) gf_bs_get_position(bs);
+				u64 pos = gf_bs_get_position(bs);
 				u16 size = gf_bs_read_u16(bs);
 				u8 flags = gf_bs_read_u8(bs);
 				u8 prev;
@@ -1844,7 +1844,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 
 	strcpy(out_file, dumper->out_name);
 	strcat(out_file, ".saf");
-	saf_f = fopen(out_file, "wb");
+	saf_f = gf_f64_open(out_file, "wb");
 
 	samp_done = 0;
 	while (samp_done<tot_samp) {
@@ -1902,18 +1902,19 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 {
 	char data[188], szFile[GF_MAX_PATH];
 	GF_M2TS_PES *stream;
-	u32 i, size, fsize, fdone;
+	u32 i;
+	u64 size, fsize, fdone;
 	GF_M2TS_Demuxer *ts;
 	FILE *src, *dst;
 
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
 	
-	src = fopen(dumper->in_name, "rb");
+	src = gf_f64_open(dumper->in_name, "rb");
 	if (!src) return gf_export_message(dumper, GF_CODEC_NOT_FOUND, "Error opening %s", dumper->in_name);
 
-	fseek(src, 0, SEEK_END);
-	fsize = ftell(src);
-	fseek(src, 0, SEEK_SET);
+	gf_f64_seek(src, 0, SEEK_END);
+	fsize = gf_f64_tell(src);
+	gf_f64_seek(src, 0, SEEK_SET);
 
 	ts = gf_m2ts_demux_new();
 	ts->on_event = m2ts_export_check;
@@ -1922,7 +1923,8 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	while (!feof(src)) {
 		size = fread(data, 1, 188, src);
 		if (size<188) break;
-		gf_m2ts_process_data(ts, data, size);
+		assert(size == 188);
+		gf_m2ts_process_data(ts, data, (u32)size);
 		if (!ts->user) break;
 	}
 	if (ts->user) {
@@ -1985,7 +1987,7 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 		gf_export_message(dumper, GF_OK, "Extracting Unknown stream to raw");
 		break;
 	}
-	dst = fopen(szFile, "wb");
+	dst = gf_f64_open(szFile, "wb");
 	if (!dst) {
 		fclose(src);
 		gf_m2ts_demux_del(ts);
@@ -1999,7 +2001,8 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	while (!feof(src)) {
 		size = fread(data, 1, 188, src);
 		if (size<188) break;
-		gf_m2ts_process_data(ts, data, size);
+		assert(size == 188);
+		gf_m2ts_process_data(ts, data, (u32)size);
 		fdone += size;
 		gf_set_progress("MPEG-2 TS Extract", fdone, fsize);
 		if (dumper->flags & GF_EXPORT_DO_ABORT) break;

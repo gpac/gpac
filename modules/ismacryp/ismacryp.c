@@ -69,7 +69,7 @@ static GF_Err ISMA_GetGPAC_KMS(ISMAEAPriv *priv, GF_Channel *ch, const char *kms
 
 	e = GF_OK;
 	/*try local*/
-	t = (strstr(kms_url, "://") == NULL) ? fopen(kms_url, "r") : NULL;
+	t = (strstr(kms_url, "://") == NULL) ? gf_f64_open(kms_url, "r") : NULL;
 	if (t) {
 		fclose(t);
 		return gf_ismacryp_gpac_get_info(ch->esd->ESID, (char *)kms_url, priv->key, priv->salt);

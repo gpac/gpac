@@ -84,7 +84,7 @@ Bool gf_isom_probe_file(const char *fileName)
 {
 	unsigned char data[4];
 	u32 type;
-	FILE *f = fopen(fileName, "rb");
+	FILE *f = gf_f64_open(fileName, "rb");
 	if (!f) return 0;
 	type = 0;
 	if (fread(data, 1, 4, f) == 4) {

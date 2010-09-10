@@ -105,6 +105,7 @@ static void swf_init_decompress(SWFReader *read)
 	u32 size, dst_size;
 	char *src, *dst;
 
+	assert(gf_bs_get_size(read->bs)-8 < 1<<31); /*must fit within 32 bits*/
 	size = (u32) gf_bs_get_size(read->bs)-8;
 	dst_size = read->length;
 	src = gf_malloc(sizeof(char)*size);
@@ -1802,7 +1803,7 @@ static GF_Err swf_def_sound(SWFReader *read)
 		} else {
 			snd->szFileName = gf_strdup(szName);
 		}
-		snd->output = fopen(snd->szFileName, "wb");
+		snd->output = gf_f64_open(snd->szFileName, "wb");
 
 		alloc_size = 4096;
 		frame = (char*)gf_malloc(sizeof(char)*4096);
@@ -1971,7 +1972,7 @@ static GF_Err swf_soundstream_block(SWFReader *read)
 
 		/*error at setup*/
 		if (!read->sound_stream->output) {
-			read->sound_stream->output = fopen(read->sound_stream->szFileName, "wb");
+			read->sound_stream->output = gf_f64_open(read->sound_stream->szFileName, "wb");
 			if (!read->sound_stream->output) 
 				return swf_func_skip(read);
 		}
@@ -2056,7 +2057,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 	}
 	
 	if (version!=3)
-		file = fopen(szName, "wb");
+		file = gf_f64_open(szName, "wb");
 
 	if (version==1 && read->jpeg_hdr_size) {
 		/*remove JPEG EOI*/
@@ -2130,7 +2131,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		buf = gf_realloc(buf, sizeof(char)*osize);
 		gf_img_png_enc(raw, w, h, h*4, GF_PIXEL_RGBA, buf, &osize);
 		
-		file = fopen(szName, "wb");
+		file = gf_f64_open(szName, "wb");
 		fwrite(buf, 1, osize, file);
 		fclose(file);
 		
@@ -2418,7 +2419,7 @@ GF_Err gf_sm_load_init_swf(GF_SceneLoader *load)
 	u8 version;
 
 	if (!load->ctx || !load->scene_graph || !load->fileName) return GF_BAD_PARAM;
-	input = fopen(load->fileName, "rb");
+	input = gf_f64_open(load->fileName, "rb");
 	if (!input) return GF_URL_ERROR;
 
 	GF_SAFEALLOC(read, SWFReader);

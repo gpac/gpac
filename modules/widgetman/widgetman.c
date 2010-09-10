@@ -96,7 +96,7 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 
 			unzOpenCurrentFile3(uf, NULL, NULL, 0, NULL/*password*/);
 	        
-			fout=fopen(res->extracted_path, "wb");
+			fout=gf_f64_open(res->extracted_path, "wb");
 			if (!fout) break;
 			do {
 				err = unzReadCurrentFile(uf,buf,8192);
@@ -363,7 +363,7 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 			FILE *fout;
 			unzOpenCurrentFile3(uf, NULL, NULL, 0, NULL/*password*/);
 	        
-			fout=fopen(szPath,"wb");
+			fout=gf_f64_open(szPath,"wb");
 			if (!fout) return NULL;
 
 			do {

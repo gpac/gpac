@@ -114,7 +114,8 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	GF_Err e;
 	Bool is_rap, go;
 	SAFChannel *ch;
-	u32 cts, au_sn, au_size, bs_pos, type, i, stream_id;
+	u32 cts, au_sn, au_size, , type, i, stream_id;
+	u64 bs_pos;
 	GF_BitStream *bs;
 	GF_SLHeader sl_hdr;
 	
@@ -163,8 +164,8 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 	go = 1;
 	while (go) {
-		u32 avail = (u32) gf_bs_available(bs);
-		bs_pos = (u32) gf_bs_get_position(bs);
+		u64 avail = gf_bs_available(bs);
+		bs_pos = gf_bs_get_position(bs);
 
 		if (avail<10) break;
 
@@ -249,7 +250,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			break;
 		case 4:
 			if (ch) {
-				bs_pos = (u32) gf_bs_get_position(bs);
+				bs_pos = gf_bs_get_position(bs);
 				memset(&sl_hdr, 0, sizeof(GF_SLHeader));
 				sl_hdr.accessUnitLength = au_size;
 				sl_hdr.AU_sequenceNumber = au_sn;
@@ -296,7 +297,7 @@ u32 SAF_Run(void *_p)
 	par.msg_type = GF_NETIO_DATA_EXCHANGE;
 	par.data = data;
 
-	fseek(read->stream, 0, SEEK_SET);
+	gf_f64_seek(read->stream, 0, SEEK_SET);
 	read->saf_size=0;
 	read->run_state = 1;
 	while (read->run_state && !feof(read->stream) ) {
@@ -331,7 +332,7 @@ static void SAF_CheckFile(SAFIn *read)
 	u32 nb_streams, i, cts, au_size, au_type, stream_id, ts_res;
 	GF_BitStream *bs;
 	StreamInfo si[1024];
-	fseek(read->stream, 0, SEEK_SET);
+	gf_f64_seek(read->stream, 0, SEEK_SET);
 	bs = gf_bs_from_file(read->stream, GF_BITSTREAM_READ);
 
 	nb_streams=0;
@@ -363,7 +364,7 @@ static void SAF_CheckFile(SAFIn *read)
 		gf_bs_skip_bytes(bs, au_size);
 	}
 	gf_bs_del(bs);
-	fseek(read->stream, 0, SEEK_SET);
+	gf_f64_seek(read->stream, 0, SEEK_SET);
 }
 
 static GF_Err SAF_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
@@ -391,7 +392,7 @@ static GF_Err SAF_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		return GF_OK;
 	}
 
-	read->stream = fopen(szURL, "rb");
+	read->stream = gf_f64_open(szURL, "rb");
 	if (!read->stream) {
 		gf_term_on_connect(serv, NULL, GF_URL_ERROR);
 		return GF_OK;

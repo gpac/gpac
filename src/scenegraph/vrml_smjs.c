@@ -3965,24 +3965,24 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 {
 	FILE *jsf;
 	char *jsscript;
-	u32 fsize;
+	u64 fsize;
 	Bool success = 1;
 	JSBool ret;
 	jsval rval, fval;
 	GF_ScriptPriv *priv = (GF_ScriptPriv *) script->sgprivate->UserPrivate;
 
-	jsf = fopen(file, "rb");
+	jsf = gf_f64_open(file, "rb");
 	if (!jsf) return 0;
 
-	fseek(jsf, 0, SEEK_END);
-	fsize = ftell(jsf);
-	fseek(jsf, 0, SEEK_SET);
-	jsscript = gf_malloc(sizeof(char)*(fsize+1));
-	fsize = fread(jsscript, sizeof(char), fsize, jsf);
+	gf_f64_seek(jsf, 0, SEEK_END);
+	fsize = gf_f64_tell(jsf);
+	gf_f64_seek(jsf, 0, SEEK_SET);
+	jsscript = gf_malloc(sizeof(char)*(size_t)(fsize+1));
+	fsize = fread(jsscript, sizeof(char), (size_t)fsize, jsf);
 	fclose(jsf);
 	jsscript[fsize] = 0;
 
-	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, sizeof(char)*fsize, 0, 0, &rval);
+	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, jsscript, sizeof(char)*(size_t)fsize, 0, 0, &rval);
 	if (ret==JS_FALSE) success = 0;
 
 	if (success && primary_script && JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval)) {

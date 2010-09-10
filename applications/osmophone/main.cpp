@@ -173,8 +173,8 @@ void update_state_info()
 }
 
 
-static u32 prev_pos = 0;
-void cbk_on_progress(void *_title, u32 done, u32 total)
+static u64 prev_pos = 0;
+void cbk_on_progress(void *_title, u64 done, u64 total)
 {
 #if 0
 	char szMsg[1024];
@@ -241,7 +241,7 @@ static void setup_logs()
 	gf_log_set_callback(NULL, NULL);
 
 	if (log_rti) {
-		log_file = fopen("\\gpac_logs.txt", "a+t");
+		log_file = gf_f64_open("\\gpac_logs.txt", "a+t");
 
 		fprintf(log_file, "!! GPAC RunTime Info for file %s !!\n", the_url);
 		fprintf(log_file, "SysTime(ms)\tSceneTime(ms)\tCPU\tFPS\tMemory(kB)\tObservation\n");
@@ -294,7 +294,7 @@ static void setup_logs()
 			}
 			gf_log_set_tools(lt);
 		}
-		if (ll && (log_file = fopen("\\gpac_logs.txt", "a+t"))) {
+		if (ll && (log_file = gf_f64_open("\\gpac_logs.txt", "a+t"))) {
 			gf_log_set_callback(log_file, on_gpac_log);
 		}
 
@@ -1329,7 +1329,7 @@ Bool initial_setup(const char *szExePath)
 #endif
 	strcpy(szPath, szExePath);
 	strcat(szPath, "GPAC.cfg");
-	FILE *f = fopen(szPath, "wt");
+	FILE *f = gf_f64_open(szPath, "wt");
 	if (!f) return 0;
 	fclose(f);
 
@@ -1365,10 +1365,10 @@ Bool initial_setup(const char *szExePath)
 	gf_cfg_set_key(user.config, "FontEngine", "FontDirectory", "\\Windows");
 
 	sprintf((char *) szPath, "%sgui.bt", szExePath);
-	FILE *t = fopen(szPath, "rt");
+	FILE *t = gf_f64_open(szPath, "rt");
 	if (!t) {
 		sprintf((char *) szPath, "%sgpac.mp4", szExePath);
-		t = fopen(szPath, "rt");
+		t = gf_f64_open(szPath, "rt");
 	}
 	if (t) {
 		gf_cfg_set_key(user.config, "General", "StartupFile", (const char *) szPath);

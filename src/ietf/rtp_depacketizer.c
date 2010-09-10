@@ -36,7 +36,8 @@
 
 static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
-	u32 aux_size, au_size, first_idx, au_hdr_size, pay_start, num_au;
+	u32 aux_size, first_idx, au_hdr_size, num_au;
+	u64 pay_start, au_size;
 	s32 au_idx;
 	GF_BitStream *hdr_bs, *aux_bs;
 
@@ -60,7 +61,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 		gf_bs_read_int(aux_bs, aux_size);
 		gf_bs_align(aux_bs);
 	}
-	pay_start = (u32) gf_bs_get_position(aux_bs);
+	pay_start = gf_bs_get_position(aux_bs);
 	gf_bs_del(aux_bs);
 
 	first_idx = 0;
@@ -136,7 +137,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 				au_idx = first_idx = gf_bs_read_int(hdr_bs, rtp->sl_map.IndexLength);
 				au_hdr_size -= rtp->sl_map.IndexLength;
 			} else {
-				au_idx += 1 + (s32) gf_bs_read_int(hdr_bs, rtp->sl_map.IndexDeltaLength);
+				au_idx += 1 + (u32) gf_bs_read_int(hdr_bs, rtp->sl_map.IndexDeltaLength);
 				au_hdr_size -= rtp->sl_map.IndexDeltaLength;
 			}
 			/*CTS flag*/
@@ -154,7 +155,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 
 			/*CTS in-band*/
 			if (rtp->sl_hdr.compositionTimeStampFlag) {
-				rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp + (s32) gf_bs_read_int(hdr_bs, rtp->sl_map.CTSDeltaLength);
+				rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp + (u32) gf_bs_read_int(hdr_bs, rtp->sl_map.CTSDeltaLength);
 				au_hdr_size -= rtp->sl_map.CTSDeltaLength;
 			}
 			/*DTS flag is always present (needed for reconstruction of TSs in case of packet loss)*/
@@ -214,7 +215,7 @@ static void gf_rtp_parse_mpeg4(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char 
 			rtp->sl_hdr.randomAccessPointFlag = is_rap ? 1 : 0;
 		}
 
-		rtp->on_sl_packet(rtp->udta, payload + pay_start, au_size, &rtp->sl_hdr, GF_OK);
+		rtp->on_sl_packet(rtp->udta, payload + pay_start, (u32) au_size, &rtp->sl_hdr, GF_OK);
 
 		rtp->sl_hdr.compositionTimeStampFlag = 0;
 		
@@ -380,7 +381,8 @@ static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 {
 	GF_BitStream *bs;
 	Bool P_bit, V_bit;
-	u32 plen, plen_bits, offset;
+	u32 plen, plen_bits;
+	u64 offset;
 	char blank[2];
 
 	bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
@@ -399,7 +401,7 @@ static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 	if (plen) {
 		gf_bs_skip_bytes(bs, plen);
 	}
-	offset = (u32) gf_bs_get_position(bs);
+	offset = gf_bs_get_position(bs);
 	gf_bs_del(bs);
 
 	blank[0] = blank[1] = 0;
@@ -423,11 +425,11 @@ static void gf_rtp_parse_h263(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 
 		/*if M bit set, end of frame*/
 		rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
-		rtp->on_sl_packet(rtp->udta, payload + offset, size - offset, &rtp->sl_hdr, GF_OK);
+		rtp->on_sl_packet(rtp->udta, payload + offset, (u32) (size - offset), &rtp->sl_hdr, GF_OK);
 	} else {
 		/*middle/end of frames - if M bit set, end of frame*/
 		rtp->sl_hdr.accessUnitEndFlag = hdr->Marker;
-		rtp->on_sl_packet(rtp->udta, payload + offset, size - offset, &rtp->sl_hdr, GF_OK);
+		rtp->on_sl_packet(rtp->udta, payload + offset, (u32) (size - offset), &rtp->sl_hdr, GF_OK);
 	}
 }
 
@@ -472,15 +474,16 @@ static void gf_rtp_ttxt_flush(GF_RTPDepacketizer *rtp, u32 ts)
 static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload, u32 size)
 {
 	Bool is_utf_16;
-	u32 type, ttu_len, pay_start, duration, ts, sidx, txt_size;
+	u32 type, ttu_len, duration, ts, sidx, txt_size;
 	u32 nb_frag, cur_frag;
+	u64 pay_start;
 	GF_BitStream *bs;
 
 	ts = hdr->TimeStamp;
 
 	bs = gf_bs_new(payload, size, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
-		pay_start = (u32) gf_bs_get_position(bs);
+		pay_start = gf_bs_get_position(bs);
 		is_utf_16 = gf_bs_read_int(bs, 1);
 		gf_bs_read_int(bs, 4);
 		type = gf_bs_read_int(bs, 3);
@@ -547,13 +550,17 @@ static void gf_rtp_parse_ttxt(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *
 			rtp->sl_hdr.au_duration = duration;
 			/*done*/
 			if (hdr->Marker) {
-				rtp->txt_len = (u32) gf_bs_get_position(rtp->inter_bs);
+				assert(gf_bs_get_position(rtp->inter_bs) < 1<<7);
+				rtp->txt_len = (u8) gf_bs_get_position(rtp->inter_bs);
 				gf_rtp_ttxt_flush(rtp, ts);
 			}
 		} else if ((type==3) || (type==4)) {
 			if (!rtp->inter_bs) rtp->inter_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			/*first modifier, store effective written text*/
-			if (type==3) rtp->txt_len = (u32) gf_bs_get_position(rtp->inter_bs);
+			if (type==3) {
+				assert(gf_bs_get_position(rtp->inter_bs) < 1<<7);
+				rtp->txt_len = (u8) gf_bs_get_position(rtp->inter_bs);
+			}
 			if (ttu_len<6) break;
 
 			nb_frag = gf_bs_read_int(bs, 4);

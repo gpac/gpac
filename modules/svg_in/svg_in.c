@@ -47,9 +47,9 @@ typedef struct
 static Bool svg_check_download(SVGIn *svgin)
 {
 	u32 size;
-	FILE *f = fopen(svgin->file_name, "rb");
-	fseek(f, 0, SEEK_END);
-	size = ftell(f);
+	FILE *f = gf_f64_open(svgin->file_name, "rb");
+	gf_f64_seek(f, 0, SEEK_END);
+	size = gf_f64_tell(f);
 	fclose(f);
 	if (size==svgin->file_size) return 1;
 	return 0;
@@ -188,13 +188,14 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 	case GPAC_OTI_SCENE_DIMS:
 		{
 			u8 prev, dims_hdr;
-			u32 nb_bytes, pos, size;
+			u32 nb_bytes, size;
+			u64 pos;
 			GF_BitStream *bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
 //
-//			FILE *f = fopen("dump.svg", "wb");
+//			FILE *f = gf_f64_open("dump.svg", "wb");
 //
 			while (gf_bs_available(bs)) {
-				pos = (u32) gf_bs_get_position(bs);
+				pos = gf_bs_get_position(bs);
 				size = gf_bs_read_u16(bs);
 				nb_bytes = 2;
 				/*GPAC internal hack*/

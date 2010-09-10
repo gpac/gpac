@@ -501,7 +501,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 			gf_term_download_del(rtp->dnload);
 			rtp->dnload = NULL;
 		} else {
-			FILE *f = fopen(opt, "wt");
+			FILE *f = gf_f64_open(opt, "wt");
 			if (f) {
 				sdp_buf = rtp->session_state_data + strlen("data:application/sdp,");
 				fwrite(sdp_buf, 1, strlen(sdp_buf), f);

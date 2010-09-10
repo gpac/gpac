@@ -313,7 +313,7 @@ s32 gf_sha1_file( char *path, u8 output[20] )
    GF_SHA1Context ctx;
     u8 buf[1024];
 
-    if( ( f = fopen( path, "rb" ) ) == NULL )
+    if( ( f = gf_f64_open( path, "rb" ) ) == NULL )
         return( 1 );
 
     gf_sha1_starts( &ctx );

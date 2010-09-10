@@ -795,7 +795,7 @@ exit:
 	return e;
 }
 
-GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation, u32 StartOffset)
+GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation, u64 StartOffset)
 {
 
 	u32 i, tracksDone;
@@ -922,7 +922,7 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 /*uncomment the following to easily test large file generation. This will prepend 4096*1MByte of 0 before the media data*/
 //#define TEST_LARGE_FILES
 
-GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation, u32 StartOffset, Bool drift_inter)
+GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emulation, u64 StartOffset, Bool drift_inter)
 {
 	u32 i, tracksDone;
 	TrackWriter *tmp, *curWriter;
@@ -1160,7 +1160,7 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 		if (e) goto exit;
 	}
 
-	e = DoInterleave(mw, writers, bs, 1, (u32) gf_bs_get_position(bs), drift_inter);
+	e = DoInterleave(mw, writers, bs, 1, gf_bs_get_position(bs), drift_inter);
 	if (e) goto exit;
 
 	firstSize = GetMoovAndMetaSize(movie, writers);

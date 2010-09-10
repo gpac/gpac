@@ -93,7 +93,7 @@ typedef struct
 	FILE *file;
 	char filename[GF_MAX_PATH];
 	u32 start_range, end_range;
-	u32 file_size;
+	u64 file_size;
 	Double duration;
 	u32 nb_playing;
 	Bool file_regulate;
@@ -125,7 +125,7 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 	char frontend_name[100], demux_name[100], dvr_name[100];
 	u32 adapter_num;
 
-	chanfile = fopen(chan_path, "r");
+	chanfile = gf_f64_open(chan_path, "r");
 	if (!chanfile) return GF_BAD_PARAM;
 
 	chan_name = url+6; // 6 = strlen("dvb://")
@@ -292,7 +292,7 @@ static u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char
 
 	channel_name = url+6;
 
-	channels_config_file = fopen(channels_config_path, "r");
+	channels_config_file = gf_f64_open(channels_config_path, "r");
 	if (!channels_config_file) return GF_BAD_PARAM;
 
 	freq = 0;
@@ -765,10 +765,10 @@ u32 M2TS_Run(void *_p)
 			}
 		}
 	} else {
-		u32 pos = 0;
+		u64 pos = 0;
 		if (m2ts->start_range && m2ts->duration) {
 			Double perc = m2ts->start_range / (1000 * m2ts->duration);
-			pos = (u32) (s64) (perc * m2ts->file_size);
+			pos = (u64) (perc * m2ts->file_size);
 			/*align to TS packet size*/
 			while (pos%188) pos++;
 			if (pos>=m2ts->file_size) {
@@ -776,7 +776,7 @@ u32 M2TS_Run(void *_p)
 				pos = 0;
 			}
 		}
-		fseek(m2ts->file, pos, SEEK_SET);
+		gf_f64_seek(m2ts->file, pos, SEEK_SET);
 		while (m2ts->run_state && !feof(m2ts->file) ) {
 			/*m2ts chunks by chunks*/
 			size = fread(data, 1, 188, m2ts->file);
@@ -928,7 +928,7 @@ void M2TS_SetupFile(M2TSIn *m2ts, char *url)
 {
 #if 0
 	char data[188];
-	u32 size, fsize;
+	u64 size, fsize;
 	s32 nb_rwd;
 #endif
 	if (m2ts->file && !strcmp(m2ts->filename, url)) {
@@ -936,15 +936,15 @@ void M2TS_SetupFile(M2TSIn *m2ts, char *url)
 		return;
 	}
 
-	m2ts->file = fopen(url, "rb");
+	m2ts->file = gf_f64_open(url, "rb");
 	if (!m2ts->file) {
 		gf_term_on_connect(m2ts->service, NULL, GF_URL_ERROR);
 		return;
 	}
 	strcpy(m2ts->filename, url);
 
-	fseek(m2ts->file, 0, SEEK_END);
-	m2ts->file_size = ftell(m2ts->file);
+	gf_f64_seek(m2ts->file, 0, SEEK_END);
+	m2ts->file_size = gf_f64_tell(m2ts->file);
 
 #if 0
 	/*
@@ -959,7 +959,7 @@ void M2TS_SetupFile(M2TSIn *m2ts, char *url)
 	fsize = m2ts->file_size;
 	while (fsize % 188) fsize--;
 	while (1) {
-		fseek(m2ts->file, fsize - 188 * nb_rwd, SEEK_SET);
+		gf_f64_seek(m2ts->file, fsize - 188 * nb_rwd, SEEK_SET);
 		/*m2ts chunks by chunks*/
 		size = fread(data, 1, 188, m2ts->file);
 		if (!size) break;
@@ -973,7 +973,7 @@ void M2TS_SetupFile(M2TSIn *m2ts, char *url)
 	   reset of the file
 	   initialization of m2ts->start_range to the PTS of the first TS packet with PID = m2ts->nb_playing
 	*/
-	fseek(m2ts->file, 0, SEEK_SET);
+	gf_f64_seek(m2ts->file, 0, SEEK_SET);
 	gf_m2ts_reset_parsers(m2ts->ts);
 	m2ts->start_range = 0;
 	while (1) {

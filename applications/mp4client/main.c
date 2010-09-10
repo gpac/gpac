@@ -241,7 +241,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	/*do we have the write privileges on this dir ? if not, use user local data directory*/
 	strcpy(szPath, file_path);
 	strcat(szPath, "GPAC.cfg");
-	f = fopen(szPath, "wb");
+	f = gf_f64_open(szPath, "wb");
 	if (f != NULL) {
 		fclose(f);
 		write_access = 1;
@@ -260,7 +260,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 		_mkdir(file_path);
 		strcpy(szPath2, file_path);
 		strcat(szPath2, "GPAC.cfg");
-		f = fopen(szPath2, "wb");
+		f = gf_f64_open(szPath2, "wb");
 		assert(f);
 		if (!f) return NULL;
 		fclose(f);
@@ -268,7 +268,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 #else
 	FILE *f;
 	sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, file_name);
-	f = fopen(szPath, "wt");
+	f = gf_f64_open(szPath, "wt");
 	fprintf(stdout, "create %s: %s\n", szPath, (f==NULL) ? "Error" : "OK");
 	if (!f) return NULL;
 	fclose(f);
@@ -901,7 +901,7 @@ static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list
 static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 {
 	if (rti_logs) fclose(rti_logs);
-	rti_logs = fopen(rti_file, "wt");
+	rti_logs = gf_f64_open(rti_file, "wt");
 	if (rti_logs) {
 		fprintf(rti_logs, "!! GPAC RunTime Info ");
 		if (url) fprintf(rti_logs, "for file %s", url);
@@ -1036,7 +1036,7 @@ int main (int argc, char **argv)
 		} else if (!strcmp(arg, "-quiet")) {
 			be_quiet = 1;
 		} else if (!strcmp(arg, "-log-file") || !strcmp(arg, "-lf")) {
-			logfile = fopen(argv[i+1], "wt");
+			logfile = gf_f64_open(argv[i+1], "wt");
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
 		} else if (!strcmp(arg, "-log-level") || !strcmp(arg, "-ll")) {
@@ -1203,7 +1203,7 @@ int main (int argc, char **argv)
 		ext = strrchr(the_url, '.');
 		if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
 			fprintf(stdout, "Opening Playlist %s\n", the_url);
-			playlist = fopen(the_url, "rt");
+			playlist = gf_f64_open(the_url, "rt");
 			if (playlist) {
 				strcpy(pl_path, the_url);
 				fscanf(playlist, "%s", the_url);
@@ -1279,7 +1279,7 @@ force_input:
 			gf_term_disconnect(term);
 			fprintf(stdout, "Enter the absolute URL to the playlist\n");
 			scanf("%s", the_url);
-			playlist = fopen(the_url, "rt");
+			playlist = gf_f64_open(the_url, "rt");
 			if (playlist) {
 				fscanf(playlist, "%s", the_url);
 				fprintf(stdout, "Opening URL %s\n", the_url);
@@ -1572,7 +1572,7 @@ force_input:
 				if (e) {
 					fprintf(stdout, "Error encoding PNG %s\n", gf_error_to_string(e) );
 				} else {
-					FILE *png = fopen("dump.png", "wb");
+					FILE *png = gf_f64_open("dump.png", "wb");
 					if (!png) {
 						fprintf(stdout, "Error writing file dump.png\n");
 					} else {

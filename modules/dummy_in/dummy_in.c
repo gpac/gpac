@@ -255,7 +255,7 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		return GF_OK;
 	}
 
-	test = fopen(read->url, "rt");
+	test = gf_f64_open(read->url, "rt");
 	if (!test) {
 		gf_term_on_connect(serv, NULL, GF_URL_ERROR);
 		return GF_OK;
@@ -303,9 +303,9 @@ static GF_Descriptor *DC_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 		uri = (char *) gf_dm_sess_get_cache_name(read->dnload);
 		gf_dm_sess_get_stats(read->dnload, NULL, NULL, &size, NULL, NULL, NULL);
 	} else {
-		FILE *f = fopen(read->url, "rt");
-		fseek(f, 0, SEEK_END);
-		size = ftell(f);
+		FILE *f = gf_f64_open(read->url, "rt");
+		gf_f64_seek(f, 0, SEEK_END);
+		size = gf_f64_tell(f);
 		fclose(f);
 		uri = read->url;
 	}

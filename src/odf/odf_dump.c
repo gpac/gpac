@@ -330,9 +330,9 @@ static void DumpString(FILE *trace, const char *attName, char *val, u32 indent, 
 	EndAttribute(trace, indent, XMTDump);
 }
 
-static void DumpData(FILE *trace, const char *name, char *data, u32 dataLength, u32 indent, Bool XMTDump)
+static void DumpData(FILE *trace, const char *name, char *data, u64 dataLength, u32 indent, Bool XMTDump)
 {
-	u32 i;
+	u64 i;
 	if (!name ||!data) return;
 	StartAttribute(trace, name, indent, XMTDump);
 	if (XMTDump) fprintf(trace, "data:application/octet-string,");
@@ -863,7 +863,8 @@ GF_Err gf_odf_dump_ui_cfg(GF_UIConfig *uid, FILE *trace, u32 indent, Bool XMTDum
 GF_Err DumpRawUIConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool XMTDump, u32 oti)
 {
 	char devName[255];
-	u32 i, len;
+	u32 i;
+	u64 len;
 	GF_BitStream *bs;
 
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
@@ -882,7 +883,7 @@ GF_Err DumpRawUIConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool 
 		devName[0] = gf_bs_read_int(bs, 8);
 		DumpString(trace, "delChar", devName, indent, XMTDump);
 	}
-	len = (u32) gf_bs_available(bs);
+	len = gf_bs_available(bs);
 	if (len) {
 		if (!stricmp(devName, "HTKSensor")) {
 			u32 nb_word, nbPhone, c, j;
@@ -908,7 +909,7 @@ GF_Err DumpRawUIConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool 
 			EndAttribute(trace, indent, XMTDump);
 		} else {
 			char *data = dsi->data;
-			data += (u32) gf_bs_get_position(bs);
+			data += gf_bs_get_position(bs);
 			DumpData(trace, "uiData", data, len, indent, XMTDump);
 		}
 	}
