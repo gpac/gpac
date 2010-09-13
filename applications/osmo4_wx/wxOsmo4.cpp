@@ -158,7 +158,7 @@ u32 get_sys_col(int idx)
 }
 #endif
 
-static void wxOsmo4_progress_cbk(void *usr, char *title, u32 done, u32 total)
+static void wxOsmo4_progress_cbk(void *usr, char *title, u64 done, u64 total)
 {
 	if (!total) return;
 	wxOsmo4Frame *app = (wxOsmo4Frame *)usr;
