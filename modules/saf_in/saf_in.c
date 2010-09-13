@@ -114,7 +114,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	GF_Err e;
 	Bool is_rap, go;
 	SAFChannel *ch;
-	u32 cts, au_sn, au_size, , type, i, stream_id;
+	u32 cts, au_sn, au_size, type, i, stream_id;
 	u64 bs_pos;
 	GF_BitStream *bs;
 	GF_SLHeader sl_hdr;
