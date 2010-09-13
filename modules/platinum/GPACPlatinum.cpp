@@ -1360,9 +1360,9 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		device->js_source = szFile;
 
 		jsval aval;
-		gf_f64_seek(f, 0, SEEK_END);
-		u64 size = gf_f64_tell(f);
-		gf_f64_seek(f, 0, SEEK_SET);
+		fseek(f, 0, SEEK_END);
+		u32 size = ftell(f);
+		fseek(f, 0, SEEK_SET);
 		char *buf = (char*)gf_malloc(sizeof(char)*(size+1));
 		size = fread(buf, 1, size, f);
 		buf[size]=0;

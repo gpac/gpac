@@ -145,7 +145,8 @@ static void AAC_SetupObject(AACReader *read)
 
 static Bool ADTS_SyncFrame(GF_BitStream *bs, Bool is_complete, ADTSHeader *hdr)
 {
-	u32 val, pos, start_pos;
+	u32 val;
+	u64 start_pos, pos;
 
 	start_pos = gf_bs_get_position(bs);
 	while (gf_bs_available(bs)) {
@@ -284,7 +285,7 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 	bs = gf_bs_new(read->data, read->data_size, GF_BITSTREAM_READ);
 	hdr.frame_size = pos = 0;
 	while (ADTS_SyncFrame(bs, 0, &hdr)) {
-		pos = gf_bs_get_position(bs);
+		pos = (u32) gf_bs_get_position(bs);
 		read->sl_hdr.accessUnitStartFlag = 1;
 		read->sl_hdr.accessUnitEndFlag = 1;
 		read->sl_hdr.AU_sequenceNumber++;
@@ -294,7 +295,7 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		gf_bs_skip_bytes(bs, hdr.frame_size);
 	}
 
-	pos = gf_bs_get_position(bs);
+	pos = (u32) gf_bs_get_position(bs);
 	gf_bs_del(bs);
 
 	if (pos) {
@@ -603,7 +604,8 @@ static GF_Err AAC_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 static GF_Err AAC_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
-	u32 pos, start_from;
+	u64 pos;
+	u32 start_from;
 	Bool sync;
 	GF_BitStream *bs;
 	ADTSHeader hdr;

@@ -141,13 +141,13 @@ void IMG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
-			read->stream = gf_f64_open((char *) szCache, "rb");
+			read->stream = fopen((char *) szCache, "rb");
 			if (!read->stream) e = GF_SERVICE_ERROR;
 			else {
 				e = GF_OK;
-				gf_f64_seek(read->stream, 0, SEEK_END);
-				read->data_size = gf_f64_tell(read->stream);
-				gf_f64_seek(read->stream, 0, SEEK_SET);
+				fseek(read->stream, 0, SEEK_END);
+				read->data_size = ftell(read->stream);
+				fseek(read->stream, 0, SEEK_SET);
 			}
 		}
 	} 
@@ -188,11 +188,11 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		return GF_OK;
 	}
 
-	read->stream = gf_f64_open(url, "rb");
+	read->stream = fopen(url, "rb");
 	if (read->stream) {
-		gf_f64_seek(read->stream, 0, SEEK_END);
-		read->data_size = gf_f64_tell(read->stream);
-		gf_f64_seek(read->stream, 0, SEEK_SET);
+		fseek(read->stream, 0, SEEK_END);
+		read->data_size = ftell(read->stream);
+		fseek(read->stream, 0, SEEK_SET);
 	}
 	gf_term_on_connect(serv, NULL, read->stream ? GF_OK : GF_URL_ERROR);
 	if (read->stream && read->is_inline) IMG_SetupObject(read);
@@ -320,10 +320,10 @@ static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 				return GF_OK;
 			}
 			*is_new_data = 1;
-			gf_f64_seek(read->stream, 0, SEEK_SET);
+			fseek(read->stream, 0, SEEK_SET);
 			read->data = (char*) gf_malloc(sizeof(char) * (read->data_size + read->pad_bytes));
 			read->data_size = fread(read->data, sizeof(char), read->data_size, read->stream);
-			gf_f64_seek(read->stream, 0, SEEK_SET);
+			fseek(read->stream, 0, SEEK_SET);
 			if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 
 		}
