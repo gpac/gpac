@@ -280,7 +280,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 	gf_bs_del(bs);
 	if (bs_pos) {
-		u32 remain = read->saf_size - bs_pos;
+		u32 remain = (u32) (read->saf_size - bs_pos);
 		if (remain) memmove(read->saf_data, read->saf_data+bs_pos, sizeof(char)*remain);
 		read->saf_size = remain;
 	}

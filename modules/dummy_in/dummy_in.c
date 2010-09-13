@@ -305,7 +305,7 @@ static GF_Descriptor *DC_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 	} else {
 		FILE *f = gf_f64_open(read->url, "rt");
 		gf_f64_seek(f, 0, SEEK_END);
-		size = gf_f64_tell(f);
+		size = (u32) gf_f64_tell(f);
 		fclose(f);
 		uri = read->url;
 	}

@@ -71,7 +71,7 @@ typedef struct
 	GF_List *streams;
 
 	FILE *ogfile;
-	u32 file_size;
+	u64 file_size;
 	Bool is_remote, is_inline;
 	u32 nb_playing, kill_demux, do_seek, service_type, init_remain, bos_done;
 

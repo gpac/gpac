@@ -37,11 +37,12 @@ typedef struct
 	GF_SceneManager *ctx;
 	GF_SceneLoader load;
 	char *file_name;
-	u32 file_size;
+	u64 file_size;
 	u32 load_flags;
 	u32 nb_streams;
 	u32 base_stream_id;
-	u32 last_check_time, last_check_size;
+	u32 last_check_time;
+	u64 last_check_size;
 	/*mp3 import from flash*/
 	GF_List *files_to_delete;
 	/*progressive loading support for XMT X3D*/
@@ -143,7 +144,7 @@ void CTXLoad_NodeCallback(void *cbk, u32 type, GF_Node *node, void *param)
 
 static Bool CTXLoad_CheckDownload(CTXLoadPriv *priv)
 {
-	u32 size;
+	u64 size;
 	FILE *f;
 	u32 now = gf_sys_clock();
 

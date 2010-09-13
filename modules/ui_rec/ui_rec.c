@@ -77,7 +77,7 @@ Bool uir_on_event_record(GF_UIRecord *uir , GF_Event *event)
 		gf_bs_write_u8(uir->bs, event->mouse.button);
 		gf_bs_write_u32(uir->bs, event->mouse.x);
 		gf_bs_write_u32(uir->bs, event->mouse.y);
-		gf_bs_write_float(uir->bs, event->mouse.wheel_pos);
+		gf_bs_write_float(uir->bs, FIX2FLT(event->mouse.wheel_pos) );
 		gf_bs_write_u8(uir->bs, event->mouse.key_states);
 		break;
 	/*Key Events*/
@@ -122,7 +122,7 @@ void uir_load_event(GF_UIRecord *uir)
 		uir->next_event.mouse.button = gf_bs_read_u8(uir->bs);
 		uir->next_event.mouse.x = gf_bs_read_u32(uir->bs);
 		uir->next_event.mouse.y = gf_bs_read_u32(uir->bs);
-		uir->next_event.mouse.wheel_pos = gf_bs_read_float(uir->bs);
+		uir->next_event.mouse.wheel_pos = FLT2FIX( gf_bs_read_float(uir->bs) );
 		uir->next_event.mouse.key_states = gf_bs_read_u8(uir->bs);
 		break;
 	/*Key Events*/
@@ -185,7 +185,8 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 		break;
 
 	case GF_TERM_EXT_PROCESS:
-		if (uir->evt_loaded && uir->ck && (uir->next_time <= gf_clock_time(uir->ck) )) {
+		/*flush all events until current time*/
+		while (uir->evt_loaded && uir->ck && (uir->next_time <= gf_clock_time(uir->ck) )) {
 			uir->term->compositor->video_out->on_event(uir->term->compositor->video_out->evt_cbk_hdl, &uir->next_event);
 			uir_load_event(uir);
 		}

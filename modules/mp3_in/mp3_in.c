@@ -111,7 +111,8 @@ static void mp3_setup_object(MP3Reader *read)
 
 static Bool MP3_ConfigureFromFile(MP3Reader *read)
 {
-	u32 hdr, size, pos;
+	u32 hdr, size;
+	u64 pos;
 	if (!read->stream) return 0;
 
 	hdr = gf_mp3_get_next_header(read->stream);
@@ -504,7 +505,8 @@ static GF_Err MP3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
-	u32 pos, hdr, start_from;
+	u64 pos;
+	u32 hdr, start_from;
 	MP3Reader *read = plug->priv;
 
 	if (read->ch != channel) 
