@@ -185,7 +185,7 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 		break;
 
 	case GF_TERM_EXT_PROCESS:
-		/*flush all events until current time*/
+		/*flush all events until current time if reached*/
 		while (uir->evt_loaded && uir->ck && (uir->next_time <= gf_clock_time(uir->ck) )) {
 			uir->term->compositor->video_out->on_event(uir->term->compositor->video_out->evt_cbk_hdl, &uir->next_event);
 			uir_load_event(uir);
