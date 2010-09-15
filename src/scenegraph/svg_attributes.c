@@ -64,8 +64,8 @@ static const struct dom_event_def {u32 event;  const char *name; u32 category; }
 	{ GF_EVENT_MOUSEOUT, "mouseout", GF_DOM_EVENT_MOUSE },
 	{ GF_EVENT_MOUSEOVER, "mouseover", GF_DOM_EVENT_MOUSE },
 	{ GF_EVENT_MOUSEUP, "mouseup", GF_DOM_EVENT_MOUSE },
+	{ GF_EVENT_MOUSEWHEEL, "wheel", GF_DOM_EVENT_MOUSE },
 	{ GF_EVENT_MOUSEWHEEL, "SVGMousewheel", GF_DOM_EVENT_MOUSE },
-	{ GF_EVENT_MOUSEWHEEL, "mousewheel", GF_DOM_EVENT_MOUSE },
 
 	/*activate is not a basic DOM but a MOUSE and KEY event*/
 	{ GF_EVENT_ACTIVATE, "activate", GF_DOM_EVENT_MOUSE | GF_DOM_EVENT_KEY },
