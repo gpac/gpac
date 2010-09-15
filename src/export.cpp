@@ -266,6 +266,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_error) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_line) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_serialize) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_node_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dom_get_key_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dom_get_key_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dom_event_get_name) )
 
 #ifdef GPAC_FIXED_POINT
 #pragma comment (linker, EXPORT_SYMBOL(gf_invfix) )
@@ -1011,6 +1016,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_img_parse) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_img_jpeg_dec) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_img_png_dec) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_img_png_file_dec) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_img_png_enc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4v_get_profile_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mp3_version) )
