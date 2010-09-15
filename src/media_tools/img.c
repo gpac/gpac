@@ -402,6 +402,31 @@ static void user_error_fn(png_structp png_ptr,png_const_charp error_msg)
 	longjmp(png_ptr->jmpbuf, 1);
 }
 
+GF_Err gf_img_png_file_dec(char *png_filename, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
+{
+    u32 fsize;
+    FILE *f;
+    char *data;
+    GF_Err e;
+    f = fopen(png_filename, "rb");
+    if (!f) return GF_URL_ERROR;
+
+    fseek(f, 0, SEEK_END);
+    fsize = (u32)ftell(f);
+    fseek(f, 0, SEEK_SET);
+    data = gf_malloc(fsize);
+    fread(data, fsize, 1, f);
+    
+    *dst_size = 0;
+    e = gf_img_png_dec(data, fsize, width, height, pixel_format, NULL, dst_size);    
+    if (*dst_size) {
+        *dst = gf_malloc(*dst_size);
+        return gf_img_png_dec(data, fsize, width, height, pixel_format, *dst, dst_size);    
+    } else {
+        return e;
+    }
+}
+
 GF_EXPORT
 GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pixel_format, char *dst, u32 *dst_size)
 {
