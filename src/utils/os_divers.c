@@ -558,11 +558,7 @@ u64 gf_f64_tell(FILE *fp)
 #if defined(_WIN32_WCE)
 	return (u64) ftell(fp);
 #elif defined(WIN32)
-	fpos_t pos;
-	if (fgetpos(fp, &pos))
-		return (u64) -1;
-	else
-		return ((u64) pos);
+	return (u64) _ftelli64(fp);
 #elif defined(GPAC_CONFIG_LINUX)
 	return (u64) ftello64(fp);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
@@ -577,16 +573,7 @@ u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
 #if defined(_WIN32_WCE)
 	return (u64) fseek(fp, (s32) offset, whence);
 #elif defined(WIN32)
-	fpos_t pos;
-	if (whence == SEEK_CUR) {
-		fgetpos(fp, &pos);
-		pos += (fpos_t) offset;
-	} 
-	else if (whence == SEEK_END) 
-		pos = (fpos_t) (_filelengthi64(fileno(fp)) + offset);
-	else if (whence == SEEK_SET)
-		pos = (fpos_t) offset;
-	return fsetpos(fp, &pos);
+	return (u64) _fseeki64(fp, offset, whence);
 #elif defined(GPAC_CONFIG_LINUX)
 	return fseeko64(fp, (off64_t) offset, whence);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
