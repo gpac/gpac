@@ -107,7 +107,6 @@ GF_Channel *gf_es_new(GF_ESD *esd)
 
 	tmp->mx = gf_mx_new("Channel");
 	tmp->esd = esd;
-	tmp->chan_id = (u32) tmp;
 	tmp->es_state = GF_ESM_ES_SETUP;
 
 	nbBits = sizeof(u32) * 8 - esd->slConfig->AUSeqNumLength;
