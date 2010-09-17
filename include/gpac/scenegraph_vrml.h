@@ -271,7 +271,6 @@ enum
 	GF_SG_VRML_SFNODE		=	10,
 	/*TO CHECK*/
 	GF_SG_VRML_SFVEC4F		=	11,
-	GF_SG_VRML_SFATTRREF	=	12,
 
 	/*used types in GPAC but not defined in the MPEG4 spec*/
 	GF_SG_VRML_SFURL,
@@ -296,7 +295,9 @@ enum
 	GF_SG_VRML_MFIMAGE,
 	GF_SG_VRML_MFNODE,
 	GF_SG_VRML_MFVEC4F,
-	GF_SG_VRML_MFATTRREF,
+
+	GF_SG_VRML_SFATTRREF	=	45,
+	GF_SG_VRML_MFATTRREF	=	46,
 
 	/*used types in GPAC but not defined in the MPEG4 spec*/
 	GF_SG_VRML_MFURL,
