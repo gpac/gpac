@@ -535,8 +535,6 @@ enum
 /*data channel (elementary stream)*/
 struct _es_channel 
 {
-	/*security check on channel*/
-	u32 chan_id;
 	/*service this channel belongs to*/
 	GF_ClientService *service;
 	/*stream descriptor*/

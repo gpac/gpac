@@ -33,7 +33,6 @@ static GFINLINE GF_Channel *gf_term_get_channel(GF_ClientService *service, LPNET
 {
 	GF_Channel *ch = (GF_Channel *)ns;
 	if (!service || !ch) return NULL;
-	if (ch->chan_id != (u32) ch) return NULL;
 	if (ch->service != service) return NULL;
 	return ch;
 }
