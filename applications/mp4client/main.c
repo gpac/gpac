@@ -67,7 +67,11 @@ void ViewODs(GF_Terminal *term, Bool show_timing);
 void PrintGPACConfig();
 
 static Bool restart = 0;
+#if defined(__DARWIN__) || defined(__APPLE__)
+static Bool not_threaded = 1;
+#else
 static Bool not_threaded = 0;
+#endif
 static Bool no_audio = 0;
 static Bool no_regulation = 0;
 static Bool bench_mode = 0;
@@ -143,7 +147,11 @@ void PrintUsage()
 		"\n"
 		"\t-size WxH:      specifies visual size (default: scene size)\n"
 		"\t-scale s:      scales the visual size (default: 1)\n"
+#if defined(__DARWIN__) || defined(__APPLE__)
+		"\t-thread:        enables thread usage for terminal and compositor \n"
+#else
 		"\t-no-thread:     disables thread usage (except for audio)\n"
+#endif
 		"\t-no-audio:	   disables audio \n"
 		"\t-no-wnd:        uses windowless mode (Win32 only)\n"
 		"\t-align vh:      specifies v and h alignment for windowless mode\n"
@@ -1058,7 +1066,11 @@ int main (int argc, char **argv)
 			i++;
 		}
 		else if (!strcmp(arg, "-no-wnd")) user.init_flags |= GF_TERM_WINDOWLESS;
+#if defined(__DARWIN__) || defined(__APPLE__)
+		else if (!strcmp(arg, "-thread")) not_threaded = 0;
+#else
 		else if (!strcmp(arg, "-no-thread")) not_threaded = 1;
+#endif
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
