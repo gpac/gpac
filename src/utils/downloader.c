@@ -65,7 +65,8 @@ struct __gf_download_session
 	GF_Thread *th;
 	GF_Mutex *mx;
 
-	Bool in_callback, destroy, use_proxy;
+	Bool in_callback, destroy;
+	u32 proxy_enabled;
 
 	char *server_name;
 	u16 port;
@@ -125,6 +126,8 @@ struct __gf_download_manager
 
 	GF_Config *cfg;
 	GF_List *sessions;
+
+	GF_List *skip_proxy_servers;
 
 #ifdef GPAC_HAS_SSL
 	SSL_CTX *ssl_ctx;
@@ -609,16 +612,32 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	gf_dm_sess_notify_state(sess, sess->status, GF_OK);
 
 	/*PROXY setup*/
-	proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Enabled");
-	if (proxy && !strcmp(proxy, "yes")) {
-		proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Port");
-		proxy_port = proxy ? atoi(proxy) : 80;
-
-		proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Name");
-		sess->use_proxy = 1;
+	if (sess->proxy_enabled!=2) {
+		proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Enabled");
+		if (proxy && !strcmp(proxy, "yes")) {
+			u32 i;
+			Bool use_proxy=1;
+			for (i=0; i<gf_list_count(sess->dm->skip_proxy_servers); i++) {
+				char *skip = gf_list_get(sess->dm->skip_proxy_servers, i);
+				if (!strcmp(skip, sess->server_name)) {
+					use_proxy=0;
+					break;
+				}
+			}
+			if (use_proxy) {
+				proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Port");
+				proxy_port = proxy ? atoi(proxy) : 80;
+				proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Name");
+				sess->proxy_enabled = 1;
+			} else {
+				proxy = NULL;
+			}
+		} else {
+			proxy = NULL;
+			sess->proxy_enabled = 0;
+		}
 	} else {
 		proxy = NULL;
-		sess->use_proxy = 0;
 	}
 
 
@@ -765,6 +784,7 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 	if (!cfg) return NULL;
 	GF_SAFEALLOC(dm, GF_DownloadManager);
 	dm->sessions = gf_list_new();
+	dm->skip_proxy_servers = gf_list_new();
 	dm->cfg = cfg;
 
 	opt = gf_cfg_get_key(cfg, "General", "CacheDirectory");
@@ -800,6 +820,13 @@ void gf_dm_del(GF_DownloadManager *dm)
 		gf_dm_sess_del(sess);
 	}
 	gf_list_del(dm->sessions);
+
+	while (gf_list_count(dm->skip_proxy_servers)) {
+		char *serv = gf_list_get(dm->skip_proxy_servers, 0);
+		gf_list_rem(dm->skip_proxy_servers, 0);
+		gf_free(serv);
+	}
+	gf_list_del(dm->skip_proxy_servers);
 
 	gf_free(dm->cache_directory);
 
@@ -1096,7 +1123,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			sess->http_read_type = 0;
 		}
 
-		url = sess->use_proxy ? sess->orig_url : sess->remote_path;
+		url = (sess->proxy_enabled==1) ? sess->orig_url : sess->remote_path;
 		param_string = gf_cfg_get_key(sess->dm->cfg, "Downloader", "ParamString");
 		if (param_string) {
 			if (strchr(sess->remote_path, '?')) {
@@ -1138,7 +1165,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			strcat(sHTTP, "\r\n");
 		}
 		if (!has_accept) strcat(sHTTP, "Accept: */*\r\n");
-		if (sess->use_proxy) strcat(sHTTP, "Proxy-Connection: Keep-alive\r\n");
+		if (sess->proxy_enabled==1) strcat(sHTTP, "Proxy-Connection: Keep-alive\r\n");
 		else if (!has_connection) strcat(sHTTP, "Connection: Keep-Alive\r\n");
 		if (!has_range && sess->cache_start_size) {
 			sprintf(range_buf, "Range: bytes=%d-\r\n", sess->cache_start_size);
@@ -1430,6 +1457,10 @@ void http_do_requests(GF_DownloadSession *sess)
 		case 206:
 			gf_dm_sess_user_io(sess, &par);
 			e = GF_OK;
+			if (sess->proxy_enabled==2) {
+				sess->proxy_enabled=0;
+				gf_list_add(sess->dm->skip_proxy_servers, gf_strdup(sess->server_name));
+			}
 			break;
 		/*redirection: extract the new location*/
 		case 301:
@@ -1472,6 +1503,13 @@ void http_do_requests(GF_DownloadSession *sess)
 			e = GF_URL_ERROR;
 			goto exit;
 		case 503:
+			/*retry without proxy*/
+			if (sess->proxy_enabled==1) {
+				sess->proxy_enabled=2;
+				gf_dm_disconnect(sess);
+				sess->status = GF_NETIO_SETUP;
+				return;
+			}
 		default:
 			gf_dm_sess_user_io(sess, &par);
 			e = GF_REMOTE_SERVICE_ERROR;
