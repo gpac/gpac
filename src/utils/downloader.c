@@ -618,7 +618,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		sess->use_proxy = 1;
 	} else {
 		proxy = NULL;
-		sess->use_proxy = 1;
+		sess->use_proxy = 0;
 	}
 
 
