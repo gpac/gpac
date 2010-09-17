@@ -65,11 +65,12 @@ struct __gf_download_session
 	GF_Thread *th;
 	GF_Mutex *mx;
 
-	Bool in_callback, destroy;
+	Bool in_callback, destroy, use_proxy;
 
 	char *server_name;
 	u16 port;
 
+	char *orig_url;
 	char *remote_path;
 	char *user;
 	char *passwd;
@@ -337,6 +338,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 		gf_free(sess->cache_name);
 	}
 
+	if (sess->orig_url) gf_free(sess->orig_url);
 	if (sess->server_name) gf_free(sess->server_name);
 	if (sess->remote_path) gf_free(sess->remote_path);
 	if (sess->user) gf_free(sess->user);
@@ -382,6 +384,8 @@ static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 {
 	char *tmp, *tmp_url;
 	const char *opt;
+	sess->orig_url = gf_strdup(url);
+
 	if (!strnicmp(url, "http://", 7)) {
 		url += 7;
 		sess->port = 80;
@@ -611,8 +615,10 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		proxy_port = proxy ? atoi(proxy) : 80;
 
 		proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Name");
+		sess->use_proxy = 1;
 	} else {
 		proxy = NULL;
+		sess->use_proxy = 1;
 	}
 
 
@@ -1034,6 +1040,7 @@ void http_do_requests(GF_DownloadSession *sess)
 		char range_buf[1024];
 		char pass_buf[1024];
 		const char *user_agent;
+		const char *url;
 		const char *user_profile;
 		const char *param_string;
 		u32 size;
@@ -1089,18 +1096,19 @@ void http_do_requests(GF_DownloadSession *sess)
 			sess->http_read_type = 0;
 		}
 
+		url = sess->use_proxy ? sess->orig_url : sess->remote_path;
 		param_string = gf_cfg_get_key(sess->dm->cfg, "Downloader", "ParamString");
 		if (param_string) {
 			if (strchr(sess->remote_path, '?')) {
 				sprintf(sHTTP, "%s %s&%s HTTP/1.0\r\nHost: %s\r\n" ,
-					par.name ? par.name : "GET", sess->remote_path, param_string, sess->server_name);
+					par.name ? par.name : "GET", url, param_string, sess->server_name);
 			} else {
 				sprintf(sHTTP, "%s %s?%s HTTP/1.0\r\nHost: %s\r\n" ,
-					par.name ? par.name : "GET", sess->remote_path, param_string, sess->server_name);
+					par.name ? par.name : "GET", url, param_string, sess->server_name);
 			}
 		} else {
 			sprintf(sHTTP, "%s %s HTTP/1.0\r\nHost: %s\r\n" ,
-				par.name ? par.name : "GET", sess->remote_path, sess->server_name);
+				par.name ? par.name : "GET", url, sess->server_name);
 		}
 
 		/*signal we support title streaming*/
@@ -1130,7 +1138,8 @@ void http_do_requests(GF_DownloadSession *sess)
 			strcat(sHTTP, "\r\n");
 		}
 		if (!has_accept) strcat(sHTTP, "Accept: */*\r\n");
-		if (!has_connection) strcat(sHTTP, "Connection: Keep-Alive\r\n");
+		if (sess->use_proxy) strcat(sHTTP, "Proxy-Connection: Keep-alive\r\n");
+		else if (!has_connection) strcat(sHTTP, "Connection: Keep-Alive\r\n");
 		if (!has_range && sess->cache_start_size) {
 			sprintf(range_buf, "Range: bytes=%d-\r\n", sess->cache_start_size);
 			strcat(sHTTP, range_buf);
@@ -1143,6 +1152,7 @@ void http_do_requests(GF_DownloadSession *sess)
 				strcat(sHTTP, "\r\n");
 			}
 		}
+
 
 		if (strlen(pass_buf)) {
 			strcat(sHTTP, pass_buf);
