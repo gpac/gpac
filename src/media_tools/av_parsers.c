@@ -2297,6 +2297,45 @@ static u32 avc_emulation_bytes_count(unsigned char *buffer, u32 nal_size)
 	return emulation_bytes_count;
 }
 
+/*nal_size is updated to allow better error detection*/
+static u32 avc_remove_emulation_bytes(const unsigned char *buffer_src, unsigned char *buffer_dst, u32 nal_size) 
+{ 
+	u32 i = 0, emulation_bytes_count = 0;
+	u8 num_zero = 0; 
+
+	while (i < nal_size) 
+	{ 
+		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003 
+		  other than the following sequences shall not occur at any byte-aligned position: 
+		  0x00000300 
+		  0x00000301 
+		  0x00000302 
+		  0x00000303" 
+		*/ 
+		if (num_zero == 2 
+			&& buffer_src[i] == 0x03 
+			&& i+1 < nal_size /*next byte is readable*/ 
+			&& buffer_src[i+1] < 0x04) 
+		{ 
+			/*emulation code found*/ 
+			num_zero = 0;
+			emulation_bytes_count++;
+			i++;
+		}
+
+		buffer_dst[i-emulation_bytes_count] = buffer_src[i];
+
+		if (!buffer_src[i]) 
+			num_zero++; 
+		else 
+			num_zero = 0; 
+
+		i++; 
+	} 
+	
+	return nal_size-emulation_bytes_count; 
+} 
+
 u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 {
 	u32 ptype, psize, hdr, written, var, emulation_bytes_count;
@@ -2520,19 +2559,30 @@ GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *width, u32 *height
 	GF_BitStream *bs;
 	AVCState avc;
 	s32 idx;
+	char *sps_data_without_emulation_bytes = NULL;
+	u32 sps_data_without_emulation_bytes_size = 0;
 	memset(&avc, 0, sizeof(AVCState));
 
-	bs = gf_bs_new(sps_data, sps_size, GF_BITSTREAM_READ);
+	/*SPS still contains emulation bytes*/
+	sps_data_without_emulation_bytes = gf_malloc(sps_size*sizeof(char));
+	sps_data_without_emulation_bytes_size = avc_remove_emulation_bytes(sps_data, sps_data_without_emulation_bytes, sps_size);
+
+	bs = gf_bs_new(sps_data_without_emulation_bytes, sps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	/*skip NALU type*/
 	gf_bs_read_int(bs, 8);
 	idx = AVC_ReadSeqInfo(bs, &avc, 0, NULL);
 	gf_bs_del(bs);
-	if (idx<0) return GF_NON_COMPLIANT_BITSTREAM;
+	if (idx<0) {
+		gf_free(sps_data_without_emulation_bytes);
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 
 	if (width) *width = avc.sps[idx].width;
 	if (height) *height = avc.sps[idx].height;
 	if (par_n) *par_n = avc.sps[idx].vui.par_num ? avc.sps[idx].vui.par_num : (u32) -1;
 	if (par_d) *par_d = avc.sps[idx].vui.par_den ? avc.sps[idx].vui.par_den : (u32) -1;
+
+	gf_free(sps_data_without_emulation_bytes);
 	return GF_OK;
 }
 
