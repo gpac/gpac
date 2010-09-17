@@ -723,7 +723,7 @@ GF_Err gf_rtsp_load_service_name(GF_RTSPSession *sess, char *URL)
 GF_EXPORT
 char *gf_rtsp_generate_session_id(GF_RTSPSession *sess)
 {
-	u32 one, two;
+	u32 one;
 	u64 res;
 	char buffer[30];
 
@@ -734,11 +734,9 @@ char *gf_rtsp_generate_session_id(GF_RTSPSession *sess)
 		gf_rand_init(0);
 	}
 	one = gf_rand();
-	//try to be as random as possible. if we had some global stats that'd be better
-	two = (u32) sess + sess->CurrentPos + sess->CurrentSize;
 	res = one;
 	res <<= 32;
-	res += two;
+	res += (u64) sess + sess->CurrentPos + sess->CurrentSize;
 	sprintf(buffer, LLU, res);
 	return gf_strdup(buffer);
 }

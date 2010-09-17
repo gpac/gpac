@@ -1493,19 +1493,19 @@ static JSBool image_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 	if (JSVAL_IS_INT(id) && JSVAL_TO_INT(id) >= 0 && JSVAL_TO_INT(id) < 4) {
 		switch (JSVAL_TO_INT(id)) {
 		case 0:
-			ival = JSVAL_TO_INT(vp);
+			ival = JSVAL_TO_INT(*vp);
 			changed = ! (sfi->width == ival);
 			sfi->width = ival;
 			if (changed && sfi->pixels) { gf_free(sfi->pixels); sfi->pixels = NULL; }
 			break;
 		case 1:
-			ival = JSVAL_TO_INT(vp);
+			ival =  JSVAL_TO_INT(*vp);
 			changed = ! (sfi->height == ival);
 			sfi->height = ival;
 			if (changed && sfi->pixels) { gf_free(sfi->pixels); sfi->pixels = NULL; }
 			break;
 		case 2:
-			ival = JSVAL_TO_INT(vp);
+			ival =  JSVAL_TO_INT(*vp);
 			changed = ! (sfi->numComponents == ival);
 			sfi->numComponents = ival;
 			if (changed && sfi->pixels) { gf_free(sfi->pixels); sfi->pixels = NULL; }
