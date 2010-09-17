@@ -522,7 +522,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	//if we have a body write the content length
 	if (rsp->body) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Content-Length: ");
-		RTSP_WRITE_INT(buffer, size, cur_pos, strlen(rsp->body), 0);
+		RTSP_WRITE_INT(buffer, size, cur_pos, (u32) strlen(rsp->body), 0);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
 	}
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Content-Location", rsp->Content_Location);
@@ -640,7 +640,7 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 				}
 			}
 			if (trans->port_first) {
-				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, trans->IsUnicast ? ";server_port=" : ";port=");
+				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, (const char *) (trans->IsUnicast ? ";server_port=" : ";port="));
 				RTSP_WRITE_INT(buffer, size, cur_pos, trans->port_first, 0);
 				RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");
 				RTSP_WRITE_INT(buffer, size, cur_pos, trans->port_last, 0);

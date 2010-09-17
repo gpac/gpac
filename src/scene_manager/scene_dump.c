@@ -396,7 +396,7 @@ static void scene_dump_utf_string(GF_SceneDumper *sdump, Bool escape_xml, char *
 	if (!len) return;
 	uniLine = (u16*)gf_malloc(sizeof(u16) * len);
 	len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
-	if (len != (size_t) (-1)) {
+	if (len != (u32) (-1)) {
 		for (i=0; i<len; i++) {
 			//if (uniLine[i] == (u16) '\"') fprintf(sdump->trace, "\\");
 			switch (uniLine[i]) {
@@ -549,7 +549,7 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 		len = strlen(str);
 		uniLine = (u16*)gf_malloc(sizeof(short) * len);
 		len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
-		if (len != (size_t) -1) {
+		if (len != (u32) -1) {
 			if (!sdump->XMLDump) fputc('\"', sdump->trace);
 
 			for (i=0; i<len; i++) {

@@ -334,7 +334,7 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 	}
     if (sdp) {
 		FILE *out = gf_f64_open(sdp_name, "wt");
-        fprintf(out, sdp);
+        fprintf(out, "%s", sdp);
 		fclose(out);
 	    gf_free(sdp);
     }

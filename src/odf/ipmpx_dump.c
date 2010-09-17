@@ -694,7 +694,7 @@ GF_Err gf_ipmpx_dump_ToolAPI_Config(GF_IPMPX_Data *_p, FILE *trace, u32 indent, 
 GF_Err gf_ipmpx_dump_WatermarkingInit(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDump)
 {
 	GF_IPMPX_WatermarkingInit*p = (GF_IPMPX_WatermarkingInit*)_p;
-	StartElement(trace, (char*) (_p->tag==GF_IPMPX_AUDIO_WM_INIT_TAG) ? "IPMP_AudioWatermarkingInit" : "IPMP_VideoWatermarkingInit", indent, XMTDump);
+	StartElement(trace, (char*)  ( (_p->tag==GF_IPMPX_AUDIO_WM_INIT_TAG) ? "IPMP_AudioWatermarkingInit" : "IPMP_VideoWatermarkingInit"), indent, XMTDump);
 	indent++;
 	DumpInt(trace, "inputFormat", p->inputFormat, indent, XMTDump);
 	DumpInt(trace, "requiredOp", p->requiredOp, indent, XMTDump);
@@ -724,13 +724,13 @@ GF_Err gf_ipmpx_dump_WatermarkingInit(GF_IPMPX_Data *_p, FILE *trace, u32 indent
 	EndAttributes(trace, XMTDump, 1);
 	gf_ipmpx_dump_BaseData(_p, trace, indent, XMTDump);
 	indent--;
-	EndElement(trace, (char*) (_p->tag==GF_IPMPX_AUDIO_WM_INIT_TAG) ? "IPMP_AudioWatermarkingInit" : "IPMP_VideoWatermarkingInit", indent, XMTDump);
+	EndElement(trace, (char*) ( (_p->tag==GF_IPMPX_AUDIO_WM_INIT_TAG) ? "IPMP_AudioWatermarkingInit" : "IPMP_VideoWatermarkingInit"), indent, XMTDump);
 	return GF_OK;
 }
 GF_Err gf_ipmpx_dump_SendWatermark(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDump)
 {
 	GF_IPMPX_SendWatermark*p = (GF_IPMPX_SendWatermark*)_p;
-	StartElement(trace, (char*) (_p->tag==GF_IPMPX_AUDIO_WM_SEND_TAG) ? "IPMP_SendAudioWatermark" : "IPMP_SendVideoWatermark", indent, XMTDump);
+	StartElement(trace, (char*) ((_p->tag==GF_IPMPX_AUDIO_WM_SEND_TAG) ? "IPMP_SendAudioWatermark" : "IPMP_SendVideoWatermark"), indent, XMTDump);
 	indent++;
 	DumpInt(trace, "wmStatus", p->wm_status, indent, XMTDump);
 	DumpInt(trace, "compression_status", p->compression_status, indent, XMTDump);
@@ -739,7 +739,7 @@ GF_Err gf_ipmpx_dump_SendWatermark(GF_IPMPX_Data *_p, FILE *trace, u32 indent, B
 	if (p->wm_status==GF_IPMPX_WM_PAYLOAD) gf_ipmpx_dump_ByteArray(p->payload, "payload", trace, indent, XMTDump);
 	if (p->opaqueData) gf_ipmpx_dump_ByteArray(p->opaqueData, "opaqueData", trace, indent, XMTDump);
 	indent--;
-	EndElement(trace, (char*) (_p->tag==GF_IPMPX_AUDIO_WM_SEND_TAG) ? "IPMP_SendAudioWatermark" : "IPMP_SendVideoWatermark", indent, XMTDump);
+	EndElement(trace, (char*) ( (_p->tag==GF_IPMPX_AUDIO_WM_SEND_TAG) ? "IPMP_SendAudioWatermark" : "IPMP_SendVideoWatermark"), indent, XMTDump);
 	return GF_OK;
 }
 

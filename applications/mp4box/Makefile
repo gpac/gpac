@@ -44,7 +44,7 @@ PROG=MP4Box
 ifeq ($(MP4BOX_STATIC),yes)
 LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz
 else
-LINKFLAGS+=-lgpac $(OGL_LIBS)
+LINKFLAGS+=-lgpac
 endif
 
 endif

@@ -6,14 +6,6 @@ ifeq ($(DISABLE_ISOFF), no)
 APPDIRS += mp4box
 endif
 
-ifeq ($(SRC_LOCAL_PATH), yes)
-ifeq ($(TARGET_ARCH_ARMV4L), yes)
-else
-APPDIRS +=generators
-endif
-endif
-
-
 
 V4STUDIODIR=
 INSTDIRS=mp4client

@@ -72,7 +72,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (e) return e;
 #endif
 
-	if ( (s8) faacDecInit2(ctx->codec, (unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (u32 *) &ctx->sample_rate, (u8 *) &ctx->num_channels) < 0) 
+	if ( (s8) faacDecInit2(ctx->codec, (unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels) < 0) 
 	{
 #ifndef GPAC_DISABLE_AV_PARSERS
 		s8 res;
@@ -95,7 +95,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		a_cfg.nb_chan = 1;
 
 		gf_m4a_write_config(&a_cfg, &dsi, &dsi_len);
-		res = faacDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (u32 *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
+		res = faacDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
 		gf_free(dsi);
 		if (res < 0) 
 #endif
