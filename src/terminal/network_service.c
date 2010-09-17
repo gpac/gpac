@@ -66,7 +66,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 	GF_ObjectManager *root;
 	GET_TERM();
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Connection ACK received from %s (channel %d) - %s\n", service->url, (u32) netch, gf_error_to_string(err) ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] %s connection ACK received from %s - %s\n", netch ? "Channel" : "Service", service->url, gf_error_to_string(err) ));
 
 	root = service->owner;
 	if (root && (root->net_service != service)) {
