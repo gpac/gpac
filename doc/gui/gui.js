@@ -2,6 +2,7 @@
 //
 //	Authors:	
 //					Jean Le Feuvre, Telecom ParisTech
+//                  Jean-Claude Dufourd, Telecom ParisTech
 //
 /////////////////////////////////////////////////////////////////////////////////
 
@@ -88,7 +89,11 @@ function initialize() {
       WidgetManager.coreOutShowNotification = widget_request_notification;
       WidgetManager.coreOutPlaceComponent = widget_place_component;
       WidgetManager.coreOutGetAttention = widget_request_attention;
-          
+      WidgetManager.coreOutInstallWidget = coreOutInstallWidgetImplementation;
+      WidgetManager.coreOutActivateTemporaryWidget = coreOutActivateTemporaryWidgetImplementation;
+      WidgetManager.coreOutMigrateComponent = coreOutMigrateComponentImplementation;
+      WidgetManager.coreOutRequestMigrationTargets = coreOutRequestMigrationTargetsImplementation;
+
       /*restore our widgets*/    
       widgets_init();
     }
@@ -1250,7 +1255,97 @@ function widget_place_component(widget, args)
  widget.widget_control.refresh_layout(false, comp);
 }
 
- 
+//
+// implementation of core:out install widget
+//
+function coreOutInstallWidgetImplementation(wid, args) {
+    var w = WidgetManager.open(args[0], null);
+    if (w!=null) {
+     insert_widget_icon(w, 0);
+    }
+    var ifce = getInterfaceByType(wid, "urn:mpeg:mpegu:schema:widgets:core:out:2010");
+    if (ifce != null) {
+        wmjs_core_out_invoke_reply(coreOut.installWidgetMessage, ifce.get_message("installWidget"),
+                wid, (w != null ? 1 : 0)); // send return code 1 = success
+    }
+}
+
+//
+// implementation of core:out activate temporary widget
+//
+function coreOutActivateTemporaryWidgetImplementation(wid, args) {
+    var w = WidgetManager.open(args[0], null);
+    if (w != null) widget_launch(w);
+    var ifce = getInterfaceByType(wid, "urn:mpeg:mpegu:schema:widgets:core:out:2010");
+    if (ifce != null) {
+        wmjs_core_out_invoke_reply(coreOut.activateTemporaryWidgetMessage, ifce.get_message("activateTemporaryWidget"),
+                wid, (w != null ? 1 : 0)); // send return code 1 = success
+    }
+}
+
+//
+// implementation of core:out migrate component
+//
+function coreOutMigrateComponentImplementation(wid, args) {
+    //alert("coreOutMigrateComponent "+wid.name+" "+args.length);
+    var comp = wid.get_component(args[0]);
+    var ifce = getInterfaceByType(wid, "urn:mpeg:mpegu:schema:widgets:core:out:2010");
+    if (comp==null) {
+       log(l_err, 'Component '+args[0]+' cannot be found in widget '+wid.name);
+        if (ifce != null) {
+            wmjs_core_out_invoke_reply(coreOut.migrateComponentMessage, ifce.get_message("migrateComponent"), wid, 0);
+        }
+       return;
+    }
+    if (args.length > 1 && args[1] != null) {
+        WidgetManager.migrate_widget(UPnP.GetMediaRenderer(parseInt(args[1])), comp);
+        widget_close(comp);
+    } else {
+        upnp_renders = selector_window(comp);
+        upnp_renders.on_select = function(item, wid) {
+            upnp_renders.unregister(root);
+            upnp_renders = null;
+            if (item == -1) return;
+            if (comp != null) {
+                //alert("upnp_renders.on_select("+item+","+comp.name+")");
+                WidgetManager.migrate_widget(UPnP.GetMediaRenderer(item), comp);
+                widget_close(comp);
+            }
+        };
+        upnp_renders.register(root);
+    }
+    if (ifce != null) {
+        wmjs_core_out_invoke_reply(coreOut.migrateComponentMessage, ifce.get_message("migrateComponent"), wid, 1); // send return code 1 = success
+    }
+}
+
+//
+// implementation of core:out request migration targets
+//
+function coreOutRequestMigrationTargetsImplementation(wid, args) {
+    var count = UPnP.MediaRenderersCount, codes = new Array(), names = new Array(), descriptions = new Array(), i;
+    for (i = 0; i < count; i++) {
+        var render = UPnP.GetMediaRenderer(i);
+        codes.push(""+i);
+        names.push(render.Name);
+        descriptions.push(render.HostName +" "+ render.UUID);
+    }
+    i = null;
+    var ifce_count = wid.num_interfaces, j;
+    for (j = 0; j < ifce_count; j++) {
+        var ifce = wid.get_interface(j);
+        if (ifce.type == "urn:mpeg:mpegu:schema:widgets:core:out:2010") {
+            i = ifce;
+            break;
+        }
+    }
+    if (i != null) {
+        wmjs_core_out_invoke_reply(coreOut.requestMigrationTargetsMessage, i.get_message("requestMigrationTargets"),
+                wid, codes, names, descriptions);
+    }
+}
+
+
      
 function insert_widget_icon(new_wid, no_layout) {
  var icon;
