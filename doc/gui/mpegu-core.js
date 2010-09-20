@@ -171,7 +171,6 @@ log_level = l_err;
 
 /*initializes the widget manager*/
 function widget_manager_init() {
-    if (typeof(WidgetManager) == 'undefined') return;
     log(l_inf, 'Initializing MPEG-U Widgets');
     /*if UPnP is enabled, override the deviceAdd callback*/
     WidgetManager.upnp = false;
@@ -420,7 +419,7 @@ function wmjs_interface_invoke_callback_local(wid_dst, ifce_dst, is_reply) {
         /*get msg from source interface (this object)*/
         msg_src = this.get_message(msgHandler.msgName);
         msg_dst = ifce_dst.get_message(msgHandler.msgName);
-        log(l_inf, (is_reply ? 'invokeReply ' : 'invoke ') + msg_src.name + ' on ' + wid_dst.name + '.' + msg_dst.name);
+        log(l_deb, (is_reply ? 'invokeReply ' : 'invoke ') + msg_src.name + ' on ' + wid_dst.name + '.' + msg_dst.name);
         if (msg_dst.has_script_input) is_script = 1;
         param_count = msg_src.num_params;
         ai = 1;
@@ -1229,6 +1228,26 @@ function initCore() {
         for (; i < args.length; i++) argsString += " " + args[i];
         log(l_deb, "*** defCoreOutImpl.getAttention" + argsString);
     };
+    WidgetManager.coreOutInstallWidget = function(wid, args) {
+        var i = 0, argsString = "";
+        for (; i < args.length; i++) argsString += " " + args[i];
+        log(l_deb, "*** defCoreOutImpl.installWidget" + argsString);
+    };
+    WidgetManager.coreOutMigrateComponent = function(wid, args) {
+        var i = 0, argsString = "";
+        for (; i < args.length; i++) argsString += " " + args[i];
+        log(l_deb, "*** defCoreOutImpl.migrateComponent" + argsString);
+    };
+    WidgetManager.coreOutRequestMigrationTargets = function(wid, args) {
+        var i = 0, argsString = "";
+        for (; i < args.length; i++) argsString += " " + args[i];
+        log(l_deb, "*** defCoreOutImpl.requestMigrationTargets" + argsString);
+    };
+    WidgetManager.coreOutActivateTemporaryWidget = function(wid, args) {
+        var i = 0, argsString = "";
+        for (; i < args.length; i++) argsString += " " + args[i];
+        log(l_deb, "*** defCoreOutImpl.activateTemporaryWidget" + argsString);
+    };
     /*
      Define the core:* interfaces that the widget manager implements and provides to widgets
      The structure of messages is simplified.
@@ -1240,26 +1259,55 @@ function initCore() {
     coreIn = new Array();
     coreOut = new Array();
     coreIn[0] = defineMessage("setSize", true, null, defineParams("width", "height", "dpi"));
+    coreIn.setSizeMessage = coreIn[0];
     coreIn[1] = defineMessage("show", true, null);
+    coreIn.showMessage = coreIn[1];
     coreIn[2] = defineMessage("hide", true, null);
+    coreIn.hideMessage = coreIn[2];
     coreIn[3] = defineMessage("activate", true, null);
+    coreIn.activateMessage = coreIn[3];
     coreIn[4] = defineMessage("deactivate", true, null);
+    coreIn.deactivateMessage = coreIn[4];
     coreIn.type = "urn:mpeg:mpegu:schema:widgets:core:in:2010";
     coreOut[0] = defineMessage("setSize", false, coreOutSetSize, defineParams("width", "height"));
+    coreOut.setSizeMessage = coreOut[0];
     coreOut[1] = defineMessage("show", false, coreOutShow);
+    coreOut.showMessage = coreOut[1];
     coreOut[2] = defineMessage("hide", false, coreOutHide);
+    coreOut.hideMessage = coreOut[2];
     coreOut[3] = defineMessage("requestActivate", false, coreOutRequestActivate, null,
             defineParams("returnCode"));
+    coreOut.requestActivateMessage = coreOut[3];
     coreOut[4] = defineMessage("requestDeactivate", false, coreOutRequestDeactivate, null,
             defineParams("returnCode"));
+    coreOut.requestDeactivateMessage = coreOut[4];
     coreOut[5] = defineMessage("showNotification", false, coreOutShowNotification,
             defineParams("message"), defineParams("returnCode"));
+    coreOut.showNotificationMessage = coreOut[5];
     coreOut[6] = defineMessage("placeComponent", false, coreOutPlaceComponent,
             defineParams("componentID", "x", "y", "w", "h", "z-index", "transparency"),
             defineParams("returnCode"));
+    coreOut.placeComponentMessage = coreOut[6];
     coreOut[7] = defineMessage("getAttention", false, coreOutGetAttention,
             null, defineParams("returnCode"));
+    coreOut.getAttentionMessage = coreOut[7];
+    coreOut[8] = defineMessage("installWidget", false, coreOutInstallWidget,
+            defineParams("url"), defineParams("returnCode"));
+    coreOut.installWidgetMessage = coreOut[8];
+    coreOut[9] = defineMessage("migrateComponent", false, coreOutMigrateComponent,
+            defineParams("componentId", "targetCode"), defineParams("returnCode"));
+    coreOut.migrateComponentMessage = coreOut[9];
+    coreOut[10] = defineMessage("requestMigrationTargets", false, coreOutRequestMigrationTargets,
+            null, defineParams("targetCodes", "targetNames", "targetDescriptions"));
+    coreOut.requestMigrationTargetsMessage = coreOut[10];
+    coreOut[11] = defineMessage("activateTemporaryWidget", false, coreOutActivateTemporaryWidget,
+            defineParams("url"), defineParams("returnCode"));
+    coreOut.activateTemporaryWidget = coreOut[11];
     coreOut.type = "urn:mpeg:mpegu:schema:widgets:core:out:2010";
+}
+
+function coreOutRequestMigrationTargets(wid, args) {
+    WidgetManager.coreOutRequestMigrationTargets(wid, args);
 }
 
 function coreOutSetSize(wid, args) {
@@ -1294,6 +1342,18 @@ function coreOutGetAttention(wid, args) {
     WidgetManager.coreOutGetAttention(wid, args);
 }
 
+function coreOutInstallWidget(wid, args) {
+    WidgetManager.coreOutInstallWidget(wid, args);
+}
+
+function coreOutActivateTemporaryWidget(wid, args) {
+    WidgetManager.coreOutActivateTemporaryWidget(wid, args);
+}
+
+function coreOutMigrateComponent(wid, args) {
+    WidgetManager.coreOutMigrateComponent(wid, args);
+}
+
 /*
  Methods of binding and callback of core:* interfaces
  */
@@ -1317,10 +1377,48 @@ function wmjs_interface_invoke_callback_core(wid_src, ifce_dst, is_reply) {
             args[ai] = arguments[ai+1];
             ai++;
         }
-        //log(l_inf, (is_reply ? 'invokeReply ' : 'invoke ') + msg_src.name + ' on core.' + msg_dst.name + " nb:"+ai);
+        log(l_inf, (is_reply ? 'invokeReply ' : 'invoke ') + msg_src.name + ' on core.' + msg_dst.name + " nb:"+ai);
         // call the method that implements the core:* message
         msg_dst.execute(wid_src, args);
     };
+}
+
+// function invokeReply for a reply from within a coreOut message
+function wmjs_core_out_invoke_reply() {
+    var i, ai, param_count, is_script, msg_src, msg_dst, wid_dst;
+    var args = new Array();
+    is_script = 0;
+    msg_src = arguments[0];
+    msg_dst = arguments[1];
+    wid_dst = arguments[2];
+    log(l_inf, 'coreOut/invokeReply ' + msg_src.name + ' on core.' + msg_dst.name + ' to ' +wid_dst.name+ " nb:"+ai);
+    if (msg_dst.has_script_input) is_script = 1;
+    param_count = msg_src.num_params;
+    ai = 3;
+    for (i = 0; i < param_count; i++) {
+        var param = msg_dst.get_param(i);
+        if (! param.is_input) continue;
+        if (is_script) {
+            args[ai - 3] = arguments[ai];
+        } else {
+            wid_dst.set_input(param, arguments[ai]);
+        }
+        ai++;
+    }
+    if (msg_dst.has_input_action) {
+        wid_dst.call_input_action(msg_dst);
+    } else if (is_script) {
+        wid_dst.call_input_script(msg_dst, args);
+    }
+}
+
+// get an interface by type in WidgetManager, since getInterfaceHandlersByType is not accessible
+function getInterfaceByType(widget, type) {
+    for (var i = 0; i < widget.num_interfaces; i++) {
+      var ifce = widget.get_interface(i);
+      if (ifce.type == type) return ifce;
+    }
+    return null;
 }
 
 function wmjs_bind_interface_to_core_service(wid, ifce) {
@@ -1373,7 +1471,7 @@ function wmjs_bind_interface_to_core_service1(wid, ifce, core) {
             if (hasParam(a_msg, par.name) != null && par.is_input != paramDirection(a_msg, par.name)) nb_ok ++;
         }
         if (nb_ok != msg.num_params) {
-            log(l_war, 'core message ' + msg.name + ' does not have the same input/output parameters');
+            log(l_war, 'core message ' + msg.name + ' does not have the same input/output parameters '+nb_ok+" "+msg.num_params);
             continue;
         }
         set_bind ++;
@@ -1388,7 +1486,7 @@ function wmjs_bind_interface_to_core_service1(wid, ifce, core) {
     if (!set_bind) return false;
     /*create callback for programmatic action triggers*/
     ifce.invoke = wmjs_interface_invoke_callback_core(wid, core, 0);
-    ifce.invokeReply = wmjs_interface_invoke_callback_core(wid, core, 1);
+    // ifce.invokeReply = wmjs_interface_invoke_callback_core(wid, core, 1);
     wid.bind_interface(ifce, null, 'localhost');
     return true;
 }
