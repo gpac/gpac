@@ -390,7 +390,7 @@ function coreOutActivateTemporaryWidgetImplementation(wid, args) {
 //
 function coreOutMigrateComponentImplementation(wid, args) {
     //alert("coreOutMigrateComponent "+wid.name+" "+args.length);
-    var comp = wid.get_component(args[0]);
+    var comp = wid.get_component(args[0], true);
     var ifce = getInterfaceByType(wid, "urn:mpeg:mpegu:schema:widgets:core:out:2010");
     if (comp==null) {
        log(l_err, 'Component '+args[0]+' cannot be found in widget '+wid.name);
@@ -750,8 +750,12 @@ function createIconSVGdecoration(previousIcon, widget, x, y, fatherId, iconUrl, 
         g2.appendChild(anim);
         var rect = invisible_rect(80, 80);
         g.appendChild(rect);
-        rect.addEventListener("click", function(evt) { activating_widget(widget);}, false);
+        rect.addEventListener("click", csi(widget), false);
     }
+}
+
+function csi(widget) {
+    return function(evt) { activating_widget(widget);};
 }
 
 //
@@ -925,10 +929,9 @@ function selector_window(widget) {
         obj = text(render.Name, 'black', 5, 17 + (20 * i), 15, 'sans-serif');
         obj.setAttribute('id', "selector" + i);
         selector.appendChild(obj);
-        var s = "selector"+i, si = i; // the copy of the value of i is needed for the closure below
-        obj.addEventListener('mouseover', function(evt) { document.getElementById(s).setAttribute("fill", "blue"); }, false);
-        obj.addEventListener('mouseout', function(evt) { document.getElementById(s).setAttribute("fill", "black"); }, false);
-        obj.addEventListener('click', function(evt) { upnp_renders.on_select(si, widget); }, false);
+        obj.addEventListener('mouseover', sw1("selector"+i), false);
+        obj.addEventListener('mouseout', sw2("selector"+i), false);
+        obj.addEventListener('click', sw3(i, widget), false);
     }
     obj = text('Cancel', 'rgb(0,0,120)', 55, 17 + (20 * i), 15, 'sans-serif');
     obj.setAttribute('id', "cancel");
@@ -943,6 +946,18 @@ function selector_window(widget) {
         disp.removeChild(this);
     };
     return selector;
+}
+
+function sw1(s) {
+    return function(evt) { document.getElementById(s).setAttribute("fill", "blue"); };
+}
+
+function sw2(s) {
+    return function(evt) { document.getElementById(s).setAttribute("fill", "black"); };
+}
+
+function sw3(si, widget) {
+    return function(evt) { upnp_renders.on_select(si, widget); };
 }
 
 //
