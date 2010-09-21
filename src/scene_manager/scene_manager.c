@@ -174,7 +174,7 @@ GF_AUContext *gf_sm_stream_au_new(GF_StreamContext *stream, u64 timing, Double t
 	GF_AUContext *tmp;
     u64 tmp_timing;
 
-    tmp_timing = timing ? timing : time_sec*1000;
+    tmp_timing = timing ? timing : (u64) (time_sec*1000);
     if (stream->last_au_time > tmp_timing) {
 	    /*look for existing AU*/
 	    i=0;
