@@ -67,7 +67,7 @@ install:
 	install -pm 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ;  \
 	install -d "$(DESTDIR)$(prefix)/share/gpac/gui" ; \
 	install -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
-	install -pm 644 doc/gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
+	install -pm 644 gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
 	fi
 
 uninstall:
