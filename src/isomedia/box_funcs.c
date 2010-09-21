@@ -388,7 +388,11 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_TREF: return tref_New();
 	case GF_ISOM_BOX_TYPE_MDIA: return mdia_New();
 
-	case GF_ISOM_BOX_TYPE_FTYP: return ftyp_New();
+	case GF_ISOM_BOX_TYPE_FTYP: 
+	case GF_ISOM_BOX_TYPE_STYP: 
+        a = ftyp_New();
+        if (a) a->type = boxType;
+        return a;
 	case GF_ISOM_BOX_TYPE_FADB: return padb_New();
 	case GF_ISOM_BOX_TYPE_VOID: return void_New();
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_New();
@@ -434,7 +438,6 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_TRAF: return traf_New();
 	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_New();
 	case GF_ISOM_BOX_TYPE_TRUN: return trun_New();
-	case GF_ISOM_BOX_TYPE_STYP: return styp_New();
 #endif 
 
 	/*3GPP boxes*/
@@ -635,7 +638,10 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TKHD: tkhd_del(a); return;
 	case GF_ISOM_BOX_TYPE_TREF: tref_del(a); return;
 	case GF_ISOM_BOX_TYPE_MDIA: mdia_del(a); return;
-	case GF_ISOM_BOX_TYPE_FTYP: ftyp_del(a); return;
+	case GF_ISOM_BOX_TYPE_FTYP: 
+	case GF_ISOM_BOX_TYPE_STYP: 
+        ftyp_del(a); 
+        return;
 	case GF_ISOM_BOX_TYPE_FADB: padb_del(a); return;
 	case GF_ISOM_BOX_TYPE_VOID: void_del(a); return;
 	case GF_ISOM_BOX_TYPE_STSF: stsf_del(a); return;
@@ -678,7 +684,6 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TRAF: traf_del(a); return;
 	case GF_ISOM_BOX_TYPE_TFHD: tfhd_del(a); return;
 	case GF_ISOM_BOX_TYPE_TRUN: trun_del(a); return;
-	case GF_ISOM_BOX_TYPE_STYP: styp_del(a); return;
 #endif
 
 	case GF_ISOM_SUBTYPE_3GP_AMR:
@@ -868,7 +873,9 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_TREF: return tref_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_MDIA: return mdia_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_CHPL: return chpl_Read(a, bs);
-	case GF_ISOM_BOX_TYPE_FTYP: return ftyp_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_FTYP: 
+	case GF_ISOM_BOX_TYPE_STYP: 
+        return ftyp_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_FADB: return padb_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_VOID: return void_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Read(a, bs);
@@ -911,7 +918,6 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_TRAF: return traf_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TRUN: return trun_Read(a, bs);
-	case GF_ISOM_BOX_TYPE_STYP: return styp_Read(a, bs);
 #endif
 	
 
@@ -1094,7 +1100,9 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_TKHD: return tkhd_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TREF: return tref_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_MDIA: return mdia_Write(a, bs);
-	case GF_ISOM_BOX_TYPE_FTYP: return ftyp_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_FTYP: 
+	case GF_ISOM_BOX_TYPE_STYP: 
+        return ftyp_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_FADB: return padb_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_VOID: return void_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Write(a, bs);
@@ -1137,7 +1145,6 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_TRAF: return traf_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TRUN: return trun_Write(a, bs);
-	case GF_ISOM_BOX_TYPE_STYP: return styp_Write(a, bs);
 #endif 
 
 	/*3GPP boxes*/
@@ -1318,7 +1325,9 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TKHD: return tkhd_Size(a);
 	case GF_ISOM_BOX_TYPE_TREF: return tref_Size(a);
 	case GF_ISOM_BOX_TYPE_MDIA: return mdia_Size(a);
-	case GF_ISOM_BOX_TYPE_FTYP: return ftyp_Size(a);
+	case GF_ISOM_BOX_TYPE_FTYP: 
+	case GF_ISOM_BOX_TYPE_STYP: 
+        return ftyp_Size(a);
 	case GF_ISOM_BOX_TYPE_FADB: return padb_Size(a);
 	case GF_ISOM_BOX_TYPE_VOID: return void_Size(a);
 	case GF_ISOM_BOX_TYPE_STSF: return stsf_Size(a);
@@ -1362,7 +1371,6 @@ GF_Err gf_isom_box_size(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TRAF: return traf_Size(a);
 	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_Size(a);
 	case GF_ISOM_BOX_TYPE_TRUN: return trun_Size(a);
-	case GF_ISOM_BOX_TYPE_STYP: return styp_Size(a);
 #endif
 	
 	/*3GPP boxes*/
