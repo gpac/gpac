@@ -241,6 +241,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 
 	if (!sess->dm->cache_directory) return;
 	if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) return;
+	if (sess->flags & GF_NETIO_SESSION_REUSE_APPEND) return;
 
 	len = strlen(sess->server_name) + strlen(sess->remote_path) + 1;
 	if (len<50) len = 50;
@@ -383,7 +384,7 @@ GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess)
 }
 
 
-static GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
+GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 {
 	char *tmp, *tmp_url;
 	const char *opt;
@@ -506,6 +507,12 @@ static u32 gf_dm_session_thread(void *par)
 }
 
 #define SESSION_RETRY_COUNT	20
+
+void gf_dm_sess_dash_reset(GF_DownloadSession *sess) 
+{
+    sess->flags |= GF_NETIO_SESSION_REUSE_APPEND;
+	sess->status = GF_NETIO_SETUP;
+}
 
 GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_flags,
 									  gf_dm_user_io user_io,
@@ -1581,7 +1588,10 @@ void http_do_requests(GF_DownloadSession *sess)
 			sess->cache_start_size = sess->bytes_done = 0;
 			sess->total_size = ContentLength;
 			if (! (sess->flags & GF_NETIO_SESSION_NOT_CACHED) ) {
-				sess->cache = gf_f64_open(sess->cache_name, "wb");
+                if (sess->flags & GF_NETIO_SESSION_REUSE_APPEND)
+				    sess->cache = gf_f64_open(sess->cache_name, "ab");
+                else 
+                    sess->cache = gf_f64_open(sess->cache_name, "wb");
 				if (!sess->cache) {
 					e = GF_IO_ERR;
 					goto exit;
