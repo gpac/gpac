@@ -618,7 +618,7 @@ typedef struct
 
 
 GF_EXPORT
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration)
+GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration, u32 frag_free_space)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count;
@@ -728,7 +728,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 	while ( (count = gf_list_count(fragmenters)) ) {
 
-		e = gf_isom_start_fragment(output);
+		e = gf_isom_start_fragment(output, frag_free_space);
 		if (e) goto err_exit;
 		//setup some default
 		for (i=0; i<count; i++) {

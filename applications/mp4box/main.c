@@ -168,6 +168,7 @@ void PrintGeneralUsage()
 			" -flat                stores file with all media data first, non-interleaved\n"
 			" -frag time_in_ms     fragments file (track fragments of time_in_ms)\n"
 			"                       * Note: Always disables interleaving\n"
+			" -ffspace size        inserts free space before moof in fragmented files\n"
 			" -out filename        specifies output file name\n"
 			"                       * Note: By default input (MP4,3GP) file is overwritten\n"
 			" -tmp dirname         specifies directory for temporary file creation\n"
@@ -1155,6 +1156,7 @@ int main(int argc, char **argv)
 	GF_SMEncodeOptions opts;
 #endif
 	Double InterleavingTime, split_duration, split_start, import_fps;
+    u32 FragFreeSpace;
 	SDPLine sdp_lines[MAX_CUMUL_OPS];
 	MetaAction metas[MAX_CUMUL_OPS];
 	TrackAction tracks[MAX_CUMUL_OPS];
@@ -1185,6 +1187,7 @@ int main(int argc, char **argv)
 	split_size = 0;
 	movie_time = 0;
 	MTUSize = 1450;
+    FragFreeSpace = 0;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
 	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
@@ -1409,6 +1412,10 @@ int main(int argc, char **argv)
 			needSave = 1;
 			i++;
 			Frag = 1;
+		} else if (!stricmp(arg, "-ffspace")) {
+			CHECK_NEXT_ARG
+			FragFreeSpace = atoi(argv[i+1]);
+			i++;
 		} 
 		else if (!stricmp(arg, "-itags")) { CHECK_NEXT_ARG itunes_tags = argv[i+1]; i++; open_edit = 1; }
 #ifndef GPAC_DISABLE_ISOM_HINTING
@@ -2883,8 +2890,8 @@ int main(int argc, char **argv)
 	if (Frag) {
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stdout, "Warning: cannot hint and fragment - ignoring hint\n");
-		fprintf(stdout, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, InterleavingTime);
+		fprintf(stdout, "Fragmenting file (%.3f seconds fragments, %d bytes of free space)\n", InterleavingTime, FragFreeSpace);
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, FragFreeSpace);
 		if (e) fprintf(stdout, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {
