@@ -1,4 +1,15 @@
-var xlinkns = 'http://www.w3.org/1999/xlink'; 
+var movie1 = "../widgets/media/local_video/movies/Clovis Cornillac.mp4";
+var movie2 = "../widgets/media/local_video/movies/Airheads2001_edit.mp4";
+var movie3 = "../widgets/media/local_video/movies/CH Video - Alberto Alessi.mp4";
+var movie4 = "../widgets/media/local_video/movies/Crossing2001_edit.mp4";
+var movie5 = "../widgets/media/local_video/movies/EnemyAtT2001_512kb.mp4";
+var movie6 = "../widgets/media/local_video/movies/KAMI2001_512kb.mp4";
+var movie7 = "../widgets/media/local_video/movies/PipeDrea2001_512kb.mp4";
+var movie8 = "../widgets/media/local_video/movies/LAUTRETE2001_512kb.mp4";
+var movie9 = "../widgets/media/local_video/movies/Unexpect2001_512kb.mp4";
+var movie0 = "../widgets/media/local_video/movies/Animatrix_The_Second_Renaissance_l.mp4";
+
+var xlinkns = 'http://www.w3.org/1999/xlink';
 
 /* override the print function to use SVG alert */
 print = alert;
@@ -336,6 +347,26 @@ function on_key_up(evt) {
     }
   } else if (evt.keyIdentifier == 'F1') {
     dock_toggle_visible();
+  } else if (evt.keyIdentifier == 'U+0030') {
+    movie.setAttributeNS(xlinkns, 'href', movie0);
+  } else if (evt.keyIdentifier == 'U+0031') {
+    movie.setAttributeNS(xlinkns, 'href', movie1);
+  } else if (evt.keyIdentifier == 'U+0032') {
+    movie.setAttributeNS(xlinkns, 'href', movie2);
+  } else if (evt.keyIdentifier == 'U+0033') {
+    movie.setAttributeNS(xlinkns, 'href', movie3);
+  } else if (evt.keyIdentifier == 'U+0034') {
+    movie.setAttributeNS(xlinkns, 'href', movie4);
+  } else if (evt.keyIdentifier == 'U+0035') {
+    movie.setAttributeNS(xlinkns, 'href', movie5);
+  } else if (evt.keyIdentifier == 'U+0036') {
+    movie.setAttributeNS(xlinkns, 'href', movie6);
+  } else if (evt.keyIdentifier == 'U+0037') {
+    movie.setAttributeNS(xlinkns, 'href', movie7);
+  } else if (evt.keyIdentifier == 'U+0038') {
+    movie.setAttributeNS(xlinkns, 'href', movie8);
+  } else if (evt.keyIdentifier == 'U+0039') {
+    movie.setAttributeNS(xlinkns, 'href', movie9);
   }
 }
 
