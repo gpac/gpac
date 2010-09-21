@@ -26,11 +26,16 @@
 #include <gpac/scene_engine.h>
 
 #ifndef GPAC_DISABLE_SENG
-
 #include <gpac/scene_manager.h>
+
 #ifndef GPAC_DISABLE_BIFS_ENC
 #include <gpac/bifs.h>
 #endif
+
+#ifndef GPAC_DISABLE_VRML
+#include <gpac/nodes_mpeg4.h>
+#endif
+
 #ifndef GPAC_DISABLE_LASER
 #include <gpac/laser.h>
 #endif
@@ -848,10 +853,60 @@ GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, const
 	return GF_OK;
 }
 
-static void gf_seng_on_node_modified(void *user_priv, u32 type, GF_Node *node, void *ctxdata)
+
+#ifndef GPAC_DISABLE_VRML
+
+static void seng_exec_conditional(M_Conditional *c, GF_SceneGraph *scene)
 {
-	if (type==GF_SG_CALLBACK_MODIFIED) {
+	GF_List *clist = c->buffer.commandList;
+	c->buffer.commandList = NULL;
+
+	gf_sg_command_apply_list(gf_node_get_graph((GF_Node*)c), clist, 0.0);
+
+	if (c->buffer.commandList != NULL) {
+		while (gf_list_count(clist)) {
+			GF_Command *sub_com = (GF_Command *)gf_list_get(clist, 0);
+			gf_sg_command_del(sub_com);
+			gf_list_rem(clist, 0);
+		}
+		gf_list_del(clist);
+	} else {
+		c->buffer.commandList = clist;
+	}
+}
+
+static void seng_conditional_activate(GF_Node *node, GF_Route *route)
+{
+	GF_SceneEngine *seng = (GF_SceneEngine *) gf_node_get_private(node);
+	M_Conditional *c = (M_Conditional*)node;
+	if (c->activate) seng_exec_conditional(c, seng->sg);
+}
+
+static void seng_conditional_reverse_activate(GF_Node *node, GF_Route *route)
+{
+	GF_SceneEngine *seng = (GF_SceneEngine *) gf_node_get_private(node);
+	M_Conditional*c = (M_Conditional*)node;
+	if (!c->reverseActivate) seng_exec_conditional(c, seng->sg);
+}
+#endif //GPAC_DISABLE_VRML
+
+
+static void gf_seng_on_node_modified(void *_seng, u32 type, GF_Node *node, void *ctxdata)
+{
+	switch (type) {
+#ifndef GPAC_DISABLE_VRML
+	case GF_SG_CALLBACK_INIT:
+		if (gf_node_get_tag(node) == TAG_MPEG4_Conditional) {
+			M_Conditional*c = (M_Conditional*)node;
+			c->on_activate = seng_conditional_activate;
+			c->on_reverseActivate = seng_conditional_reverse_activate;
+			gf_node_set_private(node, _seng);
+		}
+		break;
+#endif
+	case GF_SG_CALLBACK_MODIFIED:
 		gf_node_dirty_parents(node);
+		break;
 	}
 }
 
@@ -871,6 +926,7 @@ GF_SceneEngine *gf_seng_init(void *calling_object, char * inputContext, u32 load
 	/*Step 1: create context and load input*/
 	seng->sg = gf_sg_new();
 	gf_sg_set_node_callback(seng->sg, gf_seng_on_node_modified);
+	gf_sg_set_private(seng->sg, seng);
     seng->dump_path = dump_path;
 	seng->ctx = gf_sm_new(seng->sg);
 	seng->owns_context = 1;
