@@ -495,7 +495,7 @@ GF_Err StoreFragment(GF_ISOFile *movie)
 }
 
 
-GF_Err gf_isom_start_fragment(GF_ISOFile *movie)
+GF_Err gf_isom_start_fragment(GF_ISOFile *movie, u32 free_data_insert_size)
 {
 	u32 i, count;
 	GF_TrackExtendsBox *trex;
@@ -514,6 +514,18 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie)
 		if (e) return e;
 	}
  	
+    /* Inserting free data for testing HTTP streaming */
+    if (free_data_insert_size) {
+        GF_FreeSpaceBox *fb = (GF_FreeSpaceBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FREE);
+        fb->dataSize = free_data_insert_size;
+        //gf_list_add(movie->TopBoxes, fb);
+	    e = gf_isom_box_size((GF_Box *) fb);
+	    if (e) return e;
+	    e = gf_isom_box_write((GF_Box *) fb, movie->editFileMap->bs);
+	    if (e) return e;
+        gf_isom_box_del((GF_Box *)fb);
+    }
+
 	//format MDAT
 	movie->current_top_box_start = gf_bs_get_position(movie->editFileMap->bs);
 	gf_bs_write_u32(movie->editFileMap->bs, 0);
@@ -725,8 +737,12 @@ GF_EXPORT
 u32 gf_isom_is_fragmented(GF_ISOFile *movie)
 {
 	if (!movie || !movie->moov) return 0;
+    /* By default if the Moov has an mvex, the file is fragmented */
+    if (movie->moov->mvex) return 1;
+    /* deprecated old code */
 	/*only check moof number (in read mode, mvex can be deleted on the fly)*/
-	return movie->NextMoofNumber ? 1 : 0;
+	//return movie->NextMoofNumber ? 1 : 0;
+    return 0;
 }
 
 #else

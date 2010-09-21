@@ -211,7 +211,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 
 
 /*save file as fragmented movie*/
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double MaxFragmentDuration);
+GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double MaxFragmentDuration, u32 frag_free_space);
 
 /*make the file ISMA compliant: creates ISMA BIFS / OD tracks if needed, and update audio/video IDs
 the file should not contain more than one audio and one video track

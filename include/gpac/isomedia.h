@@ -1103,8 +1103,8 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, u32 TrackID,
 /*flushes data to disk and prepare movie fragmentation*/
 GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *the_file);
 
-/*starts a new movie fragment*/
-GF_Err gf_isom_start_fragment(GF_ISOFile *the_file);
+/*starts a new movie fragment (possibly inserting free space before)*/
+GF_Err gf_isom_start_fragment(GF_ISOFile *movie, u32 free_data_insert_size);
 
 
 enum
