@@ -353,7 +353,9 @@ void widget_on_interface_bind(GF_WidgetInterfaceInstance *ifce, Bool unbind);
 
 void widget_load(GF_WidgetManager *wm, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload);
 
-void wm_activate_component(JSContext *c, GF_WidgetInstance *wid, GF_WidgetComponent *comp, Bool unload, GF_WidgetComponentInstance *comp_inst);
+GF_WidgetComponentInstance *wm_activate_component(JSContext *c, GF_WidgetInstance *wid, GF_WidgetComponent *comp, Bool skip_wm_notification);
+
+void wm_deactivate_component(JSContext *c, GF_WidgetInstance *wid, GF_WidgetComponent *comp, GF_WidgetComponentInstance *comp_inst);
 
 
 

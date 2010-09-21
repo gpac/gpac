@@ -260,7 +260,11 @@ static JSBool widget_activate_component(JSContext *c, JSObject *obj, uintN argc,
 		GF_WidgetComponent *comp = gf_list_get(wid->widget->main->components, i);
 		if (!comp->id  || strcmp(comp->id, comp_id)) continue;
 		
-		wm_activate_component(c, wid, comp, is_deactivate, NULL);
+		if (is_deactivate) {
+			wm_deactivate_component(c, wid, comp, NULL);
+		} else {
+			wm_activate_component(c, wid, comp, 0);
+		}
 		return JS_TRUE;
 	}
 	return JS_TRUE;

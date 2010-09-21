@@ -985,7 +985,7 @@ static void wm_component_activation_event(GF_Node *hdl, GF_DOM_Event *evt, GF_No
 	if (!wid) return;
 
 	comp = (GF_WidgetComponent *)handler->js_fun;
-	wm_activate_component(c, wid, comp, unload, NULL);
+	wm_activate_component(c, wid, comp, 0);
 }
 static void wm_component_activate_event(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *observer)
 {
@@ -1400,16 +1400,35 @@ static JSBool wm_widget_get_component(JSContext *c, JSObject *obj, uintN argc, j
 {
 	const char *comp_id;
 	u32 i, count;
+	GF_WidgetComponentInstance *comp_inst;
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid || !argc || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
 
 	comp_id = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
 	count = gf_list_count(wid->components);
 	for (i=0; i<count;i++) {
-		GF_WidgetComponentInstance *comp = gf_list_get(wid->components, i);
-		if (comp->comp->id && !strcmp(comp->comp->id, comp_id)) {
-			*rval = OBJECT_TO_JSVAL(comp->wid->obj);
+		comp_inst = gf_list_get(wid->components, i);
+		if (comp_inst->comp->id && !strcmp(comp_inst->comp->id, comp_id)) {
+			*rval = OBJECT_TO_JSVAL(comp_inst->wid->obj);
+			return JS_TRUE;
 		}
+	}
+	/*if requested load the component*/
+	if ((argc==2) && JSVAL_IS_BOOLEAN(argv[1]) && (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE) ) {
+		count = gf_list_count(wid->widget->main->components);
+		for (i=0; i<count; i++) {
+			GF_WidgetComponent *comp = gf_list_get(wid->widget->main->components, i);
+			if (!comp->id  || strcmp(comp->id, comp_id)) continue;
+			
+			comp_inst = wm_activate_component(c, wid, comp, 1);
+			if (comp_inst) {
+				*rval = OBJECT_TO_JSVAL(comp_inst->wid->obj);
+				return JS_TRUE;
+			}
+			return JS_TRUE;
+		}
+
+
 	}
 	return JS_TRUE;
 }
@@ -1980,7 +1999,7 @@ static JSBool wm_widget_deactivate(JSContext *c, JSObject *obj, uintN argc, jsva
 	/*remove all components*/
 	while (gf_list_count(wid->components)) {
 		GF_WidgetComponentInstance *comp = gf_list_get(wid->components, 0);
-		wm_activate_component(c, wid, NULL, 1, comp);
+		wm_deactivate_component(c, wid, NULL, comp);
 		gf_list_rem(wid->components, 0);
 	}
 
@@ -2014,63 +2033,71 @@ static void wm_widget_jsbind(GF_WidgetManager *wm, GF_WidgetInstance *wid)
 	gf_js_add_root(wm->ctx, &wid->obj);
 }
 
-void wm_activate_component(JSContext *c, GF_WidgetInstance *wid, GF_WidgetComponent *comp, Bool unload, GF_WidgetComponentInstance *comp_inst)
+void wm_deactivate_component(JSContext *c, GF_WidgetInstance *wid, GF_WidgetComponent *comp, GF_WidgetComponentInstance *comp_inst)
 {
-	u32 i, count;
-	const char *fun_name = NULL;
 	jsval fval, rval;
 
 	if (!comp_inst) {
-		i=0;
+		u32 i=0;
 		while ((comp_inst = gf_list_enum(wid->components, &i))) {
 			if (comp_inst->comp == comp) break;
 			comp_inst = NULL;
 		}
 	}
+	if (!comp_inst) return;
 
-	if (unload) {
-		if (!comp_inst) return;
-		fun_name = "on_widget_remove";
-	} else {
-		GF_WidgetInstance *comp_wid;
-		if (comp_inst) return;
-
-		comp_wid = NULL;
-		if (comp->src) {
-			char *url = gf_url_concatenate(wid->widget->url, comp->src);
-
-			count = gf_list_count(wid->widget->wm->widget_instances);
-			for (i=0; i<count; i++) {
-				comp_wid = gf_list_get(wid->widget->wm->widget_instances, i);
-				if (!strcmp(comp_wid->widget->url, url) && !comp_wid->parent) break;
-				comp_wid = NULL;
-			}
-			if (!comp_wid) {
-				comp_wid = wm_load_widget(wid->widget->wm, url, 0);
-				if (comp_wid) comp_wid->permanent = 0;
-			}
-			gf_free(url);
-		}
-		if (!comp_wid) return;
-
-		if (!comp_wid->activated) 
-			fun_name = "on_widget_add";
-
-		GF_SAFEALLOC(comp_inst, GF_WidgetComponentInstance);
-		comp_inst->comp = comp;
-		comp_inst->wid = comp_wid;
-		comp_wid->parent = wid;
-
-		gf_list_add(wid->components, comp_inst);
-
-		if (!comp_inst->wid->obj) wm_widget_jsbind(wid->widget->wm, comp_inst->wid);
-	}
-
-	if (fun_name && (JS_LookupProperty(c, wid->widget->wm->obj, fun_name, &fval)==JS_TRUE) && JSVAL_IS_OBJECT(fval)) {
+	if ((JS_LookupProperty(c, wid->widget->wm->obj, "on_widget_remove", &fval)==JS_TRUE) && JSVAL_IS_OBJECT(fval)) {
 		jsval argv[1];
 		argv[0] = OBJECT_TO_JSVAL(comp_inst->wid->obj);
 		JS_CallFunctionValue(wid->widget->wm->ctx, wid->obj, fval, 1, argv, &rval);
 	}
+}
+
+GF_WidgetComponentInstance *wm_activate_component(JSContext *c, GF_WidgetInstance *wid, GF_WidgetComponent *comp, Bool skip_wm_notification)
+{
+	u32 i, count;
+	const char *fun_name = NULL;
+	jsval fval, rval;
+	GF_WidgetComponentInstance *comp_inst;
+	GF_WidgetInstance *comp_wid;
+
+	comp_wid = NULL;
+	if (comp->src) {
+		char *url = gf_url_concatenate(wid->widget->url, comp->src);
+
+		count = gf_list_count(wid->widget->wm->widget_instances);
+		for (i=0; i<count; i++) {
+			comp_wid = gf_list_get(wid->widget->wm->widget_instances, i);
+			if (!strcmp(comp_wid->widget->url, url) && !comp_wid->parent) break;
+			comp_wid = NULL;
+		}
+		if (!comp_wid) {
+			comp_wid = wm_load_widget(wid->widget->wm, url, 0);
+			if (comp_wid) comp_wid->permanent = 0;
+		}
+		gf_free(url);
+	}
+	if (!comp_wid) return NULL;
+
+	if (!comp_wid->activated) 
+		fun_name = "on_widget_add";
+
+	GF_SAFEALLOC(comp_inst, GF_WidgetComponentInstance);
+	comp_inst->comp = comp;
+	comp_inst->wid = comp_wid;
+	comp_wid->parent = wid;
+
+	gf_list_add(wid->components, comp_inst);
+
+	if (!comp_inst->wid->obj) wm_widget_jsbind(wid->widget->wm, comp_inst->wid);
+
+	if (!skip_wm_notification && fun_name && (JS_LookupProperty(c, wid->widget->wm->obj, fun_name, &fval)==JS_TRUE) && JSVAL_IS_OBJECT(fval)) {
+		jsval argv[1];
+		argv[0] = OBJECT_TO_JSVAL(comp_inst->wid->obj);
+		JS_CallFunctionValue(wid->widget->wm->ctx, wid->obj, fval, 1, argv, &rval);
+	}
+	if (comp_inst) return comp_inst;
+	return NULL;
 }
 
 static JSBool wm_widget_is_interface_bound(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -3387,7 +3414,7 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 		{"is_interface_bound", wm_widget_is_interface_bound, 1, 0, 0},
 		{"get_param_value", wm_widget_get_param_value, 1, 0, 0},
 		{"get_context", wm_widget_get_context, 0, 0, 0},	
-		{"get_component", wm_widget_get_component, 1, 0, 0},
+		{"get_component", wm_widget_get_component, 2, 0, 0},
 		
 		{0, 0, 0, 0, 0}
 	};
