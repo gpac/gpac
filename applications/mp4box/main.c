@@ -2809,7 +2809,7 @@ int main(int argc, char **argv)
 				char *d, *ext;
 				FILE *t = gf_f64_open(val, "rb");
 				gf_f64_seek(t, 0, SEEK_END);
-				tlen = gf_f64_tell(t);
+				tlen = (u32) gf_f64_tell(t);
 				gf_f64_seek(t, 0, SEEK_SET);
 				d = gf_malloc(sizeof(char) * tlen);
 				tlen = fread(d, sizeof(char), tlen, t);

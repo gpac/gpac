@@ -264,7 +264,7 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 					size += tspan->glyphs[j] ? tspan->glyphs[j]->vert_advance : tspan->font->max_advance_v;
 				}
 				/*word is bigger than allowed extent, rewrite 3 previous chars*/
-				if (size*tspan->font_scale >= -maxExtent) {
+				if ((s32)size*tspan->font_scale >= -maxExtent) {
 					u32 k;
 					u32 nb_chars = (j<2) ? j : 3;
 

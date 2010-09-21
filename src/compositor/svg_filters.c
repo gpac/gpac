@@ -133,7 +133,7 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 					Fixed pN = p*count;
 					u32 k = 0;
 					while (k<count) {
-						if (k+1>pN) break;
+						if ((s32)k+1>pN) break;
 						k++;
 					}
 					if (k) k--;
