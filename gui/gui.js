@@ -2,8 +2,17 @@
 //
 //	Authors:	
 //					Jean Le Feuvre, Telecom ParisTech
+//                  Jean-Claude Dufourd, Telecom ParisTech
 //
 /////////////////////////////////////////////////////////////////////////////////
+
+
+function new_extension()
+{
+ var obj = new Object();
+ obj.type = 'extension';
+ return obj;
+}
 
 //Initialize the main UI script
 function initialize() {
@@ -71,7 +80,12 @@ function initialize() {
     /*our dock*/
     dock = new SFNode('Transform2D');
     ui_root.children[4] = dock;  
-        
+    
+    
+    nb_widgets_on_screen = 0;
+    first_visible_widget = 0;
+    setup_icons();
+    
     /*init the widget manager*/
     Browser.loadScript('mpegu-core.js', true);
     log_level = l_inf;
@@ -88,19 +102,61 @@ function initialize() {
       WidgetManager.coreOutShowNotification = widget_request_notification;
       WidgetManager.coreOutPlaceComponent = widget_place_component;
       WidgetManager.coreOutGetAttention = widget_request_attention;
+
+      WidgetManager.coreOutInstallWidget = widget_request_install;
+      WidgetManager.coreOutMigrateComponent = widget_migrate_component;
+      WidgetManager.coreOutRequestMigrationTargets = widget_migration_targets;
+      WidgetManager.coreOutActivateTemporaryWidget = widget_activate_temporary_widget;
           
       /*restore our widgets*/    
       widgets_init();
     }
 
-    nb_widgets_on_screen = 0;
-    first_visible_widget = 0;
-    setup_icons();
+
+    /*init all extensions*/
+    var list = gpac.enum_directory('extensions', '*', 0);
+    for (i=0; i<list.length; i++) {
+     if (list[i].directory) {
+      var extension = new_extension();
+      extension.path = gpac.current_path + 'extensions/' + list[i].name+'/';
+      log(l_inf, 'Loading UI extension '+list[i].name);
+      Browser.loadScript('extensions/'+list[i].name+'/init.js', true);
+      setup_extension(extension);
+      
+      if (extension.icon && extension.launch) {
+       var icon = icon_button(extension.path+extension.icon, extension.label, 0);
+       icon.extension = extension;
+       icon.button_click = function () { this.extension.launch(this.extension); }
+       dock.children[dock.children.length] = icon;
+      }
+     }
+    }
 
     current_url = '';
     //let's do the layout   
     layout();
 }
+
+
+function gpacui_add_icon(icon_url, label, callback)
+{
+ var icon = icon_button(icon_url, label, 0);
+ icon.button_click = callback;
+ dock.children[dock.children.length] = icon;
+}
+
+function gpacui_show_window(obj)
+{
+ dlg_display.addChildren[0] = obj;
+ layout();
+}
+function gpacui_hide_window(obj)
+{
+ dlg_display.removeChildren[0] = obj;
+ layout();
+}
+ 
+
 
 function set_movie_url(url, set_local, set_remote)
 {
@@ -308,6 +364,135 @@ function text_rect(label)
   return obj;  
 }
 
+function new_slider(vertical)
+{
+  var obj = new SFNode('Transform2D');
+  obj.children[0] = new SFNode('Shape');
+  obj.children[0].appearance = new SFNode('Appearance');
+  obj.children[0].appearance.material = new SFNode('Material2D');
+  obj.children[0].appearance.material.filled = TRUE;
+  obj.children[0].appearance.texture = new SFNode('LinearGradient');
+  obj.children[0].appearance.texture.endPoint.x = vertical ? 1 : 0;
+  obj.children[0].appearance.texture.endPoint.y = vertical ? 0 : 1;
+  obj.children[0].appearance.texture.key[0] = 0;
+  obj.children[0].appearance.texture.key[1] = 0.5;
+  obj.children[0].appearance.texture.key[2] = 1;
+  obj.children[0].appearance.texture.keyValue[0] = new SFColor(0.4, 0.4, 0.6);
+  obj.children[0].appearance.texture.keyValue[1] = new SFColor(0.4, 0.4, 1);
+  obj.children[0].appearance.texture.keyValue[2] = new SFColor(0.4, 0.4, 0.6);
+  obj.children[0].geometry = new SFNode('Rectangle');
+
+  obj.children[1] = new SFNode('Transform2D');
+  obj.children[1].children[0] = new SFNode('Shape');
+  obj.children[1].children[0].appearance = new SFNode('Appearance');
+  obj.children[1].children[0].appearance.material = new SFNode('Material2D');
+  obj.children[1].children[0].appearance.material.filled = TRUE;
+  obj.children[1].children[0].appearance.material.emissiveColor = new SFColor(0, 0, 1);
+  obj.children[1].children[0].geometry = new SFNode('Circle');
+  
+  obj.on_slide = function(value) { }
+  obj.children[2] = new SFNode('PlaneSensor2D');
+  obj.set_translation = function(value) {
+   this.frac = 0.5 + (vertical ? value.y/this.height : value.x/this.width);
+   this.children[1].translation = value;
+   this.on_slide(this.min + (this.max-this.min) * this.frac);
+  }
+  Browser.addRoute(obj.children[2], 'translation_changed', obj, obj.set_translation);  
+
+
+  obj.set_value = function(value) {
+   value -= this.min;
+   if (value<0) value = 0;
+   else if (value>this.max-this.min) value = this.max-this.min;
+   if (this.max==this.min) value = 0;
+   else value /= (this.max-this.min);
+
+   value -= 0.5;
+   value *= (vertical ? this.height : this.width);
+
+   if (vertical) {
+    this.children[1].translation.y = value;
+    this.children[2].offset.y = value;
+   } else {
+    this.children[1].translation.x = value;
+    this.children[2].offset.x = value;
+   }   
+  }
+    
+  obj.radius = 10;
+  obj.vertical = vertical;
+  obj.set_size = function(w, h) {
+   var rad;
+   this.children[0].geometry.size.x = w;
+   this.children[0].geometry.size.y = h;
+   rad = vertical ? w : h;
+   rad/=1.33;
+   this.children[1].children[0].geometry.radius = rad;
+   this.children[2].maxPosition.x = this.vertical ? 0 : w/2;
+   this.children[2].maxPosition.y = this.vertical ? h/2 : 0;
+   this.children[2].minPosition.x = this.vertical ? 0 : -w/2;
+   this.children[2].minPosition.y = this.vertical ? -h/2 : 0;
+   this.width = w;
+   this.height = h;
+  }
+  obj.min = 0;
+  obj.max = 100;
+
+  obj.set_size(vertical ? 10 : 200, vertical ? 200 : 10);
+  return obj;
+}
+
+function new_radio_button(label)
+{
+  var obj = new SFNode('Transform2D');
+  obj.children[0] = new SFNode('Shape');
+  obj.children[0].appearance = new SFNode('Appearance');
+  obj.children[0].appearance.material = new SFNode('Material2D');
+  obj.children[0].appearance.material.filled = TRUE;
+  obj.children[0].appearance.material.emissiveColor = new SFColor(1, 1, 1);
+  obj.children[0].appearance.material.lineProps = new SFNode('LineProperties');
+  obj.children[0].appearance.material.lineProps.lineColor = new SFColor(0, 0, 0);
+  obj.children[0].appearance.material.lineProps.width = 1;
+  obj.children[0].geometry = new SFNode('Circle');
+
+  obj.children[1] = new SFNode('Shape');
+  obj.children[1].appearance = new SFNode('Appearance');
+  obj.children[1].appearance.material = new SFNode('Material2D');
+  obj.children[1].appearance.material.filled = TRUE;
+  obj.children[1].appearance.material.emissiveColor = new SFColor(0, 0, 0);
+  obj.children[1].appearance.material.transparency = 1;
+  obj.children[1].geometry = new SFNode('Circle');
+
+  obj.children[2] = text_label(label, 'BEGIN');
+
+  obj.children[3] = new SFNode ('TouchSensor');
+
+  obj.on = false;
+  obj.on_select = function(value) {}
+  obj.on_active = function(value) {
+   if (!value) return;
+   this.on = !this.on;
+   this.children[1].appearance.material.transparency = this.on ? 0 : 1;   
+   this.on_select(this.on);
+  }
+  Browser.addRoute(obj.children[3], 'isActive', obj, obj.on_active);
+
+  obj.enable = function(value) {
+   this.on = value;
+   this.children[1].appearance.material.transparency = this.on ? 0 : 1;   
+  }
+
+  obj.set_width = function(w, h) {
+   var rad = w<h ? w : h;
+   rad /= 2;
+   this.children[0].geometry.radius = rad;
+   this.children[1].geometry.radius = rad/2;
+   this.children[2].translation.x = 2*rad;
+  }
+  obj.set_width(100, 10);
+  return obj;
+}
+
 function new_widget_control(widget)
 {
   var obj = new SFNode('Transform2D');
@@ -380,7 +565,7 @@ function new_widget_control(widget)
   obj.children[1].children[2].button_click = function() { 
     if (has_upnp && UPnP.MediaRenderersCount) {
      widget_remote_candidate = widget;
-     on_upnpopen(true);
+     on_upnpopen(true, true);
     }
   }
 
@@ -826,7 +1011,7 @@ function setup_icons()
      icon = icon_button('icons/video-display.svg', 'Select Display', 0);
      icon.button_click = function () {
       widget_remote_candidate = null;
-      on_upnpopen(false);
+      on_upnpopen(false, false);
      }
      upnp_icon = icon;
      upnp_icon.hide();
@@ -1022,7 +1207,7 @@ function widget_get_icon(widget)
 {
   var icon = 'icons/image-missing.svg';
   var preferredIconType = '.svg';
-  return icon;
+
   for (var i = 0; i < widget.icons.length; i++) {
       icon = widget.icons[i].relocated_src;
       if (widget.icons[i].relocated_src.indexOf(preferredIconType) > 0) {
@@ -1250,7 +1435,101 @@ function widget_place_component(widget, args)
  widget.widget_control.refresh_layout(false, comp);
 }
 
+//
+// implementation of core:out install widget
+//
+function widget_request_install(wid, args) 
+{
+    var wid_url = args[0];
+    /*locate widget with same URL*/
+    var j, count = WidgetManager.num_widgets;
+    for (j = 0; j < count; j++) {
+        var wid = WidgetManager.get(j);
+        if (wid.url == wid_url) {
+            if (!wid.in_panel) {
+              insert_widget_icon(wid, 0);
+            }
+            break;
+        }
+    }
+    /*not found, install new widget*/
+    if (j == count) {
+      var new_wid = WidgetManager.open(wid_url, null);
+      if (new_wid==null) return;
+      insert_widget_icon(new_wid, 0);
+    }
+    
+    var ifce = getInterfaceByType(wid, "urn:mpeg:mpegu:schema:widgets:core:out:2010");
+    if (ifce != null) {
+        wmjs_core_out_invoke_reply(coreOut.installWidgetMessage, ifce.get_message("installWidget"), wid, 1); // send return code 1 = success
+    }
+}
+function widget_migrate_component(wid, args)
+{
+    alert('Fetching component '+args[0]);
+    var comp = wid.get_component(args[0], true);
+    var ifce = getInterfaceByType(wid, "urn:mpeg:mpegu:schema:widgets:core:out:2010");
+
+    if (comp==null) {
+       log(l_err, 'Component '+args[0]+' cannot be found in widget '+wid.name);
+        if (ifce != null) {
+            wmjs_core_out_invoke_reply(coreOut.migrateComponentMessage, ifce.get_message("migrateComponent"), wid, 0);
+        }
+       return;
+    }
+    if (args.length > 1 && args[1] != null) {
+       alert('Migrating component to ' + UPnP.GetMediaRenderer(parseInt(args[1])).Name);
+        WidgetManager.migrate_widget(UPnP.GetMediaRenderer(parseInt(args[1])), comp);
+        widget_close(comp);
+    } else {
+       widget_remote_candidate = wid;
+       on_upnpopen(false, false);
+    }
+    if (ifce != null) {
+        wmjs_core_out_invoke_reply(coreOut.migrateComponentMessage, ifce.get_message("migrateComponent"), wid, 1); // send return code 1 = success
+    }
+}
+
+function widget_migration_targets(wid, args)
+{
+    var count = UPnP.MediaRenderersCount, codes = new Array(), names = new Array(), descriptions = new Array(), i;
+
+    for (i = 0; i < count; i++) {
+        var render = UPnP.GetMediaRenderer(i);
+        codes.push(""+i);
+        names.push(render.Name);
+        descriptions.push(render.HostName +" "+ render.UUID);
+    }
+    i = null;
+    var ifce_count = wid.num_interfaces, j;
+    for (j = 0; j < ifce_count; j++) {
+        var ifce = wid.get_interface(j);
+        if (ifce.type == "urn:mpeg:mpegu:schema:widgets:core:out:2010") {
+            i = ifce;
+            break;
+        }
+    }
+    if (i != null) {
+        wmjs_core_out_invoke_reply(coreOut.requestMigrationTargetsMessage, i.get_message("requestMigrationTargets"), 
+                wid, codes, names, descriptions);
+    }
+}
  
+
+//
+// implementation of core:out activate temporary widget
+//
+function widget_activate_temporary_widget(wid, args) {
+    var w = WidgetManager.open(args[0], null);
+    if (w != null) widget_launch(w);
+    var ifce = getInterfaceByType(wid, "urn:mpeg:mpegu:schema:widgets:core:out:2010");
+    if (ifce != null) {
+        wmjs_core_out_invoke_reply(coreOut.activateTemporaryWidgetMessage, ifce.get_message("activateTemporaryWidget"),
+                wid, (w != null ? 1 : 0)); // send return code 1 = success
+    }
+}
+
+
      
 function insert_widget_icon(new_wid, no_layout) {
  var icon;
@@ -1602,7 +1881,7 @@ function onMediaRendererAdd(name, uuid, is_add)
  if (!is_add && controlled_renderer && (name==controlled_renderer.Name) ) controlled_renderer = null;
 }
 
-function on_upnpopen(push_mode)
+function on_upnpopen(push_mode, remote_only)
 {
   upnp_renders = new SFNode('Transform2D');
   upnp_renders.nb_items = 0;
@@ -1621,17 +1900,19 @@ function on_upnpopen(push_mode)
     }
     this.children[this.children.length] = item;
 
-    str = (controlled_renderer==null) ? '+ ' : '';
-    str += 'Local Renderer';
-    item = text_rect(str);
-    item.button_click = function() {
-     dlg_display.children.length = 0;
-     upnp_renders=null;
-     widget_display.scale.x = 1;
-     infobar.set_label('');
-     controlled_renderer = null;
+    if (!remote_only) {
+      str = (controlled_renderer==null) ? '+ ' : '';
+      str += 'Local Renderer';
+      item = text_rect(str);
+      item.button_click = function() {
+       dlg_display.children.length = 0;
+       upnp_renders=null;
+       widget_display.scale.x = 1;
+       infobar.set_label('');
+       controlled_renderer = null;
+      }
+      this.children[this.children.length] = item;
     }
-    this.children[this.children.length] = item;
 
     for (i=0; i<count; i++) {
       render = UPnP.GetMediaRenderer(i);
