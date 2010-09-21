@@ -129,7 +129,7 @@ GF_Err set_cover_art(GF_ISOFile *file, char *inName)
 	u32 tag_len;
 	t = gf_f64_open(inName, "rb");
 	gf_f64_seek(t, 0, SEEK_END);
-	tag_len = gf_f64_tell(t);
+	tag_len = (u32) gf_f64_tell(t);
 	gf_f64_seek(t, 0, SEEK_SET);
 	tag = gf_malloc(sizeof(char) * tag_len);
 	tag_len = fread(tag, sizeof(char), tag_len, t);
@@ -1825,7 +1825,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 	ts->user = &dumper;
 	
 	gf_f64_seek(src, 0, SEEK_END);
-	fsize = gf_f64_tell(src);
+	(u32) fsize = gf_f64_tell(src);
 	gf_f64_seek(src, 0, SEEK_SET);
 	fdone = 0;
 
