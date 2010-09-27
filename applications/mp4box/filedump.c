@@ -1825,7 +1825,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 	ts->user = &dumper;
 	
 	gf_f64_seek(src, 0, SEEK_END);
-	(u32) fsize = gf_f64_tell(src);
+	fsize = (u32) gf_f64_tell(src);
 	gf_f64_seek(src, 0, SEEK_SET);
 	fdone = 0;
 
