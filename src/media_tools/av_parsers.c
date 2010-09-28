@@ -1664,7 +1664,7 @@ static avc_skip_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 	gf_bs_read_int(bs, 4);				/*cpb_size_scale*/
 
 	/*for( SchedSelIdx = 0; SchedSelIdx <= cpb_cnt_minus1; SchedSelIdx++ ) {*/
-	for (i=0; i<cpb_cnt_minus1; i++) {
+	for (i=0; i<=cpb_cnt_minus1; i++) {
 		avc_get_ue(bs);					/*bit_rate_value_minus1[ SchedSelIdx ]*/
 		avc_get_ue(bs);					/*cpb_size_value_minus1[ SchedSelIdx ]*/
 		gf_bs_read_int(bs, 1);			/*cbr_flag[ SchedSelIdx ]*/
