@@ -34,7 +34,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 i;
-	GF_TextSampleEntryBox *txt;
+	GF_Tx3gSampleEntryBox *txt;
 
 	if (!descriptionIndex || !desc) return GF_BAD_PARAM;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
@@ -51,7 +51,7 @@ GF_Err gf_isom_update_text_description(GF_ISOFile *movie, u32 trackNumber, u32 d
 		return GF_BAD_PARAM;
 	}
 
-	txt = (GF_TextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, descriptionIndex - 1);
+	txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, descriptionIndex - 1);
 	if (!txt) return GF_BAD_PARAM;
 	switch (txt->type) {
 	case GF_ISOM_BOX_TYPE_TX3G:
@@ -86,7 +86,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex, i;
-	GF_TextSampleEntryBox *txt;
+	GF_Tx3gSampleEntryBox *txt;
 
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -111,7 +111,7 @@ GF_Err gf_isom_new_text_description(GF_ISOFile *movie, u32 trackNumber, GF_TextS
 	}
 	trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
-	txt = (GF_TextSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TX3G);
+	txt = (GF_Tx3gSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TX3G);
 	txt->dataReferenceIndex = dataRefIndex;
 	gf_list_add(trak->Media->information->sampleTable->SampleDescription->boxList, txt);
 	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
@@ -350,7 +350,7 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 i, j, count;
-	GF_TextSampleEntryBox *txt;
+	GF_Tx3gSampleEntryBox *txt;
 
 	*same_box = *same_styles = 0;
 	*outDescIdx = 0;
@@ -373,7 +373,7 @@ GF_Err gf_isom_text_has_similar_description(GF_ISOFile *movie, u32 trackNumber, 
 	count = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
 	for (i=0; i<count; i++) {
 		Bool same_fonts;
-		txt = (GF_TextSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, i);
+		txt = (GF_Tx3gSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, i);
 		if (!txt) continue;
 		if ((txt->type != GF_ISOM_BOX_TYPE_TX3G) && (txt->type != GF_ISOM_BOX_TYPE_TEXT)) continue;
 		if (txt->back_color != desc->back_color) continue;
@@ -537,7 +537,7 @@ GF_TextSample *gf_isom_parse_texte_sample_from_data(char *data, u32 dataLength)
 #define SAMPLE_INDEX_OFFSET		129
 
 
-static void gf_isom_write_tx3g(GF_TextSampleEntryBox *a, GF_BitStream *bs, u32 sidx, u32 sidx_offset)
+static void gf_isom_write_tx3g(GF_Tx3gSampleEntryBox *a, GF_BitStream *bs, u32 sidx, u32 sidx_offset)
 {
 	u32 size, j;
 	void gpp_write_rgba(GF_BitStream *bs, u32 col);
@@ -632,8 +632,8 @@ GF_Err gf_isom_get_ttxt_esd(GF_MediaBox *mdia, GF_ESD **out_esd)
 	/*write desc*/
 	gf_bs_write_u8(bs, count);
 	for (i=0; i<count; i++) {
-		GF_TextSampleEntryBox *a;
-		a = (GF_TextSampleEntryBox *) gf_list_get(sampleDesc, i);
+		GF_Tx3gSampleEntryBox *a;
+		a = (GF_Tx3gSampleEntryBox *) gf_list_get(sampleDesc, i);
 		if ((a->type != GF_ISOM_BOX_TYPE_TX3G) && (a->type != GF_ISOM_BOX_TYPE_TEXT) ) continue;
 		gf_isom_write_tx3g(a, bs, i+1, SAMPLE_INDEX_OFFSET);
 	}
@@ -700,12 +700,12 @@ GF_Err gf_isom_text_get_encoded_tx3g(GF_ISOFile *file, u32 track, u32 sidx, u32 
 {
 	GF_BitStream *bs;
 	GF_TrackBox *trak;
-	GF_TextSampleEntryBox *a;
+	GF_Tx3gSampleEntryBox *a;
 	
 	trak = gf_isom_get_track_from_file(file, track);
 	if (!trak) return GF_BAD_PARAM;
 
-	a = (GF_TextSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, sidx-1);
+	a = (GF_Tx3gSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, sidx-1);
 	if (!a) return GF_BAD_PARAM;
 	if ((a->type != GF_ISOM_BOX_TYPE_TX3G) && (a->type != GF_ISOM_BOX_TYPE_TEXT)) return GF_BAD_PARAM;
 	

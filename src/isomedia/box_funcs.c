@@ -472,11 +472,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_New();
 	case GF_ISOM_BOX_TYPE_TX3G: return tx3g_New();
-	case GF_ISOM_BOX_TYPE_TEXT: 
-		a = tx3g_New();
-		if (a) a->type = boxType;
-		return a;
-
+	case GF_ISOM_BOX_TYPE_TEXT: return text_New();
 	case GF_ISOM_BOX_TYPE_STYL: return styl_New();
 	case GF_ISOM_BOX_TYPE_HLIT: return hlit_New();
 	case GF_ISOM_BOX_TYPE_HCLR: return hclr_New();
@@ -714,10 +710,8 @@ void gf_isom_box_del(GF_Box *a)
 
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB: ftab_del(a); return;
-	case GF_ISOM_BOX_TYPE_TX3G: 
-	case GF_ISOM_BOX_TYPE_TEXT: 
-		tx3g_del(a); 
-		return;
+	case GF_ISOM_BOX_TYPE_TX3G: tx3g_del(a); return;
+	case GF_ISOM_BOX_TYPE_TEXT: text_del(a); return;
 	case GF_ISOM_BOX_TYPE_STYL: styl_del(a); return;
 	case GF_ISOM_BOX_TYPE_HLIT: hlit_del(a); return;
 	case GF_ISOM_BOX_TYPE_HCLR: hclr_del(a); return;
@@ -948,9 +942,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_Read(a, bs);
-	case GF_ISOM_BOX_TYPE_TX3G: 
-	case GF_ISOM_BOX_TYPE_TEXT:
-		return tx3g_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TEXT: return text_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TX3G: return tx3g_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STYL: return styl_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_HLIT: return hlit_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_HCLR: return hclr_Read(a, bs);
@@ -1175,9 +1168,8 @@ GF_Err gf_isom_box_write(GF_Box *a, GF_BitStream *bs)
 
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_Write(a, bs);
-	case GF_ISOM_BOX_TYPE_TX3G: 
-	case GF_ISOM_BOX_TYPE_TEXT:
-		return tx3g_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_TX3G:	return tx3g_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_TEXT:	return text_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STYL: return styl_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_HLIT: return hlit_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_HCLR: return hclr_Write(a, bs);
@@ -1400,9 +1392,8 @@ GF_Err gf_isom_box_size(GF_Box *a)
 
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB: return ftab_Size(a);
-	case GF_ISOM_BOX_TYPE_TX3G: 
-	case GF_ISOM_BOX_TYPE_TEXT:
-		return tx3g_Size(a);
+	case GF_ISOM_BOX_TYPE_TX3G: return tx3g_Size(a);
+	case GF_ISOM_BOX_TYPE_TEXT:	return text_Size(a);
 	case GF_ISOM_BOX_TYPE_STYL: return styl_Size(a);
 	case GF_ISOM_BOX_TYPE_HLIT: return hlit_Size(a);
 	case GF_ISOM_BOX_TYPE_HCLR: return hclr_Size(a);

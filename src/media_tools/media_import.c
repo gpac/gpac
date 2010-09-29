@@ -1749,6 +1749,10 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			e = gf_isom_add_sample_reference(import->dest, track, di, samp, offset);
 		} else {
 			samp = gf_isom_get_sample(import->orig, track_in, i+1, &di);
+			if (!samp) {
+				/*couldn't get the sample, but still move on*/
+				goto exit;
+			}
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 		}
 		sampDTS = samp->DTS;

@@ -327,20 +327,41 @@ GF_Err ftab_Size(GF_Box *s)
 
 
 
-
-GF_Box *tx3g_New()
+GF_Box *text_New()
 {
 	GF_TextSampleEntryBox *tmp;
 	GF_SAFEALLOC(tmp, GF_TextSampleEntryBox);
-	if (!tmp) return NULL;
+	if (!tmp)
+		return NULL;
+	tmp->type = GF_ISOM_BOX_TYPE_TEXT;
+	return (GF_Box *) tmp;
+}
+
+void text_del(GF_Box *s)
+{
+	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
+	if (ptr->textName)
+		gf_free(ptr->textName);
+	if (ptr->sampleData)
+		gf_free(ptr->sampleData);
+	gf_free(ptr);
+}
+
+GF_Box *tx3g_New()
+{
+	GF_Tx3gSampleEntryBox *tmp;
+	GF_SAFEALLOC(tmp, GF_Tx3gSampleEntryBox);
+	if (!tmp)
+		return NULL;
 	tmp->type = GF_ISOM_BOX_TYPE_TX3G;
 	return (GF_Box *) tmp;
 }
 
 void tx3g_del(GF_Box *s)
 {
-	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
-	if (ptr->font_table) gf_isom_box_del((GF_Box *)ptr->font_table);
+	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
+	if (ptr->font_table)
+		gf_isom_box_del((GF_Box *)ptr->font_table);
 	gf_free(ptr);
 }
 
@@ -383,7 +404,7 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_Box *a;
-	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
+	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
 
 	if (ptr->size < 18 + GPP_BOX_SIZE + GPP_STYLE_SIZE) return GF_ISOM_INVALID_FILE;
 
@@ -412,6 +433,70 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
+/*this is a quicktime specific box - see apple documentation*/
+GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u16 pSize;
+	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
+
+	ptr->displayFlags = gf_bs_read_u32(bs);			/*Display flags*/
+	ptr->textJustification = gf_bs_read_u32(bs);	/*Text justification*/
+	gf_bs_read_data(bs, ptr->background_color, 6);	/*Background color*/
+	gpp_read_box(bs, &ptr->default_box);			/*Default text box*/
+	gf_bs_read_data(bs, ptr->reserved1, 8);			/*Reserved*/
+	ptr->fontNumber = gf_bs_read_u16(bs);			/*Font number*/
+	ptr->fontFace   = gf_bs_read_u16(bs);			/*Font face*/
+	ptr->reserved2  = gf_bs_read_u8(bs);			/*Reserved*/
+	ptr->reserved3  = gf_bs_read_u16(bs);			/*Reserved*/
+	gf_bs_read_data(bs, ptr->foreground_color, 6);	/*Foreground color*/
+
+	pSize = gf_bs_read_u8(bs); /*a Pascal string begins with its size: get textName size*/
+	if (43 + pSize > s->size)
+		return GF_ISOM_INVALID_FILE;
+	if (pSize) {
+		ptr->textName = (char*) gf_malloc(pSize+1 * sizeof(char));
+		if (gf_bs_read_data(bs, ptr->textName, pSize) != pSize)
+			return GF_ISOM_INVALID_FILE;
+		ptr->textName[pSize] = '\0';			/*Font name*/
+	}
+	ptr->size -= 43 + pSize + 1;
+
+	/*Text Sample Data*/
+	pSize = gf_bs_read_u16(bs);
+	if (pSize) {
+		ptr->sampleData = (char*) gf_malloc(pSize+1 * sizeof(char));
+		if (gf_bs_read_data(bs, ptr->sampleData, pSize) != pSize)
+			return GF_ISOM_INVALID_FILE;
+		ptr->sampleData[pSize] = '\0';			/*Font name*/
+	}
+	ptr->size -= 2 + pSize;
+
+#if 0
+	while (ptr->size) {
+		GF_Box *a;
+		GF_Err e = gf_isom_parse_box(&a, bs);
+		if (e) return e;
+		switch(a->type) {
+			case GF_ISOM_BOX_TYPE_STYL:
+			case GF_ISOM_BOX_TYPE_FTAB:
+			case GF_ISOM_BOX_TYPE_HLIT:
+			case GF_ISOM_BOX_TYPE_HCLR:
+			/*TODO: deal with these boxes by finding appropriate test content*/
+			//case GF_ISOM_BOX_TYPE_DRPO:
+			//case GF_ISOM_BOX_TYPE_DRPT:
+			//case GF_ISOM_BOX_TYPE_IMAG:
+			//case GF_ISOM_BOX_TYPE_METR:
+				break;
+			default:
+				return GF_OK; /*to deal with libavformat content*/
+		}
+		if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
+		ptr->size -= a->size;
+	}
+#endif
+
+	return GF_OK;
+}
 
 void gpp_write_rgba(GF_BitStream *bs, u32 col)
 {
@@ -445,7 +530,7 @@ void gpp_write_style(GF_BitStream *bs, GF_StyleRecord *rec)
 GF_Err tx3g_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
+	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
@@ -460,9 +545,43 @@ GF_Err tx3g_Write(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_box_write((GF_Box *) ptr->font_table, bs);
 }
 
+GF_Err text_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u16 pSize;
+	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
+
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u32(bs, ptr->displayFlags);			/*Display flags*/
+	gf_bs_write_u32(bs, ptr->textJustification);	/*Text justification*/
+	gf_bs_write_data(bs, ptr->background_color, 6);	/*Background color*/
+	gpp_write_box(bs, &ptr->default_box);			/*Default text box*/
+	gf_bs_write_data(bs, ptr->reserved1, 8);		/*Reserved*/
+	gf_bs_write_u16(bs, ptr->fontNumber);			/*Font number*/
+	gf_bs_write_u16(bs, ptr->fontFace);				/*Font face*/
+	gf_bs_write_u8(bs, ptr->reserved2);				/*Reserved*/
+	gf_bs_write_u16(bs, ptr->reserved3);			/*Reserved*/
+	gf_bs_write_data(bs, ptr->foreground_color, 6);	/*Foreground color*/
+	if (ptr->textName && (pSize=strlen(ptr->textName))) {
+		gf_bs_write_u8(bs, pSize);					/*a Pascal string begins with its size*/
+		gf_bs_write_data(bs, ptr->textName, pSize);	/*Font name*/
+	} else {
+		gf_bs_write_u8(bs, 0);
+	}
+	if (ptr->sampleData && (pSize=strlen(ptr->sampleData))) {
+		gf_bs_write_u16(bs, pSize);					/*16-bit length word followed by the actual text*/
+		gf_bs_write_data(bs, ptr->sampleData, pSize);
+	} else {
+		gf_bs_write_u16(bs, 0);
+	}
+	return GF_OK;
+}
+
 GF_Err tx3g_Size(GF_Box *s)
 {
-	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
+	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
 	GF_Err e = gf_isom_box_get_size(s);
 	if (e) return e;
 	/*base + this  + box + style*/
@@ -472,6 +591,20 @@ GF_Err tx3g_Size(GF_Box *s)
 		if (e) return e;
 		s->size += ptr->font_table->size;
 	}
+	return GF_OK;
+}
+
+GF_Err text_Size(GF_Box *s)
+{
+	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
+	GF_Err e = gf_isom_box_get_size(s);
+	if (e) return e;
+	/*base + this + string lengths*/
+	s->size += 43 + 1 + 2;
+	if (ptr->textName)
+		s->size += strlen(ptr->textName);
+	if (ptr->sampleData)
+		s->size += strlen(ptr->sampleData);
 	return GF_OK;
 }
 

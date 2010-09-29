@@ -665,7 +665,7 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 	if (has_sd) {
 		u8 sample_index;
 		GF_TextSampleDescriptor *txdesc;
-		GF_TextSampleEntryBox *a;
+		GF_Tx3gSampleEntryBox *a;
 		s64 avail;
 		u32 nb_desc = gf_bs_read_int(bs, 8);
 

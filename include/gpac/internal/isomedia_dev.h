@@ -1136,6 +1136,23 @@ typedef struct
 	GF_BoxRecord default_box; 
 	GF_StyleRecord	default_style;
 	GF_FontTableBox *font_table;
+} GF_Tx3gSampleEntryBox;
+
+/*Apple specific*/
+typedef struct
+{
+	GF_ISOM_SAMPLE_ENTRY_FIELDS				\
+	u32 displayFlags;
+	u32 textJustification;
+	char background_color[6], foreground_color[6];
+	GF_BoxRecord default_box; 
+	u16 fontNumber;
+	u16 fontFace;
+	char reserved1[8];
+	u8 reserved2;
+	u16 reserved3;
+	char *textName; /*font name*/
+	char *sampleData;
 } GF_TextSampleEntryBox;
 
 typedef struct
@@ -2787,6 +2804,7 @@ GF_Err btrt_Size(GF_Box *s);
 /*3GPP streaming text*/
 GF_Box *ftab_New();
 GF_Box *tx3g_New();
+GF_Box *text_New();
 GF_Box *styl_New();
 GF_Box *hlit_New();
 GF_Box *hclr_New();
@@ -2799,6 +2817,7 @@ GF_Box *twrp_New();
 
 void ftab_del(GF_Box *s);
 void tx3g_del(GF_Box *s);
+void text_del(GF_Box *s);
 void styl_del(GF_Box *s);
 void hlit_del(GF_Box *s);
 void hclr_del(GF_Box *s);
@@ -2811,6 +2830,7 @@ void twrp_del(GF_Box *s);
 
 GF_Err ftab_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err text_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err styl_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err hlit_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err hclr_Read(GF_Box *s, GF_BitStream *bs);
@@ -2824,6 +2844,7 @@ GF_Err twrp_Read(GF_Box *s, GF_BitStream *bs);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err ftab_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err tx3g_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err text_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err styl_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err hlit_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err hclr_Write(GF_Box *s, GF_BitStream *bs);
@@ -2836,6 +2857,7 @@ GF_Err twrp_Write(GF_Box *s, GF_BitStream *bs);
 
 GF_Err ftab_Size(GF_Box *s);
 GF_Err tx3g_Size(GF_Box *s);
+GF_Err text_Size(GF_Box *s);
 GF_Err styl_Size(GF_Box *s);
 GF_Err hlit_Size(GF_Box *s);
 GF_Err hclr_Size(GF_Box *s);
@@ -3059,6 +3081,7 @@ GF_Err btrt_dump(GF_Box *a, FILE * trace);
 
 GF_Err ftab_dump(GF_Box *a, FILE * trace);
 GF_Err tx3g_dump(GF_Box *a, FILE * trace);
+GF_Err text_dump(GF_Box *a, FILE * trace);
 GF_Err styl_dump(GF_Box *a, FILE * trace);
 GF_Err hlit_dump(GF_Box *a, FILE * trace);
 GF_Err hclr_dump(GF_Box *a, FILE * trace);
