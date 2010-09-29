@@ -92,6 +92,10 @@ struct __gf_download_session
 	u32 bytes_per_sec, window_start, bytes_in_wnd;
 	u32 limit_data_rate;
 
+    /* Range information if needed for the download (cf flag) */
+    Bool needs_range;
+    u32 range_start, range_end;
+
 	/*0: GET
 	  1: HEAD
 	  2: all the rest
@@ -512,6 +516,16 @@ void gf_dm_sess_dash_reset(GF_DownloadSession *sess)
 {
     sess->flags |= GF_NETIO_SESSION_REUSE_APPEND;
 	sess->status = GF_NETIO_SETUP;
+    sess->needs_range = 0;
+    sess->range_start = sess->range_end = 0;
+
+}
+
+void gf_dm_sess_set_range(GF_DownloadSession *sess, u32 start, u32 end) 
+{
+    sess->needs_range = 1;
+    sess->range_start = start;
+    sess->range_end = end;
 }
 
 GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_flags,
@@ -1177,7 +1191,11 @@ void http_do_requests(GF_DownloadSession *sess)
 		if (!has_range && sess->cache_start_size) {
 			sprintf(range_buf, "Range: bytes=%d-\r\n", sess->cache_start_size);
 			strcat(sHTTP, range_buf);
-		}
+        } else if (!has_range && sess->needs_range) {
+			if (!sess->range_end) sprintf(range_buf, "Range: bytes=%d-\r\n", sess->range_start);
+            else sprintf(range_buf, "Range: bytes=%d-%d\r\n", sess->range_start, sess->range_end);
+			strcat(sHTTP, range_buf);
+        }
 		if (!has_language) {
 			const char *opt = gf_cfg_get_key(sess->dm->cfg, "Systems", "Language2CC");
 			if (opt) {
