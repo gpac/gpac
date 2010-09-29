@@ -86,102 +86,180 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:
 		return free_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MDAT: return mdat_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MOOV: return moov_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MVHD: return mvhd_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MDHD: return mdhd_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_VMHD: return vmhd_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_SMHD: return smhd_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_HMHD: return hmhd_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MDAT:
+		return mdat_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MOOV:
+		return moov_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MVHD:
+		return mvhd_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MDHD:
+		return mdhd_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_VMHD:
+		return vmhd_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SMHD:
+		return smhd_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_HMHD:
+		return hmhd_dump(a, trace);
 	//the same box is used for all MPEG4 systems streams
 	case GF_ISOM_BOX_TYPE_ODHD:
 	case GF_ISOM_BOX_TYPE_CRHD:
 	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
 		return nmhd_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_STBL: return stbl_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_DINF: return dinf_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_URL: return url_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_URN: return urn_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_CPRT: return cprt_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_HDLR: return hdlr_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_IODS: return iods_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TRAK: return trak_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MP4S: return mp4s_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MP4V: return mp4v_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MP4A: return mp4a_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_GNRM: return gnrm_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_GNRV: return gnrv_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_GNRA: return gnra_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_EDTS: return edts_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_UDTA: return udta_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_DREF: return dref_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_STSD: return stsd_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_STTS: return stts_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_CTTS: return ctts_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_STSH: return stsh_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_ELST: return elst_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_STSC: return stsc_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STBL:
+		return stbl_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DINF:
+		return dinf_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_URL:
+		return url_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_URN:
+		return urn_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_CPRT:
+		return cprt_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_HDLR:
+		return hdlr_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_IODS:
+		return iods_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TRAK:
+		return trak_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MP4S:
+		return mp4s_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MP4V:
+		return mp4v_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MP4A:
+		return mp4a_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_GNRM:
+		return gnrm_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_GNRV:
+		return gnrv_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_GNRA:
+		return gnra_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_EDTS:
+		return edts_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_UDTA:
+		return udta_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DREF:
+		return dref_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STSD:
+		return stsd_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STTS:
+		return stts_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_CTTS:
+		return ctts_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STSH:
+		return stsh_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ELST:
+		return elst_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STSC:
+		return stsc_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_STZ2:
 	case GF_ISOM_BOX_TYPE_STSZ:
 		return stsz_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_STCO: return stco_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_STSS: return stss_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_STDP: return stdp_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_SDTP: return sdtp_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_CO64: return co64_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_ESDS: return esds_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MINF: return minf_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TKHD: return tkhd_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TREF: return tref_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MDIA: return mdia_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_CHPL: return chpl_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_PDIN: return dpin_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STCO:
+		return stco_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STSS:
+		return stss_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STDP:
+		return stdp_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SDTP:
+		return sdtp_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_CO64:
+		return co64_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ESDS:
+		return esds_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MINF:
+		return minf_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TKHD:
+		return tkhd_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TREF:
+		return tref_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MDIA:
+		return mdia_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_CHPL:
+		return chpl_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_PDIN:
+		return dpin_dump(a, trace);
 
-	case GF_ISOM_BOX_TYPE_RTP_STSD: return ghnt_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_RTPO: return rtpo_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_HNTI: return hnti_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_SDP: return sdp_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_HINF: return hinf_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_RELY: return rely_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TIMS: return tims_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TSRO: return tsro_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_SNRO: return snro_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TRPY: return trpy_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_NUMP: return nump_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TOTL: return totl_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_NPCK: return npck_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TPYL: return tpyl_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TPAY: return tpay_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MAXR: return maxr_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_DMED: return dmed_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_DIMM: return dimm_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_DREP: return drep_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TMIN: return tmin_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TMAX: return tmax_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_PMAX: return pmax_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_DMAX: return dmax_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_PAYT: return payt_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_NAME: return name_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+		return ghnt_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_RTPO:
+		return rtpo_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_HNTI:
+		return hnti_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SDP:
+		return sdp_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_HINF:
+		return hinf_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_RELY:
+		return rely_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TIMS:
+		return tims_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TSRO:
+		return tsro_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SNRO:
+		return snro_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TRPY:
+		return trpy_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_NUMP:
+		return nump_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TOTL:
+		return totl_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_NPCK:
+		return npck_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TPYL:
+		return tpyl_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TPAY:
+		return tpay_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MAXR:
+		return maxr_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DMED:
+		return dmed_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DIMM:
+		return dimm_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DREP:
+		return drep_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TMIN:
+		return tmin_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TMAX:
+		return tmax_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_PMAX:
+		return pmax_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DMAX:
+		return dmax_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_PAYT:
+		return payt_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_NAME:
+		return name_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_FTYP: 
 	case GF_ISOM_BOX_TYPE_STYP: 
         return ftyp_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_FADB: return padb_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_FADB:
+		return padb_dump(a, trace);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	case GF_ISOM_BOX_TYPE_MVEX: return mvex_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MEHD: return mehd_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TREX: return trex_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MOOF: return moof_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MFHD: return mfhd_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TRAF: return traf_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TFHD: return tfhd_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TRUN: return trun_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MVEX:
+		return mvex_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MEHD:
+		return mehd_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TREX:
+		return trex_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MOOF:
+		return moof_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MFHD:
+		return mfhd_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TRAF:
+		return traf_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TFHD:
+		return tfhd_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TRUN:
+		return trun_dump(a, trace);
 #endif
 
-	case GF_ISOM_BOX_TYPE_VOID: return void_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_STSF: return stsf_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_VOID:
+		return void_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STSF:
+		return stsf_dump(a, trace);
 
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
@@ -201,48 +279,79 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_AVCC: 
 	case GF_ISOM_BOX_TYPE_SVCC: 
 		return avcc_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_BTRT: return btrt_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_M4DS: return m4ds_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_BTRT:
+		return btrt_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_M4DS:
+		return m4ds_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_AVC1: 
 	case GF_ISOM_BOX_TYPE_AVC2: 
 	case GF_ISOM_BOX_TYPE_SVC1: 
 		return mp4v_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_PASP: return pasp_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_PASP:
+		return pasp_dump(a, trace);
 
-	case GF_ISOM_BOX_TYPE_FTAB: return ftab_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_FTAB:
+		return ftab_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_TX3G: 
-	case GF_ISOM_BOX_TYPE_TEXT:
 		return tx3g_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_STYL: return styl_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_HLIT: return hlit_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_HCLR: return hclr_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_KROK: return krok_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_DLAY: return dlay_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_HREF: return href_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TBOX: return tbox_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_BLNK: return blnk_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_TWRP: return twrp_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TEXT:
+		return text_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STYL:
+		return styl_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_HLIT:
+		return hlit_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_HCLR:
+		return hclr_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_KROK:
+		return krok_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DLAY:
+		return dlay_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_HREF:
+		return href_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TBOX:
+		return tbox_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_BLNK:
+		return blnk_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TWRP:
+		return twrp_dump(a, trace);
 
 	/* ISMA 1.0 Encryption and Authentication V 1.0 */
-	case GF_ISOM_BOX_TYPE_IKMS: return iKMS_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_ISFM: return iSFM_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_IKMS:
+		return iKMS_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ISFM:
+		return iSFM_dump(a, trace);
 
 	/*MPEG-21 extensions*/
-	case GF_ISOM_BOX_TYPE_META: return meta_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_XML: return xml_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_BXML: return bxml_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_ILOC: return iloc_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_PITM: return pitm_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_IPRO: return ipro_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_INFE: return infe_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_IINF: return iinf_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_SINF: return sinf_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_FRMA: return frma_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_SCHM: return schm_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_SCHI: return schi_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_ENCA: return mp4a_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_ENCV: return mp4v_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_ENCS: return mp4s_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_META:
+		return meta_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_XML:
+		return xml_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_BXML:
+		return bxml_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ILOC:
+		return iloc_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_PITM:
+		return pitm_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_IPRO:
+		return ipro_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_INFE:
+		return infe_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_IINF:
+		return iinf_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SINF:
+		return sinf_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_FRMA:
+		return frma_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SCHM:
+		return schm_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SCHI:
+		return schi_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ENCA:
+		return mp4a_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ENCV:
+		return mp4v_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ENCS:
+		return mp4s_dump(a, trace);
 
 
 	case GF_ISOM_BOX_TYPE_0xA9NAM:
@@ -267,29 +376,47 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_iTunesSpecificInfo:
 		return apple_tag_dump(a, trace);
 	/*Apple extensions*/
-	case GF_ISOM_BOX_TYPE_ILST: return ilst_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ILST:
+		return ilst_dump(a, trace);
 
-	case GF_ISOM_BOX_TYPE_OHDR: return ohdr_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_GRPI: return grpi_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_MDRI: return mdri_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_ODTT: return odtt_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_ODRB: return odrb_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_ODKM: return odkm_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_ODAF: return iSFM_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_OHDR:
+		return ohdr_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_GRPI:
+		return grpi_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MDRI:
+		return mdri_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ODTT:
+		return odtt_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ODRB:
+		return odrb_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ODKM:
+		return odkm_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_ODAF:
+		return iSFM_dump(a, trace);
 
-	case GF_ISOM_BOX_TYPE_TSEL: return tsel_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_METX: return metx_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_METT: return metx_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TSEL:
+		return tsel_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_METX:
+		return metx_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_METT:
+		return metx_dump(a, trace);
 
-	case GF_ISOM_BOX_TYPE_DIMS: return dims_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_DIMC: return dimC_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_DIST: return diST_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DIMS:
+		return dims_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DIMC:
+		return dimC_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DIST:
+		return diST_dump(a, trace);
 
-	case GF_ISOM_BOX_TYPE_AC3: return ac3_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_DAC3: return dac3_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_AC3:
+		return ac3_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_DAC3:
+		return dac3_dump(a, trace);
 
-	case GF_ISOM_BOX_TYPE_LSR1: return lsr1_dump(a, trace);
-	case GF_ISOM_BOX_TYPE_LSRC: return lsrc_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_LSR1:
+		return lsr1_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_LSRC:
+		return lsrc_dump(a, trace);
 
 	default: return defa_dump(a, trace);
 	}
@@ -1470,9 +1597,13 @@ GF_Err ftab_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-static void gpp_dump_rgba(FILE * trace, char *name, u32 col)
+static void gpp_dump_rgba8(FILE * trace, char *name, u32 col)
 {
 	fprintf(trace, "%s=\"%x %x %x %x\"", name, (col>>16)&0xFF, (col>>8)&0xFF, (col)&0xFF, (col>>24)&0xFF);
+}
+static void gpp_dump_rgb16(FILE * trace, char *name, char col[6])
+{
+	fprintf(trace, "%s=\"%x %x %x\"", name, *((u16*)col), *((u16*)(col+1)), *((u16*)(col+2)));
 }
 static void gpp_dump_box(FILE * trace, GF_BoxRecord *rec)
 {
@@ -1489,17 +1620,17 @@ static void gpp_dump_style(FILE * trace, GF_StyleRecord *rec)
 		if (rec->style_flags & 4) fprintf(trace, "Underlined ");
 	}
 	fprintf(trace, "\" fontSize=\"%d\" ", rec->font_size);
-	gpp_dump_rgba(trace, "text-color", rec->text_color);
+	gpp_dump_rgba8(trace, "text-color", rec->text_color);
 	fprintf(trace, "/>\n");
 }
 
 GF_Err tx3g_dump(GF_Box *a, FILE * trace)
 {
-	GF_TextSampleEntryBox *p = (GF_TextSampleEntryBox *)a;
-	fprintf(trace, "<TextSampleEntryBox dataReferenceIndex=\"%d\" displayFlags=\"%x\" horizontal-justification=\"%d\" vertical-justification=\"%d\" ",
+	GF_Tx3gSampleEntryBox *p = (GF_Tx3gSampleEntryBox *)a;
+	fprintf(trace, "<Tx3gSampleEntryBox dataReferenceIndex=\"%d\" displayFlags=\"%x\" horizontal-justification=\"%d\" vertical-justification=\"%d\" ",
 			p->dataReferenceIndex, p->displayFlags, p->horizontal_justification, p->vertical_justification);
 
-	gpp_dump_rgba(trace, "background-color", p->back_color);
+	gpp_dump_rgba8(trace, "background-color", p->back_color);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 
@@ -1510,9 +1641,32 @@ GF_Err tx3g_dump(GF_Box *a, FILE * trace)
 	gpp_dump_style(trace, &p->default_style);
 	fprintf(trace, "</DefaultStyle>\n");
 	gf_box_dump(p->font_table, trace);
+	fprintf(trace, "</Tx3gSampleEntryBox>\n");
+	return GF_OK;
+}
+
+GF_Err text_dump(GF_Box *a, FILE * trace)
+{
+	GF_TextSampleEntryBox *p = (GF_TextSampleEntryBox *)a;
+	fprintf(trace, "<TextSampleEntryBox dataReferenceIndex=\"%d\" displayFlags=\"%x\" textJustification=\"%d\"  ",
+			p->dataReferenceIndex, p->displayFlags, p->textJustification);
+	if (p->textName)
+		fprintf(trace, "textName=%s ", p->textName);
+	if (p->sampleData)
+		fprintf(trace, "sampleData=%s ", p->sampleData);
+
+	gpp_dump_rgb16(trace, "background-color", p->background_color);
+	gpp_dump_rgb16(trace, "foreground-color", p->foreground_color);
+	fprintf(trace, ">\n");
+	DumpBox(a, trace);
+
+	fprintf(trace, "<DefaultBox>\n");
+	gpp_dump_box(trace, &p->default_box);
+	fprintf(trace, "</DefaultBox>\n");
 	fprintf(trace, "</TextSampleEntryBox>\n");
 	return GF_OK;
 }
+
 GF_Err styl_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
@@ -1535,7 +1689,7 @@ GF_Err hclr_dump(GF_Box *a, FILE * trace)
 {
 	GF_TextHighlightColorBox*p = (GF_TextHighlightColorBox*)a;
 	fprintf(trace, "<TextHighlightBox ");
-	gpp_dump_rgba(trace, "highlight_color", p->hil_color);
+	gpp_dump_rgba8(trace, "highlight_color", p->hil_color);
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	fprintf(trace, "</TextHighlightBox>\n");
@@ -2320,7 +2474,7 @@ static void gpp_dump_style_nobox(FILE * trace, GF_StyleRecord *rec, u32 *shift_o
 		if (rec->style_flags & 4) fprintf(trace, "Underlined ");
 	}
 	fprintf(trace, "\" fontID=\"%d\" fontSize=\"%d\" ", rec->fontID, rec->font_size);
-	gpp_dump_rgba(trace, "color", rec->text_color);
+	gpp_dump_rgba8(trace, "color", rec->text_color);
 	fprintf(trace, "/>\n");
 }
 
@@ -2349,7 +2503,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 	GF_Box *a;
 	Bool has_scroll;
 	char szDur[100];
-	GF_TextSampleEntryBox *txt;
+	GF_Tx3gSampleEntryBox *txt;
 
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, track);
 	if (!trak) return GF_BAD_PARAM;
@@ -2361,11 +2515,11 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		return GF_BAD_PARAM;
 	}
 
-	txt = (GF_TextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
+	txt = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, 0);
 	switch (txt->type) {
 	case GF_ISOM_BOX_TYPE_TX3G:
-	case GF_ISOM_BOX_TYPE_TEXT:
 		break;
+	case GF_ISOM_BOX_TYPE_TEXT:
 	default:
 		return GF_BAD_PARAM;
 	}
@@ -2382,7 +2536,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 
 	nb_descs = gf_list_count(trak->Media->information->sampleTable->SampleDescription->boxList);
 	for (i=0; i<nb_descs; i++) {
-		GF_TextSampleEntryBox *txt = (GF_TextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, i);
+		GF_Tx3gSampleEntryBox *txt = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, i);
 
 		fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
 		switch (txt->horizontal_justification) {
@@ -2397,7 +2551,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		default: fprintf(dump, "top"); break;
 		}
 		fprintf(dump, "\" ");
-		gpp_dump_rgba(dump, "backColor", txt->back_color);
+		gpp_dump_rgba8(dump, "backColor", txt->back_color);
 		fprintf(dump, " verticalText=\"%s\"", (txt->displayFlags & GF_TXT_VERTICAL) ? "yes" : "no");
 		fprintf(dump, " fillTextRegion=\"%s\"", (txt->displayFlags & GF_TXT_FILL_REGION) ? "yes" : "no");
 		fprintf(dump, " continuousKaraoke=\"%s\"", (txt->displayFlags & GF_TXT_KARAOKE) ? "yes" : "no");
@@ -2460,7 +2614,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 
 		if (txt->highlight_color) {
 			fprintf(dump, " ");
-			gpp_dump_rgba(dump, "highlightColor", txt->highlight_color->hil_color);
+			gpp_dump_rgba8(dump, "highlightColor", txt->highlight_color->hil_color);
 		}
 		if (txt->scroll_delay) {
 			Double delay = txt->scroll_delay->scroll_delay;
@@ -2607,7 +2761,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 {
 	u32 i, j, k, count, di, len, ts, cur_frame;
 	u64 start, end;
-	GF_TextSampleEntryBox *txtd;
+	GF_Tx3gSampleEntryBox *txtd;
 	GF_BitStream *bs;
 	char szDur[100];
 
@@ -2654,7 +2808,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 		txt = gf_isom_parse_texte_sample(bs);
 		gf_bs_del(bs);
 
-		txtd = (GF_TextSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, di-1);
+		txtd = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->boxList, di-1);
 
 		if (!txt->len) {
 			fprintf(dump, "\n");
