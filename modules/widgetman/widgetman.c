@@ -985,7 +985,11 @@ static void wm_component_activation_event(GF_Node *hdl, GF_DOM_Event *evt, GF_No
 	if (!wid) return;
 
 	comp = (GF_WidgetComponent *)handler->js_fun;
-	wm_activate_component(c, wid, comp, 0);
+	if (unload) {
+		wm_deactivate_component(c, wid, comp, NULL);
+	} else {
+		wm_activate_component(c, wid, comp, 0);
+	}
 }
 static void wm_component_activate_event(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *observer)
 {
