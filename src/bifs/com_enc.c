@@ -87,7 +87,7 @@ static GF_Err BE_XReplace(GF_BifsEncoder * codec, GF_Command *com, GF_BitStream 
 		if (com->ChildNodeTag) {
 			GF_Node *n;
 			if (com->ChildNodeTag>0) {
-				n = gf_node_new(codec->scene_graph, com->RouteID);
+				n = gf_node_new(codec->scene_graph, com->ChildNodeTag);
 			} else {
 				GF_Proto *proto = gf_sg_find_proto(codec->scene_graph, -com->ChildNodeTag , NULL);
 				if (!proto) return GF_SG_UNKNOWN_NODE;
