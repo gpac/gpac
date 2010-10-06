@@ -3831,6 +3831,8 @@ static void JS_PreDestroy(GF_Node *node)
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 #endif
 
+	if (priv->event) JS_RemoveRoot(priv->js_ctx, &priv->event);
+
 	/*unprotect all cached objects from GC*/
 	JS_ReleaseRootObjects(priv);
 
@@ -4106,6 +4108,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	dom_js_load(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj);
 	/*create event object, and remember it*/
 	priv->event = dom_js_define_event(priv->js_ctx, priv->js_obj);
+	JS_AddRoot(priv->js_ctx, &priv->event);
 #endif
 
 	gf_sg_load_script_extensions(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj, 0);
