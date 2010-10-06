@@ -1426,13 +1426,13 @@ void envtest_evaluate(GF_Node *node, GF_Route *_route)
 	/*has touch - fixme we should find out by ourselves*/
 	case 8:
 		opt = gf_cfg_get_key(compositor->user->config, "Profile", "HasTouchScreen");
-		equal = (opt && !strcmp(opt, "yes")) ? 1 : 2;
+		equal = (!opt || !strcmp(opt, "yes")) ? 1 : 2;
 		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
-	/*has touch - fixme we should find out by ourselves*/
+	/*has key - fixme we should find out by ourselves*/
 	case 9:
 		opt = gf_cfg_get_key(compositor->user->config, "Profile", "HasKeyPad");
-		equal = (opt && !strcmp(opt, "yes")) ? 1 : 2;
+		equal = (!opt || !strcmp(opt, "yes")) ? 1 : 2;
 		strcpy(par_value, (equal==1) ? "TRUE" : "FALSE");
 		break;
 	}
