@@ -382,6 +382,8 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		break;
 
 	case WM_ERASEBKGND:
+		/*the erasebkgnd message causes flickering when resizing the window, we discard it*/
+		break;
 	case WM_PAINT:
 		if (ctx->cur_hwnd==hWnd) {
 			evt.type = GF_EVENT_REFRESH;
