@@ -247,7 +247,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) return;
 	if (sess->flags & GF_NETIO_SESSION_REUSE_APPEND) return;
 
-	len = strlen(sess->server_name) + strlen(sess->remote_path) + 1;
+	len = strlen(sess->server_name) + strlen(sess->remote_path) + 10;
 	if (len<50) len = 50;
 	tmp = gf_malloc(sizeof(char) * len);
 	tmp[0] = 0;
@@ -255,6 +255,9 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	/*generate hash of the full url*/
 	strcpy(tmp, sess->server_name);
 	strcat(tmp, sess->remote_path);
+	sprintf(hash, "#%p", sess);
+	strcat(tmp, hash);
+
 	gf_sha1_csum(tmp, strlen(tmp), hash);
 	tmp[0] = 0;
 	for (i=0; i<20; i++) {
