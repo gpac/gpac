@@ -151,6 +151,7 @@ static Bool CTXLoad_CheckDownload(CTXLoadPriv *priv)
 	if (!priv->file_size && (now - priv->last_check_time < 1000) ) return 0;
 
 	f = gf_f64_open(priv->file_name, "rt");
+	if (!f) return 0;
 	gf_f64_seek(f, 0, SEEK_END);
 	size = gf_f64_tell(f);
 	fclose(f);
