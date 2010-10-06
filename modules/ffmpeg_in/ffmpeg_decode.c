@@ -223,6 +223,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				break;
 			case GPAC_OTI_IMAGE_JPEG:
 				codec_id = CODEC_ID_MJPEG;
+				ffd->is_image=1;
 				break;
 			case 0xFF:
 				codec_id = CODEC_ID_SVQ3;
@@ -412,7 +413,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		break;
 	case GF_CODEC_BUFFER_MAX:
 	  /*for audio let the systems engine decide since we may have very large block size (1 sec with some QT movies)*/
-		capability->cap.valueInt = (ffd->st==GF_STREAM_AUDIO) ? 0 : 4;
+		capability->cap.valueInt = (ffd->st==GF_STREAM_AUDIO) ? 0 : (ffd->is_image ? 1 : 4);
 		break;
 	/*by default AAC access unit lasts num_samples (timescale being sampleRate)*/
 	case GF_CODEC_CU_DURATION:
