@@ -1392,6 +1392,7 @@ force_input:
 			if (is_connected) {
 				u32 ID;
 				fprintf(stdout, "Enter OD ID (0 for main OD): ");
+				fflush(stdout);
 				scanf("%d", &ID);
 				ViewOD(term, ID, (u32)-1);
 			}
@@ -1400,6 +1401,7 @@ force_input:
 			if (is_connected) {
 				u32 num;
 				fprintf(stdout, "Enter OD number (0 for main OD): ");
+				fflush(stdout);
 				scanf("%d", &num);
 				ViewOD(term, (u32)-1, num);
 			}
@@ -1431,6 +1433,7 @@ force_input:
 				u32 i, count, odid;
 				Bool xml_dump, std_out;
 				fprintf(stdout, "Enter Inline OD ID if any or 0");
+				fflush(stdout);
 				radname[0] = 0;
 				scanf("%d", &odid);
 				if (odid) {
@@ -1447,6 +1450,7 @@ force_input:
 					}
 				}
 				fprintf(stdout, "Enter file radical name (+\'.x\' for XML dumping) - \"std\" for stdout: ");
+				fflush(stdout);
 				scanf("%s", radname);
 				sExt = strrchr(radname, '.');
 				xml_dump = 0;
