@@ -89,7 +89,6 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	char szKey[10];
 	ModuleInstance *inst;
 	GF_BaseInterface *ifce;
-	Bool fail;
 
 	if (!pm) return NULL;
 	inst = (ModuleInstance *) gf_list_get(pm->plug_list, whichplug);
@@ -102,12 +101,14 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 		if (!strstr(opt, szKey)) return NULL;
 	}
 
-	fail = 0;
-	if (!gf_modules_load_library(inst)) fail = 1;
-	else if (!inst->query_func) fail = 2;
-
-	if (fail) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Fail error=%d for %s\n", fail, inst->name));
+	if (!gf_modules_load_library(inst)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load library %s\n", inst->name));
+		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, "Invalid Plugin");
+		return NULL;
+	}
+	
+	if (!inst->query_func) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Library %s missing GPAC export symbols\n", inst->name));
 		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, "Invalid Plugin");
 		goto err_exit;
 	}
@@ -119,7 +120,8 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 		char *key;
 		const u32 *si = inst->query_func();
 		if (!si) {
-			fail = 2;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] GPAC module %s has no supported interfaces - disabling\n", inst->name));
+			gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, "Invalid Plugin");
 			goto err_exit;
 		}
 		i=0;
@@ -136,13 +138,8 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 		}
 		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, key);
 		gf_free(key);
-		if (!found) {
-			fail = 2;
-			goto err_exit;
-		}
+		if (!found) goto err_exit;
 	}
-
-	if (fail) goto err_exit;
 
 	if (!inst->query_func || !inst->query_func(InterfaceFamily) ) goto err_exit;
 
@@ -161,9 +158,7 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	return ifce;
 
 err_exit:
-	if (fail!=1)
-		gf_modules_unload_library(inst);
-
+	gf_modules_unload_library(inst);
 	return NULL;
 }
 
