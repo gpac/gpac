@@ -102,7 +102,8 @@ void GF_UPnP::OnStop(const char *src_url)
 		LockTerminal(0);
 #endif
 	} else {
-		gf_term_disconnect(m_pTerm);
+//		gf_term_disconnect(m_pTerm);
+		gf_term_play_from_time(m_pTerm, 0, 1);
 	}
 }
 
@@ -185,18 +186,17 @@ void GF_UPnP::OnPause(Bool do_resume, const char *src_url)
 	}
 }
 
-void GF_UPnP::OnSeek(Double time, const char *src_url)
+void GF_UPnP::OnSeek(Double time)
 {
 	if (m_renderer_bound) {
 #ifdef GPAC_HAS_SPIDERMONKEY
 		jsval funval, rval;
 		if (!m_pJSCtx) return;
 		LockTerminal(1);
-		JS_LookupProperty(m_pJSCtx, m_pObj, "onSeek", &funval);
+		JS_LookupProperty(m_pJSCtx, m_pObj, "onMediaSeek", &funval);
 		if (JSVAL_IS_OBJECT(funval)) {
-			jsval argv[2];
+			jsval argv[1];
 			argv[0] = DOUBLE_TO_JSVAL( JS_NewDouble(m_pJSCtx, time) );
-			argv[1] = GetUPnPDevice(src_url);
 			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 2, argv, &rval);
 		}
 		LockTerminal(0);
@@ -231,7 +231,7 @@ Bool GF_UPnP::ProcessEvent(GF_Event *evt)
 		break;
 
 	case GF_EVENT_DURATION:
-			m_pMediaRenderer->SetDuration((int) evt->duration.duration, evt->duration.can_seek);
+			m_pMediaRenderer->SetDuration(evt->duration.duration, evt->duration.can_seek);
 	case GF_EVENT_METADATA:
 		if (m_pTerm->root_scene) {
 			char szName[1024];
@@ -612,6 +612,38 @@ static JSBool upnp_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 	return JS_TRUE;
 }
 
+static JSBool upnp_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+{
+	char *prop_name;
+	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
+	if (!upnp) return JS_FALSE;
+
+	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
+	prop_name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if (!prop_name) return JS_FALSE;
+
+	if (upnp->m_pMediaRenderer ) {
+		if (!strcmp(prop_name, "MovieDuration") && JSVAL_IS_DOUBLE(*vp)) {
+			jsdouble d;
+			JS_ValueToNumber(c, *vp, &d);
+			upnp->m_pMediaRenderer->SetDuration(d, 1);
+			return JS_TRUE;
+		}
+		if (!strcmp(prop_name, "MovieTime") && JSVAL_IS_DOUBLE(*vp)) {
+			jsdouble d;
+			JS_ValueToNumber(c, *vp, &d);
+			upnp->m_pMediaRenderer->SetTime(d);
+			return JS_TRUE;
+		}
+		if (!strcmp(prop_name, "MovieURL") && JSVAL_IS_STRING(*vp) ) {
+			const char *url = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
+			if (url) upnp->m_pMediaRenderer->SetConnected(url);
+			return JS_TRUE;
+		}
+	}
+	return JS_TRUE;
+}
+
 
 static JSBool upnp_get_device(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -794,6 +826,16 @@ static JSBool upnp_renderer_playback(JSContext *c, JSObject *obj, uintN argc, js
 	case 2:
 		upnp->m_pAVCtrlPoint->m_MediaController->Stop(render->m_device, 0, NULL);                        
 		break;
+	/*seek*/
+	case 3:
+		if (argc && JSVAL_IS_NUMBER(argv[0]) ) {
+			char szVal[100];
+			jsdouble d;
+			JS_ValueToNumber(c, argv[0], &d);
+			format_time_string(szVal, d);
+			upnp->m_pAVCtrlPoint->m_MediaController->Seek(render->m_device, 0, "ABS_TIME", szVal, NULL);
+		}
+		break;
 	}
 	return JS_TRUE;
 }
@@ -808,6 +850,10 @@ static JSBool upnp_renderer_pause(JSContext *c, JSObject *obj, uintN argc, jsval
 static JSBool upnp_renderer_stop(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	return upnp_renderer_playback(c, obj, argc, argv, rval, 2);
+}
+static JSBool upnp_renderer_seek(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	return upnp_renderer_playback(c, obj, argc, argv, rval, 3);
 }
 
 static JSBool upnp_get_renderer(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -840,6 +886,7 @@ static JSBool upnp_get_renderer(JSContext *c, JSObject *obj, uintN argc, jsval *
 	JS_DefineFunction(c, s_obj, "Play", upnp_renderer_play, 1, 0);
 	JS_DefineFunction(c, s_obj, "Pause", upnp_renderer_pause, 0, 0);
 	JS_DefineFunction(c, s_obj, "Stop", upnp_renderer_stop, 0, 0);
+	JS_DefineFunction(c, s_obj, "Seek", upnp_renderer_seek, 0, 0);
 
 	*rval = OBJECT_TO_JSVAL(s_obj);
 	return JS_TRUE;
@@ -904,6 +951,19 @@ static JSBool upnp_server_has_parent_dir(JSContext *c, JSObject *obj, uintN argc
 	return JS_TRUE;
 }
 
+static JSBool upnp_server_get_resource_uri(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	u32 idx;
+	PLT_MediaObject *mo = (PLT_MediaObject *)JS_GetPrivate(c, obj);
+	if (!mo || (argc!=1) || !JSVAL_IS_INT(argv[0]) ) return JS_FALSE;
+	idx = JSVAL_TO_INT(argv[0]);
+	if (idx<mo->m_Resources.GetItemCount()) {
+		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, mo->m_Resources[idx].m_Uri));
+	} else {
+		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, ""));
+	}
+	return JS_TRUE;
+}
 
 static JSBool upnp_server_get_file(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
@@ -922,16 +982,18 @@ static JSBool upnp_server_get_file(JSContext *c, JSObject *obj, uintN argc, jsva
 	server->m_BrowseResults->Get(id, mo);
 	if (!mo) return JS_TRUE;
 
-	f_obj = JS_NewObject(c, 0, 0, 0);
+	f_obj = JS_NewObject(c, &upnp->upnpDeviceClass, 0, 0);
+	JS_SetPrivate(c, f_obj, mo);
+
 	JS_DefineProperty(c, f_obj, "ObjectID", STRING_TO_JSVAL( JS_NewStringCopyZ(c, mo->m_ObjectID)), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(c, f_obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, mo->m_Title)), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(c, f_obj, "ParentID", STRING_TO_JSVAL( JS_NewStringCopyZ(c, mo->m_ParentID)), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(c, f_obj, "Directory", BOOLEAN_TO_JSVAL( mo->IsContainer() ? JS_TRUE : JS_FALSE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	if (!mo->IsContainer() && mo->m_Resources.GetItemCount())
-		JS_DefineProperty(c, f_obj, "ResourceURI", STRING_TO_JSVAL( JS_NewStringCopyZ(c, mo->m_Resources[0].m_Uri)) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	
+	if (!mo->IsContainer()) {
+		JS_DefineProperty(c, f_obj, "ResourceCount", INT_TO_JSVAL(mo->m_Resources.GetItemCount()), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineFunction(c, f_obj, "GetResourceURI", upnp_server_get_resource_uri, 1, 0);
+	}	
 	*rval = OBJECT_TO_JSVAL(f_obj);
-
 	return JS_TRUE;
 }
 
@@ -1002,24 +1064,6 @@ static JSBool upnp_bind_renderer(JSContext *c, JSObject *obj, uintN argc, jsval 
 	/*remove ourselves from the event filters since we will only be called through JS*/
 	gf_term_unregister_event_filter(upnp->m_pTerm, upnp->term_ext);
 
-	return JS_TRUE;
-}
-static JSBool upnp_set_url(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	const char *url;
-	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
-	if (!upnp || !upnp->m_pMediaRenderer || !argc || !JSVAL_IS_STRING(argv[0]) ) return JS_TRUE;
-	url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	if (url) upnp->m_pMediaRenderer->SetConnected(url);
-	return JS_TRUE;
-}
-static JSBool upnp_set_duration(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	jsdouble d;
-	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
-	if (!upnp || !upnp->m_pMediaRenderer || !argc || !JSVAL_IS_DOUBLE(argv[0]) ) return JS_TRUE;
-	JS_ValueToNumber(c, *rval, &d);
-	upnp->m_pMediaRenderer->SetDuration((u32) d, 1);
 	return JS_TRUE;
 }
 
@@ -1258,8 +1302,6 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		{"BindRenderer", upnp_bind_renderer, 0, 0, 0},
 		{"GetMediaServer", upnp_get_server, 1, 0, 0},
 		{"GetMediaRenderer", upnp_get_renderer, 1, 0, 0},
-		{"SetCurrentURL", upnp_set_url, 1, 0, 0},
-		{"SetDuration", upnp_set_duration, 1, 0, 0},
 		{"ShareResource", upnp_share_resource, 1, 0, 0},	
 		{"ShareVirtualResource", upnp_share_virtual_resource, 2, 0, 0},	
 		{"GetDevice", upnp_get_device, 1, 0, 0},	
@@ -1306,7 +1348,7 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 
 	m_pJSCtx = (JSContext*)param->ctx;
 	/*setup JS bindings*/
-	_SETUP_CLASS(upnpClass, "UPNPMANAGER", JSCLASS_HAS_PRIVATE, upnp_getProperty, JS_PropertyStub, JS_FinalizeStub);
+	_SETUP_CLASS(upnpClass, "UPNPMANAGER", JSCLASS_HAS_PRIVATE, upnp_getProperty, upnp_setProperty, JS_FinalizeStub);
 
 	JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpClass, 0, 0, upnpClassProps, upnpClassFuncs, 0, 0);
 	m_pObj = JS_DefineObject(m_pJSCtx, (JSObject*)param->global, "UPnP", &upnpClass, 0, 0);

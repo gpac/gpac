@@ -37,12 +37,12 @@ extern NPT_UInt8 RDR_AVTransportSCPD[];
 extern NPT_UInt8 RDR_RenderingControlSCPD[];
 
 
-static void format_time_string(char *str, u32 dur)
+void format_time_string(char *str, Double dur)
 {
 	u32 h, m, s;
 	h = (u32) (dur / 3600);
-	m = (dur - h*3600) / 60;
-	s = (dur - h*3600 - m*60);
+	m = (u32) ( (dur - h*3600) / 60);
+	s = (u32) ((dur - h*3600 - m*60));
 	sprintf(str, "%02d:%02d:%02d", h, m, s);
 }
 
@@ -55,6 +55,7 @@ GPAC_MediaRenderer::GPAC_MediaRenderer(GF_UPnP *upnp, const char*  friendly_name
 	m_mediaHistoryList = gf_list_new();
 	m_pUPnP = upnp;
 	m_connected = 0;
+	m_Duration = m_Time = 0;
 }
 
 GPAC_MediaRenderer::~GPAC_MediaRenderer()
@@ -304,12 +305,17 @@ GPAC_MediaRenderer::OnAction(PLT_ActionReference&          action,
     }
     if (name.Compare("GetPositionInfo", true) == 0) {
 		if (m_pUPnP->m_pTerm->root_scene) {
+			char szVal[100];
+
 			m_pAVService->SetStateVariable("CurrentTrack", "0");
-			m_pAVService->SetStateVariable("CurrentTrackDuration", "00:00:00");
+			format_time_string(szVal, m_Duration);
+			m_pAVService->SetStateVariable("CurrentTrackDuration", szVal);
+
 			m_pAVService->SetStateVariable("CurrentTrackMetadata", "");
 			m_pAVService->SetStateVariable("CurrentTrackURI", "");
-			m_pAVService->SetStateVariable("RelativeTimePosition", "00:00:00"); 
-			m_pAVService->SetStateVariable("AbsoluteTimePosition", "00:00:00");
+			format_time_string(szVal, m_Time);
+			m_pAVService->SetStateVariable("RelativeTimePosition", szVal); 
+			m_pAVService->SetStateVariable("AbsoluteTimePosition", szVal);
 			m_pAVService->SetStateVariable("RelativeCounterPosition", "2147483647"); // means NOT_IMPLEMENTED
 			m_pAVService->SetStateVariable("AbsoluteCounterPosition", "2147483647"); // means NOT_IMPLEMENTED
 		} else {
@@ -510,11 +516,27 @@ NPT_Result GPAC_MediaRenderer::OnPrevious(PLT_ActionReference& action)
 
 NPT_Result GPAC_MediaRenderer::OnNext(PLT_ActionReference& action)
 {
-    return NPT_SUCCESS;
+   return NPT_SUCCESS;
 }
 
 NPT_Result GPAC_MediaRenderer::OnSeek(PLT_ActionReference& action)
 {
+	u32 h, m, s;
+	Double time;
+    NPT_String unit, target;
+    if (NPT_FAILED(action->GetArgumentValue("Unit", unit))) {
+        return NPT_FAILURE;
+	}
+    if (NPT_FAILED(action->GetArgumentValue("Target", target))) {
+        return NPT_FAILURE;
+	}
+	if ((unit!="ABS_TIME") && (unit!="REL_TIME")) {
+		action->SetError(710,"Seek mode not supported");
+        return NPT_FAILURE;
+	}
+	sscanf(target, "%d:%d:%d", &h, &m, &s);
+	time = h*3600.0 + m*60.0 + s;
+	m_pUPnP->OnSeek(time);
     return NPT_SUCCESS;
 }
 
@@ -535,11 +557,21 @@ NPT_Result GPAC_MediaRenderer::OnSetMute(PLT_ActionReference& action)
     return NPT_SUCCESS;
 }
 
-void GPAC_MediaRenderer::SetDuration(int duration, Bool can_seek)
+void GPAC_MediaRenderer::SetDuration(Double duration, Bool can_seek)
 {
 	char szVal[100];
 	format_time_string(szVal, duration);
+	m_Duration = duration;
     m_pAVService->SetStateVariable("CurrentTrackDuration", szVal);
+}
+
+void GPAC_MediaRenderer::SetTime(Double time)
+{
+	char szVal[100];
+	format_time_string(szVal, time);
+	m_Time = time;
+    m_pAVService->SetStateVariable("RelativeTimePosition", szVal);
+    m_pAVService->SetStateVariable("AbsoluteTimePosition", szVal);
 }
 
 void GPAC_MediaRenderer::SetConnected(const char *url)

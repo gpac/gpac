@@ -96,7 +96,7 @@ public:
 	void OnConnect(const char *url, const char *src_url);
 	void OnPause(Bool do_resume, const char *src_url);
 	void OnStop(const char *src_url);
-	void OnSeek(Double time, const char *src_url);
+	void OnSeek(Double time);
 	void OnSetPlayMode(const char *src_url);
 	void ContainerChanged(PLT_DeviceDataReference& device, const char *item_id, const char *update_id);
 	NPT_String OnMigrate();
@@ -141,6 +141,7 @@ public:
 JSBool upnpservice_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp);
 #endif
 
+void format_time_string(char *str, Double dur);
 
 
 #endif	/*_GPAC_PLATINUM_H_*/
