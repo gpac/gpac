@@ -87,6 +87,7 @@ typedef struct
 	Bool check_short_header;
 	u32 pix_fmt;
 	u32 out_pix_fmt;
+	Bool is_image;
 
 	/*for audio packed frames*/
 	u32 frame_start;
