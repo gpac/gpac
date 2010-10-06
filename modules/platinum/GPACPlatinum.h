@@ -83,14 +83,13 @@ public:
 	Bool m_renderer_bound;
 	NPT_String m_IPFilter;
 
-
 	/*regular media file server from platinum*/
 	GPAC_FileMediaServer *m_pMediaServer;
 
 	/*GPAC's AVControlPoint*/
 	GPAC_MediaController *m_pAVCtrlPoint;
 
-	void LockTerminal(Bool do_lock);
+	void LockJavascript(Bool do_lock);
 
 	/*callback from GPAC MediaRenderer*/
 	void OnConnect(const char *url, const char *src_url);

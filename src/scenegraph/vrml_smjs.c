@@ -122,6 +122,8 @@ typedef struct
 	JSRuntime *js_runtime;
 	u32 nb_inst;
 
+	GF_Mutex *mx;
+	
 	JSClass SFNodeClass;
 
 #ifndef GPAC_DISABLE_VRML
@@ -239,6 +241,7 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 		}
 		GF_SAFEALLOC(js_rt, GF_JSRuntime);
 		js_rt->js_runtime = js_runtime;
+		js_rt->mx = gf_mx_new("JavaScript");
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[ECMAScript] ECMAScript runtime allocated 0x%08x\n", js_runtime));
 		gf_sg_load_script_modules(sg);
 	}
@@ -256,6 +259,7 @@ void gf_sg_ecmascript_del(JSContext *ctx)
 			JS_DestroyRuntime(js_rt->js_runtime);
 			JS_ShutDown();
 			gf_sg_unload_script_modules();
+			gf_mx_del(js_rt->mx);
 			gf_free(js_rt);
 			js_rt = NULL;
 		}
@@ -3931,8 +3935,11 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	*/
 	sf->last_route_time = time;
 
+	gf_sg_lock_javascript(1);
+
 	//locate function
 	if (! JS_LookupProperty(priv->js_ctx, priv->js_obj, sf->name, &fval) || JSVAL_IS_VOID(fval)) {
+		gf_sg_lock_javascript(0);
 		return;
 	}
 
@@ -3958,6 +3965,8 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 #ifdef FORCE_GC
 	MyJSGC(priv->js_ctx);
 #endif
+
+	gf_sg_lock_javascript(0);
 
 	flush_event_out(node, priv);
 }
@@ -4100,6 +4109,8 @@ static void JSScript_LoadVRML(GF_Node *node)
 		return;
 	}
 
+	gf_sg_lock_javascript(1);
+
 	JS_SetContextPrivate(priv->js_ctx, node);
 	gf_sg_script_init_sm_api(priv, node);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Built-in classes initialized\n"));
@@ -4124,26 +4135,26 @@ static void JSScript_LoadVRML(GF_Node *node)
 
 	if (!local_script) {
 		JSScriptFromFile(node, NULL, 0);
+		gf_sg_lock_javascript(0);
 		return;
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] Evaluating script %s\n", str));
 
 	ret = JS_EvaluateScript(priv->js_ctx, priv->js_obj, str, strlen(str), 0, 0, &rval);
-	if (ret==JS_FALSE) {
-		return;
+	if (ret==JS_TRUE) {
+		/*call initialize if present*/
+		if (JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval) && !JSVAL_IS_VOID(fval))
+			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
+
+		flush_event_out(node, priv);
 	}
-
-	/*call initialize if present*/
-	if (JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval) && !JSVAL_IS_VOID(fval))
-		JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
-
-	flush_event_out(node, priv);
 
 #ifdef FORCE_GC
 	MyJSGC(priv->js_ctx);
 #endif
 
+	gf_sg_lock_javascript(0);
 }
 
 static void JSScript_Load(GF_Node *node)
@@ -4299,6 +4310,8 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target))
 		return;
 
+	gf_sg_lock_javascript(1);
+
 	prev_type = event->is_vrml;
 	event->is_vrml = 1;
 	JS_SetPrivate(priv->js_ctx, priv->event, event);
@@ -4316,6 +4329,9 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 
 	event->is_vrml = prev_type;
 	JS_SetPrivate(priv->js_ctx, priv->event, prev_event);
+
+	gf_sg_lock_javascript(0);
+
 #endif
 }
 
@@ -4372,3 +4388,12 @@ Bool gf_sg_has_scripting()
 #endif
 }
 
+void gf_sg_lock_javascript(Bool LockIt)
+{
+#ifdef GPAC_HAS_SPIDERMONKEY
+	if (js_rt) {
+		if (LockIt) gf_mx_p(js_rt->mx);
+		else gf_mx_v(js_rt->mx);
+	}
+#endif
+}

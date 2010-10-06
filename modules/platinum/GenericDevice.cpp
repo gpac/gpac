@@ -570,10 +570,10 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 			jsval argv[1], rval;
 
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Calling handler for response %s argument %s\n", (char *) action->GetActionDesc().GetName(), (char *) argl->arg->GetName() ));
-			m_pUPnP->LockTerminal(1);
+			m_pUPnP->LockJavascript(1);
 			argv[0] = STRING_TO_JSVAL( JS_NewStringCopyZ(serv->js_ctx, value) );
 			JS_CallFunctionValue(serv->js_ctx, serv->obj, argl->on_event, 1, argv, &rval);
-			m_pUPnP->LockTerminal(0);
+			m_pUPnP->LockJavascript(0);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] %s Response: couldn't get argument %s value\n", (char *) action->GetActionDesc().GetName(), (char *) argl->arg->GetName() ));
 		}
@@ -581,7 +581,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 
 	if (act_l) {
 		jsval rval;
-		m_pUPnP->LockTerminal(1);
+		m_pUPnP->LockJavascript(1);
 		if (act_l->is_script) {
 			JSObject *act_obj;
 			jsval argv[2];
@@ -612,7 +612,7 @@ NPT_Result GPAC_GenericController::OnActionResponse(NPT_Result res, PLT_ActionRe
 		else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] response %s has error %d\n", (char *) action->GetActionDesc().GetName(), res ));
 		}
-		m_pUPnP->LockTerminal(0);
+		m_pUPnP->LockJavascript(0);
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[UPnP] Done processing response %s\n", (char *) action->GetActionDesc().GetName()));
 
@@ -660,10 +660,10 @@ NPT_Result GPAC_GenericController::OnEventNotify(PLT_Service* service, NPT_List<
 
 	if (serv->on_event) {
 		jsval rval;
-		m_pUPnP->LockTerminal(1);
+		m_pUPnP->LockJavascript(1);
 		serv->vars = vars;
 		JS_CallFunctionValue(serv->js_ctx, serv->obj, serv->on_event, 0, 0, &rval);
-		m_pUPnP->LockTerminal(0);
+		m_pUPnP->LockJavascript(0);
 		serv->vars = NULL;
 	}
 
@@ -672,10 +672,10 @@ NPT_Result GPAC_GenericController::OnEventNotify(PLT_Service* service, NPT_List<
 		/*check if we can find our var in this list*/
 		if (vars->Contains(svl->var)) {
 			jsval argv[1], rval;
-			m_pUPnP->LockTerminal(1);
+			m_pUPnP->LockJavascript(1);
 			argv[0] = STRING_TO_JSVAL( JS_NewStringCopyZ(serv->js_ctx, svl->var->GetValue() ) );
 			JS_CallFunctionValue(serv->js_ctx, serv->obj, svl->on_event, 1, argv, &rval);
-			m_pUPnP->LockTerminal(0);
+			m_pUPnP->LockJavascript(0);
 		}
 
 	}
@@ -892,7 +892,7 @@ GPAC_GenericDevice::OnAction(PLT_ActionReference&          action,
 
 	jsval argv[2];
 
-	m_pUPnP->LockTerminal(1);
+	m_pUPnP->LockJavascript(1);
 
 	JSObject *js_action = JS_NewObject(m_pUPnP->m_pJSCtx, &m_pUPnP->upnpDeviceClass, 0, 0);
 	argv[0] = OBJECT_TO_JSVAL(js_action);
@@ -912,7 +912,7 @@ GPAC_GenericDevice::OnAction(PLT_ActionReference&          action,
 	jsval rval;
 	JS_CallFunctionValue(m_pUPnP->m_pJSCtx, obj, act_proc, 1, argv, &rval);
 	JS_SetPrivate(m_pUPnP->m_pJSCtx, js_action, NULL);
-	m_pUPnP->LockTerminal(0);
+	m_pUPnP->LockJavascript(0);
 
 	if (JSVAL_IS_INT(rval) && (JSVAL_TO_INT(rval) != 0)) {
 	    action->SetError(JSVAL_TO_INT(rval), "Action Failed");

@@ -1304,6 +1304,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_get_next_available_proto_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_set_proto_loader) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_sfcolor_to_rgba) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sg_lock_javascript) )
 
 #ifndef GPAC_DISABLE_X3D
 #pragma comment (linker, EXPORT_SYMBOL(gf_node_x3d_type_by_class_name) )
