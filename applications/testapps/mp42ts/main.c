@@ -853,7 +853,7 @@ Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, Bool *f
 
 		for (i=0; i<prog->nb_streams; i++) {
 			fill_seng_es_ifce(&prog->streams[i], i, prog->seng, prog->rate);
-			fprintf(stdout, "Fill interface/n");
+			fprintf(stdout, "Fill interface\n");
 			if (!prog->pcr_idx && (prog->streams[i].stream_type == GF_STREAM_VISUAL)) {
 				prog->pcr_idx = i+1;
 			}
