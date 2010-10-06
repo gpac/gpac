@@ -122,14 +122,14 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 			if (has_sr) *has_sr=1;
 
 #ifndef GPAC_DISABLE_LOG
-			if ((gf_log_get_level() >= (GF_LOG_DEBUG)) && (gf_log_get_tools() & (GF_LOG_RTP)))  {
+			if ((gf_log_get_level() >= (GF_LOG_INFO)) && (gf_log_get_tools() & (GF_LOG_RTP)))  {
 #ifndef _WIN32_WCE
 				time_t gtime = ch->last_SR_NTP_sec - GF_NTP_SEC_1900_TO_1970;
 				const char *ascTime = asctime(gmtime(&gtime));
 #else
 				const char *ascTime = "Not Available";
 #endif
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] RTCP-SR\t%d\t%d\t%d\t%d\t%s\n", 
+				GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] RTCP SR: SSRC %d - RTP Time %d - Nb Pck %d - Nb Bytes %d - Time %s\n", 
 									ch->SenderSSRC,
 									ch->last_SR_rtp_time,
 									ch->total_pck,
