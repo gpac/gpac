@@ -331,9 +331,12 @@ void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 			com.map_time.reset_buffers = 0;
 			gf_term_on_command(ch->owner->service, &com, GF_OK);
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Mapping RTP Time seq %d TS %d - rtp info seq %d TS %d\n",
-				hdr.SequenceNumber, hdr.TimeStamp, ch->rtp_ch->rtp_first_SN, ch->rtp_ch->rtp_time
+			GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTP] Mapping RTP Time seq %d TS %d Media Time %g - rtp info seq %d TS %d\n",
+				hdr.SequenceNumber, hdr.TimeStamp, com.map_time.media_time, ch->rtp_ch->rtp_first_SN, ch->rtp_ch->rtp_time
 				));
+
+			/*skip RTCP clock init when RTSP is used*/
+			if (ch->rtsp) ch->rtcp_init = 1;
 
 //			if (ch->depacketizer->payt==GF_RTP_PAYT_H264_AVC) ch->depacketizer->flags |= GF_RTP_AVC_WAIT_RAP;
 		}
@@ -396,6 +399,11 @@ void RP_ProcessRTCP(RTPStream *ch, char *pck, u32 size)
 		ch->rtcp_init = 1;
 		ch->check_rtp_time = RTP_SET_TIME_NONE;
 		gf_term_on_command(ch->owner->service, &com, GF_OK);
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[RTCP] Using Sender Report to map RTP Time TS %d Media Time %g\n",
+			com.map_time.timestamp, com.map_time.media_time
+			));
+
 	}
 
 	if (e == GF_EOS) {

@@ -235,6 +235,7 @@ typedef struct
 	/*current start time in npt (for pause/resume)*/
 	Double current_start;
 
+	Bool paused;
 	Bool rtcp_init;
 	/*UDP time-out detection*/
 	u32 last_udp_time;

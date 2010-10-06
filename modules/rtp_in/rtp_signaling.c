@@ -542,8 +542,8 @@ process_reply:
 			if (!agg_ch || (agg_ch->rtsp != sess) ) continue;
 			/*channel is already playing*/
 			if (agg_ch->status == RTP_Running) {
-	//			gf_rtp_set_info_rtp(agg_ch->rtp_ch, info->seq, info->rtp_time, info->ssrc);
-	//			agg_ch->check_rtp_time = RTP_SET_TIME_RTP;
+				gf_rtp_set_info_rtp(agg_ch->rtp_ch, info->seq, info->rtp_time, info->ssrc);
+				agg_ch->check_rtp_time = RTP_SET_TIME_RTP;
 				continue;
 			}
 			
@@ -687,6 +687,8 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		range->end = ch->range_end;
 		
 		com->method = gf_strdup(GF_RTSP_PLAY);
+
+		ch->paused=0;
 		
 		/*specify pause range on resume - this is not mandatory but most servers need it*/
 		if (command->command_type==GF_NET_CHAN_RESUME) {
@@ -749,6 +751,13 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 			range->start = ch->current_start;
 			range->end = -1.0;
 			com->Range = range;
+
+			if (sess->flags & RTSP_AGG_CONTROL) 
+				SkipCommandOnSession(ch);
+			else if (strlen(ch->control)) 
+				com->ControlString = gf_strdup(ch->control);
+
+			ch->paused=1;
 		} 
 	}
 	else if (command->command_type==GF_NET_CHAN_STOP) {
@@ -769,6 +778,10 @@ void RP_UserCommand(RTSPSession *sess, RTPStream *ch, GF_NetworkCommand *command
 		} 
 		/* otherwise send a PAUSE on the stream */
 		else {
+			if (ch->paused) {
+				if (com) gf_rtsp_command_del(com);
+				return;
+			}
 			range = gf_rtsp_range_new();
 			range->start = 0;
 			range->end = -1;
