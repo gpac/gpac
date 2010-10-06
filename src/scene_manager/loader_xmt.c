@@ -2097,6 +2097,12 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 		char *fieldValue = NULL;
 		char *routeName = NULL;
 		char *extended = NULL;
+		char *idxNode = NULL;
+		char *idxField = NULL;
+		char *childField = NULL;
+		char *fromNode = NULL;
+		char *fromField = NULL;
+
 		s32 position = -2;
 
 		if (!parser->stream_id) parser->stream_id = parser->base_scene_id;
@@ -2119,6 +2125,11 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 			else if (!strcmp(att->name, "value")) fieldValue = att->value;
 			else if (!strcmp(att->name, "atRoute")) routeName = att->value;
 			else if (!strcmp(att->name, "extended")) extended = att->value;
+			else if (!strcmp(att->name, "atIndexNode")) idxNode = att->value;
+			else if (!strcmp(att->name, "atIndexField")) idxField = att->value;
+			else if (!strcmp(att->name, "atChildField")) childField = att->value;
+			else if (!strcmp(att->name, "fromNode")) fromNode = att->value;
+			else if (!strcmp(att->name, "fromField")) fromField = att->value;
 			else if (!strcmp(att->name, "position")) {
 				if (!strcmp(att->value, "BEGIN")) position = 0;
 				else if (!strcmp(att->value, "END")) position = -1;
@@ -2138,7 +2149,13 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 					else if (!strcmp(name, "Insert")) tag = GF_SG_INDEXED_INSERT;
 					else if (!strcmp(name, "Delete")) tag = GF_SG_INDEXED_DELETE;
 				} else {
-					if (!strcmp(name, "Replace")) tag = GF_SG_FIELD_REPLACE;
+					if (!strcmp(name, "Replace")) {
+						if ((idxNode && idxField) || childField || (fromNode && fromField)) {
+							tag = GF_SG_XREPLACE;
+						} else {
+							tag = GF_SG_FIELD_REPLACE;
+						}
+					}
 				}
 			} else {
 				if (!strcmp(name, "Replace")) {
@@ -2234,34 +2251,86 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 			if (fieldName) {
 				field = gf_sg_command_field_new(parser->command);
 				field->fieldIndex = info.fieldIndex;
-				if (gf_sg_vrml_get_sf_type(info.fieldType) != GF_SG_VRML_SFNODE) {
-					if (position==-2) {
-						field->fieldType = info.fieldType;
-						field->field_ptr = gf_sg_vrml_field_pointer_new(info.fieldType);
-						info.far_ptr = field->field_ptr;
-						if (gf_sg_vrml_is_sf_field(info.fieldType)) {
-							xmt_parse_sf_field(parser, &info, atNode, fieldValue);
-						} else {
-							xmt_parse_mf_field(parser, &info, atNode, fieldValue);
-						}
-					} else {
-						field->fieldType = info.fieldType = gf_sg_vrml_get_sf_type(info.fieldType);
-						field->pos = position;
-						if (tag != GF_SG_INDEXED_DELETE) {
-							field->field_ptr = gf_sg_vrml_field_pointer_new(info.fieldType);
-							info.far_ptr = field->field_ptr;
-							xmt_parse_sf_field(parser, &info, atNode, fieldValue);
+
+				if (idxNode && idxField) {
+					GF_Node *iNode = xmt_find_node(parser, idxNode);
+					if (iNode) {
+						GF_FieldInfo idxF;
+						parser->command->toNodeID = gf_node_get_id(iNode);
+						gf_node_get_field_by_name(iNode, idxField, &idxF);
+						parser->command->toFieldIndex = idxF.fieldIndex;
+						position = 0;
+						switch (idxF.fieldType) {
+						case GF_SG_VRML_SFBOOL:
+							if (*(SFBool*)idxF.far_ptr) position = 1;
+							break;
+						case GF_SG_VRML_SFINT32:
+							if (*(SFInt32*)idxF.far_ptr >=0) position = *(SFInt32*)idxF.far_ptr;
+							break;
+						case GF_SG_VRML_SFFLOAT:
+							if ( (*(SFFloat *)idxF.far_ptr) >=0) position = (s32) floor( FIX2FLT(*(SFFloat*)idxF.far_ptr) );
+							break;
+						case GF_SG_VRML_SFTIME:
+							if ( (*(SFTime *)idxF.far_ptr) >=0) position = (s32) floor( (*(SFTime *)idxF.far_ptr) );
+							break;
 						}
 					}
-				} else {
-					field->pos = position;
-					if ((position==-2) && (info.fieldType==GF_SG_VRML_MFNODE)) {
-						field->fieldType = GF_SG_VRML_MFNODE;
-					} else {
-						field->fieldType = GF_SG_VRML_SFNODE;
-					} 
-					parser->state = XMT_STATE_ELEMENTS;
 				}
+				if (childField) {
+					GF_Node *child = gf_node_list_get_child( ((GF_ParentNode*)atNode)->children, position);
+					if (child) {
+						parser->command->ChildNodeTag = gf_node_get_tag(child);
+						if (parser->command->ChildNodeTag == TAG_ProtoNode) {
+							s32 p_id = gf_sg_proto_get_id(gf_node_get_proto(child));
+							parser->command->ChildNodeTag = -p_id;
+						}
+						/*get field in the info struct for later parsing*/
+						gf_node_get_field_by_name(child, childField, &info);
+						parser->command->child_field = info.fieldIndex;
+					}
+				}
+				/*do not keep position info if index node is used*/
+				if (idxNode && idxField) position = -2;
+
+				if (fromNode && fromField) {
+					GF_Node *fNode = xmt_find_node(parser, fromNode);
+					if (fNode) {
+						GF_FieldInfo fField;
+						parser->command->fromNodeID = gf_node_get_id(fNode);
+						gf_node_get_field_by_name(fNode, fromField, &fField);
+						parser->command->fromFieldIndex = fField.fieldIndex;
+					}
+				}
+				if (!fromNode && !fromField) {
+					if (gf_sg_vrml_get_sf_type(info.fieldType) != GF_SG_VRML_SFNODE) {
+						if (position==-2) {
+							field->fieldType = info.fieldType;
+							field->field_ptr = gf_sg_vrml_field_pointer_new(info.fieldType);
+							info.far_ptr = field->field_ptr;
+							if (gf_sg_vrml_is_sf_field(info.fieldType)) {
+								xmt_parse_sf_field(parser, &info, atNode, fieldValue);
+							} else {
+								xmt_parse_mf_field(parser, &info, atNode, fieldValue);
+							}
+						} else {
+							field->fieldType = info.fieldType = gf_sg_vrml_get_sf_type(info.fieldType);
+							field->pos = position;
+							if (tag != GF_SG_INDEXED_DELETE) {
+								field->field_ptr = gf_sg_vrml_field_pointer_new(info.fieldType);
+								info.far_ptr = field->field_ptr;
+								xmt_parse_sf_field(parser, &info, atNode, fieldValue);
+							}
+						}
+					} else {
+						field->pos = position;
+						if ((position==-2) && (info.fieldType==GF_SG_VRML_MFNODE)) {
+							field->fieldType = GF_SG_VRML_MFNODE;
+						} else {
+							field->fieldType = GF_SG_VRML_SFNODE;
+						} 
+						parser->state = XMT_STATE_ELEMENTS;
+					}
+				}	
 			} else if (tag==GF_SG_NODE_INSERT) {
 				field = gf_sg_command_field_new(parser->command);
 				field->fieldType = GF_SG_VRML_SFNODE;

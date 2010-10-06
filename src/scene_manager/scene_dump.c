@@ -2065,6 +2065,135 @@ static GF_Err DumpIndexReplace(GF_SceneDumper *sdump, GF_Command *com)
 }
 
 
+static GF_Err DumpXReplace(GF_SceneDumper *sdump, GF_Command *com)
+{
+	char posname[20];
+	GF_Err e;
+	GF_FieldInfo field, idxField;
+	GF_Node *toNode, *target;
+	GF_CommandField *inf;
+	if (!gf_list_count(com->command_fields)) return GF_OK;
+	inf = (GF_CommandField *) gf_list_get(com->command_fields, 0);
+
+	e = gf_node_get_field(com->node, inf->fieldIndex, &field);
+	if (e) return e;
+
+	toNode = target = NULL;
+	/*indexed replacement with index given by other node field*/
+	if (com->toNodeID) {
+		toNode = gf_sg_find_node(com->in_scene, com->toNodeID);
+		if (!toNode) return GF_NON_COMPLIANT_BITSTREAM;
+		e = gf_node_get_field(toNode, com->toFieldIndex, &idxField);
+	}
+	else {
+		/*indexed replacement */
+		if (inf->pos>=-1) {
+			if (gf_sg_vrml_is_sf_field(field.fieldType)) return GF_NON_COMPLIANT_BITSTREAM;
+			switch (inf->pos) {
+			case 0:
+				strcpy(posname, "BEGIN");
+				break;
+			case -1:
+				strcpy(posname, sdump->XMLDump ? "END" : "LAST");
+				break;
+			default:
+				sprintf(posname, "%d", inf->pos);
+				break;
+			}
+			field.fieldType = gf_sg_vrml_get_sf_type(field.fieldType);
+		}
+	}
+	field.far_ptr = inf->field_ptr;
+
+	DUMP_IND(sdump);
+	if (sdump->XMLDump) {
+		fprintf(sdump->trace, "<Replace atNode=\"");
+		scene_dump_vrml_id(sdump, com->node);
+		fprintf(sdump->trace, "\" atField=\"%s\"", field.name);
+		
+		if (toNode) {
+			fprintf(sdump->trace, " atIndexNode=\"");
+			scene_dump_vrml_id(sdump, toNode);
+			fprintf(sdump->trace, "\" atIndexField=\"%s\"", idxField.name);
+
+			field.fieldType = gf_sg_vrml_get_sf_type(field.fieldType);
+		}
+		if (com->ChildNodeTag) {
+			GF_FieldInfo cfield;
+			GF_Node *cnode;
+
+			if (com->ChildNodeTag>0) {
+				cnode = gf_node_new(com->in_scene, com->ChildNodeTag);
+			} else {
+				GF_Proto *proto = gf_sg_find_proto(com->in_scene, -com->ChildNodeTag , NULL);
+				if (!proto) return GF_SG_UNKNOWN_NODE;
+				cnode = gf_sg_proto_create_instance(com->in_scene, proto);
+			}
+			if (!cnode) return GF_SG_UNKNOWN_NODE;
+			gf_node_register(cnode, NULL);
+			gf_node_get_field(cnode, com->child_field, &cfield);
+			fprintf(sdump->trace, " atChildField=\"%s\"", cfield.name);
+			gf_node_unregister(cnode, NULL);
+
+			field.fieldType = cfield.fieldType;
+		}
+	
+		if (com->fromNodeID) {
+			target = gf_sg_find_node(com->in_scene, com->fromNodeID);
+			if (!target) return GF_NON_COMPLIANT_BITSTREAM;
+			e = gf_node_get_field(target, com->fromFieldIndex, &idxField);
+			
+			fprintf(sdump->trace, " fromNode=\"");
+			scene_dump_vrml_id(sdump, target);
+			fprintf(sdump->trace, "\" fromField=\"%s\">\n", idxField.name);
+			return GF_OK;
+		} else {
+			if (inf->pos>=-1) fprintf(sdump->trace, " position=\"%s\"", posname);
+		}
+	} else {
+		fprintf(sdump->trace, "XREPLACE ");
+		if (inf->pos==-1) fprintf(sdump->trace, "%s ", posname);
+		scene_dump_vrml_id(sdump, com->node);
+		fprintf(sdump->trace, ".%s", field.name);
+		if (toNode) {
+			fprintf(sdump->trace, "[");
+			scene_dump_vrml_id(sdump, toNode);
+			fprintf(sdump->trace, ".%s]", idxField.name);
+			field.fieldType = gf_sg_vrml_get_sf_type(field.fieldType);
+		}
+		else if (inf->pos!=-1) fprintf(sdump->trace, "[%d]", inf->pos);
+		if (com->ChildNodeTag) {
+			GF_FieldInfo cfield;
+			GF_Node *cnode;
+			if (com->ChildNodeTag>0) {
+				cnode = gf_node_new(com->in_scene, com->ChildNodeTag);
+			} else {
+				GF_Proto *proto = gf_sg_find_proto(com->in_scene, -com->ChildNodeTag , NULL);
+				if (!proto) return GF_SG_UNKNOWN_NODE;
+				cnode = gf_sg_proto_create_instance(com->in_scene, proto);
+			}
+			if (!cnode) return GF_SG_UNKNOWN_NODE;
+			gf_node_register(cnode, NULL);
+			gf_node_get_field(cnode, com->child_field, &cfield);
+			fprintf(sdump->trace, ".%s", cfield.name);
+			gf_node_unregister(cnode, NULL);
+			field.fieldType = cfield.fieldType;
+		}
+		fprintf(sdump->trace, " BY ");
+	}
+
+	if (field.fieldType == GF_SG_VRML_MFNODE) {
+		if (sdump->XMLDump) fprintf(sdump->trace, ">\n");
+		gf_dump_vrml_node(sdump, inf->new_node, 0, NULL);
+		fprintf(sdump->trace, (sdump->XMLDump) ? "</Replace>\n" : "\n");
+	} else {
+		gf_dump_vrml_simple_field(sdump, field);
+		fprintf(sdump->trace, sdump->XMLDump ? "/>\n" : "\n");
+	}
+	return GF_OK;
+}
+
+
 static GF_Err DumpRouteReplace(GF_SceneDumper *sdump, GF_Command *com)
 {
 	const char *name;
@@ -2592,6 +2721,7 @@ GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 inde
 		case GF_SG_FIELD_REPLACE: e = DumpFieldReplace(sdump, com); break;
 		case GF_SG_INDEXED_REPLACE: e = DumpIndexReplace(sdump, com); break;
 		case GF_SG_ROUTE_REPLACE: e = DumpRouteReplace(sdump, com); break;
+		case GF_SG_XREPLACE: e = DumpXReplace(sdump, com); break;			
 		case GF_SG_SCENE_REPLACE:
 			/*we don't support replace scene in conditional*/
 			assert(!sdump->current_com_list);
