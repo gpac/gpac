@@ -2149,6 +2149,9 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 		strcat(szFuncName, "(evt)");
 		utf8_script = szFuncName;
 	}
+
+	gf_sg_lock_javascript(1);
+
 	prev_event = JS_GetPrivate(sg->svg_js->js_ctx, sg->svg_js->event);
 	JS_SetPrivate(sg->svg_js->js_ctx, sg->svg_js->event, event);
 	ret = JS_EvaluateScript(sg->svg_js->js_ctx, sg->svg_js->global, utf8_script, strlen(utf8_script), 0, 0, &rval);
@@ -2167,6 +2170,7 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 		JS_GC(sg->svg_js->js_ctx);
 		sg->svg_js->force_gc = 0;
 	}
+	gf_sg_lock_javascript(0);
 
 	return (ret==JS_FALSE) ? 0 : 1;
 }
@@ -2293,13 +2297,15 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 		return 1;
 	}
 
+	gf_sg_lock_javascript(1);
+	
 	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, jsscript, sizeof(char)*fsize, 0, 0, &rval);
-
 
 	if (svg_js->force_gc) {
 		JS_GC(svg_js->js_ctx);
 		svg_js->force_gc = 0;
 	}
+	gf_sg_lock_javascript(0);
 
 	if (ret==JS_FALSE) success = 0;
 	gf_dom_listener_process_add(script->sgprivate->scenegraph);
@@ -2437,9 +2443,11 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	}
 #endif
 
+	gf_sg_lock_javascript(1);
 	prev_event = JS_GetPrivate(svg_js->js_ctx, svg_js->event);
 	/*break loops*/
 	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target)) {
+		gf_sg_lock_javascript(0);
 		return 0;
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
@@ -2488,6 +2496,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	}
 	svg_js->in_script = 0;
 
+	gf_sg_lock_javascript(0);
 
 #ifdef DUMP_DEF_AND_ROOT
 	if ((event->type==GF_EVENT_CLICK) || (event->type==GF_EVENT_MOUSEOVER)) {

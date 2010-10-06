@@ -320,6 +320,8 @@ void gf_node_del(GF_Node *node);
 GF_Node *gf_sg_new_base_node();
 
 
+void gf_sg_lock_javascript(Bool LockIt);
+
 #ifndef GPAC_DISABLE_VRML
 
 struct _route
