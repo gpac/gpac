@@ -412,31 +412,36 @@ function wmjs_output_trigger_callback_local(msg_out, wid_src, msg_in, wid_dst) {
 function wmjs_interface_invoke_callback_local(wid_dst, ifce_dst, is_reply) {
     log(l_deb, "wmjs_interface_invoke_callback_local '" + wid_dst.name + "' '" + ifce_dst.type + "' - reply " + is_reply);
     return function() {
-        var i, ai, param_count, msgHandler, msg_src, msg_dst, is_script;
+        var j, i, ai, param_count, msgHandler, msg_src, msg_dst, is_script;
         var args = new Array();
         is_script = 0;
         msgHandler = arguments[0];
         /*get msg from source interface (this object)*/
         msg_src = this.get_message(msgHandler.msgName);
-        msg_dst = ifce_dst.get_message(msgHandler.msgName);
-        log(l_deb, (is_reply ? 'invokeReply ' : 'invoke ') + msg_src.name + ' on ' + wid_dst.name + '.' + msg_dst.name);
-        if (msg_dst.has_script_input) is_script = 1;
-        param_count = msg_src.num_params;
-        ai = 1;
-        for (i = 0; i < param_count; i++) {
-            var param = msg_dst.get_param(i);
-            if (! param.is_input) continue;
-            if (is_script) {
-                args[ai - 1] = arguments[ai];
-            } else {
-                wid_dst.set_input(param, arguments[ai]);
+        // JCD: take into account message repetition, if any
+        for (j = 0; j < ifce_dest.num_messages; j++) {
+            msg_dst = ifce_dest.get_message(j);
+            if (msg_dst.name == msgHandler.nsgName) {
+                log(l_deb, (is_reply ? 'invokeReply ' : 'invoke ') + msg_src.name + ' on ' + wid_dst.name + '.' + msg_dst.name);
+                if (msg_dst.has_script_input) is_script = 1;
+                param_count = msg_src.num_params;
+                ai = 1;
+                for (i = 0; i < param_count; i++) {
+                    var param = msg_dst.get_param(i);
+                    if (! param.is_input) continue;
+                    if (is_script) {
+                        args[ai - 1] = arguments[ai];
+                    } else {
+                        wid_dst.set_input(param, arguments[ai]);
+                    }
+                    ai++;
+                }
+                if (msg_dst.has_input_action) {
+                    wid_dst.call_input_action(msg_dst);
+                } else if (is_script) {
+                    wid_dst.call_input_script(msg_dst, args);
+                }
             }
-            ai++;
-        }
-        if (msg_dst.has_input_action) {
-            wid_dst.call_input_action(msg_dst);
-        } else if (is_script) {
-            wid_dst.call_input_script(msg_dst, args);
         }
     };
 }
@@ -482,46 +487,48 @@ function wmjs_bind_interface_to_local(wid, ifce) {
         log(l_inf, 'Checking local widget ' + a_wid.name + ' for interface ' + ifce.type);
         // loop on the messages to check if they match
         for (j = 0; j < ifce.num_messages; j++) {
-            var msg = ifce.get_message(j);
-            //if (msg.is_input) continue;  // vire par JCD
+            var msg = ifce.get_message(j), l;
+            //if (msg.is_input) continue;  // JCD: remove test
             // does the other interface have this message
-            a_msg = a_ifce.get_message(msg.name);
-            if (!a_msg) {
-                // no, it does not have this message, so leave
-                log(l_inf, 'No local widget message for ' + msg.name);
-                continue;
-            }
-            // the messages have matching names, check direction
-            if (msg.is_input == a_msg.is_input) {
-                log(l_inf, 'Local widget message for ' + msg.name + ' is not in direction ' + (msg.is_input ? 'output' : 'input'));
-                continue;
-            }
-            // the messages have matching names and directions, check params
-            if (msg.num_params != a_msg.num_params) {
-                log(l_war, 'Local widget message ' + msg.name + ' does not have the same number of parameters');
-                continue;
-            }
-            /*check all params*/
-            nb_ok = 0;
-            for (k = 0; k < msg.num_params; k++) {
-                par = msg.get_param(k);
-                a_par = a_msg.get_param(par.name);
-                if (a_par != null && par.is_input != a_par.is_input) nb_ok ++;
-            }
-            if (nb_ok != msg.num_params) {
-                log(l_war, 'Local widget message ' + msg.name + ' does not have the same input/output parameters');
-                continue;
-            }
-            set_bind ++;
-            // the messages match
-            log(l_inf, 'Binding ' + wid.name + '.' + msg.name + ' to ' + a_wid.name + '.' + a_msg.name);
-            /*OK let's bind this action: we only need to assign the output trigger, the input action will be called from the other widget*/
-            if (msg.has_output_trigger) {
-                wid.bind_output_trigger(msg, wmjs_output_trigger_callback_local(msg, wid, a_msg, a_wid), a_wid);
-            }
-            /*OK let's bind this action: we only need to assign the output trigger, the input action will be called from the other widget*/
-            if (a_msg.has_output_trigger) {
-                a_wid.bind_output_trigger(a_msg, wmjs_output_trigger_callback_local(a_msg, a_wid, msg, wid), wid);
+            // JCD: remove next line and take repetition of messages into account
+            // a_msg = a_ifce.get_message(msg.name);
+            for (l = 0; l < a_ifce.num_messages; l++) {
+                a_msg = a_ifce.get_message(l);
+                alert(msg.name+" "+a_msg.name);
+                if (a_msg.name == msg.name) {
+                    // the messages have matching names, check direction
+                    if (msg.is_input == a_msg.is_input) {
+                        log(l_inf, 'Local widget message for ' + msg.name + ' is not in direction ' + (msg.is_input ? 'output' : 'input'));
+                        continue;
+                    }
+                    // the messages have matching names and directions, check params
+                    if (msg.num_params != a_msg.num_params) {
+                        log(l_war, 'Local widget message ' + msg.name + ' does not have the same number of parameters');
+                        continue;
+                    }
+                    /*check all params*/
+                    nb_ok = 0;
+                    for (k = 0; k < msg.num_params; k++) {
+                        par = msg.get_param(k);
+                        a_par = a_msg.get_param(par.name);
+                        if (a_par != null && par.is_input != a_par.is_input) nb_ok ++;
+                    }
+                    if (nb_ok != msg.num_params) {
+                        log(l_war, 'Local widget message ' + msg.name + ' does not have the same input/output parameters');
+                        continue;
+                    }
+                    set_bind ++;
+                    // the messages match
+                    log(l_inf, 'Binding ' + wid.name + '.' + msg.name + ' to ' + a_wid.name + '.' + a_msg.name);
+                    /*OK let's bind this action: we only need to assign the output trigger, the input action will be called from the other widget*/
+                    if (msg.has_output_trigger) {
+                        wid.bind_output_trigger(msg, wmjs_output_trigger_callback_local(msg, wid, a_msg, a_wid), a_wid);
+                    }
+                    /*OK let's bind this action: we only need to assign the output trigger, the input action will be called from the other widget*/
+                    if (a_msg.has_output_trigger) {
+                        a_wid.bind_output_trigger(a_msg, wmjs_output_trigger_callback_local(a_msg, a_wid, msg, wid), wid);
+                    }
+                }
             }
         }
         if (!set_bind) continue;
