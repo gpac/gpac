@@ -53,7 +53,8 @@ public:
     virtual NPT_Result OnAction(PLT_ActionReference &action, const PLT_HttpRequestContext& context);
 
 	/*these are called when event filtering is used (no JS)*/
-	void SetDuration(int duration, Bool can_seek);
+	void SetDuration(Double duration, Bool can_seek);
+	void SetTime(Double time);
 	void SetConnected(const char *url);
 
 protected:
@@ -92,6 +93,7 @@ private:
 	u32 m_volume;
 	Bool m_muted, m_l_muted, m_r_muted;
 	NPT_String m_ip_src;
+	Double m_Duration, m_Time;
 };
 
 #endif	/*_GPAC_MEDIA_RENDER_H_*/
