@@ -66,7 +66,8 @@ struct __tag_scene_engine
 
     char *dump_path;
 
-	Bool embed_resources;
+	Bool embed_resources;    
+    Bool dump_rap;
 };
 
 #ifndef GPAC_DISABLE_BIFS_ENC
@@ -392,7 +393,7 @@ start:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name)); 
 		e = GF_IO_ERR;
 		goto exit;
-	}
+	}    
 
 	if (commands && gf_list_count(commands)) {
 		e = gf_sm_dump_command_list(dumper, commands, 0, 0);
@@ -400,6 +401,22 @@ start:
 		e = gf_sm_dump_graph(dumper, 0, 0);
 	}
 	gf_sm_dumper_del(dumper);
+
+    if(seng->dump_rap){
+        GF_SceneDumper *dumper = NULL;
+                 
+        sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, "rap_", dump_name);
+
+        dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, ' ', GF_SM_DUMP_SVG);
+	    if (!dumper) {
+		    GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name)); 
+		    e = GF_IO_ERR;
+		    goto exit;
+        }
+        e = gf_sm_dump_graph(dumper, 0, 0);
+        gf_sm_dumper_del(dumper);
+    }
+
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot dump DIMS Commands\n")); 
 		goto exit;
@@ -597,6 +614,13 @@ GF_EXPORT
 GF_Err gf_seng_aggregate_context(GF_SceneEngine *seng, u16 ESID)
 {
 	return gf_sm_aggregate(seng->ctx, ESID);
+}
+
+GF_EXPORT
+GF_Err gf_seng_dump_rap_on(GF_SceneEngine *seng, Bool dump_rap)
+{
+    seng->dump_rap = dump_rap;
+    return 0;
 }
 
 GF_EXPORT
