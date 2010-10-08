@@ -37,7 +37,12 @@
 #ifndef GPAC_FIXED_POINT
 #error "OpenGL ES defined without fixed-point support - unsupported."
 #endif
+
+#ifdef ANDROID
+#include "GLES/gl.h"
+#else
 #include "GLES/egl.h"
+#endif
 
 #ifdef GPAC_HAS_GLU
 /*WARNING - this is NOT a standard include, GLU is not supported by GLES*/
