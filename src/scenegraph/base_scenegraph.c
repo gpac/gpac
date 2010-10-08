@@ -1570,7 +1570,11 @@ static void dirty_children(GF_Node *node)
 static void dirty_parents(GF_Node *node)
 {
 	Bool check_root = 1;
-	GF_ParentList *nlist = node->sgprivate->parents;
+	GF_ParentList *nlist;
+
+	if (!node) return;
+
+	nlist = node->sgprivate->parents;
 	while (nlist) {
 		GF_Node *p = nlist->node;
 		if (! (p->sgprivate->flags & GF_SG_CHILD_DIRTY)) {
