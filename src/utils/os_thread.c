@@ -205,7 +205,11 @@ void Thread_Stop(GF_Thread *t, Bool Destroy)
 		}
 #else
 		if (Destroy) {
+#ifdef ANDROID
+			pthread_kill(t->threadH, SIGQUIT);
+#else
 			pthread_cancel(t->threadH);
+#endif
 			t->threadH = 0;
 		} else {
 			/*gracefully wait for Run to finish*/

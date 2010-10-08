@@ -264,9 +264,6 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	gf_sg_reset(scene->graph);
 	scene->graph_attached = 0;
 	
-	gf_term_lock_compositor(scene->root_od->term, 0);
-
-
 	assert(!gf_list_count(scene->extra_scenes) );
 	/*reset statc ressource flag since we destroyed scene objects*/
 	scene->static_media_ressources = 0;
@@ -283,6 +280,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 
 	if (for_shutdown && scene->root_od && scene->root_od->mo) {
 	}
+	gf_term_lock_compositor(scene->root_od->term, 0);
 }
 
 static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref, Bool keep_fragment, GF_Scene *original_parent_scene)
@@ -1193,7 +1191,6 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	}
 }
 
-
 void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 {
 	u32 i;
@@ -1204,15 +1201,19 @@ void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 	to_restart = gf_list_new();
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-		if (odm->state) {
+		if (odm->state != GF_ODM_STATE_BLOCKED) {
 			gf_list_add(to_restart, odm);
-			gf_odm_stop(odm, 1);
+			if (odm->state == GF_ODM_STATE_PLAY) {
+				gf_odm_stop(odm, 1);
+			}
 		}
 	}
 
 	/*reset clock*/
-	if (scene->dyn_ck) gf_clock_reset(scene->dyn_ck);
-
+	if (scene->dyn_ck) {
+		gf_clock_reset(scene->dyn_ck);
+		scene->simulation_time = from_time/1000.0;
+	}
 	/*restart objects*/
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
@@ -1221,8 +1222,8 @@ void gf_scene_restart_dynamic(GF_Scene *scene, u64 from_time)
 	}
 	gf_list_del(to_restart);
 
-	/*also check nodes if no media control since they may be deactivated (end of stream)*/
-	if (!scene->root_od->media_ctrl) {
+	/*also check nodes since they may be deactivated (end of stream)*/
+	{
 		M_AudioClip *ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
 		M_MovieTexture *mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO");
 		M_AnimationStream *as = (M_AnimationStream *) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");

@@ -305,6 +305,8 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 
 static void gf_dm_disconnect(GF_DownloadSession *sess)
 {
+	if (sess->mx)
+		gf_mx_p(sess->mx);
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
 		SSL_shutdown(sess->ssl);
@@ -320,6 +322,8 @@ static void gf_dm_disconnect(GF_DownloadSession *sess)
 	sess->cache = NULL;
 	sess->status = GF_NETIO_DISCONNECTED;
 	if (sess->num_retry) sess->num_retry--;
+	if (sess->mx)
+		gf_mx_v(sess->mx);
 }
 
 void gf_dm_sess_del(GF_DownloadSession *sess)
