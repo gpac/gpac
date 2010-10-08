@@ -586,7 +586,7 @@ static void gjs_load(GF_GPACJSExt *gjs, GF_SceneGraph *scene, JSContext *c, JSOb
 		gjs->nb_users--;
 		if (!gjs->nb_users) {
 			gjs->evt_filter = 0;
-			if (gjs->evt) JS_RemoveRoot(c, &gjs->evt);
+			if (gjs->evt) gf_js_remove_root(c, &gjs->evt);
 		}
 		return;
 	}
@@ -603,7 +603,7 @@ static void gjs_load(GF_GPACJSExt *gjs, GF_SceneGraph *scene, JSContext *c, JSOb
 	_SETUP_CLASS(gjs->evtClass, "GPACEVT", JSCLASS_HAS_PRIVATE, gpacevt_getProperty, JS_PropertyStub, JS_FinalizeStub);
 	JS_InitClass(c, global, 0, &gjs->evtClass, 0, 0, gevtProps, gevtFuncs, 0, 0);
 	gjs->evt = JS_DefineObject(c, global, "event", &gjs->evtClass, 0, 0);
-	JS_AddRoot(c, &gjs->evt);
+	gf_js_add_root(c, &gjs->evt);
 	
 
 	_SETUP_CLASS(gjs->gpacClass, "GPAC", JSCLASS_HAS_PRIVATE, gpac_getProperty, gpac_setProperty, JS_FinalizeStub);
