@@ -1763,11 +1763,17 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 GF_EXPORT
 GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes)
 {
+	u64 prevsize, size;
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	return GF_NOT_SUPPORTED;
 #else
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 	if (movie->openMode != GF_ISOM_OPEN_READ) return GF_BAD_PARAM;
+
+	/*refresh size*/
+	size = gf_bs_get_size(movie->movieFileMap->bs);
+	prevsize = gf_bs_get_refreshed_size(movie->movieFileMap->bs);
+	if (prevsize==size) return GF_OK;
 
 	//ok parse root boxes
 	return gf_isom_parse_movie_boxes(movie, MissingBytes);

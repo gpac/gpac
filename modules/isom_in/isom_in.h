@@ -55,6 +55,8 @@ typedef struct
 
 	Bool no_service_desc;
 	u32 base_track_id;
+
+	Bool is_frag;
 } ISOMReader;
 
 
