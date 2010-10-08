@@ -188,6 +188,8 @@ char *gf_seng_get_base64_iod(GF_SceneEngine *seng);
 
 GF_Descriptor *gf_seng_get_iod(GF_SceneEngine *seng);
 
+GF_Err gf_seng_dump_rap_on(GF_SceneEngine *seng, Bool dump_rap);
+
 #endif /*GPAC_DISABLE_SENG*/
 
 
