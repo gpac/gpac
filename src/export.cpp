@@ -1099,6 +1099,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_iod) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_terminate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_seng_get_stream_carousel_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_seng_dump_rap_on) )
 #endif
 
 /*bifs.h exports*/
