@@ -559,7 +559,7 @@ u64 gf_f64_tell(FILE *fp)
 	return (u64) ftell(fp);
 #elif defined(WIN32)
 	return (u64) _ftelli64(fp);
-#elif defined(GPAC_CONFIG_LINUX)
+#elif defined(GPAC_CONFIG_LINUX) && !defined(ANDROID)
 	return (u64) ftello64(fp);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
 	return (u64) ftello(fp);
@@ -574,7 +574,7 @@ u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
 	return (u64) fseek(fp, (s32) offset, whence);
 #elif defined(WIN32)
 	return (u64) _fseeki64(fp, offset, whence);
-#elif defined(GPAC_CONFIG_LINUX)
+#elif defined(GPAC_CONFIG_LINUX) && !defined(ANDROID)
 	return fseeko64(fp, (off64_t) offset, whence);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
 	return fseeko(fp, (off_t) offset, whence);
@@ -587,7 +587,7 @@ FILE *gf_f64_open(const char *file_name, const char *mode)
 {
 #if defined(WIN32)
 	return fopen(file_name, mode);
-#elif defined(GPAC_CONFIG_LINUX)
+#elif defined(GPAC_CONFIG_LINUX) && !defined(ANDROID)
 	return fopen64(file_name, mode);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
 	return fopen(file_name, mode);
