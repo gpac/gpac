@@ -3835,7 +3835,7 @@ static void JS_PreDestroy(GF_Node *node)
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 #endif
 
-	if (priv->event) JS_RemoveRoot(priv->js_ctx, &priv->event);
+	if (priv->event) gf_js_remove_root(priv->js_ctx, &priv->event);
 
 	/*unprotect all cached objects from GC*/
 	JS_ReleaseRootObjects(priv);
@@ -3890,7 +3890,7 @@ static void JS_InitScriptFields(GF_ScriptPriv *priv, GF_Node *sc)
     }
 }
 
-static void flush_event_out(GF_Node *node, GF_ScriptPriv *priv)
+void gf_js_vrml_flush_event_out(GF_Node *node, GF_ScriptPriv *priv)
 {
 	u32 i;
 	GF_ScriptField *sf;
@@ -3968,7 +3968,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 
 	gf_sg_lock_javascript(0);
 
-	flush_event_out(node, priv);
+	gf_js_vrml_flush_event_out(node, priv);
 }
 
 
@@ -3999,7 +3999,7 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 	if (success && primary_script && JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval)) {
 		if (! JSVAL_IS_VOID(fval)) {
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
-			flush_event_out((GF_Node *)script, priv);
+			gf_js_vrml_flush_event_out((GF_Node *)script, priv);
 		}
 	}
 	gf_free(jsscript);
@@ -4119,7 +4119,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	dom_js_load(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj);
 	/*create event object, and remember it*/
 	priv->event = dom_js_define_event(priv->js_ctx, priv->js_obj);
-	JS_AddRoot(priv->js_ctx, &priv->event);
+	gf_js_add_root(priv->js_ctx, &priv->event);
 #endif
 
 	gf_sg_load_script_extensions(node->sgprivate->scenegraph, priv->js_ctx, priv->js_obj, 0);
@@ -4147,7 +4147,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 		if (JS_LookupProperty(priv->js_ctx, priv->js_obj, "initialize", &fval) && !JSVAL_IS_VOID(fval))
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 
-		flush_event_out(node, priv);
+		gf_js_vrml_flush_event_out(node, priv);
 	}
 
 #ifdef FORCE_GC

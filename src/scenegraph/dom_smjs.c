@@ -2397,8 +2397,8 @@ static void xml_http_finalize(JSContext *c, JSObject *obj)
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (ctx) {
-		xml_http_reset(ctx);
 		if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange));
+		xml_http_reset(ctx);
 		gf_free(ctx);
 	}
 }
@@ -2416,12 +2416,23 @@ static JSBool xml_http_constructor(JSContext *c, JSObject *obj, uintN argc, jsva
 
 static void xml_http_state_change(XMLHTTPContext *ctx)
 {
+	GF_SceneGraph *scene;
+	GF_Node *n;
 	jsval rval;
 	//GF_SceneGraph *scene = (GF_SceneGraph *) xml_get_scenegraph(ctx->c);
 	if (ctx->onreadystatechange)
 		JS_CallFunction(ctx->c, ctx->_this, ctx->onreadystatechange, 0, NULL, &rval);
 
-	/*todo - fire event*/
+	/*todo - fire XHR events*/
+
+	/*Flush BIFS eventOut events*/
+#ifndef GPAC_DISABLE_VRML
+	scene = JS_GetContextPrivate(ctx->c);
+	/*this is a scene, we look for a node (if scene is used, this is DOM-based scripting not VRML*/
+	if (scene->__reserved_null == 0) return;
+	n = JS_GetContextPrivate(ctx->c);
+	gf_js_vrml_flush_event_out(n, (GF_ScriptPriv *)n->sgprivate->UserPrivate);
+#endif
 }
 
 
@@ -2977,7 +2988,7 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		} else if (JSVAL_IS_OBJECT(*vp)) {
 			ctx->onreadystatechange = JS_ValueToFunction(c, *vp);
 		}
-		if (ctx->onreadystatechange) gf_js_add_root(c, &ctx->onreadystatechange);
+		if (ctx->onreadystatechange) gf_js_add_root(c, &(ctx->onreadystatechange));
 		return JS_TRUE;
 	}
 	return JS_TRUE;
