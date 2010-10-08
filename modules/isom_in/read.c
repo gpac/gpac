@@ -202,7 +202,6 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 	}
 
 	if (isor_is_local(szURL)) {
-		u64 missingBytes;
 //		if (!read->mov) read->mov = gf_isom_open(szURL, GF_ISOM_OPEN_READ, NULL);
 		GF_Err e = gf_isom_open_progressive(szURL, &read->mov, &read->missing_bytes);
 		if (!read->mov) {
@@ -607,7 +606,6 @@ GF_Err ISOR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **ou
 {
 	ISOMChannel *ch;
 	ISOMReader *read;
-	u64 mBytes;
 	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
 	/*cannot read native SL-PDUs*/
 	if (!out_sl_hdr) return GF_NOT_SUPPORTED;
@@ -702,7 +700,10 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_NOT_SUPPORTED;
 	}
 	if (com->command_type==GF_NET_SERVICE_CACHE_REFRESH) {
-		if (read->is_frag) gf_isom_refresh_fragmented(read->mov, &mBytes);
+		if (read->is_frag) {
+			u64 mBytes;
+			gf_isom_refresh_fragmented(read->mov, &mBytes);
+		}
 		return GF_OK;
 	}
 
