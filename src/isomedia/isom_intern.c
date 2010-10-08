@@ -128,6 +128,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 			mov->moov = (GF_MovieBox *)a;
 			/*set our pointer to the movie*/
 			mov->moov->mov = mov;
+			if (mov->moov->mvex) mov->moov->mvex->mov = mov;
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
 			totSize += a->size;
@@ -245,9 +246,9 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 		mov->interleavingTime = mov->moov->mvhd->timeScale;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-		/*not in open mode and successfully loaded the entire file, destroy all fragment
-		FIXME: we may need to keet it when trying http streaming of fragments...*/
-		if (!(mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) && mov->moov->mvex) {
+		/*in edit mode with successfully loaded fragments, delete all fragment signaling since
+		file is no longer fragmented*/
+		if ((mov->openMode > GF_ISOM_OPEN_READ) && mov->moov->mvex) {
 			gf_isom_box_del((GF_Box *)mov->moov->mvex);
 			mov->moov->mvex = NULL;
 		}

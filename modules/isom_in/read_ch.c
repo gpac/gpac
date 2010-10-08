@@ -170,7 +170,7 @@ fetch_next:
 				ch->last_state = GF_ISOM_INCOMPLETE_FILE;
 			}
 		} else if (!ch->sample_num || (ch->sample_num > gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
-			ch->last_state = GF_EOS;
+//			ch->last_state = GF_EOS;
 		}
 		return;
 	}

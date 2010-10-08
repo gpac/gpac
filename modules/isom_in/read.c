@@ -154,6 +154,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 		gf_term_on_connect(read->service, NULL, e);
 		return;
 	}
+	read->is_frag = gf_isom_is_fragmented(read->mov);
 	
 	/*ok let's go*/
 	read->time_scale = gf_isom_get_timescale(read->mov);
@@ -201,11 +202,15 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 	}
 
 	if (isor_is_local(szURL)) {
-		if (!read->mov) read->mov = gf_isom_open(szURL, GF_ISOM_OPEN_READ, NULL);
+		u64 missingBytes;
+//		if (!read->mov) read->mov = gf_isom_open(szURL, GF_ISOM_OPEN_READ, NULL);
+		GF_Err e = gf_isom_open_progressive(szURL, &read->mov, &read->missing_bytes);
 		if (!read->mov) {
 			gf_term_on_connect(serv, NULL, gf_isom_last_error(NULL));
 			return GF_OK;
 		}
+		read->is_frag = gf_isom_is_fragmented(read->mov);
+
 		read->time_scale = gf_isom_get_timescale(read->mov);
 		/*reply to user*/
 		gf_term_on_connect(serv, NULL, GF_OK);
@@ -602,6 +607,7 @@ GF_Err ISOR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **ou
 {
 	ISOMChannel *ch;
 	ISOMReader *read;
+	u64 mBytes;
 	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
 	/*cannot read native SL-PDUs*/
 	if (!out_sl_hdr) return GF_NOT_SUPPORTED;
@@ -694,6 +700,10 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_AUDIO) return GF_OK;
 		}
 		return GF_NOT_SUPPORTED;
+	}
+	if (com->command_type==GF_NET_SERVICE_CACHE_REFRESH) {
+		if (read->is_frag) gf_isom_refresh_fragmented(read->mov, &mBytes);
+		return GF_OK;
 	}
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
