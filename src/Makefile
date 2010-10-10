@@ -173,6 +173,9 @@ ifeq ($(CONFIG_DARWIN), yes)
 LD_SONAME=
 endif
 
+ifeq ($(CONFIG_SUNOS), yes)
+LD_SONAME="-Wl,-h,$(LIB)"
+endif
 
 SRCS := $(OBJS:.o=.c) 
 
