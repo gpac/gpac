@@ -48,26 +48,26 @@ tar:
 	( tar zcvf ~/$(FILE).tar.gz ../gpac --exclude CVS --exclude bin --exclude lib --exclude Obj --exclude temp --exclude amr_nb --exclude amr_nb_ft --exclude amr_wb_ft --exclude *.mak --exclude *.o --exclude *.~*)
 
 install:
-	install -d "$(DESTDIR)$(prefix)"
-	install -d "$(DESTDIR)$(prefix)/bin"
-	install $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box "$(DESTDIR)$(prefix)/bin"
 	$(MAKE) -C applications install
-	install -d "$(DESTDIR)$(moddir)"
-	install bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
+	$(INSTALL) -d "$(DESTDIR)$(moddir)"
+	$(INSTALL) bin/gcc/*.$(DYN_LIB_SUFFIX) "$(DESTDIR)$(moddir)"
 	rm -f $(DESTDIR)$(moddir)/libgpac.$(DYN_LIB_SUFFIX)
 	rm -f $(DESTDIR)$(moddir)/nposmozilla.$(DYN_LIB_SUFFIX)
 	$(MAKE) installdylib
-	install -d "$(DESTDIR)$(mandir)"
-	install -d "$(DESTDIR)$(mandir)/man1"
+	$(INSTALL) -d "$(DESTDIR)$(mandir)"
+	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1"
 	if [ -d  doc ] ; then \
-	install -pm 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ ; \
-	install -pm 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ ; \
-	install -pm 644 doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/ ; \
-	install -d "$(DESTDIR)$(prefix)/share/gpac" ; \
-	install -pm 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ;  \
-	install -d "$(DESTDIR)$(prefix)/share/gpac/gui" ; \
-	install -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
-	install -pm 644 gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
+	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ ; \
+	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ ; \
+	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/ ; \
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac" ; \
+	$(INSTALL) $(INSTFLAGS) -m 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ;  \
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui" ; \
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
+	$(INSTALL) $(INSTFLAGS) -m 644 gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
 	fi
 
 uninstall:
@@ -83,16 +83,16 @@ uninstall:
 
 installdylib:
 ifeq ($(CONFIG_WIN32),yes)
-	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(prefix)/$(libdir)
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.dll $(prefix)/$(libdir)
 else
 ifeq ($(DEBUGBUILD),no)
 	$(STRIP) bin/gcc/libgpac.$(DYN_LIB_SUFFIX)
 endif
 ifeq ($(CONFIG_DARWIN),yes)
-	install -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION).$(DYN_LIB_SUFFIX)
+	$(INSTALL) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(VERSION).$(DYN_LIB_SUFFIX)
 	ln -sf libgpac.$(VERSION).$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
 else
-	install $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION)
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/libgpac.$(DYN_LIB_SUFFIX) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX).$(VERSION)
 	ln -sf libgpac.$(DYN_LIB_SUFFIX).$(VERSION) $(DESTDIR)$(prefix)/$(libdir)/libgpac.$(DYN_LIB_SUFFIX)
 ifeq ($(DESTDIR)$(prefix),$(prefix))
 	ldconfig || true
@@ -102,18 +102,18 @@ endif
 
 install-lib:
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac"
-	install -pm 644 $(SRC_PATH)/include/gpac/*.h "$(DESTDIR)$(prefix)/include/gpac"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/include/gpac/*.h "$(DESTDIR)$(prefix)/include/gpac"
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/internal"
-	install -pm 644 $(SRC_PATH)/include/gpac/internal/*.h "$(DESTDIR)$(prefix)/include/gpac/internal"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/include/gpac/internal/*.h "$(DESTDIR)$(prefix)/include/gpac/internal"
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/modules"
-	install -pm 644 $(SRC_PATH)/include/gpac/modules/*.h "$(DESTDIR)$(prefix)/include/gpac/modules"
-	install -pm 644 $(SRC_PATH)/config.h "$(DESTDIR)$(prefix)/include/gpac/configuration.h"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/include/gpac/modules/*.h "$(DESTDIR)$(prefix)/include/gpac/modules"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/config.h "$(DESTDIR)$(prefix)/include/gpac/configuration.h"
 ifeq ($(GPAC_ENST), yes)
 	mkdir -p "$(DESTDIR)$(prefix)/include/gpac/enst"
-	install -pm 644 $(SRC_PATH)/include/gpac/enst/*.h "$(DESTDIR)$(prefix)/include/gpac/enst"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/include/gpac/enst/*.h "$(DESTDIR)$(prefix)/include/gpac/enst"
 endif
 	mkdir -p "$(DESTDIR)$(prefix)/$(libdir)"
-	install -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/$(libdir)"
+	$(INSTALL) $(INSTFLAGS) -m 644 "./bin/gcc/libgpac_static.a" "$(DESTDIR)$(prefix)/$(libdir)"
 	$(MAKE) installdylib
 
 uninstall-lib:

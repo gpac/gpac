@@ -43,6 +43,8 @@ ar="ar"
 ranlib="ranlib"
 make="make"
 strip="strip"
+install="${INSTALL:=install}"
+instflags="${INSTFLAGS:=-p}"
 cpu=`uname -m`
 debuginfo="no"
 sdl_path=""
@@ -139,6 +141,7 @@ cygwin="no"
 linux="no"
 freebsd="no"
 darwin="no"
+sunos="no"
 alt_macosx_dir=""
 Mac_Applications=""
 extralibs="-lm"
@@ -292,7 +295,15 @@ case "$cpu" in
   x86_64|amd64)
     cpu="x86"
     is_64="yes"
-    canon_arch="`cc -dumpmachine | sed -e 's,\([^-]*\)-.*,\1,'`"
+    case `uname -s` in
+    SunOS)
+      canon_arch=`isainfo -n`
+      ;;
+    *)
+      canon_arch="`$cc -dumpmachine | sed -e 's,\([^-]*\)-.*,\1,'`"
+      ;;
+    esac
+    
     if [ x"$canon_arch" = x"x86_64" -o x"$canon_arch" = x"amd64" ]; then
       if [ -z "`echo $CFLAGS | grep -- -m32`"  ]; then
         cpu="x86_64"
@@ -319,6 +330,14 @@ case "$cpu" in
   ;;
   sh4|sh4a|sh)
     cpu="sh4"
+  ;;
+  sun4u|sun4v)
+    cpu="sparc"
+    if [ -z "`echo $CFLAGS | grep -- -m32`" ]; then
+      is_64="yes"
+      PIC_CFLAGS="-fPIC -DPIC"
+      want_pic="yes"
+    fi
   ;;
   *)
     cpu="unknown"
@@ -385,7 +404,16 @@ fi ;;
 
 SunOS)
 make="gmake"
-LDFLAGS=""
+LDFLAGS="${opt#--extra-ldflags=}"
+instflags=""
+if test "$is_64" = "yes"; then
+  if test "$cpu" = "x86_64"; then
+    libdir=lib/amd64
+  elif test "$cpu" = "sparc"; then
+    libdir=lib/sparcv9
+  fi
+fi
+sunos="yes"
 need_inet_aton="yes"
 extralibs="$extralibs -lsocket -lnsl"
 ;;
@@ -922,6 +950,14 @@ fi
 
 #look for FFMPEG support
 
+if pkg-config --exists libavcodec libavformat libswscale 2> /dev/null  ; then
+
+  ffmpeg_cflags=`pkg-config --cflags libavcodec libavformat libswscale`
+  ffmpeg_lflags=`pkg-config --libs libavcodec libavformat libswscale`
+  has_ffmpeg="system"
+
+else
+
 cat > $TMPC << EOF
 #include <libavcodec/avcodec.h>
 int main( void ) { return 0; }
@@ -960,6 +996,8 @@ else
   elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
   has_ffmpeg="local"
   fi
+fi
+
 fi
 
 #look for vorbis support
@@ -1060,7 +1098,7 @@ fi
 has_wx="no"
 wx_too_old="no"
 
-if test "`which wx-config`" != "" ; then
+if type wx-config >/dev/null 2>&1; then
 
 wx_version=`wx-config --version | sed 's/[^0-9]//g'`
 
@@ -1588,7 +1626,7 @@ sdl_config="$sdl_path/sdl-config"
 sdl_static="yes"
 fi
 
-if test "`which $sdl_config`" != ""; then
+if type $sdl_config >/dev/null 2>&1; then
 
 cat > $TMPC << EOF
 #include <SDL.h>
@@ -1960,6 +1998,8 @@ echo "CC=$cc" >> config.mak
 echo "AR=$ar" >> config.mak
 echo "RANLIB=$ranlib" >> config.mak
 echo "STRIP=$strip" >> config.mak
+echo "INSTALL=$install" >> config.mak
+echo "INSTFLAGS=$instflags" >> config.mak
 echo "OPTFLAGS=$CFLAGS" >> config.mak
 echo "CPPFLAGS=$CPPFLAGS" >> config.mak
 echo "LDFLAGS=$LDFLAGS" >> config.mak
@@ -2026,6 +2066,10 @@ elif test "$darwin" = "yes" ; then
    echo "#define CONFIG_DARWIN_GL" >> $TMPH
   fi
   echo "mac_apps=$Mac_Applications" >> config.mak
+elif test "$sunos" = "yes" ; then
+  echo "CONFIG_SUNOS=yes" >> config.mak
+  echo "CONFIG_OS=CONFIG_SUNOS" >> config.mak
+  echo "#define GPAC_CONFIG_SUNOS" >> $TMPH
 else
   echo "CONFIG_OS=CONFIG_GEN" >> config.mak
   echo "#define GPAC_CONFIG_GENERIC" >> $TMPH
