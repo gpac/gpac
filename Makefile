@@ -36,7 +36,7 @@ distclean:
 	$(MAKE) -C src distclean
 	$(MAKE) -C applications distclean
 	$(MAKE) -C modules distclean
-	rm -f config.mak
+	rm -f config.mak config.h
 
 dep:	depend
 
