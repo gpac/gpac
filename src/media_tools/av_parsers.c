@@ -1655,7 +1655,7 @@ static const struct { u32 w, h; } avc_sar[14] =
 };
 
 /*ISO 14496-10 (N11084) E.1.2*/
-static avc_skip_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
+static void avc_skip_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 {
 	int i, cpb_cnt_minus1;
 
@@ -1673,6 +1673,8 @@ static avc_skip_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 	hrd->cpb_removal_delay_length_minus1 = gf_bs_read_int(bs, 5);	/*cpb_removal_delay_length_minus1*/
 	hrd->dpb_output_delay_length_minus1  = gf_bs_read_int(bs, 5);	/*dpb_output_delay_length_minus1*/
 	gf_bs_read_int(bs, 5);											/*time_offset_length*/
+
+	return;
 }
 
 s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
