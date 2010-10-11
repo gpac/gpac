@@ -1814,7 +1814,8 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 {
 	char data[188];
 	GF_M2TS_Dump dumper;
-	u32 size, fsize, fdone;
+	u32 size;
+	u64 fsize, fdone;
 	GF_M2TS_Demuxer *ts;
 
 	FILE *src = gf_f64_open(mpeg2ts_file, "rb");
@@ -1825,7 +1826,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 	ts->user = &dumper;
 	
 	gf_f64_seek(src, 0, SEEK_END);
-	fsize = (u32) gf_f64_tell(src);
+	fsize = gf_f64_tell(src);
 	gf_f64_seek(src, 0, SEEK_SET);
 	fdone = 0;
 
