@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 # GPAC MPEG-4 SDK configure script (c) 2003-2005 Jean Le Feuvre
-#  inspired from ffmpeg configure by Fabrice Bellard (c) 2000-2002
+#		inspired from ffmpeg configure by Fabrice Bellard (c) 2000-2002
 #set -v
 # set temporary file name
 if test ! -z "$TMPDIR" ; then
@@ -208,7 +208,7 @@ echo "  --enable-amr-nb-fixed    enable AMR NB fixed-point decoder"
 echo "  --enable-amr-nb          enable AMR NB library"
 echo "  --enable-amr-wb          enable AMR WB library"
 echo "  --enable-amr             enable both AMR NB and WB libraries"
-echo "  --static-mp4box          configure for static linking of MP4Box."
+echo "	--static-mp4box          configure for static linking of MP4Box."
 echo "  --enable-depth           enables depth handling in the compositor"
 
 echo ""
@@ -555,10 +555,10 @@ dlopen="yes"
 elif $cc -o $TMPE $TMPC -ldl > /dev/null 2>&1 ; then
 GPAC_SH_FLAGS="$GPAC_SH_FLAGS -ldl"
 else
-    if test "$win32" = "no"; then
+	if test "$win32" = "no"; then
     echo "error: dlopen not found on system"
     exit 1
-    fi
+	fi
 fi
 
 
@@ -1196,7 +1196,7 @@ fi
 
 # look for alsa
 cat > $TMPC << EOF
-#include <alsa/asoundlib.h>      
+#include <alsa/asoundlib.h>	      
 int main( void ) {
 }
 EOF
@@ -1660,8 +1660,8 @@ if test -z "$cross_prefix" ; then
 cat > $TMPC << EOF
 #include <inttypes.h>
 int main(int argc, char ** argv){
-    volatile uint32_t i=0x01234567;
-    return (*((uint8_t*)(&i))) == 0x67;
+	volatile uint32_t i=0x01234567;
+	return (*((uint8_t*)(&i))) == 0x67;
 }
 EOF
 
@@ -1869,7 +1869,7 @@ echo "ALSA Audio: $has_alsa"
 echo "Jack Audio: $has_jack"
 echo "PulseAudio Audio: $has_pulseaudio"
 echo "X11 Shared Memory support: $has_x11_shm (path: $X11_PATH)"
-echo "X11 XVideo support: $has_x11_xv"
+echo "X11 XVideo support: $has_x11_xv"	
 fi
 
 echo "SDL Support: $has_sdl"
@@ -2076,10 +2076,10 @@ else
 fi
 
 if test "$win32" = "no" ; then
-    echo "GPAC_SH_FLAGS=$GPAC_SH_FLAGS" >> config.mak
-    echo "DYN_LIB_SUFFIX=$DYN_LIB_SUFFIX" >> config.mak
+	echo "GPAC_SH_FLAGS=$GPAC_SH_FLAGS" >> config.mak
+	echo "DYN_LIB_SUFFIX=$DYN_LIB_SUFFIX" >> config.mak
 else
-    echo "DYN_LIB_SUFFIX=dll" >> config.mak
+	echo "DYN_LIB_SUFFIX=dll" >> config.mak
 fi
 
 
@@ -2087,7 +2087,7 @@ echo "INSTFLAGS=$INSTFLAGS" >> config.mak
 
 echo "CONFIG_JS=$has_js" >> config.mak
 if test "$has_js" = "no" ; then
-    has_js="no"
+	has_js="no"
 else
 echo "JS_FLAGS=$js_flags" >> config.mak
 echo "JS_LIBS=$js_lib" >> config.mak
@@ -2160,7 +2160,7 @@ if test "$has_sdl" = "yes" ; then
   echo "SDL_LIBS=$sdl_lib_flags" >> config.mak
 fi
 if test "$has_ft" = "no" ; then
-    has_ft="no"
+	has_ft="no"
 else
   echo "FT_CFLAGS=$ft_cflags" >> config.mak
   echo "FT_LIBS=$ft_lflags" >> config.mak
@@ -2319,16 +2319,16 @@ fi
 rm -f $TMPO $TMPC $TMPE $TMPS $TMPCPP $TMPH
 
 if [ ! -d "./bin" ]; then
-    mkdir ./bin
+	mkdir ./bin
 fi
 if [ ! -d "./bin/gcc" ]; then
-    mkdir ./bin/gcc
+	mkdir ./bin/gcc
 fi
 if [ ! -d "./bin/gcc/temp" ]; then
-    mkdir ./bin/gcc/temp
+	mkdir ./bin/gcc/temp
 fi
 
 echo '%.opic : %.c' >> config.mak
-echo '$(CC) $(CFLAGS) $(PIC_CFLAGS) -c $< -o $@' >> config.mak
+echo '	$(CC) $(CFLAGS) $(PIC_CFLAGS) -c $< -o $@' >> config.mak
 
 echo "Done - type 'make help' for make info, 'make' to build"
