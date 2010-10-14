@@ -94,7 +94,7 @@ enum
 	/*instructs the service to get the migration info - term->net only*/
 	GF_NET_SERVICE_MIGRATION_INFO,
 	/*When using DASH or playlists, indicates to the service that the underlying cache has changed term->net only*/
-	GF_NET_SERVICE_CACHE_REFRESH,
+	GF_NET_SERVICE_CACHE_REFRESH
 };
 
 /*channel command for all commands that don't need params:
