@@ -1,0 +1,19 @@
+#EXTM3U
+# Taken from http://developer.apple.com/iphone/library/documentation/networkinginternet/conceptual/streamingmediaguide/HTTPStreamingArchitecture/HTTPStreamingArchitecture.html
+#EXT-X-MEDIA-SEQUENCE:0
+
+#EXT-X-TARGETDURATION:10
+
+#EXTINF:10,
+
+http://media.example.com/segment1.ts
+
+#EXTINF:10,
+
+http://media.example.com/segment2.ts
+
+#EXTINF:10,
+
+http://media.example.com/segment3.ts
+
+#EXT-X-ENDLIST
