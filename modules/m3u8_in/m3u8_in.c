@@ -388,19 +388,19 @@ GF_InputService *M3U8_LoadDemux()
 	memset(plug, 0, sizeof(GF_InputService));
 	MYLOG(("Loading M3U8\n"));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC M3U8 Reader", "gpac distribution")
-	// Yes, we handle this
+	/* Yes, we handle this */
 	plug->CanHandleURL = M3U8_CanHandleURL;
-	// Start read m3u8, we do
+	/* Start read m3u8, we do */
 	plug->ConnectService = M3U8_ConnectService;
 	plug->CloseService = M3U8_CloseService;
 	
-	// Foward to service, none of our business
+	/* Foward to service, none of our business */
 	plug->GetServiceDescriptor = M3U8_GetServiceDesc;
 	plug->ConnectChannel = M3U8_ConnectChannel;
 	plug->DisconnectChannel = M3U8_DisconnectChannel;
 	plug->CanHandleURLInService = M3U8_CanHandleURLInService;
 	
-	// To check for seeking / getTrackInfo... GF_NET_SERVICE_INFO / 
+	/* To check for seeking / getTrackInfo... GF_NET_SERVICE_INFO */
 	plug->ServiceCommand = M3U8_ServiceCommand;
 
 	reader = gf_malloc(sizeof(M3U8Reader));

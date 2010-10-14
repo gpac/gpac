@@ -1,4 +1,5 @@
 #include "playlist.h"
+#include "m3u8_parser.h"
 
 const char * files[] = {
 	"tests/spec_simple_playlist.m3u8",
