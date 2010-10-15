@@ -401,7 +401,9 @@ static u32 get_light_type(GF_Node *n)
 {
 	switch (gf_node_get_tag(n)) {
 	case TAG_MPEG4_DirectionalLight: 
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_DirectionalLight: 
+#endif
 		return 2;
 	case TAG_MPEG4_PointLight:
 	case TAG_MPEG4_SpotLight:
@@ -435,7 +437,11 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 			group->flags &= ~(GROUP_HAS_SENSORS | GROUP_HAS_LIGHTS);
 
 			/*special case for anchor which is a parent node acting as a sensor*/
-			if ((ntag==TAG_MPEG4_Anchor) || (ntag==TAG_X3D_Anchor)) group->flags |= GROUP_HAS_SENSORS;
+			if ((ntag==TAG_MPEG4_Anchor)
+#ifndef GPAC_DISABLE_X3D
+				|| (ntag==TAG_X3D_Anchor)
+#endif
+				) group->flags |= GROUP_HAS_SENSORS;
 
 			l = ((GF_ParentNode*)node)->children;
 			while (l) {

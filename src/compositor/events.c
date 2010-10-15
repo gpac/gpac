@@ -362,8 +362,6 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 		load_text_node(compositor, 0);
 		return;
 	} else if (event->type==GF_EVENT_TEXTINPUT) {
-		GF_DOM_Event evt;
-		GF_Node *target;
 		switch (event->character.unicode_char) {
 		case '\r':
 		case '\n':
@@ -371,6 +369,10 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 		case '\b':
 			return;
 		default:
+		{
+#ifndef GPAC_DISABLE_SVG
+			GF_DOM_Event evt;
+			GF_Node *target;
 			/*send text input event*/
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.key_flags = event->key.flags;
@@ -393,7 +395,9 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 			compositor->sel_buffer_len++;
 			compositor->caret_pos++;
 			compositor->sel_buffer[compositor->sel_buffer_len] = 0;
+#endif
 			break;
+		}
 		}
 	} else if (event->type==GF_EVENT_KEYDOWN) {
 		u32 prev_caret = compositor->caret_pos;
@@ -1735,9 +1739,11 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 				if (0&&compositor->focus_text_type) {
 					exec_text_input(compositor, NULL);
 					ret = 1;
+#ifndef GPAC_DISABLE_VRML
 				} else if (compositor->keynav_node && ((M_KeyNavigator*)compositor->keynav_node)->select) {
 					gf_sc_change_key_navigator(compositor, ((M_KeyNavigator*)compositor->keynav_node)->select);
 					ret=1;
+#endif
 				}
 				break;
 			case GF_KEY_TAB:
@@ -1751,12 +1757,14 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 					ret += gf_sc_svg_focus_navigate(compositor, ev->key.key_code);
 				} else if (compositor->keynav_node) {
 					GF_Node *next_nav = NULL;
+#ifndef GPAC_DISABLE_VRML
 					switch (ev->key.key_code) {
 					case GF_KEY_UP: next_nav = ((M_KeyNavigator*)compositor->keynav_node)->up; break;
 					case GF_KEY_DOWN: next_nav = ((M_KeyNavigator*)compositor->keynav_node)->down; break;
 					case GF_KEY_LEFT: next_nav = ((M_KeyNavigator*)compositor->keynav_node)->left; break;
 					case GF_KEY_RIGHT: next_nav = ((M_KeyNavigator*)compositor->keynav_node)->right; break;
 					}
+#endif
 					if (next_nav) {
 						gf_sc_change_key_navigator(compositor, next_nav);
 						ret=1;
@@ -1806,6 +1814,7 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	return ret;
 }
 
+#ifndef GPAC_DISABLE_VRML
 void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n)
 {
 	GF_Node *par;
@@ -1830,6 +1839,7 @@ void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n)
 
 	gf_sc_focus_switch_ring_ex(sr, 0, par, 1);
 }
+#endif
 
 void gf_sc_key_navigator_del(GF_Compositor *sr, GF_Node *n)
 {

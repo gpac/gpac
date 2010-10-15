@@ -355,10 +355,12 @@ static void TraverseLOD(GF_Node *node, void *rs, Bool is_destroy)
 		children = ((M_LOD *) node)->level;
 		ranges = &((M_LOD *) node)->range;
 		center = ((M_LOD *) node)->center;
+#ifndef GPAC_DISABLE_X3D
 	} else {
 		children = ((X_LOD *) node)->children;
 		ranges = &((X_LOD *) node)->range;
 		center = ((X_LOD *) node)->center;
+#endif
 	}
 
 	if (!children) return;

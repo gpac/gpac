@@ -56,8 +56,9 @@ Double gf_scene_get_time(void *_is)
 #endif
 }
 
+#ifndef GPAC_DISABLE_VRML
 void gf_storage_save(M_Storage *storage);
-
+#endif
 
 void gf_scene_sample_time(GF_Scene *scene)
 {
@@ -159,8 +160,10 @@ void gf_scene_del(GF_Scene *scene)
 		gf_free(obj);
 	}
 	gf_list_del(scene->scene_objects);
+#ifndef GPAC_DISABLE_VRML
 	gf_list_del(scene->storages);
 	gf_list_del(scene->keynavigators);
+#endif
 
 	if (scene->audio_url.url) gf_free(scene->audio_url.url);
 	if (scene->visual_url.url) gf_free(scene->visual_url.url);

@@ -387,9 +387,11 @@ Bool gf_isom_has_movie(GF_ISOFile *file)
 	return 0;
 }
 
+#ifndef GPAC_DISABLE_ISOM
 GF_EXPORT
 Bool gf_isom_has_segment(GF_ISOFile *file, u32 *brand, u32 *version)
 {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
     u32 i;
     GF_Box *a;
     i = 0;
@@ -401,8 +403,10 @@ Bool gf_isom_has_segment(GF_ISOFile *file, u32 *brand, u32 *version)
             return 1;
         }
     }
+#endif
 	return 0;
 }
+#endif
 
 //return the timescale of the movie, 0 if error
 GF_EXPORT

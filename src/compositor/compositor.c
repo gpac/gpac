@@ -1379,12 +1379,15 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 			GF_TimeNode *tn = (GF_TimeNode *)gf_list_get(compositor->time_nodes, i);
 			if (tn->needs_unregister) continue;
 			switch (gf_node_get_tag((GF_Node *)tn->udta)) {
+#ifndef GPAC_DISABLE_VRML
 			case TAG_MPEG4_TimeSensor: 
+#endif
 #ifndef GPAC_DISABLE_X3D
 			case TAG_X3D_TimeSensor: 
 #endif
 				return 0;
 
+#ifndef GPAC_DISABLE_VRML
 			case TAG_MPEG4_MovieTexture: 
 #ifndef GPAC_DISABLE_X3D
 			case TAG_X3D_MovieTexture: 
@@ -1400,6 +1403,7 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 			case TAG_MPEG4_AnimationStream: 
 				if (((M_AnimationStream*)tn->udta)->loop) return 0;
 				break;
+#endif
 			}
 		}
 	}
@@ -1769,7 +1773,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	u32 in_time, end_time, i, count, sim_time;
 	Bool frame_drawn;
 #ifndef GPAC_DISABLE_LOG
-	s32 event_time, route_time, smil_timing_time, time_node_time, texture_time, traverse_time, flush_time;
+	s32 event_time, route_time, smil_timing_time=0, time_node_time, texture_time, traverse_time, flush_time;
 #endif
 
 	/*lock compositor for the whole cycle*/
@@ -1818,7 +1822,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_LOG
 	event_time = gf_sys_clock() - event_time;
 #endif
-#else
+#elif !defined(GPAC_DISABLE_LOG)
 	event_time = 0;
 #endif
 	
