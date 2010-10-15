@@ -1866,7 +1866,9 @@ void gf_term_load_shortcuts(GF_Terminal *term)
 				term->shortcuts[k].mods |= GF_KEY_MOD_ALT;
 			}
 		}
+#ifndef GPAC_DISABLE_SVG
 		term->shortcuts[k].code = gf_dom_get_key_type((char *)val);
+#endif
 		if (!term->shortcuts[k].code) continue;
 
 		if (!stricmp(name, "Play") || !stricmp(name, "Pause")) term->shortcuts[k].action = GF_ACTION_PLAY;

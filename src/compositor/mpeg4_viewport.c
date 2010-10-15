@@ -381,8 +381,10 @@ static void TraverseViewpoint(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx_decompose(&mx, &pos, &v1, &ori, &v2);
 	/*get center*/
 	v1.x = v1.y = v1.z = 0;
+#ifndef GPAC_DISABLE_X3D
 	/*X3D specifies examine center*/
 	if (gf_node_get_tag(node)==TAG_X3D_Viewpoint) v1 = ((X_Viewpoint *)node)->centerOfRotation;
+#endif
 	gf_mx_apply_vec(&st->world_view_mx, &v1);
 	/*set frustrum param - animate only if not bound last frame and jump false*/
 	visual_3d_viewpoint_change(tr_state, node, (!st->prev_was_bound && !vp->jump) ? 1 : 0, vp->fieldOfView, pos, ori, v1);

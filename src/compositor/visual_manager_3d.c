@@ -477,7 +477,9 @@ static GFINLINE Bool visual_3d_has_alpha(GF_TraverseState *tr_state, GF_Node *ge
 				if (((M_Material2D *)mat)->filled && ((M_Material2D *)mat)->transparency) return 1;
 				break;
 			case TAG_MPEG4_Material:
+#ifndef GPAC_DISABLE_X3D
 			case TAG_X3D_Material:
+#endif
 				is_mat3D = 1;
 				if ( ((M_Material *)mat)->transparency) return 1;
 				break;
@@ -1196,7 +1198,9 @@ void visual_3d_vrml_drawable_collide(GF_Node *node, GF_TraverseState *tr_state)
 	/*no collision with text (vrml)*/
 	switch (gf_node_get_tag(node)) {
 	case TAG_MPEG4_Text:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Text:
+#endif
 		return;
 	}
 #endif
@@ -1431,10 +1435,12 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 	}
 
 #ifndef GPAC_DISABLE_VRML
+#ifndef GPAC_DISABLE_X3D
 	if (gf_node_get_tag(tr_state->appear)==TAG_X3D_Appearance) {
 		X_FillProperties *fp = (X_FillProperties *) ((X_Appearance*)tr_state->appear)->fillProperties;
 		if (fp && !fp->filled) return 0;
 	}
+#endif
 
 	__mat = ((M_Appearance *)tr_state->appear)->material;
 	if (!__mat) {
@@ -1445,7 +1451,9 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 	
 	switch (gf_node_get_tag((GF_Node *)__mat)) {
 	case TAG_MPEG4_Material:
+#ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_Material:
+#endif
 	{
 		SFColor diff, spec, emi;
 		Fixed diff_a, spec_a, emi_a;
@@ -1630,7 +1638,7 @@ void visual_3d_draw(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		visual_3d_mesh_paint(tr_state, mesh);
 		visual_3d_disable_texture(tr_state);
 	
-#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_DISABLE_X3D)
 		if (tr_state->appear && gf_node_get_tag(tr_state->appear)==TAG_X3D_Appearance) {
 			X_Appearance *ap = (X_Appearance *)tr_state->appear;
 			X_FillProperties *fp = ap->fillProperties ? (X_FillProperties *) ap->fillProperties : NULL;

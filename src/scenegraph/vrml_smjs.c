@@ -4211,13 +4211,16 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 		{
 
 			if (gf_list_del_item(sg->objects, node->sgprivate->interact->js_binding->node)>=0) {
+#ifndef GPAC_DISABLE_SVG
 				JSBool ret = gf_js_remove_root(sg->svg_js->js_ctx, &(node->sgprivate->interact->js_binding->node));
 				if (sg->svg_js->in_script) 
 					sg->svg_js->force_gc = 1;
-				else {
+				else
+				{
 					JS_GC(sg->svg_js->js_ctx);
 					JS_ClearNewbornRoots(sg->svg_js->js_ctx);
 				}
+#endif
 			}
 			return;
 		}

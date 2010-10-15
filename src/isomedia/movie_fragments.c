@@ -768,7 +768,7 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *the_file, u32 TrackID, u32 Code, 
 	return GF_NOT_SUPPORTED;
 }
 
-GF_Err gf_isom_start_fragment(GF_ISOFile *the_file)
+GF_Err gf_isom_start_fragment(GF_ISOFile *the_file, u32 free_data_insert_size)
 {
 	return GF_NOT_SUPPORTED;
 }

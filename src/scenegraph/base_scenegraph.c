@@ -464,6 +464,7 @@ restart:
 	par = sg;
 	while (par->parent_scene) par = par->parent_scene;
 
+#ifndef GPAC_DISABLE_SVG
 	if (par != sg) {
 		u32 count, i;
 		count = gf_list_count(par->smil_timed_elements);
@@ -476,6 +477,7 @@ restart:
 			}
 		}
 	}
+#endif
 
 #ifdef GF_SELF_REPLACE_ENABLE
 	sg->graph_has_been_reset = 1;
@@ -673,10 +675,12 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 			}
 		}
 #endif
-			
+
+#ifndef GPAC_DISABLE_SVG
 		if (pSG->use_stack && (gf_list_del_item(pSG->use_stack, pNode)>=0)) {
 			pSG->abort_bubbling = 1;
 		}
+#endif
 
 	}
 	/*delete the node*/

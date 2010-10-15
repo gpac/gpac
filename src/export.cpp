@@ -271,9 +271,12 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_get_line) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_serialize) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_dom_node_del) )
+
+#ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_get_key_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_get_key_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dom_event_get_name) )
+#endif
 
 #ifdef GPAC_FIXED_POINT
 #pragma comment (linker, EXPORT_SYMBOL(gf_invfix) )
