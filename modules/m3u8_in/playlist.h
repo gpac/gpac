@@ -60,6 +60,7 @@
  * Basic Stream structure
  */
 typedef struct s_stream{
+    u8 i;
 } Stream;
 
 /**
