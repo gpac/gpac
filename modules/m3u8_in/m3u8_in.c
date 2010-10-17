@@ -23,6 +23,10 @@
  *
  */
 
+#include <gpac/modules/service.h>
+#include <gpac/internal/terminal_dev.h>
+#include <gpac/thread.h>
+#include <gpac/network.h>
 #include "m3u8_in.h"
 #include <gpac/list.h>
 #include "m3u8_parser.h"
@@ -39,6 +43,13 @@ typedef struct s_M3UREADER
 	char needs_connection;
 	VariantPlaylist * playlist;
 	u32 preferredBitrate;
+
+    PlaylistElement *ple;
+
+    /* Service really managing the media */
+    GF_InputService *media_ifce;
+    GF_Thread *dl_thread;
+
 } M3U8Reader;
 
 
@@ -120,50 +131,75 @@ end:
 
 void M3U8_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
-	GF_Err e;
 	M3U8Reader *read = (M3U8Reader *) cbk;
 	MYLOG(("***** M3U8_NetIO %d\n", param->msg_type));
 	gf_term_download_update_stats(read->dnload);
 	
-	if ( param->msg_type==GF_NETIO_DATA_TRANSFERED ) {
-		gf_term_download_update_stats(read->dnload);
-		e = M3U8_parseM3U8File( read );
-		MYLOG(("***** M3U8_NetIO DONE %d\n", param->msg_type));
-		/*gf_term_download_del(read->dnload);
-		MYLOG(("***** M3U8_NetIO deleted %d\n", param->msg_type));*/
-		if (e){
-				MYLOG(("***** Error while reading playlist %d\n", e));
-		} else {
-			PlaylistElement *ple = findNextPlaylistElementToPlay(read);
-		}
-		return;
-	}
-	if (param->error && read->needs_connection) {
-		gf_term_on_connect(read->service, NULL, param->error);
-	}
-	/*we never receive data from here since the downloader is not threaded*/
 }
-
-
 
 void M3U8_DownloadFile(GF_InputService *plug, const char *url)
 {
+    GF_Err e;
 	M3U8Reader *read = (M3U8Reader*) plug->priv;
     MYLOG(("***** M3U8_DownloadFile %s\n", url));
-	read->dnload = gf_term_download_new(read->service, url, 0, M3U8_NetIO, read);
+	read->dnload = gf_term_download_new(read->service, url, GF_NETIO_SESSION_NOT_THREADED, M3U8_NetIO, read);
 	if (!read->dnload) {
 		MYLOG(("***** M3U8_DownloadFile FAILED\n"));
 		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
 	}
-	/*service confirm is done once fetched, but start the demuxer thread*/
-	/*gf_th_run(read->demuxer, OggDemux, read);*/
+    /* do the actual download (because not threaded )*/
+	e = gf_dm_sess_process(read->dnload);
+	if (e!=GF_OK) {
+        gf_term_on_connect(read->service, NULL, GF_IO_ERR);
+    }
 }
 
+static u32 download_media_files(void *par) 
+{
+    GF_Err e;
+	M3U8Reader *read = (M3U8Reader*) par;
+
+        /*
+    while (1) {
+        period = gf_list_get(mpdin->mpd.periods, mpdin->active_period_index);
+        rep = &period->representations[mpdin->active_rep_index];
+        new_seg_url = rep->segment_urls[mpdin->active_segment_index];
+        if (rep->default_base_url) {
+            new_base_seg_url = gf_url_concatenate(rep->default_base_url, new_seg_url);
+        } else {
+            new_base_seg_url = gf_strdup(new_seg_url);
+        }
+
+        gf_dm_setup_from_url(read->dnload, new_base_seg_url);
+        gf_dm_sess_dash_reset(read->dnload);
+        fprintf(stderr, "Downloading new media file: %s\n", new_base_seg_url);
+        gf_free(new_base_seg_url);
+
+        e = gf_dm_sess_process(read->dnload);     
+        if (e == GF_OK) {
+			//signal the slave service the segment has been downloaded
+			if (read->dnload) {
+			}
+//            if (mpdin->active_segment_index<10) {
+            if (mpdin->active_segment_index<(rep->nb_segments-1)) {
+                mpdin->active_segment_index++;
+            } else {
+                break;
+            }
+        } else {
+            break;
+        }
+        gf_sleep(1000);
+    }
+    */
+    gf_sleep(1000);
+    return 0;
+}
 
 static GF_Err M3U8_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	char szURL[2048];
-	GF_Err reply;
+	GF_Err e;
 	FILE * f;
 	M3U8Reader *read = plug->priv;
 	MYLOG(("***** M3U8_ConnectService %s\n", url));
@@ -187,17 +223,67 @@ static GF_Err M3U8_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 		MYLOG(("***** M3U8_ConnectService Remote %s\n", url));
 		read->needs_connection = 1;
 		M3U8_DownloadFile(plug, szURL);
-		return GF_OK;
 	} else {
 		MYLOG(("***** M3U8_ConnectService local %s\n", url));
 		f = fopen(szURL, "rb");
 		if (!f) {
-			reply = GF_URL_ERROR;
+			e = GF_URL_ERROR;
 		} else {
-			reply = GF_OK;
+			e = GF_OK;
 		}
 	}
-	gf_term_on_connect(serv, NULL, reply);
+    e = M3U8_parseM3U8File( read );
+    if (e){
+	    MYLOG(("***** Error while reading playlist %d\n", e));
+        gf_term_on_connect(read->service, NULL, e);
+        return GF_OK;
+    } else {
+	    read->ple = findNextPlaylistElementToPlay(read);
+
+    	if (read->dnload) gf_term_download_del(read->dnload);
+        read->dnload = gf_term_download_new(read->service, read->ple->url, GF_NETIO_SESSION_NOT_THREADED, 
+                                            M3U8_NetIO, read);
+        if (!read->dnload) {
+            gf_term_on_connect(read->service, NULL, GF_BAD_PARAM);
+            return GF_OK;
+        } else {
+            e = gf_dm_sess_process(read->dnload);
+            if (e!=GF_OK) {
+                gf_term_on_connect(read->service, NULL, e);
+                return GF_OK;
+            } else {
+                const char *local_url = gf_dm_sess_get_cache_name(read->dnload);
+                /*load from mime type*/	            
+                const char *sPlug = gf_cfg_get_key(read->service->term->user->config, "MimeTypes", "video/mp2t");
+                if (sPlug) sPlug = strrchr(sPlug, '"');
+                if (sPlug) {
+	                sPlug += 2;
+	                read->media_ifce = (GF_InputService *) gf_modules_load_interface_by_name(read->service->term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
+                    if (read->media_ifce) {
+#if 1
+						gf_th_run(read->dl_thread, download_media_files, read);
+#else                            
+                        e = download_media_files(read);
+                        if (e) {
+                            gf_term_on_connect(read->service, NULL, GF_BAD_PARAM);
+                            return GF_OK;
+                        }
+#endif
+                        /* Forward the ConnectService message to the appropriate service for this type of media */
+                        read->media_ifce->ConnectService(read->media_ifce, serv, local_url);
+                    } else {
+                        gf_term_on_connect(read->service, NULL, GF_BAD_PARAM);
+                        return GF_OK;
+                    }
+                } else {
+                    gf_term_on_connect(read->service, NULL, GF_BAD_PARAM);
+                    return GF_OK;
+                }
+		    }
+        }
+    }	
+
+    gf_term_on_connect(serv, NULL, e);
 	return GF_OK;
 }
 
@@ -207,6 +293,9 @@ static GF_Err M3U8_CloseService(GF_InputService *plug)
 	MYLOG(("***** M3U8_CloseService %p\n", plug->priv));
 	if (read == NULL)
 		return GF_OK;
+	if (read->media_ifce) {
+        read->media_ifce->CloseService(read->media_ifce);
+    }
 	MYLOG(("***** M3U8_CloseService2\n"));
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	if (read->dnload){
@@ -220,162 +309,148 @@ static GF_Err M3U8_CloseService(GF_InputService *plug)
 
 static Bool M3U8_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
-	/*char szURL[2048], *sep;*/
-	/*M3U8Reader *read = (M3U8Reader *)plug->priv;*/
 	MYLOG(("***** M3U8_CanHandleURLInService %s\n", url));
-	/*const char *this_url = gf_term_get_service_url(read->service);*/
 	return 0;
 }
 
 static GF_Descriptor *M3U8_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	/*u32 i;
-	GF_ObjectDescriptor *od;*/
-	MYLOG(("***** M3U8_CanHandleURLInService %s\n", sub_url));
-	/*OGGStream *st;
-	OGGReader *read = plug->priv;*/
-	/*since we don't handle multitrack in ogg yes, we don't need to check sub_url, only use expected type*/
-	
-	/*single object*/
-	/*
-	if ((expect_type==GF_MEDIA_OBJECT_AUDIO) || (expect_type==GF_MEDIA_OBJECT_VIDEO)) {
-		if ((expect_type==GF_MEDIA_OBJECT_AUDIO) && !read->has_audio) return NULL;
-		if ((expect_type==GF_MEDIA_OBJECT_VIDEO) && !read->has_video) return NULL;
-		i=0;
-		while ((st = gf_list_enum(read->streams, &i))) {
-			if ((expect_type==GF_MEDIA_OBJECT_AUDIO) && (st->info.streamType!=GF_STREAM_AUDIO)) continue;
-			if ((expect_type==GF_MEDIA_OBJECT_VIDEO) && (st->info.streamType!=GF_STREAM_VISUAL)) continue;
-			
-			od = OGG_GetOD(st);
-			read->is_single_media = 1;
-			return (GF_Descriptor *) od;
-		}
-		//not supported yet - we need to know what's in the ogg stream for that
-	}
-	read->is_inline = 1;*/
-	return NULL;
+	M3U8Reader *read = plug->priv;
+	MYLOG(("***** M3U8_GetServiceDesc %s\n", sub_url));
+    if (read->media_ifce) {
+        return read->media_ifce->GetServiceDescriptor(read->media_ifce, expect_type, sub_url);
+    } else {
+        return NULL;
+    }
 }
 
 static GF_Err M3U8_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
 {
-	/*u32 ES_ID, i;*/
-	GF_Err e = GF_OK;
 	M3U8Reader *read = plug->priv;
-	/*OGGStream *st;
-	
-	
-	e = GF_STREAM_NOT_FOUND;
-	if (strstr(url, "ES_ID")) {
-		sscanf(url, "ES_ID=%d", &ES_ID);
-	}*/
-	/*URL setup*/
-	/*
-		else if (!read->es_ch && OGG_CanHandleURL(plug, url)) ES_ID = 3;
-	i=0;
-	while ((st = gf_list_enum(read->streams, &i))) {
-		if (st->ESID==ES_ID) {
-			st->ch = channel;
-			e = GF_OK;
-			break;
-		}
-	}*/
-	gf_term_on_connect(read->service, channel, e);
-	return e;
+	MYLOG(("***** M3U8_ConnectChannel\n"));
+	if (!plug || !plug->priv || !read->media_ifce) return GF_SERVICE_ERROR;
+    return read->media_ifce->ConnectChannel(read->media_ifce, channel, url, upstream);
 }
 
 static GF_Err M3U8_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
-	GF_Err e = GF_OK;
 	M3U8Reader *read = plug->priv;
-	/*
-	
-	OGGStream *st;
-	u32 i=0;
-	
-	
-	e = GF_STREAM_NOT_FOUND;
-	while ((st = gf_list_enum(read->streams, &i))) {
-		if (st->ch==channel) {
-			st->ch = NULL;
-			e = GF_OK;
-			break;
-		}
-	}*/
-	gf_term_on_disconnect(read->service, channel, e);
-	return e;
+	MYLOG(("***** M3U8_DisconnectChannel\n"));
+	if (!plug || !plug->priv || !read->media_ifce) return GF_SERVICE_ERROR;
+    return read->media_ifce->DisconnectChannel(read->media_ifce, channel);
 }
+
+static GF_Err M3U8_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
+{
+	M3U8Reader *read = plug->priv;
+	MYLOG(("***** M3U8_ChannelGetSLP\n"));
+	if (!plug || !plug->priv || !read->media_ifce) return GF_SERVICE_ERROR;
+    return read->media_ifce->ChannelGetSLP(read->media_ifce, channel, out_data_ptr, out_data_size, out_sl_hdr, sl_compressed, out_reception_status, is_new_data); 
+}
+
+static GF_Err M3U8_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
+{
+	M3U8Reader *read = plug->priv;
+	MYLOG(("***** M3U8_ChannelReleaseSLP\n"));
+	if (!plug || !plug->priv || !read->media_ifce) return GF_SERVICE_ERROR;
+    return read->media_ifce->ChannelReleaseSLP(read->media_ifce, channel); 
+}
+
 
 static GF_Err M3U8_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
+	M3U8Reader *read = plug->priv;
 	MYLOG(("***** M3U8_ServiceCommand %s\n", com));
-	/*
-	OGGStream *st;
-	u32 i;
-	OGGReader *read = plug->priv;
-	
-	if (!com->base.on_channel) {
-		// if live session we may cache
-		if (read->is_live && (com->command_type==GF_NET_IS_CACHABLE)) return GF_OK;
-		return GF_NOT_SUPPORTED;
-	}
-	switch (com->command_type) {
-		case GF_NET_CHAN_SET_PULL:
-			//no way to demux streams independently, and we keep OD as dynamic ogfile to handle
-			// chained streams
-			return GF_NOT_SUPPORTED;
-		case GF_NET_CHAN_INTERACTIVE:
-			//live: return GF_NOT_SUPPORTED;
-			return GF_OK;
-		case GF_NET_CHAN_BUFFER:
-			com->buffer.min = com->buffer.max = 0;
-			if (read->is_live) com->buffer.max = read->data_buffer_ms;
-			return GF_OK;
-		case GF_NET_CHAN_SET_PADDING: return GF_NOT_SUPPORTED;
-			
-		case GF_NET_CHAN_DURATION:
-			com->duration.duration = read->dur;
-			return GF_OK;
-		case GF_NET_CHAN_PLAY:
-			read->start_range = com->play.start_range;
-			read->end_range = com->play.end_range;
-			i=0;
-			while ((st = gf_list_enum(read->streams, &i))) {
-				if (st->ch == com->base.on_channel) {
-					st->is_running = 1;
-					st->map_time = read->dur ? 1 : 0;
-					if (!read->nb_playing) read->do_seek = 1;
-					read->nb_playing ++;
-					break;
-				}
-			}
-			//recfg duration in case
-			if (!read->is_remote && read->dur) { 
-				GF_NetworkCommand rcfg;
-				rcfg.base.on_channel = NULL;
-				rcfg.base.command_type = GF_NET_CHAN_DURATION;
-				rcfg.duration.duration = read->dur;
-				gf_term_on_command(read->service, &rcfg, GF_OK);
-			}
-			return GF_OK;
-		case GF_NET_CHAN_STOP:
-			i=0;
-			while ((st = gf_list_enum(read->streams, &i))) {
-				if (st->ch == com->base.on_channel) {
-					st->is_running = 0;
-					read->nb_playing --;
-					break;
-				}
-			}
-			return GF_OK;
-		default:
-			return GF_OK;
-	}*/
-	return GF_OK;
+	if (!plug || !plug->priv || !com || !read->media_ifce) return GF_SERVICE_ERROR;
+    
+    switch(com->command_type) {
+        case GF_NET_SERVICE_INFO:
+            /* defer to the real input service */
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_SERVICE_HAS_AUDIO:
+            /* defer to the real input service */
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_SET_PADDING:
+            /* for padding settings, the MPD level should not change anything */
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_SET_PULL:
+            /* defer to the real input service */
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_INTERACTIVE:
+            /* defer to the real input service */
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_BUFFER:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_BUFFER_QUERY:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_DURATION:
+            /* Ignore the duration given by the input service and use the one given in the playlist */
+            {
+                Double duration;
+                duration = (read->ple ? read->ple->durationInfo : 0); 
+                com->duration.duration = duration;
+        		return GF_OK;
+            }
+            break;
+        case GF_NET_CHAN_PLAY:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_STOP:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_PAUSE:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_RESUME:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_SET_SPEED:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+	    case GF_NET_CHAN_CONFIG:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_GET_PIXEL_AR:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_GET_DSI:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_MAP_TIME:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_RECONFIG:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_DRM_CFG:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_CHAN_GET_ESD:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_BUFFER_QUERY:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_GET_STATS:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_IS_CACHABLE:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        case GF_NET_SERVICE_MIGRATION_INFO:
+            return read->media_ifce->ServiceCommand(read->media_ifce, com);
+            break;
+        default:
+            return GF_SERVICE_ERROR;
+    }
 }
-
-
-
-
 
 GF_InputService *M3U8_LoadDemux()
 {
@@ -399,15 +474,14 @@ GF_InputService *M3U8_LoadDemux()
 	/* To check for seeking / getTrackInfo... GF_NET_SERVICE_INFO */
 	plug->ServiceCommand = M3U8_ServiceCommand;
 
+	/* to transmit packets */
+    plug->ChannelGetSLP = M3U8_ChannelGetSLP;
+	plug->ChannelReleaseSLP = M3U8_ChannelReleaseSLP;
+
 	reader = gf_malloc(sizeof(M3U8Reader));
 	memset(reader, 0, sizeof(M3U8Reader));
 	reader->playlist = NULL;
 	reader->rootURL = NULL;
-	/*
-	reader->streams = gf_list_new();
-	reader->demuxer = gf_th_new("M3U8Demux");
-	reader->data_buffer_ms = 1000;
-*/
 	plug->priv = reader;
 	return plug;
 }
@@ -416,19 +490,6 @@ void M3U8_DeleteDemux(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
 	M3U8Reader *read = plug->priv;
-	
-	/*gf_th_del(read->demuxer);*/
-
-	/*just in case something went wrong
-	while (gf_list_count(read->streams)) {
-		M3U8Stream *st = gf_list_get(read->streams, 0);
-		gf_list_rem(read->streams, 0);
-		ogg_stream_clear(&st->os);
-		if (st->dsi) gf_free(st->dsi);
-		gf_free(st);
-	}
-	gf_list_del(read->streams);
-	 */
 	if (read){
 		if (read->rootURL)
 			gf_free(read->rootURL);
