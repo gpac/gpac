@@ -25,6 +25,10 @@
 #include "playlist.h"
 #include <string.h>
 
+#ifdef WIN32
+  #define bzero(a, b) memset(a, 0x0, b)
+#endif
+
 GF_Err cleanup_list_of_elements(GF_List * list){
 	int i, count;
 	GF_Err result = GF_OK;

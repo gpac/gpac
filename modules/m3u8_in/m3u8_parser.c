@@ -27,11 +27,15 @@
 #include <stdio.h>
 #include <string.h>
 #include "m3u8_parser.h"
-#include <inttypes.h>
+//#include <inttypes.h>
 #include <gpac/network.h>
 
 /*#define MYLOG(xx) GF_LOG( GF_LOG_INFO, GF_LOG_CONTAINER, xx )*/
 #define MYLOG(xx) printf xx
+
+#ifdef WIN32
+#define bzero(a, b) memset(a, 0x0, b)
+#endif
 
 typedef struct _s_accumulated_attributes {
 	char * title;
@@ -107,7 +111,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 	if (ret){
 		/* #EXT-X-TARGETDURATION:<seconds> */
 		if (ret[0]){
-			intValue = strtoll(ret[0], &endPtr, 10);
+			intValue = strtol(ret[0], &endPtr, 10);
 			if (endPtr != ret[0]){
 				attributes->targetDurationInSeconds = intValue;
 			}
@@ -118,7 +122,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 	if (ret){
 		/* #EXT-X-MEDIA-SEQUENCE:<number> */
 		if (ret[0]){
-			intValue = strtoll(ret[0], &endPtr, 10);
+			intValue = strtol(ret[0], &endPtr, 10);
 			if (endPtr != ret[0]){
 				attributes->minMediaSequence = intValue;
 				attributes->currentMediaSequence = intValue;
@@ -130,7 +134,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 	if (ret){
 		/* #EXTINF:<duration>,<title> */
 		if (ret[0]){
-			intValue = strtoll(ret[0], &endPtr, 10);
+			intValue = strtol(ret[0], &endPtr, 10);
 			if (endPtr != ret[0]){
 				attributes->durationInSeconds = intValue;
 			}
@@ -154,12 +158,12 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 		while (ret[i] != NULL){
 			if (safe_start_equals("BANDWIDTH=", ret[i])){
 				utility = &(ret[i][10]);
-				intValue = strtoll(utility, &endPtr, 10);
+				intValue = strtol(utility, &endPtr, 10);
 				if (endPtr != utility)
 					attributes->bandwidth = intValue;
 			} else if (safe_start_equals("PROGRAM-ID=", ret[i])){
 				utility = &(ret[i][11]);
-				intValue = strtoll(utility, &endPtr, 10);
+				intValue = strtol(utility, &endPtr, 10);
 				if (endPtr != utility)
 					attributes->programId = intValue;
 			} else if (safe_start_equals("CODECS=\"", ret[i])){
@@ -273,7 +277,8 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 						printf("Line %d: '%s'\n", currentLineNumber, currentLine);
 						
 						if (gf_url_is_local(currentLine)){
-							if (gf_url_is_local(baseURL)){
+							/*
+                            if (gf_url_is_local(baseURL)){
 								int num_chars = -1;
 								if (baseURL[strlen(baseURL)-1] == '/'){
 									num_chars = asprintf(&fullURL, "%s%s", baseURL, currentLine);
@@ -285,7 +290,7 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 									playlist = NULL;
 									return GF_OUT_OF_MEM;
 								}
-							} else {
+							} else */{
 								fullURL = gf_url_concatenate(currentLine, baseURL);
 							}
 							assert( fullURL );

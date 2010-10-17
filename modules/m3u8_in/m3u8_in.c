@@ -54,10 +54,6 @@ static Bool M3U8_CanHandleURL(GF_InputService *plug, const char *url)
 		return 1;
 	if (gf_term_check_extension(plug, "text/plain", "m3u8", "M3U8 Playlist", sExt))
 		return 1;
-	
-	
-	
-	
 	return 0;
 }
 
