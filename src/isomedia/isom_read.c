@@ -396,12 +396,14 @@ Bool gf_isom_has_segment(GF_ISOFile *file, u32 *brand, u32 *version)
     GF_Box *a;
     i = 0;
     while (a = gf_list_enum(file->TopBoxes, &i)) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
         if (a->type == GF_ISOM_BOX_TYPE_STYP) {
             GF_SegmentTypeBox *styp = (GF_SegmentTypeBox *)a;
     		*brand = styp->majorBrand;
             *version = styp->minorVersion;
             return 1;
         }
+#endif
     }
 #endif
 	return 0;
