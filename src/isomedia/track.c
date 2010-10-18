@@ -361,6 +361,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset
 	void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding);
 	void stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority);
 
+    if (trak->Header->trackID != traf->tfhd->trackID) return GF_OK;
 
 	//setup all our defaults
 	DescIndex = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_DESC) ? traf->tfhd->sample_desc_index : traf->trex->def_sample_desc_index;
