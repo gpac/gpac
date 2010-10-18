@@ -128,10 +128,10 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 			mov->moov = (GF_MovieBox *)a;
 			/*set our pointer to the movie*/
 			mov->moov->mov = mov;
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-			if (mov->moov->mvex) mov->moov->mvex->mov = mov;
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+            if (mov->moov->mvex) mov->moov->mvex->mov = mov;
 #endif
-			e = gf_list_add(mov->TopBoxes, a);
+            e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
 			totSize += a->size;
 			break;
@@ -234,10 +234,12 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 		}
 	}
 
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	/*we need at least moov or meta*/
-	if (!mov->moov && !mov->meta && !mov->moof) return GF_ISOM_INVALID_FILE;
+	if (!mov->moov && !mov->meta 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+        && !mov->moof
 #endif
+        ) return GF_ISOM_INVALID_FILE;
 	/*we MUST have movie header*/
 	if (mov->moov && !mov->moov->mvhd) return GF_ISOM_INVALID_FILE;
 	/*we MUST have meta handler*/
