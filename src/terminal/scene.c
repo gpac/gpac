@@ -537,9 +537,11 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 			case TAG_MPEG4_Layer3D:
 				evt.detail = 1;
 				break;
-			case TAG_X3D_Group:
+#ifndef GPAC_DISABLE_X3D
+            case TAG_X3D_Group:
 				evt.detail = 2;
 				break;
+#endif
 			}
 #endif
 		}
