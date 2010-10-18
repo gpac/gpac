@@ -442,6 +442,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_ui_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_laser_config) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_encode_ui_config) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sl_depacketize) )
 
 #ifndef GPAC_MINIMAL_ODF
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_desc_write) )
@@ -478,8 +479,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_write) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sl_packetize) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sl_get_header_size) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_sl_depacketize) )
-
 #endif /*GPAC_MINIMAL_ODF*/
 
 /*isomedia.h exports*/
