@@ -618,7 +618,7 @@ typedef struct
 
 
 GF_EXPORT
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration, u32 dash_mode, Double dash_duration, char *seg_rad_name, u32 fragments_per_sidx, Bool daisy_chain_sidx)
+GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, u32 fragments_per_sidx, Bool daisy_chain_sidx)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count, nb_sync;
@@ -669,8 +669,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	e = gf_isom_clone_movie(input, output, 0, 0);
 	if (e) goto err_exit;
 
-	MaxFragmentDuration = (u32) (max_duration * 1000);
-	MaxSegmentDuration = (u32) (dash_duration);
+	MaxFragmentDuration = (u32) (max_duration_sec * 1000);
+	MaxSegmentDuration = (u32) (dash_duration_sec * 1000);
 	tfref = NULL;
 
 	//duplicates all tracks
@@ -831,7 +831,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 					SegmentDuration=0;
 					split_at_rap = 0;
 					/*restore fragment duration*/
-					MaxFragmentDuration = (u32) (max_duration * 1000);
+					MaxFragmentDuration = (u32) (max_duration_sec * 1000);
 
 					gf_isom_close_segment(output, fragments_per_sidx, tfref->TrackID, NULL, 0, daisy_chain_sidx);
 				} 

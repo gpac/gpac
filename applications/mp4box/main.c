@@ -1416,7 +1416,7 @@ int main(int argc, char **argv)
 			Frag = 1;
 		} else if (!stricmp(arg, "-dash")) {
 			CHECK_NEXT_ARG
-			dash_duration = atoi(argv[i+1]);
+			dash_duration = atof(argv[i+1]) / 1000;
 			needSave = 1;
 			i++;
 		} else if (!stricmp(arg, "-frags-per-sidx")) {
@@ -2903,7 +2903,7 @@ int main(int argc, char **argv)
 
 	/*split file*/
 	if (dash_duration) {
-		fprintf(stdout, "DASH-ing file %.3f secs segments with %d fragments of %03f secs", dash_duration, frags_per_sidx, InterleavingTime);
+		fprintf(stdout, "DASH-ing file with %.3f secs segments with %d fragments of %.3f secs", dash_duration, frags_per_sidx, InterleavingTime);
 		if (seg_at_rap) fprintf(stdout, " at GOP boundaries");
 		fprintf(stdout, "\n");
 
