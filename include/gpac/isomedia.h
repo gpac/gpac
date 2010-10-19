@@ -1042,6 +1042,10 @@ GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest);
 /*clones root OD from input to output file, without copying root OD track references*/
 GF_Err gf_isom_clone_root_od(GF_ISOFile *input, GF_ISOFile *output);
 
+/*clones the entire movie file to destination. Tracks can be cloned if clone_tracks is set, in which case hint tracks can be
+kept if keep_hint_tracks is set*/
+GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks);
+
 /*returns true if same set of sample description in both tracks - this does include self-contained checking
 and reserved flags. The specific media cfg (DSI & co) is not analysed, only
 a brutal memory comparaison is done*/
@@ -1101,11 +1105,23 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, u32 TrackID,
 							 u16 DefaultDegradationPriority);
 
 /*flushes data to disk and prepare movie fragmentation*/
-GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *the_file);
+GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *the_file, Bool use_segments);
 
-/*starts a new movie fragment (possibly inserting free space before)*/
-GF_Err gf_isom_start_fragment(GF_ISOFile *movie, u32 free_data_insert_size);
+/*starts a new movie fragment - if force_cache is set, fragment metadata will be written before
+fragment media data for all tracks*/
+GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first);
 
+/*starts a new segment in the file. If SegName is given, the output will be written in the SegName file*/
+GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName);
+
+typedef struct
+{
+	u32 track_ID;
+	u64 decoding_time;
+} GF_SIDXTrackTimes;
+
+/*closes current segment*/
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 fragments_per_sidx, u32 referenceTrackID, GF_SIDXTrackTimes *tracks_times, u32 nb_times, Bool daisy_chain_sidx);
 
 enum
 {

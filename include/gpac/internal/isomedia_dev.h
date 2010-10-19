@@ -1434,6 +1434,10 @@ typedef struct
 	GF_MovieFragmentHeaderBox *mfhd;
 	GF_List *TrackList;
 	GF_ISOFile *mov;
+	/*offset in the file of moof or mdat (whichever comes first) for this fragment*/
+	u64 fragment_offset;
+	u32 mdat_size;
+	char *mdat;
 } GF_MovieFragmentBox;
 
 
@@ -1797,7 +1801,28 @@ typedef struct __oma_kms_box
 	GF_OMADRMAUFormatBox *fmt;
 } GF_OMADRMKMSBox;
 
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
+typedef struct
+{
+	Bool reference_type;
+	u32 reference_offset;
+	u32 subsegment_duration;
+	Bool contains_RAP;
+	u32 RAP_delta_time;
+} GF_SIDXReference;
+
+typedef struct __sidx_box
+{
+	GF_ISOM_FULL_BOX
+
+	u32 reference_track_ID;
+	u32 nb_track_times;
+	GF_SIDXTrackTimes *tracks_times;
+	u32 nb_refs;
+	GF_SIDXReference *refs;
+} GF_SegmentIndexBox;
+#endif
 
 /*
 		Data Map (media storage) stuff
@@ -1950,6 +1975,10 @@ struct __tag_isom {
 	/*in WRITE mode, this is the current MDAT where data is written*/
 	/*in READ mode this is the last valid file position before a gf_isom_box_read failed*/
 	u64 current_top_box_start;
+	u64 segment_start;
+
+	GF_List *moof_list;
+	Bool use_segments, moof_first;
 #endif
 
 	/*this contains ALL the root boxes excepts fragments*/
@@ -2087,7 +2116,7 @@ GF_Err stbl_RemoveSampleFragments(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err StoreFragment(GF_ISOFile *movie);
+GF_Err gf_isom_close_fragments(GF_ISOFile *movie);
 #endif
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -3237,6 +3266,13 @@ GF_Err lsr1_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err lsr1_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err lsr1_Size(GF_Box *s);
 GF_Err lsr1_dump(GF_Box *a, FILE * trace);
+
+GF_Box *sidx_New();
+void sidx_del(GF_Box *s);
+GF_Err sidx_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err sidx_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err sidx_Size(GF_Box *s);
+GF_Err sidx_dump(GF_Box *a, FILE * trace);
 
 
 #endif /*GPAC_DISABLE_ISOM*/

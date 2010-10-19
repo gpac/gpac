@@ -210,8 +210,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer);
 GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import_fps);
 
 
-/*save file as fragmented movie*/
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double MaxFragmentDuration, u32 frag_free_space);
+/*save file as fragmented movie
+@dash_mode: 0 = DASH not used, 1 = DASH used without GOP spliting, 2 = DASH used with GOP spliting, */
+GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration, u32 dash_mode, Double dash_duration, char *seg_rad_name, u32 fragments_per_sidx, Bool daisy_chain_sidx);
 
 /*make the file ISMA compliant: creates ISMA BIFS / OD tracks if needed, and update audio/video IDs
 the file should not contain more than one audio and one video track
