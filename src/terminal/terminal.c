@@ -1900,3 +1900,27 @@ void gf_term_load_shortcuts(GF_Terminal *term)
 	}
 }
 
+void gf_scene_switch_quality(GF_Scene *scene, Bool up)
+{
+	u32 i;
+	GF_ObjectManager *odm;
+	GF_CodecCapability caps;
+	if (!scene) return;
+	caps.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
+	caps.cap.valueInt = up ? 1 : 0;
+	if (scene->scene_codec) {
+		scene->scene_codec->decio->SetCapabilities(scene->scene_codec->decio, caps);
+	}
+	i=0;
+	while (odm = gf_list_enum(scene->resources, &i) ) {
+		if (odm->codec)
+			odm->codec->decio->SetCapabilities(odm->codec->decio, caps);
+		if (odm->subscene)
+			gf_scene_switch_quality(odm->subscene, up);
+	}
+}
+
+void gf_term_switch_quality(GF_Terminal *term, Bool up)
+{
+	gf_scene_switch_quality(term->root_scene, up);
+}
