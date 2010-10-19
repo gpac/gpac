@@ -69,6 +69,7 @@ static void init_reader(ISOMChannel *ch)
 		} else {
 			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &ivar, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
 		}
+		ch->last_state = GF_OK;
 	
 		if (ch->has_rap && ch->has_edit_list) {
 			ch->edit_sync_frame = ch->sample_num;
@@ -87,7 +88,7 @@ static void init_reader(ISOMChannel *ch)
 			}
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
 		} else if (ch->sample_num) {
-			ch->last_state = GF_EOS;
+			ch->last_state = (ch->owner->frag_type==1) ? GF_OK : GF_EOS;
 		}
 	} else {
 		ch->sample_time = ch->sample->DTS;
@@ -158,6 +159,10 @@ fetch_next:
 			ch->sample_num++;
 			goto fetch_next;
 		}
+		/*if sample cannot be found and file is fragmented, rewind sample*/
+		if (!ch->sample && ch->owner->frag_type) {
+			ch->sample_num--;
+		}
 	}
 	if (!ch->sample) {
 		/*incomplete file - check if we're still downloading or not*/
@@ -170,7 +175,7 @@ fetch_next:
 				ch->last_state = GF_ISOM_INCOMPLETE_FILE;
 			}
 		} else if (!ch->sample_num || (ch->sample_num > gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
-//			ch->last_state = GF_EOS;
+			ch->last_state = (ch->owner->frag_type==1) ? GF_OK : GF_EOS;
 		}
 		return;
 	}
