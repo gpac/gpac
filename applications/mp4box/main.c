@@ -2237,6 +2237,12 @@ int main(int argc, char **argv)
 		switch (get_file_type_by_ext(inName)) {
 		case 1:
 			file = gf_isom_open(inName, (u8) (open_edit ? GF_ISOM_OPEN_EDIT : ( (dump_isom>0) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ), tmpdir);
+			if (!file && (gf_isom_last_error(NULL) == GF_ISOM_INCOMPLETE_FILE) && !open_edit) {
+				u64 missing_bytes;
+				e = gf_isom_open_progressive(inName, &file, &missing_bytes);
+				fprintf(stdout, "Truncated file - missing "LLD" bytes\n", missing_bytes);
+			}
+
 			if (!file) {
 				if (open_edit && nb_meta_act) {
 					file = gf_isom_open(inName, GF_ISOM_WRITE_EDIT, tmpdir);
