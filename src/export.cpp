@@ -1314,9 +1314,11 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_x3d_get_node_type) )
 #endif
 
+#ifdef GPAC_HAS_SPIDERMONKEY
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_handle_dom_event_for_vrml) )
 #endif 
+#endif
 
 #endif /*GPAC_DISABLE_VRML*/
 
@@ -1459,7 +1461,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_stream_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_crc32_check) )
 
-
+#ifndef GPAC_DISABLE_MPEG2TS_MUX
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_program_add) )
@@ -1468,7 +1470,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_process) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_sys_clock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_ts_clock) )
-
+#endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
 /*laser.h exports*/
