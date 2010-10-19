@@ -47,6 +47,7 @@ enum {
 int SVCDecoder_init(void **PlayerStruct);
 int SVCDecoder_close(void *PlayerStruct);
 int decodeNAL(void *PlayerStruct, unsigned char* nal, int nal_length, OPENSVCFRAME *Frame, int DqIdMax); 
+/*ID vient du NAL type 14 et 20*/
 int setLayer(int num_layer);
 void ParseAuPlayers(void *PlayerStruct, const unsigned char *buf, int buf_size, int nal_length_size, int is_avc);
 int GetDqIdMax(const unsigned char *buf, int buf_size, int nal_length_size, int *DqidTable, int is_avc);
@@ -57,7 +58,7 @@ void UpdateLayer(int *DqIdTable, int *CurrDqId, int MaxDqId, int Command);
 typedef struct
 {
 	u16 ES_ID;
-	u32 width, height, out_size, pixel_ar;
+	u32 width, stride, height, out_size, pixel_ar, layer;
 	Bool first_frame;
 
 	u32 nalu_size_length;
@@ -77,6 +78,7 @@ typedef struct
 static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	u32 i, count;
+	s32 res;
 	OPENSVCFRAME Picture;
 	OSVCDec *ctx = (OSVCDec*) ifcg->privateStack;
 
@@ -99,20 +101,28 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			GF_AVCConfigSlot *slc = gf_list_get(cfg->sequenceParameterSets, i);
 
 			gf_avc_get_sps_info(slc->data, slc->size, &w, &h, &par_n, &par_d);
-			if ((ctx->width<w) || (ctx->height<h)) {
-				ctx->width = w;
-				ctx->height = h;
-				if ( ((s32)par_n>0) && ((s32)par_d>0) )
-					ctx->pixel_ar = (par_n<<16) || par_d;
+			/*by default use the base layer*/
+			if (!i) {
+				if ((ctx->width<w) || (ctx->height<h)) {
+					ctx->width = w;
+					ctx->height = h;
+					if ( ((s32)par_n>0) && ((s32)par_d>0) )
+						ctx->pixel_ar = (par_n<<16) || par_d;
+				}
 			}
-
-			decodeNAL(ctx->codec, slc->data, slc->size, &Picture, 0);
+			res = decodeNAL(ctx->codec, slc->data, slc->size, &Picture, 0);
+			if (res<0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding SPS %d\n", res));
+			}
 		}
 
 		count = gf_list_count(cfg->pictureParameterSets);
 		for (i=0; i<count; i++) {
 			GF_AVCConfigSlot *slc = gf_list_get(cfg->pictureParameterSets, i);
-			decodeNAL(ctx->codec, slc->data, slc->size, &Picture, 0);
+			res = decodeNAL(ctx->codec, slc->data, slc->size, &Picture, 0);
+			if (res<0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding PPS %d\n", res));
+			}
 		}
 
 		gf_odf_avc_cfg_del(cfg);
@@ -120,8 +130,10 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		ctx->nalu_size_length = 0;
 		if (SVCDecoder_init(&ctx->codec) == SVC_STATUS_ERROR) return GF_IO_ERR;
 	}
-	setLayer(10);
-	ctx->out_size = ctx->width * ctx->height * 3 / 2;
+	ctx->stride = ctx->width + 32;
+	ctx->layer = 0;
+	setLayer(ctx->layer);
+	ctx->out_size = ctx->stride * ctx->height * 3 / 2;
 	return GF_OK;
 }
 static GF_Err OSVC_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
@@ -148,7 +160,7 @@ static GF_Err OSVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = ctx->height;
 		break;
 	case GF_CODEC_STRIDE:
-		capability->cap.valueInt = ctx->width;
+		capability->cap.valueInt = ctx->stride;
 		break;
 	case GF_CODEC_PAR:
 		capability->cap.valueInt = ctx->pixel_ar;
@@ -181,10 +193,27 @@ static GF_Err OSVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 }
 static GF_Err OSVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capability)
 {
+	OSVCDec *ctx = (OSVCDec*) ifcg->privateStack;
+	switch (capability.CapCode) {
+	case GF_CODEC_MEDIA_SWITCH_QUALITY:
+		if (capability.cap.valueInt) {
+			if (ctx->layer<32) {
+				ctx->layer += 8;
+				setLayer(ctx->layer);
+			}
+		} else {
+			if (ctx->layer>=8) {
+				ctx->layer -= 8;
+				setLayer(ctx->layer);
+			}
+		}
+		return GF_OK;
+	}
 	/*return unsupported to avoid confusion by the player (like color space changing ...) */
 	return GF_NOT_SUPPORTED;
 
 }
+
 static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg, 
 		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
@@ -200,7 +229,6 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 		*outBufferLength = 0;
 		return GF_OK;
 	}
-
 	if (*outBufferLength < ctx->out_size) {
 		*outBufferLength = ctx->out_size;
 		return GF_BUFFER_TOO_SMALL;
@@ -219,7 +247,9 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 			} else {
 //				ChangeOfLayer(ctx->MaxDqId, 2);
 //				ParseCmd(h); //mplayer pb with slice. Slice on the upper layer, end_of_slice is equal to 1 in the slice header of the 5. so no switch Layer
-//				//Firts time, we parse the first AU to know the file configuration
+//				
+				//Firts time only, we parse the first AU to know the file configuration
+				//does not need to ba called again ever after, unless SPS or PPS changed
 				UpdateLayer(ctx->DqIdTable, &ctx->CurrDqId, ctx->MaxDqId, 0);
 				ParseAuPlayers(ctx->codec, inBuffer, inBufferLength, ctx->nalu_size_length, 1);
 			}
@@ -248,17 +278,18 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 
 	if ((pic.Width != ctx->width) || (pic.Height!=ctx->height)) {
 		ctx->width = pic.Width;
+		ctx->stride = pic.Width + 32;
 		ctx->height = pic.Height;
-		ctx->out_size = ctx->width * ctx->height * 3 / 2;
-		if (ctx->out_size > *outBufferLength) {
+		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
+//		if (ctx->out_size > *outBufferLength) {
 			*outBufferLength = ctx->out_size;
 			return GF_BUFFER_TOO_SMALL;
-		}
+//		}
 	}
 	*outBufferLength = ctx->out_size;
-	memcpy(outBuffer, pic.pY, pic.Width*pic.Height);
-	memcpy(outBuffer + pic.Width * pic.Height, pic.pU, pic.Width*pic.Height/4);
-	memcpy(outBuffer + 5*pic.Width * pic.Height/4, pic.pV, pic.Width*pic.Height/4);
+	memcpy(outBuffer, pic.pY[0], ctx->stride*ctx->height);
+	memcpy(outBuffer + ctx->stride * ctx->height, pic.pU[0], ctx->stride*ctx->height/4);
+	memcpy(outBuffer + 5*ctx->stride * ctx->height/4, pic.pV[0], ctx->stride*ctx->height/4);
 
 	return GF_OK;
 }
