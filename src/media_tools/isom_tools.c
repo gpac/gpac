@@ -638,7 +638,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	Bool split_at_rap = 0;
 	Bool next_sample_rap = 0;
 	TrackFragmenter *tf, *tfref;
-	FILE *mdp = NULL;
+	FILE *mpd = NULL;
 	char *SegName = NULL;
 	
 	//create output file
@@ -655,8 +655,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			goto err_exit;
 		}
 		strcpy(SegName, output_file);
-		strcat(SegName, ".mdp");
-		mdp = fopen(SegName, "wt");
+		strcat(SegName, ".mpd");
+		mpd = fopen(SegName, "wt");
 	} else {
 		output = gf_isom_open(output_file, GF_ISOM_OPEN_WRITE, NULL);
 		if (!output) return gf_isom_last_error(NULL);
@@ -728,8 +728,19 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	e = gf_isom_finalize_for_fragment(output, dash_mode ? 1 : 0);
 	if (e) goto err_exit;
 
+    if (dash_mode) {
+        fprintf(mpd, "<MPD type=\"OnDemand\" xmlns=\"urn:3GPP:ns:PSS:AdaptiveHTTPStreamingMPD:2009\">\n");
+	    fprintf(mpd, " <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n");
+		fprintf(mpd, "  <Title>Media Presentation Description for file %s generated with GPAC </Title>\n", gf_isom_get_filename(input));
+        fprintf(mpd, " </ProgramInformation>\n");
+        fprintf(mpd, " <Period start=\"PT0S\">\n");	
+		fprintf(mpd, "  <Representation mimeType=\"video/mp4\">\n");	
+		fprintf(mpd, "   <SegmentInfo duration=\"PT%.3fS\">\n", dash_duration_sec);	
+		fprintf(mpd, "    <InitialisationSegmentURL sourceURL=\"%s.mp4\"/>\n", output_file);	
+    }
+
 	nb_done = 0;
-	cur_seg=0;
+	cur_seg=1;
 	maxFragDurationOverSegment=0;
 	if (dash_mode) switch_segment=1;
 
@@ -739,8 +750,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			SegmentDuration = 0;
 			switch_segment = 0;
 			if (seg_rad_name) {
-				sprintf(SegName, "%s_seg%04d.mp4", seg_rad_name, cur_seg);
+				sprintf(SegName, "%s_seg%d.mp4", seg_rad_name, cur_seg);
 				e = gf_isom_start_segment(output, SegName);
+        		if (dash_mode) fprintf(mpd, "    <Url sourceURL=\"%s\"/>\n", SegName);	
 			} else {
 				e = gf_isom_start_segment(output, NULL);
 			}
@@ -853,6 +865,10 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 	if (dash_mode) {
 		gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, NULL, 0, daisy_chain_sidx);
+        fprintf(mpd, "   </SegmentInfo>\n");
+        fprintf(mpd, "  </Representation>\n");
+        fprintf(mpd, " </Period>\n");
+        fprintf(mpd, "</MPD>");
 	}
 
 err_exit:
@@ -866,7 +882,7 @@ err_exit:
 	else gf_isom_close(output);
 	gf_set_progress("ISO File Fragmenting", nb_samp, nb_samp);
 	if (SegName) gf_free(SegName);
-	if (mdp)fclose(mdp);
+	if (mpd)fclose(mpd);
 	return e;
 }
 
