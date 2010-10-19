@@ -184,6 +184,10 @@ GF_Err gf_term_release_screen_buffer(GF_Terminal *term, GF_VideoSurface *framebu
 /*ObjectManager used by both terminal and object browser (term_info.h)*/
 typedef struct _od_manager GF_ObjectManager;
 
+/*switches quality up or down - can be called several time in the same direction
+this will call all decoders to adjust their quality levels
+VERY BASIC INTERFACE*/
+void gf_term_switch_quality(GF_Terminal *term, Bool up);
 
 #ifdef __cplusplus
 }
