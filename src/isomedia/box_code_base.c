@@ -2984,7 +2984,6 @@ GF_Err mfhd_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	ptr->sequence_number = gf_bs_read_u32(bs);
-	if (!ptr->sequence_number) return GF_ISOM_INVALID_FILE;
 	return GF_OK;
 }
 
