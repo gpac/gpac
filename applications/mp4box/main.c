@@ -1155,22 +1155,22 @@ int main(int argc, char **argv)
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 	GF_SMEncodeOptions opts;
 #endif
-	Double InterleavingTime, split_duration, split_start, import_fps;
-    u32 FragFreeSpace;
+	Double InterleavingTime, split_duration, split_start, import_fps, dash_duration;
 	SDPLine sdp_lines[MAX_CUMUL_OPS];
 	MetaAction metas[MAX_CUMUL_OPS];
 	TrackAction tracks[MAX_CUMUL_OPS];
 	TSELAction tsel_acts[MAX_CUMUL_OPS];
 	u64 movie_time;
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
-	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts;
+	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, frags_per_sidx;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt;
-	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat;
+	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name;
 	GF_ISOFile *file;
 	Bool stream_rtp=0;
 	Bool live_scene=0;
 	Bool dump_iod=0;
+	Bool seg_at_rap =0;
 
 	if (argc < 2) {
 		PrintUsage();
@@ -1182,19 +1182,21 @@ int main(int argc, char **argv)
 	split_duration = 0.0;
 	split_start = -1.0;
 	InterleavingTime = 0.5;
+	dash_duration = 0.0;
 	import_fps = 0;
 	import_flags = 0;
 	split_size = 0;
 	movie_time = 0;
 	MTUSize = 1450;
-    FragFreeSpace = 0;
 	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
 	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
+	frags_per_sidx = 1;
 	track_dump_type = 0;
 	ismaCrypt = 0;
 	file = NULL;
 	itunes_tags = pes_dump = NULL;
+	seg_name = NULL;
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 	memset(&opts, 0, sizeof(opts));
@@ -1412,9 +1414,18 @@ int main(int argc, char **argv)
 			needSave = 1;
 			i++;
 			Frag = 1;
-		} else if (!stricmp(arg, "-ffspace")) {
+		} else if (!stricmp(arg, "-dash")) {
 			CHECK_NEXT_ARG
-			FragFreeSpace = atoi(argv[i+1]);
+			dash_duration = atoi(argv[i+1]);
+			needSave = 1;
+			i++;
+		} else if (!stricmp(arg, "-frags-per-sidx")) {
+			CHECK_NEXT_ARG
+			frags_per_sidx = atoi(argv[i+1]);
+			i++;
+		} else if (!stricmp(arg, "-segment-name")) {
+			CHECK_NEXT_ARG
+			seg_name = argv[i+1];
 			i++;
 		} 
 		else if (!stricmp(arg, "-itags")) { CHECK_NEXT_ARG itunes_tags = argv[i+1]; i++; open_edit = 1; }
@@ -1428,7 +1439,10 @@ int main(int argc, char **argv)
 			needSave = 1;
 		} else if (!stricmp(arg, "-ocr")) force_ocr = 1;
 		else if (!stricmp(arg, "-latm")) hint_flags |= GP_RTP_PCK_USE_LATM_AAC;
-		else if (!stricmp(arg, "-rap")) hint_flags |= GP_RTP_PCK_SIGNAL_RAP;
+		else if (!stricmp(arg, "-rap")) {
+			hint_flags |= GP_RTP_PCK_SIGNAL_RAP;
+			seg_at_rap=1;
+		}
 		else if (!stricmp(arg, "-ts")) hint_flags |= GP_RTP_PCK_SIGNAL_TS;
 		else if (!stricmp(arg, "-size")) hint_flags |= GP_RTP_PCK_SIGNAL_SIZE;
 		else if (!stricmp(arg, "-idx")) hint_flags |= GP_RTP_PCK_SIGNAL_AU_IDX;
@@ -2498,7 +2512,7 @@ int main(int argc, char **argv)
 		}
 		if (e) goto err_exit;
 	}
-	if (!open_edit) {
+	if (!needSave) {
 		if (file) gf_isom_delete(file);
 		gf_sys_close();
 		return 0;
@@ -2887,11 +2901,26 @@ int main(int argc, char **argv)
 		needSave = 1;
 	}
 
-	if (Frag) {
+	/*split file*/
+	if (dash_duration) {
+		fprintf(stdout, "DASH-ing file %.3f secs segments with %d fragments of %03f secs", dash_duration, frags_per_sidx, InterleavingTime);
+		if (seg_at_rap) fprintf(stdout, " at GOP boundaries");
+		fprintf(stdout, "\n");
+
+		strcpy(outfile, outName ? outName : inName);
+		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
+		outfile[strlen(outfile)-1] = 0;
+		if (!outName) strcat(outfile, "_dash");
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, frags_per_sidx, 0);
+		if (e) fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
+		gf_isom_delete(file);
+		gf_sys_close();
+		return (e!=GF_OK) ? 1 : 0;
+	} else if (Frag) {
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stdout, "Warning: cannot hint and fragment - ignoring hint\n");
-		fprintf(stdout, "Fragmenting file (%.3f seconds fragments, %d bytes of free space)\n", InterleavingTime, FragFreeSpace);
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, FragFreeSpace);
+		fprintf(stdout, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, 0, 0, NULL, 0, 0);
 		if (e) fprintf(stdout, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {
