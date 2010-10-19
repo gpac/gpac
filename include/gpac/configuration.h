@@ -147,8 +147,11 @@
 /*disables MPEG2 PS support*/
 //#define GPAC_DISABLE_MPEG2PS
 
-/*disables MPEG2 TS support*/
+/*disables MPEG2 TS demux support*/
 //#define GPAC_DISABLE_MPEG2TS
+
+/*disables MPEG2 TS Mux support*/
+//#define GPAC_DISABLE_MPEG2TS_MUX
 
 /*disables all media import functions*/
 //#define GPAC_DISABLE_MEDIA_IMPORT
