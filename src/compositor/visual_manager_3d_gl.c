@@ -162,6 +162,7 @@ void visual_3d_setup(GF_VisualManager *visual)
 	glClearDepthx(FIX_ONE);
 	glLightModelx(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 	glMaterialx(GL_FRONT_AND_BACK, GL_SHININESS, FLT2FIX(0.2f * 128) );
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #else
 	glClearDepth(1.0f);
 	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_FALSE);
