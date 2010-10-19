@@ -722,6 +722,7 @@ typedef struct
 
 void gf_m2ts_print_info(GF_M2TS_Demuxer *ts);
 
+#ifndef GPAC_DISABLE_MPEG2TS_MUX
 
 /*
 	MPEG-2 TS Multiplexer
@@ -905,6 +906,7 @@ u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
 
 
+#endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
