@@ -390,6 +390,14 @@ void gf_bs_skip_bytes(GF_BitStream *bs, u64 nbBytes);
 GF_Err gf_bs_seek(GF_BitStream *bs, u64 offset);
 
 /*!
+ *\brief bitstream truncation
+ *
+ *Truncates the bitstream at the current position
+ *\param bs the target bitstream
+ */
+void gf_bs_truncate(GF_BitStream *bs);
+
+/*!
  *\brief bit peeking 
  *
  *Peeks a given number of bits (read without moving the position indicator) for read modes only.
