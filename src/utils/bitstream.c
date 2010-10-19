@@ -843,3 +843,10 @@ u32 gf_bs_read_vluimsbf5(GF_BitStream *bs)
 	nb_words++;
 	return gf_bs_read_int(bs, 4*nb_words);
 }
+
+GF_EXPORT
+void gf_bs_truncate(GF_BitStream *bs)
+{
+	bs->size = bs->position;
+	if (bs->stream) return;
+}
