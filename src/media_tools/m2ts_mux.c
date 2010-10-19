@@ -26,7 +26,7 @@
 #include <gpac/constants.h>
 #include <gpac/media_tools.h>
 
-#ifndef GPAC_DISABLE_MPEG2TS
+#ifndef GPAC_DISABLE_MPEG2TS_MUX
 
 
 static GFINLINE Bool gf_m2ts_time_less(GF_M2TS_Time *a, GF_M2TS_Time *b) {
@@ -1496,5 +1496,5 @@ send_pck:
 	return ret;
 }
 
-#endif /*GPAC_DISABLE_MPEG2TS*/
+#endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 
