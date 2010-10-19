@@ -1371,6 +1371,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mo_get_scenegraph) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_send_event) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_lock_compositor) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_switch_quality) )
 
 
 /*compositor.h exports*/
