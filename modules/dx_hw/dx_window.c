@@ -94,6 +94,8 @@ static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
 	case VK_INSERT: evt->key_code = GF_KEY_INSERT; break;
 	case VK_DELETE: evt->key_code = GF_KEY_DEL; break;
 	case VK_HELP: evt->key_code = GF_KEY_HELP; break;
+	case VK_OEM_PLUS: evt->key_code = GF_KEY_PLUS; break;
+	case VK_OEM_MINUS: evt->key_code = GF_KEY_PLUS; break;
 
 #ifndef _WIN32_WCE
 	case VK_NONCONVERT: evt->key_code = GF_KEY_NONCONVERT; break;
