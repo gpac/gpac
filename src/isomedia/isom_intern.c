@@ -48,7 +48,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 	//we shall have a MOOV and its MVEX BEFORE any MOOF
 	if (!mov->moov || !mov->moov->mvex) return GF_ISOM_INVALID_FILE;
 	//and all fragments must be continous
-	if (mov->NextMoofNumber + 1 != moof->mfhd->sequence_number) return GF_ISOM_INVALID_FILE;
+	if (mov->NextMoofNumber && (mov->NextMoofNumber >= moof->mfhd->sequence_number)) return GF_ISOM_INVALID_FILE;
 
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(moof->TrackList, &i))) {
@@ -75,7 +75,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 			MaxDur = trak->Header->duration;
 	}
 
-	mov->NextMoofNumber += 1;
+	mov->NextMoofNumber = moof->mfhd->sequence_number;
 	//update movie duration
 	if (mov->moov->mvhd->duration < MaxDur) mov->moov->mvhd->duration = MaxDur;
 	return GF_OK;
@@ -237,6 +237,10 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 			e = gf_list_add(mov->TopBoxes, a);
 			break;
 		}
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs);
+#endif
 	}
 
 	/*we need at least moov or meta*/
