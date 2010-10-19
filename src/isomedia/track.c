@@ -346,7 +346,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset
 	u32 i, j, chunk_size;
 	u64 base_offset, data_offset;
 	u32 def_duration, DescIndex, def_size, def_flags;
-	u32 duration, size, flags, cts_offset;
+	u32 duration, size, flags, cts_offset, prev_trun_data_offset;
 	u8 pad, sync;
 	u16 degr;
 	GF_TrackFragmentRunBox *trun;
@@ -373,6 +373,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset
 	base_offset = (traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET) ? traf->tfhd->base_data_offset : *moof_offset;
 
 	chunk_size = 0;
+	prev_trun_data_offset = 0;
 
 	i=0;
 	while ((trun = (GF_TrackFragmentRunBox *)gf_list_enum(traf->TrackRuns, &i))) {
@@ -402,8 +403,16 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset
 				//aggregated offset
 				if (!(traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET)) data_offset += chunk_size;
 
-				if (trun->flags & GF_ISOM_TRUN_DATA_OFFSET) data_offset += trun->data_offset;
-
+				if (trun->flags & GF_ISOM_TRUN_DATA_OFFSET) {
+					data_offset += trun->data_offset;
+					/*reset chunk size since data is now relative to this trun*/
+					chunk_size = 0;
+					/*remember this data offset for following trun*/
+					prev_trun_data_offset = trun->data_offset;
+				} else {
+					/*data offset is previous chunk size plus previous offset of the trun*/
+					data_offset += prev_trun_data_offset;
+				}
 				stbl_AppendChunk(trak->Media->information->sampleTable, data_offset);
 				//then sampleToChunk
 				stbl_AppendSampleToChunk(trak->Media->information->sampleTable, 

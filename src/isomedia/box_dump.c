@@ -417,6 +417,8 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 		return lsr1_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_LSRC:
 		return lsrc_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SIDX:
+		return sidx_dump(a, trace);
 
 	default: return defa_dump(a, trace);
 	}
@@ -455,7 +457,6 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 	while ((box = (GF_Box *)gf_list_enum(mov->TopBoxes, &i))) {
 		switch (box->type) {
 		case GF_ISOM_BOX_TYPE_FTYP:
-		case GF_ISOM_BOX_TYPE_STYP:
 		case GF_ISOM_BOX_TYPE_MOOV:
 		case GF_ISOM_BOX_TYPE_MDAT:
 		case GF_ISOM_BOX_TYPE_FREE:
@@ -463,6 +464,8 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 		case GF_ISOM_BOX_TYPE_SKIP:
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_MOOF:
+		case GF_ISOM_BOX_TYPE_STYP:
+		case GF_ISOM_BOX_TYPE_SIDX:
 #endif
 			break;
 
@@ -3483,6 +3486,24 @@ GF_Err lsr1_dump(GF_Box *a, FILE * trace)
 	if (p->bitrate) gf_box_dump(p->bitrate, trace);
 	if (p->descr) gf_box_dump(p->descr, trace);
 	fprintf(trace, "</LASeRSampleEntry>\n");
+	return GF_OK;
+}
+
+GF_Err sidx_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_SegmentIndexBox *p = (GF_SegmentIndexBox *)a;
+	fprintf(trace, "<SegmentIndexBox reference_track_ID=\"%d\">\n", p->reference_track_ID);
+	DumpBox(a, trace);
+	gf_full_box_dump(a, trace);
+	
+	for (i=0; i<p->nb_track_times; i++) {
+		fprintf(trace, "<TrackTiming trackID=\"%d\" duration=\""LLD"\" />\n", p->tracks_times[i].track_ID, p->tracks_times[i].decoding_time);
+	}
+	for (i=0; i<p->nb_refs; i++) {
+		fprintf(trace, "<Reference type=\"%d\" offset=\"%d\" SubSegmentDuration=\"%d\" hasRAP=\"%d\" RAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_offset, p->refs[i].subsegment_duration, p->refs[i].contains_RAP, p->refs[i].RAP_delta_time);
+	}
+	fprintf(trace, "</SegmentIndexBox>\n");
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

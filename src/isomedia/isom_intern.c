@@ -196,8 +196,13 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_STYP:
+		case GF_ISOM_BOX_TYPE_SIDX:
 			totSize += a->size;
-			e = gf_list_add(mov->TopBoxes, a);
+			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
+				e = gf_list_add(mov->TopBoxes, a);
+			} else {
+				gf_isom_box_del(a);
+			}
 			break;
 
 		case GF_ISOM_BOX_TYPE_MOOF:
@@ -395,6 +400,8 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 #endif
 
 	gf_isom_box_array_del(mov->TopBoxes);
+	gf_isom_box_array_del(mov->moof_list);
+
 
 	if (mov->fileName) gf_free(mov->fileName);
 	gf_free(mov);
