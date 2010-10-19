@@ -621,7 +621,7 @@ GF_EXPORT
 GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, u32 fragments_per_sidx, Bool daisy_chain_sidx)
 {
 	u8 NbBits;
-	u32 i, TrackNum, descIndex, j, count, nb_sync;
+	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id;
 	u32 defaultDuration, defaultSize, defaultDescriptionIndex, defaultRandomAccess, nb_samp, nb_done;
 	u8 defaultPadding;
 	u16 defaultDegradationPriority;
@@ -722,6 +722,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	}
 
 	if (!tfref) tfref = gf_list_get(fragmenters, 0);
+	ref_track_id = tfref->TrackID;
 
 	//flush movie
 	e = gf_isom_finalize_for_fragment(output, dash_mode ? 1 : 0);
@@ -833,7 +834,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 					/*restore fragment duration*/
 					MaxFragmentDuration = (u32) (max_duration_sec * 1000);
 
-					gf_isom_close_segment(output, fragments_per_sidx, tfref->TrackID, NULL, 0, daisy_chain_sidx);
+					gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, NULL, 0, daisy_chain_sidx);
 				} 
 				/*next fragment will exceed segment length, abort fragment at next rap*/
 				if (split_seg_at_rap && (SegmentDuration + MaxFragmentDuration >= MaxSegmentDuration)) {
@@ -851,7 +852,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	}
 
 	if (dash_mode) {
-		gf_isom_close_segment(output, fragments_per_sidx, tfref->TrackID, NULL, 0, daisy_chain_sidx);
+		gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, NULL, 0, daisy_chain_sidx);
 	}
 
 err_exit:
