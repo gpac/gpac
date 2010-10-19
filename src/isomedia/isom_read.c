@@ -211,7 +211,8 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		//movie fragment mode, just store the fragment
 		if ( (movie->openMode == GF_ISOM_OPEN_WRITE) && (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) {
-			e = StoreFragment(movie);
+			e = gf_isom_close_fragments(movie);
+			if (e) return e;
 		} else
 #endif
 			e = WriteToFile(movie);

@@ -56,7 +56,7 @@ GF_TrackFragmentBox *GetTraf(GF_ISOFile *mov, u32 TrackID)
 	return NULL;
 }
 
-GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie)
+GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, Bool use_segments)
 {
 	GF_Err e;
 	u32 i;
@@ -93,6 +93,11 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie)
 	//ok we are fine - note the data map is created at the begining
 	if (i) movie->FragmentsFlags |= GF_ISOM_FRAG_WRITE_READY;
 	movie->NextMoofNumber = 1;
+
+	if (use_segments) {
+		movie->use_segments = 1;
+		movie->moof_list = gf_list_new();
+	}
 	return GF_OK;
 }
 
@@ -269,8 +274,31 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, u32 TrackID, u32 Code, u32
 	return GF_OK;
 }
 
+//#define USE_BASE_DATA_OFFSET
 
-u32 UpdateRuns(GF_TrackFragmentBox *traf)
+void update_trun_offsets(GF_ISOFile *movie, s32 offset)
+{
+#ifndef USE_BASE_DATA_OFFSET
+	GF_TrackFragmentRunBox *trun;
+	u32 i, j;
+	GF_TrackFragmentBox *traf;
+	i=0;
+	while ((traf = gf_list_enum(movie->moof->TrackList, &i))) {
+		/*remove base data*/
+		traf->tfhd->base_data_offset = 0;
+		j=0;
+		while ((trun =  gf_list_enum(traf->TrackRuns, &j))) {
+			if (j==1) {
+				trun->data_offset += offset;
+			} else {
+				trun->data_offset = 0;
+			}
+		}
+	}
+#endif
+}
+
+u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 {
 	u32 sampleCount, i, j, RunSize, UseDefaultSize, RunDur, UseDefaultDur, RunFlags, NeedFlags, UseDefaultFlag, UseCTS, count;
 	GF_TrackFragmentRunBox *trun;
@@ -278,13 +306,14 @@ u32 UpdateRuns(GF_TrackFragmentBox *traf)
 	
 	sampleCount = 0;
 
-
-	//traf data offset - we ALWAYS use data offset indication when writting otherwise
-	//we would need to have one TRUN max in a TRAF for offset reconstruction or store
-	//all TRUN in memory before writting :( Anyway it is much safer to indicate the
-	//base offset of each traf rather than using offset aggregation rules specified 
-	//in the std
-	traf->tfhd->flags = GF_ISOM_TRAF_BASE_OFFSET;
+#ifndef USE_BASE_DATA_OFFSET
+	if (movie->use_segments) {
+		traf->tfhd->flags = 0;
+	} else 
+#endif
+	{
+		traf->tfhd->flags = GF_ISOM_TRAF_BASE_OFFSET;
+	}
 
 	//empty runs
 	if (traf->tfhd->EmptyDuration) {
@@ -421,13 +450,72 @@ u32 UpdateRuns(GF_TrackFragmentBox *traf)
 	return sampleCount;
 }
 
+Bool moof_get_rap_time_offset(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *rap_delta)
+{
+	u32 i, j, delta;
+	GF_TrunEntry *ent;
+	GF_TrackFragmentBox *traf;
+	GF_TrackFragmentRunBox *trun;
+	*rap_delta = 0;
+	for (i=0; i<gf_list_count(moof->TrackList); i++) {
+		traf = gf_list_get(moof->TrackList, i);
+		if (traf->tfhd->trackID==refTrackID) break;
+		traf=NULL;
+	}
+	if (!traf) return 0;
 
+	delta = 0;
+	i=0;
+	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
+		if (trun->flags & GF_ISOM_TRUN_FIRST_FLAG) {
+			if (GF_ISOM_GET_FRAG_SYNC(trun->flags)) {
+				ent = gf_list_get(trun->entries, 0);
+				*rap_delta = delta + ent->CTS_Offset;
+				return 1;
+			}
+		}
+		j=0;
+		while ((ent = gf_list_enum(trun->entries, &j))) {
+			if (GF_ISOM_GET_FRAG_SYNC(ent->flags)) {
+				*rap_delta = delta + ent->CTS_Offset;
+				return 1;
+			}
+			delta += ent->Duration;
+		}
+	}
+	return 0;
+}
 
-GF_Err StoreFragment(GF_ISOFile *movie)
+u32 moof_get_duration(GF_MovieFragmentBox *moof, u32 refTrackID)
+{
+	u32 i, j, duration;
+	GF_TrunEntry *ent;
+	GF_TrackFragmentBox *traf;
+	GF_TrackFragmentRunBox *trun;
+	for (i=0; i<gf_list_count(moof->TrackList); i++) {
+		traf = gf_list_get(moof->TrackList, i);
+		if (traf->tfhd->trackID==refTrackID) break;
+		traf=NULL;
+	}
+	if (!traf) return 0;
+
+	duration = 0;
+	i=0;
+	while ((trun = gf_list_enum(traf->TrackRuns, &i))) {
+		j=0;
+		while ((ent = gf_list_enum(trun->entries, &j))) {
+			duration += ent->Duration;
+		}
+	}
+	return duration;
+}
+
+GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_diff, u32 *moof_size)
 {
 	GF_Err e;
 	u64 moof_start;
-	u32 size, i, s_count;
+	u32 size, i, s_count, mdat_size;
+	s32 offset;
 	char *buffer;
 	GF_TrackFragmentBox *traf;
 	GF_TrackFragmentRunBox *trun;
@@ -435,8 +523,9 @@ GF_Err StoreFragment(GF_ISOFile *movie)
 	if (!movie->moof) return GF_OK;
 
 	bs = movie->editFileMap->bs;
+	if (!movie->moof_first) load_mdat_only = 0;
 
-	//1- flush all caches
+	//1 - flush all caches
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(movie->moof->TrackList, &i))) {
 		if (!traf->DataCache) continue;
@@ -446,24 +535,55 @@ GF_Err StoreFragment(GF_ISOFile *movie)
 		if (!trun->cache || !trun->sample_count) continue;
 		
 		//update offset
-		trun->data_offset = (u32) (gf_bs_get_position(movie->editFileMap->bs) - movie->current_top_box_start - 8);
+		trun->data_offset = (u32) (gf_bs_get_position(bs) - movie->moof->fragment_offset - 8);
 		//write cache
 		gf_bs_get_content(trun->cache, &buffer, &size);
-		gf_bs_write_data(movie->editFileMap->bs, buffer, size);
+		gf_bs_write_data(bs, buffer, size);
 		gf_bs_del(trun->cache);
 		gf_free(buffer);
 		trun->cache = NULL;
+		traf->DataCache=0;
 	}
-	//2- update MOOF MDAT header
-	moof_start = gf_bs_get_position(bs);
 
-	//start of MDAT
-	gf_bs_seek(bs, movie->current_top_box_start);
-	//we assume we never write large MDATs in fragment mode which should always be true
-	size = (u32) (moof_start - movie->current_top_box_start);
-	gf_bs_write_u32(bs, (u32) size);
-	gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MDAT);
-	gf_bs_seek(bs, moof_start);
+	if (load_mdat_only) {
+		u64 pos = gf_bs_get_position(bs);
+		//we assume we never write large MDATs in fragment mode which should always be true
+		movie->moof->mdat_size = (u32) (pos - movie->moof->fragment_offset);
+		movie->moof->mdat = gf_malloc(sizeof(char) * movie->moof->mdat_size);
+		if (!movie->moof->mdat) return GF_OUT_OF_MEM;
+		gf_bs_seek(bs, movie->segment_start);
+		/*write mdat size*/
+		gf_bs_write_u32(bs, (u32) movie->moof->mdat_size);
+		gf_bs_seek(bs, movie->segment_start);
+		gf_bs_read_data(bs, movie->moof->mdat, movie->moof->mdat_size);
+		gf_bs_seek(bs, movie->segment_start);
+		gf_bs_truncate(bs);
+		return GF_OK;
+	}
+
+
+	moof_start = gf_bs_get_position(bs);
+	//2- update MOOF MDAT header
+	if (!movie->moof->mdat) {
+		gf_bs_seek(bs, movie->moof->fragment_offset);
+		//we assume we never write large MDATs in fragment mode which should always be true
+		mdat_size = (u32) (moof_start - movie->moof->fragment_offset);
+		gf_bs_write_u32(bs, (u32) mdat_size);
+		gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_MDAT);
+		gf_bs_seek(bs, moof_start);
+	}
+
+	/*estimate moof size and shift trun offsets*/
+#ifndef USE_BASE_DATA_OFFSET
+	offset = 0;
+	if (movie->use_segments) {
+		e = gf_isom_box_size((GF_Box *) movie->moof);
+		offset = (s32) movie->moof->size;
+		/*mdat size & type*/
+		offset += 8;
+		update_trun_offsets(movie, offset);
+	}
+#endif
 
 	//3- clean our traf's
 	i=0;
@@ -471,7 +591,7 @@ GF_Err StoreFragment(GF_ISOFile *movie)
 		//compute default settings for the TRAF
 		ComputeFragmentDefaults(traf);
 		//updates all trun and set all flags, INCLUDING TRAF FLAGS (durations, ...)
-		s_count = UpdateRuns(traf);
+		s_count = UpdateRuns(movie, traf);
 		//empty fragment destroy it
 		if (!traf->tfhd->EmptyDuration && !s_count) {
 			i--;
@@ -481,21 +601,204 @@ GF_Err StoreFragment(GF_ISOFile *movie)
 		}
 	}
 
+	buffer = NULL;
+	/*rewind bitstream and load mdat in memory */
+	if (movie->moof_first && !movie->moof->mdat) {
+		buffer = gf_malloc(sizeof(char)*mdat_size);
+		gf_bs_seek(bs, movie->moof->fragment_offset);
+		gf_bs_read_data(bs, buffer, mdat_size);
+		/*back to mdat start and erase with moov*/
+		gf_bs_seek(bs, movie->moof->fragment_offset);
+		gf_bs_truncate(bs);
+	}
+
 	//4- Write moof
 	e = gf_isom_box_size((GF_Box *) movie->moof);
 	if (e) return e;
+	/*moof first, update traf headers - THIS WILL IMPACT THE MOOF SIZE IF WE 
+	DECIDE NOT TO USE THE DATA-OFFSET FLAG*/
+	if (movie->moof_first 
+#ifndef USE_BASE_DATA_OFFSET
+	&& !movie->use_segments
+#endif
+	) {
+		i=0;
+		while ((traf = (GF_TrackFragmentBox*)gf_list_enum(movie->moof->TrackList, &i))) {
+			/*offset increases by moof size*/
+			traf->tfhd->base_data_offset += movie->moof->size;
+			traf->tfhd->base_data_offset += data_offset_diff;
+		}
+	} 
+#ifndef USE_BASE_DATA_OFFSET
+	else if (movie->use_segments) {
+		if (offset != (movie->moof->size+8)) {
+			offset = (s32) (movie->moof->size + 8 - offset);
+			update_trun_offsets(movie, offset);
+			e = gf_isom_box_size((GF_Box *) movie->moof);
+		}
+	}
+#endif
+
 	e = gf_isom_box_write((GF_Box *) movie->moof, bs);
 	if (e) return e;
-	
-	//5- destroy our moof
-	gf_isom_box_del((GF_Box *) movie->moof);
-	movie->moof = NULL;
-	movie->NextMoofNumber ++;
+
+	//rewrite mdat after moof
+	if (movie->moof->mdat) {
+		gf_bs_write_data(bs, movie->moof->mdat, movie->moof->mdat_size);
+		gf_free(movie->moof->mdat);
+		movie->moof->mdat = NULL;
+	} else if (buffer) {
+		gf_bs_write_data(bs, buffer, mdat_size);
+		gf_free(buffer);
+	}
+
+	if (moof_size) *moof_size = (u32) movie->moof->size;
+
+	if (!movie->use_segments) {
+		gf_isom_box_del((GF_Box *) movie->moof);	
+		movie->moof = NULL;
+	}
 	return GF_OK;
 }
 
 
-GF_Err gf_isom_start_fragment(GF_ISOFile *movie, u32 free_data_insert_size)
+
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenceTrackID, GF_SIDXTrackTimes *tracks_times, u32 nb_times, Bool daisy_chain_sidx)
+{
+	GF_SegmentIndexBox *sidx=NULL;
+	u64 sidx_start, sidx_end;
+	u32 count, nb_subsegs, idx;
+	GF_Err e;
+	//and only at setup
+	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
+
+	count = gf_list_count(movie->moov->mvex->TrackExList);
+	if (!count) return GF_BAD_PARAM;
+
+	count = gf_list_count(movie->moof_list);
+	if (!count) return GF_OK;
+	/*store fragment*/
+	if (movie->moof) {
+		e = StoreFragment(movie, 1, 0, NULL);
+		if (e) return e;
+	}
+	gf_bs_seek(movie->editFileMap->bs, movie->segment_start);
+	gf_bs_truncate(movie->editFileMap->bs);
+
+
+	/*write STYP*/
+	movie->brand->type = GF_ISOM_BOX_TYPE_STYP;
+    e = gf_isom_box_size((GF_Box *) movie->brand);
+    if (e) return e;
+    e = gf_isom_box_write((GF_Box *) movie->brand, movie->editFileMap->bs);
+    if (e) return e;
+
+	/*prepare SIDX*/
+	if (referenceTrackID) {
+		sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
+		sidx->reference_track_ID = referenceTrackID;
+		sidx->nb_track_times = nb_times;
+		sidx->tracks_times = tracks_times;
+
+		if (!frags_per_sidx) nb_subsegs = 1;
+		else nb_subsegs = count/frags_per_sidx;
+		sidx->nb_refs = nb_subsegs;
+		sidx->refs = gf_malloc(sizeof(GF_SIDXReference)*nb_subsegs);
+		memset(sidx->refs, 0, sizeof(GF_SIDXReference)*nb_subsegs);
+
+		/*remember start of sidx*/
+		sidx_start = gf_bs_get_position(movie->editFileMap->bs);
+
+		e = gf_isom_box_size((GF_Box *) sidx);
+		if (e) return e;
+		e = gf_isom_box_write((GF_Box *) sidx, movie->editFileMap->bs);
+		if (e) return e;
+
+		sidx_end = gf_bs_get_position(movie->editFileMap->bs);
+	
+		count = idx = 0;
+	}
+
+
+	/*write all moofs*/
+	e = GF_OK;
+	while (gf_list_count(movie->moof_list)) {
+		s32 offset_diff;
+		u32 moof_size;
+		movie->moof = gf_list_get(movie->moof_list, 0);
+		gf_list_rem(movie->moof_list, 0);
+		offset_diff = (s32) (gf_bs_get_position(movie->editFileMap->bs) - movie->moof->fragment_offset);
+		movie->moof->fragment_offset = gf_bs_get_position(movie->editFileMap->bs);
+		if (!e) {
+			if (sidx && !count) {
+				/*we refer to next moof*/
+				sidx->refs[idx].reference_type = 0;
+				sidx->refs[idx].contains_RAP = moof_get_rap_time_offset(movie->moof, referenceTrackID, & sidx->refs[idx].RAP_delta_time);
+				sidx->refs[idx].subsegment_duration += moof_get_duration(movie->moof, referenceTrackID);
+				/*reference offset is startof the moof we're about to write*/
+				sidx->refs[idx].reference_offset = (u32) ( gf_bs_get_position(movie->editFileMap->bs) - sidx_end) ;
+			}
+			e = StoreFragment(movie, 0, offset_diff, &moof_size);
+			
+			if (sidx) {
+				count++;
+				if (count==frags_per_sidx) {
+					count = 0;
+					idx++;
+				}
+			}
+		} 
+		gf_isom_box_del((GF_Box *) movie->moof);	
+		movie->moof = NULL;
+	}
+
+	if (sidx) {
+		u64 pos = gf_bs_get_position(movie->editFileMap->bs);
+		/*write sidx*/
+		gf_bs_seek(movie->editFileMap->bs, sidx_start);
+		e = gf_isom_box_write((GF_Box *) sidx, movie->editFileMap->bs);
+		gf_bs_seek(movie->editFileMap->bs, pos);
+
+		sidx->tracks_times=NULL;
+		sidx->nb_track_times=0;
+		gf_isom_box_del((GF_Box*)sidx);
+	}
+	return e;
+}
+
+GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
+{
+	if (movie->use_segments) {
+		return gf_isom_close_segment(movie, 0, 0, NULL, 0, 0);
+	} else {
+		return StoreFragment(movie, 0, 0, NULL);
+	}
+}
+
+GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName)
+{
+	GF_Err e;
+	//and only at setup
+	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
+
+	if (gf_list_count(movie->moof_list)) return GF_BAD_PARAM;
+
+	/*update segment file*/
+	if (SegName) {
+		gf_isom_datamap_del(movie->editFileMap);
+		e = gf_isom_datamap_new(SegName, NULL, GF_ISOM_DATA_MAP_WRITE, & movie->editFileMap);
+		movie->segment_start = 0;
+		return e;
+	}	
+	assert(gf_list_count(movie->moof_list) == 0);
+	movie->segment_start = gf_bs_get_position(movie->editFileMap->bs);
+	return GF_OK;
+}
+
+
+GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 {
 	u32 i, count;
 	GF_TrackExtendsBox *trex;
@@ -508,14 +811,19 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, u32 free_data_insert_size)
 	count = gf_list_count(movie->moov->mvex->TrackExList);
 	if (!count) return GF_BAD_PARAM;
 
-	//store fragment
+	/*always force cached mode when writing movie segments*/
+	if (movie->use_segments) moof_first = 1;
+	movie->moof_first = moof_first;
+
+	//store existing fragment
 	if (movie->moof) {
-		e = StoreFragment(movie);
+		e = StoreFragment(movie, movie->use_segments ? 1 : 0, 0, NULL);
 		if (e) return e;
 	}
  	
     /* Inserting free data for testing HTTP streaming */
-    if (free_data_insert_size) {
+#if 0
+	if (0) {
         GF_FreeSpaceBox *fb = (GF_FreeSpaceBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FREE);
         fb->dataSize = free_data_insert_size;
         //gf_list_add(movie->TopBoxes, fb);
@@ -525,16 +833,22 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, u32 free_data_insert_size)
 	    if (e) return e;
         gf_isom_box_del((GF_Box *)fb);
     }
-
-	//format MDAT
-	movie->current_top_box_start = gf_bs_get_position(movie->editFileMap->bs);
-	gf_bs_write_u32(movie->editFileMap->bs, 0);
-	gf_bs_write_u32(movie->editFileMap->bs, GF_ISOM_BOX_TYPE_MDAT);
+#endif
 
 	//create new fragment
 	movie->moof = (GF_MovieFragmentBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MOOF);
 	movie->moof->mfhd = (GF_MovieFragmentHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MFHD);
 	movie->moof->mfhd->sequence_number = movie->NextMoofNumber;
+	movie->NextMoofNumber ++;
+	if (movie->use_segments) 
+		gf_list_add(movie->moof_list, movie->moof);
+
+
+	/*remember segment offset*/
+	movie->moof->fragment_offset = gf_bs_get_position(movie->editFileMap->bs);
+	/*prepare MDAT*/
+	gf_bs_write_u32(movie->editFileMap->bs, 0);
+	gf_bs_write_u32(movie->editFileMap->bs, GF_ISOM_BOX_TYPE_MDAT);
 	
 	//we create a TRAF for each setup track, unused ones will be removed at store time
 	for (i=0; i<count; i++) {
@@ -544,7 +858,7 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, u32 free_data_insert_size)
 		traf->tfhd = (GF_TrackFragmentHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TFHD);
 		traf->tfhd->trackID = trex->trackID;
 		//add 8 bytes (MDAT size+type) to avoid the data_offset in the first trun
-		traf->tfhd->base_data_offset = movie->current_top_box_start + 8;
+		traf->tfhd->base_data_offset = movie->moof->fragment_offset + 8;
 		gf_list_add(movie->moof->TrackList, traf);
 	}
 	return GF_OK;
@@ -591,7 +905,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 			count = gf_list_count(traf->TrackRuns);
 			if (count) {
 				trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, count-1);
-				trun->data_offset = (u32) (pos - movie->current_top_box_start - 8);
+				trun->data_offset = (u32) (pos - movie->moof->fragment_offset - 8);
 				gf_bs_get_content(trun->cache, &buffer, &buffer_size);
 				gf_bs_write_data(movie->editFileMap->bs, buffer, buffer_size);
 				gf_bs_del(trun->cache);
@@ -604,7 +918,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 		traf_2->tfhd = (GF_TrackFragmentHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TFHD);
 		traf_2->tfhd->trackID = traf->tfhd->trackID;
 		//keep the same offset
-		traf_2->tfhd->base_data_offset = movie->current_top_box_start + 8;
+		traf_2->tfhd->base_data_offset = movie->moof->fragment_offset + 8;
 		gf_list_add(movie->moof->TrackList, traf_2);
 
 		//duplicate infos
@@ -617,12 +931,13 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	}
 
 
+	pos = gf_bs_get_position(movie->editFileMap->bs);
 	//add TRUN entry
 	count = gf_list_count(traf->TrackRuns);
 	if (count) {
 		trun = (GF_TrackFragmentRunBox *)gf_list_get(traf->TrackRuns, count-1);
 		//check data offset when no caching as trun entries shall ALWAYS be contiguous samples
-		if (!traf->DataCache && (movie->current_top_box_start + 8 + trun->data_offset + GetRunSize(trun) != pos) )
+		if (!traf->DataCache && (movie->moof->fragment_offset + 8 + trun->data_offset + GetRunSize(trun) != pos) )
 			count = 0;
 		
 		//check I-frame detection
@@ -634,7 +949,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 
 		//if data cache is on and we're changing TRUN, store the cache and update data offset
 		if (!count && traf->DataCache) {
-			trun->data_offset = (u32) (pos - movie->current_top_box_start - 8);
+			trun->data_offset = (u32) (pos - movie->moof->fragment_offset - 8);
 			gf_bs_get_content(trun->cache, &buffer, &buffer_size);
 			gf_bs_write_data(movie->editFileMap->bs, buffer, buffer_size);
 			gf_bs_del(trun->cache);
@@ -647,7 +962,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	if (!count) {
 		trun = (GF_TrackFragmentRunBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TRUN);
 		//store data offset (we have the 8 btyes offset of the MDAT)
-		trun->data_offset = (u32) (pos - movie->current_top_box_start - 8);
+		trun->data_offset = (u32) (pos - movie->moof->fragment_offset - 8);
 		gf_list_add(traf->TrackRuns, trun);
 
 		//if we use data caching, create a bitstream

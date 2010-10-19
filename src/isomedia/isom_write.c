@@ -2291,6 +2291,76 @@ GF_Err gf_isom_clone_pl_indications(GF_ISOFile *orig, GF_ISOFile *dest)
 	return GF_OK;
 }
 
+static GF_Err clone_box(GF_Box *src, GF_Box **dst)
+{
+	GF_Err e;
+	char *data;
+	u32 data_size;
+	GF_BitStream *bs;
+
+	if (*dst) {
+		gf_isom_box_del(*dst);
+		*dst=NULL;
+	}
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!bs) return GF_OUT_OF_MEM;
+	e = gf_isom_box_size( (GF_Box *) src);
+	if (!e) e = gf_isom_box_write((GF_Box *) src, bs);
+	gf_bs_get_content(bs, &data, &data_size);
+	gf_bs_del(bs);
+	if (e) return e;
+	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+	if (!bs) return GF_OUT_OF_MEM;
+	e = gf_isom_parse_box(dst, bs);
+	gf_bs_del(bs);
+	gf_free(data);
+	return e;
+}
+GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool clone_tracks, Bool keep_hint_tracks)
+{
+	GF_Err e;
+	
+	e = CanAccessMovie(dest_file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	if (orig_file->brand) 
+		clone_box((GF_Box *)orig_file->brand, (GF_Box **)&dest_file->brand);
+
+	if (orig_file->meta) {
+		/*fixme - check imports*/
+		clone_box((GF_Box *)orig_file->meta, (GF_Box **)dest_file->meta);
+	}
+	if (orig_file->moov) {
+		u32 i, dstTrack;
+		GF_Box *iods;
+		GF_List *tracks = gf_list_new();
+		GF_List *old_tracks = orig_file->moov->trackList;
+		orig_file->moov->trackList = tracks;
+		iods = (GF_Box*)orig_file->moov->iods;
+		orig_file->moov->iods = NULL;
+		clone_box((GF_Box *)orig_file->moov, (GF_Box **)&dest_file->moov);
+		orig_file->moov->trackList = old_tracks;
+		gf_list_del(tracks);
+		orig_file->moov->iods = (GF_ObjectDescriptorBox*)iods;
+		if (clone_tracks) { 
+			for (i=0; i<gf_list_count(orig_file->moov->trackList); i++) {
+				GF_TrackBox *trak = gf_list_get( orig_file->moov->trackList, i);
+				if (!trak) continue;
+				if (keep_hint_tracks || (trak->Media->handler->handlerType != GF_ISOM_MEDIA_HINT)) {
+					e = gf_isom_clone_track(orig_file, i+1, dest_file, 1, &dstTrack);
+					if (e) return e;
+				}
+			}
+			if (iods) 
+				clone_box((GF_Box *)orig_file->moov->iods, (GF_Box **)dest_file->moov->iods);
+		} else {
+			dest_file->moov->mvhd->nextTrackID = 1;
+			gf_isom_clone_pl_indications(orig_file, dest_file);
+		}
+	}
+	return GF_OK;
+}
+
 
 
 GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *dest_file, Bool keep_data_ref, u32 *dest_track)
