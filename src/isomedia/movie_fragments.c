@@ -703,6 +703,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenc
 
 		if (!frags_per_sidx) nb_subsegs = 1;
 		else nb_subsegs = count/frags_per_sidx;
+		if (!nb_subsegs) nb_subsegs=1;
 		sidx->nb_refs = nb_subsegs;
 		sidx->refs = gf_malloc(sizeof(GF_SIDXReference)*nb_subsegs);
 		memset(sidx->refs, 0, sizeof(GF_SIDXReference)*nb_subsegs);
