@@ -281,10 +281,10 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 		ctx->stride = pic.Width + 32;
 		ctx->height = pic.Height;
 		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
-//		if (ctx->out_size > *outBufferLength) {
-			*outBufferLength = ctx->out_size;
-			return GF_BUFFER_TOO_SMALL;
-//		}
+
+		/*always force layer resize*/
+		*outBufferLength = ctx->out_size;
+		return GF_BUFFER_TOO_SMALL;
 	}
 	*outBufferLength = ctx->out_size;
 	memcpy(outBuffer, pic.pY[0], ctx->stride*ctx->height);
