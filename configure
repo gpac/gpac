@@ -1762,7 +1762,7 @@ echo "#define GPAC_DISABLE_LASER" >> $TMPH
 fi
 if test "$disable_beng" = "yes" ; then
 echo "Scene encoder engine disabled"
-echo "#define GPAC_DISABLE_BENG" >> $TMPH
+echo "#define GPAC_DISABLE_SENG" >> $TMPH
 fi
 if test "$disable_qtvr" = "yes" ; then
 echo "Cubic QTVR import disabled"
@@ -1808,7 +1808,7 @@ if test "$disable_scene_dump" = "yes" ; then
 echo "Scene dump disabled"
 echo "#define GPAC_DISABLE_SCENE_DUMP" >> $TMPH
 fi
-if test "$disable_scene_encoder" = "yes" ; then
+if test "$disable_scene_encode" = "yes" ; then
 echo "Scene encoder to ISO FF disabled"
 echo "#define GPAC_DISABLE_SCENE_ENCODER" >> $TMPH
 fi
