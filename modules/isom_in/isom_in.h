@@ -56,7 +56,8 @@ typedef struct
 	Bool no_service_desc;
 	u32 base_track_id;
 
-	Bool is_frag;
+	/*0: not fragmented - 1 fragmented - 2 fragmented and last fragment received*/
+	u32 frag_type;
 } ISOMReader;
 
 

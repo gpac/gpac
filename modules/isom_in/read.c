@@ -154,7 +154,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 		gf_term_on_connect(read->service, NULL, e);
 		return;
 	}
-	read->is_frag = gf_isom_is_fragmented(read->mov);
+	read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
 	
 	/*ok let's go*/
 	read->time_scale = gf_isom_get_timescale(read->mov);
@@ -208,7 +208,7 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 			gf_term_on_connect(serv, NULL, gf_isom_last_error(NULL));
 			return GF_OK;
 		}
-		read->is_frag = gf_isom_is_fragmented(read->mov);
+		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
 
 		read->time_scale = gf_isom_get_timescale(read->mov);
 		/*reply to user*/
@@ -700,9 +700,12 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_NOT_SUPPORTED;
 	}
 	if (com->command_type==GF_NET_SERVICE_CACHE_REFRESH) {
-		if (read->is_frag) {
+		if (read->frag_type) {
 			u64 mBytes;
-			gf_isom_refresh_fragmented(read->mov, &mBytes);
+			GF_Err e = gf_isom_refresh_fragmented(read->mov, &mBytes);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[ISO Reader] Invalid segment %s\n", gf_error_to_string(e)));
+			}
 		}
 		return GF_OK;
 	}
