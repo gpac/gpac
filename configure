@@ -113,6 +113,7 @@ disable_qtvr="no"
 disable_avi="no"
 disable_m2ps="no"
 disable_m2ts="no"
+disable_m2ts_mux="no"
 disable_ogg="no"
 disable_parsers="no"
 disable_import="no"
@@ -227,6 +228,7 @@ echo "  --disable-avi            disable AVI"
 echo "  --disable-ogg            disable OGG"
 echo "  --disable-m2ps           disable MPEG2 PS"
 echo "  --disable-m2ts           disable MPEG2 TS"
+echo "  --disable-m2ts-mux       disable MPEG2 TS Multiplexer"
 echo "  --disable-parsers        disable AV parsers"
 echo "  --disable-import         disable media importers"
 echo "  --disable-export         disable media exporters"
@@ -1336,7 +1338,7 @@ has_png=$tmp_has_png
   --enable-pulseaudio=*) has_pulseaudio="yes"
   ;;
   
-  --disable-all) has_pulseaudio="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_beng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"
+  --disable-all) has_pulseaudio="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_beng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"
   ;;
   
   --disable-3d) disable_3d="yes"
@@ -1394,6 +1396,10 @@ has_png=$tmp_has_png
   --disable-m2ts) disable_m2ts="yes"
   ;;
   --enable-m2ts) disable_m2ts="no"
+  ;;
+  --disable-m2ts-mux) disable_m2ts_mux="yes"
+  ;;
+  --enable-m2ts-mux) disable_m2ts_mux="no"
   ;;
   --disable-parsers) disable_parsers="yes"
   ;;
@@ -1783,6 +1789,10 @@ fi
 if test "$disable_m2ts" = "yes" ; then
 echo "MPEG-2 TS disabled"
 echo "#define GPAC_DISABLE_MPEG2TS" >> $TMPH
+fi
+if test "$disable_m2ts_mux" = "yes" ; then
+echo "MPEG-2 TS Multiplexer disabled"
+echo "#define GPAC_DISABLE_MPEG2TS_MUX" >> $TMPH
 fi
 if test "$disable_parsers" = "yes" ; then
 echo "AV Parsers disabled"
