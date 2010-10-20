@@ -303,6 +303,104 @@ static u32 latm_get_value(GF_BitStream *bs)
 	return value;
 }
 
+typedef struct
+{
+	Bool is_mp2, no_crc;
+	u32 profile, sr_idx, nb_ch, frame_size;
+} ADTSHeader;
+
+static void gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
+{
+	ADTSHeader hdr;
+	u32 sc_pos = 0;
+	u32 start = 0;
+	u32 hdr_size = 0;
+	GF_M2TS_PES_PCK pck;
+
+	if (PTS) {
+		pes->PTS = PTS;
+		if (DTS) pes->DTS = DTS;
+		else pes->DTS = PTS;
+	}
+	/*dispatch frame*/
+	pck.stream = pes;
+	pck.DTS = pes->DTS;
+	pck.PTS = pes->PTS;
+	pck.flags = 0;
+
+	while (sc_pos+2<data_len) {
+		u32 size;
+		GF_BitStream *bs;
+		/*look for sync marker 0xFFF0 on 12 bits*/
+		if ((data[sc_pos]!=0xFF) || ((data[sc_pos+1] & 0xF0) != 0xF0)) {
+			sc_pos++;
+			continue;
+		}
+
+		/*flush any pending data*/
+		if (start < sc_pos) {
+			/*dispatch frame*/
+			pck.stream = pes;
+			pck.DTS = pes->PTS;
+			pck.PTS = pes->PTS;
+			pck.flags = 0;
+			pck.data = data+start;
+			pck.data_len = sc_pos-start;
+		}
+
+		bs = gf_bs_new(data + sc_pos + 1, 9, GF_BITSTREAM_READ);
+		gf_bs_read_int(bs, 4);
+		hdr.is_mp2 = gf_bs_read_int(bs, 1);
+		gf_bs_read_int(bs, 2);
+		hdr.no_crc = gf_bs_read_int(bs, 1);
+
+		hdr.profile = 1 + gf_bs_read_int(bs, 2);
+		hdr.sr_idx = gf_bs_read_int(bs, 4);
+		gf_bs_read_int(bs, 1);
+		hdr.nb_ch = gf_bs_read_int(bs, 3);
+		gf_bs_read_int(bs, 4);
+		hdr.frame_size = gf_bs_read_int(bs, 13);
+		gf_bs_read_int(bs, 11);
+		gf_bs_read_int(bs, 2);
+		if (!hdr.no_crc) gf_bs_read_int(bs, 16);
+		hdr_size = hdr.no_crc ? 7 : 9;
+
+		gf_bs_del(bs);
+
+		if (pes->aud_sr != GF_M4ASampleRates[hdr.sr_idx]) {
+			GF_M4ADecSpecInfo cfg;
+			pck.stream = pes;
+			memset(&cfg, 0, sizeof(GF_M4ADecSpecInfo));
+			cfg.base_object_type = hdr.profile;
+			cfg.base_sr = GF_M4ASampleRates[hdr.sr_idx];
+			cfg.nb_chan = hdr.nb_ch;
+			cfg.sbr_object_type = 0;
+			gf_m4a_write_config(&cfg, &pck.data, &pck.data_len);
+			ts->on_event(ts, GF_M2TS_EVT_AAC_CFG, &pck);
+			gf_free(pck.data);
+			pes->aud_sr = cfg.base_sr;
+			pes->aud_nb_ch = cfg.nb_chan;
+		}
+
+		/*dispatch frame*/
+		pck.stream = pes;
+		pck.DTS = pes->PTS;
+		pck.PTS = pes->PTS;
+		pck.flags = GF_M2TS_PES_PCK_AU_START | GF_M2TS_PES_PCK_RAP;
+		pck.data = data + sc_pos + hdr_size;
+		pck.data_len = hdr.frame_size - hdr_size;
+
+		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
+		sc_pos += hdr.frame_size; 
+		start = sc_pos;
+		/*update PTS in case we don't get any update*/
+		if (pes->aud_sr) {
+			size = 1024*90000/pes->aud_sr;
+			pes->PTS += size;
+		}
+	}
+}
+
 static void gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 DTS, u64 PTS, unsigned char *data, u32 data_len)
 {
 	u32 sc_pos = 0;
@@ -1859,6 +1957,9 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			break;
 		case GF_M2TS_VIDEO_H264:
 			pes->reframe = gf_m2ts_reframe_avc_h264;
+			break;
+		case GF_M2TS_AUDIO_AAC:
+			pes->reframe = gf_m2ts_reframe_aac_adts;
 			break;
 		case GF_M2TS_AUDIO_LATM_AAC:
 			pes->reframe = gf_m2ts_reframe_aac_latm;
