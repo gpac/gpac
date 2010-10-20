@@ -2518,7 +2518,7 @@ int main(int argc, char **argv)
 		}
 		if (e) goto err_exit;
 	}
-	if (!needSave) {
+	if (!open_edit) {
 		if (file) gf_isom_delete(file);
 		gf_sys_close();
 		return 0;
