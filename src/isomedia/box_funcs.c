@@ -131,6 +131,7 @@ proceed_box:
 	if (size - hdr_size > end ) {
 		newBox->size = size - hdr_size - end;
 		*outBox = newBox;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Incomplete box %s\n", gf_4cc_to_str(newBox->type) ));
 		return GF_ISOM_INCOMPLETE_FILE;
 	}
 	//we need a special reading for these boxes...
