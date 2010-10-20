@@ -265,6 +265,12 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 
 	gf_import_message(import, GF_OK, "%s import %s - size %d x %d", (OTI==GPAC_OTI_IMAGE_JPEG) ? "JPEG" : (OTI==GPAC_OTI_IMAGE_PNG) ? "PNG" : "JPEG2000", import->in_name, w, h);
 
+	/*we must start a track from DTS = 0*/
+	if (!gf_isom_get_sample_count(import->dest, track) && samp->DTS) {
+		/*todo - we could add an edit list*/
+		samp->DTS=0;
+	}
+
 	gf_set_progress("Importing Image", 0, 1);
 	if (import->flags & GF_IMPORT_USE_DATAREF) {
 		e = gf_isom_add_sample_reference(import->dest, track, di, samp, (u64) 0);
