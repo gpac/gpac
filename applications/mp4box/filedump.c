@@ -814,11 +814,13 @@ void dump_file_ts(GF_ISOFile *file, char *inName)
 			GF_ISOSample *samp = gf_isom_get_sample_info(file, i+1, j+1, NULL, NULL);
 			dts = samp->DTS;
 			cts = dts + (s32) samp->CTS_Offset;
-			gf_isom_sample_del(&samp);
 
 			fprintf(dump, "Sample %d - DTS "LLD" - CTS "LLD"", j+1, LLD_CAST dts, LLD_CAST cts);
+			if (samp->IsRAP) fprintf(dump, " - RAP");
 			if (cts<dts) { fprintf(dump, " #NEGATIVE CTS OFFSET!!!"); has_error = 1;}
 		
+			gf_isom_sample_del(&samp);
+
 			if (has_cts_offset) {
 				for (k=0; k<count; k++) {
 					u64 adts, acts;
