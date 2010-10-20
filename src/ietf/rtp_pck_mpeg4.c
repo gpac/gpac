@@ -451,7 +451,7 @@ GF_Err gp_rtp_builder_do_avc(GP_RTPPacketizer *builder, char *nalu, u32 nalu_siz
 	/*pb: we don't know if next NALU from this AU will be small enough to fit in the packet, so we always
 	go for stap...*/
 	if (builder->bytesInPacket+nalu_size<builder->Path_MTU) {
-		Bool use_stap = 0;
+		Bool use_stap = 1;
 		/*if this is the AU end and no NALU in packet, go for single mode*/
 		if (IsAUEnd && !builder->bytesInPacket) use_stap = 0;
 		
