@@ -1655,7 +1655,7 @@ static const struct { u32 w, h; } avc_sar[14] =
 };
 
 /*ISO 14496-10 (N11084) E.1.2*/
-static void avc_skip_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
+static void avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 {
 	int i, cpb_cnt_minus1;
 
@@ -1677,11 +1677,95 @@ static void avc_skip_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 	return;
 }
 
-s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
+/*returns the nal_size without emulation prevention bytes*/
+static u32 avc_emulation_bytes_count(unsigned char *buffer, u32 nal_size)
+{
+	u32 i = 0, emulation_bytes_count = 0;
+	u8 num_zero = 0;
+
+	while (i < nal_size)
+	{
+		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
+		  other than the following sequences shall not occur at any byte-aligned position:
+		  – 0x00000300
+		  – 0x00000301
+		  – 0x00000302
+		  – 0x00000303"
+		*/
+		if (num_zero == 2
+			&& buffer[i] == 0x03
+			&& i+1 < nal_size /*next byte is readable*/
+			&& buffer[i+1] < 0x04)
+		{
+			/*emulation code found*/
+			num_zero = 0;
+			emulation_bytes_count++;
+			i++;
+		}
+
+		if (!buffer[i])
+			num_zero++;
+		else
+			num_zero = 0;
+
+		i++;
+	}
+
+	return emulation_bytes_count;
+}
+
+/*nal_size is updated to allow better error detection*/
+static u32 avc_remove_emulation_bytes(const unsigned char *buffer_src, unsigned char *buffer_dst, u32 nal_size) 
+{ 
+	u32 i = 0, emulation_bytes_count = 0;
+	u8 num_zero = 0; 
+
+	while (i < nal_size) 
+	{ 
+		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003 
+		  other than the following sequences shall not occur at any byte-aligned position: 
+		  0x00000300 
+		  0x00000301 
+		  0x00000302 
+		  0x00000303" 
+		*/ 
+		if (num_zero == 2 
+			&& buffer_src[i] == 0x03 
+			&& i+1 < nal_size /*next byte is readable*/ 
+			&& buffer_src[i+1] < 0x04) 
+		{ 
+			/*emulation code found*/ 
+			num_zero = 0;
+			emulation_bytes_count++;
+			i++;
+		}
+
+		buffer_dst[i-emulation_bytes_count] = buffer_src[i];
+
+		if (!buffer_src[i]) 
+			num_zero++; 
+		else 
+			num_zero = 0; 
+
+		i++; 
+	} 
+	
+	return nal_size-emulation_bytes_count; 
+} 
+
+s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
 {
 	AVC_SPS *sps;
 	s32 mb_width, mb_height;
 	u32 sps_id, profile_idc, level_idc, pcomp, i, chroma_format_idc, cl, cr, ct, cb;
+	GF_BitStream *bs;
+	char *sps_data_without_emulation_bytes = NULL;
+	u32 sps_data_without_emulation_bytes_size = 0;
+
+	/*SPS still contains emulation bytes*/
+	sps_data_without_emulation_bytes = gf_malloc(sps_size*sizeof(char));
+	sps_data_without_emulation_bytes_size = avc_remove_emulation_bytes(sps_data, sps_data_without_emulation_bytes, sps_size);
+	bs = gf_bs_new(sps_data_without_emulation_bytes, sps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	
 	if (vui_flag_pos) *vui_flag_pos = 0;
 
@@ -1745,8 +1829,10 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_fl
 		sps->poc_cycle_length = avc_get_ue(bs);
 		for(i=0; i<sps->poc_cycle_length; i++) sps->offset_for_ref_frame[i] = avc_get_se(bs);
 	}
-	if (sps->poc_type > 2) 
+	if (sps->poc_type > 2) {
+		gf_free(sps_data_without_emulation_bytes);
 		return -1;
+	}
 	avc_get_ue(bs); /*ref_frame_count*/
 	gf_bs_read_int(bs, 1); /*gaps_in_frame_num_allowed_flag*/
 	mb_width = avc_get_ue(bs) + 1;
@@ -1815,11 +1901,11 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_fl
 
 		sps->vui.nal_hrd_parameters_present_flag = gf_bs_read_int(bs, 1);
 		if (sps->vui.nal_hrd_parameters_present_flag)
-			avc_skip_hrd_parameters(bs, &sps->vui.hrd);
+			avc_parse_hrd_parameters(bs, &sps->vui.hrd);
 
 		sps->vui.vcl_hrd_parameters_present_flag = gf_bs_read_int(bs, 1);
 		if (sps->vui.vcl_hrd_parameters_present_flag)
-			avc_skip_hrd_parameters(bs, &sps->vui.hrd);
+			avc_parse_hrd_parameters(bs, &sps->vui.hrd);
 
 		if (sps->vui.nal_hrd_parameters_present_flag || sps->vui.vcl_hrd_parameters_present_flag)
 			gf_bs_read_int(bs, 1); /*low_delay_hrd_flag*/
@@ -1827,13 +1913,24 @@ s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_fl
 		sps->vui.pic_struct_present_flag = gf_bs_read_int(bs, 1);
 	}
 
+	gf_free(sps_data_without_emulation_bytes);
 	return sps_id;
 }
 
-s32 AVC_ReadPictParamSet(GF_BitStream *bs, AVCState *avc)
+s32 AVC_ReadPictParamSet(char *pps_data, u32 pps_size, AVCState *avc)
 {
-	s32 pps_id = avc_get_ue(bs);
-	AVC_PPS *pps= &avc->pps[pps_id];
+	GF_BitStream *bs;
+	char *pps_data_without_emulation_bytes = NULL;
+	u32 pps_data_without_emulation_bytes_size = 0;
+	s32 pps_id;
+	AVC_PPS *pps;
+
+	/*PPS still contains emulation bytes*/
+	pps_data_without_emulation_bytes = gf_malloc(pps_size*sizeof(char));
+	pps_data_without_emulation_bytes_size = avc_remove_emulation_bytes(pps_data, pps_data_without_emulation_bytes, pps_size);
+	bs = gf_bs_new(pps_data_without_emulation_bytes, pps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
+	pps_id = avc_get_ue(bs);
+	pps = &avc->pps[pps_id];
    
 	if (!pps->status) pps->status = 1;
 	pps->sps_id = avc_get_ue(bs);
@@ -1856,6 +1953,8 @@ s32 AVC_ReadPictParamSet(GF_BitStream *bs, AVCState *avc)
 	/*pps->deblocking_filter_parameters_present = */gf_bs_read_int(bs, 1);
 	/*pps->constrained_intra_pred = */gf_bs_read_int(bs, 1);
 	pps->redundant_pic_cnt_present = gf_bs_read_int(bs, 1);
+
+	gf_free(pps_data_without_emulation_bytes);
 	return pps_id;
 }
 
@@ -1991,21 +2090,22 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 	AVCSeiPicTiming *pt = &avc->sei.pic_timing;
 
 	if (avc->sps[sps_id].vui.nal_hrd_parameters_present_flag || avc->sps[sps_id].vui.vcl_hrd_parameters_present_flag) { /*CpbDpbDelaysPresentFlag, see 14496-10(2003) E.11*/
-		gf_bs_read_int(bs, avc->sps[sps_id].vui.hrd.cpb_removal_delay_length_minus1); /*cpb_removal_delay*/
-		gf_bs_read_int(bs, avc->sps[sps_id].vui.hrd.dpb_output_delay_length_minus1);  /*dpb_output_delay*/
+		gf_bs_read_int(bs, 1+avc->sps[sps_id].vui.hrd.cpb_removal_delay_length_minus1); /*cpb_removal_delay*/
+		gf_bs_read_int(bs, 1+avc->sps[sps_id].vui.hrd.dpb_output_delay_length_minus1);  /*dpb_output_delay*/
 	}
 
 	/*ISO 14496-10 (2003), D.8.2: we need to get pic_struct in order to know if we display top field first or bottom field first*/
 	if (avc->sps[sps_id].vui.pic_struct_present_flag) {
 		pt->pic_struct = gf_bs_read_int(bs, 4);
 		if (pt->pic_struct > 8) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid pic_struct value %d", pt->pic_struct));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid pic_struct value %d\n", pt->pic_struct));
 			return 1;
 		}
 
 		for (i=0; i<NumClockTS[pt->pic_struct]; i++) {
 			if (gf_bs_read_int(bs, 1)) {/*clock_timestamp_flag[i]*/
-				/*not implemented*/
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] not implemented pic_timing part\n", pt->pic_struct));
+				assert(0);
 			}
 		}
 	}
@@ -2262,82 +2362,6 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 	return ret;
 }
 
-/*returns the nal_size without emulation prevention bytes*/
-static u32 avc_emulation_bytes_count(unsigned char *buffer, u32 nal_size)
-{
-	u32 i = 0, emulation_bytes_count = 0;
-	u8 num_zero = 0;
-
-	while (i < nal_size)
-	{
-		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
-		  other than the following sequences shall not occur at any byte-aligned position:
-		  – 0x00000300
-		  – 0x00000301
-		  – 0x00000302
-		  – 0x00000303"
-		*/
-		if (num_zero == 2
-			&& buffer[i] == 0x03
-			&& i+1 < nal_size /*next byte is readable*/
-			&& buffer[i+1] < 0x04)
-		{
-			/*emulation code found*/
-			num_zero = 0;
-			emulation_bytes_count++;
-			i++;
-		}
-
-		if (!buffer[i])
-			num_zero++;
-		else
-			num_zero = 0;
-
-		i++;
-	}
-
-	return emulation_bytes_count;
-}
-
-/*nal_size is updated to allow better error detection*/
-static u32 avc_remove_emulation_bytes(const unsigned char *buffer_src, unsigned char *buffer_dst, u32 nal_size) 
-{ 
-	u32 i = 0, emulation_bytes_count = 0;
-	u8 num_zero = 0; 
-
-	while (i < nal_size) 
-	{ 
-		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003 
-		  other than the following sequences shall not occur at any byte-aligned position: 
-		  0x00000300 
-		  0x00000301 
-		  0x00000302 
-		  0x00000303" 
-		*/ 
-		if (num_zero == 2 
-			&& buffer_src[i] == 0x03 
-			&& i+1 < nal_size /*next byte is readable*/ 
-			&& buffer_src[i+1] < 0x04) 
-		{ 
-			/*emulation code found*/ 
-			num_zero = 0;
-			emulation_bytes_count++;
-			i++;
-		}
-
-		buffer_dst[i-emulation_bytes_count] = buffer_src[i];
-
-		if (!buffer_src[i]) 
-			num_zero++; 
-		else 
-			num_zero = 0; 
-
-		i++; 
-	} 
-	
-	return nal_size-emulation_bytes_count; 
-} 
-
 u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 {
 	u32 ptype, psize, hdr, written, var, emulation_bytes_count;
@@ -2485,15 +2509,14 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 	i=0;
 	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
 		orig = gf_bs_new(slc->data, slc->size, GF_BITSTREAM_READ);
-		/*skip NALU type*/
-		gf_bs_read_int(orig, 8);
-		idx = AVC_ReadSeqInfo(orig, &avc, 0, &bit_offset);
+		idx = AVC_ReadSeqInfo(slc->data+1/*skip NALU type*/, slc->size-1, &avc, 0, &bit_offset);
 		if (idx<0) {
 			gf_bs_del(orig);
 			continue;
 		}
-		mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_read_data(orig, slc->data, slc->size);
 		gf_bs_seek(orig, 0);
+		mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 		/*copy over till vui flag*/
 		while (bit_offset) {
@@ -2558,24 +2581,12 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 GF_EXPORT
 GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d)
 {
-	GF_BitStream *bs;
 	AVCState avc;
 	s32 idx;
-	char *sps_data_without_emulation_bytes = NULL;
-	u32 sps_data_without_emulation_bytes_size = 0;
 	memset(&avc, 0, sizeof(AVCState));
 
-	/*SPS still contains emulation bytes*/
-	sps_data_without_emulation_bytes = gf_malloc(sps_size*sizeof(char));
-	sps_data_without_emulation_bytes_size = avc_remove_emulation_bytes(sps_data, sps_data_without_emulation_bytes, sps_size);
-
-	bs = gf_bs_new(sps_data_without_emulation_bytes, sps_data_without_emulation_bytes_size, GF_BITSTREAM_READ);
-	/*skip NALU type*/
-	gf_bs_read_int(bs, 8);
-	idx = AVC_ReadSeqInfo(bs, &avc, 0, NULL);
-	gf_bs_del(bs);
+	idx = AVC_ReadSeqInfo(sps_data+1/*skip NALU type*/, sps_size-1, &avc, 0, NULL);
 	if (idx<0) {
-		gf_free(sps_data_without_emulation_bytes);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -2584,7 +2595,6 @@ GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *width, u32 *height
 	if (par_n) *par_n = avc.sps[idx].vui.par_num ? avc.sps[idx].vui.par_num : (u32) -1;
 	if (par_d) *par_d = avc.sps[idx].vui.par_den ? avc.sps[idx].vui.par_den : (u32) -1;
 
-	gf_free(sps_data_without_emulation_bytes);
 	return GF_OK;
 }
 

@@ -3757,10 +3757,9 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	mdia = gf_f64_open(import->in_name, "rb");
 	if (!mdia) return gf_import_message(import, GF_URL_ERROR, "Cannot find file %s", import->in_name);
 
-	detect_fps = 0;
+	detect_fps = 1;
 	if (import->video_fps == 10000.0) {
 		import->video_fps = 25.0;
-		detect_fps = 1;
 	}
 
 	FPS = (Double) import->video_fps;
@@ -3875,7 +3874,7 @@ restart_import:
 			if (import->flags & GF_IMPORT_SVC_NONE) break;
 			is_subseq = 1;
 		case GF_AVC_NALU_SEQ_PARAM:
-			idx = AVC_ReadSeqInfo(bs, &avc, is_subseq, NULL);
+			idx = AVC_ReadSeqInfo(buffer+1/*skip NALU type*/, nal_size-1, &avc, is_subseq, NULL);
 			if (idx<0) {
 				if (avc.sps[0].profile_idc) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Error parsing SeqInfo"));
@@ -3918,11 +3917,24 @@ restart_import:
 				gf_list_add(dstcfg->sequenceParameterSets, slc);
 				/*disable frame rate scan, most bitstreams have wrong values there*/
 				if (detect_fps && avc.sps[idx].vui.timing_info_present_flag && avc.sps[idx].vui.fixed_frame_rate_flag
-					/*if detected FPS is greater than 50, assume wrong timing info*/
-					&& (avc.sps[idx].vui.time_scale <= 50*avc.sps[idx].vui.num_units_in_tick)
+					/*if detected FPS is greater than 120, assume wrong timing info*/
+					&& (avc.sps[idx].vui.time_scale <= 120*avc.sps[idx].vui.num_units_in_tick)
 					) {
-					timescale = avc.sps[idx].vui.time_scale;
-					dts_inc = avc.sps[idx].vui.num_units_in_tick;
+					/*ISO/IEC 14496-10 n11084 Table E-6*/
+					u8 DeltaTfiDivisorTable[] = {1,1,1,2,2,2,2,3,3,4,6};
+					u8 DeltaTfiDivisorIdx;
+					if (!avc.sps[idx].vui.pic_struct_present_flag) {
+						DeltaTfiDivisorIdx = 1 + (1-avc.s_info.field_pic_flag);
+					} else {
+						if (!avc.sei.pic_timing.pic_struct)
+							DeltaTfiDivisorIdx = 2;
+						else if (avc.sei.pic_timing.pic_struct == 8)
+							DeltaTfiDivisorIdx = 6;
+						else
+							DeltaTfiDivisorIdx = (avc.sei.pic_timing.pic_struct+1) / 2;
+					}
+					timescale = 2 * avc.sps[idx].vui.time_scale;
+					dts_inc =   2 * avc.sps[idx].vui.num_units_in_tick * DeltaTfiDivisorIdx;
 					FPS = (Double)timescale / dts_inc;
 					detect_fps = 0;
 					gf_isom_remove_track(import->dest, track);
@@ -3965,7 +3977,7 @@ restart_import:
 			}
 			break;
 		case GF_AVC_NALU_PIC_PARAM:
-			idx = AVC_ReadPictParamSet(bs, &avc);
+			idx = AVC_ReadPictParamSet(buffer+1/*skip NALU type*/, nal_size-1, &avc);
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
 				goto exit;
@@ -5570,9 +5582,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 					is_subseq = 1;
 				case GF_AVC_NALU_SEQ_PARAM:
-					bs = gf_bs_new(pck->data+5, pck->data_len-5, GF_BITSTREAM_READ);
-					idx = AVC_ReadSeqInfo(bs, &tsimp->avc, is_subseq, NULL);
-					gf_bs_del(bs);
+					idx = AVC_ReadSeqInfo(pck->data+5, pck->data_len-5, &tsimp->avc, is_subseq, NULL);
 
 					add_sps = 0;
 					if (idx>=0) {
@@ -5608,9 +5618,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					}
 					return;
 				case GF_AVC_NALU_PIC_PARAM:
-					bs = gf_bs_new(pck->data+5, pck->data_len-5, GF_BITSTREAM_READ);
-					idx = AVC_ReadPictParamSet(bs, &tsimp->avc);
-					gf_bs_del(bs);
+					idx = AVC_ReadPictParamSet(pck->data+5, pck->data_len-5, &tsimp->avc);
 					if ((idx>=0) && (tsimp->avc.pps[idx].status==1)) {
 						tsimp->avc.pps[idx].status = 2;
 						slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
