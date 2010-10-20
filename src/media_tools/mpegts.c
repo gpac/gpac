@@ -154,10 +154,8 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 			if (!pes->vid_w && (nal_type==GF_AVC_NALU_SEQ_PARAM)) {
 				AVCState avc;
 				s32 idx;
-				GF_BitStream *bs = gf_bs_new(data+5, sc_pos-5, GF_BITSTREAM_READ);
 				memset(&avc, 0, sizeof(AVCState));
-				idx = AVC_ReadSeqInfo(bs, &avc, 0, NULL);
-				gf_bs_del(bs);
+				idx = AVC_ReadSeqInfo(data+5, sc_pos-5, &avc, 0, NULL);
 
 				if (idx>=0) {
 					pes->vid_w = avc.sps[idx].width;

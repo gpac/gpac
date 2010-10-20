@@ -179,9 +179,9 @@ typedef struct
 } AVCState;
 
 /*return sps ID or -1 if error*/
-s32 AVC_ReadSeqInfo(GF_BitStream *bs, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
+s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos);
 /*return pps ID or -1 if error*/
-s32 AVC_ReadPictParamSet(GF_BitStream *bs, AVCState *avc);
+s32 AVC_ReadPictParamSet(char *pps_data, u32 pps_size, AVCState *avc);
 /*is slice a RAP*/
 Bool AVC_SliceIsIDR(AVCState *avc);
 /*parses NALU, updates avc state and returns:
