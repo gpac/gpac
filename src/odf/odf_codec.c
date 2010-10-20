@@ -76,7 +76,7 @@ GF_Err gf_odf_codec_add_com(GF_ODCodec *codec, GF_ODCom *command)
 }
 
 GF_EXPORT
-GF_Err gf_odf_codec_encode(GF_ODCodec *codec, Bool delete_content)
+GF_Err gf_odf_codec_encode(GF_ODCodec *codec, u32 cleanup_type)
 {
 	GF_ODCom *com;
 	GF_Err e = GF_OK;
@@ -104,13 +104,14 @@ err_exit:
 		gf_bs_del(codec->bs);
 		codec->bs = NULL;
 	}
-	if (delete_content) {
+	if (cleanup_type==1) {
 		while (gf_list_count(codec->CommandList)) {
 			com = (GF_ODCom *)gf_list_get(codec->CommandList, 0);
 			gf_odf_delete_command(com);
 			gf_list_rem(codec->CommandList, 0);
 		}
-	} else {
+	}
+	if (cleanup_type==0) {
 		gf_list_reset(codec->CommandList);
 	}
 	return e;

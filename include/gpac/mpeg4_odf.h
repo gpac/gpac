@@ -957,8 +957,12 @@ GF_ODCodec *gf_odf_codec_new();
 void gf_odf_codec_del(GF_ODCodec *codec);
 /* add a command to the codec command list. */
 GF_Err gf_odf_codec_add_com(GF_ODCodec *codec, GF_ODCom *command);
-/*encode the current coimmand list - once called the commands are removed or destroyed if delete_content is set*/
-GF_Err gf_odf_codec_encode(GF_ODCodec *codec, Bool delete_content);
+/*encode the current command list - once called the commands are removed or destroyed depending on @cleanup_type: 
+	0: commands are removed from the list but not destroyed
+	1: commands are removed from the list and destroyed
+	2: commands are kept in the list and not destroyed
+if delete_content is set*/
+GF_Err gf_odf_codec_encode(GF_ODCodec *codec, u32 cleanup_type);
 /*get the encoded AU. user is responsible of allocated space*/
 GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length);
 /* set the encoded AU to the codec*/
