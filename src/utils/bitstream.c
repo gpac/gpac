@@ -569,7 +569,10 @@ u64 gf_bs_available(GF_BitStream *bs)
 
 	/*we are in MEM mode*/
 	if (bs->bsmode == GF_BITSTREAM_READ) {
-		return (bs->size - bs->position);
+		if ((s64)bs->size - (s64)bs->position < 0)
+			return 0;
+		else
+			return (bs->size - bs->position);
 	}
 	/*FILE READ: assume size hasn't changed, otherwise the user shall call gf_bs_get_refreshed_size*/
 	if (bs->bsmode==GF_BITSTREAM_FILE_READ) return (bs->size - bs->position);
