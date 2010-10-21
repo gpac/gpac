@@ -1756,7 +1756,7 @@ GF_Err gf_dm_wget(const char *url, const char *filename)
 {
     GF_Err e;
 	GF_DownloadSession *dnload;
-    dnload = gf_dm_sess_new_simple(url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, filename, &e);
+    dnload = gf_dm_sess_new_simple((char *)url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, (char *)filename, &e);
     if (!dnload) return GF_BAD_PARAM;
 
     if (e == GF_OK) {
