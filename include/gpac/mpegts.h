@@ -224,8 +224,6 @@ typedef struct GF_M2TS_SectionFilter
 	u16 length;
 	/*number of bytes received from current section*/
 	u16 received;
-	/*error indiator when reaggregating sections*/
-	u8 had_error;
 
 	/*section->table aggregator*/
 	GF_M2TS_Table *table;
@@ -339,6 +337,8 @@ typedef struct tag_m2ts_dvb_teletext
 typedef struct tag_m2ts_pes
 {
 	ABSTRACT_ES
+	/*continuity counter check*/
+	s16 cc;
 	u32 lang;
 
 	/*object info*/
@@ -349,12 +349,16 @@ typedef struct tag_m2ts_pes
 	/*mpegts lib private - do not touch :)*/
 	/*PES re-assembler*/
 	unsigned char *data;
-	u32 data_len, pes_len;
+	/*amount of bytes received in the current PES packet (NOT INCLUDING ANY PENDING BYTES)*/
+	u32 data_len;
+	/*size of the PES packet being recevied*/
+	u32 pes_len;
 	Bool rap;
 	u64 PTS, DTS;
 	
 	/*PES reframer - if NULL, pes processing is skiped*/
 	u32 frame_state;
+	/*returns the number of bytes consummed from the input data buffer*/
 	void (*reframe)(struct tag_m2ts_demux *ts, struct tag_m2ts_pes *pes, u64 DTS, u64 CTS, unsigned char *data, u32 data_len);
 	/*LATM stuff - should be moved out of mpegts*/
 	unsigned char *buf;

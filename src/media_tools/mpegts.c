@@ -89,6 +89,7 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 {
 	Bool force_new_au=0;
 	Bool start_code_found = 0;
+	Bool short_start_code = 0;
 	Bool esc_code_found = 0;
 	u32 nal_type, sc_pos = 0;
 
@@ -113,8 +114,13 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 		if (!start) break;
 		sc_pos = start - data;
 
-		/*0x000001 start code*/
+		/*0x00000001 start code*/
 		if (!start[1] && !start[2] && (start[3]==1)) {
+			short_start_code = 0;
+		}
+		/*0xXX000001 start code*/
+		else if (!start[1] && (start[2]==1) && sc_pos && (data[sc_pos-1]!=0) ) {
+			short_start_code = 1;
 		}
 		/*0x000000 escape code*/
 		else if (!start[1] && !start[2]) {
@@ -141,11 +147,19 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 				data += sc_pos;
 				data_len -= sc_pos;
 			}
-			start_code_found = 1;
+			start_code_found = short_start_code ? 2 : 1;
 			sc_pos=1;
 		} else {
-			pck.data = data;
-			pck.data_len = sc_pos;
+
+			if (start_code_found==2) {
+				pck.data = data-1;
+				pck.data[0]=0;
+				pck.data_len = sc_pos+1;
+			} else {
+				pck.data = data;
+				pck.data_len = sc_pos;
+			}
+			start_code_found = short_start_code ? 2 : 1;
 
 			nal_type = pck.data[4] & 0x1F;
 
@@ -186,15 +200,17 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 	}
 	if (data_len && start_code_found) {
 		pck.flags = 0;
+		pck.data = data;
+		pck.data_len = data_len;
 		if (start_code_found) {
-			pck.data = data;
-			pck.data_len = data_len;
+			if (start_code_found==2) {
+				pck.data = data-1;
+				pck.data[0]=0;
+				pck.data_len = data_len+1;
+			}
 			nal_type = pck.data[4] & 0x1F;
 			if (nal_type==GF_AVC_NALU_ACCESS_UNIT)
 				pck.flags = GF_M2TS_PES_PCK_AU_START;
-		} else {
-			pck.data = data;
-			pck.data_len = data_len;
 		}
 		if (force_new_au) {
 			pck.flags |= GF_M2TS_PES_PCK_AU_START;
@@ -725,11 +741,6 @@ static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 
 static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses)
 {
-	if (sec->had_error) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Section had error\n"));
-		goto exit;
-	}
-
 	if (!sec->process_section) {
 		if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
 			GF_M2TS_SL_PCK pck;
@@ -827,7 +838,7 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted section (CRC32 failed)\n"));
 			}
-		} else if (!sec->had_error) {
+		} else {
 			section_valid = 1;
 			section_start = 3;
 		}
@@ -887,7 +898,6 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			t->section_number = 0;
 		}
 	}
-exit:
 	/*clean-up (including broken sections)*/
 	if (sec->section) gf_free(sec->section);
 	sec->section = NULL;
@@ -932,9 +942,8 @@ static void gf_m2ts_gather_section(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *s
 	Bool disc = (expect_cc == hdr->continuity_counter) ? 0 : 1;
 	sec->cc = expect_cc;
 
-	if (hdr->error ||
-		(hdr->adaptation_field==2)) /* 2 = no payload in TS packet */
-		return;
+	/*may happen if hdr->adaptation_field=2 no payload in TS packet*/
+	if (!data_size) return;
 
 	if (hdr->payload_start) {
 		u32 ptr_field;
@@ -974,8 +983,7 @@ aggregated_section:
 		sec->section = (char*)gf_malloc(sizeof(char)*data_size);
 		memcpy(sec->section, data, sizeof(char)*data_size);
 		sec->received = data_size;
-		sec->had_error = 0;
-	} else if (disc || hdr->error) {
+	} else if (disc) {
 		if (sec->section) gf_free(sec->section);
 		sec->section = NULL;
 		sec->received = sec->length = 0;
@@ -994,9 +1002,6 @@ aggregated_section:
 		}
 		sec->received += data_size;
 	}
-	if (hdr->error)
-		sec->had_error = 1;
-
 	/*alloc final buffer*/
 	if (!sec->length && (sec->received >= 3)) {
 		sec->length = gf_m2ts_get_section_length(sec->section[0], sec->section[1], sec->section[2]);
@@ -1232,10 +1237,12 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_AUDIO_DTS:
 		case GF_M2TS_SUBTITLE_DVB:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
+			pes->cc = -1;
 			es = (GF_M2TS_ES *)pes;
 			break;
 		case GF_M2TS_PRIVATE_DATA:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
+			pes->cc = -1;
 			es = (GF_M2TS_ES *)pes;
 			break;
 		/* Sections */
@@ -1539,7 +1546,12 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 {
 	Bool flush_pes = 0;
 
-	if (hdr->error) {
+#if 0
+	u8 expect_cc = (pes->cc<0) ? hdr->continuity_counter : (pes->cc + 1) & 0xf;
+	Bool disc = (expect_cc == hdr->continuity_counter) ? 0 : 1;
+	pes->cc = expect_cc;
+
+	if (disc) {
 		if (pes->data) {
 			gf_free(pes->data);
 			pes->data = NULL;
@@ -1548,6 +1560,8 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 		pes->pes_len = 0;
 		return;
 	}
+#endif
+
 	if (!pes->reframe) return;
 
 	if (hdr->payload_start) {
@@ -1684,7 +1698,10 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	hdr.adaptation_field = (data[3] >> 4) & 0x3;
 	hdr.continuity_counter = data[3] & 0xf;
 
-	if (hdr.error) GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d has error\n", hdr.pid));
+	if (hdr.error) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet has error (PID could be %d)\n", hdr.pid));
+		return;
+	}
 //#if DEBUG_TS_PACKET
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Packet PID %d\n", hdr.pid));
 //#endif
@@ -1740,11 +1757,11 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				return;
 			} else if (hdr.pid == GF_M2TS_PID_NIT_ST) {
 				/*ignore them, unused at application level*/
-				if (!hdr.error) gf_m2ts_gather_section(ts, ts->nit, NULL, &hdr, data, payload_size);
+				gf_m2ts_gather_section(ts, ts->nit, NULL, &hdr, data, payload_size);
 				return;
 			} else if (hdr.pid == GF_M2TS_PID_EIT_ST_CIT) {
 				/* ignore EIT messages for the moment */
-				if (!hdr.error) gf_m2ts_gather_section(ts, ts->eit, NULL, &hdr, data, payload_size);
+				gf_m2ts_gather_section(ts, ts->eit, NULL, &hdr, data, payload_size);
 				return;
 			} else if (hdr.pid == GF_M2TS_PID_TDT_TOT_ST) {
 				gf_m2ts_gather_section(ts, ts->tdt_tot_st, NULL, &hdr, data, payload_size);
