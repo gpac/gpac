@@ -1678,7 +1678,67 @@ static void avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 }
 
 /*returns the nal_size without emulation prevention bytes*/
-static u32 avc_emulation_bytes_count(unsigned char *buffer, u32 nal_size)
+static u32 avc_emulation_bytes_add_count(unsigned char *buffer, u32 nal_size)
+{
+	u32 i = 0, emulation_bytes_count = 0;
+	u8 num_zero = 0;
+	
+	while (i < nal_size) {
+		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
+		other than the following sequences shall not occur at any byte-aligned position:
+		– 0x00000300
+		– 0x00000301
+		– 0x00000302
+		– 0x00000303"
+		*/
+		if (num_zero == 2 && buffer[i] < 0x04) {
+			/*emulation code found*/
+			num_zero = 0;
+			emulation_bytes_count++;
+		} else {
+			if (!buffer[i])
+				num_zero++;
+			else
+				num_zero = 0;
+		}
+		i++;
+	}
+	return emulation_bytes_count;
+}
+
+static u32 avc_add_emulation_bytes(const unsigned char *buffer_src, unsigned char *buffer_dst, u32 nal_size) 
+{ 
+
+	u32 i = 0, emulation_bytes_count = 0;
+	u8 num_zero = 0;
+	
+	while (i < nal_size) {
+		/*ISO 14496-10: "Within the NAL unit, any four-byte sequence that starts with 0x000003
+		other than the following sequences shall not occur at any byte-aligned position:
+		0x00000300
+		0x00000301
+		0x00000302
+		0x00000303"
+		*/
+		if (num_zero == 2 && buffer_src[i] < 0x04) {
+			/*add emulation code*/
+			num_zero = 0;
+			buffer_dst[i+emulation_bytes_count] = 0x03;
+			emulation_bytes_count++;
+		} else {
+			if (!buffer_src[i])
+				num_zero++;
+			else
+				num_zero = 0;
+		}
+		buffer_dst[i+emulation_bytes_count] = buffer_src[i];
+		i++;
+	}
+	return nal_size+emulation_bytes_count;
+}
+
+/*returns the nal_size without emulation prevention bytes*/
+static u32 avc_emulation_bytes_remove_count(unsigned char *buffer, u32 nal_size)
 {
 	u32 i = 0, emulation_bytes_count = 0;
 	u8 num_zero = 0;
@@ -1713,6 +1773,7 @@ static u32 avc_emulation_bytes_count(unsigned char *buffer, u32 nal_size)
 
 	return emulation_bytes_count;
 }
+
 
 /*nal_size is updated to allow better error detection*/
 static u32 avc_remove_emulation_bytes(const unsigned char *buffer_src, unsigned char *buffer_dst, u32 nal_size) 
@@ -2374,14 +2435,21 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 
 u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 {
-	u32 ptype, psize, hdr, written, var, emulation_bytes_count;
+	u32 ptype, psize, hdr, written, var;
 	u64 start;
 	char *new_buffer;
 	GF_BitStream *bs;
+	char *sei_without_emulation_bytes = NULL;
+	u32 sei_without_emulation_bytes_size = 0;
+
 	hdr = buffer[0];
 	if ((hdr & 0x1F) != GF_AVC_NALU_SEI) return 0;
-	
-	bs = gf_bs_new(buffer, nal_size, GF_BITSTREAM_READ);
+
+	/*PPS still contains emulation bytes*/
+	sei_without_emulation_bytes = gf_malloc(nal_size*sizeof(char));
+	sei_without_emulation_bytes_size = avc_remove_emulation_bytes(buffer, sei_without_emulation_bytes, nal_size);
+
+	bs = gf_bs_new(sei_without_emulation_bytes, sei_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	gf_bs_read_int(bs, 8);
 
 	new_buffer = (char*)gf_malloc(sizeof(char)*nal_size);
@@ -2416,16 +2484,16 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 			break;
 		case 5: /*user unregistered */
 		{
-			u8 prev = buffer[start+2+psize];
-			buffer[start+2+psize] = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[avc-h264] SEI user message %s\n", buffer+start+2)); 
-			buffer[start+2+psize] = prev;
+			u8 prev = sei_without_emulation_bytes[start+2+psize];
+			sei_without_emulation_bytes[start+2+psize] = 0;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[avc-h264] SEI user message %s\n", sei_without_emulation_bytes+start+2)); 
+			sei_without_emulation_bytes[start+2+psize] = prev;
 		}
 			break;
 		
 		case 6: /*recovery point*/
 			{
-				GF_BitStream *rp_bs = gf_bs_new(buffer + start, psize, GF_BITSTREAM_READ);
+				GF_BitStream *rp_bs = gf_bs_new(sei_without_emulation_bytes + start, psize, GF_BITSTREAM_READ);
 				avc_parse_recovery_point_sei(rp_bs, avc);
 				gf_bs_del(rp_bs);
 			}
@@ -2433,7 +2501,7 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 
 		case 1: /*pic_timing*/
 			{
-				GF_BitStream *pt_bs = gf_bs_new(buffer + start, psize, GF_BITSTREAM_READ);
+				GF_BitStream *pt_bs = gf_bs_new(sei_without_emulation_bytes + start, psize, GF_BITSTREAM_READ);
 				avc_parse_pic_timing_sei(pt_bs, avc);
 				gf_bs_del(pt_bs);
 			}
@@ -2455,8 +2523,6 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 			break;
 		}
 
-		emulation_bytes_count = avc_emulation_bytes_count(buffer, psize);
-
 		if (do_copy) {
 			var = ptype;
 			while (var>=255) {
@@ -2473,11 +2539,11 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 			}
 			new_buffer[written] = (char) var;
 			written++;
-			memcpy(new_buffer+written, buffer+start, sizeof(char) * (psize+emulation_bytes_count));
-			written += (psize+emulation_bytes_count);
+			memcpy(new_buffer+written, sei_without_emulation_bytes+start, sizeof(char) * psize);
+			written += psize;
 		}
 
-		gf_bs_skip_bytes(bs, (u64) (psize+emulation_bytes_count));
+		gf_bs_skip_bytes(bs, (u64) psize);
 		gf_bs_align(bs);
 		if (gf_bs_available(bs)<=2) {
 			if (gf_bs_peek_bits(bs, 8, 0)==0x80) {
@@ -2488,10 +2554,20 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 		}
 	}
 	gf_bs_del(bs);
-	assert(written<=nal_size);
-	if (written)
-		memcpy(buffer, new_buffer, sizeof(char)*written);
+	gf_free(sei_without_emulation_bytes);
+
+	if (written) {
+		var = avc_emulation_bytes_add_count(new_buffer, written);
+		if (var) {
+			assert(written+var<=nal_size);
+			written = avc_add_emulation_bytes(new_buffer, buffer, written);
+		} else {
+			assert(written<=nal_size);
+			memcpy(buffer, new_buffer, sizeof(char)*written);
+		}
+	}
 	gf_free(new_buffer);
+
 	/*if only hdr written ignore*/
 	return (written>1) ? written : 0;
 }
