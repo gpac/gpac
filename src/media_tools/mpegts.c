@@ -1633,7 +1633,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	}
 	/*we need to wait for first packet of PES*/
 	if (!pes->data_len && !hdr->payload_start) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Waiting for PES header, trashing data\n", hdr->pid));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Waiting for PES header, trashing data\n", hdr->pid));
 		return;
 	}
 	/*reassemble*/
@@ -1779,7 +1779,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			if (pes->reframe) gf_m2ts_process_pes(ts, pes, &hdr, data, payload_size, paf);
 		}
 	}
-	if (paf && paf->PCR_flag) {
+	if (paf && paf->PCR_flag && es) {
 		GF_M2TS_PES_PCK pck;
 		memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
 		pck.PTS = paf->PCR_base * 300 + paf->PCR_ext;
