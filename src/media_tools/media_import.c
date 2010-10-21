@@ -5460,10 +5460,18 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				}
 			}
 			/*this PMT is not the one of our stream*/
-			if (!found) return;
+			if (!found || !ts->ess[import->trackID]) return;
+
+			/*make sure all the streams in this programe are in RAW pes framing mode, so that we get notified of the
+			DTS/PTS*/
+			for (i=0; i<count; i++) {
+				es = (GF_M2TS_ES *)gf_list_get(prog->streams, i);
+				if (!(es->flags & GF_M2TS_ES_IS_SECTION)) {
+					gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_RAW);
+				}
+			}
 
 			es = ts->ess[import->trackID]; /* import->trackID == pid */
-			if (!es) break;
 
 			if (es->flags & GF_M2TS_ES_IS_SECTION) {
 				ses = (GF_M2TS_SECTION_ES *)es;
@@ -5562,16 +5570,18 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				return;
 			}
 
-			/* Even if we don't import this stream we need to check the first dts of the program */
+			 /* Even if we don't import this stream we need to check the first dts of the program */
 			if (!(pck->stream->flags & GF_M2TS_ES_FIRST_DTS) && is_au_start) {
 				pck->stream->flags |= GF_M2TS_ES_FIRST_DTS;
 				pck->stream->first_dts = (pck->DTS?pck->DTS:pck->PTS);
-				if (!pck->stream->program->first_dts ||
-					pck->stream->program->first_dts > pck->stream->first_dts) {
+				if (!pck->stream->program->first_dts || pck->stream->program->first_dts > pck->stream->first_dts) {
 					pck->stream->program->first_dts = pck->stream->first_dts;
-				}
-			}
 
+					if (pck->stream->pid != import->trackID) {
+						gf_m2ts_set_pes_framing((GF_M2TS_PES *)pck->stream, GF_M2TS_PES_FRAMING_SKIP);
+					}
+				}
+			} 
 			if (pck->stream->pid != import->trackID) return;
 
 			if (tsimp->avccfg) {
@@ -5641,6 +5651,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				case GF_AVC_NALU_END_OF_STREAM:
 					return;
 				case GF_AVC_NALU_SEI:
+					break;
 					if (tsimp->avc.sps_active_idx != -1) {
 						idx = AVC_ReformatSEI_NALU(pck->data+4, pck->data_len-4, &tsimp->avc);
 						if (idx>0) pck->data_len = idx+4;
@@ -5673,8 +5684,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			samp->DTS = pck->DTS ? pck->DTS : pck->PTS;
 			samp->CTS_Offset = (u32) (pck->PTS - samp->DTS);
 
-			if (pck->stream->first_dts == samp->DTS) {
-
+			if (pck->stream->first_dts==samp->DTS) {
 				switch (pck->stream->stream_type) {
 				case GF_M2TS_VIDEO_MPEG1: gf_import_message(import, GF_OK, "MPEG-1 Video import (TS PID %d)", pck->stream->pid); break;
 				case GF_M2TS_VIDEO_MPEG2: gf_import_message(import, GF_OK, "MPEG-2 Video import (TS PID %d)", pck->stream->pid); break;
@@ -5875,6 +5885,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	GF_TSImport tsimp;
 	u64 fsize, done;
 	u32 size;
+	Bool do_import = 1;
 	FILE *mts;
 	char progress[1000];
 
@@ -5898,8 +5909,10 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 
 	ts->dvb_h_demux = (import->flags & GF_IMPORT_MPE_DEMUX) ? 1 : 0;
 
+	if (import->flags & GF_IMPORT_PROBE_ONLY) do_import = 0;
+
 	sprintf(progress, "Importing MPEG-2 TS (PID %d)", import->trackID);
-	gf_import_message(import, GF_OK, progress);
+	if (do_import) gf_import_message(import, GF_OK, progress);
 
 	while (!feof(mts)) {
 		size = fread(data, sizeof(char), 188, mts);
@@ -5909,7 +5922,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		gf_m2ts_process_data(ts, data, size);
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 		done += size;
-		gf_set_progress(progress, (u32) (done/1024), (u32) (fsize/1024));
+		if (do_import) gf_set_progress(progress, (u32) (done/1024), (u32) (fsize/1024));
 	}
 	import->flags &= ~GF_IMPORT_DO_ABORT;
 
@@ -5922,7 +5935,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 		return e;
 	}
 	import->esd = NULL;
-	gf_set_progress(progress, (u32) (fsize/1024), (u32) (fsize/1024));
+	if (do_import) gf_set_progress(progress, (u32) (fsize/1024), (u32) (fsize/1024));
 
 	if (! (import->flags & GF_IMPORT_MPE_DEMUX)) {
 		gf_m2ts_print_info(ts);
@@ -5959,7 +5972,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			dur = gf_isom_get_media_duration(import->dest, tsimp.track) * moov_ts / media_ts;
 			gf_isom_set_edit_segment(import->dest, tsimp.track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);
 			gf_isom_set_edit_segment(import->dest, tsimp.track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);
-			//gf_import_message(import, GF_OK, "Timeline offset: %d ms", (u32)((pes->first_dts - pes->program->first_dts)/90));
+			gf_import_message(import, GF_OK, "Timeline offset: %d ms", offset);
 		}
 
 		if (tsimp.nb_p) {
