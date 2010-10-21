@@ -1934,6 +1934,10 @@ s32 AVC_ReadPictParamSet(char *pps_data, u32 pps_size, AVCState *avc)
    
 	if (!pps->status) pps->status = 1;
 	pps->sps_id = avc_get_ue(bs);
+	if (!avc->sps[pps->sps_id].state) {
+		pps_id = -1;
+		goto exit;
+	}
 	avc->sps_active_idx = pps->sps_id; /*set active sps*/
 	/*pps->cabac = */gf_bs_read_int(bs, 1);
 	pps->pic_order_present= gf_bs_read_int(bs, 1);
@@ -1954,6 +1958,7 @@ s32 AVC_ReadPictParamSet(char *pps_data, u32 pps_size, AVCState *avc)
 	/*pps->constrained_intra_pred = */gf_bs_read_int(bs, 1);
 	pps->redundant_pic_cnt_present = gf_bs_read_int(bs, 1);
 
+exit:
 	gf_free(pps_data_without_emulation_bytes);
 	return pps_id;
 }
@@ -2089,6 +2094,11 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 	const char NumClockTS[] = {1, 1, 1, 2, 2, 3, 3, 2, 3};
 	AVCSeiPicTiming *pt = &avc->sei.pic_timing;
 
+	if (sps_id < 0) {
+		/*sps_active_idx equals -1 when no sps has been detected. In this case SEI should not be decoded.*/
+		assert(0);
+		return 1;
+	}
 	if (avc->sps[sps_id].vui.nal_hrd_parameters_present_flag || avc->sps[sps_id].vui.vcl_hrd_parameters_present_flag) { /*CpbDpbDelaysPresentFlag, see 14496-10(2003) E.11*/
 		gf_bs_read_int(bs, 1+avc->sps[sps_id].vui.hrd.cpb_removal_delay_length_minus1); /*cpb_removal_delay*/
 		gf_bs_read_int(bs, 1+avc->sps[sps_id].vui.hrd.dpb_output_delay_length_minus1);  /*dpb_output_delay*/
@@ -2445,7 +2455,7 @@ u32 AVC_ReformatSEI_NALU(char *buffer, u32 nal_size, AVCState *avc)
 			break;
 		}
 
-		emulation_bytes_count = avc_emulation_bytes_count(buffer, nal_size);
+		emulation_bytes_count = avc_emulation_bytes_count(buffer, psize);
 
 		if (do_copy) {
 			var = ptype;
@@ -2505,6 +2515,7 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 	GF_AVCConfigSlot *slc;
 
 	memset(&avc, 0, sizeof(AVCState));
+	avc.sps_active_idx = -1;
 
 	i=0;
 	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
@@ -2584,6 +2595,7 @@ GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *width, u32 *height
 	AVCState avc;
 	s32 idx;
 	memset(&avc, 0, sizeof(AVCState));
+	avc.sps_active_idx = -1;
 
 	idx = AVC_ReadSeqInfo(sps_data+1/*skip NALU type*/, sps_size-1, &avc, 0, NULL);
 	if (idx<0) {

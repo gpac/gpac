@@ -168,7 +168,7 @@ typedef struct
 typedef struct
 {
 	AVC_SPS sps[32]; /* range allowed in the spec is 0..31 */
-	u8 sps_active_idx;	/*currently active sps*/
+	s8 sps_active_idx;	/*currently active sps; must be initalized to -1 in order to discard not yet decodable SEIs*/
 
 	AVC_PPS pps[255];
 

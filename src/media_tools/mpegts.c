@@ -155,6 +155,7 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 				AVCState avc;
 				s32 idx;
 				memset(&avc, 0, sizeof(AVCState));
+				avc.sps_active_idx = -1;
 				idx = AVC_ReadSeqInfo(data+5, sc_pos-5, &avc, 0, NULL);
 
 				if (idx>=0) {

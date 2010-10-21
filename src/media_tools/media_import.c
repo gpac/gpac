@@ -3769,6 +3769,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 restart_import:
 
 	memset(&avc, 0, sizeof(AVCState));
+	avc.sps_active_idx = -1;
 	avccfg = gf_odf_avc_cfg_new();
 	svccfg = gf_odf_avc_cfg_new();
 	/*we don't handle split import (one track / layer)*/
@@ -4006,10 +4007,12 @@ restart_import:
 			}
 			break;
 		case GF_AVC_NALU_SEI:
-			copy_size = AVC_ReformatSEI_NALU(buffer, nal_size, &avc);
-			if (copy_size) {
-				nal_size = copy_size; /*nal_size has been modified in memory*/
-				nb_sei++;
+			if (avc.sps_active_idx != -1) {
+				copy_size = AVC_ReformatSEI_NALU(buffer, nal_size, &avc);
+				if (copy_size) {
+					nal_size = copy_size; /*nal_size has been modified in memory*/
+					nb_sei++;
+				}
 			}
 			break;
 
@@ -5627,6 +5630,7 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 						memcpy(slc->data, pck->data+4, sizeof(char)*slc->size);
 						gf_list_add(tsimp->avccfg->pictureParameterSets, slc);
 					}
+					/*else discard because of invalid PPS*/
 					return;
 				/*remove*/
 				case GF_AVC_NALU_ACCESS_UNIT:
@@ -5637,8 +5641,10 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				case GF_AVC_NALU_END_OF_STREAM:
 					return;
 				case GF_AVC_NALU_SEI:
-					idx = AVC_ReformatSEI_NALU(pck->data+4, pck->data_len-4, &tsimp->avc);
-					if (idx>0) pck->data_len = idx+4;
+					if (tsimp->avc.sps_active_idx != -1) {
+						idx = AVC_ReformatSEI_NALU(pck->data+4, pck->data_len-4, &tsimp->avc);
+						if (idx>0) pck->data_len = idx+4;
+					}
 					break;
 				}
 
@@ -5884,6 +5890,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	done = 0;
 
 	memset(&tsimp, 0, sizeof(GF_TSImport));
+	tsimp.avc.sps_active_idx = -1;
 	tsimp.import = import;
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_import_data;
