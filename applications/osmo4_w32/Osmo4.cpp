@@ -228,12 +228,14 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		}
 		break;
 	/*don't resize on win32 msg notif*/
+#if 0
 	case GF_EVENT_SIZE:
 		if (/*gpac->m_term && !pFrame->m_bFullScreen && */gpac->orig_width && (evt->size.width < W32_MIN_WIDTH) ) 
 			pFrame->PostMessage(WM_SETSIZE, W32_MIN_WIDTH, (W32_MIN_WIDTH*gpac->orig_height) / gpac->orig_width);
 		else
 			pFrame->PostMessage(WM_SETSIZE, evt->size.width, evt->size.height);
 		break;
+#endif
 
 	case GF_EVENT_CONNECT:
 //		if (pFrame->m_bStartupFile) return 0;

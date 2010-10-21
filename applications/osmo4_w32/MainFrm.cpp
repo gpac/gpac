@@ -460,7 +460,8 @@ LONG CMainFrame::OnSetSize(WPARAM wParam, LPARAM lParam)
 		SetWindowPos(NULL, 0, 0, winRect.right, winRect.bottom, SWP_NOZORDER | SWP_NOMOVE | SWP_SHOWWINDOW);
 	} else {
 		/*just resize term*/
-		gf_term_set_size(GetApp()->m_term, width, height);
+		//gf_term_set_size(GetApp()->m_term, width, height);
+		SetWindowPos(NULL, 0, 0, winRect.right, winRect.bottom, SWP_NOZORDER | SWP_NOMOVE | SWP_SHOWWINDOW);
 	}
 	return 0;
 }
