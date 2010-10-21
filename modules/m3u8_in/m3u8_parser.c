@@ -277,8 +277,8 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 						printf("Line %d: '%s'\n", currentLineNumber, currentLine);
 						
 						if (gf_url_is_local(currentLine)){
-							/*
-                            if (gf_url_is_local(baseURL)){
+                            /*
+							if (gf_url_is_local(baseURL)){
 								int num_chars = -1;
 								if (baseURL[strlen(baseURL)-1] == '/'){
 									num_chars = asprintf(&fullURL, "%s%s", baseURL, currentLine);
@@ -291,7 +291,7 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 									return GF_OUT_OF_MEM;
 								}
 							} else */{
-								fullURL = gf_url_concatenate(currentLine, baseURL);
+								fullURL = gf_url_concatenate(baseURL, currentLine);
 							}
 							assert( fullURL );
 							/*printf("*** calculated full path = %s from %s and %s\n", fullURL, currentLine, baseURL);*/
