@@ -397,6 +397,7 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline)
 	/*step 1: validate OD*/
 	i=0;
 	while ((esd = (GF_ESD *)gf_list_enum(odm->OD->ESDescriptors, &i))) {
+		assert(esd->decoderConfig);
 		switch (esd->decoderConfig->streamType) {
 		case GF_STREAM_OD: nb_od++; break;
 		case GF_STREAM_OCR: nb_ocr++; break;
