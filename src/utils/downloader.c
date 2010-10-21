@@ -77,6 +77,9 @@ struct __gf_download_session
 	char *passwd;
 	char cookie[GF_MAX_PATH];
 
+    /* Used when a cache file is forced, when the download session is used standalone */
+    Bool use_cache_extension;
+
 	FILE *cache;
 	char *cache_name;
 	/*cache size if existing*/
@@ -243,7 +246,8 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	u8 hash[20];
 	const char *opt;
 
-	if (!sess->dm->cache_directory) return;
+    if (sess->use_cache_extension) return;
+    if (!sess->dm->cache_directory) return;
 	if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) return;
 	if (sess->flags & GF_NETIO_SESSION_REUSE_APPEND) return;
 
@@ -299,8 +303,12 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Cache setup to %s\n", sess->cache_name));
 
 	/*are we using existing cached files ?*/
-	opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "RestartFiles");
-	if (opt && !stricmp(opt, "yes")) sess->cache_start_size = 0;
+    if (sess->dm) {
+        opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "RestartFiles");
+	    if (opt && !stricmp(opt, "yes")) sess->cache_start_size = 0;
+    } else {
+        sess->cache_start_size = 0;
+    }
 }
 
 static void gf_dm_disconnect(GF_DownloadSession *sess)
@@ -345,11 +353,14 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 		gf_mx_del(sess->mx);
 	}
 
-	gf_list_del_item(sess->dm->sessions, sess);
+	if (sess->dm) gf_list_del_item(sess->dm->sessions, sess);
 
-	if (sess->cache_name) {
-		opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "CleanCache");
-		if (!opt || !stricmp(opt, "yes")) gf_delete_file(sess->cache_name);
+	if (sess->cache_name && !sess->use_cache_extension) {
+        if (sess->dm) 
+            opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "CleanCache");
+        else 
+            opt = NULL;
+        if (!opt || !stricmp(opt, "yes")) gf_delete_file(sess->cache_name);
 		gf_free(sess->cache_name);
 	}
 
@@ -475,12 +486,13 @@ GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, char *url)
 
 	/*setup BW limiter*/
 	sess->limit_data_rate = 0;
-	opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "MaxRate");
-	if (opt) {
-		/*use it in in BYTES per second*/
-		sess->limit_data_rate = 1024 * atoi(opt) / 8;
-	}
-
+    if (sess->dm) {
+        opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "MaxRate");
+	    if (opt) {
+		    /*use it in in BYTES per second*/
+		    sess->limit_data_rate = 1024 * atoi(opt) / 8;
+	    }
+    }
 	return GF_OK;
 }
 
@@ -535,6 +547,38 @@ void gf_dm_sess_set_range(GF_DownloadSession *sess, u32 start, u32 end)
     sess->range_end = end;
 }
 
+GF_DownloadSession *gf_dm_sess_new_simple(char *url, u32 dl_flags,
+									  gf_dm_user_io user_io,
+									  void *usr_cbk,
+                                      char *cache_name,
+									  GF_Err *e)
+{
+	GF_DownloadSession *sess;
+	sess = (GF_DownloadSession *)gf_malloc(sizeof(GF_DownloadSession));
+	memset((void *)sess, 0, sizeof(GF_DownloadSession));
+	sess->flags = dl_flags;
+	sess->user_proc = user_io;
+	sess->usr_cbk = usr_cbk;
+    if (cache_name) {
+        sess->cache_name = cache_name;
+        sess->use_cache_extension = 1;
+    }
+    
+
+	*e = gf_dm_setup_from_url(sess, url);
+	if (*e) {
+		gf_dm_sess_del(sess);
+		return NULL;
+	}
+	if (!(sess->flags & GF_NETIO_SESSION_NOT_THREADED) ) {
+		sess->th = gf_th_new(url);
+		sess->mx = gf_mx_new(url);
+		gf_th_run(sess->th, gf_dm_session_thread, sess);
+	}
+	sess->num_retry = SESSION_RETRY_COUNT;
+	return sess;
+}
+
 GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_flags,
 									  gf_dm_user_io user_io,
 									  void *usr_cbk,
@@ -549,27 +593,12 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_fla
 		*e = GF_NOT_SUPPORTED;
 		return NULL;
 	}
-
-	sess = (GF_DownloadSession *)gf_malloc(sizeof(GF_DownloadSession));
-	memset((void *)sess, 0, sizeof(GF_DownloadSession));
-	sess->flags = dl_flags;
-	sess->user_proc = user_io;
-	sess->usr_cbk = usr_cbk;
-	sess->dm = dm;
-	gf_list_add(dm->sessions, sess);
-
-	*e = gf_dm_setup_from_url(sess, url);
-	if (*e) {
-		gf_dm_sess_del(sess);
-		return NULL;
-	}
-	if (!(sess->flags & GF_NETIO_SESSION_NOT_THREADED) ) {
-		sess->th = gf_th_new(url);
-		sess->mx = gf_mx_new(url);
-		gf_th_run(sess->th, gf_dm_session_thread, sess);
-	}
-	sess->num_retry = SESSION_RETRY_COUNT;
-	return sess;
+    sess = gf_dm_sess_new_simple(url, dl_flags, user_io, usr_cbk, NULL, e);
+    if (sess) {
+        sess->dm = dm;
+	    gf_list_add(dm->sessions, sess);
+    }
+    return sess;
 }
 
 static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read)
@@ -640,7 +669,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	gf_dm_sess_notify_state(sess, sess->status, GF_OK);
 
 	/*PROXY setup*/
-	if (sess->proxy_enabled!=2) {
+	if (sess->proxy_enabled!=2 && sess->dm) {
 		proxy = gf_cfg_get_key(sess->dm->cfg, "HTTPProxy", "Enabled");
 		if (proxy && !strcmp(proxy, "yes")) {
 			u32 i;
@@ -669,12 +698,16 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 	}
 
 
-	ip = gf_cfg_get_key(sess->dm->cfg, "Network", "MobileIPEnabled");
-	if (ip && !strcmp(ip, "yes")) {
-		ip = gf_cfg_get_key(sess->dm->cfg, "Network", "MobileIP");
-	} else {
-		ip = NULL;
-	}
+    if (sess->dm) {
+        ip = gf_cfg_get_key(sess->dm->cfg, "Network", "MobileIPEnabled");
+	    if (ip && !strcmp(ip, "yes")) {
+		    ip = gf_cfg_get_key(sess->dm->cfg, "Network", "MobileIP");
+	    } else {
+		    ip = NULL;
+	    }
+    } else {
+        ip = NULL;
+    }
 
 	if (!proxy) {
 		proxy = sess->server_name;
@@ -1134,7 +1167,10 @@ void http_do_requests(GF_DownloadSession *sess)
 		}
 #endif
 
-		user_agent = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserAgent");
+		if (sess->dm) 
+            user_agent = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserAgent");
+        else 
+            user_agent = NULL;
 		if (!user_agent) user_agent = GF_DOWNLOAD_AGENT_NAME;
 
 
@@ -1152,7 +1188,10 @@ void http_do_requests(GF_DownloadSession *sess)
 		}
 
 		url = (sess->proxy_enabled==1) ? sess->orig_url : sess->remote_path;
-		param_string = gf_cfg_get_key(sess->dm->cfg, "Downloader", "ParamString");
+		if (sess->dm)
+            param_string = gf_cfg_get_key(sess->dm->cfg, "Downloader", "ParamString");
+        else 
+            param_string = NULL;
 		if (param_string) {
 			if (strchr(sess->remote_path, '?')) {
 				sprintf(sHTTP, "%s %s&%s HTTP/1.0\r\nHost: %s\r\n" ,
@@ -1204,7 +1243,11 @@ void http_do_requests(GF_DownloadSession *sess)
 			strcat(sHTTP, range_buf);
         }
 		if (!has_language) {
-			const char *opt = gf_cfg_get_key(sess->dm->cfg, "Systems", "Language2CC");
+			const char *opt;
+            if (sess->dm) 
+                opt = gf_cfg_get_key(sess->dm->cfg, "Systems", "Language2CC");
+            else 
+                opt = NULL;
 			if (opt) {
 				strcat(sHTTP, "Accept-Language: ");
 				strcat(sHTTP, opt);
@@ -1225,13 +1268,19 @@ void http_do_requests(GF_DownloadSession *sess)
 
 		/*check if we have personalization info*/
 		send_profile = 0;
-		user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfileID");
+		if (sess->dm)
+            user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfileID");
+        else 
+            user_profile = NULL;
 		if (user_profile) {
 			strcat(sHTTP, "X-UserProfileID: ");
 			strcat(sHTTP, user_profile);
 			strcat(sHTTP, "\r\n");
 		} else {
-			user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfile");
+			if (sess->dm)
+                user_profile = gf_cfg_get_key(sess->dm->cfg, "Downloader", "UserProfile");
+            else 
+                user_profile = NULL;
 			if (user_profile) {
 				FILE *profile = gf_f64_open(user_profile, "rt");
 				if (profile) {
@@ -1491,7 +1540,8 @@ void http_do_requests(GF_DownloadSession *sess)
 			e = GF_OK;
 			if (sess->proxy_enabled==2) {
 				sess->proxy_enabled=0;
-				gf_list_add(sess->dm->skip_proxy_servers, gf_strdup(sess->server_name));
+				if (sess->dm) 
+                    gf_list_add(sess->dm->skip_proxy_servers, gf_strdup(sess->server_name));
 			}
 			break;
 		/*redirection: extract the new location*/
@@ -1565,7 +1615,7 @@ void http_do_requests(GF_DownloadSession *sess)
 //		if (!is_ice && !ContentLength) e = GF_REMOTE_SERVICE_ERROR;
 		if (e) goto exit;
 
-		if (no_cache) {
+		if (no_cache && !sess->use_cache_extension) {
 			sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
 			no_range = 1;
 			first_byte = 0;
@@ -1702,3 +1752,16 @@ exit:
 	}
 }
 
+GF_Err gf_dm_wget(const char *url, const char *filename) 
+{
+    GF_Err e;
+	GF_DownloadSession *dnload;
+    dnload = gf_dm_sess_new_simple(url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, filename, &e);
+    if (!dnload) return GF_BAD_PARAM;
+
+    if (e == GF_OK) {
+        e = gf_dm_sess_process(dnload);
+    }
+    gf_dm_sess_del(dnload);
+    return e;
+}
