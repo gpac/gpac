@@ -100,7 +100,7 @@ void MS_Modified(GF_Node *node)
 	while (gf_list_count(st->seg)) gf_list_rem(st->seg, 0);
 
 	/*unlink from OD*/
-	if (st->stream && st->stream->odm) 
+	if (st->stream && st->stream->odm && st->stream->odm->ms_stack) 
 		gf_list_del_item(st->stream->odm->ms_stack, st);
 
 	gf_mo_unregister(node, st->stream);
