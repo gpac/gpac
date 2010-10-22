@@ -342,8 +342,6 @@ void text_del(GF_Box *s)
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
 	if (ptr->textName)
 		gf_free(ptr->textName);
-	if (ptr->sampleData)
-		gf_free(ptr->sampleData);
 	gf_free(ptr);
 }
 
@@ -438,6 +436,8 @@ GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u16 pSize;
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
+	gf_bs_read_data(bs, ptr->reserved, 6);
+	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
 
 	ptr->displayFlags = gf_bs_read_u32(bs);			/*Display flags*/
 	ptr->textJustification = gf_bs_read_u32(bs);	/*Text justification*/
@@ -449,51 +449,26 @@ GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->reserved2  = gf_bs_read_u8(bs);			/*Reserved*/
 	ptr->reserved3  = gf_bs_read_u16(bs);			/*Reserved*/
 	gf_bs_read_data(bs, ptr->foreground_color, 6);	/*Foreground color*/
+	if (ptr->size < 51)
+		return GF_ISOM_INVALID_FILE;
+	ptr->size -= 51;
+	if (!ptr->size)
+		return GF_OK; /*ffmpeg compatibility with iPod streams: no pascal string*/
 
 	pSize = gf_bs_read_u8(bs); /*a Pascal string begins with its size: get textName size*/
-	if (43 + pSize > s->size)
+	ptr->size -= 1;
+	if (ptr->size < pSize)
 		return GF_ISOM_INVALID_FILE;
 	if (pSize) {
 		ptr->textName = (char*) gf_malloc(pSize+1 * sizeof(char));
-		if (gf_bs_read_data(bs, ptr->textName, pSize) != pSize)
+		if (gf_bs_read_data(bs, ptr->textName, pSize) != pSize) {
+			gf_free(ptr->textName);
+			ptr->textName = NULL;
 			return GF_ISOM_INVALID_FILE;
-		ptr->textName[pSize] = '\0';			/*Font name*/
-	}
-	ptr->size -= 43 + pSize + 1;
-
-	/*Text Sample Data*/
-	pSize = gf_bs_read_u16(bs);
-	if (pSize) {
-		ptr->sampleData = (char*) gf_malloc(pSize+1 * sizeof(char));
-		if (gf_bs_read_data(bs, ptr->sampleData, pSize) != pSize)
-			return GF_ISOM_INVALID_FILE;
-		ptr->sampleData[pSize] = '\0';			/*Font name*/
-	}
-	ptr->size -= 2 + pSize;
-
-#if 0
-	while (ptr->size) {
-		GF_Box *a;
-		GF_Err e = gf_isom_parse_box(&a, bs);
-		if (e) return e;
-		switch(a->type) {
-			case GF_ISOM_BOX_TYPE_STYL:
-			case GF_ISOM_BOX_TYPE_FTAB:
-			case GF_ISOM_BOX_TYPE_HLIT:
-			case GF_ISOM_BOX_TYPE_HCLR:
-			/*TODO: deal with these boxes by finding appropriate test content*/
-			//case GF_ISOM_BOX_TYPE_DRPO:
-			//case GF_ISOM_BOX_TYPE_DRPT:
-			//case GF_ISOM_BOX_TYPE_IMAG:
-			//case GF_ISOM_BOX_TYPE_METR:
-				break;
-			default:
-				return GF_OK; /*to deal with libavformat content*/
 		}
-		if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
-		ptr->size -= a->size;
+		ptr->textName[pSize] = '\0';				/*Font name*/
 	}
-#endif
+	ptr->size -= pSize;
 
 	return GF_OK;
 }
@@ -553,7 +528,8 @@ GF_Err text_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-
+	gf_bs_write_data(bs, ptr->reserved, 6);
+	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
 	gf_bs_write_u32(bs, ptr->displayFlags);			/*Display flags*/
 	gf_bs_write_u32(bs, ptr->textJustification);	/*Text justification*/
 	gf_bs_write_data(bs, ptr->background_color, 6);	/*Background color*/
@@ -569,12 +545,6 @@ GF_Err text_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_data(bs, ptr->textName, pSize);	/*Font name*/
 	} else {
 		gf_bs_write_u8(bs, 0);
-	}
-	if (ptr->sampleData && (pSize=strlen(ptr->sampleData))) {
-		gf_bs_write_u16(bs, pSize);					/*16-bit length word followed by the actual text*/
-		gf_bs_write_data(bs, ptr->sampleData, pSize);
-	} else {
-		gf_bs_write_u16(bs, 0);
 	}
 	return GF_OK;
 }
@@ -599,12 +569,10 @@ GF_Err text_Size(GF_Box *s)
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
 	GF_Err e = gf_isom_box_get_size(s);
 	if (e) return e;
-	/*base + this + string lengths*/
-	s->size += 43 + 1 + 2;
+	/*base + this + string length*/
+	s->size += 51 + 1;
 	if (ptr->textName)
 		s->size += strlen(ptr->textName);
-	if (ptr->sampleData)
-		s->size += strlen(ptr->sampleData);
 	return GF_OK;
 }
 

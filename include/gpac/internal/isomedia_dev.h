@@ -1152,7 +1152,6 @@ typedef struct
 	u8 reserved2;
 	u16 reserved3;
 	char *textName; /*font name*/
-	char *sampleData;
 } GF_TextSampleEntryBox;
 
 typedef struct
