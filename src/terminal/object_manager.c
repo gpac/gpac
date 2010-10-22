@@ -1159,6 +1159,13 @@ void gf_odm_start(GF_ObjectManager *odm, Bool was_in_media_queue)
 			gf_list_add(odm->term->media_queue, odm);
 		}
 	}
+
+	/*reset CB to stop state, otherwise updating a texture between gf_odm_start and gf_odm_play might trigger an end of stream*/
+	if (odm->codec && odm->codec->CB) {
+		gf_cm_set_status(odm->codec->CB, CB_STOP);
+		odm->codec->CB->HasSeenEOS = 0;
+	}
+
 	gf_term_lock_net(odm->term, 0);
 }
 
