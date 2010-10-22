@@ -251,8 +251,12 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 		gf_mx_p(scene->mx);
 		if (scene->is_dynamic_scene) {
-			if (scene->root_od->media_ctrl) scene->root_od->media_ctrl->current_seg = current_seg;
-			gf_scene_restart_dynamic(scene, 0);
+			u32 from = 0;
+			if (scene->root_od->media_ctrl) {
+				scene->root_od->media_ctrl->current_seg = current_seg;
+				from = (u32) (scene->root_od->media_ctrl->media_start * 1000);
+			}
+			gf_scene_restart_dynamic(scene, from);
 		} else {
 			/*we cannot use gf_mo_restart since it only sets the needs_restart for inline scenes. 
 			The rational is that gf_mo_restart can be called from the parent scene (OK) or from the scene itself, in 
