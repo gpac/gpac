@@ -1655,9 +1655,6 @@ GF_Err text_dump(GF_Box *a, FILE * trace)
 			p->dataReferenceIndex, p->displayFlags, p->textJustification);
 	if (p->textName)
 		fprintf(trace, "textName=%s ", p->textName);
-	if (p->sampleData)
-		fprintf(trace, "sampleData=%s ", p->sampleData);
-
 	gpp_dump_rgb16(trace, "background-color", p->background_color);
 	gpp_dump_rgb16(trace, "foreground-color", p->foreground_color);
 	fprintf(trace, ">\n");
