@@ -834,7 +834,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					ch->net_dts = ch->net_cts = 0;
 					ch->CTS = ch->DTS = gf_clock_time(ch->clock);
 				} else {
-					ch->net_dts -= ch->seed_ts;
+					if (ch->net_dts>ch->seed_ts) ch->net_dts -= ch->seed_ts;
+					else ch->net_dts=0;
 					ch->net_cts -= ch->seed_ts;
 					ch->CTS_past_offset = 0;
 
@@ -1096,6 +1097,8 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 
 	/*pull from stream - resume clock if needed*/
 	ch_buffer_off(ch);
+
+	memset(&slh, 0, sizeof(GF_SLHeader));
 
 	e = gf_term_channel_get_sl_packet(ch->service, ch, (char **) &ch->AU_buffer_pull->data, &ch->AU_buffer_pull->dataLength, &slh, &comp, &state, &is_new_data);
 	if (e) state = e;
