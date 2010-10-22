@@ -593,6 +593,10 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	if (mime_type) {
 		const char *sPlug = gf_cfg_get_key(term->user->config, "MimeTypes", mime_type);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Mime type found: %s\n", mime_type));
+		if (!sPlug) {
+			gf_free(mime_type);
+			mime_type=NULL;
+		}
 		if (sPlug) sPlug = strrchr(sPlug, '"');
 		if (sPlug) {
 			sPlug += 2;
