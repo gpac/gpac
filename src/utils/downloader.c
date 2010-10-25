@@ -825,7 +825,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 		case GF_NETIO_CONNECTED:
 		case GF_NETIO_DATA_EXCHANGE:
 			sess->do_requests(sess);
-			if (!sess->cache && !sess->th)
+			if (!sess->cache_name && !sess->th)
 				return sess->last_error;
 			break;
 		case GF_NETIO_DISCONNECTED:
@@ -970,7 +970,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, char *data, u
 	} else {
 		sess->bytes_done += nbBytes;
 		/*if not threaded or cached, don't signal data to user*/
-		if (sess->th || !sess->cache) {
+		if (sess->th || !sess->cache_name) {
 			par.msg_type = GF_NETIO_DATA_EXCHANGE;
 			par.error = GF_OK;
 			par.data = data;
