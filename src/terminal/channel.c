@@ -380,12 +380,13 @@ static void Channel_UpdateBufferTime(GF_Channel *ch)
 		}
 	} else {
 		s32 bt = ch->AU_buffer_last->DTS - gf_clock_time(ch->clock);
-		ch->BufferTime = 0;
 		if (bt>0) {
 			ch->BufferTime = (u32) bt;
 			if (ch->clock->speed != FIX_ONE) {
 				ch->BufferTime = FIX2INT( gf_divfix( INT2FIX(ch->AU_buffer_last->DTS - ch->AU_buffer_first->DTS) , ch->clock->speed)) ;
 			}
+		} else {
+			ch->BufferTime = 0;
 		}
 	}
 
@@ -522,7 +523,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	ch->au_duration = 0;
 	if (duration) ch->au_duration = (u32) ((u64)1000 * duration / ch->ts_res);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch AU DTS %d - CTS %d - size %d time %d Buffer %d Nb AUs %d\n", ch->esd->ESID, au->DTS, au->CTS, au->dataLength, gf_clock_real_time(ch->clock), ch->BufferTime, ch->AU_Count));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d - Dispatch AU DTS %d - CTS %d - size %d time %d Buffer %d Nb AUs %d - First AU relative timing %d\n", ch->esd->ESID, au->DTS, au->CTS, au->dataLength, gf_clock_real_time(ch->clock), ch->BufferTime, ch->AU_Count, ch->AU_buffer_first ? ch->AU_buffer_first->DTS - gf_clock_time(ch->clock) : 0 ));
 
 	/*little optimisation: if direct dispatching is possible, try to decode the AU
 	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or 
@@ -729,8 +730,14 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 #if 0
 		/*compute clock drift*/
 		else {
-			u32 OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
-			u32 ck = gf_clock_time(ch->clock);
+			u32 ck;
+			u32 OCR_TS;
+			if (hdr.m2ts_pcr) {
+				OCR_TS = (u32) ( hdr.objectClockReference / 27000);
+			} else {
+				OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
+			}
+			ck = gf_clock_time(ch->clock);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d adjusting OCR to %d (diff %d)\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, (s32) OCR_TS - (s32) ck));
 			gf_clock_set_time(ch->clock, (u32) OCR_TS);
 		}
@@ -805,6 +812,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: missed end of AU (DTS %d)\n", ch->esd->ESID, ch->DTS));
 			}
 			if (ch->codec_resilient) {
+				if (!ch->IsClockInit) gf_es_check_timing(ch);
 				Channel_DispatchAU(ch, 0);
 			} else {
 				gf_free(ch->buffer);
