@@ -133,7 +133,7 @@ void * RunThread(void *ptr)
 
 #ifndef GPAC_DISABLE_LOG
 	t->id = gf_th_id();
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Thread %s] Entering thread proc - thread ID 0x%08x\n", t->log_name, t->id));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Thread %s] At %d Entering thread proc - thread ID 0x%08x\n", t->log_name, gf_sys_clock(), t->id));
 #endif
 
 	/* Each thread has its own seed */
@@ -144,7 +144,7 @@ void * RunThread(void *ptr)
 
 exit:
 #ifndef GPAC_DISABLE_LOG
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Thread %s] Exiting thread proc\n", t->log_name));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Thread %s] At %d Exiting thread proc\n", t->log_name, gf_sys_clock()));
 #endif
 	t->status = GF_THREAD_STATUS_DEAD;
 	t->Run = NULL;
@@ -361,7 +361,7 @@ void gf_mx_v(GF_Mutex *mx)
 
 	if (mx->HolderCount == 0) {
 #ifndef GPAC_DISABLE_LOG
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] Released by thread %s\n", mx->log_name, log_th_name(mx->Holder) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] At %d Released by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder) ));
 #endif
 		mx->Holder = 0;
 #ifdef WIN32
@@ -385,7 +385,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 
 #ifndef GPAC_DISABLE_LOG
 	if (mx->Holder)
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] Thread %s waiting a release from thread %s\n", mx->log_name, log_th_name(caller), log_th_name(mx->Holder) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] At %d Thread %s waiting a release from thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(caller), log_th_name(mx->Holder) ));
 #endif
 
 #ifdef WIN32
@@ -404,7 +404,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 #endif
 	mx->HolderCount = 1;
 	mx->Holder = caller;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] Grabbed by thread %s\n", mx->log_name, log_th_name(mx->Holder) ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] At %d Grabbed by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder) ));
 	return 1;
 }
 
@@ -423,20 +423,20 @@ Bool gf_mx_try_lock(GF_Mutex *mx)
 	switch (WaitForSingleObject(mx->hMutex, 1)) {
 	case WAIT_ABANDONED:
 	case WAIT_TIMEOUT:
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] Couldn't be locked by thread %s (grabbed by thread %s)\n", mx->log_name, log_th_name(caller), log_th_name(mx->Holder) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] At %d Couldn't be locked by thread %s (grabbed by thread %s)\n", mx->log_name, gf_sys_clock(), log_th_name(caller), log_th_name(mx->Holder) ));
 		return 0;
 	default:
 		break;
 	}
 #else
 	if (pthread_mutex_trylock(&mx->hMutex) != 0 ) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] Couldn't release it for thread %s (grabbed by thread %s)\n", mx->log_name, log_th_name(caller), log_th_name(mx->Holder) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] At %d Couldn't release it for thread %s (grabbed by thread %s)\n", mx->log_name, gf_sys_clock(), log_th_name(caller), log_th_name(mx->Holder) ));
 		return 0;
 	}
 #endif
 	mx->Holder = caller;
 	mx->HolderCount = 1;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] Grabbed by thread %s\n", mx->log_name, log_th_name(mx->Holder) ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] At %d Grabbed by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder) ));
 	return 1;
 }
 
