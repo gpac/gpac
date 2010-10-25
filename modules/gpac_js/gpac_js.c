@@ -54,15 +54,7 @@
 
 typedef struct
 {
-	u32 nb_users;
-	GF_Terminal *term;
-	JSObject *global;
 	JSClass gpacClass;
-	JSObject *gpac;
-	JSClass evtClass;
-	JSFunction *evt_filter;
-	JSObject *evt;
-	JSContext *ctx;
 } GF_GPACJSExt;
 
 
@@ -80,18 +72,11 @@ typedef struct
 	the_class.finalize = fin;
 
 
-static GF_Terminal *gjs_get_term(JSContext *c, JSObject *obj)
-{
-	GF_GPACJSExt *termext = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
-	if (termext) return termext->term;
-	return NULL;
-}
-
 static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	const char *res;
 	char *prop_name;
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (!term) return JS_FALSE;
 
 	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
@@ -181,7 +166,7 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
 	char *prop_name, *prop_val;
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (!term) return JS_FALSE;
 
 	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
@@ -216,7 +201,7 @@ static JSBool gpac_getOption(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 {
 	const char *opt, *sec_name;
 	JSString *js_sec_name, *js_key_name, *s;
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (!term) return JS_FALSE;
 
 	if (argc < 2) return JSVAL_FALSE;
@@ -244,7 +229,7 @@ static JSBool gpac_getOption(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 static JSBool gpac_setOption(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	char *js_sec_name, *js_key_name, *js_key_val;
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (!term) return JS_FALSE;
 	if (argc < 3) return JSVAL_FALSE;
 	
@@ -369,7 +354,7 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 	cbk.is_dir = 1;
 	err = gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
 	if (err==GF_IO_ERR) {
-		GF_Terminal *term = (GF_Terminal *)gjs_get_term(c, obj);
+		GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 		/*try to concatenate with service url*/
 		char *an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
 		gf_free(url);
@@ -381,7 +366,7 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 		cbk.is_dir = 0;
 		err = gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
 		if (dir_only && (err==GF_IO_ERR)) {
-			GF_Terminal *term = gjs_get_term(c, obj);
+			GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 			/*try to concatenate with service url*/
 			char *an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
 			gf_free(url);
@@ -400,7 +385,7 @@ static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	Bool override_size_info = 0;
 	u32 w, h;
 	jsdouble d;
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (!term) return JS_FALSE;
 
 	w = h = 0;
@@ -440,28 +425,28 @@ static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 
 static JSBool gpac_get_horizontal_dpi(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (term) *rval = INT_TO_JSVAL(term->compositor->video_out->dpi_x);
 	return JS_TRUE;
 }
 
 static JSBool gpac_get_vertical_dpi(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (term) *rval = INT_TO_JSVAL(term->compositor->video_out->dpi_y);	
 	return JS_TRUE;
 }
 
 static JSBool gpac_get_screen_width(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	*rval = INT_TO_JSVAL(term->compositor->video_out->max_screen_width);
 	return JS_TRUE;
 }
 
 static JSBool gpac_get_screen_height(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	*rval = INT_TO_JSVAL(term->compositor->video_out->max_screen_height);
 	return JS_TRUE;
 }
@@ -469,7 +454,7 @@ static JSBool gpac_get_screen_height(JSContext *c, JSObject *obj, uintN argc, js
 static JSBool gpac_exit(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_Event evt;
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	evt.type = GF_EVENT_QUIT;
 	gf_term_send_event(term, &evt);
 	return JS_TRUE;
@@ -478,7 +463,7 @@ static JSBool gpac_exit(JSContext *c, JSObject *obj, uintN argc, jsval *argv, js
 static JSBool gpac_set_3d(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	u32 type_3d = 0;
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (argc && JSVAL_IS_INT(argv[0])) type_3d = JSVAL_TO_INT(argv[0]);
 	if (term->compositor->inherit_type_3d != type_3d) {
 		term->compositor->inherit_type_3d = type_3d;
@@ -491,7 +476,7 @@ static JSBool gpac_set_3d(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 static JSBool gpac_get_scene_time(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_SceneGraph *sg = NULL;
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) {
 		sg = term->root_scene->graph;
 	} else {
@@ -508,7 +493,7 @@ static JSBool gpac_migrate_url(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	char *url;
 	u32 i, count;
 	GF_NetworkCommand com;
-	GF_Terminal *term = gjs_get_term(c, obj);
+	GF_Terminal *term = (GF_Terminal *)JS_GetPrivate(c, obj);
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 	
 	url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
@@ -533,28 +518,12 @@ static JSBool gpac_migrate_url(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	return JS_TRUE;
 }
 
-static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
 {
-	return JS_TRUE;
-}
+	GF_GPACJSExt *gjs;
+	JSObject *obj;
 
-static JSBool gpac_set_event_filter(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
-{
-	GF_GPACJSExt *gjs = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
-	if (!gjs || !gjs->term) return JS_FALSE;
-	if (!argc || !JSVAL_IS_OBJECT(argv[0])) {
-		gjs->evt_filter = 0;
-	}
-	else {
-		gjs->evt_filter = JS_ValueToFunction(gjs->ctx, argv[0]);
-	}
-	return JS_TRUE;
-}
-
-static void gjs_load(GF_GPACJSExt *gjs, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
-{
 	GF_JSAPIParam par;
-
 	JSPropertySpec gpacClassProps[] = {
 		{0, 0, 0, 0, 0}
 	};
@@ -571,118 +540,50 @@ static void gjs_load(GF_GPACJSExt *gjs, GF_SceneGraph *scene, JSContext *c, JSOb
 		{"set_3d",				gpac_set_3d, 1, 0, 0},
 		{"get_scene_time",		gpac_get_scene_time, 1, 0, 0},
 		{"migrate_url",			gpac_migrate_url, 1, 0, 0},
-		{"set_event_filter",	gpac_set_event_filter, 1, 0, 0},
 		{0, 0, 0, 0, 0}
 	};
 
-	JSPropertySpec gevtProps[] = {
-		{0, 0, 0, 0, 0}
-	};
-	JSFunctionSpec gevtFuncs[] = {
-		{0, 0, 0, 0, 0}
-	};
-
-	if (unload) {
-		gjs->nb_users--;
-		if (!gjs->nb_users) {
-			gjs->evt_filter = 0;
-			if (gjs->evt) gf_js_remove_root(c, &gjs->evt);
-		}
-		return;
-	}
-
-	if (gjs->nb_users) {
-		gjs->nb_users++;
-		return;
-	}
-	gjs->nb_users=1;
-
+	/*nothing to do on unload*/
+	if (unload) return;
 
 	if (!scene) return;
 
-	_SETUP_CLASS(gjs->evtClass, "GPACEVT", JSCLASS_HAS_PRIVATE, gpacevt_getProperty, JS_PropertyStub, JS_FinalizeStub);
-	JS_InitClass(c, global, 0, &gjs->evtClass, 0, 0, gevtProps, gevtFuncs, 0, 0);
-	gjs->evt = JS_DefineObject(c, global, "event", &gjs->evtClass, 0, 0);
-	gf_js_add_root(c, &gjs->evt);
-	
+	gjs = jsext->udta;
 
 	_SETUP_CLASS(gjs->gpacClass, "GPAC", JSCLASS_HAS_PRIVATE, gpac_getProperty, gpac_setProperty, JS_FinalizeStub);
+
 	JS_InitClass(c, global, 0, &gjs->gpacClass, 0, 0, gpacClassProps, gpacClassFuncs, 0, 0);
-	gjs->gpac = JS_DefineObject(c, global, "gpac", &gjs->gpacClass, 0, 0);
+	obj = JS_DefineObject(c, global, "gpac", &gjs->gpacClass, 0, 0);
 
 	if (scene->script_action) {
 		if (!scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_TERM, scene->RootNode, &par))
 			return;
-		gjs->term = par.term;
-		gjs->ctx = c;
-		gjs->global = global;
-		JS_SetPrivate(c, gjs->gpac, gjs);
+		JS_SetPrivate(c, obj, par.term);
 	}
 }
 
 
 
 
-static Bool gjs_process(GF_TermExt *termext, u32 action, void *param)
+
+GF_JSUserExtension *gjs_new()
 {
-	GF_GPACJSExt *gjs = (GF_GPACJSExt *) termext->udta;
-
-	switch (action) {
-	case GF_TERM_EXT_START:
-		return 1;
-
-	case GF_TERM_EXT_STOP:
-		break;
-
-	case GF_TERM_EXT_PROCESS:
-		break;
-
-	case GF_TERM_EXT_EVENT:
-#ifdef GPAC_HAS_SPIDERMONKEY
-		if (gjs->evt_filter && !JS_GetPrivate(gjs->ctx, gjs->evt) ) {
-			jsval ret, argv[1];
-			jsval rval = BOOLEAN_TO_JSVAL(JS_FALSE);
-			argv[0] = OBJECT_TO_JSVAL(gjs->evt);
-			JS_SetPrivate(gjs->ctx, gjs->evt, (GF_Event*)param);
-			ret = JS_CallFunction(gjs->ctx, gjs->global, gjs->evt_filter, 1, argv, &rval);
-			JS_SetPrivate(gjs->ctx, gjs->evt, NULL);
-			if (BOOLEAN_TO_JSVAL(rval)==JS_TRUE) return 1;
-		}
-#endif
-		break;
-
-#ifdef GPAC_HAS_SPIDERMONKEY
-	case GF_TERM_EXT_JSBIND:
-		gjs_load(gjs, ((GF_TermExtJS*)param)->scenegraph, ((GF_TermExtJS*)param)->ctx, ((GF_TermExtJS*)param)->global, ((GF_TermExtJS*)param)->unload);
-		break;
-#endif
-	}
-	return 0;
-}
-
-
-GF_TermExt *gjs_new()
-{
-	GF_TermExt *dr;
+	GF_JSUserExtension *dr;
 	GF_GPACJSExt *gjs;
-	dr = gf_malloc(sizeof(GF_TermExt));
-	memset(dr, 0, sizeof(GF_TermExt));
-	GF_REGISTER_MODULE_INTERFACE(dr, GF_TERM_EXT_INTERFACE, "GPAC JavaScript Bindings", "gpac distribution");
+	dr = gf_malloc(sizeof(GF_JSUserExtension));
+	memset(dr, 0, sizeof(GF_JSUserExtension));
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_JS_USER_EXT_INTERFACE, "GPAC JavaScript Bindings", "gpac distribution");
 
 	GF_SAFEALLOC(gjs, GF_GPACJSExt);
-	dr->process = gjs_process;
+	dr->load = gjs_load;
 	dr->udta = gjs;
-	dr->caps = GF_TERM_EXTENSION_FILTER_EVENT;
-#ifdef GPAC_HAS_SPIDERMONKEY
-	dr->caps |= GF_TERM_EXTENSION_JS;
-#endif
 	return dr;
 }
 
 
 void gjs_delete(GF_BaseInterface *ifce)
 {
-	GF_TermExt *dr = (GF_TermExt*) ifce;
+	GF_JSUserExtension *dr = (GF_JSUserExtension *) ifce;
 	GF_GPACJSExt *gjs = dr->udta;
 	gf_free(gjs);
 	gf_free(dr);
@@ -696,7 +597,7 @@ const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #ifdef GPAC_HAS_SPIDERMONKEY
-		GF_TERM_EXT_INTERFACE,
+		GF_JS_USER_EXT_INTERFACE,
 #endif
 		0
 	};
@@ -707,7 +608,7 @@ GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType) 
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
-	if (InterfaceType == GF_TERM_EXT_INTERFACE) return (GF_BaseInterface *)gjs_new();
+	if (InterfaceType == GF_JS_USER_EXT_INTERFACE) return (GF_BaseInterface *)gjs_new();
 #endif
 	return NULL;
 }
@@ -717,7 +618,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
 #ifdef GPAC_HAS_SPIDERMONKEY
-	case GF_TERM_EXT_INTERFACE:
+	case GF_JS_USER_EXT_INTERFACE:
 		gjs_delete(ifce);
 		break;
 #endif
