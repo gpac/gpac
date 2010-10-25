@@ -101,6 +101,10 @@ typedef struct
 	u32 stb_at_last_pcr;
 	u32 nb_pck;
 
+	/*remote file handling*/
+	GF_DownloadSession *dnload;
+	Bool ts_setup;
+
 	Bool epg_requested;
 	Bool has_eit;
 	LPNETCHANNEL eit_channel;
@@ -470,7 +474,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 		if (!found) return;
 	}
 #endif
-	if (m2ts->file) m2ts->file_regulate = no_declare ? 0 : 1;
+	if (m2ts->file || m2ts->dnload) m2ts->file_regulate = no_declare ? 0 : 1;
 
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
@@ -663,7 +667,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (!pck->stream->first_dts) {
 			gf_m2ts_set_pes_framing(pck->stream, GF_M2TS_PES_FRAMING_SKIP);
 			MP2TS_DeclareStream(m2ts, pck->stream, pck->data, pck->data_len);
-			if (m2ts->file) m2ts->file_regulate = 1;
+			if (m2ts->file || m2ts->dnload) m2ts->file_regulate = 1;
 			pck->stream->first_dts=1;
 			/*force scene regeneration*/
 			gf_term_add_media(m2ts->service, NULL, 0);
@@ -697,7 +701,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					if (com.buffer.occupancy > M2TS_BUFFER_MAX) {
 						/*We don't sleep for the entire buffer occupancy, because we would take
 						the risk of starving the audio chains. We try to keep buffers half full*/
-						//fprintf(stdout, "%d ms in buffer - sleeping %d ms\n", com.buffer.occupancy, com.buffer.occupancy - M2TS_BUFFER_MAX/2);
+						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux going to sleep for %d ms (buffer occupancy %d ms)\n", com.buffer.occupancy - M2TS_BUFFER_MAX/2, com.buffer.occupancy));
 						gf_sleep(com.buffer.occupancy - M2TS_BUFFER_MAX/2);
 					}
 
@@ -765,6 +769,11 @@ u32 M2TS_Run(void *_p)
 				gf_m2ts_process_data(m2ts->ts, data, size);
 			}
 		}
+	} else if (m2ts->dnload) {
+		while (m2ts->run_state) {
+			gf_dm_sess_process(m2ts->dnload);
+			gf_sleep(1);
+		}
 	} else {
 		u64 pos = 0;
 		if (m2ts->start_range && m2ts->duration) {
@@ -787,9 +796,13 @@ u32 M2TS_Run(void *_p)
 
 			m2ts->nb_pck++;
 			/*if asked to regulate, wait until we get a play request*/
-			while (m2ts->run_state && !m2ts->nb_playing && m2ts->file_regulate) {
-				gf_sleep(50);
-				continue;
+			if (m2ts->run_state && !m2ts->nb_playing && m2ts->file_regulate) {
+				while (m2ts->run_state && !m2ts->nb_playing && m2ts->file_regulate) {
+					gf_sleep(50);
+					continue;
+				}
+			} else if (m2ts->file) {
+				gf_sleep(1);
 			}
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("\nEOS reached\n"));
@@ -859,6 +872,45 @@ exit:
 	if (e) gf_term_on_connect(m2ts->service, NULL, e);
 }
 #endif
+
+void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
+{
+	GF_Err e;
+	M2TSIn *m2ts = (M2TSIn *) cbk;
+	
+	/*handle service message*/
+	gf_term_download_update_stats(m2ts->dnload);
+
+	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
+		e = GF_EOS;
+	} else if (param->msg_type==GF_NETIO_DATA_EXCHANGE) {
+		e = GF_OK;
+		/*process chunk*/
+		gf_m2ts_process_data(m2ts->ts, param->data, param->size);
+
+		/*if asked to regulate, wait until we get a play request*/
+		if (m2ts->run_state && !m2ts->nb_playing && m2ts->file_regulate) {
+			while (m2ts->run_state && !m2ts->nb_playing && m2ts->file_regulate) {
+				gf_sleep(50);
+				continue;
+			}
+		} else {
+			gf_sleep(1);
+		}
+
+	} else {
+		e = param->error;
+	}
+
+	if (e<GF_OK) {
+		/*error opening service*/
+		if (!m2ts->ts_setup) {
+			m2ts->ts_setup = 1;
+			gf_term_on_connect(m2ts->service, NULL, e);
+		}
+		return;
+	}
+}
 
 void M2TS_SetupLive(GF_InputService *plug, M2TSIn *m2ts, char *url)
 {
@@ -1028,6 +1080,15 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 		M2TS_SetupDVB(plug, m2ts, (char *) szURL);
 	}
 #endif
+	else if (!strnicmp(url, "http://", 7)) {
+		m2ts->dnload = gf_term_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, m2ts_net_io, m2ts);
+		if (!m2ts->dnload) gf_term_on_connect(m2ts->service, NULL, GF_NOT_SUPPORTED);
+		else {
+			m2ts->th = gf_th_new("MPEG-2 TS Demux");
+			/*start playing for tune-in*/
+			gf_th_run(m2ts->th, M2TS_Run, m2ts);
+		}
+	}
 	else {
 		M2TS_SetupFile(m2ts, (char *) szURL);
 	}
@@ -1050,6 +1111,10 @@ static GF_Err M2TS_CloseService(GF_InputService *plug)
 
 	if (m2ts->file) fclose(m2ts->file);
 	m2ts->file = NULL;
+
+	if (m2ts->dnload) gf_term_download_del(m2ts->dnload);
+	m2ts->dnload = NULL;
+
 	gf_term_on_disconnect(m2ts->service, NULL, GF_OK);
 	return GF_OK;
 }
