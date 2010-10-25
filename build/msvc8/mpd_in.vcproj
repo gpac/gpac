@@ -137,6 +137,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
 				SubSystem="2"
@@ -174,6 +175,14 @@
 	</References>
 	<Files>
 		<File
+			RelativePath="..\..\modules\m3u8_in\m3u8_parser.c"
+			>
+		</File>
+		<File
+			RelativePath="..\..\modules\m3u8_in\m3u8_parser.h"
+			>
+		</File>
+		<File
 			RelativePath="..\..\modules\modules_export.cpp"
 			>
 		</File>
@@ -187,6 +196,14 @@
 		</File>
 		<File
 			RelativePath="..\..\modules\mpd_in\mpd_in.c"
+			>
+		</File>
+		<File
+			RelativePath="..\..\modules\m3u8_in\playlist.c"
+			>
+		</File>
+		<File
+			RelativePath="..\..\modules\m3u8_in\playlist.h"
 			>
 		</File>
 	</Files>
