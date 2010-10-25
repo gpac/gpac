@@ -259,8 +259,6 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	/*generate hash of the full url*/
 	strcpy(tmp, sess->server_name);
 	strcat(tmp, sess->remote_path);
-	sprintf(hash, "#%p", sess);
-	strcat(tmp, hash);
 
 	gf_sha1_csum(tmp, strlen(tmp), hash);
 	tmp[0] = 0;
@@ -827,6 +825,8 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 		case GF_NETIO_CONNECTED:
 		case GF_NETIO_DATA_EXCHANGE:
 			sess->do_requests(sess);
+			if (!sess->cache && !sess->th)
+				return sess->last_error;
 			break;
 		case GF_NETIO_DISCONNECTED:
 		case GF_NETIO_STATE_ERROR:
@@ -969,8 +969,8 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, char *data, u
 		}
 	} else {
 		sess->bytes_done += nbBytes;
-		/*if not threaded don't signal data to user*/
-		if (sess->th) {
+		/*if not threaded or cached, don't signal data to user*/
+		if (sess->th || !sess->cache) {
 			par.msg_type = GF_NETIO_DATA_EXCHANGE;
 			par.error = GF_OK;
 			par.data = data;
@@ -1518,13 +1518,16 @@ void http_do_requests(GF_DownloadSession *sess)
 		}
 		if (no_range) first_byte = 0;
 
-		if (sess->cache_start_size) {
+		/*check if this code was useful ? */
+#if 0
+		if (sess->cache_start_size && (rsp_code == 200) ) {
 			if (total_size && (sess->cache_start_size >= total_size) ) {
 				rsp_code = 200;
 				ContentLength = total_size;
 			}
 			if (ContentLength && (sess->cache_start_size == ContentLength) ) rsp_code = 200;
 		}
+#endif
 
 		par.msg_type = GF_NETIO_PARSE_REPLY;
 		par.error = GF_OK;
@@ -1615,7 +1618,7 @@ void http_do_requests(GF_DownloadSession *sess)
 //		if (!is_ice && !ContentLength) e = GF_REMOTE_SERVICE_ERROR;
 		if (e) goto exit;
 
-		if (no_cache && !sess->use_cache_extension) {
+		if (is_ice && no_cache && !sess->use_cache_extension) {
 			sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
 			no_range = 1;
 			first_byte = 0;
@@ -1625,8 +1628,7 @@ void http_do_requests(GF_DownloadSession *sess)
 			}
 			if (sess->cache_name) {
 				gf_delete_file(sess->cache_name);
-				gf_free(sess->cache_name);
-				sess->cache_name = NULL;
+				sess->cache = gf_f64_open(sess->cache_name, "wb");
 			}
 			sess->cache_start_size = 0;
 		}
