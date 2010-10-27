@@ -834,6 +834,8 @@ scalable_retry:
 			unit_size = 0;
 			/*error - if the object is in intitial buffering resume it!!*/
 			gf_cm_abort_buffering(codec->CB);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d (frame TS %d - %d ms ): decoded error %s\n", codec->odm->OD->objectDescriptorID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
+			e = GF_OK;
 			break;
 		}
 
@@ -849,9 +851,9 @@ drop:
 
 		gf_es_drop_au(ch);
 		AU = NULL;
+
 		if (e) {
 			UnlockCompositionUnit(codec, CU, unit_size);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Decoder %s] ODM%d: decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));
 			return e;
 		}
 
