@@ -93,8 +93,9 @@ enum
 	GF_NET_SERVICE_HAS_AUDIO,
 	/*instructs the service to get the migration info - term->net only*/
 	GF_NET_SERVICE_MIGRATION_INFO,
-	/*When using DASH or playlists, indicates to the service that the underlying cache has changed term->net only*/
-	GF_NET_SERVICE_CACHE_REFRESH
+
+	/*When using DASH or playlists, query the next file to concatenate to thecurrent one net->proxy only*/
+	GF_NET_SERVICE_QUERY_NEXT,
 };
 
 /*channel command for all commands that don't need params:
@@ -295,6 +296,13 @@ typedef struct
 	u32 data_len;
 } GF_NetComMigration;
 
+/*GF_NET_SERVICE_QUERY_NEXT*/
+typedef struct
+{
+	u32 command_type;
+	/*out: next url to play after current one*/
+	const char *next_url;
+} GF_NetURLQuery;
 
 typedef union __netcommand
 {
@@ -314,6 +322,7 @@ typedef union __netcommand
 	GF_NetComPixelAR par;
 	GF_NetComHasAudio audio;
 	GF_NetComMigration migrate;
+	GF_NetURLQuery url_query;
 } GF_NetworkCommand;
 
 /*
@@ -398,6 +407,10 @@ typedef struct _netinterface
 
 /*private*/
 	void *priv;
+
+/*proxy stuff*/
+	GF_Err (*query_proxy)(struct _netinterface *, GF_NetworkCommand *param);
+	void *proxy_udta;
 } GF_InputService;
 
 /*callback functions - these can be linked with non-LGPL modules*/
