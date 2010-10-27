@@ -24,6 +24,7 @@
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/network.h>
+#include "media_memory.h"
 
 
 
@@ -407,7 +408,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 				if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
 				if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
 				if (ch->IsClockInit && (u32) ch->BufferTime  < com->buffer.occupancy) {
-					if (ch->AU_Count<=2) {
+					if ((ch->AU_Count<=2) || (odm->codec->CB->UnitCount <= odm->codec->CB->Min)) {
 						com->buffer.occupancy = 0;
 					} else {
 						com->buffer.occupancy = ch->BufferTime;
@@ -840,7 +841,7 @@ GF_DownloadSession *gf_term_download_new(GF_ClientService *service, const char *
 	GF_Err e;
 	GF_DownloadSession * sess;
 	char *sURL;
-	if (!service || !user_io) return NULL;
+	if (!service) return NULL;
 
 	sURL = gf_url_concatenate(service->url, url);
 	/*path was absolute*/
