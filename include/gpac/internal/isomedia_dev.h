@@ -477,6 +477,11 @@ typedef struct
 	char *name;
 	/*private for editing*/
 	Bool is_unpacked;
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	u64 dts_at_seg_start;
+	u32 sample_count_at_seg_start;
+#endif 
 } GF_TrackBox;
 
 typedef struct
