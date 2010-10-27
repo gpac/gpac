@@ -779,6 +779,7 @@ u32 gf_log_parse_tools(const char *val)
 		else if (!stricmp(val, "all")) flags = 0xFFFFFFFF;
 		else if (!stricmp(val, "rti")) flags |= GF_LOG_RTI;
 		else if (!stricmp(val, "cache")) flags |= GF_LOG_CACHE;
+		else if (!stricmp(val, "audio")) flags |= GF_LOG_AUDIO;
 		else if (!stricmp(val, "mem")) flags |= GF_LOG_MEMORY;
 		if (!sep) break;
 		sep[0] = ':';

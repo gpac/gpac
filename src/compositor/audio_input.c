@@ -65,7 +65,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 
 	/*no more data or not enough data, reset syncro drift*/
 	if (!frame) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Audio Input] No data in audio object (eos %d)\n", ai->stream_finished));
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] No data in audio object (eos %d)\n", ai->stream_finished));
 		gf_mo_adjust_clock(ai->stream, 0);
 		return NULL;
 	}
@@ -82,7 +82,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 #ifdef ENABLE_EARLY_FRAME_DETECTION
 	/*too early (silence insertions), skip*/
 	if (drift + (s32) (audio_delay_ms + resync_delay) < 0) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Audio Input] audio too early %d (CTS %d)\n", drift + audio_delay_ms + resync_delay, ts));
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] audio too early %d (CTS %d)\n", drift + audio_delay_ms + resync_delay, ts));
 		ai->need_release = 0;
 		gf_mo_release_data(ai->stream, 0, 0);
 		return NULL;
@@ -93,12 +93,12 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 		resync_delay = FIX2INT(speed * MAX_RESYNC_TIME);
 		/*CU is way too late, discard and fetch a new one - this usually happen when media speed is more than 1*/
 		if (drift>resync_delay) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Audio Input] Audio data too late obj time %d - CTS %d - drift %d ms - resync forced\n", obj_time - audio_delay_ms, ts, drift));
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] Audio data too late obj time %d - CTS %d - drift %d ms - resync forced\n", obj_time - audio_delay_ms, ts, drift));
 			gf_mo_release_data(ai->stream, *size, 2);
 			ai->need_release = 0;
 			return gf_audio_input_fetch_frame(callback, size, audio_delay_ms);
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Audio Input] Audio clock: delay %d - obj time %d - CTS %d - adjust drift %d\n", audio_delay_ms, obj_time - audio_delay_ms, ts, drift));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Audio Input] Audio clock: delay %d - obj time %d - CTS %d - adjust drift %d\n", audio_delay_ms, obj_time - audio_delay_ms, ts, drift));
 		gf_mo_adjust_clock(ai->stream, drift);
 	}
 	return frame;
@@ -386,7 +386,7 @@ static Bool gf_af_get_config(GF_AudioInterface *ai, Bool for_reconf)
 	af->input.chan = af->src->chan;
 
 	if (gf_afc_setup(&af->filter_chain, af->input.bps, af->input.samplerate, af->src->chan, af->src->ch_cfg, &af->input.chan, &af->input.ch_cfg)!=GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Audio Input] Failed to configure audio filter chain\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[Audio Input] Failed to configure audio filter chain\n"));
 
 		return 0;
 	}
