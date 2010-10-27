@@ -355,7 +355,7 @@ u32 gf_ar_proc(void *p)
 	gf_mixer_lock(ar->mixer, 0);
 
 	while (ar->audio_th_state == 1) {
-		//GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] Audio simulation step\n"));
+		//GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Audio simulation step\n"));
 		
 		/*THIS IS NEEDED FOR SYMBIAN - if no yield here, the audio module always grabs the 
 		main mixer mutex and it takes forever before it can be grabed by another thread, 
@@ -372,7 +372,7 @@ u32 gf_ar_proc(void *p)
 			gf_mixer_lock(ar->mixer, 0);
 		}
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] Exiting audio thread\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Exiting audio thread\n"));
 	ar->audio_out->Shutdown(ar->audio_out);
 	ar->audio_th_state = 3;
 	return 0;
@@ -427,7 +427,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 			for (i=0; i<count; i++) {
 				ar->audio_out = (GF_AudioOutput *) gf_modules_load_interface(ar->user->modules, i, GF_AUDIO_OUTPUT_INTERFACE);
 				if (!ar->audio_out) continue;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] Audio output module %s loaded\n", ar->audio_out->module_name));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Audio output module %s loaded\n", ar->audio_out->module_name));
 				/*check that's a valid audio compositor*/
 				if (ar->audio_out->SelfThreaded) {
 					if (ar->audio_out->SetPriority) break;
@@ -445,7 +445,7 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 
 			ar->audio_out->FillBuffer = gf_ar_fill_output;
 			ar->audio_out->audio_renderer = ar;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] Setting up audio module %s\n", ar->audio_out->module_name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Setting up audio module %s\n", ar->audio_out->module_name));
 			e = ar->audio_out->Setup(ar->audio_out, ar->user->os_window_handler, num_buffers, total_duration);
 			
 
@@ -481,21 +481,21 @@ void gf_sc_ar_del(GF_AudioRenderer *ar)
 {
 	if (!ar) return;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] Destroying compositor\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Destroying compositor\n"));
 	/*resume if paused (might cause deadlock otherwise)*/
 	if (ar->Frozen) gf_sc_ar_control(ar, 1);
 	/*stop and shutdown*/
 	if (ar->audio_out) {
 		/*kill audio thread*/
 		if (!ar->audio_out->SelfThreaded) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] stoping audio thread\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] stoping audio thread\n"));
 			ar->audio_th_state = 2;
 			while (ar->audio_th_state != 3) {
 				gf_sleep(33);
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] audio thread stopped\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] audio thread stopped\n"));
 			gf_th_del(ar->th);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] audio thread destroyed\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] audio thread destroyed\n"));
 		}
 		/*lock access before shutdown and emulate a reconfig (avoids mixer lock from self-threaded modules)*/
 		ar->need_reconfig = 1;
@@ -509,7 +509,7 @@ void gf_sc_ar_del(GF_AudioRenderer *ar)
 	if (ar->audio_listeners) gf_list_del(ar->audio_listeners);
 	gf_afc_unload(&ar->filter_chain);
 	gf_free(ar);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[AudioRender] Renderer destroyed\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Renderer destroyed\n"));
 }
 
 

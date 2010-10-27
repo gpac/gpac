@@ -610,7 +610,7 @@ single_source_mix:
 	/*not completely filled*/
 	if (buffer_size) {
 		if (!data) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[AudioMixer] not enough input data (%d still to fill)\n", buffer_size));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUDIO, ("[AudioMixer] not enough input data (%d still to fill)\n", buffer_size));
 		}
 		memset(ptr, 0, buffer_size);
 	}

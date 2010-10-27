@@ -60,7 +60,7 @@ extern "C" {
 /*KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)!!!, and NO SPACE in GPAC_VERSION for proper install*/
 #define GPAC_VERSION       "0.4.6-DEV"
 
-#define GPAC_INTERNAL_REV	"7"
+#define GPAC_INTERNAL_REV	"8"
 #define GPAC_FULL_VERSION       GPAC_VERSION" (internal rev. "GPAC_INTERNAL_REV")"
 
 /*!
@@ -327,8 +327,10 @@ enum
 	GF_LOG_SMIL = 1<<17,
 	/*! Log for memory tracker*/
 	GF_LOG_MEMORY = 1<<18,
+	/*! Log for audio compositor*/
+	GF_LOG_AUDIO = 1<<19,
 	/*! generic Log for modules*/
-	GF_LOG_MODULE = 1<<19
+	GF_LOG_MODULE = 1<<20
 
 };
 
