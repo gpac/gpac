@@ -666,10 +666,11 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 	Bool ret = 0;
 
 	if (stream->mpeg2_stream_type==GF_M2TS_SYSTEMS_MPEG4_SECTIONS) {
-		/*section not completely sent yet*/
-		if (stream->current_section && stream->current_section_offset) 
+		/*section is not completely sent yet or this is not the first section of the table*/
+		if (stream->current_section && (stream->current_section_offset || stream->current_section!=stream->current_table->section)) 
 			return 1;
-		if (stream->ifce->repeat_rate && stream->tables) ret = 1;
+		if (stream->ifce->repeat_rate && stream->tables)
+			ret = 1;
 	}
 	else if (stream->pck_offset < stream->pck.data_len) {
 		/*PES packet not completely sent yet*/
@@ -1369,6 +1370,7 @@ u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer)
 {
 	return gf_sys_clock() - muxer->init_sys_time;
 }
+
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer)
 {
 	u32 now, init;
@@ -1400,7 +1402,6 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 			u32 diff = now - muxer->init_sys_time;
 			GF_M2TS_Time now = muxer->init_ts_time;
 			gf_m2ts_time_inc(&now, diff, 1000);
-
 			if (gf_m2ts_time_less(&now, &muxer->time)) 
 				return NULL;
 		}
@@ -1433,7 +1434,7 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 		}
 		stream = program->streams;
 		while (stream) {
-			nb_streams ++;
+			nb_streams++;
 			res = stream->process(muxer, stream);
 			if (res) {
 				if (gf_m2ts_time_less(&stream->time, &time)) {
