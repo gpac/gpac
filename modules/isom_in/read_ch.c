@@ -100,6 +100,38 @@ static void init_reader(ISOMChannel *ch)
 
 }
 
+static void check_segment_switch(ISOMReader *read)
+{
+	GF_NetworkCommand param;
+	u32 i, count;
+	if (!read->frag_type) return;
+	if (!read->input->query_proxy) return;
+
+	count = gf_list_count(read->channels);
+	for (i=0; i<count; i++) {
+		ISOMChannel *ch = gf_list_get(read->channels, i);
+		/*check all playing channels are waiting for next segment*/
+		if (ch->is_playing && !ch->wait_for_segment_switch) return;
+	}
+	/*close current segment*/
+	gf_isom_release_segment(read->mov, 1);
+
+	/*update current fragment if any*/
+	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
+	if ((read->input->query_proxy(read->input, &param)==GF_OK) && param.url_query.next_url){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("\nSegment switch detected - now playing %s\n", param.url_query.next_url));
+		gf_isom_open_segment(read->mov, param.url_query.next_url);
+
+		for (i=0; i<count; i++) {
+			ISOMChannel *ch = gf_list_get(read->channels, i);
+			ch->wait_for_segment_switch = 0;
+		}
+	} else {
+		/*consider we are done*/
+		read->frag_type = 2;
+	}
+}
+
 void isor_reader_get_sample(ISOMChannel *ch)
 {
 	GF_Err e;
@@ -174,9 +206,15 @@ fetch_next:
 			} else {
 				ch->last_state = GF_ISOM_INCOMPLETE_FILE;
 			}
-		} else if (!ch->sample_num || (ch->sample_num > gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
-			ch->last_state = (ch->owner->frag_type==1) ? GF_OK : GF_EOS;
+		} else if (!ch->sample_num || (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
+			if (ch->owner->frag_type==1) {
+				ch->last_state = GF_OK;
+				ch->wait_for_segment_switch = 1;
+			} else {
+				ch->last_state = GF_EOS;
+			}
 		}
+		if (ch->wait_for_segment_switch) check_segment_switch(ch->owner);
 		return;
 	}
 	ch->last_state = GF_OK;

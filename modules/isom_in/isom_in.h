@@ -39,6 +39,7 @@
 
 typedef struct
 {
+	GF_InputService *input;
 	/*the service we're responsible for*/
 	GF_ClientService *service;
 
@@ -68,6 +69,7 @@ typedef struct
 	ISOMReader *owner;
 	u64 duration;
 
+	Bool wait_for_segment_switch;
 
 	/*current sample*/
 	GF_ISOSample *sample;

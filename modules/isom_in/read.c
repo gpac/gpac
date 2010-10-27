@@ -181,6 +181,7 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 	if (!plug || !plug->priv || !serv) return GF_SERVICE_ERROR;
 	read = (ISOMReader *) plug->priv;
 
+	read->input = plug;
 	read->service = serv;
 
 	if (read->dnload) gf_term_download_del(read->dnload);
@@ -699,17 +700,6 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 		return GF_NOT_SUPPORTED;
 	}
-	if (com->command_type==GF_NET_SERVICE_CACHE_REFRESH) {
-		if (read->frag_type) {
-			u64 mBytes;
-			GF_Err e = gf_isom_refresh_fragmented(read->mov, &mBytes);
-			if (e) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[ISO Reader] Invalid segment %s\n", gf_error_to_string(e)));
-			}
-		}
-		return GF_OK;
-	}
-
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 
 	ch = isor_get_channel(read, com->base.on_channel);

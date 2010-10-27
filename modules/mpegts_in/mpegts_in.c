@@ -71,6 +71,8 @@ typedef struct {
 
 typedef struct
 {
+	GF_InputService *owner;
+
 	GF_ClientService *service;
 	GF_M2TS_Demuxer *ts;
 
@@ -110,7 +112,7 @@ typedef struct
 	LPNETCHANNEL eit_channel;
 } M2TSIn;
 
-#define M2TS_BUFFER_MAX 800
+#define M2TS_BUFFER_MAX 400
 
 
 #ifdef GPAC_HAS_LINUX_DVB
@@ -494,6 +496,8 @@ static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 {
 	GF_SLHeader slh;
 
+	/*pcr not initialized, don't send any data*/
+	if (! pck->stream->program->first_dts) return;
 	if (!pck->stream->user) return;
 
 	memset(&slh, 0, sizeof(GF_SLHeader));
@@ -684,6 +688,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			slh.objectClockReference = ((GF_M2TS_PES_PCK *) param)->PTS;
 			gf_term_on_sl_packet(m2ts->service, ((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, &slh, GF_OK);
 		}
+		((GF_M2TS_PES_PCK *) param)->stream->program->first_dts = 1;
 
 		if (m2ts->file_regulate) {
 			u64 pcr = ((GF_M2TS_PES_PCK *) param)->PTS;
@@ -694,17 +699,32 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				pcr_diff /= 27000;
 				diff = (u32) pcr_diff - (stb - m2ts->stb_at_last_pcr);
 				if (diff>0 && (diff<1000) ) {
+					u32 sleep_for=50;
+#ifndef GPAC_DISABLE_LOG
+					u32 nb_sleep=0;
+#endif
 					/*query buffer level, don't sleep if too low*/
 					GF_NetworkCommand com;
 					com.command_type = GF_NET_BUFFER_QUERY;
-					gf_term_on_command(m2ts->service, &com, GF_OK);
-					if (com.buffer.occupancy > M2TS_BUFFER_MAX) {
+					while (1) {
+						gf_term_on_command(m2ts->service, &com, GF_OK);
+						if (com.buffer.occupancy < M2TS_BUFFER_MAX) 
+							break;
 						/*We don't sleep for the entire buffer occupancy, because we would take
 						the risk of starving the audio chains. We try to keep buffers half full*/
-						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux going to sleep for %d ms (buffer occupancy %d ms)\n", com.buffer.occupancy - M2TS_BUFFER_MAX/2, com.buffer.occupancy));
-						gf_sleep(com.buffer.occupancy - M2TS_BUFFER_MAX/2);
+#ifndef GPAC_DISABLE_LOG
+						if (!nb_sleep) {
+							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux going to sleep (buffer occupancy %d ms)\n", com.buffer.occupancy));
+						}
+						nb_sleep++;
+#endif
+						gf_sleep(sleep_for);
 					}
-
+#ifndef GPAC_DISABLE_LOG
+					if (nb_sleep) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", sleep_for*nb_sleep, com.buffer.occupancy));
+					}
+#endif
 					m2ts->nb_pck = 0;
 					m2ts->pcr_last = pcr;
 					m2ts->stb_at_last_pcr = gf_sys_clock();
@@ -774,7 +794,7 @@ u32 M2TS_Run(void *_p)
 			gf_dm_sess_process(m2ts->dnload);
 			gf_sleep(1);
 		}
-	} else {
+	} else if (m2ts->file) {
 		u64 pos = 0;
 		if (m2ts->start_range && m2ts->duration) {
 			Double perc = m2ts->start_range / (1000 * m2ts->duration);
@@ -787,6 +807,7 @@ u32 M2TS_Run(void *_p)
 			}
 		}
 		gf_f64_seek(m2ts->file, pos, SEEK_SET);
+restart_file:
 		while (m2ts->run_state && !feof(m2ts->file) ) {
 			/*m2ts chunks by chunks*/
 			size = fread(data, 1, 188, m2ts->file);
@@ -805,6 +826,19 @@ u32 M2TS_Run(void *_p)
 				gf_sleep(1);
 			}
 		}
+
+		if (feof(m2ts->file) && m2ts->owner && m2ts->owner->query_proxy) {
+			GF_NetworkCommand param;
+			fclose(m2ts->file);
+			m2ts->file = NULL;
+			param.command_type = GF_NET_SERVICE_QUERY_NEXT;
+			if ((m2ts->owner->query_proxy(m2ts->owner, &param)==GF_OK) && param.url_query.next_url){
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("\nSegment switch detected - now playing %s\n", param.url_query.next_url));
+				m2ts->file = gf_f64_open(param.url_query.next_url, "rb");
+				if (m2ts->file) goto restart_file;
+			}
+		}
+
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("\nEOS reached\n"));
 		if (m2ts->nb_playing) {
 			for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
@@ -815,7 +849,6 @@ u32 M2TS_Run(void *_p)
 				gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
 			}
 		}
-
 	}
 	m2ts->run_state = 2;
 	return 0;
@@ -1059,6 +1092,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	char szURL[2048];
 	char *frag;
 	M2TSIn *m2ts = plug->priv;
+	m2ts->owner = plug;
 	m2ts->service = serv;
 
 	strcpy(szURL, url);
@@ -1305,6 +1339,8 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			}
 			return GF_STREAM_NOT_FOUND;
 		}
+		/*mark pcr as not initialized*/
+		if (pes->program->pcr_pid==pes->pid) pes->program->first_dts=0;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Setting default reframing\n"));
 		/*this is a multplex, only trigger the play command for the first stream activated*/
