@@ -245,6 +245,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_dash_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_set_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_setup_from_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_resource_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_reset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_del) )
 
@@ -495,6 +497,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_missing_bytes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_fragmented) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_track_fragmented) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_release_segment) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_refresh_fragmented) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_timescale) )
