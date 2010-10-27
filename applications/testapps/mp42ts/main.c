@@ -30,6 +30,9 @@
 #include <gpac/mpegts.h>
 
 
+#define MP42TS_PRINT_FREQ 634 /*refresh printed info every CLOCK_REFRESH ms*/
+
+
 static GFINLINE void usage() 
 {
 	fprintf(stderr, "usage: mp42ts {rate {prog}*} [mpeg4-carousel] [mpeg4] [time] [src] dst\n"
@@ -361,6 +364,7 @@ static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 static GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
 {		
 	u32 i=0;
+	//fprintf(stdout, "update: ESID=%d - size=%d - ts="LLD"\n", ESID, size, ts);
 	if (calling_object) {
 		M2TSProgram *prog = (M2TSProgram *)calling_object;
 			while (i<prog->nb_streams){
@@ -505,17 +509,40 @@ static Bool seng_output(void *param)
 						while (1) {
 							char *sep = strchr(flag, ' ');
 							if (sep) sep[0] = 0;
-							if (!strnicmp(flag, "esid=", 5)) es_id = atoi(flag+5);
-							else if (!strnicmp(flag, "period=", 7)) period = atoi(flag+7);
-							else if (!strnicmp(flag, "ts=", 3)) ts_delta = atoi(flag+3);
-							else if (!strnicmp(flag, "carousel=", 9)) aggregate_on_stream = atoi(flag+9);
-							else if (!strnicmp(flag, "restamp=", 8)) adjust_carousel_time = atoi(flag+8);
-							else if (!strnicmp(flag, "discard=", 8)) discard_pending = atoi(flag+8);
-							else if (!strnicmp(flag, "aggregate=", 10)) aggregate_au = atoi(flag+10);
-							else if (!strnicmp(flag, "force_rap=", 10)) force_rap = atoi(flag+10);
-							else if (!strnicmp(flag, "rap=", 4)) signal_rap = atoi(flag+4);
-							else if (!strnicmp(flag, "critical=", 9)) signal_critical = atoi(flag+9);
-							else if (!strnicmp(flag, "vers_inc=", 9)) version_inc = atoi(flag+9);
+							if (!strnicmp(flag, "esid=", 5)) {
+								/*ESID on which the update is applied*/
+								es_id = atoi(flag+5);
+							} else if (!strnicmp(flag, "period=", 7)) {
+								/*TODO: target period carousel for ESID ??? (ESID/carousel)*/
+								period = atoi(flag+7);
+							} else if (!strnicmp(flag, "ts=", 3)) {
+								/*TODO: */
+								ts_delta = atoi(flag+3);
+							} else if (!strnicmp(flag, "carousel=", 9)) {
+								/*TODO: why? => sends the update on carousel id specified by this argument*/
+								aggregate_on_stream = atoi(flag+9);
+							} else if (!strnicmp(flag, "restamp=", 8)) {
+								/*CTS is updated when carouselled*/
+								adjust_carousel_time = atoi(flag+8);
+							} else if (!strnicmp(flag, "discard=", 8)) {
+								/*when we receive several updates during a single carousel period, this attribute specifies whether the current update discard pending ones*/
+								discard_pending = atoi(flag+8);
+							} else if (!strnicmp(flag, "aggregate=", 10)) {
+								/*Boolean*/
+								aggregate_au = atoi(flag+10);
+							} else if (!strnicmp(flag, "force_rap=", 10)) {
+								/*TODO: */
+								force_rap = atoi(flag+10);
+							} else if (!strnicmp(flag, "rap=", 4)) {
+								/*TODO: */
+								signal_rap = atoi(flag+4);
+							} else if (!strnicmp(flag, "critical=", 9)) {
+								/*TODO: */
+								signal_critical = atoi(flag+9);
+							} else if (!strnicmp(flag, "vers_inc=", 9)) {
+								/*Boolean to increment m2ts section version number*/
+								version_inc = atoi(flag+9);
+							}
 							if (sep) {
 								sep[0] = ' ';
 								flag = sep+1;
@@ -861,7 +888,7 @@ static Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, 
 		u32 load_type=0;
 		prog->seng = gf_seng_init(prog, src, load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? 1 : 0);
 		
-	    if (!prog->seng) {
+		if (!prog->seng) {
 			fprintf(stdout, "Cannot create scene engine\n");
 			exit(0);
 		}
@@ -877,7 +904,7 @@ static Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, 
 
 		for (i=0; i<prog->nb_streams; i++) {
 			fill_seng_es_ifce(&prog->streams[i], i, prog->seng, prog->rate);
-			fprintf(stdout, "Fill interface\n");
+			//fprintf(stdout, "Fill interface\n");
 			if (!prog->pcr_idx && (prog->streams[i].stream_type == GF_STREAM_VISUAL)) {
 				prog->pcr_idx = i+1;
 			}
@@ -905,11 +932,15 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		char *arg = argv[i];
 		if (arg[0]=='-') {
 			if (!strnicmp(arg, "-rate=", 6)) {
-				if (rate_found) goto error;
+				if (rate_found) {
+					goto error;
+				}
 				rate_found = 1;
 				*mux_rate = 1024*atoi(arg+6);
 			} else if (!strnicmp(arg, "-mpeg4-carousel=", 16)) {
-				if (mpeg4_carousel_found) goto error;
+				if (mpeg4_carousel_found) {
+					goto error;
+				}
 				mpeg4_carousel_found = 1;
 				*carrousel_rate = atoi(arg+16);
 			} else if (!strnicmp(arg, "-ll=", 4)) {
@@ -929,16 +960,22 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 					}
 				}
 			} else if (!strnicmp(arg, "-mpeg4", 6)) {
-				if (mpeg4_found) goto error;
+				if (mpeg4_found) {
+					goto error;
+				}
 				mpeg4_found = 1;
 				*mpeg4_signaling = 1;
 			} else if (!strnicmp(arg, "-time=", 6)) {
-				if (time_found) goto error;
+				if (time_found) {
+					goto error;
+				}
 				time_found = 1;
 				*run_time = atoi(arg+6);
 			} 
 			else if (!strnicmp(arg, "-src=", 5)){
-				if (src_found) goto error;
+				if (src_found) {
+					goto error;
+				}
 				src_found = 1;
 				*src_name = arg+5;
 			}
@@ -946,7 +983,9 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				goto error;
 			}
 		} else { /*"dst" argument (output)*/
-			if (dst_found) goto error;
+			if (dst_found) {
+				goto error;
+			}
 			dst_found = 1;
 			if (!strnicmp(arg, "rtp://", 6) || !strnicmp(arg, "udp://", 6)) {
 				char *sep = strchr(arg+6, ':');
@@ -985,7 +1024,7 @@ int main(int argc, char **argv)
 	u32 res, run_time;
 	Bool real_time, mpeg4_signaling;
 	GF_M2TS_Mux *muxer=NULL;
-	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate;
+	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time;
 	char *ts_out = NULL;
 	FILE *ts_file;
 	GF_Socket *ts_udp;
@@ -994,7 +1033,6 @@ int main(int argc, char **argv)
 	GF_RTPHeader hdr;
 	u16 port;
 	u32 output_type;
-	u32 check_count;
 	char *src_name = NULL;
 	M2TSProgram progs[MAX_MUX_SRC_PROG];
 
@@ -1020,6 +1058,8 @@ int main(int argc, char **argv)
 	gf_sys_init(0);
 	gf_log_set_level(GF_LOG_ERROR);
 	gf_log_set_tools(0xFFFFFFFF);
+	//gf_log_set_level(GF_LOG_DEBUG);
+	//gf_log_set_tools(GF_LOG_CONTAINER);
 	
 	/***********************/
 	/*   parse arguments   */
@@ -1116,10 +1156,9 @@ int main(int argc, char **argv)
 	/*****************/
 	/*   main loop   */
 	/*****************/
-	check_count = 100;
+	last_print_time=gf_sys_clock();
 	while (run) {
-		u32 ts;
-		u32 status;
+		u32 ts, status;
 		/*flush all packets*/
 		switch (output_type) {
 		case GF_MP42TS_FILE_OUTPUT:
@@ -1152,12 +1191,17 @@ int main(int argc, char **argv)
 			break;
 		}
 		if (real_time) {
-			check_count --;
-			if (!check_count) {
-				check_count=2000000;
+			/*refresh every MP42TS_PRINT_FREQ ms*/
+			u32 now=gf_sys_clock();
+			if (now/MP42TS_PRINT_FREQ != last_print_time/MP42TS_PRINT_FREQ) {
+				last_print_time = now;
 				fprintf(stdout, "M2TS: time %d - TS time %d - avg bitrate %d\r", gf_m2ts_get_sys_clock(muxer), gf_m2ts_get_ts_clock(muxer), muxer->avg_br);
 			}
 		}
+
+		/*cpu load regulation*/
+		gf_sleep(1);
+
 		if (run_time) {
 			if (gf_m2ts_get_ts_clock(muxer) > run_time) {
 				fprintf(stdout, "Stopping multiplex at %d ms (requested runtime %d ms)\n", gf_m2ts_get_ts_clock(muxer), run_time);
