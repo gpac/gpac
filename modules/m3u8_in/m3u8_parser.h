@@ -33,5 +33,15 @@
  * @return GF_OK if playlist valid
  */
 GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL);
+/**
+ * Parse the given playlist file as a subplaylist of an existing playlist
+ * @param file The file from cache to parse
+ * @param The playlist to fill. 
+ * @param baseURL base URL of the playlist 
+ * @param program in which the playlist is parsed
+ * @param sub_playlist existing subplaylist element in the @playlist in which the playlist is parsed
+ * @return GF_OK if playlist valid
+ */
+GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Program * in_program, PlaylistElement *sub_playlist);
 
 #endif /* M3U8_PARSER_H */

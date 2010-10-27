@@ -31,7 +31,8 @@
 #include <gpac/network.h>
 
 /*#define MYLOG(xx) GF_LOG( GF_LOG_INFO, GF_LOG_CONTAINER, xx )*/
-#define MYLOG(xx) printf xx
+//#define MYLOG(xx) printf xx
+#define MYLOG(xx) 
 
 #ifdef WIN32
 #define bzero(a, b) memset(a, 0x0, b)
@@ -205,8 +206,12 @@ static char * parse_next_line( char * data, char * buf, int * readPointer, int *
 }
 
 
-
 GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL)
+{
+	return parse_sub_playlist(file, playlist, baseURL, NULL, NULL);
+}
+
+GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Program * in_program, PlaylistElement *sub_playlist)
 {
 	int readen, readPointer, len, i, currentLineNumber;
 	FILE * f;
@@ -274,7 +279,7 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 					} else {
 						char * fullURL = currentLine;
 						GF_List * currentBitrateList = NULL;
-						printf("Line %d: '%s'\n", currentLineNumber, currentLine);
+						//printf("Line %d: '%s'\n", currentLineNumber, currentLine);
 						
 						if (gf_url_is_local(currentLine)){
                             /*
@@ -298,9 +303,10 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 						}
 						{
 							u32 count;
-							PlaylistElement * currentPlayList = NULL;
+							PlaylistElement * currentPlayList = sub_playlist;
 							/* First, we have to find the matching program */
-							Program * program = variant_playlist_find_matching_program(pl, attribs.programId);
+							Program * program = in_program;
+							if (!in_program) program = variant_playlist_find_matching_program(pl, attribs.programId);
 							/* We did not found the program, we create it */
 							if (program == NULL){
 								program = program_new(attribs.programId);
@@ -319,22 +325,23 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 							assert( program );
 							assert( program->bitrates);
 							count = gf_list_count( program->bitrates);
-							currentPlayList = NULL;
 							
-							for (i = 0; i < count; i++){
-								PlaylistElement * itPlayListElement = gf_list_get(program->bitrates, i);
-								assert( itPlayListElement );
-								if (itPlayListElement->bandwidth == attribs.bandwidth){
-									currentPlayList = itPlayListElement;
-									break;
+							if (!currentPlayList) {
+								for (i = 0; i < count; i++){
+									PlaylistElement * itPlayListElement = gf_list_get(program->bitrates, i);
+									assert( itPlayListElement );
+									if (itPlayListElement->bandwidth == attribs.bandwidth){
+										currentPlayList = itPlayListElement;
+										break;
+									}
 								}
 							}
-							
+
 							if (attribs.isVariantPlaylist){
 								/* We are the Variant Playlist */
 								if (currentPlayList != NULL){
 									/* should not happen, it means we redefine something previsouly added */
-									assert( 0 );
+									//assert( 0 );
 								}
 								currentPlayList = playlist_element_new(
 																	   TYPE_UNKNOWN,
@@ -396,13 +403,18 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 																						fullURL,
 																						attribs.title,
 																						attribs.durationInSeconds);
+									if (currentPlayList->elementType != TYPE_PLAYLIST) {
+										currentPlayList->elementType = TYPE_PLAYLIST;
+										if (!currentPlayList->element.playlist.elements)
+											currentPlayList->element.playlist.elements = gf_list_new();
+									}
 									if (subElement == NULL){
 										variant_playlist_del(*playlist);
 										playlist_element_del(currentPlayList);
 										playlist = NULL;
 										return GF_OUT_OF_MEM;
 									}
-									gf_list_add(currentPlayList->element.playlist.elements, subElement);
+									gf_list_add(currentPlayList->element.playlist.elements, subElement);									
 								}
 							}
 							
@@ -418,6 +430,8 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 							currentPlayList->element.playlist.mediaSequenceMax = attribs.currentMediaSequence++;
 							if (attribs.bandwidth > 1)
 								currentPlayList->bandwidth = attribs.bandwidth;
+							if (attribs.isPlaylistEnded)
+								currentPlayList->element.playlist.is_ended = 1;
 						}
 						/* Cleanup all line-specific fields */
 						if (attribs.title){
