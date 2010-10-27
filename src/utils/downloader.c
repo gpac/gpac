@@ -353,7 +353,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 
 	if (sess->dm) gf_list_del_item(sess->dm->sessions, sess);
 
-	if (sess->cache_name && !sess->use_cache_extension) {
+	if (sess->cache_name && !sess->use_cache_extension && !(sess->flags & GF_NETIO_SESSION_KEEP_CACHE) ) {
         if (sess->dm) 
             opt = gf_cfg_get_key(sess->dm->cfg, "Downloader", "CleanCache");
         else 
@@ -538,11 +538,13 @@ void gf_dm_sess_dash_reset(GF_DownloadSession *sess)
 
 }
 
-void gf_dm_sess_set_range(GF_DownloadSession *sess, u32 start, u32 end) 
+GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u32 start, u32 end) 
 {
+	if (!sess) return GF_BAD_PARAM;
     sess->needs_range = 1;
     sess->range_start = start;
     sess->range_end = end;
+	return GF_OK;
 }
 
 GF_DownloadSession *gf_dm_sess_new_simple(char *url, u32 dl_flags,
@@ -913,7 +915,8 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, char *data, u
 		}
 		sess->bytes_done += nbBytes;
 		/*if not threaded don't signal data to user*/
-		if (sess->th) {
+//		if (sess->th) 
+		{
 			par.msg_type = GF_NETIO_DATA_EXCHANGE;
 			par.error = GF_OK;
 			par.data = data;
@@ -1766,4 +1769,28 @@ GF_Err gf_dm_wget(const char *url, const char *filename)
     }
     gf_dm_sess_del(dnload);
     return e;
+}
+
+const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload)
+{
+	return dnload ? dnload->orig_url : NULL;
+}
+
+GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
+{
+	if (!sess) return GF_BAD_PARAM;
+	sess->status = GF_NETIO_SETUP;
+    sess->needs_range = 0;
+    sess->range_start = sess->range_end = 0;
+	sess->bytes_done = sess->bytes_in_wnd = sess->bytes_per_sec = 0;
+	if (sess->init_data) free(sess->init_data);
+	sess->init_data = NULL;
+	sess->init_data_size = 0;
+	sess->last_error = GF_OK;
+	if (sess->mime_type) free(sess->mime_type);
+	sess->mime_type = NULL;
+	sess->total_size = 0;
+	sess->window_start = 0;
+	sess->start_time = 0;
+	return GF_OK;
 }

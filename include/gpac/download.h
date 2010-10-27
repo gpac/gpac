@@ -135,7 +135,9 @@ enum
 	/*! ignores any data already in the cache*/
 	GF_NETIO_SESSION_FORCE_RESTART =	1<<2,
 	/*! reuses any data already in the cache and appends the new data*/
-	GF_NETIO_SESSION_REUSE_APPEND =	1<<3
+	GF_NETIO_SESSION_REUSE_APPEND =	1<<3,
+	/*! forces cache to be saved on disk - this is temporary until we cleanup cache management*/
+	GF_NETIO_SESSION_KEEP_CACHE =	1<<4
 };
 
 
@@ -277,6 +279,34 @@ GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, cons
  *\param sess the download session
  *\return the last error in the session or 0 if none*/
 GF_Err gf_dm_sess_process(GF_DownloadSession * sess);
+
+/*!
+ *\brief Get session resource url
+ *
+ *Returns the original resource URL associated with the session
+ *\param sess the download session
+ *\return the associated URL*/
+const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload);
+
+/*!
+ *\brief Set session request range
+ *
+ *Sets the session range request
+ *\param sess the download session
+ *\param start start range of the request
+ *\param end end range of the request
+ *\return error code if any
+ */
+GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u32 start, u32 end);
+
+/*!
+ *\brief Reset session 
+ *
+ *Resets the session for new processing of the same url
+ *\param sess the download session
+ *\return error code if any
+ */
+GF_Err gf_dm_sess_reset(GF_DownloadSession *sess);
 
 /*! @} */
 
