@@ -1047,6 +1047,12 @@ GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 	if (!sampleNumber) return NULL;
 	samp = gf_isom_sample_new();
 	if (!samp) return NULL;
+
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (sampleNumber<=trak->sample_count_at_seg_start) return NULL;
+	sampleNumber -= trak->sample_count_at_seg_start;
+#endif
+
 	e = Media_GetSample(trak->Media, sampleNumber, &samp, &descIndex, 0, NULL);
 	if (e) {
 		gf_isom_set_last_error(the_file, e);
@@ -1054,6 +1060,9 @@ GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 		return NULL;
 	}
 	if (sampleDescriptionIndex) *sampleDescriptionIndex = descIndex;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (samp) samp->DTS += trak->dts_at_seg_start;
+#endif
 
 	return samp;
 }
@@ -1163,6 +1172,11 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 
 	stbl = trak->Media->information->sampleTable;
 
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	if (desiredTime < trak->dts_at_seg_start) return GF_BAD_PARAM;
+	desiredTime -= trak->dts_at_seg_start;
+#endif
+
 	e = findEntryForTime(stbl, desiredTime, 0, &sampleNumber, &prevSampleNumber);
 	if (e) return e;
 
@@ -1264,7 +1278,12 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 		return e;
 	}
 	//optionally get the sample number
-	if (SampleNum) *SampleNum = sampleNumber;
+	if (SampleNum) {
+		*SampleNum = sampleNumber;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+		*SampleNum += trak->sample_count_at_seg_start;
+#endif
+	}
 
 	//in shadow mode, we only get the data of the shadowing sample !
 	if (useShadow) {
@@ -1784,6 +1803,82 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes)
 
 	//ok parse root boxes
 	return gf_isom_parse_movie_boxes(movie, MissingBytes);
+#endif
+}
+
+GF_EXPORT
+GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
+{
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	u32 i;
+	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
+
+	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
+		GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
+		if (trak->Media->information->dataHandler == movie->movieFileMap) {
+			trak->Media->information->dataHandler = NULL;
+		}
+		if (reset_tables) {
+			u32 type;
+			u64 dts;
+			GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
+			trak->sample_count_at_seg_start += stbl->SampleSize->sampleCount;
+			stbl_GetSampleDTS(stbl->TimeToSample, stbl->SampleSize->sampleCount, &dts);
+			trak->dts_at_seg_start += dts;
+
+#define RECREATE_BOX(_a, __cast)	\
+		if (_a) {	\
+			type = _a->type;\
+			gf_isom_box_del((GF_Box *)_a);\
+			_a = __cast gf_isom_box_new(type);\
+		}\
+
+			RECREATE_BOX(stbl->ChunkOffset, (GF_Box *));
+			RECREATE_BOX(stbl->CompositionOffset, (GF_CompositionOffsetBox *));
+			RECREATE_BOX(stbl->DegradationPriority, (GF_DegradationPriorityBox *));
+			RECREATE_BOX(stbl->PaddingBits, (GF_PaddingBitsBox *));
+			RECREATE_BOX(stbl->SampleDep, (GF_SampleDependencyTypeBox *));
+			RECREATE_BOX(stbl->SampleSize, (GF_SampleSizeBox *));
+			RECREATE_BOX(stbl->SampleToChunk, (GF_SampleToChunkBox *));
+			RECREATE_BOX(stbl->ShadowSync, (GF_ShadowSyncBox *));
+			RECREATE_BOX(stbl->SyncSample, (GF_SyncSampleBox *));
+			RECREATE_BOX(stbl->TimeToSample, (GF_TimeToSampleBox *));
+		}
+	}
+
+	gf_isom_datamap_del(movie->movieFileMap);
+	movie->movieFileMap = NULL;
+#endif
+	return GF_OK;
+}
+
+GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName)
+{
+#ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
+	return GF_NOT_SUPPORTED;
+#else
+	u64 MissingBytes;
+	GF_Err e;
+	u32 i;
+	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
+	if (movie->openMode != GF_ISOM_OPEN_READ) return GF_BAD_PARAM;
+
+	if (movie->movieFileMap)
+		gf_isom_release_segment(movie, 0);
+
+	e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &movie->movieFileMap);
+	if (e) return e;
+
+	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
+		GF_TrackBox *trak = gf_list_get(movie->moov->trackList, i);
+		if (trak->Media->information->dataHandler == NULL) {
+			trak->Media->information->dataHandler = movie->movieFileMap;
+		}
+	}
+
+	movie->current_top_box_start = 0;
+	//ok parse root boxes
+	return gf_isom_parse_movie_boxes(movie, &MissingBytes);
 #endif
 }
 

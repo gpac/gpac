@@ -1053,6 +1053,13 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, GF_ISOFile *f2,
 
 GF_Err gf_isom_set_JPEG2000(GF_ISOFile *mov, Bool set_on);
 
+/*releases current movie segment - this closes the associated file IO object.
+If reset_tables is set, sample information for all tracks setup as segment are destroyed. This allows keeping the memory
+footprint low when playing segments. Note however that seeking in the file is then no longer possible*/
+GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables);
+/*opens a new segment file. Access to samples in previous segments is no longer possible*/
+GF_Err gf_isom_open_segment(GF_ISOFile *movie, const char *fileName);
+
 #ifndef GPAC_DISBALE_ISOM_FRAGMENTS
 
 /*
