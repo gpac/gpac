@@ -922,9 +922,13 @@ static Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, 
 }
 
 /*parse MP42TS arguments*/
-static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *carrousel_rate, M2TSProgram *progs, u32 *nb_progs, Bool *mpeg4_signaling, char **src_name, Bool *real_time, u32 *run_time, u32 *output_type, char **ts_out, u16 *port)
+static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *carrousel_rate, 
+                                  M2TSProgram *progs, u32 *nb_progs, Bool *mpeg4_signaling, char **src_name, 
+                                  Bool *real_time, u32 *run_time, u32 *output_type, char **ts_out, u16 *port, 
+                                  u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix)
 {
-	Bool rate_found=0, mpeg4_carousel_found=0, prog_found=0, mpeg4_found=0, time_found=0, src_found=0, dst_found=0;
+	Bool rate_found=0, mpeg4_carousel_found=0, prog_found=0, mpeg4_found=0, time_found=0, src_found=0, dst_found=0, 
+        seg_dur_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found = 0, real_time_found=0;
 	char *prog_name;
 	u32 res;
 	s32 i;
@@ -965,12 +969,42 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				}
 				mpeg4_found = 1;
 				*mpeg4_signaling = 1;
+			} else if (!strnicmp(arg, "-real-time", 10)) {
+				if (real_time_found) {
+					goto error;
+				}
+				real_time_found = 1;
+				*real_time = 1;
 			} else if (!strnicmp(arg, "-time=", 6)) {
 				if (time_found) {
 					goto error;
 				}
 				time_found = 1;
 				*run_time = atoi(arg+6);
+			} else if (!strnicmp(arg, "-segment-duration=", 18)) {
+				if (seg_dur_found) {
+					goto error;
+				}
+				seg_dur_found = 1;
+				*segment_duration = atoi(arg+18);
+			} else if (!strnicmp(arg, "-segment-manifest=", 18)) {
+				if (seg_manifest_found) {
+					goto error;
+				}
+				seg_manifest_found = 1;
+				*segment_manifest = arg+18;
+			} else if (!strnicmp(arg, "-segment-http-prefix=", 21)) {
+				if (seg_http_found) {
+					goto error;
+				}
+				seg_http_found = 1;
+				*segment_http_prefix = arg+21;
+			} else if (!strnicmp(arg, "-segment-number=", 16)) {
+				if (seg_number_found) {
+					goto error;
+				}
+				seg_number_found = 1;
+				*segment_number = atoi(arg+16);
 			} 
 			else if (!strnicmp(arg, "-src=", 5)){
 				if (src_found) {
@@ -1014,6 +1048,38 @@ error:
 	return GF_BAD_PARAM;
 }
 
+/* adapted from http://svn.assembla.com/svn/legend/segmenter/segmenter.c */
+static GF_Err write_manifest(char *manifest, u32 segment_duration, char *segment_prefix, char *http_prefix, 
+                            u32 first_segment, u32 last_segment, Bool end) {
+    FILE *manifest_fp;
+    u32 i;
+    char *tmp_manifest= "tmp_manifest.m3u8";
+
+    manifest_fp = fopen(tmp_manifest, "w");
+    if (!manifest_fp) {
+        fprintf(stderr, "Could not create m3u8 manifest file (%s)\n", tmp_manifest);
+        return GF_BAD_PARAM;
+    }
+
+    fprintf(manifest_fp, "#EXTM3U\n#EXT-X-TARGETDURATION:%u\n#EXT-X-MEDIA-SEQUENCE:%u\n", segment_duration, first_segment);
+
+    for (i = first_segment; i <= last_segment; i++) {
+        fprintf(manifest_fp, "#EXTINF:%u,\n%s%s_%u.ts\n", segment_duration, http_prefix, segment_prefix, i);
+    }
+
+    if (end) {
+        fprintf(manifest_fp, "#EXT-X-ENDLIST\n");
+    }
+    fclose(manifest_fp);
+
+    if (!rename(tmp_manifest, manifest)) {
+        return GF_OK;
+    } else {
+        fprintf(stderr, "Could not rename temporary m3u8 manifest file (%s) into %s\n", tmp_manifest, manifest);
+        return GF_BAD_PARAM;
+    }
+}
+
 int main(int argc, char **argv)
 {
 	/********************/
@@ -1025,7 +1091,7 @@ int main(int argc, char **argv)
 	Bool real_time, mpeg4_signaling;
 	GF_M2TS_Mux *muxer=NULL;
 	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time;
-	char *ts_out = NULL;
+	char *ts_out;
 	FILE *ts_file;
 	GF_Socket *ts_udp;
 	GF_RTPChannel *ts_rtp;
@@ -1033,14 +1099,21 @@ int main(int argc, char **argv)
 	GF_RTPHeader hdr;
 	u16 port;
 	u32 output_type;
-	char *src_name = NULL;
+	char *src_name;
 	M2TSProgram progs[MAX_MUX_SRC_PROG];
+    u32 segment_duration, segment_index, segment_number;
+    char segment_manifest_default[GF_MAX_PATH];
+    char *segment_manifest, *segment_http_prefix;
+    char segment_prefix[GF_MAX_PATH];
+    char segment_name[GF_MAX_PATH];
+    GF_M2TS_Time prev_seg_time;
 
 	/***********************/
 	/*   initialisations   */
 	/***********************/
 	real_time=0;	
 	output_type = 0;
+    src_name = NULL;
 	ts_file = NULL;
 	ts_udp = NULL;
 	ts_rtp = NULL;
@@ -1051,6 +1124,13 @@ int main(int argc, char **argv)
 	mpeg4_signaling = 0;
 	carrousel_rate = 500;
 	port = 1234;
+    segment_duration = 0;
+    segment_number = 10; /* by default, we keep the 10 previous segments */
+    segment_index = 0;
+    segment_manifest = NULL;
+    segment_http_prefix = NULL;
+    prev_seg_time.sec = 0;
+    prev_seg_time.nanosec = 0;
 	
 	/*****************/
 	/*   gpac init   */
@@ -1064,7 +1144,9 @@ int main(int argc, char **argv)
 	/***********************/
 	/*   parse arguments   */
 	/***********************/
-	if (GF_OK != parse_args(argc, argv, &mux_rate, &carrousel_rate, progs, &nb_progs, &mpeg4_signaling, &src_name, &real_time, &run_time, &output_type, &ts_out, &port)) {
+	if (GF_OK != parse_args(argc, argv, &mux_rate, &carrousel_rate, progs, &nb_progs, &mpeg4_signaling, &src_name, 
+                            &real_time, &run_time, &output_type, &ts_out, &port, 
+                            &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix)) {
 		usage();
 		goto exit;
 	}
@@ -1081,8 +1163,21 @@ int main(int argc, char **argv)
 	muxer->mpeg4_signaling = mpeg4_signaling;
 	switch(output_type) {
 	case GF_MP42TS_FILE_OUTPUT:
+        if (segment_duration) {
+            char *dot;
+            strcpy(segment_prefix, ts_out);
+            dot = strrchr(segment_prefix, '.');
+            dot[0] = 0;
+            sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
+            ts_out = segment_name;
+            if (!segment_manifest) { 
+                sprintf(segment_manifest_default, "%s.m3u8", segment_prefix);
+                segment_manifest = segment_manifest_default;
+            }
+            write_manifest(segment_manifest, segment_duration, segment_prefix, segment_http_prefix, segment_index, segment_index + segment_number, 0);
+        } 
 		ts_file = fopen(ts_out, "wb");
-		if (!ts_file ) {
+		if (!ts_file) {
 			fprintf(stderr, "Error opening %s\n", ts_out);
 			goto exit;
 		}
@@ -1164,6 +1259,26 @@ int main(int argc, char **argv)
 		case GF_MP42TS_FILE_OUTPUT:
 			while ((ts_pck = gf_m2ts_mux_process(muxer, &status)) != NULL) {
 				fwrite(ts_pck, 1, 188, ts_file); 
+                if (segment_duration && (muxer->time.sec > prev_seg_time.sec + segment_duration)) {
+                    prev_seg_time = muxer->time;
+                    fclose(ts_file);
+                    segment_index++;
+                    sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
+		            ts_file = fopen(ts_out, "wb");
+		            if (!ts_file) {
+			            fprintf(stderr, "Error opening %s\n", ts_out);
+			            goto exit;
+		            }
+                    /* delete the oldest segment */
+                    if (segment_number && (segment_index - segment_number >= 0)){
+                        char old_segment_name[GF_MAX_PATH];
+                        sprintf(old_segment_name, "%s_%d.ts", segment_prefix, segment_index - segment_number);
+		                gf_delete_file(old_segment_name);
+                    }
+                    if (segment_index % segment_number == 0) {
+                        write_manifest(segment_manifest, segment_duration, segment_prefix, segment_http_prefix, segment_index, segment_index + segment_number, 0);
+                    }
+                } 
 				if (status>=GF_M2TS_STATE_PADDING) break;
 			}
 			break;
@@ -1216,6 +1331,9 @@ int main(int argc, char **argv)
 
 exit:
 	run = 0;
+    if (segment_duration) {
+        write_manifest(segment_manifest, segment_duration, segment_prefix, segment_http_prefix, segment_index - segment_number, segment_index, 1);
+    }
 	if (ts_file) fclose(ts_file);
 	if (ts_udp) gf_sk_del(ts_udp);
 	if (ts_rtp) gf_rtp_del(ts_rtp);
