@@ -103,6 +103,14 @@ const char *gpac_features();
 const char *gf_4cc_to_str(u32 type);
 
 /*!
+ *	\brief asprintf() portable implementation
+ *
+ *	similar to sprintf, except it allows the string on the  
+ *  \note asprintf implementation for windows
+*/
+int gf_asprintf(char **buffer, char *fmt, ...);
+
+/*!
  *	\brief large file opening
  *
  *	Opens a large file (>4GB)

@@ -346,6 +346,10 @@
 			Name="utils"
 			>
 			<File
+				RelativePath="..\..\src\utils\alloc.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\utils\base_encoding.c"
 				>
 				<FileConfiguration
