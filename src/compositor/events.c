@@ -1275,9 +1275,10 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 				if (!current_focus) {
 					/*get the base grouping stack (*/
 					BaseGroupingStack *grp = (BaseGroupingStack*)gf_node_get_private(elt);
-					if (grp && (grp->flags & (GROUP_HAS_SENSORS | GROUP_IS_ANCHOR) )) 
+					if (grp && (grp->flags & (GROUP_HAS_SENSORS | GROUP_IS_ANCHOR) )) {
 						gf_node_set_cyclic_traverse_flag(elt, 0);
 						return elt;
+					}
 				}
 				if ( (gf_node_get_field_by_name(elt, "children", &info) != GF_OK) || (info.fieldType != GF_SG_VRML_MFNODE)) {
 					gf_node_set_cyclic_traverse_flag(elt, 0);
