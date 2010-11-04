@@ -24,10 +24,11 @@
 
 #include <gpac/internal/compositor_dev.h>
 
-#define ENABLE_EARLY_FRAME_DETECTION
-#define MIN_RESYNC_TIME		500
+//#define ENABLE_EARLY_FRAME_DETECTION
+
 /*diff time in ms to consider an audio frame too early and insert silence*/
 #define MIN_RESYNC_TIME		500
+
 /*diff time in ms to consider an audio frame too late and drop it*/
 #define MAX_RESYNC_TIME		500
 
