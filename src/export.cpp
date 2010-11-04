@@ -94,6 +94,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_strdup) )
 #endif /*GPAC_MEMORY_TRACKING*/
 
+#pragma comment (linker, EXPORT_SYMBOL(gf_asprintf) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_count) )
