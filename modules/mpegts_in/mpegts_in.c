@@ -833,7 +833,6 @@ restart_file:
 			m2ts->file = NULL;
 			param.command_type = GF_NET_SERVICE_QUERY_NEXT;
 			if ((m2ts->owner->query_proxy(m2ts->owner, &param)==GF_OK) && param.url_query.next_url){
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("\nSegment switch detected - now playing %s\n", param.url_query.next_url));
 				m2ts->file = gf_f64_open(param.url_query.next_url, "rb");
 				if (m2ts->file) goto restart_file;
 			}
