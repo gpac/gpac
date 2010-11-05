@@ -361,7 +361,7 @@ static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	return GF_OK;
 }
 
-static GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
+static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
 {		
 	u32 i=0;
 	//fprintf(stdout, "update: ESID=%d - size=%d - ts="LLD"\n", ESID, size, ts);
@@ -369,8 +369,8 @@ static GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 siz
 		M2TSProgram *prog = (M2TSProgram *)calling_object;
 			while (i<prog->nb_streams){
 				if (prog->streams[i].output_ctrl==NULL) {
-					fprintf(stdout, "MULTIPLEX NOT YET CREATED\n");				
-					return GF_OK;
+					fprintf(stdout, "MULTIPLEX NOT YET CREATED\n");	fflush(stdout);
+					return;
 				}
 				if (prog->streams[i].stream_id == ESID) {
 					GF_ESIStream *priv = (GF_ESIStream *)prog->streams[i].input_udta;
@@ -385,23 +385,26 @@ static GF_Err SampleCallBack(void *calling_object, u16 ESID, char *data, u32 siz
 						pck.flags |= GF_ESI_DATA_AU_RAP;
 					if (prog->repeat || !priv->vers_inc) {
 						pck.flags |= GF_ESI_DATA_REPEAT;
-						fprintf(stdout, "RAP carousel from scene engine sent: ESID=%d - size=%d - ts="LLD"\n", ESID, size, ts); 
+						fprintf(stdout, "RAP carousel from scene engine sent: ESID=%d - size=%d - ts="LLD"\n", ESID, size, ts);
 					} else {
 						fprintf(stdout, "Update from scene engine sent: ESID=%d - size=%d - ts="LLD"\n", ESID, size, ts); 
 					}
+					fflush(stdout);
 					prog->streams[i].output_ctrl(&prog->streams[i], GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
-					return GF_OK;
+					return;
 				}
 			i++;
 			}
 	} 
-	return GF_OK;
+	return;
 }
+
+//static gf_seng_callback * SampleCallBack = &mySampleCallBack;
 
 
 static volatile Bool run = 1;
 
-static void set_broadcast_params(M2TSProgram *prog, u16 esid, u32 period, u32 ts_delta, u16 aggregate_on_stream, Bool adjust_carousel_time, Bool force_rap, Bool aggregate_au, Bool discard_pending, Bool signal_rap, Bool signal_critical, Bool version_inc)
+static GF_ESIStream * set_broadcast_params(M2TSProgram *prog, u16 esid, u32 period, u32 ts_delta, u16 aggregate_on_stream, Bool adjust_carousel_time, Bool force_rap, Bool aggregate_au, Bool discard_pending, Bool signal_rap, Bool signal_critical, Bool version_inc)
 {
 	u32 i=0;
 	GF_ESIStream *priv=NULL;
@@ -482,7 +485,7 @@ static Bool seng_output(void *param)
 				if (mod_time != last_src_modif) {
 					FILE *srcf;
 					char flag_buf[201], *flag;
-					fprintf(stdout, "Update file modified - processing\n");
+					fprintf(stdout, "Update file modified - processing\n");fflush(stdout);
 					last_src_modif = mod_time;
 
 					srcf = fopen(prog->src_name, "rt");
@@ -555,9 +558,9 @@ static Bool seng_output(void *param)
 					}
 
 					e = gf_seng_encode_from_file(seng, es_id, aggregate_au ? 0 : 1, prog->src_name, SampleCallBack);
-					if (e)
-						fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
-					else
+					if (e){
+						fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));fflush(stdout);
+					} else
 						gf_seng_aggregate_context(seng, 0);
 
 					update_context=1;
@@ -580,24 +583,24 @@ static Bool seng_output(void *param)
 				{
 					GF_Err e;
 					char szCom[8192];
-					fprintf(stdout, "Enter command to send:\n");
+					fprintf(stdout, "Enter command to send:\n");fflush(stdout);
 					fflush(stdin);
 					szCom[0] = 0;
 					scanf("%[^\t\n]", szCom);
 					prog->repeat = 0;
 					e = gf_seng_encode_from_string(seng, 0, 0, szCom, SampleCallBack);
 					prog->repeat = 1;
-					if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
+					if (e){ fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e)); fflush(stdout); }
 					update_context=1;
 				}
 					break;
 				case 'p':
 				{
 					char rad[GF_MAX_PATH];
-					fprintf(stdout, "Enter output file name - \"std\" for stdout: ");
+					fprintf(stdout, "Enter output file name - \"std\" for stdout: "); fflush(stdout);
 					scanf("%s", rad);
 					e = gf_seng_save_context(seng, !strcmp(rad, "std") ? NULL : rad);
-					fprintf(stdout, "Dump done (%s)\n", gf_error_to_string(e));
+					fprintf(stdout, "Dump done (%s)\n", gf_error_to_string(e)); fflush(stdout);
 				}
 					break;
 				case 'q':
@@ -686,14 +689,14 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 
 	if (gf_rtp_setup_transport(rtp->rtp_ch, &trans, NULL) != GF_OK) {
 		gf_rtp_del(rtp->rtp_ch);
-		fprintf(stdout, "Cannot initialize RTP transport\n");
+		fprintf(stdout, "Cannot initialize RTP transport\n"); fflush(stdout);
 		return;
 	}
 	/*setup depacketizer*/
 	rtp->depacketizer = gf_rtp_depacketizer_new(media, rtp_sl_packet_cbk, rtp);
 	if (!rtp->depacketizer) {
 		gf_rtp_del(rtp->rtp_ch);
-		fprintf(stdout, "Cannot create RTP depacketizer\n");
+		fprintf(stdout, "Cannot create RTP depacketizer\n"); fflush(stdout);
 		return;
 	}
 	/*setup channel*/
@@ -724,21 +727,21 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 	e = gf_rtp_initialize(rtp->rtp_ch, 0x100000ul, 0, 0, 10, 200, NULL);
 	if (e!=GF_OK) {
 		gf_rtp_del(rtp->rtp_ch);
-		fprintf(stdout, "Cannot initialize RTP channel: %s\n", gf_error_to_string(e));
+		fprintf(stdout, "Cannot initialize RTP channel: %s\n", gf_error_to_string(e)); fflush(stdout);
 		return;
 	}
-	fprintf(stdout, "RTP interface initialized\n");
+	fprintf(stdout, "RTP interface initialized\n"); fflush(stdout);
 }
 
 void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 period)
 {
 	GF_Err e=GF_OK;
-	char *config_buffer;
+	const char ** config_buffer;
 	u32 len;
 	GF_ESIStream *stream;
 						
 	memset(ifce, 0, sizeof(GF_ESInterface));
-	gf_seng_get_stream_config(seng, i, &ifce->stream_id, &config_buffer, &len, &ifce->stream_type, &ifce->object_type_indication, &ifce->timescale); 
+	gf_seng_get_stream_config(seng, i, (u16*) &(ifce->stream_id), config_buffer, &len, (u32*) &(ifce->stream_type), (u32*) &(ifce->object_type_indication), &(ifce->timescale)); 
 
 	ifce->repeat_rate = period;
 	GF_SAFEALLOC(stream, GF_ESIStream);
@@ -749,12 +752,13 @@ void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 pe
 //	e = gf_seng_set_carousel_time(seng, ifce->stream_id, period);
 	if (e) {
 		fprintf(stdout, "Cannot set carousel time on stream %d to %d: %s\n", ifce->stream_id, period, gf_error_to_string(e));
+		fflush(stdout);
 	}
 	ifce->input_ctrl = seng_input_ctrl;
 
 }
 
-static Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, Bool *force_mpeg4, const char *update)
+static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *force_mpeg4, char *update)
 {
 	GF_SDPInfo *sdp;
 	u32 i;
@@ -890,10 +894,12 @@ static Bool open_program(M2TSProgram *prog, const char *src, u32 carousel_rate, 
 		
 		if (!prog->seng) {
 			fprintf(stdout, "Cannot create scene engine\n");
-			exit(0);
+			fflush(stdout);
+			exit(1);
 		}
 		else{
 			fprintf(stdout, "Scene engine created.\n");
+			fflush(stdout);
 		}
 
 		prog->iod = gf_seng_get_iod(prog->seng);
@@ -1153,6 +1159,7 @@ int main(int argc, char **argv)
 	
 	if (run_time && !mux_rate) {
 		fprintf(stdout, "Cannot specify TS run time for VBR multiplex - disabling run time\n");
+		fflush(stdout);
 		run_time = 0;
 	}
 
@@ -1191,6 +1198,7 @@ int main(int argc, char **argv)
 		}
 		if (e) {
 			fprintf(stdout, "Error initializing UDP socket: %s\n", gf_error_to_string(e));
+			fflush(stdout);
 			goto exit;
 		}
 		break;
@@ -1215,11 +1223,13 @@ int main(int argc, char **argv)
 		res = gf_rtp_setup_transport(ts_rtp, &tr, (char *)ts_out);
 		if (res !=0) {
 			fprintf(stdout, "Cannot setup RTP transport info\n");
+			fflush(stdout);
 			goto exit;
 		}
 		res = gf_rtp_initialize(ts_rtp, 0, 1, 1500, 0, 0, NULL);
 		if (res !=0) {
 			fprintf(stdout, "Cannot initialize RTP sockets\n");
+			fflush(stdout);
 			goto exit;
 		}
 		memset(&hdr, 0, sizeof(GF_RTPHeader));
@@ -1285,8 +1295,10 @@ int main(int argc, char **argv)
 		case GF_MP42TS_UDP_OUTPUT:
 			while ((ts_pck = gf_m2ts_mux_process(muxer, &status)) != NULL) {
 				e = gf_sk_send(ts_udp, (char*)ts_pck, 188); 
-				if (e) 
+				if (e) {
 					fprintf(stdout, "Error %s sending UDP packet\n", gf_error_to_string(e));
+					fflush(stdout);
+				}
 				if (status>=GF_M2TS_STATE_PADDING) break;
 			}
 			break;
@@ -1299,8 +1311,10 @@ int main(int argc, char **argv)
 				hdr.Marker = (ts < hdr.TimeStamp) ? 1 : 0;
 				hdr.TimeStamp = ts;
 				e = gf_rtp_send_packet(ts_rtp, &hdr, (char*)ts_pck, 188, 0);
-				if (e) 
+				if (e) {
 					fprintf(stdout, "Error %s sending RTP packet\n", gf_error_to_string(e));
+					fflush(stdout);
+				}
 				if (status>=GF_M2TS_STATE_PADDING) break;
 			}
 			break;
@@ -1311,6 +1325,7 @@ int main(int argc, char **argv)
 			if (now/MP42TS_PRINT_FREQ != last_print_time/MP42TS_PRINT_FREQ) {
 				last_print_time = now;
 				fprintf(stdout, "M2TS: time %d - TS time %d - avg bitrate %d\r", gf_m2ts_get_sys_clock(muxer), gf_m2ts_get_ts_clock(muxer), muxer->avg_br);
+				fflush(stdout);
 			}
 		}
 
@@ -1320,6 +1335,7 @@ int main(int argc, char **argv)
 		if (run_time) {
 			if (gf_m2ts_get_ts_clock(muxer) > run_time) {
 				fprintf(stdout, "Stopping multiplex at %d ms (requested runtime %d ms)\n", gf_m2ts_get_ts_clock(muxer), run_time);
+				fflush(stdout);
 				break;
 			}
 		}
