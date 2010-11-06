@@ -706,7 +706,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					/*query buffer level, don't sleep if too low*/
 					GF_NetworkCommand com;
 					com.command_type = GF_NET_BUFFER_QUERY;
-					while (1) {
+					while (m2ts->run_state) {
 						gf_term_on_command(m2ts->service, &com, GF_OK);
 						if (com.buffer.occupancy < M2TS_BUFFER_MAX) 
 							break;
