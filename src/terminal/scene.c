@@ -857,8 +857,8 @@ static void gf_scene_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
 	if (!gf_mo_get_visual_info(mo, w, h, NULL, &pixel_ar, NULL)) return;
 	if (pixel_ar) {
 		u32 n, d;
-		n = (pixel_ar>>16) & 0xFF;
-		d = (pixel_ar) & 0xFF;
+		n = (pixel_ar>>16) & 0x0000FFFF;
+		d = (pixel_ar) & 0x0000FFFF;
 		*w = (*w * n) / d;
 	}
 }
