@@ -4015,8 +4015,6 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 	char *url;
 	GF_Err e;
 	const char *ext;
-	MFScript the_url;
-	SFScript __url;
 
 	M_Script *script = (M_Script *)node;
 
@@ -4027,18 +4025,14 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 	if (!par.dnld_man) return;
 	dnld_man = par.dnld_man;
 
-	if (opt_file) {
-		the_url.count = 1;
-		__url.script_text = (char *) opt_file;
-		the_url.vals = &__url;
-	} else {
-		the_url = script->url;
-	}
-
-	for (i=0; i<the_url.count; i++) {
-		par.uri.url = the_url.vals[i].script_text;
+	for (i=0; i<script->url.count; i++) {
+		char *_url = script->url.vals[i].script_text;
+		if (opt_file) _url = gf_url_concatenate(script->url.vals[i].script_text, opt_file);
+		par.uri.url = _url;
 		par.uri.nb_params = 0;
 		ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_RESOLVE_URI, node, &par);
+		if (opt_file) gf_free(_url);
+
 		url = (char *)par.uri.url;
 
 		ext = strrchr(url, '.');
