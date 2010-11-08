@@ -248,6 +248,11 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 					len = strlen( currentLine);
 					if (len < 1)
 						continue;
+					while (strchr("\r\n", currentLine[len-1])) {
+						currentLine[len-1]=0;
+						len--;
+						if (!len) break;
+					}
 					if (currentLineNumber == 1){
 						/* Playlist MUST start with #EXTM3U */
 						if (len < 7 || strncmp("#EXTM3U", currentLine, 7)!=0){
