@@ -1647,8 +1647,10 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 	pes->data_len += data_size;
 
 	if (paf && paf->random_access_indicator) pes->rap = 1;
-	if (hdr->payload_start && !pes->pes_len && (pes->data_len>=6)) pes->pes_len = (pes->data[4]<<8) | pes->data[5];
-
+	if (hdr->payload_start && !pes->pes_len && (pes->data_len>=6)) {
+		pes->pes_len = (pes->data[4]<<8) | pes->data[5];
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Got PES packet len %d\n", pes->pid, pes->pes_len));
+	}
 }
 
 
