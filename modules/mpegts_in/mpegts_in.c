@@ -669,7 +669,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	{
 		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK*)param;
 		if (!pck->stream->first_dts) {
-			gf_m2ts_set_pes_framing(pck->stream, GF_M2TS_PES_FRAMING_SKIP);
+			pck->stream->reframe = NULL;
 			MP2TS_DeclareStream(m2ts, pck->stream, pck->data, pck->data_len);
 			if (m2ts->file || m2ts->dnload) m2ts->file_regulate = 1;
 			pck->stream->first_dts=1;
@@ -823,7 +823,7 @@ restart_file:
 					continue;
 				}
 			} else if (m2ts->file) {
-				gf_sleep(1);
+				gf_sleep(0);
 			}
 		}
 
@@ -1341,7 +1341,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		/*mark pcr as not initialized*/
 		if (pes->program->pcr_pid==pes->pid) pes->program->first_dts=0;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Setting default reframing\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSIn] Setting default reframing for PID %d\n", pes->pid));
 		/*this is a multplex, only trigger the play command for the first stream activated*/
 		if (!m2ts->nb_playing) {
 			m2ts->start_range = (u32) (com->play.start_range*1000);
