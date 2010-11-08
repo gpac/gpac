@@ -101,7 +101,20 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 
 	prot_type = URL_GetProtocolType(pathName);
 	if (prot_type != GF_URL_TYPE_RELATIVE) {
-		outPath = gf_strdup(pathName);
+		char *sep = NULL;
+		if (pathName[0]=='/') sep = strstr(parentName, "://");
+		if (sep) sep = strchr(sep+3, '/');
+		if (sep) {
+			u32 len;
+			sep[0] = 0;
+			len = strlen(parentName);
+			outPath = malloc(sizeof(char)*(len+1+strlen(pathName)));
+			strcpy(outPath, parentName);
+			strcat(outPath, pathName);
+			sep[0] = '/';
+		} else {
+			outPath = gf_strdup(pathName);
+		}
 		goto check_spaces;
 	}
 
