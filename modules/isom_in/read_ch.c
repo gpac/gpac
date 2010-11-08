@@ -119,7 +119,6 @@ static void check_segment_switch(ISOMReader *read)
 	/*update current fragment if any*/
 	param.command_type = GF_NET_SERVICE_QUERY_NEXT;
 	if ((read->input->query_proxy(read->input, &param)==GF_OK) && param.url_query.next_url){
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("\nSegment switch detected - now playing %s\n", param.url_query.next_url));
 		gf_isom_open_segment(read->mov, param.url_query.next_url);
 
 		for (i=0; i<count; i++) {
