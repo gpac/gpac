@@ -612,7 +612,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	have to wait for an entire image carousel period to start filling the buffers, which is sub-optimal*/
 	else if (!odm->state && (odm->flags & GF_ODM_NO_TIME_CTRL)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Inserted from broadcast - forcing play\n", odm->OD->objectDescriptorID));
-		gf_odm_start(odm, 0);
+		gf_odm_start(odm, 2);
 		odm->flags |= GF_ODM_PREFETCH;
 	}
 		
@@ -1110,7 +1110,7 @@ esd_found:
 
 /*this is the tricky part: make sure the net is locked before doing anything since an async service 
 reply could destroy the object we're queuing for play*/
-void gf_odm_start(GF_ObjectManager *odm, Bool was_in_media_queue)
+void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 {
 	Bool skip_register = 1;
 	gf_term_lock_net(odm->term, 1);
@@ -1151,10 +1151,13 @@ void gf_odm_start(GF_ObjectManager *odm, Bool was_in_media_queue)
 		}
 		/*object is already started - only reinsert in media queue if this function was called on an object already in the queue*/
 		else {
-			skip_register = was_in_media_queue ? 0 : 1;
+			skip_register = media_queue_state ? 0 : 1;
 		}
 
-		if (!skip_register && (gf_list_find(odm->term->media_queue, odm)<0)) {
+		if (media_queue_state==2) {
+			odm->action_type = GF_ODM_ACTION_PLAY;
+			gf_odm_play(odm);
+		} else if (!skip_register && (gf_list_find(odm->term->media_queue, odm)<0)) {
 			odm->action_type = GF_ODM_ACTION_PLAY;
 			gf_list_add(odm->term->media_queue, odm);
 		}

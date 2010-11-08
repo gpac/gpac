@@ -723,7 +723,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				}
 				ch->clock->clock_init = 0;
 				gf_clock_set_time(ch->clock, OCR_TS);
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d from OCR TS %d - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), OCR_TS, ch->clock->Buffering, gf_clock_time(ch->clock) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d from OCR TS %d (origial TS "LLD") - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), OCR_TS, hdr.objectClockReference, ch->clock->Buffering, gf_clock_time(ch->clock) ));
 				if (ch->clock->clock_init) ch->IsClockInit = 1;
 			}
 		}
@@ -738,8 +738,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				OCR_TS = (u32) ( (s64) (hdr.objectClockReference) * ch->ocr_scale);
 			}
 			ck = gf_clock_time(ch->clock);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d adjusting OCR to %d (diff %d)\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, (s32) OCR_TS - (s32) ck));
-			gf_clock_set_time(ch->clock, (u32) OCR_TS);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d adjusting OCR to %d (origial TS "LLD") - diff %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, (s32) OCR_TS - (s32) ck));
+//			gf_clock_set_time(ch->clock, (u32) OCR_TS);
 		}
 #endif
 		if (!payload_size) return;

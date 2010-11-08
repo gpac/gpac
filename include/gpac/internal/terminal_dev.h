@@ -879,8 +879,12 @@ void gf_odm_remove_es(GF_ObjectManager *odm, u16 ES_ID);
 void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *, u64 stream_duration);
 /*signals end of stream on channels*/
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *);
-/*start Object streams and queue object for network PLAY*/
-void gf_odm_start(GF_ObjectManager *odm, Bool was_in_media_queue);
+/*start Object streams and queue object for network PLAY
+media_queue_state: 0: object was not in media queue and must be queued    
+                   1: object is already in media queue 
+                   2: object shall not be queued bu started directly
+*/
+void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state);
 /*stop OD streams*/
 void gf_odm_stop(GF_ObjectManager *odm, Bool force_close);
 /*send PLAY request to network - needed to properly handle multiplexed inputs 
