@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8.00"
+	Version="8,00"
 	Name="m3u82mpd"
 	ProjectGUID="{19EFBA5D-372A-4451-B003-6AB3F448ECD4}"
 	RootNamespace="m3u82mpd"
@@ -396,23 +396,15 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\modules\m3u8_in\m3u8_parser.c"
+			RelativePath="..\..\modules\mpd_in\m3u8.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\modules\m3u8_in\m3u8_parser.h"
+			RelativePath="..\..\modules\mpd_in\m3u8.h"
 			>
 		</File>
 		<File
 			RelativePath="..\..\applications\m3u82mpd\main.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\modules\m3u8_in\playlist.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\modules\m3u8_in\playlist.h"
 			>
 		</File>
 	</Files>
