@@ -96,7 +96,9 @@ enum
 	/*don't use data framing: all packets are raw PES packets*/
 	GF_M2TS_PES_FRAMING_RAW,
 	/*skip pes processing: all transport packets related to this stream are discarded*/
-	GF_M2TS_PES_FRAMING_SKIP
+	GF_M2TS_PES_FRAMING_SKIP,
+	/*same as GF_M2TS_PES_FRAMING_SKIP but keeps internal PES buffer alive*/
+	GF_M2TS_PES_FRAMING_SKIP_NO_RESET
 };
 
 /*PES packet flags*/
@@ -109,7 +111,9 @@ enum
 	/*visual frame starting in this packet is a P frame*/
 	GF_M2TS_PES_PCK_P_FRAME = 1<<3,
 	/*visual frame starting in this packet is a B frame*/
-	GF_M2TS_PES_PCK_B_FRAME = 1<<4
+	GF_M2TS_PES_PCK_B_FRAME = 1<<4,
+	/*Possible PCR discontinuity from this packet on*/
+	GF_M2TS_PES_PCK_DISCONTINUITY = 1<<5
 };
 
 /*Events used by the MPEGTS demuxer*/
@@ -365,7 +369,6 @@ typedef struct tag_m2ts_pes
 	u32 buf_len;
 
 	GF_M2TS_DVB_Subtitling_Descriptor sub;
-
 } GF_M2TS_PES;
 
 /*SDT information object*/

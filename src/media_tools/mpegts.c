@@ -1596,7 +1596,8 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Got PES header PTS %d\n", pes->pid, pesh.PTS));
 				/*3-byte start-code + 6 bytes header + hdr extensions*/
 				len = 9 + pesh.hdr_data_len;
-				pes->reframe(ts, pes, pesh.DTS, pesh.PTS, pes->data+len, pes->data_len-len);
+				if (pes->reframe) 
+					pes->reframe(ts, pes, pesh.DTS, pesh.PTS, pes->data+len, pes->data_len-len);
 			}
 			/*SL-packetized stream*/
 			else if ((u8) pes->data[3]==0xfa) {
@@ -1654,7 +1655,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 }
 
 
-static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_AdaptationField *paf, unsigned char *data, u32 size)
+static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_AdaptationField *paf, unsigned char *data, u32 size, u32 pid)
 {
 	paf->discontinuity_indicator = (data[0] & 0x80) ? 1 : 0;
 	paf->random_access_indicator = (data[0] & 0x40) ? 1 : 0;
@@ -1671,6 +1672,8 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 		paf->PCR_base = (PCR << 1) | (data[5] >> 7);
 		paf->PCR_ext = ((data[5] & 1) << 8) | data[6];
 	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Adaptation Field found: Discontinuity %d - RAP %d - PCR: "LLD"\n", pid, paf->discontinuity_indicator, paf->random_access_indicator, paf->PCR_flag ? paf->PCR_base * 300 + paf->PCR_ext : 0));
 
 #if 0
 	if (paf->OPCR_flag == 1){
@@ -1721,7 +1724,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		}
 		paf = &af;
 		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
-		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size);
+		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
 		pos += 1+af_size;
 		payload_size = 183 - af_size;
 		break;
@@ -1734,7 +1737,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		}
 		paf = &af;
 		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
-		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size);
+		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
 		payload_size = 0;
 		break;
 	/*reserved*/
@@ -1786,6 +1789,7 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
 		pck.PTS = paf->PCR_base * 300 + paf->PCR_ext;
 		pck.stream = (GF_M2TS_PES *)es;
+		if (paf->discontinuity_indicator) pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
 	}
 	return;
@@ -1950,10 +1954,11 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 
 	if (pes->pid==pes->program->pmt_pid) return GF_BAD_PARAM;
 
-	if (mode==GF_M2TS_PES_FRAMING_RAW) {
+	switch (mode) {
+	case GF_M2TS_PES_FRAMING_RAW:
 		pes->reframe = gf_m2ts_reframe_default;
-		return GF_OK;
-	} else if (mode==GF_M2TS_PES_FRAMING_SKIP) {
+		break;
+	case GF_M2TS_PES_FRAMING_SKIP:
 		if (pes->data) {
 			gf_free(pes->data);
 			pes->data = NULL;
@@ -1961,8 +1966,12 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		pes->data_len = 0;
 		pes->pes_len = 0;
 		pes->reframe = NULL;
-		return GF_OK;
-	} else { // mode==GF_M2TS_PES_FRAMING_DEFAULT
+		break;
+	case GF_M2TS_PES_FRAMING_SKIP_NO_RESET:
+		pes->reframe = NULL;
+		break;
+	case GF_M2TS_PES_FRAMING_DEFAULT:
+	default:
 		switch (pes->stream_type) {
 		case GF_M2TS_VIDEO_MPEG1:
 		case GF_M2TS_VIDEO_MPEG2:
@@ -1990,8 +1999,9 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			pes->reframe = gf_m2ts_reframe_default;
 			break;
 		}
-		return GF_OK;
+		break;
 	}
+	return GF_OK;
 }
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new()

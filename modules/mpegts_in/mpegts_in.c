@@ -669,7 +669,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	{
 		GF_M2TS_PES_PCK *pck = (GF_M2TS_PES_PCK*)param;
 		if (!pck->stream->first_dts) {
-			pck->stream->reframe = NULL;
+			gf_m2ts_set_pes_framing(pck->stream, GF_M2TS_PES_FRAMING_SKIP_NO_RESET);
 			MP2TS_DeclareStream(m2ts, pck->stream, pck->data, pck->data_len);
 			if (m2ts->file || m2ts->dnload) m2ts->file_regulate = 1;
 			pck->stream->first_dts=1;
@@ -684,7 +684,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			GF_SLHeader slh;
 			memset(&slh, 0, sizeof(GF_SLHeader) );
 			slh.OCRflag = 1;
-			slh.m2ts_pcr = 1;
+			slh.m2ts_pcr = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 2 : 1;
 			slh.objectClockReference = ((GF_M2TS_PES_PCK *) param)->PTS;
 			gf_term_on_sl_packet(m2ts->service, ((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, &slh, GF_OK);
 		}
