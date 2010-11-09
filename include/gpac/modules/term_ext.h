@@ -63,12 +63,6 @@ enum
 		@return: ignored
 	*/
 	GF_TERM_EXT_PROCESS,
-
-	/*filter event - only called if the GF_TERM_EXTENSION_FILTER_EVENT capability is set
-		associated param: GF_Event *evt
-		@return: 1 if the event must be discarded, 0 otherwise
-	*/
-	GF_TERM_EXT_EVENT,
 	
 	/*load/unload js bindings of this extension
 		associated param: GF_TermExtJS *jsext
@@ -83,10 +77,7 @@ enum
 	the GF_TERM_EXT_START command and cannot be changed at run-time*/
 	GF_TERM_EXTENSION_NOT_THREADED = 1<<1,
 
-	/*extension wants to filter events*/
-	GF_TERM_EXTENSION_FILTER_EVENT = 1<<2,
-
-	GF_TERM_EXTENSION_JS = 1<<3,
+	GF_TERM_EXTENSION_JS = 1<<2,
 };
 
 
