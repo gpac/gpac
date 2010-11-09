@@ -169,8 +169,9 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	/*detach from network service */
 	if (odm->net_service) {
 		GF_ClientService *ns = odm->net_service;
-		if (odm->flags & GF_ODM_SERVICE_ENTRY) {
-			if (ns->nb_odm_users) ns->nb_odm_users--;
+		if (ns->nb_odm_users) ns->nb_odm_users--;
+		//if (odm->flags & GF_ODM_SERVICE_ENTRY) 
+		{
 			if (ns->owner == odm) {
 				/*detach it!!*/
 				ns->owner = NULL;
@@ -261,7 +262,6 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		/*create empty service descriptor, this will automatically create a dynamic scene*/
 		desc = gf_odf_desc_new(GF_ODF_OD_TAG);
 	}
-	odm->net_service->nb_odm_users++;
 	odm->flags |= GF_ODM_SERVICE_ENTRY;
 
 	if (!gf_list_count( ((GF_ObjectDescriptor*)desc)->ESDescriptors)) {
@@ -499,8 +499,11 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	GF_ESD *esd;
 	GF_MediaObject *syncRef;
 
-	if (!odm->net_service) odm->net_service = serv;
-	
+	if (!odm->net_service) {
+		odm->net_service = serv;
+		if (!odm->OD->URLString) 
+			odm->net_service->nb_odm_users++;
+	}	
 	/*if this is a remote OD, we need a new manager and a new service...*/
 	if (odm->OD->URLString) {
 		GF_ClientService *parent = odm->net_service;
