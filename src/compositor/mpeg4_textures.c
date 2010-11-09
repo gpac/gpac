@@ -194,9 +194,9 @@ void compositor_movietexture_modified(GF_Node *node)
 	if (!st) return;
 
 	/*if open and changed, stop and play*/
-	if (st->txh.is_open && gf_sc_texture_check_url_change(&st->txh, &mt->url)) {
-		gf_sc_texture_stop(&st->txh);
-		gf_sc_texture_play(&st->txh, &mt->url);
+	if (gf_sc_texture_check_url_change(&st->txh, &mt->url)) {
+		if (st->txh.is_open) gf_sc_texture_stop(&st->txh);
+		if (mt->isActive) gf_sc_texture_play(&st->txh, &mt->url);
 	} 
 	/*update state if we're active*/
 	else if (mt->isActive) {
