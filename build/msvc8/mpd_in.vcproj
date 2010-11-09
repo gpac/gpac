@@ -175,11 +175,11 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\modules\m3u8_in\m3u8_parser.c"
+			RelativePath="..\..\modules\mpd_in\m3u8.c"
 			>
 		</File>
 		<File
-			RelativePath="..\..\modules\m3u8_in\m3u8_parser.h"
+			RelativePath="..\..\modules\mpd_in\m3u8.h"
 			>
 		</File>
 		<File
@@ -196,14 +196,6 @@
 		</File>
 		<File
 			RelativePath="..\..\modules\mpd_in\mpd_in.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\modules\m3u8_in\playlist.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\modules\m3u8_in\playlist.h"
 			>
 		</File>
 	</Files>
