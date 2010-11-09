@@ -849,7 +849,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		/*we consider that SVG has no size onfo per say, everything is handled by the viewBox if any*/
 		if (is_svg) {
 			compositor->has_size_info = 0;
-			gf_sc_focus_switch_ring(compositor, 0);
+			gf_sc_focus_switch_ring(compositor, 0, NULL, 0);
 		} else 
 #endif
 		{

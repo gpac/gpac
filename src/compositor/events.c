@@ -30,7 +30,6 @@
 #include <gpac/utf.h>
 
 static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt, Bool prev_focus);
-u32 gf_sc_focus_switch_ring_ex(GF_Compositor *compositor, Bool move_prev, GF_Node *focus, Bool force_focus);
 
 static void gf_sc_reset_collide_cursor(GF_Compositor *compositor)
 {
@@ -643,8 +642,8 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 
 				/*change focus*/
 				focus = get_parent_focus(compositor->grab_node, compositor->hit_use_stack, gf_list_count(compositor->hit_use_stack));
-				if (focus) gf_sc_focus_switch_ring_ex(compositor, 0, focus, 1);
-				else if (compositor->focus_node) gf_sc_focus_switch_ring_ex(compositor, 0, NULL, 1);
+				if (focus) gf_sc_focus_switch_ring(compositor, 0, focus, 1);
+				else if (compositor->focus_node) gf_sc_focus_switch_ring(compositor, 0, NULL, 1);
 
 				break;
 			case GF_EVENT_MOUSEUP:
@@ -684,7 +683,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 			
 			/*reset focus*/
 			if (compositor->focus_node && (event->type==GF_EVENT_MOUSEDOWN)) 
-				gf_sc_focus_switch_ring_ex(compositor, 0, NULL, 1);
+				gf_sc_focus_switch_ring(compositor, 0, NULL, 1);
 
 			compositor->grab_node = NULL;
 			compositor->grab_use = NULL;
@@ -979,7 +978,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 			}
 #if 0
 			else if (!compositor->focus_node) {
-				gf_sc_focus_switch_ring_ex(compositor, 0, gf_sg_get_root_node(compositor->scene), 1);
+				gf_sc_focus_switch_ring(compositor, 0, gf_sg_get_root_node(compositor->scene), 1);
 			}
 #endif
 		}
@@ -1184,20 +1183,43 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) {
 		switch (tag) {
 #ifndef GPAC_DISABLE_VRML
-
-		case TAG_MPEG4_Group: 
 		case TAG_MPEG4_Transform: 
+		{
+			M_Transform *tr=(M_Transform *)elt;
+			if (!tr->scale.x || !tr->scale.y || !tr->scale.z) {
+				gf_node_set_cyclic_traverse_flag(elt, 0);
+				return NULL;
+			}
+			goto test_grouping;
+		}
+		case TAG_MPEG4_Transform2D:
+		{
+			M_Transform2D *tr=(M_Transform2D *)elt;
+			if (!tr->scale.x || !tr->scale.y) {
+				gf_node_set_cyclic_traverse_flag(elt, 0);
+				return NULL;
+			}
+			goto test_grouping;
+		}
+		case TAG_MPEG4_Layer3D:
+		case TAG_MPEG4_Layer2D:
+		{
+			M_Layer2D *l=(M_Layer2D *)elt;
+			if (!l->size.x || !l->size.y) {
+				gf_node_set_cyclic_traverse_flag(elt, 0);
+				return NULL;
+			}
+			goto test_grouping;
+		}
+		case TAG_MPEG4_Form:
+		case TAG_MPEG4_TransformMatrix2D:
+		case TAG_MPEG4_Group: 
 		case TAG_MPEG4_Billboard:
 		case TAG_MPEG4_Collision:
 		case TAG_MPEG4_LOD: 
 		case TAG_MPEG4_OrderedGroup:
-		case TAG_MPEG4_Transform2D:
-		case TAG_MPEG4_TransformMatrix2D:
 		case TAG_MPEG4_ColorTransform:
-		case TAG_MPEG4_Layer3D:
-		case TAG_MPEG4_Layer2D:
 		case TAG_MPEG4_PathLayout:
-		case TAG_MPEG4_Form:
 		case TAG_MPEG4_Anchor: 
 #ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_Group:
@@ -1207,6 +1229,8 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		case TAG_X3D_LOD: 
 		case TAG_X3D_Anchor:
 #endif
+
+test_grouping:
 			if (!current_focus) {
 				/*get the base grouping stack (*/
 				BaseGroupingStack *grp = (BaseGroupingStack*)gf_node_get_private(elt);
@@ -1262,10 +1286,17 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 			}
 			return NULL;
 		case TAG_MPEG4_Layout:
+		{
+			M_Layout *l=(M_Layout*)elt;
+			if (!l->size.x || !l->size.y) {
+				gf_node_set_cyclic_traverse_flag(elt, 0);
+				return NULL;
+			}
 			if (!current_focus && (compositor_mpeg4_layout_get_sensor_handler(elt)!=NULL)) {
 				gf_node_set_cyclic_traverse_flag(elt, 0);
 				return elt;
 			}
+		}
 			break;
 
 		case TAG_ProtoNode:
@@ -1612,7 +1643,7 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 	return browse_parent_for_focus(compositor, (GF_Node*)par, prev_focus);
 }
 
-u32 gf_sc_focus_switch_ring_ex(GF_Compositor *compositor, Bool move_prev, GF_Node *focus, Bool force_focus)
+u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *focus, u32 force_focus)
 {
 	Bool current_focus = 1;
 	Bool prev_uses_dom_events;
@@ -1646,6 +1677,11 @@ u32 gf_sc_focus_switch_ring_ex(GF_Compositor *compositor, Bool move_prev, GF_Nod
 	if (force_focus) {
 		gf_list_reset(compositor->focus_ancestors);
 		n = focus;
+		if (force_focus==2) {
+			current_focus=0;
+			n = set_focus(compositor, focus, current_focus, move_prev);
+			if (!n) n = browse_parent_for_focus(compositor, focus, move_prev);
+		}
 	} else {
 		n = set_focus(compositor, compositor->focus_node, current_focus, move_prev);
 		if (!n) n = browse_parent_for_focus(compositor, compositor->focus_node, move_prev);
@@ -1710,11 +1746,6 @@ u32 gf_sc_focus_switch_ring_ex(GF_Compositor *compositor, Bool move_prev, GF_Nod
 	return ret;
 }
 
-u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev)
-{
-	return gf_sc_focus_switch_ring_ex(compositor, move_prev, NULL, 0);
-}
-
 Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
 {
 	/*filter mouse events and other events (key...)*/
@@ -1748,7 +1779,7 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 				}
 				break;
 			case GF_KEY_TAB:
-				ret += gf_sc_focus_switch_ring(compositor, (ev->key.flags & GF_KEY_MOD_SHIFT) ? 1 : 0);
+				ret += gf_sc_focus_switch_ring(compositor, (ev->key.flags & GF_KEY_MOD_SHIFT) ? 1 : 0, NULL, 0);
 				break;
 			case GF_KEY_UP:
 			case GF_KEY_DOWN:
@@ -1838,7 +1869,7 @@ void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n)
 	par = n ? kn->sensor : NULL;
 	if (par) par = gf_node_get_parent(par, 0);
 
-	gf_sc_focus_switch_ring_ex(sr, 0, par, 1);
+	gf_sc_focus_switch_ring(sr, 0, par, 1);
 }
 #endif
 
