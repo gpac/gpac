@@ -22,8 +22,8 @@
  *
  */
 
-#include "../modules/m3u8_in/playlist.h"
-#include "../modules/m3u8_in/m3u8_parser.h"
+#include "../modules/mpd_in/m3u8.h"
+#include <gpac/network.h>
 #include <gpac/download.h>
 
 int main(int argc, char **argv)
