@@ -581,9 +581,10 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 }
 
 GF_EXPORT
-void gf_mo_stop(GF_MediaObject *mo)
+Bool gf_mo_stop(GF_MediaObject *mo)
 {
-	if (!mo || !mo->num_open) return;
+	Bool ret = 0;
+	if (!mo || !mo->num_open) return 0;
 
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
@@ -594,7 +595,11 @@ void gf_mo_stop(GF_MediaObject *mo)
 			gf_list_add(mo->odm->term->media_queue, mo->odm);
 		
 		/*signal STOP request*/
-		mo->odm->action_type = GF_ODM_ACTION_STOP;
+		if ((mo->OD_ID==GF_MEDIA_EXTERNAL_ID) || (mo->odm && mo->odm->OD && (mo->odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID))) {
+			mo->odm->action_type = GF_ODM_ACTION_DELETE;
+			ret = 1;
+		}
+		else mo->odm->action_type = GF_ODM_ACTION_STOP;
 
 		gf_mx_v(mo->odm->term->net_mx);
 	} else {
@@ -602,6 +607,7 @@ void gf_mo_stop(GF_MediaObject *mo)
 			mo->num_restart = mo->num_to_restart = mo->num_open + 1;
 		}
 	}
+	return ret;
 }
 
 GF_EXPORT
@@ -824,7 +830,7 @@ void gf_mo_set_speed(GF_MediaObject *mo, Fixed speed)
 GF_EXPORT
 Fixed gf_mo_get_current_speed(GF_MediaObject *mo)
 {
-	return (mo && mo->odm && mo->odm->codec) ? mo->odm->codec->ck->speed : FIX_ONE;
+	return (mo && mo->odm && mo->odm->codec && mo->odm->codec->ck) ? mo->odm->codec->ck->speed : FIX_ONE;
 }
 
 

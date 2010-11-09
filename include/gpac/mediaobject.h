@@ -58,7 +58,7 @@ void gf_mo_unregister(GF_Node *node, GF_MediaObject *mo);
 /*opens media object*/
 void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_loop);
 /*stops media object - video memory is not reset, last frame is kept*/
-void gf_mo_stop(GF_MediaObject *mo);
+Bool gf_mo_stop(GF_MediaObject *mo);
 /*restarts media object - shall be used for all looping media instead of stop/play for mediaControl
 to restart appropriated objects*/
 void gf_mo_restart(GF_MediaObject *mo);

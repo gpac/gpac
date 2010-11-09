@@ -109,7 +109,9 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 		txh->needs_release = 0;
 	}
 	gf_sc_invalidate(txh->compositor, NULL);
-	gf_mo_stop(txh->stream);
+	if (gf_mo_stop(txh->stream)) {
+		txh->data = NULL;
+	}
 	txh->is_open = 0;
 
 	/*and deassociate object*/
