@@ -409,8 +409,6 @@ void gf_term_stop_codec(GF_Codec *codec);
 void gf_term_set_threading(GF_Terminal *term, u32 mode);
 void gf_term_set_priority(GF_Terminal *term, s32 Priority);
 
-void gf_term_register_event_filter(GF_Terminal *term, GF_TermExt *filter);
-void gf_term_unregister_event_filter(GF_Terminal *term, GF_TermExt *filter);
 
 Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed);
 
@@ -450,6 +448,17 @@ void gf_term_queue_node_traverse(GF_Terminal *term, GF_Node *node);
 void gf_term_unqueue_node_traverse(GF_Terminal *term, GF_Node *node);
 
 Bool gf_term_lock_codec(GF_Codec *codec, Bool lock);
+
+typedef struct
+{
+	void *udta;
+	/*called when an event should be filtered
+	*/
+	Bool (*on_event)(void *udta, GF_Event *evt);
+} GF_TermEventFilter;
+
+GF_Err gf_term_add_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef);
+GF_Err gf_term_remove_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef);
 
 
 /*clock*/

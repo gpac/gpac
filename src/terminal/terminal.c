@@ -540,7 +540,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	}
 	tmp->unthreaded_extensions = gf_list_new();
 	tmp->evt_mx = gf_mx_new("Event Filter");
-	tmp->event_filters = gf_list_new();
+
 	for (i=0; i< gf_list_count(tmp->extensions); i++) {
 		GF_TermExt *ifce = gf_list_get(tmp->extensions, i);
 		if (!ifce->process(ifce, GF_TERM_EXT_START, tmp)) {
@@ -552,19 +552,13 @@ GF_Terminal *gf_term_new(GF_User *user)
 		
 		if (ifce->caps & GF_TERM_EXTENSION_NOT_THREADED)
 			gf_list_add(tmp->unthreaded_extensions, ifce);
-
-		if (ifce->caps & GF_TERM_EXTENSION_FILTER_EVENT)
-			gf_list_add(tmp->event_filters, ifce);
 	}
 
 	if (!gf_list_count(tmp->unthreaded_extensions)) {
 		gf_list_del(tmp->unthreaded_extensions);
 		tmp->unthreaded_extensions = NULL;
 	}
-	if (!gf_list_count(tmp->event_filters)) {
-		gf_list_del(tmp->event_filters);
-		tmp->event_filters = NULL;
-	}
+
 	tmp->uri_relocators = gf_list_new();
 	tmp->locales.relocate_uri = term_check_locales;
 	tmp->locales.term = tmp;
@@ -888,7 +882,8 @@ void gf_term_handle_services(GF_Terminal *term)
 
 		switch (odm->action_type) {
 		case GF_ODM_ACTION_STOP:
-			if (odm->codec && odm->codec->CB  && (odm->codec->CB->Capacity==1)) {
+			//if (odm->codec && odm->codec->CB  && (odm->codec->CB->Capacity==1)) 
+			{
 				if (odm->mo->OD_ID==GF_MEDIA_EXTERNAL_ID) destroy = 1;
 				else if (odm->OD && (odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID)) destroy = 1;
 			}
@@ -1212,6 +1207,7 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 		gf_odm_disconnect(odm, 1);
 		return;
 	}
+	odm->net_service->nb_odm_users++;
 	gf_term_lock_net(term, 0);
 
 	/*OK connect*/
@@ -1587,11 +1583,11 @@ Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed)
 	if (!term) return 0;
 	
 	if (term->event_filters) {
-		GF_TermExt *ext;
+		GF_TermEventFilter *ef;
 		u32 i=0;
 		gf_mx_p(term->evt_mx);
-		while ((ext=gf_list_enum(term->event_filters, &i))) {
-			if (ext->process(ext, GF_TERM_EXT_EVENT, evt)) {
+		while ((ef=gf_list_enum(term->event_filters, &i))) {
+			if (ef->on_event(ef->udta, evt)) {
 				gf_mx_v(term->evt_mx);
 				return 0;
 			}
@@ -1605,38 +1601,36 @@ Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed)
 	return 0;
 }
 
+GF_Err gf_term_add_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef)
+{
+	GF_Err e;
+	if (!terminal || !ef || !ef->on_event) return GF_BAD_PARAM;
+	gf_mx_p(terminal->evt_mx);
+	if (!terminal->event_filters) terminal->event_filters = gf_list_new();
+	e = gf_list_add(terminal->event_filters, ef);
+	gf_mx_v(terminal->evt_mx);
+	return e;
+}
+
+GF_Err gf_term_remove_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef)
+{
+	if (!terminal || !ef || !terminal->event_filters) return GF_BAD_PARAM;
+
+	gf_mx_p(terminal->evt_mx);
+	gf_list_del_item(terminal->event_filters, ef);
+	if (!gf_list_count(terminal->event_filters)) {
+		gf_list_del(terminal->event_filters);
+		terminal->event_filters=NULL;
+	}
+	gf_mx_v(terminal->evt_mx);
+	return GF_OK;
+}
+
+
 GF_EXPORT
 Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
 {
 	return gf_term_forward_event(term, evt, 0);
-}
-
-void gf_term_register_event_filter(GF_Terminal *term, GF_TermExt *filter)
-{
-	if (!term || !filter) return;
-	if (!term->event_filters) {
-		term->event_filters = gf_list_new();
-	}
-	gf_mx_p(term->evt_mx);
-	if (gf_list_find(term->event_filters, filter)<0) {
-		gf_list_add(term->event_filters, filter);
-	}
-	gf_mx_v(term->evt_mx);
-}
-
-void gf_term_unregister_event_filter(GF_Terminal *term, GF_TermExt *filter)
-{
-	if (!term || !filter) return;
-	if (!term->event_filters) return;
-
-	gf_mx_p(term->evt_mx);
-	gf_list_del_item(term->event_filters, filter);
-
-	if (!gf_list_count(term->event_filters)) {
-		gf_list_del(term->event_filters);
-		term->event_filters = NULL;
-	}
-	gf_mx_v(term->evt_mx);
 }
 
 enum
