@@ -836,8 +836,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_process_shortcut) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_set_speed) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_relocate_url) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_register_event_filter) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_unregister_event_filter) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_add_event_filter) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_remove_event_filter) )
 
 /*ietf.h exports*/
 #ifndef GPAC_DISABLE_STREAMING
@@ -1410,6 +1410,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_remove_video_listener) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_add_audio_listener) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_remove_audio_listener) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_focus_switch_ring) )
 
 
 #ifndef GPAC_DISABLE_SVG
