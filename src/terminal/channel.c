@@ -728,6 +728,14 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			}
 		}
 #if 0
+		/*adjust clock if M2TS PCR discontinuity*/
+		else if (hdr.m2ts_pcr==2) {
+			u32 ck;
+			u32 OCR_TS = (u32) ( hdr.objectClockReference / 27000);
+			ck = gf_clock_time(ch->clock);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %d - OCR Discontinuity OCR: adjusting to %d (origial TS "LLD") - original clock %d\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, ck));
+//			gf_clock_set_time(ch->clock, (u32) OCR_TS);
+		}
 		/*compute clock drift*/
 		else {
 			u32 ck;
