@@ -1248,8 +1248,12 @@ void gf_font_spans_get_selection(GF_Node *node, GF_List *spans, GF_TraverseState
 
 GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles, Bool check_only);
 
-
-u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev);
+/*switches focus node:
+@compositor: compositor
+@move_prev: finds previous focus rather than next
+@focus: new focus if force_focus_type is set
+@force_focus_type: 0: focus not forced, 1: focus forced to focus, 2: focus forced to prev/next focusable child of focus node*/
+u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *focus, u32 force_focus_type);
 
 Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev);
 
