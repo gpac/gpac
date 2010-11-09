@@ -29,8 +29,7 @@
 #include <gpac/thread.h>
 #include <gpac/network.h>
 
-#include "../modules/m3u8_in/playlist.h"
-#include "../modules/m3u8_in/m3u8_parser.h"
+#include "m3u8.h"
 
 typedef struct
 {
