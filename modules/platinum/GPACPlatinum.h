@@ -105,6 +105,7 @@ public:
 	PLT_CtrlPoint *m_pCtrlPoint;
 	PLT_CtrlPointReference m_ctrlPtRef;
 
+	GF_TermEventFilter evt_filter;
 	/*JS bindings*/
 #ifdef GPAC_HAS_SPIDERMONKEY
 	Bool LoadJS(GF_TermExtJS *param);

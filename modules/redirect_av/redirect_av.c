@@ -39,6 +39,7 @@ typedef struct
 	Bool is_open;
 	GF_AudioListener audio_listen;
 	GF_VideoListener video_listen;
+	GF_TermEventFilter term_listen;
 
 	avi_t *avi_out; 
 
@@ -134,6 +135,21 @@ static void avr_close(GF_AVRedirect *avr)
 	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[AVRedirect] Closing output AVI file\n"));
 }
 
+static Bool avr_on_event(void *udta, GF_Event *evt)
+{
+	GF_AVRedirect *avr = udta;
+	switch (evt->type) {
+	case GF_EVENT_CONNECT:
+		if (evt->connect.is_connected) {
+			avr_open(avr);
+		} else {
+			avr_close(avr);
+		}
+		break;
+	}
+	return 0;
+}
+
 static Bool avr_process(GF_TermExt *termext, u32 action, void *param)
 {
 	const char *opt;
@@ -144,7 +160,6 @@ static Bool avr_process(GF_TermExt *termext, u32 action, void *param)
 		avr->term = (GF_Terminal *)param;
 		opt = gf_modules_get_option((GF_BaseInterface*)termext, "AVRedirect", "Enabled");
 		if (!opt || strcmp(opt, "yes")) return 0;
-		termext->caps |= GF_TERM_EXTENSION_FILTER_EVENT;
 
 		avr->audio_listen.udta = avr;
 		avr->audio_listen.on_audio_frame = avr_on_audio_frame;
@@ -152,25 +167,15 @@ static Bool avr_process(GF_TermExt *termext, u32 action, void *param)
 		avr->video_listen.udta = avr;
 		avr->video_listen.on_video_frame = avr_on_video_frame;
 		avr->video_listen.on_video_reconfig = avr_on_video_reconfig;
+
+		avr->term_listen.udta = avr;
+		avr->term_listen.on_event = avr_on_event;
+		gf_term_add_event_filter(avr->term, &avr->term_listen);
 		return 1;
 
 	case GF_TERM_EXT_STOP:
+		gf_term_remove_event_filter(avr->term, &avr->term_listen);
 		avr->term = NULL;
-		break;
-
-	case GF_TERM_EXT_EVENT:
-		{
-			GF_Event *evt = (GF_Event *)param;
-			switch (evt->type) {
-			case GF_EVENT_CONNECT:
-				if (evt->connect.is_connected) {
-					avr_open(avr);
-				} else {
-					avr_close(avr);
-				}
-				break;
-			}
-		}
 		break;
 
 	/*if not threaded, perform our tasks here*/

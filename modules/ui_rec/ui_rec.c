@@ -40,7 +40,7 @@ typedef struct __ui_rec
 	u32 next_time;
 	Bool evt_loaded;
 
-	Bool (*on_event)(struct __ui_rec *uir , GF_Event *event);
+	GF_TermEventFilter evt_filter;
 } GF_UIRecord;
 
 Bool uir_on_event_play(GF_UIRecord *uir , GF_Event *event)
@@ -160,8 +160,9 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 			uir->bs = gf_bs_from_file(uir->uif, GF_BITSTREAM_READ);
 			termext->caps |= GF_TERM_EXTENSION_NOT_THREADED;
 
-			uir->on_event = uir_on_event_play;
-			termext->caps |= GF_TERM_EXTENSION_FILTER_EVENT;
+			uir->evt_filter.on_event = uir_on_event_play;
+			uir->evt_filter.udta = uir;
+			gf_term_add_event_filter(uir->term, &uir->evt_filter);
 
 			uir_load_event(uir);
 		} else if (!strcmp(opt, "Record")) {
@@ -169,8 +170,9 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 			if (!uir->uif) return 0;
 			uir->bs = gf_bs_from_file(uir->uif, GF_BITSTREAM_WRITE);
 
-			uir->on_event = uir_on_event_record;
-			termext->caps |= GF_TERM_EXTENSION_FILTER_EVENT;
+			uir->evt_filter.on_event = uir_on_event_record;
+			uir->evt_filter.udta = uir;
+			gf_term_add_event_filter(uir->term, &uir->evt_filter);
 		} else {
 			return 0;
 		}
@@ -179,6 +181,7 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 	case GF_TERM_EXT_STOP:
 		if (uir->uif) fclose(uir->uif);
 		if (uir->bs) gf_bs_del(uir->bs);
+		gf_term_remove_event_filter(uir->term, &uir->evt_filter);
 		uir->term = NULL;
 		/*auto-disable the plugin by default*/
 		gf_modules_set_option((GF_BaseInterface*)termext, "UIRecord", "Mode", "Disable");
@@ -191,8 +194,6 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 			uir_load_event(uir);
 		}
 		break;
-	case GF_TERM_EXT_EVENT:
-		return uir->on_event(uir, (GF_Event*)param);
 	}
 	return 0;
 }

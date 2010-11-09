@@ -218,6 +218,7 @@ void GF_UPnP::ContainerChanged(PLT_DeviceDataReference& device, const char *item
 {
 }
 
+
 Bool GF_UPnP::ProcessEvent(GF_Event *evt)
 {
 	if (!m_pMediaRenderer) return 0;
@@ -259,6 +260,12 @@ Bool GF_UPnP::ProcessEvent(GF_Event *evt)
 	return 0;
 }
 
+Bool upnp_on_term_event(void *udta, GF_Event *evt)
+{
+	GF_UPnP *upnp = (GF_UPnP *) udta;
+	if (upnp) return upnp->ProcessEvent(evt);
+	return 0;
+}
 
 void GF_UPnP::Load(GF_Terminal *term)
 {
@@ -426,6 +433,10 @@ void GF_UPnP::Load(GF_Terminal *term)
 		}
 		m_pPlatinum->AddCtrlPoint(m_ctrlPtRef);
 	}
+
+
+
+	gf_term_add_event_filter(term, &evt_filter);
 
 	//start UPnP engine
 	m_pPlatinum->Start();
@@ -1063,7 +1074,7 @@ static JSBool upnp_bind_renderer(JSContext *c, JSObject *obj, uintN argc, jsval 
 	upnp->m_renderer_bound = 1;
 
 	/*remove ourselves from the event filters since we will only be called through JS*/
-	gf_term_unregister_event_filter(upnp->m_pTerm, upnp->term_ext);
+	gf_term_remove_event_filter(upnp->m_pTerm, &upnp->evt_filter);
 
 	return JS_TRUE;
 }
@@ -1469,8 +1480,6 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 #endif
 		break;
 
-	case GF_TERM_EXT_EVENT:
-		return upnp->ProcessEvent((GF_Event*)param);
 #ifdef GPAC_HAS_SPIDERMONKEY
 	case GF_TERM_EXT_JSBIND:
 		return upnp->LoadJS((GF_TermExtJS*)param);
@@ -1492,8 +1501,10 @@ GF_TermExt *upnp_new()
 	ext = new GF_UPnP();
 	dr->udta = ext;
 	ext->term_ext = dr;
+	ext->evt_filter.on_event = upnp_on_term_event;
+	ext->evt_filter.udta = ext;
 
-	dr->caps = GF_TERM_EXTENSION_FILTER_EVENT | GF_TERM_EXTENSION_NOT_THREADED;
+	dr->caps = GF_TERM_EXTENSION_NOT_THREADED;
 #ifdef GPAC_HAS_SPIDERMONKEY
 	dr->caps |= GF_TERM_EXTENSION_JS;
 #endif
