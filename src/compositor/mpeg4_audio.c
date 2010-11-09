@@ -275,14 +275,13 @@ void compositor_audiosource_modified(GF_Node *node)
 	if (!st) return;
 
 	/*MPEG4 spec is not clear about that , so this is not forbidden*/
-	if (st->input.is_open&& st->input.is_open) {
-		if (gf_sc_audio_check_url(&st->input, &as->url)) {
-			gf_sc_audio_stop(&st->input);
-			gf_sc_audio_open(&st->input, &as->url, 0, -1);
-			/*force unregister to resetup audio cfg*/
-			gf_sc_audio_unregister(&st->input);
-			gf_sc_invalidate(st->input.compositor, NULL);
-		}
+	if (gf_sc_audio_check_url(&st->input, &as->url)) {
+		if (st->input.is_open) gf_sc_audio_stop(&st->input);
+		/*force unregister to resetup audio cfg*/
+		gf_sc_audio_unregister(&st->input);
+		gf_sc_invalidate(st->input.compositor, NULL);
+
+		if (st->is_active) gf_sc_audio_open(&st->input, &as->url, 0, -1);
 	}
 
 	//update state if we're active
