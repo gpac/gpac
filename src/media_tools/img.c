@@ -404,7 +404,7 @@ static void user_error_fn(png_structp png_ptr,png_const_charp error_msg)
 
 GF_Err gf_img_png_file_dec(char *png_filename, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
 {
-    u32 fsize;
+    u32 fsize, readen;
     FILE *f;
     char *data;
     GF_Err e;
@@ -415,14 +415,19 @@ GF_Err gf_img_png_file_dec(char *png_filename, u32 *width, u32 *height, u32 *pix
     fsize = (u32)ftell(f);
     fseek(f, 0, SEEK_SET);
     data = gf_malloc(fsize);
-    fread(data, fsize, 1, f);
-    
+    readen = fread(data, sizeof(char), fsize, f);
+    if (readen != fsize){
+	fclose( f );
+	return GF_IO_ERR;
+    }
     *dst_size = 0;
     e = gf_img_png_dec(data, fsize, width, height, pixel_format, NULL, dst_size);    
     if (*dst_size) {
         *dst = gf_malloc(*dst_size);
+	fclose( f );
         return gf_img_png_dec(data, fsize, width, height, pixel_format, *dst, dst_size);    
     } else {
+	fclose( f );
         return e;
     }
 }
