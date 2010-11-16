@@ -306,7 +306,7 @@ DeletePulseAudioOutput (void *ifce)
 const u32 *QueryInterface (u32 InterfaceType)
 {
 	static u32 si [] = {
-		GF_VIDEO_OUTPUT_INTERFACE,
+		GF_AUDIO_OUTPUT_INTERFACE,
 		0
 	};
 	return si;
