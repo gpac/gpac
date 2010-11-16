@@ -1338,7 +1338,7 @@ has_png=$tmp_has_png
   --enable-pulseaudio=*) has_pulseaudio="yes"
   ;;
   
-  --disable-all) has_pulseaudio="yes"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_beng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"
+  --disable-all) has_pulseaudio="no"; disable_3d="yes"; disable_svg="yes"; disable_vrml="yes"; disable_od="yes"; disable_bifs="yes"; disable_bifs_enc="yes"; disable_laser="yes"; disable_beng="yes"; disable_qtvr="yes";  disable_avi="yes"; disable_ogg="yes"; disable_m2ps="yes"; disable_m2ts="yes"; disable_m2ts_mux="yes"; disable_parsers="yes"; disable_import="yes"; disable_export="yes"; disable_swf="yes"; disable_scene_stats="yes"; disable_scene_dump="yes"; disable_scene_encode="yes"; disable_loader_isoff="yes"; disable_od_dump="yes"; disable_mcrypt="yes"; disable_isoff="yes"; disable_isoff_write="yes"; disable_isoff_hint="yes"; disable_isoff_frag="yes"; disable_streaming="yes"; disable_x3d="yes"; disable_loader_bt="yes"; disable_loader_xmt="yes"
   ;;
   
   --disable-3d) disable_3d="yes"
@@ -2025,7 +2025,6 @@ fi
 if test "$cpu" = "x86" ; then
   echo "TARGET_ARCH_X86=yes" >> config.mak
 elif test "$cpu" = "armv4l" ; then
-echo "CONFIG_PULSEAUDIO=$has_pulseaudio" >> config.mak
   echo "TARGET_ARCH_ARMV4L=yes" >> config.mak
 elif test "$cpu" = "alpha" ; then
   echo "TARGET_ARCH_ALPHA=yes" >> config.mak
@@ -2130,6 +2129,7 @@ echo "CONFIG_OSS_AUDIO=$has_oss_audio" >> config.mak
 echo "CONFIG_ALSA=$has_alsa" >> config.mak
 echo "CONFIG_JACK=$has_jack" >> config.mak
 echo "CONFIG_A52=$has_a52" >> config.mak
+echo "CONFIG_PULSEAUDIO=$has_pulseaudio" >> config.mak
 
 echo "DISABLE_SVG=$disable_svg" >> config.mak
 echo "HAS_LIBXML2=$has_libxml2" >> config.mak
