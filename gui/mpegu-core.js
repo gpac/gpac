@@ -202,11 +202,12 @@ function wmjs_on_widget_remove(widget) {}
 function wmjs_migrate_widget(render, widget) {
     if (WidgetManager.upnp) {
         var url, ctx, ctx_uri, uri;
+
         url = widget.url;
         ctx = widget.get_context();
         uri = UPnP.ShareResource(url, render.HostName);
 
-        if (ctx != "") {
+        if ((ctx!= null) && (ctx != "")) {
             if ((uri.indexOf('?') < 0) && (uri.indexOf('%3f') < 0) && (uri.indexOf('%3F') < 0)) {
                 ctx_uri = uri + '?mpeg-u-context';
             } else {
