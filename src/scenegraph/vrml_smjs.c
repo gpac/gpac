@@ -4027,12 +4027,17 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 
 	for (i=0; i<script->url.count; i++) {
 		char *_url = script->url.vals[i].script_text;
-		if (opt_file) _url = gf_url_concatenate(script->url.vals[i].script_text, opt_file);
+		if (opt_file) {
+			if (strnicmp(_url+4, "script:", 7) && strnicmp(_url+5, "script:", 5)) {
+				_url = gf_url_concatenate(script->url.vals[i].script_text, opt_file);
+			} else {
+				_url = strdup(opt_file);
+			}
+		}
 		par.uri.url = _url;
 		par.uri.nb_params = 0;
 		ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_RESOLVE_URI, node, &par);
 		if (opt_file) gf_free(_url);
-
 		url = (char *)par.uri.url;
 
 		ext = strrchr(url, '.');
