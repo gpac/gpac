@@ -852,6 +852,8 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 
 	opt = gf_cfg_get_key(cfg, "General", "CacheDirectory");
 	if (opt) {
+		/*remove file:// if present in the cache URL, so that all "local cache name" can be opened with stdio*/
+		if (!strnicmp(opt, "file://", 7)) opt += 7;
 		if (opt[strlen(opt)-1] != GF_PATH_SEPARATOR) {
 			dm->cache_directory = (char *) gf_malloc(sizeof(char)* (strlen(opt)+2));
 			sprintf(dm->cache_directory, "%s%c", opt, GF_PATH_SEPARATOR);

@@ -124,6 +124,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 		if (gf_bs_available(bs) < length) return GF_NON_COMPLIANT_BITSTREAM;
 
 		if (node && (node->sgprivate->tag==TAG_MPEG4_CacheTexture) && (field->fieldIndex<=2)) {
+			Bool skip_file_url_proto=0;
 			char *name;
 			FILE *f;
 			M_CacheTexture *ct = (M_CacheTexture *) node;
@@ -146,13 +147,21 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			if (codec->extraction_path) {
 				char *path;
 				u32 len = strlen(name)+strlen(codec->extraction_path)+2;
+				if (strnicmp(codec->extraction_path, "file://", 7)) len+=7;
+				/*SHA1 of service in hexa*/
 				if (codec->service_url) len += 41;
 				path = gf_malloc(sizeof(char)*len);
+
+				path[0] = 0;
+				/*force using file:// URL prototype to avoid confusion with resources adressed from the root of the source server*/
+				if (strnicmp(codec->extraction_path, "file://", 7)) strcpy(path, "file://");
+				strcat(path, codec->extraction_path);
+				strcat(path, "/");
+
 				if (codec->service_url) {
 					u8 hash[20];
 					u32 i;
 					gf_sha1_csum(codec->service_url, strlen(codec->service_url), hash);
-					sprintf(path, "%s/", codec->extraction_path);
 					for (i=0; i<20; i++) {
 						char t[3];
 						t[2] = 0;
@@ -160,16 +169,17 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 						strcat(path, t);
 					}
 					strcat(path, "_");
-					strcat(path, name);
-				} else {
-					sprintf(path, "%s/%s", codec->extraction_path, name);
-				}
+				} 
+				strcat(path, name);
+
 				gf_free(name);
 				name = path;
+				skip_file_url_proto = 1;
 			}
 
 			((SFString *)field->far_ptr)->buffer = name;
-			f = gf_f64_open(name, "wb");
+			/*skip the initial file://*/
+			f = gf_f64_open(name + (skip_file_url_proto ? 7 : 0), "wb");
 			fwrite(buf, 1, length, f);
 			fclose(f);
 		} else {
