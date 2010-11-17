@@ -642,7 +642,8 @@ void gf_memory_print()
 /*as_printf() portable implementation*/
 int gf_asprintf(char **strp, char *fmt, ...)
 {
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32_WCE)
+
 	/*we allocate a fake 4-bytes string*/
 	char tmp[4];
 	s32 size;
@@ -650,7 +651,11 @@ int gf_asprintf(char **strp, char *fmt, ...)
 
 	/*print within tmp*/
 	va_start(args, fmt);
+#ifdef _WIN32_WCE
+	size = _vsnprintf(tmp, 4, fmt, args);
+#else
 	size = vsnprintf(tmp, 4, fmt, args);
+#endif
 	va_end(args);
 
 	/*allocate the string*/
@@ -661,7 +666,11 @@ int gf_asprintf(char **strp, char *fmt, ...)
 
 	/*print*/
 	va_start(args, fmt);
+#ifdef _WIN32_WCE
+	size = _vsnprintf(*strp, size, fmt, args);
+#else
 	size = vsnprintf(*strp, size, fmt, args);
+#endif
 	va_end(args);
 
 	return size;
