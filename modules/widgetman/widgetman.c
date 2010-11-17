@@ -1508,7 +1508,11 @@ static JSBool wm_widget_get_context(JSContext *c, JSObject *obj, uintN argc, jsv
 	const char *str;
 	char *att;
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
-	if (!wid || !wid->scene) return JS_FALSE;
+	if (!wid) return JS_FALSE;
+	if (!wid->scene) {
+		*rval = JSVAL_NULL;
+		return JS_TRUE;
+	}
 
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	str = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<contextInformation xmlns=\"urn:mpeg:mpegu:schema:widgets:contextinfo:2010\">\n";
