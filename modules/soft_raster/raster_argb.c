@@ -456,7 +456,7 @@ void evg_bgr32_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u8 spanalpha, col_a;
 	s32 i, x;
 	u32 len;
-	u32 *col;
+	u32 *col, vcol;
 	u8 aa_lev = surf->AALevel;
 
 	for (i=0; i<count; i++) {
@@ -472,7 +472,11 @@ void evg_bgr32_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 				if ((spanalpha!=0xFF) || (col_a != 0xFF)) {
 					*(u32*)(dst+x) = overmask_bgr32(*col, *(u32*)(dst+x), spanalpha);
 				} else {
-					*(u32*)(dst+x) = *col;
+					vcol = *col;
+					dst[x] = GF_COL_B(vcol);
+					dst[x+1] = GF_COL_G(vcol);
+					dst[x+2] = GF_COL_R(vcol);
+					dst[x+3] = 0xFF;
 				}
 			}
 			col++;
@@ -529,7 +533,8 @@ static void overmask_rgba(u32 src, char *dst, u32 alpha)
 		dst[0] = mul255(srca, srcr - dstr) + dstr;
 		dst[1] = mul255(srca, srcg - dstg) + dstg;
 		dst[2] = mul255(srca, srcb - dstb) + dstb;
-		dst[3] = mul255(srca, srca) + mul255(255-srca, dsta);
+		if (dsta==0xFF) dst[3] = 0xFF;
+		else dst[3] = mul255(srca, srca) + mul255(255-srca, dsta);
 	} else {
 		dst[0] = srcr;
 		dst[1] = srcg;
@@ -555,7 +560,8 @@ static void overmask_rgba_const_run(u32 src, char *dst, s32 dst_pitch_x,  u32 co
 			dst[0] = (u8) mul255(srca, srcr - dstr) + dstr;
 			dst[1] = (u8) mul255(srca, srcg - dstg) + dstg;
 			dst[2] = (u8) mul255(srca, srcb - dstb) + dstb;
-			dst[3] = (u8) mul255(srca, srca) + mul255(255-srca, dsta);
+			if (dsta==0xFF) dst[3] = 0xFF;
+			else dst[3] = (u8) mul255(srca, srca) + mul255(255-srca, dsta);
 		} else {
 			dst[0] = srcr;
 			dst[1] = srcg;
