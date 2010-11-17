@@ -3275,6 +3275,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 				} 
 			}
 			gf_dm_sess_del(ctx_sess);
+			e = GF_OK;
 		}
 		gf_free(ctxPath);
 
