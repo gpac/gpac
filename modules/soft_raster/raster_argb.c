@@ -473,10 +473,10 @@ void evg_bgr32_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 					*(u32*)(dst+x) = overmask_bgr32(*col, *(u32*)(dst+x), spanalpha);
 				} else {
 					vcol = *col;
-					dst[x] = GF_COL_B(vcol);
-					dst[x+1] = GF_COL_G(vcol);
-					dst[x+2] = GF_COL_R(vcol);
-					dst[x+3] = 0xFF;
+					dst[x] = 0xFF;
+					dst[x+1] = GF_COL_B(vcol);
+					dst[x+2] = GF_COL_G(vcol);
+					dst[x+3] = GF_COL_R(vcol);
 				}
 			}
 			col++;
