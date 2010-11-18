@@ -305,7 +305,6 @@ DeletePulseAudioOutput (void *ifce)
  */
 const u32 *QueryInterfaces(u32 InterfaceType)
 {
-  printf("**** pulse query\n");
 	static u32 si [] = {
 		GF_AUDIO_OUTPUT_INTERFACE,
 		0
