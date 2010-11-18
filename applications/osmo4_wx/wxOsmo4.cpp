@@ -27,7 +27,7 @@
 #include "wxOsmo4.h"
 #include "wxGPACControl.h"
 #include "fileprops.h"
-#include "wx/image.h"
+#include <wx/image.h>
 #include <gpac/modules/service.h>
 #include <gpac/network.h>
 #include <gpac/constants.h>
@@ -39,6 +39,11 @@ IMPLEMENT_APP(wxOsmo4App)
 #include "osmo4.xpm"
 
 #include <wx/dnd.h>
+
+
+
+
+
 #include <wx/filename.h>
 #include <wx/clipbrd.h>
 
@@ -57,6 +62,8 @@ wxString get_pref_browser(GF_Config *cfg)
 {
 	const char *sOpt = gf_cfg_get_key(cfg, "General", "Browser");
 	if (sOpt) return wxString(sOpt, wxConvUTF8);
+	return wxEmptyString;
+/*
 #ifdef __WXMAC__
 	return wxT("safari");
 #else
@@ -65,7 +72,7 @@ wxString get_pref_browser(GF_Config *cfg)
 #else
 	return wxT("mozilla");
 #endif
-#endif
+#endif*/
 }
 
 
@@ -86,7 +93,7 @@ wxEvent *wxGPACEvent::Clone() const
 	return evt;
 }
 
-
+#include <wx/wx.h>
 
 /*open file dlg*/
 BEGIN_EVENT_TABLE(OpenURLDlg, wxDialog)
@@ -335,6 +342,26 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 #endif
 		}
 		break;
+	case GF_EVENT_AUTHORIZATION:
+	{
+	   printf("WAAAAAOOOOO\n");
+	  wxGPACEvent wxevt(app);
+	  wxTextEntryDialog user_d (0, 
+                  wxT("Please set the user name for connection"), 
+		  wxString(evt->auth.site_url, wxConvUTF8), 
+                  wxString(evt->auth.user, wxConvUTF8));
+	  if (user_d.ShowModal() != wxID_OK)
+	    return 0;
+	  strncpy(evt->auth.user, user_d.GetValue().mb_str(wxConvUTF8), 50);
+	  wxPasswordEntryDialog passwd_d(0, 
+                      wxT("Please enter password"), 
+                      wxString(evt->auth.site_url, wxConvUTF8), 
+                      wxString(evt->auth.password, wxConvUTF8));
+	  if (passwd_d.ShowModal() != wxID_OK)
+	    return 0;
+	  strncpy(evt->auth.password, passwd_d.GetValue().mb_str(wxConvUTF8), 50);
+	  return 1;
+	}
 	case GF_EVENT_SYS_COLORS:
 #ifdef WIN32
 		evt->sys_cols.sys_colors[0] = get_sys_col(COLOR_ACTIVEBORDER);
@@ -1640,9 +1667,13 @@ void wxOsmo4Frame::OnGPACEvent(wxGPACEvent &event)
 			return;
 		}
 		cmd = get_pref_browser(m_user.config);
-		cmd += wxT(" ");
-		cmd += event.to_url;
-		wxExecute(cmd);
+		if (cmd.IsEmpty()){
+		  cmd += wxT(" ");
+		  cmd += event.to_url;
+		  wxExecute(cmd);
+		} else {
+		  wxLaunchDefaultBrowser(event.to_url);
+		}
 		break;
 	case GF_EVENT_QUIT:
 		Close(TRUE);
