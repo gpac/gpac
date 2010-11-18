@@ -285,7 +285,7 @@ NewPulseAudioOutput ()
   driv->SetPriority = PulseAudio_SetPriority;
   driv->QueryOutputSampleRate = PulseAudio_QueryOutputSampleRate;
   driv->WriteAudio = PulseAudio_WriteAudio;
-  GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE, "PulseAudio Audio Output", "gpac distribution");
+  GF_REGISTER_MODULE_INTERFACE (driv, GF_AUDIO_OUTPUT_INTERFACE, MODULE_NAME, "gpac distribution");
   return driv;
 }
 
@@ -303,8 +303,9 @@ DeletePulseAudioOutput (void *ifce)
  * ********************************************************************
  * interface
  */
-const u32 *QueryInterface (u32 InterfaceType)
+const u32 *QueryInterfaces(u32 InterfaceType)
 {
+  printf("**** pulse query\n");
 	static u32 si [] = {
 		GF_AUDIO_OUTPUT_INTERFACE,
 		0
