@@ -344,7 +344,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_AUTHORIZATION:
 	{
-	   printf("WAAAAAOOOOO\n");
 	  wxGPACEvent wxevt(app);
 	  wxTextEntryDialog user_d (0, 
                   wxT("Please set the user name for connection"), 
