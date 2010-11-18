@@ -473,6 +473,62 @@ void switch_bench()
 		gf_term_set_speed(term, bench_mode ? bench_speed : FIX_ONE);
 	}
 }
+#ifndef WIN32
+#include <termios.h>
+int getch() {
+    struct termios old;
+    struct termios new;
+    int rc;
+    if (tcgetattr(0, &old) == -1) {
+        return -1;
+    }
+    new = old;
+    new.c_lflag &= ~(ICANON | ECHO);
+    new.c_cc[VMIN] = 1;
+    new.c_cc[VTIME] = 0;
+    if (tcsetattr(0, TCSANOW, &new) == -1) {
+        return -1;
+    }
+    rc = getchar();
+    (void) tcsetattr(0, TCSANOW, &old);
+    return rc;
+}
+#else
+int getch(){
+    return getchar();
+}
+#endif
+
+/**
+ * Reads a line of input from stdin
+ * @param line the buffer to fill
+ * @param
+ */
+static const char * read_line_input(char * line, int maxSize, Bool showContent){
+    char read;
+    int i = 0;
+    if (fflush( stdout ))
+      perror("Failed to flush buffer %s");
+    do {
+      line[i] = '\0';
+      if (i >= maxSize - 1)
+	return line;
+      read = getch();
+      if (read == 8 || read == 127){
+	if (i > 0){
+	  fprintf(stdout, "\b \b");
+	  i--;
+	}
+      } else if (read > 32){
+	fputc(showContent ? read : '*', stdout);
+	line[i++] = read;
+      }
+      fflush(stdout);
+    } while (read != '\n');
+    if (!read)
+      return 0;
+    return line;
+}
 
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
@@ -697,18 +753,22 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		gf_term_user_event(term, evt);
 		break;
 	case GF_EVENT_AUTHORIZATION:
-		if (!strlen(evt->auth.user)) {
-			fprintf(stdout, "Authorization required for site %s\n", evt->auth.site_url);
-			fprintf(stdout, "login: ");
-			scanf("%s", evt->auth.user);
-		} else {
-			fprintf(stdout, "Authorization required for %s@%s\n", evt->auth.user, evt->auth.site_url);
+	{
+		int maxTries = 3;
+		while ((!strlen(evt->auth.user) || !strlen(evt->auth.password)) && (maxTries--) >= 0){
+			fprintf(stdout, "**** Authorization required for site %s ****\n", evt->auth.site_url);
+			fprintf(stdout, "login   : ");
+			read_line_input(evt->auth.user, 50, 1);
+			fprintf(stdout, "\npassword: ");
+			read_line_input(evt->auth.password, 50, 0);
+			printf("*********\n");
 		}
-		fprintf(stdout, "password: ");
-		gf_prompt_set_echo_off(1);
-		scanf("%s", evt->auth.password);
-		gf_prompt_set_echo_off(0);
+		if (maxTries < 0){
+		  printf("Too many attempts, aborting.\n");
+		  return 0;
+		}
 		return 1;
+	}
 	case GF_EVENT_SYS_COLORS:
 #ifdef WIN32
 		evt->sys_cols.sys_colors[0] = get_sys_col(COLOR_ACTIVEBORDER);
