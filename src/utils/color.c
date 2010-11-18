@@ -282,18 +282,23 @@ static void copy_row_rgb_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc, 
 	}
 }
 
-static void copy_row_bgr_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
+static void copy_row_bgr_32(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
 {
 	u8 a, r, g, b;
 	s32 pos = 0x10000L;
-	u32 *dst = (u32 *)_dst;
+	x_pitch*=4;
 	
 	while ( dst_w) {
 		while ( pos >= 0x10000L ) {
 			r = *src++; g = *src++; b = *src++; a = *src++;
 			pos -= 0x10000L;
 		}
-		if (a) *dst = GF_COL_ARGB(b, g, r, a);
+		if (a) {
+			dst[0] = r;
+			dst[1] = g;
+			dst[2] = b;
+			dst[3] = 0xFF;
+		}
 		dst+=x_pitch;
 		pos += h_inc;
 		dst_w--;
@@ -436,6 +441,40 @@ static void merge_row_rgb_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc,
 			_g = mul255(a, g - _g) + _g;
 			_b = mul255(a, b - _b) + _b;
 			*dst = GF_COL_ARGB(0xFF, _r, _g, _b);
+		}
+		dst += x_pitch;
+		pos += h_inc;
+		dst_w--;
+	}
+}
+
+static void merge_row_bgr_32(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
+{
+	u32 _r, _g, _b, a, r, g, b, col;
+	s32 pos;
+
+	x_pitch*=4;
+	
+	pos = 0x10000;
+	while (dst_w) {
+		while ( pos >= 0x10000L ) {
+			r = *src++; g = *src++; b = *src++; a = *src++;
+			a = mul255(a, alpha);
+			pos -= 0x10000L;
+		}
+
+		if (a) {
+			col = *dst;
+			_r = dst[0];
+			_g = dst[1];
+			_b = dst[2];
+			_r = mul255(a, r - _r) + _r;
+			_g = mul255(a, g - _g) + _g;
+			_b = mul255(a, b - _b) + _b;
+			dst[0] = _r;
+			dst[1] = _g;
+			dst[2] = _b;
+			dst[3] = 0xFF;
 		}
 		dst += x_pitch;
 		pos += h_inc;
@@ -728,7 +767,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		break;
 	case GF_PIXEL_BGR_32:
 		dst_bpp = sizeof(unsigned char)*4;
-		copy_row = has_alpha ? merge_row_rgb_32: copy_row_bgr_32;
+		copy_row = has_alpha ? merge_row_bgr_32: copy_row_bgr_32;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
