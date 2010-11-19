@@ -1090,6 +1090,8 @@ GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
 
 void gf_codec_del(GF_Codec *codec)
 {
+	if (!codec || !codec->inChannels)
+	  return;
 	if (gf_list_count(codec->inChannels)) return;
 
 	if (!(codec->flags & GF_ESM_CODEC_IS_USE)) {
