@@ -238,6 +238,7 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_new_simple) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_process) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_get_cache_name) )
