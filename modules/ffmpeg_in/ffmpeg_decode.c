@@ -853,7 +853,6 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 		case GPAC_OTI_IMAGE_JPEG:
 //			return 0; /*I'm having troubles with ffmpeg & jpeg, it appears to crash randomly*/
 			codec_id = CODEC_ID_MJPEG;
-			fprintf(stdout, "bla");
 			break;
 		default:
 			return 0;
