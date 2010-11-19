@@ -30,6 +30,8 @@
 #include <gpac/mpegts.h>
 
 
+#define UDP_BUFFER_SIZE	0x40000
+
 #define MP42TS_PRINT_FREQ 634 /*refresh printed info every CLOCK_REFRESH ms*/
 
 
@@ -94,12 +96,23 @@ typedef struct
 	Bool vers_inc;
 } GF_ESIStream;
 
+typedef struct
+{
+	u32 size;
+	char *data;
+} GF_SimpleDataDescriptor;
+
+//TODO: find a clean way to save this data
+static u32 audio_OD_stream_id = (u32)-1;
+#define AUDIO_OD_ESID	100
+#define AUDIO_DATA_ESID	101
+
 /*output types*/
 enum
 {
-	GF_MP42TS_FILE_OUTPUT, /*open mpeg2ts file*/
-	GF_MP42TS_UDP_OUTPUT,  /*open udp socket*/
-	GF_MP42TS_RTP_OUTPUT,  /*open rtp socket*/
+	GF_MP42TS_FILE, /*open mpeg2ts file*/
+	GF_MP42TS_UDP,  /*open udp socket*/
+	GF_MP42TS_RTP,  /*open rtp socket*/
 };
 
 static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
@@ -361,6 +374,11 @@ static GF_Err rtp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	return GF_OK;
 }
 
+static GF_Err udp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
+{
+	return GF_OK;
+}
+
 static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
 {		
 	u32 i=0;
@@ -381,6 +399,7 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 					pck.flags |= GF_ESI_DATA_HAS_CTS;
 					pck.flags |= GF_ESI_DATA_AU_START;
 					pck.flags |= GF_ESI_DATA_AU_END;
+
 					if (priv->rap)
 						pck.flags |= GF_ESI_DATA_AU_RAP;
 					if (prog->repeat || !priv->vers_inc) {
@@ -477,6 +496,17 @@ static Bool seng_output(void *param)
 	
 	last_src_modif = prog->src_name ? gf_file_modification_time(prog->src_name) : 0;
 
+	/*send the audio descriptor*/
+	{
+		GF_SimpleDataDescriptor *audio_desc = prog->streams[audio_OD_stream_id].input_udta;
+		assert(audio_OD_stream_id != (u32)-1);
+		prog->repeat = 1;
+		SampleCallBack(prog, AUDIO_OD_ESID, audio_desc->data, audio_desc->size, gf_sys_clock());
+		prog->repeat = 0;
+		gf_free(audio_desc);
+		prog->streams->input_udta = NULL;
+	}
+
 	while (run) {
 		if (!gf_prompt_has_input()) {
 			if (prog->src_name) {
@@ -570,7 +600,7 @@ static Bool seng_output(void *param)
 			}
 			if (update_context) {
 				prog->repeat = 1;
-				e = gf_seng_encode_context(seng, SampleCallBack	);
+				e = gf_seng_encode_context(seng, SampleCallBack);
 				prog->repeat = 0;
 			}
 
@@ -590,8 +620,8 @@ static Bool seng_output(void *param)
 					e = gf_seng_encode_from_string(seng, 0, 0, szCom, SampleCallBack);
 					prog->repeat = 1;
 					if (e) { 
-                        fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
-                    }
+						fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
+					}
 					update_context=1;
 				}
 					break;
@@ -736,13 +766,16 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 
 void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 period)
 {
-	GF_Err e=GF_OK;
+	GF_Err e = GF_OK;
 	char *config_buffer;
 	u32 len;
 	GF_ESIStream *stream;
 						
 	memset(ifce, 0, sizeof(GF_ESInterface));
-	gf_seng_get_stream_config(seng, i, (u16*) &(ifce->stream_id), &config_buffer, &len, (u32*) &(ifce->stream_type), (u32*) &(ifce->object_type_indication), &(ifce->timescale)); 
+	e = gf_seng_get_stream_config(seng, i, (u16*) &(ifce->stream_id), &config_buffer, &len, (u32*) &(ifce->stream_type), (u32*) &(ifce->object_type_indication), &(ifce->timescale)); 
+	if (e) {
+		fprintf(stderr, "Cannot set the stream config for stream %d to %d: %s\n", ifce->stream_id, period, gf_error_to_string(e));
+	}
 
 	ifce->repeat_rate = period;
 	GF_SAFEALLOC(stream, GF_ESIStream);
@@ -758,7 +791,7 @@ void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 pe
 
 }
 
-static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *force_mpeg4, char *update)
+static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *force_mpeg4, char *update, char *audio_input_ip, u16 audio_input_port)
 {
 	GF_SDPInfo *sdp;
 	u32 i;
@@ -780,20 +813,23 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *
 				continue; 
 			fill_isom_es_ifce(&prog->streams[i], prog->mp4, i+1);
 			switch(prog->streams[i].stream_type) {
-			case GF_STREAM_OD:
-			case GF_STREAM_SCENE:
-				*force_mpeg4 = 1;
-				prog->streams[i].repeat_rate = carousel_rate;
-				break;
-			case GF_STREAM_VISUAL:
-				/*turn on image repeat*/
-				switch (prog->streams[i].object_type_indication) {
-				case GPAC_OTI_IMAGE_JPEG:
-				case GPAC_OTI_IMAGE_PNG:
-					((GF_ESIMP4 *)prog->streams[i].input_udta)->image_repeat_ms = carousel_rate;
+				case GF_STREAM_OD:
+				case GF_STREAM_SCENE:
+					*force_mpeg4 = 1;
+					prog->streams[i].repeat_rate = carousel_rate;
 					break;
-				}
-				break;
+				case GF_STREAM_VISUAL:
+					/*turn on image repeat*/
+					switch (prog->streams[i].object_type_indication) {
+					case GPAC_OTI_IMAGE_JPEG:
+					case GPAC_OTI_IMAGE_PNG:
+						((GF_ESIMP4 *)prog->streams[i].input_udta)->image_repeat_ms = carousel_rate;
+						break;
+					}
+					break;
+				default:
+					/*log not supported stream type: %s*/
+					break;
 			}
 			prog->nb_streams++;
 			/*get first visual stream as PCR*/
@@ -913,6 +949,77 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *
 				prog->pcr_idx = i+1;
 			}
 		}
+
+		/*when an audio input is present, declare it and store OD + ESD_U*/
+		if (audio_input_ip) {
+			/*add the audio program*/
+			prog->pcr_idx = 0/*nb_progs*/; /*TODO: fix PCR?*/
+			prog->streams[prog->nb_streams].stream_type = GF_STREAM_AUDIO;
+			prog->streams[prog->nb_streams].object_type_indication = GPAC_OTI_AUDIO_MPEG1/*GPAC_OTI_AUDIO_AAC_MPEG4*/;
+			prog->streams[prog->nb_streams].input_ctrl = udp_input_ctrl;
+			prog->streams[prog->nb_streams].stream_id = AUDIO_DATA_ESID;
+			prog->streams[prog->nb_streams].timescale = 90000;
+
+			GF_SAFEALLOC(prog->streams[i].input_udta, GF_ESIStream);
+			((GF_ESIStream*)prog->streams[i].input_udta)->vers_inc = 1;	/*increment version number at every audio update*/
+
+			{
+				/*create the descriptor*/
+				GF_ESD *esd = gf_odf_desc_esd_new(0);
+				esd->slConfig->timestampResolution = prog->streams[prog->nb_streams].timescale;
+				esd->decoderConfig->streamType = prog->streams[prog->nb_streams].stream_type;
+				esd->decoderConfig->objectTypeIndication = prog->streams[prog->nb_streams].object_type_indication;
+				esd->ESID = prog->streams[prog->nb_streams].stream_id;
+				{
+					/*create an OD Codec to encode the descriptor*/
+					GF_ODCodec *odc = gf_odf_codec_new();
+					GF_ODUpdate *od_com = (GF_ODUpdate*)gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
+					GF_ObjectDescriptor *od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
+					GF_SimpleDataDescriptor *audio_desc;
+					GF_SAFEALLOC(audio_desc, GF_SimpleDataDescriptor);
+					gf_list_add(od->ESDescriptors, esd);
+					od->objectDescriptorID = AUDIO_DATA_ESID;
+					gf_list_add(od_com->objectDescriptors, od);
+
+					e = gf_odf_codec_add_com(odc, (GF_ODCom*)od_com);
+					if (e) {
+						fprintf(stderr, "Audio input error add the command to be encoded\n");
+						return 0;
+					}
+					e = gf_odf_codec_encode(odc, 0);
+					if (e) {
+						fprintf(stderr, "Audio input error encoding the descriptor\n");
+						return 0;
+					}
+					e = gf_odf_codec_get_au(odc, &audio_desc->data, &audio_desc->size);
+					if (e) {
+						fprintf(stderr, "Audio input error getting the descriptor\n");
+						return 0;
+					}
+					e = gf_odf_com_del((GF_ODCom**)&od_com);
+					if (e) {
+						fprintf(stderr, "Audio input error deleting the command\n");
+						return 0;
+					}
+					gf_odf_codec_del(odc);
+
+					/*find the audio OD stream and attach its descriptor*/
+					for (i=0; i<prog->nb_streams; i++) {
+						if (prog->streams[i].stream_id == AUDIO_OD_ESID) {
+							prog->streams[i].input_udta = (void*)audio_desc;
+							audio_OD_stream_id = i;
+							break;
+						}
+					}
+					if (audio_OD_stream_id == (u32)-1) {
+						fprintf(stderr, "Error: could not find an audio OD stream with ESID=100\n", src);
+						return 0;
+					}
+				}
+			}
+			prog->nb_streams++;
+		}
+
 		if (!prog->pcr_idx) prog->pcr_idx=1;
 		prog->pcr_idx-=1;
 		prog->th = gf_th_new("Carousel");
@@ -927,26 +1034,59 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *
 
 /*parse MP42TS arguments*/
 static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *carrousel_rate, 
-                                  M2TSProgram *progs, u32 *nb_progs, Bool *mpeg4_signaling, char **src_name, 
-                                  Bool *real_time, u32 *run_time, char **ts_out, char **udp_out, char **rtp_out, u16 *port, 
-                                  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix)
+								  M2TSProgram *progs, u32 *nb_progs, Bool *mpeg4_signaling, char **src_name, 
+								  Bool *real_time, u32 *run_time,
+								  u32 *audio_input_type, char **audio_input_ip, u16 *audio_input_port,
+								  u32 *output_type, char **ts_out, char **udp_out, char **rtp_out, u16 *output_port, 
+								  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix)
 {
-	Bool rate_found=0, mpeg4_carousel_found=0, prog_found=0, mpeg4_found=0, time_found=0, src_found=0, dst_found=0, 
-        seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found = 0, real_time_found=0;
-	char *prog_name;
-	u32 res;
+	Bool rate_found=0, mpeg4_carousel_found=0, prog_found=0, mpeg4_found=0, time_found=0, src_found=0, dst_found=0, audio_input_found=0, 
+		 seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found = 0, real_time_found=0;
+	char *prog_name, *arg, *error_msg;
+
 	s32 i;
+	/*first pass: find audio*/
 	for (i=1; i<argc; i++) {
-		char *arg = argv[i];
+		arg = argv[i];
+		if (!strnicmp(arg, "-audio=", 7)) {
+			if (audio_input_found) {
+				error_msg = "multiple '-audio' found";
+				arg = NULL;
+				goto error;
+			}
+			audio_input_found = 1;
+			arg+=7;
+			if (!strnicmp(arg, "rtp://", 6) || !strnicmp(arg, "udp://", 6)) {
+				char *sep = strchr(arg+6, ':');
+				*audio_input_type = (arg[0]=='r') ? 2 : 1;
+				*real_time=1;
+				if (sep) {
+					*audio_input_port = atoi(sep+1);
+					sep[0]=0;
+					*audio_input_ip = gf_strdup(arg+6);
+					sep[0]=':';
+				} else {
+					*audio_input_ip = gf_strdup(arg+6);
+				}
+			}
+		}
+	}
+	/*second pass: other*/
+	for (i=1; i<argc; i++) {
+		arg = argv[i];
 		if (arg[0]=='-') {
 			if (!strnicmp(arg, "-rate=", 6)) {
 				if (rate_found) {
+					error_msg = "multiple '-rate' found";
+					arg = NULL;
 					goto error;
 				}
 				rate_found = 1;
 				*mux_rate = 1024*atoi(arg+6);
 			} else if (!strnicmp(arg, "-mpeg4-carousel=", 16)) {
 				if (mpeg4_carousel_found) {
+					error_msg = "multiple '-mpeg4-carousel' found";
+					arg = NULL;
 					goto error;
 				}
 				mpeg4_carousel_found = 1;
@@ -959,9 +1099,9 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				prog_found = 1;
 				prog_name = arg+6;
 				if (prog_found && rate_found) {
-					memset(&progs[*nb_progs], 0, sizeof(M2TSProgram));
+					u32 res;
 					assert(prog_name);
-					res = open_program(&progs[*nb_progs], prog_name, *carrousel_rate, mpeg4_signaling, *src_name);
+					res = open_program(&progs[*nb_progs], prog_name, *carrousel_rate, mpeg4_signaling, *src_name, *audio_input_ip, *audio_input_port);
 					if (res) {
 						(*nb_progs)++;
 						if (res==2) *real_time=1;
@@ -969,6 +1109,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				}
 			} else if (!strnicmp(arg, "-mpeg4", 6)) {
 				if (mpeg4_found) {
+					error_msg = "multiple '-mpeg4' found";
+					arg = NULL;
 					goto error;
 				}
 				mpeg4_found = 1;
@@ -981,6 +1123,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				*real_time = 1;
 			} else if (!strnicmp(arg, "-time=", 6)) {
 				if (time_found) {
+					error_msg = "multiple '-time' found";
+					arg = NULL;
 					goto error;
 				}
 				time_found = 1;
@@ -1016,50 +1160,57 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				seg_number_found = 1;
 				*segment_number = atoi(arg+16);
 			} 
-			else if (!strnicmp(arg, "-src=", 5)){
+			else if (!strnicmp(arg, "-src=", 5)) {
 				if (src_found) {
+					error_msg = "multiple '-src' found";
+					arg = NULL;
 					goto error;
 				}
 				src_found = 1;
 				*src_name = arg+5;
 			}
-			else if (!strnicmp(arg, "-dst-file=", 10)){
+			else if (!strnicmp(arg, "-dst-file=", 10)) {
 				dst_found = 1;
 				*ts_out = gf_strdup(arg+10);
 			}
-			else if (!strnicmp(arg, "-dst-udp=", 9)){
-				char *sep = strchr(arg+9, ':');
-                dst_found = 1;
-				*real_time=1;
-                if (sep) {
-					*port = atoi(sep+1);
-					sep[0]=0;
-					*udp_out = gf_strdup(arg+9);
-					sep[0]=':';
-                } else {
-    				*udp_out = gf_strdup(arg+9);
-                }
-			}
-			else if (!strnicmp(arg, "-dst-rtp=", 9)){
+			else if (!strnicmp(arg, "-dst-udp=", 9)) {
 				char *sep = strchr(arg+9, ':');
 				dst_found = 1;
 				*real_time=1;
-                if (sep) {
-					*port = atoi(sep+1);
+				if (sep) {
+					*output_port = atoi(sep+1);
+					sep[0]=0;
+					*udp_out = gf_strdup(arg+9);
+					sep[0]=':';
+				} else {
+					*udp_out = gf_strdup(arg+9);
+				}
+			}
+			else if (!strnicmp(arg, "-dst-rtp=", 9)) {
+				char *sep = strchr(arg+9, ':');
+				dst_found = 1;
+				*real_time=1;
+				if (sep) {
+					*output_port = atoi(sep+1);
 					sep[0]=0;
 					*rtp_out = gf_strdup(arg+9);
 					sep[0]=':';
-                } else {
-    				*rtp_out = gf_strdup(arg+9);
-                }
+				} else {
+					*rtp_out = gf_strdup(arg+9);
+				}
 			}
+			else if (!strnicmp(arg, "-audio=", 7))
+				; /*already treated on the first pass*/
 			else {
+				error_msg = "unknown option \"%s\"";
 				goto error;
 			}
 		} 
 #if 0
-        else { /*"dst" argument (output)*/
+		else { /*"dst" argument (output)*/
 			if (dst_found) {
+				error_msg = "multiple output arguments (no '-') found";
+				arg = NULL;
 				goto error;
 			}
 			dst_found = 1;
@@ -1068,7 +1219,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				*output_type = (arg[0]=='r') ? 2 : 1;
 				*real_time=1;
 				if (sep) {
-					*port = atoi(sep+1);
+					*output_port = atoi(sep+1);
 					sep[0]=0;
 					*ts_out = gf_strdup(arg+6);
 					sep[0]=':';
@@ -1081,51 +1232,56 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			}
 		}
 #endif
-    }
+	}
 
 	/*testing the only mandatory argument*/
 	if (dst_found && prog_found && rate_found)
 		return GF_OK;
 
 error:
+	if (!arg) {
+		fprintf(stderr, "Error: %s\n", error_msg);
+	} else {
+		fprintf(stderr, "Error: %s \"%s\"\n", error_msg, arg);
+	}
 	return GF_BAD_PARAM;
 }
 
 /* adapted from http://svn.assembla.com/svn/legend/segmenter/segmenter.c */
 static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_duration, char *segment_prefix, char *http_prefix, 
-                            u32 first_segment, u32 last_segment, Bool end) {
-    FILE *manifest_fp;
-    u32 i;
-    char manifest_tmp_name[GF_MAX_PATH];
-    char manifest_name[GF_MAX_PATH];
-    char *tmp_manifest = manifest_tmp_name;
+							u32 first_segment, u32 last_segment, Bool end) {
+	FILE *manifest_fp;
+	u32 i;
+	char manifest_tmp_name[GF_MAX_PATH];
+	char manifest_name[GF_MAX_PATH];
+	char *tmp_manifest = manifest_tmp_name;
 
-    sprintf(manifest_tmp_name, "%stmp.m3u8", segment_dir);
-    sprintf(manifest_name, "%s%s", segment_dir, manifest);
+	sprintf(manifest_tmp_name, "%stmp.m3u8", segment_dir);
+	sprintf(manifest_name, "%s%s", segment_dir, manifest);
 
-    manifest_fp = fopen(tmp_manifest, "w");
-    if (!manifest_fp) {
-        fprintf(stderr, "Could not create m3u8 manifest file (%s)\n", tmp_manifest);
-        return GF_BAD_PARAM;
-    }
+	manifest_fp = fopen(tmp_manifest, "w");
+	if (!manifest_fp) {
+		fprintf(stderr, "Could not create m3u8 manifest file (%s)\n", tmp_manifest);
+		return GF_BAD_PARAM;
+	}
 
-    fprintf(manifest_fp, "#EXTM3U\n#EXT-X-TARGETDURATION:%u\n#EXT-X-MEDIA-SEQUENCE:%u\n", segment_duration, first_segment);
+	fprintf(manifest_fp, "#EXTM3U\n#EXT-X-TARGETDURATION:%u\n#EXT-X-MEDIA-SEQUENCE:%u\n", segment_duration, first_segment);
 
-    for (i = first_segment; i <= last_segment; i++) {
-        fprintf(manifest_fp, "#EXTINF:%u,\n%s%s_%u.ts\n", segment_duration, http_prefix, segment_prefix, i);
-    }
+	for (i = first_segment; i <= last_segment; i++) {
+		fprintf(manifest_fp, "#EXTINF:%u,\n%s%s_%u.ts\n", segment_duration, http_prefix, segment_prefix, i);
+	}
 
-    if (end) {
-        fprintf(manifest_fp, "#EXT-X-ENDLIST\n");
-    }
-    fclose(manifest_fp);
+	if (end) {
+		fprintf(manifest_fp, "#EXT-X-ENDLIST\n");
+	}
+	fclose(manifest_fp);
 
-    if (!rename(tmp_manifest, manifest_name)) {
-        return GF_OK;
-    } else {
-        fprintf(stderr, "Could not rename temporary m3u8 manifest file (%s) into %s\n", tmp_manifest, manifest_name);
-        return GF_BAD_PARAM;
-    }
+	if (!rename(tmp_manifest, manifest_name)) {
+		return GF_OK;
+	} else {
+		fprintf(stderr, "Could not rename temporary m3u8 manifest file (%s) into %s\n", tmp_manifest, manifest_name);
+		return GF_BAD_PARAM;
+	}
 }
 
 int main(int argc, char **argv)
@@ -1139,30 +1295,33 @@ int main(int argc, char **argv)
 	Bool real_time, mpeg4_signaling;
 	GF_M2TS_Mux *muxer=NULL;
 	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time;
-	char *ts_out, *udp_out, *rtp_out;
-	FILE *ts_file;
-	GF_Socket *ts_udp;
-	GF_RTPChannel *ts_rtp;
+	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;
+	FILE *ts_output_file = NULL;
+	GF_Socket *ts_output_udp = NULL, *audio_input_udp = NULL;
+	GF_RTPChannel *ts_output_rtp = NULL;
 	GF_RTSPTransport tr;
 	GF_RTPHeader hdr;
-	u16 port;
+	u16 output_port, audio_input_port;
+	u32 output_type, audio_input_type;
+	char *audio_input_buffer = NULL;
+	u32 audio_input_buffer_length=65536;
 	char *src_name;
 	M2TSProgram progs[MAX_MUX_SRC_PROG];
-    u32 segment_duration, segment_index, segment_number;
-    char segment_manifest_default[GF_MAX_PATH];
-    char *segment_manifest, *segment_http_prefix, *segment_dir;
-    char segment_prefix[GF_MAX_PATH];
-    char segment_name[GF_MAX_PATH];
-    GF_M2TS_Time prev_seg_time;
+	u32 segment_duration, segment_index, segment_number;
+	char segment_manifest_default[GF_MAX_PATH];
+	char *segment_manifest, *segment_http_prefix, *segment_dir;
+	char segment_prefix[GF_MAX_PATH];
+	char segment_name[GF_MAX_PATH];
+	GF_M2TS_Time prev_seg_time;
 
 	/***********************/
 	/*   initialisations   */
 	/***********************/
 	real_time=0;	
-    src_name = NULL;
-	ts_file = NULL;
-	ts_udp = NULL;
-	ts_rtp = NULL;
+	ts_output_file = NULL;
+	ts_output_udp = NULL;
+	ts_output_rtp = NULL;
+	src_name = NULL;
 	ts_out = NULL;
 	udp_out = NULL;
 	rtp_out = NULL;
@@ -1171,15 +1330,15 @@ int main(int argc, char **argv)
 	run_time = 0;
 	mpeg4_signaling = 0;
 	carrousel_rate = 500;
-	port = 1234;
-    segment_duration = 0;
-    segment_number = 10; /* by default, we keep the 10 previous segments */
-    segment_index = 0;
-    segment_manifest = NULL;
-    segment_http_prefix = NULL;
-    segment_dir = NULL;
-    prev_seg_time.sec = 0;
-    prev_seg_time.nanosec = 0;
+	output_port = 1234;
+	segment_duration = 0;
+	segment_number = 10; /* by default, we keep the 10 previous segments */
+	segment_index = 0;
+	segment_manifest = NULL;
+	segment_http_prefix = NULL;
+	segment_dir = NULL;
+	prev_seg_time.sec = 0;
+	prev_seg_time.nanosec = 0;
 	
 	/*****************/
 	/*   gpac init   */
@@ -1194,8 +1353,10 @@ int main(int argc, char **argv)
 	/*   parse arguments   */
 	/***********************/
 	if (GF_OK != parse_args(argc, argv, &mux_rate, &carrousel_rate, progs, &nb_progs, &mpeg4_signaling, &src_name, 
-                            &real_time, &run_time, &ts_out, &udp_out, &rtp_out, &port, 
-                            &segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix)) {
+							&real_time, &run_time,
+							&audio_input_type, &audio_input_ip, &audio_input_port,
+							&output_type, &ts_out, &udp_out, &rtp_out, &output_port, 
+							&segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix)) {
 		usage();
 		goto exit;
 	}
@@ -1210,41 +1371,41 @@ int main(int argc, char **argv)
 	/***************************/
 	muxer = gf_m2ts_mux_new(mux_rate, real_time);
 	muxer->mpeg4_signaling = mpeg4_signaling;
-    if (ts_out != NULL) {
-        if (segment_duration) {
-            char *dot;
-            strcpy(segment_prefix, ts_out);
-            dot = strrchr(segment_prefix, '.');
-            dot[0] = 0;
-            sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
-            ts_out = segment_name;
-            if (!segment_manifest) { 
-                sprintf(segment_manifest_default, "%s.m3u8", segment_prefix);
-                segment_manifest = segment_manifest_default;
-            }
-            //write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index, 0, 0);
-        } 
-		ts_file = fopen(ts_out, "wb");
-		if (!ts_file) {
+	if (ts_out != NULL) {
+		if (segment_duration) {
+			char *dot;
+			strcpy(segment_prefix, ts_out);
+			dot = strrchr(segment_prefix, '.');
+			dot[0] = 0;
+			sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
+			ts_out = segment_name;
+			if (!segment_manifest) { 
+				sprintf(segment_manifest_default, "%s.m3u8", segment_prefix);
+				segment_manifest = segment_manifest_default;
+			}
+			//write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index, 0, 0);
+		} 
+		ts_output_file = fopen(ts_out, "wb");
+		if (!ts_output_file) {
 			fprintf(stderr, "Error opening %s\n", ts_out);
 			goto exit;
 		}
-    }
-    if (udp_out != NULL) {
-		ts_udp = gf_sk_new(GF_SOCK_TYPE_UDP);
+	}
+	if (udp_out != NULL) {
+		ts_output_udp = gf_sk_new(GF_SOCK_TYPE_UDP);
 		if (gf_sk_is_multicast_address((char *)udp_out)) {
-			e = gf_sk_setup_multicast(ts_udp, (char *)udp_out, port, 0, 0, NULL);
+			e = gf_sk_setup_multicast(ts_output_udp, (char *)udp_out, output_port, 0, 0, NULL);
 		} else {
-			e = gf_sk_bind(ts_udp, NULL, port, (char *)udp_out, port, GF_SOCK_REUSE_PORT);
+			e = gf_sk_bind(ts_output_udp, NULL, output_port, (char *)udp_out, output_port, GF_SOCK_REUSE_PORT);
 		}
 		if (e) {
 			fprintf(stderr, "Error initializing UDP socket: %s\n", gf_error_to_string(e));
 			goto exit;
 		}
-    }
-    if (rtp_out != NULL) {
-		ts_rtp = gf_rtp_new();
-		gf_rtp_set_ports(ts_rtp, port);
+	}
+	if (rtp_out != NULL) {
+		ts_output_rtp = gf_rtp_new();
+		gf_rtp_set_ports(ts_output_rtp, output_port);
 		tr.IsUnicast = gf_sk_is_multicast_address((char *)rtp_out) ? 0 : 1;
 		tr.Profile="RTP/AVP";
 		tr.destination = (char *)rtp_out;
@@ -1252,20 +1413,20 @@ int main(int argc, char **argv)
 		tr.IsRecord = 0;
 		tr.Append = 0;
 		tr.SSRC = rand();
-		tr.port_first = port;
-		tr.port_last = port+1;
+		tr.port_first = output_port;
+		tr.port_last = output_port+1;
 		if (tr.IsUnicast) {
-			tr.client_port_first = port;
-			tr.client_port_last = port+1;
+			tr.client_port_first = output_port;
+			tr.client_port_last = output_port+1;
 		} else {
 			tr.source = (char *)rtp_out;
 		}
-		res = gf_rtp_setup_transport(ts_rtp, &tr, (char *)ts_out);
+		res = gf_rtp_setup_transport(ts_output_rtp, &tr, (char *)ts_out);
 		if (res !=0) {
 			fprintf(stderr, "Cannot setup RTP transport info\n");
 			goto exit;
 		}
-		res = gf_rtp_initialize(ts_rtp, 0, 1, 1500, 0, 0, NULL);
+		res = gf_rtp_initialize(ts_output_rtp, 0, 1, 1500, 0, 0, NULL);
 		if (res !=0) {
 			fprintf(stderr, "Cannot initialize RTP sockets\n");
 			goto exit;
@@ -1275,6 +1436,41 @@ int main(int argc, char **argv)
 		hdr.PayloadType = 33;	/*MP2T*/
 		hdr.SSRC = tr.SSRC;
 		hdr.Marker = 0;
+	}
+
+	/************************************/
+	/*   create streaming audio input   */
+	/************************************/
+	if (audio_input_ip)
+	switch(audio_input_type) {
+		case GF_MP42TS_UDP:
+			audio_input_udp = gf_sk_new(GF_SOCK_TYPE_UDP);
+			if (gf_sk_is_multicast_address((char *)audio_input_ip)) {
+				e = gf_sk_setup_multicast(audio_input_udp, (char *)audio_input_ip, audio_input_port, 0, 0, NULL);
+			} else {
+				e = gf_sk_bind(audio_input_udp, NULL, audio_input_port, (char *)audio_input_ip, audio_input_port, GF_SOCK_REUSE_PORT);
+			}
+			if (e) {
+				fprintf(stdout, "Error initializing UDP socket for %s:%d : %s\n", audio_input_ip, audio_input_port, gf_error_to_string(e));
+				goto exit;
+			}
+			gf_sk_set_buffer_size(audio_input_udp, 0, UDP_BUFFER_SIZE);
+			gf_sk_set_block_mode(audio_input_udp, 0);
+
+			/*allocate data buffer*/
+			audio_input_buffer = malloc(audio_input_buffer_length);
+			assert(audio_input_buffer);
+			break;
+		case GF_MP42TS_RTP:
+			/*TODO: not implemented*/
+			assert(0);
+			break;
+			
+		case GF_MP42TS_FILE:
+			assert(0); /*audio live input is restricted to realtime/streaming*/
+			break;
+		default:
+			assert(0);
 	}
 
 	/****************************************/
@@ -1297,48 +1493,59 @@ int main(int argc, char **argv)
 	/*****************/
 	/*   main loop   */
 	/*****************/
-	last_print_time=gf_sys_clock();
+	last_print_time = gf_sys_clock();
 	while (run) {
 		u32 ts, status;
+
+		/*check for some audio input from the network*/
+		if (audio_input_ip) {
+			u32 read;
+			e = gf_sk_receive(audio_input_udp, audio_input_buffer, audio_input_buffer_length, 0, &read);
+			if (read) {
+				progs[nb_progs-1].repeat = 0;
+				SampleCallBack((void*)&progs[nb_progs-1], AUDIO_DATA_ESID, audio_input_buffer, read, gf_sys_clock());
+			}
+		}
+
 		/*flush all packets*/
 		while ((ts_pck = gf_m2ts_mux_process(muxer, &status)) != NULL) {
-    		if (ts_file != NULL) {
-				fwrite(ts_pck, 1, 188, ts_file); 
-                if (segment_duration && (muxer->time.sec > prev_seg_time.sec + segment_duration)) {
-                    prev_seg_time = muxer->time;
-                    fclose(ts_file);
-                    segment_index++;
-
-                    sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
-		            ts_file = fopen(segment_name, "wb");
-		            if (!ts_file) {
-			            fprintf(stderr, "Error opening %s\n", segment_name);
-			            goto exit;
-		            }
-                    /* delete the oldest segment */
-                    if (segment_number && (segment_index - segment_number >= 0)){
-                        char old_segment_name[GF_MAX_PATH];
-                        sprintf(old_segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index - segment_number);
-		                gf_delete_file(old_segment_name);
-                    }
-                    write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, 
-                                   (segment_index >= segment_number/2 ? segment_index - segment_number/2 : 0), segment_index >1 ? segment_index-1 : 0, 0);
-                } 
+			if (ts_output_file != NULL) {
+				fwrite(ts_pck, 1, 188, ts_output_file); 
+				if (segment_duration && (muxer->time.sec > prev_seg_time.sec + segment_duration)) {
+					prev_seg_time = muxer->time;
+					fclose(ts_output_file);
+					segment_index++;
+					sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
+					ts_output_file = fopen(segment_name, "wb");
+					if (!ts_output_file) {
+						fprintf(stderr, "Error opening %s\n", segment_name);
+						goto exit;
+					}
+					/* delete the oldest segment */
+					if (segment_number && (segment_index - segment_number >= 0)){
+						char old_segment_name[GF_MAX_PATH];
+						sprintf(old_segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index - segment_number);
+						gf_delete_file(old_segment_name);
+					}
+					write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, 
+								   (segment_index >= segment_number/2 ? segment_index - segment_number/2 : 0), segment_index >1 ? segment_index-1 : 0, 0);
+				} 
 			}
-            if (ts_udp != NULL) {
-				e = gf_sk_send(ts_udp, (char*)ts_pck, 188); 
+
+			if (ts_output_udp != NULL) {
+				e = gf_sk_send(ts_output_udp, (char*)ts_pck, 188); 
 				if (e) {
 					fprintf(stderr, "Error %s sending UDP packet\n", gf_error_to_string(e));
 				}
 			}
-            if (ts_rtp != NULL) {
+			if (ts_output_rtp != NULL) {
 				hdr.SequenceNumber++;
 				/*muxer clock at 90k*/
 				ts = muxer->time.sec*90000 + muxer->time.nanosec*9/100000;
 				/*FIXME - better discontinuity check*/
 				hdr.Marker = (ts < hdr.TimeStamp) ? 1 : 0;
 				hdr.TimeStamp = ts;
-				e = gf_rtp_send_packet(ts_rtp, &hdr, (char*)ts_pck, 188, 0);
+				e = gf_rtp_send_packet(ts_output_rtp, &hdr, (char*)ts_pck, 188, 0);
 				if (e) {
 					fprintf(stderr, "Error %s sending RTP packet\n", gf_error_to_string(e));
 				}
@@ -1373,13 +1580,15 @@ int main(int argc, char **argv)
 
 exit:
 	run = 0;
-    if (segment_duration) {
-        write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index - segment_number, segment_index, 1);
-    }
-	if (ts_file) fclose(ts_file);
-	if (ts_udp) gf_sk_del(ts_udp);
-	if (ts_rtp) gf_rtp_del(ts_rtp);
+	if (segment_duration) {
+		write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index - segment_number, segment_index, 1);
+	}
+	if (ts_output_file) fclose(ts_output_file);
+	if (ts_output_udp) gf_sk_del(ts_output_udp);
+	if (ts_output_rtp) gf_rtp_del(ts_output_rtp);
 	if (ts_out) gf_free(ts_out);
+	if (audio_input_udp) gf_sk_del(audio_input_udp);
+	if (audio_input_buffer) free (audio_input_buffer);
 	if (udp_out) gf_free(udp_out);
 	if (rtp_out) gf_free(rtp_out);
 	if (muxer) gf_m2ts_mux_del(muxer);
