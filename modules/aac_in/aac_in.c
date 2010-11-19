@@ -22,16 +22,26 @@
  *		
  */
 
+#define USE_TERMINAL_MODULE_API
+
+#ifdef USE_TERMINAL_MODULE_API
 #include <gpac/modules/service.h>
+#endif
+
 #include <gpac/modules/codec.h>
 #include <gpac/avparse.h>
 #include <gpac/constants.h>
+#include <gpac/download.h>
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
+
 typedef struct
 {
-	GF_ClientService *service;
+#ifdef USE_TERMINAL_MODULE_API
+	GF_ClientService *service; 
+	LPNETCHANNEL ch;
+#endif
 
 	Bool is_remote;
 	
@@ -42,7 +52,6 @@ typedef struct
 	u32 pad_bytes;
 	Bool done;
 	u32 is_inline;
-	LPNETCHANNEL ch;
 
 	unsigned char *data;
 	u32 data_size;
@@ -69,6 +78,7 @@ typedef struct
 	u32 profile, sr_idx, nb_ch, frame_size, hdr_size;
 } ADTSHeader;
 
+#ifdef USE_TERMINAL_MODULE_API
 static Bool AAC_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
@@ -80,6 +90,7 @@ static Bool AAC_CanHandleURL(GF_InputService *plug, const char *url)
 	if (gf_term_check_extension(plug, "audio/aacp", "aac", "MPEG-4 AACPlus Music", sExt)) return 1;
 	return 0;
 }
+#endif
 
 static Bool aac_is_local(const char *url)
 {
@@ -140,7 +151,9 @@ static void AAC_SetupObject(AACReader *read)
 	esd = AAC_GetESD(read);
 	esd->OCRESID = 0;
 	gf_list_add(od->ESDescriptors, esd);
+#ifdef USE_TERMINAL_MODULE_API
 	gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
+#endif
 }
 
 static Bool ADTS_SyncFrame(GF_BitStream *bs, Bool is_complete, ADTSHeader *hdr)
@@ -236,6 +249,7 @@ static Bool AAC_ConfigureFromFile(AACReader *read)
 	return 1;
 }
 
+#ifdef USE_TERMINAL_MODULE_API
 static void AAC_RegulateDataRate(AACReader *read)
 {
 	GF_NetworkCommand com;
@@ -249,6 +263,7 @@ static void AAC_RegulateDataRate(AACReader *read)
 		gf_sleep(2);
 	}
 }
+#endif
 
 static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 {
@@ -274,10 +289,14 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		read->sample_rate = GF_M4ASampleRates[read->sr_idx];
 		read->is_live = 1;
 		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
+#ifdef USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, GF_OK);
+#endif
 		AAC_SetupObject(read);
 	}
+#ifdef USE_TERMINAL_MODULE_API
 	if (!read->ch) return;
+#endif
 
 	/*need a full adts header*/
 	if (read->data_size<=7) return;
@@ -291,7 +310,11 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		read->sl_hdr.AU_sequenceNumber++;
 		read->sl_hdr.compositionTimeStampFlag = 1;
 		read->sl_hdr.compositionTimeStamp += 1024;
+#ifdef USE_TERMINAL_MODULE_API
 		gf_term_on_sl_packet(read->service, read->ch, read->data + pos, hdr.frame_size, &read->sl_hdr, GF_OK);
+#else
+
+#endif
 		gf_bs_skip_bytes(bs, hdr.frame_size);
 	}
 
@@ -306,7 +329,9 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		gf_free(read->data);
 		read->data = d;
 	}
+#ifdef USE_TERMINAL_MODULE_API
 	AAC_RegulateDataRate(read);
+#endif
 }
 
 void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
@@ -335,7 +360,9 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			read->icy_genre = gf_strdup(param->value);
 		}
 		if (!strcmp(param->name, "icy-meta")) {
+#ifdef USE_TERMINAL_MODULE_API
 			GF_NetworkCommand com;
+#endif
 			char *meta;
 			if (read->icy_track_name) gf_free(read->icy_track_name);
 			read->icy_track_name = NULL;
@@ -352,8 +379,10 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				meta = sep+1;
 			}
 
+#ifdef USE_TERMINAL_MODULE_API
 			com.base.command_type = GF_NET_SERVICE_INFO;
 			gf_term_on_command(read->service, &com, GF_OK);
+#endif
 		}
 		return;
 	} else {
@@ -402,26 +431,35 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*OK confirm*/
 	if (read->needs_connection) {
 		read->needs_connection = 0;
+#ifdef USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, e);
+#endif
 		if (!e) AAC_SetupObject(read);
 	}
 }
 
-void aac_download_file(GF_InputService *plug, char *url)
+void aac_download_file(AACReader *read, char *url)
 {
-	AACReader *read = (AACReader*) plug->priv;
-
+	GF_Err e = GF_OK;
 	read->needs_connection = 1;
 
+#ifdef USE_TERMINAL_MODULE_API
 	read->dnload = gf_term_download_new(read->service, url, 0, AAC_NetIO, read);
+#else
+	read->dnload = gf_dm_sess_new_simple(url, 0, AAC_NetIO, read, NULL, &e);
+#endif
+
 	if (!read->dnload ) {
 		read->needs_connection = 0;
+#ifdef USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+#endif
 	}
 	/*service confirm is done once fetched*/
 }
 
 
+#ifdef USE_TERMINAL_MODULE_API
 static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	char szURL[2048];
@@ -440,7 +478,7 @@ static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	/*remote fetch*/
 	read->is_remote = !aac_is_local(szURL);
 	if (read->is_remote) {
-		aac_download_file(plug, (char *) szURL);
+		aac_download_file(read, (char *) szURL);
 		return GF_OK;
 	}
 
@@ -731,6 +769,7 @@ void AAC_Delete(void *ifce)
 
 #endif
 
+#ifdef USE_TERMINAL_MODULE_API
 
 GF_EXPORT
 const u32 *QueryInterfaces() 
@@ -781,3 +820,5 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 #endif
 	}
 }
+#endif
+#endif
