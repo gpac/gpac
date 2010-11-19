@@ -78,6 +78,8 @@ static GFINLINE void my_large_gf_free(void *ptr) {
 
 static void gf_cm_unit_del(GF_CMUnit *cb)
 {
+	if (!cb)
+	  return;
 	if (cb->next) gf_cm_unit_del(cb->next);
 	cb->next = NULL;
 	if (cb->data) {
@@ -135,10 +137,12 @@ void gf_cm_del(GF_CompositionMemory *cb)
 		gf_clock_buffer_off(cb->odm->codec->ck);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 	}
-	
-	/*break the loop and destroy*/
-	cb->input->prev->next = NULL;
-	gf_cm_unit_del(cb->input);
+	if (cb->input){
+	  /*break the loop and destroy*/
+	  cb->input->prev->next = NULL;
+	  gf_cm_unit_del(cb->input);
+	  cb->input = NULL;
+	}
 	gf_odm_lock(cb->odm, 0);
 	gf_free(cb);
 }
@@ -409,9 +413,12 @@ void gf_cm_reinit(GF_CompositionMemory *cb, u32 UnitSize, u32 Capacity)
 	if (!Capacity || !UnitSize) return;
 
 	gf_odm_lock(cb->odm, 1);
-	/*break the loop and destroy*/
-	cb->input->prev->next = NULL;
-	gf_cm_unit_del(cb->input);
+	if (cb->input){
+	  /*break the loop and destroy*/
+	  cb->input->prev->next = NULL;
+	  gf_cm_unit_del(cb->input);
+	  cb->input = NULL;
+	}
 
 	cu = NULL;
 	cb->Capacity = Capacity;
