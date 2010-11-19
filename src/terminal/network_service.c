@@ -383,10 +383,10 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		
 		/*browse all channels in the scene, running on this service, and get buffer info*/
 		od_list = NULL;
-		if (service->owner->parentscene) {
-			od_list = service->owner->parentscene->resources;
-		} else if (service->owner->subscene) {
+		if (service->owner->subscene) {
 			od_list = service->owner->subscene->resources;
+		} else if (service->owner->parentscene) {
+			od_list = service->owner->parentscene->resources;
 		}
 		if (!od_list) {
 			com->buffer.occupancy = 0;
