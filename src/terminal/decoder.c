@@ -1109,7 +1109,9 @@ void gf_codec_del(GF_Codec *codec)
 		}
 	}
 	if (codec->CB) gf_cm_del(codec->CB);
-	gf_list_del(codec->inChannels);
+	codec->CB = NULL;
+	if (codec->inChannels) gf_list_del(codec->inChannels);
+	codec->inChannels = NULL;
 	gf_free(codec);
 }
 

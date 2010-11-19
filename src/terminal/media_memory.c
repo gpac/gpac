@@ -43,7 +43,9 @@ void gf_db_unit_del(GF_DBUnit *db)
 {
 	if (!db) return;
 	if (db->next) gf_db_unit_del(db->next);
+	db->next = NULL;
 	if (db->data) gf_free(db->data);
+	db->data = NULL;
 	gf_free(db);
 }
 
