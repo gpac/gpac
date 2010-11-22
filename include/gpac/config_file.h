@@ -53,12 +53,21 @@ typedef struct __tag_config GF_Config;
 /*!
  *	\brief configuration file constructor
  *
- *Constructs a configuration file
+ * Constructs a configuration file.
  *\param filePath directory the file is located in
  *\param fileName name of the configuration file
- *\return the configuration file object
+ *\return the configuration file object, NULL if the file does not exist
  */
 GF_Config *gf_cfg_new(const char *filePath, const char *fileName);
+/*!
+ *	\brief alternative configuration file constructor
+ *
+ * Constructs a configuration file. If file does not exist, configuration will be still created
+ *\param filePath directory the file is located in
+ *\param fileName name of the configuration file
+ *\return the configuration file object, never NULL, even if file does not exist
+ */
+GF_Config *gf_cfg_force_new(const char *filePath, const char *fileName);
 /*!
  *	\brief configuration file destructor
  *
