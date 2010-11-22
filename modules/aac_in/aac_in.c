@@ -440,7 +440,6 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 void aac_download_file(AACReader *read, char *url)
 {
-	GF_Err e = GF_OK;
 	read->needs_connection = 1;
 
 #ifdef USE_TERMINAL_MODULE_API
