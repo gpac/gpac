@@ -66,9 +66,11 @@ void RP_SDPFromFile(RTPClient *rtp, char *file_name, RTPStream *stream)
 	sdp_size = ftell(_sdp);
 	fseek(_sdp, 0, SEEK_SET);
 	sdp_buf = (char*)gf_malloc(sdp_size);
-	fread(sdp_buf, sdp_size, 1, _sdp);
-	RP_LoadSDP(rtp, sdp_buf, sdp_size, stream);
-
+	if (1 > fread(sdp_buf, sdp_size, 1, _sdp)){
+	  gf_term_on_connect(rtp->service, NULL, GF_URL_ERROR);
+	} else {
+	  RP_LoadSDP(rtp, sdp_buf, sdp_size, stream);
+	}
 	fclose(_sdp);
 	gf_free(sdp_buf);
 }
