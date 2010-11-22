@@ -557,7 +557,7 @@ u64 gf_f64_tell(FILE *fp)
 {
 #if defined(_WIN32_WCE)
 	return (u64) ftell(fp);
-#elif defined(GPAC_CONFIG_WIN32)	//mingw or cygwin
+#elif defined(GPAC_CONFIG_WIN32)	/* mingw or cygwin */
 	return (u64) ftell(fp);
 #elif defined(WIN32)
 	return (u64) _ftelli64(fp);
@@ -574,7 +574,7 @@ u64 gf_f64_seek(FILE *fp, s64 offset, s32 whence)
 {
 #if defined(_WIN32_WCE)
 	return (u64) fseek(fp, (s32) offset, whence);
-#elif defined(GPAC_CONFIG_WIN32)	//mingw or cygwin
+#elif defined(GPAC_CONFIG_WIN32)	/* mingw or cygwin */
 	return (u64) fseek(fp, (s32) offset, whence);
 #elif defined(WIN32)
 	return (u64) _fseeki64(fp, offset, whence);
@@ -803,7 +803,7 @@ static u32 OS_GetSysClockNORMAL()
 #endif
 }
 
-#endif //WIN32
+#endif /* WIN32 */
 
 #if defined(__sh__) 
 /* Avoid exception for denormalized floating point values */
@@ -1308,10 +1308,10 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
   if (f) {
     while (fgets(line, 1024, f) != NULL) {
       if (!strnicmp(line, "MemTotal:", 9)) {
-	sscanf(line, "MemTotal: %"LLD" kB",  &the_rti.physical_memory);
+	sscanf(line, "MemTotal: "LLD" kB",  &the_rti.physical_memory);
 	the_rti.physical_memory *= 1024;
       }else if (!strnicmp(line, "MemFree:", 8)) {
-	sscanf(line, "MemFree: %"LLD" kB",  &the_rti.physical_memory_avail);
+	sscanf(line, "MemFree: "LLD" kB",  &the_rti.physical_memory_avail);
 	the_rti.physical_memory_avail *= 1024;
 	break;
       }
@@ -1372,6 +1372,21 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 }
 
 #endif
+
+char * gf_get_default_cache_directory(){  
+#ifdef WIN32
+  char szPath[512];
+  GetWindowsDirectory(szPath, 507);
+  if (szPath[strlen(szPath)-1] != '\\')
+    strcat((char*)szPath, "\\");
+  strcat((char *)szPath, "Temp");
+  return gf_strdup( szPath );
+#else
+  return gf_strdup("/tmp");
+#endif
+}
+
+
 
 
 Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32*level, u32 *batteryLifeTime, u32 *batteryFullLifeTime) 
