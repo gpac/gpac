@@ -24,8 +24,15 @@
  *
  */
 
+#if !defined(WIN32) && !defined(_WIN32_WCE)
+/* This is needed for asprintf */
+#define _GNU_SOURCE
+#include <stdio.h>
+#include <stdarg.h>
+#endif
 
 #include <string.h>
+
 
 #define STD_MALLOC	0
 #define GOOGLE_MALLOC	1
@@ -520,7 +527,7 @@ static void register_address(void *ptr, size_t size, char *filename, int line)
 	gpac_allocated_memory += size;
 	gpac_nb_alloc_blocs++;
 	
-	//gf_memory_log(GF_MEMORY_DEBUG, "register   %6d bytes at 0x%08X (%8d Bytes in %4d Blocks allocated)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
+	/* gf_memory_log(GF_MEMORY_DEBUG, "register   %6d bytes at 0x%08X (%8d Bytes in %4d Blocks allocated)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);*/
 
 	/*unlock*/
 	gf_mx_v(gpac_allocations_lock);
@@ -539,14 +546,14 @@ static int unregister_address(void *ptr, char *filename, int line)
 			/*assume we're rather destroying the mutex (ie calling the gf_mx_del() below)
 			  than being called by free() before the first allocation occured*/
 			return 1;
-			//gf_memory_log(GF_MEMORY_ERROR, "calling free() before the first allocation occured\n");
-			//assert(0);
+			/* gf_memory_log(GF_MEMORY_ERROR, "calling free() before the first allocation occured\n");
+			   assert(0); */
 		}
 	} else {
 		if (!gf_memory_find(memory_add, ptr)) {
 			if (!gf_memory_find(memory_rem, ptr)) {
 				gf_memory_log(GF_MEMORY_ERROR, "trying to free a never allocated block (0x%08X)\n", ptr);
-				//assert(0); /*don't assert since this is often due to allocations that occured out of gpac (fonts, etc.)*/
+				/* assert(0); */ /*don't assert since this is often due to allocations that occured out of gpac (fonts, etc.)*/
 			} else {
 				gf_memory_log(GF_MEMORY_ERROR, "the block 0x%08X has already been freed line%5d from %s\n", line, filename);
 				assert(0);
@@ -559,7 +566,7 @@ static int unregister_address(void *ptr, char *filename, int line)
 			gpac_allocated_memory -= size;
 			gpac_nb_alloc_blocs--;
 
-			//gf_memory_log(GF_MEMORY_DEBUG, "unregister %6d bytes at 0x%08X (%8d bytes in %4d blocks remaining)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs);
+			/* gf_memory_log(GF_MEMORY_DEBUG, "unregister %6d bytes at 0x%08X (%8d bytes in %4d blocks remaining)\n", size, ptr, gpac_allocated_memory, gpac_nb_alloc_blocs); */
 
 			/*the allocation list is empty: free the lists to avoid a leak (we should be exiting)*/
 			if (!memory_add) {
@@ -640,7 +647,7 @@ void gf_memory_print()
 
 
 /*as_printf() portable implementation*/
-int gf_asprintf(char **strp, char *fmt, ...)
+int gf_asprintf(char **strp, const char *fmt, ...)
 {
 #if defined(WIN32) || defined(_WIN32_WCE)
 
@@ -655,7 +662,7 @@ int gf_asprintf(char **strp, char *fmt, ...)
 	size = _vsnprintf(tmp, 4, fmt, args);
 #else
 	size = vsnprintf(tmp, 4, fmt, args);
-#endif
+#endif /* _WIN32_WCE */
 	va_end(args);
 
 	/*allocate the string*/
@@ -670,11 +677,16 @@ int gf_asprintf(char **strp, char *fmt, ...)
 	size = _vsnprintf(*strp, size, fmt, args);
 #else
 	size = vsnprintf(*strp, size, fmt, args);
-#endif
+#endif /* _WIN32_WCE */
 	va_end(args);
 
 	return size;
-#else
-	return asprintf(strp, fmt);
+#else /* Not Windows nor WINCE */
+	s32 size;
+	va_list args;
+	va_start(args, fmt);
+	size = asprintf(strp, fmt, args);
+	va_end(args);
+	return size;
 #endif
 }
