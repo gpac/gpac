@@ -108,7 +108,7 @@ const char *gf_4cc_to_str(u32 type);
  *	similar to sprintf, except it allows the string on the  
  *  \note asprintf implementation for windows
 */
-int gf_asprintf(char **buffer, char *fmt, ...);
+int gf_asprintf(char **buffer, const char *fmt, ...);
 
 /*!
  *	\brief large file opening
@@ -685,6 +685,13 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
 
 
 Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32 *level, u32 *batteryLifeTime, u32 *batteryFullLifeTime);
+
+/**
+ * Gets a newly allocated string containing the default cache directory.
+ * It is the responsibility of the caller to free the string.
+ * \return a fully qualified path to the default cache directory
+ */
+char * gf_get_default_cache_directory();
 
 /*! @} */
 
