@@ -84,8 +84,19 @@ static void SDLAud_Shutdown(GF_AudioOutput *dr)
 		SDLOUT_CloseSDL();
 		ctx->is_init = 0;
 	}
-	gf_free(ctx);
-	ctx = NULL;
+}
+
+void SDL_DeleteAudio(void *ifce){
+	SDLAudCtx *ctx;
+	GF_AudioOutput * dr;
+	if (!ifce)
+		return;
+	dr = ( GF_AudioOutput *) ifce;
+	ctx = (SDLAudCtx *)dr->opaque;
+	if (!ctx)
+		return;
+	gf_free( ctx );
+	dr->opaque = NULL;
 	gf_free( dr );
 }
 
