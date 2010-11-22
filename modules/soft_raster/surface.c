@@ -52,11 +52,16 @@ GF_SURFACE evg_surface_new(GF_Raster2D *_dr, Bool center_coords)
 void evg_surface_delete(GF_SURFACE _this)
 {
 	EVGSurface *surf = (EVGSurface *)_this;
+	if (!surf)
+	  return;
 #ifndef INLINE_POINT_CONVERSION
 	if (surf->points) gf_free(surf->points);
+	surf->points = NULL;
 #endif
 	if (surf->stencil_pix_run) gf_free(surf->stencil_pix_run);
-	evg_raster_del(surf->raster);
+	surf->stencil_pix_run = NULL;
+	if (surf->raster) evg_raster_del(surf->raster);
+	surf->raster = NULL;
 	gf_free(surf);
 }
 
@@ -547,7 +552,7 @@ GF_Err evg_surface_set_path(GF_SURFACE _this, GF_Path *gp)
 	return GF_OK;
 }
 
-//static void gray_spans_stub(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf){}
+/* static void gray_spans_stub(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf){} */
 
 GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 {
@@ -563,7 +568,7 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 	/*setup ft raster calllbacks*/
 	if (!setup_grey_callback(surf)) return GF_OK;
 
-//	surf->ftparams.gray_spans = gray_spans_stub;
+/*	surf->ftparams.gray_spans = gray_spans_stub; */
 
 	get_surface_world_matrix(surf, &mat);
 
