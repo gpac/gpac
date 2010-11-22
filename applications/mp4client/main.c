@@ -90,7 +90,6 @@ static GF_Config *cfg_file;
 static Bool display_rti = 0;
 static Bool Run;
 static Bool CanSeek = 0;
-static u32 Volume=100;
 static char the_url[GF_MAX_PATH];
 static char pl_path[GF_MAX_PATH];
 static Bool no_mime_check = 1;
@@ -318,20 +317,12 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	fprintf(stdout, "Using default font directory %s\n", szPath);
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", szPath);
 
-#ifdef WIN32
-/*	fprintf(stdout, "Please enter full path to a cache directory for HTTP downloads:\n");
-	scanf("%s", szPath);
-*/
-	GetWindowsDirectory((char*)szPath, MAX_PATH);
-	if (szPath[strlen((char*)szPath)-1] != '\\') strcat((char*)szPath, "\\");
-	strcat((char *)szPath, "Temp");
-
-	gf_cfg_set_key(cfg, "General", "CacheDirectory", szPath);
-	fprintf(stdout, "Using default cache directory %s\n", szPath);
-#else
-	fprintf(stdout, "Using /tmp as a cache directory for HTTP downloads:\n");
-	gf_cfg_set_key(cfg, "General", "CacheDirectory", "/tmp");
-#endif
+	{
+	  char * tmp = gf_get_default_cache_directory();
+	  gf_cfg_set_key(cfg, "General", "CacheDirectory", tmp);
+	  fprintf(stdout, "Using default cache directory %s\n", tmp);
+	  gf_free(tmp);
+	}
 
 	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "yes");
 	gf_cfg_set_key(cfg, "Compositor", "AntiAlias", "All");
@@ -754,7 +745,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_AUTHORIZATION:
 	{
-		int maxTries = 3;
+		int maxTries = 1;
 		while ((!strlen(evt->auth.user) || !strlen(evt->auth.password)) && (maxTries--) >= 0){
 			fprintf(stdout, "**** Authorization required for site %s ****\n", evt->auth.site_url);
 			fprintf(stdout, "login   : ");
@@ -764,7 +755,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			printf("*********\n");
 		}
 		if (maxTries < 0){
-		  printf("Too many attempts, aborting.\n");
+		  printf("**** No User or password has been filled, aborting ***\n");
 		  return 0;
 		}
 		return 1;
