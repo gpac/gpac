@@ -64,7 +64,7 @@ static char *xml_translate_xml_string(char *str)
 				if (szChar[2]=='x')
 					sscanf(szChar, "&#x%x;", &val);
 				else
-					sscanf(szChar, "&#%d;", &val);
+					sscanf(szChar, "&#%ud;", &val);
 				wchar[0] = val;
 				srcp = wchar;
 				j += gf_utf8_wcstombs(&value[j], 20, &srcp);
@@ -119,7 +119,7 @@ enum
 	SAX_STATE_CDATA,
 	SAX_STATE_DONE,
 	SAX_STATE_XML_PROC,
-	SAX_STATE_SYNTAX_ERROR,
+	SAX_STATE_SYNTAX_ERROR
 };
 
 typedef struct
@@ -130,7 +130,7 @@ typedef struct
 } GF_XMLSaxAttribute;
 
 
-//#define NO_GZIP
+/* #define NO_GZIP */
 
 
 struct _tag_sax_parser
@@ -781,7 +781,7 @@ restart:
 				} else {
 					i++;
 				}
-//				if ((c=='[') && (parser->buffer[parser->elt_name_start-1 + i-2]=='A') ) break;
+/*				if ((c=='[') && (parser->buffer[parser->elt_name_start-1 + i-2]=='A') ) break; */
 				if (parser->current_pos+1+i==parser->line_size) {
 					i=0;
 					goto exit;
@@ -906,7 +906,7 @@ static GF_Err xml_sax_append_string(GF_SAXParser *parser, char *string)
 	if (!nl_size) return GF_OK;
 
 	if ( (parser->alloc_size < size+nl_size+1) 
-//		|| (parser->alloc_size / 2 ) > size+nl_size+1
+/*		|| (parser->alloc_size / 2 ) > size+nl_size+1 */
 		) 
 	{
 		parser->alloc_size = size+nl_size+1;
@@ -1197,6 +1197,9 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	e = gf_xml_sax_init(parser, szLine);
 	if (e) return e;
 	parser->file_pos = 4;
+	/* souchay : not sure for next 2 lines, but it works better it seems */
+	parser->elt_start_pos = 0;
+	parser->current_pos = 0;
 	return xml_sax_read_file(parser);
 }
 

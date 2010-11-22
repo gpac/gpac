@@ -1039,10 +1039,12 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 			offset+=read;
 		}
 		fclose(f);
+		f = NULL;
 		/*same file*/
 		if (!fsize) return 2;
 	}
-	fclose(f);
+	if (f)
+	  fclose(f);
 	return 1;
 }
 
