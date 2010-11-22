@@ -109,7 +109,7 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 	pck.flags = 0;
 
 	while (sc_pos<data_len) {
-		u32 sctype=0;
+		/* u32 sctype=0;*/
 		unsigned char *start = (unsigned char *)memchr(data+sc_pos, 0, data_len-sc_pos);
 		if (!start) break;
 		sc_pos = start - data;
