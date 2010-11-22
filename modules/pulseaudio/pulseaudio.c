@@ -49,9 +49,10 @@ typedef struct
 static void
 free_pulseaudio_resources (GF_AudioOutput * dr)
 {
+  PulseAudioContext *ctx;
   if (dr == NULL)
     return;
-  PulseAudioContext *ctx = (PulseAudioContext *) dr->opaque;
+  ctx = (PulseAudioContext *) dr->opaque;
   if (ctx == NULL)
     return;
   if (ctx->playback_handle != NULL)
