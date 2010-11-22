@@ -26,6 +26,11 @@
 
 #define SDLAUD()	SDLAudCtx *ctx = (SDLAudCtx *)dr->opaque
 
+static void sdl_close_audio(){
+  SDL_CloseAudio();
+}
+
+
 void sdl_fill_audio(void *udata, Uint8 *stream, int len)
 {
 	GF_AudioOutput *dr = (GF_AudioOutput *)udata;
@@ -58,11 +63,12 @@ static GF_Err SDLAud_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers,
 	want_format.callback = sdl_fill_audio;
 	want_format.userdata = dr;
 	if ( SDL_OpenAudio(&want_format, &got_format) < 0 ) {
+		sdl_close_audio();
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		SDLOUT_CloseSDL();
 		return GF_IO_ERR;
 	}
-	SDL_CloseAudio();
+	sdl_close_audio();
 	ctx->is_init = 1;
 	ctx->num_buffers = num_buffers;
 	ctx->total_duration = total_duration;
@@ -72,13 +78,15 @@ static GF_Err SDLAud_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers,
 static void SDLAud_Shutdown(GF_AudioOutput *dr)
 {
 	SDLAUD();
-
-	if (ctx->is_running) SDL_CloseAudio();
+	sdl_close_audio();
 	if (ctx->is_init) {
 		SDL_QuitSubSystem(SDL_INIT_AUDIO);
 		SDLOUT_CloseSDL();
 		ctx->is_init = 0;
 	}
+	gf_free(ctx);
+	ctx = NULL;
+	gf_free( dr );
 }
 
 static GF_Err SDLAud_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbChannels, u32 *nbBitsPerSample, u32 channel_cfg)
@@ -87,7 +95,7 @@ static GF_Err SDLAud_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *N
 	SDL_AudioSpec want_format, got_format;
 	SDLAUD();
 
-	if (ctx->is_running) SDL_CloseAudio();
+	sdl_close_audio();
 	ctx->is_running = 0;
 
 	memset(&want_format, 0, sizeof(SDL_AudioSpec));
@@ -197,14 +205,5 @@ void *SDL_NewAudio()
 	/*always threaded*/
 	dr->SelfThreaded = 1;
 	return dr;
-}
-
-void SDL_DeleteAudio(void *ifce)
-{
-	GF_AudioOutput *dr = (GF_AudioOutput*)ifce;
-	SDLAUD();
-
-	gf_free(ctx);
-	gf_free(ifce);
 }
 
