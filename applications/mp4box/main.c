@@ -2427,7 +2427,7 @@ int main(int argc, char **argv)
 					fwrite(desc, 1, size, iodf);
 					gf_free(desc);
 				} else {
-					fprintf(stdout, "Error writing IOD\n", szName);
+					fprintf(stdout, "Error writing IOD %s\n", szName);
 				}
 				fclose(iodf);
 			}
