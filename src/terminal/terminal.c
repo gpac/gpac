@@ -121,7 +121,7 @@ static Bool term_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam
 		}
 
 		result = gf_term_relocate_url(term, url, scene->root_od->net_service->url, new_url, localized_url);
-		if (result && new_url) param->uri.url = gf_strdup(new_url);
+		if (result) param->uri.url = gf_strdup(new_url);
 		else param->uri.url = gf_url_concatenate(scene->root_od->net_service->url, url);
 		return 1;
 	}
@@ -320,6 +320,7 @@ static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr
 {
 	GF_Event evt;
 	GF_Terminal *term = (GF_Terminal *)usr_cbk;
+	evt.type = GF_EVENT_AUTHORIZATION;
 	evt.auth.site_url = site_url;
 	evt.auth.user = usr_name;
 	evt.auth.password = password;
@@ -1906,7 +1907,7 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 		scene->scene_codec->decio->SetCapabilities(scene->scene_codec->decio, caps);
 	}
 	i=0;
-	while (odm = gf_list_enum(scene->resources, &i) ) {
+	while (NULL != (odm = gf_list_enum(scene->resources, &i))) {
 		if (odm->codec)
 			odm->codec->decio->SetCapabilities(odm->codec->decio, caps);
 		if (odm->subscene)
