@@ -189,6 +189,24 @@ GF_DownloadSession * gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_fl
 									  GF_Err *error);
 
 /*!
+ *\brief download session simple constructor
+ *
+ *Creates a new download session
+ *\param url file to retrieve (no PUT/POST yet, only downloading is supported)
+ *\param dl_flags combination of session download flags
+ *\param user_io \ref gf_dm_user_io callback function for data reception and service messages
+ *\param usr_cbk opaque user data passed to callback function
+ *\param cache_name cache name
+ *\param error error for failure cases 
+ *\return the session object or NULL if error. If no error is indicated and a NULL session is returned, this means the file is local
+ */
+GF_DownloadSession *gf_dm_sess_new_simple(char *url, u32 dl_flags,
+									  gf_dm_user_io user_io,
+									  void *usr_cbk,
+                                      char *cache_name,
+									  GF_Err *e);
+
+/*!
  *brief downloader session destructor
  *
  *Deletes the download session, cleaning the cache if indicated in the configuration file of the download manager (section "Downloader", key "CleanCache")

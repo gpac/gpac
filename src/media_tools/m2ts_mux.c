@@ -1061,7 +1061,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 		gf_free(pck->data);
 		gf_free(pck);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Done sending PES (%d bytes) from PID %d at stream time %d:%d (DTS %d - PCR %d)\n", stream->pck.data_len, stream->pid, stream->time.sec, stream->time.nanosec, stream->pck.dts, gf_m2ts_get_pcr(stream->program)/300));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Done sending PES (%d bytes) from PID %d at stream time %d:%d (DTS "LLD" - PCR "LLD")\n", stream->pck.data_len, stream->pid, stream->time.sec, stream->time.nanosec, stream->pck.dts, gf_m2ts_get_pcr(stream->program)/300));
 	}
 }
 
@@ -1227,6 +1227,24 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	stream->mx = gf_mx_new("M2TS PID");
 	if (ifce->timescale != 90000) stream->ts_scale = 90000.0 / ifce->timescale;
 	return stream;
+}
+
+GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_scale)
+{
+	GF_M2TS_Mux_Stream *stream = (GF_M2TS_Mux_Stream *)_self->output_udta;
+	if (!time_scale)
+		return GF_BAD_PARAM;
+	stream->ts_scale = 90000.0 / time_scale;
+
+	return GF_OK;
+}
+
+void gf_m2ts_program_stream_update_sl_config(GF_ESInterface *_self, GF_SLConfig *slc)
+{
+	GF_M2TS_Mux_Stream *stream = (GF_M2TS_Mux_Stream *)_self->output_udta;
+	if (stream->program->iod && slc) {
+		memcpy(&stream->sl_config, slc, sizeof(GF_SLConfig));
+	}
 }
 
 #define GF_M2TS_PSI_REFRESH_RATE	200

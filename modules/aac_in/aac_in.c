@@ -22,9 +22,7 @@
  *		
  */
 
-#define USE_TERMINAL_MODULE_API
-
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 #include <gpac/modules/service.h>
 #endif
 
@@ -38,7 +36,7 @@
 
 typedef struct
 {
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 	GF_ClientService *service; 
 	LPNETCHANNEL ch;
 #endif
@@ -78,7 +76,7 @@ typedef struct
 	u32 profile, sr_idx, nb_ch, frame_size, hdr_size;
 } ADTSHeader;
 
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 static Bool AAC_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
@@ -151,7 +149,7 @@ static void AAC_SetupObject(AACReader *read)
 	esd = AAC_GetESD(read);
 	esd->OCRESID = 0;
 	gf_list_add(od->ESDescriptors, esd);
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 	gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
 #endif
 }
@@ -249,7 +247,7 @@ static Bool AAC_ConfigureFromFile(AACReader *read)
 	return 1;
 }
 
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 static void AAC_RegulateDataRate(AACReader *read)
 {
 	GF_NetworkCommand com;
@@ -289,12 +287,12 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		read->sample_rate = GF_M4ASampleRates[read->sr_idx];
 		read->is_live = 1;
 		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, GF_OK);
 #endif
 		AAC_SetupObject(read);
 	}
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 	if (!read->ch) return;
 #endif
 
@@ -310,10 +308,10 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		read->sl_hdr.AU_sequenceNumber++;
 		read->sl_hdr.compositionTimeStampFlag = 1;
 		read->sl_hdr.compositionTimeStamp += 1024;
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_sl_packet(read->service, read->ch, read->data + pos, hdr.frame_size, &read->sl_hdr, GF_OK);
 #else
-
+		SampleCallBack(audio_prog, AUDIO_DATA_ESID, read->data + pos, hdr.frame_size, read->sl_hdr.compositionTimeStamp);
 #endif
 		gf_bs_skip_bytes(bs, hdr.frame_size);
 	}
@@ -329,7 +327,7 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		gf_free(read->data);
 		read->data = d;
 	}
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 	AAC_RegulateDataRate(read);
 #endif
 }
@@ -360,7 +358,7 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			read->icy_genre = gf_strdup(param->value);
 		}
 		if (!strcmp(param->name, "icy-meta")) {
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 			GF_NetworkCommand com;
 #endif
 			char *meta;
@@ -379,7 +377,7 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				meta = sep+1;
 			}
 
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 			com.base.command_type = GF_NET_SERVICE_INFO;
 			gf_term_on_command(read->service, &com, GF_OK);
 #endif
@@ -387,7 +385,9 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		return;
 	} else {
 		/*handle service message*/
+#ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_download_update_stats(read->dnload);
+#endif
 		if (param->msg_type!=GF_NETIO_DATA_EXCHANGE) return;
 	}
 
@@ -431,7 +431,7 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*OK confirm*/
 	if (read->needs_connection) {
 		read->needs_connection = 0;
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, e);
 #endif
 		if (!e) AAC_SetupObject(read);
@@ -440,17 +440,18 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 void aac_download_file(AACReader *read, char *url)
 {
+	GF_Err e;
 	read->needs_connection = 1;
 
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 	read->dnload = gf_term_download_new(read->service, url, 0, AAC_NetIO, read);
 #else
-	read->dnload = gf_dm_sess_new_simple(url, 0, AAC_NetIO, read, NULL, &e);
+	read->dnload = gf_dm_sess_new_simple(url, GF_NETIO_SESSION_NOT_CACHED, AAC_NetIO, read, NULL, &e);
 #endif
 
 	if (!read->dnload ) {
 		read->needs_connection = 0;
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
 #endif
 	}
@@ -458,7 +459,7 @@ void aac_download_file(AACReader *read, char *url)
 }
 
 
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	char szURL[2048];
@@ -768,7 +769,7 @@ void AAC_Delete(void *ifce)
 
 #endif
 
-#ifdef USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API
 
 GF_EXPORT
 const u32 *QueryInterfaces() 

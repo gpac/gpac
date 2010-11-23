@@ -34,7 +34,6 @@
 
 #define MP42TS_PRINT_FREQ 634 /*refresh printed info every CLOCK_REFRESH ms*/
 
-
 static GFINLINE void usage() 
 {
 	fprintf(stderr, "usage: mp42ts {rate {prog}*} [mpeg4-carousel] [mpeg4] [time] [src] dst\n"
@@ -113,6 +112,7 @@ enum
 	GF_MP42TS_FILE, /*open mpeg2ts file*/
 	GF_MP42TS_UDP,  /*open udp socket*/
 	GF_MP42TS_RTP,  /*open rtp socket*/
+	GF_MP42TS_HTTP,	/*open http downloader*/
 };
 
 static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
@@ -379,40 +379,125 @@ static GF_Err udp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 	return GF_OK;
 }
 
+/*AAC import features*/
+void *audio_prog = NULL;
+static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts);
+#define DONT_USE_TERMINAL_MODULE_API
+#include "../modules/aac_in/aac_in.c"
+AACReader *aac_reader = NULL;
+
+/*create an OD codec and encode the descriptor*/
+static GF_Err encode_audio_desc(GF_ESD *esd, GF_SimpleDataDescriptor *audio_desc) 
+{
+	GF_Err e;
+	GF_ODCodec *odc = gf_odf_codec_new();
+	GF_ODUpdate *od_com = (GF_ODUpdate*)gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
+	GF_ObjectDescriptor *od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
+	gf_list_add(od->ESDescriptors, esd);
+	od->objectDescriptorID = AUDIO_DATA_ESID;
+	gf_list_add(od_com->objectDescriptors, od);
+
+	e = gf_odf_codec_add_com(odc, (GF_ODCom*)od_com);
+	if (e) {
+		fprintf(stderr, "Audio input error add the command to be encoded\n");
+		return e;
+	}
+	e = gf_odf_codec_encode(odc, 0);
+	if (e) {
+		fprintf(stderr, "Audio input error encoding the descriptor\n");
+		return e;
+	}
+	e = gf_odf_codec_get_au(odc, &audio_desc->data, &audio_desc->size);
+	if (e) {
+		fprintf(stderr, "Audio input error getting the descriptor\n");
+		return e;
+	}
+	e = gf_odf_com_del((GF_ODCom**)&od_com);
+	if (e) {
+		fprintf(stderr, "Audio input error deleting the command\n");
+		return e;
+	}
+	gf_odf_codec_del(odc);
+
+	return GF_OK;
+}
+
 static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts)
 {		
-	u32 i=0;
+	u32 i;
 	//fprintf(stderr, "update: ESID=%d - size=%d - ts="LLD"\n", ESID, size, ts);
+
 	if (calling_object) {
 		M2TSProgram *prog = (M2TSProgram *)calling_object;
-			while (i<prog->nb_streams){
-				if (prog->streams[i].output_ctrl==NULL) {
-					fprintf(stderr, "MULTIPLEX NOT YET CREATED\n");
-					return;
-				}
-				if (prog->streams[i].stream_id == ESID) {
-					GF_ESIStream *priv = (GF_ESIStream *)prog->streams[i].input_udta;
-					GF_ESIPacket pck;
-					memset(&pck, 0, sizeof(GF_ESIPacket));
-					pck.data = data;
-					pck.data_len = size;
-					pck.flags |= GF_ESI_DATA_HAS_CTS;
-					pck.flags |= GF_ESI_DATA_AU_START;
-					pck.flags |= GF_ESI_DATA_AU_END;
 
-					if (priv->rap)
-						pck.flags |= GF_ESI_DATA_AU_RAP;
-					if (prog->repeat || !priv->vers_inc) {
-						pck.flags |= GF_ESI_DATA_REPEAT;
-						fprintf(stderr, "RAP carousel from scene engine sent: ESID=%d - size=%d - ts="LLD"\n", ESID, size, ts);
-					} else {
-						fprintf(stderr, "Update from scene engine sent: ESID=%d - size=%d - ts="LLD"\n", ESID, size, ts); 
+		if (ESID == AUDIO_DATA_ESID) {
+			/*send the audio descriptor when present*/
+			GF_SimpleDataDescriptor *audio_desc = prog->streams[audio_OD_stream_id].input_udta;
+			if (audio_desc && !audio_desc->data) /*intended for HTTP/AAC: an empty descriptor was set (vs already filled for RTP/UDP MP3)*/
+			{
+				GF_ESD *esd = AAC_GetESD(aac_reader);
+				assert(esd->slConfig->timestampResolution);
+				esd->slConfig->useAccessUnitStartFlag = 1;
+				esd->slConfig->useAccessUnitEndFlag = 1;
+				esd->slConfig->useTimestampsFlag = 1;
+				esd->slConfig->timestampLength = 33;
+				/*audio stream, all samples are RAPs*/
+				esd->slConfig->useRandomAccessPointFlag = 0;
+				esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
+				for (i=0; i<prog->nb_streams; i++) {
+					if (prog->streams[i].stream_id == AUDIO_DATA_ESID) {
+						GF_Err e;
+						prog->streams[i].timescale = esd->slConfig->timestampResolution;
+						e = gf_m2ts_program_stream_update_ts_scale(&prog->streams[i], esd->slConfig->timestampResolution);
+						assert(!e);
+						gf_m2ts_program_stream_update_sl_config(&prog->streams[i], esd->slConfig);
+						break;
 					}
-					prog->streams[i].output_ctrl(&prog->streams[i], GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
-					return;
 				}
-			i++;
+				esd->ESID = AUDIO_DATA_ESID;
+				assert(audio_OD_stream_id != (u32)-1);
+				encode_audio_desc(esd, audio_desc);
+				prog->repeat = 1;
+				SampleCallBack(prog, AUDIO_OD_ESID, audio_desc->data, audio_desc->size, gf_sys_clock());
+				prog->repeat = 0;
+				gf_free(audio_desc->data);
+				gf_free(audio_desc);
+				prog->streams[audio_OD_stream_id].input_udta = NULL;
 			}
+		}
+
+		i=0;
+		while (i<prog->nb_streams){
+			if (prog->streams[i].output_ctrl==NULL) {
+				fprintf(stderr, "MULTIPLEX NOT YET CREATED\n");
+				return;
+			}
+			if (prog->streams[i].stream_id == ESID) {
+				GF_ESIStream *priv = (GF_ESIStream *)prog->streams[i].input_udta;
+				GF_ESIPacket pck;
+				memset(&pck, 0, sizeof(GF_ESIPacket));
+				pck.data = data;
+				pck.data_len = size;
+				pck.flags |= GF_ESI_DATA_HAS_CTS;
+				pck.flags |= GF_ESI_DATA_HAS_DTS;
+				pck.flags |= GF_ESI_DATA_AU_START;
+				pck.flags |= GF_ESI_DATA_AU_END;
+				if (ts) pck.cts = pck.dts = ts;
+
+				if (priv->rap)
+					pck.flags |= GF_ESI_DATA_AU_RAP;
+				if (prog->repeat || !priv->vers_inc) {
+					pck.flags |= GF_ESI_DATA_REPEAT;
+					fprintf(stderr, "RAP carousel from scene engine sent: ESID=%d - size=%d - ts="LLD"\n", ESID, size, ts);
+				} else {
+					if (ESID != AUDIO_DATA_ESID)	/*don't log audio input*/
+						fprintf(stderr, "Update from scene engine sent: ESID=%d - size=%d - ts="LLD"\n", ESID, size, ts); 
+				}
+				prog->streams[i].output_ctrl(&prog->streams[i], GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
+				return;
+			}
+		i++;
+		}
 	} 
 	return;
 }
@@ -482,6 +567,7 @@ static Bool seng_output(void *param)
 	Bool has_carousel=0;
 	M2TSProgram *prog = (M2TSProgram *)param;
 	GF_SceneEngine *seng = prog->seng;
+	GF_SimpleDataDescriptor *audio_desc;
 	Bool update_context=0;
 	u32 i=0;
 	Bool force_rap, adjust_carousel_time, discard_pending, signal_rap, signal_critical, version_inc, aggregate_au;
@@ -497,14 +583,16 @@ static Bool seng_output(void *param)
 	last_src_modif = prog->src_name ? gf_file_modification_time(prog->src_name) : 0;
 
 	/*send the audio descriptor*/
+	audio_desc = prog->streams[audio_OD_stream_id].input_udta;
+	if (audio_desc && audio_desc->data) /*RTP/UDP + MP3 case*/
 	{
-		GF_SimpleDataDescriptor *audio_desc = prog->streams[audio_OD_stream_id].input_udta;
 		assert(audio_OD_stream_id != (u32)-1);
 		prog->repeat = 1;
 		SampleCallBack(prog, AUDIO_OD_ESID, audio_desc->data, audio_desc->size, gf_sys_clock());
 		prog->repeat = 0;
+		gf_free(audio_desc->data);
 		gf_free(audio_desc);
-		prog->streams->input_udta = NULL;
+		prog->streams[audio_OD_stream_id].input_udta = NULL;
 	}
 
 	while (run) {
@@ -616,9 +704,7 @@ static Bool seng_output(void *param)
 					fflush(stdin);
 					szCom[0] = 0;
 					scanf("%[^\t\n]", szCom);
-					prog->repeat = 0;
 					e = gf_seng_encode_from_string(seng, 0, 0, szCom, SampleCallBack);
-					prog->repeat = 1;
 					if (e) { 
 						fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 					}
@@ -945,7 +1031,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *
 		for (i=0; i<prog->nb_streams; i++) {
 			fill_seng_es_ifce(&prog->streams[i], i, prog->seng, prog->rate);
 			//fprintf(stderr, "Fill interface\n");
-			if (!prog->pcr_idx && (prog->streams[i].stream_type == GF_STREAM_VISUAL)) {
+			if (!prog->pcr_idx && (prog->streams[i].stream_type == GF_STREAM_AUDIO)) {
 				prog->pcr_idx = i+1;
 			}
 		}
@@ -953,75 +1039,54 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *
 		/*when an audio input is present, declare it and store OD + ESD_U*/
 		if (audio_input_ip) {
 			/*add the audio program*/
-			prog->pcr_idx = 0/*nb_progs*/; /*TODO: fix PCR?*/
+			prog->pcr_idx = prog->nb_streams;
 			prog->streams[prog->nb_streams].stream_type = GF_STREAM_AUDIO;
-			prog->streams[prog->nb_streams].object_type_indication = GPAC_OTI_AUDIO_MPEG1/*GPAC_OTI_AUDIO_AAC_MPEG4*/;
+			/*hack: http urls are not decomposed therefore audio_input_port remains null*/
+			if (audio_input_port) {	/*UDP/RTP*/
+				prog->streams[prog->nb_streams].object_type_indication = GPAC_OTI_AUDIO_MPEG1;
+			} else { /*HTTP*/
+				aac_reader->oti = prog->streams[prog->nb_streams].object_type_indication = GPAC_OTI_AUDIO_AAC_MPEG4;
+			}
 			prog->streams[prog->nb_streams].input_ctrl = udp_input_ctrl;
 			prog->streams[prog->nb_streams].stream_id = AUDIO_DATA_ESID;
-			prog->streams[prog->nb_streams].timescale = 90000;
+			prog->streams[prog->nb_streams].timescale = 1000;
 
 			GF_SAFEALLOC(prog->streams[i].input_udta, GF_ESIStream);
 			((GF_ESIStream*)prog->streams[i].input_udta)->vers_inc = 1;	/*increment version number at every audio update*/
 
 			{
 				/*create the descriptor*/
-				GF_ESD *esd = gf_odf_desc_esd_new(0);
-				esd->slConfig->timestampResolution = prog->streams[prog->nb_streams].timescale;
-				esd->decoderConfig->streamType = prog->streams[prog->nb_streams].stream_type;
-				esd->decoderConfig->objectTypeIndication = prog->streams[prog->nb_streams].object_type_indication;
+				GF_ESD *esd;
+				GF_SimpleDataDescriptor *audio_desc;
+				GF_SAFEALLOC(audio_desc, GF_SimpleDataDescriptor);
+				if (audio_input_port) {	/*UDP/RTP*/
+					esd = gf_odf_desc_esd_new(0);
+					esd->decoderConfig->streamType = prog->streams[prog->nb_streams].stream_type;
+					esd->decoderConfig->objectTypeIndication = prog->streams[prog->nb_streams].object_type_indication;
+				} else {				/*HTTP*/
+					esd = AAC_GetESD(aac_reader);		/*in case of AAC, we have to wait the first ADTS chunk*/
+				}
 				esd->ESID = prog->streams[prog->nb_streams].stream_id;
-				{
-					/*create an OD Codec to encode the descriptor*/
-					GF_ODCodec *odc = gf_odf_codec_new();
-					GF_ODUpdate *od_com = (GF_ODUpdate*)gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
-					GF_ObjectDescriptor *od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
-					GF_SimpleDataDescriptor *audio_desc;
-					GF_SAFEALLOC(audio_desc, GF_SimpleDataDescriptor);
-					gf_list_add(od->ESDescriptors, esd);
-					od->objectDescriptorID = AUDIO_DATA_ESID;
-					gf_list_add(od_com->objectDescriptors, od);
+				if (esd->slConfig->timestampResolution) /*in case of AAC, we have to wait the first ADTS chunk*/
+					encode_audio_desc(esd, audio_desc);
 
-					e = gf_odf_codec_add_com(odc, (GF_ODCom*)od_com);
-					if (e) {
-						fprintf(stderr, "Audio input error add the command to be encoded\n");
-						return 0;
+				/*find the audio OD stream and attach its descriptor*/
+				for (i=0; i<prog->nb_streams; i++) {
+					if (prog->streams[i].stream_id == AUDIO_OD_ESID) {
+						prog->streams[i].input_udta = (void*)audio_desc;
+						audio_OD_stream_id = i;
+						break;
 					}
-					e = gf_odf_codec_encode(odc, 0);
-					if (e) {
-						fprintf(stderr, "Audio input error encoding the descriptor\n");
-						return 0;
-					}
-					e = gf_odf_codec_get_au(odc, &audio_desc->data, &audio_desc->size);
-					if (e) {
-						fprintf(stderr, "Audio input error getting the descriptor\n");
-						return 0;
-					}
-					e = gf_odf_com_del((GF_ODCom**)&od_com);
-					if (e) {
-						fprintf(stderr, "Audio input error deleting the command\n");
-						return 0;
-					}
-					gf_odf_codec_del(odc);
-
-					/*find the audio OD stream and attach its descriptor*/
-					for (i=0; i<prog->nb_streams; i++) {
-						if (prog->streams[i].stream_id == AUDIO_OD_ESID) {
-							prog->streams[i].input_udta = (void*)audio_desc;
-							audio_OD_stream_id = i;
-							break;
-						}
-					}
-					if (audio_OD_stream_id == (u32)-1) {
-						fprintf(stderr, "Error: could not find an audio OD stream with ESID=100\n", src);
-						return 0;
-					}
+				}
+				if (audio_OD_stream_id == (u32)-1) {
+					fprintf(stderr, "Error: could not find an audio OD stream with ESID=100\n", src);
+					return 0;
 				}
 			}
 			prog->nb_streams++;
 		}
 
 		if (!prog->pcr_idx) prog->pcr_idx=1;
-		prog->pcr_idx-=1;
 		prog->th = gf_th_new("Carousel");
 		prog->src_name = update;
 		gf_th_run(prog->th, seng_output, prog);
@@ -1056,17 +1121,36 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			}
 			audio_input_found = 1;
 			arg+=7;
-			if (!strnicmp(arg, "rtp://", 6) || !strnicmp(arg, "udp://", 6)) {
-				char *sep = strchr(arg+6, ':');
-				*audio_input_type = (arg[0]=='r') ? 2 : 1;
-				*real_time=1;
-				if (sep) {
-					*audio_input_port = atoi(sep+1);
-					sep[0]=0;
-					*audio_input_ip = gf_strdup(arg+6);
-					sep[0]=':';
-				} else {
-					*audio_input_ip = gf_strdup(arg+6);
+			if (!strnicmp(arg, "udp://", 6) || !strnicmp(arg, "rtp://", 6) || !strnicmp(arg, "http://", 7)) {
+				char *sep;
+				/*set audio input type*/
+				if (!strnicmp(arg, "udp://", 6))
+					*audio_input_type = GF_MP42TS_UDP;
+				else if (!strnicmp(arg, "rtp://", 6))
+					*audio_input_type = GF_MP42TS_RTP;
+				else if (!strnicmp(arg, "http://", 7))
+					*audio_input_type = GF_MP42TS_HTTP;
+				/*http needs to get the complete URL*/
+				switch(*audio_input_type) {
+					case GF_MP42TS_UDP:
+					case GF_MP42TS_RTP:
+						sep = strchr(arg+6, ':');
+						*real_time=1;
+						if (sep) {
+							*audio_input_port = atoi(sep+1);
+							sep[0]=0;
+							*audio_input_ip = gf_strdup(arg+6);
+							sep[0]=':';
+						} else {
+							*audio_input_ip = gf_strdup(arg+6);
+						}
+						break;
+					case GF_MP42TS_HTTP:
+						*audio_input_ip = gf_strdup(arg);
+						assert(audio_input_port != 0);
+						break;
+					default:
+						assert(0);
 				}
 			}
 		}
@@ -1297,11 +1381,11 @@ int main(int argc, char **argv)
 	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time;
 	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;
 	FILE *ts_output_file = NULL;
-	GF_Socket *ts_output_udp = NULL, *audio_input_udp = NULL;
+	GF_Socket *ts_output_udp_sk = NULL, *audio_input_udp_sk = NULL;
 	GF_RTPChannel *ts_output_rtp = NULL;
 	GF_RTSPTransport tr;
 	GF_RTPHeader hdr;
-	u16 output_port, audio_input_port;
+	u16 output_port = 0, audio_input_port = 0;
 	u32 output_type, audio_input_type;
 	char *audio_input_buffer = NULL;
 	u32 audio_input_buffer_length=65536;
@@ -1319,7 +1403,7 @@ int main(int argc, char **argv)
 	/***********************/
 	real_time=0;	
 	ts_output_file = NULL;
-	ts_output_udp = NULL;
+	ts_output_udp_sk = NULL;
 	ts_output_rtp = NULL;
 	src_name = NULL;
 	ts_out = NULL;
@@ -1339,6 +1423,7 @@ int main(int argc, char **argv)
 	segment_dir = NULL;
 	prev_seg_time.sec = 0;
 	prev_seg_time.nanosec = 0;
+	GF_SAFEALLOC(aac_reader, AACReader);
 	
 	/*****************/
 	/*   gpac init   */
@@ -1392,11 +1477,11 @@ int main(int argc, char **argv)
 		}
 	}
 	if (udp_out != NULL) {
-		ts_output_udp = gf_sk_new(GF_SOCK_TYPE_UDP);
+		ts_output_udp_sk = gf_sk_new(GF_SOCK_TYPE_UDP);
 		if (gf_sk_is_multicast_address((char *)udp_out)) {
-			e = gf_sk_setup_multicast(ts_output_udp, (char *)udp_out, output_port, 0, 0, NULL);
+			e = gf_sk_setup_multicast(ts_output_udp_sk, (char *)udp_out, output_port, 0, 0, NULL);
 		} else {
-			e = gf_sk_bind(ts_output_udp, NULL, output_port, (char *)udp_out, output_port, GF_SOCK_REUSE_PORT);
+			e = gf_sk_bind(ts_output_udp_sk, NULL, output_port, (char *)udp_out, output_port, GF_SOCK_REUSE_PORT);
 		}
 		if (e) {
 			fprintf(stderr, "Error initializing UDP socket: %s\n", gf_error_to_string(e));
@@ -1444,18 +1529,18 @@ int main(int argc, char **argv)
 	if (audio_input_ip)
 	switch(audio_input_type) {
 		case GF_MP42TS_UDP:
-			audio_input_udp = gf_sk_new(GF_SOCK_TYPE_UDP);
+			audio_input_udp_sk = gf_sk_new(GF_SOCK_TYPE_UDP);
 			if (gf_sk_is_multicast_address((char *)audio_input_ip)) {
-				e = gf_sk_setup_multicast(audio_input_udp, (char *)audio_input_ip, audio_input_port, 0, 0, NULL);
+				e = gf_sk_setup_multicast(audio_input_udp_sk, (char *)audio_input_ip, audio_input_port, 0, 0, NULL);
 			} else {
-				e = gf_sk_bind(audio_input_udp, NULL, audio_input_port, (char *)audio_input_ip, audio_input_port, GF_SOCK_REUSE_PORT);
+				e = gf_sk_bind(audio_input_udp_sk, NULL, audio_input_port, (char *)audio_input_ip, audio_input_port, GF_SOCK_REUSE_PORT);
 			}
 			if (e) {
 				fprintf(stdout, "Error initializing UDP socket for %s:%d : %s\n", audio_input_ip, audio_input_port, gf_error_to_string(e));
 				goto exit;
 			}
-			gf_sk_set_buffer_size(audio_input_udp, 0, UDP_BUFFER_SIZE);
-			gf_sk_set_block_mode(audio_input_udp, 0);
+			gf_sk_set_buffer_size(audio_input_udp_sk, 0, UDP_BUFFER_SIZE);
+			gf_sk_set_block_mode(audio_input_udp_sk, 0);
 
 			/*allocate data buffer*/
 			audio_input_buffer = malloc(audio_input_buffer_length);
@@ -1465,7 +1550,10 @@ int main(int argc, char **argv)
 			/*TODO: not implemented*/
 			assert(0);
 			break;
-			
+		case GF_MP42TS_HTTP:
+			audio_prog = (void*)&progs[nb_progs-1];
+			aac_download_file(aac_reader, audio_input_ip);
+			break;
 		case GF_MP42TS_FILE:
 			assert(0); /*audio live input is restricted to realtime/streaming*/
 			break;
@@ -1500,10 +1588,19 @@ int main(int argc, char **argv)
 		/*check for some audio input from the network*/
 		if (audio_input_ip) {
 			u32 read;
-			e = gf_sk_receive(audio_input_udp, audio_input_buffer, audio_input_buffer_length, 0, &read);
-			if (read) {
-				progs[nb_progs-1].repeat = 0;
-				SampleCallBack((void*)&progs[nb_progs-1], AUDIO_DATA_ESID, audio_input_buffer, read, gf_sys_clock());
+			switch (audio_input_type) {
+				case GF_MP42TS_UDP:
+				case GF_MP42TS_RTP:
+					/*e =*/gf_sk_receive(audio_input_udp_sk, audio_input_buffer, audio_input_buffer_length, 0, &read);
+					if (read) {
+						SampleCallBack((void*)&progs[nb_progs-1], AUDIO_DATA_ESID, audio_input_buffer, read, gf_sys_clock());
+					}
+					break;
+				case GF_MP42TS_HTTP:
+					/*nothing to do: AAC_OnLiveData is called automatically*/
+					break;
+				default:
+					assert(0);
 			}
 		}
 
@@ -1532,8 +1629,8 @@ int main(int argc, char **argv)
 				} 
 			}
 
-			if (ts_output_udp != NULL) {
-				e = gf_sk_send(ts_output_udp, (char*)ts_pck, 188); 
+			if (ts_output_udp_sk != NULL) {
+				e = gf_sk_send(ts_output_udp_sk, (char*)ts_pck, 188); 
 				if (e) {
 					fprintf(stderr, "Error %s sending UDP packet\n", gf_error_to_string(e));
 				}
@@ -1584,10 +1681,10 @@ exit:
 		write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, segment_index - segment_number, segment_index, 1);
 	}
 	if (ts_output_file) fclose(ts_output_file);
-	if (ts_output_udp) gf_sk_del(ts_output_udp);
+	if (ts_output_udp_sk) gf_sk_del(ts_output_udp_sk);
 	if (ts_output_rtp) gf_rtp_del(ts_output_rtp);
 	if (ts_out) gf_free(ts_out);
-	if (audio_input_udp) gf_sk_del(audio_input_udp);
+	if (audio_input_udp_sk) gf_sk_del(audio_input_udp_sk);
 	if (audio_input_buffer) free (audio_input_buffer);
 	if (udp_out) gf_free(udp_out);
 	if (rtp_out) gf_free(rtp_out);
