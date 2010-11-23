@@ -912,6 +912,10 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status);
 u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
 
+/*user inteface functions*/
+GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_scale);
+void gf_m2ts_program_stream_update_sl_config(GF_ESInterface *_self, GF_SLConfig *slc);
+
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 

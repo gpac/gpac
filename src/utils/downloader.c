@@ -247,6 +247,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	const char *opt;
 
     if (sess->use_cache_extension) return;
+	if (!sess->dm) return;
     if (!sess->dm->cache_directory) return;
 	if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) return;
 	if (sess->flags & GF_NETIO_SESSION_REUSE_APPEND) return;
