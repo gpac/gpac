@@ -285,7 +285,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
+				AdditionalLibraryDirectories="&quot;../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)&quot;"
 				GenerateManifest="false"
 				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)/$(ProjectName).pdb"
