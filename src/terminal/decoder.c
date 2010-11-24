@@ -232,7 +232,10 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 
 Bool gf_codec_remove_channel(GF_Codec *codec, struct _es_channel *ch)
 {
-	s32 i;
+  	s32 i;
+	assert( codec );
+	assert( codec->inChannels);
+	assert(ch);
 	i = gf_list_find(codec->inChannels, ch);
 	if (i>=0) {
 		if (codec->decio) codec->decio->DetachStream(codec->decio, ch->esd->ESID);

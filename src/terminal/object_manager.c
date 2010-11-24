@@ -90,7 +90,9 @@ void gf_odm_del(GF_ObjectManager *odm)
 
 
 	gf_list_del(odm->channels);
+	odm->channels = NULL;
 	gf_odf_desc_del((GF_Descriptor *)odm->OD);
+	odm->OD = NULL;
 	assert (!odm->net_service);
 	if (lock) gf_mx_v(odm->mx);
 	gf_mx_del(odm->mx);
@@ -1037,6 +1039,8 @@ void ODM_DeleteChannel(GF_ObjectManager *odm, GF_Channel *ch)
 	GF_Clock *ck;
 
 	if (!ch) return;
+	assert( odm );
+	assert( odm->channels );
 
 	//find a clock with this stream ES_ID
 	ck = gf_clock_find(odm->net_service->Clocks, ch->esd->ESID, 0);
