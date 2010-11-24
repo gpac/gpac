@@ -26,6 +26,7 @@
 #include "x11_out.h"
 #include <gpac/constants.h>
 #include <sys/time.h>
+#include <X11/XKBlib.h>
 
 
 void X11_SetupWindow (GF_VideoOutput * vout);
@@ -1328,7 +1329,6 @@ GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32
 void X11_Shutdown (struct _video_out *vout)
 {
 	X11VID ();
-        int err=0;
 
 	if (xWindow->output_3d_mode==1) {
 #ifdef GPAC_HAS_OPENGL
