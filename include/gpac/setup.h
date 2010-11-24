@@ -128,6 +128,7 @@ typedef unsigned int size_t;
 #include <stdarg.h>
 #include <assert.h>
 
+#define snprintf _snprintf
 
 #endif	/*END WIN32 non win-ce*/
 /*end WIN32 config*/

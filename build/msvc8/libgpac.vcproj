@@ -430,6 +430,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\src\utils\cache.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\utils\color.c"
 				>
 				<FileConfiguration

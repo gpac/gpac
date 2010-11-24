@@ -59,7 +59,10 @@ typedef struct
 	Double start_range, end_range;
 	u32 current_time, nb_samp;
 	/*file downloader*/
-	GF_DownloadSession * dnload;
+	GF_DownloadSession *dnload;
+#ifdef DONT_USE_TERMINAL_MODULE_API
+	GF_DownloadManager *dm;
+#endif
 
 	Bool is_live;
 	char prev_data[1000];
@@ -289,6 +292,8 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 #ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, GF_OK);
+#else
+		gf_dm_del(read->dm);
 #endif
 		AAC_SetupObject(read);
 	}
@@ -433,6 +438,8 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		read->needs_connection = 0;
 #ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, e);
+#else
+		gf_dm_del(read->dm);
 #endif
 		if (!e) AAC_SetupObject(read);
 	}
@@ -446,13 +453,17 @@ void aac_download_file(AACReader *read, char *url)
 #ifndef DONT_USE_TERMINAL_MODULE_API
 	read->dnload = gf_term_download_new(read->service, url, 0, AAC_NetIO, read);
 #else
-	read->dnload = gf_dm_sess_new_simple(url, GF_NETIO_SESSION_NOT_CACHED, AAC_NetIO, read, NULL, &e);
+	read->dm = gf_dm_new(NULL);
+	if (!read->dm) assert(0);
+	read->dnload = gf_dm_sess_new_simple(read->dm, url, 0, AAC_NetIO, read, &e);
 #endif
 
 	if (!read->dnload ) {
 		read->needs_connection = 0;
 #ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
+#else
+		gf_dm_del(read->dm);
 #endif
 	}
 	/*service confirm is done once fetched*/

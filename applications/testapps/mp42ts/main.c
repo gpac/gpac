@@ -36,20 +36,29 @@
 
 static GFINLINE void usage() 
 {
-	fprintf(stderr, "usage: mp42ts {rate {prog}*} [audio] [mpeg4-carousel] [mpeg4] [time] [src] dst\n"
+	fprintf(stderr, "usage: mp42ts {rate {prog}*} [audio] [mpeg4-carousel] [mpeg4] [time] [src] [segment-options] dst\n"
 					"\n"
-					"-rate=R             specifies target rate in kbps of the multiplex\n"
-					"                     If not set, transport stream will be of variable bitrate\n"
-					"-prog=filename      specifies an input file used for a TS service\n"
-					"                     * currently only supports ISO files and SDP files\n"
-					"                     * option can be used several times, once for each program\n"
-					"-audio=url          may be mp3/udp or aac/http\n"
-					"-mpeg4-carousel=n   carousel period in ms\n"
-					"-mpeg4              forces usage of MPEG-4 signaling (use of IOD and SL Config)\n"
-					"-time=n             request the program to stop after n ms\n"
-					"-src=filename        update file: must be either an .sdp or a .bt file\n"
+					"-rate=R                specifies target rate in kbps of the multiplex\n"
+					"                        If not set transport stream will be of variable bitrate\n"
+					"-prog=filename         specifies an input file used for a TS service\n"
+					"                        * currently only supports ISO files and SDP files\n"
+					"                        * can be used several times, once for each program\n"
+					"-audio=url             may be mp3/udp or aac/http\n"
+					"-mpeg4-carousel=n      carousel period in ms\n"
+                    "-mpeg4                 forces usage of MPEG-4 signaling (IOD and SL Config)\n"
+					"-time=n                request the program to stop after n ms\n"
+					"-src=filename          update file: must be either an .sdp or a .bt file\n"
 					"\n"
-					"dst can be either a file, an RTP or a UDP destination (unicast/multicast)\n"
+					"-dst-udp               \\\n"
+					"-dst-file               } unicast/multicast destination\n"
+					"-dst-rtp               /\n"
+					"\n"
+					"-segment-dir=dir       server local address to store segments\n"
+					"-segment-duration=dur  segment duration\n"
+					"-segment-manifest=file m3u8 file basename\n"
+					"-segment-http-prefix=p client address for accessing server segments\n"
+					"-segment-number=n      only n segments are used using a cyclic pattern\n"
+					"\n"
 		);
 }
 
@@ -1183,6 +1192,14 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 					default:
 						assert(0);
 				}
+			} else if (!strnicmp(arg, "-mpeg4", 6)) {
+				if (mpeg4_found) {
+					error_msg = "multiple '-mpeg4' found";
+					arg = NULL;
+					goto error;
+				}
+				mpeg4_found = 1;
+				mpeg4_signaling = 1;
 			}
 		}
 	}
@@ -1222,14 +1239,6 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 						if (res==2) *real_time=1;
 					}
 				}
-			} else if (!strnicmp(arg, "-mpeg4", 6)) {
-				if (mpeg4_found) {
-					error_msg = "multiple '-mpeg4' found";
-					arg = NULL;
-					goto error;
-				}
-				mpeg4_found = 1;
-				mpeg4_signaling = 1;
 			} else if (!strnicmp(arg, "-real-time", 10)) {
 				if (real_time_found) {
 					goto error;
