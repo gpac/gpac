@@ -190,6 +190,8 @@ static void init_prng (void)
 #endif
 }
 
+#endif
+
 /*
  * Private methods of cache.c
  */
@@ -311,6 +313,8 @@ gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadManager * d
     }
     return creds;
 }
+
+#ifdef GPAC_HAS_SSL
 
 static int ssl_init(GF_DownloadManager *dm, u32 mode)
 {
