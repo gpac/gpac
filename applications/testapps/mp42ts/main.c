@@ -430,7 +430,7 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 	if (calling_object) {
 		M2TSProgram *prog = (M2TSProgram *)calling_object;
 
-		if (ESID == AUDIO_DATA_ESID) {
+		if (ESID == AUDIO_DATA_ESID && audio_OD_stream_id != (u32)-1) {
 			/*send the audio descriptor when present*/
 			GF_SimpleDataDescriptor *audio_desc = prog->streams[audio_OD_stream_id].input_udta;
 			if (audio_desc && !audio_desc->data) /*intended for HTTP/AAC: an empty descriptor was set (vs already filled for RTP/UDP MP3)*/
@@ -690,6 +690,7 @@ static Bool seng_output(void *param)
 				prog->repeat = 1;
 				e = gf_seng_encode_context(seng, SampleCallBack);
 				prog->repeat = 0;
+				update_context = 0;
 			}
 
 			gf_sleep(10);
