@@ -224,7 +224,7 @@ static u32 overmask_rgb32(u32 src, u32 dst, u32 alpha)
 	return (0xFF << 24) | (resr << 16) | (resg << 8) | resb;
 }
 
-GFINLINE void overmask_rgb32_const_run(u32 src, u32 *dst, s32 dst_pitch_x, u32 count)
+GFINLINE static void overmask_rgb32_const_run(u32 src, u32 *dst, s32 dst_pitch_x, u32 count)
 {
 	u32 val, res;
 	s32 srca = (src>>24) & 0xff;
@@ -375,7 +375,7 @@ static u32 overmask_bgr32(u32 src, u32 dst, u32 alpha)
 	return (0xFF << 24) | (resb << 16) | (resg << 8) | resr;
 }
 
-GFINLINE void overmask_bgr32_const_run(u32 src, u32 *dst, s32 dst_pitch_x, u32 count)
+GFINLINE static void overmask_bgr32_const_run(u32 src, u32 *dst, s32 dst_pitch_x, u32 count)
 {
 	u32 val, res;
 	s32 srca = (src>>24) & 0xff;
@@ -518,7 +518,7 @@ GF_Err evg_surface_clear_bgr32(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 		32 bit RGBA
 */
 
-static void overmask_rgba(u32 src, char *dst, u32 alpha)
+GFINLINE static void overmask_rgba(u32 src, char *dst, u32 alpha)
 {
 	u8 srca = GF_COL_A(src);
 	u8 srcr = GF_COL_R(src);
@@ -533,7 +533,7 @@ static void overmask_rgba(u32 src, char *dst, u32 alpha)
 		dst[0] = mul255(srca, srcr - dstr) + dstr;
 		dst[1] = mul255(srca, srcg - dstg) + dstg;
 		dst[2] = mul255(srca, srcb - dstb) + dstb;
-		if (dsta==0xFF) dst[3] = 0xFF;
+		if (dsta==0xFF) dst[3] = (u8)0xFF;
 		else dst[3] = mul255(srca, srca) + mul255(255-srca, dsta);
 	} else {
 		dst[0] = srcr;
@@ -543,7 +543,7 @@ static void overmask_rgba(u32 src, char *dst, u32 alpha)
 	}
 }
 
-static void overmask_rgba_const_run(u32 src, char *dst, s32 dst_pitch_x,  u32 count)
+GFINLINE static void overmask_rgba_const_run(u32 src, char *dst, s32 dst_pitch_x,  u32 count)
 {
 	u8 srca = GF_COL_A(src);
 	u8 srcr = GF_COL_R(src);
@@ -560,7 +560,7 @@ static void overmask_rgba_const_run(u32 src, char *dst, s32 dst_pitch_x,  u32 co
 			dst[0] = (u8) mul255(srca, srcr - dstr) + dstr;
 			dst[1] = (u8) mul255(srca, srcg - dstg) + dstg;
 			dst[2] = (u8) mul255(srca, srcb - dstb) + dstb;
-			if (dsta==0xFF) dst[3] = 0xFF;
+			if (dsta==0xFF) dst[3] = (u8)0xFF;
 			else dst[3] = (u8) mul255(srca, srca) + mul255(255-srca, dsta);
 		} else {
 			dst[0] = srcr;

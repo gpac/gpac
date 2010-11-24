@@ -138,7 +138,7 @@ PulseAudio_ConfigureOutput (GF_AudioOutput * dr, u32 * SampleRate,
   PulseAudioContext *ctx = (PulseAudioContext *) dr->opaque;
   if (ctx->playback_handle != NULL)
     {
-      GF_LOG (GF_LOG_ERROR, GF_LOG_MMIO,
+      GF_LOG (GF_LOG_DEBUG, GF_LOG_MMIO,
 	      ("[PulseAudio] PulseAudio output already configured !\n"));
       /* Should not happen */
       pa_simple_flush (ctx->playback_handle, &pa_error);
@@ -207,7 +207,7 @@ PulseAudio_WriteAudio (GF_AudioOutput * dr)
 static void
 PulseAudio_SetVolume (GF_AudioOutput * dr, u32 Volume)
 {
-  GF_LOG (GF_LOG_DEBUG, GF_LOG_MMIO,
+  GF_LOG (GF_LOG_WARNING, GF_LOG_MMIO,
 	  ("[PulseAudio] Set volume to %lu: not yet implemented.\n", Volume));
 }
 
