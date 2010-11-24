@@ -310,7 +310,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
     char tmp[_CACHE_TMP_SIZE];
     u8 hash[_CACHE_HASH_SIZE];
     int sz;
-    const char * ext;
+    char * ext;
     DownloadedCacheEntry entry = NULL;
     if ( !dm || !url || !cache_directory) {
         GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
@@ -392,9 +392,9 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
             parser[0] = '\0';
         parser = strrchr ( tmp, '.' );
         if ( parser && ( strlen ( parser ) < _CACHE_MAX_EXTENSION_SIZE ) )
-	  ext = parser;
+	  ext = strdup(parser);
 	else
-	  ext = default_cache_file_suffix;
+	  ext = strdup(default_cache_file_suffix);
 		assert (ext && strlen(ext));
 		ext = gf_strdup(ext);
 	strcat( entry->cache_filename, ext);
@@ -402,9 +402,9 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
     tmp[0] = '\0';
     strcpy( tmp, cache_file_prefix);
     strcat( tmp, entry->hash );
-	strcat( tmp , ext);
-	gf_free(ext);
-	ext = NULL;
+    strcat( tmp , ext);
+    gf_free(ext);
+    ext = NULL;
     strcat ( tmp, cache_file_info_suffix );
     entry->properties = gf_cfg_force_new ( cache_directory, tmp );
     if ( !entry->properties )
