@@ -47,6 +47,9 @@ typedef struct tag_m2ts_section_es GF_M2TS_SECTION_ES;
 /*Maximum number of service in a TS*/
 #define GF_M2TS_MAX_SERVICES	65535
 
+/*When ODProfileLevelIndication has this value, only scene and od streams are sl-packetized*/
+#define GPAC_MAGIC_OD_PROFILE_FOR_MPEG4_SIGNALING	10
+
 /*MPEG-2 TS Media types*/
 enum
 {
@@ -834,6 +837,13 @@ typedef struct __m2ts_mux_stream {
 	u32 last_aac_time;
 } GF_M2TS_Mux_Stream;
 
+enum {
+	GF_M2TS_MPEG4_SIGNALING_NONE = 0,
+	GF_M2TS_MPEG4_SIGNALING_FULL,
+	/*experimental profile where all PES media streams (audio, video, images) are sent directly on PES without SL-packetization*/
+	GF_M2TS_MPEG4_SIGNALING_SCENE
+};
+
 
 struct __m2ts_mux_program {
 	struct __m2ts_mux_program *next;
@@ -854,6 +864,8 @@ struct __m2ts_mux_program {
 	u32 last_sys_clock;
 
 	GF_Descriptor *iod;
+	Bool mpeg4_signaling;
+	Bool mpeg4_signaling_for_scene_only;
 };
 
 struct __m2ts_mux {
@@ -890,8 +902,6 @@ struct __m2ts_mux {
 	Bool eos_found;
 	u32 pck_sent_over_br_window, last_br_time, avg_br;
 	u64 tot_pck_sent, tot_pad_sent;
-
-	Bool mpeg4_signaling;
 };
 
 
@@ -905,7 +915,7 @@ enum
 
 GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, Bool real_time);
 void gf_m2ts_mux_del(GF_M2TS_Mux *mux);
-GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid);
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, Bool mpeg4_signaling);
 GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr);
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);
 const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status);

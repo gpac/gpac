@@ -849,6 +849,32 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 		stream->pck.data[2] = (size) & 0xFF;
 	}
 		break;
+	/*perform ADTS encapsulation*/
+	case GF_M2TS_AUDIO_AAC:
+		if (stream->ifce->decoder_config) {
+			GF_M4ADecSpecInfo cfg;
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_m4a_get_config(stream->ifce->decoder_config, stream->ifce->decoder_config_size, &cfg);
+
+			gf_bs_write_int(bs, 0xFFF, 12);/*sync*/
+			gf_bs_write_int(bs, 0, 1);/*mpeg2 aac*/
+			gf_bs_write_int(bs, 0, 2); /*layer*/
+			gf_bs_write_int(bs, 1, 1); /* protection_absent*/
+			gf_bs_write_int(bs, cfg.base_object_type-1, 2);
+			gf_bs_write_int(bs, cfg.base_sr_index, 4);
+			gf_bs_write_int(bs, 0, 1);
+			gf_bs_write_int(bs, cfg.nb_chan, 3);
+			gf_bs_write_int(bs, 0, 4);
+			gf_bs_write_int(bs, 7+stream->pck.data_len, 13);
+			gf_bs_write_int(bs, 0x7FF, 11);
+			gf_bs_write_int(bs, 0, 2);
+
+			gf_bs_write_data(bs, stream->pck.data, stream->pck.data_len);
+			gf_bs_align(bs);
+			gf_bs_get_content(bs, &stream->pck.data, &stream->pck.data_len);
+			gf_bs_del(bs);
+		}
+		break;
 	}
 
 
@@ -1198,6 +1224,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			break;
 		case GPAC_OTI_AUDIO_AAC_MPEG4:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_LATM_AAC;
+			stream->mpeg2_stream_type = GF_M2TS_AUDIO_AAC;
 			if (!ifce->repeat_rate) ifce->repeat_rate = 500;
 			break;
 		}
@@ -1214,7 +1241,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	}
 
 	/*override signaling for all streams except BIFS/OD, to use MPEG-4 PES*/
-	if (program->mux->mpeg4_signaling) {
+	if (program->mpeg4_signaling==GF_M2TS_MPEG4_SIGNALING_FULL) {
 		if (stream->mpeg2_stream_type != GF_M2TS_SYSTEMS_MPEG4_SECTIONS) {
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_PES;
 			stream->mpeg2_stream_id = 0xFA;/*ISO/IEC14496-1_SL-packetized_stream*/
@@ -1249,12 +1276,14 @@ void gf_m2ts_program_stream_update_sl_config(GF_ESInterface *_self, GF_SLConfig 
 
 #define GF_M2TS_PSI_REFRESH_RATE	200
 
-GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid)
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, Bool mpeg4_signaling)
 {
 	GF_M2TS_Mux_Program *program;
 
 	GF_SAFEALLOC(program, GF_M2TS_Mux_Program);
 	program->mux = muxer;
+	program->mpeg4_signaling = mpeg4_signaling;
+	
 	program->number = program_number;
 	if (muxer->programs) {
 		GF_M2TS_Mux_Program *p = muxer->programs;

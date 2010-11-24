@@ -110,6 +110,8 @@ typedef struct
 	Bool epg_requested;
 	Bool has_eit;
 	LPNETCHANNEL eit_channel;
+
+	Bool mpeg4on2_scene_only;
 } M2TSIn;
 
 #define M2TS_BUFFER_MAX 400
@@ -377,7 +379,7 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 
 	/*create a stream description for this channel*/
 	esd = gf_odf_desc_esd_new(0);
-	esd->ESID = stream->pid;
+	esd->ESID = stream->mpeg4_es_id ? stream->mpeg4_es_id : stream->pid;
 
 	switch (stream->stream_type) {
 	case GF_M2TS_VIDEO_MPEG1:
@@ -447,7 +449,7 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	/*declare object to terminal*/
 	od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
 	gf_list_add(od->ESDescriptors, esd);
-	od->objectDescriptorID = stream->pid;
+	od->objectDescriptorID = esd->ESID;
 	if (streamType) *streamType = esd->decoderConfig->streamType;
 	return od;
 }
@@ -463,6 +465,7 @@ static void MP2TS_DeclareStream(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u3
 static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regenerate_scene, Bool no_declare)
 {
 	u32 i, count;
+	Bool force_declare_ods = 0;
 
 	count = gf_list_count(prog->streams);
 #ifdef GPAC_HAS_LINUX_DVB
@@ -478,13 +481,23 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 #endif
 	if (m2ts->file || m2ts->dnload) m2ts->file_regulate = no_declare ? 0 : 1;
 
+	if (prog->pmt_iod && (prog->pmt_iod->tag==GF_ODF_IOD_TAG) && (((GF_InitialObjectDescriptor*)prog->pmt_iod)->OD_profileAndLevel==GPAC_MAGIC_OD_PROFILE_FOR_MPEG4_SIGNALING)) {
+		force_declare_ods = 1;
+	}
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
 		/*move to skip mode for all ES until asked for playback*/
 		if (!es->user)
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
-		if (!prog->pmt_iod && !no_declare) MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
+
+		if (!prog->pmt_iod && !no_declare) { 
+			MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
+		} else if (force_declare_ods) {
+			if ((es->stream_type!=GF_M2TS_SYSTEMS_MPEG4_PES) && (es->stream_type!=GF_M2TS_SYSTEMS_MPEG4_SECTIONS)) {
+				MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
+			}
+		}
 	}
 
 	/*force scene regeneration*/
