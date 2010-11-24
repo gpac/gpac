@@ -33,6 +33,9 @@
 #include <gpac/crypt.h>
 #include <gpac/tools.h>
 #include <gpac/config_file.h>
+#include <stdio.h>
+#include <string.h>
+
 #if defined(_BSD_SOURCE) || _XOPEN_SOURCE >= 500
 #include <unistd.h>
 #endif
@@ -413,7 +416,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
     gf_cache_set_last_modified_on_server(entry, gf_cfg_get_key(entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_LAST_MODIFIED));
     {
         const char * keyValue = gf_cfg_get_key ( entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_URL );
-        if ( keyValue == NULL || strcasecmp ( url, keyValue ) )
+        if ( keyValue == NULL || stricmp ( url, keyValue ) )
             entry->flags |= CORRUPTED;
     }
     {
