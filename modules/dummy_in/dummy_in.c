@@ -362,7 +362,7 @@ GF_Err DC_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char
 	u32 ESID;
 	DCReader *read = (DCReader *) plug->priv;
 	
-	sscanf(url, "ES_ID=%d", &ESID);
+	sscanf(url, "ES_ID=%ud", &ESID);
 	if (!ESID) {
 		gf_term_on_connect(read->service, channel, GF_STREAM_NOT_FOUND);
 	} else {

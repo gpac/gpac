@@ -409,7 +409,7 @@ static GF_Err MP3_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
-		sscanf(url, "ES_ID=%d", &ES_ID);
+		sscanf(url, "ES_ID=%ud", &ES_ID);
 	}
 	/*URL setup*/
 	else if (!read->ch && MP3_CanHandleURL(plug, url)) ES_ID = 1;

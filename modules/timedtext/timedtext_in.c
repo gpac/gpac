@@ -236,7 +236,7 @@ static GF_Err TTIn_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 
 	e = GF_STREAM_NOT_FOUND;
 	ES_ID = 0;
-	if (strstr(url, "ES_ID")) sscanf(url, "ES_ID=%d", &ES_ID);
+	if (strstr(url, "ES_ID")) sscanf(url, "ES_ID=%ud", &ES_ID);
 
 	if (ES_ID==1) {
 		tti->ch = channel;

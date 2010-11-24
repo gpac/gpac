@@ -366,7 +366,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 	es_url = NULL;
 	sess = NULL;
 	if (strstr(url, "ES_ID=")) {
-		sscanf(url, "ES_ID=%d", &ESID);
+		sscanf(url, "ES_ID=%ud", &ESID);
 		/*first case: simple URL (same namespace)*/
 		ch = RP_FindChannel(priv, NULL, ESID, NULL, 0);
 		/*this should not happen, the sdp must describe all streams in the service*/

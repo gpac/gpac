@@ -447,7 +447,6 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 void aac_download_file(AACReader *read, char *url)
 {
-	GF_Err e;
 	read->needs_connection = 1;
 
 #ifndef DONT_USE_TERMINAL_MODULE_API
@@ -555,7 +554,7 @@ static GF_Err AAC_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
-		sscanf(url, "ES_ID=%d", &ES_ID);
+		sscanf(url, "ES_ID=%ud", &ES_ID);
 	}
 	/*URL setup*/
 	else if (!read->ch && AAC_CanHandleURL(plug, url)) ES_ID = 1;

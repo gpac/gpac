@@ -483,7 +483,7 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 	if (!read->mov) return GF_SERVICE_ERROR;
 
 	if (strstr(url, "ES_ID")) {
-		sscanf(url, "ES_ID=%d", &ESID);
+		sscanf(url, "ES_ID=%ud", &ESID);
 	} else {
 		/*handle url like mypath/myfile.mp4#trackID*/
 		char *track_id = strrchr(url, '.');

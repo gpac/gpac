@@ -82,7 +82,7 @@ static GF_Err V4_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 	u32 ESID;
 	V4Service *v4serv = (V4Service *)plug->priv;
 	
-	sscanf(url, "ES_ID=%d", &ESID);
+	sscanf(url, "ES_ID=%ud", &ESID);
 	if (!ESID) {
 		gf_term_on_connect(v4serv->GetService(), channel, GF_STREAM_NOT_FOUND);
 	} else {
