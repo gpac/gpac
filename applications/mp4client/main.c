@@ -305,8 +305,9 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	if (szPath[strlen((char*)szPath)-1] != '\\') strcat((char*)szPath, "\\");
 	strcat((char *)szPath, "Fonts");
 #elif defined(__DARWIN__) || defined(__APPLE__)
-	fprintf(stdout, "Please enter full path to a TrueType font directory (.ttf, .ttc) - enter to default:\n");
-	scanf("%s", szPath);
+	/*fprintf(stdout, "Please enter full path to a TrueType font directory (.ttf, .ttc) - enter to default:\n");
+	scanf("%s", szPath);*/
+	strcpy(szPath, "/Library/Fonts");
 #else
 	/*these fonts seems installed by default on many systems...*/
 	gf_cfg_set_key(cfg, "FontEngine", "FontSerif", "Bitstream Vera Serif");
