@@ -1672,7 +1672,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     rsp_code = (u32) atoi(comp);
     Pos = gf_token_get(buf, Pos, " \r\n", comp, 400);
 
-    no_range = range = ContentLength = first_byte = last_byte = total_size;
+    no_range = range = ContentLength = first_byte = last_byte = total_size = 0;
     /* parse header */
     while (1) {
         char *sep, *hdr_sep, *hdr, *hdr_val;
