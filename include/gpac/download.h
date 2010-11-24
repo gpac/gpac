@@ -48,6 +48,7 @@ extern "C" {
 
 #include <gpac/tools.h>
 #include <gpac/module.h>
+#include <gpac/cache.h>
 
 
 /*!the download manager object. This is usually not used by GPAC modules*/
@@ -131,13 +132,9 @@ enum
 	/*!session is not threaded, the user must explicitely fetch the data */
 	GF_NETIO_SESSION_NOT_THREADED	=	1,
 	/*!session has no cache: data will be sent to the user if threaded mode (live streams like radios & co)*/
-	GF_NETIO_SESSION_NOT_CACHED	=	1<<1,
-	/*! ignores any data already in the cache*/
-	GF_NETIO_SESSION_FORCE_RESTART =	1<<2,
-	/*! reuses any data already in the cache and appends the new data*/
-	GF_NETIO_SESSION_REUSE_APPEND =	1<<3,
-	/*! forces cache to be saved on disk - this is temporary until we cleanup cache management*/
-	GF_NETIO_SESSION_KEEP_CACHE =	1<<4
+	GF_NETIO_SESSION_NOT_CACHED	=	1<<1
+	/*! ignores any data already in the cache
+	GF_NETIO_SESSION_FORCE_RESTART =	1<<2 */
 };
 
 
@@ -183,7 +180,7 @@ typedef void (*gf_dm_user_io)(void *usr_cbk, GF_NETIO_Parameter *parameter);
  *\param error error for failure cases 
  *\return the session object or NULL if error. If no error is indicated and a NULL session is returned, this means the file is local
  */
-GF_DownloadSession * gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_flags,
+GF_DownloadSession * gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 dl_flags,
 									  gf_dm_user_io user_io,
 									  void *usr_cbk,
 									  GF_Err *error);
@@ -200,11 +197,10 @@ GF_DownloadSession * gf_dm_sess_new(GF_DownloadManager *dm, char *url, u32 dl_fl
  *\param error error for failure cases 
  *\return the session object or NULL if error. If no error is indicated and a NULL session is returned, this means the file is local
  */
-GF_DownloadSession *gf_dm_sess_new_simple(char *url, u32 dl_flags,
-									  gf_dm_user_io user_io,
-									  void *usr_cbk,
-                                      char *cache_name,
-									  GF_Err *e);
+GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *url, u32 dl_flags,
+					  gf_dm_user_io user_io,
+					  void *usr_cbk,
+					  GF_Err *e);
 
 /*!
  *brief downloader session destructor
@@ -271,10 +267,20 @@ const char *gf_dm_sess_mime_type(GF_DownloadSession * sess);
 /*!
  *\brief get cache file name
  *
- *Gets the cache file name for the session.
+ * Gets the cache file name for the session.
  *\param sess the download session
  *\return the absolute path of the cache file, or NULL if the session is not cached*/
 const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess);
+
+/*!
+ * Get a range of a cache entry file
+ * \param entry The session
+ * \param startOffset The first byte of the request to get
+ * \param endOffset The last byte of request to get
+ * \return The temporary name for the file created to have a range of the file
+ */
+const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess, u64 startOffset, u64 endOffset );
+
 /*!
  *\brief get statistics
  *
@@ -309,7 +315,8 @@ const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload);
 /*!
  *\brief Set session request range
  *
- *Sets the session range request
+ * WARNING: deprecated !
+ * Sets the session range request
  *\param sess the download session
  *\param start start range of the request
  *\param end end range of the request
@@ -325,6 +332,22 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u32 start, u32 end);
  *\return error code if any
  */
 GF_Err gf_dm_sess_reset(GF_DownloadSession *sess);
+
+/*!
+ * \brief Get a copy of the cache information
+ * Duplicates a cache entry, it is the responsability of the caller to free the entry then.
+ * \param sess The session to get the entry from
+ * \return a copy of the DownloadedCacheEntry contained into the session.
+ */
+DownloadedCacheEntry gf_dm_cache_entry_dup_readonly( const GF_DownloadSession *sess);
+
+/*!
+ * \brief forces the refresh of a cache entry
+ * The entry is still allocated in the session.
+ * \param sess The session
+ * \return a pointer to the entry of session refreshed
+ */
+const DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess);
 
 /*! @} */
 

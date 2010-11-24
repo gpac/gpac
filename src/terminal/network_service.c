@@ -24,6 +24,7 @@
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/network.h>
+#include <gpac/cache.h>
 #include "media_memory.h"
 
 
@@ -165,7 +166,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 		sprintf(szMsg, "Channel %d connection failure", ch->esd->ESID);
 		gf_term_message(term, service->url, szMsg, err);
 		ch->es_state = GF_ESM_ES_UNAVAILABLE;
-//		return;
+/*		return;*/
 	}
 
 	/*Plays request are skiped until all channels are connected. We send a PLAY on the objecy in case 
@@ -277,7 +278,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 
 	gf_term_lock_net(term, 1);
 	/*object declared this way are not part of an OD stream and are considered as dynamic*/
-//	od->objectDescriptorID = GF_MEDIA_EXTERNAL_ID;
+/*	od->objectDescriptorID = GF_MEDIA_EXTERNAL_ID; */
 
 	/*check if we have a mediaObject in the scene not attached and matching this object*/
 	the_mo = NULL;
@@ -491,34 +492,48 @@ Bool net_check_interface(GF_InputService *ifce)
 
 static void fetch_mime_io(void *dnld, GF_NETIO_Parameter *parameter)
 {
-	/*this is correct, however some shoutcast servers don't understand HEAD and don't reply at all
-	so don't use HEAD*/
-#if 0
-	/*only get the content type*/
+	/*
+	 * souchay :
+	 * NOTE for shoutcast servers and dumb servers
+	 * if HEAD method is not undertood, it will be handled into HTTP 501 : method not implemented
+	 */
 	if (parameter->msg_type==GF_NETIO_GET_METHOD) parameter->name = "HEAD";
-#endif
-
-
 }
 
-static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
-{
-	char *mime_type;
+static DownloadedCacheEntry get_cache_entry_info( GF_Terminal *term, const char *url ,GF_Err *ret_code ){
+	DownloadedCacheEntry entry;
 	GF_DownloadSession * sess;
-
 	(*ret_code) = GF_OK;
 	if (strnicmp(url, "http", 4)) return NULL;
-
 	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_NETIO_SESSION_NOT_THREADED, fetch_mime_io, NULL, ret_code);
 	if (!sess) {
 		if (strstr(url, "rtsp://") || strstr(url, "rtp://") || strstr(url, "udp://") || strstr(url, "tcp://") ) (*ret_code) = GF_OK;
 		return NULL;
 	}
-	mime_type = (char *) gf_dm_sess_mime_type(sess);
-	if (mime_type) mime_type = gf_strdup(mime_type);
-	else *ret_code = gf_dm_sess_last_error(sess);
+	gf_dm_refresh_cache_entry(sess);
+	entry = gf_dm_cache_entry_dup_readonly(sess);
+	if (entry == NULL)
+	  *ret_code = gf_dm_sess_last_error(sess);
 	gf_dm_sess_del(sess);
-	return mime_type;
+	return entry;
+}
+
+
+static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
+{
+	char * ret;
+	DownloadedCacheEntry entry = get_cache_entry_info(term, url, ret_code);
+	if (entry == NULL)
+	  return NULL;
+	ret = NULL;
+	if (entry){
+	  const char * mime = gf_cache_get_mime_type(entry);
+	  if (mime){
+	    ret = gf_strdup(mime);
+	  }
+	  gf_cache_delete_entry(entry);
+	}
+	return ret;
 }
 
 
@@ -606,6 +621,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		if (sPlug) sPlug = strrchr(sPlug, '"');
 		if (sPlug) {
 			sPlug += 2;
+			printf("%s:%d FOUND matching module %s\n", __FILE__, __LINE__, sPlug);
 			ifce = (GF_InputService *) gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
 			if (ifce && !net_check_interface(ifce) ) {
 				gf_modules_close_interface((GF_BaseInterface *) ifce);
