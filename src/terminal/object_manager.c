@@ -961,7 +961,7 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 		if (ch->esd->URLString) {
 			strcpy(szURL, ch->esd->URLString);
 		} else {
-			sprintf(szURL, "ES_ID=%d", ch->esd->ESID);
+			sprintf(szURL, "ES_ID=%ud", ch->esd->ESID);
 		}
 
 		/*connect before setup: this is needed in case the decoder cfg is wrong, we may need to get it from
