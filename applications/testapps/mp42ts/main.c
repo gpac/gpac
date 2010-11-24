@@ -36,13 +36,14 @@
 
 static GFINLINE void usage() 
 {
-	fprintf(stderr, "usage: mp42ts {rate {prog}*} [mpeg4-carousel] [mpeg4] [time] [src] dst\n"
+	fprintf(stderr, "usage: mp42ts {rate {prog}*} [audio] [mpeg4-carousel] [mpeg4] [time] [src] dst\n"
 					"\n"
 					"-rate=R             specifies target rate in kbps of the multiplex\n"
 					"                     If not set, transport stream will be of variable bitrate\n"
 					"-prog=filename      specifies an input file used for a TS service\n"
 					"                     * currently only supports ISO files and SDP files\n"
 					"                     * option can be used several times, once for each program\n"
+					"-audio=url          may be mp3/udp or aac/http\n"
 					"-mpeg4-carousel=n   carousel period in ms\n"
 					"-mpeg4              forces usage of MPEG-4 signaling (use of IOD and SL Config)\n"
 					"-time=n             request the program to stop after n ms\n"
@@ -51,8 +52,6 @@ static GFINLINE void usage()
 					"dst can be either a file, an RTP or a UDP destination (unicast/multicast)\n"
 		);
 }
-
-
 
 
 #define MAX_MUX_SRC_PROG	100
@@ -67,6 +66,8 @@ typedef struct
 	char *src_name;
 	u32 rate;
 	Bool repeat;
+	u32 mpeg4_signaling;
+	Bool audio_configured;
 } M2TSProgram;
 
 typedef struct
@@ -430,39 +431,63 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 	if (calling_object) {
 		M2TSProgram *prog = (M2TSProgram *)calling_object;
 
-		if (ESID == AUDIO_DATA_ESID && audio_OD_stream_id != (u32)-1) {
-			/*send the audio descriptor when present*/
-			GF_SimpleDataDescriptor *audio_desc = prog->streams[audio_OD_stream_id].input_udta;
-			if (audio_desc && !audio_desc->data) /*intended for HTTP/AAC: an empty descriptor was set (vs already filled for RTP/UDP MP3)*/
-			{
+		if (ESID == AUDIO_DATA_ESID) {
+			if (audio_OD_stream_id != (u32)-1) {
+				/*send the audio descriptor when present*/
+				GF_SimpleDataDescriptor *audio_desc = prog->streams[audio_OD_stream_id].input_udta;
+				if (audio_desc && !audio_desc->data) /*intended for HTTP/AAC: an empty descriptor was set (vs already filled for RTP/UDP MP3)*/
+				{
+					GF_ESD *esd = AAC_GetESD(aac_reader);
+					assert(esd->slConfig->timestampResolution);
+					esd->slConfig->useAccessUnitStartFlag = 1;
+					esd->slConfig->useAccessUnitEndFlag = 1;
+					esd->slConfig->useTimestampsFlag = 1;
+					esd->slConfig->timestampLength = 33;
+					/*audio stream, all samples are RAPs*/
+					esd->slConfig->useRandomAccessPointFlag = 0;
+					esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
+					for (i=0; i<prog->nb_streams; i++) {
+						if (prog->streams[i].stream_id == AUDIO_DATA_ESID) {
+							GF_Err e;
+							prog->streams[i].timescale = esd->slConfig->timestampResolution;
+							e = gf_m2ts_program_stream_update_ts_scale(&prog->streams[i], esd->slConfig->timestampResolution);
+							assert(!e);
+							gf_m2ts_program_stream_update_sl_config(&prog->streams[i], esd->slConfig);
+							break;
+						}
+					}
+					esd->ESID = AUDIO_DATA_ESID;
+					assert(audio_OD_stream_id != (u32)-1);
+					encode_audio_desc(esd, audio_desc);
+					prog->repeat = 1;
+					SampleCallBack(prog, AUDIO_OD_ESID, audio_desc->data, audio_desc->size, gf_sys_clock());
+					prog->repeat = 0;
+					gf_free(audio_desc->data);
+					gf_free(audio_desc);
+					prog->streams[audio_OD_stream_id].input_udta = NULL;
+	
+					gf_odf_desc_del((GF_Descriptor *)esd);
+				}
+			}
+			/*update the timescale if needed*/
+			else if (!prog->audio_configured) {
 				GF_ESD *esd = AAC_GetESD(aac_reader);
 				assert(esd->slConfig->timestampResolution);
-				esd->slConfig->useAccessUnitStartFlag = 1;
-				esd->slConfig->useAccessUnitEndFlag = 1;
-				esd->slConfig->useTimestampsFlag = 1;
-				esd->slConfig->timestampLength = 33;
-				/*audio stream, all samples are RAPs*/
-				esd->slConfig->useRandomAccessPointFlag = 0;
-				esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 				for (i=0; i<prog->nb_streams; i++) {
 					if (prog->streams[i].stream_id == AUDIO_DATA_ESID) {
 						GF_Err e;
 						prog->streams[i].timescale = esd->slConfig->timestampResolution;
+						prog->streams[i].decoder_config = esd->decoderConfig->decoderSpecificInfo->data;
+						prog->streams[i].decoder_config_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+						esd->decoderConfig->decoderSpecificInfo->data = NULL;
+						esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
 						e = gf_m2ts_program_stream_update_ts_scale(&prog->streams[i], esd->slConfig->timestampResolution);
 						assert(!e);
-						gf_m2ts_program_stream_update_sl_config(&prog->streams[i], esd->slConfig);
+						prog->audio_configured = 1;
 						break;
 					}
 				}
-				esd->ESID = AUDIO_DATA_ESID;
-				assert(audio_OD_stream_id != (u32)-1);
-				encode_audio_desc(esd, audio_desc);
-				prog->repeat = 1;
-				SampleCallBack(prog, AUDIO_OD_ESID, audio_desc->data, audio_desc->size, gf_sys_clock());
-				prog->repeat = 0;
-				gf_free(audio_desc->data);
-				gf_free(audio_desc);
-				prog->streams[audio_OD_stream_id].input_udta = NULL;
+				gf_odf_desc_del((GF_Descriptor *)esd);
 			}
 		}
 
@@ -583,16 +608,18 @@ static Bool seng_output(void *param)
 	last_src_modif = prog->src_name ? gf_file_modification_time(prog->src_name) : 0;
 
 	/*send the audio descriptor*/
-	audio_desc = prog->streams[audio_OD_stream_id].input_udta;
-	if (audio_desc && audio_desc->data) /*RTP/UDP + MP3 case*/
-	{
-		assert(audio_OD_stream_id != (u32)-1);
-		prog->repeat = 1;
-		SampleCallBack(prog, AUDIO_OD_ESID, audio_desc->data, audio_desc->size, gf_sys_clock());
-		prog->repeat = 0;
-		gf_free(audio_desc->data);
-		gf_free(audio_desc);
-		prog->streams[audio_OD_stream_id].input_udta = NULL;
+	if (prog->mpeg4_signaling==GF_M2TS_MPEG4_SIGNALING_FULL) {
+		audio_desc = prog->streams[audio_OD_stream_id].input_udta;
+		if (audio_desc && audio_desc->data) /*RTP/UDP + MP3 case*/
+		{
+			assert(audio_OD_stream_id != (u32)-1);
+			prog->repeat = 1;
+			SampleCallBack(prog, AUDIO_OD_ESID, audio_desc->data, audio_desc->size, gf_sys_clock());
+			prog->repeat = 0;
+			gf_free(audio_desc->data);
+			gf_free(audio_desc);
+			prog->streams[audio_OD_stream_id].input_udta = NULL;
+		}
 	}
 
 	while (run) {
@@ -878,13 +905,14 @@ void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 pe
 
 }
 
-static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *force_mpeg4, char *update, char *audio_input_ip, u16 audio_input_port)
+static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool force_mpeg4, char *update, char *audio_input_ip, u16 audio_input_port)
 {
 	GF_SDPInfo *sdp;
 	u32 i;
 	GF_Err e;
 	
 	memset(prog, 0, sizeof(M2TSProgram));
+	prog->mpeg4_signaling = force_mpeg4 ? GF_M2TS_MPEG4_SIGNALING_FULL : GF_M2TS_MPEG4_SIGNALING_NONE;
 
 	/*open ISO file*/
 	if (gf_isom_probe_file(src)) {
@@ -902,7 +930,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *
 			switch(prog->streams[i].stream_type) {
 				case GF_STREAM_OD:
 				case GF_STREAM_SCENE:
-					*force_mpeg4 = 1;
+					prog->mpeg4_signaling = GF_M2TS_MPEG4_SIGNALING_FULL;
 					prog->streams[i].repeat_rate = carousel_rate;
 					break;
 				case GF_STREAM_VISUAL:
@@ -996,7 +1024,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *
 			switch(prog->streams[i].stream_type) {
 			case GF_STREAM_OD:
 			case GF_STREAM_SCENE:
-				*force_mpeg4 = 1;
+				prog->mpeg4_signaling = GF_M2TS_MPEG4_SIGNALING_FULL;
 				prog->streams[i].repeat_rate = carousel_rate;
 				break;
 			}
@@ -1027,7 +1055,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *
 
 		prog->nb_streams = gf_seng_get_stream_count(prog->seng);
 		prog->rate = carousel_rate;
-		*force_mpeg4 = 1;
+		prog->mpeg4_signaling = GF_M2TS_MPEG4_SIGNALING_FULL;
 
 		for (i=0; i<prog->nb_streams; i++) {
 			fill_seng_es_ifce(&prog->streams[i], i, prog->seng, prog->rate);
@@ -1055,7 +1083,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *
 			GF_SAFEALLOC(prog->streams[i].input_udta, GF_ESIStream);
 			((GF_ESIStream*)prog->streams[i].input_udta)->vers_inc = 1;	/*increment version number at every audio update*/
 
-			{
+			if ((prog->iod->tag!=GF_ODF_IOD_TAG) || ((GF_InitialObjectDescriptor*)prog->iod)->OD_profileAndLevel!=GPAC_MAGIC_OD_PROFILE_FOR_MPEG4_SIGNALING) {
 				/*create the descriptor*/
 				GF_ESD *esd;
 				GF_SimpleDataDescriptor *audio_desc;
@@ -1083,6 +1111,8 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *
 					fprintf(stderr, "Error: could not find an audio OD stream with ESID=100\n", src);
 					return 0;
 				}
+			} else {
+				prog->mpeg4_signaling = GF_M2TS_MPEG4_SIGNALING_SCENE;
 			}
 			prog->nb_streams++;
 		}
@@ -1100,7 +1130,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool *
 
 /*parse MP42TS arguments*/
 static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *carrousel_rate, 
-								  M2TSProgram *progs, u32 *nb_progs, Bool *mpeg4_signaling, char **src_name, 
+								  M2TSProgram *progs, u32 *nb_progs, char **src_name, 
 								  Bool *real_time, u32 *run_time,
 								  u32 *audio_input_type, char **audio_input_ip, u16 *audio_input_port,
 								  u32 *output_type, char **ts_out, char **udp_out, char **rtp_out, u16 *output_port, 
@@ -1109,7 +1139,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 	Bool rate_found=0, mpeg4_carousel_found=0, prog_found=0, mpeg4_found=0, time_found=0, src_found=0, dst_found=0, audio_input_found=0, 
 		 seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found = 0, real_time_found=0;
 	char *prog_name, *arg, *error_msg;
-
+	Bool mpeg4_signaling = 0; 
 	s32 i;
 	/*first pass: find audio*/
 	for (i=1; i<argc; i++) {
@@ -1199,7 +1229,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 					goto error;
 				}
 				mpeg4_found = 1;
-				*mpeg4_signaling = 1;
+				mpeg4_signaling = 1;
 			} else if (!strnicmp(arg, "-real-time", 10)) {
 				if (real_time_found) {
 					goto error;
@@ -1377,7 +1407,7 @@ int main(int argc, char **argv)
 	const char *ts_pck;
 	GF_Err e;
 	u32 res, run_time;
-	Bool real_time, mpeg4_signaling;
+	Bool real_time;
 	GF_M2TS_Mux *muxer=NULL;
 	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time;
 	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;
@@ -1413,7 +1443,6 @@ int main(int argc, char **argv)
 	nb_progs = 0;
 	mux_rate = 0;
 	run_time = 0;
-	mpeg4_signaling = 0;
 	carrousel_rate = 500;
 	output_port = 1234;
 	segment_duration = 0;
@@ -1438,7 +1467,7 @@ int main(int argc, char **argv)
 	/***********************/
 	/*   parse arguments   */
 	/***********************/
-	if (GF_OK != parse_args(argc, argv, &mux_rate, &carrousel_rate, progs, &nb_progs, &mpeg4_signaling, &src_name, 
+	if (GF_OK != parse_args(argc, argv, &mux_rate, &carrousel_rate, progs, &nb_progs, &src_name, 
 							&real_time, &run_time,
 							&audio_input_type, &audio_input_ip, &audio_input_port,
 							&output_type, &ts_out, &udp_out, &rtp_out, &output_port, 
@@ -1456,7 +1485,6 @@ int main(int argc, char **argv)
 	/*   create mp42ts muxer   */
 	/***************************/
 	muxer = gf_m2ts_mux_new(mux_rate, real_time);
-	muxer->mpeg4_signaling = mpeg4_signaling;
 	if (ts_out != NULL) {
 		if (segment_duration) {
 			char *dot;
@@ -1567,8 +1595,10 @@ int main(int argc, char **argv)
 	/****************************************/
 	cur_pid = 100;	/*PIDs start from 100*/
 	for (i=0; i<nb_progs; i++) {
-		GF_M2TS_Mux_Program *program = gf_m2ts_mux_program_add(muxer, i+1, cur_pid);
-		if (muxer->mpeg4_signaling) program->iod = progs[i].iod;
+		GF_M2TS_Mux_Program *program = gf_m2ts_mux_program_add(muxer, i+1, cur_pid, progs[i].mpeg4_signaling);
+		if (progs[i].mpeg4_signaling) program->iod = progs[i].iod;
+
+
 		for (j=0; j<progs[i].nb_streams; j++) {
 			gf_m2ts_program_stream_add(program, &progs[i].streams[j], cur_pid+j+1, (progs[i].pcr_idx==j) ? 1 : 0);
 		}
