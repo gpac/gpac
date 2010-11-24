@@ -386,7 +386,10 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	char * parser;
         parser = strrchr ( tmp, '?' );
         if ( parser )
-            parser = NULL;
+            parser[0] = '\0';
+		parser = strrchr ( tmp, '#' );
+		if ( parser )
+            parser[0] = '\0';
         parser = strrchr ( tmp, '.' );
         if ( parser && ( strlen ( parser ) < _CACHE_MAX_EXTENSION_SIZE ) )
 	  ext = parser;
