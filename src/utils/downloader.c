@@ -919,7 +919,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 #endif
 }
 
-const DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
+DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
     Bool go;
     u32 flags = sess->flags;
     sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
@@ -2029,7 +2029,7 @@ GF_Err gf_dm_copy(const char * file_source, const char * file_dest) {
     FILE * source, * dest;
     char buff[FILE_W_BUFFER_SZ];
     u32 readen, written;
-    GF_Err e;
+    GF_Err e = GF_OK;
     source = fopen(file_source, "rb");
     dest = fopen( file_dest, "wb");
     if (!source || !dest) {

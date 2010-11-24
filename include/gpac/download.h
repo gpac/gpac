@@ -347,7 +347,7 @@ DownloadedCacheEntry gf_dm_cache_entry_dup_readonly( const GF_DownloadSession *s
  * \param sess The session
  * \return a pointer to the entry of session refreshed
  */
-const DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess);
+DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess);
 
 /*! @} */
 
