@@ -383,7 +383,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
     strcpy ( tmp, url );
     
     {
-	char * parser;
+		char * parser;
         parser = strrchr ( tmp, '?' );
         if ( parser )
             parser[0] = '\0';
@@ -395,12 +395,16 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	  ext = parser;
 	else
 	  ext = default_cache_file_suffix;
+		assert (ext && strlen(ext));
+		ext = gf_strdup(ext);
 	strcat( entry->cache_filename, ext);
     }
     tmp[0] = '\0';
     strcpy( tmp, cache_file_prefix);
     strcat( tmp, entry->hash );
-    strcat( tmp , ext);
+	strcat( tmp , ext);
+	gf_free(ext);
+	ext = NULL;
     strcat ( tmp, cache_file_info_suffix );
     entry->properties = gf_cfg_force_new ( cache_directory, tmp );
     if ( !entry->properties )
