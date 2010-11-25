@@ -54,8 +54,6 @@ typedef struct __mpd_module {
 	Bool is_m3u8;
 	Bool in_download;
 
-	Bool clean_cache;
-
 	GF_DownloadSession *mpd_dnload;
 	u32 max_cached, nb_cached;
 	segment_cache_entry *cached;
@@ -103,7 +101,7 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
 
 	e = parse_root_playlist(m3u8_file, &pl, ".");
     if (e) return e;
-	if (mpdin->clean_cache) gf_delete_file((char *)m3u8_file);
+	gf_delete_file((char *)m3u8_file);
 
 	i=0;
 	while ((prog = gf_list_enum(pl->programs, &i))) {
@@ -258,7 +256,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 	    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: wrong cache file %s\n", local_url));
 		return GF_IO_ERR;
 	}
-	if (mpdin->clean_cache) gf_delete_file(	(char *)local_url);
+	gf_delete_file(	(char *)local_url);
 	mpdin->mpd_mime_valid = 0;
 	gf_dm_sess_reset(mpdin->mpd_dnload);
 	e = gf_dm_sess_process(mpdin->mpd_dnload);
@@ -384,7 +382,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
     if (mpdin->seg_dnload) {
         gf_term_download_del(mpdin->seg_dnload);
     }
-    mpdin->seg_dnload = gf_term_download_new(mpdin->service, base_init_url, GF_NETIO_SESSION_KEEP_CACHE | GF_NETIO_SESSION_NOT_THREADED, 
+    mpdin->seg_dnload = gf_term_download_new(mpdin->service, base_init_url, GF_NETIO_SESSION_NOT_THREADED, 
                                              MPD_NetIO_Segment, mpdin);
     if (!mpdin->seg_dnload) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error with initialization segment: cannot create downloader\n"));
@@ -436,10 +434,11 @@ static u32 download_segments(void *par)
 
 	e = MPD_DownloadInitSegment(mpdin, period);
 	if (e != GF_OK) {
-	    gf_term_on_connect(mpdin->service, NULL, e);
 	    mpdin->dl_status = 0;
+	    gf_term_on_connect(mpdin->service, NULL, e);
 		return 1;
 	}
+	if (!mpdin->is_service_connected) mpdin->is_service_connected = 1;
 
 	mpdin->last_update_time = gf_sys_clock();
     /* Forward the ConnectService message to the appropriate service for this type of segment */
@@ -511,7 +510,7 @@ static u32 download_segments(void *par)
 //        gf_dm_sess_dash_reset(mpdin->seg_dnload);
 
 		if (mpdin->seg_dnload) gf_term_download_del(mpdin->seg_dnload);
-	    mpdin->seg_dnload = gf_term_download_new(mpdin->service, new_base_seg_url, GF_NETIO_SESSION_KEEP_CACHE | GF_NETIO_SESSION_NOT_THREADED, MPD_NetIO_Segment, mpdin);
+	    mpdin->seg_dnload = gf_term_download_new(mpdin->service, new_base_seg_url, GF_NETIO_SESSION_NOT_THREADED, MPD_NetIO_Segment, mpdin);
 
 		if (seg->use_byterange) {
 			gf_dm_sess_set_range(mpdin->seg_dnload, seg->byterange_start, seg->byterange_end);
@@ -641,7 +640,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		}
 
 		if (mpdin->cached[0].cache) {
-			if (mpdin->clean_cache) gf_delete_file(mpdin->cached[0].cache);
+			gf_delete_file(mpdin->cached[0].cache);
 			gf_free(mpdin->cached[0].cache);
 			gf_free(mpdin->cached[0].url);
 		}
@@ -817,10 +816,6 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AutoSwitch", "no");
 	if (opt && !strcmp(opt, "yes")) mpdin->auto_switch = 1;
 
-	opt = gf_modules_get_option((GF_BaseInterface *)plug, "Downloader", "CleanCache");
-	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "Downloader", "CleanCache", "yes");
-	if (opt && !strcmp(opt, "yes")) mpdin->clean_cache = 1;
-
 	if (mpdin->mpd_dnload) gf_term_download_del(mpdin->mpd_dnload);
 	mpdin->mpd_dnload = NULL;
 
@@ -879,9 +874,6 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	}
 
     e = MPD_SegmentsProcessStart(mpdin, 0);
-    if (e == GF_OK) {
-        mpdin->is_service_connected = 1;
-    }
     return e;
 }
 
@@ -911,7 +903,7 @@ void MPD_Stop(GF_MPD_In *mpdin)
     }
 	while (mpdin->nb_cached) {
 		mpdin->nb_cached --;
-		if (mpdin->clean_cache) gf_delete_file(mpdin->cached[mpdin->nb_cached].cache);
+		gf_delete_file(mpdin->cached[mpdin->nb_cached].cache);
 		gf_free(mpdin->cached[mpdin->nb_cached].cache);
 		gf_free(mpdin->cached[mpdin->nb_cached].url);
 	}
