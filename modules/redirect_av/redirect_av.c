@@ -135,7 +135,7 @@ static void avr_close(GF_AVRedirect *avr)
 	GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[AVRedirect] Closing output AVI file\n"));
 }
 
-static Bool avr_on_event(void *udta, GF_Event *evt)
+static Bool avr_on_event(void *udta, GF_Event *evt, Bool consumed_by_compositor)
 {
 	GF_AVRedirect *avr = udta;
 	switch (evt->type) {
