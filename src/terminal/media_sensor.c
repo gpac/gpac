@@ -65,7 +65,7 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 		/*dynamic scene*/
 		else ck = st->stream->odm->subscene->dyn_ck;
 		/*since audio may be used alone through an inline scene, we need to refresh the graph*/
-		if (st->stream->odm->state) gf_term_invalidate_compositor(st->stream->odm->term);
+		if (ck && !ck->has_seen_eos && st->stream->odm->state) gf_term_invalidate_compositor(st->stream->odm->term);
 	}
 	/*check anim streams*/
 	else if (st->stream->odm->codec && (st->stream->odm->codec->type==GF_STREAM_SCENE)) ck = st->stream->odm->codec->ck;
@@ -99,11 +99,13 @@ void MS_Modified(GF_Node *node)
 	
 	while (gf_list_count(st->seg)) gf_list_rem(st->seg, 0);
 
-	/*unlink from OD*/
-	if (st->stream && st->stream->odm && st->stream->odm->ms_stack) 
-		gf_list_del_item(st->stream->odm->ms_stack, st);
+	if (st->stream) {
+		/*unlink from OD*/
+		if (st->stream->odm && st->stream->odm->ms_stack) 
+			gf_list_del_item(st->stream->odm->ms_stack, st);
 
-	gf_mo_unregister(node, st->stream);
+		gf_mo_unregister(node, st->stream);
+	}
 	st->stream = gf_mo_register(node, &st->sensor->url, 0, 0);
 	st->is_init = 0;
 	gf_term_invalidate_compositor(st->parent->root_od->term);
@@ -126,6 +128,20 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 		
 		/*full object controled*/
 		if (!media_sens->active_seg && !count) {
+			/*check for end of scene (MediaSensor on inline)*/
+			if (odm->subscene && odm->subscene->duration) {
+				GF_Clock *ck = gf_odm_get_media_clock(odm);
+				if (ck->has_seen_eos && (1000*time>=(Double) (s64)odm->subscene->duration)) {
+					if (media_sens->sensor->isActive) {
+						media_sens->sensor->isActive = 0;
+						gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
+
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[ODM%d] Deactivating media sensor\n", odm->OD->objectDescriptorID));
+					}
+					continue;
+				}
+			}
+
 			if (!is_eos && !media_sens->sensor->isActive) {
 				media_sens->sensor->isActive = 1;
 				gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
@@ -144,16 +160,6 @@ void mediasensor_update_timing(GF_ObjectManager *odm, Bool is_eos)
 			if (media_sens->sensor->isActive && (media_sens->sensor->mediaCurrentTime != time)) {
 				media_sens->sensor->mediaCurrentTime = time;
 				gf_node_event_out_str((GF_Node *) media_sens->sensor, "mediaCurrentTime");
-			}
-			/*check for end of scene (MediaSensor on inline)*/
-			if (odm->subscene && odm->subscene->duration) {
-				GF_Clock *ck = gf_odm_get_media_clock(odm);
-				if (ck->has_seen_eos && media_sens->sensor->isActive && (1000*time>=(Double) (s64)odm->subscene->duration)) {
-					media_sens->sensor->isActive = 0;
-					gf_node_event_out_str((GF_Node *) media_sens->sensor, "isActive");
-
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[ODM%d] Deactivating media sensor\n", odm->OD->objectDescriptorID));
-				}
 			}
 			if (is_eos && media_sens->sensor->isActive) {
 				media_sens->sensor->isActive = 0;
