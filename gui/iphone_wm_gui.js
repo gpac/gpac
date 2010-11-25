@@ -713,7 +713,7 @@ function createIconSVGdecoration(previousIcon, widget, x, y, fatherId, iconUrl, 
     // process differently cases where widget.icon == widget.main
     //
     var container;
-    if (!testCyrilsExtension && sameFileIgnoringSVGView(iconUrl, widget.main) && widget.main.indexOf('.svg') >= 0) {
+    if (sameFileIgnoringSVGView(iconUrl, widget.main) && widget.main.indexOf('.svg') >= 0) {
         // see if the animation already exists
         container = document.getElementById(name);
         if (container == null) {
