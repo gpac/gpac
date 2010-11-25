@@ -452,9 +452,12 @@ void aac_download_file(AACReader *read, char *url)
 #ifndef DONT_USE_TERMINAL_MODULE_API
 	read->dnload = gf_term_download_new(read->service, url, 0, AAC_NetIO, read);
 #else
+	{
+	GF_Err e;
 	read->dm = gf_dm_new(NULL);
 	if (!read->dm) assert(0);
 	read->dnload = gf_dm_sess_new_simple(read->dm, url, 0, AAC_NetIO, read, &e);
+	}
 #endif
 
 	if (!read->dnload ) {
