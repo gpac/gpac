@@ -105,6 +105,8 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 		if (ok) return 1;
 	}
 
+	if (!strncmp(url, "\\\\", 2)) return 0;
+
 	if (!strnicmp(url, "file://", 7) || !strstr(url, "://")) {
 		char *rtype = gf_xml_get_root_type(url, NULL);
 		if (rtype) {
