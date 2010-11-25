@@ -1,51 +1,43 @@
-// to make sure the initialization fis done only once
-var init = true;
+// to make sure the initialization is done only once
+init = true;
 
 // constant
-var xlinkns = 'http://www.w3.org/1999/xlink';
-var evns = 'http://www.w3.org/2001/xml-events';
+xlinkns = 'http://www.w3.org/1999/xlink';
+evns = 'http://www.w3.org/2001/xml-events';
 
 // state of the widget manager: displays homepage (value=home) or executes widget (value="exec")
-var state = 'home';
+state = 'home';
 
 // convenience variables for SVG elements
-var homepage, arrows, icons, widgetContainer, root, homebar, execbar;
+homepage = null, arrows = null, icons = null, widgetContainer = null, homebar = null, execbar = null;
 
 // where is the index into pages of icons on the home page
-var where = 0, maxwhere = 0, whereW = 0;
+where = 0, maxwhere = 0, whereW = 0;
 
 // array of activated widgets
-var activatedWidgets = new Array();
-var numActivatedWidgets = 0;
+activatedWidgets = new Array();
+numActivatedWidgets = 0;
 
 // variables for flexible layout
 // variables for flexible layout
-var totalWidth, totalHeight, iconNbHoriz, iconNbVert, iconsPerPage;
+totalWidth = 0, totalHeight = 0, iconNbHoriz = 0, iconNbVert = 0, iconsPerPage = 0;
 
 //previous size
-var previousWidth = 0, previousHeight = 0;
+previousWidth = 0, previousHeight = 0;
 
 // to differentiate between install icon and scan dir for icons
-var isThisAScan;
+isThisAScan = null;
 
 // preferred icon type
-var preferredIconType = '.svg';
-
-function setPreferredSize() {
-    var display_width = parseInt(gpac.getOption('Widgets', 'LastWMWidth'));
-    var display_height = parseInt(gpac.getOption('Widgets', 'LastWMHeight'));
-    if (display_width && display_height) {
-        gpac.set_size(display_width, display_height);
-    }
-}
+preferredIconType = '.svg';
 
 // adapt layout to the size of the screen
 function adaptLayoutToSize() {
     if (l_deb < log_level) alert("[UI] adaptLayoutToSize");
     var tmpObject, tmpObj2;
     // get size to adapt to
-    totalWidth = root.viewport.width;
-    totalHeight = root.viewport.height;
+    totalWidth = document.documentElement.viewport.width;
+    totalHeight = document.documentElement.viewport.height;
     if (totalWidth == 0) totalWidth = 160;
     if (totalHeight == 0) totalHeight = 280;
     while (totalWidth < 160 || totalHeight < 280) {
@@ -189,8 +181,8 @@ function home_button(evt) {
 }
 
 // constants
-var adjustFrom = "0,0";
-var animDue = true;
+adjustFrom = "0,0";
+animDue = true;
 
 //
 // after each change of icon page, this function adjusts the visibility of arrows in the lower bar
@@ -239,8 +231,8 @@ function right_button() {
     }
 }
 
-var adjustFromW = "0,0";
-var oldwhereW = -1;
+adjustFromW = "0,0";
+oldwhereW = -1;
 
 //
 // after each change of icon page, this function adjusts the visibility of arrows in the lower bar
@@ -325,9 +317,13 @@ function widget_activated_and_bound(wid) {
 // init variables, then init the widget manager C code, then inits UPnP
 //
 function initialize() {
-    if (l_deb < log_level) alert("[UI] initialize");
+    /*if (l_deb < log_level)*/ alert("[UI] initialize");
     init = false;
-    setPreferredSize();
+    var display_width = parseInt(gpac.getOption('Widgets', 'LastWMWidth'));
+    var display_height = parseInt(gpac.getOption('Widgets', 'LastWMHeight'));
+    if (display_width && display_height) {
+        gpac.set_size(display_width, display_height);
+    }
     root = document.documentElement;
     homepage = document.getElementById('homepage');
     homebar = document.getElementById('homebar');
@@ -549,24 +545,24 @@ function coreOutRequestDeactivateImplementation(wid, args) {
     }
 }
 
-var testCyrilsExtension = false;
-
 //
 // WM callback for when a component is activated by its parent
 //
 function widget_add(w) {
     if (!w.activated) {
+/*
         if (testCyrilsExtension) {
             var anima = document.createElement("animation");
             anima.setAttributeNS('http://gpac.sourceforge.net/svg-extensions', 'use-as-primary', 'false');
             widget_launch(w, anima);
         } else {
+*/
             if (sameFileIgnoringSVGView(w.icon, w.main)) {
                 // same file in icon and main
             } else {
                 widget_launch(w, document.createElement("animation"));
             }
-        }
+//        }
         return true;
     } else if (w.multipleInstances) {
         var newwid = WidgetManager.open(w.manifest, null);
@@ -604,9 +600,10 @@ function getNbWidgets() {
 // just resize the window and viewport, and initialize the first time this is called
 //
 function resize() {
+    alert("wwwwwww resize "+init);
     if (init) initialize();
-    if (root.viewport.width == previousWidth && root.viewport.height == previousHeight) return;
-    if (l_deb < log_level) alert("[UI] start initialize() w:" + root.viewport.width + " h:" + root.viewport.height);
+    if (document.documentElement.viewport.width == previousWidth && document.documentElement.viewport.height == previousHeight) return;
+    if (l_deb < log_level) alert("[UI] start initialize() w:" + document.documentElement.viewport.width + " h:" + document.documentElement.viewport.height);
     adaptLayoutToSize();
     // start by filling the "home page" with known icons
     where = 0;
@@ -627,8 +624,8 @@ function resize() {
     }
     adjustwhere(false);
     adjustWhereWidgets(false);
-    previousWidth = root.viewport.width;
-    previousHeight = root.viewport.height;
+    previousWidth = document.documentElement.viewport.width;
+    previousHeight = document.documentElement.viewport.height;
     gpac.setOption("Widgets", "LastWMWidth", '' + previousWidth);
     gpac.setOption("Widgets", "LastWMHeight", '' + previousHeight);
 }
@@ -678,7 +675,7 @@ function restoreFragmentOnURL(iconUrl, original) {
 }
 
 // constant
-var corein = "urn:mpeg:mpegu:schema:widgets:core:in:2010";
+const corein = "urn:mpeg:mpegu:schema:widgets:core:in:2010";
 
 //
 // commodity method to empty a list of children
@@ -893,7 +890,7 @@ function widget_load_component(comp, is_unload) {
     }
 }
 
-var upnp_renders;
+upnp_renders = null;
 
 //
 // widget remoting function
@@ -986,7 +983,7 @@ function onMediaConnect(url, src_ip) {
 //
 // file list vars
 //
-var flstart = 0, fllist, maxFileNames = 14;
+flstart = 0, fllist = null, maxFileNames = 14;
 
 //
 // create a file menu in the main screen, allowing to navigate directories and choose widget config files
