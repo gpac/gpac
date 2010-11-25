@@ -428,6 +428,8 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inB
 			priv->load_flags = 2;
 			e = gf_sm_load_run(&priv->load);
 			gf_sm_load_done(&priv->load);
+			/*in case this was not set in the first pass (XMT)*/
+			gf_sg_set_scene_size_info(priv->scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
 		}
 
 		if (e<0) {
