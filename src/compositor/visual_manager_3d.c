@@ -1575,7 +1575,7 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 	tr_state->mesh_num_textures = 0;
 	if (!tr_state->appear) return 0;
 
-	gf_node_dirty_reset(tr_state->appear);
+	gf_node_dirty_reset(tr_state->appear, 0);
 
 	txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
 	if (txh) {
