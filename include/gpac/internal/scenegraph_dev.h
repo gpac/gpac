@@ -37,6 +37,8 @@
 
 #include <gpac/scenegraph_svg.h>
 
+#include <gpac/thread.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -249,6 +251,7 @@ struct __tag_scene_graph
 	Bool abort_bubbling;
 
 
+	GF_Mutex *dom_evt_mx;
 	GF_DOMEventTarget dom_evt;
 	u32 nb_evts_focus;
 	u32 nb_evts_mouse;
@@ -321,6 +324,7 @@ GF_Node *gf_sg_new_base_node();
 
 
 void gf_sg_lock_javascript(Bool LockIt);
+Bool gf_sg_try_lock_javascript();
 
 #ifndef GPAC_DISABLE_VRML
 
