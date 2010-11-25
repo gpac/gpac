@@ -358,6 +358,8 @@ struct _tag_terminal
 	GF_List *channels_pending;
 	/*media objects pending for stop/play*/
 	GF_List *media_queue;
+	/*media_queue lock*/
+	GF_Mutex *media_queue_mx;
 	/*network lock*/
 	GF_Mutex *net_mx;
 	/*all X3D key/mouse/string sensors*/
@@ -387,6 +389,7 @@ struct _tag_terminal
 	GF_List *unthreaded_extensions;	/*list of extensions to call at each frame*/
 	GF_List *event_filters;	/*list of extensions filtering events*/
 	GF_Mutex *evt_mx;
+	u32 in_event_filter;
 
 	/*static URI relocator for locales*/
 	GF_TermLocales locales;
@@ -410,7 +413,7 @@ void gf_term_set_threading(GF_Terminal *term, u32 mode);
 void gf_term_set_priority(GF_Terminal *term, s32 Priority);
 
 
-Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed);
+Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed, Bool forward_only);
 
 /*error report function*/
 void gf_term_message(GF_Terminal *app, const char *service, const char *message, GF_Err error);
@@ -427,6 +430,9 @@ service restart
 void gf_term_handle_services(GF_Terminal *app);
 /*close service and queue for delete*/
 void gf_term_close_services(GF_Terminal *app, GF_ClientService *service);
+
+/*locks media quaue*/
+void gf_term_lock_media_queue(GF_Terminal *app, Bool LockIt);
 
 /*locks net manager*/
 void gf_term_lock_net(GF_Terminal *app, Bool LockIt);
@@ -454,7 +460,7 @@ typedef struct
 	void *udta;
 	/*called when an event should be filtered
 	*/
-	Bool (*on_event)(void *udta, GF_Event *evt);
+	Bool (*on_event)(void *udta, GF_Event *evt, Bool consumed_by_compositor);
 } GF_TermEventFilter;
 
 GF_Err gf_term_add_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef);
@@ -807,6 +813,7 @@ enum
 	GF_ODM_ACTION_PLAY,
 	GF_ODM_ACTION_STOP,
 	GF_ODM_ACTION_DELETE,
+	GF_ODM_ACTION_SCENE_DISCONNECT,
 };
 
 struct _od_manager
