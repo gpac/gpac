@@ -206,6 +206,7 @@
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_cfg_remove) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_save) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_get_key) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cfg_get_sub_key) )
@@ -1424,7 +1425,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_add_audio_listener) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_remove_audio_listener) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_focus_switch_ring) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_animation_get_scenegraph) )
 
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_svg_convert_length_to_display) )
