@@ -1152,7 +1152,8 @@ static void DestroyLineProps(GF_Node *n, void *rs, Bool is_destroy)
 
 void compositor_init_lineprops(GF_Compositor *compositor, GF_Node *node)
 {
-	LinePropStack *st = (LinePropStack *)gf_malloc(sizeof(LinePropStack));
+	LinePropStack *st;
+	GF_SAFEALLOC(st, LinePropStack);
 	st->compositor = compositor;
 	st->last_mod_time = 0;
 	gf_node_set_private(node, st);
