@@ -399,9 +399,10 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess) {
         assert(e);
         url = gf_cache_get_url(e);
         assert( url );
-        if (!strcmp(url, sess->orig_url))
+		if (!strcmp(url, sess->orig_url)) {
             gf_mx_v( sess->dm->cache_mx );
-        return e;
+	        return e;
+		}
     }
     gf_mx_v( sess->dm->cache_mx );
     return NULL;
@@ -491,7 +492,12 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     if (sess->init_data) gf_free(sess->init_data);
     sess->orig_url = sess->server_name = sess->remote_path;
     sess->creds = NULL;
-    sess->cache_entry = NULL;
+	if (sess->cache_entry) {
+		gf_list_del_item(sess->dm->cache_entries, sess->cache_entry);
+		gf_cache_close_write_cache(sess->cache_entry, sess, 1);
+		gf_cache_delete_entry(sess->cache_entry);
+	    sess->cache_entry = NULL;
+	}
     gf_free(sess);
 }
 
@@ -1747,8 +1753,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             }
         }
         else if (!stricmp(hdr, "Cache-Control")) {
-            if (strstr(hdr_val, "no-cache"))
-                sess->use_cache_file = 0;
+            gf_cache_set_temporary_entry(sess->cache_entry, hdr_val);
         }
         else if (!stricmp(hdr, "ETag")) {
             gf_cache_set_etag_on_server(sess->cache_entry, hdr_val);
@@ -2119,7 +2124,8 @@ GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
     sess->total_size = 0;
     sess->window_start = 0;
     sess->start_time = 0;
-    return GF_OK;
+	if (sess->cache_entry) gf_cache_close_write_cache(sess->cache_entry, sess, 1);
+	return GF_OK;
 }
 
 DownloadedCacheEntry gf_dm_cache_entry_dup_readonly( const GF_DownloadSession * sess) {
