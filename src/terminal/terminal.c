@@ -177,7 +177,7 @@ static Bool term_check_locales(void *__self, const char *locales_parent_path, co
 	GF_TermLocales *loc = (GF_TermLocales*)__self;
 
 	/* Checks if the rel_path argument really contains a relative path (no ':', no '/' at the beginning) */
-	if (strstr(rel_path, "://") || (rel_path[0]=='/') || strstr(rel_path, ":\\")) {
+	if (strstr(rel_path, "://") || (rel_path[0]=='/') || strstr(rel_path, ":\\") || !strncmp(rel_path, "\\\\", 2)) {
 		return 0;
 	}
 
@@ -511,7 +511,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	tmp->net_services_to_remove = gf_list_new();
 	tmp->channels_pending = gf_list_new();
 	tmp->media_queue = gf_list_new();
-	
+	tmp->media_queue_mx = gf_mx_new("MediaQueue");
 	tmp->net_mx = gf_mx_new("GlobalNetwork");
 	tmp->input_streams = gf_list_new();
 	tmp->x3d_sensors = gf_list_new();
@@ -623,6 +623,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_list_del(term->extensions);
 	if (term->unthreaded_extensions) gf_list_del(term->unthreaded_extensions);
 
+	while (term->in_event_filter) gf_sleep(1);
 	gf_mx_p(term->evt_mx);
 	if (term->event_filters) {
 		gf_list_del(term->event_filters);
@@ -645,6 +646,8 @@ GF_Err gf_term_del(GF_Terminal * term)
 	assert(!term->nodes_pending);
 	gf_list_del(term->media_queue);
 	if (term->downloader) gf_dm_del(term->downloader);
+	
+	gf_mx_del(term->media_queue_mx);
 
 	if (term->locales.szAbsRelocatedPath) gf_free(term->locales.szAbsRelocatedPath);
 	gf_list_del(term->uri_relocators);
@@ -869,21 +872,24 @@ void gf_term_handle_services(GF_Terminal *term)
 	GF_ClientService *ns;
 
 	/*we could run into a deadlock if some thread has requested opening of a URL. If we cannot
-	grab the network now, we'll do our management at the next cycle*/
-	if (!gf_mx_try_lock(term->net_mx))
+	grab the media queue now, we'll do our management at the next cycle*/
+	if (!gf_mx_try_lock(term->media_queue_mx))
 		return;
 
 	/*play ODs that need it*/
 	while (gf_list_count(term->media_queue)) {
 		Bool destroy = 0;
+		u32 act_type;
 		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(term->media_queue, 0);
 		gf_list_rem(term->media_queue, 0);
-		/*unlock net before sending play/pause*/
-		gf_mx_v(term->net_mx);
+		/*unlock media queue before sending play/pause*/
+		gf_mx_v(term->media_queue_mx);
 
-		switch (odm->action_type) {
+		act_type = odm->action_type;
+		odm->action_type = GF_ODM_ACTION_PLAY;
+		switch (act_type) {
 		case GF_ODM_ACTION_STOP:
-			//if (odm->codec && odm->codec->CB  && (odm->codec->CB->Capacity==1)) 
+			if (odm->mo /*&& odm->codec && odm->codec->CB  && (odm->codec->CB->Capacity==1)*/) 
 			{
 				if (odm->mo->OD_ID==GF_MEDIA_EXTERNAL_ID) destroy = 1;
 				else if (odm->OD && (odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID)) destroy = 1;
@@ -900,13 +906,17 @@ void gf_term_handle_services(GF_Terminal *term)
 		case GF_ODM_ACTION_DELETE:
 			gf_odm_disconnect(odm, 2);
 			break;
+		case GF_ODM_ACTION_SCENE_DISCONNECT:
+			assert(odm->subscene);
+			gf_odm_stop(odm, 1);
+			gf_scene_disconnect(odm->subscene, 1);
+			break;
 		}
-		odm->action_type = GF_ODM_ACTION_PLAY;
 	
-		/*relock net before sending play/pause*/
-		gf_mx_p(term->net_mx);
+		/*relock before sending play/pause*/
+		gf_mx_p(term->media_queue_mx);
 	}
-	gf_mx_v(term->net_mx);
+	gf_mx_v(term->media_queue_mx);
 
 	/*lock to avoid any start attemps from compositor*/
 	if (!gf_mx_try_lock(term->compositor->mx)) 
@@ -1007,6 +1017,15 @@ void gf_term_lock_compositor(GF_Terminal *term, Bool LockIt)
 	gf_sc_lock(term->compositor, LockIt);
 }
 
+/*locks media quaue*/
+void gf_term_lock_media_queue(GF_Terminal *term, Bool LockIt)
+{
+	if (LockIt) {
+		gf_mx_p(term->media_queue_mx);
+	} else {
+		gf_mx_v(term->media_queue_mx);
+	}
+}
 
 void gf_term_lock_net(GF_Terminal *term, Bool LockIt)
 {
@@ -1579,24 +1598,27 @@ GF_Err gf_term_paste_text(GF_Terminal *term, const char *txt, Bool probe_only)
 	return gf_sc_paste_text(term->compositor, txt);
 }
 
-Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed)
+Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed, Bool forward_only)
 {
 	if (!term) return 0;
 	
 	if (term->event_filters) {
 		GF_TermEventFilter *ef;
 		u32 i=0;
+
 		gf_mx_p(term->evt_mx);
+		term->in_event_filter ++;
+		gf_mx_v(term->evt_mx);
 		while ((ef=gf_list_enum(term->event_filters, &i))) {
-			if (ef->on_event(ef->udta, evt)) {
-				gf_mx_v(term->evt_mx);
+			if (ef->on_event(ef->udta, evt, consumed)) {
+				term->in_event_filter --;
 				return 0;
 			}
 		}
-		gf_mx_v(term->evt_mx);
+		term->in_event_filter --;
 	}
 
-	if (!consumed && term->user->EventProc) 
+	if (!forward_only && !consumed && term->user->EventProc) 
 		return term->user->EventProc(term->user->opaque, evt);
 
 	return 0;
@@ -1606,6 +1628,7 @@ GF_Err gf_term_add_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef)
 {
 	GF_Err e;
 	if (!terminal || !ef || !ef->on_event) return GF_BAD_PARAM;
+	while (terminal->in_event_filter) gf_sleep(1);
 	gf_mx_p(terminal->evt_mx);
 	if (!terminal->event_filters) terminal->event_filters = gf_list_new();
 	e = gf_list_add(terminal->event_filters, ef);
@@ -1617,6 +1640,7 @@ GF_Err gf_term_remove_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef
 {
 	if (!terminal || !ef || !terminal->event_filters) return GF_BAD_PARAM;
 
+	while (terminal->in_event_filter) gf_sleep(1);
 	gf_mx_p(terminal->evt_mx);
 	gf_list_del_item(terminal->event_filters, ef);
 	if (!gf_list_count(terminal->event_filters)) {
@@ -1631,7 +1655,7 @@ GF_Err gf_term_remove_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef
 GF_EXPORT
 Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt)
 {
-	return gf_term_forward_event(term, evt, 0);
+	return gf_term_forward_event(term, evt, 0, 0);
 }
 
 enum
