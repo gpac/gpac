@@ -520,7 +520,6 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 
 	if (!scene) return;
 	root = gf_sg_get_root_node(scene->graph);
-	if (!root) return;
 
 	if (!event) {
 		memset(&evt, 0, sizeof(GF_DOM_Event));
@@ -549,7 +548,7 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 	if (n) {
 		gf_dom_event_fire(n, event);
 	} else {
-		gf_dom_event_fire(root, event);
+		if (root) gf_dom_event_fire(root, event);
 	
 		count=scene->root_od->mo ? gf_list_count(scene->root_od->mo->nodes) : 0;
 		for (i=0;i<count; i++) {
