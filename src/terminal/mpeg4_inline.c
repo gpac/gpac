@@ -122,7 +122,7 @@ void gf_inline_on_modified(GF_Node *node)
 							}
 						}
 					} else {
-						gf_term_lock_net(scene->root_od->term, 1);
+						gf_term_lock_media_queue(scene->root_od->term, 1);
 						
 						/*external media are completely unloaded*/
 						if (scene->root_od->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID) {
@@ -133,7 +133,7 @@ void gf_inline_on_modified(GF_Node *node)
 						if (gf_list_find(scene->root_od->term->media_queue, scene->root_od)<0)
 							gf_list_add(scene->root_od->term->media_queue, scene->root_od);
 
-						gf_term_lock_net(scene->root_od->term, 0);
+						gf_term_lock_media_queue(scene->root_od->term, 0);
 					}
 				}
 			}
@@ -197,24 +197,27 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		if (mo->num_open) {
 			mo->num_open --;
 			if (!mo->num_open) {
+				gf_term_lock_media_queue(scene->root_od->term, 1);
+
 				/*this is unspecified in the spec: whenever an inline not using the 
 				OD framework is destroyed, destroy the associated resource*/
 				if (mo->OD_ID == GF_MEDIA_EXTERNAL_ID) {
-					gf_odm_disconnect(scene->root_od, 1);
-
 					/*get parent scene and remove MediaObject in case the ressource
 					gets re-requested later on*/
-					scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) n) );
-					if (gf_list_del_item(scene->scene_objects, mo)>=0) {
+					GF_Scene *parent_scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph((GF_Node *) n) );
+					if (gf_list_del_item(parent_scene->scene_objects, mo)>=0) {
 						gf_sg_vrml_mf_reset(&mo->URLs, GF_SG_VRML_MFURL);
 						gf_list_del(mo->nodes);
+						if (mo->odm) mo->odm->mo = NULL;
 						gf_free(mo);
 					}
+					scene->root_od->action_type = GF_ODM_ACTION_DELETE;
+					gf_list_add(scene->root_od->term->media_queue, scene->root_od);
 				} else {
-					gf_odm_stop(scene->root_od, 1);
-					gf_scene_disconnect(scene, 1);
-					assert(gf_list_count(scene->resources) == 0);
+					scene->root_od->action_type = GF_ODM_ACTION_SCENE_DISCONNECT;
+					gf_list_add(scene->root_od->term->media_queue, scene->root_od);
 				}
+				gf_term_lock_media_queue(scene->root_od->term, 0);
 			}
 		}
 		return;
@@ -228,8 +231,13 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		scene = (GF_Scene *)gf_node_get_private(n);
 		if (!scene) {
 			/*just like protos, we must invalidate parent graph until attached*/
-			if (inl->url.count)
-				gf_node_dirty_set(n, 0, 1);
+			if (inl->url.count) {
+				if (!inl->url.vals[0].OD_ID && (!inl->url.vals[0].url || !strlen(inl->url.vals[0].url) ) ) {
+					gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
+				} else {
+					gf_node_dirty_set(n, 0, 1);
+				}
+			}
 			return;
 		}
 	}
