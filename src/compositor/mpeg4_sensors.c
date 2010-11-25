@@ -43,6 +43,7 @@ static void mpeg4_sensor_deleted(GF_Node *node, GF_SensorHandler *hdl)
 	if (compositor) {
 		GF_VisualManager *visual;
 		u32 i=0;
+		gf_list_del_item(compositor->sensors, hdl);
 		gf_list_del_item(compositor->previous_sensors, hdl);
 		if (compositor->interaction_sensors) compositor->interaction_sensors--;
 		while ( (visual=gf_list_enum(compositor->visuals, &i)) ) {
@@ -410,7 +411,8 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 			ps->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
 			compositor->grabbed_sensor = 1;
-		} else if (ps->isActive) {
+		} 
+		if (ps->isActive) {
 			GF_Ray loc_ray;
 			SFVec3f res;
 			loc_ray = compositor->hit_world_ray;

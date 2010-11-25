@@ -151,7 +151,6 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 		if (l->size.y>=0) st->clip.height = l->size.y;
 		st->clip = gf_rect_center(st->clip.width, st->clip.height);
 		st->bounds = st->clip;
-		//gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 	
 	prev_vp = tr_state->vp_size;

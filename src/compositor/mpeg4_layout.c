@@ -227,6 +227,7 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 			i = first;
 			while (1) {
 				cg = (ChildGroup *)gf_list_get(st->groups, i);
+				if (!cg) break;
 				h = MAX(li->ascent, li->height);
 				switch (minor) {
 				case L_FIRST:
