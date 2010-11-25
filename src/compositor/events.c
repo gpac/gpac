@@ -104,6 +104,10 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 
 		memset(&info, 0, sizeof(GF_FieldInfo));
 		info.fieldIndex = (u32) -1;
+		if (compositor->focus_text_type>=3) {
+			gf_node_get_field(compositor->focus_node, 0, &info);
+			gf_node_event_out(compositor->focus_node, 0);
+		}			
 		gf_node_changed(compositor->focus_node, &info);
 
 	}
@@ -176,11 +180,11 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 		break;
 	}
 	prev_pos = compositor->dom_text_pos;
-
 	compositor->dom_text_pos = 0;
 
+
 #ifndef GPAC_DISABLE_VRML
-	if (compositor->focus_text_type==3) {
+	if (compositor->focus_text_type>=3) {
 		MFString *mf = &((M_Text*)compositor->focus_node)->string;
 
 		if (append) {
@@ -194,7 +198,25 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 			compositor->dom_text_pos = prev_pos;
 			return 0;
 		}
+
+		if (compositor->picked_span_idx >=0) {
+			compositor->dom_text_pos = 1+compositor->picked_span_idx;
+			compositor->picked_span_idx = -1;
+		}
+
+		if (!compositor->dom_text_pos || (compositor->dom_text_pos>mf->count)) {
+			compositor->dom_text_pos = prev_pos;
+			return 0;
+		}
 		res = &mf->vals[compositor->dom_text_pos-1];
+		if (compositor->picked_glyph_idx>=0) {
+			caret_pos = compositor->picked_glyph_idx;
+			compositor->picked_glyph_idx = -1;
+
+			if (caret_pos >= strlen(*res)) 
+				caret_pos = -1;
+		}
+
 	} else 
 #endif /*GPAC_DISABLE_VRML*/
 
@@ -276,6 +298,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 							if (compositor->edited_text) {
 								flush_text_node_edit(compositor, 1);
 							}
+							if (!n1->textContent) n1->textContent = gf_strdup("");
 							caret_pos = strlen(n1->textContent);
 							if (n2->textContent) {
 								n1->textContent = gf_realloc(n1->textContent, sizeof(char)*(strlen(n1->textContent)+strlen(n2->textContent)+1));
@@ -330,12 +353,12 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 		if (caret_pos>=0) {
 			compositor->sel_buffer_len = gf_utf8_mbstowcs(compositor->sel_buffer, compositor->sel_buffer_alloc, &src);
 			memmove(&compositor->sel_buffer[caret_pos+1], &compositor->sel_buffer[caret_pos], sizeof(u16)*(compositor->sel_buffer_len-caret_pos));
-			compositor->sel_buffer[caret_pos]='|';
+			compositor->sel_buffer[caret_pos] = GF_CARET_CHAR;
 			compositor->caret_pos = caret_pos;
 		
 		} else {
 			compositor->sel_buffer_len = gf_utf8_mbstowcs(compositor->sel_buffer, compositor->sel_buffer_alloc, &src);
-			compositor->sel_buffer[compositor->sel_buffer_len]='|';
+			compositor->sel_buffer[compositor->sel_buffer_len] = GF_CARET_CHAR;
 			compositor->caret_pos = compositor->sel_buffer_len;
 		}
 		compositor->sel_buffer_len++;
@@ -343,7 +366,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 	} else {
 		compositor->sel_buffer_alloc = 2;
 		compositor->sel_buffer = gf_malloc(sizeof(u16)*2);
-		compositor->sel_buffer[0] = '|';
+		compositor->sel_buffer[0] = GF_CARET_CHAR;
 		compositor->sel_buffer[1] = 0;
 		compositor->caret_pos = 0;
 		compositor->sel_buffer_len = 1;
@@ -467,6 +490,10 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 			}
 			break;
 		case GF_KEY_ENTER:
+			if (compositor->focus_text_type==4) {
+				is_end = 1;
+				break;
+			}
 			load_text_node(compositor, 3);
 			return;
 		default:
@@ -476,7 +503,7 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 			if (compositor->caret_pos==prev_caret) return;
 			memmove(&compositor->sel_buffer[prev_caret], &compositor->sel_buffer[prev_caret+1], sizeof(u16)*(compositor->sel_buffer_len-prev_caret));
 			memmove(&compositor->sel_buffer[compositor->caret_pos+1], &compositor->sel_buffer[compositor->caret_pos], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos));
-			compositor->sel_buffer[compositor->caret_pos]='|';
+			compositor->sel_buffer[compositor->caret_pos]=GF_CARET_CHAR;
 		}
 	} else {
 		return;
@@ -505,8 +532,13 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 	) {
 		M_FontStyle *fs = (M_FontStyle *) ((M_Text *)text)->fontStyle;
 		if (!fs || !fs->style.buffer) return 0;
-		if (!strstr(fs->style.buffer, "editable") && !strstr(fs->style.buffer, "EDITABLE")) return 0;
-		compositor->focus_text_type = 3;
+		if (strstr(fs->style.buffer, "editable") || strstr(fs->style.buffer, "EDITABLE")) {
+			compositor->focus_text_type = 3;
+		} else if (strstr(fs->style.buffer, "simple_edit") || strstr(fs->style.buffer, "SIMPLE_EDIT")) {
+			compositor->focus_text_type = 4;
+		} else {
+			return 0;
+		}
 		compositor->focus_node = text;
 		return 1;
 	}
@@ -767,7 +799,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	if (compositor->prev_hit_appear != compositor->hit_appear) {
 		if (compositor->prev_hit_appear) {
 			compositor_compositetexture_handle_event(compositor, compositor->prev_hit_appear, ev, 1);
-			compositor->prev_hit_appear = NULL;
+			if (!compositor->grabbed_sensor) compositor->prev_hit_appear = NULL;
 		}
 	}
 
@@ -775,10 +807,10 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	if (compositor->hit_appear) {
 		GF_Node *appear = compositor->hit_appear;
 		if (compositor_compositetexture_handle_event(compositor, compositor->hit_appear, ev, 0)) {
-			compositor->prev_hit_appear = appear;
+			if (compositor->hit_appear) compositor->prev_hit_appear = appear;
 			return 1;
 		}
-		compositor->prev_hit_appear = NULL;
+		compositor->prev_hit_appear = compositor->grabbed_sensor ? compositor->hit_appear : NULL;
 	}
 
 
@@ -937,7 +969,9 @@ static Bool exec_vrml_key_event(GF_Compositor *compositor, GF_Node *node, GF_Eve
 			child = child->next;
 		}
 	}
-	return ret ? 1 : 0;
+	/*fixme - modify handlers so they indicate whether the event is consumed or not*/
+	return 0;
+//	return ret ? 1 : 0;
 }
 
 #endif /*GPAC_DISABLE_VRML*/
@@ -1280,8 +1314,14 @@ test_grouping:
 				M_FontStyle *fs = (M_FontStyle *) ((M_Text *)elt)->fontStyle;
 	
 				if (!fs || !fs->style.buffer) return NULL;
-				if (!strstr(fs->style.buffer, "editable") && !strstr(fs->style.buffer, "EDITABLE")) return NULL;
-				compositor->focus_text_type = 3;
+
+				if (strstr(fs->style.buffer, "editable") || strstr(fs->style.buffer, "EDITABLE")) {
+					compositor->focus_text_type = 3;
+				} else if (strstr(fs->style.buffer, "simple_edit") || strstr(fs->style.buffer, "SIMPLE_EDIT")) {
+					compositor->focus_text_type = 4;
+				} else {
+					return NULL;
+				}
 				return elt;
 			}
 			return NULL;
@@ -1658,7 +1698,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *
 	compositor->focus_uses_dom_events = 0;
 
 	if (!compositor->focus_node) {
-		compositor->focus_node = gf_sg_get_root_node(compositor->scene);
+		compositor->focus_node = (force_focus==2) ? focus : gf_sg_get_root_node(compositor->scene);
 		gf_list_reset(compositor->focus_ancestors);
 		if (!compositor->focus_node) return 0;
 		current_focus = 0;

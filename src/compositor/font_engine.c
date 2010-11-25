@@ -29,7 +29,6 @@
 #include <gpac/options.h>
 #include "visual_manager.h"
 #include "nodes_stacks.h"
-
 #include "texturing.h"
 
 struct _gf_ft_mgr
@@ -323,14 +322,29 @@ static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 		if (glyph->ID==name) return glyph;
 		glyph = glyph->next;
 	}
-	/*load glyph*/
 
-	if (font->load_glyph) {
-		glyph = font->load_glyph(font->udta, name);
+	if (name==GF_CARET_CHAR) {
+		GF_SAFEALLOC(glyph, GF_Glyph);
+		glyph->height = font->ascent;
+		glyph->horiz_advance = 0;
+		glyph->width = 0;
+		glyph->ID = GF_CARET_CHAR;
+		glyph->path = gf_path_new();
+		gf_path_add_move_to(glyph->path, 0, INT2FIX(font->descent));
+		gf_path_add_line_to(glyph->path, 0, INT2FIX(font->ascent));
+		gf_path_add_line_to(glyph->path, 1, INT2FIX(font->ascent));
+		gf_path_add_line_to(glyph->path, 1, INT2FIX(font->descent));
+		gf_path_close(glyph->path);
+		glyph->utf_name=0;
 	} else {
-		if (!fm->reader) return NULL;
-//		fm->reader->set_font(fm->reader, font->name, font->styles);
-		glyph = fm->reader->load_glyph(fm->reader, name);
+		/*load glyph*/
+		if (font->load_glyph) {
+			glyph = font->load_glyph(font->udta, name);
+		} else {
+			if (!fm->reader) return NULL;
+	//		fm->reader->set_font(fm->reader, font->name, font->styles);
+			glyph = fm->reader->load_glyph(fm->reader, name);
+		}
 	}
 	if (!glyph) return NULL;
 
@@ -571,6 +585,9 @@ GF_Path *gf_font_span_create_path(GF_TextSpan *span)
 				gf_mx2d_init(mx);
 				if (span->rot) {
 					gf_mx2d_add_rotation(&mx, 0, 0, -span->rot[i]);
+				}
+				if (span->glyphs[i]->ID==GF_CARET_CHAR) {
+					gf_mx2d_add_scale(&mx, mat.m[0], FIX_ONE);
 				}
 				gf_mx2d_add_translation(&mx, dx, dy);
 				gf_path_add_subpath(path, span->glyphs[i]->path, &mx);
@@ -942,8 +959,6 @@ void gf_font_spans_draw_3d(GF_List *spans, GF_TraverseState *tr_state, DrawAspec
 
 #endif
 
-
-
 static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, DrawableContext *ctx, GF_Rect *bounds)
 {
 	u32 flags, i;
@@ -975,7 +990,15 @@ static void gf_font_span_draw_2d(GF_TraverseState *tr_state, GF_TextSpan *span, 
 			}
 			continue;
 		}
-		ctx->transform.m[0] = sx;
+		if (span->glyphs[i]->ID==GF_CARET_CHAR) {
+			if (tr_state->visual->compositor->show_caret) {
+				ctx->transform.m[0] = FIX_ONE;
+			} else {
+				continue;
+			}
+		} else {
+			ctx->transform.m[0] = sx;
+		}
 		ctx->transform.m[4] = flip_text  ? -sy : sy;
 		ctx->transform.m[1] = ctx->transform.m[3] = 0;
 		ctx->transform.m[2] = span->dx ? span->dx[i] : dx;
@@ -1293,7 +1316,7 @@ void gf_font_spans_draw_2d(GF_List *spans, GF_TraverseState *tr_state, u32 hl_co
 
 void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_state, GF_Rect *node_bounds, Bool use_dom_events, Drawable *drawable)
 {
-	u32 i, count, j;
+	u32 i, count, j, glyph_idx;
 	Fixed dx, dy;
 #ifndef GPAC_DISABLE_3D
 	GF_Matrix inv_mx;
@@ -1355,6 +1378,7 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 			continue;
 		}
 
+		glyph_idx = 0;
 		dx = span->off_x;
 		dy = span->off_y;
 		for (j=0; j<span->nb_glyphs; j++) {
@@ -1367,6 +1391,10 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 				}
 				continue;
 			}
+			else if (span->glyphs[j]->ID==GF_CARET_CHAR) {
+				continue;
+			}
+			glyph_idx++;
 
 			loc_x = x - (span->dx ? span->dx[j] : dx);
 			loc_y = y - (span->dy ? span->dy[j] : dy);
@@ -1384,7 +1412,7 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 				gf_mx2d_apply_coords(&r, &loc_x, &loc_y);
 			}
 
-			if (use_dom_events) {
+			if (use_dom_events && !compositor->sel_buffer) {
 				if (svg_drawable_is_over(drawable, loc_x, loc_y, &asp, tr_state, &rc))
 					goto picked;
 			} else {
@@ -1431,6 +1459,8 @@ picked:
 	} else {
 		compositor->start_sel = compositor->end_sel;
 	}
+	compositor->picked_span_idx = i;
+	compositor->picked_glyph_idx = glyph_idx;
 
 	compositor->hit_text = tr_state->text_parent;
 	compositor->hit_use_dom_events = use_dom_events;

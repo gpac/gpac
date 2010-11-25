@@ -182,6 +182,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 		compositor->offscreen_width = compositor->offscreen_height = 0;
 #endif
+		gf_sc_lock(compositor, 0);
 		evt.type = GF_EVENT_SYS_COLORS;
 		if (gf_term_send_event(compositor->term, &evt) ) {
 			u32 i;
@@ -189,6 +190,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 				compositor->sys_colors[i] = evt.sys_cols.sys_colors[i] & 0x00FFFFFF;
 			}
 		}
+		gf_sc_lock(compositor, 1);
 	}
 }
 
@@ -1561,7 +1563,7 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 
 static void gf_sc_forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed)
 {
-	gf_term_forward_event(compositor->term, ev, consumed);
+	gf_term_forward_event(compositor->term, ev, consumed, 0);
 	if (consumed) return;
 
 	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
@@ -1689,6 +1691,10 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 
 		compositor->recompute_ar = 1;
 	}
+}
+
+static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
+{
 
 #ifndef GPAC_DISABLE_LOG
 	compositor->visual_config_time = 0;
@@ -1736,7 +1742,7 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 		return;
 	}
 
-	gf_sc_setup_root_visual(compositor, top_node);
+	gf_sc_recompute_ar(compositor, top_node);
 
 #ifdef GF_SR_USE_VIDEO_CACHE
 	if (!compositor->video_cache_max_size)
@@ -1781,7 +1787,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	/*first thing to do, let the video output handle user event if it is not threaded*/
 	compositor->video_out->ProcessEvent(compositor->video_out, NULL);
-
 
 	if (compositor->freeze_display) {
 		gf_sc_lock(compositor, 0);
@@ -1921,6 +1926,9 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	time_node_time = gf_sys_clock() - time_node_time;
 #endif
 
+	/*setup root visual BEFORE updating the texture, because of potential composite texture */
+	gf_sc_setup_root_visual(compositor, gf_sg_get_root_node(compositor->scene));
+
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock();
 #endif
@@ -1942,6 +1950,18 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	if (compositor->force_next_frame_redraw) {
 		compositor->force_next_frame_redraw=0;
 		compositor->frame_draw_type=GF_SC_DRAW_FRAME;
+	}
+
+	if (compositor->focus_text_type) {
+		if (!compositor->caret_next_draw_time) {
+			compositor->caret_next_draw_time = gf_sys_clock();
+			compositor->show_caret = 1;
+		}
+		if (compositor->caret_next_draw_time <= compositor->last_frame_time) {
+			compositor->frame_draw_type=GF_SC_DRAW_FRAME;
+			compositor->caret_next_draw_time+=500;
+			compositor->show_caret = !compositor->show_caret;
+		}
 	}
 
 
@@ -2024,7 +2044,8 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		txh->flags &= ~GF_SR_TEXTURE_USED;
 	}
 
-	end_time = gf_sys_clock() - in_time;
+	compositor->last_frame_time = gf_sys_clock();
+	end_time = compositor->last_frame_time - in_time;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n", 
 		compositor->networks_time, 
