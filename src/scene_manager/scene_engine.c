@@ -521,7 +521,7 @@ static Bool gf_sm_check_for_modif(GF_AUContext *au)
 		/*check root node (for SCENE_REPLACE) */
 		if (gf_node_dirty_get(com->node)) {
 			modified=1;
-			gf_node_dirty_reset(com->node);
+			gf_node_dirty_reset(com->node, 1);
 		}
 		/*check all command fields of type SFNODE or MFNODE*/
 		while (field = gf_list_enum(com->command_fields, &j)) {
@@ -530,7 +530,7 @@ static Bool gf_sm_check_for_modif(GF_AUContext *au)
 				if (field->new_node) {
 					if (gf_node_dirty_get(field->new_node)) {
 						modified=1;
-						gf_node_dirty_reset(field->new_node);
+						gf_node_dirty_reset(field->new_node, 1);
 					}
 				}
 				break;
@@ -541,7 +541,7 @@ static Bool gf_sm_check_for_modif(GF_AUContext *au)
 					while (child) {
 						if (gf_node_dirty_get(child->node)) {
 							modified=1;
-							gf_node_dirty_reset(child->node);
+							gf_node_dirty_reset(child->node, 1);
 						}
 						child = child->next;
 					}
