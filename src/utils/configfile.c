@@ -183,12 +183,16 @@ static GF_Err gf_cfg_parse_config_file(GF_Config * tmp, const char * filePath, c
 			if (ret) {
 				ret[0] = 0;
 				k->name = gf_strdup(line);
+				while (k->name[strlen(k->name) - 1] == ' ') k->name[strlen(k->name) - 1] = 0;
 				ret[0] = '=';
 				ret += 1;
 				while (ret[0] == ' ') ret++;
-				k->value = gf_strdup(ret);
-				while (k->name[strlen(k->name) - 1] == ' ') k->name[strlen(k->name) - 1] = 0;
-				while (k->value[strlen(k->value) - 1] == ' ') k->value[strlen(k->value) - 1] = 0;
+				if ( ret[0] != 0) {
+					k->value = gf_strdup(ret);
+					while (k->value[strlen(k->value) - 1] == ' ') k->value[strlen(k->value) - 1] = 0;
+				} else {
+					k->value = gf_strdup("");
+				}
 			}
 			gf_list_add(p->keys, k);
 		}
@@ -218,6 +222,7 @@ GF_Config *gf_cfg_new(const char *filePath, const char* file_name)
 	}
 	return tmp;
 }
+
 
 GF_EXPORT 
 GF_Err gf_cfg_save(GF_Config *iniFile)
@@ -251,6 +256,14 @@ void gf_cfg_del(GF_Config *iniFile)
 {
 	if (!iniFile) return;
 	gf_cfg_save(iniFile);
+	gf_cfg_clear(iniFile);
+	gf_free(iniFile);
+}
+
+void gf_cfg_remove(GF_Config *iniFile)
+{
+	if (!iniFile) return;
+	gf_delete_file(iniFile->fileName);
 	gf_cfg_clear(iniFile);
 	gf_free(iniFile);
 }

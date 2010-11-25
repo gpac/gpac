@@ -76,6 +76,13 @@ GF_Config *gf_cfg_force_new(const char *filePath, const char *fileName);
  */
 void gf_cfg_del(GF_Config *cfgFile);
 /*!
+ *	\brief configuration file destructor
+ *
+ *Destroys the configuration file and removes the file  from disk.
+ *\param cfgFile the target configuration file
+ */
+void gf_cfg_remove(GF_Config *cfgFile);
+/*!
  *	\brief configuration saving
  *
  *Saves the configuration file if modified.
