@@ -90,6 +90,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 				gf_term_lock_net(term, 1);
 				service->ifce->CloseService(service->ifce);
 				root->net_service = NULL;
+				if (service->owner && service->nb_odm_users) service->nb_odm_users--;
 				service->owner = NULL;
 				/*depends on module: some module could forget to call gf_term_on_disconnect */
 				if ( gf_list_del_item(term->net_services, service) >= 0) {
@@ -567,15 +568,18 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	char szExt[50];
 	GF_InputService *ifce;
 
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Looking for plugin for URL %s\n", url));
 	*out_url = NULL;
-	if (!url) {
+	if (!url || !strncmp(url, "\\\\", 2) ) {
 		(*ret_code) = GF_URL_ERROR;
 		return NULL;
 	}
 
 	sURL = NULL;
-	if (parent_url) sURL = gf_url_concatenate(parent_url, url);
+	/*used by GUIs scripts to skip URL concatenation*/
+	if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
+	else if (parent_url) sURL = gf_url_concatenate(parent_url, url);
 
 	/*path absolute*/
 	if (!sURL) sURL = gf_strdup(url);
@@ -825,12 +829,14 @@ void NM_DeleteService(GF_ClientService *ns)
 {
 	const char *sOpt = gf_cfg_get_key(ns->term->user->config, "StreamingCache", "AutoSave");
 	if (ns->cache) gf_term_service_cache_close(ns, (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
-	gf_modules_close_interface((GF_BaseInterface *)ns->ifce);
-	gf_free(ns->url);
 
 	assert(!ns->nb_odm_users);
 	assert(!ns->nb_ch_users);
 	assert(!ns->owner);
+
+	gf_modules_close_interface((GF_BaseInterface *)ns->ifce);
+	gf_free(ns->url);
+
 
 	/*delete all the clocks*/
 	while (gf_list_count(ns->Clocks)) {
