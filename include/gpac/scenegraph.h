@@ -302,8 +302,8 @@ if @flags is not 0, removes the indicated flags from the node dirty state
 */
 void gf_node_dirty_clear(GF_Node *node, u32 flags);
 
-/*if the node is in a dirty state, resets it and the state of all its children*/
-void gf_node_dirty_reset(GF_Node *node);
+/*if the node is in a dirty state, resets it and the state of all its children if desired*/
+void gf_node_dirty_reset(GF_Node *node, Bool reset_children);
 
 /*get dirty flag value*/
 u32 gf_node_dirty_get(GF_Node *node);
