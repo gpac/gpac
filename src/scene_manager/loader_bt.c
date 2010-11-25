@@ -461,7 +461,7 @@ char *gf_bt_get_string(GF_BTParser *parser)
 
 #define	BT_STR_CHECK_ALLOC	\
 		if (i==size) {		\
-			res = (char*)gf_realloc(res, sizeof(char) * (size+500));	\
+			res = (char*)gf_realloc(res, sizeof(char) * (size+500+1));	\
 			size += 500;	\
 		}	\
 
@@ -477,7 +477,7 @@ char *gf_bt_get_string(GF_BTParser *parser)
 	i=0;
 	while (1) {
 		if (parser->line_buffer[parser->line_pos] == '\"')
-			if (parser->line_buffer[parser->line_pos-1] != '\\') break;
+			if ( !parser->line_pos || (parser->line_buffer[parser->line_pos-1] != '\\') ) break;
 
 		BT_STR_CHECK_ALLOC
 
