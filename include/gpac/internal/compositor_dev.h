@@ -188,6 +188,8 @@ struct __tag_compositor
 	u32 frame_duration;
 	u32 frame_time[GF_SR_FPS_COMPUTE_SIZE];
 	u32 current_frame;
+	u32 last_frame_time, caret_next_draw_time;
+	Bool show_caret;
 
 	u32 last_click_time;
 
@@ -403,6 +405,7 @@ struct __tag_compositor
 	u8 *selected_text;
 	/*text selection color - reverse video not yet supported*/
 	u32 text_sel_color;
+	s32 picked_glyph_idx, picked_span_idx;
 
 	/*set whenever the focus node is a text node*/
 	u32 focus_text_type;
@@ -1144,9 +1147,14 @@ Bool compositor_svg_evaluate_conditional(GF_Compositor *compositor, SVGAllAttrib
 to async restart of animation nodes*/
 GF_Node *compositor_svg_get_xlink_resource_node(GF_Node *node, XMLRI *xlink);
 
+GF_SceneGraph *gf_sc_animation_get_scenegraph(GF_Node *node);
+
 #endif
 
 /*Text handling*/
+
+/*we identify the edit caret in a text string as this value*/
+#define GF_CARET_CHAR 0x1
 
 typedef struct _gf_font GF_Font;
 
