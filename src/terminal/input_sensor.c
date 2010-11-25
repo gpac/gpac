@@ -289,9 +289,9 @@ static GF_Err IS_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffer
 			ptr = priv->enteredText;
 			len = gf_utf8_wcstombs(tmp_utf8, 5000, &ptr);
 			if (outText->buffer) gf_free(outText->buffer);
-			outText->buffer = (char*)gf_malloc(sizeof(char) * (len+1));
-			memcpy(outText->buffer, tmp_utf8, sizeof(char) * len);
-			outText->buffer[len] = 0;
+			outText->buffer = (char*)gf_malloc(sizeof(char) * (len));
+			memcpy(outText->buffer, tmp_utf8, sizeof(char) * len-1);
+			outText->buffer[len-1] = 0;
 			if (inText->buffer) gf_free(inText->buffer);
 			inText->buffer = NULL;
 			priv->text_len = 0;
@@ -421,7 +421,7 @@ static void IS_Unregister(GF_Node *node, ISStack *st)
 	st->mo = NULL;
 	if (st->registered) {
 		st->registered = 0;
-		if (is_dec->io_dev && is_dec->io_dev->Stop) is_dec->io_dev->Start(is_dec->io_dev);
+		if (is_dec->io_dev && is_dec->io_dev->Stop) is_dec->io_dev->Stop(is_dec->io_dev);
 	}
 }
 
@@ -438,7 +438,8 @@ static void IS_Register(GF_Node *n)
 
 	/*get IS dec*/
 	is_dec = (ISPriv*)odm->codec->decio->privateStack;
-	gf_list_add(is_dec->is_nodes, st);
+	if ( gf_list_find(is_dec->is_nodes, st) == -1 )
+		gf_list_add(is_dec->is_nodes, st);
 
 	/*start stream*/
 	gf_mo_play(st->mo, 0, -1, 0);
