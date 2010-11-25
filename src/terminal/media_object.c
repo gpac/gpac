@@ -532,9 +532,9 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 		Bool is_restart = 0;
 
 		/*remove object from media queue*/
-		gf_term_lock_net(mo->odm->term, 1);
+		gf_term_lock_media_queue(mo->odm->term, 1);
 		res = gf_list_del_item(mo->odm->term->media_queue, mo->odm);
-		gf_term_lock_net(mo->odm->term, 0);
+		gf_term_lock_media_queue(mo->odm->term, 0);
 
 		if (mo->odm->action_type!=GF_ODM_ACTION_PLAY) {
 			mo->odm->action_type = GF_ODM_ACTION_PLAY;
@@ -589,7 +589,7 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
 		/*do not stop directly, this can delete channel data currently being decoded (BIFS anim & co)*/
-		gf_mx_p(mo->odm->term->net_mx);
+		gf_term_lock_media_queue(mo->odm->term, 1);
 		/*if object not in media queue, add it*/
 		if (gf_list_find(mo->odm->term->media_queue, mo->odm)<0)
 			gf_list_add(mo->odm->term->media_queue, mo->odm);
@@ -599,9 +599,10 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 			mo->odm->action_type = GF_ODM_ACTION_DELETE;
 			ret = 1;
 		}
-		else mo->odm->action_type = GF_ODM_ACTION_STOP;
+		else 
+			mo->odm->action_type = GF_ODM_ACTION_STOP;
 
-		gf_mx_v(mo->odm->term->net_mx);
+		gf_term_lock_media_queue(mo->odm->term, 0);
 	} else {
 		if (!mo->num_to_restart) {
 			mo->num_restart = mo->num_to_restart = mo->num_open + 1;
@@ -874,8 +875,10 @@ Bool gf_mo_get_loop(GF_MediaObject *mo, Bool in_loop)
 	if (gf_odm_shares_clock(mo->odm, ck)) {
 		in_loop = 0;
 #ifndef GPAC_DISABLE_VRML
-		if (ctrl && ctrl->stream->odm && ctrl->stream->odm->subscene)
+/*
+	if (ctrl && ctrl->stream->odm && ctrl->stream->odm->subscene)
 			gf_term_invalidate_compositor(mo->odm->term);
+*/
 #endif
 	}
 	gf_odm_lock(mo->odm, 0);
