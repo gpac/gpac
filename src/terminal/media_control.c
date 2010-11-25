@@ -199,14 +199,14 @@ void MC_SetSpeed(GF_ObjectManager *odm, Fixed speed)
 
 	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
 
-	/*otherwise locate all objects sharing the clock*/
+	/*locate all objects sharing the clock*/
 	ck = gf_odm_get_media_clock(odm);
 	if (!ck) return;
 
 	in_scene = odm->parentscene;
 	if (odm->subscene) {
 		assert(odm->subscene->root_od==odm);
-		assert( gf_odm_shares_clock(odm, ck) );
+//		assert( gf_odm_shares_clock(odm, ck) );
 		gf_odm_set_speed(odm, speed);
 		in_scene = odm->subscene;
 	}
@@ -273,13 +273,14 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		MediaControlStack *stack = (MediaControlStack *) gf_node_get_private(node);
 
 		/*reset ODM using this control*/
-		if (stack->stream && stack->stream->odm) {
-			odm = stack->stream->odm;
-			gf_odm_remove_mediacontrol(odm, stack);
+		if (stack->stream) {
+			if (stack->stream->odm) {
+				odm = stack->stream->odm;
+				gf_odm_remove_mediacontrol(odm, stack);
+			}
+			/*also removes the association ck<->MC if the object has been destroyed before the node*/
+			if (stack->ck) stack->ck->mc = NULL;
 		}
-		/*also removes the association ck<->MC if the object has been destroyed before the node*/
-		if (stack->ck) stack->ck->mc = NULL;
-
 		gf_list_del(stack->seg);
 		gf_sg_vrml_mf_reset(&stack->url, GF_SG_VRML_MFURL);
 		gf_free(stack);
