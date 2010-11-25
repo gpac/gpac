@@ -266,7 +266,7 @@ static u32 MM_SimulationStep(GF_Terminal *term)
 	term->compositor->networks_time = gf_sys_clock();
 #endif
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Media Manager] Entering simultion step\n"));
+//	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Media Manager] Entering simultion step\n"));
 	gf_term_handle_services(term);
 
 #ifndef GF_DISABLE_LOG
@@ -346,7 +346,7 @@ static u32 MM_SimulationStep(GF_Terminal *term)
 	if (!(term->user->init_flags & GF_TERM_NO_REGULATION)) {
 		gf_sleep(time_left);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Media Manager] Simulation step done in %d / %d ms\n", term->frame_duration-time_left, term->frame_duration));
+//	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Media Manager] Simulation step done in %d / %d ms\n", term->frame_duration-time_left, term->frame_duration));
 	return time_left;
 }
 
