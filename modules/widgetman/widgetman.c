@@ -3267,7 +3267,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		}
 
 		/*try to fetch the associated context*/
-		ctx_sess = gf_dm_sess_new(wm->term->downloader, (char *)ctxPath, GF_NETIO_SESSION_NOT_THREADED|GF_NETIO_SESSION_FORCE_RESTART, NULL, NULL, &e);
+		ctx_sess = gf_dm_sess_new(wm->term->downloader, (char *)ctxPath, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
 		if (ctx_sess) {
 			e = gf_dm_sess_process(ctx_sess);
 			if (e==GF_OK) {					
