@@ -25,6 +25,8 @@
 
 /*base SVG type*/
 #include <gpac/nodes_svg.h>
+#include <gpac/nodes_mpeg4.h>
+#include <gpac/nodes_x3d.h>
 /*dom events*/
 #include <gpac/events.h>
 
@@ -59,6 +61,7 @@ typedef struct
 
 	JSClass gpacClass;
 	JSClass gpacEvtClass;
+	JSClass anyClass;
 
 	jsval evt_fun;
 	GF_TermEventFilter evt_filter;
@@ -177,6 +180,10 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		free(url);
 		return JS_TRUE;
 	}
+	if (!strcmp(prop_name, "volume")) {
+		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_AUDIO_VOLUME));
+		return JS_TRUE;
+	}
 	return JS_TRUE;
 }
 static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
@@ -206,6 +213,16 @@ static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		Bool res = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
 		if (term->compositor->fullscreen != res) {
 			gf_term_set_option(term, GF_OPT_FULLSCREEN, res);
+		}
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "volume")) {
+		if (JSVAL_IS_NUMBER(*vp)) {
+			jsdouble d;
+			JS_ValueToNumber(c, *vp, &d);
+			gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, (u32) d);
+		} else if (JSVAL_IS_INT(*vp)) {
+			gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, JSVAL_TO_INT(*vp));
 		}
 		return JS_TRUE;
 	}
@@ -536,19 +553,39 @@ static JSBool gpac_migrate_url(JSContext *c, JSObject *obj, uintN argc, jsval *a
 
 static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
+	GF_Event *evt = JS_GetPrivate(c, obj);
+	if (!evt) return 0;
+
+	if (JSVAL_IS_INT(id)) {
+		switch (JSVAL_TO_INT(id)) {
+		case 0:
+			*vp = INT_TO_JSVAL(evt->type);
+			break;
+		case 1:
+			*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, gf_dom_get_key_name(evt->key.key_code) )); 
+			break;
+		}
+	}
 	return JS_TRUE;
 }
 
-static Bool gjs_event_filter(void *udta, GF_Event *evt)
+static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_compositor)
 {
 	jsval argv[1], rval;
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)udta;
-	if (JS_GetPrivate(gjs->c, gjs->evt_obj) != NULL) return 0;
+	if (consumed_by_compositor) return 0;
+
+	gf_sg_lock_javascript(1);
+	if (JS_GetPrivate(gjs->c, gjs->evt_obj) != NULL) {
+		gf_sg_lock_javascript(0);
+		return 0;
+	}
 	JS_SetPrivate(gjs->c, gjs->evt_obj, evt);
 	argv[0] = OBJECT_TO_JSVAL(gjs->evt_obj);
 	JS_CallFunctionValue(gjs->c, gjs->obj, gjs->evt_fun, 1, argv, &rval);
 	JS_SetPrivate(gjs->c, gjs->evt_obj, NULL);
 
+	gf_sg_lock_javascript(0);
 	return (rval==JSVAL_TO_BOOLEAN(rval)==JSVAL_TRUE) ? 1 : 0;
 }
 
@@ -581,6 +618,42 @@ static JSBool gpac_switch_focus(JSContext *c, JSObject *obj, uintN argc, jsval *
 	return JS_TRUE;
 }
 
+static JSBool gpac_get_scene(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_Node *elt;
+	u32 w, h;
+	JSObject *scene_obj;
+	GF_SceneGraph *sg;
+	GF_Scene *scene=NULL;
+	GF_GPACJSExt *gjs = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
+	if (!gjs || !argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
+
+	elt = gf_sg_js_get_node(c, JSVAL_TO_OBJECT(argv[0]));
+	if (!elt) return JS_TRUE;
+	switch (elt->sgprivate->tag) {
+	case TAG_MPEG4_Inline:
+	case TAG_X3D_Inline:
+		scene = (GF_Scene *)gf_node_get_private(elt);
+		break;
+	case TAG_SVG_animation:
+		sg = gf_sc_animation_get_scenegraph(elt);
+		scene = (GF_Scene *)gf_sg_get_private(sg);
+		break;
+	default:
+		return JS_TRUE;
+	}
+	if (!scene) return JS_TRUE;
+
+
+	scene_obj = JS_NewObject(c, &gjs->anyClass, 0, 0);
+	JS_SetPrivate(c, scene_obj, scene);
+	gf_sg_get_scene_size_info(scene->graph, &w, &h);
+	JS_DefineProperty(c, scene_obj, "width", INT_TO_JSVAL(w), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, scene_obj, "height", INT_TO_JSVAL(h), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);	
+	JS_DefineProperty(c, scene_obj, "connected", BOOLEAN_TO_JSVAL(scene->graph ? JS_TRUE : JS_FALSE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);	
+	*rval = OBJECT_TO_JSVAL(scene_obj);
+	return JS_TRUE;
+}
 static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
 {
 	GF_GPACJSExt *gjs;
@@ -589,6 +662,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	GF_JSAPIParam par;
 
 	JSPropertySpec gpacEvtClassProps[] = {
+		{"type",			 0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+		{"keycode",			 1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 		{0, 0, 0, 0, 0}
 	};
 	JSFunctionSpec gpacEvtClassFuncs[] = {
@@ -613,6 +688,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		{"migrate_url",			gpac_migrate_url, 1, 0, 0},
 		{"set_event_filter",	gpac_set_event_filter, 1, 0, 0},
 		{"switch_focus",		gpac_switch_focus, 1, 0, 0},
+		{"get_scene",			gpac_get_scene, 1, 0, 0},
 
 		{0, 0, 0, 0, 0}
 	};
@@ -647,6 +723,21 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	_SETUP_CLASS(gjs->gpacEvtClass, "GPACEVT", JSCLASS_HAS_PRIVATE, gpacevt_getProperty, JS_PropertyStub, JS_FinalizeStub);
 	JS_InitClass(c, global, 0, &gjs->gpacEvtClass, 0, 0, gpacEvtClassProps, gpacEvtClassFuncs, 0, 0);
 	gjs->evt_obj = JS_DefineObject(c, global, "gpacevt", &gjs->gpacEvtClass, 0, 0);
+
+	JS_DefineProperty(c, global, "click", INT_TO_JSVAL(GF_EVENT_CLICK), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, global, "mouseup", INT_TO_JSVAL(GF_EVENT_MOUSEUP), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, global, "mousedown", INT_TO_JSVAL(GF_EVENT_MOUSEDOWN), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, global, "mousemove", INT_TO_JSVAL(GF_EVENT_MOUSEMOVE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, global, "mousewheel", INT_TO_JSVAL(GF_EVENT_MOUSEWHEEL), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, global, "keyup", INT_TO_JSVAL(GF_EVENT_KEYUP), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, global, "keydown", INT_TO_JSVAL(GF_EVENT_KEYDOWN), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, global, "text", INT_TO_JSVAL(GF_EVENT_TEXTINPUT), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+	JS_DefineProperty(c, global, "connect", INT_TO_JSVAL(GF_EVENT_CONNECT), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+
+
+
+	_SETUP_CLASS(gjs->anyClass, "GPACOBJECT", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
+	JS_InitClass(c, global, 0, &gjs->anyClass, 0, 0, 0, 0, 0, 0);
 }
 
 
