@@ -200,7 +200,7 @@ GF_Err gf_cache_set_mime_type(const DownloadedCacheEntry entry, const char * mim
 Bool gf_cache_is_cached_on_disk(const DownloadedCacheEntry entry ){
   if (entry == NULL)
     return 0;
-  return (entry->flags & NO_CACHE) ? 0 : 1;
+  return entry->flags & NO_CACHE;
 }
 
 const char * gf_cache_get_url ( const DownloadedCacheEntry entry )
@@ -240,14 +240,6 @@ GF_Err gf_cache_set_last_modified_on_disk ( const DownloadedCacheEntry entry, co
     if (entry->diskLastModified)
         gf_free(entry->diskLastModified);
     entry->diskLastModified = newLastModified ? strdup(newLastModified) : NULL;
-    return GF_OK;
-}
-
-GF_Err gf_cache_set_temporary_entry(const DownloadedCacheEntry entry)
-{
-    if (!entry)
-        return GF_BAD_PARAM;
-	entry->flags |= NO_CACHE;
     return GF_OK;
 }
 
@@ -499,14 +491,6 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 #endif
         entry->writeFilePtr = NULL;
     }
-
-	if (entry->flags & NO_CACHE) {
-//		if ( entry->cache_filename ) gf_delete_file(entry->cache_filename);
-		if ( entry->properties ) {
-			gf_cfg_remove(entry->properties);
-			entry->properties = NULL;
-		}
-	}
 	entry->write_lock = NULL;
     return e;
 }
@@ -656,8 +640,7 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
     if ( !entry )
         return GF_OK;
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p\n", __LINE__, entry));
-
-	if (entry->writeFilePtr) {
+    if (entry->writeFilePtr) {
 	/** Cache should have been close before, abornormal situation */
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p, cache has not been closed properly\n", __LINE__, entry));
         fclose(entry->writeFilePtr);
@@ -681,28 +664,23 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
     }
     if ( entry->cache_filename )
     {
-		if (entry->flags & NO_CACHE) gf_delete_file(entry->cache_filename);
         gf_free ( entry->cache_filename );
         entry->cache_filename = NULL;
     }
     if ( entry->properties )
     {
-		if (entry->flags & NO_CACHE) {
-			gf_cfg_remove(entry->properties);
-		} else {
-	        gf_cfg_del ( entry->properties );
-		}
+        gf_cfg_del ( entry->properties );
         entry->properties = NULL;
     }
     assert( ! entry->write_lock );
     entry->dm = NULL;
     if (entry->sessions){
-//      while (gf_list_count(entry->sessions))
-//        gf_list_rem(entry->sessions, 0);
+      while (gf_list_count(entry->sessions))
+        gf_list_rem(entry->sessions, 0);
       gf_list_del(entry->sessions);
       entry->sessions = NULL;
     }
-	gf_free (entry);
+    gf_free (entry);
     return GF_OK;
 }
 
