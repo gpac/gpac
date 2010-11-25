@@ -492,13 +492,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     if (sess->init_data) gf_free(sess->init_data);
     sess->orig_url = sess->server_name = sess->remote_path;
     sess->creds = NULL;
-	if (sess->cache_entry) {
-		gf_list_del_item(sess->dm->cache_entries, sess->cache_entry);
-		gf_cache_close_write_cache(sess->cache_entry, sess, 1);
-		gf_cache_delete_entry(sess->cache_entry);
-	    sess->cache_entry = NULL;
-	}
-    gf_free(sess);
+	gf_free(sess);
 }
 
 void http_do_requests(GF_DownloadSession *sess);
@@ -1753,7 +1747,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             }
         }
         else if (!stricmp(hdr, "Cache-Control")) {
-            gf_cache_set_temporary_entry(sess->cache_entry, hdr_val);
         }
         else if (!stricmp(hdr, "ETag")) {
             gf_cache_set_etag_on_server(sess->cache_entry, hdr_val);
@@ -2124,7 +2117,6 @@ GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
     sess->total_size = 0;
     sess->window_start = 0;
     sess->start_time = 0;
-	if (sess->cache_entry) gf_cache_close_write_cache(sess->cache_entry, sess, 1);
 	return GF_OK;
 }
 
