@@ -64,9 +64,9 @@ void gf_odm_del(GF_ObjectManager *odm)
 #endif
 
 	/*make sure we are not in the media queue*/
-	gf_mx_p(odm->term->net_mx);
+	gf_term_lock_media_queue(odm->term, 1);
 	gf_list_del_item(odm->term->media_queue, odm);
-	gf_mx_v(odm->term->net_mx);
+	gf_term_lock_media_queue(odm->term, 0);
 
 	lock = gf_mx_try_lock(odm->mx);
 
@@ -75,7 +75,7 @@ void gf_odm_del(GF_ObjectManager *odm)
 	while ((media_sens = (MediaSensorStack *)gf_list_enum(odm->ms_stack, &i))) {
 		MS_Stop(media_sens);
 		/*and detach from stream object*/
-		media_sens->is_init = 0;
+		media_sens->stream = NULL;
 	}
 	gf_list_del(odm->ms_stack);
 	
@@ -134,7 +134,28 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 	gf_odm_lock(odm, 1);
 
 	/*unload the decoders before deleting the channels to prevent any access fault*/
-	if (odm->codec) gf_term_remove_codec(odm->term, odm->codec);
+	if (odm->codec) {
+		if (odm->codec->type==GF_STREAM_INTERACT) {
+			u32 i, count;
+			// Remove all Registered InputSensor nodes -> shut down the InputSensor threads -> prevent illegal access on deleted pointers
+			GF_MediaObject *obj = odm->mo;
+			count = gf_list_count(obj->nodes);
+			for (i=0; i<count; i++) {
+				GF_Node *n = (GF_Node *)gf_list_get(obj->nodes, i);
+				switch (gf_node_get_tag(n)) {
+#ifndef GPAC_DISABLE_VRML
+				case TAG_MPEG4_InputSensor:
+					((M_InputSensor*)n)->enabled = 0;
+					InputSensorModified(n);
+					break;
+#endif
+				default:
+					break;
+				}
+			}
+		}
+		gf_term_remove_codec(odm->term, odm->codec);
+	}
 	if (odm->ocr_codec) gf_term_remove_codec(odm->term, odm->ocr_codec);
 #ifndef GPAC_MINIMAL_ODF
 	if (odm->oci_codec) gf_term_remove_codec(odm->term, odm->oci_codec);
@@ -198,6 +219,11 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
+		GF_Event evt;
+		evt.type = GF_EVENT_CONNECT;
+		evt.connect.is_connected = 0;
+		gf_term_forward_event(odm->term, &evt, 0, 1);
+
 		gf_scene_remove_object(odm->parentscene, odm, do_remove);
 		if (odm->subscene) gf_scene_del(odm->subscene);
 		gf_odm_del(odm);
@@ -589,7 +615,13 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	
 	/*setup mediaobject info except for top-level OD*/
 	if (odm->parentscene) {
+		GF_Event evt;
+
 		gf_scene_setup_object(odm->parentscene, odm);
+
+		evt.type = GF_EVENT_CONNECT;
+		evt.connect.is_connected = 1;
+		gf_term_forward_event(odm->term, &evt, 0, 1);
 	} else {
 		/*othewise send a connect ack for top level*/
 		GF_Event evt;
@@ -1009,9 +1041,12 @@ GF_Err gf_odm_post_es_setup(GF_Channel *ch, GF_Codec *dec, GF_Err had_err)
 //		|| 	(dec && (dec->flags & GF_ESM_CODEC_IS_STATIC_OD)) 
 	) {
 
-		gf_term_lock_net(ch->odm->term, 1);
+		gf_term_lock_media_queue(ch->odm->term, 1);
 		gf_list_del_item(ch->odm->term->media_queue, ch->odm);
+		gf_term_lock_media_queue(ch->odm->term, 1);
 
+
+		gf_term_lock_net(ch->odm->term, 1);
 		gf_es_start(ch);
 		com.command_type = GF_NET_CHAN_PLAY;
 		com.base.on_channel = ch;
@@ -1120,7 +1155,7 @@ reply could destroy the object we're queuing for play*/
 void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 {
 	Bool skip_register = 1;
-	gf_term_lock_net(odm->term, 1);
+	gf_term_lock_media_queue(odm->term, 1);
 
 	odm->flags &= ~GF_ODM_PREFETCH;
 
@@ -1178,7 +1213,7 @@ void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state)
 	}
 #endif
 
-	gf_term_lock_net(odm->term, 0);
+	gf_term_lock_media_queue(odm->term, 0);
 }
 
 void gf_odm_play(GF_ObjectManager *odm)
@@ -1385,9 +1420,9 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 #endif
 
 
-	gf_term_lock_net(odm->term, 1);
+	gf_term_lock_media_queue(odm->term, 1);
 	gf_list_del_item(odm->term->media_queue, odm);
-	gf_term_lock_net(odm->term, 0);
+	gf_term_lock_media_queue(odm->term, 0);
 
 	/*little opt for image codecs: don't actually stop the OD*/
 	if (!force_close && odm->codec && odm->codec->CB) {
