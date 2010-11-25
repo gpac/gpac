@@ -69,7 +69,7 @@ Bool gf_js_remove_root(JSContext *cx, void *rp)
 #endif
 
 /*define this macro to force Garbage Collection after each input to JS (script initialize/shutdown and all eventIn) */
-//#define FORCE_GC
+#define FORCE_GC
 
 
 typedef struct
@@ -387,15 +387,6 @@ static void script_error(JSContext *c, const char *msg, JSErrorReport *jserr)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[JavaScript] Error: %s - line %d (%s)", msg, jserr->lineno, jserr->linebuf));
 }
 
-static void vrml_node_register(JSContext *c, GF_Node *node)
-{
-	if (node) {
-		GF_Node *parent = (GF_Node*)JS_GetContextPrivate(c);
-		node->sgprivate->flags |= GF_NODE_HAS_BINDING;
-		gf_node_register(node, (node == parent) ? NULL : parent);
-	}
-}
-
 
 static JSBool JSPrint(JSContext *c, JSObject *p, uintN argc, jsval *argv, jsval *rval)
 {
@@ -472,7 +463,10 @@ static JSObject *node_get_binding(GF_ScriptPriv *priv, GF_Node *node, Bool is_co
 	field->field.fieldType = GF_SG_VRML_SFNODE;
 	field->node = node;
 	field->field.far_ptr = &field->node;
-	vrml_node_register(priv->js_ctx, node);
+
+
+	node->sgprivate->flags |= GF_NODE_HAS_BINDING;
+	gf_node_register(node, NULL);
 
 	obj = JS_NewObject(priv->js_ctx, &js_rt->SFNodeClass, 0, 0);
 	JS_SetPrivate(priv->js_ctx, obj, field);
@@ -605,11 +599,11 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 
 	if (!r->FromNode) {
 		if (r->obj) {
-			gf_js_remove_root(priv->js_ctx, &r->obj);
+//			gf_js_remove_root(priv->js_ctx, &r->obj);
 			r->obj=NULL;
 		}
 		if (r->fun) {
-			gf_js_remove_root(priv->js_ctx, &r->fun);
+//			gf_js_remove_root(priv->js_ctx, &r->fun);
 			r->fun=0;
 		}
 		return;
@@ -624,6 +618,8 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 	t_info.fieldType = GF_SG_VRML_SFTIME;
 	t_info.fieldIndex = -1;
 	t_info.name = "timestamp";
+
+	gf_sg_lock_javascript(1);
 
 	argv[1] = gf_sg_script_to_smjs_field(priv, &t_info, node, 1);
 	argv[0] = gf_sg_script_to_smjs_field(priv, &r->FromField, r->FromNode, 1);
@@ -641,6 +637,8 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 #ifdef FORCE_GC
 	MyJSGC(priv->js_ctx);
 #endif
+
+	gf_sg_lock_javascript(0);
 }
 
 static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *rv)
@@ -725,10 +723,10 @@ static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *
 		r->ToField.name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
 
 		r->obj = JSVAL_TO_OBJECT( argv[2] ) ;
-		gf_js_add_root(c, & r->obj);
+//		gf_js_add_root(c, & r->obj);
 
 		r->fun = argv[3];
-		gf_js_add_root(c, &r->fun);
+//		gf_js_add_root(c, &r->fun);
 
 		r->is_setup = 1;
 		r->graph = n1->sgprivate->scenegraph;
@@ -1264,7 +1262,8 @@ static void node_finalize_ex(JSContext *c, JSObject *obj, Bool is_js_call)
 			) {
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[VRML JS] unregistering node %s (%s)\n", gf_node_get_name(ptr->node), gf_node_get_class_name(ptr->node)));
-			gf_node_unregister(ptr->node, (ptr->node==parent) ? NULL : parent);
+			//gf_node_unregister(ptr->node, (ptr->node==parent) ? NULL : parent);
+			gf_node_unregister(ptr->node, NULL);
 		}
 		gf_free(ptr);
 	}
@@ -3835,6 +3834,8 @@ static void JS_PreDestroy(GF_Node *node)
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 #endif
 
+	gf_sg_lock_javascript(1);
+	
 	if (priv->event) gf_js_remove_root(priv->js_ctx, &priv->event);
 
 	/*unprotect all cached objects from GC*/
@@ -3855,6 +3856,9 @@ static void JS_PreDestroy(GF_Node *node)
 	gf_list_del(priv->js_cache);
 
 	priv->js_ctx = NULL;
+
+	gf_sg_lock_javascript(0);
+
 	/*unregister script from parent scene (cf base_scenegraph::sg_reset) */
 	gf_list_del_item(node->sgprivate->scenegraph->scripts, node);
 }
@@ -4223,8 +4227,9 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 			}
 			return;
 		}
-
 		/*this is unregister signaling*/
+
+#if 0
 		if (node->sgprivate->parents) {
 			switch (node->sgprivate->parents->node->sgprivate->tag) {
 			case TAG_MPEG4_Script:
@@ -4243,6 +4248,17 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 			}
 			return;
 		}
+#else
+		if (!node->sgprivate->parents && node->sgprivate->interact->js_binding->node) {
+			GF_JSField *field = node->sgprivate->interact->js_binding->node;
+			if (field->is_rooted) {
+				gf_js_remove_root(field->js_ctx, &field->obj);
+				field->is_rooted = 0;
+			}
+			return;
+		}
+#endif
+
 		/*final destroy*/
 		if (!node->sgprivate->num_instances) {
 			i=0;
@@ -4397,5 +4413,12 @@ void gf_sg_lock_javascript(Bool LockIt)
 		if (LockIt) gf_mx_p(js_rt->mx);
 		else gf_mx_v(js_rt->mx);
 	}
+#endif
+}
+
+Bool gf_sg_try_lock_javascript()
+{
+#ifdef GPAC_HAS_SPIDERMONKEY
+	return gf_mx_try_lock(js_rt->mx);
 #endif
 }

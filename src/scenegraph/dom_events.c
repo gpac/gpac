@@ -182,15 +182,18 @@ typedef struct
 void gf_sg_listener_post_add(GF_Node *obs, GF_Node *listener)
 {
 	DOMAddListener *l;
+	gf_mx_p(obs->sgprivate->scenegraph->dom_evt_mx);
 	l = (DOMAddListener*)gf_malloc(sizeof(DOMAddListener));
 	l->listener = listener;
 	l->obs = obs;
 	gf_list_add(obs->sgprivate->scenegraph->listeners_to_add, l);
+	gf_mx_v(obs->sgprivate->scenegraph->dom_evt_mx);
 }
 
 void gf_dom_listener_process_add(GF_SceneGraph *sg)
 {
 	u32 i, count;
+	gf_mx_p(sg->dom_evt_mx);
 	count = gf_list_count(sg->listeners_to_add);
 	for (i=0; i<count; i++) {
 		DOMAddListener *l = (DOMAddListener *)gf_list_get(sg->listeners_to_add, i);
@@ -198,15 +201,18 @@ void gf_dom_listener_process_add(GF_SceneGraph *sg)
 		gf_free(l);
 	}
 	gf_list_reset(sg->listeners_to_add);
+	gf_mx_v(sg->dom_evt_mx);
 }
 
 void gf_dom_listener_reset_defered(GF_SceneGraph *sg)
 {
+	gf_mx_p(sg->dom_evt_mx);
 	while (gf_list_count(sg->listeners_to_add)) {
 		DOMAddListener *l = (DOMAddListener *)gf_list_get(sg->listeners_to_add, 0);
 		gf_list_rem(sg->listeners_to_add, 0);
 		gf_free(l);
 	}
+	gf_mx_v(sg->dom_evt_mx);
 }
 
 void gf_sg_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *observer)
