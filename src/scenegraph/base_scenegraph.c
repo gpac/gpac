@@ -59,6 +59,7 @@ GF_SceneGraph *gf_sg_new()
 #endif
 
 #ifndef GPAC_DISABLE_SVG
+	tmp->dom_evt_mx = gf_mx_new("DOMEvent");
 	tmp->dom_evt.evt_list = gf_list_new();
 	tmp->dom_evt.ptr = tmp;
 	tmp->dom_evt.ptr_type = GF_DOM_EVENT_DOCUMENT;
@@ -142,6 +143,7 @@ void gf_sg_del(GF_SceneGraph *sg)
 	gf_list_del(sg->smil_timed_elements);
 	gf_list_del(sg->modified_smil_timed_elements);
 	gf_list_del(sg->listeners_to_add);
+	gf_mx_del(sg->dom_evt_mx);
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	gf_list_del(sg->scripts);
@@ -323,6 +325,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 
 #ifndef GPAC_DISABLE_SVG
 
+	gf_mx_p(sg->dom_evt_mx);
 	/*remove listeners attached to the doc*/
 	while (gf_list_count(sg->dom_evt.evt_list)) {
 		GF_Node *n = gf_list_get(sg->dom_evt.evt_list, 0);
@@ -331,6 +334,7 @@ void gf_sg_reset(GF_SceneGraph *sg)
 
 	/*flush any pending add_listener*/
 	gf_dom_listener_reset_defered(sg);
+	gf_mx_v(sg->dom_evt_mx);
 #endif
 
 #ifndef GPAC_DISABLE_VRML
@@ -1646,12 +1650,16 @@ u32 gf_node_dirty_get(GF_Node *node)
 
 
 GF_EXPORT
-void gf_node_dirty_reset(GF_Node *node)
+void gf_node_dirty_reset(GF_Node *node, Bool reset_children)
 {
 	if (!node) return;
 	if (node->sgprivate->flags & ~GF_NODE_INTERNAL_FLAGS) {
 		node->sgprivate->flags &= GF_NODE_INTERNAL_FLAGS;
-		dirty_children(node);
+		if (reset_children) {
+			dirty_children(node);
+		} else if (node->sgprivate->tag==TAG_MPEG4_Appearance) {
+			gf_node_dirty_reset( ((M_Appearance*)node)->material, 1);
+		}
 	}
 }
 

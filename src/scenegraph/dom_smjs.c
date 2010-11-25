@@ -2350,8 +2350,10 @@ static void xml_http_reset(XMLHTTPContext *ctx)
 		ctx->headers = NULL;
 	}
 	if (ctx->sess) {
-		gf_dm_sess_del(ctx->sess);
+		GF_DownloadSession *tmp = ctx->sess;
 		ctx->sess = NULL;
+		gf_dm_sess_abort(tmp);
+		gf_dm_sess_del(tmp);
 	}
 	if (ctx->data) {
 		gf_free(ctx->data);
@@ -2419,11 +2421,15 @@ static void xml_http_state_change(XMLHTTPContext *ctx)
 	GF_SceneGraph *scene;
 	GF_Node *n;
 	jsval rval;
-	//GF_SceneGraph *scene = (GF_SceneGraph *) xml_get_scenegraph(ctx->c);
+	
+	gf_sg_lock_javascript(1);
 	if (ctx->onreadystatechange)
 		JS_CallFunction(ctx->c, ctx->_this, ctx->onreadystatechange, 0, NULL, &rval);
 
 	/*todo - fire XHR events*/
+
+
+	gf_sg_lock_javascript(0);
 
 	/*Flush BIFS eventOut events*/
 #ifndef GPAC_DISABLE_VRML
@@ -2587,6 +2593,15 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
 	XMLHTTPContext *ctx = (XMLHTTPContext *)usr_cbk;
+
+	/*make sure we can grab JS and the session is not destroyed*/
+	while (ctx->sess) {
+		if (gf_sg_try_lock_javascript() )
+			break;
+		gf_sleep(1);
+	}
+
+	gf_sg_lock_javascript(0);
 
 	/*if session not set, we've had an abort*/
 	if (!ctx->sess) return;
@@ -2975,9 +2990,9 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 			return JS_TRUE;
 		}
 		if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange));
+		ctx->onreadystatechange = NULL;
 
 		if (JSVAL_IS_VOID(*vp)) {
-			ctx->onreadystatechange = NULL;
 			return JS_TRUE;
 		}
 		else if (JSVAL_CHECK_STRING(*vp)) {
