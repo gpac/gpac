@@ -1122,7 +1122,8 @@ Bool gf_path_point_over(GF_Path *gp, Fixed x, Fixed y)
 					}
 				}
 			}
-			s = start = gp->points[i];
+			if ( i < gp->n_points )
+				s = start = gp->points[i];
 			i++;
 		}
 	}
