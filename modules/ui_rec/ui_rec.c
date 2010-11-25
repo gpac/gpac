@@ -43,7 +43,7 @@ typedef struct __ui_rec
 	GF_TermEventFilter evt_filter;
 } GF_UIRecord;
 
-Bool uir_on_event_play(GF_UIRecord *uir , GF_Event *event)
+Bool uir_on_event_play(GF_UIRecord *uir , GF_Event *event, Bool consumed_by_compositor)
 {
 	switch (event->type) {
 	case GF_EVENT_CONNECT:
@@ -55,7 +55,7 @@ Bool uir_on_event_play(GF_UIRecord *uir , GF_Event *event)
 	return 0;
 }
 
-Bool uir_on_event_record(GF_UIRecord *uir , GF_Event *event)
+Bool uir_on_event_record(GF_UIRecord *uir , GF_Event *event, Bool consumed_by_compositor)
 {
 	switch (event->type) {
 	case GF_EVENT_CONNECT:

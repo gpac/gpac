@@ -260,10 +260,10 @@ Bool GF_UPnP::ProcessEvent(GF_Event *evt)
 	return 0;
 }
 
-Bool upnp_on_term_event(void *udta, GF_Event *evt)
+Bool upnp_on_term_event(void *udta, GF_Event *evt, Bool consumed)
 {
 	GF_UPnP *upnp = (GF_UPnP *) udta;
-	if (upnp) return upnp->ProcessEvent(evt);
+	if (!consumed && upnp) return upnp->ProcessEvent(evt);
 	return 0;
 }
 
