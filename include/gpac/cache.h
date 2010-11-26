@@ -233,6 +233,8 @@ extern "C" {
     Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry);
 
     void gf_cache_entry_set_delete_files_when_deleted(const DownloadedCacheEntry entry);
+    
+    Bool gf_cache_entry_is_delete_files_when_deleted(const DownloadedCacheEntry entry);
 
     u32 gf_cache_get_sessions_count_for_cache_entry(const DownloadedCacheEntry entry);
 

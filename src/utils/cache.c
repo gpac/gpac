@@ -178,6 +178,13 @@ void gf_cache_entry_set_delete_files_when_deleted(const DownloadedCacheEntry ent
         entry->deletableFilesOnDelete = 1;
 }
 
+Bool gf_cache_entry_is_delete_files_when_deleted(const DownloadedCacheEntry entry)
+{
+    if (!entry)
+      return 0;
+    return entry->deletableFilesOnDelete;
+}
+
 #define CHECK_ENTRY if (!entry) { GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] entry is null at " __FILE__ ":%d\n", __LINE__)); return GF_BAD_PARAM; }
 
 /*
@@ -400,7 +407,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
         entry->write_mutex = gf_mx_new(name);
         assert( entry->write_mutex);
     }
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,("CREATE MUTEX %p\n", (void*)entry->write_mutex));
+    entry->deletableFilesOnDelete = 0;
     entry->write_session = NULL;
     entry->sessions = gf_list_new();
     if ( !entry->hash || !entry->url || !entry->cache_filename || !entry->sessions)
@@ -684,7 +691,11 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
     }
     if ( entry->properties )
     {
-        char * propfile = gf_cfg_get_filename(entry->properties);
+        char * propfile;
+	if (entry->deletableFilesOnDelete)
+	  propfile = gf_cfg_get_filename(entry->properties);
+	else
+	  propfile = NULL;
         gf_cfg_del ( entry->properties );
         entry->properties = NULL;
         if (propfile) {
