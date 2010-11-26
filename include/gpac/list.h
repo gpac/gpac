@@ -69,7 +69,7 @@ void gf_list_del(GF_List *ptr);
  *	\param ptr target list object
  *	\return number of items in the list
  */
-u32 gf_list_count(GF_List *ptr);
+u32 gf_list_count(const GF_List *ptr);
 /*!
  *	\brief add item
  *

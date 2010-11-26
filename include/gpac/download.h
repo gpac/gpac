@@ -273,6 +273,18 @@ const char *gf_dm_sess_mime_type(GF_DownloadSession * sess);
 const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess);
 
 /*!
+ * \brief Marks the cache file to be deleted once the file is not used anymore by any session
+ * \param entry The cache entry to delete
+ */
+void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm, const char * url);
+
+/*!
+ * Convenience function
+ * \see gf_dm_delete_cached_file_entry
+ */
+void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * dm, const char * url);
+
+/*!
  * Get a range of a cache entry file
  * \param entry The session
  * \param startOffset The first byte of the request to get

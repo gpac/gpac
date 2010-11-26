@@ -399,10 +399,10 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess) {
         assert(e);
         url = gf_cache_get_url(e);
         assert( url );
-		if (!strcmp(url, sess->orig_url)) {
+        if (!strcmp(url, sess->orig_url)) {
             gf_mx_v( sess->dm->cache_mx );
-	        return e;
-		}
+            return e;
+        }
     }
     gf_mx_v( sess->dm->cache_mx );
     return NULL;
@@ -416,10 +416,27 @@ DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess) {
  */
 DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char * cache_directory, const char * url);
 
+/*!
+ * Removes a session for a DownloadedCacheEntry
+ * \param entry The entry
+ * \param sess The session to remove
+ * \return the number of sessions left in the cached entry, -1 if one of the parameters is wrong
+ */
+s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
+
+/*!
+ * Adds a session to a DownloadedCacheEntry
+ * \param entry The entry
+ * \param sess The session to add
+ * \return the number of sessions in the cached entry, -1 if one of the parameters is wrong
+ */
+s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
+
 void gf_dm_configure_cache(GF_DownloadSession *sess)
 {
     DownloadedCacheEntry entry;
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Downloader] gf_dm_configure_cache(%p), cached=%s\n", sess, sess->flags&GF_NETIO_SESSION_NOT_CACHED?"no":"yes" ));
+    gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
     entry = gf_dm_find_cached_entry_by_url(sess);
     if (!entry) {
         entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url);
@@ -429,8 +446,43 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
     }
     assert( entry );
     sess->cache_entry = entry;
+    gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
 }
+
+
+void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char * url) {
+    if (!url || !dm)
+        return;
+
+    u32 count, i;
+    gf_mx_p( dm->cache_mx );
+    count = gf_list_count(dm->cache_entries);
+    for (i = 0 ; i < count; i++) {
+        const char * e_url;
+        DownloadedCacheEntry e = gf_list_get(dm->cache_entries, i);
+        assert(e);
+        e_url = gf_cache_get_url(e);
+        assert( url );
+        if (!strcmp(e_url, url)) {
+            /* We found the existing session */
+            if (0 == gf_cache_get_sessions_count_for_cache_entry( e )) {
+                /* No session attached anymore... we can delete it */
+                gf_list_rem(dm->cache_entries, i);
+                gf_cache_delete_entry(e);
+            }
+            break;
+        }
+    }
+    gf_mx_v( dm->cache_mx );
+}
+
+void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  const char * url) {
+    if (sess && sess->dm && url)
+        gf_dm_delete_cached_file_entry(sess->dm, url);
+
+}
+
 
 static void gf_dm_disconnect(GF_DownloadSession *sess)
 {
@@ -484,6 +536,9 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     		gf_free(sess->cache_name);
     	}
     */
+    if (sess->cache_entry)
+        gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
+    sess->cache_entry = NULL;
     if (sess->orig_url) gf_free(sess->orig_url);
     if (sess->server_name) gf_free(sess->server_name);
     if (sess->remote_path) gf_free(sess->remote_path);
@@ -492,7 +547,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     if (sess->init_data) gf_free(sess->init_data);
     sess->orig_url = sess->server_name = sess->remote_path;
     sess->creds = NULL;
-	gf_free(sess);
+    gf_free(sess);
 }
 
 void http_do_requests(GF_DownloadSession *sess);
@@ -996,13 +1051,13 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
     return sess->last_error;
 }
 
-static void gf_cache_cleanup_cache(GF_DownloadManager * dm){
-  const char * opt;
-  if (dm && dm->cfg){
-	opt = gf_cfg_get_key(dm->cfg, "Downloader", "CleanCache");
-	if (opt && strncmp("yes", opt, 3)){
-	      gf_cache_delete_all_cached_files(dm->cache_directory);
-	}
+static void gf_cache_cleanup_cache(GF_DownloadManager * dm) {
+    const char * opt;
+    if (dm && dm->cfg) {
+        opt = gf_cfg_get_key(dm->cfg, "Downloader", "CleanCache");
+        if (opt && strncmp("yes", opt, 3)) {
+            gf_cache_delete_all_cached_files(dm->cache_directory);
+        }
     }
 }
 
@@ -1063,18 +1118,18 @@ void gf_dm_del(GF_DownloadManager *dm)
     assert( dm->sessions);
     assert( dm->cache_mx );
     gf_mx_p( dm->cache_mx );
-    
+
     while (gf_list_count(dm->partial_downloads)) {
         GF_PartialDownload * entry = gf_list_get( dm->partial_downloads, 0);
         gf_list_rem( dm->partial_downloads, 0);
-	assert( entry->filename );
-	gf_delete_file( entry->filename );
-	gf_free(entry->filename );
-	entry->filename = NULL;
-	entry->url = NULL;
+        assert( entry->filename );
+        gf_delete_file( entry->filename );
+        gf_free(entry->filename );
+        entry->filename = NULL;
+        entry->url = NULL;
         gf_free( entry );
     }
-    
+
     /*destroy all pending sessions*/
     while (gf_list_count(dm->sessions)) {
         GF_DownloadSession *sess = (GF_DownloadSession *) gf_list_get(dm->sessions, 0);
@@ -1106,7 +1161,7 @@ void gf_dm_del(GF_DownloadManager *dm)
     }
     gf_list_del( dm->cache_entries );
     dm->cache_entries = NULL;
-    
+
     gf_list_del( dm->partial_downloads );
     dm->partial_downloads = NULL;
     gf_cache_cleanup_cache(dm);
@@ -1943,9 +1998,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         e = GF_REMOTE_SERVICE_ERROR;
         goto exit;
     }
-    
+
     if (sess->http_read_type != GET)
-      sess->use_cache_file = 0;
+        sess->use_cache_file = 0;
 
     if (sess->http_read_type==HEAD) {
         gf_dm_disconnect(sess);
@@ -1985,7 +2040,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             if (sess->use_cache_file && sess->http_read_type == GET ) {
                 e = gf_cache_open_write_cache(sess->cache_entry, sess);
                 if (e) {
-		    GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ( "[CACHE] Failed to open cache, error=%d\n", e));
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ( "[CACHE] Failed to open cache, error=%d\n", e));
                     goto exit;
                 }
             }
@@ -1998,7 +2053,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     sess->bytes_in_wnd = 0;
 
 
-/* we may have existing data in this buffer ... */
+    /* we may have existing data in this buffer ... */
     if (!e && (BodyStart < (s32) bytesRead)) {
         gf_dm_data_received(sess, sHTTP + BodyStart, bytesRead - BodyStart);
         if (sess->init_data) gf_free(sess->init_data);
@@ -2126,7 +2181,7 @@ GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
     sess->total_size = 0;
     sess->window_start = 0;
     sess->start_time = 0;
-	return GF_OK;
+    return GF_OK;
 }
 
 DownloadedCacheEntry gf_dm_cache_entry_dup_readonly( const GF_DownloadSession * sess) {
@@ -2135,94 +2190,94 @@ DownloadedCacheEntry gf_dm_cache_entry_dup_readonly( const GF_DownloadSession * 
     return gf_cache_entry_dup_readonly(sess->cache_entry);
 }
 
-const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess, u64 startOffset, u64 endOffset ){
+const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess, u64 startOffset, u64 endOffset ) {
     u32 i, count;
     if (!sess || !sess->dm || endOffset < startOffset)
-      return NULL;
+        return NULL;
     count = gf_list_count(sess->dm->partial_downloads);
-    for (i = 0 ; i < count ; i++){
-      GF_PartialDownload * pd = gf_list_get(sess->dm->partial_downloads, i);
-      assert( pd->filename && pd->url);
-      if (!strcmp(pd->url, sess->orig_url) && pd->startOffset == startOffset && pd->endOffset == endOffset){
-	/* File already created, just return the file */
-	return pd->filename;
-      }
+    for (i = 0 ; i < count ; i++) {
+        GF_PartialDownload * pd = gf_list_get(sess->dm->partial_downloads, i);
+        assert( pd->filename && pd->url);
+        if (!strcmp(pd->url, sess->orig_url) && pd->startOffset == startOffset && pd->endOffset == endOffset) {
+            /* File already created, just return the file */
+            return pd->filename;
+        }
     }
     {
-      /* Not found, we are gonna create the file */
-      char * newFilename;
-      GF_PartialDownload * partial;
-      FILE * fw, *fr;
-      u32 maxLen;
-      const char * orig = gf_cache_get_cache_filename(sess->cache_entry);
-      if (orig == NULL)
-	return NULL;
-      /* 22 if 1G + 1G + 2 dashes */
-      maxLen = strlen(orig) + 22;
-      newFilename = malloc( maxLen );
-      if (newFilename == NULL)
-	return NULL;
-      snprintf(newFilename, maxLen, "%s %llu %llu", orig, startOffset, endOffset);
-      fw = fopen(newFilename, "wb");
-      if (!fw){
-	  GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open partial cache file %s for write\n", newFilename));
-	  gf_free( newFilename );
-	  return NULL;
-      }
-      fr = fopen(orig, "rb");
-      if (!fr){
-	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open full cache file %s\n", orig));
-	gf_free( newFilename );
-	fclose( fw );
-      }
-      /* Now, we copy ! */
-      {
-	char copyBuff[8192];
-	s64 read, write, total;
-	total = endOffset - startOffset;
-	read = gf_f64_seek(fr, startOffset, SEEK_SET);
-	if (read != startOffset){
-	  GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot seek at right start offset in %s\n", orig)); 
-	  fclose( fr );
-	  fclose( fw );
-	  gf_free( newFilename );
-	  return NULL;
-	}
-	do {
-	  
-	  read = fread(copyBuff, sizeof(char), MIN(8192, total), fr);
-	  if (read > 0){
-	    total-= read;
-	    write = fwrite(copyBuff, sizeof(char), read, fw);
-	    if (write != read){
-		/* Something bad happened */
-		fclose( fw );
-		fclose (fr );
-		gf_free( newFilename );
-		return NULL;
-	    }
-	  } else {
-	    if (read < 0){
-	      fclose( fw );
-	      fclose( fr );
-	      gf_free( newFilename );
-	      return NULL;
-	    }
-	  }
-	} while (total > 0);
-	fclose( fr );
-	fclose (fw);
-	partial = gf_malloc( sizeof(GF_PartialDownload));
-	if (partial == NULL){
-	    gf_free(newFilename);
-	    return NULL;
-	}
-	partial->filename = newFilename;
-	partial->url = sess->orig_url;
-	partial->endOffset = endOffset;
-	partial->startOffset = startOffset;
-	gf_list_add(sess->dm->partial_downloads, partial);
-	return newFilename;
-      }
+        /* Not found, we are gonna create the file */
+        char * newFilename;
+        GF_PartialDownload * partial;
+        FILE * fw, *fr;
+        u32 maxLen;
+        const char * orig = gf_cache_get_cache_filename(sess->cache_entry);
+        if (orig == NULL)
+            return NULL;
+        /* 22 if 1G + 1G + 2 dashes */
+        maxLen = strlen(orig) + 22;
+        newFilename = malloc( maxLen );
+        if (newFilename == NULL)
+            return NULL;
+        snprintf(newFilename, maxLen, "%s %llu %llu", orig, startOffset, endOffset);
+        fw = fopen(newFilename, "wb");
+        if (!fw) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open partial cache file %s for write\n", newFilename));
+            gf_free( newFilename );
+            return NULL;
+        }
+        fr = fopen(orig, "rb");
+        if (!fr) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open full cache file %s\n", orig));
+            gf_free( newFilename );
+            fclose( fw );
+        }
+        /* Now, we copy ! */
+        {
+            char copyBuff[8192];
+            s64 read, write, total;
+            total = endOffset - startOffset;
+            read = gf_f64_seek(fr, startOffset, SEEK_SET);
+            if (read != startOffset) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot seek at right start offset in %s\n", orig));
+                fclose( fr );
+                fclose( fw );
+                gf_free( newFilename );
+                return NULL;
+            }
+            do {
+
+                read = fread(copyBuff, sizeof(char), MIN(8192, total), fr);
+                if (read > 0) {
+                    total-= read;
+                    write = fwrite(copyBuff, sizeof(char), read, fw);
+                    if (write != read) {
+                        /* Something bad happened */
+                        fclose( fw );
+                        fclose (fr );
+                        gf_free( newFilename );
+                        return NULL;
+                    }
+                } else {
+                    if (read < 0) {
+                        fclose( fw );
+                        fclose( fr );
+                        gf_free( newFilename );
+                        return NULL;
+                    }
+                }
+            } while (total > 0);
+            fclose( fr );
+            fclose (fw);
+            partial = gf_malloc( sizeof(GF_PartialDownload));
+            if (partial == NULL) {
+                gf_free(newFilename);
+                return NULL;
+            }
+            partial->filename = newFilename;
+            partial->url = sess->orig_url;
+            partial->endOffset = endOffset;
+            partial->startOffset = startOffset;
+            gf_list_add(sess->dm->partial_downloads, partial);
+            return newFilename;
+        }
     }
 }
