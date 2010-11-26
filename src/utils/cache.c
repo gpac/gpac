@@ -139,12 +139,37 @@ struct __DownloadedCacheEntryStruct
          */
     enum CacheValid   flags;
     
-    const GF_DownloadSession * write_lock;
+    const GF_DownloadSession * write_session;
+    
+    GF_Mutex * write_mutex;
     
     GF_List * sessions;
     
     GF_DownloadManager * dm;
 };
+
+Bool enum_cache_files(void *cbck, char *item_name, char *item_path){
+  const char * startPattern;
+  int sz;
+  assert( cbck );
+  assert( item_name );
+  assert( item_path);
+  startPattern = (const char *) cbck;
+  sz = strlen( startPattern );
+  if (!strncmp(startPattern, item_name, sz)){
+      if (GF_OK != gf_delete_file(item_path))
+	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] : failed to cleanup file %s\n", item_path));
+  }
+  return 0;
+}
+
+static const char * cache_file_prefix = "gpac_cache_";
+
+GF_Err gf_cache_delete_all_cached_files(const char * directory){
+  gf_enum_dir_item item = &enum_cache_files;
+  GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("Deleting cached files in %s...\n", directory));
+  return gf_enum_directory( directory, 0, item, (void*)cache_file_prefix, NULL);
+}
 
 
 
@@ -299,8 +324,6 @@ GF_Err appendHttpCacheHeaders(const DownloadedCacheEntry entry, char * httpReque
 
 #define _CACHE_MAX_EXTENSION_SIZE 6
 
-static const char * cache_file_prefix = "gpac_cache_";
-
 static const char * default_cache_file_suffix = ".dat";
 
 static const char * cache_file_info_suffix = ".txt";
@@ -365,7 +388,8 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
     entry->diskLastModified = NULL;
     entry->serverLastModified = NULL;
     entry->dm = dm;
-    entry->write_lock = NULL;
+    entry->write_mutex = gf_mx_new(url);
+    entry->write_session = NULL;
     entry->sessions = gf_list_new();
     if ( !entry->hash || !entry->url || !entry->cache_filename || !entry->sessions)
     {
@@ -470,10 +494,10 @@ u32 gf_cache_get_content_length( const DownloadedCacheEntry entry){
 GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, Bool success ) {
     GF_Err e = GF_OK;
     CHECK_ENTRY;
-    if (!sess || !entry->write_lock || entry->write_lock != sess)
+    if (!sess || !entry->write_session || entry->write_session != sess)
       return GF_OK;
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_close_write_cache:%d for entry=%p\n", __LINE__, entry));
-    assert( sess == entry->write_lock );
+    assert( sess == entry->write_session );
     if (entry->writeFilePtr) {
         GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
                ("Closing cache file %s for write, size is %d.\n", entry->cache_filename, entry->written_in_cache));
@@ -491,7 +515,8 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 #endif
         entry->writeFilePtr = NULL;
     }
-	entry->write_lock = NULL;
+    entry->write_session = NULL;
+    gf_mx_v(entry->write_mutex);
     return e;
 }
 
@@ -500,18 +525,11 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
     CHECK_ENTRY;
     if (!sess)
       return GF_BAD_PARAM;
-    if (entry->write_lock){
-      if (entry->write_lock == sess){
-	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] : double open with same entry = %p\n", sess));
-	return GF_OK;
-      } else {
-	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] : Trying to open cache for write with %p, but cache is already locked by entry = %p\n", sess, entry->write_lock));
-      }
-    }
+    gf_mx_p(entry->write_mutex);
+    entry->write_session = sess;
     GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] gf_cache_open_write_cache:%d, entry=%p\n", __LINE__, entry));
     if (!entry->writeFilePtr) {
 	entry->written_in_cache = 0;
-	entry->write_lock = sess;
         GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
                ("Opening cache file %s for write...", entry->cache_filename));
         entry->writeFilePtr = fopen(entry->cache_filename, "wb");
@@ -529,7 +547,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
     u32 readen;
     GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] gf_cache_write_to_cache:%d\n", __LINE__));
     CHECK_ENTRY;
-    if (!data || !entry->writeFilePtr || sess != entry->write_lock) {
+    if (!data || !entry->writeFilePtr || sess != entry->write_session) {
         GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("Incorrect parameter : data=%p, entry->writeFilePtr=%p at "__FILE__, data, entry->writeFilePtr));
         return GF_BAD_PARAM;
     }
@@ -578,7 +596,11 @@ DownloadedCacheEntry gf_cache_entry_dup_readonly( const DownloadedCacheEntry ent
     ret->written_in_cache = 0;
     ret->dm = NULL;
     ret->sessions = gf_list_new();
-    ret->write_lock = NULL;
+    ret->write_session = NULL;
+    /**
+     * The mutex is the same, we don't want a stupid usage...
+     */
+    ret->write_mutex = entry->write_mutex;
     return ret;
 }
 
@@ -644,9 +666,13 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 	/** Cache should have been close before, abornormal situation */
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p, cache has not been closed properly\n", __LINE__, entry));
         fclose(entry->writeFilePtr);
-	entry->write_lock = NULL;
-        entry->writeFilePtr = NULL;
     }
+    if (entry->write_mutex){
+	gf_mx_del(entry->write_mutex);
+    }
+    entry->write_mutex = NULL;
+    entry->write_session = NULL;
+    entry->writeFilePtr = NULL;
     if ( entry->hash )
     {
         gf_free ( entry->hash );
@@ -672,7 +698,6 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
         gf_cfg_del ( entry->properties );
         entry->properties = NULL;
     }
-    assert( ! entry->write_lock );
     entry->dm = NULL;
     if (entry->sessions){
       while (gf_list_count(entry->sessions))

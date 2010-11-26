@@ -1032,6 +1032,7 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 #ifdef GPAC_HAS_SSL
     ssl_init(dm, 0);
 #endif
+    gf_cache_delete_all_cached_files(dm->cache_directory);
     return dm;
 }
 

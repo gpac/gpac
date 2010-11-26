@@ -189,17 +189,18 @@ void CE_CharToWide(char *str, unsigned short *w_str)
 
 #endif
 
-void gf_delete_file(char *fileName)
+GF_Err gf_delete_file(char *fileName)
 {
-
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
 	CE_CharToWide(fileName, swzName);
 	DeleteFile(swzName);
 #elif defined(WIN32)
-	DeleteFile(fileName);
+	/* success if != 0 */
+	return (DeleteFile(fileName)?GF_OK:GF_IO_ERR;
 #else
-	remove(fileName);
+	/* success is == 0 */
+	return remove(fileName)?GF_IO_ERR: GF_OK;
 #endif
 }
 

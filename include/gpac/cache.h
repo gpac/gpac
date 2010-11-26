@@ -200,7 +200,19 @@ u32 gf_cache_get_content_length( const DownloadedCacheEntry entry);
  */
 GF_Err appendHttpCacheHeaders(const DownloadedCacheEntry entry, char * httpRequest);
 
-/**
+/*
+ * Cache Management functions
+ */
+
+/*!
+ * Delete all cached files in given directory starting with startpattern
+ * \param directory to clean up
+ * \return GF_OK if everything went fine
+ */
+GF_Err gf_cache_delete_all_cached_files(const char * directory);
+
+
+/*
  * Cache Reader functions
  */
 
