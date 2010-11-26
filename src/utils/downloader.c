@@ -436,7 +436,25 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 {
     DownloadedCacheEntry entry;
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Downloader] gf_dm_configure_cache(%p), cached=%s\n", sess, sess->flags&GF_NETIO_SESSION_NOT_CACHED?"no":"yes" ));
-    gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
+    if (sess->cache_entry){
+      gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
+      if (sess->dm && gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry) &&
+	  (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)))
+      {
+	u32 i, count;
+	gf_mx_p( sess->dm->cache_mx );
+	count = gf_list_count( sess->dm->cache_entries );
+	for (i = 0; i < count; i++){
+	  DownloadedCacheEntry ex = gf_list_get(sess->dm->cache_entries, i);
+	  if (ex == sess->cache_entry){
+	    gf_list_rem(sess->dm->cache_entries, i);
+	    gf_cache_delete_entry( sess->cache_entry );
+	    break;
+	  }
+	}
+	gf_mx_v( sess->dm->cache_mx );
+      }
+    }
     entry = gf_dm_find_cached_entry_by_url(sess);
     if (!entry) {
         entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url);
@@ -449,7 +467,6 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
     gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
 }
-
 
 void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char * url) {
     if (!url || !dm)
@@ -466,6 +483,7 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
         assert( url );
         if (!strcmp(e_url, url)) {
             /* We found the existing session */
+	    gf_cache_entry_set_delete_files_when_deleted(e);
             if (0 == gf_cache_get_sessions_count_for_cache_entry( e )) {
                 /* No session attached anymore... we can delete it */
                 gf_list_rem(dm->cache_entries, i);
@@ -479,8 +497,7 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
 
 void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  const char * url) {
     if (sess && sess->dm && url)
-        gf_dm_delete_cached_file_entry(sess->dm, url);
-
+         gf_dm_delete_cached_file_entry(sess->dm, url);
 }
 
 
