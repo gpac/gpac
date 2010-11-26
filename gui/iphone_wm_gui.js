@@ -821,7 +821,6 @@ function widget_launch(wid, scene_container) {
         if (container != null) icon = container.getAttributeNS(xlinkns, 'href');
     }
     if (icon != null &&
-            !testCyrilsExtension &&
             sameFileIgnoringSVGView(icon, wid.main) &&
             endsWith(wid.main, '.svg')) {
         // get the animation with id=shortName stored in mainDefs
