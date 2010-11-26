@@ -452,7 +452,7 @@ static char * parse_next_line( char * data, char * buf, int * readPointer, int *
 			while (pos < *remainingBytes && (data[pos] == '\r' || data[pos] == '\n'))
 				pos++;
 			*remainingBytes = *remainingBytes - pos + *readPointer;
-			memcpy(data, &(data[pos]), *remainingBytes);
+			memmove(data, &(data[pos]), *remainingBytes);
 			*readPointer = 0;
 			return buf;
 		}
