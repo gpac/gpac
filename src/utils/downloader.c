@@ -996,6 +996,16 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
     return sess->last_error;
 }
 
+static void gf_cache_cleanup_cache(GF_DownloadManager * dm){
+  const char * opt;
+  if (dm && dm->cfg){
+	opt = gf_cfg_get_key(dm->cfg, "Downloader", "CleanCache");
+	if (opt && strncmp("yes", opt, 3)){
+	      gf_cache_delete_all_cached_files(dm->cache_directory);
+	}
+    }
+}
+
 
 GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 {
@@ -1032,7 +1042,7 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 #ifdef GPAC_HAS_SSL
     ssl_init(dm, 0);
 #endif
-    gf_cache_delete_all_cached_files(dm->cache_directory);
+    gf_cache_cleanup_cache(dm);
     return dm;
 }
 
@@ -1099,7 +1109,7 @@ void gf_dm_del(GF_DownloadManager *dm)
     
     gf_list_del( dm->partial_downloads );
     dm->partial_downloads = NULL;
-    
+    gf_cache_cleanup_cache(dm);
     if (dm->cache_directory)
         gf_free(dm->cache_directory);
     dm->cache_directory = NULL;
@@ -1973,11 +1983,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         } else {
             sess->total_size = ContentLength;
             if (sess->use_cache_file && sess->http_read_type == GET ) {
-                GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
-		       ("[CACHE %p] Opening a cache for storing : %d bytes...\n", sess, sess->total_size));
                 e = gf_cache_open_write_cache(sess->cache_entry, sess);
                 if (e) {
-                    fprintf(stderr, "Failed to open cache, error=%d\n", e);
+		    GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ( "[CACHE] Failed to open cache, error=%d\n", e));
                     goto exit;
                 }
             }
