@@ -424,19 +424,8 @@ DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char 
  */
 s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
 
-/*!
- * Adds a session to a DownloadedCacheEntry
- * \param entry The entry
- * \param sess The session to add
- * \return the number of sessions in the cached entry, -1 if one of the parameters is wrong
- */
-s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
-
-void gf_dm_configure_cache(GF_DownloadSession *sess)
-{
-    DownloadedCacheEntry entry;
-    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Downloader] gf_dm_configure_cache(%p), cached=%s\n", sess, sess->flags&GF_NETIO_SESSION_NOT_CACHED?"no":"yes" ));
-    if (sess->cache_entry){
+void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess){
+  if (sess && sess->cache_entry){
       gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
       if (sess->dm && gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry) &&
 	  (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)))
@@ -455,6 +444,21 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 	gf_mx_v( sess->dm->cache_mx );
       }
     }
+}
+
+/*!
+ * Adds a session to a DownloadedCacheEntry
+ * \param entry The entry
+ * \param sess The session to add
+ * \return the number of sessions in the cached entry, -1 if one of the parameters is wrong
+ */
+s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
+
+void gf_dm_configure_cache(GF_DownloadSession *sess)
+{
+    DownloadedCacheEntry entry;
+    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Downloader] gf_dm_configure_cache(%p), cached=%s\n", sess, sess->flags&GF_NETIO_SESSION_NOT_CACHED?"no":"yes" ));
+    gf_dm_remove_cache_entry_from_session(sess);
     entry = gf_dm_find_cached_entry_by_url(sess);
     if (!entry) {
         entry = gf_cache_create_entry(sess->dm, sess->dm->cache_directory, sess->orig_url);
@@ -553,8 +557,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     		gf_free(sess->cache_name);
     	}
     */
-    if (sess->cache_entry)
-        gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
+    gf_dm_remove_cache_entry_from_session(sess);
     sess->cache_entry = NULL;
     if (sess->orig_url) gf_free(sess->orig_url);
     if (sess->server_name) gf_free(sess->server_name);
