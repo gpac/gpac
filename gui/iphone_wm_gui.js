@@ -317,7 +317,7 @@ function widget_activated_and_bound(wid) {
 // init variables, then init the widget manager C code, then inits UPnP
 //
 function initialize() {
-    /*if (l_deb < log_level)*/ alert("[UI] initialize");
+    if (l_deb < log_level) alert("[UI] initialize");
     init = false;
     var display_width = parseInt(gpac.getOption('Widgets', 'LastWMWidth'));
     var display_height = parseInt(gpac.getOption('Widgets', 'LastWMHeight'));
@@ -600,7 +600,6 @@ function getNbWidgets() {
 // just resize the window and viewport, and initialize the first time this is called
 //
 function resize() {
-    alert("wwwwwww resize "+init);
     if (init) initialize();
     if (document.documentElement.viewport.width == previousWidth && document.documentElement.viewport.height == previousHeight) return;
     if (l_deb < log_level) alert("[UI] start initialize() w:" + document.documentElement.viewport.width + " h:" + document.documentElement.viewport.height);
@@ -741,7 +740,7 @@ function createIconSVGdecoration(previousIcon, widget, x, y, fatherId, iconUrl, 
         g2 = document.createElement("g");
         g2.setAttribute("transform", 'translate(40,70)');
         g.appendChild(g2);
-        var anim = text(name, 'white', 0, 0, 14, 'Arial Unicode MS');
+        var anim = createtext(name, 'white', 0, 0, 14, 'Arial Unicode MS');
         anim.setAttribute("text-anchor", "middle");
         anim.setAttribute("display-align", "center");
         g2.appendChild(anim);
@@ -922,14 +921,14 @@ function selector_window(widget) {
     selector.appendChild(rect(0, 0, 300, 20 * (count + 1), 'white', 'black'));
     for (i = 0; i < count; i++) {
         render = UPnP.GetMediaRenderer(i);
-        obj = text(render.Name, 'black', 5, 17 + (20 * i), 15, 'sans-serif');
+        obj = createtext(render.Name, 'black', 5, 17 + (20 * i), 15, 'sans-serif');
         obj.setAttribute('id', "selector" + i);
         selector.appendChild(obj);
         obj.addEventListener('mouseover', sw1("selector"+i), false);
         obj.addEventListener('mouseout', sw2("selector"+i), false);
         obj.addEventListener('click', sw3(i, widget), false);
     }
-    obj = text('Cancel', 'rgb(0,0,120)', 55, 17 + (20 * i), 15, 'sans-serif');
+    obj = createtext('Cancel', 'rgb(0,0,120)', 55, 17 + (20 * i), 15, 'sans-serif');
     obj.setAttribute('id', "cancel");
     selector.appendChild(obj);
     obj.addEventListener('mouseover', function(evt) { document.getElementById("cancel").setAttribute("fill", "red"); }, false);
@@ -1278,7 +1277,7 @@ function rect(x, y, w, h, fill, stroke, id) {
 //
 // create text
 //
-function text(content, fill, x, y, size, family) {
+function createtext(content, fill, x, y, size, family) {
     var child = document.createElement('text');
     child.setAttribute('fill', fill);
     child.textContent = content;
