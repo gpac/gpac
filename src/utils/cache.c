@@ -306,6 +306,8 @@ GF_Err appendHttpCacheHeaders(const DownloadedCacheEntry entry, char * httpReque
         return GF_BAD_PARAM;
     if (entry->flags)
       return GF_OK;
+    if (gf_cache_check_if_cache_file_is_corrupted(entry))
+      return GF_OK;
     /* OK, this is potentially bad if httpRequest is not big enough */
     if (entry->diskETag) {
         strcat(httpRequest, "If-None-Match: ");
@@ -388,7 +390,13 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
     entry->diskLastModified = NULL;
     entry->serverLastModified = NULL;
     entry->dm = dm;
-    entry->write_mutex = gf_mx_new(url);
+    {
+      char name[1024];
+      snprintf(name, 1024, "CachedEntryWriteMx=%p, url=%s", (void*) entry, url);
+      entry->write_mutex = gf_mx_new(name);
+      assert( entry->write_mutex);
+    }
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,("CREATE MUTEX %p\n", (void*)entry->write_mutex));
     entry->write_session = NULL;
     entry->sessions = gf_list_new();
     if ( !entry->hash || !entry->url || !entry->cache_filename || !entry->sessions)
@@ -450,33 +458,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
         if ( keyValue == NULL || stricmp ( url, keyValue ) )
             entry->flags |= CORRUPTED;
     }
-    {
-        FILE *the_cache = gf_f64_open ( entry->cache_filename, "rb" );
-        if ( the_cache )
-        {
-            char * endPtr;
-            const char * keyValue = gf_cfg_get_key ( entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_CONTENT_SIZE );
-
-            gf_f64_seek ( the_cache, 0, SEEK_END );
-            entry->cacheSize = ( u32 ) gf_f64_tell ( the_cache );
-            fclose ( the_cache );
-            if (keyValue) {
-                entry->contentLength = strtoul( keyValue, &endPtr, 10);
-                if (*endPtr!='\0' || entry->contentLength != entry->cacheSize) {
-                    entry->flags |= CORRUPTED;
-                    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, cached file and cache info size mismatch.\n", __LINE__));
-                }
-            } else
-                entry->flags |= CORRUPTED;
-
-        } else {
-            entry->flags |= CORRUPTED;
-        }
-        if (entry->flags & CORRUPTED)
-            GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, CACHE is corrupted !\n", __LINE__));
-
-
-    }
+    gf_cache_check_if_cache_file_is_corrupted(entry);
 
     return entry;
 }
@@ -496,24 +478,26 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
     CHECK_ENTRY;
     if (!sess || !entry->write_session || entry->write_session != sess)
       return GF_OK;
-    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_close_write_cache:%d for entry=%p\n", __LINE__, entry));
     assert( sess == entry->write_session );
     if (entry->writeFilePtr) {
-        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
+        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
                ("Closing cache file %s for write, size is %d.\n", entry->cache_filename, entry->written_in_cache));
         if (fflush( entry->writeFilePtr ) || fclose( entry->writeFilePtr ))
             e = GF_IO_ERR;
         e|= gf_cache_flush_disk_cache(entry);
-	if (success){
-	  gf_cache_set_last_modified_on_disk( entry, gf_cache_get_last_modified_on_server(entry));
-	  gf_cache_set_etag_on_disk( entry, gf_cache_get_etag_on_server(entry));
+	if (e == GF_OK && success){
+	  e|= gf_cache_set_last_modified_on_disk( entry, gf_cache_get_last_modified_on_server(entry));
+	  e|= gf_cache_set_etag_on_disk( entry, gf_cache_get_etag_on_server(entry));
 	}
-	gf_cache_flush_disk_cache(entry);
+	e|= gf_cache_flush_disk_cache(entry);
 #if defined(_BSD_SOURCE) || _XOPEN_SOURCE >= 500
         /* On  UNIX, be sure to flush all the data */
         sync();
 #endif
         entry->writeFilePtr = NULL;
+	if (GF_OK != e){
+	    GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Failed to fully write file on cache, e=%d\n", e));
+	}
     }
     entry->write_session = NULL;
     gf_mx_v(entry->write_mutex);
@@ -525,21 +509,21 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
     CHECK_ENTRY;
     if (!sess)
       return GF_BAD_PARAM;
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,("[CACHE] Locking write mutex %p for entry=%s\n", (void*) (entry->write_mutex), entry->url) );
     gf_mx_p(entry->write_mutex);
     entry->write_session = sess;
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] gf_cache_open_write_cache:%d, entry=%p\n", __LINE__, entry));
+    assert( ! entry->writeFilePtr);
+    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
+               ("[CACHE] Opening cache file %s for write (%s)...", entry->cache_filename, entry->url));
+    entry->writeFilePtr = fopen(entry->cache_filename, "wb");
     if (!entry->writeFilePtr) {
-	entry->written_in_cache = 0;
-        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
-               ("Opening cache file %s for write...", entry->cache_filename));
-        entry->writeFilePtr = fopen(entry->cache_filename, "wb");
-        if (!entry->writeFilePtr) {
-            GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
-                   ("Error while opening cache file %s for writting.", entry->cache_filename));
+            GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK,
+                   ("[CACHE] Error while opening cache file %s for writting.", entry->cache_filename));
+	    entry->write_session = NULL;
+	    gf_mx_v(entry->write_mutex);
             return GF_IO_ERR;
-        }
     }
-    
+    entry->written_in_cache = 0;
     return GF_OK;
 }
 
@@ -597,10 +581,7 @@ DownloadedCacheEntry gf_cache_entry_dup_readonly( const DownloadedCacheEntry ent
     ret->dm = NULL;
     ret->sessions = gf_list_new();
     ret->write_session = NULL;
-    /**
-     * The mutex is the same, we don't want a stupid usage...
-     */
-    ret->write_mutex = entry->write_mutex;
+    ret->write_mutex = NULL;
     return ret;
 }
 
@@ -709,3 +690,31 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
     return GF_OK;
 }
 
+Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry){
+    
+        FILE *the_cache = gf_f64_open ( entry->cache_filename, "rb" );
+        if ( the_cache )
+        {
+            char * endPtr;
+            const char * keyValue = gf_cfg_get_key ( entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_CONTENT_SIZE );
+
+            gf_f64_seek ( the_cache, 0, SEEK_END );
+            entry->cacheSize = ( u32 ) gf_f64_tell ( the_cache );
+            fclose ( the_cache );
+            if (keyValue) {
+                entry->contentLength = strtoul( keyValue, &endPtr, 10);
+                if (*endPtr!='\0' || entry->contentLength != entry->cacheSize) {
+                    entry->flags |= CORRUPTED;
+                    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, cached file and cache info size mismatch.\n", __LINE__));
+                }
+            } else
+                entry->flags |= CORRUPTED;
+
+        } else {
+            entry->flags |= CORRUPTED;
+        }
+        if (entry->flags & CORRUPTED)
+            GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, CACHE is corrupted !\n", __LINE__));
+
+      return entry->flags & CORRUPTED;
+    }

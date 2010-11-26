@@ -230,6 +230,8 @@ s64 gf_cache_reader_get_full_size( GF_CacheReader reader );
 
 s32 gf_cache_reader_read( GF_CacheReader reader, char * buff, s32 length);
 
+Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry);
+
 #ifdef __cplusplus
 }
 #endif
