@@ -256,7 +256,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 	    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: wrong cache file %s\n", local_url));
 		return GF_IO_ERR;
 	}
-	gf_delete_file(	(char *)local_url);
+	gf_delete_file(local_url);
 	mpdin->mpd_mime_valid = 0;
 	gf_dm_sess_reset(mpdin->mpd_dnload);
 	e = gf_dm_sess_process(mpdin->mpd_dnload);
@@ -640,7 +640,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		}
 
 		if (mpdin->cached[0].cache) {
-			gf_delete_file(mpdin->cached[0].cache);
+			gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->cached[0].url);
 			gf_free(mpdin->cached[0].cache);
 			gf_free(mpdin->cached[0].url);
 		}
