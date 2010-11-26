@@ -35,6 +35,7 @@ typedef HANDLE TH_HANDLE;
 #include <sched.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <errno.h>
 typedef pthread_t TH_HANDLE ;
 
 #endif
@@ -106,7 +107,7 @@ GF_Thread *gf_th_new(const char *name)
 		tmp->log_name = gf_strdup(name);
 	} else {
 		char szN[20];
-		sprintf(szN, "0x%p", tmp);
+		sprintf(szN, "0x%p", (void*)tmp);
 		tmp->log_name = gf_strdup(szN);
 	}
 	log_add_thread(tmp);
@@ -326,9 +327,10 @@ GF_Mutex *gf_mx_new(const char *name)
 		tmp->log_name = gf_strdup(name);
 	} else {
 		char szN[20];
-		sprintf(szN, "0x%p", tmp);
+		sprintf(szN, "0x%p", (void*)tmp);
 		tmp->log_name = gf_strdup(szN);
 	}
+	assert( tmp->log_name);
 #endif
 
 	return tmp;
@@ -343,6 +345,7 @@ void gf_mx_del(GF_Mutex *mx)
 #endif
 #ifndef GPAC_DISABLE_LOG
 	gf_free(mx->log_name);
+	mx->log_name = NULL;
 #endif
 	gf_free(mx);
 }
@@ -374,6 +377,9 @@ void gf_mx_v(GF_Mutex *mx)
 
 u32 gf_mx_p(GF_Mutex *mx)
 {
+#ifndef WIN32
+	int retCode;
+#endif
 	u32 caller;
 	assert(mx);
 	if (!mx) return 0;
@@ -397,11 +403,18 @@ u32 gf_mx_p(GF_Mutex *mx)
 		break;
 	}
 #else
-	if (pthread_mutex_lock(&mx->hMutex) != 0 ) {
+	retCode = pthread_mutex_lock(&mx->hMutex);
+	if (retCode != 0 ) {
+#ifndef GPAC_DISABLE_LOG
+		if (retCode == EINVAL)
+		  GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Mutex %p=%s] Not properly initialized.\n", mx, mx->log_name));
+		if (retCode == EDEADLK)
+		  GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Mutext %p=%s] Deadlock detected.\n", mx, mx->log_name));
+#endif /* GPAC_DISABLE_LOG */
 		assert(0);
 		return 0;
 	}
-#endif
+#endif /* NOT WIN32 */
 	mx->HolderCount = 1;
 	mx->Holder = caller;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Mutex %s] At %d Grabbed by thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(mx->Holder) ));
