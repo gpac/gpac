@@ -368,6 +368,35 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 	return GF_OK;
 }
 
+GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession ** sess, const char *url, gf_dm_user_io user_io,  void *usr_cbk)
+{
+    if (*sess){
+	gf_dm_sess_del(*sess);
+	*sess = NULL;
+    }
+    *sess = gf_term_download_new(service, url, GF_NETIO_SESSION_NOT_THREADED, user_io, usr_cbk);
+    if (!(*sess))
+      return GF_OUT_OF_MEM;
+    GF_Err e = gf_dm_sess_process(*sess);
+    switch (e){
+      case GF_IP_CONNECTION_FAILURE:
+      case GF_IP_NETWORK_FAILURE:
+      {
+	gf_dm_sess_del(*sess);
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE,
+	       ("[MPD_IN] failed to download, retrying once to download %s\n", url));
+	*sess = gf_term_download_new(service, url, GF_NETIO_SESSION_NOT_THREADED, user_io, usr_cbk);
+	 if (!(*sess))
+	  return GF_OUT_OF_MEM;
+	 return gf_dm_sess_process(*sess);
+      }
+      case GF_OK:
+      default:
+	return e;
+    }
+}
+
+
 static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period) 
 {
     GF_Err e;
@@ -379,15 +408,10 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
     } else {
         base_init_url = gf_strdup(rep->init_url);
     }
-    if (mpdin->seg_dnload) {
-        gf_term_download_del(mpdin->seg_dnload);
-    }
-    mpdin->seg_dnload = gf_term_download_new(mpdin->service, base_init_url, GF_NETIO_SESSION_NOT_THREADED, 
-                                             MPD_NetIO_Segment, mpdin);
-    if (!mpdin->seg_dnload) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error with initialization segment: cannot create downloader\n"));
-        free(base_init_url);
-        return GF_BAD_PARAM;
+    e = MPD_downloadWithRetry(mpdin->service, &(mpdin->seg_dnload), base_init_url, MPD_NetIO_Segment, mpdin);
+    if (e!= GF_OK){
+        gf_free(base_init_url);
+        return e;
     } else {
 		GF_MPD_Representation *rep = gf_list_get(period->representations, mpdin->active_rep_index);
         if (rep->init_use_range) {
@@ -406,13 +430,14 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
 			gf_mx_p(mpdin->dl_mutex);
 			assert(!mpdin->nb_cached);
 			mpdin->cached[0].cache = gf_strdup(mpdin->seg_local_url);
-			mpdin->cached[0].url = base_init_url;
+			mpdin->cached[0].url = gf_strdup(gf_dm_sess_get_resource_name(mpdin->seg_dnload ));
 			mpdin->nb_cached = 1;
 			gf_mx_v(mpdin->dl_mutex);
             return GF_OK;
         }
     }
 }
+
 static u32 download_segments(void *par) 
 {
     GF_Err e;
@@ -505,24 +530,19 @@ static u32 download_segments(void *par)
 			new_base_seg_url = gf_strdup(seg->url);
         }
 
-//        gf_dm_setup_from_url(mpdin->seg_dnload, new_base_seg_url);
-//        gf_dm_sess_dash_reset(mpdin->seg_dnload);
-
-		if (mpdin->seg_dnload) gf_term_download_del(mpdin->seg_dnload);
-	    mpdin->seg_dnload = gf_term_download_new(mpdin->service, new_base_seg_url, GF_NETIO_SESSION_NOT_THREADED, MPD_NetIO_Segment, mpdin);
-
-		if (seg->use_byterange) {
+	if (seg->use_byterange) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading new segment: %s (range: %d-%d)\n", new_base_seg_url, seg->byterange_start, seg->byterange_end));
         } else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading new segment: %s\n", new_base_seg_url));
         }
-
-		e = gf_dm_sess_process(mpdin->seg_dnload);     
+	e = MPD_downloadWithRetry(mpdin->service, &(mpdin->seg_dnload), new_base_seg_url, MPD_NetIO_Segment, mpdin);
+	gf_free(new_base_seg_url);
+	new_base_seg_url = NULL;
         if (e == GF_OK) {
 			
 			gf_mx_p(mpdin->dl_mutex);
 			mpdin->cached[mpdin->nb_cached].cache = gf_strdup( rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload));
-			mpdin->cached[mpdin->nb_cached].url = new_base_seg_url;
+			mpdin->cached[mpdin->nb_cached].url = gf_strdup( gf_dm_sess_get_resource_name(mpdin->seg_dnload));
 			mpdin->nb_cached++;
 			gf_mx_v(mpdin->dl_mutex);
 
@@ -638,11 +658,16 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 		}
 
 		if (mpdin->cached[0].cache) {
+			assert( mpdin->cached[0].url );
+			printf("DELETE %s : %s\n", mpdin->cached[0].url, mpdin->cached[0].cache);
 			gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->cached[0].url);
 			gf_free(mpdin->cached[0].cache);
 			gf_free(mpdin->cached[0].url);
+			mpdin->cached[0].url = NULL;
+			mpdin->cached[0].cache = NULL;
 		}
 		memmove(&mpdin->cached[0], &mpdin->cached[1], sizeof(segment_cache_entry)*(mpdin->nb_cached-1));
+		memset(&(mpdin->cached[mpdin->nb_cached-1]), 0, sizeof(segment_cache_entry));
 		mpdin->nb_cached -= 1;
 		gf_mx_v(mpdin->dl_mutex);
 
