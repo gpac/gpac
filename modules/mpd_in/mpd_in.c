@@ -50,8 +50,6 @@ typedef struct __mpd_module {
     u32 nb_playing_or_paused_channels;
 
     /* Download of the MPD */
-    Bool mpd_mime_valid;
-	Bool is_m3u8;
 	Bool in_download;
 
 	GF_DownloadSession *mpd_dnload;
@@ -69,8 +67,7 @@ typedef struct __mpd_module {
 	Double playback_start_range, playback_end_range;
 
     /* For Segment downloads */
-    Bool seg_mime_valid;
-	GF_DownloadSession *seg_dnload;
+    GF_DownloadSession *seg_dnload;
     const char *seg_local_url;
     GF_Thread *dl_thread;
     GF_Mutex *dl_mutex;
@@ -215,20 +212,22 @@ void MPD_NetIO_Segment(void *cbk, GF_NETIO_Parameter *param)
 
 	/*handle service message*/
 	gf_term_download_update_stats(mpdin->seg_dnload);
-
 	e = param->error;
+}
 
-	if (param->msg_type==GF_NETIO_PARSE_HEADER) {
-		if (!strcmp(param->name, "Content-Type")) {
-            GF_MPD_Period * period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index);            
-			GF_MPD_Representation *rep = gf_list_get(period->representations, mpdin->active_rep_index);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Segment Mime Type: %s\n", param->value));
-			if (!stricmp(param->value, rep->mime)) {
-                mpdin->seg_mime_valid = 1;
-            }
-		}
-		return;
-    } 
+static Bool MPD_is_MPD_mime(const char * mime) {
+    if (!mime)
+        return 0;
+    return !stricmp(mime, "video/vnd.3gpp.mpd") || !stricmp(mime, "audio/vnd.3gpp.mpd");
+}
+
+static Bool MPD_isM3U8_mime(const char * mime) {
+    if (!mime)
+        return 0;
+    return !stricmp(mime, "video/x-mpegurl") ||
+           !stricmp(mime, "audio/x-mpegurl") ||
+           !stricmp(mime, "application/x-mpegurl") ||
+           !stricmp(mime, "application/vnd.apple.mpegurl");
 }
 
 static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
@@ -242,6 +241,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 	GF_MPD_Representation *rep, *new_rep;
 	GF_List *segs;
 	const char *local_url;
+	Bool is_m3u8 = 0;
 	/*reset update time - if any error occurs, we will no longer attempt to update the MPD*/
 	mpdin->mpd->min_update_time = 0;
 
@@ -257,16 +257,21 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 		return GF_IO_ERR;
 	}
 	gf_delete_file(local_url);
-	mpdin->mpd_mime_valid = 0;
 	gf_dm_sess_reset(mpdin->mpd_dnload);
 	e = gf_dm_sess_process(mpdin->mpd_dnload);
-	if (e!=GF_OK || !mpdin->mpd_mime_valid) {
-	    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: download problem %s, mime valid: %d\n", gf_error_to_string(e), mpdin->mpd_mime_valid));		
+	if (e!=GF_OK) {
+	    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: download problem %s for MPD file\n", gf_error_to_string(e)));		
 		return gf_dm_sess_last_error(mpdin->mpd_dnload);
 	}
-	
-	if (mpdin->is_m3u8) {
+	{
+	    const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
+	    if (MPD_isM3U8_mime(mime)){
 		m3u8_to_mpd(mpdin, local_url, gf_dm_sess_get_resource_name(mpdin->mpd_dnload) );
+	    } else if (!MPD_is_MPD_mime(mime)){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' should be m3u8 or mpd\n", mime));
+		gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
+		return GF_BAD_PARAM;
+	    }
 	}
 
     if (!MPD_CheckRootType(local_url)) {
@@ -421,9 +426,20 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         }
 
 	e = gf_dm_sess_process(mpdin->seg_dnload);
+	{
+	    /* Mime-Type check */
+	    const char * mime = gf_dm_sess_mime_type(mpdin->seg_dnload);
+	    if (!mime || stricmp(mime, rep->mime)){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, rep->mime, base_init_url));
+		gf_free(base_init_url);
+		base_init_url = NULL;
+		return GF_BAD_PARAM;
+	    }
+	}
+	
         mpdin->seg_local_url = 	rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload);
-		if ((e!=GF_OK) || !mpdin->seg_local_url || !mpdin->seg_mime_valid) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error with initialization segment: download result:%s, cache file:%s, mime valid:%d, is_m3u8\n", gf_error_to_string(e), mpdin->seg_local_url, mpdin->seg_mime_valid, mpdin->is_m3u8));
+		if ((e!=GF_OK) || !mpdin->seg_local_url) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error with initialization segment: download result:%s, cache file:%s\n", gf_error_to_string(e), mpdin->seg_local_url));
 	        free(base_init_url);
             return GF_BAD_PARAM;
         } else {
@@ -618,26 +634,7 @@ void MPD_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 	/*handle service message*/
 	gf_term_download_update_stats(mpdin->mpd_dnload);
-
 	e = param->error;
-
-    if (param->msg_type==GF_NETIO_PARSE_HEADER) {
-		if (!strcmp(param->name, "Content-Type")) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Playlist Mime Type: %s\n", param->value));
-            if (stricmp(param->value, "video/vnd.3gpp.mpd") || 
-				stricmp(param->value, "audio/vnd.3gpp.mpd")) {
-                mpdin->mpd_mime_valid = 1;
-            }
-            if (stricmp(param->value, "video/x-mpegurl") || 
-				stricmp(param->value, "audio/x-mpegurl") || 
-				stricmp(param->value, "application/x-mpegurl") ||
-				stricmp(param->value, "application/vnd.apple.mpegurl") ) {
-
-				mpdin->mpd_mime_valid = 1;
-				mpdin->is_m3u8 = 1;
-            }
-		}
-	} 
 }
 
 
@@ -659,7 +656,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 
 		if (mpdin->cached[0].cache) {
 			assert( mpdin->cached[0].url );
-			printf("DELETE %s : %s\n", mpdin->cached[0].url, mpdin->cached[0].cache);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] deleting cache file %s : %s\n", mpdin->cached[0].url, mpdin->cached[0].cache));
 			gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->cached[0].url);
 			gf_free(mpdin->cached[0].cache);
 			gf_free(mpdin->cached[0].url);
@@ -804,6 +801,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     const char *local_url, *opt;
     GF_Err e;
     GF_DOMParser *mpd_parser;
+    Bool is_m3u8 = 0;
 
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Service Connection request (0x%x) from terminal for %s\n", serv, url));
 
@@ -844,7 +842,9 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	if (!strnicmp(url, "file://", 7)) {
 		local_url = url + 7;
-		if (strstr(url, ".m3u8")) mpdin->is_m3u8 = 1;
+		if (strstr(url, ".m3u8")){
+		    is_m3u8 = 1;
+		}
 	} else if (strstr(url, "://")) {
     	mpdin->mpd_dnload = gf_term_download_new(mpdin->service, url, GF_NETIO_SESSION_NOT_THREADED, MPD_NetIO, mpdin);
         if (!mpdin->mpd_dnload) {
@@ -853,10 +853,20 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
             return GF_OK;
         }
 		e = gf_dm_sess_process(mpdin->mpd_dnload);
-		if (e!=GF_OK || !mpdin->mpd_mime_valid) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD downloading problem %s (mime valid: %d, m3u8:%d)\n", gf_error_to_string(e), mpdin->mpd_mime_valid, mpdin->is_m3u8));
-	        gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
-            return GF_OK;
+		{
+		  const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
+		  if (MPD_isM3U8_mime(mime)){
+		      is_m3u8 = 1;
+		  } else if (!MPD_is_MPD_mime(mime)){
+		      GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' for '%s' should be m3u8 or mpd\n", mime, url));
+		      gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
+		      return GF_BAD_PARAM;
+		  }
+		}
+		if (e!=GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD downloading problem %s for %s\n", gf_error_to_string(e), url));
+			gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
+			return GF_OK;
         } else {
             local_url = gf_dm_sess_get_cache_name(mpdin->mpd_dnload);
             if (!local_url) {
@@ -869,7 +879,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         local_url = url;
     }
 
-	if (mpdin->is_m3u8) {
+	if (is_m3u8) {
 		m3u8_to_mpd(mpdin, local_url, url);
 	}
 
