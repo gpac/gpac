@@ -504,7 +504,7 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
 
 void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  const char * url) {
     if (sess && sess->dm && url){
-	 printf("Requesting deletion for %s\n", url);
+	 GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Requesting deletion for %s\n", url));
          gf_dm_delete_cached_file_entry(sess->dm, url);
     }
 }
@@ -679,9 +679,9 @@ GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, const char *url)
             tmp[0] = 0;
         }
         user = tmp_url;
-        if (! sess->dm)
-            printf("Did not found any download manager, credentials not supported\n");
-        else
+        if (! sess->dm){
+            GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Did not found any download manager, credentials not supported\n"));
+	} else
             sess->creds = gf_user_credentials_register(sess->dm, sess->server_name, user, password, user && password);
     } else {
         sess->server_name = gf_strdup(tmp_url);
@@ -1646,7 +1646,6 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
         if (!size || e == GF_IP_NETWORK_EMPTY) {
             if (!sess->total_size && (gf_sys_clock() - sess->window_start > 2000)) {
                 sess->total_size = sess->bytes_done;
-                printf("Read data returned nothing\n");
                 gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
                 sess->status = GF_NETIO_DISCONNECTED;
             }
