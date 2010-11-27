@@ -846,14 +846,13 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		    is_m3u8 = 1;
 		}
 	} else if (strstr(url, "://")) {
-    	mpdin->mpd_dnload = gf_term_download_new(mpdin->service, url, GF_NETIO_SESSION_NOT_THREADED, MPD_NetIO, mpdin);
-        if (!mpdin->mpd_dnload) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: missing downloader\n"));
-            gf_term_on_connect(mpdin->service, NULL, GF_NOT_SUPPORTED);
-            return GF_OK;
-        }
-		e = gf_dm_sess_process(mpdin->mpd_dnload);
-		{
+	      e = MPD_downloadWithRetry(mpdin->service, &(mpdin->mpd_dnload), url, MPD_NetIO, mpdin);
+	      if (e!=GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD downloading problem %s for %s\n", gf_error_to_string(e), url));
+			gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
+			return GF_OK;
+	      }
+	      {
 		  const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
 		  if (MPD_isM3U8_mime(mime)){
 		      is_m3u8 = 1;
@@ -863,18 +862,12 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		      return GF_BAD_PARAM;
 		  }
 		}
-		if (e!=GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD downloading problem %s for %s\n", gf_error_to_string(e), url));
-			gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
-			return GF_OK;
-        } else {
             local_url = gf_dm_sess_get_cache_name(mpdin->mpd_dnload);
             if (!local_url) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: cache problem %s\n", local_url));
 		        gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
                 return GF_OK;
             }
-        }
     } else {
         local_url = url;
     }
