@@ -391,14 +391,13 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
     } else {
 		GF_MPD_Representation *rep = gf_list_get(period->representations, mpdin->active_rep_index);
         if (rep->init_use_range) {
-            gf_dm_sess_set_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading initialization segment: %s (range: %d-%d)\n", base_init_url, rep->init_byterange_start, rep->init_byterange_end));
         } else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading initialization segment: %s\n", base_init_url));
         }
 
-		e = gf_dm_sess_process(mpdin->seg_dnload);
-        mpdin->seg_local_url = gf_dm_sess_get_cache_name(mpdin->seg_dnload);
+	e = gf_dm_sess_process(mpdin->seg_dnload);
+        mpdin->seg_local_url = 	rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload);
 		if ((e!=GF_OK) || !mpdin->seg_local_url || !mpdin->seg_mime_valid) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error with initialization segment: download result:%s, cache file:%s, mime valid:%d, is_m3u8\n", gf_error_to_string(e), mpdin->seg_local_url, mpdin->seg_mime_valid, mpdin->is_m3u8));
 	        free(base_init_url);
@@ -513,7 +512,6 @@ static u32 download_segments(void *par)
 	    mpdin->seg_dnload = gf_term_download_new(mpdin->service, new_base_seg_url, GF_NETIO_SESSION_NOT_THREADED, MPD_NetIO_Segment, mpdin);
 
 		if (seg->use_byterange) {
-			gf_dm_sess_set_range(mpdin->seg_dnload, seg->byterange_start, seg->byterange_end);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading new segment: %s (range: %d-%d)\n", new_base_seg_url, seg->byterange_start, seg->byterange_end));
         } else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading new segment: %s\n", new_base_seg_url));
@@ -523,7 +521,7 @@ static u32 download_segments(void *par)
         if (e == GF_OK) {
 			
 			gf_mx_p(mpdin->dl_mutex);
-			mpdin->cached[mpdin->nb_cached].cache = gf_strdup( gf_dm_sess_get_cache_name(mpdin->seg_dnload) );
+			mpdin->cached[mpdin->nb_cached].cache = gf_strdup( rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload));
 			mpdin->cached[mpdin->nb_cached].url = new_base_seg_url;
 			mpdin->nb_cached++;
 			gf_mx_v(mpdin->dl_mutex);

@@ -321,20 +321,9 @@ GF_Err gf_dm_sess_process(GF_DownloadSession * sess);
  *
  *Returns the original resource URL associated with the session
  *\param sess the download session
- *\return the associated URL*/
-const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload);
-
-/*!
- *\brief Set session request range
- *
- * WARNING: deprecated !
- * Sets the session range request
- *\param sess the download session
- *\param start start range of the request
- *\param end end range of the request
- *\return error code if any
+ *\return the associated URL
  */
-GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u32 start, u32 end);
+const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload);
 
 /*!
  *\brief Reset session 

@@ -492,7 +492,7 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
     assert( sess == entry->write_session );
     if (entry->writeFilePtr) {
         GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
-               ("Closing cache file %s for write, size is %d.\n", entry->cache_filename, entry->written_in_cache));
+               ("[CACHE] Closing file %s, %d bytes written.\n", entry->cache_filename, entry->written_in_cache));
         if (fflush( entry->writeFilePtr ) || fclose( entry->writeFilePtr ))
             e = GF_IO_ERR;
         e|= gf_cache_flush_disk_cache(entry);
@@ -653,18 +653,19 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 {
     if ( !entry )
         return GF_OK;
-    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p\n", __LINE__, entry));
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p\n", __LINE__, entry));
     if (entry->writeFilePtr) {
         /** Cache should have been close before, abornormal situation */
-        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p, cache has not been closed properly\n", __LINE__, entry));
+        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p, cache has not been closed properly\n", __LINE__, entry));
         fclose(entry->writeFilePtr);
     }
     if (entry->write_mutex) {
         gf_mx_del(entry->write_mutex);
     }
     if (entry->deletableFilesOnDelete) {
+        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] url %s cleanup, deleting %s...\n", entry->url, entry->cache_filename));
         if (!gf_delete_file(entry->cache_filename))
-            GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, failed to delete file %s\n", __LINE__, entry->cache_filename));
+            GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, failed to delete file %s\n", __LINE__, entry->cache_filename));
     }
     entry->write_mutex = NULL;
     entry->write_session = NULL;
@@ -700,7 +701,7 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
         entry->properties = NULL;
         if (propfile) {
             if (GF_OK !=  gf_delete_file( propfile ))
-                GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, failed to delete file %s\n", __LINE__, propfile));
+                GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, failed to delete file %s\n", __LINE__, propfile));
             gf_free ( propfile );
         }
     }

@@ -475,7 +475,6 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
 void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char * url) {
     if (!url || !dm)
         return;
-
     u32 count, i;
     gf_mx_p( dm->cache_mx );
     count = gf_list_count(dm->cache_entries);
@@ -484,7 +483,7 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
         DownloadedCacheEntry e = gf_list_get(dm->cache_entries, i);
         assert(e);
         e_url = gf_cache_get_url(e);
-        assert( url );
+        assert( e_url );
         if (!strcmp(e_url, url)) {
             /* We found the existing session */
 	    gf_cache_entry_set_delete_files_when_deleted(e);
@@ -493,15 +492,21 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
                 gf_list_rem(dm->cache_entries, i);
                 gf_cache_delete_entry(e);
             }
-            break;
+            /* If deleted or not, we don't search further */
+            gf_mx_v( dm->cache_mx );
+	    return;
         }
     }
+    /* If we are heren it means we did not found this URL in cache */
     gf_mx_v( dm->cache_mx );
+    GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] Cannot find URL %s, cache file won't be deleted.\n", url));
 }
 
 void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  const char * url) {
-    if (sess && sess->dm && url)
+    if (sess && sess->dm && url){
+	 printf("Requesting deletion for %s\n", url);
          gf_dm_delete_cached_file_entry(sess->dm, url);
+    }
 }
 
 
@@ -599,7 +604,6 @@ GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess)
     if (!sess) return GF_BAD_PARAM;
     return sess->last_error;
 }
-
 
 GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, const char *url)
 {
@@ -753,23 +757,6 @@ static u32 gf_dm_session_thread(void *par)
 }
 
 #define SESSION_RETRY_COUNT	20
-
-void gf_dm_sess_dash_reset(GF_DownloadSession *sess)
-{
-    sess->status = GF_NETIO_SETUP;
-    /*    sess->needs_range = 0;
-        sess->range_start = sess->range_end = 0;*/
-
-}
-
-GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u32 start, u32 end)
-{
-    if (!sess) return GF_BAD_PARAM;
-    sess->needs_range = 1;
-    sess->range_start = start;
-    sess->range_end = end;
-    return GF_OK;
-}
 
 GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *url, u32 dl_flags,
         gf_dm_user_io user_io,
@@ -1279,8 +1266,11 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, char *data, u
         par.msg_type = GF_NETIO_DATA_TRANSFERED;
         par.error = GF_OK;
         gf_dm_sess_user_io(sess, &par);
-        if (sess->use_cache_file)
+        if (sess->use_cache_file){
             gf_cache_close_write_cache(sess->cache_entry, sess, 1);
+	    GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
+		   ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
+	}
         return;
     }
     /*update state if not done*/
@@ -2083,7 +2073,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     }
 exit:
     if (e) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Error parsing reply: %s\n", gf_error_to_string(e) ));
+        GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Error parsing reply: %s for URL %s\n", gf_error_to_string(e), sess->orig_url ));
         gf_dm_disconnect(sess);
         sess->status = GF_NETIO_STATE_ERROR;
         sess->last_error = e;
