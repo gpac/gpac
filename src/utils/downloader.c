@@ -159,6 +159,7 @@ struct __gf_download_manager
     GF_List *skip_proxy_servers;
     GF_List *credentials;
     GF_List *cache_entries;
+    /* FIXME : should be placed in DownloadedCacheEntry maybe... */
     GF_List * partial_downloads;
 #ifdef GPAC_HAS_SSL
     SSL_CTX *ssl_ctx;
@@ -388,6 +389,11 @@ static Bool gf_dm_can_handle_url(GF_DownloadManager *dm, const char *url)
     return 0;
 }
 
+/*!
+ * Finds an existing entry in the cache for a given URL
+ * \param sess The session configured with the URL
+ * \return NULL if none found, the DownloadedCacheEntry otherwise
+ */
 DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess) {
     u32 i, count;
     assert( sess && sess->dm && sess->dm->cache_entries );
@@ -424,30 +430,36 @@ DownloadedCacheEntry gf_cache_create_entry( GF_DownloadManager * dm, const char 
  */
 s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
 
-void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess){
-  if (sess && sess->cache_entry){
-      gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
-      if (sess->dm && gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry) &&
-	  (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)))
-      {
-	u32 i, count;
-	gf_mx_p( sess->dm->cache_mx );
-	count = gf_list_count( sess->dm->cache_entries );
-	for (i = 0; i < count; i++){
-	  DownloadedCacheEntry ex = gf_list_get(sess->dm->cache_entries, i);
-	  if (ex == sess->cache_entry){
-	    gf_list_rem(sess->dm->cache_entries, i);
-	    gf_cache_delete_entry( sess->cache_entry );
-	    break;
-	  }
-	}
-	gf_mx_v( sess->dm->cache_mx );
-      }
+/**
+ * Removes a cache entry from cache and performs a cleanup if possible.
+ * If the cache entry is marked for deletion and has no sessions associated with it, it will be
+ * removed (so some modules using a streaming like cache will still work.
+ */
+void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
+    if (sess && sess->cache_entry) {
+        gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
+        if (sess->dm && gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry) &&
+                (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)))
+        {
+            u32 i, count;
+            gf_mx_p( sess->dm->cache_mx );
+            count = gf_list_count( sess->dm->cache_entries );
+            for (i = 0; i < count; i++) {
+                DownloadedCacheEntry ex = gf_list_get(sess->dm->cache_entries, i);
+                if (ex == sess->cache_entry) {
+                    gf_list_rem(sess->dm->cache_entries, i);
+                    gf_cache_delete_entry( sess->cache_entry );
+                    break;
+                }
+            }
+            gf_mx_v( sess->dm->cache_mx );
+        }
     }
 }
 
 /*!
- * Adds a session to a DownloadedCacheEntry
+ * Adds a session to a DownloadedCacheEntry.
+ * implemented in cache.c
  * \param entry The entry
  * \param sess The session to add
  * \return the number of sessions in the cached entry, -1 if one of the parameters is wrong
@@ -486,7 +498,7 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
         assert( e_url );
         if (!strcmp(e_url, url)) {
             /* We found the existing session */
-	    gf_cache_entry_set_delete_files_when_deleted(e);
+            gf_cache_entry_set_delete_files_when_deleted(e);
             if (0 == gf_cache_get_sessions_count_for_cache_entry( e )) {
                 /* No session attached anymore... we can delete it */
                 gf_list_rem(dm->cache_entries, i);
@@ -494,7 +506,7 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
             }
             /* If deleted or not, we don't search further */
             gf_mx_v( dm->cache_mx );
-	    return;
+            return;
         }
     }
     /* If we are heren it means we did not found this URL in cache */
@@ -503,9 +515,9 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
 }
 
 void gf_dm_delete_cached_file_entry_session(const GF_DownloadSession * sess,  const char * url) {
-    if (sess && sess->dm && url){
-	 GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Requesting deletion for %s\n", url));
-         gf_dm_delete_cached_file_entry(sess->dm, url);
+    if (sess && sess->dm && url) {
+        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Requesting deletion for %s\n", url));
+        gf_dm_delete_cached_file_entry(sess->dm, url);
     }
 }
 
@@ -679,9 +691,9 @@ GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, const char *url)
             tmp[0] = 0;
         }
         user = tmp_url;
-        if (! sess->dm){
+        if (! sess->dm) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Did not found any download manager, credentials not supported\n"));
-	} else
+        } else
             sess->creds = gf_user_credentials_register(sess->dm, sess->server_name, user, password, user && password);
     } else {
         sess->server_name = gf_strdup(tmp_url);
@@ -1041,10 +1053,10 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
         case GF_NETIO_SETUP:
             gf_dm_connect(sess);
             if (sess->status == GF_NETIO_SETUP)
-                gf_sleep(200);
+                gf_sleep(100);
             break;
         case GF_NETIO_WAIT_FOR_REPLY:
-            gf_sleep(20);
+            gf_sleep(16);
         case GF_NETIO_CONNECTED:
         case GF_NETIO_DATA_EXCHANGE:
             sess->do_requests(sess);
@@ -1058,11 +1070,21 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
     return sess->last_error;
 }
 
+/*!
+ * Cleans up the cache at start and stop.
+ * Note that this method will perform any cleanup if
+ * Configuration section [Downloader]/CleanCache is not set, meaning
+ * that methods that create a "fake" GF_DownloadManager such as
+ * gf_dm_wget() are not impacted and won't cleanup the cache
+ *
+ * FIXME: should be probably threaded to avoid too long start time
+ * \param dm The GF_DownloadManager
+ */
 static void gf_cache_cleanup_cache(GF_DownloadManager * dm) {
     const char * opt;
     if (dm && dm->cfg) {
         opt = gf_cfg_get_key(dm->cfg, "Downloader", "CleanCache");
-        if (opt && strncmp("yes", opt, 3)) {
+        if (opt && (!strncmp("yes", opt, 3) || !strncmp("true", opt, 4) || !strncmp("1", opt, 1))) {
             gf_cache_delete_all_cached_files(dm->cache_directory);
         }
     }
@@ -1187,6 +1209,15 @@ void gf_dm_del(GF_DownloadManager *dm)
     gf_free(dm);
 }
 
+/*!
+ * Skip ICY metadata from SHOUTCAST or ICECAST streams.
+ * Data will be skipped and parsed and sent as a GF_NETIO_Parameter to the user_io,
+ * so modules interrested by those streams may use the data
+ * \param sess The GF_DownloadSession
+ * \param icy_metaint The number of bytes of data before reaching possible meta data
+ * \param data last data received
+ * \param nbBytes The number of bytes contained into data
+ */
 static void gf_icy_skip_data(GF_DownloadSession * sess, u32 icy_metaint, char * data, u32 nbBytes) {
     assert( icy_metaint > 0 );
     while (nbBytes) {
@@ -1266,11 +1297,11 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, char *data, u
         par.msg_type = GF_NETIO_DATA_TRANSFERED;
         par.error = GF_OK;
         gf_dm_sess_user_io(sess, &par);
-        if (sess->use_cache_file){
+        if (sess->use_cache_file) {
             gf_cache_close_write_cache(sess->cache_entry, sess, 1);
-	    GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
-		   ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
-	}
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
+                   ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
+        }
         return;
     }
     /*update state if not done*/
@@ -1393,6 +1424,12 @@ static GFINLINE char *http_is_header(char *line, char *header_name)
     return res;
 }
 
+/*!
+ * Sends the HTTP headers
+ * \param sess The GF_DownloadSession
+ * \param the buffer containing the request
+ * \return GF_OK if everything went fine, the error otherwise
+ */
 static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
     GF_Err e;
     GF_NETIO_Parameter par;
@@ -1625,6 +1662,12 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 }
 
 
+/*!
+ * Parse the remaining part of body
+ * \param sess The session
+ * \param sHTTP the data buffer
+ * \return The error code if any
+ */
 static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP) {
     u32 size;
     GF_Err e;
@@ -1665,6 +1708,11 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
     }
 }
 
+/*!
+ * Waits for the response HEADERS, parse the information... and so on
+ * \param sess The session
+ * \param sHTTP the data buffer
+ */
 static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 {
     GF_NETIO_Parameter par;
@@ -2082,7 +2130,10 @@ exit:
     return http_parse_remaining_body(sess, sHTTP);
 }
 
-
+/**
+ * Default performing behaviour
+ * \param sess The session
+ */
 void http_do_requests(GF_DownloadSession *sess)
 {
     char sHTTP[GF_DOWNLOAD_BUFFER_SIZE];
@@ -2093,8 +2144,9 @@ void http_do_requests(GF_DownloadSession *sess)
     case GF_NETIO_WAIT_FOR_REPLY:
         wait_for_header_and_parse(sess, sHTTP);
         break;
-    default:
+    case GF_NETIO_DATA_EXCHANGE:
         http_parse_remaining_body(sess, sHTTP);
+        break;
     }
 }
 
@@ -2140,8 +2192,6 @@ GF_Err gf_dm_copy_or_link(const char * file_source, const char * file_dest) {
     return GF_OK;
 #endif /* #ifdef __POSIX__ */
 }
-
-
 
 GF_Err gf_dm_wget(const char *url, const char *filename)
 {
