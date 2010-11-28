@@ -376,7 +376,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession ** sess, const char *url, gf_dm_user_io user_io,  void *usr_cbk)
 {
     if (*sess){
-	gf_dm_sess_del(*sess);
+	gf_term_download_del(*sess);
 	*sess = NULL;
     }
     *sess = gf_term_download_new(service, url, GF_NETIO_SESSION_NOT_THREADED, user_io, usr_cbk);
@@ -387,13 +387,13 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession ** 
       case GF_IP_CONNECTION_FAILURE:
       case GF_IP_NETWORK_FAILURE:
       {
-	gf_dm_sess_del(*sess);
+	gf_term_download_del(*sess);
 	GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE,
 	       ("[MPD_IN] failed to download, retrying once to download %s\n", url));
 	*sess = gf_term_download_new(service, url, GF_NETIO_SESSION_NOT_THREADED, user_io, usr_cbk);
 	 if (!(*sess))
 	  return GF_OUT_OF_MEM;
-	 return gf_dm_sess_process(*sess);
+	 e = gf_dm_sess_process(*sess);
       }
       case GF_OK:
       default:
