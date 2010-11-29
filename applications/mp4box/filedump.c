@@ -1666,7 +1666,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 			}
 		}
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_COMPILATION, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tCompilation: %s\n", tag[0] ? "Yes" : "No");
-		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GAPELESS, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tGapeless album: %s\n", tag[0] ? "Yes" : "No");
+		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_GAPLESS, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tGapless album: %s\n", tag[0] ? "Yes" : "No");
 		
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_CREATED, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tCreated: %s\n", tag);
 		if (gf_isom_apple_get_tag(file, GF_ISOM_ITUNE_DISK, &tag, &tag_len)==GF_OK) fprintf(stdout, "\tDisk: %d / %d\n", tag[3], tag[5]);
