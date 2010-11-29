@@ -301,7 +301,7 @@ static void fill_isom_es_ifce(GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_n
 	ifce->duration = gf_isom_get_media_timescale(mp4, track_num);
 	avg_rate = gf_isom_get_media_data_size(mp4, track_num);
 	avg_rate *= ifce->timescale * 8;
-	if (duration=gf_isom_get_media_duration(mp4, track_num))
+	if (0!=(duration=gf_isom_get_media_duration(mp4, track_num)))
 		avg_rate /= duration;
 
 	if (gf_isom_has_time_offset(mp4, track_num)) ifce->caps |= GF_ESI_SIGNAL_DTS;
@@ -603,7 +603,6 @@ static Bool seng_output(void *param)
 	GF_SceneEngine *seng = prog->seng;
 	GF_SimpleDataDescriptor *audio_desc;
 	Bool update_context=0;
-	u32 i=0;
 	Bool force_rap, adjust_carousel_time, discard_pending, signal_rap, signal_critical, version_inc, aggregate_au;
 	u32 period, ts_delta;
 	u16 es_id, aggregate_on_stream;
@@ -890,12 +889,12 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 period)
 {
 	GF_Err e = GF_OK;
-	char *config_buffer;
 	u32 len;
 	GF_ESIStream *stream;
-						
+	const char ** config_buffer = NULL;
+
 	memset(ifce, 0, sizeof(GF_ESInterface));
-	e = gf_seng_get_stream_config(seng, i, (u16*) &(ifce->stream_id), &config_buffer, &len, (u32*) &(ifce->stream_type), (u32*) &(ifce->object_type_indication), &(ifce->timescale)); 
+	e = gf_seng_get_stream_config(seng, i, (u16*) &(ifce->stream_id), config_buffer, &len, (u32*) &(ifce->stream_type), (u32*) &(ifce->object_type_indication), &(ifce->timescale)); 
 	if (e) {
 		fprintf(stderr, "Cannot set the stream config for stream %d to %d: %s\n", ifce->stream_id, period, gf_error_to_string(e));
 	}
@@ -1117,7 +1116,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 					}
 				}
 				if (audio_OD_stream_id == (u32)-1) {
-					fprintf(stderr, "Error: could not find an audio OD stream with ESID=100\n", src);
+					fprintf(stderr, "Error: could not find an audio OD stream with ESID=100 in '%s'\n", src);
 					return 0;
 				}
 			} else {
