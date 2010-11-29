@@ -1828,7 +1828,7 @@ enum
 	GF_ISOM_ITUNE_WRITER = GF_4CC( 0xA9, 'w', 'r', 't' ),
 	GF_ISOM_ITUNE_ENCODER = GF_4CC( 0xA9, 'e', 'n', 'c' ),
 	GF_ISOM_ITUNE_ALBUM_ARTIST = GF_4CC( 'a', 'A', 'R', 'T' ),
-	GF_ISOM_ITUNE_GAPELESS = GF_4CC( 'p', 'g', 'a', 'p' ),
+	GF_ISOM_ITUNE_GAPLESS = GF_4CC( 'p', 'g', 'a', 'p' ),
 };
 /*get the given tag info. 
 !! 'genre' may be coded by ID, the libisomedia doesn't translate the ID. In such a case, the result data is set to NULL 

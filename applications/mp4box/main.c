@@ -131,7 +131,7 @@ static const itunes_tag itags[] = {
 	{GF_ISOM_ITUNE_COMMENT, "comment", "usage: comment=any comment"},
 	{GF_ISOM_ITUNE_COMPILATION, "compilation", "usage: compilation=yes,no"},
 	{GF_ISOM_ITUNE_COMPOSER, "composer", "usage: composer=name"},
-	{GF_ISOM_ITUNE_CREATED, "created", ""},
+	{GF_ISOM_ITUNE_CREATED, "created", "usage: created=time"},
 	{GF_ISOM_ITUNE_DISK, "disk", "usage: disk=x/N"},
 	{GF_ISOM_ITUNE_TOOL, "tool", "usage: tool=name"},
 	{GF_ISOM_ITUNE_GENRE, "genre", "usage: genre=name"},
@@ -139,9 +139,9 @@ static const itunes_tag itags[] = {
 	{GF_ISOM_ITUNE_TEMPO, "tempo", "usage: tempo=integer"},
 	{GF_ISOM_ITUNE_WRITER, "writer", "usage: writer=name"},
 	{GF_ISOM_ITUNE_GROUP, "group", "usage: group=name"},
-	{GF_ISOM_ITUNE_COVER_ART, "cover", "usage: covber=file.jpg,file.png"},
+	{GF_ISOM_ITUNE_COVER_ART, "cover", "usage: cover=file.jpg,file.png"},
 	{GF_ISOM_ITUNE_ENCODER, "encoder", "usage: encoder=name"},
-	{GF_ISOM_ITUNE_GAPELESS, "gapeless", "usage: artist=yes,no"},
+	{GF_ISOM_ITUNE_GAPLESS, "gapless", "usage: gapless=yes,no"},
 };
 
 u32 nb_itunes_tags = sizeof(itags) / sizeof(itunes_tag);
@@ -2505,15 +2505,27 @@ int main(int argc, char **argv)
 			needSave = 1;
 			break;
 		case 6:
-			e = gf_isom_remove_meta_xml(file, meta->root_meta, tk);
-			needSave = 1;
+			if (gf_isom_get_meta_item_count(file, meta->root_meta, tk)) {
+				e = gf_isom_remove_meta_xml(file, meta->root_meta, tk);
+				needSave = 1;
+			} else {
+				fprintf(stdout, "No meta box in input file\n");
+			}
 			break;
 		case 8:
-			e = gf_isom_extract_meta_item(file, meta->root_meta, tk, meta->item_id, strlen(meta->szPath) ? meta->szPath : NULL);
+			if (gf_isom_get_meta_item_count(file, meta->root_meta, tk)) {
+				e = gf_isom_extract_meta_item(file, meta->root_meta, tk, meta->item_id, strlen(meta->szPath) ? meta->szPath : NULL);
+			} else {
+				fprintf(stdout, "No meta box in input file\n");
+			}
 			break;
 #endif
 		case 7:
-			e = gf_isom_extract_meta_xml(file, meta->root_meta, tk, meta->szPath, NULL);
+			if (gf_isom_get_meta_item_count(file, meta->root_meta, tk)) {
+				e = gf_isom_extract_meta_xml(file, meta->root_meta, tk, meta->szPath, NULL);
+			} else {
+				fprintf(stdout, "No meta box in input file\n");
+			}
 			break;
 		}
 		if (e) goto err_exit;
@@ -2875,7 +2887,7 @@ int main(int argc, char **argv)
 				if (tlen) gf_isom_apple_set_tag(file, itag, _t, tlen);
 			}
 				break;
-			case GF_ISOM_ITUNE_GAPELESS:
+			case GF_ISOM_ITUNE_GAPLESS:
 			case GF_ISOM_ITUNE_COMPILATION:
 			{
 				char _t[1];
