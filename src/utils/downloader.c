@@ -484,10 +484,11 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
 }
 
-void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char * url) {
+void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char * url) 
+{
+    u32 count, i;
     if (!url || !dm)
         return;
-    u32 count, i;
     gf_mx_p( dm->cache_mx );
     count = gf_list_count(dm->cache_entries);
     for (i = 0 ; i < count; i++) {
