@@ -194,13 +194,13 @@ GF_Err gf_delete_file(char *fileName)
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
 	CE_CharToWide(fileName, swzName);
-	DeleteFile(swzName);
+	return (DeleteFile(swzName)==0) ? GF_IO_ERR : GF_OK;
 #elif defined(WIN32)
 	/* success if != 0 */
-	return (DeleteFile(fileName)?GF_OK:GF_IO_ERR;
+	return (DeleteFile(fileName)==0) ? GF_IO_ERR : GF_OK;
 #else
 	/* success is == 0 */
-	return remove(fileName)?GF_IO_ERR: GF_OK;
+	return ( remove(fileName) == 0) ? GF_OK : GF_IO_ERR;
 #endif
 }
 
