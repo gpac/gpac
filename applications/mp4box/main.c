@@ -980,7 +980,7 @@ static Bool parse_meta_args(MetaAction *meta, char *opts)
 		if (next) next[0] = 0;
 		
 		if (!strnicmp(szSlot, "tk=", 3)) {
-			sscanf(szSlot, "tk=%d", &meta->trackID);
+			sscanf(szSlot, "tk=%u", &meta->trackID);
 			meta->root_meta = 0;
 			ret = 1;
 		}
@@ -1226,9 +1226,9 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-quiet")) quiet = 1;
 		else if (!stricmp(arg, "-info")) {
 			print_info = 1;
-			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%d", &info_track_id)==1)) {
+			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%u", &info_track_id)==1)) {
 				char szTk[20];
-				sprintf(szTk, "%d", info_track_id);
+				sprintf(szTk, "%u", info_track_id);
 				if (!strcmp(szTk, argv[i+1])) i++;
 				else info_track_id=0;
 			} else {
@@ -1268,7 +1268,7 @@ int main(int argc, char **argv)
 			CHECK_NEXT_ARG
 			track_dump_type = GF_EXPORT_RAW_SAMPLES;
 			if (strchr(argv[i+1], ':')) {
-				sscanf(argv[i+1], "%d:%d", &trackID, &raw_sample_num);
+				sscanf(argv[i+1], "%u:%u", &trackID, &raw_sample_num);
 			} else {
 				trackID = atoi(argv[i+1]);
 			}
@@ -1348,7 +1348,7 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-dts")) dump_ts = 1;
 		else if (!stricmp(arg, "-dcr")) dump_cr = 1;
 		else if (!stricmp(arg, "-ttxt") || !stricmp(arg, "-srt")) {
-			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%d", &trackID)==1)) {
+			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%u", &trackID)==1)) {
 				char szTk[20];
 				sprintf(szTk, "%d", trackID);
 				if (!strcmp(szTk, argv[i+1])) i++;
@@ -1449,9 +1449,9 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-static")) hint_flags |= GP_RTP_PCK_USE_STATIC_ID;
 		else if (!stricmp(arg, "-multi")) {
 			hint_flags |= GP_RTP_PCK_USE_MULTI;
-			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%d", &max_ptime)==1)) {
+			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%u", &max_ptime)==1)) {
 				char szPt[20];
-				sprintf(szPt, "%d", max_ptime);
+				sprintf(szPt, "%u", max_ptime);
 				if (!strcmp(szPt, argv[i+1])) i++;
 				else max_ptime=0;
 			}
@@ -1479,7 +1479,7 @@ int main(int argc, char **argv)
 			id = strchr(argv[i+1], ':');
 			if (id) {
 				id[0] = 0;
-				if (sscanf(argv[i+1], "%d", &sdp_lines[0].trackID)==1) {
+				if (sscanf(argv[i+1], "%u", &sdp_lines[0].trackID)==1) {
 					id[0] = ':';
 					sdp_lines[nb_sdp_ex].line = id+1;
 				} else {
@@ -1689,7 +1689,7 @@ int main(int argc, char **argv)
 			if (!strcmp(argv[i+1], "auto")) import_fps = 10000.0;
 			else if (strchr(argv[i+1], '-')) {
 				u32 ticks, dts_inc;
-				sscanf(argv[i+1], "%d-%d", &ticks, &dts_inc);
+				sscanf(argv[i+1], "%u-%u", &ticks, &dts_inc);
 				if (!dts_inc) dts_inc=1;
 				import_fps = ticks;
 				import_fps /= dts_inc;
@@ -2881,8 +2881,8 @@ int main(int argc, char **argv)
 				n = t = 0;
 				memset(_t, 0, sizeof(char)*8);
 				tlen = (itag==GF_ISOM_ITUNE_DISK) ? 6 : 8;
-				if (sscanf(val, "%d/%d", &n, &t) == 2) { _t[3]=n; _t[5]=t;}
-				else if (sscanf(val, "%d", &n) == 1) { _t[3]=n;}
+				if (sscanf(val, "%u/%u", &n, &t) == 2) { _t[3]=n; _t[5]=t;}
+				else if (sscanf(val, "%u", &n) == 1) { _t[3]=n;}
 				else tlen = 0;
 				if (tlen) gf_isom_apple_set_tag(file, itag, _t, tlen);
 			}

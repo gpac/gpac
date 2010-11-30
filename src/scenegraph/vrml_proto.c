@@ -599,7 +599,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 			char *szName = strrchr(owner->ExternProto.vals[0].url, '#');
 			if (szName) {
 				szName++;
-				if (sscanf(szName, "%d", &ID)) ID = (u32) -1;
+				if (sscanf(szName, "%u", &ID)) ID = (u32) -1;
 			}
 			/*if we have the proto name, use it*/
 			if (owner->Name) szName = owner->Name;

@@ -422,7 +422,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 
 		switch (state) {
 		case 0:
-			if (sscanf(szLine, "%d", &line) != 1) {
+			if (sscanf(szLine, "%u", &line) != 1) {
 				e = gf_import_message(import, GF_CORRUPTED_DATA, "Bad SRT formatting - expecting number got \"%s\"", szLine);
 				goto exit;
 			}
@@ -431,7 +431,7 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 			state = 1;
 			break;
 		case 1:
-			if (sscanf(szLine, "%d:%d:%d,%d --> %d:%d:%d,%d", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems) != 8) {
+			if (sscanf(szLine, "%u:%u:%u,%u --> %u:%u:%u,%u", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems) != 8) {
 				e = gf_import_message(import, GF_CORRUPTED_DATA, "Error scanning SRT frame %d timing", curLine);
 				goto exit;
 			}
@@ -1126,7 +1126,7 @@ static GF_Err gf_text_import_ttxt(GF_MediaImporter *import)
 			while ( (att=(GF_XMLAttribute*)gf_list_enum(node->attributes, &j))) {
 				if (!strcmp(att->name, "sampleTime")) {
 					u32 h, m, s, ms;
-					if (sscanf(att->value, "%d:%d:%d.%d", &h, &m, &s, &ms) == 4) {
+					if (sscanf(att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 						ts = (h*3600 + m*60 + s)*1000 + ms;
 					} else {
 						ts = (u32) (atof(att->value) * 1000);
@@ -1279,7 +1279,7 @@ u32 tx3g_get_color(GF_MediaImporter *import, char *value)
 	u32 r, g, b, a;
 	u32 res, v;
 	r = g = b = a = 0;
-	if (sscanf(value, "%d%%, %d%%, %d%%, %d%%", &r, &g, &b, &a) != 4) {
+	if (sscanf(value, "%u%%, %u%%, %u%%, %u%%", &r, &g, &b, &a) != 4) {
 		gf_import_message(import, GF_OK, "Warning: color badly formatted");
 	}
 	v = (u32) (a*255/100);

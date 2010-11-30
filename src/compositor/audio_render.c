@@ -441,7 +441,6 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 
 		/*if not init we run with a NULL audio compositor*/
 		if (ar->audio_out) {
-			struct _audiofilterentry *prev_filter=NULL;
 
 			ar->audio_out->FillBuffer = gf_ar_fill_output;
 			ar->audio_out->audio_renderer = ar;

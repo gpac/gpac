@@ -156,7 +156,6 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 	s32 len_left = data_size;
 
 
-	u32 i = 0;	
 	i_streams = 0;
 
 //	printf("Processing MPE/MPE-FEC data PID %d (%d/%d)\n",mpe->pid, data[6],data[7]);
@@ -962,7 +961,6 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 
 void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts)
 {
-	int j = 1;
 	char name[100];
 	u32 ipv4_addr;
 	GF_Err e;

@@ -894,7 +894,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		}
 		/*carousel for repeated AUs.*/
 		if (ch->carousel_type) {
-			Bool use_rap = hdr.randomAccessPointFlag;
+/* not used :			Bool use_rap = hdr.randomAccessPointFlag; */
 
 			if (ch->carousel_type==GF_ESM_CAROUSEL_MPEG2) {
 				AUSeqNum = hdr.m2ts_version_number_plus_one-1;

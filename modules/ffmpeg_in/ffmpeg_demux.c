@@ -728,7 +728,7 @@ static GF_Err FFD_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 		e = GF_NOT_SUPPORTED;
 		goto exit;
 	}
-	sscanf(url, "ES_ID=%d", &ESID);
+	sscanf(url, "ES_ID=%u", &ESID);
 
 	if ((s32) ESID == 1 + ffd->audio_st) {
 		if (ffd->audio_ch) {

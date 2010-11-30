@@ -132,14 +132,7 @@ u32 gf_odf_get_tag_by_name(char *descName)
 	return 0;
 }
 
-#define GET_U8(field) { if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = (u8) d; } else { ret += sscanf(val, "%d", &d); if (ret) field = (u8) d; }	}	
-#define GET_U16(field) { if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = (u16) d; } else { ret += sscanf(val, "%d", &d); if (ret) field = (u16) d; }	}	
-#define GET_U32(field) { if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = (u32) d; } else { ret += sscanf(val, "%d", &d); if (ret) field = (u32) d; }	}	
-#define GET_S32(field) { if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = (s32) d; } else { ret += sscanf(val, "%d", &d); if (ret) field = (s32) d; }	}	
-#define GET_BOOL(field) { ret = 1; field = (!stricmp(val, "true") || !stricmp(val, "1")) ? 1 : 0; }
-
-#define GET_DOUBLE(field) { Float v; ret = 1; sscanf(val, "%f", &v); field = (Double) v;}
-#define GET_STRING(field) { ret = 1; field = gf_strdup(val); if (val[0] == '"') strcpy(field, val+1); if (field[strlen(field)-1] == '"') field[strlen(field)-1] = 0; }
+#include <gpac/internal/odf_parse_common.h>
 
 void OD_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 {
@@ -214,7 +207,7 @@ void OD_ParseBin128(char *val, bin128 *data)
 GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 {
 	Bool OD_ParseUIConfig(char *val, char **out_data, u32 *out_data_size);
-	u32 d, ret = 0;
+	u32 ret = 0;
 
 	if (!stricmp(val, "auto")) return GF_OK;
 	else if (!stricmp(val, "unspecified")) return GF_OK;
@@ -223,7 +216,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	case GF_ODF_IOD_TAG:
 	{
 		GF_InitialObjectDescriptor *iod = (GF_InitialObjectDescriptor *)desc;
-		if (!stricmp(fieldName, "objectDescriptorID") || !stricmp(fieldName, "binaryID")) ret += sscanf(val, "%hd", &iod->objectDescriptorID);
+		if (!stricmp(fieldName, "objectDescriptorID") || !stricmp(fieldName, "binaryID")) ret += sscanf(val, "%hu", &iod->objectDescriptorID);
 		else if (!stricmp(fieldName, "URLString")) {
 			iod->URLString = gf_strdup(val);
 			ret = 1;
@@ -257,7 +250,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	case GF_ODF_OD_TAG:
 	{
 		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) desc;
-		if (!stricmp(fieldName, "objectDescriptorID") || !stricmp(fieldName, "binaryID")) ret += sscanf(val, "%hd", &od->objectDescriptorID);
+		if (!stricmp(fieldName, "objectDescriptorID") || !stricmp(fieldName, "binaryID")) ret += sscanf(val, "%hu", &od->objectDescriptorID);
 		else if (!stricmp(fieldName, "URLString")) {
 			od->URLString = gf_strdup(val);
 			ret = 1;
@@ -307,20 +300,20 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			}
 		}
 		else if (!stricmp(fieldName, "upStream")) GET_BOOL(dcd->upstream)
-		else if (!stricmp(fieldName, "bufferSizeDB")) ret += sscanf(val, "%d", &dcd->bufferSizeDB);
-		else if (!stricmp(fieldName, "maxBitRate")) ret += sscanf(val, "%d", &dcd->maxBitrate);
-		else if (!stricmp(fieldName, "avgBitRate")) ret += sscanf(val, "%d", &dcd->avgBitrate);
+		else if (!stricmp(fieldName, "bufferSizeDB")) ret += sscanf(val, "%u", &dcd->bufferSizeDB);
+		else if (!stricmp(fieldName, "maxBitRate")) ret += sscanf(val, "%u", &dcd->maxBitrate);
+		else if (!stricmp(fieldName, "avgBitRate")) ret += sscanf(val, "%u", &dcd->avgBitrate);
 	}
 		break;
 	case GF_ODF_ESD_TAG:
 	{
 		GF_ESD *esd = (GF_ESD *)desc;
 		if (!stricmp(fieldName, "ES_ID") || !stricmp(fieldName, "binaryID")) {
-			ret += sscanf(val, "%hd", &esd->ESID);
+			ret += sscanf(val, "%hu", &esd->ESID);
 		}
 		else if (!stricmp(fieldName, "streamPriority")) GET_U8(esd->streamPriority)
-		else if (!stricmp(fieldName, "dependsOn_ES_ID") || !stricmp(fieldName, "dependsOnESID")) ret += sscanf(val, "%hd", &esd->dependsOnESID);
-		else if (!stricmp(fieldName, "OCR_ES_ID")) ret += sscanf(val, "%hd", &esd->OCRESID);
+		else if (!stricmp(fieldName, "dependsOn_ES_ID") || !stricmp(fieldName, "dependsOnESID")) ret += sscanf(val, "%hu", &esd->dependsOnESID);
+		else if (!stricmp(fieldName, "OCR_ES_ID")) ret += sscanf(val, "%hu", &esd->OCRESID);
 		else if (!stricmp(fieldName, "URLstring")) {
 			esd->URLString = gf_strdup(val);
 			ret = 1;
@@ -345,8 +338,8 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "usePaddingFlag")) GET_BOOL(slc->usePaddingFlag)
 		else if (!stricmp(fieldName, "useTimeStampsFlag")) GET_BOOL(slc->useTimestampsFlag)
 		else if (!stricmp(fieldName, "useIdleFlag")) GET_BOOL(slc->useIdleFlag)
-		else if (!stricmp(fieldName, "timeStampResolution")) ret += sscanf(val, "%d", &slc->timestampResolution);
-		else if (!stricmp(fieldName, "OCRResolution")) ret += sscanf(val, "%d", &slc->OCRResolution);
+		else if (!stricmp(fieldName, "timeStampResolution")) ret += sscanf(val, "%u", &slc->timestampResolution);
+		else if (!stricmp(fieldName, "OCRResolution")) ret += sscanf(val, "%u", &slc->OCRResolution);
 		else if (!stricmp(fieldName, "timeStampLength")) GET_U8(slc->timestampLength)
 		else if (!stricmp(fieldName, "OCRLength")) GET_U8(slc->OCRLength)
 		else if (!stricmp(fieldName, "AU_Length")) GET_U8(slc->AULength)
@@ -354,15 +347,15 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		else if (!stricmp(fieldName, "degradationPriorityLength")) GET_U8(slc->degradationPriorityLength)
 		else if (!stricmp(fieldName, "AU_seqNumLength")) GET_U8(slc->AUSeqNumLength)
 		else if (!stricmp(fieldName, "packetSeqNumLength")) GET_U8(slc->packetSeqNumLength)
-		else if (!stricmp(fieldName, "timeScale")) ret += sscanf(val, "%d", &slc->timeScale);
-		else if (!stricmp(fieldName, "accessUnitDuration")) ret += sscanf(val, "%hd", &slc->AUDuration);
-		else if (!stricmp(fieldName, "compositionUnitDuration")) ret += sscanf(val, "%hd", &slc->CUDuration);
+		else if (!stricmp(fieldName, "timeScale")) ret += sscanf(val, "%u", &slc->timeScale);
+		else if (!stricmp(fieldName, "accessUnitDuration")) ret += sscanf(val, "%hu", &slc->AUDuration);
+		else if (!stricmp(fieldName, "compositionUnitDuration")) ret += sscanf(val, "%hu", &slc->CUDuration);
 		else if (!stricmp(fieldName, "startDecodingTimeStamp")) {
-			ret += sscanf(val, "%d", &ts);
+			ret += sscanf(val, "%u", &ts);
 			slc->startDTS = ts;
 		}
 		else if (!stricmp(fieldName, "startCompositionTimeStamp")) {
-			ret += sscanf(val, "%d", &ts);
+			ret += sscanf(val, "%u", &ts);
 			slc->startCTS = ts;
 		}
 		else if (!stricmp(fieldName, "durationFlag")) ret = 1;
@@ -384,14 +377,14 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		s32 notused;
 		GF_BIFSConfig *bcd = (GF_BIFSConfig*)desc;
 		if (!stricmp(val, "auto")) return GF_OK;
-		if (!stricmp(fieldName, "nodeIDbits")) ret += sscanf(val, "%hd", &bcd->nodeIDbits);
-		else if (!stricmp(fieldName, "nodeIDbits")) ret += sscanf(val, "%hd", &bcd->nodeIDbits);
-		else if (!stricmp(fieldName, "routeIDbits")) ret += sscanf(val, "%hd", &bcd->routeIDbits);
-		else if (!stricmp(fieldName, "protoIDbits")) ret += sscanf(val, "%hd", &bcd->protoIDbits);
+		if (!stricmp(fieldName, "nodeIDbits")) ret += sscanf(val, "%hu", &bcd->nodeIDbits);
+		else if (!stricmp(fieldName, "nodeIDbits")) ret += sscanf(val, "%hu", &bcd->nodeIDbits);
+		else if (!stricmp(fieldName, "routeIDbits")) ret += sscanf(val, "%hu", &bcd->routeIDbits);
+		else if (!stricmp(fieldName, "protoIDbits")) ret += sscanf(val, "%hu", &bcd->protoIDbits);
 		else if (!stricmp(fieldName, "isCommandStream")) { /*GET_BOOL(bcd->isCommandStream)*/ ret = 1; }
 		else if (!stricmp(fieldName, "pixelMetric") || !stricmp(fieldName, "pixelMetrics")) GET_BOOL(bcd->pixelMetrics)
-		else if (!stricmp(fieldName, "pixelWidth")) ret += sscanf(val, "%hd", &bcd->pixelWidth);
-		else if (!stricmp(fieldName, "pixelHeight")) ret += sscanf(val, "%hd", &bcd->pixelHeight);
+		else if (!stricmp(fieldName, "pixelWidth")) ret += sscanf(val, "%hu", &bcd->pixelWidth);
+		else if (!stricmp(fieldName, "pixelHeight")) ret += sscanf(val, "%hu", &bcd->pixelHeight);
 		else if (!stricmp(fieldName, "use3DMeshCoding")) GET_BOOL(notused)
 		else if (!stricmp(fieldName, "usePredictiveMFField")) GET_BOOL(notused)
 		else if (!stricmp(fieldName, "randomAccess")) GET_BOOL(bcd->randomAccess)
@@ -403,14 +396,14 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 		GF_MuxInfo *mi = (GF_MuxInfo *)desc;
 		if (!stricmp(fieldName, "fileName") || !stricmp(fieldName, "url")) GET_STRING(mi->file_name)
 		else if (!stricmp(fieldName, "streamFormat")) GET_STRING(mi->streamFormat)
-		else if (!stricmp(fieldName, "GroupID")) ret += sscanf(val, "%d", &mi->GroupID);
-		else if (!stricmp(fieldName, "startTime")) ret += sscanf(val, "%d", &mi->startTime);
-		else if (!stricmp(fieldName, "duration")) ret += sscanf(val, "%d", &mi->duration);
+		else if (!stricmp(fieldName, "GroupID")) ret += sscanf(val, "%u", &mi->GroupID);
+		else if (!stricmp(fieldName, "startTime")) ret += sscanf(val, "%u", &mi->startTime);
+		else if (!stricmp(fieldName, "duration")) ret += sscanf(val, "%u", &mi->duration);
 		else if (!stricmp(fieldName, "carouselPeriod")) {
-			ret += sscanf(val, "%d", &mi->carousel_period_plus_one);
+			ret += sscanf(val, "%u", &mi->carousel_period_plus_one);
 			mi->carousel_period_plus_one += 1;
 		}
-		else if (!stricmp(fieldName, "aggregateOnESID")) ret += sscanf(val, "%hd", &mi->aggregate_on_esid);
+		else if (!stricmp(fieldName, "aggregateOnESID")) ret += sscanf(val, "%hu", &mi->aggregate_on_esid);
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 		else if (!stricmp(fieldName, "compactSize"))
@@ -490,13 +483,13 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	case GF_ODF_ESD_INC_TAG:
 	{
 		GF_ES_ID_Inc *inc = (GF_ES_ID_Inc *)desc;
-		if (!stricmp(fieldName, "trackID")) ret += sscanf(val, "%d", &inc->trackID);
+		if (!stricmp(fieldName, "trackID")) ret += sscanf(val, "%u", &inc->trackID);
 	}
 		break;
 	case GF_ODF_ESD_REF_TAG:
 	{
 		GF_ES_ID_Ref *inc = (GF_ES_ID_Ref *)desc;
-		if (!stricmp(fieldName, "trackID")) ret += sscanf(val, "%hd", &inc->trackRef);
+		if (!stricmp(fieldName, "trackID")) ret += sscanf(val, "%hu", &inc->trackRef);
 	}
 		break;
 	case GF_ODF_TEXT_CFG_TAG:
@@ -518,7 +511,7 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 			txt->has_vid_info = 1;
 		}
 		else if (!stricmp(fieldName, "horizontal_offset")) {
-			GET_S32(txt->horiz_offset)
+			GET_S16(txt->horiz_offset)
 			txt->has_vid_info = 1;
 		}
 		else if (!stricmp(fieldName, "vertical_offset")) {
@@ -589,8 +582,8 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val)
 	{
 		GF_IPMPPtr *ipmpd = (GF_IPMPPtr*)desc;
 		if (!stricmp(fieldName, "IPMP_DescriptorID")) GET_U8(ipmpd->IPMP_DescriptorID)
-		else if (!stricmp(fieldName, "IPMP_DescriptorIDEx"))  ret += sscanf(val, "%hd", &ipmpd->IPMP_DescriptorIDEx);
-		else if (!stricmp(fieldName, "IPMP_ES_ID"))  ret += sscanf(val, "%hd", &ipmpd->IPMP_ES_ID);
+		else if (!stricmp(fieldName, "IPMP_DescriptorIDEx"))  ret += sscanf(val, "%hu", &ipmpd->IPMP_DescriptorIDEx);
+		else if (!stricmp(fieldName, "IPMP_ES_ID"))  ret += sscanf(val, "%hu", &ipmpd->IPMP_ES_ID);
 	}
 		break;
 	case GF_ODF_LANG_TAG:

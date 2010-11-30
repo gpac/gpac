@@ -336,7 +336,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 	GF_Err e = GF_OK;
 	const char *opt = NULL;
 	const char *dest_ip;
-	GF_Config *configFile = NULL;	
+	/*GF_Config *configFile = NULL;	*/
 	u32 i, max_ptime, au_sn_len;	
 	u8 payt;			
 	GF_ISOFile *file;

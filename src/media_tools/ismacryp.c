@@ -106,7 +106,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 					tkc->sel_enc_type = GF_ISMACRYP_SELENC_RAND_RANGE;
 					tkc->sel_enc_range = atoi(&att->value[4]);
 				}
-				else if (sscanf(att->value, "%d", &tkc->sel_enc_range)==1) {
+				else if (sscanf(att->value, "%u", &tkc->sel_enc_range)==1) {
 					if (tkc->sel_enc_range==1) tkc->sel_enc_range = 0;
 					else tkc->sel_enc_type = GF_ISMACRYP_SELENC_RANGE;
 				}
@@ -116,7 +116,7 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			}
 			else if (!stricmp(att->name, "Preview")) {
 				tkc->sel_enc_type = GF_ISMACRYP_SELENC_PREVIEW;
-				sscanf(att->value, "%d", &tkc->sel_enc_range);
+				sscanf(att->value, "%u", &tkc->sel_enc_range);
 			}
 			else if (!stricmp(att->name, "ipmpType")) {
 				if (!stricmp(att->value, "None")) tkc->ipmp_type = 0;

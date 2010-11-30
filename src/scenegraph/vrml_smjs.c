@@ -4420,5 +4420,7 @@ Bool gf_sg_try_lock_javascript()
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
 	return gf_mx_try_lock(js_rt->mx);
+#else
+	return 1;
 #endif
 }

@@ -205,6 +205,9 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 	if (isor_is_local(szURL)) {
 //		if (!read->mov) read->mov = gf_isom_open(szURL, GF_ISOM_OPEN_READ, NULL);
 		GF_Err e = gf_isom_open_progressive(szURL, &read->mov, &read->missing_bytes);
+		if (e != GF_OK){
+		    GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[IsoMedia] : error while opening %s, error=%s\n", szURL, gf_error_to_string(e)));
+		}
 		if (!read->mov) {
 			gf_term_on_connect(serv, NULL, gf_isom_last_error(NULL));
 			return GF_OK;

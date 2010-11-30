@@ -583,7 +583,7 @@ Bool gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 
 			/*rewrite SL config in IOD streams*/
 			i=0;
-			while (esd = gf_list_enum(((GF_ObjectDescriptor*)stream->program->iod)->ESDescriptors, &i)) {
+			while (NULL != (esd = gf_list_enum(((GF_ObjectDescriptor*)stream->program->iod)->ESDescriptors, &i))) {
 				GF_M2TS_Mux_Stream *es_stream = stream->program->streams;
 				while (es_stream) {
 					if (es_stream->ifce && (es_stream->ifce->stream_id==esd->ESID)) {

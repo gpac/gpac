@@ -946,7 +946,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 		import_fps = ts;
 		import_fps /= inc;
 		gf_isom_sample_del(&samp);
-		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Chapter import] Guessed video frame rate %g (%d:%d)\n", import_fps, ts, inc));
+		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[Chapter import] Guessed video frame rate %g (%u:%u)\n", import_fps, ts, inc));
 		break;
 	}
 
@@ -977,7 +977,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 		/*ZoomPlayer chapters*/
 		if (!strnicmp(sL, "AddChapter(", 11)) {
 			u32 nb_fr;
-			sscanf(sL, "AddChapter(%d,%s)", &nb_fr, szTitle);
+			sscanf(sL, "AddChapter(%u,%s)", &nb_fr, szTitle);
 			ts = nb_fr;
 			ts *= 1000;
 			if (import_fps) ts = (u64) (((s64) ts ) / import_fps);
@@ -985,13 +985,13 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 			sL = strchr(sL, ','); strcpy(szTitle, sL+1); sL = strrchr(szTitle, ')'); if (sL) sL[0] = 0;
 		} else if (!strnicmp(sL, "AddChapterBySecond(", 19)) {
 			u32 nb_s;
-			sscanf(sL, "AddChapterBySecond(%d,%s)", &nb_s, szTitle);
+			sscanf(sL, "AddChapterBySecond(%u,%s)", &nb_s, szTitle);
 			ts = nb_s;
 			ts *= 1000;
 			sL = strchr(sL, ','); strcpy(szTitle, sL+1); sL = strrchr(szTitle, ')'); if (sL) sL[0] = 0;
 		} else if (!strnicmp(sL, "AddChapterByTime(", 17)) {
 			u32 h, m, s;
-			sscanf(sL, "AddChapterByTime(%d,%d,%d,%s)", &h, &m, &s, szTitle);
+			sscanf(sL, "AddChapterByTime(%u,%u,%u,%s)", &h, &m, &s, szTitle);
 			ts = 3600*h + 60*m + s;
 			ts *= 1000;
 			sL = strchr(sL, ',');
@@ -1003,7 +1003,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 		else if ((strlen(sL)>=8) && (sL[2]==':') && (sL[5]==':')) {
 			title = NULL;
 			if (strlen(sL)==8) {
-				sscanf(sL, "%02d:%02d:%02d", &h, &m, &s);
+				sscanf(sL, "%02u:%02u:%02u", &h, &m, &s);
 				ts = (h*3600 + m*60+s)*1000;
 			}
 			else {
@@ -1019,21 +1019,21 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 				ts = 0;
 				h = m = s = ms = 0;
 
-				if (sscanf(szTS, "%d:%d:%d;%d/%d", &h, &m, &s, &fr, &fps)==5) {
+				if (sscanf(szTS, "%u:%u:%u;%u/%u", &h, &m, &s, &fr, &fps)==5) {
 					ts = (h*3600 + m*60+s)*1000 + 1000*fr/fps;
-				} else if (sscanf(szTS, "%d:%d:%d;%d", &h, &m, &s, &fr)==4) {
+				} else if (sscanf(szTS, "%u:%u:%u;%u", &h, &m, &s, &fr)==4) {
 					ts = (h*3600 + m*60+s);
 					if (import_fps)
 						ts = (s64) (((import_fps*((s64)ts) + fr) * 1000 ) / import_fps);
 					else
 						ts = ((ts*25 + fr) * 1000 ) / 25;
-				} else if (sscanf(szTS, "%d:%d:%d.%d", &h, &m, &s, &ms) == 4) {
+				} else if (sscanf(szTS, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 					ts = (h*3600 + m*60+s)*1000+ms;
-				} else if (sscanf(szTS, "%d:%d:%d.%d", &h, &m, &s, &ms) == 4) {
+				} else if (sscanf(szTS, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 					ts = (h*3600 + m*60+s)*1000+ms;
-				} else if (sscanf(szTS, "%d:%d:%d:%d", &h, &m, &s, &ms) == 4) {
+				} else if (sscanf(szTS, "%u:%u:%u:%u", &h, &m, &s, &ms) == 4) {
 					ts = (h*3600 + m*60+s)*1000+ms;
-				} else if (sscanf(szTS, "%d:%d:%d", &h, &m, &s) == 3) {
+				} else if (sscanf(szTS, "%u:%u:%u", &h, &m, &s) == 3) {
 					ts = (h*3600 + m*60+s) * 1000;
 				}
 			}
@@ -1051,7 +1051,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 			str = strchr(sL, '=');
 			str++;
 			if (strstr(szTemp, "name")) {
-				sscanf(szTemp, "chapter%dname", &idx);
+				sscanf(szTemp, "chapter%uname", &idx);
 				strcpy(szTitle, str);
 				if (idx!=cur_chap) {
 					cur_chap=idx;
@@ -1059,7 +1059,7 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 				}
 				state++;
 			} else {
-				sscanf(szTemp, "chapter%d", &idx);
+				sscanf(szTemp, "chapter%u", &idx);
 				if (idx!=cur_chap) {
 					cur_chap=idx;
 					state = 0;
@@ -1068,11 +1068,11 @@ GF_Err gf_media_import_chapters(GF_ISOFile *file, char *chap_file, Double import
 
 				ts = 0;
 				h = m = s = ms = 0;
-				if (sscanf(str, "%d:%d:%d.%d", &h, &m, &s, &ms) == 4) {
+				if (sscanf(str, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 					ts = (h*3600 + m*60+s)*1000+ms;
-				} else if (sscanf(str, "%d:%d:%d:%d", &h, &m, &s, &ms) == 4) {
+				} else if (sscanf(str, "%u:%u:%u:%u", &h, &m, &s, &ms) == 4) {
 					ts = (h*3600 + m*60+s)*1000+ms;
-				} else if (sscanf(str, "%d:%d:%d", &h, &m, &s) == 3) {
+				} else if (sscanf(str, "%u:%u:%u", &h, &m, &s) == 3) {
 					ts = (h*3600 + m*60+s) * 1000;
 				}
 			}

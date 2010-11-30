@@ -141,14 +141,7 @@ u32 gf_ipmpx_get_field_type(GF_IPMPX_Data *p, char *fieldName)
 	return 0;
 }
 
-#define GET_U8(field) { if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = (u8) d; } else { ret += sscanf(val, "%d", &d); if (ret) field = (u8) d; }	}	
-#define GET_U16(field) { if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = (u16) d; } else { ret += sscanf(val, "%d", &d); if (ret) field = (u16) d; }	}	
-#define GET_U32(field) { if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = (u32) d; } else { ret += sscanf(val, "%d", &d); if (ret) field = (u32) d; }	}	
-#define GET_S32(field) { if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = (s32) d; } else { ret += sscanf(val, "%d", &d); if (ret) field = (s32) d; }	}	
-#define GET_BOOL(field) { ret = 1; field = (!stricmp(val, "true") || !stricmp(val, "1")) ? 1 : 0; }
-
-#define GET_DOUBLE(field) { Float v; ret = 1; sscanf(val, "%f", &v); field = (Double) v;}
-#define GET_STRING(field) { ret = 1; field = gf_strdup(val); if (val[0] == '"') strcpy(field, val+1); if (field[strlen(field)-1] == '"') field[strlen(field)-1] = 0; }
+#include <gpac/internal/odf_parse_common.h>
 
 void GF_IPMPX_ParseBinData(char *val, char **out_data, u32 *out_data_size)
 {
@@ -258,7 +251,7 @@ GF_Err GF_IPMPX_ParseEventType(char *val, u8 *eventType, u8 *eventTypeCount)
 		if (j) {
 			szVal[j] = 0;
 			if (!strnicmp(szVal, "0x", 2)) { sscanf(szVal, "%x", &v); eventType[*eventTypeCount] = v; }
-			else { sscanf(szVal, "%d", &v); eventType[*eventTypeCount] = v; }
+			else { sscanf(szVal, "%ud", &v); eventType[*eventTypeCount] = v; }
 			j=0;
 			(*eventTypeCount) += 1;
 			if (*eventTypeCount == 9) return GF_OK;
@@ -289,7 +282,7 @@ GF_Err gf_ipmpx_data_parse_16(char *val, u16 **outData, u16 *outDataSize)
 		if (j) {
 			szVal[j] = 0;
 			if (!strnicmp(szVal, "0x", 2)) { sscanf(szVal, "%x", &v); data[count] = v; }
-			else { sscanf(szVal, "%d", &v); data[count] = v; }
+			else { sscanf(szVal, "%ud", &v); data[count] = v; }
 			j=0;
 			count += 1;
 			if (count == alloc) {
@@ -305,7 +298,7 @@ GF_Err gf_ipmpx_data_parse_16(char *val, u16 **outData, u16 *outDataSize)
 
 GF_Err gf_ipmpx_set_field(GF_IPMPX_Data *_p, char *fieldName, char *val)
 {
-	u32 d, ret = 0;
+	u32 ret = 0;
 
 	if (!stricmp(val, "auto")) return GF_OK;
 	else if (!stricmp(val, "unspecified")) return GF_OK;
@@ -334,7 +327,7 @@ GF_Err gf_ipmpx_set_field(GF_IPMPX_Data *_p, char *fieldName, char *val)
 			else p->flags |= 8;
 			ret = 1;
 		}
-		else if (!stricmp(fieldName, "startDTS")) GET_U32(p->startDTS)
+		else if (!stricmp(fieldName, "startDTS")) GET_U64(p->startDTS)
 		else if (!stricmp(fieldName, "startPacketID")) GET_U32(p->startPacketID)
 		else if (!stricmp(fieldName, "expireDTS")) GET_U32(p->expireDTS)
 		else if (!stricmp(fieldName, "expirePacketID")) GET_U32(p->expirePacketID)

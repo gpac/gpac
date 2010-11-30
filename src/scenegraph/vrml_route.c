@@ -342,12 +342,12 @@ Bool gf_sg_route_activate(GF_Route *r)
 			gf_node_event_out(r->ToNode, r->ToField.fieldIndex);
 	}
 	/*and signal routes on exposed fields if field changed*/
-	if (r->ToField.eventType == GF_SG_EVENT_EXPOSED_FIELD)
+	if (r->ToField.eventType == GF_SG_EVENT_EXPOSED_FIELD){
 		if (r->IS_route)
 			gf_node_event_out_proto(r->ToNode, r->ToField.fieldIndex);
 		else
 			gf_node_event_out(r->ToNode, r->ToField.fieldIndex);
-
+	}
 	return ret;
 }
 

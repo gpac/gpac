@@ -934,7 +934,7 @@ void gf_bt_sffield(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 		for (i=0; i<size; i++) {
 			str = gf_bt_get_next(parser, 0);
 			if (strstr(str, "0x")) sscanf(str, "%x", &v);
-			else sscanf(str, "%d", &v);
+			else sscanf(str, "%u", &v);
 			switch (img->numComponents) {
 			case 1:
 				img->pixels[i] = (char) v;

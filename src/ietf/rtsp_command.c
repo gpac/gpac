@@ -158,10 +158,10 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 	//Range, only NPT
 	if (com->Range && !com->Range->UseSMPTE) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Range: npt=");
-		RTSP_WRITE_FLOAT(buffer, size, cur_pos, com->Range->start);
+		RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, com->Range->start);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");	
 		if (com->Range->end > com->Range->start) {
-			RTSP_WRITE_FLOAT(buffer, size, cur_pos, com->Range->end);
+			RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, com->Range->end);
 		}
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
 	}
@@ -169,13 +169,13 @@ GF_Err RTSP_WriteCommand(GF_RTSPSession *sess, GF_RTSPCommand *com, unsigned cha
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Referer", com->Referer);	
 	if (com->Scale != 0.0) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Scale: ");	
-		RTSP_WRITE_FLOAT(buffer, size, cur_pos, com->Scale);
+		RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, com->Scale);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
 	}
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Session", com->Session);	
 	if (com->Speed != 0.0) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Speed: ");	
-		RTSP_WRITE_FLOAT(buffer, size, cur_pos, com->Speed);
+		RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, com->Speed);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
 	}
 
@@ -403,13 +403,13 @@ void gf_rtsp_set_command_value(GF_RTSPCommand *com, char *Header, char *Value)
 	else if (!stricmp(Header, "Accept-Encoding")) com->Accept_Encoding = gf_strdup(Value);
 	else if (!stricmp(Header, "Accept-Language")) com->Accept_Language = gf_strdup(Value);
 	else if (!stricmp(Header, "Authorization")) com->Authorization = gf_strdup(Value);
-	else if (!stricmp(Header, "Bandwidth")) sscanf(Value, "%d", &com->Bandwidth);
-	else if (!stricmp(Header, "Blocksize")) sscanf(Value, "%d", &com->Blocksize);
+	else if (!stricmp(Header, "Bandwidth")) sscanf(Value, "%ud", &com->Bandwidth);
+	else if (!stricmp(Header, "Blocksize")) sscanf(Value, "%ud", &com->Blocksize);
 	else if (!stricmp(Header, "Cache-Control")) com->Cache_Control = gf_strdup(Value);
 	else if (!stricmp(Header, "Conference")) com->Conference = gf_strdup(Value);
 	else if (!stricmp(Header, "Connection")) com->Connection = gf_strdup(Value);
-	else if (!stricmp(Header, "Content-Length")) sscanf(Value, "%d", &com->Content_Length);
-	else if (!stricmp(Header, "CSeq")) sscanf(Value, "%d", &com->CSeq);
+	else if (!stricmp(Header, "Content-Length")) sscanf(Value, "%ud", &com->Content_Length);
+	else if (!stricmp(Header, "CSeq")) sscanf(Value, "%ud", &com->CSeq);
 	else if (!stricmp(Header, "From")) com->From = gf_strdup(Value);
 	else if (!stricmp(Header, "Proxy_Authorization")) com->Proxy_Authorization = gf_strdup(Value);
 	else if (!stricmp(Header, "Proxy_Require")) com->Proxy_Require = gf_strdup(Value);

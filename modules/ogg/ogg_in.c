@@ -809,7 +809,7 @@ static GF_Err OGG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
-		sscanf(url, "ES_ID=%d", &ES_ID);
+		sscanf(url, "ES_ID=%u", &ES_ID);
 	}
 	/*URL setup*/
 //	else if (!read->es_ch && OGG_CanHandleURL(plug, url)) ES_ID = 3;

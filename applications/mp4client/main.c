@@ -1618,7 +1618,7 @@ force_input:
 		case 'M':
 		{
 			u32 size;
-			fprintf(stdout, "Enter new video cache memory in kBytes (current %d):\n", gf_term_get_option(term, GF_OPT_VIDEO_CACHE_SIZE));
+			fprintf(stdout, "Enter new video cache memory in kBytes (current %ud):\n", gf_term_get_option(term, GF_OPT_VIDEO_CACHE_SIZE));
 			scanf("%ud", &size);
 			gf_term_set_option(term, GF_OPT_VIDEO_CACHE_SIZE, size);
 		}
