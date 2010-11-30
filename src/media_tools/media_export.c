@@ -2020,7 +2020,7 @@ GF_EXPORT
 GF_Err gf_media_export(GF_MediaExporter *dumper)
 {
 	if (!dumper) return GF_BAD_PARAM;
-	if (!dumper->out_name && !dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_BAD_PARAM;
+	if (!dumper->out_name && !(dumper->flags & GF_EXPORT_PROBE_ONLY)) return GF_BAD_PARAM;
 	
 	if (dumper->flags & GF_EXPORT_NATIVE) {
 #ifndef GPAC_DISABLE_MPEG2TS

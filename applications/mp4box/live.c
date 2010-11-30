@@ -60,7 +60,7 @@ int stream_file_rtp(int argc, char **argv)
 	char *inName = NULL;
 	u16 port = 7000;
 	u32 ttl = 1;
-	Bool loop = 1, stream_rtp = 0;
+	Bool loop = 1;
 	Bool force_mpeg4 = 0;
 	u32 path_mtu = 1450;
 	u32 i;
@@ -265,7 +265,7 @@ static void live_session_send_carousel(LiveSession *livesess, RTPChannel *ch)
 		}
 	} else {
 		u32 i=0;
-		while (ch = gf_list_enum(livesess->streams, &i)) {
+		while (NULL != (ch = gf_list_enum(livesess->streams, &i))) {
 			if (ch->carousel_size) {
 				if (ch->adjust_carousel_time) {
 					ts = ch->carousel_ts + ch->timescale*(gf_sys_clock()-ch->init_time + ch->ts_delta)/1000;
@@ -492,18 +492,18 @@ int live_session(int argc, char **argv)
 			RTPChannel *ch;
 			period = id = 0;
 			if (strchr(arg, ':')) {
-				sscanf(arg, "-rap=ESID=%d:%d", &id, &period);
+				sscanf(arg, "-rap=ESID=%u:%u", &id, &period);
 				e = gf_seng_enable_aggregation(livesess.seng, id, 1);
 				if (e) {
-					fprintf(stdout, "Cannot enable aggregation on stream %d: %s\n", id, gf_error_to_string(e));
+					fprintf(stdout, "Cannot enable aggregation on stream %u: %s\n", id, gf_error_to_string(e));
 					goto exit;
 				}
 			} else {
-				sscanf(arg, "-rap=%d", &period);
+				sscanf(arg, "-rap=%u", &period);
 			}
 
 			j=0;
-			while (ch = gf_list_enum(livesess.streams, &j)) {
+			while (NULL != (ch = gf_list_enum(livesess.streams, &j))) {
 				if (!id || (ch->ESID==id))
 					ch->carousel_period = period;
 			}
@@ -512,7 +512,7 @@ int live_session(int argc, char **argv)
 	}
 
 	i=0;
-	while (ch = gf_list_enum(livesess.streams, &i)) {
+	while (NULL != (ch = gf_list_enum(livesess.streams, &i))) {
 		if (ch->carousel_period) {
 			has_carousel = 1;
 			break;

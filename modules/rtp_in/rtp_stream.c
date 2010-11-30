@@ -160,12 +160,12 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		else if (!stricmp(att->Name, "mpeg4-odid") && att->Value) ODID = atoi(att->Value);
 		else if (!stricmp(att->Name, "range") && !range) range = gf_rtsp_range_parse(att->Value);
 		else if (!stricmp(att->Name, "x-stream-state") ) {
-			sscanf(att->Value, "server-port=%d-%d;ssrc=%X;npt=%g;seq=%d;rtptime=%d", 
+			sscanf(att->Value, "server-port=%u-%u;ssrc=%X;npt=%g;seq=%u;rtptime=%u", 
 				&s_port_first, &s_port_last, &ssrc, &CurrentTime, &rtp_seq, &rtp_time);
 			is_migration = 1;
 		}
 		else if (!stricmp(att->Name, "x-server-port") ) {
-			sscanf(att->Value, "%d-%d", &s_port_first, &s_port_last);
+			sscanf(att->Value, "%u-%u", &s_port_first, &s_port_last);
 		}
 	}
 

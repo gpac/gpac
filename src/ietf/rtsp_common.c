@@ -184,19 +184,19 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 		else if (!stricmp(param_name, "interleaved")) {
 			u32 rID, rcID;
 			tmp->IsInterleaved = 1;
-			if (sscanf(param_val, "%d-%d", &rID, &rcID) == 1) {
-				sscanf(param_val, "%d", &rID);
+			if (sscanf(param_val, "%ud-%ud", &rID, &rcID) == 1) {
+				sscanf(param_val, "%ud", &rID);
 				tmp->rtcpID = tmp->rtpID = (u8) rID;
 			} else {
 				tmp->rtpID = (u8) rID;
 				tmp->rtcpID = (u8) rcID;
 			}
 		}
-		else if (!stricmp(param_name, "layers")) sscanf(param_val, "%d", &tmp->MulticastLayers);
+		else if (!stricmp(param_name, "layers")) sscanf(param_val, "%ud", &tmp->MulticastLayers);
 		else if (!stricmp(param_name, "ttl")) sscanf(param_val, "%c	", &tmp->TTL);
-		else if (!stricmp(param_name, "port")) sscanf(param_val, "%hd-%hd", &tmp->port_first, &tmp->port_last);
-		else if (!stricmp(param_name, "server_port")) sscanf(param_val, "%hd-%hd", &tmp->port_first, &tmp->port_last);
-		else if (!stricmp(param_name, "client_port")) sscanf(param_val, "%hd-%hd", &tmp->client_port_first, &tmp->client_port_last);
+		else if (!stricmp(param_name, "port")) sscanf(param_val, "%hud-%hud", &tmp->port_first, &tmp->port_last);
+		else if (!stricmp(param_name, "server_port")) sscanf(param_val, "%hud-%hud", &tmp->port_first, &tmp->port_last);
+		else if (!stricmp(param_name, "client_port")) sscanf(param_val, "%hud-%hud", &tmp->client_port_first, &tmp->client_port_last);
 		else if (!stricmp(param_name, "ssrc")) sscanf(param_val, "%X", &tmp->SSRC);
 	}
 	return tmp;

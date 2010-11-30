@@ -417,8 +417,10 @@ static void scene_dump_utf_string(GF_SceneDumper *sdump, Bool escape_xml, char *
 			case '<': 
 				fprintf(sdump->trace, "&lt;"); 
 				break;
-			case '\r': fprintf(sdump->trace, ""); break;
-			case '\n': fprintf(sdump->trace, ""); break;
+			case '\r':
+			case '\n':
+			  /* Does nothing : fprintf(sdump->trace, "");, fflush instead ?*/
+			  break;
 			default:
 			  if (uniLine[i]<128) {
 				fprintf(sdump->trace, "%c", (u8) uniLine[i]);

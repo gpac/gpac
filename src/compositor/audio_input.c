@@ -397,7 +397,6 @@ static Bool gf_af_get_config(GF_AudioInterface *ai, Bool for_reconf)
 GF_AudioFilterItem *gf_af_new(GF_Compositor *compositor, GF_AudioInterface *src, char *filter_name)
 {
 	GF_AudioFilterItem *filter;
-	GF_AudioFilter *filter_module = NULL;
 	if (!src || !filter_name) return NULL;
 
 	GF_SAFEALLOC(filter, GF_AudioFilterItem);

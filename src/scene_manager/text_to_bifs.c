@@ -62,8 +62,8 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 	}
 	*fmt = GF_TEXT_IMPORT_NONE;
 	if ((szLine[0]=='{') && strstr(szLine, "}{")) *fmt = GF_TEXT_IMPORT_SUB;
-	else if (sscanf(szLine, "%d", &val)==1) {
-		sprintf(szTest, "%d", val);
+	else if (sscanf(szLine, "%u", &val)==1) {
+		sprintf(szTest, "%u", val);
 		if (!strcmp(szTest, szLine)) *fmt = GF_TEXT_IMPORT_SRT;
 	}
 	else if (!strnicmp(szLine, "<?xml ", 6)) {
@@ -221,7 +221,7 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 
 		switch (state) {
 		case 0:
-			if (sscanf(szLine, "%d", &line) != 1) {
+			if (sscanf(szLine, "%u", &line) != 1) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] bad frame format (src: %s)\n", szLine));
 				e = GF_CORRUPTED_DATA;
 				goto exit;
@@ -235,8 +235,8 @@ static GF_Err gf_text_import_srt_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 			state = 1;
 			break;
 		case 1:
-			if (sscanf(szLine, "%d:%d:%d,%d --> %d:%d:%d,%d", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems) != 8) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] bad frame %d (src: %s)\n", curLine, szLine));
+			if (sscanf(szLine, "%u:%u:%u,%u --> %u:%u:%u,%u", &sh, &sm, &ss, &sms, &eh, &em, &es, &ems) != 8) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[srt->bifs] bad frame %u (src: %s)\n", curLine, szLine));
 				e = GF_CORRUPTED_DATA;
 				goto exit;
 			}

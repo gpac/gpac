@@ -204,18 +204,18 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 	else if (!stricmp(Header, "Accept-Language")) rsp->Accept_Language = gf_strdup(Value);
 	else if (!stricmp(Header, "Allow")) rsp->Allow = gf_strdup(Value);
 	else if (!stricmp(Header, "Authorization")) rsp->Authorization = gf_strdup(Value);
-	else if (!stricmp(Header, "Bandwidth")) sscanf(Value, "%d", &rsp->Bandwidth);
-	else if (!stricmp(Header, "Blocksize")) sscanf(Value, "%d", &rsp->Blocksize);
+	else if (!stricmp(Header, "Bandwidth")) sscanf(Value, "%ud", &rsp->Bandwidth);
+	else if (!stricmp(Header, "Blocksize")) sscanf(Value, "%ud", &rsp->Blocksize);
 	else if (!stricmp(Header, "Cache-Control")) rsp->Cache_Control = gf_strdup(Value);
 	else if (!stricmp(Header, "Conference")) rsp->Conference = gf_strdup(Value);
 	else if (!stricmp(Header, "Connection")) rsp->Connection = gf_strdup(Value);
 	else if (!stricmp(Header, "Content-Base")) rsp->Content_Base = gf_strdup(Value);	
 	else if (!stricmp(Header, "Content-Encoding")) rsp->Content_Encoding = gf_strdup(Value);	
-	else if (!stricmp(Header, "Content-Length")) sscanf(Value, "%d", &rsp->Content_Length);
+	else if (!stricmp(Header, "Content-Length")) sscanf(Value, "%ud", &rsp->Content_Length);
 	else if (!stricmp(Header, "Content-Language")) rsp->Content_Language = gf_strdup(Value);	
 	else if (!stricmp(Header, "Content-Location")) rsp->Content_Location = gf_strdup(Value);	
 	else if (!stricmp(Header, "Content-Type")) rsp->Content_Type = gf_strdup(Value);	
-	else if (!stricmp(Header, "CSeq")) sscanf(Value, "%d", &rsp->CSeq);
+	else if (!stricmp(Header, "CSeq")) sscanf(Value, "%ud", &rsp->CSeq);
 	else if (!stricmp(Header, "Date")) rsp->Date = gf_strdup(Value);	
 	else if (!stricmp(Header, "Expires")) rsp->Expires = gf_strdup(Value);	
 	else if (!stricmp(Header, "From")) rsp->From = gf_strdup(Value);	
@@ -258,7 +258,7 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 			LinePos = gf_token_get(Value, LinePos, ";\r\n", LineBuffer, 400);
 			//default
 			rsp->SessionTimeOut = 60;
-			sscanf(LineBuffer, "timeout=%d", &rsp->SessionTimeOut);
+			sscanf(LineBuffer, "timeout=%ud", &rsp->SessionTimeOut);
 		}
 	}
 
@@ -284,7 +284,7 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 					strcpy(param_name, buf);
 				}
 				if (!stricmp(param_name, "url")) info->url = gf_strdup(param_val);
-				else if (!stricmp(param_name, "seq")) sscanf(param_val, "%d", &info->seq);
+				else if (!stricmp(param_name, "seq")) sscanf(param_val, "%ud", &info->seq);
 				else if (!stricmp(param_name, "rtptime")) {
 					sscanf(param_val, "%i", &s_val);
 					info->rtp_time = (s_val>0) ? s_val : 0;
@@ -547,10 +547,10 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	//Range, only NPT
 	if (rsp->Range && !rsp->Range->UseSMPTE) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Range: npt:");
-		RTSP_WRITE_FLOAT(buffer, size, cur_pos, rsp->Range->start);
+		RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, rsp->Range->start);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "-");	
 		if (rsp->Range->end > rsp->Range->start) {
-			RTSP_WRITE_FLOAT(buffer, size, cur_pos, rsp->Range->end);
+			RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, rsp->Range->end);
 		}
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
 	}
@@ -584,14 +584,14 @@ GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
 	
 	if (rsp->Scale != 0.0) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Scale: ");
-		RTSP_WRITE_FLOAT(buffer, size, cur_pos, rsp->Scale);
+		RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, rsp->Scale);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
 	}
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Server", rsp->Server);
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Session", rsp->Session);
 	if (rsp->Speed != 0.0) {
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "Scale: ");
-		RTSP_WRITE_FLOAT(buffer, size, cur_pos, rsp->Speed);
+		RTSP_WRITE_FLOAT_WITHOUT_CHECK(buffer, size, cur_pos, rsp->Speed);
 		RTSP_WRITE_ALLOC_STR(buffer, size, cur_pos, "\r\n");	
 	}
 	RTSP_WRITE_HEADER(buffer, size, cur_pos, "Timestamp", rsp->Timestamp);

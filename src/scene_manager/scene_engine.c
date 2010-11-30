@@ -274,13 +274,12 @@ static GF_Err gf_sm_live_setup(GF_SceneEngine *seng)
 GF_EXPORT
 GF_Err gf_seng_enable_aggregation(GF_SceneEngine *seng, u16 ESID, u16 onESID)
 {
-	GF_Err e = GF_STREAM_NOT_FOUND;
 	GF_StreamContext *sc;
 
 	if (ESID) {
 		u32 i=0;
-		while (sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i)) {
-			if (sc->ESID==ESID) break;
+		while (NULL != (sc = (GF_StreamContext*)gf_list_enum(seng->ctx->streams, &i))) {
+			if (0 != (sc->ESID==ESID)) break;
 		}
 	} else {
 		sc = (GF_StreamContext*)gf_list_get(seng->ctx->streams, 0);
@@ -514,7 +513,7 @@ static Bool gf_sm_check_for_modif(GF_AUContext *au)
 		modified=1;
 	}
 	/*check each command*/
-	while (com = gf_list_enum(au->commands, &i)) {
+	while (NULL != (com = gf_list_enum(au->commands, &i))) {
 		u32 j=0;
 		GF_CommandField *field;
 		if (!com->node) continue;
@@ -524,7 +523,7 @@ static Bool gf_sm_check_for_modif(GF_AUContext *au)
 			gf_node_dirty_reset(com->node, 1);
 		}
 		/*check all command fields of type SFNODE or MFNODE*/
-		while (field = gf_list_enum(com->command_fields, &j)) {
+		while (NULL != (field = gf_list_enum(com->command_fields, &j))) {
 			switch (field->fieldType) {
 			case GF_SG_VRML_SFNODE:
 				if (field->new_node) {
@@ -1083,7 +1082,7 @@ GF_Err gf_seng_get_stream_carousel_info(GF_SceneEngine *seng, u16 ESID, u32 *car
 	if (carousel_period) *carousel_period = (u32) -1;
 	if (aggregate_on_es_id) *aggregate_on_es_id = 0;
 
-	while (sc = gf_list_enum(seng->ctx->streams, &i)) {
+	while (NULL != (sc = gf_list_enum(seng->ctx->streams, &i))) {
 		if (sc->ESID==ESID) {
 			if (carousel_period) *carousel_period = sc->carousel_period;
 			if (aggregate_on_es_id) *aggregate_on_es_id = sc->aggregate_on_esid;

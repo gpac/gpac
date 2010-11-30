@@ -2831,7 +2831,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		while ( (att = (GF_XMLAttribute *)gf_list_enum(node->attributes, &j))) {
 			if (!stricmp(att->name, "DTS") || !stricmp(att->name, "time")) {
 				u32 h, m, s, ms;
-				if (sscanf(att->value, "%d:%d:%d.%d", &h, &m, &s, &ms) == 4) {
+				if (sscanf(att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 					samp->DTS = (u64) ( (Double) ( ((h*3600 + m*60 + s)*1000 + ms) / 1000.0) * timescale );
 				} else {
 					samp->DTS = atoi(att->value);
@@ -3922,7 +3922,7 @@ restart_import:
 					&& (avc.sps[idx].vui.time_scale <= 120*avc.sps[idx].vui.num_units_in_tick)
 					) {
 					/*ISO/IEC 14496-10 n11084 Table E-6*/
-					u8 DeltaTfiDivisorTable[] = {1,1,1,2,2,2,2,3,3,4,6};
+/* not used :				u8 DeltaTfiDivisorTable[] = {1,1,1,2,2,2,2,3,3,4,6}; */
 					u8 DeltaTfiDivisorIdx;
 					if (!avc.sps[idx].vui.pic_struct_present_flag) {
 						DeltaTfiDivisorIdx = 1 + (1-avc.s_info.field_pic_flag);
