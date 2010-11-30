@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / exported constants
@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -83,20 +83,20 @@ enum
 
 	/*!GPAC Private Scene streams\n
 	*\n\note
-	*this stream type (MPEG-4 user-private) is reserved for streams only used to create a scene decoder 
+	*this stream type (MPEG-4 user-private) is reserved for streams only used to create a scene decoder
 	*handling the scene without input streams, as is the case for file readers (BT/VRML/XML..).\n
 	*The decoderSpecificInfo carried is as follows:
-	 \code 
-		u32 file_size:	total file size 
-		char file_name[dsi_size - sizeof(u32)]: local file name. 
+	 \code
+		u32 file_size:	total file size
+		char file_name[dsi_size - sizeof(u32)]: local file name.
 		\n\note: File may be a cache file, it is the decoder responsability to check if the file is completely
 		downloaded before parsing if needed.
-	 \endcode 
+	 \endcode
 	*The inBufferLength param for decoders using these streams is the stream clock in ms (no input data is given).\n
-	*The "dummy_in" module is available to generate these streams for common files, and also takes care of proper 
+	*The "dummy_in" module is available to generate these streams for common files, and also takes care of proper
 	clock init in case of seeking.\n
-	*This is a reentrant stream type: if any media object with this streamtype also exist in the scene, they will be 
-	*attached to the scene decoder (except when a new inline scene is detected, in which case a new decoder will 
+	*This is a reentrant stream type: if any media object with this streamtype also exist in the scene, they will be
+	*attached to the scene decoder (except when a new inline scene is detected, in which case a new decoder will
 	*be created). This allows for animation/sprite usage along with the systems timing/stream management.\n
 	*\n
 	*the objectTypeIndication currently in use for these streams are documented below\n
@@ -110,9 +110,9 @@ enum
 
 /*!
  *	Media Object types
- * 
+ *
  *	This type provides a hint to network modules which may have to generate an service descriptor on the fly.
- *	They occur only if objects/services used in the scene are not referenced through ObjectDescriptors (MPEG-4) 
+ *	They occur only if objects/services used in the scene are not referenced through ObjectDescriptors (MPEG-4)
  *	but direct through URL
 */
 enum
@@ -139,10 +139,10 @@ enum
 
 /*!
  * \brief Pixel Formats
- * 
+ *
  *	Supported pixel formats for everything using video
  *\note	For textures using 32 bit ARGB/RGB_32/BGR_32:
- *\li on little endian machines, shall be ordered in memory as BGRA, 
+ *\li on little endian machines, shall be ordered in memory as BGRA,
  *\li on big endians, shall be ordered in memory as ARGB
  *so that *(u32*)pixel_mem is always ARGB (0xAARRGGBB).
 */
@@ -171,13 +171,14 @@ typedef enum
 	GF_PIXEL_ARGB		=	GF_4CC('A','R','G','B'),
 	/*!32 bit RGBA (openGL like)*/
 	GF_PIXEL_RGBA		=	GF_4CC('R','G','B', 'A'),
-
+    /*!32 bit BGRA*/
+    GF_PIXEL_BGRA		=	GF_4CC('B','G','R', 'A'),
 	/*!RGB24 + depth plane*/
     GF_PIXEL_RGBD		=	GF_4CC('R', 'G', 'B', 'D'),
 
 	/*!RGB24 + depth plane (7 power bits) + shape mask*/
     GF_PIXEL_RGBDS		=	GF_4CC('3', 'C', 'D', 'S'),
-    
+
 	/*!YUV packed format*/
 	GF_PIXEL_YUY2		=	GF_4CC('Y','U','Y','2'),
 	/*!YUV packed format*/
@@ -194,14 +195,14 @@ typedef enum
 	GF_PIXEL_YUNV		=	GF_4CC('Y','U','N','V'),
 	/*!YUV packed format*/
 	GF_PIXEL_V422		=	GF_4CC('V','4','2','2'),
-	
+
 	/*!YUV planar format*/
 	GF_PIXEL_YV12		=	GF_4CC('Y','V','1','2'),
 	/*!YUV planar format*/
 	GF_PIXEL_IYUV		=	GF_4CC('I','Y','U','V'),
 	/*!YUV planar format*/
 	GF_PIXEL_I420		=	GF_4CC('I','4','2','0'),
-		
+
 	/*!YV12 + Alpha plane*/
 	GF_PIXEL_YUVA		=	GF_4CC('Y', 'U', 'V', 'A'),
 
@@ -213,7 +214,7 @@ typedef enum
 
 /*!
  * \brief Scene ObjectTypeIndication Formats
- * 
+ *
  *	Supported ObjectTypeIndication for scene description streams. *_FILE_* are only used with private scene streams
  * and only carry the file name for the scene. Other internal stream types can be used in a real streaming environment
 */
@@ -291,7 +292,7 @@ enum
  *	it needs extensions for non-MPEG-4 streams such as AMR, H263 , etc.\n
  *\note The decoder specific info for such streams is always carried encoded, with the following syntax:\n
  *	DSI Syntax for audio streams
- \code 
+ \code
  *	u32 codec_four_cc: the codec 4CC reg code / codec id for ffmpeg
  *	u32 sample_rate: sampling rate or 0 if unknown
  *	u16 nb_channels: num channels or 0 if unknown
@@ -302,7 +303,7 @@ enum
  \endcode
  \n
  *	DSI Syntax for video streams
- \code 
+ \code
  *	u32 codec_four_cc: the codec 4CC reg code  / codec id for ffmpeg
  *	u16 width: video width or 0 if unknown
  *	u16 height: video height or 0 if unknown
@@ -314,14 +315,14 @@ enum
  * \brief FFMPEG ObjectTypeIndication
  *
  *	ObjectTypeIndication for FFMPEG codecs not defined in MPEG-4. FFMPEG uses the base GPAC_OTI_MEDIA_GENERIC specific info formats, and extends it as follows:
- \code 
+ \code
  *	u32 bit_rate: the stream rate or 0 if unknown
  *	u32 codec_tag: FFMPEG codec tag as defined in libavcodec
  *	char *data: codec extensions till end of DSI bitstream
  \endcode
  */
     GPAC_OTI_MEDIA_FFMPEG = 0x81,
-    
+
     /*!OTI for EVRC Voice streams*/
     GPAC_OTI_AUDIO_EVRC_VOICE = 0xA0,
 	/*!OTI for SMV Voice streams*/
@@ -346,7 +347,7 @@ enum
     GPAC_OTI_AUDIO_DTS_HD_HR = 0xAA,
 	/*!OTI for DTS-HD Master audio streams*/
     GPAC_OTI_AUDIO_DTS_HD_MASTER = 0xAB,
-    
+
     /*!OTI for dummy streams (dsi = file name) using the generic context loader (BIFS/VRML/SWF/...) - GPAC internal*/
 	GPAC_OTI_PRIVATE_SCENE_GENERIC = 0xC0,
 	/*!OTI for SVG dummy stream (dsi = file name) - GPAC internal*/
@@ -372,7 +373,7 @@ enum
  *
  *	Object type indication for all OGG media. The DSI contains all intitialization ogg packets for the codec
  * and is formated as follows:\n
- *\code 
+ *\code
 	while (dsi_size) {
 		bit(16) packet_size;
 		char packet[packet_size];
