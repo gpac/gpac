@@ -284,6 +284,7 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 	if (!sExt) return 0;
 	if (gf_term_check_extension(plug, "video/mpeg-2", "ts m2t", "MPEG-2 TS", sExt)) return 1;
 	if (gf_term_check_extension(plug, "video/mp2t", "ts m2t", "MPEG-2 TS", sExt)) return 1;
+	if (gf_term_check_extension(plug, "video/mpeg", "ts m2t", "MPEG-2 TS", sExt)) return 1;
 	return 0;
 }
 

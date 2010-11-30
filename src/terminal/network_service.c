@@ -506,7 +506,7 @@ static DownloadedCacheEntry get_cache_entry_info( GF_Terminal *term, const char 
 	GF_DownloadSession * sess;
 	(*ret_code) = GF_OK;
 	if (strnicmp(url, "http", 4)) return NULL;
-	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_NETIO_SESSION_NOT_THREADED, fetch_mime_io, NULL, ret_code);
+	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_FORCE_NO_CACHE, fetch_mime_io, NULL, ret_code);
 	if (!sess) {
 		if (strstr(url, "rtsp://") || strstr(url, "rtp://") || strstr(url, "udp://") || strstr(url, "tcp://") ) (*ret_code) = GF_OK;
 		return NULL;
