@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -41,7 +41,7 @@ static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Colo
 	line[1] = FIX2FLT(y);
 	line[2] = FIX2FLT(x+run_h_len);
 	line[3] = line[1];
-	
+
 	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), 0xFF);
 	glVertexPointer(2, GL_FLOAT, 0, line);
 	glEnableClientState(GL_VERTEX_ARRAY);
@@ -67,7 +67,7 @@ static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color c
 	line[1] = FIX2FLT(y);
 	line[2] = FIX2FLT(x+run_h_len);
 	line[3] = line[1];
-	
+
 	glEnable(GL_BLEND);
 	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), (u8) alpha);
 
@@ -101,7 +101,7 @@ static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_
 	line[5] = FIX2FLT(y+height);
 	line[6] = FIX2FLT(x);
 	line[7] = FIX2FLT(y+height);
-	
+
 	glEnable(GL_BLEND);
 	glColor4ub(GF_COL_R(color), GF_COL_G(color), GF_COL_B(color), GF_COL_A(color));
 
@@ -132,7 +132,7 @@ static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_
 Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx, GF_ColorKey *col_key)
 {
 	u8 alpha = GF_COL_A(ctx->aspect.fill_color);
-	
+
 	if (ctx->transform.m[1] || ctx->transform.m[3]) return 0;
 
 	visual_3d_set_state(visual, V3D_STATE_LIGHT, 0);
@@ -240,10 +240,10 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 
 	compositor->hw_locked = 0;
 	e = GF_IO_ERR;
-	
+
 	/*try from video memory handle (WIN32) if supported*/
-	if ((compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_HWND_HDC) 
-		&& compositor->rasterizer->surface_attach_to_device 
+	if ((compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_HWND_HDC)
+		&& compositor->rasterizer->surface_attach_to_device
 		&& compositor->video_out->LockOSContext
 		) {
 		compositor->hw_context = compositor->video_out->LockOSContext(compositor->video_out, 1);
@@ -268,14 +268,14 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Failed to attach video surface callbacks to raster\n"));
 	}
-	
+
 	e = GF_NOT_SUPPORTED;
 
 	if (compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, 1)==GF_OK) {
 		compositor->hw_locked = 1;
 
-		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hw_surface.video_buffer, 
-							compositor->hw_surface.width, 
+		e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hw_surface.video_buffer,
+							compositor->hw_surface.width,
 							compositor->hw_surface.height,
 							compositor->hw_surface.pitch_x,
 							compositor->hw_surface.pitch_y,
@@ -292,7 +292,7 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 	}
 	compositor->hw_locked = 0;
 	visual->is_attached = 0;
-	return e;	
+	return e;
 }
 
 void compositor_2d_release_video_access(GF_VisualManager *visual)
@@ -326,11 +326,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 	if (!txh->data) return 1;
 
-	if (!visual->compositor->has_size_info && !(visual->compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) 
-		&& (visual->compositor->override_size_flags & 1) 
-		&& !(visual->compositor->override_size_flags & 2) 
+	if (!visual->compositor->has_size_info && !(visual->compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE)
+		&& (visual->compositor->override_size_flags & 1)
+		&& !(visual->compositor->override_size_flags & 2)
 		) {
-		if ( (visual->compositor->scene_width < txh->width) 
+		if ( (visual->compositor->scene_width < txh->width)
 			|| (visual->compositor->scene_height < txh->height)) {
 			visual->compositor->scene_width = txh->width;
 			visual->compositor->scene_height = txh->height;
@@ -338,7 +338,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			return 1;
 		}
 	}
-	
+
 	/*this should never happen but we check for float rounding safety*/
 	if (final.width<=0 || final.height <=0) return 1;
 
@@ -382,7 +382,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		clipped_final.y = output_height - clipped_final.height;
 	}
 	/*needed in direct drawing since clipping is not performed*/
-	if (clipped_final.width<=0 || clipped_final.height <=0) 
+	if (clipped_final.width<=0 || clipped_final.height <=0)
 		return 0;
 
 	/*set dest window*/
@@ -427,7 +427,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 	tmp = gf_divfix(INT2FIX(clip->height), h_scale);
 	ROUND_FIX(src_wnd.h);
-	
+
 #undef ROUND_FIX
 
 	if (src_wnd.w>txh->width) src_wnd.w=txh->width;
@@ -447,7 +447,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	use_soft_stretch = 1;
 	if (!force_soft_blt) {
 
-		/*avoid partial redraw that don't come close to src pixels with the bliter, this leads to ugly artefacts - 
+		/*avoid partial redraw that don't come close to src pixels with the bliter, this leads to ugly artefacts -
 		fall back to rasterizer*/
 //		if (!(ctx->flags & CTX_TEXTURE_DIRTY) && !use_blit && (src_wnd.x || src_wnd.y) )
 //			return 0;
@@ -462,6 +462,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			break;
 		case GF_PIXEL_ARGB:
 		case GF_PIXEL_RGBA:
+		case GF_PIXEL_BGRA:
 		case GF_PIXEL_RGBDS:
 			if (hw_caps & GF_VIDEO_HW_HAS_RGBA)
 				use_soft_stretch = 0;
@@ -478,7 +479,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 		/*disable based on settings*/
 		if (!visual->compositor->enable_yuv_hw
-			|| (ctx->col_mat || (alpha!=0xFF) || !visual->compositor->video_out->Blit) 
+			|| (ctx->col_mat || (alpha!=0xFF) || !visual->compositor->video_out->Blit)
 			) {
 			use_soft_stretch = 1;
 			overlay_type = 0;
@@ -562,15 +563,15 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 			/*prevents this context from being removed in direct draw mode by requesting a new one
 			but not allocating it*/
-			if (tr_state->immediate_draw) 
+			if (tr_state->immediate_draw)
 				visual_2d_get_drawable_context(visual);
 			return 1;
 		}
 		/*top level overlay*/
 		if (flush_video) {
 			GF_Window rc;
-			rc.x = rc.y = 0; 
-			rc.w = visual->compositor->display_width;	
+			rc.x = rc.y = 0;
+			rc.w = visual->compositor->display_width;
 			rc.h = visual->compositor->display_height;
 
 			visual_2d_release_raster(visual);
@@ -642,7 +643,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	/*check if texture is ready*/
 	if (!ctx->aspect.fill_texture->data) return 0;
 	if (ctx->transform.m[0]<0) return 0;
-	/*check if the <0 value is due to a flip in he scene description or 
+	/*check if the <0 value is due to a flip in he scene description or
 	due to bifs<->svg... context switching*/
 	if (ctx->transform.m[4]<0) {
 		if (!(ctx->flags & CTX_FLIPED_COORDS)) return 0;
@@ -658,7 +659,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	alpha = GF_COL_A(ctx->aspect.fill_color);
 	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/
 	if (!alpha) alpha = GF_COL_A(ctx->aspect.line_color);
-	
+
 	if (!alpha) return 1;
 
 	switch (ctx->aspect.fill_texture->pixelformat) {
@@ -668,6 +669,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_RGB_565:
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
+	case GF_PIXEL_BGRA:
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
@@ -859,7 +861,7 @@ void compositor_send_resize_event(GF_Compositor *compositor, GF_SceneGraph *subs
 	GF_Node *root = gf_sg_get_root_node(scene);
 	/*if root node is not DOM, sent a resize event (for VRML/BIFS). Otherwise this must be handled
 	by the composition code of the node*/
-	if (!root || (gf_node_get_tag(root) > GF_NODE_RANGE_LAST_VRML) ) 
+	if (!root || (gf_node_get_tag(root) > GF_NODE_RANGE_LAST_VRML) )
 		return;
 
 	memset(&evt, 0, sizeof(GF_DOM_Event));
@@ -897,11 +899,11 @@ void compositor_send_resize_event(GF_Compositor *compositor, GF_SceneGraph *subs
 
 #endif
 }
-void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fixed tx, Fixed ty, Bool is_resize) 
+void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fixed tx, Fixed ty, Bool is_resize)
 {
 	Fixed ratio;
 	Fixed old_tx, old_ty, old_z;
-	
+
 	gf_sc_lock(compositor, 1);
 	old_tx = tx;
 	old_ty = ty;
@@ -986,7 +988,7 @@ GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_cl
 			gf_mx_copy(mx, tr_state->model_matrix);
 			gf_mx_inverse(&mx);
 			gf_mx_apply_rect(&mx, &orig);
-		} else 
+		} else
 #endif
 		{
 			GF_Matrix2D mx2d;
@@ -1022,11 +1024,11 @@ GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_cl
 			/*if 2D, also update with user zoom and translation*/
 			if (!tr_state->camera->is_3D)
 				gf_mx_apply_rect(&tr_state->camera->modelview, &tr_state->clipper);
-		} else 
+		} else
 #endif
-		
+
 			gf_mx2d_apply_rect(&tr_state->transform, &tr_state->clipper);
-		
+
 		tr_state->has_clip = 1;
 	}
 	return clip;
@@ -1096,7 +1098,7 @@ void visual_2d_flush_overlay_areas(GF_VisualManager *visual, GF_TraverseState *t
 			the_clip = ol->ra.list[i];
 
 			/*draw all objects above this overlay*/
-			ctx = ol->ctx->next;			
+			ctx = ol->ctx->next;
 			while (ctx && ctx->drawable) {
 				if (gf_irect_overlaps(&ctx->bi->clip, &the_clip)) {
 					GF_IRect prev_clip = ctx->bi->clip;
@@ -1137,7 +1139,7 @@ void visual_2d_draw_overlays(GF_VisualManager *visual)
 		GF_OverlayStack *ol = visual->overlays;
 		if (!ol) return;
 		visual->overlays = ol->next;
-		
+
 		txh = ol->ctx->aspect.fill_texture;
 		video_src.height = txh->height;
 		video_src.width = txh->width;
