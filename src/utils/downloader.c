@@ -2310,7 +2310,7 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
         newFilename = malloc( maxLen );
         if (newFilename == NULL)
             return NULL;
-        snprintf(newFilename, maxLen, "%s %llu %llu", orig, startOffset, endOffset);
+        snprintf(newFilename, maxLen, "%s " LLU LLU, orig, startOffset, endOffset);
         fw = fopen(newFilename, "wb");
         if (!fw) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open partial cache file %s for write\n", newFilename));

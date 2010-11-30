@@ -96,12 +96,12 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	
 	if (cache_dir && strlen(cache_dir)) {
 		if (cache_dir[strlen(cache_dir)-1] != GF_PATH_SEPARATOR) {
-			sprintf(szFILE, "%s%csrt_%d_mp4", cache_dir, GF_PATH_SEPARATOR, (u32) tti);
+			sprintf(szFILE, "%s%csrt_%p_mp4", cache_dir, GF_PATH_SEPARATOR, tti);
 		} else {
-			sprintf(szFILE, "%ssrt_%d_mp4", cache_dir, (u32) tti);
+			sprintf(szFILE, "%ssrt_%p_mp4", cache_dir, tti);
 		}
 	} else {
-		sprintf(szFILE, "%d_temp_mp4", (u32) tti);
+		sprintf(szFILE, "%p_temp_mp4", tti);
 	}
 	tti->mp4 = gf_isom_open(szFILE, GF_ISOM_OPEN_WRITE, NULL);
 	if (!tti->mp4) return gf_isom_last_error(NULL);
