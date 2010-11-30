@@ -1998,7 +1998,7 @@ const char *gf_node_get_log_name(GF_Node *anim)
 	const char *name = gf_node_get_name(anim);
 	if (name) return name;
 	else {
-		sprintf(log_node_name, "0x%x", (u32) anim);
+		sprintf(log_node_name, "0x%p", anim);
 		return log_node_name;
 	}
 }
