@@ -134,7 +134,7 @@ static const struct dom_event_def {u32 event;  const char *name; u32 category; }
 
 	/*GPAC internals*/
 	{ GF_EVENT_SCENE_ATTACHED, "gpac_scene_attached", GF_DOM_EVENT_DOM },
-	{ GF_EVENT_VP_RESIZE, "gpac_vp_changed", GF_DOM_EVENT_DOM },	
+	{ GF_EVENT_VP_RESIZE, "gpac_vp_changed", GF_DOM_EVENT_DOM },
 };
 
 u32 gf_dom_event_type_by_name(const char *name)
@@ -370,7 +370,14 @@ static const struct predef_keyid {u32 key_code;  const char *name; } predefined_
 	{ GF_KEY_DEADIOTA, "U+0345" },
 	{ GF_KEY_EURO, "U+20AC" },
 	{ GF_KEY_DEADVOICESOUND, "U+3099" },
-	{ GF_KEY_DEADSEMIVOICESOUND, "U+309A" }
+	{ GF_KEY_DEADSEMIVOICESOUND, "U+309A" },
+	{ GF_KEY_CHANNELUP, "ChannelUp" },
+	{ GF_KEY_CHANNELDOWN, "ChannelDown" },
+	{ GF_KEY_TEXT, "Text" },
+	{ GF_KEY_INFO, "Info" },
+	{ GF_KEY_EPG, "EPG" },
+	{ GF_KEY_RECORD, "Record" },
+	{ GF_KEY_BEGINPAGE, "BeginPage" }
 };
 const char *gf_dom_get_key_name(u32 key_identifier)
 {
@@ -768,9 +775,9 @@ static u32 svg_parse_number(char *d, Fixed *f, Bool is_angle)
 
     /* warning the comma and semicolumn should not be there when parsing a number in a path */
 	while ((d[i] != 0) && strchr(" ,;\r\n\t", d[i])) i++;
-    
+
     if (!d[i]) {
-        GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] Parsing number with empty string or only spaces: %s\n", d));            
+        GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG Parsing] Parsing number with empty string or only spaces: %s\n", d));
         return 0;
     }
     if (d[i] == '+') {
@@ -1091,7 +1098,7 @@ Bool gf_svg_parse_transformlist(GF_Matrix2D *mat, char *attribute_content)
                         return 0;
                     }
                     i += read_chars;
-				}							
+				}
 				gf_mx2d_init(tmp);
 				gf_mx2d_add_scale(&tmp, sx, sy);
 				gf_mx2d_add_matrix(&tmp, mat);
@@ -1334,7 +1341,7 @@ static Bool svg_parse_transform(SVG_Transform *t, char *attribute_content)
                     GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Error reading coefficient ty in ref transform: %s\n", attribute_content));
                     return GF_BAD_PARAM;
                 }
-                i += read_chars;			
+                i += read_chars;
             } else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Unsupported syntax for ref transform attribute"));
             }
@@ -1369,7 +1376,7 @@ static void svg_parse_path(SVG_PathData *path, char *attribute_content)
 	char *d = attribute_content;
 
     /* used to detect end of BNF production:
-    "The processing of the BNF must consume as much of a given BNF production as possible, 
+    "The processing of the BNF must consume as much of a given BNF production as possible,
     stopping at the point when a character is encountered which no longer satisfies the production." */
     u32 read_chars = 0;
 
