@@ -1029,7 +1029,7 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
 		  GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Timeout with HEAD, try with GET\n"));
 		  e = gf_dm_setup_from_url(sess, sess->orig_url);
 		  if (e) {
-		    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Error with GET %d\n", e));
+		    GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Error with GET %d\n", e));
 		    sess->status = GF_NETIO_STATE_ERROR;
 		    sess->last_error = e;
 		    gf_dm_sess_notify_state(sess, sess->status, e);

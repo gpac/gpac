@@ -920,7 +920,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 
 	/*SMPTE time code*/
 	if (strchr(arg, ':') && strchr(arg, ';') && strchr(arg, '/')) {
-		if (sscanf(arg, "%02d:%02d:%02d;%02d/%02d", &h, &m, &s, &f, &fps)==5) {
+		if (sscanf(arg, "%02ud:%02ud:%02ud;%02ud/%02ud", &h, &m, &s, &f, &fps)==5) {
 			sec = 0;
 			if (fps) sec = ((Double)f) / fps;
 			sec += 3600*h + 60*m + s;
@@ -933,7 +933,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 		str = strchr(arg, '-');
 		if (str) str[0] = 0;
 		/*HH:MM:SS:MS time code*/
-		if (strchr(arg, ':') && (sscanf(arg, "%02d:%02d:%02d:%02d", &h, &m, &s, &ms)==4)) {
+		if (strchr(arg, ':') && (sscanf(arg, "%02ud:%02ud:%02ud:%02ud", &h, &m, &s, &ms)==4)) {
 			sec = ms;
 			sec /= 1000;
 			sec += 3600*h + 60*m + s;
@@ -1091,7 +1091,7 @@ int main (int argc, char **argv)
 			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
 
 		} else if (!stricmp(arg, "-size")) {
-			if (sscanf(argv[i+1], "%dx%d", &forced_width, &forced_height) != 2) {
+			if (sscanf(argv[i+1], "%udx%ud", &forced_width, &forced_height) != 2) {
 				forced_width = forced_height = 0;
 			}
 			i++;
@@ -1376,7 +1376,7 @@ force_input:
 			if (playlist) {
 				u32 count;
 				gf_term_disconnect(term);
-				scanf("%d", &count);
+				scanf("%ud", &count);
 				while (count) {
 					fscanf(playlist, "%s", the_url);
 					count--;
@@ -1453,7 +1453,7 @@ force_input:
 				u32 ID;
 				fprintf(stdout, "Enter OD ID (0 for main OD): ");
 				fflush(stdout);
-				scanf("%d", &ID);
+				scanf("%ud", &ID);
 				ViewOD(term, ID, (u32)-1);
 			}
 			break;
@@ -1462,7 +1462,7 @@ force_input:
 				u32 num;
 				fprintf(stdout, "Enter OD number (0 for main OD): ");
 				fflush(stdout);
-				scanf("%d", &num);
+				scanf("%ud", &num);
 				ViewOD(term, (u32)-1, num);
 			}
 			break;
@@ -1495,7 +1495,7 @@ force_input:
 				fprintf(stdout, "Enter Inline OD ID if any or 0");
 				fflush(stdout);
 				radname[0] = 0;
-				scanf("%d", &odid);
+				scanf("%ud", &odid);
 				if (odid) {
 					GF_ObjectManager *root_odm = gf_term_get_root_object(term);
 					if (!root_odm) break;
@@ -1619,7 +1619,7 @@ force_input:
 		{
 			u32 size;
 			fprintf(stdout, "Enter new video cache memory in kBytes (current %d):\n", gf_term_get_option(term, GF_OPT_VIDEO_CACHE_SIZE));
-			scanf("%d", &size);
+			scanf("%ud", &size);
 			gf_term_set_option(term, GF_OPT_VIDEO_CACHE_SIZE, size);
 		}
 			break;
