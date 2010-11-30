@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / Events management
@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -35,7 +35,7 @@ extern "C" {
 #include <gpac/tools.h>
 
 /*
-		minimal event system 
+		minimal event system
 
 	DO NOT CHANGE THEIR POSITION IN THE LIST, USED TO SPEED UP FILTERING OF USER INPUT EVENTS
 */
@@ -49,13 +49,13 @@ enum {
 
 	*******************************************************/
 	/*MouseEvents*/
-	GF_EVENT_CLICK, 
-	GF_EVENT_MOUSEUP, 
-	GF_EVENT_MOUSEDOWN, 
-	GF_EVENT_MOUSEOVER, 
-	GF_EVENT_MOUSEOUT, 
+	GF_EVENT_CLICK,
+	GF_EVENT_MOUSEUP,
+	GF_EVENT_MOUSEDOWN,
+	GF_EVENT_MOUSEOVER,
+	GF_EVENT_MOUSEOUT,
 	/*!! ALL MOUSE EVENTS SHALL BE DECLARED BEFORE MOUSEMOVE !! */
-	GF_EVENT_MOUSEMOVE, 
+	GF_EVENT_MOUSEMOVE,
 	/*mouse wheel event*/
 	GF_EVENT_MOUSEWHEEL,
 
@@ -76,18 +76,18 @@ enum {
 
 	/*DOM UIEvents*/
 	GF_EVENT_FOCUSIN,
-	GF_EVENT_FOCUSOUT, 
-	GF_EVENT_ACTIVATE, 
-	GF_EVENT_CHANGE, 
-	GF_EVENT_FOCUS, 
-	GF_EVENT_BLUR, 
+	GF_EVENT_FOCUSOUT,
+	GF_EVENT_ACTIVATE,
+	GF_EVENT_CHANGE,
+	GF_EVENT_FOCUS,
+	GF_EVENT_BLUR,
 	/*SVG (HTML) Events*/
-	GF_EVENT_LOAD, 
+	GF_EVENT_LOAD,
 	GF_EVENT_UNLOAD,
-	GF_EVENT_ABORT, 
-	GF_EVENT_ERROR, 
-	GF_EVENT_RESIZE, 
-	GF_EVENT_SCROLL, 
+	GF_EVENT_ABORT,
+	GF_EVENT_ERROR,
+	GF_EVENT_RESIZE,
+	GF_EVENT_SCROLL,
 	GF_EVENT_ZOOM,
 	GF_EVENT_BEGIN, /*this is a fake event, it is NEVER fired, only used in SMIL begin*/
 	GF_EVENT_BEGIN_EVENT,
@@ -149,23 +149,23 @@ enum {
 	/*scene attached event, dispatched when the root node of a scene is loaded and
 	attached to the window or parent object (animation, inline, ...)*/
 	GF_EVENT_SCENE_ATTACHED,
-	
+
 	/*VP resize attached event, dispatched when viewport of a scene is being modified
 	attached to the window or parent object (animation, inline, ...)*/
 	GF_EVENT_VP_RESIZE,
-	
+
 	/*window events*/
-	/*size has changed - indicate new w & h in .x end .y fields of event. 
+	/*size has changed - indicate new w & h in .x end .y fields of event.
 	When sent from gpac to a video plugin, indicates the output size should be changed. This is only sent when the plugin
 	manages the output video himself
 	When sent from a video plugin to gpac, indicates the output size has been changed. This is only sent when the plugin
 	manages the output video himself
 	*/
-	GF_EVENT_SIZE,		
+	GF_EVENT_SIZE,
 	/*signals the scene size (if indicated in scene) upon connection (sent to the user event proc only)
 		if scene size hasn't changed (seeking or other) this event is not sent
 	*/
-	GF_EVENT_SCENE_SIZE,		
+	GF_EVENT_SCENE_SIZE,
 	GF_EVENT_SHOWHIDE,	/*window show/hide (minimized or other). This is also sent to the user to signal focus switch in fullscreen*/
 	GF_EVENT_SET_CURSOR,	/*set mouse cursor*/
 	GF_EVENT_SET_CAPTION,	/*set window caption*/
@@ -175,7 +175,7 @@ enum {
 	/*video hw setup message:
 		- when sent from gpac to plugin, indicates that the plugin should re-setup hardware context due to a window resize:
 			* for 2D output, this means resizing the backbuffer if needed (depending on HW constraints)
-			* for 3D output, this means re-setup of OpenGL context (depending on HW constraints). Depending on windowing systems 
+			* for 3D output, this means re-setup of OpenGL context (depending on HW constraints). Depending on windowing systems
 			and implementations, it could be possible to resize a window without destroying the GL context.
 
 		- when sent from plugin to gpac, indicates that hardware resources must be resetup before next render step (this is mainly
@@ -203,7 +203,7 @@ enum {
 
 /*GPAC/DOM3 key codes*/
 enum {
-	GF_KEY_UNIDENTIFIED = 0, 
+	GF_KEY_UNIDENTIFIED = 0,
 	GF_KEY_ACCEPT = 1, /* "Accept"    The Accept (Commit) key.*/
 	GF_KEY_AGAIN, /* "Again"  The Again key.*/
 	GF_KEY_ALLCANDIDATES, /* "AllCandidates"    The All Candidates key.*/
@@ -401,11 +401,20 @@ enum {
 	GF_KEY_EURO, /*"U+20AC"    The Euro Currency Sign key (�).*/
 	GF_KEY_DEADVOICESOUND, /*"U+3099"    The Combining Katakana-Hiragana Voiced Sound Mark (Dead Voiced Sound) key.*/
 	GF_KEY_DEADSEMIVOICESOUND, /*"U+309A"    The Combining Katakana-Hiragana Semi-Voiced Sound Mark (Dead Semivoiced Sound) key. */
+	/* STB */
+	GF_KEY_CHANNELUP, /*ChannelUp*/
+	GF_KEY_CHANNELDOWN, /*ChannelDown*/
+	GF_KEY_TEXT, /*Text*/
+	GF_KEY_INFO, /*Info*/
+	GF_KEY_EPG, /*EPG*/
+	GF_KEY_RECORD, /*Record*/
+	GF_KEY_BEGINPAGE, /*BeginPage*/
+    /* end STB */
 
 	/*non-dom keys, used in LASeR*/
 	GF_KEY_CELL_SOFT1,	/*soft1 key of cell phones*/
 	GF_KEY_CELL_SOFT2,	/*soft2 key of cell phones*/
-	
+
 	/*for joystick handling*/
 	GF_KEY_JOYSTICK
 };
@@ -512,17 +521,17 @@ typedef struct
 enum
 {
 	GF_CURSOR_NORMAL = 0x00,
-	GF_CURSOR_ANCHOR, 
+	GF_CURSOR_ANCHOR,
 	GF_CURSOR_TOUCH,
 	/*discSensor, cylinderSensor, sphereSensor*/
-	GF_CURSOR_ROTATE, 
+	GF_CURSOR_ROTATE,
 	/*proximitySensor & proximitySensor2D*/
-	GF_CURSOR_PROXIMITY, 
+	GF_CURSOR_PROXIMITY,
 	/*planeSensor & planeSensor2D*/
 	GF_CURSOR_PLANE,
 	/*collision*/
-	GF_CURSOR_COLLIDE, 
-	GF_CURSOR_HIDE, 
+	GF_CURSOR_COLLIDE,
+	GF_CURSOR_HIDE,
 };
 
 /*event proc return value: ignored*/
@@ -642,9 +651,9 @@ typedef struct
 	/*GF_EVENT_SYS_COLORS*/
 	u8 type;
 	/*ARGB colors, in order:
-	ActiveBorder, ActiveCaption, AppWorkspace, Background, ButtonFace, ButtonHighlight, ButtonShadow, 
-	ButtonText, CaptionText, GrayText, Highlight, HighlightText, InactiveBorder, InactiveCaption, 
-	InactiveCaptionText, InfoBackground, InfoText, Menu, MenuText, Scrollbar, ThreeDDarkShadow, 
+	ActiveBorder, ActiveCaption, AppWorkspace, Background, ButtonFace, ButtonHighlight, ButtonShadow,
+	ButtonText, CaptionText, GrayText, Highlight, HighlightText, InactiveBorder, InactiveCaption,
+	InactiveCaptionText, InfoBackground, InfoText, Menu, MenuText, Scrollbar, ThreeDDarkShadow,
 	ThreeDFace, ThreeDHighlight, ThreeDLightShadow, ThreeDShadow, Window, WindowFrame, WindowText
 	*/
 	u32 sys_colors[28];
