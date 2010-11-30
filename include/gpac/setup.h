@@ -343,12 +343,14 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #define LLD "%I64d"
 #define LLU "%I64u"
 #define LLX "%I64x"
+#define LLXPAD( pad ) "%" pad "I64x"
 #define LLD_CAST
 #define LLU_CAST
 #elif defined (__SYMBIAN32__)
 #define LLD "%d"
 #define LLU "%u"
 #define LLX "%x"
+#define LLXPAD( pad ) "%" pad "x"
 #define LLD_CAST (u32)
 #define LLU_CAST (s32)
 #else
@@ -356,10 +358,12 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #define LLD "%ld"
 #define LLU "%lu"
 #define LLX "%lx"
+#define LLXPAD( pad ) "%" pad "lx"
 #else /*Unix 32 bits*/
 #define LLD "%lld"
 #define LLU "%llu"
 #define LLX "%llx"
+#define LLXPAD( pad ) "%" pad "llx"
 #endif
 
 #define LLD_CAST

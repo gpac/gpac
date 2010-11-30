@@ -522,7 +522,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 #if defined(WIN32)  && !defined(__GNUC__)
 		fprintf(fidx, "timestamp: %02u:%02u:%02u:%03u, filepos: %09lx\n", hh, mm, ss, ms, gf_f64_tell(fsub));
 #else
-		fprintf(fidx, "timestamp: %02u:%02u:%02u:%03u, filepos: %09llx\n", hh, mm, ss, ms, gf_f64_tell(fsub));
+		fprintf(fidx, "timestamp: %02u:%02u:%02u:%03u, filepos: " LLXPAD("09") "\n", hh, mm, ss, ms, gf_f64_tell(fsub));
 #endif
 		if (vobsub_packetize_subpicture(fsub, samp->DTS, samp->data, samp->dataLength) != GF_OK) {
 			gf_isom_sample_del(&samp);
