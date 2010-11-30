@@ -297,7 +297,9 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
     }
     {
         const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
-        if (MPD_isM3U8_mime(mime)) {
+	const char * url = gf_dm_sess_get_resource_name(mpdin->mpd_dnload);
+        /* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
+        if (MPD_isM3U8_mime(mime) || strstr(url, ".m3u8")) {
             m3u8_to_mpd(mpdin, local_url, gf_dm_sess_get_resource_name(mpdin->mpd_dnload) );
         } else if (!MPD_is_MPD_mime(mime)) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' should be m3u8 or mpd\n", mime));
@@ -899,7 +901,9 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         }
         {
             const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
-            if (MPD_isM3U8_mime(mime)) {
+	    const char * url = gf_dm_sess_get_resource_name(mpdin->mpd_dnload);
+	    /* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
+            if (MPD_isM3U8_mime(mime) || strstr(url, ".m3u8")) {
                 is_m3u8 = 1;
             } else if (!MPD_is_MPD_mime(mime)) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' for '%s' should be m3u8 or mpd\n", mime, url));

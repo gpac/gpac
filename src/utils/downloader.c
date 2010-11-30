@@ -224,7 +224,6 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
  */
 GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess );
 
-
 /**
  * Find a User's credentials for a given site
  */
@@ -744,7 +743,6 @@ static u32 gf_dm_session_thread(void *par)
     GF_DownloadSession *sess = (GF_DownloadSession *)par;
 
     GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Downloader] Entering thread ID %d\n", gf_th_id() ));
-
     sess->flags &= ~GF_DOWNLOAD_SESSION_THREAD_DEAD;
     while (!sess->destroy) {
         gf_mx_p(sess->mx);
@@ -755,7 +753,7 @@ static u32 gf_dm_session_thread(void *par)
         if (sess->status < GF_NETIO_CONNECTED) {
             gf_dm_connect(sess);
         } else {
-            if (sess->status == GF_NETIO_WAIT_FOR_REPLY) gf_sleep(GF_WAIT_REPLY_SLEEP);
+	    if (sess->status == GF_NETIO_WAIT_FOR_REPLY) gf_sleep(GF_WAIT_REPLY_SLEEP);
             sess->do_requests(sess);
         }
         gf_mx_v(sess->mx);
@@ -798,6 +796,8 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
         sess->mx = gf_mx_new(url);
         gf_th_run(sess->th, gf_dm_session_thread, sess);
     }
+    if (!(sess->flags & GF_NETIO_SESSION_FORCE_NO_CACHE))
+      sess->use_cache_file = 0;
     sess->num_retry = SESSION_RETRY_COUNT;
     return sess;
 }
@@ -1002,6 +1002,7 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
     Bool go;
     u32 flags = sess->flags;
     sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
+    u32 timer = 0;
     go = 1;
     while (go) {
         switch (sess->status) {
@@ -1012,7 +1013,32 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
                 gf_sleep(200);
             break;
         case GF_NETIO_WAIT_FOR_REPLY:
+	    if (timer == 0)
+	      timer = gf_sys_clock();
             gf_sleep(20);
+	    {
+		u32 timer2 = gf_sys_clock();
+		if (timer2 - timer > 5000){
+		  GF_Err e;
+		  /* Since HEAD is not understood by this server, we use a GET instead */
+		  sess->http_read_type = GET;
+		  sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
+		  gf_dm_disconnect(sess);
+		  sess->status = GF_NETIO_SETUP;
+		  sess->server_only_understand_get = 1;
+		  GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Timeout with HEAD, try with GET.\n"));
+		  e = gf_dm_setup_from_url(sess, sess->orig_url);
+		  if (e) {
+		    printf("ERRROR while trying GET !\n");
+		    sess->status = GF_NETIO_STATE_ERROR;
+		    sess->last_error = e;
+		    gf_dm_sess_notify_state(sess, sess->status, e);
+		  } else {
+		      timer = 0;
+		      continue;
+		  }
+		}
+	    }
         case GF_NETIO_CONNECTED:
             sess->do_requests(sess);
             break;
@@ -2088,11 +2114,18 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             sess->icy_bytes = 0;
             sess->status = GF_NETIO_DATA_EXCHANGE;
         } else if (!ContentLength) {
-            /*we don't expect anything*/
-            gf_dm_disconnect(sess);
-            gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
-            sess->status = GF_NETIO_DISCONNECTED;
-            return GF_OK;
+	    if (sess->http_read_type == GET){
+		sess->total_size = 2 << 30;
+		sess->use_cache_file = 0;
+		sess->status = GF_NETIO_DATA_EXCHANGE;
+		sess->bytes_done = 0;
+	    } else {
+	      /*we don't expect anything*/
+	      gf_dm_disconnect(sess);
+	      gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
+	      sess->status = GF_NETIO_DISCONNECTED;
+	      return GF_OK;
+	    }
         } else {
             sess->total_size = ContentLength;
             if (sess->use_cache_file && sess->http_read_type == GET ) {
