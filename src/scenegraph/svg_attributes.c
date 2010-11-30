@@ -891,7 +891,7 @@ static GF_Err svg_parse_clock_value(char *d, Double *clock_value)
 			u32 hours;
 			u32 minutes;
 			Float seconds;
-			if (sscanf(d, "%d:%d:%f", &hours, &minutes, &seconds) < 3) return GF_BAD_PARAM;
+			if (sscanf(d, "%ud:%ud:%f", &hours, &minutes, &seconds) < 3) return GF_BAD_PARAM;
 			*clock_value = hours*3600 + minutes*60 + seconds;
 		} else {
 			/* Partial Clock value : mm:ss(.frac) */
@@ -961,26 +961,26 @@ static GF_Err smil_parse_time(GF_Node *elt, SMIL_Time *v, char *d)
 		tmp += 10;
 		if ((tmp1 = strchr(tmp, 'T')) ) {
 			/* From tmp to wallStartTime, we parse a date */
-			sscanf(tmp, "%d-%d-%dT", &year, &month, &day);
+			sscanf(tmp, "%ud-%ud-%udT", &year, &month, &day);
 			tmp1++;
 			tmp = tmp1;
 		}
 		if ((tmp1 = strchr(tmp, ':')) ) {
 			if ((tmp2 = strchr(tmp1, ':')) ) {
 				/* HHMMSS */
-				sscanf(tmp, "%d:%d:%f", &hours, &minutes, &seconds);
+				sscanf(tmp, "%ud:%ud:%f", &hours, &minutes, &seconds);
 			} else {
 				/* HHMM */
-				sscanf(tmp, "%d:%d", &hours, &minutes);
+				sscanf(tmp, "%ud:%ud", &hours, &minutes);
 			}
 		}
 		if (strchr(tmp, 'Z')) {
 			return GF_OK;
 		} else {
 			if ( (tmp1 = strchr(tmp, '+')) ) {
-				sscanf(tmp1, "%d:%d", &nhours, &nminutes);
+				sscanf(tmp1, "%ud:%ud", &nhours, &nminutes);
 			} else if ( (tmp1 = strchr(tmp, '-')) ) {
-				sscanf(tmp1, "%d:%d", &nhours, &nminutes);
+				sscanf(tmp1, "%ud:%ud", &nhours, &nminutes);
 			}
 		}
 		return GF_OK;

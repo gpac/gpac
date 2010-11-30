@@ -1026,10 +1026,10 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
 		  gf_dm_disconnect(sess);
 		  sess->status = GF_NETIO_SETUP;
 		  sess->server_only_understand_get = 1;
-		  GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Timeout with HEAD, try with GET.\n"));
+		  GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Timeout with HEAD, try with GET\n"));
 		  e = gf_dm_setup_from_url(sess, sess->orig_url);
 		  if (e) {
-		    printf("ERRROR while trying GET !\n");
+		    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Error with GET %d\n", e));
 		    sess->status = GF_NETIO_STATE_ERROR;
 		    sess->last_error = e;
 		    gf_dm_sess_notify_state(sess, sess->status, e);
