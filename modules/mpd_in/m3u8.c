@@ -439,7 +439,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 	return NULL;
 }
 
-#define M3U8_BUF_SIZE 2048
+#define M3U8_BUF_SIZE 102400
 
 static char * parse_next_line( char * data, char * buf, int * readPointer, int * remainingBytes){
 	int i, pos;
@@ -465,12 +465,12 @@ static char * parse_next_line( char * data, char * buf, int * readPointer, int *
 }
 
 
-GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL)
+GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Bool *is_end)
 {
-	return parse_sub_playlist(file, playlist, baseURL, NULL, NULL);
+	return parse_sub_playlist(file, playlist, baseURL, NULL, NULL, is_end);
 }
 
-GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Program * in_program, PlaylistElement *sub_playlist)
+GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Program * in_program, PlaylistElement *sub_playlist, Bool *is_end)
 {
 	int readen, readPointer, len, i, currentLineNumber;
 	FILE * f;
@@ -538,6 +538,9 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 								MYLOG(("\n"));
 								gf_free(attributes);
 								attributes = NULL;
+							}
+							if (attribs.isPlaylistEnded) {
+								*is_end = 1;
 							}
 						}
 					} else {

@@ -106,8 +106,9 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
     Program *prog;
     PlaylistElement *pe;
     FILE *fmpd;
+	Bool is_end;
 
-    e = parse_root_playlist(m3u8_file, &pl, ".");
+    e = parse_root_playlist(m3u8_file, &pl, ".", &is_end);
     if (e) return e;
     gf_delete_file((char *)m3u8_file);
 
@@ -124,7 +125,7 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
                 }
                 e = gf_dm_sess_process(sess);
                 if (e==GF_OK) {
-                    e = parse_sub_playlist(gf_dm_sess_get_cache_name(sess), &pl, suburl, prog, pe);
+                    e = parse_sub_playlist(gf_dm_sess_get_cache_name(sess), &pl, suburl, prog, pe, &is_end);
                 }
                 gf_term_download_del(sess);
                 gf_free(suburl);
@@ -153,7 +154,9 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
 
     update_interval = pe->durationInfo;
     mpdin->reload_count++;
-    if ((pe->elementType == TYPE_PLAYLIST) && pe->element.playlist.is_ended) update_interval = 0;
+	if (is_end || (pe->elementType == TYPE_PLAYLIST) && pe->element.playlist.is_ended) {
+		update_interval = 0;
+	}
 
     fmpd = fopen(m3u8_file, "wt");
     fprintf(fmpd, "<MPD type=\"Live\" xmlns=\"urn:3GPP:ns:PSS:AdaptiveHTTPStreamingMPD:2009\" ");
@@ -355,13 +358,18 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
         /*merge init segment*/
         if (new_rep->init_url) {
             seg_found = 0;
-            for (j=0; j<gf_list_count(rep->segments); j++) {
-                GF_MPD_SegmentInfo *seg = gf_list_get(rep->segments, j);
-                if (!strcmp(new_rep->init_url, seg->url)) {
-                    seg_found = 1;
-                    break;
-                }
-            }
+
+            if (!strcmp(new_rep->init_url, rep->init_url)) {
+                seg_found = 1;
+			} else {
+				for (j=0; j<gf_list_count(rep->segments); j++) {
+					GF_MPD_SegmentInfo *seg = gf_list_get(rep->segments, j);
+					if (!strcmp(new_rep->init_url, seg->url)) {
+						seg_found = 1;
+						break;
+					}
+				}
+			}
             /*remove from new list and push to old one*/
             if (!seg_found) {
                 GF_MPD_SegmentInfo *new_seg;
@@ -490,6 +498,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
             mpdin->cached[0].cache = gf_strdup(mpdin->seg_local_url);
             mpdin->cached[0].url = gf_strdup(gf_dm_sess_get_resource_name(mpdin->seg_dnload ));
             mpdin->nb_cached = 1;
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Adding initialization segment %s to cache: %s\n", mpdin->seg_local_url, mpdin->cached[0].url ));
             gf_mx_v(mpdin->dl_mutex);
             return GF_OK;
         }
@@ -601,6 +610,7 @@ static u32 download_segments(void *par)
             gf_mx_p(mpdin->dl_mutex);
             mpdin->cached[mpdin->nb_cached].cache = gf_strdup( rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload));
             mpdin->cached[mpdin->nb_cached].url = gf_strdup( gf_dm_sess_get_resource_name(mpdin->seg_dnload));
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n", mpdin->cached[mpdin->nb_cached].url, mpdin->cached[mpdin->nb_cached].cache));
             mpdin->nb_cached++;
             gf_mx_v(mpdin->dl_mutex);
 
@@ -716,7 +726,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         gf_mx_v(mpdin->dl_mutex);
 
         param->url_query.next_url = mpdin->cached[0].cache;
-        GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment to \n\tURL: %s\n\tCache: %s\n", mpdin->cached[0].url, mpdin->cached[0].cache));
+        GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to \n\tURL: %s\n\tCache: %s\n", mpdin->cached[0].url, mpdin->cached[0].cache));
     } else {
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Client Query request (%d) from terminal\n", param->command_type));
     }
