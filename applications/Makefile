@@ -1,18 +1,18 @@
 include ../config.mak
 
 APPDIRS= mp4client 
+APPDIRS+=mp42ts
 
 ifeq ($(DISABLE_ISOFF), no)
 APPDIRS += mp4box
 endif
 
-
 V4STUDIODIR=
 INSTDIRS=mp4client
 ifeq ($(CONFIG_XUL),no)
 else
-INSTDIRS+=osmozilla
-APPDIRS+=osmozilla
+#INSTDIRS+=osmozilla
+#APPDIRS+=osmozilla
 endif
 
 ifeq ($(USE_WXWIDGETS), yes)
