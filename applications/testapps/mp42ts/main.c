@@ -54,7 +54,7 @@ static GFINLINE void usage()
 					"-dst-rtp               /\n"
 					"\n"
 					"-segment-dir=dir       server local address to store segments\n"
-					"-segment-duration=dur  segment duration\n"
+					"-segment-duration=dur  segment duration in seconds\n"
 					"-segment-manifest=file m3u8 file basename\n"
 					"-segment-http-prefix=p client address for accessing server segments\n"
 					"-segment-number=n      only n segments are used using a cyclic pattern\n"
@@ -1500,7 +1500,7 @@ int main(int argc, char **argv)
 			dot = strrchr(segment_prefix, '.');
 			dot[0] = 0;
 			sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
-			ts_out = segment_name;
+			ts_out = strdup(segment_name);
 			if (!segment_manifest) { 
 				sprintf(segment_manifest_default, "%s.m3u8", segment_prefix);
 				segment_manifest = segment_manifest_default;
@@ -1610,6 +1610,14 @@ int main(int argc, char **argv)
 		for (j=0; j<progs[i].nb_streams; j++) {
 			gf_m2ts_program_stream_add(program, &progs[i].streams[j], cur_pid+j+1, (progs[i].pcr_idx==j) ? 1 : 0);
 		}
+#if 0
+		//add video to PMT
+		progs[i].streams[progs[i].nb_streams].stream_type = GF_STREAM_VISUAL;
+		progs[i].streams[progs[i].nb_streams].object_type_indication = GPAC_OTI_VIDEO_AVC;
+		gf_m2ts_program_stream_add(program, &progs[i].streams[progs[i].nb_streams], cur_pid+progs[i].nb_streams+1, 0);
+		progs[i].nb_streams++;
+#endif
+
 		cur_pid += progs[i].nb_streams;
 		while (cur_pid % 10)
 			cur_pid ++;
@@ -1731,7 +1739,7 @@ exit:
 	
 	for (i=0; i<nb_progs; i++) {
 		for (j=0; j<progs[i].nb_streams; j++) {
-			progs[i].streams[j].input_ctrl(&progs[i].streams[j], GF_ESI_INPUT_DESTROY, NULL);
+			if (progs[i].streams[j].input_ctrl) progs[i].streams[j].input_ctrl(&progs[i].streams[j], GF_ESI_INPUT_DESTROY, NULL);
 		}
 		if (progs[i].iod) gf_odf_desc_del((GF_Descriptor*)progs[i].iod);
 		if (progs[i].mp4) gf_isom_close(progs[i].mp4);
