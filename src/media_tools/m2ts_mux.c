@@ -694,7 +694,7 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 	} else {
 		GF_M2TS_Packet *pck;
 		/*flush input pipe*/
-		stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_FLUSH, NULL);
+		if (stream->ifce->input_ctrl) stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_FLUSH, NULL);
 		gf_mx_p(stream->mx);
 
 		stream->pck_offset = 0;

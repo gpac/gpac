@@ -2033,7 +2033,7 @@ int main(int argc, char **argv)
 
 	}
 	/*init libgpac*/
-	gf_sys_init(0);
+	gf_sys_init(1);
 
 
 	if (do_saf && !encode) {
