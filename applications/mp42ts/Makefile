@@ -1,4 +1,4 @@
-include ../../../config.mak
+include ../../config.mak
 
 vpath %.c $(SRC_PATH)/applications/testapps/mp42ts
 
@@ -17,7 +17,7 @@ endif
 #common obj
 OBJS= main.o
 
-LINKFLAGS=-L../../../bin/gcc
+LINKFLAGS=-L../../bin/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=mp42ts$(EXE)
@@ -35,7 +35,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../../bin/gcc/$@ $(OBJS) $(LINKFLAGS)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS)
 
 
 %.o: %.c
@@ -43,7 +43,7 @@ $(PROG): $(OBJS)
 
 
 clean: 
-	rm -f $(OBJS) ../../../bin/gcc/$(PROG)
+	rm -f $(OBJS) ../../bin/gcc/$(PROG)
 
 dep: depend
 
