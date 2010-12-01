@@ -712,7 +712,9 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				u64 pcr_diff = (pcr - m2ts->pcr_last);
 				pcr_diff /= 27000;
 				diff = (u32) pcr_diff - (stb - m2ts->stb_at_last_pcr);
-				if (diff>0 && (diff<1000) ) {
+				if (diff<0) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] Demux not going fast enough according to PCR (drift %d, pcr: "LLD", last pcr: "LLD")\n", diff, pcr, m2ts->pcr_last));
+				} else if (diff>0) {
 					u32 sleep_for=50;
 #ifndef GPAC_DISABLE_LOG
 					u32 nb_sleep=0;
@@ -742,6 +744,8 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					m2ts->nb_pck = 0;
 					m2ts->pcr_last = pcr;
 					m2ts->stb_at_last_pcr = gf_sys_clock();
+				} else {
+					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux drift according to PCR (drift %d, pcr: "LLD", last pcr: "LLD")\n", diff, pcr, m2ts->pcr_last));
 				}
 			} else {
 				m2ts->pcr_last = pcr;
