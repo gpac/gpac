@@ -203,7 +203,7 @@ GF_TermExt *uir_new()
 {
 	GF_TermExt *dr;
 	GF_UIRecord *uir;
-	dr = malloc(sizeof(GF_TermExt));
+	dr = (GF_TermExt*)gf_malloc(sizeof(GF_TermExt));
 	memset(dr, 0, sizeof(GF_TermExt));
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_TERM_EXT_INTERFACE, "GPAC UI Recorder", "gpac distribution");
 
@@ -218,8 +218,8 @@ void uir_delete(GF_BaseInterface *ifce)
 {
 	GF_TermExt *dr = (GF_TermExt *) ifce;
 	GF_UIRecord *uir = dr->udta;
-	free(uir);
-	free(dr);
+	gf_free(uir);
+	gf_free(dr);
 }
 
 GF_EXPORT

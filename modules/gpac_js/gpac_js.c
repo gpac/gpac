@@ -175,9 +175,9 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 	}
 	if (!strcmp(prop_name, "current_path")) {
 		char *url = gf_url_concatenate(term->root_scene->root_od->net_service->url, "");
-		if (!url) url = strdup("");
+		if (!url) url = gf_strdup("");
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, url)); 
-		free(url);
+		gf_free(url);
 		return JS_TRUE;
 	}
 	if (!strcmp(prop_name, "volume")) {

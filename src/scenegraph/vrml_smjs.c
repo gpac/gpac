@@ -4035,7 +4035,7 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 			if (strnicmp(_url+4, "script:", 7) && strnicmp(_url+5, "script:", 5)) {
 				_url = gf_url_concatenate(script->url.vals[i].script_text, opt_file);
 			} else {
-				_url = strdup(opt_file);
+				_url = gf_strdup(opt_file);
 			}
 		}
 		par.uri.url = _url;

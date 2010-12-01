@@ -292,7 +292,7 @@ gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadManager * d
     creds = gf_find_user_credentials_for_site(dm, server_name);
     /* If none found, we create one */
     if (!creds) {
-        creds = malloc(sizeof( gf_user_credentials_struct));
+        creds = (gf_user_credentials_struct*)gf_malloc(sizeof( gf_user_credentials_struct));
         if (!creds)
             return NULL;
         gf_list_insert(dm->credentials, creds, 0);
@@ -1000,9 +1000,9 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
     Bool go;
+    u32 timer = 0;
     u32 flags = sess->flags;
     sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
-    u32 timer = 0;
     go = 1;
     while (go) {
         switch (sess->status) {
@@ -1854,7 +1854,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             gf_cache_set_content_length(sess->cache_entry, ContentLength);
         }
         else if (!stricmp(hdr, "Content-Type")) {
-            char * mime_type = strdup(hdr_val);
+            char * mime_type = gf_strdup(hdr_val);
             while (1) {
                 u32 len = strlen(mime_type);
                 char c = len ? mime_type[len-1] : 0;
@@ -2267,7 +2267,7 @@ GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
     sess->needs_range = 0;
     sess->range_start = sess->range_end = 0;
     sess->bytes_done = sess->bytes_in_wnd = sess->bytes_per_sec = 0;
-    if (sess->init_data) free(sess->init_data);
+    if (sess->init_data) gf_free(sess->init_data);
     sess->init_data = NULL;
     sess->init_data_size = 0;
     sess->last_error = GF_OK;
@@ -2307,7 +2307,7 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
             return NULL;
         /* 22 if 1G + 1G + 2 dashes */
         maxLen = strlen(orig) + 22;
-        newFilename = malloc( maxLen );
+        newFilename = (char*)gf_malloc( maxLen );
         if (newFilename == NULL)
             return NULL;
         snprintf(newFilename, maxLen, "%s " LLU LLU, orig, startOffset, endOffset);

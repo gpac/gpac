@@ -180,7 +180,8 @@ static void AC3_OnLiveData(AC3Reader *read, char *data, u32 data_size)
 	if (read->data_size<=7) return;
 
 	bs = gf_bs_new(read->data, read->data_size, GF_BITSTREAM_READ);
-	hdr.framesize = pos = 0;
+	hdr.framesize = 0;
+	pos = 0;
 	while (gf_ac3_parser_bs(bs, &hdr, 0)) {
 		pos = gf_bs_get_position(bs);
 		read->sl_hdr.accessUnitStartFlag = 1;

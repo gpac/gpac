@@ -81,7 +81,7 @@ GF_Err playlist_element_del(PlaylistElement * e){
 }
 
 Program * program_new(int programId){
-	Program * program = malloc(sizeof(Program));
+	Program * program = (Program*)gf_malloc(sizeof(Program));
 	if (program == NULL){
 		return NULL;
 	}
@@ -123,15 +123,15 @@ GF_Err playlist_del(Playlist * pl){
 }*/
 
 PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, int durationInfo){
-	PlaylistElement * e = malloc(sizeof(PlaylistElement));
+	PlaylistElement * e = gf_malloc(sizeof(PlaylistElement));
 	bzero(e, sizeof(PlaylistElement));
 	assert( url );
 	if (e == NULL)
 		return NULL;
 	e->durationInfo = durationInfo;
-	e->title = (title ? strdup(title) : NULL);
+	e->title = (title ? gf_strdup(title) : NULL);
 	assert( url);
-	e->url = strdup(url);
+	e->url = gf_strdup(url);
 	e->bandwidth = 0;
 	e->elementType = elementType;
 	if (elementType == TYPE_PLAYLIST){
@@ -160,7 +160,7 @@ PlaylistElement * playlist_element_new(PlaylistElementType elementType, const ch
 }
 /*
 Playlist * playlist_new(){
-	Playlist * pl = malloc(sizeof(Playlist));
+	Playlist * pl = gf_malloc(sizeof(Playlist));
 	if (pl == NULL)
 		return NULL;
 	pl->currentMediaSequence = 1;
@@ -179,7 +179,7 @@ Playlist * playlist_new(){
 
 VariantPlaylist * variant_playlist_new ()
 {
-	VariantPlaylist * pl = malloc( sizeof(VariantPlaylist) );
+	VariantPlaylist * pl = (VariantPlaylist*)gf_malloc( sizeof(VariantPlaylist) );
 	if (pl == NULL)
 		return NULL;
 	pl->programs = gf_list_new();
@@ -311,7 +311,7 @@ typedef struct _s_accumulated_attributes {
 } s_accumulated_attributes;
 
 static Bool safe_start_equals(const char * attribute, const char * line){
-	int len, atlen;
+	size_t len, atlen;
 	if (line == NULL)
 		return 0;
 	len = strlen(line);
@@ -330,12 +330,12 @@ static char ** extractAttributes(const char * name, const char * line, const int
 		return NULL;
 	if (!safe_start_equals(name, line))
 		return NULL;
-	ret = calloc((numberOfAttributes + 1 ), sizeof(char*));
+	ret = gf_calloc((numberOfAttributes + 1 ), sizeof(char*));
 	currentAttribute = 0;
 	for (i = start ; i <= len ; i++){
 		if (line[i] == '\0' || line[i] == ','){
 			sz = 1 + i - start;
-			ret[currentAttribute] = calloc( (1+sz), sizeof(char));
+			ret[currentAttribute] = gf_calloc( (1+sz), sizeof(char));
 			strncpy(ret[currentAttribute], &(line[start]), sz);
 			currentAttribute++;
 			start = i+1;
@@ -400,7 +400,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 			}
 		}
 		if (ret[1]){
-			attributes->title = strdup(ret[1]);
+			attributes->title = gf_strdup(ret[1]);
 		}
 		return ret;
 	}
@@ -429,7 +429,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 			} else if (safe_start_equals("CODECS=\"", ret[i])){
 				intValue = strlen(ret[i]);
 				if (ret[i][intValue-1] == '"'){
-					attributes->codecs = strdup(&(ret[i][7]));
+					attributes->codecs = gf_strdup(&(ret[i][7]));
 				}
 			}
 			i++;
@@ -619,8 +619,8 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 									return GF_OUT_OF_MEM;
 								}
 								assert( fullURL);
-								currentPlayList->url = strdup(fullURL);
-								currentPlayList->title = attribs.title ? strdup(attribs.title):NULL;
+								currentPlayList->url = gf_strdup(fullURL);
+								currentPlayList->title = attribs.title ? gf_strdup(attribs.title):NULL;
 								gf_list_add(program->bitrates, currentPlayList);
 							} else {
 								/* Normal Playlist */
@@ -642,8 +642,8 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 									}
 									assert(currentPlayList->element.playlist.elements);
 									assert( fullURL);
-									currentPlayList->url = strdup(baseURL);
-									currentPlayList->title = strdup("NO_NAME");
+									currentPlayList->url = gf_strdup(baseURL);
+									currentPlayList->title = gf_strdup("NO_NAME");
 									subElement = playlist_element_new(
 																	  TYPE_UNKNOWN,
 																	  fullURL,

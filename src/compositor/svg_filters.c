@@ -226,7 +226,7 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 
 	if (st->txh.stride * st->txh.height > st->alloc_size) {
 		st->alloc_size = st->txh.stride * st->txh.height;
-		st->data = realloc(st->data, sizeof(u8) * st->alloc_size);
+		st->data = (u8*)gf_realloc(st->data, sizeof(u8) * st->alloc_size);
 	}
 	memset(st->data, 0x0, sizeof(char) * st->txh.stride * st->txh.height);
 	st->txh.data = st->data;
@@ -393,7 +393,7 @@ static void svg_traverse_filter(GF_Node *node, void *rs, Bool is_destroy)
 		st->txh.data = NULL;
 		gf_sc_texture_release(&st->txh);
 		gf_sc_texture_destroy(&st->txh);
-		free(st);
+		gf_free(st);
 		return;
 	}
 
