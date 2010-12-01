@@ -1545,6 +1545,13 @@ else
 if $cc -o $TMPO $TMPCPP $xul_flags -I$local_inc/gecko-sdk/include 2> /dev/null  ; then
 has_xul="local"
 xul_flags="-I$local_inc/gecko-sdk/include $xul_flags"
+else
+#xulrunner directories are sometimes included through js packages
+if test "$has_js" = "system"  ;then
+ if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg 2> /dev/null  ; then
+  has_xul="system"
+ fi
+fi
 fi
 fi
 
