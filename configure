@@ -1549,6 +1549,7 @@ else
 #xulrunner directories are sometimes included through js packages
 if test "$has_js" = "system"  ;then
  if $cpp -o $TMPO $TMPCPP $js_flags $js_lib_pkg 2> /dev/null  ; then
+  xul_flags=`pkg-config --cflags mozilla-js`
   has_xul="system"
  fi
 fi
