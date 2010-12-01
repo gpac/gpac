@@ -1500,7 +1500,7 @@ int main(int argc, char **argv)
 			dot = strrchr(segment_prefix, '.');
 			dot[0] = 0;
 			sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
-			ts_out = strdup(segment_name);
+			ts_out = gf_strdup(segment_name);
 			if (!segment_manifest) { 
 				sprintf(segment_manifest_default, "%s.m3u8", segment_prefix);
 				segment_manifest = segment_manifest_default;
