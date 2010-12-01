@@ -1580,7 +1580,7 @@ int main(int argc, char **argv)
 			gf_sk_set_block_mode(audio_input_udp_sk, 0);
 
 			/*allocate data buffer*/
-			audio_input_buffer = malloc(audio_input_buffer_length);
+			audio_input_buffer = (char*)gf_malloc(audio_input_buffer_length);
 			assert(audio_input_buffer);
 			break;
 		case GF_MP42TS_RTP:
@@ -1724,7 +1724,7 @@ exit:
 	if (ts_output_rtp) gf_rtp_del(ts_output_rtp);
 	if (ts_out) gf_free(ts_out);
 	if (audio_input_udp_sk) gf_sk_del(audio_input_udp_sk);
-	if (audio_input_buffer) free (audio_input_buffer);
+	if (audio_input_buffer) gf_free (audio_input_buffer);
 	if (udp_out) gf_free(udp_out);
 	if (rtp_out) gf_free(rtp_out);
 	if (muxer) gf_m2ts_mux_del(muxer);

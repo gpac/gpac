@@ -211,7 +211,7 @@ GF_Err gf_cache_set_etag_on_server(const DownloadedCacheEntry entry, const char 
         return GF_BAD_PARAM;
     if (entry->serverETag)
         gf_free(entry->serverETag);
-    entry->serverETag = eTag ? strdup(eTag) : NULL;
+    entry->serverETag = eTag ? gf_strdup(eTag) : NULL;
     return GF_OK;
 }
 
@@ -220,7 +220,7 @@ GF_Err gf_cache_set_etag_on_disk(const DownloadedCacheEntry entry, const char * 
         return GF_BAD_PARAM;
     if (entry->diskETag)
         gf_free(entry->diskETag);
-    entry->diskETag = eTag ? strdup(eTag) : NULL;
+    entry->diskETag = eTag ? gf_strdup(eTag) : NULL;
     return GF_OK;
 }
 
@@ -229,7 +229,7 @@ GF_Err gf_cache_set_mime_type(const DownloadedCacheEntry entry, const char * mim
         return GF_BAD_PARAM;
     if (entry->mimeType)
         gf_free(entry->mimeType);
-    entry->mimeType = mime_type? strdup( mime_type) : NULL;
+    entry->mimeType = mime_type? gf_strdup( mime_type) : NULL;
     return GF_OK;
 }
 
@@ -265,7 +265,7 @@ GF_Err gf_cache_set_last_modified_on_server ( const DownloadedCacheEntry entry, 
         return GF_BAD_PARAM;
     if (entry->serverLastModified)
         gf_free(entry->serverLastModified);
-    entry->serverLastModified = newLastModified ? strdup(newLastModified) : NULL;
+    entry->serverLastModified = newLastModified ? gf_strdup(newLastModified) : NULL;
     return GF_OK;
 }
 
@@ -275,7 +275,7 @@ GF_Err gf_cache_set_last_modified_on_disk ( const DownloadedCacheEntry entry, co
         return GF_BAD_PARAM;
     if (entry->diskLastModified)
         gf_free(entry->diskLastModified);
-    entry->diskLastModified = newLastModified ? strdup(newLastModified) : NULL;
+    entry->diskLastModified = newLastModified ? gf_strdup(newLastModified) : NULL;
     return GF_OK;
 }
 
@@ -386,8 +386,8 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
            ("[CACHE] gf_cache_create_entry:%d, entry=%p\n", __LINE__, entry));
     entry->properties = NULL;
     entry->writeFilePtr = NULL;
-    entry->url = strdup ( url );
-    entry->hash = strdup ( tmp );
+    entry->url = gf_strdup ( url );
+    entry->hash = gf_strdup ( tmp );
     entry->mimeType = NULL;
     /* Sizeof cache directory + hash + possible extension */
     entry->cache_filename = gf_malloc ( strlen ( cache_directory ) + strlen(cache_file_prefix) + strlen(tmp) + _CACHE_MAX_EXTENSION_SIZE + 1);
@@ -435,9 +435,9 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
             parser[0] = '\0';
         parser = strrchr ( tmp, '.' );
         if ( parser && ( strlen ( parser ) < _CACHE_MAX_EXTENSION_SIZE ) )
-            ext = strdup(parser);
+            ext = gf_strdup(parser);
         else
-            ext = strdup(default_cache_file_suffix);
+            ext = gf_strdup(default_cache_file_suffix);
         assert (ext && strlen(ext));
         ext = gf_strdup(ext);
         strcat( entry->cache_filename, ext);
@@ -585,7 +585,7 @@ DownloadedCacheEntry gf_cache_entry_dup_readonly( const DownloadedCacheEntry ent
     ret->serverLastModified = entry->serverLastModified ? gf_strdup(entry->serverLastModified) : NULL;
     ret->mimeType = entry->mimeType ? gf_strdup(entry->mimeType) : NULL;
     ret->properties = NULL;
-    ret->url = entry->url ? strdup(entry->url): NULL;
+    ret->url = entry->url ? gf_strdup(entry->url): NULL;
     ret->validity = entry->validity;
     ret->writeFilePtr = NULL;
     ret->written_in_cache = 0;
@@ -750,7 +750,7 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
     if (!entry || !sess || !entry->sessions)
         return -1;
     count = gf_list_count(entry->sessions);
-    for (i = 0 ; i < count; i++) {
+    for (i = 0 ; i < (u32)count; i++) {
         GF_DownloadSession * s = gf_list_get(entry->sessions, i);
         if (s == sess) {
             gf_list_rem(entry->sessions, i);
@@ -774,7 +774,7 @@ s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadS
     if (!entry || !sess || !entry->sessions)
         return -1;
     count = gf_list_count(entry->sessions);
-    for (i = 0 ; i < count; i++) {
+    for (i = 0 ; i < (u32)count; i++) {
         GF_DownloadSession * s = gf_list_get(entry->sessions, i);
         if (s == sess) {
             return count;

@@ -239,7 +239,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
     if (!ctx || av_find_stream_info(ctx) <0) goto exit;
 	/*figure out if we can use codecs or not*/
 	has_video = has_audio = 0;
-    for(i = 0; i < ctx->nb_streams; i++) {
+    for(i = 0; i < (s32)ctx->nb_streams; i++) {
         AVCodecContext *enc = ctx->streams[i]->codec;
         switch(enc->codec_type) {
         case CODEC_TYPE_AUDIO:

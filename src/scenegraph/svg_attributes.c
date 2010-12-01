@@ -2799,7 +2799,7 @@ static void svg_parse_strokedasharray(SVG_StrokeDashArray *value, char *value_st
 			GF_SAFEALLOC(f, SVG_Length)
 			read_chars = svg_parse_length(f, &(str[i]), 0);
             if (!read_chars) {
-                free(f);
+                gf_free(f);
                 return;
             }
             i += read_chars;

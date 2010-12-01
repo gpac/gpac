@@ -2920,7 +2920,7 @@ static void xmt_text_content(void *sax_cbck, const char *text_content, Bool is_c
 			M_Script *sc = (M_Script *) node;
 			gf_sg_vrml_mf_reset(& sc->url, GF_SG_VRML_MFSCRIPT);
 			gf_sg_vrml_mf_append(& sc->url, GF_SG_VRML_MFSCRIPT, (void **) &sc_f);
-			sc->url.vals[0].script_text = (unsigned char*)gf_strdup(text_content);
+			sc->url.vals[0].script_text = gf_strdup(text_content);
 		}
 		break;
 	default:

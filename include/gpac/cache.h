@@ -222,7 +222,7 @@ extern "C" {
 
     s64 gf_cache_reader_seek_at( GF_CacheReader reader, u64 seekPosition);
 
-    s64 gf_cache_reader_get_position( GF_CacheReader reader);
+    s64 gf_cache_reader_get_position( const GF_CacheReader reader);
 
     s64 gf_cache_reader_get_currentSize( GF_CacheReader reader );
 

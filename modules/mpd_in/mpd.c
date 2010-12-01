@@ -83,9 +83,9 @@ static GF_Err gf_mpd_parse_rep_cp(GF_XMLNode *root, GF_MPD_Representation *rep)
         if (!att) {
             break;
         } else if (!strcmp(att->name, "SchemeInformation")) {
-            rep->content_protection_type = strdup(att->value);
+            rep->content_protection_type = gf_strdup(att->value);
         } else if (!strcmp(att->name, "schemeIdUri")) {
-            rep->content_protection_uri = strdup(att->value);
+            rep->content_protection_uri = gf_strdup(att->value);
         }
         att_index++;
     }
@@ -122,7 +122,7 @@ static GF_Err gf_mpd_parse_rep_initseg(GF_XMLNode *root, GF_MPD_Representation *
         if (!att) {
             break;
         } else if (!strcmp(att->name, "sourceURL")) {
-            rep->init_url = strdup(att->value);
+            rep->init_url = gf_strdup(att->value);
         } else if (!strcmp(att->name, "range")) {
             rep->init_use_range = 1;
             sscanf(att->value, "%d-%d", &rep->init_byterange_start, &rep->init_byterange_end);
@@ -143,9 +143,9 @@ static GF_Err gf_mpd_parse_rep_urltemplate(GF_XMLNode *root, GF_MPD_Representati
         if (!att) {
             break;
         } else if (!strcmp(att->name, "sourceURL")) {
-            rep->url_template = strdup(att->value);
+            rep->url_template = gf_strdup(att->value);
         } else if (!strcmp(att->name, "id")) {
-            rep->id = strdup(att->value);
+            rep->id = gf_strdup(att->value);
         } else if (!strcmp(att->name, "startIndex")) {
             rep->startIndex = atoi(att->value)-1;
         } else if (!strcmp(att->name, "endIndex")) {
@@ -167,7 +167,7 @@ static GF_Err gf_mpd_parse_rep_urlelt(GF_XMLNode *root, GF_MPD_SegmentInfo *seg)
         if (!att) {
             break;
         } else if (!strcmp(att->name, "sourceURL")) {
-            seg->url = strdup(att->value);
+            seg->url = gf_strdup(att->value);
         } else if (!strcmp(att->name, "range")) {
 			seg->use_byterange = 1;
             sscanf(att->value, "%d-%d", &seg->byterange_start, &seg->byterange_end);
@@ -192,7 +192,7 @@ static GF_Err gf_mpd_parse_rep_segmentinfo(GF_XMLNode *root, GF_MPD_Representati
         } else if (!strcmp(att->name, "duration")) {
             rep->default_segment_duration = gf_mpd_parse_duration(att->value);
         } else if (!strcmp(att->name, "baseURL")) {
-            rep->default_base_url = strdup(att->value);
+            rep->default_base_url = gf_strdup(att->value);
         }
         att_index++;
     }
@@ -261,9 +261,9 @@ static GF_Err gf_mpd_parse_representation(GF_XMLNode *root, GF_MPD_Representatio
         } else if (!strcmp(att->name, "height")) {
             rep->height = atoi(att->value);
         } else if (!strcmp(att->name, "lang")) {
-            rep->lang = strdup(att->value);
+            rep->lang = gf_strdup(att->value);
         } else if (!strcmp(att->name, "mimeType")) {
-            rep->mime = strdup(att->value);
+            rep->mime = gf_strdup(att->value);
         } else if (!strcmp(att->name, "group")) {
             rep->groupID = atoi(att->value);
         } else if (!strcmp(att->name, "startWithRAP")) {
@@ -306,9 +306,9 @@ static GF_Err gf_mpd_parse_segment_info_default(GF_XMLNode *root, GF_MPD_Period 
         } else if (!strcmp(att->name, "duration")) {
             period->default_segment_duration = gf_mpd_parse_duration(att->value);
         } else if (!strcmp(att->name, "baseURL")) {
-            period->default_base_url = strdup(att->value);
+            period->default_base_url = gf_strdup(att->value);
         } else if (!strcmp(att->name, "sourceUrlTemplatePeriod")) {
-            period->url_template = strdup(att->value);
+            period->url_template = gf_strdup(att->value);
         }
         att_index++;
     }
@@ -373,7 +373,7 @@ static GF_Err gf_mpd_parse_program_info(GF_XMLNode *root, GF_MPD *mpd)
         if (!att) {
             break;
         } else if (!strcmp(att->name, "moreInformationURL")) {
-            mpd->more_info_url = strdup(att->value);
+            mpd->more_info_url = gf_strdup(att->value);
         } 
         att_index++;
     }
@@ -387,17 +387,17 @@ static GF_Err gf_mpd_parse_program_info(GF_XMLNode *root, GF_MPD *mpd)
             if (!strcmp(child->name, "Title")) {
                 GF_XMLNode *data_node = gf_list_get(child->content, 0);
                 if (data_node && data_node->type == GF_XML_TEXT_TYPE) {
-                    mpd->title = strdup(data_node->name);
+                    mpd->title = gf_strdup(data_node->name);
                 }
             } else if (!strcmp(child->name, "Source")) {
                 GF_XMLNode *data_node = gf_list_get(child->content, 0);
                 if (data_node && data_node->type == GF_XML_TEXT_TYPE) {
-                    mpd->source = strdup(data_node->name);
+                    mpd->source = gf_strdup(data_node->name);
                 }
             } else if (!strcmp(child->name, "Copyright")) {
                 GF_XMLNode *data_node = gf_list_get(child->content, 0);
                 if (data_node && data_node->type == GF_XML_TEXT_TYPE) {
-                    mpd->copyright = strdup(data_node->name);
+                    mpd->copyright = gf_strdup(data_node->name);
                 }
             }
         }
@@ -427,7 +427,7 @@ void gf_mpd_del(GF_MPD *mpd)
 				GF_MPD_SegmentInfo *seg = gf_list_get(rep->segments, 0);
 				gf_list_rem(rep->segments, 0);
 				if (seg->url) gf_free(seg->url);
-				free(seg);
+				gf_free(seg);
 			}
 			if (rep->content_protection_type) gf_free(rep->content_protection_type);
 			if (rep->content_protection_uri) gf_free(rep->content_protection_uri);

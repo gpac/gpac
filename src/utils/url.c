@@ -108,7 +108,7 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 			u32 len;
 			sep[0] = 0;
 			len = strlen(parentName);
-			outPath = malloc(sizeof(char)*(len+1+strlen(pathName)));
+			outPath = (char*)gf_malloc(sizeof(char)*(len+1+strlen(pathName)));
 			strcpy(outPath, parentName);
 			strcat(outPath, pathName);
 			sep[0] = '/';

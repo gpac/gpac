@@ -482,7 +482,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         mpdin->seg_local_url = 	rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload);
         if ((e!=GF_OK) || !mpdin->seg_local_url) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error with initialization segment: download result:%s, cache file:%s\n", gf_error_to_string(e), mpdin->seg_local_url));
-            free(base_init_url);
+            gf_free(base_init_url);
             return GF_BAD_PARAM;
         } else {
             gf_mx_p(mpdin->dl_mutex);
@@ -870,7 +870,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
     mpdin->nb_service_connections = 1;
     mpdin->service = serv;
-    mpdin->url = strdup(url);
+    mpdin->url = gf_strdup(url);
 
     mpdin->max_cached = 2;
     opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "MaxCachedSegments");
