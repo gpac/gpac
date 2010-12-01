@@ -1002,7 +1002,6 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
     Bool go;
     u32 timer = 0;
     u32 flags = sess->flags;
-    u32 timer = 0;
     sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
     go = 1;
     while (go) {
