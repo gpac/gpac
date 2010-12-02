@@ -103,6 +103,7 @@ typedef struct s_program{
 typedef struct s_variantPlaylist {
 	GF_List * programs;
 	int currentProgram;
+	Bool playlistNeedsRefresh;
 } VariantPlaylist;
 
 /**
@@ -166,7 +167,7 @@ Program * variant_playlist_get_current_program(const VariantPlaylist *);
  * @param The playlist to fill. If argument is null, and file is valid, playlist will be allocated
  * @return GF_OK if playlist valid
  */
-GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Bool *is_end);
+GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL);
 /**
  * Parse the given playlist file as a subplaylist of an existing playlist
  * @param file The file from cache to parse
@@ -176,7 +177,7 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
  * @param sub_playlist existing subplaylist element in the @playlist in which the playlist is parsed
  * @return GF_OK if playlist valid
  */
-GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Program * in_program, PlaylistElement *sub_playlist, Bool *is_end);
+GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Program * in_program, PlaylistElement *sub_playlist);
 
 #endif /* M3U8_PLAYLIST_H */
 
