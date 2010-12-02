@@ -606,7 +606,7 @@ static Bool seng_output(void *param)
 	Bool force_rap, adjust_carousel_time, discard_pending, signal_rap, signal_critical, version_inc, aggregate_au;
 	u32 period, ts_delta;
 	u16 es_id, aggregate_on_stream;
-
+	e = GF_OK;
 	if (prog->rate){
 		has_carousel = 1;
 	}
@@ -644,7 +644,8 @@ static Bool seng_output(void *param)
 					if (!srcf) continue;
 
 					/*checks if we have a broadcast config*/
-					fgets(flag_buf, 200, srcf);
+					if (!fgets(flag_buf, 200, srcf))
+					  flag_buf[0] = '\0';
 					fclose(srcf);
 
 					aggregate_au = force_rap = adjust_carousel_time = discard_pending = signal_rap = signal_critical = 0;
@@ -739,7 +740,10 @@ static Bool seng_output(void *param)
 					fprintf(stderr, "Enter command to send:\n");
 					fflush(stdin);
 					szCom[0] = 0;
-					scanf("%[^\t\n]", szCom);
+					if (1 > scanf("%[^\t\n]", szCom)){
+					    fprintf(stderr, "No command has been properly entered, aborting.\n");
+					    break;
+					}
 					e = gf_seng_encode_from_string(seng, 0, 0, szCom, SampleCallBack);
 					if (e) { 
 						fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
@@ -751,7 +755,10 @@ static Bool seng_output(void *param)
 				{
 					char rad[GF_MAX_PATH];
 					fprintf(stderr, "Enter output file name - \"std\" for stdout: ");
-					scanf("%s", rad);
+					if (1 > scanf("%s", rad)){
+					    fprintf(stderr, "No outfile name has been entered, aborting.\n");
+					    break;
+					}
 					e = gf_seng_save_context(seng, !strcmp(rad, "std") ? NULL : rad);
 					fprintf(stderr, "Dump done (%s)\n", gf_error_to_string(e)); 
 				}
@@ -992,7 +999,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 		fseek(_sdp, 0, SEEK_SET);
 		sdp_buf = (char*)gf_malloc(sizeof(char)*sdp_size);
 		memset(sdp_buf, 0, sizeof(char)*sdp_size);
-		fread(sdp_buf, sdp_size, 1, _sdp);
+		sdp_size = fread(sdp_buf, sdp_size, 1, _sdp);
 		fclose(_sdp);
 
 		sdp = gf_sdp_info_new();
@@ -1442,6 +1449,7 @@ int main(int argc, char **argv)
 	/***********************/
 	real_time=0;	
 	ts_output_file = NULL;
+	audio_input_type = 0;
 	ts_output_udp_sk = NULL;
 	ts_output_rtp = NULL;
 	src_name = NULL;
