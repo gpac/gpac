@@ -64,7 +64,8 @@ typedef struct __mpd_module {
     Bool in_download;
 
     GF_DownloadSession *mpd_dnload;
-    u32 max_cached, nb_cached;
+    char * urlToDeleteNext;
+    u32 max_cached, nb_cached, option_max_cached;
     segment_cache_entry *cached;
 
     /* MPD and active informations */
@@ -484,8 +485,8 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
 {
     GF_Err e;
     char *base_init_url;
-
     GF_MPD_Representation *rep = gf_list_get(period->representations, mpdin->active_rep_index);
+    
     if (rep->default_base_url) {
         base_init_url = gf_url_concatenate(rep->default_base_url, rep->init_url);
     } else {
@@ -502,6 +503,20 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         } else {
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading initialization segment: %s\n", base_init_url));
         }
+        
+	{
+	  u32 count = gf_list_count(rep->segments) + 1;
+	  if (count < mpdin->max_cached){
+	  if (count < 1){
+	      GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] 0 representations, aborting\n"));
+	      gf_free(base_init_url);
+	      return GF_BAD_PARAM;
+	  }
+	  GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Resizing to %u max_cached elements instead of %u.\n", count, mpdin->max_cached));
+	  /* OK, we have a problem, it may ends download */
+	  mpdin->max_cached = count;
+	  }
+	}
 
         e = gf_dm_sess_process(mpdin->seg_dnload);
         {
@@ -546,11 +561,8 @@ static u32 download_segments(void *par)
     gf_mx_p(mpdin->dl_mutex);
     mpdin->dl_status = 1;
     gf_mx_v(mpdin->dl_mutex);
-
-
-
+    
     period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index);
-
     e = MPD_DownloadInitSegment(mpdin, period);
     if (e != GF_OK) {
         mpdin->dl_status = 0;
@@ -573,7 +585,7 @@ static u32 download_segments(void *par)
                     GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error updating MDP %s\n", gf_error_to_string(e)));
                 }
             }
-            gf_sleep(10);
+            gf_sleep(16);
         }
 
         /* stop the thread if requested */
@@ -740,9 +752,14 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         }
 
         if (mpdin->cached[0].cache) {
+	    if (mpdin->urlToDeleteNext){
+		gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->urlToDeleteNext);
+		gf_free( mpdin->urlToDeleteNext);
+		mpdin->urlToDeleteNext = NULL;
+	    }
             assert( mpdin->cached[0].url );
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] deleting cache file %s : %s\n", mpdin->cached[0].url, mpdin->cached[0].cache));
-            gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->cached[0].url);
+	    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] deleting cache file %s : %s\n", mpdin->cached[0].url, mpdin->cached[0].cache));
+	    mpdin->urlToDeleteNext = gf_strdup( mpdin->cached[0].url );
             gf_free(mpdin->cached[0].cache);
             gf_free(mpdin->cached[0].url);
             mpdin->cached[0].url = NULL;
@@ -911,11 +928,15 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     memset( mpdin->lastMPDSignature, 0, sizeof(mpdin->last_update_time));
     mpdin->reload_count = 0;
     mpdin->url = gf_strdup(url);
-
-    mpdin->max_cached = 2;
+    mpdin->option_max_cached = 0;
+    mpdin->max_cached = 0;
+    mpdin->urlToDeleteNext = NULL;
     opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "MaxCachedSegments");
-    if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "MaxCachedSegments", "2");
-    if (opt) mpdin->max_cached = atoi(opt);
+    if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "MaxCachedSegments", "3");
+    if (opt) mpdin->option_max_cached = atoi(opt);
+    if (mpdin->option_max_cached < 2)
+      mpdin->option_max_cached = 2;
+    mpdin->max_cached = mpdin->option_max_cached;
     mpdin->cached = gf_malloc(sizeof(segment_cache_entry)*mpdin->max_cached);
     memset(mpdin->cached, 0, sizeof(segment_cache_entry)*mpdin->max_cached);
 
@@ -1008,6 +1029,11 @@ void MPD_Stop(GF_MPD_In *mpdin)
 {
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Stopping service 0x%x\n", mpdin->service));
     MPD_DownloadStop(mpdin);
+    if (mpdin->urlToDeleteNext){
+	gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->urlToDeleteNext);
+	gf_free( mpdin->urlToDeleteNext);
+	mpdin->urlToDeleteNext = NULL;
+    }
     if (mpdin->mpd_dnload) {
         gf_term_download_del(mpdin->mpd_dnload);
         mpdin->mpd_dnload = NULL;
