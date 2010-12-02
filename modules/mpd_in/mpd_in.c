@@ -475,17 +475,22 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession ** 
     {
         gf_term_download_del(*sess);
         GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE,
-               ("[MPD_IN] failed to download, retrying once to download %s\n", url));
+               ("[MPD_IN] failed to download, retrying once with %s...\n", url));
         *sess = gf_term_download_new(service, url, GF_NETIO_SESSION_NOT_THREADED, user_io, usr_cbk);
         if (!(*sess))
             return GF_OUT_OF_MEM;
         e = gf_dm_sess_process(*sess);
+	if (e != GF_OK){
+	  GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE,
+               ("[MPD_IN] two consecutive failures, aborting the download %s.\n", url));
+	}
+	return e;
     }
     case GF_OK:
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] OK, Download %s complete\n", url));
 	return e;
     default:
-	GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[MPD_IN] : FAILED to download %s = %s...\n", url, gf_error_to_string(e)));
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] FAILED to download %s = %s...\n", url, gf_error_to_string(e)));
         return e;
     }
 }
@@ -658,10 +663,14 @@ static u32 download_segments(void *par)
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading new segment: %s\n", new_base_seg_url));
         }
         e = MPD_downloadWithRetry(mpdin->service, &(mpdin->seg_dnload), new_base_seg_url, MPD_NetIO_Segment, mpdin);
-        gf_free(new_base_seg_url);
-        new_base_seg_url = NULL;
+	if (e == GF_URL_ERROR && (mpdin->nb_cached > 1)){
+	  u32 retryMs = (2 * mpdin->mpd->min_update_time / 3);
+	  GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Buggy server returning a 404 for %s ?, Retrying in %d ms\n", new_base_seg_url, retryMs));
+	  /* When downloading the last of M3U8, if we are too fast, some servers such as BFMTV fails */
+	  gf_sleep(retryMs);
+	  e = MPD_downloadWithRetry(mpdin->service, &(mpdin->seg_dnload), new_base_seg_url, MPD_NetIO_Segment, mpdin);
+	}
         if (e == GF_OK) {
-
             gf_mx_p(mpdin->dl_mutex);
             mpdin->cached[mpdin->nb_cached].cache = gf_strdup( rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload));
             mpdin->cached[mpdin->nb_cached].url = gf_strdup( gf_dm_sess_get_resource_name(mpdin->seg_dnload));
@@ -680,11 +689,15 @@ static u32 download_segments(void *par)
             }
         }
         mpdin->in_download=0;
-        if (e) {
+        if (e != GF_OK) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error in downloading new segment: %s %s\n", new_base_seg_url, gf_error_to_string(e)));
             gf_free(new_base_seg_url);
+	    new_base_seg_url = NULL; 
             break;
-        }
+        } else {
+	  gf_free(new_base_seg_url);
+	  new_base_seg_url = NULL; 
+	}
     }
 
     /* Signal that the download thread has ended */

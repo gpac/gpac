@@ -480,7 +480,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
     assert( entry );
     sess->cache_entry = entry;
     gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
-    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
+    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
 }
 
 void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char * url)
@@ -2058,10 +2058,15 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
         return e;
     }
     case 404:
+	/* File not found */
+        gf_dm_sess_user_io(sess, &par);
+        e = GF_URL_ERROR;
+        goto exit;
+        break;
     case 416:
         /* Range not accepted */
         gf_dm_sess_user_io(sess, &par);
-        e = GF_URL_ERROR;
+        e = GF_SERVICE_ERROR;
         goto exit;
         break;
     case 400:
