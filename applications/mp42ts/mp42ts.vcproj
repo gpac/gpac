@@ -71,7 +71,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="odbc32.lib odbccp32.lib"
-				OutputFile="../../../bin/$(PlatformName)/$(ConfigurationName)/MP42TS.exe"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/MP42TS.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../../extra_lib/lib/w32_deb"
@@ -164,7 +164,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="odbc32.lib odbccp32.lib"
-				OutputFile="../../../bin/$(PlatformName)/$(ConfigurationName)/MP42TS.exe"
+				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/MP42TS.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../../extra_lib/lib/w32_rel"
