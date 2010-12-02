@@ -28,7 +28,7 @@
 #include "mpd.h"
 #include <gpac/thread.h>
 #include <gpac/network.h>
-
+#include <gpac/crypt.h>
 #include "m3u8.h"
 
 /*!
@@ -95,6 +95,7 @@ typedef struct __mpd_module {
 
     u32 nb_segs_done;
     Bool auto_switch;
+    u8 lastMPDSignature[20];
 } GF_MPD_In;
 
 GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
@@ -106,16 +107,21 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
     Program *prog;
     PlaylistElement *pe;
     FILE *fmpd;
-	Bool is_end;
+    Bool is_end;
 
-    e = parse_root_playlist(m3u8_file, &pl, ".", &is_end);
-    if (e) return e;
+    e = parse_root_playlist(m3u8_file, &pl, ".");
+    if (e) {
+        GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
+        return e;
+    }
     gf_delete_file((char *)m3u8_file);
-
+    is_end = !pl->playlistNeedsRefresh;
     i=0;
+    assert( pl );
+    assert( pl->programs );
     while ((prog = gf_list_enum(pl->programs, &i))) {
         u32 j=0;
-        while ((pe = gf_list_enum(prog->bitrates, &j))) {
+        while (NULL != (pe = gf_list_enum(prog->bitrates, &j))) {
             if (pe->url && strstr(pe->url, ".m3u8")) {
                 char *suburl = gf_url_concatenate(url, pe->url);
                 GF_DownloadSession *sess = gf_term_download_new(mpdin->service, suburl, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL);
@@ -125,7 +131,7 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
                 }
                 e = gf_dm_sess_process(sess);
                 if (e==GF_OK) {
-                    e = parse_sub_playlist(gf_dm_sess_get_cache_name(sess), &pl, suburl, prog, pe, &is_end);
+                    e = parse_sub_playlist(gf_dm_sess_get_cache_name(sess), &pl, suburl, prog, pe);
                 }
                 gf_term_download_del(sess);
                 gf_free(suburl);
@@ -135,7 +141,9 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
 
     update_interval = 0;
     prog = gf_list_get(pl->programs, 0);
+    assert( prog );
     pe = gf_list_last(prog->bitrates);
+    assert( pe );
     /*update interval is set to the duration of the last media file with rules defined in http live streaming RFC section 6.3.4*/
     switch (mpdin->reload_count) {
     case 0:
@@ -145,18 +153,18 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
         update_interval = pe->durationInfo/2;
         break;
     case 2:
-        update_interval = 3*pe->durationInfo/2;
+        update_interval = 3*(pe->durationInfo/2);
         break;
     default:
-        update_interval = 3*pe->durationInfo;
+        update_interval = 3*(pe->durationInfo);
         break;
     }
-
-    update_interval = pe->durationInfo;
-    mpdin->reload_count++;
-	if (is_end || (pe->elementType == TYPE_PLAYLIST) && pe->element.playlist.is_ended) {
-		update_interval = 0;
-	}
+    if (is_end || (pe->elementType == TYPE_PLAYLIST) && pe->element.playlist.is_ended) {
+        update_interval = 0;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] NO NEED to refresh playlist !\n"));
+    } else {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("Playlist will be refresh every %g seconds, len=%d\n", update_interval, pe->durationInfo));
+    }
 
     fmpd = fopen(m3u8_file, "wt");
     fprintf(fmpd, "<MPD type=\"Live\" xmlns=\"urn:3GPP:ns:PSS:AdaptiveHTTPStreamingMPD:2009\" ");
@@ -300,7 +308,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
     }
     {
         const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
-	const char * url = gf_dm_sess_get_resource_name(mpdin->mpd_dnload);
+        const char * url = gf_dm_sess_get_resource_name(mpdin->mpd_dnload);
         /* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
         if (MPD_isM3U8_mime(mime) || strstr(url, ".m3u8")) {
             m3u8_to_mpd(mpdin, local_url, gf_dm_sess_get_resource_name(mpdin->mpd_dnload) );
@@ -315,103 +323,123 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: MPD file type is not correct %s\n", local_url));
         return GF_NON_COMPLIANT_BITSTREAM;
     }
-    /* parse the MPD */
-    mpd_parser = gf_xml_dom_new();
-    e = gf_xml_dom_parse(mpd_parser, local_url, NULL, NULL);
-    if (e != GF_OK) {
-        gf_xml_dom_del(mpd_parser);
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: error in XML parsing %s\n", gf_error_to_string(e)));
-        return GF_NON_COMPLIANT_BITSTREAM;
-    }
-    new_mpd = gf_mpd_new();
-    e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), new_mpd);
-    gf_xml_dom_del(mpd_parser);
-    if (e) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: error in MPD creation %s\n", gf_error_to_string(e)));
-        gf_mpd_del(new_mpd);
-        return GF_NON_COMPLIANT_BITSTREAM;
-    }
+    {
+        u8 signature[sizeof(mpdin->lastMPDSignature)];
+        if (gf_sha1_file( local_url, signature)) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] : cannot SHA1 file %s\n", local_url));
+        } else {
+            if (! memcmp( signature, mpdin->lastMPDSignature, sizeof(mpdin->lastMPDSignature))) {
+                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] : MPD file did not change\n"));
+                mpdin->reload_count++;
+                mpdin->last_update_time = gf_sys_clock();
+            } else {
+                mpdin->reload_count = 0;
+                memccpy(mpdin->lastMPDSignature, signature, sizeof(char), sizeof(mpdin->lastMPDSignature));
 
-    /*TODO - check periods are the same*/
-    period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index);
-    new_period = gf_list_get(new_mpd->periods, mpdin->active_period_index);
-    if (!new_period) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing period\n"));
-        gf_mpd_del(new_mpd);
-        return GF_NON_COMPLIANT_BITSTREAM;
-    }
-
-    if (gf_list_count(period->representations) != gf_list_count(new_period->representations)) {
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing representation\n"));
-        gf_mpd_del(new_mpd);
-        return GF_NON_COMPLIANT_BITSTREAM;
-    }
-
-    for (rep_idx = 0; rep_idx<gf_list_count(period->representations); rep_idx++) {
-        rep = gf_list_get(period->representations, rep_idx);
-        new_rep = gf_list_get(new_period->representations, rep_idx);
-        if (!new_rep) {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing representation in period\n"));
-            gf_mpd_del(new_mpd);
-            return GF_NON_COMPLIANT_BITSTREAM;
-        }
-        /*merge init segment*/
-        if (new_rep->init_url) {
-            seg_found = 0;
-
-            if (!strcmp(new_rep->init_url, rep->init_url)) {
-                seg_found = 1;
-			} else {
-				for (j=0; j<gf_list_count(rep->segments); j++) {
-					GF_MPD_SegmentInfo *seg = gf_list_get(rep->segments, j);
-					if (!strcmp(new_rep->init_url, seg->url)) {
-						seg_found = 1;
-						break;
-					}
-				}
-			}
-            /*remove from new list and push to old one*/
-            if (!seg_found) {
-                GF_MPD_SegmentInfo *new_seg;
-                GF_SAFEALLOC(new_seg, GF_MPD_SegmentInfo);
-                new_seg->url = gf_strdup(new_rep->init_url);
-                new_seg->use_byterange = new_rep->init_use_range;
-                new_seg->byterange_start = new_rep->init_byterange_start;
-                new_seg->byterange_end = new_rep->init_byterange_end;
-                gf_list_add(rep->segments, new_seg);
-                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Representation #%d: Adding new segment from initialization segment %s\n", rep_idx+1, new_seg->url));
-            }
-        }
-
-        /*merge segment list*/
-        for (i=0; i<gf_list_count(new_rep->segments); i++) {
-            GF_MPD_SegmentInfo *new_seg = gf_list_get(new_rep->segments, i);
-            seg_found = 0;
-            for (j=0; j<gf_list_count(rep->segments); j++) {
-                GF_MPD_SegmentInfo *seg = gf_list_get(rep->segments, j);
-                if (!strcmp(new_seg->url, seg->url)) {
-                    seg_found = 1;
-                    break;
+                /* It means we have to reparse the file ... */
+                /* parse the MPD */
+                mpd_parser = gf_xml_dom_new();
+                e = gf_xml_dom_parse(mpd_parser, local_url, NULL, NULL);
+                if (e != GF_OK) {
+                    gf_xml_dom_del(mpd_parser);
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: error in XML parsing %s\n", gf_error_to_string(e)));
+                    return GF_NON_COMPLIANT_BITSTREAM;
                 }
-            }
-            /*remove from new list and push to old one*/
-            if (!seg_found) {
-                gf_list_rem(new_rep->segments, i);
-                gf_list_add(rep->segments, new_seg);
-                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Representation #%d: Adding new segment %s\n", rep_idx+1, new_seg->url));
-                i--;
+                new_mpd = gf_mpd_new();
+                e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), new_mpd);
+                gf_xml_dom_del(mpd_parser);
+                if (e) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: error in MPD creation %s\n", gf_error_to_string(e)));
+                    gf_mpd_del(new_mpd);
+                    return GF_NON_COMPLIANT_BITSTREAM;
+                }
+
+                /*TODO - check periods are the same*/
+                period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index);
+                new_period = gf_list_get(new_mpd->periods, mpdin->active_period_index);
+                if (!new_period) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing period\n"));
+                    gf_mpd_del(new_mpd);
+                    return GF_NON_COMPLIANT_BITSTREAM;
+                }
+
+                if (gf_list_count(period->representations) != gf_list_count(new_period->representations)) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing representation\n"));
+                    gf_mpd_del(new_mpd);
+                    return GF_NON_COMPLIANT_BITSTREAM;
+                }
+
+                for (rep_idx = 0; rep_idx<gf_list_count(period->representations); rep_idx++) {
+                    rep = gf_list_get(period->representations, rep_idx);
+                    new_rep = gf_list_get(new_period->representations, rep_idx);
+                    if (!new_rep) {
+                        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: missing representation in period\n"));
+                        gf_mpd_del(new_mpd);
+                        return GF_NON_COMPLIANT_BITSTREAM;
+                    }
+                    /*merge init segment*/
+                    if (new_rep->init_url) {
+                        seg_found = 0;
+
+                        if (!strcmp(new_rep->init_url, rep->init_url)) {
+                            seg_found = 1;
+                        } else {
+                            for (j=0; j<gf_list_count(rep->segments); j++) {
+                                GF_MPD_SegmentInfo *seg = gf_list_get(rep->segments, j);
+                                if (!strcmp(new_rep->init_url, seg->url)) {
+                                    seg_found = 1;
+                                    break;
+                                }
+                            }
+                        }
+                        /*remove from new list and push to old one*/
+                        if (!seg_found) {
+                            GF_MPD_SegmentInfo *new_seg;
+                            GF_SAFEALLOC(new_seg, GF_MPD_SegmentInfo);
+                            new_seg->url = gf_strdup(new_rep->init_url);
+                            new_seg->use_byterange = new_rep->init_use_range;
+                            new_seg->byterange_start = new_rep->init_byterange_start;
+                            new_seg->byterange_end = new_rep->init_byterange_end;
+                            gf_list_add(rep->segments, new_seg);
+                            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Representation #%d: Adding new segment from initialization segment %s\n", rep_idx+1, new_seg->url));
+                        }
+                    }
+
+                    /*merge segment list*/
+                    for (i=0; i<gf_list_count(new_rep->segments); i++) {
+                        GF_MPD_SegmentInfo *new_seg = gf_list_get(new_rep->segments, i);
+                        seg_found = 0;
+                        for (j=0; j<gf_list_count(rep->segments); j++) {
+                            GF_MPD_SegmentInfo *seg = gf_list_get(rep->segments, j);
+                            if (!strcmp(new_seg->url, seg->url)) {
+                                seg_found = 1;
+                                break;
+                            }
+                        }
+                        /*remove from new list and push to old one*/
+                        if (!seg_found) {
+                            gf_list_rem(new_rep->segments, i);
+                            gf_list_add(rep->segments, new_seg);
+                            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Representation #%d: Adding new segment %s\n", rep_idx+1, new_seg->url));
+                            i--;
+                        }
+                    }
+                    /*swap lists*/
+                    segs = new_rep->segments;
+                    new_rep->segments = rep->segments;
+                    rep->segments = segs;
+                }
+
+                /*swap representations - we don't need to update download_segment_index as it still points to the right entry in the merged list*/
+                gf_mpd_del(mpdin->mpd);
+                mpdin->mpd = new_mpd;
+                mpdin->last_update_time = gf_sys_clock();
+
+
             }
         }
-        /*swap lists*/
-        segs = new_rep->segments;
-        new_rep->segments = rep->segments;
-        rep->segments = segs;
     }
 
-    /*swap representations - we don't need to update download_segment_index as it still points to the right entry in the merged list*/
-    gf_mpd_del(mpdin->mpd);
-    mpdin->mpd = new_mpd;
-    mpdin->last_update_time = gf_sys_clock();
     return GF_OK;
 }
 
@@ -424,7 +452,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
  */
 GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession ** sess, const char *url, gf_dm_user_io user_io,  void *usr_cbk)
 {
-	GF_Err e;
+    GF_Err e;
     if (*sess) {
         gf_term_download_del(*sess);
         *sess = NULL;
@@ -880,6 +908,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
     mpdin->nb_service_connections = 1;
     mpdin->service = serv;
+    memset( mpdin->lastMPDSignature, 0, sizeof(mpdin->last_update_time));
+    mpdin->reload_count = 0;
     mpdin->url = gf_strdup(url);
 
     mpdin->max_cached = 2;
@@ -911,8 +941,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         }
         {
             const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
-	    const char * url = gf_dm_sess_get_resource_name(mpdin->mpd_dnload);
-	    /* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
+            const char * url = gf_dm_sess_get_resource_name(mpdin->mpd_dnload);
+            /* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
             if (MPD_isM3U8_mime(mime) || strstr(url, ".m3u8")) {
                 is_m3u8 = 1;
             } else if (!MPD_is_MPD_mime(mime)) {

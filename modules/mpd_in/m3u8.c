@@ -188,6 +188,7 @@ VariantPlaylist * variant_playlist_new ()
         return NULL;
     }
     pl->currentProgram = -1;
+    pl->playlistNeedsRefresh = 1;
     return pl;
 }
 
@@ -441,12 +442,12 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
 
 #define M3U8_BUF_SIZE 2048
 
-GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Bool *is_end)
+GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL)
 {
-    return parse_sub_playlist(file, playlist, baseURL, NULL, NULL, is_end);
+    return parse_sub_playlist(file, playlist, baseURL, NULL, NULL);
 }
 
-GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Program * in_program, PlaylistElement *sub_playlist, Bool *is_end)
+GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Program * in_program, PlaylistElement *sub_playlist)
 {
     int readen, readPointer, len, i, currentLineNumber;
     FILE * f;
@@ -468,6 +469,8 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
     currentLineNumber = 0;
     bzero(&attribs, sizeof(s_accumulated_attributes));
     attribs.bandwidth = 0;
+    attribs.durationInSeconds = 0;
+    attribs.targetDurationInSeconds = 0;
     attribs.isVariantPlaylist = 0;
     attribs.isPlaylistEnded = 0;
     attribs.minMediaSequence = 0;
@@ -512,7 +515,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                     attributes = NULL;
                 }
                 if (attribs.isPlaylistEnded) {
-                    *is_end = 1;
+                    pl->playlistNeedsRefresh = 0;
                 }
             }
         } else {
@@ -658,13 +661,14 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                 }
 
                 currentPlayList->element.playlist.currentMediaSequence = attribs.currentMediaSequence ;
+		/* We first set the default duration for element, aka targetDuration */
                 if (attribs.targetDurationInSeconds > 0) {
                     currentPlayList->element.playlist.target_duration = attribs.targetDurationInSeconds;
                     currentPlayList->durationInfo = attribs.targetDurationInSeconds;
                 }
-                if (attribs.durationInSeconds)
+                if (attribs.durationInSeconds){
                     currentPlayList->durationInfo = attribs.durationInSeconds;
-
+		}
                 currentPlayList->element.playlist.mediaSequenceMin = attribs.minMediaSequence;
                 currentPlayList->element.playlist.mediaSequenceMax = attribs.currentMediaSequence++;
                 if (attribs.bandwidth > 1)
