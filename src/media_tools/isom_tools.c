@@ -640,7 +640,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	TrackFragmenter *tf, *tfref;
 	FILE *mpd = NULL;
 	char *SegName = NULL;
-	
+	SegmentDuration = 0;
+	nb_samp = 0;
+	fragmenters = NULL;
 	//create output file
 	if (dash_mode) {
 		u32 len = strlen(output_file);
@@ -872,12 +874,14 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	}
 
 err_exit:
-	while (gf_list_count(fragmenters)) {
-		tf = (TrackFragmenter *)gf_list_get(fragmenters, 0);
-		gf_free(tf);
-		gf_list_rem(fragmenters, 0);
+	if (fragmenters){
+		while (gf_list_count(fragmenters)) {
+			tf = (TrackFragmenter *)gf_list_get(fragmenters, 0);
+			gf_free(tf);
+			gf_list_rem(fragmenters, 0);
+		}
+		gf_list_del(fragmenters);
 	}
-	gf_list_del(fragmenters);
 	if (e) gf_isom_delete(output);
 	else gf_isom_close(output);
 	gf_set_progress("ISO File Fragmenting", nb_samp, nb_samp);

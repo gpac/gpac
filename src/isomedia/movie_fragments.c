@@ -524,7 +524,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 
 	bs = movie->editFileMap->bs;
 	if (!movie->moof_first) load_mdat_only = 0;
-
+	mdat_size = 0;
 	//1 - flush all caches
 	i=0;
 	while ((traf = (GF_TrackFragmentBox*)gf_list_enum(movie->moof->TrackList, &i))) {
@@ -669,6 +669,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenc
 	u64 sidx_start, sidx_end;
 	u32 count, nb_subsegs, idx;
 	GF_Err e;
+	sidx_start = sidx_end = 0;
 	//and only at setup
 	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
 	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;

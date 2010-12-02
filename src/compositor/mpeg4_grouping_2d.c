@@ -44,7 +44,9 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 	SwitchStack *st = (SwitchStack *)gf_node_get_private(node);
 	GF_TraverseState *tr_state; 
 	tr_state = (GF_TraverseState *)rs;
-
+	children = NULL;
+	/* souchay : be sure to be initialized, -1 seems reasonable since we check if (whichChoice>=0)  */
+	whichChoice = -1;
 	if (is_destroy) {
 		gf_sc_check_focus_upon_destroy(node);
 		gf_free(st);
@@ -70,7 +72,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (tr_state->traversing_mode!=TRAVERSE_GET_BOUNDS) {
-
+		assert( children );
 		count = gf_node_list_get_count(children);
 
 		prev_switch = tr_state->switched_off;
@@ -97,6 +99,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (whichChoice>=0) {
+		assert( children );
 		child = (GF_Node*)gf_node_list_get_child(children, whichChoice);
 		gf_node_traverse(child, tr_state);
 	}

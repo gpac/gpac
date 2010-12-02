@@ -291,7 +291,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	//szPath still contains the executable directory
 #else 
 	fprintf(stdout, "Please enter full path to GPAC modules directory:\n");
-	scanf("%s", szPath);
+	while ( 1 > scanf("%s", szPath));
 #endif
 	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
 	gf_cfg_set_key(cfg, "Audio", "ForceConfig", "yes");
@@ -878,23 +878,21 @@ void list_modules(GF_ModuleManager *modules)
 void set_navigation()
 {
 	GF_Err e;
-	char navstr[20], nav;
+	char nav;
 	u32 type = gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE);
 	e = GF_OK;
 	if (!type) {
 		fprintf(stdout, "Content/compositor doesn't allow user-selectable navigation\n");
 	} else if (type==1) {
 		fprintf(stdout, "Select Navigation (\'N\'one, \'E\'xamine, \'S\'lide): ");
-		scanf("%s", navstr);
-		nav = navstr[0];
+		nav = getch();
 		if (nav=='N') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_NONE);
 		else if (nav=='E') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_EXAMINE);
 		else if (nav=='S') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_SLIDE);
 		else fprintf(stdout, "Unknown selector \'%c\' - only \'N\',\'E\',\'S\' allowed\n", nav);
 	} else if (type==2) {
 		fprintf(stdout, "Select Navigation (\'N\'one, \'W\'alk, \'F\'ly, \'E\'xamine, \'P\'an, \'S\'lide, \'G\'ame, \'V\'R, \'O\'rbit): ");
-		scanf("%s", navstr);
-		nav = navstr[0];
+		nav = getch();
 		if (nav=='N') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_NONE);
 		else if (nav=='W') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_WALK);
 		else if (nav=='F') e = gf_term_set_option(term, GF_OPT_NAVIGATION, GF_NAVIGATE_FLY);
@@ -1278,9 +1276,12 @@ int main (int argc, char **argv)
 			playlist = gf_f64_open(the_url, "rt");
 			if (playlist) {
 				strcpy(pl_path, the_url);
-				fscanf(playlist, "%s", the_url);
-				fprintf(stdout, "Opening URL %s\n", the_url);
-				gf_term_connect_with_path(term, the_url, pl_path);
+				if (1 > fscanf(playlist, "%s", the_url))
+				  fprintf(stderr, "Cannot read any URL from playlist\n");
+				else {
+				  fprintf(stdout, "Opening URL %s\n", the_url);
+				  gf_term_connect_with_path(term, the_url, pl_path);
+				}
 			} else {
 				fprintf(stdout, "Hit 'h' for help\n\n");
 			}
@@ -1343,17 +1344,27 @@ force_input:
 			startup_file = 0;
 			gf_term_disconnect(term);
 			fprintf(stdout, "Enter the absolute URL\n");
-			scanf("%s", the_url);
+			if (1 > scanf("%s", the_url)){
+			    fprintf(stderr, "Cannot read absolute URL, aborting\n");
+			    break;
+			}
 			if (rti_file) init_rti_logs(rti_file, the_url, use_rtix);
 			gf_term_connect(term, the_url);
 			break;
 		case 'O':
 			gf_term_disconnect(term);
 			fprintf(stdout, "Enter the absolute URL to the playlist\n");
-			scanf("%s", the_url);
+			if (1 > scanf("%s", the_url)){
+			    fprintf(stderr, "Cannot read the absolute URL, aborting.\n");
+			    break;
+			}
 			playlist = gf_f64_open(the_url, "rt");
 			if (playlist) {
-				fscanf(playlist, "%s", the_url);
+				if (1 >	fscanf(playlist, "%s", the_url)){
+				    fprintf(stderr, "Cannot read any URL from playlist, aborting.\n");
+				    fclose( playlist);
+				    break;
+				}
 				fprintf(stdout, "Opening URL %s\n", the_url);
 				gf_term_connect(term, the_url);
 			}
@@ -1376,9 +1387,15 @@ force_input:
 			if (playlist) {
 				u32 count;
 				gf_term_disconnect(term);
-				scanf("%ud", &count);
+				if (1 > scanf("%u", &count)){
+				  fprintf(stderr, "Cannot read number, aborting.\n");
+				  break;
+				}
 				while (count) {
-					fscanf(playlist, "%s", the_url);
+					if (fscanf(playlist, "%s", the_url)){
+					    fprintf(stderr, "Failed to read line, aborting\n");
+					    break;
+					}
 					count--;
 				}
 				fprintf(stdout, "Opening URL %s\n", the_url);
@@ -1451,18 +1468,20 @@ force_input:
 		case 'i':
 			if (is_connected) {
 				u32 ID;
-				fprintf(stdout, "Enter OD ID (0 for main OD): ");
-				fflush(stdout);
-				scanf("%ud", &ID);
+				do {
+				  fprintf(stdout, "Enter OD ID (0 for main OD): ");
+				  fflush(stdout);
+				} while( 1 > scanf("%ud", &ID));
 				ViewOD(term, ID, (u32)-1);
 			}
 			break;
 		case 'j':
 			if (is_connected) {
 				u32 num;
-				fprintf(stdout, "Enter OD number (0 for main OD): ");
-				fflush(stdout);
-				scanf("%ud", &num);
+				do {
+				  fprintf(stdout, "Enter OD number (0 for main OD): ");
+				  fflush(stdout);
+				} while( 1 > scanf("%ud", &num));
 				ViewOD(term, (u32)-1, num);
 			}
 			break;
@@ -1492,10 +1511,11 @@ force_input:
 				GF_Err e;
 				u32 i, count, odid;
 				Bool xml_dump, std_out;
-				fprintf(stdout, "Enter Inline OD ID if any or 0");
-				fflush(stdout);
 				radname[0] = 0;
-				scanf("%ud", &odid);
+				do {
+				  fprintf(stdout, "Enter Inline OD ID if any or 0 : ");
+				  fflush(stdout);
+				} while( 1 >  scanf("%ud", &odid));
 				if (odid) {
 					GF_ObjectManager *root_odm = gf_term_get_root_object(term);
 					if (!root_odm) break;
@@ -1509,9 +1529,10 @@ force_input:
 						odm = NULL;
 					}
 				}
-				fprintf(stdout, "Enter file radical name (+\'.x\' for XML dumping) - \"std\" for stdout: ");
-				fflush(stdout);
-				scanf("%s", radname);
+				do{
+				  fprintf(stdout, "Enter file radical name (+\'.x\' for XML dumping) - \"std\" for stdout: ");
+				  fflush(stdout);
+				} while( 1 > scanf("%s", radname));
 				sExt = strrchr(radname, '.');
 				xml_dump = 0;
 				if (sExt) {
@@ -1586,7 +1607,10 @@ force_input:
 			fprintf(stdout, "Enter command to send:\n");
 			fflush(stdin);
 			szCom[0] = 0;
-			scanf("%[^\t\n]", szCom);
+			if (1 > scanf("%[^\t\n]", szCom)){
+			    fprintf(stderr, "Cannot read command to send, aborting.\n");
+			    break;
+			}
 			e = gf_term_scene_update(term, NULL, szCom);
 			if (e) fprintf(stdout, "Processing command failed: %s\n", gf_error_to_string(e));
 		}
@@ -1596,7 +1620,10 @@ force_input:
 		{
 			char szLog[1024];
 			fprintf(stdout, "Enter new log level:\n");
-			scanf("%s", szLog);
+			if (1 > scanf("%s", szLog)){
+			    fprintf(stderr, "Cannot read new log level, aborting.\n");
+			    break;
+			}
 			gf_log_set_level(gf_log_parse_level(szLog));
 		}
 			break;
@@ -1604,7 +1631,10 @@ force_input:
 		{
 			char szLog[1024];
 			fprintf(stdout, "Enter new log tools:\n");
-			scanf("%s", szLog);
+			if (1 > scanf("%s", szLog)){
+			    fprintf(stderr, "Cannot read new log tools, aborting.\n");
+			    break;
+			}
 			gf_log_set_tools(gf_log_parse_tools(szLog));
 		}
 			break;
@@ -1618,8 +1648,9 @@ force_input:
 		case 'M':
 		{
 			u32 size;
-			fprintf(stdout, "Enter new video cache memory in kBytes (current %ud):\n", gf_term_get_option(term, GF_OPT_VIDEO_CACHE_SIZE));
-			scanf("%ud", &size);
+			do {
+				fprintf(stdout, "Enter new video cache memory in kBytes (current %ud):\n", gf_term_get_option(term, GF_OPT_VIDEO_CACHE_SIZE));
+			} while (1 > scanf("%ud", &size));
 			gf_term_set_option(term, GF_OPT_VIDEO_CACHE_SIZE, size);
 		}
 			break;
@@ -2171,7 +2202,10 @@ void PrintGPACConfig()
 	char *secName = NULL;
 
 	fprintf(stdout, "Enter section name (\"*\" for complete dump):\n");
-	scanf("%s", szName);
+	if (1 > scanf("%s", szName)){
+	    fprintf(stderr, "No section name, aborting.\n");
+	    return;
+	}
 	if (strcmp(szName, "*")) secName = szName;
 
 	fprintf(stdout, "\n\n*** GPAC Configuration ***\n\n");
