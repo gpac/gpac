@@ -431,7 +431,10 @@ int live_session(int argc, char **argv)
 	Bool update_context;
 	u32 period, ts_delta;
 	u16 es_id;
-
+	e = GF_OK;
+	/* souchay : needs to initialize those two vars... */
+	aggregate_au = 1;
+	es_id = 0;
 	gf_sys_init(0);
 
 	memset(&livesess, 0, sizeof(LiveSession));
@@ -545,7 +548,10 @@ int live_session(int argc, char **argv)
 					char szCom[8192];
 					fprintf(stdout, "Enter command to send:\n");
 					szCom[0] = 0;
-					scanf("%[^\t\n]", szCom);
+					if (1 > scanf("%[^\t\n]", szCom)){
+					    fprintf(stderr, "No command entered properly, aborting.\n");
+					    break;
+					}
 					/*stdin flush bug*/
 					while (getchar()!='\n') {}
 					e = gf_seng_encode_from_string(livesess.seng, 0, 0, szCom, live_session_callback);
@@ -563,7 +569,10 @@ int live_session(int argc, char **argv)
 					char szCom[8192];
 					fprintf(stdout, "Enter command to send:\n");
 					szCom[0] = 0;
-					scanf("%[^\t\n]", szCom);
+					if (1 > scanf("%[^\t\n]", szCom)){
+					    printf("No command entered properly, aborting.\n");
+					    break;
+					}
 					/*stdin flush bug*/
 					while (getchar()!='\n') {}
 					e = gf_seng_encode_from_string(livesess.seng, 0, 1, szCom, live_session_callback);
@@ -578,7 +587,10 @@ int live_session(int argc, char **argv)
 				{
 					char rad[GF_MAX_PATH];
 					fprintf(stdout, "Enter output file name - \"std\" for stdout: ");
-					scanf("%s", rad);
+					if (1 > scanf("%s", rad)){
+					    fprintf(stderr, "No ouput file name entered, aborting.\n");
+					    break;
+					}
 					e = gf_seng_save_context(livesess.seng, !strcmp(rad, "std") ? NULL : rad);
 					fprintf(stdout, "Dump done (%s)\n", gf_error_to_string(e));
 				}
@@ -606,7 +618,8 @@ int live_session(int argc, char **argv)
 				if (!srcf) continue;
 
 				/*checks if we have a broadcast config*/
-				fgets(flag_buf, 200, srcf);
+				if (!fgets(flag_buf, 200, srcf))
+				  flag_buf[0] = '\0';
 				fclose(srcf);
 
 				aggregate_on_stream = (u16) -1;
