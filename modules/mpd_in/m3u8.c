@@ -621,7 +621,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                         assert(currentPlayList->element.playlist.elements);
                         assert( fullURL);
                         currentPlayList->url = gf_strdup(baseURL);
-                        currentPlayList->title = gf_strdup("NO_NAME");
+                        currentPlayList->title = NULL;
                         subElement = playlist_element_new(
                                          TYPE_UNKNOWN,
                                          fullURL,
