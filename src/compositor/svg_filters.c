@@ -51,7 +51,7 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 		Fixed amplitude = 1;
 		Fixed exponent = 1;
 		Fixed offset = 0;
-		u8 *ptr;
+		u8 *ptr = NULL;
 		u32 tag = gf_node_get_tag(l->node);
 		GF_DOMAttribute *att = ((SVG_Element *)l->node)->attributes;
 		
@@ -92,6 +92,7 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 
 		if ((type==SVG_FILTER_TRANSFER_LINEAR) && (intercept || (slope!=FIX_ONE)) ) {
 			intercept *= 255;
+			assert( ptr );
 			for (i=0; i<source->height; i++) {
 				for (j=0; j<source->width; j++) {
 					Fixed p = (*ptr) * slope + intercept;
@@ -100,6 +101,7 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 				}
 			}
 		} else if (type==SVG_FILTER_TRANSFER_GAMMA) {
+			assert( ptr );
 			for (i=0; i<source->height; i++) {
 				for (j=0; j<source->width; j++) {
 					Fixed p = 255 * gf_mulfix(amplitude,  FLT2FIX( pow( INT2FIX(*ptr)/255, FIX2FLT(exponent) ) ) ) + offset;
@@ -110,6 +112,7 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 		} else if ((type==SVG_FILTER_TRANSFER_TABLE) && table && (gf_list_count(table)>=2) ) {
 			u32 count = gf_list_count(table);
 			u32 N = count-1;
+			assert( ptr );
 			for (i=0; i<source->height; i++) {
 				for (j=0; j<source->width; j++) {
 					SVG_Number *vk, *vk1;
@@ -126,6 +129,7 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 			}
 		} else if ((type==SVG_FILTER_TRANSFER_DISCRETE) && table && gf_list_count(table) ) {
 			u32 count = gf_list_count(table);
+			assert( ptr );
 			for (i=0; i<source->height; i++) {
 				for (j=0; j<source->width; j++) {
 					SVG_Number *vk;

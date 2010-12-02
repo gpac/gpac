@@ -88,7 +88,7 @@ static void TraverseAnchor(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
-		MFURL *url;
+		MFURL *url = NULL;
 		switch (gf_node_get_tag(node)) {
 		case TAG_MPEG4_Anchor:
 			url = & ((M_Anchor *)node)->url;
@@ -100,7 +100,7 @@ static void TraverseAnchor(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 		}
 		st->enabled = 0;
-		if (url->count && url->vals[0].url && strlen(url->vals[0].url) )
+		if (url && url->count && url->vals[0].url && strlen(url->vals[0].url) )
 			st->enabled = 1;
 
 		if (!tr_state->visual->compositor->user->EventProc) {
@@ -115,8 +115,8 @@ static void TraverseAnchor(GF_Node *node, void *rs, Bool is_destroy)
 static void anchor_activation(GF_Node *node, AnchorStack *st, GF_Compositor *compositor)
 {
 	GF_Event evt;
-	MFURL *url;
 	u32 i;
+	MFURL *url = NULL;
 	switch (gf_node_get_tag(node)) {
 	case TAG_MPEG4_Anchor:
 		url = & ((M_Anchor *)node)->url;
@@ -133,7 +133,7 @@ static void anchor_activation(GF_Node *node, AnchorStack *st, GF_Compositor *com
 	}
 	evt.type = GF_EVENT_NAVIGATE;
 	i=0;
-	while (i<url->count) {
+	while (url && i<url->count) {
 		evt.navigate.to_url = url->vals[i].url;
 		if (!evt.navigate.to_url) break;
 		/*current scene navigation*/
@@ -158,7 +158,7 @@ static void anchor_activation(GF_Node *node, AnchorStack *st, GF_Compositor *com
 static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
 {
 	GF_Event evt;
-	MFURL *url;
+	MFURL *url = NULL;
 	AnchorStack *st = (AnchorStack *) gf_node_get_private(sh->sensor);
 
 	if ((ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) st->active = 1;
@@ -184,7 +184,7 @@ static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compos
 				break;
 #endif
 			}
-			if (!evt.navigate.to_url || !strlen(evt.navigate.to_url)) evt.navigate.to_url = url->vals[0].url;
+			if (url && (!evt.navigate.to_url || !strlen(evt.navigate.to_url))) evt.navigate.to_url = url->vals[0].url;
 			gf_term_send_event(compositor->term, &evt);
 		}
 	} else if (!is_over) {

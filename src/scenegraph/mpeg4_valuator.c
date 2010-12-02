@@ -146,7 +146,8 @@ static void SetValuatorOutput(M_Valuator *p, SFVec4f *inSFField, GenMFField *inM
 	MFVec4f *mf_output = (MFVec4f *)gf_node_get_private((GF_Node*)p);
 	u32 count, num_out;
 	Bool do_sum;
-
+	output.x = output.y = output.z = output.q = 0;
+	sf_out.x = sf_out.y = sf_out.z = sf_out.q = 0;
 	if (!p->sgprivate->interact || !mf_output) return;
 
 	do_sum = p->Sum;
