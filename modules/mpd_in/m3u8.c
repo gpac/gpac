@@ -439,7 +439,7 @@ static char ** parseAttributes(const char * line, s_accumulated_attributes * att
     return NULL;
 }
 
-#define M3U8_BUF_SIZE 4096
+#define M3U8_BUF_SIZE 2048
 
 GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const char * baseURL, Bool *is_end)
 {
@@ -481,7 +481,6 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
 	eof = strchr(currentLine, '\n');
 	if (eof)
 	  eof[0] = '\0';
-	printf("READEN '%s'\n", currentLine);
         len = strlen( currentLine);
         if (len < 1)
             continue;
