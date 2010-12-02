@@ -664,7 +664,7 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
     }
     if (entry->deletableFilesOnDelete) {
         GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] url %s cleanup, deleting %s...\n", entry->url, entry->cache_filename));
-        if (!gf_delete_file(entry->cache_filename))
+        if (GF_OK != gf_delete_file(entry->cache_filename))
             GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, failed to delete file %s\n", __LINE__, entry->cache_filename));
     }
     entry->write_mutex = NULL;
