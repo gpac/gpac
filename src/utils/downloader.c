@@ -1010,12 +1010,12 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
         case GF_NETIO_SETUP:
             gf_dm_connect(sess);
             if (sess->status == GF_NETIO_SETUP)
-                gf_sleep(200);
+                gf_sleep(16);
             break;
         case GF_NETIO_WAIT_FOR_REPLY:
 	    if (timer == 0)
 	      timer = gf_sys_clock();
-            gf_sleep(20);
+            gf_sleep(16);
 	    {
 		u32 timer2 = gf_sys_clock();
 		if (timer2 - timer > 5000){
@@ -1080,7 +1080,7 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
         case GF_NETIO_SETUP:
             gf_dm_connect(sess);
             if (sess->status == GF_NETIO_SETUP)
-                gf_sleep(100);
+                gf_sleep(16);
             break;
         case GF_NETIO_WAIT_FOR_REPLY:
             gf_sleep(16);
