@@ -646,47 +646,51 @@ void gf_memory_print()
 #endif /*GPAC_MEMORY_TRACKING*/
 
 
-/*as_printf() portable implementation*/
+/*gf_asprintf(): as_printf portable implementation*/
+#if defined(WIN32) || defined(_WIN32_WCE)
+static GFINLINE int gf_vasprintf (char **strp, const char *fmt, va_list ap)
+{
+	int vsn_ret, size;
+	char *buffer, *realloc_buffer;
+
+	size = 2*strlen(fmt); /*first guess for the size*/
+	buffer = (char*)gf_malloc(size);
+	if (buffer == NULL)
+		return -1;
+
+	while (1) {
+		vsn_ret = _vsnprintf(buffer, size, fmt, ap);
+
+		/* If that worked, return the string. */
+		if (vsn_ret>-1 && vsn_ret<size)	{
+			*strp = buffer;
+			return vsn_ret;
+		}
+
+		/*else double the allocated size*/
+		size *= 2;
+		realloc_buffer = (char*)gf_realloc(buffer, size);
+		if (!realloc_buffer)	{
+			gf_free(buffer);
+			return -1;
+		} else {
+			buffer = realloc_buffer;
+		}
+
+	}
+}
+#endif
+
 int gf_asprintf(char **strp, const char *fmt, ...)
 {
 #if defined(WIN32) || defined(_WIN32_WCE)
-
-	/*we allocate a fake 4-bytes string*/
-	char tmp[4];
-	s32 size;
-	va_list args;
-
-	/*print within tmp*/
-	va_start(args, fmt);
-#ifdef _WIN32_WCE
-	size = _vsnprintf(tmp, 4, fmt, args);
-#else
-	size = vsnprintf(tmp, 4, fmt, args);
-#endif /* _WIN32_WCE */
-	va_end(args);
-
-	/*allocate the string*/
-	size = size+1;
-	*strp = (char*)gf_malloc(size);
-	if (*strp == NULL)
-		return -1;
-
-	/*print*/
-	va_start(args, fmt);
-#ifdef _WIN32_WCE
-	size = _vsnprintf(*strp, size, fmt, args);
-#else
-	size = vsnprintf(*strp, size, fmt, args);
-#endif /* _WIN32_WCE */
-	va_end(args);
-
-	return size;
-#else /* Not Windows nor WINCE */
 	s32 size;
 	va_list args;
 	va_start(args, fmt);
-	size = asprintf(strp, fmt, args);
+	size = gf_vasprintf(strp, fmt, args);
 	va_end(args);
 	return size;
+#else
+	return asprintf(strp, fmt, args);
 #endif
 }
