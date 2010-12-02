@@ -64,8 +64,10 @@
 #define ENOTCONN			WSAENOTCONN
 #define ECONNRESET			WSAECONNRESET
 #define EMSGSIZE			WSAEMSGSIZE
-#define ECONNABORTED			WSAECONNABORTED
+#define ECONNABORTED		WSAECONNABORTED
 #define ENETDOWN			WSAENETDOWN
+#define EINTR				WSAEINTR
+#define EBADF				WSAEBADF
 
 #define LASTSOCKERROR WSAGetLastError()
 
@@ -1055,14 +1057,6 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNu
 }
 
 
-#if defined(WIN32) || defined(_WIN32_WCE)
-#define GF_EINTR WSAEINTR
-#define GF_EBADF WSAEBADF
-#else
-#define GF_EINTR EINTR
-#define GF_EBADF EBADF
-#endif
-
 //fetch nb bytes on a socket and fill the buffer from startFrom
 //length is the allocated size of the receiving buffer
 //BytesRead is the number of bytes read from the network
@@ -1093,12 +1087,12 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 	ready = select(sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
-		case GF_EBADF:
+		case EBADF:
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot select, BAD descriptor\n"));
 			return GF_IP_CONNECTION_CLOSED;
 		case EAGAIN:
 			return GF_IP_SOCK_WOULD_BLOCK;
-		case GF_EINTR:
+		case EINTR:
 			/* Interrupted system call, not really important... */
 			return GF_IP_NETWORK_EMPTY;
 		default:
