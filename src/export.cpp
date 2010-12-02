@@ -1006,6 +1006,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_crypt_set_state) )
 #endif GPAC_DISABLE_MCRYPT
 #pragma comment (linker, EXPORT_SYMBOL(gf_sha1_csum) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sha1_file) )
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 #pragma comment (linker, EXPORT_SYMBOL(gf_m4v_parser_new) )
