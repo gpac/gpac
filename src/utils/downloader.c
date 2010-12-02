@@ -483,7 +483,7 @@ void gf_dm_configure_cache(GF_DownloadSession *sess)
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
 }
 
-void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char * url) 
+void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char * url)
 {
     u32 count, i;
     if (!url || !dm)
@@ -753,7 +753,7 @@ static u32 gf_dm_session_thread(void *par)
         if (sess->status < GF_NETIO_CONNECTED) {
             gf_dm_connect(sess);
         } else {
-	    if (sess->status == GF_NETIO_WAIT_FOR_REPLY) gf_sleep(GF_WAIT_REPLY_SLEEP);
+            if (sess->status == GF_NETIO_WAIT_FOR_REPLY) gf_sleep(GF_WAIT_REPLY_SLEEP);
             sess->do_requests(sess);
         }
         gf_mx_v(sess->mx);
@@ -797,7 +797,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
         gf_th_run(sess->th, gf_dm_session_thread, sess);
     }
     if (!(sess->flags & GF_NETIO_SESSION_FORCE_NO_CACHE))
-      sess->use_cache_file = 0;
+        sess->use_cache_file = 0;
     sess->num_retry = SESSION_RETRY_COUNT;
     return sess;
 }
@@ -1013,32 +1013,32 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
                 gf_sleep(16);
             break;
         case GF_NETIO_WAIT_FOR_REPLY:
-	    if (timer == 0)
-	      timer = gf_sys_clock();
+            if (timer == 0)
+                timer = gf_sys_clock();
             gf_sleep(16);
-	    {
-		u32 timer2 = gf_sys_clock();
-		if (timer2 - timer > 5000){
-		  GF_Err e;
-		  /* Since HEAD is not understood by this server, we use a GET instead */
-		  sess->http_read_type = GET;
-		  sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
-		  gf_dm_disconnect(sess);
-		  sess->status = GF_NETIO_SETUP;
-		  sess->server_only_understand_get = 1;
-		  GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Timeout with HEAD, try with GET\n"));
-		  e = gf_dm_setup_from_url(sess, sess->orig_url);
-		  if (e) {
-		    GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Error with GET %d\n", e));
-		    sess->status = GF_NETIO_STATE_ERROR;
-		    sess->last_error = e;
-		    gf_dm_sess_notify_state(sess, sess->status, e);
-		  } else {
-		      timer = 0;
-		      continue;
-		  }
-		}
-	    }
+            {
+                u32 timer2 = gf_sys_clock();
+                if (timer2 - timer > 5000) {
+                    GF_Err e;
+                    /* Since HEAD is not understood by this server, we use a GET instead */
+                    sess->http_read_type = GET;
+                    sess->flags |= GF_NETIO_SESSION_NOT_CACHED;
+                    gf_dm_disconnect(sess);
+                    sess->status = GF_NETIO_SETUP;
+                    sess->server_only_understand_get = 1;
+                    GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Timeout with HEAD, try with GET\n"));
+                    e = gf_dm_setup_from_url(sess, sess->orig_url);
+                    if (e) {
+                        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Error with GET %d\n", e));
+                        sess->status = GF_NETIO_STATE_ERROR;
+                        sess->last_error = e;
+                        gf_dm_sess_notify_state(sess, sess->status, e);
+                    } else {
+                        timer = 0;
+                        continue;
+                    }
+                }
+            }
         case GF_NETIO_CONNECTED:
             sess->do_requests(sess);
             break;
@@ -1097,6 +1097,15 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
     return sess->last_error;
 }
 
+static Bool gf_dm_needs_to_delete_cache(GF_DownloadManager * dm) {
+    const char * opt;
+    if (!dm || !dm->cfg)
+        return 0;
+    opt = gf_cfg_get_key(dm->cfg, "Downloader", "CleanCache");
+    return opt && (!strncmp("yes", opt, 3) || !strncmp("true", opt, 4) || !strncmp("1", opt, 1));
+}
+
+#ifdef BUGGY_gf_cache_cleanup_cache
 /*!
  * Cleans up the cache at start and stop.
  * Note that this method will perform any cleanup if
@@ -1108,15 +1117,11 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
  * \param dm The GF_DownloadManager
  */
 static void gf_cache_cleanup_cache(GF_DownloadManager * dm) {
-    const char * opt;
-    if (dm && dm->cfg) {
-        opt = gf_cfg_get_key(dm->cfg, "Downloader", "CleanCache");
-        if (opt && (!strncmp("yes", opt, 3) || !strncmp("true", opt, 4) || !strncmp("1", opt, 1))) {
-            gf_cache_delete_all_cached_files(dm->cache_directory);
-        }
+    if (gf_dm_needs_to_delete_cache(dm)) {
+        gf_cache_delete_all_cached_files(dm->cache_directory);
     }
 }
-
+#endif
 
 GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 {
@@ -1153,7 +1158,9 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 #ifdef GPAC_HAS_SSL
     ssl_init(dm, 0);
 #endif
-    gf_cache_cleanup_cache(dm);
+    /* TODO: Not ready for now, we should find a locking strategy between several GPAC instances...
+     * gf_cache_cleanup_cache(dm);
+     */
     return dm;
 }
 
@@ -1210,17 +1217,25 @@ void gf_dm_del(GF_DownloadManager *dm)
     gf_list_del( dm->credentials);
     dm->credentials = NULL;
     assert( dm->cache_entries );
-    while (gf_list_count(dm->cache_entries)) {
-        DownloadedCacheEntry * entry = gf_list_get( dm->cache_entries, 0);
-        gf_list_rem( dm->cache_entries, 0);
-        gf_free( entry );
+    {
+        /* Deletes DownloadedCacheEntry and associated files if required */
+        Bool delete_my_files = gf_dm_needs_to_delete_cache(dm);
+        while (gf_list_count(dm->cache_entries)) {
+            const DownloadedCacheEntry entry = gf_list_get( dm->cache_entries, 0);
+            gf_list_rem( dm->cache_entries, 0);
+            if (delete_my_files)
+                gf_cache_entry_set_delete_files_when_deleted(entry);
+            gf_cache_delete_entry(entry);
+        }
+        gf_list_del( dm->cache_entries );
+        dm->cache_entries = NULL;
     }
-    gf_list_del( dm->cache_entries );
-    dm->cache_entries = NULL;
 
     gf_list_del( dm->partial_downloads );
     dm->partial_downloads = NULL;
-    gf_cache_cleanup_cache(dm);
+    /* TODO: Not ready for now, we should find a locking strategy between several GPAC instances...
+    * gf_cache_cleanup_cache(dm);
+    */
     if (dm->cache_directory)
         gf_free(dm->cache_directory);
     dm->cache_directory = NULL;
@@ -2114,18 +2129,18 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             sess->icy_bytes = 0;
             sess->status = GF_NETIO_DATA_EXCHANGE;
         } else if (!ContentLength) {
-	    if (sess->http_read_type == GET){
-		sess->total_size = 2 << 30;
-		sess->use_cache_file = 0;
-		sess->status = GF_NETIO_DATA_EXCHANGE;
-		sess->bytes_done = 0;
-	    } else {
-	      /*we don't expect anything*/
-	      gf_dm_disconnect(sess);
-	      gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
-	      sess->status = GF_NETIO_DISCONNECTED;
-	      return GF_OK;
-	    }
+            if (sess->http_read_type == GET) {
+                sess->total_size = 2 << 30;
+                sess->use_cache_file = 0;
+                sess->status = GF_NETIO_DATA_EXCHANGE;
+                sess->bytes_done = 0;
+            } else {
+                /*we don't expect anything*/
+                gf_dm_disconnect(sess);
+                gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
+                sess->status = GF_NETIO_DISCONNECTED;
+                return GF_OK;
+            }
         } else {
             sess->total_size = ContentLength;
             if (sess->use_cache_file && sess->http_read_type == GET ) {
