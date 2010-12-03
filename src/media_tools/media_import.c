@@ -2130,7 +2130,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 		import->esd->decoderConfig->decoderSpecificInfo->dataLength = (u32) gf_f64_tell(info);
 		import->esd->decoderConfig->decoderSpecificInfo->data = (char*)gf_malloc(sizeof(char) * import->esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_f64_seek(info, 0, SEEK_SET);
-		if (0==fread(import->esd->decoderConfig->decoderSpecificInfo->data, import->esd->decoderConfig->decoderSpecificInfo->dataLength, 1, info)){
+		if (0==fread(import->esd->decoderConfig->decoderSpecificInfo->data, 1, import->esd->decoderConfig->decoderSpecificInfo->dataLength, info)){
 			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER,
 				("[NHML import] Failed to read dataLength\n"));
 		}
@@ -2277,7 +2277,7 @@ GF_Err gf_import_nhnt(GF_MediaImporter *import)
 				max_size = samp->dataLength;
 			}
 			gf_f64_seek(mdia, offset, SEEK_SET);
-			if (0==fread( samp->data, samp->dataLength, 1, mdia)){
+			if (0==fread( samp->data, 1, samp->dataLength, mdia)){
 				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Failed to read samp->dataLength\n"));
 			}
 			if (is_start) {
@@ -2435,7 +2435,7 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 		samp->data = (char*)gf_realloc(samp->data, sizeof(char)*samp->dataLength);
 	}
 	gf_f64_seek(xml, breaker.from_pos, SEEK_SET);
-	if (0==fread(samp->data, samp->dataLength, 1, xml)){
+	if (0==fread(samp->data, 1, samp->dataLength, xml)){
 		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("Failed to read samp->dataLength\n"));
 	}
 
