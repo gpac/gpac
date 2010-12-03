@@ -999,7 +999,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 		fseek(_sdp, 0, SEEK_SET);
 		sdp_buf = (char*)gf_malloc(sizeof(char)*sdp_size);
 		memset(sdp_buf, 0, sizeof(char)*sdp_size);
-		sdp_size = fread(sdp_buf, sdp_size, 1, _sdp);
+		sdp_size = fread(sdp_buf, 1, sdp_size, _sdp);
 		fclose(_sdp);
 
 		sdp = gf_sdp_info_new();
