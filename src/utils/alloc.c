@@ -683,14 +683,14 @@ static GFINLINE int gf_vasprintf (char **strp, const char *fmt, va_list ap)
 
 int gf_asprintf(char **strp, const char *fmt, ...)
 {
-#if defined(WIN32) || defined(_WIN32_WCE)
 	s32 size;
 	va_list args;
 	va_start(args, fmt);
+#if defined(WIN32) || defined(_WIN32_WCE)
 	size = gf_vasprintf(strp, fmt, args);
+#else
+	size = asprintf(strp, fmt, args);
+#endif	
 	va_end(args);
 	return size;
-#else
-	return asprintf(strp, fmt, args);
-#endif
 }
