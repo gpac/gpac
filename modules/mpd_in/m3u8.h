@@ -10,12 +10,12 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
@@ -44,7 +44,7 @@
  *        |_ bandwidth Z : playlistElement
  *
  * For a "normal" playlist
- * 
+ *
  * VariantPlayList
  *  |
  *  |_ program id 1
@@ -59,7 +59,7 @@
 /**
  * Basic Stream structure
  */
-typedef struct s_stream{
+typedef struct s_stream {
     u8 i;
 } Stream;
 
@@ -67,12 +67,12 @@ typedef struct s_stream{
  * The playlist contains a list of elements to play
  */
 typedef struct s_playList {
-	int currentMediaSequence;
-	int target_duration;
-	int mediaSequenceMin;
-	int mediaSequenceMax;
-	char is_ended;
-	GF_List * elements;
+    int currentMediaSequence;
+    int target_duration;
+    int mediaSequenceMin;
+    int mediaSequenceMax;
+    char is_ended;
+    GF_List * elements;
 } Playlist;
 
 typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_STREAM, TYPE_UNKNOWN} PlaylistElementType;
@@ -80,20 +80,22 @@ typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_STREAM, TYPE_UNKNOWN} 
 /**
  * The Structure containing the playlist element
  */
-typedef struct s_playlistElement{
-	int durationInfo;
-	int bandwidth;
-	char * title;
-	char * url;
-	PlaylistElementType elementType;
-	union { Playlist playlist; Stream stream; } element;
-	
+typedef struct s_playlistElement {
+    int durationInfo;
+    int bandwidth;
+    char * title;
+    char * url;
+    PlaylistElementType elementType;
+    union { Playlist playlist;
+        Stream stream;
+    } element;
+
 } PlaylistElement;
 
-typedef struct s_program{
-	int programId;
-	GF_List * bitrates;
-	int currentBitrateIndex;
+typedef struct s_program {
+    int programId;
+    GF_List * bitrates;
+    int currentBitrateIndex;
 } Program;
 
 
@@ -101,9 +103,9 @@ typedef struct s_program{
  * The root playlist, can contains several PlaylistElements structures
  */
 typedef struct s_variantPlaylist {
-	GF_List * programs;
-	int currentProgram;
-	Bool playlistNeedsRefresh;
+    GF_List * programs;
+    int currentProgram;
+    Bool playlistNeedsRefresh;
 } VariantPlaylist;
 
 /**
@@ -171,8 +173,8 @@ GF_Err parse_root_playlist(const char * file, VariantPlaylist ** playlist, const
 /**
  * Parse the given playlist file as a subplaylist of an existing playlist
  * @param file The file from cache to parse
- * @param The playlist to fill. 
- * @param baseURL base URL of the playlist 
+ * @param The playlist to fill.
+ * @param baseURL base URL of the playlist
  * @param program in which the playlist is parsed
  * @param sub_playlist existing subplaylist element in the @playlist in which the playlist is parsed
  * @return GF_OK if playlist valid
