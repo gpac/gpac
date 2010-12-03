@@ -559,9 +559,11 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Adding initialization segment %s to cache: %s\n", mpdin->seg_local_url, mpdin->cached[0].url ));
             gf_mx_v(mpdin->dl_mutex);
 #ifndef DONT_USE_TERMINAL_MODULE_API
-	    GF_NetworkCommand com;
-	    com.base.command_type = GF_NET_SERVICE_INFO;
-	    gf_term_on_command(mpdin->service, &com, GF_OK);
+			{
+				GF_NetworkCommand com;
+				com.base.command_type = GF_NET_SERVICE_INFO;
+				gf_term_on_command(mpdin->service, &com, GF_OK);
+			}
 #endif
             return GF_OK;
         }
