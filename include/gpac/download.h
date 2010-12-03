@@ -56,6 +56,38 @@ extern "C" {
     /*!the download manager session.*/
     typedef struct __gf_download_session GF_DownloadSession;
 
+    typedef struct GF_URL_Info_Struct {
+        const char * protocol;
+        char * server_name;
+        const char * server_path;
+        char * remotePath;
+        char * canonicalRepresentation;
+        char * userName;
+        char * password;
+        u16 port;
+    } GF_URL_Info;
+
+    /*!
+     * Extracts the information from an URL. A call to gf_dm_url_info_init() must have been issue before calling this method.
+     * \param url The URL to fill
+     * \param info This structure will be initialized properly and filled with the data
+     * \param baseURL The baseURL to use if any (can be null)
+     * \return GF_OK if URL is well formed and supported by GPAC
+     */
+    GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * baseURL);
+
+    /**
+     * Init the GF_URL_Info structure before it can be used
+     * \param info The structure to initialize
+     */
+    void gf_dm_url_info_init(GF_URL_Info * info);
+
+    /*!
+     * Frees the inner structures of a GF_URL_Info_Struct
+     * \param info The info to free
+     */
+    void gf_dm_url_info_del(GF_URL_Info * info);
+
     /*!
      *\brief download manager constructor
      *

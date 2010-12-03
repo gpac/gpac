@@ -11,19 +11,20 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include "mpd.h"
+#include <gpac/download.h>
 
 static u32 gf_mpd_parse_duration(char *duration) {
     u32 i;
@@ -41,7 +42,7 @@ static u32 gf_mpd_parse_duration(char *duration) {
         else if (duration[i+1] != 'T') return 0;
         else {
             char *sep1, *sep2;
-            u32 h, m; 
+            u32 h, m;
             double s;
             h = m = 0;
             s = 0;
@@ -65,7 +66,7 @@ static u32 gf_mpd_parse_duration(char *duration) {
                 *sep1 = 0;
                 s = atof(sep2);
                 *sep1 = 'S';
-            } 
+            }
             return (u32)((h*3600+m*60+s)*1000);
         }
     } else {
@@ -111,18 +112,25 @@ static GF_Err gf_mpd_parse_rep_trickmode(GF_XMLNode *root, GF_MPD_Representation
     return GF_OK;
 }
 
-static GF_Err gf_mpd_parse_rep_initseg(GF_XMLNode *root, GF_MPD_Representation *rep)
+static GF_Err gf_mpd_parse_rep_initseg(GF_XMLNode *root, GF_MPD_Representation *rep, const char * baseURL)
 {
     u32 att_index;
     GF_XMLAttribute *att;
-    
+
     att_index = 0;
     while (1) {
         att = gf_list_get(root->attributes, att_index);
         if (!att) {
             break;
         } else if (!strcmp(att->name, "sourceURL")) {
-            rep->init_url = gf_strdup(att->value);
+            GF_URL_Info info;
+            GF_Err e;
+            gf_dm_url_info_init(&info);
+            e = gf_dm_get_url_info(att->value, &info, baseURL);
+            assert( e == GF_OK );
+            assert( info.canonicalRepresentation);
+            rep->init_url = gf_strdup(info.canonicalRepresentation);
+            gf_dm_url_info_del(&info);
         } else if (!strcmp(att->name, "range")) {
             rep->init_use_range = 1;
             sscanf(att->value, "%d-%d", &rep->init_byterange_start, &rep->init_byterange_end);
@@ -136,7 +144,7 @@ static GF_Err gf_mpd_parse_rep_urltemplate(GF_XMLNode *root, GF_MPD_Representati
 {
     u32 att_index;
     GF_XMLAttribute *att;
-    
+
     att_index = 0;
     while (1) {
         att = gf_list_get(root->attributes, att_index);
@@ -156,20 +164,26 @@ static GF_Err gf_mpd_parse_rep_urltemplate(GF_XMLNode *root, GF_MPD_Representati
     return GF_OK;
 }
 
-static GF_Err gf_mpd_parse_rep_urlelt(GF_XMLNode *root, GF_MPD_SegmentInfo *seg)
+static GF_Err gf_mpd_parse_rep_urlelt(GF_XMLNode *root, GF_MPD_SegmentInfo *seg, const char * baseURL)
 {
     u32 att_index;
     GF_XMLAttribute *att;
-    
+
     att_index = 0;
     while (1) {
         att = gf_list_get(root->attributes, att_index);
         if (!att) {
             break;
         } else if (!strcmp(att->name, "sourceURL")) {
-            seg->url = gf_strdup(att->value);
+            GF_URL_Info info;
+            GF_Err e;
+            gf_dm_url_info_init(&info);
+            e = gf_dm_get_url_info(att->value, &info, baseURL);
+            assert( e == GF_OK );
+            assert( info.canonicalRepresentation);
+            seg->url = gf_strdup(info.canonicalRepresentation);
         } else if (!strcmp(att->name, "range")) {
-			seg->use_byterange = 1;
+            seg->use_byterange = 1;
             sscanf(att->value, "%d-%d", &seg->byterange_start, &seg->byterange_end);
         }
         att_index++;
@@ -183,7 +197,7 @@ static GF_Err gf_mpd_parse_rep_segmentinfo(GF_XMLNode *root, GF_MPD_Representati
     u32 nb_urlelements;
     GF_XMLAttribute *att;
     GF_XMLNode *child;
-    
+
     att_index = 0;
     while (1) {
         att = gf_list_get(root->attributes, att_index);
@@ -205,7 +219,7 @@ static GF_Err gf_mpd_parse_rep_segmentinfo(GF_XMLNode *root, GF_MPD_Representati
             break;
         } else if (child->type == GF_XML_NODE_TYPE) {
             if (!strcmp(child->name, "InitialisationSegmentURL")) {
-                gf_mpd_parse_rep_initseg(child, rep);
+                gf_mpd_parse_rep_initseg(child, rep, rep->default_base_url);
             } else if (!strcmp(child->name, "UrlTemplate")) {
                 gf_mpd_parse_rep_urltemplate(child, rep);
             } else if (!strcmp(child->name, "Url")) {
@@ -221,19 +235,23 @@ static GF_Err gf_mpd_parse_rep_segmentinfo(GF_XMLNode *root, GF_MPD_Representati
     } else if (nb_urlelements) {
         u32 urlelt_index = 0;
 
-		rep->segments = gf_list_new();
+        rep->segments = gf_list_new();
 
-		child_index = 0;
+        child_index = 0;
         while (1) {
             child = gf_list_get(root->content, child_index);
             if (!child) {
                 break;
             } else if (child->type == GF_XML_NODE_TYPE) {
                 if (!strcmp(child->name, "Url")) {
-					GF_MPD_SegmentInfo *seg_info;
-					GF_SAFEALLOC(seg_info, GF_MPD_SegmentInfo);
-					gf_mpd_parse_rep_urlelt(child, seg_info);
-					gf_list_add(rep->segments, seg_info);
+                    GF_MPD_SegmentInfo *seg_info;
+                    GF_SAFEALLOC(seg_info, GF_MPD_SegmentInfo);
+                    seg_info->byterange_end = 0;
+                    seg_info->byterange_start = 0;
+                    seg_info->use_byterange = 0;
+                    seg_info->url = NULL;
+                    gf_mpd_parse_rep_urlelt(child, seg_info, rep->default_base_url);
+                    gf_list_add(rep->segments, seg_info);
                     urlelt_index++;
                 }
             }
@@ -248,7 +266,7 @@ static GF_Err gf_mpd_parse_representation(GF_XMLNode *root, GF_MPD_Representatio
     u32 att_index, child_index;
     GF_XMLAttribute *att;
     GF_XMLNode *child;
-    
+
     att_index = 0;
     while (1) {
         att = gf_list_get(root->attributes, att_index);
@@ -297,7 +315,7 @@ static GF_Err gf_mpd_parse_segment_info_default(GF_XMLNode *root, GF_MPD_Period 
 {
     u32 att_index;
     GF_XMLAttribute *att;
-    
+
     att_index = 0;
     while (1) {
         att = gf_list_get(root->attributes, att_index);
@@ -321,7 +339,7 @@ static GF_Err gf_mpd_parse_period(GF_XMLNode *root, GF_MPD_Period *period)
     u32 att_index, child_index;
     GF_XMLAttribute *att;
     GF_XMLNode *child;
-    
+
     att_index = 0;
     while (1) {
         att = gf_list_get(root->attributes, att_index);
@@ -331,11 +349,11 @@ static GF_Err gf_mpd_parse_period(GF_XMLNode *root, GF_MPD_Period *period)
         } else if (!strcmp(att->name, "segmentAlignmentFlag")) {
             if (!strcmp(att->value, "true")) {
                 period->segment_alignment_flag = 1;
-            } 
+            }
         } else if (!strcmp(att->name, "bitstreamSwitchingFlag")) {
             if (!strcmp(att->value, "true")) {
                 period->segment_alignment_flag = 1;
-            } 
+            }
         }
         att_index++;
     }
@@ -349,10 +367,10 @@ static GF_Err gf_mpd_parse_period(GF_XMLNode *root, GF_MPD_Period *period)
             if (!strcmp(child->name, "SegmentInfoDefault")) {
                 gf_mpd_parse_segment_info_default(child, period);
             } else if (!strcmp(child->name, "Representation")) {
-				GF_MPD_Representation *rep;
-				GF_SAFEALLOC(rep, GF_MPD_Representation);
-				gf_mpd_parse_representation(child, rep);
-				gf_list_add(period->representations, rep);
+                GF_MPD_Representation *rep;
+                GF_SAFEALLOC(rep, GF_MPD_Representation);
+                gf_mpd_parse_representation(child, rep);
+                gf_list_add(period->representations, rep);
             }
         }
         child_index++;
@@ -374,7 +392,7 @@ static GF_Err gf_mpd_parse_program_info(GF_XMLNode *root, GF_MPD *mpd)
             break;
         } else if (!strcmp(att->name, "moreInformationURL")) {
             mpd->more_info_url = gf_strdup(att->value);
-        } 
+        }
         att_index++;
     }
 
@@ -408,49 +426,49 @@ static GF_Err gf_mpd_parse_program_info(GF_XMLNode *root, GF_MPD *mpd)
 
 GF_MPD *gf_mpd_new()
 {
-	GF_MPD *mpd;
-	GF_SAFEALLOC(mpd, GF_MPD);
-	mpd->periods = gf_list_new();
-	return mpd;
+    GF_MPD *mpd;
+    GF_SAFEALLOC(mpd, GF_MPD);
+    mpd->periods = gf_list_new();
+    return mpd;
 }
 
 void gf_mpd_del(GF_MPD *mpd)
 {
-	while (gf_list_count(mpd->periods)) {
-		GF_MPD_Period *period = gf_list_get(mpd->periods, 0);
-		gf_list_rem(mpd->periods, 0);
-		while (gf_list_count(period->representations)) {
-			GF_MPD_Representation *rep = gf_list_get(period->representations, 0);
-			gf_list_rem(period->representations, 0);
+    while (gf_list_count(mpd->periods)) {
+        GF_MPD_Period *period = gf_list_get(mpd->periods, 0);
+        gf_list_rem(mpd->periods, 0);
+        while (gf_list_count(period->representations)) {
+            GF_MPD_Representation *rep = gf_list_get(period->representations, 0);
+            gf_list_rem(period->representations, 0);
 
-			while (gf_list_count(rep->segments)) {
-				GF_MPD_SegmentInfo *seg = gf_list_get(rep->segments, 0);
-				gf_list_rem(rep->segments, 0);
-				if (seg->url) gf_free(seg->url);
-				gf_free(seg);
-			}
-			if (rep->content_protection_type) gf_free(rep->content_protection_type);
-			if (rep->content_protection_uri) gf_free(rep->content_protection_uri);
-			if (rep->default_base_url) gf_free(rep->default_base_url);
-			if (rep->id) gf_free(rep->id);
-			if (rep->init_url) gf_free(rep->init_url);
-			if (rep->lang) gf_free(rep->lang);
-			if (rep->mime) gf_free(rep->mime);
-			if (rep->url_template) gf_free(rep->url_template);
-			gf_free(rep);
-		}
-		gf_free(period->representations);
-		if (period->default_base_url) gf_free(period->default_base_url);
-		if (period->url_template) gf_free(period->url_template);
+            while (gf_list_count(rep->segments)) {
+                GF_MPD_SegmentInfo *seg = gf_list_get(rep->segments, 0);
+                gf_list_rem(rep->segments, 0);
+                if (seg->url) gf_free(seg->url);
+                gf_free(seg);
+            }
+            if (rep->content_protection_type) gf_free(rep->content_protection_type);
+            if (rep->content_protection_uri) gf_free(rep->content_protection_uri);
+            if (rep->default_base_url) gf_free(rep->default_base_url);
+            if (rep->id) gf_free(rep->id);
+            if (rep->init_url) gf_free(rep->init_url);
+            if (rep->lang) gf_free(rep->lang);
+            if (rep->mime) gf_free(rep->mime);
+            if (rep->url_template) gf_free(rep->url_template);
+            gf_free(rep);
+        }
+        gf_free(period->representations);
+        if (period->default_base_url) gf_free(period->default_base_url);
+        if (period->url_template) gf_free(period->url_template);
 
-		gf_free(period);
-	}
-	gf_list_del(mpd->periods);
-	if (mpd->base_url) gf_free(mpd->base_url);
-	if (mpd->title) gf_free(mpd->title);
-	if (mpd->source) gf_free(mpd->source);
-	if (mpd->copyright) gf_free(mpd->copyright);
-	if (mpd->more_info_url) gf_free(mpd->more_info_url);
+        gf_free(period);
+    }
+    gf_list_del(mpd->periods);
+    if (mpd->base_url) gf_free(mpd->base_url);
+    if (mpd->title) gf_free(mpd->title);
+    if (mpd->source) gf_free(mpd->source);
+    if (mpd->copyright) gf_free(mpd->copyright);
+    if (mpd->more_info_url) gf_free(mpd->more_info_url);
 }
 
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd)
@@ -458,10 +476,10 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd)
     u32 att_index, child_index;
     GF_XMLAttribute *att;
     GF_XMLNode *child;
-    
+
     if (!root || !mpd) return GF_BAD_PARAM;
 
-	memset(mpd, 0, sizeof(GF_MPD));
+    memset(mpd, 0, sizeof(GF_MPD));
     mpd->periods = gf_list_new();
 
     att_index = 0;
@@ -498,7 +516,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd)
             } else if (!strcmp(child->name, "Period")) {
                 GF_MPD_Period *period;
                 GF_SAFEALLOC(period, GF_MPD_Period);
-				period->representations = gf_list_new();
+                period->representations = gf_list_new();
                 gf_mpd_parse_period(child, period);
                 gf_list_add(mpd->periods, period);
             }
