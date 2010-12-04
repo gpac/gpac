@@ -289,6 +289,7 @@ gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadManager * d
     gf_user_credentials_struct * creds;
     if (!dm)
         return NULL;
+	assert( server_name );
     creds = gf_find_user_credentials_for_site(dm, server_name);
     /* If none found, we create one */
     if (!creds) {
@@ -763,13 +764,16 @@ GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, const char *url)
     if (sess->orig_url)
         gf_free(sess->orig_url);
     sess->orig_url = NULL;
-    if (sess->server_name)
+    if (info.server_name && sess->server_name)
+    {
         gf_free(sess->server_name);
-    sess->server_name = NULL;
+        sess->server_name = NULL;
+    }
     if (e == GF_OK) {
         const char *opt;
         sess->orig_url = gf_strdup(info.canonicalRepresentation);
         sess->remote_path = gf_strdup(info.remotePath);
+		sess->server_name = info.server_name ? gf_strdup(info.server_name) : NULL;
         if (info.userName) {
             if (! sess->dm) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Did not found any download manager, credentials not supported\n"));
@@ -785,7 +789,6 @@ GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, const char *url)
                 sess->limit_data_rate = 1024 * atoi(opt) / 8;
             }
         }
-        sess->server_name = gf_strdup(info.server_name);
         gf_dm_url_info_del(&info);
     }
 
