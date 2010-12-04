@@ -1188,6 +1188,7 @@ int main (int argc, char **argv)
 
 	fprintf(stdout, "Loading modules\n");
 	str = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
+	assert( str );
 
 	user.modules = gf_modules_new((const unsigned char *) str, cfg_file);
 	if (user.modules) i = gf_modules_get_count(user.modules);
