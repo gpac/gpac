@@ -1493,7 +1493,7 @@ const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess)
 GF_EXPORT
 Bool gf_dm_sess_can_be_cached_on_disk(const GF_DownloadSession *sess)
 {
-    if (!sess) return NULL;
+    if (!sess) return 0;
     return gf_cache_get_content_length(sess->cache_entry) != 0;
 }
 
