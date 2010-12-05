@@ -381,6 +381,15 @@ extern "C" {
      * \return a pointer to the entry of session refreshed
      */
     DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess);
+    
+    /*!
+     * Tells whether session can be cached on disk.
+     * Typically, when request has no content length, it deserves being streamed an cannot be cached
+     * (ICY or MPEG-streamed content
+     * \param sess The session
+     * \return True if a cache can be created
+     */
+    Bool gf_dm_sess_can_be_cached_on_disk(const GF_DownloadSession *sess);
 
     /*! @} */
 

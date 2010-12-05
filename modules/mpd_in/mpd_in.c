@@ -98,6 +98,7 @@ typedef struct __mpd_module {
     u32 nb_segs_done;
     Bool auto_switch;
     u8 lastMPDSignature[20];
+    Bool segment_must_be_streamed;
 } GF_MPD_In;
 
 static void dumpStatus( GF_MPD_In *mpdin) {
@@ -260,6 +261,16 @@ void MPD_NetIO_Segment(void *cbk, GF_NETIO_Parameter *param)
     /*handle service message*/
     gf_term_download_update_stats(mpdin->seg_dnload);
     e = param->error;
+    if (param->msg_type == GF_NETIO_PARSE_REPLY){
+	if (! gf_dm_sess_can_be_cached_on_disk(mpdin->seg_dnload)){
+	    GF_LOG(GF_LOG_INFO, GF_LOG_MODULE,
+		   ("[MPD_IN] Segment %s cannot be cached on disk, will use direct streaming\n", gf_dm_sess_get_resource_name(mpdin->seg_dnload)));
+	    mpdin->segment_must_be_streamed = 1;
+	    gf_dm_sess_abort(mpdin->seg_dnload);
+	} else {
+	    mpdin->segment_must_be_streamed = 0;
+	}
+    }
 }
 
 /*!
@@ -584,7 +595,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         e = MPD_downloadWithRetry(mpdin->service, &(mpdin->seg_dnload), base_init_url, MPD_NetIO_Segment, mpdin);
     } /* end of 404 */
 
-    if (e!= GF_OK) {
+    if (e!= GF_OK && !mpdin->segment_must_be_streamed) {
         gf_free(base_init_url);
         return e;
     } else {
@@ -608,15 +619,19 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         {
             /* Mime-Type check */
             const char * mime = gf_dm_sess_mime_type(mpdin->seg_dnload);
-            if (!mime || stricmp(mime, rep->mime)) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, rep->mime, base_init_url));
+            if (!mime || (stricmp(mime, rep->mime) && stricmp("video/mpeg", mime))) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, base_init_url, rep->mime));
                 gf_free(base_init_url);
                 base_init_url = NULL;
                 return GF_BAD_PARAM;
             }
         }
-
-        mpdin->seg_local_url = 	rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload);
+	if (mpdin->segment_must_be_streamed ){
+	    mpdin->seg_local_url = gf_dm_sess_get_resource_name(mpdin->seg_dnload);
+	    e = GF_OK;
+	} else {
+	  mpdin->seg_local_url = rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload);
+	}
         if ((e!=GF_OK) || !mpdin->seg_local_url) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error with initialization segment: download result:%s, cache file:%s\n", gf_error_to_string(e), mpdin->seg_local_url));
             gf_free(base_init_url);
@@ -735,9 +750,11 @@ static u32 download_segments(void *par)
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading new segment: %s\n", new_base_seg_url));
         }
         e = MPD_downloadWithRetry(mpdin->service, &(mpdin->seg_dnload), new_base_seg_url, MPD_NetIO_Segment, mpdin);
-        if (e == GF_OK) {
+        if (e == GF_OK || mpdin->segment_must_be_streamed) {
             gf_mx_p(mpdin->dl_mutex);
-            mpdin->cached[mpdin->nb_cached].cache = gf_strdup( rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload));
+            mpdin->cached[mpdin->nb_cached].cache = gf_strdup(mpdin->segment_must_be_streamed?
+								gf_dm_sess_get_resource_name(mpdin->seg_dnload) :
+								(rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload)));
             mpdin->cached[mpdin->nb_cached].url = gf_strdup( gf_dm_sess_get_resource_name(mpdin->seg_dnload));
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n", mpdin->cached[mpdin->nb_cached].url, mpdin->cached[mpdin->nb_cached].cache));
             mpdin->nb_cached++;

@@ -886,7 +886,8 @@ GF_DownloadSession *gf_dm_sess_new(GF_DownloadManager *dm, const char *url, u32 
 static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_size, u32 *out_read)
 {
     GF_Err e;
-
+    if (!sess)
+      return GF_BAD_PARAM;
 #ifdef GPAC_HAS_SSL
     if (sess->ssl) {
         u32 size = SSL_read(sess->ssl, data, data_size);
@@ -896,7 +897,9 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
         *out_read = size;
     } else
 #endif
-        e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
+    if (!sess->sock)
+      return GF_NETIO_DISCONNECTED;
+    e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
 
     return e;
 }
@@ -1485,6 +1488,13 @@ const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess)
 {
     if (!sess) return NULL;
     return gf_cache_get_cache_filename(sess->cache_entry);
+}
+
+GF_EXPORT
+Bool gf_dm_sess_can_be_cached_on_disk(const GF_DownloadSession *sess)
+{
+    if (!sess) return NULL;
+    return gf_cache_get_content_length(sess->cache_entry) != 0;
 }
 
 void gf_dm_sess_abort(GF_DownloadSession * sess)
