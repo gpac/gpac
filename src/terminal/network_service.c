@@ -567,7 +567,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	char *sURL, *qm, *frag, *ext, *mime_type, *url_res;
 	char szExt[50];
 	GF_InputService *ifce;
-
+	memset(szExt, 0, sizeof(szExt));
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Looking for plugin for URL %s\n", url));
 	*out_url = NULL;
@@ -965,6 +965,7 @@ Bool gf_term_check_extension(GF_InputService *ifce, const char *mimeType, const 
 	const char *szExtList;
 	char *ext, szExt[500];
 	if (!ifce || !mimeType || !extList || !description || !fileExt) return 0;
+	memset(szExt, 0, sizeof(szExt));
 	/*this is a URL*/
 	if ( (strlen(fileExt)>20) || strchr(fileExt, '/')) return 0;
 

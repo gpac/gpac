@@ -501,6 +501,7 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
     }
     realURL = gf_strdup(info.canonicalRepresentation);
     gf_dm_url_info_del(&info);
+    assert( realURL );
     count = gf_list_count(dm->cache_entries);
     for (i = 0 ; i < count; i++) {
         const char * e_url;
@@ -518,11 +519,13 @@ void gf_dm_delete_cached_file_entry(const GF_DownloadManager * dm,  const char *
             }
             /* If deleted or not, we don't search further */
             gf_mx_v( dm->cache_mx );
+	    gf_free(realURL);
             return;
         }
     }
     /* If we are heren it means we did not found this URL in cache */
     gf_mx_v( dm->cache_mx );
+    gf_free(realURL);
     GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] Cannot find URL %s, cache file won't be deleted.\n", url));
 }
 
@@ -590,6 +593,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     sess->cache_entry = NULL;
     if (sess->orig_url) gf_free(sess->orig_url);
     if (sess->server_name) gf_free(sess->server_name);
+    sess->server_name = NULL;
     if (sess->remote_path) gf_free(sess->remote_path);
     /* Credentials are stored into the sess->dm */
     if (sess->creds) sess->creds = NULL;
@@ -637,6 +641,7 @@ void gf_dm_url_info_init(GF_URL_Info * info) {
     info->protocol = NULL;
     info->port = 0;
     info->remotePath = NULL;
+    info->server_name = NULL;
 }
 
 GF_EXPORT
@@ -651,6 +656,8 @@ void gf_dm_url_info_del(GF_URL_Info * info) {
         gf_free(info->userName);
     if (info->remotePath)
         gf_free(info->remotePath);
+    if (info->server_name)
+	gf_free(info->server_name);
     gf_dm_url_info_init(info);
 }
 
@@ -658,6 +665,7 @@ GF_EXPORT
 GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * baseURL) {
     gf_dm_url_info_del(info);
     char *tmp, *tmp_url, *current_pos;
+    char * copyOfUrl;
 
     if (!strnicmp(url, "http://", 7)) {
         url += 7;
@@ -690,6 +698,10 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
         tmp = NULL;
         for (i=0; i<strlen(info->remotePath); i++)
             if (info->remotePath[i]=='\\') info->remotePath[i]='/';
+        info->canonicalRepresentation = gf_malloc(strlen(info->protocol) + strlen(info->remotePath) + 1);
+	strcpy(info->canonicalRepresentation, info->protocol);
+	strcat(info->canonicalRepresentation, info->remotePath);
+        return GF_OK;
     } else {
         return GF_BAD_PARAM;
     }
@@ -698,11 +710,12 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
     info->remotePath = gf_url_percent_encode(tmp ? tmp : "/");
     if (tmp) {
         tmp[0] = 0;
-        tmp_url = gf_strdup(url);
+        copyOfUrl = gf_strdup(url);
         tmp[0] = '/';
     } else {
-        tmp_url = gf_strdup(url);
+        copyOfUrl = gf_strdup(url);
     }
+    tmp_url = copyOfUrl;
     current_pos = tmp_url;
     tmp = strrchr(tmp_url, '@');
     if (tmp) {
@@ -713,9 +726,8 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
         tmp = strchr(tmp_url, ':');
 
         if (tmp) {
-            info->password = tmp+1;
             tmp[0] = 0;
-            info->password = gf_strdup(info->password);
+            info->password = gf_strdup(tmp+1);
         }
         info->userName = gf_strdup(tmp_url);
     } else {
@@ -732,7 +744,6 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
         info->server_name = gf_strdup(current_pos);
     }
 
-    gf_free(tmp_url);
     /* builds orig_url */
     /* We dont't want orig_url to contain user/passwords for security reasons or mismatch in cache hit */
     {
@@ -744,6 +755,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
         strcat(info->canonicalRepresentation, port);
         strcat(info->canonicalRepresentation, info->remotePath);
     }
+    gf_free(copyOfUrl);
     return GF_OK;
 }
 
@@ -773,7 +785,7 @@ GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, const char *url)
         const char *opt;
         sess->orig_url = gf_strdup(info.canonicalRepresentation);
         sess->remote_path = gf_strdup(info.remotePath);
-		sess->server_name = info.server_name ? gf_strdup(info.server_name) : NULL;
+	sess->server_name = info.server_name ? gf_strdup(info.server_name) : NULL;
         if (info.userName) {
             if (! sess->dm) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Did not found any download manager, credentials not supported\n"));
@@ -789,9 +801,9 @@ GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, const char *url)
                 sess->limit_data_rate = 1024 * atoi(opt) / 8;
             }
         }
-        gf_dm_url_info_del(&info);
+        
     }
-
+    gf_dm_url_info_del(&info);
     return e;
 }
 

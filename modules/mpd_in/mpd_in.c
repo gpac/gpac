@@ -1194,12 +1194,9 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
             char * title = mpdin->mpd->title;
             if (!title)
                 title = mpdin->cached[0].url;
-            if (com->info.name)
-                gf_free(com->info.name);
-
-            com->info.name = gf_strdup( title );
+            com->info.name = title;
             if (mpdin->mpd->source)
-                com->info.comment = gf_strdup(mpdin->mpd->source);
+                com->info.comment = mpdin->mpd->source;
         }
         return GF_OK;
     }
