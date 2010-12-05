@@ -182,6 +182,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 			f = gf_f64_open(name + (skip_file_url_proto ? 7 : 0), "wb");
 			fwrite(buf, 1, length, f);
 			fclose(f);
+			gf_free(buf);
 		} else {
 			if ( ((SFString *)field->far_ptr)->buffer ) gf_free( ((SFString *)field->far_ptr)->buffer);
 			((SFString *)field->far_ptr)->buffer = (char *)gf_malloc(sizeof(char)*(length+1));

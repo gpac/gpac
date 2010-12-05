@@ -346,7 +346,7 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
     char tmp[_CACHE_TMP_SIZE];
     u8 hash[_CACHE_HASH_SIZE];
     int sz;
-    char * ext;
+    char ext[_CACHE_MAX_EXTENSION_SIZE];
     DownloadedCacheEntry entry = NULL;
     if ( !dm || !url || !cache_directory) {
         GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
@@ -435,19 +435,16 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
             parser[0] = '\0';
         parser = strrchr ( tmp, '.' );
         if ( parser && ( strlen ( parser ) < _CACHE_MAX_EXTENSION_SIZE ) )
-            ext = gf_strdup(parser);
+            strncpy(ext, parser, _CACHE_MAX_EXTENSION_SIZE);
         else
-            ext = gf_strdup(default_cache_file_suffix);
-        assert (ext && strlen(ext));
-        ext = gf_strdup(ext);
+            strncpy(ext, default_cache_file_suffix, _CACHE_MAX_EXTENSION_SIZE);
+        assert (strlen(ext));
         strcat( entry->cache_filename, ext);
     }
     tmp[0] = '\0';
     strcpy( tmp, cache_file_prefix);
     strcat( tmp, entry->hash );
     strcat( tmp , ext);
-    gf_free(ext);
-    ext = NULL;
     strcat ( tmp, cache_file_info_suffix );
     entry->properties = gf_cfg_force_new ( cache_directory, tmp );
     if ( !entry->properties )
@@ -574,6 +571,7 @@ DownloadedCacheEntry gf_cache_entry_dup_readonly( const DownloadedCacheEntry ent
     ret = gf_malloc ( sizeof ( struct __DownloadedCacheEntryStruct ) );
     if (!ret)
         return NULL;
+    ret->deletableFilesOnDelete = 0;
     ret->cache_filename = entry->cache_filename ? gf_strdup( entry->cache_filename ) : NULL;
     ret->cacheSize = entry->cacheSize;
     ret->contentLength = entry->contentLength;
@@ -670,6 +668,22 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
     entry->write_mutex = NULL;
     entry->write_session = NULL;
     entry->writeFilePtr = NULL;
+    if (entry->serverETag)
+      gf_free(entry->serverETag);
+    entry->serverETag = NULL;
+    
+    if (entry->diskETag)
+      gf_free(entry->diskETag);
+    entry->diskETag = NULL;
+    
+    if (entry->serverLastModified)
+      gf_free(entry->serverLastModified);
+    entry->serverLastModified = NULL;
+    
+    if (entry->diskLastModified)
+      gf_free(entry->diskLastModified);
+    entry->diskLastModified = NULL;
+    
     if ( entry->hash )
     {
         gf_free ( entry->hash );

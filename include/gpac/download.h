@@ -59,7 +59,6 @@ extern "C" {
     typedef struct GF_URL_Info_Struct {
         const char * protocol;
         char * server_name;
-        const char * server_path;
         char * remotePath;
         char * canonicalRepresentation;
         char * userName;
