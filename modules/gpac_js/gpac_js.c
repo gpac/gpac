@@ -65,6 +65,7 @@ typedef struct
 
 	jsval evt_fun;
 	GF_TermEventFilter evt_filter;
+	GF_Event *evt;
 
 	JSContext *c;
 	JSObject *obj, *evt_obj;
@@ -506,6 +507,22 @@ static JSBool gpac_set_3d(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	return JS_TRUE;
 }
 
+static JSBool gpac_move_window(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	GF_Event evt;
+	GF_Terminal *term = gpac_get_term(c, obj);
+	if (argc < 2) return JS_TRUE;
+	if (!JSVAL_IS_INT(argv[0]) || !JSVAL_IS_INT(argv[1])) return JS_TRUE;
+	
+	evt.type = GF_EVENT_MOVE;
+	evt.move.relative = 1;
+	evt.move.x = JSVAL_TO_INT(argv[0]);
+	evt.move.y = JSVAL_TO_INT(argv[1]);
+	term->compositor->video_out->ProcessEvent(term->compositor->video_out, &evt);
+	
+	return JS_TRUE;
+}
+
 static JSBool gpac_get_scene_time(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_SceneGraph *sg = NULL;
@@ -553,7 +570,8 @@ static JSBool gpac_migrate_url(JSContext *c, JSObject *obj, uintN argc, jsval *a
 
 static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
-	GF_Event *evt = JS_GetPrivate(c, obj);
+	GF_GPACJSExt *gjs = JS_GetPrivate(c, obj);
+	GF_Event *evt = gjs->evt;
 	if (!evt) return 0;
 
 	if (JSVAL_IS_INT(id)) {
@@ -563,6 +581,18 @@ static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *
 			break;
 		case 1:
 			*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, gf_dom_get_key_name(evt->key.key_code) )); 
+			break;
+		case 2:
+			*vp = INT_TO_JSVAL(evt->mouse.x); 
+			break;
+		case 3:
+			*vp = INT_TO_JSVAL(evt->mouse.y); 
+			break;
+		case 4:
+			if (gjs->term->compositor->hit_appear) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
+			else if (gf_list_count(gjs->term->compositor->previous_sensors) ) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
+			else if (gjs->term->compositor->text_selection) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
+			else *vp = BOOLEAN_TO_JSVAL(JS_FALSE);
 			break;
 		}
 	}
@@ -575,15 +605,15 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)udta;
 	if (consumed_by_compositor) return 0;
 
+	if (gjs->evt != NULL) return 0;
 	gf_sg_lock_javascript(1);
-	if (JS_GetPrivate(gjs->c, gjs->evt_obj) != NULL) {
-		gf_sg_lock_javascript(0);
-		return 0;
-	}
-	JS_SetPrivate(gjs->c, gjs->evt_obj, evt);
+	
+	gjs->evt = evt;
+	JS_SetPrivate(gjs->c, gjs->evt_obj, gjs);
 	argv[0] = OBJECT_TO_JSVAL(gjs->evt_obj);
 	JS_CallFunctionValue(gjs->c, gjs->obj, gjs->evt_fun, 1, argv, &rval);
 	JS_SetPrivate(gjs->c, gjs->evt_obj, NULL);
+	gjs->evt = NULL;
 
 	gf_sg_lock_javascript(0);
 	return (rval==JSVAL_TO_BOOLEAN(rval)==JSVAL_TRUE) ? 1 : 0;
@@ -664,6 +694,9 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	JSPropertySpec gpacEvtClassProps[] = {
 		{"type",			 0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 		{"keycode",			 1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+		{"mouse_x",			 2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+		{"mouse_y",			 3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+		{"picked",			 4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 		{0, 0, 0, 0, 0}
 	};
 	JSFunctionSpec gpacEvtClassFuncs[] = {
@@ -684,6 +717,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		{"get_screen_height",	gpac_get_screen_height, 0, 0, 0},
 		{"exit",				gpac_exit, 0, 0, 0},
 		{"set_3d",				gpac_set_3d, 1, 0, 0},
+		{"move_window",			gpac_move_window, 2, 0, 0},
 		{"get_scene_time",		gpac_get_scene_time, 1, 0, 0},
 		{"migrate_url",			gpac_migrate_url, 1, 0, 0},
 		{"set_event_filter",	gpac_set_event_filter, 1, 0, 0},
@@ -700,6 +734,10 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		if (!gjs->nb_loaded && gjs->evt_filter.udta) {
 			gf_term_remove_event_filter(gjs->term, &gjs->evt_filter);
 		}
+		return;
+	}
+	if (gjs->nb_loaded) {
+		gjs->nb_loaded++;
 		return;
 	}
 	gjs->nb_loaded++;
