@@ -117,7 +117,7 @@
 			<DeploymentTool
 				ForceDirty="-1"
 				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
-				RegisterOutput="0"
+				RegisterOutput="-1"
 				AdditionalFiles=""
 			/>
 			<DebuggerTool
@@ -320,7 +320,7 @@
 				ForceDirty="-1"
 				RemoteDirectory="%CSIDL_PROGRAM_FILES%\gpac"
 				RegisterOutput="0"
-				AdditionalFiles="gx.dll|D:\CVS\gpac\bin\smartphone 2003 (armv4)\release|%CSIDL_PROGRAM_FILES%\gpac|0;libGLES_CM.dll|D:\CVS\gpac\bin\smartphone 2003 (armv4)\release|%CSIDL_PROGRAM_FILES%\gpac|0;js.dll|D:\CVS\gpac\bin\smartphone 2003 (armv4)\release|%CSIDL_PROGRAM_FILES%\gpac|0"
+				AdditionalFiles=""
 			/>
 			<DebuggerTool
 			/>
