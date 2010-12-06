@@ -623,7 +623,7 @@ static void svg_traverse_g(GF_Node *node, void *rs, Bool is_destroy)
 #ifdef GF_SR_USE_VIDEO_CACHE
 			group_2d_cache_traverse(node, group, tr_state);
 #else
-			group_cache_traverse(node, group->cache, tr_state, group->cache->force_recompute, 0);
+			group_cache_traverse(node, group->cache, tr_state, group->cache->force_recompute, 0, 0);
 #endif
 		} else {
 #ifdef GF_SR_USE_VIDEO_CACHE
