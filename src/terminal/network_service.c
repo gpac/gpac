@@ -625,7 +625,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		if (sPlug) sPlug = strrchr(sPlug, '"');
 		if (sPlug) {
 			sPlug += 2;
-			printf("%s:%d FOUND matching module %s\n", __FILE__, __LINE__, sPlug);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("%s:%d FOUND matching module %s\n", __FILE__, __LINE__, sPlug));
 			ifce = (GF_InputService *) gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
 			if (ifce && !net_check_interface(ifce) ) {
 				gf_modules_close_interface((GF_BaseInterface *) ifce);
@@ -923,6 +923,7 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 			evt.progress.service = szURI;
 			evt.progress.total = total_size;
 			evt.progress.done = bytes_done;
+			evt.progress.bytes_per_seconds = bytes_per_sec;
 			gf_term_send_event(serv->term, &evt);
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] %s received %d / %d\n", szURI, bytes_done, total_size));
