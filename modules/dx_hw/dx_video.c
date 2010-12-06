@@ -464,13 +464,19 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 
 	if (dd->NeedRestore) RestoreWindow(dd);
 	/*destroy all objects*/
-	DestroyObjects(dd);
+	if (dd->os_hwnd!=dd->fs_hwnd) DestroyObjects(dd);
 
 	if (dd->timer) KillTimer(dd->cur_hwnd, dd->timer);
 	dd->timer = 0;
-	ShowWindow(dd->cur_hwnd, SW_HIDE);
-	dd->cur_hwnd = dd->fullscreen ? dd->fs_hwnd : dd->os_hwnd;
-	ShowWindow(dd->cur_hwnd, SW_SHOW);
+	if (dd->os_hwnd != dd->fs_hwnd) {
+		ShowWindow(dd->cur_hwnd, SW_HIDE);
+		dd->cur_hwnd = dd->fullscreen ? dd->fs_hwnd : dd->os_hwnd;
+		ShowWindow(dd->cur_hwnd, SW_SHOW);
+	} else {
+		ShowWindow(dd->cur_hwnd, SW_HIDE);
+		SetWindowLong(dd->os_hwnd, GWL_STYLE, dd->fullscreen ? WS_POPUP : dd->backup_styles);
+		ShowWindow(dd->cur_hwnd, SW_SHOW);
+	}
 
 #ifndef GPAC_DISABLE_3D
 	if (dd->output_3d_type==1) {
@@ -500,12 +506,19 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 
 			dd->fs_store_width = dd->fs_width;
 			dd->fs_store_height = dd->fs_height;
+		} else if (dd->os_hwnd==dd->fs_hwnd) {
+			SetWindowPos(dd->os_hwnd, NULL, 0, 0, dd->store_width+dd->off_w, dd->store_height+dd->off_h, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
 		}
+
 		if (!e) e = DD_SetupOpenGL(dr, 0, 0);
 		
 	} else 
 #endif
 	{
+
+		if (!dd->fullscreen && (dd->os_hwnd==dd->fs_hwnd)) {
+			SetWindowPos(dd->os_hwnd, NULL, 0, 0, dd->width+dd->off_w, dd->height+dd->off_h, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
+		}
 		e = InitDirectDraw(dr, dd->width, dd->height);
 	}
 

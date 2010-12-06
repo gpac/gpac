@@ -504,13 +504,59 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	case WM_KEYDOWN:
 		w32_translate_key(wParam, lParam, &evt.key);
 		evt.type = ((msg==WM_SYSKEYDOWN) || (msg==WM_KEYDOWN)) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
+		if (evt.key.key_code==GF_KEY_ALT) ctx->alt_down = (evt.type==GF_EVENT_KEYDOWN) ? 1 : 0;
+		if (evt.key.key_code==GF_KEY_CONTROL) ctx->ctrl_down = (evt.type==GF_EVENT_KEYDOWN) ? 1 : 0;
+		if ((ctx->os_hwnd==ctx->fs_hwnd) && ctx->alt_down && (evt.key.key_code==GF_KEY_F4)) {
+			evt.type = GF_EVENT_QUIT;
+		}
+		else if (ctx->ctrl_down && (evt.type==GF_EVENT_KEYUP) && (evt.key.key_code==GF_KEY_V)) {
+			HGLOBAL hglbCopy;
+			if (!IsClipboardFormatAvailable(CF_TEXT)) break;
+			if (!OpenClipboard(ctx->cur_hwnd)) break;
+
+			hglbCopy = GetClipboardData(CF_TEXT);
+			if (hglbCopy) {
+				LPTSTR lptstrCopy = (char *) GlobalLock(hglbCopy);
+				evt.type = GF_EVENT_PASTE_TEXT;
+				evt.message.message = lptstrCopy;
+				ret = vout->on_event(vout->evt_cbk_hdl, &evt);
+				GlobalUnlock(hglbCopy); 
+			}
+			CloseClipboard(); 
+			break;
+		}
+		else if (ctx->ctrl_down && (evt.type==GF_EVENT_KEYUP) && (evt.key.key_code==GF_KEY_C)) {
+			evt.type = GF_EVENT_COPY_TEXT;
+			if ((vout->on_event(vout->evt_cbk_hdl, &evt)==GF_OK) && evt.message.message) {
+				u32 len;
+				HGLOBAL hglbCopy;
+				LPTSTR lptstrCopy;
+				if (!IsClipboardFormatAvailable(CF_TEXT)) break;
+				if (!OpenClipboard(ctx->cur_hwnd)) break;
+				EmptyClipboard();
+				
+				len = strlen(evt.message.message);
+				if (!len) break;
+
+				hglbCopy = GlobalAlloc(GMEM_MOVEABLE, (len + 1) * sizeof(char)); 
+				lptstrCopy = (char *) GlobalLock(hglbCopy);
+				memcpy(lptstrCopy, evt.message.message, len * sizeof(char)); 
+				lptstrCopy[len] = 0;
+				GlobalUnlock(hglbCopy); 
+				SetClipboardData(CF_TEXT, hglbCopy);
+				CloseClipboard(); 
+				break;
+			}
+		}
 		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 		break;
 
 	case WM_CHAR:
-		evt.type = GF_EVENT_TEXTINPUT;
-		evt.character.unicode_char = wParam;
-		ret = vout->on_event(vout->evt_cbk_hdl, &evt);
+		if (wParam>=32) {
+			evt.type = GF_EVENT_TEXTINPUT;
+			evt.character.unicode_char = wParam;
+			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
+		}
 		break;
 /*
 	case WM_CANCELMODE:
@@ -590,6 +636,7 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 {
 	u32 flags;
+	Bool use_fs_wnd = 1;
 #ifndef _WIN32_WCE
 	RECT rc;
 #endif
@@ -627,9 +674,17 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 #ifdef _WIN32_WCE
 		ctx->os_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC DirectDraw Output"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #else
-		styles = WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
-		styles |= ctx->windowless ? WS_POPUP : WS_OVERLAPPEDWINDOW;
+
+		if (flags & GF_TERM_WINDOW_NO_DECORATION) {
+			styles = WS_POPUP | WS_THICKFRAME;
+		} else if (ctx->windowless) {
+			styles = WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_POPUP;
+		} else {
+			styles = WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_OVERLAPPEDWINDOW;
+		}
+		use_fs_wnd=0;
 		ctx->os_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", styles, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+		ctx->backup_styles = styles;
 #endif
 		if (ctx->os_hwnd == NULL) {
 			return 0;
@@ -648,7 +703,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 #else
 		rc.left = rc.top = 0;
 		rc.right = rc.bottom = 100;
-		AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, 0);
+		AdjustWindowRect(&rc, styles, 0);
 		ctx->off_w = rc.right - rc.left - 100;
 		ctx->off_h = rc.bottom - rc.top - 100;
 #endif
@@ -657,23 +712,27 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 		if (ctx->windowless) SetWindowless(vout, ctx->os_hwnd);
 	}
 
+	if (use_fs_wnd) {
 #ifdef _WIN32_WCE
-	ctx->fs_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC DirectDraw FS Output"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+		ctx->fs_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC DirectDraw FS Output"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #else
-	ctx->fs_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+		ctx->fs_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #endif
-	if (!ctx->fs_hwnd) {
-		return 0;
-	}
-	ShowWindow(ctx->fs_hwnd, SW_HIDE);
+		if (!ctx->fs_hwnd) {
+			return 0;
+		}
+		ShowWindow(ctx->fs_hwnd, SW_HIDE);
 
+		SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) vout);
+	} else {
+		ctx->fs_hwnd = ctx->os_hwnd;
+	}
 	
 	/*if visible set focus*/
 	if (!ctx->switch_res) SetFocus(ctx->os_hwnd);
 
 	ctx->switch_res = 0;
 	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) vout);
-	SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) vout);
 
 	/*load cursors*/
 	ctx->curs_normal = LoadCursor(NULL, IDC_ARROW);
@@ -747,7 +806,12 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 		ctx->orig_wnd_proc = 0L;
 	}
 
-	dd_closewindow(ctx->fs_hwnd);
+	if (ctx->fs_hwnd != ctx->os_hwnd) {
+		dd_closewindow(ctx->fs_hwnd);
+		SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) NULL);
+		SetWindowLong(ctx->fs_hwnd, GWL_WNDPROC, (DWORD) DefWindowProc);
+	}
+
 #ifndef GPAC_DISABLE_3D
 	if (ctx->gl_hwnd) dd_closewindow(ctx->gl_hwnd);
 #endif
@@ -763,8 +827,6 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 	/*special care for Firefox: the windows created by our NP plugin may still be called
 	after the shutdown of the plugin !!*/
 	SetWindowLong(ctx->os_hwnd, GWL_USERDATA, (LONG) NULL);
-	SetWindowLong(ctx->fs_hwnd, GWL_USERDATA, (LONG) NULL);
-	SetWindowLong(ctx->fs_hwnd, GWL_WNDPROC, (DWORD) DefWindowProc);
 
 #ifdef _WIN32_WCE
 	UnregisterClass(_T("GPAC DirectDraw Output"), GetModuleHandle(_T("gm_dx_hw.dll")) );
@@ -814,6 +876,17 @@ HWND DD_GetGlobalHWND()
 	if (!the_video_output) return NULL;
 	return ((DDContext*)the_video_output->opaque)->os_hwnd;
 }
+
+u32 get_sys_col(int idx)
+{
+	u32 res;
+	DWORD val = GetSysColor(idx);
+	res = (val)&0xFF; res<<=8;
+	res |= (val>>8)&0xFF; res<<=8;
+	res |= (val>>16)&0xFF;
+	return res;
+}
+
 
 /*Note: all calls to SetWindowPos are made in a non-blocking way using SWP_ASYNCWINDOWPOS. This avoids deadlocks
 when the compositor request a size change and the DX window thread has grabbed the main compositor mutex. 
@@ -911,6 +984,36 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 			return GF_NOT_SUPPORTED;
 #endif
 		}
+	case GF_EVENT_SYS_COLORS:
+		evt->sys_cols.sys_colors[0] = get_sys_col(COLOR_ACTIVEBORDER);
+		evt->sys_cols.sys_colors[1] = get_sys_col(COLOR_ACTIVECAPTION);
+		evt->sys_cols.sys_colors[2] = get_sys_col(COLOR_APPWORKSPACE);
+		evt->sys_cols.sys_colors[3] = get_sys_col(COLOR_BACKGROUND);
+		evt->sys_cols.sys_colors[4] = get_sys_col(COLOR_BTNFACE);
+		evt->sys_cols.sys_colors[5] = get_sys_col(COLOR_BTNHIGHLIGHT);
+		evt->sys_cols.sys_colors[6] = get_sys_col(COLOR_BTNSHADOW);
+		evt->sys_cols.sys_colors[7] = get_sys_col(COLOR_BTNTEXT);
+		evt->sys_cols.sys_colors[8] = get_sys_col(COLOR_CAPTIONTEXT);
+		evt->sys_cols.sys_colors[9] = get_sys_col(COLOR_GRAYTEXT);
+		evt->sys_cols.sys_colors[10] = get_sys_col(COLOR_HIGHLIGHT);
+		evt->sys_cols.sys_colors[11] = get_sys_col(COLOR_HIGHLIGHTTEXT);
+		evt->sys_cols.sys_colors[12] = get_sys_col(COLOR_INACTIVEBORDER);
+		evt->sys_cols.sys_colors[13] = get_sys_col(COLOR_INACTIVECAPTION);
+		evt->sys_cols.sys_colors[14] = get_sys_col(COLOR_INACTIVECAPTIONTEXT);
+		evt->sys_cols.sys_colors[15] = get_sys_col(COLOR_INFOBK);
+		evt->sys_cols.sys_colors[16] = get_sys_col(COLOR_INFOTEXT);
+		evt->sys_cols.sys_colors[17] = get_sys_col(COLOR_MENU);
+		evt->sys_cols.sys_colors[18] = get_sys_col(COLOR_MENUTEXT);
+		evt->sys_cols.sys_colors[19] = get_sys_col(COLOR_SCROLLBAR);
+		evt->sys_cols.sys_colors[20] = get_sys_col(COLOR_3DDKSHADOW);
+		evt->sys_cols.sys_colors[21] = get_sys_col(COLOR_3DFACE);
+		evt->sys_cols.sys_colors[22] = get_sys_col(COLOR_3DHIGHLIGHT);
+		evt->sys_cols.sys_colors[23] = get_sys_col(COLOR_3DLIGHT);
+		evt->sys_cols.sys_colors[24] = get_sys_col(COLOR_3DSHADOW);
+		evt->sys_cols.sys_colors[25] = get_sys_col(COLOR_WINDOW);
+		evt->sys_cols.sys_colors[26] = get_sys_col(COLOR_WINDOWFRAME);
+		evt->sys_cols.sys_colors[27] = get_sys_col(COLOR_WINDOWTEXT);
+		return GF_OK;
 	}
 	return GF_OK;
 }
