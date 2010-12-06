@@ -26,7 +26,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#undef _DEBUG
+#undef DEBUG
+
 #include <gpac/list.h>
+
 
 #include <time.h>
 
@@ -1570,8 +1574,112 @@ void parse_profile(GF_List *nodes, FILE *prof)
 	}
 }
 
+char *format_bit_string(char *str, u32 val, u32 nb_bits)
+{
+	u32 i, len;
+	strcpy(str, "");
+	while (nb_bits) {
+		strcat(str, (val%2) ? "1" : "0");
+		val>>=1;
+		nb_bits--;
+	}
+	len = strlen(str);
+	for (i=0; i<len/2; i++) {
+		char c = str[i];
+		str[i] = str[len-i-1];
+		str[len-i-1]=c;
+	}
+	return str;
+}
+
+u32 get_nb_bits(u32 MaxVal)
+{
+	u32 k=1;
+	if (!MaxVal) return 0;
+	MaxVal--;
+	while (MaxVal > ((1<<k)-1) ) k+=1;
+	return k;
+}
+
+void generate_ndts(GF_List *NDTs, GF_List *nodes, u32 nbVersion)
+{
+	u32 nb_nodes, nb_ndt, i, j, k, nb_bits, idx, l;
+	char szStr[100];
+	nb_ndt = gf_list_count(NDTs);
+	nb_nodes = gf_list_count(nodes);
+	for (i=0; i<nbVersion;i++) {
+		char szFile[100];
+		FILE *f;
+		sprintf(szFile, "NdtListV%d.html", i+1);
+		f = fopen(szFile, "wt");
+
+		fprintf(f, "<html>\n"\
+"<head>\n"\
+"<meta name=\"Author\" content=\"Jean Le Feuvre - GPAC %s\">\n"\
+"<title>NdtListV%d.html</title>\n"\
+"</head>\n"\
+"<body>\n"\
+"<title>Node Coding Tables for BIFS Version %d group</title>\n"
+		,GPAC_FULL_VERSION, i+1, i+1);
+
+		for (j=0; j<nb_ndt; j++) {
+			u32 nb_in_ndt = 0;
+			char *ndt = gf_list_get(NDTs, j);
+			for (k=0;k<nb_nodes;k++) {
+				BNode *n = gf_list_get(nodes, k);
+				if (n->version != i+1) continue;
+				if (!IsNodeInTable(n, ndt)) continue;
+				nb_in_ndt ++;
+			}
+
+			if (!nb_in_ndt) continue;
+
+			fprintf(f, "<BR><a name=\"%s\">\n"\
+"<TABLE BORDER COLS=\"10\" CELLSPACING=\"0\" WIDTH=\"100%%\">\n"\
+"<TD COLSPAN=\"2\" width=\"200\"><B>%s</B></TD>\n"\
+"<TD COLSPAN=\"4\"><B>%u nodes</B></TD>\n", ndt, ndt, nb_in_ndt);
+
+			nb_bits = GetBitsCount(nb_in_ndt);
+			fprintf(f, "<TR><TD>reserved</TD><TD><P align=CENTER>%s</TD><TD><P align=RIGHT>&nbsp;</TD><TD><P align=RIGHT>&nbsp;</TD><TD><P align=RIGHT>&nbsp;</TD><TD><P align=RIGHT>&nbsp;</TD></TR>\n", format_bit_string(szStr, 0, nb_bits));
+
+			idx = 1;
+			for (k=0;k<nb_nodes;k++) {
+				BNode *n = gf_list_get(nodes, k);
+				if (n->version != i+1) continue;
+				if (!IsNodeInTable(n, ndt)) continue;
+
+
+				n->hasDef = n->hasIn = n->hasOut = n->hasDyn = 0;
+				for (l=0;l<gf_list_count(n->Fields); l++) {
+					BField *bf = gf_list_get(n->Fields, l);
+					if (!strcmp(bf->type, "field") || !strcmp(bf->type, "exposedField")) {
+						n->hasDef += 1;
+					}
+					if (!strcmp(bf->type, "eventIn") || !strcmp(bf->type, "exposedField")) {
+						n->hasIn += 1;
+						//check for anim
+						if (bf->hasAnim) n->hasDyn += 1;
+					}
+					if (!strcmp(bf->type, "eventOut") || !strcmp(bf->type, "exposedField")) {
+						n->hasOut += 1;
+					}
+				}
+
+				fprintf(f, "<TR><TD>%s</TD><TD><P align=CENTER>%s</TD><TD><P align=RIGHT>%d DEF bits</TD><TD><P align=RIGHT>%d IN bits</TD><TD><P align=RIGHT>%d OUT bits</TD><TD><P align=RIGHT>%d DYN bits</TD></TR>\n", n->name, format_bit_string(szStr, idx, nb_bits), get_nb_bits(n->hasDef), get_nb_bits(n->hasIn), get_nb_bits(n->hasOut), get_nb_bits(n->hasDyn));
+				idx++;
+			}
+
+			fprintf(f, "</TABLE>\n");
+		}
+		fclose(f);
+	}
+
+}
+
 int main (int argc, char **argv)
 {
+	Bool generate_ndt = 0;
+	char szTempFile[1024];
 	FILE *nodes, *ndt_c, *ndt_h, *fskip;
 	GF_List *BNodes, *NDTs;
 	u32 i, j, nbVersion;
@@ -1590,7 +1698,9 @@ int main (int argc, char **argv)
 
 	fskip = NULL;
 	i=1;
-	if (argv[i][0]=='-') {
+	if (!strcmp(argv[i], "-ndt")) {
+		generate_ndt = 1;
+	} else if (argv[i][0]=='-') {
 		fskip = fopen(argv[i+1], "rt");
 		if (!fskip) {
 			printf("file %s not found\n", argv[i+1]);
@@ -1598,9 +1708,16 @@ int main (int argc, char **argv)
 		}
 		i+=2;
 	}
-	nbVersion = 1;
-	for (; i<(u32)argc; i++) {
-		nodes = fopen(argv[i], "rt");
+	nbVersion=1;
+	while (1) {
+		sprintf(szTempFile, "templates%u.txt", nbVersion);
+		nodes = fopen(szTempFile, "rt");
+		if (!nodes) {
+			sprintf(szTempFile, "template%u.txt", nbVersion);
+			nodes = fopen(szTempFile, "rt");
+		}
+		if (!nodes) break;
+
 		//all nodes are in the same list but we keep version info
 		ParseTemplateFile(nodes, BNodes, NDTs, nbVersion);
 		
@@ -1612,7 +1729,12 @@ int main (int argc, char **argv)
 	}
 	nbVersion--;
 	printf("BIFS tables parsed: %d versions\n", nbVersion);
-	
+
+	if (generate_ndt) {
+		generate_ndts(NDTs, BNodes, nbVersion);
+		goto exit;
+	}
+
 	if (fskip) {
 		parse_profile(BNodes, fskip);
 		fclose(fskip);
@@ -1691,6 +1813,8 @@ int main (int argc, char **argv)
 	EndFile(ndt_h, "NDT", 0);
 	EndFile(ndt_c, "", 1);
 	
+
+exit:
 	//free NDTs
 	while (gf_list_count(NDTs)) {
 		char *tmp = gf_list_get(NDTs, 0);
