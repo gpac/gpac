@@ -1375,7 +1375,9 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #endif
 
 char * gf_get_default_cache_directory(){  
-#ifdef WIN32
+#ifdef _WIN32_WCE
+  return gf_strdup( "\\windows\\temp" );
+#elif defined(WIN32)
   char szPath[512];
   GetWindowsDirectory(szPath, 507);
   if (szPath[strlen(szPath)-1] != '\\')
