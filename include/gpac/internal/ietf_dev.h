@@ -195,11 +195,12 @@ void gf_rtp_get_next_report_time(GF_RTPChannel *ch);
 	}	\
 		
 #define RTSP_WRITE_HEADER(buf, buf_size, pos, type, str)		\
-	assert( str );	\
+	if( str ) {	\
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, type);		\
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, ": ");		\
 	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, str);		\
-	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, "\r\n");		
+	RTSP_WRITE_ALLOC_STR(buf, buf_size, pos, "\r\n");	\
+	}	\
 
 #define RTSP_WRITE_INT(buf, buf_size, pos, d, sig)		\
 	if (sig < 0) { \
