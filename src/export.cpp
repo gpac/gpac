@@ -266,6 +266,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_entry_dup_readonly) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_cache_filename_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_delete_cached_file_entry_session) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_url_info_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_url_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_url_info_init) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_abort) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_can_be_cached_on_disk) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_xml_sax_init) )
