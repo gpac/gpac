@@ -721,7 +721,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
     tmp = strrchr(tmp_url, '@');
     if (tmp) {
         current_pos = tmp + 1;
-
+	assert( ! info->server_name );
         info->server_name = gf_strdup(current_pos);
         tmp[0] = 0;
         tmp = strchr(tmp_url, ':');
@@ -732,6 +732,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
         }
         info->userName = gf_strdup(tmp_url);
     } else {
+	assert( ! info->server_name );
         info->server_name = gf_strdup(tmp_url);
     }
 

@@ -1333,10 +1333,13 @@ void X11_Shutdown (struct _video_out *vout)
 	if (xWindow->output_3d_mode==1) {
 #ifdef GPAC_HAS_OPENGL
 		X11_ReleaseGL(xWindow);
-#endif
 	} else {
 		X11_ReleaseBackBuffer (vout);
 	}
+	if (xWindow->glx_visualinfo)
+	  XFree(xWindow->glx_visualinfo);
+	xWindow->glx_visualinfo = NULL;
+#endif
 	XFreeGC (xWindow->display, xWindow->the_gc);
 	XUnmapWindow (xWindow->display, (Window) xWindow->wnd);
 	XDestroyWindow (xWindow->display, (Window) xWindow->wnd);
