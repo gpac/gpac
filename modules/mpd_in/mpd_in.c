@@ -379,6 +379,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
                 mpdin->reload_count++;
                 mpdin->mpd->min_update_time = oldUpdateTime;
             } else {
+				GF_MPD_SegmentInfo *info1;
                 mpdin->reload_count = 0;
                 memccpy(mpdin->lastMPDSignature, signature, sizeof(char), sizeof(mpdin->lastMPDSignature));
 
@@ -416,7 +417,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
                 }
 
                 rep = gf_list_get(period->representations, mpdin->active_rep_index);
-                GF_MPD_SegmentInfo *info1 = gf_list_get(rep->segments, mpdin->download_segment_index - 1);
+                info1 = gf_list_get(rep->segments, mpdin->download_segment_index - 1);
 
                 for (rep_idx = 0; rep_idx<gf_list_count(period->representations); rep_idx++) {
                     rep = gf_list_get(period->representations, rep_idx);
@@ -599,55 +600,53 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         gf_free(base_init_url);
         return e;
     } else {
+		const char * mime;
         GF_MPD_Representation *rep = gf_list_get(period->representations, mpdin->active_rep_index);
-
-        {
-            u32 count = gf_list_count(rep->segments) + 1;
-            if (count < mpdin->max_cached) {
-                if (count < 1) {
-                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] 0 representations, aborting\n"));
-                    gf_free(base_init_url);
-                    return GF_BAD_PARAM;
-                }
-                GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Resizing to %u max_cached elements instead of %u.\n", count, mpdin->max_cached));
-                /* OK, we have a problem, it may ends download */
-                mpdin->max_cached = count;
-            }
-        }
-
-        e = gf_dm_sess_process(mpdin->seg_dnload);
-        {
-            /* Mime-Type check */
-            const char * mime = gf_dm_sess_mime_type(mpdin->seg_dnload);
-            if (!mime || (stricmp(mime, rep->mime) && stricmp("video/mpeg", mime))) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, base_init_url, rep->mime));
+        u32 count = gf_list_count(rep->segments) + 1;
+        if (count < mpdin->max_cached) {
+            if (count < 1) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] 0 representations, aborting\n"));
                 gf_free(base_init_url);
-                base_init_url = NULL;
                 return GF_BAD_PARAM;
             }
+            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Resizing to %u max_cached elements instead of %u.\n", count, mpdin->max_cached));
+            /* OK, we have a problem, it may ends download */
+            mpdin->max_cached = count;
         }
-	if (mpdin->segment_must_be_streamed ){
-	    mpdin->seg_local_url = gf_dm_sess_get_resource_name(mpdin->seg_dnload);
-	    e = GF_OK;
-	} else {
-	  mpdin->seg_local_url = rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload);
-	}
-        if ((e!=GF_OK) || !mpdin->seg_local_url) {
+        e = gf_dm_sess_process(mpdin->seg_dnload);
+        /* Mime-Type check */
+        mime = gf_dm_sess_mime_type(mpdin->seg_dnload);
+        if (!mime || (stricmp(mime, rep->mime) && stricmp("video/mpeg", mime))) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, base_init_url, rep->mime));
+            gf_free(base_init_url);
+            base_init_url = NULL;
+            return GF_BAD_PARAM;
+        }
+		if (mpdin->segment_must_be_streamed ){
+			mpdin->seg_local_url = gf_dm_sess_get_resource_name(mpdin->seg_dnload);
+			e = GF_OK;
+		} else {
+		  mpdin->seg_local_url = rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload);
+		}
+
+		if ((e!=GF_OK) || !mpdin->seg_local_url) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error with initialization segment: download result:%s, cache file:%s\n", gf_error_to_string(e), mpdin->seg_local_url));
             gf_free(base_init_url);
             return GF_BAD_PARAM;
         } else {
-            gf_mx_p(mpdin->dl_mutex);
+#ifndef DONT_USE_TERMINAL_MODULE_API
+            GF_NetworkCommand com;
+#endif
+			gf_mx_p(mpdin->dl_mutex);
             assert(!mpdin->nb_cached);
             mpdin->cached[0].cache = gf_strdup(mpdin->seg_local_url);
             mpdin->cached[0].url = gf_strdup(gf_dm_sess_get_resource_name(mpdin->seg_dnload));
             mpdin->nb_cached = 1;
-	    mpdin->download_segment_index = firstSegment;
+			mpdin->download_segment_index = firstSegment;
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Adding initialization segment %s to cache: %s\n", mpdin->seg_local_url, mpdin->cached[0].url ));
             gf_mx_v(mpdin->dl_mutex);
-	    gf_free(base_init_url);
+			gf_free(base_init_url);
 #ifndef DONT_USE_TERMINAL_MODULE_API
-            GF_NetworkCommand com;
             com.base.command_type = GF_NET_SERVICE_INFO;
             gf_term_on_command(mpdin->service, &com, GF_OK);
 #endif
