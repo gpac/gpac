@@ -2440,7 +2440,6 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
                 return NULL;
             }
             do {
-
                 read = fread(copyBuff, sizeof(char), MIN(8192, total), fr);
                 if (read > 0) {
                     total-= read;
