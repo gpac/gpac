@@ -105,6 +105,10 @@ void MS_Modified(GF_Node *node)
 			gf_list_del_item(st->stream->odm->ms_stack, st);
 
 		gf_mo_unregister(node, st->stream);
+		if (st->sensor->isActive) {
+			st->sensor->isActive = 0;
+			gf_node_event_out_str((GF_Node *) st->sensor, "isActive");
+		}
 	}
 	st->stream = gf_mo_register(node, &st->sensor->url, 0, 0);
 	st->is_init = 0;
