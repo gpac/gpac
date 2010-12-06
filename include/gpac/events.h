@@ -182,6 +182,13 @@ enum {
 		due to discard all openGL textures and cached objects)
 	*/
 	GF_EVENT_VIDEO_SETUP,
+	/*queries the list of system colors - only exchanged between compositor and video output*/
+	GF_EVENT_SYS_COLORS,
+
+	/*indicates some text has been pasted - from video output to compositor only*/
+	GF_EVENT_PASTE_TEXT,
+	/*queries for text to be copied - from video output to compositor only*/
+	GF_EVENT_COPY_TEXT,
 
 	/*terminal events*/
 	GF_EVENT_CONNECT,	/*signal URL is connected*/
@@ -197,7 +204,6 @@ enum {
 	GF_EVENT_METADATA, /*indicates a change in associated metadata*/
 	GF_EVENT_MIGRATE, /*indicates a session migration request*/
 	GF_EVENT_DISCONNECT, /*indicates the current url should be disconnected*/
-	GF_EVENT_SYS_COLORS,	/*queries the list of system colors*/
 	GF_EVENT_RESOLUTION, /*indicates the screen resolution has changed*/
 };
 

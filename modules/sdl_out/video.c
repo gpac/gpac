@@ -897,6 +897,19 @@ static void SDLVid_SetCursor(GF_VideoOutput *dr, u32 cursor_type)
 	}
 }
 
+
+#ifdef WIN32
+u32 get_sys_col(int idx)
+{
+	u32 res;
+	DWORD val = GetSysColor(idx);
+	res = (val)&0xFF; res<<=8;
+	res |= (val>>8)&0xFF; res<<=8;
+	res |= (val>>16)&0xFF;
+	return res;
+}
+#endif
+
 static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
 	if (!evt) {
@@ -937,6 +950,40 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		}
 	}
 		break;
+	case GF_EVENT_SYS_COLORS:
+#ifdef WIN32
+		evt->sys_cols.sys_colors[0] = get_sys_col(COLOR_ACTIVEBORDER);
+		evt->sys_cols.sys_colors[1] = get_sys_col(COLOR_ACTIVECAPTION);
+		evt->sys_cols.sys_colors[2] = get_sys_col(COLOR_APPWORKSPACE);
+		evt->sys_cols.sys_colors[3] = get_sys_col(COLOR_BACKGROUND);
+		evt->sys_cols.sys_colors[4] = get_sys_col(COLOR_BTNFACE);
+		evt->sys_cols.sys_colors[5] = get_sys_col(COLOR_BTNHIGHLIGHT);
+		evt->sys_cols.sys_colors[6] = get_sys_col(COLOR_BTNSHADOW);
+		evt->sys_cols.sys_colors[7] = get_sys_col(COLOR_BTNTEXT);
+		evt->sys_cols.sys_colors[8] = get_sys_col(COLOR_CAPTIONTEXT);
+		evt->sys_cols.sys_colors[9] = get_sys_col(COLOR_GRAYTEXT);
+		evt->sys_cols.sys_colors[10] = get_sys_col(COLOR_HIGHLIGHT);
+		evt->sys_cols.sys_colors[11] = get_sys_col(COLOR_HIGHLIGHTTEXT);
+		evt->sys_cols.sys_colors[12] = get_sys_col(COLOR_INACTIVEBORDER);
+		evt->sys_cols.sys_colors[13] = get_sys_col(COLOR_INACTIVECAPTION);
+		evt->sys_cols.sys_colors[14] = get_sys_col(COLOR_INACTIVECAPTIONTEXT);
+		evt->sys_cols.sys_colors[15] = get_sys_col(COLOR_INFOBK);
+		evt->sys_cols.sys_colors[16] = get_sys_col(COLOR_INFOTEXT);
+		evt->sys_cols.sys_colors[17] = get_sys_col(COLOR_MENU);
+		evt->sys_cols.sys_colors[18] = get_sys_col(COLOR_MENUTEXT);
+		evt->sys_cols.sys_colors[19] = get_sys_col(COLOR_SCROLLBAR);
+		evt->sys_cols.sys_colors[20] = get_sys_col(COLOR_3DDKSHADOW);
+		evt->sys_cols.sys_colors[21] = get_sys_col(COLOR_3DFACE);
+		evt->sys_cols.sys_colors[22] = get_sys_col(COLOR_3DHIGHLIGHT);
+		evt->sys_cols.sys_colors[23] = get_sys_col(COLOR_3DLIGHT);
+		evt->sys_cols.sys_colors[24] = get_sys_col(COLOR_3DSHADOW);
+		evt->sys_cols.sys_colors[25] = get_sys_col(COLOR_WINDOW);
+		evt->sys_cols.sys_colors[26] = get_sys_col(COLOR_WINDOWFRAME);
+		evt->sys_cols.sys_colors[27] = get_sys_col(COLOR_WINDOWTEXT);
+		return GF_OK;
+#else
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 	return GF_OK;
 }
