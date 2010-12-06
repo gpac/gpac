@@ -218,6 +218,44 @@ void GF_UPnP::ContainerChanged(PLT_DeviceDataReference& device, const char *item
 {
 }
 
+void GF_UPnP::onTimeChanged(s32 renderer_idx, Double time)
+{
+	if (m_renderer_bound) {
+#ifdef GPAC_HAS_SPIDERMONKEY
+		jsval funval, rval;
+		if (!m_pJSCtx) return;
+		LockJavascript(1);
+		JS_LookupProperty(m_pJSCtx, m_pObj, "onMediaTimeChanged", &funval);
+		if (JSVAL_IS_OBJECT(funval)) {
+			jsval argv[2];
+			argv[0] = INT_TO_JSVAL( renderer_idx);
+			argv[1] = DOUBLE_TO_JSVAL( JS_NewDouble(m_pJSCtx, time) );
+			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 2, argv, &rval);
+		}
+		LockJavascript(0);
+	}
+#endif
+}
+
+void GF_UPnP::onDurationChanged(s32 renderer_idx, Double dur)
+{
+	if (m_renderer_bound) {
+#ifdef GPAC_HAS_SPIDERMONKEY
+		jsval funval, rval;
+		if (!m_pJSCtx) return;
+		LockJavascript(1);
+		JS_LookupProperty(m_pJSCtx, m_pObj, "onMediaDurationChanged", &funval);
+		if (JSVAL_IS_OBJECT(funval)) {
+			jsval argv[2];
+			argv[0] = INT_TO_JSVAL( renderer_idx);
+			argv[1] = DOUBLE_TO_JSVAL( JS_NewDouble(m_pJSCtx, dur) );
+			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 2, argv, &rval);
+		}
+		LockJavascript(0);
+	}
+#endif
+}
+
 
 Bool GF_UPnP::ProcessEvent(GF_Event *evt)
 {

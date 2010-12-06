@@ -97,6 +97,8 @@ public:
 	void OnStop(const char *src_url);
 	void OnSeek(Double time);
 	void OnSetPlayMode(const char *src_url);
+	void onDurationChanged(s32 renderer_idx, Double dur);
+	void onTimeChanged(s32 renderer_idx, Double time);
 	void ContainerChanged(PLT_DeviceDataReference& device, const char *item_id, const char *update_id);
 	NPT_String OnMigrate();
 
