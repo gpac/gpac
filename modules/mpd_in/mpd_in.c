@@ -93,7 +93,7 @@ typedef struct __mpd_module {
     GF_InputService *seg_ifce;
 
     u32 reload_count;
-    u32 last_update_time;
+    volatile u32 last_update_time;
 
     u32 nb_segs_done;
     Bool auto_switch;
@@ -685,14 +685,16 @@ static u32 download_segments(void *par)
     while (1) {
         /*wait until next segment is needed*/
         while (!mpdin->dl_stop_request && (mpdin->nb_cached==mpdin->max_cached)) {
-            if (mpdin->mpd->min_update_time && (gf_sys_clock() - mpdin->last_update_time > mpdin->mpd->min_update_time)) {
-                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Next segment in cache, but it is time to update the playlist\n"));
+	    u32 timer = gf_sys_clock() - mpdin->last_update_time;
+            if (mpdin->mpd->min_update_time && (timer > mpdin->mpd->min_update_time)) {
+                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Next segment in cache, but it is time to update the playlist (%u ms/%u)\n", timer, mpdin->mpd->min_update_time));
                 e = MPD_UpdatePlaylist(mpdin);
                 if (e) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error updating MDP %s\n", gf_error_to_string(e)));
                 }
-            }
-            gf_sleep(16);
+            } else {
+	      gf_sleep(16);
+	    }
         }
 
         /* stop the thread if requested */
@@ -713,16 +715,19 @@ static u32 download_segments(void *par)
         /* if the index of the segment to be downloaded is greater or equal to the last segment (as seen in the playlist),
            we need to check if a new playlist is ready */
         if (mpdin->download_segment_index>=gf_list_count(rep->segments)) {
+	    u32 timer = gf_sys_clock() - mpdin->last_update_time;
             /* update of the playlist, only if indicated */
-            if (mpdin->mpd->min_update_time) {
-                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Last segment in current playlist downloaded, checking updates\n"));
+            if (mpdin->mpd->min_update_time && timer > mpdin->mpd->min_update_time) {
+                GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Last segment in current playlist downloaded, checking updates after %u ms\n", timer));
                 e = MPD_UpdatePlaylist(mpdin);
                 if (e) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error updating MDP %s\n", gf_error_to_string(e)));
                 }
                 period = gf_list_get(mpdin->mpd->periods, mpdin->active_period_index);
                 rep = gf_list_get(period->representations, mpdin->active_rep_index);
-            }
+            } else {
+	      gf_sleep(16);
+	    }
             /* Now that the playlist is up to date, we can check again */
             if (mpdin->download_segment_index>=gf_list_count(rep->segments)) {
                 mpdin->in_download=0;
@@ -756,10 +761,9 @@ static u32 download_segments(void *par)
 								gf_dm_sess_get_resource_name(mpdin->seg_dnload) :
 								(rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload)));
             mpdin->cached[mpdin->nb_cached].url = gf_strdup( gf_dm_sess_get_resource_name(mpdin->seg_dnload));
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n", mpdin->cached[mpdin->nb_cached].url, mpdin->cached[mpdin->nb_cached].cache));
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n\tElements in cache: %u/%u\n", mpdin->cached[mpdin->nb_cached].url, mpdin->cached[mpdin->nb_cached].cache, mpdin->nb_cached+1, mpdin->max_cached));
             mpdin->nb_cached++;
             gf_mx_v(mpdin->dl_mutex);
-
             mpdin->download_segment_index++;
             if (mpdin->auto_switch) {
                 mpdin->nb_segs_done++;
@@ -883,7 +887,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
             if (timer2 > 500) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] We were stuck waiting for download to end during too much time : %u ms !\n", timer2));
             }
-            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to \n\tURL: %s in %u ms\n\tCache: %s\n\tElements in cache: %u/%u\n", mpdin->cached[0].url, timer2, mpdin->cached[0].cache, mpdin->nb_cached, mpdin->max_cached-1));
+            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to \n\tURL: %s in %u ms\n\tCache: %s\n\tElements in cache: %u/%u\n", mpdin->cached[0].url, timer2, mpdin->cached[0].cache, mpdin->nb_cached+1, mpdin->max_cached));
         }
     } else {
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Client Query request (%d) from terminal\n", param->command_type));
@@ -1043,10 +1047,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     mpdin->max_cached = 0;
     mpdin->urlToDeleteNext = NULL;
     opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "MaxCachedSegments");
-    if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "MaxCachedSegments", "3");
+    if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "MaxCachedSegments", "5");
     if (opt) mpdin->option_max_cached = atoi(opt);
-    if (mpdin->option_max_cached < 2)
-        mpdin->option_max_cached = 2;
+    if (mpdin->option_max_cached < 3)
+        mpdin->option_max_cached = 3;
     mpdin->max_cached = mpdin->option_max_cached;
     mpdin->cached = gf_malloc(sizeof(segment_cache_entry)*mpdin->max_cached);
     memset(mpdin->cached, 0, sizeof(segment_cache_entry)*mpdin->max_cached);

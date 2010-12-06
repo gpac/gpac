@@ -2428,7 +2428,7 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
         }
         /* Now, we copy ! */
         {
-            char copyBuff[8192];
+            char copyBuff[GF_DOWNLOAD_BUFFER_SIZE];
             s64 read, write, total;
             total = endOffset - startOffset;
             read = gf_f64_seek(fr, startOffset, SEEK_SET);
@@ -2440,7 +2440,7 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
                 return NULL;
             }
             do {
-                read = fread(copyBuff, sizeof(char), MIN(8192, total), fr);
+                read = fread(copyBuff, sizeof(char), MIN(sizeof(copyBuff), total), fr);
                 if (read > 0) {
                     total-= read;
                     write = fwrite(copyBuff, sizeof(char), read, fw);
