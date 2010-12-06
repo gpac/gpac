@@ -68,6 +68,7 @@ static Bool exec_text_selection(GF_Compositor *compositor, GF_Event *event)
 
 static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 {
+	Bool signal;
 	u8 *txt;
 	u32 len;
 	if (!compositor->edited_text) return;
@@ -91,9 +92,16 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 		*compositor->edited_text = gf_strdup(txt);
 		gf_free(txt);
 	}
-	gf_node_dirty_set(compositor->focus_node, 0, (compositor->focus_text_type==2));
-	gf_node_set_private(compositor->focus_highlight->node, NULL);
+
+	signal = final_flush;
+	if ((compositor->focus_text_type==4) && (final_flush==1)) signal = 0;
+
+	gf_node_dirty_set(compositor->focus_node, 0, 1);
+	//(compositor->focus_text_type==2));
 	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+	/*notify compositor that text has been edited, in order to update composite textures*/
+	//compositor->text_edit_changed = 1;
+	gf_node_set_private(compositor->focus_highlight->node, NULL);
 
 	if (final_flush) {
 		GF_FieldInfo info;
@@ -102,14 +110,15 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 		compositor->sel_buffer_len = compositor->sel_buffer_alloc = 0;
 		compositor->edited_text = NULL;
 
-		memset(&info, 0, sizeof(GF_FieldInfo));
-		info.fieldIndex = (u32) -1;
-		if (compositor->focus_text_type>=3) {
-			gf_node_get_field(compositor->focus_node, 0, &info);
-			gf_node_event_out(compositor->focus_node, 0);
-		}			
-		gf_node_changed(compositor->focus_node, &info);
-
+		if (signal) {
+			memset(&info, 0, sizeof(GF_FieldInfo));
+			info.fieldIndex = (u32) -1;
+			if (compositor->focus_text_type>=3) {
+				gf_node_get_field(compositor->focus_node, 0, &info);
+				gf_node_event_out(compositor->focus_node, 0);
+			}			
+			gf_node_changed(compositor->focus_node, &info);
+		}
 	}
 }
 
@@ -203,6 +212,13 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 			compositor->dom_text_pos = 1+compositor->picked_span_idx;
 			compositor->picked_span_idx = -1;
 		}
+		/*take care of loading empty text nodes*/
+		if (!mf->count) {
+			mf->count = 1;
+			mf->vals = gf_malloc(sizeof(char*));
+			mf->vals[0] = gf_strdup("");
+		}		
+		if (!mf->vals[0]) mf->vals[0] = gf_strdup("");
 
 		if (!compositor->dom_text_pos || (compositor->dom_text_pos>mf->count)) {
 			compositor->dom_text_pos = prev_pos;
@@ -213,7 +229,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 			caret_pos = compositor->picked_glyph_idx;
 			compositor->picked_glyph_idx = -1;
 
-			if (caret_pos >= (s32)strlen(*res)) 
+			if (caret_pos > strlen(*res)) 
 				caret_pos = -1;
 		}
 
@@ -372,6 +388,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 		compositor->sel_buffer_len = 1;
 	}
 	compositor->edited_text = res;
+	compositor->text_edit_changed = 1;
 	flush_text_node_edit(compositor, 0);
 	return 1;
 }
@@ -491,7 +508,7 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 			break;
 		case GF_KEY_ENTER:
 			if (compositor->focus_text_type==4) {
-				is_end = 1;
+				flush_text_node_edit(compositor, 2);
 				break;
 			}
 			load_text_node(compositor, 3);
@@ -789,6 +806,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 
 #ifndef GPAC_DISABLE_VRML
 
+
 Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 {
 	GF_SensorHandler *hs, *hs_grabbed;
@@ -808,6 +826,22 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 		GF_Node *appear = compositor->hit_appear;
 		if (compositor_compositetexture_handle_event(compositor, compositor->hit_appear, ev, 0)) {
 			if (compositor->hit_appear) compositor->prev_hit_appear = appear;
+
+
+			compositor->grabbed_sensor = 0;
+			/*check if we have grabbed sensors*/
+			count = gf_list_count(compositor->previous_sensors);
+			for (i=0; i<count; i++) {
+				hs = (GF_SensorHandler*)gf_list_get(compositor->previous_sensors, i);
+				hs->OnUserEvent(hs, 0, ev, compositor);
+				/*if sensor is grabbed, add it to the list of active sensor for next pick*/
+				if (hs->grabbed) {
+					gf_list_add(compositor->sensors, hs);
+					compositor->grabbed_sensor = 1;
+				}
+				stype = gf_node_get_tag(hs->sensor);
+			}
+
 			return 1;
 		}
 		compositor->prev_hit_appear = compositor->grabbed_sensor ? compositor->hit_appear : NULL;
@@ -819,45 +853,40 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	resetting the cursor when the picked node is a DOM node in a composite texture*/
 	stype = (compositor->hit_node!=NULL) ? GF_CURSOR_TOUCH : GF_CURSOR_NORMAL;
 
+	count = gf_list_count(compositor->sensors);
+	stype = GF_CURSOR_NORMAL;
+	for (i=0; i<count; i++) {
+		GF_Node *keynav;
+		hs = (GF_SensorHandler*)gf_list_get(compositor->sensors, i);
+		hs->OnUserEvent(hs, 1, ev, compositor);
+
+		/*try to remove this sensor from the previous sensor list*/
+		gf_list_del_item(compositor->previous_sensors, hs);
+
+		stype = gf_node_get_tag(hs->sensor);
+
+		keynav = gf_scene_get_keynav(gf_node_get_graph(hs->sensor), hs->sensor);
+		if (keynav) gf_sc_change_key_navigator(compositor, keynav);
+	}
+	compositor->grabbed_sensor = 0;
+	/*check if we have grabbed sensors*/
 	count = gf_list_count(compositor->previous_sensors);
 	for (i=0; i<count; i++) {
 		hs = (GF_SensorHandler*)gf_list_get(compositor->previous_sensors, i);
-		if (gf_list_find(compositor->sensors, hs) < 0) {
-			/*that's a bit ugly but we need coords if pointer out of the shape when sensor grabbed...*/
-			if (compositor->grabbed_sensor) {
-				hs_grabbed = hs;
-			} else {
-				hs->OnUserEvent(hs, 0, ev, compositor);
-			}
+		hs->OnUserEvent(hs, 0, ev, compositor);
+		/*if sensor is grabbed, add it to the list of active sensor for next pick*/
+		if (hs->grabbed) {
+			gf_list_add(compositor->sensors, hs);
+			compositor->grabbed_sensor = 1;
 		}
+		stype = gf_node_get_tag(hs->sensor);
 	}
+	gf_list_reset(compositor->previous_sensors);
 
-	count = gf_list_count(compositor->sensors);
-	if (!count) stype = GF_CURSOR_NORMAL;
-	else {
-		for (i=0; i<count; i++) {
-			GF_Node *keynav;
-			hs = (GF_SensorHandler*)gf_list_get(compositor->sensors, i);
-			hs->OnUserEvent(hs, ((hs==hs_grabbed) || !hs_grabbed) ? 1 : 0, ev, compositor);
-			stype = gf_node_get_tag(hs->sensor);
-			if (hs==hs_grabbed) hs_grabbed = NULL;
-
-			keynav = gf_scene_get_keynav(gf_node_get_graph(hs->sensor), hs->sensor);
-			if (keynav) gf_sc_change_key_navigator(compositor, keynav);
-		}
-	}
 	/*switch sensors*/
 	tmp = compositor->sensors;
 	compositor->sensors = compositor->previous_sensors;
 	compositor->previous_sensors = tmp;
-
-	/*check if we have a grabbed sensor*/
-	if (hs_grabbed) {
-		hs_grabbed->OnUserEvent(hs_grabbed, 0, ev, compositor);
-		gf_list_reset(compositor->previous_sensors);
-		gf_list_add(compositor->previous_sensors, hs_grabbed);
-		stype = gf_node_get_tag(hs_grabbed->sensor);
-	}
 
 	/*and set cursor*/
 	if (compositor->sensor_type != GF_CURSOR_COLLIDE) {
@@ -1029,6 +1058,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 			compositor->sel_buffer_len = 0;
 
 			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+			compositor->text_edit_changed = 1;
 		} else if (compositor->store_text_state == GF_SC_TSEL_RELEASED) {
 			compositor->store_text_state = GF_SC_TSEL_NONE;
 		}
@@ -1782,6 +1812,8 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *
 	if (hit_node_editable(compositor, 1)) {
 		compositor->text_selection = NULL;
 		exec_text_input(compositor, NULL);
+		/*invalidate parent graphs*/
+		gf_node_dirty_set(compositor->focus_node, GF_SG_NODE_DIRTY, 1);
 	}
 	return ret;
 }

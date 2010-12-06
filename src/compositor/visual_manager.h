@@ -89,6 +89,7 @@ struct _visual_manager
 	Bool center_coords;
 	Bool has_modif;
 	Bool has_overlays;
+	Bool has_text_edit;
 
 	/*gets access to graphics handle (either OS-specific or raw memory)*/
 	GF_Err (*GetSurfaceAccess)(GF_VisualManager *);

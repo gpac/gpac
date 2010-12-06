@@ -192,7 +192,7 @@ static void composite_update(GF_TextureHandler *txh)
 		return;
 	}
 */
-	if (!gf_node_dirty_get(txh->owner)) {
+	if ( (!compositor->text_edit_changed || !st->visual->has_text_edit ) && !gf_node_dirty_get(txh->owner)) {
 		txh->needs_refresh = 0;
 		return;
 	}
@@ -400,6 +400,11 @@ static void composite_update(GF_TextureHandler *txh)
 	txh->needs_refresh = visual_draw_frame(st->visual, st->txh.owner, tr_state, 0);
 	txh->transparent = (st->visual->last_had_back==2) ? 0 : 1;
 
+
+	if (!compositor->edited_text && st->visual->has_text_edit) 
+		st->visual->has_text_edit = 0;
+
+
 	/*set active viewport in image coordinates top-left=(0, 0), not in BIFS*/
 	if (0 && gf_list_count(st->visual->view_stack)) {
 		M_Viewport *vp = (M_Viewport *)gf_list_get(st->visual->view_stack, 0);
@@ -552,14 +557,15 @@ GF_TextureHandler *compositor_get_composite_texture(GF_Node *node)
 
 Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node *composite_appear, GF_Event *ev, Bool is_flush)
 {
-	SFVec3f point;
 	GF_Ray ray;
 	Fixed dist;
+	Bool had_text_sel=0;
 	GF_Matrix mx;
 	GF_TraverseState *tr_state;
 	GF_ChildNodeItem *children, *l;
 	Bool res;
-	SFVec3f txcoord;
+	SFVec3f txcoord, loc_pt, world_pt;
+	GF_Matrix l2w_mx, w2l_mx;
 	CompositeTextureStack *stack;
 	GF_Node *appear, *prev_appear;
 	M_Appearance *ap = (M_Appearance *)composite_appear;
@@ -571,6 +577,7 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 
     tr_state = NULL;
     children = NULL;
+
 
 	if (!is_flush) {
 		txcoord.x = compositor->hit_texcoords.x;
@@ -616,7 +623,6 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 	compositor->sensors = stack->sensors;
 	compositor->previous_sensors = stack->previous_sensors;
 
-	point = compositor->hit_world_point;
 	ray = compositor->hit_world_ray;
 	dist = compositor->hit_square_dist;
 	prev_appear = compositor->prev_hit_appear;
@@ -629,12 +635,32 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 	appear = compositor->hit_appear;
 	compositor->hit_appear = NULL;
 
+	/*also backup current hit state in case we hit a node in the texture but don't consume the event*/
+	loc_pt = compositor->hit_local_point;
+	world_pt = compositor->hit_world_point;
+	gf_mx_copy(l2w_mx, compositor->hit_local_to_world);
+	gf_mx_copy(w2l_mx, compositor->hit_world_to_local);
+	
+	if (compositor->text_selection) had_text_sel=1;
+
 	if (is_flush) {
 		res = 0;
 		gf_list_reset(stack->sensors);
 		gf_sc_exec_event_vrml(compositor, ev);
 	} else {
 		res = visual_execute_event(stack->visual, tr_state, ev, children);
+	}
+
+	if (!had_text_sel && compositor->edited_text) {
+		stack->visual->has_text_edit = 1;
+	} else if (!compositor->text_selection) {
+		stack->visual->has_text_edit = 0;
+	}
+
+	if (!res) {
+		compositor->hit_local_point = loc_pt;
+		gf_mx_copy(compositor->hit_local_to_world, l2w_mx);
+		gf_mx_copy(compositor->hit_world_to_local, w2l_mx);
 	}
 
 	stack->prev_hit_appear = compositor->prev_hit_appear;
@@ -653,7 +679,7 @@ Bool compositor_compositetexture_handle_event(GF_Compositor *compositor, GF_Node
 		compositor->hit_appear = appear;
 	}
 
-	compositor->hit_world_point = point;
+	compositor->hit_world_point = world_pt;
 	compositor->hit_world_ray = ray;
 	compositor->hit_square_dist = dist;
 

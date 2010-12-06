@@ -273,7 +273,7 @@ static void OnDiscSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Co
 		}
 		ds->isActive = 0;
 		gf_node_event_out_str(sh->sensor, "isActive");
-		compositor->grabbed_sensor = 0;
+		sh->grabbed = 0;
 	} else if (is_mouse) {
 		if (!ds->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 			/*store inverse matrix*/
@@ -281,7 +281,7 @@ static void OnDiscSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Co
 			stack->start_angle = gf_atan2(compositor->hit_local_point.y, compositor->hit_local_point.x);
 			ds->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
-			compositor->grabbed_sensor = 1;
+			sh->grabbed = 1;
 		}
 		else if (ds->isActive) {
 			GF_Ray loc_ray;
@@ -402,7 +402,7 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 
 		ps->isActive = 0;
 		gf_node_event_out_str(sh->sensor, "isActive");
-		compositor->grabbed_sensor = 0;
+		sh->grabbed = 0;
 	} else if (is_mouse) {
 		if (!ps->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 			gf_mx_copy(stack->initial_matrix, compositor->hit_local_to_world);
@@ -410,7 +410,7 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 			stack->start_drag.y = compositor->hit_local_point.y - ps->offset.y;
 			ps->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
-			compositor->grabbed_sensor = 1;
+			sh->grabbed = 1;
 		} 
 		if (ps->isActive) {
 			GF_Ray loc_ray;
@@ -439,8 +439,6 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 			ps->translation_changed.x = res.x;
 			ps->translation_changed.y = res.y;
 			gf_node_event_out_str(sh->sensor, "translation_changed");
-
-			compositor->grabbed_sensor = 1;
 		}
 	} else {
 		if (!ps->isActive && is_over && (ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER)) {
@@ -610,7 +608,9 @@ static void OnTouchSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 	
 	/*this is not specified in VRML, however we consider that a de-enabled sensor will not sent deactivation events*/
 	if (!ts->enabled) {
-		if (ts->isActive) compositor->grabbed_sensor = 0;
+		if (ts->isActive) {
+			sh->grabbed = 0;
+		}
 		return;
 	}
 
@@ -624,7 +624,7 @@ static void OnTouchSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 			gf_node_event_out_str(sh->sensor, "touchTime");
 			ts->isActive = 0;
 			gf_node_event_out_str(sh->sensor, "isActive");
-			compositor->grabbed_sensor = 0;
+			sh->grabbed = 0;
 		}
 	}
 	if (is_over != ts->isOver) {
@@ -637,7 +637,7 @@ static void OnTouchSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 		) {
 			ts->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
-			compositor->grabbed_sensor = 1;
+			sh->grabbed = 1;
 		}
 	}
 	if (is_over && is_mouse) {
@@ -788,7 +788,7 @@ static void OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 		}
 		ps->isActive = 0;
 		gf_node_event_out_str(sh->sensor, "isActive");
-		compositor->grabbed_sensor = 0;
+		sh->grabbed = 0;
 	}
 	/*mouse*/
 	else if (is_mouse) {
@@ -799,7 +799,7 @@ static void OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 			stack->tracker.d = - gf_vec_dot(stack->start_drag, stack->tracker.normal);
 			ps->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
-			compositor->grabbed_sensor = 1;
+			sh->grabbed = 1;
 		}
 		else if (ps->isActive) {
 			GF_Ray loc_ray;
@@ -921,7 +921,7 @@ static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, G
 		}
 		cs->isActive = 0;
 		gf_node_event_out_str(sh->sensor, "isActive");
-		compositor->grabbed_sensor = 0;
+		sh->grabbed = 0;
 	}
 	else if (is_mouse) {
 		if (!cs->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
@@ -962,7 +962,7 @@ static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, G
 
 			cs->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
-			compositor->grabbed_sensor = 1;
+			sh->grabbed = 1;
 		}
 		else if (cs->isActive) {
 			GF_Ray r;
@@ -1100,7 +1100,7 @@ static void OnSphereSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_
 		}
 		sphere->isActive = 0;
 		gf_node_event_out_str(sh->sensor, "isActive");
-		compositor->grabbed_sensor = 0;
+		sh->grabbed = 0;
 	}
 	else if (is_mouse) {
 		if (!sphere->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
@@ -1112,7 +1112,7 @@ static void OnSphereSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_
 
 			sphere->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
-			compositor->grabbed_sensor = 1;
+			sh->grabbed = 1;
 		}
 		else if (sphere->isActive) {
 			SFVec3f vec, axis;

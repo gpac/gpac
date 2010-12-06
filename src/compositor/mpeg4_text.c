@@ -566,8 +566,12 @@ static void text_check_changes(GF_Node *node, TextStack *stack, GF_TraverseState
 		gf_node_dirty_clear(node, 0);
 		drawable_mark_modified(stack->graph, tr_state);
 	}
-	else if (tr_state->visual->compositor->edited_text && (tr_state->visual->compositor->focus_node==node)) {
+	
+	if (tr_state->visual->compositor->edited_text && (tr_state->visual->compositor->focus_node==node)) {
 		drawable_mark_modified(stack->graph, tr_state);	
+		tr_state->visual->has_text_edit = 1;
+		if (!stack->bounds.width) stack->bounds.width = INT2FIX(1)/100;
+		if (!stack->bounds.height) stack->bounds.height = INT2FIX(1)/100;
 	}
 }
 
