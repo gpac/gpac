@@ -101,8 +101,9 @@ static Bool back_use_texture(M_Background2D *bck)
 
 static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state)
 {
-
-	Background2DStack *stack = (Background2DStack *) gf_node_get_private(ctx->drawable->node);
+	Background2DStack *stack;
+	if (!ctx->drawable || !ctx->drawable->node) return;
+	stack = (Background2DStack *) gf_node_get_private(ctx->drawable->node);
 
 	if (!ctx->bi->clip.width || !ctx->bi->clip.height) return;
 
