@@ -184,7 +184,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 #endif
 		gf_sc_lock(compositor, 0);
 		evt.type = GF_EVENT_SYS_COLORS;
-		if (gf_term_send_event(compositor->term, &evt) ) {
+		if (compositor->video_out->ProcessEvent(compositor->video_out, &evt) ) {
 			u32 i;
 			for (i=0; i<28; i++) {
 				compositor->sys_colors[i] = evt.sys_cols.sys_colors[i] & 0x00FFFFFF;
@@ -1926,6 +1926,19 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	time_node_time = gf_sys_clock() - time_node_time;
 #endif
 
+	if (compositor->focus_text_type) {
+		if (!compositor->caret_next_draw_time) {
+			compositor->caret_next_draw_time = gf_sys_clock();
+			compositor->show_caret = 1;
+		}
+		if (compositor->caret_next_draw_time <= compositor->last_frame_time) {
+			compositor->frame_draw_type=GF_SC_DRAW_FRAME;
+			compositor->caret_next_draw_time+=500;
+			compositor->show_caret = !compositor->show_caret;
+			compositor->text_edit_changed = 1;
+		}
+	}
+
 	/*setup root visual BEFORE updating the texture, because of potential composite texture */
 	gf_sc_setup_root_visual(compositor, gf_sg_get_root_node(compositor->scene));
 
@@ -1942,6 +1955,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		txh->update_texture_fcnt(txh);
 	}
 	compositor->reset_graphics = 0;
+	compositor->text_edit_changed = 0;
 
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock() - texture_time;
@@ -1950,18 +1964,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	if (compositor->force_next_frame_redraw) {
 		compositor->force_next_frame_redraw=0;
 		compositor->frame_draw_type=GF_SC_DRAW_FRAME;
-	}
-
-	if (compositor->focus_text_type) {
-		if (!compositor->caret_next_draw_time) {
-			compositor->caret_next_draw_time = gf_sys_clock();
-			compositor->show_caret = 1;
-		}
-		if (compositor->caret_next_draw_time <= compositor->last_frame_time) {
-			compositor->frame_draw_type=GF_SC_DRAW_FRAME;
-			compositor->caret_next_draw_time+=500;
-			compositor->show_caret = !compositor->show_caret;
-		}
 	}
 
 
@@ -2144,6 +2146,9 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 		gf_scene_lock(subscene, 0);
 		return;
 	}
+	
+	if (!gf_scene_is_over(subscene))
+		tr_state->subscene_not_over ++;
 
 	flip_coords = 0;
 	in_scene = gf_node_get_graph(inline_root);
@@ -2472,6 +2477,16 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		event->mouse.key_states = compositor->key_states;
 		return gf_sc_handle_event_intern(compositor, event, from_user);
 
+	case GF_EVENT_PASTE_TEXT:
+		gf_sc_paste_text(compositor, event->message.message);
+		break;
+	case GF_EVENT_COPY_TEXT:
+		if (gf_sc_has_text_selection(compositor)) {
+			event->message.message = gf_sc_get_selected_text(compositor);
+		} else {
+			event->message.message = NULL;
+		}
+		break;
 	/*when we process events we don't forward them to the user*/
 	default:
 		return gf_term_send_event(compositor->term, event);
