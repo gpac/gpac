@@ -645,6 +645,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
 	    mpdin->download_segment_index = firstSegment;
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Adding initialization segment %s to cache: %s\n", mpdin->seg_local_url, mpdin->cached[0].url ));
             gf_mx_v(mpdin->dl_mutex);
+	    gf_free(base_init_url);
 #ifndef DONT_USE_TERMINAL_MODULE_API
             GF_NetworkCommand com;
             com.base.command_type = GF_NET_SERVICE_INFO;
@@ -1170,6 +1171,7 @@ GF_Err MPD_CloseService(GF_InputService *plug)
         if (mpdin->seg_ifce && mpdin->is_service_connected) {
             mpdin->seg_ifce->CloseService(mpdin->seg_ifce);
             mpdin->is_service_connected = 0;
+	    mpdin->seg_ifce = NULL;
         }
         MPD_Stop(mpdin);
         gf_term_on_disconnect(mpdin->service, NULL, GF_OK);
