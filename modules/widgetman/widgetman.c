@@ -1117,6 +1117,7 @@ static void on_widget_activated(JSContext *c, JSObject *obj)
 		wid->mpegu_context = NULL;
 	}
 
+	gf_sg_lock_javascript(1);
 	/*refresh all interface bindings*/
 	JS_LookupProperty(wid->widget->wm->ctx, wid->widget->wm->obj, "check_bindings", &funval);
 	if (JSVAL_IS_OBJECT(funval)) {
@@ -1128,6 +1129,7 @@ static void on_widget_activated(JSContext *c, JSObject *obj)
 	if (JSVAL_IS_OBJECT(funval)) {
 		JS_CallFunctionValue(wid->widget->wm->ctx, wid->obj, funval, 0, 0, &rval);
 	}
+	gf_sg_lock_javascript(0);
 }
 
 
