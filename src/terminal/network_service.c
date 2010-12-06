@@ -80,7 +80,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 		gf_term_service_media_event(service->owner, GF_EVENT_MEDIA_END_SESSION_SETUP);
 		if (err) {
 			char msg[5000];
-			sprintf(msg, "Cannot open %s", service->url);
+			snprintf(msg, sizeof(msg), "Cannot open %s", service->url);
 			gf_term_message(term, service->url, msg, err);
 
 			gf_term_service_media_event(service->owner, GF_EVENT_MEDIA_ERROR);

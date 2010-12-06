@@ -965,7 +965,10 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 		}
 	}
 }
+
+#ifdef WIN32
 #include <wincon.h>
+#endif
 
 int main (int argc, char **argv)
 {
