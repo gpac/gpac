@@ -27,7 +27,7 @@
 #define _GF_OD_PARSE_COMMON_H_
 #include <gpac/setup.h>
 
-#define GET_U8(field) { u8 d; if (strstr(val, "0x")) { ret += sscanf(val, "%hhx", &d); if (ret) field = d; } else { ret += sscanf(val, "%hhu", &d); if (ret) field = d; }	}	
+#define GET_U8(field) { u32 d; if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = (u8) d; } else { ret += sscanf(val, "%u", &d); if (ret) field = (u8) d; }	}	
 #define GET_U16(field) { u16 d; if (strstr(val, "0x")) { ret += sscanf(val, "%hx", &d); if (ret) field = d; } else { ret += sscanf(val, "%hu", &d); if (ret) field = d; }	}
 #define GET_S16(field) { s16 d; if (strstr(val, "0x")) { ret += sscanf(val, "%hx", (u16*)&d); if (ret) field = d; } else { ret += sscanf(val, "%hd", &d); if (ret) field = d; }	}	
 #define GET_U32(field) { u32 d; if (strstr(val, "0x")) { ret += sscanf(val, "%x", &d); if (ret) field = d; } else { ret += sscanf(val, "%ud", &d); if (ret) field = d; }	}	
