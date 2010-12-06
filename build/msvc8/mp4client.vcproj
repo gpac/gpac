@@ -74,7 +74,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="User32.lib"
+				AdditionalDependencies="User32.lib kernel32.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/MP4Client.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -467,6 +467,14 @@
 					PreprocessorDefinitions=""
 				/>
 			</FileConfiguration>
+		</File>
+		<File
+			RelativePath="..\..\applications\mp4client\mp4client.rc"
+			>
+		</File>
+		<File
+			RelativePath="..\..\applications\mp4client\resource.h"
+			>
 		</File>
 	</Files>
 	<Globals>
