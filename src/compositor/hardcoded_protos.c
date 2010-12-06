@@ -455,7 +455,7 @@ typedef struct
 	BASE_NODE
 	CHILDREN
 
-        Bool offscreen;
+	s32 offscreen;
 	Fixed opacity;
 } OffscreenGroup;
 
@@ -468,6 +468,7 @@ typedef struct
 #endif
 
 	OffscreenGroup og;
+	Bool detached;
 } OffscreenGroupStack;
 
 static Bool OffscreenGroup_GetNode(GF_Node *node, OffscreenGroup *og)
@@ -481,8 +482,8 @@ static Bool OffscreenGroup_GetNode(GF_Node *node, OffscreenGroup *og)
 	og->children = *(GF_ChildNodeItem **) field.far_ptr;
 
 	if (gf_node_get_field(node, 1, &field) != GF_OK) return 0;
-	if (field.fieldType != GF_SG_VRML_SFBOOL) return 0;
-	og->offscreen = * (SFBool *) field.far_ptr;
+	if (field.fieldType != GF_SG_VRML_SFINT32) return 0;
+	og->offscreen = * (SFInt32 *) field.far_ptr;
 
 	if (gf_node_get_field(node, 2, &field) != GF_OK) return 0;
 	if (field.fieldType != GF_SG_VRML_SFFLOAT) return 0;
@@ -503,7 +504,7 @@ static void TraverseOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (tr_state->traversing_mode==TRAVERSE_SORT) {
-		if (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY) {
+		if (!stack->detached && (gf_node_dirty_get(node) & GF_SG_NODE_DIRTY)) {
 			OffscreenGroup_GetNode(node, &stack->og);
 
 			if (stack->og.offscreen) {
@@ -523,8 +524,26 @@ static void TraverseOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
 			gf_node_dirty_set(node, GF_SG_CHILD_DIRTY, 0);
 		}
 		if (stack->cache) {
-			group_cache_traverse((GF_Node *)&stack->og, stack->cache, tr_state, stack->cache->force_recompute, 1);
-			gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
+			if (stack->detached)
+				gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
+
+			tr_state->subscene_not_over = 0;
+			group_cache_traverse((GF_Node *)&stack->og, stack->cache, tr_state, stack->cache->force_recompute, 1, stack->detached ? 1 : 0);
+			
+			if (gf_node_dirty_get(node)) {
+				gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
+			} else if ((stack->og.offscreen==2) && !stack->detached && !tr_state->subscene_not_over && stack->cache->txh.width && stack->cache->txh.height) {
+				GF_FieldInfo field;
+				if (gf_node_get_field(node, 0, &field) == GF_OK) {
+					gf_node_unregister_children(node, *(GF_ChildNodeItem **) field.far_ptr);
+					*(GF_ChildNodeItem **) field.far_ptr = NULL;
+					stack->detached = 1;
+				}
+				if (gf_node_get_field(node, 3, &field) == GF_OK) {
+					*(SFBool *) field.far_ptr = 1;
+					//gf_node_event_out(node, 3);
+				}
+			}
 		} else {
 			group_2d_traverse((GF_Node *)&stack->og, (GroupingNode2D*)stack, tr_state);
 		}
@@ -534,8 +553,15 @@ static void TraverseOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
 		/*draw it*/
 		group_cache_draw(stack->cache, tr_state);
 		gf_node_dirty_clear(node, GF_SG_CHILD_DIRTY);
-	} else {
+	} else if (!stack->detached) {
 		group_2d_traverse((GF_Node *)&stack->og, (GroupingNode2D*)stack, tr_state);
+	} else {
+		if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
+			tr_state->bounds = stack->bounds;
+		}
+		else if (tr_state->traversing_mode == TRAVERSE_PICK) {
+			vrml_drawable_pick(stack->cache->drawable, tr_state);
+		}
 	}
 }
 
