@@ -625,6 +625,8 @@ typedef struct
 		For import events, no units defined (depends on importers)
 	*/
 	u32 done, total;
+	/* for download events */
+	u32 bytes_per_seconds;
 } GF_EventProgress;
 
 /*event proc return value: ignored*/
