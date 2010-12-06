@@ -586,6 +586,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 		        }
             }
 			owner->parent_graph->NodeCallback(owner->parent_graph->userpriv, GF_SG_CALLBACK_INIT, (GF_Node *) proto_node, NULL);
+			proto_node->flags |= GF_SG_PROTO_LOADED;
 			return;
 		}
 		/*not loaded yet*/
@@ -858,14 +859,16 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 
 	gf_free((char *) inst->proto_name);
 
-	sg->pOwningProto = NULL;
 	/*and finally destroy the node. If the proto is a hardcoded one (UserCallback set), destroy the node first
 	since the hardcoded proto may need the scene graph when being destroyed*/
 	if (inst->sgprivate->UserCallback) {
+		gf_sg_reset(sg);
+		sg->pOwningProto = NULL;
 		gf_node_free((GF_Node *)inst);
 		gf_sg_del(sg);
 	} else {
 		gf_sg_reset(sg);
+		sg->pOwningProto = NULL;
 		gf_node_free((GF_Node *)inst);
 		gf_sg_del(sg);
 	}

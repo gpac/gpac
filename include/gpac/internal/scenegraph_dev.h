@@ -1044,6 +1044,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *hdl, GF_DOM_Event *event, GF_Node 
 
 void gf_sg_load_script_extensions(GF_SceneGraph *sg, struct JSContext *c, struct JSObject *obj, Bool unload);
 
+Bool gf_sg_javascript_initialized();
 #endif	/*GPAC_HAS_SPIDERMONKEY*/
 
 GF_Err gf_sg_reload_xml_doc(const char *src, GF_SceneGraph *scene);

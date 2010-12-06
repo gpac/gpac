@@ -71,7 +71,7 @@ void gf_sg_route_del(GF_Route *r)
 	if (r->ToNode && (r->ToField.fieldType==GF_SG_VRML_SCRIPT_FUNCTION) && r->ToField.on_event_in) {
 		r->is_setup = 0;
 		r->FromNode = NULL;
-		r->ToField.on_event_in(r->ToNode, r);
+		if (!r->graph->pOwningProto) r->ToField.on_event_in(r->ToNode, r);
 	}
 
 	r->is_setup = 0;
@@ -249,7 +249,7 @@ Bool gf_sg_route_activate(GF_Route *r)
 	Bool ret;
 	/*URL/String conversion clone*/
 	void VRML_FieldCopyCast(void *dest, u32 dst_field_type, void *orig, u32 ori_field_type);
-
+	assert(r->FromNode);
 	if (!r->is_setup) {
 		gf_sg_route_setup(r);
 		if (!r->is_setup) return 0;
