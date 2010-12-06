@@ -365,11 +365,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="libGLES_CM.lib"
+				AdditionalDependencies="libGLES_CM.lib  ddraw.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="../../extra_lib/lib/w32_deb"
+				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)/; C:\Program Files\Windows Mobile 6 SDK\PocketPC\Lib\Armv4i"
 				ModuleDefinitionFile=""
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\obj/dx_hw_deb/gm_dx_hw.pdb"
