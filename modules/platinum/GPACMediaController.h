@@ -95,8 +95,7 @@ public:
     // PLT_MediaControllerDelegate
 	virtual bool OnMRAdded(PLT_DeviceDataReference& device);
 	virtual void OnMRRemoved(PLT_DeviceDataReference& device);
-    virtual void OnMRStateVariablesChanged(PLT_Service* /* service */, NPT_List<PLT_StateVariable*>* /* vars */) {};
-
+    virtual void OnMRStateVariablesChanged(PLT_Service* /* service */, NPT_List<PLT_StateVariable*>* /* vars */);
 
 	//PLT_MediaBrowserDelegate
     virtual bool OnMSAdded(PLT_DeviceDataReference& device);

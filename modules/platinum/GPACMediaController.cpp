@@ -163,6 +163,45 @@ NPT_Result GPAC_MediaController::OnEventNotify(PLT_Service* service, NPT_List<PL
 	return NPT_SUCCESS;
 }
 
+void GPAC_MediaController::OnMRStateVariablesChanged(PLT_Service* service, NPT_List<PLT_StateVariable*>* vars )
+{
+	u32 count;
+	u32 i;
+	s32 render_idx = -1;
+
+	count = gf_list_count(m_MediaRenderers);
+	for (i=0; i<count; i++) {
+		GPAC_MediaRendererItem *mr = (GPAC_MediaRendererItem *) gf_list_get(m_MediaRenderers, i);
+		if ( mr->m_device.AsPointer() == service->GetDevice() ) {
+			render_idx = i;
+			break;
+		}
+	}
+	if (render_idx < 0) return;
+	
+	count = vars->GetItemCount();
+	for (i=0; i<count; i++) {
+		PLT_StateVariable *svar;
+		vars->Get(i, svar);
+		if (svar->GetName() == NPT_String("AbsoluteTimePosition")) {
+			u32 h, m, s;
+			if (sscanf((char *) svar->GetValue(), "%d:%d:%d", &h, &m, &s)==3) {
+				Double time = h*3600 + m*60 + s;
+				this->m_pUPnP->onTimeChanged(render_idx, time);
+			}
+		}
+		else if (svar->GetName() == NPT_String("CurrentTrackDuration")) {
+			u32 h, m, s;
+			if (sscanf((char *) svar->GetValue(), "%d:%d:%d", &h, &m, &s)==3) {
+				Double time = h*3600 + m*60 + s;
+				this->m_pUPnP->onDurationChanged(render_idx, time);
+			}
+		}
+
+	}
+}
+
+
 void GPAC_MediaController::OnBrowseResult(NPT_Result res, PLT_DeviceDataReference& device, PLT_BrowseInfo* info, void* userdata)
 {
     NPT_COMPILER_UNUSED(device);
