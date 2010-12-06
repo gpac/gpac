@@ -847,16 +847,24 @@ restart_file:
 
 		if (feof(m2ts->file) && m2ts->owner && m2ts->owner->query_proxy) {
 			GF_NetworkCommand param;
+			GF_Err query_ret;
 			fclose(m2ts->file);
 			m2ts->file = NULL;
 			param.command_type = GF_NET_SERVICE_QUERY_NEXT;
-			if ((m2ts->owner->query_proxy(m2ts->owner, &param)==GF_OK) && param.url_query.next_url){
+			query_ret = m2ts->owner->query_proxy(m2ts->owner, &param);
+			if ((query_ret==GF_OK) && param.url_query.next_url){
 				m2ts->file = gf_f64_open(param.url_query.next_url, "rb");
-				if (m2ts->file) goto restart_file;
+				if (m2ts->file) {
+					goto restart_file;
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot open next file %s\n", param.url_query.next_url));
+				}
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: error:%s, url:%s\n", gf_error_to_string(query_ret), param.url_query.next_url));
 			}
 		}
 
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("\nEOS reached\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("\n[M2TS In]EOS reached\n"));
 		if (m2ts->nb_playing) {
 			for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 				GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];
@@ -1366,7 +1374,7 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		/*mark pcr as not initialized*/
 		if (pes->program->pcr_pid==pes->pid) pes->program->first_dts=0;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSIn] Setting default reframing for PID %d\n", pes->pid));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSIn] Setting default reframing for PID %d\n", pes->pid));
 		/*this is a multplex, only trigger the play command for the first stream activated*/
 		if (!m2ts->nb_playing) {
 			m2ts->start_range = (u32) (com->play.start_range*1000);
