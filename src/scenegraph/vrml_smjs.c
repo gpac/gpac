@@ -750,7 +750,23 @@ static JSBool deleteRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsva
 	GF_Route *r;
 	u32 f_id1, f_id2, i;
 	if (argc!=4) return JS_FALSE;
+
 	if (!JSVAL_IS_OBJECT(argv[0]) || !JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[0]), &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
+	
+	if (JSVAL_IS_STRING(argv[1]) && (argv[2]==JSVAL_NULL) && (argv[3]==JSVAL_NULL)) {
+		ptr = (GF_JSField *) JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[0]));
+		assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);
+		n1 = * ((GF_Node **)ptr->field.far_ptr);
+		f1 = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+		if (!strcmp(f1, "ALL")) {
+			while (n1->sgprivate->interact && n1->sgprivate->interact->routes && gf_list_count(n1->sgprivate->interact->routes) ) {
+				r = gf_list_get(n1->sgprivate->interact->routes, 0);
+				gf_sg_route_del(r);
+			}
+		}
+		return JS_TRUE;
+	}
+
 	if (!JSVAL_IS_OBJECT(argv[2]) || !JS_InstanceOf(c, JSVAL_TO_OBJECT(argv[2]), &js_rt->SFNodeClass, NULL) ) return JS_FALSE;
 	if (!JSVAL_IS_STRING(argv[1]) || !JSVAL_IS_STRING(argv[3])) return JS_FALSE;
 
@@ -3705,7 +3721,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 			if (n->sgprivate->tag == TAG_ProtoNode) {
 				GF_ProtoInstance *proto_inst = (GF_ProtoInstance *) n;
-				if (!proto_inst->RenderingNode)
+				if (!proto_inst->RenderingNode && !(proto_inst->flags&GF_SG_PROTO_LOADED) )
 					gf_sg_proto_instanciate(proto_inst);
 			}
 
@@ -4080,6 +4096,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	char *str;
 	JSBool ret;
 	u32 i;
+	Bool do_lock = gf_sg_javascript_initialized();
 	Bool local_script;
 	jsval rval, fval;
 	M_Script *script = (M_Script *)node;
@@ -4106,13 +4123,15 @@ static void JSScript_LoadVRML(GF_Node *node)
 	}
 	local_script = str ? 1 : 0;
 
+	if (do_lock) gf_sg_lock_javascript(1);
 	priv->js_ctx = gf_sg_ecmascript_new(node->sgprivate->scenegraph);
 	if (!priv->js_ctx) {
+		if (do_lock) gf_sg_lock_javascript(0);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Cannot allocate ECMAScript context for node\n"));
 		return;
 	}
 
-	gf_sg_lock_javascript(1);
+	if (!do_lock) gf_sg_lock_javascript(1);
 
 	JS_SetContextPrivate(priv->js_ctx, node);
 	gf_sg_script_init_sm_api(priv, node);
@@ -4406,6 +4425,13 @@ Bool gf_sg_has_scripting()
 #endif
 }
 
+Bool gf_sg_javascript_initialized()
+{
+#ifdef GPAC_HAS_SPIDERMONKEY
+	if (js_rt) return 1;
+#endif
+	return 0;
+}
 void gf_sg_lock_javascript(Bool LockIt)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY

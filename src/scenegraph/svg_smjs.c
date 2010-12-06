@@ -2210,11 +2210,15 @@ static void svg_script_predestroy(GF_Node *n, void *eff, Bool is_destroy)
 static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 {
 	GF_SVGJS *svg_js;
+	Bool do_lock = gf_sg_javascript_initialized();
 	GF_SAFEALLOC(svg_js, GF_SVGJS);
+
+	if (do_lock) gf_sg_lock_javascript(1);
 	/*create new ecmascript context*/
 	svg_js->js_ctx = gf_sg_ecmascript_new(sg);
 	if (!svg_js->js_ctx) {
 		gf_free(svg_js);
+		if (do_lock) gf_sg_lock_javascript(0);
 		return GF_SCRIPT_ERROR;
 	}
 	if (!svg_rt) {
@@ -2233,6 +2237,7 @@ static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 	sg->svg_js = svg_js;
 	/*load SVG & DOM APIs*/
 	svg_init_js_api(sg);
+	if (do_lock) gf_sg_lock_javascript(0);
 
 	svg_js->script_execute = svg_script_execute;
 	svg_js->handler_execute = svg_script_execute_handler;
