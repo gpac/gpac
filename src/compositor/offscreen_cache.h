@@ -41,13 +41,14 @@ typedef struct _group_cache
 	Bool force_recompute;
 	/*user scale (zoom and AR) of the group*/
 	Fixed scale;
+	SFVec2f orig_vp;
 } GroupCache;
 
 GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node);
 void group_cache_del(GroupCache *cache);
 
 /*returns 1 if cache is being recomputed due to dirty subtree*/
-Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute, Bool is_mpeg4);
+Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute, Bool is_mpeg4, Bool auto_fit_vp);
 
 void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state);
 Fixed group_cache_check_coverage_increase(GF_Rect *ctx, GF_Rect *grp_bounds, DrawableContext *curr, DrawableContext* first_child);
