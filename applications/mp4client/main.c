@@ -45,17 +45,6 @@
 #define SHGFP_TYPE_CURRENT 0 /*needed for MinGW*/
 #endif
 
-#ifdef _MSC_VER 
-/*get rid of console*/
-#if 0
-#pragma comment(linker,"/SUBSYSTEM:WINDOWS")
-#pragma comment(linker,"/ENTRY:main")
-#else
-#pragma comment(linker,"/SUBSYSTEM:CONSOLE") 
-#endif
-
-#endif // _MSC_VER
-
 #endif	//WIN32
 
 /*local prototypes*/
@@ -65,6 +54,8 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 
 void ViewODs(GF_Terminal *term, Bool show_timing);
 void PrintGPACConfig();
+
+static Bool gui_mode = 0;
 
 static Bool restart = 0;
 #if defined(__DARWIN__) || defined(__APPLE__)
@@ -108,6 +99,22 @@ Bool right_down = 0;
 
 void dump_frame(GF_Terminal *term, char *rad_path, u32 dump_type, u32 frameNum);
 Bool dump_file(char *the_url, u32 dump_mode, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times);
+
+
+void hide_shell(u32 cmd_type)
+{
+#if defined(WIN32) && !defined(_WIN32_WCE)
+	typedef HWND (WINAPI *GetConsoleWindowT)(void);
+	HMODULE hk32 = GetModuleHandle("kernel32.dll");
+	GetConsoleWindowT GetConsoleWindow = (GetConsoleWindowT ) GetProcAddress(hk32,"GetConsoleWindow");
+	if (cmd_type==0) ShowWindow( GetConsoleWindow(), SW_SHOW);
+	else if (cmd_type==1) ShowWindow( GetConsoleWindow(), SW_HIDE);
+	else if (cmd_type==2) PostMessage(GetConsoleWindow(), WM_CLOSE, 0, 0);
+#endif
+}
+
+
+
 
 void PrintUsage()
 {
@@ -525,6 +532,11 @@ static const char * read_line_input(char * line, int maxSize, Bool showContent){
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	if (!term) return 0;
+	
+	if (gui_mode) {
+		if (evt->type==GF_EVENT_QUIT) Run = 0;
+		return 0;
+	}
 
 	switch (evt->type) {
 	case GF_EVENT_DURATION:
@@ -542,6 +554,8 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		} else {
 			servName = evt->message.service;
 		}
+		servName = "";
+
 		if (!evt->message.message) return 0;
 		if (evt->message.error==GF_SCRIPT_INFO) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_SCRIPT, ("[Script] %s\n", evt->message.message));
@@ -761,42 +775,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		return 1;
 	}
-	case GF_EVENT_SYS_COLORS:
-#ifdef WIN32
-		evt->sys_cols.sys_colors[0] = get_sys_col(COLOR_ACTIVEBORDER);
-		evt->sys_cols.sys_colors[1] = get_sys_col(COLOR_ACTIVECAPTION);
-		evt->sys_cols.sys_colors[2] = get_sys_col(COLOR_APPWORKSPACE);
-		evt->sys_cols.sys_colors[3] = get_sys_col(COLOR_BACKGROUND);
-		evt->sys_cols.sys_colors[4] = get_sys_col(COLOR_BTNFACE);
-		evt->sys_cols.sys_colors[5] = get_sys_col(COLOR_BTNHIGHLIGHT);
-		evt->sys_cols.sys_colors[6] = get_sys_col(COLOR_BTNSHADOW);
-		evt->sys_cols.sys_colors[7] = get_sys_col(COLOR_BTNTEXT);
-		evt->sys_cols.sys_colors[8] = get_sys_col(COLOR_CAPTIONTEXT);
-		evt->sys_cols.sys_colors[9] = get_sys_col(COLOR_GRAYTEXT);
-		evt->sys_cols.sys_colors[10] = get_sys_col(COLOR_HIGHLIGHT);
-		evt->sys_cols.sys_colors[11] = get_sys_col(COLOR_HIGHLIGHTTEXT);
-		evt->sys_cols.sys_colors[12] = get_sys_col(COLOR_INACTIVEBORDER);
-		evt->sys_cols.sys_colors[13] = get_sys_col(COLOR_INACTIVECAPTION);
-		evt->sys_cols.sys_colors[14] = get_sys_col(COLOR_INACTIVECAPTIONTEXT);
-		evt->sys_cols.sys_colors[15] = get_sys_col(COLOR_INFOBK);
-		evt->sys_cols.sys_colors[16] = get_sys_col(COLOR_INFOTEXT);
-		evt->sys_cols.sys_colors[17] = get_sys_col(COLOR_MENU);
-		evt->sys_cols.sys_colors[18] = get_sys_col(COLOR_MENUTEXT);
-		evt->sys_cols.sys_colors[19] = get_sys_col(COLOR_SCROLLBAR);
-		evt->sys_cols.sys_colors[20] = get_sys_col(COLOR_3DDKSHADOW);
-		evt->sys_cols.sys_colors[21] = get_sys_col(COLOR_3DFACE);
-		evt->sys_cols.sys_colors[22] = get_sys_col(COLOR_3DHIGHLIGHT);
-		evt->sys_cols.sys_colors[23] = get_sys_col(COLOR_3DLIGHT);
-		evt->sys_cols.sys_colors[24] = get_sys_col(COLOR_3DSHADOW);
-		evt->sys_cols.sys_colors[25] = get_sys_col(COLOR_WINDOW);
-		evt->sys_cols.sys_colors[26] = get_sys_col(COLOR_WINDOWFRAME);
-		evt->sys_cols.sys_colors[27] = get_sys_col(COLOR_WINDOWTEXT);
-		return 1;
-#else
-		memset(evt->sys_cols.sys_colors, 0, sizeof(u32)*28);
-		return 1;
-#endif
-		break;
+
 	}
 	return 0;
 }
@@ -986,6 +965,7 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 		}
 	}
 }
+#include <wincon.h>
 
 int main (int argc, char **argv)
 {
@@ -1009,6 +989,7 @@ int main (int argc, char **argv)
 	FILE *playlist = NULL;
 	FILE *logfile = NULL;
 	Float scale = 1;
+
 
 	/*by default use current dir*/
 	strcpy(the_url, ".");
@@ -1059,6 +1040,8 @@ int main (int argc, char **argv)
 			use_rtix = 1;
 		} else if (!strcmp(arg, "-fill")) {
 			fill_ar = 1;
+		} else if (!strcmp(arg, "-gui")) {
+			gui_mode = 1;
 		} else if (!strcmp(arg, "-show")) {
 			visible = 1;
 		} else if (!strcmp(arg, "-avi")) {
@@ -1166,6 +1149,20 @@ int main (int argc, char **argv)
 		if (logfile) fclose(logfile);
 		return 1;
 	}
+
+
+	if (!gui_mode) {
+		str = gf_cfg_get_key(cfg_file, "General", "ForceGUI");
+		if (str && !strcmp(str, "yes")) gui_mode = 1;
+	}
+
+	if (gui_mode) {
+		hide_shell(1);
+		not_threaded = 1;
+		user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
+	}
+
+
 	if (dump_mode) rti_file = NULL;
 
 	if (!logs_set) {
@@ -1223,7 +1220,6 @@ int main (int argc, char **argv)
 	}
 	fprintf(stdout, "Terminal Loaded\n");
 
-
 	if (dump_mode) {
 //		gf_term_set_option(term, GF_OPT_VISIBLE, 0);
 		if (fill_ar) gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_FILL_SCREEN);
@@ -1268,8 +1264,9 @@ int main (int argc, char **argv)
 	} else
 
 	/*connect if requested*/
-	if (url_arg) {
+	if (!gui_mode && url_arg) {
 		char *ext;
+
 		strcpy(the_url, url_arg);
 		ext = strrchr(the_url, '.');
 		if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
@@ -1299,12 +1296,15 @@ int main (int argc, char **argv)
 			gf_term_connect(term, str);
 			startup_file = 1;
 		}
+		if (url_arg) {
+			gf_cfg_set_key(cfg_file, "General", "GUIStartupFile", url_arg);
+		}
 	}
 	if (start_fs) gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
 
 	while (Run) {		
 		/*we don't want getchar to block*/
-		if (!gf_prompt_has_input()) {
+		if (gui_mode || !gf_prompt_has_input()) {
 			if (restart) {
 				restart = 0;
 				gf_term_play_from_time(term, 0, 0);
@@ -1729,6 +1729,10 @@ force_input:
 	if (rti_logs) fclose(rti_logs);
 	if (logfile) fclose(logfile);
 	fprintf(stdout, "Bye\n");
+
+	if (gui_mode) {
+		hide_shell(2);
+	}
 	return 0;
 }
 
