@@ -620,6 +620,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, 0);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
+			if (is_attached) visual_2d_init_raster(visual);
+			return 0;
 		}
 		if (!visual->compositor->video_memory) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor2D] Reconfiguring video output to use video memory\n"));
