@@ -1404,3 +1404,19 @@ Bool gf_scene_lock(GF_SceneGraph *sg, Bool do_lock)
 	return 1;
 }
 
+Bool gf_scene_is_over(GF_SceneGraph *sg)
+{
+	u32 i, count;
+	GF_Scene *scene = gf_sg_get_private(sg);
+	if (!scene) return 0;
+	if (scene->scene_codec)
+		return (scene->scene_codec->Status==GF_ESM_CODEC_EOS) ? 1 : 0;
+
+	count = gf_list_count(scene->resources);
+	for (i=0; i<count; i++) {
+		GF_ObjectManager *odm = gf_list_get(scene->resources, i);
+		if (odm->codec && (odm->codec->Status != GF_ESM_CODEC_EOS) && (odm->codec->Status!=GF_ESM_CODEC_STOP)) return 0;
+		if (odm->subscene && !gf_scene_is_over(odm->subscene->graph) ) return 0;
+	}
+	return 1;
+}

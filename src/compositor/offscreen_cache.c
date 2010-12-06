@@ -83,7 +83,8 @@ void group_cache_setup(GroupCache *cache, GF_Rect *path_bounds, GF_IRect *pix_bo
 	cache->txh.pixelformat = for_gl ? GF_PIXEL_RGBA : GF_PIXEL_ARGB;
 	cache->txh.transparent = 1;
 
-	if (cache->txh.data) gf_free(cache->txh.data);
+	if (cache->txh.data) 
+		gf_free(cache->txh.data);
 #ifdef CACHE_DEBUG_ALPHA
 	cache->txh.stride = pix_bounds->width * 3;
 	cache->txh.pixelformat = GF_PIXEL_RGB_24;
@@ -104,8 +105,9 @@ void group_cache_setup(GroupCache *cache, GF_Rect *path_bounds, GF_IRect *pix_bo
 		path_bounds->width, path_bounds->height);
 }
 
-Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute, Bool is_mpeg4)
+Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr_state, Bool force_recompute, Bool is_mpeg4, Bool auto_fit_vp)
 {
+	GF_Matrix2D backup;
 	DrawableContext *group_ctx = NULL;	
 	GF_ChildNodeItem *l;
 
@@ -299,6 +301,8 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		cache->txh.flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 		gf_sc_texture_set_data(&cache->txh);
 		gf_sc_texture_push_image(&cache->txh, 0, type_3d ? 0 : 1);
+
+		cache->orig_vp = tr_state->vp_size;
 	}
 	/*just setup the context*/
 	else {
@@ -327,11 +331,21 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 	if (gf_node_dirty_get(node)) group_ctx->flags |= CTX_TEXTURE_DIRTY;
 
-	{
 #ifdef CACHE_DEBUG_CENTER
-	GF_Matrix2D mx;
-	gf_mx2d_copy(mx, tr_state->transform);
+	gf_mx2d_copy(backup, tr_state->transform);
 	gf_mx2d_init(tr_state->transform);
+#else
+	if (auto_fit_vp) {
+		if ((tr_state->vp_size.x != cache->orig_vp.x) || (tr_state->vp_size.y != cache->orig_vp.y)) {
+			GF_Matrix2D m;
+			gf_mx2d_init(m);
+			gf_mx2d_copy(backup, tr_state->transform);
+			gf_mx2d_add_scale(&m, gf_divfix(tr_state->vp_size.x, cache->orig_vp.x), gf_divfix(tr_state->vp_size.y, cache->orig_vp.y) );
+			gf_mx2d_pre_multiply(&tr_state->transform, &m);
+		} else {
+			auto_fit_vp = 0;
+		}
+	}
 #endif
 
 #ifndef GPAC_DISABLE_3D
@@ -346,11 +360,12 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 #endif
 		drawable_finalize_sort(group_ctx, tr_state, NULL);
 	
-#ifdef CACHE_DEBUG_CENTER
-	gf_mx2d_copy(tr_state->transform, mx);
+#ifndef CACHE_DEBUG_CENTER
+	if (auto_fit_vp)
 #endif
+	{
+		gf_mx2d_copy(tr_state->transform, backup);
 	}
-
 	return (force_recompute==1);
 }
 
@@ -576,7 +591,7 @@ Bool group_2d_cache_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseSt
 	}
 
 	/*cache has been modified due to node changes, reset stats*/
-	group_cache_traverse(node, group->cache, tr_state, needs_recompute, 1);
+	group_cache_traverse(node, group->cache, tr_state, needs_recompute, 1, 0);
 	return 1;
 }
 

@@ -190,6 +190,7 @@ struct __tag_compositor
 	u32 current_frame;
 	u32 last_frame_time, caret_next_draw_time;
 	Bool show_caret;
+	Bool text_edit_changed;
 
 	u32 last_click_time;
 
@@ -305,7 +306,7 @@ struct __tag_compositor
 	/*list of VRML sensors active after the picking phase*/
 	GF_List *sensors;
 	/*indicates a sensor is currently active*/
-	Bool grabbed_sensor;
+	u32 grabbed_sensor;
 
 	/*current keynav node if any*/
 	GF_Node *keynav_node;
@@ -611,8 +612,10 @@ typedef struct _sensor_handler
 	is_over: pointing device is over a shape the sensor is attached to
 	evt_type: mouse event type
 	compositor: pointer to compositor - hit info is stored at compositor level
+	return: was the event consumed ?
 	*/
 	void (*OnUserEvent)(struct _sensor_handler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor);
+	Bool grabbed;
 	/*pointer to the sensor node*/
 	GF_Node *sensor;
 } GF_SensorHandler;
@@ -798,6 +801,8 @@ struct _traversing_state
 	Bool in_group_cache;
 
 	Bool in_svg_filter;
+
+	u32 subscene_not_over;
 
 #ifndef GPAC_DISABLE_3D
 	/*the current camera*/
@@ -1123,6 +1128,8 @@ void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n);
 GF_Node *gf_scene_get_keynav(GF_SceneGraph *sg, GF_Node *sensor);
 const char *gf_scene_get_service_url(GF_SceneGraph *sg);
 Bool gf_scene_lock(GF_SceneGraph *sg, Bool do_lock);
+
+Bool gf_scene_is_over(GF_SceneGraph *sg);
 
 #ifndef GPAC_DISABLE_SVG
 
