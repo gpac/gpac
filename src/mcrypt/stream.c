@@ -65,4 +65,5 @@ void gf_crypt_register_stream(GF_Crypt *td)
 	td->mode_version = 20010801;
 }
 
-#endif /* !defined(GPAC_CRYPT_ISMA_ONLY) && !defined(GPAC_DISABLE_MCRYPT)*//
+#endif /* !defined(GPAC_CRYPT_ISMA_ONLY) && !defined(GPAC_DISABLE_MCRYPT)*/
+
