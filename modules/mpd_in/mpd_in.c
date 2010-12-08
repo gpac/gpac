@@ -575,7 +575,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
     rep = gf_list_get(period->representations, mpdin->active_rep_index);
     if (!rep) {
         gf_mx_v(mpdin->dl_mutex);
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("Unable to find any representation, aborting.\n"));
+        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Unable to find any representation, aborting.\n"));
         return GF_IO_ERR;
     }
     if (!rep->init_url) {
@@ -611,7 +611,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         } else {
             base_init_url = gf_strdup(seg->url);
         }
-        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("Download of first segment failed... retrying with second one : %s\n", base_init_url));
+        GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("Download of first segment failed... retrying with second one : %s\n", base_init_url));
         firstSegment = 2;
         e = MPD_downloadWithRetry(mpdin->service, &(mpdin->seg_dnload), base_init_url, MPD_NetIO_Segment, mpdin);
     } /* end of 404 */
@@ -705,8 +705,9 @@ static u32 download_segments(void *par)
 
     mpdin->last_update_time = gf_sys_clock();
     /* Forward the ConnectService message to the appropriate service for this type of segment */
+    GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Connecting initial service... %s\n", mpdin->seg_local_url));
     mpdin->seg_ifce->ConnectService(mpdin->seg_ifce, mpdin->service, mpdin->seg_local_url);
-
+    GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Connecting initial service DONE\n", mpdin->seg_local_url));
     while (1) {
         /*wait until next segment is needed*/
         gf_mx_p(mpdin->dl_mutex);
@@ -778,8 +779,6 @@ static u32 download_segments(void *par)
         }
         if (seg->use_byterange) {
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading new segment: %s (range: %d-%d)\n", new_base_seg_url, seg->byterange_start, seg->byterange_end));
-        } else {
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading new segment: %s\n", new_base_seg_url));
         }
         e = MPD_downloadWithRetry(mpdin->service, &(mpdin->seg_dnload), new_base_seg_url, MPD_NetIO_Segment, mpdin);
         if (e == GF_OK || mpdin->segment_must_be_streamed) {
@@ -788,7 +787,7 @@ static u32 download_segments(void *par)
                                                     gf_dm_sess_get_resource_name(mpdin->seg_dnload) :
                                                     (rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload)));
             mpdin->cached[mpdin->nb_cached].url = gf_strdup( gf_dm_sess_get_resource_name(mpdin->seg_dnload));
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n\tElements in cache: %u/%u\n", mpdin->cached[mpdin->nb_cached].url, mpdin->cached[mpdin->nb_cached].cache, mpdin->nb_cached+1, mpdin->max_cached));
+            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n\tElements in cache: %u/%u\n", mpdin->cached[mpdin->nb_cached].url, mpdin->cached[mpdin->nb_cached].cache, mpdin->nb_cached+1, mpdin->max_cached));
             mpdin->nb_cached++;
             gf_mx_v(mpdin->dl_mutex);
             mpdin->download_segment_index++;
@@ -876,7 +875,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         /* Wait until no file is scheduled to be downloaded */
         while (mpdin->is_dl_segments && mpdin->nb_cached<2) {
             gf_mx_v(mpdin->dl_mutex);
-            gf_sleep(1);
+            gf_sleep(16);
             gf_mx_p(mpdin->dl_mutex);
         }
         if (mpdin->nb_cached<2) {
@@ -903,12 +902,12 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
         memmove(&mpdin->cached[0], &mpdin->cached[1], sizeof(segment_cache_entry)*(mpdin->nb_cached-1));
         memset(&(mpdin->cached[mpdin->nb_cached-1]), 0, sizeof(segment_cache_entry));
         mpdin->nb_cached--;
-        gf_mx_v(mpdin->dl_mutex);
         param->url_query.next_url = mpdin->cached[0].cache;
+        gf_mx_v(mpdin->dl_mutex);
         {
             u32 timer2 = gf_sys_clock() - timer ;
-            if (timer2 > 500) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] We were stuck waiting for download to end during too much time : %u ms !\n", timer2));
+            if (timer2 > 1000) {
+                GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[MPD_IN] We were stuck waiting for download to end during too much time : %u ms !\n", timer2));
             }
             GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to \n\tURL: %s in %u ms\n\tCache: %s\n\tElements in cache: %u/%u\n", mpdin->cached[0].url, timer2, mpdin->cached[0].cache, mpdin->nb_cached, mpdin->max_cached));
         }
