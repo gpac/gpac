@@ -159,6 +159,8 @@ static Bool avr_process(GF_TermExt *termext, u32 action, void *param)
 	case GF_TERM_EXT_START:
 		avr->term = (GF_Terminal *)param;
 		opt = gf_modules_get_option((GF_BaseInterface*)termext, "AVRedirect", "Enabled");
+		if (!opt)
+			gf_modules_set_option((GF_BaseInterface*)termext, "AVRedirect", "Enabled", "no");
 		if (!opt || strcmp(opt, "yes")) return 0;
 
 		avr->audio_listen.udta = avr;
