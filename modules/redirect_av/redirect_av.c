@@ -103,9 +103,9 @@ static void avr_on_video_reconfig(void *udta, u32 width, u32 height)
 	comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
 	AVI_set_video(avr->avi_out, width, height, 30, comp);
 
-	if (avr->frame) free(avr->frame);
+	if (avr->frame) gf_free(avr->frame);
 	avr->size = 3*width*height;
-	avr->frame = malloc(sizeof(char)*avr->size);
+	avr->frame = gf_malloc(sizeof(char)*avr->size);
 }
 
 
