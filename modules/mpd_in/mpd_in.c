@@ -99,6 +99,7 @@ typedef struct __mpd_module {
     Bool auto_switch;
     u8 lastMPDSignature[20];
     Bool segment_must_be_streamed;
+	char * mimeTypeForM3U8Segments;
 } GF_MPD_In;
 
 static void dumpStatus( GF_MPD_In *mpdin) {
@@ -212,7 +213,7 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
             PlaylistElement *pe = gf_list_get(prog->bitrates, j);
             if (pe->elementType == TYPE_PLAYLIST) {
                 u32 k, count3;
-                fprintf(fmpd, "  <Representation mimeType=\"video/mp2t\">\n");
+                fprintf(fmpd, "  <Representation mimeType=\"%s\">\n", mpdin->mimeTypeForM3U8Segments);
                 fprintf(fmpd, "   <SegmentInfo duration=\"PT%dS\" baseURL=\"%s\">\n", pe->durationInfo, url);
                 count3 = gf_list_count(pe->element.playlist.elements);
                 update_interval = (count3 - 1) * pe->durationInfo * 1000;
@@ -515,6 +516,83 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
     return GF_OK;
 }
 
+static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
+{
+    if (!param || !ifce || !ifce->proxy_udta) return GF_BAD_PARAM;
+    if (param->command_type==GF_NET_SERVICE_QUERY_NEXT) {
+        u32 timer = gf_sys_clock();
+        GF_MPD_In *mpdin = (GF_MPD_In *) ifce->proxy_udta;
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Service Query Next request from terminal\n"));
+        gf_mx_p(mpdin->dl_mutex);
+        /* Wait until no file is scheduled to be downloaded */
+        while (mpdin->is_dl_segments && mpdin->nb_cached<2) {
+            gf_mx_v(mpdin->dl_mutex);
+            gf_sleep(16);
+            gf_mx_p(mpdin->dl_mutex);
+        }
+        if (mpdin->nb_cached<2) {
+            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] No more file in cache, EOS\n"));
+            gf_mx_v(mpdin->dl_mutex);
+            return GF_EOS;
+        } else {
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Had to wait for %u ms for the only cache file to be downloaded\n", (gf_sys_clock() - timer)));
+        }
+        if (mpdin->cached[0].cache) {
+            if (mpdin->urlToDeleteNext) {
+                gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->urlToDeleteNext);
+                gf_free( mpdin->urlToDeleteNext);
+                mpdin->urlToDeleteNext = NULL;
+            }
+            assert( mpdin->cached[0].url );
+            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] deleting cache file %s : %s\n", mpdin->cached[0].url, mpdin->cached[0].cache));
+            mpdin->urlToDeleteNext = gf_strdup( mpdin->cached[0].url );
+            gf_free(mpdin->cached[0].cache);
+            gf_free(mpdin->cached[0].url);
+            mpdin->cached[0].url = NULL;
+            mpdin->cached[0].cache = NULL;
+        }
+        memmove(&mpdin->cached[0], &mpdin->cached[1], sizeof(segment_cache_entry)*(mpdin->nb_cached-1));
+        memset(&(mpdin->cached[mpdin->nb_cached-1]), 0, sizeof(segment_cache_entry));
+        mpdin->nb_cached--;
+        param->url_query.next_url = mpdin->cached[0].cache;
+        gf_mx_v(mpdin->dl_mutex);
+        {
+            u32 timer2 = gf_sys_clock() - timer ;
+            if (timer2 > 1000) {
+                GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[MPD_IN] We were stuck waiting for download to end during too much time : %u ms !\n", timer2));
+            }
+            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to \n\tURL: %s in %u ms\n\tCache: %s\n\tElements in cache: %u/%u\n", mpdin->cached[0].url, timer2, mpdin->cached[0].cache, mpdin->nb_cached, mpdin->max_cached));
+        }
+    } else {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Client Query request (%d) from terminal\n", param->command_type));
+    }
+    return GF_OK;
+}
+
+static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, char *mime)
+{
+    const char *sPlug;
+    /* Check MIME type to start the right InputService (ISOM or MPEG-2) */
+    sPlug = gf_cfg_get_key(mpdin->service->term->user->config, "MimeTypes", mime);
+    if (sPlug) sPlug = strrchr(sPlug, '"');
+    if (sPlug) {
+        sPlug += 2;
+        mpdin->seg_ifce = (GF_InputService *) gf_modules_load_interface_by_name(mpdin->service->term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
+        if (mpdin->seg_ifce) {
+            mpdin->seg_ifce->proxy_udta = mpdin;
+            mpdin->seg_ifce->query_proxy = MPD_ClientQuery;
+        } else {
+            goto exit;
+        }
+    } else {
+        goto exit;
+    }
+    return GF_OK;
+exit:
+    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error locating plugin for segment mime type: %s\n", mime));
+    return GF_BAD_PARAM;
+}
+
 /*!
  * Download a file with possible retry if GF_IP_CONNECTION_FAILURE|GF_IP_NETWORK_FAILURE
  * (I discovered that with my WIFI connection, I had many issues with BFM-TV downloads)
@@ -638,7 +716,18 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         e = gf_dm_sess_process(mpdin->seg_dnload);
         /* Mime-Type check */
         mime = gf_dm_sess_mime_type(mpdin->seg_dnload);
-        if (!mime || (stricmp(mime, rep->mime) && stricmp("video/mpeg", mime))) {
+		if (mime && mpdin->seg_ifce == NULL){
+			GF_Err e;
+			printf("Checking for mime type - %s\n", mime);
+			gf_free( mpdin->mimeTypeForM3U8Segments);
+			mpdin->mimeTypeForM3U8Segments = gf_strdup( mime );
+			gf_free( rep->mime);
+			rep->mime = gf_strdup( mime );
+			e = MPD_LoadMediaService(mpdin, mime);
+			if (e != GF_OK)
+				return e;
+		}
+        if (!mime || (stricmp(mime, rep->mime))) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, base_init_url, rep->mime));
             mpdin->dl_stop_request = 0;
             gf_mx_v(mpdin->dl_mutex);
@@ -679,6 +768,8 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         }
     }
 }
+
+
 
 static u32 download_segments(void *par)
 {
@@ -831,7 +922,7 @@ Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
     }
     i = 0;
     while (MPD_MIME_TYPES[i]) {
-        if (gf_term_check_extension(plug, M3U8_MIME_TYPES[i++], "m3u8", "HTTP Streaming", sExt))
+        if (gf_term_check_extension(plug, M3U8_MIME_TYPES[i++], "m3u8 m3u", "HTTP Streaming", sExt))
             return 1;
     }
     return MPD_CheckRootType(url);
@@ -861,85 +952,6 @@ GF_Err MPD_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
         mpdin->nb_connected_channels--;
     }
     return e;
-}
-
-
-static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
-{
-    if (!param || !ifce || !ifce->proxy_udta) return GF_BAD_PARAM;
-    if (param->command_type==GF_NET_SERVICE_QUERY_NEXT) {
-        u32 timer = gf_sys_clock();
-        GF_MPD_In *mpdin = (GF_MPD_In *) ifce->proxy_udta;
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Service Query Next request from terminal\n"));
-        gf_mx_p(mpdin->dl_mutex);
-        /* Wait until no file is scheduled to be downloaded */
-        while (mpdin->is_dl_segments && mpdin->nb_cached<2) {
-            gf_mx_v(mpdin->dl_mutex);
-            gf_sleep(16);
-            gf_mx_p(mpdin->dl_mutex);
-        }
-        if (mpdin->nb_cached<2) {
-            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] No more file in cache, EOS\n"));
-            gf_mx_v(mpdin->dl_mutex);
-            return GF_EOS;
-        } else {
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Had to wait for %u ms for the only cache file to be downloaded\n", (gf_sys_clock() - timer)));
-        }
-        if (mpdin->cached[0].cache) {
-            if (mpdin->urlToDeleteNext) {
-                gf_dm_delete_cached_file_entry_session(mpdin->mpd_dnload, mpdin->urlToDeleteNext);
-                gf_free( mpdin->urlToDeleteNext);
-                mpdin->urlToDeleteNext = NULL;
-            }
-            assert( mpdin->cached[0].url );
-            GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] deleting cache file %s : %s\n", mpdin->cached[0].url, mpdin->cached[0].cache));
-            mpdin->urlToDeleteNext = gf_strdup( mpdin->cached[0].url );
-            gf_free(mpdin->cached[0].cache);
-            gf_free(mpdin->cached[0].url);
-            mpdin->cached[0].url = NULL;
-            mpdin->cached[0].cache = NULL;
-        }
-        memmove(&mpdin->cached[0], &mpdin->cached[1], sizeof(segment_cache_entry)*(mpdin->nb_cached-1));
-        memset(&(mpdin->cached[mpdin->nb_cached-1]), 0, sizeof(segment_cache_entry));
-        mpdin->nb_cached--;
-        param->url_query.next_url = mpdin->cached[0].cache;
-        gf_mx_v(mpdin->dl_mutex);
-        {
-            u32 timer2 = gf_sys_clock() - timer ;
-            if (timer2 > 1000) {
-                GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[MPD_IN] We were stuck waiting for download to end during too much time : %u ms !\n", timer2));
-            }
-            GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Switching segment playback to \n\tURL: %s in %u ms\n\tCache: %s\n\tElements in cache: %u/%u\n", mpdin->cached[0].url, timer2, mpdin->cached[0].cache, mpdin->nb_cached, mpdin->max_cached));
-        }
-    } else {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Client Query request (%d) from terminal\n", param->command_type));
-    }
-    return GF_OK;
-}
-
-static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, char *mime)
-{
-    const char *sPlug;
-    /* Check MIME type to start the right InputService (ISOM or MPEG-2) */
-
-    sPlug = gf_cfg_get_key(mpdin->service->term->user->config, "MimeTypes", mime);
-    if (sPlug) sPlug = strrchr(sPlug, '"');
-    if (sPlug) {
-        sPlug += 2;
-        mpdin->seg_ifce = (GF_InputService *) gf_modules_load_interface_by_name(mpdin->service->term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
-        if (mpdin->seg_ifce) {
-            mpdin->seg_ifce->proxy_udta = mpdin;
-            mpdin->seg_ifce->query_proxy = MPD_ClientQuery;
-        } else {
-            goto exit;
-        }
-    } else {
-        goto exit;
-    }
-    return GF_OK;
-exit:
-    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error locating plugin for segment mime type: %s\n", mime));
-    return GF_BAD_PARAM;
 }
 
 static u32 MPD_GetPeriodIndexFromTime(GF_MPD_In *mpdin, u32 time)
@@ -1023,9 +1035,14 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
         goto exit;
     }
 
-    e = MPD_LoadMediaService(mpdin, rep->mime);
-    if (e != GF_OK) goto exit;
-
+	mpdin->seg_ifce = NULL;
+	if (strcmp("unknown", rep->mime)){
+		e = MPD_LoadMediaService(mpdin, rep->mime);
+		if (e != GF_OK)
+			goto exit;
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Ignoring mime type, wait for first file...\n"));
+	}
     gf_th_run(mpdin->dl_thread, download_segments, mpdin);
     return GF_OK;
 
@@ -1428,6 +1445,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
     plug->priv = mpdin;
     mpdin->dl_thread = gf_th_new("MPD Segment Downloader Thread");
     mpdin->dl_mutex = gf_mx_new("MPD Segment Downloader Mutex");
+	mpdin->mimeTypeForM3U8Segments = gf_strdup( "unknown" );
     return (GF_BaseInterface *)plug;
 }
 
@@ -1440,6 +1458,7 @@ void ShutdownInterface(GF_BaseInterface *bi)
         if (mpdin->mpd) gf_mpd_del(mpdin->mpd);
         gf_th_del(mpdin->dl_thread);
         gf_mx_del(mpdin->dl_mutex);
+		gf_free(mpdin->mimeTypeForM3U8Segments);
         gf_free(mpdin->cached);
         gf_free(mpdin);
         gf_free(bi);
