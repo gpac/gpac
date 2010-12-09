@@ -319,7 +319,7 @@ gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadManager * d
 
 static int ssl_init(GF_DownloadManager *dm, u32 mode)
 {
-    SSL_METHOD *meth;
+    const SSL_METHOD *meth;
 
     if (!dm) return 0;
     /* The SSL has already been initialized. */
