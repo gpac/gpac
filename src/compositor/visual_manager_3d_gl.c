@@ -74,8 +74,10 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 #elif defined (WIN32)
 #define GET_GLFUN(__name) (PFNGLARBMULTITEXTUREPROC) wglGetProcAddress(__name) 
 #elif defined(CONFIG_DARWIN_GL)
+extern void (*glutGetProcAddress(const GLubyte *procname))( void );
 #define GET_GLFUN(__name) (PFNGLARBMULTITEXTUREPROC) glutGetProcAddress(__name)  
 #else
+extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #define GET_GLFUN(__name) (PFNGLARBMULTITEXTUREPROC) glXGetProcAddress(__name) 
 #endif
 
