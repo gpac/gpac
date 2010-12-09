@@ -761,6 +761,10 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	case GF_EVENT_AUTHORIZATION:
 	{
 		int maxTries = 1;
+		assert( evt->type == GF_EVENT_AUTHORIZATION);
+		assert( evt->auth.user);
+		assert( evt->auth.password);
+		assert( evt->auth.site_url);
 		while ((!strlen(evt->auth.user) || !strlen(evt->auth.password)) && (maxTries--) >= 0){
 			fprintf(stdout, "**** Authorization required for site %s ****\n", evt->auth.site_url);
 			fprintf(stdout, "login   : ");

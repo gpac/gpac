@@ -1041,7 +1041,7 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
 		if (e != GF_OK)
 			goto exit;
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Ignoring mime type, wait for first file...\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Ignoring mime type, wait for first file...\n"));
 	}
     gf_th_run(mpdin->dl_thread, download_segments, mpdin);
     return GF_OK;
