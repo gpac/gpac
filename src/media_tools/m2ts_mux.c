@@ -1274,9 +1274,9 @@ void gf_m2ts_program_stream_update_sl_config(GF_ESInterface *_self, GF_SLConfig 
 	}
 }
 
-#define GF_M2TS_PSI_REFRESH_RATE	200
+#define GF_M2TS_PSI_DEFAULT_REFRESH_RATE	500
 
-GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, Bool mpeg4_signaling)
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, Bool mpeg4_signaling)
 {
 	GF_M2TS_Mux_Program *program;
 
@@ -1296,18 +1296,18 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 	program->pmt->program = program;
 	muxer->pat->table_needs_update = 1;
 	program->pmt->process = gf_m2ts_stream_process_pmt;
-	program->pmt->refresh_rate_ms = GF_M2TS_PSI_REFRESH_RATE;
+	program->pmt->refresh_rate_ms = pmt_refresh_rate ? pmt_refresh_rate : GF_M2TS_PSI_DEFAULT_REFRESH_RATE;
 	return program;
 }
 
-GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, Bool real_time)
+GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time)
 {
 	GF_BitStream *bs;
 	GF_M2TS_Mux *muxer;
 	GF_SAFEALLOC(muxer, GF_M2TS_Mux);
 	muxer->pat = gf_m2ts_stream_new(GF_M2TS_PID_PAT);
 	muxer->pat->process = gf_m2ts_stream_process_pat;
-	muxer->pat->refresh_rate_ms = GF_M2TS_PSI_REFRESH_RATE;
+	muxer->pat->refresh_rate_ms = pat_refresh_rate ? pat_refresh_rate : GF_M2TS_PSI_DEFAULT_REFRESH_RATE;
 	muxer->real_time = real_time;
 	muxer->bit_rate = mux_rate;
 	if (mux_rate) muxer->fixed_rate = 1;
