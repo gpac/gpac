@@ -387,7 +387,10 @@ GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bo
 	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	meta = gf_isom_get_meta(file, root_meta, track_num);
-	if (!meta) return GF_BAD_PARAM;
+	if (!meta) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Trying to add item, but missing meta box"));
+		return GF_BAD_PARAM;
+	}
 
 	e = FlushCaptureMode(file);
 	if (e) return e;
