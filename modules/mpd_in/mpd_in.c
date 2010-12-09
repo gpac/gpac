@@ -590,7 +590,7 @@ static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, char *mime)
     return GF_OK;
 exit:
     GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error locating plugin for segment mime type: %s\n", mime));
-    return GF_BAD_PARAM;
+    return GF_CODEC_NOT_FOUND;
 }
 
 /*!
@@ -718,7 +718,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         mime = gf_dm_sess_mime_type(mpdin->seg_dnload);
 		if (mime && mpdin->seg_ifce == NULL){
 			GF_Err e;
-			printf("Checking for mime type - %s\n", mime);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Searching a decoder for mime type : %s...\n", mime));
 			gf_free( mpdin->mimeTypeForM3U8Segments);
 			mpdin->mimeTypeForM3U8Segments = gf_strdup( mime );
 			gf_free( rep->mime);
