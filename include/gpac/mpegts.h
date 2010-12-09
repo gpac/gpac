@@ -913,9 +913,9 @@ enum
 	GF_M2TS_STATE_EOS,
 };
 
-GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, Bool real_time);
+GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time);
 void gf_m2ts_mux_del(GF_M2TS_Mux *mux);
-GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, Bool mpeg4_signaling);
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, Bool mpeg4_signaling);
 GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr);
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);
 const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status);

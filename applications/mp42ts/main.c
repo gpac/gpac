@@ -29,6 +29,7 @@
 #include <gpac/scene_engine.h>
 #include <gpac/mpegts.h>
 
+#define TDMB_PSI_REFRESH_RATE	500 /*repeat PAT/PMT every TDMB_PSI_REFRESH_RATE ms*/
 
 #define UDP_BUFFER_SIZE	0x40000
 
@@ -1500,7 +1501,7 @@ int main(int argc, char **argv)
 	/***************************/
 	/*   create mp42ts muxer   */
 	/***************************/
-	muxer = gf_m2ts_mux_new(mux_rate, real_time);
+	muxer = gf_m2ts_mux_new(mux_rate, TDMB_PSI_REFRESH_RATE, real_time);
 	if (ts_out != NULL) {
 		if (segment_duration) {
 			char *dot;
@@ -1611,7 +1612,7 @@ int main(int argc, char **argv)
 	/****************************************/
 	cur_pid = 100;	/*PIDs start from 100*/
 	for (i=0; i<nb_progs; i++) {
-		GF_M2TS_Mux_Program *program = gf_m2ts_mux_program_add(muxer, i+1, cur_pid, progs[i].mpeg4_signaling);
+		GF_M2TS_Mux_Program *program = gf_m2ts_mux_program_add(muxer, i+1, cur_pid, TDMB_PSI_REFRESH_RATE, progs[i].mpeg4_signaling);
 		if (progs[i].mpeg4_signaling) program->iod = progs[i].iod;
 
 
