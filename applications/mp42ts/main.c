@@ -475,8 +475,6 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 					gf_free(audio_desc->data);
 					gf_free(audio_desc);
 					prog->streams[audio_OD_stream_id].input_udta = NULL;
-	
-					gf_odf_desc_del((GF_Descriptor *)esd);
 				}
 			}
 			/*update the timescale if needed*/
