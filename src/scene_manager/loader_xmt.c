@@ -290,7 +290,7 @@ static void xmt_new_esd_link(GF_XMTParser *parser, GF_ESD *esd, char *desc_name,
 		}
 		if (binID) {
 			/*remove temp links*/
-			if (esdl->ESID == (u16) ( ( ((u32) esdl) >> 16) | ( ((u32)esdl) & 0x0000FFFF) ) ) {
+			if (esdl->ESID == (u16) ( ( (PTR_TO_U_CAST esdl) >> 16) | ( (PTR_TO_U_CAST esdl) & 0x0000FFFF) ) ) {
 				GF_StreamContext *sc;
 				j=0;
 				while ((sc = (GF_StreamContext *)gf_list_enum(parser->load->ctx->streams, &j))) {
@@ -397,7 +397,7 @@ static u32 xmt_locate_stream(GF_XMTParser *parser, char *stream_name)
 	/*create a temp one*/
 	esdl = (XMT_ESDLink *)gf_malloc(sizeof(XMT_ESDLink));
 	memset(esdl, 0, sizeof(XMT_ESDLink));
-	esdl->ESID = (u16) ( ((u32) esdl) >> 16) | ( ((u32)esdl) & 0x0000FFFF);
+	esdl->ESID = (u16) ( (PTR_TO_U_CAST esdl) >> 16) | ( (PTR_TO_U_CAST esdl) & 0x0000FFFF);
 	if (!strnicmp(stream_name, "es", 2)) esdl->ESID = atoi(&stream_name[2]);
 	esdl->desc_name = gf_strdup(stream_name);
 	gf_list_add(parser->esd_links, esdl);

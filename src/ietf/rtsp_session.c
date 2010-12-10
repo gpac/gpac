@@ -736,7 +736,7 @@ char *gf_rtsp_generate_session_id(GF_RTSPSession *sess)
 	one = gf_rand();
 	res = one;
 	res <<= 32;
-	res += (u64) sess + sess->CurrentPos + sess->CurrentSize;
+	res+= (PTR_TO_U_CAST sess) + sess->CurrentPos + sess->CurrentSize;
 	sprintf(buffer, LLU, res);
 	return gf_strdup(buffer);
 }
