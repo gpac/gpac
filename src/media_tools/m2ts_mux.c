@@ -1274,7 +1274,7 @@ void gf_m2ts_program_stream_update_sl_config(GF_ESInterface *_self, GF_SLConfig 
 	}
 }
 
-#define GF_M2TS_PSI_DEFAULT_REFRESH_RATE	500
+#define GF_M2TS_PSI_DEFAULT_REFRESH_RATE	200
 
 GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, Bool mpeg4_signaling)
 {
