@@ -93,13 +93,6 @@ static Bool AAC_CanHandleURL(GF_InputService *plug, const char *url)
 }
 #endif
 
-static Bool aac_is_local(const char *url)
-{
-	if (!strnicmp(url, "file://", 7)) return 1;
-	if (strstr(url, "://")) return 0;
-	return 1;
-}
-
 static GF_ESD *AAC_GetESD(AACReader *read)
 {
 	GF_BitStream *dsi;
@@ -436,8 +429,6 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		read->needs_connection = 0;
 #ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, e);
-#else
-		gf_dm_del(read->dm);
 #endif
 		if (!e) AAC_SetupObject(read);
 	}
@@ -452,7 +443,8 @@ void aac_download_file(AACReader *read, char *url)
 #else
 	{
 	GF_Err e;
-	read->dm = gf_dm_new(NULL);
+	if (!read->dm)
+	  read->dm = gf_dm_new(NULL);
 	if (!read->dm) assert(0);
 	read->dnload = gf_dm_sess_new_simple(read->dm, url, 0, AAC_NetIO, read, &e);
 	}
@@ -462,8 +454,6 @@ void aac_download_file(AACReader *read, char *url)
 		read->needs_connection = 0;
 #ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, GF_NOT_SUPPORTED);
-#else
-		gf_dm_del(read->dm);
 #endif
 	}
 	/*service confirm is done once fetched*/
@@ -471,6 +461,13 @@ void aac_download_file(AACReader *read, char *url)
 
 
 #ifndef DONT_USE_TERMINAL_MODULE_API
+static Bool aac_is_local(const char *url)
+{
+	if (!strnicmp(url, "file://", 7)) return 1;
+	if (strstr(url, "://")) return 0;
+	return 1;
+}
+
 static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
 	char szURL[2048];
@@ -775,6 +772,19 @@ void AAC_Delete(void *ifce)
 	GF_InputService *plug = (GF_InputService *) ifce;
 	AACReader *read = plug->priv;
 	gf_free(read);
+	
+#ifdef DONT_USE_TERMINAL_MODULE_API
+	if (read->dndload)
+	  gf_del_sess( read->dndload);
+	read->dndload = NULL;
+	if (read->dm)
+	  gf_dm_del(read->dm);
+	read->dm = NULL;
+#else
+	if (read->dnload){
+	    gf_term_download_del(read->dnload);
+	}
+#endif
 	gf_free(plug);
 }
 
