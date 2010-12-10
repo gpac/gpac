@@ -292,8 +292,6 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 #ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, GF_OK);
-#else
-		gf_dm_del(read->dm);
 #endif
 		AAC_SetupObject(read);
 	}
