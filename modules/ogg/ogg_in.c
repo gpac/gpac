@@ -653,14 +653,45 @@ Bool OGG_CheckFile(OGGReader *read)
 	return has_stream;
 }
 
+static const char * OGG_MIMES_AUDIO[] = {
+    "audio/ogg", "audio/x-ogg", "audio/x-vorbis+ogg", NULL
+};
+
+static const char * OGG_MIMES_AUDIO_EXT = "oga spx";
+
+static const char * OGG_MIMES_AUDIO_DESC = "Xiph.org OGG Music";
+
+static const char * OGG_MIMES_VIDEO[] = {
+    "application/ogg", "application/x-ogg", "video/ogg", "video/x-ogg", "video/x-ogm+ogg", NULL
+};
+
+static const char * OGG_MIMES_VIDEO_DESC = "Xiph.org OGG Movie";
+
+static const char * OGG_MIMES_VIDEO_EXT = "ogg ogv oggm";
+
+static u32 OGG_RegisterMimeTypes(GF_InputService *plug){
+    u32 i, c;
+    for (i = 0 ; OGG_MIMES_AUDIO[i]; i++)
+      gf_term_register_mime_type(plug, OGG_MIMES_AUDIO[i], OGG_MIMES_AUDIO_EXT, OGG_MIMES_AUDIO_DESC);
+    c = i;
+    for (i = 0 ; OGG_MIMES_VIDEO[i]; i++)
+      gf_term_register_mime_type(plug, OGG_MIMES_VIDEO[i], OGG_MIMES_VIDEO_EXT, OGG_MIMES_VIDEO_DESC);
+    return c+i;
+}
+
 static Bool OGG_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
+	u32 i;
 	sExt = strrchr(url, '.');
-	if (!sExt) return 0;
-
-	if (gf_term_check_extension(plug, "application/ogg", "ogg", "Xiph.org OGG Movie", sExt)) return 1;
-	if (gf_term_check_extension(plug, "application/x-ogg", "ogg", "Xiph.org OGG Movie", sExt)) return 1;
+	for (i = 0 ; OGG_MIMES_AUDIO[i]; i++){
+	  if (gf_term_check_extension(plug, OGG_MIMES_AUDIO[i], OGG_MIMES_AUDIO_EXT, OGG_MIMES_AUDIO_DESC, sExt))
+	    return 1;
+	}
+	for (i = 0 ; OGG_MIMES_VIDEO[i]; i++){
+	  if (gf_term_check_extension(plug, OGG_MIMES_VIDEO[i], OGG_MIMES_VIDEO_EXT, OGG_MIMES_VIDEO_DESC, sExt))
+	    return 1;
+	}
 	return 0;
 }
 
@@ -934,7 +965,7 @@ GF_InputService *OGG_LoadDemux()
 	GF_InputService *plug = gf_malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC OGG Reader", "gpac distribution")
-
+	plug->RegisterMimeTypes = OGG_RegisterMimeTypes;
 	plug->CanHandleURL = OGG_CanHandleURL;
 	plug->ConnectService = OGG_ConnectService;
 	plug->CloseService = OGG_CloseService;

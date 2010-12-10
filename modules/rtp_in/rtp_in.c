@@ -170,12 +170,24 @@ u32 RP_Thread(void *param)
 	return 0;
 }
 
+static const char * sdp_mime = "application/sdp";
+
+static const char * sdp_exts = "sdp";
+
+static const char * sdp_desc = "OnDemand Media/Multicast Session";
+
+static u32 RP_RegisterMimeTypes(GF_InputService *plug){
+    if (!plug)
+      return 0;
+    gf_term_register_mime_type(plug, sdp_mime, sdp_exts, sdp_desc);
+    return 1;
+}
 
 static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt = strrchr(url, '.');
 
-	if (sExt && gf_term_check_extension(plug, "application/sdp", "sdp", "OnDemand Media/Multicast Session", sExt)) return 1;
+	if (sExt && gf_term_check_extension(plug, sdp_mime, sdp_exts, sdp_desc, sExt)) return 1;
 
 	/*local */
 	if (strstr(url, "data:application/sdp")) return 1;
@@ -698,7 +710,7 @@ GF_InputService *RTP_Load()
 	RTPClient *priv;
 	GF_InputService *plug;
 	GF_SAFEALLOC(plug, GF_InputService);
-
+	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC RTP/RTSP Client", "gpac distribution")
 
 	plug->CanHandleURL = RP_CanHandleURL;
@@ -709,6 +721,7 @@ GF_InputService *RTP_Load()
 	plug->ConnectChannel = RP_ConnectChannel;
 	plug->DisconnectChannel = RP_DisconnectChannel;
 	plug->ServiceCommand = RP_ServiceCommand;
+	plug->RegisterMimeTypes = RP_RegisterMimeTypes;
 
 	/*PULL mode for embedded streams*/
 	plug->ChannelGetSLP = RP_ChannelGetSLP;

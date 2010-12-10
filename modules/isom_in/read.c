@@ -60,23 +60,41 @@ static GFINLINE Bool isor_is_local(const char *url)
 	return 1;
 }
 
+static const char * ISOR_MIME_TYPES[] = {
+  /* First one is specific because we probe */
+  "application/x-isomedia", "*", "IsoMedia Files",
+  "video/mp4", "mp4 mpg4", "MPEG-4 Movies",
+  "audio/mp4", "m4a mp4 mpg4", "MPEG-4 Music",
+  "application/mp4", "mp4 mpg4", "MPEG-4 Applications",
+  "video/3gpp", "3gp 3gpp", "3GPP/MMS Movies",
+  "audio/3gpp", "3gp 3gpp", "3GPP/MMS Music",
+  "video/3gpp2", "3g2 3gp2", "3GPP2/MMS Movies",
+  "audio/3gpp2", "3g2 3gp2", "3GPP2/MMS Music",
+  NULL
+};
+  
+u32 ISOR_RegisterMimeTypes(GF_InputService *plug){
+  u32 i;
+  for (i = 0 ; ISOR_MIME_TYPES[i]; i+=3)
+    gf_term_register_mime_type(plug, ISOR_MIME_TYPES[i], ISOR_MIME_TYPES[i+1], ISOR_MIME_TYPES[i+2]);
+  return i/3;
+}
+
 Bool ISOR_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *ext;
 	if (!strnicmp(url, "rtsp://", 7)) return 0;
 	ext = strrchr(url, '.');
-	if (!ext) return 0;
+	{
+	    u32 i;
+	    /* We don't start at 0 since first one is specific */
+	    for (i = 3 ; ISOR_MIME_TYPES[i]; i+=3)
+	      if (gf_term_check_extension(plug, ISOR_MIME_TYPES[i], ISOR_MIME_TYPES[i+1], ISOR_MIME_TYPES[i+2], ext))
+		return 1;
+	}
 
-	if (gf_term_check_extension(plug, "video/mp4", "mp4 mpg4", "MPEG-4 Movies", ext)) return 1;
-	if (gf_term_check_extension(plug, "audio/mp4", "m4a mp4 mpg4", "MPEG-4 Music", ext)) return 1;
-	if (gf_term_check_extension(plug, "application/mp4", "mp4 mpg4", "MPEG-4 Applications", ext)) return 1;
-	if (gf_term_check_extension(plug, "video/3gpp", "3gp 3gpp", "3GPP/MMS Movies", ext)) return 1;
-	if (gf_term_check_extension(plug, "audio/3gpp", "3gp 3gpp", "3GPP/MMS Music",ext)) return 1;
-	if (gf_term_check_extension(plug, "video/3gpp2", "3g2 3gp2", "3GPP2/MMS Movies",ext)) return 1;
-	if (gf_term_check_extension(plug, "audio/3gpp2", "3g2 3gp2", "3GPP2/MMS Music",ext)) return 1;
-
-	if (gf_isom_probe_file(url)) {
-		gf_term_check_extension(plug, "application/x-isomedia", ext+1, "IsoMedia Files", ext);
+	if (ext && gf_isom_probe_file(url)) {
+		gf_term_check_extension(plug, ISOR_MIME_TYPES[0], ext+1, ISOR_MIME_TYPES[2], ext);
 		return 1;
 	}
 	return 0;
@@ -816,7 +834,7 @@ GF_InputService *isor_client_load()
 	GF_InputService *plug;
 	GF_SAFEALLOC(plug, GF_InputService);
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC IsoMedia Reader", "gpac distribution")
-
+	plug->RegisterMimeTypes = ISOR_RegisterMimeTypes;
 	plug->CanHandleURL = ISOR_CanHandleURL;
 	plug->ConnectService = ISOR_ConnectService;
 	plug->CloseService = ISOR_CloseService;

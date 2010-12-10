@@ -411,6 +411,14 @@ typedef struct _netinterface
 /*proxy stuff*/
 	GF_Err (*query_proxy)(struct _netinterface *, GF_NetworkCommand *param);
 	void *proxy_udta;
+	/*!
+	 * This is needed for modules supporting mime types, when this method is called,
+	 * the module has to call gf_term_register_mime_type() for all the mime-types
+	 * its supports.
+	 * \return The number of declared mime types
+	 * \see gf_term_register_mime_type(GF_InputService *, const char *, const char *, const char *)
+	 */
+	u32 (*RegisterMimeTypes) (struct _netinterface *);
 } GF_InputService;
 
 /*callback functions - these can be linked with non-LGPL modules*/

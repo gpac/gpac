@@ -73,6 +73,33 @@ Bool DC_RemoveChannel(DCReader *read, LPNETCHANNEL ch)
 	return 0;
 }
 
+static const char * DC_MIME_TYPES[] = {
+/*  "application/x-xmta", "xmta xmta.gz xmtaz", "MPEG-4 Text (XMT)" */
+    "application/x-bt", "bt bt.gz btz", "MPEG-4 Text (BT)",
+    "application/x-xmt", "xmt xmt.gz xmtz", "MPEG-4 Text (XMT)",
+    "model/vrml", "wrl wrl.gz", "VRML World",
+    "x-model/x-vrml", "wrl wrl.gz", "VRML World",
+    "model/x3d+vrml", "x3dv x3dv.gz x3dvz", "X3D/VRML World",
+    "model/x3d+xml", "x3d x3d.gz x3dz", "X3D/XML World",
+    "application/x-shockwave-flash", "swf", "Macromedia Flash Movie",
+    "image/svg+xml", "svg svg.gz svgz", "SVG Document",
+    "image/x-svgm", "svgm", "SVGM Document",
+    "application/x-LASeR+xml", "xsr", "LASeR Document",
+    "application/widget", "wgt", "W3C Widget Package",
+    "application/x-mpegu-widget", "mgt", "MPEG-U Widget Package",
+    NULL
+};
+
+
+static u32 DC_RegisterMimeTypes(GF_InputService *plug){
+    u32 i;
+    if (!plug)
+      return 0;
+    for (i = 0 ; DC_MIME_TYPES[i] ; i+=3)
+      gf_term_register_mime_type(plug, DC_MIME_TYPES[i], DC_MIME_TYPES[i+1], DC_MIME_TYPES[i+2]);
+    return i / 3;
+}
+
 Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt = strrchr(url, '.');
@@ -84,23 +111,12 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 
 		cgi_par = strchr(sExt, '?'); 
 		if (cgi_par) cgi_par[0] = 0;
-
-		/*the mpeg-4 mime types for bt/xmt are NOT registered at all :)*/
-		ok = gf_term_check_extension(plug, "application/x-bt", "bt bt.gz btz", "MPEG-4 Text (BT)", sExt);
-		if (!ok) ok = gf_term_check_extension(plug, "application/x-xmt", "xmt xmt.gz xmtz", "MPEG-4 Text (XMT)", sExt);;
-		//if (!ok) ok = gf_term_check_extension(plug, "application/x-xmta", "xmta xmta.gz xmtaz", "MPEG-4 Text (XMT)", sExt);
-		/*but all these ones are*/
-		if (!ok) ok = gf_term_check_extension(plug, "model/vrml", "wrl wrl.gz", "VRML World", sExt);
-		if (!ok) ok = gf_term_check_extension(plug, "x-model/x-vrml", "wrl wrl.gz", "VRML World", sExt);
-		if (!ok) ok = gf_term_check_extension(plug, "model/x3d+vrml", "x3dv x3dv.gz x3dvz", "X3D/VRML World", sExt);
-		if (!ok) ok = gf_term_check_extension(plug, "model/x3d+xml", "x3d x3d.gz x3dz", "X3D/XML World", sExt);
-		if (!ok) ok = gf_term_check_extension(plug, "application/x-shockwave-flash", "swf", "Macromedia Flash Movie", sExt);
-		if (!ok) ok = gf_term_check_extension(plug, "image/svg+xml", "svg svg.gz svgz", "SVG Document", sExt);
-		if (!ok) ok = gf_term_check_extension(plug, "image/x-svgm", "svgm", "SVGM Document", sExt);
-		if (!ok) ok = gf_term_check_extension(plug, "application/x-LASeR+xml", "xsr", "LASeR Document", sExt);
-		if (!ok) ok = gf_term_check_extension(plug, "application/widget", "wgt", "W3C Widget Package", sExt);
-		if (!ok) ok = gf_term_check_extension(plug, "application/x-mpegu-widget", "mgt", "MPEG-U Widget Package", sExt);
-
+		{
+		  u32 i;
+		  for (i = 0 ; DC_MIME_TYPES[i] ; i+=3)
+		    if (0 != (ok = gf_term_check_extension(plug, DC_MIME_TYPES[i], DC_MIME_TYPES[i+1], DC_MIME_TYPES[i+2], sExt)))
+		      break;
+		}
 		if (cgi_par) cgi_par[0] = '?';
 		if (ok) return 1;
 	}
@@ -433,8 +449,10 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
 
 	GF_SAFEALLOC(plug, GF_InputService);
+	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC Dummy Loader", "gpac distribution")
 
+	plug->RegisterMimeTypes = DC_RegisterMimeTypes;
 	plug->CanHandleURL = DC_CanHandleURL;
 	plug->ConnectService = DC_ConnectService;
 	plug->CloseService = DC_CloseService;

@@ -77,12 +77,25 @@ static GFINLINE SAFChannel *saf_get_channel(SAFIn *saf, u32 stream_id, LPNETCHAN
 	return NULL;
 }
 
+static const char * SAF_MIME = "application/x-saf";
+
+static const char * SAF_MIME_EXT = "saf lsr";
+
+static const char * SAF_MIME_DESC = "SAF Rich Media";
+
+static u32 SAF_RegisterMimeTypes(GF_InputService *plug)
+{
+	if (!plug)
+	  return 0;
+	gf_term_register_mime_type(plug, SAF_MIME, SAF_MIME_EXT, SAF_MIME_DESC);
+	return 1;
+}
+
 static Bool SAF_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	sExt = strrchr(url, '.');
-	if (!sExt) return 0;
-	if (gf_term_check_extension(plug, "application/x-saf", "saf lsr", "SAF Rich Media", sExt)) return 1;
+	if (gf_term_check_extension(plug, SAF_MIME, SAF_MIME_EXT, SAF_MIME_DESC, sExt)) return 1;
 	return 0;
 }
 
@@ -527,7 +540,6 @@ static GF_Err SAF_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	}
 }
 
-
 GF_InputService *NewSAFReader()
 {
 	SAFIn *reader;
@@ -535,6 +547,7 @@ GF_InputService *NewSAFReader()
 	GF_SAFEALLOC(plug, GF_InputService);
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC SAF Reader", "gpac distribution")
 
+	plug->RegisterMimeTypes = SAF_RegisterMimeTypes;
 	plug->CanHandleURL = SAF_CanHandleURL;
 	plug->ConnectService = SAF_ConnectService;
 	plug->CloseService = SAF_CloseService;

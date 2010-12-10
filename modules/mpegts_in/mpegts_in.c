@@ -60,6 +60,7 @@ typedef struct {
 
 #endif
 
+static const char * MIMES[] = { "video/mpeg-2", "video/mp2t", "video/mpeg", NULL};
 #define UDP_BUFFER_SIZE	0x40000
 
 typedef struct {
@@ -281,10 +282,12 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 	}
 
 	sExt = strrchr(url, '.');
-	if (!sExt) return 0;
-	if (gf_term_check_extension(plug, "video/mpeg-2", "ts m2t", "MPEG-2 TS", sExt)) return 1;
-	if (gf_term_check_extension(plug, "video/mp2t", "ts m2t", "MPEG-2 TS", sExt)) return 1;
-	if (gf_term_check_extension(plug, "video/mpeg", "ts m2t", "MPEG-2 TS", sExt)) return 1;
+	{
+		int i=0;
+		for (i = 0 ; NULL != MIMES[i]; i++)
+			if (gf_term_check_extension(plug, MIMES[i], "ts m2t", "MPEG-2 TS", sExt))
+				return 1;
+	}
 	return 0;
 }
 
@@ -1423,6 +1426,15 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	}
 }
 
+static u32 M2TS_RegisterMimeTypes(const GF_InputService * service){
+  int i;
+  if (service == NULL)
+    return 0;
+  for (i = 0 ; MIMES[i]; i++)
+    gf_term_register_mime_type( service, MIMES[i], "ts m2t", "MPEG-2 TS");
+  return i;
+}
+
 
 GF_InputService *NewM2TSReader()
 {
@@ -1439,6 +1451,7 @@ GF_InputService *NewM2TSReader()
 	plug->ConnectChannel = M2TS_ConnectChannel;
 	plug->DisconnectChannel = M2TS_DisconnectChannel;
 	plug->ServiceCommand = M2TS_ServiceCommand;
+	plug->RegisterMimeTypes = M2TS_RegisterMimeTypes;
 
 	reader = gf_malloc(sizeof(M2TSIn));
 	memset(reader, 0, sizeof(M2TSIn));
