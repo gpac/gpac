@@ -1673,7 +1673,7 @@ int main(int argc, char **argv)
 						goto exit;
 					}
 					/* delete the oldest segment */
-					if (segment_number && (segment_index - segment_number >= 0)){
+					if (segment_number && ((s32) (segment_index - segment_number) >= 0)){
 						char old_segment_name[GF_MAX_PATH];
 						sprintf(old_segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index - segment_number);
 						gf_delete_file(old_segment_name);
