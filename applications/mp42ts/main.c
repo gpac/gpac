@@ -617,7 +617,7 @@ static Bool seng_output(void *param)
 	last_src_modif = prog->src_name ? gf_file_modification_time(prog->src_name) : 0;
 
 	/*send the audio descriptor*/
-	if (prog->mpeg4_signaling==GF_M2TS_MPEG4_SIGNALING_FULL) {
+	if (prog->mpeg4_signaling==GF_M2TS_MPEG4_SIGNALING_FULL && audio_OD_stream_id!=(u32)-1) {
 		audio_desc = prog->streams[audio_OD_stream_id].input_udta;
 		if (audio_desc && audio_desc->data) /*RTP/UDP + MP3 case*/
 		{
@@ -899,10 +899,10 @@ void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 pe
 	GF_Err e = GF_OK;
 	u32 len;
 	GF_ESIStream *stream;
-	const char ** config_buffer = NULL;
+	char *config_buffer = NULL;
 
 	memset(ifce, 0, sizeof(GF_ESInterface));
-	e = gf_seng_get_stream_config(seng, i, (u16*) &(ifce->stream_id), config_buffer, &len, (u32*) &(ifce->stream_type), (u32*) &(ifce->object_type_indication), &(ifce->timescale)); 
+	e = gf_seng_get_stream_config(seng, i, (u16*) &(ifce->stream_id), &config_buffer, &len, (u32*) &(ifce->stream_type), (u32*) &(ifce->object_type_indication), &(ifce->timescale)); 
 	if (e) {
 		fprintf(stderr, "Cannot set the stream config for stream %d to %d: %s\n", ifce->stream_id, period, gf_error_to_string(e));
 	}
