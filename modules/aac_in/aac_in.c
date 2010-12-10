@@ -80,15 +80,34 @@ typedef struct
 } ADTSHeader;
 
 #ifndef DONT_USE_TERMINAL_MODULE_API
+
+static const char * AAC_MIMES[] = {  "audio/x-m4a", "audio/aac", "audio/aacp", 0 };
+
+static const char * AAC_EXTENSIONS = "aac mp4a";
+
+static const char * AAC_DESC = "MPEG-4 AAC Music";
+
+static u32 AAC_RegisterMimeTypes(GF_InputService *plug){
+    int i;
+    if (!plug)
+      return 0;
+    for (i = 0 ; AAC_MIMES[i] ; i++)
+      gf_term_register_mime_type( plug, AAC_MIMES[i], AAC_EXTENSIONS, AAC_DESC);
+    return i;
+}
+
+
 static Bool AAC_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	sExt = strrchr(url, '.');
-	if (!strnicmp(url, "rtsp://", 7)) return 0; 
-	if (!sExt) return 0;
-	if (gf_term_check_extension(plug, "audio/x-m4a", "aac", "MPEG-4 AAC Music", sExt)) return 1;
-	if (gf_term_check_extension(plug, "audio/aac", "aac", "MPEG-4 AAC Music", sExt)) return 1;
-	if (gf_term_check_extension(plug, "audio/aacp", "aac", "MPEG-4 AACPlus Music", sExt)) return 1;
+	if (!strnicmp(url, "rtsp://", 7)) return 0;
+	{
+	    int i;
+	    for (i = 0 ; AAC_MIMES[i] ; i++)
+	      if (gf_term_check_extension(plug, AAC_MIMES[i], AAC_EXTENSIONS, AAC_DESC, sExt))
+		return 1;
+	}
 	return 0;
 }
 #endif
@@ -765,6 +784,7 @@ GF_InputService *AAC_Load()
 	/*we do support pull mode*/
 	plug->ChannelGetSLP = AAC_ChannelGetSLP;
 	plug->ChannelReleaseSLP = AAC_ChannelReleaseSLP;
+	plug->RegisterMimeTypes = AAC_RegisterMimeTypes;
 
 	reader = gf_malloc(sizeof(AACReader));
 	memset(reader, 0, sizeof(AACReader));

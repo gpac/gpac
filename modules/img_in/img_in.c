@@ -89,17 +89,33 @@ GF_ESD *IMG_GetESD(IMGLoader *read)
 	return esd;
 }
 
+const char * IMG_MIME_TYPES[] = {
+  "image/jpeg", "jpeg jpg", "JPEG Images",
+  "image/jp2", "jp2", "JPEG2000 Images",
+  "image/png", "png", "PNG Images",
+  "image/bmp", "bmp", "MS Bitmap Images",
+  "image/x-png+depth", "pngd", "PNG+Depth Images",
+  "image/x-png+depth+mask", "pngds", "PNG+Depth+Mask Images",
+  NULL
+};
+
+static u32 IMG_RegisterMimeTypes(GF_InputService *plug){
+    u32 i;
+    for (i = 0 ; IMG_MIME_TYPES[i]; i+=3)
+      gf_term_register_mime_type(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2]);
+    return i/3;
+}
+
+
 static Bool IMG_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
+	u32 i;
 	sExt = strrchr(url, '.');
-	if (!sExt) return 0;
-	if (gf_term_check_extension(plug, "image/jpeg", "jpeg jpg", "JPEG Images", sExt)) return 1;
-	if (gf_term_check_extension(plug, "image/jp2", "jp2", "JPEG2000 Images", sExt)) return 1;
-	if (gf_term_check_extension(plug, "image/png", "png", "PNG Images", sExt)) return 1;
-	if (gf_term_check_extension(plug, "image/bmp", "bmp", "MS Bitmap Images", sExt)) return 1;
-	if (gf_term_check_extension(plug, "image/x-png+depth", "pngd", "PNG+Depth Images", sExt)) return 1;
-	if (gf_term_check_extension(plug, "image/x-png+depth+mask", "pngds", "PNG+Depth+Mask Images", sExt)) return 1;
+	for (i = 0 ; IMG_MIME_TYPES[i]; i+=3){
+	  if (gf_term_check_extension(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2], sExt))
+	    return 1;
+	}
 	return 0;
 }
 
@@ -356,6 +372,7 @@ void *NewLoaderInterface()
 	GF_SAFEALLOC(plug, GF_InputService);
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC Image Reader", "gpac distribution")
 
+	plug->RegisterMimeTypes = IMG_RegisterMimeTypes;
 	plug->CanHandleURL = IMG_CanHandleURL;
 	plug->CanHandleURLInService = NULL;
 	plug->ConnectService = IMG_ConnectService;

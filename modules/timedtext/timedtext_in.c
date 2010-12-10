@@ -52,14 +52,30 @@ typedef struct
 } TTIn;
 
 
+const char * TTIN_MIME_TYPES[] = {
+  "x-subtitle/srt", "srt", "SRT SubTitles",
+  "x-subtitle/sub", "sub", "SUB SubTitles",
+  "x-subtitle/ttxt", "ttxt", "3GPP TimedText",
+  NULL
+};
+
+static u32 TTIN_RegisterMimeTypes(GF_InputService *plug){
+    u32 i;
+    for (i = 0 ; TTIN_MIME_TYPES[i]; i+=3){
+	gf_term_register_mime_type(plug, TTIN_MIME_TYPES[i], TTIN_MIME_TYPES[i+1], TTIN_MIME_TYPES[i+2]);
+    }
+    return i/3;
+}
+
 static Bool TTIn_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
+	u32 i;
 	sExt = strrchr(url, '.');
 	if (!sExt) return 0;
-	if (gf_term_check_extension(plug, "x-subtitle/srt", "srt", "SRT SubTitles", sExt)) return 1;
-	if (gf_term_check_extension(plug, "x-subtitle/sub", "sub", "SUB SubTitles", sExt)) return 1;
-	if (gf_term_check_extension(plug, "x-subtitle/ttxt", "ttxt", "3GPP TimedText", sExt)) return 1;
+	for (i = 0 ; TTIN_MIME_TYPES[i]; i+=3){
+	  if (gf_term_check_extension(plug, TTIN_MIME_TYPES[i], TTIN_MIME_TYPES[i+1], TTIN_MIME_TYPES[i+2], sExt)) return 1;
+	}
 	return 0;
 }
 
@@ -355,6 +371,7 @@ void *NewTTReader()
 	GF_SAFEALLOC(plug, GF_InputService);
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC SubTitle Reader", "gpac distribution")
 
+	plug->RegisterMimeTypes = TTIN_RegisterMimeTypes;
 	plug->CanHandleURL = TTIn_CanHandleURL;
 	plug->CanHandleURLInService = NULL;
 	plug->ConnectService = TTIn_ConnectService;

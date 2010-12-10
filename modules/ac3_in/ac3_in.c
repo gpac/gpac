@@ -63,13 +63,28 @@ typedef struct
 	char *icy_track_name;
 } AC3Reader;
 
+static const char * AC3_MIMES[] = { "audio/ac3", "audio/x-ac3", NULL };
+
+static const char * AC3_EXTS = "ac3";
+
+static const char * AC3_DESC = "AC3 Music";
+
+static u32 AC3_RegisterMimeTypes(GF_InputService *plug)
+{
+    u32 i;
+    for (i = 0 ; AC3_MIMES[i]; i++)
+      gf_term_register_mime_type(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC);
+    return i;
+}
+
 static Bool AC3_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
+	u32 i;
 	sExt = strrchr(url, '.');
-	if (!sExt) return 0;
-	if (gf_term_check_extension(plug, "audio/ac3", "ac3", "AC3 Music", sExt)) return 1;
-	if (gf_term_check_extension(plug, "audio/x-ac3", "ac3", "AC3 Music", sExt)) return 1;
+	for (i = 0 ; AC3_MIMES[i]; i++){
+	  if (gf_term_check_extension(plug, AC3_MIMES[i], AC3_EXTS, AC3_DESC, sExt)) return 1;
+	}
 	return 0;
 }
 
@@ -601,6 +616,7 @@ GF_InputService *AC3_Load()
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC AC3 Reader", "gpac distribution")
 
+	plug->RegisterMimeTypes = AC3_RegisterMimeTypes;
 	plug->CanHandleURL = AC3_CanHandleURL;
 	plug->ConnectService = AC3_ConnectService;
 	plug->CloseService = AC3_CloseService;

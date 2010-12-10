@@ -67,14 +67,32 @@ typedef struct
 } MP3Reader;
 
 
+static const char * MP3_MIME_TYPES[] = { "audio/mpeg", "audio/x-mpeg", "audio/mp3", NULL};
+
+static const char * MP3_EXTENSIONS = "mp2 mp3 mpga mpega";
+
+static const char * MP3_DESC = "MP3 Music";
+
+
+static Bool MP3_RegisterMimeTypes(GF_InputService *plug, const char *url)
+{
+  u32 i;
+  for (i =0 ; MP3_MIME_TYPES[i] ; i++)
+	gf_term_register_mime_type(plug, MP3_MIME_TYPES[i], MP3_EXTENSIONS, MP3_DESC);
+  return i;
+}
+
 static Bool MP3_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	sExt = strrchr(url, '.');
 	if (!strnicmp(url, "rtsp://", 7)) return 0; 
-	if (!sExt) return 0;
-	if (gf_term_check_extension(plug, "audio/mpeg", "mp2 mp3 mpga mpega", "MP3 Music", sExt)) return 1;
-	if (gf_term_check_extension(plug, "audio/x-mpeg", "mp2 mp3 mpga mpega", "MP3 Music", sExt)) return 1;
+	{
+	  u32 i;
+	  for (i =0 ; MP3_MIME_TYPES[i] ; i++)
+	    if (gf_term_check_extension(plug, MP3_MIME_TYPES[i], MP3_EXTENSIONS, MP3_DESC, sExt))
+	      return 1;
+	}
 	return 0;
 }
 
@@ -622,7 +640,6 @@ GF_InputService *MP3_Load()
 	GF_InputService *plug = gf_malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC MP3 Reader", "gpac distribution")
-
 	plug->CanHandleURL = MP3_CanHandleURL;
 	plug->ConnectService = MP3_ConnectService;
 	plug->CloseService = MP3_CloseService;
@@ -630,6 +647,7 @@ GF_InputService *MP3_Load()
 	plug->ConnectChannel = MP3_ConnectChannel;
 	plug->DisconnectChannel = MP3_DisconnectChannel;
 	plug->ServiceCommand = MP3_ServiceCommand;
+	plug->RegisterMimeTypes = MP3_RegisterMimeTypes;
 	/*we do support pull mode*/
 	plug->ChannelGetSLP = MP3_ChannelGetSLP;
 	plug->ChannelReleaseSLP = MP3_ChannelReleaseSLP;
