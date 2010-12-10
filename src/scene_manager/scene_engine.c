@@ -863,7 +863,7 @@ void gf_seng_terminate(GF_SceneEngine *seng)
 }
 
 GF_EXPORT
-GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, const char **config, u32 *config_len, u32 *streamType, u32 *objectType, u32 *timeScale)
+GF_Err gf_seng_get_stream_config(GF_SceneEngine *seng, u32 idx, u16 *ESID, char * * const config, u32 *config_len, u32 *streamType, u32 *objectType, u32 *timeScale)
 {
 	GF_StreamContext *sc = gf_list_get(seng->ctx->streams, idx);
 	if (!sc || !ESID || !config || !config_len) return GF_BAD_PARAM;
