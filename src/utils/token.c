@@ -24,7 +24,7 @@
 
 #include <gpac/token.h>
 
-static GFINLINE s32 gf_tok_is_char_in_set(char TestChar, char *TestSet)
+static GFINLINE s32 gf_tok_is_char_in_set(const char TestChar, const char *TestSet)
 {
 	u32 i, Len;
 	Len = strlen(TestSet);
@@ -35,7 +35,7 @@ static GFINLINE s32 gf_tok_is_char_in_set(char TestChar, char *TestSet)
 }
 
 GF_EXPORT
-s32 gf_token_get(char *Buffer, s32 Start,  char *Separator,  char *Container, s32 ContainerSize)
+s32 gf_token_get(const char *Buffer, s32 Start,  const char *Separator,  char *Container, s32 ContainerSize)
 {
 	s32 i, start, end, Len;
 
@@ -59,7 +59,7 @@ s32 gf_token_get(char *Buffer, s32 Start,  char *Separator,  char *Container, s3
 	return (end+1);
 }
 
-s32 gf_token_get_strip(char *Buffer, s32 Start, char *Separator, char *strip_set, char *Container, s32 ContainerSize)
+s32 gf_token_get_strip(const char *Buffer, s32 Start, const char *Separator, const char *strip_set, char *Container, s32 ContainerSize)
 {
 	u32 i, k, len;
 	s32 res = gf_token_get(Buffer, Start, Separator, Container, ContainerSize);
@@ -81,7 +81,7 @@ s32 gf_token_get_strip(char *Buffer, s32 Start, char *Separator, char *strip_set
 
 
 GF_EXPORT
-s32 gf_token_get_line(char	*Buffer, u32 Start, u32 Size, char *LineBuffer, u32 LineBufferSize)
+s32 gf_token_get_line(const char *Buffer, u32 Start, u32 Size, char *LineBuffer, u32 LineBufferSize)
 {
 	u32 offset;
 	s32 i, End, Total;
@@ -105,7 +105,7 @@ s32 gf_token_get_line(char	*Buffer, u32 Start, u32 Size, char *LineBuffer, u32 L
 }
 
 GF_EXPORT
-s32 gf_token_find(char *Buffer, u32 Start, u32 Size, char *Pattern)
+s32 gf_token_find(const char *Buffer, u32 Start, u32 Size, const char *Pattern)
 {
 	u32 i, j, flag;
 	s32 Len;

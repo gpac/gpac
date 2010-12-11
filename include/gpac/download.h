@@ -181,7 +181,7 @@ extern "C" {
         /*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages*/
         u32 size;
         /*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD*/
-        char *name;
+        const char *name;
         /*protocol header value or server response. Only alid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_PARSE_REPLY*/
         char *value;
         /*response code - only valid for GF_NETIO_PARSE_REPLY*/
