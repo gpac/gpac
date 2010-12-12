@@ -223,7 +223,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *peer_name, u16 port, char *local_ip)
  *\param buffer the data buffer to send
  *\param length the data length to send
  */
-GF_Err gf_sk_send(GF_Socket *sock, char *buffer, u32 length);
+GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length);
 /*!
  *\brief data reception
  * 
@@ -338,7 +338,7 @@ u32 gf_sk_is_multicast_address(const char *multi_ip_add);
  *\param delay_sec the maximum delay in second to wait before aborting
  *\return If the operation timeed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
  */
-GF_Err gf_sk_send_wait(GF_Socket *sock, char *buffer, u32 length, u32 delay_sec);
+GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 delay_sec);
 /* receive data with a max wait delay of Second - used for http / ftp sockets mainly*/
 /*!
  *\brief receive data with wait delay
