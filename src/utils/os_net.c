@@ -782,7 +782,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
 }
 
 //send length bytes of a buffer
-GF_Err gf_sk_send(GF_Socket *sock, char *buffer, u32 length)
+GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length)
 {
 	GF_Err e;
 	u32 count;
@@ -1291,7 +1291,7 @@ GF_Err gf_sk_get_remote_address(GF_Socket *sock, char *buf)
 
 
 //send length bytes of a buffer
-GF_Err gf_sk_send_to(GF_Socket *sock, char *buffer, u32 length, char *remoteHost, u16 remotePort)
+GF_Err gf_sk_send_to(GF_Socket *sock, const char *buffer, u32 length, char *remoteHost, u16 remotePort)
 {
 	u32 count, remote_add_len;
 	s32 res;
@@ -1437,7 +1437,7 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFr
 
 
 //send length bytes of a buffer
-GF_Err gf_sk_send_wait(GF_Socket *sock, char *buffer, u32 length, u32 Second )
+GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 Second )
 {
 
 	GF_Err e;
