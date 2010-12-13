@@ -1152,7 +1152,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 {
 	Bool rate_found=0, mpeg4_carousel_found=0, prog_found=0, mpeg4_found=0, time_found=0, src_found=0, dst_found=0, audio_input_found=0, 
 		 seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found = 0, real_time_found=0;
-	char *prog_name, *arg, *error_msg;
+	char *prog_name, *arg = NULL, *error_msg = "no argument found";
 	Bool mpeg4_signaling = 0; 
 	s32 i;
 	/*first pass: find audio*/
