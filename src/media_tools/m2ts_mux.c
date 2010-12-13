@@ -840,6 +840,7 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 		}
 		gf_bs_write_data(bs, stream->pck.data, stream->pck.data_len);
 		gf_bs_align(bs);
+		gf_free(stream->pck.data);
 		gf_bs_get_content(bs, &stream->pck.data, &stream->pck.data_len);
 		gf_bs_del(bs);
 
@@ -871,6 +872,7 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 
 			gf_bs_write_data(bs, stream->pck.data, stream->pck.data_len);
 			gf_bs_align(bs);
+			gf_free(stream->pck.data);
 			gf_bs_get_content(bs, &stream->pck.data, &stream->pck.data_len);
 			gf_bs_del(bs);
 		}
