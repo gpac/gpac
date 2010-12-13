@@ -304,7 +304,17 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			break;
 		case CODEC_ID_DVD_SUBTITLE:
 			*frame = avcodec_alloc_frame();
-			avcodec_decode_video((*ctx), *frame, &gotpic, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+#ifdef USE_AVCODEC2
+			{
+			  AVPacket pkt;
+			  av_init_packet(&pkt);
+			  pkt.data = esd->decoderConfig->decoderSpecificInfo->data;
+			  pkt.size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+			  avcodec_decode_video2((*ctx), *frame, &gotpic, &pkt);
+			}
+#else
+			avcodec_decode_video((*ctx), *frame, &gotpic, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);			
+#endif
 			ffd->pix_fmt = GF_PIXEL_YV12; 
 			break;
 		default:
@@ -483,8 +493,9 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 		char *outBuffer, u32 *outBufferLength,
 		u8 PaddingBits, u32 mmlevel)
 {
-
+#ifdef USE_AVCODEC2
 	AVPacket pkt;
+#endif
 	AVPicture pict;
 	u32 pix_out;
 	s32 w, h, gotpic;
@@ -554,8 +565,11 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 
 redecode:
 		gotpic = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+#ifdef USE_AVCODEC2
+		len = avcodec_decode_audio3(ctx, (short *)ffd->audio_buf, &gotpic, &pkt);	
+#else
 		len = avcodec_decode_audio2(ctx, (short *)ffd->audio_buf, &gotpic, inBuffer + ffd->frame_start, inBufferLength - ffd->frame_start);
-
+#endif
 		if (len<0) { ffd->frame_start = 0; return GF_NON_COMPLIANT_BITSTREAM; }
 		if (gotpic<0) { ffd->frame_start = 0; return GF_OK; }
 
@@ -637,12 +651,10 @@ redecode:
 		}
 	}
 
+#if USE_AVCODEC2
 	av_init_packet(&pkt);
 	pkt.data = inBuffer;
 	pkt.size = inBufferLength;
-
-
-#if USE_AVCODEC2
 	if (avcodec_decode_video2(ctx, frame, &gotpic, &pkt) < 0) {
 #else
 	if (avcodec_decode_video(ctx, frame, &gotpic, inBuffer, inBufferLength) < 0) {
@@ -660,7 +672,11 @@ redecode:
 			avcodec_close(ctx);
 			*codec = avcodec_find_decoder(CODEC_ID_H263);
 			if (! (*codec) || (avcodec_open(ctx, *codec)<0)) return GF_NON_COMPLIANT_BITSTREAM;
+#if USE_AVCODEC2
+			if (avcodec_decode_video2(ctx, frame, &gotpic, &pkt) < 0) {
+#else
 			if (avcodec_decode_video(ctx, frame, &gotpic, inBuffer, inBufferLength) < 0) {
+#endif
 				/*nope, stay in MPEG-4*/
 				avcodec_close(ctx);
 				*codec = avcodec_find_decoder(old_codec);
@@ -781,9 +797,9 @@ redecode:
 		(*sws) = sws_getContext(ctx->width, ctx->height,
                         ctx->pix_fmt, ctx->width, ctx->height, pix_out, SWS_BICUBIC, 
 	                NULL, NULL, NULL);
-	
+
 	if ((*sws))
-		sws_scale((*sws), frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
+		sws_scale((*sws), (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
 
 #endif
 

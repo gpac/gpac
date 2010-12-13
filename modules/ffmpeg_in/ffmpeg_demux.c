@@ -157,6 +157,39 @@ static u32 FFDemux_Run(void *par)
 	return 0;
 }
 
+static const char * FFD_MIME_TYPES[] = {
+  "video/x-mpeg", "mpg mpeg mp2 mpa mpe mpv2", "MPEG 1/2 Movies",
+  "video/x-mpeg-systems", "mpg mpeg mp2 mpa mpe mpv2", "MPEG 1/2 Movies",
+  "audio/basic", "snd au", "Basic Audio",
+  "audio/x-wav", "wav", "WAV Audio",
+  "audio/vnd.wave", "wav", "WAV Audio",
+  "video/x-ms-asf", "asf wma wmv asx asr", "WindowsMedia Movies",
+  "video/x-ms-wmv", "asf wma wmv asx asr", "WindowsMedia Movies",
+  "video/x-msvideo", "avi", "AVI Movies",
+  "video/x-ms-video", "avi", "AVI Movies",
+  "video/avi", "avi", "AVI Movies",
+  "video/vnd.avi", "avi", "AVI Movies",
+  "video/H263", "h263 263", "H263 Video",
+  "video/H264", "h264 264", "H264 Video",
+  "video/MPEG4", "cmp", "MPEG-4 Video",
+/* We let ffmpeg handle mov because some QT files with uncompressed or adpcm audio use 1 audio sample 
+   per MP4 sample which is a killer for our MP4 lib, whereas ffmpeg handles these as complete audio chunks 
+   moreover ffmpeg handles cmov, we don't */
+  "video/quicktime", "mov qt", "QuickTime Movies",
+/* Supported by latest versions of FFMPEG */
+  "video/webm", "webm", "Google WebM Movies",
+  "audio/webm", "webm", "Google WebM Music",
+  NULL
+};
+
+static u32 FFD_RegisterMimeTypes(GF_InputService *plug){
+    u32 i;
+    for (i = 0 ; FFD_MIME_TYPES[i]; i+=3)
+      gf_term_register_mime_type(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2]);
+    return i/3;
+}
+
+
 static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	Bool has_audio, has_video;
@@ -183,7 +216,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	if (ext) ext[0] = 0;
 
 	ext = strrchr(szName, '.');
-	if (ext) {
+	if (ext && strlen(ext) > 1) {
 		strcpy(szExt, &ext[1]);
 		strlwr(szExt);
 		if (!strcmp(szExt, "ts")) return 0;
@@ -203,26 +236,13 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 			) return 0;
 
 		/*check any default stuff that should work with ffmpeg*/
-		if (gf_term_check_extension(plug, "video/mpeg", "mpg mpeg mp2 mpa mpe mpv2", "MPEG 1/2 Movies", ext)) return 1;
-		if (gf_term_check_extension(plug, "video/x-mpeg", "mpg mpeg mp2 mpa mpe mpv2", "MPEG 1/2 Movies", ext)) return 1;
-		if (gf_term_check_extension(plug, "video/x-mpeg-systems", "mpg mpeg mp2 mpa mpe mpv2", "MPEG 1/2 Movies", ext)) return 1;
-		if (gf_term_check_extension(plug, "audio/basic", "snd au", "Basic Audio", ext)) return 1;
-		if (gf_term_check_extension(plug, "audio/x-wav", "wav", "WAV Audio", ext)) return 1;
-		if (gf_term_check_extension(plug, "audio/vnd.wave", "wav", "WAV Audio", ext)) return 1;
-		if (gf_term_check_extension(plug, "video/x-ms-asf", "asf wma wmv asx asr", "WindowsMedia Movies", ext)) return 1;
-		if (gf_term_check_extension(plug, "video/x-ms-wmv", "asf wma wmv asx asr", "WindowsMedia Movies", ext)) return 1;
-		if (gf_term_check_extension(plug, "video/x-msvideo", "avi", "AVI Movies", ext)) return 1;
-		if (gf_term_check_extension(plug, "video/x-ms-video", "avi", "AVI Movies", ext)) return 1;
-		if (gf_term_check_extension(plug, "video/avi", "avi", "AVI Movies", ext)) return 1;
-		if (gf_term_check_extension(plug, "video/vnd.avi", "avi", "AVI Movies", ext)) return 1;
-
-		if (gf_term_check_extension(plug, "video/H263", "h263 263", "H263 Video", ext)) return 1;
-		if (gf_term_check_extension(plug, "video/H264", "h264 264", "H264 Video", ext)) return 1;
-		if (gf_term_check_extension(plug, "video/MPEG4", "cmp", "MPEG-4 Video", ext)) return 1;
-		/*we let ffmpeg handle mov because some QT files with uncompressed or adpcm audio use 1 audio sample 
-		per MP4 sample which is a killer for our MP4 lib, whereas ffmpeg handles these as complete audio chunks 
-		moreover ffmpeg handles cmov, we don't*/
-		if (gf_term_check_extension(plug, "video/quicktime", "mov qt", "QuickTime Movies", ext)) return 1;
+		{
+		  u32 i;
+		  for (i = 0 ; FFD_MIME_TYPES[i]; i+=3){
+		    if (gf_term_check_extension(plug, FFD_MIME_TYPES[0], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2], ext))
+		      return 1;
+		  }
+		}
 	}
 
 	ctx = NULL;
@@ -254,8 +274,11 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
     }
 	if (!has_audio && !has_video) goto exit;
 	ret = 1;
-
+#if LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45
 	fmt_out = guess_stream_format(NULL, url, NULL);
+#else
+	fmt_out = av_guess_format(NULL, url, NULL);
+#endif
 	if (fmt_out) gf_term_register_mime_type(plug, fmt_out->mime_type, fmt_out->extensions, fmt_out->name);
 	else {
 		ext = strrchr(szName, '.');
@@ -863,6 +886,7 @@ void *New_FFMPEG_Demux()
     /* register all codecs, demux and protocols */
     av_register_all();
 	
+	ffd->RegisterMimeTypes = FFD_RegisterMimeTypes;
 	ffd->CanHandleURL = FFD_CanHandleURL;
 	ffd->CloseService = FFD_CloseService;
 	ffd->ConnectChannel = FFD_ConnectChannel;
