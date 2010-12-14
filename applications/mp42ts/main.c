@@ -394,7 +394,7 @@ static GF_Err udp_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 void *audio_prog = NULL;
 static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size, u64 ts);
 #define DONT_USE_TERMINAL_MODULE_API
-#include "../modules/aac_in/aac_in.c"
+#include "../../modules/aac_in/aac_in.c" 
 AACReader *aac_reader = NULL;
 
 /*create an OD codec and encode the descriptor*/
@@ -980,6 +980,8 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 			gf_isom_set_default_sync_track(prog->mp4, priv->track);
 		}
 		prog->iod = gf_isom_get_root_od(prog->mp4);
+		if (!prog->iod)
+		  fprintf(stderr, "NULL IOD for program !\n");
 		return 1;
 	}
 
@@ -1064,8 +1066,12 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 		else{
 			fprintf(stderr, "Scene engine created.\n");
 		}
-
+		assert( prog );
+		assert( prog->seng);
 		prog->iod = gf_seng_get_iod(prog->seng);
+		if (! prog->iod){
+		    fprintf(stderr, __FILE__": No IOD\n");
+		}
 
 		prog->nb_streams = gf_seng_get_stream_count(prog->seng);
 		prog->rate = carousel_rate;
@@ -1096,8 +1102,9 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 
 			GF_SAFEALLOC(prog->streams[i].input_udta, GF_ESIStream);
 			((GF_ESIStream*)prog->streams[i].input_udta)->vers_inc = 1;	/*increment version number at every audio update*/
-
-			if ((prog->iod->tag!=GF_ODF_IOD_TAG) || ((GF_InitialObjectDescriptor*)prog->iod)->OD_profileAndLevel!=GPAC_MAGIC_OD_PROFILE_FOR_MPEG4_SIGNALING) {
+			assert( prog );
+			//assert( prog->iod);
+			if (prog->iod && ((prog->iod->tag!=GF_ODF_IOD_TAG) || ((GF_InitialObjectDescriptor*)prog->iod)->OD_profileAndLevel!=GPAC_MAGIC_OD_PROFILE_FOR_MPEG4_SIGNALING)) {
 				/*create the descriptor*/
 				GF_ESD *esd;
 				GF_SimpleDataDescriptor *audio_desc;
@@ -1468,7 +1475,7 @@ int main(int argc, char **argv)
 	segment_dir = NULL;
 	prev_seg_time.sec = 0;
 	prev_seg_time.nanosec = 0;
-	GF_SAFEALLOC(aac_reader, AACReader);
+	aac_reader = AAC_Reader_new();
 	
 	/*****************/
 	/*   gpac init   */
@@ -1743,6 +1750,8 @@ exit:
 	if (udp_out) gf_free(udp_out);
 	if (rtp_out) gf_free(rtp_out);
 	if (muxer) gf_m2ts_mux_del(muxer);
+	if (aac_reader)
+	  AAC_Reader_del(aac_reader);
 	
 	for (i=0; i<nb_progs; i++) {
 		for (j=0; j<progs[i].nb_streams; j++) {
