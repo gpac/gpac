@@ -555,7 +555,7 @@ static int unregister_address(void *ptr, char *filename, int line)
 				gf_memory_log(GF_MEMORY_ERROR, "trying to free a never allocated block (0x%08X)\n", ptr);
 				/* assert(0); */ /*don't assert since this is often due to allocations that occured out of gpac (fonts, etc.)*/
 			} else {
-				gf_memory_log(GF_MEMORY_ERROR, "the block 0x%08X has already been freed line%5d from %s\n", line, filename);
+				gf_memory_log(GF_MEMORY_ERROR, "the block 0x%08X trying to be deleted line%5d from %s has already been freed\n", ptr, line, filename);
 				assert(0);
 			}
 		} else {
@@ -632,7 +632,7 @@ void gf_memory_print()
 #endif
 			while (curr_element) {
 				next_element = curr_element->next;
-				gf_memory_log(GF_MEMORY_INFO, "Memory Block 0x%08X allocated line%5d from %s\n", curr_element->ptr, curr_element->line, &curr_element->filename);
+				gf_memory_log(GF_MEMORY_INFO, "Memory Block 0x%08X allocated line%5d from %s\n", curr_element->ptr, curr_element->line, &curr_element->filename)
 				curr_element = next_element;
 			}
 		}
