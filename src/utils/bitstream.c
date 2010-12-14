@@ -60,7 +60,7 @@ struct __tag_bitstream
 
 
 GF_EXPORT
-GF_BitStream *gf_bs_new(char *buffer, u64 BufferSize, u32 mode)
+GF_BitStream *gf_bs_new(const char *buffer, u64 BufferSize, u32 mode)
 {
 	GF_BitStream *tmp;
 	if ( (buffer && ! BufferSize)) return NULL;
@@ -588,9 +588,9 @@ u64 gf_bs_available(GF_BitStream *bs)
 Used only in WRITE mode, as we don't know the real size during allocation...
 return -1 for bad param or gf_malloc failed
 return nbBytes cut*/
-static u32 BS_CutBuffer(GF_BitStream *bs)
+static s32 BS_CutBuffer(GF_BitStream *bs)
 {	
-	u32 nbBytes;
+	s32 nbBytes;
 	if ( (bs->bsmode != GF_BITSTREAM_WRITE_DYN) && (bs->bsmode != GF_BITSTREAM_WRITE)) return (u32) -1;
 	/*Align our buffer or we're dead!*/
 	gf_bs_align(bs);
@@ -615,8 +615,11 @@ void gf_bs_get_content(GF_BitStream *bs, char **output, u32 *outSize)
 		*outSize = 0;
 		gf_free(bs->original);
 	} else {
-		BS_CutBuffer(bs);
-		*output = bs->original;
+		s32 copy = BS_CutBuffer(bs);
+		if (copy < 0){
+		  *output = NULL;
+		} else
+		  *output = bs->original;
 		*outSize = (u32) bs->size;
 	}
 	bs->original = NULL;

@@ -66,7 +66,7 @@ typedef struct __tag_bitstream GF_BitStream;
  *	\note In write mode on an existing data buffer, data overflow is never signaled but simply ignored, it is the caller responsability to ensure it 
  *	does not write more than possible.
  */
-GF_BitStream *gf_bs_new(char *buffer, u64 size, u32 mode);
+GF_BitStream *gf_bs_new(const char *buffer, u64 size, u32 mode);
 /*!
  *	\brief bitstream constructor from file handle
  *
