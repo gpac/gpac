@@ -134,7 +134,7 @@ GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length)
 ************************************************************/
 
 GF_EXPORT
-GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, char *au, u32 au_length)
+GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, const char *au, u32 au_length)
 {
 	if (!codec ) return GF_BAD_PARAM;
 	if (!au || !au_length) return GF_OK;
