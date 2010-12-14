@@ -336,6 +336,9 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 
 	if (pos) {
 		char *d;
+		if (read->data)
+		  gf_free(read->data);
+		read->data = NULL;
 		read->data_size -= pos;
 		d = gf_malloc(sizeof(char) * read->data_size);
 		memcpy(d, read->data + pos, sizeof(char) * read->data_size);
@@ -375,7 +378,6 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		if (!strcmp(param->name, "icy-meta")) {
 #ifndef DONT_USE_TERMINAL_MODULE_API
 			GF_NetworkCommand com;
-#endif
 			char *meta;
 			if (read->icy_track_name) gf_free(read->icy_track_name);
 			read->icy_track_name = NULL;
@@ -391,8 +393,6 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				sep[0] = ';';
 				meta = sep+1;
 			}
-
-#ifndef DONT_USE_TERMINAL_MODULE_API
 			com.base.command_type = GF_NET_SERVICE_INFO;
 			gf_term_on_command(read->service, &com, GF_OK);
 #endif
@@ -481,6 +481,31 @@ void aac_download_file(AACReader *read, char *url)
 #endif
 	}
 	/*service confirm is done once fetched*/
+}
+
+static void AAC_Reader_del(AACReader * read)
+{
+  if (!read)
+    return;
+#ifdef DONT_USE_TERMINAL_MODULE_API
+	if (read->dnload)
+	  gf_dm_sess_del( read->dnload);
+	read->dnload = NULL;
+	if (read->dm)
+	  gf_dm_del(read->dm);
+	read->dm = NULL;
+#else
+	if (read->dnload){
+	    gf_term_download_del(read->dnload);
+	}
+#endif /* DONT_USE_TERMINAL_MODULE_API */
+  gf_free( read );
+}
+
+static AACReader * AAC_Reader_new(){
+  AACReader *reader = gf_malloc(sizeof(AACReader));
+  memset(reader, 0, sizeof(AACReader));
+  return reader;
 }
 
 
@@ -769,7 +794,7 @@ static GF_Err AAC_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
 
 GF_InputService *AAC_Load()
 {
-	AACReader *reader;
+	
 	GF_InputService *plug = gf_malloc(sizeof(GF_InputService));
 	memset(plug, 0, sizeof(GF_InputService));
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC AAC Reader", "gpac distribution")
@@ -785,10 +810,7 @@ GF_InputService *AAC_Load()
 	plug->ChannelGetSLP = AAC_ChannelGetSLP;
 	plug->ChannelReleaseSLP = AAC_ChannelReleaseSLP;
 	plug->RegisterMimeTypes = AAC_RegisterMimeTypes;
-
-	reader = gf_malloc(sizeof(AACReader));
-	memset(reader, 0, sizeof(AACReader));
-	plug->priv = reader;
+	plug->priv = AAC_Reader_new();
 	return plug;
 }
 
@@ -796,20 +818,7 @@ void AAC_Delete(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
 	AACReader *read = plug->priv;
-	gf_free(read);
-	
-#ifdef DONT_USE_TERMINAL_MODULE_API
-	if (read->dndload)
-	  gf_del_sess( read->dndload);
-	read->dndload = NULL;
-	if (read->dm)
-	  gf_dm_del(read->dm);
-	read->dm = NULL;
-#else
-	if (read->dnload){
-	    gf_term_download_del(read->dnload);
-	}
-#endif
+	AAC_Reader_del(read);
 	gf_free(plug);
 }
 
