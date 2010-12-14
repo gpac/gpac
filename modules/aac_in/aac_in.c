@@ -284,7 +284,7 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 	Bool sync;
 	GF_BitStream *bs;
 	ADTSHeader hdr;
-	
+	assert( read->data || (!read->data && !read->data_size));
 	read->data = gf_realloc(read->data, sizeof(char)*(read->data_size+data_size) );
 	memcpy(read->data + read->data_size, data, sizeof(char)*data_size);
 	read->data_size += data_size;
@@ -336,11 +336,11 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 
 	if (pos) {
 		char *d;
-		if (read->data)
-		  gf_free(read->data);
-		read->data = NULL;
+		assert( read->data);
+		assert( read->data_size >= pos);
 		read->data_size -= pos;
 		d = gf_malloc(sizeof(char) * read->data_size);
+		assert( d );
 		memcpy(d, read->data + pos, sizeof(char) * read->data_size);
 		gf_free(read->data);
 		read->data = d;
@@ -499,6 +499,9 @@ static void AAC_Reader_del(AACReader * read)
 	    gf_term_download_del(read->dnload);
 	}
 #endif /* DONT_USE_TERMINAL_MODULE_API */
+  if (read->stream)
+    fclose(read->stream);
+  read->stream = NULL;
   gf_free( read );
 }
 
@@ -556,13 +559,8 @@ static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 static GF_Err AAC_CloseService(GF_InputService *plug)
 {
 	AACReader *read = plug->priv;
-	if (read->stream) fclose(read->stream);
-	read->stream = NULL;
-	if (read->dnload) gf_term_download_del(read->dnload);
-	read->dnload = NULL;
-
-	if (read->data) gf_free(read->data);
-	read->data = NULL;
+	AAC_Reader_del( read );
+	plug->priv = NULL;
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;
 }
@@ -623,7 +621,8 @@ static GF_Err AAC_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 	GF_Err e = GF_STREAM_NOT_FOUND;
 	if (read->ch == channel) {
 		read->ch = NULL;
-		if (read->data) gf_free(read->data);
+		if (read->data)
+		  gf_free(read->data);
 		read->data = NULL;
 		e = GF_OK;
 	}
@@ -766,7 +765,7 @@ fetch_next:
 		}
 		
 		read->sl_hdr.compositionTimeStamp = read->current_time;
-
+		assert( !read->data);
 		read->data = gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
 		gf_bs_read_data(bs, read->data, read->data_size);
 		if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
