@@ -312,7 +312,11 @@ static void fill_isom_es_ifce(GF_ESInterface *ifce, GF_ISOFile *mp4, u32 track_n
 	ifce->duration /= ifce->timescale;
 
 	ifce->input_ctrl = mp4_input_ctrl;
-	ifce->input_udta = priv;
+	if (priv != ifce->input_udta){
+	  if (ifce->input_udta)
+	    gf_free(ifce->input_udta);
+	  ifce->input_udta = priv;
+	}
 }
 
 
@@ -320,6 +324,8 @@ static GF_Err seng_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
 	if (act_type==GF_ESI_INPUT_DESTROY) {
 		//TODO: free my data
+		if (ifce->input_udta)
+		  gf_free(ifce->input_udta);
 		ifce->input_udta = NULL;
 		return GF_OK;
 	}
@@ -907,7 +913,10 @@ void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 pe
 
 	ifce->repeat_rate = period;
 	GF_SAFEALLOC(stream, GF_ESIStream);
+	memset(stream, 0, sizeof(GF_ESIStream));
 	stream->rap = 1;
+	if (ifce->input_udta)
+	  gf_free(ifce->input_udta);
 	ifce->input_udta = stream;
 	
 	//fprintf(stderr, "Caroussel period: %d\n", period);
@@ -1058,7 +1067,6 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 	{
 		u32 load_type=0;
 		prog->seng = gf_seng_init(prog, src, load_type, NULL, (load_type == GF_SM_LOAD_DIMS) ? 1 : 0);
-		
 		if (!prog->seng) {
 			fprintf(stderr, "Cannot create scene engine\n");
 			exit(1);
@@ -1123,6 +1131,8 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 				/*find the audio OD stream and attach its descriptor*/
 				for (i=0; i<prog->nb_streams; i++) {
 					if (prog->streams[i].stream_id == AUDIO_OD_ESID) {
+						if (prog->streams[i].input_udta)
+						  gf_free(prog->streams[i].input_udta);
 						prog->streams[i].input_udta = (void*)audio_desc;
 						audio_OD_stream_id = i;
 						break;
@@ -1198,7 +1208,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 						}
 						break;
 					case GF_MP42TS_HTTP:
-						*audio_input_ip = gf_strdup(arg);
+						/* No need to dup since it may come from argv */
+						*audio_input_ip = arg;
 						assert(audio_input_port != 0);
 						break;
 					default:
@@ -1781,9 +1792,18 @@ exit:
 	for (i=0; i<nb_progs; i++) {
 		for (j=0; j<progs[i].nb_streams; j++) {
 			if (progs[i].streams[j].input_ctrl) progs[i].streams[j].input_ctrl(&progs[i].streams[j], GF_ESI_INPUT_DESTROY, NULL);
+			if (progs[i].streams[j].input_udta){
+			  gf_free(progs[i].streams[j].input_udta);
+			}
+			if (progs[i].streams[j].decoder_config)
+			  gf_free(progs[i].streams[j].decoder_config);
 		}
 		if (progs[i].iod) gf_odf_desc_del((GF_Descriptor*)progs[i].iod);
 		if (progs[i].mp4) gf_isom_close(progs[i].mp4);
+		if (progs[i].seng){
+		    gf_seng_terminate(progs[i].seng);
+		    progs[i].seng = NULL;
+		}
 	}
 	gf_sys_close();
 	return 1;
