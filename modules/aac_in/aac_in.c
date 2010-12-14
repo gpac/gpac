@@ -156,6 +156,7 @@ static GF_ESD *AAC_GetESD(AACReader *read)
 	return esd;
 }
 
+#ifndef DONT_USE_TERMINAL_MODULE_API
 static void AAC_SetupObject(AACReader *read)
 {
 	GF_ESD *esd;
@@ -164,10 +165,10 @@ static void AAC_SetupObject(AACReader *read)
 	esd = AAC_GetESD(read);
 	esd->OCRESID = 0;
 	gf_list_add(od->ESDescriptors, esd);
-#ifndef DONT_USE_TERMINAL_MODULE_API
+
 	gf_term_add_media(read->service, (GF_Descriptor*)od, 0);
-#endif
 }
+#endif
 
 static Bool ADTS_SyncFrame(GF_BitStream *bs, Bool is_complete, ADTSHeader *hdr)
 {
@@ -278,7 +279,7 @@ static void AAC_RegulateDataRate(AACReader *read)
 }
 #endif
 
-static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
+static void AAC_OnLiveData(AACReader *read, const char *data, u32 data_size)
 {
 	u32 pos;
 	Bool sync;
@@ -304,8 +305,8 @@ static void AAC_OnLiveData(AACReader *read, char *data, u32 data_size)
 		memset(&read->sl_hdr, 0, sizeof(GF_SLHeader));
 #ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, GF_OK);
-#endif
 		AAC_SetupObject(read);
+#endif
 	}
 #ifndef DONT_USE_TERMINAL_MODULE_API
 	if (!read->ch) return;
@@ -376,8 +377,9 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			read->icy_genre = gf_strdup(param->value);
 		}
 		if (!strcmp(param->name, "icy-meta")) {
-#ifndef DONT_USE_TERMINAL_MODULE_API
+#ifndef DONT_USE_TERMINAL_MODULE_API		  
 			GF_NetworkCommand com;
+#endif
 			char *meta;
 			if (read->icy_track_name) gf_free(read->icy_track_name);
 			read->icy_track_name = NULL;
@@ -393,6 +395,7 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				sep[0] = ';';
 				meta = sep+1;
 			}
+#ifndef DONT_USE_TERMINAL_MODULE_API
 			com.base.command_type = GF_NET_SERVICE_INFO;
 			gf_term_on_command(read->service, &com, GF_OK);
 #endif
@@ -448,8 +451,8 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		read->needs_connection = 0;
 #ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_term_on_connect(read->service, NULL, e);
-#endif
 		if (!e) AAC_SetupObject(read);
+#endif
 	}
 }
 
@@ -499,8 +502,18 @@ static void AAC_Reader_del(AACReader * read)
 	    gf_term_download_del(read->dnload);
 	}
 #endif /* DONT_USE_TERMINAL_MODULE_API */
+  if (read->icy_name)
+    gf_free(read->icy_name);
+  if (read->icy_genre)
+    gf_free(read->icy_genre);
+  if (read->icy_track_name)
+    gf_free(read->icy_track_name);
+  read->icy_name = read->icy_genre = read->icy_track_name = NULL;
   if (read->stream)
     fclose(read->stream);
+  if (read->data)
+    gf_free(read->data);
+  read->data = NULL;
   read->stream = NULL;
   gf_free( read );
 }
