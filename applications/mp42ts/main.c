@@ -1271,6 +1271,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				}
 				seg_dir_found = 1;
 				*segment_dir = arg+13;
+				/* TODO: add the path separation char, if missing */
 			} else if (!strnicmp(arg, "-segment-duration=", 18)) {
 				if (seg_dur_found) {
 					goto error;
@@ -1392,8 +1393,13 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 	char manifest_name[GF_MAX_PATH];
 	char *tmp_manifest = manifest_tmp_name;
 
-	sprintf(manifest_tmp_name, "%stmp.m3u8", segment_dir);
-	sprintf(manifest_name, "%s%s", segment_dir, manifest);
+	if (segment_dir) {
+		sprintf(manifest_tmp_name, "%stmp.m3u8", segment_dir);
+		sprintf(manifest_name, "%s%s", segment_dir, manifest);
+	} else {
+		sprintf(manifest_tmp_name, "tmp.m3u8");
+		sprintf(manifest_name, "%s", manifest);
+	}
 
 	manifest_fp = fopen(tmp_manifest, "w");
 	if (!manifest_fp) {
@@ -1415,8 +1421,15 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 	if (!rename(tmp_manifest, manifest_name)) {
 		return GF_OK;
 	} else {
-		fprintf(stderr, "Could not rename temporary m3u8 manifest file (%s) into %s\n", tmp_manifest, manifest_name);
-		return GF_BAD_PARAM;
+		if (remove(manifest_name)) {
+			fprintf(stdout, "Error removing file %s\n", manifest_name);
+			return GF_IO_ERR;
+		} else if (rename(tmp_manifest, manifest_name)) {
+			fprintf(stderr, "Could not rename temporary m3u8 manifest file (%s) into %s\n", tmp_manifest, manifest_name);
+			return GF_IO_ERR;
+		} else {
+			return GF_OK;
+		}
 	}
 }
 
@@ -1513,7 +1526,11 @@ int main(int argc, char **argv)
 			strcpy(segment_prefix, ts_out);
 			dot = strrchr(segment_prefix, '.');
 			dot[0] = 0;
-			sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
+			if (segment_dir) {
+				sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
+			} else {
+				sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
+			}
 			ts_out = gf_strdup(segment_name);
 			if (!segment_manifest) { 
 				sprintf(segment_manifest_default, "%s.m3u8", segment_prefix);
@@ -1673,7 +1690,11 @@ int main(int argc, char **argv)
 					prev_seg_time = muxer->time;
 					fclose(ts_output_file);
 					segment_index++;
-					sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
+					if (segment_dir) {
+						sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
+					} else {
+						sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
+					}
 					ts_output_file = fopen(segment_name, "wb");
 					if (!ts_output_file) {
 						fprintf(stderr, "Error opening %s\n", segment_name);
@@ -1682,7 +1703,11 @@ int main(int argc, char **argv)
 					/* delete the oldest segment */
 					if (segment_number && ((s32) (segment_index - segment_number) >= 0)){
 						char old_segment_name[GF_MAX_PATH];
-						sprintf(old_segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index - segment_number);
+						if (segment_dir) {
+							sprintf(old_segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index - segment_number);
+						} else {
+							sprintf(old_segment_name, "%s_%d.ts", segment_prefix, segment_index - segment_number);
+						}
 						gf_delete_file(old_segment_name);
 					}
 					write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, 
