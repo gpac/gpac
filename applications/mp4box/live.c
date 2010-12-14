@@ -297,9 +297,9 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 	for (i=0; i<count; i++) {
 		u16 ESID;
 		u32 st, oti, ts;
-		const char *config;
+		char ** const config = NULL;
 		u32 config_len;
-		gf_seng_get_stream_config(livesess->seng, i, &ESID, &config, &config_len, &st, &oti, &ts);
+		gf_seng_get_stream_config(livesess->seng, i, &ESID, config, &config_len, &st, &oti, &ts);
 
 		GF_SAFEALLOC(rtpch, RTPChannel);
 		rtpch->timescale = ts;
