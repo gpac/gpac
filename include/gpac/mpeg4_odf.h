@@ -966,7 +966,7 @@ GF_Err gf_odf_codec_encode(GF_ODCodec *codec, u32 cleanup_type);
 /*get the encoded AU. user is responsible of allocated space*/
 GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length);
 /* set the encoded AU to the codec*/
-GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, char *au, u32 au_length);
+GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, const char *au, u32 au_length);
 /*decode the previously set-up AU*/
 GF_Err gf_odf_codec_decode(GF_ODCodec *codec);
 /*get the first OD command in the list. Once called, the command is removed 
