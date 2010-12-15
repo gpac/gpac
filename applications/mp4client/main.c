@@ -1735,7 +1735,6 @@ force_input:
 	gf_sys_close();
 	if (rti_logs) fclose(rti_logs);
 	if (logfile) fclose(logfile);
-	fprintf(stdout, "Bye\n");
 
 	if (gui_mode) {
 		hide_shell(2);
