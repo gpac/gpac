@@ -371,12 +371,13 @@ typedef memory_element* memory_list;
 /*base functions (add, find, del_item, del) are implemented upon a stack model*/
 static void gf_memory_add_stack(memory_element **p, void *ptr, int size, char *filename, int line)
 {
-	memory_element *element = (memory_element*)MALLOC(sizeof(memory_element)+strlen(filename));
+	memory_element *element = (memory_element*)MALLOC(sizeof(memory_element)+strlen(filename)+1);
 	element->ptr = ptr;
 	element->size = size;
 	element->line = line;
 	element->next = *p;
-	strcpy((char*)&element->filename, filename);
+	element->filename = (char*)&(element->filename)+sizeof(element->filename);
+	strcpy(element->filename, filename);
 	*p = element;
 }
 static int gf_memory_find_stack(memory_element *p, void *ptr)
@@ -632,7 +633,7 @@ void gf_memory_print()
 #endif
 			while (curr_element) {
 				next_element = curr_element->next;
-				gf_memory_log(GF_MEMORY_INFO, "Memory Block 0x%08X allocated line%5d from %s\n", curr_element->ptr, curr_element->line, &curr_element->filename)
+				gf_memory_log(GF_MEMORY_INFO, "Memory Block 0x%08X allocated line%5d from %s\n", curr_element->ptr, curr_element->line, curr_element->filename);
 				curr_element = next_element;
 			}
 		}

@@ -1473,6 +1473,13 @@ int main(int argc, char **argv)
 	char segment_prefix[GF_MAX_PATH];
 	char segment_name[GF_MAX_PATH];
 	GF_M2TS_Time prev_seg_time;
+	
+	/*****************/
+	/*   gpac init   */
+	/*****************/
+	gf_sys_init(0);
+	gf_log_set_level(GF_LOG_ERROR);
+	gf_log_set_tools(0xFFFFFFFF);
 
 	/***********************/
 	/*   initialisations   */
@@ -1500,15 +1507,6 @@ int main(int argc, char **argv)
 	prev_seg_time.sec = 0;
 	prev_seg_time.nanosec = 0;
 	aac_reader = AAC_Reader_new();
-	
-	/*****************/
-	/*   gpac init   */
-	/*****************/
-	gf_sys_init(0);
-	gf_log_set_level(GF_LOG_ERROR);
-	gf_log_set_tools(0xFFFFFFFF);
-	//gf_log_set_level(GF_LOG_DEBUG);
-	//gf_log_set_tools(GF_LOG_CONTAINER);
 	
 	/***********************/
 	/*   parse arguments   */
@@ -1807,6 +1805,7 @@ exit:
 		    gf_seng_terminate(progs[i].seng);
 		    progs[i].seng = NULL;
 		}
+		if (progs[i].th) gf_th_del(progs[i].th);
 	}
 	gf_sys_close();
 	return 1;
