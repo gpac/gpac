@@ -58,7 +58,7 @@ static Bool svg_check_download(SVGIn *svgin)
 
 #define SVG_PROGRESSIVE_BUFFER_SIZE		4096
 
-static GF_Err svgin_deflate(SVGIn *svgin, char *buffer, u32 buffer_len)
+static GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len)
 {
 	GF_Err e;
 	char svg_data[2049];
@@ -94,7 +94,7 @@ static GF_Err svgin_deflate(SVGIn *svgin, char *buffer, u32 buffer_len)
 	return GF_NON_COMPLIANT_BITSTREAM;
 }
 
-static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBufferLength, 
+static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
@@ -191,8 +191,9 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 			u8 prev, dims_hdr;
 			u32 nb_bytes, size;
 			u64 pos;
+			char * buf2 = gf_malloc(inBufferLength);
 			GF_BitStream *bs = gf_bs_new(inBuffer, inBufferLength, GF_BITSTREAM_READ);
-//
+			memcpy(buf2, inBuffer, inBufferLength);
 //			FILE *f = gf_f64_open("dump.svg", "wb");
 //
 			while (gf_bs_available(bs)) {
@@ -207,15 +208,15 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBuffe
 //	            fwrite( inBuffer + pos + nb_bytes + 1, 1, size - 1, f );   
 
 				dims_hdr = gf_bs_read_u8(bs);
-				prev = inBuffer[pos + nb_bytes + size];
+				prev = buf2[pos + nb_bytes + size];
 
-				inBuffer[pos + nb_bytes + size] = 0;
+				buf2[pos + nb_bytes + size] = 0;
 				if (dims_hdr & GF_DIMS_UNIT_C) {
-					e = svgin_deflate(svgin, inBuffer + pos + nb_bytes + 1, size - 1);
+					e = svgin_deflate(svgin, buf2 + pos + nb_bytes + 1, size - 1);
 				} else {
-					e = gf_sm_load_string(&svgin->loader, inBuffer + pos + nb_bytes + 1, 0);
+					e = gf_sm_load_string(&svgin->loader, buf2 + pos + nb_bytes + 1, 0);
 				}
-				inBuffer[pos + nb_bytes + size] = prev;
+				buf2[pos + nb_bytes + size] = prev;
 				gf_bs_skip_bytes(bs, size-1);
 
 			}

@@ -52,7 +52,7 @@ void apply_feComponentTransfer(GF_Node *node, GF_TextureHandler *source, GF_Rect
 		Fixed exponent = 1;
 		Fixed offset = 0;
 		u8 *ptr = NULL;
-		u32 tag = gf_node_get_tag(l->node);
+		/*FIXME: unused u32 tag = gf_node_get_tag(l->node);*/
 		GF_DOMAttribute *att = ((SVG_Element *)l->node)->attributes;
 		
 		while (att) {

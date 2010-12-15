@@ -1022,7 +1022,7 @@ static GF_Err gf_xml_sax_parse_intern(GF_SAXParser *parser, char *current)
 }
 
 GF_EXPORT
-GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string)
+GF_Err gf_xml_sax_parse(GF_SAXParser *parser, const void *string)
 {
 	GF_Err e;
 	char *current;

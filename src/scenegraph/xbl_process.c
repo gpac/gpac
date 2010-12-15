@@ -139,10 +139,11 @@ static void xbl_node_start(void *sax_cbck, const char *name, const char *name_sp
 
 static void xbl_text_content(void *sax_cbck, const char *text_content, Bool is_cdata)
 {
+	/* FIXME : this function does nothing
 	GF_XBL_Parser *parser = (GF_XBL_Parser *)sax_cbck;
 	XBL_NodeStack *top = (XBL_NodeStack *)gf_list_last(parser->node_stack);
 
-	/* TODO */
+	*/
 }
 
 static void xbl_node_end(void *sax_cbck, const char *name, const char *name_space)

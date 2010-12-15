@@ -604,7 +604,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load);
 
 
 GF_EXPORT
-GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str, Bool do_clean)
+GF_Err gf_sm_load_string(GF_SceneLoader *load, const char *str, Bool do_clean)
 {
 	GF_Err e;
 	if (!load->type) e = GF_BAD_PARAM;

@@ -205,7 +205,7 @@ static GF_Err IS_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability 
 	return GF_OK;
 }
 
-static GF_Err IS_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBufferLength, 
+static GF_Err IS_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	u32 i, j, count;

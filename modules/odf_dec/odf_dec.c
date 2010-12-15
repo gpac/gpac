@@ -162,7 +162,7 @@ static GF_Err ODF_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 }
 
 
-static GF_Err ODF_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBufferLength, 
+static GF_Err ODF_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength, 
 							u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	GF_Err e;

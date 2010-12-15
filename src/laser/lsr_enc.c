@@ -262,17 +262,6 @@ static void lsr_write_extension(GF_LASeRCodec *lsr, char *data, u32 len, const c
 	gf_bs_write_data(lsr->bs, data, len);
 }
 
-static void lsr_write_extend_class(GF_LASeRCodec *lsr, char *data, u32 len, const char *name)
-{
-	u32 i=0;
-	GF_LSR_WRITE_INT(lsr, 0, lsr->info->cfg.extensionIDBits, "reserved");
-	lsr_write_vluimsbf5(lsr, len, "len");
-	while (i<len) {
-		gf_bs_write_int(lsr->bs, data[i], 8);
-		i++;
-	}
-}
-
 static void lsr_write_codec_IDREF(GF_LASeRCodec *lsr, XMLRI *href, const char *name)
 {
 	u32 nID = 0;
@@ -494,6 +483,8 @@ static void lsr_write_paint(GF_LASeRCodec *lsr, SVG_Paint *paint, const char *na
 	}
 }
 
+#ifdef UNUSED_FUNC
+
 static void lsr_write_private_element_container(GF_LASeRCodec *lsr)
 {
 	/*NO PRIVATE DATA ON ENCODING YET*/
@@ -506,10 +497,36 @@ static void lsr_write_private_att_class(GF_LASeRCodec *lsr)
 	assert(0);
 }
 
+static void lsr_write_extend_class(GF_LASeRCodec *lsr, char *data, u32 len, const char *name)
+{
+	u32 i=0;
+	GF_LSR_WRITE_INT(lsr, 0, lsr->info->cfg.extensionIDBits, "reserved");
+	lsr_write_vluimsbf5(lsr, len, "len");
+	while (i<len) {
+		gf_bs_write_int(lsr->bs, data[i], 8);
+		i++;
+	}
+}
+
 static void lsr_write_private_attr_container(GF_LASeRCodec *lsr, u32 index, const char *name)
 {
 	assert(0);
 }
+
+static Bool lsr_float_list_equal(GF_List *l1, GF_List *l2)
+{
+	u32 i, count = gf_list_count(l1);
+	if (count != gf_list_count(l2)) return 0;
+	for (i=0;i<count;i++) {
+		Fixed *v1 = (Fixed *)gf_list_get(l1, i);
+		Fixed *v2 = (Fixed *)gf_list_get(l2, i);
+		if (*v1 != *v2) return 0;
+	}
+	return 1;
+}
+#endif /* UNUSED_FUNC */
+
+
 
 static void lsr_write_any_attribute(GF_LASeRCodec *lsr, SVG_Element *node, Bool skippable)
 {
@@ -533,7 +550,9 @@ static void lsr_write_private_attributes(GF_LASeRCodec *lsr, SVG_Element *elt)
 		GF_LSR_WRITE_INT(lsr, 0, 1, "has_private_attr");
 	} else {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "has_private_attr");
+#ifdef UNUSED_FUNC
 		lsr_write_private_att_class(lsr);
+#endif /* UNUSED_FUNC */
 	}
 }
 static void lsr_write_string_attribute(GF_LASeRCodec *lsr, char *class_attr, char *name)
@@ -998,18 +1017,6 @@ static Bool lsr_elt_has_same_base(GF_LASeRCodec *lsr, SVGAllAttributes *atts, SV
 	}
 
 	return gf_lsr_same_rare(atts, &base_atts);
-}
-
-static Bool lsr_float_list_equal(GF_List *l1, GF_List *l2)
-{
-	u32 i, count = gf_list_count(l1);
-	if (count != gf_list_count(l2)) return 0;
-	for (i=0;i<count;i++) {
-		Fixed *v1 = (Fixed *)gf_list_get(l1, i);
-		Fixed *v2 = (Fixed *)gf_list_get(l2, i);
-		if (*v1 != *v2) return 0;
-	}
-	return 1;
 }
 
 static void lsr_write_rare(GF_LASeRCodec *lsr, GF_Node *n)

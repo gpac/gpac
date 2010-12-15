@@ -233,7 +233,7 @@ void BD_EndOfStream(void *co)
 void gf_bs_set_eos_callback(GF_BitStream *bs, void (*EndOfStream)(void *par), void *par);
 
 GF_EXPORT
-GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_length, Double ts_offset)
+GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const char *data, u32 data_length, Double ts_offset)
 {
 	GF_BitStream *bs;
 	GF_Err e;

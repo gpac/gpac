@@ -351,6 +351,23 @@ static void AAC_OnLiveData(AACReader *read, const char *data, u32 data_size)
 #endif
 }
 
+static void AAC_disconnect_from_http_and_free(AACReader * read)
+{
+  if (!read)
+    return;
+  if (read->dnload)
+    gf_dm_sess_abort(read->dnload);
+#ifdef DONT_USE_TERMINAL_MODULE_API
+	if (read->dnload)
+	  gf_dm_sess_del( read->dnload);
+#else
+	if (read->dnload){
+	    gf_term_download_del(read->dnload);
+	}
+#endif /* DONT_USE_TERMINAL_MODULE_API */
+  read->dnload = NULL;
+}
+
 void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
 	GF_Err e;
@@ -459,11 +476,8 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 void aac_download_file(AACReader *read, char *url)
 {
 	read->needs_connection = 1;
-
+	AAC_disconnect_from_http_and_free(read);
 #ifndef DONT_USE_TERMINAL_MODULE_API
-	if (read->dnload){
-	    gf_term_download_del(read->dnload);
-	}
 	read->dnload = gf_term_download_new(read->service, url, 0, AAC_NetIO, read);
 #else
 	{
@@ -471,8 +485,6 @@ void aac_download_file(AACReader *read, char *url)
 	if (!read->dm)
 	  read->dm = gf_dm_new(NULL);
 	assert( read->dm );
-	if (read->dnload)
-	  gf_dm_sess_del(read->dnload);
 	read->dnload = gf_dm_sess_new_simple(read->dm, url, 0, AAC_NetIO, read, &e);
 	}
 #endif
@@ -490,18 +502,12 @@ static void AAC_Reader_del(AACReader * read)
 {
   if (!read)
     return;
+  AAC_disconnect_from_http_and_free(read);
 #ifdef DONT_USE_TERMINAL_MODULE_API
-	if (read->dnload)
-	  gf_dm_sess_del( read->dnload);
-	read->dnload = NULL;
-	if (read->dm)
-	  gf_dm_del(read->dm);
-	read->dm = NULL;
-#else
-	if (read->dnload){
-	    gf_term_download_del(read->dnload);
-	}
-#endif /* DONT_USE_TERMINAL_MODULE_API */
+  if (read->dm)
+    gf_dm_del(read->dm);
+  read->dm = NULL;
+#endif
   if (read->icy_name)
     gf_free(read->icy_name);
   if (read->icy_genre)
@@ -541,8 +547,7 @@ static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	AACReader *read = plug->priv;
 	read->service = serv;
 
-	if (read->dnload) gf_term_download_del(read->dnload);
-	read->dnload = NULL;
+	AAC_disconnect_from_http_and_free(read);
 
 	strcpy(szURL, url);
 	ext = strrchr(szURL, '#');
@@ -572,9 +577,9 @@ static GF_Err AAC_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 static GF_Err AAC_CloseService(GF_InputService *plug)
 {
 	AACReader *read = plug->priv;
+	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	AAC_Reader_del( read );
 	plug->priv = NULL;
-	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -633,6 +638,7 @@ static GF_Err AAC_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 
 	GF_Err e = GF_STREAM_NOT_FOUND;
 	if (read->ch == channel) {
+		AAC_disconnect_from_http_and_free(read);
 		read->ch = NULL;
 		if (read->data)
 		  gf_free(read->data);

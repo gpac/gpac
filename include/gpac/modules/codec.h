@@ -224,7 +224,7 @@ typedef struct _scenedecoder
 	handling the scene graph without input data (cf below). In this case the buffer passed is always NULL and the AU
 	time caries the time of the scene (or of the stream object attached to the scene decoder, cf below)
 	@mmlevel: speed indicator for the decoding - cf above for values*/
-	GF_Err (*ProcessData)(struct _scenedecoder *, char *inBuffer, u32 inBufferLength,
+	GF_Err (*ProcessData)(struct _scenedecoder *, const char *inBuffer, u32 inBufferLength,
 					u16 ES_ID, u32 AU_Time, u32 mmlevel);
 
 } GF_SceneDecoder;

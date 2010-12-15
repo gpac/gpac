@@ -60,7 +60,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder *codec, u16 ESID, char *D
 GF_Err gf_bifs_decoder_remove_stream(GF_BifsDecoder *codec, u16 ESID);
 
 /*decode a BIFS AU and applies it to the graph (non-memory mode only)*/
-GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, char *data, u32 data_length, Double ts_offset);
+GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const char *data, u32 data_length, Double ts_offset);
 
 /*Memory BIFS decoding - fills the command list with the content of the AU - cf scenegraph_vrml.h for commands usage
 	@ESID: ID of input stream

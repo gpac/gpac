@@ -53,7 +53,7 @@ GF_Err gf_laser_decoder_configure_stream(GF_LASeRCodec *codec, u16 ESID, char *D
 GF_Err gf_laser_decoder_remove_stream(GF_LASeRCodec *codec, u16 ESID);
 
 /*decode a laser AU and applies it to the graph (non-memory mode only)*/
-GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, char *data, u32 data_length);
+GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, const char *data, u32 data_length);
 
 /*Memory laser decoding - fills the command list with the content of the AU - cf scenegraph_vrml.h for commands usage
 	@ESID: ID of input stream

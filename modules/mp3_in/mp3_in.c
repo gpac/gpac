@@ -173,7 +173,7 @@ static void MP3_RegulateDataRate(MP3Reader *read)
 	}
 }
 
-static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
+static void MP3_OnLiveData(MP3Reader *read, const char *data, u32 data_size)
 {
 	u32 hdr, size, pos;
 

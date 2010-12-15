@@ -626,7 +626,7 @@ void gf_storage_save(M_Storage *storage)
 		if (gf_sg_vrml_is_sf_field(info.fieldType)) {
 			val = storage_serialize_sf(info.far_ptr, info.fieldType);
 		} else {
-			u32 sftype = gf_sg_vrml_get_sf_type(info.fieldType);
+			//u32 sftype = gf_sg_vrml_get_sf_type(info.fieldType);
 			char *slotval;
 			void *slot;
 			val = NULL;

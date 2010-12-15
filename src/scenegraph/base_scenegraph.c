@@ -591,6 +591,7 @@ void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 				sg->id_node_last = reg_node->next ? reg_node->next : reg_node;
 			}
 			if (to_del->NodeName) gf_free(to_del->NodeName);
+			to_del->NodeName = NULL;
 			gf_free(to_del);
 			break;
 		}

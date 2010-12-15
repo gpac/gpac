@@ -3413,7 +3413,7 @@ GF_Err gf_bt_loader_run_intern(GF_BTParser *parser, GF_Command *init_com, Bool i
 	return parser->last_error;
 }
 
-static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, char *str, Bool input_only)
+static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bool input_only)
 {
 	u32 size;
 	gzFile gzInput;
@@ -3592,7 +3592,7 @@ GF_Err load_bt_run(GF_SceneLoader *load)
 }
 
 
-GF_Err load_bt_parse_string(GF_SceneLoader *load, char *str)
+GF_Err load_bt_parse_string(GF_SceneLoader *load, const char *str)
 {
 	GF_Err e;
 	GF_BTParser *parser = (GF_BTParser *)load->loader_priv;
@@ -3604,7 +3604,7 @@ GF_Err load_bt_parse_string(GF_SceneLoader *load, char *str)
 		parser->file_size = 0;
 		parser->line_pos = 0;
 	}
-	parser->line_buffer = str;
+	parser->line_buffer = gf_strdup(str);
 	parser->line_size = (s32)strlen(str);
 
 	if (!parser->initialized) {

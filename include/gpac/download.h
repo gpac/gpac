@@ -177,7 +177,7 @@ extern "C" {
         /*error code if any. Valid for all message types.*/
         GF_Err error;
         /*!data received or data to send. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE (when no cache is setup) messages*/
-        char *data;
+        const char *data;
         /*!size of associated data. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE messages*/
         u32 size;
         /*protocol header. Only valid for GF_NETIO_GET_HEADER, GF_NETIO_PARSE_HEADER and GF_NETIO_GET_METHOD*/
