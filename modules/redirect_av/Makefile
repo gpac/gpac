@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LINKLIBS= -lgpac
+LINKLIBS= -lgpac -lavcodec -lswscale
 LOCAL_LIB=../../bin/gcc
 
 #common objects

@@ -863,11 +863,11 @@ restart_file:
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot open next file %s\n", param.url_query.next_url));
 				}
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: error:%s, url:%s\n", gf_error_to_string(query_ret), param.url_query.next_url));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: error: %s, url:%s\n", gf_error_to_string(query_ret), param.url_query.next_url));
 			}
 		}
 
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("\n[M2TS In]EOS reached\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("\n[M2TS In]EOS reached, remaining segments=%u\n", m2ts->nb_playing));
 		if (m2ts->nb_playing) {
 			for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 				GF_M2TS_PES *pes = (GF_M2TS_PES *)m2ts->ts->ess[i];

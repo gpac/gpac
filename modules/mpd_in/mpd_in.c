@@ -1127,8 +1127,11 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         e = MPD_downloadWithRetry(mpdin->service, &(mpdin->mpd_dnload), url, MPD_NetIO, mpdin);
         if (e!=GF_OK) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD downloading problem %s for %s\n", gf_error_to_string(e), url));
-            gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
-            return GF_OK;
+            gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);gf_term_download_del(mpdin->mpd_dnload);
+		mpdin->mpd_dnload = NULL;
+	    gf_term_download_del(mpdin->mpd_dnload);
+	    mpdin->mpd_dnload = NULL;
+            return e;
         }
         {
             const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
@@ -1139,13 +1142,17 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
             } else if (!MPD_is_MPD_mime(mime)) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' for '%s' should be m3u8 or mpd\n", mime, url));
                 gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
-                return GF_BAD_PARAM;
+		gf_term_download_del(mpdin->mpd_dnload);
+		mpdin->mpd_dnload = NULL;
+                return GF_CODEC_NOT_FOUND;
             }
         }
         local_url = gf_dm_sess_get_cache_name(mpdin->mpd_dnload);
         if (!local_url) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: cache problem %s\n", local_url));
             gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
+	    gf_term_download_del(mpdin->mpd_dnload);
+	    mpdin->mpd_dnload = NULL;
             return GF_OK;
         }
     } else {
@@ -1159,6 +1166,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     if (!MPD_CheckRootType(local_url)) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: wrong file type %s\n", local_url));
         gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
+	gf_term_download_del(mpdin->mpd_dnload);
+	mpdin->mpd_dnload = NULL;
         return GF_OK;
     }
 
@@ -1169,6 +1178,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD parsing problem %s\n", gf_error_to_string(e)));
         gf_xml_dom_del(mpd_parser);
         gf_term_on_connect(mpdin->service, NULL, e);
+	gf_term_download_del(mpdin->mpd_dnload);
+	mpdin->mpd_dnload = NULL;
         return GF_OK;
     }
     mpdin->mpd = gf_mpd_new();
@@ -1176,6 +1187,9 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     gf_xml_dom_del(mpd_parser);
     if (e != GF_OK) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD creation problem %s\n", gf_error_to_string(e)));
+	gf_term_on_connect(mpdin->service, NULL, e);
+	gf_term_download_del(mpdin->mpd_dnload);
+	mpdin->mpd_dnload = NULL;
         return e;
     }
 
