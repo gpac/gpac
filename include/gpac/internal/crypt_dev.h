@@ -63,7 +63,7 @@ typedef struct _tag_crypt_stream
 	GF_Err (*_init_mcrypt) (void *, void *, int, void *, int);
 	void (*_end_mcrypt) (void *);
 	GF_Err (*_mcrypt) (void *, void *, int, int, void *, mcryptfunc func, mcryptfunc func2);
-	GF_Err (*_mdecrypt) (void *, void *, int, int, void *, mcryptfunc func, mcryptfunc func2);
+	GF_Err (*_mdecrypt) (void *, const void *, int, int, void *, mcryptfunc func, mcryptfunc func2);
 	GF_Err (*_mcrypt_set_state) (void *, void *, int );
 	GF_Err (*_mcrypt_get_state) (void *, void *, int *);
 	/*algo access*/
