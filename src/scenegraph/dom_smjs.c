@@ -2320,7 +2320,7 @@ static void xml_http_reset_recv_hdr(XMLHTTPContext *ctx)
 		ctx->recv_headers = NULL;
 	}
 }
-static void xml_http_append_recv_header(XMLHTTPContext *ctx, char *hdr, char *val)
+static void xml_http_append_recv_header(XMLHTTPContext *ctx, const char *hdr, const char *val)
 {
 	u32 nb_hdr = 0;
 	if (ctx->recv_headers) {
