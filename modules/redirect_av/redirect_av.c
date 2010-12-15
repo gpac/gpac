@@ -23,7 +23,6 @@
  *
  */
 
-
 #include <gpac/modules/term_ext.h>
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
@@ -34,7 +33,7 @@
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 
-#define MULTITHREAD_REDIRECT_AV 0
+#undef MULTITHREAD_REDIRECT_AV
 
 static const int outbuf_size = 640 * 480 * 8;
 
@@ -195,6 +194,7 @@ static Bool encoding_thread_run(void *param) {
     GF_AVRedirect * avr = (GF_AVRedirect*) param;
     assert( avr );
     u64 currentFrameTime = 0;
+    u32 ts_packets_sent = 0;
 #ifdef MULTITHREAD_REDIRECT_AV
     gf_mx_p(avr->tsMutex);
 #endif /* MULTITHREAD_REDIRECT_AV */
@@ -226,7 +226,6 @@ static Bool encoding_thread_run(void *param) {
                         ( const uint8_t * const * ) avr->RGBpicture->data, avr->RGBpicture->linesize,
                         0, avr->srcHeight,
                         avr->YUVpicture->data, avr->YUVpicture->linesize );
-            currentFrameTime = avr->frameTime;
             if ( AVI_write_frame ( avr->avi_out, avr->frame, avr->size, 1 ) <0 )
             {
                 GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error writing video frame\n" ) );
@@ -237,7 +236,7 @@ static Bool encoding_thread_run(void *param) {
                 avr->YUVpicture->pts = avr->frameTime;
                 avr->YUVpicture->coded_picture_number++;
                 avr->YUVpicture->display_picture_number++;
-		//printf("Encoding frame PTS="LLU", frameNum=%u...\n", avr->YUVpicture->pts, avr->YUVpicture->coded_picture_number);
+		printf("Encoding frame PTS="LLU", frameNum=%u...\n", avr->YUVpicture->pts, avr->YUVpicture->coded_picture_number);
                 int written = avcodec_encode_video ( avr->codecContext, avr->outbuf, outbuf_size, avr->YUVpicture );
                 if ( written < 0 )
                 {
@@ -264,8 +263,14 @@ static Bool encoding_thread_run(void *param) {
                             avr->currentTSPacket.cts = avr->frameTime;
                             avr->currentTSPacket.data = avr->outbuf;
                             avr->currentTSPacket.data_len = written;
+			    
+			    
 			    printf("Sending frame DTS="LLU", CTS="LLU", len=%u...\n", avr->currentTSPacket.dts, avr->currentTSPacket.cts, avr->currentTSPacket.data_len);
 			    avr->currentTSPacket.flags = GF_ESI_DATA_HAS_CTS | GF_ESI_DATA_HAS_DTS;
+			    if (ts_packets_sent == 0){
+				printf("First Packet !\n");
+				avr->currentTSPacket.flags|=GF_ESI_DATA_AU_START;
+			    }
                             //avr->video.decoder_config = avr->codecContext->
                             avr->video.output_ctrl( &(avr->video), GF_ESI_OUTPUT_DATA_DISPATCH, &(avr->currentTSPacket));
                             //avr->video.decoder_config = avr->outbuf;
@@ -276,9 +281,11 @@ static Bool encoding_thread_run(void *param) {
 			    sendTSMux(avr);
 #endif
                         }
+                        
                     }
             }
         }
+        currentFrameTime = avr->frameTime;
 #ifdef MULTITHREAD_REDIRECT_AV
         gf_mx_p(avr->tsMutex);
 #endif /* MULTITHREAD_REDIRECT_AV */
@@ -318,6 +325,11 @@ static Bool ts_thread_run(void *param) {
 #define MUX_RATE 400000
 
 static const char * possibleCodecs = "supported codecs : MPEG-1, MPEG-2, MPEG-4, MSMPEG-4, H263, H263I, H263P, RV10";
+
+static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
+{
+  return GF_OK;
+}
 
 static GF_Err avr_open ( GF_AVRedirect *avr )
 {
@@ -428,6 +440,7 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
         avr->video.timescale = 1000;
 	avr->video.caps = GF_ESI_AU_PULL_CAP;
         avr->video.object_type_indication = GPAC_OTI_VIDEO_MPEG2_422;
+	avr->video.input_ctrl = void_input_ctrl;
         gf_m2ts_program_stream_add ( program, &(avr->video), 101, 1 );
     }
     gf_m2ts_mux_update_config ( avr->muxer, 1 );
@@ -609,11 +622,11 @@ void avr_delete ( GF_BaseInterface *ifce )
     gf_mx_v(avr->frameMutex);
     gf_sleep(1000);
     gf_th_stop(avr->encodingThread);
-    gf_th_stop(avr->tsThread);
 #ifdef MULTITHREAD_REDIRECT_AV
+    gf_th_stop(avr->tsThread);
     gf_mx_del(avr->tsMutex);
-#endif /* MULTITHREAD_REDIRECT_AV */
     avr->tsMutex = NULL;
+#endif /* MULTITHREAD_REDIRECT_AV */
     gf_mx_del(avr->frameMutex);
     avr->frameMutex = NULL;
     gf_th_del(avr->encodingThread);
