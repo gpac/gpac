@@ -218,7 +218,7 @@ static void term_on_disconnect(void *user_priv, GF_ClientService *service, LPNET
 	ch->es_state = GF_ESM_ES_DISCONNECTED;
 }
 
-static void term_on_slp_received(void *user_priv, GF_ClientService *service, LPNETCHANNEL netch, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
+static void term_on_slp_received(void *user_priv, GF_ClientService *service, LPNETCHANNEL netch, const char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
 	GF_Channel *ch;
 	GET_TERM();
@@ -568,12 +568,13 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	char szExt[50];
 	GF_InputService *ifce;
 	memset(szExt, 0, sizeof(szExt));
-
+	ifce = NULL;
+	mime_type = NULL;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Looking for plugin for URL %s\n", url));
 	*out_url = NULL;
 	if (!url || !strncmp(url, "\\\\", 2) ) {
 		(*ret_code) = GF_URL_ERROR;
-		return NULL;
+		goto exit;
 	}
 
 	sURL = NULL;
@@ -596,9 +597,8 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		*/
 		mime_type = get_mime_type(term, sURL, &e);
 		if (e) {
-			gf_free(sURL);
 			(*ret_code) = e;
-			return NULL;
+			goto exit;
 		}
 	}
 	
@@ -663,11 +663,6 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	/*no mime type: either local or streaming. If streaming discard extension checking*/
 	if (!ifce && !mime_type && strstr(sURL, "://") && strnicmp(sURL, "file://", 7)) ext = NULL;
 
-	if (mime_type) {
-		gf_free(mime_type);
-		if (!ifce) return NULL;
-	}
-
 	/*browse extensions for prefered module*/
 	if (!ifce && ext) {
 		u32 keyCount;
@@ -713,14 +708,20 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 			ifce = NULL;
 		}
 	}
-
-	if (!ifce) {
-		gf_free(sURL);
-		(*ret_code) = GF_NOT_SUPPORTED;
-		return NULL;
+exit:
+	if (!ifce){
+  	    GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Terminal] Did not find any input plugin for URL %s (%s)\n", sURL ? sURL : url, mime_type ? mime_type : "no mime type"));
+	    if (sURL)
+	      gf_free(sURL);
+	    (*ret_code) = GF_NOT_SUPPORTED;
+	    *out_url = NULL;
+	} else {
+	    *out_url = sURL;
+	    GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Found input plugin %s for URL %s (%s)\n", ifce->module_name, sURL, mime_type ? mime_type : "no mime type"));
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Found input plugin %s for URL %s\n", ifce->module_name, sURL));
-	*out_url = sURL;
+	if (mime_type)
+	  gf_free(mime_type);
+	mime_type = NULL;
 	return ifce;
 }
 
@@ -806,7 +807,7 @@ void gf_term_on_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Er
 	term_on_command(service->term, service, com, response);
 }
 GF_EXPORT
-void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
+void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, const char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status)
 {
 	assert(service);
 	term_on_slp_received(service->term, service, ns, data, data_size, hdr, reception_status);
