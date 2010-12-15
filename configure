@@ -982,9 +982,13 @@ fi
 if test "$cross_prefix"  != "" ; then
   if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib -lz -lavcodec -lavformat -lavutil 2> /dev/null  ; then
      has_ffmpeg="system"
+     ffmpeg_cflags="-I$prefix/include"
+     ffmpeg_lflags="-L$prefix/lib -lz -lavcodec -lavformat -lavutil"
   else
      if $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
         has_ffmpeg="local"
+        ffmpeg_cflags="-I$local_inc/include"
+        ffmpeg_lflags="-L$local_lib/lib -lz -lavcodec -lavformat -lavutil"
         echo OK 
      fi
   fi
@@ -994,9 +998,13 @@ else
   elif test "$alt_macosx_dir" != "" ; then
    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lz -lavcodec -lavformat 2> /dev/null ; then
    has_ffmpeg="system"
+   ffmpeg_cflags="-I$alt_macosx_dir/include"
+   ffmpeg_lflags="-L$alt_macosx_dir/lib -lz -lavcodec -lavformat"
    fi
   elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
   has_ffmpeg="local"
+  ffmpeg_cflags="-I$local_inc"
+  ffmpeg_lflags="-L$local_lib -lz -lavcodec -lavformat -lavutil"
   fi
 fi
 
@@ -2131,6 +2139,11 @@ echo "CONFIG_OGG=$has_ogg" >> config.mak
 echo "CONFIG_VORBIS=$has_vorbis" >> config.mak
 echo "CONFIG_THEORA=$has_theora" >> config.mak
 echo "CONFIG_FFMPEG=$has_ffmpeg" >> config.mak
+if test "$has_ffmpeg" != "no"
+then
+	echo "ffmpeg_cflags=$ffmpeg_cflags" >> config.mak
+	echo "ffmpeg_lflags=$ffmpeg_lflags" >> config.mak
+fi
 echo "CONFIG_FFMPEG_OLD=$old_ffmpeg_inc" >> config.mak
 
 echo "CONFIG_OSS_AUDIO=$has_oss_audio" >> config.mak
