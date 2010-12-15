@@ -26,13 +26,15 @@
 #include <gpac/avparse.h>
 
 #ifndef FFMPEG_OLD_HEADERS
+
 #if (LIBAVCODEC_VERSION_MAJOR <= 52) && (LIBAVCODEC_VERSION_MINOR <= 20)
-#define USE_AVCODEC2	0
+#undef USE_AVCODEC2
 #else
 #define USE_AVCODEC2	1
 #endif
+
 #else
-#define USE_AVCODEC2	0
+#undef USE_AVCODEC2
 #endif
 
 
@@ -304,7 +306,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			break;
 		case CODEC_ID_DVD_SUBTITLE:
 			*frame = avcodec_alloc_frame();
-#if defined(USE_AVCODEC2) && (LIBAVCODEC_VERSION_MAJOR >= 52 && LIBAVCODEC_VERSION_MINOR > 20)
+#ifdef USE_AVCODEC2
 			{
 			  AVPacket pkt;
 			  av_init_packet(&pkt);
