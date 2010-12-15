@@ -631,6 +631,13 @@ static void gf_dm_sess_user_io(GF_DownloadSession *sess, GF_NETIO_Parameter *par
     }
 }
 
+GF_EXPORT
+Bool gf_dm_is_thread_dead(GF_DownloadSession *sess)
+{
+    if (!sess) return 1;
+	return (sess->flags & GF_DOWNLOAD_SESSION_THREAD_DEAD) ? 1 : 0;
+}
+
 GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess)
 {
     if (!sess) return GF_BAD_PARAM;

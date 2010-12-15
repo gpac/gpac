@@ -1687,6 +1687,9 @@ int main(int argc, char **argv)
 					break;
 				case GF_MP42TS_HTTP:
 					/*nothing to do: AAC_OnLiveData is called automatically*/
+					/*check we're still alive*/
+					if (gf_dm_is_thread_dead(aac_reader->dnload))
+						aac_download_file(aac_reader, audio_input_ip);
 					break;
 				default:
 					assert(0);
