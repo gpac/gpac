@@ -304,7 +304,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			break;
 		case CODEC_ID_DVD_SUBTITLE:
 			*frame = avcodec_alloc_frame();
-#if defined(USE_AVCODEC2) && (LIBAVCODEC_VERSION_MAJOR >= 52)
+#if defined(USE_AVCODEC2) && (LIBAVCODEC_VERSION_MAJOR >= 52 && LIBAVCODEC_VERSION_MINOR > 20)
 			{
 			  AVPacket pkt;
 			  av_init_packet(&pkt);
