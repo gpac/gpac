@@ -266,7 +266,8 @@ extern "C" {
      *\warning the private_data parameter is reserved for bandwidth statistics per service when used in the GPAC terminal.
      */
     void *gf_dm_sess_get_private(GF_DownloadSession * sess);
-    /*!
+
+	/*!
      *\brief gets last session error
      *
      *Gets the last error that occured in the session
@@ -274,6 +275,14 @@ extern "C" {
      *\return the last error
      */
     GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess);
+
+    /*!
+     *\brief is download manager thread dead?
+     *
+     *Indicates whether the thread has ended
+	 *\param sess the download session
+     */
+	Bool gf_dm_is_thread_dead(GF_DownloadSession *sess);
 
     /*!
      *\brief fetches data on session
