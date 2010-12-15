@@ -104,7 +104,7 @@ void gf_xml_sax_del(GF_SAXParser *parser);
 assume UTF-8 compatible coding*/
 GF_Err gf_xml_sax_init(GF_SAXParser *parser, unsigned char *BOM);
 /*parses input string data. string data MUST be terminated by the 0 character (eg 2 0s for UTF-16)*/
-GF_Err gf_xml_sax_parse(GF_SAXParser *parser, void *string_bytes);
+GF_Err gf_xml_sax_parse(GF_SAXParser *parser, const void *string_bytes);
 /*suspends/resume sax parsing. 
 	When resuming on file, the function will run until suspended/end of file/error
 	When resuming on steram, the function will simply return

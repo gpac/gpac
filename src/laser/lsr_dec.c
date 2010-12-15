@@ -167,7 +167,7 @@ void lsr_end_of_stream(void *co)
 }
 
 GF_EXPORT
-GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, char *data, u32 data_len)
+GF_Err gf_laser_decode_au(GF_LASeRCodec *codec, u16 ESID, const char *data, u32 data_len)
 {
 	GF_Err e;
 	if (!codec || !data || !data_len) return GF_BAD_PARAM;

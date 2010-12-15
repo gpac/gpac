@@ -390,7 +390,8 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 #endif
 	
 	/*load audio renderer*/
-	compositor->audio_renderer = gf_sc_ar_load(compositor->user);	
+	if (!compositor->audio_renderer)
+	  compositor->audio_renderer = gf_sc_ar_load(compositor->user);
 
 	gf_sc_reset_framerate(compositor);	
 	compositor->font_manager = gf_font_manager_new(compositor->user);
@@ -542,6 +543,7 @@ void gf_sc_del(GF_Compositor *compositor)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Unloading visual compositor module\n"));
 
 	if (compositor->audio_renderer) gf_sc_ar_del(compositor->audio_renderer);
+	compositor->audio_renderer = NULL;
 
 #ifdef GF_SR_EVENT_QUEUE
 	gf_mx_p(compositor->ev_mx);

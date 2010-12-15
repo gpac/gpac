@@ -93,7 +93,7 @@ static GF_Err BIFS_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	return GF_OK;
 }
 
-static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, char *inBuffer, u32 inBufferLength, 
+static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	Double ts_offset;

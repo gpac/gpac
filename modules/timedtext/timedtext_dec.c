@@ -1057,7 +1057,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	gf_node_changed((GF_Node *) priv->ts_scroll, NULL);
 }
 
-static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, char *inBuffer, u32 inBufferLength, 
+static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	GF_BitStream *bs;

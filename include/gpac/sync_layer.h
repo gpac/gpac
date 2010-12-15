@@ -118,7 +118,7 @@ void gf_sl_packetize(GF_SLConfig* slConfig, GF_SLHeader *Header, char *PDU, u32 
 u32 gf_sl_get_header_size(GF_SLConfig* slConfig, GF_SLHeader *Header);
 
 /*depacketize SL-PDU*/
-void gf_sl_depacketize(GF_SLConfig *slConfig, GF_SLHeader *Header, char *PDU, u32 PDULength, u32 *HeaderLen);
+void gf_sl_depacketize(GF_SLConfig *slConfig, GF_SLHeader *Header, const char *PDU, u32 PDULength, u32 *HeaderLen);
 
 
 #ifdef __cplusplus

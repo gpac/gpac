@@ -586,7 +586,7 @@ static void Channel_DispatchAU(GF_Channel *ch, u32 duration)
 	gf_es_lock(ch, 0);
 }
 
-void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength)
+void Channel_ReceiveSkipSL(GF_ClientService *serv, GF_Channel *ch, const char *StreamBuf, u32 StreamLength)
 {
 	GF_DBUnit *au;
 	if (!StreamLength) return;
@@ -671,7 +671,7 @@ static void gf_es_check_timing(GF_Channel *ch)
 }
 
 /*handles reception of an SL-PDU, logical or physical*/
-void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *payload, u32 payload_size, GF_SLHeader *header, GF_Err reception_status)
+void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, const char *payload, u32 payload_size, GF_SLHeader *header, GF_Err reception_status)
 {
 	GF_SLHeader hdr;
 	u32 nbAU, OldLength, size, AUSeqNum;

@@ -1855,7 +1855,7 @@ static void gf_sm_svg_flush_state(GF_SVG_Parser *parser)
 	}
 }
 
-static GF_Err gf_sm_load_initialize_svg(GF_SceneLoader *load, char *str_data, Bool is_fragment)
+static GF_Err gf_sm_load_initialize_svg(GF_SceneLoader *load, const char *str_data, Bool is_fragment)
 {
 	GF_Err e;
 	GF_SVG_Parser *parser;
@@ -1936,7 +1936,7 @@ GF_Err load_svg_run(GF_SceneLoader *load)
 
 }
 
-GF_Err load_svg_parse_string(GF_SceneLoader *load, char *str)
+GF_Err load_svg_parse_string(GF_SceneLoader *load, const char *str)
 {
 	GF_Err e;
 	GF_SVG_Parser *parser = (GF_SVG_Parser *)load->loader_priv;

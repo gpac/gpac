@@ -165,7 +165,7 @@ static void AC3_RegulateDataRate(AC3Reader *read)
 	}
 }
 
-static void AC3_OnLiveData(AC3Reader *read, char *data, u32 data_size)
+static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 {
 	u64 pos;
 	Bool sync;

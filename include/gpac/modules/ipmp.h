@@ -94,7 +94,7 @@ typedef struct
 
 	/*data manipulation (GF_IPMP_TOOL_PROCESS_DATA) - data is always processed in-place in a
 	synchronous way*/
-	char *data;
+	const char *data;
 	u32 data_size;
 	u32 out_data_size;
 	/*indicates if payload passed is encrypted or not - this is used by ISMA, OMA and 3GP*/

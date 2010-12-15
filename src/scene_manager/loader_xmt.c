@@ -2985,7 +2985,7 @@ static GF_Err xmt_restore_context(GF_SceneLoader *load)
 }
 
 
-static GF_Err load_xmt_initialize(GF_SceneLoader *load, char *str_data)
+static GF_Err load_xmt_initialize(GF_SceneLoader *load, const char *str_data)
 {
 	GF_Err e;
 	GF_XMTParser *parser;
@@ -3049,7 +3049,7 @@ static GF_Err load_xmt_run(GF_SceneLoader *load)
 	return GF_OK;
 }
 
-static GF_Err load_xmt_parse_string(GF_SceneLoader *load, char *str)
+static GF_Err load_xmt_parse_string(GF_SceneLoader *load, const char *str)
 {
 	GF_Err e;
 	GF_XMTParser *parser = (GF_XMTParser *)load->loader_priv;

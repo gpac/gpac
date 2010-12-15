@@ -96,7 +96,7 @@ u8 gf_mp3_object_type_indication(u32 hdr);
 u8 gf_mp3_layer(u32 hdr);
 u16 gf_mp3_frame_size(u32 hdr);
 u32 gf_mp3_get_next_header(FILE* in);
-u32 gf_mp3_get_next_header_mem(char *buffer, u32 size, u32 *pos);
+u32 gf_mp3_get_next_header_mem(const char *buffer, u32 size, u32 *pos);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 

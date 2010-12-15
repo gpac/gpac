@@ -501,6 +501,7 @@ void gf_sc_ar_del(GF_AudioRenderer *ar)
 		gf_mixer_lock(ar->mixer, 1);
 		if (ar->audio_out->SelfThreaded) ar->audio_out->Shutdown(ar->audio_out);
 		gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
+		ar->audio_out = NULL;
 		gf_mixer_lock(ar->mixer, 0);
 	}
 	gf_mixer_del(ar->mixer);

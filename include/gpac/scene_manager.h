@@ -262,7 +262,7 @@ struct __scene_loader
 	void *loader_priv;
 	GF_Err (*process)(GF_SceneLoader *loader);
 	void (*done)(GF_SceneLoader *loader);
-	GF_Err (*parse_string)(GF_SceneLoader *loader, char *str);
+	GF_Err (*parse_string)(GF_SceneLoader *loader, const char *str);
 	GF_Err (*suspend)(GF_SceneLoader *loader, Bool suspend);
 };
 
@@ -282,7 +282,7 @@ The string can ba either UTF-8 or UTF-16 data
 if clean_at_end is set, associated parser is destroyed. Otherwise, a call to gf_sm_load_done must be done 
 to clean ressources (needed for SAX progressive loading)
 */
-GF_Err gf_sm_load_string(GF_SceneLoader *load, char *str, Bool clean_at_end);
+GF_Err gf_sm_load_string(GF_SceneLoader *load, const char *str, Bool clean_at_end);
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 

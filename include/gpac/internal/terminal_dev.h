@@ -661,7 +661,7 @@ GF_Err gf_es_start(GF_Channel *ch);
 /*stop channel from receiving data*/
 GF_Err gf_es_stop(GF_Channel *ch);
 /*handles reception of an SL PDU*/
-void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength, GF_SLHeader *header, GF_Err reception_status);
+void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, const char *StreamBuf, u32 StreamLength, GF_SLHeader *header, GF_Err reception_status);
 /*signals end of stream on the channel*/
 void gf_es_on_eos(GF_Channel *ch);
 /*fetches first AU available for decoding on this channel*/
