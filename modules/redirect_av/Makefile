@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/redirect_av
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include $(ffmpeg_cflags)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LINKLIBS= -lgpac -lavcodec -lswscale
+LINKLIBS= -lgpac $(ffmpeg_lflags)
 LOCAL_LIB=../../bin/gcc
 
 #common objects
