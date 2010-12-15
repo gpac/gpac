@@ -789,6 +789,9 @@ GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, const char *url)
     if (e == GF_OK) {
         const char *opt;
         sess->orig_url = gf_strdup(info.canonicalRepresentation);
+	if (sess->remote_path)
+	  gf_free(sess->remote_path);
+	sess->remote_path = NULL;
         sess->remote_path = gf_strdup(info.remotePath);
         sess->server_name = info.server_name ? gf_strdup(info.server_name) : NULL;
         if (info.userName) {
@@ -1339,7 +1342,7 @@ void gf_dm_del(GF_DownloadManager *dm)
  * \param data last data received
  * \param nbBytes The number of bytes contained into data
  */
-static void gf_icy_skip_data(GF_DownloadSession * sess, u32 icy_metaint, char * data, u32 nbBytes) {
+static void gf_icy_skip_data(GF_DownloadSession * sess, u32 icy_metaint, const char * data, u32 nbBytes) {
     assert( icy_metaint > 0 );
     while (nbBytes) {
         if (sess->icy_bytes == icy_metaint) {
@@ -1393,7 +1396,7 @@ static void gf_icy_skip_data(GF_DownloadSession * sess, u32 icy_metaint, char * 
 }
 
 
-static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, char *data, u32 nbBytes)
+static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, const char *data, u32 nbBytes)
 {
     GF_NETIO_Parameter par;
     u32 runtime, rcv;
