@@ -832,6 +832,7 @@ u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format)
 	}
 }
 
+#ifdef UNUSED_FUNC
 static char szTYPE[5];
 static const char *my_gf_4cc_to_str(u32 type)
 {
@@ -849,6 +850,7 @@ static const char *my_gf_4cc_to_str(u32 type)
 	*name = 0;
 	return (const char *) ptr;
 }
+#endif /* UNUSED_FUNC */
 
 static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_info, u32 do_lock)
 {
