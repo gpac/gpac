@@ -31,7 +31,7 @@
 /*this file defines all common macros for libgpac compilation*/
 
 /*except for symbian32 which uses .mmp directives ... */
-#if defined(WIN32) || defined(_WIN32_WCE)
+#if defined(WIN32) || defined(_WIN32_WCE) || defined(GPAC_CONFIG_DARWIN) /*visual studio and xcode*/
 
 /*enables GPAC fixed point*/
 //#define GPAC_FIXED_POINT
@@ -52,6 +52,9 @@
 
 /*spidermonkey enabled*/
 #define GPAC_HAS_SPIDERMONKEY
+#ifdef GPAC_CONFIG_DARWIN
+#define MOZILLA_1_8_BRANCH
+#endif
 
 /*libjpeg enabled*/
 #define GPAC_HAS_JPEG
@@ -63,13 +66,17 @@
 //#define GPAC_HAS_IPV6
 
 /*3D compositor disabled*/
-//#define GPAC_DISABLE_3D
+#ifdef GPAC_CONFIG_DARWIN
+#define GPAC_DISABLE_3D
+#endif
 
 /*use TinyGL instead of OpenGL*/
 //#define GPAC_USE_TINYGL
 
 /*use OpenGL ES instead of OpenGL*/
-//#define GPAC_USE_OGL_ES
+#ifdef GPAC_CONFIG_DARWIN
+#define GPAC_USE_OGL_ES
+#endif
 
 
 #if defined(_WIN32_WCE)

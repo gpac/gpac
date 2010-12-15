@@ -22,6 +22,11 @@
  *		
  */
 
+
+#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+#include "libgpac_symbols.h"
+#endif
+
 #include "sdl_out.h"
 
 #define SDLAUD()	SDLAudCtx *ctx = (SDLAudCtx *)dr->opaque

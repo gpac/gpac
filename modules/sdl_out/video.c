@@ -23,8 +23,12 @@
  */
 
 
+#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+#include "libgpac_symbols.h"
+#else
 #include "sdl_out.h"
 #include <gpac/user.h>
+#endif
 
 
 #ifdef WIN32
@@ -413,10 +417,18 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 }
 
 
+#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+#define SDL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_RESIZABLE | SDL_NOFRAME
+#define SDL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_FULLSCREEN | SDL_NOFRAME
+#define SDL_GL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_RESIZABLE | SDL_NOFRAME
+#define SDL_GL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_FULLSCREEN | SDL_NOFRAME
+#else
 #define SDL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_RESIZABLE
 #define SDL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_FULLSCREEN
 #define SDL_GL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_RESIZABLE
 #define SDL_GL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_FULLSCREEN
+#endif
+
 
 GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height) 
 {
@@ -457,7 +469,15 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		evt.type = GF_EVENT_VIDEO_SETUP;
 		dr->on_event(dr->evt_cbk_hdl, &evt);		
 	} else {
-		u32 flags = SDL_WINDOW_FLAGS;
+		u32 flags;
+#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+		flags = SDL_FULLSCREEN_FLAGS;
+		//SDL readme says it would make us faster
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
+		SDL_GL_SetAttribute(SDL_GL_RETAINED_BACKING, 1);
+#else
+		flags = SDL_WINDOW_FLAGS;
+#endif
 		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 	}
@@ -810,6 +830,24 @@ u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format)
 	default:
 		return 0;
 	}
+}
+
+static char szTYPE[5];
+static const char *my_gf_4cc_to_str(u32 type)
+{
+	u32 ch, i;
+	char *ptr, *name = (char *)szTYPE;
+	ptr = name;
+	for (i = 0; i < 4; i++, name++) {
+		ch = type >> (8 * (3-i) ) & 0xff;
+		if ( ch >= 0x20 && ch <= 0x7E ) {
+			*name = ch;
+		} else {
+			*name = '.';
+		}
+	}
+	*name = 0;
+	return (const char *) ptr;
 }
 
 static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_info, u32 do_lock)
