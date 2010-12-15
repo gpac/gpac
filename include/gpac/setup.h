@@ -236,6 +236,9 @@ char * my_str_lwr(char *str);
 #include <string.h>
 #include <assert.h>
 
+#if __APPLE__
+#include <TargetConditionals.h>
+#endif
 
 typedef uint64_t u64;
 typedef uint32_t u32;

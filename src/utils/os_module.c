@@ -215,7 +215,154 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 #ifdef WIN32
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".dll");
 #elif defined(__APPLE__)
+#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_sdl_out.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_soft_raster.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_dummy_in.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_ctx_load.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_svg_in.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_mp3_in.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_aac_in.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_img_in.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}	
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_bifs_dec.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_gpac_js.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_isom_in.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_laser_dec.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_odf_dec.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_rtp_in.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_mpegts_in.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_ft_font.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_widgetman.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+	{
+		ModuleInstance *inst;		
+		GF_SAFEALLOC(inst, ModuleInstance);
+		inst->interfaces = gf_list_new();
+		inst->plugman = pm;
+		inst->name = gf_strdup("gm_mpd_in.dylib");
+		gf_list_add(pm->plug_list, inst);
+	}
+#else
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".dylib");
+#endif
 #else
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".so");
 #endif

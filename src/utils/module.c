@@ -26,6 +26,23 @@
 #include <gpac/config_file.h>
 #include <gpac/tools.h>
 
+#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+#include <gpac/modules/video_out.h>
+#include <gpac/modules/audio_out.h>
+#include "sdl_out.h"
+
+/*hack I'm not proud of. If you're young and innocent never do that*/
+void* (*SDL_Module_Load_Video) (void);
+void* (*SDL_Module_Load_Audio) (void);
+GF_EXPORT void gf_iphone_set_sdl_video_module(void* (*SDL_Module) (void)) {
+	SDL_Module_Load_Video = SDL_Module;
+}
+GF_EXPORT void gf_iphone_set_sdl_audio_module(void* (*SDL_Module) (void)) {
+	SDL_Module_Load_Audio = SDL_Module;
+}
+#endif
+
+
 GF_EXPORT
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 {
@@ -146,6 +163,19 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	ifce = (GF_BaseInterface *) inst->load_func(InterfaceFamily);
 	/*sanity check*/
 	if (!ifce) goto err_exit;
+
+#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+	if (!strcmp(inst->name, "gm_sdl_out.dylib")) {
+		if (InterfaceFamily == GF_VIDEO_OUTPUT_INTERFACE) {
+			ifce = SDL_Module_Load_Video();
+			fprintf(stderr, "***         Loading SDL Video: 0x%p ***\n", ifce);
+		} else if (InterfaceFamily == GF_AUDIO_OUTPUT_INTERFACE) {
+			ifce = SDL_Module_Load_Audio();
+			fprintf(stderr, "***         Loading SDL Audio: 0x%p ***\n", ifce);
+		}
+	}
+#endif
+	
 
 	if (!ifce->module_name || (ifce->InterfaceType != InterfaceFamily)) {
 		inst->destroy_func(ifce);
