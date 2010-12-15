@@ -441,7 +441,7 @@ void gf_term_on_command(GF_ClientService *service, GF_NetworkCommand *com, GF_Er
 	(header + PDU). Note that using an SLConfig resulting in an empty GF_SLHeader allows sending raw data directly
 @reception_status: data reception status. To signal end of stream, set this to GF_EOS
 */
-void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status);
+void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, const char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status);
 /*returns URL associated with service (so that you don't need to store it)*/
 const char *gf_term_get_service_url(GF_ClientService *service);
 
