@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual C++ 2008
+# Visual Studio 2008
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GPAX", "GPAX.vcproj", "{72486240-A124-496E-A67A-E76FEC7E99BE}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
