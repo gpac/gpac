@@ -49,7 +49,7 @@ typedef struct
 	Bool loaded;
 } WgtLoad;
 
-static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, char *inBuffer, u32 inBufferLength, 
+static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength, 
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
