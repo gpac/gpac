@@ -1397,9 +1397,11 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			}
 			return GF_STREAM_NOT_FOUND;
 		}
+
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
-		assert(m2ts->nb_playing);
-		m2ts->nb_playing--;
+		/* In case of EOS, we may receive a stop command after no one is playing */
+		if (m2ts->nb_playing)
+		  m2ts->nb_playing--;
 		/*stop demuxer*/
 		if (!m2ts->nb_playing && (m2ts->run_state==1)) {
 			m2ts->run_state=0;
