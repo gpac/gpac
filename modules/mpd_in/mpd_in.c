@@ -1123,16 +1123,15 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         if (strstr(url, ".m3u8")) {
             is_m3u8 = 1;
         }
-    } else if (strstr(url, "://")) {
-        e = MPD_downloadWithRetry(mpdin->service, &(mpdin->mpd_dnload), url, MPD_NetIO, mpdin);
-        if (e!=GF_OK) {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD downloading problem %s for %s\n", gf_error_to_string(e), url));
-            gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);gf_term_download_del(mpdin->mpd_dnload);
-		mpdin->mpd_dnload = NULL;
-	    gf_term_download_del(mpdin->mpd_dnload);
-	    mpdin->mpd_dnload = NULL;
-            return e;
-        }
+	} else if (strstr(url, "://")) {
+		e = MPD_downloadWithRetry(mpdin->service, &(mpdin->mpd_dnload), url, MPD_NetIO, mpdin);
+		if (e!=GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD downloading problem %s for %s\n", gf_error_to_string(e), url));
+			gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
+			gf_term_download_del(mpdin->mpd_dnload);
+			mpdin->mpd_dnload = NULL;
+			return e;
+		}
         {
             const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
             const char * url = gf_dm_sess_get_resource_name(mpdin->mpd_dnload);
