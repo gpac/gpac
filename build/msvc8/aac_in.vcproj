@@ -276,6 +276,7 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
+				GenerateManifest="false"
 				ModuleDefinitionFile=""
 				ProgramDatabaseFile="$(IntDir)\gm_$(ProjectName).pdb"
 				ImportLibrary="$(IntDir)/gm_$(ProjectName).lib"

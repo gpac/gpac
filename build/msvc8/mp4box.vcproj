@@ -266,6 +266,7 @@
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
+				GenerateManifest="true"
 				ProgramDatabaseFile="$(IntDir)\$(ProjectName).pdb"
 				SubSystem="1"
 				TargetMachine="1"
