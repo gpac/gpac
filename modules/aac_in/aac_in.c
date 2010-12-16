@@ -407,6 +407,11 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	
 				if (!strnicmp(meta, "StreamTitle=", 12)) {
 					read->icy_track_name = gf_strdup(meta+12);
+					if (!strcmp(read->icy_track_name, "''")){
+					  /* On some servers, '' means not track name */
+					  gf_free(read->icy_track_name);
+					  read->icy_track_name = NULL;
+					}
 				}
 				if (!sep) break;
 				sep[0] = ';';
