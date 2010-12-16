@@ -57,6 +57,8 @@ typedef struct
 	GF_DownloadSession * dnload;
 
 	Bool is_live;
+	char * liveDataCopy;
+	u32 liveDataCopySize;
 	char prev_data[1000];
 	u32 prev_size;
 
@@ -173,7 +175,7 @@ static void MP3_RegulateDataRate(MP3Reader *read)
 	}
 }
 
-static void MP3_OnLiveData(MP3Reader *read, const char *data, u32 data_size)
+static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 {
 	u32 hdr, size, pos;
 
@@ -296,8 +298,12 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		}
 		/*looks like a live stream*/
 		if (read->is_live) {
-			if (!e) MP3_OnLiveData(read, param->data, param->size);
-			return;
+		  if (read->liveDataCopySize < param->size){
+		      read->liveDataCopy = realloc(read->liveDataCopy, param->size);
+		  }
+		  memcpy(read->liveDataCopy, param->data, param->size);
+		  if (!e) MP3_OnLiveData(read, read->liveDataCopy, param->size);
+		  return;
 		}
 
 		if (read->stream) return;
@@ -398,6 +404,11 @@ static GF_Err MP3_CloseService(GF_InputService *plug)
 
 	if (read->data) gf_free(read->data);
 	read->data = NULL;
+	if (read->liveDataCopy){
+	    gf_free(read->liveDataCopy);
+	    read->liveDataCopy = NULL;
+	    read->liveDataCopySize = 0;
+	}
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;
 }
