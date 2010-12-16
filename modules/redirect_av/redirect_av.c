@@ -26,6 +26,7 @@
 #include <gpac/modules/term_ext.h>
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
+#include <stdlib.h>
 
 
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__MINGW32__)
@@ -55,6 +56,9 @@
 
 #define MULTITHREAD_REDIRECT_AV
 //#undef MULTITHREAD_REDIRECT_AV
+
+/* This number * 188 should be lower than the UDP packet size */
+#define TS_PACKETS_PER_UDP_PACKET 7
 
 static const int outbuf_size = 640 * 480 * 8;
 
@@ -97,6 +101,8 @@ typedef struct
     u64 frameTime;
     u64 frameTimeEncoded;
     u64 frameTimeSentOverTS;
+    const char * udp_address;
+    u16 udp_port;
 } GF_AVRedirect;
 
 static const char * moduleName = "AVRedirect";
@@ -198,7 +204,7 @@ static GF_Err sendTSMux(GF_AVRedirect * avr)
         }
         if (188 != fwrite(pkt, sizeof(char), 188, avr->ts_OUTFile ))
             return GF_IO_ERR;
-        e = gf_sk_send ( avr->ts_output_udp_sk, pkt, 188 );
+	e = gf_sk_send ( avr->ts_output_udp_sk, pkt, 188);
         if ( e )
         {
             GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Unable to send TS data\n", gf_error_to_string(e) ) );
@@ -388,11 +394,13 @@ static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
     return GF_OK;
 }
 
+#define DEFAULT_UDP_OUT_ADDRESS "127.0.0.1"
+#define DEFAULT_UDP_OUT_PORT 1234
+#define DEFAULT_UDP_OUT_PORT_STR "1234"
+
 static GF_Err avr_open ( GF_AVRedirect *avr )
 {
     GF_Err e;
-    const char * udp_out = "127.0.0.1";
-    u16 output_port = 1234;
     if ( avr->is_open ) return GF_OK;
 
     avr->avi_out = AVI_open_output_file ( "dump.avi" );
@@ -469,15 +477,15 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
     avr->muxer = gf_m2ts_mux_new ( 800000, 50, 1 );
 
     avr->ts_output_udp_sk = gf_sk_new ( GF_SOCK_TYPE_UDP );
-    if ( gf_sk_is_multicast_address ( udp_out ) )
+    if ( gf_sk_is_multicast_address ( avr->udp_address ) )
     {
-        e = gf_sk_setup_multicast ( avr->ts_output_udp_sk, ( char * ) udp_out, output_port, 0, 0, NULL );
+        e = gf_sk_setup_multicast ( avr->ts_output_udp_sk, avr->udp_address, avr->udp_port, 0, 0, NULL );
     }
     else
     {
-        e = gf_sk_bind ( avr->ts_output_udp_sk, NULL, output_port, ( char * ) udp_out, output_port, GF_SOCK_REUSE_PORT );
+        e = gf_sk_bind ( avr->ts_output_udp_sk, NULL, avr->udp_port, avr->udp_address, avr->udp_port, GF_SOCK_REUSE_PORT );
     }
-    gf_sk_set_buffer_size(avr->ts_output_udp_sk, 0, 188);
+    gf_sk_set_buffer_size(avr->ts_output_udp_sk, 0, 188 * TS_PACKETS_PER_UDP_PACKET);
     gf_sk_set_block_mode(avr->ts_output_udp_sk, 0);
     if ( e )
     {
@@ -556,6 +564,10 @@ static Bool avr_on_event ( void *udta, GF_Event *evt, Bool consumed_by_composito
 
 static const char * AVR_ENABLED_OPTION = "Enabled";
 
+static const char * AVR_UDP_PORT_OPTION = "udp.port";
+
+static const char * AVR_UDP_ADDRESS_OPTION = "udp.address";
+
 static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
 {
     const char *opt;
@@ -620,7 +632,27 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
                 avr->codec = avcodec_find_encoder ( CODEC_ID_MPEG2VIDEO );
             }
         }
-
+        opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_ADDRESS_OPTION);
+	if (!opt){
+	  gf_modules_set_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_ADDRESS_OPTION, DEFAULT_UDP_OUT_ADDRESS);
+	  avr->udp_address = DEFAULT_UDP_OUT_ADDRESS;
+	  GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] %s not set, using %s\n", AVR_UDP_ADDRESS_OPTION, DEFAULT_UDP_OUT_ADDRESS ) );
+	} else
+	  avr->udp_address = opt;
+	opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_PORT_OPTION);
+	if (opt){
+	  char * endPtr;
+	  unsigned int x = strtoul(opt, &endPtr, 10);
+	  if (endPtr && x < 65536){
+	      opt = NULL;
+	  } else
+	    avr->udp_port = (u16) x;
+	}
+	if (!opt){
+	    gf_modules_set_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_PORT_OPTION, DEFAULT_UDP_OUT_PORT_STR);
+            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] %s is not set or valid, using %s\n", AVR_UDP_PORT_OPTION, DEFAULT_UDP_OUT_PORT_STR ) );
+	    avr->udp_port = DEFAULT_UDP_OUT_PORT;
+	}
         avr->audio_listen.udta = avr;
         avr->audio_listen.on_audio_frame = avr_on_audio_frame;
         avr->audio_listen.on_audio_reconfig = avr_on_audio_reconfig;

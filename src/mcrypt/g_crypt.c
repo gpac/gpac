@@ -259,7 +259,7 @@ GF_Err gf_crypt_encrypt(GF_Crypt *td, void *plaintext, int len)
 }
 
 GF_EXPORT
-GF_Err gf_crypt_decrypt(GF_Crypt *td, void *ciphertext, int len)
+GF_Err gf_crypt_decrypt(GF_Crypt *td, const void *ciphertext, int len)
 {
 	if (!td) return GF_BAD_PARAM;
 	return td->_mdecrypt(td->abuf, ciphertext, len, gf_crypt_get_block_size(td), td->akey, (mcryptfunc) td->a_encrypt, (mcryptfunc) td->a_decrypt);

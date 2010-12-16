@@ -1108,7 +1108,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 		GF_M2TS_Packet *pck;
 		/*discard first packet*/
 		gf_mx_p(stream->mx);
-		assert(stream->pck_first);		
+		assert(stream->pck_first);
 		pck = stream->pck_first;
 		stream->pck_first = pck->next;
 		gf_mx_v(stream->mx);
