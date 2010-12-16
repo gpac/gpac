@@ -246,7 +246,7 @@ u32 gf_net_has_ipv6()
 }
 
 GF_EXPORT
-Bool gf_net_is_ipv6(char *address)
+Bool gf_net_is_ipv6(const char *address)
 {
 	char *sep;
 	if (!address) return 0;
@@ -256,7 +256,7 @@ Bool gf_net_is_ipv6(char *address)
 }
 
 #ifdef GPAC_HAS_IPV6
-static struct addrinfo *gf_sk_get_ipv6_addr(char *PeerName, u16 PortNumber, int family, int flags, int sock_type)
+static struct addrinfo *gf_sk_get_ipv6_addr(const char *PeerName, u16 PortNumber, int family, int flags, int sock_type)
 {
 	struct	addrinfo *res=NULL;
 	struct	addrinfo hints;
@@ -292,7 +292,7 @@ static struct addrinfo *gf_sk_get_ipv6_addr(char *PeerName, u16 PortNumber, int 
 	return res;
 }
 
-static Bool gf_sk_ipv6_set_remote_address(GF_Socket *sock, char *address, u16 PortNumber)
+static Bool gf_sk_ipv6_set_remote_address(GF_Socket *sock, const char *address, u16 PortNumber)
 {
 	struct addrinfo *res = gf_sk_get_ipv6_addr(address, PortNumber, AF_UNSPEC, 0, (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM);
 	if (!res) return 0;
@@ -465,7 +465,7 @@ s32 gf_sk_get_handle(GF_Socket *sock)
 
 
 //connects a socket to a remote peer on a given port
-GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *local_ip)
+GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, const char *local_ip)
 {
 	s32 ret;
 #ifdef GPAC_HAS_IPV6
@@ -595,7 +595,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, char *PeerName, u16 PortNumber, char *loca
 
 //binds the given socket to the specified port. If ReUse is true
 //this will enable reuse of ports on a single machine
-GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u16 peer_port, u32 options)
+GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *peer_name, u16 peer_port, u32 options)
 {
 #ifdef GPAC_HAS_IPV6
 	struct addrinfo *res, *aip;
@@ -875,7 +875,7 @@ u32 gf_sk_is_multicast_address(const char *multi_IPAdd)
 #endif
 }
 
-GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, char *local_interface_ip)
+GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 MultiPortNumber, u32 TTL, Bool NoBind, char *local_interface_ip)
 {
 	s32 ret;
 	u32 flag;

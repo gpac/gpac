@@ -204,7 +204,7 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn);
  *\param peer_port remote port number to connect the socket to
  *\param options list of option for the bind operation.
  */
-GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u16 peer_port, u32 options);
+GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *peer_name, u16 peer_port, u32 options);
 /*!
  *\brief connects a socket 
  *
@@ -214,7 +214,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, char *local_ip, u16 port, char *peer_name, u1
  *\param port remote port number to connect the socket to
  *\param local_ip the local (client) address (IP or DNS) if any, NULL otherwise.
  */
-GF_Err gf_sk_connect(GF_Socket *sock, char *peer_name, u16 port, char *local_ip);
+GF_Err gf_sk_connect(GF_Socket *sock, const char *peer_name, u16 port, const char *local_ip);
 /*!
  *\brief data emission
  *
@@ -318,7 +318,7 @@ GF_Err gf_sk_set_remote(GF_Socket *sock, char *address, u16 port);
  *\param no_bind if sets, only join the multicast
  *\param local_interface_ip the local interface IP address if desired. If NULL, the default interface will be used.
  */
-GF_Err gf_sk_setup_multicast(GF_Socket *sock, char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, char *local_interface_ip);
+GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_ip_add, u16 multi_port, u32 TTL, Bool no_bind, char *local_interface_ip);
 /*!
  *brief multicast address test
  *
@@ -379,7 +379,7 @@ u32 gf_net_has_ipv6();
  *Checks if an address is an IPV6 or IPV4 one.
  *\return true 1 if address is IPV6 one, 0 otherwise
  */
-Bool gf_net_is_ipv6(char *address);
+Bool gf_net_is_ipv6(const char *address);
 
 
 /*!

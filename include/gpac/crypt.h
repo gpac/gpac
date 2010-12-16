@@ -141,7 +141,7 @@ The plaintext is replaced by the ciphertext.
 */
 GF_Err gf_crypt_encrypt(GF_Crypt *gfc, void *plaintext, int len);
 /*decryption function. It is almost the same with gf_crypt_generic.*/
-GF_Err gf_crypt_decrypt(GF_Crypt *gfc, void *ciphertext, int len);
+GF_Err gf_crypt_decrypt(GF_Crypt *gfc, const void *ciphertext, int len);
 
 /*various queries on both modes and algo*/
 u32 gf_crypt_str_get_algorithm_version(const char *algorithm);
