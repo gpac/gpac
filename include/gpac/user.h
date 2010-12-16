@@ -57,12 +57,14 @@ enum
 	GF_TERM_DRAW_FRAME = 1<<3,
 	/*disables frame-rate regulation (used when dumping content)*/
 	GF_TERM_NO_REGULATION = 1<<4,
-	/*lets the main user handle window events (neede for browser plugins)*/
-	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<5,
 	/*works without title bar*/
-	GF_TERM_WINDOW_NO_DECORATION = 1<<6,
+	GF_TERM_WINDOW_NO_THREAD = 1<<5,
+	/*lets the main user handle window events (needed for browser plugins)*/
+	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<6,
+	/*works without title bar*/
+	GF_TERM_WINDOW_NO_DECORATION = 1<<7,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<7,
+	GF_TERM_WINDOWLESS = 1<<8,
 };
 
 /*user object for all callbacks*/
