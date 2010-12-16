@@ -931,6 +931,13 @@ void gf_term_handle_services(GF_Terminal *term)
 			gf_odm_stop(odm, 1);
 			gf_scene_disconnect(odm->subscene, 1);
 			break;
+		case GF_ODM_ACTION_SCENE_RECONNECT:
+			assert(odm->subscene);
+			gf_scene_disconnect(odm->subscene, 0);
+			break;
+		case GF_ODM_ACTION_SCENE_INLINE_RESTART:
+			gf_scene_mpeg4_inline_restart(odm->subscene);
+			break;
 		}
 	
 		/*relock before sending play/pause*/
@@ -1098,7 +1105,7 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type)
 	GF_ObjectManager *an_od;
 	GF_Scene *scene;
 
-	if (!odm) return;
+	if (!odm || !odm->net_service) return;
 	if (odm->mo) {
 		count = gf_list_count(odm->mo->nodes);
 		if (!count) return;
@@ -1632,7 +1639,7 @@ Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed, Bool
 		while ((ef=gf_list_enum(term->event_filters, &i))) {
 			if (ef->on_event(ef->udta, evt, consumed)) {
 				term->in_event_filter --;
-				return 0;
+				return 1;
 			}
 		}
 		term->in_event_filter --;

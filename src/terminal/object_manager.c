@@ -123,7 +123,9 @@ void gf_odm_disconnect(GF_ObjectManager *odm, Bool do_remove)
 {
 	GF_Channel *ch;
 
+	if (do_remove) odm->state = GF_ODM_STATE_DESTROYED;
 	gf_odm_stop(odm, 1);
+	if (do_remove) odm->state = GF_ODM_STATE_DESTROYED;
 
 	/*disconnect sub-scene*/
 	if (odm->subscene) gf_scene_disconnect(odm->subscene, do_remove);

@@ -116,9 +116,6 @@ struct _scene
 	/*OD codec - specific to MPEG-4*/
 	struct _generic_codec *od_codec;
 
-	/*mutex for scene access*/
-	GF_Mutex *mx;
-
 	/*all sub resources of this scene (eg, list of GF_ObjectManager), namespace of this scene. This includes
 	both external resources (urls) and ODs sent in MPEG-4 systems*/
 	GF_List *resources;
@@ -234,8 +231,9 @@ void gf_scene_sample_time(GF_Scene *scene);
 
 Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene);
 
-void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt);
+void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt, GF_Err code);
 
+void gf_scene_mpeg4_inline_restart(GF_Scene *scene);
 
 GF_Node *gf_scene_get_subscene_root(GF_Node *inline_node);
 
@@ -806,6 +804,7 @@ enum
 	GF_ODM_STATE_PLAY,
 	GF_ODM_STATE_IN_SETUP,
 	GF_ODM_STATE_BLOCKED,
+	GF_ODM_STATE_DESTROYED,
 };
 
 enum
@@ -814,6 +813,8 @@ enum
 	GF_ODM_ACTION_STOP,
 	GF_ODM_ACTION_DELETE,
 	GF_ODM_ACTION_SCENE_DISCONNECT,
+	GF_ODM_ACTION_SCENE_RECONNECT,
+	GF_ODM_ACTION_SCENE_INLINE_RESTART,
 };
 
 struct _od_manager

@@ -86,7 +86,6 @@ GF_Scene *gf_scene_new(GF_Scene *parentScene)
 	GF_SAFEALLOC(tmp, GF_Scene);
 	if (! tmp) return NULL;
 
-	tmp->mx = gf_mx_new("SceneMutex");
 	tmp->resources = gf_list_new();
 	tmp->scene_objects = gf_list_new();
 	tmp->extra_scenes = gf_list_new();
@@ -171,7 +170,6 @@ void gf_scene_del(GF_Scene *scene)
 	if (scene->dims_url.url) gf_free(scene->dims_url.url);
 	if (scene->fragment_uri) gf_free(scene->fragment_uri);
 	if (scene->redirect_xml_base) gf_free(scene->redirect_xml_base);
-	gf_mx_del(scene->mx);
 	gf_free(scene);
 }
 
@@ -508,7 +506,7 @@ void gf_scene_buffering_info(GF_Scene *scene)
 
 
 
-void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_event)
+void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_event, GF_Err code)
 {
 	/*fire resize event*/
 #ifndef GPAC_DISABLE_SVG
@@ -544,6 +542,8 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 			}
 #endif
 		}
+
+		evt.error_state = code;
 	}
 	if (n) {
 		gf_dom_event_fire(n, event);
@@ -599,7 +599,7 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 			gf_sc_set_size(scene->root_od->term->compositor, w, h);
 		}
 		/*trigger a scene attach event*/
-		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL);
+		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK);
 	}
 }
 
@@ -641,6 +641,9 @@ restart:
 	obj = NULL;
 	i=0;
 	while ((obj = (GF_MediaObject *)gf_list_enum(scene->scene_objects, &i))) {
+		if (obj->odm && ((obj->odm->state == GF_ODM_STATE_DESTROYED) || (obj->odm->action_type == GF_ODM_ACTION_DELETE)) )
+			continue;
+
 		if (
 			/*regular OD scheme*/
 			(OD_ID != GF_MEDIA_EXTERNAL_ID && (obj->OD_ID==OD_ID)) 
@@ -653,8 +656,7 @@ restart:
 				/*locate sub-url in given one and handle fragments (viewpoint/segments/...)*/
 				&& gf_mo_is_same_url(obj, url, &keep_fragment, obj_type_hint) 
 			)
-		) {
-			
+		) {			
 			if (!first_pass && !force_new_if_not_attached) {
 				if (node && (gf_list_find(obj->nodes, node)<0))
 					gf_list_add(obj->nodes, node);
@@ -699,6 +701,13 @@ restart:
 		/*safety check!!!*/
 		if (gf_list_find(scene->scene_objects, obj)<0) 
 			return NULL;
+
+		if (obj->odm==NULL) {
+			gf_list_del_item(scene->scene_objects, obj); 
+			if (obj->nodes) gf_list_del(obj->nodes);
+			gf_free(obj);
+			return NULL;
+		}
 	}
 	return obj;
 }
@@ -1089,7 +1098,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		IS_UpdateVideoPos(scene);
 	} else {
 		scene->graph_attached = 1;
-		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL);
+		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK);
 		gf_term_invalidate_compositor(scene->root_od->term);
 	}
 }
@@ -1259,7 +1268,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	if (scene->root_od->term->root_scene == scene) 
 		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 
-	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL);
+	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK);
 
 #ifndef GPAC_DISABLE_VRML
 	IS_UpdateVideoPos(scene);
@@ -1394,14 +1403,6 @@ const char *gf_scene_get_service_url(GF_SceneGraph *sg)
 	GF_Scene *scene = gf_sg_get_private(sg);
 	if (scene) return scene->root_od->net_service->url;
 	return NULL;
-}
-Bool gf_scene_lock(GF_SceneGraph *sg, Bool do_lock)
-{
-	GF_Scene *scene = gf_sg_get_private(sg);
-	if (!scene) return 0;
-	if (do_lock) return gf_mx_try_lock(scene->mx);
-	else gf_mx_v(scene->mx);
-	return 1;
 }
 
 Bool gf_scene_is_over(GF_SceneGraph *sg)
