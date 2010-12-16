@@ -496,6 +496,25 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 			mouse_start_timer(ctx, hWnd, vout);
 		}
 		break;
+	case WM_HSCROLL:
+		if (ctx->cur_hwnd==hWnd) {
+			DD_SetCursor(vout, (ctx->cursor_type==GF_CURSOR_HIDE) ? ctx->cursor_type_backup : ctx->cursor_type);
+			evt.type = GF_EVENT_MOUSEWHEEL;
+			evt.mouse.button = 1;
+			switch (LOWORD(wParam)) {
+			case SB_LEFT: evt.mouse.wheel_pos = -1; break;
+			case SB_RIGHT: evt.mouse.wheel_pos = +1; break;
+			case SB_LINELEFT: evt.mouse.wheel_pos = -5; break;
+			case SB_LINERIGHT: evt.mouse.wheel_pos = +5; break;
+			case SB_PAGELEFT: evt.mouse.wheel_pos = -10; break;
+			case SB_PAGERIGHT: evt.mouse.wheel_pos = +10; break;
+			default:
+				break;
+			}
+			ret = vout->on_event(vout->evt_cbk_hdl, &evt);
+			mouse_start_timer(ctx, hWnd, vout);
+		}
+		break;
 
 	/*there's a bug on alt state (we miss one event)*/
 	case WM_SYSKEYDOWN:
@@ -778,7 +797,7 @@ void DD_SetupWindow(GF_VideoOutput *dr, u32 flags)
 	}
 	ctx->switch_res = flags;
 
-	if (flags & GF_TERM_NO_THREAD) {
+	if (flags & GF_TERM_WINDOW_NO_THREAD) {
 		DD_InitWindows(dr, ctx);
 	} else {
 		/*create event thread*/
