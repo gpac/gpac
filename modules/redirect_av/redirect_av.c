@@ -348,11 +348,11 @@ static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
     case GF_ESI_INPUT_DATA_PULL:
         gf_mx_p(avr->encodingMutex);
 	if (avr->frameTimeEncoded > avr->frameTimeSentOverTS){
-	  printf("Data PULL\n");
+	  printf("Data PULL, avr=%p, avr->video=%p, encoded="LLU", sent over TS="LLU"\n", avr, &avr->video, avr->frameTimeEncoded, avr->frameTimeSentOverTS);
 	  avr->video.output_ctrl( &(avr->video), GF_ESI_OUTPUT_DATA_DISPATCH, &(avr->currentTSPacket));
 	  avr->frameTimeSentOverTS = avr->frameTime;
 	} else {
-	  printf("Data PULL IGNORED\n");
+	  printf("Data PULL IGNORED : encoded = "LLU", sent on TS="LLU"\n", avr->frameTimeEncoded, avr->frameTimeSentOverTS);
 	}
 	gf_mx_v(avr->encodingMutex);
 	break;
@@ -479,6 +479,7 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
         avr->video.input_ctrl = void_input_ctrl;
         gf_m2ts_program_stream_add ( program, &(avr->video), 101, 1 );
 	assert( program->streams->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG2);
+	printf("Setup done, avr=%p, avr->video=%p\n", avr, &(avr->video));
     }
     gf_m2ts_mux_update_config ( avr->muxer, 1 );
 #ifdef MULTITHREAD_REDIRECT_AV
