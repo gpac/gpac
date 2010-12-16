@@ -642,7 +642,7 @@ void parent_node_start_group(ParentNode2D *group, GF_Node *n, Bool discardable)
 	}
 	GF_SAFEALLOC(cg, ChildGroup);
 	cg->child = n;
-	cg->discardable = discardable;
+	cg->text_type = discardable;
 	gf_list_add(group->groups, cg);
 }
 

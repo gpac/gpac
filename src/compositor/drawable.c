@@ -154,6 +154,7 @@ void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 	DRInfo *dri, *cur;
 	BoundInfo *bi, *_cur;
 
+
 	/*remove node from all visuals it's on*/
 	dri = dr->dri;
 	while (dri) {
@@ -182,7 +183,20 @@ void drawable_del_ex(Drawable *dr, GF_Compositor *compositor)
 		dri = dri->next;
 		gf_free(cur);
 	}
-	if (compositor) gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+	if (compositor) {
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+
+		/*check node isn't being tracked*/
+		if (compositor->grab_node==dr->node) 
+			compositor->grab_node = NULL;
+
+		if (compositor->focus_node==dr->node) {
+			compositor->focus_node = NULL;
+			compositor->focus_text_type = 0;
+		}
+		if (compositor->hit_node==dr->node) compositor->hit_node = NULL;
+		if (compositor->hit_text==dr->node) compositor->hit_text = NULL;
+	}
 
 	/*remove path object*/
 	if (dr->path) gf_path_del(dr->path);
@@ -923,7 +937,7 @@ void drawable_check_focus_highlight(GF_Node *node, GF_TraverseState *tr_state, G
 	hl_ctx->aspect.fill_color = compositor->highlight_fill;
 	hl_ctx->aspect.line_color = compositor->highlight_stroke;
 	hl_ctx->aspect.line_scale = 0;
-	hl_ctx->aspect.pen_props.width = FIX_ONE;
+	hl_ctx->aspect.pen_props.width = compositor->highlight_stroke_width;
 	hl_ctx->aspect.pen_props.join = GF_LINE_JOIN_BEVEL;
 	hl_ctx->aspect.pen_props.dash = GF_DASH_STYLE_DOT;
 

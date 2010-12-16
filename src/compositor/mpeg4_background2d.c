@@ -102,7 +102,7 @@ static Bool back_use_texture(M_Background2D *bck)
 static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state)
 {
 	Background2DStack *stack;
-	if (!ctx->drawable || !ctx->drawable->node) return;
+	if (!ctx || !ctx->drawable || !ctx->drawable->node) return;
 	stack = (Background2DStack *) gf_node_get_private(ctx->drawable->node);
 
 	if (!ctx->bi->clip.width || !ctx->bi->clip.height) return;
@@ -279,15 +279,20 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*first traverse, bound if needed*/
 	if (gf_list_find(tr_state->backgrounds, node) < 0) {
+		M_Background2D *top_bck = (M_Background2D *)node;
 		gf_list_add(tr_state->backgrounds, node);
 		assert(gf_list_find(stack->reg_stacks, tr_state->backgrounds)==-1);
 		gf_list_add(stack->reg_stacks, tr_state->backgrounds);
 		b2D_new_status(stack, bck);
 
 		/*only bound if we're on top*/
-		if (gf_list_get(tr_state->backgrounds, 0) == bck) {
-			if (!bck->isBound) {
+		top_bck = gf_list_get(tr_state->backgrounds, 0);
+		if (!bck->isBound) {
+			if (top_bck== bck) {
 				Bindable_SetIsBound(node, 1);
+			} else if (!top_bck->isBound) {
+				bck->set_bind = 1;
+				bck->on_set_bind(node, NULL);
 			}
 		}
 		/*open the stream if any*/

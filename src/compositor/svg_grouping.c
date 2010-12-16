@@ -455,7 +455,7 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 			evt.prev_translate.x = stack->vp.x;
 			evt.prev_translate.y = stack->vp.y;
 			evt.type = GF_EVENT_VP_RESIZE;
-			gf_scene_notify_event(scene, 0, NULL, &evt);
+			gf_scene_notify_event(scene, 0, NULL, &evt, GF_OK);
 		}
 	}
 
@@ -1106,11 +1106,7 @@ static void svg_traverse_resource(GF_Node *node, void *rs, Bool is_destroy, Bool
 
 		drawable_check_focus_highlight(node, tr_state, NULL);
 		if (is_fragment) {
-			/*we must have exclusive access to the fragment*/
-			if (gf_scene_lock(stack->inline_sg, 1)) {
-				gf_node_traverse(used_node, tr_state);
-				gf_scene_lock(stack->inline_sg, 0);
-			}
+			gf_node_traverse(used_node, tr_state);
 		} else {
 			gf_sc_traverse_subscene(tr_state->visual->compositor, node, stack->inline_sg, tr_state);
 		}

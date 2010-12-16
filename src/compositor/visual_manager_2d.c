@@ -148,17 +148,6 @@ void visual_2d_drawable_delete(GF_VisualManager *visual, struct _drawable *drawa
 	if (drawable->flags & DRAWABLE_IS_OVERLAY) {
 		visual->compositor->video_out->Blit(visual->compositor->video_out, NULL, NULL, NULL, 1);
 	}
-
-	/*check node isn't being tracked*/
-	if (visual->compositor->grab_node==drawable->node) 
-		visual->compositor->grab_node = NULL;
-
-	if (visual->compositor->focus_node==drawable->node) {
-		visual->compositor->focus_node = NULL;
-		visual->compositor->focus_text_type = 0;
-	}
-	if (visual->compositor->hit_node==drawable->node) visual->compositor->hit_node = NULL;
-	if (visual->compositor->hit_text==drawable->node) visual->compositor->hit_text = NULL;
 }
 
 Bool visual_2d_node_cull(GF_TraverseState *tr_state, GF_Rect *bounds)

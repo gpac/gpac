@@ -336,6 +336,13 @@ static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 		gf_path_add_line_to(glyph->path, 1, INT2FIX(font->descent));
 		gf_path_close(glyph->path);
 		glyph->utf_name=0;
+	} else if (name==(u32) '\n') {
+		GF_SAFEALLOC(glyph, GF_Glyph);
+		glyph->height = font->ascent;
+		glyph->horiz_advance = 0;
+		glyph->width = 0;
+		glyph->ID = name;
+		glyph->utf_name=name;
 	} else {
 		/*load glyph*/
 		if (font->load_glyph) {
@@ -355,7 +362,7 @@ static GF_Glyph *gf_font_get_glyph(GF_FontManager *fm, GF_Font *font, u32 name)
 		a_glyph->next = glyph;
 	}
 	/*space character - this may need adjustment for other empty glyphs*/
-	if (!glyph->path->n_points) {
+	if (glyph->path && !glyph->path->n_points) {
 		glyph->path->bbox.x = 0;
 		glyph->path->bbox.width = INT2FIX(font->max_advance_h);
 		glyph->path->bbox.y = INT2FIX(font->ascent);

@@ -48,6 +48,7 @@ typedef struct
 {
 	Fixed width, height, ascent, descent;
 	u32 first_child, nb_children;
+	Bool line_break;
 } LineInfo;
 
 static void layout_reset_lines(LayoutStack *st)
@@ -125,7 +126,8 @@ static void get_lines_info(LayoutStack *st, M_Layout *l)
 			li->height += cg->final.height;
 			li->nb_children ++;
 		} else {
-			if (i && (cg->final.width + li->width> max_w)) {
+			if ((cg->text_type==2) || (i && (cg->final.width + li->width> max_w))) {
+				if (cg->text_type==2) li->line_break = 1;
 				if (l->wrap) {
 					if (!li->ascent) {
 						li->ascent = li->height;
@@ -136,11 +138,11 @@ static void get_lines_info(LayoutStack *st, M_Layout *l)
 						li->width -= prev_discard_width;
 						li->nb_children--;
 					}
-					if (cg->discardable && (i+1==count)) break; 
+					if ((cg->text_type==1) && (i+1==count)) break; 
 
 					li = new_line_info(st);
 					li->first_child = i;
-					if (cg->discardable) {
+					if (cg->text_type) {
 						li->first_child++;
 						continue;
 					}
@@ -158,7 +160,7 @@ static void get_lines_info(LayoutStack *st, M_Layout *l)
 			li->width += cg->final.width;
 			li->nb_children ++;
 
-			prev_discard_width = cg->discardable ? cg->final.width : 0;
+			prev_discard_width = (cg->text_type==1) ? cg->final.width : 0;
 
 		}
 	}
@@ -214,10 +216,12 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 					cg = (ChildGroup *)gf_list_get(st->groups, li->nb_children-1);
 					spacing = (st->clip.width - li->width) / (li->nb_children-1) ;
 					if (spacing<0) spacing = 0;
-					/*disable spacing for last text line*/
-					else if (cg->ascent && (k+1==nbLines) ) 
-						spacing = 0;
-					
+					else if (cg->ascent) {
+						/*disable spacing for last text line and line breaks*/
+						if ( (k+1==nbLines) || li->line_break) {
+							spacing = 0;
+						}
+					}					
 				}
 				break;
 			}          
@@ -360,7 +364,7 @@ static void layout_justify(LayoutStack *st, M_Layout *l)
 		} else {
 			st->scroll_len += li->width;
 		}
-	}		
+	}
 }
 
 static void layout_setup_scroll_bounds(LayoutStack *st, M_Layout *l)
@@ -706,6 +710,21 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 //		layout_setup_scroll_bounds(st, l);
 	}
 
+
+	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS)  {
+		tr_state->bounds = st->bounds;
+		if (l->scrollVertical) {
+			tr_state->bounds.height = st->scroll_len;
+		} else {
+			tr_state->bounds.width = st->scroll_len;
+		}
+#ifndef GPAC_DISABLE_3D
+		gf_bbox_from_rect(&tr_state->bbox, &tr_state->bounds);
+#endif
+		goto layout_exit;
+	}
+
+
 	/*scroll*/
 	layout_scroll(tr_state, st, l);
 
@@ -725,7 +744,7 @@ layout_exit:
 	tr_state->text_split_mode = 0;
 }
 
-static void OnLayout(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
+static Bool OnLayout(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
 	Bool vertical = ((M_Layout *)sh->sensor)->scrollVertical;
 	LayoutStack *st = (LayoutStack *) gf_node_get_private(sh->sensor);
@@ -733,36 +752,37 @@ static void OnLayout(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compos
 	if (!is_over) {
 		st->is_scrolling = 0;
 		st->key_scroll = 0;
-		return;
+		return 0;
 	}
 	if (ev->type!=GF_EVENT_KEYDOWN) {
 		st->is_scrolling = 0;
 		st->key_scroll = 0;
-		return;
+		return 0;
 	}
 
 	switch (ev->key.key_code) {
 	case GF_KEY_LEFT:
-		if (vertical) return;
+		if (vertical) return 0;
 		st->key_scroll = -1;
 		break;
 	case GF_KEY_RIGHT:
-		if (vertical) return;
+		if (vertical) return 0;
 		st->key_scroll = +1;
 		break;
 	case GF_KEY_UP:
-		if (!vertical) return;
+		if (!vertical) return 0;
 		st->key_scroll = +1;
 		break;
 	case GF_KEY_DOWN:
-		if (!vertical) return;
+		if (!vertical) return 0;
 		st->key_scroll = -1;
 		break;
 	default:
 		st->key_scroll = 0;
-		return;
+		return 0;
 	}
 	gf_sc_invalidate(compositor, NULL);
+	return 1;
 }
 
 static Bool layout_is_enabled(GF_Node *node)

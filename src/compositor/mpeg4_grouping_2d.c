@@ -72,7 +72,6 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (tr_state->traversing_mode!=TRAVERSE_GET_BOUNDS) {
-		assert( children );
 		count = gf_node_list_get_count(children);
 
 		prev_switch = tr_state->switched_off;
@@ -98,8 +97,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->switched_off = prev_switch;
 	}
 
-	if (whichChoice>=0) {
-		assert( children );
+	if (children && (whichChoice>=0)) {
 		child = (GF_Node*)gf_node_list_get_child(children, whichChoice);
 		gf_node_traverse(child, tr_state);
 	}

@@ -809,6 +809,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 
 Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 {
+	u32 res = 0;
 	GF_SensorHandler *hs, *hs_grabbed;
 	GF_List *tmp;
 	u32 i, count, stype;
@@ -833,18 +834,19 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 			count = gf_list_count(compositor->previous_sensors);
 			for (i=0; i<count; i++) {
 				hs = (GF_SensorHandler*)gf_list_get(compositor->previous_sensors, i);
-				hs->OnUserEvent(hs, 0, ev, compositor);
 				/*if sensor is grabbed, add it to the list of active sensor for next pick*/
 				if (hs->grabbed) {
+					hs->OnUserEvent(hs, 0, 1, ev, compositor);
 					gf_list_add(compositor->sensors, hs);
 					compositor->grabbed_sensor = 1;
+					stype = gf_node_get_tag(hs->sensor);
 				}
-				stype = gf_node_get_tag(hs->sensor);
 			}
 
 			return 1;
 		}
-		compositor->prev_hit_appear = compositor->grabbed_sensor ? compositor->hit_appear : NULL;
+//		compositor->prev_hit_appear = compositor->grabbed_sensor ? compositor->hit_appear : NULL;
+		compositor->prev_hit_appear = compositor->hit_appear;
 	}
 
 
@@ -858,7 +860,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	for (i=0; i<count; i++) {
 		GF_Node *keynav;
 		hs = (GF_SensorHandler*)gf_list_get(compositor->sensors, i);
-		hs->OnUserEvent(hs, 1, ev, compositor);
+		res += hs->OnUserEvent(hs, 1, 0, ev, compositor);
 
 		/*try to remove this sensor from the previous sensor list*/
 		gf_list_del_item(compositor->previous_sensors, hs);
@@ -873,7 +875,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	count = gf_list_count(compositor->previous_sensors);
 	for (i=0; i<count; i++) {
 		hs = (GF_SensorHandler*)gf_list_get(compositor->previous_sensors, i);
-		hs->OnUserEvent(hs, 0, ev, compositor);
+		res += hs->OnUserEvent(hs, 0, 0, ev, compositor);
 		/*if sensor is grabbed, add it to the list of active sensor for next pick*/
 		if (hs->grabbed) {
 			gf_list_add(compositor->sensors, hs);
@@ -941,7 +943,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	} else {
 		gf_sc_reset_collide_cursor(compositor);
 	}
-	if (count) {
+	if (res) {
 #if 1
 		GF_SceneGraph *sg;
 		/*apply event cascade - this is needed for cases where several events are processed inbetween 
@@ -986,21 +988,17 @@ static Bool exec_vrml_key_event(GF_Compositor *compositor, GF_Node *node, GF_Eve
 	}
 	child = ((GF_ParentNode*)node)->children;
 	if (hdl) {
-		ret++;
-		hdl->OnUserEvent(hdl, is_focus_out ? 0 : 1, ev, compositor);
+		ret += hdl->OnUserEvent(hdl, is_focus_out ? 0 : 1, 0, ev, compositor);
 	} else {
 		while (child) {
 			hdl = compositor_mpeg4_get_sensor_handler(child->node);
 			if (hdl) {
-				ret++;
-				hdl->OnUserEvent(hdl, is_focus_out ? 0 : 1, ev, compositor);
+				ret += hdl->OnUserEvent(hdl, is_focus_out ? 0 : 1, 0, ev, compositor);
 			}
 			child = child->next;
 		}
 	}
-	/*fixme - modify handlers so they indicate whether the event is consumed or not*/
-	return 0;
-//	return ret ? 1 : 0;
+	return ret ? 1 : 0;
 }
 
 #endif /*GPAC_DISABLE_VRML*/
@@ -1560,7 +1558,7 @@ test_grouping:
 		count = gf_node_list_get_count(child);
 		for (i=count; i>0; i--) {
 			/*get in the subtree*/
-			n = gf_node_list_get_child( ((GF_ParentNode *)elt)->children, i-1);
+			n = gf_node_list_get_child( child, i-1);
 			n = set_focus(compositor, n, 0, 1);
 			if (n) {
 				gf_node_set_cyclic_traverse_flag(elt, 0);
@@ -1803,6 +1801,9 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *
 			}
 #endif
 		}
+		/*because of offscreen caches and composite texture, we must invalidate subtrees of previous and new focus to force a redraw*/
+		if (prev) gf_node_dirty_set(prev, GF_SG_NODE_DIRTY, 1);
+		if (compositor->focus_node) gf_node_dirty_set(compositor->focus_node, GF_SG_NODE_DIRTY, 1);
 		/*invalidate in case we draw focus rect*/
 		gf_sc_invalidate(compositor, NULL);
 	}
@@ -1883,12 +1884,38 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 	return visual_execute_event(compositor->visual, tr_state, ev, children);
 }
 
+static Bool forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed)
+{
+	Bool ret = gf_term_forward_event(compositor->term, ev, consumed, 0);
+	if (consumed) return 0;
+
+	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
+		u32 now;
+		GF_Event event;
+		/*emulate doubleclick*/
+		now = gf_sys_clock();
+		if (now - compositor->last_click_time < DOUBLECLICK_TIME_MS) {
+			event.type = GF_EVENT_DBLCLICK;
+			event.mouse.key_states = compositor->key_states;
+			event.mouse.x = ev->mouse.x;
+			event.mouse.y = ev->mouse.y;
+			ret += gf_term_send_event(compositor->term, &event);
+		}
+		compositor->last_click_time = now;
+	}
+	return ret ? 1 : 0;
+}
+
+
 Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 {
+	s32 x, y;
 	Bool switch_coords=0;
 	Bool ret=0;
 	if (evt->type<=GF_EVENT_MOUSEWHEEL) {
 		if (compositor->visual->center_coords) {
+			x = evt->mouse.x;
+			y = evt->mouse.y;
 			evt->mouse.x = evt->mouse.x - compositor->display_width/2;
 			evt->mouse.y = compositor->display_height/2 - evt->mouse.y;
 			switch_coords=1;
@@ -1900,6 +1927,11 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 		compositor->navigation_state = 0;
 		ret = 1;
 	}
+	if (switch_coords) {
+		evt->mouse.x = x;
+		evt->mouse.y = y;
+	}
+	ret += forward_event(compositor, evt, ret);
 
 	if (!ret) {
 #ifndef GPAC_DISABLE_3D
@@ -1911,10 +1943,6 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 			ret = compositor_handle_navigation(compositor, evt);
 	}
 
-	if (switch_coords) {
-		evt->mouse.x += compositor->display_width/2;
-		evt->mouse.y = compositor->display_height/2 - evt->mouse.y;
-	}
 	return ret;
 }
 

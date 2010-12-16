@@ -155,7 +155,7 @@ static void anchor_activation(GF_Node *node, AnchorStack *st, GF_Compositor *com
 	}
 }
 
-static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
+static Bool OnAnchor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
 	GF_Event evt;
 	MFURL *url = NULL;
@@ -167,7 +167,7 @@ static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compos
 		/*mouse*/ ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT))
 		|| /*mouse*/((ev->type==GF_EVENT_KEYUP) && (ev->key.key_code==GF_KEY_ENTER)) 
 	) ) {
-		anchor_activation(sh->sensor, st, compositor);
+		if (!is_cancel) anchor_activation(sh->sensor, st, compositor);
 	} else if (is_over && !st->over) {
 		st->over = 1;
 		if (compositor->user->EventProc) {
@@ -190,6 +190,7 @@ static void OnAnchor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compos
 	} else if (!is_over) {
 		st->over = 0;
 	}
+	return 0;
 }
 
 static Bool anchor_is_enabled(GF_Node *node)
@@ -255,7 +256,7 @@ static Bool ds_is_enabled(GF_Node *n)
 }
 
 
-static void OnDiscSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
+static Bool OnDiscSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
 	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
 	M_DiscSensor *ds = (M_DiscSensor *)sh->sensor;
@@ -269,11 +270,12 @@ static void OnDiscSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Co
 		if (ds->autoOffset) {
 			ds->offset = ds->rotation_changed;
 			/*that's an exposedField*/
-			gf_node_event_out_str(sh->sensor, "offset");
+			if (!is_cancel) gf_node_event_out_str(sh->sensor, "offset");
 		}
 		ds->isActive = 0;
-		gf_node_event_out_str(sh->sensor, "isActive");
+		if (!is_cancel) gf_node_event_out_str(sh->sensor, "isActive");
 		sh->grabbed = 0;
+		return is_cancel ? 0 : 1;
 	} else if (is_mouse) {
 		if (!ds->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 			/*store inverse matrix*/
@@ -282,6 +284,7 @@ static void OnDiscSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Co
 			ds->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
 			sh->grabbed = 1;
+			return 1;
 		}
 		else if (ds->isActive) {
 			GF_Ray loc_ray;
@@ -302,12 +305,14 @@ static void OnDiscSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Co
 	   		ds->trackPoint_changed.x = res.x;
 	   		ds->trackPoint_changed.y = res.y;
 			gf_node_event_out_str(sh->sensor, "trackPoint_changed");
+			return 1;
 		}
 	} else {
 		if (!ds->isActive && is_over && (ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER)) {
 			ds->isActive = 1;
 			stack->start_angle = ds->offset;
 			gf_node_event_out_str(sh->sensor, "isActive");
+			return 1;
 		}
 		else if (ds->isActive && (ev->type==GF_EVENT_KEYDOWN)) {
 			Fixed res;
@@ -325,7 +330,8 @@ static void OnDiscSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Co
 			case GF_KEY_HOME:
 				res = ds->offset;
 				break;
-			default: return;
+			default: 
+				return 0;
 			}
 			if (ds->minAngle < ds->maxAngle) {
 				/*FIXME this doesn't work properly*/
@@ -335,8 +341,10 @@ static void OnDiscSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Co
 			stack->start_angle = res;
 			ds->rotation_changed = res;
 			gf_node_event_out_str(sh->sensor, "rotation_changed");
+			return 1;
 		}
 	}
+	return 0;
 }
 
 static GF_SensorHandler *disc_sensor_get_handler(GF_Node *n)
@@ -383,7 +391,7 @@ static Bool ps2D_is_enabled(GF_Node *n)
 	return (ps2d->enabled || ps2d->isActive);
 }
 
-static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
+static Bool OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
 	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
 	M_PlaneSensor2D *ps = (M_PlaneSensor2D *)sh->sensor;
@@ -397,12 +405,13 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 	) ) {
 		if (ps->autoOffset) {
 			ps->offset = ps->translation_changed;
-			gf_node_event_out_str(sh->sensor, "offset");
+			if (!is_cancel) gf_node_event_out_str(sh->sensor, "offset");
 		}
 
 		ps->isActive = 0;
-		gf_node_event_out_str(sh->sensor, "isActive");
+		if (!is_cancel) gf_node_event_out_str(sh->sensor, "isActive");
 		sh->grabbed = 0;
+		return is_cancel ? 0 : 1;
 	} else if (is_mouse) {
 		if (!ps->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 			gf_mx_copy(stack->initial_matrix, compositor->hit_local_to_world);
@@ -411,14 +420,17 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 			ps->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
 			sh->grabbed = 1;
+			/*fallthrough to fire mouse coords*/
+			//return 1;
 		} 
 		if (ps->isActive) {
-			GF_Ray loc_ray;
 			SFVec3f res;
+			GF_Ray loc_ray;
 			loc_ray = compositor->hit_world_ray;
 			gf_mx_apply_ray(&stack->initial_matrix, &loc_ray);
 
 			compositor_get_2d_plane_intersection(&loc_ray, &res);
+
 			ps->trackPoint_changed.x = res.x;
 			ps->trackPoint_changed.y = res.y;
 			gf_node_event_out_str(sh->sensor, "trackPoint_changed");
@@ -439,12 +451,14 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 			ps->translation_changed.x = res.x;
 			ps->translation_changed.y = res.y;
 			gf_node_event_out_str(sh->sensor, "translation_changed");
+			return 1;
 		}
 	} else {
 		if (!ps->isActive && is_over && (ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER)) {
 			ps->isActive = 1;
 			stack->start_drag = ps->offset;
 			gf_node_event_out_str(sh->sensor, "isActive");
+			return 1;
 		}
 		else if (ps->isActive && (ev->type==GF_EVENT_KEYDOWN)) {
 			SFVec2f res;
@@ -458,7 +472,8 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 			case GF_KEY_UP: res.y += diff; break;
 			case GF_KEY_DOWN: res.y += -diff; break;
 			case GF_KEY_HOME: res = ps->offset; break;
-			default: return;
+			default: 
+				return 0;
 			}
 			/*clip*/
 			if (ps->minPosition.x <= ps->maxPosition.x) {
@@ -469,11 +484,16 @@ static void OnPlaneSensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF
 				if (res.y < ps->minPosition.y) res.y = ps->minPosition.y;
 				if (res.y > ps->maxPosition.y) res.y = ps->maxPosition.y;
 			}
-			stack->start_drag = res;
 			ps->translation_changed = res;
 			gf_node_event_out_str(sh->sensor, "translation_changed");
+			ps->trackPoint_changed.x = res.x + stack->start_drag.x;
+			ps->trackPoint_changed.y = res.y + stack->start_drag.y;
+			gf_node_event_out_str(sh->sensor, "trackPoint_changed");
+			stack->start_drag = res;
+			return 1;
 		}
 	}
+	return 0;
 }
 
 static GF_SensorHandler *plane_sensor2d_get_handler(GF_Node *n)
@@ -527,7 +547,7 @@ static Bool prox2D_is_in_sensor(Prox2DStack *st, M_ProximitySensor2D *ps, Fixed 
 	return 1;
 }
 
-static void OnProximitySensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
+static Bool OnProximitySensor2D(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
 	M_ProximitySensor2D *ps = (M_ProximitySensor2D *)sh->sensor;
 	Prox2DStack *stack = (Prox2DStack *) gf_node_get_private(sh->sensor);
@@ -536,6 +556,7 @@ static void OnProximitySensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev
 	
 	if (is_over) {
 		stack->last_time = gf_node_get_scene_time(sh->sensor);
+		if (is_cancel) return 0;
 		if (prox2D_is_in_sensor(stack, ps, compositor->hit_local_point.x, compositor->hit_local_point.y)) {
 			ps->position_changed.x = compositor->hit_local_point.x;
 			ps->position_changed.y = compositor->hit_local_point.y;
@@ -547,7 +568,7 @@ static void OnProximitySensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev
 				ps->enterTime = stack->last_time;
 				gf_node_event_out_str(sh->sensor, "enterTime");
 			}
-			return;
+			return 1;
 		}
 	} 
 	/*either we're not over the shape or we're not in sensor*/
@@ -556,7 +577,9 @@ static void OnProximitySensor2D(GF_SensorHandler *sh, Bool is_over, GF_Event *ev
 		gf_node_event_out_str(sh->sensor, "exitTime");
 		ps->isActive = 0;
 		gf_node_event_out_str(sh->sensor, "isActive");
+		return 1;
 	}
+	return 0;
 }
 
 static GF_SensorHandler *proximity_sensor2d_get_handler(GF_Node *n)
@@ -601,7 +624,7 @@ static Bool ts_is_enabled(GF_Node *n)
 	return ((M_TouchSensor *) n)->enabled;
 }
 
-static void OnTouchSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
+static Bool OnTouchSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
 	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL);
 	M_TouchSensor *ts = (M_TouchSensor *)sh->sensor;
@@ -611,7 +634,7 @@ static void OnTouchSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 		if (ts->isActive) {
 			sh->grabbed = 0;
 		}
-		return;
+		return 0;
 	}
 
 	/*isActive becomes false, send touch time*/
@@ -621,15 +644,17 @@ static void OnTouchSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 		|| /*keyboard*/ ((ev->type==GF_EVENT_KEYUP) && (ev->key.key_code==GF_KEY_ENTER) ) 
 		) {
 			ts->touchTime = gf_node_get_scene_time(sh->sensor);
-			gf_node_event_out_str(sh->sensor, "touchTime");
+			if (!is_cancel) gf_node_event_out_str(sh->sensor, "touchTime");
 			ts->isActive = 0;
-			gf_node_event_out_str(sh->sensor, "isActive");
+			if (!is_cancel) gf_node_event_out_str(sh->sensor, "isActive");
 			sh->grabbed = 0;
+			return is_cancel ? 0 : 1; 
 		}
 	}
 	if (is_over != ts->isOver) {
 		ts->isOver = is_over;
-		gf_node_event_out_str(sh->sensor, "isOver");
+		if (!is_cancel) gf_node_event_out_str(sh->sensor, "isOver");
+		return is_cancel ? 0 : 1; 
 	}
 	if (!ts->isActive && is_over) {
 		if (/*mouse*/ ((ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) 
@@ -638,7 +663,9 @@ static void OnTouchSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 			ts->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
 			sh->grabbed = 1;
+			return 1;
 		}
+		if (ev->type==GF_EVENT_MOUSEUP) return 0;
 	}
 	if (is_over && is_mouse) {
 		/*THIS IS NOT CONFORMANT, the hitpoint should be in the touchsensor coordinate system, eg we 
@@ -649,7 +676,9 @@ static void OnTouchSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 		gf_node_event_out_str(sh->sensor, "hitNormal_changed");
 		ts->hitTexCoord_changed = compositor->hit_texcoords;
 		gf_node_event_out_str(sh->sensor, "hitTexCoord_changed");
+		return 1;
 	}
+	return 0;
 }
 
 static GF_SensorHandler *touch_sensor_get_handler(GF_Node *n)
@@ -771,7 +800,7 @@ static Bool ps_is_enabled(GF_Node *n)
 	return (ps->enabled || ps->isActive);
 }
 
-static void OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
+static Bool OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
 	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
 	M_PlaneSensor *ps = (M_PlaneSensor *)sh->sensor;
@@ -784,11 +813,12 @@ static void OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 	) ) {
 		if (ps->autoOffset) {
 			ps->offset = ps->translation_changed;
-			gf_node_event_out_str(sh->sensor, "offset");
+			if (!is_cancel) gf_node_event_out_str(sh->sensor, "offset");
 		}
 		ps->isActive = 0;
-		gf_node_event_out_str(sh->sensor, "isActive");
+		if (!is_cancel) gf_node_event_out_str(sh->sensor, "isActive");
 		sh->grabbed = 0;
+		return is_cancel ? 0 : 1; 
 	}
 	/*mouse*/
 	else if (is_mouse) {
@@ -800,6 +830,7 @@ static void OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 			ps->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
 			sh->grabbed = 1;
+			return 1;
 		}
 		else if (ps->isActive) {
 			GF_Ray loc_ray;
@@ -822,12 +853,14 @@ static void OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 			}
 			ps->translation_changed = res;
 			gf_node_event_out_str(sh->sensor, "translation_changed");
+			return 1;
 		}
 	} else {
 		if (!ps->isActive && is_over && (ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER)) {
 			ps->isActive = 1;
 			stack->start_drag = ps->offset;
 			gf_node_event_out_str(sh->sensor, "isActive");
+			return 1;
 		}
 		else if (ps->isActive && (ev->type==GF_EVENT_KEYDOWN)) {
 			SFVec3f res;
@@ -842,7 +875,8 @@ static void OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 			case GF_KEY_UP: res.y += diff; break;
 			case GF_KEY_DOWN: res.y -= diff; break;
 			case GF_KEY_HOME: res = ps->offset; break;
-			default: return;
+			default: 
+				return 0;
 			}
 			/*clip*/
 			if (ps->minPosition.x <= ps->maxPosition.x) {
@@ -856,8 +890,10 @@ static void OnPlaneSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_C
 			stack->start_drag = res;
 			ps->translation_changed = res;
 			gf_node_event_out_str(sh->sensor, "translation_changed");
+			return 1;
 		}
 	}
+	return 0;
 }
 
 static GF_SensorHandler *plane_sensor_get_handler(GF_Node *n)
@@ -905,7 +941,7 @@ static Bool cs_is_enabled(GF_Node *n)
 	return (cs->enabled || cs->isActive);
 }
 
-static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
+static Bool OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
 	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
 	M_CylinderSensor *cs = (M_CylinderSensor *)sh->sensor;
@@ -917,11 +953,12 @@ static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, G
 	) ) {
 		if (cs->autoOffset) {
 			cs->offset = cs->rotation_changed.q;
-			gf_node_event_out_str(sh->sensor, "offset");
+			if (!is_cancel) gf_node_event_out_str(sh->sensor, "offset");
 		}
 		cs->isActive = 0;
-		gf_node_event_out_str(sh->sensor, "isActive");
+		if (!is_cancel) gf_node_event_out_str(sh->sensor, "isActive");
 		sh->grabbed = 0;
+		return is_cancel ? 0 : 1;
 	}
 	else if (is_mouse) {
 		if (!cs->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
@@ -963,6 +1000,7 @@ static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, G
 			cs->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
 			sh->grabbed = 1;
+			return 1;
 		}
 		else if (cs->isActive) {
 			GF_Ray r;
@@ -982,7 +1020,7 @@ static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, G
 					if (ABS(r.dir.x) > ABS(r.dir.x)) project_to = st->xplane;
 					else project_to = st->zplane;
 				} else project_to = st->yplane;
-				if (!gf_plane_intersect_line(&project_to, &r.orig, &r.dir, &compositor->hit_local_point)) return;
+				if (!gf_plane_intersect_line(&project_to, &r.orig, &r.dir, &compositor->hit_local_point)) return 0;
 			}
 
   			dir1.x = compositor->hit_local_point.x; dir1.y = 0; dir1.z = compositor->hit_local_point.z;
@@ -996,7 +1034,7 @@ static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, G
 			gf_vec_norm(&dir2);
 			cx = gf_vec_cross(dir2, dir1);
 			gf_vec_norm(&cx);
-			if (gf_vec_len(cx)<FIX_EPSILON) return;
+			if (gf_vec_len(cx)<FIX_EPSILON) return 0;
 			rot = gf_mulfix(radius, gf_acos(gf_vec_dot(dir2, dir1)) );
 			if (fabs(cx.y + FIX_ONE) < FIX_EPSILON) rot = -rot;
 			if (cs->autoOffset) rot += cs->offset;
@@ -1007,6 +1045,7 @@ static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, G
 			}
 			cs->rotation_changed.q = rot;
 			gf_node_event_out_str(sh->sensor, "rotation_changed");
+			return 1;
 		} 
 	} else {
 		if (!cs->isActive && is_over && (ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER)) {
@@ -1015,6 +1054,7 @@ static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, G
 			cs->rotation_changed.x = cs->rotation_changed.z = 0;
 			cs->rotation_changed.y = FIX_ONE;
 			gf_node_event_out_str(sh->sensor, "isActive");
+			return 1;
 		}
 		else if (cs->isActive && (ev->type==GF_EVENT_KEYDOWN)) {
 			SFFloat res;
@@ -1025,7 +1065,7 @@ static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, G
 			case GF_KEY_LEFT: res -= diff; break;
 			case GF_KEY_RIGHT: res += diff; break;
 			case GF_KEY_HOME: res = cs->offset; break;
-			default: return;
+			default: return 0;
 			}
 			/*clip*/
 			if (cs->minAngle <= cs->maxAngle) {
@@ -1034,8 +1074,10 @@ static void OnCylinderSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, G
 			}
 			cs->rotation_changed.q = res;
 			gf_node_event_out_str(sh->sensor, "rotation_changed");
+			return 1;
 		}
 	}
+	return 0;
 }
 
 static GF_SensorHandler *cylinder_sensor_get_handler(GF_Node *n)
@@ -1083,7 +1125,7 @@ static Bool sphere_is_enabled(GF_Node *n)
 	return (ss->enabled || ss->isActive);
 }
 
-static void OnSphereSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor)
+static Bool OnSphereSensor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor)
 {
 	Bool is_mouse = (ev->type<=GF_EVENT_MOUSEWHEEL) ? 1 : 0;
 	M_SphereSensor *sphere = (M_SphereSensor *)sh->sensor;
@@ -1096,11 +1138,12 @@ static void OnSphereSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_
 	) ) {
 		if (sphere->autoOffset) {
 			sphere->offset = sphere->rotation_changed;
-			gf_node_event_out_str(sh->sensor, "offset");
+			if (!is_cancel) gf_node_event_out_str(sh->sensor, "offset");
 		}
 		sphere->isActive = 0;
-		gf_node_event_out_str(sh->sensor, "isActive");
+		if (!is_cancel) gf_node_event_out_str(sh->sensor, "isActive");
 		sh->grabbed = 0;
+		return is_cancel ? 0 : 1; 
 	}
 	else if (is_mouse) {
 		if (!sphere->isActive && (ev->type==GF_EVENT_MOUSEDOWN) && (ev->mouse.button==GF_MOUSE_LEFT)) {
@@ -1113,6 +1156,7 @@ static void OnSphereSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_
 			sphere->isActive = 1;
 			gf_node_event_out_str(sh->sensor, "isActive");
 			sh->grabbed = 1;
+			return 1;
 		}
 		else if (sphere->isActive) {
 			SFVec3f vec, axis;
@@ -1151,12 +1195,14 @@ static void OnSphereSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_
 			}
 			sphere->rotation_changed = gf_quat_to_rotation(&q1);
 			gf_node_event_out_str(sh->sensor, "rotation_changed");
+			return 1;
 		} 
 	} else {
 		if (!sphere->isActive && is_over && (ev->type==GF_EVENT_KEYDOWN) && (ev->key.key_code==GF_KEY_ENTER)) {
 			sphere->isActive = 1;
 			sphere->rotation_changed = sphere->offset;
 			gf_node_event_out_str(sh->sensor, "isActive");
+			return 1;
 		}
 		else if (sphere->isActive && (ev->type==GF_EVENT_KEYDOWN)) {
 			SFVec4f res, rot;
@@ -1188,13 +1234,14 @@ static void OnSphereSensor(GF_SensorHandler *sh, Bool is_over, GF_Event *ev, GF_
 				res = gf_quat_to_rotation(&rot);
 				break;
 			case GF_KEY_HOME: res = sphere->offset; break;
-			default: return;
+			default: return 0;
 			}
 			sphere->rotation_changed = res;
 			gf_node_event_out_str(sh->sensor, "rotation_changed");
+			return 1;
 		}
 	}
-
+	return 0;
 }
 
 static GF_SensorHandler *sphere_get_handler(GF_Node *n)
