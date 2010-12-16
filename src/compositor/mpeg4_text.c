@@ -137,6 +137,8 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 
 			/*we currently only split sentences at spaces*/
 			if (tspan->glyphs[j]->utf_name == (unsigned short) ' ') is_space = 1;
+			else if (tspan->glyphs[j]->utf_name == (unsigned short) '\n') 
+				is_space = 2;
 			if (split_words && (j+1!=len) && !is_space) 
 				continue;
 
@@ -184,7 +186,7 @@ static void build_text_split(TextStack *st, M_Text *txt, GF_TraverseState *tr_st
 				k = (j - first_char);
 				span->glyphs[0] = tspan->glyphs[FSLTR ? (first_char+k) : (len - first_char - k - 1)];
 				span->bounds.width = tspan->font_scale * (span->glyphs[0] ? span->glyphs[0]->horiz_advance : tspan->font->max_advance_h);
-				parent_node_start_group(tr_state->parent, NULL, 1);
+				parent_node_start_group(tr_state->parent, NULL, is_space);
 				idx++;
 				parent_node_end_text_group(tr_state->parent, &span->bounds, st->ascent, st->descent, idx);
 			}

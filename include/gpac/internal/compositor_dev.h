@@ -366,6 +366,7 @@ struct __tag_compositor
 	struct _drawable *focus_highlight;
 	/*highlight fill and stroke colors (ARGB)*/
 	u32 highlight_fill, highlight_stroke;
+	Fixed highlight_stroke_width;
 
 	/*picking info*/
 
@@ -610,11 +611,13 @@ typedef struct _sensor_handler
 	Bool (*IsEnabled)(GF_Node *node);
 	/*user input on sensor:
 	is_over: pointing device is over a shape the sensor is attached to
+	is_cancel: the sensor state has been canceled due to another sensor. This typically happens following "click" events in SVG
+				which do not consume the mousedown but consumes the mouseup
 	evt_type: mouse event type
 	compositor: pointer to compositor - hit info is stored at compositor level
 	return: was the event consumed ?
 	*/
-	void (*OnUserEvent)(struct _sensor_handler *sh, Bool is_over, GF_Event *ev, GF_Compositor *compositor);
+	Bool (*OnUserEvent)(struct _sensor_handler *sh, Bool is_over, Bool is_cancel, GF_Event *ev, GF_Compositor *compositor);
 	Bool grabbed;
 	/*pointer to the sensor node*/
 	GF_Node *sensor;
@@ -1127,7 +1130,7 @@ void gf_sc_key_navigator_del(GF_Compositor *sr, GF_Node *n);
 void gf_sc_change_key_navigator(GF_Compositor *sr, GF_Node *n);
 GF_Node *gf_scene_get_keynav(GF_SceneGraph *sg, GF_Node *sensor);
 const char *gf_scene_get_service_url(GF_SceneGraph *sg);
-Bool gf_scene_lock(GF_SceneGraph *sg, Bool do_lock);
+
 
 Bool gf_scene_is_over(GF_SceneGraph *sg);
 

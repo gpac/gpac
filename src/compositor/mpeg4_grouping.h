@@ -151,7 +151,8 @@ typedef struct
 	/*if text node, ascent and descent of the text is stored for baseline alignment*/
 	Fixed ascent, descent;
 	u32 text_split_idx;
-	Bool discardable;
+	/*discard_type 0: not discardable, 1 disardable, 2 line break at the end of the group*/
+	u8 text_type;
 } ChildGroup;
 
 

@@ -265,10 +265,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 	}
 
 	dx = (x - compositor->grab_x); 
-	dy = (y - compositor->grab_y);
-
-	if (!compositor->visual->center_coords) dy = -dy;
-
+	dy = (compositor->grab_y - y);
 
 /*	trans_scale = is_pixel_metrics ? cam->width/2 : INT2FIX(10);
 	key_trans = is_pixel_metrics ? INT2FIX(10) : cam->avatar_size.x;
@@ -535,7 +532,7 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 		y = INT2FIX(ev->mouse.y);
 	}
 	dx = x - visual->compositor->grab_x;
-	dy = y - visual->compositor->grab_y;
+	dy = visual->compositor->grab_y - y;
 	if (!is_pixel_metrics) { dx /= visual->width; dy /= visual->height; }
 
 	key_inv = 1;
@@ -560,13 +557,8 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 			visual->compositor->navigation_state = 1;
 			/*update zoom center*/
 			if (keys & GF_KEY_MOD_CTRL) {
-				if (visual->center_coords) {
-					visual->compositor->trans_x -= visual->compositor->grab_x;
-					visual->compositor->trans_y -= visual->compositor->grab_y;
-				} else {
-					visual->compositor->trans_x -= visual->compositor->grab_x - INT2FIX(visual->width)/2;
-					visual->compositor->trans_y += INT2FIX(visual->height)/2 - visual->compositor->grab_y;
-				}
+				visual->compositor->trans_x -= visual->compositor->grab_x - INT2FIX(visual->width)/2;
+				visual->compositor->trans_y += INT2FIX(visual->height)/2 - visual->compositor->grab_y;
 				nav_set_zoom_trans_2d(visual, visual->compositor->zoom, 0, 0);
 			}
 			return 0;
@@ -581,10 +573,20 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 		break;
 
 	case GF_EVENT_MOUSEWHEEL:
-		if (navigation_mode != GF_NAVIGATE_SLIDE) return 0;
-		new_zoom = zoom + INT2FIX(ev->mouse.wheel_pos)/10;
-		nav_set_zoom_trans_2d(visual, new_zoom, 0, 0);
-		return 1;
+		switch (navigation_mode) {
+		case GF_NAVIGATE_SLIDE:
+			new_zoom = zoom + INT2FIX(ev->mouse.wheel_pos)/10;
+			nav_set_zoom_trans_2d(visual, new_zoom, 0, 0);
+			return 1;
+		case GF_NAVIGATE_EXAMINE:
+			if (ev->mouse.wheel_pos>0) 
+				visual->compositor->rotation += gf_asin( GF_PI / 10);
+			else
+				visual->compositor->rotation -= gf_asin( GF_PI / 10);
+			nav_set_zoom_trans_2d(visual, zoom, 0, 0);
+			return 1;
+		}
+		return 0;
 
 	case GF_EVENT_MOUSEMOVE:
 		if (!visual->compositor->navigation_state) return 0;

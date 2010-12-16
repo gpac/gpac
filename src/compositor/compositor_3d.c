@@ -169,8 +169,10 @@ GF_Camera *compositor_3d_get_camera(GF_Compositor *compositor)
 void compositor_3d_reset_camera(GF_Compositor *compositor)
 {
 	GF_Camera *cam = compositor_3d_get_camera(compositor);
-	camera_reset_viewpoint(cam, 1);
-	gf_sc_invalidate(compositor, NULL);
+	if (cam) {
+		camera_reset_viewpoint(cam, 1);
+		gf_sc_invalidate(compositor, NULL);
+	}
 	if (compositor->active_layer) gf_node_dirty_set(compositor->active_layer, 0, 1);
 }
 

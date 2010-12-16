@@ -998,6 +998,14 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FocusHighlightStroke");
 	if (sOpt) sscanf(sOpt, "%x", &compositor->highlight_stroke);
 	else compositor->highlight_stroke = 0xFF000000;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FocusHighlightStrokeWidth");
+	if (sOpt) {
+		Float v;
+		sscanf(sOpt, "%f", &v);
+		compositor->highlight_stroke_width = FLT2FIX(v);
+	}
+	else compositor->highlight_stroke_width = FIX_ONE;
+	
 
 	compositor->text_sel_color = 0xFFAAAAFF;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TextSelectHighlight");
@@ -1259,10 +1267,12 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		compositor->enable_yuv_hw = value;
 		break;
 	case GF_OPT_NAVIGATION_TYPE: 
+		compositor->rotation = 0;
 		compositor_2d_set_user_transform(compositor, FIX_ONE, 0, 0, 0);
 #ifndef GPAC_DISABLE_3D
 		compositor_3d_reset_camera(compositor);
 #endif
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_NAVIGATION:
 		if (compositor->navigation_disabled) {
@@ -1563,27 +1573,6 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 	return NULL;
 }
 
-static void gf_sc_forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed)
-{
-	gf_term_forward_event(compositor->term, ev, consumed, 0);
-	if (consumed) return;
-
-	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
-		u32 now;
-		GF_Event event;
-		/*emulate doubleclick*/
-		now = gf_sys_clock();
-		if (now - compositor->last_click_time < DOUBLECLICK_TIME_MS) {
-			event.type = GF_EVENT_DBLCLICK;
-			event.mouse.key_states = compositor->key_states;
-			event.mouse.x = ev->mouse.x;
-			event.mouse.y = ev->mouse.y;
-			gf_term_send_event(compositor->term, &event);
-		}
-		compositor->last_click_time = now;
-	}
-}
-
 
 static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node)
 {
@@ -1822,7 +1811,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		GF_Event *ev = (GF_Event*)gf_list_get(compositor->events, 0);
 		gf_list_rem(compositor->events, 0);
 		ret = gf_sc_exec_event(compositor, ev);
-		gf_sc_forward_event(compositor, ev, ret);
 		gf_free(ev);
 	}
 	gf_mx_v(compositor->ev_mx);
@@ -2140,14 +2128,8 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	/*we don't traverse subscenes until the root one is setup*/
 	if (!compositor->root_visual_setup) return;
 
-	if (!gf_scene_lock(subscene, 1))
-		return;
-
 	inline_root = gf_sg_get_root_node(subscene);
-	if (!inline_root) {
-		gf_scene_lock(subscene, 0);
-		return;
-	}
+	if (!inline_root) return;
 	
 	if (!gf_scene_is_over(subscene))
 		tr_state->subscene_not_over ++;
@@ -2293,8 +2275,6 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 	tr_state->min_hsize = min_hsize;
 	tr_state->vp_size = prev_vp;
 	tr_state->fliped_coords = prev_coord;
-
-	gf_scene_lock(subscene, 0);
 }
 
 
@@ -2368,7 +2348,6 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 	gf_sc_lock(compositor, 0);
 
 	if (!from_user) {
-		gf_sc_forward_event(compositor, event, ret);
 	}
 	return ret;
 #endif
