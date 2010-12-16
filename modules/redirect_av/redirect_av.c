@@ -28,7 +28,7 @@
 #include <gpac/internal/compositor_dev.h>
 
 
-#if defined(WIN32) && !defined(__MINGW32__)
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__MINGW32__)
 
 #define EMULATE_INTTYPES
 #define EMULATE_FAST_INT
