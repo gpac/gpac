@@ -27,6 +27,26 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 
+
+#if defined(WIN32) && !defined(__MINGW32__)
+
+#define EMULATE_INTTYPES
+#define EMULATE_FAST_INT
+#ifndef inline
+#define inline __inline
+#endif
+
+#if defined(__SYMBIAN32__)
+#define EMULATE_INTTYPES
+#endif
+
+
+#ifndef __MINGW32__
+#define __attribute__(s)
+#endif
+
+#endif
+
 /*sample raw AVI writing*/
 #include <gpac/internal/avilib.h>
 #include <gpac/mpegts.h>
@@ -194,11 +214,13 @@ static GF_Err sendTSMux(GF_AVRedirect * avr)
  * This thread sends the frame to TS mux
  * \param Parameter The GF_AVRedirect pointer
  */
-static Bool encoding_thread_run(void *param) {
+static Bool encoding_thread_run(void *param) 
+{
     GF_AVRedirect * avr = (GF_AVRedirect*) param;
-    assert( avr );
     //u32 ts_packets_sent = 0;
     u64 currentFrameTimeProcessed = 0;
+    assert( avr );
+
 #ifdef MULTITHREAD_REDIRECT_AV
     gf_mx_p(avr->tsMutex);
 #endif /* MULTITHREAD_REDIRECT_AV */
@@ -237,12 +259,13 @@ static Bool encoding_thread_run(void *param) {
             }
             gf_mx_v(avr->frameMutex);
             {
+				int written;
                 assert ( avr->codecContext );
                 avr->YUVpicture->pts = avr->frameTime;
                 avr->YUVpicture->coded_picture_number++;
                 avr->YUVpicture->display_picture_number++;
                 printf("Encoding frame PTS="LLU", frameNum=%u...\n", avr->YUVpicture->pts, avr->YUVpicture->coded_picture_number);
-                int written = avcodec_encode_video ( avr->codecContext, avr->outbuf, outbuf_size, avr->YUVpicture );
+                written = avcodec_encode_video ( avr->codecContext, avr->outbuf, outbuf_size, avr->YUVpicture );
                 if ( written < 0 )
                 {
                     GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error while encoding video frame =%d\n", written ) );
