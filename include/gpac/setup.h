@@ -92,6 +92,8 @@ void CE_CharToWide(char *str, unsigned short *w_str);
 #define strupr _strupr
 #define mkdir _mkdir
 #define snprintf _snprintf
+#define memccpy _memccpy
+
 
 
 #ifndef _PTRDIFF_T_DEFINED

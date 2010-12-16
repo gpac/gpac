@@ -35,7 +35,7 @@
 #define MYLOG(xx)
 
 
-#ifdef WIN32
+#if defined(WIN32) || defined(_WIN32_WCE)
 #define bzero(a, b) memset(a, 0x0, b)
 #endif
 
