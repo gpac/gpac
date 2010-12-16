@@ -951,7 +951,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			remain = samp->dataLength;
 			while (remain) {
 				nal_size = 0;
-				assert(remain>avccfg->nal_unit_size);
+				if (remain<avccfg->nal_unit_size){
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Corrupted NAL Unit: header size %d - bytes left %d\n", avccfg->nal_unit_size, remain) );
+					break;
+				}
 				for (j=0; j<avccfg->nal_unit_size; j++) {
 					nal_size |= ((u8) *ptr);
 					if (j+1<avccfg->nal_unit_size) nal_size<<=8;
@@ -959,6 +962,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 					ptr++;
 				}
 				gf_bs_write_u32(bs, 1);
+				if (remain < nal_size) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Corrupted NAL Unit: size %d - bytes left %d\n", nal_size, remain) );
+					nal_size = remain;
+				}
 				gf_bs_write_data(bs, ptr, nal_size);
 				ptr += nal_size;
 				remain -= nal_size;
