@@ -261,14 +261,14 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		if (!strcmp(param->name, "icy-meta")) {
 			GF_NetworkCommand com;
 			char *meta;
-			if (read->icy_track_name) gf_free(read->icy_track_name);
-			read->icy_track_name = NULL;
 			meta = param->value;
 			while (meta && meta[0]) {
 				char *sep = strchr(meta, ';');
 				if (sep) sep[0] = 0;
 	
 				if (!strnicmp(meta, "StreamTitle=", 12)) {
+					 if (read->icy_track_name) gf_free(read->icy_track_name);
+					    read->icy_track_name = NULL;
 					read->icy_track_name = gf_strdup(meta+12);
 					if (!strcmp(read->icy_track_name, "''")){
 					  /* On some servers, '' means not track name */
@@ -409,6 +409,15 @@ static GF_Err MP3_CloseService(GF_InputService *plug)
 	    read->liveDataCopy = NULL;
 	    read->liveDataCopySize = 0;
 	}
+	if (read->icy_name)
+	  gf_free(read->icy_name);
+	read->icy_name = NULL;
+	if (read->icy_genre)
+	  gf_free(read->icy_genre);
+	read->icy_genre = NULL;
+	if (read->icy_track_name)
+	  gf_free(read->icy_track_name);
+	read->icy_track_name = NULL;
 	gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;
 }
