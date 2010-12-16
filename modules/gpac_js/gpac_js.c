@@ -185,6 +185,14 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_AUDIO_VOLUME));
 		return JS_TRUE;
 	}
+	if (!strcmp(prop_name, "navigation")) {
+		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION));
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "navigation_type")) {
+		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE) );
+		return JS_TRUE;
+	}
 	return JS_TRUE;
 }
 static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
@@ -225,6 +233,14 @@ static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		} else if (JSVAL_IS_INT(*vp)) {
 			gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, JSVAL_TO_INT(*vp));
 		}
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "navigation")) {
+		gf_term_set_option(term, GF_OPT_NAVIGATION, JSVAL_TO_INT(*vp) );
+		return JS_TRUE;
+	}
+	if (!strcmp(prop_name, "navigation_type")) {
+		gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
 		return JS_TRUE;
 	}
 
@@ -523,6 +539,20 @@ static JSBool gpac_move_window(JSContext *c, JSObject *obj, uintN argc, jsval *a
 	return JS_TRUE;
 }
 
+
+static JSBool gpac_error_string(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+{
+	char *str;
+	GF_Terminal *term = gpac_get_term(c, obj);
+	if (argc < 1) return JS_TRUE;
+	if (!JSVAL_IS_INT(argv[0]) ) return JS_TRUE;
+	str = gf_error_to_string(JSVAL_TO_INT(argv[0]));
+	
+	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
+
+	return JS_TRUE;
+}
+
 static JSBool gpac_get_scene_time(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_SceneGraph *sg = NULL;
@@ -594,13 +624,26 @@ static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *
 			else if (gjs->term->compositor->text_selection) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
 			else *vp = BOOLEAN_TO_JSVAL(JS_FALSE);
 			break;
+		case 5:
+			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->mouse.wheel_pos)) );
+			break;
+		case 6:
+			*vp = INT_TO_JSVAL( evt->mouse.button);
+			break;
+		}
+	} else if (JSVAL_IS_STRING(id)) {
+		char *name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+		if (!strcmp(name, "target_url")) {
+			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, evt->navigate.to_url) );
 		}
 	}
+
 	return JS_TRUE;
 }
 
 static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_compositor)
 {
+	Bool res;
 	jsval argv[1], rval;
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)udta;
 	if (consumed_by_compositor) return 0;
@@ -608,6 +651,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	if (gjs->evt != NULL) return 0;
 	gf_sg_lock_javascript(1);
 	
+	rval = JSVAL_VOID;
 	gjs->evt = evt;
 	JS_SetPrivate(gjs->c, gjs->evt_obj, gjs);
 	argv[0] = OBJECT_TO_JSVAL(gjs->evt_obj);
@@ -615,8 +659,16 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	JS_SetPrivate(gjs->c, gjs->evt_obj, NULL);
 	gjs->evt = NULL;
 
+	if (rval==JSVAL_VOID) {
+		res = 0;
+	} else if (JSVAL_IS_BOOLEAN(rval) ) {
+		res = (JSVAL_TO_BOOLEAN(rval)==JS_TRUE) ? 1 : 0;
+	} else if (JSVAL_IS_INT(rval) ) {
+		res = (JSVAL_TO_INT(rval)) ? 1 : 0;
+	}
+
 	gf_sg_lock_javascript(0);
-	return (rval==JSVAL_TO_BOOLEAN(rval)==JSVAL_TRUE) ? 1 : 0;
+	return res;
 }
 
 static JSBool gpac_set_event_filter(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
@@ -634,17 +686,27 @@ static JSBool gpac_set_event_filter(JSContext *c, JSObject *obj, uintN argc, jsv
 	return JS_TRUE;
 }
 
-static JSBool gpac_switch_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool gpac_set_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	GF_Node *elt;
 	GF_Terminal *term = gpac_get_term(c, obj);
-	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
+	if (!argc) return JS_FALSE;
 
-	elt = gf_sg_js_get_node(c, JSVAL_TO_OBJECT(argv[0]));
-	if (!elt) return JS_TRUE;
+	if (JSVAL_IS_STRING(argv[0])) {
+		char *focus_type = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		if (!stricmp(focus_type, "previous")) {
+			gf_sc_focus_switch_ring(term->compositor, 1, NULL, 0);
+		} 
+		else if (!stricmp(focus_type, "next")) {
+			gf_sc_focus_switch_ring(term->compositor, 0, NULL, 0);
+		}
+	} else if (JSVAL_IS_OBJECT(argv[0])) {
+		elt = gf_sg_js_get_node(c, JSVAL_TO_OBJECT(argv[0]));
+		if (!elt) return JS_TRUE;
 
-	gf_sc_focus_switch_ring(term->compositor, 0, elt, 2);
-	
+		gf_sc_focus_switch_ring(term->compositor, 0, elt, 2);
+	}
+
 	return JS_TRUE;
 }
 
@@ -697,6 +759,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		{"mouse_x",			 2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 		{"mouse_y",			 3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 		{"picked",			 4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+		{"wheel",			 5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+		{"button",			 6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 		{0, 0, 0, 0, 0}
 	};
 	JSFunctionSpec gpacEvtClassFuncs[] = {
@@ -721,8 +785,10 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		{"get_scene_time",		gpac_get_scene_time, 1, 0, 0},
 		{"migrate_url",			gpac_migrate_url, 1, 0, 0},
 		{"set_event_filter",	gpac_set_event_filter, 1, 0, 0},
-		{"switch_focus",		gpac_switch_focus, 1, 0, 0},
+		{"set_focus",			gpac_set_focus, 1, 0, 0},
 		{"get_scene",			gpac_get_scene, 1, 0, 0},
+		{"error_string",		gpac_error_string, 1, 0, 0},
+		
 
 		{0, 0, 0, 0, 0}
 	};
@@ -762,18 +828,35 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	JS_InitClass(c, global, 0, &gjs->gpacEvtClass, 0, 0, gpacEvtClassProps, gpacEvtClassFuncs, 0, 0);
 	gjs->evt_obj = JS_DefineObject(c, global, "gpacevt", &gjs->gpacEvtClass, 0, 0);
 
-	JS_DefineProperty(c, global, "GF_EVENT_CLICK", INT_TO_JSVAL(GF_EVENT_CLICK), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	JS_DefineProperty(c, global, "GF_EVENT_MOUSEUP", INT_TO_JSVAL(GF_EVENT_MOUSEUP), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	JS_DefineProperty(c, global, "GF_EVENT_MOUSEDOWN", INT_TO_JSVAL(GF_EVENT_MOUSEDOWN), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	JS_DefineProperty(c, global, "GF_EVENT_MOUSEMOVE", INT_TO_JSVAL(GF_EVENT_MOUSEMOVE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	JS_DefineProperty(c, global, "GF_EVENT_MOUSEWHEEL", INT_TO_JSVAL(GF_EVENT_MOUSEWHEEL), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	JS_DefineProperty(c, global, "GF_EVENT_KEYUP", INT_TO_JSVAL(GF_EVENT_KEYUP), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	JS_DefineProperty(c, global, "GF_EVENT_KEYDOWN", INT_TO_JSVAL(GF_EVENT_KEYDOWN), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	JS_DefineProperty(c, global, "GF_EVENT_TEXT", INT_TO_JSVAL(GF_EVENT_TEXTINPUT), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-	JS_DefineProperty(c, global, "GF_EVENT_CONNECT", INT_TO_JSVAL(GF_EVENT_CONNECT), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+#define DECLARE_GPAC_CONST(name) \
+	JS_DefineProperty(c, global, #name, INT_TO_JSVAL(name), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 
+	DECLARE_GPAC_CONST(GF_EVENT_CLICK);
+	DECLARE_GPAC_CONST(GF_EVENT_MOUSEUP);
+	DECLARE_GPAC_CONST(GF_EVENT_MOUSEDOWN);
+	DECLARE_GPAC_CONST(GF_EVENT_MOUSEMOVE);
+	DECLARE_GPAC_CONST(GF_EVENT_MOUSEWHEEL);
+	DECLARE_GPAC_CONST(GF_EVENT_KEYUP);
+	DECLARE_GPAC_CONST(GF_EVENT_KEYDOWN);
+	DECLARE_GPAC_CONST(GF_EVENT_TEXTINPUT);
+	DECLARE_GPAC_CONST(GF_EVENT_CONNECT);
+	DECLARE_GPAC_CONST(GF_EVENT_NAVIGATE_INFO);
+	DECLARE_GPAC_CONST(GF_EVENT_NAVIGATE);
 
+	DECLARE_GPAC_CONST(GF_NAVIGATE_NONE);
+	DECLARE_GPAC_CONST(GF_NAVIGATE_WALK);
+	DECLARE_GPAC_CONST(GF_NAVIGATE_FLY);
+	DECLARE_GPAC_CONST(GF_NAVIGATE_PAN);
+	DECLARE_GPAC_CONST(GF_NAVIGATE_GAME);
+	DECLARE_GPAC_CONST(GF_NAVIGATE_SLIDE);
+	DECLARE_GPAC_CONST(GF_NAVIGATE_EXAMINE);
+	DECLARE_GPAC_CONST(GF_NAVIGATE_ORBIT);
+	DECLARE_GPAC_CONST(GF_NAVIGATE_VR);
 
+	DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_NONE);
+	DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_2D);
+	DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_3D);
+	
 	_SETUP_CLASS(gjs->anyClass, "GPACOBJECT", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
 	JS_InitClass(c, global, 0, &gjs->anyClass, 0, 0, 0, 0, 0, 0);
 }
