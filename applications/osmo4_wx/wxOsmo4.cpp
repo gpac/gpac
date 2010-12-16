@@ -2175,7 +2175,7 @@ void wxOsmo4Frame::OnFilePrevOpen(wxNotifyEvent & event)
 	wxMenu *popup = new wxMenu();
 
 	for (u32 i=0; i<10; i++) {
-		if (start - i < 0) break;
+		if (i > start) break;
 		if (start - i >= count) break;
 		PLEntry *ple = (PLEntry *) gf_list_get(m_pPlayList->m_entries, start - i);
 		popup->Append(ID_NAV_PREV_0 + i, wxString(ple->m_disp_name, wxConvUTF8) );
@@ -2297,18 +2297,18 @@ void wxOsmo4Frame::BuildStreamList(Bool reset_only)
 		switch (info.od_type) {
 		case GF_STREAM_AUDIO:
 			pMenu = sel_menu->FindItemByPosition(0)->GetSubMenu();
-			if (!info.owns_service) sprintf(szLabel, "Audio #%ld", pMenu->GetMenuItemCount() + 1);
+			if (!info.owns_service) sprintf(szLabel, "Audio #"LLU, (u64)pMenu->GetMenuItemCount() + 1);
 			pMenu->AppendCheckItem(ID_SELSTREAM_0 +i, wxString(szLabel, wxConvUTF8));
 			break;
 		case GF_STREAM_VISUAL:
 			pMenu = sel_menu->FindItemByPosition(1)->GetSubMenu();
-			if (!info.owns_service) sprintf(szLabel, "Video #%ld", pMenu->GetMenuItemCount() + 1);
+			if (!info.owns_service) sprintf(szLabel, "Video #"LLU, (u64)pMenu->GetMenuItemCount() + 1);
 			pMenu->AppendCheckItem(ID_SELSTREAM_0 +i, wxString(szLabel, wxConvUTF8));
 			break;
 		case GF_STREAM_TEXT:
 			nb_subs ++;
 			pMenu = sel_menu->FindItemByPosition(2)->GetSubMenu();
-			if (!info.owns_service) sprintf(szLabel, "Subtitle #%ld", pMenu->GetMenuItemCount() + 1);
+			if (!info.owns_service) sprintf(szLabel, "Subtitle #"LLU, (u64)pMenu->GetMenuItemCount() + 1);
 			pMenu->AppendCheckItem(ID_SELSTREAM_0 +i, wxString(szLabel, wxConvUTF8));
 			break;
 		}
