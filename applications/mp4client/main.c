@@ -59,9 +59,9 @@ static Bool gui_mode = 0;
 
 static Bool restart = 0;
 #if defined(__DARWIN__) || defined(__APPLE__)
-static Bool not_threaded = 1;
+static u32 threading_flags = GF_TERM_NO_THREAD;
 #else
-static Bool not_threaded = 0;
+static u32 threading_flags = 0;
 #endif
 static Bool no_audio = 0;
 static Bool no_regulation = 0;
@@ -1049,6 +1049,8 @@ int main (int argc, char **argv)
 			fill_ar = 1;
 		} else if (!strcmp(arg, "-gui")) {
 			gui_mode = 1;
+		} else if (!strcmp(arg, "-guid")) {
+			gui_mode = 2;
 		} else if (!strcmp(arg, "-show")) {
 			visible = 1;
 		} else if (!strcmp(arg, "-avi")) {
@@ -1115,9 +1117,9 @@ int main (int argc, char **argv)
 		}
 		else if (!strcmp(arg, "-no-wnd")) user.init_flags |= GF_TERM_WINDOWLESS;
 #if defined(__DARWIN__) || defined(__APPLE__)
-		else if (!strcmp(arg, "-thread")) not_threaded = 0;
+		else if (!strcmp(arg, "-thread")) threading_flags = 0;
 #else
-		else if (!strcmp(arg, "-no-thread")) not_threaded = 1;
+		else if (!strcmp(arg, "-no-thread")) threading_flags = GF_TERM_NO_THREAD | GF_TERM_WINDOW_NO_THREAD;
 #endif
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
@@ -1164,9 +1166,11 @@ int main (int argc, char **argv)
 	}
 
 	if (gui_mode) {
-		hide_shell(1);
-		not_threaded = 1;
-		user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
+		threading_flags = GF_TERM_NO_THREAD;
+		if (gui_mode==1) {
+			hide_shell(1);
+			user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
+		}
 	}
 
 
@@ -1210,7 +1214,7 @@ int main (int argc, char **argv)
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = user.modules;
-	if (not_threaded) user.init_flags |= GF_TERM_NO_THREAD;
+	if (threading_flags) user.init_flags |= threading_flags;
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 
@@ -1307,6 +1311,8 @@ int main (int argc, char **argv)
 			gf_cfg_set_key(cfg_file, "General", "GUIStartupFile", url_arg);
 		}
 	}
+	if (gui_mode==2) gui_mode=0;
+
 	if (start_fs) gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
 
 	while (Run) {		
@@ -1322,7 +1328,7 @@ int main (int argc, char **argv)
 				goto force_input;
 			}
 			if (!use_rtix || display_rti) UpdateRTInfo(NULL);
-			if (not_threaded) {
+			if (threading_flags) {
 				gf_term_process_step(term);
 				if (auto_exit && gf_term_get_option(term, GF_OPT_IS_OVER)) {
 					Run = 0;
