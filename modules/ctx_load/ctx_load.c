@@ -342,13 +342,17 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 	if (stream_time==(u32)-1) {
 		/*seek on root stream: destroy the context manager and reload it. We cannot seek on the main stream
 		because commands may have changed node attributes/children and we d'ont track the initial value*/
-		if (priv->base_stream_id == ES_ID) {
+		if (priv->load_flags && (priv->base_stream_id == ES_ID)) {
 			if (priv->src) fclose(priv->src);
 			priv->src = NULL;
 			gf_sm_load_done(&priv->load);
 			priv->file_pos = 0;
-			/*this will call detach scene*/
-			gf_scene_disconnect(priv->scene, 0);
+			/*queue scene for detach*/
+			gf_term_lock_media_queue(priv->scene->root_od->term, 1);
+			priv->scene->root_od->action_type = GF_ODM_ACTION_SCENE_RECONNECT;
+			gf_list_add(priv->scene->root_od->term->media_queue, priv->scene->root_od);
+			gf_term_lock_media_queue(priv->scene->root_od->term, 0);
+
 			return CTXLoad_Setup((GF_BaseDecoder *)plug);
 		}
 		i=0;
