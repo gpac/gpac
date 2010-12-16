@@ -2189,6 +2189,8 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			return JS_TRUE;
 		case 68:/*type3d*/
 			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
+		case 69:/*error*/
+			*vp = INT_TO_JSVAL(evt->error_state); return JS_TRUE;
 
 		default: return JS_TRUE;
 		}
@@ -3536,6 +3538,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			{"translation_x",	66,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 			{"translation_y",	67,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 			{"type3d",			68,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"error",			69,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 
 
 			{0, 0, 0, 0, 0},

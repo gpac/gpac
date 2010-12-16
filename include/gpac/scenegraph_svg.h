@@ -341,6 +341,7 @@ typedef struct
 
 	/*for GF_EVENT_ATTR_MODIFIED*/
 	GF_FieldInfo *attr;
+	GF_Err error_state;
 } GF_DOM_Event;
 
 /*fires event on the specified node
