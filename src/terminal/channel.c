@@ -671,7 +671,7 @@ static void gf_es_check_timing(GF_Channel *ch)
 }
 
 /*handles reception of an SL-PDU, logical or physical*/
-void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, const char *payload, u32 payload_size, GF_SLHeader *header, GF_Err reception_status)
+void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *payload, u32 payload_size, GF_SLHeader *header, GF_Err reception_status)
 {
 	GF_SLHeader hdr;
 	u32 nbAU, OldLength, size, AUSeqNum;
