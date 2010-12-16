@@ -94,10 +94,11 @@ void gf_inline_on_modified(GF_Node *node)
 			if (mo->num_open) {
 				if (!changed) return;
 
-				gf_scene_notify_event(scene, GF_EVENT_UNLOAD, node, NULL);
+				gf_scene_notify_event(scene, GF_EVENT_UNLOAD, node, NULL, GF_OK);
 				gf_node_dirty_parents(node);
 				gf_list_del_item(mo->nodes, node);
 
+				/*reset the scene pointer as it may get destroyed*/
 				switch (gf_node_get_tag(node)) {
 				case TAG_MPEG4_Inline:
 #ifndef GPAC_DISABLE_X3D
@@ -106,7 +107,7 @@ void gf_inline_on_modified(GF_Node *node)
 					gf_node_set_private(node, NULL);
 					break;
 				}
-				
+
 				mo->num_open --;
 				if (!mo->num_open) {
 					if (ODID == GF_MEDIA_EXTERNAL_ID) {
@@ -138,7 +139,9 @@ void gf_inline_on_modified(GF_Node *node)
 				}
 			}
 		}
-	}	
+	} else {
+		gf_node_dirty_parents(node);
+	}
 	if (ODID) gf_inline_set_scene(pInline);
 }
 
@@ -179,6 +182,35 @@ static void gf_inline_check_restart(GF_Scene *scene)
 	}
 }
 
+void gf_scene_mpeg4_inline_restart(GF_Scene *scene)
+{
+	u32 current_seg = 0;
+
+	if (scene->root_od->media_ctrl) current_seg = scene->root_od->media_ctrl->current_seg;
+
+	if (scene->is_dynamic_scene) {
+		u32 from = 0;
+		if (scene->root_od->media_ctrl) {
+			scene->root_od->media_ctrl->current_seg = current_seg;
+			from = (u32) (scene->root_od->media_ctrl->media_start * 1000);
+		}
+		gf_scene_restart_dynamic(scene, from);
+	} else {
+		/*we cannot use gf_mo_restart since it only sets the needs_restart for inline scenes. 
+		The rational is that gf_mo_restart can be called from the parent scene (OK) or from the scene itself, in 
+		which case shutting down the graph would crash the compositor. We therefore need two render passes to 
+		safely restart an inline scene*/
+
+		/*1- stop main object from playing but don't disconnect channels*/
+		gf_odm_stop(scene->root_od, 1);
+		/*2- close all ODs inside the scene and reset the graph*/
+		gf_scene_disconnect(scene, 0);
+		if (scene->root_od->media_ctrl) scene->root_od->media_ctrl->current_seg = current_seg;
+		/*3- restart the scene*/
+		gf_odm_start(scene->root_od, 0);
+	}
+}
+
 static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 {
 	MFURL *current_url;
@@ -189,7 +221,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		if (!scene) return;
 		mo = scene->root_od ? scene->root_od->mo : NULL;
 
-		gf_scene_notify_event(scene, GF_EVENT_UNLOAD, n, NULL);
+		gf_scene_notify_event(scene, GF_EVENT_UNLOAD, n, NULL, GF_OK);
 		if (!mo) return;
 		gf_list_del_item(mo->nodes, n);
 
@@ -246,7 +278,6 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 
 	/*if we need to restart, shutdown graph and do it*/
 	if (scene->needs_restart) {
-		u32 current_seg = 0;
 		/*special case: scene change*/
 		if (scene->needs_restart==2) {
 			scene->needs_restart = 0;
@@ -254,32 +285,11 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 			return;
 		}
 
-		if (scene->root_od->media_ctrl) current_seg = scene->root_od->media_ctrl->current_seg;
 		scene->needs_restart = 0;
-
-		gf_mx_p(scene->mx);
-		if (scene->is_dynamic_scene) {
-			u32 from = 0;
-			if (scene->root_od->media_ctrl) {
-				scene->root_od->media_ctrl->current_seg = current_seg;
-				from = (u32) (scene->root_od->media_ctrl->media_start * 1000);
-			}
-			gf_scene_restart_dynamic(scene, from);
-		} else {
-			/*we cannot use gf_mo_restart since it only sets the needs_restart for inline scenes. 
-			The rational is that gf_mo_restart can be called from the parent scene (OK) or from the scene itself, in 
-			which case shutting down the graph would crash the compositor. We therefore need two render passes to 
-			safely restart an inline scene*/
-
-			/*1- stop main object from playing but don't disconnect channels*/
-			gf_odm_stop(scene->root_od, 1);
-			/*2- close all ODs inside the scene and reset the graph*/
-			gf_scene_disconnect(scene, 0);
-			if (scene->root_od->media_ctrl) scene->root_od->media_ctrl->current_seg = current_seg;
-			/*3- restart the scene*/
-			gf_odm_start(scene->root_od, 0);
-		}
-		gf_mx_v(scene->mx);
+		gf_term_lock_media_queue(scene->root_od->term, 1);
+		scene->root_od->action_type = GF_ODM_ACTION_SCENE_INLINE_RESTART;
+		gf_list_add(scene->root_od->term->media_queue, scene->root_od);
+		gf_term_lock_media_queue(scene->root_od->term, 0);
 
 		gf_node_dirty_set(n, 0, 1);
 		return;
