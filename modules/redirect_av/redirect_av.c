@@ -48,6 +48,8 @@
 
 #endif
 
+#define TS_MUX_MODE_PUT
+
 /*sample raw AVI writing*/
 #include <gpac/internal/avilib.h>
 #include <gpac/mpegts.h>
@@ -104,6 +106,39 @@ typedef struct
     const char * udp_address;
     u16 udp_port;
 } GF_AVRedirect;
+
+
+static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
+{
+    GF_AVRedirect *avr = (GF_AVRedirect *)  ifce->input_udta;
+    if (!avr)
+      return GF_BAD_PARAM;
+    switch (act_type) {
+    case GF_ESI_INPUT_DATA_FLUSH:
+        printf("Asking data GF_ESI_INPUT_DATA_FLUSH\n");
+        break;
+    case GF_ESI_INPUT_DESTROY:
+        printf("Asking GF_ESI_INPUT_DESTROY\n");
+        break;
+    case GF_ESI_INPUT_DATA_PULL:
+        gf_mx_p(avr->encodingMutex);
+	if (avr->frameTimeEncoded > avr->frameTimeSentOverTS){
+	  printf("Data PULL, avr=%p, avr->video=%p, encoded="LLU", sent over TS="LLU"\n", avr, &avr->video, avr->frameTimeEncoded, avr->frameTimeSentOverTS);
+	  avr->video.output_ctrl( &(avr->video), GF_ESI_OUTPUT_DATA_DISPATCH, &(avr->currentTSPacket));
+	  avr->frameTimeSentOverTS = avr->frameTime;
+	} else {
+	  printf("Data PULL IGNORED : encoded = "LLU", sent on TS="LLU"\n", avr->frameTimeEncoded, avr->frameTimeSentOverTS);
+	}
+	gf_mx_v(avr->encodingMutex);
+	break;
+    case GF_ESI_INPUT_DATA_RELEASE:
+      printf("GF_ESI_INPUT_DATA_RELEASE\n");
+      break;
+    default:
+        printf("Asking unknown : %u\n", act_type);
+    }
+    return GF_OK;
+}
 
 static const char * moduleName = "AVRedirect";
 
@@ -306,6 +341,9 @@ static Bool encoding_thread_run(void *param)
                             //}
                             avr->frameTimeEncoded = currentFrameTimeProcessed;
 			    gf_mx_v( avr->encodingMutex );
+#ifdef TS_MUX_MODE_PUT
+			    void_input_ctrl(&(avr->video), GF_ESI_INPUT_DATA_PULL, NULL);
+#endif
                             //avr->video.decoder_config = avr->codecContext->
                             
                             //avr->video.decoder_config = avr->outbuf;
@@ -361,38 +399,6 @@ static Bool ts_thread_run(void *param) {
 #define MUX_RATE 400000
 
 static const char * possibleCodecs = "supported codecs : MPEG-1, MPEG-2, MPEG-4, MSMPEG-4, H263, H263I, H263P, RV10";
-
-static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
-{
-    GF_AVRedirect *avr = (GF_AVRedirect *)  ifce->input_udta;
-    if (!avr)
-      return GF_BAD_PARAM;
-    switch (act_type) {
-    case GF_ESI_INPUT_DATA_FLUSH:
-        printf("Asking data GF_ESI_INPUT_DATA_FLUSH\n");
-        break;
-    case GF_ESI_INPUT_DESTROY:
-        printf("Asking GF_ESI_INPUT_DESTROY\n");
-        break;
-    case GF_ESI_INPUT_DATA_PULL:
-        gf_mx_p(avr->encodingMutex);
-	if (avr->frameTimeEncoded > avr->frameTimeSentOverTS){
-	  printf("Data PULL, avr=%p, avr->video=%p, encoded="LLU", sent over TS="LLU"\n", avr, &avr->video, avr->frameTimeEncoded, avr->frameTimeSentOverTS);
-	  avr->video.output_ctrl( &(avr->video), GF_ESI_OUTPUT_DATA_DISPATCH, &(avr->currentTSPacket));
-	  avr->frameTimeSentOverTS = avr->frameTime;
-	} else {
-	  printf("Data PULL IGNORED : encoded = "LLU", sent on TS="LLU"\n", avr->frameTimeEncoded, avr->frameTimeSentOverTS);
-	}
-	gf_mx_v(avr->encodingMutex);
-	break;
-    case GF_ESI_INPUT_DATA_RELEASE:
-      printf("GF_ESI_INPUT_DATA_RELEASE\n");
-      break;
-    default:
-        printf("Asking unknown : %u\n", act_type);
-    }
-    return GF_OK;
-}
 
 #define DEFAULT_UDP_OUT_ADDRESS "127.0.0.1"
 #define DEFAULT_UDP_OUT_PORT 1234
@@ -503,11 +509,16 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
         avr->video.bit_rate = 410000;
         /* ms resolution */
         avr->video.timescale = 1000;
-        avr->video.caps = GF_ESI_AU_PULL_CAP;
+        
         avr->video.object_type_indication = GPAC_OTI_VIDEO_MPEG2_422;
 	assert( avr->encodingMutex);
 	avr->video.input_udta = avr;
-        avr->video.input_ctrl = void_input_ctrl;
+#ifdef TS_MUX_MODE_PUT
+        avr->video.caps = GF_ESI_SIGNAL_DTS;
+#else
+	avr->video.input_ctrl = void_input_ctrl;
+	avr->video.caps = GF_ESI_AU_PULL_CAP | GF_ESI_SIGNAL_DTS;
+#endif /* TS_MUX_MODE_PUT */
         gf_m2ts_program_stream_add ( program, &(avr->video), 101, 1 );
 	assert( program->streams->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG2);
 	printf("Setup done, avr=%p, avr->video=%p\n", avr, &(avr->video));
