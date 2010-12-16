@@ -72,6 +72,7 @@ typedef struct
     GF_Thread * tsThread;
 #endif
     GF_Mutex * frameMutex;
+    GF_Mutex * encodingMutex;
     volatile Bool is_running;
     u64 frameTime;
     u64 frameTimeEncoded;
@@ -196,7 +197,7 @@ static GF_Err sendTSMux(GF_AVRedirect * avr)
 static Bool encoding_thread_run(void *param) {
     GF_AVRedirect * avr = (GF_AVRedirect*) param;
     assert( avr );
-    u32 ts_packets_sent = 0;
+    //u32 ts_packets_sent = 0;
     u64 currentFrameTimeProcessed = 0;
 #ifdef MULTITHREAD_REDIRECT_AV
     gf_mx_p(avr->tsMutex);
@@ -262,7 +263,7 @@ static Bool encoding_thread_run(void *param) {
                             gf_sleep(1);
                             gf_mx_p(avr->tsMutex);
 #endif /* MULTITHREAD_REDIRECT_AV */
-
+			    gf_mx_p( avr->encodingMutex );
                             avr->currentTSPacket.dts = avr->codecContext->coded_frame->reordered_opaque ;
                             avr->currentTSPacket.cts = avr->codecContext->coded_frame->pts;
                             avr->currentTSPacket.data = avr->outbuf;
@@ -270,11 +271,12 @@ static Bool encoding_thread_run(void *param) {
 
                             printf("Sending frame DTS="LLU", CTS="LLU", len=%u...\n", avr->currentTSPacket.dts, avr->currentTSPacket.cts, avr->currentTSPacket.data_len);
                             avr->currentTSPacket.flags = GF_ESI_DATA_HAS_CTS | GF_ESI_DATA_HAS_DTS;
-                            if (ts_packets_sent == 0) {
-                                printf("First Packet !\n");
-                                avr->currentTSPacket.flags|=GF_ESI_DATA_AU_START;
-                            }
+                            //if (ts_packets_sent == 0) {
+                            //    printf("First Packet !\n");
+                                avr->currentTSPacket.flags|=GF_ESI_DATA_AU_START|GF_ESI_DATA_AU_END ;
+                            //}
                             avr->frameTimeEncoded = currentFrameTimeProcessed;
+			    gf_mx_v( avr->encodingMutex );
                             //avr->video.decoder_config = avr->codecContext->
                             
                             //avr->video.decoder_config = avr->outbuf;
@@ -333,7 +335,7 @@ static const char * possibleCodecs = "supported codecs : MPEG-1, MPEG-2, MPEG-4,
 
 static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 {
-    GF_AVRedirect *avr = (GF_AVRedirect *)  param;
+    GF_AVRedirect *avr = (GF_AVRedirect *)  ifce->input_udta;
     if (!avr)
       return GF_BAD_PARAM;
     switch (act_type) {
@@ -344,15 +346,15 @@ static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
         printf("Asking GF_ESI_INPUT_DESTROY\n");
         break;
     case GF_ESI_INPUT_DATA_PULL:
+        gf_mx_p(avr->encodingMutex);
 	if (avr->frameTimeEncoded > avr->frameTimeSentOverTS){
 	  printf("Data PULL\n");
-	  gf_mx_p(avr->frameMutex);
 	  avr->video.output_ctrl( &(avr->video), GF_ESI_OUTPUT_DATA_DISPATCH, &(avr->currentTSPacket));
 	  avr->frameTimeSentOverTS = avr->frameTime;
-	  gf_mx_v(avr->frameMutex);
 	} else {
 	  printf("Data PULL IGNORED\n");
 	}
+	gf_mx_v(avr->encodingMutex);
 	break;
     case GF_ESI_INPUT_DATA_RELEASE:
       printf("GF_ESI_INPUT_DATA_RELEASE\n");
@@ -472,6 +474,8 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
         avr->video.timescale = 1000;
         avr->video.caps = GF_ESI_AU_PULL_CAP;
         avr->video.object_type_indication = GPAC_OTI_VIDEO_MPEG2_422;
+	assert( avr->encodingMutex);
+	avr->video.input_udta = avr;
         avr->video.input_ctrl = void_input_ctrl;
         gf_m2ts_program_stream_add ( program, &(avr->video), 101, 1 );
 	assert( program->streams->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG2);
@@ -629,6 +633,8 @@ GF_TermExt *avr_new()
     GF_SAFEALLOC ( uir, GF_AVRedirect );
     dr->process = avr_process;
     dr->udta = uir;
+    uir->encodingMutex = gf_mx_new("RedirectAV_encodingMutex");
+    assert( uir->encodingMutex);
 #ifdef MULTITHREAD_REDIRECT_AV
     uir->tsMutex = gf_mx_new("RedirectAV_TSMutex");
     uir->tsThread = gf_th_new("RedirectAV_TSThread");
@@ -668,6 +674,8 @@ void avr_delete ( GF_BaseInterface *ifce )
     gf_th_del(avr->tsThread);
     avr->tsThread = NULL;
 #endif /* MULTITHREAD_REDIRECT_AV */
+    gf_mx_del(avr->encodingMutex);
+    avr->encodingMutex = NULL;
     if ( avr->muxer )
     {
         gf_m2ts_mux_del ( avr->muxer );
