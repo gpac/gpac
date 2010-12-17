@@ -238,7 +238,7 @@ char * my_str_lwr(char *str);
 #include <string.h>
 #include <assert.h>
 
-#if __APPLE__
+#if __APPLE__ && defined GPAC_IPHONE
 #include <TargetConditionals.h>
 #endif
 
