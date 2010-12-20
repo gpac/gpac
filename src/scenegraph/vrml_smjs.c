@@ -302,7 +302,7 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo *info, GF_Node *script);
 
-void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain);
+Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain);
 
 void gf_sg_js_call_gc(JSContext *c)
 {
@@ -524,7 +524,13 @@ static JSBool loadScript(JSContext*c, JSObject*obj, uintN argc, jsval *argv, jsv
 	if ((argc>1) && JSVAL_IS_BOOLEAN(argv[1])) no_complain = (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE) ? 1 : 0;
 
 	url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	if (url) JSScriptFromFile(node, url, no_complain);
+	if (url) {
+		if ( JSScriptFromFile(node, url, no_complain) == 1) {
+			*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+		} else {
+			*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+		}
+	}
 	return JS_TRUE;
 }
 
@@ -4094,7 +4100,7 @@ static Bool vrml_js_load_script(M_Script *script, char *file, Bool primary_scrip
 }
 
 /*fetches each listed URL and attempts to load the script - this is SYNCHRONOUS*/
-void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
+Bool JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 {
 	GF_JSAPIParam par;
 	u32 i;
@@ -4109,7 +4115,7 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 
 	par.dnld_man = NULL;
 	ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
-	if (!par.dnld_man) return;
+	if (!par.dnld_man) return 0;
 	dnld_man = par.dnld_man;
 
 	for (i=0; i<script->url.count; i++) {
@@ -4136,7 +4142,8 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 		if (!strstr(url, "://") || !strnicmp(url, "file://", 7)) {
 			Bool res = vrml_js_load_script(script, url, opt_file ? 0 : 1);
 			gf_free(url);
-			if (res || no_complain) return;
+			if (res) return 1;
+			if (no_complain) return 0;
 		} else {
 			GF_DownloadSession *sess = gf_dm_sess_new(dnld_man, url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
 			if (sess) {
@@ -4149,13 +4156,14 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain)
 				gf_dm_sess_del(sess);
 			}
 			gf_free(url);
-			if (!e) return;
+			if (!e) return 1;
 		}
 	}
 
 	par.info.e = GF_SCRIPT_ERROR;
 	par.info.msg = "Cannot fetch script";
 	ScriptAction(NULL, node->sgprivate->scenegraph, GF_JSAPI_OP_MESSAGE, NULL, &par);
+	return 0;
 }
 
 static void JSScript_LoadVRML(GF_Node *node)
