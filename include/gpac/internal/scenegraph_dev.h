@@ -946,6 +946,10 @@ Bool gf_js_add_named_root(struct JSContext *cx, void *rp, const char *name);
 Bool gf_js_remove_root(struct JSContext *cx, void *rp);
 void gf_js_vrml_flush_event_out(GF_Node *node, GF_ScriptPriv *priv);
 
+void gf_sg_lock_javascript(struct JSContext *c, Bool LockIt);
+Bool gf_sg_try_lock_javascript(struct JSContext *c);
+void gf_sg_js_call_gc(struct JSContext *c);
+
 typedef struct 
 {
 	GF_FieldInfo field;
