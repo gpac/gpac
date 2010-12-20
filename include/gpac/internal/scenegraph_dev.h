@@ -323,8 +323,10 @@ void gf_node_del(GF_Node *node);
 GF_Node *gf_sg_new_base_node();
 
 
+#ifdef GPAC_HAS_SPIDERMONKEY
 void gf_sg_lock_javascript(struct JSContext *context, Bool LockIt);
 Bool gf_sg_try_lock_javascript(struct JSContext *context);
+#endif /* GPAC_HAS_SPIDERMONKEY */
 
 #ifndef GPAC_DISABLE_VRML
 

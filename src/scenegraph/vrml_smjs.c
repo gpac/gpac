@@ -4490,21 +4490,17 @@ Bool gf_sg_javascript_initialized()
 #endif
 	return 0;
 }
+#ifdef GPAC_HAS_SPIDERMONKEY
 void gf_sg_lock_javascript(struct JSContext *context, Bool LockIt)
 {
-#ifdef GPAC_HAS_SPIDERMONKEY
 	if (js_rt) {
 		if (LockIt) gf_mx_p(js_rt->mx);
 		else gf_mx_v(js_rt->mx);
 	}
-#endif
 }
 
 Bool gf_sg_try_lock_javascript(struct JSContext *context)
 {
-#ifdef GPAC_HAS_SPIDERMONKEY
 	return gf_mx_try_lock(js_rt->mx);
-#else
-	return 1;
-#endif
 }
+#endif /* GPAC_HAS_SPIDERMONKEY */
