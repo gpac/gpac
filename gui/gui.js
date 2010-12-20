@@ -292,14 +292,14 @@ function initialize() {
     /*init all extensions*/
     var list = gpac.enum_directory('Extensions', '*', 0);
 
-    log(l_inf, 'Loading '+ list.length + ' extensions');
-
     for (i=0; i<list.length; i++) {
       if (!list[i].directory) continue;
       var extension = new_extension();
       extension.path = gpac.current_path + 'extensions/' + list[i].name+'/';
 
-      Browser.loadScript('extensions/'+list[i].name+'/init.js', false);
+//      if (list[i].name.indexOf('.svn')>=0) continue;
+
+      if ( Browser.loadScript('extensions/'+list[i].name+'/init.js', true) == false) continue;
       if (!setup_extension(extension)) {
         log(l_inf, 'UI extension '+list[i].name + ' is disabled');
         continue;
