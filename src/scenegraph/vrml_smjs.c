@@ -619,7 +619,7 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 	t_info.fieldIndex = -1;
 	t_info.name = "timestamp";
 
-	gf_sg_lock_javascript(1);
+	gf_sg_lock_javascript(priv->js_ctx, 1);
 
 	argv[1] = gf_sg_script_to_smjs_field(priv, &t_info, node, 1);
 	argv[0] = gf_sg_script_to_smjs_field(priv, &r->FromField, r->FromNode, 1);
@@ -638,7 +638,7 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 	MyJSGC(priv->js_ctx);
 #endif
 
-	gf_sg_lock_javascript(0);
+	gf_sg_lock_javascript(priv->js_ctx, 0);
 }
 
 static JSBool addRoute(JSContext*c, JSObject*o, uintN argc, jsval *argv, jsval *rv)
@@ -3903,7 +3903,7 @@ static void JS_PreDestroy(GF_Node *node)
 			JS_CallFunctionValue(priv->js_ctx, priv->js_obj, fval, 0, NULL, &rval);
 #endif
 
-	gf_sg_lock_javascript(1);
+	gf_sg_lock_javascript(priv->js_ctx, 1);
 	
 	if (priv->event) gf_js_remove_root(priv->js_ctx, &priv->event);
 
@@ -3926,7 +3926,7 @@ static void JS_PreDestroy(GF_Node *node)
 
 	priv->js_ctx = NULL;
 
-	gf_sg_lock_javascript(0);
+	gf_sg_lock_javascript(priv->js_ctx, 0);
 
 	/*unregister script from parent scene (cf base_scenegraph::sg_reset) */
 	gf_list_del_item(node->sgprivate->scenegraph->scripts, node);
@@ -4008,11 +4008,11 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	*/
 	sf->last_route_time = time;
 
-	gf_sg_lock_javascript(1);
+	gf_sg_lock_javascript(priv->js_ctx, 1);
 
 	//locate function
 	if (! JS_LookupProperty(priv->js_ctx, priv->js_obj, sf->name, &fval) || JSVAL_IS_VOID(fval)) {
-		gf_sg_lock_javascript(0);
+		gf_sg_lock_javascript(priv->js_ctx, 0);
 		return;
 	}
 
@@ -4039,7 +4039,7 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	MyJSGC(priv->js_ctx);
 #endif
 
-	gf_sg_lock_javascript(0);
+	gf_sg_lock_javascript(priv->js_ctx, 0);
 
 	gf_js_vrml_flush_event_out(node, priv);
 }
@@ -4176,15 +4176,15 @@ static void JSScript_LoadVRML(GF_Node *node)
 	}
 	local_script = str ? 1 : 0;
 
-	if (do_lock) gf_sg_lock_javascript(1);
+	if (do_lock) gf_sg_lock_javascript(priv->js_ctx, 1);
 	priv->js_ctx = gf_sg_ecmascript_new(node->sgprivate->scenegraph);
 	if (!priv->js_ctx) {
-		if (do_lock) gf_sg_lock_javascript(0);
+		if (do_lock) gf_sg_lock_javascript(priv->js_ctx, 0);
 		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[VRML JS] Cannot allocate ECMAScript context for node\n"));
 		return;
 	}
 
-	if (!do_lock) gf_sg_lock_javascript(1);
+	if (!do_lock) gf_sg_lock_javascript(priv->js_ctx, 1);
 
 	JS_SetContextPrivate(priv->js_ctx, node);
 	gf_sg_script_init_sm_api(priv, node);
@@ -4210,7 +4210,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 
 	if (!local_script) {
 		JSScriptFromFile(node, NULL, 0);
-		gf_sg_lock_javascript(0);
+		gf_sg_lock_javascript(priv->js_ctx, 0);
 		return;
 	}
 
@@ -4229,7 +4229,7 @@ static void JSScript_LoadVRML(GF_Node *node)
 	MyJSGC(priv->js_ctx);
 #endif
 
-	gf_sg_lock_javascript(0);
+	gf_sg_lock_javascript(priv->js_ctx, 0);
 }
 
 static void JSScript_Load(GF_Node *node)
@@ -4405,7 +4405,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target))
 		return;
 
-	gf_sg_lock_javascript(1);
+	gf_sg_lock_javascript(priv->js_ctx, 1);
 
 	prev_type = event->is_vrml;
 	event->is_vrml = 1;
@@ -4425,7 +4425,7 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 	event->is_vrml = prev_type;
 	JS_SetPrivate(priv->js_ctx, priv->event, prev_event);
 
-	gf_sg_lock_javascript(0);
+	gf_sg_lock_javascript(priv->js_ctx, 0);
 
 #endif
 }
@@ -4490,7 +4490,7 @@ Bool gf_sg_javascript_initialized()
 #endif
 	return 0;
 }
-void gf_sg_lock_javascript(Bool LockIt)
+void gf_sg_lock_javascript(struct JSContext *context, Bool LockIt)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
 	if (js_rt) {
@@ -4500,7 +4500,7 @@ void gf_sg_lock_javascript(Bool LockIt)
 #endif
 }
 
-Bool gf_sg_try_lock_javascript()
+Bool gf_sg_try_lock_javascript(struct JSContext *context)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
 	return gf_mx_try_lock(js_rt->mx);

@@ -649,7 +649,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	if (consumed_by_compositor) return 0;
 
 	if (gjs->evt != NULL) return 0;
-	gf_sg_lock_javascript(1);
+	gf_sg_lock_javascript(gjs->c, 1);
 	
 	rval = JSVAL_VOID;
 	gjs->evt = evt;
@@ -667,7 +667,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 		res = (JSVAL_TO_INT(rval)) ? 1 : 0;
 	}
 
-	gf_sg_lock_javascript(0);
+	gf_sg_lock_javascript(gjs->c, 0);
 	return res;
 }
 

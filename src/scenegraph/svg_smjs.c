@@ -2150,7 +2150,7 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 		utf8_script = szFuncName;
 	}
 
-	gf_sg_lock_javascript(1);
+	gf_sg_lock_javascript(sg->svg_js->js_ctx, 1);
 
 	prev_event = JS_GetPrivate(sg->svg_js->js_ctx, sg->svg_js->event);
 	JS_SetPrivate(sg->svg_js->js_ctx, sg->svg_js->event, event);
@@ -2170,7 +2170,7 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 		JS_GC(sg->svg_js->js_ctx);
 		sg->svg_js->force_gc = 0;
 	}
-	gf_sg_lock_javascript(0);
+	gf_sg_lock_javascript(sg->svg_js->js_ctx, 0);
 
 	return (ret==JS_FALSE) ? 0 : 1;
 }
@@ -2213,12 +2213,12 @@ static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 	Bool do_lock = gf_sg_javascript_initialized();
 	GF_SAFEALLOC(svg_js, GF_SVGJS);
 
-	if (do_lock) gf_sg_lock_javascript(1);
+	if (do_lock) gf_sg_lock_javascript(NULL, 1);
 	/*create new ecmascript context*/
 	svg_js->js_ctx = gf_sg_ecmascript_new(sg);
 	if (!svg_js->js_ctx) {
 		gf_free(svg_js);
-		if (do_lock) gf_sg_lock_javascript(0);
+		if (do_lock) gf_sg_lock_javascript(NULL, 0);
 		return GF_SCRIPT_ERROR;
 	}
 	if (!svg_rt) {
@@ -2237,7 +2237,7 @@ static GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 	sg->svg_js = svg_js;
 	/*load SVG & DOM APIs*/
 	svg_init_js_api(sg);
-	if (do_lock) gf_sg_lock_javascript(0);
+	if (do_lock) gf_sg_lock_javascript(NULL, 0);
 
 	svg_js->script_execute = svg_script_execute;
 	svg_js->handler_execute = svg_script_execute_handler;
@@ -2302,7 +2302,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 		return 1;
 	}
 
-	gf_sg_lock_javascript(1);
+	gf_sg_lock_javascript(svg_js->js_ctx, 1);
 	
 	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, jsscript, sizeof(char)*fsize, 0, 0, &rval);
 
@@ -2310,7 +2310,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 		JS_GC(svg_js->js_ctx);
 		svg_js->force_gc = 0;
 	}
-	gf_sg_lock_javascript(0);
+	gf_sg_lock_javascript(svg_js->js_ctx, 0);
 
 	if (ret==JS_FALSE) success = 0;
 	gf_dom_listener_process_add(script->sgprivate->scenegraph);
@@ -2448,11 +2448,11 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	}
 #endif
 
-	gf_sg_lock_javascript(1);
+	gf_sg_lock_javascript(svg_js->js_ctx, 1);
 	prev_event = JS_GetPrivate(svg_js->js_ctx, svg_js->event);
 	/*break loops*/
 	if (prev_event && (prev_event->type==event->type) && (prev_event->target==event->target)) {
-		gf_sg_lock_javascript(0);
+		gf_sg_lock_javascript(svg_js->js_ctx, 0);
 		return 0;
 	}
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, event);
@@ -2501,7 +2501,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	}
 	svg_js->in_script = 0;
 
-	gf_sg_lock_javascript(0);
+	gf_sg_lock_javascript(svg_js->js_ctx, 0);
 
 #ifdef DUMP_DEF_AND_ROOT
 	if ((event->type==GF_EVENT_CLICK) || (event->type==GF_EVENT_MOUSEOVER)) {

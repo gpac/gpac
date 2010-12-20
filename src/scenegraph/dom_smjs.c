@@ -2424,14 +2424,14 @@ static void xml_http_state_change(XMLHTTPContext *ctx)
 	GF_Node *n;
 	jsval rval;
 	
-	gf_sg_lock_javascript(1);
+	gf_sg_lock_javascript(ctx->c, 1);
 	if (ctx->onreadystatechange)
 		JS_CallFunction(ctx->c, ctx->_this, ctx->onreadystatechange, 0, NULL, &rval);
 
 	/*todo - fire XHR events*/
 
 
-	gf_sg_lock_javascript(0);
+	gf_sg_lock_javascript(ctx->c, 0);
 
 	/*Flush BIFS eventOut events*/
 #ifndef GPAC_DISABLE_VRML
@@ -2598,12 +2598,12 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 
 	/*make sure we can grab JS and the session is not destroyed*/
 	while (ctx->sess) {
-		if (gf_sg_try_lock_javascript() )
+		if (gf_sg_try_lock_javascript(ctx->c) )
 			break;
 		gf_sleep(1);
 	}
 
-	gf_sg_lock_javascript(0);
+	gf_sg_lock_javascript(ctx->c, 0);
 
 	/*if session not set, we've had an abort*/
 	if (!ctx->sess) return;

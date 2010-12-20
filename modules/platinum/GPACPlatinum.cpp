@@ -83,7 +83,7 @@ GF_UPnP::~GF_UPnP()
 
 void GF_UPnP::LockJavascript(Bool do_lock)
 {
-	gf_sg_lock_javascript(do_lock);
+	gf_sg_lock_javascript(m_pJSCtx, do_lock);
 }
 
 void GF_UPnP::OnStop(const char *src_url)
