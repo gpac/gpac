@@ -1872,7 +1872,7 @@ function new_file_browse(init_directory, label, filter, show_scan, show_upnp)
 	filebrowse.nb_items = 0;
 	filebrowse.directory = init_directory;
 
-	gpac.switch_focus(filebrowse);
+	gpac.set_focus(filebrowse);
 	return filebrowse;
 }
 
