@@ -44,7 +44,7 @@ DEF GPAC_UI OrderedGroup {
    field SFNode movie_ctrl USE MovieControl
    field SFNode movie_sensor USE MovieSensor
    
-   url "gui2.js"
+   url "gui.js"
   }
  ]
 }
