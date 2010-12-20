@@ -252,8 +252,10 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 
 void gf_sg_ecmascript_del(JSContext *ctx)
 {
+#ifdef JS_THREADSAFE
 	JS_ClearContextThread(ctx);
 	JS_SetContextThread(ctx); 
+#endif
 	JS_SetGlobalObject(ctx, NULL);
 	JS_DestroyContext(ctx);
 	if (js_rt) {
@@ -304,8 +306,10 @@ void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain);
 
 void gf_sg_js_call_gc(JSContext *c)
 {
+#ifdef JS_THREADSAFE
 	JS_ClearContextThread(c);
 	JS_SetContextThread(c); 
+#endif
 	JS_GC(c);
 }
 
