@@ -374,7 +374,7 @@ static Bool encoding_thread_run(void *param)
                                 //  currentFrameTimeProcessed / 1000;  //
                                 avr->currentTSPacket.dts = avr->codecContext->coded_frame->coded_picture_number;
                                 avr->currentTSPacket.cts = avr->codecContext->coded_frame->display_picture_number;
-                                avr->currentTSPacket.dts = avr->currentTSPacket.cts = 0;
+                                avr->currentTSPacket.dts = avr->currentTSPacket.cts = gf_sys_clock();
                                 avr->currentTSPacket.data = avr->outbuf;
                                 avr->currentTSPacket.data_len = written;
                                 printf("\rSending frame DTS="LLU", CTS="LLU", len=%u, FPS=%u, delta=%u...", avr->currentTSPacket.dts, avr->currentTSPacket.cts, avr->currentTSPacket.data_len, fps, currentFrameTimeProcessed - lastEncodedFrameTime);
@@ -592,13 +592,13 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
     gf_mx_p(avr->tsMutex);
 #endif /* MULTITHREAD_REDIRECT_AV */
     avr->is_running = 1;
+    gf_sc_add_audio_listener ( avr->term->compositor, &avr->audio_listen );
+    gf_sc_add_video_listener ( avr->term->compositor, &avr->video_listen );
 #ifdef MULTITHREAD_REDIRECT_AV
     gf_mx_v(avr->tsMutex);
     gf_th_run(avr->tsThread, ts_thread_run, avr);
 #endif /* MULTITHREAD_REDIRECT_AV */
     gf_th_run(avr->encodingThread, encoding_thread_run, avr);
-    gf_sc_add_audio_listener ( avr->term->compositor, &avr->audio_listen );
-    gf_sc_add_video_listener ( avr->term->compositor, &avr->video_listen );
     return GF_OK;
 }
 
@@ -731,9 +731,10 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
             avr->udp_address = opt;
         opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_PORT_OPTION);
         if (opt) {
-            char * endPtr;
+            char *endPtr = NULL;
             unsigned int x = strtoul(opt, &endPtr, 10);
-            if (*endPtr || x < 65536) {
+            if (endPtr == opt || x > 65536) {
+		printf("Failed to parse : %s\n", opt);
                 opt = NULL;
             } else
                 avr->udp_port = (u16) x;
