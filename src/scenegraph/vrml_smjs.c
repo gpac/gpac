@@ -252,6 +252,8 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 
 void gf_sg_ecmascript_del(JSContext *ctx)
 {
+	JS_ClearContextThread(ctx);
+	JS_SetContextThread(ctx); 
 	JS_SetGlobalObject(ctx, NULL);
 	JS_DestroyContext(ctx);
 	if (js_rt) {
@@ -300,10 +302,18 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 
 void JSScriptFromFile(GF_Node *node, const char *opt_file, Bool no_complain);
 
+void gf_sg_js_call_gc(JSContext *c)
+{
+	JS_ClearContextThread(c);
+	JS_SetContextThread(c); 
+	JS_GC(c);
+}
 
 #ifdef FORCE_GC
-void MyJSGC(JSContext *c) {
-	JS_GC(c);
+void MyJSGC(JSContext *c) 
+{
+	gf_sg_js_call_gc(c);
+  
 }
 #endif
 
@@ -4291,7 +4301,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 					sg->svg_js->force_gc = 1;
 				else
 				{
-					JS_GC(sg->svg_js->js_ctx);
+					gf_sg_js_call_gc(sg->svg_js->js_ctx);
 					JS_ClearNewbornRoots(sg->svg_js->js_ctx);
 				}
 #endif
@@ -4490,17 +4500,24 @@ Bool gf_sg_javascript_initialized()
 #endif
 	return 0;
 }
+
 #ifdef GPAC_HAS_SPIDERMONKEY
-void gf_sg_lock_javascript(struct JSContext *context, Bool LockIt)
+
+void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 {
-	if (js_rt) {
-		if (LockIt) gf_mx_p(js_rt->mx);
-		else gf_mx_v(js_rt->mx);
+	if (!js_rt) return;
+	if (LockIt) {
+		gf_mx_p(js_rt->mx);
+	} else {
+		gf_mx_v(js_rt->mx);
 	}
 }
 
-Bool gf_sg_try_lock_javascript(struct JSContext *context)
+Bool gf_sg_try_lock_javascript(struct JSContext *cx)
 {
-	return gf_mx_try_lock(js_rt->mx);
+	if (gf_mx_try_lock(js_rt->mx)) {
+		return 1;
+	}
+	return 0;
 }
 #endif /* GPAC_HAS_SPIDERMONKEY */

@@ -62,7 +62,6 @@ jsval dom_node_get_sibling(JSContext *c, GF_Node *n, Bool is_prev, Bool elt_only
 
 
 
-
 #define _ScriptMessage(_sg, _e, _msg) {\
 			GF_JSAPIParam par;	\
 			par.info.e = _e;			\
@@ -2167,7 +2166,7 @@ Bool svg_script_execute(GF_SceneGraph *sg, char *utf8_script, GF_DOM_Event *even
 	}
 
 	if (sg->svg_js->force_gc) {
-		JS_GC(sg->svg_js->js_ctx);
+		gf_sg_js_call_gc(sg->svg_js->js_ctx);
 		sg->svg_js->force_gc = 0;
 	}
 	gf_sg_lock_javascript(sg->svg_js->js_ctx, 0);
@@ -2307,7 +2306,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 	ret = JS_EvaluateScript(svg_js->js_ctx, svg_js->global, jsscript, sizeof(char)*fsize, 0, 0, &rval);
 
 	if (svg_js->force_gc) {
-		JS_GC(svg_js->js_ctx);
+		gf_sg_js_call_gc(svg_js->js_ctx);
 		svg_js->force_gc = 0;
 	}
 	gf_sg_lock_javascript(svg_js->js_ctx, 0);
@@ -2497,7 +2496,7 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 
 	while (svg_js->force_gc) {
 		svg_js->force_gc = 0;
-		JS_GC(svg_js->js_ctx);
+		gf_sg_js_call_gc(svg_js->js_ctx);
 	}
 	svg_js->in_script = 0;
 
