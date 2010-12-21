@@ -69,6 +69,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 #else
 	char path[GF_MAX_PATH];
 	s32 _flags;
+	const char * error;
 #endif
 	
 	if (inst->lib_handle) return 1;
@@ -114,9 +115,19 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s, error is %s\n", path, dlerror()));
 		return 0;
 	}
+	error = dlerror();    /* Clear any existing error */
 	inst->query_func = (QueryInterfaces) dlsym(inst->lib_handle, "QueryInterfaces");
+	error = dlerror();
+	if (error)
+	  GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot resolve symbol QueryInterfaces in module file %s, error is %s\n", path, error));
 	inst->load_func = (LoadInterface) dlsym(inst->lib_handle, "LoadInterface");
+	error = dlerror();
+	if (error)
+	  GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot resolve symbol LoadInterface in module file %s, error is %s\n", path, error));
 	inst->destroy_func = (ShutdownInterface) dlsym(inst->lib_handle, "ShutdownInterface");
+	error = dlerror();
+	if (error)
+	  GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot resolve symbol ShutdownInterface in module file %s, error is %s\n", path, error));
 #endif
 	return 1;
 }

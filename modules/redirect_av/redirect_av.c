@@ -257,11 +257,13 @@ static GF_Err sendTSMux(GF_AVRedirect * avr)
             if (188 != fwrite(pkt, sizeof(char), 188, avr->ts_OUTFile ))
                 return GF_IO_ERR;
 #endif /* AVR_DUMP_MPEG_RAW */
-        e = gf_sk_send ( avr->ts_output_udp_sk, pkt, 188);
-        if ( e )
-        {
-            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Unable to send TS data : %s (%s:%hu)\n", gf_error_to_string(e), avr->udp_address, avr->udp_port) );
-            return e;
+        if (avr->ts_output_udp_sk) {
+            e = gf_sk_send ( avr->ts_output_udp_sk, pkt, 188);
+            if ( e )
+            {
+                GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Unable to send TS data : %s (%s:%hu)\n", gf_error_to_string(e), avr->udp_address, avr->udp_port) );
+                return e;
+            }
         }
     }
     if (data || padding)
@@ -285,7 +287,8 @@ static Bool encoding_thread_run(void *param)
     u32 lastEncodedFrameTime = 0;
     memset(timers, 0, AVR_TIMERS_LENGHT * sizeof(u32));
     assert( avr );
-
+    gf_sc_add_audio_listener ( avr->term->compositor, &avr->audio_listen );
+    gf_sc_add_video_listener ( avr->term->compositor, &avr->video_listen );
 #ifdef MULTITHREAD_REDIRECT_AV
     gf_mx_p(avr->tsMutex);
 #endif /* MULTITHREAD_REDIRECT_AV */
@@ -342,7 +345,7 @@ static Bool encoding_thread_run(void *param)
                 gf_mx_v(avr->frameMutex);
                 {
                     int written;
-		    u32 sysclock = gf_sys_clock();
+                    u32 sysclock = gf_sys_clock();
                     assert ( avr->codecContext );
                     avr->YUVpicture->pts = sysclock;
                     avr->YUVpicture->coded_picture_number++;
@@ -414,6 +417,8 @@ static Bool encoding_thread_run(void *param)
 #ifdef MULTITHREAD_REDIRECT_AV
     gf_mx_v(avr->tsMutex);
 #endif /* MULTITHREAD_REDIRECT_AV */
+    gf_sc_remove_audio_listener ( avr->term->compositor, &avr->audio_listen );
+    gf_sc_remove_video_listener ( avr->term->compositor, &avr->video_listen );
     return 0;
 }
 
@@ -475,7 +480,7 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
 
     /* Setting up the video encoding ... */
     {
-	
+
         avr->codecContext = NULL;
         avr->YUVpicture = avr->RGBpicture = NULL;
         avr->swsContext = NULL;
@@ -488,10 +493,10 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
             GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot find codec.\n" ) );
             return GF_CODEC_NOT_FOUND;
         }
-        
-        if (avr->codec->id == CODEC_ID_MJPEG){
-	  pxlFormatForCodec = PIX_FMT_YUVJ420P;
-	}
+
+        if (avr->codec->id == CODEC_ID_MJPEG) {
+            pxlFormatForCodec = PIX_FMT_YUVJ420P;
+        }
 
         avr->RGBpicture = avcodec_alloc_frame();
         assert ( avr->RGBpicture );
@@ -519,13 +524,13 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
         avr->codecContext->height = outputHeight;
         /* frames per second */
         avr->codecContext->time_base.num = 1;
-	if (avr->codec->id == CODEC_ID_MPEG2VIDEO || avr->codec->id == CODEC_ID_MPEG1VIDEO)
-	  avr->codecContext->time_base.den = 25;
+        if (avr->codec->id == CODEC_ID_MPEG2VIDEO || avr->codec->id == CODEC_ID_MPEG1VIDEO)
+            avr->codecContext->time_base.den = 25;
         else
-	  avr->codecContext->time_base.den = 10;
+            avr->codecContext->time_base.den = 10;
         avr->codecContext->gop_size = 0; /* emit one intra frame every ten frames */
         avr->codecContext->max_b_frames=0;
-	avr->codecContext->pix_fmt = pxlFormatForCodec;
+        avr->codecContext->pix_fmt = pxlFormatForCodec;
         avr->outbuf = gf_malloc ( outbuf_size );
         memset ( avr->outbuf, 0, outbuf_size );
         assert ( avr->outbuf );
@@ -564,8 +569,8 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
     {
         //u32 cur_pid = 100;	/*PIDs start from 100*/
         GF_M2TS_Mux_Program *program = gf_m2ts_mux_program_add ( avr->muxer, 1, 100, 0, 0 );
-	avr->video = gf_malloc( sizeof( GF_ESInterface));
-	memset( avr->video, 0, sizeof( GF_ESInterface));
+        avr->video = gf_malloc( sizeof( GF_ESInterface));
+        memset( avr->video, 0, sizeof( GF_ESInterface));
         //audio.stream_id = 101;
         //gf_m2ts_program_stream_add ( program, &audio, 101, 1 );
         avr->video->stream_id = 101;
@@ -592,10 +597,10 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
     gf_mx_p(avr->tsMutex);
 #endif /* MULTITHREAD_REDIRECT_AV */
     avr->is_running = 1;
-    gf_sc_add_audio_listener ( avr->term->compositor, &avr->audio_listen );
-    gf_sc_add_video_listener ( avr->term->compositor, &avr->video_listen );
 #ifdef MULTITHREAD_REDIRECT_AV
     gf_mx_v(avr->tsMutex);
+#endif /* MULTITHREAD_REDIRECT_AV */
+#ifdef MULTITHREAD_REDIRECT_AV
     gf_th_run(avr->tsThread, ts_thread_run, avr);
 #endif /* MULTITHREAD_REDIRECT_AV */
     gf_th_run(avr->encodingThread, encoding_thread_run, avr);
@@ -605,8 +610,6 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
 static void avr_close ( GF_AVRedirect *avr )
 {
     if ( !avr->is_open ) return;
-    gf_sc_remove_audio_listener ( avr->term->compositor, &avr->audio_listen );
-    gf_sc_remove_video_listener ( avr->term->compositor, &avr->video_listen );
     avr->is_open = 0;
 #ifdef AVR_DUMP_RAW_AVI
     GF_LOG ( GF_LOG_INFO, GF_LOG_MODULE, ( "[AVRedirect] Closing output AVI file\n" ) );
@@ -713,9 +716,9 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
                 avr->codec=avcodec_find_encoder ( CODEC_ID_H263I );
             }
             else if ( !strcmp( "MJPEG", opt))
-	    {
-		avr->codec=avcodec_find_encoder( CODEC_ID_MJPEG);
-	    }
+            {
+                avr->codec=avcodec_find_encoder( CODEC_ID_MJPEG);
+            }
             else
             {
                 GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Not a known Video codec : %s, using MPEG-2 video instead, %s\n", opt, possibleCodecs ) );
@@ -734,7 +737,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
             char *endPtr = NULL;
             unsigned int x = strtoul(opt, &endPtr, 10);
             if (endPtr == opt || x > 65536) {
-		printf("Failed to parse : %s\n", opt);
+                printf("Failed to parse : %s\n", opt);
                 opt = NULL;
             } else
                 avr->udp_port = (u16) x;
