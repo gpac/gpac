@@ -332,7 +332,8 @@ static Bool audio_encoding_thread_run(void *param)
                     avr->audioCurrentTSPacket.data = avr->audioOutBuf;
                     avr->audioCurrentTSPacket.data_len = encoded;
                     avr->audioCurrentTSPacket.flags = GF_ESI_DATA_AU_START|GF_ESI_DATA_AU_END | GF_ESI_DATA_HAS_CTS | GF_ESI_DATA_HAS_DTS;
-                    avr->audioCurrentTSPacket.cts = avr->audioCurrentTSPacket.dts = myTime;
+                    //avr->audioCurrentTSPacket.cts = avr->audioCurrentTSPacket.dts = myTime;
+		    avr->videoCurrentTSPacket.dts = avr->videoCurrentTSPacket.cts = gf_m2ts_get_sys_clock(avr->muxer);
                     avr->audio->output_ctrl(avr->audio, GF_ESI_OUTPUT_DATA_DISPATCH, &(avr->audioCurrentTSPacket));
                 }
             }
@@ -456,6 +457,7 @@ static Bool video_encoding_thread_run(void *param)
                                 avr->videoCurrentTSPacket.cts = avr->videoCodecContext->coded_frame->display_picture_number;
                                 //avr->videoCurrentTSPacket.dts = avr->videoCurrentTSPacket.cts = sysclock;
 				avr->videoCurrentTSPacket.dts = avr->videoCurrentTSPacket.cts = currentFrameTimeProcessed;
+				avr->videoCurrentTSPacket.dts = avr->videoCurrentTSPacket.cts = gf_m2ts_get_sys_clock(avr->muxer);
 				avr->videoCurrentTSPacket.data = avr->videoOutbuf;
                                 avr->videoCurrentTSPacket.data_len = written;
                                 printf("\rSending frame DTS="LLU", CTS="LLU", len=%u, FPS=%u, delta=%u...", avr->videoCurrentTSPacket.dts, avr->videoCurrentTSPacket.cts, avr->videoCurrentTSPacket.data_len, fps, currentFrameTimeProcessed - lastEncodedFrameTime);
@@ -647,7 +649,7 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
     GF_LOG ( GF_LOG_INFO, GF_LOG_MODULE, ( "[AVRedirect] Open output AVI file %s\n", "dump.avi" ) );
 #endif /* AVR_DUMP_RAW_AVI */
     /* Setting up the TS mux */
-    avr->muxer = gf_m2ts_mux_new ( VIDEO_RATE + 10000, 0, 1 );
+    avr->muxer = gf_m2ts_mux_new ( VIDEO_RATE + audioCodecBitrate + 300000, 0, 1 );
 
     avr->ts_output_udp_sk = gf_sk_new ( GF_SOCK_TYPE_UDP );
     if ( gf_sk_is_multicast_address ( avr->udp_address ) )
@@ -693,28 +695,25 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
 
         avr->audio = gf_malloc( sizeof( GF_ESInterface));
         memset( avr->audio, 0, sizeof( GF_ESInterface));
-        //audio.stream_id = 101;
-        //gf_m2ts_program_stream_add ( program, &audio, 101, 1 );
         avr->audio->stream_id = 102;
         avr->audio->stream_type = GF_STREAM_AUDIO;
         avr->audio->bit_rate = audioCodecBitrate;
         /* ms resolution */
         avr->audio->timescale = 1000;
 	
-	avr->audio->object_type_indication = GPAC_OTI_AUDIO_AAC_MPEG2_MP;
+	avr->audio->object_type_indication = GPAC_OTI_AUDIO_MPEG2_PART3;
         avr->audio->input_udta = avr;
 #ifdef TS_MUX_MODE_PUT
-        avr->audio->caps = GF_ESI_SIGNAL_DTS;
+        avr->audio->caps = 0;
 #else
         avr->audio->input_ctrl = void_input_ctrl;
-        avr->audio->caps = GF_ESI_AU_PULL_CAP | GF_ESI_SIGNAL_DTS;
+        avr->audio->caps = GF_ESI_AU_PULL_CAP;
 #endif /* TS_MUX_MODE_PUT */
 
-        gf_m2ts_program_stream_add ( program, avr->video, 101, 1 );
-        gf_m2ts_program_stream_add ( program, avr->audio, 102, 0 );
+        gf_m2ts_program_stream_add ( program, avr->video, 101, 0 );
+        gf_m2ts_program_stream_add ( program, avr->audio, 102, 1 );
 
         assert( program->streams->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG2);
-        printf("Setup done, avr=%p, avr->video=%p\n", avr, &(avr->video));
     }
     gf_m2ts_mux_update_config ( avr->muxer, 1 );
 #ifdef MULTITHREAD_REDIRECT_AV
@@ -850,7 +849,7 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
                 avr->videoCodec = avcodec_find_encoder ( CODEC_ID_MPEG2VIDEO );
             }
         }
-        avr->audioCodec = avcodec_find_encoder( CODEC_ID_AAC);
+        avr->audioCodec = avcodec_find_encoder( CODEC_ID_MP3);
         opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_ADDRESS_OPTION);
         if (!opt) {
             gf_modules_set_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_ADDRESS_OPTION, DEFAULT_UDP_OUT_ADDRESS);
