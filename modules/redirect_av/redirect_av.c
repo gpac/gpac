@@ -63,8 +63,8 @@
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 
-//#define MULTITHREAD_REDIRECT_AV
-#undef MULTITHREAD_REDIRECT_AV
+#define MULTITHREAD_REDIRECT_AV
+//#undef MULTITHREAD_REDIRECT_AV
 
 /* This number * 188 should be lower than the UDP packet size */
 #define TS_PACKETS_PER_UDP_PACKET 1
@@ -72,6 +72,8 @@
 #define outputWidth 320
 
 #define outputHeight 240
+
+#define audioCodecBitrate 96000
 
 static const u32 maxFPS = 25;
 
@@ -91,28 +93,38 @@ typedef struct
     char *frame;
     u32 size;
     GF_M2TS_Mux *muxer;
-    GF_ESIPacket currentTSPacket;
+    GF_ESIPacket videoCurrentTSPacket;
+    GF_ESIPacket audioCurrentTSPacket;
     GF_Socket * ts_output_udp_sk;
-
-    AVCodec *codec;
-    AVCodecContext *codecContext;
+    Bool encode;
+    AVCodec *audioCodec;
+    AVCodecContext *audioCodecContext;
+    AVCodec *videoCodec;
+    AVCodecContext *videoCodecContext;
     AVFrame *YUVpicture, *RGBpicture;
     struct SwsContext * swsContext;
     uint8_t * yuv_data;
     u32 srcWidth;
     u32 srcHeight;
-    uint8_t * outbuf;
+    uint8_t * videoOutbuf;
+    uint8_t * audioOutBuf;
+    uint8_t * audioInBuf;
+    u32 audioInBufferSize;
+    u32 audioOutBufferSize;
+    u32 audioCurrentTime;
 #ifdef AVR_DUMP_MPEG_RAW
     FILE * mpeg_OUTFile;
     FILE * ts_OUTFile;
 #endif
     GF_ESInterface * video, * audio;
     GF_Thread * encodingThread;
+    GF_Thread * audioEncodingThread;
 #ifdef MULTITHREAD_REDIRECT_AV
     GF_Mutex * tsMutex;
     GF_Thread * tsThread;
 #endif
     GF_Mutex * frameMutex;
+    GF_Mutex * audioMutex;
     GF_Mutex * encodingMutex;
     volatile Bool is_running;
     u64 frameTime;
@@ -137,7 +149,7 @@ static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
         gf_mx_p(avr->encodingMutex);
         if (avr->frameTimeEncoded > avr->frameTimeSentOverTS) {
             //printf("Data PULL, avr=%p, avr->video=%p, encoded="LLU", sent over TS="LLU"\n", avr, &avr->video, avr->frameTimeEncoded, avr->frameTimeSentOverTS);
-            avr->video->output_ctrl( avr->video, GF_ESI_OUTPUT_DATA_DISPATCH, &(avr->currentTSPacket));
+            avr->video->output_ctrl( avr->video, GF_ESI_OUTPUT_DATA_DISPATCH, &(avr->videoCurrentTSPacket));
             avr->frameTimeSentOverTS = avr->frameTime;
         } else {
             //printf("Data PULL IGNORED : encoded = "LLU", sent on TS="LLU"\n", avr->frameTimeEncoded, avr->frameTimeSentOverTS);
@@ -158,10 +170,22 @@ static const char * AVR_VIDEO_CODEC_OPTION = "VideoCodec";
 
 static void avr_on_audio_frame ( void *udta, char *buffer, u32 buffer_size, u32 time, u32 delay_ms )
 {
-#ifdef AVR_DUMP_RAW_AVI
     GF_AVRedirect *avr = ( GF_AVRedirect * ) udta;
+#ifdef AVR_DUMP_RAW_AVI
     AVI_write_audio ( avr->avi_out, buffer, buffer_size );
 #endif /* AVR_DUMP_RAW_AVI */
+    {
+        gf_mx_p(avr->audioMutex);
+        if (avr->audioInBufferSize != buffer_size) {
+            avr->audioInBufferSize = buffer_size;
+            avr->audioInBuf = realloc(avr->audioInBuf, buffer_size);
+        }
+        //assert( avr->audioReadPosition + buffer_size <= avr->audioInBufSize);
+        memcpy(avr->audioInBuf, buffer, buffer_size);
+        avr->audioCurrentTime = time - delay_ms;
+        //avr->audioReadPosition+=buffer_size;
+        gf_mx_v(avr->audioMutex);
+    }
 }
 
 static void avr_on_audio_reconfig ( void *udta, u32 samplerate, u32 bits_per_sample, u32 nb_channel, u32 channel_cfg )
@@ -277,7 +301,59 @@ static GF_Err sendTSMux(GF_AVRedirect * avr)
  * This thread sends the frame to TS mux
  * \param Parameter The GF_AVRedirect pointer
  */
-static Bool encoding_thread_run(void *param)
+static Bool audio_encoding_thread_run(void *param)
+{
+    char buff[64000];
+    u32 myTime = 0;
+    GF_AVRedirect * avr = (GF_AVRedirect*) param;
+    assert( avr );
+    gf_sc_add_audio_listener ( avr->term->compositor, &avr->audio_listen );
+#ifdef MULTITHREAD_REDIRECT_AV
+    gf_mx_p(avr->tsMutex);
+#endif /* MULTITHREAD_REDIRECT_AV */
+    while (avr->is_running) {
+#ifdef MULTITHREAD_REDIRECT_AV
+        gf_mx_v(avr->tsMutex);
+#endif /* MULTITHREAD_REDIRECT_AV */
+        gf_mx_p(avr->audioMutex);
+        if (myTime == avr->audioCurrentTime) {
+            /* Current frame has already been encoded, we skip */
+            gf_mx_v(avr->audioMutex);
+        } else {
+            memcpy(buff, avr->audioInBuf, avr->audioInBufferSize);
+            myTime = avr->audioCurrentTime;
+            gf_mx_v(avr->audioMutex);
+            if (avr->encode)
+            {
+                int encoded = avcodec_encode_audio(avr->audioCodecContext, avr->audioOutBuf, avr->audioOutBufferSize, (const short *) buff);
+                if (encoded < 0) {
+                    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[RedirectAV]: failed to encode audio\n"));
+                } else if (encoded > 0) {
+                    avr->audioCurrentTSPacket.data = avr->audioOutBuf;
+                    avr->audioCurrentTSPacket.data_len = encoded;
+                    avr->audioCurrentTSPacket.flags = GF_ESI_DATA_AU_START|GF_ESI_DATA_AU_END | GF_ESI_DATA_HAS_CTS | GF_ESI_DATA_HAS_DTS;
+                    avr->audioCurrentTSPacket.cts = avr->audioCurrentTSPacket.dts = myTime;
+                    avr->audio->output_ctrl(avr->audio, GF_ESI_OUTPUT_DATA_DISPATCH, &(avr->audioCurrentTSPacket));
+                }
+            }
+        }
+#ifdef MULTITHREAD_REDIRECT_AV
+        gf_mx_p(avr->tsMutex);
+#endif /* MULTITHREAD_REDIRECT_AV */
+    }
+#ifdef MULTITHREAD_REDIRECT_AV
+    gf_mx_v(avr->tsMutex);
+#endif /* MULTITHREAD_REDIRECT_AV */
+    if (avr->term)
+        gf_sc_remove_audio_listener ( avr->term->compositor, &avr->audio_listen );
+    return GF_OK;
+}
+
+/**
+ * This thread sends the frame to TS mux
+ * \param Parameter The GF_AVRedirect pointer
+ */
+static Bool video_encoding_thread_run(void *param)
 {
     GF_AVRedirect * avr = (GF_AVRedirect*) param;
     //u32 ts_packets_sent = 0;
@@ -287,7 +363,6 @@ static Bool encoding_thread_run(void *param)
     u32 lastEncodedFrameTime = 0;
     memset(timers, 0, AVR_TIMERS_LENGHT * sizeof(u32));
     assert( avr );
-    gf_sc_add_audio_listener ( avr->term->compositor, &avr->audio_listen );
     gf_sc_add_video_listener ( avr->term->compositor, &avr->video_listen );
 #ifdef MULTITHREAD_REDIRECT_AV
     gf_mx_p(avr->tsMutex);
@@ -343,15 +418,17 @@ static Bool encoding_thread_run(void *param)
                 }
 #endif /* AVR_DUMP_RAW_AVI */
                 gf_mx_v(avr->frameMutex);
+                if (avr->encode)
                 {
                     int written;
-                    u32 sysclock = gf_sys_clock();
-                    assert ( avr->codecContext );
-                    avr->YUVpicture->pts = sysclock;
+                    //u32 sysclock = gf_sys_clock();
+                    assert ( avr->videoCodecContext );
+                    //avr->YUVpicture->pts = sysclock;
+		    avr->YUVpicture->pts = currentFrameTimeProcessed;
                     avr->YUVpicture->coded_picture_number++;
                     avr->YUVpicture->display_picture_number++;
                     //printf("Encoding frame PTS="LLU", frameNum=%u, time=%u...", avr->YUVpicture->pts, avr->YUVpicture->coded_picture_number, currentFrameTimeProcessed);
-                    written = avcodec_encode_video ( avr->codecContext, avr->outbuf, outbuf_size, avr->YUVpicture );
+                    written = avcodec_encode_video ( avr->videoCodecContext, avr->videoOutbuf, outbuf_size, avr->YUVpicture );
                     if ( written < 0 )
                     {
                         GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error while encoding video frame =%d\n", written ) );
@@ -361,7 +438,7 @@ static Bool encoding_thread_run(void *param)
 #ifdef AVR_DUMP_MPEG_RAW
                             if ( avr->mpeg_OUTFile )
                             {
-                                int writtenOnDisk = fwrite ( avr->outbuf, sizeof ( char ), written, avr->mpeg_OUTFile );
+                                int writtenOnDisk = fwrite ( avr->videoOutbuf, sizeof ( char ), written, avr->mpeg_OUTFile );
                                 if ( writtenOnDisk != written )
                                     GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Error writing video frame on disk\n" ) );
                             }
@@ -375,25 +452,26 @@ static Bool encoding_thread_run(void *param)
 #endif /* MULTITHREAD_REDIRECT_AV */
                                 gf_mx_p( avr->encodingMutex );
                                 //  currentFrameTimeProcessed / 1000;  //
-                                avr->currentTSPacket.dts = avr->codecContext->coded_frame->coded_picture_number;
-                                avr->currentTSPacket.cts = avr->codecContext->coded_frame->display_picture_number;
-                                avr->currentTSPacket.dts = avr->currentTSPacket.cts = gf_sys_clock();
-                                avr->currentTSPacket.data = avr->outbuf;
-                                avr->currentTSPacket.data_len = written;
-                                printf("\rSending frame DTS="LLU", CTS="LLU", len=%u, FPS=%u, delta=%u...", avr->currentTSPacket.dts, avr->currentTSPacket.cts, avr->currentTSPacket.data_len, fps, currentFrameTimeProcessed - lastEncodedFrameTime);
+                                avr->videoCurrentTSPacket.dts = avr->videoCodecContext->coded_frame->coded_picture_number;
+                                avr->videoCurrentTSPacket.cts = avr->videoCodecContext->coded_frame->display_picture_number;
+                                //avr->videoCurrentTSPacket.dts = avr->videoCurrentTSPacket.cts = sysclock;
+				avr->videoCurrentTSPacket.dts = avr->videoCurrentTSPacket.cts = currentFrameTimeProcessed;
+				avr->videoCurrentTSPacket.data = avr->videoOutbuf;
+                                avr->videoCurrentTSPacket.data_len = written;
+                                printf("\rSending frame DTS="LLU", CTS="LLU", len=%u, FPS=%u, delta=%u...", avr->videoCurrentTSPacket.dts, avr->videoCurrentTSPacket.cts, avr->videoCurrentTSPacket.data_len, fps, currentFrameTimeProcessed - lastEncodedFrameTime);
                                 fflush(stdout);
                                 currentFrameEncoded++;
-                                avr->currentTSPacket.flags = GF_ESI_DATA_HAS_CTS | GF_ESI_DATA_HAS_DTS;
+                                avr->videoCurrentTSPacket.flags = GF_ESI_DATA_HAS_CTS | GF_ESI_DATA_HAS_DTS;
                                 //if (ts_packets_sent == 0) {
                                 //    printf("First Packet !\n");
-                                avr->currentTSPacket.flags|=GF_ESI_DATA_AU_START|GF_ESI_DATA_AU_END ;
+                                avr->videoCurrentTSPacket.flags|=GF_ESI_DATA_AU_START|GF_ESI_DATA_AU_END ;
                                 //}
                                 avr->frameTimeEncoded = currentFrameTimeProcessed;
                                 gf_mx_v( avr->encodingMutex );
 #ifdef TS_MUX_MODE_PUT
                                 void_input_ctrl(avr->video, GF_ESI_INPUT_DATA_PULL, NULL);
 #endif
-                                //avr->video->decoder_config = avr->codecContext->
+                                //avr->video->decoder_config = avr->videoCodecContext->
 
                                 //avr->video->decoder_config = avr->outbuf;
                                 //avr->video->decoder_config_size = written;
@@ -417,8 +495,8 @@ static Bool encoding_thread_run(void *param)
 #ifdef MULTITHREAD_REDIRECT_AV
     gf_mx_v(avr->tsMutex);
 #endif /* MULTITHREAD_REDIRECT_AV */
-    gf_sc_remove_audio_listener ( avr->term->compositor, &avr->audio_listen );
-    gf_sc_remove_video_listener ( avr->term->compositor, &avr->video_listen );
+    if (avr->term)
+        gf_sc_remove_video_listener ( avr->term->compositor, &avr->video_listen );
     return 0;
 }
 
@@ -481,20 +559,27 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
     /* Setting up the video encoding ... */
     {
 
-        avr->codecContext = NULL;
+        avr->videoCodecContext = NULL;
         avr->YUVpicture = avr->RGBpicture = NULL;
         avr->swsContext = NULL;
         avr->srcWidth = outputWidth;
         avr->srcHeight = outputHeight;
-        avr->outbuf = NULL;
+        avr->videoOutbuf = NULL;
+        avr->audioOutBuf = NULL;
 
-        if ( !avr->codec )
+        if ( !avr->audioCodec)
         {
-            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot find codec.\n" ) );
+            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot find audio codec.\n" ) );
             return GF_CODEC_NOT_FOUND;
         }
 
-        if (avr->codec->id == CODEC_ID_MJPEG) {
+        if ( !avr->videoCodec )
+        {
+            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot find video codec.\n" ) );
+            return GF_CODEC_NOT_FOUND;
+        }
+
+        if (avr->videoCodec->id == CODEC_ID_MJPEG) {
             pxlFormatForCodec = PIX_FMT_YUVJ420P;
         }
 
@@ -512,33 +597,48 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
             avr->YUVpicture->coded_picture_number = 0;
         }
 
+        avr->audioCodecContext = avcodec_alloc_context();
+        assert( avr->audioCodecContext );
+        avcodec_get_context_defaults( avr->audioCodecContext );
+        avr->audioCodecContext->bit_rate = audioCodecBitrate;
+        avr->audioCodecContext->sample_rate = 44100;
+        avr->audioCodecContext->channels = 2;
 
         /* libavcodec setup */
-        avr->codecContext  =  avcodec_alloc_context();
-        assert ( avr->codecContext );
-        avcodec_get_context_defaults ( avr->codecContext );
+        avr->videoCodecContext  =  avcodec_alloc_context();
+        assert ( avr->videoCodecContext );
+        avcodec_get_context_defaults ( avr->videoCodecContext );
         /* put sample parameters */
-        avr->codecContext->bit_rate = VIDEO_RATE;
+        avr->videoCodecContext->bit_rate = VIDEO_RATE;
         /* resolution must be a multiple of two */
-        avr->codecContext->width = outputWidth;
-        avr->codecContext->height = outputHeight;
+        avr->videoCodecContext->width = outputWidth;
+        avr->videoCodecContext->height = outputHeight;
         /* frames per second */
-        avr->codecContext->time_base.num = 1;
-        if (avr->codec->id == CODEC_ID_MPEG2VIDEO || avr->codec->id == CODEC_ID_MPEG1VIDEO)
-            avr->codecContext->time_base.den = 25;
+        avr->videoCodecContext->time_base.num = 1;
+        if (avr->videoCodec->id == CODEC_ID_MPEG2VIDEO || avr->videoCodec->id == CODEC_ID_MPEG1VIDEO)
+            avr->videoCodecContext->time_base.den = 25;
         else
-            avr->codecContext->time_base.den = 10;
-        avr->codecContext->gop_size = 0; /* emit one intra frame every ten frames */
-        avr->codecContext->max_b_frames=0;
-        avr->codecContext->pix_fmt = pxlFormatForCodec;
-        avr->outbuf = gf_malloc ( outbuf_size );
-        memset ( avr->outbuf, 0, outbuf_size );
-        assert ( avr->outbuf );
+            avr->videoCodecContext->time_base.den = 10;
+        avr->videoCodecContext->gop_size = 0; /* emit one intra frame every ten frames */
+        avr->videoCodecContext->max_b_frames=0;
+        avr->videoCodecContext->pix_fmt = pxlFormatForCodec;
+        avr->videoOutbuf = gf_malloc ( outbuf_size );
+        avr->audioInBufferSize = 0;
+        avr->audioOutBufferSize = 256000;
+        avr->audioInBuf = NULL;
+        avr->audioOutBuf = gf_malloc( avr->audioOutBufferSize );
 
+        memset ( avr->videoOutbuf, 0, outbuf_size );
+        memset (avr->audioOutBuf, 0, avr->audioOutBufferSize);
         /* open it */
-        if ( avcodec_open ( avr->codecContext, avr->codec ) < 0 )
+        if ( avcodec_open ( avr->videoCodecContext, avr->videoCodec ) < 0 )
         {
-            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot open codec.\n" ) );
+            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot open video codec.\n" ) );
+            return GF_CODEC_NOT_FOUND;
+        }
+
+        if (avcodec_open ( avr->audioCodecContext, avr->audioCodec ) < 0 ) {
+            GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot open audio codec.\n" ) );
             return GF_CODEC_NOT_FOUND;
         }
 
@@ -547,7 +647,7 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
     GF_LOG ( GF_LOG_INFO, GF_LOG_MODULE, ( "[AVRedirect] Open output AVI file %s\n", "dump.avi" ) );
 #endif /* AVR_DUMP_RAW_AVI */
     /* Setting up the TS mux */
-    avr->muxer = gf_m2ts_mux_new ( VIDEO_RATE + 10000, 100, 1 );
+    avr->muxer = gf_m2ts_mux_new ( VIDEO_RATE + 10000, 0, 1 );
 
     avr->ts_output_udp_sk = gf_sk_new ( GF_SOCK_TYPE_UDP );
     if ( gf_sk_is_multicast_address ( avr->udp_address ) )
@@ -569,10 +669,11 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
     {
         //u32 cur_pid = 100;	/*PIDs start from 100*/
         GF_M2TS_Mux_Program *program = gf_m2ts_mux_program_add ( avr->muxer, 1, 100, 0, 0 );
+
         avr->video = gf_malloc( sizeof( GF_ESInterface));
         memset( avr->video, 0, sizeof( GF_ESInterface));
         //audio.stream_id = 101;
-        //gf_m2ts_program_stream_add ( program, &audio, 101, 1 );
+        //gf_m2ts_program_stream_add ( program, &audifero, 101, 1 );
         avr->video->stream_id = 101;
         avr->video->stream_type = GF_STREAM_VISUAL;
         avr->video->bit_rate = 410000;
@@ -588,7 +689,30 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
         avr->video->input_ctrl = void_input_ctrl;
         avr->video->caps = GF_ESI_AU_PULL_CAP | GF_ESI_SIGNAL_DTS;
 #endif /* TS_MUX_MODE_PUT */
+
+
+        avr->audio = gf_malloc( sizeof( GF_ESInterface));
+        memset( avr->audio, 0, sizeof( GF_ESInterface));
+        //audio.stream_id = 101;
+        //gf_m2ts_program_stream_add ( program, &audio, 101, 1 );
+        avr->audio->stream_id = 102;
+        avr->audio->stream_type = GF_STREAM_AUDIO;
+        avr->audio->bit_rate = audioCodecBitrate;
+        /* ms resolution */
+        avr->audio->timescale = 1000;
+	
+	avr->audio->object_type_indication = GPAC_OTI_AUDIO_AAC_MPEG2_MP;
+        avr->audio->input_udta = avr;
+#ifdef TS_MUX_MODE_PUT
+        avr->audio->caps = GF_ESI_SIGNAL_DTS;
+#else
+        avr->audio->input_ctrl = void_input_ctrl;
+        avr->audio->caps = GF_ESI_AU_PULL_CAP | GF_ESI_SIGNAL_DTS;
+#endif /* TS_MUX_MODE_PUT */
+
         gf_m2ts_program_stream_add ( program, avr->video, 101, 1 );
+        gf_m2ts_program_stream_add ( program, avr->audio, 102, 0 );
+
         assert( program->streams->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG2);
         printf("Setup done, avr=%p, avr->video=%p\n", avr, &(avr->video));
     }
@@ -603,7 +727,8 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
 #ifdef MULTITHREAD_REDIRECT_AV
     gf_th_run(avr->tsThread, ts_thread_run, avr);
 #endif /* MULTITHREAD_REDIRECT_AV */
-    gf_th_run(avr->encodingThread, encoding_thread_run, avr);
+    gf_th_run(avr->encodingThread, video_encoding_thread_run, avr);
+    gf_th_run(avr->audioEncodingThread, audio_encoding_thread_run, avr);
     return GF_OK;
 }
 
@@ -681,50 +806,51 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
         {
             if ( !opt )
             {
-                avr->codec = avcodec_find_encoder ( CODEC_ID_MPEG2VIDEO );
+                avr->videoCodec = avcodec_find_encoder ( CODEC_ID_MPEG2VIDEO );
             }
             else if ( !strcmp ( "MPEG-1", opt ) )
             {
-                avr->codec=avcodec_find_encoder ( CODEC_ID_MPEG1VIDEO );
+                avr->videoCodec=avcodec_find_encoder ( CODEC_ID_MPEG1VIDEO );
             }
             else if ( !strcmp ( "MPEG-2", opt ) )
             {
-                avr->codec=avcodec_find_encoder ( CODEC_ID_MPEG2VIDEO );
+                avr->videoCodec=avcodec_find_encoder ( CODEC_ID_MPEG2VIDEO );
             }
             else if ( !strcmp ( "MPEG-4", opt ) )
             {
-                avr->codec=avcodec_find_encoder ( CODEC_ID_MPEG4 );
+                avr->videoCodec=avcodec_find_encoder ( CODEC_ID_MPEG4 );
             }
             else if ( !strcmp ( "MSMPEG-4", opt ) )
             {
-                avr->codec=avcodec_find_encoder ( CODEC_ID_MSMPEG4V3 );
+                avr->videoCodec=avcodec_find_encoder ( CODEC_ID_MSMPEG4V3 );
             }
             else if ( !strcmp ( "H263", opt ) )
             {
-                avr->codec=avcodec_find_encoder ( CODEC_ID_H263 );
+                avr->videoCodec=avcodec_find_encoder ( CODEC_ID_H263 );
             }
             else if ( !strcmp ( "RV10", opt ) )
             {
-                avr->codec = avcodec_find_encoder ( CODEC_ID_RV10 );
+                avr->videoCodec = avcodec_find_encoder ( CODEC_ID_RV10 );
             }
             else if ( !strcmp ( "H263P", opt ) )
             {
-                avr->codec=avcodec_find_encoder ( CODEC_ID_H263P );
+                avr->videoCodec=avcodec_find_encoder ( CODEC_ID_H263P );
             }
             else if ( !strcmp ( "H263I", opt ) )
             {
-                avr->codec=avcodec_find_encoder ( CODEC_ID_H263I );
+                avr->videoCodec=avcodec_find_encoder ( CODEC_ID_H263I );
             }
             else if ( !strcmp( "MJPEG", opt))
             {
-                avr->codec=avcodec_find_encoder( CODEC_ID_MJPEG);
+                avr->videoCodec=avcodec_find_encoder( CODEC_ID_MJPEG);
             }
             else
             {
                 GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Not a known Video codec : %s, using MPEG-2 video instead, %s\n", opt, possibleCodecs ) );
-                avr->codec = avcodec_find_encoder ( CODEC_ID_MPEG2VIDEO );
+                avr->videoCodec = avcodec_find_encoder ( CODEC_ID_MPEG2VIDEO );
             }
         }
+        avr->audioCodec = avcodec_find_encoder( CODEC_ID_AAC);
         opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_ADDRESS_OPTION);
         if (!opt) {
             gf_modules_set_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_ADDRESS_OPTION, DEFAULT_UDP_OUT_ADDRESS);
@@ -790,7 +916,10 @@ GF_TermExt *avr_new()
     uir->tsThread = gf_th_new("RedirectAV_TSThread");
 #endif /* MULTITHREAD_REDIRECT_AV */
     uir->frameMutex = gf_mx_new("RedirectAV_frameMutex");
+    uir->audioMutex = gf_mx_new("RedirectAV_audioMutex");
     uir->encodingThread = gf_th_new("RedirectAV_EncodingThread");
+    uir->audioEncodingThread = gf_th_new("RedirectAV_AudioEncodingThread");
+    uir->encode = 1;
     return dr;
 }
 
@@ -836,10 +965,14 @@ void avr_delete ( GF_BaseInterface *ifce )
         gf_sk_del ( avr->ts_output_udp_sk );
         avr->ts_output_udp_sk = NULL;
     }
-    avr->codec = NULL;
-    if ( avr->codecContext )
-        gf_free ( avr->codecContext );
-    avr->codecContext = NULL;
+    avr->videoCodec = NULL;
+    if ( avr->videoCodecContext )
+        gf_free ( avr->videoCodecContext );
+    avr->videoCodecContext = NULL;
+    avr->audioCodec = NULL;
+    if (avr->audioCodecContext)
+        gf_free(avr->audioCodecContext);
+    avr->audioCodecContext = NULL;
     if ( avr->YUVpicture )
     {
         av_free ( avr->YUVpicture );
@@ -856,9 +989,15 @@ void avr_delete ( GF_BaseInterface *ifce )
     if ( avr->swsContext )
         sws_freeContext ( avr->swsContext );
     avr->swsContext = NULL;
-    if ( avr->outbuf )
-        gf_free ( avr->outbuf );
-    avr->outbuf = NULL;
+    if ( avr->videoOutbuf )
+        gf_free ( avr->videoOutbuf );
+    avr->videoOutbuf = NULL;
+    if ( avr->audioOutBuf )
+        gf_free ( avr->audioOutBuf );
+    avr->audioOutBuf = NULL;
+    if ( avr->audioInBuf )
+        gf_free ( avr->audioInBuf );
+    avr->audioInBuf = NULL;
     gf_free ( avr );
     gf_free ( dr );
     dr->udta = NULL;
