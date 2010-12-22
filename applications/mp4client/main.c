@@ -1280,7 +1280,7 @@ int main (int argc, char **argv)
 
 		strcpy(the_url, url_arg);
 		ext = strrchr(the_url, '.');
-		if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
+		if (ext && strncmp("http:", the_url, 5) && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
 			fprintf(stdout, "Opening Playlist %s\n", the_url);
 			playlist = gf_f64_open(the_url, "rt");
 			if (playlist) {
