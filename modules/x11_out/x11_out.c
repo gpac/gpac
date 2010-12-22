@@ -1255,7 +1255,11 @@ xWindow->screennum=0;
 	  int i, nb_bits;
 
 	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsPerComponent");
-	  nb_bits = sOpt ? atoi(sOpt) : 5;
+	  /* Most outputs are 24/32 bits these days, use 8 bits per channel instead of 5, works better on MacOS X */
+	  nb_bits = sOpt ? atoi(sOpt) : 8;
+          if (!sOpt){
+             gf_modules_set_option((GF_BaseInterface *)vout, "Video", "GLNbBitsPerComponent", "8");
+          }
 	  i=0;
 	  attribs[i++] = GLX_RGBA;
 	  attribs[i++] = GLX_RED_SIZE;
@@ -1266,11 +1270,17 @@ xWindow->screennum=0;
 	  attribs[i++] = nb_bits;
 	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth");
 	  nb_bits = sOpt ? atoi(sOpt) : 0;
+          if (!sOpt){
+             gf_modules_set_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth", "0");
+          }
 	  if (nb_bits) {
 		  attribs[i++] = GLX_DEPTH_SIZE;
 		  attribs[i++] = nb_bits;
 	  }
 	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering");
+          if (!sOpt){
+             gf_modules_set_option((GF_BaseInterface *)vout, "Video", "UseGLDoubleBuffering", "yes");
+          }
 	  if (!sOpt || !strcmp(sOpt, "yes")) attribs[i++] = GLX_DOUBLEBUFFER;
 	  attribs[i++] = None;
 	  xWindow->glx_visualinfo = glXChooseVisual(xWindow->display, xWindow->screennum, attribs);
@@ -1292,6 +1302,8 @@ xWindow->screennum=0;
 	XSync(xWindow->display, False);
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "X113DOffscreenMode");
+	if (!sOpt)
+		gf_modules_set_option((GF_BaseInterface *)vout, "Video", "X113DOffscreenMode", "Pixmap");
         if (sOpt && !strcmp(sOpt, "Window")) {
 		xWindow->offscreen_type = 1;
         } else if (sOpt && !strcmp(sOpt, "VisibleWindow")) {
