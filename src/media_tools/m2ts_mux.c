@@ -1507,17 +1507,41 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 			/*force sending the PMT regardless of other streams*/
 			goto send_pck;
 		}
+
+		/*find the PCR stream and send it first to avoid PCR to never be sent*/
 		stream = program->streams;
 		while (stream) {
-			nb_streams++;
-			res = stream->process(muxer, stream);
-			if (res) {
-				if (gf_m2ts_time_less(&stream->time, &time)) {
-					time = stream->time;
-					stream_to_process = stream;
+			if (stream == program->pcr) {
+				nb_streams++;
+				res = stream->process(muxer, stream);
+				if (res) {
+					if (gf_m2ts_time_less(&stream->time, &time)) {
+						time = stream->time;
+						stream_to_process = stream;
+					}
+				} else {
+					if (stream->ifce->caps & GF_ESI_STREAM_IS_OVER) nb_streams_done ++;
 				}
-			} else {
-				if (stream->ifce->caps & GF_ESI_STREAM_IS_OVER) nb_streams_done ++;
+
+				break;
+			}
+			stream = stream->next;
+		}
+
+		/*all streams except PCR*/
+		stream = program->streams;
+		while (stream) {
+			if (stream != program->pcr) {
+				nb_streams++;
+				res = stream->process(muxer, stream);
+				if (res) {
+					if (gf_m2ts_time_less(&stream->time, &time)) {
+						time = stream->time;
+						stream_to_process = stream;
+					}
+				} else {
+					if (stream->ifce->caps & GF_ESI_STREAM_IS_OVER) nb_streams_done ++;
+				}
 			}
 			stream = stream->next;
 		}
