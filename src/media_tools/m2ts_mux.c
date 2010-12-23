@@ -672,7 +672,7 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 		if (stream->ifce->repeat_rate && stream->tables)
 			ret = 1;
 	}
-	else if (stream->pck_offset < stream->pck.data_len) {
+	else if (stream->pck.data_len && stream->pck_offset < stream->pck.data_len) {
 		/*PES packet not completely sent yet*/
 		return 1;
 	}
@@ -1287,7 +1287,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_scale)
 {
 	GF_M2TS_Mux_Stream *stream = (GF_M2TS_Mux_Stream *)_self->output_udta;
-	if (!time_scale)
+	if (!stream || !time_scale)
 		return GF_BAD_PARAM;
 	stream->ts_scale = 90000.0 / time_scale;
 
