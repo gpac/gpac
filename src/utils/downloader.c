@@ -406,7 +406,6 @@ error:
 static Bool gf_dm_is_local(GF_DownloadManager *dm, const char *url)
 {
     if (!strnicmp(url, "file://", 7)) return 1;
-    if (!strnicmp(url, "file:///", 8)) return 1;
     if (!strstr(url, "://")) return 1;
     return 0;
 }
