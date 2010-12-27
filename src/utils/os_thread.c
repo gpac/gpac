@@ -231,8 +231,11 @@ void gf_th_del(GF_Thread *t)
 	Thread_Stop(t, 0);
 #ifdef WIN32
 //	if (t->threadH) CloseHandle(t->threadH);
+#else
+	/* It is necessary to free pthread handle */
+	pthread_detach(t->threadH);
 #endif
-
+	
 #ifndef GPAC_DISABLE_LOG
 	gf_free(t->log_name);
 	log_del_thread(t);
