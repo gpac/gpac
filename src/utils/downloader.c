@@ -317,23 +317,49 @@ gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadManager * d
 
 #ifdef GPAC_HAS_SSL
 
-static int ssl_init(GF_DownloadManager *dm, u32 mode)
-{
-#if OPENSSL_VERSION_NUMBER > 0x00909000
-    const 
-#endif
-    SSL_METHOD *meth;
+static Bool _ssl_is_initialized = 0;
 
-    if (!dm) return 0;
-    /* The SSL has already been initialized. */
-    if (dm->ssl_ctx) return 1;
-    /* Init the PRNG.  If that fails, bail out.  */
+/*!
+ * initialize the SSL library once for all download managers
+ * \return 0 if everyhing is OK, 1 otherwise
+ */
+static Bool init_ssl_lib() {
+    if (_ssl_is_initialized)
+        return 0;
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTPS] Initializing SSL library...\n"));
     init_prng();
-    if (RAND_status() != 1) goto error;
+    if (RAND_status() != 1) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTPS] Error while initializing Random Number generator, failed to init SSL !\n"));
+        return 1;
+    }
     SSL_library_init();
     SSL_load_error_strings();
     SSLeay_add_all_algorithms();
     SSLeay_add_ssl_algorithms();
+    _ssl_is_initialized = 1;
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTPS] Initalization of SSL library complete.\n"));
+    return 0;
+}
+
+static int ssl_init(GF_DownloadManager *dm, u32 mode)
+{
+#if OPENSSL_VERSION_NUMBER > 0x00909000
+    const
+#endif
+    SSL_METHOD *meth;
+
+    if (!dm) return 0;
+    gf_mx_p(dm->cache_mx);
+    /* The SSL has already been initialized. */
+    if (dm->ssl_ctx) {
+        gf_mx_v(dm->cache_mx);
+        return 1;
+    }
+    /* Init the PRNG.  If that fails, bail out.  */
+    if (init_ssl_lib()) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTPS] Failed to properly initialize SSL library\n"));
+        goto error;
+    }
 
     switch (mode) {
     case 0:
@@ -365,14 +391,16 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
     /* Since fd_write unconditionally assumes partial writes (and handles them correctly),
     allow them in OpenSSL.  */
     SSL_CTX_set_mode(dm->ssl_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE);
+    gf_mx_v(dm->cache_mx);
     return 1;
 error:
     if (dm->ssl_ctx) SSL_CTX_free(dm->ssl_ctx);
     dm->ssl_ctx = NULL;
+    gf_mx_v(dm->cache_mx);
     return 0;
 }
 
-#endif
+#endif /* GPAC_HAS_SSL */
 
 
 static Bool gf_dm_is_local(GF_DownloadManager *dm, const char *url)
@@ -577,6 +605,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     if (sess->th) {
         while (!(sess->flags & GF_DOWNLOAD_SESSION_THREAD_DEAD))
             gf_sleep(1);
+        gf_th_stop(sess->th);
         gf_th_del(sess->th);
         gf_mx_del(sess->mx);
     }
@@ -635,7 +664,7 @@ GF_EXPORT
 Bool gf_dm_is_thread_dead(GF_DownloadSession *sess)
 {
     if (!sess) return 1;
-	return (sess->flags & GF_DOWNLOAD_SESSION_THREAD_DEAD) ? 1 : 0;
+    return (sess->flags & GF_DOWNLOAD_SESSION_THREAD_DEAD) ? 1 : 0;
 }
 
 GF_Err gf_dm_sess_last_error(GF_DownloadSession *sess)
@@ -731,7 +760,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
     tmp = strrchr(tmp_url, '@');
     if (tmp) {
         current_pos = tmp + 1;
-	assert( ! info->server_name );
+        assert( ! info->server_name );
         info->server_name = gf_strdup(current_pos);
         tmp[0] = 0;
         tmp = strchr(tmp_url, ':');
@@ -742,7 +771,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
         }
         info->userName = gf_strdup(tmp_url);
     } else {
-	assert( ! info->server_name );
+        assert( ! info->server_name );
         info->server_name = gf_strdup(tmp_url);
     }
 
@@ -796,9 +825,9 @@ GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, const char *url)
     if (e == GF_OK) {
         const char *opt;
         sess->orig_url = gf_strdup(info.canonicalRepresentation);
-	if (sess->remote_path)
-	  gf_free(sess->remote_path);
-	sess->remote_path = NULL;
+        if (sess->remote_path)
+            gf_free(sess->remote_path);
+        sess->remote_path = NULL;
         sess->remote_path = gf_strdup(info.remotePath);
         sess->server_name = info.server_name ? gf_strdup(info.server_name) : NULL;
         if (info.userName) {
@@ -1050,37 +1079,41 @@ static void gf_dm_connect(GF_DownloadSession *sess)
     gf_dm_configure_cache(sess);
 
 #ifdef GPAC_HAS_SSL
-    /*socket is connected, configure SSL layer*/
-    if (!sess->ssl && sess->dm->ssl_ctx && (sess->flags & GF_DOWNLOAD_SESSION_USE_SSL)) {
-        int ret;
-        long vresult;
-        char common_name[256];
-        X509 *cert;
-        Bool success = 1;
+    if (!sess->ssl && (sess->flags & GF_DOWNLOAD_SESSION_USE_SSL)) {
+        if (!sess->dm->ssl_ctx)
+            ssl_init(sess->dm, 0);
+        /*socket is connected, configure SSL layer*/
+        if (sess->dm->ssl_ctx) {
+            int ret;
+            long vresult;
+            char common_name[256];
+            X509 *cert;
+            Bool success = 1;
 
-        sess->ssl = SSL_new(sess->dm->ssl_ctx);
-        SSL_set_fd(sess->ssl, gf_sk_get_handle(sess->sock));
-        SSL_set_connect_state(sess->ssl);
-        ret = SSL_connect(sess->ssl);
-        assert(ret>0);
+            sess->ssl = SSL_new(sess->dm->ssl_ctx);
+            SSL_set_fd(sess->ssl, gf_sk_get_handle(sess->sock));
+            SSL_set_connect_state(sess->ssl);
+            ret = SSL_connect(sess->ssl);
+            assert(ret>0);
 
-        cert = SSL_get_peer_certificate(sess->ssl);
-        /*if we have a cert, check it*/
-        if (cert) {
-            vresult = SSL_get_verify_result(sess->ssl);
-            if (vresult != X509_V_OK) success = 0;
-            else {
-                common_name[0] = 0;
-                X509_NAME_get_text_by_NID(X509_get_subject_name(cert), NID_commonName, common_name, sizeof (common_name));
-                if (!pattern_match(common_name, sess->server_name)) success = 0;
-            }
-            X509_free(cert);
+            cert = SSL_get_peer_certificate(sess->ssl);
+            /*if we have a cert, check it*/
+            if (cert) {
+                vresult = SSL_get_verify_result(sess->ssl);
+                if (vresult != X509_V_OK) success = 0;
+                else {
+                    common_name[0] = 0;
+                    X509_NAME_get_text_by_NID(X509_get_subject_name(cert), NID_commonName, common_name, sizeof (common_name));
+                    if (!pattern_match(common_name, sess->server_name)) success = 0;
+                }
+                X509_free(cert);
 
-            if (!success) {
-                gf_dm_disconnect(sess);
-                sess->status = GF_NETIO_STATE_ERROR;
-                sess->last_error = GF_AUTHENTICATION_FAILURE;
-                gf_dm_sess_notify_state(sess, sess->status, sess->last_error);
+                if (!success) {
+                    gf_dm_disconnect(sess);
+                    sess->status = GF_NETIO_STATE_ERROR;
+                    sess->last_error = GF_AUTHENTICATION_FAILURE;
+                    gf_dm_sess_notify_state(sess, sess->status, sess->last_error);
+                }
             }
         }
     }
@@ -1245,7 +1278,7 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
     if (default_cache_dir)
         gf_free(default_cache_dir);
 #ifdef GPAC_HAS_SSL
-    ssl_init(dm, 0);
+    dm->ssl_ctx = NULL;
 #endif
     /* TODO: Not ready for now, we should find a locking strategy between several GPAC instances...
      * gf_cache_cleanup_cache(dm);
