@@ -686,6 +686,24 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags);
 
 Bool gf_sys_get_battery_state(Bool *onBattery, u32 *onCharge, u32 *level, u32 *batteryLifeTime, u32 *batteryFullLifeTime);
 
+typedef struct _GF_GlobalLock_opaque GF_GlobalLock;
+
+/*!
+ * This function allows the user to create a global lock for all GPAC instances.
+ * This allow to disable some features for other instances for instance.
+ * \param resourceName The name of the resource to lock
+ * \return false if resource has been locked, true if resource could not be locked
+ */
+GF_GlobalLock * gf_global_resource_lock(const char * resourceName);
+
+/*!
+ * Unlock a previouly locked resource
+ * \param lock The resource to unlock
+ * \return GF_OK if evertything went fine
+ */
+GF_Err gf_global_resource_unlock(GF_GlobalLock * lock);
+
+
 /**
  * Gets a newly allocated string containing the default cache directory.
  * It is the responsibility of the caller to free the string.
