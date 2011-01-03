@@ -79,6 +79,7 @@
 /* Font */
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_new) )
 
+/* Memory */
 #ifdef GPAC_MEMORY_TRACKING
 #pragma comment (linker, EXPORT_SYMBOL(gf_mem_malloc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mem_calloc) )
@@ -95,8 +96,18 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_strdup) )
 #endif /*GPAC_MEMORY_TRACKING*/
 
+/* Print */
 #pragma comment (linker, EXPORT_SYMBOL(gf_asprintf) )
 
+/* Ring Buffer */
+#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_read) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_write) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_global_resource_lock) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_available_for_read ) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_ringbuffer_del) )
+
+/* List */
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_count) )
@@ -111,6 +122,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_last) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_list_rem_last) )
 
+/* Bitstream */
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_from_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_del) )
@@ -145,7 +157,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_position) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_bs_get_refreshed_size) )
-	
+
+/* Thread */
 #pragma comment (linker, EXPORT_SYMBOL(gf_th_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_th_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_th_run) )
@@ -153,6 +166,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_th_status) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_th_set_priority) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_th_id) )
+
+/* Lock */
 #pragma comment (linker, EXPORT_SYMBOL(gf_mx_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mx_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mx_v) )
@@ -163,7 +178,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_notify) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_wait) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sema_wait_for) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_global_resource_lock) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_global_resource_unlock) )
 
+/* Socket */
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sk_reset) )
@@ -266,7 +284,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_entry_dup_readonly) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_cache_filename_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_delete_cached_file_entry_session) )
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_url_info_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_get_url_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_url_info_init) )

@@ -120,21 +120,31 @@ exit:
     return 0;
 }
 
-GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerSec, u32 audioBitRateInBitsPerSec) {
-    GF_AbstractTSMuxer * ts = malloc( sizeof(GF_AbstractTSMuxer));
+GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerSec, u32 audioBitRateInBitsPerSec)
+{
+    GF_AbstractTSMuxer * ts = gf_malloc( sizeof(GF_AbstractTSMuxer));
     memset( ts, 0, sizeof( GF_AbstractTSMuxer));
     ts->oc = avformat_alloc_context();
     ts->destination = avr->destination;
     av_register_all();
+#if LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45
+	ts->oc->oformat = guess_stream_format(NULL, avr->destination, NULL);
+#else
     ts->oc->oformat = av_guess_format(NULL, avr->destination, NULL);
-    if (!ts->oc->oformat)
+#endif
+	if (!ts->oc->oformat) {
+#if LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45
+		ts->oc->oformat = guess_stream_format("mpegts", NULL, NULL);
+#else
       ts->oc->oformat = av_guess_format("mpegts", NULL, NULL);
+#endif
+	}
     assert( ts->oc->oformat);
     ts->audio_st = av_new_stream(ts->oc, avr->audioCodec->id);
     {
         AVCodecContext * c = ts->audio_st->codec;
         c->codec_id = avr->audioCodec->id;
-        c->codec_type = AVMEDIA_TYPE_AUDIO;
+        c->codec_type = CODEC_TYPE_AUDIO/*AVMEDIA_TYPE_AUDIO*/;
         /* put sample parameters */
         c->sample_fmt = SAMPLE_FMT_S16;
         c->bit_rate = 96000;
@@ -231,7 +241,7 @@ void ts_amux_del(GF_AbstractTSMuxer * muxerToDelete) {
      * header; otherwise write_trailer may try to use memory that
      * was freed on av_codec_close() */
     if (muxerToDelete->oc) {
-        int i;
+        u32 i;
         /* free the streams */
         for (i = 0; i < muxerToDelete->oc->nb_streams; i++) {
             av_freep(&muxerToDelete->oc->streams[i]->codec);

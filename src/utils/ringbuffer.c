@@ -23,10 +23,11 @@
  */
 #include <gpac/ringbuffer.h>
 
-GF_Ringbuffer * gf_ringbuffer_new(u32 sz){
+GF_Ringbuffer * gf_ringbuffer_new(u32 sz)
+{
   GF_Ringbuffer *rb;
 
-  rb = malloc (sizeof (GF_Ringbuffer));
+  rb = gf_malloc (sizeof (GF_Ringbuffer));
   if (sz % 2 != 0)
     sz++;
   rb->size = sz;
@@ -34,7 +35,7 @@ GF_Ringbuffer * gf_ringbuffer_new(u32 sz){
   rb->size_mask -= 1;
   rb->write_ptr = 0;
   rb->read_ptr = 0;
-  rb->buf = malloc (rb->size);
+  rb->buf = gf_malloc (rb->size);
   rb->mx = gf_mx_new("RingBufferMutex");
   return rb;
 }
@@ -84,7 +85,8 @@ u32 gf_ringbuffer_available_for_read (GF_Ringbuffer * rb)
   }
 }
 
-u32 gf_ringbuffer_read(GF_Ringbuffer *rb, u_int8_t *dest, u32 szDest){
+u32 gf_ringbuffer_read(GF_Ringbuffer *rb, u8 *dest, u32 szDest)
+{
  u32 free_sz, sz2, to_read, n1, n2;
 
   if ((free_sz = gf_ringbuffer_available_for_read(rb)) == 0) {
@@ -116,7 +118,7 @@ u32 gf_ringbuffer_read(GF_Ringbuffer *rb, u_int8_t *dest, u32 szDest){
   return to_read; 
 }
 
-u32 gf_ringbuffer_write (GF_Ringbuffer * rb, const u_int8_t *src, u32 sz)
+u32 gf_ringbuffer_write (GF_Ringbuffer * rb, const u8 *src, u32 sz)
 {
   u32 free_sz, sz2, to_write, n1, n2;
 
