@@ -32,24 +32,10 @@
 #include <gpac/tools.h>
 #include <libavcodec/avcodec.h>
 
-
-#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__MINGW32__)
-
-#define EMULATE_INTTYPES
-#define EMULATE_FAST_INT
-#ifndef inline
-#define inline __inline
-#endif
-
-#if defined(__SYMBIAN32__)
-#define EMULATE_INTTYPES
-#endif
-
-
-#ifndef __MINGW32__
-#define __attribute__(s)
-#endif
-
+#if (LIBAVCODEC_VERSION_MAJOR <= 52) && (LIBAVCODEC_VERSION_MINOR <= 20)
+#undef USE_AVCODEC2
+#else
+#define USE_AVCODEC2	1
 #endif
 
 #define TS_MUX_MODE_PUT
@@ -85,9 +71,8 @@ typedef struct
     AVFrame *YUVpicture, *RGBpicture;
     struct SwsContext * swsContext;
     uint8_t * yuv_data;
-    u32 srcWidth;
-    u32 srcHeight;
     uint8_t * videoOutbuf;
+    u32 videoOutbufSize;
     GF_Ringbuffer * pcmAudio;
     u32 audioCurrentTime;
     GF_Thread * encodingThread;
@@ -97,15 +82,22 @@ typedef struct
     volatile Bool is_running;
     u64 frameTime;
     u64 frameTimeEncoded;
-/*
-    const char * udp_address;
-    u16 udp_port;
-*/
+    /**
+     * Audio parameters for encoding
+     */
+    u32 audioSampleRate;
+    u16 audioChannels;
+    /**
+     * Video parameters for encoding
+     */
+    u32 srcWidth;
+    u32 srcHeight;
     const char * destination;
     GF_GlobalLock * globalLock;
+    Bool started;
 } GF_AVRedirect;
 
-GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerSec, u32 audioBitRateInBitsPerSec);
+GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerSec, u32 width, u32 height, u32 audioBitRateInBitsPerSec);
 
 void ts_amux_del(GF_AbstractTSMuxer * muxerToDelete);
 
