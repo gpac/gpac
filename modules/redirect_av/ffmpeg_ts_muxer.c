@@ -42,8 +42,10 @@ static AVPacketList * wait_for_packet(GF_AbstractTSMuxer* ts, GF_Mutex * mx, AVP
         gf_mx_v(mx);
         gf_mx_p(mx);
     }
-    if (!ts->encode)
+    if (!ts->encode) {
+        gf_mx_v(mx);
         return NULL;
+    }
     p = *pkts;
     *pkts = p->next;
     gf_mx_v(mx);
@@ -57,6 +59,7 @@ static Bool ts_interleave_thread_run(void *param) {
     AVStream * audio_st = mux->audio_st;
     u64 audio_pts, video_pts;
     u64 audioSize, videoSize, videoKbps, audioKbps;
+    u32 pass;
     u32 now, start;
     /* open the output file, if needed */
     if (!(mux->oc->oformat->flags & AVFMT_NOFILE)) {
@@ -69,49 +72,75 @@ static Bool ts_interleave_thread_run(void *param) {
     av_write_header(mux->oc);
     audio_pts = video_pts = 0;
     // Buffering...
-    gf_sleep(2000);
+    gf_sleep(1000);
     now = start = gf_sys_clock();
     audioSize = videoSize = 0;
     audioKbps = videoKbps = 0;
+    pass = 0;
     while ( mux->encode) {
-        now = gf_sys_clock();
-        if (now - start > 2000) {
-            videoKbps = videoSize * 8000 / (now-start) / 1024;
-            audioKbps = audioSize * 8000 / (now-start) / 1024;
-            audioSize = videoSize = 0;
-            start = now;
+        pass++;
+        if (0== (pass%16)) {
+            now = gf_sys_clock();
+            if (now - start > 1000) {
+                videoKbps = videoSize * 8000 / (now-start) / 1024;
+                audioKbps = audioSize * 8000 / (now-start) / 1024;
+                audioSize = videoSize = 0;
+                start = now;
+                printf("\rPTS audio="LLU" ("LLU"kbps), video="LLU" ("LLU"kbps)", audio_pts, audioKbps, video_pts, videoKbps);
+                fflush(stdout);
+            }
         }
-        /* compute current audio and video time */
-        printf("\rPTS audio="LLU" ("LLU"kbps), video="LLU" ("LLU"kbps)", audio_pts, audioKbps, video_pts, videoKbps);
-        fflush(stdout);
         /* write interleaved audio and video frames */
         if (!video_st ||
                 (audio_pts == AV_NOPTS_VALUE && has_packet_ready(mux, mux->audioMx, &mux->audioPackets)) ||
-                ((video_st && audio_st && audio_pts < video_pts && audio_pts!= AV_NOPTS_VALUE))) {
+                ((audio_st && audio_pts < video_pts && audio_pts!= AV_NOPTS_VALUE))) {
             AVPacketList * pl = wait_for_packet(mux, mux->audioMx, &mux->audioPackets);
             if (!pl)
                 goto exit;
             audio_pts = pl->pkt.pts ;
             audioSize+=pl->pkt.size;
+            if (pl->pkt.pts == AV_NOPTS_VALUE) {
+                pl->pkt.pts = 0;
+            }
             if (av_interleaved_write_frame(mux->oc, &(pl->pkt)) < 0) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] : failed to write interleaved frame\n"));
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] : failed to write audio interleaved frame audio_pts="LLU", video_pts="LLU"\n", audio_pts, video_pts));
             }
             gf_free(pl);
         } else {
             AVPacketList * pl = wait_for_packet(mux, mux->videoMx, &mux->videoPackets);
             if (!pl)
                 goto exit;
+            video_pts = pl->pkt.pts;
+            /* write the compressed frame in the media file */
+            if (0 && audio_pts != AV_NOPTS_VALUE && audio_pts > video_pts && pl->next) {
+                u32 skipped = 0;
+                u64 first = video_pts;
+                /* We may be too slow... */
+                gf_mx_p(mux->videoMx);
+                while (video_pts < audio_pts && pl->next) {
+                    AVPacketList * old = pl;
+                    // We skip frames...
+                    pl = pl->next;
+                    video_pts = pl->pkt.pts;
+                    skipped++;
+                    gf_free(old);
+                }
+                mux->videoPackets = pl->next;
+                gf_mx_v(mux->videoMx);
+                if (skipped > 0)
+                    GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("Skipped %u video frames, frame was "LLU", but is now "LLU"\n", skipped, first, video_pts));
+            }
             videoSize+=pl->pkt.size;
             video_pts = pl->pkt.pts; // * video_st->time_base.num / video_st->time_base.den;
-            /* write the compressed frame in the media file */
-            //printf("*** Put video %p\n", pl);
+            assert( video_pts);
             if (av_interleaved_write_frame(mux->oc, &(pl->pkt)) < 0) {
-                GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] : failed to write interleaved frame\n"));
+                GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] : failed to write video interleaved frame audio_pts="LLU", video_pts="LLU"\n", audio_pts, video_pts));
             }
             gf_free(pl);
         }
     }
 exit:
+    GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[AVRedirect] Ending TS thread...\n"));
     av_write_trailer(mux->oc);
     if (!(mux->oc->oformat->flags & AVFMT_NOFILE)) {
         /* close the output file */
@@ -120,36 +149,35 @@ exit:
     return 0;
 }
 
-GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerSec, u32 audioBitRateInBitsPerSec)
-{
+
+#if LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45
+#define GUESS_FORMAT guess_stream_format
+#else
+#define GUESS_FORMAT av_guess_format
+#endif /*  LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45 */
+
+GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerSec, u32 width, u32 height, u32 audioBitRateInBitsPerSec) {
     GF_AbstractTSMuxer * ts = gf_malloc( sizeof(GF_AbstractTSMuxer));
     memset( ts, 0, sizeof( GF_AbstractTSMuxer));
     ts->oc = avformat_alloc_context();
     ts->destination = avr->destination;
     av_register_all();
-#if LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45
-	ts->oc->oformat = guess_stream_format(NULL, avr->destination, NULL);
-#else
-    ts->oc->oformat = av_guess_format(NULL, avr->destination, NULL);
-#endif
-	if (!ts->oc->oformat) {
-#if LIBAVFORMAT_VERSION_MAJOR < 53 && LIBAVFORMAT_VERSION_MINOR < 45
-		ts->oc->oformat = guess_stream_format("mpegts", NULL, NULL);
-#else
-      ts->oc->oformat = av_guess_format("mpegts", NULL, NULL);
-#endif
-	}
+    ts->oc->oformat = GUESS_FORMAT(NULL, avr->destination, NULL);
+    if (!ts->oc->oformat)
+        ts->oc->oformat = GUESS_FORMAT("mpegts", NULL, NULL);
     assert( ts->oc->oformat);
     ts->audio_st = av_new_stream(ts->oc, avr->audioCodec->id);
     {
         AVCodecContext * c = ts->audio_st->codec;
         c->codec_id = avr->audioCodec->id;
-        c->codec_type = CODEC_TYPE_AUDIO/*AVMEDIA_TYPE_AUDIO*/;
+        c->codec_type = CODEC_TYPE_AUDIO /*AVMEDIA_TYPE_AUDIO*/;
         /* put sample parameters */
         c->sample_fmt = SAMPLE_FMT_S16;
-        c->bit_rate = 96000;
-        c->sample_rate = 32000;
+        c->bit_rate = audioBitRateInBitsPerSec;
+        c->sample_rate = avr->audioSampleRate;
         c->channels = 2;
+	c->time_base.num = 1;
+	c->time_base.den = 1000;
         // some formats want stream headers to be separate
         if (ts->oc->oformat->flags & AVFMT_GLOBALHEADER)
             c->flags |= CODEC_FLAG_GLOBAL_HEADER;
@@ -164,8 +192,8 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
         /* put sample parameters */
         c->bit_rate = videoBitrateInBitsPerSec;
         /* resolution must be a multiple of two */
-        c->width = 320;
-        c->height = 240;
+        c->width = width;
+        c->height = height;
         /* time base: this is the fundamental unit of time (in seconds) in terms
            of which frame timestamps are represented. for fixed-fps content,
            timebase should be 1/framerate and timestamp increments should be
@@ -189,7 +217,7 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
             c->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
     }
-
+    //av_set_pts_info(ts->audio_st, 33, 1, audioBitRateInBitsPerSec);
     /* set the output parameters (must be done even if no
        parameters). */
     if (av_set_parameters(ts->oc, NULL) < 0) {
@@ -259,36 +287,36 @@ Bool ts_encode_audio_frame(GF_AbstractTSMuxer * ts, uint8_t * data, int encoded,
     AVPacket * pkt;
     if (!ts->encode)
         return 1;
-    gf_mx_p(ts->audioMx);
     pl = gf_malloc(sizeof(AVPacketList));
     pl->next = NULL;
     pkt = &(pl->pkt);
     av_init_packet(pkt);
     assert( ts->audio_st);
     assert( ts->audio_st->codec);
+    pkt->flags = 0;
     if (ts->audio_st->codec->coded_frame) {
+        if (ts->audio_st->codec->coded_frame->key_frame)
+            pkt->flags = PKT_FLAG_KEY;
         if (ts->audio_st->codec->coded_frame->pts != AV_NOPTS_VALUE) {
-            //pkt->pts= av_rescale_q(ts->audio_st->codec->coded_frame->pts, ts->audio_st->codec->time_base, ts->audio_st->time_base);
-            pkt->pts = ts->audio_st->codec->coded_frame->pts * ts->audio_st->time_base.den / ts->audio_st->time_base.num / 1000;
-            //pkt->pts = ts->audio_st->codec->coded_frame->pts;
+            pkt->pts = av_rescale_q(ts->audio_st->codec->coded_frame->pts, ts->audio_st->codec->time_base, ts->audio_st->time_base);
         } else {
             if (pts == AV_NOPTS_VALUE)
                 pkt->pts = AV_NOPTS_VALUE;
-            else
-                pkt->pts = pts * ts->audio_st->time_base.den / ts->audio_st->time_base.num / 1000;
+            else {
+                pkt->pts = av_rescale_q(pts, ts->audio_st->codec->time_base, ts->audio_st->time_base);
+	    }
         }
     } else {
-        printf("No coded frame, using default PTS\n");
         if (pts == AV_NOPTS_VALUE)
             pkt->pts = AV_NOPTS_VALUE;
         else
-            pkt->pts = pts * ts->audio_st->time_base.den / ts->audio_st->time_base.num / 1000;
+            pkt->pts = av_rescale_q(pts, ts->audio_st->codec->time_base, ts->audio_st->time_base);
     }
-    pkt->flags |= PKT_FLAG_KEY;
     pkt->stream_index= ts->audio_st->index;
     pkt->data = data;
     pkt->size = encoded;
-    //printf("AUDIO PTS="LLU" was: "LLU" (%p)\n", pkt->pts, ts->audio_st->codec->coded_frame->pts, pl);
+    //printf("AUDIO PTS="LLU" was: "LLU" (%p)\n", pkt->pts, pts, pl);
+    gf_mx_p(ts->audioMx);
     if (!ts->audioPackets)
         ts->audioPackets = pl;
     else {
@@ -306,7 +334,6 @@ Bool ts_encode_video_frame(GF_AbstractTSMuxer* ts, uint8_t* data, int encoded) {
     AVPacket * pkt;
     if (!ts->encode)
         return 1;
-    gf_mx_p(ts->videoMx);
     pl = gf_malloc(sizeof(AVPacketList));
     pl->next = NULL;
     pkt = &(pl->pkt);
@@ -324,6 +351,7 @@ Bool ts_encode_video_frame(GF_AbstractTSMuxer* ts, uint8_t* data, int encoded) {
     pkt->data= data;
     pkt->size= encoded;
     //printf("VIDEO PTS="LLU" was: "LLU" (%p)\n", pkt->pts, ts->video_st->codec->coded_frame->pts, pl);
+    gf_mx_p(ts->videoMx);
     if (!ts->videoPackets)
         ts->videoPackets = pl;
     else {
@@ -337,9 +365,9 @@ Bool ts_encode_video_frame(GF_AbstractTSMuxer* ts, uint8_t* data, int encoded) {
 }
 
 AVCodecContext * ts_get_video_codec_context(GF_AbstractTSMuxer * ts) {
-    return ts->video_st->codec;
+    return !ts ? NULL : ts->video_st->codec;
 }
 
 AVCodecContext * ts_get_audio_codec_context(GF_AbstractTSMuxer * ts) {
-    return ts->audio_st->codec;
+    return !ts ? NULL : ts->audio_st->codec;
 }
