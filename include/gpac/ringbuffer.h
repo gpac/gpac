@@ -85,7 +85,7 @@ u32 gf_ringbuffer_available_for_read (GF_Ringbuffer * rb);
  * \param sz the size of source
  * \return Returns the actual number of bytes copied, may be lower than sz if ringbuffer is already full
  */
-u32 gf_ringbuffer_write (GF_Ringbuffer * rb, const u_int8_t * src, size_t sz);
+u32 gf_ringbuffer_write (GF_Ringbuffer * rb, const u_int8_t * src, u32 sz);
  
 #ifdef __cplusplus
 }
