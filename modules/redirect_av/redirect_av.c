@@ -23,6 +23,28 @@
  *
  */
 #include <stdlib.h>
+
+/*portability for ffmpeg*/
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__MINGW32__) 
+ 
+#define EMULATE_INTTYPES 
+#define EMULATE_FAST_INT 
+#ifndef inline 
+#define inline __inline 
+#endif 
+ 
+#if defined(__SYMBIAN32__) 
+#define EMULATE_INTTYPES 
+#endif 
+ 
+ 
+#ifndef __MINGW32__ 
+#define __attribute__(s) 
+#endif 
+ 
+#endif 
+
+
 #include "ts_muxer.h"
 
 #define USE_GPAC_MPEG2TS
@@ -36,6 +58,7 @@
 
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
+#include <libavutil/avutil.h>
 
 /* This number * 188 should be lower than the UDP packet size */
 #define TS_PACKETS_PER_UDP_PACKET 1
@@ -142,8 +165,7 @@ static void avr_on_video_reconfig ( void *udta, u32 width, u32 height )
  */
 static Bool audio_encoding_thread_run(void *param)
 {
-    u_int8_t * inBuff;
-    u_int8_t * outBuff;
+    u8 *inBuff, *outBuff;
     u32 samplesReaden, toRead;
     u64 myTime = 0;
     u32 frameCountSinceReset = 0;
@@ -162,8 +184,8 @@ static Bool audio_encoding_thread_run(void *param)
     //printf("SETUP input sample size=%u, output samplesize=%u, buffsize=%u, samplesReaden=%u\n", ctx->input_sample_size, ctx->frame_size, sizeof(outbuf), samplesReaden);
     // 2 chars are needed for each short
     toRead = samplesReaden * 2;
-    inBuff = malloc(toRead * sizeof(u_int8_t));
-    outBuff = malloc(toRead * sizeof(u_int8_t));
+    inBuff = gf_malloc(toRead * sizeof(u8));
+    outBuff = gf_malloc(toRead * sizeof(u8));
     while (avr->is_running && !avr->audioCurrentTime) {
         gf_sleep(1);
     }
@@ -229,12 +251,13 @@ static Bool audio_encoding_thread_run(void *param)
  */
 static Bool video_encoding_thread_run(void *param)
 {
+	AVCodecContext * ctx;
     GF_AVRedirect * avr = (GF_AVRedirect*) param;
     u32 currentFrameTimeProcessed = 0;
     u32 lastEncodedFrameTime = 0;
     assert( avr );
     gf_sc_add_video_listener ( avr->term->compositor, &avr->video_listen );
-    AVCodecContext * ctx = ts_get_video_codec_context(avr->ts_implementation);
+    ctx = ts_get_video_codec_context(avr->ts_implementation);
     printf("******* Video Codec Context = %d/%d, start="LLU"\n", ctx->time_base.num, ctx->time_base.den, ctx->timecode_frame_start);
     while (avr->is_running) {
         {

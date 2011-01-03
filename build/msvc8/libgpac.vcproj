@@ -966,6 +966,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\..\src\utils\ringbuffer.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\utils\token.c"
 				>
 				<FileConfiguration

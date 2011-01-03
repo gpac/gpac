@@ -1440,7 +1440,7 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
   char * pidfile;
   int flags;
   int status;
-  pidfile = malloc(strlen(dir)+strlen(prefix)+strlen(resourceName)+1);
+  pidfile = gf_malloc(strlen(dir)+strlen(prefix)+strlen(resourceName)+1);
   strcpy(pidfile, dir);
   strcat(pidfile, prefix);
   /* Use only valid names for file */
@@ -1500,8 +1500,8 @@ GF_GlobalLock * gf_create_PID_file( const char * resourceName )
   }
   sync();
   {
-      GF_GlobalLock * lock = malloc( sizeof(GF_GlobalLock));
-      lock->resourceName = strdup(resourceName);
+      GF_GlobalLock * lock = gf_malloc( sizeof(GF_GlobalLock));
+      lock->resourceName = gf_strdup(resourceName);
       lock->pidFile = pidfile;
       lock->fd = fd;
       return lock;
@@ -1513,7 +1513,7 @@ exit:
 }
 
 #else /* WIN32 */
-#warning("gf_global_resource_lock() not implemented")
+#pragma message("gf_global_resource_lock() not implemented")
 struct _GF_GlobalLock_opaque {
     char * resourceName;
 };
@@ -1523,10 +1523,10 @@ struct _GF_GlobalLock_opaque {
 
 GF_GlobalLock * gf_global_resource_lock(const char * resourceName){
 #ifdef WIN32
-  GF_GlobalLock * lock = malloc(sizeof(GF_GlobalLock));
-  lock->resourceName = strdup( resourceName );
+  GF_GlobalLock * lock = gf_malloc(sizeof(GF_GlobalLock));
+  lock->resourceName = gf_strdup( resourceName );
   /* TODO : implement this properly for Windows... */
-  return lock
+  return lock;
 #else /* WIN32 */
   return gf_create_PID_file(resourceName);
 #endif /* WIN32 */

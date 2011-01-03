@@ -34,7 +34,7 @@ extern "C" {
 
 typedef struct
 {
-  u_int8_t    *buf;
+  u8           *buf;
   volatile u32 write_ptr;
   volatile u32 read_ptr;
   u32          size;
@@ -67,7 +67,7 @@ void gf_ringbuffer_del(GF_Ringbuffer * ringbuffer);
  * \param szDest Size of destination
  * \return the number of bytes readen
  */
-u32 gf_ringbuffer_read(GF_Ringbuffer *rb, u_int8_t *dest, u32 szDest);
+u32 gf_ringbuffer_read(GF_Ringbuffer *rb, u8 *dest, u32 szDest);
 
 /*!
  * Return the number of bytes available for reading.  This is the
@@ -85,7 +85,7 @@ u32 gf_ringbuffer_available_for_read (GF_Ringbuffer * rb);
  * \param sz the size of source
  * \return Returns the actual number of bytes copied, may be lower than sz if ringbuffer is already full
  */
-u32 gf_ringbuffer_write (GF_Ringbuffer * rb, const u_int8_t * src, u32 sz);
+u32 gf_ringbuffer_write (GF_Ringbuffer * rb, const u8 * src, u32 sz);
  
 #ifdef __cplusplus
 }
