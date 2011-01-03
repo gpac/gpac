@@ -235,7 +235,7 @@ void gf_th_del(GF_Thread *t)
 	/* It is necessary to free pthread handle */
 	if (t->threadH)
 	  pthread_detach(t->threadH);
-	t->threadH = NULL;
+	t->threadH = 0;
 #endif
 	
 #ifndef GPAC_DISABLE_LOG
