@@ -2116,7 +2116,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             FILE * f;
             filename = gf_cache_get_cache_filename(sess->cache_entry);
             GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Sending data to modules from %s...\n", filename));
-            f = fopen(filename, "rb");
+            f = gf_f64_open(filename, "rb");
             assert(filename);
             if (!f) {
                 GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] FAILED to open cache file %s for reading contents !\n", filename));
@@ -2339,8 +2339,8 @@ GF_Err gf_dm_copy(const char * file_source, const char * file_dest) {
     char buff[FILE_W_BUFFER_SZ];
     u32 readen, written;
     GF_Err e = GF_OK;
-    source = fopen(file_source, "rb");
-    dest = fopen( file_dest, "wb");
+    source = gf_f64_open(file_source, "rb");
+    dest = gf_f64_open( file_dest, "wb");
     if (!source || !dest) {
         e = GF_IO_ERR;
         goto cleanup;
@@ -2459,13 +2459,13 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
         if (newFilename == NULL)
             return NULL;
         snprintf(newFilename, maxLen, "%s " LLU LLU, orig, startOffset, endOffset);
-        fw = fopen(newFilename, "wb");
+        fw = gf_f64_open(newFilename, "wb");
         if (!fw) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open partial cache file %s for write\n", newFilename));
             gf_free( newFilename );
             return NULL;
         }
-        fr = fopen(orig, "rb");
+        fr = gf_f64_open(orig, "rb");
         if (!fr) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open full cache file %s\n", orig));
             gf_free( newFilename );

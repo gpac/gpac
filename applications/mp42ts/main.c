@@ -648,7 +648,7 @@ static Bool seng_output(void *param)
 					fprintf(stderr, "Update file modified - processing\n");
 					last_src_modif = mod_time;
 
-					srcf = fopen(prog->src_name, "rt");
+					srcf = gf_f64_open(prog->src_name, "rt");
 					if (!srcf) continue;
 
 					/*checks if we have a broadcast config*/
@@ -1007,9 +1007,9 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 			fprintf(stderr, "Error opening %s - no such file\n", src);
 			return 0;
 		}
-		fseek(_sdp, 0, SEEK_END);
-		sdp_size = ftell(_sdp);
-		fseek(_sdp, 0, SEEK_SET);
+		gf_f64_seek(_sdp, 0, SEEK_END);
+		sdp_size = gf_f64_tell(_sdp);
+		gf_f64_seek(_sdp, 0, SEEK_SET);
 		sdp_buf = (char*)gf_malloc(sizeof(char)*sdp_size);
 		memset(sdp_buf, 0, sizeof(char)*sdp_size);
 		sdp_size = fread(sdp_buf, 1, sdp_size, _sdp);

@@ -299,7 +299,7 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		/*looks like a live stream*/
 		if (read->is_live) {
 		  if (read->liveDataCopySize < param->size){
-		      read->liveDataCopy = realloc(read->liveDataCopy, param->size);
+		      read->liveDataCopy = gf_realloc(read->liveDataCopy, param->size);
 		  }
 		  memcpy(read->liveDataCopy, param->data, param->size);
 		  if (!e) MP3_OnLiveData(read, read->liveDataCopy, param->size);

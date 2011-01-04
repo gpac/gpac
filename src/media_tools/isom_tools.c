@@ -658,7 +658,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 		}
 		strcpy(SegName, output_file);
 		strcat(SegName, ".mpd");
-		mpd = fopen(SegName, "wt");
+		mpd = gf_f64_open(SegName, "wt");
 	} else {
 		output = gf_isom_open(output_file, GF_ISOM_OPEN_WRITE, NULL);
 		if (!output) return gf_isom_last_error(NULL);

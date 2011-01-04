@@ -155,7 +155,7 @@ static Bool uir_process(GF_TermExt *termext, u32 action, void *param)
 		if (!opt) return 0;
 
 		if (!strcmp(opt, "Play")) {
-			uir->uif = fopen(uifile, "rb");
+			uir->uif = gf_f64_open(uifile, "rb");
 			if (!uir->uif) return 0;
 			uir->bs = gf_bs_from_file(uir->uif, GF_BITSTREAM_READ);
 			termext->caps |= GF_TERM_EXTENSION_NOT_THREADED;
