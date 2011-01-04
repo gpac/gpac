@@ -104,7 +104,7 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt = strrchr(url, '.');
 	if (sExt) {
-		Bool ok;
+		Bool ok = 0;
 		char *cgi_par;
 		if (!strnicmp(sExt, ".gz", 3)) sExt = strrchr(sExt, '.');
 		if (!strnicmp(url, "rtsp://", 7)) return 0;
