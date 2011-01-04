@@ -1244,7 +1244,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			gf_f64_seek(f, 0, SEEK_SET);
 			assert(*video_buffer_size);
 			*video_buffer = (char*) gf_malloc(*video_buffer_size);
-			fread(*video_buffer, 1, *video_buffer_size, f);
+			assert(*video_buffer_size == fread(*video_buffer, sizeof(char), *video_buffer_size, f));
 			fclose(f);
 		} else if (!strnicmp(arg, "-audio=", 7)) {
 			if (audio_input_found) {
