@@ -218,8 +218,8 @@ static int unzlocal_getShort (pzlib_filefunc_def,filestream,pX)
     uLong *pX;
 {
     uLong x ;
-    int i;
     int err;
+    int i = 0;
 
     err = unzlocal_getByte(pzlib_filefunc_def,filestream,&i);
     x = (uLong)i;
