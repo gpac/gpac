@@ -573,12 +573,12 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	mime_type = NULL;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Looking for plugin for URL %s\n", url));
 	*out_url = NULL;
+	sURL = NULL;
 	if (!url || !strncmp(url, "\\\\", 2) ) {
 		(*ret_code) = GF_URL_ERROR;
 		goto exit;
 	}
-
-	sURL = NULL;
+	
 	/*used by GUIs scripts to skip URL concatenation*/
 	if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
 	else if (parent_url) sURL = gf_url_concatenate(parent_url, url);
