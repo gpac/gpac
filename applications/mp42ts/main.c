@@ -1583,6 +1583,7 @@ int main(int argc, char **argv)
 	segment_dir = NULL;
 	prev_seg_time.sec = 0;
 	prev_seg_time.nanosec = 0;
+	video_buffer_size = 0;
 	aac_reader = AAC_Reader_new();
 	
 	/***********************/
