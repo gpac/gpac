@@ -408,12 +408,12 @@ GF_Err gf_img_png_file_dec(char *png_filename, u32 *width, u32 *height, u32 *pix
     FILE *f;
     char *data;
     GF_Err e;
-    f = fopen(png_filename, "rb");
+    f = gf_f64_open(png_filename, "rb");
     if (!f) return GF_URL_ERROR;
 
-    fseek(f, 0, SEEK_END);
-    fsize = (u32)ftell(f);
-    fseek(f, 0, SEEK_SET);
+    gf_f64_seek(f, 0, SEEK_END);
+    fsize = (u32)gf_f64_tell(f);
+    gf_f64_seek(f, 0, SEEK_SET);
     data = gf_malloc(fsize);
     readen = fread(data, sizeof(char), fsize, f);
     if (readen != fsize){

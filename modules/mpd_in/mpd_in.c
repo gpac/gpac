@@ -186,7 +186,7 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Playlist will be refresh every %g seconds, len=%d\n", update_interval, pe->durationInfo));
     }
 
-    fmpd = fopen(m3u8_file, "wt");
+    fmpd = gf_f64_open(m3u8_file, "wt");
     fprintf(fmpd, "<MPD type=\"Live\" xmlns=\"urn:3GPP:ns:PSS:AdaptiveHTTPStreamingMPD:2009\" ");
     if (update_interval) fprintf(fmpd, "minimumUpdatePeriodMPD=\"PT%02.2gS\"", update_interval);
     fprintf(fmpd, ">\n");

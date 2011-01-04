@@ -523,7 +523,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
     assert( ! entry->writeFilePtr);
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
            ("[CACHE] Opening cache file %s for write (%s)...", entry->cache_filename, entry->url));
-    entry->writeFilePtr = fopen(entry->cache_filename, "wb");
+    entry->writeFilePtr = gf_f64_open(entry->cache_filename, "wb");
     if (!entry->writeFilePtr) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK,
                ("[CACHE] Error while opening cache file %s for writting.", entry->cache_filename));

@@ -329,14 +329,14 @@ static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 		evt->key_code = GF_KEY_ALT;
 		evt->flags = GF_KEY_EXT_RIGHT;
 		break;
-	case SDLK_LSUPER:
+/*	case SDLK_LSUPER:
 		evt->key_code = GF_KEY_META;
 		evt->flags = GF_KEY_EXT_LEFT;
 		break;
 	case SDLK_RSUPER:
 		evt->key_code = GF_KEY_META;
 		evt->flags = GF_KEY_EXT_RIGHT;
-		break;
+		break;*/
 	case SDLK_MODE: evt->key_code = GF_KEY_MODECHANGE; break;
 	case SDLK_COMPOSE: evt->key_code = GF_KEY_COMPOSE; break;
 	case SDLK_HELP: evt->key_code = GF_KEY_HELP; break;

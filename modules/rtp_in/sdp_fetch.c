@@ -57,14 +57,14 @@ void RP_SDPFromFile(RTPClient *rtp, char *file_name, RTPStream *stream)
 	sdp_buf = NULL;
 
 	if (file_name && strstr(file_name, "file://")) file_name += strlen("file://");
-	if (!file_name || !(_sdp = fopen(file_name, "rt")) ) {
+	if (!file_name || !(_sdp = gf_f64_open(file_name, "rt")) ) {
 		gf_term_on_connect(rtp->service, NULL, GF_URL_ERROR);
 		return;
 	}
 
-	fseek(_sdp, 0, SEEK_END);
-	sdp_size = ftell(_sdp);
-	fseek(_sdp, 0, SEEK_SET);
+	gf_f64_seek(_sdp, 0, SEEK_END);
+	sdp_size = gf_f64_tell(_sdp);
+	gf_f64_seek(_sdp, 0, SEEK_SET);
 	sdp_buf = (char*)gf_malloc(sdp_size);
 	if (1 > fread(sdp_buf, 1, sdp_size, _sdp)){
 	  gf_term_on_connect(rtp->service, NULL, GF_URL_ERROR);
