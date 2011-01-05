@@ -1638,7 +1638,7 @@ int main(int argc, char **argv)
 	if (udp_out != NULL) {
 		ts_output_udp_sk = gf_sk_new(GF_SOCK_TYPE_UDP);
 		if (gf_sk_is_multicast_address((char *)udp_out)) {
-			e = gf_sk_setup_multicast(ts_output_udp_sk, (char *)udp_out, output_port, 0, 0, NULL);
+			e = gf_sk_setup_multicast(ts_output_udp_sk, (char *)udp_out, output_port, 32, 0, NULL);
 		} else {
 			e = gf_sk_bind(ts_output_udp_sk, NULL, output_port, (char *)udp_out, output_port, GF_SOCK_REUSE_PORT);
 		}
@@ -1690,7 +1690,7 @@ int main(int argc, char **argv)
 		case GF_MP42TS_UDP:
 			audio_input_udp_sk = gf_sk_new(GF_SOCK_TYPE_UDP);
 			if (gf_sk_is_multicast_address((char *)audio_input_ip)) {
-				e = gf_sk_setup_multicast(audio_input_udp_sk, (char *)audio_input_ip, audio_input_port, 0, 0, NULL);
+				e = gf_sk_setup_multicast(audio_input_udp_sk, (char *)audio_input_ip, audio_input_port, 32, 0, NULL);
 			} else {
 				e = gf_sk_bind(audio_input_udp_sk, NULL, audio_input_port, (char *)audio_input_ip, audio_input_port, GF_SOCK_REUSE_PORT);
 			}
