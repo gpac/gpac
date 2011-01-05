@@ -1518,6 +1518,7 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 					if (gf_m2ts_time_less(&stream->time, &time)) {
 						time = stream->time;
 						stream_to_process = stream;
+						goto send_pck;
 					}
 				} else {
 					if (stream->ifce->caps & GF_ESI_STREAM_IS_OVER) nb_streams_done ++;
