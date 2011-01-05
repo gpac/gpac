@@ -4236,8 +4236,16 @@ restart_import:
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 
 		/*consume next start code*/
+		nal_start = AVC_NextStartCode(bs);
+		if (nal_start) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid nal_size? Skipping %d bytes to reach next start code\n", nal_start));
+			gf_bs_skip_bytes(bs, nal_start);
+		}
 		nal_start = AVC_IsStartCode(bs);
-		assert(nal_start);
+		if (!nal_start) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] error: no start code found ("LLU" bytes read out of "LLU") - leaving\n", gf_bs_get_position(bs), gf_bs_get_size(bs)));
+			break;
+		}
 		nal_start = gf_bs_get_position(bs);
 	}
 
