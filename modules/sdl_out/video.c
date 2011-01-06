@@ -22,8 +22,11 @@
  *		
  */
 
+#if __APPLE__ && defined GPAC_IPHONE && ( defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR) )
+#define GPAC_IPHONE_BUILD
+#endif
 
-#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+#ifdef GPAC_IPHONE_BUILD
 #include "libgpac_symbols.h"
 #else
 #include "sdl_out.h"
@@ -417,7 +420,7 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 }
 
 
-#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+#ifdef GPAC_IPHONE_BUILD
 #define SDL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_RESIZABLE | SDL_NOFRAME
 #define SDL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_FULLSCREEN | SDL_NOFRAME
 #define SDL_GL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_RESIZABLE | SDL_NOFRAME
@@ -470,7 +473,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		dr->on_event(dr->evt_cbk_hdl, &evt);		
 	} else {
 		u32 flags;
-#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+#ifdef GPAC_IPHONE_BUILD
 		flags = SDL_FULLSCREEN_FLAGS;
 		//SDL readme says it would make us faster
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
