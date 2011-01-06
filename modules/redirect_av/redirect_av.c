@@ -60,7 +60,10 @@
 #define TS_PACKETS_PER_UDP_PACKET 1
 
 #define audioCodecBitrate 96000
+
+#ifndef WIN32
 #include <unistd.h>
+#endif
 
 static const u32 maxFPS = 25;
 
@@ -88,17 +91,19 @@ static Bool audio_encoding_thread_run(void *param)
     u64 myTime = 0;
     u32 frameCountSinceReset = 0;
     u32 lastCurrentTime;
-    outBuffSize = FF_MIN_BUFFER_SIZE;
+    Bool sendPts = 1;
+    GF_AVRedirect * avr = (GF_AVRedirect*) param;
+    AVCodecContext * ctx = NULL;
+    assert( avr );
+
+	outBuffSize = FF_MIN_BUFFER_SIZE;
 
     outBuff = malloc(outBuffSize* sizeof(u8));
     inBuff = NULL;
 #ifdef DUMP_MP3
     FILE * mp3 = fopen("/tmp/dump.mp3", "w");
 #endif /* DUMP_MP3 */
-    Bool sendPts = 1;
-    GF_AVRedirect * avr = (GF_AVRedirect*) param;
-    AVCodecContext * ctx = NULL;
-    assert( avr );
+    sendPts = 1;
     gf_sc_add_audio_listener ( avr->term->compositor, &avr->audio_listen );
     while (avr->is_running && !ctx) {
         ctx = ts_get_audio_codec_context(avr->ts_implementation);
