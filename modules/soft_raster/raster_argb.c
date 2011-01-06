@@ -393,6 +393,7 @@ GFINLINE static void overmask_bgr32_const_run(u32 src, u32 *dst, s32 dst_pitch_x
 		res <<=8;
 		res |= srcr + ((inva*((val) & 0xff))>>8);
 		*dst = res;
+		/*repack XBGR to 32 bits int, this should take care of endian-ness*/
 		dst = (u32*) ( ((u8*)dst) + dst_pitch_x);
 		count--;
 	}
@@ -424,6 +425,7 @@ void evg_bgr32_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 			overmask_bgr32_const_run(fin, (u32*) (dst + x), surf->pitch_x, len);
 		} else {
 			while (len--) {
+				/*repack XBGR to 32 bits int, this should take care of endian-ness*/
 				*(u32*) (dst + x) = col2;
 				x += surf->pitch_x;
 			}
@@ -470,13 +472,12 @@ void evg_bgr32_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 			col_a = GF_COL_A(*col);
 			if (col_a) {
 				if ((spanalpha!=0xFF) || (col_a != 0xFF)) {
+					/*repack XBGR to 32 bits int, this should take care of endian-ness*/
 					*(u32*)(dst+x) = overmask_bgr32(*col, *(u32*)(dst+x), spanalpha);
 				} else {
 					vcol = *col;
-					dst[x] = 0xFF;
-					dst[x+1] = GF_COL_B(vcol);
-					dst[x+2] = GF_COL_G(vcol);
-					dst[x+3] = GF_COL_R(vcol);
+					/*repack XBGR to 32 bits int, this should take care of endian-ness*/
+					*(u32*)(dst+x) = GF_COL_ARGB(0xFF, GF_COL_B(vcol), GF_COL_G(vcol), GF_COL_R(vcol) );
 				}
 			}
 			col++;
@@ -506,6 +507,7 @@ GF_Err evg_surface_clear_bgr32(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 		u32 *data = (u32 *) (_this ->pixels + (y + sy) * _this->pitch_y + st*sx);
 		for (x = 0; x < w; x++) {
 			*data = col;
+			/*XBGR to 32 bits int, this should take care of endian-ness*/
 			data = (u32*) (((u8*)data)+st);
 		}
 	}
