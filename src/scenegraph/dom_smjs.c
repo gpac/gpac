@@ -2602,11 +2602,10 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 			break;
 		gf_sleep(1);
 	}
-
-	gf_sg_lock_javascript(ctx->c, 0);
-
 	/*if session not set, we've had an abort*/
 	if (!ctx->sess) return;
+
+	gf_sg_lock_javascript(ctx->c, 0);
 
 	switch (parameter->msg_type) {
 	case GF_NETIO_SETUP:
