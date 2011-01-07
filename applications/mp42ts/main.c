@@ -405,6 +405,7 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 #define DONT_USE_TERMINAL_MODULE_API
 #include "../../modules/aac_in/aac_in.c" 
 AACReader *aac_reader = NULL;
+u64 audio_discontinuity_offset = 0;
 
 /*create an OD codec and encode the descriptor*/
 static GF_Err encode_audio_desc(GF_ESD *esd, GF_SimpleDataDescriptor *audio_desc) 
@@ -506,6 +507,9 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 				}
 				gf_odf_desc_del((GF_Descriptor *)esd);
 			}
+
+			/*overwrite timing as it is flushed to 0 on discontinuities*/
+			ts += audio_discontinuity_offset;
 		}
 
 		i=0;
@@ -1008,7 +1012,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 			return 0;
 		}
 		gf_f64_seek(_sdp, 0, SEEK_END);
-		sdp_size = gf_f64_tell(_sdp);
+		sdp_size = (u32)gf_f64_tell(_sdp);
 		gf_f64_seek(_sdp, 0, SEEK_SET);
 		sdp_buf = (char*)gf_malloc(sizeof(char)*sdp_size);
 		memset(sdp_buf, 0, sizeof(char)*sdp_size);
@@ -1528,7 +1532,6 @@ int main(int argc, char **argv)
 	GF_Err e;
 	u32 res, run_time;
 	Bool real_time;
-	GF_M2TS_Mux *muxer=NULL;
 	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time, last_video_time;
 	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;
 	FILE *ts_output_file = NULL;
@@ -1550,6 +1553,7 @@ int main(int argc, char **argv)
 	char segment_prefix[GF_MAX_PATH];
 	char segment_name[GF_MAX_PATH];
 	GF_M2TS_Time prev_seg_time;
+	GF_M2TS_Mux *muxer;
 	
 	/*****************/
 	/*   gpac init   */
@@ -1563,7 +1567,7 @@ int main(int argc, char **argv)
 	/***********************/
 	/*   initialisations   */
 	/***********************/
-	real_time=0;	
+	real_time = 0;	
 	ts_output_file = NULL;
 	video_buffer = NULL;
 	last_video_time = 0;
@@ -1589,6 +1593,7 @@ int main(int argc, char **argv)
 	prev_seg_time.nanosec = 0;
 	video_buffer_size = 0;
 	aac_reader = AAC_Reader_new();
+	muxer = NULL;
 	
 	/***********************/
 	/*   parse arguments   */
@@ -1754,14 +1759,19 @@ int main(int argc, char **argv)
 				case GF_MP42TS_RTP:
 					/*e =*/gf_sk_receive(audio_input_udp_sk, audio_input_buffer, audio_input_buffer_length, 0, &read);
 					if (read) {
-						SampleCallBack((void*)&progs[nb_progs-1], AUDIO_DATA_ESID, audio_input_buffer, read, gf_sys_clock());
+						SampleCallBack((void*)&progs[nb_progs-1], AUDIO_DATA_ESID, audio_input_buffer, read, gf_m2ts_get_sys_clock(muxer));
 					}
 					break;
 				case GF_MP42TS_HTTP:
 					/*nothing to do: AAC_OnLiveData is called automatically*/
 					/*check we're still alive*/
-					if (gf_dm_is_thread_dead(aac_reader->dnload))
+					if (gf_dm_is_thread_dead(aac_reader->dnload)) {
+						GF_ESD *esd = AAC_GetESD(aac_reader);
+						assert(esd->slConfig->timestampResolution);
 						aac_download_file(aac_reader, audio_input_ip);
+						audio_discontinuity_offset = gf_m2ts_get_sys_clock(muxer) * (u64)esd->slConfig->timestampResolution / 1000;
+						gf_odf_desc_del((GF_Descriptor *)esd);
+					}
 					break;
 				default:
 					assert(0);
