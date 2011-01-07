@@ -1860,6 +1860,8 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
             if (!sess->total_size && (gf_sys_clock() - sess->window_start > 2000)) {
                 sess->total_size = sess->bytes_done;
                 gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
+				assert(sess->server_name);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Disconnected from %s: %s\n", sess->server_name, gf_error_to_string(e)));
                 sess->status = GF_NETIO_DISCONNECTED;
             }
             return GF_OK;

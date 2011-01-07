@@ -756,6 +756,7 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 		/*update SL config*/
 		stream->sl_header.accessUnitStartFlag = (stream->pck.flags & GF_ESI_DATA_AU_START) ? 1 : 0;
 		stream->sl_header.accessUnitEndFlag = (stream->pck.flags & GF_ESI_DATA_AU_END) ? 1 : 0;
+		assert(stream->sl_header.accessUnitLength + stream->pck.data_len < 65536); /*stream->sl_header.accessUnitLength type is u16*/
 		stream->sl_header.accessUnitLength += stream->pck.data_len;
 		stream->sl_header.randomAccessPointFlag = (stream->pck.flags & GF_ESI_DATA_AU_RAP) ? 1: 0;
 		stream->sl_header.compositionTimeStampFlag = (stream->pck.flags & GF_ESI_DATA_HAS_CTS) ? 1 : 0;
@@ -773,6 +774,7 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 		/*update SL config*/
 		stream->sl_header.accessUnitStartFlag = (stream->pck.flags & GF_ESI_DATA_AU_START) ? 1 : 0;
 		stream->sl_header.accessUnitEndFlag = (stream->pck.flags & GF_ESI_DATA_AU_END) ? 1 : 0;
+		assert(stream->sl_header.accessUnitLength + stream->pck.data_len < 65536); /*stream->sl_header.accessUnitLength type is u16*/
 		stream->sl_header.accessUnitLength += stream->pck.data_len;
 		stream->sl_header.randomAccessPointFlag = (stream->pck.flags & GF_ESI_DATA_AU_RAP) ? 1: 0;
 		stream->sl_header.compositionTimeStampFlag = (stream->pck.flags & GF_ESI_DATA_HAS_CTS) ? 1 : 0;
