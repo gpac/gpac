@@ -153,6 +153,7 @@ struct __gf_download_manager
     Bool (*GetUserPassword)(void *usr_cbk, const char *site_url, char *usr_name, char *password);
     void *usr_cbk;
 
+	u32 head_timeout;
     GF_Config *cfg;
     GF_List *sessions;
 
@@ -889,10 +890,10 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
         GF_Err *e)
 {
     GF_DownloadSession *sess;
-    sess = (GF_DownloadSession *)gf_malloc(sizeof(GF_DownloadSession));
-    memset((void *)sess, 0, sizeof(GF_DownloadSession));
+    GF_SAFEALLOC(sess, GF_DownloadSession);
+	if (!sess) return NULL;
     sess->flags = dl_flags;
-    sess->server_only_understand_get = 0;
+	if (dm && !dm->head_timeout) sess->server_only_understand_get = 1;
     sess->user_proc = user_io;
     sess->usr_cbk = usr_cbk;
     sess->creds = NULL;
@@ -1273,6 +1274,14 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
     } else {
         dm->cache_directory = gf_strdup(opt);
     }
+
+	dm->head_timeout = 5000;
+	if (cfg) {
+        opt = gf_cfg_get_key(cfg, "Downloader", "HTTPHeadTimeout");
+		if (opt) {
+			dm->head_timeout = atoi(opt);
+		}
+	}
     gf_mx_v( dm->cache_mx );
     if (default_cache_dir)
         gf_free(default_cache_dir);
