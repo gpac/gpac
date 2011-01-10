@@ -1930,12 +1930,16 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 
         /*locate body start*/
         BodyStart = gf_token_find(sHTTP, 0, bytesRead, "\r\n\r\n");
-        if (BodyStart <= 0) {
-            BodyStart=0;
-            continue;
-        }
-        BodyStart += 4;
-        break;
+        if (BodyStart > 0) {
+			BodyStart += 4;
+			break;
+		}
+        BodyStart = gf_token_find(sHTTP, 0, bytesRead, "\n\n");
+        if (BodyStart > 0) {
+			BodyStart += 2;
+			break;
+		}
+        BodyStart=0;
     }
     if (bytesRead < 0) {
         e = GF_REMOTE_SERVICE_ERROR;
