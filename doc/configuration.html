@@ -287,11 +287,11 @@ Specifies whether the renderer shall redraw the scene and reload texture at each
 <p style="text-indent: 5%">
 Specifies the color key to use for windowless rendering. GPAC currently doesn't support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of GPAC's output, if supported.
 </p>
-<b>DirectDraw</b> [value: <i>"yes" "no"</i>]
+<b>DrawMode</b> [value: <i>"immediate" "defer" "defer-debug"</i>]
 <p style="text-indent: 5%">
-Specifies whether direct rendering should be used or not. In direct rendering mode, the screen is completely redrawn at each frame. In indirect rendering 
+Specifies whether immediate drawing should be used or not. In immediate mode, the screen is completely redrawn at each frame. In defer mode
 object positioning is tracked from frame to frame and dirty rectangles info is collected in order to redraw the minimal amount of the screen buffer. Whether 
-the  setting is applied or not depends on the graphics module (currently all modules handle both mode).</p>
+the  setting is applied or not depends on the graphics module (currently all modules handle both mode). Defer Debug mode only renders changed areas.</p>
 <b>ScalableZoom</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Specifies whether scalable zoom should be used or not. When scalable zoom is enabled, resizing the output window will also recompute all vectorial objects. Otherwise only the final buffer is stretched.</p>
@@ -497,6 +497,9 @@ Specifies a maximum data rate in kilo bits per seconds for file downloading. Thi
 <b>UserAgent</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
 Specifies an alternate user agent (default one is "GPAC $VERSION").</p>
+<b>HTTPHeadTimeout</b> [value: <i>positive integer</i>]
+<p style="text-indent: 5%">
+Specifies timeout in milliseconds before considering HEAD request failed. 0 means no HEAD request is issued, only GET.</p>
 
 <br/><br/>
 <a name="HTTPProxy"></a>
