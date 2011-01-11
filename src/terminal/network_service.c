@@ -334,6 +334,9 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		case GF_STREAM_AUDIO:
 			if (mo->type != GF_MEDIA_OBJECT_AUDIO) continue;
 			break;
+		case GF_STREAM_PRIVATE_MEDIA:
+			if ((mo->type != GF_MEDIA_OBJECT_AUDIO) && (mo->type != GF_MEDIA_OBJECT_VIDEO)) continue;
+			break;
 		default:
 			continue;
 		}
@@ -817,6 +820,7 @@ void gf_term_on_sl_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data
 GF_EXPORT
 void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
 {
+	assert(service);
 	term_on_media_add(service->term, service, media_desc, no_scene_check);
 }
 
