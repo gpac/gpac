@@ -483,6 +483,7 @@ struct _object_clock
 	Fixed speed;
 	u32 discontinuity_time;
 	s32 drift;
+	u32 data_timeout;
 };
 
 /*destroys clock*/
