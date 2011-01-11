@@ -494,6 +494,7 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	u32 flags;
 	const SDL_VideoInfo *vinf;
 
+	putenv("directx");
 	flags = SDL_WasInit(SDL_INIT_VIDEO);
 	if (!(flags & SDL_INIT_VIDEO)) {
 		if (SDL_InitSubSystem(SDL_INIT_VIDEO)<0) {
@@ -620,10 +621,10 @@ u32 SDLVid_EventProc(void *par)
 	GF_VideoOutput *dr = (GF_VideoOutput *)par;
 	SDLVID();
 
-	ctx->sdl_th_state = 1;
 	if (!SDLVid_InitializeWindow(ctx, dr)) {
 		ctx->sdl_th_state = 3;
 	}
+	ctx->sdl_th_state = 1;
 
 	while (ctx->sdl_th_state==1) {
 		/*after much testing: we must ensure nothing is using the event queue when resizing window.
@@ -1169,6 +1170,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	dstrc.y = dst_wnd->y;
 
 	SDL_BlitSurface(*pool, &srcrc, ctx->back_buffer, &dstrc);
+	fprintf(stdout, "SDL blit OK\n");
 	return GF_OK;
 }
 
