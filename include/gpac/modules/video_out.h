@@ -59,15 +59,17 @@ enum
 	GF_VIDEO_HW_HAS_YUV = (1<<3),
 	/*HW supports YUV overlays*/
 	GF_VIDEO_HW_HAS_YUV_OVERLAY = (1<<4),
+	/*HW supports stretching for RGB and YUV buffers*/
+	GF_VIDEO_HW_HAS_STRETCH	= (1<<5),
 	/*HW supports OpenGL rendering. Whether this is OpenGL or OpenGL-ES depends on compilation settings
 	and cannot be changed at runtime*/
-	GF_VIDEO_HW_OPENGL = (1<<5),
+	GF_VIDEO_HW_OPENGL = (1<<6),
 	/*HW supports OpenGL offscreen rendering. Whether this is OpenGL or OpenGL-ES depends on compilation settings
 	and cannot be changed at runtime*/
-	GF_VIDEO_HW_OPENGL_OFFSCREEN = (1<<6),
+	GF_VIDEO_HW_OPENGL_OFFSCREEN = (1<<7),
 	/*HW supports OpenGL offscreen rendering with alpha. Whether this is OpenGL or OpenGL-ES depends on compilation settings
 	and cannot be changed at runtime*/
-	GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA = (1<<7),
+	GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA = (1<<8),
 
 	/*HW supports line blitting*/
 	GF_VIDEO_HW_HAS_LINE_BLIT = (1<<15),

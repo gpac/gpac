@@ -26,6 +26,7 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
+#include <gpac/modules/codec.h>
 #include <gpac/nodes_x3d.h>
 #include "media_memory.h"
 #include "media_control.h"
@@ -1004,6 +1005,22 @@ u32 gf_mo_get_last_frame_time(GF_MediaObject *mo)
 	return mo ? mo->timestamp : 0;
 }
 
+GF_EXPORT
+Bool gf_mo_is_private_media(GF_MediaObject *mo)
+{
+	if (mo->odm && mo->odm->codec && mo->odm->codec->decio && (mo->odm->codec->decio->InterfaceType==GF_PRIVATE_MEDIA_DECODER_INTERFACE)) return 1;
+	return 0;
+}
+
+GF_EXPORT
+void gf_mo_set_position(GF_MediaObject *mo, GF_Window *src, GF_Window *dst)
+{
+	GF_PrivateMediaDecoder *dec;
+	if (!mo->odm || !mo->odm->codec || !mo->odm->codec->decio || (mo->odm->codec->decio->InterfaceType!=GF_PRIVATE_MEDIA_DECODER_INTERFACE)) return;
+
+	dec = (GF_PrivateMediaDecoder*)mo->odm->codec->decio;
+	dec->Control(dec, 0, src, dst);
+}
 
 GF_EXPORT
 Bool gf_mo_has_audio(GF_MediaObject *mo)

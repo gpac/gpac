@@ -128,6 +128,36 @@ void gf_sc_texture_restart(GF_TextureHandler *txh)
 	gf_mo_restart(txh->stream);
 }
 
+
+static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
+{
+	if (!txh->tx_io) {
+		gf_sc_texture_allocate(txh);
+		if (!txh->tx_io) return;
+
+		gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat);
+
+		if (private_media) {
+			txh->transparent = 1;
+			txh->pixelformat = GF_PIXEL_ARGB;
+			txh->flags |= GF_SR_TEXTURE_PRIVATE_MEDIA;
+		} else {
+			txh->transparent = 0;
+			switch (txh->pixelformat) {
+			case GF_PIXEL_ALPHAGREY:
+			case GF_PIXEL_ARGB:
+			case GF_PIXEL_RGBA:
+			case GF_PIXEL_YUVA:
+			case GF_PIXEL_RGBDS:
+				txh->transparent = 1;
+				break;
+			}
+		}
+		gf_mo_set_flag(txh->stream, GF_MO_IS_INIT, 1);
+	}
+}
+
+
 GF_EXPORT
 void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 {
@@ -155,11 +185,21 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 			gf_sc_invalidate(txh->compositor, NULL);
 			return;
 		}
+		if (gf_mo_is_private_media(txh->stream)) {
+			setup_texture_object(txh, 1);
+		}
 	}
 	txh->data = gf_mo_fetch_data(txh->stream, !disable_resync, &txh->stream_finished, &ts, &size);
 
 	/*if no frame or muted don't draw*/
-	if (!txh->data || !size) return;
+	if (!txh->data || !size) {
+		/*TODO - check if this is needed */
+		if (txh->flags & GF_SR_TEXTURE_PRIVATE_MEDIA) {
+			//txh->needs_refresh = 1;
+			gf_sc_invalidate(txh->compositor, NULL);
+		}
+		return;
+	}
 
 	/*if setup and same frame return*/
 	if (txh->tx_io && (txh->stream_finished || (txh->last_frame_time==ts)) ) {
@@ -172,23 +212,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	if (gf_mo_is_muted(txh->stream)) return;
 
 	if (!txh->tx_io) {
-		gf_sc_texture_allocate(txh);
-		if (!txh->tx_io) return;
-
-		gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat);
-
-		txh->transparent = 0;
-		switch (txh->pixelformat) {
-		case GF_PIXEL_ALPHAGREY:
-		case GF_PIXEL_ARGB:
-		case GF_PIXEL_RGBA:
-		case GF_PIXEL_YUVA:
-		case GF_PIXEL_RGBDS:
-			txh->transparent = 1;
-			break;
-		}
-
-		gf_mo_set_flag(txh->stream, GF_MO_IS_INIT, 1);
+		setup_texture_object(txh, 0);
 	}
 
 	/*try to push texture on graphics but don't complain if failure*/

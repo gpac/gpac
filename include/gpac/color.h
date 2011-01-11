@@ -23,14 +23,15 @@
  */
 
 
-#ifndef _GF_RASTER_2D_H_
-#define _GF_RASTER_2D_H_
+#ifndef _GF_COLOR_H_
+#define _GF_COLOR_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <gpac/constants.h>
+#include <gpac/math.h>
 
 
 /*!
@@ -238,5 +239,5 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 #endif
 
 
-#endif	/*_GF_RASTER_2D_H_*/
+#endif	/*_GF_COLOR_H_*/
 

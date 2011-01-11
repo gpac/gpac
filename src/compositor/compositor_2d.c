@@ -311,39 +311,29 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 	}
 }
 
-
-static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHandler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, GF_ColorKey *col_key, GF_TraverseState *tr_state, Bool force_soft_blt)
+Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *txh, GF_IRect *clip, GF_Rect *unclip, GF_Window *src, GF_Window *dst, Bool *disable_blit, Bool *has_scale)
 {
-	GF_VideoSurface video_src;
 	Fixed w_scale, h_scale, tmp;
-	GF_Err e;
-	Bool use_soft_stretch, use_blit, flush_video, is_attached;
-	u32 overlay_type;
-	GF_Window src_wnd, dst_wnd;
-	u32 output_width, output_height, hw_caps;
+	u32 output_width, output_height;
 	GF_IRect clipped_final = *clip;
 	GF_Rect final = *unclip;
+	Bool use_blit;
 
-	if (!txh->data) return 1;
-
-	if (!visual->compositor->has_size_info && !(visual->compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE)
-		&& (visual->compositor->override_size_flags & 1)
-		&& !(visual->compositor->override_size_flags & 2)
-		) {
-		if ( (visual->compositor->scene_width < txh->width)
-			|| (visual->compositor->scene_height < txh->height)) {
-			visual->compositor->scene_width = txh->width;
-			visual->compositor->scene_height = txh->height;
-			visual->compositor->msg_type |= GF_SR_CFG_OVERRIDE_SIZE;
-			return 1;
-		}
-	}
+	src->w = src->h = 0;
+	dst->w = dst->h = 0;
+	if (disable_blit) *disable_blit = 0;
+	if (has_scale) *has_scale = 0;
 
 	/*this should never happen but we check for float rounding safety*/
-	if (final.width<=0 || final.height <=0) return 1;
+	if (final.width<=0 || final.height <=0) return 0;
+
 
 	w_scale = final.width / txh->width;
 	h_scale = final.height / txh->height;
+
+	if ((w_scale != FIX_ONE) || (h_scale!=FIX_ONE)) {
+		if (has_scale) *has_scale = 1;
+	}
 
 	/*use entire video surface for un-centering coord system*/
 	output_width = visual->compositor->vp_width;
@@ -385,12 +375,16 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	if (clipped_final.width<=0 || clipped_final.height <=0)
 		return 0;
 
-	/*set dest window*/
-	dst_wnd.x = (u32) clipped_final.x;
-	dst_wnd.y = (u32) clipped_final.y;
-	dst_wnd.w = (u32) clipped_final.width;
-	dst_wnd.h = (u32) clipped_final.height;
+	if (clipped_final.width-1>= FIX2INT(final.width) ) clipped_final.width = FIX2INT(final.width);
+	if (clipped_final.height-1>= FIX2INT(final.height) ) clipped_final.height = FIX2INT(final.height);
 
+	/*set dest window*/
+	dst->x = (u32) clipped_final.x;
+	dst->y = (u32) clipped_final.y;
+	dst->w = (u32) clipped_final.width;
+	dst->h = (u32) clipped_final.height;
+
+	if (!dst->w || !dst->h) return 0;
 
 #ifdef GPAC_FIXED_POINT
 #define ROUND_FIX(_v)	\
@@ -413,38 +407,75 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 	use_blit = 1;
 	/*compute SRC window*/
-	src_wnd.x = src_wnd.y = 0;
 	tmp = gf_divfix(INT2FIX(clipped_final.x) - final.x, w_scale);
 	if (tmp<0) tmp=0;
-	CEILING(src_wnd.x);
+	CEILING(src->x);
 
 	tmp = gf_divfix(INT2FIX(clipped_final.y) - final.y, h_scale);
 	if (tmp<0) tmp=0;
-	CEILING(src_wnd.y);
+	CEILING(src->y);
 
 	tmp = gf_divfix(INT2FIX(clip->width), w_scale);
-	ROUND_FIX(src_wnd.w);
+	ROUND_FIX(src->w);
 
 	tmp = gf_divfix(INT2FIX(clip->height), h_scale);
-	ROUND_FIX(src_wnd.h);
+	ROUND_FIX(src->h);
 
 #undef ROUND_FIX
 
-	if (src_wnd.w>txh->width) src_wnd.w=txh->width;
-	if (src_wnd.h>txh->height) src_wnd.h=txh->height;
+	if (src->w>txh->width) src->w=txh->width;
+	if (src->h>txh->height) src->h=txh->height;
 
-	if (!src_wnd.w || !src_wnd.h) return 1;
+	if (!src->w || !src->h) return 0;
+
 	/*make sure we lie in src bounds*/
-	if (src_wnd.x + src_wnd.w>txh->width) src_wnd.w = txh->width - src_wnd.x;
-	if (src_wnd.y + src_wnd.h>txh->height) src_wnd.h = txh->height - src_wnd.y;
+	if (src->x + src->w>txh->width) src->w = txh->width - src->x;
+	if (src->y + src->h>txh->height) src->h = txh->height - src->y;
 
-	if (!src_wnd.w || !src_wnd.h) return 0;
+	if (disable_blit) *disable_blit = use_blit ? 0 : 1;
+	return 1;
+}
+
+static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHandler *txh, DrawableContext *ctx, GF_IRect *clip, GF_Rect *unclip, u8 alpha, GF_ColorKey *col_key, GF_TraverseState *tr_state, Bool force_soft_blt)
+{
+	GF_VideoSurface video_src;
+	GF_Err e;
+	Bool use_soft_stretch, use_blit, flush_video, is_attached, has_scale;
+	u32 overlay_type;
+	GF_Window src_wnd, dst_wnd;
+	u32 output_width, output_height, hw_caps;
+
+
+	if (!txh->data) return 1;
+
+	if (!visual->compositor->has_size_info && !(visual->compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE)
+		&& (visual->compositor->override_size_flags & 1)
+		&& !(visual->compositor->override_size_flags & 2)
+		) {
+		if ( (visual->compositor->scene_width < txh->width)
+			|| (visual->compositor->scene_height < txh->height)) {
+			visual->compositor->scene_width = txh->width;
+			visual->compositor->scene_height = txh->height;
+			visual->compositor->msg_type |= GF_SR_CFG_OVERRIDE_SIZE;
+			return 1;
+		}
+	}
+
+	if (!compositor_texture_rectangles(visual, txh, clip, unclip, &src_wnd, &dst_wnd, &use_blit, &has_scale)) return 1;
 
 	/*can we use hardware blitter ?*/
 	hw_caps = visual->compositor->video_out->hw_caps;
 	overlay_type = 0;
 	flush_video = 0;
 	use_soft_stretch = 1;
+
+	output_width = visual->compositor->vp_width;
+	output_height = visual->compositor->vp_height;
+
+	if (!(hw_caps & GF_VIDEO_HW_HAS_STRETCH)) {
+		if (has_scale) force_soft_blt = 1;
+	}
+
 	if (!force_soft_blt) {
 
 		/*avoid partial redraw that don't come close to src pixels with the bliter, this leads to ugly artefacts -
