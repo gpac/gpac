@@ -306,14 +306,14 @@ static Bool Channel_NeedsBuffering(GF_Channel *ch, u32 ForRebuffering)
 	if (!ch->first_au_fetched && !ch->AU_buffer_first) {
 		u32 now = gf_term_get_time(ch->odm->term);
 		/*data timeout (no data sent)*/
-		if (now > ch->last_au_time + ch->odm->term->net_data_timeout) {
+		if (now > ch->last_au_time + ch->clock->data_timeout) {
 			gf_term_message(ch->odm->term, ch->service->url, "Data timeout - aborting buffering", GF_OK); 
 			ch->MinBuffer = ch->MaxBuffer = 0;
 			ch->au_duration = 0;
 			gf_scene_buffering_info(ch->odm->parentscene ? ch->odm->parentscene : ch->odm->subscene);
 			return 0;
 		} else {
-			now = ch->odm->term->net_data_timeout + ch->last_au_time - now;
+			now = ch->clock->data_timeout + ch->last_au_time - now;
 			now /= 1000;
 			if (now != ch->au_duration) {
 				char szMsg[500];

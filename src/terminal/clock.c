@@ -33,6 +33,7 @@ GF_Clock *NewClock(GF_Terminal *term)
 	tmp->term = term;
 	tmp->speed = FIX_ONE;
 	if (term->play_state) tmp->Paused = 1;
+	tmp->data_timeout = term->net_data_timeout;
 	return tmp;
 }
 
