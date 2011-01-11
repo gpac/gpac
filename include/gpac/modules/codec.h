@@ -30,6 +30,7 @@
 
 #include <gpac/module.h>
 #include <gpac/mpeg4_odf.h>
+#include <gpac/color.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -249,6 +250,25 @@ typedef struct __input_device
 	GF_BaseDecoder *input_decoder;
 	void (*DispatchFrame)(struct __input_device *, u8 *data, u32 data_len);
 } GF_InputSensorDevice;
+
+
+
+
+/*interface name and version for media decoder */
+#define GF_PRIVATE_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'P', 'M', '1')
+
+/*the media module interface. A media module MUST be implemented in synchronous mode as time 
+and resources management is done by the terminal*/
+typedef struct _private_mediadecoder
+{
+	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
+
+	/*Control media decoder. 
+	@mute: set mute or not
+	@x, y, w, h: video output position in screen coordinate
+	*/
+	GF_Err (*Control)(struct _private_mediadecoder *, Bool mute, GF_Window *src_rect, GF_Window *dst_rect);
+} GF_PrivateMediaDecoder;
 
 #ifdef __cplusplus
 }

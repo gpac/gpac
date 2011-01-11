@@ -103,6 +103,18 @@ enum
 	*/
 	GF_STREAM_PRIVATE_SCENE	= 0x20,
 
+	/*!GPAC Private Media streams\n
+	*\n\note
+	*this stream type (MPEG-4 user-private) is reserved for media streams bypassing GPAC for decoding
+	and composition. The media decoder is only in charge of repositioning the video output, and the compositor will 
+	draw an empty rectangle if using alpha composition
+
+	*The decoderSpecificInfo carried only contains an opaque pointer in the data field, which depends on the underlying InputServce provider
+
+	*the objectTypeIndication currently in use for these streams are documented below\n
+	*/
+	GF_STREAM_PRIVATE_MEDIA	= 0x21,
+
 	/*used internally to signal the the OTI carries a 4CC code, typically media subtype (stsd entry in file format)*/
 	GF_STREAM_4CC		= 0xF0
 };
@@ -386,7 +398,10 @@ enum
     GPAC_OTI_MEDIA_SUBPIC = 0xE0,
 
     /*!OTI for 13K Voice / QCELP audio streams*/
-    GPAC_OTI_AUDIO_13K_VOICE = 0xE1
+    GPAC_OTI_AUDIO_13K_VOICE = 0xE1,
+
+    /*!OTI for LIBPLAYER private streams. The data pointer in the DSI is the libplayer handle object*/
+    GPAC_OTI_PRIVATE_MEDIA_LIBPLAYER = 0xF1
 
 };
 

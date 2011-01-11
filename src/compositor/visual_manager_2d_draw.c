@@ -95,8 +95,13 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 	if ((ctx->flags & CTX_IS_BACKGROUND) || tr_state->immediate_draw) {
 		if (ctx->bi->clip.width && ctx->bi->clip.height) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s (direct draw)\n", gf_node_get_log_name(ctx->drawable->node) ));
-			raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
-			raster->surface_fill(visual->raster_surface, stencil);
+
+			if (stencil) {
+				raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
+				raster->surface_fill(visual->raster_surface, stencil);
+			} else {
+				raster->surface_clear(visual->raster_surface, &ctx->bi->clip, 0);
+			}
 
 			visual->has_modif = 1;
 		}
@@ -113,9 +118,12 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 			gf_irect_intersect(&clip, &visual->to_redraw.list[i]);
 			if (clip.width && clip.height) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s (indirect draw @ dirty rect idx %d)\n", gf_node_get_log_name(ctx->drawable->node), i));
-				raster->surface_set_clipper(visual->raster_surface, &clip);
-				raster->surface_fill(visual->raster_surface, stencil);
-
+				if (stencil) {
+					raster->surface_set_clipper(visual->raster_surface, &clip);
+					raster->surface_fill(visual->raster_surface, stencil);
+				} else {
+					raster->surface_clear(visual->raster_surface, &clip, 0);
+				}
 				visual->has_modif = 1;
 			}
 		}
@@ -341,6 +349,28 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 	/*this is gradient draw*/
 	if (txh->compute_gradient_matrix) {
 		visual_2d_draw_gradient(visual, path, txh, ctx, tr_state, ext_mx, orig_bounds);
+		return;
+	}
+
+	if (txh->flags & GF_SR_TEXTURE_PRIVATE_MEDIA) {
+		GF_Window src, dst;
+
+
+		/*no aa*/
+//		visual_2d_set_options(visual->compositor, visual->raster_surface, 0, 1);
+
+		/*set matrix*/
+//		raster->surface_set_matrix(visual->raster_surface, &ctx->transform);
+
+		/*push path*/
+//		raster->surface_set_path(visual->raster_surface, ctx->drawable->path);
+		/*using NULL will clear the clip rect with color 0x00000000*/
+		visual_2d_fill_path(visual, ctx, NULL, tr_state);
+//		raster->surface_set_path(visual->raster_surface, NULL);
+
+		if (compositor_texture_rectangles(visual, txh, &ctx->bi->clip, &ctx->bi->unclip, &src, &dst, NULL, NULL))
+			gf_mo_set_position(txh->stream, &src, &dst);
+
 		return;
 	}
 

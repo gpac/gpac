@@ -525,6 +525,9 @@ enum
 
 	/*texture is SVG (needs special treatment in OpenGL)*/
 	GF_SR_TEXTURE_SVG = (1<<5),
+
+	/*special flag indicating the underlying media directly handled by the hardware (decoding and composition)*/
+	GF_SR_TEXTURE_PRIVATE_MEDIA = (1<<6),
 };
 
 typedef struct _gf_sc_texture_handler
@@ -1084,6 +1087,8 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *surf);
 void compositor_2d_release_video_access(GF_VisualManager *surf);
 void compositor_2d_init_callbacks(GF_Compositor *compositor);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
+
+Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *txh, GF_IRect *clip, GF_Rect *unclip, GF_Window *src, GF_Window *dst, Bool *disable_blit, Bool *has_scale);
 
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res);
 

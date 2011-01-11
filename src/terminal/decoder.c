@@ -58,6 +58,9 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	tmp->type = base_layer->decoderConfig->streamType;
 	tmp->inChannels = gf_list_new();
 	tmp->Status = GF_ESM_CODEC_STOP;
+
+	if (tmp->type==GF_STREAM_PRIVATE_MEDIA) tmp->type = GF_STREAM_VISUAL;
+
 	return tmp;
 }
 
@@ -989,12 +992,19 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		cfg_size = 0;
 	}
 
-	ifce_type = GF_SCENE_DECODER_INTERFACE;
-	if ((esd->decoderConfig->streamType==GF_STREAM_AUDIO)
-		|| (esd->decoderConfig->streamType==GF_STREAM_VISUAL)
-		|| (esd->decoderConfig->streamType==GF_STREAM_ND_SUBPIC)
-		)
+	switch (esd->decoderConfig->streamType) {
+	case GF_STREAM_AUDIO:
+	case GF_STREAM_VISUAL:
+	case GF_STREAM_ND_SUBPIC:
 		ifce_type = GF_MEDIA_DECODER_INTERFACE;
+		break;
+	case GF_STREAM_PRIVATE_MEDIA:
+		ifce_type = GF_PRIVATE_MEDIA_DECODER_INTERFACE;
+		break;
+	default: 
+		ifce_type = GF_SCENE_DECODER_INTERFACE;
+		break;
+	}
 
 	/*a bit dirty, if FFMPEG is used for demuxer load it for decoder too*/
 	if (0 && !stricmp(codec->odm->net_service->ifce->module_name, "FFMPEG demuxer")) {
