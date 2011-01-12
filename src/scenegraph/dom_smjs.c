@@ -2050,7 +2050,7 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 {
 	JSString *s;
 	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
-	if (evt==NULL) return;
+	if (evt==NULL) return JS_TRUE;
 	if (JSVAL_IS_INT(id)) {
 		switch (JSVAL_TO_INT(id)) {
 		case 0: /*type*/

@@ -68,6 +68,7 @@ struct __tag_scene_engine
 
 	Bool embed_resources;    
     Bool dump_rap;
+    Bool first_dims_sent;
 };
 
 #ifndef GPAC_DISABLE_BIFS_ENC
@@ -502,7 +503,7 @@ exit:
 	return e;
 }
 
-static Bool gf_sm_check_for_modif(GF_AUContext *au)
+static Bool gf_sm_check_for_modif(GF_SceneEngine *seng, GF_AUContext *au)
 {
 	GF_Command *com;
 	Bool modified=0;
@@ -549,6 +550,18 @@ static Bool gf_sm_check_for_modif(GF_AUContext *au)
 			}
 		}
 	}
+
+	if (!seng->first_dims_sent) {
+		if (au->owner->objectType==GPAC_OTI_SCENE_DIMS) {
+			GF_Node *root = gf_sg_get_root_node(seng->ctx->scene_graph);
+			if (gf_node_dirty_get(root)) {
+				modified=1;
+				gf_node_dirty_reset(root, 1);
+			}
+		} else {
+		}
+		seng->first_dims_sent = 1;
+	}
 	return modified;
 }
 
@@ -577,7 +590,7 @@ static GF_Err gf_sm_live_encode_scene_au(GF_SceneEngine *seng, gf_seng_callback 
 			/*in case using XMT*/
 			if (au->timing_sec) au->timing = (u64) (au->timing_sec * sc->timeScale);
 
-			if (from_start && !j && !gf_sm_check_for_modif(au)) continue;
+			if (from_start && !j && !gf_sm_check_for_modif(seng, au)) continue;
 
 			switch (sc->objectType) {
 #ifndef GPAC_DISABLE_BIFS_ENC

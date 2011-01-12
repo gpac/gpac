@@ -337,6 +337,9 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		case GF_STREAM_PRIVATE_MEDIA:
 			if ((mo->type != GF_MEDIA_OBJECT_AUDIO) && (mo->type != GF_MEDIA_OBJECT_VIDEO)) continue;
 			break;
+		case GF_STREAM_SCENE:
+			if (mo->type != GF_MEDIA_OBJECT_UPDATES) continue;
+			break;
 		default:
 			continue;
 		}

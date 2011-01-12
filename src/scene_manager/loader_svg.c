@@ -1936,24 +1936,6 @@ GF_Err load_svg_run(GF_SceneLoader *load)
 
 }
 
-GF_Err load_svg_parse_string(GF_SceneLoader *load, const char *str)
-{
-	GF_Err e;
-	GF_SVG_Parser *parser = (GF_SVG_Parser *)load->loader_priv;
-
-	if (!parser) {
-		e = gf_sm_load_initialize_svg(load, str, 0);
-		parser = (GF_SVG_Parser *)load->loader_priv;
-	} else {
-		e = gf_xml_sax_parse(parser->sax_parser, str);
-	}
-	if (e<0) return svg_report(parser, e, "Unable to parse chunk: %s", gf_xml_sax_get_error(parser->sax_parser) );
-
-	svg_flush_animations(parser);
-	return e;
-}
-
-
 static void load_svg_done(GF_SceneLoader *load)
 {
 	SVG_SAFExternalStream *st;
@@ -1982,6 +1964,27 @@ static void load_svg_done(GF_SceneLoader *load)
 	load->loader_priv = NULL;
 }
 
+GF_Err load_svg_parse_string(GF_SceneLoader *load, const char *str)
+{
+	GF_Err e;
+	GF_SVG_Parser *parser = (GF_SVG_Parser *)load->loader_priv;
+
+	if (!parser) {
+		e = gf_sm_load_initialize_svg(load, str, 0);
+		parser = (GF_SVG_Parser *)load->loader_priv;
+	} else {
+		e = gf_xml_sax_parse(parser->sax_parser, str);
+	}
+	if (e<0) svg_report(parser, e, "Unable to parse chunk: %s", gf_xml_sax_get_error(parser->sax_parser) );
+	else e = parser->last_error;
+
+	svg_flush_animations(parser);
+
+	/*if error move to done state and wait for next XML chunk*/
+	if (e) load_svg_done(load);
+
+	return e;
+}
 
 static GF_Err load_svg_suspend(GF_SceneLoader *load, Bool suspend)
 {

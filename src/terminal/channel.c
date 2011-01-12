@@ -947,9 +947,13 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				} 
 				/*regular AU but waiting for RAP*/
 				else if (ch->stream_state) {
+#if 0
 					ch->skip_carousel_au = 1;
 					GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Waiting for RAP Carousel - skipping\n", ch->esd->ESID));
 					return;
+#else
+					GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Tuning in before RAP\n", ch->esd->ESID));
+#endif
 				}
 				/*previous packet(s) loss: check for critical or non-critical AUs*/
 				else if (reception_status == GF_REMOTE_SERVICE_ERROR) { 

@@ -110,6 +110,7 @@ enum {
 	TAG_LSR_rectClip,
 	TAG_LSR_selector,
 	TAG_LSR_simpleLayout,
+	TAG_LSR_updates,
 
 	/*undefined elements (when parsing) use this tag*/
 	TAG_SVG_UndefinedElement

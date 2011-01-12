@@ -733,5 +733,119 @@ GF_TextureHandler *compositor_svg_get_image_texture(GF_Node *node)
 	return &(st->txh);
 }
 
+
+
+
+typedef struct
+{
+	/*media stream*/
+	GF_MediaObject *resource;
+	Bool stop_requested, is_open;
+	Double clipBegin, clipEnd;
+} SVG_updates_stack;
+
+static void svg_updates_smil_evaluate(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status)
+{
+	SVG_updates_stack *stack = (SVG_updates_stack *)gf_node_get_private(gf_smil_get_element(rti));
+
+	switch (status) {
+	case SMIL_TIMING_EVAL_UPDATE:
+		if (!stack->is_open) { 
+			if (stack->resource ) gf_mo_play(stack->resource, stack->clipBegin, stack->clipEnd, 0);
+			stack->is_open = 1;
+		}
+		else if (gf_mo_is_done(stack->resource) && (gf_smil_get_media_duration(rti)<0) ) { 
+			Double dur = gf_mo_get_duration(stack->resource);
+			gf_smil_set_media_duration(rti, dur);
+		}
+		break;
+	case SMIL_TIMING_EVAL_FREEZE:
+	case SMIL_TIMING_EVAL_REMOVE:
+		stack->is_open = 0;
+		gf_mo_set_flag(stack->resource, GF_MO_DISPLAY_REMOVE, 1);
+		gf_mo_stop(stack->resource);
+		break;
+	case SMIL_TIMING_EVAL_REPEAT:
+		gf_mo_restart(stack->resource);
+		break;
+	}
+}
+
+static void svg_traverse_updates(GF_Node *node, void *rs, Bool is_destroy)
+{
+	/*video stack is just an extension of image stack, type-casting is OK*/
+	SVG_updates_stack *stack = (SVG_updates_stack*)gf_node_get_private(node);
+	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
+	SVGAllAttributes all_atts;
+	SVGPropertiesPointers backup_props;
+	u32 backup_flags, dirty_flags;
+
+	if (is_destroy) {
+		if (stack->resource) {
+			if (stack->is_open) {
+				gf_mo_set_flag(stack->resource, GF_MO_DISPLAY_REMOVE, 1);
+				gf_mo_stop(stack->resource);
+			}
+			gf_mo_unregister(node, stack->resource);
+		}
+		gf_free(stack);
+		return;
+	} 
+
+	if (tr_state->traversing_mode!=TRAVERSE_SORT) return;
+
+	/*flatten attributes and apply animations + inheritance*/
+	gf_svg_flatten_attributes((SVG_Element *)node, &all_atts);
+	if (!compositor_svg_traverse_base(node, &all_atts, (GF_TraverseState *)rs, &backup_props, &backup_flags))
+		return;
+
+	dirty_flags = gf_node_dirty_get(node);
+	if (dirty_flags) {
+		stack->clipBegin = all_atts.clipBegin ? *all_atts.clipBegin : 0;
+		stack->clipEnd = all_atts.clipEnd ? *all_atts.clipEnd : -1;
+		if (dirty_flags & GF_SG_SVG_XLINK_HREF_DIRTY) {
+			GF_MediaObject *new_res;
+			MFURL url;
+			Bool lock_timeline=0;
+			url.vals = NULL;
+			url.count = 0;
+
+			if (all_atts.syncBehavior) lock_timeline = (*all_atts.syncBehavior == SMIL_SYNCBEHAVIOR_LOCKED) ? 1 : 0;		
+
+			gf_term_get_mfurl_from_xlink(node, &url);
+
+			new_res = gf_mo_register(node, &url, lock_timeline, 0);
+			gf_sg_mfurl_del(url);
+			
+			if (stack->resource!=new_res) {
+				if (stack->resource) {
+					gf_mo_stop(stack->resource);
+					gf_mo_unregister(node, stack->resource);
+				}
+				stack->resource = new_res;
+				if (stack->resource && stack->is_open) gf_mo_play(stack->resource, stack->clipBegin, stack->clipEnd, 0);
+			}
+		}
+		gf_node_dirty_clear(node, 0);
+	}
+	memcpy(tr_state->svg_props, &backup_props, sizeof(SVGPropertiesPointers));
+	tr_state->svg_flags = backup_flags;
+}
+
+void compositor_init_svg_updates(GF_Compositor *compositor, GF_Node *node)
+{
+	SVG_updates_stack *stack;
+	GF_SAFEALLOC(stack, SVG_updates_stack)
+
+	/*force first processing of xlink-href*/
+	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, 0);
+
+	gf_smil_set_evaluation_callback(node, svg_updates_smil_evaluate);
+
+	gf_node_set_private(node, stack);
+	gf_node_set_callback_function(node, svg_traverse_updates);
+	stack->clipEnd = -1;
+}
+
 #endif //GPAC_DISABLE_SVG
 

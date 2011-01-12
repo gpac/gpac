@@ -132,7 +132,6 @@ char *gf_xml_get_root_type(const char *file, GF_Err *ret_code);
 u32 gf_xml_sax_get_node_start_pos(GF_SAXParser *parser);
 u32 gf_xml_sax_get_node_end_pos(GF_SAXParser *parser);
 
-
 typedef struct _tag_dom_parser GF_DOMParser;
 GF_DOMParser *gf_xml_dom_new();
 void gf_xml_dom_del(GF_DOMParser *parser);
