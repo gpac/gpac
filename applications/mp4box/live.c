@@ -234,9 +234,11 @@ static void live_session_callback(void *calling_object, u16 ESID, char *data, u3
 			}
 			/*send data*/
 			else {
+				Bool rap = rtpch->rap;
+				if (livesess->carousel_generation) rap = 1;
 				ts += rtpch->timescale*(gf_sys_clock()-rtpch->init_time + rtpch->ts_delta)/1000;
-				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rtpch->rap ? 1 : 0, (livesess->critical || rtpch->critical) ? 1 : 0 );
-				fprintf(stdout, "Stream %d: Sending update at TS "LLD", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rtpch->rap, (livesess->critical || rtpch->critical) ? 1 : 0);
+				gf_rtp_streamer_send_au_with_sn(rtpch->rtp, data, size, ts, ts, rap, (livesess->critical || rtpch->critical) ? 1 : 0 );
+				fprintf(stdout, "Stream %d: Sending update at TS "LLD", %d bytes - RAP %d - critical %d\n", ESID, ts, size, rap, (livesess->critical || rtpch->critical) ? 1 : 0);
 				rtpch->rap = rtpch->critical = 0;
 
 				if (rtpch->manual_rtcp) gf_rtp_streamer_send_rtcp(rtpch->rtp, 0, 0);
@@ -418,7 +420,7 @@ int live_session(int argc, char **argv)
 	s32 next_time;
 	u64 last_src_modif, mod_time;
 	char *src_name = NULL;
-	Bool run, has_carousel;
+	Bool run, has_carousel, skip_init_scene;
     Bool udp = 0;
 	u16 sk_port=0;
     GF_Socket *sk = NULL;
@@ -435,6 +437,7 @@ int live_session(int argc, char **argv)
 	/* souchay : needs to initialize those two vars... */
 	aggregate_au = 1;
 	es_id = 0;
+	skip_init_scene = 0;
 	gf_sys_init(0);
 
 	memset(&livesess, 0, sizeof(LiveSession));
@@ -452,6 +455,10 @@ int live_session(int argc, char **argv)
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
 		else if (!strnicmp(arg, "-ifce=", 6)) ifce_addr = arg+6;
 
+        else if (!strnicmp(arg, "-dims-stream", 12)) { 
+			load_type = GF_SM_LOAD_DIMS;
+			skip_init_scene = 1;
+		}
 		else if (!strnicmp(arg, "-dims", 5)) load_type = GF_SM_LOAD_DIMS;
 		else if (!strnicmp(arg, "-src=", 5)) src_name = arg+5;
         else if (!strnicmp(arg, "-udp=", 5)) { sk_port = atoi(arg+5); udp = 1; }
@@ -521,10 +528,14 @@ int live_session(int argc, char **argv)
 			break;
 		}
 	}
+
 	update_context = 0;
-	livesess.carousel_generation = 1;
-	gf_seng_encode_context(livesess.seng, live_session_callback);
-	livesess.carousel_generation = 0;
+
+	if (has_carousel || !skip_init_scene) {
+		livesess.carousel_generation = 1;
+		gf_seng_encode_context(livesess.seng, live_session_callback);
+		livesess.carousel_generation = 0;
+	}
 
 	live_session_send_carousel(&livesess, NULL);
 

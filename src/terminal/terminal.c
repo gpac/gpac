@@ -1549,7 +1549,9 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 		}
 	}
 
-	e = gf_sm_load_string(&load, com, 1);
+	e = gf_sm_load_init(&load);
+	if (!e) e = gf_sm_load_string(&load, com, 1);
+	gf_sm_load_done(&load);
 	if (!e) {
 		u32 j, au_count, st_count;
 		st_count = gf_list_count(load.ctx->streams);

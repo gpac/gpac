@@ -44,6 +44,7 @@ Bool gf_svg_is_timing_tag(u32 tag)
 	else return (tag == TAG_SVG_animation ||
 			tag == TAG_SVG_audio ||
 			tag == TAG_LSR_conditional ||
+			tag == TAG_LSR_updates ||
 			tag == TAG_SVG_video)?1:0;
 }
 
@@ -152,6 +153,7 @@ Bool gf_svg_node_init(GF_Node *node)
 		return (node->sgprivate->UserPrivate || node->sgprivate->UserCallback) ? 1 : 0;
 	case TAG_SVG_audio: 
 	case TAG_SVG_video: 
+	case TAG_LSR_updates: 
 		gf_smil_timing_init_runtime_info(node);
 		gf_smil_setup_events(node);
 		/*we may get called several times depending on xlink:href resoling for events*/
@@ -186,6 +188,7 @@ Bool gf_svg_node_changed(GF_Node *node, GF_FieldInfo *field)
 	case TAG_SVG_animation: 
 	case TAG_SVG_audio: 
 	case TAG_SVG_video: 
+	case TAG_LSR_updates: 
 		gf_smil_timing_modified(node, field);
 		/*used by compositors*/
 		return 0;

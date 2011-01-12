@@ -585,6 +585,7 @@ static const struct xml_elt_def { const char *name; u32 tag; u32 xmlns; } xml_el
 	{ "cursorManager", TAG_LSR_cursorManager, GF_XMLNS_LASER },
 	{ "selector", TAG_LSR_selector, GF_XMLNS_LASER },
 	{ "simpleLayout", TAG_LSR_simpleLayout, GF_XMLNS_LASER },
+	{ "updates", TAG_LSR_updates, GF_XMLNS_LASER },
 
 	/*XBL*/
 	{ "bindings", TAG_XBL_bindings, GF_XMLNS_XBL },

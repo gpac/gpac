@@ -1261,6 +1261,7 @@ GF_Err gf_xml_sax_suspend(GF_SAXParser *parser, Bool do_suspend)
 	return GF_OK;
 }
 
+
 GF_EXPORT
 u32 gf_xml_sax_get_line(GF_SAXParser *parser) { return parser->line + 1 ; }
 

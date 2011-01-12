@@ -483,6 +483,7 @@ static GF_Node *svg_udom_smil_check_instance(JSContext *c, JSObject *obj)
 	case TAG_SVG_audio:
 	case TAG_SVG_video:
 	case TAG_SVG_set:
+	case TAG_LSR_updates:
 	/*not sure about this one...*/
 	case TAG_SVG_discard:
 		return n;
