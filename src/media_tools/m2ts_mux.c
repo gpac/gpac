@@ -1496,6 +1496,7 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 		muxer->needs_reconfig = 0;
 	}
 
+	/*PAT*/
 	res = muxer->pat->process(muxer, muxer->pat);
 	if (res && gf_m2ts_time_less_or_equal(&muxer->pat->time, &time) ) {
 		time = muxer->pat->time;
@@ -1504,6 +1505,7 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 		goto send_pck;
 	}
 
+	/*PMT, for each program*/
 	program = muxer->programs;
 	while (program) {
 		res = program->pmt->process(muxer, program->pmt);
@@ -1513,8 +1515,12 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 			/*force sending the PMT regardless of other streams*/
 			goto send_pck;
 		}
+		program = program->next;
+	}
 
-		/*find the PCR stream and send it first to avoid PCR to never be sent*/
+	/*PCR stream, for each program (send them first to avoid PCR to never be sent)*/
+	program = muxer->programs;
+	while (program) {
 		stream = program->streams;
 		while (stream) {
 			if (stream == program->pcr) {
@@ -1534,8 +1540,12 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 			}
 			stream = stream->next;
 		}
+		program = program->next;
+	}
 
-		/*all streams except PCR*/
+	/*all streams except PCR, for each program*/
+	program = muxer->programs;
+	while (program) {
 		stream = program->streams;
 		while (stream) {
 			if (stream != program->pcr) {
@@ -1545,6 +1555,7 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status)
 					if (gf_m2ts_time_less(&stream->time, &time)) {
 						time = stream->time;
 						stream_to_process = stream;
+						goto send_pck;
 					}
 				} else {
 					if (stream->ifce->caps & GF_ESI_STREAM_IS_OVER) nb_streams_done ++;
