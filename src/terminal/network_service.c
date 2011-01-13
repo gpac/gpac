@@ -575,6 +575,8 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	char szExt[50];
 	GF_InputService *ifce;
 	memset(szExt, 0, sizeof(szExt));
+	
+	(*ret_code) = GF_OK;
 	ifce = NULL;
 	mime_type = NULL;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Looking for plugin for URL %s\n", url));
@@ -718,9 +720,8 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 exit:
 	if (!ifce){
   	    GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[Terminal] Did not find any input plugin for URL %s (%s)\n", sURL ? sURL : url, mime_type ? mime_type : "no mime type"));
-	    if (sURL)
-	      gf_free(sURL);
-	    (*ret_code) = GF_NOT_SUPPORTED;
+	    if (sURL) gf_free(sURL);
+		if ( (*ret_code) == GF_OK) (*ret_code) = GF_NOT_SUPPORTED;
 	    *out_url = NULL;
 	} else {
 	    *out_url = sURL;
