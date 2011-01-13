@@ -408,7 +408,7 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, u32 NonBlockingOn)
 }
 
 
-static void gf_sk_gf_free(GF_Socket *sock)
+static void gf_sk_free(GF_Socket *sock)
 {
 	/*leave multicast*/
 	if (sock->socket && (sock->flags & GF_SOCK_IS_MULTICAST) ) {
@@ -443,7 +443,7 @@ static void gf_sk_gf_free(GF_Socket *sock)
 
 void gf_sk_del(GF_Socket *sock)
 {
-	gf_sk_gf_free(sock);
+	gf_sk_free(sock);
 #ifdef WIN32
 	wsa_init --;
 	if (!wsa_init) WSACleanup();
@@ -472,7 +472,7 @@ GF_Err gf_sk_connect(GF_Socket *sock, const char *PeerName, u16 PortNumber, cons
 	u32 type = (sock->flags & GF_SOCK_IS_TCP) ? SOCK_STREAM : SOCK_DGRAM;
 	struct addrinfo *res, *aip, *lip;
 
-	gf_sk_gf_free(sock);
+	gf_sk_free(sock);
 
 	res = gf_sk_get_ipv6_addr(PeerName, PortNumber, AF_UNSPEC, AI_PASSIVE, type);
 	if (!res) return GF_IP_CONNECTION_FAILURE;
