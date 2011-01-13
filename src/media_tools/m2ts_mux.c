@@ -712,6 +712,12 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 		stream->pck.data_len = pck->data_len;
 		stream->pck.dts = pck->dts;
 		stream->pck.flags = pck->flags;
+
+
+		/*discard first packet*/
+		stream->pck_first = pck->next;
+		gf_free(pck);
+
 		gf_mx_v(stream->mx);
 	}
 	if (!(stream->pck.flags & GF_ESI_DATA_HAS_DTS))
@@ -1111,15 +1117,10 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, u8 *packet)
 	stream->pck_offset += payload_length;
 	
 	if (stream->pck_offset == stream->pck.data_len) {
-		GF_M2TS_Packet *pck;
-		/*discard first packet*/
-		gf_mx_p(stream->mx);
-		assert(stream->pck_first);
-		pck = stream->pck_first;
-		stream->pck_first = pck->next;
-		gf_mx_v(stream->mx);
-		gf_free(pck->data);
-		gf_free(pck);
+		/*PES has been sent, discard internal buffer*/
+		gf_free(stream->pck.data);
+		stream->pck.data = NULL;
+		stream->pck.data_len = 0;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Done sending PES (%d bytes) from PID %d at stream time %d:%d (DTS "LLD" - PCR "LLD")\n", stream->pck.data_len, stream->pid, stream->time.sec, stream->time.nanosec, stream->pck.dts, gf_m2ts_get_pcr(stream->program)/300));
 	}
