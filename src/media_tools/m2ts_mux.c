@@ -375,18 +375,6 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Generating %d sections for MPEG-4 SL packet - version number %d - extension ID %d\n", stream->pid, nb_sections, table->version_number, table_id_extension));
 
-	{
-		/*discard first packet*/
-		GF_M2TS_Packet *pck;
-		gf_mx_p(stream->mx);
-		assert(stream->pck_first);		
-		pck = stream->pck_first;
-		stream->pck_first = pck->next;
-		gf_mx_v(stream->mx);
-		gf_free(pck->data);
-		gf_free(pck);
-	}
-
 	if (stream->ifce->repeat_rate) {
 		stream->refresh_rate_ms = stream->ifce->repeat_rate;
 		gf_m2ts_mux_table_update_bitrate(stream->program->mux, stream);
@@ -681,12 +669,13 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 	if (stream->ifce->caps & GF_ESI_AU_PULL_CAP) {
 		if (stream->pck.data_len) {
 			/*discard packet data if we use SL over PES*/
-			if (stream->mpeg2_stream_type==GF_M2TS_SYSTEMS_MPEG4_PES) gf_free(stream->pck.data);
+			if (stream->discard_data) gf_free(stream->pck.data);
 			/*release data*/
 			stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_RELEASE, NULL);
 		}
 		stream->pck_offset = 0;
 		stream->pck.data_len = 0;
+		stream->discard_data = 0;
 
 		/*EOS*/
 		if (stream->ifce->caps & GF_ESI_STREAM_IS_OVER) return 0;
@@ -694,8 +683,10 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 		stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_PULL, &stream->pck);
 	} else {
 		GF_M2TS_Packet *pck;
+
 		/*flush input pipe*/
 		if (stream->ifce->input_ctrl) stream->ifce->input_ctrl(stream->ifce, GF_ESI_INPUT_DATA_FLUSH, NULL);
+
 		gf_mx_p(stream->mx);
 
 		stream->pck_offset = 0;
@@ -713,10 +704,10 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 		stream->pck.dts = pck->dts;
 		stream->pck.flags = pck->flags;
 
-
 		/*discard first packet*/
 		stream->pck_first = pck->next;
 		gf_free(pck);
+		stream->discard_data = 1;
 
 		gf_mx_v(stream->mx);
 	}
@@ -773,6 +764,13 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 		stream->sl_header.decodingTimeStamp = stream->pck.dts;
 
 		gf_m2ts_mux_table_update_mpeg4(stream, stream->table_id, muxer->ts_id, stream->pck.data, stream->pck.data_len, 1, 0, (stream->pck.flags & GF_ESI_DATA_REPEAT) ? 0 : 1, 0);
+
+		/*packet data is now copied in sections, discard it if not pull*/
+		if (!(stream->ifce->caps & GF_ESI_AU_PULL_CAP)) {
+			gf_free(stream->pck.data);
+			stream->pck.data = NULL;
+			stream->pck.data_len=0;
+		}
 		break;
 	case GF_M2TS_SYSTEMS_MPEG4_PES:
 	{
@@ -806,6 +804,9 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 			stream->pck_first->data_len = stream->pck.data_len;
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: Encapsulating MPEG-4 SL Data on PES - SL Header size\n", stream->pid, stream->pck.data_len - src_data_len));
+
+		/*moving from PES to SL reallocates a new buffer, force discard even in pull mode*/
+		stream->discard_data = 1;
 	}
 		break;
 	/*perform LATM encapsulation*/
@@ -853,20 +854,6 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 		}
 		gf_bs_write_data(bs, stream->pck.data, stream->pck.data_len);
 		gf_bs_align(bs);
-		/*we have to check all the instances potentially containing the data pointer ie pck_first and pck_last*/
-		{
-			const char *ptr = stream->pck.data;
-			gf_free(stream->pck.data);
-			gf_bs_get_content(bs, &stream->pck.data, &stream->pck.data_len);
-			if (stream->pck_first->data == ptr) {
-				stream->pck_first->data     = stream->pck.data;
-				stream->pck_first->data_len = stream->pck.data_len;
-			}
-			if (stream->pck_last->data == ptr) {
-				stream->pck_last->data	   = stream->pck.data;
-				stream->pck_last->data_len = stream->pck.data_len;
-			}
-		}
 		gf_bs_get_content(bs, &stream->pck.data, &stream->pck.data_len);
 		gf_bs_del(bs);
 
@@ -874,6 +861,8 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 		size = stream->pck.data_len - 2;
 		stream->pck.data[1] |= (size>>8) & 0x1F;
 		stream->pck.data[2] = (size) & 0xFF;
+		/*since we reallocated the packet data buffer, force a discard in pull mode*/
+		stream->discard_data = 1;
 	}
 		break;
 	/*perform ADTS encapsulation*/
@@ -898,22 +887,12 @@ Bool gf_m2ts_stream_process_stream(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *strea
 
 			gf_bs_write_data(bs, stream->pck.data, stream->pck.data_len);
 			gf_bs_align(bs);
-			/*we have to check all the instances potentially containing the data pointer ie pck_first and pck_last*/
-			{
-				const char *ptr = stream->pck.data;
-				gf_free(stream->pck.data);
-				gf_bs_get_content(bs, &stream->pck.data, &stream->pck.data_len);
-				if (stream->pck_first->data == ptr) {
-					stream->pck_first->data     = stream->pck.data;
-					stream->pck_first->data_len = stream->pck.data_len;
-				}
-				if (stream->pck_last->data == ptr) {
-					stream->pck_last->data	   = stream->pck.data;
-					stream->pck_last->data_len = stream->pck.data_len;
-				}
-			}
+			gf_free(stream->pck.data);
+			gf_bs_get_content(bs, &stream->pck.data, &stream->pck.data_len);
 			gf_bs_del(bs);
 		}
+		/*since we reallocated the packet data buffer, force a discard in pull mode*/
+		stream->discard_data = 1;
 		break;
 	}
 
@@ -1381,6 +1360,7 @@ void gf_m2ts_mux_stream_del(GF_M2TS_Mux_Stream *st)
 		gf_free(pck->data);
 		gf_free(pck);
 	}
+	if (st->pck.data) gf_free(st->pck.data);
 	if (st->mx) gf_mx_del(st->mx);
 	gf_free(st);
 }
