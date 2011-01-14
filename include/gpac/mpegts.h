@@ -814,6 +814,7 @@ typedef struct __m2ts_mux_stream {
 	GF_ESIPacket pck;
 	u32 pck_offset;
 	Bool force_new;
+	Bool discard_data;
 
 	struct __elementary_stream_ifce *ifce;
 	Double ts_scale;
