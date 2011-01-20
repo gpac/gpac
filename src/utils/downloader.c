@@ -2390,20 +2390,27 @@ GF_Err gf_dm_copy_or_link(const char * file_source, const char * file_dest) {
 #endif /* #ifdef __POSIX__ */
 }
 
-GF_Err gf_dm_wget(const char *url, const char *filename)
-{
+GF_Err gf_dm_wget(const char *url, const char *filename){
     GF_Err e;
-    GF_DownloadSession *dnload;
     GF_DownloadManager * dm = NULL;
-    if (!filename || !url)
-        return GF_BAD_PARAM;
     dm = gf_dm_new(NULL);
     if (!dm)
         return GF_OUT_OF_MEM;
+    e = gf_dm_wget_with_cache(dm, url, filename);    
+    gf_free(dm);
+    return e;
+}
+
+GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
+				const char *url, const char *filename)
+{
+    GF_Err e;
+    GF_DownloadSession *dnload;
+    if (!filename || !url || !dm)
+        return GF_BAD_PARAM;
     dnload = gf_dm_sess_new_simple(dm, (char *)url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
     if (!dnload) {
-        e = GF_BAD_PARAM;
-        goto exit;
+        return GF_BAD_PARAM;
     }
     dnload->use_cache_file = 1;
     if (e == GF_OK) {
@@ -2412,9 +2419,6 @@ GF_Err gf_dm_wget(const char *url, const char *filename)
     e|= gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
     e|= gf_dm_copy_or_link( gf_cache_get_cache_filename(dnload->cache_entry), filename );
     gf_dm_sess_del(dnload);
-exit:
-    if (dm)
-        gf_dm_del(dm);
     return e;
 }
 
