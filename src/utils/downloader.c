@@ -902,7 +902,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 
     *e = gf_dm_setup_from_url(sess, url);
     if (*e) {
-        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("%s:%s gf_dm_sess_new_simple:%d, error=%e at setup\n", __FILE__, __LINE__, e));
+        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("%s:%d gf_dm_sess_new_simple: error=%s at setup for %s\n", __FILE__, __LINE__, gf_error_to_string(*e), url));
         gf_dm_sess_del(sess);
         return NULL;
     }
