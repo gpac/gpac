@@ -204,7 +204,7 @@ static void init_prng (void)
  * \param entry The entry to use
  * \param data data to write
  * \param size number of elements to write
- * \return GF_OK is everything went fine, GF_BAD_PARAM if cache has not been opened, GF_IO_ERROR if a failure occurs
+ * \return GF_OK is everything went fine, GF_BAD_PARAM if cache has not been opened, GF_IO_ERR if a failure occurs
  */
 GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, const char * data, const u32 size);
 
@@ -213,7 +213,7 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
  * This function also flushes all buffers, so cache will always be consistent after
  * \param entry The entry to use
  * \param success 1 if cache write is success, false otherwise
- * \return GF_OK is everything went fine, GF_BAD_PARAM if entry is NULL, GF_IO_ERROR if a failure occurs
+ * \return GF_OK is everything went fine, GF_BAD_PARAM if entry is NULL, GF_IO_ERR if a failure occurs
  */
 GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, Bool success);
 
@@ -221,7 +221,7 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
  * \brief Open the write file pointer of cache
  * This function prepares calls for gf_cache_write_to_cache
  * \param entry The entry to use
- * \return GF_OK is everything went fine, GF_BAD_PARAM if entry is NULL, GF_IO_ERROR if a failure occurs
+ * \return GF_OK is everything went fine, GF_BAD_PARAM if entry is NULL, GF_IO_ERR if a failure occurs
  */
 GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess );
 
@@ -902,7 +902,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 
     *e = gf_dm_setup_from_url(sess, url);
     if (*e) {
-        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("%s:%d gf_dm_sess_new_simple: error=%s at setup for %s\n", __FILE__, __LINE__, gf_error_to_string(*e), url));
+        GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("%s:%d gf_dm_sess_new_simple: error=%s at setup for '%s'\n", __FILE__, __LINE__, gf_error_to_string(*e), url));
         gf_dm_sess_del(sess);
         return NULL;
     }
@@ -1865,7 +1865,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
         }
 #endif
         e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
-        if (!size || e == GF_IP_NETWORK_EMPTY) {
+        if (e!= GF_IP_CONNECTION_CLOSED && (!size || e == GF_IP_NETWORK_EMPTY)) {
             if (!sess->total_size && (gf_sys_clock() - sess->window_start > 2000)) {
                 sess->total_size = sess->bytes_done;
                 gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
@@ -1877,6 +1877,21 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
         }
 
         if (e) {
+	    if (e == GF_IP_CONNECTION_CLOSED){
+		u32 len = gf_cache_get_content_length(sess->cache_entry);
+		if (size > 0)
+			gf_dm_data_received(sess, sHTTP, size);
+		if (len == 0){
+                	sess->total_size = sess->bytes_done;
+			// HTTP 1.1 without content length...
+			gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
+			assert(sess->server_name);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Disconnected from %s: %s\n", sess->server_name, gf_error_to_string(e)));
+                	sess->status = GF_NETIO_DISCONNECTED;
+			gf_cache_set_content_length(sess->cache_entry, sess->bytes_done);
+			e = GF_OK;
+		}
+	    }
             gf_dm_disconnect(sess);
             sess->last_error = e;
             gf_dm_sess_notify_state(sess, sess->status, e);
@@ -2390,6 +2405,25 @@ GF_Err gf_dm_copy_or_link(const char * file_source, const char * file_dest) {
 #endif /* #ifdef __POSIX__ */
 }
 
+
+/**
+ * NET IO for MPD, we don't need this anymore since mime-type can be given by session
+ */
+static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
+{
+    GF_Err e;
+    FILE * f = (FILE*) cbk;
+
+    /*handle service message*/
+    if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
+	s32 written = fwrite( param->data, sizeof(char), param->size, f);
+	if (written != param->size){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("Failed to write data on disk\n"));
+	}
+    }
+}
+
+
 GF_Err gf_dm_wget(const char *url, const char *filename){
     GF_Err e;
     GF_DownloadManager * dm = NULL;
@@ -2405,10 +2439,16 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
 				const char *url, const char *filename)
 {
     GF_Err e;
+    FILE * f;
     GF_DownloadSession *dnload;
     if (!filename || !url || !dm)
         return GF_BAD_PARAM;
-    dnload = gf_dm_sess_new_simple(dm, (char *)url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
+    f= fopen(filename, "w");
+    if (!f){
+	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[WGET] Failed to open file %s for write.\n", filename));
+	return GF_IO_ERR;
+    }
+    dnload = gf_dm_sess_new_simple(dm, (char *)url, GF_NETIO_SESSION_NOT_THREADED, &wget_NetIO, f, &e);
     if (!dnload) {
         return GF_BAD_PARAM;
     }
@@ -2417,7 +2457,8 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
         e = gf_dm_sess_process(dnload);
     }
     e|= gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
-    e|= gf_dm_copy_or_link( gf_cache_get_cache_filename(dnload->cache_entry), filename );
+    /* e|= gf_dm_copy_or_link( gf_cache_get_cache_filename(dnload->cache_entry), filename ); */
+    fclose(f);
     gf_dm_sess_del(dnload);
     return e;
 }
