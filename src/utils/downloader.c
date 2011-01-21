@@ -2397,7 +2397,7 @@ GF_Err gf_dm_wget(const char *url, const char *filename){
     if (!dm)
         return GF_OUT_OF_MEM;
     e = gf_dm_wget_with_cache(dm, url, filename);    
-    gf_free(dm);
+    gf_dm_del(dm);
     return e;
 }
 
