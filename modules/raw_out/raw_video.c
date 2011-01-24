@@ -26,6 +26,7 @@
 
 /*driver interfaces*/
 #include <gpac/modules/video_out.h>
+#include <gpac/user.h>
 #include <gpac/list.h>
 #include <gpac/constants.h>
 
@@ -35,11 +36,8 @@ typedef struct
 {
 	char *pixels;
 	u32 width, height;
+	u32 pixel_format, bpp;
 } RawContext;
-
-
-#define RAW_OUT_PIXEL_FORMAT		GF_PIXEL_RGB_24
-#define NBPP						3
 
 #define RAWCTX	RawContext *rc = (RawContext *)dr->opaque
 
@@ -49,13 +47,21 @@ static GF_Err raw_resize(GF_VideoOutput *dr, u32 w, u32 h)
 	if (rc->pixels) gf_free(rc->pixels);
 	rc->width = w;
 	rc->height = h;
-	rc->pixels = gf_malloc(sizeof(char) * NBPP * w * h);
+	rc->pixels = gf_malloc(sizeof(char) * rc->bpp * w * h);
 	if (!rc->pixels) return GF_OUT_OF_MEM;
 	return GF_OK;
 }
 
 GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init_flags)
 {
+	RAWCTX;
+	if (init_flags & GF_TERM_WINDOW_TRANSPARENT) {
+		rc->bpp = 4;
+		rc->pixel_format = GF_PIXEL_ARGB;
+	} else {
+		rc->bpp = 3;
+		rc->pixel_format = GF_PIXEL_RGB_24;
+	}
 	raw_resize(dr, 100, 100);
 	return GF_OK;
 }
@@ -84,9 +90,9 @@ static GF_Err RAW_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool d
 		vi->height = rc->height;
 		vi->width = rc->width;
 		vi->video_buffer = rc->pixels;
-		vi->pitch_x = NBPP;
-		vi->pitch_y = NBPP * vi->width;
-		vi->pixel_format = RAW_OUT_PIXEL_FORMAT;
+		vi->pitch_x = rc->bpp;
+		vi->pitch_y = rc->bpp * vi->width;
+		vi->pixel_format = rc->pixel_format;
 	}
 	return GF_OK;
 }
