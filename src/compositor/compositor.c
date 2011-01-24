@@ -2392,6 +2392,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 				compositor->new_width = event->size.width;
 				compositor->new_height = event->size.height;
 				compositor->msg_type |= GF_SR_CFG_SET_SIZE;
+				if (from_user) compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 				if (lock_ok) gf_sc_lock(compositor, 0);
 			}
 		}
