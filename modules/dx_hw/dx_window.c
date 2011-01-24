@@ -987,11 +987,6 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 #ifndef GPAC_DISABLE_3D
 		case 1:
 			ctx->output_3d_type = 1;
-			if (ctx->os_hwnd) {
-				if ((ctx->width != evt->setup.width) || (ctx->height != evt->setup.height)) {
-					SetWindowPos(ctx->os_hwnd, NULL, 0, 0, evt->size.width, evt->size.height, SWP_NOZORDER | SWP_NOMOVE | SWP_ASYNCWINDOWPOS);
-				}
-			}
 			ctx->width = evt->setup.width;
 			ctx->height = evt->setup.height;
 			ctx->gl_double_buffer = evt->setup.back_buffer;
