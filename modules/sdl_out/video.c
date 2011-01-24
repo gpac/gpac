@@ -675,6 +675,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	ctx->os_handle = os_handle;
 	ctx->is_init = 0;
 	ctx->output_3d_type = 0;
+	ctx->force_alpha = (init_flags & GF_TERM_WINDOW_TRANSPARENT) ? 1 : 0;
 
 	if (!SDLOUT_InitSDL()) return GF_IO_ERR;
 
@@ -814,7 +815,7 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 	return GF_OK;
 }
 
-u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format)
+u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format, Bool force_alpha)
 {
 	if (format->palette) return 0;
 	switch (format->BitsPerPixel) {
@@ -828,8 +829,8 @@ u32 SDLVid_MapPixelFormat(SDL_PixelFormat *format)
 		return 0;
 	case 32:
 		if (format->Amask==0xFF000000) return GF_PIXEL_ARGB;
-		if (format->Rmask==0x00FF0000) return GF_PIXEL_RGB_32;
-		if (format->Rmask==0x000000FF) return GF_PIXEL_BGR_32;
+		if (format->Rmask==0x00FF0000) return force_alpha ? GF_PIXEL_ARGB : GF_PIXEL_RGB_32;
+		if (format->Rmask==0x000000FF) return force_alpha ? GF_PIXEL_RGBA : GF_PIXEL_BGR_32;
 		return 0;
 	default:
 		return 0;
@@ -868,7 +869,7 @@ static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_i
 		video_info->pitch_x = 0;
 		video_info->pitch_y = ctx->back_buffer->pitch;
 		video_info->video_buffer = ctx->back_buffer->pixels;
-		video_info->pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format);
+		video_info->pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format, ctx->force_alpha);
 		video_info->is_hardware_memory = !ctx->use_systems_memory;
 	} else {
 		SDL_UnlockSurface(ctx->back_buffer);
@@ -899,14 +900,14 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 		src.width = ctx->back_buffer->w;
 		src.pitch_x = 0;
 		src.pitch_y = ctx->back_buffer->pitch;
-		src.pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format);
+		src.pixel_format = SDLVid_MapPixelFormat(ctx->back_buffer->format, ctx->force_alpha);
 		src.video_buffer = ctx->back_buffer->pixels;
 
 		dst.height = ctx->screen->h;
 		dst.width = ctx->screen->w;
 		dst.pitch_x = 0;
 		dst.pitch_y = ctx->screen->pitch;
-		dst.pixel_format = SDLVid_MapPixelFormat(ctx->screen->format);
+		dst.pixel_format = SDLVid_MapPixelFormat(ctx->screen->format, 0);
 		dst.video_buffer = ctx->screen->pixels;
 
 		gf_stretch_bits(&dst, &src, dest, NULL, 0xFF, 0, NULL, NULL);

@@ -636,9 +636,10 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 	/* pack pixels into bytes */
 	png_set_packing(png_ptr);
 
-	if (pixel_format==GF_PIXEL_ARGB)
-		png_set_swap_alpha(png_ptr);
-
+	if (pixel_format==GF_PIXEL_ARGB) {
+//		png_set_swap_alpha(png_ptr);
+		png_set_bgr(png_ptr);
+	}
 	switch (pixel_format) {
 	case GF_PIXEL_RGB_32:
 		png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);

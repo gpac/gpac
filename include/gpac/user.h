@@ -63,8 +63,10 @@ enum
 	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<6,
 	/*works without title bar*/
 	GF_TERM_WINDOW_NO_DECORATION = 1<<7,
+	/*framebuffer works in 32 bit alpha mode - experimental, only supported on Win32*/
+	GF_TERM_WINDOW_TRANSPARENT = 1<<8,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<8,
+	GF_TERM_WINDOWLESS = 1<<9,
 };
 
 /*user object for all callbacks*/

@@ -58,7 +58,11 @@ void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackCol
 #endif
 	if (!visual->is_attached) return;
 	
-	if (!BackColor && !visual->offscreen) BackColor = visual->compositor->back_color;
+	if (!BackColor && !visual->offscreen) {
+		if (!visual->compositor->user || !(visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
+			BackColor = visual->compositor->back_color;
+		}
+	}
 
 	visual->compositor->rasterizer->surface_clear(visual->raster_surface, rc, BackColor);
 }

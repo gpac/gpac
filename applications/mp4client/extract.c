@@ -213,6 +213,44 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	fclose(fout);
 }
 
+void write_png(GF_VideoSurface *fb, char *rad_name, u32 img_num)
+{
+	char str[GF_MAX_PATH];
+	FILE *fout;
+	u32 dst_size;
+	char *dst;
+	char *prev = strrchr(rad_name, '.');
+	if (prev) prev[0] = '\0'; 
+	sprintf(str, "%s_%d.png", rad_name, img_num);
+	if (prev) prev[0] = '.'; 
+
+	switch (fb->pixel_format) {
+	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
+	case GF_PIXEL_BGRA:
+		dst_size = fb->width*fb->height*4;
+		break;
+	default:
+		dst_size = fb->width*fb->height*3;
+		break;
+	}
+	dst = (char*)gf_malloc(sizeof(char)*dst_size);
+
+
+	fout = gf_f64_open(str, "wb");
+	if (fout) {
+		GF_Err e = gf_img_png_enc(fb->video_buffer, fb->width, fb->height, fb->pitch_y, fb->pixel_format, dst, &dst_size);
+		if (!e) {
+			fwrite(dst, dst_size, 1, fout);
+			fclose(fout);
+		}
+	}
+
+	gf_free(dst);
+}
+
+
+
 /*writes onto a file the content of the framebuffer in *fb interpreted as the byte depthbuffer */
 /*it's also possible to write a float depthbuffer by passing the floats to strings and writing chars in putpixel - see comments*/
 void write_depthfile(GF_VideoSurface *fb, char *rad_name, u32 img_num)
@@ -380,6 +418,9 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum,
 	case 2:
 		write_bmp(&fb, rad_name, frameNum);
 		break;
+	case 11:
+		write_png(&fb, rad_name, frameNum);
+		break;
 	case 3:
 		write_raw(&fb, rad_name, frameNum);
 		break;
@@ -408,11 +449,6 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 	else e = gf_sc_get_screen_buffer(term->compositor, &fb, 0);
 	if (e) fprintf(stdout, "Error grabbing frame buffer: %s\n", gf_error_to_string(e));
 
-	if (dump_type!=5 && dump_type!= 10) { 
-		out_size = fb.height*fb.width*3;
-	} else {
-		out_size = fb.height*fb.width*4;
-	}
 	/*export frame*/
 	switch (dump_type) {
 	case 1:
@@ -508,6 +544,11 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 				break;
 			}
 		}
+		if (dump_type!=5 && dump_type!= 10 && dump_type!= 11) { 
+			out_size = fb.height*fb.width*3;
+		} else {
+			out_size = fb.height*fb.width*4;
+		}
 #ifndef GPAC_DISABLE_AVILIB
 		if (dump_type!=5 && dump_type!= 10) { 
 			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
@@ -520,6 +561,9 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_type, u32 frameNum, 
 		break;
 	case 2:
 		write_bmp(&fb, rad_name, frameNum);
+		break;
+	case 11:
+		write_png(&fb, rad_name, frameNum);
 		break;
 	case 6:
 	case 9:
