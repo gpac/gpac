@@ -420,8 +420,8 @@ function wmjs_interface_invoke_callback_local(wid_dst, ifce_dst, is_reply) {
         /*get msg from source interface (this object)*/
         msg_src = this.get_message(msgHandler.msgName);
         // JCD: take into account message repetition, if any
-        for (j = 0; j < ifce_dest.num_messages; j++) {
-            msg_dst = ifce_dest.get_message(j);
+        for (j = 0; j < ifce_dst.num_messages; j++) {
+            msg_dst = ifce_dst.get_message(j);
             if (msg_dst.name == msgHandler.nsgName) {
                 log(l_deb, (is_reply ? 'invokeReply ' : 'invoke ') + msg_src.name + ' on ' + wid_dst.name + '.' + msg_dst.name);
                 if (msg_dst.has_script_input) is_script = 1;
