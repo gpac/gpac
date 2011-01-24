@@ -684,6 +684,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 
 	flags = ctx->switch_res;
 	ctx->switch_res = 0;
+	ctx->force_alpha = (flags & GF_TERM_WINDOW_TRANSPARENT) ? 1 : 0;
 
 	if (!ctx->os_hwnd) {
 		u32 styles;

@@ -106,6 +106,7 @@ typedef struct
 	Bool yuv_init;
 	Bool fullscreen;
 	Bool systems_memory;
+	Bool force_alpha;
 
 	u32 width, height;
 	u32 fs_width, fs_height;

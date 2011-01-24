@@ -297,11 +297,11 @@ GF_Err InitDirectDraw(GF_VideoOutput *dr, u32 Width, u32 Height)
 		dd->video_bpp = 24;
 		break;
 	case 32:
-		/*i always have color pbs in 32 bpp !!!*/
-		if ((pixelFmt.dwRBitMask == 0x0000FF) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0xFF0000))
-			dd->pixelFormat = GF_PIXEL_BGR_32;
-		else if ((pixelFmt.dwRBitMask == 0xFF0000) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0x0000FF))
-			dd->pixelFormat = GF_PIXEL_RGB_32;
+		if ((pixelFmt.dwRBitMask == 0x0000FF) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0xFF0000)) {
+			dd->pixelFormat = dd->force_alpha ? GF_PIXEL_RGBA : GF_PIXEL_BGR_32;
+		} else if ((pixelFmt.dwRBitMask == 0xFF0000) && (pixelFmt.dwGBitMask == 0x00FF00) && (pixelFmt.dwBBitMask == 0x0000FF)) {
+			dd->pixelFormat = dd->force_alpha ? GF_PIXEL_ARGB : GF_PIXEL_RGB_32;
+		}
 		dd->video_bpp = 32;
 		break;
 	default:

@@ -169,7 +169,8 @@ void PrintUsage()
 		"\n"
 		"Dumper Options:\n"
 		"\t-bmp [times]:   dumps given frames to bmp\n"
-		"\t-raw [times]:   dumps given frames to bmp\n"
+		"\t-png [times]:   dumps given frames to png\n"
+		"\t-raw [times]:   dumps given frames to raw\n"
 		"\t-avi [times]:   dumps given file to raw avi\n"
 		"\t-rgbds:         dumps the RGBDS pixel format texture\n"
 		"                   with -avi [times]: dumps an rgbds-format .avi\n"
@@ -1076,6 +1077,9 @@ int main (int argc, char **argv)
 			if(depth_dump) dump_mode=7; /*grayscale depth .bmp dump*/
 			else dump_mode=2;
 			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!strcmp(arg, "-png")) {
+			dump_mode=11;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
 		} else if (!strcmp(arg, "-raw")) {
 			dump_mode = 3;
 			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
@@ -1116,6 +1120,7 @@ int main (int argc, char **argv)
 			i++;
 		}
 		else if (!strcmp(arg, "-no-wnd")) user.init_flags |= GF_TERM_WINDOWLESS;
+		else if (!strcmp(arg, "-no-back")) user.init_flags |= GF_TERM_WINDOW_TRANSPARENT;
 #if defined(__DARWIN__) || defined(__APPLE__)
 		else if (!strcmp(arg, "-thread")) threading_flags = 0;
 #else
