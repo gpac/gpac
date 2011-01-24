@@ -224,6 +224,14 @@ void PrintGeneralUsage()
 			" -group-rem ID        removes the track's group\n"
 			" -group-clean         removes all group information from all tracks\n"
 			" -ref id:XXXX:refID   adds a reference of type 4CC from track ID to track refID\n"
+			"\n"
+			" -dash dur            enables DASH-ing of the file with a segment duration of DUR\n"
+			"                       Note: the duration of a fragment (subsegment) is set\n"
+			"						using the interleaver (-inter) switch.\n"
+			"                       Note: You can specify -rap switch to split segments at RAP boundaries\n"
+			" -frags-per-sidx N    sets the number of segments to be written in each SIDX box\n"
+			"                       If 0, SIDX box is not used\n"
+			" -segment-name name   sets the segment name for generated segments\n"
 			"\n");
 }
 
@@ -308,6 +316,7 @@ void PrintImportUsage()
 			"                         the tracks in the file are used.\n"
 			"                         - if Y=-1, the layout is moved to the bottom of the\n"
 			"                         track area\n"
+			"                         - X and Y can be omitted (:layout=WxH)\n"
 			"\n"
 			" -add file              add file tracks to (new) output file\n"
 			" -cat file              concatenates file samples to (new) output file\n"

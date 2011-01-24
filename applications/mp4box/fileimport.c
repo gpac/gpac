@@ -230,8 +230,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			handler = GF_4CC(ext[6], ext[7], ext[8], ext[9]);
 		
 		else if (!strnicmp(ext+1, "layout=", 7)) {
-			sscanf(ext+8, "%dx%dx%dx%d", &tw, &th, &tx, &ty);
-			track_layout = 1;
+			if ( sscanf(ext+8, "%dx%dx%dx%d", &tw, &th, &tx, &ty)==4) {
+				track_layout = 1;
+			} else if ( sscanf(ext+8, "%dx%d", &tw, &th)==2) {
+				track_layout = 1;
+				tx = ty = 0;
+			}
 		}
 		else if (!strnicmp(ext+1, "stype=", 6)) {
 			stype = GF_4CC(ext[7], ext[8], ext[9], ext[10]);

@@ -1100,6 +1100,13 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		fprintf(stdout, "Handler name: %s\n", handler_name);
 	}
 
+	if (mtype==GF_ISOM_MEDIA_VISUAL) {
+		s32 tx, ty;
+		u32 w, h;
+		gf_isom_get_track_layout_info(file, trackNum, &w, &h, &tx, &ty, NULL);
+		fprintf(stdout, "Visual Track layout: x=%d y=%d width=%d height=%d\n", tx, ty, w, h);
+	}
+
 	gf_isom_get_audio_info(file, trackNum, 1, &sr, &nb_ch, &bps);
 	
 	msub_type = gf_isom_get_media_subtype(file, trackNum, 1);
