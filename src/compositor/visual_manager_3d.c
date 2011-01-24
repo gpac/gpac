@@ -449,11 +449,18 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 #endif
 	if (!layer_type) {
 		SFColor col;
+		Fixed alpha = 0;
 		col.red = INT2FIX((tr_state->visual->compositor->back_color>>16)&0xFF) / 255;
 		col.green = INT2FIX((tr_state->visual->compositor->back_color>>8)&0xFF) / 255;
 		col.blue = INT2FIX((tr_state->visual->compositor->back_color)&0xFF) / 255;
 		/*if composite visual, clear with alpha = 0*/
-		visual_3d_clear(tr_state->visual, col, (tr_state->visual==tr_state->visual->compositor->visual) ? FIX_ONE : 0);
+		if (tr_state->visual==tr_state->visual->compositor->visual) {
+			alpha = FIX_ONE;
+			if (tr_state->visual->compositor->user && (tr_state->visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT) ) {
+				alpha = 0;
+			}
+		}
+		visual_3d_clear(tr_state->visual, col, alpha);
 	}
 	tr_state->traversing_mode = mode;
 }
