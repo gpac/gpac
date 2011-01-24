@@ -1085,7 +1085,8 @@ int main (int argc, char **argv)
 			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
 
 		} else if (!stricmp(arg, "-size")) {
-			if (sscanf(argv[i+1], "%udx%ud", &forced_width, &forced_height) != 2) {
+			/*usage of %ud breaks sscanf on MSVC*/
+			if (sscanf(argv[i+1], "%dx%d", &forced_width, &forced_height) != 2) {
 				forced_width = forced_height = 0;
 			}
 			i++;
