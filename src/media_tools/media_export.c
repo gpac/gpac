@@ -561,6 +561,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 #ifdef GPAC_DISABLE_AV_PARSERS
 	return GF_NOT_SUPPORTED;
 #else
+	GF_Err e = GF_OK;
 	GF_DecoderConfig *dcfg;
 	GF_GenericSampleDescription *udesc;
 	char szName[1000], szEXT[5], GUID[16];
@@ -943,7 +944,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 
 	for (i=0; i<count; i++) {
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, i+1, &di);
-		if (!samp) break;
+		if (!samp) {
+			e = gf_isom_last_error(dumper->file);
+			break;
+		}
 		/*AVC sample to NALU*/
 		if (avccfg) {
 			u32 j, nal_size, remain;
@@ -1006,7 +1010,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	if (avccfg) gf_odf_avc_cfg_del(avccfg);
 	gf_bs_del(bs);
 	fclose(out);
-	return GF_OK;
+	return e;
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 }
 

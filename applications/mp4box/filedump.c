@@ -1243,15 +1243,19 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					} else {
 #ifndef GPAC_DISABLE_AV_PARSERS
 						GF_ISOSample *samp = gf_isom_get_sample(file, trackNum, 1, &oti);
-						oti = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
-						if (full_dump) fprintf(stdout, "\t");
-						fprintf(stdout, "%s Audio - %d Channel(s) - SampleRate %d - Layer %d\n",
-							gf_mp3_version_name(oti),
-							gf_mp3_num_channels(oti), 
-							gf_mp3_sampling_rate(oti), 
-							gf_mp3_layer(oti)
-						);
-						gf_isom_sample_del(&samp);
+						if (samp) {
+							oti = GF_4CC((u8)samp->data[0], (u8)samp->data[1], (u8)samp->data[2], (u8)samp->data[3]);
+							if (full_dump) fprintf(stdout, "\t");
+							fprintf(stdout, "%s Audio - %d Channel(s) - SampleRate %d - Layer %d\n",
+								gf_mp3_version_name(oti),
+								gf_mp3_num_channels(oti), 
+								gf_mp3_sampling_rate(oti), 
+								gf_mp3_layer(oti)
+							);
+							gf_isom_sample_del(&samp);
+						} else {
+							fprintf(stdout, "\n\tError fetching sample: %s\n", gf_error_to_string(gf_isom_last_error(file)) );
+						}
 #else
 						fprintf(stdout, "MPEG-1/2 Audio - %d Channels - SampleRate %d\n", nb_ch, sr);
 #endif
