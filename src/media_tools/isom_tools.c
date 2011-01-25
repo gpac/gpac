@@ -614,11 +614,12 @@ typedef struct
 	u32 FragmentLength;
 	u32 OriginalTrack;
 	u32 TimeScale, MediaType, DefaultDuration;
+	u64 last_sample_cts;
 } TrackFragmenter;
 
 
 GF_EXPORT
-GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, u32 fragments_per_sidx, Bool daisy_chain_sidx)
+GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_duration_sec, u32 dash_mode, Double dash_duration_sec, char *seg_rad_name, char *seg_ext, u32 fragments_per_sidx, Bool daisy_chain_sidx)
 {
 	u8 NbBits;
 	u32 i, TrackNum, descIndex, j, count, nb_sync, ref_track_id;
@@ -633,16 +634,24 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	u32 MaxFragmentDuration;
 	u32 MaxSegmentDuration;
 	u32 SegmentDuration, maxFragDurationOverSegment;
+	Double average_duration;
+	u32 nb_segments;
 	Bool switch_segment = 0;
 	Bool split_seg_at_rap = (dash_mode==2) ? 1 : 0;
 	Bool split_at_rap = 0;
+	Bool has_rap = 0;
 	Bool next_sample_rap = 0;
+	Bool flush_all_samples = 0;
+	u64 last_ref_cts = 0;
+	u32 tfref_timescale = 0;
 	TrackFragmenter *tf, *tfref;
 	FILE *mpd = NULL;
 	char *SegName = NULL;
 	SegmentDuration = 0;
 	nb_samp = 0;
 	fragmenters = NULL;
+	if (!seg_ext) seg_ext = "m4s";
+
 	//create output file
 	if (dash_mode) {
 		u32 len = strlen(output_file);
@@ -713,6 +722,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 			if (gf_isom_get_sync_point_count(input, i+1)>nb_sync) { 
 				tfref = tf;
+				tfref_timescale = tf->TimeScale;
 				nb_sync = gf_isom_get_sync_point_count(input, i+1);
 			}
 
@@ -730,16 +740,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 	e = gf_isom_finalize_for_fragment(output, dash_mode ? 1 : 0);
 	if (e) goto err_exit;
 
-    if (dash_mode) {
-        fprintf(mpd, "<MPD type=\"OnDemand\" xmlns=\"urn:3GPP:ns:PSS:AdaptiveHTTPStreamingMPD:2009\">\n");
-	    fprintf(mpd, " <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n");
-		fprintf(mpd, "  <Title>Media Presentation Description for file %s generated with GPAC </Title>\n", gf_isom_get_filename(input));
-        fprintf(mpd, " </ProgramInformation>\n");
-        fprintf(mpd, " <Period start=\"PT0S\">\n");	
-		fprintf(mpd, "  <Representation mimeType=\"video/mp4\">\n");	
-		fprintf(mpd, "   <SegmentInfo duration=\"PT%.3fS\">\n", dash_duration_sec);	
-		fprintf(mpd, "    <InitialisationSegmentURL sourceURL=\"%s.mp4\"/>\n", output_file);	
-    }
+
+	average_duration = 0;
+	nb_segments = 0;
 
 	nb_done = 0;
 	cur_seg=1;
@@ -752,9 +755,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			SegmentDuration = 0;
 			switch_segment = 0;
 			if (seg_rad_name) {
-				sprintf(SegName, "%s_seg%d.mp4", seg_rad_name, cur_seg);
+				sprintf(SegName, "%s_seg%d.%s", seg_rad_name, cur_seg, seg_ext);
 				e = gf_isom_start_segment(output, SegName);
-        		if (dash_mode) fprintf(mpd, "    <Url sourceURL=\"%s\"/>\n", SegName);	
 			} else {
 				e = gf_isom_start_segment(output, NULL);
 			}
@@ -773,6 +775,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 			if (tfref && split_seg_at_rap ) {
 				if (i==0) {
 					tf = tfref;
+					has_rap=0;
 				} else {
 					tf = (TrackFragmenter *)gf_list_get(fragmenters, i-1);
 					if (tf == tfref) {
@@ -781,7 +784,9 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				}
 			} else {
 				tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
-			}
+				if (tf == tfref) 
+					has_rap=0;
+			} 
 
 			//ok write samples
 			while (1) {
@@ -800,59 +805,68 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 
 				e = gf_isom_fragment_add_sample(output, tf->TrackID, sample, descIndex,
 								 defaultDuration, NbBits, 0);
-				if (e) goto err_exit;
+				if (e) 
+					goto err_exit;
 
 				gf_set_progress("ISO File Fragmenting", nb_done, nb_samp);
 				nb_done++;
+
+				tf->last_sample_cts = sample->DTS + sample->CTS_Offset;
 
 				gf_isom_sample_del(&sample);
 				sample = next;
 				tf->FragmentLength += defaultDuration;
 				tf->SampleNum += 1;
 
-				if (split_seg_at_rap && (tf==tfref) && next && next->IsRAP) {
-					next_sample_rap = 1;
-                    if ((tf->FragmentLength+2*defaultDuration)*1000 >= MaxFragmentDuration*tf->TimeScale)
-						split_at_rap = 1;
+				if (next && next->IsRAP) {
+					if (tf==tfref) {
+						if (split_seg_at_rap) {
+							u32 frag_dur = tf->FragmentLength*1000/tf->TimeScale;
+							next_sample_rap = 1;
+							/*if media segment about to be produced is longer than max segment length, force split*/
+							if (SegmentDuration + frag_dur > MaxSegmentDuration) {
+								split_at_rap = 1;
+							}
 
-					if (split_at_rap) {
-						stop_frag = 1;
-						/*override fragment duration for the rest of this fragment*/
-						MaxFragmentDuration = tf->FragmentLength*1000/tf->TimeScale;
-					}
+							if (split_at_rap) {
+								stop_frag = 1;
+								/*override fragment duration for the rest of this fragment*/
+								MaxFragmentDuration = frag_dur;
+							}
+						} else if (!has_rap) {
+							if (tf->FragmentLength == defaultDuration) has_rap = 2;
+							else has_rap = 1;
+						}
+					} 
+				} else {
+					next_sample_rap = 0;
 				}
-				else next_sample_rap = 0;
 
-				//end of track fragment or track
-				if (stop_frag || 
-					(tf->SampleNum==tf->SampleCount) || 
-                    /* TODO: should probably test the time position (not only duration) to avoid drift */
-                    (tf->FragmentLength*1000 >= MaxFragmentDuration*tf->TimeScale)) {
+				if (tf->SampleNum==tf->SampleCount) {
+					stop_frag = 1;
+				} else if (tf==tfref) {
+					/*fragmenting on "clock" track: no drift control*/
+                    if (tf->FragmentLength*1000 >= MaxFragmentDuration*tf->TimeScale)
+						stop_frag = 1;
+				}
+				/*do not abort fragment if ref track is done, put everything in the last fragment*/
+				else if (!flush_all_samples) {
+					/*fragmenting on "non-clock" track: drift control*/
+					if (tf->last_sample_cts * tfref_timescale >= last_ref_cts * tf->TimeScale)
+						stop_frag = 1;
+				}
+
+				if (stop_frag) {
 					gf_isom_sample_del(&next);
 					sample = next = NULL;
 					if (maxFragDurationOverSegment<=tf->FragmentLength*1000/tf->TimeScale) {
 						maxFragDurationOverSegment = tf->FragmentLength*1000/tf->TimeScale;
 					}
 					tf->FragmentLength = 0;
+
+					if (tf==tfref) last_ref_cts = tf->last_sample_cts;
+
 					break;
-				}
-			}
-			if (dash_mode) {
-				SegmentDuration += maxFragDurationOverSegment;
-
-				if ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap)) {
-					switch_segment=1;
-					maxFragDurationOverSegment=0;
-					SegmentDuration=0;
-					split_at_rap = 0;
-					/*restore fragment duration*/
-					MaxFragmentDuration = (u32) (max_duration_sec * 1000);
-
-					gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, NULL, 0, daisy_chain_sidx);
-				} 
-				/*next fragment will exceed segment length, abort fragment at next rap*/
-				if (split_seg_at_rap && (SegmentDuration + MaxFragmentDuration >= MaxSegmentDuration)) {
-					split_at_rap = 1;
 				}
 			}
 
@@ -861,13 +875,87 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, char *output_file, Double max_d
 				gf_list_rem(fragmenters, i);
 				i--;
 				count --;
+				if (tf == tfref) {
+					tfref = NULL;
+					flush_all_samples = 1;
+				}
+			}
+		}
+
+		if (dash_mode) {
+			SegmentDuration += maxFragDurationOverSegment;
+			maxFragDurationOverSegment=0;
+
+			if ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || next_sample_rap)) {
+				average_duration += SegmentDuration;
+				nb_segments++;
+
+#if 0
+				if (split_seg_at_rap) has_rap = 0;
+				fprintf(stdout, "Seg#%d: Duration %d%s - Track times (ms): ", nb_segments, SegmentDuration, (has_rap == 2) ? " - Starts with RAP" : ((has_rap == 1) ? " - Contains RAP" : "") );
+				for (i=0; i<count; i++) {
+					tf = (TrackFragmenter *)gf_list_get(fragmenters, i);
+					fprintf(stdout, "%d ", (u32) ( (tf->last_sample_cts*1000.0)/tf->TimeScale) );
+				}
+				fprintf(stdout, "\n ");
+#endif
+				switch_segment=1;
+				SegmentDuration=0;
+				split_at_rap = 0;
+				has_rap = 0;
+				/*restore fragment duration*/
+				MaxFragmentDuration = (u32) (max_duration_sec * 1000);
+
+				gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, NULL, 0, daisy_chain_sidx);
+			} 
+			/*next fragment will exceed segment length, abort fragment at next rap*/
+			if (split_seg_at_rap && (SegmentDuration + MaxFragmentDuration >= MaxSegmentDuration)) {
+				split_at_rap = 1;
 			}
 		}
 	}
 
+
 	if (dash_mode) {
-		gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, NULL, 0, daisy_chain_sidx);
-        fprintf(mpd, "   </SegmentInfo>\n");
+		u32 h, m;
+		Double s;
+		if (!switch_segment) {
+			gf_isom_close_segment(output, fragments_per_sidx, ref_track_id, NULL, 0, daisy_chain_sidx);
+			nb_segments++;
+		}
+
+		average_duration/=1000;
+		h = (u32) (average_duration/3600);
+		m = (u32) (average_duration-h*60)/60;
+		s = (u32) (average_duration - h*3600 - m*60);
+		
+        fprintf(mpd, "<MPD type=\"OnDemand\" xmlns=\"urn:3GPP:ns:PSS:AdaptiveHTTPStreamingMPD:2009\">\n");
+	    fprintf(mpd, " <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n");
+		fprintf(mpd, "  <Title>Media Presentation Description for file %s generated with GPAC </Title>\n", gf_isom_get_filename(input));
+        fprintf(mpd, " </ProgramInformation>\n");
+        fprintf(mpd, " <Period start=\"PT0S\" duration=\"PT%dH%dM%.2fS\">\n", h, m, s);	
+		fprintf(mpd, "  <Representation mimeType=\"video/mp4\">\n");	
+		h = (u32) (dash_duration_sec/3600);
+		m = (u32) (dash_duration_sec-h*60)/60;
+		s = (u32) (dash_duration_sec - h*3600 - m*60);
+		if (m) {
+			fprintf(mpd, "   <SegmentInfo duration=\"PT%dM%.2fS\">\n", m, s);	
+		} else {
+			fprintf(mpd, "   <SegmentInfo duration=\"PT%.2fS\">\n", s);	
+		}
+		fprintf(mpd, "    <InitialisationSegmentURL sourceURL=\"%s.mp4\"/>\n", output_file);	
+		if (seg_rad_name) {
+			strcpy(SegName, seg_rad_name);
+			if (nb_segments<100) strcat(SegName, "_seg0");
+			else if (nb_segments<1000) strcat(SegName, "_seg00");
+			else if (nb_segments<10000) strcat(SegName, "_seg000");
+			else strcat(SegName, "_seg");
+
+			for (i=0; i<nb_segments; i++) {
+				fprintf(mpd, "    <Url sourceURL=\"%s%d.%s\"/>\n", SegName, i+1, seg_ext);	
+			}
+		}
+		fprintf(mpd, "   </SegmentInfo>\n");
         fprintf(mpd, "  </Representation>\n");
         fprintf(mpd, " </Period>\n");
         fprintf(mpd, "</MPD>");

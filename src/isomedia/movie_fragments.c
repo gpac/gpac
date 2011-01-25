@@ -785,7 +785,8 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, char *SegName)
 	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
 	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
 
-	if (gf_list_count(movie->moof_list)) return GF_BAD_PARAM;
+	if (gf_list_count(movie->moof_list)) 
+		return GF_BAD_PARAM;
 
 	/*update segment file*/
 	if (SegName) {
@@ -807,11 +808,13 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 	GF_TrackFragmentBox *traf;
 	GF_Err e;
 	//and only at setup
-	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+	if (!movie || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) 
+		return GF_BAD_PARAM;
 	if (movie->openMode != GF_ISOM_OPEN_WRITE) return GF_ISOM_INVALID_MODE;
 
 	count = gf_list_count(movie->moov->mvex->TrackExList);
-	if (!count) return GF_BAD_PARAM;
+	if (!count) 
+		return GF_BAD_PARAM;
 
 	/*always force cached mode when writing movie segments*/
 	if (movie->use_segments) moof_first = 1;
@@ -890,10 +893,12 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, GF_ISOSample 
 	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf, *traf_2;
 	GF_TrackFragmentRunBox *trun;
-	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) || !sample) return GF_BAD_PARAM;
+	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) || !sample) 
+		return GF_BAD_PARAM;
 
 	traf = GetTraf(movie, TrackID);
-	if (!traf) return GF_BAD_PARAM;
+	if (!traf) 
+		return GF_BAD_PARAM;
 
 	if (!traf->tfhd->sample_desc_index) traf->tfhd->sample_desc_index = DescIndex ? DescIndex : traf->trex->def_sample_desc_index;
 

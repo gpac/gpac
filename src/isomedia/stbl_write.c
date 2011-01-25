@@ -1264,6 +1264,9 @@ void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size)
 	if (!stbl->SampleSize->sizes || (stbl->SampleSize->sampleCount==stbl->SampleSize->alloc_size)) {
 		Bool init_table = (stbl->SampleSize->sizes==NULL) ? 1 : 0;
 		ALLOC_INC(stbl->SampleSize->alloc_size);
+		if (stbl->SampleSize->sampleCount>stbl->SampleSize->alloc_size)
+			stbl->SampleSize->alloc_size = stbl->SampleSize->sampleCount+1;
+
 		stbl->SampleSize->sizes = (u32 *)gf_realloc(stbl->SampleSize->sizes, sizeof(u32)*stbl->SampleSize->alloc_size);
 		if (!stbl->SampleSize->sizes) return;
 
