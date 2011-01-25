@@ -41,7 +41,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 	GF_TrackFragmentBox *traf;
 	GF_TrackBox *trak;
 
-	GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset);
+	GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset);
 	
 	MaxDur = 0;
 
@@ -65,9 +65,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		}
 		if (!trak || !traf->trex) return GF_ISOM_INVALID_FILE;
 
-		//NB we can modify the movie data-offset info since we are in the middle of
-		//parsing an box, so next box readin will reset it...
-		MergeTrack(trak, traf, &mov->current_top_box_start);
+		MergeTrack(trak, traf, mov->current_top_box_start);
 
 		//update trak duration
 		SetTrackDuration(trak);
@@ -239,7 +237,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 		}
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs);
+//		mov->current_top_box_start = gf_bs_get_position(mov->movieFileMap->bs);
 #endif
 	}
 

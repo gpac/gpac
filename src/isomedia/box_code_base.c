@@ -6597,6 +6597,7 @@ GF_Err trun_Read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<ptr->sample_count; i++) {
 		u32 trun_size = 0;
 		p = (GF_TrunEntry *) gf_malloc(sizeof(GF_TrunEntry));
+		if (!p) return GF_OUT_OF_MEM;
 		memset(p, 0, sizeof(GF_TrunEntry));
 
 		if (ptr->flags & GF_ISOM_TRUN_DURATION) {

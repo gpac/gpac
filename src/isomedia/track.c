@@ -341,7 +341,7 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 
-GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset)
+GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset)
 {
 	u32 i, j, chunk_size;
 	u64 base_offset, data_offset;
@@ -370,7 +370,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset
 	def_flags = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_FLAGS) ? traf->tfhd->def_sample_flags : traf->trex->def_sample_flags;
 
 	//locate base offset
-	base_offset = (traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET) ? traf->tfhd->base_data_offset : *moof_offset;
+	base_offset = (traf->tfhd->flags & GF_ISOM_TRAF_BASE_OFFSET) ? traf->tfhd->base_data_offset : moof_offset;
 
 	chunk_size = 0;
 	prev_trun_data_offset = 0;
@@ -434,8 +434,6 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 *moof_offset
 			if (degr) stbl_AppendDegradation(trak->Media->information->sampleTable, degr);
 		}
 	}
-	//end of the fragment, update offset
-	*moof_offset += chunk_size;
 	return GF_OK;
 }
 
