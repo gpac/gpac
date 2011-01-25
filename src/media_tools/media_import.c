@@ -1917,7 +1917,7 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 		samp = gf_isom_sample_new();
 		samp->data = buf;
 		samp->dataLength = buf_len;
-		samp->DTS = dts_inc*(frames-1);
+		samp->DTS = (u64)dts_inc*(frames-1);
 		samp->IsRAP = (ftype==1) ? 1 : 0;
 		samp->CTS_Offset = 0;
 		e = gf_isom_add_sample(import->dest, track, di, samp);
@@ -4085,7 +4085,7 @@ restart_import:
 
 		if (flush_sample && sample_data) {
 			GF_ISOSample *samp = gf_isom_sample_new();
-			samp->DTS = dts_inc*cur_samp;
+			samp->DTS = (u64)dts_inc*cur_samp;
 			samp->IsRAP = sample_is_rap;
 			gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
 			gf_bs_del(sample_data);
@@ -4255,7 +4255,7 @@ restart_import:
 	/*final flush*/
 	if (sample_data) {
 		GF_ISOSample *samp = gf_isom_sample_new();
-		samp->DTS = dts_inc*cur_samp;
+		samp->DTS = (u64)dts_inc*cur_samp;
 		samp->IsRAP = sample_is_rap;
 		/*we store the frame order (based on the POC) as the CTS offset and update the whole table at the end*/
 		samp->CTS_Offset = last_poc - poc_shift;
