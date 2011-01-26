@@ -5,7 +5,10 @@ include config.mak
 
 vpath %.c $(SRC_PATH)
 
-all: lib apps mods
+all: 
+	$(MAKE) -C src all
+	$(MAKE) -C applications all
+	$(MAKE) -C modules all
 
 lib:
 	$(MAKE) -C src all
