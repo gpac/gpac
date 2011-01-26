@@ -534,6 +534,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_close) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_delete) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_file_size) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_progressive) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_missing_bytes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_fragmented) )

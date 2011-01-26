@@ -232,7 +232,10 @@ void PrintGeneralUsage()
 			" -frags-per-sidx N    sets the number of segments to be written in each SIDX box\n"
 			"                       If 0, SIDX box is not used\n"
 			" -segment-name name   sets the segment name for generated segments\n"
+			"                       If not set (default), segments are concatenated in output file\n"
 			" -segment-ext name    sets the segment extension. Default is m4s\n"
+			" -url-template        uses UrlTemplate instead of explicit sources in segments.\n"
+			"                       Ignored if segments are stored in the output file.\n"
 			"\n");
 }
 
@@ -1180,6 +1183,7 @@ int main(int argc, char **argv)
 	Bool stream_rtp=0;
 	Bool live_scene=0;
 	Bool dump_iod=0;
+	Bool use_url_template=0;
 	Bool seg_at_rap =0;
 	char *seg_ext = "m4s";
 
@@ -1442,7 +1446,9 @@ int main(int argc, char **argv)
 			CHECK_NEXT_ARG
 			seg_ext = argv[i+1];
 			i++;
-		} 
+		} else if (!stricmp(arg, "-url-template")) {
+			use_url_template = 1;
+		}
 		else if (!stricmp(arg, "-itags")) { CHECK_NEXT_ARG itunes_tags = argv[i+1]; i++; open_edit = 1; }
 #ifndef GPAC_DISABLE_ISOM_HINTING
 		else if (!stricmp(arg, "-hint")) { open_edit = 1; HintIt = 1; }
@@ -2944,7 +2950,7 @@ int main(int argc, char **argv)
 		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
 		outfile[strlen(outfile)-1] = 0;
 		if (!outName) strcat(outfile, "_dash");
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, seg_ext, frags_per_sidx, 0);
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, seg_at_rap ? 2 : 1, dash_duration, seg_name, seg_ext, frags_per_sidx, 0, use_url_template);
 		if (e) fprintf(stdout, "Error while DASH-ing file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		gf_sys_close();
@@ -2953,7 +2959,7 @@ int main(int argc, char **argv)
 		if (!InterleavingTime) InterleavingTime = 0.5;
 		if (HintIt) fprintf(stdout, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stdout, "Fragmenting file (%.3f seconds fragments)\n", InterleavingTime);
-		e = gf_media_fragment_file(file, outfile, InterleavingTime, 0, 0, NULL, NULL, 0, 0);
+		e = gf_media_fragment_file(file, outfile, InterleavingTime, 0, 0, NULL, NULL, 0, 0, 0);
 		if (e) fprintf(stdout, "Error while fragmenting file: %s\n", gf_error_to_string(e));
 		gf_isom_delete(file);
 		if (!e && !outName && !force_new) {
