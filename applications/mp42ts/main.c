@@ -1294,15 +1294,15 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 					default:
 						assert(0);
 				}
-			} else if (!strnicmp(arg, "-mpeg4", 6)) {
-				if (mpeg4_found) {
-					error_msg = "multiple '-mpeg4' found";
-					arg = NULL;
-					goto error;
-				}
-				mpeg4_found = 1;
-				mpeg4_signaling = 1;
 			}
+		} else if (!strnicmp(arg, "-mpeg4", 6)) {
+			if (mpeg4_found) {
+				error_msg = "multiple '-mpeg4' found";
+				arg = NULL;
+				goto error;
+			}
+			mpeg4_found = 1;
+			mpeg4_signaling = 1;
 		}
 	}
 	/*second pass: other*/
