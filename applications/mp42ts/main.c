@@ -1294,15 +1294,15 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 					default:
 						assert(0);
 				}
+			} else if (!strnicmp(arg, "-mpeg4", 6)) {
+				if (mpeg4_found) {
+					error_msg = "multiple '-mpeg4' found";
+					arg = NULL;
+					goto error;
+				}
+				mpeg4_found = 1;
+				mpeg4_signaling = 1;
 			}
-		} else if (!strnicmp(arg, "-mpeg4", 6)) {
-			if (mpeg4_found) {
-				error_msg = "multiple '-mpeg4' found";
-				arg = NULL;
-				goto error;
-			}
-			mpeg4_found = 1;
-			mpeg4_signaling = 1;
 		}
 	}
 	/*second pass: other*/
@@ -1426,7 +1426,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 					*rtp_out = gf_strdup(arg+9);
 				}
 			}
-			else if (!strnicmp(arg, "-audio=", 7) || !strnicmp(arg, "-video=", 7))
+			else if (!strnicmp(arg, "-audio=", 7) || !strnicmp(arg, "-video=", 7) || !strnicmp(arg, "-mpeg4", 6))
 				; /*already treated on the first pass*/
 			else {
 				error_msg = "unknown option \"%s\"";
