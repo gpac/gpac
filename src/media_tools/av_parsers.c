@@ -1974,6 +1974,7 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 		sps->vui.pic_struct_present_flag = gf_bs_read_int(bs, 1);
 	}
 
+	gf_bs_del(bs);
 	gf_free(sps_data_without_emulation_bytes);
 	return sps_id;
 }
@@ -2007,7 +2008,7 @@ s32 AVC_ReadPictParamSet(char *pps_data, u32 pps_size, AVCState *avc)
 	/*pps->ref_count[0]= */avc_get_ue(bs) /*+ 1*/;
 	/*pps->ref_count[1]= */avc_get_ue(bs) /*+ 1*/;
 	/*
-	if ((pps->ref_count[0] > 32) || (pps->ref_count[1] > 32)) return -1;
+	if ((pps->ref_count[0] > 32) || (pps->ref_count[1] > 32)) goto exit;
 	*/
 	
 	/*pps->weighted_pred = */gf_bs_read_int(bs, 1);
@@ -2020,6 +2021,7 @@ s32 AVC_ReadPictParamSet(char *pps_data, u32 pps_size, AVCState *avc)
 	pps->redundant_pic_cnt_present = gf_bs_read_int(bs, 1);
 
 exit:
+	gf_bs_del(bs);
 	gf_free(pps_data_without_emulation_bytes);
 	return pps_id;
 }
