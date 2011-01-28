@@ -213,6 +213,8 @@ void write_bmp(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	fclose(fout);
 }
 
+#include <gpac/avparse.h>
+
 void write_png(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 {
 	char str[GF_MAX_PATH];
