@@ -98,7 +98,7 @@ static Bool audio_encoding_thread_run(void *param)
 
 	outBuffSize = FF_MIN_BUFFER_SIZE;
 
-    outBuff = malloc(outBuffSize* sizeof(u8));
+    outBuff = gf_malloc(outBuffSize* sizeof(u8));
     inBuff = NULL;
 #ifdef DUMP_MP3
     FILE * mp3 = fopen("/tmp/dump.mp3", "w");
@@ -120,7 +120,7 @@ static Bool audio_encoding_thread_run(void *param)
     // 2 chars are needed for each short
     toRead = samplesReaden * 2;
     inBuffSize = toRead;
-    inBuff = malloc(inBuffSize * sizeof(u8));
+    inBuff = gf_malloc(inBuffSize * sizeof(u8));
     while (avr->is_running && !avr->audioCurrentTime) {
         gf_sleep(16);
     }
@@ -745,7 +745,6 @@ void avr_delete ( GF_BaseInterface *ifce )
     avr->globalLock = NULL;
     gf_free ( avr );
     gf_free ( dr );
-    dr->udta = NULL;
 }
 
 GF_EXPORT
