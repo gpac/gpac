@@ -2411,7 +2411,6 @@ GF_Err gf_dm_copy_or_link(const char * file_source, const char * file_dest) {
  */
 static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
-    GF_Err e;
     FILE * f = (FILE*) cbk;
 
     /*handle service message*/
