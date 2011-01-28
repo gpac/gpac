@@ -1545,7 +1545,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	GF_ISOSample *samp;
 	GF_ESD *origin_esd;
 	GF_InitialObjectDescriptor *iod;
-
+	sampDTS = 0;
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
 		for (i=0; i<gf_isom_get_track_count(import->orig); i++) {
 			import->tk_info[i].track_num = gf_isom_get_track_id(import->orig, i+1);
