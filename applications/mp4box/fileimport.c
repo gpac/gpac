@@ -1124,13 +1124,25 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 			/*we only support cat with the same number of sample descriptions*/
 			if (gf_isom_get_sample_description_count(orig, i+1) != gf_isom_get_sample_description_count(dest, dst_tk)) dst_tk = 0;
 			/*if not forcing cat, check the media codec config is the same*/
-			if (!force_cat && !gf_isom_is_same_sample_description(orig, i+1, dest, dst_tk)) dst_tk = 0;
+			if (!gf_isom_is_same_sample_description(orig, i+1, dest, dst_tk)) {
+				if (!force_cat) {
+					dst_tk = 0;
+				} else {
+					fprintf(stdout, "WARNING: Concatenating track ID %d even though sample descriptions do not match\n", tk_id);
+				}
+			} 
 			/*we force the same visual resolution*/
 			else if (mtype==GF_ISOM_MEDIA_VISUAL) {
 				u32 w, h, ow, oh;
 				gf_isom_get_visual_info(orig, i+1, 1, &ow, &oh);
 				gf_isom_get_visual_info(dest, dst_tk, 1, &w, &h);
-				if ((ow!=w) || (oh!=h)) dst_tk = 0;
+				if ((ow!=w) || (oh!=h)) {
+					if (!force_cat) {
+						dst_tk = 0;
+					} else {
+						fprintf(stdout, "WARNING: Concatenating track ID %d even though visual sizes do not match\n", tk_id);
+					}
+				}
 			}
 
 			if (!dst_tk && ((stype == GF_ISOM_SUBTYPE_AVC_H264) || (stype == GF_ISOM_SUBTYPE_AVC2_H264))  ) {

@@ -1159,15 +1159,16 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stdout, "\t");
-					fprintf(stdout, "AVC/H264 Video - Visual Size %d x %d", w, h);
+					fprintf(stdout, "AVC/H264 Video - Visual Size %d x %d\n", w, h);
 #ifndef GPAC_DISABLE_AV_PARSERS
 					avccfg = gf_isom_avc_config_get(file, trackNum, 1);
 					svccfg = gf_isom_svc_config_get(file, trackNum, 1);
 					if (!avccfg && !svccfg) {
 						fprintf(stdout, "\n\n\tNon-compliant AVC track: SPS/PPS not found in sample description\n");
 					} else if (avccfg) {
+						fprintf(stdout, "\tAVC Info: %d SPS - %d PPS", gf_list_count(avccfg->sequenceParameterSets) , gf_list_count(avccfg->pictureParameterSets) );
 						fprintf(stdout, " - Profile %s @ Level %g\n", gf_avc_get_profile_name(avccfg->AVCProfileIndication), ((Double)avccfg->AVCLevelIndication)/10.0 );
-						fprintf(stdout, "NAL Unit length bits: %d\n", 8*avccfg->nal_unit_size);
+						fprintf(stdout, "\tNAL Unit length bits: %d\n", 8*avccfg->nal_unit_size);
 						slc = gf_list_get(avccfg->sequenceParameterSets, 0);
 						if (slc) {
 							gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
