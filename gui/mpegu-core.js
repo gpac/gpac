@@ -413,6 +413,7 @@ function wmjs_output_trigger_callback_local(msg_out, wid_src, msg_in, wid_dst) {
 function wmjs_interface_invoke_callback_local(wid_dst, ifce_dst, is_reply) {
     log(l_deb, "wmjs_interface_invoke_callback_local '" + wid_dst.name + "' '" + ifce_dst.type + "' - reply " + is_reply);
     return function() {
+        log(l_deb, "wmjs_interface_invoke_callback_local/function '" + wid_dst.name + "' '" + ifce_dst.type + "' - reply " + is_reply);
         var j, i, ai, param_count, msgHandler, msg_src, msg_dst, is_script;
         var args = new Array();
         is_script = 0;
@@ -422,7 +423,7 @@ function wmjs_interface_invoke_callback_local(wid_dst, ifce_dst, is_reply) {
         // JCD: take into account message repetition, if any
         for (j = 0; j < ifce_dst.num_messages; j++) {
             msg_dst = ifce_dst.get_message(j);
-            if (msg_dst.name == msgHandler.nsgName) {
+            if (msg_dst.name == msgHandler.msgName) {
                 log(l_deb, (is_reply ? 'invokeReply ' : 'invoke ') + msg_src.name + ' on ' + wid_dst.name + '.' + msg_dst.name);
                 if (msg_dst.has_script_input) is_script = 1;
                 param_count = msg_src.num_params;
@@ -495,7 +496,7 @@ function wmjs_bind_interface_to_local(wid, ifce) {
             // a_msg = a_ifce.get_message(msg.name);
             for (l = 0; l < a_ifce.num_messages; l++) {
                 a_msg = a_ifce.get_message(l);
-                alert(msg.name+" "+a_msg.name);
+                //alert(msg.name+" "+a_msg.name);
                 if (a_msg.name == msg.name) {
                     // the messages have matching names, check direction
                     if (msg.is_input == a_msg.is_input) {
