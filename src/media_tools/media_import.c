@@ -4351,7 +4351,7 @@ restart_import:
 	avccfg->nal_unit_size = size_length/8;
 	svccfg->nal_unit_size = size_length/8;
 
-	if (gf_list_count(avccfg->sequenceParameterSets)) {
+	if (gf_list_count(avccfg->sequenceParameterSets) || !gf_list_count(svccfg->sequenceParameterSets) ) {
 		gf_isom_avc_config_update(import->dest, track, 1, avccfg);
 		if (gf_list_count(svccfg->sequenceParameterSets)) {
 			gf_isom_svc_config_update(import->dest, track, 1, svccfg, 1);
@@ -4365,19 +4365,23 @@ restart_import:
 	gf_isom_set_pl_indication(import->dest, GF_ISOM_PL_VISUAL, 0x15);
 	gf_isom_modify_alternate_brand(import->dest, GF_ISOM_BRAND_AVC1, 1);
 
-	if (nb_sp || nb_si) {
-		gf_import_message(import, GF_OK, "Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
-			cur_samp, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
+	if (!gf_list_count(avccfg->sequenceParameterSets) && !gf_list_count(svccfg->sequenceParameterSets)) {
+		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Import results: No SPS or PPS found in the bitstream ! Nothing imported\n");
 	} else {
-		gf_import_message(import, GF_OK, "Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR",
-			cur_samp, nb_i, nb_p, nb_b, nb_sei, nb_idr);
-	}
+		if (nb_sp || nb_si) {
+			gf_import_message(import, GF_OK, "Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
+				cur_samp, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
+		} else {
+			gf_import_message(import, GF_OK, "Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR",
+				cur_samp, nb_i, nb_p, nb_b, nb_sei, nb_idr);
+		}
 
-	if (nb_ei || nb_ep)
-		gf_import_message(import, GF_OK, "SVC Import results: Slices: %d I %d P %d B", nb_ei, nb_ep, nb_eb);
+		if (nb_ei || nb_ep)
+			gf_import_message(import, GF_OK, "SVC Import results: Slices: %d I %d P %d B", nb_ei, nb_ep, nb_eb);
 
-	if (max_total_delay>1) {
-		gf_import_message(import, GF_OK, "\tStream uses B-slice references - max frame delay %d", max_total_delay);
+		if (max_total_delay>1) {
+			gf_import_message(import, GF_OK, "\tStream uses B-slice references - max frame delay %d", max_total_delay);
+		}
 	}
 
 	/*rewrite ESD*/
