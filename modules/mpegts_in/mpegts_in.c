@@ -1433,7 +1433,7 @@ static u32 M2TS_RegisterMimeTypes(const GF_InputService * service){
   if (service == NULL)
     return 0;
   for (i = 0 ; MIMES[i]; i++)
-    gf_term_register_mime_type( service, MIMES[i], "ts m2t", "MPEG-2 TS");
+    gf_term_register_mime_type( service, MIMES[i], "ts m2t dmb", "MPEG-2 TS");
   return i;
 }
 
