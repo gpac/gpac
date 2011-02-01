@@ -285,7 +285,7 @@ static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 	{
 		int i=0;
 		for (i = 0 ; NULL != MIMES[i]; i++)
-			if (gf_term_check_extension(plug, MIMES[i], "ts m2t dmb", "MPEG-2 TS", sExt) ||)
+			if (gf_term_check_extension(plug, MIMES[i], "ts m2t dmb", "MPEG-2 TS", sExt))
 				return 1;
 	}
 	return 0;
