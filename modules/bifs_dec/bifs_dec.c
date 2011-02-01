@@ -106,7 +106,9 @@ static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 i
 	e = gf_bifs_decode_au(priv->codec, ES_ID, inBuffer, inBufferLength, ts_offset);
 
 	/*if scene not attached do it*/
-	gf_scene_attach_to_compositor(priv->pScene);
+	if (e == GF_OK) {
+		gf_scene_attach_to_compositor(priv->pScene);
+	}
 	return e;
 }
 
