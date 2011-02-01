@@ -264,6 +264,8 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioRender] reconfigure error %e\n", e));
 		if (nb_chan>2) {
 			nb_chan=2;
+			in_ch=2;
+			ch_cfg=0;
 			e = ar->audio_out->ConfigureOutput(ar->audio_out, &freq, &nb_chan, &nb_bits, ch_cfg);
 		}
 		if (e) return e;
