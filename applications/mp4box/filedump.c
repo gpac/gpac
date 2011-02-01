@@ -1224,7 +1224,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					is_mp2 = 1;
 				case GPAC_OTI_AUDIO_AAC_MPEG4:
 #ifndef GPAC_DISABLE_AV_PARSERS
-					e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
+					if (!esd->decoderConfig->decoderSpecificInfo)
+						e = GF_NON_COMPLIANT_BITSTREAM;
+					else
+						e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 					if (full_dump) fprintf(stdout, "\t");
 					if (e) fprintf(stdout, "Corrupted AAC Config\n");
 					else {
