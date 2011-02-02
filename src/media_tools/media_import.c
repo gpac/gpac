@@ -3745,7 +3745,7 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
 	u32 last_svc_sps;
-	Bool prev_is_nalu_prefix;
+	u32 prev_nalu_prefix_size;
 	Double FPS;
 	char *buffer;
 	u32 max_size = 4096;
@@ -3831,7 +3831,7 @@ restart_import:
 	poc_diff = 0;
 	min_poc = 0;
 	poc_shift = 0;
-	prev_is_nalu_prefix = 0;
+	prev_nalu_prefix_size = 0;
 
 	while (gf_bs_available(bs)) {
 		u8 nal_hdr, skip_nal, is_subseq, add_sps;
@@ -3871,9 +3871,6 @@ restart_import:
 		default:
 			break;
 		}
-		if (prev_is_nalu_prefix) flush_sample = 0;
-		prev_is_nalu_prefix=0;
-
 		switch (nal_type) {
 		case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 			if (import->flags & GF_IMPORT_SVC_NONE) break;
@@ -4046,8 +4043,9 @@ restart_import:
 
 		case GF_AVC_NALU_SVC_PREFIX_NALU:
 			if (import->flags & GF_IMPORT_SVC_NONE) break;
+			assert(prev_nalu_prefix_size==0);
 			copy_size = nal_size;
-			prev_is_nalu_prefix = 1;
+			prev_nalu_prefix_size = nal_size;
 			break;
 		case GF_AVC_NALU_SVC_SLICE:
 			{
@@ -4091,6 +4089,15 @@ restart_import:
 			gf_bs_get_content(sample_data, &samp->data, &samp->dataLength);
 			gf_bs_del(sample_data);
 			sample_data = NULL;
+
+			if (prev_nalu_prefix_size) {
+				samp->dataLength -= size_length/8 + prev_nalu_prefix_size;
+				
+				/*rewrite last NALU prefix at the beginning of next sample*/
+				sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				gf_bs_write_data(sample_data, samp->data + samp->dataLength, size_length/8 + prev_nalu_prefix_size);
+				prev_nalu_prefix_size = 0;
+			}
 			/*CTS recomuting is much trickier than with MPEG-4 ASP due to b-slice used as references - we therefore
 			store the POC as the CTS offset and update the whole table at the end*/
 			samp->CTS_Offset = last_poc - poc_shift;
@@ -4144,6 +4151,10 @@ restart_import:
 			if (!sample_data) sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_int(sample_data, copy_size, size_length);
 			gf_bs_write_data(sample_data, buffer, copy_size);
+
+			if (nal_type != GF_AVC_NALU_SVC_PREFIX_NALU) {
+				prev_nalu_prefix_size = 0;
+			}
 
 			switch (nal_type) {
 			case GF_AVC_NALU_NON_IDR_SLICE:
@@ -4381,7 +4392,7 @@ restart_import:
 			gf_import_message(import, GF_OK, "SVC Import results: Slices: %d I %d P %d B", nb_ei, nb_ep, nb_eb);
 
 		if (max_total_delay>1) {
-			gf_import_message(import, GF_OK, "\tStream uses B-slice references - max frame delay %d", max_total_delay);
+			gf_import_message(import, GF_OK, "\tStream uses forward prediction - stream CTS offset: %d frames", max_total_delay);
 		}
 	}
 
