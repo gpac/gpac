@@ -865,6 +865,8 @@ void set_navigation()
 	char nav;
 	u32 type = gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE);
 	e = GF_OK;
+	fflush(stdin);
+
 	if (!type) {
 		fprintf(stdout, "Content/compositor doesn't allow user-selectable navigation\n");
 	} else if (type==1) {
