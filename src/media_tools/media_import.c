@@ -1759,7 +1759,8 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 				/*couldn't get the sample, but still move on*/
 				goto exit;
 			}
-			if (samp->DTS==sampDTS) {
+			/*if not first sample and same DTS as previous sample, force DTS++*/
+			if (i && (samp->DTS==sampDTS)) {
 				samp->DTS++;
 			}
 			e = gf_isom_add_sample(import->dest, track, di, samp);
@@ -4369,10 +4370,10 @@ restart_import:
 		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Import results: No SPS or PPS found in the bitstream ! Nothing imported\n");
 	} else {
 		if (nb_sp || nb_si) {
-			gf_import_message(import, GF_OK, "Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
+			gf_import_message(import, GF_OK, "AVC Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
 				cur_samp, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
 		} else {
-			gf_import_message(import, GF_OK, "Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR",
+			gf_import_message(import, GF_OK, "AVC Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR",
 				cur_samp, nb_i, nb_p, nb_b, nb_sei, nb_idr);
 		}
 
@@ -6136,9 +6137,6 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 	samp->dataLength = sizeof(null_subpic);
 	samp->data	= (char*)null_subpic;
 
-	err = gf_isom_add_sample(import->dest, track, di, samp);
-	if (err) goto error;
-
 	subpic = vobsub->langs[trackID].subpos;
 	total  = gf_list_count(subpic);
 
@@ -6206,6 +6204,12 @@ GF_Err gf_import_vobsub(GF_MediaImporter *import)
 		}
 
 		last_samp_dur = duration;
+
+		/*first sample has non-0 DTS, add an empty one*/
+		if (!c && (pos->start != 0)) {
+			err = gf_isom_add_sample(import->dest, track, di, samp);
+			if (err) goto error;
+		}
 
 		samp->data	 = packet;
 		samp->dataLength = psize;
