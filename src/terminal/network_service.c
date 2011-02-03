@@ -120,7 +120,12 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 			/*channel service connect*/
 			u32 i;
 			GF_ChannelSetup *cs;
-			GF_List *ODs = gf_list_new();
+			GF_List *ODs;
+			
+			if (!gf_list_count(term->channels_pending)) {
+				return;
+			}
+			ODs = gf_list_new();
 			gf_term_lock_net(term, 1);
 			i=0;
 			while ((cs = (GF_ChannelSetup*)gf_list_enum(term->channels_pending, &i))) {
