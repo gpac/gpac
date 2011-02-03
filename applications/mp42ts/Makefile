@@ -1,6 +1,6 @@
 include ../../config.mak
 
-vpath %.c $(SRC_PATH)/applications/testapps/mp42ts
+vpath %.c $(SRC_PATH)/applications/mp42ts
 
 CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
 
