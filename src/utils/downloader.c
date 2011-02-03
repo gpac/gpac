@@ -2051,7 +2051,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
                 if (hdr_val[0] == '*') {
                     sscanf(hdr_val, "*/%ud", &total_size);
                 } else {
-                    sscanf(hdr_val, "%ud-%ud/%ud", &first_byte, &last_byte, &total_size);
+					/*do not use %ud here, broken on Win32 (sscanf returns 1)*/
+                    sscanf(hdr_val, "%d-%d/%d", &first_byte, &last_byte, &total_size);
                 }
             }
         }
@@ -2415,10 +2416,10 @@ static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
     /*handle service message*/
     if (param->msg_type == GF_NETIO_DATA_EXCHANGE) {
-	s32 written = fwrite( param->data, sizeof(char), param->size, f);
-	if (written != param->size){
-		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("Failed to write data on disk\n"));
-	}
+		s32 written = fwrite( param->data, sizeof(char), param->size, f);
+		if (written != param->size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("Failed to write data on disk\n"));
+		}
     }
 }
 

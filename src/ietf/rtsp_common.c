@@ -143,6 +143,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 	Bool IsFirst;
 	char buf[100], param_name[100], param_val[100];
 	s32 pos, nPos;
+	u32 v1, v2;
 	GF_RTSPTransport *tmp;
 	pos = 0;
 	if (!buffer) return NULL;
@@ -184,7 +185,8 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 		else if (!stricmp(param_name, "interleaved")) {
 			u32 rID, rcID;
 			tmp->IsInterleaved = 1;
-			if (sscanf(param_val, "%ud-%ud", &rID, &rcID) == 1) {
+			/*do not use %ud here, broken on Win32 (sscanf returns 1)*/
+			if (sscanf(param_val, "%d-%d", &rID, &rcID) == 1) {
 				sscanf(param_val, "%ud", &rID);
 				tmp->rtcpID = tmp->rtpID = (u8) rID;
 			} else {
@@ -194,9 +196,24 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 		}
 		else if (!stricmp(param_name, "layers")) sscanf(param_val, "%ud", &tmp->MulticastLayers);
 		else if (!stricmp(param_name, "ttl")) sscanf(param_val, "%c	", &tmp->TTL);
-		else if (!stricmp(param_name, "port")) sscanf(param_val, "%hud-%hud", &tmp->port_first, &tmp->port_last);
-		else if (!stricmp(param_name, "server_port")) sscanf(param_val, "%hud-%hud", &tmp->port_first, &tmp->port_last);
-		else if (!stricmp(param_name, "client_port")) sscanf(param_val, "%hud-%hud", &tmp->client_port_first, &tmp->client_port_last);
+		/*do not use %hud here, broken on Win32 (sscanf returns 1)*/
+		else if (!stricmp(param_name, "port")) {
+			sscanf(param_val, "%d-%d", &v1, &v2);
+			tmp->port_first = (u16) v1;
+			tmp->port_last = (u16) v2;
+		}
+		/*do not use %hud here, broken on Win32 (sscanf returns 1)*/
+		else if (!stricmp(param_name, "server_port")) {
+			sscanf(param_val, "%d-%d", &v1, &v2);
+			tmp->port_first = (u16) v1;
+			tmp->port_last = (u16) v2;
+		}
+		/*do not use %hud here, broken on Win32 (sscanf returns 1)*/
+		else if (!stricmp(param_name, "client_port")) {
+			sscanf(param_val, "%d-%d", &v1, &v2);
+			tmp->client_port_first = (u16) v1;
+			tmp->client_port_last = (u16) v2;
+		}
 		else if (!stricmp(param_name, "ssrc")) sscanf(param_val, "%X", &tmp->SSRC);
 	}
 	return tmp;
