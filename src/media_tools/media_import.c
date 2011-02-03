@@ -70,7 +70,7 @@ static GF_Err gf_media_update_par(GF_ISOFile *file, u32 track)
 		GF_AVCConfig *avcc = gf_isom_avc_config_get(file, track, 1);
 		GF_AVCConfigSlot *slc = (GF_AVCConfigSlot *)gf_list_get(avcc->sequenceParameterSets, 0);
 		par_n = par_d = 1;
-		if (slc) gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
+		if (slc) gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, NULL, &par_n, &par_d);
 		gf_odf_avc_cfg_del(avcc);
 
 		if ((par_n>1) && (par_d>1))
@@ -3730,7 +3730,7 @@ static void avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 
 GF_Err gf_import_h264(GF_MediaImporter *import)
 {
 	u64 nal_start, nal_end, total_size;
-	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, duration, max_total_delay, nb_ei, nb_ep, nb_eb;
+	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, duration, max_total_delay;
 	s32 idx;
 	u8 nal_type;
 	GF_Err e;
@@ -3769,6 +3769,8 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	FPS = (Double) import->video_fps;
 	if (!FPS) FPS = GF_IMPORT_DEFAULT_FPS;
 	get_video_timing(FPS, &timescale, &dts_inc);
+
+	poc_diff = 0;
 
 restart_import:
 
@@ -3819,7 +3821,7 @@ restart_import:
 	nal_start = gf_bs_get_position(bs);
 	duration = (u32) ( ((Double)import->duration) * timescale / 1000.0);
 
-	nb_i = nb_idr = nb_p = nb_b = nb_sp = nb_si = nb_sei = nb_ei = nb_ep = nb_eb = 0;
+	nb_i = nb_idr = nb_p = nb_b = nb_sp = nb_si = nb_sei = 0;
 	max_w = max_h = 0;
 	first_nal = 1;
 	ref_frame = pred_frame = 0;
@@ -3828,7 +3830,6 @@ restart_import:
 
 	gf_isom_set_cts_packing(import->dest, track, 1);
 	has_cts_offset = 0;
-	poc_diff = 0;
 	min_poc = 0;
 	poc_shift = 0;
 	prev_nalu_prefix_size = 0;
@@ -3958,7 +3959,7 @@ restart_import:
 						if (import->flags & GF_IMPORT_SVC_EXPLICIT) {
 							gf_import_message(import, GF_OK, "SVC-H264 import - frame size %d x %d at %02.3f FPS", avc.sps[idx].width, avc.sps[idx].height, FPS);
 						} else {
-							gf_import_message(import, GF_OK, "SVC Detected - frame size %d x %d", avc.sps[idx].width, avc.sps[idx].height);
+							gf_import_message(import, GF_OK, "SVC Detected - SSPS ID %d - frame size %d x %d", idx-GF_SVC_SSPS_ID_SHIFT, avc.sps[idx].width, avc.sps[idx].height);
 						}
 						last_svc_sps = idx;
 					}
@@ -4045,7 +4046,6 @@ restart_import:
 			if (import->flags & GF_IMPORT_SVC_NONE) break;
 			assert(prev_nalu_prefix_size==0);
 			copy_size = nal_size;
-			prev_nalu_prefix_size = nal_size;
 			break;
 		case GF_AVC_NALU_SVC_SLICE:
 			{
@@ -4064,9 +4064,9 @@ restart_import:
 			if (! skip_nal) {
 				copy_size = nal_size;
 				switch (avc.s_info.slice_type) {
-				case GF_AVC_TYPE_P: case GF_AVC_TYPE2_P: nb_ep++; break;
-				case GF_AVC_TYPE_I: case GF_AVC_TYPE2_I: nb_ei++; break;
-				case GF_AVC_TYPE_B: case GF_AVC_TYPE2_B: nb_eb++; break;
+				case GF_AVC_TYPE_P: case GF_AVC_TYPE2_P: avc.s_info.sps->nb_ep++; break;
+				case GF_AVC_TYPE_I: case GF_AVC_TYPE2_I: avc.s_info.sps->nb_ei++; break;
+				case GF_AVC_TYPE_B: case GF_AVC_TYPE2_B: avc.s_info.sps->nb_eb++; break;
 				}
 			}
 			break;
@@ -4154,9 +4154,13 @@ restart_import:
 
 			if (nal_type != GF_AVC_NALU_SVC_PREFIX_NALU) {
 				prev_nalu_prefix_size = 0;
+			} else {
+				prev_nalu_prefix_size = nal_size;
 			}
 
 			switch (nal_type) {
+			case GF_AVC_NALU_SVC_SLICE:
+				nal_size = nal_size;
 			case GF_AVC_NALU_NON_IDR_SLICE:
 			case GF_AVC_NALU_DP_A_SLICE:
 			case GF_AVC_NALU_DP_B_SLICE:
@@ -4195,8 +4199,9 @@ restart_import:
 
 				/*if #pics, compute smallest POC increase*/
 				if (avc.s_info.poc != last_poc) {
-					if (!poc_diff || (poc_diff > abs(avc.s_info.poc-last_poc)))
-						poc_diff = abs(avc.s_info.poc-last_poc); /*ideally we would need to start the parsing again as poc_diff helps computing max_total_delay*/
+					if (!poc_diff || (poc_diff > abs(avc.s_info.poc-last_poc))) {
+						poc_diff = abs(avc.s_info.poc-last_poc);/*ideally we would need to start the parsing again as poc_diff helps computing max_total_delay*/
+					}
 					last_poc = avc.s_info.poc;
 				}
 				/*ref slice, reset poc*/
@@ -4380,6 +4385,7 @@ restart_import:
 	if (!gf_list_count(avccfg->sequenceParameterSets) && !gf_list_count(svccfg->sequenceParameterSets)) {
 		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Import results: No SPS or PPS found in the bitstream ! Nothing imported\n");
 	} else {
+		u32 i;
 		if (nb_sp || nb_si) {
 			gf_import_message(import, GF_OK, "AVC Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
 				cur_samp, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
@@ -4388,11 +4394,17 @@ restart_import:
 				cur_samp, nb_i, nb_p, nb_b, nb_sei, nb_idr);
 		}
 
-		if (nb_ei || nb_ep)
-			gf_import_message(import, GF_OK, "SVC Import results: Slices: %d I %d P %d B", nb_ei, nb_ep, nb_eb);
+		for (i=0; i<gf_list_count(svccfg->sequenceParameterSets); i++) {
+			AVC_SPS *sps;
+			GF_AVCConfigSlot *svcc = gf_list_get(svccfg->sequenceParameterSets, i);
+			sps = & avc.sps[svcc->id];
+			if (sps && (sps->state & AVC_SUBSPS_PARSED)) {
+				gf_import_message(import, GF_OK, "SVC (SSPS ID %d) Import results: Slices: %d I %d P %d B", svcc->id - GF_SVC_SSPS_ID_SHIFT, sps->nb_ei, sps->nb_ep, sps->nb_eb);
+			}
+		}
 
 		if (max_total_delay>1) {
-			gf_import_message(import, GF_OK, "\tStream uses forward prediction - stream CTS offset: %d frames", max_total_delay);
+			gf_import_message(import, GF_OK, "Stream uses forward prediction - stream CTS offset: %d frames", max_total_delay);
 		}
 	}
 

@@ -1171,25 +1171,29 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						fprintf(stdout, "\tNAL Unit length bits: %d\n", 8*avccfg->nal_unit_size);
 						slc = gf_list_get(avccfg->sequenceParameterSets, 0);
 						if (slc) {
-							gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
+							gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, NULL, &par_n, &par_d);
 							if ((par_n>0) && (par_d>0)) {
 								u32 tw, th;
 								gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
-								fprintf(stdout, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
+								fprintf(stdout, "\tPixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
 							}
 						}
 						gf_odf_avc_cfg_del(avccfg);
 					}
 					if (svccfg) {
-						fprintf(stdout, "\nSVC Profile %s @ Level %g\n", gf_avc_get_profile_name(svccfg->AVCProfileIndication), ((Double)svccfg->AVCLevelIndication)/10.0 );
-						fprintf(stdout, "SVC NAL Unit length bits: %d\n", 8*svccfg->nal_unit_size);
-						slc = gf_list_get(svccfg->sequenceParameterSets, 0);
-						if (slc) {
-							gf_avc_get_sps_info(slc->data, slc->size, NULL, NULL, &par_n, &par_d);
-							if ((par_n>0) && (par_d>0)) {
-								u32 tw, th;
-								gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
-								fprintf(stdout, "Pixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
+						fprintf(stdout, "\n\tSVC Info: %d SPS - %d PPS - Profile %s @ Level %g\n", gf_list_count(svccfg->sequenceParameterSets) , gf_list_count(svccfg->pictureParameterSets), gf_avc_get_profile_name(svccfg->AVCProfileIndication), ((Double)svccfg->AVCLevelIndication)/10.0 );
+						fprintf(stdout, "\tSVC NAL Unit length bits: %d\n", 8*svccfg->nal_unit_size);
+						for (i=0; i<gf_list_count(svccfg->sequenceParameterSets); i++) {
+							slc = gf_list_get(svccfg->sequenceParameterSets, i);
+							if (slc) {
+								u32 s_w, s_h, sps_id;
+								gf_avc_get_sps_info(slc->data, slc->size, &sps_id, &s_w, &s_h, &par_n, &par_d);
+								fprintf(stdout, "\t\tSSPS ID %d - Visual Size %d x %d\n", sps_id, s_w, s_h);
+								if ((par_n>0) && (par_d>0)) {
+									u32 tw, th;
+									gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
+									fprintf(stdout, "\tPixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
+								}
 							}
 						}
 						gf_odf_avc_cfg_del(svccfg);

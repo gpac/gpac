@@ -1817,6 +1817,7 @@ static u32 avc_remove_emulation_bytes(const unsigned char *buffer_src, unsigned 
 s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps, u32 *vui_flag_pos)
 {
 	AVC_SPS *sps;
+	u32 ChromaArrayType = 0;
 	s32 mb_width, mb_height;
 	u32 sps_id, profile_idc, level_idc, pcomp, i, chroma_format_idc, cl, cr, ct, cb;
 	GF_BitStream *bs;
@@ -1836,7 +1837,7 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 	/*SubsetSps is used to be sure that AVC SPS are not going to be scratched
 	by subset SPS. According to the SVC standard, subset SPS can have the same sps_id 
 	than its base layer, but it does not refer to the same SPS. */
-	sps_id = avc_get_ue(bs) + 16 * subseq_sps;
+	sps_id = avc_get_ue(bs) + GF_SVC_SSPS_ID_SHIFT * subseq_sps;
 
 	sps = &avc->sps[sps_id];
 	sps->state |= subseq_sps ? AVC_SUBSPS_PARSED : AVC_SPS_PARSED;
@@ -1851,7 +1852,16 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 	case 83:
 	case 86:
 		chroma_format_idc = avc_get_ue(bs);
-		if (chroma_format_idc == 3) /*residual_colour_transform_flag = */ gf_bs_read_int(bs, 1);
+		ChromaArrayType = chroma_format_idc;
+		if (chroma_format_idc == 3) {
+			u8 separate_colour_plane_flag = gf_bs_read_int(bs, 1);
+			/*
+			Depending on the value of separate_colour_plane_flag, the value of the variable ChromaArrayType is assigned as follows.
+			–	If separate_colour_plane_flag is equal to 0, ChromaArrayType is set equal to chroma_format_idc.
+			–	Otherwise (separate_colour_plane_flag is equal to 1), ChromaArrayType is set equal to 0.
+			*/
+			if (separate_colour_plane_flag) ChromaArrayType = 0;
+		}
 		/*bit_depth_luma_minus8 = */ avc_get_ue(bs);
 		/*bit_depth_chroma_minus8 = */ avc_get_ue(bs);
 		/*qpprime_y_zero_transform_bypass_flag = */ gf_bs_read_int(bs, 1);
@@ -1921,7 +1931,6 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 	if (vui_flag_pos) {
 		*vui_flag_pos = (u32) gf_bs_get_bit_offset(bs);
 	}
-
 	/*vui_parameters_present_flag*/
 	if (gf_bs_read_int(bs, 1)) {
 		/*aspect_ratio_info_present_flag*/
@@ -1973,7 +1982,79 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 
 		sps->vui.pic_struct_present_flag = gf_bs_read_int(bs, 1);
 	}
+	/*end of seq_parameter_set_data*/
 
+	if (subseq_sps) {
+		if ((profile_idc==83) || (profile_idc==86)) {
+			u8 extended_spatial_scalability_idc;
+			/*parsing seq_parameter_set_svc_extension*/
+
+			/*inter_layer_deblocking_filter_control_present_flag=*/	gf_bs_read_int(bs, 1);
+			extended_spatial_scalability_idc = gf_bs_read_int(bs, 2);
+			if (ChromaArrayType == 1 || ChromaArrayType == 2) {		
+				/*chroma_phase_x_plus1_flag*/ gf_bs_read_int(bs, 1);
+			}
+			if( ChromaArrayType  ==  1 ) {
+				/*chroma_phase_y_plus1*/ gf_bs_read_int(bs, 2);
+			}
+			if (extended_spatial_scalability_idc == 1) {
+				if( ChromaArrayType > 0 ) {
+					/*seq_ref_layer_chroma_phase_x_plus1_flag*/gf_bs_read_int(bs, 1);
+					/*seq_ref_layer_chroma_phase_y_plus1*/gf_bs_read_int(bs, 2);
+				}
+				/*seq_scaled_ref_layer_left_offset*/ avc_get_se(bs);
+				/*seq_scaled_ref_layer_top_offset*/avc_get_se(bs); 
+				/*seq_scaled_ref_layer_right_offset*/avc_get_se(bs);
+				/*seq_scaled_ref_layer_bottom_offset*/avc_get_se(bs);
+			}
+			if (/*seq_tcoeff_level_prediction_flag*/gf_bs_read_int(bs, 1)) {
+				/*adaptive_tcoeff_level_prediction_flag*/ gf_bs_read_int(bs, 1);
+			}
+			/*slice_header_restriction_flag*/gf_bs_read_int(bs, 1);
+
+			/*svc_vui_parameters_present*/
+			if (gf_bs_read_int(bs, 1)) {
+				u32 i, vui_ext_num_entries_minus1;
+				vui_ext_num_entries_minus1 = avc_get_ue(bs);
+
+				for (i=0; i <= vui_ext_num_entries_minus1; i++) {
+					u8 vui_ext_nal_hrd_parameters_present_flag, vui_ext_vcl_hrd_parameters_present_flag;
+					u8 vui_ext_dependency_id = gf_bs_read_int(bs, 3);
+					u8 vui_ext_quality_id = gf_bs_read_int(bs, 4);
+					u8 vui_ext_temporal_id = gf_bs_read_int(bs, 3);
+					u8 vui_ext_timing_info_present_flag = gf_bs_read_int(bs, 1);
+					if (vui_ext_timing_info_present_flag) {
+						u32 vui_ext_num_units_in_tick = gf_bs_read_int(bs, 32);
+						u32 vui_ext_time_scale = gf_bs_read_int(bs, 32);
+						u8 vui_ext_fixed_frame_rate_flag = gf_bs_read_int(bs, 1);
+					}
+					vui_ext_nal_hrd_parameters_present_flag = gf_bs_read_int(bs, 1);
+					if (vui_ext_nal_hrd_parameters_present_flag) {
+						//hrd_parameters( )
+					}
+					vui_ext_vcl_hrd_parameters_present_flag = gf_bs_read_int(bs, 1);
+					if (vui_ext_vcl_hrd_parameters_present_flag) {
+						//hrd_parameters( )
+					}
+					if ( vui_ext_nal_hrd_parameters_present_flag ||  vui_ext_vcl_hrd_parameters_present_flag) {
+						/*vui_ext_low_delay_hrd_flag*/gf_bs_read_int(bs, 1);
+					}
+					/*vui_ext_pic_struct_present_flag*/gf_bs_read_int(bs, 1);
+				}
+			}
+		}
+		else if ((profile_idc==118) || (profile_idc==128)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] MVC not spported - skipping parsing end of Subset SPS\n"));
+			goto exit;
+		}
+	
+		if (gf_bs_read_int(bs, 1)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] skipping parsing end of Subset SPS (additional_extension2)\n"));
+			goto exit;
+		}
+	}
+
+exit:
 	gf_bs_del(bs);
 	gf_free(sps_data_without_emulation_bytes);
 	return sps_id;
@@ -1996,7 +2077,8 @@ s32 AVC_ReadPictParamSet(char *pps_data, u32 pps_size, AVCState *avc)
    
 	if (!pps->status) pps->status = 1;
 	pps->sps_id = avc_get_ue(bs);
-	if (!avc->sps[pps->sps_id].state) {
+	/*sps_id may be refer to regular SPS or subseq sps, depending on the coded slice refering to the pps*/
+	if (!avc->sps[pps->sps_id].state && !avc->sps[pps->sps_id + GF_SVC_SSPS_ID_SHIFT].state) {
 		pps_id = -1;
 		goto exit;
 	}
@@ -2030,10 +2112,10 @@ static s32 SVC_ReadNal_header_extension(GF_BitStream *bs, SVC_NALUHeader *NalHea
 {
 	gf_bs_read_int(bs, 1); //reserved_one_bits
 	NalHeader->idr_pic_flag = gf_bs_read_int(bs, 1); //idr_flag
-	gf_bs_read_int(bs, 6); //priority_id
+	NalHeader->priority_id = gf_bs_read_int(bs, 6); //priority_id
 	gf_bs_read_int(bs, 1); //no_inter_layer_pred_flag
-	gf_bs_read_int(bs, 3); //DependencyId
-	gf_bs_read_int(bs, 4); //quality_id
+	NalHeader->dependency_id = gf_bs_read_int(bs, 3); //DependencyId
+	NalHeader->quality_id = gf_bs_read_int(bs, 4); //quality_id
 	NalHeader->temporal_id = gf_bs_read_int(bs, 3); //temporal_id
 	gf_bs_read_int(bs, 1); //use_ref_base_pic_flag
 	gf_bs_read_int(bs, 1); //discardable_flag
@@ -2103,7 +2185,7 @@ static s32 svc_parse_slice(GF_BitStream *bs, AVCState *avc, AVCSliceInfo *si)
 	si->pps->id = pps_id;
 	if (!si->pps->slice_group_count)
 		return -2;
-	si->sps = &avc->sps[si->pps->sps_id + 16];
+	si->sps = &avc->sps[si->pps->sps_id + GF_SVC_SSPS_ID_SHIFT];
 	if (!si->sps->log2_max_frame_num) 
 		return -2;
 
@@ -2340,10 +2422,6 @@ s32 AVC_ParseNALU(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 
 	case GF_AVC_NALU_SVC_PREFIX_NALU:
 		SVC_ReadNal_header_extension(bs, &n_state.NalHeader);
-		
-		if (avc->s_info.nal_unit_type == GF_AVC_NALU_SVC_SLICE) {
-			return 1;
-		}
 		return 0;
 
 	case GF_AVC_NALU_NON_IDR_SLICE:
@@ -2668,7 +2746,7 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 #endif
 
 GF_EXPORT
-GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d)
+GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d)
 {
 	AVCState avc;
 	s32 idx;
@@ -2679,6 +2757,7 @@ GF_Err gf_avc_get_sps_info(char *sps_data, u32 sps_size, u32 *width, u32 *height
 	if (idx<0) {
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+	if (sps_id) *sps_id = idx;
 
 	if (width) *width = avc.sps[idx].width;
 	if (height) *height = avc.sps[idx].height;

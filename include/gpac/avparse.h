@@ -218,7 +218,7 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse);
 u32 gf_ac3_get_channels(u32 acmod);
 u32 gf_ac3_get_bitrate(u32 brcode);
 
-GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
+GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 const char *gf_avc_get_profile_name(u8 video_prof);
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/

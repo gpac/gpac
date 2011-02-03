@@ -40,6 +40,9 @@ GF_Err gf_import_message(GF_MediaImporter *import, GF_Err e, char *format, ...);
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
+
+#define GF_SVC_SSPS_ID_SHIFT	16	
+
 /*returns 0 if not a start code, or size of start code (3 or 4 bytes). If start code, bitstream
 is positionned AFTER start code*/
 u32 AVC_IsStartCode(GF_BitStream *bs);
@@ -106,6 +109,9 @@ typedef struct
 	
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
 	u32 state;
+
+	/*for SVC stats during import*/
+	u32 nb_ei, nb_ep, nb_eb;
 } AVC_SPS;
 
 typedef struct 
@@ -121,8 +127,8 @@ typedef struct
 
 typedef struct 
 {
-	s32 temporal_id;
 	s32 idr_pic_flag;
+	u8 temporal_id, priority_id, dependency_id, quality_id;
 } SVC_NALUHeader;
 
 typedef struct

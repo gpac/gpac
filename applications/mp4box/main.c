@@ -110,7 +110,7 @@ int live_session(int argc, char **argv);
 void PrintLiveUsage();
 
 
-Bool quiet = 0;
+u32 quiet = 0;
 Bool dvbhdemux =0;
 Bool keep_sys_tracks = 0;
 
@@ -584,6 +584,7 @@ void PrintUsage()
 			" -languages           lists supported ISO 639 languages\n"
 			"\n"
 			"-quiet                quiet mode\n"
+			"-noprog               disables progress\n"
 			" -v                   verbose mode\n"
 			" -version             gets build version\n"
 			);
@@ -1238,7 +1239,8 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-?")) { PrintUsage(); return 0; }
 		else if (!stricmp(arg, "-version")) { PrintVersion(); return 0; }
 		else if (!stricmp(arg, "-sdp")) print_sdp = 1;
-		else if (!stricmp(arg, "-quiet")) quiet = 1;
+		else if (!stricmp(arg, "-quiet")) quiet = 2;
+		else if (!stricmp(arg, "-noprog")) quiet = 1;
 		else if (!stricmp(arg, "-info")) {
 			print_info = 1;
 			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%u", &info_track_id)==1)) {
@@ -2049,7 +2051,7 @@ int main(int argc, char **argv)
 	gf_log_set_level(verbose ? GF_LOG_DEBUG : GF_LOG_INFO);
 	gf_log_set_tools(GF_LOG_CONTAINER|GF_LOG_SCENE|GF_LOG_PARSER|GF_LOG_AUTHOR|GF_LOG_CODING);
 	if (quiet) {
-		gf_log_set_level(0);
+		if (quiet==2) gf_log_set_level(0);
 		gf_set_progress_callback(NULL, progress_quiet);
 
 	}
