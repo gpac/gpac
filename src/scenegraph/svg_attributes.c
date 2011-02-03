@@ -960,8 +960,10 @@ static GF_Err smil_parse_time(GF_Node *elt, SMIL_Time *v, char *d)
 		v->type = GF_SMIL_TIME_WALLCLOCK;
 		tmp += 10;
 		if ((tmp1 = strchr(tmp, 'T')) ) {
-			/* From tmp to wallStartTime, we parse a date */
-			sscanf(tmp, "%ud-%ud-%udT", &year, &month, &day);
+			/* From tmp to wallStartTime, we parse a date 
+				do not use %ud here, broken on Win32 (sscanf returns 1)
+			*/
+			sscanf(tmp, "%d-%d-%dT", &year, &month, &day);
 			tmp1++;
 			tmp = tmp1;
 		}
