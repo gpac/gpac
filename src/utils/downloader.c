@@ -469,8 +469,11 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
 void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
     if (sess && sess->cache_entry) {
         gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
-        if (sess->dm && gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry) &&
-                (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)))
+        if (sess->dm 
+			/*JLF - not sure what the rationale of this test is, and it prevents cleanup of cache entry 
+			which then results to crash when restarting the session (entry->writeFilePtr i snot set back to NULL)*/
+//			&& gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry)
+			&& (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)))
         {
             u32 i, count;
             gf_mx_p( sess->dm->cache_mx );
