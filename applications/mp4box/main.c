@@ -97,7 +97,7 @@ void PrintLanguages();
 const char *GetLanguageCode(char *lang);
 
 #ifndef GPAC_DISABLE_MPEG2TS
-void dump_mpeg2_ts(char *mpeg2ts_in, char *pes_out_name);
+void dump_mpeg2_ts(char *mpeg2ts_in, char *pes_out_name, Bool timestamp_dump);
 #endif 
 
 
@@ -2319,7 +2319,11 @@ int main(int argc, char **argv)
 
 				if (dump_m2ts) {
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, pes_dump);
+					dump_mpeg2_ts(inName, pes_dump, 0);
+#endif
+				} else if (dump_ts) { /* dump_ts means dump time stamp information */
+#ifndef GPAC_DISABLE_MPEG2TS
+					dump_mpeg2_ts(inName, pes_dump, 1);
 #endif
 				} else {
 					convert_file_info(inName, info_track_id);
