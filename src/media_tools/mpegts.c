@@ -1566,6 +1566,11 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 	if (hdr->payload_start) {
 		flush_pes = 1;
+		pes->pes_start_packet_number = ts->pck_number;
+		pes->before_last_pcr_value = pes->program->before_last_pcr_value;
+		pes->before_last_pcr_value_pck_number = pes->program->before_last_pcr_value_pck_number;
+		pes->last_pcr_value = pes->program->last_pcr_value;
+		pes->last_pcr_value_pck_number = pes->program->last_pcr_value_pck_number;
 	} else if (pes->pes_len && (pes->data_len + data_size  == pes->pes_len + 6)) {
 		/* 6 = startcode+stream_id+length*/
 		/*reassemble pes*/
@@ -1592,6 +1597,16 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 				/*OK read header*/
 				gf_m2ts_pes_header(pes, pes->data+3, pes->data_len-3, &pesh);
+				{					
+					GF_M2TS_PES_PCK pck;
+					memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
+					pck.PTS = pesh.PTS;
+					pck.DTS = pesh.DTS;
+					pck.stream = pes;
+					if (pes->rap) pck.flags |= GF_M2TS_PES_PCK_RAP;
+					pes->pes_end_packet_number = ts->pck_number;
+					if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_TIMING, &pck);
+				}
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Got PES header PTS %d\n", pes->pid, pesh.PTS));
 				/*3-byte start-code + 6 bytes header + hdr extensions*/
@@ -1693,6 +1708,8 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	u32 payload_size, af_size;
 	u32 pos = 0;
 
+	ts->pck_number++;
+
 	/* read TS packet header*/
 	hdr.sync = data[0];
 	hdr.error = (data[1] & 0x80) ? 1 : 0;
@@ -1787,7 +1804,11 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 	if (paf && paf->PCR_flag && es) {
 		GF_M2TS_PES_PCK pck;
 		memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
-		pck.PTS = paf->PCR_base * 300 + paf->PCR_ext;
+		es->program->before_last_pcr_value = es->program->last_pcr_value;
+		es->program->before_last_pcr_value_pck_number = es->program->last_pcr_value_pck_number;
+		es->program->last_pcr_value_pck_number = ts->pck_number;
+		es->program->last_pcr_value = paf->PCR_base * 300 + paf->PCR_ext;
+		pck.PTS = es->program->last_pcr_value;
 		pck.stream = (GF_M2TS_PES *)es;
 		if (paf->discontinuity_indicator) pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);

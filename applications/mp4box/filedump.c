@@ -1729,6 +1729,9 @@ typedef struct
 	FILE *pes_out_info;
 	char info[100];
 	Bool is_info_dumped;
+
+	FILE *timestamps_info_file;
+	char timestamps_info_name[100];
 	
 	/* when dumping TS information */
 	u32 dump_pid;
@@ -1762,6 +1765,9 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			if (es->pid == prog->pmt_pid) fprintf(stdout, "\tPID %d: Program Map Table\n", es->pid);
 			else {
 				GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
+				if (dumper->timestamps_info_file) {
+					gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
+				}
 				fprintf(stdout, "\tPID %d: %s ", pes->pid, gf_m2ts_get_stream_name(pes->stream_type) );
 				if (pes->mpeg4_es_id) fprintf(stdout, " - MPEG-4 ES ID %d", pes->mpeg4_es_id);
 				fprintf(stdout, "\n");
@@ -1793,11 +1799,39 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	case GF_M2TS_EVT_SDT_REPEAT:
 //		fprintf(stdout, "Repeated Program Description - %d desc\n", gf_list_count(ts->SDTs) );
 		break;
+	case GF_M2TS_EVT_PES_TIMING:
+		pck = par;
+
+		if (dumper->timestamps_info_file) {
+			GF_M2TS_PES *pes = pck->stream;
+			GF_M2TS_Program *prog = pes->program;
+			/* Interpolated PCR value for the TS packet containing the PES header start */
+			u64 interpolated_pcr_value = 0;
+			if (pes->last_pcr_value && pes->before_last_pcr_value && pes->last_pcr_value > pes->before_last_pcr_value) {
+				u32 delta_pcr_pck_num = pes->last_pcr_value_pck_number - pes->before_last_pcr_value_pck_number;
+				u32 delta_pts_pcr_pck_num = pes->pes_start_packet_number - pes->last_pcr_value_pck_number;
+				u64 delta_pcr_value = pes->last_pcr_value - pes->before_last_pcr_value; 
+				/* we can compute the interpolated pcr value for the packet containing the PES header */
+				interpolated_pcr_value = pes->last_pcr_value + (delta_pcr_value*delta_pts_pcr_pck_num*1.0)/delta_pcr_pck_num;
+			}
+
+			fprintf(dumper->timestamps_info_file, "%u\t%d\t%d\t", pck->stream->pes_start_packet_number, prog->number, pck->stream->pid);
+			if (interpolated_pcr_value) fprintf(dumper->timestamps_info_file, "%f", interpolated_pcr_value/(300.0 * 90000));
+			fprintf(dumper->timestamps_info_file, "\t");
+			if (pck->DTS) fprintf(dumper->timestamps_info_file, "%f", pck->DTS / 90000.0);
+			fprintf(dumper->timestamps_info_file, "\t%f\t%d\n", pck->PTS / 90000.0, (pck->flags & GF_M2TS_PES_PCK_RAP ? 1 : 0));
+		}
+		break;
 	case GF_M2TS_EVT_PES_PCK:
 		pck = par;
-		//fprintf(stdout, "PES(%d): DTS "LLD" PTS" LLD" RAP %d size %d\n", pck->stream->pid, pck->DTS, pck->PTS, pck->rap, pck->data_len);
 		if (dumper->pes_out && (dumper->dump_pid == pck->stream->pid)) {
 			fwrite(pck->data, pck->data_len, 1, dumper->pes_out);
+		}
+		break;
+	case GF_M2TS_EVT_PES_PCR:
+		pck = par;
+		if (dumper->timestamps_info_file) {
+			fprintf(dumper->timestamps_info_file, "%u\t%d\t%d\t%f\n", pck->stream->program->last_pcr_value_pck_number, pck->stream->program->number, pck->stream->pid, pck->PTS / (300*90000.0));
 		}
 		break;
 	case GF_M2TS_EVT_SL_PCK:
@@ -1831,7 +1865,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	}
 }
 
-void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
+void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool timestamps_dump)
 {
 	char data[188];
 	GF_M2TS_Dump dumper;
@@ -1850,6 +1884,12 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 	fsize = gf_f64_tell(src);
 	gf_f64_seek(src, 0, SEEK_SET);
 	fdone = 0;
+
+	if (timestamps_dump) {
+		sprintf(dumper.timestamps_info_name, "%s_timestamps.txt", mpeg2ts_file);
+		dumper.timestamps_info_file = gf_f64_open(dumper.timestamps_info_name, "wt");
+		fprintf(dumper.timestamps_info_file, "PCK#\tProgram\tPID\tPCR\tDTS\tPTS\tRAP\n");
+	}
 
 	if (pes_out_name) {
 		char *pid = strrchr(pes_out_name, '#');
@@ -1895,6 +1935,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name)
 		fclose(dumper.pes_out_nhml);
 		fclose(dumper.pes_out_info);
 	}
+	if (dumper.timestamps_info_file) fclose(dumper.timestamps_info_file);
 }
 
 #endif /*GPAC_DISABLE_MPEG2TS*/

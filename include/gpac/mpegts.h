@@ -150,6 +150,8 @@ enum
 	GF_M2TS_EVT_PES_PCK,
 	/*PCR has been received - assoctiated parameter: PES packet with no data*/
 	GF_M2TS_EVT_PES_PCR,
+	/*PTS/DTS/PCR info - assoctiated parameter: PES packet with no data*/
+	GF_M2TS_EVT_PES_TIMING,
 	/*An MPEG-4 SL Packet has been received in a section - assoctiated parameter: SL packet */
 	GF_M2TS_EVT_SL_PCK,
 	/*An IP datagram has been received in a section - assoctiated parameter: IP datagram */
@@ -264,6 +266,14 @@ typedef struct
 	GF_List *additional_ods;
 	/*first dts found on this program - this is used by parsers, but not setup by the lib*/
 	u64 first_dts;
+
+	/* Last PCR value received for this program and associated packet number */
+	u64 last_pcr_value;
+	u32 last_pcr_value_pck_number;
+	/* PCR value before the last received one for this program and associated packet number 
+	used to compute PCR interpolation value*/
+	u64 before_last_pcr_value;
+	u32 before_last_pcr_value_pck_number;
 } GF_M2TS_Program;
 
 /*ES flags*/
@@ -362,7 +372,19 @@ typedef struct tag_m2ts_pes
 	u32 pes_len;
 	Bool rap;
 	u64 PTS, DTS;
-	
+	u32 pes_end_packet_number;
+
+	u32 pes_start_packet_number;
+	/* PCR info related to the PES start */
+	/* Last PCR value received for this program and associated packet number */
+	u64 last_pcr_value;
+	u32 last_pcr_value_pck_number;
+	/* PCR value before the last received one for this program and associated packet number 
+	used to compute PCR interpolation value*/
+	u64 before_last_pcr_value;
+	u32 before_last_pcr_value_pck_number;
+
+
 	/*PES reframer - if NULL, pes processing is skiped*/
 	u32 frame_state;
 	/*returns the number of bytes consummed from the input data buffer*/
@@ -523,6 +545,7 @@ struct tag_m2ts_demux
 	/* Structure to hold all the INT tables if the TS contains IP streams */
 	struct __gf_dvb_mpe_ip_platform *ip_platform;
 
+	u32 pck_number;
 };
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();
