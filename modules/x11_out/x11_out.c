@@ -25,6 +25,7 @@
 
 #include "x11_out.h"
 #include <gpac/constants.h>
+#include <gpac/user.h>
 #include <sys/time.h>
 #include <X11/XKBlib.h>
 
@@ -1165,6 +1166,25 @@ xWindow->screennum=0;
 	autorepeat = 1;
 	XkbSetDetectableAutoRepeat(xWindow->display, autorepeat, &supported);
 
+
+	if (xWindow->init_flags & GF_TERM_WINDOW_NO_DECORATION) {
+#define PROP_MOTIF_WM_HINTS_ELEMENTS 5
+#define MWM_HINTS_DECORATIONS (1L << 1)
+	  struct {
+	    unsigned long flags;
+	    unsigned long functions;
+	    unsigned long decorations;
+	    long inputMode;
+	    unsigned long status;
+	  } hints = {2, 0, 0, 0, 0};
+
+	  hints.flags = MWM_HINTS_DECORATIONS;
+	  hints.decorations = 0;
+
+	  XChangeProperty(xWindow->display, xWindow->wnd, XInternAtom(xWindow->display,"_MOTIF_WM_HINTS", False), XInternAtom(xWindow->display, "_MOTIF_WM_HINTS", False), 32, PropModeReplace, (unsigned char *)&hints, PROP_MOTIF_WM_HINTS_ELEMENTS);
+
+	}
+
 	xWindow->the_gc = XCreateGC (xWindow->display, xWindow->wnd, 0, NULL);
 	xWindow->use_shared_memory = 0;
 
@@ -1231,6 +1251,7 @@ xWindow->screennum=0;
 		xWindow->WM_DELETE_WINDOW = XInternAtom (xWindow->display, "WM_DELETE_WINDOW", False);
 		XSetWMProtocols(xWindow->display, xWindow->wnd, &xWindow->WM_DELETE_WINDOW, 1);
 	}
+
 
 	{
 		XEvent ev;
@@ -1324,11 +1345,12 @@ xWindow->screennum=0;
 	XFree (Hints);
 }
 
-GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32 no_proc_override)
+GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32 flags)
 {
 	X11VID ();
 	/*assign window if any, NEVER display*/
 	xWindow->par_wnd = (Window) os_handle;
+	xWindow->init_flags = flags;
 
 	/*OSMOZILLA HACK*/
 	if (os_display) xWindow->no_select_input = 1;

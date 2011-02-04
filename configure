@@ -916,19 +916,19 @@ int main( void ) { return 0; }
 EOF
 
 if test "$cross_prefix"  != "" ; then
-  if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib -lxvidcore 2> /dev/null  ; then
+  if $cc -o $TMPO $TMPC -I$prefix/include -L$prefix/lib -lxvidcore -lpthread 2> /dev/null  ; then
   has_xvid="system"
-  elif $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore 2> /dev/null  ; then
+  elif $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore -lpthread 2> /dev/null  ; then
   has_xvid="local"
   fi
 else
-  if $cc -o $TMPO $TMPC -lxvidcore 2> /dev/null  ; then
+  if $cc -o $TMPO $TMPC -lxvidcore -lpthread 2> /dev/null  ; then
   has_xvid="system"
   elif test "$alt_macosx_dir" != "" ; then
-   if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lxvidcore 2> /dev/null ; then
+   if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lxvidcore -lpthread 2> /dev/null ; then
    has_xvid="system"
    fi
-  elif $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore 2> /dev/null  ; then
+  elif $cc -o $TMPO $TMPC -I$local_inc/xvid -L$local_lib -lxvidcore -lpthread 2> /dev/null  ; then
   has_xvid="local"
   fi
 fi

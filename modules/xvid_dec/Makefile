@@ -22,7 +22,7 @@ ifeq ($(CONFIG_XVID), local)
 CFLAGS+= -I$(LOCAL_INC_PATH)/xvid
 LDFLAGS+= -L../../extra_lib/lib/gcc
 endif
-EXTRALIBS+= -lxvidcore
+EXTRALIBS+= -lxvidcore -lpthread
 
 SRCS := $(OBJS:.o=.c) 
 

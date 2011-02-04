@@ -290,7 +290,7 @@ function initialize() {
     }
 
     /*init all extensions*/
-    var list = gpac.enum_directory('Extensions', '*', 0);
+    var list = gpac.enum_directory('extensions', '*', 0);
 
     for (i=0; i<list.length; i++) {
       if (!list[i].directory) continue;

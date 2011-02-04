@@ -83,6 +83,7 @@ typedef struct
 	XImage *surface;	//main drawing image: software mode
 	Pixmap pixmap;
 	u32 pwidth, pheight;
+	u32 init_flags;
 	Atom WM_DELETE_WINDOW;	//window deletion
 
 	Bool use_shared_memory;	//
