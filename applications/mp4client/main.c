@@ -1174,11 +1174,16 @@ int main (int argc, char **argv)
 	}
 
 	if (gui_mode) {
+#ifdef WIN32
 		threading_flags = GF_TERM_NO_THREAD;
 		if (gui_mode==1) {
 			hide_shell(1);
 			user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
 		}
+#else
+		if (gui_mode==1) user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
+		gui_mode = 0;
+#endif
 	}
 
 
@@ -1753,6 +1758,7 @@ force_input:
 	if (gui_mode) {
 		hide_shell(2);
 	}
+	fprintf(stdout, "Bye\n");
 	return 0;
 }
 
