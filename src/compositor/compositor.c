@@ -2387,14 +2387,17 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			/*EXTRA CARE HERE: the caller (video output) is likely a different thread than the compositor one, and the
 			compositor may be locked on the video output (flush or whatever)!!
 			*/
+			Bool lock_ok = gf_mx_try_lock(compositor->mx);
 			if ((compositor->display_width!=event->size.width) || (compositor->display_height!=event->size.height)) {
-				Bool lock_ok = gf_mx_try_lock(compositor->mx);
 				compositor->new_width = event->size.width;
 				compositor->new_height = event->size.height;
 				compositor->msg_type |= GF_SR_CFG_SET_SIZE;
 				if (from_user) compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
-				if (lock_ok) gf_sc_lock(compositor, 0);
+			} else {
+				/*remove pending resize notif*/
+				compositor->msg_type = 0;
 			}
+			if (lock_ok) gf_sc_lock(compositor, 0);
 		}
 		/*otherwise let the user decide*/
 		else {
