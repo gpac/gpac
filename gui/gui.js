@@ -336,7 +336,7 @@ function set_movie_url(url)
     if (UPnP_Enabled) UPnP.MovieURL = url;
     movie_connected = (url=='') ? false : true;
     root.children[0].set_bind = movie_connected ? FALSE : TRUE;
-} else if (controlled_renderer==null) {
+  } else if (controlled_renderer==null) {
     /*connect a new resource to the destination - if success, switch resources*/
     var test_resource = new SFNode('Inline');
 
@@ -568,6 +568,7 @@ function new_player_control(container)
     controlled_renderer.Seek(time);
     return;
    }
+   root.children[0].set_bind = FALSE;
    switch (type) {
    case 1:
     movie_ctrl.mediaStartTime = time; 

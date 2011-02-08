@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 LINKLIBS= -lgpac -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib
-LOCAL_LIB=../../bin/gcc -LSDK/lib_gcc_x86
+LOCAL_LIB=../../bin/gcc -LSDK/lib_osx_x86
 
 #common objects
 OBJS=GPACFileMediaServer.o GPACMediaController.o GPACMediaRenderer.o GenericDevice.o GPACPlatinum.o

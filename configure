@@ -1731,6 +1731,11 @@ echo "#define GPAC_CONFIGURATION \"$GPAC_CONFIGURATION\"" >> $TMPH
 
 
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
+
+revision=`svnversion`
+echo revision $revision
+echo "#define GPAC_SVN_REVISION	\"$revision\"" > $source_path/include/gpac/version.h
+
 echo ""
 echo "** System Configuration"
 echo "Install prefix: $prefix"
@@ -1744,7 +1749,7 @@ if test $cpu = "mips"; then
 echo "MMI enabled: $mmi"
 fi
 echo ""
-echo "** GPAC $version Core Configuration **"
+echo "** GPAC $version rev$revision Core Configuration **"
 echo "debug version: $debuginfo"
 echo "GProf enabled: $gprof_build"
 echo "Static build enabled: $static_build"

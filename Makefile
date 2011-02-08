@@ -5,12 +5,15 @@ include config.mak
 
 vpath %.c $(SRC_PATH)
 
-all: 
+all:	version
 	$(MAKE) -C src all
 	$(MAKE) -C applications all
 	$(MAKE) -C modules all
 
-lib:
+version:
+	@echo "#define GPAC_SVN_REVISION	\"$(shell svnversion)\"" > $(SRC_PATH)/include/gpac/version.h
+
+lib:	version
 	$(MAKE) -C src all
 
 apps:
@@ -68,9 +71,17 @@ install:
 	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/ ; \
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac" ; \
 	$(INSTALL) $(INSTFLAGS) -m 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ;  \
+	fi
+	if [ -d  gui ] ; then \
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui" ; \
+	$(INSTALL) $(INSTFLAGS) -m 644 gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
+	$(INSTALL) $(INSTFLAGS) -m 644 gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
+	$(INSTALL) $(INSTFLAGS) -m 644 gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
+	$(INSTALL) $(INSTFLAGS) -m 644 gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
+	$(INSTALL) $(INSTFLAGS) -m 644 gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" ; \
+	cp -R gui/extensions "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
+	rm -rf "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/*.svn" ; \
 	fi
 
 uninstall:
@@ -125,6 +136,13 @@ uninstall-lib:
 	rm -rf "$(prefix)/include/gpac/enst"
 	rm -rf "$(prefix)/include/gpac"
 
+ifeq ($(CONFIG_DARWIN),yes)
+dmg:
+	rm "bin/gcc/MP4Client"
+	$(MAKE) -C applications/mp4client
+	./mkdmg.sh
+endif
+
 help:
 	@echo "Input to GPAC make:"
 	@echo "depend/dep: builds dependencies (dev only)"
@@ -141,6 +159,9 @@ help:
 	@echo 
 	@echo "install: install applications and modules on system"
 	@echo "uninstall: uninstall applications and modules"
+ifeq ($(CONFIG_DARWIN),yes)
+	@echo "dmg: creates DMG package file for OSX"
+endif
 	@echo 
 	@echo "install-lib: install gpac library (dyn and static) and headers <gpac/*.h>, <gpac/modules/*.h> and <gpac/internal/*.h>"
 	@echo "uninstall-lib: uninstall gpac library (dyn and static) and headers"

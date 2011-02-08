@@ -1171,7 +1171,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	dstrc.y = dst_wnd->y;
 
 	SDL_BlitSurface(*pool, &srcrc, ctx->back_buffer, &dstrc);
-	fprintf(stdout, "SDL blit OK\n");
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] blit OK\n"));
 	return GF_OK;
 }
 
