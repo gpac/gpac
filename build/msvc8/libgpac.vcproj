@@ -28,6 +28,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine="svnversion &gt; version.c"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -106,6 +107,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine="for /f &quot;delims=&quot; %%a in (&apos;svnversion&apos;) do echo #define GPAC_SVN_REVISION &quot;%%a&quot; &gt; ../../include/gpac/version.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -189,6 +191,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine="for /f &quot;delims=&quot; %%a in (&apos;svnversion&apos;) do echo #define GPAC_SVN_REVISION &quot;%%a&quot; &gt; ../../include/gpac/version.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -265,6 +268,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine="for /f &quot;delims=&quot; %%a in (&apos;svnversion&apos;) do echo #define GPAC_SVN_REVISION &quot;%%a&quot; &gt; ../../include/gpac/version.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
