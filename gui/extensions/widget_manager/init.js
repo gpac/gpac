@@ -86,6 +86,7 @@ function open_widget_manager(extension)
   		WidgetManager.last_widget_dir = directory;
    		scan_directory(directory);
     }
+    filebrowse.set_size(320 , 240);
     gpacui_show_window(filebrowse);
   }
   var icon = gw_new_icon_button(widman_cfg_dlg.area, gwskin.images.trash, 'Remove all widgets', 'button');
@@ -103,6 +104,7 @@ function open_widget_manager(extension)
   widman_cfg_dlg.on_close = function() {
    widman_cfg_dlg = null;
   }
+  widman_cfg_dlg.set_size(320 , 240);
   gpacui_show_window(widman_cfg_dlg);
 }
 

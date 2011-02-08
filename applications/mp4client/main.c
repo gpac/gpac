@@ -247,10 +247,14 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 {
 	GF_Config *cfg;
 	char szPath[GF_MAX_PATH];
+	char gui_path[GF_MAX_PATH];
+	u32 size;
 
 #ifdef WIN32
 	FILE *f;
 	Bool write_access = 0;
+
+	strcpy(gui_path, file_path);
 
 	/*following code is highly inspired by Osmo4*/
 	/*do we have the write privileges on this dir ? if not, use user local data directory*/
@@ -282,6 +286,8 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	}
 #else
 	FILE *f;
+	strcpy(gui_path, "");
+
 	sprintf(szPath, "%s%c%s", file_path, GF_PATH_SEPARATOR, file_name);
 	f = gf_f64_open(szPath, "wt");
 	fprintf(stdout, "create %s: %s\n", szPath, (f==NULL) ? "Error" : "OK");
@@ -297,6 +303,23 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	strcpy(szPath, GPAC_MODULES_PATH);
 #elif defined(WIN32)
 	//szPath still contains the executable directory
+
+#elif defined(__DARWIN__) || defined(__APPLE__)
+	size = GF_MAX_PATH;
+	if (_NSGetExecutablePath(szPath, &size)==0) {
+		char *sep = strstr(szPath, "./");
+		if (!sep) {
+			sep = strrchr(szPath, '/');
+			if (sep) sep++;
+		}
+		fprintf(stdout, "OSX Executable path %s", szPath);
+		if (sep) {
+			sep[0] = 0;
+			strcpy(gui_path, szPath);
+			strcat(szPath, "modules/");
+		}
+		fprintf(stdout, "Using modules path %s", szPath);
+	}
 #else 
 	fprintf(stdout, "Please enter full path to GPAC modules directory:\n");
 	while ( 1 > scanf("%s", szPath));
@@ -313,8 +336,6 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	if (szPath[strlen((char*)szPath)-1] != '\\') strcat((char*)szPath, "\\");
 	strcat((char *)szPath, "Fonts");
 #elif defined(__DARWIN__) || defined(__APPLE__)
-	/*fprintf(stdout, "Please enter full path to a TrueType font directory (.ttf, .ttc) - enter to default:\n");
-	scanf("%s", szPath);*/
 	strcpy(szPath, "/Library/Fonts");
 #else
 	/*these fonts seems installed by default on many systems...*/
@@ -357,10 +378,56 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	gf_cfg_set_key(cfg, "Network", "UDPTimeout", "10000");
 	gf_cfg_set_key(cfg, "Network", "BufferLength", "3000");
 
+#if defined(__DARWIN__) || defined(__APPLE__)
+	gf_cfg_set_key(cfg, "Video", "DriverName", "SDL Video Output");
+#endif
+
+	if (gui_path[0]) {
+		FILE *f;
+		strcat(gui_path, "gui/gui.bt");
+		f = fopen(gui_path, "rt");
+		if (f) {
+			fclose(f);
+			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
+		}
+	}
+
+
 	/*store and reload*/
 	gf_cfg_del(cfg);
 	return gf_cfg_new(file_path, file_name);
 }
+
+static void check_config_directories(GF_Config *cfg)
+{
+#if (defined(__DARWIN__) || defined(__APPLE__) ) && !defined(GPAC_MODULES_PATH)
+	char mod_path[GF_MAX_PATH];
+	char gui_path[GF_MAX_PATH];
+	char *sep;
+	const char *opt;
+	u32 size = GF_MAX_PATH;
+	if (_NSGetExecutablePath(mod_path, &size)!=0) return;
+
+	sep = strstr(mod_path, "./");
+	if (!sep) {
+		sep = strrchr(mod_path, '/');
+		if (sep) sep++;
+	}
+	if (!sep) return;
+
+	sep[0] = 0;
+	strcpy(gui_path, mod_path);
+	strcat(gui_path, "gui/gui.bt");
+	strcat(mod_path, "modules/");
+	opt = gf_cfg_get_key(cfg, "General", "ModulesDirectory");
+	/*modules directory has changed, forced to new location*/
+	if (!opt || strcmp(opt, mod_path)) {
+		gf_cfg_set_key(cfg, "General", "ModulesDirectory", mod_path);
+		gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
+	}
+#endif
+}
+
 
 static void PrintTime(u64 time)
 {
@@ -845,6 +912,7 @@ GF_Config *loadconfigfile(char *filepath)
 	}
  success:
 	fprintf(stdout, "Using config file in %s directory\n", szPath);
+	check_config_directories(cfg);
 	return cfg;
 }
 
@@ -1155,9 +1223,11 @@ int main (int argc, char **argv)
 			i++;
 		}
 		else if (!strncmp(arg, "-run-for=", 9)) simulation_time = atoi(arg+9);
-		else {
+		else if (!stricmp(arg, "-help")) {
 			PrintUsage();
 			return 1;
+		} else { 
+			fprintf(stdout, "Unrecognized option %s - skipping\n", arg);
 		}
 	}
 	if (dump_mode && !url_arg) {
@@ -1174,16 +1244,11 @@ int main (int argc, char **argv)
 	}
 
 	if (gui_mode) {
-#ifdef WIN32
 		threading_flags = GF_TERM_NO_THREAD;
 		if (gui_mode==1) {
 			hide_shell(1);
 			user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
 		}
-#else
-		if (gui_mode==1) user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
-		gui_mode = 0;
-#endif
 	}
 
 
@@ -1758,7 +1823,6 @@ force_input:
 	if (gui_mode) {
 		hide_shell(2);
 	}
-	fprintf(stdout, "Bye\n");
 	return 0;
 }
 

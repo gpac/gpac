@@ -41,30 +41,30 @@ PROG=MP4Client
 endif
 
 ifneq ($(CONFIG_JPEG), no)
-LINKLIBS+= -L$(prefix)/lib
+#LINKLIBS+= -L$(prefix)/lib
 else
 ifneq ($(CONFIG_PNG), no)
-LINKLIBS+= -L$(prefix)/lib
+#LINKLIBS+= -L$(prefix)/lib
 else
 ifeq ($(CONFIG_JS),prefix)
-LINKLIBS+= -L$(prefix)/lib
+#LINKLIBS+= -L$(prefix)/lib
 endif
 endif
 endif
 
 ifeq ($(CONFIG_JPEG), no)
 else
-LINKLIBS+= -ljpeg
+#LINKLIBS+= -ljpeg
 endif
 
 ifeq ($(CONFIG_JS), prefix)
-LINKLIBS+= -ljs
+#LINKLIBS+= -ljs
 else
 endif
 
 ifeq ($(CONFIG_PNG), no)
 else    
-LINKLIBS+= -lpng
+#LINKLIBS+= -lpng
 endif
 
 
@@ -73,7 +73,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 MP4Client$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -L../../extra_lib/lib/gcc -lgpac -lz $(LINKLIBS)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(LINKLIBS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INSTALL_FLAGS) -c -o $@ $< 
