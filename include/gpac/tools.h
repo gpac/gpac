@@ -60,8 +60,8 @@ extern "C" {
 /*KEEP SPACE SEPARATORS FOR MAKE / GREP (SEE MAIN MAKEFILE)!!!, and NO SPACE in GPAC_VERSION for proper install*/
 #define GPAC_VERSION       "0.4.6-DEV"
 
-#define GPAC_INTERNAL_REV	"8"
-#define GPAC_FULL_VERSION       GPAC_VERSION" (internal rev. "GPAC_INTERNAL_REV")"
+#include <gpac/version.h>
+#define GPAC_FULL_VERSION       GPAC_VERSION"-rev"GPAC_SVN_REVISION
 
 /*!
  *	\brief GPAC Version
