@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleDocumentTypes</key>
+	<array/>
+	<key>CFBundleExecutable</key>
+	<string>Osmo4</string>
+	<key>CFBundleIconFile</key>
+	<string>Osmo4.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.enst.gpac</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Osmo4</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.4.5</string>
+	<key>CFBundleSignature</key>
+	<string>gpac</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLIconFile</key>
+			<string>generic</string>
+			<key>CFBundleURLName</key>
+			<string>http url</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>http</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLIconFile</key>
+			<string>generic</string>
+			<key>CFBundleURLName</key>
+			<string>Multimedia Stream URL</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>mms</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLIconFile</key>
+			<string>generic</string>
+			<key>CFBundleURLName</key>
+			<string>RTSP</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>rtsp</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLIconFile</key>
+			<string>generic</string>
+			<key>CFBundleURLName</key>
+			<string>udp url</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>udp</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>2200</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>10.5.0</string>
+	<key>NSMainNibFile</key>
+	<string>MainMenu</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>SUEnableAutomaticChecks</key>
+	<string>YES</string>
+	<key>SUEnableSystemProfiling</key>
+	<string>YES</string>
+</dict>
+</plist>
