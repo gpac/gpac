@@ -100,7 +100,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			u32 w, h, par_n, par_d;
 			GF_AVCConfigSlot *slc = gf_list_get(cfg->sequenceParameterSets, i);
 
-			gf_avc_get_sps_info(slc->data, slc->size, &w, &h, &par_n, &par_d);
+			gf_avc_get_sps_info(slc->data, slc->size, &slc->id, &w, &h, &par_n, &par_d);
 			/*by default use the base layer*/
 			if (!i) {
 				if ((ctx->width<w) || (ctx->height<h)) {
