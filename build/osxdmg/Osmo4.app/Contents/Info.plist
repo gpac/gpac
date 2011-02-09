@@ -5,11 +5,491 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>English</string>
 	<key>CFBundleDocumentTypes</key>
-	<array/>
+	<array>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>bt</string>
+				<string>xmt</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_generic.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>MPEG-4 BIFS Text</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>wrl</string>
+				<string>x3d</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_model.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Web3D VRML/X3D File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>svg</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_generic.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>W3C SVG File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>saf</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_generic.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>MPEG-4 SAF/LASeR File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>flv</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Flash Video File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>pls</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_generic.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Shoutcast playlist</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>m3u</string>
+				<string>m3u8</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_generic.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Playlist file</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>aiff</string>
+				<string>aif</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_audio.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>AIFF file</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>sdp</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_generic.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Session Description Protocol File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>wav</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_audio.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>WAVE Audio File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>vob</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>DVD Video File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>a52</string>
+				<string>ac3</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_audio.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Digital Audio</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>aac</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_audio.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>AAC file</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>ogm</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Ogg MPEG-4 Video File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>ogg</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_audio.icns</string>
+			<key>CFBundleTypeMIMETypes</key>
+			<array>
+				<string>audio/ogg</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Ogg Vorbis File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>ogv</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeMIMETypes</key>
+			<array>
+				<string>video/ogg</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Ogg Video File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>avi</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>AVI container</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>mov</string>
+				<string>moov</string>
+				<string>qt</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeMIMETypes</key>
+			<array>
+				<string>video/quicktime</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>Apple QuickTime container</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>asf</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Advanced Streaming Format</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>wma</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_audio.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Windows Media Audio</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>wmv</string>
+				<string>wm</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Windows Media Video</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>mpg</string>
+				<string>mpeg</string>
+				<string>mpeg1</string>
+				<string>mpeg2</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>multiplexed MPEG-1/2</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>m1v</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>MPEG-1 Video File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>m2a</string>
+				<string>mp1</string>
+				<string>mp2</string>
+				<string>mp3</string>
+				<string>mpa</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_audio.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>MPEG Audio File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>m2p</string>
+				<string>ps</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_generic.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>MPEG-2 Program Stream</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>ts</string>
+				<string>m2ts</string>
+				<string>mts</string>
+				<string>mt2s</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_generic.icns</string>
+			<key>CFBundleTypeMIMETypes</key>
+			<array>
+				<string>video/mp2t</string>
+			</array>
+			<key>CFBundleTypeName</key>
+			<string>MPEG-2 Transport Stream</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>m2v</string>
+				<string>mpv</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>MPEG-2 Video File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>mp4</string>
+				<string>mpeg4</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_generic.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>MPEG-4 File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>m4v</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>MPEG-4 Video File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>m4a</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_audio.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>MPEG-4 Audio File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>3gp</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>3GPP File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>mka</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_audio.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Matroska Audio File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>mkv</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Matroska Video File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>webm</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_video.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>WebM Video File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>srt</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_subs.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>Subrip Subtitle File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+			<key>NSPersistentStoreTypeKey</key>
+			<string>Binary</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>ttxt</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>osmo_subs.icns</string>
+			<key>CFBundleTypeName</key>
+			<string>3GPP Subtitle File</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+			<key>NSPersistentStoreTypeKey</key>
+			<string>Binary</string>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>Osmo4</string>
+	<key>CFBundleGetInfoString</key>
+	<string>Copyright © 2003-2011 Telecom ParisTech</string>
 	<key>CFBundleIconFile</key>
-	<string>Osmo4.icns</string>
+	<string>osmo.icns</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.enst.gpac</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -74,7 +554,7 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>SUEnableAutomaticChecks</key>
-	<string>YES</string>
+	<string>NO</string>
 	<key>SUEnableSystemProfiling</key>
 	<string>YES</string>
 </dict>
