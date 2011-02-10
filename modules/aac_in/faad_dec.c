@@ -30,6 +30,7 @@
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
 
+
 typedef struct
 {
 	faacDecHandle codec;
@@ -49,6 +50,7 @@ typedef struct
 
 static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
+	s8 Test;
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
 	GF_M4ADecSpecInfo a_cfg;
@@ -71,8 +73,10 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	e = gf_m4a_get_config((unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 	if (e) return e;
 #endif
-
-	if ( (s8) faacDecInit2(ctx->codec, (unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels) < 0) 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("ctx->sample_rate:%d ctx->num_channels:%d esd->decoderConfig->decoderSpecificInfo->dataLength:%d esd->decoderConfig->decoderSpecificInfo->data:%s \n",ctx->sample_rate,ctx->num_channels,esd->decoderConfig->decoderSpecificInfo->dataLength,esd->decoderConfig->decoderSpecificInfo->data));
+	Test = (s8) faacDecInit2(ctx->codec, (unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels); 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("Test: %d \n",Test));
+	if ( Test < 0) 
 	{
 #ifndef GPAC_DISABLE_AV_PARSERS
 		s8 res;
@@ -85,7 +89,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		case GF_M4A_AAC_LTP:
 		case GF_M4A_AAC_SBR:
 		case GF_M4A_AAC_PS:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing stream %d\n", esd->ESID));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] 1 Error initializing stream %d\n", esd->ESID));
 			return GF_NOT_SUPPORTED;
 		default:
 			break;
@@ -100,7 +104,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		if (res < 0) 
 #endif
 		{
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing stream %d\n", esd->ESID));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] 2 Error initializing stream %d\n", esd->ESID));
 			return GF_NOT_SUPPORTED;
 		}
 	}

@@ -33,7 +33,6 @@
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-
 typedef struct
 {
 #ifndef DONT_USE_TERMINAL_MODULE_API

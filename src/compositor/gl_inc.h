@@ -38,7 +38,7 @@
 #error "OpenGL ES defined without fixed-point support - unsupported."
 #endif
 
-#ifdef ANDROID
+#ifdef GPAC_ANDROID
 #include "GLES/gl.h"
 #else
 #include "GLES/egl.h"

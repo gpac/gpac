@@ -59,6 +59,10 @@
 #undef GL_MAX_CLIP_PLANES
 #endif
 
+#ifdef GPAC_ANDROID
+#define GPAC_USE_TINYGL
+#endif
+
 #define CHECK_GL_EXT(name) ((strstr(ext, name) != NULL) ? 1 : 0)
 
 void gf_sc_load_opengl_extensions(GF_Compositor *compositor)

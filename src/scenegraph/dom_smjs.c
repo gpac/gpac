@@ -40,6 +40,10 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
+#ifdef GPAC_ANDROID
+#define XP_UNIX
+#endif
+
 #include <jsapi.h>
 
 JSBool my_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp);

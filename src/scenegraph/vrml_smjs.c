@@ -27,6 +27,10 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
+#ifdef GPAC_ANDROID
+#define XP_UNIX
+#endif
+
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/modules/term_ext.h>
 #include <gpac/modules/js_usr.h>
