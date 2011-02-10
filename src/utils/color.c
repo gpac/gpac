@@ -518,6 +518,43 @@ static void merge_row_argb_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc
 	}
 }
 
+#ifdef GPAC_ANDROID
+static void merge_row_abgr_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
+{
+	u32 _a, _r, _g, _b, a, r, g, b, col;
+	s32 pos;
+	u32 *dst = (u32 *)_dst;
+
+	pos = 0x10000;
+	while (dst_w) {
+		while ( pos >= 0x10000L ) {
+			r = *src++; g = *src++; b = *src++; a = *src++;
+			pos -= 0x10000L;
+			a = mul255(a, alpha);
+		}
+
+		if (a) {
+			col = *dst;
+			_r = GF_COL_B(col);
+			_g = GF_COL_G(col);
+			_b = GF_COL_R(col);
+			if (GF_COL_A(col)) {
+				_a = mul255(a, a) + mul255(0xFF-a, 0xFF);
+				_r = mul255(a, r - _r) + _r;
+				_g = mul255(a, g - _g) + _g;
+				_b = mul255(a, b - _b) + _b;
+				*dst = GF_COL_ARGB(_a, _b, _g, _r);
+			} else {
+				*dst = GF_COL_ARGB(a, b, g, r);
+			}
+		}
+		dst += x_pitch;
+		pos += h_inc;
+		dst_w--;
+	}
+}
+#endif
+
 static GFINLINE u8 colmask(s32 a, s32 n)
 {
     s32 mask = (1 << n) - 1;
@@ -696,7 +733,11 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		load_line = load_line_rgb_565;
 		break;
 	case GF_PIXEL_RGB_24:
+#ifdef GPAC_ANDROID
+		load_line = load_line_bgr_24;
+#else
 		load_line = load_line_rgb_24;
+#endif
 		break;
 	case GF_PIXEL_BGR_24:
 		load_line = load_line_bgr_24;
@@ -763,7 +804,11 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		break;
 	case GF_PIXEL_RGBA:
 		dst_bpp = sizeof(unsigned char)*4;
+#ifdef GPAC_ANDROID
+		copy_row = has_alpha ? merge_row_abgr_32: copy_row_rgb_32;
+#else
 		copy_row = has_alpha ? merge_row_argb_32: copy_row_bgr_32;
+#endif
 		break;
 	case GF_PIXEL_BGR_32:
 		dst_bpp = sizeof(unsigned char)*4;

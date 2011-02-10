@@ -206,7 +206,7 @@ void Thread_Stop(GF_Thread *t, Bool Destroy)
 		}
 #else
 		if (Destroy) {
-#ifdef ANDROID
+#ifdef GPAC_ANDROID
 			pthread_kill(t->threadH, SIGQUIT);
 #else
 			pthread_cancel(t->threadH);

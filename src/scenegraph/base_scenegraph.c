@@ -1580,9 +1580,12 @@ static void dirty_parents(GF_Node *node)
 {
 	Bool check_root = 1;
 	GF_ParentList *nlist;
-
+#if defined GPAC_ANDROID
+	if ( !node || !node->sgprivate )
+	return;	
+#else
 	if (!node) return;
-
+#endif
 	nlist = node->sgprivate->parents;
 	while (nlist) {
 		GF_Node *p = nlist->node;
@@ -1594,7 +1597,11 @@ static void dirty_parents(GF_Node *node)
 		nlist = nlist->next;
 	}
 	/*propagate to parent scene graph */
+#if defined GPAC_ANDROID
+	if (check_root && node->sgprivate->scenegraph) {
+#else
 	if (check_root) {
+#endif
 		/*if root node of the scenegraph*/
 		if (node->sgprivate->scenegraph->NodeCallback && (node==node->sgprivate->scenegraph->RootNode) ) {
 			node->sgprivate->scenegraph->NodeCallback(node->sgprivate->scenegraph->userpriv, GF_SG_CALLBACK_GRAPH_DIRTY, NULL, NULL);

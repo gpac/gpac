@@ -1,0 +1,69 @@
+#!/bin/bash
+#!/bin/bash
+
+echo -e "\033[32m Note: You have to install Android NDK and SDK, setup the environment first!\033[0m"
+echo -e "\033[32m Note: You have to compile extra_libs first!\033[0m"
+
+if [ -z "$1" ]
+then
+  echo "$1 : You must give as first argument the directory path of the SDK"
+  exit 1
+fi
+
+if [ -z "$2" ]
+then
+  echo "$2 : You must give as second argument the directory path of the NDK"
+  exit 1
+fi
+
+export PATH="$1:$PATH"
+export PATH="$2:$PATH"
+
+BUILDPATH=$(pwd)
+
+echo "#define GPAC_SVN_REVISION \"$(shell svnversion)\"" > ../../include/gpac/version.h
+echo "Building lib gpac ..."
+mkdir ../../bin/android
+cd ../../
+BASEPATH=$(pwd)
+cd bin/android
+BINPATH=$(pwd)
+
+cd $BUILDPATH
+ndk-build
+
+cp  libs/armeabi/libgpac.so $BINPATH/libgpac.so
+
+rm  libs/armeabi/gm*.so
+
+$BUILDPATH/rename_file -v "s/libgm_/gm_/" libs/armeabi/*.so
+cp  libs/armeabi/*.so $BINPATH/
+
+echo "Building gpac wrapper..."
+
+cd $BASEPATH/applications/osmo4_android
+ndk-build -B
+
+echo "Copying libs ..."
+
+cd $BASEPATH/extra_lib/lib/android
+for fn in *.so; do
+	cp $fn $BASEPATH/applications/osmo4_android/libs/armeabi
+done
+
+cd $BINPATH
+
+cp $BUILDPATH/libs/armeabi/libgpac.so  $BASEPATH/applications/osmo4_android/libs/armeabi
+cp $BUILDPATH/libs/armeabi/libjavaenv.so  $BASEPATH/applications/osmo4_android/libs/armeabi
+
+
+echo "Copying modules ..."
+
+cd $BINPATH
+
+for fn in gm_*.so; do
+	cp $fn $BASEPATH/applications/osmo4_android/res/raw
+done
+
+cp $BASEPATH/applications/osmo4_android/bin/*.apk $BINPATH
+
