@@ -28,6 +28,8 @@ are provided per library in the package.
 
 * Installing GPAC
 
+/!\ GPAC won't compile if the 'svnversion' command (shipped with every Subversion package) is not in your path /!\
+
 Detailed instruction for Win32 MSVC Compilation are available in gpac/doc/INSTALL.w32
 
 Detailed instruction for WinCE eVC Compilation are available in gpac/doc/INSTALL.wCE
