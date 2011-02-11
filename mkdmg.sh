@@ -29,7 +29,8 @@ fi
 #copy all libs
 echo Copying binaries
 mkdir tmpdmg
-rsync -r --exclude=.svn $source_path/build/osxdmg/ ./tmpdmg
+mkdir tmpdmg/Osmo4.app
+rsync -r --exclude=.svn $source_path/build/osxdmg/Osmo4.app/ ./tmpdmg/Osmo4.app/
 ln -s /Applications ./tmpdmg/Applications
 cp $source_path/README ./tmpdmg
 cp $source_path/COPYING ./tmpdmg
@@ -51,6 +52,8 @@ done
 echo rewriting APPS dependencies
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
 install_name_tool -change /usr/local/lib/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
+install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib Osmo4
+install_name_tool -change ../bin/gcc/libgpac.dylib @executable_path/lib/libgpac.dylib MP4Box
 
 
 cd ../../../..
@@ -66,9 +69,20 @@ cd $source_path
 rev=`svn info | grep Revision | tr -d 'Revison: '`
 cd $cur_dir
 
-version=$version-r$rev
 
-hdiutil create ./GPAC-$version.dmg -volname "GPAC for OSX"  -srcfolder tmpdmg -ov
-
+#create dmg
+hdiutil create ./gpac.dmg -volname "GPAC for OSX"  -srcfolder tmpdmg -ov
 rm -rf ./tmpdmg
+
+#add SLA
+echo "Adding licence"
+hdiutil convert -format UDCO -o gpac_sla.dmg gpac.dmg
+rm gpac.dmg
+hdiutil unflatten gpac_sla.dmg
+/Developer/Tools/Rez /Developer/Headers/FlatCarbon/*.r $source_path/build/osxdmg/SLA.r -a -o gpac_sla.dmg
+hdiutil flatten gpac_sla.dmg
+hdiutil internet-enable -yes gpac_sla.dmg
+
+echo "GPAC-$version-r$rev.dmg ready"
+mv gpac_sla.dmg GPAC-$version-r$rev.dmg
 
