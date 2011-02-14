@@ -1,6 +1,6 @@
-[Version]
+;[Version]
+;Provider = "GPAC 0.4.6"
 Signature = "$Windows NT$"
-Provider = "GPAC 0.4.6-DEV"
 CESignature = "$Windows CE$"
 
 [CEStrings]
