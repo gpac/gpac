@@ -1,4 +1,17 @@
 ;--------------------------------
+;General
+!define GPAC_VERSION	0.4.6-DEV
+!include default.out
+
+!define GPAC_ROOT ..\..\..\..
+
+InstallDir "$PROGRAMFILES\GPAC"
+InstallDirRegKey HKCU "SOFTWARE\GPAC" "InstallDir"
+
+RequestExecutionLevel user
+
+
+;--------------------------------
 ;Include Modern UI
 
   !include "MUI2.nsh"
@@ -7,21 +20,6 @@ WindowIcon on
 Icon "..\..\..\..\doc\osmo4.ico"
 UninstallIcon "..\..\..\..\doc\osmo4.ico"
 
-!define GPAC_VERSION	0.4.6
-!define /date RELDATE "%Y%m%d_%H%M"
-
-!define GPAC_ROOT ..\..\..\..
-
-;--------------------------------
-;General
-
-Name "GPAC Framework ${GPAC_VERSION}"
-OutFile "GPAC.Framework.Setup-${RELDATE}.exe"
-
-InstallDir "$PROGRAMFILES\GPAC"
-InstallDirRegKey HKCU "SOFTWARE\GPAC" "InstallDir"
-
-RequestExecutionLevel user
 
 ;--------------------------------
 ;Interface Settings
