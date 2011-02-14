@@ -295,16 +295,16 @@ function initialize() {
     for (i=0; i<list.length; i++) {
       if (!list[i].directory) continue;
       var extension = new_extension();
-      extension.path = gpac.current_path + 'extensions/' + list[i].name+'/';
+      extension.path = 'extensions/' + list[i].name+'/';
 
-//      if (list[i].name.indexOf('.svn')>=0) continue;
-
+      if (list[i].name.indexOf('.')==0) continue;
+      
       if ( Browser.loadScript('extensions/'+list[i].name+'/init.js', true) == false) continue;
       if (!setup_extension(extension)) {
         log(l_inf, 'UI extension '+list[i].name + ' is disabled');
         continue;
-      }
-      log(l_inf, 'Loading UI extension '+list[i].name);
+      }      
+      log(l_inf, 'Loading UI extension '+list[i].name + ' icon '+ extension.path+extension.icon);
       
       if (extension.icon && extension.launch) {
        var icon = gpacui_insert_dock_icon(extension.label, extension.path+extension.icon);
@@ -323,6 +323,8 @@ function initialize() {
     if (url) {
       if (url.indexOf('://')<0) set_movie_url('gpac://'+url);
       else set_movie_url(url);
+    } else {
+     open_dock(true);
     }
 }
 
@@ -636,7 +638,7 @@ function new_player_control(container)
   }
   
   
-  if (1 && UPnP_Enabled) {
+  if (UPnP_Enabled) {
     wnd.remote =  gw_new_icon_button(wnd.infobar, 'icons/video-display.svg', 'Select Display', 'icon');
     wnd.remote.on_click = function () { select_remote_display('push'); }
     wnd.remote.set_size(small_control_icon_size, small_control_icon_size);
