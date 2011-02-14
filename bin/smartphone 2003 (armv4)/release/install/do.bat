@@ -21,7 +21,7 @@ ECHO CabFiles = gpaccab.cab >> gpac.ini
 ECHO on
 
 ezsetup -l english -i gpac.ini -r readme.txt -e ../../../../COPYING -o gpac.exe
-rename gpac.exe "GPAC 0.4.6-r%gpac_revision% for WindowsMobile.exe"
+rename gpac.exe "GPAC_0.4.6-r%gpac_revision%_WindowsMobile.exe"
 DEL gpaccab.cab
 DEL gpaccab.inf
 DEL gpac.ini
