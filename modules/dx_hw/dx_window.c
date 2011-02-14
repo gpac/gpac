@@ -773,8 +773,12 @@ u32 DD_WindowThread(void *par)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[DirectXOutput] Entering thread ID %d\n", gf_th_id() ));
 
 	if (DD_InitWindows(vout, ctx)) {
+		s32 msg_ok=1;
 		ctx->th_state = 1;
-		while (GetMessage (&(msg), NULL, 0, 0)) {
+		while (msg_ok) {
+			msg_ok = GetMessage (&(msg), NULL, 0, 0);
+			if (msg_ok == -1) msg_ok = 0;			
+			if (msg.message == WM_DESTROY) PostQuitMessage(0);	//WM_DESTROY: exit
 			TranslateMessage (&(msg));
 			DispatchMessage (&(msg));
 		}
