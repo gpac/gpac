@@ -43,7 +43,8 @@ typedef struct
     pa_sample_spec sample_spec;
     const char *output_name;
     const char *output_description;
-    int errors;
+    u32 errors;
+    u32 consecutive_zero_reads;
 } PulseAudioContext;
 
 static void
@@ -145,6 +146,7 @@ PulseAudio_ConfigureOutput (GF_AudioOutput * dr, u32 * SampleRate,
         pa_simple_free (ctx->playback_handle);
         ctx->playback_handle = NULL;
     }
+    ctx->consecutive_zero_reads = 0;
     ctx->sample_spec.format = PA_SAMPLE_S16NE;
     ctx->sample_spec.channels = *NbChannels;
     ctx->sample_spec.rate = *SampleRate;
@@ -189,8 +191,17 @@ PulseAudio_WriteAudio (GF_AudioOutput * dr)
     written = dr->FillBuffer (dr->audio_renderer, data, BUFF_SIZE / 4);
     if (written <= 0)
     {
+	ctx->consecutive_zero_reads++;
+	if (ctx->consecutive_zero_reads > 5){
+		gf_sleep(5);
+	} else if (ctx->consecutive_zero_reads < 25) {
+		gf_sleep(10);
+	} else {
+		gf_sleep(33);
+	}
         return;
     }
+    ctx->consecutive_zero_reads = 0;
     written = pa_simple_write (ctx->playback_handle, data, written, &pa_error);
     if (pa_error != 0)
     {
