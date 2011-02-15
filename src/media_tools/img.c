@@ -388,7 +388,7 @@ typedef struct
 
 static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
 {
-	GFpng *ctx = (GFpng*)png_ptr->io_ptr;
+	GFpng *ctx = (GFpng*)png_get_io_ptr(png_ptr);
 
 	if (ctx->pos + length > ctx->size) {
 		png_error(png_ptr, "Read Error");
@@ -399,7 +399,7 @@ static void user_read_data(png_structp png_ptr, png_bytep data, png_size_t lengt
 }
 static void user_error_fn(png_structp png_ptr,png_const_charp error_msg)
 {
-	longjmp(png_ptr->jmpbuf, 1);
+ 	longjmp(png_jmpbuf(png_ptr), 1);
 }
 
 GF_Err gf_img_png_file_dec(char *png_filename, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size)
@@ -439,8 +439,11 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	png_struct *png_ptr;
 	png_info *info_ptr;
 	png_byte **rows;
-	u32 i, stride, bpp;
-
+	u32 i, stride, out_size;
+	png_bytep trans_alpha;
+	int num_trans;
+	png_color_16p trans_color;
+ 
 	if ((png_size<8) || png_sig_cmp(png, 0, 8) ) return GF_NON_COMPLIANT_BITSTREAM;
 
 	udta.buffer = png;
@@ -454,7 +457,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
 		return GF_IO_ERR;
 	}
-	if (setjmp(png_ptr->jmpbuf)) {
+	if (setjmp(png_jmpbuf(png_ptr))) {
 		png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
 		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
 		return GF_IO_ERR;
@@ -465,30 +468,29 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	png_read_info(png_ptr, info_ptr);
 
 	/*unpaletize*/
-	if (info_ptr->color_type==PNG_COLOR_TYPE_PALETTE) {
+	if (png_get_color_type(png_ptr, info_ptr)==PNG_COLOR_TYPE_PALETTE) {
 		png_set_expand(png_ptr);
 		png_read_update_info(png_ptr, info_ptr);
 	}
-	if (info_ptr->num_trans) {
+	png_get_tRNS(png_ptr, info_ptr, &trans_alpha, &num_trans, &trans_color);
+	if (num_trans) {
 		png_set_tRNS_to_alpha(png_ptr);
 		png_read_update_info(png_ptr, info_ptr);
 	}
+	*width = png_get_image_width(png_ptr, info_ptr);
+	*height = png_get_image_height(png_ptr, info_ptr);
 
-	bpp = info_ptr->pixel_depth / 8;
-	*width = info_ptr->width;
-	*height = info_ptr->height;
-
-	switch (info_ptr->pixel_depth) {
-	case 8:
-		*pixel_format = GF_PIXEL_GREYSCALE;
-		break;
-	case 16:
+	switch (png_get_color_type(png_ptr, info_ptr)) {
+	case PNG_COLOR_TYPE_GRAY:
+ 		*pixel_format = GF_PIXEL_GREYSCALE;
+ 		break;
+	case PNG_COLOR_TYPE_GRAY_ALPHA:
 		*pixel_format = GF_PIXEL_ALPHAGREY;
 		break;
-	case 24:
+	case PNG_COLOR_TYPE_RGB:
 		*pixel_format = GF_PIXEL_RGB_24;
 		break;
-	case 32:
+	case PNG_COLOR_TYPE_RGB_ALPHA:
 		*pixel_format = GF_PIXEL_RGBA;
 		break;
 	default:
@@ -498,19 +500,20 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 
 	}
 
+	out_size = png_get_rowbytes(png_ptr, info_ptr) * png_get_image_height(png_ptr, info_ptr);
 	/*new cfg, reset*/
-	if (*dst_size != info_ptr->width * info_ptr->height * bpp) {
-		*dst_size  = info_ptr->width * info_ptr->height * bpp;
+	if (*dst_size != out_size) {
+		*dst_size  = out_size;
 		png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
 		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
 		return GF_BUFFER_TOO_SMALL;
 	}
-	*dst_size  = info_ptr->width * info_ptr->height * bpp;
+	*dst_size  = out_size;
 
 	/*read*/
 	stride = png_get_rowbytes(png_ptr, info_ptr);
-	rows = (png_bytepp) gf_malloc(sizeof(png_bytep) * info_ptr->height);
-	for (i=0; i<info_ptr->height; i++) {
+	rows = (png_bytepp) gf_malloc(sizeof(png_bytep) * png_get_image_height(png_ptr, info_ptr));
+	for (i=0; i<png_get_image_height(png_ptr, info_ptr); i++) {
 		rows[i] = dst + i*stride;
 	}
 	png_read_image(png_ptr, rows);
@@ -525,7 +528,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 
 void my_png_write(png_structp png, png_bytep data, png_size_t size)
 {
-	GFpng *p = (GFpng *)png->io_ptr;
+	GFpng *p = (GFpng *)png_get_io_ptr(png);
 	memcpy(p->buffer+p->pos, data, sizeof(char)*size);
 	p->pos += size;
 }
