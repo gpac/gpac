@@ -296,7 +296,9 @@ case "$cpu" in
   ;;
   x86_64|amd64)
     cpu="x86"
-    is_64="yes"
+    if test "$linux" = "yes" ; then
+      is_64="yes"
+    fi
     case `uname -s` in
     SunOS)
       canon_arch=`isainfo -n`
@@ -309,7 +311,9 @@ case "$cpu" in
     if [ x"$canon_arch" = x"x86_64" -o x"$canon_arch" = x"amd64" ]; then
       if [ -z "`echo $CFLAGS | grep -- -m32`"  ]; then
         cpu="x86_64"
-        libdir="lib64"
+        if test "$linux" = "yes" ; then
+          libdir="lib64"
+        fi
         want_pic="yes"
       fi
     fi
