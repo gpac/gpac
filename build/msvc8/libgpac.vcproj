@@ -191,7 +191,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="for /f &quot;delims=&quot; %%a in (&apos;svnversion&apos;) do echo #define GPAC_SVN_REVISION &quot;%%a&quot; &gt; test.h &amp; ECHO n|COMP test.h include\gpac\version.h &gt; nul &amp; if errorlevel 1 COPY test.h include\gpac\version.h &amp; DEL test.h"
+				CommandLine="@echo off &amp; cd ..\.. &amp; for /f &quot;delims=&quot; %%a in (&apos;svnversion&apos;) do echo #define GPAC_SVN_REVISION &quot;%%a&quot; &gt; test.h &amp; ECHO n|COMP test.h include\gpac\version.h &gt; nul &amp; if errorlevel 1 COPY test.h include\gpac\version.h &amp; DEL test.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
