@@ -389,7 +389,9 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 
 	case WM_ERASEBKGND:
 		/*the erasebkgnd message causes flickering when resizing the window, we discard it*/
-		break;
+		if (ctx->is_setup) {
+			break;
+		}
 	case WM_PAINT:
 		if (ctx->cur_hwnd==hWnd) {
 			evt.type = GF_EVENT_REFRESH;
@@ -982,6 +984,7 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 		break;
 	/*HW setup*/
 	case GF_EVENT_VIDEO_SETUP:
+		ctx->is_setup=1;
 		switch (evt->setup.opengl_mode) {
 		case 0:
 #ifndef GPAC_DISABLE_3D
