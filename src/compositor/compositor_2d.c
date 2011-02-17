@@ -486,6 +486,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		switch (txh->pixelformat) {
 		case GF_PIXEL_RGB_24:
 		case GF_PIXEL_BGR_24:
+		case GF_PIXEL_RGBS:
 		case GF_PIXEL_RGB_555:
 		case GF_PIXEL_RGB_565:
 			if (hw_caps & GF_VIDEO_HW_HAS_RGB)
@@ -494,6 +495,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		case GF_PIXEL_ARGB:
 		case GF_PIXEL_RGBA:
 		case GF_PIXEL_BGRA:
+		case GF_PIXEL_RGBAS:
 		case GF_PIXEL_RGBDS:
 			if (hw_caps & GF_VIDEO_HW_HAS_RGBA)
 				use_soft_stretch = 0;
@@ -710,6 +712,8 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_YUVD:
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGBDS:
+	case GF_PIXEL_RGBS:
+	case GF_PIXEL_RGBAS:
 		break;
 	/*the rest has to be displayed through brush for now, we only use YUV and RGB pool*/
 	default:

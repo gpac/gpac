@@ -32,6 +32,7 @@ enum
 	IMG_BMP,
 	IMG_PNGD,
 	IMG_PNGDS,
+	IMG_PNGS,
 };
 
 typedef struct
@@ -85,6 +86,11 @@ GF_ESD *IMG_GetESD(IMGLoader *read)
 			((GF_AuxVideoDescriptor*)d)->aux_video_type = 2;
 			gf_list_add(esd->extensionDescriptors, d);
 		}
+		else if (read->img_type == IMG_PNGS) {
+			GF_Descriptor *d = gf_odf_desc_new(GF_ODF_AUX_VIDEO_DATA);
+			((GF_AuxVideoDescriptor*)d)->aux_video_type = 3;
+			gf_list_add(esd->extensionDescriptors, d);
+		}
 	}
 	return esd;
 }
@@ -96,6 +102,7 @@ const char * IMG_MIME_TYPES[] = {
   "image/bmp", "bmp", "MS Bitmap Images",
   "image/x-png+depth", "pngd", "PNG+Depth Images",
   "image/x-png+depth+mask", "pngds", "PNG+Depth+Mask Images",
+  "image/x-png+stereo", "pngs", "Stereo PNG Images",
   NULL
 };
 
@@ -193,6 +200,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	else if (!stricmp(sExt, ".png")) read->img_type = IMG_PNG;
 	else if (!stricmp(sExt, ".pngd")) read->img_type = IMG_PNGD;
 	else if (!stricmp(sExt, ".pngds")) read->img_type = IMG_PNGDS;
+	else if (!stricmp(sExt, ".pngs")) read->img_type = IMG_PNGS;
 	else if (!stricmp(sExt, ".bmp")) read->img_type = IMG_BMP;
 
 	if (read->dnload) gf_term_download_del(read->dnload);
