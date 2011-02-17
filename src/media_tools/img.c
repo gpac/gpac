@@ -472,6 +472,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 		png_set_expand(png_ptr);
 		png_read_update_info(png_ptr, info_ptr);
 	}
+	num_trans = 0;
 	png_get_tRNS(png_ptr, info_ptr, &trans_alpha, &num_trans, &trans_color);
 	if (num_trans) {
 		png_set_tRNS_to_alpha(png_ptr);
