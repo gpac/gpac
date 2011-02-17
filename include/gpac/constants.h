@@ -187,9 +187,12 @@ typedef enum
     GF_PIXEL_BGRA		=	GF_4CC('B','G','R', 'A'),
 	/*!RGB24 + depth plane*/
     GF_PIXEL_RGBD		=	GF_4CC('R', 'G', 'B', 'D'),
-
 	/*!RGB24 + depth plane (7 power bits) + shape mask*/
     GF_PIXEL_RGBDS		=	GF_4CC('3', 'C', 'D', 'S'),
+	/*!Stereo RGB24 */
+    GF_PIXEL_RGBS		=	GF_4CC('R', 'G', 'B', 'S'),
+	/*!Stereo RGBA */
+    GF_PIXEL_RGBAS		=	GF_4CC('R', 'G', 'A', 'S'),
 
 	/*!YUV packed format*/
 	GF_PIXEL_YUY2		=	GF_4CC('Y','U','Y','2'),

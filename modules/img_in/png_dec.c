@@ -64,7 +64,11 @@ static GF_Err PNG_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capa
 	PNGCTX();
 	switch (capability->CapCode) {
 	case GF_CODEC_WIDTH:
-		capability->cap.valueInt = ctx->width;
+		if (ctx->aux_type==3) {
+			capability->cap.valueInt = ctx->width/2;
+		} else {
+			capability->cap.valueInt = ctx->width;
+		}
 		break;
 	case GF_CODEC_HEIGHT:
 		capability->cap.valueInt = ctx->height;
@@ -119,12 +123,16 @@ static GF_Err PNG_ProcessData(GF_MediaDecoder *ifcg,
 	switch (ctx->pixel_format) {
 	case GF_PIXEL_GREYSCALE: ctx->BPP = 1; break;
 	case GF_PIXEL_ALPHAGREY: ctx->BPP = 2; break;
-	case GF_PIXEL_RGB_24: ctx->BPP = 3; break;
+	case GF_PIXEL_RGB_24: 
+		ctx->BPP = 3;
+		if (ctx->aux_type==3) ctx->pixel_format = GF_PIXEL_RGBS;
+		break;
 	case GF_PIXEL_RGBA:
 	case GF_PIXEL_RGBD:
 		ctx->BPP = 4; 
 		if (ctx->aux_type==1) ctx->pixel_format = GF_PIXEL_RGBD;
 		else if (ctx->aux_type==2) ctx->pixel_format = GF_PIXEL_RGBDS;
+		else if (ctx->aux_type==3) ctx->pixel_format = GF_PIXEL_RGBAS;
 		break;
 	}
 	ctx->out_size = *outBufferLength;

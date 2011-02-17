@@ -733,6 +733,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		load_line = load_line_rgb_565;
 		break;
 	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_RGBS:
 #ifdef GPAC_ANDROID
 		load_line = load_line_bgr_24;
 #else
@@ -747,6 +748,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		load_line = load_line_argb;
 		break;
 	case GF_PIXEL_RGBA:
+	case GF_PIXEL_RGBAS:
 		has_alpha = 1;
 	case GF_PIXEL_RGB_32:
 		load_line = load_line_rgb_32;
