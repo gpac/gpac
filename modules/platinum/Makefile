@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/platinum
 
-CFLAGS= $(CPPFLAGS) -I$(SRC_PATH)/include -ISDK/include
+CFLAGS= $(CPPFLAGS) -I$(SRC_PATH)/include -I$(SRC_PATH)/extra_lib/include/platinum/
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 LINKLIBS= -lgpac -lPlatinum -lPltMediaServer -lPltMediaConnect -lPltMediaRenderer -lNeptune -lZlib
-LOCAL_LIB=../../bin/gcc -LSDK/lib_osx_x86
+LOCAL_LIB=../../bin/gcc -L../../extra_lib/lib/gcc
 
 #common objects
 OBJS=GPACFileMediaServer.o GPACMediaController.o GPACMediaRenderer.o GenericDevice.o GPACPlatinum.o
