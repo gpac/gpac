@@ -385,14 +385,6 @@ extern "C" {
     GF_Err gf_dm_sess_reset(GF_DownloadSession *sess);
 
     /*!
-     * \brief Get a copy of the cache information
-     * Duplicates a cache entry, it is the responsability of the caller to free the entry then.
-     * \param sess The session to get the entry from
-     * \return a copy of the DownloadedCacheEntry contained into the session.
-     */
-    DownloadedCacheEntry gf_dm_cache_entry_dup_readonly( const GF_DownloadSession *sess);
-
-    /*!
      * \brief forces the refresh of a cache entry
      * The entry is still allocated in the session.
      * \param sess The session
