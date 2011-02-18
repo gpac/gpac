@@ -517,7 +517,6 @@ static void fetch_mime_io(void *dnld, GF_NETIO_Parameter *parameter)
 static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
 {
 	char * ret = NULL;
-	DownloadedCacheEntry entry;
 	GF_DownloadSession * sess;
 	(*ret_code) = GF_OK;
 	if (strnicmp(url, "http", 4)) return NULL;
@@ -525,15 +524,11 @@ static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
 	if (!sess) {
 		if (strstr(url, "rtsp://") || strstr(url, "rtp://") || strstr(url, "udp://") || strstr(url, "tcp://") ) (*ret_code) = GF_OK;
 		return NULL;
-	}
-	if (entry == NULL){
-	  *ret_code = gf_dm_sess_last_error(sess);
 	} else {
 	  const char * mime = gf_dm_sess_mime_type(sess);
 	  if (mime){
 	    ret = gf_strdup(mime);
 	  }
-	  gf_cache_delete_entry(entry);
 	}
 	gf_dm_sess_del(sess);
 	return ret;
