@@ -472,7 +472,7 @@ void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
         if (sess->dm 
 			/*JLF - not sure what the rationale of this test is, and it prevents cleanup of cache entry 
 			which then results to crash when restarting the session (entry->writeFilePtr i snot set back to NULL)*/
-//			&& gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry)
+			&& gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry)
 			&& (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)))
         {
             u32 i, count;
@@ -1558,6 +1558,7 @@ GF_EXPORT
 const char *gf_dm_sess_get_cache_name(GF_DownloadSession * sess)
 {
     if (!sess) return NULL;
+    assert( sess->cache_entry );
     return gf_cache_get_cache_filename(sess->cache_entry);
 }
 
@@ -2486,12 +2487,6 @@ GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
     sess->window_start = 0;
     sess->start_time = 0;
     return GF_OK;
-}
-
-DownloadedCacheEntry gf_dm_cache_entry_dup_readonly( const GF_DownloadSession * sess) {
-    if (!sess)
-        return NULL;
-    return gf_cache_entry_dup_readonly(sess->cache_entry);
 }
 
 const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess, u64 startOffset, u64 endOffset ) {

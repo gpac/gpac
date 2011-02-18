@@ -513,7 +513,10 @@ static void fetch_mime_io(void *dnld, GF_NETIO_Parameter *parameter)
 	if (parameter->msg_type==GF_NETIO_GET_METHOD) parameter->name = "HEAD";
 }
 
-static DownloadedCacheEntry get_cache_entry_info( GF_Terminal *term, const char *url ,GF_Err *ret_code ){
+
+static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
+{
+	char * ret = NULL;
 	DownloadedCacheEntry entry;
 	GF_DownloadSession * sess;
 	(*ret_code) = GF_OK;
@@ -523,29 +526,16 @@ static DownloadedCacheEntry get_cache_entry_info( GF_Terminal *term, const char 
 		if (strstr(url, "rtsp://") || strstr(url, "rtp://") || strstr(url, "udp://") || strstr(url, "tcp://") ) (*ret_code) = GF_OK;
 		return NULL;
 	}
-	gf_dm_refresh_cache_entry(sess);
-	entry = gf_dm_cache_entry_dup_readonly(sess);
-	if (entry == NULL)
+	if (entry == NULL){
 	  *ret_code = gf_dm_sess_last_error(sess);
-	gf_dm_sess_del(sess);
-	return entry;
-}
-
-
-static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
-{
-	char * ret;
-	DownloadedCacheEntry entry = get_cache_entry_info(term, url, ret_code);
-	if (entry == NULL)
-	  return NULL;
-	ret = NULL;
-	if (entry){
-	  const char * mime = gf_cache_get_mime_type(entry);
+	} else {
+	  const char * mime = gf_dm_sess_mime_type(sess);
 	  if (mime){
 	    ret = gf_strdup(mime);
 	  }
 	  gf_cache_delete_entry(entry);
 	}
+	gf_dm_sess_del(sess);
 	return ret;
 }
 

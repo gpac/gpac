@@ -457,7 +457,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
     s_accumulated_attributes attribs;
     f = gf_f64_open(file, "rt");
     if (!f) {
-      GF_LOG( GF_LOG_ERROR, GF_LOG_CONTAINER,("CANNOT Open m3u8 file %s for reading\n", file));
+      GF_LOG( GF_LOG_ERROR, GF_LOG_CONTAINER,("[M3U8] Cannot Open m3u8 file %s for reading\n", file));
       return GF_SERVICE_ERROR;
     }
     if (*playlist == NULL) {
