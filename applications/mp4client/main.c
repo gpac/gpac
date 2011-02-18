@@ -248,7 +248,9 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	GF_Config *cfg;
 	char szPath[GF_MAX_PATH];
 	char gui_path[GF_MAX_PATH];
+#if defined(__DARWIN__) || defined(__APPLE__)
 	u32 size;
+#endif
 
 #ifdef WIN32
 	FILE *f;
