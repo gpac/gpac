@@ -564,36 +564,6 @@ GF_Err gf_cache_write_to_cache( const DownloadedCacheEntry entry, const GF_Downl
     return GF_OK;
 }
 
-DownloadedCacheEntry gf_cache_entry_dup_readonly( const DownloadedCacheEntry entry) {
-    DownloadedCacheEntry ret;
-    if (!entry)
-        return NULL;
-    ret = gf_malloc ( sizeof ( struct __DownloadedCacheEntryStruct ) );
-    if (!ret)
-        return NULL;
-    ret->deletableFilesOnDelete = 0;
-    ret->cache_filename = entry->cache_filename ? gf_strdup( entry->cache_filename ) : NULL;
-    ret->cacheSize = entry->cacheSize;
-    ret->contentLength = entry->contentLength;
-    ret->diskETag = entry->diskETag ? gf_strdup( entry->diskETag) : NULL;
-    ret->serverETag = entry->serverETag ? gf_strdup( entry->serverETag) : NULL;
-    ret->flags = entry->flags;
-    ret->hash = entry->hash ? gf_strdup(entry->hash) : NULL;
-    ret->diskLastModified = entry->diskLastModified ? gf_strdup(entry->diskLastModified) : NULL;
-    ret->serverLastModified = entry->serverLastModified ? gf_strdup(entry->serverLastModified) : NULL;
-    ret->mimeType = entry->mimeType ? gf_strdup(entry->mimeType) : NULL;
-    ret->properties = NULL;
-    ret->url = entry->url ? gf_strdup(entry->url): NULL;
-    ret->validity = entry->validity;
-    ret->writeFilePtr = NULL;
-    ret->written_in_cache = 0;
-    ret->dm = NULL;
-    ret->sessions = gf_list_new();
-    ret->write_session = NULL;
-    ret->write_mutex = NULL;
-    return ret;
-}
-
 GF_CacheReader gf_cache_reader_new(const DownloadedCacheEntry entry) {
     GF_CacheReader reader;
     if (entry == NULL)

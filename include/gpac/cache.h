@@ -56,14 +56,6 @@ extern "C" {
 
     typedef struct __CacheReaderStruct * GF_CacheReader;
 
-    /*!
-     * \brief Get a copy of the cache information
-     * Duplicates a cache entry, it is the responsability of the caller to free the entry then.
-     * \param sess The entry to copy
-     * \return a copy of the DownloadedCacheEntry contained into the session.
-     */
-    DownloadedCacheEntry gf_cache_entry_dup_readonly( const DownloadedCacheEntry entry);
-
     /**
      * Free The DownloadedCacheEntry handle
      * \param entry The entry to delete
