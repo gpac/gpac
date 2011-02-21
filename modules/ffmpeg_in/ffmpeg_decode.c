@@ -551,6 +551,11 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 	}
 #endif
 
+#ifdef USE_AVCODEC2
+	av_init_packet(&pkt);
+	pkt.data = inBuffer;
+	pkt.size = inBufferLength;
+#endif
 	/*audio stream*/
 	if (ffd->st==GF_STREAM_AUDIO) {
 		s32 len;
@@ -653,10 +658,7 @@ redecode:
 		}
 	}
 
-#if USE_AVCODEC2
-	av_init_packet(&pkt);
-	pkt.data = inBuffer;
-	pkt.size = inBufferLength;
+#ifdef USE_AVCODEC2
 	if (avcodec_decode_video2(ctx, frame, &gotpic, &pkt) < 0) {
 #else
 	if (avcodec_decode_video(ctx, frame, &gotpic, inBuffer, inBufferLength) < 0) {
