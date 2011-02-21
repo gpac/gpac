@@ -9,7 +9,7 @@ REM ============================================
 echo Check NSIS is in your PATH
 REM ============================================
 
-set NSIS_EXEC="C:\Program Files\NSIS\makensis.exe"
+set NSIS_EXEC="%PROGRAMFILES%\NSIS\makensis.exe"
 echo   Assuming NSIS at default location %NSIS_EXEC%
 
 
