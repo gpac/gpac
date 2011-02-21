@@ -47,6 +47,17 @@ else
 LINKFLAGS+=-lgpac
 endif
 
+#3 - spidermonkey support
+ifeq ($(CONFIG_JS),no)
+else
+SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
+ifeq ($(CONFIG_JS),local)
+NEED_LOCAL_LIB="yes"
+endif
+LINKFLAGS+=$(JS_LIBS)
+endif
+
+
 endif
 
 

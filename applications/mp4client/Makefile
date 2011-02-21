@@ -57,10 +57,16 @@ else
 #LINKLIBS+= -ljpeg
 endif
 
-ifeq ($(CONFIG_JS), prefix)
-#LINKLIBS+= -ljs
+#3 - spidermonkey support
+ifeq ($(CONFIG_JS),no)
 else
+SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
+ifeq ($(CONFIG_JS),local)
+NEED_LOCAL_LIB="yes"
 endif
+LINKLIBS+=$(JS_LIBS)
+endif
+
 
 ifeq ($(CONFIG_PNG), no)
 else    
