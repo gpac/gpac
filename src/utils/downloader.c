@@ -1189,6 +1189,8 @@ const char *gf_dm_sess_mime_type(GF_DownloadSession *sess)
             return oldMimeIfAny;
     }
     entry = gf_dm_refresh_cache_entry (sess);
+    if (!entry)
+	return NULL;
     assert( entry == sess->cache_entry && entry);
     return gf_cache_get_mime_type( sess->cache_entry );
 }
