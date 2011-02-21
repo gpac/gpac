@@ -80,7 +80,7 @@ SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
 ifeq ($(CONFIG_JS),local)
 NEED_LOCAL_LIB="yes"
 endif
-LINKLIBS+= $(JS_LIBS)
+LINKLIBS+=$(JS_LIBS)
 endif
 
 #4 - JPEG support
