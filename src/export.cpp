@@ -281,7 +281,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_set_etag_on_server) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_set_content_length) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_set_mime_type) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_cache_entry_dup_readonly) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cache_get_cache_filename_range) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_delete_cached_file_entry_session) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_url_info_del) )
