@@ -337,7 +337,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
     GF_MPD_Period *period, *new_period;
     GF_MPD_Representation *rep, *new_rep;
     GF_List *segs;
-    const char *local_url, * purl;
+    const char *local_url, *purl, *mime;
     Bool is_m3u8 = 0;
     u32 oldUpdateTime = mpdin->mpd->min_update_time;
     /*reset update time - if any error occurs, we will no longer attempt to update the MPD*/
@@ -364,20 +364,24 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
     } else {
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Playlist %s updated with success\n", purl));
     }
-    {
-        const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
-        /* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
-        if (MPD_isM3U8_mime(mime) || strstr(purl, ".m3u8")) {
-            m3u8_to_mpd(mpdin, local_url, purl );
-        } else if (!MPD_is_MPD_mime(mime)) {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' should be m3u8 or mpd\n", mime));
-            gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
-            gf_free(purl);
-            purl = NULL;
-            return GF_BAD_PARAM;
-        }
+
+	mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
+
+	/*in case the session has been restarted, local_url may have been destroyed - get it back*/
+    local_url = gf_dm_sess_get_cache_name(mpdin->mpd_dnload);
+
+	/* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
+    if (MPD_isM3U8_mime(mime) || strstr(purl, ".m3u8")) {
+        m3u8_to_mpd(mpdin, local_url, purl );
+    } else if (!MPD_is_MPD_mime(mime)) {
+        GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' should be m3u8 or mpd\n", mime));
+        gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
+        gf_free(purl);
+        purl = NULL;
+        return GF_BAD_PARAM;
     }
-    gf_free(purl);
+
+	gf_free(purl);
     purl = NULL;
 
     if (!MPD_CheckRootType(local_url)) {
