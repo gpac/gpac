@@ -1630,7 +1630,11 @@ int main(int argc, char **argv)
 			dot = strrchr(segment_prefix, '.');
 			dot[0] = 0;
 			if (segment_dir) {
-				sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
+				if (strchr("\\/", segment_name[strlen(segment_name)-1])) {
+					sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
+				} else {
+					sprintf(segment_name, "%s/%s_%d.ts", segment_dir, segment_prefix, segment_index);
+				}
 			} else {
 				sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
 			}
@@ -1794,7 +1798,11 @@ int main(int argc, char **argv)
 					fclose(ts_output_file);
 					segment_index++;
 					if (segment_dir) {
-						sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
+						if (strchr("\\/", segment_name[strlen(segment_name)-1])) {
+							sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
+						} else {
+							sprintf(segment_name, "%s/%s_%d.ts", segment_dir, segment_prefix, segment_index);
+						}
 					} else {
 						sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
 					}
@@ -1804,17 +1812,22 @@ int main(int argc, char **argv)
 						goto exit;
 					}
 					/* delete the oldest segment */
-					if (segment_number && ((s32) (segment_index - segment_number) >= 0)){
+					if (segment_number && ((s32) (segment_index - segment_number - 1) >= 0)){
 						char old_segment_name[GF_MAX_PATH];
 						if (segment_dir) {
-							sprintf(old_segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index - segment_number);
+							if (strchr("\\/", segment_name[strlen(segment_name)-1])) {
+								sprintf(old_segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index - segment_number - 1);
+							} else {
+								sprintf(old_segment_name, "%s/%s_%d.ts", segment_dir, segment_prefix, segment_index - segment_number - 1);
+							}
 						} else {
-							sprintf(old_segment_name, "%s_%d.ts", segment_prefix, segment_index - segment_number);
+							sprintf(old_segment_name, "%s_%d.ts", segment_prefix, segment_index - segment_number - 1);
 						}
 						gf_delete_file(old_segment_name);
 					}
 					write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, 
-								   (segment_index >= segment_number/2 ? segment_index - segment_number/2 : 0), segment_index >1 ? segment_index-1 : 0, 0);
+//								   (segment_index >= segment_number/2 ? segment_index - segment_number/2 : 0), segment_index >1 ? segment_index-1 : 0, 0);
+								   ( (segment_index > segment_number ) ? segment_index - segment_number : 0), segment_index >1 ? segment_index-1 : 0, 0);
 				} 
 			}
 
