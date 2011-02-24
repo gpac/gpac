@@ -182,6 +182,7 @@ static GF_Err gf_mpd_parse_rep_urlelt(GF_XMLNode *root, GF_MPD_SegmentInfo *seg,
             assert( e == GF_OK );
             assert( info.canonicalRepresentation);
             seg->url = gf_strdup(info.canonicalRepresentation);
+            gf_dm_url_info_del(&info);
         } else if (!strcmp(att->name, "range")) {
             seg->use_byterange = 1;
             sscanf(att->value, "%d-%d", &seg->byterange_start, &seg->byterange_end);
@@ -234,7 +235,7 @@ static GF_Err gf_mpd_parse_rep_segmentinfo(GF_XMLNode *root, GF_MPD_Representati
         /* TODO: expand the template to create segment urls*/
     } else if (nb_urlelements) {
         u32 urlelt_index = 0;
-
+	assert( !rep->segments );
         rep->segments = gf_list_new();
 
         child_index = 0;
@@ -369,6 +370,7 @@ static GF_Err gf_mpd_parse_period(GF_XMLNode *root, GF_MPD_Period *period)
             } else if (!strcmp(child->name, "Representation")) {
                 GF_MPD_Representation *rep;
                 GF_SAFEALLOC(rep, GF_MPD_Representation);
+                memset( rep, 0, sizeof(GF_MPD_Representation));
                 gf_mpd_parse_representation(child, rep);
                 gf_list_add(period->representations, rep);
             }
@@ -448,13 +450,23 @@ void gf_mpd_del(GF_MPD *mpd)
                 gf_free(seg);
             }
             if (rep->content_protection_type) gf_free(rep->content_protection_type);
+            rep->content_protection_type = NULL;
             if (rep->content_protection_uri) gf_free(rep->content_protection_uri);
+            rep->content_protection_uri = NULL;
             if (rep->default_base_url) gf_free(rep->default_base_url);
+            rep->default_base_url = NULL;
             if (rep->id) gf_free(rep->id);
+            rep->id = NULL;
             if (rep->init_url) gf_free(rep->init_url);
+            rep->init_url = NULL;
             if (rep->lang) gf_free(rep->lang);
+            rep->lang = NULL;
             if (rep->mime) gf_free(rep->mime);
+            rep->mime = NULL;
             if (rep->url_template) gf_free(rep->url_template);
+            rep->url_template = NULL;            
+            if (rep->segments) gf_list_del(rep->segments);
+            rep->segments = NULL;
             gf_free(rep);
         }
         gf_free(period->representations);

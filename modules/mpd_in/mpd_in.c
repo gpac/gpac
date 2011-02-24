@@ -125,6 +125,8 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
     e = parse_root_playlist(m3u8_file, &pl, url);
     if (e) {
         GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
+	if (pl) variant_playlist_del(pl);
+	pl = NULL;
         return e;
     }
     gf_delete_file((char *)m3u8_file);

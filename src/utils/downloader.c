@@ -736,6 +736,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
         if (!baseURL)
             return GF_BAD_PARAM;
         tmp = gf_url_concatenate(baseURL, url);
+	assert( ! info->remotePath );
         info->remotePath = gf_url_percent_encode(tmp);
         gf_free( tmp );
         tmp = NULL;
@@ -750,6 +751,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
     }
 
     tmp = strchr(url, '/');
+    assert( !info->remotePath );
     info->remotePath = gf_url_percent_encode(tmp ? tmp : "/");
     if (tmp) {
         tmp[0] = 0;
