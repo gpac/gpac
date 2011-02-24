@@ -1226,9 +1226,10 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 	char *prog_name, *arg = NULL, *error_msg = "no argument found";
 	Bool mpeg4_signaling = 0; 
 	s32 i;
+	
 	/*first pass: find audio*/
 	for (i=1; i<argc; i++) {
-		arg = argv[i];
+		arg = argv[i];		
 		if (!strnicmp(arg, "-video=", 7)) {
 			FILE *f;
 			if (video_input_found) {
@@ -1306,8 +1307,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		}
 	}
 	/*second pass: other*/
-	for (i=1; i<argc; i++) {
-		arg = argv[i];
+	for (i=1; i<argc; i++) {		
+		arg = argv[i];		
 		if (arg[0]=='-') {
 			if (!strnicmp(arg, "-rate=", 6)) {
 				if (rate_found) {
@@ -1460,15 +1461,21 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		}
 #endif
 	}
-
+	
 	/*testing the only mandatory argument*/
 	if (dst_found && prog_found && rate_found)
 		return GF_OK;
 
-error:
+error:	
 	if (!arg) {
 		fprintf(stderr, "Error: %s\n\n", error_msg);
-	} else {
+	} else if(!dst_found){
+		fprintf(stderr, "Error: Destination argument not found\n\n");
+	}else if(!prog_found){
+		fprintf(stderr, "Error: Input Program argument not found\n\n");
+	}else if(!rate_found) {
+		fprintf(stderr, "Error: Rate argument not found\n\n");
+	}else{
 		fprintf(stderr, "Error: %s \"%s\"\n\n", error_msg, arg);
 	}
 	return GF_BAD_PARAM;
