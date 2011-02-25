@@ -477,13 +477,14 @@ typedef struct
 	time_t unix_start;
 	time_t unix_duration;
 
+
 	u8 running_status;
 	u8 free_CA_mode;
 	GF_List *short_events;
 	GF_List *extended_events;
 	GF_List *components;
 	GF_List *contents;
-	GF_List *ratings;
+	GF_List *ratings;	
 } GF_M2TS_EIT_Event;
 
 typedef struct
@@ -492,6 +493,7 @@ typedef struct
 	u32 transport_stream_id;
 	u16 service_id;
 	GF_List *events;
+	u8 table_id;
 } GF_M2TS_EIT;
 
 /*MPEG-2 TS packet*/
