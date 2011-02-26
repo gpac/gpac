@@ -256,6 +256,8 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			/*if not set this may be a remap of non-mpeg4 transport (eg, transport on MPEG-TS) where
 			the DSI is carried in-band*/
 			if (esd->decoderConfig->decoderSpecificInfo->data) {
+				/* Size of buffer must be larger, see avcodec_decode_video2 documentation */
+				u32 allocatedSz = sizeof( char ) * (FF_INPUT_BUFFER_PADDING_SIZE + esd->decoderConfig->decoderSpecificInfo->dataLength);
 
 				/*for regular MPEG-4, try to decode and if this fails try H263 decoder at first frame*/
 				if (ffd->oti==GPAC_OTI_VIDEO_MPEG4_PART2) {
@@ -275,7 +277,8 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				}
 
 				/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
-				(*ctx)->extradata = gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+				(*ctx)->extradata = gf_malloc(allocatedSz);
+				memset((*ctx)->extradata, 0, allocatedSz);
 				memcpy((*ctx)->extradata, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 				(*ctx)->extradata_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 			}
@@ -626,12 +629,13 @@ redecode:
 		doesn't put back nalu size, do it ourselves...*/
 		if (inBuffer && !inBuffer[0] && !inBuffer[1] && !inBuffer[2] && (inBuffer[3]==0x01)) {
 			u32 nalu_size;
-			u32 remain = inBufferLength;
-			char *start, *end;
+			char *start, *end, *bufferEnd;
 
 			start = inBuffer;
 			end = inBuffer + 4;
-			while (remain>4) {
+			bufferEnd = inBuffer + inBufferLength;
+			/* FIXME : SOUCHAY : not sure of exact behaviour, but old one was reading non-allocated memory */
+			while ((end+3) < bufferEnd) {
 				if (!end[0] && !end[1] && !end[2] && (end[3]==0x01)) {
 					nalu_size = end - start - 4;
 					start[0] = (nalu_size>>24)&0xFF;
@@ -643,7 +647,6 @@ redecode:
 					continue;
 				}
 				end++;
-				remain--;
 			}
 			nalu_size = (inBuffer+inBufferLength) - start - 4;
 			start[0] = (nalu_size>>24)&0xFF;
