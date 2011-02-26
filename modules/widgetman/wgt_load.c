@@ -105,7 +105,7 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			gf_node_init(n);
 			
 			tmp = wgtload->file_name;
-			while (tmp = strchr(tmp, '\\')) {
+			while ((tmp = strchr(tmp, '\\'))) {
 				tmp[0] = '/';
 				tmp++;
 			}

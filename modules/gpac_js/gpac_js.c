@@ -542,7 +542,7 @@ static JSBool gpac_move_window(JSContext *c, JSObject *obj, uintN argc, jsval *a
 
 static JSBool gpac_error_string(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-	char *str;
+	const char *str;
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (argc < 1) return JS_TRUE;
 	if (!JSVAL_IS_INT(argv[0]) ) return JS_TRUE;
