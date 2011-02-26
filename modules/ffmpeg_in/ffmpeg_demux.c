@@ -506,13 +506,14 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	s32 res;
 	Bool is_local;
 	const char *sOpt;
-	char *ext, szName[1000];
+	char *ext, szName[1024];
 	FFDemux *ffd = plug->priv;
 	AVInputFormat *av_in = NULL;
 	char szExt[20];
 
 	if (ffd->ctx) return GF_SERVICE_ERROR;
 
+	assert( url && strlen(url) < 1024);
 	strcpy(szName, url);
 	ext = strrchr(szName, '#');
 	ffd->service_type = 0;
