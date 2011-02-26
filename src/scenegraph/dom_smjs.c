@@ -1051,6 +1051,10 @@ static const char *node_lookup_namespace_by_tag(GF_Node *node, u32 tag)
 	return node_lookup_namespace_by_tag(gf_node_get_parent(node, 0), tag);
 }
 
+#ifdef UNUSED_FUNC
+/**
+ * FIXME : function is not used by anybody
+ */
 static u32 get_namespace_code_by_prefix(GF_Node *node, char *prefix)
 {
 	/*browse attributes*/
@@ -1071,6 +1075,7 @@ static u32 get_namespace_code_by_prefix(GF_Node *node, char *prefix)
 	/*browse for parent*/
 	return get_namespace_code_by_prefix(gf_node_get_parent(node, 0), prefix);
 }
+#endif
 
 static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 {
