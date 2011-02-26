@@ -233,7 +233,6 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 	const char *dir;
 	GF_WidgetPackage *wzip;
 	u32 brand = 0;
-	u32 meta = 0;
 	u32 i, count;
 	GF_ISOFile *isom = gf_isom_open(path, GF_ISOM_OPEN_READ, 0);
 	if (!isom ) return NULL;
@@ -2818,7 +2817,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 	u32 i, count;
 	GF_Widget *widget = NULL;
 	GF_WidgetInstance *wi = NULL;
-	GF_XMLNode *root, *icon, *main, *name, *xml_node;
+	GF_XMLNode *root, *icon, *nmain, *name, *xml_node;
 	GF_Err e;
 	GF_DOMParser *dom = NULL;
 	GF_WidgetPackage *wpackage = NULL;
@@ -2931,16 +2930,16 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		/*pre-parse the root-level preference for use when parsing MPEG-U elements */
 		global_prefs = gf_list_new();
 		i=0;
-		while ((main = gf_list_enum(root->content, &i))) {
+		while ((nmain = gf_list_enum(root->content, &i))) {
 			const char *pname, *pvalue;
 			/* 'normalized' preference name and readonly*/
 			char *npname, *npro;
 			u32 i, count;
 			Bool pref_exists = 0;
 			Bool readOnly = 0;
-			if (main->type != GF_XML_NODE_TYPE) continue;
-			if (strcmp(main->name, "preference")) continue;
-			pname = wm_xml_get_attr(main, "name");
+			if (nmain->type != GF_XML_NODE_TYPE) continue;
+			if (strcmp(nmain->name, "preference")) continue;
+			pname = wm_xml_get_attr(nmain, "name");
 			npname = wm_get_single_attribute(pname);
 			if (!npname || !strlen(npname)) continue;
 
@@ -2954,12 +2953,12 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 			}
 			if (pref_exists) continue;
 
-			pvalue = wm_xml_get_attr(main, "readonly");
+			pvalue = wm_xml_get_attr(nmain, "readonly");
 			npro = wm_get_single_attribute(pvalue);
 			if (npro && strlen(npro) && !strcmp(npro, "true")) readOnly=1;
 			if (npro) gf_free(npro);
 
-			pvalue = wm_xml_get_attr(main, "value");
+			pvalue = wm_xml_get_attr(nmain, "value");
 
 			GF_SAFEALLOC(pref, GF_WidgetPreference);
 			pref->name = npname;
@@ -2975,13 +2974,13 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		content->interfaces = gf_list_new();
 		content->components = gf_list_new();
 		content->preferences = gf_list_new();
-		main = wm_xml_find(root, widget_ns_prefix, "content", NULL);
-		if (!main) {
+		nmain = wm_xml_find(root, widget_ns_prefix, "content", NULL);
+		if (!nmain) {
 			/* if not found, use the default table of start files */
 			wm_set_default_start_file(wm, content, szWidgetPath);			
 		} else {
 			const char *src, *encoding, *mimetype;
-			src = wm_xml_get_attr(main, "src");
+			src = wm_xml_get_attr(nmain, "src");
 
 			/*check the resource exists*/
 			if (src) {
@@ -2998,11 +2997,11 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 				}
 			}
 			
-			encoding = wm_xml_get_attr(main, "encoding");
+			encoding = wm_xml_get_attr(nmain, "encoding");
 			if (encoding && strlen(encoding)) content->encoding = wm_get_single_attribute(encoding);
 			else content->encoding = gf_strdup("utf-8");
 
-			mimetype = wm_xml_get_attr(main, "type");
+			mimetype = wm_xml_get_attr(nmain, "type");
 			if (mimetype && strlen(mimetype)) {
 				char *sep = strchr(mimetype, ';');
 				if (sep) sep[0] = 0;
@@ -3023,7 +3022,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		}
 		/* We need to call the parse of the MPEG-U elements to clone the global preferences into widget preferences,
 		   this should probably be changed to extract the clone from that function */
-		wm_parse_mpegu_content_element(content, main, mpegu_ns_prefix, global_prefs);
+		wm_parse_mpegu_content_element(content, nmain, mpegu_ns_prefix, global_prefs);
 
 		GF_SAFEALLOC(widget, GF_Widget);
 		widget->url = gf_strdup(path);
