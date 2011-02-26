@@ -833,6 +833,9 @@ restart_file:
 			/*m2ts chunks by chunks*/
 			size = fread(data, 1, 188, m2ts->file);
 			if (!size) break;
+			if (size != 188){
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] %u bytes read from file instead of 188.\n", size));	
+			}
 			/*process chunk*/
 			gf_m2ts_process_data(m2ts->ts, data, size);
 
