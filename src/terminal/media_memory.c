@@ -36,6 +36,7 @@ GF_DBUnit *gf_db_unit_new()
 {
 	GF_DBUnit *tmp;
 	GF_SAFEALLOC(tmp, GF_DBUnit)
+	if (tmp) memset(tmp, 0, sizeof(GF_DBUnit));
 	return tmp;
 }
 
@@ -44,7 +45,11 @@ void gf_db_unit_del(GF_DBUnit *db)
 	if (!db) return;
 	if (db->next) gf_db_unit_del(db->next);
 	db->next = NULL;
-	if (db->data) gf_free(db->data);
+	if (db->data) {
+		/* memset(db->data, 0, db->dataLength); */
+		gf_free(db->data);
+	}
+	db->dataLength = 0;
 	db->data = NULL;
 	gf_free(db);
 }
@@ -53,6 +58,7 @@ static GF_CMUnit *gf_cm_unit_new()
 {
 	GF_CMUnit *tmp;
 	GF_SAFEALLOC(tmp, GF_CMUnit)
+	if (tmp) memset(tmp, 0, sizeof(GF_CMUnit));
 	return tmp;
 }
 
