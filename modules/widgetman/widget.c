@@ -125,7 +125,6 @@ static JSBool widget_message_handler_factory(JSContext *c, JSObject *obj, uintN 
 {
 	char *msg_name;
 	u32 i, count;
-	GF_WidgetInstance *wid = NULL;
 	GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance *)JS_GetPrivate(c, obj);
 	if (!bifce) return JS_FALSE;
 
@@ -340,11 +339,11 @@ JSBool widget_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 	}
 	else if (!strcmp(prop_name, "width")) {
 		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, wid->secname, "width");
-		*rval = INT_TO_JSVAL( JS_NewDouble(c, opt ? atoi(opt) : 0) );
+		*rval = INT_TO_JSVAL( (opt ? atoi(opt) : 0) );
 	}
 	else if (!strcmp(prop_name, "height")) {
 		opt = gf_cfg_get_key(wid->widget->wm->term->user->config, wid->secname, "height");
-		*rval = INT_TO_JSVAL( JS_NewDouble(c, opt ? atoi(opt) : 0) );
+		*rval = INT_TO_JSVAL( (opt ? atoi(opt) : 0) );
 	}
 	else if (!strcmp(prop_name, "preferences")) {
 	}
