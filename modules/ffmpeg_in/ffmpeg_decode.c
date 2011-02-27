@@ -37,6 +37,24 @@
 #undef USE_AVCODEC2
 #endif
 
+/**
+ * Allocates data for FFMPEG decoding
+ * \param oldBuffer The oldBuffer (freed if not NULL)
+ * \param size Size to allocate (will use extra padding for real size)
+ * \return The newly allocated buffer
+ */
+static char * ffmpeg_realloc_buffer(char * oldBuffer, u32 size){
+	char * buffer;
+	/* Size of buffer must be larger, see avcodec_decode_video2 documentation */
+	u32 allocatedSz = sizeof( char ) * (FF_INPUT_BUFFER_PADDING_SIZE + size);
+	if (oldBuffer)
+		gf_free(oldBuffer);
+	buffer = gf_malloc( allocatedSz );
+	if (buffer)
+		memset( buffer, 0, allocatedSz);
+	return buffer;	
+}
+
 
 static AVCodec *ffmpeg_get_codec(u32 codec_4cc)
 {
@@ -73,9 +91,10 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, AVCodec *codec, AVCodecC
 
 	/*demuxer is ffmpeg, extra data can be copied directly*/
 	if (from_ff_demux) {
-		gf_free(ctx->extradata);
+		if (ctx->extradata)
+			gf_free(ctx->extradata);
 		ctx->extradata_size = dsi_size;
-		ctx->extradata = (uint8_t*) gf_malloc(sizeof(char)*ctx->extradata_size);
+		ctx->extradata = ffmpeg_realloc_buffer(ctx->extradata, ctx->extradata_size);
 		gf_bs_read_data(bs, ctx->extradata, ctx->extradata_size);
 		return;
 	}
@@ -88,18 +107,20 @@ static void FFDEC_LoadDSI(FFDec *ffd, GF_BitStream *bs, AVCodec *codec, AVCodecC
 		/*there should be an 'SMI' entry*/
 		at_type = gf_bs_read_u32(bs);
 		if (at_type == GF_4CC('S', 'M', 'I', ' ')) {
-			gf_free(ctx->extradata);
+			if (ctx->extradata)
+				gf_free(ctx->extradata);
 			ctx->extradata_size = 0x5a + size;
-			ctx->extradata = (uint8_t*) gf_malloc(sizeof(char)*ctx->extradata_size);
+			ctx->extradata = ffmpeg_realloc_buffer(ctx->extradata, ctx->extradata_size);
 			strcpy(ctx->extradata, "SVQ3");
 			gf_bs_read_data(bs, (unsigned char *)ctx->extradata + 0x5a, size);
 		}
 	}
 		break;
 	default:
-		gf_free(ctx->extradata);
+		if (ctx->extradata)
+			gf_free(ctx->extradata);
 		ctx->extradata_size = dsi_size;
-		ctx->extradata = (uint8_t*) gf_malloc(sizeof(char)*ctx->extradata_size);
+		ctx->extradata = ffmpeg_realloc_buffer(ctx->extradata, ctx->extradata_size);
 		gf_bs_read_data(bs, ctx->extradata, ctx->extradata_size);
 		break;
 	}
@@ -256,8 +277,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			/*if not set this may be a remap of non-mpeg4 transport (eg, transport on MPEG-TS) where
 			the DSI is carried in-band*/
 			if (esd->decoderConfig->decoderSpecificInfo->data) {
-				/* Size of buffer must be larger, see avcodec_decode_video2 documentation */
-				u32 allocatedSz = sizeof( char ) * (FF_INPUT_BUFFER_PADDING_SIZE + esd->decoderConfig->decoderSpecificInfo->dataLength);
 
 				/*for regular MPEG-4, try to decode and if this fails try H263 decoder at first frame*/
 				if (ffd->oti==GPAC_OTI_VIDEO_MPEG4_PART2) {
@@ -277,10 +296,14 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				}
 
 				/*setup dsi for FFMPEG context BEFORE attaching decoder (otherwise not proper init)*/
-				(*ctx)->extradata = gf_malloc(allocatedSz);
-				memset((*ctx)->extradata, 0, allocatedSz);
-				memcpy((*ctx)->extradata, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-				(*ctx)->extradata_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+				(*ctx)->extradata = ffmpeg_realloc_buffer((*ctx)->extradata, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				if ((*ctx)->extradata){
+					memcpy((*ctx)->extradata, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+					(*ctx)->extradata_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+				} else {
+					/* out of mem ? */
+					(*ctx)->extradata_size = 0;
+				}
 			}
 		}
 		*frame = avcodec_alloc_frame();
@@ -315,6 +338,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			  av_init_packet(&pkt);
 			  pkt.data = esd->decoderConfig->decoderSpecificInfo->data;
 			  pkt.size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+			  printf("DECODE VIDEO2\n");
 			  avcodec_decode_video2((*ctx), *frame, &gotpic, &pkt);
 			}
 #else
@@ -372,6 +396,7 @@ static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 
 	if (*ctx) {
 		if ((*ctx)->extradata) gf_free((*ctx)->extradata);
+		(*ctx)->extradata = NULL;
 		avcodec_close((*ctx));
 		*ctx = NULL;
 	}
