@@ -1237,6 +1237,9 @@ void MPD_Stop(GF_MPD_In *mpdin)
         gf_free(mpdin->cached[mpdin->nb_cached].cache);
         gf_free(mpdin->cached[mpdin->nb_cached].url);
     }
+    if (mpdin->mpd)
+      gf_mpd_del(mpdin->mpd);
+    mpdin->mpd = NULL;
 }
 
 GF_Err MPD_CloseService(GF_InputService *plug)
