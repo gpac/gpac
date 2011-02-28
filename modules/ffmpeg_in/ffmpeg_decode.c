@@ -166,7 +166,9 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		codec = &ffd->base_codec;
 		frame = &ffd->base_frame;
 	}
-	*ctx = avcodec_alloc_context();
+	if (!(*ctx)){
+	  *ctx = avcodec_alloc_context();
+	}
 
 	/*private FFMPEG DSI*/
 	if (ffd->oti == GPAC_OTI_MEDIA_FFMPEG) {
@@ -328,7 +330,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 #if (LIBAVCODEC_VERSION_INT > ((51<<16)+(20<<8)+0) )
 		case CODEC_ID_GIF:
 #endif
-			ffd->pix_fmt = GF_PIXEL_RGB_24; 
+			ffd->pix_fmt = GF_PIXEL_RGB_24;
 			break;
 		case CODEC_ID_DVD_SUBTITLE:
 			*frame = avcodec_alloc_frame();
@@ -338,7 +340,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			  av_init_packet(&pkt);
 			  pkt.data = esd->decoderConfig->decoderSpecificInfo->data;
 			  pkt.size = esd->decoderConfig->decoderSpecificInfo->dataLength;
-			  printf("DECODE VIDEO2\n");
 			  avcodec_decode_video2((*ctx), *frame, &gotpic, &pkt);
 			}
 #else
@@ -534,25 +535,21 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 	AVCodec **codec;
 	AVFrame *frame;
 #ifdef FFMPEG_SWSCALE
-	struct SwsContext **sws;
+	struct SwsContext **cached_sws;
 #endif
 	FFDec *ffd = plug->privateStack;
-
+#ifdef FFMPEG_SWSCALE
+	cached_sws = &(ffd->base_sws);
+#endif
 
 	if (!ES_ID || (ffd->base_ES_ID==ES_ID)) {
 		ctx = ffd->base_ctx;
 		codec = &ffd->base_codec;
 		frame = ffd->base_frame;
-#ifdef FFMPEG_SWSCALE
-		sws = &ffd->base_sws;
-#endif
 	} else if (ffd->depth_ES_ID==ES_ID) {
 		ctx = ffd->depth_ctx;
 		codec = &ffd->depth_codec;
 		frame = ffd->depth_frame;
-#ifdef FFMPEG_SWSCALE
-		sws = &ffd->depth_sws;
-#endif
 	} else {
 		return GF_BAD_PARAM;
 	}
@@ -718,6 +715,7 @@ redecode:
 			}
 		}
 	}
+
 	ctx->hurry_up = 0;
 
 	/*some streams use odd width/height frame values*/
@@ -737,9 +735,9 @@ redecode:
 			inBuffer[3] = 1;
 		}
 #ifdef FFMPEG_SWSCALE
-		if (*sws) { 
-			sws_freeContext(*sws); 
-			*sws = NULL;
+		if (*cached_sws) { 
+			sws_freeContext(*cached_sws); 
+			*cached_sws = NULL;
 		}
 #endif
 		return GF_BUFFER_TOO_SMALL;
@@ -825,14 +823,14 @@ redecode:
 #ifndef FFMPEG_SWSCALE
 	img_convert(&pict, pix_out, (AVPicture *) frame, ctx->pix_fmt, ctx->width, ctx->height);
 #else
-	if (! (*sws)) 
-		(*sws) = sws_getContext(ctx->width, ctx->height,
-                        ctx->pix_fmt, ctx->width, ctx->height, pix_out, SWS_BICUBIC, 
-	                NULL, NULL, NULL);
-
-	if ((*sws))
-		sws_scale((*sws), (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
-
+	*cached_sws = sws_getCachedContext(*cached_sws,
+					   ctx->width, ctx->height, ctx->pix_fmt,
+					   ctx->width, ctx->height, pix_out,
+					   SWS_BICUBIC, NULL, NULL, NULL);
+	if ((*cached_sws)){
+		int sz = sws_scale((*cached_sws), (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
+		assert( sz > 0 );		
+	}
 #endif
 
 	*outBufferLength = ffd->out_size;
@@ -901,7 +899,11 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 		case GPAC_OTI_IMAGE_JPEG:
 //			return 0; /*I'm having troubles with ffmpeg & jpeg, it appears to crash randomly*/
 			codec_id = CODEC_ID_MJPEG;
-			break;
+			//break;
+			/* SOUCHAY : the JPEG handler has some issues with some JPEG files,
+			 * since GPAC also has img_in plugin for images, do not use FFMPEG one
+			 */
+			return 0;
 		default:
 			return 0;
 		}
@@ -932,7 +934,8 @@ void *FFDEC_Load()
 	GF_MediaDecoder *ptr;
 	FFDec *priv;
 
-    avcodec_init();
+	/* Note for valgrind : those two functions cause a leak in valgrind */
+	avcodec_init();
 	avcodec_register_all();
 
 	GF_SAFEALLOC(ptr , GF_MediaDecoder);
@@ -957,12 +960,16 @@ void FFDEC_Delete(void *ifce)
 	FFDec *ffd = dec->privateStack;
 
 	if (ffd->base_ctx) avcodec_close(ffd->base_ctx);
+	ffd->base_ctx = NULL;
 	if (ffd->depth_ctx) avcodec_close(ffd->depth_ctx);
+	ffd->depth_ctx = NULL;
 #ifdef FFMPEG_SWSCALE
-	if (ffd->base_sws) sws_freeContext(ffd->base_sws); 
-	if (ffd->depth_sws) sws_freeContext(ffd->base_sws); 
+	if (ffd->base_sws) sws_freeContext(ffd->base_sws);
+	ffd->base_sws = NULL;
+	if (ffd->depth_sws) sws_freeContext(ffd->base_sws);
+	ffd->depth_sws = NULL;
 #endif
 	gf_free(ffd);
+	dec->privateStack = NULL;
 	gf_free(dec);
-
 }
