@@ -125,8 +125,8 @@ GF_Err m3u8_to_mpd(GF_MPD_In *mpdin, const char *m3u8_file, const char *url)
     e = parse_root_playlist(m3u8_file, &pl, url);
     if (e) {
         GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
-	if (pl) variant_playlist_del(pl);
-	pl = NULL;
+        if (pl) variant_playlist_del(pl);
+        pl = NULL;
         return e;
     }
     gf_delete_file((char *)m3u8_file);
@@ -335,7 +335,6 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
     u32 i, j, rep_idx;
     Bool seg_found = 0;
     GF_DOMParser *mpd_parser;
-    GF_MPD *new_mpd;
     GF_MPD_Period *period, *new_period;
     GF_MPD_Representation *rep, *new_rep;
     GF_List *segs;
@@ -367,12 +366,12 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Playlist %s updated with success\n", purl));
     }
 
-	mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
+    mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
 
-	/*in case the session has been restarted, local_url may have been destroyed - get it back*/
+    /*in case the session has been restarted, local_url may have been destroyed - get it back*/
     local_url = gf_dm_sess_get_cache_name(mpdin->mpd_dnload);
 
-	/* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
+    /* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
     if (MPD_isM3U8_mime(mime) || strstr(purl, ".m3u8")) {
         m3u8_to_mpd(mpdin, local_url, purl );
     } else if (!MPD_is_MPD_mime(mime)) {
@@ -383,7 +382,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
         return GF_BAD_PARAM;
     }
 
-	gf_free(purl);
+    gf_free(purl);
     purl = NULL;
 
     if (!MPD_CheckRootType(local_url)) {
@@ -400,6 +399,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
                 mpdin->reload_count++;
                 mpdin->mpd->min_update_time = oldUpdateTime;
             } else {
+                GF_MPD *new_mpd;
                 GF_MPD_SegmentInfo *info1;
                 mpdin->reload_count = 0;
                 memccpy(mpdin->lastMPDSignature, signature, sizeof(char), sizeof(mpdin->lastMPDSignature));
@@ -510,11 +510,10 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
                 }
 
                 /*swap representations - we don't need to update download_segment_index as it still points to the right entry in the merged list*/
-                gf_mpd_del(mpdin->mpd);
+                if (mpdin->mpd)
+                    gf_mpd_del(mpdin->mpd);
                 mpdin->mpd = new_mpd;
                 mpdin->last_update_time = gf_sys_clock();
-
-
             }
         }
     }
@@ -1103,6 +1102,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     mpdin->service = serv;
     memset( mpdin->lastMPDSignature, 0, sizeof(mpdin->last_update_time));
     mpdin->reload_count = 0;
+    if (mpdin->url)
+      gf_free(mpdin->url);
     mpdin->url = gf_strdup(url);
     mpdin->option_max_cached = 0;
     mpdin->max_cached = 0;
@@ -1129,15 +1130,15 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         if (strstr(url, ".m3u8")) {
             is_m3u8 = 1;
         }
-	} else if (strstr(url, "://")) {
-		e = MPD_downloadWithRetry(mpdin->service, &(mpdin->mpd_dnload), url, MPD_NetIO, mpdin);
-		if (e!=GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD downloading problem %s for %s\n", gf_error_to_string(e), url));
-			gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
-			gf_term_download_del(mpdin->mpd_dnload);
-			mpdin->mpd_dnload = NULL;
-			return e;
-		}
+    } else if (strstr(url, "://")) {
+        e = MPD_downloadWithRetry(mpdin->service, &(mpdin->mpd_dnload), url, MPD_NetIO, mpdin);
+        if (e!=GF_OK) {
+            GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD downloading problem %s for %s\n", gf_error_to_string(e), url));
+            gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
+            gf_term_download_del(mpdin->mpd_dnload);
+            mpdin->mpd_dnload = NULL;
+            return e;
+        }
         {
             const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
             const char * url = gf_dm_sess_get_resource_name(mpdin->mpd_dnload);
@@ -1147,8 +1148,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
             } else if (!MPD_is_MPD_mime(mime)) {
                 GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' for '%s' should be m3u8 or mpd\n", mime, url));
                 gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
-		gf_term_download_del(mpdin->mpd_dnload);
-		mpdin->mpd_dnload = NULL;
+                gf_term_download_del(mpdin->mpd_dnload);
+                mpdin->mpd_dnload = NULL;
                 return GF_CODEC_NOT_FOUND;
             }
         }
@@ -1156,8 +1157,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         if (!local_url) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: cache problem %s\n", local_url));
             gf_term_on_connect(mpdin->service, NULL, GF_IO_ERR);
-	    gf_term_download_del(mpdin->mpd_dnload);
-	    mpdin->mpd_dnload = NULL;
+            gf_term_download_del(mpdin->mpd_dnload);
+            mpdin->mpd_dnload = NULL;
             return GF_OK;
         }
     } else {
@@ -1171,8 +1172,8 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     if (!MPD_CheckRootType(local_url)) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: wrong file type %s\n", local_url));
         gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
-	gf_term_download_del(mpdin->mpd_dnload);
-	mpdin->mpd_dnload = NULL;
+        gf_term_download_del(mpdin->mpd_dnload);
+        mpdin->mpd_dnload = NULL;
         return GF_OK;
     }
 
@@ -1183,18 +1184,27 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD parsing problem %s\n", gf_error_to_string(e)));
         gf_xml_dom_del(mpd_parser);
         gf_term_on_connect(mpdin->service, NULL, e);
-	gf_term_download_del(mpdin->mpd_dnload);
-	mpdin->mpd_dnload = NULL;
+        gf_term_download_del(mpdin->mpd_dnload);
+        mpdin->mpd_dnload = NULL;
         return GF_OK;
     }
+    if (mpdin->mpd)
+        gf_mpd_del(mpdin->mpd);
     mpdin->mpd = gf_mpd_new();
-    e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), mpdin->mpd);
+    if (!mpdin->mpd) {
+        e = GF_OUT_OF_MEM;
+    } else {
+        e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), mpdin->mpd);
+    }
     gf_xml_dom_del(mpd_parser);
     if (e != GF_OK) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot connect service: MPD creation problem %s\n", gf_error_to_string(e)));
-	gf_term_on_connect(mpdin->service, NULL, e);
-	gf_term_download_del(mpdin->mpd_dnload);
-	mpdin->mpd_dnload = NULL;
+        gf_term_on_connect(mpdin->service, NULL, e);
+        gf_term_download_del(mpdin->mpd_dnload);
+        mpdin->mpd_dnload = NULL;
+        if (mpdin->mpd)
+            gf_mpd_del(mpdin->mpd);
+        mpdin->mpd = NULL;
         return e;
     }
 
@@ -1238,7 +1248,7 @@ void MPD_Stop(GF_MPD_In *mpdin)
         gf_free(mpdin->cached[mpdin->nb_cached].url);
     }
     if (mpdin->mpd)
-      gf_mpd_del(mpdin->mpd);
+        gf_mpd_del(mpdin->mpd);
     mpdin->mpd = NULL;
 }
 
@@ -1480,6 +1490,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
     plug->ChannelGetSLP = MPD_ChannelGetSLP;
     plug->ChannelReleaseSLP = MPD_ChannelReleaseSLP;
     GF_SAFEALLOC(mpdin, GF_MPD_In);
+    memset(mpdin, 0, sizeof(GF_MPD_In));
     plug->priv = mpdin;
     mpdin->dl_thread = gf_th_new("MPD Segment Downloader Thread");
     mpdin->dl_mutex = gf_mx_new("MPD Segment Downloader Mutex");
@@ -1493,7 +1504,12 @@ void ShutdownInterface(GF_BaseInterface *bi)
     GF_InputService *ifcn = (GF_InputService*)bi;
     if (ifcn->InterfaceType==GF_NET_CLIENT_INTERFACE) {
         GF_MPD_In *mpdin = (GF_MPD_In*)ifcn->priv;
-        if (mpdin->mpd) gf_mpd_del(mpdin->mpd);
+        if (mpdin->mpd)
+            gf_mpd_del(mpdin->mpd);
+        mpdin->mpd = NULL;
+	if (mpdin->url)
+	  gf_free(mpdin->url);
+	mpdin->url = NULL;
         gf_th_del(mpdin->dl_thread);
         gf_mx_del(mpdin->dl_mutex);
         gf_free(mpdin->mimeTypeForM3U8Segments);

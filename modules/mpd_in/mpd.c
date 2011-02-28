@@ -430,7 +430,9 @@ GF_MPD *gf_mpd_new()
 {
     GF_MPD *mpd;
     GF_SAFEALLOC(mpd, GF_MPD);
-    mpd->periods = gf_list_new();
+    if (mpd){
+      memset(mpd, 0, sizeof(GF_MPD));
+    }
     return mpd;
 }
 
@@ -469,18 +471,26 @@ void gf_mpd_del(GF_MPD *mpd)
             rep->segments = NULL;
             gf_free(rep);
         }
-        gf_free(period->representations);
+        gf_list_del(period->representations);
+        period->representations = NULL;
         if (period->default_base_url) gf_free(period->default_base_url);
         if (period->url_template) gf_free(period->url_template);
 
         gf_free(period);
     }
     gf_list_del(mpd->periods);
+    mpd->periods = NULL;
     if (mpd->base_url) gf_free(mpd->base_url);
+    mpd->base_url = NULL;
     if (mpd->title) gf_free(mpd->title);
+    mpd->title = NULL;
     if (mpd->source) gf_free(mpd->source);
+    mpd->source = NULL;
     if (mpd->copyright) gf_free(mpd->copyright);
+    mpd->copyright = NULL;
     if (mpd->more_info_url) gf_free(mpd->more_info_url);
+    mpd->more_info_url = NULL;
+    gf_free(mpd);
 }
 
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd)
@@ -491,7 +501,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd)
 
     if (!root || !mpd) return GF_BAD_PARAM;
 
-    memset(mpd, 0, sizeof(GF_MPD));
+    assert( !mpd->periods );
     mpd->periods = gf_list_new();
 
     att_index = 0;
