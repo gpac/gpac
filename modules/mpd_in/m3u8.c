@@ -40,15 +40,14 @@
 #endif
 
 GF_Err cleanup_list_of_elements(GF_List * list) {
-    int i, count;
     GF_Err result = GF_OK;
     if (list == NULL)
         return result;
-    count = gf_list_count(list);
-    for (i = 0; i < count ; i++) {
-        PlaylistElement * pl = (PlaylistElement *) gf_list_get(list, i);
+    while (gf_list_count(list)) {
+        PlaylistElement * pl = (PlaylistElement *) gf_list_get(list, 0);
         if (pl)
             result |= playlist_element_del(pl);
+        gf_list_rem(list, 0);
     }
     gf_list_del(list);
     return result;
@@ -77,6 +76,7 @@ GF_Err playlist_element_del(PlaylistElement * e) {
     default:
         break;
     }
+    gf_free(e);
     return result;
 }
 
@@ -95,17 +95,19 @@ Program * program_new(int programId) {
 }
 
 GF_Err program_del(Program * program) {
-    int count, i;
     GF_Err e = GF_OK;
     if (program == NULL)
         return e;
-    assert( program->bitrates);
-    count = gf_list_count(program->bitrates);
-    for (i = 0 ; i < count; i++) {
-        e |= cleanup_list_of_elements(gf_list_get(program->bitrates, i));
+    if ( program->bitrates) {
+        while (gf_list_count(program->bitrates)) {
+            GF_List * l = gf_list_get(program->bitrates, 0);
+            cleanup_list_of_elements(l);
+            gf_list_rem(program->bitrates, 0);
+        }
+        gf_list_del(program->bitrates);
     }
-    gf_list_del(program->bitrates);
     program->bitrates = NULL;
+    gf_free(program);
     return e;
 }
 
@@ -193,22 +195,22 @@ VariantPlaylist * variant_playlist_new ()
 }
 
 GF_Err variant_playlist_del (VariantPlaylist * playlist) {
-    int count, i, count2, j;
-    Program * p;
     if (playlist == NULL)
         return GF_OK;
     assert( playlist->programs);
-    count = gf_list_count(playlist->programs);
-    for (i = 0; i < count ; i++) {
-        p = gf_list_get(playlist->programs, i);
+    while (gf_list_count(playlist->programs)) {
+        Program * p = gf_list_get(playlist->programs, 0);
         assert(p);
-        count2 = gf_list_count( p->bitrates );
-        for (j = 0; j < count2; j++) {
-            PlaylistElement * pl = gf_list_get(p->bitrates, j);
+        while (gf_list_count( p->bitrates )) {
+            PlaylistElement * pl = gf_list_get(p->bitrates, 0);
+            assert( pl );
             playlist_element_del(pl);
+            gf_list_rem(p->bitrates, 0);
         }
         gf_list_del(p->bitrates);
         p->bitrates = NULL;
+        program_del(p);
+        gf_list_rem(playlist->programs, 0);
     }
     gf_list_del(playlist->programs);
     playlist->programs = NULL;
@@ -457,11 +459,15 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
     s_accumulated_attributes attribs;
     f = gf_f64_open(file, "rt");
     if (!f) {
-      GF_LOG( GF_LOG_ERROR, GF_LOG_CONTAINER,("[M3U8] Cannot Open m3u8 file %s for reading\n", file));
-      return GF_SERVICE_ERROR;
+        GF_LOG( GF_LOG_ERROR, GF_LOG_CONTAINER,("[M3U8] Cannot Open m3u8 file %s for reading\n", file));
+        return GF_SERVICE_ERROR;
     }
     if (*playlist == NULL) {
         *playlist = variant_playlist_new();
+        if (!(*playlist)) {
+            fclose(f);
+            return GF_OUT_OF_MEM;
+        }
     }
     pl = *playlist;
     readen=0;
@@ -476,20 +482,22 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
     attribs.minMediaSequence = 0;
     attribs.currentMediaSequence = 0;
     while (fgets(currentLine, sizeof(currentLine), f)) {
-	char * eof;
+        char * eof;
         currentLineNumber++;
-	eof = strchr(currentLine, '\r');
-	if (eof)
-	  eof[0] = '\0';
-	eof = strchr(currentLine, '\n');
-	if (eof)
-	  eof[0] = '\0';
+        eof = strchr(currentLine, '\r');
+        if (eof)
+            eof[0] = '\0';
+        eof = strchr(currentLine, '\n');
+        if (eof)
+            eof[0] = '\0';
         len = strlen( currentLine);
         if (len < 1)
             continue;
         if (currentLineNumber == 1) {
             /* Playlist MUST start with #EXTM3U */
             if (len < 7 || strncmp("#EXTM3U", currentLine, 7)!=0) {
+                fclose(f);
+                variant_playlist_del(pl);
                 GF_LOG( GF_LOG_ERROR, GF_LOG_CONTAINER, ("Failed to parse M3U8 File, it should start with #EXTM3U, but was : %s\n", currentLine));
                 return GF_STREAM_NOT_FOUND;
             }
@@ -555,6 +563,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                     if (program == NULL) {
                         /* OUT of memory */
                         variant_playlist_del(*playlist);
+                        fclose(f);
                         playlist = NULL;
                         return GF_OUT_OF_MEM;
                     }
@@ -594,6 +603,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                         /* OUT of memory */
                         variant_playlist_del(*playlist);
                         playlist = NULL;
+                        fclose(f);
                         return GF_OUT_OF_MEM;
                     }
                     assert( fullURL);
@@ -616,11 +626,12 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                             /* OUT of memory */
                             variant_playlist_del(*playlist);
                             playlist = NULL;
+                            fclose(f);
                             return GF_OUT_OF_MEM;
                         }
                         assert(currentPlayList->element.playlist.elements);
                         assert( fullURL);
-                        currentPlayList->url = gf_strdup(baseURL);
+                        assert( currentPlayList->url);
                         currentPlayList->title = NULL;
                         subElement = playlist_element_new(
                                          TYPE_UNKNOWN,
@@ -631,6 +642,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                             variant_playlist_del(*playlist);
                             playlist_element_del(currentPlayList);
                             playlist = NULL;
+                            fclose(f);
                             return GF_OUT_OF_MEM;
                         }
                         gf_list_add(currentPlayList->element.playlist.elements, subElement);
@@ -654,6 +666,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                             variant_playlist_del(*playlist);
                             playlist_element_del(currentPlayList);
                             playlist = NULL;
+                            fclose(f);
                             return GF_OUT_OF_MEM;
                         }
                         gf_list_add(currentPlayList->element.playlist.elements, subElement);
@@ -661,14 +674,14 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                 }
 
                 currentPlayList->element.playlist.currentMediaSequence = attribs.currentMediaSequence ;
-		/* We first set the default duration for element, aka targetDuration */
+                /* We first set the default duration for element, aka targetDuration */
                 if (attribs.targetDurationInSeconds > 0) {
                     currentPlayList->element.playlist.target_duration = attribs.targetDurationInSeconds;
                     currentPlayList->durationInfo = attribs.targetDurationInSeconds;
                 }
-                if (attribs.durationInSeconds){
+                if (attribs.durationInSeconds) {
                     currentPlayList->durationInfo = attribs.durationInSeconds;
-		}
+                }
                 currentPlayList->element.playlist.mediaSequenceMin = attribs.minMediaSequence;
                 currentPlayList->element.playlist.mediaSequenceMax = attribs.currentMediaSequence++;
                 if (attribs.bandwidth > 1)
