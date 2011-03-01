@@ -43,11 +43,8 @@ EXT=
 PROG=MP4Box
 ifeq ($(MP4BOX_STATIC),yes)
 LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz
-else
-LINKFLAGS+=-lgpac
-endif
 
-#3 - spidermonkey support
+# spidermonkey support
 ifeq ($(CONFIG_JS),no)
 else
 SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
@@ -57,6 +54,9 @@ endif
 LINKFLAGS+=$(JS_LIBS)
 endif
 
+else
+LINKFLAGS+=-lgpac
+endif
 
 endif
 
