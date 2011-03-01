@@ -738,24 +738,23 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
         GF_DownloadSession * s = gf_list_get(entry->sessions, i);
         if (s == sess) {
             gf_list_rem(entry->sessions, i);
-            return count - 1;
+            count --;
+			break;
         }
     }
-    gf_mx_p(entry->write_mutex);
-    if (entry->write_session == sess){
-	/* OK, this is not optimal to close it since we are in a mutex,
-	 * but we don't want to risk to have another session opening
-	 * a not fully closed cache entry */
-	if (entry->writeFilePtr){
-	  if (fclose(entry->writeFilePtr)){
-	      GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK,
-		     ("[CACHE] gf_cache_remove_session_from_cache_entry:%d, Failed to properly fclose cache file '%s' of url '%s', cache may be corrupted !\n", __LINE__, entry->cache_filename, entry->url));
-	  }
+    if (entry->write_session == sess) {
+		/* OK, this is not optimal to close it since we are in a mutex,
+		 * but we don't want to risk to have another session opening
+		 * a not fully closed cache entry */
+		if (entry->writeFilePtr){
+			if (fclose(entry->writeFilePtr)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] gf_cache_remove_session_from_cache_entry:%d, Failed to properly fclose cache file '%s' of url '%s', cache may be corrupted !\n", __LINE__, entry->cache_filename, entry->url));
+			}
+		}
+		entry->writeFilePtr = NULL;
+		entry->write_session = NULL;
+	    gf_mx_v(entry->write_mutex);
 	}
-	entry->writeFilePtr = NULL;
-	entry->write_session = NULL;
-    }
-    gf_mx_v(entry->write_mutex);
     return count;
 }
 
