@@ -27,11 +27,7 @@
 #define AVUTIL_COMMON_H
 
 #include <ctype.h>
-#ifndef _WIN32_WCE
 #include <errno.h>
-#else
-#define inline	__inline
-#endif
 #include <limits.h>
 #include <math.h>
 #include <stdio.h>
@@ -39,22 +35,22 @@
 #include <string.h>
 
 #if !defined(EMULATE_INTTYPES)
-#   include <inttypes.h>
+#	include <inttypes.h>
 #else
-    typedef signed char  int8_t;
-    typedef signed short int16_t;
-    typedef signed int   int32_t;
-    typedef unsigned char  uint8_t;
-    typedef unsigned short uint16_t;
-    typedef unsigned int   uint32_t;
+	typedef signed char  int8_t;
+	typedef signed short int16_t;
+	typedef signed int   int32_t;
+	typedef unsigned char  uint8_t;
+	typedef unsigned short uint16_t;
+	typedef unsigned int   uint32_t;
 
-#   ifdef CONFIG_WIN32
-        typedef signed __int64   int64_t;
-        typedef unsigned __int64 uint64_t;
-#   else /* other OS */
-        typedef signed long long   int64_t;
-        typedef unsigned long long uint64_t;
-#   endif /* other OS */
+#	ifdef CONFIG_WIN32
+		typedef signed __int64   int64_t;
+		typedef unsigned __int64 uint64_t;
+#	else /* other OS */
+		typedef signed long long   int64_t;
+		typedef unsigned long long uint64_t;
+#	endif /* other OS */
 #endif /* HAVE_INTTYPES_H */
 
 
@@ -160,6 +156,7 @@
 
 #define FFSWAP(type,a,b) do{type SWAP_tmp= b; b= a; a= SWAP_tmp;}while(0)
 #define FF_ARRAY_ELEMS(a) (sizeof(a) / sizeof((a)[0]))
+#define FFALIGN(x, a) (((x)+(a)-1)&~((a)-1))
 
 /* misc math functions */
 extern const uint8_t ff_log2_tab[256];

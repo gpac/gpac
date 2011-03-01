@@ -26,9 +26,7 @@
  * external API header
  */
 
-#ifndef _WIN32_WCE
 #include <errno.h>
-#endif
 #include "libavutil/avutil.h"
 
 #define LIBAVCODEC_VERSION_MAJOR 52
