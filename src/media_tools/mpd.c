@@ -48,7 +48,7 @@ static u32 gf_mpd_parse_duration(char *duration) {
             double s;
             h = m = 0;
             s = 0;
-            if (sep1 = strchr(duration+i+2, 'H')) {
+            if (NULL != (sep1 = strchr(duration+i+2, 'H'))) {
                 *sep1 = 0;
                 h = atoi(duration+i+2);
                 *sep1 = 'H';
@@ -56,7 +56,7 @@ static u32 gf_mpd_parse_duration(char *duration) {
             } else {
                 sep1 = duration+i+2;
             }
-            if (sep2 = strchr(sep1, 'M')) {
+            if (NULL != (sep2 = strchr(sep1, 'M'))) {
                 *sep2 = 0;
                 m = atoi(sep1);
                 *sep2 = 'M';
@@ -64,7 +64,7 @@ static u32 gf_mpd_parse_duration(char *duration) {
             } else {
                 sep2 = sep1;
             }
-            if (sep1 = strchr(sep2, 'S')) {
+            if (NULL != (sep1 = strchr(sep2, 'S'))) {
                 *sep1 = 0;
                 s = atof(sep2);
                 *sep1 = 'S';
@@ -620,7 +620,7 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
         update_interval = 3*(pe->durationInfo);
         break;
     }
-    if (is_end || (pe->elementType == TYPE_PLAYLIST) && pe->element.playlist.is_ended) {
+    if (is_end || ((pe->elementType == TYPE_PLAYLIST) && pe->element.playlist.is_ended)) {
         update_interval = 0;
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] NO NEED to refresh playlist !\n"));
     } else {
