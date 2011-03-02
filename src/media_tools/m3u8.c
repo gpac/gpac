@@ -61,6 +61,10 @@ GF_Err playlist_element_del(PlaylistElement * e) {
         gf_free(e->title);
         e->title = NULL;
     }
+    if (e->codecs) {
+        gf_free(e->codecs);
+        e->codecs = NULL;
+    }
     assert( e->url);
     gf_free(e->url);
     e->url = NULL;
@@ -124,7 +128,7 @@ GF_Err playlist_del(Playlist * pl){
 	return result;
 }*/
 
-PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, int durationInfo) {
+PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo) {
     PlaylistElement * e = gf_malloc(sizeof(PlaylistElement));
     bzero(e, sizeof(PlaylistElement));
     assert( url );
@@ -132,6 +136,7 @@ PlaylistElement * playlist_element_new(PlaylistElementType elementType, const ch
         return NULL;
     e->durationInfo = durationInfo;
     e->title = (title ? gf_strdup(title) : NULL);
+    e->codecs = (codecs ? gf_strdup(codecs) : NULL);
     assert( url);
     e->url = gf_strdup(url);
     e->bandwidth = 0;
@@ -146,10 +151,13 @@ PlaylistElement * playlist_element_new(PlaylistElementType elementType, const ch
         if (NULL == (e->element.playlist.elements)) {
             if (e->title)
                 gf_free(e->title);
+			if (e->codecs)
+				gf_free(e->codecs);
             if (e->url)
                 gf_free(e->url);
             e->url = NULL;
             e->title = NULL;
+			e->codecs = NULL;
             gf_free(e);
             return NULL;
         }
@@ -227,9 +235,10 @@ GF_Err playlist_element_dump(const PlaylistElement * e, int indent) {
         printf("NULL PlaylistElement\n");
         return r;
     }
-    printf("PlayListElement[%p, title=%s, duration=%d, bandwidth=%d, url=%s, type=%s]\n",
+    printf("PlayListElement[%p, title=%s, codecs=%s, duration=%d, bandwidth=%d, url=%s, type=%s]\n",
            (void*)e,
            e->title,
+		   e->codecs,
            e->durationInfo,
            e->bandwidth,
            e->url,
@@ -337,9 +346,11 @@ static char ** extractAttributes(const char * name, const char * line, const int
     currentAttribute = 0;
     for (i = start ; i <= len ; i++) {
         if (line[i] == '\0' || line[i] == ',') {
+			u32 spaces = 0;
             sz = 1 + i - start;
-            ret[currentAttribute] = gf_calloc( (1+sz), sizeof(char));
-            strncpy(ret[currentAttribute], &(line[start]), sz);
+			while (line[start+spaces] == ' ') spaces++;
+            ret[currentAttribute] = gf_calloc( (1+sz-spaces), sizeof(char));
+            strncpy(ret[currentAttribute], &(line[start+spaces]), sz-spaces);
             currentAttribute++;
             start = i+1;
             if (start == len) {
@@ -598,6 +609,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                                           TYPE_UNKNOWN,
                                           fullURL,
                                           attribs.title,
+										  attribs.codecs,
                                           attribs.durationInSeconds);
                     if (currentPlayList == NULL) {
                         /* OUT of memory */
@@ -609,6 +621,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                     assert( fullURL);
                     currentPlayList->url = gf_strdup(fullURL);
                     currentPlayList->title = attribs.title ? gf_strdup(attribs.title):NULL;
+					currentPlayList->codecs = attribs.codecs ? gf_strdup(attribs.codecs):NULL;
                     gf_list_add(program->bitrates, currentPlayList);
                 } else {
                     /* Normal Playlist */
@@ -621,6 +634,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                                               TYPE_PLAYLIST,
                                               baseURL,
                                               attribs.title,
+											  attribs.codecs,
                                               attribs.durationInSeconds);
                         if (currentPlayList == NULL) {
                             /* OUT of memory */
@@ -633,10 +647,12 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                         assert( fullURL);
                         assert( currentPlayList->url);
                         currentPlayList->title = NULL;
+                        currentPlayList->codecs = NULL;
                         subElement = playlist_element_new(
                                          TYPE_UNKNOWN,
                                          fullURL,
                                          attribs.title,
+										 attribs.codecs,
                                          attribs.durationInSeconds);
                         if (subElement == NULL) {
                             variant_playlist_del(*playlist);
@@ -656,6 +672,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                                                            TYPE_UNKNOWN,
                                                            fullURL,
                                                            attribs.title,
+														   attribs.codecs,
                                                            attribs.durationInSeconds);
                         if (currentPlayList->elementType != TYPE_PLAYLIST) {
                             currentPlayList->elementType = TYPE_PLAYLIST;

@@ -84,6 +84,7 @@ typedef struct s_playlistElement {
     int durationInfo;
     int bandwidth;
     char * title;
+	char * codecs;
     char * url;
     PlaylistElementType elementType;
     union { Playlist playlist;
@@ -140,7 +141,7 @@ GF_Err program_del(Program * program);
  * This element can be either a playlist of a stream according to first parameter.
  * @return NULL if element could not be created. Element deletion will be deleted recusivly by #playlist_del(Playlist*)
  */
-PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, int durationInfo);
+PlaylistElement * playlist_element_new(PlaylistElementType elementType, const char * url, const char * title, const char *codecs, int durationInfo);
 
 /**
  * Creates a new VariantPlaylist
