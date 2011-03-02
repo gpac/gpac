@@ -4583,6 +4583,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\media_tools\m3u8.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\internal\media_dev.h"
 				>
 			</File>
@@ -4665,6 +4669,10 @@
 						PreprocessorDefinitions=""
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\src\media_tools\mpd.c"
+				>
 			</File>
 			<File
 				RelativePath="..\..\src\media_tools\mpeg2_ps.c"
@@ -7003,6 +7011,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\include\gpac\internal\m3u8.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\include\gpac\math.h"
 				>
 			</File>
@@ -7016,6 +7028,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\module.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\internal\mpd.h"
 				>
 			</File>
 			<File
