@@ -37,6 +37,8 @@
 #include <gpac/ismacryp.h>
 #include <gpac/constants.h>
 
+#include <gpac/internal/mpd.h>
+
 #include <time.h>
 
 #define BUFFSIZE	8192
@@ -1178,7 +1180,7 @@ int main(int argc, char **argv)
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, frags_per_sidx, program_number;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name;
 	GF_ISOFile *file;
 	Bool stream_rtp=0;
@@ -1204,7 +1206,7 @@ int main(int argc, char **argv)
 	split_size = 0;
 	movie_time = 0;
 	MTUSize = 1450;
-	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_hash = verbose = 0;
+	HintCopy = FullInter = HintInter = encode = do_log = old_interleave = do_saf = do_mpd = do_hash = verbose = 0;
 	chunk_mode = dump_mode = Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = 0;
 	x3d_info = conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_chap = dump_srt = dump_ttxt = force_new = dump_ts = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = 0;
 	frags_per_sidx = 1;
@@ -1732,7 +1734,13 @@ int main(int argc, char **argv)
 		else if (!stricmp(arg, "-ms")) { CHECK_NEXT_ARG mediaSource = argv[i+1]; i++; }
 		else if (!stricmp(arg, "-mp4")) { encode = 1; open_edit = 1; }
 		else if (!stricmp(arg, "-saf")) { do_saf = 1; }
-		else if (!stricmp(arg, "-log")) do_log = 1; 
+		else if (!stricmp(arg, "-log")) { do_log = 1; }
+		else if (!stricmp(arg, "-mpd")) { 
+			do_mpd = 1; 
+			CHECK_NEXT_ARG 
+			outName = argv[i+1]; 
+			i++; 
+		}
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 		else if (!stricmp(arg, "-def")) opts.flags |= GF_SM_ENCODE_USE_NAMES;
 		else if (!stricmp(arg, "-sync")) {
@@ -2064,6 +2072,31 @@ int main(int argc, char **argv)
 	/*init libgpac*/
 	gf_sys_init(1);
 
+	if (do_mpd) {
+		Bool remote = 0;
+		char *mpd_base_url = gf_strdup(inName);
+		if (strcmp(inName, "http://")) {
+			e = gf_dm_wget(inName, "tmp_main.m3u8");
+			if (e != GF_OK) {
+				fprintf(stdout, "Cannot retrieve M3U8 (%s): %s\n", inName, gf_error_to_string(e));
+				gf_free(mpd_base_url);
+				return 1;
+			}
+			inName = "tmp_main.m3u8";
+			remote = 1;
+		}
+		e = gf_m3u8_to_mpd(NULL, inName, mpd_base_url, (outName ? outName : inName), 0, "video/mp2t");
+		gf_free(mpd_base_url);
+		if (remote) {
+			//gf_delete_file("tmp_main.m3u8");
+		}
+		if (e != GF_OK) {
+			fprintf(stdout, "Error converting M3U8 (%s) to MPD (%s): %s\n", inName, outName, gf_error_to_string(e));
+			return 1;
+		} else {
+			return 0;
+		}
+	}
 
 	if (do_saf && !encode) {
 		switch (get_file_type_by_ext(inName)) {

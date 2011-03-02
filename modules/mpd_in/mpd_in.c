@@ -248,7 +248,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 
     /* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
     if (MPD_isM3U8_mime(mime) || strstr(purl, ".m3u8")) {
-        gf_m3u8_to_mpd(mpdin->service, local_url, purl, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments);
+        gf_m3u8_to_mpd(mpdin->service, local_url, purl, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments);
     } else if (!MPD_is_MPD_mime(mime)) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] mime '%s' should be m3u8 or mpd\n", mime));
         gf_term_on_connect(mpdin->service, NULL, GF_BAD_PARAM);
@@ -1045,7 +1045,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     }
 
     if (is_m3u8) {
-        gf_m3u8_to_mpd(mpdin->service, local_url, url, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments);
+        gf_m3u8_to_mpd(mpdin->service, local_url, url, NULL, mpdin->reload_count, mpdin->mimeTypeForM3U8Segments);
     }
 
     if (!MPD_CheckRootType(local_url)) {
