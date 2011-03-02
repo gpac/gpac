@@ -28,7 +28,7 @@
 #include <gpac/constants.h>
 #include <gpac/xml.h>
 #include <gpac/media_tools.h>
-
+#include <gpac/internal/terminal_dev.h>
 
 typedef struct
 {
@@ -121,5 +121,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd);
 
 GF_MPD *gf_mpd_new();
 void gf_mpd_del(GF_MPD *mpd);
+
+GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const char *url, u32 reload_count, char *mimeTypeForM3U8Segments);
 
 #endif // _MPD_IN_H_

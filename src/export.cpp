@@ -1523,6 +1523,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_sys_clock) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_get_ts_clock) )
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
+
+/* M3U8 & MPD related functions */
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_new) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_from_dom) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_to_mpd) )
+
 #endif /*GPAC_DISABLE_MPEG2TS*/
 
 /*laser.h exports*/
