@@ -856,7 +856,7 @@ restart_file:
 			GF_Err query_ret;
 			fclose(m2ts->file);
 			m2ts->file = NULL;
-			param.command_type ;
+			param.command_type = GF_NET_SERVICE_QUERY_NEXT;
 			param.url_query.next_url = NULL;
 			assert(m2ts->owner);
 			assert( m2ts->owner->query_proxy);
