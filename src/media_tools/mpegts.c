@@ -1906,6 +1906,7 @@ GF_ESD *gf_m2ts_get_esd(GF_M2TS_ES *es)
 void gf_m2ts_reset_parsers(GF_M2TS_Demuxer *ts)
 {
 	u32 i;
+	ts->pck_number = 0;
 	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
 		GF_M2TS_ES *es = (GF_M2TS_ES *) ts->ess[i];
 		if (!es) continue;
