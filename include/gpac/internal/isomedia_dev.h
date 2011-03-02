@@ -1820,9 +1820,10 @@ typedef struct __sidx_box
 {
 	GF_ISOM_FULL_BOX
 
-	u32 reference_track_ID;
-	u32 nb_track_times;
-	GF_SIDXTrackTimes *tracks_times;
+	u32 reference_ID;
+	u32 timescale;
+	u64 earliest_presentation_time;
+	u64 first_offset;
 	u32 nb_refs;
 	GF_SIDXReference *refs;
 } GF_SegmentIndexBox;

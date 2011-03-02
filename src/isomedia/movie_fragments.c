@@ -695,12 +695,13 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenc
     e = gf_isom_box_write((GF_Box *) movie->brand, movie->editFileMap->bs);
     if (e) return e;
 
+	/* TODO: change code for SIDX new version */
 	/*prepare SIDX*/
 	if (referenceTrackID) {
 		sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
-		sidx->reference_track_ID = referenceTrackID;
-		sidx->nb_track_times = nb_times;
-		sidx->tracks_times = tracks_times;
+		sidx->reference_ID = referenceTrackID;
+		//sidx->nb_track_times = nb_times;
+		//sidx->tracks_times = tracks_times;
 
 		if (!frags_per_sidx) nb_subsegs = 1;
 		else {
@@ -764,8 +765,8 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, u32 frags_per_sidx, u32 referenc
 		e = gf_isom_box_write((GF_Box *) sidx, movie->editFileMap->bs);
 		gf_bs_seek(movie->editFileMap->bs, pos);
 
-		sidx->tracks_times=NULL;
-		sidx->nb_track_times=0;
+		//sidx->tracks_times=NULL;
+		//sidx->nb_track_times=0;
 		gf_isom_box_del((GF_Box*)sidx);
 	}
 	return e;

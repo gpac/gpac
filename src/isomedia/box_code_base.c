@@ -7637,7 +7637,6 @@ void sidx_del(GF_Box *s)
 {
 	GF_SegmentIndexBox *ptr = (GF_SegmentIndexBox *) s;
 	if (ptr == NULL) return;
-	if (ptr->tracks_times) gf_free(ptr->tracks_times);
 	if (ptr->refs) gf_free(ptr->refs);
 	gf_free(ptr);
 }
@@ -7649,23 +7648,22 @@ GF_Err sidx_Read(GF_Box *s,GF_BitStream *bs)
 	GF_SegmentIndexBox *ptr = (GF_SegmentIndexBox*) s;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	ptr->reference_track_ID = gf_bs_read_u32(bs);
-	ptr->nb_track_times = gf_bs_read_u16(bs);
-	ptr->nb_refs = gf_bs_read_u16(bs);
+	ptr->reference_ID = gf_bs_read_u32(bs);
+	ptr->timescale = gf_bs_read_u32(bs);
 	ptr->size -= 8;
-	ptr->tracks_times = gf_malloc(sizeof(GF_SIDXTrackTimes)*ptr->nb_track_times);
-	ptr->refs = gf_malloc(sizeof(GF_SIDXReference)*ptr->nb_refs);
-	for (i=0; i<ptr->nb_track_times; i++) {
-		ptr->tracks_times[i].track_ID = gf_bs_read_u32(bs);
+	if (ptr->version==0) {
+		ptr->earliest_presentation_time = gf_bs_read_u32(bs);
+		ptr->first_offset = gf_bs_read_u32(bs);
 		ptr->size -= 8;
-		if (ptr->version==0) {
-			ptr->tracks_times[i].decoding_time = gf_bs_read_u32(bs);
-		} else {
-			ptr->tracks_times[i].decoding_time = gf_bs_read_u64(bs);
-			ptr->size -= 4;
-		}
+	} else {
+		ptr->earliest_presentation_time = gf_bs_read_u64(bs);
+		ptr->first_offset = gf_bs_read_u64(bs);
+		ptr->size -= 16;
 	}
-
+	gf_bs_read_u16(bs); /* reserved */
+	ptr->nb_refs = gf_bs_read_u16(bs);
+	ptr->size -= 4;
+	ptr->refs = gf_malloc(sizeof(GF_SIDXReference)*ptr->nb_refs);
 	for (i=0; i<ptr->nb_refs; i++) {
 		ptr->refs[i].reference_type = gf_bs_read_int(bs, 1);
 		ptr->refs[i].reference_offset = gf_bs_read_int(bs, 31);
@@ -7700,18 +7698,17 @@ GF_Err sidx_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 
-	gf_bs_write_u32(bs, ptr->reference_track_ID);
-	gf_bs_write_u16(bs, ptr->nb_track_times);
-	gf_bs_write_u16(bs, ptr->nb_refs);
-
-	for (i=0; i<ptr->nb_track_times; i++ ) {
-		gf_bs_write_u32(bs, ptr->tracks_times[i].track_ID);
-		if (ptr->version==0) {
-			gf_bs_write_u32(bs, (u32) ptr->tracks_times[i].decoding_time);
-		} else {
-			gf_bs_write_u64(bs, ptr->tracks_times[i].decoding_time);
-		}
+	gf_bs_write_u32(bs, ptr->reference_ID);
+	gf_bs_write_u32(bs, ptr->timescale);
+	if (ptr->version==0) {
+		gf_bs_write_u32(bs, (u32) ptr->earliest_presentation_time);
+		gf_bs_write_u32(bs, (u32) ptr->first_offset);
+	} else {
+		gf_bs_write_u64(bs, ptr->earliest_presentation_time);
+		gf_bs_write_u64(bs, ptr->first_offset);
 	}
+	gf_bs_write_u16(bs, 0);
+	gf_bs_write_u16(bs, ptr->nb_refs);
 	for (i=0; i<ptr->nb_refs; i++ ) {
 		gf_bs_write_int(bs, ptr->refs[i].reference_type, 1);
 		gf_bs_write_int(bs, ptr->refs[i].reference_offset, 31);
@@ -7729,11 +7726,11 @@ GF_Err sidx_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 
-	ptr->size += 8;
+	ptr->size += 12;
 	if (ptr->version==0) {
-		ptr->size += ptr->nb_track_times * 8;
+		ptr->size += 8;
 	} else {
-		ptr->size += ptr->nb_track_times * 12;
+		ptr->size += 16;
 	}
 	ptr->size += ptr->nb_refs * 12;
 	return GF_OK;
