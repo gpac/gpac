@@ -118,6 +118,8 @@ static GF_ESD *AAC_GetESD(AACReader *read)
 	u32 i, sbr_sr_idx;
 
 	esd = gf_odf_desc_esd_new(0);
+	if (!esd)
+	  return NULL;
 	esd->decoderConfig->streamType = GF_STREAM_AUDIO;
 	esd->decoderConfig->objectTypeIndication = read->oti;
 	esd->ESID = 1;

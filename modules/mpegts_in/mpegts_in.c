@@ -856,7 +856,10 @@ restart_file:
 			GF_Err query_ret;
 			fclose(m2ts->file);
 			m2ts->file = NULL;
-			param.command_type = GF_NET_SERVICE_QUERY_NEXT;
+			param.command_type ;
+			param.url_query.next_url = NULL;
+			assert(m2ts->owner);
+			assert( m2ts->owner->query_proxy);
 			query_ret = m2ts->owner->query_proxy(m2ts->owner, &param);
 			if ((query_ret==GF_OK) && param.url_query.next_url){
 				m2ts->file = gf_f64_open(param.url_query.next_url, "rb");
@@ -866,7 +869,10 @@ restart_file:
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot open next file %s\n", param.url_query.next_url));
 				}
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: error: %s, url:%s\n", gf_error_to_string(query_ret), param.url_query.next_url));
+				if (query_ret==GF_OK){
+				  GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file since no file was provided but no error was raised\n"));
+				} else 
+				  GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: error: %s\n", gf_error_to_string(query_ret)));
 			}
 		}
 
@@ -1473,10 +1479,14 @@ GF_InputService *NewM2TSReader()
 void DeleteM2TSReader(void *ifce)
 {
 	u32 i, count;
-
+	M2TSIn *m2ts;
 	GF_InputService *plug = (GF_InputService *) ifce;
-	M2TSIn *m2ts = plug->priv;
-
+	if (!ifce)
+	  return;
+	m2ts = plug->priv;
+	if (!m2ts)
+	  return;
+	assert( m2ts->requested_progs );
 	count = gf_list_count(m2ts->requested_progs);
 	for (i = 0; i < count; i++) {
 		M2TSIn_Prog *prog = gf_list_get(m2ts->requested_progs, i);
@@ -1484,15 +1494,21 @@ void DeleteM2TSReader(void *ifce)
 		gf_free(prog);
 	}
 	gf_list_del(m2ts->requested_progs);
+	m2ts->requested_progs = NULL;
+	assert( m2ts->requested_pids );
 	count = gf_list_count(m2ts->requested_pids);
 	for (i = 0; i < count; i++) {
 		M2TSIn_Prog *prog = gf_list_get(m2ts->requested_pids, i);
 		gf_free(prog);
 	}
 	gf_list_del(m2ts->requested_pids);
+	m2ts->request_all_pids = NULL;
 	gf_m2ts_demux_del(m2ts->ts);
+	m2ts->ts = NULL;
 	gf_mx_del(m2ts->mx);
+	m2ts->mx = NULL;
 	gf_free(m2ts);
+	plug->priv = NULL;
 	gf_free(plug);
 }
 
