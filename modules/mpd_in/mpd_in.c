@@ -28,8 +28,8 @@
 #include <gpac/thread.h>
 #include <gpac/network.h>
 #include <gpac/crypt.h>
-#include "..\..\src\media_tools\mpd.h"
-#include "..\..\src\media_tools\m3u8.h"
+#include <gpac/internal/mpd.h>
+#include <gpac/internal/m3u8.h>
 
 /*!
  * All the possible Mime-types for MPD files

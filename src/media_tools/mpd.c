@@ -23,9 +23,9 @@
  *
  */
 
-#include "mpd.h"
+#include <gpac/internal/mpd.h>
 #include <gpac/download.h>
-#include "m3u8.h"
+#include <gpac/internal/m3u8.h>
 #include <gpac/network.h>
 
 static u32 gf_mpd_parse_duration(char *duration) {

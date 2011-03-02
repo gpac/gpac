@@ -25,7 +25,7 @@
 
 #define _GNU_SOURCE
 
-#include "m3u8.h"
+#include <gpac/internal/m3u8.h>
 #include <string.h>
 #include <stdio.h>
 #include <gpac/network.h>
