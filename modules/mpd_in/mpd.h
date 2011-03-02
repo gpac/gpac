@@ -47,11 +47,16 @@ typedef struct {
     char *mime;
     u32 groupID;
     Bool startWithRap;
+	/* TODO: maximumRAPPeriod */
+	/* TODO: depid*/
+	/* TODO: default rep*/
+
     u32 qualityRanking;
     char *content_protection_type;
     char *content_protection_uri;
     double alternatePlayoutRate;
     u32 default_segment_duration;
+	/*TODO: multiple views */
     char *default_base_url;
 
     /* initialization segment */
@@ -70,15 +75,22 @@ typedef struct {
 
 typedef struct {
     u32 start; /* expressed in seconds, relative to the start of the MPD */
+	u32 duration; /* TODO */
+	char *id; /* TODO */
     u8 flags;
     Bool segment_alignment_flag; /* to be merged into real flags */
     Bool bitstream_switching_flag;
 
     u32 default_segment_duration; /* milliseconds */
     char *default_base_url;
+	/* TODO: default timeline */
     char *url_template;
 
+	/* TODO: xlink:href & xlink:actuate */
+
     GF_List *representations;
+	/* TODO: representation groups */
+	/* TODO: subset */
 } GF_MPD_Period;
 
 typedef enum {
@@ -89,6 +101,7 @@ typedef enum {
 typedef struct {
     GF_MPD_Type type;
     char *base_url;
+	/* TODO: add alternate URL */
     u32 duration; /* expressed in milliseconds */
     u32 min_update_time; /* expressed in milliseconds */
     u32 min_buffer_time; /* expressed in milliseconds */
