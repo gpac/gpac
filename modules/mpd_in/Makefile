@@ -16,7 +16,7 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS=m3u8.o mpd.o mpd_in.o
+OBJS=mpd_in.o
 
 SRCS := $(OBJS:.o=.c) 
 
