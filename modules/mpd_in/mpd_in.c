@@ -31,6 +31,7 @@
 #include <gpac/internal/mpd.h>
 #include <gpac/internal/m3u8.h>
 
+
 /*!
  * All the possible Mime-types for MPD files
  */
@@ -658,7 +659,11 @@ static u32 download_segments(void *par)
     GF_MPD_Representation *rep;
     GF_MPD_SegmentInfo *seg;
     char *new_base_seg_url;
-
+    assert(mpdin);
+    if (!mpdin->mpd){
+      GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE, ("[MPD_IN] Incorrect state, no mpdin->mpd for %s, alreay stopped ?\n", mpdin->seg_local_url));
+      return 1;
+    }
     /* Setting the download status in exclusive code */
     gf_mx_p(mpdin->dl_mutex);
     mpdin->is_dl_segments = 1;

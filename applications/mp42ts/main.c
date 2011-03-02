@@ -414,6 +414,8 @@ static GF_Err encode_audio_desc(GF_ESD *esd, GF_SimpleDataDescriptor *audio_desc
 	GF_ODCodec *odc = gf_odf_codec_new();
 	GF_ODUpdate *od_com = (GF_ODUpdate*)gf_odf_com_new(GF_ODF_OD_UPDATE_TAG);
 	GF_ObjectDescriptor *od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
+	assert( esd );
+	assert( audio_desc );
 	gf_list_add(od->ESDescriptors, esd);
 	od->objectDescriptorID = AUDIO_DATA_ESID;
 	gf_list_add(od_com->objectDescriptors, od);
@@ -1131,6 +1133,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 				} else {				/*HTTP*/
 					esd = AAC_GetESD(aac_reader);		/*in case of AAC, we have to wait the first ADTS chunk*/
 				}
+				assert( esd );
 				esd->ESID = prog->streams[prog->nb_streams].stream_id;
 				if (esd->slConfig->timestampResolution) /*in case of AAC, we have to wait the first ADTS chunk*/
 					encode_audio_desc(esd, audio_desc);
