@@ -264,7 +264,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 
 	root = service->owner;
 	if (!root){
-	  GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Service %s] has not root, aborting !\n", service->url));
+	  GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Service %s] has not root, aborting !\n", service->url));
 	  return;
 	}
 	scene = root->subscene ? root->subscene : root->parentscene;
