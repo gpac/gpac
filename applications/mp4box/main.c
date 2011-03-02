@@ -97,7 +97,7 @@ void PrintLanguages();
 const char *GetLanguageCode(char *lang);
 
 #ifndef GPAC_DISABLE_MPEG2TS
-void dump_mpeg2_ts(char *mpeg2ts_in, char *pes_out_name, Bool timestamp_dump);
+void dump_mpeg2_ts(char *mpeg2ts_in, char *pes_out_name, Bool prog_num_timestamp_dump, Double duration);
 #endif 
 
 
@@ -1176,7 +1176,7 @@ int main(int argc, char **argv)
 	TSELAction tsel_acts[MAX_CUMUL_OPS];
 	u64 movie_time;
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
-	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, frags_per_sidx;
+	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, frags_per_sidx, program_number;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
 	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name;
@@ -1219,6 +1219,7 @@ int main(int argc, char **argv)
 #endif
 
 	trackID = stat_level = hint_flags = 0;
+	program_number = 0;
 	info_track_id = 0;
 	do_flat = 0;
 	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = NULL;
@@ -1362,8 +1363,13 @@ int main(int argc, char **argv)
 			fprintf(stdout, "WARNING: \"-dmp4\" is deprecated - use \"-diso\" option\n");
 		}
 		else if (!stricmp(arg, "-drtp")) dump_rtp = 1;
-		else if (!stricmp(arg, "-dts")) dump_ts = 1;
-		else if (!stricmp(arg, "-dcr")) dump_cr = 1;
+		else if (!stricmp(arg, "-dts")) {
+			dump_ts = 1;
+			if ( ((i+1<(u32) argc) && inName) || (i+2<(u32) argc) ) {
+				if (argv[i+1][0] != '-') program_number = atoi(argv[i+1]);
+				i++;
+			}
+		} else if (!stricmp(arg, "-dcr")) dump_cr = 1;
 		else if (!stricmp(arg, "-ttxt") || !stricmp(arg, "-srt")) {
 			if ((i+1<(u32) argc) && (sscanf(argv[i+1], "%u", &trackID)==1)) {
 				char szTk[20];
@@ -2317,13 +2323,17 @@ int main(int argc, char **argv)
 					}
 				}
 
-				if (dump_m2ts) {
+				if (dash_duration) {
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, pes_dump, 0);
+					dump_mpeg2_ts(inName, NULL, 0, dash_duration);
+#endif
+				} else if (dump_m2ts) {
+#ifndef GPAC_DISABLE_MPEG2TS
+					dump_mpeg2_ts(inName, pes_dump, program_number, 0);
 #endif
 				} else if (dump_ts) { /* dump_ts means dump time stamp information */
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, pes_dump, 1);
+					dump_mpeg2_ts(inName, pes_dump, program_number, 0);
 #endif
 				} else {
 					convert_file_info(inName, info_track_id);
