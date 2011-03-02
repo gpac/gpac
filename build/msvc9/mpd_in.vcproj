@@ -174,23 +174,7 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="..\..\modules\mpd_in\m3u8.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\modules\mpd_in\m3u8.h"
-			>
-		</File>
-		<File
 			RelativePath="..\..\modules\modules_export.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\..\modules\mpd_in\mpd.c"
-			>
-		</File>
-		<File
-			RelativePath="..\..\modules\mpd_in\mpd.h"
 			>
 		</File>
 		<File
