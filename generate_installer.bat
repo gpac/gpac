@@ -1,4 +1,6 @@
 @echo off
+set OLDDIR=%CD%
+cd /d %~dp0
 REM ============================================
 echo *** Generating a Windows GPAC installer ***
 REM ============================================
@@ -65,4 +67,5 @@ echo:
 echo  *** ABORTING: CHECK ERROR MESSAGES ABOVE ***
 set VarRevisionSVN=
 set VarRevisionBuild=
+cd /d %OLDDIR%
 exit/b
