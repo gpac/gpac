@@ -967,6 +967,10 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 		} else {
 			gf_sleep(1);
 		}
+		if (!m2ts->run_state){
+			gf_term_download_del( m2ts->dnload );
+			m2ts->dnload = NULL;
+		}
 
 	} else {
 		e = param->error;
