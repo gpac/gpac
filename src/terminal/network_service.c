@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -121,7 +121,7 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 			u32 i;
 			GF_ChannelSetup *cs;
 			GF_List *ODs;
-			
+
 			if (!gf_list_count(term->channels_pending)) {
 				return;
 			}
@@ -176,11 +176,11 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 /*		return;*/
 	}
 
-	/*Plays request are skiped until all channels are connected. We send a PLAY on the objecy in case 
-		1-OD user has requested a play 
+	/*Plays request are skiped until all channels are connected. We send a PLAY on the objecy in case
+		1-OD user has requested a play
 		2-this is a channel of the root OD
 	*/
-	if ( (ch->odm->mo && ch->odm->mo->num_open) 
+	if ( (ch->odm->mo && ch->odm->mo->num_open)
 		|| !ch->odm->parentscene
 	) {
 		gf_odm_start(ch->odm, 0);
@@ -230,9 +230,9 @@ static void term_on_slp_received(void *user_priv, GF_ClientService *service, LPN
 	GET_TERM();
 
 	ch = gf_term_get_channel(service, netch);
-	if (!ch) 
+	if (!ch)
 		return;
-	
+
 	if (reception_status==GF_EOS) {
 		gf_es_on_eos(ch);
 		return;
@@ -299,7 +299,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 		GF_ESD *esd;
 		GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
 		if (!mo->odm) continue;
-		/*already assigned object - this may happen since the compositor has no control on when objects are declared by the service, 
+		/*already assigned object - this may happen since the compositor has no control on when objects are declared by the service,
 		therefore opening file#video and file#audio may result in the objects being declared twice if the service doesn't
 		keep track of declared objects*/
 		if (mo->odm->OD) {
@@ -398,7 +398,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 			com->buffer.occupancy = 0;
 			return;
 		}
-		
+
 		/*browse all channels in the scene, running on this service, and get buffer info*/
 		od_list = NULL;
 		if (service->owner->subscene) {
@@ -445,7 +445,7 @@ static void term_on_command(void *user_priv, GF_ClientService *service, GF_Netwo
 		return;
 	}
 
-	
+
 	if (!com->base.on_channel) return;
 
 
@@ -569,7 +569,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	char szExt[50];
 	GF_InputService *ifce;
 	memset(szExt, 0, sizeof(szExt));
-	
+
 	(*ret_code) = GF_OK;
 	ifce = NULL;
 	mime_type = NULL;
@@ -580,7 +580,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		(*ret_code) = GF_URL_ERROR;
 		goto exit;
 	}
-	
+
 	/*used by GUIs scripts to skip URL concatenation*/
 	if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
 	else if (parent_url) sURL = gf_url_concatenate(parent_url, url);
@@ -588,7 +588,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	/*path absolute*/
 	if (!sURL) sURL = gf_strdup(url);
 
-	if (gf_url_is_local(sURL)) 
+	if (gf_url_is_local(sURL))
 		gf_url_to_fs_path(sURL);
 
 	if (no_mime_check) {
@@ -604,12 +604,12 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 			goto exit;
 		}
 	}
-	
-	if (mime_type && 
-		(!stricmp(mime_type, "text/plain") 
+
+	if (mime_type &&
+		(!stricmp(mime_type, "text/plain")
 			|| !stricmp(mime_type, "video/quicktime")
 			|| !stricmp(mime_type, "application/octet-stream")
-		) 
+		)
 	) {
 		gf_free(mime_type);
 		mime_type = NULL;
@@ -769,9 +769,9 @@ Bool gf_term_service_can_handle_url(GF_ClientService *ns, char *url)
 	return ns->ifce->CanHandleURLInService(ns->ifce, url);
 }
 
-GF_Err gf_term_service_command(GF_ClientService *ns, GF_NetworkCommand *com) 
-{ 
-	return ns->ifce->ServiceCommand(ns->ifce, com); 
+GF_Err gf_term_service_command(GF_ClientService *ns, GF_NetworkCommand *com)
+{
+	return ns->ifce->ServiceCommand(ns->ifce, com);
 }
 GF_Err gf_term_channel_get_sl_packet(GF_ClientService *ns, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
@@ -867,14 +867,24 @@ GF_DownloadSession *gf_term_download_new(GF_ClientService *service, const char *
 	GF_Err e;
 	GF_DownloadSession * sess;
 	char *sURL;
-	if (!service) return NULL;
+	if (!service){
+                 GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] service is null, cannot create new download session for %s.\n", url));
+		 return NULL;
+	}
 
 	sURL = gf_url_concatenate(service->url, url);
 	/*path was absolute*/
 	if (!sURL) sURL = gf_strdup(url);
+	assert( service->term );
 	sess = gf_dm_sess_new(service->term->downloader, sURL, flags, user_io, cbk, &e);
+	if (!sess){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] session could not be created for %s : %s. service url=%s, url=%s.\n", sURL, gf_error_to_string(e), service->url, url));
+		gf_free(sURL);
+		sURL = NULL;
+		return NULL;
+	}
 	gf_free(sURL);
-	if (!sess) return NULL;
+	sURL = NULL;
 	gf_dm_sess_set_private(sess, service);
 	gf_list_add(service->dnloads, sess);
 	return sess;
@@ -903,7 +913,7 @@ void gf_term_download_update_stats(GF_DownloadSession * sess)
 	GF_ClientService *serv;
 	const char *szURI;
 	u32 total_size, bytes_done, net_status, bytes_per_sec;
-	
+
 	if (!sess) return;
 
 	gf_dm_sess_get_stats(sess, NULL, &szURI, &total_size, &bytes_done, &bytes_per_sec, &net_status);
@@ -1039,7 +1049,7 @@ GF_Err gf_term_service_cache_load(GF_ClientService *ns)
 		if (sep) sep[0] = 0;
 		for (i=0; i<strlen(szURL); i++) {
 			switch (szURL[i]) {
-			case '/': case '\\': case '.': case ':': case '?': 
+			case '/': case '\\': case '.': case ':': case '?':
 				szURL[i] = '_';
 				break;
 			}

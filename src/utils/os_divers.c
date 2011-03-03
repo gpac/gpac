@@ -189,7 +189,7 @@ void CE_CharToWide(char *str, unsigned short *w_str)
 
 #endif
 
-GF_Err gf_delete_file(char *fileName)
+GF_Err gf_delete_file(const char *fileName)
 {
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];
@@ -204,7 +204,7 @@ GF_Err gf_delete_file(char *fileName)
 #endif
 }
 
-void gf_move_file(char *fileName, char *newFileName)
+void gf_move_file(const char *fileName, const char *newFileName)
 {
 #if defined(_WIN32_WCE)
 	TCHAR swzName[MAX_PATH];

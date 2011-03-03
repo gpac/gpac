@@ -249,6 +249,9 @@ static GF_Err gf_mpd_parse_rep_segmentinfo(GF_XMLNode *root, GF_MPD_Representati
                 if (!strcmp(child->name, "Url")) {
                     GF_MPD_SegmentInfo *seg_info;
                     GF_SAFEALLOC(seg_info, GF_MPD_SegmentInfo);
+		    if (!seg_info)
+			return GF_OUT_OF_MEM;
+                    memset(seg_info, 0, sizeof(GF_MPD_SegmentInfo));
                     seg_info->byterange_end = 0;
                     seg_info->byterange_start = 0;
                     seg_info->use_byterange = 0;
@@ -372,6 +375,8 @@ static GF_Err gf_mpd_parse_period(GF_XMLNode *root, GF_MPD_Period *period)
             } else if (!strcmp(child->name, "Representation")) {
                 GF_MPD_Representation *rep;
                 GF_SAFEALLOC(rep, GF_MPD_Representation);
+		if (!rep)
+			return GF_OUT_OF_MEM;
                 memset( rep, 0, sizeof(GF_MPD_Representation));
                 gf_mpd_parse_representation(child, rep);
                 gf_list_add(period->representations, rep);
@@ -468,7 +473,7 @@ void gf_mpd_del(GF_MPD *mpd)
             if (rep->mime) gf_free(rep->mime);
             rep->mime = NULL;
             if (rep->url_template) gf_free(rep->url_template);
-            rep->url_template = NULL;            
+            rep->url_template = NULL;
             if (rep->segments) gf_list_del(rep->segments);
             rep->segments = NULL;
             gf_free(rep);
@@ -507,10 +512,11 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd)
     mpd->periods = gf_list_new();
 
     att_index = 0;
-    while (1) {
+    child_index = gf_list_count(root->attributes);
+    for (att_index = 0 ; att_index < child_index; att_index++) {
         att = gf_list_get(root->attributes, att_index);
         if (!att) {
-            break;
+            continue;
         } else if (!strcmp(att->name, "type")) {
             if (!strcmp(att->value, "OnDemand")) mpd->type = GF_MPD_TYPE_ON_DEMAND;
             else if (!strcmp(att->value, "Live")) mpd->type = GF_MPD_TYPE_LIVE;
@@ -526,7 +532,6 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd)
             mpd->time_shift_buffer_depth = gf_mpd_parse_duration(att->value);
         } else if (!strcmp(att->name, "baseURL")) {
         }
-        att_index++;
     }
 
     child_index = 0;
@@ -540,6 +545,8 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd)
             } else if (!strcmp(child->name, "Period")) {
                 GF_MPD_Period *period;
                 GF_SAFEALLOC(period, GF_MPD_Period);
+		if (!period)
+			return GF_OUT_OF_MEM;
                 period->representations = gf_list_new();
                 gf_mpd_parse_period(child, period);
                 gf_list_add(mpd->periods, period);
@@ -550,7 +557,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd)
     return GF_OK;
 }
 
-GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const char *base_url, 
+GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const char *base_url,
 					  const char *mpd_file,
 					  u32 reload_count, char *mimeTypeForM3U8Segments)
 {
@@ -565,12 +572,15 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
 
     e = parse_root_playlist(m3u8_file, &pl, base_url);
     if (e) {
-        GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
+        GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
         if (pl) variant_playlist_del(pl);
         pl = NULL;
         return e;
     }
-    if (mpd_file == NULL) gf_delete_file((char *)m3u8_file);
+    if (mpd_file == NULL){
+	gf_delete_file(m3u8_file);
+	mpd_file = m3u8_file;
+    }
     is_end = !pl->playlistNeedsRefresh;
     i=0;
     assert( pl );
@@ -636,9 +646,15 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD Generator] Playlist will be refreshed every %g seconds, len=%d\n", update_interval, pe->durationInfo));
     }
 
+    assert( mpd_file );
     fmpd = gf_f64_open(mpd_file, "wt");
+    if (!fmpd){
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD Generator] Cannot write to temp file %s!\n", mpd_file));
+	variant_playlist_del(pl);
+	return GF_IO_ERR;
+    }
     fprintf(fmpd, "<MPD type=\"Live\" xmlns=\"urn:mpeg:mpegB:schema:DASH:MPD:DIS2011\" profiles=\"urn:mpeg:mpegB:profile:dash:full:2011\"");
-    if (update_interval) fprintf(fmpd, "minimumUpdatePeriodMPD=\"PT%02.2gS\"", update_interval);
+    if (update_interval) fprintf(fmpd, " minimumUpdatePeriodMPD=\"PT%02.2gS\"", update_interval);
     fprintf(fmpd, ">\n");
 
     fprintf(fmpd, " <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n");
@@ -672,13 +688,14 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
 					pe->codecs[len-2] = 0;
 				}
 				fprintf(fmpd, "  <Representation mimeType=\"%s%s%s\" bandwidth=\"%d\">\n", mimeTypeForM3U8Segments, (pe->codecs ? ";codecs=":""), (pe->codecs ? pe->codecs:""), pe->bandwidth);
-                fprintf(fmpd, "   <SegmentInfo duration=\"PT%dS\" baseURL=\"%s\">\n", pe->durationInfo, base_url);
+
+                fprintf(fmpd, "\n   <SegmentInfo duration=\"PT%dS\" baseURL=\"%s\">\n", pe->durationInfo, base_url);
                 count3 = gf_list_count(pe->element.playlist.elements);
                 update_interval = (count3 - 1) * pe->durationInfo * 1000;
                 for (k=0; k<count3; k++) {
 					u32 cmp = 0;
                     PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
-					while (base_url[cmp] == elt->url[cmp]) cmp++;					
+					while (base_url[cmp] == elt->url[cmp]) cmp++;
                     fprintf(fmpd, "    <Url sourceURL=\"%s\"/>\n", elt->url+cmp);
                 }
                 fprintf(fmpd, "   </SegmentInfo>\n");

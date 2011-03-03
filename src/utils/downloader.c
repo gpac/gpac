@@ -469,8 +469,8 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
 void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
     if (sess && sess->cache_entry) {
         gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
-        if (sess->dm 
-			/*JLF - not sure what the rationale of this test is, and it prevents cleanup of cache entry 
+        if (sess->dm
+			/*JLF - not sure what the rationale of this test is, and it prevents cleanup of cache entry
 			which then results to crash when restarting the session (entry->writeFilePtr i snot set back to NULL)*/
 			&& gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry)
 			&& (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)))
@@ -704,52 +704,79 @@ void gf_dm_url_info_del(GF_URL_Info * info) {
     gf_dm_url_info_init(info);
 }
 
-GF_EXPORT
-GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * baseURL) {
-    char *tmp, *tmp_url, *current_pos;
-    char * copyOfUrl;
-    gf_dm_url_info_del(info);
-
-    if (!strnicmp(url, "http://", 7)) {
-        url += 7;
+/**
+ * \param url The url to parse for protocol
+ * \param info The info to fill
+ * \return Returns the offset in url of the protocol found -1 if not found
+ */
+static s32 gf_dm_parse_protocol(const char * url, GF_URL_Info * info){
+  assert(info);
+  assert(url);
+  if (!strnicmp(url, "http://", 7)) {
         info->port = 80;
         info->protocol = "http://";
+        return 7;
     }
     else if (!strnicmp(url, "https://", 8)) {
-        url += 8;
         info->port = 443;
 #ifndef GPAC_HAS_SSL
-        return GF_NOT_SUPPORTED;
+        return -1;
 #endif
         info->protocol = "https://";
+        return 8;
     }
     else if (!strnicmp(url, "ftp://", 6)) {
-        url += 6;
         info->port = 21;
         info->protocol = "ftp://";
-        return GF_NOT_SUPPORTED;
+        return -1;
     }
-    /*relative URL*/
-    else if (!strstr(url, "://")) {
-        u32 i;
-        info->protocol = "file:/";
-        if (!baseURL)
-            return GF_BAD_PARAM;
-        tmp = gf_url_concatenate(baseURL, url);
-	assert( ! info->remotePath );
-        info->remotePath = gf_url_percent_encode(tmp);
-        gf_free( tmp );
-        tmp = NULL;
-        for (i=0; i<strlen(info->remotePath); i++)
-            if (info->remotePath[i]=='\\') info->remotePath[i]='/';
-        info->canonicalRepresentation = gf_malloc(strlen(info->protocol) + strlen(info->remotePath) + 1);
-        strcpy(info->canonicalRepresentation, info->protocol);
-        strcat(info->canonicalRepresentation, info->remotePath);
-        return GF_OK;
-    } else {
-        return GF_BAD_PARAM;
-    }
+    return -1;
+}
 
+GF_EXPORT
+GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * baseURL) {
+    char *tmp, *tmp_url, *current_pos, *urlConcatenateWithBaseURL;
+    char * copyOfUrl;
+    s32 proto_offset;
+    gf_dm_url_info_del(info);
+    urlConcatenateWithBaseURL = NULL;
+    proto_offset = gf_dm_parse_protocol(url, info);
+    if (proto_offset > 0){
+      url += proto_offset;
+    } else {
+      /*relative URL*/
+      if (!strstr(url, "://")) {
+          u32 i;
+          info->protocol = "file:/";
+          if (baseURL){
+            urlConcatenateWithBaseURL = gf_url_concatenate(baseURL, url);
+            proto_offset = gf_dm_parse_protocol(urlConcatenateWithBaseURL, info);
+          } else
+            proto_offset = -1;
+          if (proto_offset < 0){
+            tmp = urlConcatenateWithBaseURL;
+            assert( ! info->remotePath );
+            info->remotePath = gf_url_percent_encode(tmp);
+            gf_free( urlConcatenateWithBaseURL );
+            urlConcatenateWithBaseURL = NULL;
+            for (i=0; i<strlen(info->remotePath); i++)
+                if (info->remotePath[i]=='\\') info->remotePath[i]='/';
+            info->canonicalRepresentation = gf_malloc(strlen(info->protocol) + strlen(info->remotePath) + 1);
+            strcpy(info->canonicalRepresentation, info->protocol);
+            strcat(info->canonicalRepresentation, info->remotePath);
+            if (urlConcatenateWithBaseURL)
+              gf_free(urlConcatenateWithBaseURL);
+            return GF_OK;
+          } else {
+            /* We continue the parsing as usual */
+            url = urlConcatenateWithBaseURL + proto_offset;
+          }
+      } else {
+          GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[PROTOCOL] : cannot find any protocol in url %s\n", url));
+          return GF_BAD_PARAM;
+      }
+    }
+    assert( proto_offset >= 0 );
     tmp = strchr(url, '/');
     assert( !info->remotePath );
     info->remotePath = gf_url_percent_encode(tmp ? tmp : "/");
@@ -802,6 +829,8 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
         strcat(info->canonicalRepresentation, info->remotePath);
     }
     gf_free(copyOfUrl);
+    if (urlConcatenateWithBaseURL)
+      gf_free(urlConcatenateWithBaseURL);
     return GF_OK;
 }
 
@@ -896,7 +925,10 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 {
     GF_DownloadSession *sess;
     GF_SAFEALLOC(sess, GF_DownloadSession);
-	if (!sess) return NULL;
+    if (!sess){
+	 GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("%s:%d Cannot allocate session for URL %s: OUT OF MEMORY!\n", __FILE__, __LINE__, url));
+	 return NULL;
+    }
     sess->flags = dl_flags;
 	if (dm && !dm->head_timeout) sess->server_only_understand_get = 1;
     sess->user_proc = user_io;
@@ -911,6 +943,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
         gf_dm_sess_del(sess);
         return NULL;
     }
+    assert( sess );
     if (!(sess->flags & GF_NETIO_SESSION_NOT_THREADED) ) {
         sess->th = gf_th_new(url);
         sess->mx = gf_mx_new(url);
@@ -2438,7 +2471,7 @@ GF_Err gf_dm_wget(const char *url, const char *filename){
     dm = gf_dm_new(NULL);
     if (!dm)
         return GF_OUT_OF_MEM;
-    e = gf_dm_wget_with_cache(dm, url, filename);    
+    e = gf_dm_wget_with_cache(dm, url, filename);
     gf_dm_del(dm);
     return e;
 }

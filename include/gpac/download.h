@@ -366,14 +366,23 @@ extern "C" {
     const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload);
 
     /*!
-     *\brief Download a file over the network using a download manager
-     *\param dm The downlaod manager to use, function will use all associated cache ressources
-     *\param url The url to download
-     *\param filename The filename to download
-     *\return GF_OK if everything went fine, an error otherwise
+     * \brief Download a file over the network using a download manager
+     * \param dm The downlaod manager to use, function will use all associated cache ressources
+     * \param url The url to download
+     * \param filename The filename to download
+     * \return GF_OK if everything went fine, an error otherwise
      */
     GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm,
                                 const char *url, const char *filename);
+
+    /*!
+     * \brief Same as gf_dm_wget_with_cache, but initializes the GF_DownloadManager by itself.
+     * This function is deprecated, please use gf_dm_wget_with_cache instead
+     * \param url The url to download
+     * \param filename The filename to download
+     * \return GF_OK if everything went fine, an error otherwise
+     */
+    GF_Err gf_dm_wget(const char *url, const char *filename);
 
     /*!
      *\brief Reset session
