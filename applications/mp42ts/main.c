@@ -1572,11 +1572,9 @@ int main(int argc, char **argv)
 	/*****************/
 	/*   gpac init   */
 	/*****************/
-	gf_sys_init(1);
-	//gf_log_set_level(GF_LOG_ERROR);
-	//gf_log_set_tools(0xFFFFFFFF);
-	gf_log_set_level(GF_LOG_INFO);
-	gf_log_set_tools(GF_LOG_MEMORY);
+	gf_sys_init(0);
+	gf_log_set_level(GF_LOG_ERROR);
+	gf_log_set_tools(0xFFFFFFFF);
 
 	/***********************/
 	/*   initialisations   */
@@ -1931,6 +1929,5 @@ exit:
 		if (progs[i].th) gf_th_del(progs[i].th);
 	}
 	gf_sys_close();
-	gf_memory_print();
 	return 1;
 }
