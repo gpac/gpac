@@ -204,6 +204,7 @@ void MPD_NetIO(void *cbk, GF_NETIO_Parameter *param)
     e = param->error;
 }
 
+GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession ** sess, const char *url, gf_dm_user_io user_io,  void *usr_cbk);
 static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
 {
     GF_Err e;
