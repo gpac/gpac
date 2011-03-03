@@ -598,6 +598,7 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
                     gf_term_download_del(sess);
                     gf_free(suburl);
 				} else { /* for use in MP4Box */
+					extern GF_Err gf_dm_wget(const char *url, const char *filename);
 					e = gf_dm_wget(suburl, "tmp.m3u8");
                     if (e==GF_OK) {
                         e = parse_sub_playlist("tmp.m3u8", &pl, suburl, prog, pe);
@@ -662,7 +663,7 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
             PlaylistElement *pe = gf_list_get(prog->bitrates, j);
             if (pe->elementType == TYPE_PLAYLIST) {
                 u32 k, count3;
-				char *base_url = strdup(pe->url);
+				char *base_url = gf_strdup(pe->url);
 				char *sep = strrchr(base_url, '/');
 				if (sep) *(sep+1) = 0;
 				if (pe->codecs && (pe->codecs[0] = '\"')) {
@@ -682,7 +683,7 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
                 }
                 fprintf(fmpd, "   </SegmentInfo>\n");
                 fprintf(fmpd, "  </Representation>\n");
-				free(base_url);
+				gf_free(base_url);
             } else if (pe->elementType == TYPE_STREAM) {
                 fprintf(stdout, "NOT SUPPORTED: M3U8 Stream\n");
             }
