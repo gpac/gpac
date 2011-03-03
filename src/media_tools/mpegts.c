@@ -406,7 +406,7 @@ static void gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 		pck.data_len = hdr.frame_size - hdr_size;
 
 		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-		sc_pos += hdr.frame_size; 
+		sc_pos += hdr.frame_size;
 		start = sc_pos;
 		/*update PTS in case we don't get any update*/
 		if (pes->aud_sr) {
@@ -1127,7 +1127,7 @@ static void gf_m2ts_process_mpeg4section(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES
 	GF_M2TS_Section *section;
 
 	/*skip if already received*/
-	if (status & GF_M2TS_TABLE_REPEAT) 
+	if (status & GF_M2TS_TABLE_REPEAT)
 		if (!(es->flags & GF_M2TS_ES_SEND_REPEATED_SECTIONS))
 			return;
 
@@ -1345,7 +1345,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					pes->sub.type = data[5];
 					pes->sub.composition_page_id = (data[6]<<8) | data[7];
 					pes->sub.ancillary_page_id = (data[8]<<8) | data[9];
-					
+
 					es->stream_type = GF_M2TS_DVB_SUBTITLE;
 					break;
 				case GF_M2TS_DVB_STREAM_IDENTIFIER_DESCRIPTOR:
@@ -1360,7 +1360,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				case GF_M2TS_DVB_VBI_DATA_DESCRIPTOR:
 					es->stream_type = GF_M2TS_DVB_VBI;
 					break;
-					
+
 				default:
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] skipping descriptor (0x%x) not supported\n", tag));
 					break;
@@ -1597,7 +1597,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 
 				/*OK read header*/
 				gf_m2ts_pes_header(pes, pes->data+3, pes->data_len-3, &pesh);
-				{					
+				{
 					GF_M2TS_PES_PCK pck;
 					memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
 					pck.PTS = pesh.PTS;
@@ -1611,7 +1611,7 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Got PES header PTS %d\n", pes->pid, pesh.PTS));
 				/*3-byte start-code + 6 bytes header + hdr extensions*/
 				len = 9 + pesh.hdr_data_len;
-				if (pes->reframe) 
+				if (pes->reframe)
 					pes->reframe(ts, pes, pesh.DTS, pesh.PTS, pes->data+len, pes->data_len-len);
 			}
 			/*SL-packetized stream*/

@@ -495,7 +495,7 @@ static void MP2TS_SetupProgram(M2TSIn *m2ts, GF_M2TS_Program *prog, Bool regener
 		if (!es->user)
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_SKIP);
 
-		if (!prog->pmt_iod && !no_declare) { 
+		if (!prog->pmt_iod && !no_declare) {
 			MP2TS_DeclareStream(m2ts, (GF_M2TS_PES *)es, NULL, 0);
 		} else if (force_declare_ods) {
 			if ((es->stream_type!=GF_M2TS_SYSTEMS_MPEG4_PES) && (es->stream_type!=GF_M2TS_SYSTEMS_MPEG4_SECTIONS)) {
@@ -535,7 +535,7 @@ static GFINLINE void MP2TS_SendSLPacket(M2TSIn *m2ts, GF_M2TS_SL_PCK *pck)
 {
 	GF_SLHeader SLHeader, *slh = NULL;
 	u32 SLHdrLen = 0;
-	
+
 	/*build a SL Header*/
 	if (((GF_M2TS_ES*)pck->stream)->slcfg) {
 		gf_sl_depacketize(((GF_M2TS_ES*)pck->stream)->slcfg, &SLHeader, pck->data, pck->data_len, &SLHdrLen);
@@ -727,7 +727,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 					com.command_type = GF_NET_BUFFER_QUERY;
 					while (m2ts->run_state) {
 						gf_term_on_command(m2ts->service, &com, GF_OK);
-						if (com.buffer.occupancy < M2TS_BUFFER_MAX) 
+						if (com.buffer.occupancy < M2TS_BUFFER_MAX)
 							break;
 						/*We don't sleep for the entire buffer occupancy, because we would take
 						the risk of starving the audio chains. We try to keep buffers half full*/
@@ -834,7 +834,7 @@ restart_file:
 			size = fread(data, 1, 188, m2ts->file);
 			if (!size) break;
 			if (size != 188){
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] %u bytes read from file instead of 188.\n", size));	
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] %u bytes read from file instead of 188.\n", size));
 			}
 			/*process chunk*/
 			gf_m2ts_process_data(m2ts->ts, data, size);
@@ -871,7 +871,7 @@ restart_file:
 			} else {
 				if (query_ret==GF_OK){
 				  GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file since no file was provided but no error was raised\n"));
-				} else 
+				} else
 				  GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TS In] Cannot query next file: error: %s\n", gf_error_to_string(query_ret)));
 			}
 		}
@@ -947,7 +947,7 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 {
 	GF_Err e;
 	M2TSIn *m2ts = (M2TSIn *) cbk;
-	
+        assert( m2ts );
 	/*handle service message*/
 	gf_term_download_update_stats(m2ts->dnload);
 
@@ -955,8 +955,12 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 		e = GF_EOS;
 	} else if (param->msg_type==GF_NETIO_DATA_EXCHANGE) {
 		e = GF_OK;
-		/*process chunk*/
-		gf_m2ts_process_data(m2ts->ts, param->data, param->size);
+                assert( m2ts->ts);
+                if (param->size > 0){
+                  /*process chunk*/
+                  assert(param->data);
+                  gf_m2ts_process_data(m2ts->ts, param->data, param->size);
+                }
 
 		/*if asked to regulate, wait until we get a play request*/
 		if (m2ts->run_state && !m2ts->nb_playing && m2ts->file_regulate) {
@@ -968,7 +972,8 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
 			gf_sleep(1);
 		}
 		if (!m2ts->run_state){
-			gf_term_download_del( m2ts->dnload );
+                        if (m2ts->dnload)
+                          gf_term_download_del( m2ts->dnload );
 			m2ts->dnload = NULL;
 		}
 
@@ -1162,7 +1167,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	}
 #endif
 	else if (!strnicmp(url, "http://", 7)) {
-	  
+
 		m2ts->dnload = gf_term_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, m2ts_net_io, m2ts);
 		if (!m2ts->dnload) gf_term_on_connect(m2ts->service, NULL, GF_NOT_SUPPORTED);
 		else {
@@ -1520,7 +1525,7 @@ void DeleteM2TSReader(void *ifce)
 
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #ifndef GPAC_DISABLE_MPEG2TS
@@ -1528,7 +1533,7 @@ const u32 *QueryInterfaces()
 #endif
 		0
 	};
-	return si; 
+	return si;
 }
 
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
