@@ -1137,6 +1137,8 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 				esd->ESID = prog->streams[prog->nb_streams].stream_id;
 				if (esd->slConfig->timestampResolution) /*in case of AAC, we have to wait the first ADTS chunk*/
 					encode_audio_desc(esd, audio_desc);
+				else
+					gf_odf_desc_del((GF_Descriptor *)esd);
 
 				/*find the audio OD stream and attach its descriptor*/
 				for (i=0; i<prog->nb_streams; i++) {
@@ -1298,15 +1300,15 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 					default:
 						assert(0);
 				}
-			} else if (!strnicmp(arg, "-mpeg4", 6)) {
-				if (mpeg4_found) {
-					error_msg = "multiple '-mpeg4' found";
-					arg = NULL;
-					goto error;
-				}
-				mpeg4_found = 1;
-				mpeg4_signaling = 1;
 			}
+		} else if (!strnicmp(arg, "-mpeg4", 6)) {
+			if (mpeg4_found) {
+				error_msg = "multiple '-mpeg4' found";
+				arg = NULL;
+				goto error;
+			}
+			mpeg4_found = 1;
+			mpeg4_signaling = 1;
 		}
 	}
 	/*second pass: other*/
@@ -1464,21 +1466,23 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 		}
 #endif
 	}
-	
-	/*testing the only mandatory argument*/
-	if (dst_found && prog_found && rate_found)
+
+	/*syntax is correct; now testing the presence of mandatory arguments*/
+	if (dst_found && prog_found && rate_found) {
 		return GF_OK;
+	} else {
+		if (!dst_found)
+			fprintf(stderr, "Error: Destination argument not found\n\n");
+		if (!prog_found)
+			fprintf(stderr, "Error: Input Program argument not found\n\n");
+		if (!rate_found)
+			fprintf(stderr, "Error: Rate argument not found\n\n");
+	}
 
 error:	
 	if (!arg) {
 		fprintf(stderr, "Error: %s\n\n", error_msg);
-	} else if(!dst_found){
-		fprintf(stderr, "Error: Destination argument not found\n\n");
-	}else if(!prog_found){
-		fprintf(stderr, "Error: Input Program argument not found\n\n");
-	}else if(!rate_found) {
-		fprintf(stderr, "Error: Rate argument not found\n\n");
-	}else{
+	} else {
 		fprintf(stderr, "Error: %s \"%s\"\n\n", error_msg, arg);
 	}
 	return GF_BAD_PARAM;
@@ -1568,11 +1572,11 @@ int main(int argc, char **argv)
 	/*****************/
 	/*   gpac init   */
 	/*****************/
-	gf_sys_init(0);
-	gf_log_set_level(GF_LOG_ERROR);
-	gf_log_set_tools(0xFFFFFFFF);
-	//gf_log_set_level(GF_LOG_INFO);
-	//gf_log_set_tools(GF_LOG_MEMORY);
+	gf_sys_init(1);
+	//gf_log_set_level(GF_LOG_ERROR);
+	//gf_log_set_tools(0xFFFFFFFF);
+	gf_log_set_level(GF_LOG_INFO);
+	gf_log_set_tools(GF_LOG_MEMORY);
 
 	/***********************/
 	/*   initialisations   */
@@ -1906,9 +1910,8 @@ exit:
 	if (video_buffer) gf_free(video_buffer);
 	if (udp_out) gf_free(udp_out);
 	if (rtp_out) gf_free(rtp_out);
+	if (aac_reader) AAC_Reader_del(aac_reader);
 	if (muxer) gf_m2ts_mux_del(muxer);
-	if (aac_reader)
-	  AAC_Reader_del(aac_reader);
 	
 	for (i=0; i<nb_progs; i++) {
 		for (j=0; j<progs[i].nb_streams; j++) {
@@ -1928,5 +1931,6 @@ exit:
 		if (progs[i].th) gf_th_del(progs[i].th);
 	}
 	gf_sys_close();
+	gf_memory_print();
 	return 1;
 }

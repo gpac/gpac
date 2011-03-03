@@ -836,7 +836,7 @@ typedef struct __m2ts_mux_stream {
 	u32 mpeg2_stream_type;
 	u32 mpeg2_stream_id;
 
-	GF_ESIPacket pck;
+	GF_ESIPacket curr_pck; /*current packet being processed - does not belong to the packet fifo*/
 	u32 pck_offset;
 	Bool force_new;
 	Bool discard_data;
