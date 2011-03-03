@@ -24,6 +24,7 @@
 
 
 #include <gpac/scene_manager.h>
+#include <gpac/download.h>
 
 #ifdef GPAC_DISABLE_ISOM
 

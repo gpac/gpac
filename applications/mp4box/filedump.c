@@ -1997,7 +1997,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double
 
 	if (prog_num) {
 		dumper.prog_number = prog_num;
-		sprintf(dumper.timestamps_info_name, "%s_prog_%d_timestamps.txt", mpeg2ts_file, prog_num, mpeg2ts_file);
+		sprintf(dumper.timestamps_info_name, "%s_prog_%d_timestamps.txt", mpeg2ts_file, prog_num/*, mpeg2ts_file*/);
 		dumper.timestamps_info_file = gf_f64_open(dumper.timestamps_info_name, "wt");
 		fprintf(dumper.timestamps_info_file, "PCK#\tPID\tPCR\tDTS\tPTS\tRAP\tDiscontinuity\n");
 	}

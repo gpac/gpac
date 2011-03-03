@@ -490,8 +490,11 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession ** 
     }
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Downloading %s...\n", url));
     *sess = gf_term_download_new(service, url, GF_NETIO_SESSION_NOT_THREADED, user_io, usr_cbk);
-    if (!(*sess))
+    if (!(*sess)){
+	assert(0);
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Cannot try to download %s... OUT of memory ?\n", url));
         return GF_OUT_OF_MEM;
+    }
     e = gf_dm_sess_process(*sess);
     switch (e) {
     case GF_IP_CONNECTION_FAILURE:
@@ -501,8 +504,10 @@ GF_Err MPD_downloadWithRetry( GF_ClientService * service, GF_DownloadSession ** 
         GF_LOG(GF_LOG_WARNING, GF_LOG_MODULE,
                ("[MPD_IN] failed to download, retrying once with %s...\n", url));
         *sess = gf_term_download_new(service, url, GF_NETIO_SESSION_NOT_THREADED, user_io, usr_cbk);
-        if (!(*sess))
+        if (!(*sess)){
+	    GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Cannot retry to download %s... OUT of memory ?\n", url));
             return GF_OUT_OF_MEM;
+        }
         e = gf_dm_sess_process(*sess);
         if (e != GF_OK) {
             GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE,
@@ -531,6 +536,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
     if (!mpdin || !period)
         return GF_BAD_PARAM;
     gf_mx_p(mpdin->dl_mutex);
+    assert( period->representations );
     rep = gf_list_get(period->representations, mpdin->active_rep_index);
     if (!rep) {
         gf_mx_v(mpdin->dl_mutex);
@@ -738,7 +744,7 @@ static u32 download_segments(void *par)
                     continue;
                 } else {
                     /* if not, we are really at the end of the playlist, we can quit */
-                    GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] End of playlist reached... downloading remaining elements..."));
+                    GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] End of playlist reached... downloading remaining elements..."));
                     break;
                 }
             }
