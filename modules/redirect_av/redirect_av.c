@@ -743,6 +743,11 @@ void avr_delete ( GF_BaseInterface *ifce )
     avr->pcmAudio = NULL;
     gf_global_resource_unlock(avr->globalLock);
     avr->globalLock = NULL;
+    if (avr->audioEncodingThread){
+	gf_th_stop(avr->audioEncodingThread);
+    	gf_th_del(avr->audioEncodingThread);
+    }
+    avr->audioEncodingThread = NULL;
     gf_free ( avr );
     gf_free ( dr );
 }
