@@ -200,7 +200,7 @@ GF_Err gf_sk_set_block_mode(GF_Socket *sock, Bool NonBlockingOn);
  *\param local_ip the local interface IP address if desired. If NULL, the default interface will be used.
  *\param sock the socket object
  *\param port port number to bind this socket to
- *\param peer_name the remote server address
+ *\param peer_name the remote server address, if NULL, will use localhost
  *\param peer_port remote port number to connect the socket to
  *\param options list of option for the bind operation.
  */
