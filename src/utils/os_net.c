@@ -618,7 +618,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 	
 #ifndef WIN32	
 	if(!local_ip){
-		if(!strcmp(peer_name,"localhost")){
+		if(!peer_name || !strcmp(peer_name,"localhost")){
 			peer_name="127.0.0.1";	
 		}
 	}
