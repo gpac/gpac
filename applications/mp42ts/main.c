@@ -1687,6 +1687,7 @@ int main(int argc, char **argv)
 	if (rtp_out != NULL) {
 		ts_output_rtp = gf_rtp_new();
 		gf_rtp_set_ports(ts_output_rtp, output_port);
+		memset(&tr, 0, sizeof(GF_RTSPTransport));
 		tr.IsUnicast = gf_sk_is_multicast_address((char *)rtp_out) ? 0 : 1;
 		tr.Profile="RTP/AVP";
 		tr.destination = (char *)rtp_out;
@@ -1702,14 +1703,14 @@ int main(int argc, char **argv)
 		} else {
 			tr.source = (char *)rtp_out;
 		}
-		res = gf_rtp_setup_transport(ts_output_rtp, &tr, (char *)ts_out);
-		if (res !=0) {
-			fprintf(stderr, "Cannot setup RTP transport info\n");
+		e = gf_rtp_setup_transport(ts_output_rtp, &tr, (char *)ts_out);
+		if (e != GF_OK) {
+			fprintf(stderr, "Cannot setup RTP transport info : %s\n", gf_error_to_string(e));
 			goto exit;
 		}
-		res = gf_rtp_initialize(ts_output_rtp, 0, 1, 1500, 0, 0, NULL);
-		if (res !=0) {
-			fprintf(stderr, "Cannot initialize RTP sockets\n");
+		e = gf_rtp_initialize(ts_output_rtp, 0, 1, 1500, 0, 0, NULL);
+		if (e != GF_OK) {
+			fprintf(stderr, "Cannot initialize RTP sockets : %s\n", gf_error_to_string(e));
 			goto exit;
 		}
 		memset(&hdr, 0, sizeof(GF_RTPHeader));
