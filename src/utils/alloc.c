@@ -223,7 +223,7 @@ void *gf_mem_malloc_tracker(size_t size, char *filename, int line)
 	} else {
 		register_address(ptr, size, filename, line);
 	}
-	gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] malloc %3d bytes at 0x%08X in file %s at line %d\n", size, ptr, filename, line);
+	gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] malloc %3d bytes at 0x%08X\n             in file %s at line %d\n", size, ptr, filename, line);
 	return ptr;
 }
 
@@ -237,7 +237,7 @@ void *gf_mem_calloc_tracker(size_t num, size_t size_of, char *filename, int line
 	} else {
 		register_address(ptr, size, filename, line);
 	}
-	gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] calloc %3d bytes at 0x%08X in file %s at line %d\n", size, ptr, filename, line);
+	gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] calloc %3d bytes at 0x%08X\n             in file %s at line %d\n", size, ptr, filename, line);
 	return ptr;
 }
 
@@ -245,7 +245,7 @@ void gf_mem_free_tracker(void *ptr, char *filename, int line)
 {
 	int size_prev;
 	if (ptr && (size_prev=unregister_address(ptr, filename, line))) {
-		gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] free   %3d bytes at 0x%08X in file %s at line %d\n", size_prev, ptr, filename, line);
+		gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] free   %3d bytes at 0x%08X\n             in file %s at line %d\n", size_prev, ptr, filename, line);
 		FREE(ptr);
 	}
 }
@@ -272,7 +272,7 @@ void *gf_mem_realloc_tracker(void *ptr, size_t size, char *filename, int line)
 	} else {
 		size_prev = unregister_address(ptr, filename, line);
 		register_address(ptr_g, size, filename, line);
-		gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] realloc %3d (instead of %3d) bytes at 0x%08X in file %s at line %d\n", size, size_prev, ptr, filename, line);
+		gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] realloc %3d (instead of %3d) bytes at 0x%08X (instead of 0x%08X)\n             in file %s at line %d\n", size, size_prev, ptr_g, ptr, filename, line);
 	}
 	return ptr_g;
 }
@@ -568,7 +568,7 @@ static int unregister_address(void *ptr, char *filename, int line)
 				for (i=1; i<pos; i++)
 					element = element->next;
 				assert(element);
-				gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block 0x%08X trying to be deleted line%5d from %s\n             has already been freed line%5d from %s\n", ptr, line, filename, element->line, element->filename);
+				gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block 0x%08X trying to be deleted\n             in file %s at line %d\n             has already been freed\n             in file %s at line %d\n", ptr, filename, line, element->filename, element->line);
 				assert(0);
 			}
 		} else {
@@ -620,7 +620,8 @@ static void gf_memory_log(unsigned int level, const char *fmt, ...)
 /*prints allocations sum-up*/
 void gf_memory_size()
 {
-	gf_memory_log(GF_MEMORY_INFO, "[MemTracker] Total: %d bytes allocated on %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
+	unsigned int level = gpac_nb_alloc_blocs ? GF_MEMORY_WARNING : GF_MEMORY_INFO;
+	gf_memory_log(level, "[MemTracker] Total: %d bytes allocated on %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
 }
 
 /*prints the state of current allocations*/
@@ -647,7 +648,7 @@ void gf_memory_print()
 #endif
 			while (curr_element) {
 				next_element = curr_element->next;
-				gf_memory_log(GF_MEMORY_INFO, "[MemTracker] Memory Block 0x%08X (size %d)\n             allocated line%5d from %s\n", curr_element->ptr, curr_element->size, curr_element->line, curr_element->filename);
+				gf_memory_log(GF_MEMORY_INFO, "[MemTracker] Memory Block 0x%08X (size %d) allocated\n             in file %s at line %d\n", curr_element->ptr, curr_element->size, curr_element->filename, curr_element->line);
 				curr_element = next_element;
 			}
 		}

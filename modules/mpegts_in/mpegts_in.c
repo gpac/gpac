@@ -1511,7 +1511,7 @@ void DeleteM2TSReader(void *ifce)
 		gf_free(prog);
 	}
 	gf_list_del(m2ts->requested_pids);
-	m2ts->request_all_pids = NULL;
+	m2ts->request_all_pids = 0;
 	gf_m2ts_demux_del(m2ts->ts);
 	m2ts->ts = NULL;
 	gf_mx_del(m2ts->mx);
