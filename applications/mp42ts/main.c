@@ -36,32 +36,31 @@
 #define MP42TS_PRINT_FREQ 634 /*refresh printed info every CLOCK_REFRESH ms*/
 #define MP42TS_VIDEO_FREQ 1000 /*meant to send AVC IDR only every CLOCK_REFRESH ms*/
 
-static GFINLINE void usage() 
+static GFINLINE void usage(const char * progname) 
 {
-	fprintf(stderr, "usage: mp42ts {rate {prog}*} [audio] [mpeg4-carousel] [mpeg4] [time] [src] [segment-options] dst\n"
+	fprintf(stderr, "USAGE: %s -rate=R [[-prog=prog1]..[-prog=progn]] [-audio=url] [-video=url] [-mpeg4-carousel=n] [-mpeg4] [-time=n] [-src=file] DST [[DST]]\n"
 					"\n"
-					"-rate=R                specifies target rate in kbps of the multiplex\n"
-					"                        If not set transport stream will be of variable bitrate\n"
-					"-prog=filename         specifies an input file used for a TS service\n"
-					"                        * currently only supports ISO files and SDP files\n"
-					"                        * can be used several times, once for each program\n"
-					"-audio=url             may be mp3/udp or aac/http\n"
-					"-video=url             shall be raw h264\n"
-					"-mpeg4-carousel=n      carousel period in ms\n"
-                    "-mpeg4                 forces usage of MPEG-4 signaling (IOD and SL Config)\n"
-					"-time=n                request the program to stop after n ms\n"
-					"-src=filename          update file: must be either an .sdp or a .bt file\n"
-					"\n"
-					"-dst-udp               \\\n"
-					"-dst-file               } unicast/multicast destination\n"
-					"-dst-rtp               /\n"
-					"\n"
-					"-segment-dir=dir       server local address to store segments\n"
-					"-segment-duration=dur  segment duration in seconds\n"
-					"-segment-manifest=file m3u8 file basename\n"
-					"-segment-http-prefix=p client address for accessing server segments\n"
-					"-segment-number=n      only n segments are used using a cyclic pattern\n"
-					"\n"
+					"\t-rate=R                specifies target rate in kbps of the multiplex (mandatory)\n"
+					/* "\t                        If not set transport stream will be of variable bitrate\n" */
+					"\t-prog=filename         specifies an input file used for a TS service\n"
+					"\t                        * currently only supports ISO files and SDP files\n"
+					"\t                        * can be used several times, once for each program\n"
+					"\t-audio=url             may be mp3/udp or aac/http (shoutcast/icecast)\n"
+					"\t-video=url             shall be raw h264\n"
+					"\t-mpeg4-carousel=n      carousel period in ms\n"
+                    			"\t-mpeg4                 forces usage of MPEG-4 signaling (IOD and SL Config)\n"
+					"\t-time=n                request the program to stop after n ms\n"
+					"\t-src=filename          update file: must be either an .sdp or a .bt file\n\n"
+					"\tDST : Destinations, at least one is mandatory\n"
+					"\t  -dst-udp             UDP_address:port (multicast or unicast)\n"
+					"\t  -dst-rtp             RTP_address:port\n"
+					"\t  -dst-file            Supports the following arguments:\n"
+					"\t     -segment-dir=dir       server local directory to store segments\n"
+					"\t     -segment-duration=dur  segment duration in seconds\n"
+					"\t     -segment-manifest=file m3u8 file basename\n"
+					"\t     -segment-http-prefix=p client address for accessing server segments\n"
+					"\t     -segment-number=n      only n segments are used using a cyclic pattern\n"
+					"\n", progname
 		);
 }
 
@@ -1493,6 +1492,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			fprintf(stderr, "Error: Input Program argument not found\n\n");
 		if (!rate_found)
 			fprintf(stderr, "Error: Rate argument not found\n\n");
+		return GF_BAD_PARAM;
 	}
 
 error:	
@@ -1631,7 +1631,7 @@ int main(int argc, char **argv)
 							&audio_input_type, &audio_input_ip, &audio_input_port,
 							&output_type, &ts_out, &udp_out, &rtp_out, &output_port, 
 							&segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix)) {
-		usage();
+		usage(argv[0]);
 		goto exit;
 	}
 	
