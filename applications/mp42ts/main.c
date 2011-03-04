@@ -455,10 +455,13 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 
 		if (ESID == AUDIO_DATA_ESID) {
 			if (audio_OD_stream_id != (u32)-1) {
-				/*send the audio descriptor when present*/
+				/*this is the first time we get some audio data. Therefore we are sure we can retrieve the audio descriptor. Then we'll
+				  send it by calling this callback recursively so that a player gets the audio descriptor before audio data.
+				  Hack: the descriptor is carried thru the input_udta, you shall delete it*/
 				GF_SimpleDataDescriptor *audio_desc = prog->streams[audio_OD_stream_id].input_udta;
 				if (audio_desc && !audio_desc->data) /*intended for HTTP/AAC: an empty descriptor was set (vs already filled for RTP/UDP MP3)*/
 				{
+					/*get the audio descriptor and encode it*/
 					GF_ESD *esd = AAC_GetESD(aac_reader);
 					assert(esd->slConfig->timestampResolution);
 					esd->slConfig->useAccessUnitStartFlag = 1;
@@ -481,12 +484,24 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 					esd->ESID = AUDIO_DATA_ESID;
 					assert(audio_OD_stream_id != (u32)-1);
 					encode_audio_desc(esd, audio_desc);
-					prog->repeat = 1;
-					SampleCallBack(prog, AUDIO_OD_ESID, audio_desc->data, audio_desc->size, 0/*gf_m2ts_get_sys_clock(muxer)*/);
-					prog->repeat = 0;
-					gf_free(audio_desc->data);
-					gf_free(audio_desc);
-					prog->streams[audio_OD_stream_id].input_udta = NULL;
+
+					/*build the ESI*/
+					{
+						/*audio OD descriptor: rap=1 and vers_inc=0*/
+						GF_SAFEALLOC(prog->streams[audio_OD_stream_id].input_udta, GF_ESIStream);
+						((GF_ESIStream*)prog->streams[audio_OD_stream_id].input_udta)->rap = 1;
+
+						/*we have the descriptor; now call this callback recursively so that a player gets the audio descriptor before audio data.*/
+						prog->repeat = 1;
+						SampleCallBack(prog, AUDIO_OD_ESID, audio_desc->data, audio_desc->size, 0/*gf_m2ts_get_sys_clock(muxer)*/);
+						prog->repeat = 0;
+
+						/*clean*/
+						gf_free(audio_desc->data);
+						gf_free(audio_desc);
+						gf_free(prog->streams[audio_OD_stream_id].input_udta);
+						prog->streams[audio_OD_stream_id].input_udta = NULL;
+					}
 				}
 			}
 			/*update the timescale if needed*/
@@ -635,6 +650,7 @@ static Bool seng_output(void *param)
 		if (audio_desc && audio_desc->data) /*RTP/UDP + MP3 case*/
 		{
 			assert(audio_OD_stream_id != (u32)-1);
+			assert(!aac_reader); /*incompatible with AAC*/
 			prog->repeat = 1;
 			SampleCallBack(prog, AUDIO_OD_ESID, audio_desc->data, audio_desc->size, 0/*gf_m2ts_get_sys_clock(muxer)*/);
 			prog->repeat = 0;
@@ -1145,7 +1161,7 @@ static Bool open_program(M2TSProgram *prog, char *src, u32 carousel_rate, Bool f
 					if (prog->streams[i].stream_id == AUDIO_OD_ESID) {
 						if (prog->streams[i].input_udta)
 						  gf_free(prog->streams[i].input_udta);
-						prog->streams[i].input_udta = (void*)audio_desc;
+						prog->streams[i].input_udta = (void*)audio_desc;	/*Hack: the real input_udta type (for our SampleCallBack function) is GF_ESIStream*/
 						audio_OD_stream_id = i;
 						break;
 					}
@@ -1782,10 +1798,14 @@ int main(int argc, char **argv)
 					/*nothing to do: AAC_OnLiveData is called automatically*/
 					/*check we're still alive*/
 					if (gf_dm_is_thread_dead(aac_reader->dnload)) {
-						GF_ESD *esd = AAC_GetESD(aac_reader);
-						assert(esd->slConfig->timestampResolution);
+						GF_ESD *esd;
 						aac_download_file(aac_reader, audio_input_ip);
-						audio_discontinuity_offset = gf_m2ts_get_sys_clock(muxer) * (u64)esd->slConfig->timestampResolution / 1000;
+						esd = AAC_GetESD(aac_reader);
+						if (!esd)
+							break;
+						assert(esd->slConfig->timestampResolution); /*if we don't have this value we won't be able to adjust the timestamps within the MPEG2-TS*/
+						if (esd->slConfig->timestampResolution)
+							audio_discontinuity_offset = gf_m2ts_get_sys_clock(muxer) * (u64)esd->slConfig->timestampResolution / 1000;
 						gf_odf_desc_del((GF_Descriptor *)esd);
 					}
 					break;
@@ -1931,3 +1951,4 @@ exit:
 	gf_sys_close();
 	return 1;
 }
+
