@@ -9,7 +9,7 @@ dylib=$1
 for ref in `otool -L $1 | grep '/local' | awk '{print $1'}`
 do
 # echo changing $ref to @executable_path/lib/`basename $ref` $1
-  install_name_tool -change $ref @executable_path/lib/`basename $ref` $1
+  install_name_tool -change $ref @executable_path/lib/`basename $ref` $1 || { echo "Failed, permissions issue for $1 ? Try with sudo..." ; exit 1 ;}
   copy_lib $ref
 done
 
