@@ -66,7 +66,7 @@ version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d
 
 cur_dir=`pwd`
 cd $source_path
-rev=`svn info | grep Revision | tr -d 'Revison: '`
+rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
 cd $cur_dir
 
 
