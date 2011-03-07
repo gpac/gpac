@@ -69,6 +69,7 @@ typedef struct
 {
 	u8 cpb_removal_delay_length_minus1;
 	u8 dpb_output_delay_length_minus1;
+	u8 time_offset_length;
 	/*to be eventually completed by other hrd members*/
 } AVC_HRD;
 

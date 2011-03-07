@@ -1672,7 +1672,7 @@ static void avc_parse_hrd_parameters(GF_BitStream *bs, AVC_HRD *hrd)
 	gf_bs_read_int(bs, 5);											/*initial_cpb_removal_delay_length_minus1*/
 	hrd->cpb_removal_delay_length_minus1 = gf_bs_read_int(bs, 5);	/*cpb_removal_delay_length_minus1*/
 	hrd->dpb_output_delay_length_minus1  = gf_bs_read_int(bs, 5);	/*dpb_output_delay_length_minus1*/
-	gf_bs_read_int(bs, 5);											/*time_offset_length*/
+	hrd->time_offset_length = gf_bs_read_int(bs, 5);				/*time_offset_length*/
 
 	return;
 }
@@ -2259,8 +2259,31 @@ static s32 avc_parse_pic_timing_sei(GF_BitStream *bs, AVCState *avc)
 
 		for (i=0; i<NumClockTS[pt->pic_struct]; i++) {
 			if (gf_bs_read_int(bs, 1)) {/*clock_timestamp_flag[i]*/
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] not implemented pic_timing part\n", pt->pic_struct));
-				assert(0);
+				Bool full_timestamp_flag;
+				gf_bs_read_int(bs, 2);						/*ct_type*/
+				gf_bs_read_int(bs, 1);						/*nuit_field_based_flag*/
+				gf_bs_read_int(bs, 5);						/*counting_type*/
+				full_timestamp_flag = gf_bs_read_int(bs, 1);/*full_timestamp_flag*/
+				gf_bs_read_int(bs, 1);						/*discontinuity_flag*/
+				gf_bs_read_int(bs, 1);						/*cnt_dropped_flag*/
+				gf_bs_read_int(bs, 8);						/*n_frames*/
+				if (full_timestamp_flag) {
+					gf_bs_read_int(bs, 6);					/*seconds_value*/
+					gf_bs_read_int(bs, 6);					/*minutes_value*/
+					gf_bs_read_int(bs, 5);					/*hours_value*/
+				} else {
+					if (gf_bs_read_int(bs, 1)) {			/*seconds_flag*/
+						gf_bs_read_int(bs, 6);				/*seconds_value*/
+						if (gf_bs_read_int(bs, 1)) {		/*minutes_flag*/
+							gf_bs_read_int(bs, 6);			/*minutes_value*/
+							if (gf_bs_read_int(bs, 1)) {	/*hours_flag*/
+								gf_bs_read_int(bs, 5);		/*hours_value*/
+							}
+						}
+					}
+					if (avc->sps[sps_id].vui.hrd.time_offset_length > 0)
+						gf_bs_read_int(bs, avc->sps[sps_id].vui.hrd.time_offset_length);	/*time_offset*/
+				}
 			}
 		}
 	}
