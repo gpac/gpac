@@ -28,8 +28,11 @@ fi
 
 #copy all libs
 echo Copying binaries
-mkdir tmpdmg
-mkdir tmpdmg/Osmo4.app
+if [ -d tmpdmp ]
+then
+rm -fr tmpdmp
+fi
+mkdir -p tmpdmg/Osmo4.app
 rsync -r --exclude=.svn $source_path/build/osxdmg/Osmo4.app/ ./tmpdmg/Osmo4.app/
 ln -s /Applications ./tmpdmg/Applications
 cp $source_path/README ./tmpdmg
