@@ -36,6 +36,10 @@
 #ifndef WIN32
 #include <pwd.h>
 #include <unistd.h>
+#if defined(__DARWIN__) || defined(__APPLE__)
+#include <sys/types.h>
+#include <sys/stat.h>
+#endif
 
 #else
 #include <windows.h> /*for GetModuleFileName*/
@@ -300,12 +304,8 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	cfg = gf_cfg_new(file_path, file_name);
 	if (!cfg) return NULL;
 
-#ifdef GPAC_MODULES_PATH
-	fprintf(stdout, "Using module directory %s \n", GPAC_MODULES_PATH);
-	strcpy(szPath, GPAC_MODULES_PATH);
-#elif defined(WIN32)
+#if defined(WIN32)
 	//szPath still contains the executable directory
-
 #elif defined(__DARWIN__) || defined(__APPLE__)
 	size = GF_MAX_PATH;
 	if (_NSGetExecutablePath(szPath, &size)==0) {
@@ -314,14 +314,40 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 			sep = strrchr(szPath, '/');
 			if (sep) sep++;
 		}
-		fprintf(stdout, "OSX Executable path %s", szPath);
+		fprintf(stdout, "OSX Executable path %s...", szPath);
 		if (sep) {
 			sep[0] = 0;
 			strcpy(gui_path, szPath);
 			strcat(szPath, "modules/");
 		}
-		fprintf(stdout, "Using modules path %s", szPath);
+		fprintf(stdout, "Trying modules path %s...", szPath);
+		{
+			struct stat buf;
+			int status_dir;
+			memset(&buf, 0, sizeof(struct stat));
+			status_dir = stat(szPath, &buf);
+			if (!status_dir){
+				if (!(buf.st_mode & S_IFDIR)){
+					fprintf(stdout, "%s is not a directory, trying with default\n", szPath);
+#ifdef GPAC_MODULES_PATH
+					strcpy(szPath, GPAC_MODULES_PATH);
+					fprintf(stdout, "Using module directory %s\n", szPath);
+#endif
+				} else {
+					fprintf(stdout, "OK\n");
+				}
+			} else {
+					fprintf(stdout, "Cannot stat %s!!!\n", szPath);
+#ifdef GPAC_MODULES_PATH
+					strcpy(szPath, GPAC_MODULES_PATH);
+					fprintf(stdout, "Using module directory %s\n", szPath);
+#endif
+			}
+		}
 	}
+#elif GPAC_MODULES_PATH
+	fprintf(stdout, "Using module directory %s \n", GPAC_MODULES_PATH);
+	strcpy(szPath, GPAC_MODULES_PATH);
 #else 
 	fprintf(stdout, "Please enter full path to GPAC modules directory:\n");
 	while ( 1 > scanf("%s", szPath));
