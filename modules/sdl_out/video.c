@@ -555,18 +555,31 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			gpac_evt.type = GF_EVENT_REFRESH;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			break;
-
+#ifdef SDL_TEXTINPUTEVENT_TEXT_SIZE
 		/*keyboard*/
+		case SDL_TEXTINPUT: /* Since SDL 1.3, text-input is handled in a specific event */
+		{
+			u32 len = strlen( sdl_evt.text.text);
+			u32 ucs4_len;
+			assert( len < 5 );
+			ucs4_len = utf8_to_ucs4 (&(gpac_evt.character.unicode_char), len, sdl_evt.text.text);
+			gpac_evt.type = GF_EVENT_TEXTINPUT;
+			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);	
+			break;
+		}
+#endif /* SDL_TEXTINPUTEVENT_TEXT_SIZE */
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
 			sdl_translate_key(sdl_evt.key.keysym.sym, &gpac_evt.key);
 			gpac_evt.type = (sdl_evt.key.type==SDL_KEYDOWN) ? GF_EVENT_KEYDOWN : GF_EVENT_KEYUP;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+#ifndef SDL_TEXTINPUTEVENT_TEXT_SIZE
 			if ((sdl_evt.key.type==SDL_KEYDOWN) && sdl_evt.key.keysym.unicode) {
 				gpac_evt.character.unicode_char = sdl_evt.key.keysym.unicode;
 				gpac_evt.type = GF_EVENT_TEXTINPUT;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			}
+#endif /* SDL_TEXTINPUTEVENT_TEXT_SIZE */
 			break;
 
 		/*mouse*/
@@ -1223,6 +1236,11 @@ void *SDL_NewVideo()
 									driv->overlay_color_key ? "Yes" : "No", driv->overlay_color_key
 							));
 #endif
+#ifndef SDL_TEXTINPUTEVENT_TEXT_SIZE
+	SDL_EnableUNICODE(1);
+#else
+	SDL_StartTextInput();
+#endif /* SDL_TEXTINPUTEVENT_TEXT_SIZE */
 	return driv;
 }
 
