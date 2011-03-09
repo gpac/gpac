@@ -29,6 +29,7 @@
 #include <gpac/options.h>
 #include <gpac/modules/service.h>
 #include <gpac/avparse.h>
+#include <dlfcn.h>
 
 /*ISO 639 languages*/
 #include <gpac/iso639.h>
@@ -345,7 +346,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 			}
 		}
 	}
-#elif GPAC_MODULES_PATH
+#elif defined(GPAC_MODULES_PATH)
 	fprintf(stdout, "Using module directory %s \n", GPAC_MODULES_PATH);
 	strcpy(szPath, GPAC_MODULES_PATH);
 #else 
@@ -1095,6 +1096,7 @@ int main (int argc, char **argv)
 	FILE *playlist = NULL;
 	FILE *logfile = NULL;
 	Float scale = 1;
+	dlopen(NULL, RTLD_NOW|RTLD_GLOBAL);
 
 
 	/*by default use current dir*/
