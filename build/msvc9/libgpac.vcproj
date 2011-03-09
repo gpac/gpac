@@ -1023,6 +1023,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\utils\unicode.c"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\utils\url.c"
 				>
 				<FileConfiguration
