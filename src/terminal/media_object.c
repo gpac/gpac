@@ -356,7 +356,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, Bool resync, Bool *eos, u32 *timestam
 			gf_codec_process(mo->odm->codec, 1);
 			gf_term_lock_codec(mo->odm->codec, 0);
 		}
-		gf_odm_lock(mo->odm, 1);
+		if (!gf_odm_lock_mo(mo)) return NULL;
 	}
 
 	/*new frame to fetch, lock*/
