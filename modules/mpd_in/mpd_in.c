@@ -160,9 +160,8 @@ static Bool MPD_is_MPD_mime(const char * mime) {
     u32 i;
     if (!mime)
         return 0;
-    i = 0;
-    while (MPD_MIME_TYPES[i]) {
-        if ( !stricmp(mime, MPD_MIME_TYPES[i++]))
+    for (i = 0 ; MPD_MIME_TYPES[i] ; i++){
+        if ( !stricmp(mime, MPD_MIME_TYPES[i]))
             return 1;
     }
     return 0;
@@ -177,9 +176,8 @@ static Bool MPD_isM3U8_mime(const char * mime) {
     u32 i;
     if (!mime)
         return 0;
-    i = 0;
-    while (M3U8_MIME_TYPES[i]) {
-        if ( !stricmp(mime, M3U8_MIME_TYPES[i++]))
+    for (i = 0 ; M3U8_MIME_TYPES[i] ; i++) {
+        if ( !stricmp(mime, M3U8_MIME_TYPES[i]))
             return 1;
     }
     return 0;
@@ -812,10 +810,10 @@ static u32 MPD_RegisterMimeTypes(GF_InputService *plug)
 {
     u32 i, c;
     for (i = 0 ; MPD_MIME_TYPES[i]; i++)
-        gf_term_register_mime_type (plug, MPD_MIME_TYPES[i++], MPD_MPD_EXT, MPD_MPD_DESC);
+        gf_term_register_mime_type (plug, MPD_MIME_TYPES[i], MPD_MPD_EXT, MPD_MPD_DESC);
     c = i;
     for (i = 0 ; M3U8_MIME_TYPES[i]; i++)
-        gf_term_register_mime_type(plug, M3U8_MIME_TYPES[i++], MPD_M3U8_EXT, MPD_M3U8_DESC);
+        gf_term_register_mime_type(plug, M3U8_MIME_TYPES[i], MPD_M3U8_EXT, MPD_M3U8_DESC);
     return c+i;
 }
 
@@ -825,11 +823,11 @@ Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
     char *sExt = strrchr(url, '.');
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Can Handle URL request from terminal for %s\n", url));
     for (i = 0 ; MPD_MIME_TYPES[i]; i++) {
-        if (gf_term_check_extension(plug, MPD_MIME_TYPES[i++], MPD_MPD_EXT, MPD_MPD_DESC, sExt))
+        if (gf_term_check_extension(plug, MPD_MIME_TYPES[i], MPD_MPD_EXT, MPD_MPD_DESC, sExt))
             return 1;
     }
     for (i = 0 ; M3U8_MIME_TYPES[i]; i++) {
-        if (gf_term_check_extension(plug, M3U8_MIME_TYPES[i++], MPD_M3U8_EXT, MPD_M3U8_DESC, sExt))
+        if (gf_term_check_extension(plug, M3U8_MIME_TYPES[i], MPD_M3U8_EXT, MPD_M3U8_DESC, sExt))
             return 1;
     }
     return MPD_CheckRootType(url);
@@ -943,12 +941,12 @@ static GF_Err MPD_SegmentsProcessStart(GF_MPD_In *mpdin, u32 time)
     }
 
     mpdin->seg_ifce = NULL;
-    if (strcmp("unknown", rep->mime)) {
+    if (strcmp(M3U8_UNKOWN_MIME_TYPE, rep->mime)) {
         e = MPD_LoadMediaService(mpdin, rep->mime);
         if (e != GF_OK)
             goto exit;
     } else {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Ignoring mime type, wait for first file...\n"));
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Ignoring mime type %s, wait for first file...\n", rep->mime));
     }
     gf_th_run(mpdin->dl_thread, download_segments, mpdin);
     return GF_OK;
@@ -1380,7 +1378,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
     plug->priv = mpdin;
     mpdin->dl_thread = gf_th_new("MPD Segment Downloader Thread");
     mpdin->dl_mutex = gf_mx_new("MPD Segment Downloader Mutex");
-    mpdin->mimeTypeForM3U8Segments = gf_strdup( "unknown" );
+    mpdin->mimeTypeForM3U8Segments = gf_strdup( M3U8_UNKOWN_MIME_TYPE );
     return (GF_BaseInterface *)plug;
 }
 

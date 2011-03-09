@@ -56,6 +56,8 @@
  *  - a playlist (list of PlaylistElements itself)
  */
 
+#define M3U8_UNKOWN_MIME_TYPE "unknown"
+
 /**
  * Basic Stream structure
  */
