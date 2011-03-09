@@ -687,8 +687,12 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
 					strncpy(pe->codecs, pe->codecs+1, len-1);
 					pe->codecs[len-2] = 0;
 				}
-				fprintf(fmpd, "  <Representation mimeType=\"%s%s%s\" bandwidth=\"%d\">\n", mimeTypeForM3U8Segments, (pe->codecs ? ";codecs=":""), (pe->codecs ? pe->codecs:""), pe->bandwidth);
-
+				/* SOUCHAY : if mime-type is still unknown, do not try to add codec information since it would be wrong */
+				if (!strcmp(M3U8_UNKOWN_MIME_TYPE, mimeTypeForM3U8Segments)){
+					fprintf(fmpd, "  <Representation mimeType=\"%s\" bandwidth=\"%d\">\n", mimeTypeForM3U8Segments, pe->bandwidth);
+				} else {
+					fprintf(fmpd, "  <Representation mimeType=\"%s%s%s\" bandwidth=\"%d\">\n", mimeTypeForM3U8Segments, (pe->codecs ? ";codecs=":""), (pe->codecs ? pe->codecs:""), pe->bandwidth);
+				}
                 fprintf(fmpd, "\n   <SegmentInfo duration=\"PT%dS\" baseURL=\"%s\">\n", pe->durationInfo, base_url);
                 count3 = gf_list_count(pe->element.playlist.elements);
                 update_interval = (count3 - 1) * pe->durationInfo * 1000;
