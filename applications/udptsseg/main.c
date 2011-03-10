@@ -104,6 +104,9 @@ int main(int argc, char **argv)
 	char segment_manifest_default[GF_MAX_PATH];
 	u32 run = 1;
 	u32 last_segment_time;
+	u32 last_segment_size;
+
+	fprintf(stdout, "UDP Transport Stream Segmenter\n");
 
 	/*****************/
 	/*   gpac init   */
@@ -146,6 +149,9 @@ int main(int argc, char **argv)
 			segment_number = atoi(arg+16);
 		} 
 	}
+	fprintf(stdout, "Listening to TS input on %s:%d\n", input_ip, input_port);
+	fprintf(stdout, "Creating %d sec. segments in directory %s\n", segment_duration, segment_dir);
+	fprintf(stdout, "Creating %s manifest with %d segments\n", segment_manifest, segment_number);
 
 	/*****************/
 	/*   creation of the input socket   */
@@ -181,6 +187,7 @@ int main(int argc, char **argv)
 		} else {
 			sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
 		}
+		fprintf(stderr, "Processing %s segment\r", segment_name);
 		ts_out = gf_strdup(segment_name);
 		if (!segment_manifest) { 
 			sprintf(segment_manifest_default, "%s.m3u8", segment_prefix);
@@ -202,19 +209,35 @@ int main(int argc, char **argv)
 	/*   main loop   */
 	/*****************/
 	last_segment_time = gf_sys_clock();
+	last_segment_size = 0;
 	while (run) {
 		/*check for some input from the network*/
 		if (input_ip) {
 			u32 read;
 			gf_sk_receive(input_udp_sk, input_buffer, input_buffer_size, 0, &read);
 			if (read) {
+				fprintf(stderr, "Processing %s segment ... read %d bytes (total: %d)\r", segment_name, read, last_segment_size);
+				if (input_buffer[0] != 0x47) {
+					u32 i = 0;
+					while (input_buffer[i] != 0x47 && i < read) i++;
+					fprintf(stderr, "Warning: received data not starting with the MPEG-2 TS sync byte, skipping %d bytes of %d\n", i, read);
+					if (i < read) memmove(input_buffer, input_buffer+i, read-i);
+					read -=i;					
+				}
+				if ((read % 188) != 0) {
+					fprintf(stderr, "Warning: received data with a size (%d bytes) not multiple of 188 bytes, truncating\n", read);
+					read -= (read % 188);
+				}
 				/*write to current file */
 				if (ts_output_file != NULL) {
 					u32 now = gf_sys_clock();
 					fwrite(input_buffer, 1, read, ts_output_file); 
-					if ((now - last_segment_time) > segment_duration) { /* TODO: add test to end segment*/
+					last_segment_size += read;
+					if ((now - last_segment_time) > segment_duration*1000) { 
 						last_segment_time = now;
 						fclose(ts_output_file);
+						fprintf(stderr, "Closing segment %s (%d bytes)\n", segment_name, last_segment_size);
+						last_segment_size = 0;
 						segment_index++;
 						if (segment_dir) {
 							if (strchr("\\/", segment_name[strlen(segment_name)-1])) {
@@ -227,7 +250,7 @@ int main(int argc, char **argv)
 						}
 						ts_output_file = fopen(segment_name, "wb");
 						if (!ts_output_file) {
-							fprintf(stderr, "Error opening %s\n", segment_name);
+							fprintf(stderr, "Error opening segment %s\n", segment_name);
 							goto exit;
 						}
 						/* delete the oldest segment */
@@ -243,6 +266,7 @@ int main(int argc, char **argv)
 								sprintf(old_segment_name, "%s_%d.ts", segment_prefix, segment_index - segment_number - 1);
 							}
 							gf_delete_file(old_segment_name);
+							fprintf(stderr, "Deleting segment %s\n", old_segment_name);
 						}
 						write_manifest(segment_manifest, segment_dir, segment_duration, segment_prefix, segment_http_prefix, 
 	//								   (segment_index >= segment_number/2 ? segment_index - segment_number/2 : 0), segment_index >1 ? segment_index-1 : 0, 0);
