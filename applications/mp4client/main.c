@@ -29,12 +29,12 @@
 #include <gpac/options.h>
 #include <gpac/modules/service.h>
 #include <gpac/avparse.h>
-#include <dlfcn.h>
 
 /*ISO 639 languages*/
 #include <gpac/iso639.h>
 
 #ifndef WIN32
+#include <dlfcn.h>
 #include <pwd.h>
 #include <unistd.h>
 #if defined(__DARWIN__) || defined(__APPLE__)
@@ -1096,7 +1096,9 @@ int main (int argc, char **argv)
 	FILE *playlist = NULL;
 	FILE *logfile = NULL;
 	Float scale = 1;
+#ifndef WIN32
 	dlopen(NULL, RTLD_NOW|RTLD_GLOBAL);
+#endif
 
 
 	/*by default use current dir*/
