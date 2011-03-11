@@ -514,12 +514,34 @@ static Bool SDLVid_InitializeWindow(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	/*save display resolution - SDL seems to get the screen resolution if asked for video info before
 	changing the video mode - to check on other platforms*/
 	vinf = SDL_GetVideoInfo();
+#if SDL_VERSION_ATLEAST(1, 2, 10)
 	dr->max_screen_width = vinf->current_w;
 	dr->max_screen_height = vinf->current_h;
+#else
+	{
+		SDL_Rect** modes;
+		modes = SDL_ListModes(NULL, SDL_FULLSCREEN|SDL_HWSURFACE);
+		assert( (modes != (SDL_Rect**)0));
+		if ( modes == (SDL_Rect**)-1 ){
+			fprintf(stderr, "SDL : DONT KNOW WHICH MODE TO USE, using 640x480\n");
+			dr->max_screen_width = 640;
+			dr->max_screen_height = 480;
+		} else {
+			int i;
+			dr->max_screen_width = 0;
+			for (i=0; modes[i]; ++i){
+				int w = modes[i]->w;
+				if (w > dr->max_screen_width){
+					dr->max_screen_width = w;
+					dr->max_screen_height = modes[i]->h;
+				}
+			}
+		}
+	}
+#endif /* versions prior to 1.2.10 do not have the size of screen */
 
 	SDLVid_ResizeWindow(dr, 100, 100);
 	if (!ctx->os_handle) SDLVid_SetCaption();
-
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[SDL] Video output initialized - screen resolution %d %d\n", dr->max_screen_width, dr->max_screen_height)); 
 	return 1;
 }
