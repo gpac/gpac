@@ -76,9 +76,11 @@ full_version=$version
 if [ "$rev" != "" ]
 then
 	full_version="$full_version-r$rev"
+else
+   	$rev = "unknown"
 fi
 
-sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$full_version"'<\/string>/' tmpdmg/Osmo4.app/Contents/Info.plist > tmpdmg/Osmo4.app/Contents/Info.plist.new && mv tmpdmg/Osmo4.app/Contents/Info.plist.new tmpdmg/Osmo4.app/Contents/Info.plist
+sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$version"'<\/string>/' tmpdmg/Osmo4.app/Contents/Info.plist > tmpdmg/Osmo4.app/Contents/Info.plist.new && sed 's/<string>.*<\/string><!-- BUILD_REV_REPLACE -->/<string>'"$rev"'<\/string>/' tmpdmg/Osmo4.app/Contents/Info.plist.new > tmpdmg/Osmo4.app/Contents/Info.plist && rm tmpdmg/Osmo4.app/Contents/Info.plist.new
 
 #create dmg
 hdiutil create ./gpac.dmg -volname "GPAC for OSX"  -srcfolder tmpdmg -ov
@@ -93,6 +95,6 @@ hdiutil unflatten gpac_sla.dmg
 hdiutil flatten gpac_sla.dmg
 hdiutil internet-enable -yes gpac_sla.dmg
 
-echo "GPAC-$version-r$rev.dmg ready"
-mv gpac_sla.dmg GPAC-$version-r$rev.dmg
+echo "GPAC-$full_version.dmg ready"
+mv gpac_sla.dmg GPAC-$full_version.dmg
 
