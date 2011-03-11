@@ -520,6 +520,8 @@ static void MP2TS_SendPacket(M2TSIn *m2ts, GF_M2TS_PES_PCK *pck)
 	memset(&slh, 0, sizeof(GF_SLHeader));
 	slh.accessUnitStartFlag = (pck->flags & GF_M2TS_PES_PCK_AU_START) ? 1 : 0;
 	if (slh.accessUnitStartFlag) {
+		slh.OCRflag = 1;
+		slh.objectClockReference = pck->stream->program->last_pcr_value/300;
 		slh.compositionTimeStampFlag = 1;
 		slh.compositionTimeStamp = pck->PTS;
 		if (pck->DTS) {

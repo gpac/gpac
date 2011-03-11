@@ -32,6 +32,7 @@
 #include <string.h>
 
 #define DUMP_MPE_IP_DATAGRAMS
+//#define FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
 
 #ifdef DUMP_MPE_IP_DATAGRAMS
 #include <gpac/dvb_mpe.h>
