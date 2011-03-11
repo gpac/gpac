@@ -393,10 +393,6 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	fprintf(stdout, "Please enter full path to a TrueType font directory (.ttf, .ttc) - enter to default:\n");
 	//scanf("%s", szPath);
 #else
-	/*these fonts seems installed by default on many systems...*/
-	gf_cfg_set_key(cfg, "FontEngine", "FontSerif", "Bitstream Vera Serif");
-	gf_cfg_set_key(cfg, "FontEngine", "FontSans", "Bitstream Vera Sans");
-	gf_cfg_set_key(cfg, "FontEngine", "FontFixed", "Bitstream Vera Monospace");
 	strcpy(szPath, "/usr/share/fonts/truetype/");
 #endif
 	strcpy(szPath, "/System/Library/Fonts/Cache"), /*iOS*/

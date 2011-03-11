@@ -325,10 +325,6 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 #elif defined(__DARWIN__) || defined(__APPLE__)
 	strcpy(szPath, "/Library/Fonts");
 #else
-	/*these fonts seems installed by default on many systems...*/
-	gf_cfg_set_key(cfg, "FontEngine", "FontSerif", "Bitstream Vera Serif");
-	gf_cfg_set_key(cfg, "FontEngine", "FontSans", "Bitstream Vera Sans");
-	gf_cfg_set_key(cfg, "FontEngine", "FontFixed", "Bitstream Vera Monospace");
 	strcpy(szPath, "/usr/share/fonts/truetype/");
 #endif
 	fprintf(stdout, "Using default font directory %s\n", szPath);
