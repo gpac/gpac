@@ -548,7 +548,9 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>2200</string>
+<!-- Please do not remove the comment in the next line
+     It allows mkdmg.sh to perform a Version remplacement -->
+	<string>2200</string><!-- BUILD_REV_REPLACE -->
 	<key>LSMinimumSystemVersion</key>
 	<string>10.5.0</string>
 	<key>NSMainNibFile</key>
