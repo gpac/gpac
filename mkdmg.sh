@@ -72,6 +72,13 @@ cd $source_path
 rev=`LANG=en_US svn info | grep Revision | tr -d 'Revision: '`
 cd $cur_dir
 
+full_version=$version
+if [ "$rev" != "" ]
+then
+	full_version="$full_version-r$rev"
+fi
+
+sed 's/<string>.*<\/string><!-- VERSION_REV_REPLACE -->/<string>'"$full_version"'<\/string>/' tmpdmg/Osmo4.app/Contents/Info.plist > tmpdmg/Osmo4.app/Contents/Info.plist.new && mv tmpdmg/Osmo4.app/Contents/Info.plist.new tmpdmg/Osmo4.app/Contents/Info.plist
 
 #create dmg
 hdiutil create ./gpac.dmg -volname "GPAC for OSX"  -srcfolder tmpdmg -ov
