@@ -253,9 +253,6 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	GF_Config *cfg;
 	char szPath[GF_MAX_PATH];
 	char gui_path[GF_MAX_PATH];
-#if defined(__DARWIN__) || defined(__APPLE__)
-	u32 size;
-#endif
 
 #ifdef WIN32
 	FILE *f;
@@ -307,46 +304,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 
 #if defined(WIN32)
 	//szPath still contains the executable directory
-#elif defined(__DARWIN__) || defined(__APPLE__)
-	size = GF_MAX_PATH;
-	if (_NSGetExecutablePath(szPath, &size)==0) {
-		char *sep = strstr(szPath, "./");
-		if (!sep) {
-			sep = strrchr(szPath, '/');
-			if (sep) sep++;
-		}
-		fprintf(stdout, "OSX Executable path %s...", szPath);
-		if (sep) {
-			sep[0] = 0;
-			strcpy(gui_path, szPath);
-			strcat(szPath, "modules/");
-		}
-		fprintf(stdout, "Trying modules path %s...", szPath);
-		{
-			struct stat buf;
-			int status_dir;
-			memset(&buf, 0, sizeof(struct stat));
-			status_dir = stat(szPath, &buf);
-			if (!status_dir){
-				if (!(buf.st_mode & S_IFDIR)){
-					fprintf(stdout, "%s is not a directory, trying with default\n", szPath);
-#ifdef GPAC_MODULES_PATH
-					strcpy(szPath, GPAC_MODULES_PATH);
-					fprintf(stdout, "Using module directory %s\n", szPath);
-#endif
-				} else {
-					fprintf(stdout, "OK\n");
-				}
-			} else {
-					fprintf(stdout, "Cannot stat %s!!!\n", szPath);
-#ifdef GPAC_MODULES_PATH
-					strcpy(szPath, GPAC_MODULES_PATH);
-					fprintf(stdout, "Using module directory %s\n", szPath);
-#endif
-			}
-		}
-	}
-#elif defined(GPAC_MODULES_PATH)
+#elif defined(GPAC_MODULES_PATH) /* Mac OS and UNIX */
 	fprintf(stdout, "Using module directory %s \n", GPAC_MODULES_PATH);
 	strcpy(szPath, GPAC_MODULES_PATH);
 #else 
@@ -429,30 +387,50 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 
 static void check_config_directories(GF_Config *cfg)
 {
-#if (defined(__DARWIN__) || defined(__APPLE__) ) && !defined(GPAC_MODULES_PATH)
+#if (defined(__DARWIN__) || defined(__APPLE__) )
 	char mod_path[GF_MAX_PATH];
 	char gui_path[GF_MAX_PATH];
+	char root_path[GF_MAX_PATH];
 	char *sep;
 	const char *opt;
 	u32 size = GF_MAX_PATH;
-	if (_NSGetExecutablePath(mod_path, &size)!=0) return;
-
-	sep = strstr(mod_path, "./");
-	if (!sep) {
-		sep = strrchr(mod_path, '/');
-		if (sep) sep++;
+	if (_NSGetExecutablePath(root_path, &size)!=0) return;
+	sep = strstr(root_path, ".app/");
+	if (sep) {
+		sep[4] = 0;
 	}
-	if (!sep) return;
-
-	sep[0] = 0;
-	strcpy(gui_path, mod_path);
-	strcat(gui_path, "gui/gui.bt");
-	strcat(mod_path, "modules/");
+	gui_path[0] = '\0';
+	strcpy(mod_path, root_path);
+	strcat(mod_path, "/Contents/MacOS/modules/");
+	{
+		struct stat buf;
+		int status_dir;
+		memset(&buf, 0, sizeof(struct stat));
+		status_dir = stat(mod_path, &buf);
+		if (!status_dir){
+			if (!(buf.st_mode & S_IFDIR)){
+#ifdef GPAC_MODULES_PATH
+				strcpy(mod_path, GPAC_MODULES_PATH);
+				gui_path[0] = '\0';
+#endif
+			} else {
+				/* OK, it means we are in an .app directory ! */
+				strcpy(gui_path, root_path);
+				strcat(gui_path, "/Contents/MacOS/gui/gui.bt");
+			}
+		} else {
+#ifdef GPAC_MODULES_PATH
+				strcpy(mod_path, GPAC_MODULES_PATH);
+				gui_path[0] = '\0';
+#endif
+		}
+	}
 	opt = gf_cfg_get_key(cfg, "General", "ModulesDirectory");
 	/*modules directory has changed, forced to new location*/
 	if (!opt || strcmp(opt, mod_path)) {
 		gf_cfg_set_key(cfg, "General", "ModulesDirectory", mod_path);
-		gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
+		if (gui_path[0])
+			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
 	}
 #endif
 }
