@@ -82,8 +82,9 @@ void *SDL_NewVideo();
 */
 typedef struct
 {
-	u32 num_buffers, total_duration, delay_ms, total_size;
+	u32 num_buffers, total_duration, delay_ms, total_size, volume;
 	Bool is_init, is_running;
+	Uint8 * audioBuff;
 } SDLAudCtx;
 
 void SDL_DeleteAudio(void *ifce);
