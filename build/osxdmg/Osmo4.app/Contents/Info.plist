@@ -499,7 +499,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.4.5</string>
+<!-- Please do not remove the comment in the next line
+     It allows mkdmg.sh to perform a Version remplacement -->
+	<string>0.4.5</string><!-- VERSION_REV_REPLACE -->
 	<key>CFBundleSignature</key>
 	<string>gpac</string>
 	<key>CFBundleURLTypes</key>
