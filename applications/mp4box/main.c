@@ -194,7 +194,6 @@ void PrintGeneralUsage()
 			" -enable trackID      enables track\n"
 			" -disable trackID     disables track\n"
 			" -new                 forces creation of a new destination file\n"
-			" -rem trackID         removes track from file\n"
 			" -lang [tkID=]LAN     sets track language. LAN is the ISO 639-2 code (eng, und)\n"
 			" -delay tkID=TIME     sets track start delay in ms.\n"
 			" -par tkID=PAR        sets visual track pixel aspect ratio (PAR=N:D or \"none\")\n"
