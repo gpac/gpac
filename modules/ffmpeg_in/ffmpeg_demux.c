@@ -27,6 +27,8 @@
 /*default buffer is 200 ms per channel*/
 #define FFD_DATA_BUFFER		800
 
+//#define FFMPEG_DEMUX_ENABLE_MPEG2TS
+
 //#if defined(__DARWIN__) || defined(__APPLE__)
 #if !defined(WIN32) && !defined(_WIN32_WCE) && !defined(__SYMBIAN32__)
 #include <errno.h>
@@ -179,6 +181,9 @@ static const char * FFD_MIME_TYPES[] = {
 /* Supported by latest versions of FFMPEG */
   "video/webm", "webm", "Google WebM Movies",
   "audio/webm", "webm", "Google WebM Music",
+#ifdef FFMPEG_DEMUX_ENABLE_MPEG2TS
+  "video/mp2t", "ts", "MPEG 2 TS",
+#endif
   NULL
 };
 
@@ -219,8 +224,9 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	if (ext && strlen(ext) > 1) {
 		strcpy(szExt, &ext[1]);
 		strlwr(szExt);
+#ifndef FFMPEG_DEMUX_ENABLE_MPEG2TS
 		if (!strcmp(szExt, "ts")) return 0;
-
+#endif
 
 		/*note we forbid ffmpeg to handle files we support*/
 		if (!strcmp(szExt, "mp4") || !strcmp(szExt, "mpg4") || !strcmp(szExt, "m4a") || !strcmp(szExt, "m21") 
