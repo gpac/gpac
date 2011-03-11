@@ -2698,13 +2698,20 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 
 	i=0;
 	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(avcc->sequenceParameterSets, &i))) {
-		orig = gf_bs_new(slc->data, slc->size, GF_BITSTREAM_READ);
+		char *no_emulation_buf = NULL;
+		u32 no_emulation_buf_size = 0, emulation_bytes = 0;
 		idx = AVC_ReadSeqInfo(slc->data+1/*skip NALU type*/, slc->size-1, &avc, 0, &bit_offset);
 		if (idx<0) {
 			gf_bs_del(orig);
 			continue;
 		}
-		gf_bs_read_data(orig, slc->data, slc->size);
+
+		/*SPS still contains emulation bytes*/
+		no_emulation_buf = gf_malloc((slc->size-1)*sizeof(char));
+		no_emulation_buf_size = avc_remove_emulation_bytes(slc->data+1, no_emulation_buf, slc->size-1);
+
+		orig = gf_bs_new(no_emulation_buf, no_emulation_buf_size, GF_BITSTREAM_READ);
+		gf_bs_read_data(orig, no_emulation_buf, no_emulation_buf_size);
 		gf_bs_seek(orig, 0);
 		mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
@@ -2758,11 +2765,17 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 			gf_bs_write_int(mod, flag, 1);
 		}
 		gf_bs_del(orig);
-		gf_free(slc->data);
-		slc->data = NULL;
-		gf_bs_get_content(mod, (char **) &slc->data, &flag);
-		slc->size = flag;
+		gf_free(no_emulation_buf);
+
+		/*set anti-emulation*/
+		gf_bs_get_content(mod, (char **) &no_emulation_buf, &flag);
+		emulation_bytes = avc_emulation_bytes_add_count(no_emulation_buf, flag);
+		if (flag+emulation_bytes+1>slc->size)
+			slc->data = (char*)gf_realloc(slc->data, flag+emulation_bytes);
+		slc->size = avc_add_emulation_bytes(no_emulation_buf, slc->data+1, flag)+1;
+
 		gf_bs_del(mod);
+		gf_free(no_emulation_buf);
 	}
 	return GF_OK;
 }
