@@ -1194,6 +1194,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		tag = data[4];
 		len = data[5];
 		while (info_length > first_loop_len) {
+#ifndef FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
 			if (tag == GF_M2TS_MPEG4_IOD_DESCRIPTOR) {
 				u8 scope, label;
 				u32 size;
@@ -1205,6 +1206,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				gf_odf_parse_descriptor(iod_bs , (GF_Descriptor **) &pmt->program->pmt_iod, &size);
 				gf_bs_del(iod_bs );
 			} else {
+#else
+			{
+#endif
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Skipping descriptor (0x%x) and others not supported\n", tag));
 			}
 			first_loop_len += 2 + len;
@@ -1316,7 +1320,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					pes->lang = GF_4CC(' ', data[2], data[3], data[4]);
 					break;
 				case GF_M2TS_MPEG4_SL_DESCRIPTOR:
+#ifdef FORCE_DISABLE_MPEG4SL_OVER_MPEG2TS
+					es->mpeg4_es_id = es->pid;
+#else
 					es->mpeg4_es_id = ((data[2] & 0x1f) << 8) | data[3];
+#endif
 					es->flags |= GF_M2TS_ES_IS_SL;
 					break;
 				case GF_M2TS_REGISTRATION_DESCRIPTOR:
