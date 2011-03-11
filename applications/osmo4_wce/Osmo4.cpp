@@ -321,13 +321,6 @@ BOOL COsmo4::InitInstance()
 		strcpy((char *) config_path, "\\Windows");
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", (const char *) config_path);
 	}
-	/*work with iPaq's default fonts ...*/
-	str = gf_cfg_get_key(m_user.config, "FontEngine", "FontSerif");
-	if (!str) gf_cfg_set_key(m_user.config, "FontEngine", "FontSerif", "Tahoma");
-	str = gf_cfg_get_key(m_user.config, "FontEngine", "FontSans");
-	if (!str) gf_cfg_set_key(m_user.config, "FontEngine", "FontSans", "Frutiger");
-	str = gf_cfg_get_key(m_user.config, "FontEngine", "FontFixed");
-	if (!str) gf_cfg_set_key(m_user.config, "FontEngine", "FontFixed", "Courier New");
 
 	/*check video driver, if none or raw_out use dx_hw by default*/
 	str = gf_cfg_get_key(m_user.config, "Video", "DriverName");

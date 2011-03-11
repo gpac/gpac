@@ -47,6 +47,58 @@ typedef struct
 	char *font_serif, *font_sans, *font_fixed;
 } FTBuilder;
 
+static const char * BEST_FIXED_FONTS[] = {
+	"Courier New",
+	"Courier",
+	"Monaco",
+	"Bitstream Vera Monospace",
+	NULL
+};
+
+static const char * BEST_SERIF_FONTS[] = {
+	"Times New Roman",
+	"Bitstream Vera",
+	"Times",
+	NULL
+};
+
+static const char * BEST_SANS_FONTS[] = {
+	"Arial",
+	"Tahoma",
+	"Verdana",
+	"Helvetica",
+	"Bitstream Vera Sans",
+	"Frutiger",
+	NULL
+};
+
+/**
+ * Choose the best font in the list of fonts
+ */
+static Bool isBestFontFor(const char * listOfFonts[], const char * currentBestFont, const char * fontName) {
+	u32 i;
+	assert( fontName );
+	assert( listOfFonts );
+	for (i = 0 ; listOfFonts[i]; i++){
+		const char * best = listOfFonts[i];
+		if (!stricmp(best, fontName))
+			return 1;
+		if (currentBestFont && !stricmp(best, currentBestFont))
+			return 0;
+	}
+	/* Nothing has been found, the font is the best if none has been choosen before */
+	return currentBestFont == NULL;
+}
+
+void setBestFont(const char * listOfFonts[], char ** currentBestFont, const char * fontName){
+	if (isBestFontFor(listOfFonts, *currentBestFont, fontName)){
+		if (*currentBestFont)
+			gf_free(*currentBestFont);
+		*currentBestFont = NULL;
+	}
+	if (! (*currentBestFont))
+		*currentBestFont = gf_strdup(fontName);
+}
 
 static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 {
@@ -107,40 +159,14 @@ static Bool ft_enum_fonts(void *cbck, char *file_name, char *file_path)
 
 			/*try to assign default fixed fonts*/
 			if (!bold && !italic) {
-				Bool store = 0;
 				strcpy(szfont, face->family_name);
 				strlwr(szfont);
 
-				if (!ftpriv->font_fixed) {
-					if (face->face_flags & FT_FACE_FLAG_FIXED_WIDTH) store = 1;
-					else if (!strnicmp(face->family_name, "Courier", 15)) store = 1;
-					else if (strstr(szfont, "sans") || strstr(szfont, "serif")) store = 0;
-					else if (strstr(szfont, "monospace")) store = 1;
-
-					if (store) ftpriv->font_fixed = gf_strdup(face->family_name);
+				if (face->face_flags & FT_FACE_FLAG_FIXED_WIDTH){
+					setBestFont(BEST_FIXED_FONTS, &(ftpriv->font_fixed), face->family_name);
 				}
-				if (!store && !ftpriv->font_sans) {
-					if (!strnicmp(face->family_name, "Arial", 5)) store = 1;
-					else if (!strnicmp(face->family_name, "Verdana", 7)) store = 1;
-					else if (strstr(szfont, "serif") || strstr(szfont, "fixed")) store = 0;
-					else if (strstr(szfont, "sans")) store = 1;
-
-					if (store) ftpriv->font_sans = gf_strdup(face->family_name);
-				}
-
-				if (!strnicmp(face->family_name, "Times New Roman", 15)) {
-					if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
-					ftpriv->font_serif = gf_strdup(face->family_name);
-				}
-				else if (!store && !ftpriv->font_serif) {
-					if (!strnicmp(face->family_name, "Times New Roman", 15))
-						store = 1;
-					else if (strstr(szfont, "sans") || strstr(szfont, "fixed")) store = 0;
-					else if (strstr(szfont, "serif")) store = 1;
-
-					if (store) 
-						ftpriv->font_serif = gf_strdup(face->family_name);
-				}
+				setBestFont(BEST_SERIF_FONTS, &(ftpriv->font_serif), face->family_name);
+				setBestFont(BEST_SANS_FONTS, &(ftpriv->font_sans), face->family_name);
 			}
 			gf_free(szfont);
 		}
@@ -204,6 +230,9 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	if (!ftpriv->font_fixed) ftpriv->font_fixed = gf_strdup(font_default ?  font_default : "");
 
 	if (font_default) gf_free(font_default);
+
+        /* We try these fonts in this order */
+	
 
 	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontFixed", ftpriv->font_fixed);
 	gf_modules_set_option((GF_BaseInterface *)dr, "FontEngine", "FontSerif", ftpriv->font_serif);
