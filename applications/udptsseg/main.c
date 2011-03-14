@@ -219,7 +219,7 @@ int main(int argc, char **argv)
 			gf_sk_receive(input_udp_sk, input_buffer+leftinbuffer, input_buffer_size-leftinbuffer, 0, &read);
 			leftinbuffer += read;
 			if (leftinbuffer) {
-				fprintf(stderr, "Processing %s segment ... received %d bytes (buffer: %d, segment: %d)\r", segment_name, read, leftinbuffer, last_segment_size);
+				fprintf(stderr, "Processing %s segment ... received %d bytes (buffer: %d, segment: %d)\n", segment_name, read, leftinbuffer, last_segment_size);
 				if (input_buffer[0] != 0x47) {
 					u32 i = 0;
 					while (input_buffer[i] != 0x47 && i < leftinbuffer) i++;
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
 					u32 now = gf_sys_clock();
 					fwrite(input_buffer, 1, towrite, ts_output_file); 
 					if (towrite < leftinbuffer) {
-						fprintf(stderr, "Warning: wrote %d bytes, keeping %d bytes\n", towrite, leftinbuffer);
+						fprintf(stderr, "Warning: wrote %d bytes, keeping %d bytes\n", towrite, (leftinbuffer-towrite));
 						memmove(input_buffer, input_buffer+towrite, leftinbuffer-towrite);
 						leftinbuffer -= towrite;
 					}
