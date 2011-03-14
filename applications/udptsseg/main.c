@@ -103,8 +103,11 @@ int main(int argc, char **argv)
 	u32 segment_number = 0;
 	char segment_manifest_default[GF_MAX_PATH];
 	u32 run = 1;
-	u32 last_segment_time;
-	u32 last_segment_size;
+	u32 last_segment_time = 0;
+	u32 last_segment_size = 0;
+	u32 read = 0;
+	u32 towrite = 0;
+	u32 leftinbuffer = 0;			
 
 	fprintf(stdout, "UDP Transport Stream Segmenter\n");
 
@@ -213,26 +216,31 @@ int main(int argc, char **argv)
 	while (run) {
 		/*check for some input from the network*/
 		if (input_ip) {
-			u32 read;
-			gf_sk_receive(input_udp_sk, input_buffer, input_buffer_size, 0, &read);
-			if (read) {
-				fprintf(stderr, "Processing %s segment ... read %d bytes (total: %d)\r", segment_name, read, last_segment_size);
+			gf_sk_receive(input_udp_sk, input_buffer+leftinbuffer, input_buffer_size-leftinbuffer, 0, &read);
+			leftinbuffer += read;
+			if (leftinbuffer) {
+				fprintf(stderr, "Processing %s segment ... received %d bytes (buffer: %d, segment: %d)\r", segment_name, read, leftinbuffer, last_segment_size);
 				if (input_buffer[0] != 0x47) {
 					u32 i = 0;
-					while (input_buffer[i] != 0x47 && i < read) i++;
-					fprintf(stderr, "Warning: received data not starting with the MPEG-2 TS sync byte, skipping %d bytes of %d\n", i, read);
-					if (i < read) memmove(input_buffer, input_buffer+i, read-i);
-					read -=i;					
+					while (input_buffer[i] != 0x47 && i < leftinbuffer) i++;
+					fprintf(stderr, "Warning: data in buffer not starting with the MPEG-2 TS sync byte, skipping %d bytes of %d\n", i, leftinbuffer);
+					if (i < leftinbuffer) memmove(input_buffer, input_buffer+i, leftinbuffer-i);
+					leftinbuffer -=i;					
 				}
-				if ((read % 188) != 0) {
-					fprintf(stderr, "Warning: received data with a size (%d bytes) not multiple of 188 bytes, truncating\n", read);
-					read -= (read % 188);
+				if ((leftinbuffer % 188) != 0) {
+					fprintf(stderr, "Warning: data in buffer with a size (%d bytes) not multiple of 188 bytes\n", leftinbuffer);
+					towrite = leftinbuffer - (leftinbuffer % 188);
+				} else {
+					towrite = leftinbuffer;
 				}
 				/*write to current file */
 				if (ts_output_file != NULL) {
 					u32 now = gf_sys_clock();
-					fwrite(input_buffer, 1, read, ts_output_file); 
-					last_segment_size += read;
+					fwrite(input_buffer, 1, towrite, ts_output_file); 
+					if (towrite < leftinbuffer) {
+						memmove(input_buffer, input_buffer+towrite, leftinbuffer-towrite);
+					}
+					last_segment_size += towrite;
 					if ((now - last_segment_time) > segment_duration*1000) { 
 						last_segment_time = now;
 						fclose(ts_output_file);
