@@ -21,14 +21,13 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  */
-
 #include <gpac/media_tools.h>
 #include <gpac/constants.h>
 #include <gpac/base_coding.h>
 #include <gpac/ietf.h>
 #include <gpac/mpegts.h>
 
-#define UDP_BUFFER_SIZE	0x40000
+#define UDP_BUFFER_SIZE	64484
 
 /* adapted from http://svn.assembla.com/svn/legend/segmenter/segmenter.c */
 static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_duration, char *segment_prefix, char *http_prefix, 
@@ -82,14 +81,13 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 void usage() 
 {
 	fprintf(stderr, "usage: udptsseg -src=UDP -dst-file=FILE -segment-duration=DUR -segment-dir=DIR -segment-manifest=M3U8 -segment-http-prefix=P -segment-number=N\n"
-					"\n"
-					"\t-src=UDP					udp://address:port providing the input transport stream\n"
-					"\t-dst-file=FILE			e.g. out.ts, radical name of all segments\n"
-					"\t-segment-dir=DIR			server local directory to store segments (with the trailing path separator)\n"
-					"\t-segment-duration=DUR	segment duration in seconds\n"
-					"\t-segment-manifest=M3U8	m3u8 file basename\n"
-					"\t-segment-http-prefix=P	client address for accessing server segments\n"
-					"\t-segment-number=N		only n segments are used using a cyclic pattern\n"
+					"-src=UDP                udp://address:port providing the input transport stream\n"
+					"-dst-file=FILE          e.g. out.ts, radical name of all segments\n"
+					"-segment-dir=DIR        server local directory to store segments (with the trailing path separator)\n"
+					"-segment-duration=DUR   segment duration in seconds\n"
+					"-segment-manifest=M3U8  m3u8 file basename\n"
+					"-segment-http-prefix=P  client address for accessing server segments\n"
+					"-segment-number=N       only n segments are used using a cyclic pattern\n"
 					"\n");
 }
 
@@ -106,7 +104,7 @@ int main(int argc, char **argv)
 	u32 input_port = 0;
 	GF_Socket *input_udp_sk = NULL;
 	char *input_buffer = NULL;
-	u32 input_buffer_size = 65536;
+	u32 input_buffer_size = UDP_BUFFER_SIZE;
 	GF_Err e = GF_OK;
 	FILE *ts_output_file = NULL;
 	char *ts_out = NULL;
@@ -127,6 +125,7 @@ int main(int argc, char **argv)
 
 	if (argc < 7) {
 		usage();
+		return 0;
 	}
 	/*****************/
 	/*   gpac init   */
@@ -202,7 +201,7 @@ int main(int argc, char **argv)
 			if (strchr("\\/", segment_name[strlen(segment_name)-1])) {
 				sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
 			} else {
-				sprintf(segment_name, "%s/%s_%d.ts", segment_dir, segment_prefix, segment_index);
+				sprintf(segment_name, "%s%c%s_%d.ts", segment_dir, GF_PATH_SEPARATOR, segment_prefix, segment_index);
 			}
 		} else {
 			sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
@@ -257,8 +256,8 @@ int main(int argc, char **argv)
 					if (towrite < leftinbuffer) {
 						fprintf(stderr, "Warning: wrote %d bytes, keeping %d bytes\n", towrite, (leftinbuffer-towrite));
 						memmove(input_buffer, input_buffer+towrite, leftinbuffer-towrite);
-						leftinbuffer -= towrite;
 					}
+					leftinbuffer -= towrite;
 					last_segment_size += towrite;
 					if ((now - last_segment_time) > segment_duration*1000) { 
 						last_segment_time = now;
@@ -270,7 +269,7 @@ int main(int argc, char **argv)
 							if (strchr("\\/", segment_name[strlen(segment_name)-1])) {
 								sprintf(segment_name, "%s%s_%d.ts", segment_dir, segment_prefix, segment_index);
 							} else {
-								sprintf(segment_name, "%s/%s_%d.ts", segment_dir, segment_prefix, segment_index);
+								sprintf(segment_name, "%s%c%s_%d.ts", segment_dir, GF_PATH_SEPARATOR, segment_prefix, segment_index);
 							}
 						} else {
 							sprintf(segment_name, "%s_%d.ts", segment_prefix, segment_index);
