@@ -238,7 +238,9 @@ int main(int argc, char **argv)
 					u32 now = gf_sys_clock();
 					fwrite(input_buffer, 1, towrite, ts_output_file); 
 					if (towrite < leftinbuffer) {
+						fprintf(stderr, "Warning: wrote %d bytes, keeping %d bytes\n", towrite, leftinbuffer);
 						memmove(input_buffer, input_buffer+towrite, leftinbuffer-towrite);
+						leftinbuffer -= towrite;
 					}
 					last_segment_size += towrite;
 					if ((now - last_segment_time) > segment_duration*1000) { 
