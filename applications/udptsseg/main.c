@@ -79,6 +79,20 @@ static GF_Err write_manifest(char *manifest, char *segment_dir, u32 segment_dura
 	}
 }
 
+void usage() 
+{
+	fprintf(stderr, "usage: udptsseg -src=UDP -dst-file=FILE -segment-duration=DUR -segment-dir=DIR -segment-manifest=M3U8 -segment-http-prefix=P -segment-number=N\n"
+					"\n"
+					"\t-src=UDP					udp://address:port providing the input transport stream\n"
+					"\t-dst-file=FILE			e.g. out.ts, radical name of all segments\n"
+					"\t-segment-dir=DIR			server local directory to store segments (with the trailing path separator)\n"
+					"\t-segment-duration=DUR	segment duration in seconds\n"
+					"\t-segment-manifest=M3U8	m3u8 file basename\n"
+					"\t-segment-http-prefix=P	client address for accessing server segments\n"
+					"\t-segment-number=N		only n segments are used using a cyclic pattern\n"
+					"\n");
+}
+
 int main(int argc, char **argv)
 {
 	u32 i;
@@ -111,6 +125,9 @@ int main(int argc, char **argv)
 
 	fprintf(stdout, "UDP Transport Stream Segmenter\n");
 
+	if (argc < 7) {
+		usage();
+	}
 	/*****************/
 	/*   gpac init   */
 	/*****************/
