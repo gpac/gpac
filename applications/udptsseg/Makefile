@@ -21,13 +21,19 @@ LINKFLAGS=-L../../bin/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=udptsseg$(EXE)
-#LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
+ifeq ($(MP4BOX_STATIC),yes)
+LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
+else
 LINKFLAGS+=-lgpac
+endif
 else
 EXT=
 PROG=udptsseg
-#LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz $(OGL_LIBS)
-LINKFLAGS+=-lgpac $(OGL_LIBS)
+ifeq ($(MP4BOX_STATIC),yes)
+LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
+else
+LINKFLAGS+=-lgpac
+endif
 endif
 
 #3 - spidermonkey support
