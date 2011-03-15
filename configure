@@ -1239,6 +1239,41 @@ if $cc -o $TMPE $TMPC > /dev/null 2>&1  ; then
 has_jack="yes"
 fi
 
+#look for X11 shared memory support
+cat > $TMPC << EOF
+#include <X11/Xlib.h>
+int main( void ) { return 0; }
+EOF
+if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
+has_x11="yes"
+
+#look for X11 shared memory support
+cat > $TMPC << EOF
+#include <X11/Xlib.h>
+#include <X11/extensions/XShm.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
+has_x11_shm="yes"
+fi
+
+#look for XVideo support
+cat > $TMPC << EOF
+#include <X11/Xlib.h>
+#include <X11/extensions/Xv.h>
+#include <X11/extensions/Xvlib.h>
+int main( void ) { return 0; }
+EOF
+
+if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
+has_x11_xv="yes"
+fi
+
+fi
+
 for opt do
   case "$opt" in
   --sdl-cfg=*) sdl_path=`echo $opt | cut -d '=' -f 2`; sdl_local="yes"
@@ -1268,6 +1303,8 @@ for opt do
   --disable-oggvorbis) has_oggvorbis="no"
   ;;
   --disable-jack=*) has_jack="no"
+  ;;
+  --disable-alsa=*) has_alsa="no"
   ;;
   --enable-debug) debuginfo="yes"; no_gcc_opt="yes"
   ;;
@@ -1578,41 +1615,6 @@ if test "$enable_joystick" = "yes"  ;then
     if $cc -o $TMPO $TMPC  2> /dev/null  ; then
        has_joystick="yes"
     fi
-fi
-
-#look for X11 shared memory support
-cat > $TMPC << EOF
-#include <X11/Xlib.h>
-int main( void ) { return 0; }
-EOF
-if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
-has_x11="yes"
-
-#look for X11 shared memory support
-cat > $TMPC << EOF
-#include <X11/Xlib.h>
-#include <X11/extensions/XShm.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
-int main( void ) { return 0; }
-EOF
-
-if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
-has_x11_shm="yes"
-fi
-
-#look for XVideo support
-cat > $TMPC << EOF
-#include <X11/Xlib.h>
-#include <X11/extensions/Xv.h>
-#include <X11/extensions/Xvlib.h>
-int main( void ) { return 0; }
-EOF
-
-if $cc -o $TMPO $TMPC -I$X11_PATH/include -L$X11_PATH/lib 2> /dev/null  ; then
-has_x11_xv="yes"
-fi
-
 fi
 
 
