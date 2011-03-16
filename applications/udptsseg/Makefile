@@ -17,7 +17,8 @@ endif
 #common obj
 OBJS= main.o
 
-LINKFLAGS=-L../../bin/gcc
+LINKFLAGS=-L../../bin/gcc -L../../extra_lib/lib/gcc
+
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=udptsseg$(EXE)
