@@ -15,10 +15,11 @@ else
 #APPDIRS+=osmozilla
 endif
 
+#disable due to version incompatibilities
 ifeq ($(USE_WXWIDGETS), yes)
-APPDIRS+=osmo4_wx
-V4STUDIODIR=V4Studio
-INSTDIRS+=osmo4_wx
+#APPDIRS+=osmo4_wx
+#V4STUDIODIR=V4Studio
+#INSTDIRS+=osmo4_wx
 endif
 
 ALLDIRS=$(APPDIRS)
