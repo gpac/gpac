@@ -183,7 +183,9 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
 				pck.flags = GF_M2TS_PES_PCK_AU_START;
 				force_new_au = 0;
-			}
+			} else if (nal_type==GF_AVC_NALU_IDR_SLICE) {
+				pck.flags = GF_M2TS_PES_PCK_RAP;
+			} 
 			else pck.flags = 0;
 			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 
@@ -210,8 +212,11 @@ static void gf_m2ts_reframe_avc_h264(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, u64 
 				pck.data_len = data_len+1;
 			}
 			nal_type = pck.data[4] & 0x1F;
-			if (nal_type==GF_AVC_NALU_ACCESS_UNIT)
+			if (nal_type==GF_AVC_NALU_ACCESS_UNIT) {
 				pck.flags = GF_M2TS_PES_PCK_AU_START;
+			} else if (nal_type==GF_AVC_NALU_IDR_SLICE) {
+				pck.flags = GF_M2TS_PES_PCK_RAP;
+			} 
 		}
 		if (force_new_au) {
 			pck.flags |= GF_M2TS_PES_PCK_AU_START;
@@ -1426,6 +1431,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	if (nb_es) {
 		evt_type = (status&GF_M2TS_TABLE_FOUND) ? GF_M2TS_EVT_PMT_FOUND : GF_M2TS_EVT_PMT_UPDATE;
 		if (ts->on_event) ts->on_event(ts, evt_type, pmt->program);
+	} else {
+		/* if we found no new ES it's simply a repeat of the PMT */
+		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_PMT_REPEAT, pmt->program);
 	}
 }
 
