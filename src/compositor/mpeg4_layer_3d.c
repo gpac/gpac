@@ -703,3 +703,4 @@ void compositor_layer3d_bind_camera(GF_Node *node, Bool do_bind, u32 nav_value)
 #endif /*GPAC_DISABLE_3D*/
 
 #endif /*GPAC_DISABLE_VRML*/
+

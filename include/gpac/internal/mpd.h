@@ -127,3 +127,4 @@ GF_Err gf_m3u8_to_mpd(GF_ClientService *service, const char *m3u8_file, const ch
 					  u32 reload_count, char *mimeTypeForM3U8Segments);
 
 #endif // _MPD_IN_H_
+

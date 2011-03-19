@@ -270,3 +270,4 @@ void compositor_init_bitmap(GF_Compositor  *compositor, GF_Node *node)
 }
 
 #endif
+
