@@ -1620,7 +1620,13 @@ fi
 
 #GCC opt
 if test "$no_gcc_opt" = "no"; then
-CFLAGS="-O3 $CFLAGS"
+if $cc --version | grep 'sbox-arm-linux-gcc (GCC) 3.4.4'
+then
+	echo "Detected buggy arm GCC (diablo), using -O2"
+	CFLAGS="-O2 $CFLAGS"
+else
+	CFLAGS="-O3 $CFLAGS"
+fi
 fi
 
 #look for DX support
@@ -1738,8 +1744,13 @@ echo "#define GPAC_CONFIGURATION \"$GPAC_CONFIGURATION\"" >> $TMPH
 
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
 
-revision=`svnversion`
-echo "#define GPAC_SVN_REVISION	\"$revision\"" > $source_path/include/gpac/version.h
+if which svnversion 2>/dev/null
+then
+	revision=`svnversion`
+	echo "#define GPAC_SVN_REVISION	\"$revision\"" > $source_path/include/gpac/version.h
+else
+	echo "Cannot find SVN revision"
+fi
 
 echo ""
 echo "** System Configuration"

@@ -1972,3 +1972,4 @@ void gf_term_switch_quality(GF_Terminal *term, Bool up)
 {
 	gf_scene_switch_quality(term->root_scene, up);
 }
+
