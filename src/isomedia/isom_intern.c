@@ -194,6 +194,9 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_STYP:
+			if (((GF_SegmentTypeBox *)a)->majorBrand == GF_4CC('i', 's', 's', 's') ||
+				((GF_SegmentTypeBox *)a)->majorBrand == GF_4CC('i', 'm', 's', 's')) mov->is_index_segment = 1;
+
 		case GF_ISOM_BOX_TYPE_SIDX:
 			totSize += a->size;
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
@@ -244,7 +247,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing)
 	/*we need at least moov or meta*/
 	if (!mov->moov && !mov->meta 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-        && !mov->moof
+        && !mov->moof && !mov->is_index_segment
 #endif
         ) return GF_ISOM_INVALID_FILE;
 	/*we MUST have movie header*/
