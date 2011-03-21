@@ -1984,6 +1984,8 @@ struct __tag_isom {
 
 	GF_List *moof_list;
 	Bool use_segments, moof_first;
+
+	Bool is_index_segment;
 #endif
 
 	/*this contains ALL the root boxes excepts fragments*/
