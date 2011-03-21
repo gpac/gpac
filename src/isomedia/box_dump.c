@@ -3490,12 +3490,12 @@ GF_Err sidx_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
 	GF_SegmentIndexBox *p = (GF_SegmentIndexBox *)a;
-	fprintf(trace, "<SegmentIndexBox reference_ID=\"%d\" timescale=\"%d\" ePTS=\""LLD"\" first_offset=\""LLD"\">\n", p->reference_ID, p->timescale, p->earliest_presentation_time, p->first_offset);
+	fprintf(trace, "<SegmentIndexBox reference_ID=\"%d\" timescale=\"%d\" earliest_presentation_time=\""LLD"\" first_offset=\""LLD"\">\n", p->reference_ID, p->timescale, p->earliest_presentation_time, p->first_offset);
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 	
 	for (i=0; i<p->nb_refs; i++) {
-		fprintf(trace, "<Reference type=\"%d\" offset=\"%d\" SubSegmentDuration=\"%d\" hasRAP=\"%d\" RAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_offset, p->refs[i].subsegment_duration, p->refs[i].contains_RAP, p->refs[i].RAP_delta_time);
+		fprintf(trace, "<Reference type=\"%d\" size=\"%d\" duration=\"%d\" hasRAP=\"%d\" RAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_offset, p->refs[i].subsegment_duration, p->refs[i].contains_RAP, p->refs[i].RAP_delta_time);
 	}
 	fprintf(trace, "</SegmentIndexBox>\n");
 	return GF_OK;
