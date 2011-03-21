@@ -330,7 +330,7 @@ void gf_memory_print(void); /*prints the state of current allocations*/
 #define gf_malloc(size) gf_mem_malloc(size, __FILE__, __LINE__)
 #define gf_calloc(num, size_of) gf_mem_calloc(num, size_of, __FILE__, __LINE__)
 #define gf_strdup(s) gf_mem_strdup(s, __FILE__, __LINE__)
-#define gf_realloc(ptr1, ptr2) gf_mem_realloc(ptr1, ptr2, __FILE__, __LINE__)
+#define gf_realloc(ptr1, size) gf_mem_realloc(ptr1, size, __FILE__, __LINE__)
 
 #else
 
