@@ -179,6 +179,12 @@ enum
 	GF_M2TS_EVT_DVB_GENERAL,
 	/* MPE / MPE-FEC frame extraction and IP datagrams decryptation */
 	GF_M2TS_EVT_DVB_MPE,
+	/*CAT has been found (service tune-in) - assoctiated parameter: new CAT*/
+	GF_M2TS_EVT_CAT_FOUND,
+	/*repeated CAT has been found (carousel) - assoctiated parameter: updated CAT*/
+	GF_M2TS_EVT_CAT_REPEAT,
+	/*PMT has been changed - assoctiated parameter: updated PMT*/
+	GF_M2TS_EVT_CAT_UPDATE,
 };
 
 enum
@@ -534,7 +540,7 @@ struct tag_m2ts_demux
 	char *buffer;
 	u32 buffer_size, alloc_size;
 	/*default transport PID filters*/
-	GF_M2TS_SectionFilter *pat, *nit, *sdt, *eit, *tdt_tot_st;
+	GF_M2TS_SectionFilter *pat, *cat, *nit, *sdt, *eit, *tdt_tot_st;
 
 	Bool has_4on2;
 	/* analyser */
