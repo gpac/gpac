@@ -1721,6 +1721,90 @@ void DumpMovieInfo(GF_ISOFile *file)
 #include <gpac/internal/isomedia_dev.h>
 
 typedef struct
+{	
+	Bool start_indexing;
+
+	/* For indexing the TS*/
+	Double segment_duration;
+	Bool segment_at_rap;
+	u32 subsegs_per_segment;
+
+	FILE *index_file;
+	char index_file_name[100];
+	GF_BitStream *index_bs;
+
+	char mpd_file_name[100];
+	FILE *mpd_file;
+	/* temporary file to store the MPD segment description before writing the header */
+	FILE *mpd_segs;
+
+	u32 reference_pid;
+	GF_M2TS_PES *reference_stream;
+	
+	/* earliest presentation time for the whole segment */
+	u64 first_PTS;
+
+	/* earliest presentation time for the subsegment being processed */
+	u64 base_PTS;
+	/* byte offset for the start of subsegment being processed */
+	u32 base_offset;
+	/* last presentation time for the subsegment being processed (before the next subsegment is started) */
+	u64 last_PTS;
+	/* byte offset for the last PES packet for the subsegment being processed */
+	u32 last_offset;
+
+	/* earliest presentation time for the previous subsegment */
+	u64 prev_base_PTS;
+	/* byte offset for the start of the previous subsegment */
+	u32 prev_base_offset;
+	/* last presentation time for the previous subsegment */
+	u64 prev_last_PTS;
+	/* byte offset for the last PES packet for the previous subsegment */
+	u32 prev_last_offset;
+
+	/* boolean indicating if the current subsegment contains a RAP */
+	Bool has_rap;
+	/* Presentation time for the first RAP encountered in the subsegment */
+	u64 first_RAP_PTS;
+	/* byte offset for the first RAP encountered in the subsegment */
+	u32 first_RAP_offset;
+	u64 prev_last_RAP_PTS;
+	u32 prev_last_RAP_offset;
+	u64 last_RAP_PTS;
+	u32 last_RAP_offset;
+
+	/* information about the first PAT found in the subsegment */
+	u32 last_pat_position;
+	u32 first_pat_position;
+	u32 prev_last_pat_position;
+	Bool first_pat_position_valid;
+	u32 pat_version;
+
+	/* information about the first CAT found in the subsegment */
+	u32 last_cat_position;
+	u32 first_cat_position;
+	u32 prev_last_cat_position;
+	Bool first_cat_position_valid;
+	u32 cat_version;
+
+	/* information about the first PMT found in the subsegment */
+	u32 last_pmt_position;
+	u32 first_pmt_position;
+	u32 prev_last_pmt_position;
+	Bool first_pmt_position_valid;
+	u32 pmt_version;
+
+	/* information about the first PCR found in the subsegment */
+	u32 last_pcr_position;
+	u32 first_pcr_position;
+	Bool first_pcr_position_valid;
+	u32 prev_last_pcr_position;
+
+	//GF_List *sidxs;
+	GF_SegmentIndexBox *sidx;
+} GF_M2TS_IndexingInfo;
+
+typedef struct
 {
 	/* when writing to file */
 	FILE *pes_out;
@@ -1740,23 +1824,192 @@ typedef struct
 	u32 dump_pid;
 	Bool has_seen_pat;
 
-	/* For indexing the TS*/
-	Double segment_duration;
-	FILE *index_file;
-	char index_file_name[100];
-	GF_BitStream *index_bs;
-	GF_List *indexed_streams;
+	GF_M2TS_IndexingInfo index_info;
 
 } GF_M2TS_Dump;
 
-typedef struct {
-	u32 pid;
-	u64 first_PTS;
-	u64 first_offset;
-	Bool has_rap;
-	u32 rap_delta_time;
-	u64 rap_offset;
-} GF_M2TS_IndexedStream;
+/* Initializes an SIDX */
+static GF_SegmentIndexBox *m2ts_sidx_new(u32 pid, u64 PTS, u64 position)
+{						
+	GF_SegmentIndexBox *sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
+	sidx->reference_ID = pid;
+	/* timestamps in MPEG-2 are expressed in 90 kHz timescale */
+	sidx->timescale = 90000;
+	/* first encountered PTS on the PID for this subsegment */
+	sidx->earliest_presentation_time = PTS;
+	sidx->first_offset = position;
+	return sidx;
+}
+
+static void m2ts_sidx_add_entry(GF_SegmentIndexBox *sidx, Bool type, 
+								u32 size, u32 duration, Bool has_rap, u32 RAP_delta_time)
+{
+	GF_SIDXReference *ref;
+	sidx->nb_refs++;
+	sidx->refs = gf_realloc(sidx->refs, sidx->nb_refs*sizeof(GF_SIDXReference));
+	ref = &(sidx->refs[sidx->nb_refs-1]);
+	ref->reference_type = type;
+	ref->contains_RAP = has_rap;
+	ref->reference_offset = size;
+	ref->subsegment_duration = duration;
+	ref->RAP_delta_time = (has_rap ? RAP_delta_time: 0);
+}
+
+static void m2ts_sidx_update_prev_entry_duration(GF_SegmentIndexBox *sidx, u32 duration)
+{
+	GF_SIDXReference *ref;
+	if (sidx->nb_refs == 0) return;
+	ref = &(sidx->refs[sidx->nb_refs-1]);
+	ref->subsegment_duration = duration;
+}
+
+static void m2ts_sidx_finalize_size(GF_M2TS_IndexingInfo *index_info, u64 file_size)
+{
+	GF_SIDXReference *ref;
+	if (index_info->sidx->nb_refs == 0) return;
+	ref = &(index_info->sidx->refs[index_info->sidx->nb_refs-1]);
+	ref->reference_offset = (u32)(file_size - index_info->prev_base_offset);
+	fprintf(stderr, "Subsegment: position-range ajdustment:%d-%d (%d bytes)\n",
+		index_info->prev_base_offset, (u32)file_size, ref->reference_offset);
+}
+
+static void m2ts_sidx_flush_entry(GF_M2TS_IndexingInfo *index_info) 
+{
+	u32 size; 
+	u32 duration, prev_duration; 
+	u32 RAP_delta_time; 
+	u32 RAP_offset;
+
+	u32 end_offset;
+
+	if (!index_info->sidx) {
+		fprintf(stderr, "Segment: Reference PID: %d, EPTime: %.03f, Start Offset: %d bytes\n", 
+			index_info->reference_pid, index_info->base_PTS, index_info->base_offset);
+		index_info->sidx = m2ts_sidx_new(index_info->reference_pid, index_info->base_PTS, index_info->base_offset);
+	}
+
+	/* determine the end of the current index */
+	if (1) {
+		/*split at PAT*/
+		end_offset = index_info->last_pat_position;
+	} else {
+		/* split at PES header */
+		end_offset = index_info->last_offset; 
+	}
+
+	/* close the current index */ 
+	size = (u32)(end_offset - index_info->base_offset);
+	duration = (u32)(index_info->last_PTS - index_info->base_PTS);
+	RAP_delta_time= (u32)(index_info->first_RAP_PTS - index_info->base_PTS);
+	RAP_offset = (u32)(index_info->first_RAP_offset - index_info->base_offset);
+	m2ts_sidx_add_entry(index_info->sidx, 0, size, duration, index_info->has_rap, RAP_delta_time);
+
+	/* adjust the previous index duration */
+	if (index_info->sidx->nb_refs > 0 && (index_info->base_PTS < index_info->prev_last_PTS) ) {
+		prev_duration = (u32)(index_info->base_PTS-index_info->prev_base_PTS);
+		fprintf(stderr, "           time-range adj.: %.03f-%.03f / %.03f sec.\n", 		
+			(index_info->prev_base_PTS - index_info->first_PTS)/90000.0, 
+			(index_info->base_PTS - index_info->first_PTS)/90000.0, prev_duration/90000.0);
+		m2ts_sidx_update_prev_entry_duration(index_info->sidx, prev_duration);
+	}
+
+	/* Printing result */
+	fprintf(stderr, "Subsegment:");
+	//time-range:position-range: 
+	//fprintf(stderr, LLD"-"LLD,index_info->base_PTS, index_info->last_PTS);
+	fprintf(stderr, " %.03f-%0.3f / %.03f sec., %d-%d / %d bytes, ",
+		(index_info->base_PTS - index_info->first_PTS)/90000.0, 
+		(index_info->last_PTS - index_info->first_PTS)/90000.0, duration/90000.0,
+		index_info->base_offset, end_offset, size);
+	if (index_info->has_rap) {
+		fprintf(stderr, "RAP @ %.03f sec. / %d bytes", (index_info->first_RAP_PTS - index_info->first_PTS)/90000.0, 
+			RAP_offset);
+	}
+	if (index_info->first_pat_position_valid) {
+		fprintf(stderr, ", PAT @ %d bytes", (u32)(index_info->first_pat_position - index_info->base_offset));
+	} else {
+		fprintf(stderr, ", No PAT");
+	}
+	if (index_info->first_cat_position_valid) {
+		fprintf(stderr, ", CAT @ %d bytes", (u32)(index_info->first_cat_position - index_info->base_offset));
+	} else {
+		fprintf(stderr, ", No CAT");
+	}
+	if (index_info->first_pmt_position_valid) {
+		fprintf(stderr, ", PMT @ %d bytes", (u32)(index_info->first_pmt_position - index_info->base_offset));
+	} else {
+		fprintf(stderr, ", No PMT");
+	}
+	if (index_info->first_pcr_position_valid) {
+		fprintf(stderr, ", PCR @ %d bytes", (u32)(index_info->first_pcr_position - index_info->base_offset));
+	} else {
+		fprintf(stderr, ", No PCR");
+	}
+	fprintf(stderr, "\n");
+
+	/* save the current values for later adjustments */
+	index_info->prev_last_RAP_PTS = index_info->last_RAP_PTS;
+	index_info->prev_last_RAP_offset = index_info->last_RAP_offset;
+	index_info->prev_last_PTS = index_info->last_PTS;
+	index_info->prev_last_offset = index_info->last_offset;
+	index_info->prev_base_PTS = index_info->base_PTS;
+	index_info->base_PTS = index_info->last_PTS;
+	index_info->prev_base_offset = index_info->base_offset;
+	index_info->prev_last_pat_position = index_info->last_pat_position;
+	index_info->prev_last_cat_position = index_info->last_cat_position;
+	index_info->prev_last_pmt_position = index_info->last_pmt_position;
+	index_info->prev_last_pcr_position = index_info->last_pcr_position;
+	
+	/* update the values for the new index*/
+	index_info->base_offset = end_offset;
+	index_info->has_rap = 0;
+	index_info->first_RAP_PTS = 0;
+	index_info->first_RAP_offset = 0;
+	if (index_info->last_pat_position >= index_info->base_offset) {
+		index_info->first_pat_position_valid = 1;
+		index_info->first_pat_position = index_info->last_pat_position;
+	} else {
+		index_info->first_pat_position_valid = 0;
+		index_info->first_pat_position = 0;
+	}
+	if (index_info->last_cat_position >= index_info->base_offset) {
+		index_info->first_cat_position_valid = 1;
+		index_info->first_cat_position = index_info->last_cat_position;
+	} else {
+		index_info->first_cat_position_valid = 0;
+		index_info->first_cat_position = 0;
+	}
+	if (index_info->last_pmt_position >= index_info->base_offset) {
+		index_info->first_pmt_position_valid = 1;
+		index_info->first_pmt_position = index_info->last_pmt_position;
+	} else {
+		index_info->first_pmt_position_valid = 0;
+		index_info->first_pmt_position = 0;
+	}
+	if (index_info->last_pcr_position >= index_info->base_offset) {
+		index_info->first_pcr_position_valid = 1;
+		index_info->first_pcr_position = index_info->last_pcr_position;
+	} else {
+		index_info->first_pcr_position_valid = 0;
+		index_info->first_pcr_position = 0;
+	}
+}
+
+static void m2ts_check_indexing(GF_M2TS_IndexingInfo *index_info)
+{
+	u32 delta_time = (u32)(index_info->last_PTS - index_info->base_PTS);
+	u32 segment_duration = (u32)(index_info->segment_duration*90000);
+	/* we need to create an SIDX entry when the duration of the previous entry is too big */
+	if (index_info->segment_at_rap) {
+		/*
+		if (delta_time >= 1.5*segment_duration) {
+			fprintf(stderr, "Warning: segment is more than 1.5 times longer than expected !\n");
+		}
+		*/		
+	} else if (delta_time >= segment_duration) {
+		m2ts_sidx_flush_entry(index_info);
+	} 
+}
 
 static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
 {
@@ -1764,47 +2017,151 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	GF_M2TS_Program *prog;
 	GF_M2TS_PES_PCK *pck;
 	GF_M2TS_Dump *dumper = (GF_M2TS_Dump *)ts->user;
+	GF_M2TS_IndexingInfo *index_info = &dumper->index_info;
 
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_FOUND:
 		fprintf(stdout, "Initial PAT found - %d programs\n", gf_list_count(ts->programs) );
+		if (index_info->start_indexing) {
+			if (!index_info->first_pat_position_valid) {
+				index_info->first_pat_position_valid = 1;
+				index_info->first_pat_position = (ts->pck_number-1)*188;
+			}
+			index_info->last_pat_position = (ts->pck_number-1)*188;
+		}
+		if (dumper->timestamps_info_file) {
+			fprintf(dumper->timestamps_info_file, "%u\t%d\n", ts->pck_number, 0);
+		}
 		break;
 	case GF_M2TS_EVT_PAT_UPDATE:
 		fprintf(stdout, "PAT updated - %d programs\n", gf_list_count(ts->programs) );
+		if (index_info->start_indexing) {
+			if (!index_info->first_pat_position_valid) {
+				index_info->first_pat_position_valid = 1;
+				index_info->first_pat_position = (ts->pck_number-1)*188;
+			}
+			index_info->last_pat_position = (ts->pck_number-1)*188;
+		}
+		if (dumper->timestamps_info_file) {
+			fprintf(dumper->timestamps_info_file, "%u\t%d\n", ts->pck_number, 0);
+		}
 		break;
 	case GF_M2TS_EVT_PAT_REPEAT:
 		/* WARNING: We detect the pat on a repetition, probably to ensure that we also have seen all the PMT 
 		   To be checked */
 		dumper->has_seen_pat = 1;
+		if (index_info->start_indexing) {
+			if (!index_info->first_pat_position_valid) {
+				index_info->first_pat_position_valid = 1;
+				index_info->first_pat_position = (ts->pck_number-1)*188;
+			}
+			index_info->last_pat_position = (ts->pck_number-1)*188;
+		}
+		if (dumper->timestamps_info_file) {
+			fprintf(dumper->timestamps_info_file, "%u\t%d\n", ts->pck_number, 0);
+		}
 //		fprintf(stdout, "Repeated PAT found - %d programs\n", gf_list_count(ts->programs) );
+		break;
+	case GF_M2TS_EVT_CAT_FOUND:
+		fprintf(stdout, "Initial CAT found\n");
+		if (index_info->start_indexing) {
+			if (!index_info->first_cat_position_valid) {
+				index_info->first_cat_position_valid = 1;
+				index_info->first_cat_position = (ts->pck_number-1)*188;
+			}
+			index_info->last_cat_position = (ts->pck_number-1)*188;
+		}
+		if (dumper->timestamps_info_file) {
+			fprintf(dumper->timestamps_info_file, "%u\t%d\n", ts->pck_number, 0);
+		}
+		break;
+	case GF_M2TS_EVT_CAT_UPDATE:
+		fprintf(stdout, "CAT updated\n");
+		if (index_info->start_indexing) {
+			if (!index_info->first_cat_position_valid) {
+				index_info->first_cat_position_valid = 1;
+				index_info->first_cat_position = (ts->pck_number-1)*188;
+			}
+			index_info->last_cat_position = (ts->pck_number-1)*188;
+		}
+		if (dumper->timestamps_info_file) {
+			fprintf(dumper->timestamps_info_file, "%u\t%d\n", ts->pck_number, 0);
+		}
+		break;
+	case GF_M2TS_EVT_CAT_REPEAT:
+		if (index_info->start_indexing) {
+			if (!index_info->first_cat_position_valid) {
+				index_info->first_cat_position_valid = 1;
+				index_info->first_cat_position = (ts->pck_number-1)*188;
+			}
+			index_info->last_cat_position = (ts->pck_number-1)*188;
+		}
+		if (dumper->timestamps_info_file) {
+			fprintf(dumper->timestamps_info_file, "%u\t%d\n", ts->pck_number, 0);
+		}
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
 		prog = (GF_M2TS_Program*)par;
+		if (prog->number != dumper->prog_number) break;
+		if (index_info->start_indexing) {
+			if (!index_info->first_pmt_position_valid) {
+				index_info->first_pmt_position_valid = 1;
+				index_info->first_pmt_position = (ts->pck_number-1)*188;
+			}
+			index_info->last_pmt_position = (ts->pck_number-1)*188;
+		}
 		count = gf_list_count(prog->streams);
 		fprintf(stdout, "Program number %d found - %d streams:\n", prog->number, count);
 		for (i=0; i<count; i++) {
 			GF_M2TS_ES *es = gf_list_get(prog->streams, i);
-			if (es->pid == prog->pmt_pid) fprintf(stdout, "\tPID %d: Program Map Table\n", es->pid);
-			else {
+			if (es->pid == prog->pmt_pid) {
+				fprintf(stdout, "\tPID %d: Program Map Table\n", es->pid);
+			} else {
 				GF_M2TS_PES *pes = (GF_M2TS_PES *)es;
 				gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
 				fprintf(stdout, "\tPID %d: %s ", pes->pid, gf_m2ts_get_stream_name(pes->stream_type) );
 				if (pes->mpeg4_es_id) fprintf(stdout, " - MPEG-4 ES ID %d", pes->mpeg4_es_id);
 				fprintf(stdout, "\n");
-				if (dumper->segment_duration) {
-					GF_M2TS_IndexedStream *indexs;
-					GF_SAFEALLOC(indexs, GF_M2TS_IndexedStream);
-					indexs->pid = es->pid;
-					gf_list_add(dumper->indexed_streams, indexs);
-				}
+			} 
+			if (es->pid == prog->pcr_pid) {
+				/* we create indexing information on the stream used for carrying the PCR */
+				index_info->reference_pid = prog->pcr_pid;
+				index_info->reference_stream = (GF_M2TS_PES *)es;
 			}
+		}
+		if (dumper->timestamps_info_file) {
+			fprintf(dumper->timestamps_info_file, "%u\t%d\n", ts->pck_number, prog->pmt_pid);
 		}
 		break;
 	case GF_M2TS_EVT_PMT_UPDATE:
+		prog = (GF_M2TS_Program*)par;
+		if (prog->number != dumper->prog_number) break;
 		fprintf(stdout, "Program list updated - %d streams\n", gf_list_count( ((GF_M2TS_Program*)par)->streams) );
+		if (index_info->start_indexing) {
+			if (!index_info->first_pmt_position_valid) {
+				index_info->first_pmt_position_valid = 1;
+				index_info->first_pmt_position = (ts->pck_number-1)*188;
+			}
+			index_info->last_pmt_position = (ts->pck_number-1)*188;
+		}
+		if (dumper->timestamps_info_file) {
+			fprintf(dumper->timestamps_info_file, "%u\t%d\n", ts->pck_number, prog->pmt_pid);
+		}
 		break;
 	case GF_M2TS_EVT_PMT_REPEAT:
+		prog = (GF_M2TS_Program*)par;
+		if (prog->number != dumper->prog_number) break;
+		if (index_info->start_indexing) {
+			if (!index_info->first_pmt_position_valid) {
+				index_info->first_pmt_position_valid = 1;
+				index_info->first_pmt_position = (ts->pck_number-1)*188;
+			}
+			index_info->last_pmt_position = (ts->pck_number-1)*188;
+		}
 //		fprintf(stdout, "Repeated Program list found - %d streams\n", gf_list_count( ((GF_M2TS_Program*)par)->streams) );
+		if (dumper->timestamps_info_file) {
+			fprintf(dumper->timestamps_info_file, "%u\t%d\n", ts->pck_number, prog->pmt_pid);
+		}
 		break;
 	case GF_M2TS_EVT_SDT_FOUND:
 		count = gf_list_count(ts->SDTs) ;
@@ -1827,8 +2184,14 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		break;
 	case GF_M2TS_EVT_PES_TIMING:
 		pck = par;
+		if (pck->stream->program->number != dumper->prog_number) break;
+
+		break;
+	case GF_M2TS_EVT_PES_PCK:
+		pck = par;
+		if (pck->stream->program->number != dumper->prog_number) break;
 		if (dumper->has_seen_pat) {
-			if (dumper->timestamps_info_file && (pck->stream->program->number == dumper->prog_number)) {
+			if (dumper->timestamps_info_file) {
 				GF_M2TS_PES *pes = pck->stream;
 				GF_M2TS_Program *prog = pes->program;
 				/* Interpolated PCR value for the TS packet containing the PES header start */
@@ -1847,70 +2210,55 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				if (pck->DTS) fprintf(dumper->timestamps_info_file, "%f", (pck->DTS / 90000.0));
 				fprintf(dumper->timestamps_info_file, "\t%f\t%d\t%d\n", pck->PTS / 90000.0, (pck->flags & GF_M2TS_PES_PCK_RAP ? 1 : 0), (pck->flags & GF_M2TS_PES_PCK_DISCONTINUITY ? 1 : 0));
 			}
-
-			if (dumper->segment_duration) {
-				GF_M2TS_IndexedStream *indexs;
-				u32 count, i;
-				indexs = NULL;
-				count = gf_list_count(dumper->indexed_streams);
-				for (i = 0; i<count; i++) {
-					indexs = gf_list_get(dumper->indexed_streams, i);
-					if (pck->stream->pid == indexs->pid) { 
-						break;
-					} else {
-						indexs = NULL;
+		}
+		if (index_info->start_indexing) {
+			/* we process packets only for the given PID */
+			if (pck->stream->pid != index_info->reference_pid) {
+				break;
+			} else {
+				/* we store the fact that there is at least a RAP for the index
+				and we store the PTS of the first encountered RAP in the index*/
+				if (pck->flags & GF_M2TS_PES_PCK_RAP) {
+					index_info->has_rap = 1;
+					if (!index_info->first_RAP_PTS || (index_info->first_RAP_PTS > pck->PTS)) {
+						index_info->first_RAP_PTS = pck->PTS;
+						index_info->first_RAP_offset = (pck->stream->pes_start_packet_number-1)*188;
 					}
+					index_info->last_RAP_PTS = pck->PTS;
+					index_info->last_RAP_offset = (pck->stream->pes_start_packet_number-1)*188;
 				}
-				if (indexs != NULL) {
-					indexs->has_rap |= (pck->flags & GF_M2TS_PES_PCK_RAP);
-					if (indexs->has_rap && (indexs->rap_delta_time == 0)) {
-						indexs->rap_delta_time = (u32)(pck->PTS - indexs->first_PTS);
-						indexs->rap_offset = pck->stream->pes_start_packet_number*188;
-					}
-					if ((indexs->first_PTS == 0) ||
-						((pck->PTS - indexs->first_PTS) >= (u32)(dumper->segment_duration*90000))) {
-						/* flush an SIDX */
-						{						
-							GF_SegmentIndexBox *sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
-							GF_SIDXReference *ref;
-							sidx->reference_ID = indexs->pid;
-							sidx->timescale = 90000;
-							sidx->earliest_presentation_time = indexs->first_PTS;
-							sidx->first_offset = indexs->first_offset;
-							sidx->nb_refs = 1;
-							sidx->refs = gf_calloc(sidx->nb_refs, sizeof(GF_SIDXReference));
-							ref = &(sidx->refs[0]);
-							ref->contains_RAP = indexs->has_rap;
-							ref->RAP_delta_time = indexs->rap_delta_time;
-							ref->reference_offset = (u32)(indexs->rap_offset - indexs->first_offset);
-							ref->reference_type = 0; /* media data in the media file */
-							ref->subsegment_duration = (u32)(dumper->segment_duration*90000);
-							gf_isom_box_size((GF_Box *)sidx);
-							gf_isom_box_write((GF_Box *)sidx, dumper->index_bs);
-							gf_isom_box_del((GF_Box *)sidx);
-						}
-						/* update the values */
-						indexs->first_PTS = pck->PTS;
-						indexs->first_offset = pck->stream->pes_start_packet_number*188;
-						indexs->has_rap = 0;
-						indexs->rap_delta_time = 0;
-						indexs->rap_offset = 0;
-					}
+				/* we need to know the earliest PTS value (RAP or not) in the index*/
+				if (!index_info->base_PTS || (index_info->base_PTS > pck->PTS)) {
+					index_info->base_PTS = pck->PTS;
 				}
+				/* we need to know the earliest PTS value for the whole file (segment) */
+				if (!index_info->first_PTS || (index_info->first_PTS > pck->PTS)) {
+					index_info->first_PTS = pck->PTS;
+				}
+				if (pck->PTS > index_info->last_PTS) {
+					/* we use the last PTS for first approximation of the duration */
+					index_info->last_PTS = pck->PTS;
+					index_info->last_offset = (index_info->reference_stream->pes_start_packet_number-1)*188;
+				}
+				m2ts_check_indexing(index_info);
 			}
 		}
-
-		break;
-	case GF_M2TS_EVT_PES_PCK:
-		pck = par;
 		if (dumper->pes_out && (dumper->dump_pid == pck->stream->pid)) {
 			fwrite(pck->data, pck->data_len, 1, dumper->pes_out);
 		}
 		break;
 	case GF_M2TS_EVT_PES_PCR:
 		pck = par;
-		if (dumper->timestamps_info_file && (pck->stream->program->number == dumper->prog_number)) {
+		if (pck->stream->program->number != dumper->prog_number) break;
+		if (dumper->timestamps_info_file) {
 			fprintf(dumper->timestamps_info_file, "%u\t%d\t%f\t\t\t\t%d\n", pck->stream->program->last_pcr_value_pck_number, pck->stream->pid, pck->PTS / (300*90000.0), (pck->flags & GF_M2TS_PES_PCK_DISCONTINUITY ? 1 : 0));
+		}
+		if (index_info->start_indexing) {
+			if (!index_info->first_pcr_position_valid) {
+				index_info->first_pcr_position_valid = 1;
+				index_info->first_pcr_position = (ts->pck_number-1)*188;
+			}
+			index_info->last_pcr_position = (ts->pck_number-1)*188;
 		}
 		break;
 	case GF_M2TS_EVT_SL_PCK:
@@ -1944,31 +2292,113 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	}
 }
 
-void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double dash_duration)
+static void mpd_duration(Double duration, char *duration_string)
+{
+	u32 h, m;
+	Double s;
+
+	h = (u32) (duration/3600);
+	m = (u32) (duration-h*60)/60;
+	s = (duration - h*3600 - m*60);
+	if (h) sprintf(duration_string, "PT%dH%dM%.2fS", h, m, s);	
+	else if (m) sprintf(duration_string, "PT%dM%.2fS", m, s);	
+	else if (s) sprintf(duration_string, "PT%.2fS", s);	
+	else sprintf(duration_string, "PT0S");	
+}
+
+void mpd_start(FILE *mpd, Bool on_demand, const char *media_file_name, 
+			   Double file_duration, const char *media_mime, const char *media_codecs, 
+			   u32 width, u32 height, u32 sample_rate, u32 nb_channels,  char *langCode,
+			   Bool split_seg_at_rap, u64 file_size, Double bufferTime)
+{
+	char duration_string[100];
+	char buffer_string[100];
+	u32 bandwidth;
+	bandwidth = (u32) (file_size * 8 / file_duration);	
+	fprintf(mpd, "<MPD type=\"%s\" xmlns=\"urn:mpeg:mpegB:schema:DASH:MPD:DIS2011\">\n", (on_demand ? "OnDemand": "Live"));
+    fprintf(mpd, " <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n");
+	fprintf(mpd, "  <Title>Media Presentation Description for file %s generated with GPAC </Title>\n", media_file_name);
+    fprintf(mpd, " </ProgramInformation>\n");
+	mpd_duration(file_duration, duration_string);
+	mpd_duration(bufferTime, buffer_string);
+    fprintf(mpd, " <Period start=\"PT0S\" duration=\"%s\" minBufferTime=\"%s\">\n", duration_string, buffer_string);	
+	fprintf(mpd, "  <Representation id=\"rep1\"");
+	if (!media_codecs) fprintf(mpd, " mimeType=\"%s\"", media_mime);
+	else fprintf(mpd, " mimeType=\"%s; codecs=%s\"", media_mime, media_codecs);
+	if (width && height) fprintf(mpd, " width=\"%d\" height=\"%d\"", width, height);
+	if (sample_rate && nb_channels) fprintf(mpd, " sampleRate=\"%d\" numChannels=\"%d\"", sample_rate, nb_channels);
+	if (langCode[0]) fprintf(mpd, " lang=\"%s\"", langCode);
+	fprintf(mpd, " startWithRAP=\"%s\"", split_seg_at_rap ? "true" : "false");
+	fprintf(mpd, " bandwidth=\"%d\"", bandwidth);
+	fprintf(mpd, ">\n");
+
+}
+
+void mpd_end(FILE *mpd)
+{
+    fprintf(mpd, "  </Representation>\n");
+    fprintf(mpd, " </Period>\n");
+    fprintf(mpd, "</MPD>");
+}
+
+static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *media_file_name, const char *init_seg_name,
+								   Bool use_index_segment)
+{
+	u32 i;
+	u64 start;
+	char duration_string[100];
+
+	mpd_duration(index_info->segment_duration, duration_string);
+	fprintf(index_info->mpd_file, "   <SegmentInfo duration=\"%s\">\n", duration_string); 
+	/* add startIndex for live scenarios */
+	
+	if (init_seg_name) {
+		fprintf(index_info->mpd_file, "    <InitialisationSegmentURL sourceURL=\"%s\"/>\n", init_seg_name);
+	}
+
+	if (!use_index_segment) {
+		fprintf(index_info->mpd_file, "    <BaseURL>%s</BaseURL>\n", media_file_name);
+		start=index_info->sidx->first_offset;
+		for (i=0; i<index_info->sidx->nb_refs; i++) {
+			GF_SIDXReference *ref = &index_info->sidx->refs[i];
+			fprintf(index_info->mpd_file, "    <Url range=\""LLD"-"LLD"\"/>\n", start, start+ref->reference_offset-1);
+			start += ref->reference_offset;
+		}		
+	} else {
+		fprintf(index_info->mpd_file, "    <Url sourceURL=\"%s\"/>\n", media_file_name);
+		fprintf(index_info->mpd_file, "    <Index sourceURL=\"%s\"/>\n", index_info->index_file_name);
+	}
+	fprintf(index_info->mpd_file, "   </SegmentInfo>\n");
+}
+
+void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double dash_duration, Bool seg_at_rap, u32 subseg_per_seg)
 {
 	char data[188];
 	GF_M2TS_Dump dumper;
 	u32 size;
 	u64 fsize, fdone;
 	GF_M2TS_Demuxer *ts;
+	FILE *src;
 
-	FILE *src = gf_f64_open(mpeg2ts_file, "rb");
+	src = gf_f64_open(mpeg2ts_file, "rb");
 
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_dump_event;
 	memset(&dumper, 0, sizeof(GF_M2TS_Dump));
 	ts->user = &dumper;
+	dumper.prog_number = prog_num;
 	
 	if (dash_duration) {
 		char *c;
-		dumper.segment_duration = dash_duration;
+		dumper.index_info.segment_duration = dash_duration;
+		dumper.index_info.segment_at_rap = seg_at_rap;
+		dumper.index_info.subsegs_per_segment = subseg_per_seg;
 		c = strrchr(mpeg2ts_file, '.');
 		if (c) *c = 0;
-		sprintf(dumper.index_file_name, "%s_index.m4s", mpeg2ts_file);
+		sprintf(dumper.index_info.index_file_name, "%s_index.m4s", mpeg2ts_file);
 		if (c) *c = '.';
-		dumper.index_file = gf_f64_open(dumper.index_file_name, "wb");
-		dumper.index_bs = gf_bs_from_file(dumper.index_file, GF_BITSTREAM_WRITE);
-		dumper.indexed_streams = gf_list_new();
+		dumper.index_info.index_file = gf_f64_open(dumper.index_info.index_file_name, "wb");
+		dumper.index_info.index_bs = gf_bs_from_file(dumper.index_info.index_file, GF_BITSTREAM_WRITE);
 		{
 			GF_SegmentTypeBox *styp = (GF_SegmentTypeBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_STYP);
 			styp->majorBrand = GF_4CC('i','s','s','s');
@@ -1977,7 +2407,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double
 			styp->altBrand[0] = styp->majorBrand;
 			styp->altCount = 1;
 			gf_isom_box_size((GF_Box *)styp);
-			gf_isom_box_write((GF_Box *)styp, dumper.index_bs);
+			gf_isom_box_write((GF_Box *)styp, dumper.index_info.index_bs);
 			gf_isom_box_del((GF_Box *)styp);
 		}
 	}
@@ -1987,6 +2417,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double
 	gf_f64_seek(src, 0, SEEK_SET);
 	fdone = 0;
 
+	/* first loop to process all packets between two PAT, and assume all signaling was found between these 2 PATs */
 	while (!feof(src)) {
 		size = fread(data, 1, 188, src);
 		if (size<188) break;
@@ -1995,10 +2426,13 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double
 		if (dumper.has_seen_pat) break;
 	}
 
-	if (prog_num) {
-		dumper.prog_number = prog_num;
+	if (prog_num && !dash_duration) {
 		sprintf(dumper.timestamps_info_name, "%s_prog_%d_timestamps.txt", mpeg2ts_file, prog_num/*, mpeg2ts_file*/);
 		dumper.timestamps_info_file = gf_f64_open(dumper.timestamps_info_name, "wt");
+		if (!dumper.timestamps_info_file) {
+			fprintf(stderr, "Cannot open file %s\n", dumper.timestamps_info_name);
+			return;
+		}
 		fprintf(dumper.timestamps_info_file, "PCK#\tPID\tPCR\tDTS\tPTS\tRAP\tDiscontinuity\n");
 	}
 
@@ -2020,6 +2454,12 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double
 	gf_m2ts_reset_parsers(ts);
 	gf_f64_seek(src, 0, SEEK_SET);
 	fdone = 0;
+	if (dumper.index_info.segment_duration) {
+		dumper.index_info.start_indexing = 1;
+		fprintf(stderr, "Starting indexing ...\n");
+		sprintf(dumper.index_info.mpd_file_name, "%s.mpd", mpeg2ts_file);
+		dumper.index_info.mpd_file = gf_f64_open(dumper.index_info.mpd_file_name, "wt");
+	}
 	while (!feof(src)) {
 		size = fread(data, 1, 188, src);
 		if (size<188) break;
@@ -2030,8 +2470,19 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double
 		gf_set_progress("MPEG-2 TS Parsing", fdone, fsize);
 	}
 
-	if (dumper.segment_duration) {
-		/* TODO: flush SIDX for all streams for the last packets */
+	if (dumper.index_info.segment_duration) {
+		u64 file_size;
+		/* flush SIDX entry for the last packets */
+		m2ts_sidx_flush_entry(&dumper.index_info);
+		gf_f64_seek(src, 0, SEEK_END);
+		file_size = gf_f64_tell(src);
+		m2ts_sidx_finalize_size(&dumper.index_info, file_size);
+		fprintf(stderr, "Indexing done (1 sidx, %d entries).\n", dumper.index_info.sidx->nb_refs);
+
+		mpd_start(dumper.index_info.mpd_file, 1, mpeg2ts_file, (dumper.index_info.last_PTS-dumper.index_info.first_PTS)/90000.0, 
+			"video/mp2t", NULL, 0, 0, 0, 0, "", 0, file_size, dumper.index_info.segment_duration);
+		write_mpd_segment_info(&dumper.index_info, mpeg2ts_file, NULL, 0);
+		mpd_end(dumper.index_info.mpd_file);
 	}
 
 	fclose(src);
@@ -2043,17 +2494,14 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double
 		fclose(dumper.pes_out_info);
 	}
 	if (dumper.timestamps_info_file) fclose(dumper.timestamps_info_file);
-	if (dumper.index_file) fclose(dumper.index_file);
-	if (dumper.index_bs) gf_bs_del(dumper.index_bs);
-	if (dumper.indexed_streams) {
-		while (gf_list_count(dumper.indexed_streams)) {
-			GF_M2TS_IndexedStream *indexs = gf_list_get(dumper.indexed_streams, 0);
-			gf_list_rem(dumper.indexed_streams, 0);
-			gf_free(indexs);
-		}
-		gf_list_del(dumper.indexed_streams);
-
+	if (dumper.index_info.sidx) {
+		gf_isom_box_size((GF_Box *)dumper.index_info.sidx);
+		if (dumper.index_info.index_bs) gf_isom_box_write((GF_Box *)dumper.index_info.sidx, dumper.index_info.index_bs);
+		gf_isom_box_del((GF_Box *)dumper.index_info.sidx);
 	}
+	if (dumper.index_info.mpd_file) fclose(dumper.index_info.mpd_file);
+	if (dumper.index_info.index_file) fclose(dumper.index_info.index_file);
+	if (dumper.index_info.index_bs) gf_bs_del(dumper.index_info.index_bs);
 }
 
 #endif /*GPAC_DISABLE_MPEG2TS*/

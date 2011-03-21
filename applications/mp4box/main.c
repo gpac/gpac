@@ -100,7 +100,7 @@ void PrintLanguages();
 const char *GetLanguageCode(char *lang);
 
 #ifndef GPAC_DISABLE_MPEG2TS
-void dump_mpeg2_ts(char *mpeg2ts_in, char *pes_out_name, Bool prog_num_timestamp_dump, Double duration);
+void dump_mpeg2_ts(char *mpeg2ts_in, char *pes_out_name, Bool prog_num_timestamp_dump, Double duration, Bool seg_at_rap, u32 nb_subsegs_per_seg);
 #endif 
 
 
@@ -1444,6 +1444,10 @@ int main(int argc, char **argv)
 			dash_duration = atof(argv[i+1]) / 1000;
 			needSave = 1;
 			i++;
+		} else if (!stricmp(arg, "-dash-ts-prog")) {
+			CHECK_NEXT_ARG
+			program_number = atoi(argv[i+1]);
+			i++;
 		} else if (!stricmp(arg, "-frags-per-sidx")) {
 			CHECK_NEXT_ARG
 			frags_per_sidx = atoi(argv[i+1]);
@@ -2358,15 +2362,15 @@ int main(int argc, char **argv)
 
 				if (dash_duration) {
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, NULL, 0, dash_duration);
+					dump_mpeg2_ts(inName, NULL, program_number, dash_duration, seg_at_rap, frags_per_sidx);
 #endif
 				} else if (dump_m2ts) {
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, pes_dump, program_number, 0);
+					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0);
 #endif
 				} else if (dump_ts) { /* dump_ts means dump time stamp information */
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, pes_dump, program_number, 0);
+					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0);
 #endif
 				} else {
 					convert_file_info(inName, info_track_id);
