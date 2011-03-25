@@ -82,14 +82,14 @@ public class Osmo4 extends Activity {
 
     // ---------------------------------------
     protected void OpenFileDialog() {
-        Intent intent = new Intent(Intent.ACTION_PICK);
+        Intent intent = new Intent("org.openintents.action.PICK_FILE"); //$NON-NLS-1$
         //Intent intent = new Intent("org.openintents.action.PICK_FILE"); //$NON-NLS-1$
         intent.setData(Uri.fromFile(new File(Osmo4Renderer.GPAC_CFG_DIR)));
         intent.putExtra("org.openintents.extra.TITLE", "Please select a file"); //$NON-NLS-1$//$NON-NLS-2$
         intent.putExtra("browser_filter_extension_whitelist", OSMO_REGISTERED_FILE_EXTENSIONS); //$NON-NLS-1$
 
         try {
-            startActivityForResult(intent, 0);
+            startActivityForResult(intent, 1);
         } catch (ActivityNotFoundException e) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setMessage("Impossible to find an Intent to choose a file... Cannot open file !") //$NON-NLS-1$
@@ -108,7 +108,7 @@ public class Osmo4 extends Activity {
     // ---------------------------------------
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        if (requestCode == 0) {
+        if (requestCode == 1) {
             if (resultCode == RESULT_OK) {
                 Uri uri = intent.getData();
                 if (uri != null) {
