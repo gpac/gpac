@@ -302,7 +302,9 @@ int CNativeWrapper::init(void * env, void * bitmap, int width, int height, const
 		/*startup file*/
 		char msg[100];
 		sprintf(msg, "%sgui/gui.bt",GPAC_CFG_DIR);
-		gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
+		gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);		
+		gf_cfg_set_key(m_user.config, "General", "LastWorkingDir", GPAC_CFG_DIR);
+		gf_cfg_set_key(m_user.config, "GUI", "UnhideControlPlayer", "1");
 		/*setup UDP traffic autodetect*/
 		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
 		gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
