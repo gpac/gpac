@@ -75,7 +75,7 @@ public class BitmapView extends View {
                                 Osmo4Renderer.GPAC_CACHE_DIR,
                                 Osmo4Renderer.GPAC_FONT_DIR);
             // GpacObject.gpacconnect("/data/osmo/bifs-2D-interactivity-stringsensor.mp4");
-            // GpacObject.gpacresize(m_width, m_height);
+            GpacObject.gpacresize(m_width, m_height);
         }
     }
 
