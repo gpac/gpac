@@ -41,6 +41,10 @@ public class BitmapView extends View {
         m_width = canvas.getWidth();
         m_height = canvas.getHeight();
         if (m_Bitmap == null) {
+            if (m_width < 1)
+                m_width = 100;
+            if (m_height < 1)
+                m_height = 100;
             m_Bitmap = Bitmap.createBitmap(m_width, m_height, Bitmap.Config.ARGB_8888);
             gpacinit();
         }
@@ -55,19 +59,23 @@ public class BitmapView extends View {
     /**
      * Called to init all GPAC resources
      */
-    public void gpacinit() {
+    private void gpacinit() {
         Log.i(LOG_BITMAP, "Going to gpacinit"); //$NON-NLS-1$
         if (m_Bitmap != null) {
             Log.e(LOG_BITMAP, "m_Bitmap != null"); //$NON-NLS-1$
+            if (m_width < 1)
+                m_width = 100;
+            if (m_height < 1)
+                m_height = 100;
             GpacObject.gpacinit(m_Bitmap,
-                                100,
-                                100,
+                                m_width,
+                                m_height,
                                 Osmo4Renderer.GPAC_CFG_DIR,
                                 Osmo4Renderer.GPAC_MODULES_DIR,
                                 Osmo4Renderer.GPAC_CACHE_DIR,
                                 Osmo4Renderer.GPAC_FONT_DIR);
             // GpacObject.gpacconnect("/data/osmo/bifs-2D-interactivity-stringsensor.mp4");
-            GpacObject.gpacresize(m_width, m_height);
+            // GpacObject.gpacresize(m_width, m_height);
         }
     }
 
