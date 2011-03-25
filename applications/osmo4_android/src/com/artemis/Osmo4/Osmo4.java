@@ -1,8 +1,8 @@
-/*
+/**
  *  Osmo on Android
  *  Aug/2010
  *  NGO Van Luyen
- * test test
+ * $Id$
  *
  */
 package com.artemis.Osmo4;
@@ -15,10 +15,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -43,6 +45,8 @@ public class Osmo4 extends Activity {
      */
     public final static String OSMO_REGISTERED_FILE_EXTENSIONS = "*.mp4,*.bt,*.xmt,*.xml,*.ts,*.svg,*.mp3,*.m3u8,*.mpg,*.aac,*.m4a,*.jpg,*.png"; //$NON-NLS-1$
 
+    private PowerManager.WakeLock wl = null;
+
     // ---------------------------------------
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -53,8 +57,11 @@ public class Osmo4 extends Activity {
         mGLView = new Osmo4GLSurfaceView(this);
         mGLView.setFocusable(true);
         mGLView.setFocusableInTouchMode(true);
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, LOG_OSMO_TAG);
         setContentView(mGLView);
-
+        if (wl != null)
+            wl.acquire();
     }
 
     // ---------------------------------------
@@ -121,12 +128,16 @@ public class Osmo4 extends Activity {
     // ---------------------------------------
     @Override
     protected void onDestroy() {
+        if (wl != null)
+            wl.release();
         super.onDestroy();
         GpacObject.gpacfree();
     }
 
     // ---------------------------------------
     private void loadAllModules() {
+        Log.i(LOG_OSMO_TAG, "Start loading all modules..."); //$NON-NLS-1$
+        long start = System.currentTimeMillis();
         byte buffer[] = new byte[1024];
         int[] ids = getAllRawResources();
         for (int i = 0; i < ids.length; i++) {
@@ -163,6 +174,7 @@ public class Osmo4 extends Activity {
                 }
             }
         }
+        Log.i(LOG_OSMO_TAG, "Done loading all modules, took " + (System.currentTimeMillis() - start) + "ms."); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     // ---------------------------------------
