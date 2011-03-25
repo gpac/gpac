@@ -164,10 +164,15 @@ public class Osmo4 extends Activity {
             OutputStream fos = null;
             InputStream ins = null;
             String fn = Osmo4Renderer.GPAC_MODULES_DIR + m_modules_list[i] + ".so"; //$NON-NLS-1$
+            File finalFile = new File(fn);
+            // If file has already been copied, not need to redo it
+            if (finalFile.exists() && finalFile.canRead())
+                continue;
             try {
+                File tmpFile = new File(fn + ".tmp"); //$NON-NLS-1$
                 int read;
                 ins = new BufferedInputStream(getResources().openRawResource(ids[i]));
-                fos = new BufferedOutputStream(new FileOutputStream(fn));
+                fos = new BufferedOutputStream(new FileOutputStream(tmpFile));
                 while (0 < (read = ins.read(buffer))) {
                     fos.write(buffer, 0, read);
                 }
@@ -175,6 +180,9 @@ public class Osmo4 extends Activity {
                 ins = null;
                 fos.close();
                 fos = null;
+                if (!tmpFile.renameTo(finalFile))
+                    Log.e(LOG_OSMO_TAG, "Failed to rename " + tmpFile.getAbsolutePath() + " to " //$NON-NLS-1$//$NON-NLS-2$
+                                        + finalFile.getAbsolutePath());
             } catch (IOException e) {
                 Log.e(LOG_OSMO_TAG, "IOException for resource : " + ids[i], e); //$NON-NLS-1$
             } finally {
