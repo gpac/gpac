@@ -52,6 +52,7 @@ static const char * BEST_FIXED_FONTS[] = {
 	"Courier",
 	"Monaco",
 	"Bitstream Vera Monospace",
+	"Droid Sans Mono",
 	NULL
 };
 
@@ -59,6 +60,7 @@ static const char * BEST_SERIF_FONTS[] = {
 	"Times New Roman",
 	"Bitstream Vera",
 	"Times",
+	"Droid Serif",
 	NULL
 };
 
@@ -69,6 +71,7 @@ static const char * BEST_SANS_FONTS[] = {
 	"Helvetica",
 	"Bitstream Vera Sans",
 	"Frutiger",
+	"Droid Sans",
 	NULL
 };
 
