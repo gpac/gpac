@@ -7,27 +7,44 @@
  */
 package com.artemis.Osmo4;
 
-import android.app.Activity;
-import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.content.Intent;
-import android.content.res.Configuration;
-import android.net.Uri;
-
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-
+import java.io.OutputStream;
+import android.app.Activity;
+import android.content.Intent;
+import android.content.res.Configuration;
+import android.net.Uri;
+import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 
-public class Osmo4 extends Activity{
+/**
+ * The main Osmo4 activity, used to launch everything
+ * 
+ * @version $Revision$
+ * 
+ */
+public class Osmo4 extends Activity {
 
-	private Osmo4GLSurfaceView mGLView = null;
-	private String[] m_modules_list;
-	//---------------------------------------
+    private Osmo4GLSurfaceView mGLView = null;
+
+    private String[] m_modules_list;
+
+    private final static String LOG_OSMO_TAG = "Osmo4"; //$NON-NLS-1$
+
+    /**
+     * List of all extensions recognized by Osmo
+     */
+    public final static String OSMO_REGISTERED_FILE_EXTENSIONS = "*.mp4,*.bt,*.xmt,*.xml,*.ts,*.svg,*.mp3,*.m3u8,*.mpg,*.aac,*.m4a,*.jpg,*.png"; //$NON-NLS-1$
+
+    // ---------------------------------------
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
@@ -39,143 +56,138 @@ public class Osmo4 extends Activity{
         setContentView(mGLView);
 
     }
-    //---------------------------------------
 
+    // ---------------------------------------
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main_menu, menu);
         return true;
     }
-    //---------------------------------------
-    protected void OpenFileDialog()
-    {
-    	Intent intent = new Intent();
-    	intent.setAction(Intent.ACTION_PICK);
-    	Uri startDir = Uri.fromFile(new File("/sdcard/osmo"));
-    	// Files and directories
-    	intent.setDataAndType(startDir, "vnd.android.cursor.dir/lysesoft.andexplorer.file");
-    	// Optional filtering on file extension.
-    	intent.putExtra("browser_filter_extension_whitelist", "*.mp4,*.bt,*.xmt,*.xml,*.ts,*.svg,*.mp3,*.m3u8,*.mpg,*.aac,*.m4a,*.jpg");
-    	// Title
-    	intent.putExtra("explorer_title", "Select MPEG-4 file");
-    	// Optional colors
-    	//intent.putExtra("browser_title_background_color", "440000AA");
-    	//intent.putExtra("browser_title_foreground_color", "FFFFFFFF");
-    	//intent.putExtra("browser_list_background_color", "66000000");
-    	// Optional font scale
-    	//intent.putExtra("browser_list_fontscale", "120%");
-    	// Optional 0=simple list, 1 = list with filename and size, 2 = list with filename, size and date.
-    	intent.putExtra("browser_list_layout", "2");
-    	startActivityForResult(intent, 0);
+
+    // ---------------------------------------
+    protected void OpenFileDialog() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        //Intent intent = new Intent("org.openintents.action.PICK_FILE"); //$NON-NLS-1$
+        intent.setData(Uri.fromFile(new File(Osmo4Renderer.GPAC_CFG_DIR)));
+        intent.putExtra("org.openintents.extra.TITLE", "Please select a file"); //$NON-NLS-1$//$NON-NLS-2$
+        intent.putExtra("browser_filter_extension_whitelist", OSMO_REGISTERED_FILE_EXTENSIONS); //$NON-NLS-1$
+
+        startActivityForResult(intent, 0);
 
     }
-    //---------------------------------------
-    protected void onActivityResult(int requestCode, int resultCode, Intent intent)
-    {
-       if (requestCode == 0)
-       {
-	       if (resultCode == RESULT_OK)
-	       {
-	          Uri uri = intent.getData();
-	          String type = intent.getType();
-	          if (uri != null)
-	          {
-	             String path = uri.toString();
-	             if (path.toLowerCase().startsWith("file://"))
-	             {
-	                // Selected file/directory path is below
-	            	 GpacObject.gpacconnect(path);
 
-	             }
-
-	          }
-	       }
-       }
+    // ---------------------------------------
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        if (requestCode == 0) {
+            if (resultCode == RESULT_OK) {
+                Uri uri = intent.getData();
+                if (uri != null) {
+                    String path = uri.toString();
+                    GpacObject.gpacconnect(path);
+                }
+            }
+        }
     }
-    //---------------------------------------
 
-    public void onConfigurationChanged(Configuration newConfig)
-    {
-    	super.onConfigurationChanged(newConfig);
+    // ---------------------------------------
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
     }
-    //---------------------------------------
 
+    // ---------------------------------------
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
         switch (item.getItemId()) {
-        case R.id.open_file:
-            //newGame();
-        	OpenFileDialog();
-            return true;
-        case R.id.quit:
-        	this.finish();
-            //quit();
-            return true;
-        default:
-            return super.onOptionsItemSelected(item);
+            case R.id.open_file:
+                // newGame();
+                OpenFileDialog();
+                return true;
+            case R.id.quit:
+                this.finish();
+                // quit();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
-    //---------------------------------------
+
+    // ---------------------------------------
+    @Override
     protected void onDestroy() {
-    	super.onDestroy();
-    	GpacObject.gpacfree();
+        super.onDestroy();
+        GpacObject.gpacfree();
     }
-    //---------------------------------------
-    public void log(String msg1, String msg2){
-    	Log.e(msg1, msg2);
+
+    // ---------------------------------------
+    private void loadAllModules() {
+        byte buffer[] = new byte[1024];
+        int[] ids = getAllRawResources();
+        for (int i = 0; i < ids.length; i++) {
+            OutputStream fos = null;
+            InputStream ins = null;
+            String fn = Osmo4Renderer.GPAC_MODULES_DIR + m_modules_list[i] + ".so"; //$NON-NLS-1$
+            try {
+                int read;
+                ins = new BufferedInputStream(getResources().openRawResource(ids[i]));
+                fos = new BufferedOutputStream(new FileOutputStream(fn));
+                while (0 < (read = ins.read(buffer))) {
+                    fos.write(buffer, 0, read);
+                }
+                ins.close();
+                ins = null;
+                fos.close();
+                fos = null;
+            } catch (IOException e) {
+                Log.e(LOG_OSMO_TAG, "IOException for resource : " + ids[i], e); //$NON-NLS-1$
+            } finally {
+                if (ins != null) {
+                    try {
+                        ins.close();
+                    } catch (IOException e) {
+                        Log.e(LOG_OSMO_TAG, "Error while closing read stream", e); //$NON-NLS-1$
+                    }
+                }
+                if (fos != null) {
+                    try {
+                        fos.close();
+                    } catch (IOException e) {
+                        Log.e(LOG_OSMO_TAG, "Error while closing write stream", e); //$NON-NLS-1$
+                    }
+                }
+            }
+        }
     }
-    //---------------------------------------
-    private void loadAllModules(){
-    	int[] ids = getAllRawResources();
-    	for (int i=0; i<ids.length; i++){
-        	try {
-        		InputStream ins = getResources().openRawResource(ids[i]);
-        		int size = ins.available();
-        		byte[] buffer = new byte[size];
-        		ins.read(buffer);
-        		ins.close();
 
-        		/*String fn = String.valueOf(ids[i]);
-        		fn = "/data/data/com.artemis.Osmo4/gm_" + fn + ".so";*/
-        		String fn = m_modules_list[i];
-        		fn = "/data/data/com.artemis.Osmo4/" + fn + ".so";
-
-        		FileOutputStream fos = new FileOutputStream(fn);
-        		if (fos != null){
-        			fos.write(buffer);
-        			fos.close();
-        		} else { Log.e("Osmo4", "FileOutputStream error"); }
-
-        	} catch (IOException e){
-        		Log.e("Osmo4", "loadModules error");
-        	}
-    	}
-    }
-    //---------------------------------------
+    // ---------------------------------------
     private int[] getAllRawResources() {
-		int[] ids = null;
-		R.raw r = new R.raw();
+        int[] ids = null;
+        R.raw r = new R.raw();
 
-		java.lang.reflect.Field fields[] = R.raw.class.getDeclaredFields();
-		ids = new int[fields.length];
-		m_modules_list = new String[fields.length];
+        java.lang.reflect.Field fields[] = R.raw.class.getDeclaredFields();
+        ids = new int[fields.length];
+        m_modules_list = new String[fields.length];
 
-		try {
-			for (int i = 0; i < fields.length; i++) {
-				java.lang.reflect.Field f = fields[i];
-				ids[i] = f.getInt(r);
-				m_modules_list[i] = f.getName();
-				Log.i("Osmo4", "R.raw." + f.getName() + " = 0x" + Integer.toHexString(ids[i]));
-			}
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+        try {
+            for (int i = 0; i < fields.length; i++) {
+                java.lang.reflect.Field f = fields[i];
+                ids[i] = f.getInt(r);
+                m_modules_list[i] = f.getName();
+                Log.i(LOG_OSMO_TAG, "R.raw." + f.getName() + " = 0x" + Integer.toHexString(ids[i])); //$NON-NLS-1$ //$NON-NLS-2$
+            }
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
 
-		return ids;
-      }
-    //---------------------------------------
+        return ids;
+    }
+    // ---------------------------------------
 }
