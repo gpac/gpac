@@ -1,5 +1,4 @@
 #!/bin/bash
-#!/bin/bash
 
 echo -e "\033[32m Note: You have to install Android NDK and setup the environment first!\033[0m"
 echo -e "\033[32m Note: You have to compile extra_libs first!\033[0m"
@@ -14,7 +13,7 @@ export PATH="$1:$PATH"
 
 BUILDPATH=$(pwd)
 
-echo "#define GPAC_SVN_REVISION \"$(shell svnversion)\"" > ../../include/gpac/version.h
+echo "#define GPAC_SVN_REVISION \"$(svnversion)\"" > ../../../include/gpac/version.h
 echo "Building lib gpac ..."
 mkdir ../../../bin/android
 cd ../../../
