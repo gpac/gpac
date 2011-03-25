@@ -11,51 +11,50 @@ fi
 
 export PATH="$1:$PATH"
 
+# Be sure to resolve if script not called from its directory
+SCRIPT_PATH=$(dirname $"0")
+cd "$SCRIPT_PATH"
 BUILDPATH=$(pwd)
 
-echo "#define GPAC_SVN_REVISION \"$(svnversion)\"" > ../../../include/gpac/version.h
+cd "$BUILDPATH" || exit 1
+echo "*** Build path is $BUILDPATH, setting revision number"
+
+echo "#define GPAC_SVN_REVISION \"$(svnversion)\"" > ../../../include/gpac/version.h || exit 1
 echo "Building lib gpac ..."
-mkdir ../../../bin/android
-cd ../../../
+mkdir ../../../bin/android 2>/dev/null
+cd ../../../ || exit 1
 BASEPATH=$(pwd)
-cd bin/android
+cd bin/android || exit 1
 BINPATH=$(pwd)
 
-cd $BUILDPATH
-ndk-build
+cd $BUILDPATH || exit 1
+echo -n "Buiding all libs from $BUILDPATH..."
+ndk-build && echo "OK build successful" || (echo "Build FAILED" ; exit 1)
 
-cp  ../libs/armeabi/libgpac.so $BINPATH/libgpac.so
+echo "Copying libs to $BINPATH..."
+cp  ../libs/armeabi/libgpac.so ../libs/armeabi/libjavaenv.so  $BINPATH || exit 1
 
-rm  ../libs/armeabi/gm*.so
-
-$BUILDPATH/../rename_file -v "s/libgm_/gm_/" libs/armeabi/*.so
-cp  ../libs/armeabi/*.so $BINPATH/
+echo "Renaming modules and copying modules to $BINPATH..."
+cd ../libs/armeabi || exit 1
+for fn in libgm*.so
+do
+	mv "$fn" "$BINPATH/${fn##lib}" || exit 1
+done
 
 echo "Building gpac wrapper..."
 
-cd $BASEPATH/applications/osmo4_android
+cd $BASEPATH/applications/osmo4_android || exit 1
 ndk-build -B
 
-echo "Copying libs ..."
+echo "Copying libs from $BASEPATH/extra_lib/lib/android to $BASEPATH/applications/osmo4_android/libs/armeabi ..."
 
-cd $BASEPATH/extra_lib/lib/android
+cd $BASEPATH/extra_lib/lib/android || exit 1
 for fn in *.so; do
 	cp $fn $BASEPATH/applications/osmo4_android/libs/armeabi
 done
 
-cd $BINPATH
+echo "Copying all libs to $BASEPATH/applications/osmo4_android/libs/armeabi..."
+cp $BINPATH/lib*.so $BASEPATH/applications/osmo4_android/libs/armeabi || exit 1
+cp $BINPATH/gm*.so $BASEPATH/applications/osmo4_android/res/raw/ || exit 1
 
-cp $BUILDPATH/../libs/armeabi/libgpac.so  $BASEPATH/applications/osmo4_android/libs/armeabi
-cp $BUILDPATH/../libs/armeabi/libjavaenv.so  $BASEPATH/applications/osmo4_android/libs/armeabi
-
-
-echo "Copying modules ..."
-
-cd $BINPATH
-
-for fn in gm_*.so; do
-	cp $fn $BASEPATH/applications/osmo4_android/res/raw
-done
-
-cp $BASEPATH/applications/osmo4_android/bin/*.apk $BINPATH
-
+#cp $BASEPATH/applications/osmo4_android/bin/*.apk $BINPATH || exit 1
