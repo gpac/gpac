@@ -55,7 +55,7 @@ public class Osmo4 extends Activity{
     	// Files and directories
     	intent.setDataAndType(startDir, "vnd.android.cursor.dir/lysesoft.andexplorer.file");
     	// Optional filtering on file extension.
-    	intent.putExtra("browser_filter_extension_whitelist", "*.mp4,*.bt,*.xmt,*.xml,*.ts,*.svg,*.mp3,*.m3u8,*.mpg,*.aac,*.m4a");
+    	intent.putExtra("browser_filter_extension_whitelist", "*.mp4,*.bt,*.xmt,*.xml,*.ts,*.svg,*.mp3,*.m3u8,*.mpg,*.aac,*.m4a,*.jpg");
     	// Title
     	intent.putExtra("explorer_title", "Select MPEG-4 file");
     	// Optional colors
