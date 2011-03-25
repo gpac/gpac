@@ -15,7 +15,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
@@ -25,6 +28,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.TextView;
+import android.widget.TextView.BufferType;
 
 /**
  * The main Osmo4 activity, used to launch everything
@@ -51,7 +56,9 @@ public class Osmo4 extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        TextView text = new TextView(this);
+        text.setText("Loading...", BufferType.NORMAL); //$NON-NLS-1$
+        setContentView(text);
         loadAllModules();
 
         mGLView = new Osmo4GLSurfaceView(this);
@@ -81,8 +88,21 @@ public class Osmo4 extends Activity {
         intent.putExtra("org.openintents.extra.TITLE", "Please select a file"); //$NON-NLS-1$//$NON-NLS-2$
         intent.putExtra("browser_filter_extension_whitelist", OSMO_REGISTERED_FILE_EXTENSIONS); //$NON-NLS-1$
 
-        startActivityForResult(intent, 0);
+        try {
+            startActivityForResult(intent, 0);
+        } catch (ActivityNotFoundException e) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setMessage("Impossible to find an Intent to choose a file... Cannot open file !") //$NON-NLS-1$
+                   .setCancelable(true)
+                   .setPositiveButton("Close", new DialogInterface.OnClickListener() { //$NON-NLS-1$
 
+                                          public void onClick(DialogInterface dialog, int id) {
+                                              dialog.cancel();
+                                          }
+                                      });
+            AlertDialog alert = builder.create();
+            alert.show();
+        }
     }
 
     // ---------------------------------------
