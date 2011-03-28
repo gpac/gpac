@@ -153,6 +153,10 @@ class CNativeWrapper{
 		GF_User *GetUser() { return &m_user; }
 		GF_Terminal *m_term;
 
+		jclass cbk_clz;
+		JNIEnv * env;
+		jobject * cbk_obj;			
+
 		GF_Mutex *m_mx;
 		GF_User m_user;
 		GF_SystemRTInfo m_rti;
@@ -172,7 +176,7 @@ class CNativeWrapper{
 	public:
 		CNativeWrapper();
 		~CNativeWrapper();
-		int init(void * env, void * bitmap, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir);
+		int init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir);
 
 		int connect(const char *url);
 		void disconnect();
@@ -209,7 +213,8 @@ CNativeWrapper* gpac_obj = NULL;
 //---------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------
 extern "C" {
-	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacinit(JNIEnv * env, jobject obj,  jobject bitmap, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir);
+	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacinit
+  		(JNIEnv *, jclass, jobject, jobject, jint, jint, jstring, jstring, jstring, jstring);
 	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacconnect(JNIEnv * env, jobject obj,  jstring url);
 	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacdisconnect(JNIEnv * env, jobject obj);
 	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacrender(JNIEnv * env, jobject obj, jobject bitmap);

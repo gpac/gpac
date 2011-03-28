@@ -17,6 +17,8 @@ import android.util.Log;
  */
 public class GpacObject {
 
+    private final static String LOG_LIB = "LibrariesLoader"; //$NON-NLS-1$
+
     static {
         final String[] toLoad = { "javaenv", //$NON-NLS-1$
                                  "mad", "editline", "ft2", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
@@ -25,12 +27,14 @@ public class GpacObject {
 
         for (String s : toLoad) {
             try {
+                Log.i(LOG_LIB, "Loading library " + s + "..."); //$NON-NLS-1$//$NON-NLS-2$
                 System.loadLibrary(s);
             } catch (UnsatisfiedLinkError e) {
-                Log.e("LibrariesLoader", "Failed to load library : " + s + " due to link error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                Log.e(LOG_LIB, "Failed to load library : " + s + " due to link error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
             } catch (SecurityException e) {
-                Log.e("LibrariesLoader", "Failed to load library : " + s + " due to security error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-
+                Log.e(LOG_LIB, "Failed to load library : " + s + " due to security error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
+            } catch (Throwable e) {
+                Log.e(LOG_LIB, "Failed to load library : " + s + " due to Runtime error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
             }
         }
 
@@ -40,6 +44,7 @@ public class GpacObject {
      * GPAC initialization routine
      * 
      * @param bitmap
+     * @param callback
      * @param width
      * @param height
      * @param cfg_dir
@@ -47,8 +52,8 @@ public class GpacObject {
      * @param cache_dir
      * @param font_dir
      */
-    public static native void gpacinit(Object bitmap, int width, int height, String cfg_dir, String modules_dir,
-            String cache_dir, String font_dir);
+    public static native void gpacinit(Object bitmap, GpacCallback callback, int width, int height, String cfg_dir,
+            String modules_dir, String cache_dir, String font_dir);
 
     /**
      * Opens an URL

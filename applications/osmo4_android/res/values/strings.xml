@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello">Hello World, Osmo4!</string>
     <string name="open_file">Open file...</string>
+    <string name="open_url">Open URL...</string>
     <string name="quit">Exit</string>
     <string name="app_name">Osmo4</string>
 </resources>

@@ -58,6 +58,9 @@ CNativeWrapper::CNativeWrapper(){
 	m_term = NULL;
 	m_mx = NULL;
 	memset(&m_rti, 0, sizeof(GF_SystemRTInfo));
+	cbk_clz = NULL;
+	env = NULL;
+	cbk_obj = NULL;
 #endif
 }
 //-------------------------------
@@ -108,10 +111,23 @@ void CNativeWrapper::Shutdown()
 }
 //-------------------------------
 int CNativeWrapper::MessageBox(const char* msg, const char* title){
+	CNativeWrapper * self = this;
 	//call java function to display a message box
 
 	debug_log(msg);
-
+	if (!self->cbk_clz && self->cbk_obj){
+		self->cbk_clz = self->env->GetObjectClass(*(self->cbk_obj));
+	}
+	if (!self->cbk_clz){
+		return 1;
+	}
+	jmethodID mid = self->env->GetMethodID(self->cbk_clz, "displayMessage", "(Ljava/lang/String;Ljava/lang/String;)V");
+	if (!mid){
+		return 1;
+	}
+	jstring tit = self->env->NewStringUTF(title);
+	jstring mes = self->env->NewStringUTF(msg);
+	self->env->CallVoidMethod(*(self->cbk_obj), mid, mes, tit);
 	return 1;
 }
 //-------------------------------
@@ -185,7 +201,23 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
 }
 //-------------------------------
 void CNativeWrapper::Osmo4_progress_cbk(void *usr, char *title, u64 done, u64 total){
-
+	if (!usr)
+		return;
+	CNativeWrapper * self = (CNativeWrapper *) usr;
+	if (!self->cbk_clz && self->cbk_obj){
+		self->cbk_clz = self->env->GetObjectClass(*(self->cbk_obj));
+	}
+	if (!self->cbk_clz){
+		self->debug_log("Cannot find method clss for callback object");
+		return;
+	}
+	jmethodID mid = self->env->GetMethodID(self->cbk_clz, "onProgress", "(Ljava/lang/String;II)V");
+	if (!mid){
+		self->debug_log("Cannot find method onProgress");
+		return;
+	}
+	jstring js = self->env->NewStringUTF(title);
+	self->env->CallVoidMethod(*(self->cbk_obj), mid, js, done, total);
 }
 //-------------------------------
 void CNativeWrapper::SetupLogs(){
@@ -236,7 +268,7 @@ void CNativeWrapper::SetupLogs(){
 }
 //-------------------------------
 // dir should end with /
-int CNativeWrapper::init(void * env, void * bitmap, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir){
+int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir){
 
 	strcpy(m_cfg_dir, cfg_dir);
 	strcpy(m_modules_dir, modules_dir);
@@ -255,7 +287,8 @@ int CNativeWrapper::init(void * env, void * bitmap, int width, int height, const
 	#ifdef	DEBUG_MODE
 	debug_f = fopen(DEBUG_FILE, "w");
 	#endif
-
+	this->env = env;
+	this->cbk_obj = callback;
 	debug_log("int CNativeWrapper::init()");
 
 	int m_Width = width;
@@ -741,10 +774,10 @@ void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt){
 //-----------------------------------------------------
 // this function will be called by Java to init gpac
 
-void gpac_init(void * env, void * bitmap, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir){
+void gpac_init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir){
 
 	gpac_obj = new CNativeWrapper();
-	if (gpac_obj) gpac_obj->init(env, bitmap, width, height, cfg_dir, modules_dir, cache_dir, font_dir);
+	if (gpac_obj) gpac_obj->init(env, bitmap, callback, width, height, cfg_dir, modules_dir, cache_dir, font_dir);
 }
 
 void gpac_render(void * env, void * bitmap){
@@ -790,7 +823,13 @@ void gpac_onmousemove(float x, float y){
 //---------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------
 
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacinit(JNIEnv * env, jobject obj,  jobject bitmap, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir)
+
+/*
+ * Class:     com_artemis_Osmo4_GpacObject
+ * Method:    gpacinit
+ * Signature: (Ljava/lang/Object;Lcom/artemis/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacinit(JNIEnv * env, jclass obj, jobject bitmap, jobject callback, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir)
 {
 	jboolean isCopy;
 	const char * s1 = env->GetStringUTFChars(cfg_dir, &isCopy);
@@ -798,7 +837,7 @@ JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacinit(JNIEnv * env, 
 	const char * s3 = env->GetStringUTFChars(cache_dir, &isCopy);
 	const char * s4 = env->GetStringUTFChars(font_dir, &isCopy);
 
-	gpac_init(env, &bitmap, width, height, s1, s2, s3, s4);
+	gpac_init(env, &bitmap, &callback, width, height, s1, s2, s3, s4);
 
 	env->ReleaseStringUTFChars(cfg_dir, s1);
 	env->ReleaseStringUTFChars(modules_dir, s2);

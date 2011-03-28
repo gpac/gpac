@@ -28,7 +28,7 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
     static {
         File rootCfg = Environment.getExternalStorageDirectory();
         File osmo = new File(rootCfg, "osmo/"); //$NON-NLS-1$
-        GPAC_CFG_DIR = osmo.getAbsolutePath();
+        GPAC_CFG_DIR = osmo.getAbsolutePath() + "/"; //$NON-NLS-1$
         GPAC_CACHE_DIR = new File(osmo, "cache/").getAbsolutePath(); //$NON-NLS-1$
     };
 
@@ -49,13 +49,24 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
         initGPACDir();
     }
 
-    boolean inited = false;
+    private boolean inited = false;
+
+    /**
+     * Constructor
+     * 
+     * @param callback
+     */
+    public Osmo4Renderer(GpacCallback callback) {
+        this.callback = callback;
+    }
+
+    private final GpacCallback callback;
 
     // ------------------------------------
     public void onSurfaceChanged(GL10 gl, int w, int h) {
         // gl.glViewport(0, 0, w, h);
         if (!inited) {
-            GpacObject.gpacinit(null, w, h, GPAC_CFG_DIR, GPAC_MODULES_DIR, GPAC_CACHE_DIR, GPAC_FONT_DIR);
+            GpacObject.gpacinit(null, callback, w, h, GPAC_CFG_DIR, GPAC_MODULES_DIR, GPAC_CACHE_DIR, GPAC_FONT_DIR);
             GpacObject.gpacresize(w, h);
             inited = true;
         } else
