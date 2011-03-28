@@ -69,6 +69,7 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
             GpacObject.gpacinit(null, callback, w, h, GPAC_CFG_DIR, GPAC_MODULES_DIR, GPAC_CACHE_DIR, GPAC_FONT_DIR);
             GpacObject.gpacresize(w, h);
             inited = true;
+            callback.onGPACReady();
         } else
             GpacObject.gpacresize(w, h);
     }
