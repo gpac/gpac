@@ -1,27 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-      package="com.artemis.Osmo4"
-      android:versionCode="1"
-      android:versionName="1.0">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.artemis.Osmo4"
+    android:versionCode="1" android:versionName="1.0">
     <uses-permission android:name="android.permission.WAKE_LOCK"></uses-permission>
     <application android:icon="@drawable/icon" android:label="@string/app_name" android:debuggable="false">
-        <activity android:name=".Osmo4"
-                  android:label="@string/app_name"
-                  android:configChanges="orientation"
-		  android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
-           	<intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+        <activity android:name=".Osmo4" android:label="@string/app_name" android:configChanges="orientation">
+            <!--             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"> -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <data android:mimeType="audio/*"/>
+                <data android:mimeType="video/*"/>
+                <data android:mimeType="x-subtitle/*"/>
+                <data android:mimeType="application/x-mpegurl"/>
+                <data android:mimeType="application/vnd.apple.mpegurl"/>
+                <data android:mimeType="application/vnd.apple.mpegurl"/>
+                <data android:mimeType="application/x-isomedia"/>
+                <data android:mimeType="application/mp4"/>
+                <data android:mimeType="application/sdp"/>
+                <data android:mimeType="application/x-bt"/>
+                <data android:mimeType="application/x-xmt"/>
             </intent-filter>
         </activity>
 
     </application>
 
     <uses-sdk android:targetSdkVersion="6" android:minSdkVersion="6"/>
-	<uses-permission android:name="android.permission.INTERNET"/>
-	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
- 	<uses-feature android:name="android.hardware.camera" android:required="false"/>
- 	<uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
-
-
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+    q
 </manifest>

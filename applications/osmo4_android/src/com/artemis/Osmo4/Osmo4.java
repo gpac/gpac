@@ -90,6 +90,13 @@ public class Osmo4 extends Activity implements GpacCallback {
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
         final String name = "Osmo4"; //$NON-NLS-1$
         TextView tmpView = new TextView(this);
+        String tmpUrl = Osmo4Renderer.GPAC_CFG_DIR + "gui/gui.bt"; //$NON-NLS-1$
+        if (Intent.ACTION_VIEW.equals(getIntent().getAction())) {
+            Uri uri = getIntent().getData();
+            if (uri != null)
+                tmpUrl = uri.toString();
+        }
+        final String toOpen = tmpUrl;
         tmpView.setText("Loading GPAC ($Revision$)\nPlease Wait, Loading...\n"); //$NON-NLS-1$
 
         setProgress(100);
@@ -133,6 +140,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                             d.show();
                         }
                     });
+                    return;
                 }
                 setProgress(5000);
                 displayPopup("Initializing view...", name); //$NON-NLS-1$
@@ -160,6 +168,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                             Osmo4.this.wl = wl;
                         }
                         setProgress(10000);
+                        GpacObject.gpacconnect(toOpen);
                     }
                 });
 
@@ -390,8 +399,10 @@ public class Osmo4 extends Activity implements GpacCallback {
             String fn = Osmo4Renderer.GPAC_MODULES_DIR + m_modules_list[i] + ".so"; //$NON-NLS-1$
             File finalFile = new File(fn);
             // If file has already been copied, not need to redo it
-            if (finalFile.exists() && finalFile.canRead() && 0 < finalFile.length())
+            if (finalFile.exists() && finalFile.canRead() && 0 < finalFile.length()) {
+                Log.i(LOG_OSMO_TAG, "Skipping " + finalFile); //$NON-NLS-1$
                 continue;
+            }
             try {
                 Log.i(LOG_OSMO_TAG, "Copying resource " + ids[i] + " to " //$NON-NLS-1$//$NON-NLS-2$
                                     + finalFile.getAbsolutePath());
