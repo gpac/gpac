@@ -24,48 +24,74 @@ public class Osmo4GLSurfaceView extends GLSurfaceView {
         super(context);
     }
 
+    private Osmo4Renderer renderer;
+
+    /**
+     * Set the renderer
+     * 
+     * @param renderer
+     */
+    public void setRenderer(Osmo4Renderer renderer) {
+        synchronized (this) {
+            this.renderer = renderer;
+        }
+        super.setRenderer(renderer);
+    }
+
     // ------------------------------------
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
-        float x = event.getX();
-        float y = event.getY();
+        final float x = event.getX();
+        final float y = event.getY();
+        return postAsync(new Runnable() {
 
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                GpacObject.gpaceventmousedown(x, y);
-                break;
-            case MotionEvent.ACTION_UP:
-                GpacObject.gpaceventmouseup(x, y);
-                break;
-            case MotionEvent.ACTION_MOVE:
-                GpacObject.gpaceventmousemove(x, y);
-        }
-
-        return true;
+            @Override
+            public void run() {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        GpacObject.gpaceventmousedown(x, y);
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        GpacObject.gpaceventmouseup(x, y);
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        GpacObject.gpaceventmousemove(x, y);
+                }
+            }
+        });
     }
 
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        int code = keyCode;
-        // int action = event.getAction();
+    public boolean onKeyDown(final int keyCode, final KeyEvent event) {
+        return postAsync(new Runnable() {
 
-        //Log.e(LOG_GL_SURFACE, " OnKeyDown: " + code + ", action=" + action); //$NON-NLS-1$ //$NON-NLS-2$
-
-        // 0 == up, 1 == down
-        GpacObject.gpaceventkeypress(code, event.getScanCode(), 1, event.getFlags());
-        return true;
+            @Override
+            public void run() {
+                GpacObject.gpaceventkeypress(keyCode, event.getScanCode(), 1, event.getFlags());
+            }
+        });
     }
 
     // ------------------------------------
     @Override
-    public boolean onKeyUp(int keyCode, KeyEvent event) {
-        int code = keyCode;
-        //Log.e(LOG_GL_SURFACE, " OnKeyUp: " + code); //$NON-NLS-1$
+    public boolean onKeyUp(final int keyCode, final KeyEvent event) {
+        return postAsync(new Runnable() {
 
-        // 0 == up, 1 == down
-        GpacObject.gpaceventkeypress(code, event.getScanCode(), 0, event.getFlags());
+            @Override
+            public void run() {
+                GpacObject.gpaceventkeypress(keyCode, event.getScanCode(), 0, event.getFlags());
+            }
+        });
+    }
 
+    private boolean postAsync(Runnable command) {
+        Osmo4Renderer r;
+        synchronized (this) {
+            r = this.renderer;
+        }
+        if (r == null)
+            return false;
+        r.postCommand(command);
         return true;
-        // return super.onKeyDown(keyCode, event);
     }
 }
