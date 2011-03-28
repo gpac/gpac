@@ -66,8 +66,6 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private final String DEFAULT_OPEN_URL = Osmo4Renderer.GPAC_CFG_DIR + "gui/gui.bt"; //$NON-NLS-1$
 
-    private String toOpen = DEFAULT_OPEN_URL;
-
     /**
      * Activity request ID for picking a file from local filesystem
      */
@@ -103,14 +101,17 @@ public class Osmo4 extends Activity implements GpacCallback {
         mGLView.setFocusableInTouchMode(true);
 
         final String name = "Osmo4"; //$NON-NLS-1$
+        final String toOpen;
         if (Intent.ACTION_VIEW.equals(getIntent().getAction())) {
             Uri uri = getIntent().getData();
             if (uri != null) {
                 synchronized (this) {
                     toOpen = uri.toString();
                 }
-            }
-        }
+            } else
+                toOpen = null;
+        } else
+            toOpen = null;
         setProgress(1000);
         service.submit(new Runnable() {
 
@@ -173,7 +174,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                         }
 
                         synchronized (Osmo4.this) {
-                            renderer = new Osmo4Renderer(Osmo4.this);
+                            renderer = new Osmo4Renderer(Osmo4.this, toOpen);
                             mGLView.setRenderer(renderer);
                         }
                         displayPopup("Now loading, please wait...", name); //$NON-NLS-1$
@@ -419,7 +420,16 @@ public class Osmo4 extends Activity implements GpacCallback {
             if (wl != null)
                 wl.release();
         }
-        GpacObject.gpacfree();
+        Osmo4Renderer r = getRenderer();
+        if (r != null)
+            r.postCommand(new Runnable() {
+
+                @Override
+                public void run() {
+                    GpacObject.gpacfree();
+                }
+            });
+
         super.onDestroy();
     }
 
@@ -588,10 +598,6 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     @Override
     public void onGPACReady() {
-        final String url;
-        synchronized (this) {
-            url = toOpen;
-        }
         runOnUiThread(new Runnable() {
 
             @Override
@@ -599,7 +605,5 @@ public class Osmo4 extends Activity implements GpacCallback {
                 setProgress(10000);
             }
         });
-        openURLasync(url);
-
     }
 }

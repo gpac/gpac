@@ -62,13 +62,17 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
 
     private boolean inited = false;
 
+    private final String urlToLoad;
+
     /**
      * Constructor
      * 
      * @param callback
+     * @param urlToLoad The URL to load at startup, can be null
      */
-    public Osmo4Renderer(GpacCallback callback) {
+    public Osmo4Renderer(GpacCallback callback, String urlToLoad) {
         this.callback = callback;
+        this.urlToLoad = urlToLoad;
     }
 
     private final GpacCallback callback;
@@ -77,7 +81,15 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 gl, int w, int h) {
         // gl.glViewport(0, 0, w, h);
         if (!inited) {
-            GpacObject.gpacinit(null, callback, w, h, GPAC_CFG_DIR, GPAC_MODULES_DIR, GPAC_CACHE_DIR, GPAC_FONT_DIR);
+            GpacObject.gpacinit(null,
+                                callback,
+                                w,
+                                h,
+                                GPAC_CFG_DIR,
+                                GPAC_MODULES_DIR,
+                                GPAC_CACHE_DIR,
+                                GPAC_FONT_DIR,
+                                urlToLoad);
             GpacObject.gpacresize(w, h);
             inited = true;
             if (callback != null)

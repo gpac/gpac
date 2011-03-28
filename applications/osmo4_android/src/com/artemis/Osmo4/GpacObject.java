@@ -62,9 +62,10 @@ public class GpacObject {
      * @param modules_dir
      * @param cache_dir
      * @param font_dir
+     * @param urlToLoad The URL to load, if null, will load StartupFile specified in GPAC preferences
      */
     public static native void gpacinit(Object bitmap, GpacCallback callback, int width, int height, String cfg_dir,
-            String modules_dir, String cache_dir, String font_dir);
+            String modules_dir, String cache_dir, String font_dir, String urlToLoad);
 
     /**
      * Opens an URL
