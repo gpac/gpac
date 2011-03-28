@@ -7,6 +7,8 @@
  */
 package com.artemis.Osmo4;
 
+import java.util.HashMap;
+import java.util.Map;
 import android.util.Log;
 
 /**
@@ -19,25 +21,34 @@ public class GpacObject {
 
     private final static String LOG_LIB = "LibrariesLoader"; //$NON-NLS-1$
 
-    static {
+    /**
+     * Loads all libraries
+     * 
+     * @return a map of exceptions containing the library as key and the exception as value. If map is empty, no error
+     *         occurred
+     */
+    static Map<String, Throwable> loadAllLibraries() {
         final String[] toLoad = { "javaenv", //$NON-NLS-1$
                                  "mad", "editline", "ft2", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
                                  "js_osmo", "openjpeg", "jpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
                                  "ffmpeg", "faad", "gpac", "gpacWrapper" }; //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
-
+        HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
         for (String s : toLoad) {
             try {
                 Log.i(LOG_LIB, "Loading library " + s + "..."); //$NON-NLS-1$//$NON-NLS-2$
                 System.loadLibrary(s);
             } catch (UnsatisfiedLinkError e) {
+                exceptions.put(s, e);
                 Log.e(LOG_LIB, "Failed to load library : " + s + " due to link error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
             } catch (SecurityException e) {
+                exceptions.put(s, e);
                 Log.e(LOG_LIB, "Failed to load library : " + s + " due to security error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
             } catch (Throwable e) {
+                exceptions.put(s, e);
                 Log.e(LOG_LIB, "Failed to load library : " + s + " due to Runtime error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
             }
         }
-
+        return exceptions;
     }
 
     /**

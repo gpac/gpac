@@ -6,7 +6,7 @@
  *					All rights reserved
  *
  *	Created by NGO Van Luyen, Ivica ARSOV / ARTEMIS / Telecom SudParis /Institut TELECOM on Oct, 2010
- *
+ *GPAC_GUI_ONLY
  *  This file is part of GPAC / Wrapper
  *
  *  GPAC is free software; you can redistribute it and/or modify
@@ -58,15 +58,21 @@ CNativeWrapper::CNativeWrapper(){
 	m_term = NULL;
 	m_mx = NULL;
 	memset(&m_rti, 0, sizeof(GF_SystemRTInfo));
-	cbk_clz = NULL;
-	env = NULL;
+	lastEnv = NULL;
+	cbk_displayMessage = NULL;
+	cbk_onProgress = NULL;
 	cbk_obj = NULL;
 #endif
 }
 //-------------------------------
 CNativeWrapper::~CNativeWrapper(){
+	JNIEnv * env = getEnv();
+	if (env && cbk_obj)
+		env->DeleteGlobalRef(cbk_obj);
+	cbk_displayMessage = NULL;
+	cbk_onProgress = NULL;
+	cbk_obj = NULL;
 	Shutdown();
-
 #ifdef	DEBUG_MODE
 	if (debug_f){
 		debug_log("~CNativeWrapper()\n");
@@ -86,11 +92,8 @@ void CNativeWrapper::debug_log(const char* msg){
 void CNativeWrapper::Shutdown()
 {
 	gf_term_disconnect(m_term);
-	MessageBox("Disconnected ...", "");
 
 	if (m_mx) gf_mx_del(m_mx);
-
-	MessageBox("Osmo4 shutdown request", "");
 
 #ifndef GPAC_GUI_ONLY
 	if (m_term) {
@@ -107,27 +110,41 @@ void CNativeWrapper::Shutdown()
 		m_user.modules = NULL;
 	}
 #endif
-	MessageBox("Osmo4 shutdown OK", "");
 }
-//-------------------------------
-int CNativeWrapper::MessageBox(const char* msg, const char* title){
-	CNativeWrapper * self = this;
-	//call java function to display a message box
 
-	debug_log(msg);
-	if (!self->cbk_clz && self->cbk_obj){
-		self->cbk_clz = self->env->GetObjectClass(*(self->cbk_obj));
+JNIEnv * CNativeWrapper::getEnv(){
+	JNIEnv *env;
+    javaVM->AttachCurrentThread(&env, NULL);
+	if (lastEnv == env)
+		return lastEnv;
+	else {
+		if (!env){
+			debug_log("getEnv() returns NULL !");
+			cbk_displayMessage = NULL;
+			cbk_onProgress = NULL;
+			lastEnv = NULL;
+			return NULL;
+		}
+		jclass localRef;
+		localRef = env->GetObjectClass(cbk_obj);
+		lastEnv = env;
+		cbk_displayMessage =
+				env->GetMethodID(localRef, "displayMessage", "(Ljava/lang/String;Ljava/lang/String;I)V");		
+		cbk_onProgress = 
+				env->GetMethodID(localRef, "onProgress", "(Ljava/lang/String;II)V");
+		return env;
 	}
-	if (!self->cbk_clz){
-		return 1;
-	}
-	jmethodID mid = self->env->GetMethodID(self->cbk_clz, "displayMessage", "(Ljava/lang/String;Ljava/lang/String;)V");
-	if (!mid){
-		return 1;
-	}
-	jstring tit = self->env->NewStringUTF(title);
-	jstring mes = self->env->NewStringUTF(msg);
-	self->env->CallVoidMethod(*(self->cbk_obj), mid, mes, tit);
+}
+
+
+//-------------------------------
+int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status){	
+	JNIEnv * env = getEnv();
+	if (!env || !cbk_displayMessage)
+		return 0;
+	jstring tit = env->NewStringUTF(title?title:"null");
+	jstring mes = env->NewStringUTF(msg?msg:"null");
+	env->CallVoidMethod(cbk_obj, cbk_displayMessage, mes, tit, status);
 	return 1;
 }
 //-------------------------------
@@ -179,22 +196,19 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
 	if (cbk)
 	{
 		CNativeWrapper* ptr = (CNativeWrapper*)cbk;
-		char msg[500];
+		char msg[4096];
 		msg[0] = 0;
 		if ( evt->type == GF_EVENT_MESSAGE )
 		{
-			if ( evt->message.service )
-			{
-				strcat(msg, evt->message.service);
-				strcat(msg, ": ");
-			}
 			if ( evt->message.message )
 			{
 				strcat(msg, evt->message.message);
 				strcat(msg, ": ");
 			}
 			strcat(msg, gf_error_to_string(evt->message.error));
+			
 			ptr->debug_log(msg);
+			ptr->MessageBox(msg, evt->message.service ? evt->message.service : "GF_EVENT_MESSAGE", evt->message.error);
 		}
 	}
 	return true;
@@ -204,20 +218,11 @@ void CNativeWrapper::Osmo4_progress_cbk(void *usr, char *title, u64 done, u64 to
 	if (!usr)
 		return;
 	CNativeWrapper * self = (CNativeWrapper *) usr;
-	if (!self->cbk_clz && self->cbk_obj){
-		self->cbk_clz = self->env->GetObjectClass(*(self->cbk_obj));
-	}
-	if (!self->cbk_clz){
-		self->debug_log("Cannot find method clss for callback object");
+	JNIEnv *env = self->getEnv();
+	if (!env || !self->cbk_onProgress)
 		return;
-	}
-	jmethodID mid = self->env->GetMethodID(self->cbk_clz, "onProgress", "(Ljava/lang/String;II)V");
-	if (!mid){
-		self->debug_log("Cannot find method onProgress");
-		return;
-	}
-	jstring js = self->env->NewStringUTF(title);
-	self->env->CallVoidMethod(*(self->cbk_obj), mid, js, done, total);
+	jstring js = env->NewStringUTF(title);
+	env->CallVoidMethod(self->cbk_obj, self->cbk_onProgress, js, done, total);
 }
 //-------------------------------
 void CNativeWrapper::SetupLogs(){
@@ -238,9 +243,9 @@ void CNativeWrapper::SetupLogs(){
 	if (opt && stricmp(opt, "error")) {
 		FILE *logs = fopen(GPAC_LOG_FILE, "wt");
 		if (!logs) {
-			MessageBox("Cannot open log file - disabling logs", "Warning !");
+			MessageBox("Cannot open log file - disabling logs", "Warning !", GF_SERVICE_ERROR);
 		} else {
-			MessageBox("Debug log enabled in \\data\\gpac_logs.txt", "Info");
+			MessageBox("Debug log enabled in \\data\\gpac_logs.txt", "Info", GF_SERVICE_ERROR);
 			fclose(logs);
 			do_log = 1;
 			gf_log_set_level(gf_log_parse_level(opt) );
@@ -287,8 +292,15 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	#ifdef	DEBUG_MODE
 	debug_f = fopen(DEBUG_FILE, "w");
 	#endif
-	this->env = env;
-	this->cbk_obj = callback;
+	if (callback){		
+		this->cbk_obj = env->NewGlobalRef(*callback);
+		this->cbk_displayMessage = NULL;
+		this->cbk_onProgress = NULL;		
+	} else {
+		this->cbk_obj = NULL;
+		this->cbk_displayMessage = NULL;
+		this->cbk_onProgress = NULL;
+	}
 	debug_log("int CNativeWrapper::init()");
 
 	int m_Width = width;
@@ -308,14 +320,14 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		first_launch = 1;
 		FILE *ft = fopen(m_cfg_filename, "wt");
 		if (!ft) {
-			MessageBox("Cannot create GPAC Config file", "Fatal Error");
+			MessageBox("Cannot create GPAC Config file", "Fatal Error", GF_SERVICE_ERROR);
 			return Quit(KErrGeneral);
 		} else {
 			fclose(ft);
 		}
 		m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
 		if (!m_user.config) {
-			MessageBox("GPAC Configuration file not found", "Fatal Error");
+			MessageBox("GPAC Configuration file not found", "Fatal Error", GF_SERVICE_ERROR);
 			return Quit(KErrGeneral);
 		}
 	}
@@ -361,54 +373,52 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		gf_cfg_del(m_user.config);
 		m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
 		if (!m_user.config) {
-			MessageBox("Cannot save initial GPAC Config file", "Fatal Error");
+			MessageBox("Cannot save initial GPAC Config file", "Fatal Error",GF_SERVICE_ERROR);
 			return Quit(KErrGeneral);
 		}
-
-
-		MessageBox("Osmo4", "Thank you for Installing");
 	}
 
 	/*load modules*/
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	m_user.modules = gf_modules_new(opt, m_user.config);
 	if (!m_user.modules || !gf_modules_get_count(m_user.modules)) {
-		MessageBox(m_user.modules ? "No modules available" : "Cannot create module manager", "Fatal Error");
+		MessageBox(m_user.modules ? "No modules available" : "Cannot create module manager", "Fatal Error", GF_SERVICE_ERROR);
 		if (m_user.modules) gf_modules_del(m_user.modules);
 		gf_cfg_del(m_user.config);
 		return Quit(KErrGeneral);
 	}
 
-	if (first_launch) {
-		/*first launch, register all files ext*/
-		for (u32 i=0; i<gf_modules_get_count(m_user.modules); i++) {
-			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
-			if (!ifce) continue;
-			if (ifce) {
-				ifce->CanHandleURL(ifce, "test.test");
-				gf_modules_close_interface((GF_BaseInterface *)ifce);
-			}
-		}
-	}
+// SOUCHAY : not needed anymore
+//	if (first_launch) {
+//		/*first launch, register all files ext*/
+//		for (u32 i=0; i<gf_modules_get_count(m_user.modules); i++) {
+//			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
+//			if (!ifce) continue;
+//			if (ifce) {
+//				ifce->CanHandleURL(ifce, "test.test");
+//				gf_modules_close_interface((GF_BaseInterface *)ifce);
+//			}
+//		}
+//	}
 
 	/*we don't thread the terminal, ie appart from the audio renderer, media decoding and visual rendering is
 	handled by the app process*/
 	//m_user.init_flags = GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION;
 	m_user.init_flags = GF_TERM_NO_THREAD | GF_TERM_NO_REGULATION;
 	//m_user.init_flags |= GF_TERM_NO_AUDIO;
-	m_user.EventProc = GPAC_EventProc;
 	m_user.opaque = this;
+	
 	m_user.os_window_handler = m_window;
 	m_user.os_display = m_session;
 
 	m_term = gf_term_new(&m_user);
 	if (!m_term) {
-		MessageBox("Cannot load GPAC terminal", "Fatal Error");
+		MessageBox("Cannot load GPAC terminal", "Fatal Error", GF_SERVICE_ERROR);
 		gf_modules_del(m_user.modules);
 		gf_cfg_del(m_user.config);
 		return Quit(KErrGeneral);
 	}
-	MessageBox("GPAC terminal loaded", "Success !");
+	m_user.EventProc = GPAC_EventProc;
 	
 	//setAudioEnvironment(javaVM);	
 
@@ -534,25 +544,19 @@ void CNativeWrapper::onKeyPress(int keycode, int rawkeycode, int up, int flag){
 	evt.key.flags = 0;
 	evt.key.hw_code = rawkeycode;
 
-	char msg[100];
-	sprintf(msg, "onKeyPress keycode=%d", keycode);
-	debug_log(msg);
+	char msg[256];
 
 	translate_key(keycode, &evt.key);
 	//evt.key.key_code = GF_KEY_A;
 	int ret = gf_term_user_event(m_term, &evt);
 	/*generate a key up*/
 
-	sprintf(msg, "onKeyPress gpac keycode=%d, GF_KEY_A=%d, ret=%d", evt.key.key_code, GF_KEY_A, ret);
+	sprintf(msg, "onKeyPress gpac keycode=%d, GF_KEY_A=%d, ret=%d (original=%d, raw=%d)", evt.key.key_code, GF_KEY_A, ret, keycode, rawkeycode);
 	debug_log(msg);
 }
 //-----------------------------------------------------
 void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt){
 	evt->flags = 0;
-
-	char msg[100];
-	sprintf(msg, "translate_key keycode=%d", keycode);
-	debug_log(msg);
 
 	switch (keycode) {
 	case ANDROID_KEYCODE_BACK: evt->key_code = GF_KEY_BACKSPACE; break;

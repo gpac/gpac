@@ -153,10 +153,14 @@ class CNativeWrapper{
 		GF_User *GetUser() { return &m_user; }
 		GF_Terminal *m_term;
 
-		jclass cbk_clz;
-		JNIEnv * env;
-		jobject * cbk_obj;			
+		/*
+		 * Callback management
+		 */
+		jobject cbk_obj;
+		jmethodID cbk_displayMessage;
+		jmethodID cbk_onProgress;
 
+		JNIEnv * lastEnv;
 		GF_Mutex *m_mx;
 		GF_User m_user;
 		GF_SystemRTInfo m_rti;
@@ -173,6 +177,9 @@ class CNativeWrapper{
 		void SetupLogs();
 		void Shutdown();
 		void DisplayRTI();
+	protected:
+		JNIEnv * getEnv();
+
 	public:
 		CNativeWrapper();
 		~CNativeWrapper();
@@ -190,7 +197,7 @@ class CNativeWrapper{
 		void onKeyPress(int keycode, int rawkeycode, int up, int flag);
 		void translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt);
 	public:
-		int MessageBox(const char* msg, const char* title);
+		int MessageBox(const char* msg, const char* title, GF_Err status);
 		int Quit(int code);
 		GF_Config *create_default_config(char *file_path, char *file_name);
 
