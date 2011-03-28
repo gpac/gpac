@@ -165,4 +165,9 @@ public interface GpacCallback {
      * @param total
      */
     public void onProgress(String msg, int done, int total);
+
+    /**
+     * Called when GPAC is ready
+     */
+    public void onGPACReady();
 }
