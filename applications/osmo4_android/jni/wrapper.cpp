@@ -13,15 +13,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -129,8 +129,8 @@ JNIEnv * CNativeWrapper::getEnv(){
 		localRef = env->GetObjectClass(cbk_obj);
 		lastEnv = env;
 		cbk_displayMessage =
-				env->GetMethodID(localRef, "displayMessage", "(Ljava/lang/String;Ljava/lang/String;I)V");		
-		cbk_onProgress = 
+				env->GetMethodID(localRef, "displayMessage", "(Ljava/lang/String;Ljava/lang/String;I)V");
+		cbk_onProgress =
 				env->GetMethodID(localRef, "onProgress", "(Ljava/lang/String;II)V");
 		return env;
 	}
@@ -138,7 +138,7 @@ JNIEnv * CNativeWrapper::getEnv(){
 
 
 //-------------------------------
-int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status){	
+int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status){
 	JNIEnv * env = getEnv();
 	if (!env || !cbk_displayMessage)
 		return 0;
@@ -206,7 +206,7 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
 				strcat(msg, ": ");
 			}
 			strcat(msg, gf_error_to_string(evt->message.error));
-			
+
 			ptr->debug_log(msg);
 			ptr->MessageBox(msg, evt->message.service ? evt->message.service : "GF_EVENT_MESSAGE", evt->message.error);
 		}
@@ -249,7 +249,7 @@ void CNativeWrapper::SetupLogs(){
 			fclose(logs);
 			do_log = 1;
 			gf_log_set_level(gf_log_parse_level(opt) );
-		
+
 			opt = gf_cfg_get_key(m_user.config, "General", "LogTools");
 			if (opt) gf_log_set_tools(gf_log_parse_tools(opt));
 		}
@@ -292,10 +292,10 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	#ifdef	DEBUG_MODE
 	debug_f = fopen(DEBUG_FILE, "w");
 	#endif
-	if (callback){		
+	if (callback){
 		this->cbk_obj = env->NewGlobalRef(*callback);
 		this->cbk_displayMessage = NULL;
-		this->cbk_onProgress = NULL;		
+		this->cbk_onProgress = NULL;
 	} else {
 		this->cbk_obj = NULL;
 		this->cbk_displayMessage = NULL;
@@ -347,7 +347,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		/*startup file*/
 		char msg[100];
 		sprintf(msg, "%sgui/gui.bt",GPAC_CFG_DIR);
-		gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);		
+		//gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
 		gf_cfg_set_key(m_user.config, "General", "LastWorkingDir", GPAC_CFG_DIR);
 		gf_cfg_set_key(m_user.config, "GUI", "UnhideControlPlayer", "1");
 		/*setup UDP traffic autodetect*/
@@ -359,7 +359,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		//gf_cfg_set_key(m_user.config, "Compositor", "FrameRate", "30");
 
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "Android Video Output");
-		
+
 		gf_cfg_set_key(m_user.config, "Audio", "DriverName", "Android Audio Output");
 		gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "no");
 		gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "1");
@@ -407,7 +407,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	m_user.init_flags = GF_TERM_NO_THREAD | GF_TERM_NO_REGULATION;
 	//m_user.init_flags |= GF_TERM_NO_AUDIO;
 	m_user.opaque = this;
-	
+
 	m_user.os_window_handler = m_window;
 	m_user.os_display = m_session;
 
@@ -419,18 +419,18 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		return Quit(KErrGeneral);
 	}
 	m_user.EventProc = GPAC_EventProc;
-	
-	//setAudioEnvironment(javaVM);	
+
+	//setAudioEnvironment(javaVM);
 
 	gf_term_set_size(m_term, m_Width, m_Height);
 
-	opt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
-	
+	//opt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+
 	char msg[100];
 	sprintf(msg, "File loaded at startup=%s", opt);
 	debug_log(msg);
-	
-	if (opt) gf_term_connect(m_term, opt);
+
+	//if (opt) gf_term_connect(m_term, opt);
 
 	//initGL();
 }
