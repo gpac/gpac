@@ -20,6 +20,17 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
      */
     public final static String GPAC_CFG_DIR;
 
+    private Runnable pendingCommand = null;
+
+    /**
+     * Post a command to execute in GPAC Renderer Thread
+     * 
+     * @param command The command to execute
+     */
+    public synchronized void postCommand(Runnable command) {
+        this.pendingCommand = command;
+    }
+
     /**
      * Default directory for cached files
      */
@@ -69,14 +80,25 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
             GpacObject.gpacinit(null, callback, w, h, GPAC_CFG_DIR, GPAC_MODULES_DIR, GPAC_CACHE_DIR, GPAC_FONT_DIR);
             GpacObject.gpacresize(w, h);
             inited = true;
-            callback.onGPACReady();
+            if (callback != null)
+                callback.onGPACReady();
         } else
             GpacObject.gpacresize(w, h);
     }
 
     // ------------------------------------
     public void onDrawFrame(GL10 gl) {
-        GpacObject.gpacrender(null);
+        if (inited) {
+            GpacObject.gpacrender(null);
+            Runnable command;
+            synchronized (this) {
+                command = this.pendingCommand;
+                this.pendingCommand = null;
+            }
+            if (command != null) {
+                command.run();
+            }
+        }
     }
 
     // ------------------------------------

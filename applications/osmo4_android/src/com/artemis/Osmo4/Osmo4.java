@@ -52,7 +52,6 @@ import android.view.MenuItem;
 import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 /**
@@ -65,7 +64,9 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private String[] m_modules_list;
 
-    private String toOpen = Osmo4Renderer.GPAC_CFG_DIR + "gui/gui.bt"; //$NON-NLS-1$
+    private final String DEFAULT_OPEN_URL = Osmo4Renderer.GPAC_CFG_DIR + "gui/gui.bt"; //$NON-NLS-1$
+
+    private String toOpen = DEFAULT_OPEN_URL;
 
     /**
      * Activity request ID for picking a file from local filesystem
@@ -83,6 +84,12 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private PowerManager.WakeLock wl = null;
 
+    private Osmo4Renderer renderer;
+
+    private synchronized Osmo4Renderer getRenderer() {
+        return renderer;
+    }
+
     // ---------------------------------------
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -90,8 +97,12 @@ public class Osmo4 extends Activity implements GpacCallback {
         requestWindowFeature(Window.FEATURE_PROGRESS);
         // requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
+
+        final Osmo4GLSurfaceView mGLView = new Osmo4GLSurfaceView(Osmo4.this);
+        mGLView.setFocusable(true);
+        mGLView.setFocusableInTouchMode(true);
+
         final String name = "Osmo4"; //$NON-NLS-1$
-        TextView tmpView = new TextView(this);
         if (Intent.ACTION_VIEW.equals(getIntent().getAction())) {
             Uri uri = getIntent().getData();
             if (uri != null) {
@@ -100,22 +111,24 @@ public class Osmo4 extends Activity implements GpacCallback {
                 }
             }
         }
-        tmpView.setText("Loading GPAC ($Revision$)\nPlease Wait, Loading...\n"); //$NON-NLS-1$
-
-        setProgress(100);
-        setContentView(tmpView);
-        setProgress(500);
+        setProgress(1000);
         service.submit(new Runnable() {
 
             @Override
             public void run() {
-                setProgress(1000);
                 displayPopup("Copying native libraries...", name); //$NON-NLS-1$
                 loadAllModules();
-                setProgress(2500);
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        setProgress(5000);
+                    }
+                });
                 displayPopup("Loading native libraries...", name); //$NON-NLS-1$
                 Map<String, Throwable> exceptions = GpacObject.loadAllLibraries();
                 if (!exceptions.isEmpty()) {
+                    displayPopup("Exception(s) occurred !", name); //$NON-NLS-1$
                     final StringBuilder sb = new StringBuilder();
                     for (Map.Entry<String, Throwable> x : exceptions.entrySet()) {
                         sb.append(x.getKey()).append(": ") //$NON-NLS-1$
@@ -145,33 +158,26 @@ public class Osmo4 extends Activity implements GpacCallback {
                     });
                     return;
                 }
-                setProgress(5000);
-                displayPopup("Initializing view...", name); //$NON-NLS-1$
-                setProgress(7000);
+                displayPopup("Loading GPAC Renderer...", name); //$NON-NLS-1$
                 runOnUiThread(new Runnable() {
 
                     @Override
                     public void run() {
-                        displayPopup("Initializing GL view...", name); //$NON-NLS-1$
-                        final Osmo4GLSurfaceView mGLView = new Osmo4GLSurfaceView(Osmo4.this);
-                        mGLView.setRenderer(new Osmo4Renderer(Osmo4.this));
-                        mGLView.setFocusable(true);
-                        mGLView.setFocusableInTouchMode(true);
-                        setProgress(8000);
-                        displayPopup("Setting view...", name); //$NON-NLS-1$
-                        setContentView(mGLView);
                         setProgress(9000);
                         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
                         WakeLock wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, LOG_OSMO_TAG);
-
-                        displayPopup("Now loading, please wait...", name); //$NON-NLS-1$
                         if (wl != null)
                             wl.acquire();
                         synchronized (Osmo4.this) {
                             Osmo4.this.wl = wl;
                         }
-                        setProgress(10000);
-                        setTitle(toOpen);
+
+                        synchronized (Osmo4.this) {
+                            renderer = new Osmo4Renderer(Osmo4.this);
+                            mGLView.setRenderer(renderer);
+                        }
+                        displayPopup("Now loading, please wait...", name); //$NON-NLS-1$
+                        setContentView(mGLView);
                     }
                 });
 
@@ -226,7 +232,8 @@ public class Osmo4 extends Activity implements GpacCallback {
                                       public void onClick(DialogInterface dialog, int id) {
                                           dialog.cancel();
                                           final String newURL = textView.getText().toString();
-                                          GpacObject.gpacconnect(newURL);
+                                          openURLasync(newURL);
+                                          assert (renderer != null);
                                           service.execute(new Runnable() {
 
                                               @Override
@@ -344,11 +351,37 @@ public class Osmo4 extends Activity implements GpacCallback {
             if (resultCode == RESULT_OK) {
                 Uri uri = intent.getData();
                 if (uri != null) {
-                    String path = uri.toString();
-                    GpacObject.gpacconnect(path);
+                    openURLasync(uri.toString());
+
                 }
             }
         }
+    }
+
+    private void openURLasync(final String url) {
+        Osmo4Renderer renderer = getRenderer();
+        runOnUiThread(new Runnable() {
+
+            @Override
+            public void run() {
+                if (DEFAULT_OPEN_URL.equals(url))
+                    setTitle(LOG_OSMO_TAG + " - Home"); //$NON-NLS-1$
+                else
+                    setTitle(LOG_OSMO_TAG + " - " + url); //$NON-NLS-1$
+            }
+        });
+
+        if (renderer == null)
+            displayPopup("Renderer should not be null", "ERROR"); //$NON-NLS-1$ //$NON-NLS-2$
+        else
+            renderer.postCommand(new Runnable() {
+
+                @Override
+                public void run() {
+                    GpacObject.gpacconnect(url);
+
+                }
+            });
     }
 
     // ---------------------------------------
@@ -555,10 +588,18 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     @Override
     public void onGPACReady() {
-        String url;
+        final String url;
         synchronized (this) {
             url = toOpen;
         }
-        GpacObject.gpacconnect(url);
+        runOnUiThread(new Runnable() {
+
+            @Override
+            public void run() {
+                setProgress(10000);
+            }
+        });
+        openURLasync(url);
+
     }
 }

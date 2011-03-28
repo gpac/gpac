@@ -1,4 +1,4 @@
-/*
+/**
  *  Osmo on Android
  *  Aug/2010
  *  NGO Van Luyen
