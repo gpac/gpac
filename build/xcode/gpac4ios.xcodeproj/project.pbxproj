@@ -2679,6 +2679,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 71CCF1351277037B00339E12 /* Build configuration list for PBXNativeTarget "libgpac_static" */;
 			buildPhases = (
+				970AE51B1340DD1100501CF4 /* ShellScript */,
 				71CCF12D1277037A00339E12 /* Headers */,
 				71CCF12E1277037A00339E12 /* Sources */,
 				71CCF12F1277037A00339E12 /* Frameworks */,
@@ -2746,6 +2747,22 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		970AE51B1340DD1100501CF4 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if which svnversion 2>/dev/null; then echo \"#define GPAC_SVN_REVISION \\\"`svnversion`\\\"\" > ../../include/gpac/version.h ; else  echo \"No SVN Version found\"; fi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		71179CC11292EC3400A83216 /* Sources */ = {
@@ -3337,7 +3354,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = "";
@@ -3356,8 +3372,6 @@
 				);
 				PREBINDING = NO;
 				PRODUCT_NAME = libgpac_dynamic;
-				SDKROOT = iphoneos4.1;
-				VALID_ARCHS = "armv6 armv7";
 			};
 			name = Debug;
 		};
@@ -3365,9 +3379,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = "";
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3384,8 +3396,6 @@
 				);
 				PREBINDING = NO;
 				PRODUCT_NAME = libgpac_dynamic;
-				SDKROOT = iphoneos4.1;
-				VALID_ARCHS = "armv6 armv7";
 				ZERO_LINK = NO;
 			};
 			name = Release;
@@ -3394,7 +3404,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
@@ -3415,8 +3424,6 @@
 				);
 				PREBINDING = NO;
 				PRODUCT_NAME = soft_raster;
-				SDKROOT = iphoneos4.1;
-				VALID_ARCHS = "armv6 armv7";
 			};
 			name = Debug;
 		};
@@ -3424,7 +3431,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				COPY_PHASE_STRIP = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
@@ -3443,8 +3449,6 @@
 				);
 				PREBINDING = NO;
 				PRODUCT_NAME = soft_raster;
-				SDKROOT = iphoneos4.1;
-				VALID_ARCHS = "armv6 armv7";
 				ZERO_LINK = NO;
 			};
 			name = Release;
@@ -4369,7 +4373,6 @@
 				PRODUCT_NAME = osmo4ios;
 				PROVISIONING_PROFILE = "436E12B9-CF72-44E5-B9C2-20E597DF640E";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "436E12B9-CF72-44E5-B9C2-20E597DF640E";
-				SDKROOT = iphoneos4.1;
 				SKIP_INSTALL = YES;
 			};
 			name = Debug;
@@ -4402,7 +4405,6 @@
 				PRODUCT_NAME = osmo4ios;
 				PROVISIONING_PROFILE = "436E12B9-CF72-44E5-B9C2-20E597DF640E";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "436E12B9-CF72-44E5-B9C2-20E597DF640E";
-				SDKROOT = iphoneos4.1;
 				ZERO_LINK = NO;
 			};
 			name = Release;
@@ -4411,7 +4413,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				COPY_PHASE_STRIP = NO;
 				EXECUTABLE_PREFIX = "";
 				GCC_DYNAMIC_NO_PIC = NO;
@@ -4440,8 +4441,6 @@
 				OTHER_CFLAGS = "-fms-extensions";
 				PREBINDING = NO;
 				PRODUCT_NAME = libgpac_static;
-				SDKROOT = iphoneos4.1;
-				VALID_ARCHS = "armv6 armv7";
 			};
 			name = Debug;
 		};
@@ -4449,9 +4448,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				ARCHS = "$(ARCHS_STANDARD_32_BIT)";
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_PREFIX = "";
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -4481,8 +4478,6 @@
 				);
 				PREBINDING = NO;
 				PRODUCT_NAME = libgpac_static;
-				SDKROOT = iphoneos4.1;
-				VALID_ARCHS = "armv6 armv7";
 				ZERO_LINK = NO;
 			};
 			name = Release;
@@ -4508,7 +4503,7 @@
 				PREBINDING = NO;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
-				SDKROOT = iphoneos4.1;
+				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -4535,7 +4530,7 @@
 				PREBINDING = NO;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
-				SDKROOT = iphoneos4.1;
+				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
