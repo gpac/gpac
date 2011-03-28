@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -38,16 +39,20 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.DialogInterface.OnClickListener;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 /**
@@ -58,11 +63,16 @@ import android.widget.Toast;
  */
 public class Osmo4 extends Activity implements GpacCallback {
 
-    private Osmo4GLSurfaceView mGLView = null;
-
     private String[] m_modules_list;
 
+    /**
+     * Activity request ID for picking a file from local filesystem
+     */
+    public final static int PICK_FILE_REQUEST = 1;
+
     private final static String LOG_OSMO_TAG = "Osmo4"; //$NON-NLS-1$
+
+    private final static String OK_BUTTON = "OK"; //$NON-NLS-1$
 
     /**
      * List of all extensions recognized by Osmo
@@ -75,20 +85,87 @@ public class Osmo4 extends Activity implements GpacCallback {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        requestWindowFeature(Window.FEATURE_PROGRESS);
+        // requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
+        requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
         final String name = "Osmo4"; //$NON-NLS-1$
-        displayMessage("Loading native libraries...", name); //$NON-NLS-1$
-        loadAllModules();
-        displayMessage("Initializing view...", name); //$NON-NLS-1$
-        mGLView = new Osmo4GLSurfaceView(this);
-        mGLView.setRenderer(new Osmo4Renderer(this));
-        mGLView.setFocusable(true);
-        mGLView.setFocusableInTouchMode(true);
-        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-        wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, LOG_OSMO_TAG);
-        setContentView(mGLView);
-        displayMessage("Now loading, please wait...", name); //$NON-NLS-1$
-        if (wl != null)
-            wl.acquire();
+        TextView tmpView = new TextView(this);
+        tmpView.setText("Loading GPAC ($Revision$)\nPlease Wait, Loading...\n"); //$NON-NLS-1$
+
+        setProgress(100);
+        setContentView(tmpView);
+        setProgress(500);
+        service.submit(new Runnable() {
+
+            @Override
+            public void run() {
+                setProgress(1000);
+                displayPopup("Copying native libraries...", name); //$NON-NLS-1$
+                loadAllModules();
+                setProgress(2500);
+                displayPopup("Loading native libraries...", name); //$NON-NLS-1$
+                Map<String, Throwable> exceptions = GpacObject.loadAllLibraries();
+                if (!exceptions.isEmpty()) {
+                    final StringBuilder sb = new StringBuilder();
+                    for (Map.Entry<String, Throwable> x : exceptions.entrySet()) {
+                        sb.append(x.getKey()).append(": ") //$NON-NLS-1$
+                          .append(x.getValue().getClass().getSimpleName())
+                          .append(": ") //$NON-NLS-1$
+                          .append(x.getValue().getLocalizedMessage())
+                          .append('\n');
+                    }
+                    runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(Osmo4.this);
+                            builder.setTitle("Exception while loading libraries !"); //$NON-NLS-1$
+                            builder.setMessage(sb.toString());
+                            builder.setCancelable(true);
+                            builder.setPositiveButton(OK_BUTTON, new OnClickListener() {
+
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.cancel();
+                                }
+                            });
+                            AlertDialog d = builder.create();
+                            d.show();
+                        }
+                    });
+                }
+                setProgress(5000);
+                displayPopup("Initializing view...", name); //$NON-NLS-1$
+                setProgress(7000);
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        displayPopup("Initializing GL view...", name); //$NON-NLS-1$
+                        final Osmo4GLSurfaceView mGLView = new Osmo4GLSurfaceView(Osmo4.this);
+                        mGLView.setRenderer(new Osmo4Renderer(Osmo4.this));
+                        mGLView.setFocusable(true);
+                        mGLView.setFocusableInTouchMode(true);
+                        setProgress(8000);
+                        displayPopup("Setting view...", name); //$NON-NLS-1$
+                        setContentView(mGLView);
+                        setProgress(9000);
+                        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                        WakeLock wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, LOG_OSMO_TAG);
+
+                        displayPopup("Now loading, please wait...", name); //$NON-NLS-1$
+                        if (wl != null)
+                            wl.acquire();
+                        synchronized (Osmo4.this) {
+                            Osmo4.this.wl = wl;
+                        }
+                        setProgress(10000);
+                    }
+                });
+
+            }
+        });
+
     }
 
     // ---------------------------------------
@@ -230,7 +307,7 @@ public class Osmo4 extends Activity implements GpacCallback {
         intent.putExtra("browser_filter_extension_whitelist", OSMO_REGISTERED_FILE_EXTENSIONS); //$NON-NLS-1$
 
         try {
-            startActivityForResult(intent, 1);
+            startActivityForResult(intent, PICK_FILE_REQUEST);
             return true;
         } catch (ActivityNotFoundException e) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -251,7 +328,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     // ---------------------------------------
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        if (requestCode == 1) {
+        if (requestCode == PICK_FILE_REQUEST) {
             if (resultCode == RESULT_OK) {
                 Uri uri = intent.getData();
                 if (uri != null) {
@@ -293,10 +370,12 @@ public class Osmo4 extends Activity implements GpacCallback {
     @Override
     protected void onDestroy() {
         service.shutdown();
-        if (wl != null)
-            wl.release();
-        super.onDestroy();
+        synchronized (this) {
+            if (wl != null)
+                wl.release();
+        }
         GpacObject.gpacfree();
+        super.onDestroy();
     }
 
     // ---------------------------------------
@@ -378,12 +457,15 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     // ---------------------------------------
 
-    /**
-     * @see com.artemis.Osmo4.GpacCallback#displayMessage(java.lang.String, java.lang.String)
-     */
-    @Override
-    public void displayMessage(String message, String title) {
+    private String lastDisplayedMessage;
+
+    private void displayPopup(String message, String title) {
         final String fullMsg = title + '\n' + message;
+        synchronized (this) {
+            if (fullMsg.equals(lastDisplayedMessage))
+                return;
+            lastDisplayedMessage = fullMsg;
+        }
         runOnUiThread(new Runnable() {
 
             @Override
@@ -393,6 +475,41 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
         });
 
+    }
+
+    /**
+     * @see com.artemis.Osmo4.GpacCallback#displayMessage(String, String, int)
+     */
+    @Override
+    public void displayMessage(final String message, final String title, final int status) {
+        if (status == GF_Err.GF_OK.value)
+            displayPopup(message, title);
+        else {
+            runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append(GF_Err.getError(status));
+                    sb.append(' ');
+                    sb.append(title);
+                    AlertDialog.Builder builder = new AlertDialog.Builder(Osmo4.this);
+                    builder.setTitle(sb.toString());
+                    sb.append('\n');
+                    sb.append(message);
+                    builder.setMessage(sb.toString());
+                    builder.setCancelable(true);
+                    builder.setPositiveButton(OK_BUTTON, new OnClickListener() {
+
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.cancel();
+                        }
+                    });
+                    builder.create().show();
+                }
+            });
+        }
     }
 
     /**
@@ -406,7 +523,16 @@ public class Osmo4 extends Activity implements GpacCallback {
      * @see com.artemis.Osmo4.GpacCallback#onProgress(java.lang.String, int, int)
      */
     @Override
-    public void onProgress(String msg, int done, int total) {
-        displayMessage(msg + " " + done + "/" + total, "Progress");
+    public void onProgress(final String msg, final int done, final int total) {
+        runOnUiThread(new Runnable() {
+
+            @Override
+            public void run() {
+                int progress = done * 10000 / total;
+                if (progress > 9900)
+                    progress = 10000;
+                setProgress(progress);
+            }
+        });
     }
 }
