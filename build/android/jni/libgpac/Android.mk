@@ -145,6 +145,8 @@ LOCAL_SRC_FILES := \
 	../../../../src/media_tools/dvb_mpe.c \
 	../../../../src/media_tools/m2ts_mux.c \
 	../../../../src/media_tools/reedsolomon.c \
+	../../../../src/media_tools/mpd.c \
+	../../../../src/media_tools/m3u8.c \
 	../../../../src/laser/lsr_tables.c \
 	../../../../src/laser/lsr_dec.c \
 	../../../../src/laser/lsr_enc.c \
