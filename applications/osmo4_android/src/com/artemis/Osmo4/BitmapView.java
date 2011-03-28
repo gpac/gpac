@@ -1,4 +1,4 @@
-/*
+/**
  *  Osmo on Android
  *  Aug/2010
  *  NGO Van Luyen
@@ -18,6 +18,7 @@ import android.view.View;
  * @version $Revision$
  * 
  */
+@Deprecated
 public class BitmapView extends View {
 
     private Bitmap m_Bitmap = null;
@@ -68,6 +69,7 @@ public class BitmapView extends View {
             if (m_height < 1)
                 m_height = 100;
             GpacObject.gpacinit(m_Bitmap,
+                                null,
                                 m_width,
                                 m_height,
                                 Osmo4Renderer.GPAC_CFG_DIR,
@@ -87,5 +89,4 @@ public class BitmapView extends View {
         GpacObject.gpacdisconnect();
         GpacObject.gpacfree();
     }
-
 }

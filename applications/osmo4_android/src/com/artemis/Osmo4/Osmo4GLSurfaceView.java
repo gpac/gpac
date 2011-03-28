@@ -23,7 +23,6 @@ public class Osmo4GLSurfaceView extends GLSurfaceView {
      */
     public Osmo4GLSurfaceView(Context context) {
         super(context);
-        setRenderer(new Osmo4Renderer());
     }
 
     // ------------------------------------
