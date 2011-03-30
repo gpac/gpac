@@ -42,7 +42,6 @@ static const char * MPD_MIME_TYPES[] = { "video/vnd.3gpp.mpd", "audio/vnd.3gpp.m
  */
 static const char * M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", NULL};
 
-
 typedef struct
 {
     char *cache;
@@ -212,7 +211,8 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
     GF_MPD_Period *period, *new_period;
     GF_MPD_Representation *rep, *new_rep;
     GF_List *segs;
-    const char *local_url, *purl, *mime;
+    const char *local_url, *mime;
+    char * purl;
     Bool is_m3u8 = 0;
     u32 oldUpdateTime = mpdin->mpd->min_update_time;
     /*reset update time - if any error occurs, we will no longer attempt to update the MPD*/
@@ -448,7 +448,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
     return GF_OK;
 }
 
-static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, char *mime)
+static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, const char *mime)
 {
     const char *sPlug;
     /* Check MIME type to start the right InputService (ISOM or MPEG-2) */

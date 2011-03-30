@@ -364,8 +364,8 @@ static void AAC_disconnect_from_http_and_free(AACReader * read)
     gf_dm_sess_del( read->dnload);
 #else
     gf_term_download_del(read->dnload);
-  }
 #endif /* DONT_USE_TERMINAL_MODULE_API */
+  }
   read->dnload = NULL;
 }
 

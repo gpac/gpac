@@ -1026,8 +1026,12 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		case 2:
 			/*find a way to do that in SDL*/
 			ctx->output_3d_type = 2;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] 3D not supported with SDL.\n"));
 			return GF_NOT_SUPPORTED;
 		}
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Trying to set an Unknown Mode %d !\n", evt->setup.opengl_mode));
+			return GF_NOT_SUPPORTED;
 	}
 		break;
 	case GF_EVENT_SYS_COLORS:
