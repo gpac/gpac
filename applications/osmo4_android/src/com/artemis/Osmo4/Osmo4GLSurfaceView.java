@@ -38,60 +38,43 @@ public class Osmo4GLSurfaceView extends GLSurfaceView {
         super.setRenderer(renderer);
     }
 
+    private Osmo4Renderer getRenderer() {
+        return renderer;
+    }
+
+    private GPACInstance getInstance() {
+        Osmo4Renderer r = getRenderer();
+        if (r == null)
+            return null;
+        return r.getInstance();
+    }
+
     // ------------------------------------
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
-        final float x = event.getX();
-        final float y = event.getY();
-        return postAsync(new Runnable() {
-
-            @Override
-            public void run() {
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        GpacObject.gpaceventmousedown(x, y);
-                        break;
-                    case MotionEvent.ACTION_UP:
-                        GpacObject.gpaceventmouseup(x, y);
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        GpacObject.gpaceventmousemove(x, y);
-                }
-            }
-        });
+        GPACInstance instance = getInstance();
+        if (instance == null)
+            return false;
+        instance.motionEvent(event);
+        return true;
     }
 
     @Override
     public boolean onKeyDown(final int keyCode, final KeyEvent event) {
-        return postAsync(new Runnable() {
-
-            @Override
-            public void run() {
-                GpacObject.gpaceventkeypress(keyCode, event.getScanCode(), 1, event.getFlags());
-            }
-        });
+        GPACInstance instance = getInstance();
+        if (instance == null)
+            return false;
+        instance.eventKey(keyCode, event, true);
+        return true;
     }
 
     // ------------------------------------
     @Override
     public boolean onKeyUp(final int keyCode, final KeyEvent event) {
-        return postAsync(new Runnable() {
-
-            @Override
-            public void run() {
-                GpacObject.gpaceventkeypress(keyCode, event.getScanCode(), 0, event.getFlags());
-            }
-        });
-    }
-
-    private boolean postAsync(Runnable command) {
-        Osmo4Renderer r;
-        synchronized (this) {
-            r = this.renderer;
-        }
-        if (r == null)
+        GPACInstance instance = getInstance();
+        if (instance == null)
             return false;
-        r.postCommand(command);
+        instance.eventKey(keyCode, event, false);
         return true;
     }
 }

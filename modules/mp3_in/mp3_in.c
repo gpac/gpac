@@ -10,16 +10,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include <gpac/modules/service.h>
@@ -35,7 +35,7 @@ typedef struct
 
 	u32 needs_connection;
 	Bool is_remote;
-	
+
 	FILE *stream;
 	u32 duration;
 
@@ -62,7 +62,7 @@ typedef struct
 	char prev_data[1000];
 	u32 prev_size;
 
-	
+
 	char *icy_name;
 	char *icy_genre;
 	char *icy_track_name;
@@ -87,8 +87,10 @@ static u32 MP3_RegisterMimeTypes(GF_InputService *plug)
 static Bool MP3_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
+        if (!plug || !url)
+          return 0;
 	sExt = strrchr(url, '.');
-	if (!strnicmp(url, "rtsp://", 7)) return 0; 
+	if (!strnicmp(url, "rtsp://", 7)) return 0;
 	{
 	  u32 i;
 	  for (i =0 ; MP3_MIME_TYPES[i] ; i++)
@@ -199,7 +201,7 @@ static void MP3_OnLiveData(MP3Reader *read, char *data, u32 data_size)
 	read->data_size += data_size;
 	if (!read->ch) return;
 
-	
+
 	data = read->data;
 	data_size = read->data_size;
 
@@ -248,7 +250,7 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		} else {
 			return;
 		}
-	} 
+	}
 	else if (param->msg_type==GF_NETIO_PARSE_HEADER) {
 		if (!strcmp(param->name, "icy-name")) {
 			if (read->icy_name) gf_free(read->icy_name);
@@ -265,7 +267,7 @@ void MP3_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			while (meta && meta[0]) {
 				char *sep = strchr(meta, ';');
 				if (sep) sep[0] = 0;
-	
+
 				if (!strnicmp(meta, "StreamTitle=", 12)) {
 					 if (read->icy_track_name) gf_free(read->icy_track_name);
 					    read->icy_track_name = NULL;
@@ -428,7 +430,7 @@ static GF_Descriptor *MP3_GetServiceDesc(GF_InputService *plug, u32 expect_type,
 
 	/*override default*/
 	if (expect_type==GF_MEDIA_OBJECT_UNDEF) expect_type=GF_MEDIA_OBJECT_AUDIO;
-	
+
 	/*audio object*/
 	if (expect_type==GF_MEDIA_OBJECT_AUDIO) {
 		GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
@@ -522,8 +524,8 @@ static GF_Err MP3_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		read->current_time = 0;
 		if (read->stream) gf_f64_seek(read->stream, 0, SEEK_SET);
 
-		if (read->ch == com->base.on_channel) { 
-			read->done = 0; 
+		if (read->ch == com->base.on_channel) {
+			read->done = 0;
 			/*PLAY after complete download, estimate duration*/
 			if (!read->is_remote && !read->duration) {
 				MP3_ConfigureFromFile(read);
@@ -552,7 +554,7 @@ static GF_Err MP3_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 	u32 hdr, start_from;
 	MP3Reader *read = plug->priv;
 
-	if (read->ch != channel) 
+	if (read->ch != channel)
 		return GF_STREAM_NOT_FOUND;
 
 	*out_reception_status = GF_OK;
@@ -686,8 +688,12 @@ GF_InputService *MP3_Load()
 void MP3_Delete(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
+        if (!plug)
+          return;
 	MP3Reader *read = plug->priv;
-	gf_free(read);
+        if (read)
+          gf_free(read);
+        plug->priv = NULL;
 	gf_free(plug);
 }
 
@@ -699,7 +705,7 @@ void DeleteMADDec(GF_BaseDecoder *ifcg);
 #endif
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -710,11 +716,11 @@ const u32 *QueryInterfaces()
 #endif
 		0
 	};
-	return si; 
+	return si;
 }
 
 GF_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)MP3_Load();

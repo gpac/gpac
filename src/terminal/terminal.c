@@ -564,6 +564,7 @@ GF_Terminal *gf_term_new(GF_User *user)
           GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Initializing Mime Types..."));
           /* No mime-types detected, probably the first launch */
           for (i=0; i< gf_modules_get_count(user->modules); i++) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Loading %d...\n", i));
                 GF_BaseInterface *ifce = gf_modules_load_interface(user->modules, i, GF_NET_CLIENT_INTERFACE);
                 if (ifce) {
 		  GF_InputService * service = (GF_InputService*) ifce;
@@ -577,6 +578,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 		  gf_modules_close_interface(ifce);
 		}
 	  }
+          GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Finished Initializing Mime Types."));
 	  
 	}
 

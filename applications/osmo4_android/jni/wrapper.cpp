@@ -35,16 +35,88 @@
 #include <gpac/internal/compositor_dev.h>
 
 #include "wrapper.h"
+#include "wrapper_jni.c"
 
 #include <math.h>
+#include <android/log.h>
+
+#define TAG "GPAC_WRAPPER"
+
+#define LOGV(X, Y)  __android_log_print(ANDROID_LOG_VERBOSE, TAG, X, Y)
+#define LOGD(X, Y)  __android_log_print(ANDROID_LOG_DEBUG, TAG, X, Y)
+#define LOGE(X, Y)  __android_log_print(ANDROID_LOG_ERROR, TAG, X, Y)
+#define LOGW(X, Y)  __android_log_print(ANDROID_LOG_WARN, TAG, X, Y)
+#define LOGI(X, Y)  __android_log_print(ANDROID_LOG_INFO, TAG, X, Y)
 
 static JavaVM* javaVM = NULL;
+
+static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
+    const JNINativeMethod* gMethods, int numMethods)
+{
+    jclass clazz;
+
+    LOGV("Registering %s natives\n", className);
+    clazz = env->FindClass(className);
+    if (clazz == NULL) {
+        LOGE("Native registration unable to find class '%s'\n", className);
+        return -1;
+    }
+    if (env->RegisterNatives(clazz, gMethods, numMethods) < 0) {
+        LOGE("RegisterNatives failed for '%s'\n", className);
+        return -1;
+    }
+    return 0;
+}
+
+static JNINativeMethod sMethods[] = {
+     /* name, signature, funcPtr */
+
+    {"createInstance",
+      "(Lcom/artemis/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",
+      (void*)&Java_com_artemis_Osmo4_GPACInstance_createInstance},
+    {"gpacdisconnect",
+      "(V)V",
+      (void*)Java_com_artemis_Osmo4_GPACInstance_gpacdisconnect},
+    {"gpacrender",
+      "(V)V",
+      (void*)Java_com_artemis_Osmo4_GPACInstance_gpacrender},
+    {"gpacresize",
+      "(VII)V",
+      (void*)Java_com_artemis_Osmo4_GPACInstance_gpacresize},
+    {"gpacfree",
+      "(V)V",
+      (void*)Java_com_artemis_Osmo4_GPACInstance_gpacfree},
+    {"gpaceventkeypress",
+      "(IIII)V",
+      (void*)Java_com_artemis_Osmo4_GPACInstance_gpaceventkeypress},
+    {"gpaceventmousedown",
+      "(FF)V",
+      (void*)Java_com_artemis_Osmo4_GPACInstance_gpaceventmousedown},
+    {"gpaceventmouseup",
+      "(FF)V",
+      (void*)Java_com_artemis_Osmo4_GPACInstance_gpaceventmouseup},
+    {"gpaceventmousemove",
+      "(FF)V",
+      (void*)Java_com_artemis_Osmo4_GPACInstance_gpaceventmousemove},
+    NULL
+};
+
+
+
 //---------------------------------------------------------------------------------------------------
 jint JNI_OnLoad(JavaVM* vm, void* reserved){
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[wrapper] JNI_OnLoad\n"));
-
+        const char * className = "com/artemis/Osmo4/GPACInstance";
+        JNIEnv * env;
+        if (vm->GetEnv((void**)(&env), JNI_VERSION_1_6) != JNI_OK)
+          return -1;
 	javaVM = vm;
-	return JNI_VERSION_1_2;
+        LOGI("Registering %s natives\n", className);
+        if (jniRegisterNativeMethods(env, className, sMethods, 9) < 0){
+          LOGE("Failed to register native methods for %s !\n", className);
+          return -1;
+        }
+        LOGI("Registering %s natives DONE.\n", className);
+	return JNI_VERSION_1_6;
 }
 //---------------------------------------------------------------------------------------------------
 //CNativeWrapper
@@ -52,72 +124,73 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved){
 
 CNativeWrapper::CNativeWrapper(){
 	do_log = 1;
-
+        m_term = NULL;
+        m_mx = NULL;
+        lastEnv = NULL;
+        cbk_displayMessage = NULL;
+        cbk_onProgress = NULL;
+        cbk_obj = NULL;
 #ifndef GPAC_GUI_ONLY
 	memset(&m_user, 0, sizeof(GF_User));
-	m_term = NULL;
-	m_mx = NULL;
 	memset(&m_rti, 0, sizeof(GF_SystemRTInfo));
-	lastEnv = NULL;
-	cbk_displayMessage = NULL;
-	cbk_onProgress = NULL;
-	cbk_obj = NULL;
 #endif
 }
 //-------------------------------
 CNativeWrapper::~CNativeWrapper(){
-	JNIEnv * env = getEnv();
-	if (env && cbk_obj)
-		env->DeleteGlobalRef(cbk_obj);
-	cbk_displayMessage = NULL;
-	cbk_onProgress = NULL;
-	cbk_obj = NULL;
-	Shutdown();
-#ifdef	DEBUG_MODE
-	if (debug_f){
-		debug_log("~CNativeWrapper()\n");
-		fclose(debug_f);
-	}
-
-#endif
+      debug_log("~CNativeWrapper()");
+      JNIEnv * env = getEnv();
+      if (env && cbk_obj)
+        env->DeleteGlobalRef(cbk_obj);
+      cbk_displayMessage = NULL;
+      cbk_onProgress = NULL;
+      cbk_obj = NULL;
+      Shutdown();
+      debug_log("~CNativeWrapper() : DONE\n");
 }
 //-------------------------------
 void CNativeWrapper::debug_log(const char* msg){
-#ifdef	DEBUG_MODE
-	fprintf(debug_f, "%s\n", msg);
-	fflush(debug_f);
-#endif
+  LOGV("%s", msg);
 }
 //-------------------------------
 void CNativeWrapper::Shutdown()
 {
+    debug_log("shutdown");
+    if (m_term)
 	gf_term_disconnect(m_term);
-
-	if (m_mx) gf_mx_del(m_mx);
-
+    if (m_mx)
+        gf_mx_del(m_mx);
+    m_mx = NULL;
 #ifndef GPAC_GUI_ONLY
-	if (m_term) {
+    if (m_term) {
 		GF_Terminal *t = m_term;
 		m_term = NULL;
 		gf_term_del(t);
-	}
+    }
     if (m_user.config) {
 		gf_cfg_del(m_user.config);
 		m_user.config = NULL;
-	}
-	if (m_user.modules) {
+    }
+    if (m_user.modules) {
 		gf_modules_del(m_user.modules);
 		m_user.modules = NULL;
-	}
+    }
 #endif
+    m_term = NULL;
+    debug_log("shutdown end");
 }
 
 JNIEnv * CNativeWrapper::getEnv(){
-	JNIEnv *env;
+    JNIEnv *env;
+    if (!javaVM){
+      debug_log("************* No JVM Found ************");
+      return NULL;
+    }
+    debug_log("Attaching thread...");
     javaVM->AttachCurrentThread(&env, NULL);
 	if (lastEnv == env)
 		return lastEnv;
 	else {
+                debug_log("Rebuilding methods...");
 		if (!env){
 			debug_log("getEnv() returns NULL !");
 			cbk_displayMessage = NULL;
@@ -139,12 +212,14 @@ JNIEnv * CNativeWrapper::getEnv(){
 
 //-------------------------------
 int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status){
+         debug_log("MessageBox start");
 	JNIEnv * env = getEnv();
 	if (!env || !cbk_displayMessage)
 		return 0;
 	jstring tit = env->NewStringUTF(title?title:"null");
 	jstring mes = env->NewStringUTF(msg?msg:"null");
 	env->CallVoidMethod(cbk_obj, cbk_displayMessage, mes, tit, status);
+        debug_log("MessageBox end");
 	return 1;
 }
 //-------------------------------
@@ -160,36 +235,104 @@ int CNativeWrapper::Quit(int code){
 	// send shutdown request to java
 	return code;
 }
+
+#include <stdio.h>
+
 //-------------------------------
 void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list){
-	// do log here
-	//FILE *logs = (FILE*)cbk;
-
-	/*if (rti_logs && (lm & GF_LOG_RTI)) {
-		char szMsg[2048];
-		vsprintf(szMsg, fmt, list);
-		UpdateRTInfo(szMsg + 6 );
-	} else {
-		if (log_time_start) fprintf(logs, "[At %d]", gf_sys_clock() - log_time_start);
-		vfprintf(logs, fmt, list);
-		fflush(logs);
-	}*/
-
-	//vfprintf(logs, fmt, list);
-	//fflush(logs);
-
-	char *szMsg = NULL;
-	int size;
-
-	size = vsnprintf(szMsg, 0, fmt, list) + 1;
-
-	szMsg = (char*)malloc(size);
-	vsprintf(szMsg, fmt, list);
-
-	CNativeWrapper* ptr = (CNativeWrapper*)cbk;
-	ptr->debug_log(szMsg);
-
-	free(szMsg);
+	char szMsg[4096];
+        const char * tag;
+        char unknTag[32];
+        int debug;
+        // We do not want to be flood by mutexes
+        if (ll == GF_LOG_DEBUG && lm == GF_LOG_CORE)
+          return;
+        switch (ll){
+          case GF_LOG_DEBUG:
+            debug = ANDROID_LOG_DEBUG;
+            break;
+          case GF_LOG_INFO:
+            debug = ANDROID_LOG_INFO;
+            break;
+          case GF_LOG_WARNING:
+            debug = ANDROID_LOG_WARN;
+            break;
+          case GF_LOG_ERROR:
+            debug = ANDROID_LOG_ERROR;
+            break;
+          default:
+            debug = ANDROID_LOG_INFO;
+        }
+        switch( lm){
+          case GF_LOG_CORE:
+                tag="GF_LOG_CORE";
+                break;
+        case GF_LOG_CODING:
+                tag="GF_LOG_CODING";
+                break;
+        case GF_LOG_CONTAINER:
+                tag="GF_LOG_CONTAINER";
+                break;
+        case GF_LOG_NETWORK:
+                tag="GF_LOG_NETWORK";
+                break;
+        case GF_LOG_RTP:
+                tag="GF_LOG_RTP";
+                break;
+        case GF_LOG_AUTHOR:
+                tag="GF_LOG_AUTHOR";
+                break;
+        case GF_LOG_SYNC:
+                tag="GF_LOG_SYNC";
+                break;
+        case GF_LOG_CODEC:
+                tag="GF_LOG_CODEC";
+                break;
+        case GF_LOG_PARSER:
+                tag="GF_LOG_PARSER";
+                break;
+        case GF_LOG_MEDIA:
+                tag="GF_LOG_MEDIA";
+                break;
+        case GF_LOG_SCENE:
+                tag="GF_LOG_SCENE";
+                break;
+        case GF_LOG_SCRIPT:
+                tag="GF_LOG_SCRIPT";
+                break;
+        case GF_LOG_INTERACT:
+                tag="GF_LOG_INTERACT";
+                break;
+        case GF_LOG_COMPOSE:
+                tag="GF_LOG_COMPOSE";
+                break;
+        case GF_LOG_CACHE:
+                tag="GF_LOG_CACHE";
+                break;
+        case GF_LOG_MMIO:
+                tag="GF_LOG_MMIO";
+                break;
+        case GF_LOG_RTI:
+                tag="GF_LOG_RTI";
+                break;
+        case GF_LOG_SMIL:
+                tag="GF_LOG_SMIL";
+                break;
+        case GF_LOG_MEMORY:
+                tag="GF_LOG_MEMORY";
+                break;
+        case GF_LOG_AUDIO:
+                tag="GF_LOG_AUDIO";
+                break;
+        case GF_LOG_MODULE:
+                tag="GF_LOG_MODULE";
+                break;
+          default:
+            snprintf(unknTag, 32, "GPAC_UNKNOWN[%d]", lm);
+            tag = unknTag;
+        }
+        vsnprintf(szMsg, 4096, fmt, list);
+        __android_log_print(debug, tag, szMsg);
 }
 //-------------------------------
 Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
@@ -200,6 +343,7 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
 		msg[0] = 0;
 		if ( evt->type == GF_EVENT_MESSAGE )
 		{
+                        ptr->debug_log("GPAC_EventProc start");
 			if ( evt->message.message )
 			{
 				strcat(msg, evt->message.message);
@@ -209,6 +353,7 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
 
 			ptr->debug_log(msg);
 			ptr->MessageBox(msg, evt->message.service ? evt->message.service : "GF_EVENT_MESSAGE", evt->message.error);
+                        ptr->debug_log("GPAC_EventProc end");
 		}
 	}
 	return true;
@@ -221,43 +366,35 @@ void CNativeWrapper::Osmo4_progress_cbk(void *usr, char *title, u64 done, u64 to
 	JNIEnv *env = self->getEnv();
 	if (!env || !self->cbk_onProgress)
 		return;
+        self->debug_log("Osmo4_progress_cbk start");
 	jstring js = env->NewStringUTF(title);
 	env->CallVoidMethod(self->cbk_obj, self->cbk_onProgress, js, done, total);
+        self->debug_log("Osmo4_progress_cbk end");
 }
 //-------------------------------
 void CNativeWrapper::SetupLogs(){
 	const char *opt;
 	debug_log("SetupLogs()");
 
-#ifndef GPAC_GUI_ONLY
+//#ifndef GPAC_GUI_ONLY
 	gf_mx_p(m_mx);
-	if (do_log) {
-		gf_log_set_level(0);
-		do_log = 0;
-	}
 	/*setup GPAC logs: log all errors*/
-	gf_log_set_level(GF_LOG_ERROR);
+	gf_log_set_level(GF_LOG_DEBUG);
 	gf_log_set_tools(0xFFFFFFFF);
 
 	opt = gf_cfg_get_key(m_user.config, "General", "LogLevel");
-	if (opt && stricmp(opt, "error")) {
-		FILE *logs = fopen(GPAC_LOG_FILE, "wt");
+        debug_log("Setting logs...");
+	//if (opt && stricmp(opt, "error")) {
+		FILE *logs = fopen("/sdcard/osmo/gpac.log", "wt");
 		if (!logs) {
 			MessageBox("Cannot open log file - disabling logs", "Warning !", GF_SERVICE_ERROR);
 		} else {
-			MessageBox("Debug log enabled in \\data\\gpac_logs.txt", "Info", GF_SERVICE_ERROR);
+			//MessageBox("Debug log enabled in /sdcard/osmo/gpac.log", "Info", GF_SERVICE_ERROR);
 			fclose(logs);
-			do_log = 1;
-			gf_log_set_level(gf_log_parse_level(opt) );
-
 			opt = gf_cfg_get_key(m_user.config, "General", "LogTools");
 			if (opt) gf_log_set_tools(gf_log_parse_tools(opt));
 		}
-	}
-	if (!do_log) {
-		gf_log_set_level(GF_LOG_ERROR);
-		gf_log_set_tools(0xFFFFFFFF);
-	}
+	//}
 
 
 //	gf_log_set_level(GF_LOG_DEBUG);
@@ -268,13 +405,12 @@ void CNativeWrapper::SetupLogs(){
 	gf_log_set_callback(this, on_gpac_log);
 	gf_mx_v(m_mx);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Osmo4 logs initialized\n"));
-#endif
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Osmo4 logs initialized\n"));
+//#endif
 }
 //-------------------------------
 // dir should end with /
-int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir){
-
+int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir, const char * urlToLoad){
 	strcpy(m_cfg_dir, cfg_dir);
 	strcpy(m_modules_dir, modules_dir);
 	strcpy(m_cache_dir, cache_dir);
@@ -333,6 +469,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	}
 
 	SetupLogs();
+        debug_log("set process callback...");
 	gf_set_progress_callback(this, Osmo4_progress_cbk);
 
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
@@ -347,7 +484,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		/*startup file*/
 		char msg[100];
 		sprintf(msg, "%sgui/gui.bt",GPAC_CFG_DIR);
-		//gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
+		gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
 		gf_cfg_set_key(m_user.config, "General", "LastWorkingDir", GPAC_CFG_DIR);
 		gf_cfg_set_key(m_user.config, "GUI", "UnhideControlPlayer", "1");
 		/*setup UDP traffic autodetect*/
@@ -377,14 +514,16 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 			return Quit(KErrGeneral);
 		}
 	}
-
+        debug_log("loading modules...");
 	/*load modules*/
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	m_user.modules = gf_modules_new(opt, m_user.config);
 	if (!m_user.modules || !gf_modules_get_count(m_user.modules)) {
+                debug_log("No modules available !!!!");
 		MessageBox(m_user.modules ? "No modules available" : "Cannot create module manager", "Fatal Error", GF_SERVICE_ERROR);
 		if (m_user.modules) gf_modules_del(m_user.modules);
 		gf_cfg_del(m_user.config);
+                m_user.config = NULL;
 		return Quit(KErrGeneral);
 	}
 
@@ -410,29 +549,49 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 
 	m_user.os_window_handler = m_window;
 	m_user.os_display = m_session;
+        m_user.EventProc = GPAC_EventProc;
+        debug_log("loading terminal...");
+        if (!javaVM){
+            debug_log("NO JAVA VM FOUND !!!!\n");
+            return Quit(KErrGeneral);
+        }
+        gf_cfg_set_key(m_user.config, "Video", "DriverName", "No Video Output");
 
+        gf_cfg_set_key(m_user.config, "Audio", "DriverName", "No Audio Output");
 	m_term = gf_term_new(&m_user);
+        debug_log("term new returned...");
 	if (!m_term) {
+                debug_log("Cannot load terminal !");
 		MessageBox("Cannot load GPAC terminal", "Fatal Error", GF_SERVICE_ERROR);
 		gf_modules_del(m_user.modules);
+                m_user.modules = NULL;
 		gf_cfg_del(m_user.config);
+                m_user.config = NULL;
 		return Quit(KErrGeneral);
 	}
-	m_user.EventProc = GPAC_EventProc;
+
 
 	//setAudioEnvironment(javaVM);
 
+        debug_log("setting term size...");
 	gf_term_set_size(m_term, m_Width, m_Height);
 
-	//opt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+	opt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
 
-	char msg[100];
-	sprintf(msg, "File loaded at startup=%s", opt);
+	char msg[2048];
+	snprintf(msg, 2048, "File loaded at startup=%s", opt);
 	debug_log(msg);
 
-	//if (opt) gf_term_connect(m_term, opt);
-
+        if (!urlToLoad)
+          urlToLoad = opt;
+	if (urlToLoad){
+          snprintf(msg, 2048, "Connecting to %s...", urlToLoad);
+          debug_log(msg);
+          gf_term_connect(m_term, urlToLoad);
+        }
+        debug_log("init end");
 	//initGL();
+        return 0;
 }
 //-------------------------------
 int CNativeWrapper::connect(const char *url){
@@ -456,6 +615,7 @@ int CNativeWrapper::connect(const char *url){
 //-----------------------------------------------------
 void CNativeWrapper::disconnect(){
 
+        debug_log("disconnecting");
 	gf_term_disconnect(m_term);
 	debug_log("disconnected ...");
 }
@@ -486,15 +646,21 @@ void CNativeWrapper::step(void * env, void * bitmap){
 }
 //-----------------------------------------------------
 void CNativeWrapper::setAudioEnvironment(JavaVM* javaVM){
-	debug_log("setAudioEnvironment ...");
+	debug_log("setAudioEnvironment start");
 	m_term->compositor->audio_renderer->audio_out->Setup(m_term->compositor->audio_renderer->audio_out, javaVM, 0, 0);
+        debug_log("setAudioEnvironment end");
 }
 //-----------------------------------------------------
 void CNativeWrapper::resize(int w, int h){
+        if (!m_term)
+          return;
+        debug_log("resize start");
 	gf_term_set_size(m_term, w, h);
+        debug_log("resize end");
 }
 //-----------------------------------------------------
 void CNativeWrapper::onMouseDown(float x, float y){
+        debug_log("onMouseDown start");
 	//char msg[100];
 	//sprintf(msg, "onMousedown x=%f, y=%f", x, y );
 	//debug_log(msg);
@@ -506,9 +672,11 @@ void CNativeWrapper::onMouseDown(float x, float y){
 	evt.mouse.y = y;
 
 	int ret = gf_term_user_event(m_term, &evt);
+        debug_log("onMouseDown end");
 }
 //-----------------------------------------------------
 void CNativeWrapper::onMouseUp(float x, float y){
+        debug_log("onMouseUp start");
 	//char msg[100];
 	//sprintf(msg, "onMouseUp x=%f, y=%f", x, y );
 	//debug_log(msg);
@@ -520,6 +688,7 @@ void CNativeWrapper::onMouseUp(float x, float y){
 	evt.mouse.y = y;
 
 	int ret = gf_term_user_event(m_term, &evt);
+        debug_log("onMouseUp end");
 }
 //-----------------------------------------------------
 void CNativeWrapper::onMouseMove(float x, float y){
@@ -537,6 +706,7 @@ void CNativeWrapper::onMouseMove(float x, float y){
 }
 //-----------------------------------------------------
 void CNativeWrapper::onKeyPress(int keycode, int rawkeycode, int up, int flag){
+        debug_log("onKeyPress start");
 	GF_Event evt;
 	if (up == 0) evt.type = GF_EVENT_KEYUP;
 	else evt.type = GF_EVENT_KEYDOWN;
@@ -551,7 +721,7 @@ void CNativeWrapper::onKeyPress(int keycode, int rawkeycode, int up, int flag){
 	int ret = gf_term_user_event(m_term, &evt);
 	/*generate a key up*/
 
-	sprintf(msg, "onKeyPress gpac keycode=%d, GF_KEY_A=%d, ret=%d (original=%d, raw=%d)", evt.key.key_code, GF_KEY_A, ret, keycode, rawkeycode);
+	sprintf(msg, "onKeyPress end gpac keycode=%d, GF_KEY_A=%d, ret=%d (original=%d, raw=%d)", evt.key.key_code, GF_KEY_A, ret, keycode, rawkeycode);
 	debug_log(msg);
 }
 //-----------------------------------------------------
@@ -775,124 +945,6 @@ void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt){
 	//evt->hw_code = keycode;
 	evt->hw_code = evt->key_code;
 }
-//-----------------------------------------------------
-// this function will be called by Java to init gpac
 
-void gpac_init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir){
-
-	gpac_obj = new CNativeWrapper();
-	if (gpac_obj) gpac_obj->init(env, bitmap, callback, width, height, cfg_dir, modules_dir, cache_dir, font_dir);
-}
-
-void gpac_render(void * env, void * bitmap){
-	if (gpac_obj)
-		gpac_obj->step(env,bitmap);
-}
-
-void gpac_connect(const char *url){
-	gpac_obj->connect(url);
-}
-
-void gpac_resize(int w, int h){
-	if (gpac_obj)
-		gpac_obj->resize(w, h);
-}
-
-void gpac_disconnect(){
-	if (gpac_obj)
-		gpac_obj->disconnect();
-}
-
-void gpac_free(){
-	if (gpac_obj)
-		delete gpac_obj;
-}
-
-void gpac_onmousedown(float x, float y){
-	if (gpac_obj)
-		gpac_obj->onMouseDown(x, y);
-}
-
-void gpac_onmouseup(float x, float y){
-	if (gpac_obj)
-		gpac_obj->onMouseUp(x, y);
-}
-void gpac_onkeypress(int keycode, int rawkeycode, int up, int flag){
-	if (gpac_obj) gpac_obj->onKeyPress(keycode, rawkeycode, up, flag);
-}
-void gpac_onmousemove(float x, float y){
-	if (gpac_obj)
-		gpac_obj->onMouseMove(x, y);
-}
 //---------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------
-
-
-/*
- * Class:     com_artemis_Osmo4_GpacObject
- * Method:    gpacinit
- * Signature: (Ljava/lang/Object;Lcom/artemis/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
- */
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacinit(JNIEnv * env, jclass obj, jobject bitmap, jobject callback, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir)
-{
-	jboolean isCopy;
-	const char * s1 = env->GetStringUTFChars(cfg_dir, &isCopy);
-	const char * s2 = env->GetStringUTFChars(modules_dir, &isCopy);
-	const char * s3 = env->GetStringUTFChars(cache_dir, &isCopy);
-	const char * s4 = env->GetStringUTFChars(font_dir, &isCopy);
-
-	gpac_init(env, &bitmap, &callback, width, height, s1, s2, s3, s4);
-
-	env->ReleaseStringUTFChars(cfg_dir, s1);
-	env->ReleaseStringUTFChars(modules_dir, s2);
-	env->ReleaseStringUTFChars(cache_dir, s3);
-	env->ReleaseStringUTFChars(font_dir, s4);
-}
-//-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacconnect(JNIEnv * env, jobject obj,  jstring fileName)
-{
-	jboolean isCopy;
-	const char * cFileName = env->GetStringUTFChars(fileName, &isCopy);
-
-	gpac_connect(cFileName);
-
-	env->ReleaseStringUTFChars(fileName, cFileName);
-}
-//-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacdisconnect(JNIEnv * env, jobject obj){
-	gpac_disconnect();
-}
-//-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacfree(JNIEnv * env, jobject obj)
-{
-	gpac_free();
-}
-//-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacrender (JNIEnv * env, jobject obj, jobject bitmap)
-{
-	gpac_render(env, &bitmap);
-}
-//-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacresize (JNIEnv * env, jobject obj, jint width, jint height)
-{
-	int w = width;
-	int h = height;
-	gpac_resize(w,h);
-}
-//-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpaceventmousedown(JNIEnv * env, jobject obj, jfloat x, jfloat y){
-	gpac_onmousedown(x, y);
-}
-//-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpaceventmouseup(JNIEnv * env, jobject obj, jfloat x, jfloat y){
-	gpac_onmouseup(x, y);
-}
-//-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpaceventmousemove(JNIEnv * env, jobject obj, jfloat x, jfloat y){
-	gpac_onmousemove(x, y);
-}
-//-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpaceventkeypress(JNIEnv * env, jobject obj, jint keycode, jint rawkeycode, jint up, jint flag){
-	gpac_onkeypress(keycode, rawkeycode, up, flag);
-}
-//-----------------------------------

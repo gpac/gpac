@@ -13,15 +13,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -183,7 +183,7 @@ class CNativeWrapper{
 	public:
 		CNativeWrapper();
 		~CNativeWrapper();
-		int init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir);
+		int init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir, const char * urlToLoad);
 
 		int connect(const char *url);
 		void disconnect();
@@ -211,26 +211,5 @@ class CNativeWrapper{
 #endif
 		void debug_log(const char* msg);
 
-};
-//---------------------------------------------------------------------------------------------------
-//---------------------------------------------------------------------------------------------------
-// this function will be called by Java to init gpac
-CNativeWrapper* gpac_obj = NULL;
-
-//---------------------------------------------------------------------------------------------------
-//---------------------------------------------------------------------------------------------------
-extern "C" {
-	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacinit
-  		(JNIEnv *, jclass, jobject, jobject, jint, jint, jstring, jstring, jstring, jstring);
-	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacconnect(JNIEnv * env, jobject obj,  jstring url);
-	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacdisconnect(JNIEnv * env, jobject obj);
-	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacrender(JNIEnv * env, jobject obj, jobject bitmap);
-	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacresize (JNIEnv * env, jobject obj, jint width, jint height);
-	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpacfree(JNIEnv * env, jobject obj);
-
-	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpaceventmousedown(JNIEnv * env, jobject obj, jfloat x, jfloat y);
-	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpaceventmouseup(JNIEnv * env, jobject obj, jfloat x, jfloat y);
-	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpaceventmousemove(JNIEnv * env, jobject obj, jfloat x, jfloat y);
-	JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GpacObject_gpaceventkeypress(JNIEnv * env, jobject obj, jint keycode, jint rawkeycode, jint up, jint flag);
 };
 

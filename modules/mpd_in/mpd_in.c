@@ -820,6 +820,8 @@ static u32 MPD_RegisterMimeTypes(GF_InputService *plug)
 Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
 {
     u32 i;
+    if (!plug || !url)
+      return 0;
     char *sExt = strrchr(url, '.');
     GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Can Handle URL request from terminal for %s\n", url));
     for (i = 0 ; MPD_MIME_TYPES[i]; i++) {

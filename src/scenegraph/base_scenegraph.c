@@ -486,6 +486,7 @@ restart:
 #ifdef GF_SELF_REPLACE_ENABLE
 	sg->graph_has_been_reset = 1;
 #endif
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCENE, ("[SceneGraph] Scene graph has been reset\n"));
 }
 
 

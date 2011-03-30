@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -28,7 +28,7 @@
 
 #ifndef GPAC_DISABLE_BIFS
 
-typedef struct 
+typedef struct
 {
 	GF_Scene *pScene;
 	GF_Terminal *app;
@@ -55,7 +55,7 @@ GF_Err BIFS_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_scene_de
 	if (priv->codec) return GF_BAD_PARAM;
 	priv->pScene = scene;
 	priv->app = scene->root_od->term;
-	
+
 	priv->codec = gf_bifs_decoder_new(scene->graph, 0);
 	gf_bifs_decoder_set_extraction_path(priv->codec, (char *) gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory"), scene->root_od->net_service->url);
 	/*ignore all size info on anim streams*/
@@ -93,7 +93,7 @@ static GF_Err BIFS_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	return GF_OK;
 }
 
-static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 inBufferLength, 
+static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 inBufferLength,
 								u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	Double ts_offset;
@@ -121,9 +121,9 @@ Bool BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, 
 		return 1;
 	case GPAC_OTI_SCENE_BIFS:
 	case GPAC_OTI_SCENE_BIFS_V2:
-	/*Streams with this value with a StreamType indicating a systems stream (values 1,2,3, 6, 7, 8, 9) 
+	/*Streams with this value with a StreamType indicating a systems stream (values 1,2,3, 6, 7, 8, 9)
 		shall be treated as if the ObjectTypeIndication had been set to 0x01*/
-	case 0xFF:	
+	case 0xFF:
 		priv->PL = PL;
 		return 1;
 	default:
@@ -134,10 +134,17 @@ Bool BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, 
 
 void DeleteBIFSDec(GF_BaseDecoder *plug)
 {
-	BIFSPriv *priv = (BIFSPriv *)plug->privateStack;
-	/*in case something went wrong*/
-	if (priv->codec) gf_bifs_decoder_del(priv->codec);
-	gf_free(priv);
+	BIFSPriv *priv;
+        if (!plug)
+          return;
+        priv = (BIFSPriv *)plug->privateStack;
+        if (priv){
+          /*in case something went wrong*/
+          if (priv->codec) gf_bifs_decoder_del(priv->codec);
+          priv->codec = NULL;
+          gf_free(priv);
+          plug->privateStack = NULL;
+        }
 	gf_free(plug);
 }
 
@@ -145,7 +152,7 @@ GF_BaseDecoder *NewBIFSDec()
 {
 	BIFSPriv *priv;
 	GF_SceneDecoder *tmp;
-	
+
 	GF_SAFEALLOC(tmp, GF_SceneDecoder);
 	if (!tmp) return NULL;
 	GF_SAFEALLOC(priv, BIFSPriv);
@@ -168,7 +175,7 @@ GF_BaseDecoder *NewBIFSDec()
 
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #ifndef GPAC_DISABLE_BIFS

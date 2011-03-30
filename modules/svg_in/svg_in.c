@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -94,7 +94,7 @@ static GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len)
 	return GF_NON_COMPLIANT_BITSTREAM;
 }
 
-static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength, 
+static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength,
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
@@ -138,7 +138,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			}
 			e = GF_OK;
 			entry_time = gf_sys_clock();
-			
+
 			while (1) {
 				u32 diff;
 				s32 nb_read;
@@ -168,7 +168,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 
 				gf_set_progress("SVG Parsing", svgin->file_pos, svgin->file_size);
 				diff = gf_sys_clock() - entry_time;
-				if (diff > svgin->sax_max_duration) { 
+				if (diff > svgin->sax_max_duration) {
 					break;
 				}
 			}
@@ -205,7 +205,7 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 					size = gf_bs_read_u32(bs);
 					nb_bytes = 6;
 				}
-//	            fwrite( inBuffer + pos + nb_bytes + 1, 1, size - 1, f );   
+//	            fwrite( inBuffer + pos + nb_bytes + 1, 1, size - 1, f );
 
 				dims_hdr = gf_bs_read_u8(bs);
 				prev = buf2[pos + nb_bytes + size];
@@ -220,12 +220,12 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 				gf_bs_skip_bytes(bs, size-1);
 
 			}
-//          fclose(f);    
+//          fclose(f);
 			gf_bs_del(bs);
 		}
 		break;
-		
-	default: 
+
+	default:
 		return GF_BAD_PARAM;
 	}
 
@@ -283,7 +283,7 @@ static GF_Err SVG_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	case GPAC_OTI_SCENE_DIMS:
 		svgin->loader.type = GF_SM_LOAD_DIMS;
 		svgin->loader.flags |= GF_SM_LOAD_CONTEXT_STREAMING;
-		/*decSpecInfo not yet supported for DIMS svg - we need properties at the scene level to store the 
+		/*decSpecInfo not yet supported for DIMS svg - we need properties at the scene level to store the
 		various indications*/
 		break;
 	case GPAC_OTI_PRIVATE_SCENE_SVG:
@@ -333,7 +333,7 @@ const char *SVG_GetName(struct _basedecoder *plug)
 	if (svgin->oti==GPAC_OTI_PRIVATE_SCENE_SVG) return ((svgin->sax_max_duration==(u32)-1) && svgin->file_size) ? "GPAC SVG SAX Parser" : "GPAC SVG Progressive Parser";
 	if (svgin->oti==GPAC_OTI_SCENE_SVG) return "GPAC Streaming SVG Parser";
 	if (svgin->oti==GPAC_OTI_SCENE_SVG_GZ) return "GPAC Streaming SVGZ Parser";
-	if (svgin->oti==GPAC_OTI_SCENE_DIMS) return "GPAC DIMS Parser";	
+	if (svgin->oti==GPAC_OTI_SCENE_DIMS) return "GPAC DIMS Parser";
 	return "INTERNAL ERROR";
 }
 
@@ -345,7 +345,7 @@ Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, c
 	} else if (StreamType==GF_STREAM_SCENE) {
 		if (ObjectType==GPAC_OTI_SCENE_SVG) return 1;
 		if (ObjectType==GPAC_OTI_SCENE_SVG_GZ) return 1;
-		if (ObjectType==GPAC_OTI_SCENE_DIMS) return 1;	
+		if (ObjectType==GPAC_OTI_SCENE_DIMS) return 1;
 		return 0;
 	}
 	return 0;
@@ -379,7 +379,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	GF_SceneDecoder *sdec;
 
 	if (InterfaceType != GF_SCENE_DECODER_INTERFACE) return NULL;
-	
+
 	GF_SAFEALLOC(sdec, GF_SceneDecoder)
 	GF_REGISTER_MODULE_INTERFACE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC SVG Parser", "gpac distribution");
 
@@ -402,11 +402,15 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
-	GF_SceneDecoder *sdec = (GF_SceneDecoder *)ifce;
-	SVGIn *svgin = (SVGIn *) sdec->privateStack;
+	SVGIn *svgin;
+        GF_SceneDecoder *sdec = (GF_SceneDecoder *)ifce;
+        if (!sdec)
+          return;
 	if (sdec->InterfaceType != GF_SCENE_DECODER_INTERFACE) return;
-
-	gf_free(svgin);
+        svgin = (SVGIn *) sdec->privateStack;
+        if (svgin)
+          gf_free(svgin);
+        sdec->privateStack = NULL;
 	gf_free(sdec);
 }
 
@@ -431,7 +435,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 
 /*interface query*/
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #ifndef GPAC_DISABLE_SVG
@@ -439,5 +443,5 @@ const u32 *QueryInterfaces()
 #endif
 		0
 	};
-	return si; 
+	return si;
 }

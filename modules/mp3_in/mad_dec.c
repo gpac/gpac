@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -29,8 +29,8 @@
 #include <gpac/constants.h>
 
 #if defined(_WIN32_WCE) || defined(__SYMBIAN32__)
-#ifndef FPM_DEFAULT 
-#define FPM_DEFAULT 
+#ifndef FPM_DEFAULT
+#define FPM_DEFAULT
 #endif
 #endif
 
@@ -57,9 +57,7 @@ typedef struct
 
 } MADDec;
 
-
-#define MADCTX() MADDec *ctx = (MADDec *) ifcg->privateStack
-
+#define MADCTX() MADDec *ctx = NULL; if (ifcg) { ctx = (MADDec *) ifcg->privateStack; }
 
 static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
@@ -75,9 +73,9 @@ static GF_Err MAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	mad_frame_init(&ctx->frame);
 	mad_synth_init(&ctx->synth);
 	ctx->configured = 1;
-	
+
 	ctx->buffer = gf_malloc(sizeof(char) * 2*MAD_BUFFER_MDLEN);
-	
+
 	/*we need a frame to init, so use default values*/
 	ctx->num_samples = 1152;
 	ctx->num_channels = 0;
@@ -186,7 +184,7 @@ static GF_Err MAD_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capab
 		chan = -MAD_F_ONE;				\
 	ret = chan >> (MAD_F_FRACBITS + 1 - 16);		\
 
-static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg, 
+static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
 		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
 		char *outBuffer, u32 *outBufferLength,
@@ -200,7 +198,7 @@ static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
 	/*check not using scalabilty*/
 	assert(ctx->ES_ID == ES_ID);
 
-	if (ctx->ES_ID != ES_ID) 
+	if (ctx->ES_ID != ES_ID)
 		return GF_BAD_PARAM;
 
 	/*if late or seeking don't decode*/
@@ -249,12 +247,12 @@ static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[MAD] decoder initialized - MP3 sample rate %d - %d channel(s)", ctx->sample_rate, ctx->num_channels));
 		return GF_BUFFER_TOO_SMALL;
 	}
-	
+
 	if (ctx->stream.next_frame) {
 		ctx->len = &ctx->buffer[ctx->len] - ctx->stream.next_frame;
 	    memmove(ctx->buffer, ctx->stream.next_frame, ctx->len);
 	}
-	
+
 
 	mad_synth_frame(&ctx->synth, &ctx->frame);
 	num = ctx->synth.pcm.length;
@@ -294,7 +292,7 @@ static const char *MAD_GetCodecName(GF_BaseDecoder *dec)
 
 static Bool MAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
-	/*audio decs*/	
+	/*audio decs*/
 	if (StreamType != GF_STREAM_AUDIO) return 0;
 
 	switch (ObjectType) {
@@ -314,7 +312,7 @@ GF_BaseDecoder *NewMADDec()
 {
 	GF_MediaDecoder *ifce;
 	MADDec *dec;
-	
+
 	GF_SAFEALLOC(ifce, GF_MediaDecoder);
 	GF_SAFEALLOC(dec, MADDec);
 	GF_REGISTER_MODULE_INTERFACE(ifce, GF_MEDIA_DECODER_INTERFACE, "MAD Decoder", "gpac distribution")
@@ -323,7 +321,7 @@ GF_BaseDecoder *NewMADDec()
 	dec->cb_size = 12;
 	dec->cb_trig = 4;
 
-	/*setup our own interface*/	
+	/*setup our own interface*/
 	ifce->AttachStream = MAD_AttachStream;
 	ifce->DetachStream = MAD_DetachStream;
 	ifce->GetCapabilities = MAD_GetCapabilities;
@@ -336,14 +334,23 @@ GF_BaseDecoder *NewMADDec()
 
 void DeleteMADDec(GF_MediaDecoder *ifcg)
 {
-	MADCTX();
-	if (ctx->configured) {
+	MADDec *ctx;
+        if (!ifcg)
+          return;
+        ctx = (MADDec *) ifcg->privateStack;
+        if (ctx){
+          if (ctx->configured) {
 		mad_stream_finish(&ctx->stream);
 		mad_frame_finish(&ctx->frame);
 		mad_synth_finish(&ctx->synth);
+          }
+          ctx->configured = 0;
+          ctx->sample_rate = ctx->out_size = ctx->num_samples = 0;
+          ctx->num_channels = 0;
+          gf_free(ctx);
 	}
-	gf_free(ctx);
-	gf_free(ifcg);
+        ifcg->privateStack = NULL;
+        gf_free(ifcg);
 }
 
 #endif

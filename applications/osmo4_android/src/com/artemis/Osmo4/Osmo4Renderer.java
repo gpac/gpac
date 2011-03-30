@@ -6,6 +6,7 @@ import javax.microedition.khronos.opengles.GL10;
 import android.opengl.GLSurfaceView;
 import android.os.Environment;
 import android.util.Log;
+import com.artemis.Osmo4.GPACInstance.GpacInstanceException;
 
 /**
  * The renderer
@@ -55,14 +56,46 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
      */
     public final static String GPAC_FONT_DIR = "/system/fonts/"; //$NON-NLS-1$
 
-    // ------------------------------------
+    @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         initGPACDir();
+        try {
+            Log.i(LOG_RENDERER, "Creating instance from thread " + Thread.currentThread()); //$NON-NLS-1$
+            instance = new GPACInstance(callback,
+                                        320,
+                                        430,
+                                        GPAC_CFG_DIR,
+                                        GPAC_MODULES_DIR,
+                                        GPAC_CACHE_DIR,
+                                        GPAC_FONT_DIR);
+        } catch (GpacInstanceException e) {
+            Log.e(LOG_RENDERER, "Failed to create new GPAC instance !"); //$NON-NLS-1$
+            instance = null;
+            callback.onGPACError(e);
+        }
+        if (callback != null)
+            callback.onGPACReady();
     }
 
-    private boolean inited = false;
+    private GPACInstance instance = null;
 
     private final String urlToLoad;
+
+    /**
+     * Get the current GPAC Instance
+     * 
+     * @return the instance
+     */
+    public synchronized GPACInstance getInstance() {
+        return instance;
+    }
+
+    /**
+     * @return the urlToLoad
+     */
+    public synchronized String getUrlToLoad() {
+        return urlToLoad;
+    }
 
     /**
      * Constructor
@@ -77,37 +110,26 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
 
     private final GpacCallback callback;
 
-    // ------------------------------------
+    @Override
     public void onSurfaceChanged(GL10 gl, int w, int h) {
         // gl.glViewport(0, 0, w, h);
-        if (!inited) {
-            GpacObject.gpacinit(null,
-                                callback,
-                                w,
-                                h,
-                                GPAC_CFG_DIR,
-                                GPAC_MODULES_DIR,
-                                GPAC_CACHE_DIR,
-                                GPAC_FONT_DIR,
-                                urlToLoad);
-            GpacObject.gpacresize(w, h);
-            inited = true;
-            if (callback != null)
-                callback.onGPACReady();
-        } else
-            GpacObject.gpacresize(w, h);
+        if (instance != null) {
+            Log.i(LOG_RENDERER, "Surface changed from thread " + Thread.currentThread()); //$NON-NLS-1$
+            instance.resize(w, h);
+        }
     }
 
-    // ------------------------------------
+    @Override
     public void onDrawFrame(GL10 gl) {
-        if (inited) {
-            GpacObject.gpacrender(null);
+        if (instance != null) {
+            instance.render();
             Runnable command;
             synchronized (this) {
                 command = this.pendingCommand;
                 this.pendingCommand = null;
             }
             if (command != null) {
+                Log.i(LOG_RENDERER, "Command sent from thread " + Thread.currentThread()); //$NON-NLS-1$
                 command.run();
             }
         }

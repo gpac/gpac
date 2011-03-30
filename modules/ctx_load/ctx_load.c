@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / GPAC Scene Context loader module
@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -30,7 +30,7 @@
 
 #ifndef GPAC_DISABLE_VRML
 
-typedef struct 
+typedef struct
 {
 	GF_Scene *scene;
 	GF_Terminal *app;
@@ -126,7 +126,7 @@ static void CTXLoad_OnReverseActivate(GF_Node *node, GF_Route *route)
 	GF_Scene *scene = (GF_Scene *) gf_node_get_private(node);
 	M_Conditional*c = (M_Conditional*)node;
 	/*always apply in parent graph to handle protos correctly*/
-	if (!c->reverseActivate) 
+	if (!c->reverseActivate)
 		CTXLoad_ExecuteConditional(c, scene);
 }
 
@@ -206,7 +206,7 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 	/*main dummy stream we need a dsi*/
-	if (!esd->decoderConfig->decoderSpecificInfo) 
+	if (!esd->decoderConfig->decoderSpecificInfo)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 	priv->file_size = gf_bs_read_u32(bs);
@@ -219,7 +219,7 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	priv->load_flags = 0;
 	priv->base_stream_id = esd->ESID;
 
-	
+
 	CTXLoad_Setup(plug);
 
 	priv->progressive_support = 0;
@@ -229,7 +229,7 @@ static GF_Err CTXLoad_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	if (!ext) return GF_OK;
 
 	ext++;
-	if (!stricmp(ext, "xmt") || !stricmp(ext, "xmtz") || !stricmp(ext, "xmta") 
+	if (!stricmp(ext, "xmt") || !stricmp(ext, "xmtz") || !stricmp(ext, "xmta")
 		|| !stricmp(ext, "x3d") || !stricmp(ext, "x3dz")
 	) {
 		ext = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "Progressive");
@@ -318,7 +318,7 @@ static void CTXLoad_CheckStreams(CTXLoadPriv *priv )
 	}
 }
 
-static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength, 
+static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength,
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
@@ -426,7 +426,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 					gf_sg_set_scene_time_callback(priv->scene->graph, CTXLoad_GetVRMLTime);
 				}
 			}
-		} 
+		}
 		/*load the rest*/
 		else {
 			priv->load_flags = 2;
@@ -480,7 +480,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 			while ((au = (GF_AUContext *)gf_list_enum(sc->AUs, &j))) {
 				u32 au_time = (u32) (au->timing*1000/sc->timeScale);
 
-				if (au_time > stream_time) 
+				if (au_time > stream_time)
 					break;
 				if (au->flags & GF_SM_AU_RAP) last_rap = j-1;
 			}
@@ -525,7 +525,7 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 						gf_sg_command_del(com);
 					}
 				}
-			} 
+			}
 			else if (sc->streamType == GF_STREAM_OD) {
 				/*apply the commands*/
 				while (gf_list_count(au->commands)) {
@@ -713,11 +713,21 @@ Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectTyp
 
 void DeleteContextLoader(GF_BaseDecoder *plug)
 {
-	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
-	if (priv->file_name) gf_free(priv->file_name);
-	assert(!priv->ctx);
-	gf_list_del(priv->files_to_delete);
-	gf_free(priv);
+	CTXLoadPriv *priv;
+        if (!plug)
+          return;
+        priv = (CTXLoadPriv *)plug->privateStack;
+        if (priv){
+          if (priv->file_name)
+            gf_free(priv->file_name);
+          priv->file_name = NULL;
+          assert(!priv->ctx);
+          if (priv->files_to_delete)
+            gf_list_del(priv->files_to_delete);
+          priv->files_to_delete = NULL;
+          gf_free(priv);
+          plug->privateStack = NULL;
+        }
 	gf_free(plug);
 }
 
@@ -725,7 +735,7 @@ GF_BaseDecoder *NewContextLoader()
 {
 	CTXLoadPriv *priv;
 	GF_SceneDecoder *tmp;
-	
+
 	GF_SAFEALLOC(tmp, GF_SceneDecoder);
 	GF_SAFEALLOC(priv, CTXLoadPriv);
 	priv->files_to_delete = gf_list_new();
@@ -748,7 +758,7 @@ GF_BaseDecoder *NewContextLoader()
 
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 static u32 si [] = {
 #ifndef GPAC_DISABLE_VRML

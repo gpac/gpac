@@ -104,27 +104,32 @@ GF_EXPORT
 GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug, u32 InterfaceFamily)
 {
 	const char *opt;
-	char szKey[10];
+	char szKey[32];
 	ModuleInstance *inst;
 	GF_BaseInterface *ifce;
 
 	if (!pm) return NULL;
 	inst = (ModuleInstance *) gf_list_get(pm->plug_list, whichplug);
 	if (!inst) return NULL;
-
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface...%s\n", inst->name));
 	/*look in cache*/
-	opt = gf_cfg_get_key(pm->cfg, "PluginsCache", inst->name);
+        if (!pm->cfg){
+            GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] No pm->cfg has been set !!!\n"));
+            return NULL;
+        }
+        opt = gf_cfg_get_key(pm->cfg, "PluginsCache", inst->name);
 	if (opt) {
-		sprintf(szKey, "%s:yes", gf_4cc_to_str(InterfaceFamily));
-		if (!strstr(opt, szKey)) return NULL;
+                const char * ifce_str = gf_4cc_to_str(InterfaceFamily);
+		snprintf(szKey, 32, "%s:yes", ifce_str ? ifce_str : "(null)");
+		if (!strstr(opt, szKey)){
+		  return NULL;
+                }
 	}
-
 	if (!gf_modules_load_library(inst)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load library %s\n", inst->name));
 		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, "Invalid Plugin");
 		return NULL;
 	}
-	
 	if (!inst->query_func) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Library %s missing GPAC export symbols\n", inst->name));
 		gf_cfg_set_key(pm->cfg, "PluginsCache", inst->name, "Invalid Plugin");
@@ -144,12 +149,12 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 		}
 		i=0;
 		while (si[i]) i++;
-		
+
 		key = gf_malloc(sizeof(char) * 10 * i);
 		key[0] = 0;
 		i=0;
 		while (si[i]) {
-			sprintf(szKey, "%s:yes ", gf_4cc_to_str(si[i]));
+			snprintf(szKey, 32, "%s:yes ", gf_4cc_to_str(si[i]));
 			strcat(key, szKey);
 			if (InterfaceFamily==si[i]) found = 1;
 			i++;
@@ -160,11 +165,9 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	}
 
 	if (!inst->query_func || !inst->query_func(InterfaceFamily) ) goto err_exit;
-
 	ifce = (GF_BaseInterface *) inst->load_func(InterfaceFamily);
 	/*sanity check*/
 	if (!ifce) goto err_exit;
-
 #if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
 	if (!strcmp(inst->name, "gm_sdl_out.dylib")) {
 		if (InterfaceFamily == GF_VIDEO_OUTPUT_INTERFACE) {
@@ -176,20 +179,20 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 		}
 	}
 #endif
-	
-
 	if (!ifce->module_name || (ifce->InterfaceType != InterfaceFamily)) {
 		inst->destroy_func(ifce);
 		goto err_exit;
 	}
 	gf_list_add(inst->interfaces, ifce);
-
 	/*keep track of parent*/
 	ifce->HPLUG = inst;
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface %s DONE.\n", inst->name));
 	return ifce;
 
 err_exit:
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface %s exit label, freing library...\n", inst->name));
 	gf_modules_unload_library(inst);
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface %s EXIT.\n", inst->name));
 	return NULL;
 }
 

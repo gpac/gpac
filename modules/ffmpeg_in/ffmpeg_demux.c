@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / FFMPEG module
@@ -10,16 +10,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include "ffmpeg_in.h"
@@ -47,7 +47,7 @@ static u32 FFDemux_Run(void *par)
 
 	memset(&map, 0, sizeof(GF_NetworkCommand));
 	map.command_type = GF_NET_CHAN_MAP_TIME;
-	
+
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
 
@@ -62,7 +62,7 @@ static u32 FFDemux_Run(void *par)
 	if (ffd->seekable && (ffd->audio_st>=0)) seek_audio = (u64) (s64) (ffd->seek_time*ffd->audio_tscale.den);
 	if (ffd->seekable && (ffd->video_st>=0)) seek_video = (u64) (s64) (ffd->seek_time*ffd->video_tscale.den);
 
-	/*it appears that ffmpeg has trouble resyncing on some mpeg files - we trick it by restarting to 0 to get the 
+	/*it appears that ffmpeg has trouble resyncing on some mpeg files - we trick it by restarting to 0 to get the
 	first video frame, and only then seek*/
 	if (ffd->seekable) av_seek_frame(ffd->ctx, -1, video_init ? seek_to : 0, AVSEEK_FLAG_BACKWARD);
 	do_seek = !video_init;
@@ -98,7 +98,7 @@ static u32 FFDemux_Run(void *par)
 				slh.decodingTimeStamp = slh.compositionTimeStamp = seek_audio;
 			}
 			gf_term_on_sl_packet(ffd->service, ffd->audio_ch, pkt.data, pkt.size, &slh, GF_OK);
-		} 
+		}
 		else if (ffd->video_ch && (pkt.stream_index == ffd->video_st)) {
 			slh.compositionTimeStamp *= ffd->video_tscale.num;
 			slh.decodingTimeStamp *= ffd->video_tscale.num;
@@ -145,7 +145,7 @@ static u32 FFDemux_Run(void *par)
 				if (com.buffer.occupancy < ffd->data_buffer_ms) break;
 			}
 			gf_sleep(10);
-			
+
 			/*escape if disconnect*/
 			if (!ffd->audio_run && !ffd->video_run) break;
 		}
@@ -174,8 +174,8 @@ static const char * FFD_MIME_TYPES[] = {
   "video/H263", "h263 263", "H263 Video",
   "video/H264", "h264 264", "H264 Video",
   "video/MPEG4", "cmp", "MPEG-4 Video",
-/* We let ffmpeg handle mov because some QT files with uncompressed or adpcm audio use 1 audio sample 
-   per MP4 sample which is a killer for our MP4 lib, whereas ffmpeg handles these as complete audio chunks 
+/* We let ffmpeg handle mov because some QT files with uncompressed or adpcm audio use 1 audio sample
+   per MP4 sample which is a killer for our MP4 lib, whereas ffmpeg handles these as complete audio chunks
    moreover ffmpeg handles cmov, we don't */
   "video/quicktime", "mov qt", "QuickTime Movies",
 /* Supported by latest versions of FFMPEG */
@@ -204,7 +204,8 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 	Bool ret = 0;
 	char *ext, szName[1000], szExt[20];
 	const char *szExtList;
-
+        if (!plug || !url)
+          return 0;
 	/*disable RTP/RTSP from ffmpeg*/
 	if (!strnicmp(url, "rtsp://", 7)) return 0;
 	if (!strnicmp(url, "rtspu://", 8)) return 0;
@@ -229,16 +230,16 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 #endif
 
 		/*note we forbid ffmpeg to handle files we support*/
-		if (!strcmp(szExt, "mp4") || !strcmp(szExt, "mpg4") || !strcmp(szExt, "m4a") || !strcmp(szExt, "m21") 
-			|| !strcmp(szExt, "m4v") || !strcmp(szExt, "m4a") 
-			|| !strcmp(szExt, "3gp") || !strcmp(szExt, "3gpp") || !strcmp(szExt, "3gp2") || !strcmp(szExt, "3g2") 
-			|| !strcmp(szExt, "mp3") 
-			|| !strcmp(szExt, "ac3") 
-			|| !strcmp(szExt, "amr") 
-			|| !strcmp(szExt, "bt") || !strcmp(szExt, "wrl") || !strcmp(szExt, "x3dv") 
-			|| !strcmp(szExt, "xmt") || !strcmp(szExt, "xmta") || !strcmp(szExt, "x3d") 
-			
-			|| !strcmp(szExt, "jpg") || !strcmp(szExt, "jpeg") || !strcmp(szExt, "png") 
+		if (!strcmp(szExt, "mp4") || !strcmp(szExt, "mpg4") || !strcmp(szExt, "m4a") || !strcmp(szExt, "m21")
+			|| !strcmp(szExt, "m4v") || !strcmp(szExt, "m4a")
+			|| !strcmp(szExt, "3gp") || !strcmp(szExt, "3gpp") || !strcmp(szExt, "3gp2") || !strcmp(szExt, "3g2")
+			|| !strcmp(szExt, "mp3")
+			|| !strcmp(szExt, "ac3")
+			|| !strcmp(szExt, "amr")
+			|| !strcmp(szExt, "bt") || !strcmp(szExt, "wrl") || !strcmp(szExt, "x3dv")
+			|| !strcmp(szExt, "xmt") || !strcmp(szExt, "xmta") || !strcmp(szExt, "x3d")
+
+			|| !strcmp(szExt, "jpg") || !strcmp(szExt, "jpeg") || !strcmp(szExt, "png")
 			) return 0;
 
 		/*check any default stuff that should work with ffmpeg*/
@@ -322,7 +323,7 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 	esd->decoderConfig->streamType = for_audio ? GF_STREAM_AUDIO : GF_STREAM_VISUAL;
 	esd->decoderConfig->avgBitrate = esd->decoderConfig->maxBitrate = 0;
 
-	/*remap std object types - depending on input formats, FFMPEG may not have separate DSI from initial frame. 
+	/*remap std object types - depending on input formats, FFMPEG may not have separate DSI from initial frame.
 	In this case we have no choice but using FFMPEG decoders*/
 	if (for_audio) {
         AVCodecContext *dec = ffd->ctx->streams[ffd->audio_st]->codec;
@@ -339,8 +340,8 @@ static GF_ESD *FFD_GetESDescriptor(FFDemux *ffd, Bool for_audio)
 			esd->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
 			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*dec->extradata_size);
-			memcpy(esd->decoderConfig->decoderSpecificInfo->data, 
-					dec->extradata, 
+			memcpy(esd->decoderConfig->decoderSpecificInfo->data,
+					dec->extradata,
 					sizeof(char)*dec->extradata_size);
 			break;
 		default:
@@ -380,8 +381,8 @@ opaque_audio:
 			esd->decoderConfig->objectTypeIndication = (dec->codec_id==CODEC_ID_H264) ? GPAC_OTI_VIDEO_AVC : GPAC_OTI_VIDEO_MPEG4_PART2;
 			esd->decoderConfig->decoderSpecificInfo->dataLength = dec->extradata_size;
 			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*dec->extradata_size);
-			memcpy(esd->decoderConfig->decoderSpecificInfo->data, 
-					dec->extradata, 
+			memcpy(esd->decoderConfig->decoderSpecificInfo->data,
+					dec->extradata,
 					sizeof(char)*dec->extradata_size);
 			break;
 		case CODEC_ID_MPEG1VIDEO:
@@ -429,7 +430,7 @@ static void FFD_SetupObjects(FFDemux *ffd)
 	GF_ESD *esd;
 	GF_ObjectDescriptor *od;
 	u32 audio_esid = 0;
-	
+
 	if ((ffd->audio_st>=0) && (ffd->service_type != 1)) {
 		od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 		esd = FFD_GetESDescriptor(ffd, 1);
@@ -464,7 +465,7 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 			if (ffd->outdbg) fwrite(buf, size, 1, ffd->outdbg);
 #endif
 			return size;
-		} 
+		}
 		full_size += ffd->buffer_used;
 		buf += ffd->buffer_used;
 		size -= ffd->buffer_used;
@@ -547,7 +548,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 		/*setup wraper for FFMPEG I/O*/
 		ffd->buffer_size = 8192;
-		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "IOBufferSize"); 
+		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "IOBufferSize");
 		if (sOpt) ffd->buffer_size = atoi(sOpt);
 		ffd->buffer = gf_malloc(sizeof(char)*ffd->buffer_size);
 #ifdef FFMPEG_DUMP_REMOTE
@@ -631,7 +632,7 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	}
 
 
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "DataBufferMS"); 
+	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "FFMPEG", "DataBufferMS");
 	ffd->data_buffer_ms = 0;
 	if (sOpt) ffd->data_buffer_ms = atoi(sOpt);
 	if (!ffd->data_buffer_ms) ffd->data_buffer_ms = FFD_DATA_BUFFER;
@@ -835,7 +836,7 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 		gf_mx_p(ffd->mx);
 		ffd->seek_time = (com->play.start_range>=0) ? com->play.start_range : 0;
-		
+
 		if (ffd->audio_ch==com->base.on_channel) ffd->audio_run = 1;
 		else if (ffd->video_ch==com->base.on_channel) ffd->video_run = 1;
 
@@ -852,7 +853,7 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (ffd->audio_ch==com->base.on_channel) ffd->audio_run = 0;
 		else if (ffd->video_ch==com->base.on_channel) ffd->video_run = 0;
 		return GF_OK;
-	/*note we don't handle PAUSE/RESUME/SET_SPEED, this is automatically handled by the demuxing thread 
+	/*note we don't handle PAUSE/RESUME/SET_SPEED, this is automatically handled by the demuxing thread
 	through buffer occupancy queries*/
 
 	default:
@@ -866,9 +867,14 @@ static GF_Err FFD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
 	char szURL[2048], *sep;
-	FFDemux *ffd = (FFDemux *)plug->priv;
-	const char *this_url = gf_term_get_service_url(ffd->service);
-	if (!this_url || !url) return 0;
+	FFDemux *ffd;
+	const char *this_url;
+        if (!plug || !url)
+          return 0;
+        ffd = (FFDemux *)plug->priv;
+        this_url = gf_term_get_service_url(ffd->service);
+	if (!this_url)
+          return 0;
 
 	strcpy(szURL, this_url);
 	sep = strrchr(szURL, '#');
@@ -881,7 +887,7 @@ static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 	return 0;
 }
 
-void *New_FFMPEG_Demux() 
+void *New_FFMPEG_Demux()
 {
 	FFDemux *priv;
 	GF_InputService *ffd = gf_malloc(sizeof(GF_InputService));
@@ -890,9 +896,11 @@ void *New_FFMPEG_Demux()
 	priv = gf_malloc(sizeof(FFDemux));
 	memset(priv, 0, sizeof(FFDemux));
 
-    /* register all codecs, demux and protocols */
-    av_register_all();
-	
+        GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins...\n") );
+        /* register all codecs, demux and protocols */
+        av_register_all();
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins DONE.\n") );
+
 	ffd->RegisterMimeTypes = FFD_RegisterMimeTypes;
 	ffd->CanHandleURL = FFD_CanHandleURL;
 	ffd->CloseService = FFD_CloseService;
@@ -916,13 +924,19 @@ void Delete_FFMPEG_Demux(void *ifce)
 {
 	FFDemux *ffd;
 	GF_InputService *ptr = (GF_InputService *)ifce;
-
+        if (!ptr)
+          return;
 	ffd = ptr->priv;
-
-	gf_th_del(ffd->thread);
-	gf_mx_del(ffd->mx);
-
-	gf_free(ffd);
+        if (ffd){
+          if (ffd->thread)
+            gf_th_del(ffd->thread);
+          ffd->thread = NULL;
+          if (ffd->mx)
+            gf_mx_del(ffd->mx);
+          ffd->mx = NULL;
+          gf_free(ffd);
+          ptr->priv = NULL;
+        }
 	gf_free(ptr);
 }
 

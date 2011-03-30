@@ -8,7 +8,6 @@ LOCAL_SRC_FILES := ../../../../modules/droid_audio/javaenv.c
 
 include $(BUILD_SHARED_LIBRARY)
 
-
 include $(CLEAR_VARS)
 
 LOCAL_MODULE		:= gm_droidaudio

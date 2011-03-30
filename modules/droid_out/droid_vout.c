@@ -13,18 +13,18 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
- 
+
 /*driver interfaces*/
 #include <gpac/modules/video_out.h>
 #include <gpac/list.h>
@@ -56,7 +56,7 @@ typedef struct
 	GLubyte* texData;
 
 	u8 draw_texture;
-	u8 non_power_two; 
+	u8 non_power_two;
 } AndroidContext;
 
 
@@ -138,6 +138,7 @@ void gluPerspective(GLfloat fovy, GLfloat aspect,
 
 void resizeWindow(AndroidContext *rc)
 {
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("resizeWindow : start\n"));
     /* Height / width ration */
     GLfloat ratio;
 
@@ -164,10 +165,12 @@ void resizeWindow(AndroidContext *rc)
 
     /* Reset The View */
     glLoadIdentity();
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("resizeWindow : end\n"));
 }
 
 void drawGLScene(AndroidContext *rc)
 {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("drawGLScene : start\n"));
 	GLfloat vertices[4][3];
 	GLfloat texcoord[4][2];
 //	int i, j;
@@ -227,7 +230,7 @@ void drawGLScene(AndroidContext *rc)
 		/* Setup pointer to  VERTEX array */
 		glVertexPointer(3, GL_FLOAT, 0, vertices);
 		glTexCoordPointer(2, GL_FLOAT, 0, texcoord);
-	
+
 		/* Move Left 1.5 Units And Into The Screen 6.0 */
 		glLoadIdentity();
 		//glTranslatef(0.0f, 0.0f, -3.3f);
@@ -261,6 +264,7 @@ void drawGLScene(AndroidContext *rc)
 #ifdef GLES_FRAMEBUFFER_TEST
 	glBindFramebufferOES(GL_FRAMEBUFFER_OES, rc->framebuff);
 #endif
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("drawGLScene : end\n"));
 }
 
 int releaseTexture(AndroidContext *rc)
@@ -359,10 +363,10 @@ int createFrameBuffer(AndroidContext *rc)
 //    glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES,
 //            GL_RENDERBUFFER_OES, rc->depthbuff);
 
-	glFramebufferTexture2DOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES, 
+	glFramebufferTexture2DOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES,
 			GL_TEXTURE_2D, rc->texID, 0);
 
-	if ( (res=(int)glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES)) != GL_FRAMEBUFFER_COMPLETE_OES ) 
+	if ( (res=(int)glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES)) != GL_FRAMEBUFFER_COMPLETE_OES )
 	{
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Android failed to make complete framebuffer object:"));
 		switch (res)
@@ -386,7 +390,7 @@ int createFrameBuffer(AndroidContext *rc)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown error: %d", res));
 				break;
 		}
-        
+
         return 1;
     }
 
@@ -554,6 +558,7 @@ GF_VideoOutput *NewRawVideoOutput()
 {
 	AndroidContext *pCtx;
 	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
+        GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Android Video Initialization in progress...\n"));
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "Android Video Output", "gpac distribution")
 
@@ -576,7 +581,7 @@ GF_VideoOutput *NewRawVideoOutput()
 
 	driv->hw_caps = GF_VIDEO_HW_OPENGL;// | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;//GF_VIDEO_HW_DIRECT_ONLY;//
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout init\n"));
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Android Video Init Done.\n"));
 	return (void *)driv;
 }
 
@@ -584,12 +589,14 @@ void DeleteVideoOutput(void *ifce)
 {
 	AndroidContext *rc;
 	GF_VideoOutput *driv = (GF_VideoOutput *) ifce;
-
+        if (!ifce)
+          return;
 	droid_Shutdown(driv);
 	rc = (AndroidContext *)driv->opaque;
-	gf_free(rc);
+        if (rc)
+          gf_free(rc);
+        driv->opaque = NULL;
 	gf_free(driv);
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout deinit\n"));
 }
 

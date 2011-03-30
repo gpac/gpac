@@ -1,7 +1,7 @@
 //This software module was originally developed by TelecomParisTech in the
 //course of the development of MPEG-U Widgets (ISO/IEC 23007-1) standard.
 //
-//This software module is an implementation of a part of one or 
+//This software module is an implementation of a part of one or
 //more MPEG-U Widgets (ISO/IEC 23007-1) tools as specified by the MPEG-U Widgets
 //(ISO/IEC 23007-1) standard. ISO/IEC gives users of the MPEG-U Widgets
 //(ISO/IEC 23007-1) free license to this software module or modifications
@@ -10,13 +10,13 @@
 //module in hardware or software products are advised that its use may
 //infringe existing patents.
 //The original developer of this software module and his/her company, the
-//subsequent editors and their companies, and ISO/IEC have no liability 
-//for use of this software module or modifications thereof in an implementation. 
-//Copyright is not released for non MPEG-U Widgets (ISO/IEC 23007-1) conforming 
-//products. 
-//Telecom ParisTech retains full right to use the code for his/her own purpose, 
-//assign or donate the code to a third party and to inhibit third parties from 
-//using the code for non MPEG-U Widgets (ISO/IEC 23007-1) conforming products. 
+//subsequent editors and their companies, and ISO/IEC have no liability
+//for use of this software module or modifications thereof in an implementation.
+//Copyright is not released for non MPEG-U Widgets (ISO/IEC 23007-1) conforming
+//products.
+//Telecom ParisTech retains full right to use the code for his/her own purpose,
+//assign or donate the code to a third party and to inhibit third parties from
+//using the code for non MPEG-U Widgets (ISO/IEC 23007-1) conforming products.
 //
 //This copyright notice must be included in all copies or derivative works.
 //
@@ -26,7 +26,7 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 //
-//	Authors:	
+//	Authors:
 //					Cyril Concolato, Telecom ParisTech
 //					Jean Le Feuvre, Telecom ParisTech
 //
@@ -49,7 +49,7 @@ typedef struct
 	Bool loaded;
 } WgtLoad;
 
-static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength, 
+static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength,
 								u16 ES_ID, u32 stream_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
@@ -62,24 +62,24 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 
 	switch (wgtload->oti) {
 	case GPAC_OTI_PRIVATE_SCENE_WGT:
-		if (wgtload->file_name && !wgtload->loaded) { 
+		if (wgtload->file_name && !wgtload->loaded) {
 			const char *path, *wmpath;
 			char *tmp;
 			GF_Node *n, *root;
 			GF_FieldInfo info;
 			FILE *jsfile;
 			GF_ChildNodeItem *last;
-			
+
 			wgtload->loaded = 1;
 
-			gf_sg_add_namespace(wgtload->scene->graph, "http://www.w3.org/2000/svg", NULL); 
-			gf_sg_add_namespace(wgtload->scene->graph, "http://www.w3.org/1999/xlink", "xlink"); 
-			gf_sg_add_namespace(wgtload->scene->graph, "http://www.w3.org/2001/xml-events", "ev"); 		
+			gf_sg_add_namespace(wgtload->scene->graph, "http://www.w3.org/2000/svg", NULL);
+			gf_sg_add_namespace(wgtload->scene->graph, "http://www.w3.org/1999/xlink", "xlink");
+			gf_sg_add_namespace(wgtload->scene->graph, "http://www.w3.org/2001/xml-events", "ev");
 			gf_sg_set_scene_size_info(wgtload->scene->graph, 800, 600, 1);
 
-			/* modify the scene with an Inline/Animation pointing to the widget start file URL */			
-			n = root = gf_node_new(wgtload->scene->graph, TAG_SVG_svg);			
-			gf_node_register(root, NULL);			
+			/* modify the scene with an Inline/Animation pointing to the widget start file URL */
+			n = root = gf_node_new(wgtload->scene->graph, TAG_SVG_svg);
+			gf_node_register(root, NULL);
 			gf_sg_set_root_node(wgtload->scene->graph, root);
 			gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_viewBox, 1, 0, &info);
 			gf_svg_parse_attribute(n, &info, "0 0 320 240", 0);
@@ -94,7 +94,7 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 */
 			gf_node_init(n);
 
-			n = gf_node_new(wgtload->scene->graph, TAG_SVG_animation);			
+			n = gf_node_new(wgtload->scene->graph, TAG_SVG_animation);
 			gf_node_set_id(n, 1, "w_anim");
 			gf_node_register(n, root);
 			gf_node_list_add_child_last(&((GF_ParentNode *)root)->children, n, &last);
@@ -103,7 +103,7 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_height, 1, 0, &info);
 			gf_svg_parse_attribute(n, &info, "240", 0);
 			gf_node_init(n);
-			
+
 			tmp = wgtload->file_name;
 			while ((tmp = strchr(tmp, '\\'))) {
 				tmp[0] = '/';
@@ -126,8 +126,8 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 										"	if (wid != null) {\n"
 										"		wid.activate(anim);"
 										"		anim.setAttributeNS('http://www.w3.org/1999/xlink', 'href', wid.main);\n"
-										"	} else {\n" 
-										"		alert('Widget ' + wid_url + ' is not valid');\n" 
+										"	} else {\n"
+										"		alert('Widget ' + wid_url + ' is not valid');\n"
 										"	}\n"
 										"}\n";
 
@@ -171,8 +171,8 @@ static GF_Err WGT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			}
 		}
 		break;
-	
-	default: 
+
+	default:
 		return GF_BAD_PARAM;
 	}
 	return e;
@@ -233,7 +233,7 @@ Bool WGT_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, c
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
 		if (ObjectType==GPAC_OTI_PRIVATE_SCENE_WGT) return 1;
 		return 0;
-	} 
+	}
 	return 0;
 }
 
@@ -258,7 +258,7 @@ GF_BaseInterface *LoadWidgetReader()
 {
 	WgtLoad *wgtload;
 	GF_SceneDecoder *sdec;
-	
+
 	GF_SAFEALLOC(sdec, GF_SceneDecoder)
 	GF_REGISTER_MODULE_INTERFACE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC W3C Widget Loader", "gpac distribution");
 
@@ -281,9 +281,13 @@ GF_BaseInterface *LoadWidgetReader()
 void ShutdownWidgetReader(GF_BaseInterface *ifce)
 {
 	GF_SceneDecoder *sdec = (GF_SceneDecoder *)ifce;
-	WgtLoad *wgtload = (WgtLoad *) sdec->privateStack;
-
-	gf_free(wgtload);
+	WgtLoad *wgtload;
+        if (!ifce)
+          return;
+        wgtload = (WgtLoad *) sdec->privateStack;
+        if (wgtload)
+          gf_free(wgtload);
+        sdec->privateStack = NULL;
 	gf_free(sdec);
 }
 
