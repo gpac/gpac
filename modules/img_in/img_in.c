@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / image format module
@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -40,7 +40,7 @@ typedef struct
 	GF_ClientService *service;
 	/*service*/
 	u32 srv_type;
-	
+
 	FILE *stream;
 	u32 img_type;
 
@@ -66,7 +66,7 @@ GF_ESD *IMG_GetESD(IMGLoader *read)
 	esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 	esd->ESID = 1;
 
-	if (read->img_type == IMG_BMP) 
+	if (read->img_type == IMG_BMP)
 		esd->decoderConfig->objectTypeIndication = GPAC_BMP_OTI;
 	else {
 		u8 OTI;
@@ -108,6 +108,9 @@ const char * IMG_MIME_TYPES[] = {
 
 static u32 IMG_RegisterMimeTypes(GF_InputService *plug){
     u32 i;
+    if (!plug){
+      GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("IMG_RegisterMimeTypes : plug is NULL !!\n"));
+    }
     for (i = 0 ; IMG_MIME_TYPES[i]; i+=3)
       gf_term_register_mime_type(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2]);
     return i/3;
@@ -118,6 +121,9 @@ static Bool IMG_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	u32 i;
+        GF_LOG(GF_LOG_MEDIA, GF_LOG_INFO, ("IMG_CanHandleURL(%s)\n", url));
+        if (!plug || !url)
+          return 0;
 	sExt = strrchr(url, '.');
 	for (i = 0 ; IMG_MIME_TYPES[i]; i+=3){
 	  if (gf_term_check_extension(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2], sExt))
@@ -173,7 +179,7 @@ void IMG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				gf_f64_seek(read->stream, 0, SEEK_SET);
 			}
 		}
-	} 
+	}
 	/*OK confirm*/
 	gf_term_on_connect(read->service, NULL, e);
 	if (!e) IMG_SetupObject(read);
@@ -194,7 +200,8 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	read->service = serv;
-
+        if (!url)
+          return GF_BAD_PARAM;
 	sExt = strrchr(url, '.');
 	if (!stricmp(sExt, ".jpeg") || !stricmp(sExt, ".jpg")) read->img_type = IMG_JPEG;
 	else if (!stricmp(sExt, ".png")) read->img_type = IMG_PNG;
@@ -225,12 +232,17 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 static GF_Err IMG_CloseService(GF_InputService *plug)
 {
+        if (!plug)
+          return GF_BAD_PARAM;
 	IMGLoader *read = (IMGLoader *)plug->priv;
+        if (!read)
+          return GF_BAD_PARAM;
 	if (read->stream) fclose(read->stream);
 	read->stream = NULL;
 	if (read->dnload) gf_term_download_del(read->dnload);
 	read->dnload = NULL;
-	gf_term_on_disconnect(read->service, NULL, GF_OK);
+        if (read->service)
+          gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -259,11 +271,15 @@ static GF_Err IMG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 {
 	u32 ES_ID;
 	GF_Err e;
-	IMGLoader *read = (IMGLoader *)plug->priv;
+	IMGLoader *read;
+        if (!plug)
+          return 0;
+        read = (IMGLoader *)plug->priv;
 
 	e = GF_SERVICE_ERROR;
 	if (read->ch==channel) goto exit;
-
+        if (!url)
+          goto exit;
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
 		sscanf(url, "ES_ID=%ud", &ES_ID);
@@ -399,8 +415,14 @@ void *NewLoaderInterface()
 
 void DeleteLoaderInterface(void *ifce)
 {
+      GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("DeleteLoaderInterface : 1\n"));
 	GF_InputService *plug = (GF_InputService *) ifce;
+        if (!plug)
+          return;
 	IMGLoader *read = (IMGLoader *)plug->priv;
-	gf_free(read);
+        if (read)
+          gf_free(read);
+        plug->priv = NULL;
 	gf_free(plug);
+        GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("DeleteLoaderInterface : 2\n"));
 }

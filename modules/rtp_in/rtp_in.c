@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / RTP input module
@@ -10,16 +10,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include "rtp_in.h"
@@ -38,7 +38,7 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 	}
 	if ((rtp->default_port == 80) || (rtp->default_port == 8080))
 		gf_modules_set_option((GF_BaseInterface *)plug, "Streaming", "RTPoverRTSP", "yes");
-	
+
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "RTPoverRTSP");
 	if (sOpt && !stricmp(sOpt, "yes")) {
 		rtp->transport_mode = 1;
@@ -58,7 +58,7 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 		/*turn it off*/
 		gf_modules_set_option((GF_BaseInterface *)plug, "Network", "UDPNotAvailable", "no");
 	}
-	
+
 	if (!rtp->transport_mode) {
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "UDPTimeout");
 		if (sOpt ) {
@@ -67,7 +67,7 @@ static void RT_LoadPrefs(GF_InputService *plug, RTPClient *rtp)
 			rtp->udp_time_out = 10000;
 		}
 	}
-	
+
 	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Streaming", "RTSPTimeout");
 	if (sOpt ) {
 		rtp->time_out = atoi(sOpt);
@@ -145,7 +145,7 @@ u32 RP_Thread(void *param)
 				RP_ReadStream(ch);
 			}
 		}
-		
+
 		/*and process commands / flush TCP*/
 		i=0;
 		while ((sess = (RTSPSession *)gf_list_enum(rtp->sessions, &i))) {
@@ -185,6 +185,8 @@ static u32 RP_RegisterMimeTypes(GF_InputService *plug){
 
 static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 {
+        if (!plug || !url)
+          return 0;
 	char *sExt = strrchr(url, '.');
 
 	if (sExt && gf_term_check_extension(plug, sdp_mime, sdp_exts, sdp_desc, sExt)) return 1;
@@ -192,7 +194,7 @@ static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 	/*local */
 	if (strstr(url, "data:application/sdp")) return 1;
 	/*embedded data*/
-	if (strstr(url, "data:application/mpeg4-od-au;base64") || 
+	if (strstr(url, "data:application/mpeg4-od-au;base64") ||
 		strstr(url, "data:application/mpeg4-bifs-au;base64") ||
 		strstr(url, "data:application/mpeg4-es-au;base64")) return 1;
 
@@ -246,7 +248,7 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 		RP_FetchSDP(priv, (char *) url, NULL, NULL);
 		return GF_OK;
 	}
-	
+
 	/*rtsp and rtsp over udp*/
 	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8)) {
 		char *the_url = gf_strdup(url);
@@ -323,7 +325,7 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 		if (rtp->session_state_data) {
 			gf_free(rtp->session_state_data);
 			rtp->session_state_data = NULL;
-		} 
+		}
 
 		/*send teardown on all sessions*/
 		i=0;
@@ -383,7 +385,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 		ch = RP_FindChannel(priv, NULL, ESID, NULL, 0);
 		/*this should not happen, the sdp must describe all streams in the service*/
 		if (!ch) return GF_STREAM_NOT_FOUND;
-		
+
 		/*assign app channel*/
 		ch->channel = channel;
 		sess = ch->rtsp;
@@ -395,11 +397,11 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 		es_url = (char *) url;
 	}
 	/*data: url*/
-	else if (strstr(url, "data:application/mpeg4-od-au;base64") 
+	else if (strstr(url, "data:application/mpeg4-od-au;base64")
 		|| strstr(url, "data:application/mpeg4-bifs-au;base64")
 		|| strstr(url, "data:application/mpeg4-es-au;base64")
 		) {
-		
+
 		GF_SAFEALLOC(ch, RTPStream);
 		ch->control = gf_strdup(url);
 		ch->owner = priv;
@@ -587,7 +589,7 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		}
 		return GF_OK;
 
-	
+
 	case GF_NET_GET_STATS:
 		memset(&com->net_stats, 0, sizeof(GF_NetComStats));
 		if (ch->rtp_ch) {
@@ -676,7 +678,7 @@ static Bool RP_CanHandleURLInService(GF_InputService *plug, const char *url)
 	RTSPSession *sess;
 	RTPClient *priv = (RTPClient *)plug->priv;
 
-	if (strstr(url, "data:application/mpeg4-od-au;base64") 
+	if (strstr(url, "data:application/mpeg4-od-au;base64")
 		|| strstr(url, "data:application/mpeg4-bifs-au;base64")
 		|| strstr(url, "data:application/mpeg4-es-au;base64")
 		) return 1;
@@ -690,7 +692,7 @@ static Bool RP_CanHandleURLInService(GF_InputService *plug, const char *url)
 			u32 i=0;
 			RTPStream *st;
 			while ((st = (RTPStream *)gf_list_enum(priv->channels, &i))) {
-				if (st->depacketizer && (st->depacketizer->sl_map.StreamType==st_type)) 
+				if (st->depacketizer && (st->depacketizer->sl_map.StreamType==st_type))
 					return 1;
 			}
 		}
@@ -732,11 +734,11 @@ GF_InputService *RTP_Load()
 	priv->channels = gf_list_new();
 
 	plug->priv = priv;
-	
+
 	priv->time_out = 30000;
 	priv->mx = gf_mx_new("RTPDemux");
 	priv->th = gf_th_new("RTPDemux");
-	
+
 	return plug;
 }
 
@@ -772,7 +774,7 @@ void RTP_Delete(GF_BaseInterface *bi)
 
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #ifndef GPAC_DISABLE_STREAMING
@@ -780,11 +782,11 @@ const u32 *QueryInterfaces()
 #endif
 		0
 	};
-	return si; 
+	return si;
 }
 
 GF_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 #ifndef GPAC_DISABLE_STREAMING
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)RTP_Load();

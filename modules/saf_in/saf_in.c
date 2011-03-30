@@ -11,16 +11,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include <gpac/modules/service.h>
@@ -94,6 +94,8 @@ static u32 SAF_RegisterMimeTypes(GF_InputService *plug)
 static Bool SAF_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
+        if (!plug || !url)
+          return 0;
 	sExt = strrchr(url, '.');
 	if (gf_term_check_extension(plug, SAF_MIME, SAF_MIME_EXT, SAF_MIME_DESC, sExt)) return 1;
 	return 0;
@@ -131,7 +133,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	u64 bs_pos;
 	GF_BitStream *bs;
 	GF_SLHeader sl_hdr;
-	
+
 	SAFIn *read = (SAFIn *) cbk;
 
 	e = param->error;
@@ -566,7 +568,8 @@ void DeleteSAFReader(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
 	SAFIn *read = (SAFIn *)plug->priv;
-
+        if (!ifce)
+          return;
 	while (gf_list_count(read->channels)) {
 		SAFChannel *ch = (SAFChannel *)gf_list_last(read->channels);
 		gf_list_rem_last(read->channels);
@@ -574,20 +577,23 @@ void DeleteSAFReader(void *ifce)
 		gf_free(ch);
 	}
 	gf_list_del(read->channels);
-	if (read->saf_data) gf_free(read->saf_data);
+	if (read->saf_data)
+          gf_free(read->saf_data);
+        read->saf_data = NULL;
 	gf_free(read);
+        plug->priv = NULL;
 	gf_free(plug);
 }
 
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_NET_CLIENT_INTERFACE,
 		0
 	};
-	return si; 
+	return si;
 }
 
 GF_EXPORT

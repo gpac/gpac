@@ -1,7 +1,7 @@
 //This software module was originally developed by TelecomParisTech in the
 //course of the development of MPEG-U Widgets (ISO/IEC 23007-1) standard.
 //
-//This software module is an implementation of a part of one or 
+//This software module is an implementation of a part of one or
 //more MPEG-U Widgets (ISO/IEC 23007-1) tools as specified by the MPEG-U Widgets
 //(ISO/IEC 23007-1) standard. ISO/IEC gives users of the MPEG-U Widgets
 //(ISO/IEC 23007-1) free license to this software module or modifications
@@ -10,13 +10,13 @@
 //module in hardware or software products are advised that its use may
 //infringe existing patents.
 //The original developer of this software module and his/her company, the
-//subsequent editors and their companies, and ISO/IEC have no liability 
-//for use of this software module or modifications thereof in an implementation. 
-//Copyright is not released for non MPEG-U Widgets (ISO/IEC 23007-1) conforming 
-//products. 
-//Telecom ParisTech retains full right to use the code for his/her own purpose, 
-//assign or donate the code to a third party and to inhibit third parties from 
-//using the code for non MPEG-U Widgets (ISO/IEC 23007-1) conforming products. 
+//subsequent editors and their companies, and ISO/IEC have no liability
+//for use of this software module or modifications thereof in an implementation.
+//Copyright is not released for non MPEG-U Widgets (ISO/IEC 23007-1) conforming
+//products.
+//Telecom ParisTech retains full right to use the code for his/her own purpose,
+//assign or donate the code to a third party and to inhibit third parties from
+//using the code for non MPEG-U Widgets (ISO/IEC 23007-1) conforming products.
 //
 //This copyright notice must be included in all copies or derivative works.
 //
@@ -26,7 +26,7 @@
 
 /////////////////////////////////////////////////////////////////////////////////
 //
-//	Authors:	
+//	Authors:
 //					Jean Le Feuvre, Telecom ParisTech
 //					Cyril Concolato, Telecom ParisTech
 //
@@ -55,7 +55,7 @@ static Bool is_same_path(const char *p1, const char *p2, u32 len)
 	char c1, c2;
 	u32 i=0;
 	do {
-		if (len && (i==len)) 
+		if (len && (i==len))
 			break;
 		c1 = p1[i];
 		c2 = p2[i];
@@ -95,7 +95,7 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 			}
 
 			unzOpenCurrentFile3(uf, NULL, NULL, 0, NULL/*password*/);
-	        
+
 			fout=gf_f64_open(res->extracted_path, "wb");
 			if (!fout) break;
 			do {
@@ -152,7 +152,7 @@ static Bool package_find_res(GF_WidgetPackage *wpack, char *res_path, char *relo
 	return 0;
 }
 
-/* Checks if a resource in the package has the given rel_path, potentially in a localized sub-folder */ 
+/* Checks if a resource in the package has the given rel_path, potentially in a localized sub-folder */
 static Bool widget_package_relocate_uri(void *__self, const char *parent_uri, const char *rel_path, char *relocated_path, char *localized_rel_path)
 {
 	char path[GF_MAX_PATH];
@@ -168,7 +168,7 @@ static Bool widget_package_relocate_uri(void *__self, const char *parent_uri, co
 	else if (strstr(parent_uri, wpack->archive_id)) {
 	}
 	/*resource doesn't belong to our archive*/
-	else { 
+	else {
 		return 0;
 	}
 
@@ -192,7 +192,7 @@ static Bool widget_package_relocate_uri(void *__self, const char *parent_uri, co
 		if (sep_lang) {
 			sep_lang[0] = ';';
 			opt = sep_lang+1;
-		} else { 
+		} else {
 			opt = NULL;
 		}
 
@@ -203,7 +203,7 @@ static Bool widget_package_relocate_uri(void *__self, const char *parent_uri, co
 		}
 
 		sprintf(path, "locales/%s/%s", lan, rel_path);
-		if (package_find_res(wpack, path, relocated_path, localized_rel_path)) 
+		if (package_find_res(wpack, path, relocated_path, localized_rel_path))
 			return 1;
 
 		/*recursively remove region (sub)tags*/
@@ -212,7 +212,7 @@ static Bool widget_package_relocate_uri(void *__self, const char *parent_uri, co
 			if (!sep) break;
 			sep[0] = 0;
 			sprintf(path, "locales/%s/%s", lan, rel_path);
-			if (package_find_res(wpack, path, relocated_path, localized_rel_path)) 
+			if (package_find_res(wpack, path, relocated_path, localized_rel_path))
 				return 1;
 		}
 	}
@@ -355,20 +355,20 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 			strcat(szPath, filename_inzip);
 		}
 
-		
+
 		if (!strcmp(filename_inzip, "config.xml")) {
 			int err;
 			char buf[8192];
 			FILE *fout;
 			unzOpenCurrentFile3(uf, NULL, NULL, 0, NULL/*password*/);
-	        
+
 			fout=gf_f64_open(szPath,"wb");
 			if (!fout) return NULL;
 
 			do {
 				err = unzReadCurrentFile(uf,buf,8192);
 				if (err<0) break;
-	            
+
 				if (err>0)
 					if (fwrite(buf,err,1,fout)!=1) {
 						err=UNZ_ERRNO;
@@ -488,7 +488,7 @@ static void wm_delete_widget_content(GF_WidgetContent *content)
 
 		 wm_delete_message_param(comp->activateTrigger);
 		 wm_delete_message_param(comp->deactivateTrigger);
-		
+
 		 while (gf_list_count(comp->required_interfaces)) {
 			char *type = gf_list_last(comp->required_interfaces);
 			gf_list_rem_last(comp->required_interfaces);
@@ -527,7 +527,7 @@ static void wm_delete_widget_content(GF_WidgetContent *content)
 static void wm_delete_widget(GF_WidgetManager *wm, GF_Widget *wid)
 {
 	gf_list_del_item(wm->widgets, wid);
-	
+
 	if (wid->url) gf_free(wid->url);
 	if (wid->manifest_path) gf_free(wid->manifest_path);
 	wm_delete_widget_content(wid->main);
@@ -641,7 +641,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 	GF_FieldInfo info;
 	GF_WidgetMessage *msg;
 	GF_WidgetInterface *ifce;
-	
+
 	if (!wid && obj) wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_FALSE;
 	if (!wid->scene) return JS_TRUE;
@@ -674,7 +674,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 	}
 
 	if (!param  || !param->node) return JS_TRUE;
-	/*this is a script call*/	
+	/*this is a script call*/
 	if (!param->attribute) {
 		return wm_widget_call_script(wid, param, 0, NULL, rval);
 	}
@@ -696,7 +696,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 				if (!JSVAL_IS_STRING(argv[1])) goto exit;
 				str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 			}
-			
+
 			/* first check if the set_input refers to an attribute name or to an event name */
 			evt_type = gf_dom_event_type_by_name(param->attribute);
 
@@ -706,7 +706,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 				if (!strcmp(param->attribute, "textContent")) {
 					gf_dom_set_textContent(n, (char *)str_val);
 					gf_node_changed(n, NULL);
-				} 
+				}
 				else {
 					if (gf_node_get_attribute_by_name(n, param->attribute, 0, 1, 0, &info)==GF_OK) {
 						gf_svg_parse_attribute(n, &info, (char *)str_val, 0);
@@ -735,7 +735,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 				}
 			}
 		}
-	} else 
+	} else
 #endif
 
 
@@ -764,7 +764,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 				else if (JSVAL_IS_STRING(argv[1])) {
 					str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 					*((SFBool*)info.far_ptr) = (str_val && !strcmp(str_val, "true")) ? 1 : 0;
-				} else 
+				} else
 					goto exit;
 				break;
 			case GF_SG_VRML_SFINT32:
@@ -778,7 +778,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 					str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 					a_val = str_val ? atof(str_val) : 0;
 					*((SFInt32*)info.far_ptr) = (s32) a_val;
-				} else 
+				} else
 					goto exit;
 				break;
 			case GF_SG_VRML_SFFLOAT:
@@ -792,7 +792,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 					str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 					a_val = str_val ? atof(str_val) : 0;
 					*((SFFloat*)info.far_ptr) = FLT2FIX(a_val);
-				} else 
+				} else
 					goto exit;
 				break;
 			case GF_SG_VRML_SFTIME:
@@ -806,7 +806,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 					str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
 					a_val = str_val ? atof(str_val) : 0;
 					*((SFTime *)info.far_ptr) = a_val;
-				} else 
+				} else
 					goto exit;
 				break;
 			case GF_SG_VRML_MFSTRING:
@@ -827,7 +827,7 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 		}
 
 		//if this is a script eventIn call directly script
-		if ((n->sgprivate->tag==TAG_MPEG4_Script) || (n->sgprivate->tag==TAG_X3D_Script) ) 
+		if ((n->sgprivate->tag==TAG_MPEG4_Script) || (n->sgprivate->tag==TAG_X3D_Script) )
 			gf_sg_script_event_in(n, &info);
 
 		gf_node_changed(n, &info);
@@ -867,7 +867,7 @@ static JSBool wm_widget_call_input_script(JSContext *c, JSObject *obj, uintN arg
 	msg = JS_GetPrivate(c, JSVAL_TO_OBJECT(argv[0]) );
 	param = msg ? msg->input_action : NULL;
 	if (!param || !param->node || param->attribute) return JS_FALSE;
-	
+
 	if (JSVAL_IS_OBJECT(argv[1])) {
 		jsval *args;
 		JSObject *list = JSVAL_TO_OBJECT(argv[1]);
@@ -925,7 +925,7 @@ static SVG_handlerElement *wm_create_scene_listener(GF_WidgetInstance *wid, GF_W
 			/* modify textContent */
 			if (!strcmp(param->attribute, "textContent")) {
 				att_name = (u32) -1;
-			} 
+			}
 			/* modify an attribute */
 			else if (gf_node_get_attribute_by_name(n, param->attribute, 0, 1, 0, &info)==GF_OK) {
 				att_name = info.fieldIndex;
@@ -934,16 +934,16 @@ static SVG_handlerElement *wm_create_scene_listener(GF_WidgetInstance *wid, GF_W
 				return NULL;
 			}
 		}
-	} else 
+	} else
 #endif
 	{
-		if (gf_node_get_field_by_name(n, param->attribute, &info) != GF_OK) 
+		if (gf_node_get_field_by_name(n, param->attribute, &info) != GF_OK)
 			return NULL;
 		att_name = info.fieldIndex;
 	}
 
 	listener = gf_node_new(wid->scene, TAG_SVG_listener);
-	
+
 	handler = (SVG_handlerElement *) gf_node_new(wid->scene, TAG_SVG_handler);
 	/*we register the handler with the listener node to avoid modifying the DOM*/
 	gf_node_register((GF_Node *)handler, listener);
@@ -1025,7 +1025,7 @@ static void on_widget_activated(JSContext *c, JSObject *obj)
 	GF_XMLNode *context = NULL;
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid || wid->activated) return;
-				
+
 	/*widget is now activated*/
 	wid->activated = 1;
 
@@ -1088,7 +1088,7 @@ static void on_widget_activated(JSContext *c, JSObject *obj)
 
 		if (pref->connectTo) {
 			SVG_handlerElement *hdl;
-			
+
 			if (value)
 				wm_widget_set_scene_input_value(NULL, NULL, 0, 0, 0, 0, wid, pref->connectTo, value);
 
@@ -1156,7 +1156,7 @@ static JSBool wm_widget_activate(JSContext *c, JSObject *obj, uintN argc, jsval 
 	GF_Node *inl;
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid || !argc) return JS_FALSE;
-	
+
 	if (!JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 
 	inl = gf_sg_js_get_node(c, JSVAL_TO_OBJECT(argv[0]) );
@@ -1200,7 +1200,7 @@ static void wm_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *obse
 	GF_WidgetPin *param = handler->js_fun;
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)handler->evt_listen_obj;
 
-	if (!wid->scene) 
+	if (!wid->scene)
 		return;
 
 	n = gf_sg_find_node_by_name(wid->scene, param->node);
@@ -1233,7 +1233,7 @@ static void wm_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *obse
 		} else {
 			return;
 		}
-	} else 
+	} else
 #endif
 	{
 		if (gf_node_get_field_by_name(n, param->attribute, &info) != GF_OK) return;
@@ -1256,7 +1256,7 @@ static void wm_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *obse
 			argv[0] = DOUBLE_TO_JSVAL( JS_NewDouble(handler->js_context, *((SFTime *)info.far_ptr) ) );
 			break;
 		}
-	} 
+	}
 
 	jsfun = (jsval) handler->js_fun_val;
 	if (JSVAL_IS_OBJECT(jsfun))
@@ -1298,7 +1298,7 @@ static JSBool wm_widget_get_param_value(JSContext *c, JSObject *obj, uintN argc,
 		} else {
 			return JS_FALSE;
 		}
-	} else 
+	} else
 #endif
 	{
 		if (gf_node_get_field_by_name(n, param->attribute, &info) != GF_OK) return JS_FALSE;
@@ -1320,7 +1320,7 @@ static JSBool wm_widget_get_param_value(JSContext *c, JSObject *obj, uintN argc,
 			*rval = DOUBLE_TO_JSVAL( JS_NewDouble(c, *((SFTime *)info.far_ptr) ) );
 			break;
 		}
-	} 
+	}
 
 	return JS_TRUE;
 }
@@ -1392,8 +1392,8 @@ static JSBool wm_widget_get_message(JSContext *c, JSObject *obj, uintN argc, jsv
 		JS_DefineProperty(c, obj, "name", STRING_TO_JSVAL( JS_NewStringCopyZ(c, msg->name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, obj, "is_input", BOOLEAN_TO_JSVAL( msg->is_output ? JS_FALSE : JS_TRUE ) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, obj, "has_output_trigger", BOOLEAN_TO_JSVAL( msg->output_trigger ? JS_TRUE : JS_FALSE) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineProperty(c, obj, "has_input_action", BOOLEAN_TO_JSVAL( (msg->input_action && msg->input_action->attribute) ? JS_TRUE : JS_FALSE) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);		
-		JS_DefineProperty(c, obj, "has_script_input", BOOLEAN_TO_JSVAL( (msg->input_action && !msg->input_action->attribute) ? JS_TRUE : JS_FALSE) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);		
+		JS_DefineProperty(c, obj, "has_input_action", BOOLEAN_TO_JSVAL( (msg->input_action && msg->input_action->attribute) ? JS_TRUE : JS_FALSE) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, obj, "has_script_input", BOOLEAN_TO_JSVAL( (msg->input_action && !msg->input_action->attribute) ? JS_TRUE : JS_FALSE) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineFunction(c, obj, "get_param", wm_wm_widget_get_message_param, 1, 0);
 
 		*rval = OBJECT_TO_JSVAL(obj);
@@ -1424,7 +1424,7 @@ static JSBool wm_widget_get_component(JSContext *c, JSObject *obj, uintN argc, j
 		for (i=0; i<count; i++) {
 			GF_WidgetComponent *comp = gf_list_get(wid->widget->main->components, i);
 			if (!comp->id  || strcmp(comp->id, comp_id)) continue;
-			
+
 			comp_inst = wm_activate_component(c, wid, comp, 1);
 			if (comp_inst) {
 				*rval = OBJECT_TO_JSVAL(comp_inst->wid->obj);
@@ -1498,7 +1498,7 @@ static JSBool wm_widget_bind_output_trigger(JSContext *c, JSObject *obj, uintN a
 	handler->sgprivate->UserPrivate = JSVAL_TO_OBJECT(argv[2]);
 
 	gf_list_add(wid->output_triggers, handler);
-	
+
 	return JS_TRUE;
 }
 
@@ -1542,11 +1542,11 @@ static JSBool wm_widget_get_context(JSContext *c, JSObject *obj, uintN argc, jsv
 			GF_Node *n = gf_sg_find_node_by_name(wid->scene, pref->connectTo->node);
 			if (n) {
 
-#ifndef GPAC_DISABLE_SVG	
+#ifndef GPAC_DISABLE_SVG
 				if ((n->sgprivate->tag >= GF_NODE_FIRST_DOM_NODE_TAG) && !strcmp(pref->connectTo->attribute, "textContent")) {
 					char *txt = gf_dom_flatten_textContent(n);
 					gf_bs_write_data(bs, (u8 *) txt, strlen(txt) );
-				} else 
+				} else
 #endif
 				if (gf_node_get_field_by_name(n, pref->connectTo->attribute, &info)==GF_OK) {
 					att = gf_node_dump_attribute(n, &info);
@@ -1649,7 +1649,7 @@ static JSBool wm_widget_getProperty(JSContext *c, JSObject *obj, jsval id, jsval
 				icon_obj_val = OBJECT_TO_JSVAL(icon_obj);
 				JS_SetElement(c, arr, i, &icon_obj_val);
 				gf_free(abs_reloc_url);
-			} 
+			}
 		}
 		*vp = OBJECT_TO_JSVAL(arr);
 	}
@@ -1669,7 +1669,7 @@ static JSBool wm_widget_getProperty(JSContext *c, JSObject *obj, jsval id, jsval
 				JS_DefineProperty(c, pref_obj, "readonly", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ((pref->flags & GF_WM_PREF_READONLY)?"true":"false")) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 				pref_obj_val = OBJECT_TO_JSVAL(pref_obj);
 				JS_SetElement(c, arr, i, &pref_obj_val);
-			} 
+			}
 		}
 		*vp = OBJECT_TO_JSVAL(arr);
 	}
@@ -1705,7 +1705,7 @@ static JSBool wm_widget_getProperty(JSContext *c, JSObject *obj, jsval id, jsval
 				}
 				feat_obj_val = OBJECT_TO_JSVAL(feat_obj);
 				JS_SetElement(c, arr, i, &feat_obj_val);
-			} 
+			}
 		}
 		*vp = OBJECT_TO_JSVAL(arr);
 	}
@@ -1835,7 +1835,7 @@ static JSBool wm_widget_getProperty(JSContext *c, JSObject *obj, jsval id, jsval
 			}
 		}
 	}
-	
+
 	return JS_TRUE;
 }
 static JSBool wm_widget_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
@@ -1902,7 +1902,7 @@ static JSBool wm_widget_bind_interface_ex(JSContext *c, JSObject *obj, uintN arg
 		char *hostname;
 		JSObject *cookie;
 		if ((argc<3) || !JSVAL_IS_OBJECT(argv[1]) || !JSVAL_IS_STRING(argv[2])) return JS_FALSE;
-		
+
 		cookie = JSVAL_TO_OBJECT(argv[1]);
 		hostname = JS_GetStringBytes(JSVAL_TO_STRING(argv[2]) );
 		count = gf_list_count(wid->bound_ifces);
@@ -2088,7 +2088,7 @@ GF_WidgetComponentInstance *wm_activate_component(JSContext *c, GF_WidgetInstanc
 	}
 	if (!comp_wid) return NULL;
 
-	if (!comp_wid->activated) 
+	if (!comp_wid->activated)
 		fun_name = "on_widget_add";
 
 	GF_SAFEALLOC(comp_inst, GF_WidgetComponentInstance);
@@ -2210,7 +2210,7 @@ static JSBool wm_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		return JS_TRUE;
 	}
 
-	
+
 	return JS_TRUE;
 }
 static JSBool wm_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
@@ -2285,7 +2285,7 @@ const char *wm_xml_get_attr(GF_XMLNode *root, const char *name)
 }
 
 /* TODO Implement real language check according to BCP 47*/
-static Bool wm_check_language(const char *xml_lang_value, const char *user_locale) 
+static Bool wm_check_language(const char *xml_lang_value, const char *user_locale)
 {
 	Bool ret = 0;
 	char *sep, *val;
@@ -2328,13 +2328,13 @@ static GF_XMLNode *wm_xml_find(GF_XMLNode *root, const char *ns_prefix, const ch
 	else return non_localized;
 }
 
-static GF_WidgetPin *wm_parse_pin(const char *value, u16 type, const char *pin_name, const char *scriptType, const char *default_value) 
+static GF_WidgetPin *wm_parse_pin(const char *value, u16 type, const char *pin_name, const char *scriptType, const char *default_value)
 {
 	GF_WidgetPin *pin;
 	char *sep;
 
 	if (!value && !scriptType && !default_value) return NULL;
-	
+
 	GF_SAFEALLOC(pin, GF_WidgetPin);
 	pin->type = type;
 	if (pin_name) pin->name = gf_strdup(pin_name);
@@ -2357,7 +2357,7 @@ static GF_WidgetPin *wm_parse_pin(const char *value, u16 type, const char *pin_n
 		else {
 			pin->node = gf_strdup(value);
 		}
-	} 
+	}
 
 	if (scriptType) {
 		if (!strcmp(scriptType, "boolean")) pin->script_type = GF_WM_PARAM_SCRIPT_BOOL;
@@ -2402,7 +2402,7 @@ static void wm_parse_mpegu_content_element(GF_WidgetContent *content, GF_XMLNode
 
 			act = wm_xml_get_attr(ifce_node, "multipleBindings");
 			if (act && !strcmp(act, "true")) ifce->multiple_binding = 1;
-			
+
 			act = wm_xml_get_attr(ifce_node, "required");
 			if (act && !strcmp(act, "true")) ifce->required = 1;
 
@@ -2580,8 +2580,8 @@ static void wm_parse_mpegu_content_element(GF_WidgetContent *content, GF_XMLNode
 	}
 }
 
-/* Implements the W3C P&C rule for getting a single attribute value 
-   see http://www.w3.org/TR/widgets/#rule-for-getting-a-single-attribute-valu0 
+/* Implements the W3C P&C rule for getting a single attribute value
+   see http://www.w3.org/TR/widgets/#rule-for-getting-a-single-attribute-valu0
    should be different from getting normalized text but for now it's ok
    */
 static char *wm_get_single_attribute(const char *input) {
@@ -2612,14 +2612,14 @@ static char *wm_get_single_attribute(const char *input) {
 				output[j] = input[i];
 				j++;
 				first_space_copied = 0;
-		}				
+		}
 	}
 	if (j && output[j-1] == ' ') output[j-1] = 0;
 	output[j] = 0;
 	return output;
 }
 
-/* Implements the W3C P&C rule for getting a single attribute value 
+/* Implements the W3C P&C rule for getting a single attribute value
    see http://www.w3.org/TR/widgets/#rule-for-getting-a-single-attribute-valu0 */
 static u32 wm_parse_non_neg(const char *input) {
 	u32 result = 0;
@@ -2629,7 +2629,7 @@ static u32 wm_parse_non_neg(const char *input) {
 	return result;
 }
 
-/* returns the localized concatenated text content 
+/* returns the localized concatenated text content
 see http://www.w3.org/TR/2004/REC-DOM-Level-3-Core-20040407/core.html#Node3-textContent
 and http://www.w3.org/TR/widgets/#rule-for-getting-text-content0
 */
@@ -2641,7 +2641,7 @@ static char *wm_get_text_content(GF_XMLNode *node, char *inherited_locale, const
 		char *xml_lang = (char *)wm_xml_get_attr(node, "xml:lang");
 		if (!xml_lang) xml_lang = inherited_locale;
 		/*
-		if (xml_lang && user_locale && wm_check_language(xml_lang, user_locale)) 
+		if (xml_lang && user_locale && wm_check_language(xml_lang, user_locale))
 		*/
 		{
 			u32 i, count;
@@ -2660,12 +2660,12 @@ static char *wm_get_text_content(GF_XMLNode *node, char *inherited_locale, const
 				gf_free(child_content);
 			}
 			return text_content;
-		}	
+		}
 		/*
 		} else {
 			return gf_strdup("");
 		*/
-	}	
+	}
 }
 
 static char *wm_get_normalized_text_content(GF_XMLNode *node, char *inherited_locale, const char *user_locale) {
@@ -2678,7 +2678,7 @@ static char *wm_get_normalized_text_content(GF_XMLNode *node, char *inherited_lo
 	return result;
 }
 
-/* When relocating resources over HTTP, we check if the resources for a given locale exists 
+/* When relocating resources over HTTP, we check if the resources for a given locale exists
   on the server by sending a HEAD message with an Accept-Language header. */
 void wm_relocate_proc(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
@@ -2692,7 +2692,7 @@ void wm_relocate_proc(void *usr_cbk, GF_NETIO_Parameter *parameter)
 /* relocate the given resource name (res_name) using registered relocators (e.g. locales, package folder)
    The result is the path of the file, possibly uncompressed, possibly localized.
    The parameter widget_path provides the path for converting relative resource paths into absolute paths.*/
-static Bool wm_relocate_url(GF_WidgetManager *wm, const char *widget_path, const char *res_name, char *relocated_name, char *localized_res_name) 
+static Bool wm_relocate_url(GF_WidgetManager *wm, const char *widget_path, const char *res_name, char *relocated_name, char *localized_res_name)
 {
 	Bool ok = 0;
 	char *res_url;
@@ -2768,7 +2768,7 @@ static GF_WidgetContent *wm_add_icon(GF_Widget *widget, const char *icon_relocat
 	GF_WidgetContent *icon;
 	u32 i, count;
 	Bool already_in = 0;
-	
+
 	count = gf_list_count(widget->icons);
 	for (i =0; i<count; i++) {
 		GF_WidgetContent *in_icon = gf_list_get(widget->icons, i);
@@ -2821,12 +2821,12 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 	GF_Err e;
 	GF_DOMParser *dom = NULL;
 	GF_WidgetPackage *wpackage = NULL;
-	
+
 	GF_DownloadSession *sess = NULL;
 	const char *widget_ns_prefix = NULL;
 	const char *mpegu_ns_prefix = NULL;
 	const char *user_locale = gf_cfg_get_key(wm->term->user->config, "Systems", "Language2CC");
-	
+
 	/* Try to see if this widget is already loaded */
 	e = GF_OK;
 	count = gf_list_count(wm->widgets);
@@ -2878,8 +2878,8 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 			count = gf_list_count(wpackage->resources);
 			for (i=0; i<count; i++) {
 				GF_WidgetPackageResource *wu = gf_list_get(wpackage->resources, i);
-				/* According to W3C WPC, the config.xml file (lower case) shall only be located 
-				   at the root of the package 
+				/* According to W3C WPC, the config.xml file (lower case) shall only be located
+				   at the root of the package
 				   see http://www.w3.org/TR/widgets/#ta-dxzVDWpaWg */
 				if (!strcmp(wu->inner_path, "config.xml")) {
 					szManifestPath = wu->extracted_path;
@@ -2977,7 +2977,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		nmain = wm_xml_find(root, widget_ns_prefix, "content", NULL);
 		if (!nmain) {
 			/* if not found, use the default table of start files */
-			wm_set_default_start_file(wm, content, szWidgetPath);			
+			wm_set_default_start_file(wm, content, szWidgetPath);
 		} else {
 			const char *src, *encoding, *mimetype;
 			src = wm_xml_get_attr(nmain, "src");
@@ -2996,7 +2996,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 					content->src = gf_strdup(localized_path);
 				}
 			}
-			
+
 			encoding = wm_xml_get_attr(nmain, "encoding");
 			if (encoding && strlen(encoding)) content->encoding = wm_get_single_attribute(encoding);
 			else content->encoding = gf_strdup("utf-8");
@@ -3044,9 +3044,9 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		/*check for icon - can be optional*/
 		i=0;
 		while ((icon = gf_list_enum(root->content, &i))) {
-			if (icon->type==GF_XML_NODE_TYPE && 
-					icon->name && !strcmp(icon->name, "icon") && 
-					((!widget_ns_prefix && !icon->ns) || !strcmp(widget_ns_prefix, icon->ns))) {			
+			if (icon->type==GF_XML_NODE_TYPE &&
+					icon->name && !strcmp(icon->name, "icon") &&
+					((!widget_ns_prefix && !icon->ns) || !strcmp(widget_ns_prefix, icon->ns))) {
 				char *sep;
 				char relocated[GF_MAX_PATH], localized_path[GF_MAX_PATH];
 				char *icon_width, *icon_height;
@@ -3055,7 +3055,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 
 				char *pname = (char *)wm_xml_get_attr(icon, "src");
 				if (!pname || !strlen(pname)) continue;
-				
+
 				/*remove any existing fragment*/
 				sep = strchr(pname, '#');
 				if (sep) sep[0] = 0;
@@ -3073,7 +3073,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 				}
 			}
 		}
-		/* after processing the icon elements (wether there are valid icons or not), we use the default icon table 
+		/* after processing the icon elements (wether there are valid icons or not), we use the default icon table
 		  see http://dev.w3.org/2006/waf/widgets/test-suite/test-cases/ta-FAFYMEGELU/004/ */
 		wm_set_default_icon_files(wm, szWidgetPath, widget);
 
@@ -3097,9 +3097,9 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 
 		desc = wm_xml_get_attr(root, "id");
 		if (desc) {
-			/* TODO check if this is a valid IRI, for the moment, just hack to pass the test, check for ':' 
+			/* TODO check if this is a valid IRI, for the moment, just hack to pass the test, check for ':'
 			  see http://dev.w3.org/2006/waf/widgets/test-suite/test-cases/ta-RawAIWHoMs/ */
-			if (strchr(desc, ':')) 
+			if (strchr(desc, ':'))
 				widget->identifier = wm_get_single_attribute(desc);
 		}
 
@@ -3111,7 +3111,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		if (desc) {
 			widget->height = wm_parse_non_neg(desc);
 		}
-		
+
 		name = wm_xml_find(root, widget_ns_prefix, "description", user_locale);
 		if (name) {
 			widget->description = wm_get_normalized_text_content(name, NULL, user_locale);
@@ -3151,8 +3151,8 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 
 		i=0;
 		while ((xml_node = gf_list_enum(root->content, &i))) {
-			if (xml_node->type==GF_XML_NODE_TYPE && 
-					xml_node->name && !strcmp(xml_node->name, "feature") && 
+			if (xml_node->type==GF_XML_NODE_TYPE &&
+					xml_node->name && !strcmp(xml_node->name, "feature") &&
 					((!widget_ns_prefix && !xml_node->ns) || !strcmp(widget_ns_prefix, xml_node->ns))) {
 
 				u32 i, count;
@@ -3189,8 +3189,8 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 
 				j = 0;
 				while ((param_node = gf_list_enum(xml_node->content, &j))) {
-					if (param_node->type==GF_XML_NODE_TYPE && 
-							param_node->name && !strcmp(param_node->name, "param") && 
+					if (param_node->type==GF_XML_NODE_TYPE &&
+							param_node->name && !strcmp(param_node->name, "param") &&
 							((!widget_ns_prefix && !param_node->ns) || !strcmp(widget_ns_prefix, param_node->ns))) {
 						GF_WidgetFeatureParam *wfp;
 						const char *param_name, *param_value;
@@ -3249,7 +3249,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		gf_cfg_set_key(wm->term->user->config, wi->secname, "WM:Manifest", wi->widget->url);
 		sprintf(szInst, "%d", wi->instance_id);
 		gf_cfg_set_key(wm->term->user->config, wi->secname, "WM:InstanceID", szInst);
-	}	
+	}
 	gf_list_add(wm->widget_instances, wi);
 
 
@@ -3271,13 +3271,13 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		ctx_sess = gf_dm_sess_new(wm->term->downloader, (char *)ctxPath, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
 		if (ctx_sess) {
 			e = gf_dm_sess_process(ctx_sess);
-			if (e==GF_OK) {					
+			if (e==GF_OK) {
 				wi->mpegu_context = gf_xml_dom_new();
 				e = gf_xml_dom_parse(wi->mpegu_context , gf_dm_sess_get_cache_name(ctx_sess), NULL, NULL);
 				if (!e) {
 					context = gf_xml_dom_get_root(wi->mpegu_context);
 					if (strcmp(context->name, "contextInformation")) context = NULL;
-				} 
+				}
 			}
 			gf_dm_sess_del(ctx_sess);
 			e = GF_OK;
@@ -3351,7 +3351,7 @@ static JSBool wm_initialize(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 
 	opt = gf_cfg_get_key(wm->term->user->config, "Widgets", "WidgetStore");
 	if (opt) gf_enum_directory(opt, 1, wm_enum_dir, wm, NULL);
-	
+
 	return JS_TRUE;
 }
 
@@ -3423,9 +3423,9 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 		{"call_input_script", wm_widget_call_input_script, 2, 0, 0},
 		{"is_interface_bound", wm_widget_is_interface_bound, 1, 0, 0},
 		{"get_param_value", wm_widget_get_param_value, 1, 0, 0},
-		{"get_context", wm_widget_get_context, 0, 0, 0},	
+		{"get_context", wm_widget_get_context, 0, 0, 0},
 		{"get_component", wm_widget_get_component, 2, 0, 0},
-		
+
 		{0, 0, 0, 0, 0}
 	};
 	/*setup JS bindings*/
@@ -3435,7 +3435,7 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 	_SETUP_CLASS(wm->widgetAnyClass, "WIDGETANY", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
 	JS_InitClass(c, global, 0, &wm->widgetAnyClass, 0, 0, 0, 0, 0, 0);
 	}
-	
+
 	_SETUP_CLASS(wm->widgetClass, "MPEGWidget", JSCLASS_HAS_PRIVATE, widget_getProperty, widget_setProperty, JS_FinalizeStub);
 
 	if (scene->script_action) {
@@ -3466,18 +3466,28 @@ static GF_JSUserExtension *gwm_new()
 
 static void gwm_delete(GF_BaseInterface *ifce)
 {
+        GF_WidgetManager *wm;
 	GF_JSUserExtension *dr = (GF_JSUserExtension *) ifce;
-	GF_WidgetManager *wm = dr->udta;
-	gf_list_del(wm->widget_instances);
-	gf_list_del(wm->widgets);
+        if (!dr)
+          return;
+        wm = dr->udta;
+        if (!wm)
+          return;
+        if (wm->widget_instances)
+          gf_list_del(wm->widget_instances);
+        wm->widget_instances = NULL;
+        if (wm->widgets)
+          gf_list_del(wm->widgets);
+        wm->widgets = NULL;
 	gf_free(wm);
+        dr->udta = NULL;
 	gf_free(dr);
 }
 #endif
 
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #ifdef GPAC_HAS_SPIDERMONKEY
@@ -3486,11 +3496,11 @@ const u32 *QueryInterfaces()
 #endif
 		0
 	};
-	return si; 
+	return si;
 }
 
 GF_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 #ifdef GPAC_HAS_SPIDERMONKEY
 	if (InterfaceType == GF_JS_USER_EXT_INTERFACE) return (GF_BaseInterface *)gwm_new();

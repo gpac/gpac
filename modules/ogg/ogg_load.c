@@ -10,16 +10,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include "ogg_in.h"
@@ -31,7 +31,7 @@ static Bool OGG_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectT
 	if (StreamType == GF_STREAM_VISUAL) {
 		switch (ObjectType) {
 #ifdef GPAC_HAS_THEORA
-		case GPAC_OTI_MEDIA_OGG: 
+		case GPAC_OTI_MEDIA_OGG:
 			if (decSpecInfo && (decSpecInfoSize>=9)  && !strncmp((char *) &decSpecInfo[3], "theora", 6)) {
 				return NewTheoraDecoder(dec);
 			}
@@ -41,11 +41,11 @@ static Bool OGG_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectT
 		default: return 0;
 		}
 	}
-	/*audio decs*/	
+	/*audio decs*/
 	if (StreamType == GF_STREAM_AUDIO) {
 		switch (ObjectType) {
 #ifdef GPAC_HAS_VORBIS
-		case GPAC_OTI_MEDIA_OGG: 
+		case GPAC_OTI_MEDIA_OGG:
 			if (decSpecInfo && (decSpecInfoSize>=9)  && !strncmp((char *) &decSpecInfo[3], "vorbis", 6)) {
 				return NewVorbisDecoder(dec);
 			}
@@ -75,23 +75,29 @@ GF_BaseDecoder *OGG_LoadDecoder()
 
 void DeleteOGGDecoder(GF_BaseDecoder *ifcd)
 {
-	OGGWraper *wrap = (OGGWraper *)ifcd->privateStack;
-	switch (wrap->type) {
+	OGGWraper *wrap;
+        if (!ifcd)
+          return;
+        wrap = (OGGWraper *)ifcd->privateStack;
+        if (!wrap){
+          switch (wrap->type) {
 #ifdef GPAC_HAS_VORBIS
-	case OGG_VORBIS: DeleteVorbisDecoder(ifcd); break;
+            case OGG_VORBIS: DeleteVorbisDecoder(ifcd); break;
 #endif
 #ifdef GPAC_HAS_THEORA
-	case OGG_THEORA: DeleteTheoraDecoder(ifcd); break;
+            case OGG_THEORA: DeleteTheoraDecoder(ifcd); break;
 #endif
-	default:
+            default:
 		break;
-	}
-	gf_free(wrap);
+          }
+          gf_free(wrap);
+          (OGGWraper *)ifcd->privateStack = NULL;
+        }
 	gf_free(ifcd);
 }
 
 
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
@@ -100,10 +106,10 @@ const u32 *QueryInterfaces()
 		GF_MEDIA_DECODER_INTERFACE,
 		0
 	};
-	return si; 
+	return si;
 }
 
-GF_BaseInterface *LoadInterface(u32 InterfaceType) 
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_OGG)
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return (GF_BaseInterface *)OGG_LoadDemux();

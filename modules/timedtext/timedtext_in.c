@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -71,6 +71,8 @@ static Bool TTIn_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	u32 i;
+        if (!plug || !url)
+          return;
 	sExt = strrchr(url, '.');
 	if (!sExt) return 0;
 	for (i = 0 ; TTIN_MIME_TYPES[i]; i+=3){
@@ -109,7 +111,7 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	char szFILE[GF_MAX_PATH];
 	TTIn *tti = (TTIn *)plug->priv;
 	const char *cache_dir = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
-	
+
 	if (cache_dir && strlen(cache_dir)) {
 		if (cache_dir[strlen(cache_dir)-1] != GF_PATH_SEPARATOR) {
 			sprintf(szFILE, "%s%csrt_%p_mp4", cache_dir, GF_PATH_SEPARATOR, tti);
@@ -129,7 +131,7 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	/*override layout from sub file*/
 	import.flags = GF_IMPORT_SKIP_TXT_BOX;
 	import.in_name = (char *) url;
-	
+
 	e = gf_media_import(&import);
 	if (!e) {
 		tti->tt_track = 1;
@@ -155,8 +157,8 @@ void TTIn_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		else {
 			e = TTIn_LoadFile(plug, szCache, 1);
 		}
-	} 
-	else if (param->msg_type==GF_NETIO_DATA_EXCHANGE) 
+	}
+	else if (param->msg_type==GF_NETIO_DATA_EXCHANGE)
 		return;
 
 	/*OK confirm*/
@@ -204,15 +206,21 @@ static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 static GF_Err TTIn_CloseService(GF_InputService *plug)
 {
 	TTIn *tti = (TTIn *)plug->priv;
-	if (tti->samp) gf_isom_sample_del(&tti->samp);
-	if (tti->mp4) gf_isom_delete(tti->mp4);
+        if (!tti)
+          return GF_BAD_PARAM;
+	if (tti->samp)
+          gf_isom_sample_del(&tti->samp);
+        tti->samp = NULL;
+	if (tti->mp4)
+          gf_isom_delete(tti->mp4);
 	tti->mp4 = NULL;
 	if (tti->szFile) {
 		gf_delete_file(tti->szFile);
 		gf_free(tti->szFile);
 		tti->szFile = NULL;
 	}
-	if (tti->dnload) gf_term_download_del(tti->dnload);
+	if (tti->dnload)
+          gf_term_download_del(tti->dnload);
 	tti->dnload = NULL;
 
 	gf_term_on_disconnect(tti->service, NULL, GF_OK);
@@ -392,7 +400,9 @@ void DeleteTTReader(void *ifce)
 {
 	GF_InputService *plug = (GF_InputService *) ifce;
 	TTIn *tti = (TTIn *)plug->priv;
-	gf_free(tti);
+        if (tti)
+          gf_free(tti);
+        plug->priv = NULL;
 	gf_free(plug);
 }
 

@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / OD decoder module
@@ -10,22 +10,22 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/constants.h>
 
-typedef struct 
+typedef struct
 {
 	GF_Scene *scene;
 	u32 PL;
@@ -46,7 +46,7 @@ static GF_Err ODF_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 static GF_Err ODF_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_inline_scene)
 {
 	ODPriv *priv = (ODPriv *)plug->privateStack;
-	if (!priv->scene) priv->scene = scene;
+	if (priv && !priv->scene) priv->scene = scene;
 	return GF_OK;
 }
 
@@ -128,7 +128,7 @@ static GF_Err ODS_UpdateESD(ODPriv *priv, GF_ESDUpdate *ESDs)
 		gf_list_rem(ESDs->ESDescriptors, 0);
 		count--;
 	}
-	/*resetup object since a new ES has been inserted 
+	/*resetup object since a new ES has been inserted
 	(typically an empty object first sent, then a stream added - cf how ogg demuxer works)*/
 	gf_scene_setup_object(priv->scene, odm);
 	return GF_OK;
@@ -162,14 +162,14 @@ static GF_Err ODF_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 }
 
 
-static GF_Err ODF_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength, 
+static GF_Err ODF_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 inBufferLength,
 							u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	GF_Err e;
 	GF_ODCom *com;
 	GF_ODCodec *oddec;
 	ODPriv *priv = (ODPriv *)plug->privateStack;
-	
+
 	oddec = gf_odf_codec_new();
 
 	e = gf_odf_codec_set_au(oddec, inBuffer, inBufferLength);
@@ -249,8 +249,14 @@ Bool ODF_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, c
 
 void DeleteODDec(GF_BaseDecoder *plug)
 {
-	ODPriv *priv = (ODPriv *)plug->privateStack;
-	gf_free(priv);
+	ODPriv *priv;
+        if (!plug)
+          return;
+        priv = (ODPriv *)plug->privateStack;
+        if (priv){
+          gf_free(priv);
+          plug->privateStack = NULL;
+        }
 	gf_free(plug);
 }
 
@@ -258,7 +264,7 @@ GF_BaseDecoder *NewODDec()
 {
 	GF_SceneDecoder *tmp;
 	ODPriv *priv;
-	
+
 	GF_SAFEALLOC(tmp, GF_SceneDecoder);
 	if (!tmp) return NULL;
 	GF_SAFEALLOC(priv, ODPriv);
@@ -278,13 +284,13 @@ GF_BaseDecoder *NewODDec()
 
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_SCENE_DECODER_INTERFACE,
 		0
 	};
-	return si; 
+	return si;
 }
 
 GF_EXPORT
@@ -301,6 +307,8 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 GF_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
+        if (!ifce)
+          return;
 	switch (ifce->InterfaceType) {
 	case GF_SCENE_DECODER_INTERFACE:
 		DeleteODDec((GF_BaseDecoder *)ifce);

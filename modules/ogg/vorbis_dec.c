@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -50,7 +50,7 @@ static GF_Err VORB_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 	VORBISCTX();
 	if (ctx->ES_ID) return GF_BAD_PARAM;
-	
+
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return GF_NON_COMPLIANT_BITSTREAM;
 	if (esd->decoderConfig->objectTypeIndication != GPAC_OTI_MEDIA_OGG) return GF_NON_COMPLIANT_BITSTREAM;
 	if ((esd->decoderConfig->decoderSpecificInfo->dataLength<9) || strncmp(&esd->decoderConfig->decoderSpecificInfo->data[3], "vorbis", 6)) return GF_NON_COMPLIANT_BITSTREAM;
@@ -78,7 +78,7 @@ static GF_Err VORB_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		gf_free(oggpacket.packet);
 	}
 	vorbis_synthesis_init(&ctx->vd, &ctx->vi);
-	vorbis_block_init(&ctx->vd, &ctx->vb); 
+	vorbis_block_init(&ctx->vd, &ctx->vb);
 	gf_bs_del(bs);
 
 	return GF_OK;
@@ -89,7 +89,7 @@ static GF_Err VORB_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 	VORBISCTX();
 	if (ctx->ES_ID != ES_ID) return GF_BAD_PARAM;
 
-	vorbis_block_clear(&ctx->vb); 
+	vorbis_block_clear(&ctx->vb);
 	vorbis_dsp_clear(&ctx->vd);
     vorbis_info_clear(&ctx->vi);
     vorbis_comment_clear(&ctx->vc);
@@ -165,13 +165,13 @@ static GF_Err VORB_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 }
 
 
-static GFINLINE void vorbis_to_intern(u32 samples, Float **pcm, char *buf, u32 channels) 
+static GFINLINE void vorbis_to_intern(u32 samples, Float **pcm, char *buf, u32 channels)
 {
 	u32 i, j;
 	s32 val;
 	ogg_int16_t *ptr, *data = (ogg_int16_t*)buf ;
 	Float *mono;
- 
+
     for (i=0 ; i<channels ; i++) {
 		ptr = &data[i];
 		if (channels>2) {
@@ -187,17 +187,17 @@ static GFINLINE void vorbis_to_intern(u32 samples, Float **pcm, char *buf, u32 c
 		}
 
 		mono = pcm[i];
-		for (j=0; j<samples; j++) { 
+		for (j=0; j<samples; j++) {
 			val = (s32) (mono[j] * 32767.f);
 			if (val > 32767) val = 32767;
 			if (val < -32768) val = -32768;
 			*ptr = val;
 			ptr += channels;
 		}
-    }    
+    }
 }
 
-static GF_Err VORB_ProcessData(GF_MediaDecoder *ifcg, 
+static GF_Err VORB_ProcessData(GF_MediaDecoder *ifcg,
 		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
 		char *outBuffer, u32 *outBufferLength,
@@ -221,7 +221,7 @@ static GF_Err VORB_ProcessData(GF_MediaDecoder *ifcg,
 
 	*outBufferLength = 0;
 
-	if (vorbis_synthesis(&ctx->vb, &op) == 0) 
+	if (vorbis_synthesis(&ctx->vb, &op) == 0)
 		vorbis_synthesis_blockin(&ctx->vd, &ctx->vb) ;
 
 	/*trust vorbis max block info*/
@@ -233,7 +233,7 @@ static GF_Err VORB_ProcessData(GF_MediaDecoder *ifcg,
 		total_samples += samples;
 		vorbis_synthesis_read(&ctx->vd, samples);
 	}
-	*outBufferLength = total_bytes;   
+	*outBufferLength = total_bytes;
 	return GF_OK;
 }
 
@@ -249,7 +249,7 @@ u32 NewVorbisDecoder(GF_BaseDecoder *ifcd)
 	GF_SAFEALLOC(dec, VorbDec);
 	((OGGWraper *)ifcd->privateStack)->opaque = dec;
 	((OGGWraper *)ifcd->privateStack)->type = OGG_VORBIS;
-	/*setup our own interface*/	
+	/*setup our own interface*/
 	ifcd->AttachStream = VORB_AttachStream;
 	ifcd->DetachStream = VORB_DetachStream;
 	ifcd->GetCapabilities = VORB_GetCapabilities;
@@ -261,8 +261,14 @@ u32 NewVorbisDecoder(GF_BaseDecoder *ifcd)
 
 void DeleteVorbisDecoder(GF_BaseDecoder *ifcg)
 {
-	VORBISCTX();
-	gf_free(ctx);
+	VorbDec *ctx;
+        if (!ifcg || !ifcg->privateStack)
+          return;
+        ctx = (VorbDec *) ((OGGWraper *)ifcg->privateStack)->opaque;
+        if (ctx){
+          gf_free(ctx);
+          ((OGGWraper *)ifcg->privateStack)->opaque = NULL;
+        }
 }
 
 #endif

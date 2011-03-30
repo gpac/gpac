@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -63,6 +62,10 @@ import android.widget.Toast;
 public class Osmo4 extends Activity implements GpacCallback {
 
     private String[] m_modules_list;
+
+    private final boolean fastStartup = false;
+
+    private final static int DEFAULT_BUFFER_SIZE = 8192;
 
     private final String DEFAULT_OPEN_URL = Osmo4Renderer.GPAC_CFG_DIR + "gui/gui.bt"; //$NON-NLS-1$
 
@@ -126,40 +129,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                         setProgress(5000);
                     }
                 });
-                displayPopup("Loading native libraries...", name); //$NON-NLS-1$
-                Map<String, Throwable> exceptions = GpacObject.loadAllLibraries();
-                if (!exceptions.isEmpty()) {
-                    displayPopup("Exception(s) occurred !", name); //$NON-NLS-1$
-                    final StringBuilder sb = new StringBuilder();
-                    for (Map.Entry<String, Throwable> x : exceptions.entrySet()) {
-                        sb.append(x.getKey()).append(": ") //$NON-NLS-1$
-                          .append(x.getValue().getClass().getSimpleName())
-                          .append(": ") //$NON-NLS-1$
-                          .append(x.getValue().getLocalizedMessage())
-                          .append('\n');
-                    }
-                    runOnUiThread(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            AlertDialog.Builder builder = new AlertDialog.Builder(Osmo4.this);
-                            builder.setTitle("Exception while loading libraries !"); //$NON-NLS-1$
-                            builder.setMessage(sb.toString());
-                            builder.setCancelable(true);
-                            builder.setPositiveButton(OK_BUTTON, new OnClickListener() {
-
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.cancel();
-                                }
-                            });
-                            AlertDialog d = builder.create();
-                            d.show();
-                        }
-                    });
-                    return;
-                }
-                displayPopup("Loading GPAC Renderer...", name); //$NON-NLS-1$
+                displayPopup("Loading GPAC Renderer $Revision$...", name); //$NON-NLS-1$
                 runOnUiThread(new Runnable() {
 
                     @Override
@@ -374,15 +344,11 @@ public class Osmo4 extends Activity implements GpacCallback {
 
         if (renderer == null)
             displayPopup("Renderer should not be null", "ERROR"); //$NON-NLS-1$ //$NON-NLS-2$
-        else
-            renderer.postCommand(new Runnable() {
-
-                @Override
-                public void run() {
-                    GpacObject.gpacconnect(url);
-
-                }
-            });
+        else {
+            GPACInstance i = renderer.getInstance();
+            if (i != null)
+                i.connect(url);
+        }
     }
 
     // ---------------------------------------
@@ -420,16 +386,14 @@ public class Osmo4 extends Activity implements GpacCallback {
             if (wl != null)
                 wl.release();
         }
-        Osmo4Renderer r = getRenderer();
-        if (r != null)
-            r.postCommand(new Runnable() {
-
-                @Override
-                public void run() {
-                    GpacObject.gpacfree();
-                }
-            });
-
+        Osmo4Renderer renderer = getRenderer();
+        if (renderer != null) {
+            GPACInstance instance = renderer.getInstance();
+            Log.d(LOG_OSMO_TAG, "Disconnecting instance..."); //$NON-NLS-1$
+            instance.disconnect();
+            Log.d(LOG_OSMO_TAG, "Destroying GPAC instance..."); //$NON-NLS-1$
+            instance.destroy();
+        }
         super.onDestroy();
     }
 
@@ -445,7 +409,7 @@ public class Osmo4 extends Activity implements GpacCallback {
             String fn = Osmo4Renderer.GPAC_MODULES_DIR + m_modules_list[i] + ".so"; //$NON-NLS-1$
             File finalFile = new File(fn);
             // If file has already been copied, not need to do it again
-            if (finalFile.exists() && finalFile.canRead() && 0 < finalFile.length()) {
+            if (finalFile.exists() && finalFile.canRead() && fastStartup) {
                 Log.i(LOG_OSMO_TAG, "Skipping " + finalFile); //$NON-NLS-1$
                 continue;
             }
@@ -454,8 +418,8 @@ public class Osmo4 extends Activity implements GpacCallback {
                                     + finalFile.getAbsolutePath());
                 File tmpFile = new File(fn + ".tmp"); //$NON-NLS-1$
                 int read;
-                ins = new BufferedInputStream(getResources().openRawResource(ids[i]));
-                fos = new BufferedOutputStream(new FileOutputStream(tmpFile));
+                ins = new BufferedInputStream(getResources().openRawResource(ids[i]), DEFAULT_BUFFER_SIZE);
+                fos = new BufferedOutputStream(new FileOutputStream(tmpFile), DEFAULT_BUFFER_SIZE);
                 while (0 < (read = ins.read(buffer))) {
                     fos.write(buffer, 0, read);
                 }
@@ -598,11 +562,46 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     @Override
     public void onGPACReady() {
+        Log.i(LOG_OSMO_TAG, "GPAC is ready"); //$NON-NLS-1$
         runOnUiThread(new Runnable() {
 
             @Override
             public void run() {
                 setProgress(10000);
+            }
+        });
+    }
+
+    /**
+     * @see com.artemis.Osmo4.GpacCallback#onGPACError(java.lang.Throwable)
+     */
+    @Override
+    public void onGPACError(final Throwable e) {
+        Log.e(LOG_OSMO_TAG, "GPAC Error", e); //$NON-NLS-1$
+        runOnUiThread(new Runnable() {
+
+            @Override
+            public void run() {
+                StringBuilder sb = new StringBuilder();
+                sb.append("Failed to init GPAC due to "); //$NON-NLS-1$
+                sb.append(e.getClass().getSimpleName());
+                AlertDialog.Builder builder = new AlertDialog.Builder(Osmo4.this);
+                builder.setTitle(sb.toString());
+                sb.append('\n');
+                sb.append("Description: "); //$NON-NLS-1$
+                sb.append(e.getLocalizedMessage());
+                sb.append('\n');
+                sb.append("Revision: $Revision$"); //$NON-NLS-1$
+                builder.setMessage(sb.toString());
+                builder.setCancelable(true);
+                builder.setPositiveButton(OK_BUTTON, new OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+                builder.create().show();
             }
         });
     }

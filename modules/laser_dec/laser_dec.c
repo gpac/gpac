@@ -11,15 +11,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -29,7 +29,7 @@
 
 #ifndef GPAC_DISABLE_LASER
 
-typedef struct 
+typedef struct
 {
 	GF_Scene *pScene;
 	GF_Terminal *app;
@@ -56,7 +56,7 @@ GF_Err LSR_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_scene_dec
 	if (priv->codec) return GF_BAD_PARAM;
 	priv->pScene = scene;
 	priv->app = scene->root_od->term;
-	
+
 	priv->codec = gf_laser_decoder_new(scene->graph);
 	/*attach the clock*/
 	gf_laser_decoder_set_clock(priv->codec, gf_scene_get_time, scene);
@@ -92,7 +92,7 @@ static GF_Err LSR_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	return GF_OK;
 }
 
-static GF_Err LSR_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 inBufferLength, 
+static GF_Err LSR_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 inBufferLength,
 								u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	GF_Err e = GF_OK;
@@ -114,10 +114,18 @@ Bool LSR_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, c
 
 void DeleteLSRDec(GF_BaseDecoder *plug)
 {
-	LSRPriv *priv = (LSRPriv *)plug->privateStack;
-	/*in case something went wrong*/
-	if (priv->codec) gf_laser_decoder_del(priv->codec);
-	gf_free(priv);
+	LSRPriv *priv;
+        if (!plug)
+          return;
+        priv = (LSRPriv *)plug->privateStack;
+        if (priv){
+          /*in case something went wrong*/
+          if (priv->codec)
+            gf_laser_decoder_del(priv->codec);
+          priv->codec = NULL;
+          gf_free(priv);
+          plug->privateStack = NULL;
+        }
 	gf_free(plug);
 }
 
@@ -125,7 +133,7 @@ GF_BaseDecoder *NewLSRDec()
 {
 	LSRPriv *priv;
 	GF_SceneDecoder *tmp;
-	
+
 	GF_SAFEALLOC(tmp, GF_SceneDecoder);
 	if (!tmp) return NULL;
 	GF_SAFEALLOC(priv, LSRPriv);
@@ -147,7 +155,7 @@ GF_BaseDecoder *NewLSRDec()
 
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #ifndef GPAC_DISABLE_LASER
@@ -155,7 +163,7 @@ const u32 *QueryInterfaces()
 #endif
 		0
 	};
-	return si; 
+	return si;
 }
 
 GF_EXPORT

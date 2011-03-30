@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -47,7 +47,7 @@ typedef struct
 	u8 num_channels;
 	/*no support for scalability in FAAD yet*/
 	u16 ES_ID;
-	
+
 	char ch_reorder[16];
 } AC3Dec;
 
@@ -57,7 +57,7 @@ typedef struct
 static GF_Err AC3_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	A52CTX();
-	
+
 	if (ctx->ES_ID && ctx->ES_ID!=esd->ESID) return GF_NOT_SUPPORTED;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[A52] Attaching stream %d\n", esd->ESID));
@@ -143,23 +143,23 @@ static GF_Err AC3_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capa
 		case A52_DOLBY:
 			break;
 		case A52_3F:
-			capability->cap.valueInt = GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT; 
+			capability->cap.valueInt = GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
 			break;
 		case A52_2F1R:
-			capability->cap.valueInt = GF_AUDIO_CH_BACK_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT; 
+			capability->cap.valueInt = GF_AUDIO_CH_BACK_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
 			break;
 		case A52_3F1R:
-			capability->cap.valueInt = GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_BACK_CENTER; 
+			capability->cap.valueInt = GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_BACK_CENTER;
 			break;
 		case A52_2F2R:
-			capability->cap.valueInt = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_BACK_LEFT | GF_AUDIO_CH_BACK_RIGHT; 
+			capability->cap.valueInt = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_BACK_LEFT | GF_AUDIO_CH_BACK_RIGHT;
 			break;
 		case A52_3F2R:
-			capability->cap.valueInt = GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_BACK_LEFT | GF_AUDIO_CH_BACK_RIGHT; 
+			capability->cap.valueInt = GF_AUDIO_CH_FRONT_CENTER | GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT | GF_AUDIO_CH_BACK_LEFT | GF_AUDIO_CH_BACK_RIGHT;
 			break;
 		}
 		if (ctx->flags & A52_LFE)
-			capability->cap.valueInt |= GF_AUDIO_CH_LFE; 
+			capability->cap.valueInt |= GF_AUDIO_CH_LFE;
 		break;
 	default:
 		capability->cap.valueInt = 0;
@@ -223,7 +223,7 @@ static const int ac3_channels[8] = {
     2, 1, 2, 3, 3, 4, 4, 5
 };
 
-static GF_Err AC3_ProcessData(GF_MediaDecoder *ifcg, 
+static GF_Err AC3_ProcessData(GF_MediaDecoder *ifcg,
 		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
 		char *outBuffer, u32 *outBufferLength,
@@ -295,7 +295,7 @@ static const char *AC3_GetCodecName(GF_BaseDecoder *ifcg)
 
 static Bool AC3_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
 {
-	/*audio decs*/	
+	/*audio decs*/
 	if (StreamType != GF_STREAM_AUDIO) return 0;
 	switch (ObjectType) {
 	case 0xA5:
@@ -316,7 +316,7 @@ GF_BaseDecoder *NewAC3Dec()
 
 	ifce->privateStack = dec;
 
-	/*setup our own interface*/	
+	/*setup our own interface*/
 	ifce->AttachStream = AC3_AttachStream;
 	ifce->DetachStream = AC3_DetachStream;
 	ifce->GetCapabilities = AC3_GetCapabilities;
@@ -329,9 +329,17 @@ GF_BaseDecoder *NewAC3Dec()
 
 void DeleteAC3Dec(GF_BaseDecoder *ifcg)
 {
-	A52CTX();
-	if (ctx->codec) a52_free(ctx->codec);
-	gf_free(ctx);
+	AC3Dec *ctx;
+        if (!ifcg)
+          return;
+        ctx = (AC3Dec *) ifcg->privateStack;
+        if (ctx){
+          if (ctx->codec)
+            a52_free(ctx->codec);
+          ctx->codec = NULL;
+          gf_free(ctx);
+          ifcg->privateStack = NULL;
+        }
 	gf_free(ifcg);
 }
 

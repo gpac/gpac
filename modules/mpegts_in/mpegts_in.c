@@ -270,7 +270,8 @@ static GF_Err gf_dvb_tune(GF_Tuner *tuner, char *url, const char *chan_path) {
 static Bool M2TS_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
-
+        if (!plug || !url)
+          return 0;
 	if (!strnicmp(url, "udp://", 6)
 		|| !strnicmp(url, "mpegts-udp://", 13)
 		|| !strnicmp(url, "mpegts-tcp://", 13)
@@ -334,7 +335,12 @@ static u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char
 static Bool M2TS_CanHandleURLInService(GF_InputService *plug, const char *url)
 {
 	Bool ret = 0;
-	M2TSIn *m2ts = (M2TSIn *)plug->priv;
+	M2TSIn *m2ts;
+        if (!plug || !url)
+          return 0;
+        m2ts = (M2TSIn *)plug->priv;
+        if (!m2ts)
+          return 0;
 
 #ifdef GPAC_HAS_LINUX_DVB
 	if (!stricmp(url, "dvb://EPG")) return 1;

@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -71,7 +71,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	s32 _flags;
 	const char * error;
 #endif
-	
+
 	if (inst->lib_handle) return 1;
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s\n", inst->name));
 
@@ -81,7 +81,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 #else
 	sprintf(path, "%s%c%s", inst->plugman->dir, GF_PATH_SEPARATOR, inst->name);
 #endif
-	
+
 #ifdef WIN32
 	inst->lib_handle = LoadLibrary(path);
 	if (!inst->lib_handle) {
@@ -129,6 +129,7 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 	if (error)
 	  GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot resolve symbol ShutdownInterface in module file %s, error is %s\n", path, error));
 #endif
+        GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Load module file %s : DONE\n", inst->name));
 	return 1;
 }
 
@@ -196,13 +197,13 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 #else
 	_flags =RTLD_LAZY;
 #endif
-	
+
 	ModuleLib = dlopen(file, _flags);
 	if (!ModuleLib) goto next;
 
-	query_func = (QueryInterface) dlsym(ModuleLib, "QueryInterface");		
-	load_func = (LoadInterface) dlsym(ModuleLib, "LoadInterface");		
-	del_func = (ShutdownInterface) dlsym(ModuleLib, "ShutdownInterface");		
+	query_func = (QueryInterface) dlsym(ModuleLib, "QueryInterface");
+	load_func = (LoadInterface) dlsym(ModuleLib, "LoadInterface");
+	del_func = (ShutdownInterface) dlsym(ModuleLib, "ShutdownInterface");
 	dlclose(ModuleLib);
 #endif
 
@@ -228,7 +229,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 #elif defined(__APPLE__)
 #if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -236,7 +237,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -244,7 +245,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -252,7 +253,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -260,7 +261,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -268,7 +269,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -276,7 +277,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -284,15 +285,15 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
 		inst->name = gf_strdup("gm_img_in.dylib");
 		gf_list_add(pm->plug_list, inst);
-	}	
+	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -300,7 +301,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -308,7 +309,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -316,7 +317,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -324,7 +325,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -332,7 +333,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -340,7 +341,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -348,7 +349,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -356,7 +357,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;
@@ -364,7 +365,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 		gf_list_add(pm->plug_list, inst);
 	}
 	{
-		ModuleInstance *inst;		
+		ModuleInstance *inst;
 		GF_SAFEALLOC(inst, ModuleInstance);
 		inst->interfaces = gf_list_new();
 		inst->plugman = pm;

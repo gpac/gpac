@@ -10,16 +10,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 #include "ffmpeg_in.h"
@@ -52,7 +52,7 @@ static char * ffmpeg_realloc_buffer(char * oldBuffer, u32 size){
 	buffer = gf_malloc( allocatedSz );
 	if (buffer)
 		memset( buffer, 0, allocatedSz);
-	return buffer;	
+	return buffer;
 }
 
 
@@ -196,7 +196,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		*codec = avcodec_find_decoder(codec_id);
 		FFDEC_LoadDSI(ffd, bs, *codec, *ctx, 1);
 		gf_bs_del(bs);
-	} 
+	}
 	/*private QT DSI*/
 	else if (ffd->oti == GPAC_OTI_MEDIA_GENERIC) {
 		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
@@ -343,12 +343,12 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			  avcodec_decode_video2((*ctx), *frame, &gotpic, &pkt);
 			}
 #else
-			avcodec_decode_video((*ctx), *frame, &gotpic, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);			
+			avcodec_decode_video((*ctx), *frame, &gotpic, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 #endif
-			ffd->pix_fmt = GF_PIXEL_YV12; 
+			ffd->pix_fmt = GF_PIXEL_YV12;
 			break;
 		default:
-			ffd->pix_fmt = GF_PIXEL_YV12; 
+			ffd->pix_fmt = GF_PIXEL_YV12;
 			break;
 		}
 
@@ -404,8 +404,8 @@ static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	*codec = NULL;
 
 #ifdef FFMPEG_SWSCALE
-	if (*sws) { 
-		sws_freeContext(*sws); 
+	if (*sws) {
+		sws_freeContext(*sws);
 		*sws = NULL;
 	}
 #endif
@@ -518,7 +518,7 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 	}
 }
 
-static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug, 
+static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 		char *inBuffer, u32 inBufferLength,
 		u16 ES_ID,
 		char *outBuffer, u32 *outBufferLength,
@@ -598,7 +598,7 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 redecode:
 		gotpic = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 #ifdef USE_AVCODEC2
-		len = avcodec_decode_audio3(ctx, (short *)ffd->audio_buf, &gotpic, &pkt);	
+		len = avcodec_decode_audio3(ctx, (short *)ffd->audio_buf, &gotpic, &pkt);
 #else
 		len = avcodec_decode_audio2(ctx, (short *)ffd->audio_buf, &gotpic, inBuffer + ffd->frame_start, inBufferLength - ffd->frame_start);
 #endif
@@ -618,13 +618,13 @@ redecode:
 			return GF_BUFFER_TOO_SMALL;
 		}
 		if (ffd->out_size > buf_size) {
-			/*don't use too small output chunks otherwise we'll never have enough when mixing - we could 
+			/*don't use too small output chunks otherwise we'll never have enough when mixing - we could
 			also request more slots in the composition memory but let's not waste mem*/
 			if (ffd->out_size < (u32) 576*ctx->channels) ffd->out_size=ctx->channels*576;
 			(*outBufferLength) = ffd->out_size;
 			return GF_BUFFER_TOO_SMALL;
 		}
-		
+
 		/*we're sure to have at least gotpic bytes available in output*/
 		memcpy(outBuffer, ffd->audio_buf, sizeof(char) * gotpic);
 		(*outBufferLength) += gotpic;
@@ -640,14 +640,14 @@ redecode:
 
 		/*more frames in the current sample*/
 		return GF_PACKED_FRAMES;
-	} 
+	}
 
 	/*visual stream*/
 	w = ctx->width;
 	h = ctx->height;
 
 	if (ffd->check_h264_isma) {
-		/*for AVC bitstreams after ISMA decryption, in case (as we do) the decryption DRM tool 
+		/*for AVC bitstreams after ISMA decryption, in case (as we do) the decryption DRM tool
 		doesn't put back nalu size, do it ourselves...*/
 		if (inBuffer && !inBuffer[0] && !inBuffer[1] && !inBuffer[2] && (inBuffer[3]==0x01)) {
 			u32 nalu_size;
@@ -735,8 +735,8 @@ redecode:
 			inBuffer[3] = 1;
 		}
 #ifdef FFMPEG_SWSCALE
-		if (*cached_sws) { 
-			sws_freeContext(*cached_sws); 
+		if (*cached_sws) {
+			sws_freeContext(*cached_sws);
 			*cached_sws = NULL;
 		}
 #endif
@@ -784,7 +784,7 @@ redecode:
 		pYD = outBuffer;
 		pUD = outBuffer + ctx->width * ctx->height;
 		pVD = outBuffer + 5 * ctx->width * ctx->height / 4;
-		
+
 
 		for (i=0; i<ctx->height; i++) {
 			memcpy(pYD, pYO, sizeof(char) * ctx->width);
@@ -829,7 +829,7 @@ redecode:
 					   SWS_BICUBIC, NULL, NULL, NULL);
 	if ((*cached_sws)){
 		int sz = sws_scale((*cached_sws), (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
-		assert( sz > 0 );		
+		assert( sz > 0 );
 	}
 #endif
 
@@ -857,7 +857,7 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 
 	codec_id = 0;
 	check_4cc = 0;
-	
+
 	/*private from FFMPEG input*/
 	if (ObjectType == GPAC_OTI_MEDIA_FFMPEG) {
 		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
@@ -876,8 +876,8 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 		if ((ObjectType==GPAC_OTI_AUDIO_MPEG2_PART3) || (ObjectType==GPAC_OTI_AUDIO_MPEG1)) codec_id = CODEC_ID_MP2;
 		/*std AC3 audio*/
 		//if (ObjectType==0xA5) codec_id = CODEC_ID_AC3;
-	} 
-	
+	}
+
 	/*std MPEG-4 visual*/
 	else if (StreamType==GF_STREAM_VISUAL) {
 		switch (ObjectType) {
@@ -909,7 +909,7 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 		}
 	}
 	/*NeroDigital DVD subtitles*/
-	else if ((StreamType==GF_STREAM_ND_SUBPIC) && (ObjectType==0xe0)) 
+	else if ((StreamType==GF_STREAM_ND_SUBPIC) && (ObjectType==0xe0))
 		return 1;
 
 	if (!codec_id) return 0;
@@ -920,8 +920,11 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 
 static const char *FFDEC_GetCodecName(GF_BaseDecoder *dec)
 {
-	FFDec *ffd = dec->privateStack;
-	if (ffd->base_codec) {
+	FFDec *ffd;
+        if (!dec)
+          return NULL;
+        ffd = dec->privateStack;
+	if (ffd && ffd->base_codec) {
 		sprintf(ffd->szCodec, "FFMPEG %s", ffd->base_codec->name ? ffd->base_codec->name : "unknown");
 		return ffd->szCodec;
 	}
@@ -935,8 +938,11 @@ void *FFDEC_Load()
 	FFDec *priv;
 
 	/* Note for valgrind : those two functions cause a leak in valgrind */
+        GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMPEG Decoder] Registering all ffmpeg codecs...\n") );
 	avcodec_init();
 	avcodec_register_all();
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG Decoder] Done registering all ffmpeg codecs.\n") );
+
 
 	GF_SAFEALLOC(ptr , GF_MediaDecoder);
 	GF_SAFEALLOC(priv , FFDec);
@@ -957,19 +963,23 @@ void *FFDEC_Load()
 void FFDEC_Delete(void *ifce)
 {
 	GF_BaseDecoder *dec = ifce;
-	FFDec *ffd = dec->privateStack;
-
-	if (ffd->base_ctx) avcodec_close(ffd->base_ctx);
-	ffd->base_ctx = NULL;
-	if (ffd->depth_ctx) avcodec_close(ffd->depth_ctx);
-	ffd->depth_ctx = NULL;
+	FFDec *ffd;
+        if (!ifce)
+          return;
+        ffd = dec->privateStack;
+        if (ffd){
+          if (ffd->base_ctx) avcodec_close(ffd->base_ctx);
+          ffd->base_ctx = NULL;
+          if (ffd->depth_ctx) avcodec_close(ffd->depth_ctx);
+          ffd->depth_ctx = NULL;
 #ifdef FFMPEG_SWSCALE
-	if (ffd->base_sws) sws_freeContext(ffd->base_sws);
-	ffd->base_sws = NULL;
-	if (ffd->depth_sws) sws_freeContext(ffd->base_sws);
-	ffd->depth_sws = NULL;
+          if (ffd->base_sws) sws_freeContext(ffd->base_sws);
+          ffd->base_sws = NULL;
+          if (ffd->depth_sws) sws_freeContext(ffd->base_sws);
+          ffd->depth_sws = NULL;
 #endif
-	gf_free(ffd);
+          gf_free(ffd);
+        }
 	dec->privateStack = NULL;
 	gf_free(dec);
 }

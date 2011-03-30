@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -32,14 +32,14 @@
 
 
 /*
-	this decoder is simply a scene decoder generating its own scene graph based on input data, 
+	this decoder is simply a scene decoder generating its own scene graph based on input data,
 	this scene graph is then used as an extra graph by the renderer, and manipulated by the decoder
 	for any time animation handling.
 	Translation from text to MPEG-4 scene graph:
-		* all modifiers (styles, hilight, etc) are unrolled into chunks forming a unique, linear 
+		* all modifiers (styles, hilight, etc) are unrolled into chunks forming a unique, linear
 	sequence of text data (startChar, endChar) with associated styles & modifs
 		* chunks are mapped to classic MPEG-4/VRML text
-		* these chunks are then gathered in a Form node (supported by 2D and 3D renderers), with 
+		* these chunks are then gathered in a Form node (supported by 2D and 3D renderers), with
 	text truncation at each newline char.
 		* the Form then performs all alignment of the chunks
 
@@ -61,12 +61,12 @@
 		* dynamic hilighting (karaoke)
 		* wrap
 
-	The decoder only accepts complete timed text units TTU(1). In band reconfig (TTU(5) is not supported, 
+	The decoder only accepts complete timed text units TTU(1). In band reconfig (TTU(5) is not supported,
 	nor fragmented TTUs (2, 3, 4).
 	UTF16 support should workbut MP4Box does not support it at encoding time.
 */
 
-typedef struct 
+typedef struct
 {
 	GF_Scene *inlineScene;
 	GF_Terminal *app;
@@ -158,7 +158,7 @@ static void TTD_UpdateSizeInfo(TTDPriv *priv)
 	else if (offset - thw > vw/2) offset = vw/2 - thw;
 	*/
 	priv->tr_track->translation.x = INT2FIX(offset);
-	
+
 	offset = vh/2 - priv->cfg->vert_offset - thh;
 	/*safety checks ?
 	if (offset + thh > vh/2) offset = vh/2 - thh;
@@ -198,7 +198,7 @@ static GF_Err TTD_SetCapabilities(GF_BaseDecoder *plug, const GF_CodecCapability
 			gf_scene_register_extra_graph(priv->inlineScene, priv->sg, 0);
 		} else {
 			gf_scene_register_extra_graph(priv->inlineScene, priv->sg, 1);
-		}			
+		}
 	}
 	return GF_OK;
 }
@@ -320,7 +320,7 @@ static GF_Err TTD_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	gf_node_set_private((GF_Node *) priv->process_blink, priv);
 	/*route from fraction_changed to set_fraction*/
 	gf_sg_route_new(priv->sg, (GF_Node *) priv->ts_blink, 6, (GF_Node *) priv->process_blink, 0);
-	
+
 	priv->ts_scroll = (M_TimeSensor *) ttd_create_node(priv, TAG_MPEG4_TimeSensor, "TimerScroll");
 	priv->ts_scroll->cycleInterval = 0;
 	priv->ts_scroll->startTime = -1;
@@ -371,7 +371,7 @@ static void ttd_set_blink_fraction(GF_Node *node, GF_Route *route)
 	M_Material2D *m;
 	u32 i;
 	TTDPriv *priv = (TTDPriv *)gf_node_get_private(node);
-	
+
 	Bool blink_on = 1;
 	if (priv->process_blink->set_fraction>FIX_ONE/2) blink_on = 0;
 	i=0;
@@ -390,7 +390,7 @@ static void ttd_set_scroll_fraction(GF_Node *node, GF_Route *route)
 	frac = priv->process_scroll->set_fraction;
 	if (frac==FIX_ONE) priv->is_active = 0;
 	if (!priv->tr_scroll) return;
-	
+
 	switch (priv->scroll_type - 1) {
 	case GF_TXT_SCROLL_CREDITS:
 	case GF_TXT_SCROLL_DOWN:
@@ -539,7 +539,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 	text = (M_Text *) n2;
 	fs = (M_FontStyle *) ttd_create_node(priv, TAG_MPEG4_FontStyle, NULL);
 	gf_free(fs->family.vals[0]);
-	
+
 	/*translate default fonts to MPEG-4/VRML names*/
 	if (!stricmp(fontName, "Serif")) fs->family.vals[0] = gf_strdup("SERIF");
 	else if (!stricmp(fontName, "Sans-Serif")) fs->family.vals[0] = gf_strdup("SANS");
@@ -566,7 +566,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 			strcat(szStyle, " HIGHLIGHT#RV");
 		}
 	}
-	/*a better way would be to draw the entire text box in a composite texture & bitmap but we can't really rely 
+	/*a better way would be to draw the entire text box in a composite texture & bitmap but we can't really rely
 	on text box size (in MP4Box, it actually defaults to the entire video area) and drawing a too large texture
 	& bitmap could slow down rendering*/
 	if (priv->use_texture) strcat(szStyle, " TEXTURED");
@@ -582,7 +582,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 		SFURL *s;
 		M_Anchor *anc = (M_Anchor *) ttd_create_node(priv, TAG_MPEG4_Anchor, NULL);
 		gf_sg_vrml_mf_append(&anc->url, GF_SG_VRML_MFURL, (void **) &s);
-		s->OD_ID = 0; 
+		s->OD_ID = 0;
 		s->url = gf_strdup(tc->hlink->URL);
 		if (tc->hlink->URL_hint) anc->description.buffer = gf_strdup(tc->hlink->URL_hint);
 		gf_node_list_add_child(& anc->children, txt_model);
@@ -595,7 +595,7 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 	for (i=tc->start_char; i<tc->end_char; i++) {
 		Bool new_line = 0;
 		if ((utf16_txt[i] == '\n') || (utf16_txt[i] == '\r') || (utf16_txt[i] == 0x85) || (utf16_txt[i] == 0x2028) || (utf16_txt[i] == 0x2029)) new_line = 1;
-		
+
 		if (new_line || (i+1==tc->end_char) ) {
 			SFString *st;
 
@@ -623,10 +623,10 @@ static void TTD_NewTextChunk(TTDPriv *priv, GF_TextSampleDescriptor *tsd, M_Form
 				ttd_add_item(form);
 				/*clone node always register by default*/
 				gf_node_unregister(n2, NULL);
-				
+
 				if (tc->has_blink && txt_material) gf_list_add(priv->blink_nodes, txt_material);
 
-				
+
 				memcpy(wsChunk, &utf16_txt[start_char], sizeof(s16)*(i-start_char));
 				wsChunk[i-start_char] = 0;
 				sp = &wsChunk[0];
@@ -731,12 +731,12 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	TTDTextChunk *tc;
 	GF_Box *a;
 	GF_TextSampleDescriptor *td = NULL;
-	
+
 	/*stop timer sensor*/
 	if (gf_list_count(priv->blink_nodes)) {
 		priv->ts_blink->stopTime = gf_node_get_scene_time((GF_Node *) priv->ts_blink);
 		gf_node_changed((GF_Node *) priv->ts_blink, NULL);
-	}	
+	}
 	priv->ts_scroll->stopTime = gf_node_get_scene_time((GF_Node *) priv->ts_scroll);
 	gf_node_changed((GF_Node *) priv->ts_scroll, NULL);
 	/*flush routes to avoid getting the set_fraction of the scroll sensor deactivation*/
@@ -752,7 +752,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	}
 	if (!td) return;
 
-	
+
 	vertical = (td->displayFlags & GF_TXT_VERTICAL) ? 1 : 0;
 
 	/*set back color*/
@@ -770,7 +770,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	n->emissiveColor.green = INT2FIX((td->back_color>>8) & 0xFF) / 255;
 	n->emissiveColor.blue = INT2FIX((td->back_color) & 0xFF) / 255;
 	gf_node_changed((GF_Node *) n, NULL);
-	
+
 	if (txt->box) {
 		br = txt->box->box;
 	} else {
@@ -803,7 +803,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		priv->rec_track->size.x = priv->rec_track->size.y = 0;
 		gf_node_changed((GF_Node *) priv->rec_box, NULL);
 	}
-	
+
 	if (priv->mat_box->transparency<FIX_ONE) {
 		if (priv->rec_box->size.x != priv->dlist->size.x) {
 			priv->rec_box->size.x = priv->dlist->size.x;
@@ -829,12 +829,12 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	if (offset + thw < - tw/2) offset = - tw/2 + thw;
 	else if (offset - thw > tw/2) offset = tw/2 - thw;
 	priv->tr_box->translation.x = INT2FIX(offset);
-	
+
 	offset = th/2 - br.top - thh;
 	if (offset + thh > th/2) offset = th/2 - thh;
 	else if (offset - thh < -th/2) offset = -th/2 + thh;
 	priv->tr_box->translation.y = INT2FIX(offset);
-	
+
 	gf_node_dirty_set((GF_Node *)priv->tr_box, 0, 1);
 
 
@@ -948,7 +948,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	idx.vals = form->groupsIndex.vals;
 	form->groupsIndex.vals = NULL;
 	form->groupsIndex.count = 0;
-	
+
 	nb_lines = 0;
 	start_idx = 0;
 	for (i=0; i<idx.count; i++) {
@@ -1004,7 +1004,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 
 
 	/*vertical alignment: first align all items vertically, 0 pixel */
-	gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s); s->buffer = gf_strdup(vertical ? "SH 0" : "SV 0"); 
+	gf_sg_vrml_mf_append(&form->constraints, GF_SG_VRML_MFSTRING, (void **) &s); s->buffer = gf_strdup(vertical ? "SH 0" : "SV 0");
 	gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = 0;
 	for (i=0; i<nb_lines; i++) {
 		gf_sg_vrml_mf_append(&form->groupsIndex, GF_SG_VRML_MFINT32, (void **) &id); (*id) = i+start_idx;
@@ -1057,7 +1057,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	gf_node_changed((GF_Node *) priv->ts_scroll, NULL);
 }
 
-static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 inBufferLength, 
+static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 inBufferLength,
 								u16 ES_ID, u32 AU_time, u32 mmlevel)
 {
 	GF_BitStream *bs;
@@ -1073,7 +1073,7 @@ static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 in
 		gf_bs_read_int(bs, 4);
 		type = gf_bs_read_int(bs, 3);
 		length = gf_bs_read_u16(bs);
-		
+
 		/*currently only full text samples are supported*/
 		if (type != 1) {
 			gf_bs_del(bs);
@@ -1117,7 +1117,7 @@ GF_BaseDecoder *NewTimedTextDec()
 {
 	TTDPriv *priv;
 	GF_SceneDecoder *tmp;
-	
+
 	GF_SAFEALLOC(tmp, GF_SceneDecoder);
 	if (!tmp) return NULL;
 	GF_SAFEALLOC(priv, TTDPriv);
@@ -1178,7 +1178,7 @@ void ShutdownInterface(GF_BaseInterface *ifce) {}
 #endif /*!defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_ISOM)*/
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 #if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_ISOM)
@@ -1187,5 +1187,5 @@ const u32 *QueryInterfaces()
 #endif
 		0
 	};
-	return si; 
+	return si;
 }

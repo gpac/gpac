@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -102,14 +102,17 @@ static u32 DC_RegisterMimeTypes(GF_InputService *plug){
 
 Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 {
-	char *sExt = strrchr(url, '.');
+	char *sExt;
+        if (!plug || !url)
+          return 0;
+        sExt = strrchr(url, '.');
 	if (sExt) {
 		Bool ok = 0;
 		char *cgi_par;
 		if (!strnicmp(sExt, ".gz", 3)) sExt = strrchr(sExt, '.');
 		if (!strnicmp(url, "rtsp://", 7)) return 0;
 
-		cgi_par = strchr(sExt, '?'); 
+		cgi_par = strchr(sExt, '?');
 		if (cgi_par) cgi_par[0] = 0;
 		{
 		  u32 i;
@@ -217,24 +220,24 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		ext = anext;
 	}
 	read->service = serv;
-	
+
 	if (ext) {
 		char *cgi_par = NULL;
 		ext += 1;
 		if (ext) {
 			tmp = strchr(ext, '#'); if (tmp) tmp[0] = 0;
-			/* Warning the '?' sign should not be present in local files but it is convenient to have it 
+			/* Warning the '?' sign should not be present in local files but it is convenient to have it
 			   to test web content locally */
 			cgi_par = strchr(ext, '?'); if (cgi_par) cgi_par[0] = 0;
 		}
-		if (!stricmp(ext, "bt") || !stricmp(ext, "btz") || !stricmp(ext, "bt.gz") 
-			|| !stricmp(ext, "xmta") 
-			|| !stricmp(ext, "xmt") || !stricmp(ext, "xmt.gz") || !stricmp(ext, "xmtz") 
-			|| !stricmp(ext, "wrl") || !stricmp(ext, "wrl.gz") 
-			|| !stricmp(ext, "x3d") || !stricmp(ext, "x3d.gz") || !stricmp(ext, "x3dz") 
-			|| !stricmp(ext, "x3dv") || !stricmp(ext, "x3dv.gz") || !stricmp(ext, "x3dvz") 
+		if (!stricmp(ext, "bt") || !stricmp(ext, "btz") || !stricmp(ext, "bt.gz")
+			|| !stricmp(ext, "xmta")
+			|| !stricmp(ext, "xmt") || !stricmp(ext, "xmt.gz") || !stricmp(ext, "xmtz")
+			|| !stricmp(ext, "wrl") || !stricmp(ext, "wrl.gz")
+			|| !stricmp(ext, "x3d") || !stricmp(ext, "x3d.gz") || !stricmp(ext, "x3dz")
+			|| !stricmp(ext, "x3dv") || !stricmp(ext, "x3dv.gz") || !stricmp(ext, "x3dvz")
 			|| !stricmp(ext, "swf")
-			) 
+			)
 			read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
 
 		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz") || !stricmp(ext, "svg.gz")) {
@@ -379,7 +382,7 @@ GF_Err DC_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char
 {
 	u32 ESID;
 	DCReader *read = (DCReader *) plug->priv;
-	
+
 	sscanf(url, "ES_ID=%ud", &ESID);
 	if (!ESID) {
 		gf_term_on_connect(read->service, channel, GF_STREAM_NOT_FOUND);
@@ -432,7 +435,7 @@ Bool DC_CanHandleURLInService(GF_InputService *plug, const char *url)
 }
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_NET_CLIENT_INTERFACE,

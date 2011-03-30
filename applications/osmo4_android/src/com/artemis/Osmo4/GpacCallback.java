@@ -170,4 +170,11 @@ public interface GpacCallback {
      * Called when GPAC is ready
      */
     public void onGPACReady();
+
+    /**
+     * Called when GPAC initialization fails
+     * 
+     * @param e
+     */
+    public void onGPACError(Throwable e);
 }

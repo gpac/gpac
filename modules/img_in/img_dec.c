@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / image format module
@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -32,24 +32,24 @@ static Bool DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectT
 
 	switch (ObjectType) {
 #ifdef GPAC_HAS_PNG
-	case GPAC_OTI_IMAGE_PNG: 
+	case GPAC_OTI_IMAGE_PNG:
 		return NewPNGDec(dec);
 #endif
 #ifdef GPAC_HAS_JPEG
-	case GPAC_OTI_IMAGE_JPEG: 
+	case GPAC_OTI_IMAGE_JPEG:
 		return NewJPEGDec(dec);
 #endif
 #ifdef GPAC_HAS_JP2
-	case GPAC_OTI_IMAGE_JPEG_2000: 
+	case GPAC_OTI_IMAGE_JPEG_2000:
 		return NewJP2Dec(dec);
 #endif
 	case GPAC_BMP_OTI:
 		return NewBMPDec(dec);
 	case 0:
 		return 1;/*query for types*/
- 	default: 
+ 	default:
 #ifdef GPAC_HAS_JP2
-		if ((decSpecInfoSize>=4) && (decSpecInfo[0]=='m') && (decSpecInfo[1]=='j') && (decSpecInfo[2]=='p') && (decSpecInfo[3]=='2')) 
+		if ((decSpecInfoSize>=4) && (decSpecInfo[0]=='m') && (decSpecInfo[1]=='j') && (decSpecInfo[2]=='p') && (decSpecInfo[3]=='2'))
 			return NewJP2Dec(dec);
 #endif
 		return 0;
@@ -80,7 +80,12 @@ GF_BaseDecoder *NewBaseDecoder()
 
 void DeleteBaseDecoder(GF_BaseDecoder *ifcd)
 {
-	IMGDec *wrap = (IMGDec *)ifcd->privateStack;
+	IMGDec *wrap;
+        if (!ifcd)
+          return;
+        wrap = (IMGDec *)ifcd->privateStack;
+        if (!wrap)
+          return;
 	switch (wrap->type) {
 	case DEC_PNG:
 		DeletePNGDec(ifcd);
@@ -100,11 +105,12 @@ void DeleteBaseDecoder(GF_BaseDecoder *ifcd)
 		break;
 	}
 	gf_free(wrap);
+        ifcd->privateStack = NULL;
 	gf_free(ifcd);
 }
 
 GF_EXPORT
-const u32 *QueryInterfaces() 
+const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_MEDIA_DECODER_INTERFACE,
