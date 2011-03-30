@@ -228,8 +228,8 @@ char * my_str_lwr(char *str);
 #define _LARGEFILE64_SOURCE
 #endif
 
-#include <stdint.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <limits.h>

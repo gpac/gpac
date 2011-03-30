@@ -113,6 +113,8 @@ typedef struct
 	LPNETCHANNEL eit_channel;
 
 	Bool mpeg4on2_scene_only;
+	char * network_buffer;
+	u32 network_buffer_size;
 } M2TSIn;
 
 #define M2TS_BUFFER_MAX 400
@@ -967,7 +969,13 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
                 if (param->size > 0){
                   /*process chunk*/
                   assert(param->data);
-                  gf_m2ts_process_data(m2ts->ts, param->data, param->size);
+		  if (m2ts->network_buffer_size < param->size){
+			  m2ts->network_buffer = realloc(m2ts->network_buffer, sizeof(char) * param->size);
+			  m2ts->network_buffer_size = param->size;
+		  }
+		  assert( m2ts->network_buffer );
+		  memcpy(m2ts->network_buffer, param->data, param->size);
+                  gf_m2ts_process_data(m2ts->ts, m2ts->network_buffer, param->size);
                 }
 
 		/*if asked to regulate, wait until we get a play request*/
@@ -1518,7 +1526,13 @@ void DeleteM2TSReader(void *ifce)
 		M2TSIn_Prog *prog = gf_list_get(m2ts->requested_pids, i);
 		gf_free(prog);
 	}
-	gf_list_del(m2ts->requested_pids);
+	if (m2ts->requested_pids)
+		gf_list_del(m2ts->requested_pids);
+	m2ts->requested_pids = NULL;
+	if (m2ts->network_buffer)
+		gf_free(m2ts->network_buffer);
+	m2ts->network_buffer = NULL;
+	m2ts->network_buffer_size = 0;
 	m2ts->request_all_pids = 0;
 	gf_m2ts_demux_del(m2ts->ts);
 	m2ts->ts = NULL;

@@ -31,6 +31,9 @@
 
 #ifndef GPAC_DISABLE_VRML
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 typedef struct
 {
 	GF_TextureHandler txh;
@@ -485,5 +488,7 @@ void compositor_init_mattetexture(GF_Compositor *compositor, GF_Node *node)
 	gf_node_set_private(node, txh);
 	gf_node_set_callback_function(node, imagetexture_destroy);
 }
-
+#ifdef __cplusplus
+}
+#endif
 #endif /*GPAC_DISABLE_VRML*/

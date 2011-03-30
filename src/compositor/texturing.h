@@ -26,7 +26,9 @@
 #define _TEXTURING_H_
 
 #include <gpac/internal/compositor_dev.h>
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 /*allocates the HW specific texture handle(s) (potentially both raster and OpenGL handlers)*/
 GF_Err gf_sc_texture_allocate(GF_TextureHandler *txh);
 /*releases the hardware handle(s) and all associated system resources*/
@@ -87,7 +89,8 @@ enum
 void gf_sc_texture_set_blend_mode(GF_TextureHandler *txh, u32 mode);
 
 #endif	/*GPAC_DISABLE_3D*/
-
-
+#ifdef __cplusplus
+}
+#endif
 #endif	/*_TEXTURING_H_*/
 
