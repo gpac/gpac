@@ -539,7 +539,6 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
             }
         } else {
             char * fullURL = currentLine;
-            GF_List * currentBitrateList = NULL;
             //printf("Line %d: '%s'\n", currentLineNumber, currentLine);
 
             if (gf_url_is_local(currentLine)) {

@@ -1310,12 +1310,16 @@ JSBool svg_udom_get_time(JSContext *c, JSObject *obj, uintN argc, jsval *argv, j
 }
 
 
-
-static JSBool svg_connection_set_encoding(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool svg_connection_create(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	return JS_TRUE;
 }
-static JSBool svg_connection_create(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+
+#ifdef UNUSED_FUNC
+/**
+ * FIXME : those 5 funcs and two variables are not used anywhere...
+ */
+static JSBool svg_connection_set_encoding(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
 	return JS_TRUE;
 }
@@ -1331,6 +1335,7 @@ static JSBool svg_connection_close(JSContext *c, JSObject *obj, uintN argc, jsva
 {
 	return JS_TRUE;
 }
+
 static JSPropertySpec connectionProps[] = {
 	{"connected",			0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
 	{0, 0, 0, 0, 0}
@@ -1348,6 +1353,7 @@ static JSFunctionSpec connectionFuncs[] = {
 	{"close", svg_connection_close, 0, 0, 0},
 	{0, 0, 0, 0, 0}
 };
+#endif /* UNUSED_FUNC */
 
 static void baseCI_finalize(JSContext *c, JSObject *obj)
 {
