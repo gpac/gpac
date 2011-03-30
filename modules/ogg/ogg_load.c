@@ -91,7 +91,7 @@ void DeleteOGGDecoder(GF_BaseDecoder *ifcd)
 		break;
           }
           gf_free(wrap);
-          (OGGWraper *)ifcd->privateStack = NULL;
+          ifcd->privateStack = NULL;
         }
 	gf_free(ifcd);
 }

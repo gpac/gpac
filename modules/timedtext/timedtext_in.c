@@ -72,7 +72,7 @@ static Bool TTIn_CanHandleURL(GF_InputService *plug, const char *url)
 	char *sExt;
 	u32 i;
         if (!plug || !url)
-          return;
+          return 0;
 	sExt = strrchr(url, '.');
 	if (!sExt) return 0;
 	for (i = 0 ; TTIN_MIME_TYPES[i]; i+=3){
