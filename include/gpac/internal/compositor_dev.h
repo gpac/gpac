@@ -24,7 +24,9 @@
 
 #ifndef _COMPOSITOR_DEV_H_
 #define _COMPOSITOR_DEV_H_
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <gpac/compositor.h>
 /*include scene graph API*/
@@ -1318,5 +1320,8 @@ typedef struct
 GF_Err gf_sc_add_audio_listener(GF_Compositor *compositor, GF_AudioListener *al);
 GF_Err gf_sc_remove_audio_listener(GF_Compositor *compositor, GF_AudioListener *al);
 
+#ifdef __cplusplus
+}
+#endif
 #endif	/*_COMPOSITOR_DEV_H_*/
 
