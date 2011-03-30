@@ -1560,7 +1560,7 @@ int main(int argc, char **argv)
 	/********************/
 	const char *ts_pck;
 	GF_Err e;
-	u32 res, run_time;
+	u32 run_time;
 	Bool real_time;
 	u32 i, j, mux_rate, nb_progs, cur_pid, carrousel_rate, last_print_time, last_video_time;
 	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;

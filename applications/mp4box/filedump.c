@@ -2193,7 +2193,7 @@ static void on_m2ts_dump_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		if (dumper->has_seen_pat) {
 			if (dumper->timestamps_info_file) {
 				GF_M2TS_PES *pes = pck->stream;
-				GF_M2TS_Program *prog = pes->program;
+				/*FIXME : not used GF_M2TS_Program *prog = pes->program; */
 				/* Interpolated PCR value for the TS packet containing the PES header start */
 				u64 interpolated_pcr_value = 0;
 				if (pes->last_pcr_value && pes->before_last_pcr_value && pes->last_pcr_value > pes->before_last_pcr_value) {
