@@ -75,16 +75,16 @@ static JNINativeMethod sMethods[] = {
       "(Lcom/artemis/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)J",
       (void*)&Java_com_artemis_Osmo4_GPACInstance_createInstance},
     {"gpacdisconnect",
-      "(V)V",
+      "()V",
       (void*)Java_com_artemis_Osmo4_GPACInstance_gpacdisconnect},
     {"gpacrender",
-      "(V)V",
+      "()V",
       (void*)Java_com_artemis_Osmo4_GPACInstance_gpacrender},
     {"gpacresize",
-      "(VII)V",
+      "(II)V",
       (void*)Java_com_artemis_Osmo4_GPACInstance_gpacresize},
     {"gpacfree",
-      "(V)V",
+      "()V",
       (void*)Java_com_artemis_Osmo4_GPACInstance_gpacfree},
     {"gpaceventkeypress",
       "(IIII)V",
@@ -107,7 +107,9 @@ static JNINativeMethod sMethods[] = {
 jint JNI_OnLoad(JavaVM* vm, void* reserved){
         const char * className = "com/artemis/Osmo4/GPACInstance";
         JNIEnv * env;
-        if (vm->GetEnv((void**)(&env), JNI_VERSION_1_6) != JNI_OK)
+        if (!vm)
+          return -1;
+        if (vm->GetEnv((void**)(&env), JNI_VERSION_1_2) != JNI_OK)
           return -1;
 	javaVM = vm;
         LOGI("Registering %s natives\n", className);
@@ -116,7 +118,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved){
           return -1;
         }
         LOGI("Registering %s natives DONE.\n", className);
-	return JNI_VERSION_1_6;
+	return JNI_VERSION_1_2;
 }
 //---------------------------------------------------------------------------------------------------
 //CNativeWrapper

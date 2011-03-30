@@ -190,8 +190,20 @@ public class GPACInstance {
      */
     private native void gpacconnect(String url);
 
-    private native int createInstance(GpacCallback callback, int width, int height, String cfg_dir, String modules_dir,
-            String cache_dir, String font_dir);
+    /**
+     * Used to create the GPAC instance
+     * 
+     * @param callback
+     * @param width
+     * @param height
+     * @param cfg_dir
+     * @param modules_dir
+     * @param cache_dir
+     * @param font_dir
+     * @return
+     */
+    private native long createInstance(GpacCallback callback, int width, int height, String cfg_dir,
+            String modules_dir, String cache_dir, String font_dir);
 
     /**
      * Disconnects the currently loaded URL
