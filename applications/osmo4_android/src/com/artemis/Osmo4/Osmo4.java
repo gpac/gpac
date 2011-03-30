@@ -549,7 +549,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 
             @Override
             public void run() {
-                int progress = done * 10000 / total;
+                // GPAC sometimes return total = 0
+                int progress = done * 10000 / (total < 1 ? 1 : total);
                 if (progress > 9900)
                     progress = 10000;
                 setProgress(progress);
