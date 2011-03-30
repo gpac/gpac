@@ -69,7 +69,7 @@ static const char * AC3_EXTS = "ac3";
 
 static const char * AC3_DESC = "AC3 Music";
 
-static u32 AC3_RegisterMimeTypes(GF_InputService *plug)
+static u32 AC3_RegisterMimeTypes(const GF_InputService *plug)
 {
     u32 i;
     for (i = 0 ; AC3_MIMES[i]; i++)

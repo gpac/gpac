@@ -106,7 +106,7 @@ const char * IMG_MIME_TYPES[] = {
   NULL
 };
 
-static u32 IMG_RegisterMimeTypes(GF_InputService *plug){
+static u32 IMG_RegisterMimeTypes(const GF_InputService *plug){
     u32 i;
     if (!plug){
       GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("IMG_RegisterMimeTypes : plug is NULL !!\n"));

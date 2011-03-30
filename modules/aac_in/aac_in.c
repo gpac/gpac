@@ -86,7 +86,7 @@ static const char * AAC_EXTENSIONS = "aac mp4a";
 
 static const char * AAC_DESC = "MPEG-4 AAC Music";
 
-static u32 AAC_RegisterMimeTypes(GF_InputService *plug){
+static u32 AAC_RegisterMimeTypes(const GF_InputService *plug){
     int i;
     if (!plug)
       return 0;

@@ -83,7 +83,7 @@ static const char * SAF_MIME_EXT = "saf lsr";
 
 static const char * SAF_MIME_DESC = "SAF Rich Media";
 
-static u32 SAF_RegisterMimeTypes(GF_InputService *plug)
+static u32 SAF_RegisterMimeTypes(const GF_InputService *plug)
 {
 	if (!plug)
 	  return 0;
