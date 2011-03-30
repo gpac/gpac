@@ -418,7 +418,7 @@ typedef struct _netinterface
 	 * \return The number of declared mime types
 	 * \see gf_term_register_mime_type(GF_InputService *, const char *, const char *, const char *)
 	 */
-	u32 (*RegisterMimeTypes) (struct _netinterface *);
+	u32 (*RegisterMimeTypes) (const struct _netinterface *);
 } GF_InputService;
 
 /*callback functions - these can be linked with non-LGPL modules*/
@@ -455,7 +455,7 @@ void gf_term_add_media(GF_ClientService *service, GF_Descriptor *media_desc, Boo
 /*check if @fileExt extension is supported for given mimeType, and if associated with module. If mimeType not registered, register it for given module*/
 Bool gf_term_check_extension(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description, const char *fileExt);
 /*register mime types & file extensions - most modules should only need the check version above*/
-void gf_term_register_mime_type(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description);
+void gf_term_register_mime_type(const GF_InputService *ifce, const char *mimeType, const char *extList, const char *description);
 
 GF_InputService *gf_term_get_service_interface(GF_ClientService *service);
 

@@ -176,7 +176,7 @@ static const char * sdp_exts = "sdp";
 
 static const char * sdp_desc = "OnDemand Media/Multicast Session";
 
-static u32 RP_RegisterMimeTypes(GF_InputService *plug){
+static u32 RP_RegisterMimeTypes(const GF_InputService *plug){
     if (!plug)
       return 0;
     gf_term_register_mime_type(plug, sdp_mime, sdp_exts, sdp_desc);

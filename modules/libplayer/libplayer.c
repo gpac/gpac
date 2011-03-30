@@ -85,7 +85,7 @@ static const char * LIBPLAYER_MIME_TYPES[] = {
 };
 
 
-static u32 LIBPLAYER_RegisterMimeTypes(GF_InputService *plug){
+static u32 LIBPLAYER_RegisterMimeTypes(const GF_InputService *plug){
     u32 i;
     if (!plug)
       return 0;

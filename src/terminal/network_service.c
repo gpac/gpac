@@ -956,7 +956,7 @@ void gf_term_service_del(GF_ClientService *ns)
 }
 
 GF_EXPORT
-void gf_term_register_mime_type(GF_InputService *ifce, const char *mimeType, const char *extList, const char *description)
+void gf_term_register_mime_type(const GF_InputService *ifce, const char *mimeType, const char *extList, const char *description)
 {
 	u32 len;
 	char *buf;

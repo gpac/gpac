@@ -187,7 +187,7 @@ static const char * FFD_MIME_TYPES[] = {
   NULL
 };
 
-static u32 FFD_RegisterMimeTypes(GF_InputService *plug){
+static u32 FFD_RegisterMimeTypes(const GF_InputService *plug){
     u32 i;
     for (i = 0 ; FFD_MIME_TYPES[i]; i+=3)
       gf_term_register_mime_type(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2]);

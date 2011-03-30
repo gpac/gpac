@@ -76,7 +76,7 @@ static const char * MP3_EXTENSIONS = "mp2 mp3 mpga mpega";
 static const char * MP3_DESC = "MP3 Music";
 
 
-static u32 MP3_RegisterMimeTypes(GF_InputService *plug)
+static u32 MP3_RegisterMimeTypes(const GF_InputService *plug)
 {
   u32 i;
   for (i =0 ; MP3_MIME_TYPES[i] ; i++)

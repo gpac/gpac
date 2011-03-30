@@ -174,7 +174,7 @@ void gf_sha1_finish(GF_SHA1Context *ctx, u8 digest[20] );
 /*
  * Output SHA-1(file contents), returns 0 if successful.
  */
-int gf_sha1_file(char *filename, u8 digest[20]);
+int gf_sha1_file(const char *filename, u8 digest[20]);
 
 /*
  * Output SHA-1(buf)

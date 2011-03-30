@@ -73,7 +73,7 @@ static const char * ISOR_MIME_TYPES[] = {
   NULL
 };
   
-u32 ISOR_RegisterMimeTypes(GF_InputService *plug){
+u32 ISOR_RegisterMimeTypes(const GF_InputService *plug){
   u32 i;
   for (i = 0 ; ISOR_MIME_TYPES[i]; i+=3)
     gf_term_register_mime_type(plug, ISOR_MIME_TYPES[i], ISOR_MIME_TYPES[i+1], ISOR_MIME_TYPES[i+2]);

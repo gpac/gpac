@@ -669,7 +669,7 @@ static const char * OGG_MIMES_VIDEO_DESC = "Xiph.org OGG Movie";
 
 static const char * OGG_MIMES_VIDEO_EXT = "ogg ogv oggm";
 
-static u32 OGG_RegisterMimeTypes(GF_InputService *plug){
+static u32 OGG_RegisterMimeTypes(const GF_InputService *plug){
     u32 i, c;
     for (i = 0 ; OGG_MIMES_AUDIO[i]; i++)
       gf_term_register_mime_type(plug, OGG_MIMES_AUDIO[i], OGG_MIMES_AUDIO_EXT, OGG_MIMES_AUDIO_DESC);

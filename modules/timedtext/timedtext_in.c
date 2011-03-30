@@ -59,7 +59,7 @@ const char * TTIN_MIME_TYPES[] = {
   NULL
 };
 
-static u32 TTIN_RegisterMimeTypes(GF_InputService *plug){
+static u32 TTIN_RegisterMimeTypes(const GF_InputService *plug){
     u32 i;
     for (i = 0 ; TTIN_MIME_TYPES[i]; i+=3){
 	gf_term_register_mime_type(plug, TTIN_MIME_TYPES[i], TTIN_MIME_TYPES[i+1], TTIN_MIME_TYPES[i+2]);

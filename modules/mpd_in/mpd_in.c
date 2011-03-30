@@ -806,7 +806,7 @@ const char * MPD_M3U8_DESC = "HTTP M3U8 Playlist Streaming";
 
 const char * MPD_M3U8_EXT = "m3u8 m3u";
 
-static u32 MPD_RegisterMimeTypes(GF_InputService *plug)
+static u32 MPD_RegisterMimeTypes(const GF_InputService *plug)
 {
     u32 i, c;
     for (i = 0 ; MPD_MIME_TYPES[i]; i++)

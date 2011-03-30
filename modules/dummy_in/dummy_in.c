@@ -91,7 +91,7 @@ static const char * DC_MIME_TYPES[] = {
 };
 
 
-static u32 DC_RegisterMimeTypes(GF_InputService *plug){
+static u32 DC_RegisterMimeTypes(const GF_InputService *plug){
     u32 i;
     if (!plug)
       return 0;
