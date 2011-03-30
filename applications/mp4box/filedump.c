@@ -1883,7 +1883,7 @@ static void m2ts_sidx_flush_entry(GF_M2TS_IndexingInfo *index_info)
 	u32 end_offset;
 
 	if (!index_info->sidx) {
-		fprintf(stderr, "Segment: Reference PID: %d, EPTime: %.03f, Start Offset: %d bytes\n", 
+		fprintf(stderr, "Segment: Reference PID: %d, EPTime: "LLU", Start Offset: %d bytes\n", 
 			index_info->reference_pid, index_info->base_PTS, index_info->base_offset);
 		index_info->sidx = m2ts_sidx_new(index_info->reference_pid, index_info->base_PTS, index_info->base_offset);
 	}
