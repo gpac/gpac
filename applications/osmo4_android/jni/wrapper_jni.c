@@ -22,9 +22,9 @@ extern "C" {
 //                        __android_log_print(ANDROID_LOG_VERBOSE, jniTAG, "Handle = %p", wr);
 
 /*
- * Class:     com_artemis_Osmo4_GpacObject
- * Method:    gpacinit
- * Signature: (Ljava/lang/Object;Lcom/artemis/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+ * Class:     com_artemis_Osmo4_GPACInstance
+ * Method:    createInstance
+ * Signature: (Lcom/artemis/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
  */
 JNIEXPORT jlong JNICALL Java_com_artemis_Osmo4_GPACInstance_createInstance(JNIEnv * env, jclass obj, jobject callback, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir)
 {
