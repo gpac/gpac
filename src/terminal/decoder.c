@@ -621,6 +621,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	u32 first, entryTime, now, obj_time, unit_size;
 	GF_MediaDecoder *mdec = (GF_MediaDecoder*)codec->decio;
 	GF_Err e = GF_OK;
+	CU = NULL;
 
 	/*if video codec muted don't decode (try to saves ressources)
 	if audio codec muted we dispatch to keep sync in place*/
@@ -638,6 +639,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 			if (codec->is_reordering) {
 				if ( LockCompositionUnit(codec, codec->last_unit_cts+1, &CU, &unit_size) == GF_OUT_OF_MEM)
 					return GF_OK;
+				assert( CU );
 				e = mdec->ProcessData(mdec, NULL, 0, 0, CU->data, &unit_size, 0, 0);
 				if (e==GF_OK) e = UnlockCompositionUnit(codec, CU, unit_size);
 			}
@@ -753,6 +755,7 @@ scalable_retry:
 
 		now = gf_term_get_time(codec->odm->term);
 
+		assert( CU );
 		if (!CU->data && unit_size)
 			e = GF_OUT_OF_MEM;
 		else
