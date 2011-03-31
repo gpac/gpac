@@ -484,8 +484,8 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", GPAC_CACHE_DIR);
 		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
 		/*startup file*/
-		char msg[100];
-		sprintf(msg, "%sgui/gui.bt",GPAC_CFG_DIR);
+		char msg[256];
+		sprintf(msg, 256, "%sgui/gui.bt",GPAC_CFG_DIR);
 		gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
 		gf_cfg_set_key(m_user.config, "General", "LastWorkingDir", GPAC_CFG_DIR);
 		gf_cfg_set_key(m_user.config, "GUI", "UnhideControlPlayer", "1");
@@ -557,9 +557,9 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
             debug_log("NO JAVA VM FOUND !!!!\n");
             return Quit(KErrGeneral);
         }
-        gf_cfg_set_key(m_user.config, "Video", "DriverName", "No Video Output");
+        gf_cfg_set_key(m_user.config, "Video", "DriverName", "Droid Video Output");
 
-        gf_cfg_set_key(m_user.config, "Audio", "DriverName", "No Audio Output");
+        gf_cfg_set_key(m_user.config, "Audio", "DriverName", "Droid Audio Output");
 	m_term = gf_term_new(&m_user);
         debug_log("term new returned...");
 	if (!m_term) {

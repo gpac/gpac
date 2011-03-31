@@ -23,6 +23,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -62,8 +63,6 @@ import android.widget.Toast;
 public class Osmo4 extends Activity implements GpacCallback {
 
     private String[] m_modules_list;
-
-    private final boolean fastStartup = false;
 
     private final static int DEFAULT_BUFFER_SIZE = 8192;
 
@@ -178,7 +177,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                 BufferedReader reader = null;
                 try {
                     reader = new BufferedReader(new InputStreamReader(new FileInputStream(getRecentURLsFile()),
-                                                                      DEFAULT_ENCODING));
+                                                                      DEFAULT_ENCODING), DEFAULT_BUFFER_SIZE);
 
                     String s = null;
                     Set<String> results = new HashSet<String>();
@@ -214,7 +213,8 @@ public class Osmo4 extends Activity implements GpacCallback {
                                                   BufferedWriter w = null;
                                                   try {
                                                       w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmp),
-                                                                                                    DEFAULT_ENCODING));
+                                                                                                    DEFAULT_ENCODING),
+                                                                             DEFAULT_BUFFER_SIZE);
                                                       Collection<String> toWrite = getAllRecentURLs();
                                                       for (String s : toWrite) {
                                                           w.write(s);
@@ -403,13 +403,37 @@ public class Osmo4 extends Activity implements GpacCallback {
         long start = System.currentTimeMillis();
         byte buffer[] = new byte[1024];
         int[] ids = getAllRawResources();
+        String currentRevision = "$Revision$"; //$NON-NLS-1$
+        File revisionFile = new File(Osmo4Renderer.GPAC_CACHE_DIR, "lastRev.txt"); //$NON-NLS-1$
+        boolean fastStartup = false;
+        // We check if we already copied all the modules once without error...
+        if (revisionFile.exists() && revisionFile.canRead()) {
+            BufferedReader r = null;
+            try {
+                r = new BufferedReader(new InputStreamReader(new FileInputStream(revisionFile), DEFAULT_ENCODING),
+                                       DEFAULT_BUFFER_SIZE);
+                String rev = r.readLine();
+                if (currentRevision.equals(rev)) {
+                    fastStartup = true;
+                }
+            } catch (IOException ignored) {
+            } finally {
+                // Exception or not, always close the stream...
+                if (r != null)
+                    try {
+                        r.close();
+                    } catch (IOException ignored) {
+                    }
+            }
+        }
+        boolean noErrors = true;
         for (int i = 0; i < ids.length; i++) {
             OutputStream fos = null;
             InputStream ins = null;
             String fn = Osmo4Renderer.GPAC_MODULES_DIR + m_modules_list[i] + ".so"; //$NON-NLS-1$
             File finalFile = new File(fn);
             // If file has already been copied, not need to do it again
-            if (finalFile.exists() && finalFile.canRead() && fastStartup) {
+            if (fastStartup && finalFile.exists() && finalFile.canRead()) {
                 Log.i(LOG_OSMO_TAG, "Skipping " + finalFile); //$NON-NLS-1$
                 continue;
             }
@@ -431,6 +455,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                     Log.e(LOG_OSMO_TAG, "Failed to rename " + tmpFile.getAbsolutePath() + " to " //$NON-NLS-1$//$NON-NLS-2$
                                         + finalFile.getAbsolutePath());
             } catch (IOException e) {
+                noErrors = false;
                 Log.e(LOG_OSMO_TAG, "IOException for resource : " + ids[i], e); //$NON-NLS-1$
             } finally {
                 if (ins != null) {
@@ -447,6 +472,25 @@ public class Osmo4 extends Activity implements GpacCallback {
                         Log.e(LOG_OSMO_TAG, "Error while closing write stream", e); //$NON-NLS-1$
                     }
                 }
+            }
+        }
+        // If no error during copy, fast startup will be enabled for next time
+        if (noErrors && !fastStartup) {
+            BufferedWriter w = null;
+            try {
+                w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(revisionFile), DEFAULT_ENCODING),
+                                       DEFAULT_BUFFER_SIZE);
+                w.write(currentRevision);
+                w.write('\n');
+                // We add the date as second line to ease debug in case of problem
+                w.write(String.valueOf(new Date()));
+            } catch (IOException ignored) {
+            } finally {
+                if (w != null)
+                    try {
+                        w.close();
+                    } catch (IOException ignored) {
+                    }
             }
         }
         Log.i(LOG_OSMO_TAG, "Done loading all modules, took " + (System.currentTimeMillis() - start) + "ms."); //$NON-NLS-1$ //$NON-NLS-2$
