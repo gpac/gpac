@@ -1329,6 +1329,7 @@ static GFINLINE u32 get_MP3BitRates(u32 idx1, u32 idx2)
 	default:
 		return 0;
 	}
+	return 0;
 }
 
 
@@ -2692,6 +2693,7 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 	u32 i, bit_offset, flag;
 	s32 idx;
 	GF_AVCConfigSlot *slc;
+	orig = NULL;
 
 	memset(&avc, 0, sizeof(AVCState));
 	avc.sps_active_idx = -1;
@@ -2702,7 +2704,8 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 		u32 no_emulation_buf_size = 0, emulation_bytes = 0;
 		idx = AVC_ReadSeqInfo(slc->data+1/*skip NALU type*/, slc->size-1, &avc, 0, &bit_offset);
 		if (idx<0) {
-			gf_bs_del(orig);
+			if ( orig )
+				gf_bs_del(orig);
 			continue;
 		}
 
@@ -2765,6 +2768,7 @@ GF_Err AVC_ChangePAR(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 			gf_bs_write_int(mod, flag, 1);
 		}
 		gf_bs_del(orig);
+		orig = NULL;
 		gf_free(no_emulation_buf);
 
 		/*set anti-emulation*/
