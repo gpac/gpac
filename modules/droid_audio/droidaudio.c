@@ -151,7 +151,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	u32 i;
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 
-	LOGV("[Android Audio] Configure Output for %d channels...", NbChannels);
+	LOGV("[Android Audio] Configure Output for %u channels...", *NbChannels);
 
 	if (!ctx) return GF_BAD_PARAM;
 
@@ -163,7 +163,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
 	ctx->env = env;
 	LOGV("[Android Audio] SampleRate : %d",ctx->sampleRateInHz);
-        LOGV("[Android Audio] BitPerSample : %d",nbBitsPerSample);
+        LOGV("[Android Audio] BitPerSample : %d", *nbBitsPerSample);
 
 	(*env)->PushLocalFrame(env, 2);
 
@@ -202,10 +202,14 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 static void WAV_WriteAudio(GF_AudioOutput *dr)
 {
 	DroidContext *ctx = (DroidContext *)dr->opaque;
+        if (!ctx)
+          return;
 	JNIEnv* env = ctx->env;
 	u32 written;
 	void* pBuffer;
-
+        if (!env)
+          return;
+        LOGV("[Android Audio] WAV_WriteAudio() : entering",ctx->sampleRateInHz);
 	pBuffer = (*env)->GetPrimitiveArrayCritical(env, ctx->buff, NULL);
 	if (pBuffer)
 	{
@@ -220,6 +224,7 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 	{
 		LOGV("[Android Audio] Failed to get pointer to array bytes = %p", pBuffer);
 	}
+	LOGV("[Android Audio] WAV_WriteAudio() : done",ctx->sampleRateInHz);
 }
 
 /* Called by the main thread */
@@ -255,7 +260,7 @@ static GF_Err WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_sampler
 	JNIEnv* env = ctx->env;
 	u32 sampleRateInHz, channelConfig, audioFormat;
 
-	LOGV("[Android Audio] Query sample=%d", desired_samplerate );
+	LOGV("[Android Audio] Query sample=%d", *desired_samplerate );
 
 #ifdef TEST_QUERY_SAMPLE
 	sampleRateInHz = *desired_samplerate;
