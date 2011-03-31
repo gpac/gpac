@@ -8,16 +8,13 @@ xcodebuild -target libgpac_dynamic -sdk iphoneos -configuration Release -project
 ./script_libgpac.sh Release
 #xcodebuild -target libgpac_dynamic -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
 
-echo "*** Compile modules√mfor Simulator (i386) ***"
+echo "*** Compile modules and osmo4ios for Simulator (i386) ***"
 xcodebuild -alltargets -sdk iphonesimulator -configuration Release -project gpac4ios.xcodeproj
 
 echo "*** Compile modules for iOS (arm) ***"
 xcodebuild -alltargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
 ./script_modules.sh Release
-xcodebuild -alltargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
-
-#echo "*** Compile osmo4ios for Simulator (i386) ***"
-#xcodebuild -target osmo4ios -sdk iphonesimulator -configuration Release -project gpac4ios.xcodeproj
+#xcodebuild -alltargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
 
 echo "*** Compile osmo4ios for Simulator (arm) ***"
 #link must occur at debug to avoid optimizing that leads to freezes
