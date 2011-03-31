@@ -2604,17 +2604,25 @@ static void xml_http_sax_text(void *sax_cbck, const char *content, Bool is_cdata
 
 static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 {
+	Bool locked = 0;
 	XMLHTTPContext *ctx = (XMLHTTPContext *)usr_cbk;
 
 	/*make sure we can grab JS and the session is not destroyed*/
 	while (ctx->sess) {
-		if (gf_sg_try_lock_javascript(ctx->c) )
+		if (gf_sg_try_lock_javascript(ctx->c) ){
+			locked = 1;
 			break;
+		}
 		gf_sleep(1);
 	}
 	/*if session not set, we've had an abort*/
-	if (!ctx->sess) return;
+	if (!ctx->sess){
+		if (locked)
+			gf_sg_lock_javascript(ctx->c, 0);
+		return;
+	}
 
+	assert( locked );
 	gf_sg_lock_javascript(ctx->c, 0);
 
 	switch (parameter->msg_type) {
