@@ -1489,12 +1489,12 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, const char *d
     GF_NETIO_Parameter par;
     u32 runtime, rcv;
     rcv = nbBytes;
+    sess->bytes_done += nbBytes;
     if (sess->icy_metaint > 0)
         gf_icy_skip_data(sess, sess->icy_metaint, data, nbBytes);
     else {
         if (sess->use_cache_file)
             gf_cache_write_to_cache( sess->cache_entry, sess, data, nbBytes);
-        sess->bytes_done += nbBytes;
         {
             par.msg_type = GF_NETIO_DATA_EXCHANGE;
             par.error = GF_OK;
@@ -1907,7 +1907,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 #endif
         e = gf_dm_read_data(sess, sHTTP, GF_DOWNLOAD_BUFFER_SIZE, &size);
         if (e!= GF_IP_CONNECTION_CLOSED && (!size || e == GF_IP_NETWORK_EMPTY)) {
-            if (e == GF_IP_CONNECTION_CLOSED || (!sess->total_size && (gf_sys_clock() - sess->window_start > 2000))) {
+            if (e == GF_IP_CONNECTION_CLOSED || (!sess->total_size && (gf_sys_clock() - sess->window_start > 5000))) {
                 sess->total_size = sess->bytes_done;
                 gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
 				assert(sess->server_name);
@@ -2196,6 +2196,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
                 gf_dm_disconnect(sess);
                 sess->status = GF_NETIO_SETUP;
                 e = gf_dm_setup_from_url(sess, sess->orig_url);
+                sess->total_size = gf_cache_get_cache_filesize(sess->cache_entry);
                 if (e) {
                     sess->status = GF_NETIO_STATE_ERROR;
                     sess->last_error = e;
@@ -2207,10 +2208,12 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             {
                 char file_cache_buff[16384];
                 int read = 0;
+                u32 total_size = gf_cache_get_cache_filesize(sess->cache_entry);
                 do {
                     read = fread(file_cache_buff, sizeof(char), 16384, f);
                     if (read > 0) {
                         sess->bytes_done += read;
+                        sess->total_size = total_size;
                         par.size = read;
                         par.msg_type = GF_NETIO_DATA_EXCHANGE;
                         par.error = GF_OK;
@@ -2332,6 +2335,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
                 gf_cache_set_mime_type(sess->cache_entry, "audio/aac");
             }
             sess->icy_bytes = 0;
+            sess->total_size = 2 << 30;
             sess->status = GF_NETIO_DATA_EXCHANGE;
         } else if (!ContentLength) {
             if (sess->http_read_type == GET) {

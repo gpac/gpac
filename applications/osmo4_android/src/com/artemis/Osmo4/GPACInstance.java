@@ -80,12 +80,13 @@ public class GPACInstance {
      * @param modules_dir
      * @param cache_dir
      * @param font_dir
+     * @param urlToOpen
      * @throws GpacInstanceException
      */
     public GPACInstance(GpacCallback callback, int width, int height, String cfg_dir, String modules_dir,
-            String cache_dir, String font_dir) throws GpacInstanceException {
+            String cache_dir, String font_dir, String urlToOpen) throws GpacInstanceException {
         loadAllLibraries();
-        handle = createInstance(callback, width, height, cfg_dir, modules_dir, cache_dir, font_dir);
+        handle = createInstance(callback, width, height, cfg_dir, modules_dir, cache_dir, font_dir, urlToOpen);
         if (handle == 0) {
             throw new GpacInstanceException();
         }
@@ -203,7 +204,7 @@ public class GPACInstance {
      * @return
      */
     private native long createInstance(GpacCallback callback, int width, int height, String cfg_dir,
-            String modules_dir, String cache_dir, String font_dir);
+            String modules_dir, String cache_dir, String font_dir, String url_to_open);
 
     /**
      * Disconnects the currently loaded URL
