@@ -96,6 +96,7 @@
 #define gf_term_get_screen_buffer _gf_term_get_screen_buffer
 #define gf_f64_open _gf_f64_open
 #define gf_img_png_enc _gf_img_png_enc
+#define utf8_to_ucs4 _utf8_to_ucs4
 
 /*includes both terminal and od browser*/
 #include <gpac/terminal.h>
@@ -288,3 +289,6 @@ extern GF_Err (*gf_term_get_screen_buffer)(GF_Terminal *term, GF_VideoSurface *f
 extern FILE *(*gf_f64_open)(const char *file_name, const char *mode);
 #undef gf_img_png_enc
 extern GF_Err (*gf_img_png_enc)(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size);
+#undef utf8_to_ucs4
+extern u32 (*utf8_to_ucs4)(u32 *ucs4_buf, u32 utf8_len, unsigned char *utf8_buf);
+
