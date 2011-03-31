@@ -1,6 +1,5 @@
-/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/lipo -create -output /Users/bouqueau/Works/Build/gpacsvn4iphone/build/xcode/build/gpac4ios.build/$1-iphoneos/libgpac_dynamic.build/Objects-normal/armv6/libgpac_dynamic.dylib /Users/bouqueau/Works/Build/gpacsvn4iphone/build/xcode/build/gpac4ios.build/$1-iphoneos/libgpac_dynamic.build/Objects-normal/armv6/libgpac_dynamic.dylib.libtool.armv6 /Users/bouqueau/Works/Build/gpacsvn4iphone/build/xcode/build/gpac4ios.build/$1-iphoneos/libgpac_dynamic.build/Objects-normal/armv7/libgpac_dynamic.dylib.libtool.armv7
+#!/bin/sh
 
-/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/lipo -create -output /Users/bouqueau/Works/Build/gpacsvn4iphone/build/xcode/build/gpac4ios.build/$1-iphoneos/libgpac_dynamic.build/Objects-normal/armv7/libgpac_dynamic.dylib /Users/bouqueau/Works/Build/gpacsvn4iphone/build/xcode/build/gpac4ios.build/$1-iphoneos/libgpac_dynamic.build/Objects-normal/armv7/libgpac_dynamic.dylib.libtool.armv7 /Users/bouqueau/Works/Build/gpacsvn4iphone/build/xcode/build/gpac4ios.build/$1-iphoneos/libgpac_dynamic.build/Objects-normal/armv6/libgpac_dynamic.dylib.libtool.armv6
+/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/lipo -create -output build/Release-iphoneos/libgpac_dynamic.dylib build/gpac4ios.build/Release-iphoneos/libgpac_dynamic.build/Objects-normal/armv6/libgpac_dynamic.dylib build/gpac4ios.build/Release-iphoneos/libgpac_dynamic.build/Objects-normal/armv7/libgpac_dynamic.dylib
 
-cp /Users/bouqueau/Works/Build/gpacsvn4iphone/build/xcode/build/gpac4ios.build/$1-iphoneos/libgpac_dynamic.build/Objects-normal/armv7/libgpac_dynamic.dylib /Users/bouqueau/Works/Build/gpacsvn4iphone/build/xcode/build/$1-iphoneos/libgpac_dynamic.dylib
-
+cp build/Release-iphoneos/libgpac_dynamic.dylib ../../bin/iOS/osmo4ios.app/
