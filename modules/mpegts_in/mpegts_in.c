@@ -970,7 +970,7 @@ void m2ts_net_io(void *cbk, GF_NETIO_Parameter *param)
                   /*process chunk*/
                   assert(param->data);
 		  if (m2ts->network_buffer_size < param->size){
-			  m2ts->network_buffer = realloc(m2ts->network_buffer, sizeof(char) * param->size);
+			  m2ts->network_buffer = gf_realloc(m2ts->network_buffer, sizeof(char) * param->size);
 			  m2ts->network_buffer_size = param->size;
 		  }
 		  assert( m2ts->network_buffer );

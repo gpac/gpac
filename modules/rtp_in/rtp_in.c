@@ -185,9 +185,10 @@ static u32 RP_RegisterMimeTypes(const GF_InputService *plug){
 
 static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 {
-        if (!plug || !url)
-          return 0;
-	char *sExt = strrchr(url, '.');
+	char *sExt;
+	if (!plug || !url)
+		return 0;
+	sExt = strrchr(url, '.');
 
 	if (sExt && gf_term_check_extension(plug, sdp_mime, sdp_exts, sdp_desc, sExt)) return 1;
 
