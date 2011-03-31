@@ -54,8 +54,6 @@ static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
     const JNINativeMethod* gMethods, int numMethods)
 {
     jclass clazz;
-
-    LOGV("Registering %s natives\n", className);
     clazz = env->FindClass(className);
     if (clazz == NULL) {
         LOGE("Native registration unable to find class '%s'\n", className);
@@ -378,37 +376,22 @@ void CNativeWrapper::SetupLogs(){
 	const char *opt;
 	debug_log("SetupLogs()");
 
-//#ifndef GPAC_GUI_ONLY
 	gf_mx_p(m_mx);
+
 	/*setup GPAC logs: log all errors*/
 	gf_log_set_level(GF_LOG_DEBUG);
 	gf_log_set_tools(0xFFFFFFFF);
 
 	opt = gf_cfg_get_key(m_user.config, "General", "LogLevel");
-        debug_log("Setting logs...");
-	//if (opt && stricmp(opt, "error")) {
-		FILE *logs = fopen("/sdcard/osmo/gpac.log", "wt");
-		if (!logs) {
-			MessageBox("Cannot open log file - disabling logs", "Warning !", GF_SERVICE_ERROR);
-		} else {
-			//MessageBox("Debug log enabled in /sdcard/osmo/gpac.log", "Info", GF_SERVICE_ERROR);
-			fclose(logs);
-			opt = gf_cfg_get_key(m_user.config, "General", "LogTools");
-			if (opt) gf_log_set_tools(gf_log_parse_tools(opt));
-		}
-	//}
+        /* FIXME : set the loglevel according to config file */
 
-
-//	gf_log_set_level(GF_LOG_DEBUG);
-//	gf_log_set_tools(GF_LOG_AUDIO|GF_LOG_MEDIA|GF_LOG_SYNC|GF_LOG_CODEC);
-
-	//logfile = fopen(argv[i+1], "wt");
+        opt = gf_cfg_get_key(m_user.config, "General", "LogTools");
+	if (opt) gf_log_set_tools(gf_log_parse_tools(opt));
 
 	gf_log_set_callback(this, on_gpac_log);
 	gf_mx_v(m_mx);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Osmo4 logs initialized\n"));
-//#endif
 }
 //-------------------------------
 // dir should end with /
@@ -427,9 +410,6 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	strcpy(m_cfg_filename, m_cfg_dir);
 	strcat(m_cfg_filename, "GPAC.cfg");
 
-	#ifdef	DEBUG_MODE
-	debug_f = fopen(DEBUG_FILE, "w");
-	#endif
 	if (callback){
 		this->cbk_obj = env->NewGlobalRef(*callback);
 		this->cbk_displayMessage = NULL;
