@@ -2001,10 +2001,10 @@ static void svg_parse_paint(GF_Node *n, SVG_Paint *paint, char *attribute_conten
 /* Parses a length which is a number with a unit */
 static u32 svg_parse_length(SVG_Number *number, char *value_string, Bool clamp0to1)
 {
-	char c;
+    char c = '\0';
     char *unit = NULL;
-	u32 len = 0;
-    u32 unit_pos;
+    u32 len = 0;
+    u32 unit_pos = 0;
     u32 unit_len = 0;
     u32 read_chars;
 
