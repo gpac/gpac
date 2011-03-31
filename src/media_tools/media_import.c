@@ -4258,7 +4258,7 @@ restart_import:
 		/*consume next start code*/
 		nal_start = AVC_NextStartCode(bs);
 		if (nal_start) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid nal_size? Skipping %d bytes to reach next start code\n", nal_start));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid nal_size? Skipping "LLU" bytes to reach next start code\n", nal_start));
 			gf_bs_skip_bytes(bs, nal_start);
 		}
 		nal_start = AVC_IsStartCode(bs);
