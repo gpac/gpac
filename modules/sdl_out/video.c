@@ -554,6 +554,10 @@ static void SDLVid_ShutdownWindow(SDLVidCtx *ctx)
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
+#ifdef SDL_TEXTINPUTEVENT_TEXT_SIZE
+#include <gpac/unicode.h>
+#endif
+
 
 Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 {
