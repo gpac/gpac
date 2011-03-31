@@ -1371,6 +1371,7 @@ static JSBool wm_widget_get_message(JSContext *c, JSObject *obj, uintN argc, jsv
 	GF_WidgetMessage *msg;
 	GF_WidgetInterface *ifce = (GF_WidgetInterface*)JS_GetPrivate(c, obj);
 	if (!ifce || !argc) return JS_FALSE;
+	msg = NULL;
 
 	if (JSVAL_IS_INT(argv[0])) {
 		u32 idx;
@@ -3257,6 +3258,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		GF_XMLNode *context;
 		GF_DownloadSession *ctx_sess = NULL;
 		char *ctxPath;
+		context = NULL;
 
 		/*fetch the remote widget context synchronously and load it */
 		ctxPath = gf_malloc(sizeof(char) * (strlen(path) + 1 + 15/*?mpeg-u-context*/));
@@ -3283,6 +3285,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 			e = GF_OK;
 		}
 		gf_free(ctxPath);
+		ctxPath = NULL;
 
 		if (!context && wi->mpegu_context) {
 			gf_xml_dom_del(wi->mpegu_context);
