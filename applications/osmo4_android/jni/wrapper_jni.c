@@ -26,7 +26,7 @@ extern "C" {
  * Method:    createInstance
  * Signature: (Lcom/artemis/Osmo4/GpacCallback;IILjava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I
  */
-JNIEXPORT jlong JNICALL Java_com_artemis_Osmo4_GPACInstance_createInstance(JNIEnv * env, jclass obj, jobject callback, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir)
+JNIEXPORT jlong JNICALL Java_com_artemis_Osmo4_GPACInstance_createInstance(JNIEnv * env, jclass obj, jobject callback, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir, jstring url_to_open)
 {
         jboolean isCopy;
         const char * s1 = env->GetStringUTFChars(cfg_dir, &isCopy);
@@ -34,10 +34,10 @@ JNIEXPORT jlong JNICALL Java_com_artemis_Osmo4_GPACInstance_createInstance(JNIEn
         const char * s3 = env->GetStringUTFChars(cache_dir, &isCopy);
         const char * s4 = env->GetStringUTFChars(font_dir, &isCopy);
         const char * s5 = NULL;
-/*        if (urlToLoad)
-          s5 = env->GetStringUTFChars(font_dir, &isCopy);
+        if (url_to_open)
+          s5 = env->GetStringUTFChars(url_to_open, &isCopy);
         else
-          s5 = NULL;*/
+          s5 = NULL;
         CNativeWrapper * gpac_obj = new CNativeWrapper();
         if (gpac_obj){
           int w = width;

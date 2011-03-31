@@ -114,7 +114,7 @@ public class Osmo4 extends Activity implements GpacCallback {
             } else
                 toOpen = null;
         } else
-            toOpen = null;
+            toOpen = null; // "http://vizionr.fr:8000/fun.ts";
         setProgress(1000);
         service.submit(new Runnable() {
 
@@ -550,10 +550,15 @@ public class Osmo4 extends Activity implements GpacCallback {
             @Override
             public void run() {
                 // GPAC sometimes return total = 0
-                int progress = done * 10000 / (total < 1 ? 1 : total);
-                if (progress > 9900)
-                    progress = 10000;
-                setProgress(progress);
+                if (total < 1) {
+                    setProgressBarIndeterminate(true);
+                } else {
+                    int progress = done * 10000 / (total < 1 ? 1 : total);
+                    if (progress > 9900)
+                        progress = 10000;
+                    setProgressBarIndeterminate(false);
+                    setProgress(progress);
+                }
             }
         });
     }

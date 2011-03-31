@@ -35,6 +35,12 @@
 #include <GLES/gl.h>
 #include <GLES/glext.h>
 
+#include <android/log.h>
+
+#define TAG "DROID_VIDEO"
+
+#define LOG   __android_log_print
+
 #ifdef PI
 #undef PI
 #endif
@@ -75,29 +81,29 @@ void initGL(AndroidContext *rc)
 {
 	char* ext;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android InitGL\n"));
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android InitGL");
 
 	ext = (char*)glGetString(GL_VENDOR);
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("OpenGL ES Vendor: %s\n", ext));
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Vendor: %s", ext);
 
 	ext = (char*)glGetString(GL_RENDERER);
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("OpenGL ES Renderer: %s\n", ext));
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Renderer: %s", ext);
 
 	ext = (char*)glGetString(GL_VERSION);
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("OpenGL ES Version: %s\n", ext));
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Version: %s", ext);
 
 	ext = (char*)glGetString(GL_EXTENSIONS);
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("OpenGL ES Extensions: %s\n", ext));
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Extensions: %s", ext);
 
 	if ( strstr(ext, "GL_OES_draw_texture") )
 	{
 		rc->draw_texture = 1;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Using GL_OES_draw_texture\n"));
+		LOG( ANDROID_LOG_INFO, TAG, "Using GL_OES_draw_texture");
 	}
 	if ( strstr(ext, "GL_ARB_texture_non_power_of_two") )
 	{
 		rc->non_power_two = 0;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Using GL_ARB_texture_non_power_of_two\n"));
+		LOG( ANDROID_LOG_INFO, TAG, "Using GL_ARB_texture_non_power_of_two");
 	}
 
     /* Enable smooth shading */
@@ -138,7 +144,7 @@ void gluPerspective(GLfloat fovy, GLfloat aspect,
 
 void resizeWindow(AndroidContext *rc)
 {
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("resizeWindow : start\n"));
+    LOG( ANDROID_LOG_VERBOSE, TAG, "resizeWindow : start");
     /* Height / width ration */
     GLfloat ratio;
 
@@ -165,12 +171,12 @@ void resizeWindow(AndroidContext *rc)
 
     /* Reset The View */
     glLoadIdentity();
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("resizeWindow : end\n"));
+    LOG( ANDROID_LOG_VERBOSE, TAG, "resizeWindow : end");
 }
 
 void drawGLScene(AndroidContext *rc)
 {
-        GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("drawGLScene : start\n"));
+        LOG( ANDROID_LOG_VERBOSE, TAG, "drawGLScene : start");
 	GLfloat vertices[4][3];
 	GLfloat texcoord[4][2];
 //	int i, j;
@@ -264,12 +270,14 @@ void drawGLScene(AndroidContext *rc)
 #ifdef GLES_FRAMEBUFFER_TEST
 	glBindFramebufferOES(GL_FRAMEBUFFER_OES, rc->framebuff);
 #endif
-    GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("drawGLScene : end\n"));
+    LOG( ANDROID_LOG_VERBOSE, TAG, "drawGLScene : end");
 }
 
 int releaseTexture(AndroidContext *rc)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android Delete Texture\n"));
+        if (!rc)
+          return 0;
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android Delete Texture");
 
 	if ( rc->texID >= 0 )
 	{
@@ -281,19 +289,19 @@ int releaseTexture(AndroidContext *rc)
 		gf_free(rc->texData);
 		rc->texData = NULL;
 	}
-
-
+	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Delete Texture DONE");
 	return 0;
 }
 
 int createTexture(AndroidContext *rc)
 {
+        if (!rc)
+          return 0;
 	if ( rc->texID >= 0 )
 		releaseTexture(rc);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android Create Texture"));
-
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Android Texture Size: WxH: %dx%d\n", rc->tex_width, rc->tex_height));
+	LOG( ANDROID_LOG_INFO, TAG, "Android Create Texture Size: WxH: %dx%d",
+                                            rc->tex_width, rc->tex_height);
 
 	glGenTextures( 1, &(rc->texID) );
 
@@ -312,7 +320,7 @@ int createTexture(AndroidContext *rc)
 				GL_RGBA, GL_UNSIGNED_BYTE, NULL/*rc->texData*/ );
 
 	glBindTexture( GL_TEXTURE_2D, 0);
-
+        LOG( ANDROID_LOG_VERBOSE, TAG, "Android Create Texture DONE");
 	return 0;
 }
 
@@ -320,7 +328,7 @@ int createTexture(AndroidContext *rc)
 
 int releaseFrameBuffer(AndroidContext *rc)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android Delete FrameBuffer\n"));
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android Delete FrameBuffer");
 
 	glBindFramebufferOES(GL_FRAMEBUFFER_OES, 0);
 
@@ -345,7 +353,7 @@ int createFrameBuffer(AndroidContext *rc)
 	if ( rc->framebuff >= 0 )
 		releaseFrameBuffer(rc);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android Create FrameBuffer\n"));
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android Create FrameBuffer"));
 
 	glGenFramebuffersOES(1, &(rc->framebuff));
     glBindFramebufferOES(GL_FRAMEBUFFER_OES, rc->framebuff);
@@ -356,7 +364,7 @@ int createFrameBuffer(AndroidContext *rc)
 //	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &backingWidth);
 //	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &backingHeight);
 
-//	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Android Depth Buffer Size: %dx%d\n", backingWidth, backingHeight));
+//	LOG( ANDROID_LOG_ERROR, TAG, "Android Depth Buffer Size: %dx%d\n", backingWidth, backingHeight));
 
 //    glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_DEPTH_COMPONENT16_OES, rc->width, rc->height);
 
@@ -368,26 +376,26 @@ int createFrameBuffer(AndroidContext *rc)
 
 	if ( (res=(int)glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES)) != GL_FRAMEBUFFER_COMPLETE_OES )
 	{
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Android failed to make complete framebuffer object:"));
+		LOG( ANDROID_LOG_ERROR, TAG, "Android failed to make complete framebuffer object:");
 		switch (res)
 		{
 			case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES"));
+				LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES");
 				break;
 			case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_OES:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES"));
+				LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES");
 				break;
 			case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_OES:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_OES"));
+				LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_OES");
 				break;
 			case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_OES:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("GL_FRAMEBUFFER_INCOMPLETE_FORMATS_OES"));
+				LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_FORMATS_OES");
 				break;
 			case GL_FRAMEBUFFER_UNSUPPORTED_OES:
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("GL_FRAMEBUFFER_UNSUPPORTED_OES"));
+				LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_UNSUPPORTED_OES");
 				break;
 			default :
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown error: %d", res));
+				LOG( ANDROID_LOG_ERROR, TAG, "Unknown error: %d", res);
 				break;
 		}
 
@@ -412,7 +420,7 @@ u32 find_pow_2(u32 num)
 static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 {
 	RAWCTX;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android Resize: %dx%d\n", w, h));
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android Resize: %dx%d", w, h);
 
 	rc->width = w;
 	rc->height = h;
@@ -437,7 +445,7 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 		createFrameBuffer(rc);
 #endif
 	}
-
+        LOG( ANDROID_LOG_VERBOSE, TAG, "Android Resize DONE", w, h);
 	return GF_OK;
 }
 
@@ -447,13 +455,13 @@ GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 in
 	void * pixels;
 	int ret;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android Setup: %d\n", init_flags));
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android Setup: %d", init_flags);
 
 #ifndef GLES_FRAMEBUFFER_TEST
 	if ( rc->out_3d_type == 0 )
 #endif
 		initGL(rc);
-
+        LOG( ANDROID_LOG_VERBOSE, TAG, "Android Setup DONE");
 	return GF_OK;
 }
 
@@ -461,25 +469,26 @@ GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 in
 static void droid_Shutdown(GF_VideoOutput *dr)
 {
 	RAWCTX;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android Shutdown\n"));
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android Shutdown\n");
 
 	releaseTexture(rc);
 #ifdef GLES_FRAMEBUFFER_TEST
 	releaseFrameBuffer(rc);
 #endif
+        LOG( ANDROID_LOG_VERBOSE, TAG, "Android Shutdown DONE");
 }
 
 
 static GF_Err droid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
 	RAWCTX;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android Flush\n"));
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android Flush\n");
 
 #ifndef GLES_FRAMEBUFFER_TEST
 	if ( rc->out_3d_type == 0 )
 #endif
 		drawGLScene(rc);
-
+        LOG( ANDROID_LOG_VERBOSE, TAG, "Android Flush DONE");
 	return GF_OK;
 }
 
@@ -490,7 +499,7 @@ static GF_Err droid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool
 	void * pixels;
 	int i,j,t;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android LockBackBuffer: %d\n", do_lock));
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android LockBackBuffer: %d", do_lock);
 	if (do_lock) {
 		if (!vi) return GF_BAD_PARAM;
 
@@ -517,6 +526,7 @@ static GF_Err droid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool
 			//			GL_RGBA, GL_UNSIGNED_BYTE, rc->locked_data );
 		}
 	}
+	LOG( ANDROID_LOG_VERBOSE, TAG, "Android LockBackBuffer DONE");
 	return GF_OK;
 }
 
@@ -525,13 +535,14 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	RAWCTX;
 
 	if (evt) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android ProcessEvent: %d\n", evt->type));
 		switch (evt->type) {
 		case GF_EVENT_SIZE:
+                        LOG( ANDROID_LOG_VERBOSE, TAG, "GF_EVENT_SIZE( %d x %d)",
+                              evt->setup.width, evt->setup.height);
 			//if (evt->setup.opengl_mode) return GF_OK;
 			return droid_Resize(dr, evt->setup.width, evt->setup.height);
 		case GF_EVENT_VIDEO_SETUP:
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android OpenGL mode: %d\n", evt->setup.opengl_mode));
+			LOG( ANDROID_LOG_DEBUG, TAG, "Android OpenGL mode: %d", evt->setup.opengl_mode);
 			switch (evt->setup.opengl_mode)
 			{
 				case 0:
@@ -547,6 +558,18 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 					rc->out_3d_type = 2;
 					droid_Resize(dr, evt->setup.width, evt->setup.height);
 					return GF_OK;
+                                case GF_EVENT_SET_CURSOR:
+                                        LOG( ANDROID_LOG_VERBOSE, TAG, "GF_EVENT_SET_CURSOR");
+                                        return GF_OK;
+                                case GF_EVENT_SET_CAPTION:
+                                        LOG( ANDROID_LOG_VERBOSE, TAG, "GF_EVENT_SET_CAPTION");
+                                        return GF_OK;
+                                case GF_EVENT_SHOWHIDE:
+                                        LOG( ANDROID_LOG_VERBOSE, TAG, "GF_EVENT_SHOWHIDE");
+                                        return GF_OK;
+                                default:
+                                  LOG( ANDROID_LOG_DEBUG, TAG, "Process Unknown Event: %d", evt->type);
+                                  return GF_OK;
 			}
 			break;
 		}
@@ -558,7 +581,7 @@ GF_VideoOutput *NewRawVideoOutput()
 {
 	AndroidContext *pCtx;
 	GF_VideoOutput *driv = (GF_VideoOutput *) gf_malloc(sizeof(GF_VideoOutput));
-        GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Android Video Initialization in progress...\n"));
+        LOG( ANDROID_LOG_INFO, TAG, "Android Video Initialization in progress...");
 	memset(driv, 0, sizeof(GF_VideoOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "Android Video Output", "gpac distribution")
 
@@ -581,7 +604,7 @@ GF_VideoOutput *NewRawVideoOutput()
 
 	driv->hw_caps = GF_VIDEO_HW_OPENGL;// | GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA;//GF_VIDEO_HW_DIRECT_ONLY;//
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Android Video Init Done.\n"));
+	LOG( ANDROID_LOG_INFO, TAG, "Android Video Init Done.\n");
 	return (void *)driv;
 }
 
@@ -597,7 +620,7 @@ void DeleteVideoOutput(void *ifce)
           gf_free(rc);
         driv->opaque = NULL;
 	gf_free(driv);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("Android vout deinit\n"));
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android vout deinit\n");
 }
 
 /*interface query*/

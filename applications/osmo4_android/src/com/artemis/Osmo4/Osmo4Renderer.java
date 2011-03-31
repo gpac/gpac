@@ -67,7 +67,8 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
                                         GPAC_CFG_DIR,
                                         GPAC_MODULES_DIR,
                                         GPAC_CACHE_DIR,
-                                        GPAC_FONT_DIR);
+                                        GPAC_FONT_DIR,
+                                        urlToLoad);
         } catch (GpacInstanceException e) {
             Log.e(LOG_RENDERER, "Failed to create new GPAC instance !"); //$NON-NLS-1$
             instance = null;
