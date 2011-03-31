@@ -1226,6 +1226,7 @@ static JSBool SFNodeConstructor(JSContext *c, JSObject *obj, uintN argc, jsval *
 	char *node_name;
 	GF_ScriptPriv *priv = JS_GetScriptStack(c);
 	M_Script *sc = JS_GetScript(c);
+	tag = 0;
 	if (!argc) {
 		field = NewJSField(c);
 		field->field.fieldType = GF_SG_VRML_SFNODE;
