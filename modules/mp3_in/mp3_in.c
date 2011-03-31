@@ -687,13 +687,14 @@ GF_InputService *MP3_Load()
 
 void MP3_Delete(void *ifce)
 {
+	MP3Reader *read;
 	GF_InputService *plug = (GF_InputService *) ifce;
-        if (!plug)
-          return;
-	MP3Reader *read = plug->priv;
-        if (read)
-          gf_free(read);
-        plug->priv = NULL;
+	if (!plug)
+		return;
+	read = plug->priv;
+	if (read)
+		gf_free(read);
+	plug->priv = NULL;
 	gf_free(plug);
 }
 

@@ -232,17 +232,18 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 
 static GF_Err IMG_CloseService(GF_InputService *plug)
 {
-        if (!plug)
-          return GF_BAD_PARAM;
-	IMGLoader *read = (IMGLoader *)plug->priv;
-        if (!read)
-          return GF_BAD_PARAM;
+	IMGLoader *read;
+	if (!plug)
+		return GF_BAD_PARAM;
+	read = (IMGLoader *)plug->priv;
+	if (!read)
+		return GF_BAD_PARAM;
 	if (read->stream) fclose(read->stream);
 	read->stream = NULL;
 	if (read->dnload) gf_term_download_del(read->dnload);
 	read->dnload = NULL;
-        if (read->service)
-          gf_term_on_disconnect(read->service, NULL, GF_OK);
+	if (read->service)
+		gf_term_on_disconnect(read->service, NULL, GF_OK);
 	return GF_OK;
 }
 
@@ -415,14 +416,15 @@ void *NewLoaderInterface()
 
 void DeleteLoaderInterface(void *ifce)
 {
-      GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("DeleteLoaderInterface : 1\n"));
+	IMGLoader *read;
 	GF_InputService *plug = (GF_InputService *) ifce;
-        if (!plug)
-          return;
-	IMGLoader *read = (IMGLoader *)plug->priv;
-        if (read)
-          gf_free(read);
-        plug->priv = NULL;
+	GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("DeleteLoaderInterface : 1\n"));
+	if (!plug)
+		return;
+	read = (IMGLoader *)plug->priv;
+	if (read)
+		gf_free(read);
+	plug->priv = NULL;
 	gf_free(plug);
-        GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("DeleteLoaderInterface : 2\n"));
+	GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("DeleteLoaderInterface : 2\n"));
 }

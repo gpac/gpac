@@ -44,7 +44,7 @@ void sdl_fill_audio(void *udata, Uint8 *stream, int len)
 	GF_AudioOutput *dr = (GF_AudioOutput *)udata;
 	SDLAUD();
 	if (ctx->volume != SDL_MIX_MAXVOLUME){
-		ctx->audioBuff = realloc( ctx->audioBuff, sizeof(Uint8) * len);
+		ctx->audioBuff = gf_realloc( ctx->audioBuff, sizeof(Uint8) * len);
 		dr->FillBuffer(dr->audio_renderer, ctx->audioBuff, len);	
 		SDL_MixAudio(stream, ctx->audioBuff, len, ctx->volume);
 	} else {
