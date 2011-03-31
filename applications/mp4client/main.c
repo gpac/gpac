@@ -381,6 +381,10 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	return gf_cfg_new(file_path, file_name);
 }
 
+#if (defined(__DARWIN__) || defined(__APPLE__) )
+#include <mach-o/dyld.h>
+#endif /* Apple, needs this for _NSGetExecutablePath on Mac OS X */
+
 static void check_config_directories(GF_Config *cfg)
 {
 #if (defined(__DARWIN__) || defined(__APPLE__) )
