@@ -485,7 +485,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
 		/*startup file*/
 		char msg[256];
-		sprintf(msg, 256, "%sgui/gui.bt",GPAC_CFG_DIR);
+		snprintf(msg, 256, "%sgui/gui.bt",GPAC_CFG_DIR);
 		gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
 		gf_cfg_set_key(m_user.config, "General", "LastWorkingDir", GPAC_CFG_DIR);
 		gf_cfg_set_key(m_user.config, "GUI", "UnhideControlPlayer", "1");
