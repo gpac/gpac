@@ -190,8 +190,6 @@ typedef struct
 /*(2^EVGGRADIENTBITS)-1 colors in gradient. Below 6 bits the gradient is crappy */
 #define EVGGRADIENTBITS		10
 
-/*scale factor for linear - MUST BE greater than EVGGRADIENTBITS. 12 should be enough for decent results in both fixed point and float versions*/
-#define EVGGRADIENTSCALEBITS		12
 
 /*base gradient stencil*/
 #define EVGGRADIENT	\

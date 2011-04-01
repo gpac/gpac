@@ -230,7 +230,6 @@ static void lgb_fill_run(EVGStencil *p, EVGSurface *surf, s32 x, s32 y, u32 coun
 	s32 val;
 	u32 col, ca;
 	u32 *data = surf->stencil_pix_run;
-	u32 shifter = (EVGGRADIENTSCALEBITS - EVGGRADIENTBITS);
 	EVG_LinearGradient *_this = (EVG_LinearGradient *) p;
 
 	has_cmat = _this->cmat.identity ? 0 : 1;
@@ -242,7 +241,7 @@ static void lgb_fill_run(EVGStencil *p, EVGSurface *surf, s32 x, s32 y, u32 coun
 		val = FIX2INT(_res);
 		_res += _this->smat.m[0];
 
-		col = gradient_get_color((EVG_BaseGradient *)_this, (val >> shifter) );
+		col = gradient_get_color((EVG_BaseGradient *)_this, val );
 		if (has_a) {
 			ca = ((GF_COL_A(col) + 1) * _this->alpha) >> 8;
 			col = ( ((ca<<24) & 0xFF000000) ) | (col & 0x00FFFFFF);
