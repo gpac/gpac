@@ -807,7 +807,11 @@ void gf_mx2d_add_skew_y(GF_Matrix2D *_this, Fixed angle)
 static Fixed gf_mx2d_get_determinent(GF_Matrix2D *_this)
 {
 	if (_this)
+#ifdef GPAC_FIXED_POINT
+		return gf_mulfix(_this->m[0] / 10, _this->m[4]) - gf_mulfix(_this->m[1] / 10, _this->m[3]);
+#else
 		return gf_mulfix(_this->m[0], _this->m[4]) - gf_mulfix(_this->m[1], _this->m[3]);
+#endif
 	return 0;
 }
 
@@ -815,23 +819,57 @@ static Fixed gf_mx2d_get_determinent(GF_Matrix2D *_this)
 GF_EXPORT
 void gf_mx2d_inverse(GF_Matrix2D *_this)
 {
+#ifdef GPAC_FIXED_POINT
+	Float _det, _max;
+	s32 sign, scale;
+#endif
 	Fixed det;
 	GF_Matrix2D tmp;
 	if(!_this) return;
 	if (gf_mx2d_is_identity(*_this)) return;
-	det = gf_mx2d_get_determinent(_this);
+
+#ifdef GPAC_FIXED_POINT
+	/*we must compute the determinent as a float to avoid fixed-point overflow*/
+	_det = FIX2FLT(_this->m[0])*FIX2FLT(_this->m[4]) - FIX2FLT(_this->m[1])*FIX2FLT(_this->m[3]);
+	if (!_det) {
+		gf_mx2d_init(*_this);
+		return;
+	}
+	sign = _det<0 ? -1 : 1;
+	_det *= sign;
+	scale = 1;
+	_max = FIX2FLT(FIX_MAX);
+	while (_det / scale > _max) {
+		scale *= 10;
+	}
+	det = FLT2FIX(_det/scale);
+#else
+	det = gf_mulfix(_this->m[0], _this->m[4]) - gf_mulfix(_this->m[1], _this->m[3]);
 	if (!det) {
 		gf_mx2d_init(*_this);
 		return;
 	}
+#endif
+
 	tmp.m[0] = gf_divfix(_this->m[4], det);
 	tmp.m[1] = -1 *  gf_divfix(_this->m[1], det);
-	tmp.m[2] = gf_mulfix(_this->m[1], _this->m[5]) - gf_mulfix(_this->m[4], _this->m[2]);
-	tmp.m[2] = gf_divfix(tmp.m[2], det);
+	tmp.m[2] = gf_mulfix(gf_divfix(_this->m[1], det), _this->m[5]) - gf_mulfix(gf_divfix(_this->m[4], det), _this->m[2]);
+
 	tmp.m[3] = -1 * gf_divfix(_this->m[3], det);
 	tmp.m[4] = gf_divfix(_this->m[0], det);
-	tmp.m[5] = gf_mulfix(_this->m[3], _this->m[2]) - gf_mulfix(_this->m[0],_this->m[5]);
-	tmp.m[5] = gf_divfix(tmp.m[5], det);
+	tmp.m[5] = gf_mulfix( gf_divfix(_this->m[3], det), _this->m[2]) - gf_mulfix( gf_divfix(_this->m[5], det), _this->m[0]);
+
+#ifdef GPAC_FIXED_POINT
+	if (scale>1) {
+		tmp.m[0] /= scale;
+		tmp.m[1] /= scale;
+		tmp.m[2] /= scale;
+		tmp.m[3] /= scale;
+		tmp.m[4] /= scale;
+		tmp.m[5] /= scale;
+	}
+#endif
+
 	gf_mx2d_copy(*_this, tmp);
 }
 
