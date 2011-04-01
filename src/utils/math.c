@@ -804,17 +804,6 @@ void gf_mx2d_add_skew_y(GF_Matrix2D *_this, Fixed angle)
 	gf_mx2d_add_matrix(_this, &tmp);
 }
 
-static Fixed gf_mx2d_get_determinent(GF_Matrix2D *_this)
-{
-	if (_this)
-#ifdef GPAC_FIXED_POINT
-		return gf_mulfix(_this->m[0] / 10, _this->m[4]) - gf_mulfix(_this->m[1] / 10, _this->m[3]);
-#else
-		return gf_mulfix(_this->m[0], _this->m[4]) - gf_mulfix(_this->m[1], _this->m[3]);
-#endif
-	return 0;
-}
-
 
 GF_EXPORT
 void gf_mx2d_inverse(GF_Matrix2D *_this)
@@ -842,7 +831,7 @@ void gf_mx2d_inverse(GF_Matrix2D *_this)
 	while (_det / scale > _max) {
 		scale *= 10;
 	}
-	det = FLT2FIX(_det/scale);
+	det = sign * FLT2FIX(_det/scale);
 #else
 	det = gf_mulfix(_this->m[0], _this->m[4]) - gf_mulfix(_this->m[1], _this->m[3]);
 	if (!det) {
@@ -1348,20 +1337,51 @@ Bool gf_mx_equal(GF_Matrix *mx1, GF_Matrix *mx2)
 GF_EXPORT
 void gf_mx_inverse(GF_Matrix *mx)
 {
-    Fixed det;
+#ifdef GPAC_FIXED_POINT
+	Float _det, _max;
+	s32 sign, scale;
+#endif
+	Fixed det;
 	GF_Matrix rev;
 	gf_mx_init(rev);
 
 	assert(! ((mx->m[3] != 0) || (mx->m[7] != 0) || (mx->m[11] != 0) || (mx->m[15] != FIX_ONE)) );
 
+
+#ifdef GPAC_FIXED_POINT
+	/*we must compute the determinent as a float to avoid fixed-point overflow*/
+	_det = FIX2FLT(mx->m[0])*FIX2FLT(mx->m[5])*FIX2FLT(mx->m[10]);
+	_det += FIX2FLT(mx->m[1])*FIX2FLT(mx->m[6])*FIX2FLT(mx->m[8]);
+	_det += FIX2FLT(mx->m[2])*FIX2FLT(mx->m[4])*FIX2FLT(mx->m[9]);
+	_det -= FIX2FLT(mx->m[2])*FIX2FLT(mx->m[5])*FIX2FLT(mx->m[8]);
+	_det -= FIX2FLT(mx->m[1])*FIX2FLT(mx->m[4])*FIX2FLT(mx->m[10]);
+	_det -= FIX2FLT(mx->m[0])*FIX2FLT(mx->m[6])*FIX2FLT(mx->m[9]);
+
+	if (!_det) {
+		gf_mx2d_init(*mx);
+		return;
+	}
+	sign = _det<0 ? -1 : 1;
+	_det *= sign;
+	scale = 1;
+	_max = FIX2FLT(FIX_MAX);
+	while (_det / scale > _max) {
+		scale *= 10;
+	}
+	det = sign * FLT2FIX(_det/scale);
+#else
 	det = gf_mulfix(gf_mulfix(mx->m[0], mx->m[5]) , mx->m[10]);
 	det += gf_mulfix(gf_mulfix(mx->m[1], mx->m[6]) , mx->m[8]);
 	det += gf_mulfix(gf_mulfix(mx->m[2], mx->m[4]) , mx->m[9]);
 	det -= gf_mulfix(gf_mulfix(mx->m[2], mx->m[5]) , mx->m[8]);
 	det -= gf_mulfix(gf_mulfix(mx->m[1], mx->m[4]) , mx->m[10]);
 	det -= gf_mulfix(gf_mulfix(mx->m[0], mx->m[6]) , mx->m[9]);
+	if (!det) {
+		gf_mx2d_init(*mx);
+		return;
+	}
+#endif
 
-//	if (gf_mulfix(det) < FIX_EPSILON) return;
 
 	/* Calculate inverse(A) = adj(A) / det(A) */
 	rev.m[0] =  gf_muldiv(mx->m[5], mx->m[10], det) - gf_muldiv(mx->m[6], mx->m[9], det);
@@ -1373,6 +1393,20 @@ void gf_mx_inverse(GF_Matrix *mx)
 	rev.m[2] =  gf_muldiv(mx->m[1], mx->m[6], det) - gf_muldiv(mx->m[2], mx->m[5], det);
 	rev.m[6] = -gf_muldiv(mx->m[0], mx->m[6], det) + gf_muldiv(mx->m[2], mx->m[4], det);
 	rev.m[10] = gf_muldiv(mx->m[0], mx->m[5], det) - gf_muldiv(mx->m[1], mx->m[4], det);
+
+#ifdef GPAC_FIXED_POINT
+	if (scale>1) {
+		rev.m[0] /= scale;
+		rev.m[4] /= scale;
+		rev.m[8] /= scale;
+		rev.m[1] /= scale;
+		rev.m[5] /= scale;
+		rev.m[9] /= scale;
+		rev.m[2] /= scale;
+		rev.m[6] /= scale;
+		rev.m[10] /= scale;
+	}
+#endif
 
 	/* do translation part*/
 	rev.m[12] = -( gf_mulfix(mx->m[12], rev.m[0]) + gf_mulfix(mx->m[13], rev.m[4]) + gf_mulfix(mx->m[14], rev.m[8]) );
