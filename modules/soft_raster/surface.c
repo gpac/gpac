@@ -613,7 +613,7 @@ GF_Err evg_surface_fill(GF_SURFACE _this, GF_STENCIL stencil)
 			gf_mx2d_inverse(&sten->smat);
 			/*and finalize matrix in gradient coord system*/
 			gf_mx2d_add_matrix(&sten->smat, &lin->vecmat);
-			gf_mx2d_add_scale(&sten->smat, INT2FIX(1<<EVGGRADIENTSCALEBITS), INT2FIX(1<<EVGGRADIENTSCALEBITS));
+			gf_mx2d_add_scale(&sten->smat, INT2FIX(1<<EVGGRADIENTBITS), INT2FIX(1<<EVGGRADIENTBITS));
 
 		}
 			break;
