@@ -110,9 +110,19 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
         }
     }
 
+    private int frames;
+
+    private long startFrame = System.currentTimeMillis();
+
     @Override
     public void onDrawFrame(GL10 gl) {
         if (instance != null) {
+            frames++;
+            if (frames % 1000 == 0) {
+                long now = System.currentTimeMillis();
+                Log.i(LOG_RENDERER, "Frames Per Second = " + ((now - startFrame) / 1000) + " fps"); //$NON-NLS-1$//$NON-NLS-2$
+                this.startFrame = now;
+            }
             instance.render();
         }
     }
