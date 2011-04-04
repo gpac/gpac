@@ -4,4 +4,8 @@
     <string name="open_url">Open URL...</string>
     <string name="quit">Exit</string>
     <string name="app_name">Osmo4</string>
+    <string name="copying_native_libs">Initialization...</string>
+    <string name="displayPopupFormat">{0}\n{1}</string>
+    <string name="gpacNotInitialized">GPAC is not initialized</string>
+    <string name="gpacNotInitializedLongMessages">Sorry, GPAC is not initialized, operation cannot be performed</string>
 </resources>

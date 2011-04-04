@@ -21,17 +21,6 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
      */
     public final static String GPAC_CFG_DIR;
 
-    private Runnable pendingCommand = null;
-
-    /**
-     * Post a command to execute in GPAC Renderer Thread
-     * 
-     * @param command The command to execute
-     */
-    public synchronized void postCommand(Runnable command) {
-        this.pendingCommand = command;
-    }
-
     /**
      * Default directory for cached files
      */
@@ -73,6 +62,7 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
             Log.e(LOG_RENDERER, "Failed to create new GPAC instance !"); //$NON-NLS-1$
             instance = null;
             callback.onGPACError(e);
+            return;
         }
         if (callback != null)
             callback.onGPACReady();
@@ -124,15 +114,6 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
     public void onDrawFrame(GL10 gl) {
         if (instance != null) {
             instance.render();
-            Runnable command;
-            synchronized (this) {
-                command = this.pendingCommand;
-                this.pendingCommand = null;
-            }
-            if (command != null) {
-                Log.i(LOG_RENDERER, "Command sent from thread " + Thread.currentThread()); //$NON-NLS-1$
-                command.run();
-            }
         }
     }
 

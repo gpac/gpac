@@ -20,6 +20,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -86,9 +87,16 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private Osmo4Renderer renderer;
 
-    private synchronized Osmo4Renderer getRenderer() {
+    private synchronized Osmo4Renderer getGpacRenderer() {
+        if (renderer == null) {
+            displayMessage(String.valueOf(getResources().getText(R.string.gpacNotInitializedLongMessages)),
+                           String.valueOf(getResources().getText(R.string.gpacNotInitialized)),
+                           GF_Err.GF_ISOM_INVALID_MODE.value);
+        }
         return renderer;
     }
+
+    private Osmo4GLSurfaceView mGLView;
 
     // ---------------------------------------
     @Override
@@ -98,7 +106,7 @@ public class Osmo4 extends Activity implements GpacCallback {
         // requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
-        final Osmo4GLSurfaceView mGLView = new Osmo4GLSurfaceView(Osmo4.this);
+        mGLView = new Osmo4GLSurfaceView(Osmo4.this);
         mGLView.setFocusable(true);
         mGLView.setFocusableInTouchMode(true);
 
@@ -119,7 +127,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
             @Override
             public void run() {
-                displayPopup("Copying native libraries...", name); //$NON-NLS-1$
+                displayPopup(getResources().getText(R.string.copying_native_libs), name);
                 loadAllModules();
                 runOnUiThread(new Runnable() {
 
@@ -322,7 +330,12 @@ public class Osmo4 extends Activity implements GpacCallback {
             if (resultCode == RESULT_OK) {
                 Uri uri = intent.getData();
                 if (uri != null) {
-                    openURLasync(uri.toString());
+                    String url = uri.toString();
+                    String file = "file://"; //$NON-NLS-1$
+                    if (url.startsWith(file)) {
+                        url = url.substring(file.length());
+                    }
+                    openURLasync(url);
 
                 }
             }
@@ -330,7 +343,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     private void openURLasync(final String url) {
-        Osmo4Renderer renderer = getRenderer();
+        Osmo4Renderer renderer = getGpacRenderer();
         runOnUiThread(new Runnable() {
 
             @Override
@@ -343,7 +356,7 @@ public class Osmo4 extends Activity implements GpacCallback {
         });
 
         if (renderer == null)
-            displayPopup("Renderer should not be null", "ERROR"); //$NON-NLS-1$ //$NON-NLS-2$
+            return;
         else {
             GPACInstance i = renderer.getInstance();
             if (i != null)
@@ -386,7 +399,7 @@ public class Osmo4 extends Activity implements GpacCallback {
             if (wl != null)
                 wl.release();
         }
-        Osmo4Renderer renderer = getRenderer();
+        Osmo4Renderer renderer = getGpacRenderer();
         if (renderer != null) {
             GPACInstance instance = renderer.getInstance();
             Log.d(LOG_OSMO_TAG, "Disconnecting instance..."); //$NON-NLS-1$
@@ -524,8 +537,10 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private String lastDisplayedMessage;
 
-    private void displayPopup(String message, String title) {
-        final String fullMsg = title + '\n' + message;
+    private void displayPopup(CharSequence message, CharSequence title) {
+        final String fullMsg = MessageFormat.format(String.valueOf(getResources().getText(R.string.displayPopupFormat)),
+                                                    title,
+                                                    message);
         synchronized (this) {
             if (fullMsg.equals(lastDisplayedMessage))
                 return;
@@ -655,4 +670,17 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
         });
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mGLView.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mGLView.onResume();
+    }
+
 }
