@@ -100,7 +100,9 @@ void PrintLanguages();
 const char *GetLanguageCode(char *lang);
 
 #ifndef GPAC_DISABLE_MPEG2TS
-void dump_mpeg2_ts(char *mpeg2ts_in, char *pes_out_name, Bool prog_num_timestamp_dump, Double duration, Bool seg_at_rap, u32 nb_subsegs_per_seg);
+void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, 
+				   Double dash_duration, Bool seg_at_rap, u32 subseg_per_seg,
+				   char *seg_name, char *seg_ext, Bool use_url_template, Bool use_index_segment);
 #endif 
 
 
@@ -1180,7 +1182,7 @@ int main(int argc, char **argv)
 	u32 brand_add[MAX_CUMUL_OPS], brand_rem[MAX_CUMUL_OPS];
 	u32 i, MTUSize, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, ismaCrypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, frags_per_sidx, program_number;
 	Bool HintIt, needSave, FullInter, Frag, HintInter, dump_std, dump_rtp, dump_mode, regular_iod, trackID, HintCopy, remove_sys_tracks, remove_hint, force_new, remove_root_od, import_subtitle, dump_chap;
-	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt;
+	Bool print_sdp, print_info, open_edit, track_dump_type, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, x3d_info, chunk_mode, dump_ts, do_saf, do_mpd, dump_m2ts, dump_cart, do_hash, verbose, force_cat, pack_wgt, dash_ts_use_index;
 	char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name;
 	GF_ISOFile *file;
 	Bool stream_rtp=0;
@@ -1201,6 +1203,7 @@ int main(int argc, char **argv)
 	split_start = -1.0;
 	InterleavingTime = 0.5;
 	dash_duration = 0.0;
+	dash_ts_use_index = 0;
 	import_fps = 0;
 	import_flags = 0;
 	split_size = 0;
@@ -1448,6 +1451,8 @@ int main(int argc, char **argv)
 			CHECK_NEXT_ARG
 			program_number = atoi(argv[i+1]);
 			i++;
+		} else if (!stricmp(arg, "-dash-ts-use-index")) {
+			dash_ts_use_index = 1;
 		} else if (!stricmp(arg, "-frags-per-sidx")) {
 			CHECK_NEXT_ARG
 			frags_per_sidx = atoi(argv[i+1]);
@@ -2362,15 +2367,16 @@ int main(int argc, char **argv)
 
 				if (dash_duration) {
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, NULL, program_number, dash_duration, seg_at_rap, frags_per_sidx);
+					dump_mpeg2_ts(inName, NULL, program_number, dash_duration, seg_at_rap, frags_per_sidx,
+						seg_name, seg_ext, use_url_template, dash_ts_use_index);
 #endif
 				} else if (dump_m2ts) {
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0);
+					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0, NULL, NULL, 0, 0);
 #endif
 				} else if (dump_ts) { /* dump_ts means dump time stamp information */
 #ifndef GPAC_DISABLE_MPEG2TS
-					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0);
+					dump_mpeg2_ts(inName, pes_dump, program_number, 0, 0, 0, NULL, NULL, 0, 0);
 #endif
 				} else {
 					convert_file_info(inName, info_track_id);
