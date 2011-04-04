@@ -240,7 +240,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Playlist %s updated with success\n", purl));
     }
 
-    mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
+    mime = strlwr(gf_dm_sess_mime_type(mpdin->mpd_dnload));
 
     /*in case the session has been restarted, local_url may have been destroyed - get it back*/
     local_url = gf_dm_sess_get_cache_name(mpdin->mpd_dnload);
@@ -600,7 +600,7 @@ static GF_Err MPD_DownloadInitSegment(GF_MPD_In *mpdin, GF_MPD_Period *period)
         }
         e = gf_dm_sess_process(mpdin->seg_dnload);
         /* Mime-Type check */
-        mime = gf_dm_sess_mime_type(mpdin->seg_dnload);
+        mime = strlwr(gf_dm_sess_mime_type(mpdin->seg_dnload));
         if (mime && mpdin->seg_ifce == NULL) {
             GF_Err e;
             GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Searching a decoder for mime type : %s...\n", mime));
@@ -1027,7 +1027,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
             return e;
         }
         {
-            const char * mime = gf_dm_sess_mime_type(mpdin->mpd_dnload);
+            const char * mime = strlwr(gf_dm_sess_mime_type(mpdin->mpd_dnload));
             const char * url = gf_dm_sess_get_resource_name(mpdin->mpd_dnload);
             /* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
             if (MPD_isM3U8_mime(mime) || strstr(url, ".m3u8")) {
