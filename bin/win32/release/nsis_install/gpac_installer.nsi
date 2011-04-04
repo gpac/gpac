@@ -390,7 +390,7 @@ SectionEnd
 
 Section "OpenSVC Decoder" SecOSVC
   SectionIn 1
-  File "..\lib_SVCdecoderIetr.plg"
+  File "..\OpenSVCdecoder.plg"
   File "..\gm_opensvc_dec.dll"
 SectionEnd
 
