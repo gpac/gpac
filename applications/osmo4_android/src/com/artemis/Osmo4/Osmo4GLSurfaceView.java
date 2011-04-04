@@ -22,9 +22,10 @@ public class Osmo4GLSurfaceView extends GLSurfaceView {
      */
     public Osmo4GLSurfaceView(Context context) {
         super(context);
+        setDebugFlags(DEBUG_CHECK_GL_ERROR | DEBUG_LOG_GL_CALLS);
     }
 
-    private Osmo4Renderer renderer;
+    private Osmo4Renderer gpacRenderer;
 
     /**
      * Set the renderer
@@ -33,17 +34,18 @@ public class Osmo4GLSurfaceView extends GLSurfaceView {
      */
     public void setRenderer(Osmo4Renderer renderer) {
         synchronized (this) {
-            this.renderer = renderer;
+            this.gpacRenderer = renderer;
         }
         super.setRenderer(renderer);
+        setRenderMode(RENDERMODE_CONTINUOUSLY);
     }
 
-    private Osmo4Renderer getRenderer() {
-        return renderer;
+    private synchronized Osmo4Renderer getGpacRenderer() {
+        return gpacRenderer;
     }
 
     private GPACInstance getInstance() {
-        Osmo4Renderer r = getRenderer();
+        Osmo4Renderer r = getGpacRenderer();
         if (r == null)
             return null;
         return r.getInstance();
@@ -52,29 +54,76 @@ public class Osmo4GLSurfaceView extends GLSurfaceView {
     // ------------------------------------
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
-        GPACInstance instance = getInstance();
-        if (instance == null)
-            return false;
-        instance.motionEvent(event);
+        queueEvent(new Runnable() {
+
+            @Override
+            public void run() {
+                GPACInstance instance = getInstance();
+                if (instance != null)
+                    instance.motionEvent(event);
+            }
+        });
         return true;
+    }
+
+    /**
+     * Should we handle this key in GPAC ?
+     * 
+     * @param keyCode
+     * @param event
+     * @return
+     */
+    private static boolean handleInGPAC(int keyCode, KeyEvent event) {
+        if (event.isSystem())
+            return false;
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_MEDIA_STOP:
+            case KeyEvent.KEYCODE_MENU:
+            case KeyEvent.KEYCODE_BACK:
+                return false;
+            default:
+                return true;
+        }
     }
 
     @Override
     public boolean onKeyDown(final int keyCode, final KeyEvent event) {
-        GPACInstance instance = getInstance();
-        if (instance == null)
-            return false;
-        instance.eventKey(keyCode, event, true);
-        return true;
+        if (handleInGPAC(keyCode, event)) {
+            queueEvent(new Runnable() {
+
+                @Override
+                public void run() {
+                    GPACInstance instance = getInstance();
+                    if (instance != null)
+                        instance.eventKey(keyCode, event, true);
+                }
+            });
+            return true;
+        }
+        return false;
     }
 
     // ------------------------------------
     @Override
     public boolean onKeyUp(final int keyCode, final KeyEvent event) {
-        GPACInstance instance = getInstance();
-        if (instance == null)
-            return false;
-        instance.eventKey(keyCode, event, false);
-        return true;
+        if (handleInGPAC(keyCode, event)) {
+            queueEvent(new Runnable() {
+
+                @Override
+                public void run() {
+                    GPACInstance instance = getInstance();
+                    if (instance != null)
+                        instance.eventKey(keyCode, event, false);
+                }
+            });
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void onResume() {
+        if (getInstance() != null)
+            super.onResume();
     }
 }
