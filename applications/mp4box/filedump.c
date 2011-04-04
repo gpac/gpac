@@ -1728,6 +1728,10 @@ typedef struct
 	Double segment_duration;
 	Bool segment_at_rap;
 	u32 subsegs_per_segment;
+	char *seg_name;
+	Bool use_url_template;
+	char *init_seg_name;
+	Bool use_index_segment;
 
 	FILE *index_file;
 	char index_file_name[100];
@@ -1889,7 +1893,7 @@ static void m2ts_sidx_flush_entry(GF_M2TS_IndexingInfo *index_info)
 	}
 
 	/* determine the end of the current index */
-	if (1) {
+	if (index_info->segment_at_rap) {
 		/*split at PAT*/
 		end_offset = index_info->last_pat_position;
 	} else {
@@ -2000,13 +2004,7 @@ static void m2ts_check_indexing(GF_M2TS_IndexingInfo *index_info)
 	u32 delta_time = (u32)(index_info->last_PTS - index_info->base_PTS);
 	u32 segment_duration = (u32)(index_info->segment_duration*90000);
 	/* we need to create an SIDX entry when the duration of the previous entry is too big */
-	if (index_info->segment_at_rap) {
-		/*
-		if (delta_time >= 1.5*segment_duration) {
-			fprintf(stderr, "Warning: segment is more than 1.5 times longer than expected !\n");
-		}
-		*/		
-	} else if (delta_time >= segment_duration) {
+	if (delta_time >= segment_duration) {
 		m2ts_sidx_flush_entry(index_info);
 	} 
 }
@@ -2341,8 +2339,7 @@ void mpd_end(FILE *mpd)
     fprintf(mpd, "</MPD>");
 }
 
-static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *media_file_name, const char *init_seg_name,
-								   Bool use_index_segment)
+static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *media_file_name)
 {
 	u32 i;
 	u64 start;
@@ -2352,11 +2349,11 @@ static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *media
 	fprintf(index_info->mpd_file, "   <SegmentInfo duration=\"%s\">\n", duration_string); 
 	/* add startIndex for live scenarios */
 	
-	if (init_seg_name) {
-		fprintf(index_info->mpd_file, "    <InitialisationSegmentURL sourceURL=\"%s\"/>\n", init_seg_name);
+	if (index_info->init_seg_name) {
+		fprintf(index_info->mpd_file, "    <InitialisationSegmentURL sourceURL=\"%s\"/>\n", index_info->init_seg_name);
 	}
 
-	if (!use_index_segment) {
+	if (!index_info->use_index_segment) {
 		fprintf(index_info->mpd_file, "    <BaseURL>%s</BaseURL>\n", media_file_name);
 		start=index_info->sidx->first_offset;
 		for (i=0; i<index_info->sidx->nb_refs; i++) {
@@ -2371,7 +2368,9 @@ static void write_mpd_segment_info(GF_M2TS_IndexingInfo *index_info, char *media
 	fprintf(index_info->mpd_file, "   </SegmentInfo>\n");
 }
 
-void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double dash_duration, Bool seg_at_rap, u32 subseg_per_seg)
+void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, 
+				   Double dash_duration, Bool seg_at_rap, u32 subseg_per_seg,
+				   char *seg_name, char *seg_ext, Bool use_url_template, Bool use_index_segment)
 {
 	char data[188];
 	GF_M2TS_Dump dumper;
@@ -2393,9 +2392,13 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double
 		dumper.index_info.segment_duration = dash_duration;
 		dumper.index_info.segment_at_rap = seg_at_rap;
 		dumper.index_info.subsegs_per_segment = subseg_per_seg;
+		dumper.index_info.seg_name = gf_strdup(seg_name);
+		dumper.index_info.use_url_template = use_url_template;
+		dumper.index_info.init_seg_name = NULL;
+		dumper.index_info.use_index_segment = use_index_segment;
 		c = strrchr(mpeg2ts_file, '.');
 		if (c) *c = 0;
-		sprintf(dumper.index_info.index_file_name, "%s_index.m4s", mpeg2ts_file);
+		sprintf(dumper.index_info.index_file_name, "%s_index.%s", mpeg2ts_file, (seg_ext?seg_ext:"m4s"));
 		if (c) *c = '.';
 		dumper.index_info.index_file = gf_f64_open(dumper.index_info.index_file_name, "wb");
 		dumper.index_info.index_bs = gf_bs_from_file(dumper.index_info.index_file, GF_BITSTREAM_WRITE);
@@ -2480,8 +2483,8 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double
 		fprintf(stderr, "Indexing done (1 sidx, %d entries).\n", dumper.index_info.sidx->nb_refs);
 
 		mpd_start(dumper.index_info.mpd_file, 1, mpeg2ts_file, (dumper.index_info.last_PTS-dumper.index_info.first_PTS)/90000.0, 
-			"video/mp2t", NULL, 0, 0, 0, 0, "", 0, file_size, dumper.index_info.segment_duration);
-		write_mpd_segment_info(&dumper.index_info, mpeg2ts_file, NULL, 0);
+			"video/mp2t", NULL, 0, 0, 0, 0, "", dumper.index_info.segment_at_rap, file_size, dumper.index_info.segment_duration);
+		write_mpd_segment_info(&dumper.index_info, mpeg2ts_file);
 		mpd_end(dumper.index_info.mpd_file);
 	}
 
@@ -2499,6 +2502,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *pes_out_name, Bool prog_num, Double
 		if (dumper.index_info.index_bs) gf_isom_box_write((GF_Box *)dumper.index_info.sidx, dumper.index_info.index_bs);
 		gf_isom_box_del((GF_Box *)dumper.index_info.sidx);
 	}
+	if (dumper.index_info.seg_name) gf_free(dumper.index_info.seg_name);
 	if (dumper.index_info.mpd_file) fclose(dumper.index_info.mpd_file);
 	if (dumper.index_info.index_file) fclose(dumper.index_info.index_file);
 	if (dumper.index_info.index_bs) gf_bs_del(dumper.index_info.index_bs);
