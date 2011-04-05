@@ -22,6 +22,8 @@
  *		
  */
 
+#ifndef _GF_SDL_OUT_H_
+#define _GF_SDL_OUT_H_
 
 /*SDL*/
 #include <SDL.h>
@@ -90,4 +92,4 @@ typedef struct
 void SDL_DeleteAudio(void *ifce);
 void *SDL_NewAudio();
 
-
+#endif
