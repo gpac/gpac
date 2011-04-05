@@ -1,4 +1,4 @@
-@echo off
+@echo off 
 set OLDDIR=%CD%
 cd /d %~dp0
 REM ============================================
@@ -74,4 +74,4 @@ echo  *** ABORTING: CHECK ERROR MESSAGES ABOVE ***
 set VarRevisionSVN=
 set VarRevisionBuild=
 cd /d %OLDDIR%
-exit/b
+exit/b 1
