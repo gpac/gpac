@@ -61,7 +61,11 @@ echo:
 REM ============================================
 echo Windows GPAC installer generated - goodbye!
 REM ============================================
-goto LeaveBatch
+REM LeaveBatchSuccess
+set VarRevisionSVN=
+set VarRevisionBuild=
+cd /d %OLDDIR%
+exit/b 0
 
 :RevisionAbort
 echo   SVN revision "%VarRevisionSVN%" is not a simple number, you may have local modification (please check 'svnrevision' flags meaning or execute the NSIS script manually)
@@ -70,7 +74,7 @@ echo   SVN revision "%VarRevisionSVN%" is not a simple number, you may have loca
 echo:
 echo  *** ABORTING: CHECK ERROR MESSAGES ABOVE ***
 
-:LeaveBatch
+REM LeaveBatchError 
 set VarRevisionSVN=
 set VarRevisionBuild=
 cd /d %OLDDIR%
