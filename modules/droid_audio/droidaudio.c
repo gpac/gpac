@@ -53,6 +53,7 @@ static jclass cAudioTrack = NULL;
 static jobject mtrack = NULL;
 
 static jmethodID mAudioTrack;
+static jmethodID setStereoVolume;
 static jmethodID mGetMinBufferSize;
 static jmethodID mPlay;
 static jmethodID mStop;
@@ -64,7 +65,9 @@ static jmethodID mFlush;
 #define TAG "GPAC Android Audio"
 #define LOGV(X, Y)  __android_log_print(ANDROID_LOG_VERBOSE, TAG, X, Y)
 #define LOGD(X, Y)  __android_log_print(ANDROID_LOG_DEBUG, TAG, X, Y)
+#define LOGD2(X, Y, Z)  __android_log_print(ANDROID_LOG_DEBUG, TAG, X, Y, Z)
 #define LOGE(X, Y)  __android_log_print(ANDROID_LOG_ERROR, TAG, X, Y)
+#define LOGE3(X, Y, Z, W)  __android_log_print(ANDROID_LOG_ERROR, TAG, X, Y, Z, W)
 #define LOGW(X, Y)  __android_log_print(ANDROID_LOG_WARN, TAG, X, Y)
 #define LOGI(X, Y)  __android_log_print(ANDROID_LOG_INFO, TAG, X, Y)
 
@@ -77,7 +80,6 @@ typedef struct
 
 	u32 num_buffers;
 
-	u32 vol, pan;
 	u32 delay, total_length_ms;
 
 	Bool force_config;
@@ -87,7 +89,8 @@ typedef struct
 	u32 channelConfig; //AudioFormat.CHANNEL_OUT_MONO
 	u32 audioFormat; //AudioFormat.ENCODING_PCM_16BIT
 	s32 mbufferSizeInBytes;
-
+        u32 volume;
+        u32 pan;
 	jarray buff;
 } DroidContext;
 
@@ -107,6 +110,8 @@ static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u3
 	if (ctx->cfg_num_buffers <= 1) ctx->cfg_num_buffers = 2;
 	ctx->cfg_duration = total_duration;
 	if (!ctx->force_config) ctx->num_buffers = 1;
+        ctx->volume = 100;
+        ctx->pan = 50;
 
 	if (!cAudioTrack){
 		cAudioTrack = (*env)->FindClass(env, "android/media/AudioTrack");
@@ -123,6 +128,7 @@ static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u3
 		mRelease = (*env)->GetMethodID(env, cAudioTrack, "release", "()V");
 		mWrite = (*env)->GetMethodID(env, cAudioTrack, "write", "([BII)I");
 		mFlush = (*env)->GetMethodID(env, cAudioTrack, "flush", "()V");
+		setStereoVolume = (*env)->GetMethodID(env, cAudioTrack, "setStereoVolume", "(FF)I");
 	}
 
 	return GF_OK;
@@ -250,8 +256,41 @@ static void WAV_Play(GF_AudioOutput *dr, u32 PlayType)
 	}
 }
 
-static void WAV_SetVolume(GF_AudioOutput *dr, u32 Volume) { }
-static void WAV_SetPan(GF_AudioOutput *dr, u32 Pan) { }
+static void WAV_UpdateVolume(DroidContext *ctx){
+        float lV, rV;
+        JNIEnv* env = GetEnv();
+        if (!ctx)
+          return;
+        if (ctx->pan > 100)
+          ctx->pan = 100;
+        lV =rV = ctx->volume / 100.0;
+        if (ctx->pan > 50){
+          float m = (100 - ctx->pan) / 50.0;
+          lV*=m;
+        } else if (ctx->pan < 50){
+          float m = ctx->pan / 50.0;
+          rV*=m;
+        }
+        if (env && setStereoVolume && mtrack && cAudioTrack){
+          int success;
+          if (0!= (success=((*env)->CallNonvirtualIntMethod(env, mtrack, cAudioTrack, setStereoVolume, lV, rV))))
+            LOGE3("SetVolume(%f,%f) returned Error code %d", lV, rV, success );
+        } else {
+            LOGD2("SetVolume(%f,%f)", lV, rV );
+        }
+}
+
+static void WAV_SetVolume(GF_AudioOutput *dr, u32 Volume) {
+	DroidContext *ctx = (DroidContext *)dr->opaque;
+        ctx->volume = Volume;
+        WAV_UpdateVolume(ctx);
+}
+
+static void WAV_SetPan(GF_AudioOutput *dr, u32 Pan)
+{
+        DroidContext *ctx = (DroidContext *)dr->opaque;
+        WAV_UpdateVolume(ctx);
+}
 
 /* Called by the audio thread */
 static GF_Err WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_samplerate, u32 *NbChannels, u32 *nbBitsPerSample)
@@ -260,7 +299,7 @@ static GF_Err WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_sampler
 	JNIEnv* env = ctx->env;
 	u32 sampleRateInHz, channelConfig, audioFormat;
 
-	LOGV("[Android Audio] Query sample=%d", *desired_samplerate );
+	LOGV("Query sample=%d", *desired_samplerate );
 
 #ifdef TEST_QUERY_SAMPLE
 	sampleRateInHz = *desired_samplerate;
@@ -348,7 +387,7 @@ void *NewWAVRender()
 	memset(ctx, 0, sizeof(DroidContext));
 	ctx->num_buffers = 1;
 	ctx->pan = 50;
-	ctx->vol = 100;
+	ctx->volume = 100;
 	driv = gf_malloc(sizeof(GF_AudioOutput));
 	memset(driv, 0, sizeof(GF_AudioOutput));
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_AUDIO_OUTPUT_INTERFACE, "Android Audio Output", "gpac distribution")
@@ -366,7 +405,6 @@ void *NewWAVRender()
 	driv->Play = WAV_Play;
 	driv->QueryOutputSampleRate = WAV_QueryOutputSampleRate;
 	driv->WriteAudio = WAV_WriteAudio;
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Android Audio] New\n"));
 
 	return driv;
