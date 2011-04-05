@@ -382,6 +382,8 @@ public class Osmo4 extends Activity implements GpacCallback {
             case R.id.open_file:
                 // newGame();
                 return openFileDialog();
+            case R.id.cleanCache:
+                return cleanCache();
             case R.id.quit:
                 this.finish();
                 // quit();
@@ -389,6 +391,54 @@ public class Osmo4 extends Activity implements GpacCallback {
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    protected boolean cleanCache() {
+        final CharSequence oldTitle = getTitle();
+        runOnUiThread(new Runnable() {
+
+            @Override
+            public void run() {
+                Osmo4.this.setTitle(Osmo4.this.getResources().getText(R.string.cleaningCache));
+            }
+        });
+        service.submit(new Runnable() {
+
+            @Override
+            public void run() {
+                File dir = new File(Osmo4Renderer.GPAC_CACHE_DIR);
+                if (!dir.exists() || !dir.canRead() || !dir.canWrite() || !dir.isDirectory()) {
+                    return;
+                }
+                File files[] = dir.listFiles();
+                int i = 0;
+                for (File f : files) {
+                    if (f.isFile())
+                        if (!f.delete()) {
+                            Log.w(LOG_OSMO_TAG, "Failed to delete file " + f); //$NON-NLS-1$
+                        } else {
+                            Log.v(LOG_OSMO_TAG, f + " has been deleted"); //$NON-NLS-1$
+                        }
+                    final int percent = (++i) * 100 / files.length;
+                    runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            Osmo4.this.setProgress(100 * percent);
+
+                        }
+                    });
+                }
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        Osmo4.this.setTitle(oldTitle);
+                    }
+                });
+            }
+        });
+        return true;
     }
 
     // ---------------------------------------
