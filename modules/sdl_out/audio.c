@@ -22,11 +22,7 @@
  *		
  */
 
-#if __APPLE__ && defined GPAC_IPHONE && ( defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR) )
-#define GPAC_IPHONE_BUILD
-#endif
-
-#ifdef GPAC_IPHONE_BUILD
+#ifdef GPAC_IPHONE
 #include "libgpac_symbols.h"
 #endif
 

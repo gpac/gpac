@@ -22,11 +22,7 @@
  *		
  */
 
-#if __APPLE__ && defined GPAC_IPHONE && ( defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR) )
-#define GPAC_IPHONE_BUILD
-#endif
-
-#ifdef GPAC_IPHONE_BUILD
+#ifdef GPAC_IPHONE
 #include "libgpac_symbols.h"
 #else
 #include "sdl_out.h"
@@ -420,7 +416,7 @@ static void SDLVid_DestroyObjects(SDLVidCtx *ctx)
 }
 
 
-#ifdef GPAC_IPHONE_BUILD
+#ifdef GPAC_IPHONE
 #define SDL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_RESIZABLE | SDL_NOFRAME
 #define SDL_FULLSCREEN_FLAGS		SDL_HWSURFACE | SDL_ASYNCBLIT | SDL_HWACCEL | SDL_FULLSCREEN | SDL_NOFRAME
 #define SDL_GL_WINDOW_FLAGS			SDL_HWSURFACE | SDL_OPENGL | SDL_HWACCEL | SDL_RESIZABLE | SDL_NOFRAME
@@ -473,7 +469,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		dr->on_event(dr->evt_cbk_hdl, &evt);		
 	} else {
 		u32 flags;
-#ifdef GPAC_IPHONE_BUILD
+#ifdef GPAC_IPHONE
 		flags = SDL_FULLSCREEN_FLAGS;
 		//SDL readme says it would make us faster
 		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 0);
@@ -554,7 +550,7 @@ static void SDLVid_ShutdownWindow(SDLVidCtx *ctx)
 	SDL_QuitSubSystem(SDL_INIT_VIDEO);
 }
 
-#ifdef SDL_TEXTINPUTEVENT_TEXT_SIZE
+#if defined SDL_TEXTINPUTEVENT_TEXT_SIZE && !defined GPAC_IPHONE
 #include <gpac/unicode.h>
 #endif
 
@@ -1214,7 +1210,6 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 	dstrc.y = dst_wnd->y;
 
 	SDL_BlitSurface(*pool, &srcrc, ctx->back_buffer, &dstrc);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[SDL] blit OK\n"));
 	return GF_OK;
 }
 
