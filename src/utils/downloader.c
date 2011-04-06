@@ -46,6 +46,7 @@
 #include <unistd.h>
 #endif
 
+#define SIZE_IN_STREAM ( 2 << 29 )
 
 static void gf_dm_connect(GF_DownloadSession *sess);
 
@@ -597,6 +598,8 @@ static void gf_dm_disconnect(GF_DownloadSession *sess)
 void gf_dm_sess_del(GF_DownloadSession *sess)
 {
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Downloader] gf_dm_sess_del(%p)\n", sess ));
+    if (!sess)
+      return;
     /*self-destruction, let the download manager destroy us*/
     if (sess->th && sess->in_callback) {
         sess->destroy = 1;
@@ -610,7 +613,10 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
             gf_sleep(1);
         gf_th_stop(sess->th);
         gf_th_del(sess->th);
-        gf_mx_del(sess->mx);
+        if (sess->mx)
+          gf_mx_del(sess->mx);
+        sess->th = NULL;
+        sess->mx = NULL;
     }
 
     if (sess->dm) gf_list_del_item(sess->dm->sessions, sess);
@@ -637,6 +643,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     sess->orig_url = sess->server_name = sess->remote_path;
     sess->creds = NULL;
     gf_free(sess);
+    GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Downloader] gf_dm_sess_del(%p) : DONE\n", sess ));
 }
 
 void http_do_requests(GF_DownloadSession *sess);
@@ -2335,11 +2342,11 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
                 gf_cache_set_mime_type(sess->cache_entry, "audio/aac");
             }
             sess->icy_bytes = 0;
-            sess->total_size = 2 << 30;
+            sess->total_size = SIZE_IN_STREAM;
             sess->status = GF_NETIO_DATA_EXCHANGE;
         } else if (!ContentLength) {
             if (sess->http_read_type == GET) {
-                sess->total_size = 2 << 30;
+                sess->total_size = SIZE_IN_STREAM;
                 sess->use_cache_file = 0;
                 sess->status = GF_NETIO_DATA_EXCHANGE;
                 sess->bytes_done = 0;

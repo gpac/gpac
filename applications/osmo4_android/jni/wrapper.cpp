@@ -6,7 +6,7 @@
  *					All rights reserved
  *
  *	Created by NGO Van Luyen, Ivica ARSOV / ARTEMIS / Telecom SudParis /Institut TELECOM on Oct, 2010
- *GPAC_GUI_ONLY
+ *
  *  This file is part of GPAC / Wrapper
  *
  *  GPAC is free software; you can redistribute it and/or modify
@@ -49,6 +49,8 @@
 #define LOGI(X, Y)  __android_log_print(ANDROID_LOG_INFO, TAG, X, Y)
 
 static JavaVM* javaVM = NULL;
+
+#define DETACH_ENV(env) if (javaVM && env != &mainJavaEnv) javaVM->DetachCurrentThread()
 
 static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
     const JNINativeMethod* gMethods, int numMethods)
@@ -126,10 +128,6 @@ CNativeWrapper::CNativeWrapper(){
 	do_log = 1;
         m_term = NULL;
         m_mx = NULL;
-        lastEnv = NULL;
-        cbk_displayMessage = NULL;
-        cbk_onProgress = NULL;
-        cbk_obj = NULL;
 #ifndef GPAC_GUI_ONLY
 	memset(&m_user, 0, sizeof(GF_User));
 	memset(&m_rti, 0, sizeof(GF_SystemRTInfo));
@@ -137,13 +135,11 @@ CNativeWrapper::CNativeWrapper(){
 }
 //-------------------------------
 CNativeWrapper::~CNativeWrapper(){
+      JavaEnvTh * env = getEnv();
       debug_log("~CNativeWrapper()");
-      JNIEnv * env = getEnv();
-      if (env && cbk_obj)
-        env->DeleteGlobalRef(cbk_obj);
-      cbk_displayMessage = NULL;
-      cbk_onProgress = NULL;
-      cbk_obj = NULL;
+      if (env && env->cbk_obj)
+        env->env->DeleteGlobalRef(env->cbk_obj);
+      DETACH_ENV(env);
       Shutdown();
       debug_log("~CNativeWrapper() : DONE\n");
 }
@@ -179,46 +175,48 @@ void CNativeWrapper::Shutdown()
     debug_log("shutdown end");
 }
 
-JNIEnv * CNativeWrapper::getEnv(){
+void CNativeWrapper::setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callback){
+    assert( envToSet );
+    jclass localRef = env->GetObjectClass(callback);
+    envToSet->env = env;
+    envToSet->javaThreadId = gf_th_id();
+    envToSet->cbk_obj = callback;
+    envToSet->cbk_displayMessage =
+      env->GetMethodID(localRef, "displayMessage", "(Ljava/lang/String;Ljava/lang/String;I)V");
+    envToSet->cbk_onProgress =
+      env->GetMethodID(localRef, "onProgress", "(Ljava/lang/String;II)V");
+}
+
+JavaEnvTh * CNativeWrapper::getEnv(){
     JNIEnv *env;
     if (!javaVM){
       debug_log("************* No JVM Found ************");
       return NULL;
     }
+    if (mainJavaEnv.javaThreadId == gf_th_id())
+      return &mainJavaEnv;
     debug_log("Attaching thread...");
     javaVM->AttachCurrentThread(&env, NULL);
-	if (lastEnv == env)
-		return lastEnv;
-	else {
-                debug_log("Rebuilding methods...");
-		if (!env){
-			debug_log("getEnv() returns NULL !");
-			cbk_displayMessage = NULL;
-			cbk_onProgress = NULL;
-			lastEnv = NULL;
-			return NULL;
-		}
-		jclass localRef;
-		localRef = env->GetObjectClass(cbk_obj);
-		lastEnv = env;
-		cbk_displayMessage =
-				env->GetMethodID(localRef, "displayMessage", "(Ljava/lang/String;Ljava/lang/String;I)V");
-		cbk_onProgress =
-				env->GetMethodID(localRef, "onProgress", "(Ljava/lang/String;II)V");
-		return env;
-	}
+    debug_log("Rebuilding methods...");
+    if (!env){
+      debug_log("getEnv() returns NULL !");
+      return NULL;
+    }
+    setJavaEnv(&currentJavaEnv, env, mainJavaEnv.cbk_obj);
+    return &currentJavaEnv;
 }
 
 
 //-------------------------------
 int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status){
          debug_log("MessageBox start");
-	JNIEnv * env = getEnv();
-	if (!env || !cbk_displayMessage)
+	JavaEnvTh * env = getEnv();
+	if (!env || !env->cbk_displayMessage)
 		return 0;
-	jstring tit = env->NewStringUTF(title?title:"null");
-	jstring mes = env->NewStringUTF(msg?msg:"null");
-	env->CallVoidMethod(cbk_obj, cbk_displayMessage, mes, tit, status);
+	jstring tit = env->env->NewStringUTF(title?title:"null");
+	jstring mes = env->env->NewStringUTF(msg?msg:"null");
+	env->env->CallVoidMethod(env->cbk_obj, env->cbk_displayMessage, mes, tit, status);
+        DETACH_ENV(env);
         debug_log("MessageBox end");
 	return 1;
 }
@@ -341,35 +339,77 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
 		CNativeWrapper* ptr = (CNativeWrapper*)cbk;
 		char msg[4096];
 		msg[0] = 0;
-		if ( evt->type == GF_EVENT_MESSAGE )
-		{
-                        ptr->debug_log("GPAC_EventProc start");
-			if ( evt->message.message )
-			{
-				strcat(msg, evt->message.message);
-				strcat(msg, ": ");
-			}
-			strcat(msg, gf_error_to_string(evt->message.error));
+                LOGD("GPAC_EventProc() Message=%d", evt->type);
+                switch (evt->type){
+                  case GF_EVENT_MESSAGE:
+                  {
+                          ptr->debug_log("GPAC_EventProc start");
+                          if ( evt->message.message )
+                          {
+                                  strcat(msg, evt->message.message);
+                                  strcat(msg, ": ");
+                          }
+                          strcat(msg, gf_error_to_string(evt->message.error));
 
-			ptr->debug_log(msg);
-			ptr->MessageBox(msg, evt->message.service ? evt->message.service : "GF_EVENT_MESSAGE", evt->message.error);
-                        ptr->debug_log("GPAC_EventProc end");
-		}
+                          ptr->debug_log(msg);
+                          ptr->MessageBox(msg, evt->message.service ? evt->message.service : "GF_EVENT_MESSAGE", evt->message.error);
+                          ptr->debug_log("GPAC_EventProc end");
+                  };
+                  break;
+                  case GF_EVENT_CONNECT:
+                    if (evt->connect.is_connected)
+                      ptr->MessageBox("Connected", "Connected to scene", GF_OK);
+                    else
+                      ptr->MessageBox("Disconnected", "Disconnected from scene : Connection FAILED.", GF_IO_ERR);
+                    break;
+                  case GF_EVENT_PROGRESS:
+                  {
+                          const char * szTitle;;
+                          if (evt->progress.progress_type==0)
+                            szTitle = "Buffering";
+                          else if (evt->progress.progress_type==1)
+                            szTitle = "Downloading...";
+                          else if (evt->progress.progress_type==2)
+                            szTitle = "Import ";
+                          else
+                            szTitle = "Unknown Progress Event";
+                          //ptr->Osmo4_progress_cbk(ptr, szTitle, evt->progress.done, evt->progress.total);
+                          gf_set_progress(szTitle, evt->progress.done, evt->progress.total);
+                  }
+                  break;
+                  case GF_EVENT_EOS:
+                    LOGI("EOS Reached (%d)", evt->type);
+                    break;
+                  case GF_EVENT_DISCONNECT:
+                    if (ptr)
+                      ptr->disconnect();
+                    break;
+                  default:
+                    LOGI("Unknown Message %d", evt->type);
+                }
 	}
-	return true;
+	return 0;
 }
+
+
+void CNativeWrapper::progress_cbk(const char *title, u64 done, u64 total){
+        JavaEnvTh *env = getEnv();
+        if (!env || !env->cbk_onProgress)
+                return;
+        debug_log("Osmo4_progress_cbk start");
+        jstring js = env->env->NewStringUTF(title);
+        env->env->CallVoidMethod(env->cbk_obj, env->cbk_onProgress, js, done, total);
+        DETACH_ENV(env);
+        debug_log("Osmo4_progress_cbk end");
+}
+
+
 //-------------------------------
-void CNativeWrapper::Osmo4_progress_cbk(void *usr, char *title, u64 done, u64 total){
+void CNativeWrapper::Osmo4_progress_cbk(const void *usr, const char *title, u64 done, u64 total){
 	if (!usr)
 		return;
 	CNativeWrapper * self = (CNativeWrapper *) usr;
-	JNIEnv *env = self->getEnv();
-	if (!env || !self->cbk_onProgress)
-		return;
-        self->debug_log("Osmo4_progress_cbk start");
-	jstring js = env->NewStringUTF(title);
-	env->CallVoidMethod(self->cbk_obj, self->cbk_onProgress, js, done, total);
-        self->debug_log("Osmo4_progress_cbk end");
+	self->progress_cbk(title, done, total);
 }
 //-------------------------------
 void CNativeWrapper::SetupLogs(){
@@ -410,15 +450,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	strcpy(m_cfg_filename, m_cfg_dir);
 	strcat(m_cfg_filename, "GPAC.cfg");
 
-	if (callback){
-		this->cbk_obj = env->NewGlobalRef(*callback);
-		this->cbk_displayMessage = NULL;
-		this->cbk_onProgress = NULL;
-	} else {
-		this->cbk_obj = NULL;
-		this->cbk_displayMessage = NULL;
-		this->cbk_onProgress = NULL;
-	}
+	setJavaEnv(&mainJavaEnv, env, env->NewGlobalRef(*callback));
 	debug_log("int CNativeWrapper::init()");
 
 	int m_Width = width;
@@ -577,57 +609,49 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 }
 //-------------------------------
 int CNativeWrapper::connect(const char *url){
-	debug_log("Starting to connect ...");
-
-	gf_term_connect_from_time(m_term, url, 0, false);
-
-	debug_log("connected ...");
-
-	/*char pl_path[GF_MAX_PATH];
-
-	strcpy(pl_path, url);
-
-	debug_log("Connecting to ...");
-	debug_log(pl_path);
-
-	//gf_term_connect_with_path(m_term, url, pl_path);
-	gf_term_connect(m_term, url);
-	debug_log("connected ...");*/
+        if (m_term){
+          debug_log("Starting to connect ...");
+          gf_term_connect_from_time(m_term, url, 0, false);
+          debug_log("connected ...");
+        }
 }
 //-----------------------------------------------------
 void CNativeWrapper::disconnect(){
-
-        debug_log("disconnecting");
-	gf_term_disconnect(m_term);
-	debug_log("disconnected ...");
+        if (m_term){
+          debug_log("disconnecting");
+          gf_term_disconnect(m_term);
+          debug_log("disconnected ...");
+        }
 }
 //-----------------------------------------------------
 void CNativeWrapper::step(void * env, void * bitmap){
 	m_window = env;
 	m_session = bitmap;
 	//debug_log("Step ...");
-	if (!m_term)
-		debug_log("m_term ...");
-	else
-	if (!m_term->compositor)
-		debug_log("compositor ...");
-	else
-	if (!m_term->compositor->video_out)
-		debug_log("video_out ...");
-	else
-	if (!m_term->compositor->video_out->Setup)
-		debug_log("Setup ...");
-	else
-	{
-		//debug_log("RAW Setup ...");
-		//m_term->compositor->video_out->Setup(m_term->compositor->video_out, m_window, m_session, -1);
+	if (!m_term){
+		debug_log("step(): No m_term found.");
+                return;
+        } else
+          if (!m_term->compositor)
+		debug_log("step(): No compositor found.");
+          else if (!m_term->compositor->video_out)
+		debug_log("step(): No video_out found");
+          else if (!m_term->compositor->video_out->Setup)
+		debug_log("step(): No video_out->Setup found");
+          else {
+                debug_log("step(): gf_term_process_step : start()");
+                m_term->compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+                gf_term_process_step(m_term);
+                debug_log("step(): gf_term_process_step : end()");
 	}
-	m_term->compositor->frame_draw_type = GF_SC_DRAW_FRAME;
-	gf_term_process_step(m_term);
-	//drawGLScene();
 }
+
 //-----------------------------------------------------
 void CNativeWrapper::setAudioEnvironment(JavaVM* javaVM){
+        if (!m_term){
+            debug_log("setAudioEnvironment(): no m_term found.");
+            return;
+        }
 	debug_log("setAudioEnvironment start");
 	m_term->compositor->audio_renderer->audio_out->Setup(m_term->compositor->audio_renderer->audio_out, javaVM, 0, 0);
         debug_log("setAudioEnvironment end");
@@ -642,6 +666,8 @@ void CNativeWrapper::resize(int w, int h){
 }
 //-----------------------------------------------------
 void CNativeWrapper::onMouseDown(float x, float y){
+        if (!m_term)
+          return;
         debug_log("onMouseDown start");
 	//char msg[100];
 	//sprintf(msg, "onMousedown x=%f, y=%f", x, y );
@@ -658,6 +684,8 @@ void CNativeWrapper::onMouseDown(float x, float y){
 }
 //-----------------------------------------------------
 void CNativeWrapper::onMouseUp(float x, float y){
+        if (!m_term)
+          return;
         debug_log("onMouseUp start");
 	//char msg[100];
 	//sprintf(msg, "onMouseUp x=%f, y=%f", x, y );
@@ -674,10 +702,8 @@ void CNativeWrapper::onMouseUp(float x, float y){
 }
 //-----------------------------------------------------
 void CNativeWrapper::onMouseMove(float x, float y){
-	//char msg[100];
-	//sprintf(msg, "onMouseUp x=%f, y=%f", x, y );
-	//debug_log(msg);
-
+	if (!m_term)
+          return;
 	GF_Event evt;
 	evt.type = GF_EVENT_MOUSEMOVE;
 	evt.mouse.button = GF_MOUSE_LEFT;
@@ -688,6 +714,8 @@ void CNativeWrapper::onMouseMove(float x, float y){
 }
 //-----------------------------------------------------
 void CNativeWrapper::onKeyPress(int keycode, int rawkeycode, int up, int flag){
+        if (!m_term)
+          return;
         debug_log("onKeyPress start");
 	GF_Event evt;
 	if (up == 0) evt.type = GF_EVENT_KEYUP;

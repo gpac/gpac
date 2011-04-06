@@ -177,4 +177,21 @@ public interface GpacCallback {
      * @param e
      */
     public void onGPACError(Throwable e);
+
+    // /**
+    // * Returns UserName:Password for given site
+    // *
+    // * @param siteURL The URL of site requiring authorization
+    // * @param userName The User Name (may be null if never set)
+    // * @param password The password (may be null if never set)
+    // * @return A String formated as username:password
+    // */
+    // public String onGPACAuthorization(String siteURL, String userName, String password);
+
+    /**
+     * Set the new caption for the application
+     * 
+     * @param newCaption The new caption to set for application
+     */
+    public void setCaption(String newCaption);
 }

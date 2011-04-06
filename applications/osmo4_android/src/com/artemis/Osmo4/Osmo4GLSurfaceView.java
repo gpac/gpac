@@ -11,7 +11,7 @@ import android.view.MotionEvent;
  * @version $Revision$
  * 
  */
-public class Osmo4GLSurfaceView extends GLSurfaceView {
+public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInterface {
 
     // private final static String LOG_GL_SURFACE = Osmo4GLSurfaceView.class.getSimpleName();
 
@@ -125,5 +125,53 @@ public class Osmo4GLSurfaceView extends GLSurfaceView {
     public void onResume() {
         if (getInstance() != null)
             super.onResume();
+    }
+
+    /**
+     * @see com.artemis.Osmo4.GPACInstanceInterface#connect(java.lang.String)
+     */
+    @Override
+    public void connect(final String url) {
+        queueEvent(new Runnable() {
+
+            @Override
+            public void run() {
+                GPACInstance instance = getInstance();
+                if (instance != null)
+                    instance.connect(url);
+            }
+        });
+    }
+
+    /**
+     * @see com.artemis.Osmo4.GPACInstanceInterface#disconnect()
+     */
+    @Override
+    public void disconnect() {
+        queueEvent(new Runnable() {
+
+            @Override
+            public void run() {
+                GPACInstance instance = getInstance();
+                if (instance != null)
+                    instance.disconnect();
+            }
+        });
+    }
+
+    /**
+     * @see com.artemis.Osmo4.GPACInstanceInterface#destroy()
+     */
+    @Override
+    public void destroy() {
+        queueEvent(new Runnable() {
+
+            @Override
+            public void run() {
+                GPACInstance instance = getInstance();
+                if (instance != null)
+                    instance.destroy();
+            }
+        });
     }
 }

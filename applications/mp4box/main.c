@@ -939,7 +939,7 @@ static Bool can_convert_to_isma(GF_ISOFile *file)
 }
 #endif
 
-static void progress_quiet(void *cbck, char *title, u64 done, u64 total) { }
+static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
 
 
 typedef struct

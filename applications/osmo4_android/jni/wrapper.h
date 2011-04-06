@@ -142,6 +142,17 @@
 
 #define ANDROID_KEYCODE_UNKWON		-1
 
+#include <jni.h>
+
+typedef struct _JavaEnvTh {
+  JNIEnv * env;
+  u32 javaThreadId;
+  jobject cbk_obj;
+  jmethodID cbk_displayMessage;
+  jmethodID cbk_onProgress;
+} JavaEnvTh;
+
+
 //---------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------
 class CNativeWrapper{
@@ -156,11 +167,9 @@ class CNativeWrapper{
 		/*
 		 * Callback management
 		 */
-		jobject cbk_obj;
-		jmethodID cbk_displayMessage;
-		jmethodID cbk_onProgress;
+                JavaEnvTh mainJavaEnv;
+                JavaEnvTh currentJavaEnv;
 
-		JNIEnv * lastEnv;
 		GF_Mutex *m_mx;
 		GF_User m_user;
 		GF_SystemRTInfo m_rti;
@@ -173,12 +182,13 @@ class CNativeWrapper{
 		char m_font_dir[GF_MAX_PATH];
 		char m_log_filename[GF_MAX_PATH];
 		char m_debug_filename[GF_MAX_PATH];
+                void setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callback);
 	private:
 		void SetupLogs();
 		void Shutdown();
 		void DisplayRTI();
 	protected:
-		JNIEnv * getEnv();
+		JavaEnvTh * getEnv();
 
 	public:
 		CNativeWrapper();
@@ -203,7 +213,8 @@ class CNativeWrapper{
 
 		static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list);
 		static Bool GPAC_EventProc(void *cbk, GF_Event *evt);
-		static void Osmo4_progress_cbk(void *usr, char *title, u64 done, u64 total);
+                void progress_cbk(const char *title, u64 done, u64 total);
+		static void Osmo4_progress_cbk(const void *usr, const char *title, u64 done, u64 total);
 
 	private:
 #ifdef	DEBUG_MODE

@@ -46,11 +46,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
+import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.Window;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
@@ -84,17 +86,6 @@ public class Osmo4 extends Activity implements GpacCallback {
     public final static String OSMO_REGISTERED_FILE_EXTENSIONS = "*.mp4,*.bt,*.xmt,*.xml,*.ts,*.svg,*.mp3,*.m3u8,*.mpg,*.aac,*.m4a,*.jpg,*.png"; //$NON-NLS-1$
 
     private PowerManager.WakeLock wl = null;
-
-    private Osmo4Renderer renderer;
-
-    private synchronized Osmo4Renderer getGpacRenderer() {
-        if (renderer == null) {
-            displayMessage(String.valueOf(getResources().getText(R.string.gpacNotInitializedLongMessages)),
-                           String.valueOf(getResources().getText(R.string.gpacNotInitialized)),
-                           GF_Err.GF_ISOM_INVALID_MODE.value);
-        }
-        return renderer;
-    }
 
     private Osmo4GLSurfaceView mGLView;
 
@@ -150,10 +141,8 @@ public class Osmo4 extends Activity implements GpacCallback {
                             Osmo4.this.wl = wl;
                         }
 
-                        synchronized (Osmo4.this) {
-                            renderer = new Osmo4Renderer(Osmo4.this, toOpen);
-                            mGLView.setRenderer(renderer);
-                        }
+                        Osmo4Renderer renderer = new Osmo4Renderer(Osmo4.this, toOpen);
+                        mGLView.setRenderer(renderer);
                         displayPopup("Now loading, please wait...", name); //$NON-NLS-1$
                         setContentView(mGLView);
                     }
@@ -202,6 +191,8 @@ public class Osmo4 extends Activity implements GpacCallback {
         });
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         final AutoCompleteTextView textView = new AutoCompleteTextView(this);
+        textView.setInputType(InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_CLASS_TEXT
+                              | InputType.TYPE_TEXT_VARIATION_URI);
 
         builder.setMessage("Please enter an URL to connect to...") //$NON-NLS-1$
                .setCancelable(true)
@@ -211,7 +202,6 @@ public class Osmo4 extends Activity implements GpacCallback {
                                           dialog.cancel();
                                           final String newURL = textView.getText().toString();
                                           openURLasync(newURL);
-                                          assert (renderer != null);
                                           service.execute(new Runnable() {
 
                                               @Override
@@ -333,35 +323,32 @@ public class Osmo4 extends Activity implements GpacCallback {
                     String url = uri.toString();
                     String file = "file://"; //$NON-NLS-1$
                     if (url.startsWith(file)) {
-                        url = url.substring(file.length());
+                        url = uri.getPath();
                     }
                     openURLasync(url);
-
                 }
             }
         }
     }
 
     private void openURLasync(final String url) {
-        Osmo4Renderer renderer = getGpacRenderer();
-        runOnUiThread(new Runnable() {
+        service.execute(new Runnable() {
 
             @Override
             public void run() {
-                if (DEFAULT_OPEN_URL.equals(url))
-                    setTitle(LOG_OSMO_TAG + " - Home"); //$NON-NLS-1$
-                else
-                    setTitle(LOG_OSMO_TAG + " - " + url); //$NON-NLS-1$
+                mGLView.connect(url);
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        if (DEFAULT_OPEN_URL.equals(url))
+                            setTitle(LOG_OSMO_TAG + " - Home"); //$NON-NLS-1$
+                        else
+                            setTitle(LOG_OSMO_TAG + " - " + url); //$NON-NLS-1$
+                    }
+                });
             }
         });
-
-        if (renderer == null)
-            return;
-        else {
-            GPACInstance i = renderer.getInstance();
-            if (i != null)
-                i.connect(url);
-        }
     }
 
     // ---------------------------------------
@@ -384,6 +371,8 @@ public class Osmo4 extends Activity implements GpacCallback {
                 return openFileDialog();
             case R.id.cleanCache:
                 return cleanCache();
+            case R.id.showVirtualKeyboard:
+                return showVirtualKeyboard();
             case R.id.quit:
                 this.finish();
                 // quit();
@@ -391,6 +380,11 @@ public class Osmo4 extends Activity implements GpacCallback {
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    protected boolean showVirtualKeyboard() {
+        ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(mGLView, 0);
+        return true;
     }
 
     protected boolean cleanCache() {
@@ -449,14 +443,10 @@ public class Osmo4 extends Activity implements GpacCallback {
             if (wl != null)
                 wl.release();
         }
-        Osmo4Renderer renderer = getGpacRenderer();
-        if (renderer != null) {
-            GPACInstance instance = renderer.getInstance();
-            Log.d(LOG_OSMO_TAG, "Disconnecting instance..."); //$NON-NLS-1$
-            instance.disconnect();
-            Log.d(LOG_OSMO_TAG, "Destroying GPAC instance..."); //$NON-NLS-1$
-            instance.destroy();
-        }
+        Log.d(LOG_OSMO_TAG, "Disconnecting instance..."); //$NON-NLS-1$
+        mGLView.disconnect();
+        Log.d(LOG_OSMO_TAG, "Destroying GPAC instance..."); //$NON-NLS-1$
+        mGLView.destroy();
         super.onDestroy();
     }
 
@@ -514,9 +504,11 @@ public class Osmo4 extends Activity implements GpacCallback {
                 ins = null;
                 fos.close();
                 fos = null;
-                if (!tmpFile.renameTo(finalFile))
-                    Log.e(LOG_OSMO_TAG, "Failed to rename " + tmpFile.getAbsolutePath() + " to " //$NON-NLS-1$//$NON-NLS-2$
-                                        + finalFile.getAbsolutePath());
+                if (!tmpFile.renameTo(finalFile)) {
+                    if (finalFile.exists() && finalFile.delete() && !tmpFile.renameTo(finalFile))
+                        Log.e(LOG_OSMO_TAG, "Failed to rename " + tmpFile.getAbsolutePath() + " to " //$NON-NLS-1$//$NON-NLS-2$
+                                            + finalFile.getAbsolutePath());
+                }
             } catch (IOException e) {
                 noErrors = false;
                 Log.e(LOG_OSMO_TAG, "IOException for resource : " + ids[i], e); //$NON-NLS-1$
@@ -733,4 +725,46 @@ public class Osmo4 extends Activity implements GpacCallback {
         mGLView.onResume();
     }
 
+    /**
+     * @see com.artemis.Osmo4.GpacCallback#setCaption(java.lang.String)
+     */
+    @Override
+    public void setCaption(final String newCaption) {
+        runOnUiThread(new Runnable() {
+
+            @Override
+            public void run() {
+                setTitle(newCaption);
+            }
+        });
+    }
+
+    // /**
+    // * @see com.artemis.Osmo4.GpacCallback#onGPACAuthorization(java.lang.String, java.lang.String, java.lang.String)
+    // */
+    // @Override
+    // public String onGPACAuthorization(String siteURL, String userName, String password) {
+    // AlertDialog.Builder builder = new AlertDialog.Builder(Osmo4.this);
+    // View v = getLayoutInflater().inflate(R.layout.auth_requested, null, false);
+    // builder.setCancelable(true).setView(v).setTitle(siteURL);
+    // final Object lock = new Object();
+    // builder.setPositiveButton(OK_BUTTON, new OnClickListener() {
+    //
+    // @Override
+    // public void onClick(DialogInterface dialog, int which) {
+    // getResources().get
+    // R.id.passwordPrompt
+    //
+    // }
+    // });
+    // runOnUiThread(new Runnable() {
+    //            
+    // @Override
+    // public void run() {
+    // // TODO Auto-generated method stub
+    //                
+    // }
+    // });
+    // return null;
+    // }
 }

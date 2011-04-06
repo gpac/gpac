@@ -16,22 +16,11 @@ import android.view.MotionEvent;
  * @version $Revision$
  * 
  */
-public class GPACInstance {
-
-    /**
-     * @version $Revision$
-     * 
-     */
-    public static class GpacInstanceException extends Exception {
-
-        /**
-         * 
-         */
-        private static final long serialVersionUID = 3207851655866335152L;
-
-    };
+public class GPACInstance implements GPACInstanceInterface {
 
     private final static String LOG_LIB = "LibrariesLoader"; //$NON-NLS-1$
+
+    private final Thread uniqueThread;
 
     /**
      * Loads all libraries
@@ -93,6 +82,7 @@ public class GPACInstance {
         synchronized (this) {
             hasToBeFreed = true;
         }
+        uniqueThread = Thread.currentThread();
     }
 
     /**
@@ -107,19 +97,20 @@ public class GPACInstance {
         return handle;
     }
 
-    /**
-     * Call this method to disconnect
-     */
+    private void checkCurrentThread() throws RuntimeException {
+        if (Thread.currentThread() != uniqueThread)
+            throw new RuntimeException("Method called outside allowed Thread scope !"); //$NON-NLS-1$
+    }
+
+    @Override
     public void disconnect() {
+        checkCurrentThread();
         gpacdisconnect();
     }
 
-    /**
-     * Call this method to connect to a given URL
-     * 
-     * @param url The URL to connect to
-     */
+    @Override
     public void connect(String url) {
+        checkCurrentThread();
         gpacconnect(url);
     }
 
@@ -131,6 +122,7 @@ public class GPACInstance {
      * @param pressed true if key is pressed, false if key is released
      */
     public void eventKey(int keyCode, KeyEvent event, boolean pressed) {
+        checkCurrentThread();
         gpaceventkeypress(keyCode, event.getScanCode(), pressed ? 1 : 0, event.getFlags());
     }
 
@@ -138,6 +130,7 @@ public class GPACInstance {
      * Renders the current frame
      */
     public void render() {
+        checkCurrentThread();
         gpacrender();
     }
 
@@ -158,6 +151,7 @@ public class GPACInstance {
      * @param event
      */
     public void motionEvent(MotionEvent event) {
+        checkCurrentThread();
         final float x = event.getX();
         final float y = event.getY();
         switch (event.getAction()) {
@@ -265,9 +259,7 @@ public class GPACInstance {
      */
     private native void gpaceventmousemove(float x, float y);
 
-    /**
-     * Destroys the current instance, you won't be able to use it anymore...
-     */
+    @Override
     public void destroy() {
         boolean freeIt;
         synchronized (this) {
