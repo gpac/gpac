@@ -165,7 +165,7 @@ u32 get_sys_col(int idx)
 }
 #endif
 
-static void wxOsmo4_progress_cbk(void *usr, char *title, u64 done, u64 total)
+static void wxOsmo4_progress_cbk(const void *usr, const char *title, u64 done, u64 total)
 {
 	if (!total) return;
 	wxOsmo4Frame *app = (wxOsmo4Frame *)usr;
@@ -232,7 +232,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_PROGRESS:
 	{
-		char *sTitle;
+		const char *sTitle;
 		if (evt->progress.progress_type==0) sTitle = (char *)"Buffer";
 		else if (evt->progress.progress_type==1) sTitle = (char *)"Download";
 		else if (evt->progress.progress_type==2) sTitle = (char *)"Import";

@@ -9,5 +9,10 @@
     <string name="gpacNotInitialized">GPAC is not initialized</string>
     <string name="cleanCache">Clean Cache</string>
     <string name="cleaningCache">Cleaning Cache...</string>
+    <string name="showVirtualKeyboard">Keyboard</string>
     <string name="gpacNotInitializedLongMessages">Sorry, GPAC is not initialized, operation cannot be performed</string>
+    <string name="usernameLabel">Username:</string>
+    <string name="usernameHint">Username</string>
+    <string name="passwordLabel">Password:</string>
+    <string name="passwordHint">Password</string>
 </resources>

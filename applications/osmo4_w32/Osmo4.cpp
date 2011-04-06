@@ -129,7 +129,7 @@ Bool UserPassDialog::GetPassword(const char *site_url, char *user, char *passwor
 }
 
 
-static void Osmo4_progress_cbk(void *usr, char *title, u64 done, u64 total)
+static void Osmo4_progress_cbk(const void *usr, const char *title, u64 done, u64 total)
 {
 	if (!total) return;
 	CMainFrame *pFrame = (CMainFrame *) ((Osmo4 *) usr)->m_pMainWnd;

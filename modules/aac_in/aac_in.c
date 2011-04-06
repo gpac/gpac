@@ -624,7 +624,10 @@ static GF_Err AAC_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	AACReader *read = plug->priv;
 
 	e = GF_SERVICE_ERROR;
-	if (read->ch==channel) goto exit;
+	if (read->ch==channel) {
+          GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AAC_IN] read->ch==channel = %p, GF_SERVICE_ERROR\n", channel));
+          goto exit;
+        }
 
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {

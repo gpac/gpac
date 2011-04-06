@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -87,7 +87,7 @@ extern "C" {
 */
 #define GF_4CC(a,b,c,d) (((a)<<24)|((b)<<16)|((c)<<8)|(d))
 
-	
+
 /*!
  *	\brief GPAC feature list
  *
@@ -105,7 +105,7 @@ const char *gf_4cc_to_str(u32 type);
 /*!
  *	\brief asprintf() portable implementation
  *
- *	similar to sprintf, except it allows the string on the  
+ *	similar to sprintf, except it allows the string on the
  *  \note asprintf implementation for windows
 */
 int gf_asprintf(char **buffer, const char *fmt, ...);
@@ -148,7 +148,7 @@ u64 gf_f64_seek(FILE *f, s64 pos, s32 whence);
  *	\ingroup utils_grp
  *	\brief Errors used in GPAC.
  *
- *	This section documents all error codes used in the GPAC framework. Most of the GPAC's functions will use these as 
+ *	This section documents all error codes used in the GPAC framework. Most of the GPAC's functions will use these as
  * return values, and some of these errors are also used for state communication with the different modules of the framework.
  *	@{
  */
@@ -163,7 +163,7 @@ typedef enum
 {
 	/*!Message from any scripting engine used in the presentation (ECMAScript, MPEG-J, ...) (Info).*/
 	GF_SCRIPT_INFO						= 3,
-	/*!Indicates an data frame has several AU packed (not MPEG-4 compliant). This is used by decoders to force 
+	/*!Indicates an data frame has several AU packed (not MPEG-4 compliant). This is used by decoders to force
 	multiple decoding of the same data frame (Info).*/
 	GF_PACKED_FRAMES					= 2,
 	/*!Indicates the end of a stream or of a file (Info).*/
@@ -264,7 +264,7 @@ const char *gf_error_to_string(GF_Err e);
 /*!
  * GPAC Log Levels
  *	\hideinitializer
- * 
+ *
  * These levels describes messages priority used when filtering logs
  */
 enum
@@ -368,7 +368,7 @@ typedef void (*gf_log_cbk)(void *cbck, u32 log_level, u32 log_tool, const char* 
  *	\brief Log overwrite
  *
  *	Assigns a user-defined callback for printing log messages. By default all logs are redirected to stdout
- *	\param usr_cbk Opaque user data 
+ *	\param usr_cbk Opaque user data
  *	\param cbk  callback log function
  *	\return previous callback function
 */
@@ -379,7 +379,7 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);
 */
 
 #ifndef GPAC_DISABLE_LOG
-/*note: 
+/*note:
 		to turn log on, change to GPAC_ENABLE_LOG
 		to turn log off, change to GPAC_DISABLE_LOG
 	this is needed by configure+sed to modify this file directly
@@ -403,7 +403,7 @@ u32 gf_log_parse_level(const char *val);
 u32 gf_log_parse_tools(const char *val);
 
 #ifdef GPAC_DISABLE_LOG
-#define GF_LOG(_ll, _lm, __args) 
+#define GF_LOG(_ll, _lm, __args)
 #else
 /*!
  *	\brief Message logging
@@ -437,7 +437,7 @@ void gf_rand_init(Bool Reset);
 u32 gf_rand();
 
 /*!
- *	\brief user name 
+ *	\brief user name
  *
  *	Gets current user (login) name.
 */
@@ -460,7 +460,7 @@ typedef Bool (*gf_enum_dir_item)(void *cbck, char *item_name, char *item_path);
  *	Enumerates a directory content. Feedback is provided by the enum_dir_item function
  *	\param dir Directory to enumerate
  *	\param enum_directory If set, only directories will be enumerated, otherwise only files are.
- *	\param enum_dir \ref gf_enum_dir_item callback function for enumeration. 
+ *	\param enum_dir \ref gf_enum_dir_item callback function for enumeration.
  *	\param cbck Opaque user data passed to callback function.
  *	\param filter optional filter for file extensions. If a file extension without the dot '.' character is not found in the
  *	filter the file will be skipped.
@@ -511,7 +511,7 @@ u64 gf_file_modification_time(const char *filename);
  *	\param done Current amount performed of the action.
  *	\param total Total amount of the action.
  */
-void gf_set_progress(char *title, u64 done, u64 total);
+void gf_set_progress(const char *title, u64 done, u64 total);
 
 /*!
  *	\brief Progress Callback
@@ -523,7 +523,7 @@ void gf_set_progress(char *title, u64 done, u64 total);
  *	\param total Total amount of the action.
  *
  */
-typedef void (*gf_on_progress_cbk)(void *cbck, char *title, u64 done, u64 total);
+typedef void (*gf_on_progress_cbk)(const void *cbck, const char *title, u64 done, u64 total);
 
 /*!
  *	\brief Progress overwriting
@@ -536,7 +536,7 @@ void gf_set_progress_callback(void *user_cbk, gf_on_progress_cbk prog_cbk);
 
 
 /*!
- *	\brief Prompt checking 
+ *	\brief Prompt checking
  *
  *	Checks if a character is pending in the prompt buffer.
  *	\return 1 if a character is ready to be fetched, 0 otherwise.
@@ -576,9 +576,9 @@ void gf_prompt_set_echo_off(Bool echo_off);
 /*!
  *	\brief System setup
  *
- *	Inits the system high-resolution clock if any, and CPU usage manager. It is strongly recommended to call this 
+ *	Inits the system high-resolution clock if any, and CPU usage manager. It is strongly recommended to call this
  * function before calling any other GPAC functions, since on some systems (like winCE) it may result in a better memory usage estimation.
- *	\note This can be called several times but only the first call will result in system setup. 
+ *	\note This can be called several times but only the first call will result in system setup.
  */
 void gf_sys_init(Bool enable_memory_tracker);
 /*!
@@ -617,7 +617,7 @@ u32 gf_crc_32(char *data, u32 size);
 
 /*!\brief run-time system info object
  *
- *The Run-Time Info object is used to get CPU and memory occupation of the calling process. 
+ *The Run-Time Info object is used to get CPU and memory occupation of the calling process.
  *All time values are expressed in milliseconds (accuracy is not guaranteed).
 */
 typedef struct
@@ -663,7 +663,7 @@ enum
 	/*!Indicates all processes' times must be fetched. If not set, only the current process times will be retrieved, and the
 	thread count and total times won't be available*/
 	GF_RTI_ALL_PROCESSES_TIMES = 1,
-	/*!Indicates the process allocated heap size must be fetch. If not set, only the system physical memory is fetched. 
+	/*!Indicates the process allocated heap size must be fetch. If not set, only the system physical memory is fetched.
 	Fetching the entire ocess  allocated memory can have a large impact on performances*/
 	GF_RTI_PROCESS_MEMORY = 1<<1,
 	/*!Indicates that only system memory should be fetched. When set, all refreshing info is ignored*/

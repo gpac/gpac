@@ -6,6 +6,8 @@
         android:checkable="false"/>
     <item android:visible="true" android:enabled="true" android:title="@string/cleanCache" android:id="@+id/cleanCache"
         android:checkable="false"/>
+    <item android:visible="true" android:enabled="true" android:title="@string/showVirtualKeyboard" android:id="@+id/showVirtualKeyboard"
+        android:checkable="false"/>
     <item android:visible="true" android:checkable="false" android:enabled="true" android:title="@string/quit"
         android:id="@+id/quit"/>
 </menu>

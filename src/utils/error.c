@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -47,7 +47,7 @@ const char *gf_4cc_to_str(u32 type)
 }
 
 
-static const char *szProg[] = 
+static const char *szProg[] =
 {
 	"                    ",
 	"=                   ",
@@ -74,11 +74,11 @@ static const char *szProg[] =
 
 static u64 prev_pos = 0;
 static u64 prev_pc = 0;
-static void gf_on_progress_stdout(char *_title, u64 done, u64 total)
+static void gf_on_progress_stdout(const char *_title, u64 done, u64 total)
 {
 	Double prog;
 	u32 pos;
-	char *szT = _title ? (char *)_title : (char *) "";
+	const char *szT = _title ? (char *)_title : (char *) "";
 	prog = (double) done;
 	prog /= total;
 	pos = MIN((u32) (20 * prog), 20);
@@ -87,7 +87,7 @@ static void gf_on_progress_stdout(char *_title, u64 done, u64 total)
 		prev_pos = 0;
 		prev_pc = 0;
 	}
-	if (done==total) { 
+	if (done==total) {
 		u32 len = strlen(szT) + 40;
 		while (len) { fprintf(stdout, " "); len--; };
 		fprintf(stdout, "\r");
@@ -107,7 +107,7 @@ static gf_on_progress_cbk prog_cbk = NULL;
 static void *user_cbk;
 
 GF_EXPORT
-void gf_set_progress(char *title, u64 done, u64 total)
+void gf_set_progress(const char *title, u64 done, u64 total)
 {
 	if (prog_cbk) {
 		prog_cbk(user_cbk, title, done, total);
@@ -327,7 +327,7 @@ const char *gf_error_to_string(GF_Err e)
 		return "BitStream Not Compliant";
 	case GF_CODEC_NOT_FOUND:
 		return "Media Codec not found";
-	
+
 	/*DMIF errors - local and control plane */
 	case GF_URL_ERROR:
 		return "Requested URL is not valid or cannot be found";
@@ -339,14 +339,14 @@ const char *gf_error_to_string(GF_Err e)
 
 	case GF_STREAM_NOT_FOUND:
 		return "Media Channel couldn't be found";
-	
+
 	case GF_IP_ADDRESS_NOT_FOUND:
 		return "IP Address Not Found";
 	case GF_IP_CONNECTION_FAILURE:
 		return "IP Connection Failed";
 	case GF_IP_NETWORK_FAILURE:
 		return "Network Unreachable";
-	
+
 	case GF_IP_NETWORK_EMPTY:
 		return "Network Timeout";
 	case GF_IP_SOCK_WOULD_BLOCK:
@@ -418,10 +418,10 @@ u32 gf_crc_32(char *data, u32 len)
 {
     register u32 i;
     u32 crc = 0xffffffff;
-	if (!data) return 0;    
+	if (!data) return 0;
     for (i=0; i<len; i++)
         crc = (crc << 8) ^ gf_crc_table[((crc >> 24) ^ *data++) & 0xff];
-    
+
     return crc;
 }
 
@@ -431,8 +431,8 @@ GF_EXPORT
 const char *gpac_features()
 {
 	const char *features = ""
-#ifdef GPAC_FIXED_POINT 
-		"GPAC_FIXED_POINT " 
+#ifdef GPAC_FIXED_POINT
+		"GPAC_FIXED_POINT "
 #endif
 #ifdef GPAC_MEMORY_TRACKING
 		"GPAC_MEMORY_TRACKING "
@@ -547,7 +547,7 @@ const char *gpac_features()
 #ifdef GPAC_DISABLE_STREAMING
 		"GPAC_DISABLE_STREAMING "
 #endif
-	
+
 	;
 	return features;
 }

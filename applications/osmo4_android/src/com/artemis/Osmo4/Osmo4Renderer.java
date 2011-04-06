@@ -6,7 +6,6 @@ import javax.microedition.khronos.opengles.GL10;
 import android.opengl.GLSurfaceView;
 import android.os.Environment;
 import android.util.Log;
-import com.artemis.Osmo4.GPACInstance.GpacInstanceException;
 
 /**
  * The renderer
@@ -58,7 +57,7 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
                                         GPAC_CACHE_DIR,
                                         GPAC_FONT_DIR,
                                         urlToLoad);
-        } catch (GpacInstanceException e) {
+        } catch (com.artemis.Osmo4.GPACInstanceInterface.GpacInstanceException e) {
             Log.e(LOG_RENDERER, "Failed to create new GPAC instance !"); //$NON-NLS-1$
             instance = null;
             callback.onGPACError(e);
@@ -71,15 +70,6 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
     private GPACInstance instance = null;
 
     private final String urlToLoad;
-
-    /**
-     * Get the current GPAC Instance
-     * 
-     * @return the instance
-     */
-    public synchronized GPACInstance getInstance() {
-        return instance;
-    }
 
     /**
      * @return the urlToLoad
@@ -143,5 +133,13 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
             }
         }
     }
-    // ------------------------------------
+
+    /**
+     * Get the current GPAC Instance
+     * 
+     * @return the instance
+     */
+    synchronized GPACInstance getInstance() {
+        return instance;
+    }
 }
