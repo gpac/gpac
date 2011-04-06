@@ -170,7 +170,8 @@ public class GPACInstance implements GPACInstanceInterface {
 
     @Override
     public void finalize() throws Throwable {
-        destroy();
+        // Not sure how to do this..., destroy is supposed to be called already
+        // destroy();
         super.finalize();
     }
 

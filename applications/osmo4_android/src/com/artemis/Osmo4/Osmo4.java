@@ -56,6 +56,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
+import com.artemis.Osmo4.extra.FileChooserActivity;
 
 /**
  * The main Osmo4 activity, used to launch everything
@@ -288,28 +289,45 @@ public class Osmo4 extends Activity implements GpacCallback {
      * @return true if activity has been selected
      */
     private boolean openFileDialog() {
-        Intent intent = new Intent("org.openintents.action.PICK_FILE"); //$NON-NLS-1$
-        //Intent intent = new Intent("org.openintents.action.PICK_FILE"); //$NON-NLS-1$
-        intent.setData(Uri.fromFile(new File(Osmo4Renderer.GPAC_CFG_DIR)));
-        intent.putExtra("org.openintents.extra.TITLE", "Please select a file"); //$NON-NLS-1$//$NON-NLS-2$
+        String title = getResources().getString(R.string.pleaseSelectAFile);
+        Uri uriDefaultDir = Uri.fromFile(new File(Osmo4Renderer.GPAC_CFG_DIR));
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_PICK);
+        // Files and directories
+        intent.setDataAndType(uriDefaultDir, "vnd.android.cursor.dir/lysesoft.andexplorer.file"); //$NON-NLS-1$
+        // Optional filtering on file extension.
         intent.putExtra("browser_filter_extension_whitelist", OSMO_REGISTERED_FILE_EXTENSIONS); //$NON-NLS-1$
+        // Title
+        intent.putExtra("explorer_title", title); //$NON-NLS-1$
 
         try {
             startActivityForResult(intent, PICK_FILE_REQUEST);
             return true;
         } catch (ActivityNotFoundException e) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setMessage("Impossible to find an Intent to choose a file... Cannot open file !") //$NON-NLS-1$
-                   .setCancelable(true)
-                   .setPositiveButton("Close", new DialogInterface.OnClickListener() { //$NON-NLS-1$
+            // OK, lets try with another one... (it includes out bundled one)
+            intent = new Intent("org.openintents.action.PICK_FILE"); //$NON-NLS-1$
+            intent.setData(uriDefaultDir);
+            intent.putExtra(FileChooserActivity.TITLE_PARAMETER, title);
+            intent.putExtra("browser_filter_extension_whitelist", OSMO_REGISTERED_FILE_EXTENSIONS); //$NON-NLS-1$
+            try {
+                startActivityForResult(intent, PICK_FILE_REQUEST);
+                return true;
+            } catch (ActivityNotFoundException ex) {
+                // Not found neither... We build our own dialog to display error
+                // Note that this should happen only if we did not embed out own intent
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setMessage("Impossible to find an Intent to choose a file... Cannot open file !") //$NON-NLS-1$
+                       .setCancelable(true)
+                       .setPositiveButton("Close", new DialogInterface.OnClickListener() { //$NON-NLS-1$
 
-                                          public void onClick(DialogInterface dialog, int id) {
-                                              dialog.cancel();
-                                          }
-                                      });
-            AlertDialog alert = builder.create();
-            alert.show();
-            return false;
+                                              public void onClick(DialogInterface dialog, int id) {
+                                                  dialog.cancel();
+                                              }
+                                          });
+                AlertDialog alert = builder.create();
+                alert.show();
+                return false;
+            }
         }
     }
 
@@ -325,6 +343,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                     if (url.startsWith(file)) {
                         url = uri.getPath();
                     }
+                    Log.i(LOG_OSMO_TAG, "Requesting opening local file " + url); //$NON-NLS-1$
                     openURLasync(url);
                 }
             }
@@ -509,6 +528,14 @@ public class Osmo4 extends Activity implements GpacCallback {
                         Log.e(LOG_OSMO_TAG, "Failed to rename " + tmpFile.getAbsolutePath() + " to " //$NON-NLS-1$//$NON-NLS-2$
                                             + finalFile.getAbsolutePath());
                 }
+                final int percent = i * 10000 / ids.length;
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        setProgress(percent);
+                    }
+                });
             } catch (IOException e) {
                 noErrors = false;
                 Log.e(LOG_OSMO_TAG, "IOException for resource : " + ids[i], e); //$NON-NLS-1$
