@@ -15,4 +15,10 @@
     <string name="usernameHint">Username</string>
     <string name="passwordLabel">Password:</string>
     <string name="passwordHint">Password</string>
+    <string name="pleaseSelectAFile">Select a file to open</string>
+    <string name="parentDirectory">Parent Directory</string>
+    <string name="directory">Directory</string>
+    <string name="fileSize">File [%d bytes]</string>
+    <string name="selectFileTitlePattern">%1$s [%2$s]</string>
+    <string name="selectFileDefaultTitle">Select a file</string>
 </resources>
