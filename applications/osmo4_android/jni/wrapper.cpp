@@ -559,15 +559,6 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "ft_font");
 
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", GPAC_FONT_DIR);
-
-
-		/*save cfg and reload*/
-		gf_cfg_del(m_user.config);
-		m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
-		if (!m_user.config) {
-			MessageBox("Cannot save initial GPAC Config file", "Fatal Error",GF_SERVICE_ERROR);
-			return Quit(KErrGeneral);
-		}
 	}
         debug_log("loading modules...");
 	/*load modules*/
@@ -643,6 +634,15 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
           snprintf(msg, 2048, "Connecting to %s...", urlToLoad);
           debug_log(msg);
           gf_term_connect(m_term, urlToLoad);
+        }
+        if (m_user.config){
+                /*save cfg and reload*/
+                gf_cfg_del(m_user.config);
+                m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
+                if (!m_user.config) {
+                        MessageBox("Cannot save initial GPAC Config file", "Fatal Error",GF_SERVICE_ERROR);
+                        return Quit(KErrGeneral);
+                }
         }
         debug_log("init end");
 	//initGL();
