@@ -139,6 +139,84 @@ public interface GpacCallback {
     }
 
     /**
+     * Mapping between GPAC Log Modules and Java symbols
+     * 
+     * @version $Revision$
+     * 
+     */
+    public enum GF_Log_Module implements Comparable<GF_Log_Module> {
+        /** Log message from the core library (init, threads, network calls, etc) */
+        GF_LOG_CORE(1),
+        /** Log message from a raw media parser (BIFS, LASeR, A/V formats) */
+        GF_LOG_CODING(1 << 1),
+        /** Log message from a bitstream parser (IsoMedia, MPEG-2 TS, OGG, ...) */
+        GF_LOG_CONTAINER(1 << 2),
+        /** Log message from the network/service stack (messages & co) */
+        GF_LOG_NETWORK(1 << 3),
+        /** Log message from the RTP/RTCP stack (TS info) and packet structure & hinting (debug) */
+        GF_LOG_RTP(1 << 4),
+        /** Log message from authoring subsystem (file manip, import/export) */
+        GF_LOG_AUTHOR(1 << 5),
+        /** Log message from the sync layer of the terminal */
+        GF_LOG_SYNC(1 << 6),
+        /** Log message from a codec */
+        GF_LOG_CODEC(1 << 7),
+        /** Log message from any XML parser (context loading, etc) */
+        GF_LOG_PARSER(1 << 8),
+        /** Log message from the terminal/compositor, indicating media object state */
+        GF_LOG_MEDIA(1 << 9),
+        /** Log message from the scene graph/scene manager (handling of nodes and attribute modif, DOM core) */
+        GF_LOG_SCENE(1 << 10),
+        /** Log message from the scripting engine */
+        GF_LOG_SCRIPT(1 << 11),
+        /** Log message from event handling */
+        GF_LOG_INTERACT(1 << 12),
+        /** Log message from compositor */
+        GF_LOG_COMPOSE(1 << 13),
+        /** Log for video object cache */
+        GF_LOG_CACHE(1 << 14),
+        /** Log message from multimedia I/O devices (audio/video input/output, ...) */
+        GF_LOG_MMIO(1 << 15),
+        /** Log for runtime info (times, memory, CPU usage) */
+        GF_LOG_RTI(1 << 16),
+        /** Log for SMIL timing and animation */
+        GF_LOG_SMIL(1 << 17),
+        /** Log for memory tracker */
+        GF_LOG_MEMORY(1 << 18),
+        /** Log for audio compositor */
+        GF_LOG_AUDIO(1 << 19),
+        /** generic Log for modules */
+        GF_LOG_MODULE(1 << 20),
+        /**
+         * Unknown Log subsystem
+         */
+        GF_LOG_UNKNOWN(1 << 30);
+
+        int value;
+
+        /**
+         * Private Constructor
+         */
+        private GF_Log_Module(int x) {
+            this.value = x;
+        };
+
+        /**
+         * Finds a module from its module_code
+         * 
+         * @param module_code
+         * @return The Module found (never null)
+         */
+        public static GF_Log_Module getModule(int module_code) {
+            for (GF_Log_Module x : values()) {
+                if (x.value == module_code)
+                    return x;
+            }
+            return GF_LOG_UNKNOWN;
+        }
+    }
+
+    /**
      * Display a message
      * 
      * @param message
@@ -153,9 +231,8 @@ public interface GpacCallback {
      * @param level
      * @param module
      * @param message
-     * @param arguments
      */
-    public void log(int level, int module, String message, Object... arguments);
+    public void onLog(int level, int module, String message);
 
     /**
      * Called when progress is set

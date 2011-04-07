@@ -58,6 +58,7 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Toast;
 import com.artemis.Osmo4.extra.FileChooserActivity;
+import com.artemis.Osmo4.logs.GpacLogger;
 
 /**
  * The main Osmo4 activity, used to launch everything
@@ -92,6 +93,8 @@ public class Osmo4 extends Activity implements GpacCallback {
     private PowerManager.WakeLock wl = null;
 
     private Osmo4GLSurfaceView mGLView;
+
+    private final GpacLogger logger = new GpacLogger();
 
     // ---------------------------------------
     @Override
@@ -664,10 +667,11 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     /**
-     * @see com.artemis.Osmo4.GpacCallback#log(int, int, java.lang.String, java.lang.Object[])
+     * @see com.artemis.Osmo4.GpacCallback#onLog(int, int, String)
      */
     @Override
-    public void log(int level, int module, String message, Object... arguments) {
+    public void onLog(int level, int module, String message) {
+        logger.onLog(level, module, message);
     }
 
     /**
