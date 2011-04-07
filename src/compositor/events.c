@@ -529,7 +529,7 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 	flush_text_node_edit(compositor, is_end);
 }
 
-static fireTermEvent(GF_Compositor * compositor, u32 eventType){
+static void fireTermEvent(GF_Compositor * compositor, u32 eventType){
         if (compositor->term){
           GF_Event evt;
           memset(&evt, 0, sizeof(GF_Event));
