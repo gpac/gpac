@@ -201,7 +201,6 @@ exit:
 
 #ifdef GPAC_HAS_JPEG
 
-void _nonfatal_error(j_common_ptr cinfo) { }
 void _nonfatal_error2(j_common_ptr cinfo, int lev) {}
 
 /*JPG context while decoding*/
@@ -220,9 +219,17 @@ typedef struct
 	struct jpeg_decompress_struct cinfo;
 } JPGCtx;
 
+void _output_message (j_common_ptr cinfo){
+	char buffer[JMSG_LENGTH_MAX];
+	/* Create the message */
+	(*cinfo->err->format_message) (cinfo, buffer);
+	GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[JPEG OUTPUT MESSAGE]: %s\n", buffer));
+}
+
 void _fatal_error(j_common_ptr cinfo)
 {
 	JPGErr *err = (JPGErr *) cinfo->err;
+	_output_message(cinfo);
 	longjmp(err->jmpbuf, 1);
 }
 
@@ -260,9 +267,10 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 
 	jpx.cinfo.err = jpeg_std_error(&(jper.pub));
 	jper.pub.error_exit = _fatal_error;
-	jper.pub.output_message = _nonfatal_error;
+	jper.pub.output_message = _output_message;
 	jper.pub.emit_message = _nonfatal_error2;
 	if (setjmp(jper.jmpbuf)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[gf_img_jpeg_dec] : Failed to call cannot setjmp(jper.jmpbuf)\n"));
 		jpeg_destroy_decompress(&jpx.cinfo);
 		return GF_IO_ERR;
 	}
@@ -277,8 +285,8 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 	jpx.src.resync_to_restart = jpeg_resync_to_restart;
 	jpx.src.term_source = stub;
 	jpx.skip = 0;
-    jpx.src.next_input_byte = jpg;
-    jpx.src.bytes_in_buffer = jpg_size;
+	jpx.src.next_input_byte = jpg;
+        jpx.src.bytes_in_buffer = jpg_size;
 	jpx.cinfo.src = (void *) &jpx.src;
 
 	/*read header*/
@@ -324,6 +332,7 @@ GF_Err gf_img_jpeg_dec(char *jpg, u32 jpg_size, u32 *width, u32 *height, u32 *pi
 	if (jpx.cinfo.rec_outbuf_height>JPEG_MAX_SCAN_BLOCK_HEIGHT) {
 		if (scan_line) gf_free(scan_line);
 		jpeg_destroy_decompress(&jpx.cinfo);
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[gf_img_jpeg_dec] : jpx.cinfo.rec_outbuf_height>JPEG_MAX_SCAN_BLOCK_HEIGHT\n"));
 		return GF_IO_ERR;
 	}
 
