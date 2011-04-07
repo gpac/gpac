@@ -52,6 +52,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.Window;
+import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
@@ -651,7 +652,12 @@ public class Osmo4 extends Activity implements GpacCallback {
                             dialog.cancel();
                         }
                     });
-                    builder.create().show();
+                    try {
+                        builder.create().show();
+                    } catch (WindowManager.BadTokenException e) {
+                        // May happen when we close the window and there are still somes messages
+                        Log.e(LOG_OSMO_TAG, "Failed to display Message " + sb.toString(), e); //$NON-NLS-1$
+                    }
                 }
             });
         }
