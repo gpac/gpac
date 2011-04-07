@@ -68,6 +68,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private String[] m_modules_list;
 
+    private boolean keyboardIsVisible = false;
+
     private final static int DEFAULT_BUFFER_SIZE = 8192;
 
     private final String DEFAULT_OPEN_URL = Osmo4Renderer.GPAC_CFG_DIR + "gui/gui.bt"; //$NON-NLS-1$
@@ -99,8 +101,6 @@ public class Osmo4 extends Activity implements GpacCallback {
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
         mGLView = new Osmo4GLSurfaceView(Osmo4.this);
-        mGLView.setFocusable(true);
-        mGLView.setFocusableInTouchMode(true);
 
         final String name = "Osmo4"; //$NON-NLS-1$
         final String toOpen;
@@ -391,7 +391,8 @@ public class Osmo4 extends Activity implements GpacCallback {
             case R.id.cleanCache:
                 return cleanCache();
             case R.id.showVirtualKeyboard:
-                return showVirtualKeyboard();
+                showKeyboard(true);
+                return true;
             case R.id.quit:
                 this.finish();
                 // quit();
@@ -399,11 +400,6 @@ public class Osmo4 extends Activity implements GpacCallback {
             default:
                 return super.onOptionsItemSelected(item);
         }
-    }
-
-    protected boolean showVirtualKeyboard() {
-        ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).showSoftInput(mGLView, 0);
-        return true;
     }
 
     protected boolean cleanCache() {
@@ -764,6 +760,22 @@ public class Osmo4 extends Activity implements GpacCallback {
                 setTitle(newCaption);
             }
         });
+    }
+
+    /**
+     * @see com.artemis.Osmo4.GpacCallback#showKeyboard(boolean)
+     */
+    @Override
+    public void showKeyboard(boolean showKeyboard) {
+        if (keyboardIsVisible == showKeyboard == true)
+            return;
+        InputMethodManager mgr = ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE));
+        this.keyboardIsVisible = showKeyboard;
+        if (showKeyboard)
+            mgr.showSoftInput(mGLView, 0);
+        else
+            mgr.hideSoftInputFromInputMethod(mGLView.getWindowToken(), 0);
+
     }
 
     // /**

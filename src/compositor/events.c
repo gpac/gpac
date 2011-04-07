@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / Scene Compositor sub-project
@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -116,7 +116,7 @@ static void flush_text_node_edit(GF_Compositor *compositor, Bool final_flush)
 			if (compositor->focus_text_type>=3) {
 				gf_node_get_field(compositor->focus_node, 0, &info);
 				gf_node_event_out(compositor->focus_node, 0);
-			}			
+			}
 			gf_node_changed(compositor->focus_node, &info);
 		}
 	}
@@ -160,7 +160,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 	s32 caret_pos;
 	Bool append;
 	Bool delete_cr = 0;
-	
+
 	caret_pos = -1;
 
 	append = 0;
@@ -217,7 +217,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 			mf->count = 1;
 			mf->vals = gf_malloc(sizeof(char*));
 			mf->vals[0] = gf_strdup("");
-		}		
+		}
 		if (!mf->vals[0]) mf->vals[0] = gf_strdup("");
 
 		if (!compositor->dom_text_pos || (compositor->dom_text_pos>mf->count)) {
@@ -229,11 +229,11 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 			caret_pos = compositor->picked_glyph_idx;
 			compositor->picked_glyph_idx = -1;
 
-			if (caret_pos > strlen(*res)) 
+			if (caret_pos > strlen(*res))
 				caret_pos = -1;
 		}
 
-	} else 
+	} else
 #endif /*GPAC_DISABLE_VRML*/
 
 	{
@@ -371,7 +371,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 			memmove(&compositor->sel_buffer[caret_pos+1], &compositor->sel_buffer[caret_pos], sizeof(u16)*(compositor->sel_buffer_len-caret_pos));
 			compositor->sel_buffer[caret_pos] = GF_CARET_CHAR;
 			compositor->caret_pos = caret_pos;
-		
+
 		} else {
 			compositor->sel_buffer_len = gf_utf8_mbstowcs(compositor->sel_buffer, compositor->sel_buffer_alloc, &src);
 			compositor->sel_buffer[compositor->sel_buffer_len] = GF_CARET_CHAR;
@@ -529,20 +529,32 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 	flush_text_node_edit(compositor, is_end);
 }
 
-static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node) 
+static fireTermEvent(GF_Compositor * compositor, u32 eventType){
+        if (compositor->term){
+          GF_Event evt;
+          memset(&evt, 0, sizeof(GF_Event));
+	  evt.type = eventType;
+          gf_term_user_event(compositor->term, &evt);
+	}
+}
+
+static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 {
 #ifndef GPAC_DISABLE_SVG
 	SVGAllAttributes atts;
 #endif
 	u32 tag;
 	GF_Node *text = check_focus_node ? compositor->focus_node : compositor->hit_node;
-	if (!text) return 0;
+	if (!text){
+		 fireTermEvent(compositor, GF_EVENT_TEXT_EDITING_END);
+		 return 0;
+	}
 	if (compositor->hit_node==compositor->focus_node) return compositor->focus_text_type ? 1 : 0;
 
 	tag = gf_node_get_tag(text);
 
 #ifndef GPAC_DISABLE_VRML
-	if ( (tag==TAG_MPEG4_Text) 
+	if ( (tag==TAG_MPEG4_Text)
 #ifndef GPAC_DISABLE_X3D
 		|| (tag==TAG_X3D_Text)
 #endif
@@ -554,13 +566,14 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 		} else if (strstr(fs->style.buffer, "simple_edit") || strstr(fs->style.buffer, "SIMPLE_EDIT")) {
 			compositor->focus_text_type = 4;
 		} else {
+			fireTermEvent(compositor, GF_EVENT_TEXT_EDITING_END);
 			return 0;
 		}
 		compositor->focus_node = text;
+		fireTermEvent(compositor, compositor->focus_text_type > 2 ? GF_EVENT_TEXT_EDITING_START : GF_EVENT_TEXT_EDITING_END);
 		return 1;
 	}
 #endif /*GPAC_DISABLE_VRML*/
-
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) return 0;
 #ifndef GPAC_DISABLE_SVG
 	gf_svg_flatten_attributes((SVG_Element *)text, &atts);
@@ -589,6 +602,7 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 		compositor->focus_uses_dom_events = 1;
 	}
 	compositor->hit_node = NULL;
+	fireTermEvent(compositor, compositor->focus_text_type > 0 ? GF_EVENT_TEXT_EDITING_START : GF_EVENT_TEXT_EDITING_END);
 #endif
 	return 1;
 }
@@ -627,7 +641,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 
 	cursor_type = GF_CURSOR_NORMAL;
 	/*all mouse events*/
-	if ((event->type<=GF_EVENT_MOUSEWHEEL) 
+	if ((event->type<=GF_EVENT_MOUSEWHEEL)
 		// && (gf_node_get_dom_event_filter(gf_sg_get_root_node(compositor->scene)) & GF_DOM_EVENT_MOUSE)
 		) {
 		Fixed X = compositor->hit_world_point.x;
@@ -702,7 +716,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
 
 #if !defined(_WIN32_WCE)
-				if ((compositor->grab_x == X) && (compositor->grab_y == Y)) 
+				if ((compositor->grab_x == X) && (compositor->grab_y == Y))
 #endif
 				{
 					evt.type = GF_EVENT_CLICK;
@@ -729,9 +743,9 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				evt.type = GF_EVENT_MOUSEOUT;
 				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->prev_hit_use_stack);
 			}
-			
+
 			/*reset focus*/
-			if (compositor->focus_node && (event->type==GF_EVENT_MOUSEDOWN)) 
+			if (compositor->focus_node && (event->type==GF_EVENT_MOUSEDOWN))
 				gf_sc_focus_switch_ring(compositor, 0, NULL, 1);
 
 			compositor->grab_node = NULL;
@@ -748,8 +762,8 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 			ret += gf_dom_event_fire_ex(gf_sg_get_root_node(compositor->scene), &evt, compositor->hit_use_stack);
 		}
 		if (compositor->sensor_type != cursor_type) {
-			GF_Event c_evt; 
-			c_evt.type = GF_EVENT_SET_CURSOR; 
+			GF_Event c_evt;
+			c_evt.type = GF_EVENT_SET_CURSOR;
 			c_evt.cursor.cursor_type = cursor_type;
 			compositor->video_out->ProcessEvent(compositor->video_out, &c_evt);
 			compositor->sensor_type = cursor_type;
@@ -776,7 +790,7 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				ret += gf_dom_event_fire(target, &evt);
 				break;
 			}
-		} 
+		}
 	} else if (event->type == GF_EVENT_TEXTINPUT) {
 		GF_Node *target;
 		switch (event->character.unicode_char) {
@@ -893,41 +907,41 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	/*and set cursor*/
 	if (compositor->sensor_type != GF_CURSOR_COLLIDE) {
 		switch (stype) {
-		case TAG_MPEG4_Anchor: 
-			stype = GF_CURSOR_ANCHOR; 
+		case TAG_MPEG4_Anchor:
+			stype = GF_CURSOR_ANCHOR;
 			break;
 		case TAG_MPEG4_PlaneSensor2D:
-		case TAG_MPEG4_PlaneSensor: 
+		case TAG_MPEG4_PlaneSensor:
 			stype = GF_CURSOR_PLANE;
 			break;
-		case TAG_MPEG4_CylinderSensor: 
+		case TAG_MPEG4_CylinderSensor:
 		case TAG_MPEG4_DiscSensor:
 		case TAG_MPEG4_SphereSensor:
-			stype = GF_CURSOR_ROTATE; 
+			stype = GF_CURSOR_ROTATE;
 			break;
 		case TAG_MPEG4_ProximitySensor2D:
 		case TAG_MPEG4_ProximitySensor:
-			stype = GF_CURSOR_PROXIMITY; 
+			stype = GF_CURSOR_PROXIMITY;
 			break;
-		case TAG_MPEG4_TouchSensor: 
-			stype = GF_CURSOR_TOUCH; 
+		case TAG_MPEG4_TouchSensor:
+			stype = GF_CURSOR_TOUCH;
 			break;
 #ifndef GPAC_DISABLE_X3D
-		case TAG_X3D_Anchor: 
-			stype = GF_CURSOR_ANCHOR; 
+		case TAG_X3D_Anchor:
+			stype = GF_CURSOR_ANCHOR;
 			break;
-		case TAG_X3D_PlaneSensor: 
+		case TAG_X3D_PlaneSensor:
 			stype = GF_CURSOR_PLANE;
 			break;
-		case TAG_X3D_CylinderSensor: 
+		case TAG_X3D_CylinderSensor:
 		case TAG_X3D_SphereSensor:
-			stype = GF_CURSOR_ROTATE; 
+			stype = GF_CURSOR_ROTATE;
 			break;
 		case TAG_X3D_ProximitySensor:
-			stype = GF_CURSOR_PROXIMITY; 
+			stype = GF_CURSOR_PROXIMITY;
 			break;
-		case TAG_X3D_TouchSensor: 
-			stype = GF_CURSOR_TOUCH; 
+		case TAG_X3D_TouchSensor:
+			stype = GF_CURSOR_TOUCH;
 			break;
 #endif
 
@@ -946,7 +960,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 	if (res) {
 #if 1
 		GF_SceneGraph *sg;
-		/*apply event cascade - this is needed for cases where several events are processed inbetween 
+		/*apply event cascade - this is needed for cases where several events are processed inbetween
 		2 simultaion tick. If we don't flush the routes stack, the result will likely be wrong
 		*/
 		gf_sg_activate_routes(compositor->scene);
@@ -1013,7 +1027,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 #ifndef GPAC_DISABLE_3D
 	tr_state->layer3d = NULL;
 #endif
-	
+
 	/*preprocess text selection and edition*/
 	if ((ev->type<GF_EVENT_MOUSEWHEEL) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		if (compositor->text_selection) {
@@ -1028,7 +1042,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 				reset_sel = 1;
 			}
 		} else if (compositor->edited_text) {
-			if (ev->type==GF_EVENT_MOUSEDOWN) 
+			if (ev->type==GF_EVENT_MOUSEDOWN)
 				reset_sel = 1;
 		}
 		if (ev->type==GF_EVENT_MOUSEUP) {
@@ -1068,7 +1082,7 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 	temp_stack = compositor->prev_hit_use_stack;
 	compositor->prev_hit_use_stack = compositor->hit_use_stack;
 	compositor->hit_use_stack = temp_stack;
-	
+
 	tr_state->pick_x = ev->mouse.x;
 	tr_state->pick_y = ev->mouse.y;
 
@@ -1076,10 +1090,10 @@ Bool visual_execute_event(GF_VisualManager *visual, GF_TraverseState *tr_state, 
 #ifndef GPAC_DISABLE_3D
 	if (visual->type_3d)
 		visual_3d_pick_node(visual, tr_state, ev, children);
-	else 
+	else
 #endif
 		visual_2d_pick_node(visual, tr_state, ev, children);
-	
+
 	gf_list_reset(tr_state->vrml_sensors);
 
 	if (exec_text_selection(compositor, ev))
@@ -1182,7 +1196,7 @@ static Bool is_focus_target(GF_Node *elt)
 	if (tag<=GF_NODE_FIRST_DOM_NODE_TAG) return 0;
 
 #ifndef GPAC_DISABLE_SVG
-	count = gf_dom_listener_count(elt);	
+	count = gf_dom_listener_count(elt);
 	for (i=0; i<count; i++) {
 		GF_FieldInfo info;
 		GF_Node *l = gf_dom_listener_get(elt, i);
@@ -1216,7 +1230,7 @@ static Bool is_focus_target(GF_Node *elt)
 	}	\
 
 
-static void rebuild_focus_ancestor(GF_Compositor *compositor, GF_Node *elt) 
+static void rebuild_focus_ancestor(GF_Compositor *compositor, GF_Node *elt)
 {
 	gf_list_reset(compositor->focus_ancestors);
 	while (elt) {
@@ -1236,16 +1250,16 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 	GF_Node *n;
 
 	if (!elt) return NULL;
-	
+
 	/*all return in this function shall be preceeded with gf_node_set_cyclic_traverse_flag(elt, 0)
 	this ensures that we don't go into cyclic references when moving focus, hence stack overflow*/
-	if (! gf_node_set_cyclic_traverse_flag(elt, 1)) return NULL;	
+	if (! gf_node_set_cyclic_traverse_flag(elt, 1)) return NULL;
 
 	tag = gf_node_get_tag(elt);
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) {
 		switch (tag) {
 #ifndef GPAC_DISABLE_VRML
-		case TAG_MPEG4_Transform: 
+		case TAG_MPEG4_Transform:
 		{
 			M_Transform *tr=(M_Transform *)elt;
 			if (!tr->scale.x || !tr->scale.y || !tr->scale.z) {
@@ -1275,20 +1289,20 @@ static GF_Node *set_focus(GF_Compositor *compositor, GF_Node *elt, Bool current_
 		}
 		case TAG_MPEG4_Form:
 		case TAG_MPEG4_TransformMatrix2D:
-		case TAG_MPEG4_Group: 
+		case TAG_MPEG4_Group:
 		case TAG_MPEG4_Billboard:
 		case TAG_MPEG4_Collision:
-		case TAG_MPEG4_LOD: 
+		case TAG_MPEG4_LOD:
 		case TAG_MPEG4_OrderedGroup:
 		case TAG_MPEG4_ColorTransform:
 		case TAG_MPEG4_PathLayout:
-		case TAG_MPEG4_Anchor: 
+		case TAG_MPEG4_Anchor:
 #ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_Group:
 		case TAG_X3D_Transform:
 		case TAG_X3D_Billboard:
-		case TAG_X3D_Collision: 
-		case TAG_X3D_LOD: 
+		case TAG_X3D_Collision:
+		case TAG_X3D_LOD:
 		case TAG_X3D_Anchor:
 #endif
 
@@ -1302,7 +1316,7 @@ test_grouping:
 				}
 			}
 			break;
-		case TAG_MPEG4_Switch: 
+		case TAG_MPEG4_Switch:
 #ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_Switch:
 #endif
@@ -1313,7 +1327,7 @@ test_grouping:
 			if (tag==TAG_X3D_Switch) {
 				child = ((X_Switch*)elt)->children;
 				wc = ((X_Switch*)elt)->whichChoice;
-			} else 
+			} else
 #endif
 			{
 				child = ((M_Switch*)elt)->choice;
@@ -1332,7 +1346,7 @@ test_grouping:
 			return NULL;
 		}
 
-		case TAG_MPEG4_Text: 
+		case TAG_MPEG4_Text:
 #ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_Text:
 #endif
@@ -1340,7 +1354,7 @@ test_grouping:
 
 			if (!current_focus) {
 				M_FontStyle *fs = (M_FontStyle *) ((M_Text *)elt)->fontStyle;
-	
+
 				if (!fs || !fs->style.buffer) return NULL;
 
 				if (strstr(fs->style.buffer, "editable") || strstr(fs->style.buffer, "EDITABLE")) {
@@ -1388,10 +1402,10 @@ test_grouping:
 				CALL_SET_FOCUS(gf_node_get_proto_root(elt));
 			}
 			break;
-		
-		case TAG_MPEG4_Inline: 
+
+		case TAG_MPEG4_Inline:
 #ifndef GPAC_DISABLE_X3D
-		case TAG_X3D_Inline: 
+		case TAG_X3D_Inline:
 #endif
 			CALL_SET_FOCUS(gf_scene_get_subscene_root(elt));
 
@@ -1411,13 +1425,13 @@ test_grouping:
 			gf_node_set_cyclic_traverse_flag(elt, 0);
 			return NULL;
 
-		case TAG_MPEG4_Appearance: 
+		case TAG_MPEG4_Appearance:
 #ifndef GPAC_DISABLE_X3D
-		case TAG_X3D_Appearance: 
+		case TAG_X3D_Appearance:
 #endif
 			CALL_SET_FOCUS(((M_Appearance*)elt)->texture);
 
-		case TAG_MPEG4_CompositeTexture2D: 
+		case TAG_MPEG4_CompositeTexture2D:
 		case TAG_MPEG4_CompositeTexture3D:
 			/*CompositeTextures are not grouping nodes per say*/
 			child = ((GF_ParentNode*)elt)->children;
@@ -1617,11 +1631,11 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) {
 		switch (tag) {
 #ifndef GPAC_DISABLE_VRML
-		case TAG_MPEG4_Group: 
-		case TAG_MPEG4_Transform: 
-		case TAG_MPEG4_Billboard: 
-		case TAG_MPEG4_Collision: 
-		case TAG_MPEG4_LOD: 
+		case TAG_MPEG4_Group:
+		case TAG_MPEG4_Transform:
+		case TAG_MPEG4_Billboard:
+		case TAG_MPEG4_Collision:
+		case TAG_MPEG4_LOD:
 		case TAG_MPEG4_OrderedGroup:
 		case TAG_MPEG4_Transform2D:
 		case TAG_MPEG4_TransformMatrix2D:
@@ -1631,14 +1645,14 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 		case TAG_MPEG4_Layout:
 		case TAG_MPEG4_PathLayout:
 		case TAG_MPEG4_Form:
-		case TAG_MPEG4_Anchor: 
+		case TAG_MPEG4_Anchor:
 #ifndef GPAC_DISABLE_X3D
 		case TAG_X3D_Anchor:
 		case TAG_X3D_Group:
 		case TAG_X3D_Transform:
 		case TAG_X3D_Billboard:
-		case TAG_X3D_Collision: 
-		case TAG_X3D_LOD: 
+		case TAG_X3D_Collision:
+		case TAG_X3D_LOD:
 #endif
 		case TAG_MPEG4_CompositeTexture2D: case TAG_MPEG4_CompositeTexture3D:
 			child = ((GF_ParentNode*)par)->children;
@@ -1647,8 +1661,8 @@ static GF_Node *browse_parent_for_focus(GF_Compositor *compositor, GF_Node *elt,
 			/*hardcoded proto acting as a grouping node*/
 			if (gf_node_proto_is_grouping(par)) {
 				GF_FieldInfo info;
-				if ((gf_node_get_field_by_name(par, "children", &info) == GF_OK) 
-					&& (info.fieldType == GF_SG_VRML_MFNODE) 
+				if ((gf_node_get_field_by_name(par, "children", &info) == GF_OK)
+					&& (info.fieldType == GF_SG_VRML_MFNODE)
 				) {
 					child = *(GF_ChildNodeItem **) info.far_ptr;
 					break;
@@ -1759,7 +1773,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *
 			gf_list_reset(compositor->focus_ancestors);
 		}
 	}
-	
+
 	if (n && gf_node_get_tag(n)>=GF_NODE_FIRST_DOM_NODE_TAG) {
 		compositor->focus_uses_dom_events = 1;
 	}
@@ -1780,7 +1794,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *
 				evt.bubbles = 1;
 				evt.type = GF_EVENT_FOCUSOUT;
 				gf_dom_event_fire_ex(prev, &evt, cloned_use);
-			} 
+			}
 #ifndef GPAC_DISABLE_VRML
 			else {
 				exec_vrml_key_event(compositor, prev, &ev, 1);
@@ -1794,7 +1808,7 @@ u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *
 				evt.bubbles = 1;
 				evt.type = GF_EVENT_FOCUSIN;
 				gf_dom_event_fire_ex(compositor->focus_node, &evt, compositor->focus_use_stack);
-			} 
+			}
 #ifndef GPAC_DISABLE_VRML
 			else {
 				exec_vrml_key_event(compositor, NULL, &ev, 0);
@@ -1831,13 +1845,13 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 			/*if text is no longer edited, this is focus change so process as usual*/
 		}
 		/*FIXME - this is not working for mixed docs*/
-		if (compositor->focus_uses_dom_events) 
+		if (compositor->focus_uses_dom_events)
 			ret = exec_event_dom(compositor, ev);
 #ifndef GPAC_DISABLE_VRML
-		else 
+		else
 			ret = exec_vrml_key_event(compositor, compositor->focus_node, ev, 0);
 #endif
-		
+
 		if (ev->type==GF_EVENT_KEYDOWN) {
 			switch (ev->key.key_code) {
 			case GF_KEY_ENTER:
@@ -1877,9 +1891,9 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 				}
 				break;
 			}
-		} 
+		}
 		return ret;
-	} 
+	}
 	/*pick even, call visual handler*/
 	return visual_execute_event(compositor->visual, tr_state, ev, children);
 }
@@ -1939,7 +1953,7 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 		if ((evt->type==GF_EVENT_MOUSEDOWN) && (evt->mouse.button==GF_MOUSE_LEFT)) compositor->active_layer = compositor->traverse_state->layer3d;
 #endif
 		/*process navigation events*/
-		if (compositor->interaction_level & GF_INTERACT_NAVIGATION) 
+		if (compositor->interaction_level & GF_INTERACT_NAVIGATION)
 			ret = compositor_handle_navigation(compositor, evt);
 	}
 

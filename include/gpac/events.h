@@ -205,6 +205,10 @@ enum {
 	GF_EVENT_MIGRATE, /*indicates a session migration request*/
 	GF_EVENT_DISCONNECT, /*indicates the current url should be disconnected*/
 	GF_EVENT_RESOLUTION, /*indicates the screen resolution has changed*/
+
+        /* Events for Keyboad */
+        GF_EVENT_TEXT_EDITING_START,
+        GF_EVENT_TEXT_EDITING_END
 };
 
 /*GPAC/DOM3 key codes*/

@@ -2,6 +2,7 @@ package com.artemis.Osmo4;
 
 import android.content.Context;
 import android.opengl.GLSurfaceView;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 
@@ -13,7 +14,7 @@ import android.view.MotionEvent;
  */
 public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInterface {
 
-    // private final static String LOG_GL_SURFACE = Osmo4GLSurfaceView.class.getSimpleName();
+    private final static String LOG_GL_SURFACE = Osmo4GLSurfaceView.class.getSimpleName();
 
     /**
      * Constructor
@@ -23,6 +24,8 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
     public Osmo4GLSurfaceView(Context context) {
         super(context);
         setDebugFlags(DEBUG_CHECK_GL_ERROR | DEBUG_LOG_GL_CALLS);
+        setFocusable(true);
+        setFocusableInTouchMode(true);
     }
 
     private Osmo4Renderer gpacRenderer;
@@ -86,9 +89,27 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
         }
     }
 
+    // /**
+    // * @see android.view.View#onCheckIsTextEditor()
+    // */
+    // @Override
+    // public boolean onCheckIsTextEditor() {
+    // return true;
+    // }
+    //
+    // /**
+    // * @see android.view.View#onCreateInputConnection(android.view.inputmethod.EditorInfo)
+    // */
+    // @Override
+    // public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
+    // // TODO Auto-generated method stub
+    // return super.onCreateInputConnection(outAttrs);
+    // }
+
     @Override
     public boolean onKeyDown(final int keyCode, final KeyEvent event) {
         if (handleInGPAC(keyCode, event)) {
+            Log.d(LOG_GL_SURFACE, "onKeyDown = " + keyCode); //$NON-NLS-1$
             queueEvent(new Runnable() {
 
                 @Override
@@ -107,6 +128,7 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
     @Override
     public boolean onKeyUp(final int keyCode, final KeyEvent event) {
         if (handleInGPAC(keyCode, event)) {
+            Log.d(LOG_GL_SURFACE, "onKeyUp = " + keyCode);
             queueEvent(new Runnable() {
 
                 @Override

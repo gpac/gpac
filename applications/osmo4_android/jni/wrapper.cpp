@@ -50,7 +50,7 @@
 
 static JavaVM* javaVM = NULL;
 
-#define DETACH_ENV(env) if (javaVM && env != &mainJavaEnv) javaVM->DetachCurrentThread()
+#define DETACH_ENV(this, env) if (javaVM && env != &(this->mainJavaEnv)) javaVM->DetachCurrentThread()
 
 static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
     const JNINativeMethod* gMethods, int numMethods)
@@ -139,7 +139,7 @@ CNativeWrapper::~CNativeWrapper(){
       debug_log("~CNativeWrapper()");
       if (env && env->cbk_obj)
         env->env->DeleteGlobalRef(env->cbk_obj);
-      DETACH_ENV(env);
+      DETACH_ENV(this, env);
       Shutdown();
       debug_log("~CNativeWrapper() : DONE\n");
 }
@@ -185,6 +185,10 @@ void CNativeWrapper::setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callb
       env->GetMethodID(localRef, "displayMessage", "(Ljava/lang/String;Ljava/lang/String;I)V");
     envToSet->cbk_onProgress =
       env->GetMethodID(localRef, "onProgress", "(Ljava/lang/String;II)V");
+    envToSet->cbk_setCaption =
+      env->GetMethodID(localRef, "setCaption", "(Ljava/lang/String;)V");
+    envToSet->cbk_showKeyboard =
+      env->GetMethodID(localRef, "showKeyboard", "(Z)V");
 }
 
 JavaEnvTh * CNativeWrapper::getEnv(){
@@ -216,7 +220,7 @@ int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status
 	jstring tit = env->env->NewStringUTF(title?title:"null");
 	jstring mes = env->env->NewStringUTF(msg?msg:"null");
 	env->env->CallVoidMethod(env->cbk_obj, env->cbk_displayMessage, mes, tit, status);
-        DETACH_ENV(env);
+        DETACH_ENV(this, env);
         debug_log("MessageBox end");
 	return 1;
 }
@@ -341,6 +345,30 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
 		msg[0] = 0;
                 LOGD("GPAC_EventProc() Message=%d", evt->type);
                 switch (evt->type){
+                  case GF_EVENT_CLICK:
+                  case GF_EVENT_MOUSEUP:
+                  case GF_EVENT_MOUSEDOWN:
+                  case GF_EVENT_MOUSEOVER:
+                  case GF_EVENT_MOUSEOUT:
+                  case GF_EVENT_MOUSEMOVE:
+                  case GF_EVENT_MOUSEWHEEL:
+                  case GF_EVENT_KEYUP:
+                  case GF_EVENT_KEYDOWN:
+                  case GF_EVENT_LONGKEYPRESS:
+                  case GF_EVENT_TEXTINPUT:
+                    /* We ignore all these events */
+                    break;
+                  case GF_EVENT_MEDIA_BEGIN_SESSION_SETUP:
+                  case GF_EVENT_MEDIA_END_SESSION_SETUP:
+                  case GF_EVENT_MEDIA_DATA_REQUEST:
+                  case GF_EVENT_MEDIA_PLAYABLE:
+                  case GF_EVENT_MEDIA_NOT_PLAYABLE:
+                  case GF_EVENT_MEDIA_DATA_PROGRESS:
+                  case GF_EVENT_MEDIA_END_OF_DATA:
+                  case GF_EVENT_MEDIA_STOP:
+                  case GF_EVENT_MEDIA_ERROR:
+                    LOGD("GPAC_EventProc() Media Event detected = [index=%d]", evt->type - GF_EVENT_MEDIA_BEGIN_SESSION_SETUP);
+                    break;
                   case GF_EVENT_MESSAGE:
                   {
                           ptr->debug_log("GPAC_EventProc start");
@@ -377,10 +405,23 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
                           gf_set_progress(szTitle, evt->progress.done, evt->progress.total);
                   }
                   break;
+                  case GF_EVENT_TEXT_EDITING_START:
+                  case GF_EVENT_TEXT_EDITING_END:
+                  {
+                      JavaEnvTh * env = ptr->getEnv();
+                      if (!env || !env->cbk_showKeyboard)
+                              return 0;
+                      LOGI("Needs to display/hide the Virtual Keyboard (%d)", evt->type);
+                      env->env->CallVoidMethod(env->cbk_obj, env->cbk_showKeyboard, GF_EVENT_TEXT_EDITING_START == evt->type);
+                      DETACH_ENV(ptr, env);
+                      LOGV("Done showing virtual keyboard (%d)", evt->type);
+                  }
+                    break;
                   case GF_EVENT_EOS:
                     LOGI("EOS Reached (%d)", evt->type);
                     break;
                   case GF_EVENT_DISCONNECT:
+                    /* FIXME : not sure about this behaviour */
                     if (ptr)
                       ptr->disconnect();
                     break;
@@ -399,7 +440,7 @@ void CNativeWrapper::progress_cbk(const char *title, u64 done, u64 total){
         debug_log("Osmo4_progress_cbk start");
         jstring js = env->env->NewStringUTF(title);
         env->env->CallVoidMethod(env->cbk_obj, env->cbk_onProgress, js, done, total);
-        DETACH_ENV(env);
+        DETACH_ENV(this, env);
         debug_log("Osmo4_progress_cbk end");
 }
 
