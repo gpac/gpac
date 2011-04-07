@@ -251,25 +251,7 @@ void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_
         // We do not want to be flood by mutexes
         if (ll == GF_LOG_DEBUG && lm == GF_LOG_CORE)
           return;
-        vsnprintf(szMsg, 4096, fmt, list);
-        CNativeWrapper * self = (CNativeWrapper *) cbk;
-        if (!self)
-          goto displayInAndroidlogs;
-
-        {
-          JavaEnvTh *env = self->getEnv();
-          jstring msg;
-          if (!env || !env->cbk_onProgress)
-                goto displayInAndroidlogs;
-          msg = env->env->NewStringUTF(szMsg);
-          env->env->CallVoidMethod(env->cbk_obj, env->cbk_onLog, ll, lm, msg);
-          DETACH_ENV(self, env);
-          return;
-        }
-displayInAndroidlogs:
-  {
-  /* When no callback is properly set, we use direct logging */
-    switch (ll){
+        switch (ll){
           case GF_LOG_DEBUG:
             debug = ANDROID_LOG_DEBUG;
             break;
@@ -284,7 +266,25 @@ displayInAndroidlogs:
             break;
           default:
             debug = ANDROID_LOG_INFO;
-    }
+        }
+        vsnprintf(szMsg, 4096, fmt, list);
+        CNativeWrapper * self = (CNativeWrapper *) cbk;
+        if (!self)
+          goto displayInAndroidlogs;
+
+        {
+          JavaEnvTh *env = self->getEnv();
+          jstring msg;
+          if (!env || !env->cbk_onProgress)
+                goto displayInAndroidlogs;
+          msg = env->env->NewStringUTF(szMsg);
+          env->env->CallVoidMethod(env->cbk_obj, env->cbk_onLog, debug, lm, msg);
+          DETACH_ENV(self, env);
+          return;
+        }
+displayInAndroidlogs:
+  {
+  /* When no callback is properly set, we use direct logging */
     switch( lm){
           case GF_LOG_CORE:
                 tag="GF_LOG_CORE";
