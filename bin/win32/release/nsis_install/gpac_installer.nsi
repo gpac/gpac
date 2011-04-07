@@ -479,7 +479,15 @@ Section "MP4Client" SecMP4C
   SectionIn 1
   SetOutPath $INSTDIR
   File "..\MP4Client.exe"
+SectionEnd   
+                 
+                 
+                  
+Section "MSVC Runtime" SecMSVCRT
+  SectionIn 1       
+  File "..\msvcr90.dll"
 SectionEnd
+
 
 
 
