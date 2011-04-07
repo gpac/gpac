@@ -194,4 +194,11 @@ public interface GpacCallback {
      * @param newCaption The new caption to set for application
      */
     public void setCaption(String newCaption);
+
+    /**
+     * Show the virtual keyboard
+     * 
+     * @param showKeyboard
+     */
+    public void showKeyboard(boolean showKeyboard);
 }

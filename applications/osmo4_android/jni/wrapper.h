@@ -150,6 +150,8 @@ typedef struct _JavaEnvTh {
   jobject cbk_obj;
   jmethodID cbk_displayMessage;
   jmethodID cbk_onProgress;
+  jmethodID cbk_showKeyboard;
+  jmethodID cbk_setCaption;
 } JavaEnvTh;
 
 
