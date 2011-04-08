@@ -1064,6 +1064,7 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 {
 	Float scale;
+	Bool is_od_track = 0;
 	u32 trackNum, i, j, size, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups;
 	u64 time_slice, dur;
 	u8 bps;
@@ -1129,6 +1130,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				fprintf(stdout, "MPEG-4 Config%sStream Type 0x%02x - ObjectTypeIndication 0x%02x\n",
 							full_dump ? "\n\t" : ": ", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 			}
+			if (esd->decoderConfig->streamType==GF_STREAM_OD) 
+				is_od_track=1;
+
 			if (esd->decoderConfig->streamType==GF_STREAM_VISUAL) {
 				u32 w, h;
 				w = h = 0;
@@ -1514,7 +1518,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	time_slice = 0;
 	ts = gf_isom_get_media_timescale(file, trackNum);
 	for (j=0; j<gf_isom_get_sample_count(file, trackNum); j++) {
-		GF_ISOSample *samp = gf_isom_get_sample_info(file, trackNum, j+1, NULL, NULL);
+		GF_ISOSample *samp;
+		if (is_od_track) {
+			samp = gf_isom_get_sample(file, trackNum, j+1, NULL);
+		} else {
+			samp = gf_isom_get_sample_info(file, trackNum, j+1, NULL, NULL);
+		}
 		dur = samp->DTS+samp->CTS_Offset;
 		size += samp->dataLength;
 		rate += samp->dataLength;
@@ -1628,14 +1637,15 @@ void DumpMovieInfo(GF_ISOFile *file)
 
 	iod = (GF_InitialObjectDescriptor *) gf_isom_get_root_od(file);
 	if (iod) {
+		u32 desc_size = gf_odf_desc_size((GF_Descriptor *)iod);
 		if (iod->tag == GF_ODF_IOD_TAG) {
-			fprintf(stdout, "File has root IOD\n");
+			fprintf(stdout, "File has root IOD (%d bytes)\n", desc_size);
 			fprintf(stdout, "Scene PL 0x%02x - Graphics PL 0x%02x - OD PL 0x%02x\n", iod->scene_profileAndLevel, iod->graphics_profileAndLevel, iod->OD_profileAndLevel);
 			fprintf(stdout, "Visual PL: %s (0x%02x)\n", gf_m4v_get_profile_name(iod->visual_profileAndLevel), iod->visual_profileAndLevel);
 			fprintf(stdout, "Audio PL: %s (0x%02x)\n", gf_m4a_get_profile_name(iod->audio_profileAndLevel), iod->audio_profileAndLevel);
 			//fprintf(stdout, "inline profiles included %s\n", iod->inlineProfileFlag ? "yes" : "no");
 		} else {
-			fprintf(stdout, "File has root OD\n");
+			fprintf(stdout, "File has root OD (%d bytes)\n", desc_size);
 		}
 		if (!gf_list_count(iod->ESDescriptors)) fprintf(stdout, "No streams included in root OD\n");
 		gf_odf_desc_del((GF_Descriptor *) iod);
