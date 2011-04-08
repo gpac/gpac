@@ -5,11 +5,12 @@ echo -e "\033[32m Note: You have to compile extra_libs first!\033[0m"
 
 if [ -z "$1" ]
 then
-  echo "$1 : You must give as first argument the directory path of the NDK"
+  echo "Usage: $0 PATH_TO_ANDROID_NDK [ADDITIONAL_NDK-BUILD arguments] : You must give as first argument the directory path of the NDK"
   exit 1
 fi
 
 export PATH="$1:$PATH"
+shift
 
 # Be sure to resolve if script not called from its directory
 SCRIPT_PATH=$(dirname $"0")
@@ -29,7 +30,7 @@ BINPATH=$(pwd)
 
 cd $BUILDPATH || exit 1
 echo -n "Buiding all libs from $BUILDPATH..."
-ndk-build && echo "OK build successful" || echo "Build FAILED" || exit 1
+ndk-build $* && echo "OK build successful" || echo "Build FAILED" || exit 1
 
 echo "Copying libs to $BINPATH..."
 cp  ../libs/armeabi/libgpac.so ../libs/armeabi/libjavaenv.so  $BINPATH || exit 1
@@ -44,7 +45,7 @@ done
 echo "Building gpac wrapper..."
 
 cd $BASEPATH/applications/osmo4_android || exit 1
-ndk-build && echo "Wrapper built successfully" || echo "Build failed for Wrapper" || exit 1
+ndk-build $* && echo "Wrapper built successfully" || echo "Build failed for Wrapper" || exit 1
 
 echo "Copying libs from $BASEPATH/extra_lib/lib/android to $BASEPATH/applications/osmo4_android/libs/armeabi ..."
 
