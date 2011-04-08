@@ -21,24 +21,11 @@ LINKFLAGS=-L../../bin/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=mp42ts$(EXE)
-#LINKFLAGS+=-lgpac_static -lz $(EXTRALIBS)
-LINKFLAGS+=-lgpac
 else
 EXT=
 PROG=mp42ts
-#LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS) -lz $(OGL_LIBS)
-LINKFLAGS+=-lgpac $(OGL_LIBS)
 endif
-
-#3 - spidermonkey support
-ifeq ($(CONFIG_JS),no)
-else
-SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
-ifeq ($(CONFIG_JS),local)
-NEED_LOCAL_LIB="yes"
-endif
-LINKFLAGS+=$(JS_LIBS)
-endif
+LINKFLAGS+=-lgpac
 
 
 SRCS := $(OBJS:.o=.c) 
