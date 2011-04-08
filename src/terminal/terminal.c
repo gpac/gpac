@@ -472,7 +472,10 @@ GF_Terminal *gf_term_new(GF_User *user)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Creating terminal\n"));
 
 	tmp = (GF_Terminal*)gf_malloc(sizeof(GF_Terminal));
-	if (!tmp) return NULL;
+	if (!tmp){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate GF_Terminal : OUT OF MEMORY ?\n"));
+		return NULL;
+	}
 	memset(tmp, 0, sizeof(GF_Terminal));
 
 	/*just for safety*/
@@ -497,6 +500,7 @@ GF_Terminal *gf_term_new(GF_User *user)
 	/*setup scene compositor*/
 	tmp->compositor = gf_sc_new(user, !(tmp->flags & GF_TERM_DRAW_FRAME) , tmp);
 	if (!tmp->compositor) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to create Compositor.\n"));
 		gf_free(tmp);
 		return NULL;
 	}
