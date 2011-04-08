@@ -485,8 +485,7 @@ SectionEnd
                   
 Section "MSVC Runtime" SecMSVCRT
   SectionIn 1       
-  File "..\msvcr90.dll"       
-  File "..\mfc90.dll"
+  File "..\msvcr90.dll"
 SectionEnd
 
 
