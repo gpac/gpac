@@ -183,8 +183,6 @@ class CNativeWrapper{
 		char m_modules_dir[GF_MAX_PATH];
 		char m_cache_dir[GF_MAX_PATH];
 		char m_font_dir[GF_MAX_PATH];
-		char m_log_filename[GF_MAX_PATH];
-		char m_debug_filename[GF_MAX_PATH];
                 void setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callback);
 	private:
 		void SetupLogs();

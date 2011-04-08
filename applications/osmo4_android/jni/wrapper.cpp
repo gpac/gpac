@@ -497,22 +497,15 @@ void CNativeWrapper::SetupLogs(){
 //-------------------------------
 // dir should end with /
 int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir, const char * urlToLoad){
+        LOGI("Initializing GPAC with URL=%s...", urlToLoad);
 	strcpy(m_cfg_dir, cfg_dir);
 	strcpy(m_modules_dir, modules_dir);
 	strcpy(m_cache_dir, cache_dir);
 	strcpy(m_font_dir, font_dir);
 
-	strcpy(m_log_filename, cfg_dir);
-	strcat(m_log_filename, "gpac_logs.txt");
-	strcpy(m_debug_filename, cfg_dir);
-	strcat(m_debug_filename, "osmo_debug.txt");
-
 	char m_cfg_filename[GF_MAX_PATH];
 	strcpy(m_cfg_filename, m_cfg_dir);
 	strcat(m_cfg_filename, "GPAC.cfg");
-
-	setJavaEnv(&mainJavaEnv, env, env->NewGlobalRef(*callback));
-	debug_log("int CNativeWrapper::init()");
 
 	int m_Width = width;
 	int m_Height = height;
@@ -522,35 +515,36 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 
 	m_window = env;
 	m_session = bitmap;
+        setJavaEnv(&mainJavaEnv, env, env->NewGlobalRef(*callback));
 
 	m_mx = gf_mx_new("Osmo4");
 
 	//load config file
+        LOGD("Loading User Config %s...", "GPAC.cfg");
 	m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
 	if (!m_user.config) {
 		first_launch = 1;
 		FILE *ft = fopen(m_cfg_filename, "wt");
 		if (!ft) {
-			MessageBox("Cannot create GPAC Config file", "Fatal Error", GF_SERVICE_ERROR);
+                        LOGE("Cannot write User Config %s, error", "GPAC.cfg");
 			return Quit(KErrGeneral);
 		} else {
 			fclose(ft);
 		}
 		m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
 		if (!m_user.config) {
-			MessageBox("GPAC Configuration file not found", "Fatal Error", GF_SERVICE_ERROR);
+                        LOGE("Cannot Read User Config %s, error", "GPAC.cfg");
 			return Quit(KErrGeneral);
 		}
 	}
-
 	SetupLogs();
-        debug_log("set process callback...");
 	gf_set_progress_callback(this, Osmo4_progress_cbk);
 
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	if (!opt) first_launch = 2;
 
 	if (first_launch) {
+                LOGI("First launch, initializing new Config %s...", "GPAC.cfg");
 		/*hardcode module directory*/
 		gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", GPAC_MODULES_DIR);
 		/*hardcode cache directory*/
@@ -580,31 +574,17 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", GPAC_FONT_DIR);
 	}
-        debug_log("loading modules...");
-	/*load modules*/
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
+        LOGI("loading modules in directory %s...", opt);
 	m_user.modules = gf_modules_new(opt, m_user.config);
 	if (!m_user.modules || !gf_modules_get_count(m_user.modules)) {
-                debug_log("No modules available !!!!");
-		MessageBox(m_user.modules ? "No modules available" : "Cannot create module manager", "Fatal Error", GF_SERVICE_ERROR);
-		if (m_user.modules) gf_modules_del(m_user.modules);
+                LOGE("No modules found in directory %s !", opt);
+		if (m_user.modules)
+                  gf_modules_del(m_user.modules);
 		gf_cfg_del(m_user.config);
                 m_user.config = NULL;
 		return Quit(KErrGeneral);
 	}
-
-// SOUCHAY : not needed anymore
-//	if (first_launch) {
-//		/*first launch, register all files ext*/
-//		for (u32 i=0; i<gf_modules_get_count(m_user.modules); i++) {
-//			GF_InputService *ifce = (GF_InputService *) gf_modules_load_interface(m_user.modules, i, GF_NET_CLIENT_INTERFACE);
-//			if (!ifce) continue;
-//			if (ifce) {
-//				ifce->CanHandleURL(ifce, "test.test");
-//				gf_modules_close_interface((GF_BaseInterface *)ifce);
-//			}
-//		}
-//	}
 
 	/*we don't thread the terminal, ie appart from the audio renderer, media decoding and visual rendering is
 	handled by the app process*/
@@ -616,18 +596,17 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	m_user.os_window_handler = m_window;
 	m_user.os_display = m_session;
         m_user.EventProc = GPAC_EventProc;
-        debug_log("loading terminal...");
         if (!javaVM){
-            debug_log("NO JAVA VM FOUND !!!!\n");
+            LOGE("NO JAVA VM FOUND, m_user=%p !!!!\n", &m_user);
             return Quit(KErrGeneral);
         }
         gf_cfg_set_key(m_user.config, "Video", "DriverName", "Droid Video Output");
 
         gf_cfg_set_key(m_user.config, "Audio", "DriverName", "Droid Audio Output");
+        LOGD("Loading GPAC terminal, m_user=%p...", &m_user);
 	m_term = gf_term_new(&m_user);
-        debug_log("term new returned...");
 	if (!m_term) {
-                debug_log("Cannot load terminal !");
+                LOGE("Cannot load GPAC Terminal with m_user=%p", m_user);
 		MessageBox("Cannot load GPAC terminal", "Fatal Error", GF_SERVICE_ERROR);
 		gf_modules_del(m_user.modules);
                 m_user.modules = NULL;
@@ -636,23 +615,18 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		return Quit(KErrGeneral);
 	}
 
-
 	//setAudioEnvironment(javaVM);
 
-        debug_log("setting term size...");
+        LOGD("Setting term size m_user=%p...", &m_user);
 	gf_term_set_size(m_term, m_Width, m_Height);
 
 	opt = gf_cfg_get_key(m_user.config, "General", "StartupFile");
-
-	char msg[2048];
-	snprintf(msg, 2048, "File loaded at startup=%s", opt);
-	debug_log(msg);
+	LOGD("File loaded at startup=%s.", opt);
 
         if (!urlToLoad)
           urlToLoad = opt;
 	if (urlToLoad){
-          snprintf(msg, 2048, "Connecting to %s...", urlToLoad);
-          debug_log(msg);
+          LOGI("Connecting to %s...", urlToLoad);
           gf_term_connect(m_term, urlToLoad);
         }
         if (m_user.config){

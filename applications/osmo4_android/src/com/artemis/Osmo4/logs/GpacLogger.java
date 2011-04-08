@@ -52,7 +52,38 @@ public class GpacLogger {
 
     private final SortedSet<GF_Log_Module> loggedModules = new TreeSet<GF_Log_Module>();
 
-    private final int loggedLevel = Log.DEBUG;
+    // The log level used by GPAC modules that are part of loggedModules collection
+    private int loggedLevel = Log.DEBUG;
 
-    private final int defaultLoggedLevel = Log.INFO;
+    // The log level used by GPAC modules not part of loggedModules collection
+    private int defaultLoggedLevel = Log.INFO;
+
+    /**
+     * @return the loggedLevel
+     */
+    public synchronized int getLoggedLevel() {
+        return loggedLevel;
+    }
+
+    /**
+     * @param loggedLevel the loggedLevel to set
+     */
+    public synchronized void setLoggedLevel(int loggedLevel) {
+        this.loggedLevel = loggedLevel;
+    }
+
+    /**
+     * @return the defaultLoggedLevel
+     */
+    public synchronized int getDefaultLoggedLevel() {
+        return defaultLoggedLevel;
+    }
+
+    /**
+     * @param defaultLoggedLevel the defaultLoggedLevel to set
+     */
+    public synchronized void setDefaultLoggedLevel(int defaultLoggedLevel) {
+        this.defaultLoggedLevel = defaultLoggedLevel;
+    }
+
 };

@@ -11,7 +11,7 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../
 
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../extra_lib/lib/android
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../build/android/libs/armeabi/
-LOCAL_LDLIBS    += -lgpac -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz -lfaad
+LOCAL_LDLIBS    += -lgpac
 LOCAL_LDLIBS    += -llog
 
 #LOCAL_CFLAGS +=	-DGPAC_GUI_ONLY
