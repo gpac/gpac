@@ -33,19 +33,6 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
-#define _SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
-	memset(&the_class, 0, sizeof(the_class));	\
-	the_class.name = cname;	\
-	the_class.flags = flag;	\
-	the_class.addProperty = JS_PropertyStub;	\
-	the_class.delProperty = JS_PropertyStub;	\
-	the_class.getProperty = getp;	\
-	the_class.setProperty = setp;	\
-	the_class.enumerate = JS_EnumerateStub;	\
-	the_class.resolve = JS_ResolveStub;		\
-	the_class.convert = JS_ConvertStub;		\
-	the_class.finalize = fin;
-
 #if !defined(__GNUC__)
 # if defined(_WIN32_WCE)
 #  pragma comment(lib, "js")
@@ -119,7 +106,9 @@ NPT_String GF_UPnP::OnMigrate()
 		if (JSVAL_IS_OBJECT(funval)) {
 			JS_CallFunctionValue(m_pJSCtx, m_pObj, funval, 0, NULL, &rval);
 			if (JSVAL_IS_STRING(rval)) {
-				res = JS_GetStringBytes(JSVAL_TO_STRING(rval));
+				char *_res = SMJS_CHARS(m_pJSCtx, rval);
+				res = _res;
+				SMJS_FREE(m_pJSCtx, _res);
 			}
 		}
 		LockJavascript(0);
@@ -539,61 +528,62 @@ void GF_UPnP::OnMediaServerAdd(PLT_DeviceDataReference& device, int added)
 	LockJavascript(0);
 }
 
-static JSBool upnpdevice_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool upnpdevice_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	char *prop_name;
 	GPAC_DeviceItem *dev = (GPAC_DeviceItem *)JS_GetPrivate(c, obj);
 	if (!dev) return JS_FALSE;
 
-	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
-	prop_name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 	if (!prop_name) return JS_FALSE;
 
 	if (!strcmp(prop_name, "Name")) {
 		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, dev->m_device->GetFriendlyName()) );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "UUID")) {
+	else if (!strcmp(prop_name, "UUID")) {
 		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, dev->m_device->GetUUID()) );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "PresentationURL")) {
+	else if (!strcmp(prop_name, "PresentationURL")) {
 		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, dev->m_device->m_PresentationURL) );
-		return JS_TRUE;
 	}
-	
+	SMJS_FREE(c, prop_name);	
 	return JS_TRUE;
 }
 
 static JSBool upnp_device_subscribe(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
     PLT_Service* service;
-	char *service_uuid = "";
+	char *service_uuid;
 	GPAC_DeviceItem *item = (GPAC_DeviceItem *)JS_GetPrivate(c, obj);
 	if (!item || (argc!=2) ) return JS_FALSE;
 
 	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 	if (!JSVAL_IS_OBJECT(argv[1])) return JS_FALSE;
 
-	service_uuid = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	service_uuid = SMJS_CHARS(c, argv[0]);
 	if (item->m_device->FindServiceByType(service_uuid, service) == NPT_SUCCESS) {
 		item->m_pUPnP->m_pGenericController->m_CtrlPoint->Subscribe(service);
 	}
+	SMJS_FREE(c, service_uuid);
 	return JS_TRUE;
 }
-static JSBool upnp_device_find_service(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_device_find_service)
 {
-	char *service_uuid = "";
+	char *service_uuid;
+	SMJS_OBJ
+	SMJS_ARGS
 	GPAC_DeviceItem *item = (GPAC_DeviceItem *)JS_GetPrivate(c, obj);
 	if (!item || !argc) return JS_FALSE;
-	service_uuid = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	service_uuid = SMJS_CHARS(c, argv[0]);
 
 	GPAC_ServiceItem *serv = item->FindService(service_uuid);
+	SMJS_FREE(c, service_uuid);
 	if (!serv) {
-		*rval = JSVAL_NULL;
+		SMJS_SET_RVAL( JSVAL_NULL );
 		return JS_TRUE;
 	}
-	*rval = OBJECT_TO_JSVAL(serv->obj);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(serv->obj) );
 	return JS_TRUE;
 }
 
@@ -611,7 +601,7 @@ void GF_UPnP::OnDeviceAdd(GPAC_DeviceItem *item, int added)
 		item->js_ctx = m_pJSCtx;
 		item->obj = JS_NewObject(m_pJSCtx, &upnpGenericDeviceClass, 0, 0);
 		item->m_pUPnP = this;
-		gf_js_add_root(m_pJSCtx, &item->obj);
+		gf_js_add_root(m_pJSCtx, &item->obj, GF_JSGC_OBJECT);
 		JS_SetPrivate(item->js_ctx, item->obj, item);
 	}
 
@@ -625,51 +615,46 @@ void GF_UPnP::OnDeviceAdd(GPAC_DeviceItem *item, int added)
 	LockJavascript(0);
 }
 
-static JSBool upnp_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool upnp_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	char *prop_name;
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp) return JS_FALSE;
 
-	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
-	prop_name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 	if (!prop_name) return JS_FALSE;
 
 	if (!strcmp(prop_name, "MediaRendererEnabled")) {
 		*vp = BOOLEAN_TO_JSVAL( upnp->m_pMediaRenderer ? JS_TRUE : JS_FALSE );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "MediaServerEnabled")) {
+	else if (!strcmp(prop_name, "MediaServerEnabled")) {
 		*vp = BOOLEAN_TO_JSVAL( upnp->m_pMediaServer ? JS_TRUE : JS_FALSE);
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "MediaControlEnabled")) {
+	else if (!strcmp(prop_name, "MediaControlEnabled")) {
 		*vp = BOOLEAN_TO_JSVAL( upnp->m_pAVCtrlPoint ? JS_TRUE : JS_FALSE);
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "MediaServersCount")) {
+	else if (!strcmp(prop_name, "MediaServersCount")) {
 		*vp = INT_TO_JSVAL( upnp->m_pAVCtrlPoint ? gf_list_count(upnp->m_pAVCtrlPoint->m_MediaServers) : 0);
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "MediaRenderersCount")) {
+	else if (!strcmp(prop_name, "MediaRenderersCount")) {
 		*vp = INT_TO_JSVAL( upnp->m_pAVCtrlPoint ? gf_list_count(upnp->m_pAVCtrlPoint->m_MediaRenderers) : 0);
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "DevicesCount")) {
+	else if (!strcmp(prop_name, "DevicesCount")) {
 		*vp = INT_TO_JSVAL( upnp->m_pGenericController ? gf_list_count(upnp->m_pGenericController->m_Devices) : 0);
-		return JS_TRUE;
 	}
+	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
 
-static JSBool upnp_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool upnp_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
 	char *prop_name;
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp) return JS_FALSE;
 
-	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
-	prop_name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 	if (!prop_name) return JS_FALSE;
 
 	if (upnp->m_pMediaRenderer ) {
@@ -677,29 +662,29 @@ static JSBool upnp_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 			jsdouble d;
 			JS_ValueToNumber(c, *vp, &d);
 			upnp->m_pMediaRenderer->SetDuration(d, 1);
-			return JS_TRUE;
 		}
-		if (!strcmp(prop_name, "MovieTime") && JSVAL_IS_DOUBLE(*vp)) {
+		else if (!strcmp(prop_name, "MovieTime") && JSVAL_IS_DOUBLE(*vp)) {
 			jsdouble d;
 			JS_ValueToNumber(c, *vp, &d);
 			upnp->m_pMediaRenderer->SetTime(d);
-			return JS_TRUE;
 		}
-		if (!strcmp(prop_name, "MovieURL") && JSVAL_IS_STRING(*vp) ) {
-			const char *url = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
+		else if (!strcmp(prop_name, "MovieURL") && JSVAL_IS_STRING(*vp) ) {
+			char *url = SMJS_CHARS(c, *vp);
 			if (url) upnp->m_pMediaRenderer->SetConnected(url);
-			return JS_TRUE;
+			SMJS_FREE(c, url);
 		}
 	}
+	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
 
 
-static JSBool upnp_get_device(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_get_device)
 {
 	u32 idx;
 	GPAC_DeviceItem *device;
-
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || !argc || !JSVAL_IS_INT(argv[0]) ) return JS_FALSE;
 
@@ -712,87 +697,103 @@ static JSBool upnp_get_device(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 		device->js_ctx = upnp->m_pJSCtx;
 		device->obj = JS_NewObject(upnp->m_pJSCtx, &upnp->upnpGenericDeviceClass, 0, 0);
 		device->m_pUPnP = upnp;
-		gf_js_add_root(upnp->m_pJSCtx, &device->obj);
+		gf_js_add_root(upnp->m_pJSCtx, &device->obj, GF_JSGC_OBJECT);
 		JS_SetPrivate(device->js_ctx, device->obj, device);
 	}
-	*rval = OBJECT_TO_JSVAL(device->obj);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(device->obj) );
 	return JS_TRUE;
 }
 
-
-static JSBool upnp_find_service(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_find_service)
 {
-	const char *dev_ip;
-	const char *serv_name;
-
+	char *dev_ip;
+	char *serv_name;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || (argc!=2) || !JSVAL_IS_STRING(argv[0]) || !JSVAL_IS_STRING(argv[1]) ) return JS_FALSE;
 
-	dev_ip = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	serv_name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
-	*rval = JSVAL_NULL;
-	if (!dev_ip || !serv_name || !upnp->m_pGenericController) return JS_TRUE;
+	dev_ip = SMJS_CHARS(c, argv[0]);
+	serv_name = SMJS_CHARS(c, argv[1]);
+	SMJS_SET_RVAL(JSVAL_NULL);
+	if (!dev_ip || !serv_name || !upnp->m_pGenericController) {
+		SMJS_FREE(c, dev_ip);
+		SMJS_FREE(c, serv_name);
+		return JS_TRUE;
+	}
 
 	u32 i, count = gf_list_count(upnp->m_pGenericController->m_Devices);
 	for (i=0; i<count; i++) {
 		GPAC_DeviceItem *item = (GPAC_DeviceItem *) gf_list_get(upnp->m_pGenericController->m_Devices, i);
-		if (item->m_device->GetURLBase().GetHost() == dev_ip) {
+		if (item->m_device->GetURLBase().GetHost() == (const char *)dev_ip) {
 			GPAC_ServiceItem *serv = item->FindService(serv_name);
 			if (serv) {
-				*rval = OBJECT_TO_JSVAL(serv->obj);
-				return JS_TRUE;
+				SMJS_SET_RVAL( OBJECT_TO_JSVAL(serv->obj) );
+				break;
 			}
 		}
 	}
+	SMJS_FREE(c, dev_ip);
+	SMJS_FREE(c, serv_name);
 	return JS_TRUE;
 }
 
 static GPAC_MediaRendererItem *upnp_renderer_get_device(GF_UPnP *upnp , JSContext *c, JSObject *obj)
 {
-	const char *uuid;
+	char *uuid;
 	jsval val;
 	u32 i, count;
 	GPAC_MediaRendererItem *render;
 	if (!JS_LookupProperty(c, obj, "UUID", &val) || JSVAL_IS_NULL(val) || JSVAL_IS_VOID(val) )
 		return NULL;
-	uuid = JS_GetStringBytes(JSVAL_TO_STRING(val));
+	uuid = SMJS_CHARS(c, val);
 	if (!uuid) return NULL;
 
 	count = gf_list_count(upnp->m_pAVCtrlPoint->m_MediaRenderers);
 	for (i=0; i<count; i++) {
 		render = (GPAC_MediaRendererItem *)gf_list_get(upnp->m_pAVCtrlPoint->m_MediaRenderers, i);
-		if (render->m_UUID==uuid) return render;
+		if (render->m_UUID==(const char *)uuid) {
+			SMJS_FREE(c, uuid);
+			return render;
+		}
 	}
+	SMJS_FREE(c, uuid);
 	return NULL;
 }
 
 static GPAC_MediaServerItem *upnp_server_get_device(GF_UPnP *upnp , JSContext *c, JSObject *obj)
 {
-	const char *uuid;
+	char *uuid;
 	jsval val;
 	u32 i, count;
 	GPAC_MediaServerItem *server;
 	if (!JS_LookupProperty(c, obj, "UUID", &val) || JSVAL_IS_NULL(val) || JSVAL_IS_VOID(val) )
 		return NULL;
-	uuid = JS_GetStringBytes(JSVAL_TO_STRING(val));
+	uuid = SMJS_CHARS(c, val);
 	if (!uuid) return NULL;
 
 	count = gf_list_count(upnp->m_pAVCtrlPoint->m_MediaServers);
 	for (i=0; i<count; i++) {
 		server = (GPAC_MediaServerItem *)gf_list_get(upnp->m_pAVCtrlPoint->m_MediaServers, i);
-		if (server->m_UUID==uuid) return server;
+		if (server->m_UUID==(const char *)uuid) {
+			SMJS_FREE(c, uuid);
+			return server;
+		}
 	}
+	SMJS_FREE(c, uuid);
 	return NULL;
 }
 
 
-static JSBool upnp_renderer_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_renderer_open)
 {
 	JSObject *sobj, *fobj;
 	jsval val;
 	GPAC_MediaRendererItem *render;
 	GPAC_MediaServerItem *server;
-	const char *item, *resource_url;
+	char *item, *resource_url;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || (argc<1) ) return JS_FALSE;
 
@@ -814,13 +815,21 @@ static JSBool upnp_renderer_open(JSContext *c, JSObject *obj, uintN argc, jsval 
 	if (JSVAL_IS_OBJECT(argv[0])) {
 		fobj = JSVAL_TO_OBJECT(argv[0]);
 		if (!JS_LookupProperty(c, fobj, "ObjectID", &val) || JSVAL_IS_NULL(val) || !JSVAL_IS_STRING(val)) return JS_TRUE;
-		item = JS_GetStringBytes(JSVAL_TO_STRING(val));
+		item = SMJS_CHARS(c, val);
 	}
 	else if (JSVAL_IS_STRING(argv[0])) 
-		resource_url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		resource_url = SMJS_CHARS(c, argv[0]);
 
-	if (!item && !resource_url) return JS_TRUE;
-	if (item && !server) return JS_TRUE;
+	if (!item && !resource_url) {
+		SMJS_FREE(c, item);
+		SMJS_FREE(c, resource_url);
+		return JS_TRUE;
+	}
+	if (item && !server) {
+		SMJS_FREE(c, item);
+		SMJS_FREE(c, resource_url);
+		return JS_TRUE;
+	}
 
     if (NPT_SUCCEEDED(render->m_device->FindServiceByType("urn:schemas-upnp-org:service:AVTransport:1", service))) {
 		if (resource_url) {
@@ -844,13 +853,17 @@ static JSBool upnp_renderer_open(JSContext *c, JSObject *obj, uintN argc, jsval 
 			}
 		}
 	}
+	SMJS_FREE(c, item);
+	SMJS_FREE(c, resource_url);
 	return JS_TRUE;
 }
 
-static JSBool upnp_renderer_playback(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, u32 act_type)
+static JSBool SMJS_FUNCTION_EXT(upnp_renderer_playback, u32 act_type)
 {
 	char szSpeed[20];
 	GPAC_MediaRendererItem *render;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp) return JS_FALSE;
 
@@ -889,26 +902,28 @@ static JSBool upnp_renderer_playback(JSContext *c, JSObject *obj, uintN argc, js
 	}
 	return JS_TRUE;
 }
-static JSBool upnp_renderer_play(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_renderer_play)
 {
-	return upnp_renderer_playback(c, obj, argc, argv, rval, 0);
+	return upnp_renderer_playback(SMJS_CALL_ARGS, 0);
 }
-static JSBool upnp_renderer_pause(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_renderer_pause)
 {
-	return upnp_renderer_playback(c, obj, argc, argv, rval, 1);
+	return upnp_renderer_playback(SMJS_CALL_ARGS, 1);
 }
-static JSBool upnp_renderer_stop(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_renderer_stop)
 {
-	return upnp_renderer_playback(c, obj, argc, argv, rval, 2);
+	return upnp_renderer_playback(SMJS_CALL_ARGS, 2);
 }
-static JSBool upnp_renderer_seek(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_renderer_seek)
 {
-	return upnp_renderer_playback(c, obj, argc, argv, rval, 3);
+	return upnp_renderer_playback(SMJS_CALL_ARGS, 3);
 }
 
-static JSBool upnp_get_renderer(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_get_renderer)
 {
 	JSObject *s_obj;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || !upnp->m_pAVCtrlPoint || (argc!=1) ) return JS_FALSE;
 
@@ -919,10 +934,11 @@ static JSBool upnp_get_renderer(JSContext *c, JSObject *obj, uintN argc, jsval *
 	}
 	else if (JSVAL_IS_STRING(argv[0])) {
 		u32 i=0;
-		const char *uuid = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		char *uuid = SMJS_CHARS(c, argv[0]);
 		while ((mr = (GPAC_MediaRendererItem *) gf_list_enum(upnp->m_pAVCtrlPoint->m_MediaRenderers, &i))) {
-			if (mr->m_UUID==uuid) break;
+			if (mr->m_UUID==(const char *)uuid) break;
 		}
+		SMJS_FREE(c, uuid);
 	}
 	if (!mr) return JS_FALSE;
 
@@ -938,24 +954,28 @@ static JSBool upnp_get_renderer(JSContext *c, JSObject *obj, uintN argc, jsval *
 	JS_DefineFunction(c, s_obj, "Stop", upnp_renderer_stop, 0, 0);
 	JS_DefineFunction(c, s_obj, "Seek", upnp_renderer_seek, 0, 0);
 
-	*rval = OBJECT_TO_JSVAL(s_obj);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(s_obj) );
 	return JS_TRUE;
 }
 
-static JSBool upnp_server_browse(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_server_browse)
 {
 	NPT_String parent;
 	GPAC_MediaServerItem *server;
-	const char *dir, *filter;
+	char *dir, *filter, *_dir, *_filter;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || (argc!=2) ) return JS_FALSE;
 
 	server = upnp_server_get_device(upnp, c, obj);
 	if (!server) return JS_FALSE;
 
-	dir = JSVAL_IS_NULL(argv[0]) ? NULL : JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	_dir = _filter = NULL;
+
+	dir = _dir = SMJS_CHARS(c, argv[0]);
 	if (!dir) dir = "0";
-	filter = JSVAL_IS_NULL(argv[1]) ? NULL : JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+	filter = _filter = SMJS_CHARS(c, argv[1]);
 	if (!filter) filter = "*";
 
 	PLT_Service* service;
@@ -964,7 +984,11 @@ static JSBool upnp_server_browse(JSContext *c, JSObject *obj, uintN argc, jsval 
 			server->m_ParentDirectories.Clear();
 		}
 		if (!strcmp(dir, "..")) {
-			if (!server->m_ParentDirectories.GetItemCount()) return JS_FALSE;
+			if (!server->m_ParentDirectories.GetItemCount()) {
+				SMJS_FREE(c, _dir);
+				SMJS_FREE(c, _filter);
+				return JS_FALSE;
+			}
 	        server->m_ParentDirectories.Pop(parent);
 	        server->m_ParentDirectories.Peek(parent);
 			dir=parent;
@@ -978,48 +1002,54 @@ static JSBool upnp_server_browse(JSContext *c, JSObject *obj, uintN argc, jsval 
 		upnp->m_pAVCtrlPoint->Browse(server, dir, filter);
 
 
-		jsval rval = INT_TO_JSVAL(0);
+		jsval aval = INT_TO_JSVAL(0);
 		if (!server->m_BrowseResults.IsNull()) {
-			rval = INT_TO_JSVAL(server->m_BrowseResults->GetItemCount());
+			aval = INT_TO_JSVAL(server->m_BrowseResults->GetItemCount());
 		}
-		JS_SetProperty(c, obj, "FilesCount", &rval);
+		JS_SetProperty(c, obj, "FilesCount", &aval);
 	}
-
+	SMJS_FREE(c, _dir);
+	SMJS_FREE(c, _filter);
 	return JS_TRUE;
 }
 
 
-static JSBool upnp_server_has_parent_dir(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_server_has_parent_dir)
 {
 	GPAC_MediaServerItem *server;
+	SMJS_OBJ
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp) return JS_FALSE;
 
 	server = upnp_server_get_device(upnp, c, obj);
 	if (!server) return JS_TRUE;
-	*rval = BOOLEAN_TO_JSVAL( server->m_ParentDirectories.GetItemCount() ? JS_TRUE : JS_FALSE);
+	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( server->m_ParentDirectories.GetItemCount() ? JS_TRUE : JS_FALSE));
 	return JS_TRUE;
 }
 
-static JSBool upnp_server_get_resource_uri(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_server_get_resource_uri)
 {
 	u32 idx;
+	SMJS_OBJ
+	SMJS_ARGS
 	PLT_MediaObject *mo = (PLT_MediaObject *)JS_GetPrivate(c, obj);
 	if (!mo || (argc!=1) || !JSVAL_IS_INT(argv[0]) ) return JS_FALSE;
 	idx = JSVAL_TO_INT(argv[0]);
 	if (idx<mo->m_Resources.GetItemCount()) {
-		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, mo->m_Resources[idx].m_Uri));
+		SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, mo->m_Resources[idx].m_Uri)));
 	} else {
-		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, ""));
+		SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, "")));
 	}
 	return JS_TRUE;
 }
 
-static JSBool upnp_server_get_file(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_server_get_file)
 {
 	GPAC_MediaServerItem *server;
 	u32 id;
 	JSObject *f_obj;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || (argc!=1) || !JSVAL_IS_INT(argv[0]) ) return JS_FALSE;
 
@@ -1043,14 +1073,16 @@ static JSBool upnp_server_get_file(JSContext *c, JSObject *obj, uintN argc, jsva
 		JS_DefineProperty(c, f_obj, "ResourceCount", INT_TO_JSVAL(mo->m_Resources.GetItemCount()), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineFunction(c, f_obj, "GetResourceURI", upnp_server_get_resource_uri, 1, 0);
 	}	
-	*rval = OBJECT_TO_JSVAL(f_obj);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(f_obj));
 	return JS_TRUE;
 }
 
-static JSBool upnp_server_get_file_uri(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_server_get_file_uri)
 {
 	GPAC_MediaServerItem *server;
 	u32 id;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || (argc!=1) || !JSVAL_IS_INT(argv[0]) ) return JS_FALSE;
 
@@ -1064,14 +1096,16 @@ static JSBool upnp_server_get_file_uri(JSContext *c, JSObject *obj, uintN argc, 
 	if (!mo) return JS_TRUE;
 
 	if (mo->m_Resources.GetItemCount()) {
-		*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, mo->m_Resources[0].m_Uri) );
+		SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, mo->m_Resources[0].m_Uri) ) );
 	}
 	return JS_TRUE;
 }
 
-static JSBool upnp_get_server(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_get_server)
 {
 	JSObject *s_obj;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || !upnp->m_pAVCtrlPoint || (argc!=1)) return JS_FALSE;
 
@@ -1083,10 +1117,11 @@ static JSBool upnp_get_server(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 	}
 	else if (JSVAL_IS_STRING(argv[0])) {
 		u32 i=0;
-		const char *uuid = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		char *uuid = SMJS_CHARS(c, argv[0]);
 		while ((ms = (GPAC_MediaServerItem *) gf_list_enum(upnp->m_pAVCtrlPoint->m_MediaServers, &i))) {
-			if (ms->m_UUID==uuid) break;
+			if (ms->m_UUID==(const char *)uuid) break;
 		}
+		SMJS_FREE(c, uuid);
 	}
 	if (!ms) return JS_FALSE;
 	s_obj = JS_NewObject(c, &upnp->upnpDeviceClass, 0, 0);
@@ -1101,12 +1136,13 @@ static JSBool upnp_get_server(JSContext *c, JSObject *obj, uintN argc, jsval *ar
 	JS_DefineFunction(c, s_obj, "HasParentDirectory", upnp_server_has_parent_dir, 0, 0);
 
 
-	*rval = OBJECT_TO_JSVAL(s_obj);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(s_obj) );
 	return JS_TRUE;
 }
 
-static JSBool upnp_bind_renderer(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_bind_renderer)
 {
+	SMJS_OBJ
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp) return JS_TRUE;
 	upnp->m_renderer_bound = 1;
@@ -1117,41 +1153,53 @@ static JSBool upnp_bind_renderer(JSContext *c, JSObject *obj, uintN argc, jsval 
 	return JS_TRUE;
 }
 
-static JSBool upnp_share_resource(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_share_resource)
 {
-	const char *url, *host;
+	char *url, *host;
 	NPT_String resourceURI;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || !upnp->m_pMediaServer || !argc || !JSVAL_IS_STRING(argv[0]) ) return JS_TRUE;
-	url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	url = SMJS_CHARS(c, argv[0]);
 	if (!url) return JS_TRUE;
 
 	host = NULL;
 	if (argc && JSVAL_IS_STRING(argv[1]) ) {
-		host = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+		host = SMJS_CHARS(c, argv[1]);
 	}
 
 	resourceURI = upnp->m_pMediaServer->GetResourceURI(url, host);
-	*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, resourceURI ) );
+	SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, resourceURI ) ));
+
+	SMJS_FREE(c, url);
+	SMJS_FREE(c, host);
 	return JS_TRUE;
 }
 
-static JSBool upnp_share_virtual_resource(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_share_virtual_resource)
 {
 	Bool temp = 0;
-	const char *res_url, *res_val, *mime;
+	char *res_url, *res_val, *mime;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || !upnp->m_pMediaServer || (argc<2) || !JSVAL_IS_STRING(argv[0]) || !JSVAL_IS_STRING(argv[1]) ) return JS_TRUE;
-	res_url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	res_url = SMJS_CHARS(c, argv[0]);
 	if (!res_url) return JS_TRUE;
-	res_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
-	if (!res_val) return JS_TRUE;
-
-	mime = "application/octet-stream";
-	if (argc==3) mime = JS_GetStringBytes(JSVAL_TO_STRING(argv[2]));
+	res_val = SMJS_CHARS(c, argv[1]);
+	if (!res_val) {
+		SMJS_FREE(c, res_url);
+		return JS_TRUE;
+	}
+	mime = NULL;
+	if (argc==3) mime = SMJS_CHARS(c, argv[2]);
 	if ((argc==4) && JSVAL_IS_BOOLEAN(argv[3]) && (JSVAL_TO_BOOLEAN(argv[3])==JS_TRUE) ) temp = 1;;
 
-	upnp->m_pMediaServer->ShareVirtualResource(res_url, res_val, mime, temp);
+	upnp->m_pMediaServer->ShareVirtualResource(res_url, res_val, mime ? mime : "application/octet-stream", temp);
+	SMJS_FREE(c, res_url);
+	SMJS_FREE(c, res_val);
+	SMJS_FREE(c, mime);
 	return JS_TRUE;
 }
 
@@ -1159,58 +1207,63 @@ static JSBool upnp_share_virtual_resource(JSContext *c, JSObject *obj, uintN arg
 static NPT_UInt8 GENERIC_SCPDXML[] = "<scpd xmlns=\"urn:schemas-upnp-org:service-1-0\"><specVersion>  <major>1</major>   <minor>0</minor> </specVersion> <actionList>  <action>  <name>GetStatus</name>    <argumentList>    <argument>     <name>ResultStatus</name>     <direction>out</direction>      <relatedStateVariable>Status</relatedStateVariable>     </argument>   </argumentList>  </action> </actionList>  <serviceStateTable>  <stateVariable sendEvents=\"yes\">   <name>Status</name>    <dataType>boolean</dataType>   </stateVariable></serviceStateTable> </scpd>";
 
 
-static JSBool upnp_device_setup_service(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_device_setup_service)
 {
 	char *name, *type, *id, *scpd_xml;
+	NPT_Result res;
+	SMJS_OBJ
+	SMJS_ARGS
 	GPAC_GenericDevice *device = (GPAC_GenericDevice *)JS_GetPrivate(c, obj);
 	if (!device) return JS_FALSE;
 	if (argc<3) return JS_FALSE;
 
-	name = NULL;
-	if (JSVAL_IS_STRING(argv[0])) name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	if (!name) return JS_FALSE;
+	name = SMJS_CHARS(c, argv[0]);
+	type = SMJS_CHARS(c, argv[1]);
+	id = SMJS_CHARS(c, argv[2]);
 
-	type = NULL;
-	if (JSVAL_IS_STRING(argv[1])) type = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
-	if (!type) return JS_FALSE;
-
-	id = NULL;
-	if (JSVAL_IS_STRING(argv[2])) id = JS_GetStringBytes(JSVAL_TO_STRING(argv[2]));
-	if (!id) return JS_FALSE;
+	if (!name || !type || !id) {
+		SMJS_FREE(c, name);
+		SMJS_FREE(c, type);
+		SMJS_FREE(c, id);
+		return JS_FALSE;
+	}
 
 	scpd_xml = NULL;
-	if ((argc>3) && JSVAL_IS_STRING(argv[3])) scpd_xml = JS_GetStringBytes(JSVAL_TO_STRING(argv[3]));
-	if (!scpd_xml) scpd_xml = (char *)GENERIC_SCPDXML;
-
+	if ((argc>3) && JSVAL_IS_STRING(argv[3])) scpd_xml = SMJS_CHARS(c, argv[3]);
 
 	GPAC_Service* service = new GPAC_Service(device, type, id);
-	if (service->SetSCPDXML((const char*)scpd_xml) != NPT_SUCCESS) {
+	res = service->SetSCPDXML((const char*) scpd_xml ? scpd_xml : (char *)GENERIC_SCPDXML);
+	if (res == NPT_SUCCESS) res = service->InitURLs(name, device->GetUUID() );
+
+	SMJS_FREE(c, name);
+	SMJS_FREE(c, type);
+	SMJS_FREE(c, id);
+
+	if (res != NPT_SUCCESS) {
 		delete service;
 		return JS_FALSE;
 	}
-	if (service->InitURLs(name, device->GetUUID() ) != NPT_SUCCESS) {
-		delete service;
-		return JS_FALSE;
-	}
+
 	gf_list_add(device->m_pServices, service);
 
 	service->SetupJS(c, device->m_pUPnP, device->obj);
-	*rval = OBJECT_TO_JSVAL(service->m_pObj);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(service->m_pObj) );
 	return JS_TRUE;
 }
 
 
-
-static JSBool upnp_device_start(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_device_start)
 {
 	jsval sval;
 	char *str;
+	SMJS_OBJ
 	GPAC_GenericDevice *device = (GPAC_GenericDevice *)JS_GetPrivate(c, obj);
 	if (!device) return JS_FALSE;
 
 	if (JS_LookupProperty(device->m_pUPnP->m_pJSCtx, obj, "PresentationURL", &sval) && JSVAL_IS_STRING(sval)) {
-		str = JS_GetStringBytes(JSVAL_TO_STRING(sval));
+		str = SMJS_CHARS(c, sval);
 		char *url = gf_url_concatenate(device->js_source, str);
+		SMJS_FREE(c, str);
 
 		/*we will use our media server to exchange the URL if file based
 			!!! THIS IS BROKEN IF MULTIPLE INTERFACES EXIST ON THE DEVICE !!!
@@ -1227,23 +1280,28 @@ static JSBool upnp_device_start(JSContext *c, JSObject *obj, uintN argc, jsval *
 
 	str = NULL;
 	if (JS_LookupProperty(device->m_pUPnP->m_pJSCtx, obj, "ModelDescription", &sval) && JSVAL_IS_STRING(sval))
-		str = JS_GetStringBytes(JSVAL_TO_STRING(sval));
+		str = SMJS_CHARS(c, sval);
+
 	device->m_ModelDescription = str ? str : "GPAC Generic Device";
+	SMJS_FREE(c, str);
 
 	str = NULL;
 	if (JS_LookupProperty(device->m_pUPnP->m_pJSCtx, obj, "ModelURL", &sval) && JSVAL_IS_STRING(sval))
-		str = JS_GetStringBytes(JSVAL_TO_STRING(sval));
+		str = SMJS_CHARS(c, sval);
 	device->m_ModelURL = str ? str : "http://gpac.sourceforge.net";
+	SMJS_FREE(c, str);
 
 	str = NULL;
 	if (JS_LookupProperty(device->m_pUPnP->m_pJSCtx, obj, "ModelNumber", &sval) && JSVAL_IS_STRING(sval))
-		str = JS_GetStringBytes(JSVAL_TO_STRING(sval));
+		str = SMJS_CHARS(c, sval);
 	device->m_ModelNumber = str ? str : GPAC_FULL_VERSION;
+	SMJS_FREE(c, str);
 
 	str = NULL;
 	if (JS_LookupProperty(device->m_pUPnP->m_pJSCtx, obj, "ModelName", &sval) && JSVAL_IS_STRING(sval))
-		str = JS_GetStringBytes(JSVAL_TO_STRING(sval));
+		str = SMJS_CHARS(c, sval);
 	device->m_ModelName = str ? str : "GPAC Generic Device";
+	SMJS_FREE(c, str);
 
 	device->m_Manufacturer = "Telecom ParisTech";
 	device->m_ManufacturerURL = "http://www.telecom-paristech.fr/";
@@ -1257,12 +1315,12 @@ static JSBool upnp_device_start(JSContext *c, JSObject *obj, uintN argc, jsval *
 	if (JS_LookupProperty(device->m_pUPnP->m_pJSCtx, obj, "Run", &sval) && JSVAL_IS_OBJECT(sval)) {
 		device->obj = obj;
 		device->run_proc = sval;
-		gf_js_add_root(device->m_pUPnP->m_pJSCtx, &device->run_proc);
+		gf_js_add_root(device->m_pUPnP->m_pJSCtx, &device->run_proc, GF_JSGC_VAL);
 	}
 	if (JS_LookupProperty(device->m_pUPnP->m_pJSCtx, obj, "OnAction", &sval) && JSVAL_IS_OBJECT(sval)) {
 		device->obj = obj;
 		device->act_proc = sval;
-		gf_js_add_root(device->m_pUPnP->m_pJSCtx, &device->act_proc);
+		gf_js_add_root(device->m_pUPnP->m_pJSCtx, &device->act_proc, GF_JSGC_VAL);
 	}
 	PLT_DeviceHostReference devRef(device);
 	device->m_pUPnP->m_pPlatinum->AddDevice(devRef);
@@ -1270,8 +1328,9 @@ static JSBool upnp_device_start(JSContext *c, JSObject *obj, uintN argc, jsval *
 	return JS_TRUE;
 }
 
-static JSBool upnp_device_stop(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_device_stop)
 {
+	SMJS_OBJ
 	GPAC_GenericDevice *device = (GPAC_GenericDevice *)JS_GetPrivate(c, obj);
 	if (!device) return JS_FALSE;
 
@@ -1290,7 +1349,7 @@ static GPAC_GenericDevice *upnp_create_generic_device(GF_UPnP *upnp, JSObject*gl
 	device->js_source = "";
 
 	device->obj = JS_NewObject(upnp->m_pJSCtx, &upnp->upnpDeviceClass, 0, global);
-	gf_js_add_root(upnp->m_pJSCtx, &device->obj);
+	gf_js_add_root(upnp->m_pJSCtx, &device->obj, GF_JSGC_OBJECT);
 
 	JS_DefineProperty(upnp->m_pJSCtx, device->obj, "Name", STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, name) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(upnp->m_pJSCtx, device->obj, "ID", STRING_TO_JSVAL( JS_NewStringCopyZ(upnp->m_pJSCtx, id) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
@@ -1305,29 +1364,37 @@ static GPAC_GenericDevice *upnp_create_generic_device(GF_UPnP *upnp, JSObject*gl
 	return device;
 }
 
-static JSBool upnp_create_device(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_create_device)
 {
 	GPAC_GenericDevice *device;
-	const char *id, *name;
+	char *id, *name;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || (argc != 2)) return JS_FALSE;
 
-	id = NULL;
-	if (JSVAL_IS_STRING(argv[0])) id = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
-	name = NULL;
-	if (JSVAL_IS_STRING(argv[1])) name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
-	if (!id || !name) return JS_FALSE;
+	id = SMJS_CHARS(c, argv[0]);
+	name = SMJS_CHARS(c, argv[1]);
+	if (!id || !name) {
+		SMJS_FREE(c, name);
+		SMJS_FREE(c, id);
+		return JS_FALSE;
+	}
 
 	device = upnp_create_generic_device(upnp, NULL, id, name);
 	if (device)
-		*rval = OBJECT_TO_JSVAL(device->obj);
+		SMJS_SET_RVAL( OBJECT_TO_JSVAL(device->obj) );
 
+	SMJS_FREE(c, name);
+	SMJS_FREE(c, id);
 	return JS_TRUE;
 }
 
-static JSBool upnp_delete_device(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(upnp_delete_device)
 {
 	GPAC_GenericDevice *device;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_UPnP *upnp = (GF_UPnP *)JS_GetPrivate(c, obj);
 	if (!upnp || (argc != 1)) return JS_FALSE;
 
@@ -1349,16 +1416,16 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		{0, 0, 0, 0, 0}
 	};
 	JSFunctionSpec upnpClassFuncs[] = {
-		{"BindRenderer", upnp_bind_renderer, 0, 0, 0},
-		{"GetMediaServer", upnp_get_server, 1, 0, 0},
-		{"GetMediaRenderer", upnp_get_renderer, 1, 0, 0},
-		{"ShareResource", upnp_share_resource, 1, 0, 0},	
-		{"ShareVirtualResource", upnp_share_virtual_resource, 2, 0, 0},	
-		{"GetDevice", upnp_get_device, 1, 0, 0},	
-		{"FindService", upnp_find_service, 1, 0, 0},	
-		{"CreateDevice", upnp_create_device, 2, 0, 0},	
-		{"DeleteDevice", upnp_delete_device, 1, 0, 0},	
-		{0, 0, 0, 0, 0}
+		SMJS_FUNCTION_SPEC("BindRenderer", upnp_bind_renderer, 0),
+		SMJS_FUNCTION_SPEC("GetMediaServer", upnp_get_server, 1),
+		SMJS_FUNCTION_SPEC("GetMediaRenderer", upnp_get_renderer, 1),
+		SMJS_FUNCTION_SPEC("ShareResource", upnp_share_resource, 1),	
+		SMJS_FUNCTION_SPEC("ShareVirtualResource", upnp_share_virtual_resource, 2),	
+		SMJS_FUNCTION_SPEC("GetDevice", upnp_get_device, 1),	
+		SMJS_FUNCTION_SPEC("FindService", upnp_find_service, 1),	
+		SMJS_FUNCTION_SPEC("CreateDevice", upnp_create_device, 2),	
+		SMJS_FUNCTION_SPEC("DeleteDevice", upnp_delete_device, 1),	
+		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
 
 	if (param->unload) {
@@ -1391,35 +1458,40 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 		return 0;
 	}
 	if (m_nbJSInstances) {
+		/*FIXME - this was possible in previous version of SpiderMonkey, don't know how to fix that for new ones*/
+#if (JS_VERSION>=185)
 		m_nbJSInstances++;
+		return 0;
+#else
 		JS_DefineProperty((JSContext*)param->ctx, (JSObject*)param->global, "UPnP", OBJECT_TO_JSVAL(m_pObj), 0, 0, 0);
+		m_nbJSInstances++;
+#endif
 		return 0;
 	}
 
 	m_pJSCtx = (JSContext*)param->ctx;
 	/*setup JS bindings*/
-	_SETUP_CLASS(upnpClass, "UPNPMANAGER", JSCLASS_HAS_PRIVATE, upnp_getProperty, upnp_setProperty, JS_FinalizeStub);
+	JS_SETUP_CLASS(upnpClass, "UPNPMANAGER", JSCLASS_HAS_PRIVATE, upnp_getProperty, upnp_setProperty, JS_FinalizeStub);
 
 	JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpClass, 0, 0, upnpClassProps, upnpClassFuncs, 0, 0);
 	m_pObj = JS_DefineObject(m_pJSCtx, (JSObject*)param->global, "UPnP", &upnpClass, 0, 0);
 	JS_SetPrivate(m_pJSCtx, m_pObj, this);
 
-	_SETUP_CLASS(upnpDeviceClass, "UPNPAVDEVICE", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
+	JS_SETUP_CLASS(upnpDeviceClass, "UPNPAVDEVICE", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
 	
 	/*setup JS bindings*/
 	JSPropertySpec upnpDeviceClassProps[] = {
 		{0, 0, 0, 0, 0}
 	};
 	JSFunctionSpec upnpDeviceClassFuncs[] = {
-		{"FindService", upnp_device_find_service, 0, 0, 0},
-		{0, 0, 0, 0, 0}
+		SMJS_FUNCTION_SPEC("FindService", upnp_device_find_service, 0),
+		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
-	_SETUP_CLASS(upnpGenericDeviceClass, "UPNPDEVICE", JSCLASS_HAS_PRIVATE, upnpdevice_getProperty, JS_PropertyStub, JS_FinalizeStub);
+	JS_SETUP_CLASS(upnpGenericDeviceClass, "UPNPDEVICE", JSCLASS_HAS_PRIVATE, upnpdevice_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
 	JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpGenericDeviceClass, 0, 0, upnpDeviceClassProps, upnpDeviceClassFuncs, 0, 0);
 	
-	_SETUP_CLASS(upnpServiceClass, "UPNPSERVICEDEVICE", JSCLASS_HAS_PRIVATE, upnpservice_getProperty, JS_PropertyStub, JS_FinalizeStub);
+	JS_SETUP_CLASS(upnpServiceClass, "UPNPSERVICEDEVICE", JSCLASS_HAS_PRIVATE, upnpservice_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
 	JS_InitClass(m_pJSCtx, (JSObject*)param->global, 0, &upnpServiceClass, 0, 0, 0, 0, 0, 0);
-
 
 	m_nbJSInstances=1;
 	
@@ -1453,14 +1525,14 @@ Bool GF_UPnP::LoadJS(GF_TermExtJS *param)
 
 		jsval aval;
 		gf_f64_seek(f, 0, SEEK_END);
-		u32 size = gf_f64_tell(f);
+		u32 size = (u32) gf_f64_tell(f);
 		gf_f64_seek(f, 0, SEEK_SET);
 		char *buf = (char*)gf_malloc(sizeof(char)*(size+1));
 		size = fread(buf, 1, size, f);
 		buf[size]=0;
 		/*evaluate the script on the object only*/
 		if (JS_EvaluateScript(m_pJSCtx, device->obj, buf, size, 0, 0, &aval) != JS_TRUE) {
-			gf_js_remove_root(m_pJSCtx, &device->obj);
+			gf_js_remove_root(m_pJSCtx, &device->obj, GF_JSGC_OBJECT);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[UPnP] Unable to load device %s: script error in %s\n", szFriendlyName, szFile));
 			gf_list_del_item(m_Devices, device);
 			delete device;

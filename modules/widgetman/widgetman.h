@@ -57,7 +57,7 @@
 
 #include "unzip.h"
 
-#include <jsapi.h> 
+#include <gpac/internal/smjs_api.h>
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
@@ -325,29 +325,13 @@ typedef struct
 GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 InstanceID);
 
 
-#define _SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
-	memset(&the_class, 0, sizeof(the_class));	\
-	the_class.name = cname;	\
-	the_class.flags = flag;	\
-	the_class.addProperty = JS_PropertyStub;	\
-	the_class.delProperty = JS_PropertyStub;	\
-	the_class.getProperty = getp;	\
-	the_class.setProperty = setp;	\
-	the_class.enumerate = JS_EnumerateStub;	\
-	the_class.resolve = JS_ResolveStub;		\
-	the_class.convert = JS_ConvertStub;		\
-	the_class.finalize = fin;
-
-
-
-
-JSBool widget_has_feature(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool widget_open_url(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool widget_get_attention(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool widget_show_notification(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool widget_get_interface(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
-JSBool widget_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp);
-JSBool widget_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp);
+JSBool SMJS_FUNCTION(widget_has_feature);
+JSBool SMJS_FUNCTION(widget_open_url);
+JSBool SMJS_FUNCTION(widget_get_attention);
+JSBool SMJS_FUNCTION(widget_show_notification);
+JSBool SMJS_FUNCTION(widget_get_interface);
+JSBool widget_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp);
+JSBool widget_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp);
 
 void widget_on_interface_bind(GF_WidgetInterfaceInstance *ifce, Bool unbind);
 

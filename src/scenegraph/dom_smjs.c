@@ -44,9 +44,8 @@
 #define XP_UNIX
 #endif
 
-#include <jsapi.h>
+#include <gpac/internal/smjs_api.h>
 
-JSBool my_js_has_instance(JSContext *c, JSObject *obj, jsval val, JSBool *vp);
 
 static GFINLINE Bool ScriptAction(GF_SceneGraph *scene, u32 type, GF_Node *node, GF_JSAPIParam *param)
 {
@@ -66,9 +65,8 @@ static GFINLINE GF_SceneGraph *xml_get_scenegraph(JSContext *c)
 }
 
 #define JSVAL_CHECK_STRING(_v) (JSVAL_IS_STRING(_v) || JSVAL_IS_NULL(_v))
-#define JSVAL_GET_STRING(_v) (JSVAL_IS_NULL(_v) ? NULL : JS_GetStringBytes(JSVAL_TO_STRING(_v)) )
 
-char *js_get_utf8(jsval val)
+char *js_get_utf8(JSContext *c, jsval val)
 {
 #if 0
 	jschar *utf16;
@@ -87,9 +85,12 @@ char *js_get_utf8(jsval val)
 	}
 	txt[len]=0;
 	return txt;
+#elif (JS_VERSION>=185)
+	if (!JSVAL_CHECK_STRING(val) || JSVAL_IS_NULL(val)) return NULL;
+	return SMJS_CHARS(c, val);
 #else
 	if (!JSVAL_CHECK_STRING(val) || JSVAL_IS_NULL(val)) return NULL;
-	return gf_strdup( JS_GetStringBytes(JSVAL_TO_STRING(val) ) );
+	return gf_strdup( SMJS_CHARS(c, val) );
 #endif
 }
 
@@ -129,7 +130,7 @@ typedef struct
 static GF_DOMRuntime *dom_rt = NULL;
 
 
-static JSBool xml_dom3_not_implemented(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_dom3_not_implemented)
 {
 	return JS_TRUE;
 }
@@ -255,9 +256,9 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 		if (set_rooted && (gf_list_find(sg->objects, n->sgprivate->interact->js_binding->node)<0)) {
 			const char *name = gf_node_get_name(n);
 			if (name) {
-				gf_js_add_named_root(c, &n->sgprivate->interact->js_binding->node, name);
+				gf_js_add_named_root(c, &n->sgprivate->interact->js_binding->node, GF_JSGC_OBJECT, name);
 			} else {
-				gf_js_add_root(c, &n->sgprivate->interact->js_binding->node);
+				gf_js_add_root(c, &n->sgprivate->interact->js_binding->node, GF_JSGC_OBJECT);
 			}
 			gf_list_add(sg->objects, n->sgprivate->interact->js_binding->node);
 		}
@@ -281,9 +282,9 @@ static jsval dom_base_node_construct(JSContext *c, JSClass *_class, GF_Node *n)
 	if (n->sgprivate->parents && set_rooted) {
 		const char *name = gf_node_get_name(n);
 		if (name) {
-			gf_js_add_named_root(c, &n->sgprivate->interact->js_binding->node, name);
+			gf_js_add_named_root(c, &n->sgprivate->interact->js_binding->node, GF_JSGC_OBJECT, name);
 		} else {
-			gf_js_add_root(c, &n->sgprivate->interact->js_binding->node);
+			gf_js_add_root(c, &n->sgprivate->interact->js_binding->node, GF_JSGC_OBJECT);
 		}
 		gf_list_add(sg->objects, n->sgprivate->interact->js_binding->node);
 	}
@@ -433,12 +434,14 @@ static void dom_nodelist_finalize(JSContext *c, JSObject *obj)
 	gf_free(nl);
 }
 
-static JSBool dom_nodelist_item(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(dom_nodelist_item)
 {
 	GF_Node *n;
 	u32 count;
 	s32 idx;
 	DOMNodeList *nl;
+	SMJS_OBJ
+	SMJS_ARGS
 	if (!JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL) )
 		return JS_TRUE;
 	if ((argc!=1) || !JSVAL_IS_INT(argv[0]))
@@ -448,26 +451,24 @@ static JSBool dom_nodelist_item(JSContext *c, JSObject *obj, uintN argc, jsval *
 	count = gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child);
 	idx = JSVAL_TO_INT(argv[0]);
 	if ((idx<0) || ((u32) idx>=count)) {
-		*rval = JSVAL_VOID;
+		SMJS_SET_RVAL( JSVAL_VOID );
 		return JS_TRUE;
 	}
 	n = gf_node_list_get_child(nl->owner ? nl->owner->children : nl->child, idx);
-	*rval = dom_node_construct(c, n);
+	SMJS_SET_RVAL( dom_node_construct(c, n) );
 	return JS_TRUE;
 }
 
-
-
-static JSBool dom_nodelist_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool dom_nodelist_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	DOMNodeList *nl;
 	if (!JS_InstanceOf(c, obj, &dom_rt->domNodeListClass, NULL)
 	)
 		return JS_TRUE;
 
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
-	switch (JSVAL_TO_INT(id)) {
+	switch (SMJS_ID_TO_INT(id)) {
 	case 0:
 		nl = (DOMNodeList *) JS_GetPrivate(c, obj);
 		*vp = INT_TO_JSVAL( gf_node_list_get_count(nl->owner ? nl->owner->children : nl->child) );
@@ -475,9 +476,9 @@ static JSBool dom_nodelist_getProperty(JSContext *c, JSObject *obj, jsval id, js
 	}
 	return JS_TRUE;
 }
-static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 	/*no write prop*/
 	return JS_TRUE;
 }
@@ -486,11 +487,11 @@ static JSBool dom_nodelist_setProperty(JSContext *c, JSObject *obj, jsval id, js
 /*dom event listener*/
 
 #define JS_DOM3_EVEN_TARGET_INTERFACE	\
-	{"addEventListenerNS", dom_event_add_listener, 4, 0, 0},	\
-	{"removeEventListenerNS", dom_event_remove_listener, 4, 0, 0},	\
-	{"addEventListener", dom_event_add_listener, 3, 0, 0},		\
-	{"removeEventListener", dom_event_remove_listener, 3, 0, 0},	\
-	{"dispatchEvent", xml_dom3_not_implemented, 1, 0, 0},
+	SMJS_FUNCTION_SPEC("addEventListenerNS", dom_event_add_listener, 4),	\
+	SMJS_FUNCTION_SPEC("removeEventListenerNS", dom_event_remove_listener, 4),	\
+	SMJS_FUNCTION_SPEC("addEventListener", dom_event_add_listener, 3),		\
+	SMJS_FUNCTION_SPEC("removeEventListener", dom_event_remove_listener, 3),	\
+	SMJS_FUNCTION_SPEC("dispatchEvent", xml_dom3_not_implemented, 1),
 
 
 static void dom_handler_remove(GF_Node *node, void *rs, Bool is_destroy)
@@ -499,7 +500,7 @@ static void dom_handler_remove(GF_Node *node, void *rs, Bool is_destroy)
 		SVG_handlerElement *handler = (SVG_handlerElement *)node;
 		if (handler->js_context && handler->js_fun_val) {
 			/*unprotect the function*/
-			gf_js_remove_root(handler->js_context, &(handler->js_fun_val));
+			gf_js_remove_root(handler->js_context, &(handler->js_fun_val), GF_JSGC_VAL);
 			handler->js_fun_val=0;
 			gf_list_del_item(dom_rt->handlers, handler);
 		}
@@ -507,7 +508,7 @@ static void dom_handler_remove(GF_Node *node, void *rs, Bool is_destroy)
 }
 
 /*eventListeners routines used by document, element and connection interfaces*/
-JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *on_node)
+JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_add_listener, GF_Node *on_node)
 {
 	GF_DOMEventTarget *target;
 	GF_FieldInfo info;
@@ -522,6 +523,8 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 	GF_Node *n = NULL;
 	jsval funval = 0;
 	JSObject *evt_handler;
+	SMJS_OBJ
+	SMJS_ARGS
 
 	target = NULL;
 	/*document interface*/
@@ -548,17 +551,17 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 	/*NS version (4 args in DOM2, 5 in DOM3 for evt_group param)*/
 	if (argc>=4) {
 		if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-		inNS = js_get_utf8(argv[0]);
+		inNS = js_get_utf8(c, argv[0]);
 		of = 1;
 	}
 	evt_handler = obj;
 
+	type = callback = NULL;
 	if (!JSVAL_CHECK_STRING(argv[of])) goto err_exit;
-	type = JSVAL_GET_STRING(argv[of]);
-	callback = NULL;
+	type = SMJS_CHARS(c, argv[of]);
 
 	if (JSVAL_CHECK_STRING(argv[of+1])) {
-		callback = JSVAL_GET_STRING(argv[of+1]);
+		callback = SMJS_CHARS(c, argv[of+1]);
 		if (!callback) goto err_exit;
 	} else if (JSVAL_IS_OBJECT(argv[of+1])) {
 		if (JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[of+1]))) {
@@ -596,7 +599,7 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 			if (handler->js_fun_val) {
 				handler->js_context = c;
 				/*protect the function - we don't know how it was passed to us, so prevent it from being GCed*/
-				gf_js_add_root(handler->js_context, &handler->js_fun_val);
+				gf_js_add_root(handler->js_context, &handler->js_fun_val, GF_JSGC_VAL);
 				handler->sgprivate->UserCallback = dom_handler_remove;
 				gf_list_add(dom_rt->handlers, handler);
 			}
@@ -641,16 +644,18 @@ JSBool gf_sg_js_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsva
 
 err_exit:
 	if (inNS) gf_free(inNS);
-	return JS_TRUE;
+	SMJS_FREE(c, type);
+	SMJS_FREE(c, callback);
+   return JS_TRUE;
 }
 
 
-JSBool dom_event_add_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+JSBool SMJS_FUNCTION(dom_event_add_listener)
 {
-	return gf_sg_js_event_add_listener(c, obj, argc, argv, rval, NULL);
+	return gf_sg_js_event_add_listener(SMJS_CALL_ARGS, NULL);
 }
 
-JSBool gf_sg_js_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, GF_Node *vrml_node)
+JSBool SMJS_FUNCTION_EXT(gf_sg_js_event_remove_listener, GF_Node *vrml_node)
 {
 #ifndef GPAC_DISABLE_SVG
 	char *type, *callback;
@@ -661,6 +666,8 @@ JSBool gf_sg_js_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, j
 	jsval funval = 0;
 	GF_SceneGraph *sg = NULL;
 	GF_DOMEventTarget *target = NULL;
+	SMJS_OBJ
+	SMJS_ARGS
 
 	/*get the scenegraph first*/
 	sg = dom_get_doc(c, obj);
@@ -688,15 +695,16 @@ JSBool gf_sg_js_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, j
 
 	if (argc==4) {
 		if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-		inNS = js_get_utf8(argv[0]);
+		inNS = js_get_utf8(c, argv[0]);
 		of = 1;
 	}
 
+	type = callback = NULL;
 	if (!JSVAL_CHECK_STRING(argv[of])) goto err_exit;
-	type = JSVAL_GET_STRING(argv[of]);
-	callback = NULL;
+	type = SMJS_CHARS(c, argv[of]);
+
 	if (JSVAL_CHECK_STRING(argv[of+1])) {
-		callback = JSVAL_GET_STRING(argv[of+1]);
+		callback = SMJS_CHARS(c, argv[of+1]);
 	} else if (JSVAL_IS_OBJECT(argv[of+1])) {
 		if (JS_ObjectIsFunction(c, JSVAL_TO_OBJECT(argv[of+1]) )) {
 			funval = argv[of+1];
@@ -740,12 +748,14 @@ JSBool gf_sg_js_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, j
 
 err_exit:
 	if (inNS) gf_free(inNS);
+	SMJS_FREE(c, type);
+	SMJS_FREE(c, callback);
 	return JS_TRUE;
 }
 
-JSBool dom_event_remove_listener(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+JSBool SMJS_FUNCTION(dom_event_remove_listener)
 {
-	return gf_sg_js_event_remove_listener(c, obj, argc, argv, rval, NULL);
+	return gf_sg_js_event_remove_listener(SMJS_CALL_ARGS, NULL);
 }
 
 /*dom3 node*/
@@ -805,9 +815,9 @@ static void dom_node_inserted(JSContext *c, GF_Node *n, GF_Node *parent, s32 pos
 		if (nobj && (gf_list_find(n->sgprivate->scenegraph->objects, nobj)<0) ) {
 			const char *name = gf_node_get_name(n);
 			if (name) {
-				gf_js_add_named_root(c, &n->sgprivate->interact->js_binding->node, name);
+				gf_js_add_named_root(c, &n->sgprivate->interact->js_binding->node, GF_JSGC_OBJECT, name);
 			} else {
-				gf_js_add_root(c, &n->sgprivate->interact->js_binding->node);
+				gf_js_add_root(c, &n->sgprivate->interact->js_binding->node, GF_JSGC_OBJECT);
 			}
 			gf_list_add(n->sgprivate->scenegraph->objects, nobj);
 		}
@@ -840,12 +850,14 @@ static void dom_node_inserted(JSContext *c, GF_Node *n, GF_Node *parent, s32 pos
 	dom_node_changed(parent, 1, NULL);
 }
 
-static JSBool xml_node_insert_before(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_node_insert_before)
 {
 	s32 idx;
 	u32 tag;
 	GF_Node *n, *target, *new_node;
 	GF_ParentNode *par;
+	SMJS_OBJ
+	SMJS_ARGS
 	if (!argc || !JSVAL_IS_OBJECT(argv[0]))
 		return JS_TRUE;
 
@@ -877,14 +889,16 @@ static JSBool xml_node_insert_before(JSContext *c, JSObject *obj, uintN argc, js
 		}
 	}
 	dom_node_inserted(c, new_node, n, idx);
-	*rval = argv[0];
+	SMJS_SET_RVAL( argv[0] );
 	return JS_TRUE;
 }
 
-static JSBool xml_node_append_child(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_node_append_child)
 {
 	u32 tag;
 	GF_Node *n, *new_node;
+	SMJS_OBJ
+	SMJS_ARGS
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
 	n = dom_get_node(c, obj);
 	if (!n) {
@@ -901,16 +915,18 @@ static JSBool xml_node_append_child(JSContext *c, JSObject *obj, uintN argc, jsv
 
 	dom_node_inserted(c, new_node, n, -1);
 
-	*rval = argv[0];
+	SMJS_SET_RVAL( argv[0] );
 	return JS_TRUE;
 }
 
-static JSBool xml_node_replace_child(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_node_replace_child)
 {
 	s32 idx;
 	u32 tag;
 	GF_Node *n, *new_node, *old_node;
 	GF_ParentNode *par;
+	SMJS_OBJ
+	SMJS_ARGS
 	if ((argc!=2) || !JSVAL_IS_OBJECT(argv[0]) || !JSVAL_IS_OBJECT(argv[1])) return JS_TRUE;
 	n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
@@ -933,15 +949,17 @@ static JSBool xml_node_replace_child(JSContext *c, JSObject *obj, uintN argc, js
 	/*whenever we remove a node from the tree, call GC to cleanup the JS binding if any. Not doing so may screw up node IDs*/
 	n->sgprivate->scenegraph->svg_js->force_gc = 1;
 
-	*rval = argv[0];
+	SMJS_SET_RVAL( argv[0] );
 	return JS_TRUE;
 }
 
-static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_node_remove_child)
 {
 	u32 tag;
 	GF_Node *n, *old_node;
 	GF_ParentNode *par;
+	SMJS_OBJ
+	SMJS_ARGS
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
 
 	n = dom_get_node(c, obj);
@@ -959,7 +977,7 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 	} else {
 		return dom_throw_exception(c, GF_DOM_EXC_NOT_FOUND_ERR);
 	}
-	*rval = argv[0];
+	SMJS_SET_RVAL( argv[0]);
 	dom_node_changed(n, 1, NULL);
 	/*whenever we remove a node from the tree, call GC to cleanup the JS binding if any. Not doing so may screw up node IDs*/
 	n->sgprivate->scenegraph->svg_js->force_gc = 1;
@@ -967,54 +985,60 @@ static JSBool xml_node_remove_child(JSContext *c, JSObject *obj, uintN argc, jsv
 }
 
 
-static JSBool xml_clone_node(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_clone_node)
 {
 	Bool deep;
 	GF_Node *n, *clone;
+	SMJS_OBJ
+	SMJS_ARGS
 	n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 	deep = argc ? JSVAL_TO_BOOLEAN(argv[0]) : 0;
 
 	clone = gf_node_clone(n->sgprivate->scenegraph, n, NULL, "", deep);
-	*rval = dom_node_construct(c, clone);
+	SMJS_SET_RVAL( dom_node_construct(c, clone) );
 	return JS_TRUE;
 }
 
 
-static JSBool xml_node_has_children(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_node_has_children)
 {
 	GF_Node *n;
+	SMJS_OBJ
 	n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
-	*rval = BOOLEAN_TO_JSVAL( ((GF_ParentNode*)n)->children ? JS_TRUE : JS_FALSE);
+	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( ((GF_ParentNode*)n)->children ? JS_TRUE : JS_FALSE) );
 	return JS_TRUE;
 }
 
-static JSBool xml_node_has_attributes(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_node_has_attributes)
 {
 	u32 tag;
 	GF_Node *n;
+	SMJS_OBJ
 	n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 	tag = gf_node_get_tag(n);
 	if (tag>=GF_NODE_FIRST_DOM_NODE_TAG) {
-		*rval = BOOLEAN_TO_JSVAL( ((GF_DOMNode*)n)->attributes ? JS_TRUE : JS_FALSE);
+		SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( ((GF_DOMNode*)n)->attributes ? JS_TRUE : JS_FALSE) );
 	} else {
 		/*not supported for other node types*/
-		*rval = BOOLEAN_TO_JSVAL( JS_FALSE);
+		SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( JS_FALSE) );
 	}
 	return JS_TRUE;
 }
 
-static JSBool xml_node_is_same_node(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_node_is_same_node)
 {
 	GF_Node *n, *a_node;
+	SMJS_OBJ
+	SMJS_ARGS
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
 	n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 	a_node = dom_get_node(c, JSVAL_TO_OBJECT(argv[0]));
 	if (!a_node) return JS_TRUE;
-	*rval = BOOLEAN_TO_JSVAL( (a_node==n) ? JS_TRUE : JS_FALSE);
+	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( (a_node==n) ? JS_TRUE : JS_FALSE) );
 	return JS_TRUE;
 }
 
@@ -1077,7 +1101,7 @@ static u32 get_namespace_code_by_prefix(GF_Node *node, char *prefix)
 }
 #endif
 
-static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	u32 tag;
 	GF_Node *n;
@@ -1091,12 +1115,12 @@ static JSBool dom_node_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	}
 
 	/*not supported*/
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
 	tag = n ? gf_node_get_tag(n) : 0;
 	par = (GF_ParentNode*)n;
 
-	switch (JSVAL_TO_INT(id)) {
+	switch (SMJS_ID_TO_INT(id)) {
 	/*"nodeName"*/
 	case 0:
 		if (sg) {
@@ -1276,7 +1300,7 @@ void dom_node_set_textContent(GF_Node *n, char *text)
 	gf_node_changed(n, &info);
 }
 
-static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
 	u32 tag;
 	GF_Node *n;
@@ -1286,18 +1310,18 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	/*note an element - we don't support property setting on document yet*/
 	if (!n) return JS_TRUE;
 
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
 	tag = n ? gf_node_get_tag(n) : 0;
 	par = (GF_ParentNode*)n;
 
-	switch (JSVAL_TO_INT(id)) {
+	switch (SMJS_ID_TO_INT(id)) {
 	/*"nodeValue"*/
 	case 1:
 		if ((tag==TAG_DOMText) && JSVAL_CHECK_STRING(*vp)) {
 			GF_DOMText *txt = (GF_DOMText *)n;
 			if (txt->textContent) gf_free(txt->textContent);
-			txt->textContent = js_get_utf8(*vp);
+			txt->textContent = js_get_utf8(c, *vp);
 			dom_node_changed(n, 1, NULL);
 		}
 		/*we only support element and sg in the Node interface, no set*/
@@ -1310,7 +1334,7 @@ static JSBool dom_node_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	case 15:
 	{
 		char *txt;
-		txt = js_get_utf8(*vp);
+		txt = js_get_utf8(c, *vp);
 		dom_node_set_textContent(n, txt);
 		if (txt) gf_free(txt);
 	}
@@ -1345,14 +1369,14 @@ void dom_document_finalize(JSContext *c, JSObject *obj)
 	}
 }
 
-static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	u32 prop_id;
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_TRUE;
 
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
-	prop_id = JSVAL_TO_INT(id);
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+	prop_id = SMJS_ID_TO_INT(id);
 
 	switch (prop_id) {
 	case 2:/*implementation*/
@@ -1385,14 +1409,14 @@ static JSBool dom_document_getProperty(JSContext *c, JSObject *obj, jsval id, js
 	return JS_TRUE;
 }
 
-static JSBool dom_document_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool dom_document_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
 	u32 prop_id;
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_TRUE;
 
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
-	prop_id = JSVAL_TO_INT(id);
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+	prop_id = SMJS_ID_TO_INT(id);
 
 	switch (prop_id) {
 	case 6:/*"xmlStandalone"*/
@@ -1411,11 +1435,13 @@ static JSBool dom_document_setProperty(JSContext *c, JSObject *obj, jsval id, js
 	return JS_TRUE;
 }
 
-static JSBool xml_document_create_element(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_document_create_element)
 {
 	u32 tag, ns;
 	GF_Node *n;
 	char *name, *xmlns;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 
 	if (!sg || !argc || !JSVAL_CHECK_STRING(argv[0]) )
@@ -1427,11 +1453,11 @@ static JSBool xml_document_create_element(JSContext *c, JSObject *obj, uintN arg
 	xmlns = NULL;
 	if (argc==2) {
 		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-		xmlns = js_get_utf8(argv[0]);
+		xmlns = js_get_utf8(c, argv[0]);
 		if (xmlns) ns = gf_sg_get_namespace_code_from_name(sg, xmlns);
-		name = JSVAL_GET_STRING(argv[1]);
+		name = SMJS_CHARS(c, argv[1]);
 	} else {
-		name = JSVAL_GET_STRING(argv[0]);
+		name = SMJS_CHARS(c, argv[0]);
 	}
 
 	if (name) {
@@ -1447,25 +1473,28 @@ static JSBool xml_document_create_element(JSContext *c, JSObject *obj, uintN arg
 				elt->ns	= gf_sg_get_namespace_code_from_name(sg, xmlns);
 			}
 		}
-		*rval = dom_element_construct(c, n);
+		SMJS_SET_RVAL( dom_element_construct(c, n) );
 	}
 	if (xmlns) gf_free(xmlns);
+	SMJS_FREE(c, name);
 	return JS_TRUE;
 }
 
-static JSBool xml_document_create_text(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_document_create_text)
 {
 	GF_Node *n;
+	SMJS_OBJ
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_TRUE;
 
 	n = gf_node_new(sg, TAG_DOMText);
 	if (argc) {
-		char *str = js_get_utf8(argv[0]);
+		SMJS_ARGS
+		char *str = js_get_utf8(c, argv[0]);
 		if (!str) str = gf_strdup("");
 		((GF_DOMText*)n)->textContent = str;
 	}
-	*rval = dom_text_construct(c, n);
+	SMJS_SET_RVAL( dom_text_construct(c, n) );
 	return JS_TRUE;
 }
 
@@ -1493,20 +1522,24 @@ static void xml_doc_gather_nodes(GF_ParentNode *node, char *name, DOMNodeList *n
 	}
 }
 
-static JSBool xml_document_elements_by_tag(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_document_elements_by_tag)
 {
 	DOMNodeList *nl;
 	JSObject *new_obj;
 	char *name;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_TRUE;
 
 	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-	name = JSVAL_GET_STRING(argv[0]);
+
 	/*NS version - TODO*/
 	if (argc==2) {
 		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-		name = JSVAL_GET_STRING(argv[1]);
+		name = SMJS_CHARS(c, argv[1]);
+	} else {
+		name = SMJS_CHARS(c, argv[0]);
 	}
 
 	GF_SAFEALLOC(nl, DOMNodeList);
@@ -1514,19 +1547,22 @@ static JSBool xml_document_elements_by_tag(JSContext *c, JSObject *obj, uintN ar
 	xml_doc_gather_nodes((GF_ParentNode*)sg->RootNode, name, nl);
 	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass, 0, 0);
 	JS_SetPrivate(c, new_obj, nl);
-	*rval = OBJECT_TO_JSVAL(new_obj);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(new_obj));
+	SMJS_FREE(c, name);
 	return JS_TRUE;
 }
 
-static JSBool xml_document_element_by_id(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_document_element_by_id)
 {
 	NodeIDedItem *reg_node;
 	GF_Node *n;
 	char *id;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_SceneGraph *sg = dom_get_doc(c, obj);
 	if (!sg) return JS_FALSE;
 	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-	id = JSVAL_GET_STRING(argv[0]);
+	id = SMJS_CHARS(c, argv[0]);
 
 	/*we don't use the regular gf_sg_find_node_by_name because we may have nodes defined with the
 	same ID and we need to locate the first one which is inserted in the tree*/
@@ -1541,7 +1577,8 @@ static JSBool xml_document_element_by_id(JSContext *c, JSObject *obj, uintN argc
 		}
 		reg_node = reg_node->next;
 	}
-	*rval = dom_element_construct(c, n);
+	SMJS_SET_RVAL( dom_element_construct(c, n));
+	SMJS_FREE(c, id);
 	return JS_TRUE;
 }
 
@@ -1551,14 +1588,14 @@ void dom_element_finalize(JSContext *c, JSObject *obj)
 	dom_node_finalize(c, obj);
 }
 
-static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	u32 prop_id;
 	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
-	prop_id = JSVAL_TO_INT(id);
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+	prop_id = SMJS_ID_TO_INT(id);
 	switch (prop_id) {
 	case 1: /*"tagName"*/
 		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_node_get_class_name(n) ) );
@@ -1571,23 +1608,25 @@ static JSBool dom_element_getProperty(JSContext *c, JSObject *obj, jsval id, jsv
 	return JS_TRUE;
 }
 
-static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_element_get_attribute)
 {
 	char *name, *ns;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Node *n = dom_get_node(c, obj);
-	if (!n)
-		return JS_TRUE;
+	if (!n) return JS_TRUE;
 
 	if (!argc || !JSVAL_CHECK_STRING(argv[0]))
 		return JS_TRUE;
-	name = JSVAL_GET_STRING(argv[0]);
-	ns = NULL;
+	name = ns = NULL;
 	/*NS version*/
 	if (argc==2) {
 		if (!JSVAL_CHECK_STRING(argv[1]))
 			return JS_TRUE;
-		ns = js_get_utf8(argv[0]);
-		name = JSVAL_GET_STRING(argv[1]);
+		ns = js_get_utf8(c, argv[0]);
+		name = SMJS_CHARS(c, argv[1]);
+	} else {
+		name = SMJS_CHARS(c, argv[0]);
 	}
 	if (!name) goto exit;
 
@@ -1595,7 +1634,7 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 	if (!strcmp(name, "id") || !strcmp(name, "xml:id") ) {
 		char *sID = (char *) gf_node_get_name(n);
 		if (sID) {
-			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, sID ? sID : "") );
+			SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, sID ? sID : "") ) );
 			goto exit;
 		}
 	}
@@ -1605,7 +1644,7 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 		GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
 		while (att) {
 			if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
-				*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, *(char**)att->data ) );
+				SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, *(char**)att->data ) ));
 				goto exit;
 			}
 			att = (GF_DOMFullAttribute *) att->next;
@@ -1626,41 +1665,46 @@ static JSBool xml_element_get_attribute(JSContext *c, JSObject *obj, uintN argc,
 
 		if (gf_node_get_attribute_by_name(n, name, ns_code, 0, 0, &info)==GF_OK) {
 			char *szAtt = gf_svg_dump_attribute(n, &info);
-			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) );
+			SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, szAtt) ) );
 			if (szAtt) gf_free(szAtt);
 			goto exit;
 		}
 	}
-	*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "") );
+	SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, "") ));
 exit:
 	if (ns) gf_free(ns);
+	SMJS_FREE(c, name);
 	return JS_TRUE;
 }
 
 
-static JSBool xml_element_has_attribute(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_element_has_attribute)
 {
 	char *name, *ns;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Node *n = dom_get_node(c, obj);
 	if (!n)
 		return JS_TRUE;
 
 	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-	name = JSVAL_GET_STRING(argv[0]);
-	ns = NULL;
+	name = ns = NULL;
 	/*NS version*/
 	if (argc==2) {
 		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-		ns = js_get_utf8(argv[0]);
-		name = JSVAL_GET_STRING(argv[1]);
+		ns = js_get_utf8(c, argv[0]);
+		name = SMJS_CHARS(c, argv[1]);
+	} else {
+		name = SMJS_CHARS(c, argv[0]);
 	}
 	if (!name) goto exit;
+
 	if (n->sgprivate->tag==TAG_DOMFullNode) {
 		GF_DOMFullNode *node = (GF_DOMFullNode*)n;
 		GF_DOMFullAttribute *att = (GF_DOMFullAttribute*)node->attributes;
 		while (att) {
 			if ((att->tag==TAG_DOM_ATT_any) && !strcmp(att->name, name)) {
-				*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+				SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(JS_TRUE));
 				goto exit;
 			}
 			att = (GF_DOMFullAttribute *) att->next;
@@ -1675,35 +1719,39 @@ static JSBool xml_element_has_attribute(JSContext *c, JSObject *obj, uintN argc,
 		else ns_code = gf_sg_get_namespace_code(n->sgprivate->scenegraph, NULL);
 
 		if (gf_node_get_attribute_by_name(n, name, ns_code, 0, 0, &info)==GF_OK) {
-			*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+			SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(JS_TRUE) );
 			goto exit;
 		}
 	}
-	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(JS_FALSE) );
 exit:
 	if (ns) gf_free(ns);
+	SMJS_FREE(c, name);
 	return JS_TRUE;
 }
 
 
 
-static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_element_remove_attribute)
 {
 	u32 tag;
 	GF_DOMFullNode *node;
 	GF_DOMFullAttribute *prev, *att;
 	char *name, *ns;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 
 	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-	name = JSVAL_GET_STRING(argv[0]);
-	ns = NULL;
+	name = ns = NULL;
 	/*NS version*/
 	if (argc==2) {
 		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-		ns = js_get_utf8(argv[0]);
-		name = JSVAL_GET_STRING(argv[1]);
+		ns = js_get_utf8(c, argv[0]);
+		name = SMJS_CHARS(c, argv[1]);
+	} else {
+		name = SMJS_CHARS(c, argv[0]);
 	}
 	if (!name) goto exit;
 
@@ -1745,41 +1793,45 @@ static JSBool xml_element_remove_attribute(JSContext *c, JSObject *obj, uintN ar
 	}
 exit:
 	if (ns) gf_free(ns);
+	SMJS_FREE(c, name);
 	return JS_TRUE;
 }
 
 
-static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_element_set_attribute)
 {
 	u32 evtType, idx;
-	char *name, *val, *ns;
+	char *name, *val, *ns, *_val;
 	char szVal[100];
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 	if ((argc < 2)) return JS_TRUE;
 
 	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-	name = JSVAL_GET_STRING(argv[0]);
 
 	idx = 1;
-	ns = NULL;
+	_val = name = ns = NULL;
 	/*NS version*/
 	if (argc==3) {
 		char *sep;
 		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-		ns = js_get_utf8(argv[0]);
+		ns = js_get_utf8(c, argv[0]);
 		gf_sg_add_namespace(n->sgprivate->scenegraph, ns, NULL);
-		name = JSVAL_GET_STRING(argv[1]);
+		name = SMJS_CHARS(c, argv[1]);
 		idx = 2;
 
 		sep = strchr(name, ':');
 		if (sep) name = sep+1;
 
+	} else {
+		name = SMJS_CHARS(c, argv[0]);
 	}
 
 	val = NULL;
 	if (JSVAL_CHECK_STRING(argv[idx])) {
-		val = JSVAL_GET_STRING(argv[idx]);
+		val = _val = SMJS_CHARS(c, argv[idx]);
 	} else if (JSVAL_IS_INT(argv[idx])) {
 		sprintf(szVal, "%d", JSVAL_TO_INT(argv[idx]));
 		val = szVal;
@@ -1918,58 +1970,71 @@ static JSBool xml_element_set_attribute(JSContext *c, JSObject *obj, uintN argc,
 	}
 exit:
 	if (ns) gf_free(ns);
+	SMJS_FREE(c, name);
+	SMJS_FREE(c, _val);
 	return JS_TRUE;
 }
 
 
-static JSBool xml_element_elements_by_tag(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_element_elements_by_tag)
 {
 	DOMNodeList *nl;
 	JSObject *new_obj;
 	char *name;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 
 	if (!argc || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 
-	name = JSVAL_GET_STRING(argv[0]);
 	/*NS version*/
 	if (argc==2) {
 		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-		name = JSVAL_GET_STRING(argv[1]);
+		name = SMJS_CHARS(c, argv[1]);
+	} else {
+		name = SMJS_CHARS(c, argv[0]);
 	}
 	GF_SAFEALLOC(nl, DOMNodeList);
-	if (name && !strcmp(name, "*")) name = NULL;
+	if (name && !strcmp(name, "*")) {
+		SMJS_FREE(c, name);
+		name = NULL;
+	}
 	xml_doc_gather_nodes((GF_ParentNode*)n, name, nl);
 	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass, 0, 0);
 	JS_SetPrivate(c, new_obj, nl);
-	*rval = OBJECT_TO_JSVAL(new_obj);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(new_obj) );
+	
+	SMJS_FREE(c, name);
 	return JS_TRUE;
 }
 
-static JSBool xml_element_set_id(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_element_set_id)
 {
 	const char *node_name;
 	u32 node_id;
 	char *name;
 	Bool is_id;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Node *n = dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 
 	if ((argc<2) || !JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-	name = JSVAL_GET_STRING(argv[0]);
 
 	/*NS version*/
 	if (argc==2) {
 		if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-		name = JSVAL_GET_STRING(argv[1]);
+		name = SMJS_CHARS(c, argv[1]);
 		is_id = (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) ? 1 : 0;
 	} else {
+		name = SMJS_CHARS(c, argv[0]);
 		is_id = (JSVAL_TO_BOOLEAN(argv[1])==JS_TRUE) ? 1 : 0;
 	}
 	node_name = gf_node_get_name_and_id(n, &node_id);
 	if (node_id && is_id) {
 		/*we only support ONE ID per node*/
+		SMJS_FREE(c, name);
 		return JS_TRUE;
 	}
 	if (is_id) {
@@ -1978,19 +2043,20 @@ static JSBool xml_element_set_id(JSContext *c, JSObject *obj, uintN argc, jsval 
 	} else if (node_id) {
 		gf_node_remove_id(n);
 	}
+	SMJS_FREE(c, name);
 	return JS_TRUE;
 }
 
 
 /*dom3 character/text/comment*/
 
-static JSBool dom_text_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool dom_text_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	u32 prop_id;
 	GF_DOMText *txt = (GF_DOMText*)dom_get_node(c, obj);
 	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_TRUE;
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
-	prop_id = JSVAL_TO_INT(id);
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+	prop_id = SMJS_ID_TO_INT(id);
 
 	switch (prop_id) {
 	case 1: /*"data"*/
@@ -2010,20 +2076,20 @@ static JSBool dom_text_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	}
 	return JS_TRUE;
 }
-static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
 	u32 prop_id;
 	GF_DOMText *txt = (GF_DOMText*)dom_get_node(c, obj);
 	if (!txt || (txt->sgprivate->tag != TAG_DOMText)) return JS_TRUE;
-	if (!JSVAL_IS_INT(id)) return JS_TRUE;
-	prop_id = JSVAL_TO_INT(id);
+	if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
+	prop_id = SMJS_ID_TO_INT(id);
 
 	switch (prop_id) {
 	case 1: /*"data"*/
 		if (txt->textContent) gf_free(txt->textContent);
 		txt->textContent = NULL;
 		if (JSVAL_CHECK_STRING(*vp)) {
-			char *str = js_get_utf8(*vp);
+			char *str = js_get_utf8(c, *vp);
 			txt->textContent = str ? str : gf_strdup("" );
 		}
 		dom_node_changed((GF_Node*)txt, 0, NULL);
@@ -2033,35 +2099,38 @@ static JSBool dom_text_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	return JS_TRUE;
 }
 
-static JSBool event_stop_propagation(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(event_stop_propagation)
 {
+	SMJS_OBJ
 	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
 	if (!evt) return JS_TRUE;
 	evt->event_phase |= GF_DOM_EVENT_PHASE_CANCEL;
 	return JS_TRUE;
 }
-static JSBool event_stop_immediate_propagation(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(event_stop_immediate_propagation)
 {
+	SMJS_OBJ
 	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
 	if (!evt) return JS_TRUE;
 	evt->event_phase |= GF_DOM_EVENT_PHASE_CANCEL_ALL;
 	return JS_TRUE;
 }
-static JSBool event_prevent_default(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(event_prevent_default)
 {
+	SMJS_OBJ
 	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
 	if (!evt) return JS_TRUE;
 	evt->event_phase |= GF_DOM_EVENT_PHASE_PREVENT;
 	return JS_TRUE;
 }
 
-static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool event_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	JSString *s;
 	GF_DOM_Event *evt = JS_GetPrivate(c, obj);
 	if (evt==NULL) return JS_TRUE;
-	if (JSVAL_IS_INT(id)) {
-		switch (JSVAL_TO_INT(id)) {
+	if (SMJS_ID_IS_INT(id)) {
+		switch (SMJS_ID_TO_INT(id)) {
 		case 0: /*type*/
 			s = JS_NewStringCopyZ(c, gf_dom_event_get_name(evt->type) );
 			*vp = STRING_TO_JSVAL( s );
@@ -2165,7 +2234,7 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 			return JS_TRUE;
 		case 56:/*bufferRemainingTime*/
 			if (!evt->mae) return JS_TRUE;
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, evt->mae->remaining_time) );
+			*vp = JS_MAKE_DOUBLE(c, evt->mae->remaining_time);
 			return JS_TRUE;
 		case 57:/*status*/
 			if (!evt->mae) return JS_TRUE;
@@ -2174,28 +2243,28 @@ static JSBool event_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp
 
 		/*VRML ones*/
 		case 60:/*width*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->screen_rect.width) ) );
+			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.width) );
 			return JS_TRUE;
 		case 61:/*height*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->screen_rect.height)) );
+			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.height) );
 			return JS_TRUE;
 		case 62:/*offset_x*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->screen_rect.x) ) );
+			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.x) );
 			return JS_TRUE;
 		case 63:/*offset_x*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->screen_rect.y)) );
+			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->screen_rect.y) );
 			return JS_TRUE;
 		case 64:/*vp_width*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->prev_translate.x)) );
+			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->prev_translate.x) );
 			return JS_TRUE;
 		case 65:/*vp_height*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->prev_translate.y)) );
+			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->prev_translate.y) );
 			return JS_TRUE;
 		case 66:/*translation_x*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->new_translate.x)) );
+			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->new_translate.x) );
 			return JS_TRUE;
 		case 67:/*translation_y*/
-			*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->new_translate.y)) );
+			*vp = JS_MAKE_DOUBLE(c, FIX2FLT(evt->new_translate.y) );
 			return JS_TRUE;
 		case 68:/*type3d*/
 			*vp = INT_TO_JSVAL(evt->detail); return JS_TRUE;
@@ -2411,20 +2480,22 @@ static void xml_http_finalize(JSContext *c, JSObject *obj)
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (ctx) {
-		if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange));
+		if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
 		xml_http_reset(ctx);
 		gf_free(ctx);
 	}
 }
-static JSBool xml_http_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_http_constructor)
 {
 	XMLHTTPContext *p;
+	SMJS_OBJ_CONSTRUCTOR
+
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	GF_SAFEALLOC(p, XMLHTTPContext);
 	p->c = c;
 	p->_this = obj;
 	JS_SetPrivate(c, obj, p);
-	*rval = OBJECT_TO_JSVAL(obj);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(obj) );
 	return JS_TRUE;
 }
 
@@ -2454,12 +2525,14 @@ static void xml_http_state_change(XMLHTTPContext *ctx)
 }
 
 
-static JSBool xml_http_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_http_open)
 {
 	char *val;
 	GF_JSAPIParam par;
 	XMLHTTPContext *ctx;
 	GF_SceneGraph *scene;
+	SMJS_OBJ
+	SMJS_ARGS
 
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
@@ -2475,12 +2548,16 @@ static JSBool xml_http_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
 
 	xml_http_reset(ctx);
-	val = JSVAL_GET_STRING(argv[0]);
+	val = SMJS_CHARS(c, argv[0]);
 	if (strcmp(val, "GET") && strcmp(val, "POST") && strcmp(val, "HEAD")
-	&& strcmp(val, "PUT") && strcmp(val, "DELETE") && strcmp(val, "OPTIONS") )
+	&& strcmp(val, "PUT") && strcmp(val, "DELETE") && strcmp(val, "OPTIONS") ) {
+		SMJS_FREE(c, val);
 		return JS_TRUE;
+	}
 
 	ctx->method = gf_strdup(val);
+	
+	SMJS_FREE(c, val);
 
 	/*concatenate URL*/
 	scene = xml_get_scenegraph(c);
@@ -2489,24 +2566,29 @@ static JSBool xml_http_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 #endif
 
 	par.uri.nb_params = 0;
-	par.uri.url = JSVAL_GET_STRING(argv[1]);
+	val = SMJS_CHARS(c, argv[1]);
+	par.uri.url = val;
 	ScriptAction(scene, GF_JSAPI_OP_RESOLVE_URI, scene->RootNode, &par);
 	ctx->url = (char *)par.uri.url;
+	SMJS_FREE(c, val);
 
 	/*async defaults to true*/
 	ctx->async = 1;
 	if (argc>2) {
+		val = NULL;
 		ctx->async = (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) ? 1 : 0;
 		if (argc>3) {
 			if (!JSVAL_CHECK_STRING(argv[3])) return JS_TRUE;
-			val = JSVAL_GET_STRING(argv[3]);
 			/*TODO*/
 			if (argc>4) {
-				if (!JSVAL_CHECK_STRING(argv[3])) return JS_TRUE;
-				val = JSVAL_GET_STRING(argv[3]);
+				if (!JSVAL_CHECK_STRING(argv[4])) return JS_TRUE;
+				val = SMJS_CHARS(c, argv[4]);
 				/*TODO*/
+			} else {
+				val = SMJS_CHARS(c, argv[3]);
 			}
 		}
+		SMJS_FREE(c, val);
 	}
 	/*OPEN success*/
 	ctx->readyState = 1;
@@ -2514,10 +2596,13 @@ static JSBool xml_http_open(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	return JS_TRUE;
 }
 
-static JSBool xml_http_set_header(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_http_set_header)
 {
 	char *hdr, *val;
 	XMLHTTPContext *ctx;
+	SMJS_OBJ
+	SMJS_ARGS
+
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_TRUE;
@@ -2527,9 +2612,11 @@ static JSBool xml_http_set_header(JSContext *c, JSObject *obj, uintN argc, jsval
 	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 	if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
 
-	hdr = JSVAL_GET_STRING(argv[0]);
-	val = JSVAL_GET_STRING(argv[1]);
+	hdr = SMJS_CHARS(c, argv[0]);
+	val = SMJS_CHARS(c, argv[1]);
 	xml_http_append_send_header(ctx, hdr, val);
+	SMJS_FREE(c, hdr);
+	SMJS_FREE(c, val);
 	return JS_TRUE;
 }
 static void xml_http_sax_start(void *sax_cbck, const char *node_name, const char *name_space, const GF_XMLAttribute *attributes, u32 nb_attributes)
@@ -2748,13 +2835,15 @@ static void xml_http_on_data(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	xml_http_state_change(ctx);
 }
 
-static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_http_send)
 {
 	GF_JSAPIParam par;
 	GF_SceneGraph *scene;
 	char *data = NULL;
 	XMLHTTPContext *ctx;
 	GF_Err e;
+	SMJS_OBJ
+	SMJS_ARGS
 
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
@@ -2762,6 +2851,11 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 
 	if (ctx->readyState!=1) return JS_TRUE;
 	if (ctx->sess) return JS_TRUE;
+
+	scene = xml_get_scenegraph(c);
+	par.dnld_man = NULL;
+	ScriptAction(scene, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
+	if (!par.dnld_man) return JS_TRUE;
 
 	if (argc) {
 		if (JSVAL_IS_NULL(argv[0])) {
@@ -2772,19 +2866,16 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 			return JS_TRUE;
 		} else {
 			if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-			data = JSVAL_GET_STRING(argv[0]);
+			data = SMJS_CHARS(c, argv[0]);
 		}
 	}
-
-	scene = xml_get_scenegraph(c);
-	par.dnld_man = NULL;
-	ScriptAction(scene, GF_JSAPI_OP_GET_DOWNLOAD_MANAGER, NULL, &par);
-	if (!par.dnld_man) return JS_TRUE;
 
 	/*reset previous text*/
 	if (ctx->data) gf_free(ctx->data);
 
 	ctx->data = data ? gf_strdup(data) : NULL;
+	SMJS_FREE(c, data);
+
 	ctx->use_cache = 0;
 	if (!strncmp(ctx->url, "http://", 7)) {
 		ctx->sess = gf_dm_sess_new(par.dnld_man, ctx->url, (ctx->use_cache ? 0 : GF_NETIO_SESSION_NOT_CACHED), xml_http_on_data, ctx, &e);
@@ -2847,10 +2938,12 @@ static JSBool xml_http_send(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	return JS_TRUE;
 }
 
-static JSBool xml_http_abort(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_http_abort)
 {
 	GF_DownloadSession *sess;
 	XMLHTTPContext *ctx;
+	SMJS_OBJ
+
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_TRUE;
@@ -2863,11 +2956,13 @@ static JSBool xml_http_abort(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	return JS_TRUE;
 }
 
-static JSBool xml_http_get_all_headers(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_http_get_all_headers)
 {
 	u32 nb_hdr;
 	char szVal[4096];
 	XMLHTTPContext *ctx;
+	SMJS_OBJ
+
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_TRUE;
@@ -2886,30 +2981,31 @@ static JSBool xml_http_get_all_headers(JSContext *c, JSObject *obj, uintN argc, 
 		}
 	}
 	if (!szVal[0]) {
-		*rval = JSVAL_VOID;
+		SMJS_SET_RVAL( JSVAL_VOID );
 	} else {
-		JSString *s;
-		s = JS_NewStringCopyZ(c, szVal);
-		*rval = STRING_TO_JSVAL( s );
+		SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, szVal) ) );
 	}
 
 	return JS_TRUE;
 }
 
-static JSBool xml_http_get_header(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(xml_http_get_header)
 {
 	u32 nb_hdr;
 	char *hdr;
 	char szVal[2048];
 	XMLHTTPContext *ctx;
+	SMJS_OBJ
+	SMJS_ARGS
 	if (!argc || !JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_TRUE;
 
 	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-	hdr = JSVAL_GET_STRING(argv[0]);
 	/*must be received or loaded*/
 	if (ctx->readyState<3) return JS_TRUE;
+	hdr = SMJS_CHARS(c, argv[0]);
+
 	szVal[0] = 0;
 	nb_hdr = 0;
 	if (ctx->recv_headers) {
@@ -2922,17 +3018,15 @@ static JSBool xml_http_get_header(JSContext *c, JSObject *obj, uintN argc, jsval
 		}
 	}
 	if (!szVal[0]) {
-		*rval = JSVAL_VOID;
+		SMJS_SET_RVAL( JSVAL_VOID );
 	} else {
-		JSString *s;
-		s = JS_NewStringCopyZ(c, szVal);
-		*rval = STRING_TO_JSVAL( s );
+		SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, szVal)) );
 	}
-
+	SMJS_FREE(c, hdr);
 	return JS_TRUE;
 }
 
-static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	JSString *s;
 	XMLHTTPContext *ctx;
@@ -2940,8 +3034,8 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_TRUE;
 
-	if (JSVAL_IS_INT(id)) {
-		switch (JSVAL_TO_INT(id)) {
+	if (SMJS_ID_IS_INT(id)) {
+		switch (SMJS_ID_TO_INT(id)) {
 		/*onreadystatechange*/
 		case 0:
 			if (ctx->onreadystatechange) {
@@ -2992,15 +3086,15 @@ static JSBool xml_http_getProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 	return JS_TRUE;
 }
 
-static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
 	XMLHTTPContext *ctx;
 	if (!JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	ctx = (XMLHTTPContext *)JS_GetPrivate(c, obj);
 	if (!ctx) return JS_TRUE;
 
-	if (JSVAL_IS_INT(id)) {
-		switch (JSVAL_TO_INT(id)) {
+	if (SMJS_ID_IS_INT(id)) {
+		switch (SMJS_ID_TO_INT(id)) {
 		/*onreadystatechange*/
 		case 0:
 			break;
@@ -3008,7 +3102,7 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		default:
 			return JS_TRUE;
 		}
-		if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange));
+		if (ctx->onreadystatechange) gf_js_remove_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
 		ctx->onreadystatechange = NULL;
 
 		if (JSVAL_IS_VOID(*vp)) {
@@ -3016,20 +3110,21 @@ static JSBool xml_http_setProperty(JSContext *c, JSObject *obj, jsval id, jsval 
 		}
 		else if (JSVAL_CHECK_STRING(*vp)) {
 			jsval fval;
-			char *callback = JSVAL_GET_STRING(*vp);
+			char *callback = SMJS_CHARS(c, *vp);
 			if (! JS_LookupProperty(c, JS_GetGlobalObject(c), callback, &fval)) return JS_TRUE;
 			ctx->onreadystatechange = JS_ValueToFunction(c, fval);
+			SMJS_FREE(c, callback);
 		} else if (JSVAL_IS_OBJECT(*vp)) {
 			ctx->onreadystatechange = JS_ValueToFunction(c, *vp);
 		}
-		if (ctx->onreadystatechange) gf_js_add_root(c, &(ctx->onreadystatechange));
+		if (ctx->onreadystatechange) gf_js_add_root(c, &(ctx->onreadystatechange), GF_JSGC_VAL);
 		return JS_TRUE;
 	}
 	return JS_TRUE;
 }
 
 
-static JSBool dcci_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool dcci_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	GF_DOMFullAttribute *att;
 	GF_ChildNodeItem *child;
@@ -3040,8 +3135,8 @@ static JSBool dcci_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 	n = (GF_DOMFullNode*) dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 
-	if (JSVAL_IS_INT(id)) {
-		switch (JSVAL_TO_INT(id)) {
+	if (SMJS_ID_IS_INT(id)) {
+		switch (SMJS_ID_TO_INT(id)) {
 		/*value*/
 		case 0:
 			child = n->children;
@@ -3118,7 +3213,7 @@ static JSBool dcci_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 	return JS_PropertyStub(c, obj, id, vp);
 }
 
-static JSBool dcci_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool dcci_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
 	GF_ChildNodeItem *child;
 	GF_DOMFullNode *n;
@@ -3129,15 +3224,19 @@ static JSBool dcci_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 	n = (GF_DOMFullNode*) dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 
-	str = JSVAL_GET_STRING( *vp);
+	str = SMJS_CHARS(c, *vp);
 	if (!str) return JS_TRUE;
 
-	if (JSVAL_IS_INT(id)) {
-		switch (JSVAL_TO_INT(id)) {
+	if (SMJS_ID_IS_INT(id)) {
+		switch (SMJS_ID_TO_INT(id)) {
 		/*value*/
 		case 0:
+#if (JS_VERSION>=185)
+			dcci_getProperty(c, obj, (jsint) (3), &readonly);
+#else
 			dcci_getProperty(c, obj, INT_TO_JSVAL(3), &readonly);
-			if (JSVAL_TO_BOOLEAN(readonly) == JS_TRUE) return JS_TRUE;
+#endif
+			if (JSVAL_TO_BOOLEAN(readonly) == JS_TRUE) break;
 			child = n->children;
 			while (child) {
 				if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
@@ -3160,17 +3259,17 @@ static JSBool dcci_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 			evt.relatedNode = (GF_Node*)n;
 			gf_dom_event_fire((GF_Node*)n, &evt);
 			n->sgprivate->scenegraph->modified = 1;
-			return JS_TRUE;
+			break;
 		/*propertyType*/
 		case 2:
-			return JS_TRUE;
+			break;
 
 		/*all other properties are read-only*/
 		default:
-			return JS_TRUE;
+			break;
 		}
-		return JS_TRUE;
 	}
+	SMJS_FREE(c, str);
 	return JS_TRUE;
 }
 
@@ -3201,24 +3300,27 @@ Bool dcci_prop_lookup(GF_DOMFullNode *n, char *ns, char *name, Bool deep, Bool f
 	return 0;
 }
 
-static JSBool dcci_has_property(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(dcci_has_property)
 {
 	GF_DOMFullNode *n;
 	Bool deep;
 	char *ns, *name;
+	SMJS_OBJ
+	SMJS_ARGS
 	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
 	n = (GF_DOMFullNode*) dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 	if (argc!=3) return JS_TRUE;
 	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 	if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-	ns = JSVAL_GET_STRING(argv[0]);
-	name = JSVAL_GET_STRING(argv[1]);
+	ns = SMJS_CHARS(c, argv[0]);
+	name = SMJS_CHARS(c, argv[1]);
 
 	deep = JSVAL_TO_BOOLEAN(argv[2]) ? 1 : 0;
 	deep = dcci_prop_lookup(n, ns, name, deep, 1);
-	*rval = BOOLEAN_TO_JSVAL(deep ? JS_TRUE : JS_FALSE);
-
+	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(deep ? JS_TRUE : JS_FALSE) );
+	SMJS_FREE(c, ns);
+	SMJS_FREE(c, name);
 	return JS_TRUE;
 }
 
@@ -3252,21 +3354,24 @@ void dcci_prop_collect(DOMNodeList *nl, GF_DOMFullNode *n, char *ns, char *name,
 	}
 }
 
-static JSBool dcci_search_property(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(dcci_search_property)
 {
 	JSObject *new_obj;
 	DOMNodeList *nl;
 	GF_DOMFullNode *n;
 	Bool deep;
 	char *ns, *name;
+	SMJS_OBJ
+	SMJS_ARGS
+
 	if (!JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
 	n = (GF_DOMFullNode*) dom_get_node(c, obj);
 	if (!n) return JS_TRUE;
 	if (argc!=4) return JS_TRUE;
 	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
 	if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-	ns = JSVAL_GET_STRING(argv[0]);
-	name = JSVAL_GET_STRING(argv[1]);
+	ns = SMJS_CHARS(c, argv[0]);
+	name = SMJS_CHARS(c, argv[1]);
 	/*todo - DCCI prop filter*/
 	deep = JSVAL_TO_BOOLEAN(argv[3]) ? 1 : 0;
 
@@ -3274,24 +3379,28 @@ static JSBool dcci_search_property(JSContext *c, JSObject *obj, uintN argc, jsva
 	dcci_prop_collect(nl, n, ns, name, deep, 1);
 	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass, 0, 0);
 	JS_SetPrivate(c, new_obj, nl);
-	*rval = OBJECT_TO_JSVAL(new_obj);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(new_obj) );
+	SMJS_FREE(c, ns);
+	SMJS_FREE(c, name);
 	return JS_TRUE;
 }
 
-static JSBool storage_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool storage_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	if (!JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
 	return JS_TRUE;
 }
 
-static JSBool storage_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool storage_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
 	if (!JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
 	return JS_TRUE;
 }
 
-static JSBool storage_constructor(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(storage_constructor)
 {
+	SMJS_OBJ_CONSTRUCTOR
+
 	if (!JS_InstanceOf(c, obj, &dom_rt->storageClass, NULL) ) return JS_TRUE;
 	return JS_TRUE;
 }
@@ -3313,11 +3422,11 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		JS_SETUP_CLASS(dom_rt->domNodeClass, "Node", JSCLASS_HAS_PRIVATE, dom_node_getProperty, dom_node_setProperty, dom_node_finalize);
 		JS_SETUP_CLASS(dom_rt->domDocumentClass, "Document", JSCLASS_HAS_PRIVATE, dom_document_getProperty, dom_document_setProperty, dom_document_finalize);
 		/*Element uses the same destructor as node*/
-		JS_SETUP_CLASS(dom_rt->domElementClass, "Element", JSCLASS_HAS_PRIVATE, dom_element_getProperty, JS_PropertyStub, dom_node_finalize);
+		JS_SETUP_CLASS(dom_rt->domElementClass, "Element", JSCLASS_HAS_PRIVATE, dom_element_getProperty, JS_PropertyStub_forSetter, dom_node_finalize);
 		/*Text uses the same destructor as node*/
 		JS_SETUP_CLASS(dom_rt->domTextClass, "Text", JSCLASS_HAS_PRIVATE, dom_text_getProperty, dom_text_setProperty, dom_node_finalize);
 		/*Event class*/
-		JS_SETUP_CLASS(dom_rt->domEventClass , "Event", JSCLASS_HAS_PRIVATE, event_getProperty, JS_PropertyStub, JS_FinalizeStub);
+		JS_SETUP_CLASS(dom_rt->domEventClass , "Event", JSCLASS_HAS_PRIVATE, event_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
 
 
 		JS_SETUP_CLASS(dom_rt->domNodeListClass, "NodeList", JSCLASS_HAS_PRIVATE, dom_nodelist_getProperty, dom_nodelist_setProperty, dom_nodelist_finalize);
@@ -3334,49 +3443,49 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 
 	{
 		JSFunctionSpec nodeFuncs[] = {
-			{"insertBefore",			xml_node_insert_before, 2, 0, 0},
-			{"replaceChild",			xml_node_replace_child, 2, 0, 0},
-			{"removeChild",				xml_node_remove_child, 1, 0, 0},
-			{"appendChild",				xml_node_append_child, 1, 0, 0},
-			{"hasChildNodes",			xml_node_has_children, 0, 0, 0},
-			{"cloneNode",				xml_clone_node, 1, 0, 0},
-			{"normalize",				xml_dom3_not_implemented, 0, 0, 0},
-			{"isSupported",				xml_dom3_not_implemented, 2, 0, 0},
-			{"hasAttributes",			xml_node_has_attributes, 0, 0, 0},
-			{"compareDocumentPosition", xml_dom3_not_implemented, 1, 0, 0},
-			{"isSameNode",				xml_node_is_same_node, 1, 0, 0},
-			{"lookupPrefix",			xml_dom3_not_implemented, 1, 0, 0},
-			{"isDefaultNamespace",		xml_dom3_not_implemented, 1, 0, 0},
-			{"lookupNamespaceURI",		xml_dom3_not_implemented, 1, 0, 0},
+			SMJS_FUNCTION_SPEC("insertBefore",			xml_node_insert_before, 2),
+			SMJS_FUNCTION_SPEC("replaceChild",			xml_node_replace_child, 2),
+			SMJS_FUNCTION_SPEC("removeChild",				xml_node_remove_child, 1),
+			SMJS_FUNCTION_SPEC("appendChild",				xml_node_append_child, 1),
+			SMJS_FUNCTION_SPEC("hasChildNodes",			xml_node_has_children, 0),
+			SMJS_FUNCTION_SPEC("cloneNode",				xml_clone_node, 1),
+			SMJS_FUNCTION_SPEC("normalize",				xml_dom3_not_implemented, 0),
+			SMJS_FUNCTION_SPEC("isSupported",				xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("hasAttributes",			xml_node_has_attributes, 0),
+			SMJS_FUNCTION_SPEC("compareDocumentPosition", xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("isSameNode",				xml_node_is_same_node, 1),
+			SMJS_FUNCTION_SPEC("lookupPrefix",			xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("isDefaultNamespace",		xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("lookupNamespaceURI",		xml_dom3_not_implemented, 1),
 			/*we don't support full node compare*/
-			{"isEqualNode",				xml_node_is_same_node, 1, 0, 0},
-			{"getFeature",				xml_dom3_not_implemented, 2, 0, 0},
-			{"setUserData",				xml_dom3_not_implemented, 3, 0, 0},
-			{"getUserData",				xml_dom3_not_implemented, 1, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_FUNCTION_SPEC("isEqualNode",				xml_node_is_same_node, 1),
+			SMJS_FUNCTION_SPEC("getFeature",				xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("setUserData",				xml_dom3_not_implemented, 3),
+			SMJS_FUNCTION_SPEC("getUserData",				xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JSPropertySpec nodeProps[] = {
-			{"nodeName",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"nodeValue",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
-			{"nodeType",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"parentNode",		3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"childNodes",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"firstChild",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"lastChild",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"previousSibling",	7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"nextSibling",		8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"attributes",		9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"ownerDocument",	10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"namespaceURI",	11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"prefix",			12,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
-			{"localName",		13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"baseURI",			14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"textContent",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"nodeName",		0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"nodeValue",		1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+			{"nodeType",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"parentNode",		3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"childNodes",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"firstChild",		5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"lastChild",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"previousSibling",	7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"nextSibling",		8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"attributes",		9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"ownerDocument",	10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"namespaceURI",	11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"prefix",			12,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+			{"localName",		13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"baseURI",			14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"textContent",		15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
 			/*elementTraversal interface*/
-			{"firstElementChild",		16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"lastElementChild",		17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"previousElementSibling",	18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"nextElementSibling",		19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"firstElementChild",		16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"lastElementChild",		17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"previousElementSibling",	18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"nextElementSibling",		19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 
 			{0, 0, 0, 0, 0}
 		};
@@ -3391,41 +3500,41 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 	}
 	{
 		JSFunctionSpec documentFuncs[] = {
-			{"createElement",				xml_document_create_element, 1, 0, 0},
-			{"createDocumentFragment",		xml_dom3_not_implemented, 0, 0, 0},
-			{"createTextNode",				xml_document_create_text, 1, 0, 0},
-			{"createComment",				xml_dom3_not_implemented, 1, 0, 0},
-			{"createCDATASection",			xml_dom3_not_implemented, 1, 0, 0},
-			{"createProcessingInstruction",	xml_dom3_not_implemented, 2, 0, 0},
-			{"createAttribute",				xml_dom3_not_implemented, 1, 0, 0},
-			{"createEntityReference",		xml_dom3_not_implemented, 1, 0, 0},
-			{"getElementsByTagName",		xml_document_elements_by_tag, 1, 0, 0},
-			{"importNode",					xml_dom3_not_implemented, 2, 0, 0},
-			{"createElementNS",				xml_document_create_element, 2, 0, 0},
-			{"createAttributeNS",			xml_dom3_not_implemented, 2, 0, 0},
-			{"getElementsByTagNameNS",		xml_document_elements_by_tag, 2, 0, 0},
-			{"getElementById",				xml_document_element_by_id, 1, 0, 0},
-			{"adoptNode",					xml_dom3_not_implemented, 1, 0, 0},
-			{"normalizeDocument",			xml_dom3_not_implemented, 0, 0, 0},
-			{"renameNode",					xml_dom3_not_implemented, 3, 0, 0},
+			SMJS_FUNCTION_SPEC("createElement",				xml_document_create_element, 1),
+			SMJS_FUNCTION_SPEC("createDocumentFragment",		xml_dom3_not_implemented, 0),
+			SMJS_FUNCTION_SPEC("createTextNode",				xml_document_create_text, 1),
+			SMJS_FUNCTION_SPEC("createComment",				xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("createCDATASection",			xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("createProcessingInstruction",	xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("createAttribute",				xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("createEntityReference",		xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("getElementsByTagName",		xml_document_elements_by_tag, 1),
+			SMJS_FUNCTION_SPEC("importNode",					xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("createElementNS",				xml_document_create_element, 2),
+			SMJS_FUNCTION_SPEC("createAttributeNS",			xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("getElementsByTagNameNS",		xml_document_elements_by_tag, 2),
+			SMJS_FUNCTION_SPEC("getElementById",				xml_document_element_by_id, 1),
+			SMJS_FUNCTION_SPEC("adoptNode",					xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("normalizeDocument",			xml_dom3_not_implemented, 0),
+			SMJS_FUNCTION_SPEC("renameNode",					xml_dom3_not_implemented, 3),
 			/*eventTarget interface*/
 			JS_DOM3_EVEN_TARGET_INTERFACE
 			/*DocumentEvent interface*/
-			{"createEvent",					xml_dom3_not_implemented, 1, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_FUNCTION_SPEC("createEvent",					xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 
 		JSPropertySpec documentProps[] = {
-			{"doctype",				1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"implementation",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"documentElement",		3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"inputEncoding",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"xmlEncoding",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"xmlStandalone",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
-			{"xmlVersion",			7,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
-			{"strictErrorChecking",	8,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
-			{"documentURI",			9,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
-			{"domConfig",			10,      JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
+			{"doctype",				1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"implementation",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"documentElement",		3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"inputEncoding",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"xmlEncoding",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"xmlStandalone",		6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+			{"xmlVersion",			7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+			{"strictErrorChecking",	8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+			{"documentURI",			9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+			{"domConfig",			10,      JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
 			{0, 0, 0, 0, 0},
 		};
 
@@ -3435,32 +3544,32 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 
 	{
 		JSFunctionSpec elementFuncs[] = {
-			{"getAttribute",				xml_element_get_attribute, 1, 0, 0},
-			{"setAttribute",				xml_element_set_attribute, 2, 0, 0},
-			{"removeAttribute",				xml_element_remove_attribute, 1, 0, 0},
-			{"getAttributeNS",				xml_element_get_attribute, 2, 0, 0},
-			{"setAttributeNS",				xml_element_set_attribute, 3, 0, 0},
-			{"removeAttributeNS",			xml_element_remove_attribute, 2, 0, 0},
-			{"hasAttribute",				xml_element_has_attribute, 1, 0, 0},
-			{"hasAttributeNS",				xml_element_has_attribute, 2, 0, 0},
-			{"getElementsByTagName",		xml_element_elements_by_tag, 1, 0, 0},
-			{"getElementsByTagNameNS",		xml_element_elements_by_tag, 2, 0, 0},
-			{"setIdAttribute",				xml_element_set_id, 2, 0, 0},
-			{"setIdAttributeNS",			xml_element_set_id, 3, 0, 0},
-			{"getAttributeNode",			xml_dom3_not_implemented, 1, 0, 0},
-			{"setAttributeNode",			xml_dom3_not_implemented, 1, 0, 0},
-			{"removeAttributeNode",			xml_dom3_not_implemented, 1, 0, 0},
-			{"getAttributeNodeNS",			xml_dom3_not_implemented, 2, 0, 0},
-			{"setAttributeNodeNS",			xml_dom3_not_implemented, 1, 0, 0},
-			{"setIdAttributeNode",			xml_dom3_not_implemented, 2, 0, 0},
+			SMJS_FUNCTION_SPEC("getAttribute",				xml_element_get_attribute, 1),
+			SMJS_FUNCTION_SPEC("setAttribute",				xml_element_set_attribute, 2),
+			SMJS_FUNCTION_SPEC("removeAttribute",				xml_element_remove_attribute, 1),
+			SMJS_FUNCTION_SPEC("getAttributeNS",				xml_element_get_attribute, 2),
+			SMJS_FUNCTION_SPEC("setAttributeNS",				xml_element_set_attribute, 3),
+			SMJS_FUNCTION_SPEC("removeAttributeNS",			xml_element_remove_attribute, 2),
+			SMJS_FUNCTION_SPEC("hasAttribute",				xml_element_has_attribute, 1),
+			SMJS_FUNCTION_SPEC("hasAttributeNS",				xml_element_has_attribute, 2),
+			SMJS_FUNCTION_SPEC("getElementsByTagName",		xml_element_elements_by_tag, 1),
+			SMJS_FUNCTION_SPEC("getElementsByTagNameNS",		xml_element_elements_by_tag, 2),
+			SMJS_FUNCTION_SPEC("setIdAttribute",				xml_element_set_id, 2),
+			SMJS_FUNCTION_SPEC("setIdAttributeNS",			xml_element_set_id, 3),
+			SMJS_FUNCTION_SPEC("getAttributeNode",			xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("setAttributeNode",			xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("removeAttributeNode",			xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("getAttributeNodeNS",			xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("setAttributeNodeNS",			xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("setIdAttributeNode",			xml_dom3_not_implemented, 2),
 			/*eventTarget interface*/
 			JS_DOM3_EVEN_TARGET_INTERFACE
-			{0, 0, 0, 0, 0}
+			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 
 		JSPropertySpec elementProps[] = {
-			{"tagName",				1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"schemaTypeInfo",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"tagName",				1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"schemaTypeInfo",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 			{0, 0, 0, 0, 0},
 		};
 		dom_rt->dom_element_proto = JS_InitClass(c, global, dom_rt->dom_node_proto, &dom_rt->domElementClass, 0, 0, elementProps, elementFuncs, 0, 0);
@@ -3470,23 +3579,23 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 	{
 		JSFunctionSpec textFuncs[] = {
 #if 0
-			{"substringData",			xml_dom3_not_implemented, 2, 0, 0},
-			{"appendData",				xml_dom3_not_implemented, 1, 0, 0},
-			{"insertData",				xml_dom3_not_implemented, 2, 0, 0},
-			{"deleteData",				xml_dom3_not_implemented, 2, 0, 0},
-			{"replaceData",				xml_dom3_not_implemented, 3, 0, 0},
+			SMJS_FUNCTION_SPEC("substringData",			xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("appendData",				xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("insertData",				xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("deleteData",				xml_dom3_not_implemented, 2),
+			SMJS_FUNCTION_SPEC("replaceData",				xml_dom3_not_implemented, 3),
 			/*text*/
-			{"splitText",				xml_dom3_not_implemented, 1, 0, 0},
-			{"replaceWholeText",		xml_dom3_not_implemented, 1, 0, 0},
+			SMJS_FUNCTION_SPEC("splitText",				xml_dom3_not_implemented, 1),
+			SMJS_FUNCTION_SPEC("replaceWholeText",		xml_dom3_not_implemented, 1),
 #endif
-			{0, 0, 0, 0, 0}
+			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JSPropertySpec textProps[] = {
-			{"data",						1,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
-			{"length",						2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"data",						1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+			{"length",						2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 			/*text*/
-			{"isElementContentWhitespace",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"wholeText",					4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"isElementContentWhitespace",	3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"wholeText",					4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 			{0, 0, 0, 0, 0},
 		};
 		JS_InitClass(c, global, dom_rt->dom_node_proto, &dom_rt->domTextClass, 0, 0, textProps, textFuncs, 0, 0);
@@ -3496,66 +3605,66 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 	/*event API*/
 	{
 		JSFunctionSpec eventFuncs[] = {
-			{"stopPropagation", event_stop_propagation, 0, 0, 0},
-			{"stopImmediatePropagation", event_stop_immediate_propagation, 0, 0, 0},
-			{"preventDefault", event_prevent_default, 0, 0, 0},
+			SMJS_FUNCTION_SPEC("stopPropagation", event_stop_propagation, 0),
+			SMJS_FUNCTION_SPEC("stopImmediatePropagation", event_stop_immediate_propagation, 0),
+			SMJS_FUNCTION_SPEC("preventDefault", event_prevent_default, 0),
 #if 0
-			{"initEvent", event_prevent_default, 3, 0, 0},
-			{"initEventNS", event_prevent_default, 4, 0, 0},
+			SMJS_FUNCTION_SPEC("initEvent", event_prevent_default, 3),
+			SMJS_FUNCTION_SPEC("initEventNS", event_prevent_default, 4),
 #endif
-			{0, 0, 0, 0, 0}
+			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JSPropertySpec eventProps[] = {
-			{"type",			 0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"target",			 1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"currentTarget",	 2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"eventPhase",		 3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"bubbles",			 4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"cancelable",		 5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"timeStamp",		 6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"namespaceURI",	 7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"defaultPrevented", 8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"type",			 0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"target",			 1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"currentTarget",	 2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"eventPhase",		 3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"bubbles",			 4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"cancelable",		 5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"timeStamp",		 6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"namespaceURI",	 7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"defaultPrevented", 8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 
 			/*UIEvent*/
-			{"detail",			20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"detail",			20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 			/*text, connectionEvent*/
-			{"data",			25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"data",			25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 			/*MouseEvent*/
-			{"screenX",			30,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"screenY",			31,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"clientX",			32,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"clientY",			33,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"button",			34,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"relatedTarget",	35,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"screenX",			30,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"screenY",			31,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"clientX",			32,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"clientY",			33,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"button",			34,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"relatedTarget",	35,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 			/*wheelEvent*/
-			{"wheelDelta",		36,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"wheelDelta",		36,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 
 			/*keyboard*/
-			{"keyIdentifier",	40,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"keyChar",			41,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"charCode",		42,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"keyIdentifier",	40,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"keyChar",			41,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"charCode",		42,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 
 			/*progress*/
-			{"lengthComputable",50,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"typeArg",			51,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"loaded",			52,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"total",			53,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"bufferLevelValid",	54,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"bufferLevel",			55,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"bufferRemainingTime",	56,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"status",				57,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"lengthComputable",50,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"typeArg",			51,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"loaded",			52,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"total",			53,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"bufferLevelValid",	54,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"bufferLevel",			55,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"bufferRemainingTime",	56,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"status",				57,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 
 			/*used by vrml*/
-			{"width",			60,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"height",			61,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"offset_x",		62,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"offset_y",		63,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"vp_width",		64,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"vp_height",		65,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"translation_x",	66,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"translation_y",	67,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"type3d",			68,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"error",			69,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"width",			60,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"height",			61,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"offset_x",		62,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"offset_y",		63,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"vp_width",		64,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"vp_height",		65,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"translation_x",	66,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"translation_y",	67,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"type3d",			68,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"error",			69,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 
 
 			{0, 0, 0, 0, 0},
@@ -3576,11 +3685,11 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 
 	{
 		JSFunctionSpec nodeListFuncs[] = {
-			{"item",					dom_nodelist_item, 1, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_FUNCTION_SPEC("item", dom_nodelist_item, 1),
+			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JSPropertySpec nodeListProps[] = {
-			{"length",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"length",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 			{0, 0, 0, 0, 0}
 		};
 		JS_InitClass(c, global, 0, &dom_rt->domNodeListClass, 0, 0, nodeListProps, nodeListFuncs, 0, 0);
@@ -3589,23 +3698,23 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 
 	{
 		JSPropertySpec xmlHTTPRequestClassProps[] = {
-			{"onreadystatechange",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
-			{"readyState",			1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"responseText",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"responseXML",			3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"status",				4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-			{"statusText",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+			{"onreadystatechange",	0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+			{"readyState",			1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"responseText",		2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"responseXML",			3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"status",				4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+			{"statusText",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 			{0, 0, 0, 0, 0}
 		};
 		JSFunctionSpec xmlHTTPRequestClassFuncs[] = {
-			{"open",					xml_http_open, 2, 0, 0},
-			{"setRequestHeader",		xml_http_set_header, 2, 0, 0},
-			{"send",					xml_http_send, 0, 0, 0},
-			{"abort",					xml_http_abort, 0, 0, 0},
-			{"getAllResponseHeaders",	xml_http_get_all_headers, 0, 0, 0},
-			{"getResponseHeader",		xml_http_get_header, 1, 0, 0},
+			SMJS_FUNCTION_SPEC("open",					xml_http_open, 2),
+			SMJS_FUNCTION_SPEC("setRequestHeader",		xml_http_set_header, 2),
+			SMJS_FUNCTION_SPEC("send",					xml_http_send, 0),
+			SMJS_FUNCTION_SPEC("abort",					xml_http_abort, 0),
+			SMJS_FUNCTION_SPEC("getAllResponseHeaders",	xml_http_get_all_headers, 0),
+			SMJS_FUNCTION_SPEC("getResponseHeader",		xml_http_get_header, 1),
 			/*todo - addEventListener and removeEventListener*/
-			{0, 0, 0, 0, 0}
+			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		JS_InitClass(c, global, 0, &dom_rt->xmlHTTPRequestClass, xml_http_constructor, 0, xmlHTTPRequestClassProps, xmlHTTPRequestClassFuncs, 0, 0);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] XMLHttpRequest class initialized\n"));
@@ -3616,7 +3725,7 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 			{0, 0, 0, 0, 0}
 		};
 		JSFunctionSpec storageClassFuncs[] = {
-			{0, 0, 0, 0, 0}
+			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 		dom_rt->storage_proto = JS_InitClass(c, global, 0, &dom_rt->storageClass, storage_constructor, 0, storageClassProps, storageClassFuncs, 0, 0);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] Storage class initialized\n"));
@@ -3636,19 +3745,19 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		if (dcci && dcci->RootNode) {
 
 			JSPropertySpec DCCIClassProps[] = {
-				{"value",							0,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
-				{"valueType",						1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-				{"propertyType",					2,       JSPROP_ENUMERATE | JSPROP_PERMANENT, 0, 0},
-				{"readOnly",						3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-				{"DCCIMetadataInterfaceType",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-				{"DCCIMetadataInterface",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-				{"version",							6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+				{"value",							0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+				{"valueType",						1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+				{"propertyType",					2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0},
+				{"readOnly",						3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+				{"DCCIMetadataInterfaceType",		4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+				{"DCCIMetadataInterface",			5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+				{"version",							6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 				{0, 0, 0, 0, 0}
 			};
 			JSFunctionSpec DCCIClassFuncs[] = {
-				{"hasProperty",			dcci_has_property, 3, 0, 0},
-				{"searchProperty",		dcci_search_property, 4, 0, 0},
-			{0, 0, 0, 0, 0}
+				SMJS_FUNCTION_SPEC("hasProperty",			dcci_has_property, 3),
+				SMJS_FUNCTION_SPEC("searchProperty",		dcci_search_property, 4),
+				SMJS_FUNCTION_SPEC(0, 0, 0)
 			};
 
 			JS_InitClass(c, global, dom_rt->dom_element_proto, &dom_rt->DCCIClass, 0, 0, DCCIClassProps, DCCIClassFuncs, 0, 0);
@@ -3672,7 +3781,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 			JS_SetPrivate(c, obj, NULL);
 			n->sgprivate->interact->js_binding->node=NULL;
 			if (gf_list_del_item(sg->objects, obj)>=0) {
-				gf_js_remove_root(c, &(n->sgprivate->interact->js_binding->node));
+				gf_js_remove_root(c, &(n->sgprivate->interact->js_binding->node), GF_JSGC_OBJECT);
 			}
 		}
 		return;
@@ -3688,7 +3797,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 			JS_SetPrivate(c, obj, NULL);
 			n->sgprivate->interact->js_binding->node=NULL;
 			gf_node_unregister(n, NULL);
-			gf_js_remove_root(c, &(n->sgprivate->interact->js_binding->node));
+			gf_js_remove_root(c, &(n->sgprivate->interact->js_binding->node), GF_JSGC_OBJECT);
 		}
 		gf_list_rem(sg->objects, 0);
 	}
@@ -3698,7 +3807,7 @@ void dom_js_pre_destroy(JSContext *c, GF_SceneGraph *sg, GF_Node *n)
 		SVG_handlerElement *handler = (SVG_handlerElement *)gf_list_get(dom_rt->handlers, i);
 		if (handler->js_context==c) {
 			/*unprotect the function*/
-			gf_js_remove_root(handler->js_context, &(handler->js_fun_val));
+			gf_js_remove_root(handler->js_context, &(handler->js_fun_val), GF_JSGC_VAL);
 			handler->js_fun_val=0;
 			handler->js_context=0;
 			gf_list_rem(dom_rt->handlers, i);

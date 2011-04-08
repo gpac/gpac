@@ -914,20 +914,6 @@ struct _scriptfield
 #include <gpac/network.h>
 
 
-#define JS_SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
-	memset(&the_class, 0, sizeof(the_class));	\
-	the_class.name = cname;	\
-	the_class.flags = flag;	\
-	the_class.addProperty = JS_PropertyStub;	\
-	the_class.delProperty = JS_PropertyStub;	\
-	the_class.getProperty = getp;	\
-	the_class.setProperty = setp;	\
-	the_class.enumerate = JS_EnumerateStub;	\
-	the_class.resolve = JS_ResolveStub;		\
-	the_class.convert = JS_ConvertStub;		\
-	the_class.finalize = fin;	\
-	the_class.hasInstance = my_js_has_instance;
-
 struct JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg);
 void gf_sg_ecmascript_del(struct JSContext *);
 
@@ -935,9 +921,17 @@ GF_Node *gf_sg_js_get_node(struct JSContext *c, struct JSObject *obj);
 
 void gf_sg_script_init_sm_api(GF_ScriptPriv *sc, GF_Node *script);
 
-Bool gf_js_add_root(struct JSContext *cx, void *rp);
-Bool gf_js_add_named_root(struct JSContext *cx, void *rp, const char *name);
-Bool gf_js_remove_root(struct JSContext *cx, void *rp);
+/*GC thing type: 0 for jsval, 1 for jsstring, 2 for jsobject*/
+enum
+{
+	GF_JSGC_VAL=0,
+	GF_JSGC_STRING,
+	GF_JSGC_OBJECT,
+};
+
+Bool gf_js_add_root(struct JSContext *cx, void *rp, u32 type);
+Bool gf_js_add_named_root(struct JSContext *cx, void *rp, u32 type, const char *name);
+Bool gf_js_remove_root(struct JSContext *cx, void *rp, u32 type);
 void gf_js_vrml_flush_event_out(GF_Node *node, GF_ScriptPriv *priv);
 
 #ifdef GPAC_HAS_SPIDERMONKEY

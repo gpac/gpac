@@ -48,7 +48,7 @@
 #endif
 
 #include <gpac/internal/scenegraph_dev.h>
-#include <jsapi.h> 
+#include <gpac/internal/smjs_api.h> 
 
 #include <gpac/modules/js_usr.h>
 #include <gpac/internal/terminal_dev.h>
@@ -72,160 +72,135 @@ typedef struct
 } GF_GPACJSExt;
 
 
-#define _SETUP_CLASS(the_class, cname, flag, getp, setp, fin)	\
-	memset(&the_class, 0, sizeof(the_class));	\
-	the_class.name = cname;	\
-	the_class.flags = flag;	\
-	the_class.addProperty = JS_PropertyStub;	\
-	the_class.delProperty = JS_PropertyStub;	\
-	the_class.getProperty = getp;	\
-	the_class.setProperty = setp;	\
-	the_class.enumerate = JS_EnumerateStub;	\
-	the_class.resolve = JS_ResolveStub;		\
-	the_class.convert = JS_ConvertStub;		\
-	the_class.finalize = fin;
-
-
 static GF_Terminal *gpac_get_term(JSContext *c, JSObject *obj)
 {
 	GF_GPACJSExt *ext = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
 	return ext ? ext->term : NULL;
 }
 
-static JSBool gpac_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool gpac_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	const char *res;
 	char *prop_name;
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!term) return JS_FALSE;
 
-	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
-	prop_name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 	if (!prop_name) return JS_FALSE;
 
 	if (!strcmp(prop_name, "last_working_directory")) {
 		res = gf_cfg_get_key(term->user->config, "General", "LastWorkingDir");
 		if (!res) res = gf_cfg_get_key(term->user->config, "General", "ModulesDirectory");
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, res)); 
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "scale_x")) {
+	else if (!strcmp(prop_name, "scale_x")) {
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_x)) );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "scale_y")) {
+	else if (!strcmp(prop_name, "scale_y")) {
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_y)) );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "translation_x")) {
+	else if (!strcmp(prop_name, "translation_x")) {
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_x)) );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "translation_y")) {
+	else if (!strcmp(prop_name, "translation_y")) {
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_y)) );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "rectangular_textures")) {
+	else if (!strcmp(prop_name, "rectangular_textures")) {
 		Bool any_size = 0;
 #ifndef GPAC_DISABLE_3D
 		if (term->compositor->gl_caps.npot_texture || term->compositor->gl_caps.rect_texture)
 			any_size = 1;
 #endif
 		*vp = BOOLEAN_TO_JSVAL( any_size ? JS_TRUE : JS_FALSE );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "batteryOn")) {
+	else if (!strcmp(prop_name, "batteryOn")) {
 		Bool on_battery = 0;
 		gf_sys_get_battery_state(&on_battery, NULL, NULL, NULL, NULL);
 		*vp = BOOLEAN_TO_JSVAL( on_battery ? JS_TRUE : JS_FALSE );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "batteryCharging")) {
+	else if (!strcmp(prop_name, "batteryCharging")) {
 		Bool on_charge = 0;
 		gf_sys_get_battery_state(NULL, &on_charge, NULL, NULL, NULL);
 		*vp = BOOLEAN_TO_JSVAL( on_charge ? JS_TRUE : JS_FALSE );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "batteryPercent")) {
+	else if (!strcmp(prop_name, "batteryPercent")) {
 		u32 level = 0;
 		gf_sys_get_battery_state(NULL, NULL, &level, NULL, NULL);
 		*vp = INT_TO_JSVAL( level );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "batteryLifeTime")) {
+	else if (!strcmp(prop_name, "batteryLifeTime")) {
 		u32 level = 0;
 		gf_sys_get_battery_state(NULL, NULL, NULL, &level, NULL);
 		*vp = INT_TO_JSVAL( level );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "batteryFullLifeTime")) {
+	else if (!strcmp(prop_name, "batteryFullLifeTime")) {
 		u32 level = 0;
 		gf_sys_get_battery_state(NULL, NULL, NULL, NULL, &level);
 		*vp = INT_TO_JSVAL( level );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "hostname")) {
+	else if (!strcmp(prop_name, "hostname")) {
 		char hostname[100];
 		gf_sk_get_host_name((char*)hostname);
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, hostname)); 
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "fullscreen")) {
+	else if (!strcmp(prop_name, "fullscreen")) {
 		*vp = BOOLEAN_TO_JSVAL( term->compositor->fullscreen ? JS_TRUE : JS_FALSE); 
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "current_path")) {
+	else if (!strcmp(prop_name, "current_path")) {
 		char *url = gf_url_concatenate(term->root_scene->root_od->net_service->url, "");
 		if (!url) url = gf_strdup("");
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, url)); 
 		gf_free(url);
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "volume")) {
+	else if (!strcmp(prop_name, "volume")) {
 		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_AUDIO_VOLUME));
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "navigation")) {
+	else if (!strcmp(prop_name, "navigation")) {
 		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION));
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "navigation_type")) {
+	else if (!strcmp(prop_name, "navigation_type")) {
 		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE) );
-		return JS_TRUE;
 	}
+	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
-static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool gpac_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
 	char *prop_name, *prop_val;
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!term) return JS_FALSE;
 
-	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
-	prop_name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 
 	if (!strcmp(prop_name, "last_working_directory")) {
-		if (!JSVAL_IS_STRING(*vp)) return JS_FALSE;
-		prop_val = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
+		if (!JSVAL_IS_STRING(*vp)) {
+			SMJS_FREE(c, prop_name);
+			return JS_FALSE;
+		}
+		prop_val = SMJS_CHARS(c, *vp);
 		gf_cfg_set_key(term->user->config, "General", "LastWorkingDir", prop_val);
-		return JS_TRUE;
+		SMJS_FREE(c, prop_val);
 	}
-	if (!strcmp(prop_name, "caption")) {
+	else if (!strcmp(prop_name, "caption")) {
 		GF_Event evt;
-		if (!JSVAL_IS_STRING(*vp)) return JS_FALSE;
+		if (!JSVAL_IS_STRING(*vp)) {
+			SMJS_FREE(c, prop_name);
+			return JS_FALSE;
+		}
 		evt.type = GF_EVENT_SET_CAPTION;
-		evt.caption.caption = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
+		evt.caption.caption = SMJS_CHARS(c, *vp);
 		gf_term_user_event(term, &evt);
-		return JS_TRUE;
+		SMJS_FREE(c, (char*)evt.caption.caption);
 	}
-	if (!strcmp(prop_name, "fullscreen")) {
+	else if (!strcmp(prop_name, "fullscreen")) {
 		Bool res = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
 		if (term->compositor->fullscreen != res) {
 			gf_term_set_option(term, GF_OPT_FULLSCREEN, res);
 		}
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "volume")) {
+	else if (!strcmp(prop_name, "volume")) {
 		if (JSVAL_IS_NUMBER(*vp)) {
 			jsdouble d;
 			JS_ValueToNumber(c, *vp, &d);
@@ -233,78 +208,87 @@ static JSBool gpac_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
 		} else if (JSVAL_IS_INT(*vp)) {
 			gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, JSVAL_TO_INT(*vp));
 		}
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "navigation")) {
+	else if (!strcmp(prop_name, "navigation")) {
 		gf_term_set_option(term, GF_OPT_NAVIGATION, JSVAL_TO_INT(*vp) );
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "navigation_type")) {
+	else if (!strcmp(prop_name, "navigation_type")) {
 		gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
-		return JS_TRUE;
 	}
-
+	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
 
-static JSBool gpac_getOption(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_getOption)
 {
-	const char *opt, *sec_name;
-	JSString *js_sec_name, *js_key_name, *s;
+	const char *opt;
+	char *sec_name, *key_name;
+	JSString *s;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!term) return JS_FALSE;
 
-	if (argc < 2) return JSVAL_FALSE;
+	if (argc < 2) return JS_FALSE;
 	
-	if (!JSVAL_IS_STRING(argv[0])) return JSVAL_FALSE;
-	js_sec_name = JSVAL_TO_STRING(argv[0]);
+	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
+	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
 
-	if (!JSVAL_IS_STRING(argv[1])) return JSVAL_FALSE;
-	js_key_name = JSVAL_TO_STRING(argv[1]);
+	sec_name = SMJS_CHARS(c, argv[0]);
+	key_name = SMJS_CHARS(c, argv[1]);
 
-	sec_name = JS_GetStringBytes(js_sec_name);
 	if (!stricmp(sec_name, "audiofilters")) {
-		if (!term->compositor->audio_renderer->filter_chain.enable_filters) return JS_TRUE;
-		if (!term->compositor->audio_renderer->filter_chain.filters->filter->GetOption) return JS_TRUE;
-		opt = term->compositor->audio_renderer->filter_chain.filters->filter->GetOption(term->compositor->audio_renderer->filter_chain.filters->filter, JS_GetStringBytes(js_key_name));
+		if (!term->compositor->audio_renderer->filter_chain.enable_filters 
+			|| !term->compositor->audio_renderer->filter_chain.filters->filter->GetOption) {
+				SMJS_FREE(c, key_name);
+				SMJS_FREE(c, sec_name);
+				return JS_TRUE;
+		}
+		opt = term->compositor->audio_renderer->filter_chain.filters->filter->GetOption(term->compositor->audio_renderer->filter_chain.filters->filter, key_name);
 	} else {
-		opt = gf_cfg_get_key(term->user->config, sec_name, JS_GetStringBytes(js_key_name));
+		opt = gf_cfg_get_key(term->user->config, sec_name, key_name);
 	}
+	SMJS_FREE(c, key_name);
+	SMJS_FREE(c, sec_name);
+
 	s = JS_NewStringCopyZ(c, opt ? opt : "");
 	if (!s) return JS_FALSE;
-	*rval = STRING_TO_JSVAL(s); 
+	SMJS_SET_RVAL( STRING_TO_JSVAL(s) ); 
 	return JS_TRUE; 
 }
 
-static JSBool gpac_setOption(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_setOption)
 {
-	char *js_sec_name, *js_key_name, *js_key_val;
+	char *sec_name, *key_name, *key_val;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!term) return JS_FALSE;
-	if (argc < 3) return JSVAL_FALSE;
+	if (argc < 3) return JS_FALSE;
 	
-	if (!JSVAL_IS_STRING(argv[0])) return JSVAL_FALSE;
-	js_sec_name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
+	if (!JSVAL_IS_STRING(argv[1])) return JS_FALSE;
+	if (!JSVAL_IS_STRING(argv[2])) return JS_FALSE;
 
+	sec_name = SMJS_CHARS(c, argv[0]);
+	key_name = SMJS_CHARS(c, argv[1]);
+	key_val = SMJS_CHARS(c, argv[2]);
 
-	if (!JSVAL_IS_STRING(argv[1])) return JSVAL_FALSE;
-	js_key_name = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
-
-
-	if (!JSVAL_IS_STRING(argv[2])) return JSVAL_FALSE;
-	js_key_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[2]));
-
-	if (!stricmp(js_sec_name, "audiofilters")) {
-		if (!term->compositor->audio_renderer->filter_chain.enable_filters) return JS_TRUE;
-		if (!term->compositor->audio_renderer->filter_chain.filters->filter->SetOption) return JS_TRUE;
-		term->compositor->audio_renderer->filter_chain.filters->filter->SetOption(term->compositor->audio_renderer->filter_chain.filters->filter, js_key_name, js_key_val);
+	if (!stricmp(sec_name, "audiofilters")) {
+		if (term->compositor->audio_renderer->filter_chain.enable_filters
+		&& term->compositor->audio_renderer->filter_chain.filters->filter->SetOption) {
+			term->compositor->audio_renderer->filter_chain.filters->filter->SetOption(term->compositor->audio_renderer->filter_chain.filters->filter, key_name, key_val);
+		}
 	} else {
-		gf_cfg_set_key(term->user->config, js_sec_name, js_key_name, js_key_val);
-		if (!strcmp(js_sec_name, "Audio") && !strcmp(js_key_name, "Filter")) {
+		gf_cfg_set_key(term->user->config, sec_name, key_name, key_val);
+		if (!strcmp(sec_name, "Audio") && !strcmp(key_name, "Filter")) {
 			gf_sc_reload_audio_filters(term->compositor);
 		}
 	}
-	return JSVAL_TRUE;
+	SMJS_FREE(c, sec_name);
+	SMJS_FREE(c, key_name);
+	SMJS_FREE(c, key_val);
+	return JS_TRUE;
 }
 
 typedef struct 
@@ -353,28 +337,31 @@ static Bool enum_dir_fct(void *cbck, char *file_name, char *file_path)
 	return 0;
 }
 
-static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_enum_directory)
 {
 	GF_Err err;
 	enum_dir_cbk cbk;
 	char *url = NULL;
-	char *dir = "D:";
+	char *dir = NULL;
 	char *filter = NULL;
 	Bool dir_only = 0;
 	Bool browse_root = 0;
+	SMJS_OBJ
+	SMJS_ARGS
 
 	if ((argc >= 1) && JSVAL_IS_STRING(argv[0])) {
-		JSString *js_dir = JSVAL_TO_STRING(argv[0]);
-		dir = JS_GetStringBytes(js_dir);
+		dir = SMJS_CHARS(c, argv[0]);
 		if (!strcmp(dir, "/")) browse_root = 1;
 	}
 	if ((argc >= 2) && JSVAL_IS_STRING(argv[1])) {
-		JSString *js_fil = JSVAL_TO_STRING(argv[1]);
-		filter = JS_GetStringBytes(js_fil);
+		filter = SMJS_CHARS(c, argv[1]);
 		if (!strcmp(filter, "dir")) {
 			dir_only = 1;
 			filter = NULL;
-		} else if (!strlen(filter)) filter=NULL;
+		} else if (!strlen(filter)) {
+			SMJS_FREE(c, filter);
+			filter=NULL;
+		}
 	}
 	if ((argc >= 3) && JSVAL_IS_BOOLEAN(argv[2])) {
 		if (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) {
@@ -386,15 +373,17 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 		}
 	}
 
-	if (!strlen(dir) && (!url || !strlen(url))) browse_root = 1;
+	if ( (!dir || !strlen(dir) ) && (!url || !strlen(url))) browse_root = 1;
 
 	if (browse_root) {
 		cbk.c = c;
 		cbk.array = JS_NewArrayObject(c, 0, 0);
 		cbk.is_dir = 1;
 		gf_enum_directory("/", 1, enum_dir_fct, &cbk, NULL);
-		*rval = OBJECT_TO_JSVAL(cbk.array);
+		SMJS_SET_RVAL( OBJECT_TO_JSVAL(cbk.array) );
 		if (url) gf_free(url);
+		SMJS_FREE(c, dir);
+		SMJS_FREE(c, filter);
 		return JS_TRUE;
 	}
 
@@ -425,16 +414,20 @@ static JSBool gpac_enum_directory(JSContext *c, JSObject *obj, uintN argc, jsval
 		}
 	}
 
-	*rval = OBJECT_TO_JSVAL(cbk.array);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(cbk.array) );
 	if (url) gf_free(url);
+	SMJS_FREE(c, dir);
+	SMJS_FREE(c, filter);
 	return JS_TRUE;
 }
 
-static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_set_size)
 {
 	Bool override_size_info = 0;
 	u32 w, h;
 	jsdouble d;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!term) return JS_FALSE;
 
@@ -473,46 +466,53 @@ static JSBool gpac_set_size(JSContext *c, JSObject *obj, uintN argc, jsval *argv
 	return JS_TRUE;
 }
 
-static JSBool gpac_get_horizontal_dpi(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_get_horizontal_dpi)
 {
+	SMJS_OBJ
 	GF_Terminal *term = gpac_get_term(c, obj);
-	if (term) *rval = INT_TO_JSVAL(term->compositor->video_out->dpi_x);
+	if (term) SMJS_SET_RVAL( INT_TO_JSVAL(term->compositor->video_out->dpi_x) );
 	return JS_TRUE;
 }
 
-static JSBool gpac_get_vertical_dpi(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_get_vertical_dpi)
 {
+	SMJS_OBJ
 	GF_Terminal *term = gpac_get_term(c, obj);
-	if (term) *rval = INT_TO_JSVAL(term->compositor->video_out->dpi_y);	
+	if (term) SMJS_SET_RVAL( INT_TO_JSVAL(term->compositor->video_out->dpi_y) );	
 	return JS_TRUE;
 }
 
-static JSBool gpac_get_screen_width(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_get_screen_width)
 {
+	SMJS_OBJ
 	GF_Terminal *term = gpac_get_term(c, obj);
-	*rval = INT_TO_JSVAL(term->compositor->video_out->max_screen_width);
+	SMJS_SET_RVAL( INT_TO_JSVAL(term->compositor->video_out->max_screen_width));
 	return JS_TRUE;
 }
 
-static JSBool gpac_get_screen_height(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_get_screen_height)
 {
+	SMJS_OBJ
 	GF_Terminal *term = gpac_get_term(c, obj);
-	*rval = INT_TO_JSVAL(term->compositor->video_out->max_screen_height);
+	SMJS_SET_RVAL( INT_TO_JSVAL(term->compositor->video_out->max_screen_height));
 	return JS_TRUE;
 }
 
-static JSBool gpac_exit(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_exit)
 {
 	GF_Event evt;
+	SMJS_OBJ
 	GF_Terminal *term = gpac_get_term(c, obj);
 	evt.type = GF_EVENT_QUIT;
 	gf_term_send_event(term, &evt);
 	return JS_TRUE;
 }
 
-static JSBool gpac_set_3d(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_set_3d)
 {
 	u32 type_3d = 0;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (argc && JSVAL_IS_INT(argv[0])) type_3d = JSVAL_TO_INT(argv[0]);
 	if (term->compositor->inherit_type_3d != type_3d) {
@@ -523,8 +523,10 @@ static JSBool gpac_set_3d(JSContext *c, JSObject *obj, uintN argc, jsval *argv, 
 	return JS_TRUE;
 }
 
-static JSBool gpac_move_window(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_move_window)
 {
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Event evt;
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (argc < 2) return JS_TRUE;
@@ -540,21 +542,23 @@ static JSBool gpac_move_window(JSContext *c, JSObject *obj, uintN argc, jsval *a
 }
 
 
-static JSBool gpac_error_string(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_error_string)
 {
 	const char *str;
-	/*GF_Terminal *term = gpac_get_term(c, obj);*/
+	SMJS_ARGS
+
 	if (argc < 1) return JS_TRUE;
 	if (!JSVAL_IS_INT(argv[0]) ) return JS_TRUE;
 	str = gf_error_to_string(JSVAL_TO_INT(argv[0]));
 	
-	*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
-
+	SMJS_SET_RVAL( STRING_TO_JSVAL(JS_NewStringCopyZ(c, str)) );
 	return JS_TRUE;
 }
 
-static JSBool gpac_get_scene_time(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_get_scene_time)
 {
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_SceneGraph *sg = NULL;
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) {
@@ -563,20 +567,22 @@ static JSBool gpac_get_scene_time(JSContext *c, JSObject *obj, uintN argc, jsval
 		GF_Node *n = gf_sg_js_get_node(c, JSVAL_TO_OBJECT(argv[0]));
 		sg = n ? n->sgprivate->scenegraph : term->root_scene->graph;
 	}
-	*rval = DOUBLE_TO_JSVAL( JS_NewDouble(c, sg->GetSceneTime(sg->userpriv) ) );
+	SMJS_SET_RVAL( DOUBLE_TO_JSVAL( JS_NewDouble(c, sg->GetSceneTime(sg->userpriv) ) ) );
 
 	return JS_TRUE;
 }
 
-static JSBool gpac_migrate_url(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_migrate_url)
 {
 	char *url;
 	u32 i, count;
 	GF_NetworkCommand com;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 	
-	url = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	url = SMJS_CHARS(c, argv[0]);
 	if (!url) return JS_FALSE;
 	
 	count = gf_list_count(term->root_scene->resources);
@@ -589,23 +595,24 @@ static JSBool gpac_migrate_url(JSContext *c, JSObject *obj, uintN argc, jsval *a
 		com.base.command_type = GF_NET_SERVICE_MIGRATION_INFO;
 		odm->net_service->ifce->ServiceCommand(odm->net_service->ifce, &com);
 		if (com.migrate.data) {
-			*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(c, com.migrate.data));
+			SMJS_SET_RVAL( STRING_TO_JSVAL(JS_NewStringCopyZ(c, com.migrate.data)) );
 		} else {
-			*rval = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odm->net_service->url));
+			SMJS_SET_RVAL( STRING_TO_JSVAL(JS_NewStringCopyZ(c, odm->net_service->url)) );
 		}
 		break;		
 	}
+	SMJS_FREE(c, url);
 	return JS_TRUE;
 }
 
-static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	GF_GPACJSExt *gjs = JS_GetPrivate(c, obj);
 	GF_Event *evt = gjs->evt;
 	if (!evt) return 0;
 
-	if (JSVAL_IS_INT(id)) {
-		switch (JSVAL_TO_INT(id)) {
+	if (SMJS_ID_IS_INT(id)) {
+		switch (SMJS_ID_TO_INT(id)) {
 		case 0:
 			*vp = INT_TO_JSVAL(evt->type);
 			break;
@@ -631,11 +638,12 @@ static JSBool gpacevt_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *
 			*vp = INT_TO_JSVAL( evt->mouse.button);
 			break;
 		}
-	} else if (JSVAL_IS_STRING(id)) {
-		char *name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	} else if (SMJS_ID_IS_STRING(id)) {
+		char *name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 		if (!strcmp(name, "target_url")) {
 			*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, evt->navigate.to_url) );
 		}
+		SMJS_FREE(c, name);
 	}
 
 	return JS_TRUE;
@@ -671,8 +679,10 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	return res;
 }
 
-static JSBool gpac_set_event_filter(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_set_event_filter)
 {
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 	if (gjs->evt_fun) return JS_TRUE;
@@ -686,20 +696,23 @@ static JSBool gpac_set_event_filter(JSContext *c, JSObject *obj, uintN argc, jsv
 	return JS_TRUE;
 }
 
-static JSBool gpac_set_focus(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_set_focus)
 {
 	GF_Node *elt;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_Terminal *term = gpac_get_term(c, obj);
 	if (!argc) return JS_FALSE;
 
 	if (JSVAL_IS_STRING(argv[0])) {
-		char *focus_type = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		char *focus_type = SMJS_CHARS(c, argv[0]);
 		if (!stricmp(focus_type, "previous")) {
 			gf_sc_focus_switch_ring(term->compositor, 1, NULL, 0);
 		} 
 		else if (!stricmp(focus_type, "next")) {
 			gf_sc_focus_switch_ring(term->compositor, 0, NULL, 0);
 		}
+		SMJS_FREE(c, focus_type);
 	} else if (JSVAL_IS_OBJECT(argv[0])) {
 		elt = gf_sg_js_get_node(c, JSVAL_TO_OBJECT(argv[0]));
 		if (!elt) return JS_TRUE;
@@ -710,13 +723,15 @@ static JSBool gpac_set_focus(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	return JS_TRUE;
 }
 
-static JSBool gpac_get_scene(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(gpac_get_scene)
 {
 	GF_Node *elt;
 	u32 w, h;
 	JSObject *scene_obj;
 	GF_SceneGraph *sg;
 	GF_Scene *scene=NULL;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)JS_GetPrivate(c, obj);
 	if (!gjs || !argc || !JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 
@@ -743,7 +758,7 @@ static JSBool gpac_get_scene(JSContext *c, JSObject *obj, uintN argc, jsval *arg
 	JS_DefineProperty(c, scene_obj, "width", INT_TO_JSVAL(w), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	JS_DefineProperty(c, scene_obj, "height", INT_TO_JSVAL(h), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);	
 	JS_DefineProperty(c, scene_obj, "connected", BOOLEAN_TO_JSVAL(scene->graph ? JS_TRUE : JS_FALSE), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);	
-	*rval = OBJECT_TO_JSVAL(scene_obj);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(scene_obj) );
 	return JS_TRUE;
 }
 static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
@@ -754,43 +769,43 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	GF_JSAPIParam par;
 
 	JSPropertySpec gpacEvtClassProps[] = {
-		{"type",			 0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-		{"keycode",			 1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-		{"mouse_x",			 2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-		{"mouse_y",			 3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-		{"picked",			 4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-		{"wheel",			 5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
-		{"button",			 6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_READONLY, 0, 0},
+		{"type",			 0,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+		{"keycode",			 1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+		{"mouse_x",			 2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+		{"mouse_y",			 3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+		{"picked",			 4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+		{"wheel",			 5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
+		{"button",			 6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0},
 		{0, 0, 0, 0, 0}
 	};
 	JSFunctionSpec gpacEvtClassFuncs[] = {
-		{0, 0, 0, 0, 0}
+		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
 
 	JSPropertySpec gpacClassProps[] = {
 		{0, 0, 0, 0, 0}
 	};
 	JSFunctionSpec gpacClassFuncs[] = {
-		{"getOption",		gpac_getOption, 3, 0, 0},
-		{"setOption",		gpac_setOption, 4, 0, 0},
-		{"enum_directory",	gpac_enum_directory, 1, 0, 0},
-		{"set_size",		gpac_set_size, 1, 0, 0},
-		{"get_horizontal_dpi",	gpac_get_horizontal_dpi, 0, 0, 0},
-		{"get_vertical_dpi",	gpac_get_vertical_dpi, 0, 0, 0},
-		{"get_screen_width",	gpac_get_screen_width, 0, 0, 0},
-		{"get_screen_height",	gpac_get_screen_height, 0, 0, 0},
-		{"exit",				gpac_exit, 0, 0, 0},
-		{"set_3d",				gpac_set_3d, 1, 0, 0},
-		{"move_window",			gpac_move_window, 2, 0, 0},
-		{"get_scene_time",		gpac_get_scene_time, 1, 0, 0},
-		{"migrate_url",			gpac_migrate_url, 1, 0, 0},
-		{"set_event_filter",	gpac_set_event_filter, 1, 0, 0},
-		{"set_focus",			gpac_set_focus, 1, 0, 0},
-		{"get_scene",			gpac_get_scene, 1, 0, 0},
-		{"error_string",		gpac_error_string, 1, 0, 0},
+		SMJS_FUNCTION_SPEC("getOption",		gpac_getOption, 3),
+		SMJS_FUNCTION_SPEC("setOption",		gpac_setOption, 4),
+		SMJS_FUNCTION_SPEC("enum_directory",	gpac_enum_directory, 1),
+		SMJS_FUNCTION_SPEC("set_size",		gpac_set_size, 1),
+		SMJS_FUNCTION_SPEC("get_horizontal_dpi",	gpac_get_horizontal_dpi, 0),
+		SMJS_FUNCTION_SPEC("get_vertical_dpi",	gpac_get_vertical_dpi, 0),
+		SMJS_FUNCTION_SPEC("get_screen_width",	gpac_get_screen_width, 0),
+		SMJS_FUNCTION_SPEC("get_screen_height",	gpac_get_screen_height, 0),
+		SMJS_FUNCTION_SPEC("exit",				gpac_exit, 0),
+		SMJS_FUNCTION_SPEC("set_3d",				gpac_set_3d, 1),
+		SMJS_FUNCTION_SPEC("move_window",			gpac_move_window, 2),
+		SMJS_FUNCTION_SPEC("get_scene_time",		gpac_get_scene_time, 1),
+		SMJS_FUNCTION_SPEC("migrate_url",			gpac_migrate_url, 1),
+		SMJS_FUNCTION_SPEC("set_event_filter",	gpac_set_event_filter, 1),
+		SMJS_FUNCTION_SPEC("set_focus",			gpac_set_focus, 1),
+		SMJS_FUNCTION_SPEC("get_scene",			gpac_get_scene, 1),
+		SMJS_FUNCTION_SPEC("error_string",		gpac_error_string, 1),
 		
 
-		{0, 0, 0, 0, 0}
+		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
 
 	gjs = jsext->udta;
@@ -811,7 +826,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	if (!scene) return;
 
 
-	_SETUP_CLASS(gjs->gpacClass, "GPAC", JSCLASS_HAS_PRIVATE, gpac_getProperty, gpac_setProperty, JS_FinalizeStub);
+	JS_SETUP_CLASS(gjs->gpacClass, "GPAC", JSCLASS_HAS_PRIVATE, gpac_getProperty, gpac_setProperty, JS_FinalizeStub);
 
 	JS_InitClass(c, global, 0, &gjs->gpacClass, 0, 0, gpacClassProps, gpacClassFuncs, 0, 0);
 	obj = JS_DefineObject(c, global, "gpac", &gjs->gpacClass, 0, 0);
@@ -824,7 +839,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	JS_SetPrivate(c, obj, gjs);
 
 
-	_SETUP_CLASS(gjs->gpacEvtClass, "GPACEVT", JSCLASS_HAS_PRIVATE, gpacevt_getProperty, JS_PropertyStub, JS_FinalizeStub);
+	JS_SETUP_CLASS(gjs->gpacEvtClass, "GPACEVT", JSCLASS_HAS_PRIVATE, gpacevt_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
 	JS_InitClass(c, global, 0, &gjs->gpacEvtClass, 0, 0, gpacEvtClassProps, gpacEvtClassFuncs, 0, 0);
 	gjs->evt_obj = JS_DefineObject(c, global, "gpacevt", &gjs->gpacEvtClass, 0, 0);
 
@@ -857,7 +872,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_2D);
 	DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_3D);
 	
-	_SETUP_CLASS(gjs->anyClass, "GPACOBJECT", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
+	JS_SETUP_CLASS(gjs->anyClass, "GPACOBJECT", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
 	JS_InitClass(c, global, 0, &gjs->anyClass, 0, 0, 0, 0, 0, 0);
 }
 

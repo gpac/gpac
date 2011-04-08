@@ -49,7 +49,7 @@
 #ifdef GPAC_HAS_SPIDERMONKEY
 
 #include <gpac/internal/scenegraph_dev.h>
-#include <jsapi.h> 
+#include <gpac/internal/smjs_api.h>
 
 #endif
 
@@ -140,7 +140,7 @@ public:
 };
 
 #ifdef GPAC_HAS_SPIDERMONKEY
-JSBool upnpservice_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp);
+JSBool upnpservice_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp);
 #endif
 
 void format_time_string(char *str, Double dur);
