@@ -1568,15 +1568,11 @@ cat > $TMPC << EOF
 #include <GL/gl.h>
 int main( void ) { int a ; a = TINYGL ; }
 EOF
-#if $cc $CFLAGS -o $TMPO $TMPC  2> /dev/null  ; then
-#    has_tinygl="system"
-#    LINK3D="-lTinyGL"
 if test "$enable_tinygl" = "yes"  ;then
-  if $cc -o $TMPO $TMPC -I${source_path}/../tiny-gl/include -L${source_path}/../tiny-gl/lib/$target_bin_dir -lTinyGL 2> /dev/null  ; then
+  if $cc -o $TMPO $TMPC -lTinyGL 2> /dev/null  ; then
       has_tinygl="yes"
       has_opengl="yes"
-      LINK3D="-L${source_path}/../tiny-gl/lib/$target_bin_dir -lTinyGL"
-      INCL3D="-I${source_path}/../tiny-gl/include"
+      LINK3D="-lTinyGL"
 fi
 fi
 
