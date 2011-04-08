@@ -1171,7 +1171,6 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
     switch (com->command_type) {
     case GF_NET_SERVICE_INFO:
     {
-        GF_Err subErr;
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Info command from terminal on Service (0x%x)\n", mpdin->service));
         /* defer to the real input service */
         e = mpdin->seg_ifce->ServiceCommand(mpdin->seg_ifce, com);
