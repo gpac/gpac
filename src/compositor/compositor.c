@@ -305,10 +305,12 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 			compositor->video_out->on_event = gf_sc_on_event;
 			/*init hw*/
 			if (compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags) != GF_OK) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Failed to Setup Video Driver %s!\n", sOpt));
 				gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
 				compositor->video_out = NULL;
 			}
 		} else {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Failed to load module %s, no video driver.\n", sOpt));
 			sOpt = NULL;
 		}
 	}
@@ -316,6 +318,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 	if (!compositor->video_out) {
 		u32 i, count;
 		count = gf_modules_get_count(compositor->user->modules);
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Trying to find a suitable video driver amongst %d modules...\n", count));
 		for (i=0; i<count; i++) {
 			compositor->video_out = (GF_VideoOutput *) gf_modules_load_interface(compositor->user->modules, i, GF_VIDEO_OUTPUT_INTERFACE);
 			if (!compositor->video_out) continue;
@@ -331,6 +334,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 		}
 	}
 	if (!compositor->video_out ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to create compositor->video_out, did not find any suitable driver."));
 		return GF_IO_ERR;
 	}
 
@@ -448,7 +452,10 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	
 
 	GF_SAFEALLOC(tmp, GF_Compositor);
-	if (!tmp) return NULL;
+	if (!tmp){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to allocate compositor : OUT OF MEMORY!\n"));
+		return NULL;
+	}
 	tmp->user = user;
 	tmp->term = term;
 	tmp->mx = gf_mx_new("Compositor");
@@ -465,12 +472,14 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 		}
 		/*init failure*/		
 		if (tmp->video_th_state == GF_COMPOSITOR_THREAD_INIT_FAILED) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("GF_COMPOSITOR_THREAD_INIT_FAILED : Deleting compositor.\n"));
 			gf_sc_del(tmp);
 			return NULL;
 		}
 	} else {
 		e = gf_sc_create(tmp);
 		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error while calling gf_sc_create() : %s, deleting compositor.\n", gf_error_to_string(e)));
 			gf_sc_del(tmp);
 			return NULL;
 		}
