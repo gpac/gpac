@@ -42,7 +42,7 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 #include <gpac/internal/scenegraph_dev.h>
-#include <jsapi.h> 
+#include <gpac/internal/smjs_api.h>
 #endif
 
 class GF_UPnP;

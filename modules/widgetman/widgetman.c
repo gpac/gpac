@@ -474,7 +474,7 @@ static void wm_delete_widget_content(GF_WidgetContent *content)
 		gf_list_del(ifce->messages);
 		wm_delete_message_param(ifce->bind_action);
 		wm_delete_message_param(ifce->unbind_action);
-		if (ifce->obj) gf_js_remove_root(ifce->content->widget->wm->ctx, &ifce->obj);
+		if (ifce->obj) gf_js_remove_root(ifce->content->widget->wm->ctx, &ifce->obj, GF_JSGC_OBJECT);
 
 		if (ifce->connectTo) gf_free(ifce->connectTo);
 		gf_free(ifce->type);
@@ -577,7 +577,7 @@ static void wm_delete_interface_instance(GF_WidgetManager *wm, GF_WidgetInterfac
 	if (bifce->hostname) gf_free(bifce->hostname);
 	if (bifce->obj) {
 		JS_SetPrivate(wm->ctx, bifce->obj, NULL);
-		gf_js_remove_root(wm->ctx, &bifce->obj);
+		gf_js_remove_root(wm->ctx, &bifce->obj, GF_JSGC_OBJECT);
 	}
 	gf_free(bifce);
 }
@@ -604,7 +604,7 @@ static void wm_delete_widget_instance(GF_WidgetManager *wm, GF_WidgetInstance *w
 
 	if (widg->obj) {
 		JS_SetPrivate(wm->ctx, widg->obj, NULL);
-		gf_js_remove_root(wm->ctx, &widg->obj);
+		gf_js_remove_root(wm->ctx, &widg->obj, GF_JSGC_OBJECT);
 	}
 	gf_list_del_item(wm->widget_instances, widg);
 	widg->widget->nb_instances--;
@@ -636,7 +636,7 @@ static JSBool wm_widget_call_script(GF_WidgetInstance *wid, GF_WidgetPin *pin, u
 
 static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, u32 type, GF_WidgetInstance *wid, GF_WidgetPin *param, const char *value)
 {
-	const char *str_val;
+	char *str_val;
 	GF_Node *n;
 	GF_FieldInfo info;
 	GF_WidgetMessage *msg;
@@ -690,11 +690,12 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 	if (n->sgprivate->tag >= GF_NODE_FIRST_DOM_NODE_TAG) {
 		u32 evt_type;
 		if (!type) {
+			char *_str_val = NULL;
 			if (value) {
-				str_val = value;
+				str_val = (char *)value;
 			} else {
 				if (!JSVAL_IS_STRING(argv[1])) goto exit;
-				str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+				str_val = _str_val = SMJS_CHARS(c, argv[1]);
 			}
 
 			/* first check if the set_input refers to an attribute name or to an event name */
@@ -715,6 +716,8 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 					}
 				}
 			}
+			SMJS_FREE(c, _str_val);
+
 		} else {
 			GF_DOM_Event evt;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
@@ -744,15 +747,16 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 		if (gf_node_get_field_by_name(n, param->attribute, &info) != GF_OK) return JS_TRUE;
 
 		if (!type) {
+			char *_str_val = NULL;
 			jsdouble val;
 
 			switch (info.fieldType) {
 			case GF_SG_VRML_SFSTRING:
 				if (value) {
-					str_val = value;
+					str_val = (char *)value;
 				} else {
 					if (!JSVAL_IS_STRING(argv[1]))goto exit;
-					str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+					str_val = SMJS_CHARS(c, argv[1]);
 				}
 				if ( ((SFString*)info.far_ptr)->buffer) gf_free(((SFString*)info.far_ptr)->buffer);
 				((SFString*)info.far_ptr)->buffer = str_val ? gf_strdup(str_val) : NULL;
@@ -762,8 +766,9 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 				else if (JSVAL_IS_BOOLEAN(argv[1])) *((SFBool*)info.far_ptr) = JSVAL_TO_BOOLEAN(argv[1]);
 				else if (JSVAL_IS_INT(argv[1])) *((SFBool*)info.far_ptr) = JSVAL_TO_INT(argv[1]);
 				else if (JSVAL_IS_STRING(argv[1])) {
-					str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+					str_val = SMJS_CHARS(c, argv[1]);
 					*((SFBool*)info.far_ptr) = (str_val && !strcmp(str_val, "true")) ? 1 : 0;
+					SMJS_FREE(c, str_val);
 				} else
 					goto exit;
 				break;
@@ -775,9 +780,10 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 					*((SFInt32*)info.far_ptr) = (s32) val;
 				} else if (JSVAL_IS_STRING(argv[1])) {
 					Double a_val;
-					str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+					str_val = SMJS_CHARS(c, argv[1]);
 					a_val = str_val ? atof(str_val) : 0;
 					*((SFInt32*)info.far_ptr) = (s32) a_val;
+					SMJS_FREE(c, str_val);
 				} else
 					goto exit;
 				break;
@@ -789,9 +795,10 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 					*((SFFloat *)info.far_ptr) = FLT2FIX( val );
 				} else if (JSVAL_IS_STRING(argv[1])) {
 					Double a_val;
-					str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+					str_val = SMJS_CHARS(c, argv[1]);
 					a_val = str_val ? atof(str_val) : 0;
 					*((SFFloat*)info.far_ptr) = FLT2FIX(a_val);
+					SMJS_FREE(c, str_val);
 				} else
 					goto exit;
 				break;
@@ -803,18 +810,19 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 					*((SFTime *)info.far_ptr) = val;
 				} else if (JSVAL_IS_STRING(argv[1])) {
 					Double a_val;
-					str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+					str_val = SMJS_CHARS(c, argv[1]);
 					a_val = str_val ? atof(str_val) : 0;
 					*((SFTime *)info.far_ptr) = a_val;
+					SMJS_FREE(c, str_val);
 				} else
 					goto exit;
 				break;
 			case GF_SG_VRML_MFSTRING:
 				if (value) {
-					str_val = value;
+					str_val = (char *)value;
 				} else {
 					if (!JSVAL_IS_STRING(argv[1])) goto exit;
-					str_val = JS_GetStringBytes(JSVAL_TO_STRING(argv[1]));
+					str_val = _str_val = SMJS_CHARS(c, argv[1]);
 				}
 				if ( ((GenMFField *)info.far_ptr)->count != 1) {
 					gf_sg_vrml_mf_reset(info.far_ptr, GF_SG_VRML_MFSTRING);
@@ -822,6 +830,8 @@ static JSBool wm_widget_set_scene_input_value(JSContext *c, JSObject *obj, uintN
 				}
 				if ( ((MFString*)info.far_ptr)->vals[0]) gf_free( ((MFString*)info.far_ptr)->vals[0] );
 				((MFString*)info.far_ptr)->vals[0] = str_val ? gf_strdup(str_val) : NULL;
+
+				SMJS_FREE(c, _str_val);
 				break;
 			}
 		}
@@ -845,20 +855,28 @@ exit:
 }
 
 
-static JSBool wm_widget_set_input(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_set_input)
 {
+	SMJS_OBJ
+	SMJS_ARGS
+	SMJS_DECL_RVAL
 	return wm_widget_set_scene_input_value(c, obj, argc, argv, rval, 0, NULL, NULL, NULL);
 }
-static JSBool wm_widget_call_input_action(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_call_input_action)
 {
+	SMJS_OBJ
+	SMJS_ARGS
+	SMJS_DECL_RVAL
 	return wm_widget_set_scene_input_value(c, obj, 1, argv, rval, 1, NULL, NULL, NULL);
 }
 
 
-static JSBool wm_widget_call_input_script(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_call_input_script)
 {
 	GF_WidgetMessage *msg;
 	GF_WidgetPin *param;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid || (argc!=2) ) return JS_FALSE;
 	if (!wid->scene) return JS_TRUE;
@@ -878,7 +896,7 @@ static JSBool wm_widget_call_input_script(JSContext *c, JSObject *obj, uintN arg
 			JS_GetElement(c, list, (jsint) i, &args[i] );
 		}
 
-		wm_widget_call_script(wid, param, count, args, rval);
+		wm_widget_call_script(wid, param, count, args, SMJS_GET_RVAL);
 
 		gf_free(args);
 	}
@@ -891,7 +909,7 @@ static void wm_handler_destroy(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		SVG_handlerElement *handler = (SVG_handlerElement *)node;
 		if (handler->js_fun_val) {
-			gf_js_remove_root(handler->js_context, &handler->js_fun_val);
+			gf_js_remove_root(handler->js_context, &handler->js_fun_val, GF_JSGC_VAL);
 			handler->js_fun_val=0;
 		}
 	}
@@ -1146,7 +1164,7 @@ static void wm_widget_load_event(GF_Node *hdl, GF_DOM_Event *evt, GF_Node *obser
 }
 
 
-static JSBool wm_widget_activate(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_activate)
 {
 	SVG_handlerElement *handler;
 	GF_MediaObject *mo;
@@ -1154,6 +1172,8 @@ static JSBool wm_widget_activate(JSContext *c, JSObject *obj, uintN argc, jsval 
 	MFURL url;
 	SFURL _url;
 	GF_Node *inl;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid || !argc) return JS_FALSE;
 
@@ -1263,11 +1283,13 @@ static void wm_handle_dom_event(GF_Node *hdl, GF_DOM_Event *event, GF_Node *obse
 		ret = JS_CallFunctionValue(handler->js_context, wid->obj, (jsval) handler->js_fun_val, 1, argv, &rval);
 }
 
-static JSBool wm_widget_get_param_value(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_get_param_value)
 {
 	GF_Node *n;
 	GF_FieldInfo info;
 	GF_WidgetPin *param;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid || !wid->scene || !argc || !JSVAL_IS_OBJECT(argv[0]) ) return JS_FALSE;
 
@@ -1276,7 +1298,7 @@ static JSBool wm_widget_get_param_value(JSContext *c, JSObject *obj, uintN argc,
 
 	if (!param->node) {
 		if (param->default_value) {
-			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, param->default_value) );
+			SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, param->default_value) ) );
 			return JS_TRUE;
 		}
 		return JS_FALSE;
@@ -1289,11 +1311,11 @@ static JSBool wm_widget_get_param_value(JSContext *c, JSObject *obj, uintN argc,
 	if (n->sgprivate->tag >= GF_NODE_FIRST_DOM_NODE_TAG) {
 		if (!strcmp(param->attribute, "textContent")) {
 			char *txt = gf_dom_flatten_textContent(n);
-			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, txt ? txt : "") );
+			SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, txt ? txt : "") ));
 			if (txt) gf_free(txt);
 		} else if (gf_node_get_attribute_by_name(n, param->attribute, 0, 1, 0, &info)==GF_OK) {
 			char *attValue = gf_node_dump_attribute(n, &info);
-			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, attValue) );
+			SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, attValue) ));
 			if (attValue) gf_free(attValue);
 		} else {
 			return JS_FALSE;
@@ -1305,19 +1327,19 @@ static JSBool wm_widget_get_param_value(JSContext *c, JSObject *obj, uintN argc,
 
 		switch (info.fieldType) {
 		case GF_SG_VRML_SFSTRING:
-			*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, ((SFString*)info.far_ptr)->buffer ) );
+			SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, ((SFString*)info.far_ptr)->buffer ) ) );
 			break;
 		case GF_SG_VRML_SFINT32:
-			*rval = INT_TO_JSVAL( *((SFInt32*)info.far_ptr) );
+			SMJS_SET_RVAL( INT_TO_JSVAL( *((SFInt32*)info.far_ptr) ));
 			break;
 		case GF_SG_VRML_SFBOOL:
-			*rval = BOOLEAN_TO_JSVAL( *((SFBool*)info.far_ptr) );
+			SMJS_SET_RVAL(BOOLEAN_TO_JSVAL( *((SFBool*)info.far_ptr) ));
 			break;
 		case GF_SG_VRML_SFFLOAT:
-			*rval = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT( *((SFFloat*)info.far_ptr) ) ) );
+			SMJS_SET_RVAL( DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT( *((SFFloat*)info.far_ptr) ) ) ));
 			break;
 		case GF_SG_VRML_SFTIME:
-			*rval = DOUBLE_TO_JSVAL( JS_NewDouble(c, *((SFTime *)info.far_ptr) ) );
+			SMJS_SET_RVAL( DOUBLE_TO_JSVAL( JS_NewDouble(c, *((SFTime *)info.far_ptr) ) ));
 			break;
 		}
 	}
@@ -1325,9 +1347,11 @@ static JSBool wm_widget_get_param_value(JSContext *c, JSObject *obj, uintN argc,
 	return JS_TRUE;
 }
 
-static JSBool wm_wm_widget_get_message_param(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_get_message_param)
 {
 	GF_WidgetPin *par = NULL;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetMessage *msg = (GF_WidgetMessage *)JS_GetPrivate(c, obj);
 	if (!msg || !argc  ) return JS_FALSE;
 
@@ -1336,12 +1360,13 @@ static JSBool wm_wm_widget_get_message_param(JSContext *c, JSObject *obj, uintN 
 		par = gf_list_get(msg->params, idx);
 	} else if (JSVAL_IS_STRING(argv[0])) {
 		u32 i, count = gf_list_count(msg->params);
-		char *name =  JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		char *name =  SMJS_CHARS(c, argv[0]);
 		for (i=0; i<count; i++) {
 			par = gf_list_get(msg->params, i);
 			if (!strcmp(par->name, name)) break;
 			par = NULL;
 		}
+		SMJS_FREE(c, name);
 	}
 
 	if (par) {
@@ -1361,14 +1386,16 @@ static JSBool wm_wm_widget_get_message_param(JSContext *c, JSObject *obj, uintN 
 			JS_DefineProperty(c, obj, "script_type", STRING_TO_JSVAL( JS_NewStringCopyZ(c, "string") ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 			break;
 		}
-		*rval = OBJECT_TO_JSVAL(obj);
+		SMJS_SET_RVAL( OBJECT_TO_JSVAL(obj) );
 	}
 	return JS_TRUE;
 }
 
-static JSBool wm_widget_get_message(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_get_message)
 {
 	GF_WidgetMessage *msg;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInterface *ifce = (GF_WidgetInterface*)JS_GetPrivate(c, obj);
 	if (!ifce || !argc) return JS_FALSE;
 	msg = NULL;
@@ -1379,12 +1406,13 @@ static JSBool wm_widget_get_message(JSContext *c, JSObject *obj, uintN argc, jsv
 		msg = gf_list_get(ifce->messages, idx);
 	} else if (JSVAL_IS_STRING(argv[0])) {
 		u32 i, count = gf_list_count(ifce->messages);
-		char *name =  JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+		char *name = SMJS_CHARS(c, argv[0]);
 		for (i=0; i<count; i++) {
 			msg = gf_list_get(ifce->messages, i);
 			if (!strcmp(msg->name, name)) break;
 			msg = NULL;
 		}
+		SMJS_FREE(c, name);
 	}
 	if (msg) {
 		JSObject *obj = JS_NewObject(c, &ifce->content->widget->wm->widgetAnyClass, 0, 0);
@@ -1395,27 +1423,30 @@ static JSBool wm_widget_get_message(JSContext *c, JSObject *obj, uintN argc, jsv
 		JS_DefineProperty(c, obj, "has_output_trigger", BOOLEAN_TO_JSVAL( msg->output_trigger ? JS_TRUE : JS_FALSE) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, obj, "has_input_action", BOOLEAN_TO_JSVAL( (msg->input_action && msg->input_action->attribute) ? JS_TRUE : JS_FALSE) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, obj, "has_script_input", BOOLEAN_TO_JSVAL( (msg->input_action && !msg->input_action->attribute) ? JS_TRUE : JS_FALSE) , 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
-		JS_DefineFunction(c, obj, "get_param", wm_wm_widget_get_message_param, 1, 0);
+		JS_DefineFunction(c, obj, "get_param", wm_widget_get_message_param, 1, 0);
 
-		*rval = OBJECT_TO_JSVAL(obj);
+		SMJS_SET_RVAL( OBJECT_TO_JSVAL(obj) );
 	}
 	return JS_TRUE;
 }
 
-static JSBool wm_widget_get_component(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_get_component)
 {
-	const char *comp_id;
+	char *comp_id;
 	u32 i, count;
 	GF_WidgetComponentInstance *comp_inst;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid || !argc || !JSVAL_IS_STRING(argv[0]) ) return JS_FALSE;
 
-	comp_id = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	comp_id = SMJS_CHARS(c, argv[0]);
 	count = gf_list_count(wid->components);
 	for (i=0; i<count;i++) {
 		comp_inst = gf_list_get(wid->components, i);
 		if (comp_inst->comp->id && !strcmp(comp_inst->comp->id, comp_id)) {
-			*rval = OBJECT_TO_JSVAL(comp_inst->wid->obj);
+			SMJS_SET_RVAL( OBJECT_TO_JSVAL(comp_inst->wid->obj) );
+			SMJS_FREE(c, comp_id);
 			return JS_TRUE;
 		}
 	}
@@ -1428,23 +1459,25 @@ static JSBool wm_widget_get_component(JSContext *c, JSObject *obj, uintN argc, j
 
 			comp_inst = wm_activate_component(c, wid, comp, 1);
 			if (comp_inst) {
-				*rval = OBJECT_TO_JSVAL(comp_inst->wid->obj);
+				SMJS_SET_RVAL( OBJECT_TO_JSVAL(comp_inst->wid->obj) );
+				SMJS_FREE(c, comp_id);
 				return JS_TRUE;
 			}
+			SMJS_FREE(c, comp_id);
 			return JS_TRUE;
 		}
-
-
 	}
+
+	SMJS_FREE(c, comp_id);
 	return JS_TRUE;
 }
 
-
-
-static JSBool wm_widget_get_interface(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_get_interface)
 {
 	u32 idx;
 	GF_WidgetInterface *ifce;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid || !argc || !JSVAL_IS_INT(argv[0]) ) return JS_FALSE;
 
@@ -1460,21 +1493,20 @@ static JSBool wm_widget_get_interface(JSContext *c, JSObject *obj, uintN argc, j
 			JS_DefineProperty(c, ifce->obj, "serviceProvider", BOOLEAN_TO_JSVAL( ifce->provider ? JS_TRUE : JS_FALSE ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 			JS_DefineProperty(c, ifce->obj, "multipleBinding", BOOLEAN_TO_JSVAL( ifce->multiple_binding ? JS_TRUE : JS_FALSE ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 			JS_DefineFunction(c, ifce->obj, "get_message", wm_widget_get_message, 1, 0);
-			gf_js_add_root(c, &ifce->obj);
+			gf_js_add_root(c, &ifce->obj, GF_JSGC_OBJECT);
 		}
-		*rval = OBJECT_TO_JSVAL(ifce->obj);
+		SMJS_SET_RVAL( OBJECT_TO_JSVAL(ifce->obj) );
 	}
 	return JS_TRUE;
 }
 
-
-
-static JSBool wm_widget_bind_output_trigger(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_bind_output_trigger)
 {
 	GF_WidgetMessage *msg;
 	GF_WidgetPin *param;
 	SVG_handlerElement *handler;
-
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid || !wid->scene || (argc!=3)) return JS_FALSE;
 
@@ -1491,7 +1523,7 @@ static JSBool wm_widget_bind_output_trigger(JSContext *c, JSObject *obj, uintN a
 	handler = wm_create_scene_listener(wid, param);
 	if (!handler) return JS_FALSE;
 	handler->js_fun_val = argv[1];
-	gf_js_add_root(c, &handler->js_fun_val);
+	gf_js_add_root(c, &handler->js_fun_val, GF_JSGC_VAL);
 	handler->evt_listen_obj = wid;
 	handler->js_fun = param;
 	handler->js_context = c;
@@ -1503,16 +1535,18 @@ static JSBool wm_widget_bind_output_trigger(JSContext *c, JSObject *obj, uintN a
 	return JS_TRUE;
 }
 
-static JSBool wm_widget_get_context(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_get_context)
 {
 	GF_BitStream *bs;
 	u32 i, count;
 	const char *str;
 	char *att;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_FALSE;
 	if (!wid->scene) {
-		*rval = JSVAL_NULL;
+		SMJS_SET_RVAL(JSVAL_NULL);
 		return JS_TRUE;
 	}
 
@@ -1577,14 +1611,14 @@ static JSBool wm_widget_get_context(JSContext *c, JSObject *obj, uintN argc, jsv
 	gf_bs_get_content(bs, &att, &count);
 	gf_bs_del(bs);
 
-	*rval = STRING_TO_JSVAL( JS_NewStringCopyZ(c, att) );
+	SMJS_SET_RVAL( STRING_TO_JSVAL( JS_NewStringCopyZ(c, att) ) );
 	gf_free(att);
 
 	return JS_TRUE;
 }
 
 
-static JSBool wm_widget_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool wm_widget_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	JSString *s;
 	char *prop_name;
@@ -1592,8 +1626,8 @@ static JSBool wm_widget_getProperty(JSContext *c, JSObject *obj, jsval id, jsval
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_FALSE;
 
-	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
-	prop_name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 	if (!prop_name) return JS_FALSE;
 
 	/*
@@ -1836,10 +1870,10 @@ static JSBool wm_widget_getProperty(JSContext *c, JSObject *obj, jsval id, jsval
 			}
 		}
 	}
-
+	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
-static JSBool wm_widget_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool wm_widget_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
 	char szVal[32];
 	jsdouble val;
@@ -1847,8 +1881,8 @@ static JSBool wm_widget_setProperty(JSContext *c, JSObject *obj, jsval id, jsval
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_FALSE;
 
-	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
-	prop_name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 
 	/*internal to WidgetManager, never stored*/
 	if (!strcmp(prop_name, "permanent")) {
@@ -1857,10 +1891,10 @@ static JSBool wm_widget_setProperty(JSContext *c, JSObject *obj, jsval id, jsval
 
 	/*any widget properties*/
 	else {
-		char szName[1024], *value;
+		char szName[1024], *value, *_val = NULL;
 
 		if (JSVAL_IS_STRING(*vp)) {
-			value = JS_GetStringBytes(JSVAL_TO_STRING(*vp));
+			value = _val = SMJS_CHARS(c, *vp);
 			if (!value) value = "";
 		}
 		else if (JSVAL_IS_BOOLEAN(*vp)) {
@@ -1872,13 +1906,16 @@ static JSBool wm_widget_setProperty(JSContext *c, JSObject *obj, jsval id, jsval
 			sprintf(szVal, "%f", val);
 			value = szVal;
 		} else {
+			SMJS_FREE(c, prop_name);
 			return JS_TRUE;
 		}
 
 		sprintf(szName, "WM:%s", prop_name);
 		gf_cfg_set_key(wid->widget->wm->term->user->config, wid->secname, szName, value);
+		SMJS_FREE(c, _val);
 	}
 
+	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
 
@@ -1905,17 +1942,21 @@ static JSBool wm_widget_bind_interface_ex(JSContext *c, JSObject *obj, uintN arg
 		if ((argc<3) || !JSVAL_IS_OBJECT(argv[1]) || !JSVAL_IS_STRING(argv[2])) return JS_FALSE;
 
 		cookie = JSVAL_TO_OBJECT(argv[1]);
-		hostname = JS_GetStringBytes(JSVAL_TO_STRING(argv[2]) );
+		hostname = SMJS_CHARS(c, argv[2]);
 		count = gf_list_count(wid->bound_ifces);
 		for (i=0; i<count; i++) {
 			bifce = gf_list_get(wid->bound_ifces, i);
-			if (!strcmp(bifce->ifce->type, ifce->type) && (bifce->cookie==cookie) ) return JS_TRUE;
+			if (!strcmp(bifce->ifce->type, ifce->type) && (bifce->cookie==cookie) ) {
+				SMJS_FREE(c, hostname);
+				return JS_TRUE;
+			}
 		}
 		GF_SAFEALLOC(bifce, GF_WidgetInterfaceInstance);
 		bifce->wid = wid;
 		bifce->ifce = ifce;
 		bifce->cookie = cookie;
 		bifce->hostname = gf_strdup(hostname);
+		SMJS_FREE(c, hostname);
 		gf_list_add(wid->bound_ifces, bifce);
 
 		if (ifce->bind_action) {
@@ -1974,20 +2015,27 @@ static JSBool wm_widget_bind_interface_ex(JSContext *c, JSObject *obj, uintN arg
 	return JS_TRUE;
 }
 
-static JSBool wm_widget_bind_interface(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_bind_interface)
 {
+	SMJS_OBJ
+	SMJS_ARGS
+	SMJS_DECL_RVAL
 	return wm_widget_bind_interface_ex(c, obj, argc, argv, rval, 0);
 }
-static JSBool wm_widget_unbind_interface(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_unbind_interface)
 {
+	SMJS_OBJ
+	SMJS_ARGS
+	SMJS_DECL_RVAL
 	return wm_widget_bind_interface_ex(c, obj, argc, argv, rval, 1);
 }
 
 
-static JSBool wm_widget_deactivate(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_deactivate)
 {
 	u32 i, count;
 	jsval funval;
+	SMJS_OBJ
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_FALSE;
 
@@ -2021,11 +2069,11 @@ static JSBool wm_widget_deactivate(JSContext *c, JSObject *obj, uintN argc, jsva
 	if (JSVAL_IS_OBJECT(funval)) {
 		jsval an_argv[1];
 		an_argv[0] = OBJECT_TO_JSVAL(obj);
-		JS_CallFunctionValue(wid->widget->wm->ctx, wid->widget->wm->obj, funval, 1, an_argv, rval);
+		JS_CallFunctionValue(wid->widget->wm->ctx, wid->widget->wm->obj, funval, 1, an_argv, SMJS_GET_RVAL );
 	}
 
 	/*unbind all interfaces of this widget*/
-	wm_widget_bind_interface_ex(c, obj, 0, NULL, rval, 1);
+	wm_widget_bind_interface_ex(c, obj, 0, NULL, SMJS_GET_RVAL, 1);
 
 	/*detach scene now that all unbind events have been sent*/
 	wid->scene = NULL;
@@ -2040,7 +2088,7 @@ static void wm_widget_jsbind(GF_WidgetManager *wm, GF_WidgetInstance *wid)
 	wid->obj = JS_NewObject(wm->ctx, &wm->wmWidgetClass, 0, 0);
 	JS_SetPrivate(wm->ctx, wid->obj, wid);
 	/*protect from GC*/
-	gf_js_add_root(wm->ctx, &wid->obj);
+	gf_js_add_root(wm->ctx, &wid->obj, GF_JSGC_OBJECT);
 }
 
 void wm_deactivate_component(JSContext *c, GF_WidgetInstance *wid, GF_WidgetComponent *comp, GF_WidgetComponentInstance *comp_inst)
@@ -2110,12 +2158,14 @@ GF_WidgetComponentInstance *wm_activate_component(JSContext *c, GF_WidgetInstanc
 	return NULL;
 }
 
-static JSBool wm_widget_is_interface_bound(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_widget_is_interface_bound)
 {
 	u32 i, count;
 	Bool check_fake_bind = 0;
 	JSObject *cookie;
 	GF_WidgetInterface *ifce;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid || !wid->scene || (argc<1) || !JSVAL_IS_OBJECT(argv[0]) ) return JS_FALSE;
 
@@ -2129,12 +2179,12 @@ static JSBool wm_widget_is_interface_bound(JSContext *c, JSObject *obj, uintN ar
 		check_fake_bind = JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE ? 1 : 0;
 
 
-	*rval = BOOLEAN_TO_JSVAL(JS_FALSE);
+	SMJS_SET_RVAL(BOOLEAN_TO_JSVAL(JS_FALSE));
 	count = gf_list_count(wid->bound_ifces);
 	for (i=0; i<count; i++) {
 		GF_WidgetInterfaceInstance *bifce = gf_list_get(wid->bound_ifces, i);
 		if (!strcmp(bifce->ifce->type, ifce->type) && (!cookie || (bifce->cookie==cookie))) {
-			*rval = BOOLEAN_TO_JSVAL(JS_TRUE);
+			SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(JS_TRUE) );
 			break;
 		}
 	}
@@ -2142,15 +2192,17 @@ static JSBool wm_widget_is_interface_bound(JSContext *c, JSObject *obj, uintN ar
 }
 
 
-static JSBool wm_load(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_load)
 {
 	u32 i, count;
-	const char *manifest;
+	char *manifest;
 	GF_WidgetInstance *wid;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetManager *wm = (GF_WidgetManager *)JS_GetPrivate(c, obj);
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
 
-	manifest = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	manifest = SMJS_CHARS(c, argv[0]);
 
 	wid=NULL;
 	count = gf_list_count(wm->widget_instances);
@@ -2161,16 +2213,20 @@ static JSBool wm_load(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsva
 	}
 	if (!wid) {
 		wid = wm_load_widget(wm, manifest, 0);
-		if (!wid) return JS_TRUE;
 	}
-	wm_widget_jsbind(wm, wid);
-	*rval = OBJECT_TO_JSVAL(wid->obj);
+	if (wid) {
+		wm_widget_jsbind(wm, wid);
+		SMJS_SET_RVAL(OBJECT_TO_JSVAL(wid->obj));
+	}
+	SMJS_FREE(c, manifest);
 	return JS_TRUE;
 }
 
-static JSBool wm_unload(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_unload)
 {
 	GF_WidgetInstance *wid;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetManager *wm = (GF_WidgetManager *)JS_GetPrivate(c, obj);
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) return JS_TRUE;
 
@@ -2190,81 +2246,85 @@ static JSBool wm_unload(JSContext *c, JSObject *obj, uintN argc, jsval *argv, js
 
 
 
-static JSBool wm_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool wm_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *vp)
 {
 	char *prop_name;
 	GF_WidgetManager *wm = (GF_WidgetManager *)JS_GetPrivate(c, obj);
 	if (!wm) return JS_FALSE;
 
-	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
-	prop_name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 	if (!prop_name) return JS_FALSE;
 
 	if (!strcmp(prop_name, "num_widgets")) {
 		*vp = INT_TO_JSVAL(gf_list_count(wm->widget_instances));
-		return JS_TRUE;
 	}
-	if (!strcmp(prop_name, "last_widget_dir")) {
+	else if (!strcmp(prop_name, "last_widget_dir")) {
 		const char *opt = gf_cfg_get_key(wm->term->user->config, "Widgets", "last_widget_dir");
 		if (!opt) opt = "/";
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, opt));
-		return JS_TRUE;
 	}
-
-
+	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
-static JSBool wm_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+static JSBool wm_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
 	char *prop_name;
 	GF_WidgetManager *wm = (GF_WidgetManager *)JS_GetPrivate(c, obj);
 	if (!wm) return JS_FALSE;
 
 	if (!JSVAL_IS_STRING(*vp)) return JS_TRUE;
-	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
-	prop_name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 
 	if (!strcmp(prop_name, "last_widget_dir")) {
-		gf_cfg_set_key(wm->term->user->config, "Widgets", "last_widget_dir", JS_GetStringBytes(JSVAL_TO_STRING(*vp)));
-		return JS_TRUE;
+		char *v = SMJS_CHARS(c, *vp);
+		gf_cfg_set_key(wm->term->user->config, "Widgets", "last_widget_dir", v);
+		SMJS_FREE(c, v);
 	}
-
+	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
 
-static JSBool wm_get(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_get)
 {
 	u32 i;
 	GF_WidgetInstance *wid;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetManager *wm = (GF_WidgetManager *)JS_GetPrivate(c, obj);
 	if (!argc || !JSVAL_IS_INT(argv[0])) return JS_TRUE;
 
 	i = JSVAL_TO_INT(argv[0]);
 	wid = gf_list_get(wm->widget_instances, i);
-	if (wid) *rval = OBJECT_TO_JSVAL(wid->obj);
+	if (wid) SMJS_SET_RVAL( OBJECT_TO_JSVAL(wid->obj) );
 	return JS_TRUE;
 }
 
-static JSBool wm_find_interface(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_find_interface)
 {
 	char *ifce_name;
 	u32 i;
 	GF_WidgetInstance *wid;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetManager *wm = (GF_WidgetManager *)JS_GetPrivate(c, obj);
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
 
-	ifce_name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	ifce_name = SMJS_CHARS(c, argv[0]);
 	i=0;
 	while ( (wid = gf_list_enum(wm->widget_instances, &i) )) {
 		u32 j=0;
 		GF_WidgetInterface *wid_ifce;
 		while ((wid_ifce = gf_list_enum(wid->widget->main->interfaces, &j))) {
 			if (!strcmp(wid_ifce->type, ifce_name)) {
-				*rval = OBJECT_TO_JSVAL(wid->obj);
+				SMJS_SET_RVAL( OBJECT_TO_JSVAL(wid->obj) );
+				SMJS_FREE(c, ifce_name);
 				return JS_TRUE;
 			}
 		}
 	}
+	SMJS_FREE(c, ifce_name);
 	return JS_TRUE;
 }
 
@@ -3328,10 +3388,12 @@ static Bool wm_enum_dir(void *cbk, char *file_name, char *file_path)
 }
 
 
-static JSBool wm_initialize(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(wm_initialize)
 {
 	u32 i, count;
 	const char*opt;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetManager *wm = (GF_WidgetManager *)JS_GetPrivate(c, obj);
 
 	count = gf_cfg_get_key_count(wm->term->user->config, "Widgets");
@@ -3367,12 +3429,12 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 		{0, 0, 0, 0, 0}
 	};
 	JSFunctionSpec wmClassFuncs[] = {
-		{"initialize", wm_initialize, 0, 0, 0},
-		{"load", wm_load, 1, 0, 0},
-		{"unload", wm_unload, 1, 0, 0},
-		{"get", wm_get, 1, 0, 0},
-		{"findByInterface", wm_find_interface, 1, 0, 0},
-		{0, 0, 0, 0, 0}
+		SMJS_FUNCTION_SPEC("initialize", wm_initialize, 0),
+		SMJS_FUNCTION_SPEC("load", wm_load, 1),
+		SMJS_FUNCTION_SPEC("unload", wm_unload, 1),
+		SMJS_FUNCTION_SPEC("get", wm_get, 1),
+		SMJS_FUNCTION_SPEC("findByInterface", wm_find_interface, 1),
+		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
 
 	wm = jsext->udta;
@@ -3386,7 +3448,7 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 	/*unload widgets*/
 	if (unload) {
 		if (wm->obj) {
-			gf_js_remove_root(wm->ctx, &wm->obj);
+			gf_js_remove_root(wm->ctx, &wm->obj, GF_JSGC_OBJECT);
 			wm->obj = NULL;
 		}
 
@@ -3402,12 +3464,12 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 	if (!scene) return;
 
 	/*setup JS bindings*/
-	_SETUP_CLASS(wm->widmanClass, "WIDGETMANAGER", JSCLASS_HAS_PRIVATE, wm_getProperty, wm_setProperty, JS_FinalizeStub);
+	JS_SETUP_CLASS(wm->widmanClass, "WIDGETMANAGER", JSCLASS_HAS_PRIVATE, wm_getProperty, wm_setProperty, JS_FinalizeStub);
 
 	JS_InitClass(c, global, 0, &wm->widmanClass, 0, 0, wmClassProps, wmClassFuncs, 0, 0);
 	wm->obj = JS_DefineObject(c, global, "WidgetManager", &wm->widmanClass, 0, 0);
 	JS_SetPrivate(c, wm->obj, wm);
-	gf_js_add_root(c, &wm->obj);
+	gf_js_add_root(c, &wm->obj, GF_JSGC_OBJECT);
 
 
 	{
@@ -3415,31 +3477,31 @@ static void widgetmanager_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, 
 		{0, 0, 0, 0, 0}
 	};
 	JSFunctionSpec wmWidgetClassFuncs[] = {
-		{"activate", wm_widget_activate, 1, 0, 0},
-		{"deactivate", wm_widget_deactivate, 0, 0, 0},
-		{"get_interface", wm_widget_get_interface, 1, 0, 0},
-		{"bind_output_trigger", wm_widget_bind_output_trigger, 2, 0, 0},
-		{"set_input", wm_widget_set_input, 2, 0, 0},
-		{"bind_interface", wm_widget_bind_interface, 2, 0, 0},
-		{"unbind_interface", wm_widget_unbind_interface, 1, 0, 0},
-		{"call_input_action", wm_widget_call_input_action, 1, 0, 0},
-		{"call_input_script", wm_widget_call_input_script, 2, 0, 0},
-		{"is_interface_bound", wm_widget_is_interface_bound, 1, 0, 0},
-		{"get_param_value", wm_widget_get_param_value, 1, 0, 0},
-		{"get_context", wm_widget_get_context, 0, 0, 0},
-		{"get_component", wm_widget_get_component, 2, 0, 0},
+		SMJS_FUNCTION_SPEC("activate", wm_widget_activate, 1),
+		SMJS_FUNCTION_SPEC("deactivate", wm_widget_deactivate, 0),
+		SMJS_FUNCTION_SPEC("get_interface", wm_widget_get_interface, 1),
+		SMJS_FUNCTION_SPEC("bind_output_trigger", wm_widget_bind_output_trigger, 2),
+		SMJS_FUNCTION_SPEC("set_input", wm_widget_set_input, 2),
+		SMJS_FUNCTION_SPEC("bind_interface", wm_widget_bind_interface, 2),
+		SMJS_FUNCTION_SPEC("unbind_interface", wm_widget_unbind_interface, 1),
+		SMJS_FUNCTION_SPEC("call_input_action", wm_widget_call_input_action, 1),
+		SMJS_FUNCTION_SPEC("call_input_script", wm_widget_call_input_script, 2),
+		SMJS_FUNCTION_SPEC("is_interface_bound", wm_widget_is_interface_bound, 1),
+		SMJS_FUNCTION_SPEC("get_param_value", wm_widget_get_param_value, 1),
+		SMJS_FUNCTION_SPEC("get_context", wm_widget_get_context, 0),
+		SMJS_FUNCTION_SPEC("get_component", wm_widget_get_component, 2),
 
-		{0, 0, 0, 0, 0}
+		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
 	/*setup JS bindings*/
-	_SETUP_CLASS(wm->wmWidgetClass, "WMWIDGET", JSCLASS_HAS_PRIVATE, wm_widget_getProperty, wm_widget_setProperty, JS_FinalizeStub);
+	JS_SETUP_CLASS(wm->wmWidgetClass, "WMWIDGET", JSCLASS_HAS_PRIVATE, wm_widget_getProperty, wm_widget_setProperty, JS_FinalizeStub);
 	JS_InitClass(c, global, 0, &wm->wmWidgetClass, 0, 0, wmWidgetClassProps, wmWidgetClassFuncs, 0, 0);
 
-	_SETUP_CLASS(wm->widgetAnyClass, "WIDGETANY", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub, JS_FinalizeStub);
+	JS_SETUP_CLASS(wm->widgetAnyClass, "WIDGETANY", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
 	JS_InitClass(c, global, 0, &wm->widgetAnyClass, 0, 0, 0, 0, 0, 0);
 	}
 
-	_SETUP_CLASS(wm->widgetClass, "MPEGWidget", JSCLASS_HAS_PRIVATE, widget_getProperty, widget_setProperty, JS_FinalizeStub);
+	JS_SETUP_CLASS(wm->widgetClass, "MPEGWidget", JSCLASS_HAS_PRIVATE, widget_getProperty, widget_setProperty, JS_FinalizeStub);
 
 	if (scene->script_action) {
 		if (!scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_TERM, scene->RootNode, &par))

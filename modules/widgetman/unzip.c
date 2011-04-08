@@ -26,6 +26,7 @@
 
 #endif
 
+#include <gpac/tools.h>
 # include "unzip.h"
 
 
@@ -1150,7 +1151,7 @@ int makedir (newdir)
   if (len <= 0)
     return 0;
 
-  buffer = (char*)malloc(len+1);
+  buffer = (char*)gf_malloc(len+1);
   strcpy(buffer,newdir);
 
   if (buffer[len-1] == '/') {
@@ -1158,7 +1159,7 @@ int makedir (newdir)
   }
   if (mymkdir(buffer) == 0)
     {
-      free(buffer);
+      gf_free(buffer);
       return 1;
     }
 
@@ -1174,14 +1175,14 @@ int makedir (newdir)
       if ((mymkdir(buffer) == -1) && (errno == ENOENT))
         {
           printf("couldn't create directory %s\n",buffer);
-          free(buffer);
+          gf_free(buffer);
           return 0;
         }
       if (hold == 0)
         break;
       *p++ = hold;
     }
-  free(buffer);
+  gf_free(buffer);
   return 1;
 }
 #else
@@ -1213,7 +1214,7 @@ int do_extract_currentfile(uf)
     }
 
     size_buf = WRITEBUFFERSIZE;
-    buf = (void*)malloc(size_buf);
+    buf = (void*)gf_malloc(size_buf);
     if (buf==NULL)
     {
         printf("Error allocating memory\n");
@@ -1305,7 +1306,7 @@ int do_extract_currentfile(uf)
             unzCloseCurrentFile(uf); /* don't lose the error */
     }
 
-    free(buf);
+    gf_free(buf);
     return err;
 }
 

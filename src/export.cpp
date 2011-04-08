@@ -288,6 +288,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_url_info_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_is_thread_dead) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_abort) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_sess_can_be_cached_on_disk) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
 
@@ -1281,6 +1282,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_add_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_add_named_root) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_js_remove_root) )
+
+#pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_has_instance) )
+
 #ifndef GPAC_DISABLE_SVG
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_add_listener) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sg_js_event_remove_listener) )

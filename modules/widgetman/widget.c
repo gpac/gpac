@@ -36,52 +36,62 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
-JSBool widget_has_feature(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+JSBool SMJS_FUNCTION(widget_has_feature)
 {
-	const char *feat_name;
+	char *feat_name;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_FALSE;
 
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
 
-	feat_name = JS_GetStringBytes(JSVAL_TO_STRING( argv[0] ));
-	*rval = BOOLEAN_TO_JSVAL( JS_FALSE );
+	feat_name = SMJS_CHARS(c, argv[0]);
+	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( JS_FALSE ) );
 
-	if (!strcmp(feat_name, "urn:mpeg:systems:mpeg-u:2009")) *rval = BOOLEAN_TO_JSVAL( JS_TRUE );
-
+	if (!strcmp(feat_name, "urn:mpeg:systems:mpeg-u:2009")) SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( JS_TRUE ));
+	SMJS_FREE(c, feat_name);
 	return JS_TRUE;
 }
 
-JSBool widget_open_url(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+JSBool SMJS_FUNCTION(widget_open_url)
 {
 	GF_Event evt;
+	Bool res;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid || !argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
 
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_NAVIGATE;
-	evt.navigate.to_url = JS_GetStringBytes(JSVAL_TO_STRING( argv[0] ));
-	return gf_term_send_event(wid->widget->wm->term, &evt);
+	evt.navigate.to_url = SMJS_CHARS(c, argv[0]);
+	res = gf_term_send_event(wid->widget->wm->term, &evt);
+	SMJS_FREE(c, (char *)evt.navigate.to_url);
+
 	return JS_TRUE;
 }
 
-JSBool widget_get_attention(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+JSBool SMJS_FUNCTION(widget_get_attention)
 {
 	jsval fval;
+	SMJS_OBJ
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_TRUE;
 
 	if ((JS_LookupProperty(c, wid->widget->wm->obj, "getAttention", &fval)==JS_TRUE) && JSVAL_IS_OBJECT(fval)) {
 		jsval args[1];
 		args[0] = OBJECT_TO_JSVAL(wid->obj);
-		JS_CallFunctionValue(c, wid->widget->wm->obj, fval, 1, args, rval);
+		JS_CallFunctionValue(c, wid->widget->wm->obj, fval, 1, args, SMJS_GET_RVAL);
 	}
 	return JS_TRUE;
 }
 
-JSBool widget_show_notification(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+JSBool SMJS_FUNCTION(widget_show_notification)
 {
 	jsval fval;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_TRUE;
 
@@ -93,17 +103,19 @@ JSBool widget_show_notification(JSContext *c, JSObject *obj, uintN argc, jsval *
 		for (i=0; i<argc; i++) 
 			vars[i+1] = argv[i];
 
-		JS_CallFunctionValue(c, wid->widget->wm->obj, fval, argc+1, vars, rval);
+		JS_CallFunctionValue(c, wid->widget->wm->obj, fval, argc+1, vars, SMJS_GET_RVAL);
 	}
 	return JS_TRUE;
 }
 
 
-static JSBool widget_call_message_reply_callback(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(widget_call_message_reply_callback)
 {
 	JSObject *list;
 	jsval *vals, fval;
 	u32 i, count;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetMessage *msg = JS_GetPrivate(c, obj);
 	if (!msg || !argc || !JSVAL_IS_OBJECT(argv[0]) ) return JS_FALSE;
 
@@ -115,26 +127,28 @@ static JSBool widget_call_message_reply_callback(JSContext *c, JSObject *obj, ui
 		for (i=0; i<count; i++) {
 			JS_GetElement(c, list, (jsint) i, &vals[i+1]);
 		}
-		JS_CallFunctionValue(c, obj, fval, count, vals, rval);
+		JS_CallFunctionValue(c, obj, fval, count, vals, SMJS_GET_RVAL);
 		gf_free(vals);
 	}
 	return JS_TRUE;
 }
 
-static JSBool widget_message_handler_factory(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(widget_message_handler_factory)
 {
 	char *msg_name;
 	u32 i, count;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance *)JS_GetPrivate(c, obj);
 	if (!bifce) return JS_FALSE;
 
 	if (!argc) return JS_FALSE;
 	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 
-	msg_name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	msg_name = SMJS_CHARS(c, argv[0]);
 	if (!msg_name ) return JS_FALSE;
 
-	*rval = JSVAL_NULL;
+	SMJS_SET_RVAL( JSVAL_NULL );
 	count = gf_list_count(bifce->ifce->messages);
 	for (i=0; i<count; i++) {
 		GF_WidgetMessage *msg = gf_list_get(bifce->ifce->messages, i);
@@ -148,19 +162,22 @@ static JSBool widget_message_handler_factory(JSContext *c, JSObject *obj, uintN 
 			if ((argc==2) && JSVAL_IS_OBJECT(argv[1]) && !JSVAL_IS_NULL(argv[1]))
 				JS_DefineProperty(c, an_obj, "replyCallback", argv[1], 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 			
-			*rval = OBJECT_TO_JSVAL(an_obj);
+			SMJS_SET_RVAL( OBJECT_TO_JSVAL(an_obj) );
 		}
 	}
+	SMJS_FREE(c, msg_name);
 	return JS_TRUE;
 }
-static JSBool widget_invoke_message(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(widget_invoke_message)
 {
 	jsval oval;
 	GF_WidgetMessage *msg = NULL;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance *)JS_GetPrivate(c, obj);
 	if (!bifce) return JS_FALSE;
 
-	*rval = JSVAL_NULL;
+	SMJS_SET_RVAL( JSVAL_NULL );
 
 	if (!JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 	if (JSVAL_IS_NULL(argv[0])) return JS_FALSE;
@@ -170,21 +187,23 @@ static JSBool widget_invoke_message(JSContext *c, JSObject *obj, uintN argc, jsv
 	/*look for JS Callback "invoke" in the widget manager script*/
 	if (JS_LookupProperty(c, bifce->ifce->obj, "invoke", &oval)==JS_TRUE) {
 		if (JSVAL_IS_OBJECT(oval)) {
-			JS_CallFunctionValue(bifce->wid->widget->wm->ctx, bifce->ifce->obj, oval, argc, argv, rval);
+			JS_CallFunctionValue(bifce->wid->widget->wm->ctx, bifce->ifce->obj, oval, argc, argv, SMJS_GET_RVAL );
 		}
 	}
 
 	return JS_TRUE;
 }
 
-static JSBool widget_invoke_message_reply(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(widget_invoke_message_reply)
 {
 	jsval oval;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetMessage *msg = NULL;
 	GF_WidgetInterfaceInstance *bifce = (GF_WidgetInterfaceInstance *)JS_GetPrivate(c, obj);
 	if (!bifce) return JS_FALSE;
 
-	*rval = JSVAL_NULL;
+	SMJS_SET_RVAL( JSVAL_NULL );
 
 	if (!JSVAL_IS_OBJECT(argv[0])) return JS_FALSE;
 	if (JSVAL_IS_NULL(argv[0])) return JS_FALSE;
@@ -194,7 +213,7 @@ static JSBool widget_invoke_message_reply(JSContext *c, JSObject *obj, uintN arg
 	/*look for JS Callback "invokeReply" in the widget manager script*/
 	if (JS_LookupProperty(c, bifce->ifce->obj, "invokeReply", &oval)==JS_TRUE) {
 		if (JSVAL_IS_OBJECT(oval)) {
-			JS_CallFunctionValue(bifce->wid->widget->wm->ctx, bifce->ifce->obj, oval, argc, argv, rval);
+			JS_CallFunctionValue(bifce->wid->widget->wm->ctx, bifce->ifce->obj, oval, argc, argv, SMJS_GET_RVAL);
 		}
 	}
 	return JS_TRUE;
@@ -205,7 +224,7 @@ static void widget_interface_js_bind(JSContext *c, GF_WidgetInterfaceInstance *i
 	if (!ifce->obj) {
 		ifce->obj = JS_NewObject(c, &ifce->wid->widget->wm->widgetAnyClass, 0, 0);
 		JS_SetPrivate(c, ifce->obj, ifce);
-		gf_js_add_root(c, &ifce->obj);
+		gf_js_add_root(c, &ifce->obj, GF_JSGC_OBJECT);
 		JS_DefineProperty(c, ifce->obj, "type", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ifce->ifce->type) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, ifce->obj, "bound", STRING_TO_JSVAL( JS_NewStringCopyZ(c, ifce->hostname) ), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineFunction(c, ifce->obj, "invoke", widget_invoke_message, 1, 0);
@@ -214,18 +233,20 @@ static void widget_interface_js_bind(JSContext *c, GF_WidgetInterfaceInstance *i
 	}
 }
 
-static JSBool widget_get_interfaces(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(widget_get_interfaces)
 {
 	u32 i, count;
 	char *ifce_name;
 	JSObject *list;
 	jsuint idx;
 	jsval v;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_FALSE;
 
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
-	ifce_name = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	ifce_name = SMJS_CHARS(c, argv[0]);
 
 	list = JS_NewArrayObject(c, 0, 0);
 
@@ -240,19 +261,22 @@ static JSBool widget_get_interfaces(JSContext *c, JSObject *obj, uintN argc, jsv
 		v = OBJECT_TO_JSVAL(ifce->obj);
 		JS_SetElement(c, list, idx, &v);
 	}
-	*rval = OBJECT_TO_JSVAL(list);
+	SMJS_SET_RVAL( OBJECT_TO_JSVAL(list) );
+	SMJS_FREE(c, ifce_name);
 	return JS_TRUE;
 }
 
-static JSBool widget_activate_component(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval, Bool is_deactivate)
+static JSBool SMJS_FUNCTION_EXT(widget_activate_component, Bool is_deactivate)
 {
 	u32 i, count;
 	char *comp_id;
+	SMJS_OBJ
+	SMJS_ARGS
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_FALSE;
 
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_TRUE;
-	comp_id = JS_GetStringBytes(JSVAL_TO_STRING(argv[0]));
+	comp_id = SMJS_CHARS(c, argv[0]);
 
 	count = gf_list_count(wid->widget->main->components);
 	for (i=0; i<count; i++) {
@@ -264,19 +288,20 @@ static JSBool widget_activate_component(JSContext *c, JSObject *obj, uintN argc,
 		} else {
 			wm_activate_component(c, wid, comp, 0);
 		}
-		return JS_TRUE;
+		break;
 	}
+	SMJS_FREE(c, comp_id);
 	return JS_TRUE;
 }
 
-static JSBool widget_activate_widget(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(widget_activate_widget)
 {
-	return widget_activate_component(c, obj, argc, argv, rval, 0);
+	return widget_activate_component(SMJS_CALL_ARGS, 0);
 }
 
-static JSBool widget_deactivate_widget(JSContext *c, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
+static JSBool SMJS_FUNCTION(widget_deactivate_widget)
 {
-	return widget_activate_component(c, obj, argc, argv, rval, 1);
+	return widget_activate_component(SMJS_CALL_ARGS, 1);
 }
 
 void widget_on_interface_bind(GF_WidgetInterfaceInstance *ifce, Bool unbind)
@@ -297,15 +322,15 @@ void widget_on_interface_bind(GF_WidgetInterfaceInstance *ifce, Bool unbind)
 
 }
 
-JSBool widget_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *rval)
+JSBool widget_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, jsval *rval)
 {
 	const char *opt;
 	char *prop_name;
 	GF_WidgetInstance *wid = (GF_WidgetInstance *)JS_GetPrivate(c, obj);
 	if (!wid) return JS_FALSE;
 
-	if (!JSVAL_IS_STRING(id)) return JS_TRUE;
-	prop_name = JS_GetStringBytes(JSVAL_TO_STRING(id));
+	if (!SMJS_ID_IS_STRING(id)) return JS_TRUE;
+	prop_name = SMJS_CHARS_FROM_STRING(c, SMJS_ID_TO_STRING(id));
 	if (!prop_name) return JS_FALSE;
 
 	if (!strcmp(prop_name, "viewMode")) {
@@ -347,10 +372,11 @@ JSBool widget_getProperty(JSContext *c, JSObject *obj, jsval id, jsval *rval)
 	}
 	else if (!strcmp(prop_name, "preferences")) {
 	}
+	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
 
-JSBool widget_setProperty(JSContext *c, JSObject *obj, jsval id, jsval *vp)
+JSBool widget_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, jsval *vp)
 {
 	return JS_TRUE;
 }
@@ -377,7 +403,7 @@ void widget_load(GF_WidgetManager *wm, GF_SceneGraph *scene, JSContext *c, JSObj
 			GF_WidgetInterfaceInstance *ifce = gf_list_get(wi->bound_ifces, i);
 			if (ifce->obj) {
 				JS_SetPrivate(c, ifce->obj, NULL);
-				gf_js_remove_root(c, &ifce->obj);
+				gf_js_remove_root(c, &ifce->obj, GF_JSGC_OBJECT);
 				ifce->obj = NULL;
 			}
 		}
@@ -389,15 +415,15 @@ void widget_load(GF_WidgetManager *wm, GF_SceneGraph *scene, JSContext *c, JSObj
 		};
 		JSFunctionSpec widgetClassFuncs[] = {
 			/*W3C*/
-			{"has_feature", widget_has_feature, 1, 0, 0},
-			{"openURL", widget_open_url, 1, 0, 0},
-			{"getAttention", widget_get_attention, 0, 0, 0},
-			{"showNotification", widget_show_notification, 0, 0, 0},
+			SMJS_FUNCTION_SPEC("has_feature", widget_has_feature, 1),
+			SMJS_FUNCTION_SPEC("openURL", widget_open_url, 1),
+			SMJS_FUNCTION_SPEC("getAttention", widget_get_attention, 0),
+			SMJS_FUNCTION_SPEC("showNotification", widget_show_notification, 0),
 			/*MPEG*/
-			{"getInterfaceHandlersByType", widget_get_interfaces, 1, 0, 0},
-			{"activateComponentWidget", widget_activate_widget, 1, 0, 0},
-			{"deactivateComponentWidget", widget_deactivate_widget, 1, 0, 0},
-			{0, 0, 0, 0, 0}
+			SMJS_FUNCTION_SPEC("getInterfaceHandlersByType", widget_get_interfaces, 1),
+			SMJS_FUNCTION_SPEC("activateComponentWidget", widget_activate_widget, 1),
+			SMJS_FUNCTION_SPEC("deactivateComponentWidget", widget_deactivate_widget, 1),
+			SMJS_FUNCTION_SPEC(0, 0, 0)
 		};
 
 		JS_InitClass(c, global, 0, &wm->widgetClass, 0, 0,widgetClassProps, widgetClassFuncs, 0, 0);
