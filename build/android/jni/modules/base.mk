@@ -7,7 +7,8 @@ LOCAL_C_INCLUDES        += $(LOCAL_PATH)/../libgpac/
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/
 #LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../bin/android/
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../libs/armeabi/
-LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz -lgpac -llog
+#LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz -lgpac -llog
+LOCAL_LDLIBS    += -lgpac
 
 LOCAL_CFLAGS += -DGPAC_ANDROID
 LOCAL_CFLAGS +=	-DGPAC_HAVE_CONFIG_H

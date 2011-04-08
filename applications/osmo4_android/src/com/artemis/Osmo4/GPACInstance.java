@@ -31,9 +31,9 @@ public class GPACInstance implements GPACInstanceInterface {
     synchronized static Map<String, Throwable> loadAllLibraries() {
         if (errors != null)
             return errors;
-        final String[] toLoad = { "javaenv", //$NON-NLS-1$
-                                 "mad", "editline", "ft2", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
-                                 "js_osmo", "openjpeg", "jpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+        final String[] toLoad = { "jpeg", "javaenv", //$NON-NLS-1$ //$NON-NLS-2$
+                                 "mad", "editline", "ft2", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+                                 "js_osmo", "openjpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
                                  "ffmpeg", "faad", "gpac", "gpacWrapper" }; //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
         HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
         for (String s : toLoad) {
@@ -74,10 +74,27 @@ public class GPACInstance implements GPACInstanceInterface {
      */
     public GPACInstance(GpacCallback callback, int width, int height, String cfg_dir, String modules_dir,
             String cache_dir, String font_dir, String urlToOpen) throws GpacInstanceException {
-        loadAllLibraries();
-        handle = createInstance(callback, width, height, cfg_dir, modules_dir, cache_dir, font_dir, urlToOpen);
+        StringBuilder sb = new StringBuilder();
+        Map<String, Throwable> errors = loadAllLibraries();
+        if (!errors.isEmpty()) {
+            sb.append("Exceptions while loading libraries:"); //$NON-NLS-1$
+            for (Map.Entry<String, Throwable> x : errors.entrySet()) {
+                sb.append('\n')
+                  .append(x.getKey())
+                  .append('[')
+                  .append(x.getValue().getClass().getSimpleName())
+                  .append("]: ") //$NON-NLS-1$
+                  .append(x.getValue().getLocalizedMessage());
+            }
+            Log.e(LOG_LIB, sb.toString());
+        }
+        try {
+            handle = createInstance(callback, width, height, cfg_dir, modules_dir, cache_dir, font_dir, urlToOpen);
+        } catch (Throwable e) {
+            throw new GpacInstanceException("Error while creating instance\n" + sb.toString()); //$NON-NLS-1$
+        }
         if (handle == 0) {
-            throw new GpacInstanceException();
+            throw new GpacInstanceException("Error while creating instance, no handle created!\n" + sb.toString()); //$NON-NLS-1$
         }
         synchronized (this) {
             hasToBeFreed = true;

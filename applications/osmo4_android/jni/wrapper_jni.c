@@ -9,6 +9,8 @@ extern "C" {
 #define jniTAG "WRAPPER_JNI"
 
 #define jniLOGV(X)  __android_log_print(ANDROID_LOG_VERBOSE, jniTAG, X)
+#define jniLOGI(X)  __android_log_print(ANDROID_LOG_INFO, jniTAG, X)
+#define jniLOGE(X)  __android_log_print(ANDROID_LOG_ERROR, jniTAG, X)
 
 #define CAST_HANDLE(wr) jclass c = env->GetObjectClass(obj);\
                         if (!c) return;\
@@ -42,13 +44,16 @@ JNIEXPORT jlong JNICALL Java_com_artemis_Osmo4_GPACInstance_createInstance(JNIEn
         if (gpac_obj){
           int w = width;
           int h = height;
+          jniLOGI("Calling gpac_obj->init()...");
           if (gpac_obj->init(env, NULL, &callback,
                               w, h,
                               s1, s2, s3, s4, s5)){
-            jniLOGV("FAILED to init(), return code not 0");
+            jniLOGE("FAILED to init(), return code not 0");
             delete gpac_obj;
             gpac_obj = NULL;
           }
+        } else {
+          jniLOGE("FAILED to create new CNativeWrapper() : not enough memory ?");
         }
 
         env->ReleaseStringUTFChars(cfg_dir, s1);

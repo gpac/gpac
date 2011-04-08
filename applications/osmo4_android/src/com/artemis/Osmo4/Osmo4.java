@@ -579,11 +579,10 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     private int[] getAllRawResources() throws RuntimeException {
-        int[] ids = null;
         R.raw r = new R.raw();
 
         java.lang.reflect.Field fields[] = R.raw.class.getDeclaredFields();
-        ids = new int[fields.length];
+        final int ids[] = new int[fields.length];
         m_modules_list = new String[fields.length];
 
         try {
@@ -811,9 +810,9 @@ public class Osmo4 extends Activity implements GpacCallback {
     // @Override
     // public void run() {
     // // TODO Auto-generated method stub
-    //                
+    //
     // }
-    // });
+    // });sm
     // return null;
     // }
 }

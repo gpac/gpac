@@ -24,6 +24,15 @@ public interface GPACInstanceInterface {
          */
         private static final long serialVersionUID = 3207851655866335152L;
 
+        /**
+         * Constructor
+         * 
+         * @param msg
+         */
+        public GpacInstanceException(String msg) {
+            super(msg);
+        }
+
     };
 
     /**

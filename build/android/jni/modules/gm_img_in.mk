@@ -10,6 +10,7 @@ include $(LOCAL_PATH)/base.mk
 #LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/android/libopenjpeg/jni/
 
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/openjpeg
+LOCAL_LDLIBS    += -ljpeg -lopenjpeg -lpng
 
 LOCAL_SRC_FILES := ../../../../modules/img_in/img_dec.c ../../../../modules/img_in/img_in.c ../../../../modules/img_in/bmp_dec.c ../../../../modules/img_in/png_dec.c ../../../../modules/img_in/jpeg_dec.c ../../../../modules/img_in/jp2_dec.c
 
