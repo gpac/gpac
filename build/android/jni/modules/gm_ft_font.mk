@@ -11,6 +11,6 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../../extra_lib/android/freetypedroi
 
 LOCAL_SRC_FILES := ../../../../modules/ft_font/ft_font.c
 
-
+LOCAL_LDLIBS    += -lft2
 
 include $(BUILD_SHARED_LIBRARY)

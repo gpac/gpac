@@ -14,4 +14,6 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/android/js/jni/editline
 
 LOCAL_SRC_FILES := ../../../../modules/widgetman/widgetman.c ../../../../modules/widgetman/unzip.c ../../../../modules/widgetman/widget.c ../../../../modules/widgetman/wgt_load.c
 
+LOCAL_LDLIBS    += -ljs_osmo -lz
+
 include $(BUILD_SHARED_LIBRARY)
