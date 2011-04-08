@@ -171,6 +171,21 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 	last_section_number = data[7];
 	//printf( "table_id: %x section_length: %d section_number: %d last : %d \n",id, section_length, section_number, last_section_number);	
 	
+	if (ts->direct_mpe) {
+		if (table_id != GF_M2TS_TABLE_ID_DSM_CC_PRIVATE) return;
+		if (section_number != last_section_number) {
+			fprintf(stdout, "MPE IP datagram on several section not supported\n");
+			return;
+		}
+		/* send the IP data :
+		   Remove the first 12 bytes of header (from table id to end of real time parameters 
+		   Remove also the last four 4 bytes of the section (CRC 32)
+		*/
+		gf_m2ts_mpe_send_datagram(ts, mpe->pid, data +12, data_size - (12+4));			
+		return; 
+	}
+
+
 	/*get number of rows of mpe_fec_frame from descriptor*/
 	/* Real-Time Parameters */	
   	delta_t = (data[8]<<4)|(data[9]>>4);
@@ -320,7 +335,7 @@ void gf_m2ts_process_ipdatagram(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *ts)
 			ip_adress_bootstrap[1]=0;
 			ip_adress_bootstrap[2]=23;
 			ip_adress_bootstrap[3]=14;
-			socket_simu(ip_packet,ts);
+			socket_simu(ip_packet,ts, 1);
 
 			if(ip_packet->u8_rx_adr[3] == 8){
 			 printf("\n");
@@ -350,6 +365,52 @@ void gf_m2ts_process_ipdatagram(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *ts)
 	mff->mpe_holes = NULL;   
 	gf_m2ts_Delete_IpPacket(ip_packet);
 }
+
+
+void gf_m2ts_mpe_send_datagram(GF_M2TS_Demuxer *ts, u32 mpe_pid, unsigned char *data, u32 data_size)
+{
+	GF_M2TS_IP_Packet ip_pck;
+	u8 *udp_data;
+	u32 hdr_len;
+
+	ip_pck.u32_version = data[0] >>4;
+	ip_pck.u32_hdr_length =data[0] & 0xF;
+	ip_pck.u32_total_length = data[2]<<8 | data[3];
+	ip_pck.u32_id_nb = data[4]<<8 | data[5];
+	ip_pck.u32_flag = data[6] >>5;
+	ip_pck.u32_frag_offset = (data[6] & 0x1F)<<8 | data[7];
+	ip_pck.u32_TTL = data[8];
+	ip_pck.u32_protocol = data[9];
+	ip_pck.u32_crc = data[10]<<8 | data[11];
+	memcpy(ip_pck.u8_tx_adr,data+12,sizeof(ip_pck.u8_tx_adr));
+	memcpy(ip_pck.u8_rx_adr,data+16,sizeof(ip_pck.u8_rx_adr));
+
+	hdr_len = ip_pck.u32_hdr_length;
+	udp_data = data+(hdr_len*4);
+
+	ip_pck.u32_tx_udp_port = udp_data[0]<<8 | udp_data[1];
+	if(!ip_pck.u32_tx_udp_port){
+		return;
+	}
+	ip_pck.u32_rx_udp_port = udp_data[2]<<8 | udp_data[3];
+	if(!ip_pck.u32_rx_udp_port){
+		return;
+	}
+	ip_pck.u32_udp_data_size = udp_data[4]<<8 | udp_data[5];
+	if(ip_pck.u32_udp_data_size == 0){
+		return;
+	}
+	ip_pck.u32_udp_chksm = udp_data[6]<<8 | udp_data[7];
+	
+	/*excluding UDP header*/
+	ip_pck.data = udp_data + 8;
+
+	socket_simu(&ip_pck, ts, 0);
+
+	fprintf(stdout, "MPE PID %d - send datagram %d bytes to %d.%d.%d.%d port:%d\n", mpe_pid, ip_pck.u32_udp_data_size-8, ip_pck.u8_rx_adr[0], ip_pck.u8_rx_adr[1], ip_pck.u8_rx_adr[2], ip_pck.u8_rx_adr[3], ip_pck.u32_rx_udp_port);
+
+}
+
 
 Bool gf_m2ts_compare_ip(u8 rx_ip_adress[4], u8 ip_adress_bootstrap[4])
 {
@@ -959,31 +1020,30 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 }
 
 
-void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts)
+void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 {
 	char name[100];
 	u32 ipv4_addr;
 	GF_Err e;
 	u8 nb_socket_struct, i;
-	GF_SOCK_ENTRY *Sock_Struct;
+	GF_SOCK_ENTRY *Sock_Struct = NULL;
 
+	if(!ts->ip_platform) {
+		GF_SAFEALLOC(ts->ip_platform,GF_M2TS_IP_PLATFORM );
+	}
 	if(ts->ip_platform->socket_struct == NULL) ts->ip_platform->socket_struct= gf_list_new();
 
-
-	ip_packet->sock = NULL;
 	ipv4_addr = GF_4CC(ip_packet->u8_rx_adr[0], ip_packet->u8_rx_adr[1], ip_packet->u8_rx_adr[2], ip_packet->u8_rx_adr[3]);
 	nb_socket_struct = gf_list_count(ts->ip_platform->socket_struct);
 	for(i=0;i<nb_socket_struct;i++) {
 		Sock_Struct = gf_list_get(ts->ip_platform->socket_struct,i);
-		
-		if ((Sock_Struct->ipv4_addr==ipv4_addr)&& (Sock_Struct->port == (u16) ip_packet->u32_rx_udp_port))
-		{
+		if ((Sock_Struct->ipv4_addr==ipv4_addr)&& (Sock_Struct->port == (u16) ip_packet->u32_rx_udp_port)) {
 			if (Sock_Struct->bind_failure) return;
-			ip_packet->sock = Sock_Struct->sock;
 			break;
 		}
+		Sock_Struct = NULL;
 	}
-	if (ip_packet->sock == NULL) {
+	if (Sock_Struct == NULL) {
 		GF_SAFEALLOC(Sock_Struct, GF_SOCK_ENTRY);
 
 		Sock_Struct->ipv4_addr = ipv4_addr;
@@ -995,7 +1055,6 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts)
 		}
 
 		sprintf(name, "%d.%d.%d.%d", ip_packet->u8_rx_adr[0],ip_packet->u8_rx_adr[1], ip_packet->u8_rx_adr[2],ip_packet->u8_rx_adr[3]);
-
 
 		if (gf_sk_is_multicast_address(name) ) {
 			e = gf_sk_setup_multicast(Sock_Struct->sock, name, ip_packet->u32_rx_udp_port, 1/*TTL - FIXME this should be in a cfg file*/, 0, NULL/*FIXME this should be in a cfg file*/);
@@ -1012,8 +1071,6 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts)
 			fprintf(stderr, "Server Bind Error: %s\n", gf_error_to_string(e));
 			Sock_Struct->bind_failure = 1;
 		}
-
-		ip_packet->sock = Sock_Struct->sock;
 		gf_list_add(ts->ip_platform->socket_struct, Sock_Struct);
 	}
 
@@ -1021,11 +1078,11 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts)
 	// Envoi des données
 	// ********************************************************
 
-	e = gf_sk_send(ip_packet->sock, ip_packet->data, ip_packet->u32_udp_data_size - 8);
+	e = gf_sk_send(Sock_Struct->sock, ip_packet->data, ip_packet->u32_udp_data_size - 8);
 	if (e != GF_OK){ 
 		fprintf(stdout, "Error sending to \n");
 	}
-	gf_sleep(10);
+	if (yield) gf_sleep(10);
 
 }
 

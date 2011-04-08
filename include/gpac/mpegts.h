@@ -546,6 +546,7 @@ struct tag_m2ts_demux
 	/* analyser */
 	FILE *pes_out;
 
+	Bool direct_mpe;
 
 	Bool dvb_h_demux;
 	/*user callback - MUST NOT BE NULL*/
