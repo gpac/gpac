@@ -960,7 +960,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 
 			if (odm->mo && (type==GF_STREAM_VISUAL)) {
 				gf_scene_get_video_size(odm->mo, &w, &h);
-				if (w&&h) gf_sg_set_scene_size_info(scene->graph, w, h, 1);
+				gf_sg_set_scene_size_info(scene->graph, w, h, 1);
 			}
 			break;
 		}
