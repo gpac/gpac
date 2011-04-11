@@ -64,6 +64,7 @@ static jmethodID mFlush;
 #include <android/log.h>
 #define TAG "GPAC Android Audio"
 #define LOGV(X, Y)  __android_log_print(ANDROID_LOG_VERBOSE, TAG, X, Y)
+#define LOGV3(X, Y, Z, K)  __android_log_print(ANDROID_LOG_VERBOSE, TAG, X, Y, Z, K)
 #define LOGD(X, Y)  __android_log_print(ANDROID_LOG_DEBUG, TAG, X, Y)
 #define LOGD2(X, Y, Z)  __android_log_print(ANDROID_LOG_DEBUG, TAG, X, Y, Z)
 #define LOGE(X, Y)  __android_log_print(ANDROID_LOG_ERROR, TAG, X, Y)
@@ -309,10 +310,10 @@ static GF_Err WAV_QueryOutputSampleRate(GF_AudioOutput *dr, u32 *desired_sampler
 	channelConfig = (*NbChannels == 1) ? CHANNEL_CONFIGURATION_MONO : CHANNEL_CONFIGURATION_STEREO;
 	audioFormat = (*nbBitsPerSample == 8)? ENCODING_PCM_8BIT : ENCODING_PCM_16BIT;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Android Audio] Query: SampleRate ChannelConfig AudioFormat: %d %d %d \n",
+	LOGV3("[Android Audio] Query: SampleRate ChannelConfig AudioFormat: %d %d %d \n",
 		sampleRateInHz,
 		(channelConfig == CHANNEL_CONFIGURATION_MONO)? 1 : 2,
-		(ctx->audioFormat == ENCODING_PCM_8BIT)? 8 : 16));
+		(ctx->audioFormat == ENCODING_PCM_8BIT)? 8 : 16);
 
 	switch (*desired_samplerate) {
 	case 11025:
@@ -408,7 +409,6 @@ void *NewWAVRender()
 	driv->Play = WAV_Play;
 	driv->QueryOutputSampleRate = WAV_QueryOutputSampleRate;
 	driv->WriteAudio = WAV_WriteAudio;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Android Audio] New\n"));
 	return driv;
 }
 //----------------------------------------------------------------------
@@ -417,7 +417,6 @@ void DeleteWAVRender(void *ifce)
 	GF_AudioOutput *dr = (GF_AudioOutput *) ifce;
         if (!ifce)
           return;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Android Audio] Delete\n"));
 	gf_free(dr);
 }
 //----------------------------------------------------------------------

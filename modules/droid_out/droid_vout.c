@@ -482,7 +482,7 @@ static void droid_Shutdown(GF_VideoOutput *dr)
 static GF_Err droid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
 	RAWCTX;
-	LOG( ANDROID_LOG_DEBUG, TAG, "Android Flush\n");
+	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Flush\n");
 
 #ifndef GLES_FRAMEBUFFER_TEST
 	if ( rc->out_3d_type == 0 )
@@ -499,7 +499,7 @@ static GF_Err droid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool
 	void * pixels;
 	int i,j,t;
 
-	LOG( ANDROID_LOG_DEBUG, TAG, "Android LockBackBuffer: %d", do_lock);
+	LOG( ANDROID_LOG_VERBOSE, TAG, "Android LockBackBuffer: %d", do_lock);
 	if (do_lock) {
 		if (!vi) return GF_BAD_PARAM;
 
