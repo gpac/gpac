@@ -13,4 +13,5 @@ LOCAL_SRC_FILES := ../../../../modules/ft_font/ft_font.c
 
 LOCAL_LDLIBS    += -lft2
 
+LOCAL_MODULE_FILENAME=gm_ft_font
 include $(BUILD_SHARED_LIBRARY)

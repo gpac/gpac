@@ -33,7 +33,9 @@
 #ifdef GPAC_HAS_SPIDERMONKEY
 
 #ifdef GPAC_ANDROID
+#ifndef XP_UNIX
 #define XP_UNIX
+#endif
 #endif
 
 #include <gpac/internal/smjs_api.h>

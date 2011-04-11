@@ -157,7 +157,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	u32 i;
 	DroidContext *ctx = (DroidContext *)dr->opaque;
 
-	LOGV("[Android Audio] Configure Output for %u channels...", *NbChannels);
+	LOGI("[Android Audio] Configure Output for %u channels...", *NbChannels);
 
 	if (!ctx) return GF_BAD_PARAM;
 
@@ -200,7 +200,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	}
 
 	ctx->buff = (*env)->NewByteArray(env, ctx->mbufferSizeInBytes);
-
+        LOGV("[Android Audio] ConfigureOutput DONE.", *NbChannels);
 	return GF_OK;
 }
 
@@ -253,7 +253,10 @@ static void WAV_Play(GF_AudioOutput *dr, u32 PlayType)
 	case 2:
 		(*env)->CallNonvirtualVoidMethod(env, mtrack, cAudioTrack, mPlay);
 		break;
+        default:
+                LOGW("[Android Audio] Unknown Play method=%d.\n", PlayType);
 	}
+	LOGV("[Android Audio] Play DONE (%d).\n", PlayType);
 }
 
 static void WAV_UpdateVolume(DroidContext *ctx){
@@ -406,7 +409,6 @@ void *NewWAVRender()
 	driv->QueryOutputSampleRate = WAV_QueryOutputSampleRate;
 	driv->WriteAudio = WAV_WriteAudio;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Android Audio] New\n"));
-
 	return driv;
 }
 //----------------------------------------------------------------------

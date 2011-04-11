@@ -48,8 +48,11 @@ GF_EXPORT
 GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 {
 	GF_ModuleManager *tmp;
-	if (!directory || !strlen(directory) || (strlen(directory) > GF_MAX_PATH)) return NULL;
-
+        u32 loadedModules;
+	if (!directory || !strlen(directory) || (strlen(directory) > GF_MAX_PATH)){
+          GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot load modules from directory %s, sanity check fails.\n", directory));
+          return NULL;
+        }
 	GF_SAFEALLOC(tmp, GF_ModuleManager);
 	if (!tmp) return NULL;
 	strcpy(tmp->dir, directory);
@@ -59,11 +62,13 @@ GF_ModuleManager *gf_modules_new(const char *directory, GF_Config *config)
 
 	tmp->plug_list = gf_list_new();
 	if (!tmp->plug_list) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("OUT OF MEMORY, cannot create list of modules !!!\n", directory));
 		gf_free(tmp);
 		return NULL;
 	}
 	tmp->cfg = config;
-	gf_modules_refresh(tmp);
+        loadedModules = gf_modules_refresh(tmp);
+	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Loaded %d modules from directory %s.\n", loadedModules, directory));
 	return tmp;
 }
 
@@ -108,9 +113,15 @@ GF_BaseInterface *gf_modules_load_interface(GF_ModuleManager *pm, u32 whichplug,
 	ModuleInstance *inst;
 	GF_BaseInterface *ifce;
 
-	if (!pm) return NULL;
+	if (!pm){
+          GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface() : No Module Manager set\n"));
+          return NULL;
+        }
 	inst = (ModuleInstance *) gf_list_get(pm->plug_list, whichplug);
-	if (!inst) return NULL;
+	if (!inst){
+          GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface() : no module %d exist.\n", whichplug));
+          return NULL;
+        }
         GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Load interface...%s\n", inst->name));
 	/*look in cache*/
         if (!pm->cfg){
@@ -203,11 +214,16 @@ GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const 
 	const char *file_name;
 	u32 i, count;
 	GF_BaseInterface *ifce;
+        if (!pm || !plug_name || !pm->plug_list || !pm->cfg){
+          GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] gf_modules_load_interface_by_name has bad parameters pm=%p, plug_name=%s.\n", pm, plug_name));
+          return NULL;
+        }
 	count = gf_list_count(pm->plug_list);
-
 	/*look for cache entry*/
 	file_name = gf_cfg_get_key(pm->cfg, "PluginsCache", plug_name);
+
 	if (file_name) {
+
 		for (i=0; i<count; i++) {
 			ModuleInstance *inst = (ModuleInstance *) gf_list_get(pm->plug_list, i);
 			if (!strcmp(inst->name,  file_name)) {
@@ -216,17 +232,19 @@ GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const 
 			}
 		}
 	}
-
+        GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Plugin %s of type %d not found in cache, searching for it...\n", plug_name, InterfaceFamily));
 	for (i=0; i<count; i++) {
 		ifce = gf_modules_load_interface(pm, i, InterfaceFamily);
 		if (!ifce) continue;
 		if (ifce->module_name && !stricmp(ifce->module_name, plug_name)) {
 			/*update cache entry*/
 			gf_cfg_set_key(pm->cfg, "PluginsCache", plug_name, ((ModuleInstance*)ifce->HPLUG)->name);
+                        GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Added plugin cache %s for %s\n", plug_name, ((ModuleInstance*)ifce->HPLUG)->name));
 			return ifce;
 		}
 		gf_modules_close_interface(ifce);
 	}
+	GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Core] Plugin %s not found in %d modules.\n", plug_name, count));
 	return NULL;
 }
 

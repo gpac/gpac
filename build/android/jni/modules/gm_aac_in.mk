@@ -15,4 +15,6 @@ LOCAL_CFLAGS += -DGPAC_HAS_FAAD
 
 LOCAL_SRC_FILES := ../../../../modules/aac_in/aac_in.c ../../../../modules/aac_in/faad_dec.c 
 
+LOCAL_MODULE_FILENAME=gm_aac_in
+
 include $(BUILD_SHARED_LIBRARY)

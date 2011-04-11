@@ -29,7 +29,9 @@
 #include <gpac/setup.h>
 
 #ifdef GPAC_ANDROID
+#ifndef XP_UNIX
 #define XP_UNIX
+#endif
 #endif
 
 #include <jsapi.h>

@@ -676,11 +676,13 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		if (ext) ext[0] = 0;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] No mime type found - checking by extension %s\n", szExt));
+		assert( term && term->user && term->user->modules);
 		keyCount = gf_cfg_get_key_count(term->user->config, "MimeTypes");
 		for (i=0; i<keyCount; i++) {
-			char *sMime, *sPlug;
+			char *sPlug;
 			const char *sKey;
-			sMime = (char *) gf_cfg_get_key_name(term->user->config, "MimeTypes", i);
+			const char *sMime;
+			sMime = gf_cfg_get_key_name(term->user->config, "MimeTypes", i);
 			if (!sMime) continue;
 			sKey = gf_cfg_get_key(term->user->config, "MimeTypes", sMime);
 			if (!sKey) continue;
@@ -689,8 +691,12 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 			if (!sPlug) continue;	/*bad format entry*/
 			sPlug += 2;
 
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Trying module[%i]=%s, mime=%s\n", i, sPlug, sMime));
 			ifce = (GF_InputService *) gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
-			if (!ifce) continue;
+			if (!ifce){
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] module[%i]=%s, mime=%s, cannot be loaded for GF_NET_CLIENT_INTERFACE.\n", i, sPlug, sMime));
+				continue;
+			}
 			if (!net_check_interface(ifce)) {
 				gf_modules_close_interface((GF_BaseInterface *) ifce);
 				ifce = NULL;
@@ -702,6 +708,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 
 	/*browse all modules*/
 	if (!ifce) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Not found any interface, trying browsing all modules...\n"));
 		for (i=0; i< gf_modules_get_count(term->user->modules); i++) {
 			ifce = (GF_InputService *) gf_modules_load_interface(term->user->modules, i, GF_NET_CLIENT_INTERFACE);
 			if (!ifce) continue;

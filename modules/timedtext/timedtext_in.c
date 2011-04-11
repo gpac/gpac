@@ -61,6 +61,8 @@ const char * TTIN_MIME_TYPES[] = {
 
 static u32 TTIN_RegisterMimeTypes(const GF_InputService *plug){
     u32 i;
+    if (!plug)
+      return 0;
     for (i = 0 ; TTIN_MIME_TYPES[i]; i+=3){
 	gf_term_register_mime_type(plug, TTIN_MIME_TYPES[i], TTIN_MIME_TYPES[i+1], TTIN_MIME_TYPES[i+2]);
     }
@@ -83,6 +85,8 @@ static Bool TTIn_CanHandleURL(GF_InputService *plug, const char *url)
 
 static Bool TTIn_is_local(const char *url)
 {
+        if (!url)
+          return 0;
 	if (!strnicmp(url, "file://", 7)) return 1;
 	if (strstr(url, "://")) return 0;
 	return 1;
@@ -107,11 +111,12 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 {
 	GF_Err e;
 	GF_MediaImporter import;
-
 	char szFILE[GF_MAX_PATH];
 	TTIn *tti = (TTIn *)plug->priv;
-	const char *cache_dir = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
-
+	const char *cache_dir;
+        if (!tti || !url)
+          return GF_BAD_PARAM;
+        cache_dir = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
 	if (cache_dir && strlen(cache_dir)) {
 		if (cache_dir[strlen(cache_dir)-1] != GF_PATH_SEPARATOR) {
 			sprintf(szFILE, "%s%csrt_%p_mp4", cache_dir, GF_PATH_SEPARATOR, tti);
@@ -123,20 +128,23 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	}
 	tti->mp4 = gf_isom_open(szFILE, GF_ISOM_OPEN_WRITE, NULL);
 	if (!tti->mp4) return gf_isom_last_error(NULL);
-
+        if (tti->szFile)
+          gf_free(tti->szFile);
 	tti->szFile = gf_strdup(szFILE);
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 	import.dest = tti->mp4;
 	/*override layout from sub file*/
 	import.flags = GF_IMPORT_SKIP_TXT_BOX;
-	import.in_name = (char *) url;
+	import.in_name = gf_strdup(url);
 
 	e = gf_media_import(&import);
 	if (!e) {
 		tti->tt_track = 1;
 		gf_isom_text_set_streaming_mode(tti->mp4, 1);
 	}
+	if (import.in_name)
+          gf_free(import.in_name);
 	return e;
 }
 
@@ -146,7 +154,8 @@ void TTIn_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	const char *szCache;
 	GF_InputService *plug = (GF_InputService *)cbk;
 	TTIn *tti = (TTIn *) plug->priv;
-
+        if (!tti)
+          return;
 	gf_term_download_update_stats(tti->dnload);
 
 	e = param->error;
@@ -172,7 +181,8 @@ void TTIn_NetIO(void *cbk, GF_NETIO_Parameter *param)
 void TTIn_download_file(GF_InputService *plug, const char *url)
 {
 	TTIn *tti = (TTIn *) plug->priv;
-
+        if (!plug || !url)
+          return;
 	tti->needs_connection = 1;
 	tti->dnload = gf_term_download_new(tti->service, url, 0, TTIn_NetIO, plug);
 	if (!tti->dnload) {
@@ -186,7 +196,8 @@ static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 {
 	GF_Err e;
 	TTIn *tti = (TTIn *)plug->priv;
-
+        if (!plug || !url)
+          return GF_BAD_PARAM;
 	tti->service = serv;
 
 	if (tti->dnload) gf_term_download_del(tti->dnload);
@@ -205,7 +216,10 @@ static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 
 static GF_Err TTIn_CloseService(GF_InputService *plug)
 {
-	TTIn *tti = (TTIn *)plug->priv;
+	TTIn *tti;
+        if (!plug)
+          return GF_BAD_PARAM;
+        tti = (TTIn *)plug->priv;
         if (!tti)
           return GF_BAD_PARAM;
 	if (tti->samp)
@@ -222,14 +236,20 @@ static GF_Err TTIn_CloseService(GF_InputService *plug)
 	if (tti->dnload)
           gf_term_download_del(tti->dnload);
 	tti->dnload = NULL;
-
-	gf_term_on_disconnect(tti->service, NULL, GF_OK);
+        if (tti->service)
+          gf_term_on_disconnect(tti->service, NULL, GF_OK);
+        tti->service = NULL;
 	return GF_OK;
 }
 
 static GF_Descriptor *TTIn_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
-	TTIn *tti = (TTIn *)plug->priv;
+	TTIn *tti;
+        if (!plug)
+          return NULL;
+        tti = (TTIn *)plug->priv;
+        if (!tti)
+          return NULL;
 	/*visual object*/
 	switch (expect_type) {
 	case GF_MEDIA_OBJECT_UNDEF:
@@ -254,9 +274,10 @@ static GF_Err TTIn_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, c
 	u32 ES_ID;
 	GF_Err e;
 	TTIn *tti = (TTIn *)plug->priv;
-
+        if (!tti)
+          return GF_BAD_PARAM;
 	e = GF_SERVICE_ERROR;
-	if (tti->ch==channel) goto exit;
+	if (!tti || tti->ch==channel) goto exit;
 
 	e = GF_STREAM_NOT_FOUND;
 	ES_ID = 0;
@@ -288,7 +309,8 @@ static GF_Err TTIn_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel
 static GF_Err TTIn_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	TTIn *tti = (TTIn *)plug->priv;
-
+        if (!tti)
+          return GF_BAD_PARAM;
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
 	switch (com->command_type) {
 	case GF_NET_CHAN_SET_PADDING:
@@ -398,10 +420,15 @@ void *NewTTReader()
 
 void DeleteTTReader(void *ifce)
 {
-	GF_InputService *plug = (GF_InputService *) ifce;
-	TTIn *tti = (TTIn *)plug->priv;
-        if (tti)
+	TTIn *tti;
+        GF_InputService *plug = (GF_InputService *) ifce;
+        if (!plug)
+          return;
+        tti = (TTIn *)plug->priv;
+        if (tti){
+          TTIn_CloseService(plug);
           gf_free(tti);
+        }
         plug->priv = NULL;
 	gf_free(plug);
 }

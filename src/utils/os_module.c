@@ -48,8 +48,12 @@ void gf_modules_free_module(ModuleInstance *inst)
 #else
 	if (inst->lib_handle) dlclose(inst->lib_handle);
 #endif
-	gf_list_del(inst->interfaces);
-	gf_free(inst->name);
+        if (inst->interfaces)
+          gf_list_del(inst->interfaces);
+        inst->interfaces = NULL;
+        if (inst->name)
+          gf_free(inst->name);
+        inst->name = NULL;
 	gf_free(inst);
 }
 
@@ -198,8 +202,11 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 	_flags =RTLD_LAZY;
 #endif
 
-	ModuleLib = dlopen(file, _flags);
-	if (!ModuleLib) goto next;
+	ModuleLib = dlopen(item_name, _flags);
+        if (!ModuleLib) {
+                GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Core] Cannot load module file %s, error is %s\n", item_name, dlerror()));
+                goto next;
+        }
 
 	query_func = (QueryInterface) dlsym(ModuleLib, "QueryInterface");
 	load_func = (LoadInterface) dlsym(ModuleLib, "LoadInterface");
@@ -207,7 +214,12 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 	dlclose(ModuleLib);
 #endif
 
-	if (!load_func || !query_func || !del_func) return 0;
+	if (!load_func || !query_func || !del_func){
+          GF_LOG(GF_LOG_WARNING, GF_LOG_CORE,
+                 ("[Core] Could not find some signatures in module %s: QueryInterface=%p, LoadInterface=%p, ShutdownInterface=%p\n",
+                  item_name, load_func, query_func, del_func));
+          return 0;
+        }
 #endif
 
 
@@ -215,6 +227,7 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 	inst->interfaces = gf_list_new();
 	inst->plugman = pm;
 	inst->name = gf_strdup(item_name);
+        GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Added module %s.\n", inst->name));
 	gf_list_add(pm->plug_list, inst);
 	return 0;
 }
@@ -223,7 +236,6 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 u32 gf_modules_refresh(GF_ModuleManager *pm)
 {
 	if (!pm) return 0;
-
 #ifdef WIN32
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".dll");
 #elif defined(__APPLE__)
@@ -376,6 +388,7 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".dylib");
 #endif
 #else
+        GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Refreshing list of modules in directory %s...\n", pm->dir));
 	gf_enum_directory(pm->dir, 0, enum_modules, pm, ".so");
 #endif
 
