@@ -73,32 +73,42 @@ void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts)
 	u32 i_streams, i_targets;
 	GF_M2TS_IP_Stream *ip_stream_buff;
 
-	GF_M2TS_IP_PLATFORM * ip_platform = ts->ip_platform;
+	GF_M2TS_IP_PLATFORM * ip_platform;
+	if (!ts)
+		return;
+	ip_platform = ts->ip_platform;
 
 	if (!ip_platform) return;
 
 	i_streams = 0;
 	i_targets = 0;
-	while(gf_list_count(ip_platform->ip_streams)){
-		ip_stream_buff=gf_list_get(ip_platform->ip_streams, 0);	
+	if (ip_platform->ip_streams){
+		while(gf_list_count(ip_platform->ip_streams)){
+			ip_stream_buff=gf_list_get(ip_platform->ip_streams, 0);	
 	
-		while (gf_list_count(ip_stream_buff->targets)){
-			GF_M2TS_IP_Target *ip_targets = gf_list_get(ip_stream_buff->targets, 0);
-			gf_free(ip_targets);
-			gf_list_rem(ip_stream_buff->targets,0);
-		}
-		gf_free(ip_stream_buff);
-		gf_list_rem(ip_platform->ip_streams,0);
+			while (gf_list_count(ip_stream_buff->targets)){
+				GF_M2TS_IP_Target *ip_targets = gf_list_get(ip_stream_buff->targets, 0);
+				gf_free(ip_targets);
+				gf_list_rem(ip_stream_buff->targets,0);
+			}
+			gf_free(ip_stream_buff);
+			gf_list_rem(ip_platform->ip_streams,0);
 
+		}
+		gf_list_del(ip_platform->ip_streams);
 	}
-	gf_list_del(ip_platform->ip_streams);
-	while(gf_list_count(ip_platform->socket_struct)){
-		GF_SOCK_ENTRY *socket_struct = gf_list_get(ip_platform->socket_struct, 0);
-		gf_free(socket_struct);
-		gf_list_rem(ip_platform->socket_struct,0);
+	ip_platform->ip_streams = NULL;
+	if (ip_platform->socket_struct){
+		while(gf_list_count(ip_platform->socket_struct)){
+			GF_SOCK_ENTRY *socket_struct = gf_list_get(ip_platform->socket_struct, 0);
+			gf_free(socket_struct);
+			gf_list_rem(ip_platform->socket_struct,0);
+		}
+		gf_list_del(ip_platform->socket_struct);
 	}
-	gf_list_del(ip_platform->socket_struct);
+	ip_platform->socket_struct = NULL;
 	gf_free(ip_platform);			
+	ts->ip_platform = NULL;
 }
 
 GF_M2TS_ES *gf_dvb_mpe_section_new()
@@ -118,7 +128,9 @@ void gf_dvb_mpe_section_del(GF_M2TS_ES *es)
 
 	/*TODO - cleanup MPE FEC frame state & co*/
 	if (ses->mff) {
-		gf_list_del(ses->mff->mpe_holes);
+		if (ses->mff->mpe_holes)
+			gf_list_del(ses->mff->mpe_holes);
+		ses->mff->mpe_holes = NULL;
 		gf_free(ses->mff);
 		ses->mff=NULL;
 	}
@@ -154,6 +166,7 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 	u32 i_streams,j;
 	u32 id,section_length, section_number, last_section_number;
 	s32 len_left = data_size;
+	assert( ts );
 
 
 	i_streams = 0;
@@ -206,6 +219,8 @@ void gf_m2ts_process_mpe(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_MPE *mpe, unsigned
 	}else{
 		GF_SAFEALLOC(mpe->mff,MPE_FEC_FRAME); 
 	 
+		assert( ip_platform );
+		assert(ip_platform->ip_streams);
 		i_streams = gf_list_count(ip_platform->ip_streams);
 		for(j=0;j<i_streams;j++){			
 			ip_stream_buff=gf_list_get(ip_platform->ip_streams, j);
@@ -493,6 +508,7 @@ void gf_m2ts_process_int(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ip_table, unsi
 {	
 
 	GF_M2TS_IP_PLATFORM * ip_platform = ts->ip_platform ; 
+	assert( ts );
 //	fprintf(stdout, "Processing IP/MAC Notification table (PID %d) %s\n", ip_table->pid, (status==GF_M2TS_TABLE_REPEAT)?"repeated":"");
 	//if ( status == GF_M2TS_TABLE_REPEAT ) return ; 
 	if ( ip_platform == NULL ) 
@@ -522,6 +538,7 @@ void section_DSMCC_INT(GF_M2TS_IP_PLATFORM* ip_platform,u8 *data, u32 data_size)
 
 	data += 12 ; 
  
+	assert( ip_platform);
 	i = dsmcc_pto_platform_descriptor_loop(ip_platform,data); 
 	data   += i;
 	length -= i;
@@ -537,8 +554,7 @@ void section_DSMCC_INT(GF_M2TS_IP_PLATFORM* ip_platform,u8 *data, u32 data_size)
  		i = dsmcc_pto_descriptor_loop(ip_str,data); 
 		data   += i;
 		length -= i;
-	
-
+		assert( ip_platform->ip_streams );
 		gf_list_add(ip_platform->ip_streams, ip_str);
  	}
  	
@@ -558,6 +574,7 @@ u32 dsmcc_pto_platform_descriptor_loop(GF_M2TS_IP_PLATFORM* ip_platform, u8 *dat
    length = loop_length;
    data += 2;
    while (length > 0) {
+	 assert( ip_platform);
 	 i   = platform_descriptorDSMCC_INT_UNT(ip_platform,data);
 	 data   += i;
 	 length -= i;	
@@ -601,6 +618,7 @@ void gf_ip_platform_descriptor(GF_M2TS_IP_PLATFORM* ip_platform,u8 * data)
 {
 	u32 length;
 	length = data[1];	
+	assert( ip_platform );
 	/* allocation ofr the name of the platform */
 	ip_platform->name = gf_malloc(sizeof(char)*(length-3+1));
 	memcpy(ip_platform->name, data+5, length-3);
@@ -613,6 +631,7 @@ void gf_ip_platform_provider_descriptor(GF_M2TS_IP_PLATFORM* ip_platform, u8 * d
 	u32 length;
 	length = data[1];	
 	/* allocation of the name of the platform */
+	assert( ip_platform );
 	ip_platform->provider_name = gf_malloc(sizeof(char)*(length-3+1));
 	memcpy(ip_platform->provider_name, data+5, length-3);
 	ip_platform->provider_name[length-3] = 0;
@@ -823,12 +842,12 @@ void gf_m2ts_gather_ipdatagram_information(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *t
 	GF_M2TS_IP_Target *ip_targets;
 	GF_M2TS_IP_PLATFORM * ip_platform = ts->ip_platform;
 	
-
+	assert( ts );
 	offset =0;
 	ip_datagram = mff->p_adt;
 	GF_SAFEALLOC(ip_packet,GF_M2TS_IP_Packet);
 	GF_SAFEALLOC(mff_holes,MPE_Error_Holes);
-
+	assert( ip_platform );
 	while(offset<mff->current_offset_adt)
 	{
 		/* Find the parts of the ADT which contain errors and skip them */
@@ -861,7 +880,7 @@ void gf_m2ts_gather_ipdatagram_information(MPE_FEC_FRAME *mff,GF_M2TS_Demuxer *t
 				i_targets = 0;
 		
 
-
+				assert( ip_platform->ip_streams );
 				i_streams = gf_list_count(ip_platform->ip_streams);
 				for(k=0;k<i_streams;k++)
 				{				
@@ -919,6 +938,7 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 	GF_M2TS_IP_Target *ip_targets;
 	u8 *ip_adress;
 	GF_M2TS_IP_PLATFORM * ip_platform = ts->ip_platform;
+	assert( ts );
 	if (!ts->ip_platform) return;
 
 	/* provider and ip platform name */
@@ -928,6 +948,7 @@ void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts)
 	i_targets = 0;
 
 
+	assert(ip_platform->ip_streams);
 	i_streams = gf_list_count(ip_platform->ip_streams);
 	for(i=0;i<i_streams;i++)
 	{
@@ -1027,7 +1048,7 @@ void socket_simu(GF_M2TS_IP_Packet *ip_packet, GF_M2TS_Demuxer *ts, Bool yield)
 	GF_Err e;
 	u8 nb_socket_struct, i;
 	GF_SOCK_ENTRY *Sock_Struct = NULL;
-
+	assert( ts );
 	if(!ts->ip_platform) {
 		GF_SAFEALLOC(ts->ip_platform,GF_M2TS_IP_PLATFORM );
 	}

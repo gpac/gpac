@@ -1511,23 +1511,24 @@ void DeleteM2TSReader(void *ifce)
 	m2ts = plug->priv;
 	if (!m2ts)
 	  return;
-	assert( m2ts->requested_progs );
-	count = gf_list_count(m2ts->requested_progs);
-	for (i = 0; i < count; i++) {
-		M2TSIn_Prog *prog = gf_list_get(m2ts->requested_progs, i);
-		gf_free(prog->fragment);
-		gf_free(prog);
+	if( m2ts->requested_progs ){
+		count = gf_list_count(m2ts->requested_progs);
+		for (i = 0; i < count; i++) {
+			M2TSIn_Prog *prog = gf_list_get(m2ts->requested_progs, i);
+			gf_free(prog->fragment);
+			gf_free(prog);
+		}
+		gf_list_del(m2ts->requested_progs);
 	}
-	gf_list_del(m2ts->requested_progs);
 	m2ts->requested_progs = NULL;
-	assert( m2ts->requested_pids );
-	count = gf_list_count(m2ts->requested_pids);
-	for (i = 0; i < count; i++) {
-		M2TSIn_Prog *prog = gf_list_get(m2ts->requested_pids, i);
-		gf_free(prog);
-	}
-	if (m2ts->requested_pids)
+	if( m2ts->requested_pids ){
+		count = gf_list_count(m2ts->requested_pids);
+		for (i = 0; i < count; i++) {
+			M2TSIn_Prog *prog = gf_list_get(m2ts->requested_pids, i);
+			gf_free(prog);
+		}
 		gf_list_del(m2ts->requested_pids);
+	}
 	m2ts->requested_pids = NULL;
 	if (m2ts->network_buffer)
 		gf_free(m2ts->network_buffer);
