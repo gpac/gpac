@@ -85,7 +85,7 @@ static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
         LOGE("RegisterNatives failed for '%s'\n", className);
         return -1;
     }
-    pthread_key_create(&jni_thread_env_key, jni_destroy_env);
+    pthread_key_create(&jni_thread_env_key, &jni_destroy_env);
     return 0;
 }
 
@@ -256,9 +256,11 @@ int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status
 	JavaEnvTh * env = getEnv();
 	if (!env || !env->cbk_displayMessage)
 		return 0;
+	env->env->PushLocalFrame(2);
 	jstring tit = env->env->NewStringUTF(title?title:"null");
 	jstring mes = env->env->NewStringUTF(msg?msg:"null");
 	env->env->CallVoidMethod(env->cbk_obj, env->cbk_displayMessage, mes, tit, status);
+	env->env->PopLocalFrame(NULL);
         debug_log("MessageBox end");
 	return 1;
 }
@@ -313,8 +315,10 @@ void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_
           jstring msg;
           if (!env || !env->cbk_onProgress)
                 goto displayInAndroidlogs;
+	  env->env->PushLocalFrame(1);
           msg = env->env->NewStringUTF(szMsg);
           env->env->CallVoidMethod(env->cbk_obj, env->cbk_onLog, debug, lm, msg);
+	  env->env->PopLocalFrame(NULL);
           return;
         }
 displayInAndroidlogs:
@@ -495,8 +499,10 @@ void CNativeWrapper::progress_cbk(const char *title, u64 done, u64 total){
         if (!env || !env->cbk_onProgress)
                 return;
         debug_log("Osmo4_progress_cbk start");
+	env->env->PushLocalFrame(1);
         jstring js = env->env->NewStringUTF(title);
         env->env->CallVoidMethod(env->cbk_obj, env->cbk_onProgress, js, done, total);
+	env->env->PopLocalFrame(NULL);
         debug_log("Osmo4_progress_cbk end");
 }
 
@@ -529,6 +535,11 @@ void CNativeWrapper::SetupLogs(){
 	gf_mx_v(m_mx);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Osmo4 logs initialized\n"));
+	/* Test for JNI invocations, should work properly
+	int k;
+	for (k = 0 ; k < 512; k++){
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Message %d\n", k));
+	}*/
 }
 //-------------------------------
 // dir should end with /
