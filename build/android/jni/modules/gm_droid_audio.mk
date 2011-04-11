@@ -14,10 +14,11 @@ LOCAL_MODULE		:= gm_droidaudio
 
 include $(LOCAL_PATH)/base.mk
 
-LOCAL_LDLIBS    += -llog
+LOCAL_LDLIBS    += -llog -ljavaenv -ldl
 
 LOCAL_SRC_FILES := ../../../../modules/droid_audio/droidaudio.c
 
 LOCAL_SHARED_LIBRARIES := javaenv
 
+LOCAL_MODULE_FILENAME=gm_droid_audio
 include $(BUILD_SHARED_LIBRARY)

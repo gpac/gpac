@@ -171,7 +171,6 @@ class CNativeWrapper{
 		 * Callback management
 		 */
                 JavaEnvTh mainJavaEnv;
-                JavaEnvTh currentJavaEnv;
 
 		GF_Mutex *m_mx;
 		GF_User m_user;

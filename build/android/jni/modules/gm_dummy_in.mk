@@ -9,5 +9,6 @@ include $(LOCAL_PATH)/base.mk
 LOCAL_SRC_FILES := ../../../../modules/dummy_in/dummy_in.c
 
 
+LOCAL_MODULE_FILENAME=gm_dummy_in
 
 include $(BUILD_SHARED_LIBRARY)

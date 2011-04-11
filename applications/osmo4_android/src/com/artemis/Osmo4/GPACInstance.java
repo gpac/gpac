@@ -127,6 +127,7 @@ public class GPACInstance implements GPACInstanceInterface {
 
     @Override
     public void connect(String url) {
+        Log.i(LOG_LIB, "connect(" + url + ")"); //$NON-NLS-1$ //$NON-NLS-2$
         checkCurrentThread();
         gpacconnect(url);
     }

@@ -8,5 +8,6 @@ include $(LOCAL_PATH)/base.mk
 
 LOCAL_SRC_FILES := ../../../../modules/saf_in/saf_in.c
 
+LOCAL_MODULE_FILENAME=gm_saf_in
 
 include $(BUILD_SHARED_LIBRARY)

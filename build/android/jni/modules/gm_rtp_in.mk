@@ -10,5 +10,6 @@ include $(LOCAL_PATH)/base.mk
 
 LOCAL_SRC_FILES := ../../../../modules/rtp_in/rtp_in.c ../../../../modules/rtp_in/rtp_session.c ../../../../modules/rtp_in/rtp_signaling.c ../../../../modules/rtp_in/rtp_stream.c ../../../../modules/rtp_in/sdp_fetch.c ../../../../modules/rtp_in/sdp_load.c
 
+LOCAL_MODULE_FILENAME=gm_rtp_in
 
 include $(BUILD_SHARED_LIBRARY)

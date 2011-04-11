@@ -25,19 +25,52 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
      */
     public final static String GPAC_CACHE_DIR;
 
-    static {
-        File rootCfg = Environment.getExternalStorageDirectory();
-        File osmo = new File(rootCfg, "osmo/"); //$NON-NLS-1$
-        GPAC_CFG_DIR = osmo.getAbsolutePath() + "/"; //$NON-NLS-1$
-        GPAC_CACHE_DIR = new File(osmo, "cache/").getAbsolutePath(); //$NON-NLS-1$
-    };
+    /**
+     * Default directory for GPAC modules directory, ends with /
+     */
+    public final static String GPAC_MODULES_DIR;
+
+    /**
+     * Creates a given directory if it does not exist
+     * 
+     * @param path
+     */
+    private static boolean createDirIfNotExist(String path) {
+        File f = new File(path);
+        if (!f.exists()) {
+            if (!f.mkdirs()) {
+                Log.e(LOG_RENDERER, "Failed to create directory " + path); //$NON-NLS-1$
+                return false;
+            } else {
+                Log.i(LOG_RENDERER, "Created directory " + path); //$NON-NLS-1$
+            }
+        }
+        return true;
+    }
+
+    // ------------------------------------
+    private static void initGPACDirs() {
+        createDirIfNotExist(GPAC_CFG_DIR);
+        createDirIfNotExist(GPAC_CACHE_DIR);
+        createDirIfNotExist(GPAC_MODULES_DIR);
+    }
 
     private final static String LOG_RENDERER = Osmo4Renderer.class.getSimpleName();
 
     /**
-     * Default directory for GPAC modules directory, ends with /
+     * Static block loaded when class is loaded
      */
-    public final static String GPAC_MODULES_DIR = "/data/data/com.artemis.Osmo4/";//$NON-NLS-1$
+    static {
+        File rootCfg = Environment.getExternalStorageDirectory();
+        File osmo = new File(rootCfg, "osmo"); //$NON-NLS-1$
+        GPAC_CFG_DIR = osmo.getAbsolutePath() + '/';
+        Log.v(LOG_RENDERER, "Using directory " + GPAC_CFG_DIR + " for osmo"); //$NON-NLS-1$ //$NON-NLS-2$
+        GPAC_CACHE_DIR = new File(osmo, "cache").getAbsolutePath() + '/'; //$NON-NLS-1$
+        Log.v(LOG_RENDERER, "Using directory " + GPAC_CACHE_DIR + " for cache"); //$NON-NLS-1$ //$NON-NLS-2$
+        GPAC_MODULES_DIR = (new File(Environment.getDataDirectory() + "/data", "com.artemis.Osmo4")).getAbsolutePath() + '/'; //$NON-NLS-1$ //$NON-NLS-2$
+        Log.v(LOG_RENDERER, "Using directory " + GPAC_MODULES_DIR + " for modules"); //$NON-NLS-1$ //$NON-NLS-2$
+        initGPACDirs();
+    };
 
     /**
      * Directory of fonts
@@ -46,25 +79,26 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        initGPACDir();
-        try {
-            Log.i(LOG_RENDERER, "Creating instance from thread " + Thread.currentThread()); //$NON-NLS-1$
-            instance = new GPACInstance(callback,
-                                        320,
-                                        430,
-                                        GPAC_CFG_DIR,
-                                        GPAC_MODULES_DIR,
-                                        GPAC_CACHE_DIR,
-                                        GPAC_FONT_DIR,
-                                        urlToLoad);
-        } catch (com.artemis.Osmo4.GPACInstanceInterface.GpacInstanceException e) {
-            Log.e(LOG_RENDERER, "Failed to create new GPAC instance !"); //$NON-NLS-1$
-            instance = null;
-            callback.onGPACError(e);
-            return;
+        if (instance == null) {
+            try {
+                Log.i(LOG_RENDERER, "Creating instance from thread " + Thread.currentThread()); //$NON-NLS-1$
+                instance = new GPACInstance(callback,
+                                            320,
+                                            430,
+                                            GPAC_CFG_DIR,
+                                            GPAC_MODULES_DIR,
+                                            GPAC_CACHE_DIR,
+                                            GPAC_FONT_DIR,
+                                            urlToLoad);
+            } catch (com.artemis.Osmo4.GPACInstanceInterface.GpacInstanceException e) {
+                Log.e(LOG_RENDERER, "Failed to create new GPAC instance !"); //$NON-NLS-1$
+                instance = null;
+                callback.onGPACError(e);
+                return;
+            }
+            if (callback != null)
+                callback.onGPACReady();
         }
-        if (callback != null)
-            callback.onGPACReady();
     }
 
     private GPACInstance instance = null;
@@ -114,23 +148,6 @@ public class Osmo4Renderer implements GLSurfaceView.Renderer {
                 this.startFrame = now;
             }
             instance.render();
-        }
-    }
-
-    // ------------------------------------
-    private void initGPACDir() {
-        File osmo = new File(GPAC_CFG_DIR);
-        if (!osmo.exists()) {
-            if (!osmo.mkdirs()) {
-                Log.e(LOG_RENDERER, "Failed to create osmo directory " + GPAC_CFG_DIR); //$NON-NLS-1$
-            }
-        }
-        File cache = new File(GPAC_CACHE_DIR);
-        if (!cache.exists()) {
-            if (!cache.mkdirs()) {
-                Log.e(LOG_RENDERER, "Failed to create cache directory " + GPAC_CFG_DIR); //$NON-NLS-1$
-
-            }
         }
     }
 

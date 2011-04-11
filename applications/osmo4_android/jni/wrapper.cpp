@@ -47,10 +47,30 @@
 #define LOGE(X, Y)  __android_log_print(ANDROID_LOG_ERROR, TAG, X, Y)
 #define LOGW(X, Y)  __android_log_print(ANDROID_LOG_WARN, TAG, X, Y)
 #define LOGI(X, Y)  __android_log_print(ANDROID_LOG_INFO, TAG, X, Y)
+#include <pthread.h>
 
 static JavaVM* javaVM = NULL;
 
-#define DETACH_ENV(this, env) if (javaVM && env != &(this->mainJavaEnv)) javaVM->DetachCurrentThread()
+static pthread_key_t jni_thread_env_key;
+
+/**
+ * This method is called when a pthread is destroyed, so we can delete the JNI env
+ */
+static void jni_destroy_env(void * env) {
+  LOGI("Destroying a thread with attached data, env=%p.\n", env);
+  JavaEnvTh * jniEnv = (JavaEnvTh *) env;
+  if (jniEnv){
+    /*jniEnv->env->DeleteLocalRef(&jniEnv->cbk_displayMessage);
+    jniEnv->env->DeleteLocalRef(&jniEnv->cbk_onProgress);
+    jniEnv->env->DeleteLocalRef(&jniEnv->cbk_showKeyboard);
+    jniEnv->env->DeleteLocalRef(&jniEnv->cbk_setCaption);
+    jniEnv->env->DeleteLocalRef(&jniEnv->cbk_onLog);*/
+    memset(jniEnv, 0, sizeof(JavaEnvTh));
+    gf_free(jniEnv);
+  }
+  if (javaVM)
+    javaVM->DetachCurrentThread();
+}
 
 static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
     const JNINativeMethod* gMethods, int numMethods)
@@ -65,6 +85,7 @@ static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
         LOGE("RegisterNatives failed for '%s'\n", className);
         return -1;
     }
+    pthread_key_create(&jni_thread_env_key, jni_destroy_env);
     return 0;
 }
 
@@ -102,6 +123,12 @@ static JNINativeMethod sMethods[] = {
 };
 
 
+jint JNI_OnUnLoad(JavaVM* vm, void* reserved){
+  LOGI("Deleting library, vm=%p...\n", vm);
+  pthread_key_delete(jni_thread_env_key);
+  javaVM = NULL;
+  jni_thread_env_key = NULL;
+}
 
 //---------------------------------------------------------------------------------------------------
 jint JNI_OnLoad(JavaVM* vm, void* reserved){
@@ -111,15 +138,17 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved){
           return -1;
         if (vm->GetEnv((void**)(&env), JNI_VERSION_1_2) != JNI_OK)
           return -1;
-	javaVM = vm;
+        javaVM = vm;
         LOGI("Registering %s natives\n", className);
         if (jniRegisterNativeMethods(env, className, sMethods, 9) < 0){
           LOGE("Failed to register native methods for %s !\n", className);
           return -1;
         }
         LOGI("Registering %s natives DONE.\n", className);
-	return JNI_VERSION_1_2;
+        pthread_key_create(&jni_thread_env_key, jni_destroy_env);
+        return JNI_VERSION_1_2;
 }
+
 //---------------------------------------------------------------------------------------------------
 //CNativeWrapper
 //-------------------------------
@@ -139,7 +168,6 @@ CNativeWrapper::~CNativeWrapper(){
       debug_log("~CNativeWrapper()");
       if (env && env->cbk_obj)
         env->env->DeleteGlobalRef(env->cbk_obj);
-      DETACH_ENV(this, env);
       Shutdown();
       debug_log("~CNativeWrapper() : DONE\n");
 }
@@ -191,25 +219,34 @@ void CNativeWrapper::setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callb
       env->GetMethodID(localRef, "setCaption", "(Ljava/lang/String;)V");
     envToSet->cbk_showKeyboard =
       env->GetMethodID(localRef, "showKeyboard", "(Z)V");
+    env->DeleteLocalRef(localRef);
 }
+
+
 
 JavaEnvTh * CNativeWrapper::getEnv(){
     JNIEnv *env;
+    JavaEnvTh * javaEnv;
     if (!javaVM){
       debug_log("************* No JVM Found ************");
       return NULL;
     }
-    if (mainJavaEnv.javaThreadId == gf_th_id())
-      return &mainJavaEnv;
-    debug_log("Attaching thread...");
+    javaEnv = (JavaEnvTh*) pthread_getspecific( jni_thread_env_key );
+    if (javaEnv)
+      return javaEnv;
+    javaEnv = (JavaEnvTh *) gf_malloc(sizeof(JavaEnvTh));
+    if (!javaEnv)
+      return NULL;
     javaVM->AttachCurrentThread(&env, NULL);
-    debug_log("Rebuilding methods...");
     if (!env){
-      debug_log("getEnv() returns NULL !");
+      LOGE("Attaching to thread did faild for thread id=%d", gf_th_id());
+      gf_free(javaEnv);
       return NULL;
     }
-    setJavaEnv(&currentJavaEnv, env, mainJavaEnv.cbk_obj);
-    return &currentJavaEnv;
+    LOGI("Rebuilding methods for thread %d", gf_th_id());
+    setJavaEnv(javaEnv, env, mainJavaEnv.cbk_obj);
+    pthread_setspecific(jni_thread_env_key, javaEnv);
+    return javaEnv;
 }
 
 
@@ -222,7 +259,6 @@ int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status
 	jstring tit = env->env->NewStringUTF(title?title:"null");
 	jstring mes = env->env->NewStringUTF(msg?msg:"null");
 	env->env->CallVoidMethod(env->cbk_obj, env->cbk_displayMessage, mes, tit, status);
-        DETACH_ENV(this, env);
         debug_log("MessageBox end");
 	return 1;
 }
@@ -249,7 +285,7 @@ void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_
         char unknTag[32];
         int debug;
         // We do not want to be flood by mutexes
-        if (ll == GF_LOG_DEBUG && lm == GF_LOG_CORE)
+        if (ll == GF_LOG_DEBUG && lm == GF_LOG_MUTEX)
           return;
         switch (ll){
           case GF_LOG_DEBUG:
@@ -279,7 +315,6 @@ void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_
                 goto displayInAndroidlogs;
           msg = env->env->NewStringUTF(szMsg);
           env->env->CallVoidMethod(env->cbk_obj, env->cbk_onLog, debug, lm, msg);
-          DETACH_ENV(self, env);
           return;
         }
 displayInAndroidlogs:
@@ -349,7 +384,10 @@ displayInAndroidlogs:
         case GF_LOG_MODULE:
                 tag="GF_LOG_MODULE";
                 break;
-          default:
+        case GF_LOG_MUTEX:
+                tag="GF_LOG_MUTEX";
+                break;
+        default:
             snprintf(unknTag, 32, "GPAC_UNKNOWN[%d]", lm);
             tag = unknTag;
     }
@@ -408,7 +446,7 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
                     if (evt->connect.is_connected)
                       ptr->MessageBox("Connected", "Connected to scene", GF_OK);
                     else
-                      ptr->MessageBox("Disconnected", "Disconnected from scene : Connection FAILED.", GF_IO_ERR);
+                      ptr->MessageBox("Disconnected", "Disconnected from scene.", GF_OK);
                     break;
                   case GF_EVENT_PROGRESS:
                   {
@@ -433,7 +471,6 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
                               return 0;
                       LOGI("Needs to display/hide the Virtual Keyboard (%d)", evt->type);
                       env->env->CallVoidMethod(env->cbk_obj, env->cbk_showKeyboard, GF_EVENT_TEXT_EDITING_START == evt->type);
-                      DETACH_ENV(ptr, env);
                       LOGV("Done showing virtual keyboard (%d)", evt->type);
                   }
                     break;
@@ -460,7 +497,6 @@ void CNativeWrapper::progress_cbk(const char *title, u64 done, u64 total){
         debug_log("Osmo4_progress_cbk start");
         jstring js = env->env->NewStringUTF(title);
         env->env->CallVoidMethod(env->cbk_obj, env->cbk_onProgress, js, done, total);
-        DETACH_ENV(this, env);
         debug_log("Osmo4_progress_cbk end");
 }
 
@@ -516,64 +552,51 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	m_window = env;
 	m_session = bitmap;
         setJavaEnv(&mainJavaEnv, env, env->NewGlobalRef(*callback));
+        pthread_setspecific( jni_thread_env_key, &mainJavaEnv);
 
 	m_mx = gf_mx_new("Osmo4");
 
 	//load config file
-        LOGD("Loading User Config %s...", "GPAC.cfg");
-	m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
-	if (!m_user.config) {
-		first_launch = 1;
-		FILE *ft = fopen(m_cfg_filename, "wt");
-		if (!ft) {
-                        LOGE("Cannot write User Config %s, error", "GPAC.cfg");
-			return Quit(KErrGeneral);
-		} else {
-			fclose(ft);
-		}
-		m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
-		if (!m_user.config) {
-                        LOGE("Cannot Read User Config %s, error", "GPAC.cfg");
-			return Quit(KErrGeneral);
-		}
-	}
+        LOGI("Loading User Config %s...", "GPAC.cfg");
+	m_user.config = gf_cfg_force_new(cfg_dir, "GPAC.cfg");
 	SetupLogs();
 	gf_set_progress_callback(this, Osmo4_progress_cbk);
 
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
-	if (!opt) first_launch = 2;
-
-	if (first_launch) {
+	if (!opt) {
+                FILE * fstart;
+                char msg[256];
                 LOGI("First launch, initializing new Config %s...", "GPAC.cfg");
 		/*hardcode module directory*/
-		gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", GPAC_MODULES_DIR);
-		/*hardcode cache directory*/
-		gf_cfg_set_key(m_user.config, "General", "CacheDirectory", GPAC_CACHE_DIR);
 		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
 		/*startup file*/
-		char msg[256];
-		snprintf(msg, 256, "%sgui/gui.bt",GPAC_CFG_DIR);
-		gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
-		gf_cfg_set_key(m_user.config, "General", "LastWorkingDir", GPAC_CFG_DIR);
+		snprintf(msg, 256, "%sgui/gui.bt", cfg_dir);
+                fstart = fopen(msg, "r");
+                if (fstart){
+                  fclose(fstart);
+                  gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
+                } else {
+                  gf_cfg_set_key(m_user.config, "General", "#StartupFile", msg);
+                }
 		gf_cfg_set_key(m_user.config, "GUI", "UnhideControlPlayer", "1");
 		/*setup UDP traffic autodetect*/
 		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
 		gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
 		gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
-
 		gf_cfg_set_key(m_user.config, "Compositor", "TextureTextMode", "Default");
 		//gf_cfg_set_key(m_user.config, "Compositor", "FrameRate", "30");
-
-		gf_cfg_set_key(m_user.config, "Video", "DriverName", "Android Video Output");
-
-		gf_cfg_set_key(m_user.config, "Audio", "DriverName", "Android Audio Output");
 		gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "no");
 		gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "1");
-
 		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "ft_font");
-
-		gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", GPAC_FONT_DIR);
 	}
+	/* All of this has to be done for every instance */
+	gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", modules_dir ? modules_dir : GPAC_MODULES_DIR);
+        gf_cfg_set_key(m_user.config, "General", "CacheDirectory", cache_dir ? cache_dir : GPAC_CACHE_DIR);
+        gf_cfg_set_key(m_user.config, "General", "LastWorkingDir", cfg_dir);
+        gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", GPAC_FONT_DIR);
+        gf_cfg_set_key(m_user.config, "Video", "DriverName", "Android Video Output");
+        gf_cfg_set_key(m_user.config, "Audio", "DriverName", "Android Audio Output");
+
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
         LOGI("loading modules in directory %s...", opt);
 	m_user.modules = gf_modules_new(opt, m_user.config);
@@ -600,9 +623,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
             LOGE("NO JAVA VM FOUND, m_user=%p !!!!\n", &m_user);
             return Quit(KErrGeneral);
         }
-        gf_cfg_set_key(m_user.config, "Video", "DriverName", "Droid Video Output");
 
-        gf_cfg_set_key(m_user.config, "Audio", "DriverName", "Droid Audio Output");
         LOGD("Loading GPAC terminal, m_user=%p...", &m_user);
 	m_term = gf_term_new(&m_user);
 	if (!m_term) {
@@ -629,17 +650,10 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
           LOGI("Connecting to %s...", urlToLoad);
           gf_term_connect(m_term, urlToLoad);
         }
-        if (m_user.config){
-                /*save cfg and reload*/
-                gf_cfg_del(m_user.config);
-                m_user.config = gf_cfg_new(GPAC_CFG_DIR, "GPAC.cfg");
-                if (!m_user.config) {
-                        MessageBox("Cannot save initial GPAC Config file", "Fatal Error",GF_SERVICE_ERROR);
-                        return Quit(KErrGeneral);
-                }
-        }
         debug_log("init end");
-	//initGL();
+	LOGD("Saving config file %s...\n", m_cfg_filename);
+        gf_cfg_save(m_user.config);
+        LOGI("Initialization complete, config file saved as %s.\n", m_cfg_filename);
         return 0;
 }
 //-------------------------------
@@ -674,10 +688,10 @@ void CNativeWrapper::step(void * env, void * bitmap){
           else if (!m_term->compositor->video_out->Setup)
 		debug_log("step(): No video_out->Setup found");
           else {
-                debug_log("step(): gf_term_process_step : start()");
+                //debug_log("step(): gf_term_process_step : start()");
                 m_term->compositor->frame_draw_type = GF_SC_DRAW_FRAME;
                 gf_term_process_step(m_term);
-                debug_log("step(): gf_term_process_step : end()");
+                //debug_log("step(): gf_term_process_step : end()");
 	}
 }
 

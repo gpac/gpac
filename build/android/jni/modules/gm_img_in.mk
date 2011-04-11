@@ -15,5 +15,6 @@ LOCAL_LDLIBS    += -ljpeg -lopenjpeg -lpng
 LOCAL_SRC_FILES := ../../../../modules/img_in/img_dec.c ../../../../modules/img_in/img_in.c ../../../../modules/img_in/bmp_dec.c ../../../../modules/img_in/png_dec.c ../../../../modules/img_in/jpeg_dec.c ../../../../modules/img_in/jp2_dec.c
 
 
+LOCAL_MODULE_FILENAME=gm_img_in
 
 include $(BUILD_SHARED_LIBRARY)

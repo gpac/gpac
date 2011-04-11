@@ -100,11 +100,10 @@ public class Osmo4 extends Activity implements GpacCallback {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        logger.onCreate();
         requestWindowFeature(Window.FEATURE_PROGRESS);
         // requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
-
-        mGLView = new Osmo4GLSurfaceView(Osmo4.this);
 
         final String name = "Osmo4"; //$NON-NLS-1$
         final String toOpen;
@@ -118,12 +117,19 @@ public class Osmo4 extends Activity implements GpacCallback {
                 toOpen = null;
         } else
             toOpen = null; // "http://vizionr.fr:8000/fun.ts";
+        if (mGLView != null) {
+            setContentView(mGLView);
+            if (toOpen != null)
+                openURLasync(toOpen);
+            // Ok, it means activity has already been started
+            return;
+        }
+        mGLView = new Osmo4GLSurfaceView(Osmo4.this);
         setProgress(1000);
         service.submit(new Runnable() {
 
             @Override
             public void run() {
-                displayPopup(getResources().getText(R.string.copying_native_libs), name);
                 loadAllModules();
                 runOnUiThread(new Runnable() {
 
@@ -458,6 +464,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     @Override
     protected void onDestroy() {
         service.shutdown();
+        logger.onDestroy();
         synchronized (this) {
             if (wl != null)
                 wl.release();
@@ -499,6 +506,7 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
         }
         boolean noErrors = true;
+        final StringBuilder errorsMsg = new StringBuilder();
         for (int i = 0; i < ids.length; i++) {
             OutputStream fos = null;
             InputStream ins = null;
@@ -510,6 +518,16 @@ public class Osmo4 extends Activity implements GpacCallback {
                 continue;
             }
             try {
+                final String msg = getResources().getString(R.string.copying_native_libs,
+                                                            finalFile.getName(),
+                                                            finalFile.getParent());
+                runOnUiThread(new Runnable() {
+
+                    @Override
+                    public void run() {
+                        setTitle(msg);
+                    }
+                });
                 Log.i(LOG_OSMO_TAG, "Copying resource " + ids[i] + " to " //$NON-NLS-1$//$NON-NLS-2$
                                     + finalFile.getAbsolutePath());
                 File tmpFile = new File(fn + ".tmp"); //$NON-NLS-1$
@@ -538,7 +556,10 @@ public class Osmo4 extends Activity implements GpacCallback {
                 });
             } catch (IOException e) {
                 noErrors = false;
-                Log.e(LOG_OSMO_TAG, "IOException for resource : " + ids[i], e); //$NON-NLS-1$
+                String msg = "IOException for resource : " + ids[i]; //$NON-NLS-1$
+                errorsMsg.append(msg).append('\n').append(finalFile.getAbsolutePath()).append('\n');
+                errorsMsg.append(e.getLocalizedMessage());
+                Log.e(LOG_OSMO_TAG, msg, e);
             } finally {
                 if (ins != null) {
                     try {
@@ -574,8 +595,18 @@ public class Osmo4 extends Activity implements GpacCallback {
                     } catch (IOException ignored) {
                     }
             }
+        } else {
+            if (!noErrors)
+                displayMessage(errorsMsg.toString(), "Errors while copying modules !", GF_Err.GF_IO_ERR.value); //$NON-NLS-1$
         }
         Log.i(LOG_OSMO_TAG, "Done loading all modules, took " + (System.currentTimeMillis() - start) + "ms."); //$NON-NLS-1$ //$NON-NLS-2$
+        runOnUiThread(new Runnable() {
+
+            @Override
+            public void run() {
+                setTitle(LOG_OSMO_TAG);
+            }
+        });
     }
 
     private int[] getAllRawResources() throws RuntimeException {

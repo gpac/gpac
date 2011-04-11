@@ -237,7 +237,7 @@ static Bool AAC_ConfigureFromFile(AACReader *read)
 	Bool sync;
 	GF_BitStream *bs;
 	ADTSHeader hdr;
-	if (!read->stream) return 0;
+        if (!read || !read->stream) return 0;
 	bs = gf_bs_from_file(read->stream, GF_BITSTREAM_READ);
 
 	sync = ADTS_SyncFrame(bs, !read->is_remote, &hdr);
@@ -270,7 +270,8 @@ static Bool AAC_ConfigureFromFile(AACReader *read)
 static void AAC_RegulateDataRate(AACReader *read)
 {
 	GF_NetworkCommand com;
-
+        if (!read)
+          return;
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_CHAN_BUFFER_QUERY;
 	com.base.on_channel = read->ch;

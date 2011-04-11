@@ -1,15 +1,10 @@
-TARGET_PLATFORM		:= android-8
+LOCAL_PATH := $(call my-dir)
+
+include $(LOCAL_PATH)/../common.mk
 LOCAL_C_INCLUDES 	:= $(LOCAL_PATH)
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../include
 LOCAL_C_INCLUDES        += $(LOCAL_PATH)/../libgpac/
 
-
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/
-#LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../bin/android/
-LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../libs/armeabi/
-#LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz -lgpac -llog
-LOCAL_LDLIBS    += -lgpac
-
-LOCAL_CFLAGS += -DGPAC_ANDROID
-LOCAL_CFLAGS +=	-DGPAC_HAVE_CONFIG_H
-LOCAL_CFLAGS += -DXP_UNIX
+LOCAL_LDLIBS    += -L$(GPAC_LIB_L)
+LOCAL_LDLIBS    += -lgpac -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz

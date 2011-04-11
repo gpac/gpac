@@ -14,4 +14,6 @@ LOCAL_SRC_FILES := ../../../../modules/mp3_in/mad_dec.c ../../../../modules/mp3_
 
 LOCAL_CFLAGS += -DGPAC_HAS_MAD
 
+LOCAL_MODULE_FILENAME=gm_mp3_in
+
 include $(BUILD_SHARED_LIBRARY)

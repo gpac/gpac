@@ -338,7 +338,9 @@ enum
 	/*! Log for audio compositor*/
 	GF_LOG_AUDIO = 1<<19,
 	/*! generic Log for modules*/
-	GF_LOG_MODULE = 1<<20
+	GF_LOG_MODULE = 1<<20,
+	/*! log for threads and mutexes */
+        GF_LOG_MUTEX = 1<<21
 
 };
 

@@ -188,6 +188,11 @@ public interface GpacCallback {
         /** generic Log for modules */
         GF_LOG_MODULE(1 << 20),
         /**
+         * Log for GPAC mutexes and threads (Very verbose at DEBUG)
+         * 
+         */
+        GF_LOG_MUTEX(1 << 21),
+        /**
          * Unknown Log subsystem
          */
         GF_LOG_UNKNOWN(1 << 30);
