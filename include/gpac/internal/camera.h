@@ -113,7 +113,7 @@ typedef struct _camera
 	SFRotation start_ori, end_ori;
 	Fixed start_fov, end_fov;
 	/*for 2D cameras we never animate except for vp reset*/
-	Fixed start_zoom;
+	Fixed start_zoom, end_zoom;
 	SFVec2f start_trans, start_rot;
 
 	/*center of examine movement*/
@@ -163,7 +163,7 @@ typedef struct _camera
 /*invalidate camera to force recompute of all params*/
 void camera_invalidate(GF_Camera *cam);
 /*updates camera. user transform is only used in 2D to set global user zoom/pan/translate*/
-void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords);
+void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed viewing_distance, u32 camera_layout);
 /*reset to last viewport*/
 void camera_reset_viewpoint(GF_Camera *cam, Bool animate);
 /*move camera to given vp*/
@@ -179,6 +179,7 @@ SFRotation camera_get_orientation(SFVec3f pos, SFVec3f target, SFVec3f up);
 SFVec3f camera_get_pos_dir(GF_Camera *cam);
 SFVec3f camera_get_target_dir(GF_Camera *cam);
 SFVec3f camera_get_right_dir(GF_Camera *cam);
+void camera_set_2d(GF_Camera *cam);
 
 #endif
 

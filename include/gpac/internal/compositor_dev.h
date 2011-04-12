@@ -90,13 +90,6 @@ typedef struct _gf_ft_mgr GF_FontManager;
 #include <gpac/internal/camera.h>
 #include <gpac/internal/mesh.h>
 
-#ifdef WIN32
-#include <windows.h>
-typedef void (APIENTRY * PFNGLARBMULTITEXTUREPROC)(unsigned int target);
-#else
-typedef void (*PFNGLARBMULTITEXTUREPROC) (unsigned int target);
-#endif
-
 typedef struct 
 {
 	Bool multisample;
@@ -104,9 +97,8 @@ typedef struct
 	Bool abgr_texture;
 	Bool npot_texture;
 	Bool rect_texture;
+	Bool point_sprite;
 	u32 yuv_texture;
-	PFNGLARBMULTITEXTUREPROC glActiveTextureARB;
-	PFNGLARBMULTITEXTUREPROC glClientActiveTextureARB;
 } GLCaps;
 
 #endif
@@ -464,6 +456,14 @@ struct __tag_compositor
 	void *tgl_ctx;
 #endif
 
+	Float depth_gl_scale, depth_gl_strips_filter;
+	/*0: none - 1: point-based, 2: elevation grid*/
+	u32 depth_gl_type;
+	/*increase/decrease the standard interoccular offset by the specified distance in cm*/
+	Fixed interoccular_offset;
+	/*increase/decrease the view distance by the specified distance in cm*/
+	Fixed view_distance_offset;
+
 #endif
 	
 	u32 networks_time;
@@ -489,7 +489,6 @@ struct __tag_compositor
 	/*display depth in pixels - if -1, it is the height of the display area*/
 	s32 display_depth;
 #endif
-	
 };
 
 

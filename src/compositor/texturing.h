@@ -73,6 +73,7 @@ Bool gf_sc_texture_needs_reload(GF_TextureHandler *hdl);
 void gf_sc_copy_to_texture(GF_TextureHandler *txh);
 #endif
 
+Bool gf_sc_texture_convert(GF_TextureHandler *txh);
 
 /*copy current GL window to the associated data buffer - the viewport used is the texture one (0,0,W,H) */
 void gf_sc_copy_to_stencil(GF_TextureHandler *txh);

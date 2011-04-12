@@ -364,7 +364,6 @@ static void TraverseViewpoint(GF_Node *node, void *rs, Bool is_destroy)
 				gf_node_dirty_set(node, 0, 0);
 			}
 		}
-		tr_state->disable_cull = 1;
 		return;
 	}
 
