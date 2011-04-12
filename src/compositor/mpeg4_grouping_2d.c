@@ -248,7 +248,7 @@ static void TraverseTransformMatrix2D(GF_Node *node, void *rs, Bool is_destroy)
 		else
 			ptr->is_identity = 0;
 
-		ptr->is_null = (!ptr->mat.m[0]  || !ptr->mat.m[4]) ? 1 : 0;
+		ptr->is_null = ( (!ptr->mat.m[0] && !ptr->mat.m[1]) || (!ptr->mat.m[3] && !ptr->mat.m[4]) ) ? 1 : 0;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
 	traverse_transform(node, ptr, tr_state);
