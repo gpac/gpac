@@ -424,12 +424,13 @@
 
 #endif
 
-
-#ifdef WIN32
+#ifdef _WIN32_WCE
+#define GLAPICAST *
+#elif defined(WIN32)
 #include <windows.h>
 #define GLAPICAST APIENTRY *
 #else
-#define GLAPICAST 
+#define GLAPICAST *
 #endif
 
 #define GLDECL(ret, funname, args)	\
@@ -497,7 +498,10 @@ GLDECL(void, glUniformMatrix4x2fv, (GLint location, GLsizei count, GLboolean tra
 GLDECL(void, glUniformMatrix3x4fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glBlendEquation, (GLint mode) )
+
+#ifndef GPAC_USE_OGL_ES
 GLDECL(void, glActiveTexture, (GLenum texture) )
+#endif
 
 #endif	/*GPAC_DISABLE_3D*/
 
