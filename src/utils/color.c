@@ -305,6 +305,28 @@ static void copy_row_bgr_32(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s
 	}
 }
 
+static void copy_row_rgbd(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
+{
+	u8 a, r, g, b;
+	s32 pos = 0x10000L;
+	x_pitch*=4;
+	
+	while ( dst_w) {
+		while ( pos >= 0x10000L ) {
+			r = *src++; g = *src++; b = *src++; a = *src++;
+			pos -= 0x10000L;
+		}
+		dst[0] = r;
+		dst[1] = g;
+		dst[2] = b;
+		dst[3] = a;
+
+		dst+=x_pitch;
+		pos += h_inc;
+		dst_w--;
+	}
+}
+
 
 static void merge_row_rgb_555(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
 {
@@ -773,6 +795,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		has_alpha = 1;
 	case GF_PIXEL_YUVD:
 		yuv_type = 2;
+		yuv2rgb_init();
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -803,6 +826,10 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	case GF_PIXEL_ARGB:
 		dst_bpp = sizeof(unsigned char)*4;
 		copy_row = has_alpha ? merge_row_argb_32: copy_row_rgb_32;
+		break;
+	case GF_PIXEL_RGBD:
+		dst_bpp = sizeof(unsigned char)*4;
+		copy_row = has_alpha ? merge_row_argb_32: copy_row_rgbd;
 		break;
 	case GF_PIXEL_RGBA:
 		dst_bpp = sizeof(unsigned char)*4;
