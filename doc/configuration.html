@@ -350,6 +350,35 @@ Specifies whether text shall be drawn to a texture and then rendered or directly
 <p style="text-indent: 5%">
 Read-only option listing the OpenGL extensions supported by the GL driver. Only valid after the 3D renderer has been used.
 </p>
+<b>StereoType</b> [value: <i>"None", "SideBySide", "TopToBottom", "Anaglyph", "Columns", "Rows", "Custom"</i>]
+<p style="text-indent: 5%">
+Specifies the stereo output type (default "None"). If your graphic card does not support OpenGL shaders, only <i>SideBySide</i> and <i>TopToBottom</i> modes will be available.</p>
+<ul>
+<li>"SideBySide": images are displayed side by side from left to right.</li>
+<li>"TopToBottom": images are displayed from top (laft view) to bottom (right view).</li>
+<li>"Anaglyph": Standard color anaglyph (red for left view, green and blue for right view) is used.</li>
+<li>"Columns": images are interleaved by columns, left view on even columns and left view on odd columns.</li>
+<li>"Rows": images are interleaved by columns, left view on even rows and left view on odd rows.</li>
+<li>"Custom": images are interleaved according to the shader specified by <i>InterleaverShader</i>
+</ul>
+
+<b>NumViews</b> [value: <i>unsigned integer</i>]
+<p style="text-indent: 5%">
+Specifies the number of views to use in stereo mode. If mode is "Anaglyph", "Columns" or "Rows", the number of views is forced to 2.</p>
+
+<b>InterleaverShader</b> [value: <i>path to fragment shader file</i>]
+<p style="text-indent: 5%">
+Specifies the fragment shader file to use for view interleaving. Each view is rendered in its own texture. The shader is exposed each view as <i>uniform sampler2D gfViewX</i>, where X is the view number starting from the left (<i>gfView1</i>).</p>
+
+<b>ReverseViews</b> [value: <i>"yes", "no"</i>]
+<p style="text-indent: 5%">
+Specifies if the view order should be reversed (from right to left) or not.</p>
+<b>CameraLayout</b> [value: <i>"OffAxis", Linear", "Circular"</i>]
+<p style="text-indent: 5%">
+Specifies the camera layout. The default value is OffAxis in (auto-)stereo modes, ignored in mono mode.</p>
+<b>ViewDistance</b> [value: <i>integer</i>]
+<p style="text-indent: 5%">
+Specifies the distance in cm between the camera and the zero-disparity plane. There is currently no automatic calibration of depth in GPAC.</p>
 
 
 <br/><br/>
@@ -388,8 +417,8 @@ Default audio volume used when launching GPAC.</p>
 Default audio stereo balance used when launching GPAC - 0 for full left, 100 for full right, 50 for balanced.</p>
 <b>Filter</b> [value: string]
 <p style="text-indent: 5%">
-Defines a set of audio filters. Audio filters are declared as a list of strings separated with ";;". The exact syntax of the string is filter specific.
-	
+Defines a set of audio filters. Audio filters are declared as a list of strings separated with ";;". The exact syntax of the string is filter specific.</p>
+
 <br/><br/>
 
 <a name="Video"></a>
