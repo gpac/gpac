@@ -27,6 +27,7 @@
 
 #include <gpac/user.h>
 
+
 #ifdef _WIN32_WCE
 #ifdef GPAC_USE_OGL_ES
 #endif
@@ -35,7 +36,6 @@
 #endif
 
 #define DDCONTEXT	DDContext *dd = (DDContext *)dr->opaque;
-
 
 
 
@@ -480,27 +480,54 @@ static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 
 
 #ifndef GPAC_DISABLE_3D
 	if (dd->output_3d_type==1) {
-		DEVMODE settings;
 		e = GF_OK;
+		dd->on_secondary_screen = 0;
 		/*Setup FS*/
 		if (dd->fullscreen) {
+			int X = 0;
+			int Y = 0;
+#if(WINVER >= 0x0500)
+			HMONITOR hMonitor;
+			MONITORINFOEX minfo;
+			/*get monitor our windows is on*/
+			hMonitor = MonitorFromWindow(dd->os_hwnd, MONITOR_DEFAULTTONEAREST);
+			if (hMonitor) {
+				memset(&minfo, 0, sizeof(MONITORINFOEX));
+				minfo.cbSize = sizeof(MONITORINFOEX);
+				/*get monitor top-left for fullscreen switch, and adjust width and height*/
+				GetMonitorInfo(hMonitor, (LPMONITORINFO) &minfo);
+				dd->fs_width = minfo.rcWork.right - minfo.rcWork.left;
+				dd->fs_height = minfo.rcWork.bottom - minfo.rcWork.top;
+				X = minfo.rcWork.left;
+				Y = minfo.rcWork.top;
+				if (!(minfo.dwFlags & MONITORINFOF_PRIMARY)) dd->on_secondary_screen = 1;
+			}
+#endif
+
 			/*change display mode*/
 			if ((MaxWidth && (dd->fs_width >= MaxWidth)) || (MaxHeight && (dd->fs_height >= MaxHeight)) ) {
 				dd->fs_width = MaxWidth;
 				dd->fs_height = MaxHeight;
 			}
-			SetWindowPos(dd->cur_hwnd, NULL, 0, 0, dd->fs_width, dd->fs_height, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_ASYNCWINDOWPOS);
+			SetWindowPos(dd->cur_hwnd, NULL, X, Y, dd->fs_width, dd->fs_height, SWP_NOZORDER | SWP_SHOWWINDOW | SWP_ASYNCWINDOWPOS);
 
-#ifndef _WIN32_WCE
+//#ifndef _WIN32_WCE
+			/*commented out since it causes problem on multiple monitors*/
+#if 0
+			{
+			DEVMODE settings;
+
 			memset(&settings, 0, sizeof(DEVMODE));
 			settings.dmSize = sizeof(DEVMODE);
 			settings.dmPelsWidth = dd->fs_width;
 			settings.dmPelsHeight = dd->fs_height;
 			settings.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
+
 			if ( ChangeDisplaySettings(&settings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL ) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DirectDraw] cannot change display settings\n"));
 				e = GF_IO_ERR;
 			} 
+			}
 			dd->NeedRestore = 1;
 #endif
 
