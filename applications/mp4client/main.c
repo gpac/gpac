@@ -91,7 +91,7 @@ static char pl_path[GF_MAX_PATH];
 static Bool no_mime_check = 1;
 static Bool be_quiet = 0;
 static u32 log_time_start = 0;
-
+static Bool loop_at_end = 0;
 static u32 forced_width=0;
 static u32 forced_height=0;
 
@@ -171,6 +171,7 @@ void PrintUsage()
 		"                   default alignment is top-left\n"
 		"                   default alignment is top-left\n"
 		"\t-pause:         pauses at first frame\n"
+		"\t-loop:          loops presentation\n"
 		"\n"
 		"Dumper Options:\n"
 		"\t-bmp [times]:   dumps given frames to bmp\n"
@@ -781,7 +782,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		ResetCaption();
 		break;
 	case GF_EVENT_EOS:
-		restart = 1;
+		if (loop_at_end) restart = 1;
 		break;
 	case GF_EVENT_SIZE:
 		if (user.init_flags & GF_TERM_WINDOWLESS) {
@@ -1213,6 +1214,7 @@ int main (int argc, char **argv)
 		else if (!strcmp(arg, "-pause")) pause_at_first = 1;
 		else if (!strcmp(arg, "-exit")) auto_exit = 1;
 		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = 1;
+		else if (!strcmp(arg, "-loop")) loop_at_end = 1;
 		else if (!strcmp(arg, "-opt")) {
 			char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
 			sep = strchr(argv[i+1], ':');
