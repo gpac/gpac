@@ -483,9 +483,10 @@ SectionEnd
                  
                  
                   
-Section "MSVC Runtime" SecMSVCRT
+Section "Windows Runtime Libraries" SecMSVCRT
   SectionIn 1       
   File "..\msvcr90.dll"
+  File "..\mfc90.dll"
 SectionEnd
 
 
