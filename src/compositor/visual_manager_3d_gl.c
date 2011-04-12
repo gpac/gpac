@@ -23,6 +23,7 @@
  */
 
 #include "visual_manager.h"
+#include "texturing.h"
 
 #ifndef GPAC_DISABLE_3D
 
@@ -65,34 +66,74 @@
 
 #define CHECK_GL_EXT(name) ((strstr(ext, name) != NULL) ? 1 : 0)
 
+
+#ifndef GPAC_USE_TINYGL
+GLDECL_STATIC(glActiveTextureARB);
+GLDECL_STATIC(glClientActiveTextureARB);
+GLDECL_STATIC(glPointParameterfEXT);
+GLDECL_STATIC(glPointParameterfvEXT);
+GLDECL_STATIC(glCreateProgram);
+GLDECL_STATIC(glDeleteProgram);
+GLDECL_STATIC(glLinkProgram);
+GLDECL_STATIC(glUseProgram);
+GLDECL_STATIC(glCreateShader);
+GLDECL_STATIC(glDeleteShader);
+GLDECL_STATIC(glShaderSource);
+GLDECL_STATIC(glCompileShader);
+GLDECL_STATIC(glAttachShader);
+GLDECL_STATIC(glDetachShader);
+GLDECL_STATIC(glGetShaderiv);
+GLDECL_STATIC(glGetInfoLogARB);
+GLDECL_STATIC(glGetUniformLocation);
+GLDECL_STATIC(glUniform1f);
+GLDECL_STATIC(glUniform2f);
+GLDECL_STATIC(glUniform3f);
+GLDECL_STATIC(glUniform4f);
+GLDECL_STATIC(glUniform1i);
+GLDECL_STATIC(glUniform2i);
+GLDECL_STATIC(glUniform3i);
+GLDECL_STATIC(glUniform4i);
+GLDECL_STATIC(glUniform1fv);
+GLDECL_STATIC(glUniform2fv);
+GLDECL_STATIC(glUniform3fv);
+GLDECL_STATIC(glUniform4fv);
+GLDECL_STATIC(glUniform1iv);
+GLDECL_STATIC(glUniform2iv);
+GLDECL_STATIC(glUniform3iv);
+GLDECL_STATIC(glUniform4iv);
+GLDECL_STATIC(glUniformMatrix2fv);
+GLDECL_STATIC(glUniformMatrix3fv);
+GLDECL_STATIC(glUniformMatrix4fv);
+GLDECL_STATIC(glUniformMatrix2x3fv);
+GLDECL_STATIC(glUniformMatrix3x2fv);
+GLDECL_STATIC(glUniformMatrix2x4fv);
+GLDECL_STATIC(glUniformMatrix4x2fv);
+GLDECL_STATIC(glUniformMatrix3x4fv);
+GLDECL_STATIC(glUniformMatrix4x3fv);
+GLDECL_STATIC(glBlendEquation);
+GLDECL_STATIC(glActiveTexture);
+
+#endif
+
 void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 {
+	Bool has_shaders = 0;
 #ifdef GPAC_USE_TINYGL
 	/*let TGL handle texturing*/
 	compositor->gl_caps.rect_texture = 1;
 	compositor->gl_caps.npot_texture = 1;
 #else
 
-#if defined (GPAC_USE_OGL_ES)
-#define GET_GLFUN(__name) (PFNGLARBMULTITEXTUREPROC) eglGetProcAddress(__name) 
-#elif defined (WIN32)
-#define GET_GLFUN(__name) (PFNGLARBMULTITEXTUREPROC) wglGetProcAddress(__name) 
-#elif defined(CONFIG_DARWIN_GL)
-extern void (*glutGetProcAddress(const GLubyte *procname))( void );
-#define GET_GLFUN(__name) (PFNGLARBMULTITEXTUREPROC) glutGetProcAddress(__name)  
-#else
-extern void (*glXGetProcAddress(const GLubyte *procname))( void );
-#define GET_GLFUN(__name) (PFNGLARBMULTITEXTUREPROC) glXGetProcAddress(__name) 
-#endif
-
 	const char *ext;
-	if (!compositor->visual->type_3d) return;
 
 	ext = (const char *) glGetString(GL_EXTENSIONS);
+	if (!ext) ext = gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLExtensions");
 	/*store OGL extension to config for app usage*/
-	if (gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLExtensions")==NULL)
+	else if (gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLExtensions")==NULL)
 		gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLExtensions", ext ? ext : "None");
+
 	if (!ext) return;
+
 	memset(&compositor->gl_caps, 0, sizeof(GLCaps));
 
 	if (CHECK_GL_EXT("GL_ARB_multisample") || CHECK_GL_EXT("GLX_ARB_multisample") || CHECK_GL_EXT("WGL_ARB_multisample")) 
@@ -104,6 +145,13 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 	if (CHECK_GL_EXT("GL_EXT_bgra")) 
 		compositor->gl_caps.bgra_texture = 1;
 
+	if (CHECK_GL_EXT("GL_ARB_point_parameters")) {
+		compositor->gl_caps.point_sprite = 1;
+		if (CHECK_GL_EXT("GL_ARB_point_sprite") || CHECK_GL_EXT("GL_NV_point_sprite")) {
+			compositor->gl_caps.point_sprite = 2;
+		}
+	}
+
 	if (CHECK_GL_EXT("GL_EXT_texture_rectangle") || CHECK_GL_EXT("GL_NV_texture_rectangle")) {
 		compositor->gl_caps.rect_texture = 1;
 
@@ -111,13 +159,393 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 		else if (CHECK_GL_EXT("GL_APPLE_ycbcr_422")) compositor->gl_caps.yuv_texture = YCBCR_422_APPLE;
 	}
 
+	if (!compositor->visual->type_3d) return;
+
+	/*we have a GL context, get proc addresses*/
+	
 	if (CHECK_GL_EXT("GL_ARB_multitexture")) {
-		compositor->gl_caps.glActiveTextureARB = GET_GLFUN("glActiveTextureARB");
-		compositor->gl_caps.glClientActiveTextureARB = GET_GLFUN("glClientActiveTextureARB");
+		GET_GLFUN(glActiveTextureARB);
+		GET_GLFUN(glClientActiveTextureARB);
 	}
 
+	if (compositor->gl_caps.point_sprite) {
+		GET_GLFUN(glPointParameterfEXT);
+		GET_GLFUN(glPointParameterfvEXT);
+	}
+
+	GET_GLFUN(glCreateProgram);
+	
+	if (glCreateProgram != NULL) {
+		GET_GLFUN(glDeleteProgram);
+		GET_GLFUN(glLinkProgram);
+		GET_GLFUN(glUseProgram);
+		GET_GLFUN(glCreateShader);
+		GET_GLFUN(glDeleteShader);
+		GET_GLFUN(glShaderSource);
+		GET_GLFUN(glCompileShader);
+		GET_GLFUN(glAttachShader);
+		GET_GLFUN(glDetachShader);
+		GET_GLFUN(glGetShaderiv);
+		GET_GLFUN(glGetInfoLogARB);
+		GET_GLFUN(glGetUniformLocation);
+		GET_GLFUN(glUniform1f);
+		GET_GLFUN(glUniform2f);
+		GET_GLFUN(glUniform3f);
+		GET_GLFUN(glUniform4f);
+		GET_GLFUN(glUniform1i);
+		GET_GLFUN(glUniform2i);
+		GET_GLFUN(glUniform3i);
+		GET_GLFUN(glUniform4i);
+		GET_GLFUN(glUniform1fv);
+		GET_GLFUN(glUniform2fv);
+		GET_GLFUN(glUniform3fv);
+		GET_GLFUN(glUniform4fv);
+		GET_GLFUN(glUniform1iv);
+		GET_GLFUN(glUniform2iv);
+		GET_GLFUN(glUniform3iv);
+		GET_GLFUN(glUniform4iv);
+		GET_GLFUN(glUniformMatrix2fv);
+		GET_GLFUN(glUniformMatrix3fv);
+		GET_GLFUN(glUniformMatrix4fv);
+		GET_GLFUN(glUniformMatrix2x3fv);
+		GET_GLFUN(glUniformMatrix3x2fv);
+		GET_GLFUN(glUniformMatrix2x4fv);
+		GET_GLFUN(glUniformMatrix4x2fv);
+		GET_GLFUN(glUniformMatrix3x4fv);
+		GET_GLFUN(glUniformMatrix4x3fv);
+		GET_GLFUN(glBlendEquation);
+		GET_GLFUN(glActiveTexture);
+
+		has_shaders = 1;
+	} else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported\n"));
+	}
 #endif
+
+	if (!has_shaders && (compositor->visual->autostereo_type > GF_3D_STEREO_SIDE)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported - disabling auto-stereo output\n"));
+		compositor->visual->nb_views=1;
+		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
+		compositor->visual->camera_layout = GF_3D_CAMERA_STRAIGHT;
+	}
 }
+
+
+
+
+static char *default_glsl_vertex = "\
+	varying vec3 gfNormal;\
+	varying vec3 gfView;\
+	void main(void)\
+	{\
+		gfView = vec3(gl_ModelViewMatrix * gl_Vertex);\
+		gfNormal = normalize(gl_NormalMatrix * gl_Normal);\
+		gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\
+		gl_TexCoord[0] = gl_MultiTexCoord0;\
+	}";
+
+static char *default_glsl_lighting = "\
+	varying vec3 gfNormal;\
+	varying vec3 gfView;\
+	void gpac_lighting (void)  \
+	{  \
+	   vec3 L = normalize(gl_LightSource[0].position.xyz - gfView);\
+	   vec3 E = normalize(-gfView); \
+	   vec3 R = normalize(-reflect(L,gfNormal));\
+	   vec4 Iamb = gl_FrontLightProduct[0].ambient;\
+	   vec4 Idiff = gl_FrontLightProduct[0].diffuse * max(dot(gfNormal,L), 0.0);\
+	   Idiff = clamp(Idiff, 0.0, 1.0);\
+	   vec4 Ispec = gl_FrontLightProduct[0].specular * pow(max(dot(R,E),0.0),0.3*gl_FrontMaterial.shininess);\
+	   Ispec = clamp(Ispec, 0.0, 1.0);\
+	   gl_FragColor = gl_FrontLightModelProduct.sceneColor + Iamb + Idiff + Ispec;\
+	}";
+
+static char *glsl_view_anaglyph = "\
+	uniform sampler2D gfView1;\
+	uniform sampler2D gfView2;\
+	void main(void)  \
+	{\
+		vec4 col1 = texture2D(gfView1, gl_TexCoord[0].st); \
+		vec4 col2 = texture2D(gfView2, gl_TexCoord[0].st); \
+		gl_FragColor.r = col1.r;\
+		gl_FragColor.g = col2.g;\
+		gl_FragColor.b = col2.b;\
+	}";
+
+static char *glsl_view_anaglyph_optimize = "\
+	uniform sampler2D gfView1;\
+	uniform sampler2D gfView2;\
+	void main(void)  \
+	{\
+		vec4 col1 = texture2D(gfView1, gl_TexCoord[0].st); \
+		vec4 col2 = texture2D(gfView2, gl_TexCoord[0].st); \
+		gl_FragColor.r = 0.7*col1.g + 0.3*col1.b;\
+		gl_FragColor.r = pow(gl_FragColor.r, 1.5);\
+		gl_FragColor.g = col2.g;\
+		gl_FragColor.b = col2.b;\
+	}";
+
+static char *glsl_view_columns = "\
+	uniform sampler2D gfView1;\
+	uniform sampler2D gfView2;\
+	void main(void)  \
+	{\
+		if ( int( mod(gl_FragCoord.x, 2.0) ) == 0) \
+			gl_FragColor = texture2D(gfView1, gl_TexCoord[0].st); \
+		else \
+			gl_FragColor = texture2D(gfView2, gl_TexCoord[0].st); \
+	}";
+
+static char *glsl_view_rows = "\
+	uniform sampler2D gfView1;\
+	uniform sampler2D gfView2;\
+	void main(void)  \
+	{\
+		if ( int( mod(gl_FragCoord.y, 2.0) ) == 0) \
+			gl_FragColor = texture2D(gfView1, gl_TexCoord[0].st); \
+		else \
+			gl_FragColor = texture2D(gfView2, gl_TexCoord[0].st); \
+	}";
+
+
+Bool visual_3d_compile_shader(u32 shader_id, const char *name, const char *source)
+{
+	GLint blen = 0;	
+	GLsizei slen = 0;
+	u32 len;
+	if (!source || !shader_id) return 0;
+	len = strlen(source);
+	glShaderSource(shader_id, 1, &source, &len);
+	glCompileShader(shader_id);
+	
+	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);       
+	if (blen > 1) {
+		char* compiler_log = (char*) gf_malloc(blen);
+		glGetInfoLogARB(shader_id, blen, &slen, compiler_log);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[GLSL] Failed to compile shader %s: %s\n", name, compiler_log));
+		gf_free (compiler_log);
+		return 0;
+	}
+	return 1;
+}
+
+void visual_3d_init_shaders(GF_VisualManager *visual)
+{
+	if (!glCreateProgram) return;
+
+	if (visual->glsl_program) return;
+	
+	visual->glsl_program = glCreateProgram();
+
+	visual->glsl_vertex = glCreateShader(GL_VERTEX_SHADER);
+	visual_3d_compile_shader(visual->glsl_vertex, "vertex", default_glsl_vertex);
+
+	switch (visual->autostereo_type) {
+	case GF_3D_STEREO_COLUMNS:
+		visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+		visual_3d_compile_shader(visual->glsl_fragment, "fragment", glsl_view_columns);
+		break;
+	case GF_3D_STEREO_ROWS:
+		visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+		visual_3d_compile_shader(visual->glsl_fragment, "fragment", glsl_view_rows);
+		break;
+	case GF_3D_STEREO_ANAGLYPH:
+		visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+		visual_3d_compile_shader(visual->glsl_fragment, "fragment", glsl_view_anaglyph);
+		break;
+	case GF_3D_STEREO_CUSTOM:
+	{
+		const char *sOpt = gf_cfg_get_key(visual->compositor->user->config, "Compositor", "InterleaverShader");
+		if (sOpt) {
+			FILE *src = gf_f64_open(sOpt, "rt");
+			if (src) {
+				u32 size;
+				char *shader_src;
+				gf_f64_seek(src, 0, SEEK_END);
+				size = (u32) gf_f64_tell(src);
+				gf_f64_seek(src, 0, SEEK_SET);
+				shader_src = gf_malloc(sizeof(char)*(size+1));
+				size = fread(shader_src, 1, size, src);
+				fclose(src);
+				shader_src[size]=0;
+				visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+				visual_3d_compile_shader(visual->glsl_fragment, "fragment", shader_src);
+				free(shader_src);
+			}
+		}
+	}
+		break;
+	}
+
+	glAttachShader(visual->glsl_program, visual->glsl_vertex);
+	glAttachShader(visual->glsl_program, visual->glsl_fragment);
+	glLinkProgram(visual->glsl_program);  
+}
+
+
+void visual_3d_reset_graphics(GF_VisualManager *visual)
+{
+#define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
+
+	DEL_SHADER(visual->glsl_vertex);
+	DEL_SHADER(visual->glsl_fragment);
+
+	if (visual->glsl_program ) {
+		glDeleteProgram(visual->glsl_program);
+		visual->glsl_program = 0;
+	}
+
+	if (visual->gl_textures) {
+		glDeleteTextures(visual->nb_views, visual->gl_textures);
+		gf_free(visual->gl_textures);
+		visual->gl_textures = NULL;
+	}
+	if (visual->autostereo_mesh) {
+		mesh_free(visual->autostereo_mesh);
+		visual->autostereo_mesh = NULL;
+	}
+}
+
+
+GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
+{
+	u32 bw, bh;
+	SFVec2f s;
+	if (visual->gl_textures) return GF_OK;
+	
+	visual->gl_textures = gf_malloc(sizeof(GLuint) * visual->nb_views);
+	glGenTextures(visual->nb_views, visual->gl_textures);
+
+	bw = visual->width;
+	bh = visual->height;
+	/*main (not offscreen) visual*/
+	if (visual->compositor->visual==visual) {
+		bw = visual->compositor->output_width;
+		bh = visual->compositor->output_height;
+	}
+
+	if (visual->compositor->gl_caps.npot_texture) {
+		visual->auto_stereo_width = bw;
+		visual->auto_stereo_height = bh;
+	} else {
+		visual->auto_stereo_width = 2;
+		while (visual->auto_stereo_width*2 < visual->width) visual->auto_stereo_width *= 2;
+		visual->auto_stereo_height = 2;
+		while (visual->auto_stereo_height < visual->height) visual->auto_stereo_height *= 2;
+	}
+
+	visual->autostereo_mesh = new_mesh();
+	s.x = INT2FIX(bw);
+	s.y = INT2FIX(bh);
+	mesh_new_rectangle(visual->autostereo_mesh, s, NULL, 0);
+//	mesh_new_ellipse(visual->autostereo_mesh, s.x, s.y, 0);
+
+	fprintf(stdout, "AutoStereo initialized - width %d height %d\n",visual->auto_stereo_width, visual->auto_stereo_height);
+
+	visual_3d_init_shaders(visual);
+	return GF_OK;
+}
+
+void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
+{
+	u32 i;
+	GLint loc;
+	char szTex[100];
+	Double hw, hh;
+
+	glFlush();
+
+	glEnable(GL_TEXTURE_2D);
+
+	glBindTexture(GL_TEXTURE_2D, visual->gl_textures[visual->current_view]);
+
+	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);	
+	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR); 
+	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE); 
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, visual->auto_stereo_width, visual->auto_stereo_height, 0);
+	glDisable(GL_TEXTURE_2D);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	if (visual->current_view+1<visual->nb_views) return;
+
+	hw = visual->width;
+	hh = visual->height;
+	/*main (not offscreen) visual*/
+	if (visual->compositor->visual==visual) {
+		hw = visual->compositor->output_width;
+		hh = visual->compositor->output_height;
+	}
+
+	glViewport(0, 0, (GLsizei) hw, (GLsizei) hh );
+
+	hw /= 2;
+	hh /= 2;
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(-hw, hw, -hh, hh, -10, 100);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+
+	glMatrixMode(GL_TEXTURE);
+	glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);
+
+	/*use our program*/
+	glUseProgram(visual->glsl_program);
+
+	/*push number of views if shader uses it*/
+	loc = glGetUniformLocation(visual->glsl_program, "gfViewCount");
+	if (loc != -1) glUniform1i(loc, visual->nb_views);
+
+	glClientActiveTextureARB(GL_TEXTURE0);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &visual->autostereo_mesh->vertices[0].texcoords);
+
+	/*bind all our textures*/
+	for (i=0; i<visual->nb_views; i++) {
+		sprintf(szTex, "gfView%d", i+1);
+		loc = glGetUniformLocation(visual->glsl_program, szTex);
+		if (loc == -1) continue;
+
+		glActiveTexture(GL_TEXTURE0 + i);
+
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);	
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); 
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL); 
+
+		glBindTexture(GL_TEXTURE_2D, visual->gl_textures[i]);
+
+		glUniform1i(loc, i);
+	}
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex),  &visual->autostereo_mesh->vertices[0].pos);
+	glDrawElements(GL_TRIANGLES, visual->autostereo_mesh->i_count, GL_UNSIGNED_INT, visual->autostereo_mesh->indices);
+
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+	glClientActiveTextureARB(GL_TEXTURE0);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY );
+
+	glUseProgram(0);
+
+	/*not sure why this is needed but it prevents a texturing bug on XP on parallels*/
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glDisable(GL_TEXTURE_2D);
+}
+
 
 static void visual_3d_setup_quality(GF_VisualManager *visual)
 {
@@ -262,6 +690,16 @@ void visual_3d_set_viewport(GF_VisualManager *visual, GF_Rect vp)
 	glViewport(FIX2INT(vp.x), FIX2INT(vp.y), FIX2INT(vp.width), FIX2INT(vp.height));
 }
 
+void visual_3d_set_scissor(GF_VisualManager *visual, GF_Rect *vp)
+{
+	if (vp) {
+		glEnable(GL_SCISSOR_TEST);
+		glScissor(FIX2INT(vp->x), FIX2INT(vp->y), FIX2INT(vp->width), FIX2INT(vp->height));
+	} else {
+		glDisable(GL_SCISSOR_TEST);
+	}
+}
+
 void visual_3d_clear_depth(GF_VisualManager *visual)
 {
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -318,6 +756,8 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	Float fix_scale = 1.0f;
 	fix_scale /= FIX_ONE;
 #endif
+
+	GL_CHECK_ERR
 
 	has_col = has_tx = has_norm = 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh 0x%08x\n", mesh));
@@ -426,7 +866,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		if (tr_state->mesh_num_textures>1) {
 			u32 i;
 			for (i=0; i<tr_state->mesh_num_textures; i++) {
-				compositor->gl_caps.glClientActiveTextureARB(GL_TEXTURE0_ARB + i);
+				glClientActiveTextureARB(GL_TEXTURE0_ARB + i);
 				glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
 				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 			}
@@ -540,6 +980,8 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	
 	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);
 	tr_state->mesh_is_transparent = 0;
+
+	GL_CHECK_ERR
 }
 
 #ifdef GPAC_USE_OGL_ES
@@ -994,6 +1436,7 @@ void visual_3d_clear(GF_VisualManager *visual, SFColor color, Fixed alpha)
 #endif
 	glClear(GL_COLOR_BUFFER_BIT);
 }
+
 
 #if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
 
@@ -1682,6 +2125,165 @@ GF_Err compositor_3d_release_screen_buffer(GF_Compositor *compositor, GF_VideoSu
 	gf_free(framebuffer->video_buffer);
 	framebuffer->video_buffer = 0;
 	return GF_OK;
+}
+
+void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_TextureHandler *txh, GF_TraverseState *tr_state)
+{
+	u32 w, h;
+	u32 pixel_format, stride;
+	u8 *data;
+	Float r, g, b, x, y;
+	Float inc, scale;
+	Bool in_strip;
+	Float delta = 0;
+	Bool first_pass = 2;
+
+
+	if ((visual->compositor->depth_gl_type==1) && visual->compositor->gl_caps.point_sprite) {
+		Float z;
+		static GLfloat none[3] = { 1.0f, 0, 0 };
+
+		data = gf_sc_texture_get_data(txh, &pixel_format);
+		if (!data) return;
+		stride = txh->stride;
+		if (txh->pixelformat==GF_PIXEL_YUVD) stride *= 4;
+
+		glPointSize(1.0f * visual->compositor->zoom);
+		glDepthMask(GL_FALSE);
+
+		glPointParameterfvEXT(GL_DISTANCE_ATTENUATION_EXT, none);
+		glPointParameterfEXT(GL_POINT_FADE_THRESHOLD_SIZE_EXT, 0.0);
+		glEnable(GL_POINT_SMOOTH);
+		glDisable(GL_LIGHTING);
+
+		scale = visual->compositor->depth_gl_scale;
+		inc = 1;
+		if (!tr_state->pixel_metrics) inc /= tr_state->min_hsize;
+		x = 0;
+		y = 1; y*=txh->height/2;
+		if (!tr_state->pixel_metrics) y /= tr_state->min_hsize;
+
+		glBegin(GL_POINTS);
+		for (h=0; h<txh->height; h++) {
+			x = -1; x *= txh->width/2;
+			if (!tr_state->pixel_metrics) x /= tr_state->min_hsize;
+			for (w=0; w<txh->width; w++) {
+				u8 *p = data + h*stride + w*4;
+				r = p[0]; r /= 255;
+				g = p[1]; g /= 255;
+				b = p[2]; b /= 255;
+				z = p[3]; z = z / 255;
+
+				glColor4f(r, g, b, 1.0);
+				glVertex3f(x, y, -z*60);
+				x += inc;
+			}
+			y -= inc;
+		}
+		glEnd();
+
+		glDepthMask(GL_TRUE);
+		return;
+	}
+
+	delta = visual->compositor->depth_gl_strips_filter;
+	if (!delta) first_pass = 2;
+	else first_pass = 1;
+
+	data = gf_sc_texture_get_data(txh, &pixel_format);
+	if (!data) return;
+	stride = txh->stride;
+	if (txh->pixelformat==GF_PIXEL_YUVD) stride *= 4;
+
+	glDepthMask(GL_FALSE);
+	glDisable(GL_TEXTURE_2D);
+	glDisable(GL_LIGHTING);
+	glDisable(GL_BLEND);
+	glDisable(GL_CULL_FACE);
+	glDisable(GL_POINT_SMOOTH);
+	glDisable(GL_FOG);
+
+restart:
+	scale = 50;
+	inc = 1;
+	if (!tr_state->pixel_metrics) inc /= tr_state->min_hsize;
+	x = 0;
+	y = 1; y*=txh->height/2;
+	if (!tr_state->pixel_metrics) y /= tr_state->min_hsize;
+
+	in_strip = 0;
+	for (h=0; h<txh->height - 1; h++) {
+		char *src = data + h*stride;
+		x = -1; x *= txh->width/2;
+		if (!tr_state->pixel_metrics) x /= tr_state->min_hsize;
+
+		for (w=0; w<txh->width; w++) {
+			u8 *p1 = src + w*4;
+			u8 *p2 = src + w*4 + stride;
+			Float z1 = p1[3];
+			Float z2 = p2[3];
+			if (first_pass==1) {
+				if ((z1>delta) || (z2>delta)) 
+				{
+					if (0 && in_strip) {
+						glEnd();
+						in_strip = 0;
+					}
+					x += inc;
+					continue;
+				}
+			} else if (first_pass==0) {
+				if ((z1<=delta) || (z2<=delta)) 
+				{
+					if (in_strip) {
+						glEnd();
+						in_strip = 0;
+					}
+					x += inc;
+					continue;
+				}
+			}
+			z1 = z1 / 255;
+			z2 = z2 / 255;
+
+			r = p1[0];
+			r /= 255;
+			g = p1[1];
+			g /= 255;
+			b = p1[2];
+			b /= 255;
+
+			if (!in_strip) {
+				glBegin(GL_TRIANGLE_STRIP);
+				in_strip = 1;
+			}
+
+			glColor3f(r, g, b);
+			glVertex3f(x, y, z1*scale);
+
+			r = p2[0];
+			r /= 255;
+			g = p2[1];
+			g /= 255;
+			b = p2[2];
+			b /= 255;
+
+			glColor3f(r, g, b);
+			glVertex3f(x, y-inc, z2*scale);
+
+			x += inc;
+		}
+		if (in_strip) {
+			glEnd();
+			in_strip = 0;
+		}
+		y -= inc;
+	}
+
+	if (first_pass==1) {
+		first_pass = 0;
+		goto restart;
+	}
 }
 
 #endif	/*GPAC_DISABLE_3D*/

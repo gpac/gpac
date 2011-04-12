@@ -36,6 +36,19 @@ static void camera_changed(GF_Compositor *compositor, GF_Camera *cam)
 	if (compositor->active_layer) gf_node_dirty_set(compositor->active_layer, 0, 1);
 }
 
+#endif
+
+static void nav_set_zoom_trans_2d(GF_VisualManager *visual, Fixed zoom, Fixed dx, Fixed dy) 
+{
+	compositor_2d_set_user_transform(visual->compositor, zoom, visual->compositor->trans_x + dx, visual->compositor->trans_y + dy, 0); 
+#ifndef GPAC_DISABLE_3D
+	if (visual->type_3d) camera_changed(visual->compositor, &visual->camera);
+#endif
+}
+
+
+#ifndef GPAC_DISABLE_3D
+
 /*shortcut*/
 static void gf_mx_rotation_matrix(GF_Matrix *mx, SFVec3f axis_pt, SFVec3f axis, Fixed angle)
 {
@@ -239,6 +252,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 	u32 keys;
 	Bool is_pixel_metrics;
 	GF_Camera *cam;
+	Fixed zoom = compositor->zoom;
 
 	cam = NULL;
 	if (compositor->active_layer) {
@@ -270,7 +284,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 /*	trans_scale = is_pixel_metrics ? cam->width/2 : INT2FIX(10);
 	key_trans = is_pixel_metrics ? INT2FIX(10) : cam->avatar_size.x;
 */
-	trans_scale = cam->width/2;
+	trans_scale = cam->width/20;
 	key_trans = cam->avatar_size.x;
 
 	key_pan = FIX_ONE/25;
@@ -390,12 +404,15 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		case GF_NAVIGATE_EXAMINE:
 		case GF_NAVIGATE_ORBIT:
 		case GF_NAVIGATE_PAN:
-			if (is_pixel_metrics) {
-				view_translate_z(compositor, cam, gf_mulfix(trans_scale, ev->mouse.wheel_pos) * ((keys & GF_KEY_MOD_SHIFT) ? 4 : 1));
+			if (cam->is_3D) {
+				if (is_pixel_metrics) {
+					view_translate_z(compositor, cam, gf_mulfix(trans_scale, ev->mouse.wheel_pos) * ((keys & GF_KEY_MOD_SHIFT) ? 4 : 1));
+				} else {
+					view_translate_z(compositor, cam, ev->mouse.wheel_pos * ((keys & GF_KEY_MOD_SHIFT) ? 4 : 1));
+				}
 			} else {
-				view_translate_z(compositor, cam, ev->mouse.wheel_pos * ((keys & GF_KEY_MOD_SHIFT) ? 4 : 1));
+				nav_set_zoom_trans_2d(compositor->visual, zoom + INT2FIX(ev->mouse.wheel_pos)/10, 0, 0);
 			}
-			break;
 		}
 		return 1;
 
@@ -419,7 +436,15 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			}
 			break;
 		case GF_KEY_HOME:
-			if (!compositor->navigation_state) compositor_3d_reset_camera(compositor);
+			if (!compositor->navigation_state) {
+				compositor->visual->camera.start_zoom = compositor->zoom;
+				compositor->zoom = FIX_ONE;
+				compositor->interoccular_offset = 0;
+				compositor->view_distance_offset = 0;
+				compositor->interoccular_offset = 0;
+				compositor->view_distance_offset = 0;
+				compositor_3d_reset_camera(compositor);
+			}
 			break;
 		case GF_KEY_END:
 			if (cam->navigate_mode==GF_NAVIGATE_GAME) {
@@ -430,6 +455,18 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			break;
 		case GF_KEY_LEFT: key_inv = -1;
 		case GF_KEY_RIGHT:
+			if (keys & GF_KEY_MOD_ALT) {
+				if ( (keys & GF_KEY_MOD_SHIFT) && (compositor->visual->nb_views > 1) ) {
+					compositor->view_distance_offset += key_inv * INT2FIX(20);
+					cam->flags |= CAM_IS_DIRTY;
+					fprintf(stdout, "AutoStereo view distance %f\n", FIX2FLT(compositor->view_distance_offset + compositor->video_out->view_distance)/100);
+					gf_sc_invalidate(compositor, NULL);
+					return 1;
+				}
+				return 0;
+			} 
+
+
 			switch (cam->navigate_mode) {
 			case GF_NAVIGATE_SLIDE:
 				if (keys & GF_KEY_MOD_CTRL) view_pan_x(compositor, cam, key_inv * key_pan);
@@ -454,7 +491,16 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			return 1;
 		case GF_KEY_DOWN: key_inv = -1;
 		case GF_KEY_UP:
-			if (keys & GF_KEY_MOD_ALT) return 0;
+			if (keys & GF_KEY_MOD_ALT) {
+				if ( (keys & GF_KEY_MOD_SHIFT) && (compositor->visual->nb_views > 1) ) {
+					compositor->interoccular_offset += FLT2FIX(0.5) * key_inv;
+					fprintf(stdout, "AutoStereo interoccular distance %f\n", FIX2FLT(compositor->interoccular_offset)+6.8);
+					cam->flags |= CAM_IS_DIRTY;
+					gf_sc_invalidate(compositor, NULL);
+					return 1;
+				}
+				return 0;
+			} 
 			switch (cam->navigate_mode) {
 			case GF_NAVIGATE_SLIDE:
 				if (keys & GF_KEY_MOD_CTRL) view_translate_z(compositor, cam, key_inv * key_trans);
@@ -498,14 +544,6 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 }
 
 #endif
-
-static void nav_set_zoom_trans_2d(GF_VisualManager *visual, Fixed zoom, Fixed dx, Fixed dy) 
-{
-	compositor_2d_set_user_transform(visual->compositor, zoom, visual->compositor->trans_x + dx, visual->compositor->trans_y + dy, 0); 
-#ifndef GPAC_DISABLE_3D
-	if (visual->type_3d) camera_changed(visual->compositor, &visual->camera);
-#endif
-}
 
 
 static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *ev)
@@ -670,7 +708,7 @@ Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev)
 {
 	if (!compositor->scene) return 0;
 #ifndef GPAC_DISABLE_3D
-	if ( (compositor->visual->type_3d>1) || compositor->active_layer) 
+	if ( (compositor->visual->type_3d>0) || compositor->active_layer) 
 		return compositor_handle_navigation_3d(compositor, ev);
 #endif
 	return compositor_handle_navigation_2d(compositor->visual, ev);

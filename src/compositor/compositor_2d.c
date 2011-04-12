@@ -188,6 +188,10 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 
 		e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &callbacks, compositor->vp_width, compositor->vp_height);
 		if (e==GF_OK) {
+#if defined(GPAC_FIXED_POINT)
+			Float _mat[16];
+			u32 i;
+#endif
 			GF_Matrix mx;
 			Fixed hh, hw;
 			visual->is_attached = 2;
@@ -218,6 +222,9 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 			glMatrixMode(GL_PROJECTION);
 #ifdef GPAC_USE_OGL_ES
 			glLoadMatrixx(mx.m);
+#elif defined(GPAC_FIXED_POINT)
+			for (i=0; i<16; i++) _mat[i] = FIX2FLT(mx.m[i]);
+			glLoadMatrixf(_mat);
 #else
 			glLoadMatrixf(mx.m);
 #endif
@@ -228,6 +235,9 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 			gf_mx_add_translation(&mx, -hw, -hh, 0);
 #ifdef GPAC_USE_OGL_ES
 			glLoadMatrixx(mx.m);
+#elif defined(GPAC_FIXED_POINT)
+			for (i=0; i<16; i++) _mat[i] = FIX2FLT(mx.m[i]);
+			glLoadMatrixf(_mat);
 #else
 			glLoadMatrixf(mx.m);
 #endif
@@ -487,6 +497,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		case GF_PIXEL_RGB_24:
 		case GF_PIXEL_BGR_24:
 		case GF_PIXEL_RGBS:
+		case GF_PIXEL_RGBD:
 		case GF_PIXEL_RGB_555:
 		case GF_PIXEL_RGB_565:
 			if (hw_caps & GF_VIDEO_HW_HAS_RGB)
@@ -709,11 +720,19 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_YUVA:
+	case GF_PIXEL_RGBS:
+	case GF_PIXEL_RGBAS:
+		break;
 	case GF_PIXEL_YUVD:
 	case GF_PIXEL_RGBD:
 	case GF_PIXEL_RGBDS:
-	case GF_PIXEL_RGBS:
-	case GF_PIXEL_RGBAS:
+#ifndef GPAC_DISABLE_3D
+		/*using OpenGL to render depth images*/
+		if (visual->compositor->depth_gl_type) {
+			gf_sc_set_option(visual->compositor, GF_OPT_USE_OPENGL, 2);
+			return 1;
+		}
+#endif
 		break;
 	/*the rest has to be displayed through brush for now, we only use YUV and RGB pool*/
 	default:

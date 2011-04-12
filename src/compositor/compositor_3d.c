@@ -192,6 +192,12 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 	if (!asp->fill_texture) return;
 	txh = asp->fill_texture;
 	if (!txh || !txh->tx_io || !txh->width || !txh->height) return;
+	
+	if ((txh->pixelformat==GF_PIXEL_RGBD) || (txh->pixelformat==GF_PIXEL_YUVD)) {
+		if (txh->data && gf_sc_texture_convert(txh) )
+			visual_3d_point_sprite(tr_state->visual, stack, txh, tr_state);
+		return;
+	}
 
 	alpha = GF_COL_A(asp->fill_color);
 	/*THIS IS A HACK, will not work when setting filled=0, transparency and XLineProps*/

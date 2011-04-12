@@ -90,6 +90,7 @@ void visual_del(GF_VisualManager *visual)
 #endif /*GPAC_DISABLE_VRML*/
 
 #ifndef GPAC_DISABLE_3D
+	visual_3d_reset_graphics(visual);
 
 #ifndef GPAC_DISABLE_VRML
 	if (visual->navigation_stack) BindableStackDelete(visual->navigation_stack);
@@ -273,3 +274,13 @@ void gf_sc_get_nodes_bounds(GF_Node *self, GF_ChildNodeItem *children, GF_Traver
 	}
 	tr_state->bounds = rc;
 }
+
+void visual_reset_graphics(GF_VisualManager *visual)
+{
+#ifndef GPAC_DISABLE_3D
+	if (visual->type_3d) {
+		visual_3d_reset_graphics(visual);
+	}
+#endif
+}
+

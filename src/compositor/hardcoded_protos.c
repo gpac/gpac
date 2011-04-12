@@ -897,7 +897,7 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 
 		camera_invalidate(tr_state->camera);
 		tr_state->camera->is_3D=0;
-		camera_update(tr_state->camera, NULL, 1);
+		camera_update(tr_state->camera, NULL, 1, 0, 0, GF_3D_CAMERA_STRAIGHT);
 
 
 		if (tr_state->traversing_mode == TRAVERSE_SORT) {

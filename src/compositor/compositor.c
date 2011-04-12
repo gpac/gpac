@@ -141,10 +141,11 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 
 			if (restore_fs) {
-				//gf_sc_set_fullscreen(compositor);
-				compositor->display_width = fs_width;
-				compositor->display_height = fs_height;
-				compositor->recompute_ar = 1;
+				if ((compositor->display_width != fs_width) || (compositor->display_height != fs_height)) {
+					compositor->display_width = fs_width;
+					compositor->display_height = fs_height;
+					compositor->recompute_ar = 1;
+				}
 			} else {
 				compositor->display_width = evt.size.width;
 				compositor->display_height = evt.size.height;
@@ -338,6 +339,11 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 		return GF_IO_ERR;
 	}
 
+	sOpt = gf_cfg_get_key(compositor->user->config, "Video", "DPI");
+	if (sOpt) {
+		compositor->video_out->dpi_x = compositor->video_out->dpi_y = atoi(sOpt);
+	}
+
 	/*try to load a raster driver*/
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "Raster2D");
 	if (sOpt) {
@@ -490,9 +496,10 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	if (!tmp->user->os_window_handler) {
 		gf_sc_set_size(tmp, SC_DEF_WIDTH, SC_DEF_HEIGHT);
 	}
+	/*try to load GL extensions*/
+	gf_sc_load_opengl_extensions(tmp);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\tNetworks\tDecoders\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and direct Draw)\tTraverse (and direct Draw) without anim\tIndirect Draw\tTraverse And Draw (Indirect or Not)\tFlush\tCycle\n"));
-
 	return tmp;
 }
 
@@ -1144,26 +1151,90 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableYUVGL");
 	compositor->disable_yuvgl = (sOpt && !stricmp(sOpt, "yes") ) ? 1 : 0;
 
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DepthScale");
+	if (!sOpt) {
+		sOpt = "100";
+		gf_cfg_set_key(compositor->user->config, "Compositor", "DepthScale", sOpt);
+	}
+	compositor->depth_gl_scale = (Float) atof(sOpt);
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DepthType");
+	if (!sOpt) {
+		sOpt = "Strips";
+		gf_cfg_set_key(compositor->user->config, "Compositor", "DepthType", sOpt);
+	}
+	if (sOpt && !strcmp(sOpt, "Points")) compositor->depth_gl_type = 1;
+	else if (sOpt && !strnicmp(sOpt, "Strips", 6)) {
+		compositor->depth_gl_type = 2;
+		compositor->depth_gl_strips_filter = 0;
+		if (strlen(sOpt)>7) compositor->depth_gl_strips_filter = (Float) atof(sOpt+7);
+	}
+	else compositor->depth_gl_type = 0;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "NumViews");
+	if (!sOpt) {
+		sOpt = "1";
+		gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "1");
+	}
+	compositor->visual->nb_views = atoi(sOpt);
+	if (!compositor->visual->nb_views) compositor->visual->nb_views = 1;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "StereoType");
+	if (!sOpt) {
+		sOpt = "none";
+		gf_cfg_set_key(compositor->user->config, "Compositor", "StereoType", "none");
+	}
+	if (!strcmp(sOpt, "SideBySide")) compositor->visual->autostereo_type = GF_3D_STEREO_SIDE;
+	else if (!strcmp(sOpt, "TopToBottom")) compositor->visual->autostereo_type = GF_3D_STEREO_TOP;
+	else if (!strcmp(sOpt, "Anaglyph")) compositor->visual->autostereo_type = GF_3D_STEREO_ANAGLYPH;
+	else if (!strcmp(sOpt, "Columns")) compositor->visual->autostereo_type = GF_3D_STEREO_COLUMNS;
+	else if (!strcmp(sOpt, "Rows")) compositor->visual->autostereo_type = GF_3D_STEREO_ROWS;
+	else if (!strcmp(sOpt, "Custom")) compositor->visual->autostereo_type = GF_3D_STEREO_CUSTOM;
+	else {
+		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
+		compositor->visual->nb_views = 1;
+	}
+
+	switch (compositor->visual->autostereo_type) {
+	case GF_3D_STEREO_ANAGLYPH:
+	case GF_3D_STEREO_COLUMNS:
+	case GF_3D_STEREO_ROWS:
+		if (compositor->visual->nb_views != 2) {
+			compositor->visual->nb_views = 2;
+			gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "2");
+		}
+		break;
+	}
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "CameraLayout");
+	if (!sOpt) {
+		sOpt = "OffAxis";
+		gf_cfg_set_key(compositor->user->config, "Compositor", "CameraLayout", "OffAxis");
+	}
+	if (!strcmp(sOpt, "Linear")) compositor->visual->camera_layout = GF_3D_CAMERA_LINEAR;
+	else if (!strcmp(sOpt, "Circular")) compositor->visual->camera_layout = GF_3D_CAMERA_CIRCULAR;
+	else if (!strcmp(sOpt, "OffAxis")) compositor->visual->camera_layout = GF_3D_CAMERA_OFFAXIS;
+	else compositor->visual->camera_layout = GF_3D_CAMERA_STRAIGHT;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ReverseViews");
+	if (sOpt && !strcmp(sOpt, "yes")) compositor->visual->reverse_views = 1;
 #endif
 	
 #ifdef GF_SR_USE_DEPTH
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "AutoStereoCalibration");
-	compositor->auto_calibration = (!sOpt || !strcmp(sOpt, "yes")) ? 1 : 0;
+	compositor->auto_calibration = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisplayDepth");
 	compositor->display_depth = sOpt ? (!strcmp(sOpt, "auto") ? -1 : atoi(sOpt)) : 0;
 
 	if (!compositor->video_out->view_distance) {
-		Float v;
 		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ViewDistance");
-		v = sOpt ? (Float) atof(sOpt) : 50.0f; 
-		compositor->video_out->view_distance = FLT2FIX(v * 0.3937f * compositor->video_out->dpi_x);
+		compositor->video_out->view_distance = FLT2FIX( sOpt ? (Float) atof(sOpt) : 50.0f ); 
 	}
 #endif
 
-	/*RECT texture support - we must reload HW*/
-	compositor->reset_graphics = 1;
 
+	compositor->reset_graphics = 1;
 	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 
 	gf_sc_lock(compositor, 0);
@@ -1460,7 +1531,8 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 		if (compositor->visual->type_3d || compositor->active_layer) {
 			GF_Camera *cam = compositor_3d_get_camera(compositor);
 			if (!(cam->navigation_flags & NAV_ANY)) return GF_NAVIGATE_TYPE_NONE;
-			return ((cam->is_3D || compositor->active_layer) ? GF_NAVIGATE_TYPE_3D : GF_NAVIGATE_TYPE_2D);
+//			return ((cam->is_3D || compositor->active_layer) ? GF_NAVIGATE_TYPE_3D : GF_NAVIGATE_TYPE_2D);
+			return GF_NAVIGATE_TYPE_3D;
 		} else 
 #endif
 		{
@@ -1586,6 +1658,7 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node)
 {
 	if (top_node && !compositor->root_visual_setup) {
+		Bool force_navigate=0;
 		GF_SceneGraph *scene = compositor->scene;
 		u32 node_tag;
 #ifndef GPAC_DISABLE_3D
@@ -1671,7 +1744,8 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		/*request for OpenGL drawing in 2D*/
 		else if (compositor->force_opengl_2d && !compositor->visual->type_3d) {
 			compositor->visual->type_3d = 1;
-			compositor->visual->camera.is_3D = 0;
+			camera_set_2d(&compositor->visual->camera);
+			if (compositor->force_opengl_2d==2) force_navigate=1;
 		}
 
 		if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
@@ -1680,6 +1754,10 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		}
 		compositor->visual->camera.is_3D = (compositor->visual->type_3d>1) ? 1 : 0;
 		camera_invalidate(&compositor->visual->camera);
+		if (force_navigate) {
+			compositor->visual->camera.navigate_mode = GF_NAVIGATE_EXAMINE;
+			compositor->visual->camera.had_nav_info = 0;
+		}
 #endif
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Main scene setup - pixel metrics %d - center coords %d\n", compositor->traverse_state->pixel_metrics, compositor->visual->center_coords));
@@ -1806,8 +1884,10 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	in_time = gf_sys_clock();
 
-	if (compositor->reset_graphics)
-		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
+	if (compositor->reset_graphics) {
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);		
+		visual_reset_graphics(compositor->visual);
+	}
 
 #ifdef GF_SR_EVENT_QUEUE
 	/*process pending user events*/
@@ -2456,7 +2536,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		return gf_sc_handle_event_intern(compositor, event, from_user);
 	/*switch fullscreen off!!!*/
 	case GF_EVENT_SHOWHIDE:
-		gf_sc_set_option(compositor, GF_OPT_FULLSCREEN, !compositor->fullscreen);
+		//gf_sc_set_option(compositor, GF_OPT_FULLSCREEN, !compositor->fullscreen);
 		break;
 
 	case GF_EVENT_SET_CAPTION:

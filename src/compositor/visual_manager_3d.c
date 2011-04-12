@@ -195,7 +195,8 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 		z_far = max(vp_size.x, vp_size.y) * max(width, height) / (2*min(1, ar)*tg(fov/2)) )
 	
 	to choose a z_far so that the size is more than one pixel, then z_far' = z_far/n_pixels*/
-	if (tr_state->camera->z_far<=0) {
+	//if (tr_state->camera->z_far<=0) 
+	{
 		Fixed ar = gf_divfix(tr_state->vp_size.x, tr_state->vp_size.y);
 		if (ar>FIX_ONE) ar = FIX_ONE;
 		tr_state->camera->z_far = gf_muldiv(
@@ -232,7 +233,9 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	if (tr_state->visual->compositor->auto_calibration && tr_state->visual->compositor->video_out->view_distance) {
 		Fixed view_distance, disparity;
 
-		view_distance = INT2FIX(tr_state->visual->compositor->video_out->view_distance);
+		/*get view distance in pixels*/
+		view_distance = tr_state->visual->compositor->video_out->view_distance * tr_state->visual->compositor->video_out->dpi_x;
+		view_distance = gf_divfix(view_distance , FLT2FIX(2.54f) );
 		disparity = INT2FIX(tr_state->visual->compositor->video_out->disparity);
 
 		if (tr_state->visual->depth_vp_range) {
@@ -292,7 +295,6 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	gf_sc_invalidate(tr_state->visual->compositor, NULL);
 }
 
-
 void visual_3d_setup_projection(GF_TraverseState *tr_state)
 {
 #ifndef GPAC_DISABLE_VRML
@@ -317,8 +319,11 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 #ifdef GF_SR_USE_DEPTH
             /* 3D world calibration for stereoscopic screen */
 			if (tr_state->visual->compositor->auto_calibration && tr_state->visual->compositor->video_out->view_distance) {
-				fov = 2*gf_atan2( INT2FIX(tr_state->visual->compositor->video_out->max_screen_width)/2, 
-					INT2FIX(tr_state->visual->compositor->video_out->view_distance));
+				/*get view distance in pixels*/
+				Fixed view_distance = tr_state->visual->compositor->video_out->view_distance * tr_state->visual->compositor->video_out->dpi_x;
+				view_distance = gf_divfix(view_distance , FLT2FIX(2.54f) );
+
+				fov = 2*gf_atan2( INT2FIX(tr_state->visual->compositor->video_out->max_screen_width)/2, view_distance);
 			}
 #endif
 
@@ -340,7 +345,30 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 		tr_state->camera->had_viewpoint = 0;
 	}
 
-	camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords);
+	if (tr_state->visual->nb_views>1) {
+		s32 view_idx;
+		Fixed view_dist, interocular_dist_pixel;
+		Fixed delta = 0;
+
+		view_dist = tr_state->visual->compositor->video_out->view_distance;
+		view_dist += tr_state->visual->compositor->view_distance_offset;
+		if (view_dist<0) view_dist = FIX_ONE;
+
+		interocular_dist_pixel = FLT2FIX(6.8f) + tr_state->visual->compositor->interoccular_offset;
+
+		view_idx = tr_state->visual->current_view;
+		view_idx -= tr_state->visual->nb_views/2;
+		delta = interocular_dist_pixel * view_idx;
+		if (! (tr_state->visual->nb_views % 2)) {
+			delta += interocular_dist_pixel/2;
+		}
+		if (tr_state->visual->reverse_views) delta = - delta;
+
+		tr_state->camera->flags |= CAM_IS_DIRTY;
+		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, delta, view_dist, tr_state->visual->camera_layout);
+	} else {
+		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, 0, 0, GF_3D_CAMERA_STRAIGHT);
+	}
 
 	/*setup projection/modelview*/
 	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
@@ -356,9 +384,82 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 #endif
 }
 
-void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
+static void visual_3d_draw_background(GF_TraverseState *tr_state, u32 layer_type)
 {
 	u32 mode;
+#ifndef GPAC_DISABLE_VRML
+	GF_Node *bindable;
+#endif
+
+	/*setup background*/
+	mode = tr_state->traversing_mode;
+	tr_state->traversing_mode = TRAVERSE_BINDABLE;
+
+	/*if in layer clear z buffer (even if background)*/
+	if (layer_type) visual_3d_clear_depth(tr_state->visual);
+
+	/*clear requested - do it before background drawing for layer3D (transparent background)*/
+	if (layer_type==2) {
+		SFColor col;
+		col.red = INT2FIX((tr_state->visual->compositor->back_color>>16)&0xFF) / 255;
+		col.green = INT2FIX((tr_state->visual->compositor->back_color>>8)&0xFF) / 255;
+		col.blue = INT2FIX((tr_state->visual->compositor->back_color)&0xFF) / 255;
+		visual_3d_clear(tr_state->visual, col, 0);
+	}
+
+#ifndef GPAC_DISABLE_VRML
+	bindable = (GF_Node*) gf_list_get(tr_state->backgrounds, 0);
+	if (Bindable_GetIsBound(bindable)) {
+		gf_node_traverse(bindable, tr_state);
+	}
+	/*clear if not in layer*/
+	else 
+#endif
+	if (!layer_type) {
+		SFColor col;
+		Fixed alpha = 0;
+		col.red = INT2FIX((tr_state->visual->compositor->back_color>>16)&0xFF) / 255;
+		col.green = INT2FIX((tr_state->visual->compositor->back_color>>8)&0xFF) / 255;
+		col.blue = INT2FIX((tr_state->visual->compositor->back_color)&0xFF) / 255;
+		/*if composite visual, clear with alpha = 0*/
+		if (tr_state->visual==tr_state->visual->compositor->visual) {
+			alpha = FIX_ONE;
+			if (tr_state->visual->compositor->user && (tr_state->visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT) ) {
+				alpha = 0;
+			}
+		}
+		visual_3d_clear(tr_state->visual, col, alpha);
+	}
+	tr_state->traversing_mode = mode;
+
+}
+
+/*in off-axis, projection matrix is not aligned with view axis, however we need to draw the background
+centered !! 
+In this case we draw the background before setting up the projection but after setting up scissor and Viewport*/
+static void visual_3d_draw_background_on_axis(GF_TraverseState *tr_state, u32 layer_type)
+{
+	GF_Matrix proj, model;
+	GF_Camera *cam = &tr_state->visual->camera;
+	Fixed ar = gf_divfix(cam->width, cam->height);
+
+	tr_state->visual->camera_layout = 0;
+
+	gf_mx_perspective(&proj, cam->fieldOfView, ar, cam->z_near, cam->z_far);
+	/*setup modelview*/
+	gf_mx_lookat(&model, cam->position, cam->target, cam->up);
+
+	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_PROJECTION);
+	visual_3d_matrix_load(tr_state->visual, proj.m);
+	visual_3d_set_matrix_mode(tr_state->visual, V3D_MATRIX_MODELVIEW);
+	visual_3d_matrix_load(tr_state->visual, model.m);
+
+	visual_3d_draw_background(tr_state, layer_type);
+	tr_state->visual->camera_layout = GF_3D_CAMERA_OFFAXIS;
+}
+
+void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
+{
 #ifndef GPAC_DISABLE_VRML
 	GF_Node *bindable;
 #endif
@@ -412,10 +513,6 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		gf_sc_invalidate(tr_state->visual->compositor, NULL);
 	}
 
-	visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
-
-	/*setup projection*/
-	visual_3d_setup_projection(tr_state);
 
 	/*turn off depth buffer in 2D*/
 	visual_3d_enable_depth_buffer(tr_state->visual, tr_state->camera->is_3D);
@@ -423,46 +520,63 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	/*set headlight if any*/
 	visual_3d_enable_headlight(tr_state->visual, (tr_state->camera->navigation_flags & NAV_HEADLIGHT) ? 1 : 0, tr_state->camera);
 
-	/*setup background*/
-	mode = tr_state->traversing_mode;
-	tr_state->traversing_mode = TRAVERSE_BINDABLE;
+	if (tr_state->visual->autostereo_type==GF_3D_STEREO_SIDE) {
+		GF_Rect orig_vp;
+		orig_vp = tr_state->camera->vp;
+		
+		tr_state->camera->vp.width /= tr_state->visual->nb_views;
+		tr_state->camera->vp.x += tr_state->visual->current_view * tr_state->camera->vp.width;
 
-	/*if in layer clear z buffer (even if background)*/
-	if (layer_type) visual_3d_clear_depth(tr_state->visual);
+		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+		visual_3d_set_scissor(tr_state->visual, &tr_state->camera->vp);
 
-	/*clear requested - do it before background drawing for layer3D (transparent background)*/
-	if (layer_type==2) {
-		SFColor col;
-		col.red = INT2FIX((tr_state->visual->compositor->back_color>>16)&0xFF) / 255;
-		col.green = INT2FIX((tr_state->visual->compositor->back_color>>8)&0xFF) / 255;
-		col.blue = INT2FIX((tr_state->visual->compositor->back_color)&0xFF) / 255;
-		visual_3d_clear(tr_state->visual, col, 0);
-	}
-
-#ifndef GPAC_DISABLE_VRML
-	bindable = (GF_Node*) gf_list_get(tr_state->backgrounds, 0);
-	if (Bindable_GetIsBound(bindable)) {
-		gf_node_traverse(bindable, tr_state);
-	}
-	/*clear if not in layer*/
-	else 
-#endif
-	if (!layer_type) {
-		SFColor col;
-		Fixed alpha = 0;
-		col.red = INT2FIX((tr_state->visual->compositor->back_color>>16)&0xFF) / 255;
-		col.green = INT2FIX((tr_state->visual->compositor->back_color>>8)&0xFF) / 255;
-		col.blue = INT2FIX((tr_state->visual->compositor->back_color)&0xFF) / 255;
-		/*if composite visual, clear with alpha = 0*/
-		if (tr_state->visual==tr_state->visual->compositor->visual) {
-			alpha = FIX_ONE;
-			if (tr_state->visual->compositor->user && (tr_state->visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT) ) {
-				alpha = 0;
-			}
+		if (tr_state->visual->camera_layout==GF_3D_CAMERA_OFFAXIS) {
+			visual_3d_draw_background_on_axis(tr_state, layer_type);
 		}
-		visual_3d_clear(tr_state->visual, col, alpha);
+
+		/*setup projection*/
+		visual_3d_setup_projection(tr_state);
+
+		tr_state->camera->vp = orig_vp;
+	} else if (tr_state->visual->autostereo_type==GF_3D_STEREO_TOP) {
+		GF_Rect orig_vp;
+		orig_vp = tr_state->camera->vp;
+		
+		tr_state->camera->vp.height /= tr_state->visual->nb_views;
+		tr_state->camera->vp.y += tr_state->visual->current_view * tr_state->camera->vp.height;
+		tr_state->camera->vp.y = orig_vp.height - tr_state->camera->vp.height - tr_state->camera->vp.y;
+
+		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+		visual_3d_set_scissor(tr_state->visual, &tr_state->camera->vp);
+
+		if (tr_state->visual->camera_layout==GF_3D_CAMERA_OFFAXIS) {
+			visual_3d_draw_background_on_axis(tr_state, layer_type);
+		}
+
+		/*setup projection*/
+		visual_3d_setup_projection(tr_state);
+
+		tr_state->camera->vp = orig_vp;
+	} else {
+		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+
+		if (tr_state->visual->camera_layout==GF_3D_CAMERA_OFFAXIS) {
+			visual_3d_draw_background_on_axis(tr_state, layer_type);
+		}
+
+		/*setup projection*/
+		visual_3d_setup_projection(tr_state);
+
+		if (tr_state->visual->autostereo_type) {
+			visual_3d_clear_depth(tr_state->visual);
+		}
 	}
-	tr_state->traversing_mode = mode;
+	/*regular background draw*/
+	if (tr_state->visual->camera_layout != GF_3D_CAMERA_OFFAXIS) {
+		visual_3d_draw_background(tr_state, layer_type);
+	}
+
+	visual_3d_set_scissor(tr_state->visual, NULL);
 }
 
 
@@ -712,22 +826,37 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 #ifndef GPAC_DISABLE_LOG
 	u32 time = gf_sys_clock();
 #endif
-	visual_3d_setup(visual);
 
+	visual_3d_setup(visual);
+	
 	/*setup our traversing state*/
 	visual_3d_setup_traversing_state(visual, tr_state);
 
 	if (is_root_visual) {
-		GF_SceneGraph *sg;
-		u32 i;
-		visual_3d_draw_node(tr_state, root);
+		Bool auto_stereo = 0;
 
-		/*extra scene graphs*/
-		i=0; 
-		while ((sg = (GF_SceneGraph*)gf_list_enum(visual->compositor->extra_scenes, &i))) {
-			tr_state->traversing_mode = TRAVERSE_SORT;
-			gf_sc_traverse_subscene(visual->compositor, root, sg, tr_state);
+		if (tr_state->visual->autostereo_type>GF_3D_STEREO_SIDE) {
+			visual_3d_init_autostereo(visual);
+			auto_stereo = 1;
 		}
+		
+		for (visual->current_view=0; visual->current_view < visual->nb_views; visual->current_view++) {
+			GF_SceneGraph *sg;
+			u32 i;
+			visual_3d_draw_node(tr_state, root);
+
+			/*extra scene graphs*/
+			i=0; 
+			while ((sg = (GF_SceneGraph*)gf_list_enum(visual->compositor->extra_scenes, &i))) {
+				tr_state->traversing_mode = TRAVERSE_SORT;
+				gf_sc_traverse_subscene(visual->compositor, root, sg, tr_state);
+			}
+
+			if (auto_stereo) {
+				visual_3d_end_auto_stereo_pass(visual);
+			}
+		}
+
 	} else {
 		visual_3d_draw_node(tr_state, root);
 	}

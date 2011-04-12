@@ -25,7 +25,9 @@
 #include <gpac/internal/camera.h>
 
 #include <gpac/options.h>
+#include "visual_manager.h"
 
+#define FORCE_CAMERA_3D
 
 GF_Camera *new_camera()
 {
@@ -164,23 +166,87 @@ SFRotation camera_get_orientation(SFVec3f pos, SFVec3f target, SFVec3f up)
 	return gf_quat_to_rotation(&rot);
 }
 
-void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords)
+#define FAR_PLANE_2D	-60000
+#define NEAR_PLANE_2D	6000
+
+void camera_set_2d(GF_Camera *cam)
+{
+	cam->is_3D = 0;
+#ifdef FORCE_CAMERA_3D
+	cam->position.x = cam->position.y = 0; cam->position.z = INT2FIX(NEAR_PLANE_2D);
+	cam->up.x = cam->up.z = 0; cam->up.y = FIX_ONE;
+	cam->target.x = cam->target.y = cam->target.z = 0;
+	cam->vp_position = cam->position;
+	cam->vp_orientation.x = cam->vp_orientation.y = 0; cam->vp_orientation.q = 0; cam->vp_orientation.y = FIX_ONE;
+	cam->vp_fov = cam->fieldOfView = FLT2FIX(0.785398);
+	cam->vp_dist = INT2FIX(NEAR_PLANE_2D);
+	cam->end_zoom = FIX_ONE;
+#endif
+}
+
+void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed viewing_distance, u32 camera_layout)
 {
 	Fixed vlen, h, w, ar;
 	SFVec3f corner, center;
+	GF_Matrix post_model_view;
 
 	if (! (cam->flags & CAM_IS_DIRTY)) return;
 
 	ar = gf_divfix(cam->width, cam->height);
+	gf_mx_init(post_model_view);
+
 	if (cam->is_3D) {
 		/*setup perspective*/
-		gf_mx_perspective(&cam->projection, cam->fieldOfView, ar, cam->z_near, cam->z_far);
-		/*setup modelview*/
-		gf_mx_lookat(&cam->modelview, cam->position, cam->target, cam->up);
+		if (camera_layout==GF_3D_CAMERA_OFFAXIS) {
+			Fixed left, right, top, bottom, shift, focal_length, wd2, ndfl;
+			SFVec3f eye, pos, tar, disp;
+
+			viewing_distance/=100;
+			horizontal_shift/=100;
+			focal_length = viewing_distance;
+			cam->z_near = focal_length/100;
+
+			wd2 = cam->z_near * gf_tan(cam->fieldOfView/2);
+			ndfl = gf_divfix(cam->z_near, focal_length);
+			/*compute h displacement*/
+			shift = horizontal_shift * cam->z_near / focal_length;
+
+			top = wd2;
+			bottom = -top;
+			left = -ar * wd2 - gf_mulfix(horizontal_shift, ndfl);
+			right = ar * wd2 - gf_mulfix(horizontal_shift, ndfl);
+
+			gf_mx_init(cam->projection);
+			cam->projection.m[0] = gf_divfix(2*cam->z_near, (right-left));
+			cam->projection.m[5] = gf_divfix(2*cam->z_near, (top-bottom));
+			cam->projection.m[8] = gf_divfix(right+left, right-left);
+			cam->projection.m[9] = gf_divfix(top+bottom, top-bottom);
+			cam->projection.m[10] = gf_divfix(cam->z_far+cam->z_near, cam->z_near-cam->z_far);
+			cam->projection.m[11] = -FIX_ONE;
+			cam->projection.m[14] = 2*gf_muldiv(cam->z_near, cam->z_far, cam->z_near-cam->z_far);
+			cam->projection.m[15] = 0;
+
+			gf_vec_diff(eye, cam->target, cam->position);
+			gf_vec_norm(&eye);
+			disp = gf_vec_cross(eye, cam->up);
+			gf_vec_norm(&disp);
+
+			pos = gf_vec_scale(disp, horizontal_shift);
+			gf_vec_add(pos, pos, cam->position);
+			gf_vec_add(tar, pos, eye);
+
+			/*setup modelview*/
+			gf_mx_lookat(&cam->modelview, pos, tar, cam->up);
+		} else {
+			gf_mx_perspective(&cam->projection, cam->fieldOfView, ar, cam->z_near, cam->z_far);
+
+			/*setup modelview*/
+			gf_mx_lookat(&cam->modelview, cam->position, cam->target, cam->up);
+		}
 
 		if (!center_coords) {
-			gf_mx_add_scale(&cam->modelview, 1, -1, 1);
-			gf_mx_add_translation(&cam->modelview, -cam->width / 2, -cam->height / 2, 0);
+			gf_mx_add_scale(&post_model_view, 1, -1, 1);
+			gf_mx_add_translation(&post_model_view, -cam->width / 2, -cam->height / 2, 0);
 		}
 
 		/*compute center and radius - CHECK ME!*/
@@ -200,19 +266,34 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 		Fixed hw, hh;
 		hw = cam->width / 2;
 		hh = cam->height / 2;
-		cam->z_near = -INT2FIX(512);
-		cam->z_far = INT2FIX(512);
+		cam->z_near = INT2FIX(NEAR_PLANE_2D);
+		cam->z_far = INT2FIX(FAR_PLANE_2D);
 
 		/*setup ortho*/
 		gf_mx_ortho(&cam->projection, -hw, hw, -hh, hh, cam->z_near, cam->z_far);
+
 		/*setup modelview*/
+#ifdef FORCE_CAMERA_3D
+		gf_mx_lookat(&cam->modelview, cam->position, cam->target, cam->up);
+#else
 		gf_mx_init(cam->modelview);
+#endif
 		if (!center_coords) {
-			gf_mx_add_scale(&cam->modelview, 1, -1, 1);
-			gf_mx_add_translation(&cam->modelview, -hw, -hh, 0);
+			gf_mx_add_scale(&post_model_view, 1, -1, 1);
+			gf_mx_add_translation(&post_model_view, -hw, -hh, 0);
 		}
-		if (user_transform) gf_mx_add_matrix_2d(&cam->modelview, user_transform);
-		if (cam->flags & CAM_HAS_VIEWPORT) gf_mx_add_matrix(&cam->modelview, &cam->viewport);
+		if (user_transform) {
+#ifdef FORCE_CAMERA_3D
+			GF_Matrix mx;
+			gf_mx_from_mx2d(&mx, user_transform);
+			mx.m[10] = mx.m[0]; 
+			gf_mx_add_matrix(&post_model_view, &mx);
+#else
+			gf_mx_add_matrix_2d(&post_model_view, user_transform);
+#endif
+		}
+		if (cam->end_zoom != FIX_ONE) gf_mx_add_scale(&post_model_view, cam->end_zoom, cam->end_zoom, cam->end_zoom);
+		if (cam->flags & CAM_HAS_VIEWPORT) gf_mx_add_matrix(&post_model_view, &cam->viewport);
 
 		/*compute center & radius*/
 		b.max_edge.x = hw;
@@ -224,6 +305,37 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 		cam->center = b.center;
 		cam->radius = b.radius;
 	}
+
+	if (camera_layout == GF_3D_CAMERA_CIRCULAR) {
+		GF_Matrix mx;
+		SFVec3f pos;
+
+		gf_mx_init(mx);
+		gf_mx_add_translation(&mx, cam->target.x, cam->target.y, cam->target.z);
+		gf_mx_add_rotation(&mx, horizontal_shift/viewing_distance, cam->up.x, cam->up.y, cam->up.z);
+		gf_mx_add_translation(&mx, -cam->target.x, -cam->target.y, -cam->target.z);
+
+		pos = cam->position;
+		gf_mx_apply_vec(&mx, &pos);
+
+		gf_mx_lookat(&cam->modelview, pos, cam->target, cam->up);
+	} else if (camera_layout == GF_3D_CAMERA_LINEAR) {
+		GF_Vec eye, disp, pos;
+		Fixed len;
+
+		gf_vec_diff(eye, cam->target, cam->position);
+		len = gf_vec_len(eye);
+		gf_vec_norm(&eye);
+
+		disp = gf_vec_cross(eye, cam->up);
+		gf_vec_norm(&disp);
+
+		pos = gf_vec_scale(disp, len*horizontal_shift/viewing_distance);
+		gf_vec_add(pos, cam->position, pos);
+		gf_mx_lookat(&cam->modelview, pos, cam->target, cam->up);
+	}
+	gf_mx_add_matrix(&cam->modelview, &post_model_view);
+
 	/*compute frustum planes*/
 	gf_mx_copy(cam->unprojection, cam->projection);
 	gf_mx_add_matrix_4x4(&cam->unprojection, &cam->modelview);
@@ -266,7 +378,10 @@ void camera_reset_viewpoint(GF_Camera *cam, Bool animate)
 		cam->last_pos = cam->vp_position;
 		return;
 	}
-	if (cam->is_3D) {
+#ifndef FORCE_CAMERA_3D
+	if (cam->is_3D) 
+#endif
+	{
 		cam->start_pos = cam->position;
 		cam->start_ori = camera_get_orientation(cam->position, cam->target, cam->up);
 		cam->start_fov = cam->fieldOfView;
@@ -277,7 +392,9 @@ void camera_reset_viewpoint(GF_Camera *cam, Bool animate)
 		cam->flags |= CAM_IS_DIRTY;
 		cam->anim_start = 0;
 		cam->anim_len = 1000;
-	} else {
+	}
+#ifndef FORCE_CAMERA_3D
+	else {
 		cam->start_zoom = FIX_ONE;
 		cam->start_trans.x = cam->start_trans.y = 0;
 		cam->start_rot.x = cam->start_rot.y = 0;
@@ -285,6 +402,7 @@ void camera_reset_viewpoint(GF_Camera *cam, Bool animate)
 		/*no animation on 3D viewports*/
 		cam->anim_start = cam->anim_len = 0;
 	}
+#endif
 }
 
 void camera_move_to(GF_Camera *cam, SFVec3f pos, SFVec3f target, SFVec3f up)
@@ -358,11 +476,19 @@ Bool camera_animate(GF_Camera *cam)
 		now = gf_sys_clock() - cam->anim_start;
 		if (now > cam->anim_len) {
 			cam->anim_len = 0;
-			if (cam->is_3D) {
+#ifndef FORCE_CAMERA_3D
+			if (cam->is_3D) 
+#endif
+			{
 				camera_set_vectors(cam, cam->end_pos, cam->end_ori, cam->end_fov);
-			} else {
+				cam->end_zoom = FIX_ONE;
+			} 
+#ifndef FORCE_CAMERA_3D
+			else {
 				cam->flags |= CAM_IS_DIRTY;
 			}
+#endif
+
 			if (cam->flags & CF_STORE_VP) {
 				cam->flags &= ~CF_STORE_VP;
 				cam->vp_position = cam->position;
@@ -375,7 +501,10 @@ Bool camera_animate(GF_Camera *cam)
 		}
 	}
 
-	if (cam->is_3D) {
+#ifndef FORCE_CAMERA_3D
+	if (cam->is_3D)
+#endif
+	{
 		SFVec3f pos, dif;
 		SFRotation rot;
 		Fixed fov;
@@ -384,6 +513,7 @@ Bool camera_animate(GF_Camera *cam)
 		dif = gf_vec_scale(dif, frac);
 		gf_vec_add(pos, cam->start_pos, dif);
 		fov = gf_mulfix(cam->end_fov - cam->start_fov, frac) + cam->start_fov;
+		cam->end_zoom = frac + gf_mulfix((FIX_ONE-frac), cam->start_zoom); 
 		camera_set_vectors(cam, pos, rot, fov);
 	}
 	return 1;

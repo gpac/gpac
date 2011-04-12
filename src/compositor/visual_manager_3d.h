@@ -215,6 +215,9 @@ void visual_3d_matrix_pop(GF_VisualManager *visual);
 
 /*setup viewport (vp: top-left, width, height)*/
 void visual_3d_set_viewport(GF_VisualManager *visual, GF_Rect vp);
+/*setup scissors region (vp: top-left, width, height) - if vp is NULL, disables scissors*/
+void visual_3d_set_scissor(GF_VisualManager *visual, GF_Rect *vp);
+
 /*setup rectangular cliper (clip: top-left, width, height)
 NOTE: 2D clippers can only be set from a 2D context, hence will always take the 4 first GL clip planes.
 In order to allow multiple Layer2D in Layer2D, THERE IS ALWAYS AT MOST ONE 2D CLIPPER USED AT ANY TIME, 
@@ -268,6 +271,8 @@ void visual_3d_set_fog(GF_VisualManager *visual, const char *type, SFColor color
 /*fill given rect with given color (used for text hilighting only) - context shall not be altered*/
 void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color);
 
+void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_TextureHandler *txh, GF_TraverseState *tr_state);
+
 /*non-oglES functions*/
 #ifndef GPAC_USE_OGL_ES
 
@@ -288,6 +293,11 @@ void visual_3d_mesh_hatch(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 hatchSt
 
 
 void visual_3d_draw_bbox(GF_TraverseState *tr_state, GF_BBox *box);
+
+
+GF_Err visual_3d_init_autostereo(GF_VisualManager *visual);
+void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual);
+void visual_3d_reset_graphics(GF_VisualManager *visual);
 
 #endif /*GPAC_DISABLE_3D*/
 

@@ -33,6 +33,31 @@
 /*all 3D related functions and macro are locate there*/
 #include "visual_manager_3d.h"
 
+
+enum 
+{
+	GF_3D_STEREO_NONE = 0,
+	GF_3D_STEREO_TOP = 1,
+	GF_3D_STEREO_SIDE = 2,
+	/*all modes above GF_3D_STEREO_SIDE require shaders*/
+
+	/*each pixel correspond to a different view*/
+	GF_3D_STEREO_COLUMNS = 3,
+	GF_3D_STEREO_ROWS = 4,
+	/*special case of sub-pixel interleaving for 2 views*/
+	GF_3D_STEREO_ANAGLYPH = 5,
+	/*custom interleaving using GLSL shaders*/
+	GF_3D_STEREO_CUSTOM = 6,
+};
+
+enum 
+{
+	GF_3D_CAMERA_STRAIGHT = 0,
+	GF_3D_CAMERA_OFFAXIS,
+	GF_3D_CAMERA_LINEAR,
+	GF_3D_CAMERA_CIRCULAR,
+};
+
 struct _visual_manager
 {
 	GF_Compositor *compositor;
@@ -146,6 +171,18 @@ struct _visual_manager
 	/*cliping stuff*/
 	u32 num_clips;
 	u32 max_clips;
+
+
+	u32 nb_views, current_view, autostereo_type, camera_layout;
+	Bool reverse_views;
+
+
+	u32 *gl_textures;
+	u32 auto_stereo_width, auto_stereo_height;
+	GF_Mesh *autostereo_mesh;
+	u32 glsl_program;
+	u32 glsl_vertex;
+	u32 glsl_fragment;
 #endif
 
 #ifdef GF_SR_USE_DEPTH
@@ -168,6 +205,9 @@ Bool visual_get_size_info(GF_TraverseState *tr_state, Fixed *surf_width, Fixed *
 
 /*reset all appearance dirty state and visual registration info*/
 void visual_clean_contexts(GF_VisualManager *visual);
+
+
+void visual_reset_graphics(GF_VisualManager *visual);
 
 #endif	/*_VISUAL_MANAGER_H_*/
 
