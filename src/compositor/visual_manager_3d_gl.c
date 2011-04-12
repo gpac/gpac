@@ -64,6 +64,11 @@
 #define GPAC_USE_TINYGL
 #endif
 
+#ifdef GPAC_USE_OGL_ES
+#define GL_CLAMP GL_CLAMP_TO_EDGE
+#endif
+
+
 #define CHECK_GL_EXT(name) ((strstr(ext, name) != NULL) ? 1 : 0)
 
 
@@ -111,7 +116,10 @@ GLDECL_STATIC(glUniformMatrix4x2fv);
 GLDECL_STATIC(glUniformMatrix3x4fv);
 GLDECL_STATIC(glUniformMatrix4x3fv);
 GLDECL_STATIC(glBlendEquation);
+
+#ifndef GPAC_USE_OGL_ES
 GLDECL_STATIC(glActiveTexture);
+#endif
 
 #endif
 
@@ -214,7 +222,9 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 		GET_GLFUN(glUniformMatrix3x4fv);
 		GET_GLFUN(glUniformMatrix4x3fv);
 		GET_GLFUN(glBlendEquation);
+#ifndef GPAC_USE_OGL_ES
 		GET_GLFUN(glActiveTexture);
+#endif
 
 		has_shaders = 1;
 	} else {
@@ -452,6 +462,10 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	GLint loc;
 	char szTex[100];
 	Double hw, hh;
+#ifdef GPAC_USE_OGL_ES
+	GF_Matrix mx;
+#endif
+
 
 	glFlush();
 
@@ -461,6 +475,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);	
+
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR); 
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE); 
@@ -488,7 +503,11 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
+#ifdef GPAC_USE_OGL_ES
+	gf_mx_ortho(&mx, FLT2FIX(-hw), FLT2FIX(hw), FLT2FIX(-hh), FLT2FIX(hh), FLT2FIX(-10.0), FLT2FIX(100.0) );
+#else
 	glOrtho(-hw, hw, -hh, hh, -10, 100);
+#endif
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -530,7 +549,11 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex),  &visual->autostereo_mesh->vertices[0].pos);
+#ifdef GPAC_USE_OGL_ES
+	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, visual->autostereo_mesh->indices);
+#else
 	glDrawElements(GL_TRIANGLES, visual->autostereo_mesh->i_count, GL_UNSIGNED_INT, visual->autostereo_mesh->indices);
+#endif
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 
@@ -2129,6 +2152,7 @@ GF_Err compositor_3d_release_screen_buffer(GF_Compositor *compositor, GF_VideoSu
 
 void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_TextureHandler *txh, GF_TraverseState *tr_state)
 {
+#ifndef GPAC_USE_OGL_ES
 	u32 w, h;
 	u32 pixel_format, stride;
 	u8 *data;
@@ -2137,7 +2161,6 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 	Bool in_strip;
 	Float delta = 0;
 	Bool first_pass = 2;
-
 
 	if ((visual->compositor->depth_gl_type==1) && visual->compositor->gl_caps.point_sprite) {
 		Float z;
@@ -2284,6 +2307,9 @@ restart:
 		first_pass = 0;
 		goto restart;
 	}
+
+#endif //GPAC_USE_OGL_ES
+
 }
 
 #endif	/*GPAC_DISABLE_3D*/
