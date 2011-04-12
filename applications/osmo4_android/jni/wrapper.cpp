@@ -85,7 +85,6 @@ static int jniRegisterNativeMethods(JNIEnv* env, const char* className,
         LOGE("RegisterNatives failed for '%s'\n", className);
         return -1;
     }
-    pthread_key_create(&jni_thread_env_key, &jni_destroy_env);
     return 0;
 }
 
