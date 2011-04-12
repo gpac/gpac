@@ -225,6 +225,8 @@ u32 get_bpp(u32 pf)
 	case GF_PIXEL_BGR_32:
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBAS:
+	case GF_PIXEL_RGBD:
+	case GF_PIXEL_RGBDS:
 		return 4;
 	}
 	return 0;
@@ -353,6 +355,20 @@ void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_
 				}
 			}
 			break;
+		case GF_PIXEL_RGBDS:
+		case GF_PIXEL_RGBD:
+			for (i=0; i<src_wnd->h; i++) {
+				dst = vs->video_buffer + i*vs->pitch_y;
+				cur = src + i*src_stride;
+				for (j=0; j<src_wnd->w; j++) {
+					dst[0] = *cur++;
+					dst[1] = *cur++;
+					dst[2] = *cur++;
+					cur++;
+					dst += 4;
+				}
+			}
+			break;
 		case GF_PIXEL_BGR_24:
 			for (i=0; i<src_wnd->h; i++) {
 				dst = vs->video_buffer + i*vs->pitch_y;
@@ -377,6 +393,20 @@ void rgb_to_32(GF_VideoSurface *vs, unsigned char *src, u32 src_stride, u32 src_
 					dst[2] = *cur++;
 					dst[1] = *cur++;
 					dst[0] = *cur++;
+					dst += 4;
+				}
+			}
+			break;
+		case GF_PIXEL_RGBD:
+		case GF_PIXEL_RGBDS:
+			for (i=0; i<src_wnd->h; i++) {
+				dst = vs->video_buffer + i*vs->pitch_y;
+				cur = src + i*src_stride;
+				for (j=0; j<src_wnd->w; j++) {
+					dst[2] = *cur++;
+					dst[1] = *cur++;
+					dst[0] = *cur++;
+					cur++;
 					dst += 4;
 				}
 			}
@@ -421,6 +451,8 @@ void dx_copy_pixels(GF_VideoSurface *dst_s, const GF_VideoSurface *src_s, const 
 			rgb_to_24(dst_s, src_s->video_buffer, src_s->pitch_y, src_s->width, src_s->height, src_s->pixel_format, src_wnd);
 			break;
 		case GF_PIXEL_RGB_32:
+		case GF_PIXEL_RGBD:
+		case GF_PIXEL_RGBDS:
 		case GF_PIXEL_BGR_32:
 			rgb_to_32(dst_s, src_s->video_buffer, src_s->pitch_y, src_s->width, src_s->height, src_s->pixel_format, src_wnd);
 			break;

@@ -94,7 +94,8 @@ static void w32_translate_key(u32 wParam, u32 lParam, GF_EventKey *evt)
 	case VK_INSERT: evt->key_code = GF_KEY_INSERT; break;
 	case VK_DELETE: evt->key_code = GF_KEY_DEL; break;
 	case VK_HELP: evt->key_code = GF_KEY_HELP; break;
-#ifndef _WIN32_WCE
+
+#if !defined(_WIN32_WCE) && !defined(__GNUC__)
 	case VK_OEM_PLUS: evt->key_code = GF_KEY_PLUS; break;
 	case VK_OEM_MINUS: evt->key_code = GF_KEY_PLUS; break;
 #endif 
@@ -359,7 +360,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		}
 		break;
 	case WM_ACTIVATE:
-		if (ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) 
+		if (!ctx->on_secondary_screen && ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) 
 			&& (hWnd==ctx->fs_hwnd)
 #ifndef GPAC_DISABLE_3D
 			&& (ctx->output_3d_type!=2)

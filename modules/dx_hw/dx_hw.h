@@ -114,6 +114,7 @@ typedef struct
 	u32 store_width, store_height;
 	LONG backup_styles;
 	Bool alt_down, ctrl_down;
+	Bool on_secondary_screen;
 	u32 pixelFormat;
 	u32 video_bpp;
 
