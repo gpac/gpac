@@ -71,6 +71,9 @@ enum
 	and cannot be changed at runtime*/
 	GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA = (1<<8),
 
+	/*HW supports RGB+Depth or YUV+Depth blitting*/
+	GF_VIDEO_HW_HAS_DEPTH = (1<<9),
+
 	/*HW supports line blitting*/
 	GF_VIDEO_HW_HAS_LINE_BLIT = (1<<15),
 	/*HW supports locking a surface by device context (Win32 only)*/
@@ -215,7 +218,7 @@ typedef struct _video_out
 	/*for auto-stereoscopic output*/
     /*maximum pixel disparity*/
     u32 disparity;
-    /*nominal display viewing distance in pixels*/
+    /*nominal display viewing distance in cm*/
     Fixed view_distance;
 
 	/*driver private*/
