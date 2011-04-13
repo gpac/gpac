@@ -128,7 +128,7 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
     @Override
     public boolean onKeyUp(final int keyCode, final KeyEvent event) {
         if (handleInGPAC(keyCode, event)) {
-            Log.d(LOG_GL_SURFACE, "onKeyUp = " + keyCode);
+            Log.d(LOG_GL_SURFACE, "onKeyUp =" + keyCode); //$NON-NLS-1$
             queueEvent(new Runnable() {
 
                 @Override

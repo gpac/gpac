@@ -1,7 +1,7 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Copyright (c) Jean Le Feuvre 2000-2005 
+ *			Copyright (c) Jean Le Feuvre 2000-2005
  *					All rights reserved
  *
  *  This file is part of GPAC / common tools sub-project
@@ -10,15 +10,15 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
 
@@ -153,13 +153,23 @@ enum
  */
 void gf_th_set_priority(GF_Thread *th, s32 priority);
 /*!
- *\brief current thread ID 
+ *\brief current thread ID
  *
  *Gets the ID of the current thread the caller is in.
 */
 u32 gf_th_id();
 
+#ifdef GPAC_ANDROID
+/*!
+ * Register a function that will be called before pthread_exist is called
+ */
+GF_Err gf_register_before_exit_function(GF_Thread *t, u32 (*toRunBeforePthreadExit)(void *param));
 
+/*! Get the current Thread if any. May return NULL
+ */
+GF_Thread * gf_th_current();
+
+#endif /* GPAC_ANDROID */
 
 /*!
  *\brief abstracted mutex object
@@ -214,8 +224,8 @@ Bool gf_mx_try_lock(GF_Mutex *mx);
  *\brief abstracted semaphore object
  *
  *The abstracted semaphore object allows you to control how portions of the code (typically access to variables) are executed
- *by two threads (or a thread and the main process) at the same time. The best image for a semaphore is a limited set 
- *of money coins (always easy to understand hmm?). If no money is in the set, nobody can buy anything until a coin is 
+ *by two threads (or a thread and the main process) at the same time. The best image for a semaphore is a limited set
+ *of money coins (always easy to understand hmm?). If no money is in the set, nobody can buy anything until a coin is
  *put back in the set. When the set is full, the money is wasted (call it "the bank"...).
 */
 typedef struct __tag_semaphore GF_Semaphore;
@@ -240,7 +250,7 @@ void gf_sema_del(GF_Semaphore *sm);
  *Notifies the semaphore of a certain amount of releases.
  *\param sm the semaphore object
  *\param nb_rel sm the number of release to notify
- *\return the number of previous notification count in the semaphore 
+ *\return the number of previous notification count in the semaphore
 */
 u32 gf_sema_notify(GF_Semaphore *sm, u32 nb_rel);
 /*
