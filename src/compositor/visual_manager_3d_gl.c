@@ -72,11 +72,12 @@
 #define CHECK_GL_EXT(name) ((strstr(ext, name) != NULL) ? 1 : 0)
 
 
-#ifndef GPAC_USE_TINYGL
+#ifdef LOAD_GL_FUNCS
+
 GLDECL_STATIC(glActiveTextureARB);
 GLDECL_STATIC(glClientActiveTextureARB);
-GLDECL_STATIC(glPointParameterfEXT);
-GLDECL_STATIC(glPointParameterfvEXT);
+GLDECL_STATIC(glPointParameterf);
+GLDECL_STATIC(glPointParameterfv);
 GLDECL_STATIC(glCreateProgram);
 GLDECL_STATIC(glDeleteProgram);
 GLDECL_STATIC(glLinkProgram);
@@ -121,7 +122,7 @@ GLDECL_STATIC(glBlendEquation);
 GLDECL_STATIC(glActiveTexture);
 #endif
 
-#endif
+#endif //LOAD_GL_FUNCS
 
 void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 {
@@ -172,15 +173,20 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 	/*we have a GL context, get proc addresses*/
 	
 	if (CHECK_GL_EXT("GL_ARB_multitexture")) {
+#ifdef LOAD_GL_FUNCS
 		GET_GLFUN(glActiveTextureARB);
 		GET_GLFUN(glClientActiveTextureARB);
+#endif
 	}
 
 	if (compositor->gl_caps.point_sprite) {
-		GET_GLFUN(glPointParameterfEXT);
-		GET_GLFUN(glPointParameterfvEXT);
+#ifdef LOAD_GL_FUNCS
+		GET_GLFUN(glPointParameterf);
+		GET_GLFUN(glPointParameterfv);
+#endif
 	}
 
+#ifdef LOAD_GL_FUNCS
 	GET_GLFUN(glCreateProgram);
 	
 	if (glCreateProgram != NULL) {
@@ -230,7 +236,10 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 	} else {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported\n"));
 	}
-#endif
+#endif //LOAD_GL_FUNCS
+
+#endif //GPAC_USE_TINYGL
+
 
 	if (!has_shaders && (compositor->visual->autostereo_type > GF_3D_STEREO_SIDE)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported - disabling auto-stereo output\n"));
@@ -331,7 +340,11 @@ Bool visual_3d_compile_shader(u32 shader_id, const char *name, const char *sourc
 	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);       
 	if (blen > 1) {
 		char* compiler_log = (char*) gf_malloc(blen);
+#ifdef CONFIG_DARWIN_GL
+		glGetInfoLogARB((GLhandleARB) shader_id, blen, &slen, compiler_log);
+#else
 		glGetInfoLogARB(shader_id, blen, &slen, compiler_log);
+#endif
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[GLSL] Failed to compile shader %s: %s\n", name, compiler_log));
 		gf_free (compiler_log);
 		return 0;
@@ -2174,8 +2187,8 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 		glPointSize(1.0f * visual->compositor->zoom);
 		glDepthMask(GL_FALSE);
 
-		glPointParameterfvEXT(GL_DISTANCE_ATTENUATION_EXT, none);
-		glPointParameterfEXT(GL_POINT_FADE_THRESHOLD_SIZE_EXT, 0.0);
+		glPointParameterfv(GL_DISTANCE_ATTENUATION_EXT, none);
+		glPointParameterf(GL_POINT_FADE_THRESHOLD_SIZE_EXT, 0.0);
 		glEnable(GL_POINT_SMOOTH);
 		glDisable(GL_LIGHTING);
 

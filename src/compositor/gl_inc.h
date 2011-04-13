@@ -327,6 +327,13 @@
 #define GL_DOT3_RGBA                      0x86AF
 #endif
 
+#ifndef GL_EXT_blend_minmax
+#define FUNC_ADD_EXT	0x8006
+#define MIN_EXT	0x8007
+#define MAX_EXT	0x8008
+#define BLEND_EQUATION_EXT	0x8009
+#endif
+
 
 #ifndef GL_VERSION_2_0
 #define GL_BLEND_EQUATION_RGB GL_BLEND_EQUATION
@@ -413,16 +420,7 @@
 #define GL_STENCIL_BACK_REF 0x8CA3
 #define GL_STENCIL_BACK_VALUE_MASK 0x8CA4
 #define GL_STENCIL_BACK_WRITEMASK 0x8CA5
-#endif
 
-
-#ifndef BLEND_EQUATION_EXT
-#define FUNC_ADD_EXT	0x8006
-#define MIN_EXT	0x8007
-#define MAX_EXT	0x8008
-#define BLEND_EQUATION_EXT	0x8009
-
-#endif
 
 #ifdef _WIN32_WCE
 #define GLAPICAST *
@@ -434,8 +432,8 @@
 #endif
 
 #define GLDECL(ret, funname, args)	\
-	typedef ret (GLAPICAST proc_ ## funname)args;	\
-	extern proc_ ## funname funname;	\
+typedef ret (GLAPICAST proc_ ## funname)args;	\
+extern proc_ ## funname funname;	\
 
 #define GLDECL_STATIC(funname) proc_ ## funname funname = NULL
 
@@ -454,10 +452,11 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #endif
 
 
+
 GLDECL(void, glActiveTextureARB, (GLenum ) )
 GLDECL(void, glClientActiveTextureARB, (GLenum ) )
-GLDECL(void, glPointParameterfEXT, (GLenum , GLfloat) )
-GLDECL(void, glPointParameterfvEXT, (GLenum, const GLfloat *) )
+GLDECL(void, glPointParameterf, (GLenum , GLfloat) )
+GLDECL(void, glPointParameterfv, (GLenum, const GLfloat *) )
 
 GLDECL(GLuint, glCreateProgram, (void) )
 GLDECL(void, glDeleteProgram, (GLuint ) )
@@ -502,6 +501,10 @@ GLDECL(void, glBlendEquation, (GLint mode) )
 #ifndef GPAC_USE_OGL_ES
 GLDECL(void, glActiveTexture, (GLenum texture) )
 #endif
+
+
+#endif //GL_VERSION_2_0
+
 
 #endif	/*GPAC_DISABLE_3D*/
 
