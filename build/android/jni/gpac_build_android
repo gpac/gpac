@@ -14,9 +14,9 @@ shift
 
 # Be sure to resolve if script not called from its directory
 export BUILDPATH=$(dirname "$0")
-echo "Current Dir = $(pwd)"
-
-cd "$BUILDPATH" || exit 1
+cd $BUILDPATH || exit 1
+export BUILDPATH=$(pwd)
+echo "Current Dir = $BUILDPATH"
 version=$(svnversion)
 echo "*** Build path is $BUILDPATH, setting revision number $version"
 grep "$version" ../../../include/gpac/version.h 1>/dev/null && echo "Version $version already set" || echo "#define GPAC_SVN_REVISION \"$version\"" > ../../../include/gpac/version.h || exit 1
