@@ -68,6 +68,7 @@
 #else
 
 
+#define GL_GLEXT_PROTOTYPES
 #include <GL/gl.h>
 
 #ifdef GPAC_HAS_GLU
