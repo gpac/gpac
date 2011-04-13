@@ -80,6 +80,8 @@
 
 #define GL_CHECK_ERR  {s32 res = glGetError(); if (res) fprintf(stdout, "GL Error %d file %s line %d\n", res, __FILE__, __LINE__); }
 
+#if !defined(GPAC_USE_OGL_ES) 
+
 /*redefine all ext needed*/
 
 /*BGRA pixel format*/
@@ -522,6 +524,7 @@ GLDECL(void, glBlendEquation, (GLint mode) )
 
 #endif //GL_VERSION_2_0
 
+#endif //GPAC_USE_OGL_ES 
 
 #endif	/*GPAC_DISABLE_3D*/
 

@@ -270,7 +270,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	txh->tx_io->gl_type = GL_TEXTURE_2D;
 	use_rect = tx_can_use_rect_ext(compositor, txh);
 	if (!is_pow2 && use_rect) {
-#ifndef GPAC_USE_TINYGL
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 		txh->tx_io->gl_type = GL_TEXTURE_RECTANGLE_EXT;
 #endif
 		txh->tx_io->flags = TX_IS_RECT;
@@ -301,17 +301,22 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		txh->tx_io->gl_format = GL_RGBA;
 		txh->tx_io->nb_comp = 4;
 		break;
+#ifndef GPAC_USE_OGL_ES 
 	case GF_PIXEL_ARGB:
 		if (!compositor->gl_caps.bgra_texture) return 0;
 		txh->tx_io->gl_format = GL_BGRA_EXT;
 		txh->tx_io->nb_comp = 4;
 		break;
+#endif
 	case GF_PIXEL_YV12:
+#ifndef GPAC_USE_OGL_ES 
 		if (!compositor->disable_yuvgl && compositor->gl_caps.yuv_texture && !(txh->tx_io->flags & TX_MUST_SCALE) ) {
 			txh->tx_io->gl_format = compositor->gl_caps.yuv_texture;
 			txh->tx_io->nb_comp = 3;
 			txh->tx_io->gl_dtype = UNSIGNED_SHORT_8_8_MESA;
-		} else {
+		} else 
+#endif
+		{
 			if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
 			txh->tx_io->gl_format = GL_RGB;
 			txh->tx_io->nb_comp = 3;
@@ -834,7 +839,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 {
 	GF_TextureHandler *b_surf;
-#ifndef GPAC_USE_TINYGL
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 	GF_TextureHandler *matte_hdl;
 	GF_TextureHandler *a_surf;
 	GF_TextureHandler *alpha_surf;
@@ -853,7 +858,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	glEnable(GL_BLEND);	
 	tx_set_image(b_surf, 0);
 
-#ifdef GPAC_USE_TINYGL
+#if defined(GPAC_USE_TINYGL) || defined(GPAC_USE_OGL_ES)
 	tx_bind(b_surf);
 	return 1;
 #else

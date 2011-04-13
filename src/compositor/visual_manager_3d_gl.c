@@ -166,12 +166,13 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 		}
 	}
 
+#ifndef GPAC_USE_OGL_ES
 	if (CHECK_GL_EXT("GL_EXT_texture_rectangle") || CHECK_GL_EXT("GL_NV_texture_rectangle")) {
 		compositor->gl_caps.rect_texture = 1;
-
 		if (CHECK_GL_EXT("GL_MESA_ycbcr_texture")) compositor->gl_caps.yuv_texture = YCBCR_MESA;
 		else if (CHECK_GL_EXT("GL_APPLE_ycbcr_422")) compositor->gl_caps.yuv_texture = YCBCR_422_APPLE;
 	}
+#endif
 
 	if (!compositor->visual->type_3d) return;
 
@@ -252,7 +253,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 }
 
 
-#ifndef GPAC_USE_TINYGL
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 
 
 static char *default_glsl_vertex = "\
@@ -408,11 +409,12 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 	glLinkProgram(visual->glsl_program);  
 }
 
-#endif //GPAC_USE_TINYGL
+#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+
 
 void visual_3d_reset_graphics(GF_VisualManager *visual)
 {
-#ifndef GPAC_USE_TINYGL
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
 
@@ -433,13 +435,14 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 		mesh_free(visual->autostereo_mesh);
 		visual->autostereo_mesh = NULL;
 	}
-#endif //GPAC_USE_TINYGL
+#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+
 }
 
 
 GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 {
-#ifndef GPAC_USE_TINYGL
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 	u32 bw, bh;
 	SFVec2f s;
 	if (visual->gl_textures) return GF_OK;
@@ -474,13 +477,14 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 	fprintf(stdout, "AutoStereo initialized - width %d height %d\n",visual->auto_stereo_width, visual->auto_stereo_height);
 
 	visual_3d_init_shaders(visual);
-#endif //GPAC_USE_TINYGL
+#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+
 	return GF_OK;
 }
 
 void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 {
-#ifndef GPAC_USE_TINYGL
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
 	u32 i;
 	GLint loc;
 	char szTex[100];
@@ -526,11 +530,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-#ifdef GPAC_USE_OGL_ES
-	gf_mx_ortho(&mx, FLT2FIX(-hw), FLT2FIX(hw), FLT2FIX(-hh), FLT2FIX(hh), FLT2FIX(-10.0), FLT2FIX(100.0) );
-#else
 	glOrtho(-hw, hw, -hh, hh, -10, 100);
-#endif
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -572,11 +572,8 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex),  &visual->autostereo_mesh->vertices[0].pos);
-#ifdef GPAC_USE_OGL_ES
-	glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_SHORT, visual->autostereo_mesh->indices);
-#else
+
 	glDrawElements(GL_TRIANGLES, visual->autostereo_mesh->i_count, GL_UNSIGNED_INT, visual->autostereo_mesh->indices);
-#endif
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 
@@ -590,7 +587,8 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glDisable(GL_TEXTURE_2D);
-#endif //GPAC_USE_TINYGL
+#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
+
 }
 
 
