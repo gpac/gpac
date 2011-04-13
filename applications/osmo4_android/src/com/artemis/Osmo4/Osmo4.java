@@ -138,7 +138,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                         setProgress(5000);
                     }
                 });
-                displayPopup("Loading GPAC Renderer $Revision$...", name); //$NON-NLS-1$
+                displayPopup("Loading GPAC Renderer $Revision$", name); //$NON-NLS-1$
                 runOnUiThread(new Runnable() {
 
                     @Override
