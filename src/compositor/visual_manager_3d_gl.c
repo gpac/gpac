@@ -252,6 +252,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 }
 
 
+#ifndef GPAC_USE_TINYGL
 
 
 static char *default_glsl_vertex = "\
@@ -407,9 +408,12 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 	glLinkProgram(visual->glsl_program);  
 }
 
+#endif //GPAC_USE_TINYGL
 
 void visual_3d_reset_graphics(GF_VisualManager *visual)
 {
+#ifndef GPAC_USE_TINYGL
+
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
 
 	DEL_SHADER(visual->glsl_vertex);
@@ -429,11 +433,13 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 		mesh_free(visual->autostereo_mesh);
 		visual->autostereo_mesh = NULL;
 	}
+#endif //GPAC_USE_TINYGL
 }
 
 
 GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 {
+#ifndef GPAC_USE_TINYGL
 	u32 bw, bh;
 	SFVec2f s;
 	if (visual->gl_textures) return GF_OK;
@@ -468,11 +474,13 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 	fprintf(stdout, "AutoStereo initialized - width %d height %d\n",visual->auto_stereo_width, visual->auto_stereo_height);
 
 	visual_3d_init_shaders(visual);
+#endif //GPAC_USE_TINYGL
 	return GF_OK;
 }
 
 void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 {
+#ifndef GPAC_USE_TINYGL
 	u32 i;
 	GLint loc;
 	char szTex[100];
@@ -582,6 +590,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glDisable(GL_TEXTURE_2D);
+#endif //GPAC_USE_TINYGL
 }
 
 
@@ -730,12 +739,14 @@ void visual_3d_set_viewport(GF_VisualManager *visual, GF_Rect vp)
 
 void visual_3d_set_scissor(GF_VisualManager *visual, GF_Rect *vp)
 {
+#ifndef GPAC_USE_TINYGL
 	if (vp) {
 		glEnable(GL_SCISSOR_TEST);
 		glScissor(FIX2INT(vp->x), FIX2INT(vp->y), FIX2INT(vp->width), FIX2INT(vp->height));
 	} else {
 		glDisable(GL_SCISSOR_TEST);
 	}
+#endif
 }
 
 void visual_3d_clear_depth(GF_VisualManager *visual)
@@ -794,8 +805,6 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	Float fix_scale = 1.0f;
 	fix_scale /= FIX_ONE;
 #endif
-
-	GL_CHECK_ERR
 
 	has_col = has_tx = has_norm = 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh 0x%08x\n", mesh));
@@ -901,6 +910,8 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glTexCoordPointer(2, GL_INT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY );
 #else
+
+#ifndef GPAC_USE_TINYGL
 		if (tr_state->mesh_num_textures>1) {
 			u32 i;
 			for (i=0; i<tr_state->mesh_num_textures; i++) {
@@ -908,7 +919,9 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 				glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
 				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 			}
-		} else {
+		} else
+#endif //GPAC_USE_TINYGL
+		{
 			glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
 			glEnableClientState(GL_TEXTURE_COORD_ARRAY );
 		}
@@ -1018,8 +1031,6 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	
 	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);
 	tr_state->mesh_is_transparent = 0;
-
-	GL_CHECK_ERR
 }
 
 #ifdef GPAC_USE_OGL_ES
@@ -2167,7 +2178,7 @@ GF_Err compositor_3d_release_screen_buffer(GF_Compositor *compositor, GF_VideoSu
 
 void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_TextureHandler *txh, GF_TraverseState *tr_state)
 {
-#ifndef GPAC_USE_OGL_ES
+#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
 	u32 w, h;
 	u32 pixel_format, stride;
 	u8 *data;
