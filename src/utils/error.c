@@ -172,6 +172,7 @@ u32 gf_log_parse_tools(const char *val)
 		else if (!stricmp(val, "audio")) flags |= GF_LOG_AUDIO;
 		else if (!stricmp(val, "mem")) flags |= GF_LOG_MEMORY;
 		else if (!stricmp(val, "module")) flags |= GF_LOG_MODULE;
+		else if (!stricmp(val, "mutex")) flags |= GF_LOG_MUTEX;
 		if (!sep) break;
 		sep[0] = ':';
 		val = sep+1;
