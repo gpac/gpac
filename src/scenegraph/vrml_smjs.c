@@ -128,7 +128,7 @@ JSObject *gf_sg_js_global_object(JSContext *cx, JSClass *__class)
 /*define this macro to force Garbage Collection after each input to JS (script initialize/shutdown and all eventIn) 
 on latest SM, GC will crash if called from a different thread than the thread creating the contex, no clue why
 */
-#if (JS_VERSION<185)
+#if (JS_VERSION<180)
 #define FORCE_GC
 #endif
 
@@ -824,7 +824,7 @@ static JSBool SMJS_FUNCTION(addRoute)
 		r->ToField.on_event_in = on_route_to_object;
 		r->ToField.eventType = GF_SG_EVENT_IN;
 		r->ToField.far_ptr = NULL;
-		r->ToField.name = NULL;	//JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
+		r->ToField.name = JS_GetFunctionName( JS_ValueToFunction(c, argv[3] ) );
 
 		r->obj = JSVAL_TO_OBJECT( argv[2] ) ;
 //		gf_js_add_root(c, & r->obj);
@@ -4742,7 +4742,9 @@ void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 		gf_mx_p(js_rt->mx);
 #ifdef JS_THREADSAFE
 		if (cx) {
+#if (JS_VERSION>=185)
 			JS_SetContextThread(cx); 
+#endif
 			JS_BeginRequest(cx);
 		}
 #endif
@@ -4750,7 +4752,9 @@ void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 #ifdef JS_THREADSAFE
 		if (cx) {
 			JS_EndRequest(cx);
+#if (JS_VERSION>=185)
 			JS_ClearContextThread(cx); 
+#endif
 		}
 #endif
 		gf_mx_v(js_rt->mx);
@@ -4760,6 +4764,14 @@ void gf_sg_lock_javascript(struct JSContext *cx, Bool LockIt)
 Bool gf_sg_try_lock_javascript(struct JSContext *cx)
 {
 	if (gf_mx_try_lock(js_rt->mx)) {
+#ifdef JS_THREADSAFE
+		if (cx) {
+#if (JS_VERSION>=185)
+			JS_SetContextThread(cx); 
+#endif
+			JS_BeginRequest(cx);
+		}
+#endif
 		return 1;
 	}
 	return 0;
