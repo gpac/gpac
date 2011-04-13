@@ -202,8 +202,7 @@ public class Osmo4 extends Activity implements GpacCallback {
         });
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         final AutoCompleteTextView textView = new AutoCompleteTextView(this);
-        textView.setInputType(InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_CLASS_TEXT
-                              | InputType.TYPE_TEXT_VARIATION_URI);
+        textView.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
 
         builder.setMessage("Please enter an URL to connect to...") //$NON-NLS-1$
                .setCancelable(true)

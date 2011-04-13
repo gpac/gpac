@@ -1,7 +1,7 @@
 COMMON_PATH := $(call my-dir)
 
 #Settings common to all JNI Builds
-TARGET_PLATFORM	 := android-8
+TARGET_PLATFORM	 := android-4
 APP_OPTIM        := debug
 #APP_ABI          := armeabi-v7a
 APP_ABI          := armeabi

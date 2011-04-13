@@ -9,9 +9,9 @@
                 android:layout_width="fill_parent" android:baselineAligned="true">
                 <TextView android:id="@+id/userNameLabel" android:layout_width="wrap_content"
                     android:layout_gravity="right" android:text="@string/usernameLabel" android:layout_height="fill_parent"/>
-                <EditText android:inputType="textNoSuggestions" android:id="@+id/userNamePrompt"
-                    android:layout_height="wrap_content" android:text="" android:hint="@string/usernameHint"
-                    android:layout_width="fill_parent" android:gravity="fill_horizontal|right" android:layout_weight="2"/>
+                <EditText android:inputType="textUri" android:id="@+id/userNamePrompt" android:layout_height="wrap_content"
+                    android:text="" android:hint="@string/usernameHint" android:layout_width="fill_parent"
+                    android:gravity="fill_horizontal|right" android:layout_weight="2"/>
             </TableRow>
             <TableRow android:id="@+id/tableRow2" android:layout_height="wrap_content" android:gravity="fill_horizontal"
                 android:layout_gravity="fill_horizontal">
