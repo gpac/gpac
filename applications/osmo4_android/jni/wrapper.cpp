@@ -51,12 +51,12 @@
 
 static JavaVM* javaVM = NULL;
 
-static pthread_key_t jni_thread_env_key;
+static pthread_key_t jni_thread_env_key = 0;
 
 /**
  * This method is called when a pthread is destroyed, so we can delete the JNI env
  */
-static void jni_destroy_env(void * env) {
+static void jni_destroy_env_func(void * env) {
   LOGI("Destroying a thread with attached data, env=%p.\n", env);
   JavaEnvTh * jniEnv = (JavaEnvTh *) env;
   if (jniEnv){
@@ -68,6 +68,7 @@ static void jni_destroy_env(void * env) {
     memset(jniEnv, 0, sizeof(JavaEnvTh));
     gf_free(jniEnv);
   }
+  pthread_setspecific(jni_thread_env_key, NULL);
   if (javaVM)
     javaVM->DetachCurrentThread();
 }
@@ -124,7 +125,9 @@ static JNINativeMethod sMethods[] = {
 
 jint JNI_OnUnLoad(JavaVM* vm, void* reserved){
   LOGI("Deleting library, vm=%p...\n", vm);
-  pthread_key_delete(jni_thread_env_key);
+  if (pthread_key_delete(jni_thread_env_key)){
+    LOGW("Failed to delete key jni_thread_env_key jni_thread_env_key=%p\n", jni_thread_env_key);
+  }
   javaVM = NULL;
   jni_thread_env_key = NULL;
 }
@@ -143,8 +146,11 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved){
           LOGE("Failed to register native methods for %s !\n", className);
           return -1;
         }
-        LOGI("Registering %s natives DONE.\n", className);
-        pthread_key_create(&jni_thread_env_key, jni_destroy_env);
+        LOGI("Registering natives DONE, now registering pthread_keys with destructor=%p\n", &jni_destroy_env_func);
+        int ret = pthread_key_create(&jni_thread_env_key, &jni_destroy_env_func);
+        if (ret){
+          LOGE("Failed to register jni_thread_env_key jni_thread_env_key=%p\n", jni_thread_env_key);
+        }
         return JNI_VERSION_1_2;
 }
 
@@ -163,8 +169,8 @@ CNativeWrapper::CNativeWrapper(){
 }
 //-------------------------------
 CNativeWrapper::~CNativeWrapper(){
-      JavaEnvTh * env = getEnv();
       debug_log("~CNativeWrapper()");
+      JavaEnvTh * env = getEnv();
       if (env && env->cbk_obj)
         env->env->DeleteGlobalRef(env->cbk_obj);
       Shutdown();
@@ -221,7 +227,11 @@ void CNativeWrapper::setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callb
     env->DeleteLocalRef(localRef);
 }
 
-
+static u32 beforeThreadExits(void * param){
+  LOGI("Before Thread exist, detach the JavaVM from Thread for thread %p...\n", gf_th_current());
+  if (javaVM)
+    javaVM->DetachCurrentThread();
+}
 
 JavaEnvTh * CNativeWrapper::getEnv(){
     JNIEnv *env;
@@ -236,6 +246,7 @@ JavaEnvTh * CNativeWrapper::getEnv(){
     javaEnv = (JavaEnvTh *) gf_malloc(sizeof(JavaEnvTh));
     if (!javaEnv)
       return NULL;
+    memset(javaEnv, 0, sizeof(JavaEnvTh));
     javaVM->AttachCurrentThread(&env, NULL);
     if (!env){
       LOGE("Attaching to thread did faild for thread id=%d", gf_th_id());
@@ -244,14 +255,30 @@ JavaEnvTh * CNativeWrapper::getEnv(){
     }
     LOGI("Rebuilding methods for thread %d", gf_th_id());
     setJavaEnv(javaEnv, env, mainJavaEnv.cbk_obj);
-    pthread_setspecific(jni_thread_env_key, javaEnv);
+    if (pthread_setspecific(jni_thread_env_key, javaEnv)){
+      LOGE("Failed to set specific thread data to jni_thread_env_key for thread=%d. No ENV available !", gf_th_id());
+      gf_free(javaEnv);
+      return NULL;
+    }
+    GF_Thread * t;
+    LOGI("Getting current Thread %d...", gf_th_id());
+    t = gf_th_current();
+    LOGI("Getting current Thread DONE = %p, now registering before exit...", t);
+
+    if (GF_OK != gf_register_before_exit_function(gf_th_current(), &beforeThreadExits)){
+      LOGE("Failed to register exit function for thread %p, no javaEnv for current thread.", gf_th_current());
+      //javaVM->DetachCurrentThread();
+      gf_free(javaEnv);
+      javaEnv = NULL;
+    }
+    LOGI("Registering DONE for %d", gf_th_id());
     return javaEnv;
 }
 
 
 //-------------------------------
 int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status){
-         debug_log("MessageBox start");
+        LOGV("MessageBox start %s", msg);
 	JavaEnvTh * env = getEnv();
 	if (!env || !env->cbk_displayMessage)
 		return 0;
@@ -260,7 +287,7 @@ int CNativeWrapper::MessageBox(const char* msg, const char* title, GF_Err status
 	jstring mes = env->env->NewStringUTF(msg?msg:"null");
 	env->env->CallVoidMethod(env->cbk_obj, env->cbk_displayMessage, mes, tit, status);
 	env->env->PopLocalFrame(NULL);
-        debug_log("MessageBox end");
+        LOGV("MessageBox done %s", msg);
 	return 1;
 }
 //-------------------------------
@@ -562,7 +589,9 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	m_window = env;
 	m_session = bitmap;
         setJavaEnv(&mainJavaEnv, env, env->NewGlobalRef(*callback));
-        pthread_setspecific( jni_thread_env_key, &mainJavaEnv);
+        if (pthread_setspecific( jni_thread_env_key, &mainJavaEnv)){
+          LOGE("Failed to set specific thread data to jni_thread_env_key=%p for main thread !", jni_thread_env_key);
+        }
 
 	m_mx = gf_mx_new("Osmo4");
 
