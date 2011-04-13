@@ -173,12 +173,12 @@ public class GPACInstance implements GPACInstanceInterface {
         final float x = event.getX();
         final float y = event.getY();
         switch (event.getAction()) {
-            case MotionEvent.ACTION_POINTER_1_DOWN:
+            // not in 1.6 case MotionEvent.ACTION_POINTER_1_DOWN:
             case MotionEvent.ACTION_DOWN:
                 gpaceventmousemove(x, y);
                 gpaceventmousedown(x, y);
                 break;
-            case MotionEvent.ACTION_POINTER_1_UP:
+            // not in 1.6 case MotionEvent.ACTION_POINTER_1_UP:
             case MotionEvent.ACTION_UP:
                 gpaceventmouseup(x, y);
                 break;
