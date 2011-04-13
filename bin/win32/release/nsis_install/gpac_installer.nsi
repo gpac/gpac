@@ -484,7 +484,9 @@ SectionEnd
                  
                   
 Section "Windows Runtime Libraries" SecMSVCRT
-  SectionIn 1       
+  SectionIn 1
+  File "..\Microsoft.VC90.CRT.manifest"
+  File "..\Microsoft.VC90.MFC.manifest"       
   File "..\msvcr90.dll"
   File "..\mfc90.dll"
 SectionEnd
