@@ -177,7 +177,6 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 
 #ifdef OPENGL_RASTER
 	if (compositor->opengl_raster && compositor->rasterizer->surface_attach_to_callbacks) {
-		GLenum err;
 		GF_RasterCallback callbacks;
 		callbacks.cbk = visual;
 		callbacks.fill_run_alpha = c2d_gl_fill_alpha;
@@ -188,10 +187,6 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 
 		e = compositor->rasterizer->surface_attach_to_callbacks(visual->raster_surface, &callbacks, compositor->vp_width, compositor->vp_height);
 		if (e==GF_OK) {
-#if defined(GPAC_FIXED_POINT)
-			Float _mat[16];
-			u32 i;
-#endif
 			GF_Matrix mx;
 			Fixed hh, hw;
 			visual->is_attached = 2;
@@ -219,29 +214,16 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 			hw = INT2FIX(compositor->vp_width)/2;
 			hh = INT2FIX(compositor->vp_height)/2;
 			gf_mx_ortho(&mx, -hw, hw, -hh, hh, 50, -50);
-			glMatrixMode(GL_PROJECTION);
-#ifdef GPAC_USE_OGL_ES
-			glLoadMatrixx(mx.m);
-#elif defined(GPAC_FIXED_POINT)
-			for (i=0; i<16; i++) _mat[i] = FIX2FLT(mx.m[i]);
-			glLoadMatrixf(_mat);
-#else
-			glLoadMatrixf(mx.m);
-#endif
-			err = glGetError();
-			glMatrixMode(GL_MODELVIEW);
+
+			visual_3d_set_matrix_mode(visual, V3D_MATRIX_PROJECTION);
+			visual_3d_matrix_load(visual, mx.m);
+
+			visual_3d_set_matrix_mode(visual, V3D_MATRIX_MODELVIEW);
 			gf_mx_init(mx);
 			gf_mx_add_scale(&mx, 1, -1, 1);
 			gf_mx_add_translation(&mx, -hw, -hh, 0);
-#ifdef GPAC_USE_OGL_ES
-			glLoadMatrixx(mx.m);
-#elif defined(GPAC_FIXED_POINT)
-			for (i=0; i<16; i++) _mat[i] = FIX2FLT(mx.m[i]);
-			glLoadMatrixf(_mat);
-#else
-			glLoadMatrixf(mx.m);
-#endif
-			err = glGetError();
+			visual_3d_matrix_load(visual, mx.m);
+
 			return GF_OK;
 		}
 	}
