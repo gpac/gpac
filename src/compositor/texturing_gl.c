@@ -859,7 +859,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 #else
 
 	compositor = b_surf->compositor;
-	if (glActiveTextureARB==NULL) {
+	if (glActiveTexture==NULL) {
 		tx_bind(b_surf);
 		return 1;
 	}
@@ -890,7 +890,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 		if (coefficients.count >= 4) 
 			texture[3] = (u8) FIX2INT( 255 * coefficients.vals[3]);
 
-		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glActiveTexture(GL_TEXTURE0_ARB);
 		if (!matte_hdl->tx_io->id) {
 			glGenTextures(1, &matte_hdl->tx_io->id);
 		}
@@ -907,7 +907,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 		operand = GL_MODULATE;
 		if (!strcmp(action,"BIAS")) operand = GL_ADD_SIGNED_ARB;
 
-		glActiveTextureARB(GL_TEXTURE1_ARB);
+		glActiveTexture(GL_TEXTURE1_ARB);
 		tx_bind(b_surf);
 		GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,		COMBINE_ARB);
 		GLTEXENV(GL_TEXTURE_ENV, COMBINE_RGB_ARB,			operand);
@@ -930,7 +930,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 		texture[2] = (unsigned char) tmp;
 		texture[3] = (unsigned char) 255;					// donne l'alpha de l'image de sortie
 		
-		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glActiveTexture(GL_TEXTURE0_ARB);
 		if (!matte_hdl->tx_io->id) {
 			glGenTextures(1, &matte_hdl->tx_io->id);
 		}
@@ -946,11 +946,11 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 		/* fin de la génération de la texture donnée par la fraction ! */
 		
 		/* mélange effectif des textures ! } */
-		glActiveTextureARB(GL_TEXTURE1_ARB);
+		glActiveTexture(GL_TEXTURE1_ARB);
 		tx_bind(b_surf);
 
 		if (a_surf) {
-			glActiveTextureARB(GL_TEXTURE2_ARB);
+			glActiveTexture(GL_TEXTURE2_ARB);
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
 			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
@@ -968,16 +968,16 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 	/*REVEAL */
 	if (!strcmp(action,"REVEAL")) {
-		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glActiveTexture(GL_TEXTURE0_ARB);
 		tx_bind(b_surf);
 
 		if (alpha_surf) {
 			tx_set_image(alpha_surf, 0);
-			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glActiveTexture(GL_TEXTURE1_ARB);
 			tx_bind(alpha_surf);
 		}
 		if (a_surf) {
-			glActiveTextureARB(GL_TEXTURE2_ARB);
+			glActiveTexture(GL_TEXTURE2_ARB);
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
 			
@@ -997,7 +997,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 	/*INVERT */
 	if (! strcmp(action,"INVERT")) {
-		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glActiveTexture(GL_TEXTURE0_ARB);
 		tx_bind(b_surf);
 		GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,	COMBINE_ARB);
 		GLTEXENV(GL_TEXTURE_ENV, COMBINE_RGB_ARB,		GL_REPLACE );
@@ -1015,12 +1015,12 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 	/* opération REPLACE_ALPHA */
 	if (!strcmp(action,"REPLACE_ALPHA")) {
-		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glActiveTexture(GL_TEXTURE0_ARB);
 		tx_bind(b_surf);
 		
 		if (alpha_surf) {
 			glEnable(GL_BLEND);
-			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glActiveTexture(GL_TEXTURE1_ARB);
 			tx_set_image(alpha_surf, 0);
 			tx_bind(alpha_surf);
 			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
@@ -1036,12 +1036,12 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 	/* MULTIPLY_ALPHA */
 	if (!strcmp(action,"MULTIPLY_ALPHA")) {
-		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glActiveTexture(GL_TEXTURE0_ARB);
 		tx_bind(b_surf);
 		GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
 
 		if (alpha_surf) {
-			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glActiveTexture(GL_TEXTURE1_ARB);
 			tx_set_image(alpha_surf, 0);
 			tx_bind(alpha_surf);
 			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
@@ -1060,10 +1060,10 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 	/*ADD */
 	if (! strcmp(action,"ADD")) {
-		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glActiveTexture(GL_TEXTURE0_ARB);
 		tx_bind(b_surf);
 		if (a_surf) {
-			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glActiveTexture(GL_TEXTURE1_ARB);
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
 			GLTEXENV(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,		COMBINE_ARB);
@@ -1082,10 +1082,10 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 	/* ADD_SIGNED*/
 	if (! strcmp(action,"ADD_SIGNED")) {
-		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glActiveTexture(GL_TEXTURE0_ARB);
 		tx_bind(b_surf);
 		if (a_surf) {
-			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glActiveTexture(GL_TEXTURE1_ARB);
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
 			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
@@ -1104,10 +1104,10 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 	/*SUBSTRACT*/
 	if (! strcmp(action,"SUBSTRACT")) {
-		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glActiveTexture(GL_TEXTURE0_ARB);
 		tx_bind(b_surf);
 		if (a_surf) {
-			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glActiveTexture(GL_TEXTURE1_ARB);
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
 			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,COMBINE_ARB);
@@ -1126,11 +1126,11 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 	/*BLEND*/
 	if (! strcmp(action,"BLEND")) {
-		glActiveTextureARB(GL_TEXTURE0_ARB);
+		glActiveTexture(GL_TEXTURE0_ARB);
 		tx_bind(b_surf);
 		if (a_surf) {
 			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
-			glActiveTextureARB(GL_TEXTURE1_ARB);
+			glActiveTexture(GL_TEXTURE1_ARB);
 			tx_set_image(a_surf, 0);
 			tx_bind(a_surf);
 			GLTEXENV(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_DECAL);

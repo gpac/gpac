@@ -74,10 +74,16 @@
 
 #ifdef LOAD_GL_FUNCS
 
-GLDECL_STATIC(glActiveTextureARB);
-GLDECL_STATIC(glClientActiveTextureARB);
+#ifndef GL_OES_VERSION_1_0
+GLDECL_STATIC(glActiveTexture);
+GLDECL_STATIC(glClientActiveTexture);
+#endif
+
+#ifndef GL_OES_VERSION_1_1
 GLDECL_STATIC(glPointParameterf);
 GLDECL_STATIC(glPointParameterfv);
+#endif
+
 GLDECL_STATIC(glCreateProgram);
 GLDECL_STATIC(glDeleteProgram);
 GLDECL_STATIC(glLinkProgram);
@@ -118,9 +124,6 @@ GLDECL_STATIC(glUniformMatrix3x4fv);
 GLDECL_STATIC(glUniformMatrix4x3fv);
 GLDECL_STATIC(glBlendEquation);
 
-#ifndef GPAC_USE_OGL_ES
-GLDECL_STATIC(glActiveTexture);
-#endif
 
 #endif //LOAD_GL_FUNCS
 
@@ -173,14 +176,14 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 	/*we have a GL context, get proc addresses*/
 	
 	if (CHECK_GL_EXT("GL_ARB_multitexture")) {
-#ifdef LOAD_GL_FUNCS
-		GET_GLFUN(glActiveTextureARB);
-		GET_GLFUN(glClientActiveTextureARB);
+#if defined(LOAD_GL_FUNCS) && !defined(GL_OES_VERSION_1_0)
+		GET_GLFUN(glActiveTexture);
+		GET_GLFUN(glClientActiveTexture);
 #endif
 	}
 
 	if (compositor->gl_caps.point_sprite) {
-#ifdef LOAD_GL_FUNCS
+#if defined(LOAD_GL_FUNCS) && !defined (GL_OES_VERSION_1_1)
 		GET_GLFUN(glPointParameterf);
 		GET_GLFUN(glPointParameterfv);
 #endif
@@ -228,9 +231,6 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 		GET_GLFUN(glUniformMatrix3x4fv);
 		GET_GLFUN(glUniformMatrix4x3fv);
 		GET_GLFUN(glBlendEquation);
-#ifndef GPAC_USE_OGL_ES
-		GET_GLFUN(glActiveTexture);
-#endif
 
 		has_shaders = 1;
 	} else {
@@ -537,7 +537,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	loc = glGetUniformLocation(visual->glsl_program, "gfViewCount");
 	if (loc != -1) glUniform1i(loc, visual->nb_views);
 
-	glClientActiveTextureARB(GL_TEXTURE0);
+	glClientActiveTexture(GL_TEXTURE0);
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &visual->autostereo_mesh->vertices[0].texcoords);
 
@@ -570,7 +570,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 	glDisableClientState(GL_VERTEX_ARRAY);
 
-	glClientActiveTextureARB(GL_TEXTURE0);
+	glClientActiveTexture(GL_TEXTURE0);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY );
 
 	glUseProgram(0);
@@ -902,7 +902,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		if (tr_state->mesh_num_textures>1) {
 			u32 i;
 			for (i=0; i<tr_state->mesh_num_textures; i++) {
-				glClientActiveTextureARB(GL_TEXTURE0_ARB + i);
+				glClientActiveTexture(GL_TEXTURE0_ARB + i);
 				glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
 				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 			}
