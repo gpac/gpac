@@ -49,6 +49,17 @@
 #include <GLES/glu.h>
 #endif
 
+
+#ifndef EGL_VERSION_1_0
+#define EGL_VERSION_1_0		1
+#endif
+
+#ifndef EGL_VERSION_1_1
+#ifdef GL_OES_VERSION_1_1
+#define EGL_VERSION_1_1		1
+#endif
+#endif
+
 #elif defined (CONFIG_DARWIN_GL)
 
 #include <OpenGL/gl.h>
@@ -440,23 +451,31 @@ extern proc_ ## funname funname;	\
 #if defined GPAC_USE_TINYGL
 //nothing to do (=NULL)
 #elif defined (GPAC_USE_OGL_ES)
+#define LOAD_GL_FUNCS
 #define GET_GLFUN(funname) funname = (proc_ ## funname) eglGetProcAddress(#funname) 
 #elif defined (WIN32)
+#define LOAD_GL_FUNCS
 #define GET_GLFUN(funname) funname = (proc_ ## funname) wglGetProcAddress(#funname) 
 #elif defined(CONFIG_DARWIN_GL)
 extern void (*glutGetProcAddress(const GLubyte *procname))( void );
 #define GET_GLFUN(funname) funname = (proc_ ## funname) glutGetProcAddress(#funname)  
 #else
+#define LOAD_GL_FUNCS
 extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #define GET_GLFUN(funname) funname = (proc_ ## funname) glXGetProcAddress(#funname) 
 #endif
 
 
 
-GLDECL(void, glActiveTextureARB, (GLenum ) )
-GLDECL(void, glClientActiveTextureARB, (GLenum ) )
+#ifndef GL_OES_VERSION_1_0
+GLDECL(void, glActiveTexture, (GLenum texture) )
+GLDECL(void, glClientActiveTexture, (GLenum texture) )
+#endif
+
+#ifndef GL_OES_VERSION_1_1
 GLDECL(void, glPointParameterf, (GLenum , GLfloat) )
 GLDECL(void, glPointParameterfv, (GLenum, const GLfloat *) )
+#endif
 
 GLDECL(GLuint, glCreateProgram, (void) )
 GLDECL(void, glDeleteProgram, (GLuint ) )
@@ -497,10 +516,6 @@ GLDECL(void, glUniformMatrix4x2fv, (GLint location, GLsizei count, GLboolean tra
 GLDECL(void, glUniformMatrix3x4fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glBlendEquation, (GLint mode) )
-
-#ifndef GPAC_USE_OGL_ES
-GLDECL(void, glActiveTexture, (GLenum texture) )
-#endif
 
 
 #endif //GL_VERSION_2_0
