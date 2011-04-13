@@ -467,7 +467,7 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #endif
 
 
-
+#ifndef GPAC_ANDROID /* SOUCHAY : not sure that's the right way to do it */
 #ifndef GL_OES_VERSION_1_0
 GLDECL(void, glActiveTexture, (GLenum texture) )
 GLDECL(void, glClientActiveTexture, (GLenum texture) )
@@ -477,6 +477,7 @@ GLDECL(void, glClientActiveTexture, (GLenum texture) )
 GLDECL(void, glPointParameterf, (GLenum , GLfloat) )
 GLDECL(void, glPointParameterfv, (GLenum, const GLfloat *) )
 #endif
+#endif /* GPAC_ANDROID */
 
 GLDECL(GLuint, glCreateProgram, (void) )
 GLDECL(void, glDeleteProgram, (GLuint ) )

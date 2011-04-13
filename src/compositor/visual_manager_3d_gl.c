@@ -74,6 +74,7 @@
 
 #ifdef LOAD_GL_FUNCS
 
+#ifndef GPAC_ANDROID /* SOUCHAY : not sure this is the right way to detect it */
 #ifndef GL_OES_VERSION_1_0
 GLDECL_STATIC(glActiveTexture);
 GLDECL_STATIC(glClientActiveTexture);
@@ -83,6 +84,7 @@ GLDECL_STATIC(glClientActiveTexture);
 GLDECL_STATIC(glPointParameterf);
 GLDECL_STATIC(glPointParameterfv);
 #endif
+#endif /* GPAC_ANDROID */
 
 GLDECL_STATIC(glCreateProgram);
 GLDECL_STATIC(glDeleteProgram);
