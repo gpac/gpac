@@ -116,7 +116,7 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
                 public void run() {
                     GPACInstance instance = getInstance();
                     if (instance != null)
-                        instance.eventKey(keyCode, event, true);
+                        instance.eventKey(keyCode, event, true, event.getUnicodeChar());
                 }
             });
             return true;
@@ -135,7 +135,7 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
                 public void run() {
                     GPACInstance instance = getInstance();
                     if (instance != null)
-                        instance.eventKey(keyCode, event, false);
+                        instance.eventKey(keyCode, event, false, event.getUnicodeChar());
                 }
             });
             return true;
