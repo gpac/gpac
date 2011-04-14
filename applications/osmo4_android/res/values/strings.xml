@@ -2,6 +2,7 @@
 <resources>
     <string name="open_file">Open file...</string>
     <string name="open_url">Open URL...</string>
+    <string name="about">About...</string>
     <string name="quit">Exit</string>
     <string name="app_name">Osmo4</string>
     <string name="copying_native_libs">Copying module %1$s to %2$s...</string>
@@ -21,4 +22,15 @@
     <string name="fileSize">File [%d bytes]</string>
     <string name="selectFileTitlePattern">%1$s [%2$s]</string>
     <string name="selectFileDefaultTitle">Select a file</string>
+    <string name="aboutDialog">
+        Osmo4, an Interface for
+        <b>GPAC</b>
+        .
+        © Jean Le Feuvre Telecom Paris Tech.
+        Authors
+        <i>Jonathan Sillan</i>
+        ,
+        <i>NGO Van Luyen</i>
+        <i>Pierre Souchay (VizionR)</i>
+    </string>
 </resources>

@@ -402,6 +402,21 @@ public class Osmo4 extends Activity implements GpacCallback {
             case R.id.showVirtualKeyboard:
                 showKeyboard(true);
                 return true;
+            case R.id.about: {
+                AlertDialog.Builder builder = new AlertDialog.Builder(Osmo4.this);
+                builder.setTitle(R.string.about);
+                builder.setMessage(R.string.aboutDialog);
+                builder.setCancelable(true);
+                builder.setPositiveButton(OK_BUTTON, new OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+                builder.create().show();
+            }
+                return true;
             case R.id.quit:
                 this.finish();
                 // quit();

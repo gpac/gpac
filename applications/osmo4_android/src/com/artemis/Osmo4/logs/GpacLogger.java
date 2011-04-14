@@ -37,7 +37,21 @@ public class GpacLogger {
 
     }
 
-    private final boolean enableLogOnDisk = false;
+    private boolean enableLogOnDisk = false;
+
+    /**
+     * @return the enableLogOnDisk
+     */
+    public synchronized boolean isEnableLogOnDisk() {
+        return enableLogOnDisk;
+    }
+
+    /**
+     * @param enableLogOnDisk the enableLogOnDisk to set
+     */
+    public synchronized void setEnableLogOnDisk(boolean enableLogOnDisk) {
+        this.enableLogOnDisk = enableLogOnDisk;
+    }
 
     private final File logger = new File(Osmo4Renderer.GPAC_CACHE_DIR, "gpac.log"); //$NON-NLS-1$
 
