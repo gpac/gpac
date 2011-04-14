@@ -59,7 +59,7 @@ typedef struct _tag_vobsub_file
 
 GFINLINE static void vobsub_trim_ext(char *filename)
 {
-	char *pos = strchr(filename, '.');
+	char *pos = strrchr(filename, '.');
 
 	if (pos != NULL) {
 		if (!stricmp(pos, ".idx") || !stricmp(pos, ".sub")) {
