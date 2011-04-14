@@ -243,6 +243,9 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 
 #endif //GPAC_USE_TINYGL
 
+#ifdef GL_VERSION_2_0
+	has_shaders = 1;
+#endif
 
 	if (!has_shaders && (compositor->visual->autostereo_type > GF_3D_STEREO_SIDE)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported - disabling auto-stereo output\n"));
