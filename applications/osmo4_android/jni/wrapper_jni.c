@@ -142,11 +142,11 @@ JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpaceventmousemove(JN
         jniLOGV("mouseMouv::end");
 }
 //-----------------------------------
-JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpaceventkeypress(JNIEnv * env, jobject obj, jint keycode, jint rawkeycode, jint up, jint flag){
+JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpaceventkeypress(JNIEnv * env, jobject obj, jint keycode, jint rawkeycode, jint up, jint flag, jint unicode){
         CAST_HANDLE(wr);
         jniLOGV("keypress::start");
         if (wr)
-          wr->onKeyPress(keycode, rawkeycode, up, flag);
+          wr->onKeyPress(keycode, rawkeycode, up, flag, unicode);
         jniLOGV("keypress::end");
 }
 //-----------------------------------

@@ -108,7 +108,7 @@ static JNINativeMethod sMethods[] = {
       "()V",
       (void*)Java_com_artemis_Osmo4_GPACInstance_gpacfree},
     {"gpaceventkeypress",
-      "(IIII)V",
+      "(IIIII)V",
       (void*)Java_com_artemis_Osmo4_GPACInstance_gpaceventkeypress},
     {"gpaceventmousedown",
       "(FF)V",
@@ -801,31 +801,32 @@ void CNativeWrapper::onMouseMove(float x, float y){
 	int ret = gf_term_user_event(m_term, &evt);
 }
 //-----------------------------------------------------
-void CNativeWrapper::onKeyPress(int keycode, int rawkeycode, int up, int flag){
+void CNativeWrapper::onKeyPress(int keycode, int rawkeycode, int up, int flag, int unicode){
         if (!m_term)
           return;
         debug_log("onKeyPress start");
 	GF_Event evt;
+        memset(&evt, 0, sizeof(GF_Event));
 	if (up == 0) evt.type = GF_EVENT_KEYUP;
 	else evt.type = GF_EVENT_KEYDOWN;
 
 	evt.key.flags = 0;
 	evt.key.hw_code = rawkeycode;
 
-	char msg[256];
-
 	translate_key(keycode, &evt.key);
 	//evt.key.key_code = GF_KEY_A;
 	int ret = gf_term_user_event(m_term, &evt);
-	/*generate a key up*/
 
-	sprintf(msg, "onKeyPress end gpac keycode=%d, GF_KEY_A=%d, ret=%d (original=%d, raw=%d)", evt.key.key_code, GF_KEY_A, ret, keycode, rawkeycode);
-	debug_log(msg);
+        if (evt.type == GF_EVENT_KEYUP && unicode){
+          memset(&evt, 0, sizeof(GF_Event));
+          evt.type = GF_EVENT_TEXTINPUT;
+          evt.character.unicode_char = unicode;
+          ret = gf_term_user_event(m_term, &evt);
+        }
 }
 //-----------------------------------------------------
 void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt){
 	evt->flags = 0;
-
 	switch (keycode) {
 	case ANDROID_KEYCODE_BACK: evt->key_code = GF_KEY_BACKSPACE; break;
 	case ANDROID_KEYCODE_TAB: evt->key_code = GF_KEY_TAB; break;
@@ -833,73 +834,15 @@ void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt){
 	case ANDROID_KEYCODE_ENTER: evt->key_code = GF_KEY_ENTER; break;
 	case ANDROID_KEYCODE_SHIFT_LEFT: evt->key_code = GF_KEY_SHIFT; break;
 	case ANDROID_KEYCODE_SHIFT_RIGHT: evt->key_code = GF_KEY_SHIFT; break;
-	//case VK_CONTROL: evt->key_code = GF_KEY_CONTROL; break;
 	case ANDROID_KEYCODE_ALT_LEFT: evt->key_code = GF_KEY_ALT; break;
 	case ANDROID_KEYCODE_ALT_RIGHT: evt->key_code = GF_KEY_ALT; break;
-	//case VK_PAUSE: evt->key_code = GF_KEY_PAUSE; break;
-	//case VK_CAPITAL: evt->key_code = GF_KEY_CAPSLOCK; break;
-	//case VK_KANA: evt->key_code = GF_KEY_KANAMODE; break;
-	//case VK_JUNJA: evt->key_code = GF_KEY_JUNJAMODE; break;
-	//case VK_FINAL: evt->key_code = GF_KEY_FINALMODE; break;
-	//case VK_KANJI: evt->key_code = GF_KEY_KANJIMODE; break;
-	//case VK_ESCAPE: evt->key_code = GF_KEY_ESCAPE; break;
-	//case VK_CONVERT: evt->key_code = GF_KEY_CONVERT; break;
 	case ANDROID_KEYCODE_SPACE: evt->key_code = GF_KEY_SPACE; break;
-	//case VK_PRIOR: evt->key_code = GF_KEY_PAGEUP; break;
-	//case VK_NEXT: evt->key_code = GF_KEY_PAGEDOWN; break;
-	//case VK_END: evt->key_code = GF_KEY_END; break;
 	case ANDROID_KEYCODE_HOME: evt->key_code = GF_KEY_HOME; break;
 	case ANDROID_KEYCODE_DPAD_LEFT: evt->key_code = GF_KEY_LEFT; break;
 	case ANDROID_KEYCODE_DPAD_UP: evt->key_code = GF_KEY_UP; break;
 	case ANDROID_KEYCODE_DPAD_RIGHT: evt->key_code = GF_KEY_RIGHT; break;
 	case ANDROID_KEYCODE_DPAD_DOWN: evt->key_code = GF_KEY_DOWN; break;
-	//case VK_SELECT: evt->key_code = GF_KEY_SELECT; break;
-	//case VK_PRINT:
-	//case VK_SNAPSHOT:
-	//	evt->key_code = GF_KEY_PRINTSCREEN; break;
-	//case VK_EXECUTE: evt->key_code = GF_KEY_EXECUTE; break;
-	//case VK_INSERT: evt->key_code = GF_KEY_INSERT; break;
 	case ANDROID_KEYCODE_DEL: evt->key_code = GF_KEY_DEL; break;
-	//case VK_HELP: evt->key_code = GF_KEY_HELP; break;
-
-
-/*	case '!': evt->key_code = GF_KEY_EXCLAMATION; break;
-	case '"': evt->key_code = GF_KEY_QUOTATION; break;
-	case '#': evt->key_code = GF_KEY_NUMBER; break;
-	case '$': evt->key_code = GF_KEY_DOLLAR; break;
-	case '&': evt->key_code = GF_KEY_AMPERSAND; break;
-	case '\'': evt->key_code = GF_KEY_APOSTROPHE; break;
-	case '(': evt->key_code = GF_KEY_LEFTPARENTHESIS; break;
-	case ')': evt->key_code = GF_KEY_RIGHTPARENTHESIS; break;
-	case ',': evt->key_code = GF_KEY_COMMA; break;
-	case ':': evt->key_code = GF_KEY_COLON; break;
-	case ';': evt->key_code = GF_KEY_SEMICOLON; break;
-	case '<': evt->key_code = GF_KEY_LESSTHAN; break;
-	case '>': evt->key_code = GF_KEY_GREATERTHAN; break;
-	case '?': evt->key_code = GF_KEY_QUESTION; break;
-	case '@': evt->key_code = GF_KEY_AT; break;
-	case '[': evt->key_code = GF_KEY_LEFTSQUAREBRACKET; break;
-	case ']': evt->key_code = GF_KEY_RIGHTSQUAREBRACKET; break;
-	case '\\': evt->key_code = GF_KEY_BACKSLASH; break;
-	case '_': evt->key_code = GF_KEY_UNDERSCORE; break;
-	case '`': evt->key_code = GF_KEY_GRAVEACCENT; break;
-	case ' ': evt->key_code = GF_KEY_SPACE; break;
-	case '/': evt->key_code = GF_KEY_SLASH; break;
-	case '*': evt->key_code = GF_KEY_STAR; break;
-	case '-': evt->key_code = GF_KEY_HIPHEN; break;
-	case '+': evt->key_code = GF_KEY_PLUS; break;
-	case '=': evt->key_code = GF_KEY_EQUALS; break;
-	case '^': evt->key_code = GF_KEY_CIRCUM; break;
-	case '{': evt->key_code = GF_KEY_LEFTCURLYBRACKET; break;
-	case '}': evt->key_code = GF_KEY_RIGHTCURLYBRACKET; break;
-	case '|': evt->key_code = GF_KEY_PIPE; break;
-*/
-
-
-/*	case VK_LWIN: return ;
-	case VK_RWIN: return ;
-	case VK_APPS: return ;
-*/
 	case ANDROID_KEYCODE_0:
 		evt->key_code = GF_KEY_0;
 		evt->flags = GF_KEY_EXT_NUMPAD;
@@ -940,107 +883,16 @@ void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt){
 		evt->key_code = GF_KEY_9;
 		evt->flags = GF_KEY_EXT_NUMPAD;
 		break;
-	case ANDROID_KEYCODE_A:
-		evt->key_code = GF_KEY_9;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	/*
-	case VK_MULTIPLY:
-		evt->key_code = GF_KEY_STAR;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_ADD:
-		evt->key_code = GF_KEY_PLUS;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_SEPARATOR:
-		evt->key_code = GF_KEY_FULLSTOP;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_SUBTRACT:
-		evt->key_code = GF_KEY_HYPHEN;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_DECIMAL:
-		evt->key_code = GF_KEY_COMMA;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-	case VK_DIVIDE:
-		evt->key_code = GF_KEY_SLASH;
-		evt->flags = GF_KEY_EXT_NUMPAD;
-		break;
-
-	case VK_F1: evt->key_code = GF_KEY_F1; break;
-	case VK_F2: evt->key_code = GF_KEY_F2; break;
-	case VK_F3: evt->key_code = GF_KEY_F3; break;
-	case VK_F4: evt->key_code = GF_KEY_F4; break;
-	case VK_F5: evt->key_code = GF_KEY_F5; break;
-	case VK_F6: evt->key_code = GF_KEY_F6; break;
-	case VK_F7: evt->key_code = GF_KEY_F7; break;
-	case VK_F8: evt->key_code = GF_KEY_F8; break;
-	case VK_F9: evt->key_code = GF_KEY_F9; break;
-	case VK_F10: evt->key_code = GF_KEY_F10; break;
-	case VK_F11: evt->key_code = GF_KEY_F11; break;
-	case VK_F12: evt->key_code = GF_KEY_F12; break;
-	case VK_F13: evt->key_code = GF_KEY_F13; break;
-	case VK_F14: evt->key_code = GF_KEY_F14; break;
-	case VK_F15: evt->key_code = GF_KEY_F15; break;
-	case VK_F16: evt->key_code = GF_KEY_F16; break;
-	case VK_F17: evt->key_code = GF_KEY_F17; break;
-	case VK_F18: evt->key_code = GF_KEY_F18; break;
-	case VK_F19: evt->key_code = GF_KEY_F19; break;
-	case VK_F20: evt->key_code = GF_KEY_F20; break;
-	case VK_F21: evt->key_code = GF_KEY_F21; break;
-	case VK_F22: evt->key_code = GF_KEY_F22; break;
-	case VK_F23: evt->key_code = GF_KEY_F23; break;
-	case VK_F24: evt->key_code = GF_KEY_F24; break;
-
-	case VK_NUMLOCK: evt->key_code = GF_KEY_NUMLOCK; break;
-	case VK_SCROLL: evt->key_code = GF_KEY_SCROLL; break;
-	*/
-
-/*
- * VK_L* & VK_R* - left and right Alt, Ctrl and Shift virtual keys.
- * Used only as parameters to GetAsyncKeyState() and GetKeyState().
- * No other API or message will distinguish left and right keys in this way.
- */
-	/*
-	case ANDROID_KEYCODE_SHIFT_LEFT:
-		evt->key_code = GF_KEY_SHIFT;
-		evt->flags = GF_KEY_EXT_LEFT;
-		break;
-	case ANDROID_KEYCODE_SHIFT_RIGHT:
-		evt->key_code = GF_KEY_SHIFT;
-		evt->flags = GF_KEY_EXT_RIGHT;
-		break;
-	case VK_LCONTROL:
-		evt->key_code = GF_KEY_CONTROL;
-		evt->flags = GF_KEY_EXT_LEFT;
-		break;
-	case VK_RCONTROL:
-		evt->key_code = GF_KEY_CONTROL;
-		evt->flags = GF_KEY_EXT_RIGHT;
-		break;
-	case VK_LMENU:
-		evt->key_code = GF_KEY_ALT;
-		evt->flags = GF_KEY_EXT_LEFT;
-		break;
-	case VK_RMENU:
-		evt->key_code = GF_KEY_ALT;
-		evt->flags = GF_KEY_EXT_RIGHT;
-		break;
-	*/
-
 	/*thru VK_9 are the same as ASCII '0' thru '9' (0x30 - 0x39) */
 	/* VK_A thru VK_Z are the same as ASCII 'A' thru 'Z' (0x41 - 0x5A) */
 	default:
-		if ((keycode>=ANDROID_KEYCODE_A) && (keycode<=ANDROID_KEYCODE_Z))  { evt->key_code = GF_KEY_A + keycode - ANDROID_KEYCODE_A; debug_log("default keycode"); }
-		else
-			evt->key_code = GF_KEY_UNIDENTIFIED;
+		if ((keycode>=ANDROID_KEYCODE_A) && (keycode<=ANDROID_KEYCODE_Z)){
+                  evt->key_code = GF_KEY_A + keycode - ANDROID_KEYCODE_A;
+                } else {
+                  evt->key_code = GF_KEY_UNIDENTIFIED;
+                }
 		break;
 	}
-
-	//evt->hw_code = keycode;
 	evt->hw_code = evt->key_code;
 }
 

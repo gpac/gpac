@@ -138,10 +138,11 @@ public class GPACInstance implements GPACInstanceInterface {
      * @param keyCode
      * @param event
      * @param pressed true if key is pressed, false if key is released
+     * @param unicode
      */
-    public void eventKey(int keyCode, KeyEvent event, boolean pressed) {
+    public void eventKey(int keyCode, KeyEvent event, boolean pressed, int unicode) {
         checkCurrentThread();
-        gpaceventkeypress(keyCode, event.getScanCode(), pressed ? 1 : 0, event.getFlags());
+        gpaceventkeypress(keyCode, event.getScanCode(), pressed ? 1 : 0, event.getFlags(), unicode);
     }
 
     /**
@@ -253,7 +254,7 @@ public class GPACInstance implements GPACInstanceInterface {
      * @param up
      * @param flag
      */
-    private native void gpaceventkeypress(int keycode, int rawkeycode, int up, int flag);
+    private native void gpaceventkeypress(int keycode, int rawkeycode, int up, int flag, int unicode);
 
     /**
      * To call when a mouse is down
