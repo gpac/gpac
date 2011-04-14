@@ -252,6 +252,7 @@ Section "Osmo4/GPAC Player" SecOsmo4
   File "..\..\..\..\gui\gui.bt"
   File "..\..\..\..\gui\gui.js"
   File "..\..\..\..\gui\gwlib.js"
+  File "..\..\..\..\gui\mpegu-core.js"
   SetOutPath $INSTDIR\gui\icons
   File /r /x .svn ..\..\..\..\gui\icons\*
   SetOutPath $INSTDIR\gui\extensions
