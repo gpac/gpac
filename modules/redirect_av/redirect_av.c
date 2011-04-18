@@ -61,7 +61,7 @@
 
 #define audioCodecBitrate 96000
 
-#ifndef WIN32
+#if !defined(WIN32) && !defined(_WIN32_WCE)
 #include <unistd.h>
 #endif
 
