@@ -26,11 +26,13 @@
 #include "img_in.h"
 
 
-static Bool DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	if (StreamType != GF_STREAM_VISUAL) return 0;
+	/*media type query*/
+	if (!esd) return 1;
 
-	switch (ObjectType) {
+	switch (esd->decoderConfig->objectTypeIndication) {
 #ifdef GPAC_HAS_PNG
 	case GPAC_OTI_IMAGE_PNG:
 		return NewPNGDec(dec);
@@ -45,12 +47,14 @@ static Bool DEC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectT
 #endif
 	case GPAC_BMP_OTI:
 		return NewBMPDec(dec);
-	case 0:
-		return 1;/*query for types*/
- 	default:
+
+	default:
 #ifdef GPAC_HAS_JP2
-		if ((decSpecInfoSize>=4) && (decSpecInfo[0]=='m') && (decSpecInfo[1]=='j') && (decSpecInfo[2]=='p') && (decSpecInfo[3]=='2'))
-			return NewJP2Dec(dec);
+		{
+			char *dsi = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data : NULL;
+			if (dsi && (dsi[0]=='m') && (dsi[1]=='j') && (dsi[2]=='p') && (dsi[3]=='2'))
+				return NewJP2Dec(dec);
+		}
 #endif
 		return 0;
 	}

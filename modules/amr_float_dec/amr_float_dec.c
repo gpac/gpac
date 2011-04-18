@@ -232,20 +232,24 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
 }
 
 
-static u32 AMR_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static u32 AMR_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
+	char *dsi;
 	/*we handle audio only*/
-	if (!ObjectType) return (StreamType==GF_STREAM_AUDIO) ? 1 : 0;
+	if (StreamType!=GF_STREAM_AUDIO) return 0;
+	/*media type query*/
+	if (!esd) return 1;
 
-	/*audio dec*/
-	if (!decSpecInfo || (StreamType != GF_STREAM_AUDIO) || (ObjectType != GPAC_OTI_MEDIA_GENERIC)) return 0;
-	if (decSpecInfoSize<4) return 0;
+	if (esd->decoderConfig->objectTypeIndication != GPAC_OTI_MEDIA_GENERIC) return 0;
+	dsi = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data : NULL;
+	if (!dsi) return 0;
+	if (esd->decoderConfig->decoderSpecificInfo->dataLength < 4) return 0;
 
 #ifdef GPAC_HAS_AMR_FT
-	if (!strnicmp(decSpecInfo, "samr", 4) || !strnicmp(decSpecInfo, "amr ", 4)) return 1;
+	if (!strnicmp(dsi, "samr", 4) || !strnicmp(dsi, "amr ", 4)) return 1;
 #endif
 #ifdef GPAC_HAS_AMR_FT_WB
-	if (!strnicmp(decSpecInfo, "sawb", 4)) return 1;
+	if (!strnicmp(dsi, "sawb", 4)) return 1;
 #endif
 	return 0;
 }

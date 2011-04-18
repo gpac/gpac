@@ -340,9 +340,12 @@ static GF_Err LIBPLAYER_SetCapabilities(GF_BaseDecoder *dec, GF_CodecCapability 
 {
 	return GF_OK;
 }
-static Bool LIBPLAYER_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool LIBPLAYER_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
-	if ((StreamType==GF_STREAM_PRIVATE_MEDIA) && (ObjectType==GPAC_OTI_PRIVATE_MEDIA_LIBPLAYER)) return 1;
+	if (StreamType!=GF_STREAM_PRIVATE_MEDIA) return 0;
+	/*don't reply to media type queries*/
+	if (!esd) return 0;
+	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_PRIVATE_MEDIA_LIBPLAYER) return 1;
 	return 0;
 }
 static const char *LIBPLAYER_GetName(GF_BaseDecoder *dec)

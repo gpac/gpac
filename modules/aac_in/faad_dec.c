@@ -319,15 +319,17 @@ static const char *FAAD_GetCodecName(GF_BaseDecoder *ifcg)
 	return "FAAD2 " FAAD2_VERSION;
 }
 
-static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4ADecSpecInfo a_cfg;
 #endif
 	/*audio decs*/	
 	if (StreamType != GF_STREAM_AUDIO) return 0;
+	/*media type query*/
+	if (!esd) return 1;
 
-	switch (ObjectType) {
+	switch (esd->decoderConfig->objectTypeIndication) {
 	/*MPEG2 aac*/
 	case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
 	case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
@@ -335,15 +337,12 @@ static Bool FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 Object
 	/*MPEG4 aac*/
 	case GPAC_OTI_AUDIO_AAC_MPEG4: 
 		break;
-	/*cap query*/
-	case 0:
-		return 1;
 	default:
 		return 0;
 	}
-	if (!decSpecInfoSize || !decSpecInfo) return 0;
+	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) return 0;
 #ifndef GPAC_DISABLE_AV_PARSERS
-	if (gf_m4a_get_config((unsigned char *) decSpecInfo, decSpecInfoSize, &a_cfg) != GF_OK) return 0;
+	if (gf_m4a_get_config((unsigned char *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return 0;
 	/*BSAC not supported*/
 	if (a_cfg.base_object_type == GF_M4A_ER_BSAC) return 0;
 #endif

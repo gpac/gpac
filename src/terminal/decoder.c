@@ -113,7 +113,6 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 				ch->esd->decoderConfig->decoderSpecificInfo->dataLength = com.get_dsi.dsi_len;
 			}
 		}
-
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Codec] Attaching stream %d to codec %s\n", ch->esd->ESID, codec->decio->module_name));
 
 		/*lock the channel before setup in case we are using direct_decode */
@@ -121,6 +120,10 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		e = codec->decio->AttachStream(codec->decio, ch->esd);
 		gf_mx_v(ch->mx);
 
+		if (ch->esd->decoderConfig && ch->esd->decoderConfig->rvc_config) {
+			gf_odf_desc_del((GF_Descriptor *)ch->esd->decoderConfig->rvc_config);
+			ch->esd->decoderConfig->rvc_config = NULL;
+		}
 
 		if (e) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Codec] Attach Stream failed %s\n", gf_error_to_string(e) ));
@@ -1033,7 +1036,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	if (sOpt) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
 		if (ifce) {
-			if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication, cfg, cfg_size, PL) ) {
+			if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL) ) {
 				codec->decio = ifce;
 				return GF_OK;
 			}
@@ -1047,7 +1050,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	if (sOpt) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
 		if (ifce) {
-			if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication, cfg, cfg_size, PL) ) {
+			if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL) ) {
 				codec->decio = ifce;
 				return GF_OK;
 			}
@@ -1059,7 +1062,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	for (i = 0; i < plugCount ; i++) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface(term->user->modules, i, ifce_type);
 		if (!ifce) continue;
-		if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication, cfg, cfg_size, PL) ) {
+		if (ifce->CanHandleStream && ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL) ) {
 			codec->decio = ifce;
 			sprintf(szPrefDec, "codec_%02X_%02X", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 			gf_cfg_set_key(term->user->config, "Systems", szPrefDec, ifce->module_name);

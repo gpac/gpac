@@ -294,14 +294,15 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 	return GF_OK;
 }
 
-static Bool OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	if (StreamType != GF_STREAM_VISUAL) return 0;
-	switch (ObjectType) {
+
+	/*media type query*/
+	if (!esd) return 1;
+
+	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_AVC:
-		return 1;
-	/*cap query*/
-	case 0:
 		return 1;
 	}
 	return 0;

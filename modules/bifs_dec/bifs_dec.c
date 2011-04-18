@@ -112,13 +112,14 @@ static GF_Err BIFS_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 i
 	return e;
 }
 
-Bool BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+Bool BIFS_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	BIFSPriv *priv = (BIFSPriv *)ifce->privateStack;
 	if (StreamType!=GF_STREAM_SCENE) return 0;
-	switch (ObjectType) {
-	case 0x00:
-		return 1;
+	/*media type query*/
+	if (!esd) return 1;
+
+	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_SCENE_BIFS:
 	case GPAC_OTI_SCENE_BIFS_V2:
 	/*Streams with this value with a StreamType indicating a systems stream (values 1,2,3, 6, 7, 8, 9)

@@ -242,6 +242,10 @@ typedef struct
 	u32 maxBitrate;
 	u32 avgBitrate;
 	GF_DefaultDescriptor *decoderSpecificInfo;
+	
+	/*placeholder for RVC decoder config*/
+	GF_DefaultDescriptor *rvc_config;
+
 	GF_List *profileLevelIndicationIndexDescriptor;
 } GF_DecoderConfig;
 
@@ -647,7 +651,6 @@ typedef struct
 	GF_List *IPIDataSet;
 	GF_List *IPMPDescriptorPointers;
 	GF_List *extensionDescriptors;
-
 } GF_ESD;
 
 
