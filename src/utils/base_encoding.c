@@ -177,3 +177,94 @@ u32 gf_base16_decode(char *in, u32 inSize, char *out, u32 outSize)
 	
 	return j;
 }
+
+#include <zlib.h>
+
+#define ZLIB_COMPRESS_SAFE	4
+
+GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *max_size)
+{
+    z_stream stream;
+    int err;
+    char *dest = (char *)gf_malloc(sizeof(char)*data_len*ZLIB_COMPRESS_SAFE);
+    stream.next_in = (Bytef*)(*data) ;
+    stream.avail_in = (uInt)data_len ;
+    stream.next_out = ( Bytef*)dest;
+    stream.avail_out = (uInt)data_len*ZLIB_COMPRESS_SAFE;
+    stream.zalloc = (alloc_func)NULL;
+    stream.zfree = (free_func)NULL;
+    stream.opaque = (voidpf)NULL;
+
+    err = deflateInit(&stream, 9);
+    if (err != Z_OK) {
+		gf_free(dest);
+		return GF_IO_ERR;
+    }
+
+    err = deflate(&stream, Z_FINISH);
+    if (err != Z_STREAM_END) {
+        deflateEnd(&stream);
+		gf_free(dest);
+        return GF_IO_ERR;
+    }
+    if (data_len <stream.total_out) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[GZ] compressed data (%d) larger than input (%d)\n", (u32) stream.total_out, (u32) data_len ));
+    }
+
+    if (*max_size < stream.total_out) {
+		*max_size = data_len*ZLIB_COMPRESS_SAFE;
+		*data = gf_realloc(*data, *max_size * sizeof(char));
+    } 
+
+    memcpy((*data) , dest, sizeof(char)*stream.total_out);
+    *max_size = stream.total_out;
+    gf_free(dest);
+
+    deflateEnd(&stream);
+    return GF_OK;
+}
+
+GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size)
+{
+	z_stream d_stream;
+	GF_Err e = GF_OK;
+	int err;
+	u32 size = 4096;
+
+	*uncompressed_data = gf_malloc(sizeof(char)*4096);
+	if (!*uncompressed_data) return GF_OUT_OF_MEM;
+
+	d_stream.zalloc = (alloc_func)0;
+	d_stream.zfree = (free_func)0;
+	d_stream.opaque = (voidpf)0;
+	d_stream.next_in  = (Bytef*)data;
+	d_stream.avail_in = data_len;
+	d_stream.next_out = (Bytef*) *uncompressed_data;
+	d_stream.avail_out = 4096;
+
+	err = inflateInit(&d_stream);
+	if (err == Z_OK) {
+		while (d_stream.total_in < data_len) {
+			err = inflate(&d_stream, Z_NO_FLUSH);
+			if (err < Z_OK) {
+				e = GF_NON_COMPLIANT_BITSTREAM;
+				break;
+			}
+			if (err==Z_STREAM_END) break;
+
+			size *= 2;
+			*uncompressed_data = gf_realloc(*uncompressed_data, sizeof(char)*size);
+			if (!*uncompressed_data) return GF_OUT_OF_MEM;
+			d_stream.avail_out = (size - d_stream.total_out);
+			d_stream.next_out = (Bytef*) ( *uncompressed_data + d_stream.total_out);
+		}
+		*out_size = d_stream.total_out;
+		inflateEnd(&d_stream);
+		return GF_OK;
+	}
+	if (e!=GF_OK) {
+		gf_free(*uncompressed_data);
+		*uncompressed_data = NULL;
+	}
+	return e;
+}

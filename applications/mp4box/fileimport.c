@@ -142,7 +142,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
-	char *ext, szName[1000], *fmt, *handler_name;
+	char *ext, szName[1000], *fmt, *handler_name, *rvc_config;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
 
@@ -171,6 +171,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	if (ext && ext[1]=='\\') ext = strchr(szName+2, ':');
 
 	handler_name = NULL;
+	rvc_config = NULL;
 	fmt = NULL;
 	while (ext) {
 		char *ext2 = strchr(ext+1, ':');
@@ -217,6 +218,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 		}
 		else if (!strnicmp(ext+1, "name=", 5)) handler_name = gf_strdup(ext+6);
+		else if (!strnicmp(ext+1, "rvc=", 4)) rvc_config = gf_strdup(ext+5);
 		else if (!strnicmp(ext+1, "font=", 5)) import.fontName = gf_strdup(ext+6);
 		else if (!strnicmp(ext+1, "size=", 5)) import.fontSize = atoi(ext+6);
 		else if (!strnicmp(ext+1, "fmt=", 4)) import.streamFormat = gf_strdup(ext+5);
@@ -242,7 +244,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 		else if (!strnicmp(ext+1, "profile=", 8)) profile = atoi(ext+9);
 		else if (!strnicmp(ext+1, "level=", 6)) level = atoi(ext+7);
-
 
 		/*unrecognized, assume name has colon in it*/
 		else {
@@ -468,6 +469,26 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (gf_isom_get_mpeg4_subtype(import.dest, track, 1))
 				keep_sys_tracks = 1;
+
+			if (rvc_config) {
+				FILE *f = gf_f64_open(rvc_config, "rb");
+				if (f) {
+					char *data;
+					u32 size;
+					gf_f64_seek(f, 0, SEEK_END);
+					size = (u32) gf_f64_tell(f);
+					gf_f64_seek(f, 0, SEEK_SET);
+					data = gf_malloc(sizeof(char)*size);
+					fread(data, 1, size, f);
+					fclose(f);
+					gf_gz_compress_payload(&data, size, &size);
+
+					e = gf_isom_set_meta_type(import.dest, 0, track, GF_4CC('r','v','c','z'));
+					gf_isom_modify_alternate_brand(import.dest, GF_ISOM_BRAND_ISO2, 1);		
+					gf_isom_set_meta_xml_memory(import.dest, 0, track, data, size, 1);
+					gf_free(data);
+				}
+			}
 		}
 		if (track_id) fprintf(stdout, "WARNING: Track ID %d not found in file\n", track_id);
 		else if (do_video) fprintf(stdout, "WARNING: Video track not found\n");
@@ -479,6 +500,7 @@ exit:
 	if (import.fontName) gf_free(import.fontName);
 	if (import.streamFormat) gf_free(import.streamFormat);
 	if (import.force_ext) gf_free(import.force_ext);
+	if (rvc_config) gf_free(rvc_config);
 	return e;
 }
 

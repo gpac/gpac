@@ -75,6 +75,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_get_char) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_set_echo_off) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_crc_32) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_gz_compress_payload) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_gz_decompress_payload) )
 
 /* Font */
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_new) )
@@ -780,6 +782,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_meta_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_meta_primary_item) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_meta_xml) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_meta_xml_memory) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_meta_xml) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_xml) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_item) )

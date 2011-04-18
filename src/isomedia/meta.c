@@ -92,6 +92,28 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 	return GF_OK;
 }
 
+GF_XMLBox *gf_isom_get_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool *is_binary)
+{
+	u32 i, count;
+	GF_XMLBox *xml = NULL;
+	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
+	if (!meta) return NULL;
+
+	/*Find XMLBox*/
+	count = gf_list_count(meta->other_boxes);
+	for (i = 0; i <count; i++) {
+		GF_Box *a = (GF_Box *)gf_list_get(meta->other_boxes, i);
+		if (a->type == GF_ISOM_BOX_TYPE_XML) {
+			*is_binary = 0;
+			return (GF_XMLBox *)a;
+		} else if (a->type == GF_ISOM_BOX_TYPE_BXML) {
+			*is_binary = 1;
+			return (GF_XMLBox *)a;
+		}
+	}
+	return NULL;
+}
+
 
 
 GF_EXPORT
@@ -374,6 +396,33 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	return GF_OK;
 }
 
+GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, unsigned char *data, u32 data_size, Bool IsBinaryXML)
+{
+	GF_Err e;
+	GF_XMLBox *xml;
+	GF_MetaBox *meta;
+
+	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	meta = gf_isom_get_meta(file, root_meta, track_num);
+	if (!meta) return GF_BAD_PARAM;
+
+	e = gf_isom_remove_meta_xml(file, root_meta, track_num);
+	if (e) return e;
+
+	xml = (GF_XMLBox *)xml_New();
+	if (!xml) return GF_OUT_OF_MEM;
+	gf_list_add(meta->other_boxes, xml);
+	if (IsBinaryXML) xml->type = GF_ISOM_BOX_TYPE_BXML;
+
+
+	/*assume 32bit max size = 4Go should be sufficient for a DID!!*/
+	xml->xml_length = data_size;
+	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*xml->xml_length);
+	memcpy(xml->xml, data, sizeof(unsigned char)*xml->xml_length);
+	return GF_OK;
+}
 
 GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, const char *mime_type, const char *content_encoding, const char *URL, const char *URN)
 {
