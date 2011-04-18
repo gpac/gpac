@@ -839,48 +839,49 @@ redecode:
 	return GF_OK;
 }
 
-static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	GF_BitStream *bs;
 	u32 codec_id;
 	Bool check_4cc;
 	FFDec *ffd = plug->privateStack;
 
-	if (!ObjectType) {
+	/*media type query*/
+	if (!esd) {
 		if ((StreamType==GF_STREAM_VISUAL) || (StreamType==GF_STREAM_AUDIO)) return 1;
 		return 0;
 	}
 
 	/*store types*/
-	ffd->oti = ObjectType;
+	ffd->oti = esd->decoderConfig->objectTypeIndication;
 	ffd->st = StreamType;
 
 	codec_id = 0;
 	check_4cc = 0;
 
 	/*private from FFMPEG input*/
-	if (ObjectType == GPAC_OTI_MEDIA_FFMPEG) {
-		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+	if (ffd->oti == GPAC_OTI_MEDIA_FFMPEG) {
+		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		gf_bs_del(bs);
 	}
 	/*private from IsoMedia input*/
-	else if (ObjectType == GPAC_OTI_MEDIA_GENERIC) {
-		bs = gf_bs_new(decSpecInfo, decSpecInfoSize, GF_BITSTREAM_READ);
+	else if (ffd->oti == GPAC_OTI_MEDIA_GENERIC) {
+		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		check_4cc = 1;
 		gf_bs_del(bs);
 	}
 	else if (StreamType==GF_STREAM_AUDIO) {
 		/*std MPEG-2 audio*/
-		if ((ObjectType==GPAC_OTI_AUDIO_MPEG2_PART3) || (ObjectType==GPAC_OTI_AUDIO_MPEG1)) codec_id = CODEC_ID_MP2;
+		if ((ffd->oti==GPAC_OTI_AUDIO_MPEG2_PART3) || (ffd->oti==GPAC_OTI_AUDIO_MPEG1)) codec_id = CODEC_ID_MP2;
 		/*std AC3 audio*/
-		//if (ObjectType==0xA5) codec_id = CODEC_ID_AC3;
+		//if (ffd->oti==0xA5) codec_id = CODEC_ID_AC3;
 	}
 
 	/*std MPEG-4 visual*/
 	else if (StreamType==GF_STREAM_VISUAL) {
-		switch (ObjectType) {
+		switch (ffd->oti) {
 		/*MPEG-4 v1 simple profile*/
 		case GPAC_OTI_VIDEO_MPEG4_PART2: codec_id = CODEC_ID_MPEG4; break;
 		/*H264 (not std OTI, just the way we use it internally)*/
@@ -909,7 +910,7 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, u32 Obje
 		}
 	}
 	/*NeroDigital DVD subtitles*/
-	else if ((StreamType==GF_STREAM_ND_SUBPIC) && (ObjectType==0xe0))
+	else if ((StreamType==GF_STREAM_ND_SUBPIC) && (ffd->oti==0xe0))
 		return 1;
 
 	if (!codec_id) return 0;

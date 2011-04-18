@@ -692,10 +692,12 @@ const char *CTXLoad_GetName(struct _basedecoder *plug)
 	}
 }
 
-Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+Bool CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
-		switch (ObjectType) {
+		/*media type query*/
+		if (!esd) return 1;
+		switch (esd->decoderConfig->objectTypeIndication) {
 		case GPAC_OTI_PRIVATE_SCENE_GENERIC:
 			return 1;
 		/*LASeR ML: we use this plugin since it has command handling*/

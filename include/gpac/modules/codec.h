@@ -144,8 +144,8 @@ enum
 	if the codec does not support the request capability, return GF_NOT_SUPPORTED
 @CanHandleStream
 	Can module handle this codec? Return 0 if No and !0 otherwise
-	decoderSpecificInfo is provided for MPEG4 audio/visual where a bunch of codecs are defined 
-	with same objectType
+	esd is provided for more advanced inspection ( eg MPEG4 audio/visual where a bunch of codecs are defined with same objectType). If esd is NULL, only 
+	decoder type is checked (audio or video), not codec type
 @GetDecoderName
 	returns codec name - only called once the stream is successfully attached
 @privateStack
@@ -158,7 +158,7 @@ enum
 	GF_Err (*DetachStream)(IFCE_NAME, u16 ES_ID);\
 	GF_Err (*GetCapabilities)(IFCE_NAME, GF_CodecCapability *capability);\
 	GF_Err (*SetCapabilities)(IFCE_NAME, GF_CodecCapability capability);\
-	Bool (*CanHandleStream)(IFCE_NAME, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL);\
+	Bool (*CanHandleStream)(IFCE_NAME, u32 StreamType, GF_ESD *esd, u8 ProfileLevelIndication);\
 	const char *(*GetName)(IFCE_NAME);\
 	void *privateStack;	\
 
@@ -169,7 +169,7 @@ typedef struct _basedecoder
 } GF_BaseDecoder;
 
 /*interface name and version for media decoder */
-#define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', '1')
+#define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', '2')
 
 /*the media module interface. A media module MUST be implemented in synchronous mode as time 
 and resources management is done by the terminal*/
@@ -197,7 +197,7 @@ typedef struct _mediadecoder
 typedef struct _scene *LPSCENE;
 
 /*interface name and version for scene decoder */
-#define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', '1')
+#define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', '2')
 
 typedef struct _scenedecoder
 {
@@ -255,7 +255,7 @@ typedef struct __input_device
 
 
 /*interface name and version for media decoder */
-#define GF_PRIVATE_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'P', 'M', '1')
+#define GF_PRIVATE_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'P', 'M', '2')
 
 /*the media module interface. A media module MUST be implemented in synchronous mode as time 
 and resources management is done by the terminal*/

@@ -337,16 +337,23 @@ const char *SVG_GetName(struct _basedecoder *plug)
 	return "INTERNAL ERROR";
 }
 
-Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+Bool SVG_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
 {
+	/*don't reply to media type query*/
+	if (!esd) return 0;
+
 	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
-		if (ObjectType==GPAC_OTI_PRIVATE_SCENE_SVG) return 1;
+		if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_PRIVATE_SCENE_SVG) return 1;
 		return 0;
 	} else if (StreamType==GF_STREAM_SCENE) {
-		if (ObjectType==GPAC_OTI_SCENE_SVG) return 1;
-		if (ObjectType==GPAC_OTI_SCENE_SVG_GZ) return 1;
-		if (ObjectType==GPAC_OTI_SCENE_DIMS) return 1;
-		return 0;
+		switch (esd->decoderConfig->objectTypeIndication) {
+		case GPAC_OTI_SCENE_SVG:
+		case GPAC_OTI_SCENE_SVG_GZ:
+		case GPAC_OTI_SCENE_DIMS:
+			return 1;
+		default:	
+			return 0;
+		}
 	}
 	return 0;
 }

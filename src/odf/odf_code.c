@@ -1087,16 +1087,10 @@ GF_Err gf_odf_write_isom_od(GF_BitStream *bs, GF_IsomObjectDescriptor *od)
 
 GF_Descriptor *gf_odf_new_dcd()
 {
-	GF_DecoderConfig *newDesc = (GF_DecoderConfig *) gf_malloc(sizeof(GF_DecoderConfig));
+	GF_DecoderConfig *newDesc;
+	GF_SAFEALLOC(newDesc, GF_DecoderConfig);
 	if (!newDesc) return NULL;
 
-	newDesc->avgBitrate = 0;
-	newDesc->bufferSizeDB = 0;
-	newDesc->maxBitrate = 0;
-	newDesc->objectTypeIndication = 0;
-	newDesc->streamType = 0;
-	newDesc->upstream = 0;
-	newDesc->decoderSpecificInfo = NULL;
 	newDesc->profileLevelIndicationIndexDescriptor = gf_list_new();
 	newDesc->tag = GF_ODF_DCD_TAG;
 	return (GF_Descriptor *) newDesc;
@@ -1109,6 +1103,10 @@ GF_Err gf_odf_del_dcd(GF_DecoderConfig *dcd)
 
 	if (dcd->decoderSpecificInfo) {
 		e = gf_odf_delete_descriptor((GF_Descriptor *) dcd->decoderSpecificInfo);
+		if (e) return e;
+	}
+	if (dcd->rvc_config) {
+		e = gf_odf_delete_descriptor((GF_Descriptor *) dcd->rvc_config);
 		if (e) return e;
 	}
 	e = gf_odf_delete_descriptor_list(dcd->profileLevelIndicationIndexDescriptor);

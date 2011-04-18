@@ -236,7 +236,7 @@ err_exit:
 }
 
 
-Bool ODF_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+Bool ODF_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	ODPriv *priv = (ODPriv *)ifce->privateStack;
 	if (StreamType==GF_STREAM_OD) {

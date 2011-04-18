@@ -216,16 +216,12 @@ static const char *XVID_GetCodecName(GF_BaseDecoder *dec)
 	return "XviD 1.0 for WinCE";
 }
 
-static Bool XVID_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool XVID_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
 	if (StreamType != GF_STREAM_VISUAL) return 0;
-	switch (ObjectType) {
-	case GPAC_OTI_VIDEO_MPEG4_PART2:
-		return 1;
-	/*cap query*/
-	case 0:
-		return 1;
-	}
+	/*media type query*/
+	if (!esd) return 1;
+	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) return 1;
 	return 0;
 }
 
