@@ -404,7 +404,7 @@ BOOL OptDecoder::OnInitDialog()
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
 		if (!ifce) continue;
 
-		if (ifce->CanHandleStream(ifce, GF_STREAM_AUDIO, 0, NULL, 0, 0)) {
+		if (ifce->CanHandleStream(ifce, GF_STREAM_AUDIO, NULL, 0)) {
 			if (sOpt && !stricmp(ifce->module_name, sOpt)) select = to_sel;
 			m_Audio.AddString(ifce->module_name);
 			to_sel++;
@@ -423,7 +423,7 @@ BOOL OptDecoder::OnInitDialog()
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
 		if (!ifce) continue;
 
-		if (ifce->CanHandleStream(ifce, GF_STREAM_VISUAL, 0, NULL, 0, 0)) {
+		if (ifce->CanHandleStream(ifce, GF_STREAM_VISUAL, NULL, 0)) {
 			if (sOpt && !stricmp(ifce->module_name, sOpt)) select = to_sel;
 			m_Video.AddString(ifce->module_name);
 			to_sel++;
