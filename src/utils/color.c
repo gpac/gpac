@@ -196,6 +196,7 @@ static void copy_row_rgb_555(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc,
 	s32 pos;
 	u16 *dst = (u16 *)_dst;
 	u8 a, r, g, b;
+	x_pitch /= 2;
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
@@ -214,6 +215,7 @@ static void copy_row_rgb_565(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc,
 	s32 pos;
 	u16 *dst = (u16 *)_dst;
 	u8 a, r, g, b;
+	x_pitch /= 2;
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
@@ -264,29 +266,32 @@ static void copy_row_bgr_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s
 	}
 }
 
-static void copy_row_rgb_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
+static void copy_row_bgrx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
 {
 	u8 a, r, g, b;
 	s32 pos = 0x10000L;
-	u32 *dst = (u32 *)_dst;
 	
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
 			r = *src++; g = *src++; b = *src++; a = *src++;
 			pos -= 0x10000L;
 		}
-		if (a) *dst = GF_COL_ARGB(a, r, g, b);
+		if (a) {
+			dst[0] = b;
+			dst[1] = g;
+			dst[2] = r;
+			dst[3] = 0xFF;
+		}
 		dst += x_pitch;
 		pos += h_inc;
 		dst_w--;
 	}
 }
 
-static void copy_row_bgr_32(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
+static void copy_row_rgbx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
 {
 	u8 a, r, g, b;
 	s32 pos = 0x10000L;
-	x_pitch*=4;
 	
 	while ( dst_w) {
 		while ( pos >= 0x10000L ) {
@@ -309,7 +314,6 @@ static void copy_row_rgbd(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32
 {
 	u8 a, r, g, b;
 	s32 pos = 0x10000L;
-	x_pitch*=4;
 	
 	while ( dst_w) {
 		while ( pos >= 0x10000L ) {
@@ -333,8 +337,7 @@ static void merge_row_rgb_555(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc
 	u32 _r, _g, _b, a, r, g, b;
 	s32 pos;
 	u16 col, *dst = (u16 *)_dst;
-
-	
+	x_pitch /= 2;
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
@@ -363,8 +366,7 @@ static void merge_row_rgb_565(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc
 	u32 _r, _g, _b, a, r, g, b;
 	s32 pos;
 	u16 col, *dst = (u16 *)_dst;
-
-	
+	x_pitch /= 2;	
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
@@ -428,10 +430,9 @@ static void merge_row_bgr_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, 
 		if (a && alpha) {
 			_r = dst[0]; _g = dst[0]; _b = dst[0];
 			a = mul255(a, alpha);
-			dst[2] = mul255(a, r - _r) + _r;
-			dst[1] = mul255(a, g - _g) + _g;
 			dst[0] = mul255(a, b - _b) + _b;
-
+			dst[1] = mul255(a, g - _g) + _g;
+			dst[2] = mul255(a, r - _r) + _r;
 		}
 		dst += x_pitch;
 		pos += h_inc;
@@ -440,11 +441,10 @@ static void merge_row_bgr_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, 
 }
 
 
-static void merge_row_rgb_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
+static void merge_row_bgrx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
 {
 	u32 _r, _g, _b, a, r, g, b, col;
 	s32 pos;
-	u32 *dst = (u32 *)_dst;
 	
 	pos = 0x10000;
 	while (dst_w) {
@@ -462,7 +462,10 @@ static void merge_row_rgb_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc,
 			_r = mul255(a, r - _r) + _r;
 			_g = mul255(a, g - _g) + _g;
 			_b = mul255(a, b - _b) + _b;
-			*dst = GF_COL_ARGB(0xFF, _r, _g, _b);
+			dst[0] = _b;
+			dst[1] = _g;
+			dst[2] = _r;
+			dst[3] = 0xFF;
 		}
 		dst += x_pitch;
 		pos += h_inc;
@@ -470,12 +473,10 @@ static void merge_row_rgb_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc,
 	}
 }
 
-static void merge_row_bgr_32(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
+static void merge_row_rgbx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
 {
 	u32 _r, _g, _b, a, r, g, b, col;
 	s32 pos;
-
-	x_pitch*=4;
 	
 	pos = 0x10000;
 	while (dst_w) {
@@ -505,47 +506,10 @@ static void merge_row_bgr_32(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, 
 }
 
 
-static void merge_row_argb_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
+static void merge_row_bgra(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
 {
 	u32 _a, _r, _g, _b, a, r, g, b, col;
 	s32 pos;
-	u32 *dst = (u32 *)_dst;
-	
-	pos = 0x10000;
-	while (dst_w) {
-		while ( pos >= 0x10000L ) {
-			r = *src++; g = *src++; b = *src++; a = *src++;
-			pos -= 0x10000L;
-			a = mul255(a, alpha);
-		}
-
-		if (a) {
-			col = *dst;
-			_r = GF_COL_R(col);
-			_g = GF_COL_G(col);
-			_b = GF_COL_B(col);
-			if (GF_COL_A(col)) {
-				_a = mul255(a, a) + mul255(0xFF-a, 0xFF);
-				_r = mul255(a, r - _r) + _r;
-				_g = mul255(a, g - _g) + _g;
-				_b = mul255(a, b - _b) + _b;
-				*dst = GF_COL_ARGB(_a, _r, _g, _b);
-			} else {
-				*dst = GF_COL_ARGB(a, r, g, b);
-			}
-		}
-		dst += x_pitch;
-		pos += h_inc;
-		dst_w--;
-	}
-}
-
-#ifdef GPAC_ANDROID
-static void merge_row_abgr_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
-{
-	u32 _a, _r, _g, _b, a, r, g, b, col;
-	s32 pos;
-	u32 *dst = (u32 *)_dst;
 
 	pos = 0x10000;
 	while (dst_w) {
@@ -557,17 +521,23 @@ static void merge_row_abgr_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc
 
 		if (a) {
 			col = *dst;
-			_r = GF_COL_B(col);
-			_g = GF_COL_G(col);
-			_b = GF_COL_R(col);
-			if (GF_COL_A(col)) {
+			_b = dst[0];
+			_g = dst[1];
+			_r = dst[2];
+			if (dst[3]) {
 				_a = mul255(a, a) + mul255(0xFF-a, 0xFF);
 				_r = mul255(a, r - _r) + _r;
 				_g = mul255(a, g - _g) + _g;
 				_b = mul255(a, b - _b) + _b;
-				*dst = GF_COL_ARGB(_a, _b, _g, _r);
+				dst[0] = _b;
+				dst[1] = _g;
+				dst[2] = _r;
+				dst[3] = _a;
 			} else {
-				*dst = GF_COL_ARGB(a, b, g, r);
+				dst[0] = b;
+				dst[1] = g;
+				dst[2] = r;
+				dst[3] = a;
 			}
 		}
 		dst += x_pitch;
@@ -575,7 +545,45 @@ static void merge_row_abgr_32(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc
 		dst_w--;
 	}
 }
-#endif
+
+static void merge_row_rgba(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
+{
+	u32 _a, _r, _g, _b, a, r, g, b, col;
+	s32 pos;
+	pos = 0x10000;
+	while (dst_w) {
+		while ( pos >= 0x10000L ) {
+			r = *src++; g = *src++; b = *src++; a = *src++;
+			pos -= 0x10000L;
+			a = mul255(a, alpha);
+		}
+
+		if (a) {
+			col = *dst;
+			_r = dst[0];
+			_g = dst[1];
+			_b = dst[2];
+			if (dst[3]) {
+				_a = mul255(a, a) + mul255(0xFF-a, 0xFF);
+				_r = mul255(a, r - _r) + _r;
+				_g = mul255(a, g - _g) + _g;
+				_b = mul255(a, b - _b) + _b;
+				dst[0] = _r;
+				dst[1] = _g;
+				dst[2] = _b;
+				dst[3] = _a;
+			} else {
+				dst[0] = r;
+				dst[1] = g;
+				dst[2] = b;
+				dst[3] = a;
+			}
+		}
+		dst += x_pitch;
+		pos += h_inc;
+		dst_w--;
+	}
+}
 
 static GFINLINE u8 colmask(s32 a, s32 n)
 {
@@ -821,29 +829,23 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		break;
 	case GF_PIXEL_RGB_32:
 		dst_bpp = sizeof(unsigned char)*4;
-		copy_row = has_alpha ? merge_row_rgb_32: copy_row_rgb_32;
+		copy_row = has_alpha ? merge_row_bgrx : copy_row_bgrx;
 		break;
 	case GF_PIXEL_ARGB:
 		dst_bpp = sizeof(unsigned char)*4;
-		copy_row = has_alpha ? merge_row_argb_32: copy_row_rgb_32;
+		copy_row = has_alpha ? merge_row_bgra : copy_row_bgrx;
 		break;
 	case GF_PIXEL_RGBD:
 		dst_bpp = sizeof(unsigned char)*4;
-		copy_row = has_alpha ? merge_row_argb_32: copy_row_rgbd;
+		copy_row = has_alpha ? merge_row_bgrx : copy_row_rgbd;
 		break;
 	case GF_PIXEL_RGBA:
 		dst_bpp = sizeof(unsigned char)*4;
-#ifdef GPAC_ANDROID
-		//copy_row = has_alpha ? merge_row_abgr_32: copy_row_rgb_32;
-		copy_row = has_alpha ? merge_row_abgr_32: copy_row_bgr_32;
-		//copy_row = has_alpha ? merge_row_argb_32: copy_row_bgr_32;
-#else
-		copy_row = has_alpha ? merge_row_argb_32: copy_row_bgr_32;
-#endif
+		copy_row = has_alpha ? merge_row_rgba : copy_row_rgbx;
 		break;
 	case GF_PIXEL_BGR_32:
 		dst_bpp = sizeof(unsigned char)*4;
-		copy_row = has_alpha ? merge_row_bgr_32: copy_row_bgr_32;
+		copy_row = has_alpha ? merge_row_rgbx : copy_row_rgbx;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -882,10 +884,6 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	hardware memory, we work on a copy of the destination line*/
 	if (has_alpha && dst->is_hardware_memory)
 		dst_temp_bits = (u8 *) gf_malloc(sizeof(u8) * dst_bpp * dst_w);
-
-
-	/*for 2 and 4 bytes colors, precompute pitch for u16 and u32 type casting*/
-	if ((dst_bpp==2) || (dst_bpp==4) ) dst_x_pitch /= (s32) dst_bpp;
 
 	kl = kh = ka = kr = kg = kb = 0;
 	if (key) {

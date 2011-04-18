@@ -172,26 +172,24 @@ typedef enum
 	GF_PIXEL_RGB_565	=	GF_4CC('R','5','6','5'),
 	/*!24 bit RGB*/
 	GF_PIXEL_RGB_24		=	GF_4CC('R','G','B','3'),
-	/*!24 bit BGR - used for graphics cards video format signaling*/
+	/*!24 bit BGR*/
 	GF_PIXEL_BGR_24		=	GF_4CC('B','G','R','3'),
-	/*!32 bit RGB*/
+	/*!32 bit RGB. Component ordering in bytes is B-G-R-X.*/
 	GF_PIXEL_RGB_32		=	GF_4CC('R','G','B','4'),
-	/*!32 bit BGR - used for graphics cards video format signaling*/
+	/*!32 bit BGR. Component ordering in bytes is R-G-B-X.*/
 	GF_PIXEL_BGR_32		=	GF_4CC('B','G','R','4'),
 
-	/*!32 bit ARGB.*/
+	/*!32 bit ARGB. Component ordering in bytes is B-G-R-A.*/
 	GF_PIXEL_ARGB		=	GF_4CC('A','R','G','B'),
-	/*!32 bit RGBA (openGL like)*/
+	/*!32 bit RGBA (openGL like). Component ordering in bytes is R-G-B-A.*/
 	GF_PIXEL_RGBA		=	GF_4CC('R','G','B', 'A'),
-    /*!32 bit BGRA*/
-    GF_PIXEL_BGRA		=	GF_4CC('B','G','R', 'A'),
-	/*!RGB24 + depth plane*/
+	/*!RGB24 + depth plane. Component ordering in bytes is R-G-B-D.*/
     GF_PIXEL_RGBD		=	GF_4CC('R', 'G', 'B', 'D'),
-	/*!RGB24 + depth plane (7 power bits) + shape mask*/
+	/*!RGB24 + depth plane (7 lower bits) + shape mask. Component ordering in bytes is R-G-B-(S+D).*/
     GF_PIXEL_RGBDS		=	GF_4CC('3', 'C', 'D', 'S'),
 	/*!Stereo RGB24 */
     GF_PIXEL_RGBS		=	GF_4CC('R', 'G', 'B', 'S'),
-	/*!Stereo RGBA */
+	/*!Stereo RGBA. Component ordering in bytes is R-G-B-A. */
     GF_PIXEL_RGBAS		=	GF_4CC('R', 'G', 'A', 'S'),
 
 	/*!YUV packed format*/
