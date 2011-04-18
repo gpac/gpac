@@ -475,6 +475,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
                         setShouldDeleteGpacConfig(true);
+                        deleteConfigIfNeeded();
                     }
                 });
                 b.show();
