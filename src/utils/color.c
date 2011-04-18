@@ -834,7 +834,9 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	case GF_PIXEL_RGBA:
 		dst_bpp = sizeof(unsigned char)*4;
 #ifdef GPAC_ANDROID
-		copy_row = has_alpha ? merge_row_abgr_32: copy_row_rgb_32;
+		//copy_row = has_alpha ? merge_row_abgr_32: copy_row_rgb_32;
+		copy_row = has_alpha ? merge_row_abgr_32: copy_row_bgr_32;
+		//copy_row = has_alpha ? merge_row_argb_32: copy_row_bgr_32;
 #else
 		copy_row = has_alpha ? merge_row_argb_32: copy_row_bgr_32;
 #endif
