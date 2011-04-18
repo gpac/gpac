@@ -327,10 +327,14 @@ Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *
 		if (has_scale) *has_scale = 1;
 	}
 
-	/*use entire video surface for un-centering coord system*/
-	output_width = visual->compositor->vp_width;
-	output_height = visual->compositor->vp_height;
-
+	if (visual->offscreen) {
+		output_width = visual->width;
+		output_height = visual->height;
+	} else {
+		/*use entire video surface for un-centering coord system*/
+		output_width = visual->compositor->vp_width;
+		output_height = visual->compositor->vp_height;
+	}
 	/*take care of pixel rounding for odd width/height and make sure we strictly draw in the clipped bounds*/
 	if (visual->center_coords) {
 		clipped_final.x += output_width / 2;
@@ -487,7 +491,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 			break;
 		case GF_PIXEL_ARGB:
 		case GF_PIXEL_RGBA:
-		case GF_PIXEL_BGRA:
 		case GF_PIXEL_RGBAS:
 		case GF_PIXEL_RGBDS:
 			if (hw_caps & GF_VIDEO_HW_HAS_RGBA)
@@ -543,6 +546,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 
 	}
+
+	use_soft_stretch = 1;
 
 	video_src.height = txh->height;
 	video_src.width = txh->width;
@@ -697,7 +702,6 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_RGB_565:
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
-	case GF_PIXEL_BGRA:
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:

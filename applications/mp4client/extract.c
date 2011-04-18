@@ -229,7 +229,6 @@ void write_png(GF_VideoSurface *fb, char *rad_name, u32 img_num)
 	switch (fb->pixel_format) {
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
-	case GF_PIXEL_BGRA:
 		dst_size = fb->width*fb->height*4;
 		break;
 	default:
