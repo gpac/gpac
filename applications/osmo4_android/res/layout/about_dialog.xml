@@ -2,12 +2,12 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="fill_parent"
     android:layout_height="fill_parent" android:orientation="vertical">
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:orientation="horizontal"
-        android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingLeft="2dip"
-        android:paddingRight="2dip" android:gravity="center_vertical" android:layout_gravity="top|center_horizontal">
+        android:layout_width="wrap_content" android:layout_height="wrap_content" android:padding="2dip" android:gravity="center_vertical"
+        android:layout_gravity="top|center_horizontal">
         <ImageView android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/icon"
             android:padding="2dip" android:id="@+id/about_img1"/>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="fill_parent"
-            android:layout_height="fill_parent" android:orientation="vertical">
+            android:layout_height="wrap_content" android:orientation="vertical">
             <TextView android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/aboutCopyright1"
                 android:text="@string/aboutCopyright1" android:layout_gravity="right"/>
             <TextView android:layout_height="wrap_content" android:layout_width="fill_parent" android:id="@+id/aboutCopyright1"
