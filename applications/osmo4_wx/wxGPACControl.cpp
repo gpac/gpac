@@ -405,7 +405,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	for (i=0; i<count; i++) {
 		ifc_d = (GF_BaseDecoder *) gf_modules_load_interface(m_pApp->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
 		if (!ifc_d) continue;
-		if (ifc_d->CanHandleStream(ifc_d, GF_STREAM_AUDIO, 0, NULL, 0, 0)) {
+		if (ifc_d->CanHandleStream(ifc_d, GF_STREAM_AUDIO, NULL, 0)) {
 			if (sOpt && !stricmp(ifc_d->module_name, sOpt)) select = to_sel;
 			m_decaudio->Append(wxString(ifc_d->module_name, wxConvUTF8) );
 			to_sel++;
@@ -420,7 +420,7 @@ wxGPACControl::wxGPACControl(wxWindow *parent)
 	for (i=0; i<count; i++) {
 		ifc_d = (GF_BaseDecoder *) gf_modules_load_interface(m_pApp->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
 		if (!ifc_d) continue;
-		if (ifc_d->CanHandleStream(ifc_d, GF_STREAM_VISUAL, 0, NULL, 0, 0)) {
+		if (ifc_d->CanHandleStream(ifc_d, GF_STREAM_VISUAL, NULL, 0)) {
 			if (sOpt && !stricmp(ifc_d->module_name, sOpt)) select = to_sel;
 			m_decvideo->Append(wxString(ifc_d->module_name, wxConvUTF8) );
 			to_sel++;

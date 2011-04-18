@@ -315,7 +315,7 @@ BOOL COptDecoder::OnInitDialog()
 	for (i=0; i<count; i++) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
 		if (!ifce) continue;
-		if (ifce->CanHandleStream(ifce, GF_STREAM_AUDIO, 0, NULL, 0, 0)) {
+		if (ifce->CanHandleStream(ifce, GF_STREAM_AUDIO, NULL, 0)) {
 			if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 			TCHAR wzTmp[500];
 			CE_CharToWide((char *) ifce->module_name, (u16 *)wzTmp);
@@ -335,7 +335,7 @@ BOOL COptDecoder::OnInitDialog()
 	for (i=0; i<count; i++) {
 		ifce  = (GF_BaseDecoder *) gf_modules_load_interface(gpac->m_user.modules, i, GF_MEDIA_DECODER_INTERFACE);
 		if (!ifce) continue;
-		if (ifce->CanHandleStream(ifce, GF_STREAM_VISUAL, 0, NULL, 0, 0)) {
+		if (ifce->CanHandleStream(ifce, GF_STREAM_VISUAL, NULL, 0)) {
 			if (sOpt && !stricmp(((GF_BaseInterface *)ifce)->module_name, sOpt)) select = to_sel;
 			TCHAR wzTmp[500];
 			CE_CharToWide((char *) ifce->module_name, (u16 *)wzTmp);
