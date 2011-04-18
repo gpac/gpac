@@ -2159,6 +2159,7 @@ GF_Err AVC_UpdateESD(GF_MPEGVisualSampleEntryBox *avc, GF_ESD *esd);
 void AVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
 
+GF_XMLBox *gf_isom_get_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool *is_binary);
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 

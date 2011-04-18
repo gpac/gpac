@@ -1772,6 +1772,8 @@ GF_Err gf_isom_remove_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num);
 
 /*set meta XML data from file - erase any previously (Binary)XML info*/
 GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, char *XMLFileName, Bool IsBinaryXML);
+/*set meta XML data from memory - erase any previously (Binary)XML info*/
+GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, unsigned char *data, u32 data_size, Bool IsBinaryXML);
 
 /*adds item to meta:
 	@self_reference: indicates this item is the file itself

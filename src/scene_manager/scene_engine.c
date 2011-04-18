@@ -45,8 +45,6 @@
 
 #include <time.h>
 
-/* for DIMS GZ encoding */
-#include <zlib.h>
 
 struct __tag_scene_engine
 {
@@ -291,51 +289,6 @@ GF_Err gf_seng_enable_aggregation(GF_SceneEngine *seng, u16 ESID, u16 onESID)
 	return GF_OK;
 }
 
-
-#define ZLIB_COMPRESS_SAFE	4
-
-static GF_Err compress_dims_payload(char **data, u32 data_len, u32 *max_size, u32 offset)
-{
-    z_stream stream;
-    int err;
-    char *dest = (char *)gf_malloc(sizeof(char)*data_len*ZLIB_COMPRESS_SAFE);
-    stream.next_in = (Bytef*)(*data) + offset;
-    stream.avail_in = (uInt)data_len - offset;
-    stream.next_out = ( Bytef*)dest;
-    stream.avail_out = (uInt)data_len*ZLIB_COMPRESS_SAFE;
-    stream.zalloc = (alloc_func)NULL;
-    stream.zfree = (free_func)NULL;
-    stream.opaque = (voidpf)NULL;
-
-    err = deflateInit(&stream, 9);
-    if (err != Z_OK) {
-		gf_free(dest);
-		return GF_IO_ERR;
-    }
-
-    err = deflate(&stream, Z_FINISH);
-    if (err != Z_STREAM_END) {
-        deflateEnd(&stream);
-		gf_free(dest);
-        return GF_IO_ERR;
-    }
-    if (data_len - offset<stream.total_out) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SceneEngine] compressed data (%d) larger than input (%d)\n", (u32) stream.total_out, (u32) data_len - offset));
-    }
-
-    if (*max_size < stream.total_out) {
-		*max_size = data_len*ZLIB_COMPRESS_SAFE;
-		*data = gf_realloc(*data, *max_size * sizeof(char));
-    } 
-
-    memcpy((*data) + offset, dest, sizeof(char)*stream.total_out);
-    *max_size = offset + stream.total_out;
-    gf_free(dest);
-
-    deflateEnd(&stream);
-    return GF_OK;
-}
-
 /* Set to 1 if you want every dump with a timed file name */
 //#define DUMP_DIMS_LOG_WITH_TIME
 
@@ -465,7 +418,7 @@ start:
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[SceneEngine] Sending DIMS data - sizes: raw (%d)", buffer_len)); 
 	if (compress_dims) {
 		dims_header |= GF_DIMS_UNIT_C;
-		e = compress_dims_payload(&buffer, buffer_len, &buffer_len, 0);
+		e = gf_gz_compress_payload(&buffer, buffer_len, &buffer_len);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("/ compressed (%d)", buffer_len)); 
 		if (e) goto exit;
 	}

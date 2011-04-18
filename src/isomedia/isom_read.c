@@ -655,14 +655,35 @@ u32 gf_isom_get_sample_description_count(GF_ISOFile *the_file, u32 trackNumber)
 GF_EXPORT
 GF_ESD *gf_isom_get_esd(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex)
 {
-	GF_ESD *outESD;
+	GF_ESD *esd;
 	GF_Err e;
-	e = GetESD(movie->moov, gf_isom_get_track_id(movie, trackNumber), StreamDescriptionIndex, &outESD);
+	e = GetESD(movie->moov, gf_isom_get_track_id(movie, trackNumber), StreamDescriptionIndex, &esd);
 	if (e && (e!= GF_ISOM_INVALID_MEDIA)) {
 		movie->LastError = e;
 		return NULL;
 	}
-	return outESD;
+	if (esd) {
+		GF_TrackBox *trak = gf_isom_get_track_from_file(movie, trackNumber);
+		if (trak->meta) {
+			u32 brand = gf_isom_get_meta_type(movie, 0, trackNumber);
+			if (brand==GF_4CC('r','v','c','z')) {
+				Bool compressed=0;
+				GF_XMLBox *xml = gf_isom_get_meta_xml(movie, 0, trackNumber, &compressed);
+				if (xml) {
+					esd->decoderConfig->rvc_config = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+					if (compressed) {
+						gf_gz_decompress_payload(xml->xml, xml->xml_length, &esd->decoderConfig->rvc_config->data, &esd->decoderConfig->rvc_config->dataLength);
+					} else {
+						esd->decoderConfig->rvc_config->data = gf_malloc(sizeof(char)*(xml->xml_length+1));
+						memcpy(esd->decoderConfig->rvc_config->data, xml->xml, sizeof(char)*xml->xml_length);
+						esd->decoderConfig->rvc_config->data[xml->xml_length] = 0;
+						esd->decoderConfig->rvc_config->dataLength = xml->xml_length;
+					}
+				}
+			}
+		}
+	}
+	return esd;
 }
 
 //Get the decoderConfigDescriptor given the SampleDescriptionIndex

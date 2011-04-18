@@ -713,6 +713,27 @@ GF_Err gf_global_resource_unlock(GF_GlobalLock * lock);
  */
 char * gf_get_default_cache_directory();
 
+
+
+/**
+ * Compresses a data buffer in place using zlib. Buffer may be reallocated in the process.
+ * \param data pointer to the data buffer to be compressed
+ * \param data_len length of the data buffer to be compressed
+ * \param out_size pointer for output buffer size
+ * \return GF_OK if evertything went fine
+ */
+GF_Err gf_gz_compress_payload(char **data, u32 data_len, u32 *out_size);
+
+/**
+ * Decompresses a data buffer using zlib. 
+ * \param data data buffer to be decompressed
+ * \param data_len length of the data buffer to be decompressed
+ * \param uncompressed_data pointer to the uncompressed data buffer. It is the responsibility of the caller to free this buffer.
+ * \param out_size size of the uncompressed buffer
+ * \return GF_OK if evertything went fine
+ */
+GF_Err gf_gz_decompress_payload(char *data, u32 data_len, char **uncompressed_data, u32 *out_size);
+
 /*! @} */
 
 
