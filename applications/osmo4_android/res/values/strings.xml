@@ -22,15 +22,30 @@
     <string name="fileSize">File [%d bytes]</string>
     <string name="selectFileTitlePattern">%1$s [%2$s]</string>
     <string name="selectFileDefaultTitle">Select a file</string>
-    <string name="aboutDialog">
-        Osmo4, an Interface for
-        <b>GPAC</b>
-        .
-        © Jean Le Feuvre Telecom Paris Tech.
-        Authors
-        <i>Jonathan Sillan</i>
-        ,
-        <i>NGO Van Luyen</i>
-        <i>Pierre Souchay (VizionR)</i>
+    <string name="options">Options</string>
+    <string name="aboutTitle">Osmo4 : GPAC for Android</string>
+    <string name="aboutCopyright1">© Jean Le Feuvre, 2000-2011</string>
+    <string name="aboutCopyright2">© Telecom-Paris-Tech</string>
+    <string name="aboutLicence">published under LGPL</string>
+    <string name="aboutAuthors">Authors:</string>
+    <string name="osmoLoading">Osmo4 is loading...</string>
+    <string name="gpacLoading">Gpac is loading...</string>
+    <string name="setAsStartupFile">Set as startup file...</string>
+    <string name="setAsStartupFileMessage">Use %s as startup file ?</string>
+    <string name="setAsStartupFileTitle">Startup file</string>
+    <string name="setAsStartupFileYes">Use current</string>
+    <string name="setAsStartupFileNo">Cancel</string>
+    <string name="setAsStartupFileNull">No startup file</string>
+    <string name="setAsStartupFileMessageNoURL">You are not connected to any URL. You may use this entry to set an URL as a startup file when
+        connected to a given URL or file.
     </string>
+    <!--  All authors in alphabetical order -->
+    <string-array name="allAuthors_array">
+        <item>Romain Bouqueau</item>
+        <item>Cyril Concolato</item>
+        <item>Jean Lefeuve</item>
+        <item>Jonathan Sillan</item>
+        <item>Pierre Souchay (VizionR)</item>
+        <item>NGO Van Luyen</item>
+    </string-array>
 </resources>

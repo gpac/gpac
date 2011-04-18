@@ -52,4 +52,13 @@ public interface GPACInstanceInterface {
      */
     public void destroy();
 
+    /**
+     * Set a GPAC preference to given value
+     * 
+     * @param category
+     * @param name The name of preference as defined in GPAC.cfg
+     * @param value The value to set, if null, value will be deleted
+     */
+    public void setGpacPreference(String category, String name, String value);
+
 }
