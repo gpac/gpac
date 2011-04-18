@@ -292,4 +292,10 @@ public class GPACInstance implements GPACInstanceInterface {
             gpacfree();
         }
     }
+
+    /**
+     * @see com.artemis.Osmo4.GPACInstanceInterface#setGpacPreference(String, String, String)
+     */
+    @Override
+    public native void setGpacPreference(String category, String name, String value);
 }

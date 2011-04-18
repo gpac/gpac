@@ -89,23 +89,6 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
         }
     }
 
-    // /**
-    // * @see android.view.View#onCheckIsTextEditor()
-    // */
-    // @Override
-    // public boolean onCheckIsTextEditor() {
-    // return true;
-    // }
-    //
-    // /**
-    // * @see android.view.View#onCreateInputConnection(android.view.inputmethod.EditorInfo)
-    // */
-    // @Override
-    // public InputConnection onCreateInputConnection(EditorInfo outAttrs) {
-    // // TODO Auto-generated method stub
-    // return super.onCreateInputConnection(outAttrs);
-    // }
-
     @Override
     public boolean onKeyDown(final int keyCode, final KeyEvent event) {
         if (handleInGPAC(keyCode, event)) {
@@ -193,6 +176,22 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
                 GPACInstance instance = getInstance();
                 if (instance != null)
                     instance.destroy();
+            }
+        });
+    }
+
+    /**
+     * @see com.artemis.Osmo4.GPACInstanceInterface#setGpacPreference(String, String, String)
+     */
+    @Override
+    public void setGpacPreference(final String category, final String name, final String value) {
+        queueEvent(new Runnable() {
+
+            @Override
+            public void run() {
+                GPACInstance instance = getInstance();
+                if (instance != null)
+                    instance.setGpacPreference(category, name, value);
             }
         });
     }

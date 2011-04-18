@@ -149,6 +149,31 @@ JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_gpaceventkeypress(JNI
           wr->onKeyPress(keycode, rawkeycode, up, flag, unicode);
         jniLOGV("keypress::end");
 }
+
+
+/*
+ * Class:     com_artemis_Osmo4_GPACInstance
+ * Method:    setGpacPreference
+ * Signature: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V
+ */
+JNIEXPORT void JNICALL Java_com_artemis_Osmo4_GPACInstance_setGpacPreference
+  (JNIEnv * env, jobject obj, jstring category, jstring name, jstring value){
+        CAST_HANDLE(wr);
+        jboolean isCopy;
+        const char * scat = env->GetStringUTFChars(category, &isCopy);
+        const char * sname = env->GetStringUTFChars(name, &isCopy);
+        const char * svalue;
+        if (value)
+          svalue = env->GetStringUTFChars(value, &isCopy);
+        else
+          svalue = NULL;
+        if (wr)
+          wr->setGpacPreference(scat, sname, svalue);
+        env->ReleaseStringUTFChars(category, scat);
+        env->ReleaseStringUTFChars(name, sname);
+        if (value)
+          env->ReleaseStringUTFChars(value, svalue);
+  }
 //-----------------------------------
 
 #ifdef __cplusplus

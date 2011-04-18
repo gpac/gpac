@@ -703,6 +703,15 @@ int CNativeWrapper::connect(const char *url){
           debug_log("connected ...");
         }
 }
+
+void CNativeWrapper::setGpacPreference( const char * category, const char * name, const char * value)
+{
+  if (m_user.config){
+    gf_cfg_set_key(m_user.config, category, name, value);
+    gf_cfg_save(m_user.config);
+  }
+}
+
 //-----------------------------------------------------
 void CNativeWrapper::disconnect(){
         if (m_term){

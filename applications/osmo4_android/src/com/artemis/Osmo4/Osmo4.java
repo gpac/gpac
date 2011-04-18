@@ -36,6 +36,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -70,6 +72,10 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private String[] m_modules_list;
 
+    private final static String CFG_STARTUP_CATEGORY = "General"; //$NON-NLS-1$
+
+    private final static String CFG_STARTUP_NAME = "StartupFile"; //$NON-NLS-1$
+
     private boolean keyboardIsVisible = false;
 
     private final static int DEFAULT_BUFFER_SIZE = 8192;
@@ -96,6 +102,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private final GpacLogger logger = new GpacLogger();
 
+    private ProgressDialog startupProgress;
+
     // ---------------------------------------
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -105,7 +113,6 @@ public class Osmo4 extends Activity implements GpacCallback {
         // requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
-        final String name = "Osmo4"; //$NON-NLS-1$
         final String toOpen;
         if (Intent.ACTION_VIEW.equals(getIntent().getAction())) {
             Uri uri = getIntent().getData();
@@ -117,6 +124,14 @@ public class Osmo4 extends Activity implements GpacCallback {
                 toOpen = null;
         } else
             toOpen = null; // "http://vizionr.fr:8000/fun.ts";
+        if (startupProgress == null) {
+            startupProgress = new ProgressDialog(this);
+            startupProgress.setCancelable(false);
+        }
+        startupProgress.setMessage(getResources().getText(R.string.osmoLoading));
+        startupProgress.setTitle(null);
+        startupProgress.setIndeterminate(true);
+        startupProgress.show();
         if (mGLView != null) {
             setContentView(mGLView);
             if (toOpen != null)
@@ -125,7 +140,6 @@ public class Osmo4 extends Activity implements GpacCallback {
             return;
         }
         mGLView = new Osmo4GLSurfaceView(Osmo4.this);
-        setProgress(1000);
         service.submit(new Runnable() {
 
             @Override
@@ -135,15 +149,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                     @Override
                     public void run() {
-                        setProgress(5000);
-                    }
-                });
-                displayPopup("Loading GPAC Renderer $Revision$", name); //$NON-NLS-1$
-                runOnUiThread(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        setProgress(9000);
+                        startupProgress.setMessage(getResources().getText(R.string.gpacLoading));
                         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
                         WakeLock wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, LOG_OSMO_TAG);
                         if (wl != null)
@@ -154,7 +160,6 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                         Osmo4Renderer renderer = new Osmo4Renderer(Osmo4.this, toOpen);
                         mGLView.setRenderer(renderer);
-                        displayPopup("Now loading, please wait...", name); //$NON-NLS-1$
                         setContentView(mGLView);
                     }
                 });
@@ -258,7 +263,6 @@ public class Osmo4 extends Activity implements GpacCallback {
         textView.setText("http://"); //$NON-NLS-1$
         builder.setView(textView);
 
-        builder.create();
         builder.show();
         ArrayAdapter<String> adapter;
         try {
@@ -359,12 +363,15 @@ public class Osmo4 extends Activity implements GpacCallback {
         }
     }
 
+    private String currentURL;
+
     private void openURLasync(final String url) {
         service.execute(new Runnable() {
 
             @Override
             public void run() {
                 mGLView.connect(url);
+                currentURL = url;
                 runOnUiThread(new Runnable() {
 
                     @Override
@@ -402,24 +409,51 @@ public class Osmo4 extends Activity implements GpacCallback {
             case R.id.showVirtualKeyboard:
                 showKeyboard(true);
                 return true;
-            case R.id.about: {
-                AlertDialog.Builder builder = new AlertDialog.Builder(Osmo4.this);
-                builder.setTitle(R.string.about);
-                builder.setMessage(R.string.aboutDialog);
-                builder.setCancelable(true);
-                builder.setPositiveButton(OK_BUTTON, new OnClickListener() {
+            case R.id.setAsStartupFile: {
+                AlertDialog.Builder b = new AlertDialog.Builder(this);
+                b.setTitle(R.string.setAsStartupFileTitle);
+                if (currentURL != null) {
+                    b.setMessage(getResources().getString(R.string.setAsStartupFileMessage, currentURL));
+                    b.setPositiveButton(R.string.setAsStartupFileYes, new OnClickListener() {
+
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                            mGLView.setGpacPreference(CFG_STARTUP_CATEGORY, CFG_STARTUP_NAME, currentURL);
+                        }
+                    });
+                } else {
+                    b.setMessage(getResources().getString(R.string.setAsStartupFileMessageNoURL));
+                }
+                b.setNegativeButton(R.string.setAsStartupFileNo, new OnClickListener() {
 
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        dialog.cancel();
+                        dialog.dismiss();
                     }
                 });
-                builder.create().show();
+                b.setNeutralButton(R.string.setAsStartupFileNull, new OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        mGLView.setGpacPreference(CFG_STARTUP_CATEGORY, CFG_STARTUP_NAME, null);
+                    }
+                });
+                b.show();
+                return true;
+            }
+            case R.id.about: {
+                Dialog d = new Dialog(this);
+                d.setTitle(R.string.aboutTitle);
+                d.setCancelable(true);
+                d.setContentView(R.layout.about_dialog);
+                d.show();
             }
                 return true;
             case R.id.quit:
                 this.finish();
-                // quit();
+                mGLView.destroy();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -539,7 +573,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                     @Override
                     public void run() {
-                        setTitle(msg);
+                        startupProgress.setMessage(msg);
                     }
                 });
                 Log.i(LOG_OSMO_TAG, "Copying resource " + ids[i] + " to " //$NON-NLS-1$//$NON-NLS-2$
@@ -565,7 +599,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                     @Override
                     public void run() {
-                        setProgress(percent);
+                        startupProgress.setIndeterminate(false);
+                        startupProgress.setProgress(percent);
                     }
                 });
             } catch (IOException e) {
@@ -614,6 +649,8 @@ public class Osmo4 extends Activity implements GpacCallback {
                 displayMessage(errorsMsg.toString(), "Errors while copying modules !", GF_Err.GF_IO_ERR.value); //$NON-NLS-1$
         }
         Log.i(LOG_OSMO_TAG, "Done loading all modules, took " + (System.currentTimeMillis() - start) + "ms."); //$NON-NLS-1$ //$NON-NLS-2$
+        startupProgress.setProgress(100);
+        startupProgress.setIndeterminate(true);
         runOnUiThread(new Runnable() {
 
             @Override
@@ -746,14 +783,8 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     @Override
     public void onGPACReady() {
+        startupProgress.dismiss();
         Log.i(LOG_OSMO_TAG, "GPAC is ready"); //$NON-NLS-1$
-        runOnUiThread(new Runnable() {
-
-            @Override
-            public void run() {
-                setProgress(10000);
-            }
-        });
     }
 
     /**
@@ -761,6 +792,7 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     @Override
     public void onGPACError(final Throwable e) {
+        startupProgress.dismiss();
         Log.e(LOG_OSMO_TAG, "GPAC Error", e); //$NON-NLS-1$
         runOnUiThread(new Runnable() {
 
@@ -831,33 +863,4 @@ public class Osmo4 extends Activity implements GpacCallback {
             mgr.hideSoftInputFromInputMethod(mGLView.getWindowToken(), 0);
 
     }
-
-    // /**
-    // * @see com.artemis.Osmo4.GpacCallback#onGPACAuthorization(java.lang.String, java.lang.String, java.lang.String)
-    // */
-    // @Override
-    // public String onGPACAuthorization(String siteURL, String userName, String password) {
-    // AlertDialog.Builder builder = new AlertDialog.Builder(Osmo4.this);
-    // View v = getLayoutInflater().inflate(R.layout.auth_requested, null, false);
-    // builder.setCancelable(true).setView(v).setTitle(siteURL);
-    // final Object lock = new Object();
-    // builder.setPositiveButton(OK_BUTTON, new OnClickListener() {
-    //
-    // @Override
-    // public void onClick(DialogInterface dialog, int which) {
-    // getResources().get
-    // R.id.passwordPrompt
-    //
-    // }
-    // });
-    // runOnUiThread(new Runnable() {
-    //            
-    // @Override
-    // public void run() {
-    // // TODO Auto-generated method stub
-    //
-    // }
-    // });sm
-    // return null;
-    // }
 }

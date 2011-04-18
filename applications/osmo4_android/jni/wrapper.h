@@ -206,6 +206,7 @@ class CNativeWrapper{
 		void onMouseMove(float x, float y);
 		void onKeyPress(int keycode, int rawkeycode, int up, int flag, int unicode);
 		void translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt);
+                void setGpacPreference( const char * category, const char * name, const char * value);
 	public:
 		int MessageBox(const char* msg, const char* title, GF_Err status);
 		int Quit(int code);
