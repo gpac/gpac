@@ -56,6 +56,9 @@
 
 
 /*include FFMPEG APIs*/
+#ifdef _WIN32_WCE
+#define inline	__inline
+#endif
 
 #ifdef FFMPEG_OLD_HEADERS
 #include <ffmpeg/avformat.h>
