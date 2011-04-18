@@ -348,6 +348,7 @@ function new_widget_control(widget)
 	widget.visible = true;
   
   ctrl.on_close = function() {
+  	this.inline.url[0] = '';
   	this.widget.widget_control = null;  
 		if (this.widget.discardable) widget_remove(this.widget);
 		else widget_close(this.widget, 0);
