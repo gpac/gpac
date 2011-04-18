@@ -72,6 +72,22 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private String[] m_modules_list;
 
+    private boolean shouldDeleteGpacConfig = false;
+
+    /**
+     * @return the shouldDeleteGpacConfig
+     */
+    public synchronized boolean isShouldDeleteGpacConfig() {
+        return shouldDeleteGpacConfig;
+    }
+
+    /**
+     * @param shouldDeleteGpacConfig the shouldDeleteGpacConfig to set
+     */
+    public synchronized void setShouldDeleteGpacConfig(boolean shouldDeleteGpacConfig) {
+        this.shouldDeleteGpacConfig = shouldDeleteGpacConfig;
+    }
+
     private final static String CFG_STARTUP_CATEGORY = "General"; //$NON-NLS-1$
 
     private final static String CFG_STARTUP_NAME = "StartupFile"; //$NON-NLS-1$
@@ -88,8 +104,6 @@ public class Osmo4 extends Activity implements GpacCallback {
     public final static int PICK_FILE_REQUEST = 1;
 
     private final static String LOG_OSMO_TAG = "Osmo4"; //$NON-NLS-1$
-
-    private final static String OK_BUTTON = "OK"; //$NON-NLS-1$
 
     /**
      * List of all extensions recognized by Osmo
@@ -443,6 +457,29 @@ public class Osmo4 extends Activity implements GpacCallback {
                 b.show();
                 return true;
             }
+            case R.id.resetGpacConfig: {
+                AlertDialog.Builder b = new AlertDialog.Builder(this);
+                b.setCancelable(true);
+                b.setTitle(R.string.resetGpacConfig);
+                b.setMessage(R.string.resetGpacConfigMessage);
+                b.setNegativeButton(R.string.cancel_button, new OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+                b.setPositiveButton(R.string.ok_button, new OnClickListener() {
+
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        setShouldDeleteGpacConfig(true);
+                    }
+                });
+                b.show();
+                return true;
+            }
             case R.id.about: {
                 Dialog d = new Dialog(this);
                 d.setTitle(R.string.aboutTitle);
@@ -466,7 +503,10 @@ public class Osmo4 extends Activity implements GpacCallback {
 
             @Override
             public void run() {
-                Osmo4.this.setTitle(Osmo4.this.getResources().getText(R.string.cleaningCache));
+                startupProgress.setTitle(R.string.cleaningCache);
+                startupProgress.setProgress(0);
+                startupProgress.setIndeterminate(false);
+                startupProgress.show();
             }
         });
         service.submit(new Runnable() {
@@ -491,8 +531,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                         @Override
                         public void run() {
-                            Osmo4.this.setProgress(100 * percent);
-
+                            startupProgress.setProgress(percent);
                         }
                     });
                 }
@@ -500,7 +539,9 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                     @Override
                     public void run() {
-                        Osmo4.this.setTitle(oldTitle);
+                        startupProgress.setProgress(100);
+                        startupProgress.setTitle(oldTitle);
+                        startupProgress.dismiss();
                     }
                 });
             }
@@ -508,9 +549,24 @@ public class Osmo4 extends Activity implements GpacCallback {
         return true;
     }
 
+    private void deleteConfigIfNeeded() {
+        if (isShouldDeleteGpacConfig()) {
+            Log.i(LOG_OSMO_TAG, "Deleting GPAC config file..."); //$NON-NLS-1$
+            File f = new File(Osmo4Renderer.GPAC_CFG_DIR, "GPAC.cfg"); //$NON-NLS-1$
+            if (f.exists() && !f.delete()) {
+                Log.e(LOG_OSMO_TAG, "Failed to delete " + f.getAbsolutePath()); //$NON-NLS-1$
+            }
+            f = new File(Osmo4Renderer.GPAC_CACHE_DIR, LAST_REV_FILE);
+            if (f.exists() && !f.delete()) {
+                Log.e(LOG_OSMO_TAG, "Failed to delete " + f.getAbsolutePath()); //$NON-NLS-1$
+            }
+        }
+    }
+
     // ---------------------------------------
     @Override
     protected void onDestroy() {
+        deleteConfigIfNeeded();
         service.shutdown();
         logger.onDestroy();
         synchronized (this) {
@@ -521,8 +577,12 @@ public class Osmo4 extends Activity implements GpacCallback {
         mGLView.disconnect();
         Log.d(LOG_OSMO_TAG, "Destroying GPAC instance..."); //$NON-NLS-1$
         mGLView.destroy();
+        // Deleteing is done two times if GPAC fails to shutdown by crashing...
+        deleteConfigIfNeeded();
         super.onDestroy();
     }
+
+    private final static String LAST_REV_FILE = "lastRev.txt"; //$NON-NLS-1$
 
     // ---------------------------------------
     private void loadAllModules() {
@@ -531,7 +591,7 @@ public class Osmo4 extends Activity implements GpacCallback {
         byte buffer[] = new byte[1024];
         int[] ids = getAllRawResources();
         String currentRevision = "$Revision$"; //$NON-NLS-1$
-        File revisionFile = new File(Osmo4Renderer.GPAC_CACHE_DIR, "lastRev.txt"); //$NON-NLS-1$
+        File revisionFile = new File(Osmo4Renderer.GPAC_CACHE_DIR, LAST_REV_FILE);
         boolean fastStartup = false;
         // We check if we already copied all the modules once without error...
         if (revisionFile.exists() && revisionFile.canRead()) {
@@ -573,6 +633,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                     @Override
                     public void run() {
+                        startupProgress.setIndeterminate(false);
                         startupProgress.setMessage(msg);
                     }
                 });
@@ -599,7 +660,6 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                     @Override
                     public void run() {
-                        startupProgress.setIndeterminate(false);
                         startupProgress.setProgress(percent);
                     }
                 });
@@ -645,8 +705,10 @@ public class Osmo4 extends Activity implements GpacCallback {
                     }
             }
         } else {
-            if (!noErrors)
+            if (!noErrors) {
+                setShouldDeleteGpacConfig(true);
                 displayMessage(errorsMsg.toString(), "Errors while copying modules !", GF_Err.GF_IO_ERR.value); //$NON-NLS-1$
+            }
         }
         Log.i(LOG_OSMO_TAG, "Done loading all modules, took " + (System.currentTimeMillis() - start) + "ms."); //$NON-NLS-1$ //$NON-NLS-2$
         startupProgress.setProgress(100);
@@ -729,7 +791,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                     sb.append(message);
                     builder.setMessage(sb.toString());
                     builder.setCancelable(true);
-                    builder.setPositiveButton(OK_BUTTON, new OnClickListener() {
+                    builder.setPositiveButton(R.string.ok_button, new OnClickListener() {
 
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
@@ -798,6 +860,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 
             @Override
             public void run() {
+                // In such case, we force GPAC Configuration file deletion
+                setShouldDeleteGpacConfig(true);
                 StringBuilder sb = new StringBuilder();
                 sb.append("Failed to init GPAC due to "); //$NON-NLS-1$
                 sb.append(e.getClass().getSimpleName());
@@ -810,7 +874,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                 sb.append("Revision: $Revision$"); //$NON-NLS-1$
                 builder.setMessage(sb.toString());
                 builder.setCancelable(true);
-                builder.setPositiveButton(OK_BUTTON, new OnClickListener() {
+                builder.setPositiveButton(R.string.ok_button, new OnClickListener() {
 
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -846,6 +910,15 @@ public class Osmo4 extends Activity implements GpacCallback {
                 setTitle(newCaption);
             }
         });
+    }
+
+    /**
+     * @see android.app.Activity#onStop()
+     */
+    @Override
+    protected void onStop() {
+        Log.i(LOG_OSMO_TAG, "onStop called on activity"); //$NON-NLS-1$
+        super.onStop();
     }
 
     /**

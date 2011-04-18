@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="ok_button">OK</string>
+    <string name="cancel_button">Cancel</string>
+    <string name="resetGpacConfigMessage">This will remove all GPAC settings. You have to quit the applications to apply changes. Do you
+        want to continue ?</string>
     <string name="open_file">Open file...</string>
     <string name="open_url">Open URL...</string>
     <string name="about">About...</string>
@@ -30,6 +34,7 @@
     <string name="aboutAuthors">Authors:</string>
     <string name="osmoLoading">Osmo4 is loading...</string>
     <string name="gpacLoading">Gpac is loading...</string>
+    <string name="resetGpacConfig">Reset GPAC Config</string>
     <string name="setAsStartupFile">Set as startup file...</string>
     <string name="setAsStartupFileMessage">Use %s as startup file ?</string>
     <string name="setAsStartupFileTitle">Startup file</string>
