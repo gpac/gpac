@@ -63,7 +63,7 @@ void RP_SDPFromFile(RTPClient *rtp, char *file_name, RTPStream *stream)
 	}
 
 	gf_f64_seek(_sdp, 0, SEEK_END);
-	sdp_size = gf_f64_tell(_sdp);
+	sdp_size = (u32) gf_f64_tell(_sdp);
 	gf_f64_seek(_sdp, 0, SEEK_SET);
 	sdp_buf = (char*)gf_malloc(sdp_size);
 	if (1 > fread(sdp_buf, 1, sdp_size, _sdp)){
