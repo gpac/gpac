@@ -332,22 +332,26 @@ static const char *EDEC_GetCodecName(GF_BaseDecoder *ifcg)
 	return ctx->codec_name;
 }
 
-static Bool EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, u32 ObjectType, char *decSpecInfo, u32 decSpecInfoSize, u32 PL)
+static Bool EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, GF_ESD *esd, u8 PL)
 {
+	char *dsi;
 	GF_M4ADecSpecInfo a_cfg;
 	EPOCCodec *ctx = (EPOCCodec *)ifcg->privateStack;
 
 	/*audio decs*/	
 	if (StreamType == GF_STREAM_AUDIO) {
-		switch (ObjectType) {
+		/*media type query*/
+		if (!esd) return 1;
+		dsi = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data : NULL;
+		switch (esd->decoderConfig->objectTypeIndication) {
 		/*MPEG2 aac*/
 		case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
 		case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
 		case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
 		/*MPEG4 aac*/
 		case GPAC_OTI_AUDIO_AAC_MPEG4: 
-			if (!decSpecInfoSize || !decSpecInfo) return 0;
-			if (gf_m4a_get_config(decSpecInfo, decSpecInfoSize, &a_cfg) != GF_OK) return 0;
+			if (!dsi) return 0;
+			if (gf_m4a_get_config(dsi, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg) != GF_OK) return 0;
 			switch (a_cfg.base_object_type) {
 			/*only LTP and LC supported*/
 			case GF_M4A_AAC_LC:
@@ -365,18 +369,15 @@ static Bool EDEC_CanHandleStream(GF_BaseDecoder *ifcg, u32 StreamType, u32 Objec
 			break;
 		/*non-mpeg4 codecs*/
 		case GPAC_OTI_MEDIA_GENERIC:
-			if (!decSpecInfoSize || !decSpecInfo) return 0;
-			if (decSpecInfoSize<4) return 0;
-			if (!strnicmp(decSpecInfo, "samr", 4) || !strnicmp(decSpecInfo, "amr ", 4)) {
+			if (!dsi) return 0;
+			if (esd->decoderConfig->decoderSpecificInfo->data < 4) return 0;
+			if (!strnicmp(dsi, "samr", 4) || !strnicmp(dsi, "amr ", 4)) {
 				if (ctx->caps & GF_EPOC_HAS_AMR) return 1;
 			}
-			if (!strnicmp(decSpecInfo, "sawb", 4)) {
+			if (!strnicmp(dsi, "sawb", 4)) {
 				if (ctx->caps & GF_EPOC_HAS_AMR_WB) return 1;
 			}
 			break;
-		/*cap query*/
-		case 0:
-			return 1;
 		default:
 			return 0;
 		}
