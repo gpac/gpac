@@ -10,16 +10,16 @@
  *  it under the terms of the GNU Lesser General Public License as published by
  *  the Free Software Foundation; either version 2, or (at your option)
  *  any later version.
- *   
+ *
  *  GPAC is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  *  GNU Lesser General Public License for more details.
- *   
+ *
  *  You should have received a copy of the GNU Lesser General Public
  *  License along with this library; see the file COPYING.  If not, write to
- *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
- *		
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
  */
 
 
@@ -56,7 +56,7 @@ static s32 R_V[256];
 static s32 is_init = 0;
 
 /**/
-static void yuv2rgb_init(void) 
+static void yuv2rgb_init(void)
 {
 	s32 i;
 	if (is_init) return;
@@ -131,7 +131,7 @@ static void gf_yuva_load_lines(unsigned char *dst, s32 dststride, unsigned char 
 	unsigned char *dst2 = dst + dststride;
 	unsigned char *y_src2 = y_src + y_stride;
 	unsigned char *a_src2 = a_src + y_stride;
-	
+
 	yuv2rgb_init();
 
 	hw = width / 2;
@@ -270,7 +270,7 @@ static void copy_row_bgrx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32
 {
 	u8 a, r, g, b;
 	s32 pos = 0x10000L;
-	
+
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
 			r = *src++; g = *src++; b = *src++; a = *src++;
@@ -292,7 +292,7 @@ static void copy_row_rgbx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32
 {
 	u8 a, r, g, b;
 	s32 pos = 0x10000L;
-	
+
 	while ( dst_w) {
 		while ( pos >= 0x10000L ) {
 			r = *src++; g = *src++; b = *src++; a = *src++;
@@ -314,7 +314,7 @@ static void copy_row_rgbd(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32
 {
 	u8 a, r, g, b;
 	s32 pos = 0x10000L;
-	
+
 	while ( dst_w) {
 		while ( pos >= 0x10000L ) {
 			r = *src++; g = *src++; b = *src++; a = *src++;
@@ -366,7 +366,7 @@ static void merge_row_rgb_565(u8 *src, u32 src_w, u8 *_dst, u32 dst_w, s32 h_inc
 	u32 _r, _g, _b, a, r, g, b;
 	s32 pos;
 	u16 col, *dst = (u16 *)_dst;
-	x_pitch /= 2;	
+	x_pitch /= 2;
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
@@ -445,7 +445,7 @@ static void merge_row_bgrx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 {
 	u32 _r, _g, _b, a, r, g, b, col;
 	s32 pos;
-	
+
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
@@ -477,7 +477,7 @@ static void merge_row_rgbx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 {
 	u32 _r, _g, _b, a, r, g, b, col;
 	s32 pos;
-	
+
 	pos = 0x10000;
 	while (dst_w) {
 		while ( pos >= 0x10000L ) {
@@ -764,11 +764,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		break;
 	case GF_PIXEL_RGB_24:
 	case GF_PIXEL_RGBS:
-#ifdef GPAC_ANDROID
-		load_line = load_line_bgr_24;
-#else
 		load_line = load_line_rgb_24;
-#endif
 		break;
 	case GF_PIXEL_BGR_24:
 		load_line = load_line_bgr_24;
@@ -850,10 +846,10 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	default:
 		return GF_NOT_SUPPORTED;
 	}
-	/*x_pitch 0 means linear framebuffer*/	
+	/*x_pitch 0 means linear framebuffer*/
 	if (!dst_x_pitch) dst_x_pitch = dst_bpp;
 
-	
+
 	src_w = src_wnd ? src_wnd->w : src->width;
 	src_h = src_wnd ? src_wnd->h : src->height;
 	dst_w = dst_wnd ? dst_wnd->w : dst->width;
@@ -880,7 +876,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 
 	dst_w_size = dst_bpp*dst_w;
 
-	/*small opt here: if we need to fetch data from destination, and if destination is 
+	/*small opt here: if we need to fetch data from destination, and if destination is
 	hardware memory, we work on a copy of the destination line*/
 	if (has_alpha && dst->is_hardware_memory)
 		dst_temp_bits = (u8 *) gf_malloc(sizeof(u8) * dst_bpp * dst_w);
@@ -930,16 +926,16 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 					}
 					yuv_init = 1;
 					rows = flip ? tmp + src_w * 4 : tmp;
-						
+
 					if (cmat) {
 						for (i=0; i<2*src_w; i++) {
-							u32 idx = 4*i; 
+							u32 idx = 4*i;
 							gf_cmx_apply_argb(cmat, &tmp[idx+3], &tmp[idx], &tmp[idx+1], &tmp[idx+2]);
 						}
 					}
 					if (key) {
 						for (i=0; i<2*src_w; i++) {
-							u32 idx = 4*i; 
+							u32 idx = 4*i;
 							s32 thres, v;
 							v = tmp[idx]-kr; thres = ABS(v);
 							v = tmp[idx+1]-kg; thres += ABS(v);
@@ -961,13 +957,13 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 				rows = tmp;
 				if (cmat) {
 					for (i=0; i<src_w; i++) {
-						u32 idx = 4*i; 
+						u32 idx = 4*i;
 						gf_cmx_apply_argb(cmat, &tmp[idx+3], &tmp[idx], &tmp[idx+1], &tmp[idx+2]);
 					}
 				}
 				if (key) {
 					for (i=0; i<src_w; i++) {
-						u32 idx = 4*i; 
+						u32 idx = 4*i;
 						s32 thres;
 						thres = (255 + (tmp[idx]-kr)) % 255;
 						thres += (255 + (tmp[idx+1]-kg)) % 255;
@@ -995,7 +991,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		} else {
 			memcpy(dst_bits, dst_bits_prev, dst_w_size);
 		}
-		
+
 		pos_y += inc_y;
 		prev_row = src_row;
 
@@ -1038,7 +1034,7 @@ void gf_cmx_set_all(GF_ColorMatrix *_this, Fixed *coefs)
 }
 
 GF_EXPORT
-void gf_cmx_set(GF_ColorMatrix *_this, 
+void gf_cmx_set(GF_ColorMatrix *_this,
 				 Fixed c1, Fixed c2, Fixed c3, Fixed c4, Fixed c5,
 				 Fixed c6, Fixed c7, Fixed c8, Fixed c9, Fixed c10,
 				 Fixed c11, Fixed c12, Fixed c13, Fixed c14, Fixed c15,
@@ -1076,19 +1072,19 @@ void gf_cmx_multiply(GF_ColorMatrix *_this, GF_ColorMatrix *w)
 	res[2] = gf_mulfix(_this->m[0], w->m[2]) + gf_mulfix(_this->m[1], w->m[7]) + gf_mulfix(_this->m[2], w->m[12]) + gf_mulfix(_this->m[3], w->m[17]);
 	res[3] = gf_mulfix(_this->m[0], w->m[3]) + gf_mulfix(_this->m[1], w->m[8]) + gf_mulfix(_this->m[2], w->m[13]) + gf_mulfix(_this->m[3], w->m[18]);
 	res[4] = gf_mulfix(_this->m[0], w->m[4]) + gf_mulfix(_this->m[1], w->m[9]) + gf_mulfix(_this->m[2], w->m[14]) + gf_mulfix(_this->m[3], w->m[19]) + _this->m[4];
-	
+
 	res[5] = gf_mulfix(_this->m[5], w->m[0]) + gf_mulfix(_this->m[6], w->m[5]) + gf_mulfix(_this->m[7], w->m[10]) + gf_mulfix(_this->m[8], w->m[15]);
 	res[6] = gf_mulfix(_this->m[5], w->m[1]) + gf_mulfix(_this->m[6], w->m[6]) + gf_mulfix(_this->m[7], w->m[11]) + gf_mulfix(_this->m[8], w->m[16]);
 	res[7] = gf_mulfix(_this->m[5], w->m[2]) + gf_mulfix(_this->m[6], w->m[7]) + gf_mulfix(_this->m[7], w->m[12]) + gf_mulfix(_this->m[8], w->m[17]);
 	res[8] = gf_mulfix(_this->m[5], w->m[3]) + gf_mulfix(_this->m[6], w->m[8]) + gf_mulfix(_this->m[7], w->m[13]) + gf_mulfix(_this->m[8], w->m[18]);
 	res[9] = gf_mulfix(_this->m[5], w->m[4]) + gf_mulfix(_this->m[6], w->m[9]) + gf_mulfix(_this->m[7], w->m[14]) + gf_mulfix(_this->m[8], w->m[19]) + _this->m[9];
-	
+
 	res[10] = gf_mulfix(_this->m[10], w->m[0]) + gf_mulfix(_this->m[11], w->m[5]) + gf_mulfix(_this->m[12], w->m[10]) + gf_mulfix(_this->m[13], w->m[15]);
 	res[11] = gf_mulfix(_this->m[10], w->m[1]) + gf_mulfix(_this->m[11], w->m[6]) + gf_mulfix(_this->m[12], w->m[11]) + gf_mulfix(_this->m[13], w->m[16]);
 	res[12] = gf_mulfix(_this->m[10], w->m[2]) + gf_mulfix(_this->m[11], w->m[7]) + gf_mulfix(_this->m[12], w->m[12]) + gf_mulfix(_this->m[13], w->m[17]);
 	res[13] = gf_mulfix(_this->m[10], w->m[3]) + gf_mulfix(_this->m[11], w->m[8]) + gf_mulfix(_this->m[12], w->m[13]) + gf_mulfix(_this->m[13], w->m[18]);
 	res[14] = gf_mulfix(_this->m[10], w->m[4]) + gf_mulfix(_this->m[11], w->m[9]) + gf_mulfix(_this->m[12], w->m[14]) + gf_mulfix(_this->m[13], w->m[19]) + _this->m[14];
-	
+
 	res[15] = gf_mulfix(_this->m[15], w->m[0]) + gf_mulfix(_this->m[16], w->m[5]) + gf_mulfix(_this->m[17], w->m[10]) + gf_mulfix(_this->m[18], w->m[15]);
 	res[16] = gf_mulfix(_this->m[15], w->m[1]) + gf_mulfix(_this->m[16], w->m[6]) + gf_mulfix(_this->m[17], w->m[11]) + gf_mulfix(_this->m[18], w->m[16]);
 	res[17] = gf_mulfix(_this->m[15], w->m[2]) + gf_mulfix(_this->m[16], w->m[7]) + gf_mulfix(_this->m[17], w->m[12]) + gf_mulfix(_this->m[18], w->m[17]);
