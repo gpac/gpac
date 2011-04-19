@@ -46,13 +46,13 @@ enum {
 
 int SVCDecoder_init(void **PlayerStruct);
 int SVCDecoder_close(void *PlayerStruct);
-int decodeNAL(void *PlayerStruct, unsigned char* nal, int nal_length, OPENSVCFRAME *Frame, int DqIdMax); 
+//TODO
+int decodeNAL(void *PlayerStruct, unsigned char* nal, int nal_length, OPENSVCFRAME *Frame, int *LayerCommand); 
 /*ID vient du NAL type 14 et 20*/
-int setLayer(int num_layer);
+//TODO
+void SetCommandLayer(int *Command, int DqIdMax, int CurrDqId, int *TemporalCom, int TemporalId);
 void ParseAuPlayers(void *PlayerStruct, const unsigned char *buf, int buf_size, int nal_length_size, int is_avc);
 int GetDqIdMax(const unsigned char *buf, int buf_size, int nal_length_size, int *DqidTable, int is_avc);
-int Geth264NalSize(const unsigned char *buf, int buf_size, int *bufindex);
-void UpdateLayer(int *DqIdTable, int *CurrDqId, int MaxDqId, int Command);
 
 
 typedef struct
@@ -72,14 +72,16 @@ typedef struct
 	int CurrDqId;
 	int MaxDqId;
 	int DqIdTable [8];
+    int TemporalId;
+    int TemporalCom;
 } OSVCDec;
-
 
 static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	u32 i, count;
 	s32 res;
 	OPENSVCFRAME Picture;
+	int Layer[4];
 	OSVCDec *ctx = (OSVCDec*) ifcg->privateStack;
 
 	/*not supported in this version*/
@@ -96,6 +98,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 		/*decode all NALUs*/
 		count = gf_list_count(cfg->sequenceParameterSets);
+        SetCommandLayer(Layer, 255, 0, &i, 0);//bufindex can be reset without pb
 		for (i=0; i<count; i++) {
 			u32 w, h, par_n, par_d;
 			GF_AVCConfigSlot *slc = gf_list_get(cfg->sequenceParameterSets, i);
@@ -110,7 +113,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 						ctx->pixel_ar = (par_n<<16) || par_d;
 				}
 			}
-			res = decodeNAL(ctx->codec, slc->data, slc->size, &Picture, 0);
+			res = decodeNAL(ctx->codec, slc->data, slc->size, &Picture, Layer);
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding SPS %d\n", res));
 			}
@@ -119,7 +122,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		count = gf_list_count(cfg->pictureParameterSets);
 		for (i=0; i<count; i++) {
 			GF_AVCConfigSlot *slc = gf_list_get(cfg->pictureParameterSets, i);
-			res = decodeNAL(ctx->codec, slc->data, slc->size, &Picture, 0);
+			res = decodeNAL(ctx->codec, slc->data, slc->size, &Picture, Layer);
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding PPS %d\n", res));
 			}
@@ -132,7 +135,7 @@ static GF_Err OSVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	}
 	ctx->stride = ctx->width + 32;
 	ctx->layer = 0;
-	setLayer(ctx->layer);
+	ctx->CurrDqId = ctx->layer;
 	ctx->out_size = ctx->stride * ctx->height * 3 / 2;
 	return GF_OK;
 }
@@ -199,12 +202,12 @@ static GF_Err OSVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		if (capability.cap.valueInt) {
 			if (ctx->layer<32) {
 				ctx->layer += 8;
-				setLayer(ctx->layer);
+				ctx->CurrDqId = ctx->layer;
 			}
 		} else {
 			if (ctx->layer>=8) {
 				ctx->layer -= 8;
-				setLayer(ctx->layer);
+                ctx->CurrDqId = ctx->layer;
 			}
 		}
 		return GF_OK;
@@ -223,6 +226,7 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 
 	s32 got_pic;
 	OPENSVCFRAME pic;
+    int Layer[4];
 	OSVCDec *ctx = (OSVCDec*) ifcg->privateStack;
 
 	if (!ES_ID || (ES_ID!=ctx->ES_ID) || !ctx->codec) {
@@ -245,16 +249,13 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 				//AVC stream in a h264 file 
 				ctx->MaxDqId = 0;
 			} else {
-//				ChangeOfLayer(ctx->MaxDqId, 2);
-//				ParseCmd(h); //mplayer pb with slice. Slice on the upper layer, end_of_slice is equal to 1 in the slice header of the 5. so no switch Layer
-//				
 				//Firts time only, we parse the first AU to know the file configuration
 				//does not need to ba called again ever after, unless SPS or PPS changed
-				UpdateLayer(ctx->DqIdTable, &ctx->CurrDqId, ctx->MaxDqId, 0);
 				ParseAuPlayers(ctx->codec, inBuffer, inBufferLength, ctx->nalu_size_length, 1);
 			}
 			ctx->InitParseAU = 1;
 		}
+        SetCommandLayer(Layer, ctx->MaxDqId, ctx->CurrDqId, &ctx->TemporalCom, ctx->TemporalId);
 
 		while (inBufferLength) {
 			for (i=0; i<ctx->nalu_size_length; i++) {
@@ -263,9 +264,9 @@ static GF_Err OSVC_ProcessData(GF_MediaDecoder *ifcg,
 			ptr += ctx->nalu_size_length;
 
 			if (!got_pic) 
-				got_pic = decodeNAL(ctx->codec, ptr, nalu_size, &pic, ctx->MaxDqId);
+				got_pic = decodeNAL(ctx->codec, ptr, nalu_size, &pic, Layer);
 			else
-				decodeNAL(ctx->codec, ptr, nalu_size, &pic, ctx->MaxDqId);
+				decodeNAL(ctx->codec, ptr, nalu_size, &pic, Layer);
 
 			ptr += nalu_size;
 			if (inBufferLength < nalu_size + ctx->nalu_size_length) break;
@@ -303,6 +304,26 @@ static Bool OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
 
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_AVC:
+		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+			Bool is_svc = 0;
+			u32 i, count;
+			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+			if (!cfg) return 0;
+
+			/*decode all NALUs*/
+			count = gf_list_count(cfg->sequenceParameterSets);
+			for (i=0; i<count; i++) {
+				GF_AVCConfigSlot *slc = gf_list_get(cfg->sequenceParameterSets, i);
+				u8 nal_type = slc->data[0] & 0x1F;
+
+				if (nal_type==GF_AVC_NALU_SVC_SUBSEQ_PARAM) {
+					is_svc = 1;
+					break;
+				}
+			}
+			gf_odf_avc_cfg_del(cfg);
+			return is_svc;
+		}
 		return 1;
 	}
 	return 0;
