@@ -47,6 +47,9 @@
 
 #define PI 3.1415926535897932f
 
+/* Uncomment the next line if you want to debug */
+/* #define DROID_EXTREME_LOGS */
+
 typedef struct
 {
 	u32 width, height;
@@ -176,7 +179,9 @@ void resizeWindow(AndroidContext *rc)
 
 void drawGLScene(AndroidContext *rc)
 {
+#ifdef DROID_EXTREME_LOGS
         LOG( ANDROID_LOG_VERBOSE, TAG, "drawGLScene : start");
+#endif /* DROID_EXTREME_LOGS */
 	GLfloat vertices[4][3];
 	GLfloat texcoord[4][2];
 //	int i, j;
@@ -270,7 +275,9 @@ void drawGLScene(AndroidContext *rc)
 #ifdef GLES_FRAMEBUFFER_TEST
 	glBindFramebufferOES(GL_FRAMEBUFFER_OES, rc->framebuff);
 #endif
+#ifdef DROID_EXTREME_LOGS
     LOG( ANDROID_LOG_VERBOSE, TAG, "drawGLScene : end");
+#endif /* DROID_EXTREME_LOGS */
 }
 
 int releaseTexture(AndroidContext *rc)
@@ -482,13 +489,17 @@ static void droid_Shutdown(GF_VideoOutput *dr)
 static GF_Err droid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
 	RAWCTX;
+#ifdef DROID_EXTREME_LOGS
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Flush\n");
+#endif /* DROID_EXTREME_LOGS */
 
 #ifndef GLES_FRAMEBUFFER_TEST
 	if ( rc->out_3d_type == 0 )
 #endif
 		drawGLScene(rc);
+#ifdef DROID_EXTREME_LOGS
         LOG( ANDROID_LOG_VERBOSE, TAG, "Android Flush DONE");
+#endif /* DROID_EXTREME_LOGS */
 	return GF_OK;
 }
 
@@ -498,8 +509,9 @@ static GF_Err droid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool
 	int ret;
 	void * pixels;
 	int i,j,t;
-
+#ifdef DROID_EXTREME_LOGS
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android LockBackBuffer: %d", do_lock);
+#endif /* DROID_EXTREME_LOGS */
 	if (do_lock) {
 		if (!vi) return GF_BAD_PARAM;
 
@@ -526,7 +538,9 @@ static GF_Err droid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *vi, Bool
 			//			GL_RGBA, GL_UNSIGNED_BYTE, rc->locked_data );
 		}
 	}
+#ifdef DROID_EXTREME_LOGS
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android LockBackBuffer DONE");
+#endif /* DROID_EXTREME_LOGS */
 	return GF_OK;
 }
 

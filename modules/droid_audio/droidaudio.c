@@ -73,6 +73,9 @@ static jmethodID mFlush;
 #define LOGI(X, Y)  __android_log_print(ANDROID_LOG_INFO, TAG, X, Y)
 
 
+/* Uncomment the next line if you want to debug */
+/* #define DROID_EXTREME_LOGS */
+
 typedef struct
 {
 	JNIEnv* env;
@@ -216,7 +219,9 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 	void* pBuffer;
         if (!env)
           return;
+#ifdef DROID_EXTREME_LOGS
         LOGV("[Android Audio] WAV_WriteAudio() : entering",ctx->sampleRateInHz);
+#endif /* DROID_EXTREME_LOGS */
 	pBuffer = (*env)->GetPrimitiveArrayCritical(env, ctx->buff, NULL);
 	if (pBuffer)
 	{
@@ -231,7 +236,9 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 	{
 		LOGV("[Android Audio] Failed to get pointer to array bytes = %p", pBuffer);
 	}
+#ifdef DROID_EXTREME_LOGS
 	LOGV("[Android Audio] WAV_WriteAudio() : done",ctx->sampleRateInHz);
+#endif /* DROID_EXTREME_LOGS */
 }
 
 /* Called by the main thread */
