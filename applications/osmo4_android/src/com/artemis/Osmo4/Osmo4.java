@@ -20,7 +20,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
-import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -143,14 +142,13 @@ public class Osmo4 extends Activity implements GpacCallback {
             startupProgress.setCancelable(false);
         }
         startupProgress.setMessage(getResources().getText(R.string.osmoLoading));
-        startupProgress.setTitle(null);
-        startupProgress.setIndeterminate(true);
+        startupProgress.setTitle(R.string.osmoLoading);
         startupProgress.show();
         if (mGLView != null) {
             setContentView(mGLView);
             if (toOpen != null)
                 openURLasync(toOpen);
-            // Ok, it means activity has already been started
+            // OK, it means activity has already been started
             return;
         }
         mGLView = new Osmo4GLSurfaceView(Osmo4.this);
@@ -163,6 +161,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                     @Override
                     public void run() {
+                        startupProgress.setIndeterminate(true);
                         startupProgress.setMessage(getResources().getText(R.string.gpacLoading));
                         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
                         WakeLock wl = pm.newWakeLock(PowerManager.SCREEN_DIM_WAKE_LOCK, LOG_OSMO_TAG);
@@ -751,9 +750,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     private String lastDisplayedMessage;
 
     private void displayPopup(CharSequence message, CharSequence title) {
-        final String fullMsg = MessageFormat.format(String.valueOf(getResources().getText(R.string.displayPopupFormat)),
-                                                    title,
-                                                    message);
+        final String fullMsg = getResources().getString(R.string.displayPopupFormat, title, message);
         synchronized (this) {
             if (fullMsg.equals(lastDisplayedMessage))
                 return;
