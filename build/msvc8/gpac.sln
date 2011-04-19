@@ -203,11 +203,6 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ui_rec", "ui_rec.vcproj", "
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp42ts", "..\..\applications\testapps\mp42ts\mp42ts.vcproj", "{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "opensvc_dec", "opensvc.vcproj", "{073E2381-4FDE-4C4D-B217-C489EB17C48B}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
@@ -218,17 +213,17 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mpd_in", "mpd_in.vcproj", "
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libplayer", "..\..\modules\libplayer\libplayer.vcproj", "{109C4F31-781F-4C9E-A160-E688A83F9387}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
-	EndProjectSection
-EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "amr_dec", "amr_dec.vcproj", "{5ED5A1C8-DB34-4089-8E53-EFB225754D02}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "amr_float_dec", "amr_float_dec.vcproj", "{5D3983BF-143F-49C3-9284-89778282AEFE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp42ts", "..\..\applications\mp42ts\mp42ts.vcproj", "{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
@@ -559,12 +554,6 @@ Global
 		{073E2381-4FDE-4C4D-A117-C489DB17C48C}.Release|Smartphone 2003 (ARMV4).Deploy.0 = Release|Smartphone 2003 (ARMV4)
 		{073E2381-4FDE-4C4D-A117-C489DB17C48C}.Release|Win32.ActiveCfg = Release|Win32
 		{073E2381-4FDE-4C4D-A117-C489DB17C48C}.Release|Win32.Build.0 = Release|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Win32.ActiveCfg = Debug|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Win32.Build.0 = Debug|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Win32.ActiveCfg = Release|Win32
-		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Win32.Build.0 = Release|Win32
 		{073E2381-4FDE-4C4D-B217-C489EB17C48B}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
 		{073E2381-4FDE-4C4D-B217-C489EB17C48B}.Debug|Win32.ActiveCfg = Debug|Win32
 		{073E2381-4FDE-4C4D-B217-C489EB17C48B}.Debug|Win32.Build.0 = Debug|Win32
@@ -577,16 +566,6 @@ Global
 		{B1AEFA90-318F-459C-96EE-B4DFF3318B7B}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
 		{B1AEFA90-318F-459C-96EE-B4DFF3318B7B}.Release|Win32.ActiveCfg = Release|Win32
 		{B1AEFA90-318F-459C-96EE-B4DFF3318B7B}.Release|Win32.Build.0 = Release|Win32
-		{109C4F31-781F-4C9E-A160-E688A83F9387}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
-		{109C4F31-781F-4C9E-A160-E688A83F9387}.Debug|Smartphone 2003 (ARMV4).Build.0 = Debug|Smartphone 2003 (ARMV4)
-		{109C4F31-781F-4C9E-A160-E688A83F9387}.Debug|Smartphone 2003 (ARMV4).Deploy.0 = Debug|Smartphone 2003 (ARMV4)
-		{109C4F31-781F-4C9E-A160-E688A83F9387}.Debug|Win32.ActiveCfg = Debug|Win32
-		{109C4F31-781F-4C9E-A160-E688A83F9387}.Debug|Win32.Build.0 = Debug|Win32
-		{109C4F31-781F-4C9E-A160-E688A83F9387}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
-		{109C4F31-781F-4C9E-A160-E688A83F9387}.Release|Smartphone 2003 (ARMV4).Build.0 = Release|Smartphone 2003 (ARMV4)
-		{109C4F31-781F-4C9E-A160-E688A83F9387}.Release|Smartphone 2003 (ARMV4).Deploy.0 = Release|Smartphone 2003 (ARMV4)
-		{109C4F31-781F-4C9E-A160-E688A83F9387}.Release|Win32.ActiveCfg = Release|Win32
-		{109C4F31-781F-4C9E-A160-E688A83F9387}.Release|Win32.Build.0 = Release|Win32
 		{5ED5A1C8-DB34-4089-8E53-EFB225754D02}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
 		{5ED5A1C8-DB34-4089-8E53-EFB225754D02}.Debug|Smartphone 2003 (ARMV4).Build.0 = Debug|Smartphone 2003 (ARMV4)
 		{5ED5A1C8-DB34-4089-8E53-EFB225754D02}.Debug|Smartphone 2003 (ARMV4).Deploy.0 = Debug|Smartphone 2003 (ARMV4)
@@ -607,6 +586,12 @@ Global
 		{5D3983BF-143F-49C3-9284-89778282AEFE}.Release|Smartphone 2003 (ARMV4).Deploy.0 = Release|Smartphone 2003 (ARMV4)
 		{5D3983BF-143F-49C3-9284-89778282AEFE}.Release|Win32.ActiveCfg = Release|Win32
 		{5D3983BF-143F-49C3-9284-89778282AEFE}.Release|Win32.Build.0 = Release|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Debug|Win32.Build.0 = Debug|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Win32.ActiveCfg = Release|Win32
+		{F728CC74-A7D0-43D2-8A28-05CE9F2EF0D0}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
