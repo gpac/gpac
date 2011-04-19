@@ -468,7 +468,7 @@ CFLAGS="$CFLAGS -no-cpp-precomp -pipe -fomit-frame-pointer"
 CFLAGS="$CFLAGS -no-cpp-precomp -pipe -fomit-frame-pointer -mdynamic-no-pic -fno-common"
 ;;
 4.*) 
-CFLAGS="$CFLAGS -no-cpp-precomp -pipe -fomit-frame-pointer -fno-common"
+CFLAGS="$CFLAGS -pipe -fomit-frame-pointer -fno-common"
 ;;
 esac
 ;;
@@ -1740,7 +1740,7 @@ echo "#define GPAC_CONFIGURATION \"$GPAC_CONFIGURATION\"" >> $TMPH
 
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
 
-if which svnversion 2>/dev/null
+if which svnversion >/dev/null
 then
 	revision=`svnversion`
 	echo "#define GPAC_SVN_REVISION	\"$revision\"" > $source_path/include/gpac/version.h
