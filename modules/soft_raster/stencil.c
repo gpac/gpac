@@ -730,10 +730,8 @@ EVGStencil *evg_texture_brush()
 }
 
 
-/*by casting to u32 the input ARGB (BGRA on little endian) we get back to 0xAARRGGBB format on all machines*/
 u32 get_pix_argb(char *pix) { return GF_COL_ARGB(*(pix+3) & 0xFF, *(pix+2) & 0xFF, *(pix+1) & 0xFF, *pix & 0xFF); }
 u32 get_pix_rgba(char *pix) { return GF_COL_ARGB(*(pix+3) & 0xFF, *pix & 0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF); }
-/*same as argb: xxrgb, with indianness support*/
 u32 get_pix_rgb_32(char *pix) { return GF_COL_ARGB(0xFF, *(pix+2) & 0xFF, *(pix+1) & 0xFF, *pix & 0xFF); }
 u32 get_pix_rgb_24(char *pix) { return GF_COL_ARGB(0xFF, *pix & 0xFF, *(pix+1) & 0xFF, *(pix+2) & 0xFF); }
 u32 get_pix_bgr_24(char *pix) { return GF_COL_ARGB(0xFF, *(pix+2) & 0xFF, * (pix+1) & 0xFF, *pix & 0xFF); }

@@ -293,25 +293,27 @@ void evg_bgr_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf)
 	u8 spanalpha, col_a;
 	s32 i, x;
 	u32 len;
-	u32 *col;
+	u32 *col, _col;
 	u8 aa_lev = surf->AALevel;
 
 	for (i=0; i<count; i++) {
 		if (spans[i].coverage<aa_lev) continue;
-		x = spans[i].x * surf->pitch_x;
+		x = spans[i].x;
 		len = spans[i].len;
 		spanalpha = spans[i].coverage;
 		surf->sten->fill_run(surf->sten, surf, x, y, len);
+		x *= surf->pitch_x;
 		col = surf->stencil_pix_run;
 		while (len--) {
-			col_a = GF_COL_A(*col);
+			_col = *col;
+			col_a = GF_COL_A(_col);
 			if (col_a) {
 				if ((spanalpha!=0xFF) || (col_a != 0xFF)) {
-					overmask_bgr(*col, dst + x, spanalpha);
+					overmask_bgr(_col, dst + x, spanalpha);
 				} else {
-					*(dst + x) = GF_COL_B(*col);
-					*(dst + x + 1) = GF_COL_G(*col);
-					*(dst + x + 2) = GF_COL_R(*col);
+					*(dst + x) = GF_COL_B(_col);
+					*(dst + x + 1) = GF_COL_G(_col);
+					*(dst + x + 2) = GF_COL_R(_col);
 				}
 			}
 			col++;
