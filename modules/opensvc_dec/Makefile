@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-LDFLAGS+=-lsvc
+LDFLAGS+=-lOpenSVCDec
 
 #common obj
 OBJS= opensvc_dec.o

@@ -1,7 +1,7 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GPAX", "GPAX.vcproj", "{72486240-A124-496E-A67A-E76FEC7E99BE}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp4client", "mp4client.vcproj", "{A35D99BF-D72D-4F56-99A1-97249B22BCE2}"
 	ProjectSection(ProjectDependencies) = postProject
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
@@ -81,11 +81,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp4box", "mp4box.vcproj", "{48E2C7C6-52EB-46FB-8722-00A62F46F497}"
 	ProjectSection(ProjectDependencies) = postProject
 		{233014D5-F6E5-419D-8757-FA9CE7337088} = {233014D5-F6E5-419D-8757-FA9CE7337088}
-	EndProjectSection
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp4client", "mp4client.vcproj", "{A35D99BF-D72D-4F56-99A1-97249B22BCE2}"
-	ProjectSection(ProjectDependencies) = postProject
-		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mpegts_in", "mpegts_in.vcproj", "{B38E812D-9823-48E7-BE5F-BF09B0AD4165}"
@@ -228,14 +223,31 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mp42ts", "..\..\application
 		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GPAX", "GPAX.vcproj", "{72486240-A124-496E-A67A-E76FEC7E99BE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D3540754-E0CF-4604-AC11-82DE9BD4D814} = {D3540754-E0CF-4604-AC11-82DE9BD4D814}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Smartphone 2003 (ARMV4) = Debug|Smartphone 2003 (ARMV4)
 		Debug|Win32 = Debug|Win32
-		Release|Smartphone 2003 (ARMV4) = Release|Smartphone 2003 (ARMV4)
 		Release|Win32 = Release|Win32
+		Debug|Smartphone 2003 (ARMV4) = Debug|Smartphone 2003 (ARMV4)
+		Release|Smartphone 2003 (ARMV4) = Release|Smartphone 2003 (ARMV4)
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Debug|Win32.Build.0 = Debug|Win32
+		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Debug|Win32.ActiveCfg = Debug|Win32
+		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
+		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Release|Win32.Build.0 = Release|Win32
+		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Release|Win32.ActiveCfg = Release|Win32
+		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
+		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
+		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Debug|Win32.Build.0 = Debug|Win32
+		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
+		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Release|Win32.ActiveCfg = Release|Win32
+		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Release|Win32.Build.0 = Release|Win32
 		{72486240-A124-496E-A67A-E76FEC7E99BE}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
 		{72486240-A124-496E-A67A-E76FEC7E99BE}.Debug|Smartphone 2003 (ARMV4).Build.0 = Debug|Smartphone 2003 (ARMV4)
 		{72486240-A124-496E-A67A-E76FEC7E99BE}.Debug|Win32.ActiveCfg = Debug|Win32
@@ -244,12 +256,6 @@ Global
 		{72486240-A124-496E-A67A-E76FEC7E99BE}.Release|Smartphone 2003 (ARMV4).Build.0 = Release|Smartphone 2003 (ARMV4)
 		{72486240-A124-496E-A67A-E76FEC7E99BE}.Release|Win32.ActiveCfg = Release|Win32
 		{72486240-A124-496E-A67A-E76FEC7E99BE}.Release|Win32.Build.0 = Release|Win32
-		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
-		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Debug|Win32.ActiveCfg = Debug|Win32
-		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Debug|Win32.Build.0 = Debug|Win32
-		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
-		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Release|Win32.ActiveCfg = Release|Win32
-		{C79C2D73-06E9-4622-92CE-F166B1B51792}.Release|Win32.Build.0 = Release|Win32
 		{1F7CD37F-DC9A-4AC7-881B-36B263A644C7}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
 		{1F7CD37F-DC9A-4AC7-881B-36B263A644C7}.Debug|Smartphone 2003 (ARMV4).Build.0 = Debug|Smartphone 2003 (ARMV4)
 		{1F7CD37F-DC9A-4AC7-881B-36B263A644C7}.Debug|Win32.ActiveCfg = Debug|Win32
@@ -364,12 +370,6 @@ Global
 		{48E2C7C6-52EB-46FB-8722-00A62F46F497}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
 		{48E2C7C6-52EB-46FB-8722-00A62F46F497}.Release|Win32.ActiveCfg = Release|Win32
 		{48E2C7C6-52EB-46FB-8722-00A62F46F497}.Release|Win32.Build.0 = Release|Win32
-		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
-		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Debug|Win32.ActiveCfg = Debug|Win32
-		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Debug|Win32.Build.0 = Debug|Win32
-		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Release|Smartphone 2003 (ARMV4).ActiveCfg = Release|Smartphone 2003 (ARMV4)
-		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Release|Win32.ActiveCfg = Release|Win32
-		{A35D99BF-D72D-4F56-99A1-97249B22BCE2}.Release|Win32.Build.0 = Release|Win32
 		{B38E812D-9823-48E7-BE5F-BF09B0AD4165}.Debug|Smartphone 2003 (ARMV4).ActiveCfg = Debug|Smartphone 2003 (ARMV4)
 		{B38E812D-9823-48E7-BE5F-BF09B0AD4165}.Debug|Smartphone 2003 (ARMV4).Build.0 = Debug|Smartphone 2003 (ARMV4)
 		{B38E812D-9823-48E7-BE5F-BF09B0AD4165}.Debug|Win32.ActiveCfg = Debug|Win32
