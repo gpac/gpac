@@ -213,6 +213,8 @@ struct __tag_compositor
 	Bool is_hidden, freeze_display;
 	Bool debug_defer;
 
+	Bool disable_composite_blit, disable_hardware_blit, rebuild_offscreen_textures;
+
 	/*current frame number*/
 	u32 frame_number;
 	/*count number of initialized sensors*/

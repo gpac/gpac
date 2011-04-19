@@ -1294,6 +1294,8 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		break;
 	case GF_OPT_REFRESH: 
 		compositor->reset_graphics = value; 
+		compositor->traverse_state->invalidate_all = 1; 
+		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		break;
 	case GF_OPT_FULLSCREEN:
 		if (compositor->fullscreen != value) compositor->msg_type |= GF_SR_CFG_FULLSCREEN; 
@@ -2037,6 +2039,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	}
 	compositor->reset_graphics = 0;
 	compositor->text_edit_changed = 0;
+	compositor->rebuild_offscreen_textures = 0;
 
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock() - texture_time;

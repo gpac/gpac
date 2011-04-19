@@ -471,6 +471,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	if (!(hw_caps & GF_VIDEO_HW_HAS_STRETCH)) {
 		if (has_scale) force_soft_blt = 1;
 	}
+	if (visual->compositor->disable_hardware_blit) force_soft_blt = 1;
 
 	if (!force_soft_blt) {
 
@@ -546,8 +547,6 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		}
 
 	}
-
-	use_soft_stretch = 1;
 
 	video_src.height = txh->height;
 	video_src.width = txh->width;

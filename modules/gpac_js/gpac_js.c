@@ -162,6 +162,20 @@ static JSBool gpac_getProperty(JSContext *c, JSObject *obj, SMJS_PROP_GETTER, js
 	else if (!strcmp(prop_name, "navigation_type")) {
 		*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE) );
 	}
+	else if (!strcmp(prop_name, "hardware_yuv")) {
+		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_YUV) ? 1 : 0 );
+	}
+	else if (!strcmp(prop_name, "hardware_rgb")) {
+		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB) ? 1 : 0 );
+	}
+	else if (!strcmp(prop_name, "hardware_rgba")) {
+		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGBA) ? 1 : 0 );
+	}
+	else if (!strcmp(prop_name, "hardware_stretch")) {
+		*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_STRETCH) ? 1 : 0 );
+	}
+
+
 	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
 }
@@ -214,6 +228,18 @@ static JSBool gpac_setProperty(JSContext *c, JSObject *obj, SMJS_PROP_SETTER, js
 	}
 	else if (!strcmp(prop_name, "navigation_type")) {
 		gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
+	}
+	else if (!strcmp(prop_name, "disable_hardware_blit")) {
+		term->compositor->disable_hardware_blit = JSVAL_TO_INT(*vp) ? 1 : 0;
+		gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
+	}
+	else if (!strcmp(prop_name, "disable_composite_blit")) {
+		Bool new_val = JSVAL_TO_INT(*vp) ? 1 : 0;
+		if (new_val != term->compositor->disable_composite_blit) {
+			term->compositor->disable_composite_blit = new_val;
+			term->compositor->rebuild_offscreen_textures = 1;
+			gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
+		}
 	}
 	SMJS_FREE(c, prop_name);
 	return JS_TRUE;
