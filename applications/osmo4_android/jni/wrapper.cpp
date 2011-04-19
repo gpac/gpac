@@ -119,6 +119,9 @@ static JNINativeMethod sMethods[] = {
     {"gpaceventmousemove",
       "(FF)V",
       (void*)Java_com_artemis_Osmo4_GPACInstance_gpaceventmousemove},
+    {"setGpacPreference",
+      "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
+      (void*)Java_com_artemis_Osmo4_GPACInstance_setGpacPreference},
     NULL
 };
 

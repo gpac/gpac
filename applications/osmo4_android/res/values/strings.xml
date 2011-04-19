@@ -10,7 +10,7 @@
     <string name="quit">Exit</string>
     <string name="app_name">Osmo4</string>
     <string name="copying_native_libs">Copying module %1$s to %2$s...</string>
-    <string name="displayPopupFormat">{0}\n{1}</string>
+    <string name="displayPopupFormat">%1$s\n%2$s</string>
     <string name="gpacNotInitialized">GPAC is not initialized</string>
     <string name="cleanCache">Clean Cache</string>
     <string name="cleaningCache">Cleaning Cache...</string>
