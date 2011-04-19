@@ -13,7 +13,7 @@ import java.util.Date;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import android.util.Log;
-import com.artemis.Osmo4.Osmo4Renderer;
+import com.artemis.Osmo4.GpacConfig;
 import com.artemis.Osmo4.GpacCallback.GF_Log_Module;
 
 /**
@@ -28,13 +28,15 @@ public class GpacLogger {
 
     /**
      * Default Constructor
+     * 
+     * @param gpacConfig
      */
-    public GpacLogger() {
+    public GpacLogger(GpacConfig gpacConfig) {
         loggedModules.add(GF_Log_Module.GF_LOG_AUDIO);
         loggedModules.add(GF_Log_Module.GF_LOG_MEDIA);
         loggedModules.add(GF_Log_Module.GF_LOG_MODULE);
         loggedModules.add(GF_Log_Module.GF_LOG_CORE);
-
+        logger = new File(gpacConfig.getGpacCacheDirectory(), "gpac.log"); //$NON-NLS-1$
     }
 
     private boolean enableLogOnDisk = false;
@@ -53,7 +55,7 @@ public class GpacLogger {
         this.enableLogOnDisk = enableLogOnDisk;
     }
 
-    private final File logger = new File(Osmo4Renderer.GPAC_CACHE_DIR, "gpac.log"); //$NON-NLS-1$
+    private final File logger;
 
     /**
      * Called when creating logger
