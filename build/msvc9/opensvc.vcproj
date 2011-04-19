@@ -77,7 +77,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="lib_SVCdecoderIetr.lib"
+				AdditionalDependencies=""
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -275,7 +275,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="lib_SVCdecoderIetr.lib"
+				AdditionalDependencies=""
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"

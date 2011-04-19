@@ -76,9 +76,8 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="OpenSVCDecoder.lib"
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
-				LinkIncremental="1"
+				LinkIncremental="0"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../extra_lib/lib/$(PlatformName)/$(ConfigurationName)"
 				GenerateManifest="false"
@@ -269,7 +268,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="OpenSVCDecoder.lib"
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
