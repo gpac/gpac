@@ -26,6 +26,13 @@
 
 #include "rast_soft.h"
 
+
+/*
+	FIXME / WARNING - this code only works for little endian platfoms
+		not seen any big endian platform using RGB565/RGB555 output 
+*/
+
+
 static GFINLINE s32
 mul255(s32 a, s32 b)
 {

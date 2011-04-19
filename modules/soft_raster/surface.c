@@ -255,9 +255,9 @@ GF_Err evg_surface_clear(GF_SURFACE _this, GF_IRect *rc, u32 color)
 	switch (surf->pixelFormat) {
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGB_32:
-		return evg_surface_clear_argb(surf, clear, color);
+		return evg_surface_clear_bgra(surf, clear, color);
 	case GF_PIXEL_BGR_32:
-		return evg_surface_clear_bgr32(surf, clear, color);
+		return evg_surface_clear_rgbx(surf, clear, color);
 	case GF_PIXEL_RGBA:
 		return evg_surface_clear_rgba(surf, clear, color);
 	case GF_PIXEL_BGR_24:
@@ -372,12 +372,12 @@ static Bool setup_grey_callback(EVGSurface *surf)
 		if (use_const) {
 			if (!a) return 0;
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_const_a;
+				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgra_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_const;
+				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgra_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_argb_fill_var;
+			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgra_fill_var;
 		}
 		break;
 
@@ -398,12 +398,12 @@ static Bool setup_grey_callback(EVGSurface *surf)
 		if (use_const) {
 			if (!a) return 0;
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgb32_fill_const_a;
+				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgrx_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgb32_fill_const;
+				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgrx_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgb32_fill_var;
+			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgrx_fill_var;
 		}
 		break;
 
@@ -411,12 +411,12 @@ static Bool setup_grey_callback(EVGSurface *surf)
 		if (use_const) {
 			if (!a) return 0;
 			if (a!=0xFF) {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgr32_fill_const_a;
+				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgbx_fill_const_a;
 			} else {
-				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgr32_fill_const;
+				surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgbx_fill_const;
 			}
 		} else {
-			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_bgr32_fill_var;
+			surf->ftparams.gray_spans = (EVG_Raster_Span_Func) evg_rgbx_fill_var;
 		}
 		break;
 

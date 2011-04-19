@@ -153,10 +153,6 @@ enum
  * \brief Pixel Formats
  *
  *	Supported pixel formats for everything using video
- *\note	For textures using 32 bit ARGB/RGB_32/BGR_32:
- *\li on little endian machines, shall be ordered in memory as BGRA,
- *\li on big endians, shall be ordered in memory as ARGB
- *so that *(u32*)pixel_mem is always ARGB (0xAARRGGBB).
 */
 typedef enum
 {

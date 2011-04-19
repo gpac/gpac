@@ -428,7 +428,9 @@ static void merge_row_bgr_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, 
 		}
 
 		if (a && alpha) {
-			_r = dst[0]; _g = dst[0]; _b = dst[0];
+			_b = dst[0];
+			_g = dst[1];
+			_r = dst[2]; 
 			a = mul255(a, alpha);
 			dst[0] = mul255(a, b - _b) + _b;
 			dst[1] = mul255(a, g - _g) + _g;
@@ -443,7 +445,7 @@ static void merge_row_bgr_24(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, 
 
 static void merge_row_bgrx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
 {
-	u32 _r, _g, _b, a, r, g, b, col;
+	u32 _r, _g, _b, a, r, g, b;
 	s32 pos;
 
 	pos = 0x10000;
@@ -455,13 +457,14 @@ static void merge_row_bgrx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 		}
 
 		if (a) {
-			col = *dst;
-			_r = GF_COL_R(col);
-			_g = GF_COL_G(col);
-			_b = GF_COL_B(col);
+			_b = dst[0];
+			_g = dst[1];
+			_r = dst[2];
+
 			_r = mul255(a, r - _r) + _r;
 			_g = mul255(a, g - _g) + _g;
 			_b = mul255(a, b - _b) + _b;
+			
 			dst[0] = _b;
 			dst[1] = _g;
 			dst[2] = _r;
@@ -475,7 +478,7 @@ static void merge_row_bgrx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 
 static void merge_row_rgbx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
 {
-	u32 _r, _g, _b, a, r, g, b, col;
+	u32 _r, _g, _b, a, r, g, b;
 	s32 pos;
 
 	pos = 0x10000;
@@ -487,7 +490,6 @@ static void merge_row_rgbx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 		}
 
 		if (a) {
-			col = *dst;
 			_r = dst[0];
 			_g = dst[1];
 			_b = dst[2];
@@ -508,7 +510,7 @@ static void merge_row_rgbx(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 
 static void merge_row_bgra(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
 {
-	u32 _a, _r, _g, _b, a, r, g, b, col;
+	u32 _a, _r, _g, _b, a, r, g, b;
 	s32 pos;
 
 	pos = 0x10000;
@@ -520,7 +522,6 @@ static void merge_row_bgra(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 		}
 
 		if (a) {
-			col = *dst;
 			_b = dst[0];
 			_g = dst[1];
 			_r = dst[2];
@@ -548,7 +549,7 @@ static void merge_row_bgra(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 
 static void merge_row_rgba(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s32 x_pitch, u8 alpha)
 {
-	u32 _a, _r, _g, _b, a, r, g, b, col;
+	u32 _a, _r, _g, _b, a, r, g, b;
 	s32 pos;
 	pos = 0x10000;
 	while (dst_w) {
@@ -559,7 +560,6 @@ static void merge_row_rgba(u8 *src, u32 src_w, u8 *dst, u32 dst_w, s32 h_inc, s3
 		}
 
 		if (a) {
-			col = *dst;
 			_r = dst[0];
 			_g = dst[1];
 			_b = dst[2];

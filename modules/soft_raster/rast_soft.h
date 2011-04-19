@@ -302,26 +302,25 @@ GF_Err evg_surface_fill(GF_SURFACE surf, GF_STENCIL stencil);
 GF_Err evg_surface_clear(GF_SURFACE surf, GF_IRect *rc, u32 color);
 
 
-/*FT raster callbacks - it's better to have a bit bigger code than using extra 
-get/set pixels routines on the surface*/
-void evg_argb_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
-void evg_argb_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
-void evg_argb_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
-GF_Err evg_surface_clear_argb(GF_SURFACE surf, GF_IRect rc, GF_Color col);
+/*FT raster callbacks */
+void evg_bgra_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_bgra_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_bgra_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+GF_Err evg_surface_clear_bgra(GF_SURFACE surf, GF_IRect rc, GF_Color col);
 
 void evg_rgba_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_rgba_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_rgba_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 GF_Err evg_surface_clear_rgba(GF_SURFACE surf, GF_IRect rc, GF_Color col);
 
-void evg_rgb32_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
-void evg_rgb32_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
-void evg_rgb32_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_bgrx_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_bgrx_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_bgrx_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 
-void evg_bgr32_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
-void evg_bgr32_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
-void evg_bgr32_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
-GF_Err evg_surface_clear_bgr32(GF_SURFACE surf, GF_IRect rc, GF_Color col);
+void evg_rgbx_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_rgbx_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+void evg_rgbx_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
+GF_Err evg_surface_clear_rgbx(GF_SURFACE surf, GF_IRect rc, GF_Color col);
 
 void evg_rgb_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_rgb_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
