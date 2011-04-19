@@ -504,6 +504,8 @@ public class Osmo4 extends Activity implements GpacCallback {
             @Override
             public void run() {
                 startupProgress.setTitle(R.string.cleaningCache);
+                startupProgress.setMessage(getResources().getString(R.string.cleaningCache,
+                                                                    Osmo4Renderer.GPAC_CACHE_DIR));
                 startupProgress.setProgress(0);
                 startupProgress.setIndeterminate(false);
                 startupProgress.show();
@@ -820,6 +822,8 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     @Override
     public void onProgress(final String msg, final int done, final int total) {
+        if (Log.isLoggable(LOG_OSMO_TAG, Log.DEBUG))
+            Log.d(LOG_OSMO_TAG, "Setting progress to " + done + "/" + total + ", message=" + msg); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
         runOnUiThread(new Runnable() {
 
             @Override
@@ -887,13 +891,15 @@ public class Osmo4 extends Activity implements GpacCallback {
     @Override
     protected void onPause() {
         super.onPause();
-        mGLView.onPause();
+        if (mGLView != null)
+            mGLView.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        mGLView.onResume();
+        if (mGLView != null)
+            mGLView.onResume();
     }
 
     /**

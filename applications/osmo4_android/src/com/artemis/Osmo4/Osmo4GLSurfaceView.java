@@ -132,6 +132,12 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
             super.onResume();
     }
 
+    @Override
+    public void onPause() {
+        if (getInstance() != null)
+            super.onPause();
+    }
+
     /**
      * @see com.artemis.Osmo4.GPACInstanceInterface#connect(java.lang.String)
      */

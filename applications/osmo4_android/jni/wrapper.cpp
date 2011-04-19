@@ -342,7 +342,7 @@ void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_
         {
           JavaEnvTh *env = self->getEnv();
           jstring msg;
-          if (!env || !env->cbk_onProgress)
+          if (!env || !env->cbk_onLog)
                 goto displayInAndroidlogs;
 	  env->env->PushLocalFrame(1);
           msg = env->env->NewStringUTF(szMsg);
@@ -492,7 +492,7 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt){
                             szTitle = "Import ";
                           else
                             szTitle = "Unknown Progress Event";
-                          //ptr->Osmo4_progress_cbk(ptr, szTitle, evt->progress.done, evt->progress.total);
+                          ptr->Osmo4_progress_cbk(ptr, szTitle, evt->progress.done, evt->progress.total);
                           gf_set_progress(szTitle, evt->progress.done, evt->progress.total);
                   }
                   break;
