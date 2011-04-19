@@ -3135,7 +3135,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3241,7 +3240,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3296,7 +3294,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3351,7 +3348,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3414,7 +3410,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3477,7 +3472,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3540,7 +3534,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3607,7 +3600,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3666,7 +3658,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3729,7 +3720,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3792,7 +3782,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3847,7 +3836,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3902,7 +3890,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -3957,7 +3944,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -4012,7 +3998,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -4070,7 +4055,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -4131,7 +4115,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -4192,7 +4175,6 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				EXECUTABLE_EXTENSION = dylib;
 				EXECUTABLE_PREFIX = gm_;
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
@@ -4242,7 +4224,7 @@
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.5;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OTHER_LDFLAGS = "";
 				PREBINDING = NO;
 				PRODUCT_NAME = osmo4ios;
@@ -4259,7 +4241,6 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = YES;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				GCC_ENABLE_FIX_AND_CONTINUE = NO;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
@@ -4274,7 +4255,7 @@
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.5;
+				MACOSX_DEPLOYMENT_TARGET = 10.6;
 				OTHER_LDFLAGS = "";
 				PREBINDING = NO;
 				PRODUCT_NAME = osmo4ios;
