@@ -213,7 +213,7 @@ GF_Err evg_surface_clear_bgra(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 				data[0] = col_b;
 				data[1] = col_g;
 				data[2] = col_r;
-				data[2] = col_a;
+				data[3] = col_a;
 				data += _this->pitch_x;
 			}
 		}
