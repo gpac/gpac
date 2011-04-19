@@ -58,8 +58,9 @@ static Bool composite2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *
 	GF_VideoSurface offscreen_dst, video_src;
 	GF_Window src_wnd, dst_wnd;
 	Bool use_blit, has_scale;
-
 	CompositeTextureStack *st;
+
+	if (visual->compositor->disable_composite_blit) return 0;
 
 	if (!ctx->aspect.fill_texture) return 1;
 	if (ctx->transform.m[0]<0) return 0;
@@ -245,7 +246,7 @@ static void composite_update(GF_TextureHandler *txh)
 		return;
 	}
 */
-	if ( (!compositor->text_edit_changed || !st->visual->has_text_edit ) && !gf_node_dirty_get(txh->owner)) {
+	if (!compositor->rebuild_offscreen_textures && (!compositor->text_edit_changed || !st->visual->has_text_edit ) && !gf_node_dirty_get(txh->owner)) {
 		txh->needs_refresh = 0;
 		return;
 	}
@@ -291,8 +292,33 @@ static void composite_update(GF_TextureHandler *txh)
 		w = ((M_CompositeTexture2D*)txh->owner)->pixelWidth;
 		h = ((M_CompositeTexture2D*)txh->owner)->pixelHeight;
 	}
+
+	/*internal GPAC hacks for testing color spaces*/
+	if (w<-1) {
+		w = -w;
+		if (h<0) {
+			h = -h;
+			if (new_pixel_format==GF_PIXEL_RGBA) {
+				new_pixel_format=GF_PIXEL_ARGB;
+			} else {
+				new_pixel_format=GF_PIXEL_BGR_24;
+			}
+		} else {
+			if (new_pixel_format==GF_PIXEL_RGB_24) {
+				new_pixel_format=GF_PIXEL_RGB_32;
+			}
+		}
+	}
+	else if (h<-1) {
+		h = -h;
+		if (new_pixel_format==GF_PIXEL_RGB_24) {
+			new_pixel_format=GF_PIXEL_RGB_32;
+		}
+	}
+
 	if (w<0) w = 0;
 	if (h<0) h = 0;
+
 
 	if (!w || !h) {
 		if (txh->tx_io) {
@@ -306,7 +332,7 @@ static void composite_update(GF_TextureHandler *txh)
 		}
 		return;
 	}
-	invalidate_all = 0;
+	invalidate_all = compositor->rebuild_offscreen_textures;
 
 	/*rebuild stencil*/
 	if (!txh->tx_io
