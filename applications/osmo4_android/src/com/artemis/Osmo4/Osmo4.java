@@ -95,7 +95,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private final static int DEFAULT_BUFFER_SIZE = 8192;
 
-    private final String DEFAULT_OPEN_URL = Osmo4Renderer.GPAC_CFG_DIR + "gui/gui.bt"; //$NON-NLS-1$
+    private GpacConfig gpacConfig;
 
     /**
      * Activity request ID for picking a file from local filesystem
@@ -113,7 +113,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private Osmo4GLSurfaceView mGLView;
 
-    private final GpacLogger logger = new GpacLogger();
+    private GpacLogger logger;
 
     private ProgressDialog startupProgress;
 
@@ -121,9 +121,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        logger.onCreate();
         requestWindowFeature(Window.FEATURE_PROGRESS);
-        // requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
         final String toOpen;
@@ -136,7 +134,17 @@ public class Osmo4 extends Activity implements GpacCallback {
             } else
                 toOpen = null;
         } else
-            toOpen = null; // "http://vizionr.fr:8000/fun.ts";
+            toOpen = null;
+        if (gpacConfig == null) {
+            gpacConfig = new GpacConfig(this);
+            if (gpacConfig == null)
+                Log.e(LOG_OSMO_TAG, "Failed to load GPAC config"); //$NON-NLS-1$
+            else
+                gpacConfig.ensureAllDirectoriesExist();
+        }
+        if (logger == null)
+            logger = new GpacLogger(gpacConfig);
+        logger.onCreate();
         if (startupProgress == null) {
             startupProgress = new ProgressDialog(this);
             startupProgress.setCancelable(false);
@@ -171,7 +179,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                             Osmo4.this.wl = wl;
                         }
 
-                        Osmo4Renderer renderer = new Osmo4Renderer(Osmo4.this, toOpen);
+                        Osmo4Renderer renderer = new Osmo4Renderer(Osmo4.this, gpacConfig, toOpen);
                         mGLView.setRenderer(renderer);
                         setContentView(mGLView);
                     }
@@ -192,7 +200,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     private String getRecentURLsFile() {
-        return Osmo4Renderer.GPAC_CFG_DIR + "recentURLs.txt"; //$NON-NLS-1$
+        return gpacConfig.getGpacConfigDirectory() + "recentURLs.txt"; //$NON-NLS-1$
     }
 
     private boolean openURL() {
@@ -316,7 +324,7 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     private boolean openFileDialog() {
         String title = getResources().getString(R.string.pleaseSelectAFile);
-        Uri uriDefaultDir = Uri.fromFile(new File(Osmo4Renderer.GPAC_CFG_DIR));
+        Uri uriDefaultDir = Uri.fromFile(new File(gpacConfig.getGpacConfigDirectory()));
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_PICK);
         // Files and directories
@@ -389,10 +397,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
                     @Override
                     public void run() {
-                        if (DEFAULT_OPEN_URL.equals(url))
-                            setTitle(LOG_OSMO_TAG + " - Home"); //$NON-NLS-1$
-                        else
-                            setTitle(LOG_OSMO_TAG + " - " + url); //$NON-NLS-1$
+                        setTitle(getResources().getString(R.string.titleWithURL, url));
                     }
                 });
             }
@@ -505,7 +510,7 @@ public class Osmo4 extends Activity implements GpacCallback {
             public void run() {
                 startupProgress.setTitle(R.string.cleaningCache);
                 startupProgress.setMessage(getResources().getString(R.string.cleaningCache,
-                                                                    Osmo4Renderer.GPAC_CACHE_DIR));
+                                                                    gpacConfig.getGpacCacheDirectory()));
                 startupProgress.setProgress(0);
                 startupProgress.setIndeterminate(false);
                 startupProgress.show();
@@ -515,7 +520,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
             @Override
             public void run() {
-                File dir = new File(Osmo4Renderer.GPAC_CACHE_DIR);
+                File dir = new File(gpacConfig.getGpacCacheDirectory());
                 if (!dir.exists() || !dir.canRead() || !dir.canWrite() || !dir.isDirectory()) {
                     return;
                 }
@@ -554,11 +559,11 @@ public class Osmo4 extends Activity implements GpacCallback {
     private void deleteConfigIfNeeded() {
         if (isShouldDeleteGpacConfig()) {
             Log.i(LOG_OSMO_TAG, "Deleting GPAC config file..."); //$NON-NLS-1$
-            File f = new File(Osmo4Renderer.GPAC_CFG_DIR, "GPAC.cfg"); //$NON-NLS-1$
+            File f = gpacConfig.getGpacConfigFile();
             if (f.exists() && !f.delete()) {
                 Log.e(LOG_OSMO_TAG, "Failed to delete " + f.getAbsolutePath()); //$NON-NLS-1$
             }
-            f = new File(Osmo4Renderer.GPAC_CACHE_DIR, LAST_REV_FILE);
+            f = gpacConfig.getGpacLastRevFile();
             if (f.exists() && !f.delete()) {
                 Log.e(LOG_OSMO_TAG, "Failed to delete " + f.getAbsolutePath()); //$NON-NLS-1$
             }
@@ -584,8 +589,6 @@ public class Osmo4 extends Activity implements GpacCallback {
         super.onDestroy();
     }
 
-    private final static String LAST_REV_FILE = "lastRev.txt"; //$NON-NLS-1$
-
     // ---------------------------------------
     private void loadAllModules() {
         Log.i(LOG_OSMO_TAG, "Start loading all modules..."); //$NON-NLS-1$
@@ -593,7 +596,7 @@ public class Osmo4 extends Activity implements GpacCallback {
         byte buffer[] = new byte[1024];
         int[] ids = getAllRawResources();
         String currentRevision = "$Revision$"; //$NON-NLS-1$
-        File revisionFile = new File(Osmo4Renderer.GPAC_CACHE_DIR, LAST_REV_FILE);
+        File revisionFile = gpacConfig.getGpacLastRevFile();
         boolean fastStartup = false;
         // We check if we already copied all the modules once without error...
         if (revisionFile.exists() && revisionFile.canRead()) {
@@ -620,7 +623,7 @@ public class Osmo4 extends Activity implements GpacCallback {
         for (int i = 0; i < ids.length; i++) {
             OutputStream fos = null;
             InputStream ins = null;
-            String fn = Osmo4Renderer.GPAC_MODULES_DIR + m_modules_list[i] + ".so"; //$NON-NLS-1$
+            String fn = gpacConfig.getGpacModulesDirectory() + m_modules_list[i] + ".so"; //$NON-NLS-1$
             File finalFile = new File(fn);
             // If file has already been copied, not need to do it again
             if (fastStartup && finalFile.exists() && finalFile.canRead()) {
@@ -874,6 +877,8 @@ public class Osmo4 extends Activity implements GpacCallback {
                 sb.append(e.getLocalizedMessage());
                 sb.append('\n');
                 sb.append("Revision: $Revision$"); //$NON-NLS-1$
+                sb.append("\nConfiguration information :\n") //$NON-NLS-1$
+                  .append(gpacConfig.getConfigAsText());
                 builder.setMessage(sb.toString());
                 builder.setCancelable(true);
                 builder.setPositiveButton(R.string.ok_button, new OnClickListener() {

@@ -5,6 +5,8 @@
  */
 package com.artemis.Osmo4;
 
+import java.io.File;
+import java.io.PrintStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,15 +24,34 @@ public class GPACInstance implements GPACInstanceInterface {
 
     private final Thread uniqueThread;
 
+    private static void listing(StringBuilder sb, File root, int inc) {
+        StringBuilder increment = new StringBuilder();
+        for (int i = 0; i < inc; i++)
+            increment.append(' ');
+        String incr = increment.toString();
+        for (File f : root.listFiles()) {
+            sb.append(incr).append(f.getName());
+            if (f.isDirectory()) {
+                sb.append(" [Directory]\n"); //$NON-NLS-1$
+                listing(sb, f, inc + 2);
+            } else {
+                sb.append(" [").append(f.length() + " bytes]\n"); //$NON-NLS-1$//$NON-NLS-2$
+            }
+        }
+    }
+
     /**
      * Loads all libraries
+     * 
+     * @param config
      * 
      * @return a map of exceptions containing the library as key and the exception as value. If map is empty, no error
      *         occurred
      */
-    synchronized static Map<String, Throwable> loadAllLibraries() {
+    synchronized static Map<String, Throwable> loadAllLibraries(GpacConfig config) {
         if (errors != null)
             return errors;
+        StringBuilder sb = new StringBuilder();
         final String[] toLoad = { "jpeg", "javaenv", //$NON-NLS-1$ //$NON-NLS-2$
                                  "mad", "editline", "ft2", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                                  "js_osmo", "openjpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
@@ -41,6 +62,8 @@ public class GPACInstance implements GPACInstanceInterface {
                 Log.i(LOG_LIB, "Loading library " + s + "..."); //$NON-NLS-1$//$NON-NLS-2$
                 System.loadLibrary(s);
             } catch (UnsatisfiedLinkError e) {
+                sb.append("Failed to load " + s + ", error=" + e.getLocalizedMessage() + " :: " //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$
+                          + e.getClass().getSimpleName());
                 exceptions.put(s, e);
                 Log.e(LOG_LIB, "Failed to load library : " + s + " due to link error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
             } catch (SecurityException e) {
@@ -51,6 +74,33 @@ public class GPACInstance implements GPACInstanceInterface {
                 Log.e(LOG_LIB, "Failed to load library : " + s + " due to Runtime error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
             }
         }
+
+        // if (!errors.isEmpty()){
+        try {
+            PrintStream out = new PrintStream(config.getGpacConfigDirectory() + "debug_libs.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
+            out.println("*** Configuration\n"); //$NON-NLS-1$
+            out.println(config.getConfigAsText());
+            sb.append("*** Libs listing : \n"); //$NON-NLS-1$
+            listing(sb, new File(config.getGpacLibsDirectory()), 2);
+            sb.append("*** Modules listing : \n"); //$NON-NLS-1$
+            listing(sb, new File(config.getGpacModulesDirectory()), 2);
+            sb.append("*** Fonts listing : \n"); //$NON-NLS-1$
+            listing(sb, new File(config.getGpacFontDirectory()), 2);
+            sb.append("*** Exceptions:"); //$NON-NLS-1$
+            for (Map.Entry<String, Throwable> ex : exceptions.entrySet()) {
+                sb.append(ex.getKey()).append(": ") //$NON-NLS-1$
+                  .append(ex.getValue().getLocalizedMessage())
+                  .append('(')
+                  .append(ex.getValue().getClass())
+                  .append(")\n"); //$NON-NLS-1$
+            }
+            out.println(sb.toString());
+            out.flush();
+            out.close();
+        } catch (Exception e) {
+            Log.e(LOG_LIB, "Failed to output debug info to debug file", e); //$NON-NLS-1$
+        }
+        // }
         errors = Collections.unmodifiableMap(exceptions);
         return errors;
     }
@@ -65,17 +115,14 @@ public class GPACInstance implements GPACInstanceInterface {
      * @param callback
      * @param width
      * @param height
-     * @param cfg_dir
-     * @param modules_dir
-     * @param cache_dir
-     * @param font_dir
+     * @param config The configuration to use for GPAC
      * @param urlToOpen
      * @throws GpacInstanceException
      */
-    public GPACInstance(GpacCallback callback, int width, int height, String cfg_dir, String modules_dir,
-            String cache_dir, String font_dir, String urlToOpen) throws GpacInstanceException {
+    public GPACInstance(GpacCallback callback, int width, int height, GpacConfig config, String urlToOpen)
+            throws GpacInstanceException {
         StringBuilder sb = new StringBuilder();
-        Map<String, Throwable> errors = loadAllLibraries();
+        Map<String, Throwable> errors = loadAllLibraries(config);
         if (!errors.isEmpty()) {
             sb.append("Exceptions while loading libraries:"); //$NON-NLS-1$
             for (Map.Entry<String, Throwable> x : errors.entrySet()) {
@@ -89,7 +136,14 @@ public class GPACInstance implements GPACInstanceInterface {
             Log.e(LOG_LIB, sb.toString());
         }
         try {
-            handle = createInstance(callback, width, height, cfg_dir, modules_dir, cache_dir, font_dir, urlToOpen);
+            handle = createInstance(callback,
+                                    width,
+                                    height,
+                                    config.getGpacConfigDirectory(),
+                                    config.getGpacModulesDirectory(),
+                                    config.getGpacCacheDirectory(),
+                                    config.getGpacFontDirectory(),
+                                    urlToOpen);
         } catch (Throwable e) {
             throw new GpacInstanceException("Error while creating instance\n" + sb.toString()); //$NON-NLS-1$
         }
