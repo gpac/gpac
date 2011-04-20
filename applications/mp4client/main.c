@@ -396,6 +396,8 @@ static void check_config_directories(GF_Config *cfg)
 	const char *opt;
 	u32 size = GF_MAX_PATH;
 	if (_NSGetExecutablePath(root_path, &size)!=0) return;
+	/*installed or symlink on system, do not attempt to modify the path*/
+	if (!strnicmp(root_path, "/usr/", 5)) return;
 	sep = strstr(root_path, ".app/");
 	if (sep) {
 		sep[4] = 0;
@@ -1099,6 +1101,10 @@ int main (int argc, char **argv)
 			i++;
 		}
 		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = 1;
+		else if (!strcmp(arg, "-h") || !strcmp(arg, "-help")) {
+			PrintUsage();
+			return 1;
+		}
 	}
 
 	gf_sys_init(enable_mem_tracker);
