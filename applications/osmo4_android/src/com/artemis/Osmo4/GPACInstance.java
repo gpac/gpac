@@ -80,7 +80,7 @@ public class GPACInstance implements GPACInstanceInterface {
             }
         }
 
-        if (!errors.isEmpty()) {
+        if (!exceptions.isEmpty()) {
             try {
                 PrintStream out = new PrintStream(config.getGpacConfigDirectory() + "debug_libs.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
                 out.println("$Revision$"); //$NON-NLS-1$
