@@ -402,7 +402,7 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 				shader_src[size]=0;
 				visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
 				visual_3d_compile_shader(visual->glsl_fragment, "fragment", shader_src);
-				free(shader_src);
+				gf_free(shader_src);
 			}
 		}
 	}
