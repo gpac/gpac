@@ -138,9 +138,11 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 	compositor->gl_caps.npot_texture = 1;
 #else
 
-	const char *ext;
+	const char *ext = NULL;
 
-	ext = (const char *) glGetString(GL_EXTENSIONS);
+	if (compositor->visual->type_3d) 
+		ext = (const char *) glGetString(GL_EXTENSIONS);
+
 	if (!ext) ext = gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLExtensions");
 	/*store OGL extension to config for app usage*/
 	else if (gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLExtensions")==NULL)
