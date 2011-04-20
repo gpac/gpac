@@ -23,6 +23,7 @@
  *
  */
 #include <stdlib.h>
+
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__MINGW32__)
 
 #define EMULATE_INTTYPES
@@ -40,7 +41,19 @@
 #define __attribute__(s)
 #endif
 
+
+/*include FFMPEG APIs*/
+#ifdef _WIN32_WCE
+#define inline	__inline
 #endif
+
+
+#  define INT64_C(x)  (x ## i64)
+#  define UINT64_C(x)  (x ## Ui64)
+
+#endif
+
+
 #include "ts_muxer.h"
 
 #define USE_GPAC_MPEG2TS
@@ -55,6 +68,15 @@
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
 #include <libavutil/avutil.h>
+
+
+#if LIBAVUTIL_VERSION_MAJOR<51
+#define AVMEDIA_TYPE_AUDIO CODEC_TYPE_AUDIO
+#define AVMEDIA_TYPE_VIDEO CODEC_TYPE_VIDEO
+#define AV_PKT_FLAG_KEY	PKT_FLAG_KEY
+#endif
+
+
 
 /* This number * 188 should be lower than the UDP packet size */
 #define TS_PACKETS_PER_UDP_PACKET 1
