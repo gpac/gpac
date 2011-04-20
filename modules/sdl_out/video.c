@@ -341,46 +341,54 @@ static void sdl_translate_key(u32 SDLkey, GF_EventKey *evt)
 	case SDLK_HELP: evt->key_code = GF_KEY_HELP; break;
 	case SDLK_PRINT: evt->key_code = GF_KEY_PRINTSCREEN; break;
 
+#if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
 /*
 	SDLK_CARET		= 94,
-	SDLK_a			= 97,
-	SDLK_b			= 98,
-	SDLK_c			= 99,
-	SDLK_d			= 100,
-	SDLK_e			= 101,
-	SDLK_f			= 102,
-	SDLK_g			= 103,
-	SDLK_h			= 104,
-	SDLK_i			= 105,
-	SDLK_j			= 106,
-	SDLK_k			= 107,
-	SDLK_l			= 108,
-	SDLK_m			= 109,
-	SDLK_n			= 110,
-	SDLK_o			= 111,
-	SDLK_p			= 112,
-	SDLK_q			= 113,
-	SDLK_r			= 114,
-	SDLK_s			= 115,
-	SDLK_t			= 116,
-	SDLK_u			= 117,
-	SDLK_v			= 118,
-	SDLK_w			= 119,
-	SDLK_x			= 120,
-	SDLK_y			= 121,
-	SDLK_z			= 122,
-	SDLK_DELETE		= 127,
+ */
+	case SDLK_a:
+	case SDLK_b:
+	case SDLK_c:
+	case SDLK_d:
+	case SDLK_e:
+	case SDLK_f:
+	case SDLK_g:
+	case SDLK_h:
+	case SDLK_i:
+	case SDLK_j:
+	case SDLK_k:
+	case SDLK_l:
+	case SDLK_m:
+	case SDLK_n:
+	case SDLK_o:
+	case SDLK_p:
+	case SDLK_q:
+	case SDLK_r:
+	case SDLK_s:
+	case SDLK_t:
+	case SDLK_u:
+	case SDLK_v:
+	case SDLK_w:
+	case SDLK_x:
+	case SDLK_y:
+	case SDLK_z:
+		evt->key_code = GF_KEY_A + SDLkey - SDLK_a;
+		break;
+			/*
+ SDLK_DELETE		= 127,
 
 	SDLK_SYSREQ		= 317,
 	SDLK_POWER		= 320,
 
 */
-
+#endif
+			
 	default:
 		if ((SDLkey>=0x30) && (SDLkey<=0x39))  evt->key_code = GF_KEY_0 + SDLkey-0x30;
 		else if ((SDLkey>=0x41) && (SDLkey<=0x5A))  evt->key_code = GF_KEY_A + SDLkey-0x51;
 		else
+		{
 			evt->key_code = GF_KEY_UNIDENTIFIED;
+		}
 		break;
 	}
 }
