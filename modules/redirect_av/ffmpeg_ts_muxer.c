@@ -170,7 +170,7 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
     {
         AVCodecContext * c = ts->audio_st->codec;
         c->codec_id = avr->audioCodec->id;
-        c->codec_type = CODEC_TYPE_AUDIO /*AVMEDIA_TYPE_AUDIO*/;
+        c->codec_type = AVMEDIA_TYPE_AUDIO;
         /* put sample parameters */
         c->sample_fmt = SAMPLE_FMT_S16;
         c->bit_rate = audioBitRateInBitsPerSec;
@@ -187,7 +187,7 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
     {
         AVCodecContext * c = ts->video_st->codec;
         c->codec_id = avr->videoCodec->id;
-        c->codec_type = CODEC_TYPE_VIDEO;
+        c->codec_type = AVMEDIA_TYPE_VIDEO;
 
         /* put sample parameters */
         c->bit_rate = videoBitrateInBitsPerSec;
@@ -296,7 +296,7 @@ Bool ts_encode_audio_frame(GF_AbstractTSMuxer * ts, uint8_t * data, int encoded,
     pkt->flags = 0;
     if (ts->audio_st->codec->coded_frame) {
         if (ts->audio_st->codec->coded_frame->key_frame)
-            pkt->flags = PKT_FLAG_KEY;
+            pkt->flags = AV_PKT_FLAG_KEY;
         if (ts->audio_st->codec->coded_frame->pts != AV_NOPTS_VALUE) {
             pkt->pts = av_rescale_q(ts->audio_st->codec->coded_frame->pts, ts->audio_st->codec->time_base, ts->audio_st->time_base);
         } else {
@@ -346,7 +346,7 @@ Bool ts_encode_video_frame(GF_AbstractTSMuxer* ts, uint8_t* data, int encoded) {
         //pkt->pts = ts->video_st->codec->coded_frame->pts;
     }
     if (ts->video_st->codec->coded_frame->key_frame)
-        pkt->flags |= PKT_FLAG_KEY;
+        pkt->flags |= AV_PKT_FLAG_KEY;
     pkt->stream_index= ts->video_st->index;
     pkt->data= data;
     pkt->size= encoded;
