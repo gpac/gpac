@@ -34,8 +34,10 @@ const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
 		GF_MEDIA_DECODER_INTERFACE,
+#ifndef DISABLE_FFMPEG_DEMUX
 		GF_NET_CLIENT_INTERFACE,
-		0
+#endif
+	0
 	};
 	return si;
 }
@@ -44,7 +46,9 @@ GF_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return FFDEC_Load();
+#ifndef DISABLE_FFMPEG_DEMUX
 	if (InterfaceType == GF_NET_CLIENT_INTERFACE) return New_FFMPEG_Demux();
+#endif
 	return NULL;
 }
 
@@ -55,8 +59,10 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	case GF_MEDIA_DECODER_INTERFACE:
 		FFDEC_Delete(ifce);
 		break;
+#ifndef DISABLE_FFMPEG_DEMUX
 	case GF_NET_CLIENT_INTERFACE:
 		Delete_FFMPEG_Demux(ifce);
 		break;
+#endif
 	}
 }

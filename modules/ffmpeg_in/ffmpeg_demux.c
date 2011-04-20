@@ -24,6 +24,8 @@
 
 #include "ffmpeg_in.h"
 
+#ifndef DISABLE_FFMPEG_DEMUX
+
 /*default buffer is 200 ms per channel*/
 #define FFD_DATA_BUFFER		800
 
@@ -269,10 +271,10 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
     for(i = 0; i < (s32)ctx->nb_streams; i++) {
         AVCodecContext *enc = ctx->streams[i]->codec;
         switch(enc->codec_type) {
-        case CODEC_TYPE_AUDIO:
+        case AVMEDIA_TYPE_AUDIO:
             if (!has_audio) has_audio = 1;
             break;
-        case CODEC_TYPE_VIDEO:
+        case AVMEDIA_TYPE_VIDEO:
             if (!has_video) has_video= 1;
             break;
         default:
@@ -608,13 +610,13 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
     for (i = 0; i < ffd->ctx->nb_streams; i++) {
         AVCodecContext *enc = ffd->ctx->streams[i]->codec;
         switch(enc->codec_type) {
-        case CODEC_TYPE_AUDIO:
+        case AVMEDIA_TYPE_AUDIO:
             if ((ffd->audio_st<0) && (ffd->service_type!=1)) {
 				ffd->audio_st = i;
 				ffd->audio_tscale = ffd->ctx->streams[i]->time_base;
 			}
             break;
-        case CODEC_TYPE_VIDEO:
+        case AVMEDIA_TYPE_VIDEO:
             if ((ffd->video_st<0) && (ffd->service_type!=2)) {
 				ffd->video_st = i;
 				ffd->video_tscale = ffd->ctx->streams[i]->time_base;
@@ -941,3 +943,4 @@ void Delete_FFMPEG_Demux(void *ifce)
 }
 
 
+#endif
