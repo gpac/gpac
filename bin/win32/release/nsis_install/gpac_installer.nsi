@@ -321,11 +321,10 @@ SectionEnd
 Section "FFMPEG" SecFFMPEG
   SectionIn 1
   File "..\gm_ffmpeg_in.dll"
-  File "..\avcodec-52.dll"
-  File "..\avdevice-52.dll"
-  File "..\avformat-52.dll"
-  File "..\avutil-50.dll"
-  File "..\swscale-0.dll"
+  File "..\avcodec-*.dll"
+  File "..\avformat-*.dll"
+  File "..\avutil-*.dll"
+  File "..\swscale-*.dll"
 SectionEnd
 
 Section "XviD Video Decoder" SecXVID
