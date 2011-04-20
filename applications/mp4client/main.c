@@ -1081,7 +1081,6 @@ int main (int argc, char **argv)
 	dlopen(NULL, RTLD_NOW|RTLD_GLOBAL);
 #endif
 
-
 	/*by default use current dir*/
 	strcpy(the_url, ".");
 
@@ -1404,7 +1403,7 @@ int main (int argc, char **argv)
 			startup_file = 1;
 		}
 		if (url_arg) {
-			gf_cfg_set_key(cfg_file, "General", "GUIStartupFile", url_arg);
+			gf_cfg_set_key(cfg_file, "Temp", "GUIStartupFile", url_arg);
 		}
 	}
 	if (gui_mode==2) gui_mode=0;

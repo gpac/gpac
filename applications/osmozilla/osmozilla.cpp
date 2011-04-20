@@ -556,6 +556,7 @@ Bool Osmozilla_EventProc(void *priv, GF_Event *evt)
 
 NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 {
+	const char *gui;
 	if (mInitialized) {
 		m_width = aWindow->width;
 		m_height = aWindow->height;
@@ -602,8 +603,18 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 	/*stream not ready*/
 	if (!m_szURL || !m_bAutoStart) return TRUE;
 
+	gf_cfg_set_key(m_user.config, "Temp", "BrowserMode", "yes");
+
+
 	/*connect from 0 and pause if not autoplay*/
-	gf_term_connect(m_term, m_szURL);
+	gui = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+	if (gui) {
+		gf_cfg_set_key(m_user.config, "Temp", "GUIStartupFile", m_szURL);
+		gf_term_connect(m_term, gui);
+	} else {
+		gf_term_connect(m_term, m_szURL);
+	}
+
 	return TRUE;
 }
 
@@ -616,8 +627,15 @@ NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
 	m_szURL = gf_strdup((const char *)stream->url);
 
 	/*connect from 0 and pause if not autoplay*/
-	if (m_bAutoStart)
-		gf_term_connect(m_term, m_szURL);
+	if (m_bAutoStart) {
+		const char *gui = gf_cfg_get_key(m_user.config, "General", "StartupFile");
+		if (gui) {
+			gf_cfg_set_key(m_user.config, "Temp", "GUIStartupFile", m_szURL);
+			gf_term_connect(m_term, gui);
+		} else {
+			gf_term_connect(m_term, m_szURL);
+		}
+	}
 
 	/*we handle data fetching ourselves*/
     *stype = NP_SEEK;
