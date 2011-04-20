@@ -34,8 +34,8 @@ public class GpacConfig {
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacConfigDirectory + " for osmo"); //$NON-NLS-1$ //$NON-NLS-2$
         gpacCacheDirectory = new File(osmo, "cache").getAbsolutePath() + '/'; //$NON-NLS-1$
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacCacheDirectory + " for cache"); //$NON-NLS-1$ //$NON-NLS-2$
-        gpacModulesDirectory = (new File(Environment.getDataDirectory() + "/data", "com.artemis.Osmo4")).getAbsolutePath() + '/'; //$NON-NLS-1$ //$NON-NLS-2$
-        Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacModulesDirectory + " for modules"); //$NON-NLS-1$ //$NON-NLS-2$
+        //gpacModulesDirectory = (new File(Environment.getDataDirectory() + "/data", "com.artemis.Osmo4")).getAbsolutePath() + '/'; //$NON-NLS-1$ //$NON-NLS-2$
+        //Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacModulesDirectory + " for modules"); //$NON-NLS-1$ //$NON-NLS-2$
         String dataDir;
         try {
             if (context == null || context.getPackageManager() == null) {
@@ -58,7 +58,7 @@ public class GpacConfig {
      * @return The {@link GpacConfig} instance itself
      */
     public GpacConfig ensureAllDirectoriesExist() {
-        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory, gpacModulesDirectory }) {
+        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory }) {
             createDirIfNotExist(s);
         }
         return this;
@@ -90,7 +90,8 @@ public class GpacConfig {
      * @return the gpacModulesDirectory
      */
     public String getGpacModulesDirectory() {
-        return gpacModulesDirectory;
+        // return gpacModulesDirectory;
+        return gpacLibsDirectory;
     }
 
     /**
@@ -111,7 +112,7 @@ public class GpacConfig {
 
     private final String gpacFontDirectory = "/system/fonts/"; //$NON-NLS-1$
 
-    private final String gpacModulesDirectory;
+    // private final String gpacModulesDirectory;
 
     private final String gpacLibsDirectory;
 

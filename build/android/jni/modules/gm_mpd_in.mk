@@ -10,6 +10,5 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../include
 
 LOCAL_SRC_FILES := ../../../../modules/mpd_in/mpd_in.c
-LOCAL_MODULE_FILENAME=gm_mpd_in
 
 include $(BUILD_SHARED_LIBRARY)

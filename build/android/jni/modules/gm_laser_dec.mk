@@ -8,6 +8,4 @@ include $(LOCAL_PATH)/base.mk
 
 LOCAL_SRC_FILES := ../../../../modules/laser_dec/laser_dec.c
 
-LOCAL_MODULE_FILENAME=gm_laser_dec
-
 include $(BUILD_SHARED_LIBRARY)

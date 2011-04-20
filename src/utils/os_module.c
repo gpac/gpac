@@ -171,7 +171,7 @@ Bool enum_modules(void *cbck, char *item_name, char *item_path)
 	GF_ModuleManager *pm = cbck;
 
 	if (strstr(item_name, "nposmozilla")) return 0;
-	if (strncmp(item_name, "gm_", 3)) return 0;
+	if (strncmp(item_name, "gm_", 3) && strncmp(item_name, "libgm_", 6)) return 0;
 	if (gf_module_is_loaded(pm, item_name) ) return 0;
 
 #if CHECK_MODULE

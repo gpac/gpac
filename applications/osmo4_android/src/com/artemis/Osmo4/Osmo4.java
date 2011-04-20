@@ -7,23 +7,18 @@
  */
 package com.artemis.Osmo4;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -69,7 +64,7 @@ import com.artemis.Osmo4.logs.GpacLogger;
  */
 public class Osmo4 extends Activity implements GpacCallback {
 
-    private String[] m_modules_list;
+    // private String[] m_modules_list;
 
     private boolean shouldDeleteGpacConfig = false;
 
@@ -98,7 +93,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     private GpacConfig gpacConfig;
 
     /**
-     * Activity request ID for picking a file from local filesystem
+     * Activity request ID for picking a file from local file system
      */
     public final static int PICK_FILE_REQUEST = 1;
 
@@ -164,7 +159,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
             @Override
             public void run() {
-                loadAllModules();
+                // loadAllModules();
                 runOnUiThread(new Runnable() {
 
                     @Override
@@ -590,165 +585,165 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     // ---------------------------------------
-    private void loadAllModules() {
-        Log.i(LOG_OSMO_TAG, "Start loading all modules..."); //$NON-NLS-1$
-        long start = System.currentTimeMillis();
-        byte buffer[] = new byte[1024];
-        int[] ids = getAllRawResources();
-        String currentRevision = "$Revision$"; //$NON-NLS-1$
-        File revisionFile = gpacConfig.getGpacLastRevFile();
-        boolean fastStartup = false;
-        // We check if we already copied all the modules once without error...
-        if (revisionFile.exists() && revisionFile.canRead()) {
-            BufferedReader r = null;
-            try {
-                r = new BufferedReader(new InputStreamReader(new FileInputStream(revisionFile), DEFAULT_ENCODING),
-                                       DEFAULT_BUFFER_SIZE);
-                String rev = r.readLine();
-                if (currentRevision.equals(rev)) {
-                    fastStartup = true;
-                }
-            } catch (IOException ignored) {
-            } finally {
-                // Exception or not, always close the stream...
-                if (r != null)
-                    try {
-                        r.close();
-                    } catch (IOException ignored) {
-                    }
-            }
-        }
-        boolean noErrors = true;
-        final StringBuilder errorsMsg = new StringBuilder();
-        for (int i = 0; i < ids.length; i++) {
-            OutputStream fos = null;
-            InputStream ins = null;
-            String fn = gpacConfig.getGpacModulesDirectory() + m_modules_list[i] + ".so"; //$NON-NLS-1$
-            File finalFile = new File(fn);
-            // If file has already been copied, not need to do it again
-            if (fastStartup && finalFile.exists() && finalFile.canRead()) {
-                Log.i(LOG_OSMO_TAG, "Skipping " + finalFile); //$NON-NLS-1$
-                continue;
-            }
-            try {
-                final String msg = getResources().getString(R.string.copying_native_libs,
-                                                            finalFile.getName(),
-                                                            finalFile.getParent());
-                runOnUiThread(new Runnable() {
+    // private void loadAllModules() {
+    //        Log.i(LOG_OSMO_TAG, "Start loading all modules..."); //$NON-NLS-1$
+    // long start = System.currentTimeMillis();
+    // byte buffer[] = new byte[1024];
+    // int[] ids = getAllRawResources();
+    //        String currentRevision = "$Revision$"; //$NON-NLS-1$
+    // File revisionFile = gpacConfig.getGpacLastRevFile();
+    // boolean fastStartup = false;
+    // // We check if we already copied all the modules once without error...
+    // if (revisionFile.exists() && revisionFile.canRead()) {
+    // BufferedReader r = null;
+    // try {
+    // r = new BufferedReader(new InputStreamReader(new FileInputStream(revisionFile), DEFAULT_ENCODING),
+    // DEFAULT_BUFFER_SIZE);
+    // String rev = r.readLine();
+    // if (currentRevision.equals(rev)) {
+    // fastStartup = true;
+    // }
+    // } catch (IOException ignored) {
+    // } finally {
+    // // Exception or not, always close the stream...
+    // if (r != null)
+    // try {
+    // r.close();
+    // } catch (IOException ignored) {
+    // }
+    // }
+    // }
+    // boolean noErrors = true;
+    // final StringBuilder errorsMsg = new StringBuilder();
+    // for (int i = 0; i < ids.length; i++) {
+    // OutputStream fos = null;
+    // InputStream ins = null;
+    //            String fn = gpacConfig.getGpacModulesDirectory() + m_modules_list[i] + ".so"; //$NON-NLS-1$
+    // File finalFile = new File(fn);
+    // // If file has already been copied, not need to do it again
+    // if (fastStartup && finalFile.exists() && finalFile.canRead()) {
+    //                Log.i(LOG_OSMO_TAG, "Skipping " + finalFile); //$NON-NLS-1$
+    // continue;
+    // }
+    // try {
+    // final String msg = getResources().getString(R.string.copying_native_libs,
+    // finalFile.getName(),
+    // finalFile.getParent());
+    // runOnUiThread(new Runnable() {
+    //
+    // @Override
+    // public void run() {
+    // startupProgress.setIndeterminate(false);
+    // startupProgress.setMessage(msg);
+    // }
+    // });
+    //                Log.i(LOG_OSMO_TAG, "Copying resource " + ids[i] + " to " //$NON-NLS-1$//$NON-NLS-2$
+    // + finalFile.getAbsolutePath());
+    //                File tmpFile = new File(fn + ".tmp"); //$NON-NLS-1$
+    // int read;
+    // ins = new BufferedInputStream(getResources().openRawResource(ids[i]), DEFAULT_BUFFER_SIZE);
+    // fos = new BufferedOutputStream(new FileOutputStream(tmpFile), DEFAULT_BUFFER_SIZE);
+    // while (0 < (read = ins.read(buffer))) {
+    // fos.write(buffer, 0, read);
+    // }
+    // ins.close();
+    // ins = null;
+    // fos.close();
+    // fos = null;
+    // if (!tmpFile.renameTo(finalFile)) {
+    // if (finalFile.exists() && finalFile.delete() && !tmpFile.renameTo(finalFile))
+    //                        Log.e(LOG_OSMO_TAG, "Failed to rename " + tmpFile.getAbsolutePath() + " to " //$NON-NLS-1$//$NON-NLS-2$
+    // + finalFile.getAbsolutePath());
+    // }
+    // final int percent = i * 10000 / ids.length;
+    // runOnUiThread(new Runnable() {
+    //
+    // @Override
+    // public void run() {
+    // startupProgress.setProgress(percent);
+    // }
+    // });
+    // } catch (IOException e) {
+    // noErrors = false;
+    //                String msg = "IOException for resource : " + ids[i]; //$NON-NLS-1$
+    // errorsMsg.append(msg).append('\n').append(finalFile.getAbsolutePath()).append('\n');
+    // errorsMsg.append(e.getLocalizedMessage());
+    // Log.e(LOG_OSMO_TAG, msg, e);
+    // } finally {
+    // if (ins != null) {
+    // try {
+    // ins.close();
+    // } catch (IOException e) {
+    //                        Log.e(LOG_OSMO_TAG, "Error while closing read stream", e); //$NON-NLS-1$
+    // }
+    // }
+    // if (fos != null) {
+    // try {
+    // fos.close();
+    // } catch (IOException e) {
+    //                        Log.e(LOG_OSMO_TAG, "Error while closing write stream", e); //$NON-NLS-1$
+    // }
+    // }
+    // }
+    // }
+    // // If no error during copy, fast startup will be enabled for next time
+    // if (noErrors && !fastStartup) {
+    // BufferedWriter w = null;
+    // try {
+    // w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(revisionFile), DEFAULT_ENCODING),
+    // DEFAULT_BUFFER_SIZE);
+    // w.write(currentRevision);
+    // w.write('\n');
+    // // We add the date as second line to ease debug in case of problem
+    // w.write(String.valueOf(new Date()));
+    // } catch (IOException ignored) {
+    // } finally {
+    // if (w != null)
+    // try {
+    // w.close();
+    // } catch (IOException ignored) {
+    // }
+    // }
+    // } else {
+    // if (!noErrors) {
+    // setShouldDeleteGpacConfig(true);
+    //                displayMessage(errorsMsg.toString(), "Errors while copying modules !", GF_Err.GF_IO_ERR.value); //$NON-NLS-1$
+    // }
+    // }
+    //        Log.i(LOG_OSMO_TAG, "Done loading all modules, took " + (System.currentTimeMillis() - start) + "ms."); //$NON-NLS-1$ //$NON-NLS-2$
+    // startupProgress.setProgress(100);
+    // startupProgress.setIndeterminate(true);
+    // runOnUiThread(new Runnable() {
+    //
+    // @Override
+    // public void run() {
+    // setTitle(LOG_OSMO_TAG);
+    // }
+    // });
+    // }
 
-                    @Override
-                    public void run() {
-                        startupProgress.setIndeterminate(false);
-                        startupProgress.setMessage(msg);
-                    }
-                });
-                Log.i(LOG_OSMO_TAG, "Copying resource " + ids[i] + " to " //$NON-NLS-1$//$NON-NLS-2$
-                                    + finalFile.getAbsolutePath());
-                File tmpFile = new File(fn + ".tmp"); //$NON-NLS-1$
-                int read;
-                ins = new BufferedInputStream(getResources().openRawResource(ids[i]), DEFAULT_BUFFER_SIZE);
-                fos = new BufferedOutputStream(new FileOutputStream(tmpFile), DEFAULT_BUFFER_SIZE);
-                while (0 < (read = ins.read(buffer))) {
-                    fos.write(buffer, 0, read);
-                }
-                ins.close();
-                ins = null;
-                fos.close();
-                fos = null;
-                if (!tmpFile.renameTo(finalFile)) {
-                    if (finalFile.exists() && finalFile.delete() && !tmpFile.renameTo(finalFile))
-                        Log.e(LOG_OSMO_TAG, "Failed to rename " + tmpFile.getAbsolutePath() + " to " //$NON-NLS-1$//$NON-NLS-2$
-                                            + finalFile.getAbsolutePath());
-                }
-                final int percent = i * 10000 / ids.length;
-                runOnUiThread(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        startupProgress.setProgress(percent);
-                    }
-                });
-            } catch (IOException e) {
-                noErrors = false;
-                String msg = "IOException for resource : " + ids[i]; //$NON-NLS-1$
-                errorsMsg.append(msg).append('\n').append(finalFile.getAbsolutePath()).append('\n');
-                errorsMsg.append(e.getLocalizedMessage());
-                Log.e(LOG_OSMO_TAG, msg, e);
-            } finally {
-                if (ins != null) {
-                    try {
-                        ins.close();
-                    } catch (IOException e) {
-                        Log.e(LOG_OSMO_TAG, "Error while closing read stream", e); //$NON-NLS-1$
-                    }
-                }
-                if (fos != null) {
-                    try {
-                        fos.close();
-                    } catch (IOException e) {
-                        Log.e(LOG_OSMO_TAG, "Error while closing write stream", e); //$NON-NLS-1$
-                    }
-                }
-            }
-        }
-        // If no error during copy, fast startup will be enabled for next time
-        if (noErrors && !fastStartup) {
-            BufferedWriter w = null;
-            try {
-                w = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(revisionFile), DEFAULT_ENCODING),
-                                       DEFAULT_BUFFER_SIZE);
-                w.write(currentRevision);
-                w.write('\n');
-                // We add the date as second line to ease debug in case of problem
-                w.write(String.valueOf(new Date()));
-            } catch (IOException ignored) {
-            } finally {
-                if (w != null)
-                    try {
-                        w.close();
-                    } catch (IOException ignored) {
-                    }
-            }
-        } else {
-            if (!noErrors) {
-                setShouldDeleteGpacConfig(true);
-                displayMessage(errorsMsg.toString(), "Errors while copying modules !", GF_Err.GF_IO_ERR.value); //$NON-NLS-1$
-            }
-        }
-        Log.i(LOG_OSMO_TAG, "Done loading all modules, took " + (System.currentTimeMillis() - start) + "ms."); //$NON-NLS-1$ //$NON-NLS-2$
-        startupProgress.setProgress(100);
-        startupProgress.setIndeterminate(true);
-        runOnUiThread(new Runnable() {
-
-            @Override
-            public void run() {
-                setTitle(LOG_OSMO_TAG);
-            }
-        });
-    }
-
-    private int[] getAllRawResources() throws RuntimeException {
-        R.raw r = new R.raw();
-
-        java.lang.reflect.Field fields[] = R.raw.class.getDeclaredFields();
-        final int ids[] = new int[fields.length];
-        m_modules_list = new String[fields.length];
-
-        try {
-            for (int i = 0; i < fields.length; i++) {
-                java.lang.reflect.Field f = fields[i];
-                ids[i] = f.getInt(r);
-                m_modules_list[i] = f.getName();
-                Log.i(LOG_OSMO_TAG, "R.raw." + f.getName() + " = 0x" + Integer.toHexString(ids[i])); //$NON-NLS-1$ //$NON-NLS-2$
-            }
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-
-        return ids;
-    }
+    // private int[] getAllRawResources() throws RuntimeException {
+    // R.raw r = new R.raw();
+    //
+    // java.lang.reflect.Field fields[] = R.raw.class.getDeclaredFields();
+    // final int ids[] = new int[fields.length];
+    // m_modules_list = new String[fields.length];
+    //
+    // try {
+    // for (int i = 0; i < fields.length; i++) {
+    // java.lang.reflect.Field f = fields[i];
+    // ids[i] = f.getInt(r);
+    // m_modules_list[i] = f.getName();
+    //                Log.i(LOG_OSMO_TAG, "R.raw." + f.getName() + " = 0x" + Integer.toHexString(ids[i])); //$NON-NLS-1$ //$NON-NLS-2$
+    // }
+    // } catch (IllegalArgumentException e) {
+    // throw new RuntimeException(e);
+    // } catch (IllegalAccessException e) {
+    // throw new RuntimeException(e);
+    // }
+    //
+    // return ids;
+    // }
 
     // ---------------------------------------
 

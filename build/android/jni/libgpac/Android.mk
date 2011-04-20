@@ -5,55 +5,21 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 include $(LOCAL_PATH)/../common.mk
+APP_ABI          := armeabi armeabi-v7a
 
 LOCAL_MODULE		:= gpac
 LOCAL_C_INCLUDES 	:= $(LOCAL_PATH)
-#LOCAL_C_INCLUDES 	:= $(LOCAL_PATH)/../../../../
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../include/
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/android
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/freetype
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/freetype/freetype
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/android/freetypedroid/jni/freetype
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/android/freetypedroid/jni/freetype/freetype
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/jpeg/
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/android/jpegdroid/jni
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/png/
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/android/libpngdroid/jni
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/faad
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/android/js/jni
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/android/js/jni/Linux_All_DBG.OBJ
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/android/js/jni/editline
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/js/
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../include
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/freetype
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/freetype/freetype
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/android/freetypedroid/jni/freetype
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/android/freetypedroid/jni/freetype/freetype
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/jpeg/android/
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/android/jpegdroid/jni
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/png/
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/android/libpngdroid/jni
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/faad
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/android/js/jni
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/android/js/jni/Linux_All_DBG.OBJ
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/android/js/jni/editline
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/js/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
-
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/freetype/freetype
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/android/freetype
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/jpeg/
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/png
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/faad
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/android/js/jni
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/js/jni/Linux_All_DBG.OBJ
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/js/jni/editline
-#LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/js/
 
 LOCAL_LDLIBS    += -lGLESv1_CM -ldl
 LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz

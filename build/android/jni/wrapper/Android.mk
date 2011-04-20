@@ -8,7 +8,7 @@ LOCAL_MODULE    := gpacWrapper
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../include
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../libgpac/
 
-LOCAL_LDLIBS    += -L$(GPAC_LIB_L)
+LOCAL_LDLIBS    += $(GPAC_LIB_L)
 LOCAL_LDLIBS    += -llog -lgpac
 
 #LOCAL_CFLAGS +=	-DGPAC_GUI_ONLY

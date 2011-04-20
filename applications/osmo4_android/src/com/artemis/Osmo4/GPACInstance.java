@@ -63,7 +63,7 @@ public class GPACInstance implements GPACInstanceInterface {
                 System.loadLibrary(s);
             } catch (UnsatisfiedLinkError e) {
                 sb.append("Failed to load " + s + ", error=" + e.getLocalizedMessage() + " :: " //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$
-                          + e.getClass().getSimpleName());
+                          + e.getClass().getSimpleName() + "\n"); //$NON-NLS-1$
                 exceptions.put(s, e);
                 Log.e(LOG_LIB, "Failed to load library : " + s + " due to link error " + e.getLocalizedMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
             } catch (SecurityException e) {
@@ -80,13 +80,19 @@ public class GPACInstance implements GPACInstanceInterface {
             PrintStream out = new PrintStream(config.getGpacConfigDirectory() + "debug_libs.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
             out.println("*** Configuration\n"); //$NON-NLS-1$
             out.println(config.getConfigAsText());
-            sb.append("*** Libs listing : \n"); //$NON-NLS-1$
+            sb.append("*** Libs listing: "); //$NON-NLS-1$
+            sb.append(config.getGpacLibsDirectory());
+            sb.append('\n');
             listing(sb, new File(config.getGpacLibsDirectory()), 2);
-            sb.append("*** Modules listing : \n"); //$NON-NLS-1$
+            sb.append("*** Modules listing: "); //$NON-NLS-1$
+            sb.append(config.getGpacModulesDirectory());
+            sb.append('\n');
             listing(sb, new File(config.getGpacModulesDirectory()), 2);
-            sb.append("*** Fonts listing : \n"); //$NON-NLS-1$
+            sb.append("*** Fonts listing: \n"); //$NON-NLS-1$
+            sb.append(config.getGpacFontDirectory());
+            sb.append('\n');
             listing(sb, new File(config.getGpacFontDirectory()), 2);
-            sb.append("*** Exceptions:"); //$NON-NLS-1$
+            sb.append("*** Exceptions:\n"); //$NON-NLS-1$
             for (Map.Entry<String, Throwable> ex : exceptions.entrySet()) {
                 sb.append(ex.getKey()).append(": ") //$NON-NLS-1$
                   .append(ex.getValue().getLocalizedMessage())
