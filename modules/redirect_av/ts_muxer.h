@@ -49,6 +49,13 @@
 
 typedef struct avr_ts_muxer GF_AbstractTSMuxer;
 
+#if LIBAVUTIL_VERSION_MAJOR<51
+#define AVMEDIA_TYPE_AUDIO CODEC_TYPE_AUDIO
+#define AVMEDIA_TYPE_VIDEO CODEC_TYPE_VIDEO
+#define AV_PKT_FLAG_KEY	PKT_FLAG_KEY
+#endif
+
+
 #include <gpac/ringbuffer.h>
 
 typedef struct
