@@ -29,25 +29,30 @@ cd $BUILDPATH || exit 1
 echo -n "Buiding all libs from $BUILDPATH..."
 ndk-build $* && echo "[OK] build successful." || echo "Build FAILED" || exit 1
 
-echo "Copying modules to modules dir..."
+#echo "Copying modules to modules dir..."
 cd ../libs/ || exit 1
-for i in $(find . -name 'gm*.so')
-do
-	echo -n "$i..."
-	cp "$i" "$BASEPATH/applications/osmo4_android/res/raw/" || exit 1
-done
-echo
-echo "[OK] success." 
+#for i in $(find . -name 'gm*.so')
+#do
+#	echo -n "$i..."
+#	cp "$i" "$BASEPATH/applications/osmo4_android/res/raw/" || exit 1
+#done
+#echo
+#echo "[OK] success." 
 
 LIBS_DIR="$BASEPATH/applications/osmo4_android/libs/"
 echo "Copying libs to libs dir $LIBS_DIR ..."
-for i in $(find . -name 'lib*.so')
+for i in $(find . -name '*.so')
 do
 	echo -n "$i..."
 	cp "$i" "$LIBS_DIR/$i" || exit 1
 done
 echo
 echo "[OK] success."
-echo "Copying all extra libs..."
-cp $BASEPATH/extra_lib/lib/android/lib*.so "$LIBS_DIR/armeabi/" || echo "FAILED"
+cd "$BASEPATH/extra_lib/lib/android" || exit 1
+echo "Copying all extra libs to $LIBS_DIR ..."
+for i in $(find . -name '*.so')
+do
+	echo -n "$i..."
+	cp "$i" "$LIBS_DIR/$i" || exit 1
+done
 echo "[OK] success."

@@ -15,5 +15,4 @@ LOCAL_SRC_FILES := ../../../../modules/gpac_js/gpac_js.c
 
 LOCAL_LDLIBS    += -ljs_osmo
 
-LOCAL_MODULE_FILENAME=gm_gpac_js
 include $(BUILD_SHARED_LIBRARY)

@@ -8,7 +8,4 @@ include $(LOCAL_PATH)/base.mk
 
 LOCAL_SRC_FILES := ../../../../modules/ctx_load/ctx_load.c
 
-
-LOCAL_MODULE_FILENAME=gm_ctx_load
-
 include $(BUILD_SHARED_LIBRARY)

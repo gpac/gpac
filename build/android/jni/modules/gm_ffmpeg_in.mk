@@ -18,5 +18,4 @@ LOCAL_LDLIBS    += -lffmpeg
 
 LOCAL_SRC_FILES := ../../../../modules/ffmpeg_in/ffmpeg_load.c ../../../../modules/ffmpeg_in/ffmpeg_demux.c ../../../../modules/ffmpeg_in/ffmpeg_decode.c
 
-LOCAL_MODULE_FILENAME=gm_ffmpeg_in
 include $(BUILD_SHARED_LIBRARY)

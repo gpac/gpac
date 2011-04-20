@@ -10,6 +10,4 @@ LOCAL_SRC_FILES := ../../../../modules/svg_in/svg_in.c
 
 LOCAL_LDLIBS    += -ljs_osmo -lz
 
-LOCAL_MODULE_FILENAME=gm_svg_in
-
 include $(BUILD_SHARED_LIBRARY)
