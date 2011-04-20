@@ -34,11 +34,7 @@
 #ifdef GPAC_HAS_SPIDERMONKEY
 
 #if !defined(__GNUC__)
-# if defined(_WIN32_WCE)
-#  pragma comment(lib, "js")
-# elif defined (WIN32)
 #  pragma comment(lib, "js32")
-# endif
 #endif
 
 #endif

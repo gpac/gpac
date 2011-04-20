@@ -119,7 +119,7 @@ JSObject *gf_sg_js_global_object(JSContext *cx, JSClass *__class)
 
 #if !defined(__GNUC__)
 # if defined(_WIN32_WCE)
-#  pragma comment(lib, "js")
+#  pragma comment(lib, "js32")
 # elif defined (WIN32)
 #  pragma comment(lib, "js32")
 # endif
