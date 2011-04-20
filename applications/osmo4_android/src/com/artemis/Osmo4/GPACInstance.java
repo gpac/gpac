@@ -8,6 +8,7 @@ package com.artemis.Osmo4;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import android.util.Log;
@@ -60,7 +61,9 @@ public class GPACInstance implements GPACInstanceInterface {
         HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
         for (String s : toLoad) {
             try {
-                Log.i(LOG_LIB, "Loading library " + s + "..."); //$NON-NLS-1$//$NON-NLS-2$
+                String msg = "Loading library " + s + "...";//$NON-NLS-1$//$NON-NLS-2$
+                sb.append(msg);
+                Log.i(LOG_LIB, msg);
                 System.loadLibrary(s);
             } catch (UnsatisfiedLinkError e) {
                 sb.append("Failed to load " + s + ", error=" + e.getLocalizedMessage() + " :: " //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$
@@ -76,38 +79,40 @@ public class GPACInstance implements GPACInstanceInterface {
             }
         }
 
-        // if (!errors.isEmpty()){
-        try {
-            PrintStream out = new PrintStream(config.getGpacConfigDirectory() + "debug_libs.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
-            out.println("*** Configuration\n"); //$NON-NLS-1$
-            out.println(config.getConfigAsText());
-            sb.append("*** Libs listing: "); //$NON-NLS-1$
-            sb.append(config.getGpacLibsDirectory());
-            sb.append('\n');
-            listing(sb, new File(config.getGpacLibsDirectory()), 2);
-            sb.append("*** Modules listing: "); //$NON-NLS-1$
-            sb.append(config.getGpacModulesDirectory());
-            sb.append('\n');
-            listing(sb, new File(config.getGpacModulesDirectory()), 2);
-            sb.append("*** Fonts listing: \n"); //$NON-NLS-1$
-            sb.append(config.getGpacFontDirectory());
-            sb.append('\n');
-            listing(sb, new File(config.getGpacFontDirectory()), 2);
-            sb.append("*** Exceptions:\n"); //$NON-NLS-1$
-            for (Map.Entry<String, Throwable> ex : exceptions.entrySet()) {
-                sb.append(ex.getKey()).append(": ") //$NON-NLS-1$
-                  .append(ex.getValue().getLocalizedMessage())
-                  .append('(')
-                  .append(ex.getValue().getClass())
-                  .append(")\n"); //$NON-NLS-1$
+        if (!errors.isEmpty()) {
+            try {
+                PrintStream out = new PrintStream(config.getGpacConfigDirectory() + "debug_libs.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
+                out.println("$Revision$");
+                out.println(new Date());
+                out.println("\n*** Configuration\n"); //$NON-NLS-1$
+                out.println(config.getConfigAsText());
+                sb.append("*** Libs listing: "); //$NON-NLS-1$
+                sb.append(config.getGpacLibsDirectory());
+                sb.append('\n');
+                listing(sb, new File(config.getGpacLibsDirectory()), 2);
+                sb.append("*** Modules listing: "); //$NON-NLS-1$
+                sb.append(config.getGpacModulesDirectory());
+                sb.append('\n');
+                listing(sb, new File(config.getGpacModulesDirectory()), 2);
+                sb.append("*** Fonts listing: \n"); //$NON-NLS-1$
+                sb.append(config.getGpacFontDirectory());
+                sb.append('\n');
+                listing(sb, new File(config.getGpacFontDirectory()), 2);
+                sb.append("*** Exceptions:\n"); //$NON-NLS-1$
+                for (Map.Entry<String, Throwable> ex : exceptions.entrySet()) {
+                    sb.append(ex.getKey()).append(": ") //$NON-NLS-1$
+                      .append(ex.getValue().getLocalizedMessage())
+                      .append('(')
+                      .append(ex.getValue().getClass())
+                      .append(")\n"); //$NON-NLS-1$
+                }
+                out.println(sb.toString());
+                out.flush();
+                out.close();
+            } catch (Exception e) {
+                Log.e(LOG_LIB, "Failed to output debug info to debug file", e); //$NON-NLS-1$
             }
-            out.println(sb.toString());
-            out.flush();
-            out.close();
-        } catch (Exception e) {
-            Log.e(LOG_LIB, "Failed to output debug info to debug file", e); //$NON-NLS-1$
         }
-        // }
         errors = Collections.unmodifiableMap(exceptions);
         return errors;
     }
