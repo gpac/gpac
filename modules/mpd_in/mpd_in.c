@@ -1201,10 +1201,10 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
         break;
     case GF_NET_CHAN_INTERACTIVE:
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Interactive command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
-        /* defer to the real input service */
-        return mpdin->seg_ifce->ServiceCommand(mpdin->seg_ifce, com);
-        break;
-    case GF_NET_CHAN_BUFFER:
+        /* we are interactive (that's the whole point of MPD) */
+        return GF_OK;
+
+	case GF_NET_CHAN_BUFFER:
         GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[MPD_IN] Received Buffer query command from terminal on channel 0x%x on Service (0x%x)\n", com->base.on_channel, mpdin->service));
         return mpdin->seg_ifce->ServiceCommand(mpdin->seg_ifce, com);
         break;
