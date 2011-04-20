@@ -35,6 +35,9 @@
 #include <gpac/constants.h>
 #include <gpac/thread.h>
 
+
+//#define DISABLE_FFMPEG_DEMUX
+
 #if defined(WIN32) && !defined(__MINGW32__)
 
 #define EMULATE_INTTYPES
@@ -60,6 +63,13 @@
 #define inline	__inline
 #endif
 
+
+#if defined(WIN32)
+#  define INT64_C(x)  (x ## i64)
+#  define UINT64_C(x)  (x ## Ui64)
+#endif
+
+
 #ifdef FFMPEG_OLD_HEADERS
 #include <ffmpeg/avformat.h>
 #else
@@ -77,6 +87,16 @@ void gf_av_vlog(void* avcl, int level, const char *fmt, va_list vl);
 #include <libswscale/swscale.h>
 #endif
 #endif
+
+
+
+#if LIBAVUTIL_VERSION_MAJOR<51
+#define AVMEDIA_TYPE_AUDIO CODEC_TYPE_AUDIO
+#define AVMEDIA_TYPE_VIDEO CODEC_TYPE_VIDEO
+#endif
+
+
+
 
 /*FFMPEG decoder module */
 typedef struct 

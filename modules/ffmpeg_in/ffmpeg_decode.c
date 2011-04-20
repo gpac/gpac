@@ -37,6 +37,8 @@
 #undef USE_AVCODEC2
 #endif
 
+
+
 /**
  * Allocates data for FFMPEG decoding
  * \param oldBuffer The oldBuffer (freed if not NULL)
@@ -175,7 +177,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		if (ffd->st==GF_STREAM_AUDIO) {
-			(*ctx)->codec_type = CODEC_TYPE_AUDIO;
+			(*ctx)->codec_type = AVMEDIA_TYPE_AUDIO;
 			(*ctx)->sample_rate = gf_bs_read_u32(bs);
 			(*ctx)->channels = gf_bs_read_u16(bs);
 			(*ctx)->frame_size = gf_bs_read_u16(bs);
@@ -185,7 +187,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			/*ffmpeg specific*/
 			(*ctx)->block_align = gf_bs_read_u16(bs);
 		} else if (ffd->st==GF_STREAM_VISUAL) {
-			(*ctx)->codec_type = CODEC_TYPE_VIDEO;
+			(*ctx)->codec_type = AVMEDIA_TYPE_VIDEO;
 			(*ctx)->width = gf_bs_read_u16(bs);
 			(*ctx)->height = gf_bs_read_u16(bs);
 		}
@@ -202,7 +204,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 		codec_id = gf_bs_read_u32(bs);
 		if (ffd->st==GF_STREAM_AUDIO) {
-			(*ctx)->codec_type = CODEC_TYPE_AUDIO;
+			(*ctx)->codec_type = AVMEDIA_TYPE_AUDIO;
 			(*ctx)->sample_rate = gf_bs_read_u32(bs);
 			(*ctx)->channels = gf_bs_read_u16(bs);
 			(*ctx)->frame_size = gf_bs_read_u16(bs);
@@ -215,7 +217,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			  (*ctx)->frame_size = 160;
 			}
 		} else if (ffd->st==GF_STREAM_VISUAL) {
-			(*ctx)->codec_type = CODEC_TYPE_VIDEO;
+			(*ctx)->codec_type = AVMEDIA_TYPE_VIDEO;
 			(*ctx)->width = gf_bs_read_u16(bs);
 			(*ctx)->height = gf_bs_read_u16(bs);
 		}
@@ -227,7 +229,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	else {
 		u32 codec_id = 0;
 		if (ffd->st==GF_STREAM_VISUAL) {
-			(*ctx)->codec_type = CODEC_TYPE_VIDEO;
+			(*ctx)->codec_type = AVMEDIA_TYPE_VIDEO;
 			switch (ffd->oti) {
 			case GPAC_OTI_VIDEO_MPEG4_PART2:
 				codec_id = CODEC_ID_MPEG4;
@@ -255,7 +257,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				break;
 			}
 		} else if (ffd->st==GF_STREAM_AUDIO) {
-			(*ctx)->codec_type = CODEC_TYPE_AUDIO;
+			(*ctx)->codec_type = AVMEDIA_TYPE_AUDIO;
 			switch (ffd->oti) {
 			case GPAC_OTI_AUDIO_MPEG2_PART3:
 			case GPAC_OTI_AUDIO_MPEG1:
@@ -605,8 +607,6 @@ redecode:
 		if (len<0) { ffd->frame_start = 0; return GF_NON_COMPLIANT_BITSTREAM; }
 		if (gotpic<0) { ffd->frame_start = 0; return GF_OK; }
 
-		ctx->hurry_up = 0;
-
 		/*first config*/
 		if (!ffd->out_size) {
 			if (ctx->channels * ctx->frame_size* 2 < gotpic) ctx->frame_size = gotpic / 2 * ctx->channels;
@@ -715,8 +715,6 @@ redecode:
 			}
 		}
 	}
-
-	ctx->hurry_up = 0;
 
 	/*some streams use odd width/height frame values*/
 	if (ffd->out_pix_fmt == GF_PIXEL_YV12) {
