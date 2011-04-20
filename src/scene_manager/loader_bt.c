@@ -3443,7 +3443,11 @@ static GF_Err gf_sm_load_bt_initialize(GF_SceneLoader *load, const char *str, Bo
 		parser->gz_in = gzInput;
 
 	} else {
-		if (!str || (strlen(str)<5) ) return GF_BAD_PARAM;
+		if (!str || (strlen(str)<5) ) {
+			/*wait for first string data to be fed to the parser (for load from string)*/
+			parser->initialized = 0;
+			return GF_OK;
+		}
 		strncpy(BOM, str, 5); 
 	}
 
