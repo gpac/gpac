@@ -25,6 +25,7 @@ top_wnd = null;
 controlled_renderer = null;
 movie_connected = false;
 UPnP_Enabled = false;
+browser_mode = false;
 upnp_renderers = null;
 current_url = '';
 player_control = null;
@@ -205,6 +206,14 @@ function initialize() {
     
     /*load the UI lib*/
     Browser.loadScript('gwlib.js', false);
+
+    browser_mode = gpac.getOption('Temp', 'BrowserMode');
+    if (browser_mode && (browser_mode=='yes')) {
+     browser_mode = true;
+    } else {
+     browser_mode = false;
+    }
+
     
 //    gwskin.tooltip_callback = function(over, label) { alert('' + over ? label : ''); };
 
@@ -319,7 +328,7 @@ function initialize() {
     layout();
     gpac.set_event_filter(filter_event);
 
-    var url = gpac.getOption('General', 'GUIStartupFile');
+    var url = gpac.getOption('Temp', 'GUIStartupFile');
     if (url) {
       if (url.indexOf('://')<0) set_movie_url('gpac://'+url);
       else set_movie_url(url);
@@ -598,7 +607,7 @@ function new_player_control(container)
   wnd.time.set_size(control_icon_size, control_icon_size);
   wnd.time.set_width(4*wnd.time.font_size() );
   
-  if (1) {
+  if (!browser_mode) {
     wnd.forward = gw_new_icon_button(wnd.infobar, 'icons/media-seek-forward.svg', 'Forward', 'icon');
     wnd.forward.on_click = function() {
      if (movie_ctrl.mediaSpeed) {
@@ -619,7 +628,7 @@ function new_player_control(container)
     wnd.view = null;
   }
     
-  if (1) {
+  if (!browser_mode) {
     wnd.open = gw_new_icon_button(wnd.infobar, 'icons/folder.svg', 'Open', 'icon');
     wnd.open.on_click = function () { open_local_file(); }
     wnd.open.on_long_click = function () { open_url(); }
@@ -629,7 +638,7 @@ function new_player_control(container)
   }
   
   
-  if (1) {
+  if (!browser_mode) {
     wnd.home = gw_new_icon_button(wnd.infobar, 'icons/go-home.svg', 'Home', 'icon');
     wnd.home.on_click = function() { open_dock(true); }
     wnd.home.set_size(small_control_icon_size, small_control_icon_size);
@@ -654,7 +663,7 @@ function new_player_control(container)
     wnd.fullscreen = null;
   }
   
-  if (1) {
+  if (!browser_mode) {
     wnd.exit = gw_new_icon_button(wnd.infobar, gwskin.images.cancel, gwskin.labels.close, 'icon');
     wnd.exit.on_click = function() { gpac.exit(); }
     wnd.exit.set_size(small_control_icon_size, small_control_icon_size);
