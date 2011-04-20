@@ -50,7 +50,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../include,../../extra_lib/include"
+				AdditionalIncludeDirectories="../../include,../../extra_lib/include,../../include/win32"
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_WINDOWS;_USRDLL"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -76,7 +76,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="avformat-52.lib avcodec-52.lib avutil-50.lib swscale-0.lib"
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -248,7 +247,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="../../include,../../extra_lib/include"
+				AdditionalIncludeDirectories="../../include,../../extra_lib/include,../../include/win32"
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_WINDOWS;_USRDLL"
 				StringPooling="true"
 				RuntimeLibrary="2"
@@ -273,7 +272,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="avformat-52.lib avcodec-52.lib avutil-50.lib swscale-0.lib"
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
@@ -370,7 +368,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="secchk.lib avcodec-52.lib avformat-52.lib avutil-50.lib swscale-0.lib"
+				AdditionalDependencies="secchk.lib"
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/gm_$(ProjectName).dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
