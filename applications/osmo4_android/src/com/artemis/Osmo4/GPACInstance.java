@@ -47,7 +47,7 @@ public class GPACInstance implements GPACInstanceInterface {
      * @param config
      * 
      * @return a map of exceptions containing the library as key and the exception as value. If map is empty, no error
-     *         occurred
+     * 
      */
     synchronized static Map<String, Throwable> loadAllLibraries(GpacConfig config) {
         if (errors != null)
@@ -57,7 +57,8 @@ public class GPACInstance implements GPACInstanceInterface {
                                  "jpeg", "javaenv", //$NON-NLS-1$ //$NON-NLS-2$ 
                                  "mad", "editline", "ft2", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                                  "js_osmo", "openjpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
-                                 "ffmpeg", "faad", "gpac", "gpacWrapper" }; //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+                                 "ffmpeg", "faad", "gpac", //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
+                                 "stdc++", "gpacWrapper" }; // //$NON-NLS-1$ //$NON-NLS-2$
         HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
         for (String s : toLoad) {
             try {
