@@ -497,6 +497,9 @@ integrate text rendering which is always heavy work.</p>
 <b>FontReader</b> [value: <i>string</i>]
 <p style="text-indent: 5%">
 Specifies the module to use for font handling. This module cannot be reloaded at run-time, GPAC must be restarted.</p>
+<b>WaitForFontLoad</b> [value: <i>"yes" "no"</i>]
+<p style="text-indent: 5%">
+Forces to wait for SVG fonts to be loaded before displaying frames - default is "no".</p>
 <b>FontDirectory</b> (value: <i>path to TrueType (*.ttf, *.ttc) font directory</i>]
 <p style="text-indent: 5%">
 Specifies the directory where fonts are located - currently only one directory can be specified (however nothing stops a font module from using a private directory).
@@ -509,6 +512,7 @@ The freetype module will scan the entire sub-directories for fonts.
 <br/>
 <i>Note:</i><br/>
 The FreeType module uses this section to cache familly names to font file name associations.
+
 
 <br/><br/>
 <a name="Downloader"></a>
