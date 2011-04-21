@@ -133,15 +133,16 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 		pInfo->ESID = ESID;
 		pInfo->config.PixelMetrics = 1;
 		pInfo->config.version = (objectTypeIndication==2) ? 1 : 2;
+		assert( codec );
+		assert( codec->streamInfo );
 		return gf_list_add(codec->streamInfo, pInfo);
 	}
 //	gf_mx_p(codec->mx);
+	assert( codec );
 	if (gf_bifs_dec_get_stream(codec, ESID) != NULL) {
 //		gf_mx_v(codec->mx);
 		return GF_BAD_PARAM;
 	}
-
-	
 	bs = gf_bs_new(DecoderSpecificInfo, DecoderSpecificInfoLength, GF_BITSTREAM_READ);
 	GF_SAFEALLOC(pInfo, BIFSStreamInfo);
 	pInfo->ESID = ESID;
@@ -165,6 +166,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	}
 	gf_bs_del(bs);
 
+	assert( codec->streamInfo );
 	//first stream, configure size
 	if (!codec->ignore_size && !gf_list_count(codec->streamInfo)) {
 		gf_sg_set_scene_size_info(codec->scenegraph, pInfo->config.Width, pInfo->config.Height, pInfo->config.PixelMetrics);
