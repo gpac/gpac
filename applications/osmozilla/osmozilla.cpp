@@ -603,12 +603,10 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 	/*stream not ready*/
 	if (!m_szURL || !m_bAutoStart) return TRUE;
 
-	gf_cfg_set_key(m_user.config, "Temp", "BrowserMode", "yes");
-
-
 	/*connect from 0 and pause if not autoplay*/
 	gui = gf_cfg_get_key(m_user.config, "General", "StartupFile");
 	if (gui) {
+		gf_cfg_set_key(m_user.config, "Temp", "BrowserMode", "yes");
 		gf_cfg_set_key(m_user.config, "Temp", "GUIStartupFile", m_szURL);
 		gf_term_connect(m_term, gui);
 	} else {
@@ -630,6 +628,7 @@ NPError nsOsmozillaInstance::NewStream(NPMIMEType type, NPStream * stream,
 	if (m_bAutoStart) {
 		const char *gui = gf_cfg_get_key(m_user.config, "General", "StartupFile");
 		if (gui) {
+			gf_cfg_set_key(m_user.config, "Temp", "BrowserMode", "yes");
 			gf_cfg_set_key(m_user.config, "Temp", "GUIStartupFile", m_szURL);
 			gf_term_connect(m_term, gui);
 		} else {
