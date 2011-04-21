@@ -1545,7 +1545,11 @@ fi
 
 if test "$disable_3d" = "no" ; then
   if test "$win32" = "yes" ; then
-    LINK3D="-lopengl32 -lglu32"
+    if test "$cygwin" = "yes" ; then
+      LINK3D="-lw32api/opengl32 -lw32api/glu32"
+    else
+      LINK3D="-lopengl32 -lglu32"
+    fi
   elif test "$darwin" = "yes" ; then
     LINK3D="-framework OpenGL -framework GLUT"
     DarwinGL="yes"

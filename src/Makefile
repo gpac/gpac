@@ -113,6 +113,15 @@ ifeq ($(DISABLE_SVG), yes)
 COMPOSITOR_CFLAGS+=-DGPAC_DISABLE_SVG
 endif
 
+## Add prefix before every lib
+ifneq ($(prefix), /usr/local)
+EXTRALIBS+=-L$(prefix)/lib
+else
+ifneq ($(prefix), /usr)
+EXTRALIBS+=-L$(prefix)/lib
+endif
+endif
+
 ## OpenGL available
 ifeq ($(HAS_OPENGL),yes)
 EXTRALIBS+= $(OGL_LIBS)
@@ -123,14 +132,6 @@ ifeq ($(NEED_LOCAL_LIB), "yes")
 EXTRALIBS+=-L../extra_lib/lib/gcc
 endif
 EXTRALIBS+=$(LINKLIBS)
-
-ifneq ($(prefix), /usr/local)
-EXTRALIBS+=-L$(prefix)/lib
-else
-ifneq ($(prefix), /usr)
-EXTRALIBS+=-L$(prefix)/lib
-endif
-endif
 
 ifeq ($(GPAC_USE_TINYGL), yes)
 COMPOSITOR_CFLAGS+=-I$(SRC_PATH)/../TinyGL/include
