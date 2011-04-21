@@ -3904,6 +3904,30 @@ GF_Err gf_isom_timed_meta_data_config_new(GF_ISOFile *movie, u32 trackNumber, Bo
 	return e;
 }
 
+
+GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 subSampleSize, u32 priority, Bool discardable)
+{
+	GF_SubSampleInformationBox *sub_samples;
+	GF_TrackBox *trak;
+	GF_Err e;
+
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+	
+	trak = gf_isom_get_track_from_file(movie, track);
+	if (!trak || !trak->Media || !trak->Media->information->sampleTable)
+		return GF_BAD_PARAM;
+	
+	if (!trak->Media->information->sampleTable->SubSamples) {
+		trak->Media->information->sampleTable->SubSamples = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
+		sub_samples = trak->Media->information->sampleTable->SubSamples;
+		sub_samples->version = (subSampleSize>0xFFFF) ? 1 : 0;
+	} else {
+		sub_samples = trak->Media->information->sampleTable->SubSamples;
+	}
+	return gf_isom_add_subsample_info(sub_samples, sampleNumber, subSampleSize, priority, discardable);
+}
+
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
 

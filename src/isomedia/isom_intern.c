@@ -730,6 +730,82 @@ GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode)
 	return ent;
 }
 
+GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 sampleNumber, u32 subSampleSize, u32 priority, Bool discardable)
+{
+	u32 i, count, last_sample;
+	GF_SampleEntry *pSamp;
+	GF_SubSampleEntry *pSubSamp;
+
+	pSamp = NULL;
+	last_sample = 0;
+	count = gf_list_count(sub_samples->Samples);
+	for (i=0; i<count; i++) {
+		pSamp = (GF_SampleEntry*) gf_list_get(sub_samples->Samples, i);
+		/*TODO - do we need to support insertion of subsample info ?*/
+		if (last_sample + pSamp->sample_delta > sampleNumber) return GF_NOT_SUPPORTED; 
+		if (last_sample + pSamp->sample_delta == sampleNumber) break; 
+		last_sample += pSamp->sample_delta;
+		pSamp = NULL;
+	}
+
+	if (!pSamp) {
+		GF_SAFEALLOC(pSamp, GF_SampleEntry);
+		if (!pSamp) return GF_OUT_OF_MEM;
+		pSamp->SubSamples = gf_list_new();
+		if (!pSamp->SubSamples ) {
+			gf_free(pSamp);
+			return GF_OUT_OF_MEM;
+		}
+		pSamp->sample_delta = sampleNumber - last_sample;
+		gf_list_add(sub_samples->Samples, pSamp);
+	}
+
+	if ((subSampleSize>0xFFFF) && !sub_samples->version) {
+		sub_samples->version = 1;
+	}
+	/*remove last subsample info*/
+	if (!subSampleSize) {
+		pSubSamp = gf_list_last(pSamp->SubSamples);
+		gf_list_rem_last(pSamp->SubSamples);
+		free(pSubSamp);
+		if (!gf_list_count(pSamp->SubSamples)) {
+			gf_list_del_item(sub_samples->Samples, pSamp);
+			gf_list_del(pSamp->SubSamples);
+			gf_free(pSamp);
+		}
+		return GF_OK;
+	}
+	/*add subsample*/
+	GF_SAFEALLOC(pSubSamp, GF_SubSampleEntry);
+	if (!pSubSamp) return GF_OUT_OF_MEM;
+	pSubSamp->subsample_size = subSampleSize;
+	pSubSamp->subsample_priority = priority;
+	pSubSamp->discardable = discardable;
+	return gf_list_add(pSamp->SubSamples, pSubSamp);
+}
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+u32 gf_isom_sample_get_subsample_entry(GF_ISOFile *movie, u32 track, u32 sampleNumber, GF_SampleEntry **sub_sample)
+{
+	u32 i, count, last_sample;
+	GF_SubSampleInformationBox *sub_samples;
+	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
+	if (sub_sample) *sub_sample = NULL;
+	if (!track) return 0;
+	if (!trak->Media || !trak->Media->information->sampleTable) return 0;
+	sub_samples = trak->Media->information->sampleTable->SubSamples;
+	if (!sub_samples) return 0;
+	last_sample = 0;
+	count = gf_list_count(sub_samples->Samples);
+	for (i=0; i<count; i++) {
+		GF_SampleEntry*pSamp = (GF_SampleEntry*) gf_list_get(sub_samples->Samples, i);
+		if (last_sample + pSamp->sample_delta == sampleNumber) {
+			if (sub_sample) *sub_sample = pSamp;
+			return gf_list_count(pSamp->SubSamples);
+		}
+		last_sample += pSamp->sample_delta;
+	}
+	return 0;
+}
 #endif /*GPAC_DISABLE_ISOM*/
