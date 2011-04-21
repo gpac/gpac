@@ -112,6 +112,8 @@ BIFSStreamInfo *gf_bifs_dec_get_stream(GF_BifsDecoder * codec, u16 ESID)
 	BIFSStreamInfo *ptr;
 
 	i=0;
+	if (!codec || !codec->streamInfo)
+		return NULL;
 	while ((ptr = (BIFSStreamInfo *) gf_list_enum(codec->streamInfo, &i))) {
 		if(ptr->ESID==ESID) return ptr;
 	}
