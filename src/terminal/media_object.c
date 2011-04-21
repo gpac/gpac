@@ -116,6 +116,7 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines, B
 #endif
 		obj_type = GF_MEDIA_OBJECT_AUDIO; 
 		break;
+	case TAG_MPEG4_SBVCAnimation: 
 	case TAG_MPEG4_AnimationStream: 
 		obj_type = GF_MEDIA_OBJECT_UPDATES; 
 		break;

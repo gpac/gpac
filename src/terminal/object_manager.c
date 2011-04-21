@@ -433,7 +433,16 @@ GF_Err ODM_ValidateOD(GF_ObjectManager *odm, Bool *hasInline)
 		switch (esd->decoderConfig->streamType) {
 		case GF_STREAM_OD: nb_od++; break;
 		case GF_STREAM_OCR: nb_ocr++; break;
-		case GF_STREAM_SCENE: nb_scene++; break;
+		case GF_STREAM_SCENE: 
+			switch (esd->decoderConfig->objectTypeIndication) {
+			case GPAC_OTI_SCENE_AFX:
+			case GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE:
+				break;
+			default:
+				nb_scene++; 
+				break;
+			}
+			break;
 		case GF_STREAM_MPEG7: nb_mp7++; break;
 		case GF_STREAM_IPMP: nb_ipmp++; break;
 		case GF_STREAM_OCI: nb_oci++; break;
@@ -622,6 +631,17 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		GF_Event evt;
 
 		gf_scene_setup_object(odm->parentscene, odm);
+
+		/*setup node decoder*/
+		if (odm->mo && odm->codec && odm->codec->decio && (odm->codec->decio->InterfaceType==GF_NODE_DECODER_INTERFACE) ) {
+			GF_NodeDecoder *ndec = (GF_NodeDecoder *) odm->codec->decio;
+			GF_Node *n = gf_list_get(odm->mo->nodes, 0);
+			if (n) ndec->AttachNode(ndec, n);
+
+			/*not clear in the spec how the streams attached to AFC are started - default to "right now"*/
+			gf_odm_start(odm, 0);
+		}
+
 
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = 1;

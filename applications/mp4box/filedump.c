@@ -1213,6 +1213,18 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					else szName = "Unknown";
 					fprintf(stdout, "Ogg/%s video / GPAC Mux  - Visual Size %d x %d\n", szName, w, h);
 				}
+				else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_JPEG) {
+					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+					fprintf(stdout, "JPEG Stream - Visual Size %d x %d\n", w, h);
+				}
+				else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_PNG) {
+					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+					fprintf(stdout, "PNG Stream - Visual Size %d x %d\n", w, h);
+				}
+				else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_JPEG_2000) {
+					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
+					fprintf(stdout, "JPEG2000 Stream - Visual Size %d x %d\n", w, h);
+				}
 				if (!w || !h) {
 					gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 					if (full_dump) fprintf(stdout, "\t");
@@ -1299,17 +1311,43 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				}
 			}
 			else if (esd->decoderConfig->streamType==GF_STREAM_SCENE) {
-				if (esd->decoderConfig->objectTypeIndication<=6) {
+				if (esd->decoderConfig->objectTypeIndication<=4) {
 					GF_BIFSConfig *b_cfg = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
 					fprintf(stdout, "BIFS Scene description - %s stream\n", b_cfg->elementaryMasks ? "Animation" : "Command"); 
 					if (full_dump && !b_cfg->elementaryMasks) {
 						fprintf(stdout, "\tWidth %d Height %d Pixel Metrics %s\n", b_cfg->pixelWidth, b_cfg->pixelHeight, b_cfg->pixelMetrics ? "yes" : "no"); 
 					}
 					gf_odf_desc_del((GF_Descriptor *)b_cfg);
+				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_AFX) {
+					char *afxtype = "Unknown";
+					u8 tag = 0;
+					if (esd->decoderConfig->decoderSpecificInfo) {
+						tag = esd->decoderConfig->decoderSpecificInfo->data[0];
+						switch (tag) {
+						case 1:
+							afxtype = "Wavelet Subdivision";
+							break;
+						case 2:
+							afxtype = "Mesh Grid";
+							break;
+						case 7:
+							afxtype = "BBA";
+							break;
+						}
+					}
+					fprintf(stdout, "AFX Stream - type %s (%d)\n", afxtype, tag); 
+				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_FONT) {
+					fprintf(stdout, "Font Data stream\n"); 
 				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_LASER) {
 					GF_LASERConfig l_cfg;
 					gf_odf_get_laser_config(esd->decoderConfig->decoderSpecificInfo, &l_cfg);
 					fprintf(stdout, "LASER Stream - %s\n", l_cfg.newSceneIndicator ? "Full Scene" : "Scene Segment"); 
+				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_TEXT_MPEG4) {
+					fprintf(stdout, "MPEG-4 Streaming Text stream\n"); 
+				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_SYNTHESIZED_TEXTURE) {
+					fprintf(stdout, "Synthetized Texture stream stream\n"); 
+				} else {
+					fprintf(stdout, "Unknown Systems stream OTI %d\n", esd->decoderConfig->objectTypeIndication); 
 				}
 			}
 

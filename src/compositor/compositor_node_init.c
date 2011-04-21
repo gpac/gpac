@@ -27,6 +27,16 @@
 #include <gpac/nodes_mpeg4.h>
 #include <gpac/nodes_x3d.h>
 
+
+void compositor_init_afx_node(GF_Compositor *compositor, GF_Node *node, MFURL *url)
+{
+	GF_MediaObject *mo = gf_mo_register(node, url, 0, 0);
+	if (!mo) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] AFX Decoder not found for node %s - node will not be rendered\n", gf_node_get_class_name(node)));
+	}
+}
+
+
 void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 {
 	switch (gf_node_get_tag(node)) {
@@ -381,6 +391,11 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 
 	case TAG_LSR_updates:			compositor_init_svg_updates(compositor, node); break;
 #endif
+
+
+	case TAG_MPEG4_SBVCAnimation:			
+		compositor_init_afx_node(compositor, node, & ((M_SBVCAnimation *)node)->url); 
+		break;
 
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] node %s will not be rendered\n", gf_node_get_class_name(node)));

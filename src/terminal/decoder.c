@@ -883,6 +883,27 @@ drop:
 }
 
 
+GF_Err gf_codec_process_ocr(GF_Codec *codec, u32 TimeAvailable)
+{
+	/*OCR: needed for OCR in pull mode (dummy streams used to sync various sources)*/
+	GF_DBUnit *AU;
+	GF_Channel *ch;
+	/*fetch next AU on OCR (empty AUs)*/
+	Decoder_GetNextAU(codec, &ch, &AU);
+
+	/*no active channel return*/
+	if (!AU || !ch) {
+		/*if the codec is in EOS state, move to STOP*/
+		if (codec->Status == GF_ESM_CODEC_EOS) {
+			gf_term_stop_codec(codec);
+#ifndef GPAC_DISABLE_VRML
+			/*if a mediacontrol is ruling this OCR*/
+			if (codec->odm->media_ctrl && codec->odm->media_ctrl->control->loop) mediacontrol_restart(codec->odm);
+#endif
+		}
+	}
+	return GF_OK;
+}
 
 GF_Err gf_codec_process(GF_Codec *codec, u32 TimeAvailable)
 {
@@ -893,34 +914,7 @@ GF_Err gf_codec_process(GF_Codec *codec, u32 TimeAvailable)
 	codec->Muted = 0;
 #endif
 
-	/*OCR: needed for OCR in pull mode (dummy streams used to sync various sources)*/
-	if (codec->type==GF_STREAM_OCR) {
-		GF_DBUnit *AU;
-		GF_Channel *ch;
-		/*fetch next AU on OCR (empty AUs)*/
-		Decoder_GetNextAU(codec, &ch, &AU);
-
-		/*no active channel return*/
-		if (!AU || !ch) {
-			/*if the codec is in EOS state, move to STOP*/
-			if (codec->Status == GF_ESM_CODEC_EOS) {
-				gf_term_stop_codec(codec);
-#ifndef GPAC_DISABLE_VRML
-				/*if a mediacontrol is ruling this OCR*/
-				if (codec->odm->media_ctrl && codec->odm->media_ctrl->control->loop) mediacontrol_restart(codec->odm);
-#endif
-			}
-		}
-	}
-	/*special case here (we tweak a bit the timing)*/
-	else if (codec->type==GF_STREAM_PRIVATE_SCENE) {
-		return PrivateScene_Process(codec, TimeAvailable);
-	} else if (codec->decio->InterfaceType==GF_MEDIA_DECODER_INTERFACE) {
-		return MediaCodec_Process(codec, TimeAvailable);
-	} else if (codec->decio->InterfaceType==GF_SCENE_DECODER_INTERFACE) {
-		return SystemCodec_Process(codec, TimeAvailable);
-	}
-	return GF_OK;
+	return codec->process(codec, TimeAvailable);
 }
 
 
@@ -1003,12 +997,22 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	case GF_STREAM_VISUAL:
 	case GF_STREAM_ND_SUBPIC:
 		ifce_type = GF_MEDIA_DECODER_INTERFACE;
+		codec->process = MediaCodec_Process;		
 		break;
 	case GF_STREAM_PRIVATE_MEDIA:
 		ifce_type = GF_PRIVATE_MEDIA_DECODER_INTERFACE;
+		codec->process = MediaCodec_Process;		
+		break;
+	case GF_STREAM_PRIVATE_SCENE:
+		ifce_type = GF_SCENE_DECODER_INTERFACE;
+		codec->process = PrivateScene_Process;
 		break;
 	default: 
 		ifce_type = GF_SCENE_DECODER_INTERFACE;
+		codec->process = SystemCodec_Process;
+		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_AFX) {
+			ifce_type = GF_NODE_DECODER_INTERFACE;
+		}
 		break;
 	}
 
@@ -1079,12 +1083,14 @@ GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	/*OCR has no codec, just a channel*/
 	case GF_STREAM_OCR:
 		codec->decio = NULL;
+		codec->process = gf_codec_process_ocr;
 		return GF_OK;
 #ifndef GPAC_DISABLE_VRML
 	/*InteractionStream */
 	case GF_STREAM_INTERACT:
 		codec->decio = (GF_BaseDecoder *) gf_isdec_new(esd, PL);
 		assert(codec->decio->InterfaceType == GF_SCENE_DECODER_INTERFACE);
+		codec->process = SystemCodec_Process;
 		return GF_OK;
 #endif
 
