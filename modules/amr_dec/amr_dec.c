@@ -24,8 +24,8 @@
 
 
 /*include AMR stuff*/
-#include "amr_nb/sp_dec.h"
-#include "amr_nb/d_homing.h"
+//#include "amr_nb/sp_dec.h"
+//#include "amr_nb/d_homing.h"
 /*remove AMR types to avoid any typedef warning/error*/
 #undef Float
 #undef Bool
@@ -35,17 +35,27 @@
 #include <gpac/modules/service.h>
 #include <gpac/constants.h>
 
-
 /*default size in CU of composition memory for audio*/
 #define DEFAULT_AUDIO_CM_SIZE			12
 /*default critical size in CU of composition memory for audio*/
 #define DEFAULT_AUDIO_CM_TRIGGER		4
 
+/*our own headers for AMR NB*/
+#if (defined(WIN32) || defined(_WIN32_WCE)) 
+#include "amr_nb_api.h"
+#if !defined(__GNUC__)
+#pragma comment(lib, "libamrnb")
+#endif
+#else
+#include "amr_nb/sp_dec.h"
+#include "amr_nb/d_homing.h"
+#endif
+
 typedef struct
 {
 	u32 out_size;
 	/*AMR NB state vars*/
-	Speech_Decode_FrameState * speech_decoder_state;
+	__Speech_Decode_FrameState * speech_decoder_state;
     enum RXFrameType rx_type;
     enum Mode mode;
    
@@ -213,7 +223,7 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
 		}
 		/* reset decoder if current frame is a homing frame */
 		if (ctx->reset_flag != 0) {
-			Speech_Decode_Frame_reset(ctx->speech_decoder_state);
+			Speech_Decode_Frame_reset(&ctx->speech_decoder_state);
 		}
 		ctx->reset_flag_old = ctx->reset_flag;
 

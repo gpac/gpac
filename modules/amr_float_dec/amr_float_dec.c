@@ -29,14 +29,30 @@
 #include <gpac/modules/service.h>
 #include <gpac/constants.h>
 
-#ifdef GPAC_HAS_AMR_FT
+#if (defined(WIN32) || defined (_WIN32_WCE)) && defined(GPAC_HAS_AMR_FT)
 /*AMR NB*/
+#include "amr_api.h"
+
+#ifndef GPAC_HAS_AMR_FT_WB
+#define GPAC_HAS_AMR_FT_WB
+#endif
+
+#if !defined(__GNUC__)
+#pragma comment(lib, "libamrfloat")
+#endif
+
+#else
+
+#ifdef GPAC_HAS_AMR_FT
+/*AMR WB*/
 #include "amr_nb_ft/interf_dec.h"
 #endif
 
 #ifdef GPAC_HAS_AMR_FT_WB
 /*AMR WB*/
 #include "amr_wb_ft/dec_if.h"
+#endif
+
 #endif
 
 /*default size in CU of composition memory for audio*/
@@ -210,14 +226,14 @@ static GF_Err AMR_ProcessData(GF_MediaDecoder *ifcg,
 		offset = 0;
 		if (ctx->is_amr_wb) {
 #ifdef GPAC_HAS_AMR_FT_WB
-			D_IF_decode(ctx->wb_destate, inBuffer, (Word16 *) outBuffer, 0);
+			D_IF_decode(ctx->wb_destate, inBuffer, (s16 *) outBuffer, 0);
 			*outBufferLength += 320*2;
 			outBuffer += 320*2;
 			offset = GF_AMR_WB_FRAME_SIZE[ft] + 1;
 #endif
 		} else {
 #ifdef GPAC_HAS_AMR_FT
-			Decoder_Interface_Decode(ctx->nb_destate, inBuffer, (Word16 *) outBuffer, 0);
+			Decoder_Interface_Decode(ctx->nb_destate, inBuffer, (s16 *) outBuffer, 0);
 			*outBufferLength += 160*2;
 			outBuffer += 160*2;
 			offset = GF_AMR_FRAME_SIZE[ft] + 1;
