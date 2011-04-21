@@ -322,7 +322,7 @@ GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyNa
 	sec = (IniSection *) gf_malloc(sizeof(IniSection));
 	sec->section_name = gf_strdup(secName);
 	sec->keys = gf_list_new();
-	iniFile->hasChanged = has_changed;
+	if (has_changed) iniFile->hasChanged = 1;
 	gf_list_add(iniFile->sections, sec);
 
 get_key:
@@ -335,7 +335,7 @@ get_key:
 	key = (IniKey *) gf_malloc(sizeof(IniKey));
 	key->name = gf_strdup(keyName);
 	key->value = gf_strdup("");
-	iniFile->hasChanged = has_changed;
+	if (has_changed) iniFile->hasChanged = 1;
 	gf_list_add(sec->keys, key);
 
 set_value:
@@ -344,7 +344,7 @@ set_value:
 		if (key->name) gf_free(key->name);
 		if (key->value) gf_free(key->value);
 		gf_free(key);
-		iniFile->hasChanged = has_changed;
+		if (has_changed) iniFile->hasChanged = 1;
 		return GF_OK;
 	}
 	/* same value, don't update */
@@ -352,7 +352,7 @@ set_value:
 
 	if (key->value) gf_free(key->value);
 	key->value = gf_strdup(keyValue);
-	iniFile->hasChanged = has_changed;
+	if (has_changed) iniFile->hasChanged = 1;
 	return GF_OK;
 }
 
