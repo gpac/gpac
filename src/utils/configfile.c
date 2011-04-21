@@ -306,10 +306,13 @@ GF_EXPORT
 GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyName, const char *keyValue)
 {
 	u32 i;
+	Bool has_changed = 1;
 	IniSection *sec;
 	IniKey *key;
 
 	if (!iniFile || !secName || !keyName) return GF_BAD_PARAM;
+
+	if (!strnicmp(secName, "temp", 4)) has_changed = 0;
 
 	i=0;
 	while ((sec = (IniSection *) gf_list_enum(iniFile->sections, &i)) ) {
@@ -319,7 +322,7 @@ GF_Err gf_cfg_set_key(GF_Config *iniFile, const char *secName, const char *keyNa
 	sec = (IniSection *) gf_malloc(sizeof(IniSection));
 	sec->section_name = gf_strdup(secName);
 	sec->keys = gf_list_new();
-	iniFile->hasChanged = 1;
+	iniFile->hasChanged = has_changed;
 	gf_list_add(iniFile->sections, sec);
 
 get_key:
@@ -332,7 +335,7 @@ get_key:
 	key = (IniKey *) gf_malloc(sizeof(IniKey));
 	key->name = gf_strdup(keyName);
 	key->value = gf_strdup("");
-	iniFile->hasChanged = 1;
+	iniFile->hasChanged = has_changed;
 	gf_list_add(sec->keys, key);
 
 set_value:
@@ -341,7 +344,7 @@ set_value:
 		if (key->name) gf_free(key->name);
 		if (key->value) gf_free(key->value);
 		gf_free(key);
-		iniFile->hasChanged = 1;
+		iniFile->hasChanged = has_changed;
 		return GF_OK;
 	}
 	/* same value, don't update */
@@ -349,7 +352,7 @@ set_value:
 
 	if (key->value) gf_free(key->value);
 	key->value = gf_strdup(keyValue);
-	iniFile->hasChanged = 1;
+	iniFile->hasChanged = has_changed;
 	return GF_OK;
 }
 
