@@ -61,7 +61,8 @@ GF_Err gf_term_init_scheduler(GF_Terminal *term, u32 threading_mode)
 	switch (threading_mode) {
 	case GF_TERM_THREAD_SINGLE: term->flags |= GF_TERM_SINGLE_THREAD;
 		break;
-	case GF_TERM_THREAD_MULTI: term->flags |= GF_TERM_MULTI_THREAD;
+	case GF_TERM_THREAD_MULTI: 
+		term->flags |= GF_TERM_MULTI_THREAD;
 		break;
 	default:
 		break;
