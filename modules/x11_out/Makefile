@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-CFLAGS+=-I$(SRC_PATH)/include
+CFLAGS+=-I"$(SRC_PATH)/include"
 # -I/usr/local/arm/3.3.2/include
 
 

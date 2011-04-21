@@ -3,7 +3,7 @@ include ../../config.mak
 vpath %.c $(SRC_PATH)/modules/directfb_out
 
 CFLAGS= $(OPTFLAGS)
-CFLAGS+=-I$(SRC_PATH)/include -I$(DIRECTFB_INC_PATH)
+CFLAGS+=-I"$(SRC_PATH)/include" -I$(DIRECTFB_INC_PATH)
 LDFLAGS+=-ldirectfb -lfusion -ldirect
 
 ifeq ($(DEBUGBUILD), yes)

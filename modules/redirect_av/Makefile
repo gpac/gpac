@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/redirect_av
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include $(ffmpeg_cflags)
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" $(ffmpeg_cflags)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g

@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/mp3_in
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -27,7 +27,7 @@ CFLAGS+=-DGPAC_HAS_MAD
 #local mad lib
 ifeq ($(CONFIG_MAD), local)
 EXTRALIBS+=-L../../extra_lib/lib/gcc
-CFLAGS+= -I$(LOCAL_INC_PATH)/mad
+CFLAGS+= -I"$(LOCAL_INC_PATH)/mad"
 endif
 EXTRALIBS+= -lmad
 endif

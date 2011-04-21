@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/saf_in
 
-CFLAGS= $(OPTFLAGS) -w -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include"
 
 
 ifeq ($(DEBUGBUILD), yes)

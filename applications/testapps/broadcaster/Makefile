@@ -2,7 +2,7 @@ include ../../../config.mak
 
 vpath %.c $(SRC_PATH)/applications/testapps/broadcaster
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
 SOURCES=
 APPNAME=broadcaster

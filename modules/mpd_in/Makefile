@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/mpd_in
 
-CFLAGS= $(OPTFLAGS) -w -I$(SRC_PATH)/include -Wall
+CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include" -Wall
 
 
 ifeq ($(DEBUGBUILD), yes)

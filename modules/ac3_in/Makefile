@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/ac3_in
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -27,7 +27,7 @@ CFLAGS+=-DGPAC_HAS_LIBA52
 #local faad lib
 ifeq ($(CONFIG_FAAD), local)
 EXTRALIBS+=-L../../extra_lib/lib/gcc
-CFLAGS+= -I$(LOCAL_INC_PATH)
+CFLAGS+= -I"$(LOCAL_INC_PATH)"
 endif
 EXTRALIBS+= -la52
 endif

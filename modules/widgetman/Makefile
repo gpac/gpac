@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/widgetman
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -21,7 +21,7 @@ LOCAL_LIB=-L../../bin/gcc
 OBJS=widgetman.o unzip.o widget.o wgt_load.o
 
 ifeq ($(CONFIG_ZLIB), local)
-CFLAGS+=-I$(LOCAL_INC_PATH)/zlib
+CFLAGS+=-I"$(LOCAL_INC_PATH)/zlib"
 LOCAL_LIB+= -L../../extra_lib/lib/gcc
 endif
 

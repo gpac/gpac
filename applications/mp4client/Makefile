@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/applications/mp4client
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include -I../../
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" -I../../
 
 LINKLIBS=$(OGL_LIBS)
 
