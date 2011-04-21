@@ -193,16 +193,30 @@ typedef struct _mediadecoder
 } GF_MediaDecoder;
 
 
-
+/*
+				WARNING - DO NOT MODIFY THE POSITION OF ProcessData IN SCENE OR NODE DECODER, AS THE BOTH STRUCTURES
+		ARE TYPE_CASTED BY THE TERMINAL WHEN CALLING ProcessData
+*/
 typedef struct _scene *LPSCENE;
 
 /*interface name and version for scene decoder */
-#define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', '2')
+#define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', '3')
 
 typedef struct _scenedecoder
 {
 	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
 	
+	/*Process the scene data in inAU. 
+	@inBuffer, inBufferLength: encoded input data (complete framing of encoded data)
+	@ES_ID: stream this data belongs too (scalable object)
+	@AU_Time: specifies the current AU time. This is usually unused, however is needed for decoder
+	handling the scene graph without input data (cf below). In this case the buffer passed is always NULL and the AU
+	time caries the time of the scene (or of the stream object attached to the scene decoder, cf below)
+	@mmlevel: speed indicator for the decoding - cf above for values*/
+	GF_Err (*ProcessData)(struct _scenedecoder *, const char *inBuffer, u32 inBufferLength,
+					u16 ES_ID, u32 AU_Time, u32 mmlevel);
+
+
 	/*attaches scene to the decoder - a scene may be attached to several decoders of several types
 	(BIFS or others scene dec, ressource decoders (OD), etc. 
 	is: inline scene owning graph (and not just graph), defined in intern/terminal_dev.h. With inline scene
@@ -218,17 +232,31 @@ typedef struct _scenedecoder
 	This is called each time the scene is about to be reseted (eg, seek and destroy)
 	*/
 	GF_Err (*ReleaseScene)(struct _scenedecoder *);
-	/*Process the scene data in inAU. 
+} GF_SceneDecoder;
+
+
+/*interface name and version for node decoder mainly used by AFX*/
+#define GF_NODE_DECODER_INTERFACE		GF_4CC('G', 'N', 'D', '3')
+
+typedef struct _base_node *LPNODE;
+
+typedef struct _nodedecoder
+{
+	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
+	
+	/*Process the node data in inAU. 
 	@inBuffer, inBufferLength: encoded input data (complete framing of encoded data)
 	@ES_ID: stream this data belongs too (scalable object)
 	@AU_Time: specifies the current AU time. This is usually unused, however is needed for decoder
 	handling the scene graph without input data (cf below). In this case the buffer passed is always NULL and the AU
 	time caries the time of the scene (or of the stream object attached to the scene decoder, cf below)
 	@mmlevel: speed indicator for the decoding - cf above for values*/
-	GF_Err (*ProcessData)(struct _scenedecoder *, const char *inBuffer, u32 inBufferLength,
+	GF_Err (*ProcessData)(struct _nodedecoder *, const char *inBuffer, u32 inBufferLength,
 					u16 ES_ID, u32 AU_Time, u32 mmlevel);
 
-} GF_SceneDecoder;
+	/*attaches node to the decoder - currently only one node is only attached to a single decoder*/
+	GF_Err (*AttachNode)(struct _nodedecoder *, LPNODE node);
+} GF_NodeDecoder;
 
 
 

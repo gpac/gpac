@@ -239,9 +239,9 @@ enum
 	GPAC_OTI_OD_V2 = 0x02,
 	/*!OTI for BIFS InputSensor streams*/
 	GPAC_OTI_SCENE_INTERACT = 0x03,
-	/*!OTI for AFX streams with extended BIFS config*/
+	/*!OTI for streams with extended BIFS config*/
 	GPAC_OTI_SCENE_BIFS_EXTENDED = 0x04,
-	/*!OTI for AFX streams with extended AFXConfig*/
+	/*!OTI for AFX streams with AFXConfig*/
 	GPAC_OTI_SCENE_AFX = 0x05,
     /*!OTI for Font data streams */
 	GPAC_OTI_FONT = 0x06,

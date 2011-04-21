@@ -717,8 +717,12 @@ struct _generic_codec
 	/*codec type (streamType from base layer)*/
 	u32 type;
 	u32 flags;
-	/*current decoder interface */
+	/*decoder module interface */
 	GF_BaseDecoder *decio;
+	
+	/*base process routine*/
+	GF_Err (*process)(GF_Codec *codec, u32 TimeAvailable);
+
 	/*composition memory for media streams*/
 	struct _composition_memory *CB;
 	/*input media channles*/
