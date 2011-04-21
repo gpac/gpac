@@ -12,7 +12,7 @@ MOZILLA_DIR=local
 endif
 endif
 
-CFLAGS=$(CPPFLAGS) $(XUL_CFLAGS) -I$(SRC_PATH)/include
+CFLAGS=$(CPPFLAGS) $(XUL_CFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -56,11 +56,11 @@ $(LIB): $(OBJS)
 ifeq ($(CONFIG_WIN32),yes)
 	windres osmozilla.rc osmoz.o
 	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) osmoz.o $(LINKLIBS)
-	cp $(SRC_PATH)/applications/osmozilla/nsIOsmozilla.xpt_w32 ../../bin/gcc/nposmozilla.xpt
+	cp "$(SRC_PATH)/applications/osmozilla/nsIOsmozilla.xpt_w32" ../../bin/gcc/nposmozilla.xpt
 	chmod +w ../../bin/gcc/nposmozilla.xpt
 else
 	$(CXX) $(SHFLAGS) $(LDFLAGS) $(OBJS) $(LINKLIBS) -o ../../bin/gcc/$@ 
-	cp $(SRC_PATH)/applications/osmozilla/nsIOsmozilla.xpt_linux ../../bin/gcc/nposmozilla.xpt
+	cp "$(SRC_PATH)/applications/osmozilla/nsIOsmozilla.xpt_linux" ../../bin/gcc/nposmozilla.xpt
 	chmod +w ../../bin/gcc/nposmozilla.xpt
 endif
 	@echo $(USER_ROOT)

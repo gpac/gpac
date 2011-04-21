@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/ft_font
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include $(FT_CFLAGS)
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" $(FT_CFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g

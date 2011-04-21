@@ -375,7 +375,7 @@ strip="${cross_prefix}${strip}"
 source_path="`echo $0 | sed -e 's#/configure##'`"
 source_path_used="yes"
 if test -z "$source_path" -o "$source_path" = "." ; then
-    source_path=`pwd`
+    source_path="`pwd`"
     source_path_used="no"
 else
     source_path="`cd \"$source_path\"; pwd`"
@@ -494,7 +494,7 @@ LDFLAGS="$LDFLAGS -Wl,--warn-common"
 linux="yes"
 case "$cpu" in
 sh4)
-CFLAGS="$CFLAGS -isystem $prefix/include"
+CFLAGS="$CFLAGS -isystem \"$prefix/include\""
 #LDFLAGS="$LDFLAGS -L$prefix/lib"
 ;;
 esac
@@ -541,9 +541,9 @@ int main( void ) { if (zlibVersion() != ZLIB_VERSION) { puts("zlib version diffe
 EOF
 has_zlib="no"
 if $cc -o $TMPO $TMPC -lz 2> /dev/null  ; then
-has_zlib="system"
-elif $cc -o $TMPO $TMPC -I$local_inc/zlib -L$local_lib -lz 2> /dev/null  ; then
-has_zlib="local"
+  has_zlib="system"
+elif $cc -o $TMPO $TMPC -I"$local_inc/zlib" -L$local_lib -lz 2> /dev/null  ; then
+  has_zlib="local"
 else
   echo "error: zlib not found on system or in local libs"
   exit 1
@@ -1000,15 +1000,15 @@ else
   if $cc -o $TMPO $TMPC -lz -lavcodec -lavformat 2> /dev/null  ; then
   has_ffmpeg="system"
   elif test "$alt_macosx_dir" != "" ; then
-   if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lz -lavcodec -lavformat 2> /dev/null ; then
-   has_ffmpeg="system"
-   ffmpeg_cflags="-I$alt_macosx_dir/include"
-   ffmpeg_lflags="-L$alt_macosx_dir/lib -lz -lavcodec -lavformat"
-   fi
+    if $cc -o $TMPO $TMPC -I$alt_macosx_dir/include -L$alt_macosx_dir/lib -lz -lavcodec -lavformat 2> /dev/null ; then
+      has_ffmpeg="system"
+      ffmpeg_cflags="-I$alt_macosx_dir/include"
+      ffmpeg_lflags="-L$alt_macosx_dir/lib -lz -lavcodec -lavformat"
+    fi
   elif $cc -o $TMPO $TMPC -I$local_inc -L$local_lib -lz -lavcodec -lavformat 2> /dev/null  ; then
-  has_ffmpeg="local"
-  ffmpeg_cflags="-I$local_inc"
-  ffmpeg_lflags="-L$local_lib -lz -lavcodec -lavformat -lavutil"
+    has_ffmpeg="local"
+    ffmpeg_cflags="-I$local_inc"
+    ffmpeg_lflags="-L$local_lib -lz -lavcodec -lavformat -lavutil"
   fi
 fi
 
@@ -1727,7 +1727,7 @@ has_png="no"
 fi
 
 if test "$cpu" = "sh4"; then
-viren_dir="`ls $source_path/modules | grep viren_out`"
+viren_dir="`ls \"$source_path/modules\" | grep viren_out`"
 if test "$viren_dir" = "viren_out"; then
 enable_depth_compositor="yes"
 enable_renoir="yes"
@@ -1742,11 +1742,11 @@ echo "#define GF_CONFIG_H" >> $TMPH
 echo "#define GPAC_CONFIGURATION \"$GPAC_CONFIGURATION\"" >> $TMPH
 
 
-version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/tools.h | cut -d '"' -f 2`
+version="`grep '#define GPAC_VERSION ' \"$source_path/include/gpac/tools.h\" | cut -d '"' -f 2`"
 
 if which svnversion >/dev/null
 then
-	revision=`svnversion`
+	revision="`svnversion \"$source_path\"`"
 	echo "#define GPAC_SVN_REVISION	\"$revision\"" > $source_path/include/gpac/version.h
 else
 	echo "Cannot find SVN revision"
@@ -2025,8 +2025,8 @@ CPPFLAGS="$CPPFLAGS -fPIC -DPIC"
 fi
 
 ldir=`pwd`
-CFLAGS="$CFLAGS -DGPAC_HAVE_CONFIG_H -I$ldir"
-CPPFLAGS="$CPPFLAGS -DGPAC_HAVE_CONFIG_H -I$ldir"
+CFLAGS="$CFLAGS -DGPAC_HAVE_CONFIG_H -I\"$ldir\""
+CPPFLAGS="$CPPFLAGS -DGPAC_HAVE_CONFIG_H -I\"$ldir\""
 
 
 echo "Creating config.mak"
@@ -2281,7 +2281,7 @@ echo "RENOIR_ENABLE=$enable_renoir" >> config.mak
 
 GPAC_ENST_INC=no
 GPAC_ENST=no
-enst_dir="`ls $source_path/src/ | grep enst`"
+enst_dir="`ls \"$source_path/src/\" | grep enst`"
 if test "$enst_dir" = "enst"; then
 echo "GPAC Proprietary Extensions enabled"
 GPAC_ENST_INC=yes
@@ -2310,44 +2310,44 @@ if test "$source_path_used" = "yes" ; then
     echo "Creating compilation tree image"
     SRC_DIRS="src src/utils src/isomedia src/ietf src/odf src/bifs src/scenegraph src/terminal src/mcrypt src/media_tools src/scene_manager src/compositor src/laser" 
     
-    APP_DIRS="applications/mp4box applications/mp4client applications/osmozilla applications/osmo4_wx  applications/testapps/mp4_streamer applications/mp42ts"
+    APP_DIRS="applications/mp4box applications/mp4client applications/osmozilla applications/osmo4_wx applications/mp42ts"
 
     for dir in $SRC_DIRS ; do
-         mkdir -p $dir
+         mkdir -p "$dir"
     done
-    ln -sf $source_path/Makefile Makefile
-    ln -sf $source_path/src/Makefile src/Makefile
+    ln -sf "$source_path/Makefile" Makefile
+    ln -sf "$source_path/src/Makefile" src/Makefile
 
     mkdir -p applications
-    ln -sf $source_path/applications/Makefile applications/Makefile
+    ln -sf "$source_path/applications/Makefile" applications/Makefile
     mkdir -p applications/testapps
 
     for dir in $APP_DIRS ; do
-         mkdir -p $dir
-         ln -sf $source_path/$dir/Makefile $dir/Makefile
+         mkdir -p "$dir"
+         ln -sf "$source_path/$dir/Makefile" "$dir/Makefile"
     done
 
 
     cur_dir="`pwd`"
-    cd $source_path/
+    cd "$source_path/"
     MOD_DIRS="`ls -d modules/*/`"
-    cd $cur_dir
+    cd "$cur_dir"
     
     mkdir -p modules
-    ln -sf $source_path/modules/Makefile modules/Makefile
+    ln -sf "$source_path/modules/Makefile" modules/Makefile
     
     for dir in $MOD_DIRS ; do
-        if ls $source_path/$dir/Makefile > /dev/null 2>&1; then
-            mkdir -p $dir
-            ln -sf $source_path/$dir/Makefile $dir/Makefile
+        if ls "$source_path/$dir/Makefile" > /dev/null 2>&1; then
+            mkdir -p "$dir"
+            ln -sf "$source_path/$dir/Makefile" "$dir/Makefile"
         fi
     done
     if test "$has_mingw_directx" = "yes"; then
-      ln -sf $source_path/modules/dx_hw/hand.cur modules/dx_hw/hand.cur
-      ln -sf $source_path/modules/dx_hw/collide.cur modules/dx_hw/collide.cur
+      ln -sf "$source_path/modules/dx_hw/hand.cur" modules/dx_hw/hand.cur
+      ln -sf "$source_path/modules/dx_hw/collide.cur" modules/dx_hw/collide.cur
     fi
 
-    cd $cur_dir
+    cd "$cur_dir"
 
     echo "SRC_LOCAL_PATH=no" >> config.mak
 else

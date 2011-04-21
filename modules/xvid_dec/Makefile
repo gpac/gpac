@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/xvid_dec
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -19,7 +19,7 @@ OBJS=xvid_dec.o
 
 #local xvid lib
 ifeq ($(CONFIG_XVID), local)
-CFLAGS+= -I$(LOCAL_INC_PATH)/xvid
+CFLAGS+= -I"$(LOCAL_INC_PATH)/xvid"
 LDFLAGS+= -L../../extra_lib/lib/gcc
 endif
 EXTRALIBS+= -lxvidcore -lpthread

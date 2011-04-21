@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/img_in
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -34,7 +34,7 @@ CFLAGS+=-DGPAC_HAS_JP2
 #local openjpeg lib
 ifeq ($(CONFIG_JP2), local)
 NEED_LOCAL_LIB="yes"
-CFLAGS+= -I$(LOCAL_INC_PATH)/openjpeg
+CFLAGS+= -I"$(LOCAL_INC_PATH)/openjpeg"
 endif
 endif
 

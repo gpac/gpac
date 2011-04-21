@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/alsa
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include $(OSS_CFLAGS)
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" $(OSS_CFLAGS)
 LDFLAGS+=$(OSS_LDFLAGS)
 
 ifeq ($(DEBUGBUILD), yes)

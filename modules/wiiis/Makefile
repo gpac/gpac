@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/wiiis
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -14,7 +14,7 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-CFLAGS+= -I$(LOCAL_INC_PATH)
+CFLAGS+= -I"$(LOCAL_INC_PATH)"
 EXTRALIBS+= -L../../extra_lib/lib/gcc -lwiiuse
 
 #common obj

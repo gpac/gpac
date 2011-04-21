@@ -2,7 +2,7 @@ include ../config.mak
 
 vpath %.c $(SRC_PATH)/src
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include 
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -63,7 +63,7 @@ MEDIATOOLS_CFLAGS=
 
 #1 - zlib support
 ifeq ($(CONFIG_ZLIB), local)
-CFLAGS+= -I$(LOCAL_INC_PATH)/zlib
+CFLAGS+= -I"$(LOCAL_INC_PATH)/zlib"
 NEED_LOCAL_LIB="yes"
 endif
 LINKLIBS+=-lz
@@ -90,7 +90,7 @@ LINKLIBS+= -ljpeg
 #local lib
 ifeq ($(CONFIG_JPEG), local)
 NEED_LOCAL_LIB="yes"
-MEDIATOOLS_CFLAGS+=-I$(LOCAL_INC_PATH)/jpeg
+MEDIATOOLS_CFLAGS+=-I"$(LOCAL_INC_PATH)/jpeg"
 endif
 endif
 
@@ -101,7 +101,7 @@ else
 LINKLIBS+= -lpng
 ifeq ($(CONFIG_PNG), local)
 NEED_LOCAL_LIB="yes"
-MEDIATOOLS_CFLAGS+=-I$(LOCAL_INC_PATH)/png
+MEDIATOOLS_CFLAGS+=-I"$(LOCAL_INC_PATH)/png"
 endif
 endif
 
@@ -134,7 +134,7 @@ endif
 EXTRALIBS+=$(LINKLIBS)
 
 ifeq ($(GPAC_USE_TINYGL), yes)
-COMPOSITOR_CFLAGS+=-I$(SRC_PATH)/../TinyGL/include
+COMPOSITOR_CFLAGS+=-I"$(SRC_PATH)/../TinyGL/include"
 else
 COMPOSITOR_CFLAGS+=-DGPAC_HAS_GLU
 endif
@@ -185,7 +185,7 @@ all: lib
 lib: $(LIB)
 
 #there's a bunch of warnings in there, get rid of them
-mcrypt: CFLAGS= $(OPTFLAGS) -w -I$(SRC_PATH)/include
+mcrypt: CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include"
 mcrypt: $(LIBGPAC_MCRYPT)
 
 scenegraph: CFLAGS += $(SCENEGRAPH_CFLAGS)

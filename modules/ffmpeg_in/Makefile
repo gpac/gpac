@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/ffmpeg_in
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -35,7 +35,7 @@ OBJS=ffmpeg_decode.o ffmpeg_demux.o ffmpeg_load.o
 #local ffmpeg lib
 ifeq ($(CONFIG_FFMPEG), local)
 LOCAL_LIB=-L../../extra_lib/lib/gcc
-CFLAGS+= -I$(LOCAL_INC_PATH)
+CFLAGS+= -I"$(LOCAL_INC_PATH)"
 endif
 
 ifeq ($(CONFIG_ZLIB), local)

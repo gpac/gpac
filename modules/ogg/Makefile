@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/ogg
 
-CFLAGS= $(OPTFLAGS) -I$(SRC_PATH)/include
+CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -34,7 +34,7 @@ LINKLIBS+= -lvorbis
 CFLAGS+=-DGPAC_HAS_VORBIS
 ifeq ($(CONFIG_VORBIS), local)
 NEED_LOCAL_LIB="yes"
-CFLAGS+= -I$(LOCAL_INC_PATH)
+CFLAGS+= -I"$(LOCAL_INC_PATH)"
 endif
 endif
 
@@ -45,7 +45,7 @@ LINKLIBS+= -ltheora
 CFLAGS+=-DGPAC_HAS_THEORA
 ifeq ($(CONFIG_THEORA), local)
 NEED_LOCAL_LIB="yes"
-CFLAGS+= -I$(LOCAL_INC_PATH)
+CFLAGS+= -I"$(LOCAL_INC_PATH)"
 endif
 endif
 

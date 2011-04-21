@@ -3,7 +3,7 @@ include ../../config.mak
 vpath %.c $(SRC_PATH)/modules/amr_dec
 
 #note: __MSDOS__ defined is the same cfg as linux. There may be some pbs on other platforms, to check...
-CFLAGS= $(OPTFLAGS) -w -I$(SRC_PATH)/include -D__MSDOS__ -DMMS_IO -DWMOPS=0 -DVAD1
+CFLAGS= $(OPTFLAGS) -w -I"$(SRC_PATH)/include" -D__MSDOS__ -DMMS_IO -DWMOPS=0 -DVAD1
 
 
 ifeq ($(DEBUGBUILD), yes)
