@@ -278,12 +278,12 @@ enum
 
 enum
 {
-	GF_TERM_RUNNING= 1,
-	GF_TERM_DEAD = 1<<1,
-	GF_TERM_SINGLE_THREAD = 1<<2,
-	GF_TERM_MULTI_THREAD = 1<<3,
-	GF_TERM_SYSDEC_RESYNC = 1<<4,
-	GF_TERM_SINGLE_CLOCK = 1<<5
+	GF_TERM_RUNNING = 1<<20,
+	GF_TERM_DEAD = 1<<21,
+	GF_TERM_SINGLE_THREAD = 1<<22,
+	GF_TERM_MULTI_THREAD = 1<<23,
+	GF_TERM_SYSDEC_RESYNC = 1<<24,
+	GF_TERM_SINGLE_CLOCK = 1<<25
 };
 
 /*URI relocators are used for containers like zip or ISO FF with file items. The relocator
