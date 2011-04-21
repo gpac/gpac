@@ -317,7 +317,7 @@ struct __tag_compositor
 	/*screen buffer for direct access*/
 	GF_VideoSurface hw_surface;
 	/*output buffer is configured in video memory*/
-	Bool video_memory;
+	Bool video_memory, request_video_memory;
 	/*indicate if overlays were prezsent in the previous frame*/
 	Bool last_had_overlays;
 	GF_RasterCallback raster_callbacks;
