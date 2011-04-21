@@ -427,7 +427,8 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 		col = GF_COL_ARGB(0xFF, key->r, key->g, key->b);
 		ck.dwColorSpaceHighValue = ck.dwColorSpaceLowValue = col;
 		hr = IDirectDrawSurface_SetColorKey(src->pSurface, DDCKEY_SRCBLT, &ck);
-		if (FAILED(hr)) return GF_IO_ERR;
+		if (FAILED(hr)) 
+			return GF_IO_ERR;
 	}
 
 	if ((dst_w==src_w) && (dst_h==src_h)) {
@@ -440,7 +441,7 @@ static GF_Err DD_BlitSurface(DDContext *dd, DDSurface *src, GF_Window *src_wnd, 
 		if (key) flags |= DDBLT_KEYSRC;
 		hr = IDirectDrawSurface_Blt(dd->pBack, dst_wnd ? &r_dst : NULL, src->pSurface, src_wnd ? &r_src : NULL, flags, NULL);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Hardware blit result: %s\n", gf_error_to_string(FAILED(hr) ? GF_IO_ERR : GF_OK ) ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX Out] Hardware blit result: %d (%08x)\n", hr, hr));
 	return FAILED(hr) ? GF_IO_ERR : GF_OK;
 }
 
@@ -552,7 +553,8 @@ static GF_Err DD_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window 
 	//if (video_src->pixel_format==GF_PIXEL_YUVD) return GF_NOT_SUPPORTED;
 	if (video_src->pixel_format==GF_PIXEL_YUVD) video_src->pixel_format=GF_PIXEL_YV12;
 	pool = DD_GetSurface(dr, w, h, video_src->pixel_format);
-	if (!pool) return GF_IO_ERR;
+	if (!pool) 
+		return GF_IO_ERR;
 
 	temp_surf.pixel_format = pool->format;
 	e = DD_LockSurface(dd, &temp_surf, pool->pSurface);
