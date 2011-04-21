@@ -44,6 +44,8 @@ static GF_Err JP2_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	JP2CTX();
 	if (esd->dependsOnESID || esd->decoderConfig->upstream) return GF_NOT_SUPPORTED;
 
+	if (!esd->decoderConfig->decoderSpecificInfo) return GF_OK;
+
 	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_IMAGE_JPEG_2000) {
 		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
 		ctx->height = gf_bs_read_u32(bs);
