@@ -279,10 +279,6 @@ Specifies that the renderer runs in worst case scenario, recomputing display lis
 <p style="text-indent: 5%">
 Specifies whether the bounding volume of an object shall be drawn or not. Note that the 2D renderer only uses rectangles as bounding volumes. The "AABB" value is used by the 
 3D renderer only, and specifies the object bounding-box tree shall be drawn.</p>
-<b>StressMode</b> [value: <i>"yes" "no"</i>]
-<p style="text-indent: 5%">
-Specifies whether the renderer shall redraw the scene and reload texture at each simulation tick or whenever needed
-</p>
 <b>ColorKey</b> [value: <i>unsigned hexadecimal integer, formated as AARRGGBB</i>]
 <p style="text-indent: 5%">
 Specifies the color key to use for windowless rendering. GPAC currently doesn't support true alpha blitting to desktop due to limitations in most windowing toolkit, it therefore uses color keying mechanism. The alpha part of the key is used for global transparency of GPAC's output, if supported.
