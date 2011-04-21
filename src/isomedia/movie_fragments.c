@@ -1048,6 +1048,67 @@ GF_Err gf_isom_fragment_append_data(GF_ISOFile *movie, u32 TrackID, char *data, 
 	return GF_OK;
 }
 
+GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSampleSize, u32 priority, Bool discardable)
+{
+	u32 i, count, last_sample;
+	GF_TrackFragmentBox *traf;
+	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+
+	traf = GetTraf(movie, TrackID);
+	if (!traf || !traf->tfhd->sample_desc_index) return GF_BAD_PARAM;
+
+	/*compute last sample number in traf*/
+	last_sample = 0;
+	count = gf_list_count(traf->TrackRuns);
+	for (i=0; i<count; i++) {
+		GF_TrackFragmentRunBox *trun = gf_list_get(traf->TrackRuns, i);
+		last_sample += trun->sample_count;
+	}
+
+	if (!traf->subs) {
+		traf->subs = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
+		traf->subs->version = (subSampleSize>0xFFFF) ? 1 : 0;
+	}
+	return gf_isom_add_subsample_info(traf->subs, last_sample, subSampleSize, priority, discardable);
+}
+
+GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber)
+{
+	u32 i, count, last_sample;
+	GF_SampleEntry *sub_sample;
+	GF_Err e;
+	GF_TrackFragmentBox *traf;
+	if (!dest->moof || !(dest->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
+
+	if (! gf_isom_sample_get_subsample_entry(orig, track, sampleNumber, &sub_sample)) return GF_OK;
+
+	traf = GetTraf(dest, TrackID);
+	if (!traf || !traf->tfhd->sample_desc_index) return GF_BAD_PARAM;
+
+	/*compute last sample number in traf*/
+	last_sample = 0;
+	count = gf_list_count(traf->TrackRuns);
+	for (i=0; i<count; i++) {
+		GF_TrackFragmentRunBox *trun = gf_list_get(traf->TrackRuns, i);
+		last_sample += trun->sample_count;
+	}
+
+	/*create subsample if needed*/
+	if (!traf->subs) {
+		traf->subs = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
+		traf->subs->version = 0;
+	}
+	
+
+	count = gf_list_count(sub_sample->SubSamples);
+	for (i=0; i<count; i++) {
+		GF_SubSampleEntry *entry = gf_list_get(sub_sample->SubSamples, i);
+		e = gf_isom_add_subsample_info(traf->subs, last_sample, entry->subsample_size, entry->subsample_priority, entry->discardable);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+
 
 #endif	/*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -1117,6 +1178,17 @@ u32 gf_isom_is_fragmented(GF_ISOFile *the_file)
 {
 	return 0;
 }
+
+GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSampleSize, u32 priority, Bool discardable)
+{
+	return GF_NOT_SUPPORTED;
+}
+
+GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber)
+{
+	return GF_NOT_SUPPORTED;
+}
+
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS)*/
 

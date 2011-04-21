@@ -4092,10 +4092,17 @@ restart_import:
 
 			if (prev_nalu_prefix_size) {
 				samp->dataLength -= size_length/8 + prev_nalu_prefix_size;
-				
+
+				/*remove last subsample entry!*/
+				gf_isom_add_subsample(import->dest, track, cur_samp+1, 0, 0, 0);
+
 				/*rewrite last NALU prefix at the beginning of next sample*/
 				sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 				gf_bs_write_data(sample_data, samp->data + samp->dataLength, size_length/8 + prev_nalu_prefix_size);
+	
+				/*add subsample entry to next sample*/
+				gf_isom_add_subsample(import->dest, track, cur_samp+2, size_length/8 + prev_nalu_prefix_size, 1, 1);
+
 				prev_nalu_prefix_size = 0;
 			}
 			/*CTS recomuting is much trickier than with MPEG-4 ASP due to b-slice used as references - we therefore
@@ -4151,6 +4158,14 @@ restart_import:
 			if (!sample_data) sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_int(sample_data, copy_size, size_length);
 			gf_bs_write_data(sample_data, buffer, copy_size);
+
+			/*fixme - we need finer grain for priority*/
+			if ((nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE)) {
+				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length, 1, 1);
+			} else {
+				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length, 0, 0);
+			}
+
 
 			if (nal_type != GF_AVC_NALU_SVC_PREFIX_NALU) {
 				prev_nalu_prefix_size = 0;

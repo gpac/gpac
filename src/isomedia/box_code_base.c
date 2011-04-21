@@ -4472,6 +4472,7 @@ void stbl_del(GF_Box *s)
 	if (ptr->SampleDep) gf_isom_box_del((GF_Box *) ptr->SampleDep);
 	if (ptr->PaddingBits) gf_isom_box_del((GF_Box *) ptr->PaddingBits);
 	if (ptr->Fragments) gf_isom_box_del((GF_Box *) ptr->Fragments);
+	if (ptr->SubSamples) gf_isom_box_del((GF_Box *) ptr->SubSamples);
 
 	gf_free(ptr);
 }
@@ -4534,6 +4535,11 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_STSF:
 		if (ptr->Fragments) return GF_ISOM_INVALID_FILE;
 		ptr->Fragments = (GF_SampleFragmentBox *)a;
+		break;
+	
+	case GF_ISOM_BOX_TYPE_SUBS:
+		if (ptr->SubSamples) return GF_ISOM_INVALID_FILE;
+		ptr->SubSamples = (GF_SubSampleInformationBox *)a;
 		break;
 
 	//what's this box ??? delete it
@@ -4658,6 +4664,10 @@ GF_Err stbl_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->PaddingBits, bs);
 		if (e) return e;
 	}
+	if (ptr->SubSamples) {
+		e = gf_isom_box_write((GF_Box *) ptr->SubSamples, bs);
+		if (e) return e;
+	}
 
 #if WRITE_SAMPLE_FRAGMENTS
 	//sampleFragments
@@ -4743,6 +4753,12 @@ GF_Err stbl_Size(GF_Box *s)
 		ptr->size += ptr->Fragments->size;
 	}
 #endif
+
+	if (ptr->SubSamples) {
+		e = gf_isom_box_size((GF_Box *) ptr->SubSamples);
+		if (e) return e;
+		ptr->size += ptr->SubSamples->size;
+	}
 	
 	return GF_OK;
 }
@@ -5962,6 +5978,7 @@ void traf_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->tfhd) gf_isom_box_del((GF_Box *) ptr->tfhd);
 	if (ptr->sdtp) gf_isom_box_del((GF_Box *) ptr->sdtp);
+	if (ptr->subs) gf_isom_box_del((GF_Box *) ptr->subs);
 	gf_isom_box_array_del(ptr->TrackRuns);
 	gf_free(ptr);
 }
@@ -5985,6 +6002,10 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
         if (ptr->tfad) return GF_ISOM_INVALID_FILE;
         ptr->tfad = a;
 		return GF_OK;
+	case GF_ISOM_BOX_TYPE_SUBS:
+		if (ptr->subs) return GF_ISOM_INVALID_FILE;
+		ptr->subs = (GF_SubSampleInformationBox *)a;
+		return GF_OK;
 	default:
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -5999,9 +6020,9 @@ GF_Err traf_Read(GF_Box *s, GF_BitStream *bs)
 
 GF_Box *traf_New()
 {
-	GF_TrackFragmentBox *tmp = (GF_TrackFragmentBox *) gf_malloc(sizeof(GF_TrackFragmentBox));
+	GF_TrackFragmentBox *tmp;
+	GF_SAFEALLOC(tmp, GF_TrackFragmentBox);
 	if (tmp == NULL) return NULL;
-	memset(tmp, 0, sizeof(GF_TrackFragmentBox));
 	tmp->type = GF_ISOM_BOX_TYPE_TRAF;
 	tmp->TrackRuns = gf_list_new();
 	return (GF_Box *)tmp;
@@ -6026,6 +6047,10 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->tfhd, bs);
 		if (e) return e;
 	}
+	if (ptr->subs) {
+		e = gf_isom_box_write((GF_Box *) ptr->subs, bs);
+		if (e) return e;
+	}
 	e = gf_isom_box_array_write(s, ptr->TrackRuns, bs);
 	if (e) return e;
 	if (ptr->sdtp) {
@@ -6045,6 +6070,11 @@ GF_Err traf_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->tfhd);
 		if (e) return e;
 		ptr->size += ptr->tfhd->size;
+	}
+	if (ptr->subs) {
+		e = gf_isom_box_size((GF_Box *) ptr->subs);
+		if (e) return e;
+		ptr->size += ptr->subs->size;
 	}
 	if (ptr->sdtp) {
 		e = gf_isom_box_size((GF_Box *) ptr->sdtp);
@@ -7739,5 +7769,143 @@ GF_Err sidx_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
+
+
+GF_Box *subs_New()
+{
+	GF_SubSampleInformationBox *tmp = (GF_SubSampleInformationBox *) gf_malloc(sizeof(GF_SubSampleInformationBox));
+	if (tmp == NULL) return NULL;
+	memset(tmp, 0, sizeof(GF_SubSampleInformationBox));
+	tmp->type = GF_ISOM_BOX_TYPE_SUBS;
+	tmp->Samples = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+void subs_del(GF_Box *s)
+{
+	GF_SubSampleInformationBox *ptr = (GF_SubSampleInformationBox *)s;
+	if (ptr == NULL) return;	
+
+	while (gf_list_count(ptr->Samples)) {
+		GF_SampleEntry *pSamp;
+		pSamp = (GF_SampleEntry*)gf_list_get(ptr->Samples, 0);
+		while (gf_list_count(pSamp->SubSamples)) {
+			GF_SubSampleEntry *pSubSamp;
+			pSubSamp = (GF_SubSampleEntry*) gf_list_get(pSamp->SubSamples, 0);
+			gf_free(pSubSamp);
+			gf_list_rem(pSamp->SubSamples, 0);
+		}		
+		gf_list_del(pSamp->SubSamples);
+		gf_free(pSamp);
+		gf_list_rem(ptr->Samples, 0);
+	}
+	gf_list_del(ptr->Samples);
+	gf_free(ptr);
+}
+
+GF_Err subs_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i, j, entry_count;
+	u16 subsample_count;
+	GF_SampleEntry *pSamp;
+	GF_SubSampleEntry *pSubSamp;
+	GF_SubSampleInformationBox *ptr = (GF_SubSampleInformationBox *) s;
+
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	entry_count = gf_list_count(ptr->Samples);
+	gf_bs_write_u32(bs, entry_count);
+	
+	for (i=0; i<entry_count; i++) {
+		pSamp = (GF_SampleEntry*) gf_list_get(ptr->Samples, i);
+		subsample_count = gf_list_count(pSamp->SubSamples);
+		gf_bs_write_u32(bs, pSamp->sample_delta);
+		gf_bs_write_u16(bs, subsample_count);
+		
+		for (j=0; j<subsample_count; j++) {
+			pSubSamp = (GF_SubSampleEntry*) gf_list_get(pSamp->SubSamples, j);	
+			if (ptr->version == 1) {
+				gf_bs_write_u32(bs, pSubSamp->subsample_size);
+			} else {
+				gf_bs_write_u16(bs, pSubSamp->subsample_size);
+			}
+			gf_bs_write_u8(bs, pSubSamp->subsample_priority);
+			gf_bs_write_u8(bs, pSubSamp->discardable);
+			gf_bs_write_u32(bs, pSubSamp->reserved);
+		}
+	}
+	return e;
+}
+
+GF_Err subs_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_SubSampleInformationBox *ptr = (GF_SubSampleInformationBox *) s;
+	GF_SampleEntry *pSamp;
+	u32 entry_count, i;
+	u16 subsample_count;
+
+	// determine the size of the full box 
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+
+	// add 4 byte for entry_count
+	ptr->size += 4;
+	entry_count = gf_list_count(ptr->Samples);
+	for (i=0; i<entry_count; i++) {
+		pSamp = (GF_SampleEntry*) gf_list_get(ptr->Samples, i);
+		subsample_count = gf_list_count(pSamp->SubSamples);
+		// 4 byte for sample_delta, 2 byte for subsample_count
+		// and 6 + (4 or 2) bytes for each subsample
+		ptr->size += 4 + 2 + subsample_count * (6 + (ptr->version==1 ? 4 : 2));
+	}
+	return GF_OK;
+}
+
+
+GF_Err subs_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_SubSampleInformationBox *ptr = (GF_SubSampleInformationBox *)s;
+	u32 entry_count, i, j;
+	u16 subsample_count;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	entry_count = gf_bs_read_u32(bs);
+	ptr->size -= 4;
+
+	for (i=0; i<entry_count; i++) {
+		GF_SampleEntry *pSamp = (GF_SampleEntry*) gf_malloc(sizeof(GF_SampleEntry));
+		if (!pSamp) return GF_OUT_OF_MEM;
+
+		memset(pSamp, 0, sizeof(GF_SampleEntry));
+		pSamp->SubSamples = gf_list_new();
+		pSamp->sample_delta = gf_bs_read_u32(bs);
+		subsample_count = gf_bs_read_u16(bs);
+
+		for (j=0; j<subsample_count; j++) {
+			GF_SubSampleEntry *pSubSamp = (GF_SubSampleEntry*) gf_malloc(sizeof(GF_SubSampleEntry));
+			if (!pSubSamp) return GF_OUT_OF_MEM;
+
+			memset(pSubSamp, 0, sizeof(GF_SubSampleEntry));
+			if (ptr->version==1) {
+				pSubSamp->subsample_size = gf_bs_read_u32(bs);
+			} else {
+				pSubSamp->subsample_size = gf_bs_read_u16(bs);
+			}
+			pSubSamp->subsample_priority = gf_bs_read_u8(bs);
+			pSubSamp->discardable = gf_bs_read_u8(bs);
+			pSubSamp->reserved = gf_bs_read_u32(bs);
+
+			gf_list_add(pSamp->SubSamples, pSubSamp);
+		}
+		gf_list_add(ptr->Samples, pSamp);
+	}
+	return GF_OK;
+}
 
 #endif /*GPAC_DISABLE_ISOM*/

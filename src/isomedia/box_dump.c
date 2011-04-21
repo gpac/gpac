@@ -255,6 +255,9 @@ GF_Err gf_box_dump(void *ptr, FILE * trace)
 	case GF_ISOM_BOX_TYPE_TRUN:
 		return trun_dump(a, trace);
 #endif
+	
+	case GF_ISOM_BOX_TYPE_SUBS:
+		return subs_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_VOID:
 		return void_dump(a, trace);
@@ -665,6 +668,7 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	if (p->DegradationPriority) gf_box_dump(p->DegradationPriority, trace);
 	if (p->SampleDep) gf_box_dump(p->SampleDep, trace);
 	if (p->PaddingBits) gf_box_dump(p->PaddingBits, trace);
+	if (p->SubSamples) gf_box_dump(p->SubSamples, trace);
 	if (p->Fragments) gf_box_dump(p->Fragments, trace);
 
 	fprintf(trace, "</SampleTableBox>\n");
@@ -2236,6 +2240,7 @@ GF_Err traf_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<TrackFragmentBox>\n");
 	DumpBox(a, trace);
 	if (p->tfhd) gf_box_dump(p->tfhd, trace);
+	if (p->subs) gf_box_dump(p->subs, trace);
 	gf_box_array_dump(p->TrackRuns, trace);
 	if (p->sdtp) gf_box_dump(p->sdtp, trace);
 	fprintf(trace, "</TrackFragmentBox>\n");
@@ -3500,4 +3505,37 @@ GF_Err sidx_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "</SegmentIndexBox>\n");
 	return GF_OK;
 }
+
+GF_Err subs_dump(GF_Box *a, FILE * trace)
+{
+	u32 entry_count, i, j;
+	u16 subsample_count;
+	GF_SampleEntry *pSamp;
+	GF_SubSampleEntry *pSubSamp;
+	GF_SubSampleInformationBox *ptr = (GF_SubSampleInformationBox *) a;
+
+	if (!a) return GF_BAD_PARAM;
+
+	entry_count = gf_list_count(ptr->Samples);
+	fprintf(trace, "<SubSampleInformationBox EntryCount=\"%d\">\n", entry_count);
+	DumpBox(a, trace);
+
+	for (i=0; i<entry_count; i++) {
+		pSamp = (GF_SampleEntry*) gf_list_get(ptr->Samples, i);
+
+		subsample_count = gf_list_count(pSamp->SubSamples);
+
+		fprintf(trace, "<SampleEntry SampleDelta=\"%d\" SubSampleCount=\"%d\">\n", pSamp->sample_delta, subsample_count);
+
+		for (j=0; j<subsample_count; j++) {
+			pSubSamp = (GF_SubSampleEntry*) gf_list_get(pSamp->SubSamples, j);	
+			fprintf(trace, "<SubSample Size=\"%u\" Priority=\"%u\" Discardable=\"%d\" Reserved=\"%08X\"/>\n", pSubSamp->subsample_size, pSubSamp->subsample_priority, pSubSamp->discardable, pSubSamp->reserved);
+		}
+		fprintf(trace, "</SampleEntry>\n");
+	} 
+
+	fprintf(trace, "</SubSampleInformationBox>\n");
+	return GF_OK;
+}
+
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

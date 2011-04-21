@@ -306,6 +306,8 @@ enum
 	GF_ISOM_BOX_TYPE_AC3	= GF_4CC( 'a', 'c', '-', '3' ),
 	GF_ISOM_BOX_TYPE_DAC3	= GF_4CC( 'd', 'a', 'c', '3' ),
 
+	GF_ISOM_BOX_TYPE_SUBS	= GF_4CC( 's', 'u', 'b', 's' ),
+
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
@@ -1033,6 +1035,31 @@ typedef struct
 
 typedef struct
 {
+	u32 sample_delta;
+	GF_List *SubSamples;
+} GF_SampleEntry;
+
+typedef struct
+{
+	u32 subsample_size;
+	u8 subsample_priority;
+	u8 discardable;
+	u32 reserved;
+} GF_SubSampleEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	GF_List *Samples;
+} GF_SubSampleInformationBox;
+ 
+u32 gf_isom_sample_get_subsample_entry(GF_ISOFile *movie, u32 track, u32 sampleNumber, GF_SampleEntry **sub_sample);
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 sampleNumber, u32 subSampleSize, u32 priority, Bool discardable);
+#endif
+
+typedef struct
+{
 	GF_ISOM_BOX
 	GF_TimeToSampleBox *TimeToSample;
 	GF_CompositionOffsetBox *CompositionOffset;
@@ -1047,6 +1074,8 @@ typedef struct
 	GF_PaddingBitsBox *PaddingBits;
 	GF_SampleDependencyTypeBox *SampleDep;
 	GF_SampleFragmentBox *Fragments;
+
+	GF_SubSampleInformationBox *SubSamples;
 
 	u32 MaxSamplePerChunk;
 	u16 groupID;
@@ -1478,6 +1507,7 @@ typedef struct
 	/*keep a pointer to default flags*/
 	GF_TrackExtendsBox *trex;
 	GF_SampleDependencyTypeBox *sdtp;
+	GF_SubSampleInformationBox *subs;
 	/*when data caching is on*/
 	u32 DataCache;
     GF_Box *tfad;
@@ -3282,6 +3312,12 @@ GF_Err sidx_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err sidx_Size(GF_Box *s);
 GF_Err sidx_dump(GF_Box *a, FILE * trace);
 
+GF_Box *subs_New();
+void subs_del(GF_Box *);
+GF_Err subs_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err subs_Size(GF_Box *s);
+GF_Err subs_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err subs_dump(GF_Box *a, FILE * trace);
 
 #endif /*GPAC_DISABLE_ISOM*/
 
