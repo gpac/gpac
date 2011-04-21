@@ -40,6 +40,8 @@ struct _gf_ft_mgr
 
 	u32 *id_buffer;
 	u32 id_buffer_size;
+
+	Bool wait_font_load;
 };
 
 
@@ -90,6 +92,11 @@ GF_FontManager *gf_font_manager_new(GF_User *user)
 	gf_path_add_line_to(font_mgr->line_path, FIX_ONE/2, -FIX_ONE/2);
 	gf_path_add_line_to(font_mgr->line_path, -FIX_ONE/2, -FIX_ONE/2);
 	gf_path_close(font_mgr->line_path);
+
+	opt = gf_cfg_get_key(user->config, "FontEngine", "WaitForFontLoad");
+	if (!opt) gf_cfg_set_key(user->config, "FontEngine", "WaitForFontLoad", "no");
+	if (opt && !strcmp(opt, "yes")) font_mgr->wait_font_load = 1;
+
 	return font_mgr;
 }
 
@@ -210,6 +217,12 @@ GF_Font *gf_font_manager_set_font_ex(GF_FontManager *fm, char **alt_fonts, u32 n
 		}
 
 		while (font) {
+			if (fm->wait_font_load && font->not_loaded && !check_only && !stricmp(font->name, font_name)) {
+				GF_Font *a_font = NULL;
+				if (font->get_alias) a_font = font->get_alias(font->udta);
+				if (!a_font || a_font->not_loaded) 
+					return font;
+			}
 			if ((check_only || !font->not_loaded) && font->name && !stricmp(font->name, font_name)) {
 				s32 fw;
 				s32 w;
