@@ -1833,7 +1833,8 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 
 	flags = compositor->traverse_state->immediate_draw;
 
-	visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1);
+	if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1))
+		compositor->skip_flush = 1;
 
 
 	compositor->traverse_state->immediate_draw = flags;

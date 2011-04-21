@@ -600,6 +600,13 @@ void svg_traverse_domtext(GF_Node *node, SVGAllAttributes *atts, GF_TraverseStat
 
 	font = svg_set_font(tr_state, fm);
 	if (!font) return;
+	if (font->not_loaded) {
+		tr_state->visual->compositor->reset_fonts = 1;
+		tr_state->visual->compositor->skip_flush = 1;
+		gf_sc_next_frame_state(tr_state->visual->compositor, GF_SC_DRAW_FRAME);
+		return;
+	}
+
 
 	span = svg_get_text_span(fm, font, tr_state->svg_props->font_size->value, (tr_state->count_x>1), (tr_state->count_y>1), tr_state->count_rotate, atts, dom_text->textContent, atts->xml_lang ? *atts->xml_lang : NULL, tr_state);
 	if (!span) return;
