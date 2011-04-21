@@ -496,6 +496,10 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 			capability->cap.valueInt = GF_AUDIO_CH_FRONT_LEFT | GF_AUDIO_CH_FRONT_RIGHT;
 		}
 		break;
+
+	case GF_CODEC_PADDING_BYTES:
+		capability->cap.valueInt = FF_INPUT_BUFFER_PADDING_SIZE;
+		break;
 	default:
 		capability->cap.valueInt = 0;
 		break;
