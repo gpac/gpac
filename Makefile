@@ -143,6 +143,13 @@ dmg:
 	./mkdmg.sh
 endif
 
+ifeq ($(CONFIG_LINUX),yes)
+deb:
+	rm configure-stamp build-stamp
+	fakeroot debian/rules configure
+	fakeroot debian/rules binary
+endif
+
 help:
 	@echo "Input to GPAC make:"
 	@echo "depend/dep: builds dependencies (dev only)"

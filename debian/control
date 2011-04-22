@@ -10,18 +10,6 @@ Build-Depends: debhelper (>= 6), libasound2-dev (>= 1.0.15-3ubuntu4 ), libavcode
 
 Package: gpac
 Architecture: any
-Depends: ${shlibs:Depends}, libgpac0.4.5 (>= 0.4.5)
-Description: multimedia framework based on the MPEG-4 Systems standard
- The main development goal is to provide a clean (a.k.a. readable by as many
- people as possible), small and flexible alternative to the MPEG-4 Systems
- reference software (known as IM1 and distributed in ISO/IEC 14496-5). The
- MPEG-4 Reference software is indeed a very large piece of software,
- designed to verify the standard rather than provide a small,
- production-stable software.
-
-Package: libgpac0.4.5
-Architecture: any
-Provides: libgpac
 Depends: ${shlibs:Depends}
 Description: multimedia framework based on the MPEG-4 Systems standard
  The main development goal is to provide a clean (a.k.a. readable by as many
@@ -34,7 +22,7 @@ Description: multimedia framework based on the MPEG-4 Systems standard
 Package: libgpac-dev
 Architecture: any
 Section: libdevel
-Depends: libgpac0.4.5 
+Depends: gpac
 Description: multimedia framework based on the MPEG-4 Systems standard
  The main development goal is to provide a clean (a.k.a. readable by as many
  people as possible), small and flexible alternative to the MPEG-4 Systems
