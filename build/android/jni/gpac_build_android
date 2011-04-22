@@ -25,6 +25,10 @@ mkdir ../../../bin/android 2>/dev/null
 cd ../../../ || exit 1
 BASEPATH=$(pwd)
 
+rm -rf $BUILDPATH/../obj/local/armeabi/* || mkdir $BUILDPATH/../obj/local/armeabi
+rm -rf $BUILDPATH/../obj/local/armeabi-v7a/* || mkdir $BUILDPATH/../obj/local/armeabi-v7a
+
+
 cd $BUILDPATH || exit 1
 echo -n "Buiding all libs from $BUILDPATH..."
 ndk-build $* && echo "[OK] build successful." || echo "Build FAILED" || exit 1
