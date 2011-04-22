@@ -46,9 +46,8 @@ build: build-stamp
 build-stamp: configure-stamp
 	dh_testdir
 
-# -j doesn't work
 # TODO: we exclude GPAC Proprietary Extension project: libiconv dependency 
-	$(MAKE)
+	$(MAKE) -j
 
 	touch $@
 
