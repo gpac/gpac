@@ -74,14 +74,12 @@ install: build
 
 	$(MAKE) install-lib prefix=$(CURDIR)/debian/tmp/usr
 
-	mv debian/tmp/usr/lib/libgpac-0.4.5.so \
-	debian/tmp/usr/lib/libgpac.so.0.4.5
-        
-	rm debian/tmp/usr/lib/libgpac.so
-#	dh_link -plibgpac-dev usr/lib/libgpac.so.0.4.5 usr/lib/libgpac.so
-	dh_link -pgpac usr/lib/libgpac.so.0.4.5 usr/lib/libgpac.so
+#	rm debian/tmp/usr/lib/libgpac.so
+#	dh_link -plibgpac-dev usr/lib/libgpac.so.0.4.6-DEV usr/lib/libgpac.so
+	dh_link -pgpac usr/lib/libgpac.so.0.4.6-DEV usr/lib/libgpac.so
 
-	dh_install --fail-missing
+	dh_install
+#	dh_install --fail-missing
 
 #	dh_movefiles --sourcedir=debian/gpac
 
@@ -110,12 +108,12 @@ binary-arch: build install
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V --major=0.4.5
+	dh_makeshlibs -V --major=0.4.6-DEV
 	dh_installdeb
-	dh_shlibdeps -ldebian/libgpac0.4.5/usr/lib
+	dh_shlibdeps -ldebian/libgpac_0.4.6-DEV/usr/lib
 	dh_gencontrol
 	dh_md5sums
-	dh_builddeb
+	dh_builddeb --destdir=.
 
 binary: binary-indep binary-arch
 .PHONY: build clean binary-indep binary-arch binary install
