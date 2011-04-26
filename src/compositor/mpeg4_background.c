@@ -282,8 +282,9 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 	st = (BackgroundStack *) gf_node_get_private(node);
 	compositor = (GF_Compositor*)st->compositor;
 
-
-	assert(tr_state->backgrounds);
+	
+	/*may happen in get_bounds*/
+	if (!tr_state->backgrounds) return;
 
 	/*first traverse, bound if needed*/
 	if (gf_list_find(tr_state->backgrounds, node) < 0) {
