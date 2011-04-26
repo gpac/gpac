@@ -1320,7 +1320,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					gf_odf_desc_del((GF_Descriptor *)b_cfg);
 				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_SCENE_AFX) {
 					u8 tag = esd->decoderConfig->decoderSpecificInfo ? esd->decoderConfig->decoderSpecificInfo->data[0] : 0xFF;
-					char *afxtype = gf_afx_get_type_descirption(tag);
+					char *afxtype = gf_afx_get_type_description(tag);
 					fprintf(stdout, "AFX Stream - type %s (%d)\n", afxtype, tag); 
 				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_FONT) {
 					fprintf(stdout, "Font Data stream\n"); 
