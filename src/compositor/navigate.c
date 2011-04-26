@@ -189,7 +189,7 @@ static void view_zoom(GF_Compositor *compositor, GF_Camera *cam, Fixed z)
 	camera_changed(compositor, cam);
 }
 
-void gf_sc_fit_world_to_screen(GF_Compositor *compositor)
+Bool gf_sc_fit_world_to_screen(GF_Compositor *compositor)
 {
 	GF_TraverseState tr_state;
 	SFVec3f pos, diff;
@@ -198,23 +198,27 @@ void gf_sc_fit_world_to_screen(GF_Compositor *compositor)
 	GF_Node *top;
 
 #ifndef GPAC_DISABLE_VRML
-	if (gf_list_count(compositor->visual->back_stack)) return;
-	if (gf_list_count(compositor->visual->view_stack)) return;
+//	if (gf_list_count(compositor->visual->back_stack)) return;
+	if (gf_list_count(compositor->visual->view_stack)) return 0;
 #endif
 
 	gf_mx_p(compositor->mx);
 	top = gf_sg_get_root_node(compositor->scene);
 	if (!top) {
 		gf_mx_v(compositor->mx);
-		return;
+		return 0;
 	}
 	memset(&tr_state, 0, sizeof(GF_TraverseState));
 	tr_state.traversing_mode = TRAVERSE_GET_BOUNDS;
 	tr_state.visual = compositor->visual;
 	gf_node_traverse(top, &tr_state);
+	if (gf_node_dirty_get(top)) {
+		tr_state.bbox.is_set = 0;
+	}
+
 	if (!tr_state.bbox.is_set) {
 		gf_mx_v(compositor->mx);
-		return;
+		return 0;
 	}
 
 	cam = &compositor->visual->camera;
@@ -229,7 +233,7 @@ void gf_sc_fit_world_to_screen(GF_Compositor *compositor)
 		d = gf_vec_len(diff);
 		if (d<dist) {
 			gf_mx_v(compositor->mx);
-			return;
+			return 1;
 		}
 	}
 		
@@ -244,6 +248,7 @@ void gf_sc_fit_world_to_screen(GF_Compositor *compositor)
 	if (cam->z_far < dist) cam->z_far = 10*dist;
 	camera_changed(compositor, cam);
 	gf_mx_v(compositor->mx);
+	return 1;
 }
 
 static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event *ev)

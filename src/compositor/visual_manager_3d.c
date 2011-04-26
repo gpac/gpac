@@ -312,6 +312,8 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 	} else 
 #endif
 	if (tr_state->camera->had_viewpoint) {
+		Bool had_vp = tr_state->camera->had_viewpoint;
+		tr_state->camera->had_viewpoint = 0;
 		if (tr_state->camera->is_3D) {
 			SFVec3f pos, center;
 			SFRotation r;
@@ -334,16 +336,18 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 			/*this takes care of pixelMetrics*/
 			visual_3d_viewpoint_change(tr_state, NULL, 0, fov, pos, r, center);
 			/*initial vp compute, don't animate*/
-			if (tr_state->camera->had_viewpoint == 2) {
+			if (had_vp == 2) {
 				camera_stop_anim(tr_state->camera);
 				camera_reset_viewpoint(tr_state->camera, 0);
-				gf_sc_fit_world_to_screen(tr_state->visual->compositor);
+				/*scene not yet ready, force a recompute of world bounds at next frame*/
+				if (gf_sc_fit_world_to_screen(tr_state->visual->compositor) == 0) {
+					tr_state->camera->had_viewpoint = 2;
+				}
 			}
 		} else {
 			tr_state->camera->flags &= ~CAM_HAS_VIEWPORT;
 			tr_state->camera->flags |= CAM_IS_DIRTY;
 		}
-		tr_state->camera->had_viewpoint = 0;
 	}
 
 	if (tr_state->visual->nb_views>1) {
