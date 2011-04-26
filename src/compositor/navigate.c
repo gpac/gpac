@@ -189,7 +189,7 @@ static void view_zoom(GF_Compositor *compositor, GF_Camera *cam, Fixed z)
 	camera_changed(compositor, cam);
 }
 
-static void nav_fit_screen(GF_Compositor *compositor)
+void gf_sc_fit_world_to_screen(GF_Compositor *compositor)
 {
 	GF_TraverseState tr_state;
 	SFVec3f pos, diff;
@@ -219,6 +219,7 @@ static void nav_fit_screen(GF_Compositor *compositor)
 
 	cam = &compositor->visual->camera;
 
+	compositor->visual->world_diameter = 2 * tr_state.bbox.radius;
 	/*fit is based on bounding sphere*/
 	dist = gf_divfix(tr_state.bbox.radius, gf_sin(cam->fieldOfView/2) );
 	gf_vec_diff(diff, cam->center, tr_state.bbox.center);
@@ -240,6 +241,7 @@ static void nav_fit_screen(GF_Compositor *compositor)
 	camera_move_to(cam, pos, cam->target, cam->up);
 	cam->examine_center = tr_state.bbox.center;
 	cam->flags |= CF_STORE_VP;
+	if (cam->z_far < dist) cam->z_far = 10*dist;
 	camera_changed(compositor, cam);
 	gf_mx_v(compositor->mx);
 }
@@ -286,6 +288,9 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 */
 	trans_scale = cam->width/20;
 	key_trans = cam->avatar_size.x;
+	if (compositor->visual->world_diameter && (key_trans*10 > compositor->visual->world_diameter)) {
+		key_trans = compositor->visual->world_diameter / 10;
+	}
 
 	key_pan = FIX_ONE/25;
 	key_exam = FIX_ONE/10;
@@ -324,7 +329,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 				gf_sc_invalidate(compositor, NULL);
 				return 1;
 			}
-			else if (keys & GF_KEY_MOD_CTRL) nav_fit_screen(compositor);
+			else if (keys & GF_KEY_MOD_CTRL) gf_sc_fit_world_to_screen(compositor);
 		}
 		break;
 
@@ -405,11 +410,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		case GF_NAVIGATE_ORBIT:
 		case GF_NAVIGATE_PAN:
 			if (cam->is_3D) {
-				if (is_pixel_metrics) {
-					view_translate_z(compositor, cam, gf_mulfix(trans_scale, ev->mouse.wheel_pos) * ((keys & GF_KEY_MOD_SHIFT) ? 4 : 1));
-				} else {
-					view_translate_z(compositor, cam, ev->mouse.wheel_pos * ((keys & GF_KEY_MOD_SHIFT) ? 4 : 1));
-				}
+				view_translate_z(compositor, cam, gf_mulfix(trans_scale, ev->mouse.wheel_pos) * ((keys & GF_KEY_MOD_SHIFT) ? 4 : 1));
 			} else {
 				nav_set_zoom_trans_2d(compositor->visual, zoom + INT2FIX(ev->mouse.wheel_pos)/10, 0, 0);
 			}

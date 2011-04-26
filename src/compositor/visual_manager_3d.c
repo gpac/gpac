@@ -337,6 +337,7 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 			if (tr_state->camera->had_viewpoint == 2) {
 				camera_stop_anim(tr_state->camera);
 				camera_reset_viewpoint(tr_state->camera, 0);
+				gf_sc_fit_world_to_screen(tr_state->visual->compositor);
 			}
 		} else {
 			tr_state->camera->flags &= ~CAM_HAS_VIEWPORT;
@@ -486,9 +487,13 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		} else {
 			tr_state->camera->navigation_flags = NAV_ANY | NAV_HEADLIGHT;
 			if (tr_state->camera->is_3D) {
-				/*X3D is by default examine, VRML/MPEG4 is WALK*/
-				tr_state->camera->navigate_mode = (tr_state->visual->type_3d==3) ? GF_NAVIGATE_EXAMINE : GF_NAVIGATE_WALK;
-
+				if (tr_state->visual->compositor->default_navigation_mode != GF_NAVIGATE_NONE) {
+					tr_state->camera->navigate_mode = tr_state->visual->compositor->default_navigation_mode;
+				} else {
+					/*X3D is by default examine, VRML/MPEG4 is WALK*/
+					tr_state->camera->navigate_mode = (tr_state->visual->type_3d==3) ? GF_NAVIGATE_EXAMINE : GF_NAVIGATE_WALK;
+				}
+				
 #ifdef GF_SR_USE_DEPTH
 				if (tr_state->visual->compositor->display_depth)
 					tr_state->camera->navigate_mode = GF_NAVIGATE_NONE;

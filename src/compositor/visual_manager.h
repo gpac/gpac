@@ -158,6 +158,8 @@ struct _visual_manager
 	GF_List *fog_stack;
 #endif
 
+	/*diameter of smallest sphere containing the world - 0 if unknown*/
+	Fixed world_diameter;
 
 	/*the one and only camera associated with the visual*/
 	GF_Camera camera;
