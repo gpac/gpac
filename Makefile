@@ -149,8 +149,8 @@ deb:
 	sed -i "s/.DEV/.DEV-r`svnversion \"$(SRC_PATH)\"`/" debian/changelog
 	fakeroot debian/rules configure
 	fakeroot debian/rules binary
-	svn revert debian/changelog
 	svn cleanup
+	svn revert debian/changelog
 endif
 
 help:
