@@ -258,24 +258,24 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #endif
 
 
-#define COMBINE_RGB_ARB                                 0x8571
-#define COMBINE_ALPHA_ARB                               0x8572
-#define INTERPOLATE_ARB                                 0x8575
-#define COMBINE_ARB                                     0x8570
-#define SOURCE0_RGB_ARB                                 0x8580
-#define SOURCE1_RGB_ARB                                 0x8581
-#define SOURCE2_RGB_ARB                                 0x8582
-#define GL_INTERPOLATE_ARB                              0x8575
-#define GL_OPERAND0_RGB_ARB                             0x8590
-#define GL_OPERAND1_RGB_ARB                             0x8591
-#define GL_OPERAND2_RGB_ARB                             0x8592
-#define GL_OPERAND0_ALPHA_ARB                           0x8598
-#define GL_OPERAND1_ALPHA_ARB                           0x8599
-#define GL_ADD_SIGNED_ARB  								0x8574
-#define GL_SUBTRACT_ARB  								0x84E7
-#define GL_SOURCE0_ALPHA_ARB  							0x8588
-#define GL_SOURCE1_ALPHA_ARB 	0x8589
-#define GL_SOURCE2_ALPHA_ARB 	0x858A
+#define COMBINE_RGB                                 0x8571
+#define COMBINE_ALPHA                               0x8572
+#define INTERPOLATE                                 0x8575
+#define COMBINE                                     0x8570
+#define SOURCE0_RGB                                 0x8580
+#define SOURCE1_RGB                                 0x8581
+#define SOURCE2_RGB                                 0x8582
+#define GL_INTERPOLATE                              0x8575
+#define GL_OPERAND0_RGB                             0x8590
+#define GL_OPERAND1_RGB                             0x8591
+#define GL_OPERAND2_RGB                             0x8592
+#define GL_OPERAND0_ALPHA                           0x8598
+#define GL_OPERAND1_ALPHA                           0x8599
+#define GL_ADD_SIGNED  								0x8574
+#define GL_SUBTRACT  								0x84E7
+#define GL_SOURCE0_ALPHA  							0x8588
+#define GL_SOURCE1_ALPHA						 	0x8589
+#define GL_SOURCE2_ALPHA						 	0x858A
 
 
 GLDECL(void, glActiveTexture, (GLenum texture) )
