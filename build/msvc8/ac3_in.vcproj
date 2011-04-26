@@ -142,7 +142,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				ExecutionBucket="7"
-				AdditionalIncludeDirectories="../../include"
+				AdditionalIncludeDirectories="../../include,../../extra_lib/include"
 				PreprocessorDefinitions="_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_DEBUG;_WIN32_WCE=$(CEVER);$(CePlatform);ARM;_ARM_;ARMV4;UNDER_CE=$(CEVER);UNICODE;_USR_DLL;GPAC_HAS_LIBA52"
 				RuntimeLibrary="3"
 				PrecompiledHeaderFile="$(IntDir)/$(ProjectName).pch"
