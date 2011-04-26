@@ -403,6 +403,39 @@ enum
 };
 
 
+/*!
+ * \brief AFX Object Code
+*/
+enum
+{
+	/*!3D Mesh Compression*/
+	GPAC_AFX_3DMC = 0x00,
+	/*!Wavelet Subdivision Surface*/
+	GPAC_AFX_WAVELET_SUBDIVISION = 0x01,
+	/*!MeshGrid*/
+	GPAC_AFX_MESHGRID = 0x02,
+	/*!Coordinate Interpolator*/
+	GPAC_AFX_COORDINATE_INTERPOLATOR = 0x03,
+	/*!Orientation Interpolator*/
+	GPAC_AFX_ORIENTATION_INTERPOLATOR = 0x04,
+	/*!Position Interpolator*/
+	GPAC_AFX_POSITION_INTERPOLATOR = 0x05,
+	/*!Octree Image*/
+	GPAC_AFX_OCTREE_IMAGE = 0x06,
+	/*!BBA*/
+	GPAC_AFX_BBA = 0x07,
+	/*!PointTexture*/
+	GPAC_AFX_POINT_TEXTURE = 0x08,
+	/*!3DMC Extension*/
+	GPAC_AFX_3DMC_EXT = 0x09,
+	/*!FootPrint representation*/
+	GPAC_AFX_FOOTPRINT = 0x0A,
+	/*!Animated Mesh Compression*/
+	GPAC_AFX_ANIMATED_MESH = 0x0B,
+	/*!Scalable Complexity*/
+	GPAC_AFX_SCALABLE_COMPLEXITY = 0x0C,
+};
+
 
 /*channel cfg flags - DECODERS MUST OUTPUT STEREO/MULTICHANNEL IN THIS ORDER*/
 /*!

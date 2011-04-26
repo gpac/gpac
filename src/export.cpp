@@ -481,6 +481,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_com_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_com_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_afx_get_type_descirption) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_slc_set_pref) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_get_bifs_config) )
