@@ -29,7 +29,7 @@
 #include <gpac/constants.h>
 
 
-#if defined(WIN32) && !defined(_WIN32_WCE) && !defined(__GNUC__)
+#if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
 #  pragma comment(lib, "OpenSVCDecoder")
 #endif
 
