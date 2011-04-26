@@ -89,6 +89,19 @@ typedef struct
 #endif
 } GF_Vertex;
 
+/*memory offset in bytes from start of vertex to texcoords = 3 * 4bytes*/
+#define MESH_TEX_OFFSET	12
+/*memory offset in bytes from start of vertex to normal = 5 * 4bytes*/
+#define MESH_NORMAL_OFFSET	20
+/*memory offset in bytes from start of vertex to color - platform dependent*/
+#ifdef MESH_USE_FIXED_NORMAL
+/*3+2+3 * 4*/
+#define MESH_COLOR_OFFSET	32
+#else
+/*3+2 * 4 + 4 (3 + 1 byte alignment)*/
+#define MESH_COLOR_OFFSET	24
+#endif
+
 /*mesh type used*/
 enum
 {
@@ -150,6 +163,8 @@ typedef struct __gf_mesh
 	/*triangle indexes used in AABB tree - order may be different than the one in mesh->indices*/
 	IDX_TYPE *aabb_indices;
 //	u32 aabb_nb_index;
+
+	u32 vbo;
 } GF_Mesh;
 
 GF_Mesh *new_mesh();
