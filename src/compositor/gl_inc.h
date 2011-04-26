@@ -258,13 +258,13 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #endif
 
 
-#define COMBINE_RGB                                 0x8571
-#define COMBINE_ALPHA                               0x8572
-#define INTERPOLATE                                 0x8575
-#define COMBINE                                     0x8570
-#define SOURCE0_RGB                                 0x8580
-#define SOURCE1_RGB                                 0x8581
-#define SOURCE2_RGB                                 0x8582
+#define GL_COMBINE_RGB                                 0x8571
+#define GL_COMBINE_ALPHA                               0x8572
+#define GL_INTERPOLATE                                 0x8575
+#define GL_COMBINE                                     0x8570
+#define GL_SOURCE0_RGB                                 0x8580
+#define GL_SOURCE1_RGB                                 0x8581
+#define GL_SOURCE2_RGB                                 0x8582
 #define GL_INTERPOLATE                              0x8575
 #define GL_OPERAND0_RGB                             0x8590
 #define GL_OPERAND1_RGB                             0x8591
