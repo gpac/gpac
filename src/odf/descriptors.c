@@ -721,7 +721,7 @@ exit:
 }
 
 GF_EXPORT
-const char *gf_afx_get_type_descirption(u8 afx_code)
+const char *gf_afx_get_type_description(u8 afx_code)
 {
 	switch (afx_code) {
 	case GPAC_AFX_3DMC:
