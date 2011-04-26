@@ -444,6 +444,8 @@ struct __tag_compositor
 	/*YUV textures in OpenGL are disabled (soft YUV->RGB )*/
 	Bool disable_yuvgl;
 
+	u32 default_navigation_mode;
+
 	/*unit box (1.0 size) and unit sphere (1.0 radius)*/
 	GF_Mesh *unit_bbox;
 
@@ -1114,6 +1116,8 @@ GF_Err compositor_3d_get_screen_buffer(GF_Compositor *sr, GF_VideoSurface *fb, B
 GF_Err compositor_3d_release_screen_buffer(GF_Compositor *sr, GF_VideoSurface *framebuffer);
 
 void gf_sc_load_opengl_extensions(GF_Compositor *sr);
+
+void gf_sc_fit_world_to_screen(GF_Compositor *compositor);
 
 #endif
 

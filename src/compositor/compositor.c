@@ -825,6 +825,10 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		compositor->has_size_info = (width && height) ? 1 : 0;
 		if (compositor->has_size_info != had_size_info) compositor->scene_width = compositor->scene_height = 0;
 
+#ifndef GPAC_DISABLE_3D
+		compositor->visual->world_diameter = 0;
+#endif
+
 		/*default back color is black*/
 		if (! (compositor->user->init_flags & GF_TERM_WINDOWLESS)) compositor->back_color = 0xFF000000;
 
@@ -1104,6 +1108,11 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	compositor->opengl_raster = (sOpt && !strcmp(sOpt, "raster")) ? 1 : 0;
 #endif
 
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DefaultNavigationMode");
+	if (sOpt && !strcmp(sOpt, "Walk")) compositor->default_navigation_mode = GF_NAVIGATE_WALK;
+	else if (sOpt && !strcmp(sOpt, "Examine")) compositor->default_navigation_mode = GF_NAVIGATE_EXAMINE;
+	else if (sOpt && !strcmp(sOpt, "Fly")) compositor->default_navigation_mode = GF_NAVIGATE_FLY;
+	
 
 #ifdef GPAC_HAS_GLU
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "RasterOutlines");
