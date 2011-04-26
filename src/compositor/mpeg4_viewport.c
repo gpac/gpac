@@ -333,8 +333,8 @@ static void TraverseViewpoint(GF_Node *node, void *rs, Bool is_destroy)
 		DestroyViewStack(node);
 		return;
 	}
-
-	assert(tr_state->viewpoints);
+	/*may happen in get_bounds*/
+	if (!tr_state->viewpoints) return;
 //	if (!tr_state->camera->is_3D) return;
 
 	/*first traverse, bound if needed*/
