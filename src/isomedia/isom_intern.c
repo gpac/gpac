@@ -767,7 +767,7 @@ GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 s
 	if (!subSampleSize) {
 		pSubSamp = gf_list_last(pSamp->SubSamples);
 		gf_list_rem_last(pSamp->SubSamples);
-		free(pSubSamp);
+		gf_free(pSubSamp);
 		if (!gf_list_count(pSamp->SubSamples)) {
 			gf_list_del_item(sub_samples->Samples, pSamp);
 			gf_list_del(pSamp->SubSamples);
