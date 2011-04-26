@@ -98,6 +98,7 @@ typedef struct
 	Bool npot_texture;
 	Bool rect_texture;
 	Bool point_sprite;
+	Bool vbo;
 	u32 yuv_texture;
 } GLCaps;
 
@@ -1117,7 +1118,7 @@ GF_Err compositor_3d_release_screen_buffer(GF_Compositor *sr, GF_VideoSurface *f
 
 void gf_sc_load_opengl_extensions(GF_Compositor *sr);
 
-void gf_sc_fit_world_to_screen(GF_Compositor *compositor);
+Bool gf_sc_fit_world_to_screen(GF_Compositor *compositor);
 
 #endif
 
