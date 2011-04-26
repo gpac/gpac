@@ -32,9 +32,6 @@
 #include "media_control.h"
 #include "input_sensor.h"
 
-#define TIME_CHECK		3
-
-
 GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL);
 
 GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err *e)
@@ -51,6 +48,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	*e = Codec_Load(tmp, base_layer, PL);
 
 	if (*e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Codec] Cannot find decoder for stream type %s\n", gf_esd_get_textual_description(base_layer) ));
 		gf_free(tmp);
 		return NULL;
 	}
@@ -61,6 +59,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 
 	if (tmp->type==GF_STREAM_PRIVATE_MEDIA) tmp->type = GF_STREAM_VISUAL;
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[Codec] Found decoder %s for stream type %s\n", tmp->decio->module_name, gf_esd_get_textual_description(base_layer) ));
 	return tmp;
 }
 
@@ -872,7 +871,7 @@ drop:
 		/*escape from decoding loop only if above critical limit - this is to avoid starvation on audio*/
 		if (!ch->esd->dependsOnESID && (codec->CB->UnitCount > codec->CB->Min)) {
 			now = gf_term_get_time(codec->odm->term);
-			if (0 && now - entryTime + TIME_CHECK >= TimeAvailable) {
+			if (now - entryTime >= TimeAvailable) {
 				return GF_OK;
 			}
 		}
