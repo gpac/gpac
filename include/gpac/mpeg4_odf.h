@@ -1046,6 +1046,9 @@ once a desc is added to its parent, destroying the parent WILL DESTROY
 this descriptor*/
 GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc);
 
+/*returns complete textual description of stream*/
+const char *gf_esd_get_textual_description(GF_ESD *esd);
+
 const char *gf_afx_get_type_description(u8 afx_code);
 
 

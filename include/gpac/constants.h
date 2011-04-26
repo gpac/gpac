@@ -251,6 +251,8 @@ enum
 	GPAC_OTI_TEXT_MPEG4 = 0x08,
 	/*!OTI for LASeR streams*/
 	GPAC_OTI_SCENE_LASER = 0x09,
+	/*!OTI for SAF streams*/
+	GPAC_OTI_SCENE_SAF = 0x0A,
 
 	/*!OTI for MPEG-4 Video Part 2 streams*/
 	GPAC_OTI_VIDEO_MPEG4_PART2 = 0x20,
