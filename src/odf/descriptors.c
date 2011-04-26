@@ -720,3 +720,38 @@ exit:
 	return e;
 }
 
+GF_EXPORT
+const char *gf_afx_get_type_descirption(u8 afx_code)
+{
+	switch (afx_code) {
+	case GPAC_AFX_3DMC:
+		return "3D Mesh Compression";
+	case GPAC_AFX_WAVELET_SUBDIVISION:
+		return "Wavelet Subdivision Surface";
+	case GPAC_AFX_MESHGRID:
+		return "Mesh Grid";
+	case GPAC_AFX_COORDINATE_INTERPOLATOR:
+		return "Coordinate Interpolator";
+	case GPAC_AFX_ORIENTATION_INTERPOLATOR:
+		return "Orientation Interpolator";
+	case GPAC_AFX_POSITION_INTERPOLATOR:
+		return "Position Interpolator";
+	case GPAC_AFX_OCTREE_IMAGE:
+		return "Octree Image";
+	case GPAC_AFX_BBA:
+		return "BBA";
+	case GPAC_AFX_POINT_TEXTURE:
+		return "Point Texture";
+	case GPAC_AFX_3DMC_EXT:
+		return "3D Mesh Compression Extension";
+	case GPAC_AFX_FOOTPRINT:
+		return "FootPrint Representation";
+	case GPAC_AFX_ANIMATED_MESH:
+		return "Animated Mesh Compression";
+	case GPAC_AFX_SCALABLE_COMPLEXITY:
+		return "Scalable Complexity Representation";
+	default:
+		break;
+	}
+	return "Unknown";
+}

@@ -1046,6 +1046,7 @@ once a desc is added to its parent, destroying the parent WILL DESTROY
 this descriptor*/
 GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc);
 
+const char *gf_afx_get_type_descirption(u8 afx_code);
 
 
 /*Since IPMP V2, we introduce a new set of functions to read / write a list of descriptors
