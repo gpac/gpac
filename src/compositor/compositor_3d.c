@@ -149,7 +149,6 @@ GF_Err compositor_3d_set_aspect_ratio(GF_Compositor *compositor)
 	}
 #endif
 	
-	compositor->reset_graphics=0;
 	return GF_OK;
 }
 

@@ -72,19 +72,25 @@
 #define CHECK_GL_EXT(name) ((strstr(ext, name) != NULL) ? 1 : 0)
 
 
-#ifdef LOAD_GL_FUNCS
+#ifdef LOAD_GL_1_3
 
-#ifndef GPAC_ANDROID /* SOUCHAY : not sure this is the right way to detect it */
-#ifndef GL_OES_VERSION_1_0
 GLDECL_STATIC(glActiveTexture);
 GLDECL_STATIC(glClientActiveTexture);
-#endif
+GLDECL_STATIC(glGenBuffers);
+GLDECL_STATIC(glDeleteBuffers);
+GLDECL_STATIC(glBindBuffer);
+GLDECL_STATIC(glBufferData);
 
-#ifndef GL_OES_VERSION_1_1
+#endif //LOAD_GL_1_3
+
+#ifdef LOAD_GL_1_4
+
 GLDECL_STATIC(glPointParameterf);
 GLDECL_STATIC(glPointParameterfv);
-#endif
-#endif /* GPAC_ANDROID */
+
+#endif //LOAD_GL_1_4
+
+#ifdef LOAD_GL_2_0
 
 GLDECL_STATIC(glCreateProgram);
 GLDECL_STATIC(glDeleteProgram);
@@ -127,7 +133,7 @@ GLDECL_STATIC(glUniformMatrix4x3fv);
 GLDECL_STATIC(glBlendEquation);
 
 
-#endif //LOAD_GL_FUNCS
+#endif //LOAD_GL_2_0
 
 void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 {
@@ -167,6 +173,9 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 			compositor->gl_caps.point_sprite = 2;
 		}
 	}
+	if (CHECK_GL_EXT("GL_ARB_vertex_buffer_object")) {
+		compositor->gl_caps.vbo = 1;
+	}
 
 #ifndef GPAC_USE_OGL_ES
 	if (CHECK_GL_EXT("GL_EXT_texture_rectangle") || CHECK_GL_EXT("GL_NV_texture_rectangle")) {
@@ -180,21 +189,30 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 
 	/*we have a GL context, get proc addresses*/
 	
+#ifdef LOAD_GL_1_3
 	if (CHECK_GL_EXT("GL_ARB_multitexture")) {
-#if defined(LOAD_GL_FUNCS) && !defined(GL_OES_VERSION_1_0)
 		GET_GLFUN(glActiveTexture);
 		GET_GLFUN(glClientActiveTexture);
-#endif
 	}
+	if (compositor->gl_caps.vbo) {
+		GET_GLFUN(glGenBuffers);
+		GET_GLFUN(glDeleteBuffers);
+		GET_GLFUN(glBindBuffer);
+		GET_GLFUN(glBufferData);
+	}
+#endif
 
+#ifdef LOAD_GL_1_4
 	if (compositor->gl_caps.point_sprite) {
-#if defined(LOAD_GL_FUNCS) && !defined (GL_OES_VERSION_1_1)
 		GET_GLFUN(glPointParameterf);
 		GET_GLFUN(glPointParameterfv);
-#endif
 	}
+	GET_GLFUN(glBlendEquation);
+#endif
 
-#ifdef LOAD_GL_FUNCS
+
+
+#ifdef LOAD_GL_2_0
 	GET_GLFUN(glCreateProgram);
 	
 	if (glCreateProgram != NULL) {
@@ -235,7 +253,6 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 		GET_GLFUN(glUniformMatrix4x2fv);
 		GET_GLFUN(glUniformMatrix3x4fv);
 		GET_GLFUN(glUniformMatrix4x3fv);
-		GET_GLFUN(glBlendEquation);
 
 		has_shaders = 1;
 	} else {
@@ -803,28 +820,48 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	Bool has_col, has_tx, has_norm;
 	u32 prim_type;
 	GF_Compositor *compositor = tr_state->visual->compositor;
+	void *base_address = NULL;
 #if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
 	Float *color_array = NULL;
 	Float fix_scale = 1.0f;
 	fix_scale /= FIX_ONE;
 #endif
-
+	
 	has_col = has_tx = has_norm = 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh 0x%08x\n", mesh));
 
+
+	if (compositor->reset_graphics) {
+		glDeleteBuffers(1, &mesh->vbo);
+		mesh->vbo = 0;
+	}
+	if (!mesh->vbo && compositor->gl_caps.vbo) {
+		glGenBuffers(1, &mesh->vbo);
+		if (mesh->vbo) {
+			glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+			glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, GL_STATIC_DRAW);
+		}
+	}
+	if (mesh->vbo) {
+		base_address = NULL;
+		glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+	} else {
+		base_address = & mesh->vertices[0].pos;
+	}
+
 	glEnableClientState(GL_VERTEX_ARRAY);
 #if defined(GPAC_USE_OGL_ES)
-	glVertexPointer(3, GL_FIXED, sizeof(GF_Vertex),  &mesh->vertices[0].pos);
+	glVertexPointer(3, GL_FIXED, sizeof(GF_Vertex),  base_address);
 #elif defined(GPAC_FIXED_POINT)
 	/*scale modelview matrix*/
 	glPushMatrix();
 	glScalef(fix_scale, fix_scale, fix_scale);
-	glVertexPointer(3, GL_INT, sizeof(GF_Vertex),  &mesh->vertices[0].pos);
+	glVertexPointer(3, GL_INT, sizeof(GF_Vertex), base_address);
 #else
-	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex),  &mesh->vertices[0].pos);
+	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex), base_address);
 #endif
 
-	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR)) {
+	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR)) {		
 		glEnable(GL_COLOR_MATERIAL);
 #if !defined (GPAC_USE_OGL_ES)
 		glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
@@ -840,9 +877,9 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		}
 #ifdef MESH_USE_SFCOLOR
 		/*glES only accepts full RGBA colors*/
-		glColorPointer(4, GL_FIXED, sizeof(GF_Vertex), &mesh->vertices[0].color);
+		glColorPointer(4, GL_FIXED, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
 #else
-		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), &mesh->vertices[0].color);
+		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
 #endif	/*MESH_USE_SFCOLOR*/
 
 #elif defined (GPAC_FIXED_POINT)
@@ -874,7 +911,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 			glColorPointer(3, GL_FLOAT, 3*sizeof(Float), color_array);
 		}
 #else
-		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), &mesh->vertices[0].color);
+		glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
 #endif /*MESH_USE_SFCOLOR*/
 
 #else	
@@ -882,18 +919,18 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #ifdef MESH_USE_SFCOLOR
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			glEnable(GL_BLEND);
-			glColorPointer(4, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].color);
+			glColorPointer(4, GL_FLOAT, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
 			tr_state->mesh_is_transparent = 1;
 		} else {
-			glColorPointer(3, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].color);
+			glColorPointer(3, GL_FLOAT, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
 		}
 #else
 		if (mesh->flags & MESH_HAS_ALPHA) {
 			glEnable(GL_BLEND);
 			tr_state->mesh_is_transparent = 1;
-			glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), &mesh->vertices[0].color);
+			glColorPointer(4, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
 		} else {
-			glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), &mesh->vertices[0].color);
+			glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(GF_Vertex), ((char *)base_address + MESH_COLOR_OFFSET));
 		}
 #endif /*MESH_USE_SFCOLOR*/
 
@@ -903,14 +940,14 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	if (tr_state->mesh_num_textures && !mesh->mesh_type && !(mesh->flags & MESH_NO_TEXTURE)) {
 		has_tx = 1;
 #if defined(GPAC_USE_OGL_ES)
-		glTexCoordPointer(2, GL_FIXED, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
+		glTexCoordPointer(2, GL_FIXED, sizeof(GF_Vertex), ((char *)base_address + MESH_TEX_OFFSET));
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY );
 #elif defined(GPAC_FIXED_POINT)
 		glMatrixMode(GL_TEXTURE);
 		glPushMatrix();
 		glScalef(fix_scale, fix_scale, fix_scale);
 		glMatrixMode(GL_MODELVIEW);
-		glTexCoordPointer(2, GL_INT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
+		glTexCoordPointer(2, GL_INT, sizeof(GF_Vertex), ((char *)base_address + MESH_TEX_OFFSET));
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY );
 #else
 
@@ -918,14 +955,14 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		if (tr_state->mesh_num_textures>1) {
 			u32 i;
 			for (i=0; i<tr_state->mesh_num_textures; i++) {
-				glClientActiveTexture(GL_TEXTURE0_ARB + i);
-				glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
+				glClientActiveTexture(GL_TEXTURE0 + i);
+				glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), ((char *)base_address + MESH_TEX_OFFSET));
 				glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 			}
 		} else
 #endif //GPAC_USE_TINYGL
 		{
-			glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &mesh->vertices[0].texcoords);
+			glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), ((char *)base_address + MESH_TEX_OFFSET));
 			glEnableClientState(GL_TEXTURE_COORD_ARRAY );
 		}
 #endif
@@ -964,7 +1001,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		/*normals are stored on signed bytes*/
 		normal_type = GL_BYTE;
 #endif
-		glNormalPointer(normal_type, sizeof(GF_Vertex), &mesh->vertices[0].normal);
+		glNormalPointer(normal_type, sizeof(GF_Vertex), ((char *)base_address + MESH_NORMAL_OFFSET));
 
 		if (!mesh->mesh_type) {
 			if (compositor->backcull 

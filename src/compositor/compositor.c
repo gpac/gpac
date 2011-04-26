@@ -2047,7 +2047,6 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		if (compositor->reset_graphics && txh->tx_io) gf_sc_texture_reset(txh);
 		txh->update_texture_fcnt(txh);
 	}
-	compositor->reset_graphics = 0;
 	compositor->text_edit_changed = 0;
 	compositor->rebuild_offscreen_textures = 0;
 
@@ -2128,6 +2127,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		compositor->indirect_draw_time = 0;
 #endif
 	}
+	compositor->reset_graphics = 0;
 
 	/*release all textures - we must release them to handle a same OD being used by several textures*/
 	count = gf_list_count(compositor->textures);

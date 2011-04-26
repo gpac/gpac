@@ -31,7 +31,7 @@
 #ifndef GPAC_DISABLE_3D
 
 
-/*for GPAC_HAS_GLU*/
+/*for GPAC_HAS_GLU and glDeleteBuffersARB */
 #include "gl_inc.h"
 
 /*when highspeeds, amount of subdivisions for bezier and ellipse will be devided by this factor*/
@@ -74,6 +74,12 @@ void mesh_reset(GF_Mesh *mesh)
 	mesh->aabb_root = NULL;
 	if (mesh->aabb_indices) gf_free(mesh->aabb_indices);
 	mesh->aabb_indices = NULL;
+
+
+	if (mesh->vbo) {
+		glDeleteBuffers(1, &mesh->vbo);
+		mesh->vbo = 0;
+	}
 }
 
 void mesh_free(GF_Mesh *mesh)
