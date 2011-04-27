@@ -1595,7 +1595,6 @@ static void dirty_parents(GF_Node *node)
 	nlist = node->sgprivate->parents;
 	while (nlist) {
 		GF_Node *p = nlist->node;
-		if (nlist->node == 0xfeeefeee) __asm int 3 //Romain
 		if (! (p->sgprivate->flags & GF_SG_CHILD_DIRTY)) {
 			p->sgprivate->flags |= GF_SG_CHILD_DIRTY;
 			dirty_parents(p);
