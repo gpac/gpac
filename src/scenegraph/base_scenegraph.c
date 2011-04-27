@@ -407,7 +407,12 @@ restart:
 			} else 
 #endif
 				ReplaceDEFNode(nlist->node, reg_node->node, NULL, 0);
-			
+
+			/*direct cyclic reference to ourselves, make sure we update the parentList to the next entry before freeing it
+			since the next parent node could be reg_node again (reg_node->reg_node)*/
+			if (nlist->node==node) {
+				node->sgprivate->parents = next;
+			}
 			gf_free(nlist);
 			nlist = next;
 		}
@@ -1590,6 +1595,7 @@ static void dirty_parents(GF_Node *node)
 	nlist = node->sgprivate->parents;
 	while (nlist) {
 		GF_Node *p = nlist->node;
+		if (nlist->node == 0xfeeefeee) __asm int 3 //Romain
 		if (! (p->sgprivate->flags & GF_SG_CHILD_DIRTY)) {
 			p->sgprivate->flags |= GF_SG_CHILD_DIRTY;
 			dirty_parents(p);
