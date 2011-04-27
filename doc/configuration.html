@@ -428,9 +428,9 @@ Specifies the driver to use for video memory access. This driver cannot be reloa
 <b>SwitchResolution</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Specifies fullscreen resolution mode. If enabled, selects smallest video resolution larger than scene size, otherwise use current video resolution.</p>
-<b>UseHardwareMemory</b> [value: <i>"yes" "no"</i>]
+<b>HardwareMemory</b> [value: <i>"Auto" "Always" "Never"</i>]
 <p style="text-indent: 5%">
-Only valid for 2D renderer. Specifies if main video backbuffer is on hardware or system memory. Depending on the scene type, this may drastically change the playback speed.</p>
+Only valid for 2D renderer. Specifies if main video backbuffer is always on hardware, always on system memory or selected by GPAC (default mode). Depending on the scene type, this may drastically change the playback speed.</p>
 <b>DisableColorKeying</b> [value: <i>"yes" "no"</i>]
 <p style="text-indent: 5%">
 Only valid for 2D renderer. Specifies if partial overlays should be disabled. If not disabled, hardware color keying for overlays is tested and used if present. Otherwise, only the top-most video with no overlapping objects will be drawn using overlays. Default value is "no".</p>
