@@ -127,6 +127,12 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 
 	DDCONTEXT;
 
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
+	if (use_system_memory) {
+		if (opt && !strcmp(opt, "Always")) use_system_memory = 0;
+	} else {
+		if (opt && !strcmp(opt, "Never")) use_system_memory = 1;
+	}
 
 	force_reinit = 0;
 	if (use_system_memory && !dd->systems_memory) force_reinit = 1;
@@ -146,11 +152,6 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 	if (dd->systems_memory==2) {
 		ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 	} else {
-		opt = NULL;
-		if (use_system_memory) {
-			opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
-			if (opt && !strcmp(opt, "yes")) use_system_memory = 0;
-		}
 		if (!use_system_memory) {
 			dd->systems_memory = 0;
 			ddsd.ddsCaps.dwCaps |= DDSCAPS_VIDEOMEMORY;
@@ -175,12 +176,9 @@ GF_Err CreateBackBuffer(GF_VideoOutput *dr, u32 Width, u32 Height, Bool use_syst
 		if (!dd->systems_memory) {
 			ddsd.ddsCaps.dwCaps &= ~DDSCAPS_VIDEOMEMORY;
 			ddsd.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
-			dd->systems_memory = 1;
-			if (opt && !strcmp(opt, "yes")) {
-				gf_modules_set_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory", "no");
+			dd->systems_memory = 2;
+			GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Hardware Video not available for backbuffer)\n"));
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Hardware Video not available for backbuffer)\n"));
-			}
 #ifdef USE_DX_3
 		    hr = IDirectDraw_CreateSurface(dd->pDD, &ddsd, &dd->pBack, NULL );
 #else
@@ -760,8 +758,8 @@ rem_fmt:
 		SAFE_DD_RELEASE(dd->yuv_pool.pSurface);
 		memset(&dd->yuv_pool, 0, sizeof(DDSurface));
 	}
-	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
-	if (opt && !strcmp(opt, "never")) num_yuv = 0;
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
+	if (opt && !strcmp(opt, "Never")) num_yuv = 0;
 
 	/*too bad*/
 	if (!num_yuv) {
