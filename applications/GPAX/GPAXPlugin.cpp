@@ -384,7 +384,7 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 		gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "2");
 		gf_cfg_set_key(m_user.config, "Audio", "TotalDuration", "120");
 		gf_cfg_set_key(m_user.config, "Video", "DriverName", "dx_hw");
-		gf_cfg_set_key(m_user.config, "Video", "UseHardwareMemory", "yes");
+		gf_cfg_set_key(m_user.config, "Video", "HardwareMemory", "Auto");
 
 #ifdef _WIN32_WCE
 		strcpy((char*)cfg_file, "\\windows");

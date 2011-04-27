@@ -811,8 +811,8 @@ BOOL COptVideo::OnInitDialog()
 	
 	sOpt = gf_cfg_get_key(gpac->m_user.config, "Video", "SwitchResolution");
 	m_SwitchRes.SetCheck(sOpt && !stricmp(sOpt, "yes") ? 1 : 0);
-	sOpt = gf_cfg_get_key(gpac->m_user.config, "Video", "UseHardwareMemory");
-	m_UseHWMemory.SetCheck(sOpt && !stricmp(sOpt, "yes") ? 1 : 0);
+	sOpt = gf_cfg_get_key(gpac->m_user.config, "Video", "HardwareMemory");
+	m_UseHWMemory.SetCheck(sOpt && !stricmp(sOpt, "Always") ? 1 : 0);
 	
 	
 	u32 count = gf_modules_get_count(gpac->m_user.modules);
@@ -843,7 +843,7 @@ void COptVideo::SaveOptions()
 	char str[50];
 
 	gf_cfg_set_key(gpac->m_user.config, "Video", "SwitchResolution", m_SwitchRes.GetCheck() ? "yes" : "no");
-	gf_cfg_set_key(gpac->m_user.config, "Video", "UseHardwareMemory", m_UseHWMemory.GetCheck() ? "yes" : "no");
+	gf_cfg_set_key(gpac->m_user.config, "Video", "HardwareMemory", m_UseHWMemory.GetCheck() ? "Always" : "Auto");
 	m_Videos.GetWindowText(str, 50);
 	gf_cfg_set_key(gpac->m_user.config, "Video", "DriverName", str);
 }

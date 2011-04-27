@@ -834,9 +834,11 @@ GF_Err SDLVid_SetBackbufferSize(GF_VideoOutput *dr, u32 newWidth, u32 newHeight,
 	
 	if (ctx->output_3d_type==1) return GF_BAD_PARAM;
 
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "HardwareMemory");
 	if (system_mem) {
-		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "UseHardwareMemory");
-		if (opt && !strcmp(opt, "yes")) system_mem = 0;
+		if (opt && !strcmp(opt, "Always")) system_mem = 0;
+	} else {
+		if (opt && !strcmp(opt, "Never")) system_mem = 1;
 	}
 	ctx->use_systems_memory = system_mem;
 
