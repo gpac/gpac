@@ -229,7 +229,7 @@ static Bool load_text_node(GF_Compositor *compositor, u32 cmd_type)
 			caret_pos = compositor->picked_glyph_idx;
 			compositor->picked_glyph_idx = -1;
 
-			if (caret_pos > strlen(*res))
+			if (caret_pos > (s32) strlen(*res))
 				caret_pos = -1;
 		}
 

@@ -2591,10 +2591,10 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
                 return NULL;
             }
             do {
-                read = fread(copyBuff, sizeof(char), MIN(sizeof(copyBuff), total), fr);
+                read = fread(copyBuff, sizeof(char), MIN(sizeof(copyBuff), (size_t)  total), fr);
                 if (read > 0) {
                     total-= read;
-                    write = fwrite(copyBuff, sizeof(char), read, fw);
+                    write = fwrite(copyBuff, sizeof(char), (size_t) read, fw);
                     if (write != read) {
                         /* Something bad happened */
                         fclose( fw );

@@ -588,7 +588,7 @@ GF_Err parse_sub_playlist(const char * file, VariantPlaylist ** playlist, const 
                 count = gf_list_count( program->bitrates);
 
                 if (!currentPlayList) {
-                    for (i = 0; i < count; i++) {
+                    for (i = 0; i < (s32) count; i++) {
                         PlaylistElement * itPlayListElement = gf_list_get(program->bitrates, i);
                         assert( itPlayListElement );
                         if (itPlayListElement->bandwidth == attribs.bandwidth) {
