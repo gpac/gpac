@@ -869,7 +869,9 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 	evt.setup.width = compositor->vp_width;
 	evt.setup.height = compositor->vp_height;
 	evt.setup.opengl_mode = 0;
-	evt.setup.system_memory = (compositor->request_video_memory==1) ? 0 : 1;
+	/*copy over settings*/
+	evt.setup.system_memory = compositor->video_memory ? 0 : 1;
+	if (compositor->request_video_memory) evt.setup.system_memory = 0;
 	compositor->request_video_memory = 0;
 
 #ifdef OPENGL_RASTER
