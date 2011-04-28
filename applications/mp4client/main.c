@@ -64,11 +64,12 @@ static Bool gui_mode = 0;
 
 static Bool restart = 0;
 #if defined(__DARWIN__) || defined(__APPLE__)
-static u32 threading_flags = GF_TERM_NO_THREAD;
+static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD;
 #else
 static u32 threading_flags = 0;
 #endif
 static Bool no_audio = 0;
+static Bool term_step = 0;
 static Bool no_regulation = 0;
 static Bool bench_mode = 0;
 Bool is_connected = 0;
@@ -1217,7 +1218,7 @@ int main (int argc, char **argv)
 #if defined(__DARWIN__) || defined(__APPLE__)
 		else if (!strcmp(arg, "-thread")) threading_flags = 0;
 #else
-		else if (!strcmp(arg, "-no-thread")) threading_flags = GF_TERM_NO_THREAD | GF_TERM_WINDOW_NO_THREAD;
+		else if (!strcmp(arg, "-no-thread")) threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_WINDOW_NO_THREAD;
 #endif
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
@@ -1267,7 +1268,7 @@ int main (int argc, char **argv)
 	}
 
 	if (gui_mode) {
-		threading_flags = GF_TERM_NO_THREAD;
+		threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD;
 		if (gui_mode==1) {
 			hide_shell(1);
 			user.init_flags |= GF_TERM_WINDOW_NO_DECORATION;
@@ -1288,7 +1289,7 @@ int main (int argc, char **argv)
 
 	/*setup dumping options*/
 	if (dump_mode) {
-		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
+		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
 		if (visible || dump_mode==8) user.init_flags |= GF_TERM_INIT_HIDE;
 	} else {
 		init_w = forced_width;
@@ -1318,6 +1319,8 @@ int main (int argc, char **argv)
 	if (threading_flags) user.init_flags |= threading_flags;
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
+
+	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = 1;
 
 	fprintf(stdout, "Loading GPAC Terminal\n");	
 	term = gf_term_new(&user);
@@ -1429,7 +1432,7 @@ int main (int argc, char **argv)
 				goto force_input;
 			}
 			if (!use_rtix || display_rti) UpdateRTInfo(NULL);
-			if (threading_flags) {
+			if (term_step) {
 				gf_term_process_step(term);
 				if (auto_exit && gf_term_get_option(term, GF_OPT_IS_OVER)) {
 					Run = 0;

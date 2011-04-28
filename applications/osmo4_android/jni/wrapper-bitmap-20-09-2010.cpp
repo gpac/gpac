@@ -446,7 +446,6 @@ int CNativeWrapper::init(JNIEnv * env, jobject * bitmap){
 
 	/*we don't thread the terminal, ie appart from the audio renderer, media decoding and visual rendering is 
 	handled by the app process*/
-	//m_user.init_flags = GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION;
 	m_user.init_flags = GF_TERM_NO_THREAD | GF_TERM_NO_REGULATION;
 	m_user.init_flags |= GF_TERM_NO_AUDIO;
 	m_user.EventProc = GPAC_EventProc;

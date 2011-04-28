@@ -180,6 +180,7 @@ struct __tag_compositor
 
 	/*simulation frame rate*/
 	Double frame_rate;
+	Bool no_regulation;
 	u32 frame_duration;
 	u32 frame_time[GF_SR_FPS_COMPUTE_SIZE];
 	u32 current_frame;

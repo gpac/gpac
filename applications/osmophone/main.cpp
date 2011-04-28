@@ -470,7 +470,7 @@ Bool LoadTerminal()
 	user.opaque = user.modules;
 	user.os_window_handler = g_hwnd_disp;
 #ifdef TERM_NOT_THREADED
-	user.init_flags = GF_TERM_NO_THREAD | GF_TERM_NO_REGULATION;
+	user.init_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION;
 #endif
 
 	term = gf_term_new(&user);

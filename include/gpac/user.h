@@ -52,21 +52,28 @@ enum
 		* rendering is done after media decoding
 		* the user is responsible for updating the terminal
 	*/
-	GF_TERM_NO_THREAD = 1<<2,
-	/*works with no visual thread for the composition - compositor is driven by the media manager*/
-	GF_TERM_DRAW_FRAME = 1<<3,
+	GF_TERM_NO_DECODER_THREAD = 1<<2,
+	
+	/*works with no visual thread for the composition - compositor is driven by the media manager
+		if GF_TERM_NO_DECODER_THREAD, equivalent to GF_TERM_NO_COMPOSITOR_THREAD
+	*/
+	GF_TERM_NO_VISUAL_THREAD = 1<<3,
+
+	/*works with no visual thread for the composition - compositor is driven by gf_term_process*/
+	GF_TERM_NO_COMPOSITOR_THREAD = 1<<4,
+
 	/*disables frame-rate regulation (used when dumping content)*/
-	GF_TERM_NO_REGULATION = 1<<4,
-	/*works without title bar*/
-	GF_TERM_WINDOW_NO_THREAD = 1<<5,
+	GF_TERM_NO_REGULATION = 1<<5,
+	/*works without window thread*/
+	GF_TERM_WINDOW_NO_THREAD = 1<<6,
 	/*lets the main user handle window events (needed for browser plugins)*/
-	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<6,
+	GF_TERM_NO_WINDOWPROC_OVERRIDE = 1<<7,
 	/*works without title bar*/
-	GF_TERM_WINDOW_NO_DECORATION = 1<<7,
+	GF_TERM_WINDOW_NO_DECORATION = 1<<8,
 	/*framebuffer works in 32 bit alpha mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOW_TRANSPARENT = 1<<8,
+	GF_TERM_WINDOW_TRANSPARENT = 1<<9,
 	/*works in windowless mode - experimental, only supported on Win32*/
-	GF_TERM_WINDOWLESS = 1<<9,
+	GF_TERM_WINDOWLESS = 1<<10,
 };
 
 /*user object for all callbacks*/

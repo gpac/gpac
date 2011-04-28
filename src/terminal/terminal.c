@@ -273,9 +273,7 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 	term->frame_duration = (u32) (1000/fps);
 	gf_sc_set_fps(term->compositor, fps);
 
-	if (term->user->init_flags & GF_TERM_NO_THREAD){
-		//gf_term_set_threading(term->mediaman, 1);
-	} else {
+	if (!(term->user->init_flags & GF_TERM_NO_DECODER_THREAD) ){
 		prio = GF_THREAD_PRIORITY_NORMAL;
 		sOpt = gf_cfg_get_key(term->user->config, "Systems", "Priority");
 		if (sOpt) {
@@ -483,22 +481,32 @@ GF_Terminal *gf_term_new(GF_User *user)
 
 	tmp->user = user;
 
+	if (user->init_flags & GF_TERM_NO_DECODER_THREAD) {
+		if (user->init_flags & GF_TERM_NO_VISUAL_THREAD) {
+			user->init_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
+			user->init_flags &= ~GF_TERM_NO_VISUAL_THREAD;
+		}
+	}
+
 	/*this is not changeable at runtime*/
-	if (user->init_flags & GF_TERM_NO_THREAD) {
-		tmp->flags |= GF_TERM_DRAW_FRAME;
-	} else if (user->init_flags & GF_TERM_DRAW_FRAME) {
-			tmp->flags |= GF_TERM_DRAW_FRAME;
+	if (user->init_flags & GF_TERM_NO_DECODER_THREAD)
+		tmp->flags |= GF_TERM_NO_DECODER_THREAD;
+
+	if (user->init_flags & GF_TERM_NO_COMPOSITOR_THREAD) {
+		tmp->flags |= GF_TERM_NO_COMPOSITOR_THREAD;
+	} else if (user->init_flags & GF_TERM_NO_VISUAL_THREAD) {
+		tmp->flags |= GF_TERM_NO_VISUAL_THREAD;
 	} else {
 		cf = gf_cfg_get_key(user->config, "Systems", "NoVisualThread");
 		if (!cf || !stricmp(cf, "no")) {
-			tmp->flags &= ~GF_TERM_DRAW_FRAME;
+			tmp->flags &= ~GF_TERM_NO_VISUAL_THREAD;
 		} else {
-			tmp->flags |= GF_TERM_DRAW_FRAME;
+			tmp->flags |= GF_TERM_NO_VISUAL_THREAD;
 		}
 	}
 
 	/*setup scene compositor*/
-	tmp->compositor = gf_sc_new(user, !(tmp->flags & GF_TERM_DRAW_FRAME) , tmp);
+	tmp->compositor = gf_sc_new(user, !(tmp->flags & (GF_TERM_NO_VISUAL_THREAD|GF_TERM_NO_COMPOSITOR_THREAD)) , tmp);
 	if (!tmp->compositor) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to create Compositor.\n"));
 		gf_free(tmp);
