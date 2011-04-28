@@ -651,10 +651,8 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		return Quit(KErrGeneral);
 	}
 
-	/*we don't thread the terminal, ie appart from the audio renderer, media decoding and visual rendering is
-	handled by the app process*/
-	//m_user.init_flags = GF_TERM_NO_VISUAL_THREAD | GF_TERM_NO_REGULATION;
-	m_user.init_flags = GF_TERM_NO_THREAD | GF_TERM_NO_REGULATION;
+	/*we don't thread the visual compositor to be able to minimize the app and still have audio running*/
+	m_user.init_flags = GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION;
 	//m_user.init_flags |= GF_TERM_NO_AUDIO;
 	m_user.opaque = this;
 

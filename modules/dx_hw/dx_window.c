@@ -333,10 +333,23 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 	switch (msg) {
 	case WM_SIZE:
 		/*always notify GPAC since we're not sure the owner of the window is listening to these events*/
-		evt.type = GF_EVENT_SIZE;
-		evt.size.width = LOWORD(lParam);
-		evt.size.height = HIWORD(lParam);
-		vout->on_event(vout->evt_cbk_hdl, &evt);
+		if (wParam==SIZE_MINIMIZED) {
+			evt.type = GF_EVENT_SHOWHIDE;
+			evt.show.show_type = 0;
+			ctx->hidden = 1;
+			vout->on_event(vout->evt_cbk_hdl, &evt);
+		} else {
+			if (ctx->hidden && wParam==SIZE_RESTORED) {
+				ctx->hidden = 0;
+				evt.type = GF_EVENT_SHOWHIDE;
+				evt.show.show_type = 1;
+				vout->on_event(vout->evt_cbk_hdl, &evt);
+			}
+			evt.type = GF_EVENT_SIZE;
+			evt.size.width = LOWORD(lParam);
+			evt.size.height = HIWORD(lParam);
+			vout->on_event(vout->evt_cbk_hdl, &evt);
+		}
 		break;
 	case WM_MOVE:
 		evt.type = GF_EVENT_MOVE;
@@ -359,6 +372,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 			ctx->orig_wnd_proc = 0L;
 		}
 		break;
+
 	case WM_ACTIVATE:
 		if (!ctx->on_secondary_screen && ctx->fullscreen && (LOWORD(wParam)==WA_INACTIVE) 
 			&& (hWnd==ctx->fs_hwnd)
@@ -400,7 +414,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, UINT wParam, LONG lParam)
 		}
 		/*this avoids 100% cpu usage in Firefox*/
 		return DefWindowProc (hWnd, msg, wParam, lParam);
-
+		
 	case WM_SETCURSOR:
 		if (ctx->cur_hwnd==hWnd) DD_SetCursor(vout, ctx->cursor_type);
 		break;
@@ -716,7 +730,7 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 			ShowWindow(ctx->os_hwnd, SW_HIDE);
 		} else {
 			SetForegroundWindow(ctx->os_hwnd);
-			ShowWindow(ctx->os_hwnd, SW_SHOWNORMAL);
+			ShowWindow(ctx->os_hwnd, SW_SHOW);
 		}
 
 		/*get border & title bar sizes*/

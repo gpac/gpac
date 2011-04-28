@@ -1315,7 +1315,7 @@ int main (int argc, char *argv[])
 
 	/*setup dumping options*/
 	if (dump_mode) {
-		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
+		user.init_flags |= GF_TERM_NO_AUDIO | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
 		if (visible || dump_mode==8) user.init_flags |= GF_TERM_INIT_HIDE;
 	} else {
 		init_w = forced_width;
@@ -1341,7 +1341,7 @@ int main (int argc, char *argv[])
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
 	user.opaque = user.modules;
-	if (not_threaded) user.init_flags |= GF_TERM_NO_THREAD;
+	if (not_threaded) user.init_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 

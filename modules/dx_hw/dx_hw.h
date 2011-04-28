@@ -161,7 +161,7 @@ typedef struct
 	DWORD orig_wnd_proc;
 
 	u32 last_mouse_move, timer, cursor_type_backup;
-	Bool windowless;
+	Bool windowless, hidden;
 } DDContext;
 
 void DD_SetupWindow(GF_VideoOutput *dr, Bool hide);

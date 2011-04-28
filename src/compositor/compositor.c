@@ -438,7 +438,7 @@ static u32 gf_sc_proc(void *par)
 
 	compositor->video_th_state = GF_COMPOSITOR_THREAD_RUN;	
 	while (compositor->video_th_state == GF_COMPOSITOR_THREAD_RUN) {
-		if (compositor->is_hidden) 
+		if (compositor->is_hidden==1) 
 			gf_sleep(compositor->frame_duration);
 		else	
 			gf_sc_simulation_tick(compositor);
@@ -490,6 +490,9 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 			return NULL;
 		}
 	}
+	
+	if ((tmp->user->init_flags & GF_TERM_NO_REGULATION) || !tmp->VisualThread)
+		tmp->no_regulation = 1;
 
 
 	/*set default size if owning output*/
@@ -1882,7 +1885,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 
 	if (compositor->freeze_display) {
 		gf_sc_lock(compositor, 0);
-		gf_sleep(compositor->frame_duration);
+		if (!compositor->no_regulation) gf_sleep(compositor->frame_duration);
 		return;
 	}
 
@@ -1892,7 +1895,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 	if (!compositor->scene && !gf_list_count(compositor->extra_scenes) ) {
 		gf_sc_draw_scene(compositor);
 		gf_sc_lock(compositor, 0);
-		gf_sleep(compositor->frame_duration);
+		if (!compositor->no_regulation) gf_sleep(compositor->frame_duration);
 		return;
 	}
 
@@ -2059,6 +2062,16 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 		compositor->frame_draw_type=GF_SC_DRAW_FRAME;
 	}
 
+	if (compositor->is_hidden) {
+#if 0
+		gf_sc_lock(compositor, 0);
+		if (compositor->no_regulation) return;
+		gf_sleep(compositor->frame_duration);
+		return;
+#else
+		compositor->frame_draw_type = 0;
+#endif
+	}
 
 	frame_drawn = (compositor->frame_draw_type==GF_SC_DRAW_FRAME) ? 1 : 0;
 
@@ -2183,7 +2196,7 @@ void gf_sc_simulation_tick(GF_Compositor *compositor)
 #endif
 
 	/*not threaded, let the owner decide*/
-	if ((compositor->user->init_flags & GF_TERM_NO_THREAD) || !compositor->frame_duration) return;
+	if (compositor->no_regulation) return;
 
 	/*TO CHECK - THERE WAS A BUG HERE WITH TRISCOPE@SHIX*/
 	if (end_time > compositor->frame_duration) {
@@ -2555,7 +2568,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		return gf_sc_handle_event_intern(compositor, event, from_user);
 	/*switch fullscreen off!!!*/
 	case GF_EVENT_SHOWHIDE:
-		//gf_sc_set_option(compositor, GF_OPT_FULLSCREEN, !compositor->fullscreen);
+		compositor->is_hidden = event->show.show_type ? 0 : 1;
 		break;
 
 	case GF_EVENT_SET_CAPTION:

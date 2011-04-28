@@ -586,7 +586,6 @@ NPError nsOsmozillaInstance::SetWindow(NPWindow* aWindow)
 	m_user.os_window_handler = aWindow->window;
 #endif
 
-//	m_user.init_flags = GF_TERM_DRAW_FRAME;
  	m_prev_time = 0;
 	m_url_changed = 0;
  

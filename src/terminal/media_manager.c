@@ -68,7 +68,8 @@ GF_Err gf_term_init_scheduler(GF_Terminal *term, u32 threading_mode)
 		break;
 	}
 
-	if (term->user->init_flags & GF_TERM_NO_THREAD) return GF_OK;
+	if (term->user->init_flags & GF_TERM_NO_DECODER_THREAD) 
+		return GF_OK;
 
 	term->mm_thread = gf_th_new("MediaManager");
 	term->flags |= GF_TERM_RUNNING;
@@ -256,7 +257,7 @@ Bool gf_term_find_codec(GF_Terminal *term, GF_Codec *codec)
 	return 0;
 }
 
-static u32 MM_SimulationStep(GF_Terminal *term)
+static u32 MM_SimulationStep_Decoder(GF_Terminal *term)
 {
 	CodecEntry *ce;
 	GF_Err e;
@@ -333,34 +334,43 @@ static u32 MM_SimulationStep(GF_Terminal *term)
 	term->compositor->decoders_time = gf_sys_clock() - term->compositor->decoders_time;
 #endif
 
-	if (term->flags & GF_TERM_DRAW_FRAME) {
-		time_taken = gf_sys_clock();
-		gf_sc_draw_frame(term->compositor);
-		time_taken = gf_sys_clock() - time_taken;
-		if (time_left>time_taken) 
-			time_left -= time_taken;
-		else
-			time_left = 0;
-	} /*else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("(RTI] Terminal Cycle Log\t%d\t%d\t%d\n", term->compositor->networks_time, term->compositor->decoders_time, 0));
-	}*/
-	if (!(term->user->init_flags & GF_TERM_NO_REGULATION)) {
-		gf_sleep(time_left);
-	}
-//	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Media Manager] Simulation step done in %d / %d ms\n", term->frame_duration-time_left, term->frame_duration));
+
+	return time_left;
+}
+
+u32 MM_SimulationStep_Compositor(GF_Terminal *term, u32 time_left)
+{
+	u32 time_taken = gf_sys_clock();
+	gf_sc_draw_frame(term->compositor);
+	time_taken = gf_sys_clock() - time_taken;
+	if (time_left>time_taken) 
+		time_left -= time_taken;
+	else
+		time_left = 0;
+
 	return time_left;
 }
 
 u32 MM_Loop(void *par)
 {
 	GF_Terminal *term = (GF_Terminal *) par;
+	Bool do_scene = (term->flags & GF_TERM_NO_VISUAL_THREAD) ? 1 : 0;
+	Bool do_codec = (term->flags & GF_TERM_NO_DECODER_THREAD) ? 0 : 1;
+	Bool do_regulate = (term->user->init_flags & GF_TERM_NO_REGULATION) ? 0 : 1;
 
 	gf_th_set_priority(term->mm_thread, term->priority);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[MediaManager] Entering thread ID %d\n", gf_th_id() ));
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("(RTI] Terminal Cycle Log\tServices\tDecoders\tCompositor\tSleep\n"));
 
 	while (term->flags & GF_TERM_RUNNING) {
-		MM_SimulationStep(term);
+		u32 left;
+		if (do_codec) left = MM_SimulationStep_Decoder(term);
+		else left = term->frame_duration;
+		
+		if (do_scene) left = MM_SimulationStep_Compositor(term, left);
+
+		if (do_regulate)
+			gf_sleep(left);
 	}
 	term->flags |= GF_TERM_DEAD;
 	return 0;
@@ -607,8 +617,20 @@ void gf_term_set_priority(GF_Terminal *term, s32 Priority)
 GF_EXPORT
 GF_Err gf_term_process_step(GF_Terminal *term)
 {
-	if (!(term->flags & GF_TERM_DRAW_FRAME)) return GF_BAD_PARAM;
-	MM_SimulationStep(term);
+	u32 left = 0;
+
+	if (term->flags & GF_TERM_NO_DECODER_THREAD) {
+		left = MM_SimulationStep_Decoder(term);
+	} else {
+		left = term->frame_duration;
+	}
+
+	if (term->flags & GF_TERM_NO_COMPOSITOR_THREAD) {
+		left = MM_SimulationStep_Compositor(term, left);
+	}
+	if (term->user->init_flags & GF_TERM_NO_REGULATION) return GF_OK;
+
+	gf_sleep(left);
 	return GF_OK;
 }
 
@@ -617,18 +639,20 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 {
 	u32 i;
 	CodecEntry *ce;
-	if (!(term->flags & GF_TERM_DRAW_FRAME) ) return GF_BAD_PARAM;
+	if (!(term->flags & GF_TERM_NO_COMPOSITOR_THREAD) ) return GF_BAD_PARAM;
 
 	/*update till frame mature*/
 	while (1) {
-		gf_term_handle_services(term);
-		gf_mx_p(term->mm_mx);
-
-		i=0;
-		while ((ce = (CodecEntry*)gf_list_enum(term->codecs, &i))) {
-			gf_codec_process(ce->dec, 10000);
+		
+		if (term->flags & GF_TERM_NO_DECODER_THREAD) {
+			gf_term_handle_services(term);
+			gf_mx_p(term->mm_mx);
+			i=0;
+			while ((ce = (CodecEntry*)gf_list_enum(term->codecs, &i))) {
+				gf_codec_process(ce->dec, 10000);
+			}
+			gf_mx_v(term->mm_mx);
 		}
-		gf_mx_v(term->mm_mx);
 
 		if (!gf_sc_draw_frame(term->compositor))
 			break;
