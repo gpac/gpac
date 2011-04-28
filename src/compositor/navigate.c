@@ -223,7 +223,7 @@ Bool gf_sc_fit_world_to_screen(GF_Compositor *compositor)
 
 	cam = &compositor->visual->camera;
 
-	compositor->visual->world_diameter = 2 * tr_state.bbox.radius;
+	cam->world_bbox = tr_state.bbox;
 	/*fit is based on bounding sphere*/
 	dist = gf_divfix(tr_state.bbox.radius, gf_sin(cam->fieldOfView/2) );
 	gf_vec_diff(diff, cam->center, tr_state.bbox.center);
@@ -293,8 +293,8 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 */
 	trans_scale = cam->width/20;
 	key_trans = cam->avatar_size.x;
-	if (compositor->visual->world_diameter && (key_trans*10 > compositor->visual->world_diameter)) {
-		key_trans = compositor->visual->world_diameter / 10;
+	if (cam->world_bbox.is_set && (key_trans*5 > cam->world_bbox.radius)) {
+		key_trans = cam->world_bbox.radius / 10;
 	}
 
 	key_pan = FIX_ONE/25;
@@ -463,7 +463,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		case GF_KEY_RIGHT:
 			if (keys & GF_KEY_MOD_ALT) {
 				if ( (keys & GF_KEY_MOD_SHIFT) && (compositor->visual->nb_views > 1) ) {
-					compositor->view_distance_offset += key_inv * INT2FIX(20);
+					compositor->view_distance_offset += key_inv * INT2FIX((is_pixel_metrics ? 5 : 1));
 					cam->flags |= CAM_IS_DIRTY;
 					fprintf(stdout, "AutoStereo view distance %f\n", FIX2FLT(compositor->view_distance_offset + compositor->video_out->view_distance)/100);
 					gf_sc_invalidate(compositor, NULL);

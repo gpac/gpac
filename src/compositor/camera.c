@@ -184,7 +184,7 @@ void camera_set_2d(GF_Camera *cam)
 #endif
 }
 
-void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed viewing_distance, u32 camera_layout)
+void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coords, Fixed horizontal_shift, Fixed nominal_view_distance, Fixed view_distance_offset, u32 camera_layout)
 {
 	Fixed vlen, h, w, ar;
 	SFVec3f corner, center;
@@ -198,23 +198,20 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 	if (cam->is_3D) {
 		/*setup perspective*/
 		if (camera_layout==GF_3D_CAMERA_OFFAXIS) {
-			Fixed left, right, top, bottom, shift, focal_length, wd2, ndfl;
+			Fixed left, right, top, bottom, shift, wd2, ndfl, viewing_distance;
 			SFVec3f eye, pos, tar, disp;
 
-			viewing_distance/=100;
-			horizontal_shift/=100;
-			focal_length = viewing_distance;
-			cam->z_near = focal_length/100;
+			viewing_distance = (nominal_view_distance + view_distance_offset);
 
 			wd2 = cam->z_near * gf_tan(cam->fieldOfView/2);
-			ndfl = gf_divfix(cam->z_near, focal_length);
+			ndfl = gf_divfix(cam->z_near, viewing_distance);
 			/*compute h displacement*/
-			shift = horizontal_shift * cam->z_near / focal_length;
+			shift = gf_mulfix(horizontal_shift, ndfl);
 
 			top = wd2;
 			bottom = -top;
-			left = -ar * wd2 - gf_mulfix(horizontal_shift, ndfl);
-			right = ar * wd2 - gf_mulfix(horizontal_shift, ndfl);
+			left = -ar * wd2 - shift;
+			right = ar * wd2 - shift;
 
 			gf_mx_init(cam->projection);
 			cam->projection.m[0] = gf_divfix(2*cam->z_near, (right-left));
@@ -231,7 +228,12 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 			disp = gf_vec_cross(eye, cam->up);
 			gf_vec_norm(&disp);
 
-			pos = gf_vec_scale(disp, horizontal_shift);
+			gf_vec_diff(center, cam->world_bbox.center, cam->position);
+			vlen = gf_vec_len(center);
+			vlen += view_distance_offset * (vlen/nominal_view_distance);
+			shift = horizontal_shift * vlen / viewing_distance;
+
+			pos = gf_vec_scale(disp, shift);
 			gf_vec_add(pos, pos, cam->position);
 			gf_vec_add(tar, pos, eye);
 
@@ -308,31 +310,49 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 
 	if (camera_layout == GF_3D_CAMERA_CIRCULAR) {
 		GF_Matrix mx;
-		SFVec3f pos;
+		Fixed viewing_distance = nominal_view_distance + view_distance_offset;
+		SFVec3f pos, target;
+		Fixed angle;
+
+		gf_vec_diff(center, cam->world_bbox.center, cam->position);
+		vlen = gf_vec_len(center);
+		vlen += view_distance_offset * (vlen/nominal_view_distance);
+
+		gf_vec_diff(pos, cam->target, cam->position);
+		gf_vec_norm(&pos);
+		pos = gf_vec_scale(pos, vlen);
+		gf_vec_add(target, pos, cam->position);
 
 		gf_mx_init(mx);
-		gf_mx_add_translation(&mx, cam->target.x, cam->target.y, cam->target.z);
-		gf_mx_add_rotation(&mx, horizontal_shift/viewing_distance, cam->up.x, cam->up.y, cam->up.z);
-		gf_mx_add_translation(&mx, -cam->target.x, -cam->target.y, -cam->target.z);
+		gf_mx_add_translation(&mx, target.x, target.y, target.z);
+		angle = gf_atan2(horizontal_shift, viewing_distance);
+		gf_mx_add_rotation(&mx, angle, cam->up.x, cam->up.y, cam->up.z);
+		gf_mx_add_translation(&mx, -target.x, -target.y, -target.z);
 
 		pos = cam->position;
 		gf_mx_apply_vec(&mx, &pos);
 
-		gf_mx_lookat(&cam->modelview, pos, cam->target, cam->up);
+		gf_mx_lookat(&cam->modelview, pos, target, cam->up);
 	} else if (camera_layout == GF_3D_CAMERA_LINEAR) {
-		GF_Vec eye, disp, pos;
-		Fixed len;
+		Fixed viewing_distance = nominal_view_distance + view_distance_offset;
+		GF_Vec eye, disp, pos, tar;
+
+		gf_vec_diff(center, cam->world_bbox.center, cam->position);
+		vlen = gf_vec_len(center);
+		vlen += view_distance_offset * (vlen/nominal_view_distance);
 
 		gf_vec_diff(eye, cam->target, cam->position);
-		len = gf_vec_len(eye);
 		gf_vec_norm(&eye);
+		tar = gf_vec_scale(eye, vlen);
+		gf_vec_add(tar, tar, cam->position);
 
 		disp = gf_vec_cross(eye, cam->up);
 		gf_vec_norm(&disp);
 
-		pos = gf_vec_scale(disp, len*horizontal_shift/viewing_distance);
-		gf_vec_add(pos, cam->position, pos);
-		gf_mx_lookat(&cam->modelview, pos, cam->target, cam->up);
+		disp= gf_vec_scale(disp, vlen*horizontal_shift/viewing_distance);
+		gf_vec_add(pos, cam->position, disp);
+
+		gf_mx_lookat(&cam->modelview, pos, tar, cam->up);
 	}
 	gf_mx_add_matrix(&cam->modelview, &post_model_view);
 

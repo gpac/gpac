@@ -352,12 +352,8 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 
 	if (tr_state->visual->nb_views>1) {
 		s32 view_idx;
-		Fixed view_dist, interocular_dist_pixel;
+		Fixed interocular_dist_pixel;
 		Fixed delta = 0;
-
-		view_dist = tr_state->visual->compositor->video_out->view_distance;
-		view_dist += tr_state->visual->compositor->view_distance_offset;
-		if (view_dist<0) view_dist = FIX_ONE;
 
 		interocular_dist_pixel = FLT2FIX(6.8f) + tr_state->visual->compositor->interoccular_offset;
 
@@ -370,9 +366,9 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 		if (tr_state->visual->reverse_views) delta = - delta;
 
 		tr_state->camera->flags |= CAM_IS_DIRTY;
-		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, delta, view_dist, tr_state->visual->camera_layout);
+		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, delta, tr_state->visual->compositor->video_out->view_distance, tr_state->visual->compositor->view_distance_offset, tr_state->visual->camera_layout);
 	} else {
-		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, 0, 0, GF_3D_CAMERA_STRAIGHT);
+		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, 0, 0, 0, GF_3D_CAMERA_STRAIGHT);
 	}
 
 	/*setup projection/modelview*/
@@ -864,6 +860,8 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 			if (auto_stereo) {
 				visual_3d_end_auto_stereo_pass(visual);
 			}
+
+			if (is_root_visual) visual->compositor->reset_graphics = 0;
 		}
 
 	} else {
