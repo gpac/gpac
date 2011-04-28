@@ -64,7 +64,8 @@ static Bool gui_mode = 0;
 
 static Bool restart = 0;
 #if defined(__DARWIN__) || defined(__APPLE__)
-static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD;
+//we keep no decoder thread because of JS_GC deadlocks between threads ...
+static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_DECODER_THREAD;
 #else
 static u32 threading_flags = 0;
 #endif
