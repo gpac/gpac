@@ -37,8 +37,10 @@
 Bool SDLOUT_InitSDL();
 void SDLOUT_CloseSDL();
 
-//#define SDL_WINDOW_THREAD
-
+/*when not threaded on win32, locks happen randomly when setting the window's caption*/
+#ifdef WIN32
+#define SDL_WINDOW_THREAD
+#endif
 
 typedef struct
 {

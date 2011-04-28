@@ -279,8 +279,6 @@ GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot attach video surface memory to raster: %s\n", gf_error_to_string(e) ));
 		compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, 0);
-	} else {
-		e = GF_OK;
 	}
 	compositor->hw_locked = 0;
 	visual->is_attached = 0;
