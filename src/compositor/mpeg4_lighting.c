@@ -38,31 +38,48 @@ static void TraverseSpotLight(GF_Node *n, void *rs, Bool is_destroy)
 	M_SpotLight *sl = (M_SpotLight *)n;
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
-	if (is_destroy || !sl->on) return;
+	if (is_destroy) {
+		Bool *vis = gf_node_get_private(n);
+		gf_free(vis);
+		return;
+	}
+	if (!sl->on) return;
 
 	/*store local bounds for culling*/
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
-		/*how crude - refine to only have the light cone :)*/
+		GF_BBox b;
 		SFVec3f size;
+		Bool *visible = gf_node_get_private(n);
 		size.x = size.y = size.z = sl->radius;
-		gf_vec_add(tr_state->bbox.max_edge, sl->location, size);
-		gf_vec_diff(tr_state->bbox.min_edge, sl->location, size);
-		gf_bbox_refresh(&tr_state->bbox);
+		gf_vec_add(b.max_edge, sl->location, size);
+		gf_vec_diff(b.min_edge, sl->location, size);
+		gf_bbox_refresh(&b);
+		*visible = visual_3d_node_cull(tr_state, &b, 0);
+		/*if visible, disable culling on our parent branch - this is not very efficient but
+		we only store one bound per grouping node, and we don't want the lights to interfere with it*/
+		if (*visible) tr_state->disable_cull = 1;
 		return;
 	}
 	else if (tr_state->traversing_mode == TRAVERSE_LIGHTING) {
-		visual_3d_matrix_push(tr_state->visual);
-		visual_3d_matrix_add(tr_state->visual, tr_state->model_matrix.m);
-		
-		visual_3d_add_spot_light(tr_state->visual, sl->ambientIntensity, sl->attenuation, sl->beamWidth, 
-					   sl->color, sl->cutOffAngle, sl->direction, sl->intensity, sl->location);
-		
-		visual_3d_matrix_pop(tr_state->visual);
+		Bool *visible = gf_node_get_private(n);
+		if (*visible) {
+
+			visual_3d_matrix_push(tr_state->visual);
+			visual_3d_matrix_add(tr_state->visual, tr_state->model_matrix.m);
+			
+			visual_3d_add_spot_light(tr_state->visual, sl->ambientIntensity, sl->attenuation, sl->beamWidth, 
+						   sl->color, sl->cutOffAngle, sl->direction, sl->intensity, sl->location);
+			
+			visual_3d_matrix_pop(tr_state->visual);
+		}
 	}
 }
 
 void compositor_init_spot_light(GF_Compositor *compositor, GF_Node *node)
 {
+	Bool *vis = gf_malloc(sizeof(Bool));
+	*vis = 0;
+	gf_node_set_private(node, vis);
 	/*no need for a stck*/
 	gf_node_set_callback_function(node, TraverseSpotLight);
 }
@@ -72,30 +89,46 @@ static void TraversePointLight(GF_Node *n, void *rs, Bool is_destroy)
 	M_PointLight *pl = (M_PointLight *)n;
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
 
-	if (is_destroy || !pl->on) return;
+	if (is_destroy) {
+		Bool *vis = gf_node_get_private(n);
+		gf_free(vis);
+		return;
+	}
+	if (!pl->on) return;
 
 	/*store local bounds for culling*/
 	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		SFVec3f size;
+		GF_BBox b;
+		Bool *visible = gf_node_get_private(n);
 		size.x = size.y = size.z = pl->radius;
-		gf_vec_add(tr_state->bbox.max_edge, pl->location, size);
-		gf_vec_diff(tr_state->bbox.min_edge, pl->location, size);
-		gf_bbox_refresh(&tr_state->bbox);
+		gf_vec_add(b.max_edge, pl->location, size);
+		gf_vec_diff(b.min_edge, pl->location, size);
+		gf_bbox_refresh(&b);
+		*visible = visual_3d_node_cull(tr_state, &b, 0);
+		/*if visible, disable culling on our parent branch*/
+		if (*visible) tr_state->disable_cull = 1;
 		return;
 	}
 	else if (tr_state->traversing_mode == TRAVERSE_LIGHTING) {
-		visual_3d_matrix_push(tr_state->visual);
-		visual_3d_matrix_add(tr_state->visual, tr_state->model_matrix.m);
+		Bool *visible = gf_node_get_private(n);
+		if (*visible) {
+			visual_3d_matrix_push(tr_state->visual);
+			visual_3d_matrix_add(tr_state->visual, tr_state->model_matrix.m);
 
-		visual_3d_add_point_light(tr_state->visual, pl->ambientIntensity, pl->attenuation, pl->color, 
-					pl->intensity, pl->location);
+			visual_3d_add_point_light(tr_state->visual, pl->ambientIntensity, pl->attenuation, pl->color, 
+						pl->intensity, pl->location);
 
-		visual_3d_matrix_pop(tr_state->visual);
+			visual_3d_matrix_pop(tr_state->visual);
+		}
 	}
 }
 
 void compositor_init_point_light(GF_Compositor *compositor, GF_Node *node)
 {
+	Bool *vis = gf_malloc(sizeof(Bool));
+	*vis = 0;
+	gf_node_set_private(node, vis);
 	/*no need for a stck*/
 	gf_node_set_callback_function(node, TraversePointLight);
 }
@@ -127,8 +160,7 @@ static void TraverseDirectionalLight(GF_Node *n, void *rs, Bool is_destroy)
 
 void compositor_init_directional_light(GF_Compositor *compositor, GF_Node *node)
 {
-	/*our stack is just a boolean used to store whether the light was turned on successfully*/
-	Bool *stack = (Bool*)gf_malloc(sizeof(Bool));
+	Bool *stack = gf_malloc(sizeof(Bool));
 	*stack = 0;
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, TraverseDirectionalLight);

@@ -831,8 +831,8 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh 0x%08x\n", mesh));
 
 
-	if (compositor->reset_graphics) {
-		glDeleteBuffers(1, &mesh->vbo);
+	if ((compositor->reset_graphics==2) && mesh->vbo) {
+		/*we lost OpenGL context at previous frame, recreate VBO*/
 		mesh->vbo = 0;
 	}
 	if (!mesh->vbo && compositor->gl_caps.vbo) {
@@ -1058,6 +1058,9 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	if (has_tx) glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	if (has_norm) glDisableClientState(GL_NORMAL_ARRAY);
+
+	if (mesh->vbo) 
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 #if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_OGL_ES)
 	if (color_array) gf_free(color_array);

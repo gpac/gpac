@@ -158,9 +158,6 @@ struct _visual_manager
 	GF_List *fog_stack;
 #endif
 
-	/*diameter of smallest sphere containing the world - 0 if unknown*/
-	Fixed world_diameter;
-
 	/*the one and only camera associated with the visual*/
 	GF_Camera camera;
 
@@ -177,7 +174,6 @@ struct _visual_manager
 
 	u32 nb_views, current_view, autostereo_type, camera_layout;
 	Bool reverse_views;
-
 
 	u32 *gl_textures;
 	u32 auto_stereo_width, auto_stereo_height;

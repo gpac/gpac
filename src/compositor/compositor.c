@@ -826,7 +826,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		if (compositor->has_size_info != had_size_info) compositor->scene_width = compositor->scene_height = 0;
 
 #ifndef GPAC_DISABLE_3D
-		compositor->visual->world_diameter = 0;
+		compositor->visual->camera.world_bbox.is_set = 0;
 #endif
 
 		/*default back color is black*/
@@ -2483,7 +2483,11 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		}
 		break;
 	case GF_EVENT_VIDEO_SETUP:
-		gf_sc_reset_graphics(compositor);
+		{
+			Bool locked = gf_mx_try_lock(compositor->mx);
+			compositor->reset_graphics = 2;
+			if (locked) gf_mx_v(compositor->mx);
+		}
 		break;
 	case GF_EVENT_SIZE:
 		/*resize message from plugin: if we own the output, resize*/
