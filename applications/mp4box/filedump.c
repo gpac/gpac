@@ -1065,8 +1065,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 {
 	Float scale;
 	Bool is_od_track = 0;
-	u32 trackNum, i, j, size, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups;
-	u64 time_slice, dur;
+	u32 trackNum, i, j, max_rate, rate, ts, mtype, msub_type, timescale, sr, nb_ch, count, alt_group, nb_groups;
+	u64 time_slice, dur, size;
 	u8 bps;
 	GF_ESD *esd;
 	char sType[5], szDur[50];
@@ -1562,12 +1562,13 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	scale = 1000;
 	scale /= ts;
 	dur = (u64) (scale * (s64)dur);
-	fprintf(stdout, "\tTotal size %d bytes - Total samples duration %d ms\n", size, (u32) dur);
+	fprintf(stdout, "\tTotal size "LLU" bytes - Total samples duration "LLU" ms\n", size, dur);
 	if (!dur) {
 		fprintf(stdout, "\n");
 		return;
 	}
-	rate = (u32) (size * 8 / (dur/1000));
+	/*rate in byte, dur is in ms*/
+	rate = (u32) ((size * 8 * 1000) / dur);
 	max_rate *= 8;
 	if (rate >= 1500) {
 		rate /= 1000;
