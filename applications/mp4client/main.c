@@ -313,6 +313,7 @@ GF_Config *create_default_config(char *file_path, char *file_name)
 	while ( 1 > scanf("%s", szPath));
 #endif
 	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
+	gf_cfg_set_key(cfg, "Compositor", "Raster2D", "GPAC 2D Raster");
 	gf_cfg_set_key(cfg, "Audio", "ForceConfig", "yes");
 	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "2");
 	gf_cfg_set_key(cfg, "Audio", "TotalDuration", "120");
