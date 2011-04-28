@@ -924,7 +924,7 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 			}
 			return "GPAC Internal Scene Description";
 		case GPAC_OTI_PRIVATE_SCENE_SVG:
-			return "SVG+xml";
+			return "SVG";
 		case GPAC_OTI_PRIVATE_SCENE_LASER:
 			return "LASeR (XML)";
 		case GPAC_OTI_PRIVATE_SCENE_XBL:
@@ -934,9 +934,9 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 		case GPAC_OTI_PRIVATE_SCENE_WGT:
 			return "W3C/MPEG-U Widget";
 		case GPAC_OTI_SCENE_SVG:
-			return "SVG";
+			return "SVG over RTP";
 		case GPAC_OTI_SCENE_SVG_GZ:
-			return "SVG+gz";
+			return "SVG+gz over RTP";
 		case GPAC_OTI_SCENE_DIMS:
 			return "3GPP DIMS";
 		default:
