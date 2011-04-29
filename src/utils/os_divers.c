@@ -1214,7 +1214,7 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 }
 
 	
-#elif defined(GPAC_CONFIG_DARWIN)
+#elif defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
 
 #include <sys/types.h>
 #include <sys/sysctl.h>
