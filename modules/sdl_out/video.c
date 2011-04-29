@@ -454,6 +454,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		}
 		flags = SDL_GL_WINDOW_FLAGS;
 		if (ctx->os_handle) flags &= ~SDL_RESIZABLE;
+		if (ctx->fullscreen) flags |= SDL_FULLSCREEN_FLAGS;
 		if (!ctx->screen) ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
 		SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
@@ -659,7 +660,9 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 #ifdef	SDL_WINDOW_THREAD
 u32 SDLVid_EventProc(void *par)
 {
-	u32 flags, last_mouse_move;
+#if 0
+	u32 last_mouse_move;
+#endif
 	Bool ret;
 	GF_VideoOutput *dr = (GF_VideoOutput *)par;
 	SDLVID();
@@ -1190,7 +1193,7 @@ static GF_Err SDL_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Window
 		return GF_NOT_SUPPORTED;
 	}
 
-	if (! *pool || ((*pool)->w < src_wnd->w) || ((*pool)->h < src_wnd->h) ) {
+	if (! *pool || ((*pool)->w < (int) src_wnd->w) || ((*pool)->h < (int) src_wnd->h) ) {
 		if ((*pool)) SDL_FreeSurface((*pool));
 		(*pool) = SDL_CreateRGBSurface(ctx->use_systems_memory ? SDL_SWSURFACE : SDL_HWSURFACE, 
 						src_wnd->w, src_wnd->h, 8*bpp, 

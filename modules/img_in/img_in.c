@@ -175,7 +175,7 @@ void IMG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			else {
 				e = GF_OK;
 				gf_f64_seek(read->stream, 0, SEEK_END);
-				read->data_size = gf_f64_tell(read->stream);
+				read->data_size = (u32) gf_f64_tell(read->stream);
 				gf_f64_seek(read->stream, 0, SEEK_SET);
 			}
 		}
@@ -222,7 +222,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	read->stream = fopen(url, "rb");
 	if (read->stream) {
 		gf_f64_seek(read->stream, 0, SEEK_END);
-		read->data_size = gf_f64_tell(read->stream);
+		read->data_size = (u32) gf_f64_tell(read->stream);
 		gf_f64_seek(read->stream, 0, SEEK_SET);
 	}
 	gf_term_on_connect(serv, NULL, read->stream ? GF_OK : GF_URL_ERROR);

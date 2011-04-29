@@ -213,7 +213,7 @@ static void AC3_OnLiveData(AC3Reader *read, const char *data, u32 data_size)
 
 	if (pos) {
 		char *d;
-		read->data_size -= pos;
+		read->data_size -= (u32) pos;
 		d = gf_malloc(sizeof(char) * read->data_size);
 		memcpy(d, read->data + pos, sizeof(char) * read->data_size);
 		gf_free(read->data);
