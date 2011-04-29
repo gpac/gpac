@@ -460,7 +460,7 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 
 	full_size = 0;
 	if (ffd->buffer_used) {
-		if (ffd->buffer_used>size) {
+		if (ffd->buffer_used > (u32) size) {
 			ffd->buffer_used-=size;
 			memcpy(ffd->buffer, ffd->buffer+size, sizeof(char)*ffd->buffer_used);
 #ifdef FFMPEG_DUMP_REMOTE
