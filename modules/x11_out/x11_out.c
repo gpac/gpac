@@ -1290,9 +1290,9 @@ xWindow->screennum=0;
 	  attribs[i++] = GLX_BLUE_SIZE;
 	  attribs[i++] = nb_bits;
 	  sOpt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth");
-	  nb_bits = sOpt ? atoi(sOpt) : 0;
+	  nb_bits = sOpt ? atoi(sOpt) : 16;
           if (!sOpt){
-             gf_modules_set_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth", "0");
+             gf_modules_set_option((GF_BaseInterface *)vout, "Video", "GLNbBitsDepth", "16");
           }
 	  if (nb_bits) {
 		  attribs[i++] = GLX_DEPTH_SIZE;
