@@ -1031,9 +1031,17 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 		SDLVID();
 		switch (evt->setup.opengl_mode) {
 		case 0:
+			/*force a resetup of the window*/
+			if (ctx->output_3d_type) {
+				ctx->width = ctx->height = 0;
+			}
 			ctx->output_3d_type = 0;
 			return SDLVid_SetBackbufferSize(dr, evt->setup.width, evt->setup.height, evt->setup.system_memory);
 		case 1:
+			/*force a resetup of the window*/
+			if (!ctx->output_3d_type) {
+				ctx->width = ctx->height = 0;
+			}
 			ctx->output_3d_type = 1;
 			return SDLVid_ResizeWindow(dr, evt->setup.width, evt->setup.height);
 		case 2:
