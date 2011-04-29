@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #echo "*** Compile libgpac for Simulator (i386) ***"
-#xcodebuild -target libgpac_dynamic -sdk iphonesimulator -configuration Release -project gpac4ios.xcodeproj
+xcodebuild -target libgpac_dynamic -sdk iphonesimulator -configuration Release -project gpac4ios.xcodeproj
 
 echo "*** Compile libgpac for iOS (arm) ***"
 xcodebuild -target libgpac_dynamic -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj
