@@ -1146,7 +1146,9 @@ GF_EXPORT
 void gf_vec_norm(GF_Vec *v)
 {
 	Fixed __res = gf_vec_len(*v);
-	if (__res ) __res = 1.0f/__res ;
+	if (!__res ) return;
+	if (__res == FIX_ONE) return;
+	__res = 1.0f/__res;
 	v->x *= __res; 
 	v->y *= __res;
 	v->z *= __res;
