@@ -366,8 +366,10 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 	char *url = NULL;
 	char *dir = NULL;
 	char *filter = NULL;
+	char *an_url;
 	Bool dir_only = 0;
 	Bool browse_root = 0;
+	GF_Terminal *term;
 	SMJS_OBJ
 	SMJS_ARGS
 
@@ -413,15 +415,15 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 	cbk.array = JS_NewArrayObject(c, 0, 0);
 
 	cbk.is_dir = 1;
-	err = gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
-	if (err==GF_IO_ERR) {
-		GF_Terminal *term = gpac_get_term(c, obj);
-		/*try to concatenate with service url*/
-		char *an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
+
+	term = gpac_get_term(c, obj);
+	/*concatenate with service url*/
+	an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
+	if (an_url) {
 		gf_free(url);
 		url = an_url;
-		gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
 	}
+	err = gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
 
 	if (!dir_only) {
 		cbk.is_dir = 0;
