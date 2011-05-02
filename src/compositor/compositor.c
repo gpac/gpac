@@ -501,7 +501,7 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	}
 	/*try to load GL extensions*/
 #ifndef GPAC_DISABLE_3D
-	gf_sc_load_opengl_extensions(tmp);
+	gf_sc_load_opengl_extensions(tmp, 0);
 #endif
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\tNetworks\tDecoders\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and direct Draw)\tTraverse (and direct Draw) without anim\tIndirect Draw\tTraverse And Draw (Indirect or Not)\tFlush\tCycle\n"));
@@ -1806,7 +1806,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #ifndef GPAC_DISABLE_3D
 		if (compositor->visual->type_3d) {
 			compositor_3d_set_aspect_ratio(compositor);
-			gf_sc_load_opengl_extensions(compositor);
+			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
 		}
 		else
 #endif

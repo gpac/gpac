@@ -329,6 +329,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		txh->tx_io->nb_comp = 3;
 		break;
 	case GF_PIXEL_RGBD:
+	case GF_PIXEL_RGB_24_DEPTH:
 		if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
 		txh->tx_io->gl_format = GL_RGB;
 		txh->tx_io->nb_comp = 3;
@@ -531,7 +532,7 @@ common:
 	case GF_PIXEL_YUVD:
 		if (txh->compositor->depth_gl_type==3) {
 			src.pixel_format = GF_PIXEL_YV12;
-			txh->tx_io->conv_format = GF_PIXEL_RGBD;
+			txh->tx_io->conv_format = GF_PIXEL_RGB_24_DEPTH;
 			dst.pixel_format = GF_PIXEL_RGB_24;
 			dst.pitch_y = 3*txh->width;
 			/*stretch YUV->RGB*/
@@ -544,11 +545,12 @@ common:
 			/*stretch*/
 			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
 		}
+			txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 		break;
 	case GF_PIXEL_RGBD:
 		if (txh->compositor->depth_gl_type==3) {
 			dst.pitch_y = 3*txh->width;
-			txh->tx_io->conv_format = GF_PIXEL_RGBD;
+			txh->tx_io->conv_format = GF_PIXEL_RGB_24_DEPTH;
 			dst.pixel_format = GF_PIXEL_RGB_24;
 
 			for (j=0; j<txh->height; j++) {
@@ -608,6 +610,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	/*in case the ID has been lost, resetup*/
 	if (!txh->tx_io->id) {
 		glGenTextures(1, &txh->tx_io->id);
+		/*force setup of image*/
+		txh->needs_refresh = 1;
 		tx_setup_format(txh);
 		first_load = 1;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Texturing] Allocating OpenGL texture %d\n", txh->tx_io->id));

@@ -137,7 +137,7 @@ GLDECL_STATIC(glBlendEquation);
 
 #endif //LOAD_GL_2_0
 
-void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
+void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context)
 {
 	Bool has_shaders = 0;
 #ifdef GPAC_USE_TINYGL
@@ -187,7 +187,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 	}
 #endif
 
-	if (!compositor->visual->type_3d) return;
+	if (!has_gl_context) return;
 
 	/*we have a GL context, get proc addresses*/
 	
@@ -978,7 +978,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 	}
 
-	if (1 || mesh->mesh_type) {
+	if (mesh->mesh_type) {
 #ifdef GPAC_USE_OGL_ES
 		glNormal3x(0, 0, FIX_ONE);
 #else
@@ -2247,6 +2247,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 
 		data = gf_sc_texture_get_data(txh, &pixel_format);
 		if (!data) return;
+		if (pixel_format!=GF_PIXEL_RGBD) return;
 		stride = txh->stride;
 		if (txh->pixelformat==GF_PIXEL_YUVD) stride *= 4;
 
@@ -2295,6 +2296,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 
 		data = gf_sc_texture_get_data(txh, &pixel_format);
 		if (!data) return;
+		if (pixel_format!=GF_PIXEL_RGBD) return;
 		stride = txh->stride;
 		if (txh->pixelformat==GF_PIXEL_YUVD) stride *= 4;
 
@@ -2430,7 +2432,7 @@ restart:
 
 		data = gf_sc_texture_get_data(txh, &pixel_format);
 		if (!data) return;
-		assert(pixel_format==GF_PIXEL_RGBD);
+		if (pixel_format!=GF_PIXEL_RGB_24_DEPTH) return;
 		data += txh->height*txh->width*3;
 
 		for (h=0; h<txh->height; h++) {
