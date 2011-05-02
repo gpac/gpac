@@ -4,7 +4,7 @@ vpath %.c $(SRC_PATH)/applications/mp4client
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" -I../../
 
-LINKLIBS=$(OGL_LIBS) $(GPAC_SH_FLAGS)
+LINKLIBS=$(GPAC_SH_FLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -39,30 +39,6 @@ else
 EXT=
 PROG=MP4Client
 endif
-
-ifneq ($(CONFIG_JPEG), no)
-#LINKLIBS+= -L$(prefix)/lib
-else
-ifneq ($(CONFIG_PNG), no)
-#LINKLIBS+= -L$(prefix)/lib
-else
-ifeq ($(CONFIG_JS),prefix)
-#LINKLIBS+= -L$(prefix)/lib
-endif
-endif
-endif
-
-ifeq ($(CONFIG_JPEG), no)
-else
-#LINKLIBS+= -ljpeg
-endif
-
-
-ifeq ($(CONFIG_PNG), no)
-else    
-#LINKLIBS+= -lpng
-endif
-
 
 SRCS := $(OBJS:.o=.c) 
 
