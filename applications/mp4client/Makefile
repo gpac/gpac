@@ -4,7 +4,7 @@ vpath %.c $(SRC_PATH)/applications/mp4client
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" -I../../
 
-LINKLIBS=$(OGL_LIBS)
+LINKLIBS=$(OGL_LIBS) $(GPAC_SH_FLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
