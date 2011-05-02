@@ -1,0 +1,12 @@
+prefix=
+exec_prefix=
+libdir=${pcfiledir}
+includedir=/home/Administrator/source
+
+Name: libavcodec
+Description: FFmpeg codec library
+Version: 52.66.0
+Requires: libavutil = 50.14.0
+Conflicts:
+Libs: ${libdir}/libavcodec.a   -lpsapi -lz -lbz2 -lm -lws2_32 -lavicap32
+Cflags: -I${includedir}
