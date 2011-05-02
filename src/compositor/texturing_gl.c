@@ -248,7 +248,7 @@ Bool tx_can_use_rect_ext(GF_Compositor *compositor, GF_TextureHandler *txh)
 
 static Bool tx_setup_format(GF_TextureHandler *txh)
 {
-	Bool is_pow2, use_rect;
+	Bool is_pow2, use_rect, flip;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 
 	/*in case the ID has been lost, resetup*/
@@ -265,6 +265,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	txh->tx_io->rescale_width = gf_get_next_pow2(txh->width);
 	txh->tx_io->rescale_height = gf_get_next_pow2(txh->height);
 
+	flip = (txh->tx_io->flags & TX_IS_FLIPPED);
 	is_pow2 = ((txh->tx_io->rescale_width==txh->width) && (txh->tx_io->rescale_height==txh->height)) ? 1 : 0;
 	txh->tx_io->flags = TX_IS_POW2;
 	txh->tx_io->gl_type = GL_TEXTURE_2D;
@@ -322,9 +323,22 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 			txh->tx_io->nb_comp = 3;
 		}
 		break;
+	case GF_PIXEL_YUVD:
+		if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
+		txh->tx_io->gl_format = GL_RGB;
+		txh->tx_io->nb_comp = 3;
+		break;
+	case GF_PIXEL_RGBD:
+		if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
+		txh->tx_io->gl_format = GL_RGB;
+		txh->tx_io->nb_comp = 3;
+		break;
 	default:
 		return 0;
 	}
+
+	if (flip) txh->tx_io->flags |= TX_IS_FLIPPED;
+
 	/*note we don't free the data if existing, since this only happen when re-setting up after context loss (same size)*/
 	if ((txh->tx_io->flags == TX_MUST_SCALE) & !txh->tx_io->scale_data) {
 		txh->tx_io->scale_data = (char*)gf_malloc(sizeof(char) * txh->tx_io->nb_comp*txh->tx_io->rescale_width*txh->tx_io->rescale_height);
@@ -423,18 +437,27 @@ hence is never flipped. Otherwise all textures attached to stream are flipped in
 Bool gf_sc_texture_convert(GF_TextureHandler *txh)
 {
 	GF_VideoSurface src, dst;
-	u32 out_stride, i, bpp;
-	Bool flip;
+	u32 out_stride, i, j, bpp;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
+
+	if (!txh->needs_refresh) return 1;
 
 	switch (txh->pixelformat) {
 	case GF_PIXEL_ARGB:
 		if (!compositor->gl_caps.bgra_texture) return 0;
+		goto common;
+
+	case GF_PIXEL_RGBD:
+		if (txh->compositor->depth_gl_type==3) {
+			bpp = 4;
+			break;
+		}
 	case GF_PIXEL_GREYSCALE:
 	case GF_PIXEL_ALPHAGREY:
 	case GF_PIXEL_RGB_24:
 	case GF_PIXEL_RGB_32:
 	case GF_PIXEL_RGBA:
+common:
 		txh->tx_io->conv_format = txh->pixelformat;
 		txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
 
@@ -481,6 +504,7 @@ Bool gf_sc_texture_convert(GF_TextureHandler *txh)
 			txh->tx_io->conv_hscale = INT2FIX(txh->height) / txh->tx_io->conv_h;
 		} else {
 			txh->tx_io->conv_data = (char*)gf_malloc(sizeof(char) * bpp * txh->width * txh->height);
+			memset(txh->tx_io->conv_data, 0, sizeof(char) * bpp * txh->width * txh->height);
 		}
 	}
 	out_stride = bpp * ((txh->tx_io->flags & TX_EMULE_POW2) ? txh->tx_io->conv_w : txh->width);
@@ -497,23 +521,52 @@ Bool gf_sc_texture_convert(GF_TextureHandler *txh)
 	dst.pitch_x = 0;
 	dst.pitch_y = out_stride;
 
-	flip = 1;
+	dst.video_buffer = txh->tx_io->conv_data;
 	switch (txh->pixelformat) {
 	case GF_PIXEL_YV12:
 		txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB_24;
+		/*stretch and flip*/
+		gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 1, NULL, NULL);
 		break;
 	case GF_PIXEL_YUVD:
-		txh->tx_io->conv_format = GF_PIXEL_RGBD;
-		dst.pixel_format = GF_PIXEL_RGBD;
-		flip = 0;
+		if (txh->compositor->depth_gl_type==3) {
+			src.pixel_format = GF_PIXEL_YV12;
+			txh->tx_io->conv_format = GF_PIXEL_RGBD;
+			dst.pixel_format = GF_PIXEL_RGB_24;
+			dst.pitch_y = 3*txh->width;
+			/*stretch YUV->RGB*/
+			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
+			/*copy over Depth plane*/
+			memcpy(dst.video_buffer + 3*txh->width*txh->height, txh->data + 3*txh->stride*txh->height/2, txh->width*txh->height);
+		} else {
+			txh->tx_io->conv_format = GF_PIXEL_RGBD;
+			dst.pixel_format = GF_PIXEL_RGBD;
+			/*stretch*/
+			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
+		}
+		break;
+	case GF_PIXEL_RGBD:
+		if (txh->compositor->depth_gl_type==3) {
+			dst.pitch_y = 3*txh->width;
+			txh->tx_io->conv_format = GF_PIXEL_RGBD;
+			dst.pixel_format = GF_PIXEL_RGB_24;
+
+			for (j=0; j<txh->height; j++) {
+				u8 *src = txh->data + j*txh->stride;
+				u8 *dst_p = txh->tx_io->conv_data + j*3*txh->width;
+				u8 *dst_d = txh->tx_io->conv_data + txh->height*3*txh->width + j*txh->width;
+				for (i=0; i<txh->width; i++) {
+					*dst_p++ = src[i*4];
+					*dst_p++ = src[i*4 + 1];
+					*dst_p++ = src[i*4 + 2];
+					*dst_d++ = src[i*4 + 3];
+				}
+			}
+			txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
+		}
 		break;
 	}
-	dst.video_buffer = txh->tx_io->conv_data;
-
-	/*stretch and flip*/
-	gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, flip, NULL, NULL);
 	txh->tx_io->flags |= TX_NEEDS_HW_LOAD;
-	txh->tx_io->flags |= TX_IS_FLIPPED;
 	return 1;
 }
 

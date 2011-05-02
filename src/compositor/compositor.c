@@ -1174,7 +1174,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DepthType");
 	if (!sOpt) {
-		sOpt = "Strips";
+		sOpt = "VertexArray";
 		gf_cfg_set_key(compositor->user->config, "Compositor", "DepthType", sOpt);
 	}
 	if (sOpt && !strcmp(sOpt, "Points")) compositor->depth_gl_type = 1;
@@ -1183,6 +1183,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		compositor->depth_gl_strips_filter = 0;
 		if (strlen(sOpt)>7) compositor->depth_gl_strips_filter = (Float) atof(sOpt+7);
 	}
+	else if (sOpt && !strcmp(sOpt, "VertexArray")) compositor->depth_gl_type = 3;
 	else compositor->depth_gl_type = 0;
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "NumViews");

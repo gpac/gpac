@@ -28,6 +28,7 @@
 #ifndef GPAC_DISABLE_3D
 
 #include <gpac/options.h>
+#include <gpac/nodes_mpeg4.h>
 #include "gl_inc.h"
 
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
@@ -80,6 +81,7 @@ GLDECL_STATIC(glGenBuffers);
 GLDECL_STATIC(glDeleteBuffers);
 GLDECL_STATIC(glBindBuffer);
 GLDECL_STATIC(glBufferData);
+GLDECL_STATIC(glBufferSubData);
 
 #endif //LOAD_GL_1_3
 
@@ -199,6 +201,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor)
 		GET_GLFUN(glDeleteBuffers);
 		GET_GLFUN(glBindBuffer);
 		GET_GLFUN(glBufferData);
+		GET_GLFUN(glBufferSubData);
 	}
 #endif
 
@@ -826,7 +829,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	Float fix_scale = 1.0f;
 	fix_scale /= FIX_ONE;
 #endif
-	
+
 	has_col = has_tx = has_norm = 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh 0x%08x\n", mesh));
 
@@ -839,14 +842,21 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		glGenBuffers(1, &mesh->vbo);
 		if (mesh->vbo) {
 			glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-			glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+			mesh->vbo_dirty = 0;
 		}
 	}
+
 	if (mesh->vbo) {
 		base_address = NULL;
 		glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
 	} else {
 		base_address = & mesh->vertices[0].pos;
+	}
+
+	if (mesh->vbo_dirty) {
+		glBufferSubData(GL_ARRAY_BUFFER, 0, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices);
+		mesh->vbo_dirty = 0;
 	}
 
 	glEnableClientState(GL_VERTEX_ARRAY);
@@ -968,7 +978,7 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 	}
 
-	if (mesh->mesh_type) {
+	if (1 || mesh->mesh_type) {
 #ifdef GPAC_USE_OGL_ES
 		glNormal3x(0, 0, FIX_ONE);
 #else
@@ -2278,104 +2288,167 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 		return;
 	}
 
-	delta = visual->compositor->depth_gl_strips_filter;
-	if (!delta) first_pass = 2;
-	else first_pass = 1;
+	if (visual->compositor->depth_gl_type==2) {
+		delta = visual->compositor->depth_gl_strips_filter;
+		if (!delta) first_pass = 2;
+		else first_pass = 1;
 
-	data = gf_sc_texture_get_data(txh, &pixel_format);
-	if (!data) return;
-	stride = txh->stride;
-	if (txh->pixelformat==GF_PIXEL_YUVD) stride *= 4;
+		data = gf_sc_texture_get_data(txh, &pixel_format);
+		if (!data) return;
+		stride = txh->stride;
+		if (txh->pixelformat==GF_PIXEL_YUVD) stride *= 4;
 
-	glDepthMask(GL_FALSE);
-	glDisable(GL_TEXTURE_2D);
-	glDisable(GL_LIGHTING);
-	glDisable(GL_BLEND);
-	glDisable(GL_CULL_FACE);
-	glDisable(GL_POINT_SMOOTH);
-	glDisable(GL_FOG);
+		glDepthMask(GL_FALSE);
+		glDisable(GL_TEXTURE_2D);
+		glDisable(GL_LIGHTING);
+		glDisable(GL_BLEND);
+		glDisable(GL_CULL_FACE);
+		glDisable(GL_POINT_SMOOTH);
+		glDisable(GL_FOG);
 
 restart:
-	scale = 50;
-	inc = 1;
-	if (!tr_state->pixel_metrics) inc /= tr_state->min_hsize;
-	x = 0;
-	y = 1; y*=txh->height/2;
-	if (!tr_state->pixel_metrics) y /= tr_state->min_hsize;
+		scale = visual->compositor->depth_gl_scale;
+		inc = 1;
+		if (!tr_state->pixel_metrics) inc /= tr_state->min_hsize;
+		x = 0;
+		y = 1; y*=txh->height/2;
+		if (!tr_state->pixel_metrics) y /= tr_state->min_hsize;
 
-	in_strip = 0;
-	for (h=0; h<txh->height - 1; h++) {
-		char *src = data + h*stride;
-		x = -1; x *= txh->width/2;
-		if (!tr_state->pixel_metrics) x /= tr_state->min_hsize;
+		in_strip = 0;
+		for (h=0; h<txh->height - 1; h++) {
+			char *src = data + h*stride;
+			x = -1; x *= txh->width/2;
+			if (!tr_state->pixel_metrics) x /= tr_state->min_hsize;
 
-		for (w=0; w<txh->width; w++) {
-			u8 *p1 = src + w*4;
-			u8 *p2 = src + w*4 + stride;
-			Float z1 = p1[3];
-			Float z2 = p2[3];
-			if (first_pass==1) {
-				if ((z1>delta) || (z2>delta)) 
-				{
-					if (0 && in_strip) {
-						glEnd();
-						in_strip = 0;
+			for (w=0; w<txh->width; w++) {
+				u8 *p1 = src + w*4;
+				u8 *p2 = src + w*4 + stride;
+				Float z1 = p1[3];
+				Float z2 = p2[3];
+				if (first_pass==1) {
+					if ((z1>delta) || (z2>delta)) 
+					{
+						if (0 && in_strip) {
+							glEnd();
+							in_strip = 0;
+						}
+						x += inc;
+						continue;
 					}
-					x += inc;
-					continue;
-				}
-			} else if (first_pass==0) {
-				if ((z1<=delta) || (z2<=delta)) 
-				{
-					if (in_strip) {
-						glEnd();
-						in_strip = 0;
+				} else if (first_pass==0) {
+					if ((z1<=delta) || (z2<=delta)) 
+					{
+						if (in_strip) {
+							glEnd();
+							in_strip = 0;
+						}
+						x += inc;
+						continue;
 					}
-					x += inc;
-					continue;
 				}
+				z1 = z1 / 255;
+				z2 = z2 / 255;
+
+				r = p1[0];
+				r /= 255;
+				g = p1[1];
+				g /= 255;
+				b = p1[2];
+				b /= 255;
+
+				if (!in_strip) {
+					glBegin(GL_TRIANGLE_STRIP);
+					in_strip = 1;
+				}
+
+				glColor3f(r, g, b);
+				glVertex3f(x, y, z1*scale);
+
+				r = p2[0];
+				r /= 255;
+				g = p2[1];
+				g /= 255;
+				b = p2[2];
+				b /= 255;
+
+				glColor3f(r, g, b);
+				glVertex3f(x, y-inc, z2*scale);
+
+				x += inc;
 			}
-			z1 = z1 / 255;
-			z2 = z2 / 255;
-
-			r = p1[0];
-			r /= 255;
-			g = p1[1];
-			g /= 255;
-			b = p1[2];
-			b /= 255;
-
-			if (!in_strip) {
-				glBegin(GL_TRIANGLE_STRIP);
-				in_strip = 1;
+			if (in_strip) {
+				glEnd();
+				in_strip = 0;
 			}
-
-			glColor3f(r, g, b);
-			glVertex3f(x, y, z1*scale);
-
-			r = p2[0];
-			r /= 255;
-			g = p2[1];
-			g /= 255;
-			b = p2[2];
-			b /= 255;
-
-			glColor3f(r, g, b);
-			glVertex3f(x, y-inc, z2*scale);
-
-			x += inc;
+			y -= inc;
 		}
-		if (in_strip) {
-			glEnd();
-			in_strip = 0;
+
+		if (first_pass==1) {
+			first_pass = 0;
+			goto restart;
 		}
-		y -= inc;
+		return;
 	}
 
-	if (first_pass==1) {
-		first_pass = 0;
-		goto restart;
+	/*render using vertex array*/
+	if (!stack->mesh) {
+		stack->mesh = new_mesh();
+		stack->mesh->vbo_dynamic = 1;
+		scale = 50;
+		inc = 1;
+		if (!tr_state->pixel_metrics) inc /= tr_state->min_hsize;
+		x = 0;
+		y = 1; y*=txh->height/2;
+		if (!tr_state->pixel_metrics) y /= tr_state->min_hsize;
+
+		for (h=0; h<txh->height; h++) {
+			u32 idx_offset = h ? ((h-1)*txh->width) : 0;
+			x = -1; x *= txh->width/2;
+			if (!tr_state->pixel_metrics) x /= tr_state->min_hsize;
+
+			for (w=0; w<txh->width; w++) {
+				mesh_set_vertex(stack->mesh, x, y, 0, 0, 0, -FIX_ONE, INT2FIX(w) / txh->width, INT2FIX(h) / txh->height);
+				x += inc;
+
+				/*set triangle*/
+				if (h && w) {
+					u32 first_idx = idx_offset + w - 1;
+					mesh_set_triangle(stack->mesh, first_idx, first_idx+1, txh->width + first_idx +1);
+					mesh_set_triangle(stack->mesh, first_idx, txh->width + first_idx, txh->width + first_idx +1);
+				}
+			}
+			y -= inc;
+		}
+		/*force recompute of Z*/
+		txh->needs_refresh = 1;
 	}
+
+	/*texture has been updated, recompute Z*/
+	if (txh->needs_refresh) {
+		txh->needs_refresh = 0;
+		scale = visual->compositor->depth_gl_scale;
+
+		data = gf_sc_texture_get_data(txh, &pixel_format);
+		if (!data) return;
+		assert(pixel_format==GF_PIXEL_RGBD);
+		data += txh->height*txh->width*3;
+
+		for (h=0; h<txh->height; h++) {
+			char *src = data + h * txh->width;
+			for (w=0; w<txh->width; w++) {
+				u8 d = src[w];
+				Fixed z = INT2FIX(d);
+				z = gf_mulfix(z / 255, scale);
+				assert(z<200.0);
+				stack->mesh->vertices[w + h*txh->width].pos.z = z;
+			}
+		}
+		stack->mesh->vbo_dirty = 1;
+	}
+	tr_state->mesh_num_textures = gf_sc_texture_enable(txh, ((M_Appearance *)tr_state->appear)->textureTransform);
+	VS3D_DrawMeshIntern(tr_state, stack->mesh);
+	visual_3d_disable_texture(tr_state);
+
 
 #endif //GPAC_USE_OGL_ES
 
