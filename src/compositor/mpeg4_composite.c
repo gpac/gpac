@@ -421,6 +421,8 @@ static void composite_update(GF_TextureHandler *txh)
 						st->unsupported = 1;
 						return;
 					}
+					/*reload openGL ext*/
+					gf_sc_load_opengl_extensions(compositor, 1);
 #endif
 				}
 			} else {

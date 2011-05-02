@@ -1117,7 +1117,7 @@ void compositor_3d_draw_bitmap(struct _drawable *stack, DrawAspect2D *asp, GF_Tr
 GF_Err compositor_3d_get_screen_buffer(GF_Compositor *sr, GF_VideoSurface *fb, Bool depth_buffer);
 GF_Err compositor_3d_release_screen_buffer(GF_Compositor *sr, GF_VideoSurface *framebuffer);
 
-void gf_sc_load_opengl_extensions(GF_Compositor *sr);
+void gf_sc_load_opengl_extensions(GF_Compositor *sr, Bool has_gl_context);
 
 Bool gf_sc_fit_world_to_screen(GF_Compositor *compositor);
 

@@ -170,8 +170,8 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 #endif
 
 	/*FIXME - we assume RGB+Depth+bitshape, we should check with the video out module*/
-#ifdef GF_SR_USE_DEPTH
-	new_pixel_format = GF_PIXEL_RGBDS;
+#if defined(GF_SR_USE_DEPTH) && !defined(GPAC_DISABLE_3D)
+	if (st->visual->type_3d && (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_DEPTH) ) new_pixel_format = GF_PIXEL_RGBDS;
 #endif
 	
 	w = (u32) FIX2INT(gf_ceil(width));
@@ -251,6 +251,8 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 			st->unsupported = 1;
 			return 0;
 		}
+		/*reload openGL ext*/
+		gf_sc_load_opengl_extensions(compositor, 1);
 	}
 #endif
 	st->txh.data = (char*)gf_malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);

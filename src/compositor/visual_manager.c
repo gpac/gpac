@@ -144,7 +144,11 @@ void visual_clean_contexts(GF_VisualManager *visual)
 		ctx->drawable->flags &= ~DRAWABLE_REGISTERED_WITH_VISUAL;
 		if (is_root_visual && (ctx->flags & CTX_HAS_APPEARANCE)) 
 			gf_node_dirty_reset(ctx->appear, 0);
-		
+	
+#ifndef GPAC_DISABLE_3D
+		/*this may happen when switching a visual from 2D to 3D - discard context*/
+		if (visual->type_3d) ctx->drawable=NULL;
+#endif
 		ctx = ctx->next;
 	}
 
