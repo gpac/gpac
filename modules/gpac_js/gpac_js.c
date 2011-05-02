@@ -839,10 +839,14 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		}
 		return;
 	}
+
+	/*FIXME - this was possible in previous version of SpiderMonkey, don't know how to fix that for new ones*/
+#if (JS_VERSION>=185)
 	if (gjs->nb_loaded) {
 		gjs->nb_loaded++;
 		return;
 	}
+#endif
 	gjs->nb_loaded++;
 
 	if (!scene) return;
