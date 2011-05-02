@@ -166,8 +166,8 @@ SFRotation camera_get_orientation(SFVec3f pos, SFVec3f target, SFVec3f up)
 	return gf_quat_to_rotation(&rot);
 }
 
-#define FAR_PLANE_2D	-60000
-#define NEAR_PLANE_2D	6000
+#define FAR_PLANE_2D	-10000
+#define NEAR_PLANE_2D	1000
 
 void camera_set_2d(GF_Camera *cam)
 {
@@ -306,6 +306,9 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 		gf_bbox_refresh(&b);
 		cam->center = b.center;
 		cam->radius = b.radius;
+
+		if (camera_layout==GF_3D_CAMERA_OFFAXIS)
+			camera_layout=GF_3D_CAMERA_LINEAR;
 	}
 
 	if (camera_layout == GF_3D_CAMERA_CIRCULAR) {

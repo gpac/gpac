@@ -233,11 +233,16 @@ static void DrawBackground2D_3D(M_Background2D *bck, Background2DStack *st, GF_T
 							tr_state->bbox.max_edge.y - tr_state->bbox.min_edge.y,
 							FIX_ONE);
 		/*when in layer2D, DON'T MOVE BACKGROUND TO ZFAR*/
+		if (!tr_state->is_layer) {
+			Fixed tr;
 #ifdef GPAC_FIXED_POINT
-		if (!tr_state->is_layer) gf_mx_add_translation(&mx, 0, 0, -(tr_state->camera->z_far/100)*99);
+			tr = -(tr_state->camera->z_far/100)*99;
 #else
-		if (!tr_state->is_layer) gf_mx_add_translation(&mx, 0, 0, -0.999f*tr_state->camera->z_far);
+			tr = -0.999f*tr_state->camera->z_far;
 #endif
+			if (!tr_state->camera->is_3D) tr = -tr;
+			gf_mx_add_translation(&mx, 0, 0, tr);
+		}
 	}
 	visual_3d_matrix_add(tr_state->visual, mx.m);
 	visual_3d_mesh_paint(tr_state, st->mesh);
