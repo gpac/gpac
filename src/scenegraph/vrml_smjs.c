@@ -732,6 +732,12 @@ static void on_route_to_object(GF_Node *node, GF_Route *_r)
 	if (JSVAL_IS_GCTHING(argv[0])) gf_js_remove_root(priv->js_ctx, &argv[0], GF_JSGC_VAL);
 	if (JSVAL_IS_GCTHING(argv[1])) gf_js_remove_root(priv->js_ctx, &argv[1], GF_JSGC_VAL);
 
+	/*check any pending exception if outer-most event*/
+	if ( (JS_IsRunning(priv->js_ctx)==JS_FALSE) && JS_IsExceptionPending(priv->js_ctx)) {
+		JS_ReportPendingException(priv->js_ctx);
+		JS_ClearPendingException(priv->js_ctx);
+	}
+
 	gf_sg_lock_javascript(priv->js_ctx, 0);
 
 #ifdef FORCE_GC
@@ -4275,6 +4281,12 @@ static void JS_EventIn(GF_Node *node, GF_FieldInfo *in_field)
 	if (JSVAL_IS_GCTHING(argv[0])) gf_js_remove_root(priv->js_ctx, &argv[0], GF_JSGC_VAL);
 	if (JSVAL_IS_GCTHING(argv[1])) gf_js_remove_root(priv->js_ctx, &argv[1], GF_JSGC_VAL);
 
+	/*check any pending exception if outer-most event*/
+	if ( (JS_IsRunning(priv->js_ctx)==JS_FALSE) && JS_IsExceptionPending(priv->js_ctx)) {
+		JS_ReportPendingException(priv->js_ctx);
+		JS_ClearPendingException(priv->js_ctx);
+	}
+
 	gf_sg_lock_javascript(priv->js_ctx, 0);
 
 	gf_js_vrml_flush_event_out(node, priv);
@@ -4662,6 +4674,12 @@ void gf_sg_handle_dom_event_for_vrml(GF_Node *node, GF_DOM_Event *event, GF_Node
 		ret = JS_CallFunctionValue(priv->js_ctx, hdl->evt_listen_obj ? (JSObject *)hdl->evt_listen_obj: priv->js_obj, funval, 1, argv, &rval);
 	} else {
 		ret = JS_CallFunctionName(priv->js_ctx, hdl->evt_listen_obj, "handleEvent", 1, argv, &rval);
+	}
+
+	/*check any pending exception if outer-most event*/
+	if (!prev_event && JS_IsExceptionPending(priv->js_ctx)) {
+		JS_ReportPendingException(priv->js_ctx);
+		JS_ClearPendingException(priv->js_ctx);
 	}
 
 	event->is_vrml = prev_type;
