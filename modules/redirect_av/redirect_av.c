@@ -60,6 +60,8 @@
 #define USE_GPAC_MPEG2TS
 #undef USE_GPAC_MPEG2TS
 
+#define REDIRECT_AV_AUDIO_ENABLED 1
+
 #ifdef USE_GPAC_MPEG2TS
 #include "gpac_ts_muxer.c"
 #else
@@ -112,6 +114,7 @@ static const char * AVR_VIDEO_CODEC_OPTION = "VideoCodec";
 #define DUMP_MP3
 #undef DUMP_MP3
 
+#if REDIRECT_AV_AUDIO_ENABLED
 /**
  * This thread sends the frame to TS mux
  * \param Parameter The GF_AVRedirect pointer
@@ -203,6 +206,7 @@ static Bool audio_encoding_thread_run(void *param)
                 //ctx->frame_size = oldFrameSize;
             }
         }
+		gf_sleep(1);
     }
 exit:
     GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[AVRedirect] Ending audio encoding thread...\n"));
@@ -218,6 +222,7 @@ exit:
         gf_sc_remove_audio_listener ( avr->term->compositor, &avr->audio_listen );
     return GF_OK;
 }
+#endif
 
 /**
  * This thread sends the frame to TS mux
@@ -248,6 +253,7 @@ static Bool video_encoding_thread_run(void *param)
                     goto exit;
                 }
                 gf_mx_p(avr->frameMutex);
+				gf_sleep(1);
             }
             assert( currentFrameTimeProcessed != avr->frameTime);
             currentFrameTimeProcessed = avr->frameTime;
@@ -291,6 +297,7 @@ static Bool video_encoding_thread_run(void *param)
             }
         }
         avr->frameTimeEncoded = currentFrameTimeProcessed;
+		gf_sleep(1);
     } /* End of main loop */
 exit:
     GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[AVRedirect] Ending video encoding thread...\n"));
@@ -310,7 +317,11 @@ static Bool start_if_needed(GF_AVRedirect *avr) {
         gf_mx_v(avr->frameMutex);
         return 0;
     }
-    if (!avr->srcWidth || !avr->srcHeight || !avr->audioSampleRate || !avr->audioChannels) {
+	if (!avr->srcWidth || !avr->srcHeight
+#if REDIRECT_AV_AUDIO_ENABLED
+		|| !avr->audioSampleRate || !avr->audioChannels
+#endif
+		) {
         gf_mx_v(avr->frameMutex);
         return 3;
     }
@@ -331,12 +342,14 @@ static Bool start_if_needed(GF_AVRedirect *avr) {
     {
         avr->YUVpicture = avr->RGBpicture = NULL;
         avr->videoOutbuf = NULL;
+#if REDIRECT_AV_AUDIO_ENABLED
         if ( !avr->audioCodec)
         {
             gf_mx_v(avr->frameMutex);
             GF_LOG ( GF_LOG_ERROR, GF_LOG_MODULE, ( "[AVRedirect] Cannot find audio codec.\n" ) );
             return 1;
         }
+#endif
 
         if ( !avr->videoCodec )
         {
@@ -406,7 +419,9 @@ static GF_Err avr_open ( GF_AVRedirect *avr )
     if (!avr->is_running) {
         avr->is_running = 1;
         gf_th_run(avr->encodingThread, video_encoding_thread_run, avr);
+#if REDIRECT_AV_AUDIO_ENABLED
         gf_th_run(avr->audioEncodingThread, audio_encoding_thread_run, avr);
+#endif
     }
     return GF_OK;
 }
@@ -650,7 +665,9 @@ static Bool avr_process ( GF_TermExt *termext, u32 action, void *param )
                 avr->videoCodec = avcodec_find_encoder ( CODEC_ID_MPEG2VIDEO );
             }
         }
-        avr->audioCodec = avcodec_find_encoder( CODEC_ID_MP3);
+#if REDIRECT_AV_AUDIO_ENABLED
+        avr->audioCodec = avcodec_find_encoder(CODEC_ID_MP2);
+#endif
         /*
                 opt = gf_modules_get_option ( ( GF_BaseInterface* ) termext, moduleName, AVR_UDP_ADDRESS_OPTION);
                 if (!opt) {
