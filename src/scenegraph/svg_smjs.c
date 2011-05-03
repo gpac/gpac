@@ -2628,6 +2628,13 @@ static Bool svg_script_execute_handler(GF_Node *node, GF_DOM_Event *event, GF_No
 	else {
 		ret = JS_EvaluateScript(svg_js->js_ctx, __this, txt->textContent, strlen(txt->textContent), 0, 0, &rval);
 	}
+
+	/*check any pending exception if outer-most event*/
+	if (!prev_event && JS_IsExceptionPending(svg_js->js_ctx)) {
+		JS_ReportPendingException(svg_js->js_ctx);
+		JS_ClearPendingException(svg_js->js_ctx);
+	}
+
 	JS_SetPrivate(svg_js->js_ctx, svg_js->event, prev_event);
 	if (txt ) hdl->js_fun=0;
 
