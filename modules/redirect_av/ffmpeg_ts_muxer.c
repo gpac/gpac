@@ -41,6 +41,7 @@ static AVPacketList * wait_for_packet(GF_AbstractTSMuxer* ts, GF_Mutex * mx, AVP
     while (ts->encode && !(*pkts)) {
         gf_mx_v(mx);
         gf_mx_p(mx);
+		gf_sleep(1);
     }
     if (!ts->encode) {
         gf_mx_v(mx);
@@ -138,6 +139,7 @@ static Bool ts_interleave_thread_run(void *param) {
             }
             gf_free(pl);
         }
+		gf_sleep(1);
     }
 exit:
     GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[AVRedirect] Ending TS thread...\n"));
@@ -166,6 +168,7 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
     if (!ts->oc->oformat)
         ts->oc->oformat = GUESS_FORMAT("mpegts", NULL, NULL);
     assert( ts->oc->oformat);
+#if REDIRECT_AV_AUDIO_ENABLED
     ts->audio_st = av_new_stream(ts->oc, avr->audioCodec->id);
     {
         AVCodecContext * c = ts->audio_st->codec;
@@ -176,14 +179,15 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
         c->bit_rate = audioBitRateInBitsPerSec;
         c->sample_rate = avr->audioSampleRate;
         c->channels = 2;
-	c->time_base.num = 1;
-	c->time_base.den = 1000;
+        c->time_base.num = 1;
+        c->time_base.den = 1000;
         // some formats want stream headers to be separate
         if (ts->oc->oformat->flags & AVFMT_GLOBALHEADER)
             c->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
-    ts->video_st = av_new_stream(ts->oc, avr->videoCodec->id);
+#endif
 
+    ts->video_st = av_new_stream(ts->oc, avr->videoCodec->id);
     {
         AVCodecContext * c = ts->video_st->codec;
         c->codec_id = avr->videoCodec->id;
@@ -231,12 +235,14 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] failed to open video codec\n"));
         return NULL;
     }
+#if REDIRECT_AV_AUDIO_ENABLED
     if (avcodec_open(ts->audio_st->codec, avr->audioCodec) < 0) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[AVRedirect] failed to open audio codec\n"));
         return NULL;
     }
-    ts->videoMx = gf_mx_new("TS_VideoMx");
     ts->audioMx = gf_mx_new("TS_AudioMx");
+#endif
+    ts->videoMx = gf_mx_new("TS_VideoMx");
     ts->tsEncodingThread = gf_th_new("ts_interleave_thread_run");
     ts->encode = 1;
     ts->audioPackets = NULL;
@@ -252,18 +258,22 @@ void ts_amux_del(GF_AbstractTSMuxer * muxerToDelete) {
     gf_sleep(100);
     gf_th_stop(muxerToDelete->tsEncodingThread);
     muxerToDelete->tsEncodingThread = NULL;
+#if REDIRECT_AV_AUDIO_ENABLED
     gf_mx_del(muxerToDelete->audioMx);
     muxerToDelete->audioMx = NULL;
+#endif
     gf_mx_del(muxerToDelete->videoMx);
     muxerToDelete->videoMx = NULL;
     if (muxerToDelete->video_st) {
         avcodec_close(muxerToDelete->video_st->codec);
         muxerToDelete->video_st = NULL;
     }
+#if REDIRECT_AV_AUDIO_ENABLED
     if (muxerToDelete->audio_st) {
         avcodec_close(muxerToDelete->audio_st->codec);
         muxerToDelete->audio_st = NULL;
     }
+#endif
     /* write the trailer, if any.  the trailer must be written
      * before you close the CodecContexts open when you wrote the
      * header; otherwise write_trailer may try to use memory that
