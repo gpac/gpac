@@ -114,10 +114,10 @@ typedef voidp unzFile;
 #endif
 
 #ifndef ALLOC
-# define ALLOC(size) (malloc(size))
+# define ALLOC(size) (gf_malloc(size))
 #endif
 #ifndef TRYFREE
-# define TRYFREE(p) {if (p) free(p);}
+# define TRYFREE(p) {if (p) gf_free(p);}
 #endif
 
 #define SIZECENTRALDIRITEM (0x2e)
