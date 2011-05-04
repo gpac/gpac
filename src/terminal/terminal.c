@@ -1721,6 +1721,8 @@ enum
 	GF_ACTION_SLOW_REWIND,
 	GF_ACTION_NEXT,
 	GF_ACTION_PREVIOUS,
+	GF_ACTION_QUALITY_UP,
+	GF_ACTION_QUALITY_DOWN,
 };
 
 static void set_clocks_speed(GF_Terminal *term, Fixed ratio)
@@ -1894,6 +1896,12 @@ void gf_term_process_shortcut(GF_Terminal *term, GF_Event *ev)
 					set_clocks_speed(term, term->speed_ratio);
 				}
 				break;
+			case GF_ACTION_QUALITY_UP:
+				gf_term_switch_quality(term, 1);
+				break;
+			case GF_ACTION_QUALITY_DOWN:
+				gf_term_switch_quality(term, 0);
+				break;
 			}
 			break;
 		}
@@ -1951,6 +1959,8 @@ void gf_term_load_shortcuts(GF_Terminal *term)
 		else if (!stricmp(name, "SlowRewind")) term->shortcuts[k].action = GF_ACTION_SLOW_REWIND;
 		else if (!stricmp(name, "Next")) term->shortcuts[k].action = GF_ACTION_NEXT;
 		else if (!stricmp(name, "Previous")) term->shortcuts[k].action = GF_ACTION_PREVIOUS;
+		else if (!stricmp(name, "QualityUp")) term->shortcuts[k].action = GF_ACTION_QUALITY_UP;
+		else if (!stricmp(name, "QualityDown")) term->shortcuts[k].action = GF_ACTION_QUALITY_DOWN;
 		else {
 			term->shortcuts[k].mods = 0;
 			term->shortcuts[k].code = 0;
@@ -1966,16 +1976,26 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 	u32 i;
 	GF_ObjectManager *odm;
 	GF_CodecCapability caps;
+	GF_NetworkCommand net_cmd;
+
 	if (!scene) return;
 	caps.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
 	caps.cap.valueInt = up ? 1 : 0;
+	net_cmd.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
+	net_cmd.switch_quality.on_channel = NULL;
+	net_cmd.switch_quality.up = up;
+
 	if (scene->scene_codec) {
 		scene->scene_codec->decio->SetCapabilities(scene->scene_codec->decio, caps);
+		if (scene->root_od->net_service)
+			scene->root_od->net_service->ifce->ServiceCommand(scene->root_od->net_service->ifce, &net_cmd);
 	}
 	i=0;
 	while (NULL != (odm = gf_list_enum(scene->resources, &i))) {
 		if (odm->codec)
 			odm->codec->decio->SetCapabilities(odm->codec->decio, caps);
+		if (odm->net_service)
+			odm->net_service->ifce->ServiceCommand(odm->net_service->ifce, &net_cmd);
 		if (odm->subscene)
 			gf_scene_switch_quality(odm->subscene, up);
 	}
