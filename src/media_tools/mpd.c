@@ -249,9 +249,7 @@ static GF_Err gf_mpd_parse_rep_segmentinfo(GF_XMLNode *root, GF_MPD_Representati
                 if (!strcmp(child->name, "Url")) {
                     GF_MPD_SegmentInfo *seg_info;
                     GF_SAFEALLOC(seg_info, GF_MPD_SegmentInfo);
-		    if (!seg_info)
-			return GF_OUT_OF_MEM;
-                    memset(seg_info, 0, sizeof(GF_MPD_SegmentInfo));
+					if (!seg_info) return GF_OUT_OF_MEM;
                     seg_info->byterange_end = 0;
                     seg_info->byterange_start = 0;
                     seg_info->use_byterange = 0;
@@ -340,7 +338,7 @@ static GF_Err gf_mpd_parse_segment_info_default(GF_XMLNode *root, GF_MPD_Period 
     return GF_OK;
 }
 
-static GF_Err gf_mpd_parse_period(GF_XMLNode *root, GF_MPD_Period *period)
+static GF_Err gf_mpd_parse_period(GF_XMLNode *root, GF_MPD_Period *period, const char *default_base_url)
 {
     u32 att_index, child_index;
     GF_XMLAttribute *att;
@@ -375,9 +373,11 @@ static GF_Err gf_mpd_parse_period(GF_XMLNode *root, GF_MPD_Period *period)
             } else if (!strcmp(child->name, "Representation")) {
                 GF_MPD_Representation *rep;
                 GF_SAFEALLOC(rep, GF_MPD_Representation);
-		if (!rep)
-			return GF_OUT_OF_MEM;
-                memset( rep, 0, sizeof(GF_MPD_Representation));
+				if (!rep)
+					return GF_OUT_OF_MEM;
+				if (default_base_url) {
+					rep->default_base_url = gf_strdup(default_base_url);
+				}
                 gf_mpd_parse_representation(child, rep);
                 gf_list_add(period->representations, rep);
             }
@@ -437,9 +437,6 @@ GF_MPD *gf_mpd_new()
 {
     GF_MPD *mpd;
     GF_SAFEALLOC(mpd, GF_MPD);
-    if (mpd){
-      memset(mpd, 0, sizeof(GF_MPD));
-    }
     return mpd;
 }
 
@@ -500,7 +497,7 @@ void gf_mpd_del(GF_MPD *mpd)
     gf_free(mpd);
 }
 
-GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd)
+GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)
 {
     u32 att_index, child_index;
     GF_XMLAttribute *att;
@@ -548,7 +545,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd)
 		if (!period)
 			return GF_OUT_OF_MEM;
                 period->representations = gf_list_new();
-                gf_mpd_parse_period(child, period);
+                gf_mpd_parse_period(child, period, default_base_url);
                 gf_list_add(mpd->periods, period);
             }
         }

@@ -290,7 +290,7 @@ static GF_Err MPD_UpdatePlaylist(GF_MPD_In *mpdin)
                     return GF_NON_COMPLIANT_BITSTREAM;
                 }
                 new_mpd = gf_mpd_new();
-                e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), new_mpd);
+                e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), new_mpd, purl);
                 gf_xml_dom_del(mpd_parser);
                 if (e) {
                     GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[MPD_IN] Error - cannot update playlist: error in MPD creation %s\n", gf_error_to_string(e)));
@@ -1087,7 +1087,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
     if (!mpdin->mpd) {
         e = GF_OUT_OF_MEM;
     } else {
-        e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), mpdin->mpd);
+        e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), mpdin->mpd, url);
     }
     gf_xml_dom_del(mpd_parser);
     if (e != GF_OK) {
