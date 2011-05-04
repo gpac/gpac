@@ -95,6 +95,9 @@ enum
 	GF_NET_SERVICE_MIGRATION_INFO,
 
 	/*When using DASH or playlists, query the next file to concatenate to thecurrent one net->proxy only*/
+	GF_NET_SERVICE_QUALITY_SWITCH,
+
+	/*When using DASH or playlists, query the next file to concatenate to thecurrent one net->proxy only*/
 	GF_NET_SERVICE_QUERY_NEXT,
 };
 
@@ -304,6 +307,16 @@ typedef struct
 	const char *next_url;
 } GF_NetURLQuery;
 
+/*GF_NET_SERVICE_QUALITY_SWITCH*/
+typedef struct
+{
+	u32 command_type;
+	/*currently NULL only*/
+	LPNETCHANNEL on_channel;
+	/*out: next url to play after current one*/
+	Bool up;
+} GF_NetQualitySwitch;
+
 typedef union __netcommand
 {
 	u32 command_type;
@@ -323,6 +336,7 @@ typedef union __netcommand
 	GF_NetComHasAudio audio;
 	GF_NetComMigration migrate;
 	GF_NetURLQuery url_query;
+	GF_NetQualitySwitch switch_quality;
 } GF_NetworkCommand;
 
 /*

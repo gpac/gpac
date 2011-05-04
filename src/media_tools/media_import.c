@@ -4161,9 +4161,9 @@ restart_import:
 
 			/*fixme - we need finer grain for priority*/
 			if ((nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE)) {
-				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length, 1, 1);
+				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, 1, 1);
 			} else {
-				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length, 0, 0);
+				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, 0, 0);
 			}
 
 
