@@ -61,9 +61,6 @@ typedef struct __mpd_module {
     u32 nb_connected_channels;
     u32 nb_playing_or_paused_channels;
 
-    /* Download of the MPD */
-    volatile Bool is_mpd_in_download;
-
     GF_DownloadSession *mpd_dnload;
     char * urlToDeleteNext;
     volatile u32 max_cached, nb_cached;
@@ -765,14 +762,14 @@ static u32 download_segments(void *par)
         }
         e = MPD_downloadWithRetry(mpdin->service, &(mpdin->seg_dnload), new_base_seg_url, MPD_NetIO_Segment, mpdin);
         if (e == GF_OK || mpdin->segment_must_be_streamed) {
-            gf_mx_p(mpdin->dl_mutex);
+            //gf_mx_p(mpdin->dl_mutex);
             mpdin->cached[mpdin->nb_cached].cache = gf_strdup(mpdin->segment_must_be_streamed?
                                                     gf_dm_sess_get_resource_name(mpdin->seg_dnload) :
                                                     (rep->init_use_range ? gf_cache_get_cache_filename_range(mpdin->seg_dnload, rep->init_byterange_start, rep->init_byterange_end )  : gf_dm_sess_get_cache_name(mpdin->seg_dnload)));
             mpdin->cached[mpdin->nb_cached].url = gf_strdup( gf_dm_sess_get_resource_name(mpdin->seg_dnload));
             GF_LOG(GF_LOG_INFO, GF_LOG_MODULE, ("[MPD_IN] Added file to cache\n\tURL: %s\n\tCache: %s\n\tElements in cache: %u/%u\n", mpdin->cached[mpdin->nb_cached].url, mpdin->cached[mpdin->nb_cached].cache, mpdin->nb_cached+1, mpdin->max_cached));
             mpdin->nb_cached++;
-            gf_mx_v(mpdin->dl_mutex);
+            //gf_mx_v(mpdin->dl_mutex);
             mpdin->download_segment_index++;
             if (mpdin->auto_switch) {
                 mpdin->nb_segs_done++;
