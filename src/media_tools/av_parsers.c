@@ -1553,9 +1553,9 @@ static u8 avc_golomb_bits[256] = {
 static u32 avc_get_ue(GF_BitStream *bs)
 {
 	u8 coded;
-	u32 bits, read;
-	bits = 0;
+	u32 bits = 0, read = 0;
 	while (1) {
+		if (!gf_bs_available(bs)) break;
 		read = gf_bs_peek_bits(bs, 8, 0);
 		if (read) break;
 		gf_bs_read_int(bs, 8);
@@ -1819,8 +1819,8 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 {
 	AVC_SPS *sps;
 	u32 ChromaArrayType = 0;
-	s32 mb_width, mb_height;
-	u32 sps_id, profile_idc, level_idc, pcomp, i, chroma_format_idc, cl, cr, ct, cb;
+	s32 mb_width, mb_height, sps_id = -1;
+	u32 profile_idc, level_idc, pcomp, i, chroma_format_idc, cl, cr, ct, cb;
 	GF_BitStream *bs;
 	char *sps_data_without_emulation_bytes = NULL;
 	u32 sps_data_without_emulation_bytes_size = 0;
@@ -1833,8 +1833,14 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 	if (vui_flag_pos) *vui_flag_pos = 0;
 
 	profile_idc = gf_bs_read_int(bs, 8);
+
 	pcomp = gf_bs_read_int(bs, 8);
+	/*sanity checks*/
+	if (pcomp && 0x3)
+		goto exit;
+
 	level_idc = gf_bs_read_int(bs, 8);
+
 	/*SubsetSps is used to be sure that AVC SPS are not going to be scratched
 	by subset SPS. According to the SVC standard, subset SPS can have the same sps_id 
 	than its base layer, but it does not refer to the same SPS. */
@@ -1850,8 +1856,13 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 	case 122:
 	case 244:
 	case 44:
+		/*sanity checks: note1 from 7.4.2.1.1 of iso/iec 14496-10-N11084*/
+		if (pcomp & 0xE0)
+			goto exit;
 	case 83:
 	case 86:
+	case 118:
+	case 128:
 		chroma_format_idc = avc_get_ue(bs);
 		ChromaArrayType = chroma_format_idc;
 		if (chroma_format_idc == 3) {
@@ -1902,8 +1913,8 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 		for(i=0; i<sps->poc_cycle_length; i++) sps->offset_for_ref_frame[i] = avc_get_se(bs);
 	}
 	if (sps->poc_type > 2) {
-		gf_free(sps_data_without_emulation_bytes);
-		return -1;
+		sps_id = -1;
+		goto exit;
 	}
 	avc_get_ue(bs); /*ref_frame_count*/
 	gf_bs_read_int(bs, 1); /*gaps_in_frame_num_allowed_flag*/
@@ -2045,7 +2056,7 @@ s32 AVC_ReadSeqInfo(char *sps_data, u32 sps_size, AVCState *avc, u32 subseq_sps,
 			}
 		}
 		else if ((profile_idc==118) || (profile_idc==128)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] MVC not spported - skipping parsing end of Subset SPS\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] MVC not supported - skipping parsing end of Subset SPS\n"));
 			goto exit;
 		}
 	
