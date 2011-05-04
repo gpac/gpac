@@ -344,7 +344,11 @@ static GF_Err JP2_ProcessData(GF_MediaDecoder *ifcg,
 
 static const char *JP2_GetCodecName(GF_BaseDecoder *dec)
 {
+#ifdef OPENJPEG_VERSION
 	return "OpenJPEG "OPENJPEG_VERSION ;
+#else
+	return "OpenJPEG" ;
+#endif
 }
 
 
