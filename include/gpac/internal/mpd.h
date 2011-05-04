@@ -117,7 +117,7 @@ typedef struct {
     GF_List *periods;
 } GF_MPD;
 
-GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd);
+GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url);
 
 GF_MPD *gf_mpd_new();
 void gf_mpd_del(GF_MPD *mpd);
