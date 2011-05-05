@@ -730,7 +730,7 @@ GF_EdtsEntry *CreateEditEntry(u64 EditDuration, u64 MediaTime, u8 EditMode)
 	return ent;
 }
 
-GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 sampleNumber, u32 subSampleSize, u32 priority, Bool discardable)
+GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 sampleNumber, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable)
 {
 	u32 i, count, last_sample;
 	GF_SampleEntry *pSamp;
@@ -780,6 +780,7 @@ GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 s
 	if (!pSubSamp) return GF_OUT_OF_MEM;
 	pSubSamp->subsample_size = subSampleSize;
 	pSubSamp->subsample_priority = priority;
+	pSubSamp->reserved = reserved;
 	pSubSamp->discardable = discardable;
 	return gf_list_add(pSamp->SubSamples, pSubSamp);
 }

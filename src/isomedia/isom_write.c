@@ -3905,7 +3905,7 @@ GF_Err gf_isom_timed_meta_data_config_new(GF_ISOFile *movie, u32 trackNumber, Bo
 }
 
 
-GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 subSampleSize, u32 priority, Bool discardable)
+GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable)
 {
 	GF_SubSampleInformationBox *sub_samples;
 	GF_TrackBox *trak;
@@ -3925,7 +3925,7 @@ GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32
 	} else {
 		sub_samples = trak->Media->information->sampleTable->SubSamples;
 	}
-	return gf_isom_add_subsample_info(sub_samples, sampleNumber, subSampleSize, priority, discardable);
+	return gf_isom_add_subsample_info(sub_samples, sampleNumber, subSampleSize, priority, reserved, discardable);
 }
 
 #endif	/*!defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)*/

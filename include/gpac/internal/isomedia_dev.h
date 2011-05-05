@@ -1055,7 +1055,7 @@ typedef struct
  
 u32 gf_isom_sample_get_subsample_entry(GF_ISOFile *movie, u32 track, u32 sampleNumber, GF_SampleEntry **sub_sample);
 #ifndef GPAC_DISABLE_ISOM_WRITE
-GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 sampleNumber, u32 subSampleSize, u32 priority, Bool discardable);
+GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 sampleNumber, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable);
 #endif
 
 typedef struct

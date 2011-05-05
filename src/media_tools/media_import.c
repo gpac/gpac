@@ -3745,7 +3745,8 @@ GF_Err gf_import_h264(GF_MediaImporter *import)
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
 	u32 last_svc_sps;
-	u32 prev_nalu_prefix_size;
+	u32 prev_nalu_prefix_size, res_prev_nalu_prefix;
+	u8 priority_prev_nalu_prefix;
 	Double FPS;
 	char *buffer;
 	u32 max_size = 4096;
@@ -3833,6 +3834,8 @@ restart_import:
 	min_poc = 0;
 	poc_shift = 0;
 	prev_nalu_prefix_size = 0;
+	res_prev_nalu_prefix = 0;
+	priority_prev_nalu_prefix = 0;
 
 	while (gf_bs_available(bs)) {
 		u8 nal_hdr, skip_nal, is_subseq, add_sps;
@@ -3963,6 +3966,8 @@ restart_import:
 						}
 						last_svc_sps = idx;
 					}
+					/* prevent from adding the subseq PS to the samples */
+					copy_size = 0;
 				} else {
 					if (first_avc) {
 						first_avc = 0;
@@ -4091,17 +4096,28 @@ restart_import:
 			sample_data = NULL;
 
 			if (prev_nalu_prefix_size) {
+				u32 size, reserved, nb_subs;
+				u8 priority;
+				Bool discardable;
+
 				samp->dataLength -= size_length/8 + prev_nalu_prefix_size;
 
-				/*remove last subsample entry!*/
-				gf_isom_add_subsample(import->dest, track, cur_samp+1, 0, 0, 0);
+				/* determine the number of subsamples */
+				nb_subs = gf_isom_sample_has_subsamples(import->dest, track, cur_samp+1);
+				if (nb_subs) {
+					/* fetch size, priority, reserved and discardable info for last subsample */
+					gf_isom_sample_get_subsample(import->dest, track, cur_samp+1, nb_subs, &size, &priority, &reserved, &discardable); 
+				
+					/*remove last subsample entry!*/
+					gf_isom_add_subsample(import->dest, track, cur_samp+1, 0, 0, 0, 0);
+				}
 
 				/*rewrite last NALU prefix at the beginning of next sample*/
 				sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 				gf_bs_write_data(sample_data, samp->data + samp->dataLength, size_length/8 + prev_nalu_prefix_size);
 	
 				/*add subsample entry to next sample*/
-				gf_isom_add_subsample(import->dest, track, cur_samp+2, size_length/8 + prev_nalu_prefix_size, 1, 1);
+				gf_isom_add_subsample(import->dest, track, cur_samp+2, size_length/8 + prev_nalu_prefix_size, priority, reserved, discardable);
 
 				prev_nalu_prefix_size = 0;
 			}
@@ -4161,11 +4177,35 @@ restart_import:
 
 			/*fixme - we need finer grain for priority*/
 			if ((nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE)) {
-				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, 1, 1);
-			} else {
-				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, 0, 0);
-			}
+				u32 res = 0;
+				u8 prio;
+				unsigned char *p = buffer;
+				res |= (p[0] & 0x60) ? 0x80000000 : 0; // RefPicFlag
+				res |= 0 ? 0x40000000 : 0;             // RedPicFlag TODO: not supported, would require to parse NAL unit payload
+				res |= (1<=nal_type && nal_type<=5) || (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE) ? 0x20000000 : 0;  // VclNALUnitFlag
+				res |= p[1] << 16;                     // use values of IdrFlag and PriorityId directly from SVC extension header
+				res |= p[2] << 8;                      // use values of DependencyId and QualityId directly from SVC extension header
+				res |= p[3] & 0xFC;                    // use values of TemporalId and UseRefBasePicFlag directly from SVC extension header
+				res |= 0 ? 0x00000002 : 0;             // StoreBaseRepFlag TODO: SVC FF mentions a store_base_rep_flag which cannot be found in SVC spec
 
+				// priority_id (6 bits) in SVC has inverse meaning -> lower value means higher priority - invert it and scale it to 8 bits
+				prio = (63 - p[1] & 0x3F) << 2;
+				
+				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, prio, res, 1);
+				
+				if (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) {
+					/* remember reserved and priority value */
+					res_prev_nalu_prefix = res;
+					priority_prev_nalu_prefix = prio;
+				}
+			} else {
+				/* use the res and priority value of last prefix NALU */
+				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, priority_prev_nalu_prefix, res_prev_nalu_prefix, 0);
+			}
+			if (nal_type!=GF_AVC_NALU_SVC_PREFIX_NALU) {
+				res_prev_nalu_prefix = 0;
+				priority_prev_nalu_prefix = 0;
+			}
 
 			if (nal_type != GF_AVC_NALU_SVC_PREFIX_NALU) {
 				prev_nalu_prefix_size = 0;

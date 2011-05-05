@@ -2517,7 +2517,7 @@ u32 gf_isom_sample_has_subsamples(GF_ISOFile *movie, u32 track, u32 sampleNumber
 	return gf_isom_sample_get_subsample_entry(movie, track, sampleNumber, NULL);
 }
 
-GF_Err gf_isom_sample_get_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 subSampleNumber, u32 *size, u8 *priority, Bool *discardable)
+GF_Err gf_isom_sample_get_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 subSampleNumber, u32 *size, u8 *priority, u32 *reserved, Bool *discardable)
 {
 	GF_SubSampleEntry *entry;
 	GF_SampleEntry *sub_sample;
@@ -2528,6 +2528,7 @@ GF_Err gf_isom_sample_get_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumb
 	entry = gf_list_get(sub_sample->SubSamples, subSampleNumber-1);
 	*size = entry->subsample_size;
 	*priority = entry->subsample_priority;
+	*reserved = entry->reserved;
 	*discardable = entry->discardable ? 1 : 0;
 	return GF_OK;
 }
