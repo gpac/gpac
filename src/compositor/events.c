@@ -714,8 +714,11 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 				evt.button = event->mouse.button;
 				evt.detail = compositor->num_clicks;
 				ret += gf_dom_event_fire_ex(compositor->grab_node, &evt, compositor->hit_use_stack);
-
-#if !defined(_WIN32_WCE)
+/*
+TODO quick- fix for iPhone as well
+TODO clean: figure out whether we use a mouse or a touch device - if touch device, remove this test
+*/
+#if !defined(_WIN32_WCE) || !defined(GPAC_ANDROID) 
 				if ((compositor->grab_x == X) && (compositor->grab_y == Y))
 #endif
 				{
