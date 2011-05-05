@@ -1848,6 +1848,11 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 
 	if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1))
 		compositor->skip_flush = 1;
+	
+		/*if using OpenGL, flush even if no changes as the display may be dirty (as seen on android, likely other devices)*/
+#ifdef GPAC_ANDROID
+		 compositor->skip_flush = 0;
+#endif
 
 
 	compositor->traverse_state->immediate_draw = flags;
