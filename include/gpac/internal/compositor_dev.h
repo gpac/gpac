@@ -134,6 +134,14 @@ enum
 	GF_SC_DRAW_FLUSH,
 };
 
+enum
+{
+	GF_SC_DEPTH_GL_NONE=0,
+	GF_SC_DEPTH_GL_POINTS,
+	GF_SC_DEPTH_GL_STRIPS,
+	GF_SC_DEPTH_GL_VBO,
+};
+
 struct __tag_compositor
 {
 	/*the main user*/
@@ -463,7 +471,6 @@ struct __tag_compositor
 #endif
 
 	Float depth_gl_scale, depth_gl_strips_filter;
-	/*0: none - 1: point-based, 2: elevation grid*/
 	u32 depth_gl_type;
 	/*increase/decrease the standard interoccular offset by the specified distance in cm*/
 	Fixed interoccular_offset;
