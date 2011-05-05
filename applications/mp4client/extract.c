@@ -705,7 +705,7 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 			while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
 				gf_term_process_flush(term);
 			}
-			fprintf(stdout, "Dumping %02d/100\r", (u32) ((100.0*prev_time)/dump_dur) );
+			fprintf(stdout, "Dumping %02d/100 %% - time %.02f sec\r", (u32) ((100.0*prev_time)/dump_dur), prev_time/1000.0 );
 
 			if (dump_mode==8) {
 				/*we'll dump both buffers at once*/
