@@ -721,6 +721,11 @@ Bool dump_file(char *url, u32 dump_mode, Double fps, u32 width, u32 height, Floa
 			time = (u32) (nb_frames*1000/fps);
 			gf_term_step_clocks(term, time - prev_time);
 			prev_time = time;
+
+			if (gf_prompt_has_input() && (gf_prompt_get_char()=='q')) {
+				fprintf(stdout, "Aborting dump\n");
+				break;
+			}
 		}
 		AVI_close(avi_out);
 		if (dump_mode==8) AVI_close(depth_avi_out);
