@@ -449,7 +449,7 @@ Bool gf_sc_texture_convert(GF_TextureHandler *txh)
 		goto common;
 
 	case GF_PIXEL_RGBD:
-		if (txh->compositor->depth_gl_type==3) {
+		if ((txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) || (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_VBO)) {
 			bpp = 4;
 			break;
 		}
@@ -530,13 +530,13 @@ common:
 		gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 1, NULL, NULL);
 		break;
 	case GF_PIXEL_YUVD:
-		if (txh->compositor->depth_gl_type==3) {
+		if ((txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) || (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_VBO)) {
 			src.pixel_format = GF_PIXEL_YV12;
 			txh->tx_io->conv_format = GF_PIXEL_RGB_24_DEPTH;
 			dst.pixel_format = GF_PIXEL_RGB_24;
 			dst.pitch_y = 3*txh->width;
 			/*stretch YUV->RGB*/
-			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
+			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 1, NULL, NULL);
 			/*copy over Depth plane*/
 			memcpy(dst.video_buffer + 3*txh->width*txh->height, txh->data + 3*txh->stride*txh->height/2, txh->width*txh->height);
 		} else {
@@ -545,18 +545,19 @@ common:
 			/*stretch*/
 			gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 0, NULL, NULL);
 		}
-			txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
+		txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 		break;
 	case GF_PIXEL_RGBD:
-		if (txh->compositor->depth_gl_type==3) {
+		if ((txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) || (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_VBO)) {
 			dst.pitch_y = 3*txh->width;
 			txh->tx_io->conv_format = GF_PIXEL_RGB_24_DEPTH;
 			dst.pixel_format = GF_PIXEL_RGB_24;
 
 			for (j=0; j<txh->height; j++) {
-				u8 *src = txh->data + j*txh->stride;
+				u8 *src = txh->data + (txh->height-j-1)*txh->stride;
 				u8 *dst_p = txh->tx_io->conv_data + j*3*txh->width;
 				u8 *dst_d = txh->tx_io->conv_data + txh->height*3*txh->width + j*txh->width;
+
 				for (i=0; i<txh->width; i++) {
 					*dst_p++ = src[i*4];
 					*dst_p++ = src[i*4 + 1];
