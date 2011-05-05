@@ -464,6 +464,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 #ifndef GPAC_DISABLE_VRML
 	GF_Node *bindable;
 #endif
+	Bool off_axis_background = (tr_state->camera->is_3D && (tr_state->visual->camera_layout==GF_3D_CAMERA_OFFAXIS)) ? 1 : 0;
 
 	/*if not in layer, traverse navigation node
 	FIXME: we should update the nav info according to the world transform at the current viewpoint (vrml)*/
@@ -535,7 +536,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
 		visual_3d_set_scissor(tr_state->visual, &tr_state->camera->vp);
 
-		if (tr_state->visual->camera_layout==GF_3D_CAMERA_OFFAXIS) {
+		if (off_axis_background) {
 			visual_3d_draw_background_on_axis(tr_state, layer_type);
 		}
 
@@ -554,7 +555,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
 		visual_3d_set_scissor(tr_state->visual, &tr_state->camera->vp);
 
-		if (tr_state->visual->camera_layout==GF_3D_CAMERA_OFFAXIS) {
+		if (off_axis_background) {
 			visual_3d_draw_background_on_axis(tr_state, layer_type);
 		}
 
@@ -565,7 +566,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	} else {
 		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
 
-		if (tr_state->visual->camera_layout==GF_3D_CAMERA_OFFAXIS) {
+		if (off_axis_background) {
 			visual_3d_draw_background_on_axis(tr_state, layer_type);
 		}
 
@@ -577,7 +578,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		}
 	}
 	/*regular background draw*/
-	if (tr_state->visual->camera_layout != GF_3D_CAMERA_OFFAXIS) {
+	if (!tr_state->camera->is_3D || tr_state->visual->camera_layout != GF_3D_CAMERA_OFFAXIS) {
 		visual_3d_draw_background(tr_state, layer_type);
 	}
 

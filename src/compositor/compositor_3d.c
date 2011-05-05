@@ -186,16 +186,21 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 #endif
 	GF_TextureHandler *txh;
 	GF_Compositor *compositor = tr_state->visual->compositor;
+	Bool use_texture = !compositor->bitmap_use_pixels;
 
 
 	if (!asp->fill_texture) return;
 	txh = asp->fill_texture;
 	if (!txh || !txh->tx_io || !txh->width || !txh->height) return;
 	
-	if ((txh->pixelformat==GF_PIXEL_RGBD) || (txh->pixelformat==GF_PIXEL_YUVD)) {
-		if (txh->data && gf_sc_texture_convert(txh) )
-			visual_3d_point_sprite(tr_state->visual, stack, txh, tr_state);
-		return;
+	if (((txh->pixelformat==GF_PIXEL_RGBD) || (txh->pixelformat==GF_PIXEL_YUVD))) {
+		if (compositor->depth_gl_type) {
+			if (txh->data && gf_sc_texture_convert(txh) )
+				visual_3d_point_sprite(tr_state->visual, stack, txh, tr_state);
+			return;
+		} else {
+			use_texture = 1;
+		}
 	}
 
 	alpha = GF_COL_A(asp->fill_color);
@@ -203,7 +208,7 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 	if (!alpha) alpha = GF_COL_A(asp->line_color);
 
 	/*texture is available in hw, use it - if blending, force using texture*/
-	if (!gf_sc_texture_needs_reload(txh) || (alpha != 0xFF) || !compositor->bitmap_use_pixels 
+	if (!gf_sc_texture_needs_reload(txh) || (alpha != 0xFF) || use_texture 
 #ifdef GF_SR_USE_DEPTH
 		|| tr_state->depth_offset
 #endif

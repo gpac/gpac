@@ -2241,7 +2241,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 	Float delta = 0;
 	Bool first_pass = 2;
 
-	if ((visual->compositor->depth_gl_type==1) && visual->compositor->gl_caps.point_sprite) {
+	if ((visual->compositor->depth_gl_type==GF_SC_DEPTH_GL_POINTS) && visual->compositor->gl_caps.point_sprite) {
 		Float z;
 		static GLfloat none[3] = { 1.0f, 0, 0 };
 
@@ -2289,7 +2289,7 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 		return;
 	}
 
-	if (visual->compositor->depth_gl_type==2) {
+	if (visual->compositor->depth_gl_type==GF_SC_DEPTH_GL_STRIPS) {
 		delta = visual->compositor->depth_gl_strips_filter;
 		if (!delta) first_pass = 2;
 		else first_pass = 1;
@@ -2409,7 +2409,7 @@ restart:
 			if (!tr_state->pixel_metrics) x /= tr_state->min_hsize;
 
 			for (w=0; w<txh->width; w++) {
-				mesh_set_vertex(stack->mesh, x, y, 0, 0, 0, -FIX_ONE, INT2FIX(w) / txh->width, INT2FIX(h) / txh->height);
+				mesh_set_vertex(stack->mesh, x, y, 0, 0, 0, -FIX_ONE, INT2FIX(w) / (txh->width-1), INT2FIX(txh->height - h  -1) / (txh->height-1) );
 				x += inc;
 
 				/*set triangle*/
