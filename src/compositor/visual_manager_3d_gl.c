@@ -2441,7 +2441,6 @@ restart:
 				u8 d = src[w];
 				Fixed z = INT2FIX(d);
 				z = gf_mulfix(z / 255, scale);
-				assert(z<200.0);
 				stack->mesh->vertices[w + h*txh->width].pos.z = z;
 			}
 		}
