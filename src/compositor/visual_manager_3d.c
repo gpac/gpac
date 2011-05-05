@@ -295,7 +295,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	gf_sc_invalidate(tr_state->visual->compositor, NULL);
 }
 
-void visual_3d_setup_projection(GF_TraverseState *tr_state)
+void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 {
 #ifndef GPAC_DISABLE_VRML
 	GF_Node *bindable;
@@ -340,7 +340,7 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state)
 				camera_stop_anim(tr_state->camera);
 				camera_reset_viewpoint(tr_state->camera, 0);
 				/*scene not yet ready, force a recompute of world bounds at next frame*/
-				if (gf_sc_fit_world_to_screen(tr_state->visual->compositor) == 0) {
+				if (!is_layer && gf_sc_fit_world_to_screen(tr_state->visual->compositor) == 0) {
 					tr_state->camera->had_viewpoint = 2;
 				}
 			}
@@ -540,7 +540,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		}
 
 		/*setup projection*/
-		visual_3d_setup_projection(tr_state);
+		visual_3d_setup_projection(tr_state, layer_type);
 
 		tr_state->camera->vp = orig_vp;
 	} else if (tr_state->visual->autostereo_type==GF_3D_STEREO_TOP) {
@@ -559,7 +559,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		}
 
 		/*setup projection*/
-		visual_3d_setup_projection(tr_state);
+		visual_3d_setup_projection(tr_state, layer_type);
 
 		tr_state->camera->vp = orig_vp;
 	} else {
@@ -570,7 +570,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		}
 
 		/*setup projection*/
-		visual_3d_setup_projection(tr_state);
+		visual_3d_setup_projection(tr_state, layer_type);
 
 		if (tr_state->visual->autostereo_type) {
 			visual_3d_clear_depth(tr_state->visual);
@@ -1011,7 +1011,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *no
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Collision] no collision found\n"));
 	}
 
-	if (tr_state->camera->flags & CAM_IS_DIRTY) visual_3d_setup_projection(tr_state);
+	if (tr_state->camera->flags & CAM_IS_DIRTY) visual_3d_setup_projection(tr_state, 0);
 }
 
 /*uncomment to disable frustum cull*/
@@ -1059,12 +1059,14 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 		return 1;
 	}
 	/*first check: sphere vs frustum sphere intersection, this will discard far objects quite fast*/
-	gf_vec_diff(cdiff, cam->center, b.center);
-	rad = b.radius + cam->radius;
-	if (gf_vec_len(cdiff) > rad) {
-		tr_state->cull_flag = CULL_OUTSIDE;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node out (sphere-sphere test)\n"));
-		return 0;
+	if (tr_state->camera->is_3D) {
+		gf_vec_diff(cdiff, cam->center, b.center);
+		rad = b.radius + cam->radius;
+		if (gf_vec_len(cdiff) > rad) {
+			tr_state->cull_flag = CULL_OUTSIDE;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Culling] Node out (sphere-sphere test)\n"));
+			return 0;
+		}
 	}
 
 	/*second check: sphere vs frustum planes intersection, if any intersection is detected switch 
@@ -1129,7 +1131,7 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 	SFVec4f res;
 
 	visual_3d_setup_traversing_state(visual, tr_state);
-	visual_3d_setup_projection(tr_state);
+	visual_3d_setup_projection(tr_state, 0);
 
 	x = INT2FIX(ev->mouse.x); y = INT2FIX(ev->mouse.y);
 

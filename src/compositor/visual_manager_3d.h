@@ -98,7 +98,7 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *no
 */
 void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type);
 /*setup projection - exported for Layer3D */
-void visual_3d_setup_projection(GF_TraverseState *tr_state);
+void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer);
 
 
 /*base 3D drawable*/

@@ -607,7 +607,7 @@ layer3d_unchanged_2d:
 			start.y = gf_muldiv(start.y, st->visual->camera.height, st->clip.height);
 		}
 
-		visual_3d_setup_projection(tr_state);
+		visual_3d_setup_projection(tr_state, 1);
 		in_x = 2 * gf_divfix(start.x, st->visual->camera.width);
 		in_y = 2 * gf_divfix(start.y, st->visual->camera.height);
 					
