@@ -2911,7 +2911,7 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 
 		if (!xmlf) {
 			ctx->html_status = 404;
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] cannot parse %s\n", ctx->url));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] cannot open %s\n", ctx->url));
 			return JS_TRUE;
 		}
 		ctx->readyState = 2;
