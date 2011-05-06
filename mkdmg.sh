@@ -97,5 +97,7 @@ hdiutil flatten gpac_sla.dmg
 hdiutil internet-enable -yes gpac_sla.dmg
 
 echo "GPAC-$full_version.dmg ready"
+chmod o+rx gpac_sla.dmg
+chmod g+rx gpac_sla.dmg
 mv gpac_sla.dmg GPAC-$full_version.dmg
 
