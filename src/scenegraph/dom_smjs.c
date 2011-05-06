@@ -2903,8 +2903,12 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 			gf_free(ctx->statusText);
 			ctx->statusText = NULL;
 		}
+		/*opera-style local host*/
+		if (!strnicmp(ctx->url, "file://localhost", 16)) xmlf = gf_f64_open(ctx->url+16, "rt");
+		/*regular-style local host*/
+		else if (!strnicmp(ctx->url, "file://", 7)) xmlf = gf_f64_open(ctx->url+7, "rt");
+		else xmlf = gf_f64_open(ctx->url, "rt");
 
-		xmlf = gf_f64_open(ctx->url, "rt");
 		if (!xmlf) {
 			ctx->html_status = 404;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[XmlHttpRequest] cannot parse %s\n", ctx->url));
