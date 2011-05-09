@@ -11,13 +11,12 @@ fi
 
 if [ -z "$2" ]
 then
-  echo "Usage: $0 PATH_TO_ANDROID_SDK : You must give as second argument the directory path of the SDK"
-  exit 1
+  echo -e "\033[34m Usage: $0 PATH_TO_ANDROID_SDK : You have not give the directory path of SDK. Auto build of Osmo4.apk not possible. Build it with Eclipse \033[0m"
 fi
 
 if [ -z "$3" ]
 then
-  echo -e "\033[34m Usage: $0 PATH_TO_ANT : You have not give the directory path of ANT. Auto build of Osmo4.apk aborded. Build it with Eclipse \033[0m"
+  echo -e "\033[34m Usage: $0 PATH_TO_ANT : You have not give the directory path of ANT. Auto build of Osmo4.apk not possible. Build it with Eclipse \033[0m"
 fi
 
 export PATH="$1:$PATH"
@@ -75,7 +74,7 @@ do
 done
 echo -e "\n[OK] success."
 
-if [ -w "$3" ]
+if [ -w "$3" ] && [ -w "$2" ]
 then
 echo -e "\nBuiding Osmo4.apk"
 
@@ -84,6 +83,7 @@ ant release || exit 1
 
 zipalign -v 4 bin/Osmo4-unaligned.apk Osmo4.apk
 rm bin/Osmo4-*
+echo -e "\n[OK] success."
 fi
 
-echo -e "\n[OK] success."
+
