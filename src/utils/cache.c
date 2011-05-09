@@ -72,6 +72,7 @@ typedef struct __DownloadedRangeStruc {
     const char * filename;
 } * DownloadedRange;
 
+//#define ENABLE_WRITE_MX
 
 /**
  * This opaque structure handles the data from the cache
@@ -141,7 +142,9 @@ struct __DownloadedCacheEntryStruct
 
     const GF_DownloadSession * write_session;
 
+#ifdef ENABLE_WRITE_MX
     GF_Mutex * write_mutex;
+#endif
 
     GF_List * sessions;
 
@@ -404,9 +407,11 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
     {
         char name[1024];
         snprintf(name, 1024, "CachedEntryWriteMx=%p, url=%s", (void*) entry, url);
+#ifdef ENABLE_WRITE_MX
         entry->write_mutex = gf_mx_new(name);
         assert( entry->write_mutex);
-    }
+#endif
+	}
     entry->deletableFilesOnDelete = 0;
     entry->write_session = NULL;
     entry->sessions = gf_list_new();
@@ -508,8 +513,10 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
         }
     }
     entry->write_session = NULL;
+#ifdef ENABLE_WRITE_MX
     gf_mx_v(entry->write_mutex);
-    return e;
+#endif
+	return e;
 }
 
 
@@ -517,9 +524,11 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
     CHECK_ENTRY;
     if (!sess)
         return GF_BAD_PARAM;
+#ifdef ENABLE_WRITE_MX
     GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,("[CACHE] Locking write mutex %p for entry=%s\n", (void*) (entry->write_mutex), entry->url) );
-    gf_mx_p(entry->write_mutex);
-    entry->write_session = sess;
+	gf_mx_p(entry->write_mutex);
+#endif
+	entry->write_session = sess;
     assert( ! entry->writeFilePtr);
     GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK,
            ("[CACHE] Opening cache file %s for write (%s)...", entry->cache_filename, entry->url));
@@ -528,8 +537,10 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
         GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK,
                ("[CACHE] Error while opening cache file %s for writting.", entry->cache_filename));
         entry->write_session = NULL;
+#ifdef ENABLE_WRITE_MX
         gf_mx_v(entry->write_mutex);
-        return GF_IO_ERR;
+#endif
+		return GF_IO_ERR;
     }
     entry->written_in_cache = 0;
     return GF_OK;
@@ -627,16 +638,20 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
         GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p, cache has not been closed properly\n", __LINE__, entry));
         fclose(entry->writeFilePtr);
     }
+#ifdef ENABLE_WRITE_MX
     if (entry->write_mutex) {
         gf_mx_del(entry->write_mutex);
     }
-    if (entry->deletableFilesOnDelete) {
+#endif
+	if (entry->deletableFilesOnDelete) {
         GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] url %s cleanup, deleting %s...\n", entry->url, entry->cache_filename));
         if (GF_OK != gf_delete_file(entry->cache_filename))
             GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, failed to delete file %s\n", __LINE__, entry->cache_filename));
     }
+#ifdef ENABLE_WRITE_MX
     entry->write_mutex = NULL;
-    entry->write_session = NULL;
+#endif
+	entry->write_session = NULL;
     entry->writeFilePtr = NULL;
     if (entry->serverETag)
       gf_free(entry->serverETag);
@@ -753,7 +768,9 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
 		}
 		entry->writeFilePtr = NULL;
 		entry->write_session = NULL;
+#ifdef ENABLE_WRITE_MX
 	    gf_mx_v(entry->write_mutex);
+#endif
 	}
     return count;
 }
@@ -780,4 +797,10 @@ s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadS
     }
     gf_list_add(entry->sessions, sess);
     return count + 1;
+}
+
+FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry) 
+{
+	if (entry) return entry->writeFilePtr;
+	return NULL;
 }
