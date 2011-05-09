@@ -21,9 +21,9 @@ then
 fi
 
 export PATH="$1:$PATH"
-export PATH="$2/tools:$PATH"
+export PATH="$PATH:$2/tools"
 export PATH="$3/bin:$PATH"
-shift
+
 
 # Be sure to resolve if script not called from its directory
 export BUILDPATH=$(dirname "$0")
@@ -65,6 +65,7 @@ do
 done
 echo
 echo "[OK] success."
+
 cd "$BASEPATH/extra_lib/lib/android" || exit 1
 echo "Copying all extra libs to $LIBS_DIR ..."
 for i in $(find . -name '*.so')
@@ -72,16 +73,17 @@ do
 	echo -n "$i..."
 	cp "$i" "$LIBS_DIR/$i" || exit 1
 done
+echo -e "\n[OK] success."
 
 if [ -w "$3" ]
 then
-echo -n "Buiding Osmo4.apk"
+echo -e "\nBuiding Osmo4.apk"
 
 cd $BASEPATH/applications/osmo4_android/
 ant release || exit 1
 
-zipalign -v 4 bin/Osmo4-unaligned.apk Osmo4.apk || exit 1
+zipalign -v 4 bin/Osmo4-unaligned.apk Osmo4.apk
 rm bin/Osmo4-*
 fi
 
-echo "[OK] success."
+echo -e "\n[OK] success."
