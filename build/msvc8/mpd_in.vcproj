@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="8,00"
+	Version="8.00"
 	Name="mpd_in"
 	ProjectGUID="{B1AEFA90-318F-459C-96EE-B4DFF3318B7B}"
 	RootNamespace="dash"
@@ -315,10 +315,6 @@
 	<Files>
 		<File
 			RelativePath="..\..\modules\modules_export.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\..\modules\mpd_in\mpd.h"
 			>
 		</File>
 		<File
