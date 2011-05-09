@@ -17,8 +17,7 @@ fi
 
 if [ -z "$3" ]
 then
-  echo "Usage: $0 PATH_TO_ANT : You must give as first third the directory path of ANT"
-  exit 1
+  echo -e "\033[34m Usage: $0 PATH_TO_ANT : You have not give the directory path of ANT. Auto build of Osmo4.apk aborded. Build it with Eclipse \033[0m"
 fi
 
 export PATH="$1:$PATH"
@@ -74,6 +73,8 @@ do
 	cp "$i" "$LIBS_DIR/$i" || exit 1
 done
 
+if [ -w "$3" ]
+then
 echo -n "Buiding Osmo4.apk"
 
 cd $BASEPATH/applications/osmo4_android/
@@ -81,5 +82,6 @@ ant release || exit 1
 
 zipalign -v 4 bin/Osmo4-unaligned.apk Osmo4.apk || exit 1
 rm bin/Osmo4-*
+fi
 
 echo "[OK] success."
