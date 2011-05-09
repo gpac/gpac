@@ -1191,6 +1191,14 @@ Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char
 	return 0;
 }
 
+static void gf_term_cleanup_pending_session(GF_ClientService *ns)
+{
+	if (ns && ns->pending_service_session) {
+		gf_dm_sess_del(ns->pending_service_session);
+		ns->pending_service_session = NULL;
+	}
+}
+
 /*connects given OD manager to its URL*/
 void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
 {
@@ -1273,6 +1281,8 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	/*OK connect*/
 	gf_term_service_media_event(odm, GF_EVENT_MEDIA_BEGIN_SESSION_SETUP);
 	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
+
+	gf_term_cleanup_pending_session(odm->net_service);
 }
 
 /*connects given channel to its URL if needed*/
@@ -1303,6 +1313,7 @@ GF_Err gf_term_connect_remote_channel(GF_Terminal *term, GF_Channel *ch, char *U
 	ch->service = ns;
 	ns->ifce->ConnectService(ns->ifce, ns, ns->url);
 
+	gf_term_cleanup_pending_session(ns);
 	gf_term_lock_net(term, 0);
 	return GF_OK;
 }
@@ -1477,6 +1488,8 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 
 	/*OK connect*/
 	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
+
+	gf_term_cleanup_pending_session(odm->net_service);
 }
 
 GF_EXPORT

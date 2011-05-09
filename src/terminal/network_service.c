@@ -507,34 +507,37 @@ Bool net_check_interface(GF_InputService *ifce)
 	return 1;
 }
 
-static void fetch_mime_io(void *dnld, GF_NETIO_Parameter *parameter)
-{
-	/*
-	 * souchay :
-	 * NOTE for shoutcast servers and dumb servers
-	 * if HEAD method is not undertood, it will be handled into HTTP 501 : method not implemented
-	 */
-	if (parameter->msg_type==GF_NETIO_GET_METHOD) parameter->name = "HEAD";
-}
 
-
-static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code)
+static char *get_mime_type(GF_Terminal *term, const char *url, GF_Err *ret_code, GF_DownloadSession **the_session)
 {
 	char * ret = NULL;
 	GF_DownloadSession * sess;
 	(*ret_code) = GF_OK;
 	if (strnicmp(url, "http", 4)) return NULL;
-	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_FORCE_NO_CACHE, fetch_mime_io, NULL, ret_code);
+
+	/*don't use any NetIO and don't issue a HEAD command, always go for GET and store the session */
+	sess = gf_dm_sess_new(term->downloader, (char *) url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, NULL, NULL, ret_code);
 	if (!sess) {
 		if (strstr(url, "rtsp://") || strstr(url, "rtp://") || strstr(url, "udp://") || strstr(url, "tcp://") ) (*ret_code) = GF_OK;
 		return NULL;
 	} else {
-	  const char * mime = gf_dm_sess_mime_type(sess);
-	  if (mime){
-	    ret = gf_strdup(mime);
-	  }
+		/*start processing the resource, and stop if error or as soon as we get data*/
+		while (1) {
+			*ret_code = gf_dm_sess_process_headers(sess);
+			if (*ret_code) break;
+			if (gf_dm_sess_get_status(sess)>=GF_NETIO_DATA_EXCHANGE) {
+				const char * mime = gf_dm_sess_mime_type(sess);
+				if (mime) ret = gf_strdup(mime);
+				break;
+			}
+		}
 	}
-	gf_dm_sess_del(sess);
+
+	if (the_session && (*ret_code == GF_OK)) {
+		*the_session = sess;
+	} else {
+		gf_dm_sess_del(sess);
+	}
 	return ret;
 }
 
@@ -561,7 +564,7 @@ static Bool check_extension(const char *szExtList, char *szExt)
 }
 
 
-static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char *url, const char *parent_url, Bool no_mime_check, char **out_url, GF_Err *ret_code)
+static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char *url, const char *parent_url, Bool no_mime_check, char **out_url, GF_Err *ret_code, GF_DownloadSession **the_session)
 {
 	u32 i;
 	GF_Err e;
@@ -591,6 +594,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	if (gf_url_is_local(sURL))
 		gf_url_to_fs_path(sURL);
 
+	if (the_session) *the_session = NULL;
 	if (no_mime_check) {
 		mime_type = NULL;
 	} else {
@@ -598,7 +602,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 		TRYTOFIXME: it would be nice to reuse the downloader created while fetching the mime type, however
 		we don't know if the plugin will want it threaded or not....
 		*/
-		mime_type = get_mime_type(term, sURL, &e);
+		mime_type = get_mime_type(term, sURL, &e, the_session);
 		if (e) {
 			(*ret_code) = e;
 			goto exit;
@@ -724,6 +728,10 @@ exit:
 	    if (sURL) gf_free(sURL);
 		if ( (*ret_code) == GF_OK) (*ret_code) = GF_NOT_SUPPORTED;
 	    *out_url = NULL;
+
+		if (the_session && *the_session) {
+			gf_dm_sess_del(*the_session);
+		}
 	} else {
 	    *out_url = sURL;
 	    GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Terminal] Found input plugin %s for URL %s (%s)\n", ifce->module_name, sURL, mime_type ? mime_type : "no mime type"));
@@ -736,9 +744,10 @@ exit:
 
 GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *owner, const char *url, const char *parent_url, GF_Err *ret_code)
 {
+	GF_DownloadSession *download_session;
 	char *sURL;
 	GF_ClientService *serv;
-	GF_InputService *ifce = gf_term_can_handle_service(term, url, parent_url, 0, &sURL, ret_code);
+	GF_InputService *ifce = gf_term_can_handle_service(term, url, parent_url, 0, &sURL, ret_code, &download_session);
 	if (!ifce) return NULL;
 
 	GF_SAFEALLOC(serv, GF_ClientService);
@@ -748,6 +757,7 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 	serv->url = sURL;
 	serv->Clocks = gf_list_new();
 	serv->dnloads = gf_list_new();
+	serv->pending_service_session = download_session;
 	gf_list_add(term->net_services, serv);
 
 	return serv;
@@ -761,7 +771,7 @@ Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_
 	char *parent_url = NULL;
 	if (use_parent_url && term->root_scene) parent_url = term->root_scene->root_od->net_service->url;
 
-	ifce = gf_term_can_handle_service(term, fileName, parent_url, no_mime_check, &sURL, &e);
+	ifce = gf_term_can_handle_service(term, fileName, parent_url, no_mime_check, &sURL, &e, NULL);
 	if (!ifce) return 0;
 	gf_modules_close_interface((GF_BaseInterface *) ifce);
 	gf_free(sURL);
@@ -836,10 +846,12 @@ const char *gf_term_get_service_url(GF_ClientService *service)
 	return service->url;
 }
 
-void NM_DeleteService(GF_ClientService *ns)
+void gf_term_delete_net_service(GF_ClientService *ns)
 {
 	const char *sOpt = gf_cfg_get_key(ns->term->user->config, "StreamingCache", "AutoSave");
 	if (ns->cache) gf_term_service_cache_close(ns, (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0);
+
+	if (ns->pending_service_session) gf_dm_sess_del(ns->pending_service_session);
 
 	assert(!ns->nb_odm_users);
 	assert(!ns->nb_ch_users);
@@ -873,7 +885,7 @@ GF_DownloadSession *gf_term_download_new(GF_ClientService *service, const char *
 {
 	GF_Err e;
 	GF_DownloadSession * sess;
-	char *sURL;
+	char *sURL, *orig_url;
 	if (!service){
                  GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] service is null, cannot create new download session for %s.\n", url));
 		 return NULL;
@@ -883,7 +895,21 @@ GF_DownloadSession *gf_term_download_new(GF_ClientService *service, const char *
 	/*path was absolute*/
 	if (!sURL) sURL = gf_strdup(url);
 	assert( service->term );
-	sess = gf_dm_sess_new(service->term->downloader, sURL, flags, user_io, cbk, &e);
+
+	orig_url = service->pending_service_session ? (char *) gf_dm_sess_get_original_resource_name(service->pending_service_session) : NULL;
+	/*this will take care of URL formatting (%20 etc ..) */
+	if (orig_url) orig_url = gf_url_concatenate(service->url, orig_url);
+
+	if (orig_url && !strcmp(orig_url, sURL)) {
+		sess = service->pending_service_session;
+		service->pending_service_session = NULL;
+		/*resetup*/
+		gf_dm_sess_reassign(sess, flags, user_io, cbk);
+	} else {
+		sess = gf_dm_sess_new(service->term->downloader, sURL, flags, user_io, cbk, &e);
+	}
+	if (orig_url) gf_free(orig_url);
+
 	if (!sess){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] session could not be created for %s : %s. service url=%s, url=%s.\n", sURL, gf_error_to_string(e), service->url, url));
 		gf_free(sURL);
@@ -958,7 +984,7 @@ void gf_term_service_del(GF_ClientService *ns)
 	if (! * (u32 *) ns) {
 		gf_dm_sess_del((GF_DownloadSession * ) ns);
 	} else {
-		NM_DeleteService(ns);
+		gf_term_delete_net_service(ns);
 	}
 }
 

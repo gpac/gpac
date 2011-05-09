@@ -70,6 +70,10 @@ struct _net_service
 	GF_List *dnloads;
 	/*cache asscoiated with service, if any*/
 	GF_StreamingCache *cache;
+
+	/*quick hack for avoiding double session creation*/
+	GF_DownloadSession *pending_service_session;
+
 };
 
 
@@ -396,7 +400,6 @@ struct _tag_terminal
 
 	GF_Shortcut shortcuts[MAX_SHORTCUTS];
 	Fixed speed_ratio;
-
 };
 
 

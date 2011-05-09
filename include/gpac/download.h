@@ -162,10 +162,10 @@ extern "C" {
     {
         /*!session is not threaded, the user must explicitely fetch the data */
         GF_NETIO_SESSION_NOT_THREADED	=	1,
-        /*!session has no cache: data will be sent to the user if threaded mode (live streams like radios & co)*/
+        /*! session data is live, e.g. data will be sent to the user if threaded mode (live streams like radios & co)
+				Whether the data is cached or not to disk cannot be controlled by the user at the current time.
+		*/
         GF_NETIO_SESSION_NOT_CACHED	=	1<<1,
-        /*! ignores any data already in the cache */
-        GF_NETIO_SESSION_FORCE_NO_CACHE = 1<<2
     };
 
 
@@ -357,6 +357,21 @@ extern "C" {
     GF_Err gf_dm_sess_process(GF_DownloadSession * sess);
 
     /*!
+     *\brief fetch session object headers
+     *
+     *Fetch the session object headers and stops after that. This is only usable if the session is not threaded
+     *\param sess the download session
+     *\return the last error in the session or 0 if none*/
+    GF_Err gf_dm_sess_process_headers(GF_DownloadSession * sess);
+
+    /*!
+     *\brief fetch session status
+     *
+     *Fetch the session current status
+     *\param sess the download session
+     *\return the session status*/
+	u32 gf_dm_sess_get_status(GF_DownloadSession * sess);
+	/*!
      *\brief Get session resource url
      *
      *Returns the original resource URL associated with the session
@@ -364,6 +379,15 @@ extern "C" {
      *\return the associated URL
      */
     const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload);
+    /*!
+     *\brief Get session original resource url
+     *
+     *Returns the original resource URL before any redirection associated with the session
+     *\param sess the download session
+     *\return the associated URL
+     */
+    const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *dnload);
+	
 
     /*!
      * \brief Download a file over the network using a download manager
@@ -409,6 +433,17 @@ extern "C" {
      * \return True if a cache can be created
      */
     Bool gf_dm_sess_can_be_cached_on_disk(const GF_DownloadSession *sess);
+
+
+    /*!
+     * Reassigns session flags and callbacks. This is only possible if the session is not threaded.
+	 * \param sess The session
+	 * \param flags The new flags for the session 
+	 * \param user_io The new callback function
+	 * \param cbk The new user data to ba used in the callback function
+     * \return GF_OK or error
+     */
+	GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io user_io, void *cbk);
 
     /*! @} */
 

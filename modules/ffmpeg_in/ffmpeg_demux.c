@@ -248,7 +248,7 @@ static Bool FFD_CanHandleURL(GF_InputService *plug, const char *url)
 		{
 		  u32 i;
 		  for (i = 0 ; FFD_MIME_TYPES[i]; i+=3){
-		    if (gf_term_check_extension(plug, FFD_MIME_TYPES[0], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2], ext))
+		    if (gf_term_check_extension(plug, FFD_MIME_TYPES[i], FFD_MIME_TYPES[i+1], FFD_MIME_TYPES[i+2], ext))
 		      return 1;
 		  }
 		}
@@ -460,7 +460,7 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 
 	full_size = 0;
 	if (ffd->buffer_used) {
-		if (ffd->buffer_used > (u32) size) {
+		if (ffd->buffer_used >= (u32) size) {
 			ffd->buffer_used-=size;
 			memcpy(ffd->buffer, ffd->buffer+size, sizeof(char)*ffd->buffer_used);
 #ifdef FFMPEG_DUMP_REMOTE
@@ -500,10 +500,6 @@ static int ff_url_read(void *h, unsigned char *buf, int size)
 	if (ffd->outdbg) fwrite(ffd->buffer, full_size, 1, ffd->outdbg);
 #endif
 	return full_size ? (int) full_size : -1;
-}
-
-static void FFD_NetIO(void *cbk, GF_NETIO_Parameter *param)
-{
 }
 
 
@@ -559,27 +555,34 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		init_put_byte(&ffd->io, ffd->buffer, ffd->buffer_size, 0, ffd, ff_url_read, NULL, NULL);
 		ffd->io.is_streamed = 1;
 
-		ffd->dnload = gf_term_download_new(ffd->service, url, GF_NETIO_SESSION_NOT_THREADED  | GF_NETIO_SESSION_NOT_CACHED, FFD_NetIO, ffd);
+		ffd->dnload = gf_term_download_new(ffd->service, url, GF_NETIO_SESSION_NOT_THREADED  | GF_NETIO_SESSION_NOT_CACHED, NULL, ffd);
 		if (!ffd->dnload) return GF_URL_ERROR;
 		while (1) {
-			e = gf_dm_sess_fetch_data(ffd->dnload, ffd->buffer, ffd->buffer_size, &ffd->buffer_used);
+			u32 read;
+			e = gf_dm_sess_fetch_data(ffd->dnload, ffd->buffer + ffd->buffer_used, ffd->buffer_size - ffd->buffer_used, &read);
 			if (e==GF_EOS) break;
 			/*we're sync!!*/
 			if (e==GF_IP_NETWORK_EMPTY) continue;
 			if (e) goto err_exit;
-			if (ffd->buffer_used) break;
+			ffd->buffer_used += read;
+			if (ffd->buffer_used == ffd->buffer_size) break;
 		}
-
-		pd.filename = szName;
-		pd.buf_size = ffd->buffer_used;
-		pd.buf = ffd->buffer;
-		av_in = av_probe_input_format(&pd, 1);
-		if (!av_in) {
-			return GF_NOT_SUPPORTED;
+		if (e==GF_EOS) {
+			const char *cache_file = gf_dm_sess_get_cache_name(ffd->dnload);
+			res = av_open_input_file(&ffd->ctx, cache_file, av_in, 0, NULL);
+		} else {
+			pd.filename = szName;
+			pd.buf_size = ffd->buffer_used;
+			pd.buf = ffd->buffer;
+			av_in = av_probe_input_format(&pd, 1);
+			if (!av_in) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFMPEG] error probing file %s - probe start with %c %c %c %c\n", url, ffd->buffer[0], ffd->buffer[1], ffd->buffer[2], ffd->buffer[3]));
+				return GF_NOT_SUPPORTED;
+			}
+			/*setup downloader*/
+			av_in->flags |= AVFMT_NOFILE;
+			res = av_open_input_stream(&ffd->ctx, &ffd->io, szName, av_in, NULL);
 		}
-		/*setup downloader*/
-		av_in->flags |= AVFMT_NOFILE;
-		res = av_open_input_stream(&ffd->ctx, &ffd->io, szName, av_in, NULL);
 	} else {
 		res = av_open_input_file(&ffd->ctx, szName, av_in, 0, NULL);
 	}
