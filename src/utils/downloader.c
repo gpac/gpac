@@ -100,6 +100,7 @@ struct __gf_download_session
     u16 port;
 
     char *orig_url;
+    char *orig_url_before_redirect;
     char *remote_path;
     gf_user_credentials_struct * creds;
     char cookie[GF_MAX_PATH];
@@ -225,6 +226,14 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
  * \return GF_OK is everything went fine, GF_BAD_PARAM if entry is NULL, GF_IO_ERR if a failure occurs
  */
 GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess );
+
+/**
+ * \brief Returns write file pointer
+ * This function returns the current cache file pointer
+ * \param entry The entry to use
+ * \return cache file pointer or NULL
+ */
+FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry) ;
 
 /**
  * Find a User's credentials for a given site
@@ -473,7 +482,8 @@ void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
         if (sess->dm
 			/*JLF - not sure what the rationale of this test is, and it prevents cleanup of cache entry
 			which then results to crash when restarting the session (entry->writeFilePtr i snot set back to NULL)*/
-			&& gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry)
+			&& gf_cache_entry_is_delete_files_when_deleted(sess->cache_entry) 
+
 			&& (0 == gf_cache_get_sessions_count_for_cache_entry(sess->cache_entry)))
         {
             u32 i, count;
@@ -634,6 +644,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
     gf_dm_remove_cache_entry_from_session(sess);
     sess->cache_entry = NULL;
     if (sess->orig_url) gf_free(sess->orig_url);
+    if (sess->orig_url_before_redirect) gf_free(sess->orig_url_before_redirect);
     if (sess->server_name) gf_free(sess->server_name);
     sess->server_name = NULL;
     if (sess->remote_path) gf_free(sess->remote_path);
@@ -855,10 +866,13 @@ GF_Err gf_dm_setup_from_url(GF_DownloadSession *sess, const char *url)
     } else {
         sess->do_requests = NULL;
     }
-    if (sess->orig_url)
-        gf_free(sess->orig_url);
-    sess->orig_url = NULL;
-    if (info.server_name && sess->server_name)
+	if (sess->orig_url) gf_free(sess->orig_url);
+	sess->orig_url = NULL;
+
+	if (!sess->orig_url_before_redirect)
+		sess->orig_url_before_redirect = gf_strdup(url);
+	
+	if (info.server_name && sess->server_name)
     {
         gf_free(sess->server_name);
         sess->server_name = NULL;
@@ -956,8 +970,6 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
         sess->mx = gf_mx_new(url);
         gf_th_run(sess->th, gf_dm_session_thread, sess);
     }
-    if (!(sess->flags & GF_NETIO_SESSION_FORCE_NO_CACHE))
-        sess->use_cache_file = 0;
     sess->num_retry = SESSION_RETRY_COUNT;
     return sess;
 }
@@ -1266,6 +1278,33 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
     return sess->last_error;
 }
 
+GF_Err gf_dm_sess_process_headers(GF_DownloadSession *sess)
+{
+    Bool go;
+    go = 1;
+    while (go) {
+        switch (sess->status) {
+            /*setup download*/
+        case GF_NETIO_SETUP:
+            gf_dm_connect(sess);
+            if (sess->status == GF_NETIO_SETUP)
+                gf_sleep(16);
+            break;
+        case GF_NETIO_WAIT_FOR_REPLY:
+            gf_sleep(16);
+        case GF_NETIO_CONNECTED:
+            sess->do_requests(sess);
+            break;
+		case GF_NETIO_DATA_EXCHANGE:
+        case GF_NETIO_DISCONNECTED:
+        case GF_NETIO_STATE_ERROR:
+            go = 0;
+            break;
+        }
+    }
+    return sess->last_error;
+}
+
 static Bool gf_dm_needs_to_delete_cache(GF_DownloadManager * dm) {
     const char * opt;
     if (!dm || !dm->cfg)
@@ -1554,11 +1593,11 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 
     if (sess->status == GF_NETIO_SETUP) {
         gf_dm_connect(sess);
+		if (sess->last_error) return sess->last_error;
         return GF_OK;
     } else if (sess->status < GF_NETIO_DATA_EXCHANGE) {
         sess->do_requests(sess);
-        if (sess->status > GF_NETIO_DATA_TRANSFERED) return GF_SERVICE_ERROR;
-        return GF_OK;
+		return sess->last_error;
     }
     /*we're running but we had data previously*/
     if (sess->init_data) {
@@ -1589,7 +1628,10 @@ GF_Err gf_dm_sess_get_stats(GF_DownloadSession * sess, const char **server, cons
     if (!sess) return GF_BAD_PARAM;
     if (server) *server = sess->server_name;
     if (path) *path = sess->remote_path;
-    if (total_size) *total_size = sess->total_size;
+	if (total_size) {
+		if (sess->total_size==SIZE_IN_STREAM) *total_size  = 0;
+		else *total_size = sess->total_size;
+	}
     if (bytes_done) *bytes_done = sess->bytes_done;
     if (bytes_per_sec) *bytes_per_sec = sess->bytes_per_sec;
     if (net_status) *net_status = sess->status;
@@ -1980,12 +2022,13 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
             continue;
             /*socket has been closed while configuring, retry (not sure if the server got the GET)*/
         case GF_IP_CONNECTION_CLOSED:
-            gf_dm_disconnect(sess);
-            if (!strncmp("HEAD", sHTTP, 4)) {
+            if (sess->http_read_type == HEAD) {
                 /* Some servers such as shoutcast directly close connection if HEAD or an unknown method is issued */
                 sess->server_only_understand_get = 1;
             }
-            if (sess->num_retry)
+            gf_dm_disconnect(sess);
+
+			if (sess->num_retry)
                 sess->status = GF_NETIO_SETUP;
             else {
                 sess->last_error = e;
@@ -2212,7 +2255,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
                 return e;
             }
             sess->status = GF_NETIO_DATA_EXCHANGE;
-            {
+			if (! (sess->flags & GF_NETIO_SESSION_NOT_THREADED)) {
                 char file_cache_buff[16384];
                 int read = 0;
                 u32 total_size = gf_cache_get_cache_filesize(sess->cache_entry);
@@ -2374,7 +2417,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     sess->window_start = sess->start_time = gf_sys_clock();
     sess->bytes_in_wnd = 0;
 
-
+	fprintf(stdout, "HTTP response: \n %s \n, %d bytes of body follow\n", sHTTP, bytesRead - BodyStart);
     /* we may have existing data in this buffer ... */
     if (!e && (BodyStart < (s32) bytesRead)) {
         gf_dm_data_received(sess, sHTTP + BodyStart, bytesRead - BodyStart);
@@ -2392,7 +2435,9 @@ exit:
         gf_dm_sess_notify_state(sess, sess->status, e);
         return e;
     }
-    return http_parse_remaining_body(sess, sHTTP);
+	/*DO NOT call parse_body yet, as the final user may not be connected to our session*/
+    //return http_parse_remaining_body(sess, sHTTP);
+	return GF_OK;
 }
 
 /**
@@ -2520,6 +2565,17 @@ const char *gf_dm_sess_get_resource_name(GF_DownloadSession *dnload)
     return dnload ? dnload->orig_url : NULL;
 }
 
+const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *dnload)
+{
+	if (dnload) return dnload->orig_url_before_redirect ? dnload->orig_url_before_redirect : dnload->orig_url;
+	return NULL;
+}
+
+u32 gf_dm_sess_get_status(GF_DownloadSession *dnload)
+{
+	return dnload ? dnload->status : GF_NETIO_STATE_ERROR;
+}
+
 GF_Err gf_dm_sess_reset(GF_DownloadSession *sess)
 {
     if (!sess) return GF_BAD_PARAM;
@@ -2627,3 +2683,72 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
         }
     }
 }
+
+GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io user_io, void *cbk)
+{
+	/*shall only be called for non-threaded sessions!! */
+	if (sess->th) return GF_BAD_PARAM;
+
+#if 0
+	/*if the user requests non-cached (eg callback-sent) data, but the session was configured to use file, we need to copy back existing
+	data to the session init_data */
+	if (sess->use_cache_file && (flags & GF_NETIO_SESSION_NOT_CACHED)) {
+		if (sess->cache_entry) {
+			FILE *fptr = gf_cache_get_file_pointer(sess->cache_entry);
+			if (fptr) {
+				gf_f64_seek(fptr, 0, SEEK_END);
+				sess->init_data_size = (u32) gf_f64_tell(fptr);
+				gf_f64_seek(fptr, 0, SEEK_SET);
+				if (sess->init_data) gf_free(sess->init_data);
+				sess->init_data = gf_malloc(sess->init_data_size);
+				sess->init_data_size = fread(sess->init_data, 1, sess->init_data_size, fptr);
+				gf_cache_close_write_cache(sess->cache_entry, sess, 0);
+			} 
+			gf_dm_remove_cache_entry_from_session(sess);
+			sess->cache_entry = NULL;
+		}
+		sess->use_cache_file = 0;
+	}
+#endif
+
+
+#if 0
+	/*the case where the user wants file but the session is configured as live is simply ignored*/
+	else if (!sess->use_cache_file && (sess->flags & GF_NETIO_SESSION_NOT_CACHED)) {
+		sess->use_cache_file = 1;
+		gf_dm_configure_cache(sess);
+
+		if (sess->http_read_type == GET ) {
+			e = gf_cache_open_write_cache(sess->cache_entry, sess);
+			if (e) return e;
+
+			if (sess->init_data && sess->init_data_size) {
+				gf_cache_write_to_cache(sess->cache_entry, sess, sess->init_data, sess->init_data_size);
+				if (sess->init_data) {
+					gf_free(sess->init_data);
+					sess->init_data = NULL;
+				}
+				sess->init_data_size = 0;
+			}
+		}
+	}
+#endif
+
+	sess->flags = flags;
+	sess->user_proc = user_io;
+	sess->usr_cbk = cbk;
+
+	sess->num_retry = SESSION_RETRY_COUNT;
+
+	if (sess->status==GF_NETIO_DISCONNECTED)
+		sess->status = GF_NETIO_SETUP;
+
+	if ( ! (flags & GF_NETIO_SESSION_NOT_THREADED) ) {
+		sess->th = gf_th_new(sess->orig_url);
+        sess->mx = gf_mx_new(sess->orig_url);
+        gf_th_run(sess->th, gf_dm_session_thread, sess);
+    }
+
+	return GF_OK;
+}
+
