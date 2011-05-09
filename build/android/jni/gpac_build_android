@@ -9,7 +9,21 @@ then
   exit 1
 fi
 
+if [ -z "$2" ]
+then
+  echo "Usage: $0 PATH_TO_ANDROID_SDK : You must give as second argument the directory path of the SDK"
+  exit 1
+fi
+
+if [ -z "$3" ]
+then
+  echo "Usage: $0 PATH_TO_ANT : You must give as first third the directory path of ANT"
+  exit 1
+fi
+
 export PATH="$1:$PATH"
+export PATH="$2/tools:$PATH"
+export PATH="$3/bin:$PATH"
 shift
 
 # Be sure to resolve if script not called from its directory
@@ -59,4 +73,13 @@ do
 	echo -n "$i..."
 	cp "$i" "$LIBS_DIR/$i" || exit 1
 done
+
+echo -n "Buiding Osmo4.apk"
+
+cd $BASEPATH/applications/osmo4_android/
+ant release || exit 1
+
+zipalign -v 4 bin/Osmo4-unaligned.apk Osmo4.apk || exit 1
+rm bin/Osmo4-*
+
 echo "[OK] success."
