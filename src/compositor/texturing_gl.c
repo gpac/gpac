@@ -528,6 +528,7 @@ common:
 		txh->tx_io->conv_format = dst.pixel_format = GF_PIXEL_RGB_24;
 		/*stretch and flip*/
 		gf_stretch_bits(&dst, &src, NULL, NULL, 0xFF, 1, NULL, NULL);
+		txh->flags |= GF_SR_TEXTURE_NO_GL_FLIP;
 		break;
 	case GF_PIXEL_YUVD:
 		if ((txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_NONE) || (txh->compositor->depth_gl_type==GF_SC_DEPTH_GL_VBO)) {
