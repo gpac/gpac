@@ -28,7 +28,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="&quot;$(InputDir)..\..\version.bat&quot;"
+				CommandLine=""
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -107,7 +107,7 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
-				CommandLine="&quot;$(InputDir)..\..\version.bat&quot;"
+				CommandLine=""
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -6527,6 +6527,10 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\utf.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\version.h"
 				>
 			</File>
 			<File
