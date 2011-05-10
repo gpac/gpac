@@ -1096,12 +1096,14 @@ function browse_remote_servers()
 					item.is_server = false;
           item.on_click = this._on_server_click;
 				} else {
-					for (var j=0; j<file.ResourceCount; j++) {
+				  /*FIXME - need a better way to handle this !!*/
+//					for (var j=0; j<file.ResourceCount; j++) {
+  					for (var j=0; j<1; j++) {
             var item = gw_new_icon_button(this.area, this.icon_file, file.Name, 'button');
 						item.directory = false;
 						item.resource_uri = file.GetResourceURI(j);
 						var protoInfo = item.resource_uri.split(":");
-						item.name += ' ('+protoInfo[0]+')';
+            item.set_label(file.Name + ' ('+protoInfo[0]+')' );
 						item.path = file.ObjectID;
 						item.is_server = false;
             item.on_click = this._on_server_click;
