@@ -1168,10 +1168,10 @@ enum
 
 int main( int argc, char** argv )
 {
-	return mp4boxTerminal( argc, argv );
+	return mp4boxMain( argc, argv );
 }
 
-int mp4boxTerminal(int argc, char **argv)
+int mp4boxMain(int argc, char **argv)
 {
 	char outfile[5000];
 	GF_Err e;

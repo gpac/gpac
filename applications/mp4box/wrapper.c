@@ -53,7 +53,7 @@ JNIEXPORT void JNICALL Java_com_artemis_mp4box_mp4terminal_run(JNIEnv * env, job
 
 	FILE* fout = freopen( "/mnt/sdcard/stdout.txt", "w", stdout );
 
-    mp4boxTerminal(i, sConvertedCommandLine);
+    mp4boxMain(i, sConvertedCommandLine);
 
     (*env)->ReleaseStringUTFChars(env, sCommand, sOriginalCommand);
     jniLOGV("mp4terminal::end");
