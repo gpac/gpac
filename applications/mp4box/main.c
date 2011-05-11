@@ -113,7 +113,7 @@ int stream_file_rtp(int argc, char **argv);
 
 int live_session(int argc, char **argv);
 void PrintLiveUsage();
-
+int mp4boxTerminal(int argc, char **argv);
 
 u32 quiet = 0;
 Bool dvbhdemux =0;
@@ -546,7 +546,7 @@ void PrintSWFUsage()
 			"SWF Importer Options\n"
 			"\n"
 			"MP4Box can import simple Macromedia Flash files (\".SWF\")\n"
-			"You can specify a SWF input file with \'-bt\', \'xmt\' and \'-mp4\' options\n"
+			"You can specify a SWF input file with \'-bt\', \'-xmt\' and \'-mp4\' options\n"
 			"\n"
 			" -global              all SWF defines are placed in first scene replace\n"
 			"                       * Note: By default SWF defines are sent when needed\n"
@@ -1166,7 +1166,12 @@ enum
 	GF_ISOM_CONV_TYPE_PSP
 };
 
-int main(int argc, char **argv)
+int main( int argc, char** argv )
+{
+	return mp4boxTerminal( argc, argv );
+}
+
+int mp4boxTerminal(int argc, char **argv)
 {
 	char outfile[5000];
 	GF_Err e;
