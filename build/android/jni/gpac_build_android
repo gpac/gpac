@@ -9,20 +9,8 @@ then
   exit 1
 fi
 
-if [ -z "$2" ]
-then
-  echo -e "\033[34m Usage: $0 PATH_TO_ANDROID_SDK : You have not give the directory path of SDK. Auto build of Osmo4.apk not possible. Build it with Eclipse \033[0m"
-fi
-
-if [ -z "$3" ]
-then
-  echo -e "\033[34m Usage: $0 PATH_TO_ANT : You have not give the directory path of ANT. Auto build of Osmo4.apk not possible. Build it with Eclipse \033[0m"
-fi
-
 export PATH="$1:$PATH"
-export PATH="$PATH:$2/tools"
-export PATH="$3/bin:$PATH"
-
+shift
 
 # Be sure to resolve if script not called from its directory
 export BUILDPATH=$(dirname "$0")
@@ -63,8 +51,21 @@ do
 	cp "$i" "$LIBS_DIR/$i" || exit 1
 done
 echo
-echo "[OK] success."
+echo "[OK] success module for Osmo4."
 
+
+LIBS_DIR="$BASEPATH/applications/mp4box_android/libs/"
+echo "Copying libs to libs dir $LIBS_DIR ..."
+for i in $(find . \( -name '*.so' \) -a \( -name "*ft2*" -o -name "*edit*" -o -name "*libgpac.so*" -o -name "*jpeg*" -o -name "*js_osmo*" -o -name "*mp4box*" -o -name "*openjpeg*" -o -name "*png*" -o -name "*libz.*" \) )
+do
+echo "$i"
+cp "$i" "$LIBS_DIR/$i" || exit 1
+done
+echo
+echo "[OK] success module for MP4box."
+
+
+LIBS_DIR="$BASEPATH/applications/osmo4_android/libs/"
 cd "$BASEPATH/extra_lib/lib/android" || exit 1
 echo "Copying all extra libs to $LIBS_DIR ..."
 for i in $(find . -name '*.so')
@@ -72,12 +73,18 @@ do
 	echo -n "$i..."
 	cp "$i" "$LIBS_DIR/$i" || exit 1
 done
-echo -e "\n[OK] success."
+echo "[OK] success extra lib for Osmo4."
 
-if [ -w "$3" ] && [ -w "$2" ]
-then
-echo -e "\nBuiding Osmo4.apk"
+LIBS_DIR="$BASEPATH/applications/mp4box_android/libs/"
+cd "$BASEPATH/extra_lib/lib/android" || exit 1
+echo "Copying all extra libs to $LIBS_DIR ..."
 
+for i in $(find . \( -name '*.so' \) -a \( -name "*ft2*" -o -name "*edit*" -o -name "*libgpac.so*" -o -name "*jpeg*" -o -name "*js_osmo*" -o -name "*mp4box*" -o -name "*openjpeg*" -o -name "*png*" -o -name "*libz.*" \) )
+do
+echo "$i"
+cp "$i" "$LIBS_DIR/$i" || exit 1
+done
+echo "[OK] success extra lib MP4box."
 cd $BASEPATH/applications/osmo4_android/
 ant release || exit 1
 
