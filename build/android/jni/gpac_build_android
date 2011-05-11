@@ -81,7 +81,7 @@ echo -e "\nBuiding Osmo4.apk"
 cd $BASEPATH/applications/osmo4_android/
 ant release || exit 1
 
-zipalign -v 4 bin/Osmo4-unaligned.apk Osmo4.apk
+zipalign -v 4 bin/Osmo4-unaligned.apk bin/Osmo4.apk
 rm bin/Osmo4-*
 echo -e "\n[OK] success."
 fi
