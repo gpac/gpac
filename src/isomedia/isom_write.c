@@ -2212,10 +2212,11 @@ GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 		memcpy( ((GF_UUIDBox*)a)->uuid, UUID, 16);
 	}
 
-	a->data = (char*)gf_malloc(sizeof(char)*DataLength);
-	memcpy(a->data, data, DataLength);
-	a->dataSize = DataLength;
-
+	if (DataLength) {
+		a->data = (char*)gf_malloc(sizeof(char)*DataLength);
+		memcpy(a->data, data, DataLength);
+		a->dataSize = DataLength;
+	}
 	return udta_AddBox(udta, (GF_Box *) a);
 }
 

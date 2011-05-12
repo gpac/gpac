@@ -111,11 +111,12 @@ static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src, Bool rewrite_
 
 static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD *src, Double imp_time, char *mediaSource, Bool od_sample_rap)
 {
-	u32 track, di;
+	u32 track, di, i;
 	GF_Err e;
 	Bool isAudio, isVideo;
 	char szName[1024];
 	char *ext;
+	GF_Descriptor *d;
 	GF_MediaImporter import;
 	GF_MuxInfo *mux = NULL;
 
@@ -261,6 +262,14 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	e = gf_media_import(&import);
 	if (e) return e;
 
+	i=0;
+	while ((d = gf_list_enum(src->extensionDescriptors, &i))) {
+		if (d->tag == GF_ODF_AUX_VIDEO_DATA) {
+			gf_isom_add_user_data(mp4, gf_isom_get_track_by_id(mp4, import.final_trackID), GF_4CC('A','U','X','V'), 0, NULL, 0);
+			gf_list_rem(src->extensionDescriptors, i-1);
+			gf_odf_desc_del(d);
+		}
+	}
 	/*if desired delete input*/
 	if (mux->delete_file) gf_delete_file(mux->file_name);
 	return e;

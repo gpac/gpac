@@ -1703,6 +1703,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	}
 	if (e) goto exit;
 	import->final_trackID = gf_isom_get_track_id(import->dest, track);
+	if (import->esd && import->esd->dependsOnESID) {
+		gf_isom_set_track_reference(import->dest, track, GF_ISOM_REF_DECODE, import->esd->dependsOnESID);
+	}
 
 	switch (mtype) {
 	case GF_ISOM_MEDIA_VISUAL:
@@ -3810,6 +3813,9 @@ restart_import:
 	gf_isom_set_track_enabled(import->dest, track, 1);
 	if (import->esd && !import->esd->ESID) import->esd->ESID = gf_isom_get_track_id(import->dest, track);
 	import->final_trackID = gf_isom_get_track_id(import->dest, track);
+	if (import->esd && import->esd->dependsOnESID) {
+		gf_isom_set_track_reference(import->dest, track, GF_ISOM_REF_DECODE, import->esd->dependsOnESID);
+	}
 
 	e = gf_isom_avc_config_new(import->dest, track, avccfg, NULL, NULL, &di);
 	if (e) goto exit;

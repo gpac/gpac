@@ -220,7 +220,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			gf_bs_write_u16(bs, ((GF_MPEGVisualSampleEntryBox*)entry)->Height);
 			gf_bs_get_content(bs, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_bs_del(bs);
-			return GF_OK;
+			break;
 		}
 
 	case GF_ISOM_SUBTYPE_LSR1: 
@@ -235,7 +235,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			esd->decoderConfig->decoderSpecificInfo->dataLength = ptr->lsr_config->hdr_size;
 			esd->decoderConfig->decoderSpecificInfo->data = gf_malloc(sizeof(char)*ptr->lsr_config->hdr_size);
 			memcpy(esd->decoderConfig->decoderSpecificInfo->data, ptr->lsr_config->hdr, sizeof(char)*ptr->lsr_config->hdr_size);
-			return GF_OK;
+			break;
 		}
 
 	default: return GF_ISOM_INVALID_MEDIA;

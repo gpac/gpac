@@ -98,6 +98,18 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 		esd->dependsOnESID = 0;
 	}
 
+	if (trak->udta) {
+		GF_UserDataMap *map;
+		u32 i = 0;
+		while ((map = (GF_UserDataMap*)gf_list_enum(trak->udta->recordList, &i))) {
+			if (map->boxType == GF_4CC('A','U','X','V')) {
+				GF_Descriptor *d = gf_odf_desc_new(GF_ODF_AUX_VIDEO_DATA);
+				gf_list_add(esd->extensionDescriptors, d);
+				break;
+			}
+		}
+	}
+
 	//OK, get the OCR (in a REAL MP4File, OCR is 0 in ESD and is specified through track reference
 	dpnd = NULL;
 	OCRTrack = NULL;
