@@ -130,6 +130,7 @@ void visual_2d_remove_last_context(GF_VisualManager *visual)
 
 void visual_2d_drawable_delete(GF_VisualManager *visual, struct _drawable *drawable)
 {
+	DrawableContext *ctx;
 	/*remove drawable from visual list*/
 	struct _drawable_store *it = visual->prev_nodes;
 	struct _drawable_store *prev = NULL;
@@ -144,6 +145,19 @@ void visual_2d_drawable_delete(GF_VisualManager *visual, struct _drawable *drawa
 		if (!it->next) visual->last_prev_entry = prev;
 		gf_free(it);
 		break;
+	}
+	
+	ctx = visual->context;
+	while (ctx && ctx->drawable) {
+		/*remove visual registration flag*/
+		if (ctx->drawable == drawable) {
+			if (ctx->flags & CTX_HAS_APPEARANCE) {
+				ctx->flags = 0;
+				gf_node_dirty_reset(ctx->appear, 0);
+			}
+			ctx->drawable = NULL;
+		}
+		ctx = ctx->next;
 	}
 	if (drawable->flags & DRAWABLE_IS_OVERLAY) {
 		visual->compositor->video_out->Blit(visual->compositor->video_out, NULL, NULL, NULL, 1);
