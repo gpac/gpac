@@ -1575,6 +1575,15 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 		return 0;
 #endif
 		break;
+	case GF_OPT_NUM_STEREO_VIEWS:
+#ifndef GPAC_DISABLE_3D
+		if (compositor->visual->type_3d) {
+			if (compositor->visual->nb_views && compositor->visual->autostereo_type>GF_3D_STEREO_SIDE)
+				return compositor->visual->nb_views;
+		}
+#endif
+		return 1;
+
 	default: return 0;
 	}
 }
@@ -1606,6 +1615,22 @@ GF_Err gf_sc_get_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *frame
 	if (e != GF_OK) gf_mx_v(compositor->mx);
 	return e;
 }
+
+GF_Err gf_sc_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer, u32 view_idx, u32 depth_dump_mode)
+{
+	GF_Err e;
+	if (!compositor || !framebuffer) return GF_BAD_PARAM;
+#ifndef GPAC_DISABLE_3D
+	if (compositor->visual->type_3d && compositor->visual->nb_views && (compositor->visual->autostereo_type>GF_3D_STEREO_SIDE)) {
+		gf_mx_p(compositor->mx);
+		e = compositor_3d_get_offscreen_buffer(compositor, framebuffer, view_idx, depth_dump_mode);
+		if (e != GF_OK) gf_mx_v(compositor->mx);
+		return e;
+	}
+#endif
+	return GF_BAD_PARAM;
+}
+
 
 GF_Err gf_sc_release_screen_buffer(GF_Compositor *compositor, GF_VideoSurface *framebuffer)
 {

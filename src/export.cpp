@@ -880,6 +880,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_process_step) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_screen_buffer) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_release_screen_buffer) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_offscreen_buffer) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_process_shortcut) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_set_speed) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_relocate_url) )
