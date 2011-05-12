@@ -888,6 +888,32 @@ static Bool FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *
 
 	/*std MPEG-4 visual*/
 	else if (StreamType==GF_STREAM_VISUAL) {
+
+		/*fixme - we should use some priority rather than declare ffmpeg can't handle svc*/
+		if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC) {
+			if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+				Bool is_svc = 0;
+				u32 i, count;
+				GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				if (!cfg) return 1;
+
+				/*decode all NALUs*/
+				count = gf_list_count(cfg->sequenceParameterSets);
+				for (i=0; i<count; i++) {
+					GF_AVCConfigSlot *slc = gf_list_get(cfg->sequenceParameterSets, i);
+					u8 nal_type = slc->data[0] & 0x1F;
+
+					if (nal_type==GF_AVC_NALU_SVC_SUBSEQ_PARAM) {
+						is_svc = 1;
+						break;
+					}
+				}
+				gf_odf_avc_cfg_del(cfg);
+				return is_svc ? 0 : 1;
+			}
+			return 1;
+		}
+
 		switch (ffd->oti) {
 		/*MPEG-4 v1 simple profile*/
 		case GPAC_OTI_VIDEO_MPEG4_PART2: codec_id = CODEC_ID_MPEG4; break;
