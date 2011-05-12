@@ -194,6 +194,8 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	GF_SceneDecoder *dec = NULL;
 	if (scene->scene_codec) dec = (GF_SceneDecoder *)scene->scene_codec->decio;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] disconnecting\n"));
+
 	gf_term_lock_compositor(scene->root_od->term, 1);
 	
 	/*disconnect / kill all objects BEFORE reseting the scene graph since we have 
@@ -348,6 +350,7 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	/*HACK - temp storage of sync ref*/
 	if (sync_ref) odm->ocr_codec = (struct _generic_codec *)sync_ref;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Inserting new MediaObject %08x for resource %s\n", odm->mo, url));
 	gf_list_add(scene->resources, odm);
 	if (original_parent_scene) {
 		gf_odm_setup_object(odm, original_parent_scene->root_od->net_service);
@@ -377,6 +380,8 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, Bool for_shu
 	gf_term_lock_net(odm->term, 1);
 	gf_list_del_item(scene->resources, odm);
 	gf_term_lock_net(odm->term, 0);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] removing ODM %d\n", odm->OD ? odm->OD->objectDescriptorID : GF_MEDIA_EXTERNAL_ID));
 
 
 	i=0;
@@ -722,6 +727,8 @@ void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm)
 {
 	GF_MediaObject *obj;
 	u32 i;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Setup object manager %d (MO %08x)\n", odm->OD->objectDescriptorID, odm->mo));
 
 	/*an object may already be assigned (when using ESD URLs, setup is performed twice)*/
 	if (odm->mo != NULL) goto existing;
