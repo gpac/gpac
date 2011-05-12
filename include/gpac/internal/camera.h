@@ -36,6 +36,8 @@ enum
 	CAM_IS_DIRTY = 1,
 	/*if set when ortho, indicates the viewport matrix shall be used when computing modelview (2D only)*/
 	CAM_HAS_VIEWPORT = 1<<2,
+	/*if set when ortho to disable LookAt mode*/
+	CAM_NO_LOOKAT = 1<<3,
 };
 
 enum
