@@ -730,6 +730,10 @@ redecode:
 	if ((w != ctx->width) || (h != ctx->height)) {
 		outsize = ctx->width * ctx->height * 3;
 		if (ffd->out_pix_fmt != GF_PIXEL_RGB_24) outsize /= 2;
+		if (ffd->depth_codec) {
+			outsize = 5 * ctx->width * ctx->height / 2;
+			ffd->yuv_size = 3 * ctx->width * ctx->height / 2;
+		}
 		ffd->out_size = outsize;
 		*outBufferLength = ffd->out_size;
 		if (ffd->check_h264_isma) {
@@ -762,6 +766,7 @@ redecode:
 	if (ES_ID == ffd->depth_ES_ID) {
 		s32 i;
 		u8 *pYO, *pYD;
+
 		pYO = frame->data[0];
 		pYD = outBuffer+ffd->yuv_size;
 		for (i=0; i<ctx->height; i++) {
