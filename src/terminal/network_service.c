@@ -157,11 +157,15 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 			/*not a fatal error*/
 			if (err) gf_term_message(term, "GPAC Cache", "Cannot load cache", err);
 		}
+		return;
 	}
 
 	/*this is channel connection*/
 	ch = gf_term_get_channel(service, netch);
-	if (!ch) return;
+	if (!ch) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Channel connection ACK error: channel not found\n"));
+		return;
+	}
 
 	/*confirm channel connection even if error - this allow playback of objects even if not all streams are setup*/
 	gf_term_lock_net(term, 1);
@@ -169,13 +173,16 @@ static void term_on_connect(void *user_priv, GF_ClientService *service, LPNETCHA
 	gf_term_lock_net(term, 0);
 
 	if (err && ((err!=GF_STREAM_NOT_FOUND) || (ch->esd->decoderConfig->streamType!=GF_STREAM_INTERACT))) {
-		char szMsg[1024];
-		sprintf(szMsg, "Channel %d connection failure", ch->esd->ESID);
-		gf_term_message(term, service->url, szMsg, err);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Channel %d connection error: %s\n", ch->esd->ESID, gf_error_to_string(err) ));
 		ch->es_state = GF_ESM_ES_UNAVAILABLE;
 /*		return;*/
 	}
 
+	if (ch->odm->mo) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Channel %d connected - %d objects opened\n", ch->esd->ESID, ch->odm->mo->num_open ));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Channel %d connected - not attached to the scene\n", ch->esd->ESID));
+	}
 	/*Plays request are skiped until all channels are connected. We send a PLAY on the objecy in case
 		1-OD user has requested a play
 		2-this is a channel of the root OD
@@ -297,6 +304,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	for (i=0; i<gf_list_count(scene->scene_objects); i++) {
 		char *frag, *ext;
 		GF_ESD *esd;
+		char *url;
 		GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
 		if (!mo->odm) continue;
 		/*already assigned object - this may happen since the compositor has no control on when objects are declared by the service,
@@ -328,7 +336,12 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 			frag = strchr(ext, '=');
 			ext[0] = 0;
 		}
-		if (!strstr(service->url, mo->URLs.vals[0].url)) {
+		url = mo->URLs.vals[0].url;
+		if (!strnicmp(url, "file://localhost", 16)) url += 16;
+		else if (!strnicmp(url, "file://", 7)) url += 7;
+		else if (!strnicmp(url, "gpac://", 7)) url += 7;
+
+		if (!strstr(service->url, url)) {
 			if (ext) ext[0] = '#';
 			continue;
 		}
@@ -377,6 +390,7 @@ static void term_on_media_add(void *user_priv, GF_ClientService *service, GF_Des
 	odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
 	gf_term_lock_net(term, 0);
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->OD->objectDescriptorID, odm->mo));
 	gf_odm_setup_object(odm, service);
 
 	/*OD inserted by service: resetup scene*/
@@ -586,6 +600,8 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 
 	/*used by GUIs scripts to skip URL concatenation*/
 	if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
+	/*opera-style localhost URLs*/
+	else if (!strncmp(url, "file://localhost", 16)) sURL = gf_strdup(url+16);
 	else if (parent_url) sURL = gf_url_concatenate(parent_url, url);
 
 	/*path absolute*/

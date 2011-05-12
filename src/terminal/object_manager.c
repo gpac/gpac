@@ -556,7 +556,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		gf_odf_desc_del((GF_Descriptor *)odm->OD);
 		odm->OD = NULL;
 		odm->net_service = NULL;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Object redirection to %s\n", url));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Object redirection to %s (MO %08x)\n", url, odm->mo));
 		
 		/*if object is a scene, create the inline before connecting the object.
 			This is needed in irder to register the nodes using the resource for event
