@@ -85,6 +85,10 @@ echo "$i"
 cp "$i" "$LIBS_DIR/$i" || exit 1
 done
 echo "[OK] success extra lib MP4box."
+
+if [ -w "$3" ] && [ -w "$2" ] 
+then 
+echo -e "\nBuiding Osmo4.apk" 
 cd $BASEPATH/applications/osmo4_android/
 ant release || exit 1
 
