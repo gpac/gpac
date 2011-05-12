@@ -2229,13 +2229,50 @@ GF_Err compositor_3d_release_screen_buffer(GF_Compositor *compositor, GF_VideoSu
 	return GF_OK;
 }
 
+GF_Err compositor_3d_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *fb, u32 view_idx, u32 depth_dump_mode)
+{
+#if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
+	char *tmp;
+	u32 hy, i;
+	/*not implemented yet*/
+	if (depth_dump_mode) return GF_NOT_SUPPORTED;
+
+	if (view_idx>=compositor->visual->nb_views) return GF_BAD_PARAM;
+	fb->width = compositor->visual->auto_stereo_width;
+	fb->height = compositor->visual->auto_stereo_height;
+	fb->pixel_format = GF_PIXEL_RGB_24;
+	fb->pitch_y = 3*fb->width;
+	fb->video_buffer = gf_malloc(sizeof(char)*3*fb->width*fb->height);
+	if (!fb->video_buffer) return GF_OUT_OF_MEM;
+
+	glEnable(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, compositor->visual->gl_textures[view_idx]);
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, fb->video_buffer);
+	glDisable(GL_TEXTURE_2D);
+
+	/*flip image (openGL always handle image data bottom to top) */
+	tmp = (char*)gf_malloc(sizeof(char)*fb->pitch_y);
+	hy = fb->height/2;
+	for (i=0; i<hy; i++) {
+		memcpy(tmp, fb->video_buffer+ i*fb->pitch_y, fb->pitch_y);
+		memcpy(fb->video_buffer + i*fb->pitch_y, fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, fb->pitch_y);
+		memcpy(fb->video_buffer + (fb->height - 1 - i) * fb->pitch_y, tmp, fb->pitch_y);
+	}
+	gf_free(tmp);
+	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
+}
+
 void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_TextureHandler *txh, GF_TraverseState *tr_state)
 {
 #if !defined(GPAC_USE_OGL_ES) && !defined(GPAC_USE_TINYGL)
 	u32 w, h;
 	u32 pixel_format, stride;
 	u8 *data;
-	Float r, g, b, x, y;
+	Float r, g, b;
+	Fixed x, y;
 	Float inc, scale;
 	Bool in_strip;
 	Float delta = 0;
@@ -2396,7 +2433,6 @@ restart:
 	if (!stack->mesh) {
 		stack->mesh = new_mesh();
 		stack->mesh->vbo_dynamic = 1;
-		scale = 50;
 		inc = 1;
 		if (!tr_state->pixel_metrics) inc /= tr_state->min_hsize;
 		x = 0;
@@ -2427,8 +2463,8 @@ restart:
 
 	/*texture has been updated, recompute Z*/
 	if (txh->needs_refresh) {
+		Fixed f_scale = FLT2FIX(visual->compositor->depth_gl_scale);
 		txh->needs_refresh = 0;
-		scale = visual->compositor->depth_gl_scale;
 
 		data = gf_sc_texture_get_data(txh, &pixel_format);
 		if (!data) return;
@@ -2440,7 +2476,7 @@ restart:
 			for (w=0; w<txh->width; w++) {
 				u8 d = src[w];
 				Fixed z = INT2FIX(d);
-				z = gf_mulfix(z / 255, scale);
+				z = gf_mulfix(z / 255, f_scale);
 				stack->mesh->vertices[w + h*txh->width].pos.z = z;
 			}
 		}

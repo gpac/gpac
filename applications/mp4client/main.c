@@ -126,19 +126,23 @@ void hide_shell(u32 cmd_type)
 void PrintUsage()
 {
 	fprintf(stdout, "Usage MP4Client [options] [filename]\n"
-		"\t-c fileName:    user-defined configuration file\n"
+		"\t-c fileName:    user-defined configuration file. Also works with -cfg\n"
+#ifdef GPAC_MEMORY_TRACKING
+		"\t-mem-track:  unables memory tracker\n"
+		
+#endif
 		"\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
 		"\t-rtix fileName: same as -rti but driven by GPAC logs\n"
 		"\t-quiet:         removes script message, buffering and downloading status\n"
 		"\t-opt	option:    Overrides an option in the configuration file. String format is section:key=value\n"
-		"\t-log-file file: sets output log file.\n"
-		"\t-log-level lev: sets log level. Possible values are:\n"
+		"\t-log-file file: sets output log file. Also works with -lf\n"
+		"\t-log-level lev: sets log level. Also works with -ll. Possible values are:\n"
 		"\t        \"error\"      : logs only error messages\n"
 		"\t        \"warning\"    : logs error+warning messages\n"
 		"\t        \"info\"       : logs error+warning+info messages\n"
 		"\t        \"debug\"      : logs all messages\n"
 		"\n"
-		"\t-log-tools lt:  sets tool(s) to log. List of \':\'-separated values:\n"
+		"\t-log-tools lt:  sets tool(s) to log. Also works with -lt. List of \':\'-separated values:\n"
 		"\t        \"core\"       : libgpac core\n"
 		"\t        \"coding\"     : bitstream formats (audio, video, scene)\n"
 		"\t        \"container\"  : container formats (ISO File, MPEG-2 TS, AVI, ...)\n"
@@ -159,7 +163,6 @@ void PrintUsage()
 		"\t        \"all\"        : all tools logged\n"
 		"\n"
 		"\t-size WxH:      specifies visual size (default: scene size)\n"
-		"\t-scale s:      scales the visual size (default: 1)\n"
 #if defined(__DARWIN__) || defined(__APPLE__)
 		"\t-thread:        enables thread usage for terminal and compositor \n"
 #else
@@ -167,6 +170,7 @@ void PrintUsage()
 #endif
 		"\t-no-audio:	   disables audio \n"
 		"\t-no-wnd:        uses windowless mode (Win32 only)\n"
+		"\t-no-back:       uses transparent background for output window when no background is specified (Win32 only)\n"
 		"\t-align vh:      specifies v and h alignment for windowless mode\n"
 		"                   possible v values: t(op), m(iddle), b(ottom)\n"
 		"                   possible h values: l(eft), m(iddle), r(ight)\n"
@@ -174,6 +178,11 @@ void PrintUsage()
 		"                   default alignment is top-left\n"
 		"\t-pause:         pauses at first frame\n"
 		"\t-loop:          loops presentation\n"
+		"\t-no-regulation: disables framerate regulation\n"
+		"\t-fs:	           starts in fullscreen mode\n"
+		"\t-exit:          automatically exits when presentation is over\n"
+		"\t-run-for TIME:  runs for TIME seconds and exits\n"
+		"\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
 		"\n"
 		"Dumper Options:\n"
 		"\t-bmp [times]:   dumps given frames to bmp\n"
@@ -188,10 +197,12 @@ void PrintUsage()
 		"                   with -avi [times]: dumps depthmap in grayscale .avi\n"		
 		"                   with -bmp: dumps depthmap in grayscale .bmp\n"		
 		"\t-fps FPS:       specifies frame rate for AVI dumping (default: 25.0)\n"
-		"\t-2d:            uses 2D compositor\n"
-		"\t-3d:            uses 3D compositor\n"
+		"\t-scale s:       scales the visual size (default: 1)\n"
 		"\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
 		"\t-show:          show window while dumping (default: no)\n"
+		"\n"
+		"\t-help:          show this screen\n"
+		"\n"
 		"MP4Client - GPAC command line player and dumper - version %s\n"
 		"GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
 
@@ -202,14 +213,22 @@ void PrintUsage()
 void PrintHelp()
 {
 	fprintf(stdout, "MP4Client command keys:\n"
+		"\tq: quit\n"
+		"\tX: kill\n"
 		"\to: connect to the specified URL\n"
-		"\tO: connect to the specified URL in playlist mode\n"
-		"\tN: switch to the next URL in the playlist (works with return key as well)\n"
-		"\tr: restart current presentation\n"
+		"\tO: connect to the specified playlist\n"
+		"\tN: switch to the next URL in the playlist. Also works with \\n\n"
+		"\tP: jumps to a given number ahead in the playlist\n"
+		"\tr: reload current presentation\n"
+		"\tD: disconnects the current presentation\n"
+		"\n"
 		"\tp: play/pause the presentation\n"
 		"\ts: step one frame ahead\n"
 		"\tz: seek into presentation\n"
 		"\tt: print current timing\n"
+		"\n"
+		"\tu: sends a command (BIFS or LASeR) to the main scene\n"
+		"\tZ: dumps output video to PNG\n"
 		"\n"
 		"\tw: view world info\n"
 		"\tv: view Object Descriptor list\n"
@@ -219,16 +238,11 @@ void PrintHelp()
 		"\tm: view media objects buffering and memory info\n"
 		"\td: dumps scene graph\n"
 		"\n"
-		"\tC: Enable Streaming Cache\n"
-		"\tS: Stops Streaming Cache and save to file\n"
-		"\tA: Aborts Streaming Cache\n"
-		"\n"
 		"\tk: turns stress mode on/off\n"
 		"\tn: changes navigation mode\n"
 		"\tx: reset to last active viewpoint\n"
 		"\n"
-		"\t2: restart using 2D compositor\n"
-		"\t3: restart using 3D compositor\n"
+		"\t3: switch OpenGL on or off for 2D scenes\n"
 		"\n"
 		"\t4: forces 4/3 Aspect Ratio\n"
 		"\t5: forces 16/9 Aspect Ratio\n"
@@ -240,9 +254,18 @@ void PrintHelp()
 		"\n"
 		"\tl: list available modules\n"
 		"\tc: prints some GPAC configuration info\n"
-		"\tR: toggles run-time info display on/off\n"
-		"\tq: exit the application\n"
+		"\tE: forces reload of GPAC configuration\n"
+		"\n"
+		"\tR: toggles run-time info display in window title bar on/off\n"
+		"\tF: toggle displaying of FPS in stdout on/off\n"
+		"\tg: print GPAC allocated memory\n"
 		"\th: print this message\n"
+		"\n"
+		"\tEXPERIMENTAL/UNSTABLE OPTIONS\n"
+		"\tC: Enable Streaming Cache\n"
+		"\tS: Stops Streaming Cache and save to file\n"
+		"\tA: Aborts Streaming Cache\n"
+		"\tM: specifies video cache memory for 2D objects\n"
 		"\n"
 		"MP4Client - GPAC command line player - version %s\n"
 		"GPAC Written by Jean Le Feuvre (c) 2001-2005 - ENST (c) 2005-200X\n",
@@ -1247,7 +1270,10 @@ int main (int argc, char **argv)
 			}
 			i++;
 		}
-		else if (!strncmp(arg, "-run-for=", 9)) simulation_time = atoi(arg+9);
+		else if (!stricmp(arg, "-run-for")) {
+			simulation_time = atoi(argv[i+1]);
+			i++;
+		}
 		else if (!stricmp(arg, "-help")) {
 			PrintUsage();
 			return 1;
@@ -1785,31 +1811,63 @@ force_input:
 		/*extract to PNG*/
 		case 'Z':
 		{
+			char szFileName[100];
+			u32 nb_pass, nb_views, offscreen_view = 0;
 			GF_VideoSurface fb;
 			GF_Err e;
-			e = gf_term_get_screen_buffer(term, &fb);
-			if (e) {
-				fprintf(stdout, "Error dumping screen buffer %s\n", gf_error_to_string(e) );
-			} else {
-				u32 dst_size = fb.width*fb.height*3;
-				char *dst = (char*)gf_malloc(sizeof(char)*dst_size);
-
-				e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
-				if (e) {
-					fprintf(stdout, "Error encoding PNG %s\n", gf_error_to_string(e) );
-				} else {
-					FILE *png = gf_f64_open("dump.png", "wb");
-					if (!png) {
-						fprintf(stdout, "Error writing file dump.png\n");
-					} else {
-						fwrite(dst, dst_size, 1, png);
-						fclose(png);
-						fprintf(stdout, "Writing file dump.png\n");
-					}
+			nb_pass = 0;
+			nb_views = gf_term_get_option(term, GF_OPT_NUM_STEREO_VIEWS);
+			if (nb_views>1) {
+				fprintf(stdout, "Auto-stereo mode detected - type number of view to dump (0 is main output, 1 to %d offscreen view, %d for all offscreen, %d for all offscreen and main)\n", nb_views, nb_views+1, nb_views+2);
+				if (scanf("%d", &offscreen_view) != 1) {
+					offscreen_view = 0;
 				}
-				if (dst) gf_free(dst);
-				gf_term_release_screen_buffer(term, &fb);
+				if (offscreen_view==nb_views+1) {
+					offscreen_view = 1;
+					nb_pass = nb_views;
+				}
+				else if (offscreen_view==nb_views+2) {
+					offscreen_view = 0;
+					nb_pass = nb_views+1;
+				}
 			}
+			while (nb_pass) {
+				nb_pass--;
+				if (offscreen_view) {
+					sprintf(szFileName, "view%d_dump.png", offscreen_view);
+					e = gf_term_get_offscreen_buffer(term, &fb, offscreen_view-1, 0);
+				} else {
+					sprintf(szFileName, "video_dump.png");
+					e = gf_term_get_screen_buffer(term, &fb);
+				}
+				offscreen_view++;
+				if (e) {
+					fprintf(stdout, "Error dumping screen buffer %s\n", gf_error_to_string(e) );
+					nb_pass = 0;
+				} else {
+					u32 dst_size = fb.width*fb.height*3;
+					char *dst = (char*)gf_malloc(sizeof(char)*dst_size);
+
+					e = gf_img_png_enc(fb.video_buffer, fb.width, fb.height, fb.pitch_y, fb.pixel_format, dst, &dst_size);
+					if (e) {
+						fprintf(stdout, "Error encoding PNG %s\n", gf_error_to_string(e) );
+						nb_pass = 0;
+					} else {
+						FILE *png = gf_f64_open(szFileName, "wb");
+						if (!png) {
+							fprintf(stdout, "Error writing file %s\n", szFileName);
+							nb_pass = 0;
+						} else {
+							fwrite(dst, dst_size, 1, png);
+							fclose(png);
+							fprintf(stdout, "Dump to %s\n", szFileName);
+						}
+					}
+					if (dst) gf_free(dst);
+					gf_term_release_screen_buffer(term, &fb);
+				}
+			}
+			fprintf(stdout, "Done\n", szFileName);
 		}
 			break;
 

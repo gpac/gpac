@@ -293,6 +293,9 @@ enum
 	GF_OPT_COLLISION,
 	/*set/get gravity*/
 	GF_OPT_GRAVITY,
+
+	/*get the number of offscreen views in stereo mode, or 1 if no offscreen stereo views are available*/
+	GF_OPT_NUM_STEREO_VIEWS,
 };
 
 #ifdef __cplusplus
