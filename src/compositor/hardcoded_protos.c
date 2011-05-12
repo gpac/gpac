@@ -889,6 +889,8 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 		GF_Matrix mx_model;
 		GF_Camera backup_cam;
 
+		if (!tr_state->camera) return;
+
 		gf_mx_copy(mx_model, tr_state->model_matrix);
 		gf_mx_init(tr_state->model_matrix);
 
@@ -897,6 +899,8 @@ static void TraverseUntransform(GF_Node *node, void *rs, Bool is_destroy)
 
 		camera_invalidate(tr_state->camera);
 		tr_state->camera->is_3D=0;
+		tr_state->camera->flags |= CAM_NO_LOOKAT;
+		tr_state->camera->end_zoom = FIX_ONE;
 		camera_update(tr_state->camera, NULL, 1, 0, 0, 0, GF_3D_CAMERA_STRAIGHT);
 
 

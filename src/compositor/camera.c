@@ -275,24 +275,26 @@ void camera_update(GF_Camera *cam, GF_Matrix2D *user_transform, Bool center_coor
 		gf_mx_ortho(&cam->projection, -hw, hw, -hh, hh, cam->z_near, cam->z_far);
 
 		/*setup modelview*/
-#ifdef FORCE_CAMERA_3D
-		gf_mx_lookat(&cam->modelview, cam->position, cam->target, cam->up);
-#else
 		gf_mx_init(cam->modelview);
+#ifdef FORCE_CAMERA_3D
+		if (! (cam->flags & CAM_NO_LOOKAT))
+			gf_mx_lookat(&cam->modelview, cam->position, cam->target, cam->up);
 #endif
+
 		if (!center_coords) {
 			gf_mx_add_scale(&post_model_view, 1, -1, 1);
 			gf_mx_add_translation(&post_model_view, -hw, -hh, 0);
 		}
 		if (user_transform) {
 #ifdef FORCE_CAMERA_3D
-			GF_Matrix mx;
-			gf_mx_from_mx2d(&mx, user_transform);
-			mx.m[10] = mx.m[0]; 
-			gf_mx_add_matrix(&post_model_view, &mx);
-#else
-			gf_mx_add_matrix_2d(&post_model_view, user_transform);
+			if (! (cam->flags & CAM_NO_LOOKAT)) {
+				GF_Matrix mx;
+				gf_mx_from_mx2d(&mx, user_transform);
+				mx.m[10] = mx.m[0]; 
+				gf_mx_add_matrix(&post_model_view, &mx);
+			} else
 #endif
+				gf_mx_add_matrix_2d(&post_model_view, user_transform);
 		}
 		if (cam->end_zoom != FIX_ONE) gf_mx_add_scale(&post_model_view, cam->end_zoom, cam->end_zoom, cam->end_zoom);
 		if (cam->flags & CAM_HAS_VIEWPORT) gf_mx_add_matrix(&post_model_view, &cam->viewport);
