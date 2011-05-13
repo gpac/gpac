@@ -273,6 +273,14 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		case GF_KEY_MEDIAPREVIOUSTRACK:
 			pFrame->m_pPlayList->PlayPrev();
 			break;
+		case GF_KEY_H:
+			if ((evt->key.flags & GF_KEY_MOD_CTRL) && gpac->m_isopen)
+				gf_term_switch_quality(gpac->m_term, 1);
+			break;
+		case GF_KEY_L:
+			if ((evt->key.flags & GF_KEY_MOD_CTRL) && gpac->m_isopen)
+				gf_term_switch_quality(gpac->m_term, 0);
+			break;
 		}
 		break;
 	case GF_EVENT_NAVIGATE:
@@ -298,7 +306,6 @@ Bool Osmo4_EventProc(void *priv, GF_Event *evt)
 		UserPassDialog passdlg;
 		return passdlg.GetPassword(evt->auth.site_url, evt->auth.user, evt->auth.password);
 	}
-
 	}
 	return 0;
 }
