@@ -331,6 +331,8 @@ static Bool enum_dir_fct(void *cbck, char *file_name, char *file_path)
 	JSObject *obj;
 	enum_dir_cbk *cbk = (enum_dir_cbk*)cbck;
 
+	if (file_name && (file_name[0]=='.')) return 0;
+
 	obj = JS_NewObject(cbk->c, 0, 0, 0);
 	s = JS_NewStringCopyZ(cbk->c, file_name);
 	JS_DefineProperty(cbk->c, obj, "name", STRING_TO_JSVAL(s), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
