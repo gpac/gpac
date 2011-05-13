@@ -1166,10 +1166,6 @@ enum
 	GF_ISOM_CONV_TYPE_PSP
 };
 
-int main( int argc, char** argv )
-{
-	return mp4boxMain( argc, argv );
-}
 
 int mp4boxMain(int argc, char **argv)
 {
@@ -3158,6 +3154,11 @@ err_exit:
 	if (file) gf_isom_delete(file);
 	fprintf(stdout, "\n\tError: %s\n", gf_error_to_string(e));
 	return 1;
+}
+
+int main( int argc, char** argv )
+{
+	return mp4boxMain( argc, argv );
 }
 
 #endif /*GPAC_DISABLE_ISOM*/
