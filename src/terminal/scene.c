@@ -29,8 +29,8 @@
 /*for URL concatenation*/
 #include <gpac/network.h>
 #include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include "media_control.h"
-#include <gpac/compositor.h>
 #include <gpac/nodes_x3d.h>
 #include <gpac/options.h>
 
