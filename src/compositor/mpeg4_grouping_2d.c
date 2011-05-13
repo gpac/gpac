@@ -98,6 +98,7 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (!children) return;
 	if (whichChoice==-2) {
+#ifndef GPAC_DISABLE_3D
 		if (tr_state->visual->autostereo_type) {
 			u32 idx;
 			u32 count = gf_node_list_get_count(children);
@@ -107,7 +108,9 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 			child = (GF_Node*)gf_node_list_get_child(children, idx);
 			gf_node_traverse(child, tr_state);
 			return;
-		} else {
+		} else 
+#endif //GPAC_DISABLE_3D
+		{
 			/*fallback to first view*/
 			whichChoice=0;
 		}
