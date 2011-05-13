@@ -505,7 +505,9 @@ Section "Add Start Menu Shortcuts"
   SetShellVarContext all
   CreateDirectory "$SMPROGRAMS\Osmo4"
   CreateShortCut "$SMPROGRAMS\Osmo4\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
+  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (Classic UI).lnk" "$INSTDIR\Osmo4.exe" ""
+  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (New UI).lnk" "$INSTDIR\MP4Client.exe" "-gui" 
+  CreateShortCut "$SMPROGRAMS\Osmo4\Osmo4 (New UI With Console).lnk" "$INSTDIR\MP4Client.exe" ""
   CreateShortCut "$SMPROGRAMS\Osmo4\Readme.lnk" "$INSTDIR\ReadMe.txt"
   CreateShortCut "$SMPROGRAMS\Osmo4\License.lnk" "$INSTDIR\License.txt"
   CreateShortCut "$SMPROGRAMS\Osmo4\History.lnk" "$INSTDIR\changelog.txt"
