@@ -49,7 +49,7 @@ function scan_directory(dir)
 			if (j==count) {
 				new_wid = WidgetManager.open(uri, null);
 				if (new_wid!=null) {
-					widget_insert_icon(new_wid, 1);
+					widget_insert_icon(new_wid);
 				}
 			}
 		}
@@ -78,7 +78,7 @@ function open_widget_manager(extension)
   		var new_wid = WidgetManager.open(value, null);
 	  	if (new_wid==null) return;
 		  WidgetManager.last_widget_dir = directory;
-		  widget_insert_icon(new_wid, 0);
+		  widget_insert_icon(new_wid);
 		  dock.layout(dock.width, dock.height);
 		  open_dock(true);
     }
@@ -109,7 +109,8 @@ function open_widget_manager(extension)
 }
 
 function widget_insert_icon(new_wid) {
-	var icon = gw_new_icon_button(dock, widget_get_icon(new_wid), new_wid.name, 'button');
+	//var icon = gw_new_icon_button(dock, widget_get_icon(new_wid), new_wid.name, 'button');
+	var icon = gpacui_insert_dock_icon(new_wid.name, widget_get_icon(new_wid) );
 	new_wid.in_panel = true;
 	new_wid.visible = false;
 	new_wid.icon_dock = icon;
