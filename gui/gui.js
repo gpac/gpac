@@ -757,12 +757,14 @@ function new_player_control(container)
       }
      }
      
-     if (this.remote && UPnP.MediaRenderersCount && (current_url!='') && (min_w + time_w + this.remote.width < width)) {
+     if (this.remote) {
+      if (UPnP.MediaRenderersCount && (current_url!='') && (min_w + time_w + this.remote.width < width)) {
        min_w += this.remote.width;
        this.remote.show();
-     } else {
-       this.remote.hide();
-  	 }
+      } else {
+        this.remote.hide();
+  	  }
+ 	  }
      
 
    }   
