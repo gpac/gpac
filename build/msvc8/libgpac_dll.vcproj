@@ -82,7 +82,7 @@
 				OutputFile="../../bin/$(PlatformName)/$(ConfigurationName)/libgpac.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="&quot;../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)&quot;"
+				AdditionalLibraryDirectories="..\..\extra_lib\lib\w32_deb;&quot;../../extra_lib/lib/$(PlatformName)\$(ConfigurationName)&quot;"
 				GenerateManifest="false"
 				IgnoreAllDefaultLibraries="false"
 				ModuleDefinitionFile=""

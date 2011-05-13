@@ -76,6 +76,7 @@
 			<Tool
 				Name="VCLibrarianTool"
 				OutputFile="../../bin/$(PlatformName)\$(ConfigurationName)/libgpac_static.lib"
+				AdditionalLibraryDirectories=""
 				SuppressStartupBanner="true"
 			/>
 			<Tool
@@ -3715,6 +3716,14 @@
 			</File>
 			<File
 				RelativePath="..\..\include\gpac\internal\avilib.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\media_tools\carousel.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\include\gpac\carousel.h"
 				>
 			</File>
 			<File
