@@ -348,7 +348,7 @@ Specifies whether text shall be drawn to a texture and then rendered or directly
 <p style="text-indent: 5%">
 Read-only option listing the OpenGL extensions supported by the GL driver. Only valid after the 3D renderer has been used.
 </p>
-<b>StereoType</b> [value: <i>"None", "SideBySide", "TopToBottom", "Anaglyph", "Columns", "Rows", "Custom"</i>]
+<b>StereoType</b> [value: <i>"None", "SideBySide", "TopToBottom", "Anaglyph", "Columns", "Rows", "SPV19", "Custom"</i>]
 <p style="text-indent: 5%">
 Specifies the stereo output type (default "None"). If your graphic card does not support OpenGL shaders, only <i>SideBySide</i> and <i>TopToBottom</i> modes will be available.</p>
 <ul>
@@ -357,6 +357,7 @@ Specifies the stereo output type (default "None"). If your graphic card does not
 <li>"Anaglyph": Standard color anaglyph (red for left view, green and blue for right view) is used.</li>
 <li>"Columns": images are interleaved by columns, left view on even columns and left view on odd columns.</li>
 <li>"Rows": images are interleaved by columns, left view on even rows and left view on odd rows.</li>
+<li>"SPV19": images are interleaved by for SpatialView 19'' 5 views display, fullscreen mode.</li>
 <li>"Custom": images are interleaved according to the shader specified by <i>InterleaverShader</i>
 </ul>
 
