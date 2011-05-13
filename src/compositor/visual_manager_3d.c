@@ -550,7 +550,11 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		
 		tr_state->camera->vp.height /= tr_state->visual->nb_views;
 		tr_state->camera->vp.y += tr_state->visual->current_view * tr_state->camera->vp.height;
-		tr_state->camera->vp.y = orig_vp.height - tr_state->camera->vp.height - tr_state->camera->vp.y;
+//		tr_state->camera->vp.y = orig_vp.height - tr_state->camera->vp.height - tr_state->camera->vp.y;
+		if (tr_state->visual->compositor->visual==tr_state->visual)
+			tr_state->camera->vp.y = tr_state->visual->compositor->output_height - tr_state->camera->vp.y - tr_state->camera->vp.height;
+		else
+			tr_state->camera->vp.y = tr_state->visual->height - tr_state->camera->vp.y - tr_state->camera->vp.height;
 
 		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
 		visual_3d_set_scissor(tr_state->visual, &tr_state->camera->vp);

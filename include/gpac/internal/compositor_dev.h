@@ -1335,6 +1335,9 @@ typedef struct
 GF_Err gf_sc_add_audio_listener(GF_Compositor *compositor, GF_AudioListener *al);
 GF_Err gf_sc_remove_audio_listener(GF_Compositor *compositor, GF_AudioListener *al);
 
+
+GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bool force_size);
+
 #ifdef __cplusplus
 }
 #endif

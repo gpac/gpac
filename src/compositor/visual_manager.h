@@ -37,17 +37,20 @@
 enum 
 {
 	GF_3D_STEREO_NONE = 0,
-	GF_3D_STEREO_TOP = 1,
-	GF_3D_STEREO_SIDE = 2,
+	GF_3D_STEREO_TOP,
+	GF_3D_STEREO_SIDE,
 	/*all modes above GF_3D_STEREO_SIDE require shaders*/
 
-	/*each pixel correspond to a different view*/
-	GF_3D_STEREO_COLUMNS = 3,
-	GF_3D_STEREO_ROWS = 4,
-	/*special case of sub-pixel interleaving for 2 views*/
-	GF_3D_STEREO_ANAGLYPH = 5,
 	/*custom interleaving using GLSL shaders*/
-	GF_3D_STEREO_CUSTOM = 6,
+	GF_3D_STEREO_CUSTOM,
+	/*some built-in interleaving modes*/
+	/*each pixel correspond to a different view*/
+	GF_3D_STEREO_COLUMNS,
+	GF_3D_STEREO_ROWS,
+	/*special case of sub-pixel interleaving for 2 views*/
+	GF_3D_STEREO_ANAGLYPH,
+	/*SpatialView 19'' 5views interleaving*/
+	GF_3D_STEREO_5VSP19,
 };
 
 enum 

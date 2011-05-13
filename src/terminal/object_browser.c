@@ -195,6 +195,8 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 		info->service_handler = odm->net_service->ifce->module_name;
 		info->service_url = odm->net_service->url;
 		if (odm->net_service->owner == odm) info->owns_service = 1;
+	} else if ((odm->subscene && odm->subscene->graph_attached) || (odm->codec)) {
+		info->service_url = "No associated network Service";
 	} else {
 		info->service_url = "Service not found or error";
 	}
@@ -361,7 +363,7 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 
 	mode = xml_dump ? GF_SM_DUMP_AUTO_XML : GF_SM_DUMP_AUTO_TXT;
 	/*figure out best dump format based on extension*/
-	ext = strrchr(odm->net_service->url, '.');
+	ext = odm->net_service ? strrchr(odm->net_service->url, '.') : NULL;
 	if (ext) {
 		strcpy(szExt, ext);
 		strlwr(szExt);

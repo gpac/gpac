@@ -410,6 +410,12 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	/*render first visual frame and pause*/
 	if (pause_at_first_frame)
 		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
+
+	if (!strnicmp(URL, "views://", 8)) {
+		odm->OD = (GF_ObjectDescriptor *)gf_odf_desc_new(GF_ODF_OD_TAG);
+		gf_scene_generate_views(term->root_scene, URL+8);
+		return;
+	}
 	/*connect - we don't have any parentID */
 	gf_term_connect_object(term, odm, (char *) URL, (char*)parent_path);
 }
@@ -781,7 +787,7 @@ void gf_term_disconnect(GF_Terminal *term)
 GF_EXPORT
 const char *gf_term_get_url(GF_Terminal *term)
 {
-	if (!term || !term->root_scene) return NULL;
+	if (!term || !term->root_scene || !term->root_scene->root_od || !term->root_scene->root_od->net_service) return NULL;
 	return term->root_scene->root_od->net_service->url;
 }
 
@@ -1191,8 +1197,10 @@ Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char
 	return 0;
 }
 
-static void gf_term_cleanup_pending_session(GF_ClientService *ns)
+static void gf_term_cleanup_pending_session(GF_Terminal *term, GF_ClientService *ns)
 {
+	if (gf_list_find(term->net_services, ns)<0) return;
+
 	if (ns && ns->pending_service_session) {
 		gf_dm_sess_del(ns->pending_service_session);
 		ns->pending_service_session = NULL;
@@ -1278,11 +1286,12 @@ void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serv
 	odm->net_service->nb_odm_users++;
 	gf_term_lock_net(term, 0);
 
+	ns = odm->net_service;
 	/*OK connect*/
 	gf_term_service_media_event(odm, GF_EVENT_MEDIA_BEGIN_SESSION_SETUP);
 	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
 
-	gf_term_cleanup_pending_session(odm->net_service);
+	gf_term_cleanup_pending_session(term, ns);
 }
 
 /*connects given channel to its URL if needed*/
@@ -1313,7 +1322,7 @@ GF_Err gf_term_connect_remote_channel(GF_Terminal *term, GF_Channel *ch, char *U
 	ch->service = ns;
 	ns->ifce->ConnectService(ns->ifce, ns, ns->url);
 
-	gf_term_cleanup_pending_session(ns);
+	gf_term_cleanup_pending_session(term, ns);
 	gf_term_lock_net(term, 0);
 	return GF_OK;
 }
@@ -1459,6 +1468,7 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 	Bool net_check_interface(GF_InputService *ifce);
 	GF_Scene *scene;
 	GF_ObjectManager *odm;
+	GF_ClientService *ns;
 	if (!net_check_interface(service_hdl)) return;
 
 	if (term->root_scene) gf_term_disconnect(term);
@@ -1486,10 +1496,11 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 
 	gf_term_lock_net(term, 0);
 
+	ns = odm->net_service;
 	/*OK connect*/
 	odm->net_service->ifce->ConnectService(odm->net_service->ifce, odm->net_service, odm->net_service->url);
 
-	gf_term_cleanup_pending_session(odm->net_service);
+	gf_term_cleanup_pending_session(term, ns);
 }
 
 GF_EXPORT
@@ -1637,8 +1648,11 @@ static void gf_term_sample_scenetime(GF_Scene *scene)
 
 u32 gf_term_sample_clocks(GF_Terminal *term)
 {
-	gf_term_sample_scenetime(term->root_scene);
-	return (u32) (1000*term->root_scene->simulation_time);
+	if (term->root_scene) {
+		gf_term_sample_scenetime(term->root_scene);
+		return (u32) (1000*term->root_scene->simulation_time);
+	}
+	return 0;
 }
 
 const char *gf_term_get_text_selection(GF_Terminal *term, Bool probe_only)

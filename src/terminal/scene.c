@@ -32,6 +32,7 @@
 #include "media_control.h"
 #include <gpac/compositor.h>
 #include <gpac/nodes_x3d.h>
+#include <gpac/options.h>
 
 /*SVG properties*/
 #ifndef GPAC_DISABLE_SVG
@@ -1272,8 +1273,18 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	if (!scene->is_dynamic_scene) return;
 	gf_sg_set_scene_size_info(scene->graph, width, height, gf_sg_use_pixel_metrics(scene->graph));
 	
-	if (scene->root_od->term->root_scene == scene) 
+	if (scene->root_od->term->root_scene == scene) {
 		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+	}
+	else if (scene->root_od->parentscene && scene->root_od->parentscene->is_dynamic_scene) {
+		gf_sg_set_scene_size_info(scene->root_od->parentscene->graph, width, height, gf_sg_use_pixel_metrics(scene->root_od->parentscene->graph));
+		if (scene->root_od->term->root_scene == scene->root_od->parentscene) {
+			if (width && height) {
+				gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, 1);
+				gf_sc_set_size(scene->root_od->term->compositor, width, height);
+			}
+		}
+	}
 
 	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK);
 
@@ -1427,4 +1438,80 @@ Bool gf_scene_is_over(GF_SceneGraph *sg)
 		if (odm->subscene && !gf_scene_is_over(odm->subscene->graph) ) return 0;
 	}
 	return 1;
+}
+
+#define USE_TEXTURES	0
+
+void gf_scene_generate_views(GF_Scene *scene, char *url)
+{
+	GF_Node *n1, *switcher;
+#if USE_TEXTURES
+	GF_Node *n2;
+	M_MovieTexture *mt;
+#else
+	M_Inline *inl;
+#endif
+	GF_Event evt;
+	gf_sg_reset(scene->graph);
+
+	n1 = is_create_node(scene->graph, TAG_MPEG4_OrderedGroup, NULL);
+	gf_sg_set_root_node(scene->graph, n1);
+	gf_node_register(n1, NULL);
+
+	switcher = is_create_node(scene->graph, TAG_MPEG4_Switch, NULL);
+	gf_node_register(switcher, n1);
+	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, switcher);
+	((M_Switch*)switcher)->whichChoice = -2;
+
+	while (1) {
+		char *sep = strchr(url, ':');
+		if (sep) sep[0] = 0;
+#if USE_TEXTURES
+		/*create a shape and bitmap node*/
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Shape, NULL);
+		gf_node_list_add_child( &((M_Switch *)switcher)->choice, n2);
+		gf_node_register(n2, switcher);
+		n1 = n2;
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Appearance, NULL);
+		((M_Shape *)n1)->appearance = n2;
+		gf_node_register(n2, n1);
+
+		/*note we create a movie texture even for images...*/
+		mt = (M_MovieTexture *) is_create_node(scene->graph, TAG_MPEG4_MovieTexture, NULL);
+		mt->startTime = gf_scene_get_time(scene);
+		((M_Appearance *)n2)->texture = (GF_Node *)mt;
+		gf_node_register((GF_Node *)mt, n2);
+
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Bitmap, NULL);
+		((M_Shape *)n1)->geometry = n2;
+		gf_node_register(n2, n1);
+
+		gf_sg_vrml_mf_reset(&mt->url, GF_SG_VRML_MFURL);
+		gf_sg_vrml_mf_append(&mt->url, GF_SG_VRML_MFURL, NULL);
+		mt->url.vals[0].url = gf_strdup(url);
+#else
+		inl = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, NULL);
+		gf_node_list_add_child( &((M_Switch *)switcher)->choice, (GF_Node *)inl);
+		gf_node_register((GF_Node*) inl, switcher);
+
+		gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
+		gf_sg_vrml_mf_append(&inl->url, GF_SG_VRML_MFURL, NULL);
+		inl->url.vals[0].url = gf_strdup(url);
+#endif
+
+		if (!sep) break;
+		sep[0] = ':';
+		url = sep+1;
+	}
+
+	gf_sc_set_option(scene->root_od->term->compositor, GF_OPT_USE_OPENGL, 1);
+
+	gf_sg_set_scene_size_info(scene->graph, 0, 0, 1);
+	gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+	scene->graph_attached = 1;
+	scene->is_dynamic_scene = 1;
+
+	evt.type = GF_EVENT_CONNECT;
+	evt.connect.is_connected = 1;
+	gf_term_send_event(scene->root_od->term, &evt);
 }

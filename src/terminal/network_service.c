@@ -804,7 +804,8 @@ Bool gf_term_service_can_handle_url(GF_ClientService *ns, char *url)
 
 GF_Err gf_term_service_command(GF_ClientService *ns, GF_NetworkCommand *com)
 {
-	return ns->ifce->ServiceCommand(ns->ifce, com);
+	if (ns) return ns->ifce->ServiceCommand(ns->ifce, com);
+	return GF_OK;
 }
 GF_Err gf_term_channel_get_sl_packet(GF_ClientService *ns, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {

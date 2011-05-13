@@ -750,7 +750,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	/*for dynamic scene, force all streams to be sync on main OD stream (one timeline, no need to reload ressources)*/
 	else if (odm->term->root_scene->is_dynamic_scene) {
 		GF_ObjectManager *root_od = odm->term->root_scene->root_od;
-		if (gf_list_count(root_od->net_service->Clocks)==1) {
+		if (root_od->net_service && (gf_list_count(root_od->net_service->Clocks)==1)) {
 			ck = (GF_Clock*)gf_list_get(root_od->net_service->Clocks, 0);
 			esd->OCRESID = ck->clockID;
 			goto clock_setup;
