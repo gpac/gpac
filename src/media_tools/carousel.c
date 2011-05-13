@@ -5,6 +5,7 @@
 
 #include <gpac/carousel.h>
 
+
 GF_M2TS_ES *gf_ait_section_new()
 {
 	GF_M2TS_ES *es;
@@ -15,6 +16,7 @@ GF_M2TS_ES *gf_ait_section_new()
 	es->flags = GF_M2TS_ES_IS_SECTION;
 	return es;
 }
+
 
 void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par) 
 {
@@ -33,12 +35,9 @@ void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	}
 }
 
-void static gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, unsigned char  *data, u32 data_size, u32 table_id)
+void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *ait, unsigned char  *data, u32 data_size, u32 table_id)
 {
-	/*GF_M2TS_SL_PCK *pck = (GF_M2TS_SL_PCK *)par;
-	unsigned char *data;
-	u32 u32_data_size;
-	u32 u32_table_id;*/
+	
 	GF_BitStream *bs;
 	u8 temp_descriptor_tag;
 	u32 data_shift, app_desc_data_shift;
