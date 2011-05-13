@@ -158,10 +158,5 @@ typedef struct
 void gf_m2ts_process_ait(GF_M2TS_Demuxer *ts, GF_M2TS_AIT *es, unsigned char  *data, u32 data_size, u32 table_id);
 void on_ait_section(GF_M2TS_Demuxer *ts, u32 evt_type, void *par);
 
-/*void gf_dvb_mpe_init(GF_M2TS_Demuxer *ts);
-void gf_dvb_mpe_shutdown(GF_M2TS_Demuxer *ts);
-GF_M2TS_ES *gf_dvb_mpe_section_new();
-void gf_dvb_mpe_section_del(GF_M2TS_ES *es);
-void gf_m2ts_print_mpe_info(GF_M2TS_Demuxer *ts);*/
 
 #endif	//_GF_CAROUSSEL_H_
