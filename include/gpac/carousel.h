@@ -68,7 +68,7 @@ typedef struct
 
 } GF_M2TS_AIT;
 
-enum {
+typedef enum {
 	FUTURE_USE = 0x00,
 	CAROUSEL = 0x01,
 	RESERVED = 0x02,
