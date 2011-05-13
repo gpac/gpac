@@ -2417,7 +2417,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
     sess->window_start = sess->start_time = gf_sys_clock();
     sess->bytes_in_wnd = 0;
 
-	fprintf(stdout, "HTTP response: \n %s \n, %d bytes of body follow\n", sHTTP, bytesRead - BodyStart);
     /* we may have existing data in this buffer ... */
     if (!e && (BodyStart < (s32) bytesRead)) {
         gf_dm_data_received(sess, sHTTP + BodyStart, bytesRead - BodyStart);
