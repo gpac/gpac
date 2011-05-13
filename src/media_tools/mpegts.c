@@ -24,6 +24,11 @@
 
 #include <gpac/mpegts.h>
 
+#define GPAC_HBBTV
+#ifdef GPAC_HBBTV
+#include <gpac/carousel.h>
+#endif
+
 #ifndef GPAC_DISABLE_MPEG2TS
 
 #include <gpac/constants.h>
@@ -752,7 +757,16 @@ static void gf_m2ts_reset_sdt(GF_M2TS_Demuxer *ts)
 static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses)
 {
 	if (!sec->process_section) {
-		if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
+		if ((ts->on_event && (sec->section[0]==GF_M2TS_TABLE_ID_AIT)) )
+		{				
+			GF_M2TS_SL_PCK pck;
+			ts->on_event = on_ait_section;
+			pck.data_len = sec->length;
+			pck.data = sec->section;
+			pck.stream = (GF_M2TS_ES *)ses;
+			ts->on_event(ts, GF_M2TS_EVT_AIT_FOUND, &pck);
+
+		}else if (ts->on_mpe_event && ((ses && (ses->flags & GF_M2TS_EVT_DVB_MPE)) || (sec->section[0]==GF_M2TS_TABLE_ID_INT)) ) {
 			GF_M2TS_SL_PCK pck;
 			pck.data_len = sec->length;
 			pck.data = sec->section;
@@ -1279,6 +1293,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 
 		case GF_M2TS_13818_6_ANNEX_D:
 		case GF_M2TS_PRIVATE_SECTION:
+#ifdef GPAC_HBBTV
+			es = gf_ait_section_new();
+			((GF_M2TS_SECTION_ES*)es)->sec = gf_m2ts_section_filter_new(NULL, 0);
+#else
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
 			es = (GF_M2TS_ES *)ses;
 			es->flags |= GF_M2TS_ES_IS_SECTION;
@@ -1288,6 +1306,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				printf("unknown private section: pid = %d \n", pid);
 			/* NULL means: trigger the call to on_event with DVB_GENERAL type and the raw section as payload */
 			ses->sec = gf_m2ts_section_filter_new(NULL, 1);
+#endif
 			break;
 
 		case GF_M2TS_MPE_SECTIONS:
@@ -1874,6 +1893,9 @@ static void gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			} else if (hdr.pid == GF_M2TS_PID_TDT_TOT_ST) {
 				gf_m2ts_gather_section(ts, ts->tdt_tot_st, NULL, &hdr, data, payload_size);
 			} else {
+#ifdef GPAC_HBBTV
+				//gf_m2ts_gather_section(ts, ts->ait, NULL, &hdr, data, payload_size);		
+#endif
 				/* ignore packet */
 			}
 		} else if (es->flags & GF_M2TS_ES_IS_SECTION) { 	/* The stream uses sections to carry its payload */
