@@ -1550,8 +1550,13 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 	case GF_TERM_EXT_START:
 		opt = gf_modules_get_option((GF_BaseInterface*)termext, "UPnP", "Enabled");
 		if (!opt) {
+#ifdef GPAC_CONFIG_DARWIN
+			opt = "no";
+			fprintf(stdout, "Disabling UPnP - to enable it, modify section [UPnP] key \"Enabled\" in /Users/yourname/.gpacrc");
+#else
 			opt = "yes";
-			gf_modules_set_option((GF_BaseInterface*)termext, "UPnP", "Enabled", "yes");
+#endif
+		gf_modules_set_option((GF_BaseInterface*)termext, "UPnP", "Enabled", "yes");
 		}
 		if (!strcmp(opt, "yes")) {
 			upnp->Load((GF_Terminal *)param);
