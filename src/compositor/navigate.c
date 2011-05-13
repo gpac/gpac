@@ -218,6 +218,8 @@ Bool gf_sc_fit_world_to_screen(GF_Compositor *compositor)
 
 	if (!tr_state.bbox.is_set) {
 		gf_mx_v(compositor->mx);
+		/*empty world ...*/
+		if (tr_state.bbox.radius==-1) return 1;
 		return 0;
 	}
 

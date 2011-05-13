@@ -467,6 +467,7 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 	/*not parent (eg form, layout...) sub-tree not dirty and getting bounds, direct copy */
 	else if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		tr_state->bbox = group->bbox;
+		if (!tr_state->bbox.is_set) tr_state->bbox.radius=-1.0;
 		gf_node_dirty_clear(node, 0);
 		return;
 	}
