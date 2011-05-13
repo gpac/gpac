@@ -1213,6 +1213,8 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
 		compositor->visual->nb_views = 1;
 	}
+	if (compositor->visual->autostereo_type) 
+		compositor->force_opengl_2d = 1;
 
 	switch (compositor->visual->autostereo_type) {
 	case GF_3D_STEREO_ANAGLYPH:
@@ -1237,7 +1239,8 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ReverseViews");
 	if (sOpt && !strcmp(sOpt, "yes")) compositor->visual->reverse_views = 1;
-#endif
+
+#endif //GPAC_DISABLE_3D
 	
 #ifdef GF_SR_USE_DEPTH
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "AutoStereoCalibration");
