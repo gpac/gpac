@@ -1565,6 +1565,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_create_span) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_refresh_span_bounds) )
 
+/*download.h exports*/
+ #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget) )
+ #pragma comment (linker, EXPORT_SYMBOL(gf_dm_wget_with_cache) )
+
 /* dvb_mpe.h */
 #ifdef GPAC_ENST_PRIVATE
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_section_del) )
@@ -1573,3 +1577,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dvb_mpe_shutdown) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_print_mpe_info) )
 #endif
+
+/* carousel.h */
+#pragma comment (linker, EXPORT_SYMBOL(on_ait_section) )
+
+
