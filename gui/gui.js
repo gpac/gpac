@@ -107,10 +107,13 @@ function filter_event(evt)
   return false;
  case GF_EVENT_KEYUP:
 //  alert(evt.keycode);
+  //commented out as HOME is used for viewpoint reset
+/*
   if (evt.keycode=='Home') {
     open_dock(!dock.visible);
     return true;
   }
+*/
   if (evt.keycode=='Up') {
    if (dock.visible) return false;
     if (player_control.visible) {
