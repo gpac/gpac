@@ -1556,7 +1556,7 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 #else
 			opt = "yes";
 #endif
-		gf_modules_set_option((GF_BaseInterface*)termext, "UPnP", "Enabled", "yes");
+			gf_modules_set_option((GF_BaseInterface*)termext, "UPnP", "Enabled", opt);
 		}
 		if (!strcmp(opt, "yes")) {
 			upnp->Load((GF_Terminal *)param);
