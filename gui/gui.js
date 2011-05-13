@@ -95,15 +95,16 @@ function filter_event(evt)
    {
     open_dock(false);
     if (player_control.visible) {
-      player_control.hide();
+      //player_control.hide();
       top_wnd = null;
     } else {
       player_control.show();
       top_wnd = player_control;
     }
    }
+   return false;
   }
-  return true;
+  return false;
  case GF_EVENT_KEYUP:
 //  alert(evt.keycode);
   if (evt.keycode=='Home') {
@@ -149,7 +150,9 @@ function open_dock(show)
 {
  if (show) {
   dock.show();
+  dock.layout();
   player_control.hide();
+  set_movie_url('');
   top_wnd = dock;
 //  uidisplay.hide();
  } else {
@@ -164,14 +167,16 @@ function open_dock(show)
 
 function gpacui_insert_dock_icon(label, icon)
 {
-  if (0) {
+  if (1) {
     var wnd = gw_new_window(dock, true, 'offscreen');
     var icon = gw_new_icon_button(wnd, icon, label, 'osdbutton');
     wnd.set_size(icon.width, icon.height);
     wnd.show();
+    dock.set_size(display_width, display_height);
     return icon;
   } else {
     var icon = gw_new_icon_button(dock, icon, label, 'osdbutton');
+    dock.set_size(display_width, display_height);
     return icon;
   }
 }
@@ -333,8 +338,9 @@ function initialize() {
       if (url.indexOf('://')<0) set_movie_url('gpac://'+url);
       else set_movie_url(url);
     } else {
-     open_dock(true);
-    }
+//     open_dock(true);
+        player_control.show();
+  }
 }
 
 
@@ -740,6 +746,22 @@ function new_player_control(container)
      if (this.forward) this.forward.hide();
      if (this.fullscreen) this.fullscreen.hide();
   	 if (this.remote) this.remote.hide();
+  	 
+     if (this.view && movie_connected && (gpac.navigation_type!= GF_NAVIGATE_TYPE_NONE) ) {
+      if (min_w + time_w + this.view.width < width) {
+       min_w += this.view.width;
+       this.view.show();
+      }
+     }
+     
+     if (this.remote && UPnP.MediaRenderersCount && (current_url!='') && (min_w + time_w + this.remote.width < width)) {
+       min_w += this.remote.width;
+       this.remote.show();
+     } else {
+       this.remote.hide();
+  	 }
+     
+
    }   
    width += control_icon_size/2;
    this.infobar.set_size(width, height);
