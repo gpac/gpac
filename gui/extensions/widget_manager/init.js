@@ -85,6 +85,7 @@ function open_widget_manager(extension)
     filebrowse.on_directory = function(directory) {
   		WidgetManager.last_widget_dir = directory;
    		scan_directory(directory);
+		  open_dock(true);
     }
     filebrowse.set_size(320 , 240);
     gpacui_show_window(filebrowse);
