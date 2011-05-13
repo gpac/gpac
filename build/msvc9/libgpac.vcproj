@@ -4723,6 +4723,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\media_tools\carousel.c"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\media_tools\carousel.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\media_tools\mpegts.c"
 				>
 				<FileConfiguration
