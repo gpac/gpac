@@ -564,7 +564,7 @@ void svg_pause_video(GF_Node *n, Bool pause)
 typedef struct
 {
 	GF_AudioInput input;
-	Bool is_active;
+	Bool is_active, is_error;
 	MFURL aurl;
 } SVG_audio_stack;
 
@@ -580,7 +580,7 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 	
 	switch (status) {
 	case SMIL_TIMING_EVAL_UPDATE:
-		if (!stack->is_active) { 
+		if (!stack->is_active && !stack->is_error) { 
 			if (stack->aurl.count) {
 				SVGAllAttributes atts;
 				gf_svg_flatten_attributes((SVG_Element*) (video ? video : audio), &atts);
@@ -591,6 +591,8 @@ static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_sc
 				{
 					gf_mo_set_speed(stack->input.stream, FIX_ONE);
 					stack->is_active = 1;
+				} else {
+					stack->is_error = 1;
 				}
 			}
 		}
@@ -663,6 +665,8 @@ static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGP
 		if (stack->is_active) 
 			gf_sc_audio_stop(&stack->input);
 
+		stack->is_error = 0;
+		
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
 		gf_term_get_mfurl_from_xlink(node, &(stack->aurl));
 
