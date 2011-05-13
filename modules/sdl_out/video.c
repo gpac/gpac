@@ -1026,6 +1026,8 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	case GF_EVENT_SIZE:
 		SDLVid_ResizeWindow(dr, evt->size.width, evt->size.height);
 		break;
+	case GF_EVENT_MOVE:
+		break;
 	case GF_EVENT_VIDEO_SETUP:
 	{
 		SDLVID();
