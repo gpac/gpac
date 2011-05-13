@@ -64,7 +64,8 @@ typedef struct
 	GF_Event *evt;
 
 	JSContext *c;
-	JSObject *obj, *evt_obj;
+	JSObject *evt_filter_obj, *evt_obj;
+	JSObject *gpac_obj;
 } GF_GPACJSExt;
 
 
@@ -682,12 +683,12 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 
 	if (gjs->evt != NULL) return 0;
 	gf_sg_lock_javascript(gjs->c, 1);
-	
+
 	rval = JSVAL_VOID;
 	gjs->evt = evt;
 	JS_SetPrivate(gjs->c, gjs->evt_obj, gjs);
 	argv[0] = OBJECT_TO_JSVAL(gjs->evt_obj);
-	JS_CallFunctionValue(gjs->c, gjs->obj, gjs->evt_fun, 1, argv, &rval);
+	JS_CallFunctionValue(gjs->c, gjs->evt_filter_obj, gjs->evt_fun, 1, argv, &rval);
 	JS_SetPrivate(gjs->c, gjs->evt_obj, NULL);
 	gjs->evt = NULL;
 
@@ -712,7 +713,7 @@ static JSBool SMJS_FUNCTION(gpac_set_event_filter)
 	if (gjs->evt_fun) return JS_TRUE;
 
 	gjs->evt_fun = argv[0];
-	gjs->obj = obj;
+	gjs->evt_filter_obj = obj;
 	gjs->c = c;
 	gjs->evt_filter.udta = gjs;
 	gjs->evt_filter.on_event = gjs_event_filter;
@@ -788,8 +789,6 @@ static JSBool SMJS_FUNCTION(gpac_get_scene)
 static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext *c, JSObject *global, Bool unload)
 {
 	GF_GPACJSExt *gjs;
-	JSObject *obj;
-
 	GF_JSAPIParam par;
 
 	JSPropertySpec gpacEvtClassProps[] = {
@@ -842,13 +841,6 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		return;
 	}
 
-	/*FIXME - this was possible in previous version of SpiderMonkey, don't know how to fix that for new ones*/
-#if (JS_VERSION>=185)
-	if (gjs->nb_loaded) {
-		gjs->nb_loaded++;
-		return;
-	}
-#endif
 	gjs->nb_loaded++;
 
 	if (!scene) return;
@@ -856,52 +848,57 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 
 	JS_SETUP_CLASS(gjs->gpacClass, "GPAC", JSCLASS_HAS_PRIVATE, gpac_getProperty, gpac_setProperty, JS_FinalizeStub);
 
-	JS_InitClass(c, global, 0, &gjs->gpacClass, 0, 0, gpacClassProps, gpacClassFuncs, 0, 0);
-	obj = JS_DefineObject(c, global, "gpac", &gjs->gpacClass, 0, 0);
+	if (!gjs->gpac_obj) {
+		JS_InitClass(c, global, 0, &gjs->gpacClass, 0, 0, gpacClassProps, gpacClassFuncs, 0, 0);
+		gjs->gpac_obj = JS_DefineObject(c, global, "gpac", &gjs->gpacClass, 0, 0);
 
-	if (scene->script_action) {
-		if (scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_TERM, scene->RootNode, &par)) {
-			gjs->term = par.term;
+		if (scene->script_action) {
+			if (scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_TERM, scene->RootNode, &par)) {
+				gjs->term = par.term;
+			}
 		}
+		JS_SetPrivate(c, gjs->gpac_obj, gjs);
+	} else {
+		JS_DefineProperty(c, global, "gpac", OBJECT_TO_JSVAL(gjs->gpac_obj), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 	}
-	JS_SetPrivate(c, obj, gjs);
 
-
-	JS_SETUP_CLASS(gjs->gpacEvtClass, "GPACEVT", JSCLASS_HAS_PRIVATE, gpacevt_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
-	JS_InitClass(c, global, 0, &gjs->gpacEvtClass, 0, 0, gpacEvtClassProps, gpacEvtClassFuncs, 0, 0);
-	gjs->evt_obj = JS_DefineObject(c, global, "gpacevt", &gjs->gpacEvtClass, 0, 0);
+	if (!gjs->evt_obj) {
+		JS_SETUP_CLASS(gjs->gpacEvtClass, "GPACEVT", JSCLASS_HAS_PRIVATE, gpacevt_getProperty, JS_PropertyStub_forSetter, JS_FinalizeStub);
+		JS_InitClass(c, global, 0, &gjs->gpacEvtClass, 0, 0, gpacEvtClassProps, gpacEvtClassFuncs, 0, 0);
+		gjs->evt_obj = JS_DefineObject(c, global, "gpacevt", &gjs->gpacEvtClass, 0, 0);
 
 #define DECLARE_GPAC_CONST(name) \
-	JS_DefineProperty(c, global, #name, INT_TO_JSVAL(name), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, global, #name, INT_TO_JSVAL(name), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 
-	DECLARE_GPAC_CONST(GF_EVENT_CLICK);
-	DECLARE_GPAC_CONST(GF_EVENT_MOUSEUP);
-	DECLARE_GPAC_CONST(GF_EVENT_MOUSEDOWN);
-	DECLARE_GPAC_CONST(GF_EVENT_MOUSEMOVE);
-	DECLARE_GPAC_CONST(GF_EVENT_MOUSEWHEEL);
-	DECLARE_GPAC_CONST(GF_EVENT_KEYUP);
-	DECLARE_GPAC_CONST(GF_EVENT_KEYDOWN);
-	DECLARE_GPAC_CONST(GF_EVENT_TEXTINPUT);
-	DECLARE_GPAC_CONST(GF_EVENT_CONNECT);
-	DECLARE_GPAC_CONST(GF_EVENT_NAVIGATE_INFO);
-	DECLARE_GPAC_CONST(GF_EVENT_NAVIGATE);
+		DECLARE_GPAC_CONST(GF_EVENT_CLICK);
+		DECLARE_GPAC_CONST(GF_EVENT_MOUSEUP);
+		DECLARE_GPAC_CONST(GF_EVENT_MOUSEDOWN);
+		DECLARE_GPAC_CONST(GF_EVENT_MOUSEMOVE);
+		DECLARE_GPAC_CONST(GF_EVENT_MOUSEWHEEL);
+		DECLARE_GPAC_CONST(GF_EVENT_KEYUP);
+		DECLARE_GPAC_CONST(GF_EVENT_KEYDOWN);
+		DECLARE_GPAC_CONST(GF_EVENT_TEXTINPUT);
+		DECLARE_GPAC_CONST(GF_EVENT_CONNECT);
+		DECLARE_GPAC_CONST(GF_EVENT_NAVIGATE_INFO);
+		DECLARE_GPAC_CONST(GF_EVENT_NAVIGATE);
 
-	DECLARE_GPAC_CONST(GF_NAVIGATE_NONE);
-	DECLARE_GPAC_CONST(GF_NAVIGATE_WALK);
-	DECLARE_GPAC_CONST(GF_NAVIGATE_FLY);
-	DECLARE_GPAC_CONST(GF_NAVIGATE_PAN);
-	DECLARE_GPAC_CONST(GF_NAVIGATE_GAME);
-	DECLARE_GPAC_CONST(GF_NAVIGATE_SLIDE);
-	DECLARE_GPAC_CONST(GF_NAVIGATE_EXAMINE);
-	DECLARE_GPAC_CONST(GF_NAVIGATE_ORBIT);
-	DECLARE_GPAC_CONST(GF_NAVIGATE_VR);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_NONE);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_WALK);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_FLY);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_PAN);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_GAME);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_SLIDE);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_EXAMINE);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_ORBIT);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_VR);
 
-	DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_NONE);
-	DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_2D);
-	DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_3D);
-	
-	JS_SETUP_CLASS(gjs->anyClass, "GPACOBJECT", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
-	JS_InitClass(c, global, 0, &gjs->anyClass, 0, 0, 0, 0, 0, 0);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_NONE);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_2D);
+		DECLARE_GPAC_CONST(GF_NAVIGATE_TYPE_3D);
+		
+		JS_SETUP_CLASS(gjs->anyClass, "GPACOBJECT", JSCLASS_HAS_PRIVATE, JS_PropertyStub, JS_PropertyStub_forSetter, JS_FinalizeStub);
+		JS_InitClass(c, global, 0, &gjs->anyClass, 0, 0, 0, 0, 0, 0);
+		}
 }
 
 
