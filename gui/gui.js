@@ -739,9 +739,7 @@ function new_player_control(container)
       this.view.show();
      }
    } else {
-     if (this.media_line.visible)
-       this.media_line.set_size(width - min_w - 5, control_icon_size/3);
-     
+        
      if (this.snd_low) this.snd_low.hide();
      if (this.snd_ctrl) this.snd_ctrl.hide();
      if (this.rewind) this.rewind.hide();
@@ -764,8 +762,10 @@ function new_player_control(container)
       } else {
         this.remote.hide();
   	  }
- 	  }
+ 	   }
      
+     if (this.media_line.visible)
+       this.media_line.set_size(width - min_w - 5, control_icon_size/3);
 
    }   
    width += control_icon_size/2;
