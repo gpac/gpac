@@ -4022,10 +4022,8 @@ restart_import:
 		case GF_AVC_NALU_SEI:
 			if (avc.sps_active_idx != -1) {
 				copy_size = AVC_ReformatSEI_NALU(buffer, nal_size, &avc);
-				if (copy_size) {
-					nal_size = copy_size; /*nal_size has been modified in memory*/
+				if (copy_size)
 					nb_sei++;
-				}
 			}
 			break;
 
@@ -4221,7 +4219,6 @@ restart_import:
 
 			switch (nal_type) {
 			case GF_AVC_NALU_SVC_SLICE:
-				nal_size = nal_size;
 			case GF_AVC_NALU_NON_IDR_SLICE:
 			case GF_AVC_NALU_DP_A_SLICE:
 			case GF_AVC_NALU_DP_B_SLICE:
@@ -4319,7 +4316,7 @@ restart_import:
 		/*consume next start code*/
 		nal_start = AVC_NextStartCode(bs);
 		if (nal_start) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid nal_size? Skipping "LLU" bytes to reach next start code\n", nal_start));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[avc-h264] invalid nal_size (%u)? Skipping "LLU" bytes to reach next start code\n", nal_size, nal_start));
 			gf_bs_skip_bytes(bs, nal_start);
 		}
 		nal_start = AVC_IsStartCode(bs);
