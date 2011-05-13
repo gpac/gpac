@@ -52,7 +52,6 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 		gf_free(st);
 		return;
 	}
-	
 
 	if (gf_node_get_name(node)) {
 		node = node;
@@ -97,7 +96,23 @@ static void TraverseSwitch(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->switched_off = prev_switch;
 	}
 
-	if (children && (whichChoice>=0)) {
+	if (!children) return;
+	if (whichChoice==-2) {
+		if (tr_state->visual->autostereo_type) {
+			u32 idx;
+			u32 count = gf_node_list_get_count(children);
+			/*this should be a bit more subtle (reusing views if missing, ...)...*/
+			idx = tr_state->visual->current_view % count;
+
+			child = (GF_Node*)gf_node_list_get_child(children, idx);
+			gf_node_traverse(child, tr_state);
+			return;
+		} else {
+			/*fallback to first view*/
+			whichChoice=0;
+		}
+	}
+	if (whichChoice>=0) {
 		child = (GF_Node*)gf_node_list_get_child(children, whichChoice);
 		gf_node_traverse(child, tr_state);
 	}

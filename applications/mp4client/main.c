@@ -180,6 +180,10 @@ void PrintUsage()
 		"\t-loop:          loops presentation\n"
 		"\t-no-regulation: disables framerate regulation\n"
 		"\t-fs:	           starts in fullscreen mode\n"
+		"\t-views v1:.:vN: creates an auto-stereo scene of N views. vN can be any type of URL supported by GPAC. \n"
+		"                    in this mode, URL argument of GPAC is ignored, GUI as well.\n"
+		"                    this is equivalent as using views://v1:.:N as an URL.\n"
+		"\n"
 		"\t-exit:          automatically exits when presentation is over\n"
 		"\t-run-for TIME:  runs for TIME seconds and exits\n"
 		"\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
@@ -1103,7 +1107,7 @@ int main (int argc, char **argv)
 	Bool enable_mem_tracker = 0;
 	Double fps = 25.0;
 	Bool ret, fill_ar, visible;
-	char *url_arg, *the_cfg, *rti_file;
+	char *url_arg, *the_cfg, *rti_file, *views;
 	GF_SystemRTInfo rti;
 	FILE *playlist = NULL;
 	FILE *logfile = NULL;
@@ -1119,7 +1123,7 @@ int main (int argc, char **argv)
 
 	dump_mode = 0;
 	fill_ar = visible = 0;
-	url_arg = the_cfg = rti_file = NULL;
+	url_arg = the_cfg = rti_file = views = NULL;
 	nb_times = 0;
 	times[0] = 0;
 
@@ -1270,6 +1274,10 @@ int main (int argc, char **argv)
 			}
 			i++;
 		}
+		else if (!stricmp(arg, "-views")) {
+			views = argv[i+1];
+			i++;
+		}
 		else if (!stricmp(arg, "-run-for")) {
 			simulation_time = atoi(argv[i+1]);
 			i++;
@@ -1281,7 +1289,7 @@ int main (int argc, char **argv)
 			fprintf(stdout, "Unrecognized option %s - skipping\n", arg);
 		}
 	}
-	if (dump_mode && !url_arg) {
+	if (dump_mode && !url_arg ) {
 		fprintf(stdout, "Missing argument for dump\n");
 		PrintUsage();
 		if (logfile) fclose(logfile);
@@ -1406,7 +1414,8 @@ int main (int argc, char **argv)
 	} else
 
 	/*connect if requested*/
-	if (!gui_mode && url_arg) {
+	if (views) {
+	} else if (!gui_mode && url_arg) {
 		char *ext;
 
 		strcpy(the_url, url_arg);
@@ -1445,6 +1454,12 @@ int main (int argc, char **argv)
 	if (gui_mode==2) gui_mode=0;
 
 	if (start_fs) gf_term_set_option(term, GF_OPT_FULLSCREEN, 1);
+
+	if (views) {
+		char szTemp[4046];
+		sprintf(szTemp, "views://%s", views);
+		gf_term_connect(term, szTemp);
+	}
 
 	while (Run) {		
 		/*we don't want getchar to block*/

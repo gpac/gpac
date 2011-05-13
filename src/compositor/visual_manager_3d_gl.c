@@ -355,6 +355,31 @@ static char *glsl_view_rows = "\
 			gl_FragColor = texture2D(gfView2, gl_TexCoord[0].st); \
 	}";
 
+static char *glsl_view_5VSP19 = "\
+	uniform sampler2D gfView1;\
+	uniform sampler2D gfView2;\
+	uniform sampler2D gfView3;\
+	uniform sampler2D gfView4;\
+	uniform sampler2D gfView5;\
+	void main(void) {\
+	vec4 color[5];\
+	color[0] = texture2D(gfView5, gl_TexCoord[0].st);\
+	color[1] = texture2D(gfView4, gl_TexCoord[0].st);\
+	color[2] = texture2D(gfView3, gl_TexCoord[0].st);\
+	color[3] = texture2D(gfView2, gl_TexCoord[0].st);\
+	color[4] = texture2D(gfView1, gl_TexCoord[0].st);\
+	float pitch = 5.0 + 1.0  - mod(gl_FragCoord.y , 5.0);\
+	int col = int( mod(pitch + 3.0 * (gl_FragCoord.x), 5.0 ) );\
+	int Vr = int(col);\
+	int Vg = int(col) + 1;\
+	int Vb = int(col) + 2;\
+	if (Vg >= 5) Vg -= 5;\
+	if (Vb >= 5) Vb -= 5;\
+	gl_FragColor.r = color[Vr].r;\
+	gl_FragColor.g = color[Vg].g;\
+	gl_FragColor.b = color[Vb].b;\
+	}";
+
 
 Bool visual_3d_compile_shader(u32 shader_id, const char *name, const char *source)
 {
@@ -404,6 +429,10 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 	case GF_3D_STEREO_ANAGLYPH:
 		visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
 		visual_3d_compile_shader(visual->glsl_fragment, "fragment", glsl_view_anaglyph);
+		break;
+	case GF_3D_STEREO_5VSP19:
+		visual->glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+		visual_3d_compile_shader(visual->glsl_fragment, "fragment", glsl_view_5VSP19);
 		break;
 	case GF_3D_STEREO_CUSTOM:
 	{
@@ -499,7 +528,7 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 	mesh_new_rectangle(visual->autostereo_mesh, s, NULL, 0);
 //	mesh_new_ellipse(visual->autostereo_mesh, s.x, s.y, 0);
 
-	fprintf(stdout, "AutoStereo initialized - width %d height %d\n",visual->auto_stereo_width, visual->auto_stereo_height);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual3D] AutoStereo initialized - width %d height %d\n", visual->auto_stereo_width, visual->auto_stereo_height) );
 
 	visual_3d_init_shaders(visual);
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_OGL_ES)
@@ -838,7 +867,8 @@ void VS3D_DrawMeshIntern(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		/*we lost OpenGL context at previous frame, recreate VBO*/
 		mesh->vbo = 0;
 	}
-	if (!mesh->vbo && compositor->gl_caps.vbo) {
+	/*rebuild VBO for large ojects only (we basically filter quads out)*/
+	if ((mesh->v_count>4) && !mesh->vbo && compositor->gl_caps.vbo) {
 		glGenBuffers(1, &mesh->vbo);
 		if (mesh->vbo) {
 			glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);

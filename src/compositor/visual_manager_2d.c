@@ -151,10 +151,7 @@ void visual_2d_drawable_delete(GF_VisualManager *visual, struct _drawable *drawa
 	while (ctx && ctx->drawable) {
 		/*remove visual registration flag*/
 		if (ctx->drawable == drawable) {
-			if (ctx->flags & CTX_HAS_APPEARANCE) {
-				ctx->flags = 0;
-				gf_node_dirty_reset(ctx->appear, 0);
-			}
+			ctx->flags = 0;
 			ctx->drawable = NULL;
 		}
 		ctx = ctx->next;

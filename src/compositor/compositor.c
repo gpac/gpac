@@ -637,7 +637,7 @@ u32 gf_sc_get_clock(GF_Compositor *compositor)
 	return gf_sc_ar_get_clock(compositor->audio_renderer);
 }
 
-static GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height)
+GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Height, Bool force_size)
 {
 	if (!Width || !Height) {
 		if (compositor->override_size_flags) {
@@ -653,6 +653,7 @@ static GF_Err gf_sc_set_scene_size(GF_Compositor *compositor, u32 Width, u32 Hei
 		compositor->scene_height = Height;
 		compositor->scene_width = Width;
 	}
+	if (force_size) compositor->has_size_info = 1;
 	return GF_OK;
 }
 
@@ -899,7 +900,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		/*set scene size only if different, otherwise keep scaling/FS*/
 		if ( !width || (compositor->scene_width!=width) || !height || (compositor->scene_height!=height)) {
 			do_notif = do_notif || compositor->has_size_info || (!compositor->scene_width && !compositor->scene_height);
-			gf_sc_set_scene_size(compositor, width, height);
+			gf_sc_set_scene_size(compositor, width, height, 0);
 
 			/*get actual size in pixels*/
 			width = compositor->scene_width;
@@ -1201,10 +1202,13 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	}
 	if (!strcmp(sOpt, "SideBySide")) compositor->visual->autostereo_type = GF_3D_STEREO_SIDE;
 	else if (!strcmp(sOpt, "TopToBottom")) compositor->visual->autostereo_type = GF_3D_STEREO_TOP;
+	else if (!strcmp(sOpt, "Custom")) compositor->visual->autostereo_type = GF_3D_STEREO_CUSTOM;
+	/*built-in interleavers*/
 	else if (!strcmp(sOpt, "Anaglyph")) compositor->visual->autostereo_type = GF_3D_STEREO_ANAGLYPH;
 	else if (!strcmp(sOpt, "Columns")) compositor->visual->autostereo_type = GF_3D_STEREO_COLUMNS;
 	else if (!strcmp(sOpt, "Rows")) compositor->visual->autostereo_type = GF_3D_STEREO_ROWS;
-	else if (!strcmp(sOpt, "Custom")) compositor->visual->autostereo_type = GF_3D_STEREO_CUSTOM;
+	else if (!strcmp(sOpt, "SPV19")) compositor->visual->autostereo_type = GF_3D_STEREO_5VSP19;
+	
 	else {
 		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
 		compositor->visual->nb_views = 1;

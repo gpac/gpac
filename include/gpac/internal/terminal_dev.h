@@ -1004,6 +1004,9 @@ void gf_term_service_media_event(GF_ObjectManager *odm, u32 event_type);
 /*checks the URL and returns the ODID (MPEG-4 od://) or GF_MEDIA_EXTERNAL_ID for all regular URLs*/
 u32 gf_mo_get_od_id(MFURL *url);
 
+void gf_scene_generate_views(GF_Scene *scene, char *url);
+
+
 #ifdef __cplusplus
 }
 #endif
