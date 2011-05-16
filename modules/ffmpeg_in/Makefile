@@ -2,7 +2,7 @@ include ../../config.mak
 
 vpath %.c $(SRC_PATH)/modules/ffmpeg_in
 
-CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include"
+CFLAGS=$(OPTFLAGS) -I"$(SRC_PATH)/include" $(ffmpeg_cflags)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -15,7 +15,7 @@ LDFLAGS+=-pg
 endif
 
 LOCAL_LIB=
-LINKLIBS=-lgpac -lavcodec -lavformat -lavutil -lz
+LINKLIBS=-lgpac -lz $(ffmpeg_lflags)
 
 #darwin needs bz2
 ifeq ($(CONFIG_DARWIN),yes)
@@ -24,7 +24,7 @@ endif
 
 #old ffmpeg lib
 ifeq ($(CONFIG_FFMPEG_OLD), yes)
-CFLAGS+=-DFFMPEG_OLD_HEADERS
+CFLAGS+=-DFFMPEG_OLD_HEADERS -I/usr/include
 else
 LINKLIBS+=-lswscale
 endif

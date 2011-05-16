@@ -962,7 +962,7 @@ if pkg-config --exists libavcodec libavformat libswscale 2> /dev/null  ; then
   ffmpeg_lflags=`pkg-config --libs libavcodec libavformat libswscale libavutil`
   has_ffmpeg="system"
 
-else
+fi
 
 cat > $TMPC << EOF
 #include <libavcodec/avcodec.h>
@@ -979,8 +979,6 @@ cat > $TMPC << EOF
 #include <ffmpeg/avcodec.h>
 int main( void ) { return 0; }
 EOF
-
-fi
 
 
 if test "$cross_prefix"  != "" ; then
