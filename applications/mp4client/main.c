@@ -1483,7 +1483,7 @@ int main (int argc, char **argv)
 				gf_sleep(rti_update_time_ms);
 			}
 			/*sim time*/
-			if (simulation_time && (gf_term_get_time_in_ms(term)>simulation_time)) {
+			if (simulation_time && (gf_term_get_time_in_ms(term)>1000*simulation_time)) {
 				Run = 0;
 			}
 			continue;
@@ -1882,7 +1882,7 @@ force_input:
 					gf_term_release_screen_buffer(term, &fb);
 				}
 			}
-			fprintf(stdout, "Done\n", szFileName);
+			fprintf(stdout, "Done: %s\n", szFileName);
 		}
 			break;
 
